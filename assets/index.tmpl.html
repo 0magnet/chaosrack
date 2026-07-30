@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D Strange Attractor Visualizer — 30+ Chaotic Systems, Editable Equations (WebAssembly)</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZmYzYjZiIi8+PHN0b3Agb2Zmc2V0PSIwLjUiIHN0b3AtY29sb3I9IiNiMDYwZmYiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzNWI4ZmYiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxMyIgZmlsbD0iIzBhMGMxMiIvPjxwYXRoIGQ9Ik0yMy40NCwyNy44MCBMMjQuNzIsMzEuNzcgTDI0Ljc2LDM0Ljg3IEwyMy42NywzNi41MyBMMjEuNjAsMzUuOTYgTDE4Ljg2LDMyLjMxIEwxNi41MywyNi4xMCBMMTYuMjksMjEuMDggTDE4LjYwLDIwLjg5IEwyMS44MiwyNC40NCBMMjQuMjIsMjguOTQgTDI1LjI2LDMyLjk5IEwyNS4wMywzNi4wMSBMMjMuNjgsMzcuNDUgTDIxLjMwLDM2LjQwIEwxOC4yOSwzMS44OSBMMTUuOTUsMjQuODQgTDE2LjE2LDE5Ljk2IEwxOS4wNiwyMC43MyBMMjIuNTUsMjQuOTkgTDI0LjkxLDI5LjgwIEwyNS44MSwzMy45NyBMMjUuNDMsMzcuMDUgTDIzLjkyLDM4LjQ4IEwyMS4zMywzNy4yNSBMMTguMDIsMzIuMTkgTDE1LjQ2LDI0LjI1IEwxNS44MywxOS4wMCBMMTkuMTcsMjAuMjIgTDIzLjAwLDI1LjAzIEwyNS41MCwzMC4xOCBMMjYuNDMsMzQuNjAgTDI2LjA3LDM3LjkzIEwyNC41OCwzOS42OSBMMjEuOTMsMzguODYgTDE4LjM0LDMzLjkyIEwxNS4xNiwyNS4wOCBMMTUuMDQsMTguMjYgTDE4LjU2LDE4LjkzIEwyMi45MywyNC4xMCBMMjUuOTAsMjkuNzIgTDI3LjE0LDM0LjU2IEwyNy4wNSwzOC4zOSBMMjUuODcsNDAuOTAgTDIzLjUxLDQxLjI5IEwxOS45MCwzNy45MiBMMTUuNzYsMjkuMjUgTDEzLjgyLDE5LjEwIEwxNi40OCwxNi41MCBMMjEuNTksMjEuMjkgTDI1LjY4LDI3LjYwIEwyNy43OCwzMy4xNiBMMjguMzUsMzcuNzQgTDI3Ljg1LDQxLjMyIEwyNi4zNyw0My42MCBMMjMuNjgsNDMuNjUgTDE5LjUwLDM5LjM1IEwxNC42OCwyOC41MyBMMTIuNzgsMTYuNTUgTDE2LjYyLDE1LjA0IEwyMi43NSwyMS40MiBMMjcuMTcsMjguMzYgTDI5LjM1LDM0LjE2IEwzMC4wOCwzOC45NSBMMzAuMDIsNDIuOTAgTDI5LjM3LDQ2LjA4IEwyOC4wMiw0OC4zMiBMMjUuNTUsNDguOTQgTDIxLjI4LDQ1LjgyIEwxNS4xOSwzNC42OSBMMTAuNzIsMTYuODQgTDEzLjkxLDEwLjU3IEwyMi4wMCwxOC4wNSBMMjguMjksMjYuMzkgTDMxLjU5LDMyLjc0IEwzMy4yMiwzNy43MSBMMzQuMzcsNDEuNjMgTDM1LjgxLDQ0LjQzIEwzOC4xMiw0NS41NCBMNDEuODcsNDMuMzAgTDQ3LjA2LDM0LjYwIEw1MS4xNiwyMC4xNiBMNDkuNDUsMTIuOTQgTDQyLjk3LDE3LjkwIEwzNy4xNywyNS41OCBMMzMuOTUsMzIuMDMgTDMyLjU1LDM3LjI4IEwzMi4wNCw0MS42NCBMMzEuOTAsNDUuMjkgTDMxLjkwLDQ4LjM1IEwzMS45OSw1MC45MSBMMzIuMTksNTMuMDUgTDMyLjU4LDU0LjgyIEwzMy4zNSw1Ni4yMSBMMzQuODYsNTcuMDAgTDM3Ljg1LDU2LjI0IEw0My40NSw1MC40NCBMNTEuNzAsMzEuODggTDU1LjY4LDcuNDAgTDQ3LjU2LDguMzEgTDM2Ljc0LDE5Ljk2IEwzMC4yNiwyNy42MSBMMjcuMDQsMzIuMzEgTDI1LjAwLDM1LjE0IEwyMi45MSwzNS45NSBMMjAuMzUsMzQuMDggTDE3LjcxLDI5LjIzIEwxNi4zMiwyMy40MSBMMTcuMzYsMjAuNzggTDIwLjE5LDIyLjY0IEwyMi45OSwyNi43MCBMMjQuNjQsMzAuODkgTDI0Ljk5LDM0LjM0IEwyNC4xOSwzNi41MCBMMjIuMzMsMzYuNjcgTDE5LjY1LDMzLjg3IEwxNi45NiwyNy45NyBMMTUuOTUsMjEuOTAgTDE3LjcwLDIwLjIyIEwyMC45OSwyMy4xNCBMMjMuODAsMjcuNjkgTDI1LjI1LDMyLjAzIEwyNS4zNywzNS40NyBMMjQuMzQsMzcuNTIgTDIyLjIyLDM3LjM4IEwxOS4yNCwzMy45NCBMMTYuMzgsMjcuMTIgTDE1LjYwLDIwLjcwIEwxNy45MSwxOS42OSBMMjEuNTgsMjMuMzggTDI0LjQ3LDI4LjM0IEwyNS44NSwzMi44NyBMMjUuODcsMzYuNDMgTDI0LjczLDM4LjU4IEwyMi40OCwzOC40OCBMMTkuMjQsMzQuODIgTDE2LjAzLDI3LjIzIEwxNS4wOSwxOS45MSBMMTcuNjgsMTguODMgTDIxLjc4LDIzLjAwIEwyNC45NSwyOC4zOSBMMjYuNDcsMzMuMjMgTDI2LjU5LDM3LjA5IEwyNS41NSwzOS42NSBMMjMuMzYsNDAuMTQgTDIwLjAxLDM3LjExIEwxNi4yMiwyOS4zNSBMMTQuMzUsMjAuMTYgTDE2LjU4LDE3LjM2IEwyMS4xOCwyMS40MyBMMjUuMDMsMjcuMzIgTDI3LjA2LDMyLjY4IEwyNy41NiwzNy4wOCBMMjYuOTEsNDAuMzggTDI1LjE5LDQyLjExIEwyMi4yMCw0MS4xMSBMMTguMDEsMzUuMjggTDE0LjE3LDI0LjM4IEwxNC4xNCwxNi4xNSBMMTguNjMsMTcuNjcgTDIzLjg0LDIzLjk3IEwyNy4xOCwzMC4yMSBMMjguNjEsMzUuNDUgTDI4Ljc3LDM5LjczIEwyOC4wMiw0My4wMyBMMjYuMzIsNDQuOTkgTDIzLjMxLDQ0LjUwIEwxOC43MSwzOS4wMyBMMTMuNzAsMjYuNDYgTDEyLjU0LDE0LjU0IEwxNy41MSwxNS4xMCBMMjMuOTcsMjIuNDEgTDI4LjIyLDI5LjQxIEwzMC4yMywzNS4xMSBMMzAuOTgsMzkuODIgTDMxLjE0LDQzLjc1IEwzMC45OSw0Ny4wNCBMMzAuNTgsNDkuNzUgTDI5Ljc3LDUxLjkwIEwyOC4yMyw1My4yNyBMMjUuMzMsNTIuOTQgTDIwLjEzLDQ3Ljg0IEwxMi43NywzMS44NCBMOC45OCwxMC41MCBMMTUuNDcsOS40MSBMMjUuMTcsMTkuODAgTDMxLjM3LDI3Ljg0IEwzNC40OCwzMy4zMiBMMzYuMzYsMzcuMTggTDM4LjI4LDM5LjM3IEw0MC45NCwzOS4xMCBMNDQuNDgsMzQuOTMgTDQ3Ljg4LDI2LjU0IEw0OC42MywxOC45MSBMNDUuNTcsMTguNDQgTDQxLjE1LDIzLjIyIEwzNy45MiwyOC44OCBMMzYuNDMsMzMuODUgTDM2LjM1LDM3LjgzIEwzNy4zNyw0MC41NiBMMzkuNTQsNDEuMzIgTDQyLjk4LDM4LjYyIEw0Ny4xMywzMC43MSBMNDkuNTcsMjAuMzAgTDQ3LjU1LDE2LjM1IEw0Mi41NywyMC40NiBMMzguMjUsMjYuNzQgTDM1LjkwLDMyLjQyIEwzNS4xNiwzNy4xMiBMMzUuNTQsNDAuODMgTDM2LjkwLDQzLjI4IEwzOS40NCw0My42NiBMNDMuNDQsMzkuOTkgTDQ4LjI2LDI5LjkyIEw1MC42NywxNy41OCBMNDcuNDIsMTQuNzUgTDQxLjM1LDIwLjY2IEwzNi43MCwyNy42NyBMMzQuMzMsMzMuNTcgTDMzLjUwLDM4LjQ0IEwzMy41Miw0Mi40NyBMMzQuMTcsNDUuNjkgTDM1LjUzLDQ3Ljk1IEwzOC4wNCw0OC41NCBMNDIuMzIsNDUuMzIgTDQ4LjM1LDM0LjEyIEw1Mi42MCwxNi42OCBMNDkuMzAsMTAuOTEgTDQxLjM1LDE4LjM0IEwzNS4yMSwyNi41NyBMMzIuMDEsMzIuODkgTDMwLjQ0LDM3Ljg3IEwyOS4zNiw0MS44NCBMMjguMDUsNDQuNzcgTDI1LjkzLDQ2LjIwIEwyMi40MCw0NC42OCBMMTcuMjQsMzcuMDcgTDEyLjQyLDIyLjM4IEwxMy4wMSwxMi41OCBMMTkuMzcsMTYuMzkgTDI1LjczLDI0LjMyIEwyOS40NSwzMS4wNyBMMzEuMTUsMzYuNTAgTDMxLjg4LDQwLjk5IEwzMi4yOCw0NC43MyBMMzIuNzEsNDcuODMgTDMzLjQwLDUwLjMzIEwzNC42Niw1Mi4xNCBMMzcuMDEsNTIuNjYgTDQxLjMwLDQ5LjgxIEw0OC4wMywzOC4zOCBMNTMuOTUsMTYuOTEgTDUxLjAwLDcuNzIgTDQxLjQ4LDE2LjQwIEwzNC4wNSwyNS41MCBMMzAuMTcsMzEuNzkgTDI4LjEwLDM2LjMxIEwyNi4zNywzOS4zNSBMMjQuMTAsNDAuNDQgTDIwLjg0LDM4LjI5IEwxNi45MCwzMS4zNiBMMTQuMzMsMjEuNjMgTDE1Ljc0LDE3LjAyIEwyMC4yNSwyMC4yMSBMMjQuNDksMjYuMTMgTDI2LjkyLDMxLjcxIEwyNy43MSwzNi4zNiBMMjcuMzEsMzkuOTYgTDI1Ljg2LDQyLjE5IEwyMy4yMCw0Mi4xMCBMMTkuMjEsMzcuNzEgTDE0Ljg4LDI3LjU2IEwxMy40OCwxNy4yMCBMMTcuMTMsMTYuMjQgTDIyLjY3LDIyLjExIEwyNi42NSwyOC42NSBMMjguNTcsMzQuMjEgTDI5LjA2LDM4LjgwIEwyOC42Miw0Mi40NSBMMjcuMzIsNDUuMDEgTDI0LjkwLDQ1Ljc1IEwyMC45MCw0Mi43NSBMMTUuNTYsMzIuODEgTDExLjk5LDE4LjE1IEwxNC43MiwxMi45MiBMMjEuNTEsMTguOTcgTDI3LjAwLDI2LjYxIEwyOS45MiwzMi44NyBMMzEuMTcsMzcuOTggTDMxLjY1LDQyLjIyIEwzMS44Nyw0NS43OCBMMzIuMDQsNDguNzUgTDMyLjI5LDUxLjI0IEwzMi43Myw1My4yOSBMMzMuNTgsNTQuODggTDM1LjIzLDU1Ljc2IEwzOC40Myw1NC44MiBMNDQuMjUsNDguMjQgTDUyLjI0LDI4Ljg3IEw1NC45NSw3LjAwIEw0Ni40MCw5Ljk0IEwzNi4yOCwyMS4wNCBMMzAuMzgsMjguNDMgTDI3LjQyLDMzLjE5IEwyNS40NSwzNi4xOCBMMjMuMzEsMzcuMTcgTDIwLjU1LDM1LjMwIEwxNy41NCwyOS45MyBMMTUuNzgsMjMuMDcgTDE2Ljg0LDE5Ljc2IEwyMC4wOCwyMS44MiBMMjMuMzAsMjYuMzggTDI1LjIyLDMxLjAyIEwyNS43MSwzNC44NyBMMjUuMDAsMzcuNTAgTDIzLjE4LDM4LjI0IEwyMC4zMywzNS45NiBMMTcuMDksMjkuODEgTDE1LjI4LDIyLjE1IEwxNi43MCwxOC45MSBMMjAuNDAsMjEuNjIgTDIzLjg2LDI2LjY2IEwyNS44MywzMS41OCBMMjYuMzEsMzUuNjQgTDI1LjU4LDM4LjQ5IEwyMy43MywzOS41MCBMMjAuNzQsMzcuNDQgTDE3LjEyLDMxLjAzIEwxNC43NywyMi4xOSBMMTYuMDMsMTcuODcgTDIwLjExLDIwLjYxIEwyNC4wNiwyNi4xMSBMMjYuMzYsMzEuNDQgTDI3LjA4LDM1Ljg5IEwyNi41NywzOS4yNCBMMjQuOTYsNDEuMDIgTDIyLjEzLDQwLjE0IEwxOC4yMCwzNC43NyBMMTQuNjQsMjQuODIgTDE0LjUwLDE3LjEzIEwxOC41MiwxOC4xNSBMMjMuMzgsMjMuOTQgTDI2LjU4LDI5LjkzIEwyNy45NSwzNS4wMyBMMjguMDAsMzkuMTUgTDI3LjA0LDQyLjE0IEwyNC45OSw0My40MyBMMjEuNTgsNDEuNTcgTDE2Ljk0LDM0LjA3IEwxMy4yNCwyMS42NyBMMTQuMzcsMTQuNjggTDE5Ljg2LDE4LjI3IEwyNS4xNywyNS4yNSBMMjguMjUsMzEuNTEgTDI5LjUwLDM2LjcwIEwyOS42Nyw0MC45NyBMMjkuMTEsNDQuNDAgTDI3Ljc5LDQ2LjgzIEwyNS4zNyw0Ny41OCBMMjEuMjYsNDQuNjcgTDE1LjUwLDM0LjI4IEwxMS4yOSwxNy44MCBMMTQuMDcsMTEuNTAgTDIxLjU2LDE4LjE4IEwyNy42MCwyNi4yOSBMMzAuODEsMzIuNjggTDMyLjMxLDM3Ljc4IEwzMy4xOSw0MS45NCBMMzQuMTIsNDUuMjQgTDM1LjU4LDQ3LjU1IEwzOC4xMSw0OC4xNiBMNDIuMzcsNDQuOTQgTDQ4LjMyLDMzLjg1IEw1Mi40NSwxNi44MCBMNDkuMTksMTEuMTkgTDQxLjM5LDE4LjQ2IEwzNS4zNiwyNi42MiBMMzIuMjAsMzIuOTQgTDMwLjY4LDM3Ljk0IEwyOS42OCw0MS45NyBMMjguNTAsNDUuMDMgTDI2LjYwLDQ2LjgwIEwyMy4zOCw0Ni4wNiBMMTguMzksMzkuODcgTDEyLjkzLDI1LjY1IEwxMi4wMSwxMi44NSBMMTcuODYsMTQuNTUgTDI0Ljg2LDIyLjY2IEwyOS4yMywyOS44MSBMMzEuMzIsMzUuNDggTDMyLjI5LDQwLjExIEwzMi45Myw0My45MyBMMzMuNzIsNDcuMDEgTDM1LjAzLDQ5LjIzIEwzNy4zNyw1MC4wMiBMNDEuNDgsNDcuNDMgTDQ3LjY2LDM3LjAyIEw1Mi45MiwxOC4yMiBMNTAuNTIsOS41NyBMNDIuMTQsMTYuODAgTDM1LjI1LDI1LjU0IEwzMS41NywzMi4wNSBMMjkuNzIsMzcuMDMgTDI4LjM4LDQwLjg0IEwyNi43MCw0My4zNCBMMjQuMDUsNDMuNzIgTDE5Ljk5LDQwLjAyIEwxNS4xNCwyOS44NiBMMTIuNzQsMTcuNDYgTDE2LjA0LDE0LjcxIEwyMi4xNSwyMC42OSBMMjYuODAsMjcuNzEgTDI5LjE3LDMzLjYxIEwzMC4wMSwzOC40OSBMMzAuMDAsNDIuNTIgTDI5LjM4LDQ1Ljc2IEwyOC4wOCw0OC4wNyBMMjUuNjcsNDguODEgTDIxLjUxLDQ1Ljk2IEwxNS41MCwzNS4zNSBMMTAuODUsMTcuNjUgTDEzLjYyLDEwLjU1IEwyMS41OSwxNy42NiBMMjguMDAsMjYuMDUgTDMxLjQwLDMyLjQ5IEwzMy4wNiwzNy41MyBMMzQuMTksNDEuNTIgTDM1LjU0LDQ0LjQ0IEwzNy43MSw0NS44MSBMNDEuMjgsNDQuMTIgTDQ2LjQyLDM2LjI5IEw1MC45OSwyMS44MiBMNTAuMTEsMTIuODEgTDQzLjc5LDE2Ljg3IEwzNy42NCwyNC42NyBMMzQuMDksMzEuMzIgTDMyLjQ5LDM2LjcwIEwzMS44Niw0MS4xNiBMMzEuNjAsNDQuODggTDMxLjQxLDQ4LjAwIEwzMS4xNyw1MC42MSBMMzAuNzQsNTIuNzYgTDI5Ljk0LDU0LjQ2IEwyOC4zOCw1NS40NiBMMjUuMzYsNTQuODAgTDE5LjgzLDQ5LjAzIEwxMS45MywzMS4wOSBMOC4zMiw4LjI2IEwxNi4wNCw5LjA2IEwyNi4zMywyMC4yMCBMMzIuNTcsMjcuOTQgTDM1LjY5LDMyLjkzIEwzNy42OCwzNi4xNSBMMzkuNzcsMzcuNDMgTDQyLjQ5LDM1Ljk2IEw0NS42MCwzMC44OSBMNDcuNjksMjMuNzQgTDQ2Ljk5LDE5LjY0IEw0My44MSwyMS4yMSBMNDAuNDAsMjUuNzQgTDM4LjI2LDMwLjUzIEwzNy41NywzNC41OCBMMzguMTIsMzcuNDcgTDM5LjgwLDM4LjYwIEw0Mi41NiwzNi44NyBMNDUuOTEsMzEuMTkgTDQ4LjIwLDIzLjEzIEw0Ny4zMSwxOC43MCBMNDMuNjgsMjAuNzQgTDM5Ljk1LDI1Ljc4IEwzNy42NywzMC44OSBMMzYuOTMsMzUuMjAgTDM3LjQ1LDM4LjM3IEwzOS4wOSwzOS44OCBMNDEuOTAsMzguNjIgTDQ1LjU5LDMzLjA0IEw0OC41NywyMy45MSBMNDguMTgsMTcuODEgTDQ0LjMyLDE5LjM3IEw0MC4wMCwyNC44MSBMMzcuMjQsMzAuNDAgTDM2LjE3LDM1LjE1IEwzNi4zOSwzOC44NyBMMzcuNjksNDEuMjIgTDQwLjE4LDQxLjM1IEw0My45MywzNy40OCBMNDguMDYsMjguMjYgTDQ5LjY2LDE4LjMxIEw0Ni41NSwxNi42MSBMNDEuMzQsMjEuODQgTDM3LjQwLDI4LjE3IEwzNS40NSwzMy42NyBMMzQuOTgsMzguMTkgTDM1LjU0LDQxLjcxIEwzNy4wNiw0My45MyBMMzkuODIsNDMuODkgTDQ0LjA5LDM5LjM3IEw0OC45NywyOC4xOCBMNTAuNzUsMTYuMTEgTDQ2LjY4LDE0Ljk4IEw0MC40NSwyMS41OSBMMzYuMDQsMjguNTcgTDMzLjg5LDM0LjM1IEwzMy4xNSwzOS4xMyBMMzMuMTYsNDMuMTAgTDMzLjcwLDQ2LjMyIEwzNC44NCw0OC43MiBMMzYuOTcsNDkuODIgTDQwLjc1LDQ3Ljk3IEw0Ni42MywzOS4xMyBMNTIuNDAsMjEuMDkgTDUxLjQwLDkuNzAgTDQzLjQ3LDE1LjQyIEwzNi4xNiwyNC4zOCBMMzIuMDksMzEuMjAgTDMwLjA4LDM2LjQwIEwyOC43Niw0MC40MyBMMjcuMjMsNDMuMjUgTDI0Ljg1LDQ0LjI0IEwyMS4xMCw0MS43MSBMMTYuMTcsMzIuOTcgTDEyLjY5LDE5LjczIEwxNC43MywxMy45OCBMMjAuODAsMTguODkgTDI2LjA3LDI2LjE1IEwyOC45NiwzMi4zNyBMMzAuMTIsMzcuNDkgTDMwLjM0LDQxLjczIEwyOS45OCw0NS4yMiBMMjkuMDgsNDcuOTQgTDI3LjM1LDQ5LjYwIEwyNC4yNCw0OS4xMCBMMTkuMDYsNDMuMjkgTDEyLjY3LDI3Ljg5IEwxMC42NCwxMS40OCBMMTYuOTQsMTIuMzcgTDI1LjEwLDIxLjQ4IEwzMC4yMywyOS4wNSBMMzIuNzgsMzQuNzQgTDM0LjIxLDM5LjE3IEwzNS41Nyw0Mi40NiBMMzcuNTcsNDQuMjMgTDQwLjc4LDQzLjI4IEw0NS40MywzNy4wNiBMNDkuOTcsMjQuNDUgTDUwLjIwLDE0LjQ5IEw0NC45OSwxNi4zOCBMMzkuMDAsMjMuNTYgTDM1LjI1LDMwLjI0IEwzMy41NiwzNS43MyBMMzMuMDUsNDAuMjggTDMzLjIwLDQ0LjA1IEwzMy44NCw0Ny4wOSBMMzUuMTUsNDkuMjYgTDM3LjU1LDQ5Ljk0IEw0MS43Nyw0Ny4wNyBMNDguMDEsMzYuMTQgTDUzLjAyLDE3LjMyIEw1MC4xNCw5LjcyIEw0MS43MSwxNy4zMSBMMzUuMDEsMjUuOTMgTDMxLjQ3LDMyLjM1IEwyOS42OCwzNy4yOCBMMjguMzUsNDEuMDQgTDI2LjY0LDQzLjQ3IEwyMy45NSw0My43NiBMMTkuODQsMzkuODYgTDE0Ljk3LDI5LjQ1IEwxMi43MiwxNy4xMiBMMTYuMjEsMTQuNzYgTDIyLjM2LDIwLjkxIEwyNi45NSwyNy45MiBMMjkuMjYsMzMuODAgTDMwLjA4LDM4LjY1IEwzMC4wNiw0Mi42NiBMMjkuNDYsNDUuODkgTDI4LjE5LDQ4LjIyIEwyNS44Myw0OS4wNCBMMjEuNzQsNDYuMzkgTDE1LjczLDM2LjA4IEwxMC44NCwxOC4yMSBMMTMuMzEsMTAuMzIgTDIxLjMyLDE3LjI0IEwyNy45MCwyNS43NSBMMzEuNDIsMzIuMjUgTDMzLjE0LDM3LjMyIEwzNC4zMSw0MS4zMSBMMzUuNzEsNDQuMjAgTDM3Ljk1LDQ1LjQ2IEw0MS41OSw0My41MiBMNDYuNzEsMzUuMzQgTDUxLjAwLDIxLjA2IEw0OS43MywxMy4wMyBMNDMuNDEsMTcuNDUgTDM3LjQ5LDI1LjEzIEwzNC4xMywzMS42NiBMMzIuNjYsMzYuOTcgTDMyLjEzLDQxLjM4IEwzMi4wMCw0NS4wNyBMMzIuMDYsNDguMTYgTDMyLjI1LDUwLjc0IEwzMi42Myw1Mi44OCBMMzMuMzgsNTQuNTcgTDM0Ljg0LDU1LjY0IEwzNy42OCw1NS4yMCBMNDIuOTUsNTAuMTcgTDUwLjgxLDMzLjQ5IEw1NS4zNSw5LjUyIEw0OC40Niw4LjAwIEwzNy44NywxOS4yNCBMMzEuMjAsMjcuMzIgTDI3Ljg3LDMyLjQ3IEwyNS44MywzNS43OSBMMjMuNzcsMzcuMjEgTDIxLjEzLDM1Ljk2IEwxOC4wOCwzMS4yMiBMMTUuOTEsMjQuMjUgTDE2LjM5LDE5LjkwIEwxOS40MCwyMS4xMSBMMjIuNzgsMjUuNDUgTDI0Ljk5LDMwLjE5IEwyNS43NCwzNC4yNCBMMjUuMjUsMzcuMTYgTDIzLjY0LDM4LjM0IEwyMC45NiwzNi43NSBMMTcuNjgsMzEuMzEgTDE1LjM5LDIzLjQ3IEwxNi4xNCwxOC45NiBMMTkuNjIsMjAuNzUgTDIzLjMwLDI1LjYzIEwyNS41OSwzMC42OCBMMjYuMzUsMzQuOTUgTDI1Ljg1LDM4LjA5IEwyNC4yMywzOS41NiBMMjEuNDUsMzguMjYgTDE3Ljg0LDMyLjc0IEwxNC45OSwyMy44OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ1cmwoI2cpIiBzdHJva2Utd2lkdGg9IjEuMTUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC45NSIvPjwvc3ZnPg==">
+<meta name="description" content="Interactive 3D strange-attractor visualizer that runs in your browser via WebAssembly. Rotate, zoom, and explore 30+ chaotic systems — Lorenz, Rossler, Chua, Aizawa, all 18 Sprott cases, the 4D hyperchaotic Rossler, Thomas, Halvorsen, Chen, and more — or type your own differential equations. Real-time WebGL rendering with audio-reactive modulation and shareable links.">
+<meta name="keywords" content="strange attractor, chaotic attractor, 3D attractor visualizer, chaos theory, dynamical systems, differential equations, ODE, phase portrait, WebAssembly, WASM, WebGL, Go, TinyGo, Lorenz attractor, Rossler attractor, hyperchaos, hyper-Rossler, Chua circuit, Aizawa, Sprott attractors, Sprott system, Thomas attractor, Halvorsen, Chen attractor, Dadras, Rabinovich-Fabrikant, Burke-Shaw, Lissajous, custom equation, editable equation, audio reactive, oscilloscope, analog computer, attractor generator">
+<meta name="author" content="0magnet">
+<meta property="og:title" content="3D Strange Attractor Visualizer — 30+ Chaotic Systems, Editable Equations">
+<meta property="og:description" content="Rotate and explore 30+ strange attractors in real-time 3D (Lorenz, Rossler, all Sprott cases, 4D hyperchaos, and more), or type your own ODEs. Browser-based, WebAssembly + WebGL, audio-reactive, shareable.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://0magnet.github.io/wasm-stuff/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="3D Strange Attractor Visualizer — 30+ Chaotic Systems, Editable Equations">
+<meta name="twitter:description" content="Rotate and explore 30+ strange attractors in real-time 3D, or type your own differential equations. WebAssembly + WebGL, audio-reactive, shareable links.">
+<link rel="canonical" href="https://0magnet.github.io/wasm-stuff/{{.Page.CanonicalPath}}">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"WASM Stuff — 3D Strange Attractor Visualizer","url":"https://0magnet.github.io/wasm-stuff/","applicationCategory":"EducationalApplication","operatingSystem":"Any (modern web browser)","browserRequirements":"Requires WebGL and WebAssembly","description":"Interactive browser-based 3D visualizer for chaotic strange attractors — Lorenz, Rossler, Chua, Aizawa, all 18 Sprott systems, the 4D hyperchaotic Rossler, Thomas, Halvorsen, Chen, Dadras, Rabinovich-Fabrikant, Burke-Shaw — plus a mode to type your own differential equations. Real-time WebGL rendering with audio-reactive parameter modulation.","author":{"@type":"Person","name":"0magnet"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+</script>
+<style>
+body, html {
+margin: 0;
+padding: 0;
+width: 100%;
+height: 100%;
+background-color: black;
+color: white;
+}
+</style>
+{{if .Page.Dual}}
+<script title="go-wasm_exec.js">
+{{.Page.GoWasmExecJs}}
+</script>
+<script>window.__GoStd = Go;</script>
+<script title="tinygo-wasm_exec.js">
+{{.Page.TinyWasmExecJs}}
+</script>
+<script>window.__GoTiny = Go;</script>
+<script>
+if (!WebAssembly.instantiateStreaming) {
+  WebAssembly.instantiateStreaming = async (resp, importObject) => {
+    const source = await (await resp).arrayBuffer();
+    return await WebAssembly.instantiate(source, importObject);
+  };
+}
+window.__WASM_DEBUG__ = {{.Page.Debug}};
+// Both runtimes are embedded; ?wasm=tinygo selects TinyGo, otherwise Go.
+const __which = ((new URLSearchParams(location.search)).get('wasm')||'go').toLowerCase() === 'tinygo' ? 'tinygo' : 'go';
+const go = new (__which === 'tinygo' ? window.__GoTiny : window.__GoStd)();
+let mod, inst;
+const wasmBase64 = __which === 'tinygo' ? `{{.Page.TinyWasmBase64}}` : `{{.Page.GoWasmBase64}}`;
+const wasmBinary = Uint8Array.from(atob(wasmBase64), c => c.charCodeAt(0)).buffer;
+console.log("[WASM-STUFF] Loading " + __which + " WASM...");
+WebAssembly.instantiate(wasmBinary, go.importObject).then((result) => {
+  mod = result.module; inst = result.instance;
+  run().then((r) => console.log("[WASM-STUFF] " + __which + " WASM finished:", r),
+             (f) => console.error("[WASM-STUFF] " + __which + " WASM failed:", f));
+});
+async function run() {
+  await go.run(inst);
+  inst = await WebAssembly.instantiate(mod, go.importObject);
+}
+</script>
+{{else}}
+<script title="wasm_exec.js">
+{{.Page.WasmExecJs}}
+</script>
+<script>
+if (!WebAssembly.instantiateStreaming) {
+  WebAssembly.instantiateStreaming = async (resp, importObject) => {
+    const source = await (await resp).arrayBuffer();
+    return await WebAssembly.instantiate(source, importObject);
+  };
+}
+window.__WASM_DEBUG__ = {{.Page.Debug}};
+const go = new Go();
+let mod, inst;
+
+const wasmBase64 = `{{.Page.WasmBase64}}`;
+const wasmBinary = Uint8Array.from(atob(wasmBase64), c => c.charCodeAt(0)).buffer;
+
+console.log("[WASM-STUFF] Loading {{.Page.Title}} WASM...");
+WebAssembly.instantiate(wasmBinary, go.importObject).then((result) => {
+  mod = result.module;
+  inst = result.instance;
+  console.log("[WASM-STUFF] {{.Page.Title}} WASM instantiated, starting...");
+  run().then((result) => {
+    console.log("[WASM-STUFF] {{.Page.Title}} WASM finished: ", result)
+  }, (failure) => {
+    console.error("[WASM-STUFF] {{.Page.Title}} WASM failed: ", failure)
+  })
+});
+async function run() {
+  await go.run(inst);
+  inst = await WebAssembly.instantiate(mod, go.importObject);
+}
+</script>
+{{end}}
+</head>
+<body style="margin: 0; padding: 0; width: 100%; height: 100%; background-color: black; color: white;">
+<!-- Crawlable description (the live UI is drawn on a WebGL canvas by WebAssembly). -->
+<div style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">
+<h1>Interactive 3D Strange Attractor Visualizer</h1>
+<p>Explore chaotic dynamical systems in real time, directly in your browser. This is a WebAssembly (Go / TinyGo) and WebGL visualizer that renders strange attractors as rotatable, zoomable 3D trajectories. Drag to rotate, scroll to zoom, and adjust each system's parameters with tactile control knobs.</p>
+<h2>Included chaotic attractors</h2>
+<p>Lorenz, Rossler, Chua's double-scroll circuit, Aizawa, Thomas cyclically-symmetric, Halvorsen, Chen, Dadras, Rabinovich-Fabrikant, Burke-Shaw, Lissajous, the 4D hyperchaotic Rossler system, and all eighteen of J. C. Sprott's simple chaotic flows (cases B through S).</p>
+<h2>Type your own equations</h2>
+<p>A Custom mode lets you enter arbitrary differential equations (dx/dt, dy/dt, dz/dt, and an optional 4th dimension); any parameter you name is automatically given a control knob, and the resulting attractor is shareable as a link.</p>
+<p>Also includes audio-reactive modulation, a spectrogram and XY oscilloscope, polyhedra and geometric primitives, and colour-gradient controls. An homage to the analog attractor computers at glensstuff.com.</p>
+</div>
+{{if .Page.Dual}}
+<div id="wasm-switch" style="position:fixed;top:10px;right:10px;z-index:20;font-family:monospace;font-size:12px;color:#556;letter-spacing:1px;user-select:none;" title="Switch WebAssembly runtime (reloads)">
+<span id="ws-go" style="cursor:pointer;">go</span><span style="opacity:.4;"> · </span><span id="ws-tiny" style="cursor:pointer;">tinygo</span></div>
+<script>
+(function(){
+  var w = ((new URLSearchParams(location.search)).get('wasm')||'go').toLowerCase()==='tinygo' ? 'tinygo':'go';
+  var g=document.getElementById('ws-go'), t=document.getElementById('ws-tiny');
+  var act=(w==='tinygo')?t:g; act.style.color='#8cf'; act.style.textShadow='0 0 5px #2a6a9a';
+  g.onclick=function(){ if(w!=='go'){ location.search='?wasm=go'; } };
+  t.onclick=function(){ if(w!=='tinygo'){ location.search='?wasm=tinygo'; } };
+})();
+</script>
+{{else}}
+<a href="{{.Page.OtherLink}}" style="position:fixed;top:10px;right:10px;z-index:20;color:#555;font-family:monospace;font-size:13px;text-decoration:none;">{{.Page.OtherLabel}}</a>
+{{end}}
+<div id='gocanvas-container' style="position: absolute; width: 100%; height: 100%; z-index: 3;">
+<canvas id='gocanvas' style="max-width: 100%; max-height: 100%; z-index: 3; touch-action: none;"></canvas></div>
+</body>
+</html>

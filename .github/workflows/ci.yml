@@ -1,0 +1,47 @@
+name: ci
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      # Native tests cover the untagged pure logic (LED formatting, pitch
+      # mapping, pose decomposition, splines, equation parser).
+      - run: go test ./...
+      # Compile gate for the js/wasm-tagged app (most of the codebase) — a
+      # wasm-only compile error is otherwise invisible until `make wasms`.
+      - run: GOOS=js GOARCH=wasm go build ./cmd/wasm
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: install golangci-lint
+        run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(go env GOPATH)/bin" v2.12.2
+      # Two passes: host config for the tools/server, GOOS=js for the app
+      # (the default pass never loads //go:build js && wasm files).
+      - run: make lint
+
+  tinygo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - uses: acifani/setup-tinygo@v2
+        with:
+          tinygo-version: "0.41.1"
+      # The TinyGo build has different stdlib coverage than big Go — this is
+      # the only automated check that the dual-toolchain support still holds.
+      - run: tinygo build -target wasm -no-debug -o /tmp/b-tiny.wasm ./cmd/wasm

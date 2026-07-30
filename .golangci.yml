@@ -1,0 +1,93 @@
+## Adapted from 0pcom/skywire's config. NOTE: golangci-lint analyzes ONE
+## build configuration at a time — the default (host) pass never loads the
+## //go:build js && wasm files, which is most of the app. CI therefore runs
+## TWO passes: native, and GOOS=js GOARCH=wasm (see .github/workflows/ci.yml,
+## `make lint` runs both).
+version: "2"
+run:
+  concurrency: 4
+  modules-download-mode: vendor
+  issues-exit-code: 1
+  tests: true
+linters:
+  default: none
+  enable:
+    - errcheck
+    - gosec
+    - ineffassign
+    - misspell
+    - nakedret
+    - revive
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+  settings:
+    errcheck:
+      check-type-assertions: false
+      # v, _ := strconv.Parse... with a safe zero default is the idiomatic
+      # pattern for DOM-sourced strings throughout the wasm layer.
+      check-blank: false
+    misspell:
+      locale: US
+    nakedret:
+      max-func-lines: 30
+    unparam:
+      check-exported: false
+    revive:
+      rules:
+        - name: package-comments
+          disabled: true
+  exclusions:
+    generated: lax
+    paths:
+      - vendor/
+    rules:
+      # The wasm↔JS boundary uses unsafe.Pointer views over Go slices for
+      # zero-copy typed-array uploads (sliceToByteSlice, mat4ToTyped) — an
+      # audited, deliberate pattern.
+      - linters:
+          - gosec
+        text: "G103:"
+      # Graphics/wire-format code converts bounded ints to byte/uint16
+      # constantly (color channels, vertex indices ≤ a few hundred).
+      - linters:
+          - gosec
+        text: "G115:"
+      # the monkey subcommand is a SEEDED fuzzer — math/rand determinism is the point —
+      # and both CDP harnesses read/write operator-supplied file paths.
+      - path: cmd/uitool/
+        linters:
+          - gosec
+        text: "G(404|304):"
+      # pkg/server renders EMBEDDED, compile-time HTML fragments (no user input).
+      - path: pkg/server/
+        linters:
+          - gosec
+        text: "G203:"
+      # computeBands clamps b into [0,numEQBands) right above the index.
+      - path: pkg/attractor/audiofeatures_js\.go
+        linters:
+          - gosec
+        text: "G602:"
+      # Style-only staticcheck quickfix suggestions (same set skywire mutes).
+      - linters:
+          - staticcheck
+        text: "QF100[1-9]:"
+      - linters:
+          - staticcheck
+        text: "QF1010:"
+      - linters:
+          - staticcheck
+        text: "QF1012:"
+      - linters:
+          - staticcheck
+        text: "ST1005:"
+issues:
+  new: false
+formatters:
+  enable:
+    - gofmt
+  settings:
+    gofmt:
+      simplify: true
