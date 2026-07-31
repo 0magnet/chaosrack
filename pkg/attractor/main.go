@@ -54,6 +54,20 @@ func Run() {
 		initFloatWindow()
 		applyDock(readDockPref())
 	}
+	// Initial panel visibility: ?panel= query param wins over the Go var
+	// so a shareable URL can invite users to open (or close) the panel.
+	// Hidden state leaves only the ▤ toggle button in the bottom-left;
+	// clicking it restores the panel via the normal show/hide path.
+	switch queryParam("panel") {
+	case "hidden":
+		panel.Get("style").Set("display", "none")
+	case "shown", "visible":
+		// explicit show — leave alone
+	default:
+		if PanelStartHidden {
+			panel.Get("style").Set("display", "none")
+		}
+	}
 
 	// Refresh DOM
 	doc = js.Global().Get("document")
