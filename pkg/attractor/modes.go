@@ -77,6 +77,10 @@ var modeInfo = map[string]ModeInfo{
 	"spectrogram":   {"Spectrogram", ClassAudio, false},
 	"xy":            {"XY Scope", ClassAudio, false},
 	"fvf":           {"FVF Wobbulator", ClassAudio, false},
+	// takens draws a TRAIL through the normal 3D pipeline (persist, gradient,
+	// beam-dwell, Model Out SCAN), so it's Parametric, not Audio — the audio
+	// stream is just its parameter source.
+	"takens": {"Takens Embedding", ClassParametric, false},
 }
 
 // modeGroups is the mode <select>'s layout — ordered optgroups of ordered
@@ -90,14 +94,14 @@ var modeGroups = []struct {
 	{"Attractors", []string{"rossler", "lorenz", "chua", "aizawa", "sprott", "thomas",
 		"halvorsen", "chen", "dadras", "rabinovich", "burkeshaw", "lu", "newtonleipnik",
 		"hyperrossler", "custom"}},
-	{"Scope", []string{"lissajou", "graphicartist", "xy"}},
+	{"Scope", []string{"lissajou", "graphicartist", "xy", "takens"}},
 	{"Sprott systems (1994)", []string{"sprotta", "sprottb", "sprottc", "sprottd",
 		"sprotte", "sprottf", "sprottg", "sprotth", "sprotti", "sprottj", "sprottk",
 		"sprottl", "sprottm", "sprottn", "sprotto", "sprottp", "sprottq", "sprottr", "sprotts"}},
 	{"Polyhedra", []string{"tetrahedron", "cube", "octahedron", "dodecahedron",
 		"icosahedron", "nestedcube"}},
 	{"Geometry", []string{"globe", "sphere", "torus", "magnetosphere"}},
-	{"Audio", []string{"spectrogram", "xy", "fvf"}},
+	{"Audio", []string{"spectrogram", "xy", "fvf", "takens"}},
 	{"Custom", []string{"custom"}},
 }
 
