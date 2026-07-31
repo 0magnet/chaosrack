@@ -307,7 +307,7 @@ func buildModEQModules(params []paramDef) {
 		hdr     string
 		targets []modTarget
 	}{
-		{"params", pTargets},
+		{"Parameters", pTargets},
 		{"Colors", []modTarget{{"view-rfreq", "rainbow", false}, {"view-trail", "trail", false}}},
 		{"View", []modTarget{{"view-spinx", "spin X", false}, {"view-spiny", "spin Y", false}, {"view-spinz", "spin Z", false}}},
 		// Order must match the Position control panel (X, Y, Zoom) so each MOD/EQ
@@ -325,12 +325,13 @@ func buildModEQModules(params []paramDef) {
 		}
 		return js.Undefined()
 	}
-	makeMod := func(cls, title string, cards []js.Value) js.Value {
+	makeMod := func(cls, title, tip string, cards []js.Value) js.Value {
 		mod := doc.Call("createElement", "div")
 		mod.Set("className", "sect "+cls)
 		h := doc.Call("createElement", "div")
 		h.Set("className", "sect-hdr")
 		h.Set("textContent", title)
+		h.Set("title", tip)
 		mod.Call("appendChild", h)
 		g := doc.Call("createElement", "div")
 		gc := "punit-grid"
@@ -359,8 +360,10 @@ func buildModEQModules(params []paramDef) {
 		}
 		// Short, single-line headers so the module content starts at the same Y
 		// as its primary (a wrapped 2-line header would push the knobs down).
-		modMod := makeMod("modmodule", "mod", modCards)
-		eqMod := makeMod("eqmodule", "eq", eqCards)
+		modMod := makeMod("modmodule", "Mod",
+			"Modulation routing for the "+grp.hdr+" module — a channel + depth card per control", modCards)
+		eqMod := makeMod("eqmodule", "EQ",
+			"Graphic-EQ band weights for the "+grp.hdr+" module's modulation — paint which frequency bands drive each control", eqCards)
 		parent := primary.Get("parentNode")
 		parent.Call("insertBefore", modMod, primary.Get("nextSibling"))
 		parent.Call("insertBefore", eqMod, modMod.Get("nextSibling"))

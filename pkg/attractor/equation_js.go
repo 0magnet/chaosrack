@@ -190,70 +190,6 @@ func generateCustom() {
 
 // ── Custom-mode control panel ─────────────────────────────────────────────
 
-// customKnobRow builds a labeled hidden-slider + knob + number + reset that
-// drives *target in [min,max], mirroring buildParamPanel's parameter cells.
-func customKnobRow(label string, target *float32, min, max, step, def float32) js.Value {
-	dec := decimalsForStep(step)
-	fmtG := func(v float32) string { return strconv.FormatFloat(float64(v), 'g', -1, 32) }
-	fmtF := func(v float32) string { return strconv.FormatFloat(float64(v), 'f', dec, 64) }
-
-	cell := doc.Call("createElement", "span")
-	cell.Set("className", "grp")
-	lbl := doc.Call("createElement", "span")
-	lbl.Set("className", symClass("u-lbl", labelIsSym(label))) // symbols keep case; words uppercase
-	lbl.Set("textContent", label+" ")
-	cell.Call("appendChild", lbl)
-
-	slider := doc.Call("createElement", "input")
-	slider.Set("type", "range")
-	slider.Set("min", fmtG(min))
-	slider.Set("max", fmtG(max))
-	slider.Set("step", fmtG(step))
-	slider.Set("value", fmtG(*target))
-	slider.Set("style", "display:none;")
-
-	num := doc.Call("createElement", "input")
-	num.Set("type", "number")
-	num.Set("min", fmtG(min))
-	num.Set("max", fmtG(max))
-	num.Set("step", fmtG(step))
-	num.Set("value", fmtF(*target))
-	num.Set("className", "numin")
-
-	slider.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if v, err := strconv.ParseFloat(slider.Get("value").String(), 64); err == nil {
-			*target = float32(v)
-			num.Set("value", strconv.FormatFloat(v, 'f', dec, 64))
-			resetAttractorState()
-		}
-		return nil
-	}))
-	num.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if v, err := strconv.ParseFloat(num.Get("value").String(), 64); err == nil {
-			*target = float32(v)
-			slider.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
-			resetAttractorState()
-		}
-		return nil
-	}))
-
-	rst := doc.Call("createElement", "button")
-	rst.Set("className", "rst")
-	rst.Set("textContent", "↺")
-	rst.Set("title", "Reset "+label)
-	rst.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		slider.Set("value", fmtG(def))
-		slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-		return nil
-	}))
-
-	cell.Call("appendChild", slider)
-	cell.Call("appendChild", makeKnob(slider, num, true, false, true))
-	cell.Call("appendChild", num)
-	cell.Call("appendChild", rst)
-	return cell
-}
-
 // buildCustomPanel renders the equation editor into #params: three/four
 // equation fields, a 4D toggle, a dt knob, a parse-error line, and a knob per
 // detected parameter. Called from buildParamPanel when mode == "custom".
@@ -274,8 +210,8 @@ func buildCustomPanel(paramsDiv js.Value) {
 		inp.Set("type", "text")
 		inp.Set("value", customEq[i])
 		inp.Set("spellcheck", false)
-		inp.Set("style", "width:300px;background:#0a1420;color:#cde;border:1px solid #345;font-family:monospace;font-size:12px;padding:2px 4px;")
-		inp.Set("title", "Expression in x, y, z"+map[bool]string{true: ", w", false: ""}[customUseW]+", t; other letters become parameters")
+		inp.Set("style", "width:180px;background:#0a1420;color:#cde;border:1px solid #345;font-family:monospace;font-size:12px;padding:2px 4px;")
+		inp.Set("title", eqLabel(i)+" — expression in x, y, z"+map[bool]string{true: ", w", false: ""}[customUseW]+", t; any other letters become knobbed parameters (e / pi / tau are constants)")
 		// Commit on change (blur/Enter) to avoid rebuilding mid-keystroke.
 		inp.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
 			customEq[i] = inp.Get("value").String()
@@ -304,6 +240,7 @@ func buildCustomPanel(paramsDiv js.Value) {
 	wchk := doc.Call("createElement", "input")
 	wchk.Set("type", "checkbox")
 	wchk.Set("className", "sw")
+	wchk.Set("title", "4D — add a fourth state variable w with its own dw/dt equation (hidden from the 3D plot, fed back through the others)")
 	wchk.Set("checked", customUseW)
 	wchk.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
 		customUseW = wchk.Get("checked").Bool()
@@ -337,6 +274,7 @@ func buildCustomPanel(paramsDiv js.Value) {
 		hdr := doc.Call("createElement", "div")
 		hdr.Set("className", "sect-hdr")
 		hdr.Set("textContent", "Equation")
+		hdr.Set("title", "Equation — the editable system: one derivative expression per state variable; commits on Enter/blur")
 		eqMod.Call("appendChild", hdr)
 		body := doc.Call("createElement", "div")
 		body.Set("className", "row")
@@ -345,20 +283,24 @@ func buildCustomPanel(paramsDiv js.Value) {
 		paramsSect.Get("parentNode").Call("insertBefore", eqMod, paramsSect)
 	}
 
-	// dt + detected parameter knobs (in the Parameters module). They go into
-	// a punit-grid — the height-bounded column-wrap container — so many
-	// params flow into extra columns and the width quantizer widens the
-	// module. Appended loose to #params (display:contents) they bypassed both
-	// and clipped against the module edges.
-	grid := doc.Call("createElement", "div")
-	grid.Set("className", "punit-grid")
-	grid.Call("appendChild", customKnobRow("dt", &customDT, 0.0001, 0.05, 0.0001, 0.005))
+	// dt + detected parameter knobs, built with the SAME buildParamUnit
+	// anatomy as every other mode's Parameters module (label · LED · knob ·
+	// step · reset, aligned by the punit grid) — the old bespoke rows
+	// misaligned and skipped the role-tooltip pass.
+	defs := []paramDef{{"custom-dt", "dt", &customDT, 0.005, 0.0001, 0.05, 0.0001}}
 	for _, name := range customParamList {
-		ptr := customParamVal[name]
-		if ptr == nil {
-			continue
+		if ptr := customParamVal[name]; ptr != nil {
+			defs = append(defs, paramDef{"custom-" + name, name, ptr, 1, -10, 10, 0.01})
 		}
-		grid.Call("appendChild", customKnobRow(name, ptr, -10, 10, 0.01, 1))
+	}
+	grid := doc.Call("createElement", "div")
+	gc := "punit-grid"
+	if len(defs) > 3 {
+		gc += " two-col"
+	}
+	grid.Set("className", gc)
+	for _, d := range defs {
+		grid.Call("appendChild", buildParamUnit(d))
 	}
 	paramsDiv.Call("appendChild", grid)
 }

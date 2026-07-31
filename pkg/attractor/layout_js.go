@@ -307,7 +307,7 @@ func initFloatWindow() {
 
 	floatGrip = doc.Call("createElement", "div")
 	floatGrip.Set("id", "float-grip")
-	floatGrip.Set("title", "Drag to resize")
+	floatGrip.Set("title", "Drag to resize the floating panel")
 	floatGrip.Set("style", "display:none;position:fixed;z-index:var(--z-grip);width:22px;height:22px;cursor:nwse-resize;touch-action:none;"+
 		"background:linear-gradient(135deg,transparent 40%,rgba(140,170,200,0.7) 40%,rgba(140,170,200,0.7) 55%,transparent 55%,transparent 68%,rgba(140,170,200,0.7) 68%,rgba(140,170,200,0.7) 83%,transparent 83%);")
 	body.Call("appendChild", floatGrip)
@@ -528,7 +528,7 @@ func initDockResize() {
 	if dl := doc.Call("querySelector", "#dock-controls .dock-lbl"); dl.Truthy() {
 		dl.Get("style").Set("cursor", "grab")
 		dl.Get("style").Set("touchAction", "none")
-		dl.Set("title", "Drag to resize the control panel")
+		dl.Set("title", "DOCK — drag this label to resize the panel; the arrow buttons choose the dock edge or floating mode")
 		dl.Call("addEventListener", "pointerdown", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
 			a[0].Call("preventDefault")
 			a[0].Call("stopPropagation")

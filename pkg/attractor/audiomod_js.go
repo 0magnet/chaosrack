@@ -263,7 +263,7 @@ func buildModUnit(id, label string) js.Value {
 	lvl.Set("min", "-4")
 	lvl.Set("max", "4")
 	lvl.Set("step", "0.01")
-	lvl.Set("title", "Audio-mod depth for "+label+" — how strongly the selected channel drives the "+label+" parameter")
+	lvl.Set("title", "Audio-mod depth control for "+label+" — how strongly the selected channel drives it (hidden range behind the inner knob)")
 	lvl.Set("value", strconv.FormatFloat(float64(cur.level), 'g', -1, 32))
 	lvl.Set("style", "display:none;")
 	lvlNum := doc.Call("createElement", "input")

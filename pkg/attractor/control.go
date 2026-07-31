@@ -175,9 +175,18 @@ func (c *Control) annotate() {
 		stampAll(c.cell, ".toprow .led", angle+sep+"LED readout")
 		stampAll(c.cell, ".knob:not(.knob-fine)", angle+sep+"knob")
 		stampAll(c.cell, ".knob-fine", angle+sep+"fine-trim knob")
-		stampAll(c.cell, ".botrow .plabel", rate+sep+"label") // the ω label — carries the ω glyph
+		// knobifyFixed nests the spin-rate knob inside the angle stack as
+		// .knobwrap.knob-inner > .knob; name it for the rate so the two knobs
+		// never share a title.
+		stampAll(c.cell, ".knobwrap.knob-inner .knob:not(.knob-fine)", rate+sep+"knob (nested inner disc)")
+		// The rate sub-row has its own knob + fine disc (knobifyFixed) — name
+		// them for the rate, not the angle, so the two knobs stay distinct.
+		stampAll(c.cell, ".axsub .knob:not(.knob-fine)", rate+sep+"knob")
+		stampAll(c.cell, ".axsub .knob-fine", rate+sep+"fine-trim knob")
+		stampAll(c.cell, ".botrow .plabel", rate+sep+"ω label") // carries the ω glyph
 		stampAll(c.cell, ".botrow .numin", rate+sep+"value field")
 		stampAll(c.cell, ".axsub .axlbl", rate+sep+"label")
+		stampAll(c.cell, ".axsub .numin", rate+sep+"value field")
 		stampAll(c.cell, "input[type=range]", rate+sep+"slider")
 		stampAll(c.cell, ".rst", c.module+sep+axis+sep+"reset (angle + spin)")
 
@@ -191,8 +200,20 @@ func (c *Control) annotate() {
 		stampAll(c.cell, ".colorknob .knob:not(.hueknob)", ctl+sep+"level knob (inner)")
 
 	default: // kindGeneric
+		// The step/fine dual cell holds TWO stacked controls; naming both
+		// rows from the first label made every element's tooltip collide.
+		if c.cell.Get("id").String() == "stepfine-grp" {
+			stepC := c.module + sep + "step ×"
+			fineC := c.module + sep + "fine ×"
+			stampAll(c.cell, ".sf-hdr .plabel", stepC+sep+"label")
+			stampAll(c.cell, "#step-led", stepC+sep+"LED readout")
+			stampAll(c.cell, ".sf-ftr .plabel", fineC+sep+"label")
+			stampAll(c.cell, "#fine-led", fineC+sep+"LED readout")
+			stampSelectorKnobs(c.cell, c.module, c.module+sep+"step / fine")
+			return
+		}
 		ctl := cellCtl(c.cell, c.module)
-		stampAll(c.cell, ".plabel, .u-lbl", ctl+sep+"label")
+		stampAll(c.cell, ".plabel:not(.ledcolor-lbl), .u-lbl", ctl+sep+"label")
 		stampAll(c.cell, ".led:not(.pal-hex)", ctl+sep+"LED readout")
 		stampAll(c.cell, "input[type=range]", ctl+sep+"slider")
 		stampAll(c.cell, ".rst", ctl+sep+"reset")

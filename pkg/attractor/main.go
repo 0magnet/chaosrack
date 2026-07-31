@@ -455,6 +455,7 @@ func Run() {
 					lab := doc.Call("createElement", "span")
 					lab.Set("className", "plabel ledcolor-lbl")
 					lab.Set("textContent", "LED")
+					lab.Set("title", "LED — the readout shows the selected LED color's name (inner knob)")
 					ledRO = doc.Call("createElement", "span")
 					ledRO.Set("className", "selk-readout ledcolor-ro")
 					row.Call("appendChild", lab)

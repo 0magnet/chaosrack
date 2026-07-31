@@ -174,6 +174,10 @@ func appendFVFSelectors(paramsDiv js.Value) {
 		grp := doc.Call("createElement", "span")
 		grp.Set("className", "grp")
 		sel := doc.Call("createElement", "select")
+		sel.Set("title", label+" — "+map[string]string{
+			"wave": "carrier waveform (square / pulse / sub-octave ÷2)",
+			"mod":  "modulator topology (ring = four-quadrant, AM = balanced)",
+		}[label])
 		sel.Set("style", "background:#222;color:#ccc;border:1px solid #555;font-family:monospace;font-size:12px;padding:2px 4px;")
 		for i, o := range opts {
 			opt := doc.Call("createElement", "option")

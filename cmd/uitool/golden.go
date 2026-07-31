@@ -168,8 +168,33 @@ func run(c *cdp.Client, s state) []string {
 	if diff := hashDiff(hash1, hash2); diff != "" {
 		probs = append(probs, "ROUND-TRIP not idempotent: "+diff)
 	}
+
+	// Tooltip audit: every interactive element carries (or inherits) a title,
+	// and no two titles collide — the "unique, descriptive tooltips" rule.
+	if r, _ := c.Eval(tooltipAuditJS).(string); r != "" && r != "ok" {
+		probs = append(probs, "TOOLTIPS: "+r)
+	}
 	return probs
 }
+
+// tooltipAuditJS reports duplicated titles and interactive elements with no
+// title anywhere in their ancestry. "" / "ok" means clean.
+const tooltipAuditJS = `(function(){
+  var dups=[],missing=0;var seen={};
+  document.querySelectorAll('[title]').forEach(function(e){
+    var t=e.getAttribute('title'); if(!t)return;
+    if(seen[t]===1)dups.push(t.slice(0,60)); seen[t]=(seen[t]||0)+1;
+  });
+  var sel='input:not([type=hidden]),select,button,.knob,.led,.numin,.sect-hdr,.swsec-hdr,.plabel';
+  document.querySelectorAll(sel).forEach(function(e){
+    if(e.closest('[style*="display:none"],[style*="display: none"]'))return;
+    var st=getComputedStyle(e); if(st.display==='none'||st.visibility==='hidden')return;
+    if(e.title||e.closest('[title]'))return;
+    missing++;
+  });
+  if(!dups.length&&!missing)return 'ok';
+  return (dups.length?dups.length+' duplicated ('+dups.slice(0,3).join(' | ')+')':'')+(missing?' '+missing+' untitled':'');
+})()`
 
 // ── permalink hash compare (numeric-tolerant) ─────────────────────────────────
 

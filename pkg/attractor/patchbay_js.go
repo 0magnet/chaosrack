@@ -120,6 +120,7 @@ func buildPatchbayModule(paramsSect js.Value) {
 	hdr := doc.Call("createElement", "div")
 	hdr.Set("className", "sect-hdr")
 	hdr.Set("textContent", "Patchbay")
+	hdr.Set("title", "Patchbay — pin-matrix audio routing (sources × destinations) and the 8-slot patch memory bank")
 	mod.Call("appendChild", hdr)
 	body := doc.Call("createElement", "div")
 	body.Set("className", "row")

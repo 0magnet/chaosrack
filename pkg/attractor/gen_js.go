@@ -5,6 +5,7 @@ package attractor
 import (
 	"math"
 	"strconv"
+	"strings"
 	"syscall/js"
 )
 
@@ -67,6 +68,12 @@ func addOctaveDial(wrap js.Value) {
 // semitones above A0). Clicking a key sets that note in the octave currently
 // shown. It's a live note indicator for the semitone-stepped log knob.
 func addPianoKeys(freq js.Value) js.Value {
+	// Key tooltips carry the owning oscillator so the three keyboards (and
+	// their twelve notes each) stay globally unique.
+	owner := "Gen"
+	if id := freq.Get("id").String(); len(id) > 4 && id[:4] == "gen-" {
+		owner = "Gen " + strings.ToUpper(id[4:5])
+	}
 	wrap := doc.Call("createElement", "span")
 	wrap.Set("className", "gen-piano")
 	wrap.Call("setAttribute", "data-no-drag", "")
@@ -94,7 +101,7 @@ func addPianoKeys(freq js.Value) js.Value {
 			el.Set("className", "pk-key pk-white")
 		}
 		el.Call("setAttribute", "data-pc", strconv.Itoa(pc))
-		el.Set("title", name)
+		el.Set("title", owner+" — set note "+name+" (in the octave currently shown)")
 		el.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
 			// Set this note in the octave currently shown on the keyboard (the C..B
 			// register the current note is in), snapping out any detune.

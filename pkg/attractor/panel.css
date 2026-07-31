@@ -157,21 +157,12 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .template-mod .sect-hdr{color:#8fd0ff;}
 /* readout uses the REAL LED style (red DSEG7, inherited from .led); just shrink
    to fit the word in the cell. */
-.template-mod .tpl-led{font-size:calc(10px*var(--kscale,1))!important;letter-spacing:0;min-width:0;padding:2px 4px;}
-.template-mod .knobstack{width:calc(56px*var(--kscale,1));height:calc(56px*var(--kscale,1));}
-.template-mod .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
-.template-mod .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
-.template-mod .knob-inner{width:calc(28px*var(--kscale,1))!important;height:calc(28px*var(--kscale,1))!important;}
-.template-mod .knob-inner>.knob-ptr{height:calc(12px*var(--kscale,1))!important;}
-.template-mod .knobwrap.has-dial{margin:calc(20px*var(--kscale,1));}
-.template-mod .knobwrap>.value-dial{width:calc(104px*var(--kscale,1))!important;height:calc(104px*var(--kscale,1))!important;}
-.template-mod .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
 .template-mod .rst{cursor:help;}
 /* overlay part-name pinned onto a round slot (knob / ring / inner / fine) */
 .template-mod .tpl-ov{position:absolute;left:50%;transform:translate(-50%,-50%);font-family:'B612 Mono',monospace;font-size:calc(7px*var(--kscale,1));line-height:1;color:#08140d;background:rgba(150,230,180,.85);border-radius:2px;padding:0 2px;pointer-events:none;z-index:6;white-space:nowrap;}
 /* template has two cells, so its grid is two rows (not the default three) —
    keeps the grid-note directly below the cells instead of past an empty row. */
-.template-mod .vmrow{grid-template-rows:repeat(2,var(--krow))!important;}
+.template-mod .vmrow{grid-template-rows:repeat(3,var(--krow))!important;}
 .template-mod .tpl-note{font-family:'B612 Mono',monospace;font-size:calc(7.5px*var(--kscale,1));line-height:1.35;color:#7fa8c0;padding:calc(6px*var(--kscale,1));border-top:1px dashed #2a4a66;margin-top:calc(4px*var(--kscale,1));cursor:help;}
 .template-mod .tpl-note b{color:#bfe0ff;font-weight:normal;}
 .gen-module .gen-listen{padding-left:calc(8px*var(--kscale,1));margin-top:2px;}
@@ -634,3 +625,15 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .mxpin.on{background:#ffd23c;border-color:#ffe98c;box-shadow:0 0 6px #ffd23c88;}
 .mxlbl{font-size:9px;color:#7c93a8;font-family:'Chakra Petch',sans-serif;letter-spacing:1px;}
 .mxcol{writing-mode:vertical-rl;transform:rotate(180deg);font-size:9px;color:#7c93a8;max-height:56px;overflow:hidden;font-family:'B612 Mono',monospace;}
+
+/* Console column (Model knob + actions) folded into the switches flow */
+.consec{align-items:center;min-width:120px;}
+.consec .modelsel-col{margin-top:2px;}
+.consec .console-btns{padding-left:0;margin-top:10px;align-self:flex-start;display:flex;}
+.consec>.swsec-hdr{align-self:stretch;}
+
+/* Template v2: six showcase cells in a 3-column grid → two module slots wide */
+.template-mod .tpl-row{display:grid!important;grid-template-columns:repeat(2,auto);gap:4px 12px;align-items:start;justify-content:center;}
+
+/* Template v3: real cells, standard vmrow flow; only chrome + overlays differ */
+.template-mod .tpl-cell{position:relative;}
