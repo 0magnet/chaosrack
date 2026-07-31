@@ -29,19 +29,12 @@ type permaCtl struct {
 
 // Ordered so "am" (audio-mod) is applied last — after params and mod
 // routing are in place — so its panel rebuild reflects them.
+// Numeric registry-owned controls (zoom, pans, spin rates, speed, trail,
+// line, rainbow, sonify rate/level, …) are NOT listed here: they serialize
+// and restore straight from builtControls via their ControlDesc.PermaKey —
+// the row below would just duplicate the descriptor. This table now carries
+// only the kinds the registry can't express yet: selects, colors, checkboxes.
 var permaCtls = []permaCtl{
-	{"z", "camera-zoom", false},
-	{"px", "pan-x", false},
-	{"py", "pan-y", false},
-	{"rx", "rotation-controls-x", false},
-	{"ry", "rotation-controls-y", false},
-	{"rz", "rotation-controls-z", false},
-	{"sp", "speed-slider", false},
-	{"tr", "trail-slider", false},
-	{"lw", "line-width", false},
-	{"rf", "rainbow-freq", false},
-	{"sf", "sonify-freq", false},
-	{"sv", "sonify-lvl", false},
 	{"sm", "sonify-map", false},
 	{"sn", "sonify-mode", false},
 	{"gs", "gradient-source", false},
@@ -152,7 +145,21 @@ func serializeState() string {
 	var b strings.Builder
 	b.WriteString(selectedMode)
 
-	// Controls that differ from their captured defaults.
+	// Registry-owned numeric controls that differ from their defaults.
+	for _, ctl := range builtControls {
+		if ctl.permaKey == "" || !ctl.slider.Truthy() {
+			continue
+		}
+		v := ctl.slider.Get("value").String()
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			if d := f - float64(ctl.def); d > -1e-9 && d < 1e-9 {
+				continue
+			}
+		}
+		b.WriteString("&" + ctl.permaKey + "=" + v)
+	}
+
+	// Residual table-driven controls that differ from their captured defaults.
 	for _, c := range permaCtls {
 		el := doc.Call("getElementById", c.id)
 		if !el.Truthy() {
@@ -249,6 +256,15 @@ func eventFor(c permaCtl, el js.Value) string {
 }
 
 func applyControl(key, val string) {
+	// Registry-owned numeric controls first: set the slider, dispatch input
+	// (the descriptor's listener updates cache + LED).
+	for _, ctl := range builtControls {
+		if ctl.permaKey == key && ctl.slider.Truthy() {
+			ctl.slider.Set("value", val)
+			ctl.slider.Call("dispatchEvent", permaEvent("input"))
+			return
+		}
+	}
 	for _, c := range permaCtls {
 		if c.key != key {
 			continue
@@ -349,6 +365,11 @@ func applyStateFromHash() {
 				paramMods[selectedMode+"-"+strings.TrimPrefix(key, "m.")] = m
 			}
 		default:
+			if key == "rx" || key == "ry" || key == "rz" {
+				// Remember hash-pinned spin rates: Run()'s randomizeOrientation
+				// zeroes the rate sliders, and must re-apply these afterward.
+				hashPinnedSpin[key[1:]] = val
+			}
 			applyControl(key, val)
 		}
 	}
@@ -380,6 +401,11 @@ func applyStateFromHash() {
 	hashPinnedPose = poseVal != "" || dragVal != ""
 	syncKnobs() // move fixed-knob pointers to the restored values
 }
+
+// hashPinnedSpin holds spin rates (axis → slider value) the loaded permalink
+// set via &rx/&ry/&rz, so the load-time orientation randomize can restore
+// them after zeroing the rate sliders.
+var hashPinnedSpin = map[string]string{}
 
 // hashPinnedPose is true when the loaded permalink specified an explicit
 // orientation (&rot= or &drag=), so the startup randomiser should stand down.

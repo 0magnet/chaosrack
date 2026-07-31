@@ -1089,38 +1089,6 @@ func Run() {
 		return nil
 	}))
 
-	// Event: per-control reset buttons for rotation. (Zoom's reset — and the
-	// pan / rainbow-period ones — are owned by their ControlDesc registration.)
-	doc.Call("getElementById", "rst-rx").Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		rotationX, rotationX1, cachedRotX, angleX = 0, 0, 0, 0
-		rotationControlsX.Set("value", "0")
-		rotationControlsX.Call("dispatchEvent", js.Global().Get("Event").New("input")) // reformats the rate LED
-		rebuildModelMatrix()
-		updateModelMatrix()
-		updateRotKnobs()
-		syncKnobs()
-		return nil
-	}))
-	doc.Call("getElementById", "rst-ry").Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		rotationY, rotationY1, cachedRotY, angleY = 0, 0, 0, 0
-		rotationControlsY.Set("value", "0")
-		rotationControlsY.Call("dispatchEvent", js.Global().Get("Event").New("input")) // reformats the rate LED
-		clearAutoRotateFlag()                                                          // Y spin (incl. auto) just zeroed
-		rebuildModelMatrix()
-		updateModelMatrix()
-		updateRotKnobs()
-		return nil
-	}))
-	doc.Call("getElementById", "rst-rz").Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		rotationZ, rotationZ1, cachedRotZ, angleZ = 0, 0, 0, 0
-		rotationControlsZ.Set("value", "0")
-		rotationControlsZ.Call("dispatchEvent", js.Global().Get("Event").New("input")) // reformats the rate LED
-		rebuildModelMatrix()
-		updateModelMatrix()
-		updateRotKnobs()
-		return nil
-	}))
-
 	// Event: reset all button
 	doc.Call("getElementById", "reset-all-btn").Call("addEventListener", "click", trackedFuncOf(onResetAll))
 
@@ -1709,6 +1677,39 @@ func Run() {
 		PermaKey: "sv", LEDID: "sonify-lvl-led", ResetID: "",
 		Apply: func(v float64) { sonifyLevel = v / 100 }})
 
+	// View spin rates: the last controls on the legacy wiring path. Reset
+	// also zeroes the axis ANGLE state and rebuilds the matrices (parity
+	// with the old bespoke rst-rx/ry/rz handlers).
+	adoptDescControl(ControlDesc{ID: "rotation-controls-x", Label: "X rate", Min: -1, Max: 1, Step: 0.1, Def: 0,
+		Signed: true, PermaKey: "rx", LEDID: "slider-value-x", ResetID: "rst-rx",
+		Apply: func(v float64) { cachedRotX = float32(v) },
+		ResetExtra: func() {
+			rotationX, rotationX1, angleX = 0, 0, 0
+			rebuildModelMatrix()
+			updateModelMatrix()
+			updateRotKnobs()
+			syncKnobs()
+		}})
+	adoptDescControl(ControlDesc{ID: "rotation-controls-y", Label: "Y rate", Min: -1, Max: 1, Step: 0.1, Def: 0,
+		Signed: true, PermaKey: "ry", LEDID: "slider-value-y", ResetID: "rst-ry",
+		Apply: func(v float64) { cachedRotY = float32(v) },
+		ResetExtra: func() {
+			rotationY, rotationY1, angleY = 0, 0, 0
+			clearAutoRotateFlag() // Y spin (incl. auto) just zeroed
+			rebuildModelMatrix()
+			updateModelMatrix()
+			updateRotKnobs()
+		}})
+	adoptDescControl(ControlDesc{ID: "rotation-controls-z", Label: "Z rate", Min: -1, Max: 1, Step: 0.1, Def: 0,
+		Signed: true, PermaKey: "rz", LEDID: "slider-value-z", ResetID: "rst-rz",
+		Apply: func(v float64) { cachedRotZ = float32(v) },
+		ResetExtra: func() {
+			rotationZ, rotationZ1, angleZ = 0, 0, 0
+			rebuildModelMatrix()
+			updateModelMatrix()
+			updateRotKnobs()
+		}})
+
 	// Prime every registry control once: run its Apply from the DOM's current
 	// value so engine state matches the panel by construction (the old code
 	// did this ad hoc — applyLineWidth() at wiring, readSliderCache, …).
@@ -1739,47 +1740,6 @@ func Run() {
 	// + visible text output stay in sync with user interaction. The
 	// renderLoop reads cachedZoom/RotX/Y/Z instead of polling
 	// parseFloat per frame.
-	attachSliderInput := func(id string, outID string, target *float32) {
-		el := doc.Call("getElementById", id)
-		if !el.Truthy() {
-			return
-		}
-		out := doc.Call("getElementById", outID)
-		dec, signed, intDig := 0, false, 1
-		if out.Truthy() {
-			st, _ := strconv.ParseFloat(out.Get("step").String(), 64)
-			mn, _ := strconv.ParseFloat(out.Get("min").String(), 64)
-			mx, _ := strconv.ParseFloat(out.Get("max").String(), 64)
-			dec = ledDecimals(st)
-			signed = mn < 0
-			intDig = ledIntDigits(mn, mx)
-			out.Set("type", "text") // LED display: free-form so +/- and trailing zeros stick
-			sizeLEDField(out, mn, mx, dec, signed)
-			if v, err := strconv.ParseFloat(el.Get("value").String(), 64); err == nil {
-				out.Set("value", formatLED(v, intDig, dec, signed))
-			}
-		}
-		el.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-			v, _ := strconv.ParseFloat(el.Get("value").String(), 64)
-			*target = float32(v)
-			if out.Truthy() {
-				out.Set("value", formatLED(v, intDig, dec, signed))
-			}
-			return nil
-		}))
-		// Scroll over the LED readout nudges the value by one coarse step (the
-		// hidden slider clamps + its input handler reformats the LED).
-		if out.Truthy() {
-			st, _ := strconv.ParseFloat(out.Get("step").String(), 64)
-			mn, _ := strconv.ParseFloat(out.Get("min").String(), 64)
-			mx, _ := strconv.ParseFloat(out.Get("max").String(), 64)
-			wheelNudge(out, el, st, mn, mx)
-		}
-	}
-	attachSliderInput("rotation-controls-x", "slider-value-x", &cachedRotX)
-	attachSliderInput("rotation-controls-y", "slider-value-y", &cachedRotY)
-	attachSliderInput("rotation-controls-z", "slider-value-z", &cachedRotZ)
-	readSliderCache()
 
 	// (Speed / Line / Trail LED treatment is owned by their ControlDesc
 	// registrations below.)
@@ -1791,29 +1751,6 @@ func Run() {
 	// toSlider maps the typed number to the slider's raw value (identity
 	// for most; log10 for the speed slider, whose display is the effective
 	// multiplier).
-	linkNumToSlider := func(numID, sliderID string, toSlider func(float64) float64) {
-		n := doc.Call("getElementById", numID)
-		s := doc.Call("getElementById", sliderID)
-		if !n.Truthy() || !s.Truthy() {
-			return
-		}
-		n.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-			v, err := strconv.ParseFloat(n.Get("value").String(), 64)
-			if err != nil {
-				return nil
-			}
-			if toSlider != nil {
-				v = toSlider(v)
-			}
-			s.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
-			s.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-			return nil
-		}))
-	}
-	// (zoom / pan / rainbow-period typed entry is owned by adoptDescControl)
-	linkNumToSlider("slider-value-x", "rotation-controls-x", nil)
-	linkNumToSlider("slider-value-y", "rotation-controls-y", nil)
-	linkNumToSlider("slider-value-z", "rotation-controls-z", nil)
 	// (line / trail / speed typed entry is owned by their ControlDesc
 	// registrations — speed's log10 mapping lives in its ValToSlider.)
 
@@ -1851,6 +1788,17 @@ func Run() {
 	// are created and queried.
 	if !hashPinnedPose {
 		randomizeOrientation()
+		// randomizeOrientation zeroed the rate sliders — put back any spin
+		// rates the permalink explicitly pinned (&rx/&ry/&rz).
+		for ax, v := range hashPinnedSpin {
+			if sl := doc.Call("getElementById", "rotation-controls-"+ax); sl.Truthy() {
+				sl.Set("value", v)
+				sl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+			}
+		}
+		if len(hashPinnedSpin) > 0 {
+			syncKnobs()
+		}
 	} else {
 		// A pinned pose (&rot) is by construction a STILL view — rot is only
 		// serialized when auto-rotate is off and all spin rates are zero — so
@@ -3556,36 +3504,6 @@ func updateTrailVisibility() {
 	} else {
 		el.Get("style").Set("display", "none")
 	}
-}
-
-// readSliderCache pulls the current DOM value of each fixed slider
-// into the cached* vars and updates the visible output text. Called
-// at startup, from input-event listeners, and from any code path
-// (Reset All, randomizeOrientation) that writes slider values via
-// .Set("value", ...) without dispatching a synthetic input event.
-func readSliderCache() {
-	pull := func(id string, outID string) float32 {
-		el := doc.Call("getElementById", id)
-		if !el.Truthy() {
-			return 0
-		}
-		v, _ := strconv.ParseFloat(el.Get("value").String(), 64)
-		out := doc.Call("getElementById", outID)
-		if out.Truthy() {
-			st, _ := strconv.ParseFloat(out.Get("step").String(), 64)
-			mn, _ := strconv.ParseFloat(out.Get("min").String(), 64)
-			mx, _ := strconv.ParseFloat(out.Get("max").String(), 64)
-			out.Set("value", formatLED(v, ledIntDigits(mn, mx), ledDecimals(st), mn < 0))
-		}
-		return float32(v)
-	}
-	cachedZoom = pull("camera-zoom", "slider-value-zoom")
-	cachedPanX = pull("pan-x", "slider-value-panx")
-	cachedPanY = pull("pan-y", "slider-value-pany")
-	cachedRotX = pull("rotation-controls-x", "slider-value-x")
-	cachedRotY = pull("rotation-controls-y", "slider-value-y")
-	cachedRotZ = pull("rotation-controls-z", "slider-value-z")
-	syncKnobs() // move fixed-knob pointers to the freshly-set values
 }
 
 // normalizeOrientation resets the current model to the default identity

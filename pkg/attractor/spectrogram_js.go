@@ -3,7 +3,6 @@
 package attractor
 
 import (
-	"strings"
 	"syscall/js"
 
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
@@ -290,10 +289,8 @@ func zeroRotationSliders() {
 			continue
 		}
 		el.Set("value", "0")
-		out := doc.Call("getElementById", "slider-value-"+strings.TrimPrefix(id, "rotation-controls-"))
-		if out.Truthy() {
-			out.Set("value", "0")
-		}
+		// the registry's input listener updates the cache + LED format
+		el.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 	}
-	readSliderCache()
+	syncKnobs()
 }
