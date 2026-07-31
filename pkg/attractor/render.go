@@ -459,6 +459,11 @@ func generateForMode(mode string) {
 	// this integration step, and the colors / point size for this frame.
 	// No-op unless audio-reactive is on and the mode is an attractor.
 	saved := applyAudioModulation(mode)
+	// Twin-trajectory divergence (Trace > Twin): draws both copies itself.
+	if twinTick(mode) {
+		restoreAudioModulation(saved)
+		return
+	}
 	// Ring-trail beam step (Trace > Ring): draws the frame itself when active
 	// and primed; otherwise the scan generator below runs (and primes it).
 	if ringTick(mode) {

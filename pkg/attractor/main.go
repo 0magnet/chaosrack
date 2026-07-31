@@ -736,6 +736,9 @@ func Run() {
 		}))
 	}
 
+	// Event: twin-trajectory switch + λ readout.
+	wireTwinSwitch()
+
 	// Event: persist trail checkbox
 	doc.Call("getElementById", "persist-trail").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
 		persistTrail = doc.Call("getElementById", "persist-trail").Get("checked").Bool()
@@ -1543,7 +1546,7 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 		{"model-front", false}, {"spect-fill", false}, {"audio-mod", false},
 		{"test-tone", false}, {"fg-on", false}, {"spectro-skin", false},
 		{"bg-spectro", false}, {"bg-xy", false}, {"tpl-on", false}, {"show-meters", true},
-		{"ring-sw", false},
+		{"ring-sw", false}, {"twin-sw", false},
 	}
 	for _, s := range swDefaults {
 		if sw := doc.Call("getElementById", s.id); sw.Truthy() && sw.Get("checked").Bool() != s.def {

@@ -291,6 +291,7 @@ func reseedAttractorState() {
 	x64, y64, z64 = float64(x), float64(y), float64(z)
 	integ3DMode = "" // force integrate3D to re-seed x64 from the IC
 	ringInvalidate() // ring trail re-primes from the fresh state
+	twinInvalidate() // twin pair re-seeds ε apart from the fresh state
 	// Hyper-Rössler's hidden 4th state; start it on-attractor for that mode,
 	// zero otherwise (harmless — only that mode reads it).
 	if selectedMode == "hyperrossler" {

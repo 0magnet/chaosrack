@@ -50,6 +50,7 @@ var permaCtls = []permaCtl{
 	{"pt", "use-points", true},
 	{"ps", "persist-trail", true},
 	{"rb", "ring-sw", true},
+	{"tw", "twin-sw", true},
 	{"gr", "gradient-reverse", true},
 	{"sk", "spectro-skin", true},
 	{"fr", "model-front", true},
