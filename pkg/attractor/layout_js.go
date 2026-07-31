@@ -223,10 +223,9 @@ const moduleSlot = 132.0
 const moduleGap = 4.0
 
 // quantizeModuleWidths snaps every module's width to a whole number of slots.
+// Runs in BOTH panel modes — the inline footer panel racks its modules the
+// same way the standalone overlay does.
 func quantizeModuleWidths() {
-	if !standalonePanel {
-		return
-	}
 	// A hidden panel measures every module at zero and would lock them all to
 	// one slot (PanelStartHidden hosts hit this on boot) — leave the widths
 	// alone; the show path re-quantizes.
@@ -430,6 +429,9 @@ func positionResizeHandle() {
 // hold them when docked. Horizontal row for top/bottom docks, vertical column
 // for left/right sidebars, and over the title bar's right end when floating.
 func positionDockControls() {
+	if !standalonePanel {
+		return // inline footer mode: no dock chrome
+	}
 	dc := doc.Call("getElementById", "dock-controls")
 	if !dc.Truthy() {
 		return

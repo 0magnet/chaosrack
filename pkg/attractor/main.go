@@ -47,8 +47,20 @@ func Run() {
 	// full standalone chrome (dock/resize/float) instead of the inline
 	// row that a host <footer> otherwise triggers. See its doc comment.
 	if existingFooter.Truthy() && !ForceStandalonePanel {
-		panel.Set("style", "color:#aaa;font-family:'B612 Mono',monospace;font-size:12px;padding:8px 12px;background:rgba(0,0,0,0.85);border-top:1px solid #333;")
+		// Inline footer mode: the panel appends BELOW the footer's existing
+		// content (cart / checkout stay clickable above it) and scrolls
+		// within its own bounded strip, so a non-scrolling host layout still
+		// reaches every module. Module racking + tooltips work the same as
+		// the standalone overlay; only the dock/resize/float chrome is
+		// skipped (meaningless inline).
+		panel.Set("style", "display:block;color:#aaa;font-family:'B612 Mono',monospace;font-size:12px;"+
+			"padding:8px 12px;background:rgba(0,0,0,0.85);border-top:1px solid #333;"+
+			"max-height:48vh;overflow:auto;width:100%;box-sizing:border-box;")
 		existingFooter.Call("appendChild", panel)
+		// The DOCK button cluster only makes sense on the standalone overlay.
+		if dc := doc.Call("getElementById", "dock-controls"); dc.Truthy() {
+			dc.Get("style").Set("display", "none")
+		}
 	} else {
 		standalonePanel = true
 		body.Call("appendChild", panel)

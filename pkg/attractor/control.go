@@ -149,9 +149,6 @@ func classifyControl(cell js.Value) controlKind {
 // annotateControlTooltips rebuilds the model and lets every Control tooltip
 // itself — the SINGLE SOURCE for "Module / Control / element" tooltips.
 func annotateControlTooltips() {
-	if !standalonePanel {
-		return
-	}
 	buildControlModel()
 	for _, m := range panelModules {
 		for _, c := range m.ctrls {
