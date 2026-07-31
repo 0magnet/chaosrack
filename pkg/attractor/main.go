@@ -736,6 +736,11 @@ func Run() {
 		}))
 	}
 
+	// Events: in-app recorder, jam mode, WebMIDI.
+	wireRecordSwitch()
+	wireJamSwitch()
+	wireMIDISwitch()
+
 	// Event: patchbay module visibility.
 	if ps := doc.Call("getElementById", "patch-on"); ps.Truthy() {
 		ps.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -1556,7 +1561,7 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 	}{
 		{"model-front", false}, {"spect-fill", false}, {"audio-mod", false},
 		{"test-tone", false}, {"fg-on", false}, {"spectro-skin", false},
-		{"bg-spectro", false}, {"bg-xy", false}, {"tpl-on", false}, {"patch-on", false}, {"show-meters", true},
+		{"bg-spectro", false}, {"bg-xy", false}, {"tpl-on", false}, {"patch-on", false}, {"jam-sw", false}, {"show-meters", true},
 		{"ring-sw", false}, {"twin-sw", false}, {"sect-sw", false},
 	}
 	for _, s := range swDefaults {

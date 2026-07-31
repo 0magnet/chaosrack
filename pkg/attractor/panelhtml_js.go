@@ -36,11 +36,13 @@ const controlsBody = `
 <div class="row toprow swrow swsecs">
   <div class="swsec"><div class="swsec-hdr">Setup</div>
     <label class="grp" style="cursor:pointer;" title="Load the current attractor's equations into the editable Custom mode; toggle off to return to it"><input type="checkbox" class="sw" id="edit-eq-sw"> Edit eqn</label>
+    <label class="grp" style="cursor:pointer;" title="Record the canvas to a .webm video (MediaRecorder) — flip off to stop and download. Video only; capture system audio externally if needed."><input type="checkbox" class="sw" id="rec-sw"> Record</label>
     <span id="extra-nav"></span>
   </div>
   <div class="swsec"><div class="swsec-hdr">Motion</div>
     <label class="grp" style="cursor:pointer;" title="Continuously spin the model about the vertical (Y) axis — folds into the Y spin-rate knob"><input type="checkbox" class="sw" id="auto-rotate" checked> Auto-rotate</label>
     <label class="grp" style="cursor:pointer;" title="Pause / freeze the animation"><input type="checkbox" class="sw" id="pause-sw"> Pause</label>
+    <label class="grp" style="cursor:pointer;" title="Jam / attract mode — the app performs itself: hops to a random attractor every 12–20 s with fresh gentle spin and occasional persist paint. Never touches speaker outputs."><input type="checkbox" class="sw" id="jam-sw"> Jam</label>
   </div>
   <div class="swsec"><div class="swsec-hdr">Trace</div>
     <label class="grp" style="cursor:pointer;" title="Draw the trajectory as discrete points instead of a connected line"><input type="checkbox" class="sw" id="use-points"> Points</label>
@@ -55,6 +57,7 @@ const controlsBody = `
   <div class="swsec"><div class="swsec-hdr">Audio</div>
     <label class="grp" style="cursor:pointer;" title="Enable audio-reactive modulation — reveals the MOD + EQ modules for routing audio features to each control"><input type="checkbox" class="sw" id="audio-mod"> Audio mod</label>
     <label class="grp" style="cursor:pointer;" title="Play a sweeping test tone (captured back via the server) to exercise the audio modulation"><input type="checkbox" class="sw" id="test-tone"> Test tone</label>
+    <label class="grp" style="cursor:pointer;" title="WebMIDI — hardware control: CC 1..N drive the current mode's parameter knobs in order, CC 21..28 the view targets (zoom, pans, spins, rainbow, trail), and any note hops to that note's attractor."><input type="checkbox" class="sw" id="midi-sw"> MIDI</label>
     <label class="grp" style="cursor:pointer;" title="Show / hide the top-left audio feature meters (amp / bass / mid / treble / cntr / beat) while Audio mod is on"><input type="checkbox" class="sw" id="show-meters" checked> Meters</label>
     <label class="grp" style="cursor:pointer;" title="Signal generator — a built-in client-side audio source (three X/Y/Z oscillators). Drives audio modulation, the spectrogram and the xy scope with no server or microphone, and can play over the speakers. Controls are in the Generator module."><input type="checkbox" class="sw" id="fg-on"> Signal gen</label>
     <label class="grp" style="cursor:pointer;" title="Paint the live audio spectrogram onto the current surface model (sphere / globe / torus)"><input type="checkbox" class="sw" id="spectro-skin"> Spectro-skin</label>

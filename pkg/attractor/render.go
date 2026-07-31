@@ -501,6 +501,7 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	// audio modes so neither pipeline sees the other's state.
 	if len(args) > 0 {
 		frameNowMs = args[0].Float() // rAF timestamp (ms), used by spectrogram scroll
+		jamTick(frameNowMs)
 	}
 
 	// Refresh audio features (no-op unless audio-reactive is on); Phase 2
