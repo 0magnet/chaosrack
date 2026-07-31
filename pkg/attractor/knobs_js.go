@@ -592,8 +592,12 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 	}
 	// Let the slider carry values far finer than one coarse step, so the fine
 	// knob/wheel can nudge sub-step at any fineRatio; the coarse control still
-	// moves by whole coarse steps.
-	slider.Set("step", strconv.FormatFloat(coarseStep*0.001, 'g', -1, 64))
+	// moves by whole coarse steps. Knobs built WITHOUT a fine disc keep the
+	// authored step — integer-domain controls (lat/lon line counts, polygon
+	// subdivisions) must snap to whole values.
+	if withFine {
+		slider.Set("step", strconv.FormatFloat(coarseStep*0.001, 'g', -1, 64))
+	}
 
 	wrap := doc.Call("createElement", "span")
 	wrap.Set("className", "knobwrap")

@@ -167,7 +167,12 @@ func buildParamUnit(p paramDef) js.Value {
 	top.Call("appendChild", numInput)
 	unit.Call("appendChild", top)
 	unit.Call("appendChild", slider) // hidden, drives the value
-	unit.Call("appendChild", makeKnob(slider, numInput, true, false, true))
+	// Integer-step parameters of geometry models are true COUNTS (latitude /
+	// longitude lines, segments, subdivisions) — a fine-trim disc would dial
+	// fractional lines, which can't be displayed. Continuous systems keep the
+	// fine disc even at step 1 (chen's a=35 is still a real-valued knob).
+	fine := decimalsForStep(p.Step) > 0 || modeInfo[selectedMode].Class != ClassGeometry
+	unit.Call("appendChild", makeKnob(slider, numInput, fine, false, true))
 	unit.Call("appendChild", rst) // pinned top-right by CSS
 	unit.Call("appendChild", stepInput)
 	return unit
