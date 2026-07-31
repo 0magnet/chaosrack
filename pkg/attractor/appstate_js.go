@@ -121,8 +121,10 @@ var ExtraNavHTML string
 // magnetosphere.net's front page where a logo sits over the canvas).
 //
 // The ?panel= URL query parameter overrides this variable at runtime:
-//   ?panel=hidden           → start hidden (even if var is false)
-//   ?panel=shown | visible  → start shown  (even if var is true)
+//
+//	?panel=hidden           → start hidden (even if var is false)
+//	?panel=shown | visible  → start shown  (even if var is true)
+//
 // so a link like /?panel=shown can invite users to open the controls
 // without the host having to switch modes.
 var PanelStartHidden bool

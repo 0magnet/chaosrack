@@ -249,7 +249,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    line sits in each column gap). The grid pitch is one cell (116·kscale) + the
    6px column-gap; the line is drawn in the middle of each gap and repeats, so
    extra columns automatically get their own dividers. */
-.punit-grid.two-col,.vmrow.two-col,.vmaxrow.two-col{background:repeating-linear-gradient(to right,transparent 0 calc(116px*var(--kscale,1) + 2px),#2a333c calc(116px*var(--kscale,1) + 2px) calc(116px*var(--kscale,1) + 4px),transparent calc(116px*var(--kscale,1) + 4px) calc(116px*var(--kscale,1) + 6px));}
+.punit-grid.two-col,.vmrow.two-col,.vmaxrow.two-col{background:repeating-linear-gradient(to right,transparent 0 calc(124px*var(--kscale,1) - 1px),#2a333c calc(124px*var(--kscale,1) - 1px) calc(124px*var(--kscale,1)),transparent calc(124px*var(--kscale,1)) calc(124px*var(--kscale,1) + 4px),#2a333c calc(124px*var(--kscale,1) + 4px) calc(124px*var(--kscale,1) + 5px),transparent calc(124px*var(--kscale,1) + 5px) calc(132px*var(--kscale,1) + 4px));}
 /* Framing lines down the outer edges of a module's control area — the same rule
    that separates columns from each other, now separating them from the edge. */
 .punit-grid,.vmrow,.vmaxrow{border-left:1px solid #2a333c;border-right:1px solid #2a333c;}
@@ -532,7 +532,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* Knob grids use a real CSS GRID: up to 3 rows per column (the 4th param wraps
    to a 2nd column), columns sized to their content and centred — no flex-wrap
    column overlap, and fixed 144px rows keep triads aligned. */
-.punit-grid,.vmrow,.vmaxrow{display:grid!important;grid-template-rows:repeat(3,var(--krow))!important;grid-auto-flow:column!important;grid-auto-columns:var(--kcol)!important;justify-content:center!important;justify-items:center!important;align-content:start!important;gap:2px 6px!important;height:auto!important;width:auto!important;}
+.punit-grid,.vmrow,.vmaxrow{display:grid!important;grid-template-rows:repeat(3,var(--krow))!important;grid-auto-flow:column!important;grid-auto-columns:var(--kcol)!important;justify-content:center!important;justify-items:center!important;align-content:start!important;gap:2px calc(16px*var(--kscale,1) + 4px)!important;height:auto!important;width:auto!important;}
 .punit{gap:0;}
 .punit-mod{margin-top:1px;}
 .punit-mod .knobstack.has-dial{margin:calc(4px*var(--kscale,1));}

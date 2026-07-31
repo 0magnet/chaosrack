@@ -268,7 +268,10 @@ func quantizeModuleWidths() {
 			}
 		}
 		slot := moduleSlot * panelScale // slot grows with the interface scale
-		slots := int(math.Ceil((w + 13) / slot))
+		// Content span w is measured cell-left to cell-right; columns sit on the
+		// slot pitch (slot + gap), so add the module chrome (padding + borders,
+		// minus the 2px symmetric cell overflow) and divide by the pitch.
+		slots := int(math.Ceil((w + 18) / (slot + moduleGap)))
 		if slots < 1 {
 			slots = 1
 		}
