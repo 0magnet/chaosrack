@@ -119,18 +119,23 @@ func winW() float64 {
 	return 1200
 }
 
-// applyDock positions the standalone controls panel against a window edge:
-// bottom/top become a horizontal strip (height dockSizeH), left/right a
-// vertical sidebar (width dockSizeW; the flex rows wrap into a narrow
-// scrollable column). The edge + sizes persist in localStorage. No-op when
-// the panel lives inside a host footer.
+// hostFooter is the host page's <footer> element, when one exists — the
+// "footer" dock edge appends the panel inline into it (below the host's own
+// content, e.g. a store's cart links).
+var hostFooter js.Value
+
+// applyDock positions the controls panel against a window edge: bottom/top
+// become a fixed horizontal strip (height dockSizeH), left/right a vertical
+// sidebar (width dockSizeW), float a draggable window — and "footer" appends
+// the panel INLINE into the host page's footer, below its existing content.
+// The edge + sizes persist in localStorage.
 func applyDock(edge string) {
-	if !standalonePanel {
-		return
-	}
 	p := doc.Call("getElementById", "controls-panel")
 	if !p.Truthy() {
 		return
+	}
+	if edge == "footer" && !hostFooter.Truthy() {
+		edge = "bottom" // no host footer to dock into
 	}
 	if dockSizeH <= 0 {
 		// Default tall enough to show a full module row (~545px at scale 1)
@@ -146,6 +151,9 @@ func applyDock(edge string) {
 		"-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-x pan-y;"
 	hpx := strconv.FormatFloat(dockSizeH, 'f', 0, 64) + "px"
 	wpx := strconv.FormatFloat(dockSizeW, 'f', 0, 64) + "px"
+	// The panel may be hidden (PanelStartHidden / the ▤ toggle); re-docking
+	// must not reveal it as a side effect of rewriting cssText.
+	wasHidden := p.Get("style").Get("display").String() == "none"
 	var edgeCSS string
 	float := false
 	switch edge {
@@ -159,18 +167,43 @@ func applyDock(edge string) {
 		float = true
 		// portrait window; geometry (left/top/width/height) set by positionFloat.
 		edgeCSS = "overflow-y:auto;border:1px solid #2a3a4a;border-radius:8px;box-shadow:0 10px 34px rgba(0,0,0,0.6);"
+	case "footer":
+		// handled below — inline in the host footer, not fixed to the window
 	default:
 		edge = "bottom"
 		edgeCSS = "left:0;right:0;bottom:0;max-height:" + hpx + ";overflow-y:auto;border-top:1px solid #333;"
 	}
-	p.Get("style").Set("cssText", base+edgeCSS)
+	if edge == "footer" {
+		standalonePanel = false
+		// position:relative (NOT static): the inline panel must participate in
+		// z stacking, or the positioned canvas (z 3) paints over it and the
+		// Front switch appears dead — static elements ignore z-index.
+		p.Get("style").Set("cssText",
+			"display:block;background:rgba(0,0,0,0.85);padding:8px 12px;font-family:'B612 Mono',monospace;"+
+				"font-size:12px;color:#aaa;pointer-events:auto;position:relative;z-index:var(--z-panel);"+
+				"box-sizing:border-box;width:100%;"+
+				"max-height:"+hpx+";overflow:auto;border-top:1px solid #333;"+
+				"-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-x pan-y;")
+		if !p.Get("parentElement").Equal(hostFooter) {
+			hostFooter.Call("appendChild", p)
+		}
+	} else {
+		standalonePanel = true
+		if !p.Get("parentElement").Equal(body) {
+			body.Call("appendChild", p)
+		}
+		p.Get("style").Set("cssText", base+edgeCSS)
+	}
+	if wasHidden {
+		p.Get("style").Set("display", "none")
+	}
 	dockEdge = edge
 	// (The legacy "rack" horizontal-strip layout is superseded by the module
 	// system, which lays out the same in every dock mode.)
 	p.Get("classList").Call("remove", "rack")
 	// Tag the panel with its edge so CSS can adapt (e.g. sidebars stack modules
 	// in a single column rather than flowing them side-by-side).
-	for _, e := range []string{"top", "bottom", "left", "right", "float"} {
+	for _, e := range []string{"top", "bottom", "left", "right", "float", "footer"} {
 		p.Get("classList").Call("remove", "dk-"+e)
 	}
 	p.Get("classList").Call("add", "dk-"+edge)
@@ -196,7 +229,7 @@ func applyDock(edge string) {
 		positionFloat()
 	}
 	positionResizeHandle()
-	for _, e := range []string{"top", "bottom", "left", "right", "float"} {
+	for _, e := range []string{"top", "bottom", "left", "right", "float", "footer"} {
 		if b := doc.Call("getElementById", "dock-"+e); b.Truthy() {
 			if e == edge {
 				b.Get("classList").Call("add", "active")
@@ -429,9 +462,6 @@ func positionResizeHandle() {
 // hold them when docked. Horizontal row for top/bottom docks, vertical column
 // for left/right sidebars, and over the title bar's right end when floating.
 func positionDockControls() {
-	if !standalonePanel {
-		return // inline footer mode: no dock chrome
-	}
 	dc := doc.Call("getElementById", "dock-controls")
 	if !dc.Truthy() {
 		return
@@ -557,7 +587,7 @@ func initDockResize() {
 		}
 		e := a[0]
 		switch dockEdge {
-		case "bottom":
+		case "bottom", "footer":
 			dockSizeH = winH() - e.Get("clientY").Float()
 		case "top":
 			dockSizeH = e.Get("clientY").Float()
@@ -605,7 +635,7 @@ func initDockResize() {
 }
 
 func wireDockButtons() {
-	for _, e := range []string{"top", "bottom", "left", "right", "float"} {
+	for _, e := range []string{"top", "bottom", "left", "right", "float", "footer"} {
 		edge := e
 		if b := doc.Call("getElementById", "dock-"+e); b.Truthy() {
 			b.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -613,6 +643,10 @@ func wireDockButtons() {
 				return nil
 			}))
 		}
+	}
+	// The footer dock target only exists on host pages that have a <footer>.
+	if fb := doc.Call("getElementById", "dock-footer"); fb.Truthy() && !hostFooter.Truthy() {
+		fb.Get("style").Set("display", "none")
 	}
 }
 
