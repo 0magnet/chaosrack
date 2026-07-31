@@ -241,11 +241,14 @@ func appendFVFSelectors(paramsDiv js.Value) {
 
 // ── FVF audio output engine ──────────────────────────────────────────────
 // So the wobbulation can be HEARD (not just seen): a WebAudio ScriptProcessor
-// created at the source's sample rate (no resampling) drains the current
-// audio source, runs the FVF DSP, and plays the result. The processed samples
-// also feed the spectrogram (fvfVis) so the display matches the sound. Works
-// for any source — the microphone, or the PulseAudio/WebSocket stream (music),
-// the latter via a null-sink so the browser's output isn't re-captured.
+// on the SHARED context drains the current audio source, runs the FVF DSP per
+// source-rate sample, and linearly upsamples the processed stream to the
+// context rate for playback (the shared context runs at the hardware rate, so
+// a 24 kHz ws feed can't get a private matched-rate context any more). The
+// processed source-rate samples also feed the spectrogram (fvfVis) so the
+// display matches the sound. Works for any source — the microphone, or the
+// PulseAudio/WebSocket stream (music), the latter via a null-sink so the
+// browser's output isn't re-captured.
 
 var (
 	fvfListen       bool
@@ -254,7 +257,10 @@ var (
 	fvfAudioFn      js.Func
 	fvfAudioProc    *fvfProcessor
 	fvfAudioActive  bool
-	fvfDrainScratch []float32
+	fvfDrainScratch []float32           // source-rate: drained input, then processed output
+	fvfOutScratch   []float32           // context-rate: upsampled playback samples
+	fvfSrcAcc       float64             // fractional source samples owed to the resampler
+	fvfResampLast   float32             // last processed sample (interp continuity across callbacks)
 	fvfVis          = newFVFRing(48000) // ~1s of processed samples for the spectrogram
 )
 
@@ -310,30 +316,25 @@ func startFVFAudio() {
 		sr = src.SampleRate()
 	}
 	if fvfAudioActive {
-		if fvfAudioCtx.Truthy() {
-			fvfAudioCtx.Call("resume")
-		}
+		acquireAudioCtx("fvf")
 		return
 	}
-	ac := js.Global().Get("AudioContext")
-	if ac.IsUndefined() {
-		ac = js.Global().Get("webkitAudioContext")
-	}
-	if ac.IsUndefined() {
+	fvfAudioCtx = acquireAudioCtx("fvf")
+	if !fvfAudioCtx.Truthy() {
 		return
 	}
-	opts := js.Global().Get("Object").New()
-	opts.Set("sampleRate", sr) // context at the source rate → no resampling
-	fvfAudioCtx = ac.New(opts)
 	fvfAudioProc = &fvfProcessor{sampleRate: float64(sr)}
 	const bufSize = 2048
-	fvfDrainScratch = make([]float32, bufSize)
+	// The source-rate scratch must hold bufSize·(srcRate/ctxRate) samples;
+	// 2× covers any plausible rate pair (e.g. 96 kHz source on a 48 kHz ctx).
+	fvfDrainScratch = make([]float32, 2*bufSize)
+	fvfOutScratch = make([]float32, bufSize)
+	fvfSrcAcc, fvfResampLast = 0, 0
 	fvfAudioNode = fvfAudioCtx.Call("createScriptProcessor", bufSize, 1, 1)
 	fvfAudioFn = trackedFuncOf(fvfAudioProcess)
 	fvfAudioNode.Set("onaudioprocess", fvfAudioFn)
 	fvfAudioNode.Call("connect", fvfAudioCtx.Get("destination"))
 	fvfAudioActive = true
-	fvfAudioCtx.Call("resume")
 }
 
 func stopFVFAudio() {
@@ -344,40 +345,76 @@ func stopFVFAudio() {
 		fvfAudioNode.Set("onaudioprocess", js.Null())
 		fvfAudioNode.Call("disconnect")
 	}
-	if fvfAudioCtx.Truthy() {
-		fvfAudioCtx.Call("close")
-	}
 	fvfAudioNode, fvfAudioCtx = js.Undefined(), js.Undefined()
 	fvfAudioFn.Release() // symmetric with startFVFAudio's FuncOf (was leaked per Listen toggle)
 	fvfAudioActive = false
+	releaseAudioCtx("fvf")
 }
 
 // fvfAudioProcess is the ScriptProcessor callback (runs in Go): drain the
-// source, run FVF per sample, write the result to the output buffer and to
-// fvfVis (for the spectrogram). Underflow samples are processed as silence so
-// the carrier keeps running.
+// source, run FVF per source-rate sample, then upsample the processed block
+// to the context rate for playback. fvfVis gets the source-rate stream (the
+// spectrogram's scroll pacing is derived from the source rate). Underflow
+// samples are processed as silence so the carrier keeps running.
 func fvfAudioProcess(_ js.Value, args []js.Value) interface{} {
 	if !fvfAudioActive || fvfAudioProc == nil {
 		return nil
 	}
-	outData := args[0].Get("outputBuffer").Call("getChannelData", 0)
+	out := args[0].Get("outputBuffer")
+	outData := out.Call("getChannelData", 0)
 	n := outData.Get("length").Int()
-	if n > len(fvfDrainScratch) {
-		n = len(fvfDrainScratch)
+	if n > len(fvfOutScratch) {
+		n = len(fvfOutScratch)
 	}
+
+	// How many source-rate samples this context-rate block spans. The source
+	// rate can settle late (ws connect after Listen), so track it live.
+	srcRate := 24000.0
+	if audioSource != nil && audioSource.SampleRate() > 0 {
+		srcRate = float64(audioSource.SampleRate())
+	}
+	fvfAudioProc.sampleRate = srcRate
+	ctxRate := out.Get("sampleRate").Float()
+	fvfSrcAcc += srcRate / ctxRate * float64(n)
+	m := int(fvfSrcAcc)
+	if m > len(fvfDrainScratch) {
+		m = len(fvfDrainScratch)
+	}
+	fvfSrcAcc -= float64(m)
+
 	got := 0
 	if audioSource != nil && audioSource.Ready() {
-		got = audioSource.Drain(fvfDrainScratch[:n])
+		got = audioSource.Drain(fvfDrainScratch[:m])
 	}
-	for i := 0; i < n; i++ {
+	for i := 0; i < m; i++ {
 		var x float32
 		if i < got {
 			x = fvfDrainScratch[i]
 		}
 		fvfDrainScratch[i] = fvfAudioProc.Process(x)
 	}
-	fvfVis.write(fvfDrainScratch[:n])
-	b := unsafe.Slice((*byte)(unsafe.Pointer(&fvfDrainScratch[0])), n*4)
+	fvfVis.write(fvfDrainScratch[:m])
+
+	// Linear-interpolate the m processed samples up to n output samples,
+	// with fvfResampLast carrying continuity across callback boundaries.
+	seq := func(k int) float32 {
+		if k <= 0 {
+			return fvfResampLast
+		}
+		return fvfDrainScratch[k-1]
+	}
+	step := float64(m) / float64(n)
+	for i := 0; i < n; i++ {
+		pos := float64(i) * step
+		j := int(pos)
+		frac := float32(pos - float64(j))
+		a := seq(j)
+		fvfOutScratch[i] = a + frac*(seq(j+1)-a)
+	}
+	if m > 0 {
+		fvfResampLast = fvfDrainScratch[m-1]
+	}
+	b := unsafe.Slice((*byte)(unsafe.Pointer(&fvfOutScratch[0])), n*4)
 	u8 := js.Global().Get("Uint8Array").New(outData.Get("buffer"))
 	js.CopyBytesToJS(u8, b)
 	return nil

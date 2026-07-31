@@ -24,6 +24,11 @@ type MicOptions struct {
 	// the largest snapshot window and per-frame drain backlog. Default
 	// 16384.
 	RingSize int
+
+	// Context is an existing AudioContext to build the capture graph on.
+	// When set, the mic shares it (and Close leaves it open — the caller
+	// owns it); when undefined, the mic creates and owns a private one.
+	Context js.Value
 }
 
 // NewMic requests microphone access via getUserMedia and captures the
@@ -76,6 +81,7 @@ type micSource struct {
 
 	stream    js.Value
 	audioCtx  js.Value
+	ownsCtx   bool     // false when opts.Context supplied it — never close then
 	src       js.Value // MediaStreamAudioSourceNode
 	processor js.Value // ScriptProcessorNode
 	onProcess js.Func
@@ -102,16 +108,22 @@ func (m *micSource) onStream(_ js.Value, args []js.Value) interface{} {
 	}
 	m.stream = args[0]
 
-	ac := js.Global().Get("AudioContext")
-	if ac.IsUndefined() {
-		ac = js.Global().Get("webkitAudioContext")
+	if m.opts.Context.Truthy() {
+		m.audioCtx = m.opts.Context
+		m.ownsCtx = false
+	} else {
+		ac := js.Global().Get("AudioContext")
+		if ac.IsUndefined() {
+			ac = js.Global().Get("webkitAudioContext")
+		}
+		if ac.IsUndefined() {
+			m.err = errors.New("AudioContext unavailable")
+			stopTracks(m.stream)
+			return nil
+		}
+		m.audioCtx = ac.New()
+		m.ownsCtx = true
 	}
-	if ac.IsUndefined() {
-		m.err = errors.New("AudioContext unavailable")
-		stopTracks(m.stream)
-		return nil
-	}
-	m.audioCtx = ac.New()
 	m.sampleRate = m.audioCtx.Get("sampleRate").Int()
 	m.src = m.audioCtx.Call("createMediaStreamSource", m.stream)
 
@@ -243,7 +255,7 @@ func (m *micSource) Close() {
 	if !m.stream.IsUndefined() {
 		stopTracks(m.stream)
 	}
-	if !m.audioCtx.IsUndefined() {
+	if m.ownsCtx && !m.audioCtx.IsUndefined() {
 		m.audioCtx.Call("close")
 	}
 	if m.onProcess.Truthy() {

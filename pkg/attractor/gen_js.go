@@ -378,17 +378,12 @@ func genAudioStart() {
 	if genRunning {
 		return
 	}
-	ac := js.Global().Get("AudioContext")
-	if !ac.Truthy() {
-		ac = js.Global().Get("webkitAudioContext")
-	}
-	if !ac.Truthy() {
+	// We're inside a user-gesture handler, so the acquire's resume is allowed
+	// under the browser autoplay policy.
+	genCtx = acquireAudioCtx("gen")
+	if !genCtx.Truthy() {
 		return
 	}
-	genCtx = ac.New()
-	// A context can start suspended under the browser autoplay policy; resume it
-	// (we're inside a user-gesture handler, so this is allowed).
-	genCtx.Call("resume")
 	for i := 0; i < 3; i++ {
 		osc := genCtx.Call("createOscillator")
 		gain := genCtx.Call("createGain")
@@ -412,13 +407,16 @@ func genAudioStop() {
 	for i := 0; i < 3; i++ {
 		if genOsc[i].Truthy() {
 			genOsc[i].Call("stop")
+			genOsc[i].Call("disconnect")
 		}
-	}
-	if genCtx.Truthy() {
-		genCtx.Call("close")
+		if genPan[i].Truthy() {
+			genPan[i].Call("disconnect")
+		}
+		genOsc[i], genGain[i], genPan[i] = js.Undefined(), js.Undefined(), js.Undefined()
 	}
 	genCtx = js.Undefined()
 	genRunning = false
+	releaseAudioCtx("gen")
 }
 
 // genAudioUpdate pushes oscillator i's waveform / frequency / channel routing to

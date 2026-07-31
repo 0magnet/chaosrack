@@ -253,41 +253,36 @@ func sonifySync() {
 	}
 }
 
-// sonifyModeSync suspends the context in modes Model Out can't sonify and
-// resumes it in trail modes (called on every mode change) — cheaper than
-// letting the callback stream zeros, and symmetric with FVF's mode handling.
+// sonifyModeSync detaches the subgraph in modes Model Out can't sonify and
+// reattaches it in trail modes (called on every mode change) — cheaper than
+// letting the callback stream zeros. A disconnected ScriptProcessor doesn't
+// fire; reconnecting to the same destination twice is a spec'd no-op, and it
+// can't suspend the SHARED context (that would silence FVF/gen/test tone).
 func sonifyModeSync() {
-	if !sonifyActive || !sonifyCtx.Truthy() {
+	if !sonifyActive || !sonifyNode.Truthy() {
 		return
 	}
 	if isAttractorMode(selectedMode) {
-		sonifyCtx.Call("resume")
+		sonifyNode.Call("connect", sonifyCtx.Get("destination"))
 	} else {
-		sonifyCtx.Call("suspend")
+		sonifyNode.Call("disconnect")
 	}
 }
 
 func startSonify() {
 	if sonifyActive {
-		if sonifyCtx.Truthy() {
-			sonifyCtx.Call("resume")
-		}
+		acquireAudioCtx("sonify")
 		return
 	}
-	ac := js.Global().Get("AudioContext")
-	if ac.IsUndefined() {
-		ac = js.Global().Get("webkitAudioContext")
-	}
-	if ac.IsUndefined() {
+	sonifyCtx = acquireAudioCtx("sonify")
+	if !sonifyCtx.Truthy() {
 		return
 	}
-	sonifyCtx = ac.New()
 	sonifyNode = sonifyCtx.Call("createScriptProcessor", 2048, 0, 2)
 	sonifyFn = trackedFuncOf(sonifyProcess)
 	sonifyNode.Set("onaudioprocess", sonifyFn)
 	sonifyNode.Call("connect", sonifyCtx.Get("destination"))
 	sonifyActive = true
-	sonifyCtx.Call("resume")
 }
 
 func stopSonify() {
@@ -298,12 +293,10 @@ func stopSonify() {
 		sonifyNode.Set("onaudioprocess", js.Null())
 		sonifyNode.Call("disconnect")
 	}
-	if sonifyCtx.Truthy() {
-		sonifyCtx.Call("close")
-	}
 	sonifyNode, sonifyCtx = js.Undefined(), js.Undefined()
 	sonifyFn.Release()
 	sonifyActive = false
+	releaseAudioCtx("sonify")
 }
 
 // buildSonifyModule builds the Model Out module's knobs: a TRACE-rate knob

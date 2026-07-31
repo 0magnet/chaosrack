@@ -64,8 +64,12 @@ func ensureAudioSource() audiosrc.Source {
 			SampleRate: wsSampleRate(),
 		})
 	default:
+		// The capture graph rides the shared context. The mic lease is held
+		// for the session — the source is kept alive across mode switches, so
+		// suspending its context out from under it would stall the rings.
 		audioSource = audiosrc.NewMic(audiosrc.MicOptions{
-			Stereo: true,
+			Stereo:  true,
+			Context: acquireAudioCtx("mic"),
 		})
 	}
 	return audioSource

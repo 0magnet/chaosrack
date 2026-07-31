@@ -167,7 +167,8 @@ func applyViewModulation() []savedParam {
 }
 
 // testToneNodes holds the live Web Audio graph for the built-in test signal
-// generator ([ctx, osc, tremoloLFO, sweepLFO]); nil when off.
+// generator ([osc, tremoloLFO, sweepLFO, outGain]); nil when off. The graph
+// hangs off the shared AudioContext.
 var testToneNodes []js.Value
 
 // setTestTone plays (or stops) a built-in test signal out the speakers: a
@@ -182,15 +183,10 @@ func setTestTone(on bool) {
 		if len(testToneNodes) > 0 {
 			return
 		}
-		ctor := js.Global().Get("AudioContext")
-		if !ctor.Truthy() {
-			ctor = js.Global().Get("webkitAudioContext")
-		}
-		if !ctor.Truthy() {
+		ctx := acquireAudioCtx("testtone")
+		if !ctx.Truthy() {
 			return
 		}
-		ctx := ctor.New()
-		ctx.Call("resume")
 		osc := ctx.Call("createOscillator")
 		osc.Set("type", "sawtooth")
 		osc.Get("frequency").Set("value", 300)
@@ -217,10 +213,14 @@ func setTestTone(on bool) {
 		osc.Call("start")
 		trem.Call("start")
 		sweep.Call("start")
-		testToneNodes = []js.Value{ctx, osc, trem, sweep}
+		testToneNodes = []js.Value{osc, trem, sweep, gain}
 	} else {
 		if len(testToneNodes) > 0 {
-			testToneNodes[0].Call("close") // closing the context stops the graph
+			for _, n := range testToneNodes[:3] {
+				n.Call("stop") // the oscillators
+			}
+			testToneNodes[3].Call("disconnect") // the output gain
+			releaseAudioCtx("testtone")
 		}
 		testToneNodes = nil
 	}
