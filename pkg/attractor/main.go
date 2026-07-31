@@ -266,6 +266,7 @@ var (
 	uTrailHeadLoc       js.Value
 	positionLoc         js.Value
 	aTrailTLoc          js.Value
+	aDwellLoc           js.Value
 	shadersReady        bool
 	renderFrame         js.Func
 )

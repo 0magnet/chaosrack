@@ -133,6 +133,7 @@ func uploadVerticesOnly(vertices []float32, drawMode js.Value, count int) {
 	js.CopyBytesToJS(jsVertUint8, sliceToByteSlice(vertices))
 	runtime.KeepAlive(vertices)
 	gl.Call("bufferData", glTypes.ArrayBuffer, jsVertFloat, glTypes.StaticDraw)
+	uploadDwell(vertices, n)
 	gl.Call("uniform1f", uTrailHeadLoc, 0) // scan frames are head-less (ring mode sets its own)
 	// Audio-modulated trail length: draw only the most-recent frac·count points
 	// (a shorter line-strip tail) — no buffer realloc. frac==1 draws it all.
@@ -146,6 +147,62 @@ func uploadVerticesOnly(vertices []float32, drawMode js.Value, count int) {
 		first = count - drawN
 	}
 	gl.Call("drawArrays", drawMode, first, drawN)
+}
+
+// Beam-dwell exposure: per-vertex brightness ∝ how long the beam lingered
+// there — mean step distance over local step distance, soft-clamped, so the
+// trail reads like a real CRT trace (slow arcs glow, fast excursions ghost).
+var (
+	dwellBuf   []float32
+	dwellGL    js.Value
+	jsDwellU8  js.Value
+	jsDwellF32 js.Value
+)
+
+func uploadDwell(vertices []float32, n int) {
+	if n < 2 {
+		return
+	}
+	if len(dwellBuf) != n {
+		dwellBuf = make([]float32, n)
+		jsDwellU8 = js.Global().Get("Uint8Array").New(n * 4)
+		jsDwellF32 = js.Global().Get("Float32Array").New(jsDwellU8.Get("buffer"), 0, n)
+	}
+	if dwellGL.IsUndefined() {
+		dwellGL = gl.Call("createBuffer")
+	}
+	// mean step distance (squared math avoided: one sqrt per point)
+	var total float32
+	for i := 1; i < n; i++ {
+		a, b := (i-1)*4, i*4
+		dx := vertices[b] - vertices[a]
+		dy := vertices[b+1] - vertices[a+1]
+		dz := vertices[b+2] - vertices[a+2]
+		d := float32(math.Sqrt(float64(dx*dx + dy*dy + dz*dz)))
+		dwellBuf[i] = d
+		total += d
+	}
+	mean := total / float32(n-1)
+	if mean <= 0 {
+		mean = 1e-6
+	}
+	dwellBuf[0] = 1
+	for i := 1; i < n; i++ {
+		w := mean / (dwellBuf[i] + mean*0.15) // 1.0 at mean speed, ≤~6.7 when parked
+		if w > 1.8 {
+			w = 1.8
+		} else if w < 0.25 {
+			w = 0.25
+		}
+		dwellBuf[i] = w
+	}
+	gl.Call("bindBuffer", glTypes.ArrayBuffer, dwellGL)
+	js.CopyBytesToJS(jsDwellU8, sliceToByteSlice(dwellBuf))
+	gl.Call("bufferData", glTypes.ArrayBuffer, jsDwellF32, glTypes.DynamicDraw)
+	gl.Call("vertexAttribPointer", aDwellLoc, 1, glTypes.Float, false, 0, 0)
+	gl.Call("enableVertexAttribArray", aDwellLoc)
+	// leave ARRAY_BUFFER bound to the vertex buffer for any later subdata
+	gl.Call("bindBuffer", glTypes.ArrayBuffer, attractorVertexBuffer)
 }
 
 // uploadBuffersIndexed uploads and draws with drawElements.
@@ -167,6 +224,8 @@ func uploadBuffersIndexed(vertices []float32, indices []uint16, drawMode js.Valu
 		gl.Call("vertexAttribPointer", positionLoc, 3, glTypes.Float, false, 0, 0)
 		gl.Call("enableVertexAttribArray", positionLoc)
 		gl.Call("disableVertexAttribArray", aTrailTLoc)
+		gl.Call("disableVertexAttribArray", aDwellLoc)
+		gl.Call("vertexAttrib1f", aDwellLoc, 1.0)
 		gl.Call("vertexAttrib1f", aTrailTLoc, 0.0)
 		gl.Call("bufferData", glTypes.ArrayBuffer, SliceToTypedArray(attractorVertices), glTypes.StaticDraw)
 		gl.Call("bindBuffer", glTypes.ElementArrayBuffer, attractorIndexBuffer)

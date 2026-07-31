@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"math"
 	"runtime"
 	"strconv"
 	"syscall/js"
@@ -37,13 +38,14 @@ import (
 const ringPointsPerFrame = 120 // beam advance per frame at speed 1
 
 var (
-	ringOn     bool
-	ringHead   int    // next slot to overwrite (the OLDEST point)
-	ringSig    string // mode|steps the ring was primed for ("" = not primed)
-	ringCenter [3]float32
-	ringX      float64 // beam integrator state (float64, like integrate3D)
-	ringY      float64
-	ringZ      float64
+	ringOn        bool
+	ringHead      int    // next slot to overwrite (the OLDEST point)
+	ringSig       string // mode|steps the ring was primed for ("" = not primed)
+	ringCenter    [3]float32
+	ringX         float64 // beam integrator state (float64, like integrate3D)
+	ringDwellMean float32 = 1
+	ringY         float64
+	ringZ         float64
 )
 
 // ringInvalidate forces a re-prime (mode/trail-length/reset changes).
@@ -155,6 +157,10 @@ func ringUploadAndDraw(start, n int) {
 	}
 	runtime.KeepAlive(vertBuf)
 
+	// Dwell for the freshly written slots (mean from the last full-scan pass
+	// is close enough between primes; exact per-segment mean would flicker).
+	ringUpdateDwell(start, n)
+
 	gl.Call("uniform1f", uTrailHeadLoc, float64(ringHead)/float64(steps-1))
 	// Older stretch: head..end, newer stretch: 0..head. The split prevents a
 	// newest→oldest flyback line across the model.
@@ -182,4 +188,48 @@ func jsSegUint8(nBytes int) js.Value {
 
 func jsSegView(nFloats int) js.Value {
 	return js.Global().Get("Float32Array").New(segUint8.Get("buffer"), 0, nFloats)
+}
+
+// ringUpdateDwell refreshes the beam-dwell attribute for the slots the beam
+// just rewrote, using the mean already established by the priming scan.
+func ringUpdateDwell(start, n int) {
+	if len(dwellBuf) != steps || dwellGL.IsUndefined() {
+		return
+	}
+	var total float32
+	cnt := 0
+	upd := func(i int) {
+		if i <= 0 || i >= steps {
+			return
+		}
+		a, b := (i-1)*4, i*4
+		dx := vertBuf[b] - vertBuf[a]
+		dy := vertBuf[b+1] - vertBuf[a+1]
+		dz := vertBuf[b+2] - vertBuf[a+2]
+		d := float32(math.Sqrt(float64(dx*dx + dy*dy + dz*dz)))
+		total += d
+		cnt++
+		w := ringDwellMean / (d + ringDwellMean*0.15)
+		if w > 1.8 {
+			w = 1.8
+		} else if w < 0.25 {
+			w = 0.25
+		}
+		dwellBuf[i] = w
+	}
+	for k := 0; k < n; k++ {
+		upd((start + k) % steps)
+	}
+	if cnt > 0 { // slow-track the mean so long ring sessions stay calibrated
+		ringDwellMean += (total/float32(cnt) - ringDwellMean) * 0.02
+		if ringDwellMean <= 0 {
+			ringDwellMean = 1e-6
+		}
+	}
+	gl.Call("bindBuffer", glTypes.ArrayBuffer, dwellGL)
+	js.CopyBytesToJS(jsDwellU8, sliceToByteSlice(dwellBuf))
+	gl.Call("bufferData", glTypes.ArrayBuffer, jsDwellF32, glTypes.DynamicDraw)
+	gl.Call("vertexAttribPointer", aDwellLoc, 1, glTypes.Float, false, 0, 0)
+	gl.Call("enableVertexAttribArray", aDwellLoc)
+	gl.Call("bindBuffer", glTypes.ArrayBuffer, attractorVertexBuffer)
 }

@@ -194,6 +194,7 @@ var fragShaderCode = `
 	uniform float uTrailHead;
 	varying vec3 vPosition;
 	varying float vTrailT;
+	varying float vDwell;
 
 	vec3 hsv2rgb(vec3 c) {
 		vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
@@ -234,24 +235,30 @@ var fragShaderCode = `
 		} else {
 			color = mix(uBaseColor, uTopColor, t);
 		}
-		gl_FragColor = vec4(color, 1.0);
+		// Beam-dwell exposure: a real CRT trace is bright where the beam
+		// lingers and dim where it sweeps fast. vDwell is 1.0 at the trail's
+		// mean speed (and for geometry, which disables the attribute).
+		gl_FragColor = vec4(color * vDwell, 1.0);
 	}
 `
 
 var vertShaderCode = `
 	attribute vec3 position;
 	attribute float aTrailT;
+	attribute float aDwell;
 	uniform mat4 Pmatrix;
 	uniform mat4 Vmatrix;
 	uniform mat4 Mmatrix;
 	uniform float uPointSize;
 	varying vec3 vPosition;
 	varying float vTrailT;
+	varying float vDwell;
 	void main(void) {
 		gl_Position = Pmatrix * Vmatrix * Mmatrix * vec4(position, 1.0);
 		gl_PointSize = uPointSize;
 		vPosition = position;
 		vTrailT = aTrailT;
+		vDwell = aDwell;
 	}
 `
 
@@ -270,6 +277,10 @@ func setupShaders() {
 
 	positionLoc = gl.Call("getAttribLocation", shaderProgram, "position")
 	aTrailTLoc = gl.Call("getAttribLocation", shaderProgram, "aTrailT")
+	aDwellLoc = gl.Call("getAttribLocation", shaderProgram, "aDwell")
+	// Geometry / indexed paths leave the dwell attribute array disabled and
+	// use this constant instead (uniform brightness).
+	gl.Call("vertexAttrib1f", aDwellLoc, 1.0)
 	gl.Call("useProgram", shaderProgram)
 
 	// Set stride-4 attribute pointers (16 bytes per vertex: x,y,z,t)
