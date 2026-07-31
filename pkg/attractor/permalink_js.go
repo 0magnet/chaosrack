@@ -52,6 +52,7 @@ var permaCtls = []permaCtl{
 	{"rb", "ring-sw", true},
 	{"tw", "twin-sw", true},
 	{"po", "sect-sw", true},
+	{"pb", "patch-on", true},
 	{"gr", "gradient-reverse", true},
 	{"sk", "spectro-skin", true},
 	{"fr", "model-front", true},
@@ -320,7 +321,13 @@ func applyRot(val string) {
 // audio-mod last so its panel rebuild reflects the params + routing), then
 // the held pose.
 func applyStateFromHash() {
-	h := js.Global().Get("location").Get("hash").String()
+	applyStateFrom(js.Global().Get("location").Get("hash").String())
+}
+
+// applyStateFrom applies a serialized state (leading '#' included) without
+// reading the live URL — mid-session restores (the patch bank) must not race
+// the permalink sync, which rewrites location.hash on mode changes.
+func applyStateFrom(h string) {
 	if len(h) < 2 {
 		return
 	}

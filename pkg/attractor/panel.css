@@ -622,3 +622,15 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .sect>.sect-hdr:hover{color:#cdd;}
 .sect>.sect-hdr{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} /* 1-line headers so module content starts at a uniform Y */
 .selwin{font-family:"Courier New",monospace;font-weight:bold;font-size:11px;color:#7fe0a0;background:#04140a;border:1px solid #164a2a;border-radius:2px;padding:2px 6px;min-width:96px;text-align:center;text-shadow:0 0 4px #2a9a5a;letter-spacing:.5px;}
+
+/* Patchbay module: program bank slots + pin matrix */
+.pslot{width:26px;height:18px;background:#1a2028;border:1px solid #555;border-radius:2px;color:#9ab;font-family:'B612 Mono',monospace;font-size:9px;cursor:pointer;padding:0;}
+.pslot:hover{border-color:#8ac;}
+.pslot.full{color:#ffd23c;border-color:#887744;}
+.pslot.sto{border-color:#f66;color:#f66;box-shadow:0 0 5px #f664;}
+.mxgrid{display:grid;gap:3px 5px;align-items:center;justify-items:center;margin-top:6px;}
+.mxpin{width:13px;height:13px;border-radius:50%;border:1px solid #4a5560;background:#141a21;cursor:pointer;box-sizing:border-box;}
+.mxpin:hover{border-color:#8ac;}
+.mxpin.on{background:#ffd23c;border-color:#ffe98c;box-shadow:0 0 6px #ffd23c88;}
+.mxlbl{font-size:9px;color:#7c93a8;font-family:'Chakra Petch',sans-serif;letter-spacing:1px;}
+.mxcol{writing-mode:vertical-rl;transform:rotate(180deg);font-size:9px;color:#7c93a8;max-height:56px;overflow:hidden;font-family:'B612 Mono',monospace;}

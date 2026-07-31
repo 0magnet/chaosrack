@@ -66,6 +66,7 @@ const controlsBody = `
     <label class="grp" style="cursor:pointer;" title="Overlay a short description of the current attractor / model on the view"><input type="checkbox" class="sw" id="show-info"> Info</label>
     <label class="grp" style="cursor:pointer;" title="Fullscreen"><input type="checkbox" class="sw" id="fullscreen-sw"> Fullscreen</label>
     <label class="grp" style="cursor:pointer;" title="Show the Template module — a labeled legend of every named slot a module can have (header, label, readout, knob, ring, inner, fine, dial, reset). Hover a slot for the Go struct field it maps to."><input type="checkbox" class="sw" id="tpl-on"> Template</label>
+    <label class="grp" style="cursor:pointer;" title="Show the Patchbay module — an EMS-Synthi-style pin matrix routing audio energy (stereo/L/R) to any parameter or view control, plus an 8-slot patch memory bank (STO + slot stores, slot recalls)."><input type="checkbox" class="sw" id="patch-on"> Patchbay</label>
   </div>
 </div>
 </div>

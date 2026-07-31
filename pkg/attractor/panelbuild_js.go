@@ -223,6 +223,10 @@ func buildParamPanel(mode string) {
 		}
 	}
 
+	// Patchbay rebuilds with the panel so its matrix columns track the mode
+	// (and so pin edits resync the MOD knobs by rebuilding everything).
+	buildPatchbayModule(paramsDiv.Call("closest", ".sect"))
+
 	if mode == "custom" {
 		buildCustomPanel(paramsDiv)
 		if rebindParamWheel != nil {
