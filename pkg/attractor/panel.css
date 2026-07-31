@@ -637,3 +637,9 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 
 /* Template v3: real cells, standard vmrow flow; only chrome + overlays differ */
 .template-mod .tpl-cell{position:relative;}
+
+/* Embed hardening: on a host page the panel chrome elements are direct
+   children of body, where site-global element rules (e.g. magnetosphere.net's
+   .grid-container > div{padding:20px 0}) would otherwise reach them. Pin the
+   box model of everything we position with our own math. */
+#dock-resize,#float-grip,#float-title,#crt-overlay{padding:0!important;margin:0!important;box-sizing:border-box!important;}

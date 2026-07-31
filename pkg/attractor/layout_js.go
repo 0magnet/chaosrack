@@ -395,9 +395,12 @@ func positionResizeHandle() {
 	px := func(v float64) string { return strconv.FormatFloat(v, 'f', 0, 64) + "px" }
 	// Thicker bar (12px) with touch-action:none so touch-drags resize instead of
 	// scrolling; a lighter center stripe reads as a grip.
-	const common = "position:fixed;z-index:var(--z-dock);touch-action:none;background:" +
+	// padding/margin/box-sizing are pinned inline: embedded on a host page,
+	// global element rules there (e.g. .grid-container > div{padding:20px 0}
+	// on magnetosphere.net) otherwise inflate the 12px bar into a fat strip.
+	const common = "position:fixed;z-index:var(--z-dock);touch-action:none;padding:0;margin:0;box-sizing:border-box;background:" +
 		"linear-gradient(rgba(120,150,180,0.12),rgba(150,180,210,0.55),rgba(120,150,180,0.12));"
-	const commonV = "position:fixed;z-index:var(--z-dock);touch-action:none;background:" +
+	const commonV = "position:fixed;z-index:var(--z-dock);touch-action:none;padding:0;margin:0;box-sizing:border-box;background:" +
 		"linear-gradient(to right,rgba(120,150,180,0.12),rgba(150,180,210,0.55),rgba(120,150,180,0.12));"
 	var s string
 	switch dockEdge {
