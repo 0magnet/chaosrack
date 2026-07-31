@@ -81,6 +81,9 @@ var modeInfo = map[string]ModeInfo{
 	// beam-dwell, Model Out SCAN), so it's Parametric, not Audio — the audio
 	// stream is just its parameter source.
 	"takens": {"Takens Embedding", ClassParametric, false},
+	// bifurcation renders a progressive 2D scatter through the trail
+	// pipeline; Parametric so persist/gradient/points sizing apply.
+	"bifurcation": {"Bifurcation", ClassParametric, false},
 }
 
 // modeGroups is the mode <select>'s layout — ordered optgroups of ordered
@@ -102,6 +105,7 @@ var modeGroups = []struct {
 		"icosahedron", "nestedcube"}},
 	{"Geometry", []string{"globe", "sphere", "torus", "magnetosphere"}},
 	{"Audio", []string{"spectrogram", "xy", "fvf", "takens"}},
+	{"Analysis", []string{"bifurcation"}},
 	{"Custom", []string{"custom"}},
 }
 

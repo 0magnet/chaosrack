@@ -459,15 +459,22 @@ func generateForMode(mode string) {
 	// this integration step, and the colors / point size for this frame.
 	// No-op unless audio-reactive is on and the mode is an attractor.
 	saved := applyAudioModulation(mode)
+	// Track the most recent real flow mode — the bifurcation explorer
+	// sweeps it.
+	if _, isFlow := flowFor4(mode); isFlow && mode != "bifurcation" {
+		lastFlowMode = mode
+	}
 	// Twin-trajectory divergence (Trace > Twin): draws both copies itself.
 	if twinTick(mode) {
 		restoreAudioModulation(saved)
+		sectTick(mode)
 		return
 	}
 	// Ring-trail beam step (Trace > Ring): draws the frame itself when active
 	// and primed; otherwise the scan generator below runs (and primes it).
 	if ringTick(mode) {
 		restoreAudioModulation(saved)
+		sectTick(mode)
 		return
 	}
 	if fn := modeGenerate[mode]; fn != nil {
@@ -475,6 +482,7 @@ func generateForMode(mode string) {
 	}
 	restoreAudioModulation(saved)
 	ringPrimeAfterScan(mode)
+	sectTick(mode) // Poincaré overlay draws above the finished trail
 }
 
 func renderLoop(this js.Value, args []js.Value) interface{} {

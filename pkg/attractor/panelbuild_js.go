@@ -232,6 +232,12 @@ func buildParamPanel(mode string) {
 		return
 	}
 
+	if mode == "bifurcation" {
+		buildBifPanel(paramsDiv)
+		quantizeModuleWidths()
+		return
+	}
+
 	params, ok := attractorParams[mode]
 	if !ok || len(params) == 0 {
 		return

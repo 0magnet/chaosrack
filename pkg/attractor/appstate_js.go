@@ -292,6 +292,8 @@ func reseedAttractorState() {
 	integ3DMode = "" // force integrate3D to re-seed x64 from the IC
 	ringInvalidate() // ring trail re-primes from the fresh state
 	twinInvalidate() // twin pair re-seeds ε apart from the fresh state
+	sectInvalidate() // section scatter restarts from the fresh state
+	bifInvalidate()  // bifurcation re-sweeps (source params may have changed)
 	// Hyper-Rössler's hidden 4th state; start it on-attractor for that mode,
 	// zero otherwise (harmless — only that mode reads it).
 	if selectedMode == "hyperrossler" {
