@@ -286,7 +286,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .led{font-family:'DSEG7 Classic',"Courier New",monospace;font-weight:bold;font-size:13px;line-height:1.5;color:var(--led-col,#ff3b30);background:var(--led-bg,#170000);border:1px solid var(--led-bd,#3a0000);border-radius:2px;padding:2px 5px;letter-spacing:1px;text-shadow:0 0 5px var(--led-glow,#ff2a20);min-width:44px;text-align:right;}
 /* Tactile paddle/rocker switch: a recessed track with a raised, beveled
    metallic paddle that throws left↔right; the well lights green when on. */
-.sw{appearance:none;-webkit-appearance:none;width:36px;height:19px;background:linear-gradient(#141414,#242424);border:1px solid #070707;border-radius:4px;position:relative;cursor:pointer;vertical-align:middle;outline:none;transition:background .12s;flex:0 0 auto;box-shadow:inset 0 2px 4px #000,inset 0 -1px 0 #3a3a3a;margin:0 4px 0 0;}
+.sw{appearance:none;-webkit-appearance:none;width:36px;height:19px;background:linear-gradient(#141414,#242424);border:1px solid #070707;border-radius:4px;position:relative;cursor:pointer;vertical-align:middle;outline:none;transition:background .12s;flex:0 0 auto;box-shadow:inset 0 2px 4px #000,inset 0 -1px 0 #3a3a3a;margin:0 4px 0 0;min-width:36px;min-height:19px;}
 .sw:checked{background:linear-gradient(#0c3a1c,#1e7d3a);box-shadow:inset 0 2px 4px #041a0c,inset 0 -1px 0 #2fae55,0 0 5px #1e7d3a66;}
 .sw::before{content:"";position:absolute;top:1px;left:1px;width:16px;height:15px;border-radius:3px;background:linear-gradient(#efefef,#b4b4b4 48%,#7c7c7c);border:1px solid #3a3a3a;transition:left .12s,background .12s;box-shadow:0 1px 2px #000,inset 0 1px 0 #fff,inset 0 -1px 1px #555;}
 .sw:checked::before{left:18px;background:linear-gradient(#f2fff4,#c8f2d2 48%,#84cf95);border-color:#2a6a3c;}
@@ -395,7 +395,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .punit .u-val{margin:0;}
 /* Step-size field is just a .numin — appearance comes from .numin (DSEG7 LED),
    this only sets its width/alignment. No separate gray styling. */
-.punit .u-step{width:58px;text-align:center;}
+.punit .u-step{width:58px;min-width:58px;max-width:58px;text-align:center;}
 .punit-mod{display:flex;flex-direction:column;align-items:center;gap:1px;margin-top:3px;}
 .punit-mod .u-modlbl{font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:9px;letter-spacing:1px;color:#5f7a90;}
 /* Level readout is a normal .numin (DSEG7 LED via --led-col); this only sizes it. */
