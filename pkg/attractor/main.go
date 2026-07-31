@@ -953,6 +953,12 @@ func Run() {
 			return nil
 		}
 		e := args[0]
+		// Self-heal a missed mouseup (a native drag or an off-window release
+		// eats it): no buttons held ⇒ the drag is over, stop rotating.
+		if e.Get("buttons").Float() == 0 {
+			dragging = false
+			return nil
+		}
 		dragMove(e.Get("clientX").Float(), e.Get("clientY").Float())
 		return nil
 	}))
@@ -960,6 +966,17 @@ func Run() {
 		dragging = false
 		return nil
 	}))
+	// While rotating, kill the browser's native behaviors that hijack the
+	// gesture on host pages: dragging an <img>/SVG (magnetosphere.net's logo
+	// lifts "in hand" and eats every event until release) and text selection.
+	for _, ev := range []string{"dragstart", "selectstart"} {
+		doc.Call("addEventListener", ev, trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+			if dragging {
+				args[0].Call("preventDefault")
+			}
+			return nil
+		}))
+	}
 
 	// Event: touch drag rotation. Same doc-binding rationale as mouse.
 	// Do NOT preventDefault here unconditionally — that breaks tap+drag
