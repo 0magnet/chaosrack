@@ -26,6 +26,7 @@ var (
 
 	afWindowL []float32
 	afWindowR []float32
+	afMagsL   []float64 // persistent copy of the left-channel magnitudes
 	afPrevMix []float64 // previous mixed magnitudes, for onset flux
 
 	afFeat = map[string]float32{} // smoothed feature values
@@ -222,8 +223,13 @@ func updateAudioFeatures() {
 	setNorm := func(name string, raw float32) { afFeat[name] = afSmooth(afFeat[name], afNormMap(name, raw)) }
 	setRaw := func(name string, val float32) { afFeat[name] = afSmooth(afFeat[name], clamp01(val)) }
 
-	magsL := sg.ComputeFFT(afWindowL)
-	magsR := sg.ComputeFFT(afWindowR)
+	// The local FFT returns a shared scratch, and both channels stay live
+	// through the stereo-mix loop below — persist L into its own buffer.
+	if afMagsL == nil {
+		afMagsL = make([]float64, sg.FFTSize/2)
+	}
+	magsL := afMagsL[:copy(afMagsL, computeFFTMags(afWindowL))]
+	magsR := computeFFTMags(afWindowR)
 	bL, mL, tL, cL := bandEnergies(magsL, sr)
 	bR, mR, tR, cR := bandEnergies(magsR, sr)
 

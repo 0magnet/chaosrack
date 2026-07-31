@@ -145,7 +145,7 @@ func updateSpectrogramTexture(nowMs float64) {
 			copy(spectOverlap, spectOverlap[step:])
 			copy(spectOverlap[sg.FFTSize-step:], spectAccum[consumed:consumed+step])
 			consumed += step
-			if col := buildSpectColumn(sg.ComputeFFT(spectOverlap)); col != nil {
+			if col := buildSpectColumn(computeFFTMags(spectOverlap)); col != nil {
 				spectColQueue = append(spectColQueue, col)
 			}
 		}

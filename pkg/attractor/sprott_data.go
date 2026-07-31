@@ -58,17 +58,29 @@ var sprottCases = []sprottCase{
 
 // sprottDTs holds the live (user-adjustable) dt for each case; &sprottDTs[i]
 // is the stable pointer the param slider binds to. sprottCaseIndex maps a
-// mode string to its index for dispatch.
+// mode string to its index for dispatch. Both are VAR initializers (not an
+// init() func) on purpose: sprott_cases.go's init() takes &sprottDTs[i], and
+// init() funcs run in file order (…cases.go before …data.go) while variable
+// initialization is dependency-ordered and always precedes every init().
 var (
-	sprottDTs       []float32
-	sprottCaseIndex = map[string]int{}
+	sprottDTs = func() []float32 {
+		d := make([]float32, len(sprottCases))
+		for i := range sprottCases {
+			d[i] = sprottCases[i].dt
+		}
+		return d
+	}()
+	sprottCaseIndex = func() map[string]int {
+		m := make(map[string]int, len(sprottCases))
+		for i := range sprottCases {
+			m[sprottCases[i].key] = i
+		}
+		return m
+	}()
 )
 
 func init() {
-	sprottDTs = make([]float32, len(sprottCases))
 	for i := range sprottCases {
-		sprottDTs[i] = sprottCases[i].dt
-		sprottCaseIndex[sprottCases[i].key] = i
 		attractorInitCond[sprottCases[i].key] = sprottCases[i].ic
 	}
 }
