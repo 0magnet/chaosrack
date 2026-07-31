@@ -353,6 +353,11 @@ func Run() {
 		if hidden || (frontOn && !raised) {
 			st.Set("display", "")
 			cl.Call("add", "panel-raised")
+			// First show after a hidden boot: module widths were never
+			// measurable, so quantize now and refit the panel chrome.
+			quantizeModuleWidths()
+			positionResizeHandle()
+			positionDockControls()
 		} else {
 			st.Set("display", "none")
 			cl.Call("remove", "panel-raised")

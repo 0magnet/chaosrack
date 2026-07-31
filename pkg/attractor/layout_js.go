@@ -227,6 +227,13 @@ func quantizeModuleWidths() {
 	if !standalonePanel {
 		return
 	}
+	// A hidden panel measures every module at zero and would lock them all to
+	// one slot (PanelStartHidden hosts hit this on boot) — leave the widths
+	// alone; the show path re-quantizes.
+	if p := doc.Call("getElementById", "controls-panel"); p.Truthy() &&
+		p.Get("style").Get("display").String() == "none" {
+		return
+	}
 	mods := doc.Call("querySelectorAll", ".modules > .sect")
 	for i := 0; i < mods.Get("length").Int(); i++ {
 		m := mods.Index(i)
