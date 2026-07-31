@@ -50,10 +50,12 @@ var (
 	sonifyPhase float64 // scan: fractional position along the trail, in cycles
 
 	// FLOW state: a private integrator of the SAME vector field the renderer
-	// draws (via flowFor), stepped at audio rate. Pitch is emergent — the
-	// attractor's own orbital frequency — and the knob transposes it.
+	// draws (via flowFor4 — 4D equation modes included), stepped at audio
+	// rate. Pitch is emergent — the attractor's own orbital frequency — and
+	// the knob transposes it.
 	sonFlowMode         string  // mode the flow state was seeded for
 	sonFX, sonFY, sonFZ float64 // current state
+	sonFW               float64 // hidden 4th state (4D flows)
 	sonPX, sonPY, sonPZ float64 // previous state (for sub-step interp)
 	sonAcc              float64 // fractional steps owed
 
@@ -137,18 +139,19 @@ func sonifyProcess(_ js.Value, args []js.Value) interface{} {
 		l[i], r[i] = float32(vl), float32(vr)
 	}
 
-	sys, haveFlow := flowFor(selectedMode)
+	sys, haveFlow := flowFor4(selectedMode)
 	if sonifyMode == "flow" && haveFlow {
 		// FLOW: audify the dynamics — integrate the mode's own vector field
 		// at audio rate. sonifyHz transposes: 440 (A4) = one integrator step
 		// per sample; each octave doubles the rate, so the knob moves the
 		// emergent pitch by exact musical intervals.
 		if sonFlowMode != selectedMode {
-			ic := attractorInitCond[selectedMode]
+			ic := initCondFor(selectedMode)
 			sonFX, sonFY, sonFZ = float64(ic[0]), float64(ic[1]), float64(ic[2])
 			if sonFX == 0 && sonFY == 0 && sonFZ == 0 {
 				sonFX, sonFY, sonFZ = 0.1, 0, 0 // don't strand at a fixed point
 			}
+			sonFW = sys.w()
 			sonPX, sonPY, sonPZ = sonFX, sonFY, sonFZ
 			sonAcc = 0
 			sonFlowMode = selectedMode
@@ -161,16 +164,18 @@ func sonifyProcess(_ js.Value, args []js.Value) interface{} {
 			for sonAcc >= 1 {
 				sonAcc--
 				sonPX, sonPY, sonPZ = sonFX, sonFY, sonFZ
-				dx, dy, dz := sys.f(sonFX, sonFY, sonFZ)
+				dx, dy, dz, dw := sys.f(sonFX, sonFY, sonFZ, sonFW)
 				sonFX += dt * dx
 				sonFY += dt * dy
 				sonFZ += dt * dz
-				if !(sonFX > -lim && sonFX < lim && sonFY > -lim && sonFY < lim && sonFZ > -lim && sonFZ < lim) {
-					ic := attractorInitCond[selectedMode]
+				sonFW += dt * dw
+				if !(sonFX > -lim && sonFX < lim && sonFY > -lim && sonFY < lim && sonFZ > -lim && sonFZ < lim && sonFW > -lim && sonFW < lim) {
+					ic := initCondFor(selectedMode)
 					sonFX, sonFY, sonFZ = float64(ic[0]), float64(ic[1]), float64(ic[2])
 					if sonFX == 0 && sonFY == 0 && sonFZ == 0 {
 						sonFX = 0.1
 					}
+					sonFW = 0
 					sonPX, sonPY, sonPZ = sonFX, sonFY, sonFZ
 				}
 			}
@@ -184,7 +189,7 @@ func sonifyProcess(_ js.Value, args []js.Value) interface{} {
 		// SCAN: trail as wavetable — sweep the whole drawn trail sonifyHz
 		// times per second (exact, knob-set pitch). Also the FLOW fallback
 		// for trail modes without a registered vector field (parametric
-		// curves, 4D equation modes). Geometry modes never reach here (the
+		// curves). Geometry modes never reach here (the
 		// isAttractorMode gate above): they don't write vertBuf.
 		inc := sonifyHz / sr
 		for i := 0; i < frames; i++ {

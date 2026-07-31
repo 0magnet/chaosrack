@@ -68,6 +68,64 @@ func flowFor(mode string) (flowSys, bool) {
 	return flowSys{}, false
 }
 
+// ── 4D flows ──────────────────────────────────────────────────────────────
+// The general form: (x,y,z,w) → derivatives. 3D systems are the w≡0 special
+// case, so flowFor4 is the ONE lookup every trajectory consumer (Model Out
+// FLOW, the ring beam, the chaos guard) goes through — 4D equation modes
+// (hyperrossler, custom) stopped being second-class citizens here.
+
+type flowDeriv4 func(x, y, z, w float64) (dx, dy, dz, dw float64)
+
+type flowSys4 struct {
+	dt   func() float64 // the mode's BASE dt (live: reads the param var)
+	f    flowDeriv4
+	w    func() float64  // current hidden 4th state (seed for a new integrator)
+	setW func(w float64) // write the hidden state back (beam → scan continuity)
+	// scale is the display scale applied to the (x,y,z) projection when the
+	// renderer stores vertices (hyperrossler shrinks its huge natural extent);
+	// beam-style consumers writing vertBuf directly must apply it too.
+	scale float32
+	// interpreted marks equation-engine systems (AST evaluation, ~10× the
+	// per-step cost of a compiled deriv) so consumers pick the right budget.
+	interpreted bool
+}
+
+var flowSystems4 = map[string]flowSys4{}
+
+func registerFlow4(mode string, s flowSys4) {
+	if s.scale == 0 {
+		s.scale = 1
+	}
+	if s.w == nil {
+		s.w = func() float64 { return 0 }
+	}
+	if s.setW == nil {
+		s.setW = func(float64) {}
+	}
+	flowSystems4[mode] = s
+}
+
+// flowFor4 returns the 4D form of a mode's flow: native 4D systems first,
+// then any 3D flow (registered or integrate3D-captured) lifted with dw≡0.
+func flowFor4(mode string) (flowSys4, bool) {
+	if s, ok := flowSystems4[mode]; ok {
+		return s, true
+	}
+	if s3, ok := flowFor(mode); ok {
+		return flowSys4{
+			dt: s3.dt,
+			f: func(x, y, z, _ float64) (float64, float64, float64, float64) {
+				dx, dy, dz := s3.f(x, y, z)
+				return dx, dy, dz, 0
+			},
+			w:     func() float64 { return 0 },
+			setW:  func(float64) {},
+			scale: 1,
+		}, true
+	}
+	return flowSys4{}, false
+}
+
 // attractorInitCond seeds each mode's integrator (modes not listed use the
 // generic fallback in resetAttractorState / defaultInitCond). Lives untagged
 // with the registry so the native chaos test starts from the SAME state the

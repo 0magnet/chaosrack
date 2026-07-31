@@ -245,7 +245,9 @@ func ParseExpr(s string) (*Expr, error) {
 		case tkOp:
 			popWhile(func(o token) bool {
 				if o.kind == tkUnary {
-					return true
+					// Unary sign binds tighter than * / + - but LOOSER than ^:
+					// -x^2 must mean -(x^2), not (-x)^2.
+					return tk.op != '^'
 				}
 				if o.kind != tkOp {
 					return false

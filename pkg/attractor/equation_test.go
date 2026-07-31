@@ -30,6 +30,9 @@ func TestExpr(t *testing.T) {
 		{"2^3^2", [5]float64{}, nil, 512}, // right-assoc
 		{"-3+2", [5]float64{}, nil, -1},
 		{"-(3+2)", [5]float64{}, nil, -5},
+		{"-x^2", [5]float64{3, 0, 0, 0, 0}, nil, -9},            // unary binds looser than ^
+		{"-x^2 - y", [5]float64{0.3, -0.7, 0, 0, 0}, nil, 0.61}, // the sprottm seed shape
+		{"(-x)^2", [5]float64{3, 0, 0, 0, 0}, nil, 9},
 		{"2x", [5]float64{3, 0, 0, 0, 0}, nil, 6},                                       // implicit mult (number)
 		{"x y", [5]float64{3, 4, 0, 0, 0}, nil, 12},                                     // implicit mult (space)
 		{"y*z", [5]float64{0, 4, 5, 0, 0}, nil, 20},                                     // Sprott B term (explicit)

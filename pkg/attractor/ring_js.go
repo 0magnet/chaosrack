@@ -32,8 +32,9 @@ import (
 //   - Priming = let the mode's normal scan generator run one frame (fills
 //     the buffer, warms centerOffset, and — for integrate3D modes — captures
 //     the vector field into the flow registry); the beam takes over next
-//     frame via flowFor. Modes without a registered field (parametric, 4D
-//     equation, geometry) simply stay in scan mode.
+//     frame via flowFor4 (3D flows lifted with w≡0, so 4D equation modes —
+//     hyperrossler, custom — ring like everything else). Modes without a
+//     registered field (parametric, geometry) simply stay in scan mode.
 
 const ringPointsPerFrame = 120 // beam advance per frame at speed 1
 
@@ -46,6 +47,7 @@ var (
 	ringDwellMean float32 = 1
 	ringY         float64
 	ringZ         float64
+	ringW         float64 // hidden 4th state for 4D flows
 )
 
 // ringInvalidate forces a re-prime (mode/trail-length/reset changes).
@@ -59,7 +61,7 @@ func ringTick(mode string) bool {
 	if !ringOn {
 		return false
 	}
-	sys, ok := flowFor(mode)
+	sys, ok := flowFor4(mode)
 	if !ok {
 		return false
 	}
@@ -71,29 +73,39 @@ func ringTick(mode string) bool {
 	// Advance the beam: fixed points/frame, each integrated with the same
 	// dt·speedScale and speedSteps sub-steps as scan mode, so the trajectory
 	// (and the Speed knob's meaning) is unchanged — only the redraw model is.
+	// The sub-steps get the same anti-freeze budget as the scan generators
+	// (interpreted equation systems are ~10× the per-step cost).
 	n := ringPointsPerFrame
 	if n > steps {
 		n = steps
 	}
+	budget := frameBudgetCompiled
+	if sys.interpreted {
+		budget = frameBudgetInterpreted
+	}
+	sub := effSubSteps(speedSteps, n, budget)
 	dt := sys.dt() * float64(speedScale)
 	const lim = 1e4
 	start := ringHead
 	invN := float32(1) / float32(steps-1)
+	scale := sys.scale
 	for i := 0; i < n; i++ {
-		for s := 0; s < speedSteps; s++ {
-			dx, dy, dz := sys.f(ringX, ringY, ringZ)
+		for s := 0; s < sub; s++ {
+			dx, dy, dz, dw := sys.f(ringX, ringY, ringZ, ringW)
 			ringX += dt * dx
 			ringY += dt * dy
 			ringZ += dt * dz
-			if !(ringX > -lim && ringX < lim && ringY > -lim && ringY < lim && ringZ > -lim && ringZ < lim) {
+			ringW += dt * dw
+			if !(ringX > -lim && ringX < lim && ringY > -lim && ringY < lim && ringZ > -lim && ringZ < lim && ringW > -lim && ringW < lim) {
 				ic := attractorInitCond[mode]
 				ringX, ringY, ringZ = float64(ic[0]), float64(ic[1]), float64(ic[2])
+				ringW = 0
 			}
 		}
 		j := ringHead * 4
-		vertBuf[j] = float32(ringX) - ringCenter[0]
-		vertBuf[j+1] = float32(ringY) - ringCenter[1]
-		vertBuf[j+2] = float32(ringZ) - ringCenter[2]
+		vertBuf[j] = float32(ringX)*scale - ringCenter[0]
+		vertBuf[j+1] = float32(ringY)*scale - ringCenter[1]
+		vertBuf[j+2] = float32(ringZ)*scale - ringCenter[2]
 		vertBuf[j+3] = float32(ringHead) * invN
 		ringHead++
 		if ringHead == steps {
@@ -104,6 +116,7 @@ func ringTick(mode string) bool {
 	// and a later switch back to scan mode continue from the beam.
 	x, y, z = float32(ringX), float32(ringY), float32(ringZ)
 	x64, y64, z64 = ringX, ringY, ringZ
+	sys.setW(ringW)
 
 	ringUploadAndDraw(start, n)
 	return true
@@ -116,7 +129,8 @@ func ringPrimeAfterScan(mode string) {
 	if !ringOn {
 		return
 	}
-	if _, ok := flowFor(mode); !ok {
+	sys, ok := flowFor4(mode)
+	if !ok {
 		return
 	}
 	sig := mode + "|" + strconv.Itoa(steps)
@@ -130,6 +144,7 @@ func ringPrimeAfterScan(mode string) {
 	if ringX == 0 && ringY == 0 && ringZ == 0 {
 		ringX, ringY, ringZ = float64(x), float64(y), float64(z)
 	}
+	ringW = sys.w() // continue the hidden state, not restart it
 }
 
 // ringUploadAndDraw pushes the newly written slots to the GPU (wrap-aware)

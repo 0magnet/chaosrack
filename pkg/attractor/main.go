@@ -2080,7 +2080,7 @@ func reseedAttractorState() {
 	// Hyper-Rössler's hidden 4th state; start it on-attractor for that mode,
 	// zero otherwise (harmless — only that mode reads it).
 	if selectedMode == "hyperrossler" {
-		hyperW = 10
+		hyperW = hyperW0
 	} else {
 		hyperW = 0
 	}
