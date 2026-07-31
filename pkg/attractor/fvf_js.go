@@ -161,24 +161,21 @@ func (p *fvfProcessor) Process(x float32) float32 {
 	return float32(out)
 }
 
-// appendFVFSelectors adds the waveform and modulator selector knobs to the
-// FVF control panel (buildParamPanel calls this after the float-param knobs).
-func appendFVFSelectors(paramsDiv js.Value) {
-	makeSel := func(label string, opts []string, cur int, onChange func(int)) js.Value {
-		cell := doc.Call("createElement", "span")
-		cell.Set("className", "pcell")
+// appendFVFSelectors adds the FVF-specific cells to the Parameters grid,
+// using the SAME anatomy as every other module: standard .punit cards with an
+// u-lbl on top, a labeled selector-ring knob (singleSelectorKnob) over a
+// hidden <select> for wave/mod, and labeled switch cards for FX / Listen.
+func appendFVFSelectors(grid js.Value) {
+	mkSelCard := func(label, tip string, opts, ringLabels []string, cur int, onChange func(int)) js.Value {
+		card := doc.Call("createElement", "div")
+		card.Set("className", "punit")
 		lbl := doc.Call("createElement", "span")
-		lbl.Set("className", "plabel")
+		lbl.Set("className", symClass("u-lbl", false))
 		lbl.Set("textContent", label)
-		cell.Call("appendChild", lbl)
-		grp := doc.Call("createElement", "span")
-		grp.Set("className", "grp")
+		card.Call("appendChild", lbl)
 		sel := doc.Call("createElement", "select")
-		sel.Set("title", label+" — "+map[string]string{
-			"wave": "carrier waveform (square / pulse / sub-octave ÷2)",
-			"mod":  "modulator topology (ring = four-quadrant, AM = balanced)",
-		}[label])
-		sel.Set("style", "background:#222;color:#ccc;border:1px solid #555;font-family:monospace;font-size:12px;padding:2px 4px;")
+		sel.Set("title", tip)
+		sel.Set("style", "display:none;")
 		for i, o := range opts {
 			opt := doc.Call("createElement", "option")
 			opt.Set("value", strconv.Itoa(i))
@@ -194,53 +191,52 @@ func appendFVFSelectors(paramsDiv js.Value) {
 			}
 			return nil
 		}))
-		grp.Call("appendChild", makeSelectorKnob(sel))
-		grp.Call("appendChild", sel)
-		cell.Call("appendChild", grp)
-		return cell
+		card.Call("appendChild", sel)
+		grp := doc.Call("createElement", "span")
+		grp.Set("className", "grp")
+		grp.Call("appendChild", singleSelectorKnob(sel, ringLabels, 46))
+		card.Call("appendChild", grp)
+		return card
 	}
-	paramsDiv.Call("appendChild", makeSel("wave", []string{"square", "pulse", "sub ÷2"}, fvfWave, func(v int) { fvfWave = v }))
-	paramsDiv.Call("appendChild", makeSel("mod", []string{"ring", "AM"}, fvfMod, func(v int) { fvfMod = v }))
+	grid.Call("appendChild", mkSelCard("wave",
+		"Wave — carrier waveform (square / pulse / sub-octave ÷2)",
+		[]string{"square", "pulse", "sub ÷2"}, []string{"sqr", "pls", "sub"},
+		fvfWave, func(v int) { fvfWave = v }))
+	grid.Call("appendChild", mkSelCard("mod",
+		"Mod — modulator topology (ring = four-quadrant, AM = balanced)",
+		[]string{"ring", "AM"}, []string{"ring", "AM"},
+		fvfMod, func(v int) { fvfMod = v }))
 
-	// FX switch — instant A/B between the raw incoming audio (off) and the
-	// wobbulated signal (on). Independent of the mix knob, and it affects
-	// both what you hear and the spectrogram, so raw looks/sounds raw.
-	fc := doc.Call("createElement", "span")
-	fc.Set("className", "pcell")
-	flbl := doc.Call("createElement", "span")
-	flbl.Set("className", "plabel")
-	flbl.Set("textContent", "🎛 FX")
-	fc.Call("appendChild", flbl)
-	fchk := doc.Call("createElement", "input")
-	fchk.Set("type", "checkbox")
-	fchk.Set("className", "sw")
-	fchk.Set("checked", !fvfBypass)
-	fchk.Set("title", "On = wobbulated (processed) audio; off = raw incoming audio, straight through")
-	fchk.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		fvfBypass = !fchk.Get("checked").Bool()
-		return nil
-	}))
-	fc.Call("appendChild", fchk)
-	paramsDiv.Call("appendChild", fc)
-
-	// Listen switch — route the wobbulated audio out the speakers.
-	lc := doc.Call("createElement", "span")
-	lc.Set("className", "pcell")
-	llbl := doc.Call("createElement", "span")
-	llbl.Set("className", "plabel")
-	llbl.Set("textContent", "🔊 Listen")
-	lc.Call("appendChild", llbl)
-	lchk := doc.Call("createElement", "input")
-	lchk.Set("type", "checkbox")
-	lchk.Set("className", "sw")
-	lchk.Set("checked", fvfListen)
-	lchk.Set("title", "Play the wobbulated audio out the speakers (mic: use headphones; music: see the null-sink setup)")
-	lchk.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		setFVFListen(lchk.Get("checked").Bool())
-		return nil
-	}))
-	lc.Call("appendChild", lchk)
-	paramsDiv.Call("appendChild", lc)
+	mkSwCard := func(label, tip string, checked bool, onChange func(bool)) js.Value {
+		card := doc.Call("createElement", "div")
+		card.Set("className", "punit")
+		lbl := doc.Call("createElement", "span")
+		lbl.Set("className", symClass("u-lbl", false))
+		lbl.Set("textContent", label)
+		card.Call("appendChild", lbl)
+		row := doc.Call("createElement", "label")
+		row.Set("className", "grp")
+		row.Get("style").Set("cursor", "pointer")
+		row.Get("style").Set("justifyContent", "center")
+		chk := doc.Call("createElement", "input")
+		chk.Set("type", "checkbox")
+		chk.Set("className", "sw")
+		chk.Set("checked", checked)
+		chk.Set("title", tip)
+		chk.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+			onChange(chk.Get("checked").Bool())
+			return nil
+		}))
+		row.Call("appendChild", chk)
+		card.Call("appendChild", row)
+		return card
+	}
+	grid.Call("appendChild", mkSwCard("FX",
+		"FX — on: wobbulated (processed) audio; off: the raw incoming audio straight through (instant A/B, independent of the MIX knob; affects both sound and spectrogram)",
+		!fvfBypass, func(on bool) { fvfBypass = !on }))
+	grid.Call("appendChild", mkSwCard("listen",
+		"Listen — play the wobbulated audio out the speakers (mic: use headphones; music: see the null-sink setup)",
+		fvfListen, func(on bool) { setFVFListen(on) }))
 }
 
 // ── FVF audio output engine ──────────────────────────────────────────────
