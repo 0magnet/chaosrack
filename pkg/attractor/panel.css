@@ -643,3 +643,13 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    .grid-container > div{padding:20px 0}) would otherwise reach them. Pin the
    box model of everything we position with our own math. */
 #dock-resize,#float-grip,#float-title,#crt-overlay{padding:0!important;margin:0!important;box-sizing:border-box!important;}
+
+/* Embed hardening: host clearfix pseudo-elements (::before/::after with
+   content, e.g. display:table clearfixes) become real GRID/FLEX ITEMS inside
+   our layout containers — a phantom fourth cell spills a second 116px column
+   and shifts the whole module's content off its left edge. None of these
+   containers use pseudo content of their own; suppress it unconditionally. */
+.modules::before,.modules::after,.sect>.row::before,.sect>.row::after,
+.punit-grid::before,.punit-grid::after,.vmrow::before,.vmrow::after,
+.vmaxrow::before,.vmaxrow::after,.swsecs::before,.swsecs::after,
+.swsec::before,.swsec::after,.mxgrid::before,.mxgrid::after{content:none!important;}
