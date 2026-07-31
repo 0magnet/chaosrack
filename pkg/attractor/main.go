@@ -43,7 +43,10 @@ func Run() {
 	if footers.Get("length").Int() > 0 {
 		existingFooter = footers.Index(0)
 	}
-	if existingFooter.Truthy() {
+	// ForceStandalonePanel lets a host page with a <footer> opt into the
+	// full standalone chrome (dock/resize/float) instead of the inline
+	// row that a host <footer> otherwise triggers. See its doc comment.
+	if existingFooter.Truthy() && !ForceStandalonePanel {
 		panel.Set("style", "color:#aaa;font-family:'B612 Mono',monospace;font-size:12px;padding:8px 12px;background:rgba(0,0,0,0.85);border-top:1px solid #333;")
 		existingFooter.Call("appendChild", panel)
 	} else {

@@ -129,6 +129,20 @@ var ExtraNavHTML string
 // without the host having to switch modes.
 var PanelStartHidden bool
 
+// ForceStandalonePanel makes Run() build the controls as a fixed
+// standalone overlay with the full dock/resize/float chrome even when
+// the host page has a <footer>. Without this, a detected <footer>
+// causes the panel to append inline (subtle-styled, sits inside the
+// footer) with dock/resize/float wiring skipped — a design meant for
+// early days when the panel was just a strip of controls, now a strict
+// downgrade.
+//
+// Set true for host pages that want the full standalone UX while
+// keeping their footer for other content (e.g. magnetosphere.net keeps
+// its cart + shipping in the footer but wants a proper draggable panel
+// too). Set BEFORE calling Run().
+var ForceStandalonePanel bool
+
 var (
 	paused          bool    = false
 	stopped         bool    = false
