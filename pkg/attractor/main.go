@@ -1318,8 +1318,12 @@ func Run() {
 
 	// randomizeOrientation zeroed the spin rates; if auto-rotate is on
 	// (default, or per the permalink), re-apply its Y-rate contribution so
-	// the model actually spins and the Y rate knob reflects it.
-	if selectedMode != "spectrogram" && selectedMode != "fvf" && autoRotate {
+	// the model actually spins and the Y rate knob reflects it. NOT when the
+	// hash pinned a Y rate: the serialized ry already contains the auto
+	// contribution, so re-adding it crept the rate +0.1 on every reload
+	// (0.1 → 0.2 → 0.3 …, found live on magnetosphere.net).
+	if _, yPinned := hashPinnedSpin["y"]; !yPinned &&
+		selectedMode != "spectrogram" && selectedMode != "fvf" && autoRotate {
 		autoRotate = false
 		setAutoRotate(true)
 	}
