@@ -88,6 +88,8 @@ func init() {
 		c := sprottCases[i]
 		sprottDTs[i] = c.dt
 		sprottCaseIndex[c.key] = i
+		idx := i
+		registerGenerate(c.key, func() { generateSprottCase(idx) })
 		attractorParams[c.key] = []paramDef{
 			{c.key + "-dt", "dt", &sprottDTs[i], c.dt, 0.001, 0.05, 0.001},
 		}

@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/0magnet/wasm-stuff/internal/cdp"
+	"github.com/0magnet/wasm-stuff/pkg/attractor"
 )
 
 var (
@@ -35,16 +36,20 @@ var (
 	cellPx     = flag.Int("cell", 320, "contact-sheet cell size in px")
 )
 
-// shotModelList is every model the gallery covers, in display order.
-var shotModelList = []string{
-	"lorenz", "rossler", "chua", "aizawa", "sprott", "thomas", "halvorsen",
-	"chen", "dadras", "rabinovich", "burkeshaw", "lu", "newtonleipnik",
-	"hyperrossler",
-	"sprotta", "sprottb", "sprottc", "sprottd", "sprotte", "sprottf",
-	"sprottg", "sprotth", "sprotti", "sprottj", "sprottk", "sprottl",
-	"sprottm", "sprottn", "sprotto", "sprottp", "sprottq", "sprottr", "sprotts",
-	"lissajou", "graphicartist",
-}
+// shotModelList is every model the gallery covers — DERIVED from the mode
+// registry (all flows + parametric curves), so a newly added mode can't be
+// silently missing from the gallery. "custom" is skipped: its default state
+// duplicates Lorenz.
+var shotModelList = func() []string {
+	keys := attractor.ModeKeys(attractor.ClassFlow3D, attractor.ClassFlow4D, attractor.ClassParametric)
+	out := make([]string, 0, len(keys))
+	for _, k := range keys {
+		if k != "custom" {
+			out = append(out, k)
+		}
+	}
+	return out
+}()
 
 func runShots() {
 	c, err := cdp.Dial(*cdpPort, *target)

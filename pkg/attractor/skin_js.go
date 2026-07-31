@@ -26,16 +26,6 @@ var (
 	skinIdxCount int
 )
 
-// isSkinnable reports whether the spectrogram skin can be applied to a mode.
-func isSkinnable(mode string) bool {
-	switch mode {
-	case "sphere", "globe", "torus",
-		"tetrahedron", "cube", "octahedron", "dodecahedron", "icosahedron", "nestedcube":
-		return true
-	}
-	return false
-}
-
 // renderSkinnedMode keeps the spectrogram texture current and draws the
 // current surface model as a filled, textured mesh. Called from
 // generateForMode when the skin is on and the mode is skinnable.

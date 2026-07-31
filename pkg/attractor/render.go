@@ -401,7 +401,7 @@ func generateForMode(mode string) {
 	// Spectrogram is a textured plane drawn through the shared 3D pipeline
 	// (texProgram); update its texture and draw it, then bail out of the
 	// attractor path.
-	if mode == "spectrogram" || mode == "fvf" {
+	if isSpectroSurface(mode) {
 		renderSpectrogramMode(frameNowMs)
 		return
 	}
@@ -465,69 +465,8 @@ func generateForMode(mode string) {
 		restoreAudioModulation(saved)
 		return
 	}
-	switch mode {
-	case "lorenz":
-		generateClassic("lorenz")
-	case "rossler":
-		generateClassic("rossler")
-	case "chua":
-		generateClassic("chua")
-	case "aizawa":
-		generateClassic("aizawa")
-	case "sprott":
-		generateClassic("sprott")
-	case "lissajou":
-		generateLissajou()
-	case "graphicartist":
-		generateGraphicArtist()
-	case "thomas":
-		generateClassic("thomas")
-	case "halvorsen":
-		generateClassic("halvorsen")
-	case "chen":
-		generateClassic("chen")
-	case "dadras":
-		generateClassic("dadras")
-	case "rabinovich":
-		generateRabinovich()
-	case "burkeshaw":
-		generateClassic("burkeshaw")
-	case "hyperrossler":
-		generateHyperRossler()
-	case "lu":
-		generateLu()
-	case "sprotta":
-		generateSprottA()
-	case "newtonleipnik":
-		generateNewtonLeipnik()
-	case "custom":
-		generateCustom()
-	case "tetrahedron":
-		generateTetrahedron()
-	case "cube":
-		generateCube()
-	case "octahedron":
-		generateOctahedron()
-	case "dodecahedron":
-		generateDodecahedron()
-	case "icosahedron":
-		generateIcosahedron()
-	case "nestedcube":
-		generateNestedCube()
-	case "globe":
-		generateGlobe()
-	case "sphere":
-		generateSphere()
-	case "torus":
-		generateTorus()
-	case "magnetosphere":
-		generateMagnetosphere()
-	default:
-		if idx, ok := sprottCaseIndex[mode]; ok {
-			generateSprottCase(idx)
-		} else {
-			generateClassic("rossler")
-		}
+	if fn := modeGenerate[mode]; fn != nil {
+		fn()
 	}
 	restoreAudioModulation(saved)
 	ringPrimeAfterScan(mode)

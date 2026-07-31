@@ -397,73 +397,7 @@ const controlsBody = `
   <span class="grp modelsel-col" data-no-drag id="model-sel-grp" title="Model selector — outer knob picks the category, inner knob the model">
   <span class="u-lbl mlbl">Model</span>
   <span id="modelknob-holder"></span>
-  <select id="mode-select" class="selwin" style="display:none">
-    <optgroup label="Attractors">
-      <option value="rossler">Rossler</option>
-      <option value="lorenz">Lorenz</option>
-      <option value="chua">Chua</option>
-      <option value="aizawa">Aizawa</option>
-      <option value="sprott">Sprott</option>
-      <option value="thomas">Thomas</option>
-      <option value="halvorsen">Halvorsen</option>
-      <option value="chen">Chen</option>
-      <option value="dadras">Dadras</option>
-      <option value="rabinovich">Rabinovich-Fabrikant</option>
-      <option value="burkeshaw">Burke-Shaw</option>
-      <option value="lu">Lü</option>
-      <option value="newtonleipnik">Newton-Leipnik</option>
-      <option value="hyperrossler">Hyper-Rössler (4D)</option>
-      <option value="custom">Custom equation</option>
-    </optgroup>
-    <optgroup label="Scope">
-      <option value="lissajou">Lissajous</option>
-      <option value="graphicartist">Graphic Artist</option>
-      <option value="xy">XY Scope</option>
-    </optgroup>
-    <optgroup label="Sprott systems (1994)">
-      <option value="sprotta">Sprott A</option>
-      <option value="sprottb">Sprott B</option>
-      <option value="sprottc">Sprott C</option>
-      <option value="sprottd">Sprott D</option>
-      <option value="sprotte">Sprott E</option>
-      <option value="sprottf">Sprott F</option>
-      <option value="sprottg">Sprott G</option>
-      <option value="sprotth">Sprott H</option>
-      <option value="sprotti">Sprott I</option>
-      <option value="sprottj">Sprott J</option>
-      <option value="sprottk">Sprott K</option>
-      <option value="sprottl">Sprott L</option>
-      <option value="sprottm">Sprott M</option>
-      <option value="sprottn">Sprott N</option>
-      <option value="sprotto">Sprott O</option>
-      <option value="sprottp">Sprott P</option>
-      <option value="sprottq">Sprott Q</option>
-      <option value="sprottr">Sprott R</option>
-      <option value="sprotts">Sprott S</option>
-    </optgroup>
-    <optgroup label="Polyhedra">
-      <option value="tetrahedron">Tetrahedron</option>
-      <option value="cube">Cube</option>
-      <option value="octahedron">Octahedron</option>
-      <option value="dodecahedron">Dodecahedron</option>
-      <option value="icosahedron">Icosahedron</option>
-      <option value="nestedcube">Nested Cube</option>
-    </optgroup>
-    <optgroup label="Geometry">
-      <option value="globe" selected>Globe</option>
-      <option value="sphere">Sphere</option>
-      <option value="torus">Torus</option>
-      <option value="magnetosphere">Magnetosphere</option>
-    </optgroup>
-    <optgroup label="Audio">
-      <option value="spectrogram">Spectrogram</option>
-      <option value="xy">XY Scope</option>
-      <option value="fvf">FVF Wobbulator</option>
-    </optgroup>
-    <optgroup label="Custom">
-      <option value="custom">Custom equation</option>
-    </optgroup>
-  </select>
+  <select id="mode-select" class="selwin" style="display:none"></select>
   <select id="cat-select" class="selwin csel-cat" data-no-drag title="Model category"></select>
   <select id="model-select" class="selwin csel-model" data-no-drag title="Model within the selected category"></select>
   </span>
@@ -648,6 +582,7 @@ func Run() {
 	panel := doc.Call("createElement", "div")
 	panel.Set("id", "controls-panel")
 	panel.Set("innerHTML", "<style>"+panelCSS+"</style>"+controlsBody)
+	buildModeSelect(panel) // the mode <select> derives from the mode registry
 	footers := doc.Call("getElementsByTagName", "footer")
 	var existingFooter js.Value
 	if footers.Get("length").Int() > 0 {
@@ -1615,16 +1550,10 @@ func Run() {
 	hash := js.Global().Get("location").Get("hash").String()
 	if len(hash) > 1 {
 		hashMode := hashModeToken()
-		// Validate it's a known mode
-		if _, ok := attractorParams[hashMode]; ok {
+		// Validate against the mode registry. (The old params-map + hardcoded
+		// list pair silently rejected several real modes, e.g. sphere and fvf.)
+		if knownMode(hashMode) {
 			selectedMode = hashMode
-		} else {
-			// Check non-parameterized modes
-			switch hashMode {
-			case "tetrahedron", "cube", "octahedron", "dodecahedron", "icosahedron", "nestedcube", "globe", "magnetosphere",
-				"spectrogram", "xy", "custom":
-				selectedMode = hashMode
-			}
 		}
 	}
 	// Select the matching dropdown option
@@ -1677,7 +1606,7 @@ func Run() {
 	setupTexShaders()
 	setupMatrices()
 	generateForMode(selectedMode)
-	if selectedMode == "spectrogram" || selectedMode == "fvf" {
+	if isSpectroSurface(selectedMode) {
 		setSpectrogramCamera()
 	} else {
 		autoFitCamera()
@@ -1938,7 +1867,7 @@ func Run() {
 	// The spectrogram wants a static, face-on default instead — undo the
 	// randomized pose/spin for an initial #spectrogram load (mode switches
 	// go through onModeChange, which already handles this).
-	if selectedMode == "spectrogram" || selectedMode == "fvf" {
+	if isSpectroSurface(selectedMode) {
 		setSpectrogramCamera()
 	}
 
@@ -3615,26 +3544,6 @@ func updateInfoOverlay() {
 	}
 }
 
-// isAttractorMode reports whether trail-related controls are
-// meaningful for this mode. Polyhedra/geometry render fixed
-// vertex sets and ignore the trail buffer entirely.
-// Explicit list — attractorParams also contains entries for
-// globe/sphere/torus (for their lat/lon/stacks/slices sliders),
-// so a "key exists in attractorParams" check would misclassify
-// those as attractors.
-func isAttractorMode(mode string) bool {
-	switch mode {
-	case "rossler", "lorenz", "chua", "aizawa", "sprott", "lissajou", "graphicartist",
-		"thomas", "halvorsen", "chen", "dadras", "rabinovich", "burkeshaw",
-		"hyperrossler", "lu", "sprotta", "newtonleipnik", "custom":
-		return true
-	}
-	if _, ok := sprottCaseIndex[mode]; ok {
-		return true
-	}
-	return false
-}
-
 // updateTrailVisibility shows/hides the Trail slider + Persist
 // checkbox depending on whether the current mode renders a trail.
 func updateTrailVisibility() {
@@ -3737,7 +3646,7 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 	updateTrailVisibility()
 	// Run one frame to populate vertices, then update gradient and fit camera
 	generateForMode(selectedMode)
-	if selectedMode == "spectrogram" || selectedMode == "fvf" {
+	if isSpectroSurface(selectedMode) {
 		setSpectrogramCamera()
 	} else {
 		restoreAutoRotateAfterSpectrogram()

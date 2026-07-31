@@ -22,7 +22,7 @@ func bgVisualActive() bool {
 	if bgVisual == "" {
 		return false
 	}
-	if selectedMode == "spectrogram" || selectedMode == "fvf" || isAudioMode(selectedMode) {
+	if isSpectroSurface(selectedMode) || isAudioMode(selectedMode) {
 		return false
 	}
 	return true

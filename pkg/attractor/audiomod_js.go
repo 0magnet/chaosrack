@@ -143,7 +143,7 @@ func applyViewModulation() []savedParam {
 	if !audioMod {
 		return nil
 	}
-	if selectedMode == "spectrogram" || selectedMode == "fvf" || isAudioMode(selectedMode) {
+	if isSpectroSurface(selectedMode) || isAudioMode(selectedMode) {
 		return nil
 	}
 	var saved []savedParam
