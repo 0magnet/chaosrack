@@ -518,6 +518,7 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	// Refresh audio features (no-op unless audio-reactive is on); Phase 2
 	// mappings read these to modulate the attractors.
 	updateAudioFeatures()
+	counterTick() // frequency-counter gate (no-op unless the module is on)
 
 	if isAudioMode(selectedMode) {
 		if !audioModeActive {

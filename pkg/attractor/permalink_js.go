@@ -53,6 +53,7 @@ var permaCtls = []permaCtl{
 	{"tw", "twin-sw", true},
 	{"po", "sect-sw", true},
 	{"pb", "patch-on", true},
+	{"fc", "counter-on", true},
 	{"gr", "gradient-reverse", true},
 	{"sk", "spectro-skin", true},
 	{"fr", "model-front", true},
