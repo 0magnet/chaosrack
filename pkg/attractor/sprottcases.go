@@ -6,7 +6,7 @@ package attractor
 // simple chaotic flows", Phys. Rev. E 50, R647, 1994), cases B–S — the same
 // set built as analog circuits at glensstuff.com. Each is a 3-term-ish
 // dissipative flow integrated with the shared double-precision RK4 loop
-// (integrate3D). The equations themselves live untagged in sprott_data.go so
+// (integrate3D). The equations themselves live untagged in sprottdata.go so
 // the native chaos guard covers them.
 //
 // The 4D Rössler hyperchaos (O. Rössler, "An equation for hyperchaos", Phys.

@@ -12,7 +12,7 @@ import (
 // Model Out — HEAR the attractor, two ways (inner knob on the MAP cell):
 //
 // FLOW (default) audifies the DYNAMICS: a private integrator steps the same
-// vector field the renderer draws (flowFor / flowreg.go) at audio rate, so
+// vector field the renderer draws (flowFor / flowregistry.go) at audio rate, so
 // what plays is x(t)/y(t) themselves, time-scaled into the audible band —
 // what a real analog attractor computer patched into a speaker does. Pitch
 // is emergent (the system's own orbital frequency): chaos chirps and

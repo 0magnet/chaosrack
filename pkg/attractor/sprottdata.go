@@ -3,7 +3,7 @@ package attractor
 // Data half of the Sprott catalog + Rössler hyperchaos: the equations, dts,
 // and initial conditions, untagged so the native chaos guard integrates the
 // EXACT systems the app renders (the js half — panel registration and the
-// render loops — stays in sprott_cases.go). See that file for citations.
+// render loops — stays in sprottcases.go). See that file for citations.
 
 // sprottCase is one member of the Sprott catalog. deriv returns the time
 // derivatives at (x,y,z); the coefficients are baked in (Sprott's systems are
@@ -59,7 +59,7 @@ var sprottCases = []sprottCase{
 // sprottDTs holds the live (user-adjustable) dt for each case; &sprottDTs[i]
 // is the stable pointer the param slider binds to. sprottCaseIndex maps a
 // mode string to its index for dispatch. Both are VAR initializers (not an
-// init() func) on purpose: sprott_cases.go's init() takes &sprottDTs[i], and
+// init() func) on purpose: sprottcases.go's init() takes &sprottDTs[i], and
 // init() funcs run in file order (…cases.go before …data.go) while variable
 // initialization is dependency-ordered and always precedes every init().
 var (
