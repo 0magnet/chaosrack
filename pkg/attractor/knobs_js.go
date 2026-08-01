@@ -23,17 +23,19 @@ const knobSweepDeg = 270.0 // total pointer travel, centered on straight-up
 
 // Shared drag state (only one knob turns at a time). Document-level move/up
 // listeners (initKnobDrag) drive whichever knob grabbed last.
-var (
-	kbSlider   js.Value
-	kbKnobEl   js.Value // the knob element being turned (for the grab highlight)
-	kbMin      float64
-	kbMax      float64
-	kbFine     bool
-	kbCX, kbCY float64
-	kbPrevAng  float64
-	kbActive   bool
-	kbDragInit bool
-)
+// kb is the active knob-drag gesture — one grouped singleton instead of ten
+// loose globals (the grouping pattern for per-feature state clusters).
+var kb struct {
+	slider   js.Value
+	knobEl   js.Value // the knob element being turned (for the grab highlight)
+	min      float64
+	max      float64
+	fine     bool
+	cx, cy   float64
+	prevAng  float64
+	active   bool
+	dragInit bool
+}
 
 // fineRatio: the fine knob's step and drag sensitivity as a fraction of the
 // coarse step (0.1 = fine moves in tenths of a coarse step). Adjustable at
@@ -60,44 +62,44 @@ func knobAngleForValue(v, min, max float64) float64 {
 // initKnobDrag wires the one-time document listeners that turn the active
 // bounded knob. Called from Run after the DOM exists.
 func initKnobDrag() {
-	if kbDragInit {
+	if kb.dragInit {
 		return
 	}
-	kbDragInit = true
+	kb.dragInit = true
 	doc.Call("addEventListener", "pointermove", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		if !kbActive {
+		if !kb.active {
 			return nil
 		}
 		e := args[0]
-		cur := math.Atan2(e.Get("clientY").Float()-kbCY, e.Get("clientX").Float()-kbCX)
-		d := cur - kbPrevAng
+		cur := math.Atan2(e.Get("clientY").Float()-kb.cy, e.Get("clientX").Float()-kb.cx)
+		d := cur - kb.prevAng
 		for d > math.Pi {
 			d -= 2 * math.Pi
 		}
 		for d < -math.Pi {
 			d += 2 * math.Pi
 		}
-		kbPrevAng = cur
-		v, _ := strconv.ParseFloat(kbSlider.Get("value").String(), 64)
+		kb.prevAng = cur
+		v, _ := strconv.ParseFloat(kb.slider.Get("value").String(), 64)
 		scale := coarseRatio
-		if kbFine {
+		if kb.fine {
 			scale = coarseRatio * fineRatio
 		}
-		v += (d / (knobSweepDeg * math.Pi / 180)) * (kbMax - kbMin) * scale
-		if v < kbMin {
-			v = kbMin
+		v += (d / (knobSweepDeg * math.Pi / 180)) * (kb.max - kb.min) * scale
+		if v < kb.min {
+			v = kb.min
 		}
-		if v > kbMax {
-			v = kbMax
+		if v > kb.max {
+			v = kb.max
 		}
-		kbSlider.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
-		kbSlider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		kb.slider.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
+		kb.slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 		return nil
 	}))
 	release := trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		kbActive = false
-		if kbKnobEl.Truthy() {
-			kbKnobEl.Get("classList").Call("remove", "knob-grab")
+		kb.active = false
+		if kb.knobEl.Truthy() {
+			kb.knobEl.Get("classList").Call("remove", "knob-grab")
 		}
 		return nil
 	})
@@ -652,11 +654,11 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 			e.Call("preventDefault")
 			e.Call("stopPropagation")
 			r := knob.Call("getBoundingClientRect")
-			kbCX = r.Get("left").Float() + r.Get("width").Float()/2
-			kbCY = r.Get("top").Float() + r.Get("height").Float()/2
-			kbPrevAng = math.Atan2(e.Get("clientY").Float()-kbCY, e.Get("clientX").Float()-kbCX)
-			kbSlider, kbMin, kbMax, kbFine, kbActive = slider, min, max, fineMode, true
-			kbKnobEl = el
+			kb.cx = r.Get("left").Float() + r.Get("width").Float()/2
+			kb.cy = r.Get("top").Float() + r.Get("height").Float()/2
+			kb.prevAng = math.Atan2(e.Get("clientY").Float()-kb.cy, e.Get("clientX").Float()-kb.cx)
+			kb.slider, kb.min, kb.max, kb.fine, kb.active = slider, min, max, fineMode, true
+			kb.knobEl = el
 			el.Get("classList").Call("add", "knob-grab")
 			return nil
 		})
