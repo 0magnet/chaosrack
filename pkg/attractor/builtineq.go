@@ -21,7 +21,7 @@ type builtinEq struct {
 var builtinEquations = map[string]builtinEq{
 	"lorenz":        {[4]string{"sigma*(y - x)", "x*(rho - z) - y", "x*y - beta*z", ""}, map[string]float32{"sigma": 10, "rho": 28, "beta": 2.7}, false, 0.005},
 	"rossler":       {[4]string{"-(y + z)", "x + a*y", "b + z*(x - c)", ""}, map[string]float32{"a": 0.2, "b": 0.2, "c": 5.7}, false, 0.005},
-	"thomas":        {[4]string{"-b*x + sin(y)", "-b*y + sin(z)", "-b*z + sin(x)", ""}, map[string]float32{"b": 0.19}, false, 0.05},
+	"thomas":        {[4]string{"-b*x + sin(y)", "-b*y + sin(z)", "-b*z + sin(x)", ""}, map[string]float32{"b": 0.185}, false, 0.05},
 	"halvorsen":     {[4]string{"-a*x - 4*y - 4*z - y^2", "-a*y - 4*z - 4*x - z^2", "-a*z - 4*x - 4*y - x^2", ""}, map[string]float32{"a": 1.4}, false, 0.003},
 	"chen":          {[4]string{"a*(y - x)", "(c - a)*x - x*z + c*y", "x*y - b*z", ""}, map[string]float32{"a": 35, "b": 3, "c": 28}, false, 0.0005},
 	"aizawa":        {[4]string{"(z - b)*x - d*y", "d*x + (z - b)*y", "c + a*z - z^3/3 - (x^2 + y^2)*(1 + k*z) + f*z*x^3", ""}, map[string]float32{"a": 0.95, "b": 0.7, "c": 0.6, "d": 3.5, "k": 0.25, "f": 0.1}, false, 0.0052},

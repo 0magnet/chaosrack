@@ -71,7 +71,7 @@ var attractorParams = map[string][]paramDef{
 	},
 	"thomas": {
 		{"thomas-dt", "dt", &thomasDT, 0.05, 0.001, 0.1, 0.001},
-		{"thomas-b", "b", &thomasB, 0.19, 0.01, 1.0, 0.001},
+		{"thomas-b", "b", &thomasB, 0.185, 0.01, 1.0, 0.001},
 	},
 	"halvorsen": {
 		{"halvorsen-dt", "dt", &halvorsenDT, 0.003, 0.001, 0.05, 0.001},
