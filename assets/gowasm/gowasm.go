@@ -8,7 +8,7 @@ import _ "embed"
 
 // Wasm is the standard Go toolchain WebAssembly build (cmd/wasm).
 //
-//go:embed b.wasm
+//go:embed chaosrack.wasm
 var Wasm []byte
 
 // WasmExec is the wasm_exec.js runtime shim for the standard Go build.

@@ -1,4 +1,4 @@
-// Package audiosrc provides browser audio sources for wasm-stuff
+// Package audiosrc provides browser audio sources for chaosrack
 // visualizations that want live audio input (spectrogram, xy scope, and
 // eventually audio-modulated attractor parameters).
 //

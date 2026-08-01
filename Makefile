@@ -17,18 +17,18 @@ update:
 wasms:
 	cp "$(GOROOT)/lib/wasm/wasm_exec.js" assets/gowasm/wasm_exec.js
 	cp "$(TINYGOROOT)/targets/wasm_exec.js" assets/tinywasm/tinygo_wasm_exec.js
-	GOOS=js GOARCH=wasm go build -ldflags="-s -w" -o assets/gowasm/b.wasm ./cmd/wasm
-	tinygo build -target wasm -no-debug -o assets/tinywasm/b-tiny.wasm ./cmd/wasm
+	GOOS=js GOARCH=wasm go build -ldflags="-s -w" -o assets/gowasm/chaosrack.wasm ./cmd/wasm
+	tinygo build -target wasm -no-debug -o assets/tinywasm/chaosrack-tiny.wasm ./cmd/wasm
 
 # generate is an alias for wasms (kept for `make all`).
 generate: wasms
 
 build: generate
-	go build -o wasm-stuff .
+	go build -o chaosrack .
 
 pages: build
 	@echo "Starting server to generate pages..."
-	@./wasm-stuff -p $(PORT) & PID=$$!; \
+	@./chaosrack -p $(PORT) & PID=$$!; \
 	sleep 2; \
 	curl -sf http://127.0.0.1:$(PORT)/index.html -o index.html && \
 	mkdir -p tinygo go && \
@@ -42,7 +42,7 @@ tidy:
 	go mod vendor
 
 clean:
-	rm -rf assets/gowasm/b.wasm assets/gowasm/wasm_exec.js assets/tinywasm/b-tiny.wasm assets/tinywasm/tinygo_wasm_exec.js wasm-stuff index.html tinygo/
+	rm -rf assets/gowasm/chaosrack.wasm assets/gowasm/wasm_exec.js assets/tinywasm/chaosrack-tiny.wasm assets/tinywasm/tinygo_wasm_exec.js chaosrack index.html tinygo/
 
 # Random-walk UI fuzzer. Point a Chromium/Brave at the running app with
 # --remote-debugging-port=9222, open the app tab, then: make monkey

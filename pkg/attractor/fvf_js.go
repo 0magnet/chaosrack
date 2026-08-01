@@ -5,7 +5,7 @@ package attractor
 // FVF ("harmonic wobbulator") mode — a software analog of the
 // Frequency→Voltage→Frequency converter with balanced modulator designed at
 // bunkerofdoom.com, ported from
-// the 0magnet/FVF prototype into wasm-stuff so it reuses the audio source,
+// the 0magnet/FVF prototype into chaosrack so it reuses the audio source,
 // the spectrogram display, and the knob control surface. In this mode the
 // live audio is run through the FVF DSP and the PROCESSED result is shown on
 // the spectrogram, so you can see (and, once audio-out lands, hear) the

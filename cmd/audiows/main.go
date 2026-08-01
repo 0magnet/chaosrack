@@ -1,5 +1,5 @@
 // Command audiows is a development/test harness that streams live system
-// audio to the wasm-stuff browser build over a WebSocket, and serves the
+// audio to the chaosrack browser build over a WebSocket, and serves the
 // wasm page on the same origin so the whole thing works from one process.
 //
 // It mirrors audioprism-go's coreweb/wasm server: PulseAudio captures the
@@ -11,13 +11,13 @@
 //
 // Usage:
 //
-//	go run github.com/0magnet/wasm-stuff/cmd/audiows   # serve on :8080
+//	go run github.com/0magnet/chaosrack/cmd/audiows   # serve on :8080
 //	# open http://127.0.0.1:8080/  → redirects to /?audio=ws
 //
 // The wasm build, wasm_exec.js and page template are embedded (via the
 // assets package), so no build step or -dir is required. Requires a running
 // PulseAudio (or PipeWire-pulse) server. This binary is Linux-oriented and
-// intentionally kept out of the portable root server so that `wasm-stuff`
+// intentionally kept out of the portable root server so that `chaosrack`
 // stays free of the audio-capture dependency.
 package main
 
@@ -37,8 +37,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/0magnet/wasm-stuff/assets"
-	"github.com/0magnet/wasm-stuff/assets/gowasm"
+	"github.com/0magnet/chaosrack/assets"
+	"github.com/0magnet/chaosrack/assets/gowasm"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	"github.com/jfreymuth/pulse"
@@ -157,7 +157,7 @@ func main() {
 	r.GET("/wasm_exec.js", func(c *gin.Context) {
 		c.Data(http.StatusOK, "application/javascript", wasmExecJS)
 	})
-	r.GET("/b.wasm", func(c *gin.Context) {
+	r.GET("/chaosrack.wasm", func(c *gin.Context) {
 		c.Render(http.StatusOK, render.Data{ContentType: "application/wasm", Data: wasmData})
 	})
 	r.GET("/ws", func(c *gin.Context) {

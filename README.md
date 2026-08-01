@@ -1,4 +1,4 @@
-# wasm-stuff
+# chaosrack
 
 **An analog attractor computer in the browser** — 30+ chaotic systems
 rendered in real time by a Go→WebAssembly core, driven from an
@@ -9,7 +9,7 @@ parameter, paint with persistence — or flip the Model Out ring and **hear the
 attractor itself**. An homage to the analog attractor computers at
 [glensstuff.com](https://glensstuff.com).
 
-**Live:** [0magnet.github.io/wasm-stuff](https://0magnet.github.io/wasm-stuff/) · [tinygo build](https://0magnet.github.io/wasm-stuff/tinygo/)
+**Live:** [0magnet.github.io/chaosrack](https://0magnet.github.io/chaosrack/) · [tinygo build](https://0magnet.github.io/chaosrack/tinygo/)
 
 ![The control panel docked at the bottom with the Lorenz attractor above it](docs/img/hero.jpg)
 
@@ -18,14 +18,14 @@ attractor itself**. An homage to the analog attractor computers at
 No build step — the WebAssembly is embedded in the server binary:
 
 ```
-go run github.com/0magnet/wasm-stuff@master
+go run github.com/0magnet/chaosrack@master
 ```
 
 Then open:
 * [127.0.0.1:8080/](http://127.0.0.1:8080/) — standard Go build
 * [127.0.0.1:8080/tinygo/](http://127.0.0.1:8080/tinygo/) — smaller TinyGo build
 
-(The same entrypoint is also at `github.com/0magnet/wasm-stuff/cmd/wasm-stuff`.)
+(The same entrypoint is also at `github.com/0magnet/chaosrack/cmd/chaosrack`.)
 
 ### Serverless
 
@@ -244,7 +244,7 @@ model), and the spectro/XY **backdrops** all need an audio source:
   (the page auto-connects via `?audio=ws`):
 
   ```
-  go run github.com/0magnet/wasm-stuff/cmd/audiows      # serve on :8080
+  go run github.com/0magnet/chaosrack/cmd/audiows      # serve on :8080
   # open http://127.0.0.1:8080/  → redirects to /?audio=ws
   ```
 
@@ -289,7 +289,7 @@ audioprism — it picks up whatever is playing (VLC, a browser tab, anything)
 with no per-app routing:
 
 ```
-go run github.com/0magnet/wasm-stuff/cmd/audiows   # -source monitor is the default
+go run github.com/0magnet/chaosrack/cmd/audiows   # -source monitor is the default
 # open http://127.0.0.1:8080/?audio=ws  → FVF → (with headphones) Listen
 ```
 
@@ -300,7 +300,7 @@ it inserts a temporary null sink, makes it the default so *every* app routes
 into it, captures that, and restores your default sink on Ctrl-C:
 
 ```
-go run github.com/0magnet/wasm-stuff/cmd/audiows -wobbulate
+go run github.com/0magnet/chaosrack/cmd/audiows -wobbulate
 ```
 
 Flow: any app → null sink (silent) → its monitor → audiows → browser wobbulates
@@ -355,12 +355,12 @@ and their matching `wasm_exec.js` runtimes into the `assets/` package, where
 they are `//go:embed`-ed by the server:
 
 ```
-make wasms     # rebuild assets/b.wasm, assets/b-tiny.wasm + wasm_exec.js runtimes
+make wasms     # rebuild assets/chaosrack.wasm, assets/chaosrack-tiny.wasm + wasm_exec.js runtimes
 make build     # wasms + the native server binary
 make pages     # regenerate the self-contained index.html / tinygo/index.html
 ```
 
-Layout: `cmd/wasm` (the WebAssembly attractor app) · `cmd/wasm-stuff` &
+Layout: `cmd/wasm` (the WebAssembly attractor app) · `cmd/chaosrack` &
 repo-root `main.go` (the web server) · `cmd/audiows` (PulseAudio→WebSocket
 audio server) · `cmd/uitool` (CDP test & capture harnesses) · `assets`
 (embedded wasm/js/template) · `pkg/server` · `pkg/attractor` · `pkg/audiosrc`
@@ -389,10 +389,10 @@ Made with [goda](https://github.com/loov/goda):
 ```
 # GOOS=js: the wasm app's import edges (cmd/wasm → pkg/attractor → pkg/audiosrc)
 # live in js/wasm-tagged files and are invisible to a host-context run
-GOOS=js GOARCH=wasm go run github.com/loov/goda@latest graph github.com/0magnet/wasm-stuff/... | dot -Tsvg -o docs/wasm-stuff-goda-graph.svg
+GOOS=js GOARCH=wasm go run github.com/loov/goda@latest graph github.com/0magnet/chaosrack/... | dot -Tsvg -o docs/chaosrack-goda-graph.svg
 ```
 
-![Dependency Graph](docs/wasm-stuff-goda-graph.svg "github.com/0magnet/wasm-stuff Dependency Graph")
+![Dependency Graph](docs/chaosrack-goda-graph.svg "github.com/0magnet/chaosrack Dependency Graph")
 
 ## Lines of Code
 

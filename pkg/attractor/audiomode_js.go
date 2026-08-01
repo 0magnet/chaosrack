@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"syscall/js"
 
-	"github.com/0magnet/wasm-stuff/pkg/audiosrc"
+	"github.com/0magnet/chaosrack/pkg/audiosrc"
 )
 
 // Shared plumbing for audio-driven modes (spectrogram, xy scope, and

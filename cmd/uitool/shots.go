@@ -25,8 +25,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/0magnet/wasm-stuff/internal/cdp"
-	"github.com/0magnet/wasm-stuff/pkg/attractor"
+	"github.com/0magnet/chaosrack/internal/cdp"
+	"github.com/0magnet/chaosrack/pkg/attractor"
 )
 
 var (

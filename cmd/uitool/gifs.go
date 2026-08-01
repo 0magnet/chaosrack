@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/0magnet/wasm-stuff/internal/cdp"
+	"github.com/0magnet/chaosrack/internal/cdp"
 )
 
 var (

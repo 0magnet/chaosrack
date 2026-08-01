@@ -46,7 +46,7 @@ func startRecording() {
 		anchor.Set("href", url)
 		stamp := js.Global().Get("Date").New().Call("toISOString").Call("slice", 0, 19).
 			Call("replace", "T", "_").Call("replaceAll", ":", "-").String()
-		anchor.Set("download", "wasm-stuff_"+stamp+".webm")
+		anchor.Set("download", "chaosrack_"+stamp+".webm")
 		anchor.Call("click")
 		js.Global().Get("URL").Call("revokeObjectURL", url)
 		recChunks = js.Undefined()

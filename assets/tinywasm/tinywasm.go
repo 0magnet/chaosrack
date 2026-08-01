@@ -9,7 +9,7 @@ import _ "embed"
 // Wasm is the TinyGo WebAssembly build (cmd/wasm), smaller than the standard
 // Go build.
 //
-//go:embed b-tiny.wasm
+//go:embed chaosrack-tiny.wasm
 var Wasm []byte
 
 // WasmExec is the wasm_exec.js runtime shim for the TinyGo build.

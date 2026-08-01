@@ -1,4 +1,4 @@
-// Subcommand monkey: a random-walk UI fuzzer for the wasm-stuff control panel.
+// Subcommand monkey: a random-walk UI fuzzer for the chaosrack control panel.
 //
 // It drives an already-open browser tab over the Chrome DevTools Protocol —
 // the same tab a human is looking at — firing seeded, randomized REAL input
@@ -38,7 +38,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/0magnet/wasm-stuff/internal/cdp"
+	"github.com/0magnet/chaosrack/internal/cdp"
 )
 
 var (

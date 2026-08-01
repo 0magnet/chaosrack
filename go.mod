@@ -1,4 +1,4 @@
-module github.com/0magnet/wasm-stuff
+module github.com/0magnet/chaosrack
 
 go 1.26.2
 

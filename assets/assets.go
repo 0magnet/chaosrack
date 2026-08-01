@@ -2,8 +2,8 @@
 // WebAssembly builds and their wasm_exec.js runtimes live in separate
 // sub-packages so importers pull in only the runtime they serve:
 //
-//	assets/gowasm    — standard Go build   (b.wasm      + wasm_exec.js)
-//	assets/tinywasm  — TinyGo build        (b-tiny.wasm + tinygo_wasm_exec.js)
+//	assets/gowasm    — standard Go build   (chaosrack.wasm      + wasm_exec.js)
+//	assets/tinywasm  — TinyGo build        (chaosrack-tiny.wasm + tinygo_wasm_exec.js)
 //
 // Rebuild the embedded artifacts with `make wasms`.
 package assets

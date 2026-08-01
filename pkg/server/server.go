@@ -1,7 +1,7 @@
-// Package server is the wasm-stuff web server: it serves the strange-attractor
+// Package server is the chaosrack web server: it serves the strange-attractor
 // visualizer as a self-contained page (wasm inlined as base64), for both the
 // standard Go and TinyGo builds, using the embedded assets package. Both the
-// repo-root entrypoint and cmd/wasm-stuff call Execute.
+// repo-root entrypoint and cmd/chaosrack call Execute.
 package server
 
 import (
@@ -19,9 +19,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/0magnet/wasm-stuff/assets"
-	"github.com/0magnet/wasm-stuff/assets/gowasm"
-	"github.com/0magnet/wasm-stuff/assets/tinywasm"
+	"github.com/0magnet/chaosrack/assets"
+	"github.com/0magnet/chaosrack/assets/gowasm"
+	"github.com/0magnet/chaosrack/assets/tinywasm"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	cc "github.com/ivanpirog/coloredcobra"
@@ -62,7 +62,7 @@ func Execute() {
 }
 
 var runCmd = &cobra.Command{
-	Use:   "wasm-stuff",
+	Use:   "chaosrack",
 	Short: "wasm attractors",
 	Long: `
 	┬ ┬┌─┐┌─┐┌┬┐   ┌─┐┌┬┐┬ ┬┌─┐┌─┐
@@ -103,7 +103,7 @@ var runCmd = &cobra.Command{
 		r1.GET("/wasm_exec.js", func(c *gin.Context) {
 			c.Data(http.StatusOK, "application/javascript", gowasm.WasmExec)
 		})
-		r1.GET("/b.wasm", func(c *gin.Context) {
+		r1.GET("/chaosrack.wasm", func(c *gin.Context) {
 			c.Render(http.StatusOK, render.Data{ContentType: "application/wasm", Data: gowasm.Wasm})
 		})
 
@@ -139,7 +139,7 @@ var runCmd = &cobra.Command{
 			r1.GET("/tinygo/wasm_exec.js", func(c *gin.Context) {
 				c.Data(http.StatusOK, "application/javascript", tinywasm.WasmExec)
 			})
-			r1.GET("/tinygo/b-tiny.wasm", func(c *gin.Context) {
+			r1.GET("/tinygo/chaosrack-tiny.wasm", func(c *gin.Context) {
 				c.Render(http.StatusOK, render.Data{ContentType: "application/wasm", Data: tinywasm.Wasm})
 			})
 		}
