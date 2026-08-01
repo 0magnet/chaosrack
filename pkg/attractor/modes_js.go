@@ -20,6 +20,7 @@ func init() {
 		registerGenerate(k, func() { generateClassic(k) })
 	}
 	registerGenerate("lissajou", generateLissajou)
+	registerGenerate("pong", generatePong)
 	registerGenerate("graphicartist", generateGraphicArtist)
 	registerGenerate("hyperrossler", generateHyperRossler)
 	registerGenerate("lu", generateLu)

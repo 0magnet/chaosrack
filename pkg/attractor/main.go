@@ -1196,7 +1196,11 @@ func Run() {
 	// restored faithfully. Must run AFTER the rotation-controls-x/y/z elements
 	// are created and queried.
 	if !hashPinnedPose {
-		randomizeOrientation()
+		// Scope Pong is a flat scope game: it boots face-on (syncPongExtras
+		// normalized the pose on entry) rather than in a random pose.
+		if selectedMode != "pong" {
+			randomizeOrientation()
+		}
 		// randomizeOrientation zeroed the rate sliders — put back any spin
 		// rates the permalink explicitly pinned (&rx/&ry/&rz).
 		for ax, v := range hashPinnedSpin {
@@ -1446,9 +1450,14 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 	// identity-matrix reset so each click of Reset All produces a
 	// fresh viewing angle. randomizeOrientation zeroes the spin rates;
 	// re-enable the gentle auto-spin afterward (so its Y-rate shows).
-	randomizeOrientation()
-	autoRotate = false
-	setAutoRotate(true)
+	// Scope Pong stays face-on and still — it's a game screen, not a model.
+	if selectedMode == "pong" {
+		normalizeOrientation()
+	} else {
+		randomizeOrientation()
+		autoRotate = false
+		setAutoRotate(true)
+	}
 
 	// Reset view
 	generateForMode(selectedMode)

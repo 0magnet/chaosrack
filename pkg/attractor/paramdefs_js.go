@@ -69,6 +69,12 @@ var attractorParams = map[string][]paramDef{
 		{"ga-hc", "HmC", &gaHarmC, 12, 1, 32, 1},
 		{"ga-hd", "HmD", &gaHarmD, 1, 1, 16, 1},
 	},
+	// Scope Pong: game feel — ball speed, paddle size, machine skill.
+	"pong": {
+		{"pong-speed", "speed", &pongBallSpeed, 1, 0.2, 3, 0.05},
+		{"pong-paddle", "paddle", &pongPaddleH, 0.42, 0.1, 0.9, 0.01},
+		{"pong-skill", "skill", &pongAISkill, 0.7, 0, 1, 0.05},
+	},
 	"thomas": {
 		{"thomas-dt", "dt", &thomasDT, 0.05, 0.001, 0.1, 0.001},
 		{"thomas-b", "b", &thomasB, 0.185, 0.01, 1.0, 0.001},
@@ -139,6 +145,10 @@ var attractorDescriptions = map[string]string{
 	"lissajou": "Lissajous Curve — Named after Jules Antoine Lissajous (1822–1880), these are parametric curves formed by combining sinusoidal motions along each axis. " +
 		"Not a chaotic system — the curves are periodic and their shape depends on the frequency ratios and phase relationships between the three oscillations.\n\n" +
 		"x(t) = sin(at)\ny(t) = sin(bt)\nz(t) = sin(ct)",
+	"pong": "Scope Pong — An homage to the glensstuff.com analog Oscilloscope Pong: the whole game is one multiplexed beam tour driving the X/Y inputs, " +
+		"so the court, net, score ticks, paddles and ball share a single stroke — the faint diagonal beams are the retrace an unblanked scope really shows.\n\n" +
+		"W / S move the left paddle, ↑ / ↓ the right; a side left alone for ~10 s returns to the machine player (it boots as a self-playing demo). " +
+		"First to 9 resets the match. Knobs: ball speed, paddle size, machine skill.",
 	"thomas": "Thomas' Cyclically Symmetric Attractor — Introduced by René Thomas, this system has the elegant property of cyclic symmetry: each variable is damped and driven by the sine of the next variable in the cycle. " +
 		"The parameter b controls dissipation; as b decreases the system transitions from stable points through limit cycles to chaos.\n\n" +
 		"dx/dt = −bx + sin(y)\ndy/dt = −by + sin(z)\ndz/dt = −bz + sin(x)",
