@@ -73,6 +73,12 @@ var attractorParams = map[string][]paramDef{
 	"scopetext": {
 		{"stext-harm", "harm", &scopeTextHarm, 24, 1, 64, 1},
 	},
+	// Bouncing Ball: the analog-computer demo's three panel pots.
+	"bounceball": {
+		{"bounce-grav", "grav", &bounceGrav, 12, 2, 30, 0.5},
+		{"bounce-rest", "bounce", &bounceRest, 0.88, 0.5, 0.99, 0.01},
+		{"bounce-drift", "drift", &bounceDrift, 0.7, 0, 2, 0.05},
+	},
 	// Scope Pong: game feel — ball speed, paddle size, machine skill.
 	"pong": {
 		{"pong-speed", "speed", &pongBallSpeed, 1, 0.2, 3, 0.05},
@@ -153,6 +159,11 @@ var attractorDescriptions = map[string]string{
 		"The banner's whole beam tour (strokes and retrace jumps alike) is one complex periodic signal x(t)+i·y(t); what's drawn is its reconstruction from only the first N harmonics — real harmonic synthesis, not a blur. " +
 		"One harmonic is an ellipse, so at low N the letters melt into loops; raise the harm knob and overtones sharpen them into legibility. " +
 		"Type the banner in the Console's TEXT field; Model Out (CAM) plays the actual harmonic stack.",
+	"bounceball": "Bouncing Ball — The classic analog-computer demo (Telefunken shipped it to sell integrators): two integrator chains under constant gravity, " +
+		"a comparator that flips the vertical velocity at the floor with a restitution loss, and wall reflections for the drift. " +
+		"The scope draws the familiar train of shrinking parabolic arcs; when the bounces decay away the machine re-kicks the ball, as the unattended trade-show loop did. " +
+		"Floor hits blip at a pitch set by impact speed (once audio is unlocked by any interaction). Knobs: gravity, restitution, drift. Try Persist to paint the full arc family.\n\n" +
+		"y'' = −g, bounce: v ← −e·v at the floor",
 	"pong": "Scope Pong — An homage to the glensstuff.com analog Oscilloscope Pong: the whole game is one multiplexed beam tour driving the X/Y inputs, " +
 		"so the court, net, score ticks, paddles and ball share a single stroke — the faint diagonal beams are the retrace an unblanked scope really shows.\n\n" +
 		"W / S move the left paddle, ↑ / ↓ the right; a side left alone for ~10 s returns to the machine player (it boots as a self-playing demo). " +
