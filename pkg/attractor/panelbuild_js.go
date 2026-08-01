@@ -222,6 +222,7 @@ func buildParamPanel(mode string) {
 	syncPongExtras(mode)
 	syncScopeTextExtras(mode)
 	syncBounceExtras(mode)
+	syncSprottMorphExtras(mode)
 	updateCRTOverlay()
 
 	// The Equation module only exists in Custom mode (buildCustomPanel makes it).

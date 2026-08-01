@@ -73,6 +73,11 @@ var attractorParams = map[string][]paramDef{
 	"scopetext": {
 		{"stext-harm", "harm", &scopeTextHarm, 24, 1, 64, 1},
 	},
+	// Sprott Morph: position in the A…S catalog cycle + self-step rate.
+	"sprottmorph": {
+		{"smorph-sys", "sys", &morphSysKnob, 3, 0, 19, 0.01},
+		{"smorph-rate", "rate", &morphRate, 3, 0, 10, 0.1},
+	},
 	// Bouncing Ball: the analog-computer demo's three panel pots.
 	"bounceball": {
 		{"bounce-grav", "grav", &bounceGrav, 12, 2, 30, 0.5},
@@ -159,6 +164,10 @@ var attractorDescriptions = map[string]string{
 		"The banner's whole beam tour (strokes and retrace jumps alike) is one complex periodic signal x(t)+i·y(t); what's drawn is its reconstruction from only the first N harmonics — real harmonic synthesis, not a blur. " +
 		"One harmonic is an ellipse, so at low N the letters melt into loops; raise the harm knob and overtones sharpen them into legibility. " +
 		"Type the banner in the Console's TEXT field; Model Out (CAM) plays the actual harmonic stack.",
+	"sprottmorph": "Sprott Morph — The faithful version of the glensstuff.com Self-Programming Analog Computer, which stepped itself through the Sprott catalog by re-patching. " +
+		"Every Sprott A–S system is a quadratic 3-D flow — a point in the same 30-dimensional coefficient space Sprott's 1994 computer search ran in — so the machine morphs by sliding linearly between coefficient vectors while ONE trajectory keeps integrating: watch D melt into E. " +
+		"The sys knob parks the patch anywhere in the cycle (fractional = between systems, often chaotic in its own right); the rate knob makes it step itself, in systems per minute; the Console's PATCH readout shows the current wiring. " +
+		"Coefficients are extracted numerically from the catalog's own equations, and a divergence guard reseeds the trajectory when a blend flings it away.",
 	"bounceball": "Bouncing Ball — The classic analog-computer demo (Telefunken shipped it to sell integrators): two integrator chains under constant gravity, " +
 		"a comparator that flips the vertical velocity at the floor with a restitution loss, and wall reflections for the drift. " +
 		"The scope draws the familiar train of shrinking parabolic arcs; when the bounces decay away the machine re-kicks the ball, as the unattended trade-show loop did. " +
