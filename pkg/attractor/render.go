@@ -519,6 +519,7 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	// mappings read these to modulate the attractors.
 	updateAudioFeatures()
 	counterTick() // frequency-counter gate (no-op unless the module is on)
+	genEnvTick()  // Envelope module shaper (no-op unless the gen audio runs)
 
 	if isAudioMode(selectedMode) {
 		if !audioModeActive {

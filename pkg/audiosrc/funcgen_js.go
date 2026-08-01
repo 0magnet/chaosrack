@@ -22,10 +22,12 @@ type FuncGen struct {
 }
 
 type osc struct {
-	wave  int     // 0 sine, 1 triangle, 2 square, 3 saw
+	wave  int     // 0 sine, 1 triangle, 2 square, 3 saw, 4 noise (LFSR)
 	freq  float64 // Hz
 	amp   float64 // 0..1
 	phase float64 // running phase (radians)
+	lfsr  uint32  // 15-bit shift register for the noise wave (SN76477-style)
+	nz    float64 // held noise output between shift clocks
 }
 
 // Oscillator indices.
@@ -81,6 +83,26 @@ func waveform(kind int, ph float64) float64 {
 // advance runs oscillator i forward one sample and returns its value.
 func (f *FuncGen) advance(i int) float64 {
 	o := &f.osc[i]
+	if o.wave == 4 {
+		// Shift-register noise, the Complex Sound Generator way: a 15-bit
+		// LFSR clocked at 32× the frequency knob and HELD between clocks, so
+		// the knob audibly tunes the noise from rumble to hiss.
+		if o.lfsr == 0 {
+			o.lfsr = 0x4001
+		}
+		o.phase += 2 * math.Pi * o.freq * 32 / float64(f.sr)
+		for o.phase >= 2*math.Pi {
+			o.phase -= 2 * math.Pi
+			bit := (o.lfsr ^ (o.lfsr >> 1)) & 1
+			o.lfsr = (o.lfsr >> 1) | (bit << 14)
+			if o.lfsr&1 == 1 {
+				o.nz = 1
+			} else {
+				o.nz = -1
+			}
+		}
+		return o.nz * o.amp
+	}
 	v := waveform(o.wave, o.phase) * o.amp
 	o.phase += 2 * math.Pi * o.freq / float64(f.sr)
 	if o.phase > 2*math.Pi {

@@ -176,13 +176,14 @@ var genOscIDs = []string{"gen-x", "gen-y", "gen-z"}
 var genOscIdx = map[string]int{"gen-x": 0, "gen-y": 1, "gen-z": 2}
 
 // waveSVG holds a tiny glyph per waveform (index matches the wave <select>:
-// 0 sine, 1 triangle, 2 square, 3 saw), stroked in currentColor so CSS can dim
-// the ring and light the active one.
+// 0 sine, 1 triangle, 2 square, 3 saw, 4 shift-register noise), stroked in
+// currentColor so CSS can dim the ring and light the active one.
 var waveSVG = []string{
 	`<svg viewBox="0 0 24 12"><path d="M1,6 C3.2,1 5.8,1 8,6 C10.2,11 12.8,11 15,6 C17.2,1 19.8,1 22,6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
 	`<svg viewBox="0 0 24 12"><path d="M2,10 L7,2 L12,10 L17,2 L22,10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
 	`<svg viewBox="0 0 24 12"><path d="M2,10 L2,3 L8.5,3 L8.5,10 L15,10 L15,3 L21.5,3 L21.5,10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
 	`<svg viewBox="0 0 24 12"><path d="M2,10 L8,3 L8,10 L14,3 L14,10 L20,3 L20,10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+	`<svg viewBox="0 0 24 12"><path d="M1,7 L3,7 L3,3 L5,3 L5,9 L8,9 L8,4 L10,4 L10,2 L13,2 L13,8 L15,8 L15,5 L18,5 L18,10 L20,10 L20,6 L23,6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>`,
 }
 
 // addSelectorWaveDial adds an inner ring of waveform glyphs around a selector
@@ -190,7 +191,12 @@ var waveSVG = []string{
 // and clickable to select — a graphic counterpart to addSelectorLabels for the
 // waveform inner knob.
 func addSelectorWaveDial(stack, sel js.Value, off float64) {
-	n := len(waveSVG)
+	// One glyph per OPTION (not per known waveform) — a select offering only
+	// the periodic waves must not grow a phantom noise detent.
+	n := sel.Get("options").Get("length").Int()
+	if n > len(waveSVG) {
+		n = len(waveSVG)
+	}
 	dial := doc.Call("createElement", "div")
 	dial.Set("className", "knob-dial")
 	circle := doc.Call("createElement", "div")
@@ -372,12 +378,68 @@ func fgFloat(el js.Value) float64 {
 // ── Web Audio output ──────────────────────────────────────────────────────
 
 var (
-	genCtx     js.Value
-	genOsc     [3]js.Value
-	genGain    [3]js.Value
-	genPan     [3]js.Value
-	genRunning bool
+	genCtx      js.Value
+	genOsc      [3]js.Value
+	genKind     [3]string // "osc" or "noise" — which node type genOsc[i] holds
+	genGain     [3]js.Value
+	genPan      [3]js.Value
+	genEnvGain  js.Value // Envelope module's master shaper (pans → env → out)
+	genNoiseBuf js.Value // shared 2-s LFSR noise loop
+	genRunning  bool
 )
+
+// genNoiseBuffer builds (once) the shift-register noise loop the noise wave
+// plays through an AudioBufferSourceNode — the same 15-bit LFSR the FuncGen
+// analysis path steps, so what you hear is what the scope sees. The freq
+// knob maps to playbackRate, sweeping the noise from rumble to hiss.
+func genNoiseBuffer(ctx js.Value) js.Value {
+	if genNoiseBuf.Truthy() {
+		return genNoiseBuf
+	}
+	sr := int(ctx.Get("sampleRate").Float())
+	buf := ctx.Call("createBuffer", 1, sr*2, sr)
+	data := buf.Call("getChannelData", 0)
+	lfsr := uint32(0x4001)
+	for i := 0; i < sr*2; i++ {
+		bit := (lfsr ^ (lfsr >> 1)) & 1
+		lfsr = (lfsr >> 1) | (bit << 14)
+		v := -1.0
+		if lfsr&1 == 1 {
+			v = 1
+		}
+		data.SetIndex(i, v)
+	}
+	genNoiseBuf = buf
+	return buf
+}
+
+// genEnsureNode makes genOsc[i] the right node type for the waveform —
+// OscillatorNode for the periodic waves, a looped AudioBufferSourceNode of
+// LFSR noise for wave 4 — replacing the node when the kind changes.
+func genEnsureNode(i int, noise bool) {
+	want := "osc"
+	if noise {
+		want = "noise"
+	}
+	if genKind[i] == want && genOsc[i].Truthy() {
+		return
+	}
+	if genOsc[i].Truthy() {
+		genOsc[i].Call("stop")
+		genOsc[i].Call("disconnect")
+	}
+	var node js.Value
+	if noise {
+		node = genCtx.Call("createBufferSource")
+		node.Set("buffer", genNoiseBuffer(genCtx))
+		node.Set("loop", true)
+	} else {
+		node = genCtx.Call("createOscillator")
+	}
+	node.Call("connect", genGain[i])
+	node.Call("start")
+	genOsc[i], genKind[i] = node, want
+}
 
 // genAudioStart builds the Web Audio graph (one OscillatorNode per generator →
 // gain → stereo panner → speakers) and starts it, mirroring the FuncGen params.
@@ -391,15 +453,17 @@ func genAudioStart() {
 	if !genCtx.Truthy() {
 		return
 	}
+	// Pans feed the Envelope module's shaper gain, then the speakers.
+	genEnvGain = genCtx.Call("createGain")
+	genEnvGain.Call("connect", genCtx.Get("destination"))
 	for i := 0; i < 3; i++ {
-		osc := genCtx.Call("createOscillator")
 		gain := genCtx.Call("createGain")
 		pan := genCtx.Call("createStereoPanner")
-		osc.Call("connect", gain)
 		gain.Call("connect", pan)
-		pan.Call("connect", genCtx.Get("destination"))
-		osc.Call("start")
-		genOsc[i], genGain[i], genPan[i] = osc, gain, pan
+		pan.Call("connect", genEnvGain)
+		genGain[i], genPan[i] = gain, pan
+		genKind[i] = ""
+		genEnsureNode(i, fg().Wave(i) == 4)
 	}
 	genRunning = true
 	for i := 0; i < 3; i++ {
@@ -420,6 +484,11 @@ func genAudioStop() {
 			genPan[i].Call("disconnect")
 		}
 		genOsc[i], genGain[i], genPan[i] = js.Undefined(), js.Undefined(), js.Undefined()
+		genKind[i] = ""
+	}
+	if genEnvGain.Truthy() {
+		genEnvGain.Call("disconnect")
+		genEnvGain = js.Undefined()
 	}
 	genCtx = js.Undefined()
 	genRunning = false
@@ -432,8 +501,17 @@ func genAudioUpdate(i int) {
 	if !genRunning || !genOsc[i].Truthy() {
 		return
 	}
-	genOsc[i].Set("type", waveTypeName(fg().Wave(i)))
-	genOsc[i].Get("frequency").Set("value", fg().Freq(i))
+	noise := fg().Wave(i) == 4
+	genEnsureNode(i, noise)
+	if noise {
+		// The LFSR loop's clock tracks the freq knob via playback rate, the
+		// same 32× mapping the analysis path uses.
+		rate := fg().Freq(i) * 32 / genCtx.Get("sampleRate").Float()
+		genOsc[i].Get("playbackRate").Set("value", rate)
+	} else {
+		genOsc[i].Set("type", waveTypeName(fg().Wave(i)))
+		genOsc[i].Get("frequency").Set("value", fg().Freq(i))
+	}
 	// Channel routing from the dropdown: off / L / R / both.
 	route := "off"
 	if o := doc.Call("getElementById", genOscIDs[i]+"-out"); o.Truthy() {

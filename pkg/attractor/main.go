@@ -728,6 +728,7 @@ func Run() {
 	buildGeneratorModule()
 	buildSonifyModule()
 	wireCounterModule()
+	buildEnvModule()
 
 	// Template legend module + its Window-group toggle.
 	buildTemplateModule()
@@ -1431,21 +1432,25 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 		}
 	}
 	// Signal-generator oscillators back to their default note / level / wave, off.
+	setInput := func(sid, v string) {
+		if e := doc.Call("getElementById", sid); e.Truthy() && e.Get("value").String() != v {
+			e.Set("value", v)
+			e.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		}
+	}
 	for _, g := range []struct {
 		id        string
 		freq, lvl int
 	}{{"gen-x", 34, 80}, {"gen-y", 41, 80}, {"gen-z", 29, 80}} {
-		setInput := func(sid, v string) {
-			if e := doc.Call("getElementById", sid); e.Truthy() && e.Get("value").String() != v {
-				e.Set("value", v)
-				e.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-			}
-		}
 		setInput(g.id+"-freq", strconv.Itoa(g.freq))
 		setInput(g.id+"-lvl", strconv.Itoa(g.lvl))
 		resetSel(g.id+"-wave", "0")
 		resetSel(g.id+"-out", "off")
 	}
+	// Envelope module back to pass-through defaults.
+	setInput("gen-env-atk", "10")
+	setInput("gen-env-dcy", "300")
+	resetSel("gen-env-mode", "off")
 
 	// Randomized starting pose + low-rate rotation. Replaces the old
 	// identity-matrix reset so each click of Reset All produces a
