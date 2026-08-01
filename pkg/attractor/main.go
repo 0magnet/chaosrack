@@ -729,6 +729,7 @@ func Run() {
 	buildSonifyModule()
 	wireCounterModule()
 	buildEnvModule()
+	wireKeysModule()
 
 	// Template legend module + its Window-group toggle.
 	buildTemplateModule()
@@ -1405,7 +1406,7 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 	}{
 		{"model-front", false}, {"spect-fill", false}, {"audio-mod", false},
 		{"test-tone", false}, {"fg-on", false}, {"spectro-skin", false},
-		{"bg-spectro", false}, {"bg-xy", false}, {"tpl-on", false}, {"patch-on", false}, {"counter-on", false}, {"jam-sw", false}, {"show-meters", true},
+		{"bg-spectro", false}, {"bg-xy", false}, {"tpl-on", false}, {"patch-on", false}, {"counter-on", false}, {"keys-on", false}, {"jam-sw", false}, {"show-meters", true},
 		{"ring-sw", false}, {"twin-sw", false}, {"sect-sw", false},
 	}
 	for _, s := range swDefaults {

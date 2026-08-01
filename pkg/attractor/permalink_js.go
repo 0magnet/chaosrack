@@ -54,6 +54,7 @@ var permaCtls = []permaCtl{
 	{"po", "sect-sw", true},
 	{"pb", "patch-on", true},
 	{"fc", "counter-on", true},
+	{"ky", "keys-on", true},
 	{"gr", "gradient-reverse", true},
 	{"sk", "spectro-skin", true},
 	{"fr", "model-front", true},

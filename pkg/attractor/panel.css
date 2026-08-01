@@ -500,6 +500,19 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .ga-waves{display:flex!important;flex-flow:row wrap;align-items:center;gap:3px 10px;margin-top:2px;}
 .ga-waves-hdr{width:100%;font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:9px;letter-spacing:1px;color:#7c93a8;margin-bottom:1px;}
 .ga-wave{cursor:pointer;font-size:11px;color:#cdd;display:inline-flex;align-items:center;gap:3px;}
+/* Keys module: control column + a piano keybed that sizes to its range. */
+.keys-sect .keysflex{flex-flow:row nowrap!important;align-items:stretch!important;gap:4px 8px;}
+.keys-sect .keysctl{align-self:flex-start;}
+.keys-bed{position:relative;flex:0 0 auto;align-self:flex-start;height:calc(150px*var(--kscale,1));margin:calc(10px*var(--kscale,1)) 4px 4px calc(8px*var(--kscale,1));}
+.keys-bed .pk-whites{display:flex;height:100%;width:100%;}
+.keys-bed .pk-blacks{position:absolute;inset:0;pointer-events:none;}
+.keys-bed .pk-key{cursor:pointer;}
+.keys-bed .pk-white{position:relative;flex:1;margin:0 .5px;background:linear-gradient(#ececec,#c2c6ca);border:1px solid #20262c;border-top:none;border-radius:0 0 3px 3px;box-shadow:inset 0 -4px 5px #9aa0a6;}
+.keys-bed .pk-black{position:absolute;top:0;height:60%;pointer-events:auto;background:linear-gradient(#4a4a4a,#0b0b0b);border:1px solid #000;border-radius:0 0 3px 3px;box-shadow:0 2px 3px #000;z-index:2;}
+.keys-bed .pk-white.held{background:linear-gradient(#c8ffe2,#5fd894);box-shadow:inset 0 -4px 6px #2a9a5c,0 0 8px rgba(70,240,140,.55);}
+.keys-bed .pk-black.held{background:linear-gradient(#2f9a5e,#0b3a20);box-shadow:0 0 8px rgba(70,240,140,.55);}
+.keys-bed .pk-kb{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);font-family:'B612 Mono',monospace;font-size:calc(8px*var(--kscale,1));line-height:1;color:#454c52;pointer-events:none;text-transform:uppercase;}
+.keys-bed .pk-black .pk-kb{color:#cfd6da;bottom:3px;}
 /* Counter module: the gate lamp under the frequency readout */
 .counter-gate{display:inline-block;width:calc(12px*var(--kscale,1));height:calc(12px*var(--kscale,1));border-radius:50%;background:var(--led-bg,#170000);border:1px solid var(--led-bd,#3a0000);transition:background .1s,box-shadow .1s;}
 .counter-gate.lit{background:var(--led-col,#ff3b30);box-shadow:0 0 8px var(--led-glow,#ff2a20),0 0 3px var(--led-glow,#ff2a20);}
