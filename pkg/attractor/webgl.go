@@ -26,6 +26,7 @@ type GLTypes struct {
 	LineLoop           js.Value
 	Line               js.Value
 	LineStrip          js.Value
+	Lines              js.Value
 	Points             js.Value
 	DynamicDraw        js.Value
 }
@@ -46,6 +47,7 @@ func (types *GLTypes) New(gl js.Value) {
 	types.LineLoop = gl.Get("LINE_LOOP")
 	types.Line = gl.Get("LINES")
 	types.LineStrip = gl.Get("LINE_STRIP")
+	types.Lines = gl.Get("LINES")
 	types.Points = gl.Get("POINTS")
 	types.DynamicDraw = gl.Get("DYNAMIC_DRAW")
 }

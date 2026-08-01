@@ -118,13 +118,17 @@ func generateSprottMorph() {
 }
 
 // syncSprottMorphExtras: entry warms the ring on the blend at the knob and
-// frames the camera from the warmed extent; while active, a PATCH readout
-// joins the Console (the Graphic Artist extras pattern).
+// frames the camera from the warmed extent; while active, the Patch module
+// (static markup, big wired readout) is shown.
 func syncSprottMorphExtras(mode string) {
-	if ex := doc.Call("getElementById", "smorph-ui"); ex.Truthy() {
-		ex.Get("parentNode").Call("removeChild", ex)
+	if sect := doc.Call("getElementById", "smorph-module"); sect.Truthy() {
+		if mode == "sprottmorph" {
+			sect.Get("style").Set("display", "")
+		} else {
+			sect.Get("style").Set("display", "none")
+		}
 	}
-	morphLED = js.Undefined()
+	morphLED = doc.Call("getElementById", "smorph-led")
 	if mode != "sprottmorph" {
 		morphActive = false
 		return
@@ -169,23 +173,4 @@ func syncSprottMorphExtras(mode string) {
 		defaultCameraDist = dist
 		updateViewMatrix()
 	}
-	swrow := doc.Call("querySelector", ".swrow")
-	if !swrow.Truthy() {
-		return
-	}
-	wrap := doc.Call("createElement", "div")
-	wrap.Set("id", "smorph-ui")
-	wrap.Set("className", "ga-waves grp")
-	hdr := doc.Call("createElement", "div")
-	hdr.Set("className", "ga-waves-hdr")
-	hdr.Set("textContent", "PATCH")
-	wrap.Call("appendChild", hdr)
-	led := doc.Call("createElement", "span")
-	led.Set("className", "led")
-	led.Set("id", "smorph-led")
-	led.Set("title", "Current patch — which catalog systems the machine is wired between right now (sys knob parks it, rate knob makes it step itself)")
-	led.Set("textContent", "D")
-	wrap.Call("appendChild", led)
-	swrow.Call("appendChild", wrap)
-	morphLED = led
 }

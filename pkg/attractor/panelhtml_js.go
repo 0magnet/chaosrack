@@ -74,6 +74,25 @@ const controlsBody = `
 </div>
 </div>
 <div class="sect"><div class="sect-hdr" title="Parameters — the current model's tunable constants (each with knob, LED value, step size, and reset)">Parameters</div><div id="params" class="row"></div></div>
+<div class="sect" id="pong-module" style="display:none"><div class="sect-hdr" title="Scoreboard — Scope Pong's front panel: both players' scores and a restart button for a fresh match">Scoreboard</div>
+<div class="row vmrow">
+  <span class="pcell axcol vmcell gen-cell"><span class="punit-top"><span class="plabel">left</span><span class="led demo-led" id="pong-score-l" title="Left player's score (the W/S paddle) — first past 9 resets the match">0</span></span></span>
+  <span class="pcell axcol vmcell gen-cell"><span class="punit-top"><span class="plabel">right</span><span class="led demo-led" id="pong-score-r" title="Right player's score (the ↑/↓ paddle) — first past 9 resets the match">0</span></span></span>
+  <span class="pcell axcol vmcell gen-cell"><span class="grp btn-row demo-btn"><button class="pushbtn" id="pong-restart" title="Restart the match — zero both scores and serve fresh"></button><span class="btn-lbl">Restart</span></span></span>
+</div></div>
+<div class="sect" id="stext-module" style="display:none"><div class="sect-hdr" title="Banner — Fourier Text's input: what the harmonic character generator writes (A–Z, 0–9, dash, space). The harm knob in Parameters sets how many harmonics each glyph keeps.">Banner</div>
+<div class="row keysflex stext-row">
+  <span class="pcell axcol vmcell gen-cell stext-cell"><span class="punit-top"><span class="plabel">text</span></span><input type="text" id="stext-in" class="stext-in" maxlength="24" data-no-drag title="Banner text — what the beam writes; melt it with the harm knob in Parameters"></span>
+</div></div>
+<div class="sect" id="smorph-module" style="display:none"><div class="sect-hdr" title="Patch — the self-programming analog computer's wiring readout: which two catalog systems the machine is blended between right now">Patch</div>
+<div class="row vmrow">
+  <span class="pcell axcol vmcell gen-cell"><span class="punit-top"><span class="plabel">wired</span></span><span class="grp vmbay"><span class="led demo-led smorph-led" id="smorph-led" title="Live patch — the current catalog blend, e.g. D-E 42% (100% = fully the next system); the sys knob parks it, the rate knob self-steps">D</span></span></span>
+</div></div>
+<div class="sect" id="bounce-module" style="display:none"><div class="sect-hdr" title="Launcher — Bouncing Ball's front panel: how many times the machine has re-kicked the decayed ball, and a Drop button to re-drop it by hand">Launcher</div>
+<div class="row vmrow">
+  <span class="pcell axcol vmcell gen-cell"><span class="punit-top"><span class="plabel">kicks</span><span class="led demo-led" id="bounce-kicks" title="Machine re-kicks since the mode started — each is a decayed ball re-launched">0</span></span></span>
+  <span class="pcell axcol vmcell gen-cell"><span class="grp btn-row demo-btn"><button class="pushbtn" id="bounce-drop" title="Drop the ball again from the top left with a fresh drift"></button><span class="btn-lbl">Drop</span></span></span>
+</div></div>
 <div class="sect"><div class="sect-hdr" title="Colors — gradient source axis, palette size, rainbow period, and trail length">Colors</div>
 <div class="row vmrow">
   <span class="pcell axcol" id="src-cell" title="Outer ring = gradient source (which axis the color follows); inner ring = number of colors. Overridden while a Phosphor is selected."><span class="grp vmbay"><span class="grp knoblbl"><span class="plabel">src</span><span id="gradient-stack"></span></span></span><select id="gradient-source" title="Gradient source — which axis (X / Y / Z / trail) the trace color follows" style="display:none">

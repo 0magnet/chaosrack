@@ -2,6 +2,8 @@
 
 package attractor
 
+import "strconv"
+
 // Bouncing Ball — the classic analog-computer demo (Telefunken shipped it
 // with their RA-series machines to sell integrators): two integrator
 // chains (velocity → position) under constant gravity, a comparator that
@@ -26,6 +28,8 @@ var (
 	bounceCtxHeld      bool
 	bounceActive       bool
 	bounceWarm         bool // entry warmup in progress (mute the blips)
+	bounceKicks        int  // machine re-kicks since mode entry
+	bounceShownKicks   = -1 // last count latched onto the Launcher LED
 )
 
 const (
@@ -53,6 +57,9 @@ func bounceStep(dt float64) {
 			bounceVX = float64(bounceDrift) * (0.4 + 0.6*jamRand())
 			if jamRand() < 0.5 {
 				bounceVX = -bounceVX
+			}
+			if !bounceWarm {
+				bounceKicks++
 			}
 			bounceBeep(490, 90)
 		}
@@ -94,6 +101,12 @@ func generateBounceBall() {
 		bounceHead = (bounceHead + 1) % steps
 		if bounceFill < steps {
 			bounceFill++
+		}
+	}
+	if bounceKicks != bounceShownKicks {
+		bounceShownKicks = bounceKicks
+		if led := doc.Call("getElementById", "bounce-kicks"); led.Truthy() {
+			led.Set("textContent", strconv.Itoa(bounceKicks))
 		}
 	}
 	if bounceFill < 2 {
@@ -149,11 +162,19 @@ func bounceBeep(freq float64, ms int) {
 // syncBounceExtras runs on every panel rebuild: entering re-drops the ball
 // face-on; leaving releases the blip lease.
 func syncBounceExtras(mode string) {
+	if sect := doc.Call("getElementById", "bounce-module"); sect.Truthy() {
+		if mode == "bounceball" {
+			sect.Get("style").Set("display", "")
+		} else {
+			sect.Get("style").Set("display", "none")
+		}
+	}
 	if mode == "bounceball" {
 		if bounceActive {
 			return
 		}
 		bounceActive = true
+		bounceKicks = 0
 		bounceX, bounceY = -1.2, 0.9
 		bounceVX, bounceVY = float64(bounceDrift), 0
 		// Warm the ring with a real trajectory (blips muted) so every camera

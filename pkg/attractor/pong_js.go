@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"math"
+	"strconv"
 	"strings"
 	"syscall/js"
 )
@@ -50,7 +51,9 @@ var (
 	pongKeyDn      bool
 	pongWired      bool
 	pongCtxHeld    bool
-	pongPath       []float64 // scratch waypoint buffer (x,y pairs)
+	pongStrokes    [][]float64 // scratch stroke list for the blanked beam
+	pongShownL     = -1        // scores last latched onto the Scoreboard LEDs
+	pongShownR     = -1
 )
 
 // pongStep advances one frame of game state, honoring the Speed control the
@@ -154,112 +157,69 @@ func pongServeBall(dir float64) {
 	pongBeep(490, 220)
 }
 
-// ── Beam path ────────────────────────────────────────────────────────────
+// ── Beam drawing ─────────────────────────────────────────────────────────
 
-func pongMoveTo(x, y float64) { pongPath = append(pongPath, x, y) }
-
-// generatePong builds the frame's single-stroke beam tour — border, score
-// ticks, net, paddles, ball — and resamples it by arc length into the trail
-// buffer, so beam speed is uniform along the stroke like a real XY scope
-// fed a multiplexed drawing signal.
+// generatePong draws the frame as blanked-beam strokes (beamLines): court
+// border, a properly dashed net, detached score marks, paddles, ball — and
+// NOTHING between them. The retrace is blanked, as a real scope's z-axis
+// would be.
 func generatePong() {
 	if !pongWired {
 		pongWireInput()
 	}
 	pongStep()
+	pongSyncScoreboard()
 
 	ph := float64(pongPaddleH) / 2
-	pongPath = pongPath[:0]
-	// Court border, a closed loop from top-center.
-	pongMoveTo(0, pongH)
-	pongMoveTo(pongW, pongH)
-	pongMoveTo(pongW, -pongH)
-	pongMoveTo(-pongW, -pongH)
-	pongMoveTo(-pongW, pongH)
-	pongMoveTo(0, pongH)
-	// Left score ticks: walk out along the top edge (overdrawing the border,
-	// so only the dips show) and back.
-	tick := func(sign float64, n int) {
-		for i := 0; i < n; i++ {
-			x := sign * (0.18 + 0.11*float64(i))
-			pongMoveTo(x, pongH)
-			pongMoveTo(x, pongH-0.08)
-			pongMoveTo(x, pongH)
-		}
-		pongMoveTo(0, pongH)
+	strokes := pongStrokes[:0]
+	// Court border (one closed polyline).
+	strokes = append(strokes, []float64{
+		-pongW, pongH, pongW, pongH, pongW, -pongH, -pongW, -pongH, -pongW, pongH})
+	// Net: real dashes down the middle, no zigzag workaround needed.
+	for y := pongH - 0.04; y > -pongH; y -= 0.12 {
+		strokes = append(strokes, []float64{0, y, 0, y - 0.06})
 	}
-	tick(-1, pongScoreL)
-	// Net: a tight zigzag down the middle — reads as the dashed net without
-	// needing beam blanking.
-	zig := 0.018
-	for y := pongH; y > -pongH; y -= 0.1 {
-		pongMoveTo(zig, y-0.05)
-		zig = -zig
-		pongMoveTo(0, y-0.1)
+	// Score marks: detached ticks hanging under the top edge.
+	for i := 0; i < pongScoreL; i++ {
+		x := -(0.18 + 0.11*float64(i))
+		strokes = append(strokes, []float64{x, pongH - 0.03, x, pongH - 0.11})
 	}
-	// Along the bottom edge to the left paddle's column, then the paddle as
-	// a slim outlined bar.
-	paddle := func(x, pad float64) {
-		w := 0.016
-		pongMoveTo(x-w, pad-ph)
-		pongMoveTo(x-w, pad+ph)
-		pongMoveTo(x+w, pad+ph)
-		pongMoveTo(x+w, pad-ph)
-		pongMoveTo(x-w, pad-ph)
+	for i := 0; i < pongScoreR; i++ {
+		x := 0.18 + 0.11*float64(i)
+		strokes = append(strokes, []float64{x, pongH - 0.03, x, pongH - 0.11})
 	}
-	pongMoveTo(-pongPadX, -pongH)
-	paddle(-pongPadX, pongPadL)
-	// Retrace beam to the ball (visible — authentic unblanked-scope jump),
-	// drawn as a diamond so it reads at any trail density.
-	if pongServe == 0 || pongServe%10 < 5 { // blink while serving
-		pongMoveTo(pongBX-pongBall, pongBY)
-		pongMoveTo(pongBX, pongBY+pongBall)
-		pongMoveTo(pongBX+pongBall, pongBY)
-		pongMoveTo(pongBX, pongBY-pongBall)
-		pongMoveTo(pongBX-pongBall, pongBY)
+	// Paddles: slim closed bars.
+	paddle := func(x, pad float64) []float64 {
+		const w = 0.016
+		return []float64{x - w, pad - ph, x - w, pad + ph, x + w, pad + ph, x + w, pad - ph, x - w, pad - ph}
 	}
-	// Retrace to the right paddle, up to the top edge, and the right score
-	// ticks on the walk back to top-center.
-	paddle(pongPadX, pongPadR)
-	pongMoveTo(pongPadX, pongH)
-	tick(1, pongScoreR)
+	strokes = append(strokes, paddle(-pongPadX, pongPadL), paddle(pongPadX, pongPadR))
+	// Ball diamond (blinks while serving).
+	if pongServe == 0 || pongServe%10 < 5 {
+		strokes = append(strokes, []float64{
+			pongBX - pongBall, pongBY, pongBX, pongBY + pongBall,
+			pongBX + pongBall, pongBY, pongBX, pongBY - pongBall,
+			pongBX - pongBall, pongBY})
+	}
+	pongStrokes = strokes
+	if v := beamLines(strokes, 0); v > 0 {
+		uploadVerticesOnly(vertBuf[:v*4], beamDrawMode(), v)
+	}
+}
 
-	// Resample the tour by arc length into the trail buffer.
-	n := len(pongPath) / 2
-	vertices := vertBuf[:steps*4]
-	total := 0.0
-	for i := 1; i < n; i++ {
-		dx := pongPath[i*2] - pongPath[i*2-2]
-		dy := pongPath[i*2+1] - pongPath[i*2-1]
-		total += math.Hypot(dx, dy)
-	}
-	if total <= 0 || steps < 2 {
+// pongSyncScoreboard latches the Scoreboard module's LEDs when a score
+// changes (cheap check, no DOM writes on quiet frames).
+func pongSyncScoreboard() {
+	if pongScoreL == pongShownL && pongScoreR == pongShownR {
 		return
 	}
-	invN := float32(1) / float32(steps-1)
-	seg := 1
-	segStart := 0.0
-	segLen := math.Hypot(pongPath[2]-pongPath[0], pongPath[3]-pongPath[1])
-	for i := 0; i < steps; i++ {
-		s := total * float64(i) / float64(steps-1)
-		for s > segStart+segLen && seg < n-1 {
-			segStart += segLen
-			seg++
-			segLen = math.Hypot(pongPath[seg*2]-pongPath[seg*2-2], pongPath[seg*2+1]-pongPath[seg*2-1])
-		}
-		f := 0.0
-		if segLen > 0 {
-			f = (s - segStart) / segLen
-		}
-		x := pongPath[seg*2-2] + (pongPath[seg*2]-pongPath[seg*2-2])*f
-		y := pongPath[seg*2-1] + (pongPath[seg*2+1]-pongPath[seg*2-1])*f
-		j := i * 4
-		vertices[j] = float32(x)
-		vertices[j+1] = float32(y)
-		vertices[j+2] = 0
-		vertices[j+3] = float32(i) * invN
+	pongShownL, pongShownR = pongScoreL, pongScoreR
+	if l := doc.Call("getElementById", "pong-score-l"); l.Truthy() {
+		l.Set("textContent", strconv.Itoa(pongScoreL))
 	}
-	uploadVerticesOnly(vertices, attractorDrawMode, steps)
+	if r := doc.Call("getElementById", "pong-score-r"); r.Truthy() {
+		r.Set("textContent", strconv.Itoa(pongScoreR))
+	}
 }
 
 // ── Input + sound ────────────────────────────────────────────────────────
@@ -347,6 +307,13 @@ var pongActive bool
 // the camera with the spin stopped — it's a scope game, not a model;
 // leaving drops the beep lease and any held keys.
 func syncPongExtras(mode string) {
+	if sect := doc.Call("getElementById", "pong-module"); sect.Truthy() {
+		if mode == "pong" {
+			sect.Get("style").Set("display", "")
+		} else {
+			sect.Get("style").Set("display", "none")
+		}
+	}
 	if mode == "pong" {
 		if pongActive {
 			return

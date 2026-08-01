@@ -175,6 +175,72 @@ func scopeTextGlyphStrokes(text string) [][]float64 {
 	return out
 }
 
+// scopeTextJumpFractions returns the glyph tour's retrace spans — the
+// jumps between strokes plus the closing wrap — as arc-length fractions of
+// the closed circuit. The tour alternates stroke-start/stroke-end points,
+// so every segment leaving an odd-indexed point is a jump. These are the
+// spans a hardware character generator would key the z-axis off for; the
+// renderer blanks the reconstructed curve across them.
+func scopeTextJumpFractions(strokes []float64) [][2]float64 {
+	n := len(strokes) / 2
+	if n < 2 {
+		return nil
+	}
+	total := 0.0
+	lens := make([]float64, n)
+	for i := 0; i < n; i++ {
+		j := (i + 1) % n
+		lens[i] = math.Hypot(strokes[j*2]-strokes[i*2], strokes[j*2+1]-strokes[i*2+1])
+		total += lens[i]
+	}
+	if total <= 0 {
+		return nil
+	}
+	var spans [][2]float64
+	arc := 0.0
+	for i := 0; i < n; i++ {
+		if i%2 == 1 { // leaving a stroke END → retrace (incl. the wrap)
+			spans = append(spans, [2]float64{arc / total, (arc + lens[i]) / total})
+		}
+		arc += lens[i]
+	}
+	return spans
+}
+
+// scopeTextSplitCurve cuts a reconstructed closed curve (x,y pairs, arc
+// parameter uniform in [0,1)) into drawable sub-strokes, dropping the
+// samples that fall inside the tour's retrace spans — beam blanking.
+func scopeTextSplitCurve(curve []float64, spans [][2]float64) [][]float64 {
+	res := len(curve) / 2
+	if res == 0 {
+		return nil
+	}
+	inJump := func(f float64) bool {
+		for _, sp := range spans {
+			if f >= sp[0] && f < sp[1] {
+				return true
+			}
+		}
+		return false
+	}
+	var out [][]float64
+	var run []float64
+	for k := 0; k < res; k++ {
+		if inJump(float64(k) / float64(res)) {
+			if len(run) >= 4 {
+				out = append(out, run)
+			}
+			run = nil
+			continue
+		}
+		run = append(run, curve[k*2], curve[k*2+1])
+	}
+	if len(run) >= 4 {
+		out = append(out, run)
+	}
+	return out
+}
+
 // scopeTextSynth resamples the beam tour into a uniform-arc-length closed
 // loop, takes its complex Fourier coefficients, and reconstructs the curve
 // from only harmonics −N..N (n=0 is the centroid). Returns curve samples

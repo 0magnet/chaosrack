@@ -730,6 +730,7 @@ func Run() {
 	wireCounterModule()
 	buildEnvModule()
 	wireKeysModule()
+	buildDemoModules()
 
 	// Template legend module + its Window-group toggle.
 	buildTemplateModule()
