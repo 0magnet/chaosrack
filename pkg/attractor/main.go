@@ -1196,9 +1196,9 @@ func Run() {
 	// restored faithfully. Must run AFTER the rotation-controls-x/y/z elements
 	// are created and queried.
 	if !hashPinnedPose {
-		// Scope Pong is a flat scope game: it boots face-on (syncPongExtras
-		// normalized the pose on entry) rather than in a random pose.
-		if selectedMode != "pong" {
+		// Flat scope modes (Pong, Fourier Text) boot face-on (their mode-entry
+		// sync normalized the pose) rather than in a random pose.
+		if !isFlatScope(selectedMode) {
 			randomizeOrientation()
 		}
 		// randomizeOrientation zeroed the rate sliders — put back any spin
@@ -1450,8 +1450,8 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 	// identity-matrix reset so each click of Reset All produces a
 	// fresh viewing angle. randomizeOrientation zeroes the spin rates;
 	// re-enable the gentle auto-spin afterward (so its Y-rate shows).
-	// Scope Pong stays face-on and still — it's a game screen, not a model.
-	if selectedMode == "pong" {
+	// Flat scope modes stay face-on and still — screens, not models.
+	if isFlatScope(selectedMode) {
 		normalizeOrientation()
 	} else {
 		randomizeOrientation()

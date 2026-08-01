@@ -21,6 +21,7 @@ func init() {
 	}
 	registerGenerate("lissajou", generateLissajou)
 	registerGenerate("pong", generatePong)
+	registerGenerate("scopetext", generateScopeText)
 	registerGenerate("graphicartist", generateGraphicArtist)
 	registerGenerate("hyperrossler", generateHyperRossler)
 	registerGenerate("lu", generateLu)

@@ -500,6 +500,9 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .ga-waves{display:flex!important;flex-flow:row wrap;align-items:center;gap:3px 10px;margin-top:2px;}
 .ga-waves-hdr{width:100%;font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:9px;letter-spacing:1px;color:#7c93a8;margin-bottom:1px;}
 .ga-wave{cursor:pointer;font-size:11px;color:#cdd;display:inline-flex;align-items:center;gap:3px;}
+/* Fourier Text banner field (shown in the Console in Fourier Text mode) */
+.stext-in{width:150px;background:#0a0d10;color:#35e06a;border:1px solid #2a333c;border-radius:3px;font-family:'B612 Mono',monospace;font-size:11px;padding:2px 5px;text-transform:uppercase;letter-spacing:1px;}
+.stext-in:focus{outline:none;border-color:#4a5a6a;}
 /* Console holds only the model selector now — centre it horizontally, top-aligned. */
 .console>.toprow{align-items:center;justify-content:flex-start;gap:3px 12px;}
 /* Nested model selector: label on top, concentric category/model knob, then the

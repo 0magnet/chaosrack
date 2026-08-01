@@ -220,6 +220,7 @@ func buildParamPanel(mode string) {
 	// every mode change): GA waveform switches + the CRT overlay.
 	syncGAWaveSwitches(mode)
 	syncPongExtras(mode)
+	syncScopeTextExtras(mode)
 	updateCRTOverlay()
 
 	// The Equation module only exists in Custom mode (buildCustomPanel makes it).

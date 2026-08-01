@@ -69,6 +69,10 @@ var attractorParams = map[string][]paramDef{
 		{"ga-hc", "HmC", &gaHarmC, 12, 1, 32, 1},
 		{"ga-hd", "HmD", &gaHarmD, 1, 1, 16, 1},
 	},
+	// Fourier Text: how many harmonics of the beam tour survive.
+	"scopetext": {
+		{"stext-harm", "harm", &scopeTextHarm, 24, 1, 64, 1},
+	},
 	// Scope Pong: game feel — ball speed, paddle size, machine skill.
 	"pong": {
 		{"pong-speed", "speed", &pongBallSpeed, 1, 0.2, 3, 0.05},
@@ -145,6 +149,10 @@ var attractorDescriptions = map[string]string{
 	"lissajou": "Lissajous Curve — Named after Jules Antoine Lissajous (1822–1880), these are parametric curves formed by combining sinusoidal motions along each axis. " +
 		"Not a chaotic system — the curves are periodic and their shape depends on the frequency ratios and phase relationships between the three oscillations.\n\n" +
 		"x(t) = sin(at)\ny(t) = sin(bt)\nz(t) = sin(ct)",
+	"scopetext": "Fourier Text — An homage to the glensstuff.com Fourier Synthesis Character Generator, which built alphanumerics on a scope from summed harmonics. " +
+		"The banner's whole beam tour (strokes and retrace jumps alike) is one complex periodic signal x(t)+i·y(t); what's drawn is its reconstruction from only the first N harmonics — real harmonic synthesis, not a blur. " +
+		"One harmonic is an ellipse, so at low N the letters melt into loops; raise the harm knob and overtones sharpen them into legibility. " +
+		"Type the banner in the Console's TEXT field; Model Out (CAM) plays the actual harmonic stack.",
 	"pong": "Scope Pong — An homage to the glensstuff.com analog Oscilloscope Pong: the whole game is one multiplexed beam tour driving the X/Y inputs, " +
 		"so the court, net, score ticks, paddles and ball share a single stroke — the faint diagonal beams are the retrace an unblanked scope really shows.\n\n" +
 		"W / S move the left paddle, ↑ / ↓ the right; a side left alone for ~10 s returns to the machine player (it boots as a self-playing demo). " +

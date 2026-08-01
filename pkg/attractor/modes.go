@@ -46,6 +46,7 @@ var modeInfo = map[string]ModeInfo{
 	"lissajou":      {"Lissajous", ClassParametric, false},
 	"graphicartist": {"Graphic Artist", ClassParametric, false},
 	"pong":          {"Scope Pong", ClassParametric, false},
+	"scopetext":     {"Fourier Text", ClassParametric, false},
 	"sprotta":       {"Sprott A", ClassFlow3D, false},
 	"sprottb":       {"Sprott B", ClassFlow3D, false},
 	"sprottc":       {"Sprott C", ClassFlow3D, false},
@@ -98,7 +99,7 @@ var modeGroups = []struct {
 	{"Attractors", []string{"rossler", "lorenz", "chua", "aizawa", "sprott", "thomas",
 		"halvorsen", "chen", "dadras", "rabinovich", "burkeshaw", "lu", "newtonleipnik",
 		"hyperrossler", "custom"}},
-	{"Scope", []string{"lissajou", "graphicartist", "pong", "xy", "takens"}},
+	{"Scope", []string{"lissajou", "graphicartist", "pong", "scopetext", "xy", "takens"}},
 	{"Sprott systems (1994)", []string{"sprotta", "sprottb", "sprottc", "sprottd",
 		"sprotte", "sprottf", "sprottg", "sprotth", "sprotti", "sprottj", "sprottk",
 		"sprottl", "sprottm", "sprottn", "sprotto", "sprottp", "sprottq", "sprottr", "sprotts"}},
@@ -131,6 +132,10 @@ func isSkinnable(mode string) bool { return modeInfo[mode].Skin }
 
 // isSpectroSurface: audio modes drawn as the textured spectrogram plane.
 func isSpectroSurface(mode string) bool { return mode == "spectrogram" || mode == "fvf" }
+
+// isFlatScope: flat scope-screen modes (games, text banners) that must boot
+// face-on and still instead of in a random pose.
+func isFlatScope(mode string) bool { return mode == "pong" || mode == "scopetext" }
 
 // ModeKeys returns every registered key whose class is in the given set, in
 // stable modeGroups order without duplicates — exported for cmd/uitool's
