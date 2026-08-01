@@ -50,6 +50,7 @@ var (
 	keysKeyEls    = map[int]js.Value{} // midi note → key element (highlight)
 	keysAnchor    int                  // midi note the Z row's C lands on
 	keysMouseNote = -1                 // note held by the current mouse drag
+	keysTouchNote = -1                 // note held by the current touch (glissando)
 )
 
 // keysRange returns the keybed's midi range from the range knobs: the full
@@ -148,6 +149,7 @@ func buildKeysBed() {
 			}
 		}
 		keysKeyEls[midi] = el
+		el.Call("setAttribute", "data-midi", strconv.Itoa(midi))
 
 		el.Call("addEventListener", "mousedown", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
 			e := a[0]
@@ -178,18 +180,50 @@ func buildKeysBed() {
 		}))
 		el.Call("addEventListener", "touchstart", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
 			a[0].Call("preventDefault")
+			keysTouchNote = midi
 			keysNoteOn(midi)
 			return nil
 		}))
 		for _, ev := range []string{"touchend", "touchcancel"} {
 			el.Call("addEventListener", ev, trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+				// The touch may have slid to another key (glissando below) —
+				// release whichever note the finger ended on, and the origin.
 				keysNoteOff(midi)
+				if keysTouchNote >= 0 && keysTouchNote != midi {
+					keysNoteOff(keysTouchNote)
+				}
+				keysTouchNote = -1
 				return nil
 			}))
 		}
 	}
 	bed.Call("appendChild", whites)
 	bed.Call("appendChild", blacks)
+	// Touch glissando: touchmove keeps targeting the starting key, so track
+	// the finger with elementFromPoint and slide the sounding note.
+	bed.Call("addEventListener", "touchmove", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		e := a[0]
+		e.Call("preventDefault")
+		t := e.Get("touches").Index(0)
+		el := doc.Call("elementFromPoint", t.Get("clientX").Float(), t.Get("clientY").Float())
+		if !el.Truthy() {
+			return nil
+		}
+		m := el.Call("getAttribute", "data-midi")
+		if !m.Truthy() {
+			return nil
+		}
+		midi, err := strconv.Atoi(m.String())
+		if err != nil || midi == keysTouchNote {
+			return nil
+		}
+		if keysTouchNote >= 0 {
+			keysNoteOff(keysTouchNote)
+		}
+		keysTouchNote = midi
+		keysNoteOn(midi)
+		return nil
+	}))
 }
 
 // ── Voice engine ─────────────────────────────────────────────────────────

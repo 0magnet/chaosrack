@@ -194,7 +194,7 @@ func syncBounceExtras(mode string) {
 		// camera directly (the hyper-Rössler pattern — no ordering dependence
 		// on which autoFitCamera call consumes the one-shot override).
 		fitExtentOverride = bounceWall + 0.1
-		dist := fitExtentOverride * 3
+		dist := fitDistFor(fitExtentOverride)
 		initCameraDist = dist
 		defaultCameraDist = dist
 		updateViewMatrix()

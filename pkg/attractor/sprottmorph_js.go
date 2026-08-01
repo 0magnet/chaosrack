@@ -165,10 +165,7 @@ func syncSprottMorphExtras(mode string) {
 			ext = 0.5
 		}
 		fitExtentOverride = float32(ext)
-		dist := fitExtentOverride * 3
-		if dist < 5 {
-			dist = 5
-		}
+		dist := fitDistFor(fitExtentOverride)
 		initCameraDist = dist
 		defaultCameraDist = dist
 		updateViewMatrix()

@@ -158,13 +158,7 @@ func hyperRosslerWarmup() {
 	// that can pair the one-shot override with the wrong invocation, and any
 	// unpaired call would fit the momentary arc (or worse) instead of the
 	// structure. Direct assignment has no ordering dependence.
-	dist := fitExtentOverride * 3
-	if dist < 5 {
-		dist = 5
-	}
-	if dist > 300 {
-		dist = 300
-	}
+	dist := fitDistFor(fitExtentOverride)
 	initCameraDist = dist
 	defaultCameraDist = dist
 	updateViewMatrix()

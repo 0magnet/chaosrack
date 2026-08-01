@@ -66,6 +66,8 @@ func pongStep() {
 	move := func(pad *float64, up, dn bool, human *int, aiming bool) {
 		if *human > 0 {
 			*human--
+			// Keys nudge; pointer control (pongPointerPaddle) writes the pad
+			// position directly, so with no key held this just clamps.
 			d := 0.0
 			if up {
 				d += 0.032
@@ -271,6 +273,35 @@ func pongWireInput() {
 		set(strings.ToLower(a[0].Get("key").String()), false)
 		return nil
 	}))
+}
+
+// pongPointerPaddle drives the paddle on the pointer's half of the screen
+// toward the court height under it — mouse or finger, and two fingers play
+// both paddles. The touched side goes human (the same ~10 s window the
+// keys use) so the machine hands over immediately.
+func pongPointerPaddle(cx, cy float64) {
+	r := canvasEl.Call("getBoundingClientRect")
+	h := r.Get("height").Float()
+	if h <= 0 {
+		return
+	}
+	fy := (cy - r.Get("top").Float()) / h
+	// A little gain so mid-screen gestures reach the court's corners even
+	// when the fitted court doesn't span the full canvas height.
+	y := (0.5 - fy) * 2 * pongH * 1.3
+	if y > pongH {
+		y = pongH
+	}
+	if y < -pongH {
+		y = -pongH
+	}
+	if cx < r.Get("left").Float()+r.Get("width").Float()/2 {
+		pongPadL = y
+		pongHumanL = 600
+	} else {
+		pongPadR = y
+		pongHumanR = 600
+	}
 }
 
 // pongBeep plays one classic square blip (hit 459 Hz, wall 226 Hz, point

@@ -31,6 +31,10 @@ func wireModelInput() {
 		return false
 	}
 
+	// Scope Pong: dragging on the game screen drives the paddles (side by
+	// pointer half), not the camera — mouse on desktop, finger(s) on touch.
+	pongPointer := false
+
 	// Event: mouse drag rotation. Bound to document (not canvasEl) so
 	// rotation still works when the host page paints other elements
 	// (e.g. magnetosphere.net's SVG logo) above the canvas. The target
@@ -40,15 +44,28 @@ func wireModelInput() {
 		if isInteractiveDragTarget(e.Get("target")) {
 			return nil
 		}
+		if selectedMode == "pong" {
+			pongPointer = true
+			pongPointerPaddle(e.Get("clientX").Float(), e.Get("clientY").Float())
+			return nil
+		}
 		dragging = true
 		beginDrag(e.Get("clientX").Float(), e.Get("clientY").Float())
 		return nil
 	}))
 	js.Global().Call("addEventListener", "mousemove", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		e := args[0]
+		if pongPointer {
+			if e.Get("buttons").Float() == 0 {
+				pongPointer = false
+				return nil
+			}
+			pongPointerPaddle(e.Get("clientX").Float(), e.Get("clientY").Float())
+			return nil
+		}
 		if !dragging {
 			return nil
 		}
-		e := args[0]
 		// Self-heal a missed mouseup (a native drag or an off-window release
 		// eats it): no buttons held ⇒ the drag is over, stop rotating.
 		if e.Get("buttons").Float() == 0 {
@@ -60,6 +77,7 @@ func wireModelInput() {
 	}))
 	js.Global().Call("addEventListener", "mouseup", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
 		dragging = false
+		pongPointer = false
 		return nil
 	}))
 	// While rotating, kill the browser's native behaviors that hijack the
@@ -74,32 +92,78 @@ func wireModelInput() {
 		}))
 	}
 
-	// Event: touch drag rotation. Same doc-binding rationale as mouse.
-	// Do NOT preventDefault here unconditionally — that breaks tap+drag
-	// on host-page links/buttons. Only preventDefault when we're
-	// actually starting a drag (target isn't interactive).
+	// Event: touch drag rotation + two-finger pinch zoom. Same doc-binding
+	// rationale as mouse. Do NOT preventDefault here unconditionally — that
+	// breaks tap+drag on host-page links/buttons. Only preventDefault when
+	// we're actually starting a gesture (target isn't interactive).
+	pinching := false
+	pinchDist := 0.0
+	touchDist := func(touches js.Value) float64 {
+		a, b := touches.Index(0), touches.Index(1)
+		dx := a.Get("clientX").Float() - b.Get("clientX").Float()
+		dy := a.Get("clientY").Float() - b.Get("clientY").Float()
+		return dx*dx + dy*dy // squared is fine — only ratios of change matter
+	}
 	doc.Call("addEventListener", "touchstart", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		if isInteractiveDragTarget(e.Get("target")) {
 			return nil
 		}
 		e.Call("preventDefault")
-		t := e.Get("touches").Index(0)
+		touches := e.Get("touches")
+		if selectedMode == "pong" {
+			// Every finger drives the paddle on its side — two players on
+			// one phone works.
+			for i := 0; i < touches.Get("length").Int(); i++ {
+				t := touches.Index(i)
+				pongPointerPaddle(t.Get("clientX").Float(), t.Get("clientY").Float())
+			}
+			return nil
+		}
+		if touches.Get("length").Int() >= 2 {
+			dragging = false
+			pinching = true
+			pinchDist = touchDist(touches)
+			return nil
+		}
+		t := touches.Index(0)
 		dragging = true
 		beginDrag(t.Get("clientX").Float(), t.Get("clientY").Float())
 		return nil
 	}))
 	doc.Call("addEventListener", "touchmove", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		e := args[0]
+		touches := e.Get("touches")
+		if selectedMode == "pong" && !isInteractiveDragTarget(e.Get("target")) {
+			e.Call("preventDefault")
+			for i := 0; i < touches.Get("length").Int(); i++ {
+				t := touches.Index(i)
+				pongPointerPaddle(t.Get("clientX").Float(), t.Get("clientY").Float())
+			}
+			return nil
+		}
+		if pinching && touches.Get("length").Int() >= 2 {
+			e.Call("preventDefault")
+			d := touchDist(touches)
+			if pinchDist > 0 {
+				// Spread → zoom in. Log-ratio keeps the gesture scale-free.
+				applyZoomDelta(float32(-8 * (d/pinchDist - 1)))
+			}
+			pinchDist = d
+			return nil
+		}
 		if !dragging {
 			return nil
 		}
-		e := args[0]
 		e.Call("preventDefault")
-		t := e.Get("touches").Index(0)
+		t := touches.Index(0)
 		dragMove(t.Get("clientX").Float(), t.Get("clientY").Float())
 		return nil
 	}))
 	doc.Call("addEventListener", "touchend", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		if args[0].Get("touches").Get("length").Int() < 2 {
+			pinching = false
+		}
 		dragging = false
 		return nil
 	}))
@@ -110,21 +174,26 @@ func wireModelInput() {
 		e.Call("preventDefault")
 		// deltaY is ~100–130 per mouse notch; keep the per-notch zoom step
 		// small (~2–3) while still scaling gently on fine trackpads.
-		delta := float32(e.Get("deltaY").Float()) * 0.02
-		zoomVal := float32(js.Global().Get("parseFloat").Invoke(cameraControl.Get("value")).Float())
-		zoomVal -= delta
-		if zoomVal < -95 {
-			zoomVal = -95
-		}
-		if zoomVal > 95 {
-			zoomVal = 95
-		}
-		cameraControl.Set("value", strconv.FormatFloat(float64(zoomVal), 'f', 0, 64))
-		cachedZoom = zoomVal // render loop reads the cache, not the DOM
-		// Fire 'input' so the zoom knob pointer + numeric box track the wheel.
-		cameraControl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		applyZoomDelta(float32(e.Get("deltaY").Float()) * 0.02)
 		return nil
 	}))
+}
+
+// applyZoomDelta nudges the camera-zoom control by -delta (wheel notches
+// and pinch spread both funnel here), clamped to the slider range, firing
+// 'input' so the zoom knob pointer + numeric box track the gesture.
+func applyZoomDelta(delta float32) {
+	zoomVal := float32(js.Global().Get("parseFloat").Invoke(cameraControl.Get("value")).Float())
+	zoomVal -= delta
+	if zoomVal < -95 {
+		zoomVal = -95
+	}
+	if zoomVal > 95 {
+		zoomVal = 95
+	}
+	cameraControl.Set("value", strconv.FormatFloat(float64(zoomVal), 'f', 0, 64))
+	cachedZoom = zoomVal // render loop reads the cache, not the DOM
+	cameraControl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 }
 
 // wireWheelBindings makes the wheel adjust controls (ranges, numerics,

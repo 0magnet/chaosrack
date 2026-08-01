@@ -393,19 +393,33 @@ func autoFitCamera() {
 		maxAbs = fitExtentOverride
 		fitExtentOverride = 0
 	}
-	// Set camera distance to ~3x the max extent so the whole thing is visible
-	dist := maxAbs * 3.0
+	dist := fitDistFor(maxAbs)
+	initCameraDist = dist
+	defaultCameraDist = dist
+	cameraControl.Set("value", "0")
+	sliderZoom.Set("textContent", "0")
+	updateViewMatrix()
+}
+
+// fitDistFor converts a content extent into a camera distance that shows
+// the whole thing: ~3× the extent, clamped, and backed off further on
+// portrait screens — the projection scales the horizontal FOV by the
+// aspect ratio, so without the correction wide content (the Pong court, a
+// text banner) runs off both edges on a phone held upright. Every camera
+// fit (autoFitCamera and the modes that set distance directly) goes
+// through this.
+func fitDistFor(ext float32) float32 {
+	dist := ext * 3.0
+	if w, h := canvasEl.Get("clientWidth").Float(), canvasEl.Get("clientHeight").Float(); w > 0 && h > 0 && w < h {
+		dist *= float32(h / w)
+	}
 	if dist < 5 {
 		dist = 5
 	}
 	if dist > 300 {
 		dist = 300
 	}
-	initCameraDist = dist
-	defaultCameraDist = dist
-	cameraControl.Set("value", "0")
-	sliderZoom.Set("textContent", "0")
-	updateViewMatrix()
+	return dist
 }
 
 func generateForMode(mode string) {
