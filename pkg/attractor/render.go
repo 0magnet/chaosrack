@@ -368,6 +368,13 @@ func updateModelMatrix() {
 	gl.Call("uniformMatrix4fv", uMmatrixLoc, false, mat4ToTyped(&movMatrix))
 }
 
+// fitExtentOverride, when set, provides the next autoFitCamera call with the
+// TRUE extent of the attractor (measured during a warmup) instead of the
+// current trail's — for systems whose visible window is only a small arc of a
+// much larger structure (hyper-Rössler), fitting the instantaneous arc left
+// the camera blind for most of the orbit.
+var fitExtentOverride float32
+
 func autoFitCamera() {
 	if len(attractorVertices) < 3 {
 		return
@@ -381,6 +388,10 @@ func autoFitCamera() {
 		if v > maxAbs {
 			maxAbs = v
 		}
+	}
+	if fitExtentOverride > 0 {
+		maxAbs = fitExtentOverride
+		fitExtentOverride = 0
 	}
 	// Set camera distance to ~3x the max extent so the whole thing is visible
 	dist := maxAbs * 3.0

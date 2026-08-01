@@ -305,6 +305,7 @@ func resetAttractorState() {
 	// (found by the demo recorder, bisected to hyperrossler param edits).
 	if selectedMode == "hyperrossler" {
 		hyperRosslerWarmup()
+		hyperPrimed = true
 	}
 }
 

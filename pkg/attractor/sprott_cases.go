@@ -95,25 +95,95 @@ func generateSprottCase(idx int) {
 }
 
 // hyperRosslerWarmup advances the state through the initial transient so the
-// first rendered frame already spans the full attractor — its large z-spikes
-// only emerge after ~60 time units, and without this autoFitCamera fits the
-// tight early spiral and the model appears zoomed-in.
+// first rendered frame already lives on the adult attractor. This system
+// expands SLOWLY: from the canonical IC the orbits keep growing for over a
+// thousand time units before settling into the full ±270 figure (verified in
+// float64 — by t=60 the trajectory is still a small juvenile spiral, which
+// made autoFitCamera frame a tiny inner arc and the mode looked broken).
+// 1.5M Euler steps at dt=0.001 is ~1500 time units — a few ms of wasm time.
 func hyperRosslerWarmup() {
 	dt := float64(hyperDT)
 	xf, yf, zf, wf := float64(x), float64(y), float64(z), float64(hyperW)
-	for i := 0; i < 60000; i++ {
+	// Track the attractor's real extent over the settled tail of the warmup:
+	// the visible trail is only a short arc that ORBITS this structure, so
+	// the camera and the (frozen) centering must frame the whole thing, not
+	// the arc's momentary position.
+	const nWarm = 1_500_000
+	minX, maxX := 1e30, -1e30
+	minY, maxY := 1e30, -1e30
+	minZ, maxZ := 1e30, -1e30
+	for i := 0; i < nWarm; i++ {
 		dx, dy, dz, dw := hyperDeriv(xf, yf, zf, wf)
 		xf, yf, zf, wf = xf+dt*dx, yf+dt*dy, zf+dt*dz, wf+dt*dw
 		// With divergent parameters the warmup itself blows up — bail
-		// instead of marching 60k steps through NaNs.
+		// instead of marching through NaNs.
 		if i%512 == 511 && !(xf > -1e6 && xf < 1e6 && yf > -1e6 && yf < 1e6 && zf > -1e6 && zf < 1e6) {
 			return
 		}
+		if i > nWarm/3 {
+			if xf < minX {
+				minX = xf
+			}
+			if xf > maxX {
+				maxX = xf
+			}
+			if yf < minY {
+				minY = yf
+			}
+			if yf > maxY {
+				maxY = yf
+			}
+			if zf < minZ {
+				minZ = zf
+			}
+			if zf > maxZ {
+				maxZ = zf
+			}
+		}
 	}
 	x, y, z, hyperW = float32(xf), float32(yf), float32(zf), float32(wf)
+	// Freeze centering on the structure's true middle and hand autoFitCamera
+	// its true half-extent (both in display coordinates, i.e. ×hyperScale).
+	cx, cy, cz := (minX+maxX)/2, (minY+maxY)/2, (minZ+maxZ)/2
+	centerOffset = [3]float32{float32(cx) * hyperScale, float32(cy) * hyperScale, float32(cz) * hyperScale}
+	centerReady = true
+	ext := maxX - cx
+	for _, e := range []float64{maxY - cy, maxZ - cz} {
+		if e > ext {
+			ext = e
+		}
+	}
+	fitExtentOverride = float32(ext) * hyperScale
+	// Also set the camera DIRECTLY: boot/priming call autoFitCamera in orders
+	// that can pair the one-shot override with the wrong invocation, and any
+	// unpaired call would fit the momentary arc (or worse) instead of the
+	// structure. Direct assignment has no ordering dependence.
+	dist := fitExtentOverride * 3
+	if dist < 5 {
+		dist = 5
+	}
+	if dist > 300 {
+		dist = 300
+	}
+	initCameraDist = dist
+	defaultCameraDist = dist
+	updateViewMatrix()
 }
 
+// hyperPrimed guards the first frame after a hash boot: a page loaded
+// directly on #hyperrossler renders before any resetAttractorState, so the
+// state would be the unseeded origin with w=0 — which DIVERGES, and the boot
+// camera fit framed that garbage (the mode looked blank; the divergence
+// guard then quietly reseeded onto a healthy orbit far too small on screen).
+var hyperPrimed bool
+
 func generateHyperRossler() {
+	if !hyperPrimed {
+		hyperPrimed = true
+		ic := attractorInitCond["hyperrossler"]
+		x, y, z, hyperW = ic[0], ic[1], ic[2], hyperW0
+		hyperRosslerWarmup() // also centers + fits the camera to the true extent
+	}
 	vertices := vertBuf[:steps*4]
 	invN := float32(1) / float32(steps-1)
 	sub := effSubSteps(speedSteps, steps, frameBudgetCompiled)
