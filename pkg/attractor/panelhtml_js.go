@@ -74,10 +74,10 @@ const controlsBody = `
 </div>
 </div>
 <div class="sect"><div class="sect-hdr" title="Parameters — the current model's tunable constants (each with knob, LED value, step size, and reset)">Parameters</div><div id="params" class="row"></div></div>
-<div class="sect" id="pong-module" style="display:none"><div class="sect-hdr" title="Scoreboard — Scope Pong's front panel: both players' scores and a restart button for a fresh match">Scoreboard</div>
+<div class="sect" id="pong-module" style="display:none"><div class="sect-hdr" title="Scoreboard — Scope Pong's front panel: each player's score over their paddle pot (turn it to seize the paddle from the machine; it spins by itself while the machine plays, like a motorized pot), plus a restart button">Scoreboard</div>
 <div class="row vmrow">
-  <span class="pcell axcol vmcell gen-cell"><span class="punit-top"><span class="plabel">left</span><span class="led demo-led" id="pong-score-l" title="Left player's score (the W/S paddle) — first past 9 resets the match">0</span></span></span>
-  <span class="pcell axcol vmcell gen-cell"><span class="punit-top"><span class="plabel">right</span><span class="led demo-led" id="pong-score-r" title="Right player's score (the ↑/↓ paddle) — first past 9 resets the match">0</span></span></span>
+  <span class="pcell axcol vmcell gen-cell"><span class="punit-top"><span class="plabel">left</span><span class="led demo-led" id="pong-score-l" title="Left player's score (W/S, left-half touch, or the pot below) — first past 9 resets the match">0</span></span><input type="range" id="pong-pad-l" min="-1" max="1" step="0.01" value="0" title="Left paddle pot — turn to take the left paddle from the machine; tracks the paddle while the machine or keys drive it" style="display:none"><span class="grp vmbay"><span id="pong-lstack"></span></span></span>
+  <span class="pcell axcol vmcell gen-cell"><span class="punit-top"><span class="plabel">right</span><span class="led demo-led" id="pong-score-r" title="Right player's score (↑/↓, right-half touch, or the pot below) — first past 9 resets the match">0</span></span><input type="range" id="pong-pad-r" min="-1" max="1" step="0.01" value="0" title="Right paddle pot — turn to take the right paddle from the machine; tracks the paddle while the machine or keys drive it" style="display:none"><span class="grp vmbay"><span id="pong-rstack"></span></span></span>
   <span class="pcell axcol vmcell gen-cell"><span class="grp btn-row demo-btn"><button class="pushbtn" id="pong-restart" title="Restart the match — zero both scores and serve fresh"></button><span class="btn-lbl">Restart</span></span></span>
 </div></div>
 <div class="sect" id="stext-module" style="display:none"><div class="sect-hdr" title="Banner — Fourier Text's input: what the harmonic character generator writes (A–Z, 0–9, dash, space). The harm knob in Parameters sets how many harmonics each glyph keeps.">Banner</div>
@@ -88,10 +88,11 @@ const controlsBody = `
 <div class="row vmrow">
   <span class="pcell axcol vmcell gen-cell"><span class="punit-top"><span class="plabel">wired</span></span><span class="grp vmbay"><span class="led demo-led smorph-led" id="smorph-led" title="Live patch — the current catalog blend, e.g. D-E 42% (100% = fully the next system); the sys knob parks it, the rate knob self-steps">D</span></span></span>
 </div></div>
-<div class="sect" id="bounce-module" style="display:none"><div class="sect-hdr" title="Launcher — Bouncing Ball's front panel: how many times the machine has re-kicked the decayed ball, and a Drop button to re-drop it by hand">Launcher</div>
+<div class="sect" id="bounce-module" style="display:none"><div class="sect-hdr" title="Launcher — Bouncing Ball's front panel: the drop-height pot (the analog demo's initial-condition setting), the machine's re-kick count, and a Drop button">Launcher</div>
 <div class="row vmrow">
+  <span class="pcell axcol vmcell gen-cell"><span class="punit-top"><span class="plabel">height</span><input type="number" class="numin gen-led" id="bounce-height-led" title="Drop height (0.2–1.0, court units above the floor) — where the next Drop releases the ball" min="0.2" max="1" step="0.05" value="0.90"></span><input type="range" id="bounce-height" min="0.2" max="1" step="0.05" value="0.9" title="Drop height pot — the initial condition the next Drop (or mode entry) releases the ball from" style="display:none"><span class="grp vmbay"><span id="bounce-hstack"></span></span></span>
   <span class="pcell axcol vmcell gen-cell"><span class="punit-top"><span class="plabel">kicks</span><span class="led demo-led" id="bounce-kicks" title="Machine re-kicks since the mode started — each is a decayed ball re-launched">0</span></span></span>
-  <span class="pcell axcol vmcell gen-cell"><span class="grp btn-row demo-btn"><button class="pushbtn" id="bounce-drop" title="Drop the ball again from the top left with a fresh drift"></button><span class="btn-lbl">Drop</span></span></span>
+  <span class="pcell axcol vmcell gen-cell"><span class="grp btn-row demo-btn"><button class="pushbtn" id="bounce-drop" title="Drop the ball again from the height pot's setting with a fresh drift"></button><span class="btn-lbl">Drop</span></span></span>
 </div></div>
 <div class="sect"><div class="sect-hdr" title="Colors — gradient source axis, palette size, rainbow period, and trail length">Colors</div>
 <div class="row vmrow">

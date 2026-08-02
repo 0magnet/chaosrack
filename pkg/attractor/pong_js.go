@@ -210,8 +210,25 @@ func generatePong() {
 }
 
 // pongSyncScoreboard latches the Scoreboard module's LEDs when a score
-// changes (cheap check, no DOM writes on quiet frames).
+// changes, and spins the paddle pots to track the live paddles (motorized
+// pots: the machine plays its own knobs) — except a pot the user is
+// actually holding, which is theirs.
 func pongSyncScoreboard() {
+	pongSyncTick++
+	if pongSyncTick%3 == 0 { // pot writes throttled — 20 Hz reads smooth
+		pongKnobGuard = true
+		for _, s := range []struct {
+			sl  js.Value
+			pad float64
+		}{{pongPadSlL, pongPadL}, {pongPadSlR, pongPadR}} {
+			if !s.sl.Truthy() || (kb.active && kb.slider.Equal(s.sl)) {
+				continue
+			}
+			s.sl.Set("value", strconv.FormatFloat(s.pad/pongH, 'f', 2, 64))
+			s.sl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		}
+		pongKnobGuard = false
+	}
 	if pongScoreL == pongShownL && pongScoreR == pongShownR {
 		return
 	}
@@ -223,6 +240,8 @@ func pongSyncScoreboard() {
 		r.Set("textContent", strconv.Itoa(pongScoreR))
 	}
 }
+
+var pongSyncTick int
 
 // ── Input + sound ────────────────────────────────────────────────────────
 

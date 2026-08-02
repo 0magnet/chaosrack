@@ -175,7 +175,7 @@ func syncBounceExtras(mode string) {
 		}
 		bounceActive = true
 		bounceKicks = 0
-		bounceX, bounceY = -1.2, 0.9
+		bounceX, bounceY = -1.2, bounceDropHeight()
 		bounceVX, bounceVY = float64(bounceDrift), 0
 		// Warm the ring with a real trajectory (blips muted) so every camera
 		// fit measures true arcs, never a near-empty ring.
