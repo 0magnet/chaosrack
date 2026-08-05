@@ -41,6 +41,7 @@ func init() {
 	registerGenerate("sphere", generateSphere)
 	registerGenerate("torus", generateTorus)
 	registerGenerate("magnetosphere", generateMagnetosphere)
+	registerGenerate("stlfile", generateSTLFile)
 	// spectrogram / fvf / xy are dispatched before the generate lookup
 	// (textured plane / bypass paths in generateForMode).
 }

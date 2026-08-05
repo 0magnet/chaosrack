@@ -94,6 +94,11 @@ const controlsBody = `
   <span class="pcell axcol vmcell gen-cell"><span class="punit-top"><span class="plabel">kicks</span><span class="led demo-led" id="bounce-kicks" title="Machine re-kicks since the mode started — each is a decayed ball re-launched">0</span></span></span>
   <span class="pcell axcol vmcell gen-cell"><span class="grp btn-row demo-btn"><button class="pushbtn" id="bounce-drop" title="Drop the ball again from the height pot's setting with a fresh drift"></button><span class="btn-lbl">Drop</span></span></span>
 </div></div>
+<div class="sect" id="stlfile-module" style="display:none"><div class="sect-hdr" title="Loader — STL File's front panel: load a stereolithograph (.stl, binary or ASCII) from disk and it renders as a rotating wireframe through the normal pipeline (gradient, spin, camera fit and Model Out all apply)">Loader</div>
+<div class="row vmrow">
+  <span class="pcell axcol vmcell gen-cell"><span class="punit-top"><span class="plabel">file</span><span class="led demo-led" id="stlfile-led" title="Loaded STL — file name and triangle count (a stand-in cube shows until a file is loaded)">none</span></span></span>
+  <span class="pcell axcol vmcell gen-cell"><span class="grp btn-row demo-btn"><button class="pushbtn" id="stlfile-load" title="Load an .stl file from disk (binary or ASCII)"></button><span class="btn-lbl">Load</span></span></span>
+</div></div>
 <div class="sect"><div class="sect-hdr" title="Colors — gradient source axis, palette size, rainbow period, and trail length">Colors</div>
 <div class="row vmrow">
   <span class="pcell axcol" id="src-cell" title="Outer ring = gradient source (which axis the color follows); inner ring = number of colors. Overridden while a Phosphor is selected."><span class="grp vmbay"><span class="grp knoblbl"><span class="plabel">src</span><span id="gradient-stack"></span></span></span><select id="gradient-source" title="Gradient source — which axis (X / Y / Z / trail) the trace color follows" style="display:none">

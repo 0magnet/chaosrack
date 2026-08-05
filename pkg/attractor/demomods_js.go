@@ -76,6 +76,7 @@ func buildDemoModules() {
 			return nil
 		}))
 	}
+	buildSTLFileModule()
 	if b := doc.Call("getElementById", "bounce-drop"); b.Truthy() {
 		b.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
 			bounceX, bounceY = -1.2, bounceDropHeight()

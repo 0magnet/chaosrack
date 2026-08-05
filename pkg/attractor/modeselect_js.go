@@ -191,7 +191,7 @@ func buildNestedModelSelector() {
 		"ATTR":  "Attractors — chaotic systems (Lorenz, Rössler…) plus Custom",
 		"SCOPE": "Scope — Lissajous, Graphic Artist and XY oscilloscope figures",
 		"POLY":  "Polyhedra — wireframe Platonic solids",
-		"GEO":   "Geometry — sphere, torus, globe and other surfaces",
+		"GEO":   "Geometry — sphere, torus, globe and other surfaces, plus STL file upload",
 		"AUD":   "Audio — spectrogram and FVF wobbulator displays",
 	})
 	holder.Call("appendChild", stack)
