@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"errors"
 	"strconv"
+	"strings"
 	"syscall/js"
 
 	"gitlab.com/russoj88/stl/stl"
@@ -157,9 +158,12 @@ func buildSTLFileModule() {
 			return nil
 		}
 		stlFileLabel = name
-		short := name
-		if len(short) > 14 {
-			short = short[:11] + "…"
+		// LED readout: base name only, uppercased (DSEG has no lowercase
+		// worth reading), capped to what the cell fits — the tooltip keeps
+		// the full name.
+		short := strings.ToUpper(strings.TrimSuffix(strings.ToLower(name), ".stl"))
+		if r := []rune(short); len(r) > 7 {
+			short = string(r[:7])
 		}
 		detail := name + " — " + strconv.Itoa(stlFileTris) + " triangles"
 		if stlFileTris >= stlFileMaxTris {

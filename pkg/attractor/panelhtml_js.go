@@ -96,7 +96,7 @@ const controlsBody = `
 </div></div>
 <div class="sect" id="stlfile-module" style="display:none"><div class="sect-hdr" title="Loader — STL File's front panel: load a stereolithograph (.stl, binary or ASCII) from disk and it renders as a rotating wireframe through the normal pipeline (gradient, spin, camera fit and Model Out all apply)">Loader</div>
 <div class="row vmrow">
-  <span class="pcell axcol vmcell gen-cell"><span class="punit-top"><span class="plabel">file</span><span class="led demo-led" id="stlfile-led" title="Loaded STL — file name and triangle count (a stand-in cube shows until a file is loaded)">none</span></span></span>
+  <span class="pcell axcol vmcell gen-cell"><span class="punit-top"><span class="plabel">file</span><span class="led demo-led stl-led" id="stlfile-led" title="Loaded STL — file name and triangle count (a stand-in cube shows until a file is loaded)">none</span></span></span>
   <span class="pcell axcol vmcell gen-cell"><span class="grp btn-row demo-btn"><button class="pushbtn" id="stlfile-load" title="Load an .stl file from disk (binary or ASCII)"></button><span class="btn-lbl">Load</span></span></span>
 </div></div>
 <div class="sect"><div class="sect-hdr" title="Colors — gradient source axis, palette size, rainbow period, and trail length">Colors</div>
