@@ -9,6 +9,7 @@ require (
 	github.com/ivanpirog/coloredcobra v1.0.1
 	github.com/jfreymuth/pulse v0.1.2
 	github.com/spf13/cobra v1.10.2
+	gitlab.com/russoj88/stl v1.0.2
 	golang.org/x/net v0.57.0
 )
 

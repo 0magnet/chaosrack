@@ -207,6 +207,9 @@ github.com/twitchyliquid64/golang-asm/unsafeheader
 # github.com/ugorji/go/codec v1.3.1
 ## explicit; go 1.21
 github.com/ugorji/go/codec
+# gitlab.com/russoj88/stl v1.0.2
+## explicit; go 1.12
+gitlab.com/russoj88/stl/stl
 # go.mongodb.org/mongo-driver/v2 v2.8.0
 ## explicit; go 1.19
 go.mongodb.org/mongo-driver/v2/bson
