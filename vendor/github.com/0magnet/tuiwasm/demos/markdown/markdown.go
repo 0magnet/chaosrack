@@ -10,7 +10,7 @@ package markdown
 import (
 	"io"
 
-	"github.com/charmbracelet/glamour"
+	"github.com/0magnet/glamour"
 
 	"github.com/0magnet/tuiwasm/demos"
 )

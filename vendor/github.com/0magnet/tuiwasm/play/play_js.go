@@ -22,11 +22,14 @@ import (
 
 	"github.com/gdamore/tcell/v3"
 
+	tcell2 "github.com/gdamore/tcell/v2"
+
 	xterm "github.com/0magnet/xterm-go"
 	"github.com/0magnet/xterm-go/vt"
 
 	"github.com/0magnet/tuiwasm/demos"
 	"github.com/0magnet/tuiwasm/xtcell"
+	"github.com/0magnet/tuiwasm/xtcell2"
 	"github.com/0magnet/tuiwasm/xwrite"
 )
 
@@ -36,8 +39,11 @@ type Session struct {
 	demo   demos.Demo
 	term   *xterm.Terminal
 	owned  bool // true when this package made the terminal and must dispose it
-	bridge *xtcell.Screen
-	screen tcell.Screen
+	bridge interface {
+		Claim()
+		Active() bool
+	}
+	screen interface{ Fini() }
 	claim  js.Func
 }
 
@@ -91,7 +97,7 @@ func In(d demos.Demo, t *xterm.Terminal, el js.Value) (*Session, error) {
 		}
 		return s, nil
 	}
-	if d.Screen == nil {
+	if d.Screen == nil && d.ScreenV2 == nil {
 		return nil, fmt.Errorf("play: demo %q has neither a Text nor a Screen", d.Name)
 	}
 
@@ -102,6 +108,30 @@ func In(d demos.Demo, t *xterm.Terminal, el js.Value) (*Session, error) {
 	if d.Mirror != nil {
 		t.Core.Options.MirrorGlyph = d.Mirror
 		t.RefreshGlyphs()
+	}
+
+	// A tcell v2 demo runs against the v2 driver — the pre-migration xtcell,
+	// kept as xtcell2. Everything below mirrors the v3 path one major back.
+	if d.ScreenV2 != nil {
+		screen := xtcell2.New(t, el)
+		if err := screen.Init(); err != nil {
+			return nil, err
+		}
+		s.bridge = screen
+		s.screen = screen
+		s.claim = js.FuncOf(func(js.Value, []js.Value) any {
+			s.bridge.Claim()
+			return nil
+		})
+		el.Call("addEventListener", "mousedown", s.claim, true)
+		cols, rows := t.Core.Cols(), t.Core.Rows()
+		view := tcell2.Screen(&gated2{Screen: screen, active: screen.Active})
+		go func() {
+			if err := d.ScreenV2(view, cols, rows); err != nil {
+				js.Global().Get("console").Call("error", d.Name+": "+err.Error())
+			}
+		}()
+		return s, nil
 	}
 
 	// xtcell.New rather than tcell.NewScreen: in a browser tcell's own screen
