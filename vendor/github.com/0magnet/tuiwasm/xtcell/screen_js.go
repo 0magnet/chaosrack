@@ -139,6 +139,10 @@ type Screen struct {
 	input     js.Value
 	savedData func(string)
 
+	// Mouse reporting; see mouse_js.go.
+	mouseOn            bool
+	mdown, mup, mwheel js.Func
+
 	// sink is set when the terminal will take cells directly. See direct_js.go.
 	sink cellSink
 
@@ -215,6 +219,7 @@ func (s *Screen) Init() error {
 	})
 
 	s.bindInput(s.el)
+	s.bindMouse(s.el)
 	current = s
 	return nil
 }
@@ -244,6 +249,7 @@ func (s *Screen) Fini() {
 		// all, and only then is the queue closed.
 		close(s.stopq)
 		s.detachKeys()
+		s.detachMouse()
 
 		s.mu.Lock()
 		// Leave the terminal in a state someone else can use: cursor back,
@@ -636,15 +642,13 @@ func (s *Screen) Resume() error {
 
 // ------------------------------------------------------------------- no-ops
 
-// Mouse, paste and focus reporting are not wired up. They are not errors — a
+// Paste and focus reporting are not wired up. They are not errors — a
 // program may ask for them and carry on without — so they are accepted and
 // ignored rather than refused.
-func (s *Screen) EnableMouse(...tcell.MouseFlags) {}
-func (s *Screen) DisableMouse()                   {}
-func (s *Screen) EnablePaste()                    {}
-func (s *Screen) DisablePaste()                   {}
-func (s *Screen) EnableFocus()                    {}
-func (s *Screen) DisableFocus()                   {}
+func (s *Screen) EnablePaste()  {}
+func (s *Screen) DisablePaste() {}
+func (s *Screen) EnableFocus()  {}
+func (s *Screen) DisableFocus() {}
 
 // ShowNotification would be OSC 9 or OSC 777, which this emulator does not
 // implement. A page that wants to notify has the browser's own API for it.

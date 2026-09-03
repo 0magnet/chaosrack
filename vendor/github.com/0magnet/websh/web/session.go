@@ -46,6 +46,15 @@ type Options struct {
 	// Scrollback is the number of lines kept. Zero means 2000.
 	Scrollback int
 
+	// FontFamily is the CSS font stack the terminal draws with. Empty keeps
+	// xterm-go's default. A page that already has a face of its own wants
+	// this: the terminal is measured from it at Open, so it cannot be
+	// changed afterwards without re-measuring the cell.
+	FontFamily string
+
+	// FontSize is the cell size in CSS pixels. Zero keeps the default.
+	FontSize float64
+
 	// NoWebGL forces the DOM renderer.
 	NoWebGL bool
 
@@ -102,6 +111,12 @@ func NewSession(el js.Value, opt Options) (*Session, error) {
 
 	o := vt.NewOptions()
 	o.Scrollback = scrollback
+	if opt.FontFamily != "" {
+		o.FontFamily = opt.FontFamily
+	}
+	if opt.FontSize > 0 {
+		o.FontSize = opt.FontSize
+	}
 	s.Term = xterm.New(o)
 	s.Term.Open(el)
 	// Watch the container, not the window: mounted in anything smaller than
