@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# fvf — toggle the FVF "wobbulate" audio routing on/off.
+#
+# ON  : builds/starts `audiows -wobbulate` in the background. All system audio
+#       is routed through a temporary null sink and captured, and the wasm
+#       page's own Listen output is auto-moved to your real speakers. Open
+#       http://127.0.0.1:$FVF_PORT/?audio=ws  → FVF → turn on Listen.
+# OFF : sends SIGTERM so audiows restores your previous default sink and
+#       removes the null sink — i.e. normal audio, exactly as before.
+#
+# Usage:  fvf [on|off|toggle|status]   (no arg = toggle)
+# Env:    FVF_PORT (default 8080)
+set -euo pipefail
+
+PORT="${FVF_PORT:-8080}"
+PIDFILE="${XDG_RUNTIME_DIR:-/tmp}/fvf-wobbulate.pid"
+LOGFILE="${TMPDIR:-/tmp}/fvf-audiows.log"
+BIN="${XDG_CACHE_HOME:-$HOME/.cache}/wasm-stuff/audiows"
+
+here() { cd "$(dirname "$(readlink -f "$0")")/.." && pwd; }
+
+build() {
+  mkdir -p "$(dirname "$BIN")"
+  if [ -f "$(here)/go.mod" ]; then
+    ( cd "$(here)" && go build -o "$BIN" ./cmd/audiows )
+  else
+    go build -o "$BIN" github.com/0magnet/wasm-stuff/cmd/audiows
+  fi
+}
+
+running() { [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; }
+
+start() {
+  if running; then echo "FVF wobbulate is already ON (pid $(cat "$PIDFILE"))."; return; fi
+  [ -x "$BIN" ] || { echo "building audiows…"; build; }
+  nohup "$BIN" -wobbulate -p "$PORT" >"$LOGFILE" 2>&1 &
+  echo $! >"$PIDFILE"
+  disown || true
+  sleep 1
+  echo "FVF wobbulate ON — all system audio now runs through the effect."
+  echo "  Open http://127.0.0.1:$PORT/?audio=ws  → pick FVF → turn on Listen (🎛 FX A/Bs raw vs processed)."
+  echo "  Play music in any app; log: $LOGFILE"
+  echo "  Run '$0 off' to restore normal audio."
+}
+
+stop() {
+  if running; then
+    kill -TERM "$(cat "$PIDFILE")" 2>/dev/null || true
+    rm -f "$PIDFILE"
+    echo "FVF wobbulate OFF — normal audio restored."
+  else
+    echo "FVF wobbulate is not running."
+    rm -f "$PIDFILE" 2>/dev/null || true
+  fi
+}
+
+case "${1:-toggle}" in
+  on|start)  start ;;
+  off|stop)  stop ;;
+  status)    if running; then echo "on (pid $(cat "$PIDFILE"))"; else echo "off"; fi ;;
+  toggle|"") if running; then stop; else start; fi ;;
+  *) echo "usage: $0 {on|off|toggle|status}" >&2; exit 1 ;;
+esac

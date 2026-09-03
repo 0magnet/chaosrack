@@ -1,0 +1,13 @@
+/chaosrack
+# The old name of the binary. It was tracked before the rename and the rename
+# carried it along, so a 37 MB ELF executable sat in the tree — and in every
+# clone — for no reason.
+/wasm-stuff
+
+# cmd/stlgen's output. Thirty-odd megabytes of generated geometry that any
+# checkout can rebuild in a few seconds — and that the app does not need,
+# since it generates the same models in the browser.
+/docs/stl/
+
+# Subagent worktrees — separate checkouts, never part of this tree.
+.claude/worktrees/
