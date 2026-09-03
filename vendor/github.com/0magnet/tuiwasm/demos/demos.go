@@ -11,10 +11,12 @@ import (
 	"io"
 	"sort"
 
+	tcell2 "github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v3"
 )
 
-// Demo is one runnable example. Exactly one of Text or Screen is set.
+// Demo is one runnable example. Exactly one of Text, Screen or ScreenV2 is
+// set.
 type Demo struct {
 	Name string
 	Desc string
@@ -41,6 +43,11 @@ type Demo struct {
 	// and anything that calls Init again — tview's SetScreen does — puts that
 	// back. A demo that re-initializes the screen should SetSize afterwards.
 	Screen func(s tcell.Screen, cols, rows int) error
+
+	// ScreenV2 is Screen one tcell major back. It exists for programs whose
+	// code lives on tcell v2 and is shown as it is, rather than ported: the
+	// same game on each tcell lineage is worth more than one of them.
+	ScreenV2 func(s tcell2.Screen, cols, rows int) error
 }
 
 var registry = map[string]Demo{}
