@@ -1,5 +1,5 @@
 // Package wsaudio is the audio wire format the WebSocket servers here
-// (cmd/a/coreweb, cmd/a/wasm) and every client that reads them agree on:
+// (cmd/a/wasm) and every client that reads them agree on:
 // little-endian float32 samples, four bytes each, and nothing else. No
 // header, no channel count, no sample rate — the rate is agreed out of
 // band, which is why a mismatch shows up as a pitch shift rather than as
