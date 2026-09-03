@@ -1,0 +1,163 @@
+[
+  {
+    "id": "console",
+    "label": "Console",
+    "title": "Console — model selection, global actions, and every mode/effect switch in one module",
+    "image": "docs/img/module/console.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "parameters",
+    "label": "Parameters",
+    "title": "Parameters — the current model's tunable constants (each with knob, LED value, step size, and reset)",
+    "image": "docs/img/module/parameters.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "colors",
+    "label": "Colors",
+    "title": "Colors — gradient source axis, palette size, rainbow period, and trail length",
+    "image": "docs/img/module/colors.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "palette",
+    "label": "Palette",
+    "title": "Palette — the gradient's start / middle / end colors and the background",
+    "image": "docs/img/module/palette.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "record",
+    "label": "Record",
+    "title": "Record — a monitor showing exactly what will be captured, and the transport that captures it. The picture is the recorded area, not the whole canvas, so what you see here is what lands in the file.",
+    "image": "docs/img/module/record.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "view",
+    "label": "View",
+    "title": "View — orientation: per-axis angle knobs and continuous spin rates",
+    "image": "docs/img/module/view.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "position",
+    "label": "Position",
+    "title": "Position — slide the model horizontally / vertically and zoom the camera",
+    "image": "docs/img/module/position.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "display",
+    "label": "Display",
+    "title": "Display — animation speed, line width, and the knob step / fine multipliers",
+    "image": "docs/img/module/display.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "style",
+    "label": "Style",
+    "title": "Style — interface size, knob face + LED color, and CRT phosphor",
+    "image": "docs/img/module/style.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "gen-x",
+    "label": "Gen X",
+    "title": "Oscillator X — the xy scope's horizontal axis. freq knob (log, equal turn per octave), level knob, and a dual knob: outer ring = speaker channel, inner = waveform.",
+    "image": "docs/img/module/gen-x.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "gen-y",
+    "label": "Gen Y",
+    "title": "Oscillator Y — the xy scope's vertical axis. freq knob (log), level knob, and a dual knob: outer ring = speaker channel, inner = waveform.",
+    "image": "docs/img/module/gen-y.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "gen-z",
+    "label": "Gen Z",
+    "title": "Oscillator Z — a third generator (audio / modulation). freq knob (log), level knob, and a dual knob: outer ring = speaker channel, inner = waveform.",
+    "image": "docs/img/module/gen-z.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "gen-env",
+    "label": "Envelope",
+    "title": "Envelope — the Complex Sound Generator's shaper for the signal generator's speaker output: in RPT mode it cycles attack → decay continuously, a shaped tremolo over whatever Gen X/Y/Z are routed to the speakers. OFF passes the generators through untouched. Analysis paths (scope, spectrogram, meters) stay unshaped.",
+    "image": "docs/img/module/gen-env.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "sonify",
+    "label": "Model Out",
+    "title": "Model Out — HEAR the attractor. Inner knob picks how: FLOW integrates the attractor's own equations at audio rate, so the pitch is the system's natural orbital frequency (chaos chirps, periodic windows lock to tones, parameter changes are audible) and RATE transposes it (A4 = ×1); SCAN traces the drawn trail as one waveform period at exactly RATE Hz (a stable, playable tone). MAP picks which two coordinates drive L/R (CAM = the screen's x/y, so rotating the model changes the sound; off = silent). LVL is output level.",
+    "image": "docs/img/module/sonify.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "patch",
+    "label": "Patchbay",
+    "title": "Patchbay — pin-matrix audio routing (sources × destinations) and the 8-slot patch memory bank",
+    "image": "docs/img/module/patch.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "mod",
+    "label": "Mod",
+    "title": "Modulation routing for the Colors module — a channel + depth card per control",
+    "image": "docs/img/module/mod.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "eq",
+    "label": "EQ",
+    "title": "Graphic-EQ band weights for the Colors module's modulation — paint which frequency bands drive each control",
+    "image": "docs/img/module/eq.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "analysis",
+    "label": "Analysis",
+    "title": "Analysis — the largest Lyapunov exponent of the model on screen: how fast two nearby trajectories separate. Positive means chaotic (prediction has a horizon); about zero means periodic or quasi-periodic; negative means the orbit is settling. Flows are per unit time, maps per iterate. Measured on demand, not per frame.",
+    "image": "docs/img/module/analysis.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "preset",
+    "label": "Presets",
+    "title": "Presets — the current view, saved under a name. A preset holds everything the permalink holds: the model, every knob and color, the effect switches, the parameters and the pose. Recalling one resets to defaults and re-applies it, exactly as the Patchbay's numbered patch memories do; the difference is that these have names, and the address bar does not have to carry them.",
+    "image": "docs/img/module/preset.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "counter",
+    "label": "Counter",
+    "title": "Counter — a frequency counter for the rack, in the spirit of the glensstuff.com NAND-gate counter: it counts trigger crossings of the live audio source over the gate window and shows cycles per second, the way the discrete-logic original did. Feed it the mic, the ws stream, or the signal generator.",
+    "image": "docs/img/module/counter.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "keys",
+    "label": "Keys",
+    "title": "Keys — a playable polyphonic keyboard: click or drag the keybed (glissando works), or play the computer keyboard on the labeled keys (Z row = lower octave, Q row = upper). The range ring sets the key count up to the full 88; voice and speaker routing live on the out knob.",
+    "image": "docs/img/module/keys.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "tm",
+    "label": "Matrix",
+    "title": "Matrix — a pentatonic tonematrix step sequencer: paint pads on the grid (click or drag; rows are pitches, columns are sixteenth-note steps) and the playhead loops them as pings at the tempo. The pentatonic rows mean any pattern is consonant.",
+    "image": "docs/img/module/tm.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "template",
+    "label": "Template",
+    "title": "Template — a live legend built with the real cell builders: hover any slot for the Go struct field / builder it maps to (this header = Module.name, .sect-hdr)",
+    "image": "docs/img/module/template.jpg",
+    "mode": "lorenz"
+  }
+]

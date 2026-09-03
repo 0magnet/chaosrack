@@ -1,0 +1,80 @@
+/* rack-go: structure only.
+ *
+ * Layout, and nothing else — no colors, no fonts, no control styling. A rack
+ * decides where modules sit and how wide they are; what they look like is the
+ * host's business, and a layout engine that shipped a theme would be a theme.
+ *
+ * The two numbers here that are not free: the .rack gap must match Options.Gap,
+ * because the quantizer adds the gaps an N-slot module spans in order to line
+ * its right edge up with N separate modules, and --rack-mod-h is what makes
+ * every module the same height so they tile into rows instead of bricking.
+ */
+
+.rack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px;
+  --rack-scale: 1;
+}
+
+/* Docked down a side, a rack is one column: wrapping would put modules off the
+   bottom of a tall narrow strip rather than beside each other. */
+.rack.rack-column {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+.rack-mod {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  margin: 0;
+  /* Width is set by the quantizer. min-width keeps a module that has not been
+     measured yet — one added between quantize passes — from collapsing. */
+  min-width: calc(132px * var(--rack-scale, 1));
+  height: var(--rack-mod-h, 474px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 8px 7px;
+}
+
+.rack-mod-hdr {
+  align-self: stretch;
+  flex: 0 0 auto;
+  cursor: grab;
+  user-select: none;
+  /* One line, so every module's content starts at the same height and the rows
+     line up. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rack-mod.rack-dragging {
+  opacity: 0.55;
+}
+
+.rack-mod.rack-dragging > .rack-mod-hdr {
+  cursor: grabbing;
+}
+
+/* The content grid: columns filled top to bottom, wrapping into a new column
+   when the module's height runs out. This is what gives the quantizer
+   something to measure — the number of columns the content needs is what
+   decides how many slots the module takes. */
+.rack-grid {
+  display: flex;
+  flex-flow: column wrap;
+  height: calc(var(--rack-mod-h, 474px) - 30px);
+  align-content: flex-start;
+  gap: 4px 14px;
+}
+
+.rack-switch {
+  display: block;
+  cursor: pointer;
+  user-select: none;
+}
