@@ -11,3 +11,10 @@
 
 # Subagent worktrees — separate checkouts, never part of this tree.
 .claude/worktrees/
+
+# The other compiled binaries, tracked the same way /chaosrack once was:
+# uitool 9.6 MB, uigolden 9.2 MB and probecmd 9.0 MB rode along in every
+# clone. Removed from history 2026-09-03.
+/uitool
+/uigolden
+/probecmd
