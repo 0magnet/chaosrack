@@ -1,0 +1,1118 @@
+/* ---- z-index scale: the single source of truth for stacking order. ----
+   Every layer that participates in burial/recovery references one of these,
+   so the order can never drift between the CSS and the Go handlers. The
+   control panel's BASE z lives here (not inline) so that clearing an inline
+   override — e.g. after a recovery-raise or a hide — always falls back to a
+   value ABOVE the normal canvas, never to auto(0) which used to bury it. */
+:root{
+  --z-canvas:3;        /* attractor canvas, normal (behind the panel) */
+  --z-crt:4;           /* CRT scanline overlay: above canvas, below panel */
+  --z-panel:10;        /* control panel, resting */
+  --z-dock:12;         /* dock resize strips */
+  --z-grip:13;         /* float resize grip + float chrome bar */
+  --z-hud:15;          /* audio meters + info overlay (HUD) */
+  --z-canvas-front:20; /* canvas when "Front" is on: model over the panel */
+  --z-panel-raised:25; /* panel recovery-raise: above the Front canvas */
+  --z-toggle:30;       /* ▤ show/hide button: always clickable */
+  --z-status:50;       /* audio status toast: top-most */
+}
+#controls-panel{z-index:var(--z-panel);}
+/* Recovery-raise: ▤ (or the Front handler) toggles ONE bit — body.panel-raised —
+   and the whole recovery unit (panel + its resize strip, float grip, and dock
+   buttons) rises above the Front canvas together. !important so the rules beat
+   the chrome's inline positioning styles. */
+body.panel-raised #controls-panel,
+body.panel-raised #dock-resize,
+body.panel-raised #float-grip,
+body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
+.rst{background:none;border:none;color:#666;cursor:pointer;font-size:13px;padding:0 2px;font-family:'B612 Mono',monospace;}
+.rst:hover{color:#fff;}
+/* Standard cell template: the reset button sits on the header line (with the
+   LED readout), pinned to the cell's top-right — not tucked in the knob corner. */
+#params .punit>.rst,.vmcell>.rst,.axcol.axrot .rst{position:absolute;top:3px;right:3px;bottom:auto;left:auto;z-index:6;font-size:calc(12px*var(--kscale,1));line-height:1;}
+.ctrl-btn{background:#333;color:#ccc;border:1px solid #555;padding:2px 8px;cursor:pointer;font-family:'B612 Mono',monospace;font-size:12px;}
+.ctrl-btn:hover{background:#555;}
+.dockb{padding:2px 7px;min-width:0;}
+.dockb.active{background:#2a6a3a;color:#fff;border-color:#1a4a28;}
+#gradient-source,#gradient-colors{background:#222;color:#ccc;border:1px solid #555;font-family:'B612 Mono',monospace;font-size:12px;padding:2px 4px;}
+/* src/colors knob: two concentric label rings (source outer, palette inner).
+   Bodies come from the uniform geometry above; here we size only the label ring. */
+#gradient-stack .knobstack.has-dial{margin:calc(20px*var(--kscale,1));}
+#gradient-stack .knob-dial{width:calc(112px*var(--kscale,1));height:calc(112px*var(--kscale,1));}
+#gradient-stack .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
+/* Compact src/colors knob so BOTH label rings (source outer, colors inner) fit
+   clear of the knob within the tight module. */
+#gradient-stack .knobstack{width:calc(56px*var(--kscale,1));height:calc(56px*var(--kscale,1));}
+#gradient-stack .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
+#gradient-stack .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
+#gradient-stack .knob-inner{width:calc(28px*var(--kscale,1))!important;height:calc(28px*var(--kscale,1))!important;}
+#gradient-stack .knob-inner>.knob-ptr{height:calc(12px*var(--kscale,1))!important;}
+/* Size/Step/Fine knob: three concentric label rings (Size outer, Step× mid,
+   Fine× inner). Bodies come from the uniform geometry above (⌀76·⌀56·⌀36 with
+   grabbable ~10px annuli); here we size only the three label rings. */
+/* Step/Fine is now a 2-ring concentric (Size moved out), so a smaller label
+   ring than the old 3-ring version — keeps it inside the module. */
+#stepfine-stack .knobstack.has-dial{margin:calc(22px*var(--kscale,1));}
+#stepfine-stack .knob-dial{width:calc(112px*var(--kscale,1));height:calc(112px*var(--kscale,1));}
+#stepfine-stack .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
+/* Size: lone labelled selector ring, same size as the other Style knobs. */
+#size-stack .knobstack{width:calc(56px*var(--kscale,1));height:calc(56px*var(--kscale,1));}
+#size-stack .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
+#size-stack .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
+#size-stack .knobstack.has-dial{margin:calc(20px*var(--kscale,1));}
+#size-stack .knob-dial{width:calc(96px*var(--kscale,1));height:calc(96px*var(--kscale,1));}
+#size-stack .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
+/* Knob-style / LED-color: sized to match the Step/Fine concentric knob, with
+   the dial tucked close (small dial + small margin). */
+#knobstyle-stack .knobstack{width:calc(56px*var(--kscale,1));height:calc(56px*var(--kscale,1));}
+#knobstyle-stack .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
+#knobstyle-stack .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
+#knobstyle-stack .knob-inner{width:calc(28px*var(--kscale,1))!important;height:calc(28px*var(--kscale,1))!important;}
+#knobstyle-stack .knob-inner>.knob-ptr{height:calc(12px*var(--kscale,1))!important;}
+#knobstyle-stack .knobstack.has-dial{margin:calc(20px*var(--kscale,1));}
+#knobstyle-stack .knob-dial{width:calc(96px*var(--kscale,1));height:calc(96px*var(--kscale,1));}
+#knobstyle-stack .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
+/* Phosphor: single selector ring, same size as the Step-size selector. */
+#phosphor-stack .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
+#phosphor-stack .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
+#phosphor-stack .knob-dial{width:calc(96px*var(--kscale,1));height:calc(96px*var(--kscale,1));}
+/* The Knob-style knob's inner ring selects the LED color; glow its pointer in
+   that color as a live cue (there's no room for an inner label ring). */
+#knobstyle-stack .knob-inner .knob-ptr{background:var(--led-col,#ff3b30)!important;box-shadow:0 0 5px var(--led-glow,#ff2a20)!important;}
+/* ── Uniform module labels: every cell's primary label uses the same font size
+   and is pinned to the same top-left spot, so labels on the same row line up
+   horizontally across all modules. (Step/Fine + LED-colour readouts keep their
+   own placement — they aren't direct labels of the cell/knoblbl/punit-top.) ── */
+.modules .pcell>.plabel{position:absolute!important;top:4px!important;left:4px!important;transform:none!important;line-height:1.1;margin:0;z-index:3;}
+/* Knob-stack labels (SRC / Size / Knob) sit top-left, same spot as the palette
+   'start' label, so the primary label is in the same place in every module. */
+.modules .pcell .knoblbl>.plabel{position:absolute!important;top:4px!important;left:4px!important;transform:none!important;line-height:1.1;margin:0;z-index:3;}
+/* Phosphor is the exception: its label centers on the knob (knoblbl is
+   position:relative and, with the label out of flow, is sized to the knob). */
+#phosphor-cell .knoblbl>.plabel{top:50%!important;transform:translateY(-50%)!important;}
+/* punit-top is itself offset 2px from the cell top, so its label pins at 2px to
+   land at the same cell-relative height (4px) as the others. */
+.modules .pcell .punit-top>.plabel{position:absolute!important;top:2px!important;left:4px!important;transform:none!important;line-height:1.1;margin:0;z-index:3;}
+/* ── Uniform knob-stack cell. Size / Knob / Phosphor / Palette / Step-Fine are
+   bare .pcell.axcol (no .vmcell, no .axrot); give them the SAME 116×160 box as
+   the value cells and pin their label top-left, so every module lines its label
+   + control up identically (View is the reference). ── */
+.vmrow>.pcell.axcol:not(.axrot):not(.vmcell){width:calc(116px*var(--kscale,1));height:calc(160px*var(--kscale,1));box-sizing:border-box;position:relative;justify-content:center;}
+.vmrow>.pcell.axcol:not(.axrot):not(.vmcell) .knoblbl{position:static;}
+.vmrow>.pcell.axcol:not(.axrot):not(.vmcell) .knoblbl>.plabel{position:absolute;top:3px;left:3px;line-height:1.1;z-index:3;margin:0;}
+/* Palette module: the swatch sits in the cell header (centerd over the knob,
+   label pinned left — treated exactly like an LED readout), the Hue/Level knob
+   fills the body below so the dial never overlaps the swatch. */
+/* Per-oscillator Generator modules: wider Hz / % LED (fits 0.2 … 20000). Each
+   module fills three cells: a freq knob, a level knob, and a dual concentric
+   knob (outer ring = channel, inner = waveform), so their inputs stay hidden. */
+/* width is set per-field by sizeLEDField (fits the widest zero-padded value);
+   just right-align like the other LED readouts. */
+.gen-osc .gen-led{text-align:right;}
+/* The out cell is a dual SELECTOR knob (set positions, not a continuous wiper),
+   so it's small — like the Style / Display selector knobs (56px ring, 28px
+   inner) — and the channel dial labels clear it. */
+.gen-osc .knobstack{width:calc(56px*var(--kscale,1));height:calc(56px*var(--kscale,1));}
+/* child combinator + extra class to beat the base `.knobstack>.knob-ring{--ko}` */
+.gen-osc .knobstack>.knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
+.gen-osc .knobstack>.knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
+.gen-osc .knob-inner{width:calc(28px*var(--kscale,1))!important;height:calc(28px*var(--kscale,1))!important;}
+.gen-osc .knob-inner>.knob-ptr{height:calc(12px*var(--kscale,1))!important;}
+/* extra top margin so the gen knobs sit on the same horizontal line as the top
+   knobs in label-above-LED modules (Params/Position/…); the gen cells label
+   BESIDE the LED, giving a shorter header that otherwise rides the knobs ~18px
+   high. */
+.gen-osc .knobstack.has-dial{margin:calc(20px*var(--kscale,1));}
+.gen-osc .knobstack .knob-dial{width:calc(96px*var(--kscale,1));height:calc(96px*var(--kscale,1));}
+.gen-osc .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
+/* freq & level are continuous knobs, so they're the LARGE size (--ko, like the
+   Params / View knobs). Their value / octave dial gets a matching wider ring so
+   the ticks and end labels clear the bigger knob. */
+.gen-osc .knobwrap.has-dial{margin:calc(20px*var(--kscale,1));}
+.gen-osc .knobwrap>.value-dial{width:calc(104px*var(--kscale,1));height:calc(104px*var(--kscale,1));}
+/* out-cell waveform glyph ring (inner): dim glyphs, active one lit green. */
+.knob-dial-wave{position:absolute;transform:translate(-50%,-50%);width:calc(13px*var(--kscale,1));height:calc(8px*var(--kscale,1));color:#5f7f8f;pointer-events:none;z-index:2;}
+.knob-dial-wave.clickable{pointer-events:auto;cursor:pointer;}
+.knob-dial-wave svg{display:block;width:100%;height:100%;}
+.knob-dial-wave.wave-active{color:#2fe070;filter:drop-shadow(0 0 3px #25c060);}
+/* One-octave piano strip under the freq knob. ABSOLUTELY positioned at the
+   bottom of the (fixed --krow-tall) cell — like the punit-top is pinned at the
+   top — so it doesn't sit in the flow and push the centered knob off the grid.
+   That's what keeps the freq knob on the same row line as every other module's
+   top knob, by construction rather than by a compensating margin. */
+.gen-osc .gen-cell{position:relative;}
+.gen-piano{position:absolute;left:calc(7px*var(--kscale,1));right:calc(7px*var(--kscale,1));bottom:calc(5px*var(--kscale,1));width:auto;height:calc(24px*var(--kscale,1));}
+.gen-piano .pk-whites{display:flex;height:100%;width:100%;}
+.gen-piano .pk-blacks{position:absolute;inset:0;pointer-events:none;} /* keys re-enable below */
+.gen-piano .pk-key{cursor:pointer;}
+.gen-piano .pk-white{flex:1;margin:0 .5px;background:linear-gradient(#e6e6e6,#c2c2c2);border:1px solid #2a2a2a;border-top:none;border-radius:0 0 2px 2px;box-shadow:inset 0 -2px 2px #a8a8a8;}
+.gen-piano .pk-black{position:absolute;top:0;height:58%;width:9%;pointer-events:auto;background:linear-gradient(#3a3a3a,#0a0a0a);border:1px solid #000;border-radius:0 0 2px 2px;box-shadow:0 1px 2px #000;z-index:2;}
+/* Lit key: the green→red tuning gradient is set inline (per detune); here just
+   a bright neutral outline + glow so it pops whether it's reading green or red. */
+.gen-piano .pk-key.lit{border-color:#fff!important;box-shadow:0 0 7px rgba(255,255,255,.6),0 0 3px rgba(255,255,255,.85)!important;}
+/* Template legend module: native module chrome, but a dashed accent border so
+   it reads as the schema, legible (non-DSEG7) text in the readout slots, and
+   the same knob sizing as the Style/gen modules. */
+.template-mod{outline:1px dashed #3a6a8a;outline-offset:-3px;}
+.template-mod .sect-hdr{color:#8fd0ff;}
+/* readout uses the REAL LED style (red DSEG7, inherited from .led); just shrink
+   to fit the word in the cell. */
+.template-mod .rst{cursor:help;}
+/* overlay part-name pinned onto a round slot (knob / ring / inner / fine) */
+.template-mod .tpl-ov{position:absolute;left:50%;transform:translate(-50%,-50%);font-family:'B612 Mono',monospace;font-size:calc(7px*var(--kscale,1));line-height:1;color:#08140d;background:rgba(150,230,180,.85);border-radius:2px;padding:0 2px;pointer-events:none;z-index:6;white-space:nowrap;}
+/* template has two cells, so its grid is two rows (not the default three) —
+   keeps the grid-note directly below the cells instead of past an empty row. */
+/* The Template module carries a written legend under its grid, and three rows
+   of cells plus that legend come to 548 px in a 512 px panel — it had been
+   clipping the last lines of its own documentation in every mode. Two rows
+   flow the same cells into an extra column, which the rack quantizes to one
+   more slot: wider, but readable, which for the module whose entire job is to
+   explain the others is the right way round. */
+.template-mod .vmrow{grid-template-rows:repeat(2,var(--krow))!important;}
+.template-mod .tpl-note{font-family:'B612 Mono',monospace;font-size:calc(7.5px*var(--kscale,1));line-height:1.35;color:#7fa8c0;padding:calc(6px*var(--kscale,1));border-top:1px dashed #2a4a66;margin-top:calc(4px*var(--kscale,1));cursor:help;}
+.template-mod .tpl-note b{color:#bfe0ff;font-weight:normal;}
+.gen-module .gen-listen{padding-left:calc(8px*var(--kscale,1));margin-top:2px;}
+/* Signal-generator inline controls in the Switches ▸ Audio section. */
+.fg-row{display:flex;gap:4px;align-items:center;padding-left:calc(16px*var(--kscale,1));margin:1px 0;}
+.fg-row select{background:#12203a;color:#8cf;border:1px solid #446;border-radius:2px;font-family:'B612 Mono',monospace;font-size:calc(9px*var(--kscale,1));padding:0 2px;}
+.fg-row input[type=range]{width:calc(56px*var(--kscale,1));}
+/* Dimmed when a control doesn't apply: a phosphor overrides the trace color
+   (.crt-dim), the palette color-count makes a swatch inactive (.pal-dim), or
+   the Fore knob is mid-range and the two-pass split has to clear between the
+   halves, which is the one thing Persist needs not to happen (.split-dim). */
+.crt-dim,.pal-dim,.split-dim,.layer-dim{opacity:.32;filter:grayscale(.5);transition:opacity .15s,filter .15s;}
+.pal-cell .cswatch{display:inline-flex;align-items:center;gap:3px;}
+/* Pull the swatch's reset out of the centered group (absolute top-right, like
+   every other cell) so the color swatch itself centers over the knob. */
+.pal-cell .cswatch .rst{position:absolute!important;top:3px;right:3px;left:auto;bottom:auto;z-index:6;}
+.pal-cell input[type=color]{width:calc(34px*var(--kscale,1));height:calc(20px*var(--kscale,1));border:1px solid #666;border-radius:3px;background:#111;padding:0;cursor:pointer;}
+.pal-cell .ckholder{display:flex;justify-content:center;align-items:center;}
+.ckholder{display:flex;justify-content:center;}
+/* HTML-colour (hex) readout under each palette knob, centerd, pinned to the
+   cell bottom (so the knob stays centerd like the other modules' knobs). */
+.pal-hex{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);justify-content:center!important;min-width:0;width:calc(60px*var(--kscale,1));letter-spacing:0;}
+/* Color-knob dials: conic spectrum rings drawn in place of tick marks. The Hue
+   ring is a full 360° rainbow (hue is cyclic — the knob spins all the way
+   around, red at top); the Level ring is a 270° sweep (from 225° = the pointer's
+   min at lower-left) matching the bounded black → colour → white inner knob. */
+.colorknob{position:relative;}
+/* Palette uses the standard concentric knob (outer Hue ring r38, inner Level
+   disc). The dials sit OUTSIDE the 76px outer knob: Level gradient ring just
+   clear of the knob edge, Hue rainbow ring beyond it, both within the cell. */
+.colorknob .ck-dial{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(104px*var(--kscale,1));height:calc(104px*var(--kscale,1));border-radius:50%;pointer-events:none;z-index:0;}
+.colorknob .ck-hue{background:conic-gradient(from 0deg,#ff0000,#ffff00,#00ff00,#00ffff,#0000ff,#ff00ff,#ff0000);-webkit-mask:radial-gradient(circle closest-side,transparent 84%,#000 85%,#000 93%,transparent 94%);mask:radial-gradient(circle closest-side,transparent 84%,#000 85%,#000 93%,transparent 94%);}
+.colorknob .ck-level{background:conic-gradient(from 225deg,#000,var(--hue-col,#888) 135deg,#fff 270deg,transparent 270deg 360deg);-webkit-mask:radial-gradient(circle closest-side,transparent 73%,#000 74%,#000 82%,transparent 83%);mask:radial-gradient(circle closest-side,transparent 73%,#000 74%,#000 82%,transparent 83%);}
+/* Phosphor selector: rotary knob + name readout in the Style module. The
+   readout floats BELOW the knob (absolute, out of flow) so the knob itself
+   centers in the cell and lines up with the knobs in every other module. */
+.selk-ro{position:relative;display:inline-flex;flex-direction:column;align-items:center;}
+.selk-ro>.selk-readout{position:absolute;top:calc(100% + 3px);left:50%;transform:translateX(-50%);}
+.selk-readout{font-family:'B612 Mono',monospace;font-size:calc(9px*var(--kscale,1));color:#9fe6c0;background:#0c1410;border:1px solid #234;border-radius:3px;padding:1px 4px;min-width:calc(66px*var(--kscale,1));text-align:center;text-shadow:0 0 4px #1c7a48;}
+/* LED-colour readout: pinned to the cell's bottom (absolute, so the knob still
+   centers and lines up with the other modules). "LED" label is left-justified
+   like every other module label; the colour-name display is centerd under the
+   knob at a fixed width (fits the longest name) shown IN the current LED colour. */
+.ledcolor-row{position:absolute;bottom:5px;left:0;right:0;text-align:center;line-height:1;}
+.ledcolor-lbl{position:absolute!important;left:3px;top:50%;transform:translateY(-50%);}
+.ledcolor-ro{display:inline-block;box-sizing:border-box;width:calc(46px*var(--kscale,1));min-width:0;text-align:center;font-size:calc(9px*var(--kscale,1));color:var(--led-col,#ff3b30);background:var(--led-bg,#170000);border:1px solid var(--led-bd,#3a0000);text-shadow:0 0 4px var(--led-glow,#ff2a20);}
+/* ── Uniform DSEG7 readout size: every numeric LED (params, View angles,
+   Position, Display, Step/Fine) renders at the SAME height and font so the
+   panel reads consistently, regardless of which cell it sits in. ── */
+.led,.numin,.axstack .led,.axstack .numin,.sf-cell .sf-led{height:calc(22px*var(--kscale,1))!important;box-sizing:border-box;font-size:calc(11px*var(--kscale,1))!important;padding-top:0!important;padding-bottom:0!important;}
+.numin,.axstack .numin{line-height:calc(20px*var(--kscale,1));}
+.led,.axstack .led,.sf-cell .sf-led{display:inline-flex;align-items:center;justify-content:flex-end;line-height:1;}
+/* Step/Fine: Step× readout above the knob, Fine× readout below it (mirroring
+   the outer Step ring and inner Fine ring), each a left label + its own LED. */
+.sf-cell .sf-hdr{position:absolute;top:3px;left:0;right:0;z-index:3;}
+.sf-cell .sf-ftr{position:absolute;bottom:3px;left:0;right:0;z-index:3;}
+.sf-cell .sf-row{position:relative;display:block;width:100%;text-align:center;}
+/* step label top-aligned so its S lines up with the Zoom label's Z (both ~4px
+   from the cell top); fine label dropped so its F lines up with the View-Z ω
+   label (~140px from the cell top). */
+.sf-cell .sf-hdr .plabel{position:absolute!important;left:4px;top:1px;transform:none;}
+.sf-cell .sf-ftr .plabel{position:absolute!important;left:4px;top:5px;bottom:auto;transform:none;}
+.sf-cell .sf-led{display:inline-flex;min-width:0;letter-spacing:0;justify-content:center!important;}
+#step-led{width:calc(4ch + 8px);}   /* X.YY  — constant, zero-padded */
+#fine-led{width:calc(5ch + 8px);}   /* X.YYY — constant, zero-padded */
+.sf-cell>.vmbay{min-height:0;margin-top:0;}
+/* Compact Step/Fine knob so both label rings (Step outer, Fine inner) sit clear
+   of the knob within the cell. */
+#stepfine-stack .knobstack{width:calc(56px*var(--kscale,1));height:calc(56px*var(--kscale,1));}
+#stepfine-stack .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
+#stepfine-stack .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
+#stepfine-stack .knob-inner{width:calc(28px*var(--kscale,1))!important;height:calc(28px*var(--kscale,1))!important;}
+#stepfine-stack .knob-inner>.knob-ptr{height:calc(12px*var(--kscale,1))!important;}
+/* ── Knob appearance styles (selected by the Knob-style knob). std = default. ── */
+#controls-panel.ks-flat .knob,#controls-panel.ks-flat .knobb{background:radial-gradient(circle at 50% 46%,#343434,#1d1d1d 74%,#141414)!important;border:1px solid #4c4c4c!important;box-shadow:inset 0 1px 1px #565656,0 1px 2px #000!important;}
+#controls-panel.ks-flat .knob-ptr{background:#7fe0a0!important;box-shadow:0 0 4px #2a9a5a!important;}
+#controls-panel.ks-vint .knob,#controls-panel.ks-vint .knobb{background:radial-gradient(circle at 35% 24%,#cbb891,#7d6c4d 66%,#3f3323)!important;border:2px solid #251c10!important;box-shadow:0 2px 3px #000,inset 0 1px 2px #ece0c4,inset 0 -3px 5px #29200f!important;}
+#controls-panel.ks-vint .knob-ptr{background:#332614!important;box-shadow:0 0 2px #140d04!important;}
+#controls-panel.ks-chrome .knob,#controls-panel.ks-chrome .knobb{background:linear-gradient(145deg,#f4f4f4,#9fa3a8 42%,#e6e9ee 52%,#6c7075 100%)!important;border:1px solid #3a3a3a!important;box-shadow:0 1px 3px #000,inset 0 1px 1px #fff,inset 0 -2px 3px #4a4a4a!important;}
+#controls-panel.ks-chrome .knob-ptr{background:#1a1a1a!important;box-shadow:0 0 1px #000!important;}
+#controls-panel.ks-gold .knob,#controls-panel.ks-gold .knobb{background:radial-gradient(circle at 35% 25%,#ffe9a8,#caa23c 58%,#7c5c14 100%)!important;border:2px solid #5a4410!important;box-shadow:0 2px 3px #000,inset 0 1px 2px #fff2c8,inset 0 -3px 4px #3e2c08!important;}
+#controls-panel.ks-gold .knob-ptr{background:#3a2c08!important;box-shadow:0 0 2px #1a1204!important;}
+#controls-panel.ks-carbon .knob,#controls-panel.ks-carbon .knobb{background:repeating-linear-gradient(45deg,#171717,#171717 2px,#232323 2px,#232323 4px)!important;border:1px solid #0a0a0a!important;box-shadow:0 1px 2px #000,inset 0 1px 1px #383838!important;}
+#controls-panel.ks-carbon .knob-ptr{background:#e0e0e0!important;box-shadow:0 0 3px #fff!important;}
+/* Vertical dividers between EVERY pair of control columns (works for 2, 3, … a
+   line sits in each column gap). The grid pitch is one cell (116·kscale) + the
+   6px column-gap; the line is drawn in the middle of each gap and repeats, so
+   extra columns automatically get their own dividers. */
+.punit-grid.two-col,.vmrow.two-col,.vmaxrow.two-col{background:repeating-linear-gradient(to right,transparent 0 calc(124px*var(--kscale,1) - 1px),#2a333c calc(124px*var(--kscale,1) - 1px) calc(124px*var(--kscale,1)),transparent calc(124px*var(--kscale,1)) calc(124px*var(--kscale,1) + 4px),#2a333c calc(124px*var(--kscale,1) + 4px) calc(124px*var(--kscale,1) + 5px),transparent calc(124px*var(--kscale,1) + 5px) calc(132px*var(--kscale,1) + 4px));}
+/* Framing lines down the outer edges of a module's control area — the same rule
+   that separates columns from each other, now separating them from the edge. */
+.punit-grid,.vmrow,.vmaxrow{border-left:1px solid #2a333c;border-right:1px solid #2a333c;}
+#mode-select{background:#04140a;color:#7fe0a0;border:1px solid #164a2a;border-radius:2px;font-family:"Courier New",monospace;font-weight:bold;font-size:12px;text-shadow:0 0 4px #2a9a5a;padding:2px 6px;letter-spacing:.5px;cursor:pointer;}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:5px 12px;margin-bottom:5px;}
+.grp{display:inline-flex;align-items:center;gap:3px;white-space:nowrap;color:#aaa;}
+.grp label{color:#aaa;}
+.pcell{display:inline-flex;flex-direction:column;align-items:center;gap:1px;white-space:nowrap;vertical-align:top;padding:2px 7px 3px;border-radius:4px;}
+/* SINGLE SOURCE OF TRUTH for EVERY panel label. All three historical label
+   classes (.plabel primary, .u-lbl param/model, .axlbl rate) share one look:
+   9px·kscale Chakra Petch, letters stacked vertically (upright) down the cell's
+   left edge, UPPERCASE. Per-position rules below only place the label (top/left)
+   — they never set size, orientation or case. One label context, full stop. */
+.modules .plabel,.modules .u-lbl,.modules .axlbl{color:#cdd;font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:calc(9px*var(--kscale,1));letter-spacing:.5px;line-height:1;writing-mode:vertical-lr;text-orientation:upright;text-transform:uppercase;white-space:nowrap;text-align:left;}
+/* Content exception (not a position context): math / parameter symbols keep
+   their authored case — uppercasing σ ρ β would corrupt them. Marked with .sym
+   where the label is created. */
+.modules .sym{text-transform:none;}
+/* The Console "MODEL" label is a centered header above the model knob, not a
+   left-edge cell label, so it stays horizontal (vertical only reads right when
+   pinned to the left edge). */
+.modules .mlbl{writing-mode:horizontal-tb;text-orientation:mixed;text-align:center;}
+.axcol{gap:2px;}
+.axsub{gap:2px;}
+.numin{width:58px;background:var(--led-bg,#170000);color:var(--led-col,#ff3b30);border:1px solid var(--led-bd,#3a0000);border-radius:2px;font-family:'DSEG7 Classic',"Courier New",monospace;font-weight:bold;font-size:11px;line-height:1.5;text-shadow:0 0 4px var(--led-glow,#ff2a20);letter-spacing:1px;padding:2px 3px;text-align:right;}
+/* No hover spinner arrows inside numeric fields (they crowd the LED readout). */
+.numin::-webkit-outer-spin-button,.numin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.numin[type=number]{-moz-appearance:textfield;}
+.row input[type=range]{vertical-align:middle;}
+.sep{width:1px;height:16px;background:#444;margin:0 2px;}
+.knob{position:relative;width:calc(32px*var(--kscale,1));height:calc(32px*var(--kscale,1));border-radius:50%;background:radial-gradient(circle at 35% 28%,#888,#3a3a3a 68%,#222);border:2px solid #111;box-shadow:0 1px 2px #000,inset 0 1px 1px #9a9a9a,inset 0 -2px 3px #000;cursor:grab;flex:0 0 auto;touch-action:none;}
+.knob:active{cursor:grabbing;}
+.knob-ptr{position:absolute;left:50%;top:50%;width:2px;height:calc(15px*var(--kscale,1));background:#f0f0f0;border-radius:1px;transform-origin:50% 100%;transform:translate(-50%,-100%) rotate(0deg);box-shadow:0 0 3px #fff;pointer-events:none;z-index:3;}
+.led{font-family:'DSEG7 Classic',"Courier New",monospace;font-weight:bold;font-size:13px;line-height:1.5;color:var(--led-col,#ff3b30);background:var(--led-bg,#170000);border:1px solid var(--led-bd,#3a0000);border-radius:2px;padding:2px 5px;letter-spacing:1px;text-shadow:0 0 5px var(--led-glow,#ff2a20);min-width:44px;text-align:right;}
+/* Tactile paddle/rocker switch: a recessed track with a raised, beveled
+   metallic paddle that throws left↔right; the well lights green when on. */
+.sw{appearance:none;-webkit-appearance:none;width:calc(36px*var(--kscale,1));height:calc(19px*var(--kscale,1));background:linear-gradient(#141414,#242424);border:1px solid #070707;border-radius:4px;position:relative;cursor:pointer;vertical-align:middle;outline:none;transition:background .12s;flex:0 0 auto;box-shadow:inset 0 2px 4px #000,inset 0 -1px 0 #3a3a3a;margin:0 4px 0 0;min-width:calc(36px*var(--kscale,1));min-height:calc(19px*var(--kscale,1));}
+.sw:checked{background:linear-gradient(#0c3a1c,#1e7d3a);box-shadow:inset 0 2px 4px #041a0c,inset 0 -1px 0 #2fae55,0 0 5px #1e7d3a66;}
+.sw::before{content:"";position:absolute;top:calc(1px*var(--kscale,1));left:calc(1px*var(--kscale,1));width:calc(16px*var(--kscale,1));height:calc(15px*var(--kscale,1));border-radius:3px;background:linear-gradient(#efefef,#b4b4b4 48%,#7c7c7c);border:1px solid #3a3a3a;transition:left .12s,background .12s;box-shadow:0 1px 2px #000,inset 0 1px 0 #fff,inset 0 -1px 1px #555;}
+.sw:checked::before{left:calc(18px*var(--kscale,1));background:linear-gradient(#f2fff4,#c8f2d2 48%,#84cf95);border-color:#2a6a3c;}
+.sw:hover::before{box-shadow:0 1px 2px #000,inset 0 1px 0 #fff,inset 0 -1px 1px #555,0 0 0 1px #3a7bff66;}
+/* Momentary push button (raised, depresses on press) with its legend beside it. */
+.btn-row{gap:5px;align-items:center;white-space:nowrap;}
+.pushbtn{width:17px;height:17px;border-radius:3px;background:radial-gradient(circle at 35% 28%,#8f8f8f,#3a3a3a 68%,#202020);border:1px solid #0d0d0d;box-shadow:0 2px 2px #000,inset 0 1px 1px #b0b0b0,inset 0 -2px 2px #000;cursor:pointer;flex:0 0 auto;padding:0;}
+.pushbtn:hover{box-shadow:0 2px 2px #000,inset 0 1px 1px #b0b0b0,inset 0 -2px 2px #000,0 0 0 1px #3a7bff66;}
+.pushbtn:active{background:radial-gradient(circle at 35% 28%,#5a5a5a,#282828 68%);box-shadow:0 1px 1px #000,inset 0 2px 3px #000;transform:translateY(1px);}
+.btn-lbl{font-family:'Chakra Petch',sans-serif;font-size:11px;color:#cdd;letter-spacing:.5px;}
+/* indicator lamp */
+.lamp{width:9px;height:9px;border-radius:50%;flex:0 0 auto;display:inline-block;vertical-align:middle;background:radial-gradient(circle at 35% 30%,#9dff9d,#18b21b 70%);box-shadow:0 0 5px #2fdd33,inset 0 0 2px #0a5a0c;}
+.knobwrap{display:inline-flex;align-items:center;vertical-align:middle;margin:0 2px;}
+.knobb{width:calc(38px*var(--kscale,1));height:calc(38px*var(--kscale,1));}
+.knob-fine{position:absolute;left:50%;top:50%;width:calc(18px*var(--kscale,1));height:calc(18px*var(--kscale,1));transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 35% 30%,#9a9a9a,#484848 72%);border:1px solid #171717;cursor:grab;box-shadow:inset 0 1px 1px #b8b8b8,0 1px 1px #000;z-index:2;}
+.knob-fine:active{cursor:grabbing;}
+.knobsel{width:calc(34px*var(--kscale,1));height:calc(34px*var(--kscale,1));}
+/* Concentric knob stack: a larger outer ring wrapping an inner knob, scope-
+   style. DOM layering does the hit-testing — the inner sits centered on top
+   (higher z, its drag handlers stopPropagation), the outer ring's exposed
+   annulus turns the outer control. */
+.knobstack{position:relative;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;width:var(--ko);height:var(--ko);margin:0 2px;flex:0 0 auto;}
+.knob-ring{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:var(--ko)!important;height:var(--ko)!important;}
+/* the ring's indicator must reach past the inner knob into the annulus */
+.knob-ring>.knob-ptr{height:calc(30px*var(--kscale,1));}
+/* clip a hair past the circle so square corners don't eat the neighbouring
+   ring's annulus, but the hover/grab glow ring still shows through. */
+.knob-inner{position:absolute!important;left:50%;top:50%;transform:translate(-50%,-50%);margin:0!important;z-index:5;clip-path:circle(calc(50% + 5px));justify-content:center!important;align-items:center!important;}
+/* ===== Uniform knob geometry — EVERY knob shares --ko / --km / --ki, so across
+   all knobs the inner bodies match, the outer rings match, and a triple stack's
+   middle ring lands exactly halfway between them (⌀36 inner · ⌀56 middle · ⌀76
+   outer). The per-container blocks below tune ONLY the surrounding dial / label
+   ring, never the knob bodies — that's what keeps them uniform. ===== */
+.knobb{width:var(--ko);height:var(--ko);}                                          /* single value knob */
+.knob-box>.knobwrap>.knobb>.knob-ptr{height:var(--kpo);}
+.knobstack>.knob-ring{width:var(--ko)!important;height:var(--ko)!important;}        /* outer ring */
+.knobstack>.knob-ring>.knob-ptr{height:var(--kpo)!important;}
+.knob-inner{width:var(--ki)!important;height:var(--ki)!important;}                  /* double: inner body */
+.knob-inner .knobb{width:var(--ki)!important;height:var(--ki)!important;}
+.knob-inner>.knob-ptr,.knob-inner .knobb>.knob-ptr{height:var(--kpi)!important;}
+.knob-inner.knobstack{width:var(--km)!important;height:var(--km)!important;}        /* triple: middle ring */
+.knob-inner.knobstack>.knob-ring{width:var(--km)!important;height:var(--km)!important;}
+.knob-inner.knobstack>.knob-ring>.knob-ptr{height:var(--kpm)!important;}
+.knob-inner.knobstack>.knob-inner{width:var(--ki)!important;height:var(--ki)!important;} /* triple: innermost body */
+.knob-inner.knobstack>.knob-inner>.knob-ptr{height:var(--kpi)!important;}
+/* analog dial (degree ticks / rotary-switch labels) around a stack's ring */
+.knob-dial{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(94px*var(--kscale,1));height:calc(94px*var(--kscale,1));pointer-events:none;z-index:0;}
+.knob-dial-lab{position:absolute;transform:translate(-50%,-50%);font-family:'B612 Mono',monospace;font-size:calc(8px*var(--kscale,1));line-height:1;color:#7fd0ff;opacity:.85;white-space:nowrap;}
+/* clickable rotary-switch labels: pointer through the (decorative) dial, and the
+   currently-selected label glows. */
+/* guide circle at a label ring's radius; labels' opaque bg break it into gaps */
+.knob-ring-circle{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border:1px solid rgba(127,180,255,0.22);border-radius:50%;pointer-events:none;z-index:1;}
+.has-dial .knob-dial-lab{background:#0c1016;padding:0 2px;z-index:2;}
+/* Color-swatch dial dots (LED-color knob): a filled dot per detent in that
+   option's color; the selected one gets a bright ring. */
+.knob-dial-dot{position:absolute;transform:translate(-50%,-50%);width:calc(7px*var(--kscale,1));height:calc(7px*var(--kscale,1));border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,0.8);cursor:pointer;z-index:2;}
+.knob-dial-dot.dot-active{box-shadow:0 0 0 1.5px #fff,0 0 5px currentColor;outline:1px solid rgba(255,255,255,0.5);}
+/* Phosphor CRT-trace streaks: color + persistence-length per phosphor. */
+.ph-dial{pointer-events:none;z-index:3;}
+.ph-trace{position:absolute;height:calc(3px*var(--kscale,1));transform-origin:0 50%;border-radius:2px;pointer-events:auto;cursor:pointer;z-index:3;}
+.knob-dial-lab.clickable{pointer-events:auto;cursor:pointer;z-index:6;}
+.knob-dial-lab.clickable:hover{color:#cfefff;opacity:1;}
+.knob-dial-lab.lab-active{color:#7fe0a0;opacity:1;font-weight:bold;text-shadow:0 0 5px #2a9a5a;}
+/* three tick densities in one ring: minor every 10°, medium every 30°, and a
+   bright cardinal every 90° (differentiated by brightness/width). */
+.angle-dial-ticks{position:absolute;inset:0;border-radius:50%;background:repeating-conic-gradient(#bfefff 0deg 2deg, transparent 2deg 90deg),repeating-conic-gradient(#7cf 0deg 1.3deg, transparent 1.3deg 30deg),repeating-conic-gradient(#3a6e8c 0deg 0.7deg, transparent 0.7deg 10deg);-webkit-mask:radial-gradient(circle, transparent 66%, #000 68%, #000 80%, transparent 82%);mask:radial-gradient(circle, transparent 66%, #000 68%, #000 80%, transparent 82%);opacity:.7;}
+.knobstack.has-dial{margin:calc(15px*var(--kscale,1));}
+/* Numeric-scale dial around a value knob (tick ring + min/max numbers). The
+   .knobwrap becomes the positioning context; the dial sits centerd behind the
+   knob and a touch larger, so its tick ring + numbers surround the knob. */
+.knobwrap{position:relative;}
+.knobwrap>.value-dial{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(100px*var(--kscale,1));height:calc(100px*var(--kscale,1));pointer-events:none;z-index:0;}
+.value-dial .knob-dial-lab{font-size:calc(7px*var(--kscale,1));color:#8fb8d0;opacity:.9;}
+/* discrete scale ticks on a value dial — only across the knob's 270° sweep */
+.value-dial .vdial-tick{position:absolute;width:1.5px;height:calc(4px*var(--kscale,1));background:rgba(127,180,255,0.45);border-radius:1px;}
+.value-dial .vdial-tick.major{width:2px;height:calc(8px*var(--kscale,1));background:rgba(191,239,255,0.85);}
+.knobwrap>.knob{z-index:1;}
+/* View & Motion: top-align the cells and drop each cell's primary knob into a
+   fixed-height bay so the angle/speed/line/size knobs share one horizontal line
+   regardless of how much the surrounding readouts add. */
+.vmrow{align-items:flex-start;}
+.vmbay{min-height:calc(94px*var(--kscale,1));display:flex;align-items:center;justify-content:center;}
+/* a label stacked directly above its knob */
+.knoblbl{flex-direction:column;align-items:center;gap:1px;position:relative;}
+/* ── Rack mode: narrow floating/sidebar panel — controls become full-width
+   horizontal strips (label · knob · readout) stacked like rack units. The
+   X/Y/Z dial cells (.axrot) keep their vertical dial layout. ── */
+#controls-panel.rack .row{flex-direction:column;align-items:stretch;gap:3px;}
+/* the top strip (model select, toggles, transport, dock) stays a wrapping inline
+   row so it doesn't become a tall stack of full-width buttons */
+#controls-panel.rack .toprow{flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px 8px;}
+#controls-panel.rack .toprow .ctrl-btn{padding:2px 6px;}
+#controls-panel.rack .pcell:not(.axrot){flex-direction:row;align-items:center;flex-wrap:wrap;justify-content:flex-start;gap:8px;width:100%;border-left:none;padding:2px 6px 2px 0;}
+#controls-panel.rack .pcell:not(.axrot) .knoblbl{flex-direction:row;align-items:center;gap:6px;}
+#controls-panel.rack .pcell:not(.axrot) .vmbay{min-height:0;justify-content:flex-start;}
+#controls-panel.rack .pcell:not(.axrot) .plabel{min-width:82px;text-align:right;flex:0 0 auto;}
+#controls-panel.rack .pcell.axrot{border-left:none;}
+/* X/Y/Z dial cells sit three-across even in rack mode */
+#controls-panel.rack .vmaxrow{flex-direction:row;flex-wrap:wrap;justify-content:space-between;}
+.punit-grid{display:grid;grid-auto-flow:column;grid-template-rows:repeat(3,auto);gap:6px 16px;justify-items:center;align-items:start;}
+.punit{display:flex;flex-direction:column;align-items:center;gap:1px;}
+/* numeric centerd above the knob, label pinned to its left (knobs share a column) */
+/* label + numeric as a centerd inline pair sized to its CONTENT (not the cell)
+   so a wide LED readout can't spill under its label or the neighbouring cell. */
+.punit-top{position:relative;display:flex;justify-content:center;align-items:center;width:max-content;margin-bottom:1px;gap:4px;flex-wrap:nowrap;}
+.punit .u-val{margin:0;}
+/* Step-size field is just a .numin — appearance comes from .numin (DSEG7 LED),
+   this only sets its width/alignment. No separate gray styling. */
+.punit .u-step{width:58px;min-width:58px;max-width:58px;text-align:center;}
+.punit-mod{display:flex;flex-direction:column;align-items:center;gap:1px;margin-top:3px;}
+.punit-mod .u-modlbl{font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:9px;letter-spacing:1px;color:#5f7a90;}
+/* Level readout is a normal .numin (DSEG7 LED via --led-col); this only sizes it. */
+.punit-mod .u-modval{width:52px;text-align:center;}
+/* Audio mod off: the MOD/LVL half is present (no reflow) but dimmed/inactive. */
+/* Modulation module: shown only while Audio mod is on. */
+#controls-panel.am-off .modmodule,#controls-panel.am-off .eqmodule{display:none;}
+#controls-panel.ph-off .physmodule{display:none;}
+.sect>.sect-hdr{cursor:grab;}
+.sect.sect-dragging{opacity:.55;outline:1px dashed var(--led,#c33);}
+.sect.sect-dragging>.sect-hdr{cursor:grabbing;}
+#params .punit,.physmodule .punit{}
+.modmodule .u-modlbl{display:none;}
+/* Row alignment across a primary/MOD/EQ triad: every cell is a uniform height
+   with its label pinned to the top and numeric/step pinned to the bottom, so the
+   CONTROL (knob or EQ strip) is the only in-flow item and centers at the same Y
+   in all three modules → dt↔dt↔dt etc. line up. */
+/* Fixed cell width (= the grid track) so the label pins to the far-left and the
+   LED centers over the knob exactly like the View / Position cells, instead of
+   collapsing to content width (which crowded the label against the LED). */
+#params .punit,.modmodule .punit,.eqmodule .punit{position:relative;height:calc(160px*var(--kscale,1));width:calc(116px*var(--kscale,1));justify-content:center;box-sizing:border-box;}
+#params .punit>.punit-top,.modmodule .punit>.u-lbl,.eqmodule .punit>.u-lbl{position:absolute;top:2px;left:0;right:0;margin:0;z-index:3;}
+/* params: label stacked above the numeric LED, both centerd over the knob's axis
+   (full width so centring is on the cell, not collapsed to content width). */
+/* Label to the LEFT of the LED (like the View module), LED centerd over the
+   knob: pin the label to the cell's left edge, center the numeric. Uniform
+   across params / Position / Display. */
+#params .punit>.punit-top{flex-direction:row;align-items:center;justify-content:center;gap:0;width:auto!important;}
+#params .punit>.punit-top>.u-lbl{position:absolute;left:4px;top:3px;transform:none;}
+#params .punit>.punit-top>.numin{position:static;}
+#params .punit>.u-step{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);}
+.modmodule .u-modval{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);}
+.punit-mod{margin:0!important;}
+.punit-mod .knob-ring-circle{display:none;} /* no guide circle on the small mod knobs */
+/* mod knob = a 2-ring concentric (channel + level); bodies from uniform geometry. */
+.punit-mod .knob-dial{width:calc(96px*var(--kscale,1))!important;height:calc(96px*var(--kscale,1))!important;}
+.punit-mod .knobstack.has-dial{margin:0!important;} /* center on the cell like the param/eq controls */
+/* hover: ring the knob the pointer is over; grab: stronger glow while turning */
+.knob:hover{box-shadow:0 0 0 2px #3a7bff66,0 1px 2px #000,inset 0 1px 1px #9a9a9a;}
+.knob-fine:hover{box-shadow:0 0 0 2px #3a7bffaa,inset 0 1px 1px #b8b8b8;}
+.knob-grab{box-shadow:0 0 0 2px #58a6ff,0 0 7px #58a6ffaa,inset 0 1px 1px #9a9a9a !important;}
+.eqstrip{display:inline-flex;align-items:flex-end;gap:1px;width:calc(100px*var(--kscale,1));height:calc(108px*var(--kscale,1));background:#0a0f18;border:1px solid #345;padding:2px;vertical-align:middle;cursor:crosshair;touch-action:none;}
+.eqbar{flex:1 1 0;height:100%;display:flex;align-items:flex-end;background:#0f1826;}
+.eqfill{width:100%;height:0;background:linear-gradient(to top,#1f7a4a,#6cf);}
+/* Each section is a framed equipment module of a standard size; .modules lays
+   them out so they sit side-by-side when there's width and stack when narrow.
+   Content taller/wider than the module scrolls inside it. */
+/* --mm is the scale of the whole control surface: ONE MILLIMETRE, in CSS
+   pixels, at interface scale 1. Every dimension below is written as a number
+   of millimeters times it, so the panel can be read as a drawing of a real
+   thing — and pkg/rackspec, which holds the same numbers for the STL export,
+   has a test that fails if this line and that package stop agreeing.
+
+   The 19-inch rack this is a row of: IEC 60297-3 / DIN 41494, whose HP of
+   0.2 in (5.08 mm) module widths are counted in and whose 3U panels are cut
+   to 128.5 mm. A module is 7 HP, milled 0.5 mm narrow so that panel + seam
+   comes to a whole 7 HP and module edges line up down the rack. */
+#controls-panel{--mm:calc(4px*var(--kscale,1)); --hp:calc(5.08*var(--mm));
+  --mod-w:calc(35.06*var(--mm));   /* 7 HP less the 0.5 mm seam */
+  --mod-h:calc(128.5*var(--mm));   /* a 3U panel */
+  /* Uniform knob geometry — every knob shares these three diameters so that
+     across ALL knobs the inner bodies match, the outer rings match, and (on
+     triple stacks) the middle ring sits exactly halfway between them:
+     inner r4.5, middle r7, outer r9.5 mm → middle radius is the mean. The
+     three are catalogue knob diameters, not round numbers. */
+  --ko:calc(19*var(--mm)); --km:calc(14*var(--mm)); --ki:calc(9*var(--mm));
+  --kpo:calc(8*var(--mm)); --kpm:calc(6*var(--mm)); --kpi:calc(4*var(--mm));
+  /* --krow: the knob-row grid pitch. Every knob cell (.vmcell / .axcol.axrot)
+     is exactly this tall and centers its knob, so the Nth knob of EVERY module
+     lands on the same horizontal line — alignment by construction. --kcol is the
+     matching column width. */
+  --krow:calc(38*var(--mm)); --kcol:calc(29*var(--mm));}
+.modules{display:flex;flex-wrap:wrap;align-items:flex-start;gap:calc(0.5*var(--mm));}
+/* Sidebar docks: stack modules in one column (never side-by-side). */
+#controls-panel.dk-left .modules,#controls-panel.dk-right .modules{flex-direction:column;flex-wrap:nowrap;align-items:stretch;}
+/* Rack-module sizing: UNIFORM HEIGHT, width in slot multiples (min --mod-w, and
+   2×/3× as content needs). Content flows in columns filling the height, so a
+   module with more controls widens rather than growing taller. */
+.sect{margin:0;flex:0 0 auto;box-sizing:border-box;min-width:var(--mod-w,128px);width:max-content;height:var(--mod-h,474px);overflow:hidden;display:flex;flex-direction:column;align-items:center;border:1px solid #2a333c;border-radius:6px;background:linear-gradient(#15191e,#0d1013);box-shadow:inset 0 1px 0 #2f3944,0 1px 3px #000;padding:calc(0.5*var(--mm)) calc(2*var(--mm)) calc(0.5*var(--mm));}
+/* Centre each module's control block; the header spans the full width (its text
+   stays left-aligned) so only the knobs/rows are centerd, not the title. When a
+   module is wider than its content (e.g. a degree/label ring pushes the width
+   past the knob column), this keeps the knobs on the module's center line. */
+.sect>.sect-hdr{align-self:stretch;}
+/* CRT overlay for Scope modes: faint scanlines + corner vignette over the whole
+   display so the phosphor trace reads like a real oscilloscope tube. Sits above
+   the canvas, below the control panel; pointer-events off. */
+#crt-overlay{position:fixed;inset:0;pointer-events:none;z-index:var(--z-crt);display:none;} /* above canvas, below panel (see z-scale) */
+#crt-overlay.on{display:block;}
+#crt-overlay::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,0.30) 0px,rgba(0,0,0,0.30) 1px,transparent 1px,transparent 3px);opacity:0.55;}
+#crt-overlay::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 52%,rgba(0,0,0,0.55) 100%);}
+.sect>.sect-hdr{flex:0 0 auto;}
+/* the content area column-wraps within a DEFINITE height (so wrapping triggers);
+   more controls => more columns => the module widens. */
+#params{display:contents;}
+.sect>.row,.punit-grid{display:flex;flex-flow:column wrap;height:calc(var(--mod-h,474px) - 30px);align-content:flex-start;gap:4px 14px;}
+/* content items keep their size and WRAP into a new column instead of shrinking */
+.punit,.sect>.row>*{flex:0 0 auto;}
+/* Console: controls flow in aligned columns (switches flush-left), natural
+   width so the module quantizes cleanly. */
+.swrow{align-items:flex-start;gap:3px 12px;}
+/* Switches grouped into labelled sub-sections, stacked in the module. */
+/* Switch sections flow in the SAME height-bounded column-wrap as every other
+   module's content (base .sect>.row rule): whole sections wrap to the next
+   column when the roster outgrows the module height, and quantizeModuleWidths
+   sizes the module to fit. (This was flex-wrap:nowrap!important, which pinned
+   everything into one unwrappable column — once the switch count grew, the
+   overflow was clipped by .sect and switches became unreachable.) */
+.swsecs{flex-direction:column!important;align-items:stretch!important;gap:3px 14px;flex-wrap:wrap!important;}
+.swsec{display:flex;flex-direction:column;gap:2px;}
+/* A .swsec is a COLUMN of switches, so its children must be its flex items. A
+   wrapper span around a generated list is one inline item instead, which lays
+   its labels out side by side and blows the column — and every sibling section
+   sharing it — out to the width of the whole row. display:contents makes the
+   wrapper vanish from layout so the switches stack like every hand-written one. */
+#module-switches{display:contents;}
+.swsec .grp,.swsec .btn-lbl{font-size:calc(10px*var(--kscale,1));}
+.swsec .sw{transform:scale(0.85);transform-origin:left center;margin-right:-2px;}
+.swsec-hdr{font-family:'Chakra Petch',sans-serif;font-size:calc(9px*var(--kscale,1));font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#7c93a8;border-bottom:1px solid #2a333c;margin-top:3px;padding-bottom:1px;}
+/* Console action buttons (Reset All / Normalize / Screenshot) stacked under the
+   model selector. */
+.console-btns{flex-direction:column!important;align-items:flex-start!important;gap:6px;padding-left:8px;margin-top:8px;}
+.swrow>.sep{display:none;}
+.swrow .grp{white-space:nowrap;justify-content:flex-start;}
+/* Graphic Artist WAVEFORM A/B/C/D toggles (shown in the Switches module in GA mode) */
+.ga-waves{display:flex!important;flex-flow:row wrap;align-items:center;gap:3px 10px;margin-top:2px;}
+.ga-waves-hdr{width:100%;font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:9px;letter-spacing:1px;color:#7c93a8;margin-bottom:1px;}
+.ga-wave{cursor:pointer;font-size:11px;color:#cdd;display:inline-flex;align-items:center;gap:3px;}
+/* Mode-scoped demo modules (Scoreboard / Banner / Patch / Launcher) */
+.demo-led{min-width:calc(52px*var(--kscale,1));text-align:center;}
+.stl-led{max-width:calc(96px*var(--kscale,1));overflow:hidden;white-space:nowrap;}
+.smorph-led{min-width:calc(96px*var(--kscale,1));font-size:calc(11px*var(--kscale,1));}
+.demo-btn{flex-direction:column;align-items:center;gap:3px;margin-top:calc(18px*var(--kscale,1));}
+.stext-row{height:auto!important;}
+.stext-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:calc(116px*var(--kscale,1))!important;overflow:hidden;}
+.stext-cell .stext-in{width:calc(102px*var(--kscale,1));}
+/* Keys and Matrix: a ROW of knobs above the keybed, not a column beside it.
+   Beside it, three knobs stack to 3×--krow of height — the full panel — and
+   push the bed 29 mm to the right, so the module pays a slot of width for
+   controls that need one row. Above it they cost one --krow of height, which
+   the bed has to spare (it was leaving 14 mm empty), and the bed gets the
+   whole width of the module. */
+.keys-sect .keysflex{flex-flow:row nowrap!important;align-items:stretch!important;gap:4px 8px;}
+.keys-sect .keysctl{align-self:flex-start;}
+/* Keys only. The Matrix module uses the same markup but has four knobs and a
+   narrower grid, so a single row of them is wider than the module — laid out
+   this way it grew from 142 mm to 177 mm instead of shrinking. */
+#keys-module .keysflex{flex-flow:column nowrap!important;gap:calc(1*var(--mm)) 0;}
+#keys-module .keysctl{align-self:center;grid-template-rows:var(--krow)!important;}
+#keys-module .keys-bed{flex:1 1 auto;min-height:0;}
+.keys-bed{position:relative;flex:0 0 auto;align-self:flex-start;height:calc(150px*var(--kscale,1));margin:calc(10px*var(--kscale,1)) 4px 4px calc(8px*var(--kscale,1));}
+.keys-bed .pk-whites{display:flex;height:100%;width:100%;}
+.keys-bed .pk-blacks{position:absolute;inset:0;pointer-events:none;}
+.keys-bed .pk-key{cursor:pointer;}
+.keys-bed .pk-white{position:relative;flex:1;margin:0 .5px;background:linear-gradient(#ececec,#c2c6ca);border:1px solid #20262c;border-top:none;border-radius:0 0 3px 3px;box-shadow:inset 0 -4px 5px #9aa0a6;}
+.keys-bed .pk-black{position:absolute;top:0;height:60%;pointer-events:auto;background:linear-gradient(#4a4a4a,#0b0b0b);border:1px solid #000;border-radius:0 0 3px 3px;box-shadow:0 2px 3px #000;z-index:2;}
+.keys-bed .pk-white.held{background:linear-gradient(#c8ffe2,#5fd894);box-shadow:inset 0 -4px 6px #2a9a5c,0 0 8px rgba(70,240,140,.55);}
+.keys-bed .pk-black.held{background:linear-gradient(#2f9a5e,#0b3a20);box-shadow:0 0 8px rgba(70,240,140,.55);}
+.keys-bed .pk-kb{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);font-family:'B612 Mono',monospace;font-size:calc(8px*var(--kscale,1));line-height:1;color:#454c52;pointer-events:none;text-transform:uppercase;}
+.keys-bed .pk-black .pk-kb{color:#cfd6da;bottom:3px;}
+/* Tonematrix module: the pad grid (column-major so the playhead is one
+   class toggle per step; pads light green like held piano keys). */
+.tm-grid{display:flex;gap:2px;align-self:flex-start;margin:calc(10px*var(--kscale,1)) 4px 4px calc(8px*var(--kscale,1));}
+.tm-col{display:flex;flex-direction:column;gap:2px;}
+.tm-col.tm-beat{margin-left:calc(4px*var(--kscale,1));}
+.tm-cell{width:calc(12px*var(--kscale,1));height:calc(12px*var(--kscale,1));background:#10151a;border:1px solid #232b33;border-radius:2px;cursor:pointer;transition:background .12s,box-shadow .25s;}
+.tm-cell.on{background:linear-gradient(#2f9a5e,#0b3a20);border-color:#0b3a20;box-shadow:0 0 4px rgba(70,240,140,.35);}
+.tm-col.ph .tm-cell{background:#182028;border-color:#2e3944;}
+.tm-col.ph .tm-cell.on{background:linear-gradient(#c8ffe2,#5fd894);box-shadow:0 0 10px rgba(70,240,140,.8);}
+/* Rhythm module: the row of preset tabs, and the beat lamps beside Run.
+   Drawn as the rocker tabs on a home organ were — ivory faces tilted toward
+   you, going dark and sinking a pixel when pressed, with only one down at a
+   time. The tilt is what says "tab" rather than "button": a flat rectangle
+   reads as a checkbox, and the whole point of the bank is that it looks
+   mechanical. */
+/* Controls in a ROW above the tabs, the arrangement Keys uses and for the
+   reason it gives there. Left to the shared .vmrow rule the four cells stacked
+   into a single column beside the tab bank, and the module came out a narrow
+   tower of knobs next to a small block of tabs with its whole lower half empty.
+   Across the top they cost one row of height and the tabs get the width.
+
+   .keysctl is a GRID, not a flex row — flex-flow on it does nothing, which is
+   why the first attempt at this changed the picture not at all. Constraining it
+   to a single track is what makes auto-placement run across instead of down,
+   and it is exactly what #keys-module does two rules above. */
+#rhythm-module .keysflex{flex-flow:column nowrap!important;gap:calc(1*var(--mm)) 0;}
+#rhythm-module .keysctl{align-self:center;grid-template-rows:var(--krow)!important;}
+/* 480px holds four tabs a row: wide enough that the bank sits under the control
+   row rather than huddling at one end, narrow enough that ten tabs stay a block
+   instead of a strip. */
+.rhythm-tabs{display:flex;flex-wrap:wrap;gap:calc(3px*var(--kscale,1));align-self:center;margin:calc(4px*var(--kscale,1)) 4px 4px 4px;max-width:calc(480px*var(--kscale,1));}
+.rhythm-tab{min-width:calc(88px*var(--kscale,1));padding:calc(3px*var(--kscale,1)) calc(5px*var(--kscale,1)) calc(5px*var(--kscale,1));background:linear-gradient(#f3efe4,#c9c3b4);border:1px solid #2a2f34;border-top-color:#fffaf0;border-radius:2px 2px 4px 4px;box-shadow:0 2px 2px rgba(0,0,0,.55),inset 0 -3px 4px rgba(120,112,96,.5);font-family:'B612 Mono',monospace;font-size:calc(9px*var(--kscale,1));line-height:1;letter-spacing:.5px;text-transform:uppercase;color:#20262c;text-align:center;cursor:pointer;user-select:none;transition:background .1s,box-shadow .1s,transform .1s;}
+.rhythm-tab:hover{background:linear-gradient(#fffdf6,#d8d2c2);}
+.rhythm-tab.down{background:linear-gradient(#1b2026,#0c1014);border-top-color:#0c1014;color:#5fd894;text-shadow:0 0 6px rgba(70,240,140,.8);box-shadow:inset 0 3px 5px rgba(0,0,0,.8);transform:translateY(2px);}
+/* Held at the width of four lamps even when a waltz only lights three, so
+   switching to a three-beat pattern cannot narrow the cell and shuffle the
+   rack sideways under the hand that just pressed the tab. */
+.rhythm-beats{display:inline-flex;gap:calc(4px*var(--kscale,1));align-items:center;justify-content:flex-start;margin-top:calc(4px*var(--kscale,1));min-width:calc(44px*var(--kscale,1));}
+.rhythm-beat{width:calc(8px*var(--kscale,1));height:calc(8px*var(--kscale,1));border-radius:50%;background:var(--led-bg,#170000);border:1px solid var(--led-bd,#3a0000);transition:background .06s,box-shadow .18s;}
+.rhythm-beat.lit{background:var(--led-col,#ff3b30);box-shadow:0 0 7px var(--led-glow,#ff2a20);}
+/* Counter module: the gate lamp under the frequency readout */
+.counter-gate{display:inline-block;width:calc(12px*var(--kscale,1));height:calc(12px*var(--kscale,1));border-radius:50%;background:var(--led-bg,#170000);border:1px solid var(--led-bd,#3a0000);transition:background .1s,box-shadow .1s;}
+.counter-gate.lit{background:var(--led-col,#ff3b30);box-shadow:0 0 8px var(--led-glow,#ff2a20),0 0 3px var(--led-glow,#ff2a20);}
+.counter-led{min-width:calc(84px*var(--kscale,1));}
+/* Fourier Text banner field (shown in the Console in Fourier Text mode) */
+.stext-in{width:150px;background:#0a0d10;color:#35e06a;border:1px solid #2a333c;border-radius:3px;font-family:'B612 Mono',monospace;font-size:11px;padding:2px 5px;text-transform:uppercase;letter-spacing:1px;}
+.stext-in:focus{outline:none;border-color:#4a5a6a;}
+/* Console holds only the model selector now — center it horizontally, top-aligned. */
+.console>.toprow{align-items:center;justify-content:flex-start;gap:3px 12px;}
+/* Nested model selector: label on top, concentric category/model knob, then the
+   two dropdowns stacked beneath (category first, model second). */
+.modelsel-col{flex-direction:column!important;align-items:center!important;gap:3px;}
+/* model knob: category (outer) + model (inner); bodies from uniform geometry. */
+/* Compact model knob so the Console (knob + category labels) fits one unit. */
+#modelknob-holder .knobstack.has-dial{margin:calc(20px*var(--kscale,1));}
+#modelknob-holder .knob-dial{width:calc(104px*var(--kscale,1));height:calc(104px*var(--kscale,1));}
+#modelknob-holder .knob-dial-lab{font-size:calc(8px*var(--kscale,1));color:#8fd0ff;opacity:.95;}
+#modelknob-holder .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
+#modelknob-holder .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
+#modelknob-holder .knob-inner{width:calc(28px*var(--kscale,1))!important;height:calc(28px*var(--kscale,1))!important;}
+#modelknob-holder .knob-inner>.knob-ptr{height:calc(12px*var(--kscale,1))!important;}
+#modelknob-holder .knobstack{width:calc(56px*var(--kscale,1));height:calc(56px*var(--kscale,1));}
+/* Both dropdowns are a FIXED width (the longest attractor name) so switching
+   category never resizes them. */
+#model-sel-grp .csel-cat{width:calc(116px*var(--kscale,1));box-sizing:border-box;color:#8fd0ff;text-shadow:0 0 4px #2a6a9a;background:#04101a;border-color:#164a6a;}
+#model-sel-grp .csel-model{width:calc(116px*var(--kscale,1));box-sizing:border-box;}
+/* Capped dropdowns keep Console at one unit; a marquee overlay shows the current
+   name (scrolling when a long attractor name overflows). The native text is
+   hidden and the overlay is click-through so the select still opens on click. */
+.selwrap{position:relative;display:inline-block;}
+.selwrap>.selwin{color:transparent!important;text-shadow:none!important;}
+.selmarq{position:absolute;left:0;right:16px;top:0;bottom:0;display:flex;align-items:center;overflow:hidden;pointer-events:none;padding-left:6px;white-space:nowrap;font-family:"Courier New",monospace;font-weight:bold;font-size:calc(11px*var(--kscale,1));letter-spacing:.5px;color:#7fe0a0;text-shadow:0 0 4px #2a9a5a;}
+.selmarq>span{display:inline-block;}
+.selmarq.scroll>span{animation:selmarq 5s ease-in-out infinite alternate;}
+@keyframes selmarq{0%,12%{transform:translateX(0)}88%,100%{transform:translateX(var(--marq-shift,0))}}
+/* tighter units so a vertical group of 3 fits a standard module */
+/* Knob grids use a real CSS GRID: up to 3 rows per column (the 4th param wraps
+   to a 2nd column), columns sized to their content and centerd — no flex-wrap
+   column overlap, and fixed 144px rows keep triads aligned. */
+.punit-grid,.vmrow,.vmaxrow{display:grid!important;grid-template-rows:repeat(3,var(--krow))!important;grid-auto-flow:column!important;grid-auto-columns:var(--kcol)!important;justify-content:center!important;justify-items:center!important;align-content:start!important;gap:2px calc(16px*var(--kscale,1) + 4px)!important;height:auto!important;width:auto!important;}
+.punit{gap:0;}
+.punit-mod{margin-top:1px;}
+.punit-mod .knobstack.has-dial{margin:calc(4px*var(--kscale,1));}
+.punit-mod .knob-dial{width:calc(96px*var(--kscale,1));height:calc(96px*var(--kscale,1));}
+/* View & Motion: X/Y/Z stacked VERTICALLY; each axis is a NARROW vertical strip
+   (label · degrees LED · knob-in-a-square · rate numeric, reset in the corner)
+   so the module is as narrow as the knob. */
+.vmaxrow{flex-direction:column!important;flex-wrap:nowrap!important;align-items:center;justify-content:space-evenly;gap:4px;}
+.axrot{padding:0!important;align-items:center;}
+.axstack{flex-direction:column;align-items:center;gap:1px;}
+.axstack .led{font-size:9px;line-height:1.5;min-width:40px;padding:2px 2px;}
+.axstack .numin{width:40px;text-align:center;line-height:1.5;font-family:'DSEG7 Classic',"Courier New",monospace;font-weight:bold;font-size:10px;color:var(--led-col,#ff3b30);background:var(--led-bg,#170000);border:1px solid var(--led-bd,#3a0000);border-radius:2px;text-shadow:0 0 4px var(--led-glow,#ff2a20);letter-spacing:1px;padding:2px 2px;}
+/* The knob box reserves the FULL dial diameter (compact ring + larger degree
+   dial around it), so the LED above and the numeric below sit clear of the
+   ticks, and the reset can sit in a corner outside the dial well. */
+.axknob-box{position:relative;display:inline-flex;align-items:center;justify-content:center;}
+.axknob-box .knobstack.has-dial{margin:0;}
+.axknob-box .knob-dial-lab{font-size:calc(6px*var(--kscale,1));color:#7fb0d0;}
+.axknob-rst{position:absolute!important;right:0;bottom:0;}
+.axstack .led{margin-bottom:0;}
+.axstack .numin{margin-top:0;}
+/* Each row is the full cell width with the LED / numeric CENTRED on the knob's
+   axis; the label is absolutely pinned to the LEFT edge (so X/Y/Z line up with
+   the R of "Rate") WITHOUT widening the cell — keeping the module 1 slot. */
+.axstack .axrow{position:relative;display:flex;justify-content:center;align-items:center;width:100%;}
+.axstack .axrow>.plabel{position:absolute;left:4px;top:4px;white-space:nowrap;}
+.axstack .toprow{margin-bottom:4px;} /* clear the angle ticks above the knob */
+.axstack .botrow{margin-top:4px;}     /* clear the angle ticks below the knob */
+/* reset tucked into a knob's lower-right corner (no visible square) */
+.knob-box{position:relative;display:inline-flex;}
+/* Reset tucked into the knob's lower-right corner, OUTSIDE the value dial ring
+   (same placement as the View module's knobs) — pushed out past the max scale
+   number so it never overlaps the dial or the numbers. */
+.knob-box>.rst{position:absolute;right:calc(-14px*var(--kscale,1));bottom:calc(-14px*var(--kscale,1));z-index:4;}
+.vmbay{min-height:0;}
+/* Position / Speed / Line / Size: numeric below the knob (label · knob · value),
+   spread to fill the module height. */
+.vmrow{gap:4px 8px;justify-content:space-evenly;}
+.vmrow .vmbay{flex-direction:column;align-items:center;gap:1px;}
+.vmrow .vmbay .numin{width:44px;text-align:center;}
+/* Position / Display cells: numeric LED above the knob (label pinned left), knob
+   centerd — same structure as params so the knobs share vertical rows. */
+.vmcell{display:flex;flex-direction:column;align-items:center;justify-content:center;width:calc(116px*var(--kscale,1));padding:0;}
+/* Position/Display: label on top, numeric LED beneath it, BOTH centerd in the
+   cell so the readout sits directly above the knob's axis (the knob is centerd
+   too). Stacking keeps the cell narrow yet perfectly aligned. */
+.vmcell .punit-top{flex-direction:row;align-items:center;justify-content:center;gap:0;margin-bottom:2px;}
+.vmcell .punit-top .numin{position:static;}
+/* === ROW ALIGNMENT === View & Position primaries use the SAME 104px fixed,
+   top-aligned, centerd-control cells as the params / MOD / EQ grids, so each
+   primary/MOD/EQ triad lines up row-for-row (control centerd in every cell). */
+.vmaxrow,.vmrow{flex-flow:column wrap!important;align-content:flex-start!important;justify-content:flex-start!important;}
+.axcol.axrot,.vmcell{height:var(--krow)!important;width:var(--kcol)!important;position:relative;justify-content:center!important;box-sizing:border-box;}
+.axcol.axrot .axstack{height:100%;justify-content:center;position:relative;width:100%;}
+.axstack .toprow{position:absolute!important;top:2px;left:0;right:0;margin:0!important;}
+.axstack .botrow{position:absolute!important;bottom:2px;left:0;right:0;margin:0!important;}
+.vmcell>.punit-top{position:absolute;top:2px;left:0;right:0;width:auto!important;margin:0;}
+/* View angle dial (fits the 144px cell with LED + rate rows). The OUTER ring is
+   the rotation-angle control and the inner knob is spin-rate — make the outer
+   ring big and the inner small so the angle ring has a wide grabbable annulus. */
+/* View knob box reserves the full degree-dial diameter so the ⌀76 outer ring
+   (bodies from uniform geometry) plus its tick ring sit clear of the LED above
+   and the numeric below. */
+.axknob-box{width:calc(100px*var(--kscale,1))!important;height:calc(100px*var(--kscale,1))!important;}
+.axknob-box .knob-dial{width:calc(100px*var(--kscale,1))!important;height:calc(100px*var(--kscale,1))!important;}
+/* Top chrome bar (always shown): title + dock/float controls, outside modules. */
+.float-title{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;position:sticky;top:0;z-index:6;background:linear-gradient(#18242f,#0c1218);color:#8fb3cf;padding:4px 8px;margin:-8px -12px 6px;border-bottom:1px solid #2a3a4a;user-select:none;touch-action:none;}
+.float-title.floating{cursor:move;border-radius:7px 7px 0 0;}
+.float-title-lbl{font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:11px;letter-spacing:2px;}
+.dock-lbl{color:#7c93a8;font-size:10px;letter-spacing:1px;}
+/* Detached dock cluster clipped to the resize-bar end */
+#dock-controls .dockb{padding:2px 7px;font-size:13px;line-height:1;}
+/* The vertical form, for the side docks. Selected off the shell edge now
+   rather than a .dc-vert class Go used to add, since the edge already says it. */
+#panel-shell.dk-left #dock-controls,#panel-shell.dk-right #dock-controls{gap:3px;}
+#panel-shell.dk-left #dock-controls .dock-lbl,#panel-shell.dk-right #dock-controls .dock-lbl{display:none;}
+/* bigger dock buttons for touch */
+.float-title .dockb{padding:3px 8px;font-size:13px;}
+.sect>.sect-hdr{cursor:pointer;color:#7c93a8;font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:10px;letter-spacing:2px;text-transform:uppercase;user-select:none;margin:-4px -8px 5px;padding:3px 8px;border-bottom:1px solid #232a30;background:rgba(255,255,255,0.02);border-radius:5px 5px 0 0;list-style-position:inside;}
+.sect>.sect-hdr:hover{color:#cdd;}
+.sect>.sect-hdr{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} /* 1-line headers so module content starts at a uniform Y */
+.selwin{font-family:"Courier New",monospace;font-weight:bold;font-size:11px;color:#7fe0a0;background:#04140a;border:1px solid #164a2a;border-radius:2px;padding:2px 6px;min-width:96px;text-align:center;text-shadow:0 0 4px #2a9a5a;letter-spacing:.5px;}
+
+/* Patchbay module: program bank slots + pin matrix */
+/* Program-bank buttons: 6 x 6 mm, which is the tactile switch everything is
+   built out of. They were 6.5 x 4.5 mm, which is not a switch anyone makes. */
+.pslot{width:calc(6*var(--mm));height:calc(6*var(--mm));background:#1a2028;border:1px solid #555;border-radius:2px;color:#9ab;font-family:'B612 Mono',monospace;font-size:9px;cursor:pointer;padding:0;}
+.pslot:hover{border-color:#8ac;}
+.pslot.full{color:#ffd23c;border-color:#887744;}
+.pslot.sto{border-color:#f66;color:#f66;box-shadow:0 0 5px #f664;}
+/* The pin matrix is on a 0.2 in (5.08 mm) grid — the same pitch as HP, and a
+   standard pitch for a matrix board. The gap is the pitch less the head, so
+   the pitch is the thing that is specified and the gap follows from it. */
+.mxgrid{display:grid;gap:calc(1.58*var(--mm));align-items:center;justify-items:center;margin-top:calc(1.5*var(--mm));}
+/* A matrix PIN, 3.5 mm across the head — not a jack. It had been 3.25 mm on
+   a 4.5 mm pitch, which is no grid at all and reads as an undersized socket. */
+.mxpin{width:calc(3.5*var(--mm));height:calc(3.5*var(--mm));border-radius:50%;border:1px solid #4a5560;background:#141a21;cursor:pointer;box-sizing:border-box;}
+.mxpin:hover{border-color:#8ac;}
+.mxpin.on{background:#ffd23c;border-color:#ffe98c;box-shadow:0 0 6px #ffd23c88;}
+.mxlbl{font-size:9px;color:#7c93a8;font-family:'Chakra Petch',sans-serif;letter-spacing:1px;}
+/* The matrix's destination labels run vertically, and were clipped at 14 mm
+   in a module that leaves 88 mm of its panel empty — so the one thing the
+   free space could buy, which is being able to read what a column routes to,
+   was the thing being thrown away. 44 mm still leaves the module half empty. */
+.mxcol{writing-mode:vertical-rl;transform:rotate(180deg);font-size:9px;color:#7c93a8;max-height:calc(44*var(--mm));overflow:hidden;font-family:'B612 Mono',monospace;}
+
+/* Console column (Model knob + actions) folded into the switches flow */
+.consec{align-items:center;min-width:120px;}
+.consec .modelsel-col{margin-top:2px;}
+.consec .console-btns{padding-left:0;margin-top:10px;align-self:flex-start;display:flex;}
+.consec>.swsec-hdr{align-self:stretch;}
+
+/* Template v2: six showcase cells in a 3-column grid → two module slots wide */
+.template-mod .tpl-row{display:grid!important;grid-template-columns:repeat(2,auto);gap:4px 12px;align-items:start;justify-content:center;}
+
+/* Template v3: real cells, standard vmrow flow; only chrome + overlays differ */
+.template-mod .tpl-cell{position:relative;}
+
+/* Embed hardening: on a host page the panel chrome elements are direct
+   children of body, where site-global element rules (e.g. magnetosphere.net's
+   .grid-container > div{padding:20px 0}) would otherwise reach them. Pin the
+   box model of everything we position with our own math. */
+#dock-resize,#float-grip,#float-title,#crt-overlay{padding:0!important;margin:0!important;box-sizing:border-box!important;}
+
+/* Embed hardening: host clearfix pseudo-elements (::before/::after with
+   content, e.g. display:table clearfixes) become real GRID/FLEX ITEMS inside
+   our layout containers — a phantom fourth cell spills a second 116px column
+   and shifts the whole module's content off its left edge. None of these
+   containers use pseudo content of their own; suppress it unconditionally. */
+.modules::before,.modules::after,.sect>.row::before,.sect>.row::after,
+.punit-grid::before,.punit-grid::after,.vmrow::before,.vmrow::after,
+.vmaxrow::before,.vmaxrow::after,.swsecs::before,.swsecs::after,
+.swsec::before,.swsec::after,.mxgrid::before,.mxgrid::after{content:none!important;}
+
+/* ── The panel shell ─────────────────────────────────────────────────────────
+ *
+ * #panel-shell holds #controls-panel plus the furniture that belongs to the
+ * panel but cannot live inside it: the resize bar and the dock cluster. The
+ * panel scrolls, so anything inside it is clipped by that; the shell does not,
+ * so its children can sit on and just outside its edges.
+ *
+ * The shell hugs the panel exactly, and applyDock tags it with dk-<edge>. That
+ * is the whole mechanism: everything below is "which edge of the shell", and
+ * nothing recomputes a coordinate. This replaced two Go functions that between
+ * them ran the same five-way switch twice, in viewport coordinates, on every
+ * dock change, panel resize, interface rescale and window resize.
+ */
+#panel-shell { position: fixed; }
+#panel-shell.dk-footer { position: relative; }
+
+/* The bar straddles the panel's inner edge — the one facing the page center —
+ * half on and half off, which is what makes it look like a grip on the edge
+ * rather than a stripe inside the panel. */
+#dock-resize {
+  position: absolute; z-index: var(--z-dock); touch-action: none;
+  padding: 0; margin: 0; box-sizing: border-box;
+  background: linear-gradient(rgba(120,150,180,0.12), rgba(150,180,210,0.55), rgba(120,150,180,0.12));
+}
+#panel-shell.dk-bottom #dock-resize { left: 0; right: 0; top: -6px; height: 12px; cursor: ns-resize; }
+#panel-shell.dk-top    #dock-resize { left: 0; right: 0; bottom: -6px; height: 12px; cursor: ns-resize; }
+#panel-shell.dk-left   #dock-resize,
+#panel-shell.dk-right  #dock-resize {
+  top: 0; bottom: 0; width: 12px; height: auto; cursor: ew-resize;
+  background: linear-gradient(to right, rgba(120,150,180,0.12), rgba(150,180,210,0.55), rgba(120,150,180,0.12));
+}
+#panel-shell.dk-left  #dock-resize { right: -6px; left: auto; }
+#panel-shell.dk-right #dock-resize { left: -6px; right: auto; }
+/* Floating has its own corner grip, and the footer is placed by the host. */
+#panel-shell.dk-float #dock-resize,
+#panel-shell.dk-footer #dock-resize { display: none; }
+
+/* The dock cluster clips onto the end of that bar, protruding into the canvas,
+ * so no top chrome bar is needed to hold it when docked. */
+#panel-shell #dock-controls {
+  position: absolute; z-index: var(--z-grip);
+  display: flex; align-items: center; gap: 4px;
+  background: linear-gradient(#18242f, #0c1218);
+  border: 1px solid #2a3a4a; padding: 2px 5px; border-radius: 5px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+#panel-shell.dk-bottom #dock-controls { right: 16px; bottom: 100%; margin-bottom: 2px; flex-direction: row; }
+#panel-shell.dk-top    #dock-controls { right: 16px; top: 100%; margin-top: 2px; flex-direction: row; }
+#panel-shell.dk-left   #dock-controls { left: 100%; margin-left: 2px; top: 16px; flex-direction: column; }
+#panel-shell.dk-right  #dock-controls { right: 100%; margin-right: 2px; top: 16px; flex-direction: column; }
+/* Floating: over the title bar's right end, so the label stays visible. */
+#panel-shell.dk-float  #dock-controls { right: 8px; top: 4px; flex-direction: row; }
+#panel-shell.dk-footer #dock-controls { right: 16px; top: 4px; flex-direction: row; }
+
+
+/* ── Record module ──────────────────────────────────────────────────────────
+ *
+ * A monitor, two selector knobs and a transport, laid out on the same
+ * .punit-grid every other module uses — three rows, columns flowing right.
+ * The screen takes the first column and spans all three rows; the knobs and
+ * the transport stack beside it. Using the grid is what aligns them: the
+ * first version of this module used a plain .row and the controls sat
+ * wherever their own heights put them.
+ */
+
+/* The bezel: a screen set into a panel, not a picture pasted onto one. */
+.rec-bezel {
+  position: relative; display: block; line-height: 0;
+  padding: 3px; border-radius: 4px;
+  background: linear-gradient(#1b232b, #0e1318);
+  border: 1px solid #05080b;
+  box-shadow: inset 0 1px 0 #2f3944, 0 1px 3px #000;
+}
+.rec-bezel canvas {
+  display: block; border-radius: 2px; background: #05070a;
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.9);
+}
+
+/* Tally lamp, as on a studio camera: lit only while actually capturing. */
+.rec-tally {
+  position: absolute; top: 7px; right: 7px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #33202a; box-shadow: inset 0 0 0 1px #000;
+}
+.rec-tally.live {
+  background: #ff2d2d;
+  box-shadow: 0 0 7px #ff2d2d, inset 0 0 0 1px #7a0000;
+  animation: rec-pulse 1.6s ease-in-out infinite;
+}
+@keyframes rec-pulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
+
+/* Transport. Round for record, square for stop — the shapes are the labels,
+   which is why neither carries text. */
+.rec-btns { display: flex; gap: 7px; align-items: center; }
+.recbtn {
+  width: 19px; height: 19px; padding: 0; cursor: pointer;
+  border: 1px solid #0d0d0d;
+  background: radial-gradient(circle at 35% 28%, #8f8f8f, #3a3a3a 68%, #202020);
+  box-shadow: 0 2px 2px #000, inset 0 1px 1px #b0b0b0, inset 0 -2px 2px #000;
+}
+.recbtn:hover { box-shadow: 0 2px 2px #000, inset 0 1px 1px #b0b0b0, inset 0 -2px 2px #000, 0 0 0 1px #3a7bff66; }
+.recbtn:active { background: radial-gradient(circle at 35% 28%, #5a5a5a, #282828 68%); box-shadow: 0 1px 1px #000, inset 0 2px 3px #000; transform: translateY(1px); }
+.recbtn-rec { border-radius: 50%; }
+.recbtn-rec::after {
+  content: ""; display: block; width: 7px; height: 7px; margin: auto;
+  border-radius: 50%; background: #6b2a2a; box-shadow: inset 0 0 0 1px #000;
+}
+.recbtn-rec.armed { background: radial-gradient(circle at 35% 28%, #d06a6a, #7a2020 68%, #3a0d0d); }
+.recbtn-rec.armed::after { background: #ff2d2d; box-shadow: 0 0 6px #ff2d2d, inset 0 0 0 1px #5a0000; }
+.recbtn-stop { border-radius: 3px; }
+.recbtn-stop::after {
+  content: ""; display: block; width: 7px; height: 7px; margin: auto;
+  background: #9aa7b2; box-shadow: inset 0 0 0 1px #000;
+}
+
+/* The counter, in the panel's LED idiom rather than as plain text. */
+.rec-counter {
+  font-family: 'B612 Mono', monospace;
+  font-size: calc(10px * var(--kscale, 1));
+  letter-spacing: 1px; color: #4f6472;
+  background: #080c10; border: 1px solid #05080b; border-radius: 2px;
+  padding: 1px 5px; box-shadow: inset 0 1px 3px #000;
+}
+.rec-counter.live { color: #ff8a8a; text-shadow: 0 0 6px rgba(255,60,60,.6); }
+
+/* The switches the knobs and buttons replaced are still the state the recorder
+   reads — a hidden input behind a control is how every parameter here works. */
+.rec-hidden-state { display: none; }
+
+
+
+/* The Record module's own layout: screen on the left, controls stacked on the
+ * right. A plain flex row, not .punit-grid.
+ *
+ * .punit-grid is a PARAMETER grid — N identical cells, three rows, flowing
+ * into columns, every cell the same size. This module is one large screen and
+ * three unlike controls, which is not that shape, and every attempt to force
+ * it produced a different symptom of the same cause: auto-placement putting
+ * knobs on top of the monitor, --ko unset so the knob stacks collapsed, the
+ * width quantizer measuring a grid that had collapsed with them. The
+ * difficulty was the design telling me it was the wrong container.
+ *
+ * --ko is declared here rather than overriding .knobstack's width, because the
+ * knob machinery already reads it and every other knob context sets it. Small
+ * knobs, which is what sits beside a screen on real gear.
+ */
+/* Horizontal labels: the panel writes .u-lbl vertically, which suits a column
+   of narrow parameter cells and not a knob beside a screen. */
+.recgrid .u-lbl { writing-mode: horizontal-tb; text-orientation: mixed; text-align: center; }
+.rec-transport { gap: 3px; }
+
+/* A two-position switch reads its positions from the legend either side of it,
+ * which is how a panel labels a switch that has two positions. These were
+ * rotary knobs for one revision — wrong, because a knob is for three positions
+ * or a continuum, and one spent on a binary choice makes the reader look for
+ * the third option that is not there. The lit side is the one selected. */
+.rec-swrow { display: flex; align-items: center; gap: 6px; }
+.rec-legend {
+  font-family: 'Chakra Petch', sans-serif; font-size: calc(9px * var(--kscale,1));
+  letter-spacing: .5px; text-transform: uppercase; color: #4e5f6d;
+  writing-mode: horizontal-tb; white-space: nowrap;
+}
+.rec-swrow:has(input:not(:checked)) .rec-legend:first-child,
+.rec-swrow:has(input:checked) .rec-legend:last-child { color: #cdd; }
+
+/* The module stacks: monitor across the top, controls under it on a two-column
+ * grid. Beside the monitor the controls wasted the module's width and left the
+ * bottom two thirds of it empty; under it they use the width the screen
+ * already needs, and the grid is what makes the two switches line up — laid
+ * out by their own flow they sat wherever their labels put them.
+ */
+.recgrid { display: flex; flex-direction: column; gap: 9px; align-items: stretch; }
+.rec-screen-unit { display: flex; justify-content: center; }
+.rec-controls {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 9px 12px; align-items: start; justify-items: center;
+}
+.rec-unit { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+/* Horizontal labels: the panel writes .u-lbl vertically, which suits a column
+   of narrow parameter cells and not a control under a screen. */
+.recgrid .u-lbl { writing-mode: horizontal-tb; text-orientation: mixed; text-align: center; }
+
+/* Media meter: how much of a GIF's frame budget the take has spent. A GIF is
+   held in memory until it is encoded, so it has a hard ceiling and stops there
+   by itself; WebM streams as it goes and has none, which is why the bar reads
+   as inert for it rather than as full or empty. */
+.rec-meter {
+  display: block; width: calc(78px * var(--kscale,1)); height: 7px;
+  background: #080c10; border: 1px solid #05080b; border-radius: 2px;
+  box-shadow: inset 0 1px 3px #000; overflow: hidden;
+}
+.rec-meter-fill {
+  display: block; width: 0; height: 100%;
+  background: linear-gradient(#4f9ad0, #2c6a97);
+  transition: width .2s linear;
+}
+.rec-meter-fill.warn { background: linear-gradient(#d0a24f, #97702c); }
+.rec-meter-fill.full { background: linear-gradient(#d05f4f, #97342c); }
+
+/* The last take, across the foot of the module. A GIF's size is not known
+   until the take ends and it is encoded, so this is the only place it can be
+   reported — and a recorder that never told you what it just wrote would be a
+   strange one. */
+.rec-log { grid-column: 1 / -1; width: 100%; }
+.rec-logline {
+  font-family: 'B612 Mono', monospace;
+  font-size: calc(9px * var(--kscale,1)); letter-spacing: .5px;
+  color: #5f7382; text-align: center; white-space: nowrap;
+  background: #0a0e12; border: 1px solid #05080b; border-radius: 2px;
+  padding: 2px 6px; box-shadow: inset 0 1px 2px #000; display: block;
+}
+.rec-logline.fresh { color: #9fd0b4; }
+
+/* The still button: a third transport key. Round like record but not red —
+   it writes a file without starting anything, so it should not look armed. */
+.recbtn-still { border-radius: 50%; }
+.recbtn-still::after {
+  content: ""; display: block; width: 8px; height: 8px; margin: auto;
+  border-radius: 1px; background: #9aa7b2;
+  box-shadow: inset 0 0 0 1px #000, 0 0 0 1px #5a656e;
+}
+
+/* The Loader's built-in picker is the panel's only VISIBLE <select> — every
+   other one is hidden behind a knob. Left to itself the browser sized it to
+   its longest option and it hung 47 px out of its 29 mm cell, which is the
+   one module the mode sweep found clipping. Constrain it to the cell and
+   dress it like the rest of the surface. */
+.stl-builtin{width:100%;max-width:calc(29*var(--mm));box-sizing:border-box;
+  background:#0a0f18;color:#9ab;border:1px solid #345;border-radius:2px;
+  font-family:'B612 Mono',monospace;font-size:9px;padding:1px 2px;cursor:pointer;}
+.stl-builtin:hover{border-color:#8ac;}
+
+
+/* The rack bay: the 19-inch frame a row of modules sits in. Drawn behind the
+   modules, not in their flow — a frame that was a flex item would wrap like
+   one and change which modules landed in which row, which is the layout it
+   exists to draw. rackhandles_js.go measures the rows and places these. */
+.modules{position:relative;}
+.modules.with-bay{box-sizing:border-box;padding:calc(8*var(--mm)) calc(27.94*var(--mm));
+  row-gap:calc(17*var(--mm));}
+.modules.with-bay>.sect{position:relative;z-index:1;}
+.rack-bay{position:absolute;left:0;right:0;z-index:0;pointer-events:none;}
+/* Rails above and below the 3U opening, ears either side — the ears being
+   what makes the usable row 84 HP and not the full nineteen inches. */
+.rack-bay .rb-rail{position:absolute;left:0;right:0;height:calc(8*var(--mm));
+  background:linear-gradient(180deg,#4a545e,#333c45 55%,#242b32);
+  box-shadow:inset 0 1px 0 #69737d,inset 0 -1px 0 #171c21;}
+.rack-bay .rb-top{top:0;}
+.rack-bay .rb-bot{bottom:0;}
+.rack-bay .rb-ear{position:absolute;top:0;bottom:0;width:calc(27.94*var(--mm));
+  background:linear-gradient(100deg,#454e57,#333c45 60%,#272e35);
+  box-shadow:inset 1px 0 0 #5d6771,inset -1px 0 0 #1b2026;
+  display:flex;align-items:center;justify-content:center;}
+.rack-bay .rb-l{left:0;}
+.rack-bay .rb-r{right:0;}
+/* The grab handle bolted to an ear: two feet and a grip. */
+.rack-handle{width:calc(22*var(--mm));height:70%;display:flex;flex-direction:column;}
+.rack-handle .rh-foot{height:calc(7*var(--mm));border-radius:2px;
+  background:linear-gradient(160deg,#6c757e,#3c454e 60%,#2b323a);
+  box-shadow:inset 0 1px 0 #8b959e,0 1px 2px #000;}
+.rack-handle .rh-grip{flex:1 1 auto;margin:calc(-1*var(--mm)) calc(4*var(--mm));border-radius:3px;
+  background:linear-gradient(100deg,#7d868f,#454e57 55%,#2f363e);
+  box-shadow:inset 1px 0 0 #99a3ac,inset -1px 0 0 #1c2126,0 2px 4px #000;}
+/* Blank panels fill the end of a row, on the module slot pitch. */
+.rack-blank{position:absolute;z-index:0;pointer-events:none;box-sizing:border-box;
+  border:1px solid #2a333c;border-radius:6px;
+  background:linear-gradient(150deg,#333b44,#232a31 60%,#1b2027);
+  box-shadow:inset 0 1px 0 #4a545e,0 1px 3px #000;}
+
+/* The switch rows scale with the interface, like everything else on the
+   panel. They had not, and the Console showed why it matters: a module's
+   HEIGHT scales, so at a smaller interface size the Console's column-wrap
+   container had less room while its switch rows stayed the same height —
+   which packed them into a FOURTH column and made the module WIDER as the
+   interface got smaller. Scaling the rows keeps the column count fixed. */
+#controls-panel .swsec .grp{font-size:calc(12px*var(--kscale,1));}
+#controls-panel .swsec{gap:calc(2px*var(--kscale,1));}
+
+/* Analysis module — the Lyapunov verdict beside its exponent. Green when the
+   model is genuinely chaotic, so the reading is legible at a glance without
+   parsing a number. */
+.lyap-verdict {
+  font: 10px/1 var(--mono, monospace);
+  letter-spacing: .04em;
+  color: #8a8a8a;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.lyap-verdict.lyap-chaotic { color: #4fe07a; }
+
+/* Presets module — a name field over a Save key, and the saved list over
+   Recall / Delete. Both are capped at the same 29 mm the Loader's built-in
+   picker is, because that is what one slot of module holds without the
+   control hanging out of it: .stl-builtin above is the same mistake already
+   found once, on the one other visible <select> in the panel.
+
+   text-transform is undone from .stext-in, which the name field borrows for
+   its look. The Banner field is uppercase because the beam it feeds only
+   draws capitals; a preset name is whatever somebody typed. */
+.preset-in{width:100%;max-width:calc(29*var(--mm));box-sizing:border-box;
+  text-transform:none;letter-spacing:0;}
+.preset-list{max-width:calc(29*var(--mm));}
+/* The buttons sit UNDER their control rather than beside it, so the module
+   is two cells wide and not five. */
+#preset-module .demo-btn{margin-top:calc(1*var(--mm));}
+
+/* A LABELLED DIAL'S KNOB HAS TO BE SMALLER THAN ITS LABEL RING.
+   Measured in a parameter cell: the stack is 76px, the label centres sit 43px
+   out, and the knob's radius was 40px — so a four-character label (20px wide)
+   had its inner edge at 33px, seven pixels UNDER the knob. The colour dial read
+   "blu", "iri", "hea" and "agm" for blue, viridis, heat and magma. Even a
+   two-character label overlapped by four pixels; nothing on that ring was fully
+   clear of the knob.
+   That matters more than it looks: for a named setting buildParamUnit hides the
+   numeric LED on purpose, because the highlighted ring label IS the readout. An
+   unreadable ring means no way at all to tell which option is selected.
+   56px is the size the other ringed dials already use for exactly this reason
+   (#gradient-stack, #size-stack, #knobstyle-stack above, each with the comment
+   "clear of the knob within the tight module") — the parameter cells were the
+   ones that never got the rule. At radius 28 the ring's innermost label edge
+   clears by five pixels. */
+.punit .knobstack .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
+.punit .knobstack .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
+
+/* A two-option parameter is a switch, not a dial (see buildTwoWaySwitch). The
+   option's name sits beside it because these are two THINGS — "logarithmic"
+   and "linear" — rather than a thing and its absence, so "on" would not say
+   which one is selected. */
+.punit .twoway{display:flex;align-items:center;gap:calc(4px*var(--kscale,1));justify-content:center;padding:calc(6px*var(--kscale,1)) 0;}
+.punit .twoway-name{font-size:calc(9px*var(--kscale,1));color:#8cf;letter-spacing:.04em;}
+
+/* A CONTROL MUST NOT MOVE ITSELF WHEN YOU USE IT.
+   Twin's switch carries the live λ readout beside its label. Empty, the span
+   is zero wide; the moment Twin comes on it fills with a number, the label
+   grows, and the switch slides out from under the pointer that just clicked
+   it -- measured at 7px. Reserving the width means the readout appears in
+   space that was already there. */
+.led#twin-lambda{display:inline-block;min-width:5ch;text-align:right;}
