@@ -44,7 +44,7 @@ const (
 	PLon   // globe meridians
 	PTwist // meridian twist
 	PAuto  // auto-rotate, 0 or 1
-	PR     // line colour
+	PR     // line color
 	PG
 	PB
 	PGeomSeq // bumped by the control plane whenever geometry must be rebuilt
@@ -57,7 +57,7 @@ const (
 const SharedName = "__splitParams"
 
 // Defaults are what the page starts at, and what the control plane's knobs are
-// initialised from.
+// initialized from.
 var Defaults = [ParamCount]float32{
 	PRotX: 0, PRotY: 0.9, PRotZ: 0,
 	PZoom: 0, PPanX: 0, PPanY: 0,
