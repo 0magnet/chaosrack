@@ -5,6 +5,8 @@ systems and live signals, rendered in real time by a Go→WebAssembly core and
 driven from an analog-equipment control surface: knobs with fine-trim rings,
 seven-segment LED readouts, toggle switches, concentric selector dials.
 
+**[Live demo](https://0magnet.github.io/chaosrack/)** — the whole rack in a tab: pick a model, turn the knobs, rotate the scene.
+
 **66 models in five kinds**, and they are no longer mostly attractors.
 Continuous **flows** — Lorenz, Rössler, Chua and the rest of the classics,
 plus all twenty of J. C. Sprott's 1994 cases. Discrete **maps**, which have
