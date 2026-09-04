@@ -160,7 +160,7 @@ func run(c *cdp.Client, s state) []string {
 		}
 	}
 
-	// Permalink round-trip idempotency: reload from the app-normalised hash and
+	// Permalink round-trip idempotency: reload from the app-normalized hash and
 	// confirm it re-serializes to the same thing (every setting survived).
 	c.Reload(time.Duration(*settleMs) * time.Millisecond)
 	c.Eval(`(function(){var a=document.getElementById('auto-rotate');if(a&&a.checked){a.checked=false;a.dispatchEvent(new Event('change'));}})()`)
