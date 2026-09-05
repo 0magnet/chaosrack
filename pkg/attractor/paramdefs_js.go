@@ -50,6 +50,12 @@ var paramLabels = map[string][]string{
 	// embedding of that same audio, or the running attractor's own trajectory.
 	// A setting rather than a quantity: "traj" is not the third of anything.
 	"rec-src": {"audio", "embed", "traj"},
+	// The stereo embedding's axis assignment. Defined next to the plans it
+	// indexes (stereo_js.go) rather than spelled out here, because the two
+	// have to stay the same length and the same order — a list of names that
+	// disagreed with the list of plans would put a dial position on a figure
+	// it does not draw.
+	"stereo-axes": stereoAxisNames,
 }
 
 // paramRingLabels is what actually fits around the dial. A cell is a third of
@@ -77,6 +83,7 @@ var paramRingLabels = map[string][]string{
 	"spect-scale": {"log", "lin"},
 	"globe-par":   {"ring", "spir"},
 	"globe-rev":   {"cw", "ccw"},
+	"stereo-axes": stereoAxisRing,
 }
 
 // turtlePhysParams are the weight controls. They are not in attractorParams

@@ -120,6 +120,34 @@ var attractorDescriptions = map[string]string{
 		"full scale can reach, so peaks stay on screen. The trace is spline-smoothed between " +
 		"samples the way a scope's beam is. " +
 		"Audio comes from the active source — websocket stream, microphone, or the signal generators.",
+	"stereo": "Stereo Embedding — the Takens trail built from the two channels instead " +
+		"of one channel's past. Takens' theorem manufactures the missing axes out of a signal's own " +
+		"history because there is only one signal; a stereo source has already measured two, so this " +
+		"mode plots them against each other and what you see is the real relationship between the " +
+		"channels — phase, polarity, correlation, width — rather than a reconstruction. Looked at " +
+		"head-on it is the goniometer (vectorscope) of a mastering desk, which is the XY Scope's " +
+		"figure; the third axis is what a scope with two deflection plates cannot give you. " +
+		"AXES picks the assignment. L,R,L(t−τ) is the goniometer with a delay coordinate for depth: " +
+		"a tone that draws one ellipse edge-on unrolls into a helix, and τ still means what it means " +
+		"in the Takens mode. L,R,time sweeps the figure along a ribbon so successive cycles stack " +
+		"instead of overwriting — the only way to see a slow phase drift, which on a flat display " +
+		"just wobbles. The mid/side positions rotate the basis 45°: M=(L+R)/2 and S=(L−R)/2, so " +
+		"center content lies along one axis and difference content along the other and width is an " +
+		"extent rather than a tilt. τ is inert on the two time positions. " +
+		"CORR is the correlation meter: +1.00 means the channels are identical and the figure is a " +
+		"diagonal line, 0 means they are unrelated and it is a round cloud, −1.00 means one is the " +
+		"other inverted (and the difference vanishes if the mix is summed to mono). " +
+		"A mono source reads \"mono\" and draws the diagonal, which is the correct picture of a " +
+		"signal with no stereo information in it — nothing here fakes a second channel out of a " +
+		"delayed copy of the first, because that delayed copy is exactly what this mode exists to " +
+		"stop pretending is a channel. The mid/side positions are the ones worth turning to then: " +
+		"S is zero and what is left is an honest two-coordinate delay embedding. " +
+		"WIN is how much time the figure spans, in milliseconds — a phase display is read over a " +
+		"few tens of them, past a couple of hundred it is a filled blob; GAIN sets how large a " +
+		"full-scale sample draws, and as in the Takens mode the scale is fixed and nothing " +
+		"auto-ranges. " +
+		"Audio comes from the active source — microphone or the signal generators for real stereo; " +
+		"the websocket and WebTransport feeds carry one channel, so they read \"mono\".",
 	"fvf": "FVF — Harmonic Wobbulator. A software analog of the " +
 		"Frequency→Voltage→Frequency converter with balanced modulator designed at bunkerofdoom.com " +
 		"(hardware built 1984). The live audio's " +
