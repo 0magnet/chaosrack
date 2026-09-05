@@ -59,8 +59,86 @@ func TestRecurrenceModeIsRegistered(t *testing.T) {
 	if !isTexturePlane("recurrence") {
 		t.Error("recurrence is not drawn as a texture plane; its camera would boot tumbling")
 	}
-	if got := len(attractorParams["recurrence"]); got != 2 {
-		t.Errorf("recurrence exposes %d knobs, want win and ε", got)
+	want := []string{"rec-src", "rec-win", "rec-eps", "rec-dim", "takens-tau"}
+	got := attractorParams["recurrence"]
+	if len(got) != len(want) {
+		t.Fatalf("recurrence exposes %d knobs, want %d: %v", len(got), len(want), want)
+	}
+	for i, id := range want {
+		if got[i].ID != id {
+			t.Errorf("knob %d is %q, want %q", i, got[i].ID, id)
+		}
+	}
+}
+
+// SRC is a named setting, so the panel builds it as a labeled rotary switch
+// rather than a dial reading a number — and buildParamUnit picks that up from
+// paramLabels alone. A missing entry gives a knob reading "0", "1", "2", which
+// is the one thing a reader cannot decode.
+func TestTheSourceKnobIsLabeled(t *testing.T) {
+	labels, ok := paramLabels["rec-src"]
+	if !ok {
+		t.Fatal("rec-src has no paramLabels entry; the dial would read 0/1/2")
+	}
+	var src paramDef
+	for _, p := range attractorParams["recurrence"] {
+		if p.ID == "rec-src" {
+			src = p
+		}
+	}
+	// A labeled parameter runs 0..n-1 in steps of one — that is the contract
+	// paramLabels documents, and positions that do not line up with the option
+	// list put the wrong name under the wrong setting.
+	if int(src.Max-src.Min)+1 != len(labels) || src.Step != 1 || src.Min != 0 {
+		t.Errorf("rec-src runs %v..%v step %v for %d labels; a named setting must run 0..n-1 by 1",
+			src.Min, src.Max, src.Step, len(labels))
+	}
+	if src.Def != rpSrcAudio {
+		t.Errorf("rec-src defaults to %v; it must default to the raw-audio picture the mode "+
+			"drew before the knob existed, or every existing permalink restores something else", src.Def)
+	}
+}
+
+// τ IS ONE KNOB SHARED BY TWO MODES, on purpose: it is the same delay of the
+// same signal, and the Takens mode's MEAS button writes it by DOM id, so
+// whichever panel is on screen is the one it moves. What that costs is that the
+// two rows have to agree about the knob's range and default — Reset All walks
+// every mode's parameter list, so a disagreement would reset one variable to
+// two different numbers depending on map iteration order, which is to say
+// randomly.
+func TestTheSharedTauKnobAgreesBetweenBothModes(t *testing.T) {
+	find := func(mode string) (paramDef, bool) {
+		for _, p := range attractorParams[mode] {
+			if p.ID == "takens-tau" {
+				return p, true
+			}
+		}
+		return paramDef{}, false
+	}
+	a, okA := find("takens")
+	b, okB := find("recurrence")
+	if !okA || !okB {
+		t.Fatalf("takens-tau present in takens=%v, recurrence=%v; both must expose it", okA, okB)
+	}
+	if a.Value != b.Value {
+		t.Error("the two takens-tau rows point at different variables, so the id is a collision rather than a share")
+	}
+	if a.Def != b.Def || a.Min != b.Min || a.Max != b.Max || a.Step != b.Step {
+		t.Errorf("takens-tau is %v..%v/%v def %v in takens and %v..%v/%v def %v in recurrence",
+			a.Min, a.Max, a.Step, a.Def, b.Min, b.Max, b.Step, b.Def)
+	}
+	// Integer step is what keeps the shared id out of the patchbay and the
+	// audio-mod matrix, both of which key routings by parameter id alone and
+	// would otherwise apply a routing made in one mode to the other.
+	if decimalsForStep(a.Step) != 0 {
+		t.Error("takens-tau has a fractional step, so it becomes a routable destination " +
+			"under an id that two modes share")
+	}
+	// The audio ring is sized for rpMaxLookback, which assumes τ cannot exceed
+	// rpMaxTau. Raising the knob's ceiling without raising that constant would
+	// let the delay coordinates read behind the start of the buffer.
+	if a.Max != rpMaxTau {
+		t.Errorf("the τ knob reaches %v but the ring is sized for rpMaxTau=%d", a.Max, rpMaxTau)
 	}
 }
 
@@ -150,5 +228,131 @@ func TestGeneratingAFrameDoesNotRetuneTau(t *testing.T) {
 	EstimateEmbedding(x, 512, 8)
 	if takensTau != before {
 		t.Errorf("measuring moved τ from %v to %v without anyone pressing the button", before, takensTau)
+	}
+}
+
+// ── The trajectory source's cache ────────────────────────────────────────
+
+// THIS IS THE TEST THE FEATURE EXISTS BEHIND. Integrating a trajectory costs
+// 0.5 ms for Lorenz and 24 ms for Chen, and a knob DRAG changes a parameter
+// value on every frame it moves — so an implementation that simply re-derives
+// the plot from the current values does 24 ms of work per frame for as long as
+// the pointer is down, which is a tab that stops responding while it is being
+// used. It is worth a test rather than a comment because the failure is a
+// gradual slowdown under one specific gesture, not something that shows up in a
+// stack trace or on an idle screen.
+//
+// What is asserted is the whole contract: nothing is integrated while the value
+// is moving, exactly one integration happens after it stops, and the frames
+// after that do no work at all.
+func TestADragIntegratesNothingUntilTheKnobSettles(t *testing.T) {
+	savedMat, savedNow, savedMode := rpMat, frameNowMs, lastFlowMode
+	savedSrc, savedWin, savedEps := rpSrc, rpWin, rpEps
+	ps := attractorParams["lorenz"]
+	savedVals := make([]float32, len(ps))
+	for i, p := range ps {
+		savedVals[i] = *p.Value
+	}
+	defer func() {
+		rpMat, frameNowMs, lastFlowMode = savedMat, savedNow, savedMode
+		rpSrc, rpWin, rpEps = savedSrc, savedWin, savedEps
+		for i, p := range ps {
+			*p.Value = savedVals[i]
+		}
+		rpTrajSeries, rpTrajMode, rpTrajVals = nil, "", nil
+		rpTrajStale, rpTrajBuilt, rpTrajDiam = false, false, 0
+	}()
+
+	rpMat = make([]byte, rpN*rpN)
+	rpTrajSeries, rpTrajMode, rpTrajVals = nil, "", nil
+	rpTrajStale, rpTrajBuilt, rpTrajDiam = false, false, 0
+	lastFlowMode, rpSrc, rpWin, rpEps = "lorenz", rpSrcTraj, 100, 0.05
+	frameNowMs = 1000
+
+	// The frame the mode is entered on notices it has nothing and asks for a
+	// trajectory; it must not integrate one on that same frame.
+	if rpFillFromTrajectory() {
+		t.Error("built a matrix on the frame it first noticed the system")
+	}
+	if rpTrajSeries != nil {
+		t.Fatal("integrated on the frame the change was noticed, before any settle")
+	}
+
+	// A drag: σ moves every frame for ten frames, well inside the settle window.
+	var sigma *float32
+	for _, p := range ps {
+		if p.Label == "σ" {
+			sigma = p.Value
+		}
+	}
+	if sigma == nil {
+		t.Fatal("lorenz has no σ parameter to drag")
+	}
+	for i := 0; i < 10; i++ {
+		frameNowMs += 16
+		*sigma += 0.1
+		if rpFillFromTrajectory() {
+			t.Fatalf("frame %d of a drag rebuilt the matrix", i)
+		}
+		if rpTrajSeries != nil {
+			t.Fatalf("frame %d of a drag re-integrated the trajectory", i)
+		}
+	}
+
+	// Let go. Nothing happens until the settle window has passed...
+	frameNowMs += rpTrajSettleMs / 2
+	if rpFillFromTrajectory() || rpTrajSeries != nil {
+		t.Fatal("integrated before the settle window was up")
+	}
+	// ...and then exactly once.
+	frameNowMs += rpTrajSettleMs
+	if !rpFillFromTrajectory() {
+		t.Fatal("never integrated after the knob settled")
+	}
+	if len(rpTrajSeries) != rpN*3 {
+		t.Fatalf("integrated %d floats, want %d points of 3 coordinates", len(rpTrajSeries), rpN)
+	}
+	if rpTrajDiam <= 0 {
+		t.Errorf("diameter is %v, so ε would normalize against nothing", rpTrajDiam)
+	}
+
+	// A still knob is a still picture: the following frames must do no work,
+	// because the series is static and the matrix on the texture is already it.
+	for i := 0; i < 5; i++ {
+		frameNowMs += 16
+		if rpFillFromTrajectory() {
+			t.Errorf("frame %d after settling rebuilt a matrix that had not changed", i)
+		}
+	}
+
+	// ε is the exception and gets no settle delay: it only refills the matrix,
+	// which is 0.3 ms, so it follows the knob immediately.
+	rpEps = 0.08
+	if !rpFillFromTrajectory() {
+		t.Error("ε moved and the matrix was not rebuilt")
+	}
+	if len(rpTrajSeries) != rpN*3 {
+		t.Error("moving ε re-integrated the trajectory; only the threshold changed")
+	}
+}
+
+// The m knob is 1 for the raw-audio position whatever it is set to, because
+// that position IS m = 1 and shares its code path — and it is clamped to the
+// buffer's width, which is allocated once at rpMaxDim and never regrown.
+func TestTheEmbeddingDimensionIsClampedToTheBuffer(t *testing.T) {
+	savedSrc, savedDim := rpSrc, rpDim
+	defer func() { rpSrc, rpDim = savedSrc, savedDim }()
+
+	rpSrc, rpDim = rpSrcAudio, 5
+	if got := rpEmbedDim(); got != 1 {
+		t.Errorf("raw audio reports m=%d, want 1", got)
+	}
+	rpSrc = rpSrcEmbed
+	for _, c := range []struct{ set, want float32 }{{0, 1}, {1, 1}, {3, 3}, {rpMaxDim, rpMaxDim}, {99, rpMaxDim}} {
+		rpDim = c.set
+		if got := rpEmbedDim(); float32(got) != c.want {
+			t.Errorf("m knob at %v reports %d, want %v — rpVec holds only rpMaxDim coordinates",
+				c.set, got, c.want)
+		}
 	}
 }
