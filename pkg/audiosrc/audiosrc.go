@@ -68,6 +68,26 @@ type Source interface {
 	Close()
 }
 
+// DefaultRingSize is how many samples per channel a source retains when its
+// options leave RingSize at zero. Every transport in this package defaults to
+// it.
+//
+// It is a named constant, and exported, because it is not a private tuning
+// number: it is the CEILING ON A SNAPSHOT. TimeDomain and TimeDomainStereo
+// fill their destination from ring.latest, which indexes the buffer modulo its
+// length — ask for more samples than the ring holds and the early part of the
+// destination comes back filled with wrapped, already-overwritten samples
+// rather than zeroed or short. Nothing reports that: the caller gets a
+// plausible buffer of the wrong audio.
+//
+// Every consumer up to now snapshots far less than this (the xy scope 2048,
+// the feature FFT 4096), so the trap has never been sprung. It becomes
+// reachable the moment a consumer derives its window length from a knob, which
+// the stereo embedding does — so the bound has to be something that consumer
+// can name and clamp against, rather than a 16384 repeated in four files with
+// nothing tying them together.
+const DefaultRingSize = 16384
+
 // ring is a fixed-capacity circular sample buffer shared by the source
 // implementations. It is pure Go (no syscall/js) so it lives here rather
 // than in a build-tagged file. All access happens on the single JS main
