@@ -326,6 +326,7 @@ func buildParamPanel(mode string) {
 	syncDeskModel(mode)
 	syncAnalysisModule(mode)
 	clearTurtlePhysModule()
+	clearSectionModule()
 	updateCRTOverlay()
 
 	// The Equation module only exists in Custom mode (buildCustomPanel makes it).
@@ -338,6 +339,12 @@ func buildParamPanel(mode string) {
 	// Patchbay rebuilds with the panel so its matrix columns track the mode
 	// (and so pin edits resync the MOD knobs by rebuilding everything).
 	buildPatchbayModule(paramsDiv.Call("closest", ".sect"))
+
+	// The Section module, when the Poincaré overlay is switched on. Before the
+	// mode branches below, because those return early for the modes with no
+	// parameter grid of their own — and the overlay works on every flow, not
+	// only the ones that happen to have knobs.
+	buildSectionModule(mode, paramsDiv)
 
 	if mode == "custom" {
 		buildCustomPanel(paramsDiv)
@@ -522,6 +529,65 @@ func buildTurtlePhysModule(mode string, paramsDiv js.Value) {
 	mod.Call("appendChild", g)
 	if primary := paramsDiv.Call("closest", ".sect"); primary.Truthy() {
 		primary.Get("parentNode").Call("insertBefore", mod, primary.Get("nextSibling"))
+	}
+}
+
+// buildSectionModule gives the Poincaré overlay's plane controls a module of
+// their own, alongside the source system's Parameters module rather than
+// inside it. The plane is not a parameter of the Lorenz system — turning it
+// changes what is being LOOKED AT, not what is running — and mixing the two
+// grids would say otherwise.
+//
+// It is the turtle Physics module's shape, for the same reason: controls that
+// appear with a switch and go away with it. The Sect switch rebuilds the panel
+// so this runs, exactly as the Patchbay switch does.
+//
+// Not in the Poincaré MODEL's own mode, where the same paramDefs are already in
+// attractorParams and the generic grid has built them — two grids driving the
+// same variables would be two DOM elements with the same id, and the second
+// one's dial would silently drive the first one's slider.
+func buildSectionModule(mode string, paramsDiv js.Value) {
+	clearSectionModule()
+	if !sectOn || mode == "poincare" {
+		return
+	}
+	if _, isFlow := flowFor4(mode); !isFlow {
+		// Nothing to section. The switch stays on — it is a preference about
+		// flows, and hopping through a dodecahedron on the way to another
+		// attractor should not turn it off.
+		return
+	}
+	mod := doc.Call("createElement", "div")
+	mod.Set("className", "sect sectmodule")
+	h := doc.Call("createElement", "div")
+	h.Set("className", "sect-hdr")
+	h.Set("textContent", "Section")
+	h.Set("title", "Where the Poincaré section's plane sits, and which way through it counts. "+
+		"AXIS and POS place it — POS as a fraction of the attractor's own reach along that axis, "+
+		"so 0 is through the middle whatever the system's size. DIR one way is the default: a "+
+		"bounded flow that goes up through a plane must come back down through it, so counting "+
+		"both superimposes two different sections. The crossings draw in gold where they "+
+		"physically are; Analysis → Poincaré Section is the same section as a picture of its "+
+		"own, with the return map.")
+	mod.Call("appendChild", h)
+	g := doc.Call("createElement", "div")
+	g.Set("className", "punit-grid")
+	for _, p := range sectPlaneParams {
+		g.Call("appendChild", buildParamUnit(p))
+	}
+	mod.Call("appendChild", g)
+	if primary := paramsDiv.Call("closest", ".sect"); primary.Truthy() {
+		primary.Get("parentNode").Call("insertBefore", mod, primary.Get("nextSibling"))
+	}
+}
+
+// clearSectionModule takes it away again, on every panel build, before the
+// early returns — so the module cannot outlive the switch or the mode.
+func clearSectionModule() {
+	old := doc.Call("querySelectorAll", ".sectmodule")
+	for i := old.Get("length").Int() - 1; i >= 0; i-- {
+		n := old.Index(i)
+		n.Get("parentNode").Call("removeChild", n)
 	}
 }
 
