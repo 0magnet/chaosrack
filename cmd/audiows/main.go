@@ -28,9 +28,14 @@
 //
 // The wasm build, wasm_exec.js and page template are embedded (via the
 // assets package), so no build step or -dir is required. Requires a running
-// PulseAudio (or PipeWire-pulse) server. This binary is Linux-oriented and
-// intentionally kept out of the portable root server so that `chaosrack`
-// stays free of the audio-capture dependency.
+// PulseAudio (or PipeWire-pulse) server.
+//
+// WHAT THIS IS STILL FOR. It is no longer the way to hear system audio: the
+// root server captures on --audio and installs the FVF routing on --wobbulate,
+// in the process that is already serving the page, and it carries the routing
+// switch the page can operate at runtime. What is left here that is not there
+// is the WebTransport listener -- the ?audio=wt path, which is what this
+// harness exists to exercise. Reach for `chaosrack --audio` first.
 package main
 
 import (
@@ -40,14 +45,13 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
 	"github.com/0magnet/chaosrack/assets/gowasm"
 	"github.com/0magnet/chaosrack/pkg/audiocap"
+	"github.com/0magnet/chaosrack/pkg/audioroute"
 	"github.com/0magnet/chaosrack/pkg/server"
 	"github.com/0magnet/chaosrack/pkg/wtaudio"
 	"github.com/gin-gonic/gin"
@@ -101,10 +105,13 @@ func main() {
 	flag.Parse()
 
 	if wobbulate {
-		cleanup, err := setupWobbulate()
+		sess, err := audioroute.Start(audioroute.Options{SinkName: nullSinkName, OutApps: outApps})
 		if err != nil {
 			log.Fatalf("audiows: -wobbulate setup failed: %v", err)
 		}
+		cleanup := sess.Stop
+		// With the null sink as default, the thing to record is its monitor.
+		captureSource = "monitor"
 		// Revert the routing on Ctrl-C / SIGTERM so we never leave the
 		// system's default sink pointed at a null sink after we exit.
 		sigc := make(chan os.Signal, 1)
@@ -233,154 +240,4 @@ func startWebTransport() *wtaudio.Server {
 		cert.Base64(), cert.NotAfter.Format(time.RFC3339))
 	log.Printf("audiows:   the page reads that from /wt-info; nothing has to be installed in a trust store")
 	return srv
-}
-
-// setupWobbulate inserts a temporary null sink and makes it the default, so
-// every application's audio flows into it and can be captured (and wobbulated)
-// with zero per-app routing. It returns a cleanup func that restores the
-// previous default sink and unloads the module. The wasm page's OWN output
-// (the Listen switch) must be pointed back at the real speakers once in
-// pavucontrol — PulseAudio remembers it per-app thereafter — otherwise the
-// wobbulated result would loop back into the null sink instead of being heard.
-func setupWobbulate() (func(), error) {
-	prevSink, err := pactl("get-default-sink")
-	if err != nil {
-		return nil, fmt.Errorf("get-default-sink: %w", err)
-	}
-	prevSink = strings.TrimSpace(prevSink)
-
-	moduleID, err := pactl("load-module", "module-null-sink",
-		"sink_name="+nullSinkName,
-		"sink_properties=device.description=FVF_in")
-	if err != nil {
-		return nil, fmt.Errorf("load null sink: %w", err)
-	}
-	moduleID = strings.TrimSpace(moduleID)
-
-	if _, err := pactl("set-default-sink", nullSinkName); err != nil {
-		_, _ = pactl("unload-module", moduleID) //nolint:errcheck // teardown on the way out; nothing is left to report a failure to
-		return nil, fmt.Errorf("set-default-sink %s: %w", nullSinkName, err)
-	}
-	// With the null sink as default, capture its monitor via -source monitor.
-	captureSource = "monitor"
-
-	// Keep the browser's own Listen output on the real speakers (not the null
-	// sink), automatically, so there's no manual pavucontrol step and no loop.
-	go watchWobbulateOutput(nullSinkName, prevSink)
-
-	log.Printf("audiows: -wobbulate on — all system audio now routes through %q (was %q).", nullSinkName, prevSink)
-	log.Printf("audiows:   Play audio from ANY app, open the page (?audio=ws), pick FVF, turn on Listen.")
-	log.Printf("audiows:   The wasm page's own output is auto-routed to your speakers (apps: %s).", outApps)
-	log.Printf("audiows:   Ctrl-C restores the default sink (%q) and removes the null sink.", prevSink)
-
-	return func() {
-		if prevSink != "" {
-			_, _ = pactl("set-default-sink", prevSink) //nolint:errcheck // teardown on the way out; nothing is left to report a failure to
-		}
-		_, _ = pactl("unload-module", moduleID) //nolint:errcheck // teardown on the way out; nothing is left to report a failure to
-	}, nil
-}
-
-// watchWobbulateOutput continuously moves any playback stream from a browser
-// (the wasm page's Listen output) off the null sink and onto the real
-// speakers, so the wobbulated result is heard rather than fed back into the
-// capture. The source app being wobbulated (e.g. VLC) is a different app, so
-// it stays on the null sink and keeps being captured. Runs until the process
-// exits (the -wobbulate cleanup handler tears everything down).
-func watchWobbulateOutput(nullSink, target string) {
-	var apps []string
-	for _, a := range strings.Split(outApps, ",") {
-		if a = strings.TrimSpace(strings.ToLower(a)); a != "" {
-			apps = append(apps, a)
-		}
-	}
-	if len(apps) == 0 {
-		return
-	}
-	logged := map[string]bool{}
-	for {
-		time.Sleep(time.Second)
-		nullIdx := sinkIndexByName(nullSink)
-		if nullIdx == "" {
-			continue
-		}
-		for _, si := range listSinkInputs() {
-			if si.sink != nullIdx {
-				continue
-			}
-			al := strings.ToLower(si.app)
-			matched := false
-			for _, a := range apps {
-				if strings.Contains(al, a) {
-					matched = true
-					break
-				}
-			}
-			if !matched {
-				continue
-			}
-			if _, err := pactl("move-sink-input", si.index, target); err == nil && !logged[si.index] {
-				log.Printf("audiows: -wobbulate routed %q output (stream #%s) to %s (heard, not re-captured)", si.app, si.index, target)
-				logged[si.index] = true
-			}
-		}
-	}
-}
-
-type sinkInput struct{ index, sink, app string }
-
-// listSinkInputs parses `pactl list sink-inputs` into (index, sink index, app
-// name) triples. Text parsing (rather than the pulse client) because the
-// library exposes playback/record streams, not full sink-input introspection.
-func listSinkInputs() []sinkInput {
-	out, err := pactl("list", "sink-inputs")
-	if err != nil {
-		return nil
-	}
-	var res []sinkInput
-	var cur *sinkInput
-	flush := func() {
-		if cur != nil {
-			res = append(res, *cur)
-			cur = nil
-		}
-	}
-	for _, ln := range strings.Split(out, "\n") {
-		t := strings.TrimSpace(ln)
-		switch {
-		case strings.HasPrefix(t, "Sink Input #"):
-			flush()
-			cur = &sinkInput{index: strings.TrimPrefix(t, "Sink Input #")}
-		case cur == nil:
-			// between/ before blocks
-		case strings.HasPrefix(t, "Sink:"):
-			cur.sink = strings.TrimSpace(strings.TrimPrefix(t, "Sink:"))
-		case strings.HasPrefix(t, "application.name = "):
-			cur.app = strings.Trim(strings.TrimPrefix(t, "application.name = "), "\"")
-		}
-	}
-	flush()
-	return res
-}
-
-// sinkIndexByName returns the numeric index of a sink given its name.
-func sinkIndexByName(name string) string {
-	out, err := pactl("list", "short", "sinks")
-	if err != nil {
-		return ""
-	}
-	for _, ln := range strings.Split(out, "\n") {
-		f := strings.Fields(ln)
-		if len(f) >= 2 && f[1] == name {
-			return f[0]
-		}
-	}
-	return ""
-}
-
-// pactl runs a pactl subcommand and returns its stdout. -wobbulate is a
-// Linux/PulseAudio-only convenience, matching the rest of this dev harness.
-func pactl(args ...string) (string, error) {
-	out, err := exec.Command("pactl", args...).Output() //nolint:gosec // fixed binary name; args are dev-harness constants
-	return string(out), err
 }
