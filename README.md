@@ -1447,7 +1447,7 @@ window close.
 | **Pass-thru off** | turn the model | reach the desk |
 | **Pass-thru on** | reach the desk | turn the model |
 
-The modifier is dropped from the synthesised event, or a Ctrl-drag would arrive
+The modifier is dropped from the synthesized event, or a Ctrl-drag would arrive
 at a window as a Ctrl-click and open a context menu nobody asked for.
 
 The cube is an honest approximation and not a closed box: windows cannot be
