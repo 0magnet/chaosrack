@@ -44,7 +44,7 @@ type WTOptions struct {
 	// Default 24000.
 	SampleRate int
 
-	// RingSize is the number of samples retained. Default 16384.
+	// RingSize is the number of samples retained. Default DefaultRingSize.
 	RingSize int
 
 	// WS configures the WebSocket source used when WebTransport cannot
@@ -68,7 +68,7 @@ func NewWebTransport(opts WTOptions) Source {
 		opts.SampleRate = 24000
 	}
 	if opts.RingSize == 0 {
-		opts.RingSize = 16384
+		opts.RingSize = DefaultRingSize
 	}
 	if opts.InfoURL == "" {
 		opts.InfoURL = "/wt-info"
