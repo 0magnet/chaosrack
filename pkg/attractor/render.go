@@ -636,9 +636,12 @@ func generateForMode(mode string) {
 	// this integration step, and the colors / point size for this frame.
 	// No-op unless audio-reactive is on and the mode is an attractor.
 	saved := applyAudioModulation(mode)
-	// Track the most recent real flow mode — the bifurcation explorer
-	// sweeps it.
-	if _, isFlow := flowFor4(mode); isFlow && mode != "bifurcation" {
+	// Track the most recent real flow mode — the bifurcation explorer sweeps
+	// it and the Poincaré section sections it. Both are excluded by name: they
+	// are not flows, but flowFor4 also answers from integrate3D's per-frame
+	// capture, so a mode that ever reached that loop could name ITSELF as its
+	// own source and section its own scatter.
+	if _, isFlow := flowFor4(mode); isFlow && mode != "bifurcation" && mode != "poincare" {
 		lastFlowMode = mode
 	}
 	// Twin-trajectory divergence (Trace > Twin): draws both copies itself.
