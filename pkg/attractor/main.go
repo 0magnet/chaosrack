@@ -240,6 +240,7 @@ func Run() {
 	knobifyFixed("pan-y", "slider-value-pany", true)
 	knobifyFixed("speed-slider", "slider-value-speed", true)
 	knobifyFixed("line-width", "slider-value-line", true)
+	knobifyFixed("dash-duty", "slider-value-dash", true)
 	knobifyFixed("trail-slider", "slider-value-trail", true)
 	knobifyFixed("rainbow-freq", "slider-value-rfreq", true)
 	rkx := knobifyFixed("rotation-controls-x", "slider-value-x", false)
@@ -1054,8 +1055,8 @@ func Run() {
 			gstack := stackKnobs(makeSelectorKnob(gsrc), makeSelectorKnob(gcol))
 			// Concentric clickable labels replace the dropdowns: source (what the
 			// color follows) on the OUTER ring, palette (color count) on the INNER.
-			addSelectorLabels(gstack, []string{"X", "Y", "Z", "trl"}, gsrc, 43)
-			addSelectorLabels(gstack, []string{"1", "2", "3", "∞"}, gcol, 31)
+			addSelectorLabels(gstack, []string{"X", "Y", "Z", "trl", "aud"}, gsrc, 43)
+			addSelectorLabels(gstack, []string{"1", "2", "3", "∞", "ht", "bl", "gy", "tb", "vr", "mg"}, gcol, 31)
 			holder.Call("appendChild", gstack)
 			gsrc.Get("style").Set("display", "none")
 			gcol.Get("style").Set("display", "none")
@@ -1163,6 +1164,11 @@ func Run() {
 			}
 			gl.Call("lineWidth", v)
 		}})
+	// The points/line continuum. Def 1 is the solid trace this has always
+	// drawn, so an existing view is unchanged until the knob is turned.
+	adoptDescControl(ControlDesc{ID: "dash-duty", Label: "Points", Min: 0, Max: 4000, Step: 10, Def: 0,
+		PermaKey: "pts", LEDID: "slider-value-dash", ResetID: "rst-dash",
+		Apply: func(v float64) { pointCount = float32(v) }})
 	adoptDescControl(ControlDesc{ID: "trail-slider", Label: "Trail", Min: 1000, Max: 500000, Step: 1000, Def: 20000,
 		PermaKey: "tr", LEDID: "slider-value-trail", ResetID: "rst-trail",
 		Apply: func(v float64) {

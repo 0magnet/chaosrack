@@ -28,6 +28,10 @@ var (
 	uMinYLoc            js.Value
 	uMaxYLoc            js.Value
 	uGradientSourceLoc  js.Value
+	uAudioLUTLoc        js.Value
+	uPaletteLoc         js.Value
+	uDashDutyLoc        js.Value
+	uDashCountLoc       js.Value
 	uGradientColorsLoc  js.Value
 	uGradientFreqLoc    js.Value
 	uGradientPhaseLoc   js.Value
