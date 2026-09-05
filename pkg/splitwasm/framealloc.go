@@ -90,7 +90,7 @@ func allocFragmented(kb int) {
 			sz = remaining
 		}
 		b := make([]byte, sz)
-		b[0] = byte(sz)
+		b[0] = byte(sz) //nolint:gosec // G115: sz is 16..8207 and the byte is only touched so the allocation is not optimized away; the value is never read
 		fragSink = append(fragSink, b)
 		remaining -= sz
 	}
