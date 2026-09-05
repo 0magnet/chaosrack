@@ -7,7 +7,7 @@
 // together. Joining the projected corners with straight lines is enough — the
 // perspective divide alone makes the box turn.
 //
-// It is not quite enough, though, because a wireframe drawn in one colour is
+// It is not quite enough, though, because a wireframe drawn in one color is
 // ambiguous: the eye cannot tell which face is towards it, and the box appears
 // to flip inside out every second or so. Shading each edge by its depth fixes
 // that, and is the reason the near edges here are bright and the far ones dark.
@@ -28,7 +28,7 @@ import (
 	"github.com/0magnet/termanim/canvas"
 )
 
-// camDist is the camera's distance from the centre of the solid, in the units
+// camDist is the camera's distance from the center of the solid, in the units
 // the vertices are given in. Near enough that the perspective divide is
 // obvious, far enough that a corner swinging towards the viewer does not shoot
 // off the screen.
@@ -103,7 +103,7 @@ type Cube struct {
 	key    []float64
 
 	// oozNear and oozFar bracket the inverse depths the solid can reach, and
-	// are what the depth shading is normalised against. Computed from the
+	// are what the depth shading is normalized against. Computed from the
 	// vertex radii in Resize; using the actual per-frame range instead would
 	// make the brightness breathe as the solid turns.
 	oozNear, oozFar float64
@@ -118,7 +118,7 @@ type Cube struct {
 	// at its widest. Read in Resize.
 	Fill float64
 	// Floor is the palette index the farthest edge is drawn at, 0 to 1. Zero
-	// would make the back of the solid the same colour as the background and
+	// would make the back of the solid the same color as the background and
 	// the wireframe would look broken rather than deep.
 	Floor float64
 	// Palette shades the edges by depth, dark at the back and bright at the
@@ -168,7 +168,7 @@ func (c *Cube) Resize(w, h int) {
 	c.order = make([]int, len(c.Solid.Edges))
 	c.key = make([]float64, len(c.Solid.Edges))
 
-	// The farthest corner from the centre sets both the scale and the depth
+	// The farthest corner from the center sets both the scale and the depth
 	// range: rotation can put any corner anywhere on the sphere of its own
 	// radius, so that radius is the whole envelope.
 	maxR := 0.0

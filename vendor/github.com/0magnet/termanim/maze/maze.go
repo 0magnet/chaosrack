@@ -4,7 +4,7 @@
 //
 // Carving is recursive backtracking, which is depth-first search with the
 // visited set doing double duty as the maze: stand on a cell, pick an unvisited
-// neighbour at random, knock down the wall between them and move there; when
+// neighbor at random, knock down the wall between them and move there; when
 // there is nowhere left to go, pop back down the stack and try again from an
 // earlier cell. Every cell is entered exactly once, so the result is a perfect
 // maze — one region, no loops, exactly one route between any two cells.
@@ -16,7 +16,7 @@
 //
 // This is a pixel animation: a maze is walls and corridors, not characters, and
 // the half-block surface gives square pixels to draw them with. A cell is two
-// pixels by two, with one pixel of wall between neighbours, so a cell costs
+// pixels by two, with one pixel of wall between neighbors, so a cell costs
 // three pixels of pitch and the grid ends on a closing wall.
 package maze
 
@@ -53,7 +53,7 @@ var step = [4][2]int{
 func back(d int) int { return (d + 2) % 4 }
 
 // A cell is in exactly one of these states, and they are ordered: where two
-// cells meet, the passage between them is drawn in the colour of the lesser of
+// cells meet, the passage between them is drawn in the color of the lesser of
 // the two, so the solved route lights up its own corridors and nothing else.
 const (
 	unvisited uint8 = iota
@@ -75,7 +75,7 @@ const (
 // Maze is the animation. The zero value is not usable; call New.
 type Maze struct {
 	cw, ch int // the maze in cells
-	ox, oy int // pixel offset that centres the grid in the surface
+	ox, oy int // pixel offset that centers the grid in the surface
 
 	open  []uint8 // which walls are down, one bit per direction
 	state []uint8
@@ -112,7 +112,7 @@ type Maze struct {
 	// HoldSeconds is how long the solved maze is left up before the next one.
 	HoldSeconds float64
 
-	// Wall is the colour of everything not carved out yet — both the walls and
+	// Wall is the color of everything not carved out yet — both the walls and
 	// the ground the digger has not reached.
 	Wall tcell.Color
 	// Corridor is carved but unexplored floor. Dim: it is the backdrop the
@@ -146,7 +146,7 @@ func New(seed int64) *Maze {
 
 // Resize sizes the grid to the surface and starts a new maze.
 func (m *Maze) Resize(w, h int) {
-	// Whole cells only, and the grid is centred: a maze with a ragged strip of
+	// Whole cells only, and the grid is centered: a maze with a ragged strip of
 	// nothing down one side looks like a drawing bug rather than a margin.
 	m.cw = (w - 1) / pitch
 	m.ch = (h - 1) / pitch
@@ -231,8 +231,8 @@ func (m *Maze) restart() {
 
 func (m *Maze) cell(cx, cy int) int { return cy*m.cw + cx }
 
-// neighbour returns the cell one step in direction d, and whether it exists.
-func (m *Maze) neighbour(c, d int) (int, bool) {
+// neighbor returns the cell one step in direction d, and whether it exists.
+func (m *Maze) neighbor(c, d int) (int, bool) {
 	cx, cy := c%m.cw, c/m.cw
 	nx, ny := cx+step[d][0], cy+step[d][1]
 	if nx < 0 || ny < 0 || nx >= m.cw || ny >= m.ch {
@@ -250,13 +250,13 @@ func (m *Maze) carveStep() {
 	c := m.stack[len(m.stack)-1]
 	m.head = c
 
-	// Collect the neighbours that have not been dug into yet. Choosing among
+	// Collect the neighbors that have not been dug into yet. Choosing among
 	// them uniformly is what makes the corridors wander; always taking the first
 	// gives long combs of parallel passages.
 	var choice [4]int
 	n := 0
 	for d := 0; d < 4; d++ {
-		if nb, ok := m.neighbour(c, d); ok && m.state[nb] == unvisited {
+		if nb, ok := m.neighbor(c, d); ok && m.state[nb] == unvisited {
 			choice[n] = d
 			n++
 		}
@@ -268,7 +268,7 @@ func (m *Maze) carveStep() {
 		return
 	}
 	d := choice[m.rng.Intn(n)]
-	nb, _ := m.neighbour(c, d)
+	nb, _ := m.neighbor(c, d)
 	m.open[c] |= 1 << uint(d)
 	m.open[nb] |= 1 << uint(back(d))
 	m.state[nb] = carved
@@ -309,7 +309,7 @@ func (m *Maze) solveStep() {
 		if m.open[c]&(1<<uint(d)) == 0 {
 			continue // there is a wall this way
 		}
-		nb, ok := m.neighbour(c, d)
+		nb, ok := m.neighbor(c, d)
 		if !ok || m.state[nb] == explored {
 			continue
 		}
@@ -380,8 +380,8 @@ func (m *Maze) Frame(s *canvas.Surface, dt float64) {
 	m.draw(s)
 }
 
-// colourFor is the colour a cell in this state is drawn in.
-func (m *Maze) colourFor(st uint8) tcell.Color {
+// colorFor is the color a cell in this state is drawn in.
+func (m *Maze) colorFor(st uint8) tcell.Color {
 	switch st {
 	case carved:
 		return m.Corridor
@@ -418,20 +418,20 @@ func (m *Maze) draw(s *canvas.Surface) {
 			}
 			x0 := m.ox + 1 + cx*pitch
 			y0 := m.oy + 1 + cy*pitch
-			fill(s, x0, y0, 2, 2, m.colourFor(st))
+			fill(s, x0, y0, 2, 2, m.colorFor(st))
 
 			// Open walls become two-pixel doorways joining the cells either
-			// side. Only east and south are drawn, since the neighbour draws the
+			// side. Only east and south are drawn, since the neighbor draws the
 			// other half of every pair and doing both would paint each doorway
 			// twice.
 			if m.open[c]&(1<<east) != 0 {
-				if nb, ok := m.neighbour(c, east); ok {
-					fill(s, x0+2, y0, 1, 2, m.colourFor(min(st, m.state[nb])))
+				if nb, ok := m.neighbor(c, east); ok {
+					fill(s, x0+2, y0, 1, 2, m.colorFor(min(st, m.state[nb])))
 				}
 			}
 			if m.open[c]&(1<<south) != 0 {
-				if nb, ok := m.neighbour(c, south); ok {
-					fill(s, x0, y0+2, 2, 1, m.colourFor(min(st, m.state[nb])))
+				if nb, ok := m.neighbor(c, south); ok {
+					fill(s, x0, y0+2, 2, 1, m.colorFor(min(st, m.state[nb])))
 				}
 			}
 		}

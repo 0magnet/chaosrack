@@ -29,3 +29,17 @@ func Assets() fs.FS {
 	}
 	return sub
 }
+
+// panelNoWasm is the desk chrome as a single plain-JS asset — the taskbar, the
+// ☰ launcher menu, and per-window taskbar buttons over winbox — for pages that
+// must not (or cannot) load any wasm. The Go panel (panel.go) is the desk's
+// real chrome; this asset exists for the host page that is a shell OVER a
+// native process and has to render instantly with nothing wasm-shaped booting
+// (skywire's native hypervisor desk is the driving case). It publishes
+// globalThis.skywireDeskPanel.mount(document, opts).
+//
+//go:embed panel-nowasm.js
+var panelNoWasm []byte
+
+// PanelNoWasmJS returns the no-wasm desk chrome asset (see panelNoWasm).
+func PanelNoWasmJS() []byte { return panelNoWasm }

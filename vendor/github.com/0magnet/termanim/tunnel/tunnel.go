@@ -2,7 +2,7 @@
 //
 // The trick is that a straight tube seen from inside has a closed-form
 // mapping from the screen back to its surface. For a pixel at angle a and
-// distance r from the centre, the point of the tube it shows is at the same
+// distance r from the center, the point of the tube it shows is at the same
 // angle a and at a distance along the tube proportional to one over r: the
 // far end of the tube crowds into the vanishing point, so small r means large
 // depth. Index a repeating pattern by that pair and the flat screen reads as
@@ -50,7 +50,7 @@ type Tunnel struct {
 	w, h int
 
 	// Per-pixel tables, row-major, rebuilt on resize. angle is the bearing of
-	// the pixel from the centre and depth is how far down the tube it shows.
+	// the pixel from the center and depth is how far down the tube it shows.
 	// shade is separate because it must not wrap: it is how bright the tube
 	// is at that distance, and a wrap there would put a hard black ring where
 	// the light should simply be fading out.
@@ -67,7 +67,7 @@ type Tunnel struct {
 	Speed float64
 	// Spin multiplies how fast the tube rolls about the axis of travel.
 	Spin float64
-	// Palette colours the tube by distance, dark at the vanishing point and
+	// Palette colors the tube by distance, dark at the vanishing point and
 	// bright at the mouth.
 	Palette canvas.Palette
 	// Contrast is how much darker the dark squares of the checker are, from 0
@@ -120,7 +120,7 @@ func (t *Tunnel) Resize(w, h int) {
 		for x := 0; x < w; x++ {
 			dx := float64(x) - cx
 			r := math.Hypot(dx, dy)
-			// The exact centre is the vanishing point, where the depth is
+			// The exact center is the vanishing point, where the depth is
 			// infinite. Clamping just under a pixel keeps the division finite
 			// without moving anything that can be seen.
 			if r < 0.5 {
@@ -135,7 +135,7 @@ func (t *Tunnel) Resize(w, h int) {
 			a := (math.Atan2(dy, dx) + math.Pi) / (2 * math.Pi) * 256
 			t.angle[i] = uint8(int(a) & 255)
 
-			// Depth grows without bound towards the centre; only its low bits
+			// Depth grows without bound towards the center; only its low bits
 			// survive into the byte, and those are the ones the pattern uses.
 			t.depth[i] = uint8(int(radius/r) & 255)
 

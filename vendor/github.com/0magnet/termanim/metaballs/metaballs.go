@@ -3,7 +3,7 @@
 // Each ball contributes a field that falls off with distance; the field at a
 // pixel is the sum of every ball's contribution. Where two balls approach, the
 // sums add and the surface between them bulges out and joins, which is what
-// makes them look like liquid rather than circles. Colouring by field strength
+// makes them look like liquid rather than circles. Coloring by field strength
 // instead of thresholding gives the soft halo.
 //
 // Written from that description. libcaca's cacademo shows one of these; no
@@ -34,7 +34,7 @@ type Metaballs struct {
 	// Count is how many balls to simulate. More is denser and slower; the
 	// cost is Count multiplies per pixel per frame.
 	Count int
-	// Palette colours the field, dim at the edges and bright in the cores.
+	// Palette colors the field, dim at the edges and bright in the cores.
 	Palette canvas.Palette
 }
 
@@ -115,7 +115,7 @@ func (m *Metaballs) Frame(s *canvas.Surface, dt float64) {
 				field += 1 / d2
 			}
 			// field is unbounded near a core. Compress it so the cores do not
-			// all saturate to the same flat colour.
+			// all saturate to the same flat color.
 			v := int(255 * field / (field + 3))
 			if v > 255 {
 				v = 255

@@ -178,3 +178,19 @@ install-linters: ## Install the linters
 
 docs: ## Regenerate the dependency graph and code counts in the README
 	./gendocs.sh
+
+# --- demo ---------------------------------------------------------------
+# The page committed under docs/, which is what GitHub Pages serves.
+
+.PHONY: demo serve-demo
+
+demo: docs/calvin.wasm docs/wasm_exec.js ## build the demo page
+
+docs/calvin.wasm: $(shell find . -name '*.go' -not -path './vendor/*' -not -path './docs/*')
+	GOOS=js GOARCH=wasm go build -ldflags="-s -w" -o $@ ./web
+
+docs/wasm_exec.js:
+	cp "$$(go env GOROOT)/lib/wasm/wasm_exec.js" $@
+
+serve-demo: demo ## serve the demo at http://127.0.0.1:8797
+	go run ./serve -dir docs -addr :8797

@@ -1,14 +1,14 @@
 // Package life is Conway's Game of Life.
 //
 // The rules are the published ones and are four lines long: a live cell with
-// two or three live neighbours survives, a dead cell with exactly three live
-// neighbours is born, everything else is dead next generation. B3/S23. The
+// two or three live neighbors survives, a dead cell with exactly three live
+// neighbors is born, everything else is dead next generation. B3/S23. The
 // grid here is a torus, so gliders that leave one edge come back in at the
 // other instead of falling off the world.
 //
 // This is written from those rules; no existing implementation was read or
 // transliterated. What is added on top is entirely about making it watchable:
-// cells are coloured by how long they have been alive, and the simulation
+// cells are colored by how long they have been alive, and the simulation
 // notices when it has stopped being interesting and reseeds itself.
 package life
 
@@ -26,7 +26,7 @@ type Life struct {
 	w, h int
 
 	// cur holds an age per cell rather than a bit: 0 is dead, n means alive and
-	// alive for n generations, saturating at 255. Life drawn as one flat colour
+	// alive for n generations, saturating at 255. Life drawn as one flat color
 	// reads as television static — every cell looks the same and the eye cannot
 	// tell a stable block from a boiling region. Age gives the pattern a
 	// history: births flash bright, still lifes settle into the dark end of the
@@ -35,7 +35,7 @@ type Life struct {
 	// next is the buffer the following generation is written into. Life is
 	// defined as a simultaneous update — every cell reads the same generation —
 	// so writing new states into the grid being read would let a cell see its
-	// neighbour's future. Double buffering is not an optimisation here, it is
+	// neighbor's future. Double buffering is not an optimization here, it is
 	// the rule.
 	cur, next []byte
 
@@ -224,7 +224,7 @@ func (l *Life) step() {
 	w, h := l.w, l.h
 	pop := 0
 	for y := 0; y < h; y++ {
-		// Neighbour rows are resolved once per row rather than once per cell.
+		// Neighbor rows are resolved once per row rather than once per cell.
 		// The wrap is what makes the grid a torus.
 		up, dn := y-1, y+1
 		if up < 0 {

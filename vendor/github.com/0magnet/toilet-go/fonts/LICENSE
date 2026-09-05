@@ -1,0 +1,43 @@
+The FIGfonts in this directory are separate works from the program that reads
+them. They are the twenty-four fonts TOIlet installs, copied unmodified from
+its source tree, and they are redistributed here under their own licence.
+
+Every one of them is by Sam Hocevar and is covered by the WTFPL. The
+hand-written fonts state it in their own comment block, in these words:
+
+    This font is free software. It comes without any warranty, to the extent
+  permitted by applicable law. You can redistribute it and/or modify it under
+  the terms of the Do What The Fuck You Want To Public License, Version 2,
+  as published by Sam Hocevar. See http://sam.zoy.org/wtfpl/COPYING for more
+  details.
+
+    This font is part of TOIlet's official distribution. More information
+  on the TOIlet website at http://caca.zoy.org/wiki/toilet
+
+The remaining fonts — ascii9, ascii12, bigascii9, bigascii12, bigmono9,
+bigmono12, mono9, mono12, smascii9, smascii12, smmono9, smmono12 — were
+generated from libcaca's own bitmap fonts by the caca2tlf tool in TOIlet's
+tools/ directory, and carry that tool's invocation as their comment instead of
+a licence block. They are covered by TOIlet's COPYING, which is the WTFPL, and
+by the grant TOIlet prints in its version banner:
+
+  TOIlet, along with the various TOIlet fonts and documentation, may be
+  freely copied and distributed.
+
+Fonts from the figlet collection are deliberately not bundled: they are the
+work of many different authors under many different licences, several of which
+do not permit redistribution. Point -d at a directory of your own to use them.
+
+            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+                    Version 2, December 2004
+
+ Copyright (C) 2004 Sam Hocevar <sam@hocevar.net>
+
+ Everyone is permitted to copy and distribute verbatim or modified
+ copies of this license document, and changing it is allowed as long
+ as the name is changed.
+
+            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+   TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+
+  0. You just DO WHAT THE FUCK YOU WANT TO.
