@@ -7,7 +7,7 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.0-20260905010931-2a584b71d89c
+# github.com/0magnet/audioprism-go v0.0.0-20260905161232-52a1f58d4844
 ## explicit; go 1.26.2
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
@@ -91,13 +91,13 @@ github.com/0magnet/termanim/sand
 github.com/0magnet/termanim/snow
 github.com/0magnet/termanim/starfield
 github.com/0magnet/termanim/tunnel
-# github.com/0magnet/toilet-go v0.0.0-20260905001452-3a6b46d6d462
+# github.com/0magnet/toilet-go v0.0.0-20260905011609-ab34357c2de4
 ## explicit; go 1.25.0
 github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20260905011031-cf3fd45715f6
+# github.com/0magnet/tuiwasm v0.0.0-20260905161317-ca18bd83ace3
 ## explicit; go 1.26.5
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -238,7 +238,7 @@ github.com/cloudwego/base64x/internal/rt
 # github.com/creack/pty v1.1.24
 ## explicit; go 1.18
 github.com/creack/pty
-# github.com/dlclark/regexp2/v2 v2.7.1
+# github.com/dlclark/regexp2/v2 v2.7.2
 ## explicit; go 1.25
 github.com/dlclark/regexp2/v2
 github.com/dlclark/regexp2/v2/helpers
@@ -308,7 +308,7 @@ github.com/gdamore/tcell/v3/encoding
 github.com/gdamore/tcell/v3/internal/widthutil
 github.com/gdamore/tcell/v3/tty
 github.com/gdamore/tcell/v3/vt
-# github.com/gin-contrib/sse v1.1.1
+# github.com/gin-contrib/sse v1.1.2
 ## explicit; go 1.23
 github.com/gin-contrib/sse
 # github.com/gin-gonic/gin v1.12.0
