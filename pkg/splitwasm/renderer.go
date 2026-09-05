@@ -69,6 +69,19 @@ func (r *renderer) readParams() {
 	js.CopyBytesToGo(r.raw, r.sharedU8)
 }
 
+// buildGlobe fills the vertex and index buffers for the globe.
+//
+// The index buffer is UNSIGNED_SHORT, so it cannot address a vertex past
+// 65535, and lat and lon come from knobs — the one place in this program
+// where geometry size is driven by something a person can turn. At
+// pts=60 the vertex count is 61*(lat-1+lon), so the knob maxima in
+// control.go (parallels 60, meridians 90) give 9089 and the budget is
+// nowhere near spent. Raise either range far enough and the base index
+// below wraps, which does not fail — it draws a scrambled globe.
+//
+// pkg/geom carries the same arithmetic and TestKnobMaximaFitTheIndexSpace
+// pins those maxima there, since this package is js-tagged and cannot be
+// reached from a native test.
 func (r *renderer) buildGlobe(lat, lon int, twist float64) {
 	if lat < 2 {
 		lat = 2
@@ -81,7 +94,7 @@ func (r *renderer) buildGlobe(lat, lon int, twist float64) {
 	ix := r.idx[:0]
 	for i := 1; i < lat; i++ {
 		phi := float64(i) * math.Pi / float64(lat)
-		base := uint16(len(v) / 3)
+		base := uint16(len(v) / 3) //nolint:gosec // G115: bounded by the knob maxima; see buildGlobe
 		for j := 0; j <= pts; j++ {
 			th := float64(j) * 2 * math.Pi / float64(pts)
 			v = append(v,
@@ -95,7 +108,7 @@ func (r *renderer) buildGlobe(lat, lon int, twist float64) {
 	}
 	for j := 0; j < lon; j++ {
 		th0 := float64(j) * 2 * math.Pi / float64(lon)
-		base := uint16(len(v) / 3)
+		base := uint16(len(v) / 3) //nolint:gosec // G115: bounded by the knob maxima; see buildGlobe
 		for i := 0; i <= pts; i++ {
 			phi := float64(i) * math.Pi / float64(pts)
 			th := th0 + twist*phi
@@ -124,14 +137,14 @@ func f32Bytes(s []float32) []byte {
 	if len(s) == 0 {
 		return nil
 	}
-	return unsafe.Slice((*byte)(unsafe.Pointer(&s[0])), len(s)*4)
+	return unsafe.Slice((*byte)(unsafe.Pointer(&s[0])), len(s)*4) //nolint:gosec // G103: reinterpreting the slice is the only way to hand it to js.CopyBytesToJS without copying every element per frame
 }
 
 func u16Bytes(s []uint16) []byte {
 	if len(s) == 0 {
 		return nil
 	}
-	return unsafe.Slice((*byte)(unsafe.Pointer(&s[0])), len(s)*2)
+	return unsafe.Slice((*byte)(unsafe.Pointer(&s[0])), len(s)*2) //nolint:gosec // G103: as f32Bytes
 }
 
 func f32Array(s []float32) js.Value {
