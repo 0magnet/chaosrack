@@ -25,7 +25,7 @@ func TestEmbeddedBuildIsNotStale(t *testing.T) {
 	// push — on a pull request no refresh can happen, so the test runs and
 	// says so. Locally it always runs, which is where the forgetting this
 	// exists to catch actually happens.
-	if os.Getenv("TINYWASM_REFRESHED_BY_CI") != "" {
+	if os.Getenv("WASM_REFRESHED_BY_CI") != "" {
 		t.Skip("CI rebuilds and commits this artifact; staleness here is about to be fixed")
 	}
 
