@@ -43,6 +43,11 @@ type Options struct {
 	// Greeting is written once, before the first prompt.
 	Greeting string
 
+	// Env holds extra "NAME=value" variables for the shell's environment,
+	// overriding the defaults on a name clash. An embedder uses it to put a
+	// toolchain on the PATH, say.
+	Env []string
+
 	// Scrollback is the number of lines kept. Zero means 2000.
 	Scrollback int
 
@@ -131,7 +136,7 @@ func NewSession(el js.Value, opt Options) (*Session, error) {
 	stdinR, stdinW := io.Pipe()
 	s.stdinW = stdinW
 
-	sh, err := shell.New(fsys, stdinR, termWriter{s.Term}, termWriter{s.Term})
+	sh, err := shell.New(fsys, stdinR, termWriter{s.Term}, termWriter{s.Term}, opt.Env...)
 	if err != nil {
 		s.Term.Dispose()
 		return nil, fmt.Errorf("websh: %w", err)

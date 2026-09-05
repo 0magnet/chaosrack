@@ -26,7 +26,7 @@ type Fire struct {
 
 	// acc carries the fraction of a simulation step left over from the last
 	// frame. The cooling rule is a discrete step — a cell becomes the average
-	// of its neighbours — so it cannot be run by a fractional amount; instead
+	// of its neighbors — so it cannot be run by a fractional amount; instead
 	// elapsed time accumulates and whole steps are taken from it.
 	acc float64
 
@@ -51,7 +51,7 @@ type Fire struct {
 	decay []int
 
 	// Palette can be replaced before the first frame to burn a different
-	// colour. Green fire is a perfectly good screensaver.
+	// color. Green fire is a perfectly good screensaver.
 	Palette canvas.Palette
 }
 

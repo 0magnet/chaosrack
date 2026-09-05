@@ -77,7 +77,7 @@ var current *Screen
 // only way to get the cells into an emulator written in Go, makes every cell a
 // Go -> JS -> Go round trip carrying eight arguments. Measured in this browser
 // it costs 79us per cell: a full redraw of a 200x50 window is 794ms against a
-// 16.7ms frame budget, and the marshalling of the arguments is fifty times the
+// 16.7ms frame budget, and the marshaling of the arguments is fifty times the
 // cost of the call itself. One animation was enough to saturate a core and stop
 // the page answering; the same frame handed over as a single string costs
 // 0.40ms.
@@ -115,7 +115,7 @@ type Screen struct {
 
 	// The last styling written, so a run of cells that share it says it once.
 	// It is most of the bytes — a cell is about ten of position and thirty-odd
-	// of colour — and neighbouring cells nearly always share a style.
+	// of color — and neighboring cells nearly always share a style.
 	//
 	// The inputs are compared rather than the rendered sequence, so an
 	// unchanged style costs nothing at all.
@@ -493,7 +493,7 @@ func (s *Screen) flushLocked() {
 	s.buf = s.buf[:0]
 }
 
-// colorHex renders a tcell colour as 0xRRGGBB, or -1 for "whatever the
+// colorHex renders a tcell color as 0xRRGGBB, or -1 for "whatever the
 // terminal's default is", which the sequence builders substitute for.
 func colorHex(c tcell.Color) int {
 	if !c.Valid() {
@@ -572,7 +572,7 @@ func (s *Screen) PollEvent() tcell.Event {
 func (s *Screen) HasPendingEvent() bool { return len(s.evch) > 0 }
 
 // ChannelEvents forwards events until quit is closed or the screen is
-// finalised, and closes ch on the way out.
+// finalized, and closes ch on the way out.
 //
 // Closing ch is the contract callers rely on to notice a screen going away:
 // an animation loop selects on it and returns when it closes, which is how a

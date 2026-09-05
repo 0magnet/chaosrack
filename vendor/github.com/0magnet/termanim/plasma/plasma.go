@@ -1,8 +1,8 @@
-// Package plasma is the drifting coloured field of the demoscene.
+// Package plasma is the drifting colored field of the demoscene.
 //
 // The method predates the terminal by decades: sum a few sine waves of the
 // pixel coordinates, offset each by time, and use the total as an index into a
-// looping colour ramp. Because the sines never align the same way twice the
+// looping color ramp. Because the sines never align the same way twice the
 // field appears to seethe without ever repeating visibly, and because the ramp
 // closes on itself there is no seam where the sum wraps.
 //

@@ -60,14 +60,14 @@ type Starfield struct {
 	rng   *rand.Rand
 
 	// Density is stars per thousand pixels. Counting in pixels rather than
-	// fixing a total keeps a maximised window as thick with stars as a small
+	// fixing a total keeps a maximized window as thick with stars as a small
 	// one, instead of leaving a few lonely dots in a large void.
 	Density float64
 	// Speed multiplies how fast the field approaches. 1 is a comfortable
 	// cruise; much above 4 the near stars jump so far between frames that
 	// they read as dashes rather than motion.
 	Speed float64
-	// Palette colours a star by how near it is, dim at the far plane and
+	// Palette colors a star by how near it is, dim at the far plane and
 	// white as it passes. Its low entries should be dark but not black: a
 	// star drawn in black would be a hole in the sky rather than a faint star.
 	Palette canvas.Palette

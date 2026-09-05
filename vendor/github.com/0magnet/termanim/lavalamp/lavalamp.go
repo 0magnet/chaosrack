@@ -74,7 +74,7 @@ type LavaLamp struct {
 	// twice as viscous when drawn twice as often. This is the same viscosity at
 	// any frame rate, and reduces to the same thing at the rate it was tuned at.
 	Drag float64
-	// Palette colours the field. It should be a hot ramp — the animation is
+	// Palette colors the field. It should be a hot ramp — the animation is
 	// literally about temperature, and the eye reads a black-red-yellow
 	// sequence as heat without being told.
 	Palette canvas.Palette
@@ -116,7 +116,7 @@ const (
 	// widest. A lava lamp is a cone that has been rounded off; without a
 	// distinctly narrow top the silhouette is a rectangle and the illusion goes.
 	neckFrac = 0.42
-	// wallGap keeps a blob's centre off the glass, as a fraction of the widest
+	// wallGap keeps a blob's center off the glass, as a fraction of the widest
 	// half width, so wax flattens against the wall instead of half of it
 	// disappearing through the outside of the vessel.
 	wallGap = 0.12
@@ -215,7 +215,7 @@ func (l *LavaLamp) halfWidth(y float64) float64 {
 	return hw
 }
 
-// limit is how far from the axis a blob's centre may sit at height y.
+// limit is how far from the axis a blob's center may sit at height y.
 func (l *LavaLamp) limit(y float64) float64 {
 	lim := l.halfWidth(y) - wallGap*l.maxHalf
 	if lim < 0 {
@@ -364,13 +364,13 @@ func (l *LavaLamp) draw(s *canvas.Surface) {
 				c := 1 / d2
 				field += c
 				// Carry the temperature along with the field so a pixel can be
-				// coloured by whose wax it is standing in, weighted by how much
+				// colored by whose wax it is standing in, weighted by how much
 				// each blob contributes there. Two blobs merging blend their
 				// heat across the join instead of meeting at a hard edge.
 				hot += c * b.temp
 			}
 			// field is unbounded near a core; compress it so the cores do not
-			// all saturate to one flat colour.
+			// all saturate to one flat color.
 			v := 255 * field / (field + 3)
 			if v < cutoff {
 				// Unlit oil. The glass wall and the glow of the element are the
@@ -385,7 +385,7 @@ func (l *LavaLamp) draw(s *canvas.Surface) {
 			}
 			// Modulate by temperature: cold wax settles to a dull red, hot wax
 			// to yellow and white. The geometry decides the shape, the heat
-			// decides the colour.
+			// decides the color.
 			v *= 0.68 + 0.5*(hot/field)
 			i := int(v)
 			if i > 255 {

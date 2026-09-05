@@ -3,7 +3,7 @@
 // The whole machine is two rules. An ant sits on a cell of a grid facing one
 // of four directions: on a white cell it turns right, paints the cell black
 // and steps forward; on a black cell it turns left, paints it white and steps
-// forward. That is all of it, and out of it comes the famous behaviour — about
+// forward. That is all of it, and out of it comes the famous behavior — about
 // ten thousand steps of what looks like pure noise, and then, with no warning
 // and for no reason anyone has managed to prove in general, the ant falls into
 // a 104-step cycle that translates it across the plane forever, building a
@@ -13,7 +13,7 @@
 // transliterated. The grid wraps, so a highway does not escape but drives back
 // into its own old territory, which knocks the ant out of the cycle and starts
 // the chaos again. Several ants share the board and paint in different
-// colours: they cross each other's trails constantly, and the interference is
+// colors: they cross each other's trails constantly, and the interference is
 // far better to watch than a single ant.
 package langton
 
@@ -43,10 +43,10 @@ type Langton struct {
 
 	// cell is 0 for a white cell, or 1+the index of the ant that last painted
 	// it black. Folding ownership into the state byte is what lets each ant
-	// have its own colour without a second grid.
+	// have its own color without a second grid.
 	cell []byte
 	// stamp is the step count at which each cell was last flipped. Drawing
-	// straight from cell would give one flat slab of colour per ant with no
+	// straight from cell would give one flat slab of color per ant with no
 	// sense of what the ant is doing now; fading by how long ago a cell was
 	// touched makes the live front of the pattern glow and the old work recede.
 	stamp []uint32
@@ -79,9 +79,9 @@ type Langton struct {
 	MinIntensity int
 }
 
-// antColours are the base hues ants paint with, in order. Ants past the end of
+// antColors are the base hues ants paint with, in order. Ants past the end of
 // the list wrap round and reuse a hue, which only happens with a lot of ants.
-var antColours = [][3]int{
+var antColors = [][3]int{
 	{255, 96, 72},
 	{88, 208, 255},
 	{255, 214, 96},
@@ -102,7 +102,7 @@ func New(seed int64) *Langton {
 	}
 }
 
-// Resize allocates the grid, places the ants and builds one colour ramp per
+// Resize allocates the grid, places the ants and builds one color ramp per
 // ant. Called by canvas.Run before the first frame.
 func (l *Langton) Resize(w, h int) {
 	l.w, l.h = w, h
@@ -124,7 +124,7 @@ func (l *Langton) Resize(w, h int) {
 			l.ants[i].x = l.rng.Intn(w)
 			l.ants[i].y = l.rng.Intn(h)
 		}
-		c := antColours[i%len(antColours)]
+		c := antColors[i%len(antColors)]
 		// Each ramp runs from a very dark version of the hue to a washed-out
 		// bright one, so intensity reads as recency while the hue stays the
 		// signature of which ant did the work.

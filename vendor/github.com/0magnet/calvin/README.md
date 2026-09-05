@@ -1,6 +1,10 @@
 # calvin
 convert text to Calvin S ascii font (https://patorjk.com/software/taag/#p=display&amp;f=Calvin%20S&amp;t=)
 
+**[Live demo](https://0magnet.github.io/calvin/)** — type in the box and watch the letters turn, in both fonts.
+
+![calvin in the browser](docs/calvin-demo.png "text converted live to the Calvin S box-drawing font and to BlackboardBold")
+
 
 example:
 
@@ -134,4 +138,38 @@ $ calvin 'calvin -v 2.1 | wc -c
    ─┐   ┌─││┌─┐┬┌─││   ┌┬┐┬─┐┬ ┬┌─┐─┐      ┌─┐┌─┐O┬
 ═══ └┐  ┤   │ │├┴┐  o   │ ├┬┘│ │├┤  ├  ┌─┐ └─┤│││┌┘
    ──┘  └─  └─┘┴ ┴  o   ┴ ┴└─└─┘└─┘─┘    └┘ ─┘└─┘┴O
+```
+
+## Dependency Graph
+
+Made with [goda](https://github.com/loov/goda):
+
+```
+go run github.com/loov/goda@latest graph github.com/0magnet/calvin/... | dot -Tsvg -o docs/calvin-goda-graph.svg
+```
+
+![Dependency Graph](docs/calvin-goda-graph.svg "github.com/0magnet/calvin Dependency Graph")
+
+## Lines of Code
+
+Made with [gocloc](https://github.com/hhatto/gocloc) (excludes `vendor/`, `node_modules/`, `.git/`):
+
+```
+gocloc --not-match-d='(vendor|node_modules|\.git)' .
+```
+
+```
+-------------------------------------------------------------------------------
+Language                     files          blank        comment           code
+-------------------------------------------------------------------------------
+Go                               5             56             72            456
+Plain Text                       1             64              0            260
+Markdown                         1             26              0            111
+Makefile                         1             21             52            107
+YAML                             1              0              7             98
+Bourne Shell                     1              8             16             30
+JSON                             2              0              0             28
+-------------------------------------------------------------------------------
+TOTAL                           12            175            147           1090
+-------------------------------------------------------------------------------
 ```
