@@ -19,6 +19,22 @@ import (
 // compares that against what they hash to now. A stale artifact is now a failing
 // test rather than a runtime somebody is quietly served old code from.
 func TestEmbeddedBuildIsNotStale(t *testing.T) {
+	// CI rebuilds both wasm artifacts and commits them, so on a push there is
+	// nothing here worth reporting: this is stale for the few minutes between
+	// the source commit and the refresh commit that follows, and failing for
+	// that window would paint every push red. The variable is set only for a
+	// push — on a pull request no refresh can happen, so the test runs and
+	// says so. Locally it always runs, which is where the forgetting this
+	// exists to catch actually happens.
+	//
+	// This one was left ungated when the TinyGo test was gated, and the whole
+	// test job then failed on the first dependency bump: the fingerprint
+	// covers go.mod, so a bump stales BOTH artifacts, and CI was refreshing
+	// only one of them.
+	if os.Getenv("WASM_REFRESHED_BY_CI") != "" {
+		t.Skip("CI rebuilds and commits this artifact; staleness here is about to be fixed")
+	}
+
 	recorded, err := os.ReadFile("built-from.txt")
 	if err != nil {
 		t.Skipf("no build record yet: %v", err)
