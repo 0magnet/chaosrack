@@ -395,6 +395,14 @@ func buildParamPanel(mode string) {
 		appendTakensEstimate(grid)
 	}
 
+	if mode == "recurrence" {
+		// Same placement, same reason. The RQA cell is also what publishes the
+		// readout element, so the per-frame scan knows whether anything is
+		// displaying its result — a panel rebuild replaces the element, and
+		// this is where the new one is handed over.
+		appendRecurrenceRQA(grid)
+	}
+
 	if mode == "fvf" {
 		// Into the GRID, not #params: the grid is the height-bounded
 		// column-wrap container, so extra cells flow into a new column and the
