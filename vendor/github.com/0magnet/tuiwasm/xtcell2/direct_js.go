@@ -77,11 +77,11 @@ func (x *xtermTerm) refresh(y1, y2 int) {
 
 // packStyle renders a tcell style into the emulator's two attribute words.
 //
-// The layout is xterm.js's: the top two bits of each word are the colour mode
-// and the low 24 are the colour, with the remaining bits carrying the
+// The layout is xterm.js's: the top two bits of each word are the color mode
+// and the low 24 are the color, with the remaining bits carrying the
 // attributes, split across the two words for no reason other than that there
-// were spare bits in each. A colour mode of zero means "the terminal's
-// default", which is what an unset tcell colour should become.
+// were spare bits in each. A color mode of zero means "the terminal's
+// default", which is what an unset tcell color should become.
 func packStyle(style tcell.Style) (fg, bg uint32) {
 	fgc, bgc, attrs := style.Decompose()
 	if fgc.Valid() {

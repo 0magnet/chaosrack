@@ -10,7 +10,7 @@
 // height is kept for every column; a flake that reaches the top of its column
 // disappears into it and raises it by a pixel, and the accumulated heights are
 // drawn as a bank along the bottom. Left alone the bank would bury the screen,
-// so it also settles: a column much taller than its neighbour spills into it,
+// so it also settles: a column much taller than its neighbor spills into it,
 // which rounds the drifts off, and snow slowly compacts and melts away, which
 // bounds the depth without ever emptying the screen.
 //
@@ -36,7 +36,7 @@ var Snowfall = canvas.NewPalette(
 )
 
 type flake struct {
-	x, y  float64 // x is the centre it sways about, not where it is drawn
+	x, y  float64 // x is the center it sways about, not where it is drawn
 	vy    float64 // fall speed in pixels per second
 	phase float64 // where in its sway it currently is
 	swayW float64 // how far it swings either side of x, in pixels
@@ -44,7 +44,7 @@ type flake struct {
 	depth float64 // 0 is far away, 1 is right in front of you
 }
 
-// at returns where a flake is drawn: its centre plus the current sway.
+// at returns where a flake is drawn: its center plus the current sway.
 func (f flake) at() float64 { return f.x + f.swayW*math.Sin(f.phase) }
 
 // Snow is the animation. The zero value is not usable; call New.
@@ -81,7 +81,7 @@ type Snow struct {
 	// window; a few passes a second rounds the drifts off just as fast to the
 	// eye.
 	SettleRate float64
-	// Palette colours the flakes and the bank by depth.
+	// Palette colors the flakes and the bank by depth.
 	Palette canvas.Palette
 }
 
@@ -145,7 +145,7 @@ func (s *Snow) newFlake() flake {
 	}
 }
 
-func (s *Snow) colour(v float64) tcell.Color {
+func (s *Snow) color(v float64) tcell.Color {
 	i := int(v * 255)
 	if i < 0 {
 		i = 0
@@ -220,7 +220,7 @@ func (s *Snow) fall(dt float64) {
 	}
 }
 
-// settle spills tall columns into short neighbours and melts the bank slowly.
+// settle spills tall columns into short neighbors and melts the bank slowly.
 func (s *Snow) settle(dt float64) {
 	// A handful of columns are checked each time rather than all of them. Over
 	// a second every column is visited several times, the drifts round off just
@@ -230,7 +230,7 @@ func (s *Snow) settle(dt float64) {
 	s.settleDebt -= float64(checks)
 	for i := 0; i < checks; i++ {
 		x := s.rng.Intn(len(s.ground))
-		// A step of two or more pixels between neighbours is a cliff, and snow
+		// A step of two or more pixels between neighbors is a cliff, and snow
 		// does not hold a cliff. One pixel of slope is left alone, otherwise
 		// the bank flattens into a perfectly level slab.
 		for _, dx := range [2]int{-1, 1} {
@@ -266,7 +266,7 @@ func (s *Snow) draw(surf *canvas.Surface) {
 			// it darkens downwards into the bank; shading it the other way up
 			// lights the buried snow and the drift reads as a flat white bar.
 			v := 1 - float64(d-1-i)/float64(s.maxDepth()+2)*0.55
-			surf.Set(x, h-1-i, s.colour(v))
+			surf.Set(x, h-1-i, s.color(v))
 		}
 	}
 
@@ -280,7 +280,7 @@ func (s *Snow) draw(surf *canvas.Surface) {
 		if y < 0 {
 			continue
 		}
-		surf.Set(int(math.Floor(f.at())), y, s.colour(v))
+		surf.Set(int(math.Floor(f.at())), y, s.color(v))
 	}
 }
 

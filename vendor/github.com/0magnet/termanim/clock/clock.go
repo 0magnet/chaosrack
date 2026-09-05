@@ -9,7 +9,7 @@
 // because the obvious ancestors are copyleft, aclock is Apache-2.0 and can
 // simply be followed. So this follows it: the same dial of sixty marks, the
 // same three hands lettered h, m and a dot, the same title and digital readout
-// above and below the centre. What is new is colour, which the original has
+// above and below the center. What is new is color, which the original has
 // none of, and reading the clock every frame rather than sleeping a second
 // between redraws.
 //
@@ -47,7 +47,7 @@ type Clock struct {
 	// clock does and what the original did.
 	Sweep bool
 
-	// Colours. The original is monochrome — a terminal in 1994 largely was.
+	// Colors. The original is monochrome — a terminal in 1994 largely was.
 	Dial, Mark, Hour, Minute, Second, Text tcell.Color
 }
 
@@ -145,10 +145,10 @@ func (c *Clock) drawDial(screen tcell.Screen, cx, cy, r int) {
 	}
 }
 
-// drawHand draws one hand from the centre outward.
+// drawHand draws one hand from the center outward.
 //
 // It starts at one rather than zero so the three hands do not pile onto the
-// centre cell, where the last one drawn would be the only one visible and the
+// center cell, where the last one drawn would be the only one visible and the
 // clock would appear to have a single hand at its middle.
 func (c *Clock) drawHand(screen tcell.Screen, cx, cy int, pos float64, length int, ch rune, col tcell.Color) {
 	a := angle(pos)

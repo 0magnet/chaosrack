@@ -1,10 +1,10 @@
 // Package moire is the interference pattern of two overlapping ripples.
 //
-// Two sets of concentric rings, drawn from centres that drift apart and
+// Two sets of concentric rings, drawn from centers that drift apart and
 // together, and combined. Where crests coincide the sum is bright, where a
 // crest meets a trough they cancel — and because the ring spacing is fixed
-// while the centres move, the bands of coincidence sweep across the screen far
-// faster than either centre does. That illusion is the whole effect.
+// while the centers move, the bands of coincidence sweep across the screen far
+// faster than either center does. That illusion is the whole effect.
 //
 // Written from that description. libcaca's cacademo shows one of these; no
 // code is taken from it.
@@ -23,17 +23,17 @@ type Moire struct {
 	w, h int
 	t    float64
 
-	// dist caches the distance from each pixel to a centre, recomputed per
-	// frame per centre. Two square roots per pixel per frame is the cost of
+	// dist caches the distance from each pixel to a center, recomputed per
+	// frame per center. Two square roots per pixel per frame is the cost of
 	// this effect; there is no way around it that still looks like rings.
 	scratch []float64
 
 	// Spacing is the distance between rings, in pixels. Smaller is a finer
 	// pattern and a faster-moving interference.
 	Spacing float64
-	// Speed scales how fast the centres drift.
+	// Speed scales how fast the centers drift.
 	Speed float64
-	// Palette colours the combined amplitude.
+	// Palette colors the combined amplitude.
 	Palette canvas.Palette
 }
 
@@ -48,7 +48,7 @@ func (m *Moire) Resize(w, h int) {
 	m.scratch = make([]float64, w)
 }
 
-// Frame advances the centres and draws the interference.
+// Frame advances the centers and draws the interference.
 func (m *Moire) Frame(s *canvas.Surface, dt float64) {
 	if m.w == 0 || m.h == 0 {
 		return
@@ -57,7 +57,7 @@ func (m *Moire) Frame(s *canvas.Surface, dt float64) {
 	m.t += 0.6 * m.Speed * dt
 
 	fw, fh := float64(m.w), float64(m.h)
-	// Two centres orbiting the middle in opposite directions, on ellipses so
+	// Two centers orbiting the middle in opposite directions, on ellipses so
 	// they do not simply rotate about each other at a fixed separation.
 	ax := fw/2 + math.Cos(m.t)*fw*0.3
 	ay := fh/2 + math.Sin(m.t*1.3)*fh*0.3

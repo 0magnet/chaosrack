@@ -177,7 +177,7 @@ func In(d demos.Demo, t *xterm.Terminal, el js.Value) (*Session, error) {
 
 // Close stops the demo and releases everything set up for it.
 //
-// Finalising the screen is what ends the demo: canvas.Run and the other loops
+// Finalizing the screen is what ends the demo: canvas.Run and the other loops
 // watch the event channel the screen closes, so there is no separate stop
 // signal to send. Fini also gives back the keyboard and the terminal's own data
 // callback, so there is nothing to unwind after it.
