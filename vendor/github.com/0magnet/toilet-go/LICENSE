@@ -1,0 +1,31 @@
+            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+                    Version 2, December 2004
+
+ Copyright (C) 2004 Sam Hocevar <sam@hocevar.net>
+
+ Everyone is permitted to copy and distribute verbatim or modified
+ copies of this license document, and changing it is allowed as long
+ as the name is changed.
+
+            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+   TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+
+  0. You just DO WHAT THE FUCK YOU WANT TO.
+
+
+This Go port is derived from two programs, both released under this licence:
+
+  TOIlet          The Other Implementation's letters
+  Copyright (c) 2006 Sam Hocevar <sam@hocevar.net>
+
+  libcaca         Colour ASCII-Art library
+  Copyright (C) 2002-2021 Sam Hocevar <sam@hocevar.net>
+                2006-2007 Jean-Yves Lamoureux <jylam@lnxscene.org>
+
+TOIlet does its rendering and export work through libcaca, so the FIGfont
+handling in figlet/ and the canvas operations in canvas/ are ports of
+libcaca's figfont.c, canvas.c, string.c, attr.c, box.c, transform.c and
+codec/text.c, while toilet/ and cmd/toilet/ port TOIlet's own sources.
+
+The FIGfont files in fonts/ are separate works with their own licence. See
+fonts/LICENSE.

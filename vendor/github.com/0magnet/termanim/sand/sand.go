@@ -8,9 +8,9 @@
 // undermined. Written from that description; no existing implementation was
 // read or transliterated.
 //
-// Grains are emitted from a handful of fixed nozzles at the top whose colour
+// Grains are emitted from a handful of fixed nozzles at the top whose color
 // advances slowly, so a heap ends up banded in the order its sand arrived —
-// the pile records its own history, like the layers in a jar of coloured sand.
+// the pile records its own history, like the layers in a jar of colored sand.
 package sand
 
 import (
@@ -21,7 +21,7 @@ import (
 	"github.com/0magnet/termanim/canvas"
 )
 
-// emitter is one nozzle: a column, and the colour it is currently pouring.
+// emitter is one nozzle: a column, and the color it is currently pouring.
 type emitter struct {
 	x   int
 	hue byte
@@ -66,7 +66,7 @@ type Sand struct {
 	// more like pouring sand than a solid rod of it does.
 	EmitChance float64
 
-	// BandSteps is how many steps a nozzle keeps a colour before advancing,
+	// BandSteps is how many steps a nozzle keeps a color before advancing,
 	// and BandStep is how far it advances. Together they set how thick the
 	// stripes in a heap are.
 	BandSteps int
@@ -81,7 +81,7 @@ type Sand struct {
 	Palette canvas.Palette
 }
 
-// DefaultPalette is a closed ramp: the colour at index 255 is the colour at
+// DefaultPalette is a closed ramp: the color at index 255 is the color at
 // index 0. A nozzle's hue only ever creeps forward and wraps past the end, and
 // an open ramp would snap from one end of the spectrum to the other there,
 // putting a hard seam in the middle of an otherwise smooth band.
@@ -131,7 +131,7 @@ func (s *Sand) Resize(w, h int) {
 }
 
 // hue folds an arbitrary integer into a legal grain value. Zero is reserved
-// for empty air, so a grain can never be coloured with it.
+// for empty air, so a grain can never be colored with it.
 func hue(v int) byte {
 	b := byte(v)
 	if b == 0 {
@@ -256,7 +256,7 @@ func (s *Sand) slide(i, x, dx int) bool {
 	return true
 }
 
-// spawn drops new grains from the nozzles and advances the band colours.
+// spawn drops new grains from the nozzles and advances the band colors.
 func (s *Sand) spawn() {
 	for k := range s.emit {
 		e := &s.emit[k]

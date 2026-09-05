@@ -28,7 +28,7 @@ import (
 )
 
 // kind distinguishes the parts of the tree, which are drawn in different
-// characters and different colours.
+// characters and different colors.
 type kind int
 
 const (
@@ -100,8 +100,8 @@ type branch struct {
 
 // glyphCell is one painted position.
 type glyphCell struct {
-	r      rune
-	colour tcell.Color
+	r     rune
+	color tcell.Color
 }
 
 // Bonsai is the animation. The zero value is not usable; call New.
@@ -142,7 +142,7 @@ type Bonsai struct {
 	TrunkBranchChance int
 	// ShootBranchChance is the same for shoots. Deliberately close to the
 	// trunk's: a shoot that splits far more often than the trunk fills its own
-	// neighbourhood with twigs and the tree turns into a hedge.
+	// neighborhood with twigs and the tree turns into a hedge.
 	ShootBranchChance int
 	// LeafDensity is how many leaf characters a dead tip puts out.
 	LeafDensity int
@@ -185,7 +185,7 @@ func (b *Bonsai) trunkLife() int {
 	return n
 }
 
-// plant clears the canvas and starts a new trunk from the bottom centre.
+// plant clears the canvas and starts a new trunk from the bottom center.
 func (b *Bonsai) plant() {
 	for i := range b.buf {
 		b.buf[i] = glyphCell{}
@@ -198,7 +198,7 @@ func (b *Bonsai) plant() {
 		return
 	}
 	life := b.trunkLife()
-	// Centre the trunk, but not exactly: a tree grown on the middle column of
+	// Center the trunk, but not exactly: a tree grown on the middle column of
 	// the screen every single time looks placed rather than grown.
 	x := b.cols/2 + b.rng.Intn(5) - 2
 	b.live = append(b.live[:0], branch{
@@ -219,7 +219,7 @@ func (b *Bonsai) put(x, y int, r rune, c tcell.Color) {
 	if b.buf[i].r == 0 {
 		b.occupied++
 	}
-	b.buf[i] = glyphCell{r: r, colour: c}
+	b.buf[i] = glyphCell{r: r, color: c}
 }
 
 // leafCluster puts a blob of leaves around a dead tip. Wider than it is tall
@@ -437,7 +437,7 @@ func (b *Bonsai) draw(screen tcell.Screen) {
 				screen.Put(x, y, canvas.Blank, tcell.StyleDefault) //nolint:errcheck // one cell cannot fail
 				continue
 			}
-			canvas.PutRune(screen, x, y, c.r, tcell.StyleDefault.Foreground(c.colour))
+			canvas.PutRune(screen, x, y, c.r, tcell.StyleDefault.Foreground(c.color))
 		}
 	}
 }

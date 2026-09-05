@@ -127,10 +127,10 @@ func mirror(s sprite) sprite {
 }
 
 type fish struct {
-	s      sprite
-	x, y   float64
-	speed  float64 // columns per simulation step; negative swims left
-	colour tcell.Color
+	s     sprite
+	x, y  float64
+	speed float64 // columns per simulation step; negative swims left
+	color tcell.Color
 }
 
 type bubble struct {
@@ -163,7 +163,7 @@ func New(seed int64) *Aquarium {
 	return &Aquarium{rng: rand.New(rand.NewSource(seed)), Fish: 8, StepRate: 20}
 }
 
-var fishColours = []tcell.Color{
+var fishColors = []tcell.Color{
 	tcell.NewRGBColor(255, 160, 0),
 	tcell.NewRGBColor(255, 80, 80),
 	tcell.NewRGBColor(120, 220, 255),
@@ -287,10 +287,10 @@ func (a *Aquarium) newFish(anywhere bool) fish {
 		bottom = top
 	}
 	f := fish{
-		s:      s,
-		y:      float64(a.pickRow(top, bottom, s.h)),
-		speed:  speed,
-		colour: fishColours[a.rng.Intn(len(fishColours))],
+		s:     s,
+		y:     float64(a.pickRow(top, bottom, s.h)),
+		speed: speed,
+		color: fishColors[a.rng.Intn(len(fishColors))],
 	}
 	switch {
 	case anywhere:
@@ -394,7 +394,7 @@ func (a *Aquarium) draw(screen tcell.Screen) {
 	}
 
 	for _, f := range a.fish {
-		st := tcell.StyleDefault.Foreground(f.colour)
+		st := tcell.StyleDefault.Foreground(f.color)
 		for dy, row := range f.s.rows {
 			y := int(f.y) + dy
 			if y < 0 || y >= a.rows {

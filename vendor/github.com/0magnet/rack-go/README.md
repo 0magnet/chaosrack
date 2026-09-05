@@ -5,6 +5,10 @@ each one a whole number of slots wide, wrapping into rows and reflowing when one
 is taken out. Go/WebAssembly, no dependencies, builds with both the standard Go
 toolchain and TinyGo.
 
+**[Live demo](https://0magnet.github.io/rack-go/)** — drag a module by its header to move it, or use the Console switches to put one away and watch the rest reflow.
+
+![rack-go in the browser](docs/rack-go-demo.png "modules of differing slot widths sharing a row, with the Console switches that put them away")
+
 ```
 go get github.com/0magnet/rack-go
 ```
@@ -130,3 +134,40 @@ None. This is original work with nothing to inherit — it was extracted from
 either, and it is not derived from any third-party code. (Its sibling
 [winbox-go](https://github.com/0magnet/winbox-go) *is* Apache 2.0, because
 WinBox.js is.)
+
+## Dependency Graph
+
+Made with [goda](https://github.com/loov/goda):
+
+```
+# GOOS=js: the import edges of a wasm program live in js/wasm-tagged
+# files and are invisible to a host-context run
+GOOS=js GOARCH=wasm go run github.com/loov/goda@latest graph github.com/0magnet/rack-go/... | dot -Tsvg -o docs/rack-go-goda-graph.svg
+```
+
+![Dependency Graph](docs/rack-go-goda-graph.svg "github.com/0magnet/rack-go Dependency Graph")
+
+## Lines of Code
+
+Made with [gocloc](https://github.com/hhatto/gocloc) (excludes `vendor/`, `node_modules/`, `.git/`):
+
+```
+gocloc --not-match-d='(vendor|node_modules|\.git)' .
+```
+
+```
+-------------------------------------------------------------------------------
+Language                     files          blank        comment           code
+-------------------------------------------------------------------------------
+Go                               7            133            300            961
+JavaScript                       1             61             36            478
+Makefile                         1             21             52            107
+Markdown                         1             30              0            102
+YAML                             1              0              7             98
+HTML                             1              6              0             70
+Bourne Shell                     3             19             51             70
+CSS                              1              8             21             51
+-------------------------------------------------------------------------------
+TOTAL                           16            278            467           1937
+-------------------------------------------------------------------------------
+```

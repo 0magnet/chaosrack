@@ -1,4 +1,4 @@
-# charm.land/lipgloss/v2 v2.0.4
+# charm.land/lipgloss/v2 v2.0.6
 ## explicit; go 1.25.0
 charm.land/lipgloss/v2
 charm.land/lipgloss/v2/table
@@ -7,21 +7,21 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.0-20260903023819-bbde6efb4367
+# github.com/0magnet/audioprism-go v0.0.0-20260905010931-2a584b71d89c
 ## explicit; go 1.26.2
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
-# github.com/0magnet/calvin v0.0.0-20260903022122-1518a55e53f3
+# github.com/0magnet/calvin v0.0.0-20260904172612-288ced851c19
 ## explicit; go 1.25.0
 github.com/0magnet/calvin
 # github.com/0magnet/coloredcobra v1.0.2
 ## explicit; go 1.15
 github.com/0magnet/coloredcobra
-# github.com/0magnet/desk v0.0.0-20260903023351-72618068a49a
+# github.com/0magnet/desk v0.0.0-20260905010738-0c9209d8b7b7
 ## explicit; go 1.26
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.0-20260828165122-3c2724676aec
+# github.com/0magnet/desk/panes v0.0.0-20260905010738-0c9209d8b7b7
 ## explicit; go 1.26
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -37,19 +37,25 @@ github.com/0magnet/glamour
 github.com/0magnet/glamour/ansi
 github.com/0magnet/glamour/internal/autolink
 github.com/0magnet/glamour/styles
-# github.com/0magnet/go-dsp v0.0.0-20260903022315-ff0b2ff9a93d
+# github.com/0magnet/go-dsp v0.0.0-20260904172328-4474a45054c8
 ## explicit; go 1.23.0
 github.com/0magnet/go-dsp/dsputils
 github.com/0magnet/go-dsp/fft
 github.com/0magnet/go-dsp/window
-# github.com/0magnet/pisano v0.0.0-20260903021606-8173f96e00b6
+# github.com/0magnet/img2txt-go v0.0.0-20260905001454-9b4ec5319d47
+## explicit; go 1.25.0
+github.com/0magnet/img2txt-go/caca
+# github.com/0magnet/lolcat-go v0.0.0-20260905001114-f97d678ce219
+## explicit; go 1.25.0
+github.com/0magnet/lolcat-go/lol
+# github.com/0magnet/pisano v0.0.0-20260905010820-c038d89c660a
 ## explicit; go 1.26
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20260828143304-69dc438364d2
 ## explicit; go 1.25.0
 github.com/0magnet/proxima5
 github.com/0magnet/proxima5/internal/views
-# github.com/0magnet/rack-go v0.0.0-20260903022357-6fc3694327f8
+# github.com/0magnet/rack-go v0.0.0-20260904162257-a9c019134c72
 ## explicit; go 1.21
 github.com/0magnet/rack-go
 # github.com/0magnet/sh/v3 v3.13.2-0.20260818190530-13d0024da85c
@@ -60,7 +66,7 @@ github.com/0magnet/sh/v3/internal
 github.com/0magnet/sh/v3/interp
 github.com/0magnet/sh/v3/pattern
 github.com/0magnet/sh/v3/syntax
-# github.com/0magnet/termanim v0.0.0-20260903022407-3c9a5cc9ee76
+# github.com/0magnet/termanim v0.0.0-20260905010830-f8788bcdc347
 ## explicit; go 1.25.0
 github.com/0magnet/termanim/aquarium
 github.com/0magnet/termanim/boids
@@ -85,7 +91,13 @@ github.com/0magnet/termanim/sand
 github.com/0magnet/termanim/snow
 github.com/0magnet/termanim/starfield
 github.com/0magnet/termanim/tunnel
-# github.com/0magnet/tuiwasm v0.0.0-20260903024014-4111dff9857c
+# github.com/0magnet/toilet-go v0.0.0-20260905001452-3a6b46d6d462
+## explicit; go 1.25.0
+github.com/0magnet/toilet-go/canvas
+github.com/0magnet/toilet-go/figlet
+github.com/0magnet/toilet-go/fonts
+github.com/0magnet/toilet-go/toilet
+# github.com/0magnet/tuiwasm v0.0.0-20260905011031-cf3fd45715f6
 ## explicit; go 1.26.5
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -105,14 +117,14 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20260814161052-156e0b67262b
 ## explicit; go 1.25.7
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.0-20260903023334-1f972db1b545
+# github.com/0magnet/websh v0.0.0-20260905000412-75d7fd084e60
 ## explicit; go 1.25.7
 github.com/0magnet/websh/shell
 github.com/0magnet/websh/web
-# github.com/0magnet/winbox-go v0.0.0-20260903022448-a6277067b114
+# github.com/0magnet/winbox-go v0.0.0-20260905000411-6eefa77dea85
 ## explicit; go 1.24
 github.com/0magnet/winbox-go
-# github.com/0magnet/xterm-go v0.0.0-20260903022452-f823b747bcfe
+# github.com/0magnet/xterm-go v0.0.0-20260904164423-3896621e5b7c
 ## explicit; go 1.24
 github.com/0magnet/xterm-go
 github.com/0magnet/xterm-go/vt
@@ -187,7 +199,7 @@ github.com/charmbracelet/colorprofile
 # github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 ## explicit; go 1.18
 github.com/charmbracelet/lipgloss
-# github.com/charmbracelet/ultraviolet v0.0.0-20260812204455-68fa937c71be
+# github.com/charmbracelet/ultraviolet v0.0.0-20260903151058-ae99b731b8c5
 ## explicit; go 1.25.0
 github.com/charmbracelet/ultraviolet
 # github.com/charmbracelet/x/ansi v0.11.8
@@ -198,7 +210,7 @@ github.com/charmbracelet/x/ansi/parser
 # github.com/charmbracelet/x/cellbuf v0.0.15
 ## explicit; go 1.24.2
 github.com/charmbracelet/x/cellbuf
-# github.com/charmbracelet/x/exp/slice v0.0.0-20260823001701-96af6d2cb5f6
+# github.com/charmbracelet/x/exp/slice v0.0.0-20260902165432-6f6ad8b37b0a
 ## explicit; go 1.24.0
 github.com/charmbracelet/x/exp/slice
 # github.com/charmbracelet/x/term v0.2.2
@@ -317,7 +329,7 @@ github.com/go-playground/locales/currency
 # github.com/go-playground/universal-translator v0.18.1
 ## explicit; go 1.18
 github.com/go-playground/universal-translator
-# github.com/go-playground/validator/v10 v10.30.3
+# github.com/go-playground/validator/v10 v10.30.4
 ## explicit; go 1.25.0
 github.com/go-playground/validator/v10
 # github.com/goccy/go-json v0.10.6
@@ -381,7 +393,7 @@ github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.24
 ## explicit; go 1.20
 github.com/mattn/go-isatty
-# github.com/mattn/go-runewidth v0.0.28
+# github.com/mattn/go-runewidth v0.0.29
 ## explicit; go 1.23
 github.com/mattn/go-runewidth
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
@@ -405,8 +417,8 @@ github.com/pelletier/go-toml/v2/unstable
 # github.com/quic-go/qpack v0.6.0
 ## explicit; go 1.24
 github.com/quic-go/qpack
-# github.com/quic-go/quic-go v0.61.0
-## explicit; go 1.25.0
+# github.com/quic-go/quic-go v0.62.0
+## explicit; go 1.26.0
 github.com/quic-go/quic-go
 github.com/quic-go/quic-go/http3
 github.com/quic-go/quic-go/http3/qlog
@@ -418,14 +430,15 @@ github.com/quic-go/quic-go/internal/protocol
 github.com/quic-go/quic-go/internal/qerr
 github.com/quic-go/quic-go/internal/utils
 github.com/quic-go/quic-go/internal/utils/linkedlist
+github.com/quic-go/quic-go/internal/utils/minheap
 github.com/quic-go/quic-go/internal/utils/ringbuffer
 github.com/quic-go/quic-go/internal/wire
 github.com/quic-go/quic-go/qlog
 github.com/quic-go/quic-go/qlogwriter
 github.com/quic-go/quic-go/qlogwriter/jsontext
 github.com/quic-go/quic-go/quicvarint
-# github.com/quic-go/webtransport-go v0.12.0
-## explicit; go 1.25.0
+# github.com/quic-go/webtransport-go v0.13.0
+## explicit; go 1.26.0
 github.com/quic-go/webtransport-go
 # github.com/rivo/uniseg v0.4.7
 ## explicit; go 1.18
@@ -461,7 +474,7 @@ github.com/ugorji/go/codec
 # github.com/xo/terminfo v1.0.0
 ## explicit; go 1.19
 github.com/xo/terminfo
-# github.com/yuin/goldmark v1.8.5
+# github.com/yuin/goldmark v1.8.6
 ## explicit; go 1.22
 github.com/yuin/goldmark
 github.com/yuin/goldmark/ast
@@ -480,8 +493,8 @@ github.com/yuin/goldmark-emoji/definition
 # gitlab.com/russoj88/stl v1.0.2
 ## explicit; go 1.12
 gitlab.com/russoj88/stl/stl
-# go.mongodb.org/mongo-driver/v2 v2.8.1
-## explicit; go 1.19
+# go.mongodb.org/mongo-driver/v2 v2.9.0
+## explicit; go 1.25.0
 go.mongodb.org/mongo-driver/v2/bson
 go.mongodb.org/mongo-driver/v2/internal/binaryutil
 go.mongodb.org/mongo-driver/v2/internal/bsoncoreutil
@@ -490,13 +503,24 @@ go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore
 # golang.org/x/arch v0.30.0
 ## explicit; go 1.25.0
 golang.org/x/arch/x86/x86asm
-# golang.org/x/crypto v0.55.0
-## explicit; go 1.25.0
+# golang.org/x/crypto v0.56.0
+## explicit; go 1.26.0
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/chacha20poly1305
 golang.org/x/crypto/internal/alias
 golang.org/x/crypto/internal/poly1305
 golang.org/x/crypto/sha3
+# golang.org/x/image v0.45.0
+## explicit; go 1.25.0
+golang.org/x/image/bmp
+golang.org/x/image/ccitt
+golang.org/x/image/internal/safemath
+golang.org/x/image/riff
+golang.org/x/image/tiff
+golang.org/x/image/tiff/lzw
+golang.org/x/image/vp8
+golang.org/x/image/vp8l
+golang.org/x/image/webp
 # golang.org/x/net v0.58.0
 ## explicit; go 1.25.0
 golang.org/x/net/bpf

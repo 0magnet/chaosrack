@@ -4,7 +4,7 @@
 // theta) around a larger circle of radius R (the hole, walked by phi). Every
 // (theta, phi) names one point on the surface, and — because the tube is a
 // circle — the outward normal at that point is simply the direction from the
-// tube's centre to it. Getting the normal for free is why this shape, rather
+// tube's center to it. Getting the normal for free is why this shape, rather
 // than any other, is the one everybody draws: shading needs a normal, and here
 // it falls out of the parametrisation.
 //
@@ -30,7 +30,7 @@ import (
 	"github.com/0magnet/termanim/canvas"
 )
 
-// camDist is how far the camera sits from the centre of the torus, in the same
+// camDist is how far the camera sits from the center of the torus, in the same
 // units as the radii below. Close enough that the perspective divide visibly
 // tapers the far side, far enough that the near side does not balloon and
 // swallow the frame.
@@ -39,7 +39,7 @@ const camDist = 4.0
 // Donut is the animation. The zero value is not usable; call New.
 type Donut struct {
 	w, h     int
-	cx, cy   float64   // centre of the surface, in pixels
+	cx, cy   float64   // center of the surface, in pixels
 	scale    float64   // pixels per unit of lateral offset per unit of depth
 	a, b     float64   // the two rotation angles, in radians
 	rateA    float64   // radians per second
@@ -110,7 +110,7 @@ func New(seed int64) *Donut {
 	}
 }
 
-// radii returns the hole and tube radii for the current TubeRatio, normalised
+// radii returns the hole and tube radii for the current TubeRatio, normalized
 // so their sum is 1. Fixing the outer extent means changing TubeRatio changes
 // the shape without changing how much of the window it occupies.
 func (d *Donut) radii() (bigR, tubeR float64) {
@@ -154,7 +154,7 @@ func (d *Donut) Resize(w, h int) {
 
 	// Sample spacing. The surface is drawn as points, so if consecutive samples
 	// land more than a pixel apart the tube fills with holes and the light
-	// shows through. pxPerUnit is measured at the centre depth; sampling three
+	// shows through. pxPerUnit is measured at the center depth; sampling three
 	// times per pixel there leaves nearly two per pixel on the near face, where
 	// the perspective divide magnifies everything.
 	pxPerUnit := d.scale / camDist
@@ -190,7 +190,7 @@ func clampInt(v, lo, hi int) int {
 //
 // Such a point sits at depth dist-c*rad with a lateral offset of
 // rad*sqrt(1-c*c), for some c in -1..1, and the projection is the ratio of the
-// two. The maximum is not at c=0; it is somewhere in front of the centre, which
+// two. The maximum is not at c=0; it is somewhere in front of the center, which
 // is why the naive scale factor lets a shape spill off the edges as it turns.
 // Sampled rather than solved because this runs once per resize.
 func maxProjRatio(rad, dist float64) float64 {
@@ -245,7 +245,7 @@ func (d *Donut) Frame(s *canvas.Surface, dt float64) {
 			z0 := ring * sp
 
 			// The outward normal is the same construction with the tube's
-			// centre at the origin, which leaves it unit length for free.
+			// center at the origin, which leaves it unit length for free.
 			nx0 := ct * cp
 			ny0 := st
 			nz0 := ct * sp

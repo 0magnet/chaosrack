@@ -27,7 +27,7 @@ import (
 
 // Water is the default ramp: a nearly black blue for the far drops through a
 // mid blue to a cold near-white at the head of the nearest ones. Rain has no
-// colour of its own, it takes the light, so the ramp is a brightness ramp with
+// color of its own, it takes the light, so the ramp is a brightness ramp with
 // a blue cast rather than a hue sweep.
 var Water = canvas.NewPalette(
 	canvas.Stop{At: 0.00, R: 0, G: 4, B: 12},
@@ -58,7 +58,7 @@ const (
 type drop struct {
 	x, y   float64 // position of the head, in pixels
 	vy     float64 // fall speed in pixels per second
-	slant  float64 // horizontal pixels travelled per vertical pixel
+	slant  float64 // horizontal pixels traveled per vertical pixel
 	length float64 // streak length in pixels: how far it moves in one exposure
 	depth  float64 // 0 is far away, 1 is right in front of you
 }
@@ -89,7 +89,7 @@ type Rain struct {
 	// SplashLife is how long a splash lasts, in seconds. Long enough to see,
 	// short enough that the floor is not a permanent bright line.
 	SplashLife float64
-	// Palette colours the drops by depth, dim at 0 and bright at 255.
+	// Palette colors the drops by depth, dim at 0 and bright at 255.
 	Palette canvas.Palette
 }
 
@@ -159,7 +159,7 @@ func (r *Rain) brightness(d drop) float64 {
 	return 0.12 + d.depth*d.depth*0.88
 }
 
-func (r *Rain) colour(v float64) tcell.Color {
+func (r *Rain) color(v float64) tcell.Color {
 	i := int(v * 255)
 	if i < 0 {
 		i = 0
@@ -246,7 +246,7 @@ func (r *Rain) draw(s *canvas.Surface) {
 			if x < 0 {
 				x += int(r.w)
 			}
-			s.Set(x, y, r.colour(v))
+			s.Set(x, y, r.color(v))
 		}
 	}
 
@@ -254,7 +254,7 @@ func (r *Rain) draw(s *canvas.Surface) {
 		// A splash opens outwards and dims as it does, so the mark reads as
 		// water thrown sideways rather than a blinking dot.
 		f := 1 - sp.age/r.SplashLife
-		c := r.colour(0.5 + f*0.5)
+		c := r.color(0.5 + f*0.5)
 		x := int(sp.x)
 		s.Set(x, h-1, c)
 		// The crown widens at a fixed rate in pixels a second, so it opens the

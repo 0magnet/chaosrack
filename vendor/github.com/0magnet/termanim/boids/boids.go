@@ -1,9 +1,9 @@
 // Package boids is Reynolds' flocking.
 //
-// Every boid steers by three local rules, evaluated over the neighbours inside
+// Every boid steers by three local rules, evaluated over the neighbors inside
 // a perception radius and nothing else. Separation turns it away from any
-// neighbour that has come too close, alignment turns it toward the average
-// heading of its neighbours, and cohesion turns it toward their average
+// neighbor that has come too close, alignment turns it toward the average
+// heading of its neighbors, and cohesion turns it toward their average
 // position. No boid knows about the flock; the flock is what the three rules
 // add up to. Speed is clamped to a band so the flock neither freezes into a
 // lattice nor accelerates off the screen, and the edges wrap, so a flock that
@@ -34,12 +34,12 @@ type Boids struct {
 
 	// Accelerations for one frame, held here rather than declared in Frame
 	// because every boid has to steer by the *current* velocities of its
-	// neighbours: integrating boid 0 before boid 1 has looked at it would let
+	// neighbors: integrating boid 0 before boid 1 has looked at it would let
 	// the update order leak into the flock's shape.
 	ax, ay []float64
 
 	// A uniform grid over the surface, one cell to a perception radius, so a
-	// boid only tests the nine cells that can hold a neighbour. The naive form
+	// boid only tests the nine cells that can hold a neighbor. The naive form
 	// of this is O(n²) — every boid against every other — which is fine for a
 	// few dozen and quadratically less fine for a few hundred. heads holds the
 	// first boid in each cell, next the rest of that cell's chain; both are
@@ -53,7 +53,7 @@ type Boids struct {
 	// time: radius and sepDist are lengths and are the same at any frame rate,
 	// as are the three rule weights below.
 	radius   float64 // perception radius, in pixels
-	sepDist  float64 // in pixels: below this a neighbour is crowding us
+	sepDist  float64 // in pixels: below this a neighbor is crowding us
 	minSpeed float64 // pixels per second
 	maxSpeed float64 // pixels per second
 	maxForce float64 // pixels per second per second
@@ -71,7 +71,7 @@ type Boids struct {
 	// collision, it acts over a much shorter range than the other two, and a
 	// flock that cannot push itself apart collapses to a single point and stops
 	// looking like anything. Cohesion is the smallest because it is attractive
-	// everywhere in the neighbourhood and never satisfied: given a weight near
+	// everywhere in the neighborhood and never satisfied: given a weight near
 	// separation's it wins the argument at every distance and the flock clumps.
 	// Alignment sits between them — it is what turns a crowd into a flock, but
 	// on its own it only makes the boids parallel, not together.
@@ -87,7 +87,7 @@ type Boids struct {
 	// length from the surface size. A single pixel shows where a boid is but
 	// not where it is going, and heading is the whole point of the effect.
 	Tail int
-	// Palette colours each boid by its heading.
+	// Palette colors each boid by its heading.
 	Palette canvas.Palette
 }
 
@@ -95,8 +95,8 @@ type Boids struct {
 // violet and back to red.
 //
 // Two things are required of it and neither is decorative. It has to close on
-// the colour it opened with, because heading is an angle, and a ramp that does
-// not close puts a hard colour seam across the flock at due west where the
+// the color it opened with, because heading is an angle, and a ramp that does
+// not close puts a hard color seam across the flock at due west where the
 // angle wraps. And it has to stay bright the whole way round: the ramps in
 // canvas are intensity ramps that run from black upward, and a boid flying in
 // whichever direction landed on the dark end of one would simply not be drawn.
@@ -139,18 +139,18 @@ func (b *Boids) Resize(w, h int) {
 	small := math.Min(b.w, b.h)
 
 	// The perception radius has to be a decent fraction of the window: it is
-	// what decides how many neighbours a boid has, and with the density above
+	// what decides how many neighbors a boid has, and with the density above
 	// this gives it a handful rather than one or none.
 	b.radius = math.Max(4, 0.22*small)
 	// Separation acts over a short range only. Beyond about a third of the
-	// perception radius, keeping away from a neighbour is not avoidance any
+	// perception radius, keeping away from a neighbor is not avoidance any
 	// more, it is just cohesion with the sign flipped.
 	b.sepDist = 0.35 * b.radius
 	// A boid should cross the window in a few seconds at thirty frames a
 	// second, so speed scales with the window rather than being fixed.
 	b.maxSpeed = math.Max(10.5, 0.42*small)
 	// The floor is what keeps the flock alive: without it, three rules that all
-	// point at a settled flock's centre cancel and the boids hang still.
+	// point at a settled flock's center cancel and the boids hang still.
 	b.minSpeed = 0.55 * b.maxSpeed
 	// Steering is an acceleration, and an acceleration divided by a speed is a
 	// turning rate: three radians a second, or about a hundred and seventy
@@ -173,7 +173,7 @@ func (b *Boids) Resize(w, h int) {
 	}
 	if n > 400 {
 		// The cost is one distance test per boid pair in range; a cap keeps a
-		// maximised window from turning into a physics benchmark.
+		// maximized window from turning into a physics benchmark.
 		n = 400
 	}
 
@@ -200,7 +200,7 @@ func (b *Boids) Resize(w, h int) {
 	}
 
 	// One grid cell per perception radius: with this the nine cells around a
-	// boid are guaranteed to contain every neighbour within range.
+	// boid are guaranteed to contain every neighbor within range.
 	b.gw = int(b.w / b.radius)
 	b.gh = int(b.h / b.radius)
 	if b.gw < 1 {
@@ -296,8 +296,8 @@ func (b *Boids) steer() {
 		p := &b.flock[i]
 		var (
 			n            int
-			sumX, sumY   float64 // offsets to neighbours: cohesion
-			sumVX, sumVY float64 // neighbours' velocities: alignment
+			sumX, sumY   float64 // offsets to neighbors: cohesion
+			sumVX, sumVY float64 // neighbors' velocities: alignment
 			sepX, sepY   float64 // accumulated push away: separation
 		)
 		gx, gy := b.cellOf(p.x, p.y)
@@ -323,7 +323,7 @@ func (b *Boids) steer() {
 					sumVX += q.vx
 					sumVY += q.vy
 					if d2 < sep2 {
-						// Weighted by one over the distance, so a neighbour
+						// Weighted by one over the distance, so a neighbor
 						// about to be collided with counts for far more than
 						// one merely close. A flat push would treat both the
 						// same and the flock would grind against itself.
@@ -338,7 +338,7 @@ func (b *Boids) steer() {
 		if n > 0 {
 			fn := float64(n)
 			cx, cy := unit(sumX/fn, sumY/fn)
-			// Alignment is the difference between the neighbours' average
+			// Alignment is the difference between the neighbors' average
 			// velocity and our own: the correction, not the target. Steering
 			// toward the average itself would keep pulling at a boid that
 			// already matches the flock exactly.
@@ -406,8 +406,8 @@ func (b *Boids) draw(s *canvas.Surface) {
 		}
 		ux, uy := p.vx/sp, p.vy/sp
 
-		// Heading, from -pi..pi onto the whole ramp. Colouring by direction
-		// rather than by index means a flock that has aligned shares a colour,
+		// Heading, from -pi..pi onto the whole ramp. Coloring by direction
+		// rather than by index means a flock that has aligned shares a color,
 		// so the eye reads the sub-flocks without being told about them.
 		idx := int((math.Atan2(p.vy, p.vx)/(2*math.Pi) + 0.5) * 255)
 		if idx < 0 {
