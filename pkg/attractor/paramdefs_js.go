@@ -38,6 +38,10 @@ var paramLabels = map[string][]string{
 	"spect-scale":  spectScaleNames,
 	"globe-par":    {"rings", "spiral"},
 	"globe-rev":    {"cw", "ccw"},
+	// What the recurrence plot is a plot OF — the raw audio, the delay
+	// embedding of that same audio, or the running attractor's own trajectory.
+	// A setting rather than a quantity: "traj" is not the third of anything.
+	"rec-src": {"audio", "embed", "traj"},
 }
 
 // paramRingLabels is what actually fits around the dial. A cell is a third of
