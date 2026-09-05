@@ -100,6 +100,11 @@ var modeInfo = map[string]ModeInfo{
 	// beam-dwell, Model Out SCAN), so it's Parametric, not Audio — the audio
 	// stream is just its parameter source.
 	"takens": {"Takens Embedding", ClassParametric, false},
+	// stereo is the same kind of thing as takens and Parametric for the same
+	// reason: a trail through the normal 3D pipeline whose coordinates happen
+	// to come from the audio. What differs is where the axes come from — two
+	// recorded channels rather than one channel's own past.
+	"stereo": {"Stereo Embedding", ClassParametric, false},
 	// bifurcation renders a progressive 2D scatter through the trail
 	// pipeline; Parametric so persist/gradient/points sizing apply.
 	"bifurcation": {"Bifurcation", ClassParametric, false},
@@ -141,7 +146,7 @@ var modeGroups = []struct {
 	// repeat the mistake that hid the turtle.
 	{"Maps", []string{"henon", "ikeda", "clifford", "dejong", "mira",
 		"tinkerbell", "standardmap"}},
-	{"Scope", []string{"lissajou", "graphicartist", "pong", "scopetext", "scopeclock", "bounceball", "xy", "takens"}},
+	{"Scope", []string{"lissajou", "graphicartist", "pong", "scopetext", "scopeclock", "bounceball", "xy", "takens", "stereo"}},
 	{"Polyhedra", []string{"tetrahedron", "cube", "octahedron", "dodecahedron",
 		"icosahedron", "nestedcube"}},
 	{"Geometry", []string{"globe", "sphere", "torus", "magnetosphere"}},
@@ -155,7 +160,7 @@ var modeGroups = []struct {
 	// off disk plus a catalog of built-in solids — the rack, the geometry and
 	// every attractor swept as a tube — generated in the browser.
 	{"Solids", []string{"stlfile", "terminal", "termanim", "hostterm", "desk"}},
-	{"Audio", []string{"spectrogram", "xy", "fvf", "takens", "recurrence"}},
+	{"Audio", []string{"spectrogram", "xy", "fvf", "takens", "stereo", "recurrence"}},
 	{"Analysis", []string{"bifurcation", "recurrence"}},
 	// Custom is its own category and NOT also an entry in Attractors, where it
 	// used to be listed twice. It is a different kind of thing from the rest

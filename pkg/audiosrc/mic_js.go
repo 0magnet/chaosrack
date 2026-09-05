@@ -22,7 +22,7 @@ type MicOptions struct {
 
 	// RingSize is the number of samples retained per channel. Must exceed
 	// the largest snapshot window and per-frame drain backlog. Default
-	// 16384.
+	// DefaultRingSize.
 	RingSize int
 
 	// Context is an existing AudioContext to build the capture graph on.
@@ -46,7 +46,7 @@ func NewMic(opts MicOptions) Source {
 		opts.BufferSize = 4096
 	}
 	if opts.RingSize == 0 {
-		opts.RingSize = 16384
+		opts.RingSize = DefaultRingSize
 	}
 	m := &micSource{opts: opts, ringL: newRing(opts.RingSize)}
 	nav := js.Global().Get("navigator")
