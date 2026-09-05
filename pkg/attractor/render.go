@@ -209,6 +209,9 @@ func updateRotKnobs() {
 
 var fragShaderCode = `
 	precision mediump float;
+	// The colormap, as a 256x1 texture. See palette_js.go for why a texture and
+	// not an array of stops.
+	uniform sampler2D uPalette;
 	uniform vec3 uBaseColor;
 	uniform vec3 uTopColor;
 	uniform vec3 uMidColor;
@@ -221,6 +224,8 @@ var fragShaderCode = `
 	uniform int uGradientSource;
 	uniform int uGradientColors;
 	uniform int uGradientReverse;
+	uniform float uDashDuty;
+	uniform float uDashCount;
 	uniform float uGradientFreq;
 	uniform float uGradientPhase;
 	uniform float uTrailHead;
@@ -231,6 +236,7 @@ var fragShaderCode = `
 	uniform float uSplitZ;
 	uniform int uSplitSide;
 	varying vec3 vPosition;
+	varying float vAudioT;
 	varying float vTrailT;
 	varying float vDwell;
 	varying float vViewZ;
@@ -249,8 +255,27 @@ var fragShaderCode = `
 		// and not where a triangle happened to be cut.
 		if (uSplitSide > 0 && vViewZ < uSplitZ) { discard; }
 		if (uSplitSide < 0 && vViewZ >= uSplitZ) { discard; }
+		// Points and a continuous line as two ends of one knob, rather than a
+		// switch between two draw modes. The trail parameter is already a ramp
+		// along the curve, so cutting it into uDashCount cycles and keeping
+		// uDashDuty of each gives a dashed line: duty 1 is the solid line
+		// unchanged, and as duty falls the dashes shorten toward the beads a
+		// POINTS draw would put at the same places. Everything in between —
+		// long dashes, short dashes, a dotted line — is a position on the way,
+		// which is the thing a mode switch cannot express.
+		//
+		// It is a discard rather than a second draw call so the dashes inherit
+		// the gradient, the dwell exposure and the split plane exactly as the
+		// solid line does; drawing points separately would mean a second set of
+		// answers to all three.
+		if (uDashDuty < 0.999) {
+			if (fract(vTrailT * uDashCount) > uDashDuty) { discard; }
+		}
 		// Coloring is a source × scheme product. uGradientSource picks what the
-		// gradient parameter t follows: 0=X, 1=Y, 2=Z (spatial), 3=trail age.
+		// gradient parameter t follows: 0=X, 1=Y, 2=Z (spatial), 3=trail age,
+		// 4=audio (the table above, filled per frame — a short-time spectrum
+		// along the trail where the trail is a time axis, one flat value
+		// everywhere else).
 		// uGradientColors picks the palette: 1=monochrome, 2=two-color,
 		// 3=three-color, 4=rainbow (HSV, animated via uGradientPhase).
 		float t;
@@ -260,9 +285,12 @@ var fragShaderCode = `
 			t = clamp((vPosition.y - uMinY) / max(uMaxY - uMinY, 0.001), 0.0, 1.0);
 		} else if (uGradientSource == 2) {
 			t = clamp((vPosition.z - uMinZ) / max(uMaxZ - uMinZ, 0.001), 0.0, 1.0);
+		} else if (uGradientSource == 4) {
+			t = vAudioT;
 		} else {
 			// Ring-trail mode: age relative to the beam head (uTrailHead=0 in
-			// scan mode makes this exactly t = vTrailT).
+			// scan mode makes this exactly t = vTrailT). Left as the else so an
+			// unexpected source still lands on a sensible one.
 			t = vTrailT - uTrailHead;
 			if (t < 0.0) { t += 1.0; }
 		}
@@ -276,6 +304,11 @@ var fragShaderCode = `
 			} else {
 				color = mix(uMidColor, uTopColor, (t - 0.5) * 2.0);
 			}
+		} else if (uGradientColors >= 5) {
+			// A spectrogram colormap. Sampled at the same t every other palette
+			// uses, so switching between them changes only the color language
+			// and not what the color is saying.
+			color = texture2D(uPalette, vec2(clamp(t, 0.0, 1.0), 0.5)).rgb;
 		} else if (uGradientColors == 4) {
 			color = hsv2rgb(vec3(t * uGradientFreq + uGradientPhase, 1.0, 1.0));
 		} else {
@@ -296,10 +329,18 @@ var vertShaderCode = `
 	uniform mat4 Vmatrix;
 	uniform mat4 Mmatrix;
 	uniform float uPointSize;
+	// The audio gradient table, read HERE rather than in the fragment shader.
+	// GLSL ES 1.0 only requires dynamic indexing of a uniform array in the
+	// vertex stage — a fragment shader may reject an index that is not a
+	// constant expression, and some drivers do. It is also cheaper: one
+	// lookup per vertex instead of one per fragment, and the varying
+	// interpolates between the stops for free.
+	uniform float uAudioLUT[32];
 	varying vec3 vPosition;
 	varying float vTrailT;
 	varying float vDwell;
 	varying float vViewZ;
+	varying float vAudioT;
 	void main(void) {
 		// The view-space position is computed on its own so the fragment stage
 		// can be told how far from the camera it is. Projected depth would not
@@ -312,6 +353,7 @@ var vertShaderCode = `
 		vPosition = position;
 		vTrailT = aTrailT;
 		vDwell = aDwell;
+		vAudioT = uAudioLUT[int(clamp(aTrailT, 0.0, 1.0) * 31.0 + 0.5)];
 	}
 `
 
@@ -352,6 +394,12 @@ func setupShaders() {
 	uMinYLoc = gl.Call("getUniformLocation", shaderProgram, "uMinY")
 	uMaxYLoc = gl.Call("getUniformLocation", shaderProgram, "uMaxY")
 	uGradientSourceLoc = gl.Call("getUniformLocation", shaderProgram, "uGradientSource")
+	uAudioLUTLoc = gl.Call("getUniformLocation", shaderProgram, "uAudioLUT")
+	uPaletteLoc = gl.Call("getUniformLocation", shaderProgram, "uPalette")
+	uDashDutyLoc = gl.Call("getUniformLocation", shaderProgram, "uDashDuty")
+	uDashCountLoc = gl.Call("getUniformLocation", shaderProgram, "uDashCount")
+	// The colormap lives on its own texture unit; tell the sampler which.
+	gl.Call("uniform1i", uPaletteLoc, paletteUnit)
 	uGradientColorsLoc = gl.Call("getUniformLocation", shaderProgram, "uGradientColors")
 	uGradientFreqLoc = gl.Call("getUniformLocation", shaderProgram, "uGradientFreq")
 	uGradientPhaseLoc = gl.Call("getUniformLocation", shaderProgram, "uGradientPhase")
@@ -530,7 +578,23 @@ func generateForMode(mode string) {
 	}
 	if shadersReady {
 		gl.Call("uniform1i", uGradientSourceLoc, gradientSource)
+		// Only when it is being used: the fill runs a short FFT per table slot,
+		// which is not work to do for a figure colored by Z.
+		if gradientSource == gradientSourceAudio {
+			updateAudioColorLUT(selectedMode)
+			gl.Call("uniform1fv", uAudioLUTLoc, lutToTyped())
+		}
 		gl.Call("uniform1i", uGradientColorsLoc, gradientColors)
+		// Uploaded before the draw that reads it, and only when a colormap is
+		// actually selected — the upload is skipped on the palettes that do not
+		// sample it, and a failed build falls back to the two-color mix rather
+		// than sampling a texture that is not there.
+		if !ensurePaletteTexture(gradientColors) && gradientColors >= paletteFirst {
+			gl.Call("uniform1i", uGradientColorsLoc, 2)
+		}
+		updateDashFromPointCount(lastDrawnCount)
+		gl.Call("uniform1f", uDashDutyLoc, dashDuty)
+		gl.Call("uniform1f", uDashCountLoc, dashCount)
 		gl.Call("uniform1f", uGradientFreqLoc, gradientFreq)
 		// Animate the rainbow: advance the hue offset each frame so the
 		// spectrum flows. At a low period only a slice is visible at once,
@@ -542,7 +606,16 @@ func generateForMode(mode string) {
 		// down, how many times it has been walked — rather than a spectrum to
 		// flow along, and rotating the hue makes every segment already on screen
 		// change color for no reason anything in the figure did.
-		if !(selectedMode == "turtle" && gradientSource == 3) {
+		// Nor when the color is following the SOUND. The same argument as the
+		// turtle case below, and it bites harder: the whole claim of the audio
+		// source is that a stretch of trail is this color BECAUSE of what was
+		// playing when it was drawn. A hue offset marching under it at a fixed
+		// rate makes every segment already on screen change color for a reason
+		// nothing in the sound did — and since the phase advances every frame
+		// while the spectrum only sometimes moves, the drift is what the eye
+		// picks up. It reads as "the rainbow is cycling", which is precisely
+		// the reading that hides the feature.
+		if !(selectedMode == "turtle" && gradientSource == 3) && gradientSource != gradientSourceAudio {
 			gradientPhase += 0.003
 			if gradientPhase >= 1 {
 				gradientPhase -= 1
