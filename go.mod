@@ -3,7 +3,7 @@ module github.com/0magnet/chaosrack
 go 1.26.5
 
 require (
-	github.com/0magnet/audioprism-go v0.0.0-20260905010931-2a584b71d89c
+	github.com/0magnet/audioprism-go v0.0.0-20260905161232-52a1f58d4844
 	github.com/0magnet/calvin v0.0.0-20260904172612-288ced851c19
 	github.com/0magnet/coloredcobra v1.0.2
 	github.com/0magnet/desk v0.0.0-20260905010738-0c9209d8b7b7
@@ -11,7 +11,7 @@ require (
 	github.com/0magnet/pisano v0.0.0-20260905010820-c038d89c660a
 	github.com/0magnet/rack-go v0.0.0-20260904162257-a9c019134c72
 	github.com/0magnet/sh/v3 v3.13.2-0.20260818190530-13d0024da85c
-	github.com/0magnet/tuiwasm v0.0.0-20260905011031-cf3fd45715f6
+	github.com/0magnet/tuiwasm v0.0.0-20260905161317-ca18bd83ace3
 	github.com/0magnet/websh v0.0.0-20260905000412-75d7fd084e60
 	github.com/0magnet/winbox-go v0.0.0-20260905000411-6eefa77dea85
 	github.com/gin-gonic/gin v1.12.0
@@ -33,7 +33,7 @@ require (
 	github.com/0magnet/lolcat-go v0.0.0-20260905001114-f97d678ce219 // indirect
 	github.com/0magnet/proxima5 v0.0.0-20260828143304-69dc438364d2 // indirect
 	github.com/0magnet/termanim v0.0.0-20260905010830-f8788bcdc347 // indirect
-	github.com/0magnet/toilet-go v0.0.0-20260905001452-3a6b46d6d462 // indirect
+	github.com/0magnet/toilet-go v0.0.0-20260905011609-ab34357c2de4 // indirect
 	github.com/0magnet/u-root v0.16.1-0.20260814161052-156e0b67262b // indirect
 	github.com/0magnet/xterm-go v0.0.0-20260904164423-3896621e5b7c // indirect
 	github.com/alecthomas/chroma/v2 v2.27.0 // indirect
@@ -55,7 +55,7 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/creack/pty v1.1.24 // indirect
-	github.com/dlclark/regexp2/v2 v2.7.1 // indirect
+	github.com/dlclark/regexp2/v2 v2.7.2 // indirect
 	github.com/dunglas/httpsfv v1.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatih/color v1.19.0 // indirect
@@ -63,7 +63,7 @@ require (
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/gdamore/tcell/v2 v2.13.10 // indirect
 	github.com/gdamore/tcell/v3 v3.4.2 // indirect
-	github.com/gin-contrib/sse v1.1.1 // indirect
+	github.com/gin-contrib/sse v1.1.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.30.4 // indirect
