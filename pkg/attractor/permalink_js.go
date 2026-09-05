@@ -258,7 +258,7 @@ func serializeState() string {
 // dispatch real input and change events precisely so that everything watching
 // stays in step. The tick then does nothing at all unless the flag is set.
 //
-// The flag is an optimisation and not the source of truth, so a full check
+// The flag is an optimization and not the source of truth, so a full check
 // still runs every permaFullCheck ticks. If some future control ever changes
 // state without an event, the hash goes stale for a few seconds rather than
 // forever, which is the failure worth having.
@@ -587,5 +587,5 @@ func applyStateFrom(h string) {
 var hashPinnedSpin = map[string]string{}
 
 // hashPinnedPose is true when the loaded permalink specified an explicit
-// orientation (&rot= or &drag=), so the startup randomiser should stand down.
+// orientation (&rot= or &drag=), so the startup randomizer should stand down.
 var hashPinnedPose bool

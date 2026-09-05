@@ -59,7 +59,7 @@ func TestHenonExponentsSumToLogB(t *testing.T) {
 // The unit differs by kind and the readout says which, because 0.42 per
 // ITERATE and 0.42 per unit TIME are not comparable quantities and showing
 // them in one column without a unit would invite exactly that comparison.
-func TestLyapunovUnitsAreLabelled(t *testing.T) {
+func TestLyapunovUnitsAreLabeled(t *testing.T) {
 	if r := LyapunovFor("henon"); !r.PerStep {
 		t.Error("a map's exponent is per iterate and must say so")
 	}
