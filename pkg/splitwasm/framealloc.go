@@ -43,7 +43,7 @@ func allocFrame(kb int) {
 	}
 }
 
-// frameAllocKBFromQuery lets the rate be dialled for a sweep; ?alloc=0 turns it
+// frameAllocKBFromQuery lets the rate be dialed for a sweep; ?alloc=0 turns it
 // off entirely, which is how the allocation-free case is measured.
 func frameAllocKBFromQuery() int {
 	s := js.Global().Get("location").Get("search").String()

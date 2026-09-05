@@ -55,7 +55,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 #stepfine-stack .knobstack.has-dial{margin:calc(22px*var(--kscale,1));}
 #stepfine-stack .knob-dial{width:calc(112px*var(--kscale,1));height:calc(112px*var(--kscale,1));}
 #stepfine-stack .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
-/* Size: lone labelled selector ring, same size as the other Style knobs. */
+/* Size: lone labeled selector ring, same size as the other Style knobs. */
 #size-stack .knobstack{width:calc(56px*var(--kscale,1));height:calc(56px*var(--kscale,1));}
 #size-stack .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
 #size-stack .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
@@ -81,7 +81,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 #knobstyle-stack .knob-inner .knob-ptr{background:var(--led-col,#ff3b30)!important;box-shadow:0 0 5px var(--led-glow,#ff2a20)!important;}
 /* ── Uniform module labels: every cell's primary label uses the same font size
    and is pinned to the same top-left spot, so labels on the same row line up
-   horizontally across all modules. (Step/Fine + LED-colour readouts keep their
+   horizontally across all modules. (Step/Fine + LED-color readouts keep their
    own placement — they aren't direct labels of the cell/knoblbl/punit-top.) ── */
 .modules .pcell>.plabel{position:absolute!important;top:4px!important;left:4px!important;transform:none!important;line-height:1.1;margin:0;z-index:3;}
 /* Knob-stack labels (SRC / Size / Knob) sit top-left, same spot as the palette
@@ -100,7 +100,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .vmrow>.pcell.axcol:not(.axrot):not(.vmcell){width:calc(116px*var(--kscale,1));height:calc(160px*var(--kscale,1));box-sizing:border-box;position:relative;justify-content:center;}
 .vmrow>.pcell.axcol:not(.axrot):not(.vmcell) .knoblbl{position:static;}
 .vmrow>.pcell.axcol:not(.axrot):not(.vmcell) .knoblbl>.plabel{position:absolute;top:3px;left:3px;line-height:1.1;z-index:3;margin:0;}
-/* Palette module: the swatch sits in the cell header (centerd over the knob,
+/* Palette module: the swatch sits in the cell header (centered over the knob,
    label pinned left — treated exactly like an LED readout), the Hue/Level knob
    fills the body below so the dial never overlaps the swatch. */
 /* Per-oscillator Generator modules: wider Hz / % LED (fits 0.2 … 20000). Each
@@ -188,13 +188,13 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .pal-cell input[type=color]{width:calc(34px*var(--kscale,1));height:calc(20px*var(--kscale,1));border:1px solid #666;border-radius:3px;background:#111;padding:0;cursor:pointer;}
 .pal-cell .ckholder{display:flex;justify-content:center;align-items:center;}
 .ckholder{display:flex;justify-content:center;}
-/* HTML-colour (hex) readout under each palette knob, centerd, pinned to the
-   cell bottom (so the knob stays centerd like the other modules' knobs). */
+/* HTML-color (hex) readout under each palette knob, centered, pinned to the
+   cell bottom (so the knob stays centered like the other modules' knobs). */
 .pal-hex{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);justify-content:center!important;min-width:0;width:calc(60px*var(--kscale,1));letter-spacing:0;}
 /* Color-knob dials: conic spectrum rings drawn in place of tick marks. The Hue
    ring is a full 360° rainbow (hue is cyclic — the knob spins all the way
    around, red at top); the Level ring is a 270° sweep (from 225° = the pointer's
-   min at lower-left) matching the bounded black → colour → white inner knob. */
+   min at lower-left) matching the bounded black → color → white inner knob. */
 .colorknob{position:relative;}
 /* Palette uses the standard concentric knob (outer Hue ring r38, inner Level
    disc). The dials sit OUTSIDE the 76px outer knob: Level gradient ring just
@@ -208,10 +208,10 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .selk-ro{position:relative;display:inline-flex;flex-direction:column;align-items:center;}
 .selk-ro>.selk-readout{position:absolute;top:calc(100% + 3px);left:50%;transform:translateX(-50%);}
 .selk-readout{font-family:'B612 Mono',monospace;font-size:calc(9px*var(--kscale,1));color:#9fe6c0;background:#0c1410;border:1px solid #234;border-radius:3px;padding:1px 4px;min-width:calc(66px*var(--kscale,1));text-align:center;text-shadow:0 0 4px #1c7a48;}
-/* LED-colour readout: pinned to the cell's bottom (absolute, so the knob still
+/* LED-color readout: pinned to the cell's bottom (absolute, so the knob still
    centers and lines up with the other modules). "LED" label is left-justified
-   like every other module label; the colour-name display is centerd under the
-   knob at a fixed width (fits the longest name) shown IN the current LED colour. */
+   like every other module label; the color-name display is centered under the
+   knob at a fixed width (fits the longest name) shown IN the current LED color. */
 .ledcolor-row{position:absolute;bottom:5px;left:0;right:0;text-align:center;line-height:1;}
 .ledcolor-lbl{position:absolute!important;left:3px;top:50%;transform:translateY(-50%);}
 .ledcolor-ro{display:inline-block;box-sizing:border-box;width:calc(46px*var(--kscale,1));min-width:0;text-align:center;font-size:calc(9px*var(--kscale,1));color:var(--led-col,#ff3b30);background:var(--led-bg,#170000);border:1px solid var(--led-bd,#3a0000);text-shadow:0 0 4px var(--led-glow,#ff2a20);}
@@ -320,7 +320,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .knob-ring{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:var(--ko)!important;height:var(--ko)!important;}
 /* the ring's indicator must reach past the inner knob into the annulus */
 .knob-ring>.knob-ptr{height:calc(30px*var(--kscale,1));}
-/* clip a hair past the circle so square corners don't eat the neighbouring
+/* clip a hair past the circle so square corners don't eat the neighboring
    ring's annulus, but the hover/grab glow ring still shows through. */
 .knob-inner{position:absolute!important;left:50%;top:50%;transform:translate(-50%,-50%);margin:0!important;z-index:5;clip-path:circle(calc(50% + 5px));justify-content:center!important;align-items:center!important;}
 /* ===== Uniform knob geometry — EVERY knob shares --ko / --km / --ki, so across
@@ -363,7 +363,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .angle-dial-ticks{position:absolute;inset:0;border-radius:50%;background:repeating-conic-gradient(#bfefff 0deg 2deg, transparent 2deg 90deg),repeating-conic-gradient(#7cf 0deg 1.3deg, transparent 1.3deg 30deg),repeating-conic-gradient(#3a6e8c 0deg 0.7deg, transparent 0.7deg 10deg);-webkit-mask:radial-gradient(circle, transparent 66%, #000 68%, #000 80%, transparent 82%);mask:radial-gradient(circle, transparent 66%, #000 68%, #000 80%, transparent 82%);opacity:.7;}
 .knobstack.has-dial{margin:calc(15px*var(--kscale,1));}
 /* Numeric-scale dial around a value knob (tick ring + min/max numbers). The
-   .knobwrap becomes the positioning context; the dial sits centerd behind the
+   .knobwrap becomes the positioning context; the dial sits centered behind the
    knob and a touch larger, so its tick ring + numbers surround the knob. */
 .knobwrap{position:relative;}
 .knobwrap>.value-dial{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(100px*var(--kscale,1));height:calc(100px*var(--kscale,1));pointer-events:none;z-index:0;}
@@ -396,9 +396,9 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 #controls-panel.rack .vmaxrow{flex-direction:row;flex-wrap:wrap;justify-content:space-between;}
 .punit-grid{display:grid;grid-auto-flow:column;grid-template-rows:repeat(3,auto);gap:6px 16px;justify-items:center;align-items:start;}
 .punit{display:flex;flex-direction:column;align-items:center;gap:1px;}
-/* numeric centerd above the knob, label pinned to its left (knobs share a column) */
-/* label + numeric as a centerd inline pair sized to its CONTENT (not the cell)
-   so a wide LED readout can't spill under its label or the neighbouring cell. */
+/* numeric centered above the knob, label pinned to its left (knobs share a column) */
+/* label + numeric as a centered inline pair sized to its CONTENT (not the cell)
+   so a wide LED readout can't spill under its label or the neighboring cell. */
 .punit-top{position:relative;display:flex;justify-content:center;align-items:center;width:max-content;margin-bottom:1px;gap:4px;flex-wrap:nowrap;}
 .punit .u-val{margin:0;}
 /* Step-size field is just a .numin — appearance comes from .numin (DSEG7 LED),
@@ -426,9 +426,9 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    collapsing to content width (which crowded the label against the LED). */
 #params .punit,.modmodule .punit,.eqmodule .punit{position:relative;height:calc(160px*var(--kscale,1));width:calc(116px*var(--kscale,1));justify-content:center;box-sizing:border-box;}
 #params .punit>.punit-top,.modmodule .punit>.u-lbl,.eqmodule .punit>.u-lbl{position:absolute;top:2px;left:0;right:0;margin:0;z-index:3;}
-/* params: label stacked above the numeric LED, both centerd over the knob's axis
-   (full width so centring is on the cell, not collapsed to content width). */
-/* Label to the LEFT of the LED (like the View module), LED centerd over the
+/* params: label stacked above the numeric LED, both centered over the knob's axis
+   (full width so centering is on the cell, not collapsed to content width). */
+/* Label to the LEFT of the LED (like the View module), LED centered over the
    knob: pin the label to the cell's left edge, center the numeric. Uniform
    across params / Position / Display. */
 #params .punit>.punit-top{flex-direction:row;align-items:center;justify-content:center;gap:0;width:auto!important;}
@@ -451,7 +451,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* Each section is a framed equipment module of a standard size; .modules lays
    them out so they sit side-by-side when there's width and stack when narrow.
    Content taller/wider than the module scrolls inside it. */
-/* --mm is the scale of the whole control surface: ONE MILLIMETRE, in CSS
+/* --mm is the scale of the whole control surface: ONE MILLIMETER, in CSS
    pixels, at interface scale 1. Every dimension below is written as a number
    of millimeters times it, so the panel can be read as a drawing of a real
    thing — and pkg/rackspec, which holds the same numbers for the STL export,
@@ -468,7 +468,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
      across ALL knobs the inner bodies match, the outer rings match, and (on
      triple stacks) the middle ring sits exactly halfway between them:
      inner r4.5, middle r7, outer r9.5 mm → middle radius is the mean. The
-     three are catalogue knob diameters, not round numbers. */
+     three are catalog knob diameters, not round numbers. */
   --ko:calc(19*var(--mm)); --km:calc(14*var(--mm)); --ki:calc(9*var(--mm));
   --kpo:calc(8*var(--mm)); --kpm:calc(6*var(--mm)); --kpi:calc(4*var(--mm));
   /* --krow: the knob-row grid pitch. Every knob cell (.vmcell / .axcol.axrot)
@@ -483,8 +483,8 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    2×/3× as content needs). Content flows in columns filling the height, so a
    module with more controls widens rather than growing taller. */
 .sect{margin:0;flex:0 0 auto;box-sizing:border-box;min-width:var(--mod-w,128px);width:max-content;height:var(--mod-h,474px);overflow:hidden;display:flex;flex-direction:column;align-items:center;border:1px solid #2a333c;border-radius:6px;background:linear-gradient(#15191e,#0d1013);box-shadow:inset 0 1px 0 #2f3944,0 1px 3px #000;padding:calc(0.5*var(--mm)) calc(2*var(--mm)) calc(0.5*var(--mm));}
-/* Centre each module's control block; the header spans the full width (its text
-   stays left-aligned) so only the knobs/rows are centerd, not the title. When a
+/* Center each module's control block; the header spans the full width (its text
+   stays left-aligned) so only the knobs/rows are centered, not the title. When a
    module is wider than its content (e.g. a degree/label ring pushes the width
    past the knob column), this keeps the knobs on the module's center line. */
 .sect>.sect-hdr{align-self:stretch;}
@@ -505,7 +505,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* Console: controls flow in aligned columns (switches flush-left), natural
    width so the module quantizes cleanly. */
 .swrow{align-items:flex-start;gap:3px 12px;}
-/* Switches grouped into labelled sub-sections, stacked in the module. */
+/* Switches grouped into labeled sub-sections, stacked in the module. */
 /* Switch sections flow in the SAME height-bounded column-wrap as every other
    module's content (base .sect>.row rule): whole sections wrap to the next
    column when the roster outgrows the module height, and quantizeModuleWidths
@@ -641,7 +641,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 @keyframes selmarq{0%,12%{transform:translateX(0)}88%,100%{transform:translateX(var(--marq-shift,0))}}
 /* tighter units so a vertical group of 3 fits a standard module */
 /* Knob grids use a real CSS GRID: up to 3 rows per column (the 4th param wraps
-   to a 2nd column), columns sized to their content and centerd — no flex-wrap
+   to a 2nd column), columns sized to their content and centered — no flex-wrap
    column overlap, and fixed 144px rows keep triads aligned. */
 .punit-grid,.vmrow,.vmaxrow{display:grid!important;grid-template-rows:repeat(3,var(--krow))!important;grid-auto-flow:column!important;grid-auto-columns:var(--kcol)!important;justify-content:center!important;justify-items:center!important;align-content:start!important;gap:2px calc(16px*var(--kscale,1) + 4px)!important;height:auto!important;width:auto!important;}
 .punit{gap:0;}
@@ -665,7 +665,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .axknob-rst{position:absolute!important;right:0;bottom:0;}
 .axstack .led{margin-bottom:0;}
 .axstack .numin{margin-top:0;}
-/* Each row is the full cell width with the LED / numeric CENTRED on the knob's
+/* Each row is the full cell width with the LED / numeric CENTERED on the knob's
    axis; the label is absolutely pinned to the LEFT edge (so X/Y/Z line up with
    the R of "Rate") WITHOUT widening the cell — keeping the module 1 slot. */
 .axstack .axrow{position:relative;display:flex;justify-content:center;align-items:center;width:100%;}
@@ -685,16 +685,16 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .vmrow .vmbay{flex-direction:column;align-items:center;gap:1px;}
 .vmrow .vmbay .numin{width:44px;text-align:center;}
 /* Position / Display cells: numeric LED above the knob (label pinned left), knob
-   centerd — same structure as params so the knobs share vertical rows. */
+   centered — same structure as params so the knobs share vertical rows. */
 .vmcell{display:flex;flex-direction:column;align-items:center;justify-content:center;width:calc(116px*var(--kscale,1));padding:0;}
-/* Position/Display: label on top, numeric LED beneath it, BOTH centerd in the
-   cell so the readout sits directly above the knob's axis (the knob is centerd
+/* Position/Display: label on top, numeric LED beneath it, BOTH centered in the
+   cell so the readout sits directly above the knob's axis (the knob is centered
    too). Stacking keeps the cell narrow yet perfectly aligned. */
 .vmcell .punit-top{flex-direction:row;align-items:center;justify-content:center;gap:0;margin-bottom:2px;}
 .vmcell .punit-top .numin{position:static;}
 /* === ROW ALIGNMENT === View & Position primaries use the SAME 104px fixed,
-   top-aligned, centerd-control cells as the params / MOD / EQ grids, so each
-   primary/MOD/EQ triad lines up row-for-row (control centerd in every cell). */
+   top-aligned, centered-control cells as the params / MOD / EQ grids, so each
+   primary/MOD/EQ triad lines up row-for-row (control centered in every cell). */
 .vmaxrow,.vmrow{flex-flow:column wrap!important;align-content:flex-start!important;justify-content:flex-start!important;}
 .axcol.axrot,.vmcell{height:var(--krow)!important;width:var(--kcol)!important;position:relative;justify-content:center!important;box-sizing:border-box;}
 .axcol.axrot .axstack{height:100%;justify-content:center;position:relative;width:100%;}
@@ -1084,10 +1084,10 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    is two cells wide and not five. */
 #preset-module .demo-btn{margin-top:calc(1*var(--mm));}
 
-/* A LABELLED DIAL'S KNOB HAS TO BE SMALLER THAN ITS LABEL RING.
-   Measured in a parameter cell: the stack is 76px, the label centres sit 43px
+/* A LABELED DIAL'S KNOB HAS TO BE SMALLER THAN ITS LABEL RING.
+   Measured in a parameter cell: the stack is 76px, the label centers sit 43px
    out, and the knob's radius was 40px — so a four-character label (20px wide)
-   had its inner edge at 33px, seven pixels UNDER the knob. The colour dial read
+   had its inner edge at 33px, seven pixels UNDER the knob. The color dial read
    "blu", "iri", "hea" and "agm" for blue, viridis, heat and magma. Even a
    two-character label overlapped by four pixels; nothing on that ring was fully
    clear of the knob.

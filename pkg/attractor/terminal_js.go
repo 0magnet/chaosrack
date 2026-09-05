@@ -95,7 +95,7 @@ func ensureTerminal() bool {
 	doc.Get("body").Call("appendChild", termHost)
 
 	// Nil FS: websh makes and seeds its own in-memory filesystem, which is the
-	// right one here. This terminal is a model in a visualiser, not a file
+	// right one here. This terminal is a model in a visualizer, not a file
 	// manager, and it has nowhere to persist to.
 	s, err := web.NewSession(termHost, web.Options{
 		Host:     "chaosrack",
