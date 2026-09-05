@@ -197,6 +197,7 @@ async function run() {
 {{end}}
 {{if .Page.HostConfig}}<script>window.__deskHost={{.Page.HostConfig}};</script>{{end}}
 {{if .Page.AudioFeed}}<script>window.__crAudio={{.Page.AudioFeed}};</script>{{end}}
+{{if .Page.WobbulateCtl}}<script>window.__crWobbulate=1;</script>{{end}}
 </head>
 <body style="margin: 0; padding: 0; width: 100%; height: 100%; background-color: black; color: white;">
 <!-- Crawlable description (the live UI is drawn on a WebGL canvas by WebAssembly). -->
