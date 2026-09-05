@@ -1,63 +1,112 @@
 #!/usr/bin/env bash
-# fvf — toggle the FVF "wobbulate" audio routing on/off.
+# fvf — turn the FVF wobbulator's audio routing on and off from a terminal.
 #
-# ON  : builds/starts `audiows -wobbulate` in the background. All system audio
-#       is routed through a temporary null sink and captured, and the wasm
-#       page's own Listen output is auto-moved to your real speakers. Open
-#       http://127.0.0.1:$FVF_PORT/?audio=ws  → FVF → turn on Listen.
-# OFF : sends SIGTERM so audiows restores your previous default sink and
-#       removes the null sink — i.e. normal audio, exactly as before.
+# ON  : starts `chaosrack --audio --wobbulate` in the background. All system
+#       audio is routed through a temporary null sink and captured, and the
+#       page's own Listen output is auto-moved back to your real speakers.
+#       Open http://127.0.0.1:$FVF_PORT/#fvf and turn on Listen.
+# OFF : SIGTERM, which makes the server restore your previous default sink and
+#       remove the null sink — i.e. normal audio, exactly as before. If a
+#       previous run was KILLED rather than asked to stop, its null sink is
+#       still loaded and still the default; off clears that too.
+#
+# The routing is also a switch on the page itself (the "route" cell in the FVF
+# parameters), which is usually the easier way round: it needs no restart. This
+# script is for driving it without a browser, and for cleaning up after a crash.
 #
 # Usage:  fvf [on|off|toggle|status]   (no arg = toggle)
-# Env:    FVF_PORT (default 8080)
+# Env:    FVF_PORT (default 8080), FVF_SINK (default fvf_in)
 set -euo pipefail
 
 PORT="${FVF_PORT:-8080}"
+SINK="${FVF_SINK:-fvf_in}"
 PIDFILE="${XDG_RUNTIME_DIR:-/tmp}/fvf-wobbulate.pid"
-LOGFILE="${TMPDIR:-/tmp}/fvf-audiows.log"
-BIN="${XDG_CACHE_HOME:-$HOME/.cache}/wasm-stuff/audiows"
+LOGFILE="${TMPDIR:-/tmp}/fvf-chaosrack.log"
+BIN="${XDG_CACHE_HOME:-$HOME/.cache}/chaosrack/chaosrack"
 
 here() { cd "$(dirname "$(readlink -f "$0")")/.." && pwd; }
 
 build() {
   mkdir -p "$(dirname "$BIN")"
   if [ -f "$(here)/go.mod" ]; then
-    ( cd "$(here)" && go build -o "$BIN" ./cmd/audiows )
+    ( cd "$(here)" && go build -o "$BIN" . )
   else
-    go build -o "$BIN" github.com/0magnet/wasm-stuff/cmd/audiows
+    go build -o "$BIN" github.com/0magnet/chaosrack
   fi
 }
 
 running() { [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; }
 
+# clear_stale_sink removes a null sink left loaded by a run that never got to
+# clean up after itself (SIGKILL, an OOM, a pulled plug). Without this, "off"
+# reports success on a machine whose every application is still playing into a
+# black hole — and nothing on screen says so, because the sink looks real.
+clear_stale_sink() {
+  command -v pactl >/dev/null 2>&1 || return 0
+  local ids id cur first
+  # Whole-argument match: an "fvf_in2" belongs to somebody else, and unloading
+  # another program's sink would be a worse bug than the one this fixes.
+  ids=$(pactl list short modules 2>/dev/null | awk -F'\t' -v want="sink_name=$SINK" '
+    $2 == "module-null-sink" {
+      n = split($3, a, /[ \t]+/)
+      for (i = 1; i <= n; i++) if (a[i] == want) { print $1; break }
+    }') || true
+  [ -n "$ids" ] || return 0
+  for id in $ids; do pactl unload-module "$id" >/dev/null 2>&1 || true; done
+  cur=$(pactl get-default-sink 2>/dev/null || true)
+  if [ -z "$cur" ] || [ "$cur" = "$SINK" ]; then
+    first=$(pactl list short sinks 2>/dev/null | awk -F'\t' -v s="$SINK" '$2 != s { print $2; exit }') || true
+    [ -n "$first" ] && pactl set-default-sink "$first" >/dev/null 2>&1 || true
+  fi
+  echo "  (cleared a stale '$SINK' sink from a run that was killed)"
+}
+
 start() {
   if running; then echo "FVF wobbulate is already ON (pid $(cat "$PIDFILE"))."; return; fi
-  [ -x "$BIN" ] || { echo "building audiows…"; build; }
-  nohup "$BIN" -wobbulate -p "$PORT" >"$LOGFILE" 2>&1 &
+  [ -x "$BIN" ] || { echo "building chaosrack…"; build; }
+  nohup "$BIN" --audio --wobbulate -p "$PORT" >"$LOGFILE" 2>&1 &
   echo $! >"$PIDFILE"
   disown || true
   sleep 1
+  if ! running; then
+    rm -f "$PIDFILE"
+    echo "FVF wobbulate failed to start; last lines of $LOGFILE:" >&2
+    tail -n 15 "$LOGFILE" >&2
+    exit 1
+  fi
   echo "FVF wobbulate ON — all system audio now runs through the effect."
-  echo "  Open http://127.0.0.1:$PORT/?audio=ws  → pick FVF → turn on Listen (🎛 FX A/Bs raw vs processed)."
+  echo "  Open http://127.0.0.1:$PORT/#fvf and turn on Listen (FX A/Bs raw vs processed)."
   echo "  Play music in any app; log: $LOGFILE"
-  echo "  Run '$0 off' to restore normal audio."
+  echo "  Run '$0 off' to restore normal audio — or use the 'route' switch on the page."
 }
 
 stop() {
   if running; then
-    kill -TERM "$(cat "$PIDFILE")" 2>/dev/null || true
+    local pid
+    pid=$(cat "$PIDFILE")
+    kill -TERM "$pid" 2>/dev/null || true
+    # Wait for it to actually go: the restore happens in the signal handler, so
+    # cleaning up before it has run would fight the process for the same sink.
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+      kill -0 "$pid" 2>/dev/null || break
+      sleep 0.3
+    done
     rm -f "$PIDFILE"
     echo "FVF wobbulate OFF — normal audio restored."
   else
-    echo "FVF wobbulate is not running."
     rm -f "$PIDFILE" 2>/dev/null || true
+    echo "FVF wobbulate is not running."
   fi
+  clear_stale_sink
 }
 
 case "${1:-toggle}" in
   on|start)  start ;;
   off|stop)  stop ;;
-  status)    if running; then echo "on (pid $(cat "$PIDFILE"))"; else echo "off"; fi ;;
+  status)
+    if running; then echo "on (pid $(cat "$PIDFILE"))"; else echo "off"; fi
+    if command -v pactl >/dev/null 2>&1; then echo "default sink: $(pactl get-default-sink 2>/dev/null || echo unknown)"; fi
+    ;;
   toggle|"") if running; then stop; else start; fi ;;
   *) echo "usage: $0 {on|off|toggle|status}" >&2; exit 1 ;;
 esac

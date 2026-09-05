@@ -979,7 +979,7 @@ p' = p + K·sin θ
 
 ### Scope
 
-[Lissajous](#lissajous) · [Graphic Artist](#graphic-artist) · [Scope Pong](#scope-pong) · [Fourier Text](#fourier-text) · [Bouncing Ball](#bouncing-ball) · [XY Scope](#xy-scope) · [Takens Embedding](#takens-embedding)
+[Lissajous](#lissajous) · [Graphic Artist](#graphic-artist) · [Scope Pong](#scope-pong) · [Fourier Text](#fourier-text) · [Scope Clock](#scope-clock) · [Bouncing Ball](#bouncing-ball) · [XY Scope](#xy-scope) · [Takens Embedding](#takens-embedding)
 
 #### Lissajous
 
@@ -1033,6 +1033,16 @@ W / S move the left paddle, ↑ / ↓ the right; a side left alone for ~10 s ret
 Fourier Text — An homage to the glensstuff.com Fourier Synthesis Character Generator, which built alphanumerics on a scope from summed harmonics. The banner's whole beam tour (strokes and retrace jumps alike) is one complex periodic signal x(t)+i·y(t); what's drawn is its reconstruction from only the first N harmonics — real harmonic synthesis, not a blur. One harmonic is an ellipse, so at low N the letters melt into loops; raise the harm knob and overtones sharpen them into legibility. Type the banner in the Console's TEXT field; Model Out (CAM) plays the actual harmonic stack.
 
 `#scopetext` · parametric
+
+#### Scope Clock
+
+Scope Clock — the time, drawn the way a scope draws anything: as ONE beam tour. The face, the twelve ticks and the three hands are a single path walked in order, because an X/Y display has one beam and no way to lift it — so the jumps between the end of one stroke and the start of the next are drawn too, and show as the faint diagonals an unblanked scope really shows. Scope Pong and the Fourier banner are built the same way; this is the same instrument told the time.
+
+The beam is spaced evenly along the whole path rather than given a fixed number of points per stroke: the face is a full circle and a tick is a few hundredths of one, so per-stroke spacing would put most of the beam on the ticks and leave the circle dotted. Even spacing is also what a real scope does, since the beam moves at a rate rather than at a number of samples.
+
+The hands are fractional throughout — the hour hand creeps with the minutes, the minute hand with the seconds — because a clock whose hands jump looks stopped in between. TRAIL and Persist apply as they do to any trace, so a long trail smears the second hand into a comet.
+
+`#scopeclock` · parametric
 
 #### Bouncing Ball
 
@@ -1978,16 +1988,23 @@ model), and the spectro/XY **backdrops** all need an audio source:
 
 - **Microphone** (default) — the page uses `getUserMedia`.
 - **Signal generators** — flip on the built-in oscillators; fully client-side.
-- **System audio over WebSocket** — run the bundled server, which captures
-  the default **PulseAudio / PipeWire** monitor and streams it to the page
-  (the page auto-connects via `?audio=ws`):
+- **System audio over WebSocket** — start the server with `--audio` and it
+  captures the default **PulseAudio / PipeWire** monitor and streams it to the
+  page it is already serving:
 
   ```
-  go run github.com/0magnet/chaosrack/cmd/audiows      # serve on :8080
-  # open http://127.0.0.1:8080/  → redirects to /?audio=ws
+  go run github.com/0magnet/chaosrack@master --audio      # serve on :8080
+  # open http://127.0.0.1:8080/ — no ?audio=ws needed
   ```
 
-  `cmd/audiows` mirrors the wire format of
+  The page connects by itself: a server that captures says so in the page it
+  serves, so there is no URL to remember and no socket dialed at a server that
+  was never going to answer. `?audio=mic` still refuses a feed that is on offer,
+  and `?audio=ws` still asks for one explicitly. `--audio-source` picks what is
+  recorded (`monitor`, the default, is what this machine is *playing*;
+  `default` is the input), `--audio-rate` the sample rate.
+
+  The wire format mirrors
   [**0magnet/audioprism-go**](https://github.com/0magnet/audioprism-go) — whose
   spectrogram engine is embedded here (the WebAssembly build effectively
   includes a port of it). The format is raw little-endian `float32` samples in
@@ -2041,49 +2058,74 @@ the wobbulated signal (on), independent of the `mix` knob; `mix` itself sweeps
 dry↔wet continuously.
 
 **Hear it with a microphone** (no setup):
-open the page in mic mode (the default — not the `?audio=ws` URL), choose
-**FVF Wobbulator**, turn on **Listen**, and use **headphones** (mic-in and
-speaker-out are different devices, so there's no loop; headphones stop
+open the page in mic mode (the default when the server was started without
+`--audio`; `?audio=mic` asks for it explicitly when the server does capture),
+choose **FVF Wobbulator**, turn on **Listen**, and use **headphones** (mic-in
+and speaker-out are different devices, so there's no loop; headphones stop
 acoustic feedback).
 
-**See/hear it react to *any* app (system audio).** `cmd/audiows` captures the
-default sink's monitor by default (`-source monitor`), so — exactly like
+**See/hear it react to *any* app (system audio).** `--audio` captures the
+default sink's monitor by default (`--audio-source monitor`), so — exactly like
 audioprism — it picks up whatever is playing (VLC, a browser tab, anything)
 with no per-app routing:
 
 ```
-go run github.com/0magnet/chaosrack/cmd/audiows   # -source monitor is the default
-# open http://127.0.0.1:8080/?audio=ws  → FVF → (with headphones) Listen
+go run github.com/0magnet/chaosrack@master --audio
+# open http://127.0.0.1:8080/#fvf  → (with headphones) Listen
 ```
 
 That alone is perfect for the spectrogram and for **Listen over headphones**.
 To hear the wobbulated result **out the speakers** you must break the feedback
-loop (speaker output being re-captured). The `-wobbulate` flag automates it —
-it inserts a temporary null sink, makes it the default so *every* app routes
-into it, captures that, and restores your default sink on Ctrl-C:
+loop — the speaker output being captured and wobbulated again, one buffer
+later, forever. Breaking it means putting the source app and the browser's own
+output on different sinks, and there are two ways to ask for that.
+
+**The `route` switch**, in the FVF parameter cells beside FX and Listen, is the
+one to reach for: it installs and removes the routing while the server runs, so
+A/B-ing normal audio against wobbulated audio is a click rather than a restart.
+It appears only on a page served by a server that can actually do it — one
+started with `--audio`, on a machine with `pactl` — and only a page on that same
+machine can operate it. Unlike every other switch on the panel it reflects the
+*machine's* state, not the page's, so it asks the server where it stands when
+the panel is built and moves back if a request is refused.
+
+**The `--wobbulate` flag** is the same thing at start-up, for when you know you
+want it:
 
 ```
-go run github.com/0magnet/chaosrack/cmd/audiows -wobbulate
+go run github.com/0magnet/chaosrack@master --audio --wobbulate
 ```
 
-Flow: any app → null sink (silent) → its monitor → audiows → browser wobbulates
-→ real speakers (never captured, so no loop). The wasm page's *own* Listen
-output is **auto-routed to your speakers** — audiows watches for the browser's
-playback stream on the null sink and moves it back — so there's no pavucontrol
-step (the `-out-apps` flag controls which app names count as "the browser"; the
-source app you're wobbulating should be a *different* app, e.g. VLC).
+Either way: a temporary null sink is inserted and made the default, so *every*
+app routes into it and can be captured, and the page's own Listen output is
+moved back to your real speakers automatically — the server watches for the
+browser's playback stream on the null sink and moves it off, so there is no
+pavucontrol step (`--wobbulate-apps` controls which app names count as "the
+browser"; the app you are wobbulating should be a *different* one, e.g. VLC).
 
-**Reverting** is automatic (Ctrl-C restores the previous default sink and
-removes the null sink) and non-destructive; it's runtime-only anyway, so a
-logout/reboot also clears it. To tap a specific source instead, pass its name,
-e.g. `-source fvf_in.monitor`.
+Flow: any app → null sink (silent) → its monitor → server → browser wobbulates
+→ real speakers (never captured, so no loop).
 
-**One-command toggle.** `scripts/fvf` flips the whole thing on and off so you
-can switch back and forth:
+The live capture is dropped when the routing changes, on purpose: a capture
+resolves "the default sink's monitor" once, when it opens, so one that was
+already running would go on recording the sink the audio no longer goes to. The
+page reconnects two seconds later against the new default, which is why the
+switch needs no reload.
+
+**Reverting** is automatic — turning `route` off, or stopping the server
+(Ctrl-C included), restores the previous default sink and removes the null
+sink — and non-destructive; it is runtime-only anyway, so a logout or reboot
+also clears it. A run that is *killed* rather than asked to stop cannot clean up
+after itself, so the next start sweeps away any null sink it left behind, and so
+does `scripts/fvf off`. To tap a specific source instead, pass its name, e.g.
+`--audio-source fvf_in.monitor`.
+
+**One-command toggle.** `scripts/fvf` drives the whole thing without a browser:
 
 ```
-scripts/fvf on      # start -wobbulate in the background (FVF_PORT=8080 default)
-scripts/fvf off     # stop it → normal audio restored
+scripts/fvf on      # chaosrack --audio --wobbulate in the background (FVF_PORT=8080)
+scripts/fvf off     # stop it → normal audio restored, stale sinks swept
+scripts/fvf status  # and the machine's current default sink
 scripts/fvf         # toggle
 ```
 
@@ -2180,17 +2222,18 @@ gocloc --not-match-d='(vendor|node_modules|\.git)' .
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-Go                             228           3157           9423          31229
-HTML                             4            255            187           2212
-Markdown                         1            547              7           1576
+Go                             276           3649          11730          35389
+HTML                             4            255            187           2258
+Markdown                         1            563              7           1658
 JSON                             4              0              0           1397
-JavaScript                       2            117             82            935
-CSS                              1             32            439            581
-Makefile                         1             23             31            116
+JavaScript                       2            112             83            936
+CSS                              1             36            487            595
+Makefile                         1             25             52            159
 YAML                             1              0              7             98
-BASH                             1              7             11             45
-Bourne Shell                     1             10             22             31
+Bourne Shell                     3             19             63             85
+BASH                             1              8             25             79
+Plain Text                       1              0              0              1
 -------------------------------------------------------------------------------
-TOTAL                          244           4148          10209          38220
+TOTAL                          295           4667          12641          42655
 -------------------------------------------------------------------------------
 ```

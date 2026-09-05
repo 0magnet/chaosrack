@@ -84,6 +84,7 @@ var runCmd = &cobra.Command{
 			d := htmlTemplateData{
 				HostConfig:    hostConfigJS(),
 				AudioFeed:     audioFeed(),
+				WobbulateCtl:  wobbulateCtlOffered(),
 				Title:         "Go",
 				CanonicalPath: "index.html",
 				Debug:         debugMode,
@@ -120,6 +121,7 @@ var runCmd = &cobra.Command{
 				CanonicalPath: "go/index.html",
 				Debug:         debugMode,
 				AudioFeed:     audioFeed(),
+				WobbulateCtl:  wobbulateCtlOffered(),
 			})
 		}
 		r1.GET("/go/", goPage)
@@ -135,6 +137,8 @@ var runCmd = &cobra.Command{
 					OtherLabel:    "dual",
 					CanonicalPath: "tinygo/index.html",
 					Debug:         debugMode,
+					AudioFeed:     audioFeed(),
+					WobbulateCtl:  wobbulateCtlOffered(),
 				})
 			}
 			r1.GET("/tinygo/", tinyPage)
@@ -288,6 +292,7 @@ type htmlTemplateData struct {
 	Debug         bool
 	HostConfig    htmpl.JS
 	AudioFeed     string // "ws" when this server is capturing; see audio.go
+	WobbulateCtl  bool   // the page may offer the FVF routing switch; see audio.go
 	// Dual mode: embed BOTH runtimes, default to Go, switch via ?wasm=tinygo.
 	Dual           bool
 	GoWasmExecJs   htmpl.JS
