@@ -290,7 +290,7 @@ func attachColorKnobs() {
 		}
 		holder.Call("appendChild", buildColorKnob(ci))
 		// LED readout of the HTML color (hex) below the knob, pinned to the cell
-		// bottom so it doesn't shift the knob's centring.
+		// bottom so it doesn't shift the knob's centering.
 		if cell := holder.Get("parentNode"); cell.Truthy() {
 			hex := doc.Call("createElement", "span")
 			hex.Set("className", "led pal-hex")

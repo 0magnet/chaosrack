@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// A file picked by a person can be anything at all: truncated, mislabelled,
+// A file picked by a person can be anything at all: truncated, mislabeled,
 // hostile, or simply not an STL. None of it may take the page down, because a
 // panic in wasm is a blank tab rather than a rejected file.
 func TestNewSTLSurvivesRubbish(t *testing.T) {
