@@ -38,6 +38,14 @@ var paramLabels = map[string][]string{
 	"spect-scale":  spectScaleNames,
 	"globe-par":    {"rings", "spiral"},
 	"globe-rev":    {"cw", "ccw"},
+	// The Poincaré section's settings. dir takes its names from beside the
+	// direction constants themselves rather than repeating them here, so a
+	// direction cannot be added without a name or renamed in only one place.
+	// All three are short enough to ring a dial as they stand, so none of them
+	// needs a paramRingLabels entry — see ringLabelsFit.
+	"sect-axis": sectAxisNames,
+	"sect-dir":  poincareDirNames,
+	"sect-view": sectViewNames,
 }
 
 // paramRingLabels is what actually fits around the dial. A cell is a third of
