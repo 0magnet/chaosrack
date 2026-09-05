@@ -241,6 +241,137 @@ func appendFVFSelectors(grid js.Value) {
 	grid.Call("appendChild", mkSwCard("listen",
 		"Listen — play the wobbulated audio out the speakers (mic: use headphones; music: see the null-sink setup)",
 		fvfListen, func(on bool) { setFVFListen(on) }))
+
+	// The routing switch, offered only by a server that can actually do it
+	// (chaosrack --audio on a machine with pactl). It is unlike every other
+	// switch on this panel: FX and Listen change what the page does, this one
+	// changes how the MACHINE is wired, which is why it asks the server what is
+	// true instead of starting from a default of its own.
+	if js.Global().Get("__crWobbulate").Truthy() {
+		card := mkSwCard("route", fvfRouteTip, false, func(on bool) { setFVFRoute(on) })
+		grid.Call("appendChild", card)
+		fvfRouteSw = card.Call("querySelector", "input.sw")
+		syncFVFRoute()
+	}
+}
+
+// ── the routing switch ───────────────────────────────────────────────────
+// Hearing the wobbulator on SPEAKERS (rather than headphones) needs the
+// machine's audio re-routed, because the processed output would otherwise be
+// captured and wobbulated again, one buffer later, forever. The server does
+// that with a null sink (pkg/audioroute); this is the switch for it.
+//
+// It used to be a flag on a different binary, which meant switching it meant
+// stopping one server, starting another and reloading the tab -- for a change
+// that takes about as long as a click. The server's half is a POST; this is the
+// click.
+
+const fvfRouteURL = "/audio/wobbulate"
+
+const fvfRouteTip = "Route — send ALL system audio through a temporary null sink on the server's machine, " +
+	"so the wobbulated result can be played out the speakers without being captured and wobbulated again. " +
+	"Turn it on, play something in any app, then turn on Listen. Off restores the previous default sink; " +
+	"so does stopping the server. Only a page on the same machine can switch it."
+
+// fvfRouteSw is the checkbox itself, kept so the server's answer can move it.
+// The routing is not this page's state to remember: another tab, the --wobbulate
+// flag, or the operator's own pactl can all have changed it.
+var fvfRouteSw js.Value
+
+// setFVFRoute asks the server to install or remove the routing.
+func setFVFRoute(on bool) {
+	body := `{"on":false}`
+	if on {
+		body = `{"on":true}`
+	}
+	headers := js.Global().Get("Object").New()
+	// Not decoration: an application/json body is what makes this a request the
+	// browser has to ask permission for before sending it cross-site. The server
+	// answers no preflight, so no other page can flip the machine's audio.
+	headers.Set("Content-Type", "application/json")
+	opts := js.Global().Get("Object").New()
+	opts.Set("method", "POST")
+	opts.Set("headers", headers)
+	opts.Set("body", body)
+	fetchJSONOnce(fvfRouteURL, opts, func(ok bool, b js.Value) { applyFVFRoute(ok, b, on) })
+}
+
+// syncFVFRoute puts the switch where the machine actually is, at panel-build
+// time.
+func syncFVFRoute() {
+	fetchJSONOnce(fvfRouteURL, js.Undefined(), func(ok bool, b js.Value) { applyFVFRoute(ok, b, false) })
+}
+
+// applyFVFRoute moves the switch to whatever the server reports, and puts it
+// BACK when a request was refused.
+//
+// Back matters. A switch that stays where the click left it claims a routing
+// that was never installed, and the symptom of believing that is silence with
+// no explanation -- the exact failure this whole feature exists to avoid.
+func applyFVFRoute(ok bool, body js.Value, wanted bool) {
+	if !fvfRouteSw.Truthy() {
+		return
+	}
+	if ok && body.Truthy() {
+		fvfRouteSw.Set("checked", body.Get("on").Bool())
+		fvfRouteSw.Set("title", fvfRouteTip)
+		return
+	}
+	fvfRouteSw.Set("checked", !wanted)
+	msg := "no answer from the server"
+	if body.Truthy() && body.Get("error").Truthy() {
+		msg = body.Get("error").String()
+	}
+	fvfRouteSw.Set("title", fvfRouteTip+"\n\nlast attempt failed: "+msg)
+	js.Global().Get("console").Call("warn", "[chaosrack] audio routing: "+msg)
+}
+
+// fetchJSONOnce runs one fetch and calls done exactly once with the decoded
+// body, whichever way the promise settles.
+//
+// The callbacks are released by hand rather than through trackedFuncOf because
+// a promise settles on its own schedule: the panel can be rebuilt (and every
+// tracked func released) between the request and the answer, and a released func
+// that JavaScript then calls is a runtime error, not a no-op. Releasing in the
+// handler that fires ties their lifetime to the request instead of the panel.
+func fetchJSONOnce(url string, opts js.Value, done func(ok bool, body js.Value)) {
+	var onResp, onJSON, onErr js.Func
+	released := false
+	settle := func(ok bool, body js.Value) {
+		if released {
+			return
+		}
+		released = true
+		onResp.Release()
+		onJSON.Release()
+		onErr.Release()
+		done(ok, body)
+	}
+	respOK := false
+	onErr = js.FuncOf(func(js.Value, []js.Value) interface{} {
+		settle(false, js.Undefined())
+		return nil
+	})
+	onJSON = js.FuncOf(func(_ js.Value, args []js.Value) interface{} {
+		body := js.Undefined()
+		if len(args) > 0 {
+			body = args[0]
+		}
+		settle(respOK, body)
+		return nil
+	})
+	onResp = js.FuncOf(func(_ js.Value, args []js.Value) interface{} {
+		if len(args) == 0 {
+			settle(false, js.Undefined())
+			return nil
+		}
+		// A refusal still carries JSON saying why, so the body is read either
+		// way and "ok" is remembered rather than inferred from it.
+		respOK = args[0].Get("ok").Bool()
+		args[0].Call("json").Call("then", onJSON).Call("catch", onErr)
+		return nil
+	})
+	js.Global().Call("fetch", url, opts).Call("then", onResp).Call("catch", onErr)
 }
 
 // ── FVF audio output engine ──────────────────────────────────────────────

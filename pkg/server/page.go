@@ -51,6 +51,12 @@ type PageOptions struct {
 	// a server that does not is never dialed, so neither silence-by-default nor
 	// an error overlay for a socket that was never going to answer.
 	AudioFeed string
+
+	// WobbulateCtl says the page may offer the FVF routing switch: this server
+	// captures, it was not told to refuse the control, and the machine has the
+	// pactl the routing is made of. A static host produces false, which is right
+	// -- there is nothing there to switch.
+	WobbulateCtl bool
 }
 
 // RenderPage returns the finished HTML for a single-runtime page.
@@ -65,6 +71,7 @@ func RenderPage(o PageOptions) ([]byte, error) {
 		Debug:         o.Debug,
 		HostConfig:    o.HostConfig,
 		AudioFeed:     o.AudioFeed,
+		WobbulateCtl:  o.WobbulateCtl,
 	})
 }
 
