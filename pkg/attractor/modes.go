@@ -103,6 +103,13 @@ var modeInfo = map[string]ModeInfo{
 	// bifurcation renders a progressive 2D scatter through the trail
 	// pipeline; Parametric so persist/gradient/points sizing apply.
 	"bifurcation": {"Bifurcation", ClassParametric, false},
+	// poincare is the same kind of thing for the same reason: a scatter that
+	// accumulates through the trail pipeline. Parametric and not Flow3D even
+	// though a flow is what it integrates — what it DRAWS is not a trajectory,
+	// and filing it as a flow would offer it to every consumer that reaches
+	// for flowFor4 (Model Out FLOW, the ring beam, the section overlay itself)
+	// as a system to integrate, which it is not.
+	"poincare": {"Poincaré Section", ClassParametric, false},
 	// recurrence is Audio for the same reason the spectrogram is: it is a
 	// texture drawn on a plane, with no trail to persist, gradient or scan.
 	"recurrence": {"Recurrence Plot", ClassAudio, false},
@@ -156,7 +163,7 @@ var modeGroups = []struct {
 	// every attractor swept as a tube — generated in the browser.
 	{"Solids", []string{"stlfile", "terminal", "termanim", "hostterm", "desk"}},
 	{"Audio", []string{"spectrogram", "xy", "fvf", "takens", "recurrence"}},
-	{"Analysis", []string{"bifurcation", "recurrence"}},
+	{"Analysis", []string{"bifurcation", "poincare", "recurrence"}},
 	// Custom is its own category and NOT also an entry in Attractors, where it
 	// used to be listed twice. It is a different kind of thing from the rest
 	// of that list: every other entry is a system someone published and this
