@@ -23,7 +23,7 @@ type WSOptions struct {
 
 	// RingSize is the number of samples retained. Must exceed the largest
 	// window a consumer snapshots (FFT size) and the largest per-frame
-	// drain backlog. Default 16384.
+	// drain backlog. Default DefaultRingSize.
 	RingSize int
 }
 
@@ -44,7 +44,7 @@ func NewWebSocket(opts WSOptions) Source {
 		opts.SampleRate = 24000
 	}
 	if opts.RingSize == 0 {
-		opts.RingSize = 16384
+		opts.RingSize = DefaultRingSize
 	}
 	w := &wsSource{opts: opts, ring: newRing(opts.RingSize)}
 	if js.Global().Get("WebSocket").IsUndefined() {

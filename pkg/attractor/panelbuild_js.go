@@ -403,6 +403,11 @@ func buildParamPanel(mode string) {
 		appendRecurrenceRQA(grid)
 	}
 
+	if mode == "stereo" {
+		// The correlation readout, into the grid for the same reason.
+		appendStereoReadout(grid)
+	}
+
 	if mode == "fvf" {
 		// Into the GRID, not #params: the grid is the height-bounded
 		// column-wrap container, so extra cells flow into a new column and the
