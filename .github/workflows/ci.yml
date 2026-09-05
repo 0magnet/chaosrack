@@ -10,14 +10,14 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      # The TinyGo artifact is rebuilt and committed by the tinygo job below,
-      # so its staleness test has nothing to tell anyone here: it would go red
+      # Both wasm artifacts are rebuilt and committed by the tinygo job below,
+      # so their staleness tests have nothing to tell anyone here: it would go red
       # on every push that touches a source file and green a few minutes later
       # on the refresh commit, which is how a red build stops meaning anything.
       # On a pull request the variable is empty and the test runs, because
       # there no refresh can happen — and it always runs locally, which is
       # where the forgetting it catches actually happens.
-      TINYWASM_REFRESHED_BY_CI: ${{ github.event_name == 'push' && '1' || '' }}
+      WASM_REFRESHED_BY_CI: ${{ github.event_name == 'push' && '1' || '' }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
@@ -69,28 +69,34 @@ jobs:
       # the only automated check that the dual-toolchain support still holds —
       # and now it is also where the committed artifact comes from.
       #
-      # `make tinywasm` rather than a bare tinygo build: it takes the source
-      # fingerprint before compiling and writes it after, and it fixes up the
-      # wasm_exec.js it copies. The build runs for several minutes at -opt=2
-      # and about twenty at -opt=z, which is the whole reason nobody ran it by
-      # hand and the artifact went stale twice.
-      - run: make tinywasm
-      - name: commit the refreshed artifact
+      # The make targets rather than bare builds: they take the source
+      # fingerprint before compiling and write it after, and fix up the
+      # wasm_exec.js they copy. The TinyGo build runs for several minutes at
+      # -opt=2 and about twenty at -opt=z, which is the whole reason nobody ran
+      # it by hand and the artifact went stale twice.
+      #
+      # Both artifacts, not just the TinyGo one. They are staled by the same
+      # thing — the fingerprint covers go.mod, so any dependency bump moves it
+      # — and refreshing only one left the other's staleness test failing the
+      # test job on exactly the runs this is meant to handle. The Go build
+      # takes seconds next to TinyGo's minutes, so it is nearly free here.
+      - run: make wasms
+      - name: commit the refreshed artifacts
         # Only on a push to main: a pull request build has nothing it may push
         # to, and one from a fork does not have the token either. A stale
         # artifact on a PR stays a failing test, which is the right answer
         # there — the contributor is being told what their branch is missing.
         if: github.event_name == 'push'
         run: |
-          if git diff --quiet -- assets/tinywasm; then
-            echo "artifact already current"
+          if git diff --quiet -- assets/tinywasm assets/gowasm; then
+            echo "artifacts already current"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/tinywasm
+          git add assets/tinywasm assets/gowasm
           # [skip ci] because this commit cannot change any outcome: the
           # fingerprint is taken from the sources, and this changes only the
           # artifact built from them.
-          git commit -m "assets: refresh the TinyGo wasm [skip ci]"
+          git commit -m "assets: refresh the embedded wasm builds [skip ci]"
           git push
