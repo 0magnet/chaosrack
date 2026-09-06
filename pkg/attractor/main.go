@@ -243,6 +243,7 @@ func Run() {
 	knobifyFixed("dash-duty", "slider-value-dash", true)
 	knobifyFixed("trail-slider", "slider-value-trail", true)
 	knobifyFixed("rainbow-freq", "slider-value-rfreq", true)
+	knobifyFixed("palette-shift", "slider-value-pshift", true)
 	rkx := knobifyFixed("rotation-controls-x", "slider-value-x", false)
 	rky := knobifyFixed("rotation-controls-y", "slider-value-y", false)
 	rkz := knobifyFixed("rotation-controls-z", "slider-value-z", false)
@@ -1131,6 +1132,14 @@ func Run() {
 	adoptDescControl(ControlDesc{ID: "rainbow-freq", Label: "period", Min: 0.05, Max: 20, Step: 0.05, Def: 1,
 		PermaKey: "rf", LEDID: "slider-value-rfreq", ResetID: "rst-rfreq",
 		Apply: func(v float64) { gradientFreq = float32(v) }})
+	// The colormap window's position, paired with the period above. Def 0 is
+	// the coordinate the colormaps already sampled, so a shared link opens on
+	// the picture it was made from until this is turned. See palettemod_js.go
+	// for why the range is exactly ±1 and why the ends are the reversed map
+	// rather than a stop.
+	adoptDescControl(ControlDesc{ID: "palette-shift", Label: "shift", Min: -1, Max: 1, Step: 0.01, Def: 0,
+		Signed: true, PermaKey: "gh", LEDID: "slider-value-pshift", ResetID: "rst-pshift",
+		Apply: func(v float64) { gradientShift = float32(v) }})
 	// Speed: the slider runs log10 (-2..2) while the LED shows the effective
 	// multiplier (0.01..100), whole sub-step counts at ≥1 — the one mapping
 	// pair below is the SSOT both directions.

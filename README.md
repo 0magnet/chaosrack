@@ -285,7 +285,15 @@ ordinary resource.
   — the palette ring carries the three swatch mixes and a raw hue sweep, and
   then the same six colormaps the spectrogram uses: **heat, blue, gray, turbo,
   viridis, magma**. They are the library's own tables, so a value paints the
-  same color on the trace as it does in the spectrogram. Reach for turbo or
+  same color on the trace as it does in the spectrogram. The **period** and
+  **shift** knobs beside them are a window onto the palette — period is how
+  many times the map is crossed across the figure, shift is where the crossing
+  starts — and both are audio-mod targets, so turning the period down to a
+  slice and routing the shift makes the sound sweep the figure *along* turbo
+  or magma rather than only tinting it. Past either end the map turns back
+  instead of wrapping: a colormap's two ends are different colors, and joining
+  them puts a seam across the figure that moves with the music.
+  Reach for turbo or
   viridis over the hue sweep when the color is meant to be read rather than
   admired: a hue ramp is perceptually uneven, so equal steps in the gradient
   look like unequal steps in color and the banding that produces is an
@@ -1618,7 +1626,7 @@ another slot. This reference is captured from the running rack by
 
 | | |
 |---|---|
-| <img src="docs/img/module/colors.jpg" alt="The Colors module" width="320"> | Colors — gradient source axis, palette size, rainbow period, and trail length |
+| <img src="docs/img/module/colors.jpg" alt="The Colors module" width="320"> | Colors — gradient source axis, palette, the palette window (period and shift), and trail length |
 
 ### Palette
 

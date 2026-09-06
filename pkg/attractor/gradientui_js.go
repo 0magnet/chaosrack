@@ -31,7 +31,13 @@ func updateGradientUI() {
 	dim("grp-cstart", gradientColors == 4)                         // no fixed colors in rainbow
 	dim("grp-cmid", gradientColors != 3)                           // mid only in 3-color
 	dim("grp-cend", !(gradientColors == 2 || gradientColors == 3)) // end in 2- / 3-color
-	dim("grp-rainbow", gradientColors != 4)                        // rainbow period only in rainbow
+	// The period is the palette WINDOW's width, and a window is something the
+	// rainbow and the colormaps both have — it stopped being the rainbow's
+	// private knob when the colormaps gained a shift to slide along it. The
+	// shift itself stays a colormap control: the rainbow's offset is
+	// uGradientPhase, which already exists and already animates.
+	dim("grp-rainbow", gradientColors != 4 && gradientColors < paletteFirst)
+	dim("grp-pshift", gradientColors < paletteFirst)
 	if lbl := doc.Call("getElementById", "lbl-cstart"); lbl.Truthy() {
 		if gradientColors == 1 {
 			lbl.Set("textContent", "color")
