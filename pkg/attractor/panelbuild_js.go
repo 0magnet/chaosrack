@@ -444,11 +444,20 @@ func buildModEQModules(params []paramDef) {
 		n := old.Index(i)
 		n.Get("parentNode").Call("removeChild", n)
 	}
-	var pTargets []modTarget
+	// One card per parameter, integer ones included — the third copy of the
+	// rule applyAudioModulation and matrixDests keep, and the copy the user
+	// actually touches. Offering the pin in the Patchbay while withholding the
+	// MOD/LVL knob would make routing a line count a thing only reachable from
+	// one of the two surfaces that exist for it.
+	//
+	// Row-for-row alignment is the other half. These cards are laid into a grid
+	// beside the primary module's, which has a cell for EVERY parameter; while
+	// the integer ones were skipped here, a mode with a count in the middle of
+	// its parameter list (turtle, the geometry models) had every card below it
+	// sitting one row off the control it belongs to.
+	pTargets := make([]modTarget, 0, len(params))
 	for _, p := range params {
-		if decimalsForStep(p.Step) > 0 {
-			pTargets = append(pTargets, modTarget{p.ID, p.Label, labelIsSym(p.Label)})
-		}
+		pTargets = append(pTargets, modTarget{p.ID, p.Label, labelIsSym(p.Label)})
 	}
 	groups := []struct {
 		hdr     string
