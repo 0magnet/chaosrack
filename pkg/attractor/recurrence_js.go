@@ -100,9 +100,11 @@ import (
 //     taking one sample per stride — see the note at the decimation itself,
 //     which is where an earlier version drew the recurrences of an aliased
 //     signal nobody was playing;
-//   - RQA runs at rpRQAEveryMs rather than per frame, because 283 µs for three
-//     numbers a human reads a few times a second is the kind of thing that
-//     looks free and is not;
+//   - RQA runs at RQASamplePeriodMs rather than per frame, because 283 µs for
+//     three numbers a human reads a few times a second is the kind of thing
+//     that looks free and is not. That same tick feeds the strip chart beside
+//     the readout (rqaseries_js.go), which is the whole of what the chart
+//     costs: it keeps the answers rather than measuring anything of its own;
 //   - and the trajectory source, the only genuinely expensive one, is cached
 //     against the values that produced it AND held behind a settle delay. A
 //     trajectory costs 0.5 ms for Lorenz and 24 ms for Chen, whose dt is ten
@@ -155,9 +157,11 @@ const (
 	// result, and long enough that nothing is recomputed mid-drag.
 	rpTrajSettleMs = 200
 
-	// rpRQAEveryMs rate-limits the RQA readout. Three numbers changing sixty
-	// times a second are unreadable anyway, and the scan is 283 µs.
-	rpRQAEveryMs = 160
+	// The rate limit on the readout is RQASamplePeriodMs, in rqaseries.go —
+	// moved there when the strip chart was added, because the tick that
+	// rate-limits the scan and the tick that spaces the series are one tick and
+	// two names for it would be two things to keep in step. The reasoning for
+	// the number is with it.
 
 	// rpMaxTau is the τ knob's maximum, and rpMaxLookback the deepest history
 	// behind the plot window any (m, τ) can ask for. The ring is sized for
@@ -294,13 +298,23 @@ func generateRecurrence() {
 		maybeShowAudioStatus()
 	}
 	if fresh {
+		rpMatDirty = true
 		js.CopyBytesToJS(rpU8, rpMat)
 		gl.Call("bindTexture", gl.Get("TEXTURE_2D"), rpTexture)
 		gl.Call("texSubImage2D",
 			gl.Get("TEXTURE_2D"), 0, 0, 0, rpN, rpN,
 			gl.Get("LUMINANCE"), gl.Get("UNSIGNED_BYTE"), rpU8)
-		rpMaybeMeasure()
 	}
+	// Outside the fresh branch, and that is not a tidy-up. The strip chart's
+	// axis is TIME, so it needs a slot per interval whether or not the matrix
+	// moved — and for the trajectory source the matrix almost never moves,
+	// because the series is static and cached. Measured on the fresh frames
+	// only, the chart would advance in bursts on a knob turn and stand still
+	// in between, which is a chart of edits rather than of the system.
+	// Recomputation is still gated: rpMatDirty says whether there is anything
+	// new to scan, so a frozen picture costs the readout nothing and the
+	// series records the value it still holds.
+	rpMaybeMeasure()
 	drawTexturedSquare(rpTexture)
 }
 
@@ -416,6 +430,7 @@ var (
 	rpTrajStaleAt float64 // frameNowMs when the knobs last moved
 	rpTrajEps     float32 // the ε the matrix on the texture was built with
 	rpTrajBuilt   bool    // a matrix has been built from the current series
+	rpTrajGen     int     // bumped on every re-integration; see rqaConfigNow
 )
 
 // rpTrajChanged reports whether the source system, its parameters or the WIN
@@ -462,6 +477,12 @@ func rpFillFromTrajectory() bool {
 		rpTrajSeries = TrajectorySeries(lastFlowMode, rpN, span)
 		rpTrajDiam = RecurrenceDiameter(rpTrajSeries, 3)
 		rpTrajBuilt = false
+		// A different curve, so the RQA read off it is an answer about a
+		// different object and the strip chart takes a seam. Counted rather
+		// than flagged because rqaConfigNow compares values and has no way to
+		// clear a flag it did not set — a counter it can only ever observe
+		// changing needs no handshake.
+		rpTrajGen++
 	}
 	if rpTrajSeries == nil || rpTrajDiam <= 0 {
 		// No vector field (the last mode was geometry or a map), or a run that
@@ -492,23 +513,46 @@ func rpFillFromTrajectory() bool {
 // under Analysis they would read as facts about the attractor. Filed under the
 // knob that moves them, they read as what they are: the number ε is turned by,
 // plus the two that say whether the texture is structure or speckle.
+//
+// The same tick drives the strip chart in the cell beside it — the history of
+// these three numbers, which is the thing RQA is actually for (rqaseries.go).
 
 var (
 	rpRQAEl   js.Value
 	rpRQA     RQAResult
 	rpRQANext float64 // frameNowMs the next measurement is due
+
+	// rpMatDirty says the matrix has changed since the last scan. It is sticky
+	// rather than the caller's per-frame "fresh", because the two clocks do not
+	// line up: the tick fires every tenth frame or so, and for the trajectory
+	// source the matrix is rebuilt on one frame and then not again for a long
+	// time. Asking "was it fresh THIS frame?" at the tick would answer no
+	// almost every time and the readout would sit on a stale number forever.
+	rpMatDirty bool
 )
 
-// rpMaybeMeasure recomputes the scalars from the matrix just uploaded, at most
-// every rpRQAEveryMs, and only while the readout is actually on the panel —
-// there is no reason to scan 64 KB for a number nothing is displaying.
+// rpMaybeMeasure recomputes the scalars from the matrix, at most every
+// RQASamplePeriodMs, and only while the readout is actually on the panel —
+// there is no reason to scan 64 KB for a number nothing is displaying. The
+// scan is skipped again when the matrix has not moved since the last one,
+// which is the common case for the trajectory source and free for the others.
+//
+// The SERIES is fed on every tick regardless, scan or no scan: its axis is
+// wall-clock time, so a value that has not changed is still a reading, and a
+// tick that produced no reading at all has to become a slot in the record
+// rather than nothing. That is what keeps the chart from splicing across the
+// stretches it was not looking.
 func rpMaybeMeasure() {
 	if !rpRQAEl.Truthy() || frameNowMs < rpRQANext {
 		return
 	}
-	rpRQANext = frameNowMs + rpRQAEveryMs
-	rpRQA = RQA(rpMat, rpN)
-	rpRQAEl.Set("textContent", rpFormatRQA(rpRQA))
+	rpRQANext = frameNowMs + RQASamplePeriodMs
+	if rpMatDirty {
+		rpMatDirty = false
+		rpRQA = RQA(rpMat, rpN)
+		rpRQAEl.Set("textContent", rpFormatRQA(rpRQA))
+	}
+	rqaSample(frameNowMs, rpRQA)
 }
 
 // rpFormatRQA renders the three scalars as percentages at a FIXED WIDTH, for
