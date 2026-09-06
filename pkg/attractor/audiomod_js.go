@@ -45,9 +45,67 @@ type savedParam struct {
 	v float32
 }
 
+// modHold is the quantizer's memory: the whole-grid value each COUNT parameter
+// was last given, keyed by paramDef.ID. quantizeHeld needs a previous value to
+// be sticky about, and the only place that survives between frames is here.
+// Keys are parameter ids, so it is bounded by the number of parameters in the
+// build and never grows with time.
+var modHold = map[string]float32{}
+
+// appliedMod is one parameter and the value modulation actually gave it this
+// frame. modAppliedPrev/modAppliedCur hold consecutive frames' worth, in
+// parameter order, so a frame can ask whether anything CHANGED rather than
+// whether anything was modulated — see applyAudioModulation.
+type appliedMod struct {
+	id string
+	v  float32
+}
+
+var (
+	modAppliedPrev []appliedMod
+	modAppliedCur  []appliedMod
+)
+
 // applyAudioModulation overrides each routed parameter of the current
 // attractor for this integration step and returns the saved originals.
 func applyAudioModulation(mode string) []savedParam {
+	saved := collectAudioModulation(mode)
+	// Attractors regenerate every frame; a static model (sphere/torus/globe/…)
+	// only rebuilds when marked dirty, so a rebuild has to be forced whenever
+	// this frame's values differ from the mesh already on the GPU.
+	//
+	// The test used to be "was anything modulated", which for a continuous
+	// parameter asks the same thing — a float driven by audio has a new value
+	// every frame. For a COUNT it emphatically does not: the whole point of
+	// quantizing is that most frames produce the same integer, and a mesh
+	// rebuild per frame is the one thing this feature must not reintroduce.
+	// staticGeomCached's own comment records what that costs — 45% of all
+	// allocation in generateGlobe and a 66-100ms collector pause every 400ms,
+	// the stutter that could be SEEN — and dirtying the flag unconditionally
+	// while a count knob was routed would hand all of it straight back.
+	// Simulated over ten seconds of steady tone driving sphere latitude, the
+	// number of rebuilds goes 600 (one per frame) → 127 (quantized) → 2
+	// (quantized, with the deadband).
+	//
+	// Comparing values rather than counting them also gets two cases right that
+	// the old test got wrong. Modulation switched OFF used to leave the last
+	// modulated mesh on the GPU with nothing to mark it stale, because the
+	// frame that stopped modulating also stopped setting the flag; now the
+	// disappearance of a value IS a change and rebuilds once. And a float
+	// parameter under a genuinely constant feature no longer rebuilds an
+	// identical mesh sixty times a second.
+	if modApplyChanged() && !isAttractorMode(mode) {
+		staticGeomDirty = true
+	}
+	return saved
+}
+
+// collectAudioModulation is applyAudioModulation's parameter loop, split out so
+// the rebuild decision above runs on every path — including the two early
+// returns, where the interesting case is precisely that nothing was applied
+// this frame although something was applied last frame.
+func collectAudioModulation(mode string) []savedParam {
+	modAppliedCur = modAppliedCur[:0]
 	if !audioMod {
 		return nil
 	}
@@ -56,47 +114,77 @@ func applyAudioModulation(mode string) []savedParam {
 		return nil
 	}
 	var saved []savedParam
-	modulated := false
 	for _, pd := range params {
-		// Integer settings (line counts, subdivisions) aren't meaningfully
-		// modulatable — only float params.
-		if decimalsForStep(pd.Step) == 0 {
-			continue
-		}
 		m, ok := paramMods[pd.ID]
 		if !ok || m.channel == "" || m.level == 0 {
 			continue
 		}
 		f := eqModValue(m.channel, m.bands)
 		base := *pd.Value
+		v := clampF(base+m.level*f*(pd.Max-pd.Min), pd.Min, pd.Max)
+		// A step with no decimals is a COUNT — lines, subdivisions, samples of
+		// delay, a position on a labeled dial. It is modulated exactly like a
+		// continuous parameter and then read off the parameter's own grid, so
+		// the sound moves it between 8 and 14 without ever asking for half a
+		// line. Continuous parameters are deliberately left alone: quantizing
+		// lorenz-dt to its 0.001 step would coarsen modulation that works.
+		//
+		// Every integral-step parameter in the build today really is a count or
+		// an index (see paramdefs_js.go and the spect/rec/takens/stereo sets) —
+		// there is no continuous quantity wearing a step of 1. If one is ever
+		// added, the fix is to give it the finer step it always wanted rather
+		// than an exception here, because the same coarse step is already
+		// quantizing its knob, its wheel and its LED.
+		if decimalsForStep(pd.Step) == 0 {
+			held, has := modHold[pd.ID]
+			v = quantizeHeld(v, held, has, pd.Min, pd.Max, pd.Step)
+			modHold[pd.ID] = v
+		}
 		saved = append(saved, savedParam{pd.Value, base})
-		*pd.Value = clampF(base+m.level*f*(pd.Max-pd.Min), pd.Min, pd.Max)
-		modulated = true
-	}
-	// Attractors regenerate every frame; a static model (sphere/torus/…) only
-	// rebuilds when marked dirty, so force a rebuild this frame with the
-	// modulated value.
-	if modulated && !isAttractorMode(mode) {
-		staticGeomDirty = true
+		*pd.Value = v
+		modAppliedCur = append(modAppliedCur, appliedMod{pd.ID, v})
 	}
 	return saved
 }
 
+// modApplyChanged reports whether this frame's applied modulation differs from
+// the previous frame's, and takes this frame's as the new baseline.
+//
+// Positional comparison is enough because both lists are built by walking
+// attractorParams[mode] in order, so equal length plus equal entries means the
+// same parameters carrying the same values. A mode change shuffles the ids and
+// reads as a change, which is correct and in any case redundant — changing mode
+// dirties the geometry by itself.
+//
+// The two slices are reused rather than reallocated. This runs once a frame for
+// the life of the tab, and the js/wasm builds (TinyGo especially) pay for
+// garbage in collector pauses, which is the very cost this function exists to
+// avoid.
+func modApplyChanged() bool {
+	if len(modAppliedCur) != len(modAppliedPrev) {
+		modAppliedPrev = append(modAppliedPrev[:0], modAppliedCur...)
+		return true
+	}
+	for i, a := range modAppliedCur {
+		if modAppliedPrev[i] != a {
+			modAppliedPrev = append(modAppliedPrev[:0], modAppliedCur...)
+			return true
+		}
+	}
+	return false
+}
+
 // restoreAudioModulation restores base parameter values after the step.
+//
+// Counts go back through exactly this path and for exactly the reason floats
+// do: the slider is still the authoritative value and the audio only borrows
+// the parameter for one integration step. A quantized value left written over
+// the base would ratchet the slider onto the grid and leave it there — visible
+// as a knob that drifts on its own whenever the music plays.
 func restoreAudioModulation(saved []savedParam) {
 	for _, s := range saved {
 		*s.p = s.v
 	}
-}
-
-func clampF(x, lo, hi float32) float32 {
-	if x < lo {
-		return lo
-	}
-	if x > hi {
-		return hi
-	}
-	return x
 }
 
 // viewModTarget is a non-parameter float control (camera/motion knob) that
