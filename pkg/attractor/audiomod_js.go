@@ -203,8 +203,16 @@ var viewModTargets = []viewModTarget{
 	{"view-spinx", "spin X", &cachedRotX, -1, 1, "rotation-controls-x"},
 	{"view-spiny", "spin Y", &cachedRotY, -1, 1, "rotation-controls-y"},
 	{"view-spinz", "spin Z", &cachedRotZ, -1, 1, "rotation-controls-z"},
-	{"view-rfreq", "rainbow", &gradientFreq, 0.05, 20, "rainbow-freq"},
+	{"view-rfreq", "period", &gradientFreq, 0.05, 20, "rainbow-freq"},
 	{"view-trail", "trail", &trailModFrac, 0.02, 1, "trail-slider"},
+	// APPENDED, not slotted in beside the period it belongs with. midi_js.go
+	// hands CC 21+i to viewModTargets[i], so the position in this slice is a
+	// controller's knob assignment: inserting in the middle would silently
+	// re-map somebody's hardware, and a MIDI mapping breaking is a thing that
+	// gets noticed hours later and blamed on the controller. The panel groups
+	// the mod cards by their own list (panelbuild_js.go), so the visible order
+	// is unaffected — only the patchbay's column order follows this one.
+	{"view-pshift", "shift", &gradientShift, -1, 1, "palette-shift"},
 }
 
 // updateViewModRows injects an audio-mod routing row directly beneath each
@@ -247,6 +255,16 @@ func applyViewModulation() []savedParam {
 			// Trail can't grow past its buffer, so the signal contracts it from
 			// full: level>0 shortens with energy (±level still inverts).
 			*vt.ptr = clampF(1-m.level*f, vt.min, vt.max)
+		} else if vt.id == "view-pshift" {
+			// WRAPPED, not clamped, and it is the only target here for which
+			// that is even meaningful: the palette window is periodic in the
+			// shift — ±1 is one whole period of the shader's fold — so there is
+			// no end for the value to run into. Clamping it would reintroduce
+			// exactly the failure the reflection exists to avoid, the sweep
+			// jamming against a limit for the loud half of the music while
+			// every fragment holds one color. The wrap is invisible because the
+			// two periods are the same 2 by construction (palettemod_js.go).
+			*vt.ptr = wrapPaletteShift(base + m.level*f*(vt.max-vt.min))
 		} else {
 			*vt.ptr = clampF(base+m.level*f*(vt.max-vt.min), vt.min, vt.max)
 		}
