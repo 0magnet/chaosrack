@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"syscall/js"
+	"time"
 
 	"github.com/0magnet/desk"
 	"github.com/0magnet/desk/panes/files"
@@ -14,7 +15,15 @@ import (
 	"github.com/0magnet/desk/panes/term"
 	"github.com/0magnet/sh/v3/interp"
 	"github.com/0magnet/websh/shell"
+	"github.com/0magnet/websh/web"
+	xterm "github.com/0magnet/xterm-go"
 )
+
+// hostAppletTerminal finds the terminal an applet is running in. websh
+// publishes the shell-to-session pairing for exactly this, so the terminal is
+// reachable without keeping a private note of which pane is "the" shell —
+// which is wrong the moment two terminals are open.
+func hostAppletTerminal(s *shell.Shell) *xterm.Terminal { return web.TerminalFor(s) }
 
 // A window manager over the scene.
 //
@@ -142,11 +151,27 @@ func ensureDesk() {
 	desk.Register(desk.App{
 		Name:   "host",
 		Title:  "host shell",
-		Help:   "a real shell on this machine (needs --shell)",
+		Help:   "a real shell on this machine (needs --shell; `host NAME` to reconnect)",
 		Width:  760,
 		Height: 460,
-		Open: func([]string) (desk.Pane, error) {
-			return hostterm.New(), nil
+		Open: func(args []string) (desk.Pane, error) {
+			// An argument NAMES the session, which is what makes it survive
+			// the window: `host build` twice is the same shell the second
+			// time, with what it printed in between replayed into it.
+			//
+			// Naming is the user’s job rather than the pane’s because only
+			// they know whether a new window is meant to be the old one: an
+			// id the pane invented would either give every host window the
+			// same shell, or give a reopened window a different one.
+			//
+			// Needs --reconnect on the other end. Without it the name is
+			// ignored and this is an ordinary host shell, so there is
+			// nothing to check for here.
+			name := ""
+			if len(args) > 0 {
+				name = args[0]
+			}
+			return hostterm.NewSession(name), nil
 		},
 	})
 	desk.Register(desk.App{
@@ -236,6 +261,84 @@ func registerDeskApplets() {
 				fmt.Fprintln(hc.Stderr, "open:", err) //nolint:errcheck // as above
 				return 1
 			}
+			return 0
+		})
+	shell.RegisterApplet("host", "a shell on this machine, in this terminal (host NAME to reconnect)",
+		func(ctx context.Context, s *shell.Shell, hc *interp.HandlerContext, args []string) int {
+			term := hostAppletTerminal(s)
+			if term == nil {
+				fmt.Fprintln(hc.Stderr, "host: no terminal to attach to") //nolint:errcheck
+				return 1
+			}
+			name := ""
+			if len(args) > 0 {
+				name = args[0]
+			}
+
+			// Raw mode BEFORE attaching: the shell otherwise line-buffers and
+			// echoes, so the remote pty would receive whole lines late and the
+			// terminal would show every keystroke twice.
+			if s.RawMode != nil {
+				s.RawMode(true)
+				defer s.RawMode(false)
+			}
+
+			// A newline BEFORE the remote's first byte. Raw mode is already on,
+			// so websh did not echo the Return that ran this — the cursor is
+			// still sitting after "host demo" and the remote's first output
+			// would start on that line, on top of the command that asked for
+			// it. A shell echoes the newline for exactly this reason.
+			fmt.Fprint(hc.Stdout, "\r\n") //nolint:errcheck
+
+			att, err := hostterm.Attach(term, name)
+			if err != nil {
+				fmt.Fprintf(hc.Stderr, "host: %v\n", err) //nolint:errcheck
+				return 1
+			}
+			defer att.Close()
+
+			// Pump raw keystrokes to the pty. websh hands them to this
+			// applet's stdin while raw mode is on, Ctrl+C included, which is
+			// what lets the remote program see an interrupt instead of this
+			// one being killed by it.
+			go func() {
+				buf := make([]byte, 1024)
+				for {
+					n, err := hc.Stdin.Read(buf)
+					if n > 0 {
+						att.Send(buf[:n])
+					}
+					if err != nil {
+						return
+					}
+				}
+			}()
+
+			// Either the remote shell exited, or the session was canceled
+			// from outside. Both mean the same thing here: give the terminal
+			// back.
+			select {
+			case <-att.Done():
+				// Let the last of the pty's output land before taking the
+				// terminal back. The socket's close and the messages ahead of
+				// it are separate JS tasks, so returning the instant Done
+				// fires means websh draws its prompt and the remote's parting
+				// "exit" is then written over it — which is what the two
+				// shells fighting for one cursor looks like.
+				time.Sleep(120 * time.Millisecond)
+			case <-ctx.Done():
+			}
+
+			// A remote full-screen program may have left the cursor hidden or
+			// a scroll region set, and the prompt about to be printed would
+			// inherit both. Reset rather than clear: clearing would throw away
+			// the session the user just had, which is the thing worth keeping.
+			// Hand the terminal back in a known state. A remote full-screen
+			// program may have left the cursor hidden or a scroll region set,
+			// and the prompt about to be printed would inherit both. The
+			// trailing newline is what puts that prompt on a line of its own
+			// rather than at whatever column the remote stopped in.
+			fmt.Fprint(hc.Stdout, "\x1b[?25h\x1b[r\x1b[0m\r\n") //nolint:errcheck
 			return 0
 		})
 	shell.RegisterApplet("term", "open another terminal window",

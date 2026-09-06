@@ -91,6 +91,30 @@ const (
 	RowsParam = "rows"
 )
 
+// SessionParam names a session that should outlive the socket carrying it.
+//
+// A client that sends one and reconnects with the same value gets the same
+// shell back, with the output it missed replayed into it; a client that sends
+// nothing gets today's behavior, a shell that dies with the window. Which of
+// those happens is the CLIENT's choice, not the server's, because only the
+// client knows whether this window is the same window as the one that went
+// away — the server sees two TCP connections and cannot tell a reload from a
+// second terminal.
+//
+// THE VALUE IS A NAME, NOT A KEY. It is not the thing that grants access to a
+// session and it does not have to be unguessable: the agent hashes it together
+// with the token and a per-run secret before it addresses anything, precisely
+// so that a client which picks something dull ("main", a window number) does
+// not thereby create a session anyone can walk up to. See the key derivation
+// in hostagent's session.go, which is where that reasoning is spelled out and
+// where it has to be right.
+//
+// It is still worth picking something random and storing it, because the name
+// is what distinguishes one window's shell from another's, and two windows
+// that pick the same name share one shell — with the second one taking the
+// first one's socket away.
+const SessionParam = "sid"
+
 // Path is where the agent serves the pty endpoint.
 const Path = "/host/pty"
 

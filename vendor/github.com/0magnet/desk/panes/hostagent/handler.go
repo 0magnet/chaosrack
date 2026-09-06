@@ -9,9 +9,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"golang.org/x/net/websocket"
 
@@ -44,6 +46,22 @@ type Config struct {
 
 	// Session is what to start for each connection.
 	Session SessionConfig
+
+	// Sessions, when non-nil, lets a client name a session that outlives the
+	// socket carrying it: closing the window and opening it again gets the
+	// same shell back, with what it printed in between replayed into it.
+	//
+	// OPT-IN, and nil is not merely the default but a different code path.
+	// The shell-dies-with-the-window model is the one with no timers, no
+	// registry and nothing to reason about — closing the tab revokes the
+	// shell — and an agent that did not ask for anything else keeps exactly
+	// that behavior, unchanged, with none of session.go reachable from it.
+	//
+	// Even with a registry, a client that sends no session id gets the old
+	// behavior for the same reason: naming a session is how a client says it
+	// intends to come back, and a client that says nothing is asking for a
+	// shell for this window only.
+	Sessions *Registry
 }
 
 // NewToken returns a fresh 128-bit token.
@@ -146,12 +164,22 @@ func (c Config) serve(ws *websocket.Conn) {
 	// first prompt. Connecting at 80x24 and correcting a frame later leaves a
 	// prompt wrapped at the wrong width that nothing will redraw.
 	sess := c.Session
-	if q := ws.Request().URL.Query(); q != nil {
-		if n, err := strconv.Atoi(q.Get(hostproto.ColsParam)); err == nil && n > 0 && n <= maxGrid {
-			sess.Cols = n
-		}
-		if n, err := strconv.Atoi(q.Get(hostproto.RowsParam)); err == nil && n > 0 && n <= maxGrid {
-			sess.Rows = n
+	q := ws.Request().URL.Query()
+	if n, err := strconv.Atoi(q.Get(hostproto.ColsParam)); err == nil && n > 0 && n <= maxGrid {
+		sess.Cols = n
+	}
+	if n, err := strconv.Atoi(q.Get(hostproto.RowsParam)); err == nil && n > 0 && n <= maxGrid {
+		sess.Rows = n
+	}
+
+	// A named session is the client asking for one that survives this socket,
+	// and it is the only thing that diverts from the path below. Everything
+	// after this point is what the agent has always done, untouched: start a
+	// shell, pump it at the socket, and close it when the socket ends.
+	if c.Sessions != nil {
+		if id := q.Get(hostproto.SessionParam); id != "" {
+			c.serveDurable(ws, id, sess)
+			return
 		}
 	}
 
@@ -180,12 +208,28 @@ func (c Config) serve(ws *websocket.Conn) {
 				break
 			}
 		}
-		// Closing here is what unblocks the Receive below. Without it a
+		// Closing here is what unblocks readClient below. Without it a
 		// session whose shell exited would sit with a live socket and a
 		// dead pty until the tab closed.
 		_ = ws.Close() //nolint:errcheck // closing to unblock the read; the error is the close itself
 	}()
 
+	readClient(ws, s)
+}
+
+// shell is the half of a session the client-to-server loop needs.
+//
+// It exists so that the loop below can be written once and used by both a
+// Session, which dies with its socket, and an Attachment, which does not. The
+// alternative was a second copy of the switch, and a second copy is where the
+// two paths quietly stop agreeing about what a resize means.
+type shell interface {
+	io.Writer
+	Resize(cols, rows int) error
+}
+
+// readClient runs the client-to-server loop until the socket ends.
+func readClient(ws *websocket.Conn, s shell) {
 	for {
 		var raw string
 		if err := websocket.Message.Receive(ws, &raw); err != nil {
@@ -214,4 +258,86 @@ func (c Config) serve(ws *websocket.Conn) {
 			}
 		}
 	}
+}
+
+// serveDurable attaches this socket to a named session instead of starting one
+// that dies with it.
+//
+// The difference from serve, in full: nothing here reads the pty. The session's
+// own pump does that for its whole life, which is what lets it keep running
+// while nobody is watching — see session.go, where that is the point rather
+// than an optimization. This function replays what was missed, applies the new
+// window's size, and then runs the same client-to-server loop as the ordinary
+// path.
+func (c Config) serveDurable(ws *websocket.Conn, id string, sess SessionConfig) {
+	sink := &wsSink{ws: ws, timeout: c.Sessions.cfg.StallTimeout}
+	at, err := c.Sessions.Attach(c.Token, id, sess, sink, func() {
+		_ = ws.Close() //nolint:errcheck // closing to unblock the loop; the error is the close itself
+	})
+	if err != nil {
+		log.Printf("desk: %v", err)
+		// Into the terminal, for the same reason serve does it: the person
+		// who needs to know is looking at the window. The two errors a
+		// client can provoke here — the cap and an absurd id — are both
+		// things it can fix, and neither says anything about what sessions
+		// exist.
+		//nolint:errcheck // the socket is about to close; there is nowhere else to report this
+		_ = websocket.Message.Send(ws, []byte("\r\n\x1b[31m"+err.Error()+"\x1b[0m\r\n"))
+		return
+	}
+	// Detach and NOT Close: the socket ending is the whole event this
+	// feature exists to survive. What ends the session is the idle timeout,
+	// the shell exiting, or the agent stopping.
+	defer at.Detach()
+
+	// Attach has already written the transcript through the sink. It has to
+	// be Attach that does it — writing it from here would race the session's
+	// own delivery of live output onto this same socket, and a WebSocket
+	// tolerates exactly one writer at a time.
+
+	// REPLAY FIRST, THEN RESIZE, and the order is not arbitrary. A resize is
+	// a SIGWINCH, and a full-screen program answering one redraws itself
+	// immediately; doing that before the transcript went out puts the redraw
+	// underneath it, so the window ends up showing history below the live
+	// screen. This way the redraw is the last thing written, which is where
+	// the cursor should be. The replayed text keeps the wrapping it had at
+	// the old width, which is wrong and unavoidable — nothing can reflow
+	// bytes that were already wrapped by the program that emitted them.
+	if !at.Created && sess.Cols > 0 && sess.Rows > 0 {
+		_ = at.Resize(sess.Cols, sess.Rows) //nolint:errcheck // a refused resize is not worth dropping a shell
+	}
+
+	readClient(ws, at)
+}
+
+// wsSink is how a session writes to the client that is currently attached.
+//
+// THE DEADLINE IS THE REASON THIS TYPE EXISTS. A socket whose far end has gone
+// away without saying so — a suspended laptop, a cable pulled — does not fail
+// on write, it blocks, for as long as the kernel is willing to retransmit.
+// Because the session's pump is what drains the pty, a block here is a stalled
+// shell: the build that reconnection was supposed to protect stops making
+// progress because a browser that no longer exists has not been noticed. With
+// a deadline the write fails, the client is detached, and the output goes to
+// the ring buffer instead — which is exactly where it would have gone if the
+// socket had closed politely.
+//
+// The non-reconnecting path deliberately does not use this. There, a wedged
+// socket wedges only its own shell, which dies with it anyway, and adding a
+// deadline would change behavior that nobody asked to have changed.
+type wsSink struct {
+	ws      *websocket.Conn
+	timeout time.Duration
+}
+
+func (s *wsSink) Write(p []byte) (int, error) {
+	if s.timeout > 0 {
+		// Ignored deliberately: the only way this fails is a closed
+		// connection, which the Send below is about to report properly.
+		_ = s.ws.SetWriteDeadline(time.Now().Add(s.timeout)) //nolint:errcheck // reported by the Send
+	}
+	if err := websocket.Message.Send(s.ws, p); err != nil {
+		return 0, err
+	}
+	return len(p), nil
 }

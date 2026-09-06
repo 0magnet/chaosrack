@@ -8,7 +8,10 @@ import (
 )
 
 // tone fills n samples with a sine at hz.
-func tone(n, hz, sampleRate int) []float32 {
+// tone keeps sampleRate a parameter even though every caller passes 24000:
+// a centroid is only meaningful against a rate, and hiding it would make the
+// tests read as if the frequencies were absolute.
+func tone(n, hz, sampleRate int) []float32 { //nolint:unparam
 	w := make([]float32, n)
 	for i := range w {
 		w[i] = float32(math.Sin(2 * math.Pi * float64(hz) * float64(i) / float64(sampleRate)))
