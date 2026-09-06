@@ -401,6 +401,11 @@ func buildParamPanel(mode string) {
 		// displaying its result — a panel rebuild replaces the element, and
 		// this is where the new one is handed over.
 		appendRecurrenceRQA(grid)
+		// ...and the history of those same three numbers, in the cell after
+		// them, which is the reading RQA is actually for. Last, because it
+		// spans a whole column group of the grid and everything appended after
+		// a full-height item flows into the columns past it.
+		appendRecurrenceSeries(grid)
 	}
 
 	if mode == "stereo" {
