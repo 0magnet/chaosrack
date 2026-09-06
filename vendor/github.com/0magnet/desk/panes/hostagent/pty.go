@@ -154,6 +154,26 @@ func (s *Session) Resize(cols, rows int) error {
 	return pty.Setsize(s.f, &pty.Winsize{Cols: uint16(cols), Rows: uint16(rows)}) //nolint:gosec // checked above
 }
 
+// PID is the shell's process id, or zero if it never started.
+//
+// It exists so that a session can be pointed at with the tools that were
+// already on the machine: ps(1) to see what it is doing, kill(1) to end it.
+// That is deliberately the answer to "let me kill one of these" rather than a
+// way to do it in here — see sessionlist.go.
+//
+// No lock, and none is needed: exec.Cmd sets Process before Start returns and
+// nothing clears it afterwards, so this is a read of a field that stopped
+// changing before any caller could reach the Session. It keeps answering after
+// the shell has exited, which is what a report about something that just ended
+// wants and is a trap for anything that treats it as a live process — by then
+// the number may belong to something else entirely.
+func (s *Session) PID() int {
+	if s.cmd.Process == nil {
+		return 0
+	}
+	return s.cmd.Process.Pid
+}
+
 // Done is closed when the shell exits of its own accord, so a transport can
 // notice a `exit` typed at the prompt without polling.
 func (s *Session) Done() <-chan struct{} { return s.done }

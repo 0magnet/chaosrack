@@ -94,7 +94,10 @@ import (
 // oracle for testing whether a given id is live, which is the one useful thing
 // an attacker who already holds the token could learn from it. The cost is
 // that a typo silently strands the old session until the idle timeout, which
-// is what MaxSessions is for.
+// is what MaxSessions is for. That rule is about what the WIRE answers and it
+// is not weakened by sessionlist.go, which hands the same facts to the process
+// that owns the shells; the reasoning for why those are different questions is
+// written there, next to the code that could get it wrong.
 //
 // MAXSESSIONS IS NOT A TIDINESS SETTING. Before this file the number of live
 // shells was bounded by the number of open sockets, and closing them was the
@@ -193,6 +196,29 @@ type RegistryConfig struct {
 	// non-reconnecting handler's behavior of letting a wedged socket wedge
 	// the shell.
 	StallTimeout time.Duration
+
+	// Notify, when non-nil, is called once for every change in a session's
+	// life: created, attached, detached, and the one ending that actually
+	// happened. It is the "what happened" half of telling an operator what
+	// is on their machine, where Registry.List is the "what is running now"
+	// half — see sessionlist.go for why both exist.
+	//
+	// NIL IS THE DEFAULT AND MEANS SILENCE, for the same reason the registry
+	// itself is built by the caller: a library that logged because it was
+	// imported would log for chaosrack, which never asked. The command that
+	// turned reconnection on is the one that knows whether anybody is
+	// looking at its stdout.
+	//
+	// Called synchronously, on the goroutine the change happened on, and
+	// never with a lock held. Synchronously because the events only mean
+	// anything in order — "created" printed after "detached" describes a
+	// machine nobody is running — and a goroutine per event throws exactly
+	// that away. The cost is that a slow Notify slows down whatever it was
+	// called from: a detach, a reap, or the shutdown path where somebody is
+	// watching a terminal after Ctrl-C. Print and return. It must not call
+	// back into the registry, which would be a lock cycle by way of code
+	// this package cannot see.
+	Notify func(SessionEvent, SessionInfo)
 }
 
 // Registry holds sessions that outlive their connections.
@@ -304,6 +330,14 @@ func (r *Registry) Attach(token, name string, cfg SessionConfig, sink io.Writer,
 			key:  k,
 			s:    s,
 			ring: newRing(r.cfg.Buffer),
+			// The name is kept for one purpose: saying which session this
+			// is when the operator asks what is running. It is NOT what
+			// addresses the entry — k is, and the whole argument above
+			// depends on that staying true — so nothing may ever look a
+			// session up by this field. It is display, and it is display
+			// of a string that came off the wire; see printName.
+			name:    name,
+			started: time.Now(),
 		}
 		r.by[k] = m
 		fresh = true
@@ -311,7 +345,7 @@ func (r *Registry) Attach(token, name string, cfg SessionConfig, sink io.Writer,
 	}
 	r.mu.Unlock()
 
-	at := m.attach(sink, kick)
+	at := m.attach(sink, kick, fresh)
 	at.Created = fresh
 	return at, nil
 }
@@ -342,7 +376,7 @@ func (r *Registry) Close() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			m.shutdown()
+			m.shutdown(SessionStopped)
 		}()
 	}
 	wg.Wait()
@@ -404,12 +438,28 @@ type managed struct {
 	s    *Session
 	ring *ring
 
+	// name and started are written once, before the entry is reachable, and
+	// read without the mutex by the listing. Both are for the operator's
+	// report and nothing in the agent's behavior depends on either.
+	name    string
+	started time.Time
+
 	mu   sync.Mutex
 	gen  uint64
 	sink io.Writer
 	kick func()
 	stop *time.Timer
 	dead bool
+
+	// since is when the current attached-or-detached state began and reapAt
+	// is when the timer above will fire, zero when none will. Both exist ONLY
+	// to be reported: the timer already knows when it goes off, and asking a
+	// time.Timer is not a thing you can do. Keeping the deadline beside the
+	// timer that was armed from it means the two can disagree, so every place
+	// that touches m.stop sets both — that is three places, all in this file,
+	// and there is no fourth.
+	since  time.Time
+	reapAt time.Time
 }
 
 // attach installs a client, displacing whatever was there.
@@ -442,16 +492,19 @@ type managed struct {
 // first — admits a third ordering where a chunk lands in the ring, is replayed
 // to the new client, and is then ALSO sent to it live, so a reconnect shows
 // the last line of output twice.
-func (m *managed) attach(sink io.Writer, kick func()) *Attachment {
+func (m *managed) attach(sink io.Writer, kick func(), fresh bool) *Attachment {
 	m.mu.Lock()
 	if m.stop != nil {
 		m.stop.Stop()
 		m.stop = nil
 	}
+	m.reapAt = time.Time{}
+	m.since = time.Now()
 	old := m.kick
 	m.gen++
 	m.sink, m.kick = sink, kick
 	gen := m.gen
+	info := m.infoLocked()
 	// THE REPLAY IS WRITTEN HERE, UNDER THE LOCK, and both halves of that
 	// are a bug fix rather than a style. Handing the bytes back for the
 	// caller to write was the first version, and it puts two goroutines on
@@ -485,6 +538,16 @@ func (m *managed) attach(sink io.Writer, kick func()) *Attachment {
 		// than close a socket.
 		old()
 	}
+	// Both events are reported from here rather than from Attach, so that
+	// there is exactly one of them per attachment and it cannot be emitted
+	// for a session that then failed to start. Created and Attached are
+	// distinct because they are different news: one says a shell now exists
+	// on this machine, the other says somebody came back to one that did.
+	ev := SessionAttached
+	if fresh {
+		ev = SessionCreated
+	}
+	m.reg.notify(ev, info)
 	return &Attachment{m: m, gen: gen}
 }
 
@@ -496,10 +559,18 @@ func (m *managed) detach(gen uint64) {
 		return // taken over, or already gone; either way not ours to end
 	}
 	m.sink, m.kick = nil, nil
+	m.since = time.Now()
 	if d := m.reg.cfg.IdleTimeout; d > 0 {
 		m.stop = time.AfterFunc(d, func() { m.reap(gen) })
+		m.reapAt = m.since.Add(d)
 	}
+	info := m.infoLocked()
 	m.mu.Unlock()
+	// THE ONE EVENT WORTH HAVING IF THERE WERE ONLY ONE. A detach is the
+	// moment a live shell stops being visible on anybody's screen, which is
+	// the entire hazard this feature introduced; everything else in the log
+	// is context for reading this line.
+	m.reg.notify(SessionDetached, info)
 }
 
 // reap ends a session that nobody came back to.
@@ -511,12 +582,23 @@ func (m *managed) reap(gen uint64) {
 	}
 	m.mu.Unlock()
 	m.reg.forget(m)
-	m.shutdown()
+	m.shutdown(SessionReaped)
 }
 
 // shutdown ends the pty for good. Safe to call twice, because reaping, the
 // shell exiting and the registry closing can all reach it.
-func (m *managed) shutdown() {
+//
+// why is which of those it was, and it is a parameter rather than something
+// inferred here because by the time this runs the three are indistinguishable:
+// a dead pty looks the same whoever killed it. The caller is the only one that
+// knows, and the operator reading the log is the one who needs to be told —
+// "reaped after an hour" and "the shell exited" and "the server stopped" are
+// three different things to have happened to a shell you left running.
+//
+// The event fires only on the call that actually kills, which is what the dead
+// flag already guarantees: the losing racer between a reap and an exit returns
+// above without reporting an ending that it did not cause.
+func (m *managed) shutdown(why SessionEvent) {
 	m.mu.Lock()
 	if m.dead {
 		m.mu.Unlock()
@@ -527,14 +609,17 @@ func (m *managed) shutdown() {
 		m.stop.Stop()
 		m.stop = nil
 	}
+	m.reapAt = time.Time{}
 	kick := m.kick
 	m.sink, m.kick = nil, nil
+	info := m.infoLocked()
 	m.mu.Unlock()
 
 	_ = m.s.Close() //nolint:errcheck // the session is going away regardless
 	if kick != nil {
 		kick() // so an attached client's socket closes rather than hanging
 	}
+	m.reg.notify(why, info)
 }
 
 // pump reads the pty for the whole life of the session.
@@ -560,7 +645,7 @@ func (m *managed) pump() {
 	// always meant the shell is gone, and a registry entry that outlived it
 	// would hand the next window a dead pty and no explanation.
 	m.reg.forget(m)
-	m.shutdown()
+	m.shutdown(SessionExited)
 }
 
 // deliver records one chunk and sends it to whoever is attached.
@@ -621,6 +706,21 @@ func newRing(n int) *ring {
 		return &ring{} // replay disabled; write and replay both no-op
 	}
 	return &ring{buf: make([]byte, n)}
+}
+
+// buffered is how many bytes replay would return, near enough.
+//
+// Near enough because replay may skip forward to an escape after wrapping, so
+// the real figure is a few dozen bytes smaller; computing it exactly would mean
+// doing the resynchronizing scan every time somebody asks how much is held,
+// which is work for a number that is being rendered as "251 KiB". What it is
+// for is answering "is there a transcript worth coming back for", and a session
+// showing 0 bytes with a name you do not recognize is the one to look at.
+func (r *ring) buffered() int {
+	if r.full {
+		return len(r.buf)
+	}
+	return r.w
 }
 
 func (r *ring) write(p []byte) {

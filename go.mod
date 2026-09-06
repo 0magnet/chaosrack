@@ -7,7 +7,7 @@ require (
 	github.com/0magnet/calvin v0.0.0-20260904172612-288ced851c19
 	github.com/0magnet/coloredcobra v1.0.2
 	github.com/0magnet/desk v0.0.0-20260905010738-0c9209d8b7b7
-	github.com/0magnet/desk/panes v0.0.0-20260906015829-fa54e6c07ad6
+	github.com/0magnet/desk/panes v0.0.0-20260906024135-2c832a4f6cd0
 	github.com/0magnet/pisano v0.0.0-20260905010820-c038d89c660a
 	github.com/0magnet/rack-go v0.0.0-20260904162257-a9c019134c72
 	github.com/0magnet/sh/v3 v3.13.2-0.20260818190530-13d0024da85c

@@ -21,7 +21,7 @@ github.com/0magnet/coloredcobra
 ## explicit; go 1.26
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.0-20260906015829-fa54e6c07ad6
+# github.com/0magnet/desk/panes v0.0.0-20260906024135-2c832a4f6cd0
 ## explicit; go 1.26
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent

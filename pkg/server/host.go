@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
@@ -139,9 +140,11 @@ func mountHostAgent(r *gin.Engine, ln net.Listener) {
 	if hostReconnect && hostShell {
 		cfg.Sessions = hostagent.NewRegistry(hostagent.RegistryConfig{
 			IdleTimeout: hostReconnectIdle,
+			Notify:      logSessionEvent,
 		})
 		hostSessions = cfg.Sessions
 		reapSessionsOnSignal(hostSessions)
+		printSessionsOnSignal(hostSessions)
 	}
 	if hostShell {
 		r.GET(hostproto.Path, gin.WrapH(cfg.Handler()))
@@ -216,6 +219,23 @@ func hostConfigJS() htmpl.JS {
 // warnAboutHostAccess says what was just turned on, loudly and every time,
 // because the whole risk of this is someone leaving it running after they
 // stopped thinking about it.
+// hostPrint serializes the two things that write session lines to stdout. Only
+// needed because PrintSessions emits a table as many writes, so an event line
+// arriving mid-table would land inside a row.
+var hostPrint sync.Mutex
+
+// logSessionEvent reports a session appearing, detaching or ending.
+//
+// Unconditional under --reconnect rather than behind its own flag: it is one
+// line per window opened or closed on an otherwise silent stdout, and the main
+// effect of a suppression flag would be that somebody turns it on and stops
+// seeing the shells they left running.
+func logSessionEvent(ev hostagent.SessionEvent, s hostagent.SessionInfo) {
+	hostPrint.Lock()
+	defer hostPrint.Unlock()
+	hostagent.PrintEvent(os.Stdout, "chaosrack: ", ev, s)
+}
+
 // reapSessionsOnSignal kills every detached shell when the server is stopped.
 //
 // WITHOUT THIS, "stop the server to revoke access" is a half-truth for
@@ -259,6 +279,7 @@ func warnAboutHostAccess() {
 		}
 		fmt.Printf("chaosrack: --reconnect is ON: a named host shell keeps running after its window closes.\n")
 		fmt.Printf("chaosrack:   detached shells are reaped after %s of nobody attaching; stopping the server kills them all.\n", idle)
+		fmt.Printf("chaosrack:   kill -USR1 %d lists them.\n", os.Getpid())
 	}
 	if hostFS {
 		scope := "your whole filesystem"
