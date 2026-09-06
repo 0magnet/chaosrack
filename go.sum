@@ -10,8 +10,8 @@ github.com/0magnet/coloredcobra v1.0.2 h1:HmKUcBcpBpbdPv03XyIfH8iMOIG2TDQIkx3GLW
 github.com/0magnet/coloredcobra v1.0.2/go.mod h1:LuB8WMJUz/OsbiFXZnUEtHnpt112tBTZiUTiuAotXoY=
 github.com/0magnet/desk v0.0.0-20260905010738-0c9209d8b7b7 h1:lo7ac0NQnL0xAAX8pp5FsFs2LwOfaXoFZHgovKvUUUc=
 github.com/0magnet/desk v0.0.0-20260905010738-0c9209d8b7b7/go.mod h1:9VSe+GQN9638OmSPr8J84CgTMinZ6qNj4Xj6aNCfKlU=
-github.com/0magnet/desk/panes v0.0.0-20260906015829-fa54e6c07ad6 h1:+ps78FrSXtT+ZOwcAXHXzA8FqrJhfn3olER+wC9UFoc=
-github.com/0magnet/desk/panes v0.0.0-20260906015829-fa54e6c07ad6/go.mod h1:iJm9182R3ncCIY9GhyunCDvwlEnLmAM9wTkv62PaWSg=
+github.com/0magnet/desk/panes v0.0.0-20260906024135-2c832a4f6cd0 h1:P9qM7T9xHlG2FWagzLhiIaFqcCpC481qPRiPnqIRQIQ=
+github.com/0magnet/desk/panes v0.0.0-20260906024135-2c832a4f6cd0/go.mod h1:iJm9182R3ncCIY9GhyunCDvwlEnLmAM9wTkv62PaWSg=
 github.com/0magnet/glamour v1.0.1-0.20260828223301-bc6921785a82 h1:41cGxquyYGH+jNJIWJhIAWqF/ck1bqGsQnd4IE8iBLQ=
 github.com/0magnet/glamour v1.0.1-0.20260828223301-bc6921785a82/go.mod h1:vN1tpO8XCvigIAlDE3GJHWjbwHobEPYt0Mybrs44xQE=
 github.com/0magnet/go-dsp v0.0.0-20260904172328-4474a45054c8 h1:dix2DTc6kVttvmez6KKA6Zux4khpyE3Lrfv7iPXDUQM=
