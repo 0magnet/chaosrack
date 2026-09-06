@@ -38,12 +38,16 @@ type matrixDest struct {
 }
 
 // matrixDests lists the current mode's routable destinations.
+//
+// EVERY parameter of the mode, unfiltered. The integer ones used to be dropped
+// here to match applyAudioModulation, which dropped them too; now that it
+// modulates them on their own grid, dropping them here would hide a pin for a
+// route the modulator would honor. What matters is that this list and
+// applyAudioModulation's loop agree — a destination that one of them skips is a
+// pin that does nothing, whichever way round the disagreement runs.
 func matrixDests(mode string) []matrixDest {
 	var out []matrixDest
 	for _, pd := range attractorParams[mode] {
-		if decimalsForStep(pd.Step) == 0 {
-			continue // integer settings aren't modulatable (same rule as applyAudioModulation)
-		}
 		out = append(out, matrixDest{pd.ID, pd.Label})
 	}
 	for _, vt := range viewModTargets {
