@@ -35,6 +35,7 @@ var (
 	uGradientColorsLoc  js.Value
 	uGradientFreqLoc    js.Value
 	uGradientPhaseLoc   js.Value
+	uPaletteShiftLoc    js.Value
 	uGradientReverseLoc js.Value
 	uPointSizeLoc       js.Value
 	uMmatrixLoc         js.Value
