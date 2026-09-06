@@ -123,10 +123,13 @@ func ensurePaletteTexture(gradientColors int) bool {
 	if paletteBuilt != idx {
 		for i := 0; i < paletteTexels; i++ {
 			c := paletteColorAt(idx, float64(i)/float64(paletteTexels-1))
-			r, g, b, _ := c.RGBA() // 16-bit premultiplied; the tables are opaque
-			paletteBytes[i*4+0] = byte(r >> 8)
-			paletteBytes[i*4+1] = byte(g >> 8)
-			paletteBytes[i*4+2] = byte(b >> 8)
+			// RGBA returns 16-bit premultiplied values; >>8 takes the high
+			// byte, so each is already 0..255 by construction — the colormap
+			// tables are opaque 8-bit entries widened on the way out.
+			r, g, b, _ := c.RGBA()
+			paletteBytes[i*4+0] = byte(r >> 8) //nolint:gosec
+			paletteBytes[i*4+1] = byte(g >> 8) //nolint:gosec
+			paletteBytes[i*4+2] = byte(b >> 8) //nolint:gosec
 			paletteBytes[i*4+3] = 255
 		}
 		js.CopyBytesToJS(paletteJS, paletteBytes)

@@ -79,8 +79,12 @@ type Session struct {
 	stdinW *io.PipeWriter
 	lines  chan string
 
-	running   bool
-	rawInput  bool
+	running  bool
+	rawInput bool
+
+	// stdinQ carries input to the running command in the order it was typed.
+	// See writeStdin.
+	stdinQ    chan []byte
 	cancelRun context.CancelFunc
 	closed    bool
 
@@ -175,6 +179,12 @@ func NewSession(el js.Value, opt Options) (*Session, error) {
 
 	s.Term.Core.OnData = s.onData
 
+	// Publish the shell -> session pairing, so a full-screen applet can find
+	// the terminal it is running in. See sessionfor.go.
+	registerSession(s)
+
+	s.stdinQ = make(chan []byte, 4096)
+	go s.pumpStdin()
 	go s.run()
 
 	if opt.Greeting != "" {
@@ -227,7 +237,7 @@ func (s *Session) onData(data string) {
 		if s.rawInput {
 			// A full-screen applet owns the terminal: raw bytes, no echo,
 			// and Ctrl+C is passed through for it to handle itself.
-			go shell.Write(s.stdinW, []byte(data))
+			s.writeStdin([]byte(data))
 			return
 		}
 		if strings.Contains(data, "\x03") {
@@ -237,7 +247,7 @@ func (s *Session) onData(data string) {
 			return
 		}
 		s.Term.WriteString(strings.ReplaceAll(data, "\r", "\r\n"))
-		go shell.Write(s.stdinW, []byte(strings.ReplaceAll(data, "\r", "\n")))
+		s.writeStdin([]byte(strings.ReplaceAll(data, "\r", "\n")))
 		return
 	}
 	s.Editor.Input(data)
@@ -276,6 +286,40 @@ func (s *Session) complete(word string, isFirstWord bool) []string {
 	}
 	sort.Strings(names)
 	return names
+}
+
+// writeStdin hands input to the running command, in order.
+//
+// This used to be "go shell.Write(...)" per keystroke, and the bug was
+// invisible for as long as nothing depended on the order: a pipe write blocks
+// until the command reads, so the goroutine is needed, but N of them racing on
+// one pipe is N writes in whatever order the scheduler picks. Typing "exit"
+// into a full-screen applet arrived as "xteh".
+//
+// It survived because the applets that existed read keys as separate events —
+// a cursor key in a tcell demo means the same thing whenever it lands. A
+// terminal client is the case that cannot tolerate it, because there the order
+// IS the content.
+//
+// One queue, one writer goroutine, so the blocking stays off the JS callback
+// and the sequence is whatever was typed. The buffer is large enough that a
+// person cannot fill it; a full queue drops rather than blocks, because
+// blocking here would freeze the page rather than lose a keystroke.
+func (s *Session) writeStdin(b []byte) {
+	if len(b) == 0 || s.stdinQ == nil {
+		return
+	}
+	select {
+	case s.stdinQ <- b:
+	default:
+	}
+}
+
+// pumpStdin is the single writer. It ends when the session closes the queue.
+func (s *Session) pumpStdin() {
+	for b := range s.stdinQ {
+		shell.Write(s.stdinW, b)
+	}
 }
 
 // run is the command loop. It is a goroutine so the JS event loop — and so the
@@ -319,6 +363,11 @@ func (s *Session) Close() {
 		return
 	}
 	s.closed = true
+	forgetSession(s)
+	if s.stdinQ != nil {
+		close(s.stdinQ)
+		s.stdinQ = nil
+	}
 	if s.stdinW != nil {
 		// The session is going away; a failed close has no reader to report to.
 		s.stdinW.Close() //nolint:errcheck,gosec
