@@ -176,6 +176,40 @@ ordinary resource.
   implementation makes `ls`, `cat`, `grep`, globbing and redirection all land
   on the real filesystem while the interpreter stays in the tab. `--fs-root`
   confines it. See [Reaching the machine](#reaching-the-machine).
+- **A host shell that behaves like one.** With `--shell`, typing
+  `host` in the desk's terminal attaches a shell on this machine to
+  THAT terminal, the way ssh does on a desktop: it takes over the terminal you
+  typed it in, and `exit` puts you back at your prompt with the
+  scrollback intact. `open host` still gives it a window of its own if
+  that is what you want.
+
+  Add `--reconnect` and a NAMED shell outlives the thing displaying it.
+  `host build` twice is the same shell the second time, with whatever
+  it printed in between replayed into it — so a long compile survives closing
+  the window, and survives closing the browser. The name is yours to choose
+  rather than invented, because only you know whether a new window is meant to
+  be the old one; a plain `host` is an ordinary shell that ends with
+  its socket.
+
+  What ends a detached shell is the idle timeout (`--reconnect-idle`,
+  an hour by default, negative for never) or stopping the server. That second
+  one is not a figure of speech: stopping the process kills them, deliberately,
+  because otherwise a shell that ignored the resulting SIGHUP would be
+  reparented to init and keep running as you with nothing left that knows it is
+  there.
+- **Color by what you are hearing.** The gradient's fifth source is the sound
+  itself. On a delay embedding it is not one tint over the whole figure: the
+  trail IS a window of audio, so each stretch of it is colored by the
+  short-time spectrum of the moment it was drawn from, and a bass thump and a
+  cymbal are different colors on the same curve. Models whose trail is not a
+  clock take the current feature as one tint instead. Pick **audio** on the
+  gradient source ring, and a colormap on the palette ring beside it.
+- **Points, or a line, or anywhere between.** The **Points** knob in the Trace
+  module is a count, not a switch: 0 draws the solid trace, and lowering it
+  breaks the line into that many points, further apart as the number falls.
+  Each point is one vertex wide, so a point for every vertex IS the solid line
+  and there is no separate setting to keep in step. Useful where a figure
+  folds over itself and a continuous line becomes a thicket.
 - **Four 3-D desktops, reproduced.** Putting windows in three dimensions is
   not a new idea and the good ones are not mine, so the desk can wear four of
   them: **Looking Glass** (Sun, 2003) leans the windows into a legible stack
@@ -186,7 +220,10 @@ ordinary resource.
   on top of the rack. They are reproductions rather than pictures — the
   windows are real, the shells in them are running, and a window turned forty
   degrees still takes the keyboard, because a CSS 3-D transform is a real
-  projection and the browser hit-tests what it draws.
+  projection and the browser hit-tests what it draws. The **style** knob that
+  picks between them is in the **Desk** module, which appears only once there
+  is a desk to apply it to — turn one on first with the **Desk** switch, the
+  **desk** backdrop, or the **desk** model.
 - **Analysis — is this actually chaotic?** The **largest Lyapunov exponent**
   of whatever is on screen, measured on demand by the same estimator that
   guards the catalog's defaults in CI, with a plain-language verdict beside
@@ -242,8 +279,17 @@ ordinary resource.
   **Ring** switch's scope-style beam (only the advancing head integrates; the
   trail is its history, and knob changes bend the path from the head forward).
   **Persist** accumulates either into a long-exposure painting.
-- **Colors module:** gradient source ring (X / Y / Z / trail) × palette ring
+- **Colors module:** gradient source ring (X / Y / Z / trail / **audio**) ×
+  palette ring
   (mono / 2-color / 3-color / animated rainbow), color-wheel knobs for the
+  — the palette ring carries the three swatch mixes and a raw hue sweep, and
+  then the same six colormaps the spectrogram uses: **heat, blue, gray, turbo,
+  viridis, magma**. They are the library's own tables, so a value paints the
+  same color on the trace as it does in the spectrogram. Reach for turbo or
+  viridis over the hue sweep when the color is meant to be read rather than
+  admired: a hue ramp is perceptually uneven, so equal steps in the gradient
+  look like unequal steps in color and the banding that produces is an
+  artifact of the color space rather than anything in the data —
   gradient stops and background, CRT **phosphor** presets (P31/P7/P33…) with
   afterglow for the scope modes.
 - **Model Out — hear the attractor:** the trail plays through the speakers.
