@@ -8,7 +8,11 @@ import (
 	htmpl "html/template"
 	"log"
 	"net"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
+	"time"
 
 	"github.com/0magnet/desk/panes/hostagent"
 	"github.com/0magnet/desk/panes/hostproto"
@@ -52,6 +56,15 @@ var (
 	hostToken string
 	hostHasFS bool
 	hostAuth  bool
+
+	// hostReconnect turns on named host shells that outlive the window they
+	// were opened in — open one in the desk as "host NAME". hostSessions is
+	// the registry holding them, nil when the flag is off, which is what the
+	// agent checks: without it every shell belongs to its socket and dies
+	// with it, exactly as before.
+	hostReconnect     bool
+	hostReconnectIdle time.Duration
+	hostSessions      *hostagent.Registry
 )
 
 func init() {
@@ -60,6 +73,8 @@ func init() {
 	runCmd.Flags().BoolVar(&hostFS, "fs", false, "let the page read and write this machine's files")
 	runCmd.Flags().StringVar(&hostFSRoot, "fs-root", "", "confine --fs to this subtree (default: the whole filesystem)")
 	runCmd.Flags().BoolVar(&hostAuth, "auth", false, "print the token instead of putting it in the page, and ask for it (for shared machines)")
+	runCmd.Flags().BoolVar(&hostReconnect, "reconnect", false, "let a named host shell outlive its window (open it in the desk as: host NAME)")
+	runCmd.Flags().DurationVar(&hostReconnectIdle, "reconnect-idle", 0, "reap a detached shell after this long (default 1h; negative never)")
 }
 
 // hostWanted reports whether either half of the agent was asked for.
@@ -118,6 +133,15 @@ func mountHostAgent(r *gin.Engine, ln net.Listener) {
 		Token:   token,
 		Origins: servedOrigins(ln),
 		Session: hostagent.SessionConfig{Shell: hostShcmd},
+	}
+	// Only with --shell: a registry without a shell to put in it is an unused
+	// allocation, and the flag would read as if it did something.
+	if hostReconnect && hostShell {
+		cfg.Sessions = hostagent.NewRegistry(hostagent.RegistryConfig{
+			IdleTimeout: hostReconnectIdle,
+		})
+		hostSessions = cfg.Sessions
+		reapSessionsOnSignal(hostSessions)
 	}
 	if hostShell {
 		r.GET(hostproto.Path, gin.WrapH(cfg.Handler()))
@@ -192,9 +216,49 @@ func hostConfigJS() htmpl.JS {
 // warnAboutHostAccess says what was just turned on, loudly and every time,
 // because the whole risk of this is someone leaving it running after they
 // stopped thinking about it.
+// reapSessionsOnSignal kills every detached shell when the server is stopped.
+//
+// WITHOUT THIS, "stop the server to revoke access" is a half-truth for
+// --reconnect, and that sentence is what the feature's safety rests on.
+// Exiting closes the pty masters, which sends SIGHUP to each shell — and a
+// shell that trapped HUP ignores it, gets reparented to init, and carries on
+// running as you with nothing left that knows it exists. Closing the registry
+// can only do its job while there is still a process around to do it.
+//
+// Only for the reconnect path: without a registry every shell has a socket and
+// dies when the process holding it does, and a handler would only change how
+// Ctrl-C looks.
+func reapSessionsOnSignal(reg *hostagent.Registry) {
+	if reg == nil {
+		return
+	}
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-ch
+		reg.Close()
+		os.Exit(0)
+	}()
+}
+
 func warnAboutHostAccess() {
 	if hostShell {
 		fmt.Printf("chaosrack: --shell is ON: this page can run commands on this machine as you.\n")
+	}
+	if hostReconnect && hostShell {
+		// Said out loud because it removes the simplest revocation there was.
+		// Until now closing the window ended the shell; a named one now keeps
+		// running with nothing on screen to remind anybody it is there, and
+		// what ends it is this process stopping or the idle timeout.
+		idle := "1h"
+		switch {
+		case hostReconnectIdle < 0:
+			idle = "never"
+		case hostReconnectIdle > 0:
+			idle = hostReconnectIdle.String()
+		}
+		fmt.Printf("chaosrack: --reconnect is ON: a named host shell keeps running after its window closes.\n")
+		fmt.Printf("chaosrack:   detached shells are reaped after %s of nobody attaching; stopping the server kills them all.\n", idle)
 	}
 	if hostFS {
 		scope := "your whole filesystem"

@@ -21,7 +21,7 @@ github.com/0magnet/coloredcobra
 ## explicit; go 1.26
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.0-20260905010738-0c9209d8b7b7
+# github.com/0magnet/desk/panes v0.0.0-20260906015829-fa54e6c07ad6
 ## explicit; go 1.26
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -117,7 +117,7 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20260814161052-156e0b67262b
 ## explicit; go 1.25.7
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.0-20260905000412-75d7fd084e60
+# github.com/0magnet/websh v0.0.0-20260906001908-5f8df8dbc4c5
 ## explicit; go 1.25.7
 github.com/0magnet/websh/shell
 github.com/0magnet/websh/web

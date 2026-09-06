@@ -7,13 +7,14 @@ require (
 	github.com/0magnet/calvin v0.0.0-20260904172612-288ced851c19
 	github.com/0magnet/coloredcobra v1.0.2
 	github.com/0magnet/desk v0.0.0-20260905010738-0c9209d8b7b7
-	github.com/0magnet/desk/panes v0.0.0-20260905010738-0c9209d8b7b7
+	github.com/0magnet/desk/panes v0.0.0-20260906015829-fa54e6c07ad6
 	github.com/0magnet/pisano v0.0.0-20260905010820-c038d89c660a
 	github.com/0magnet/rack-go v0.0.0-20260904162257-a9c019134c72
 	github.com/0magnet/sh/v3 v3.13.2-0.20260818190530-13d0024da85c
 	github.com/0magnet/tuiwasm v0.0.0-20260905161317-ca18bd83ace3
-	github.com/0magnet/websh v0.0.0-20260905000412-75d7fd084e60
+	github.com/0magnet/websh v0.0.0-20260906001908-5f8df8dbc4c5
 	github.com/0magnet/winbox-go v0.0.0-20260905000411-6eefa77dea85
+	github.com/0magnet/xterm-go v0.0.0-20260904164423-3896621e5b7c
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-gl/mathgl v1.2.0
 	github.com/jfreymuth/pulse v0.1.3
@@ -35,7 +36,6 @@ require (
 	github.com/0magnet/termanim v0.0.0-20260905010830-f8788bcdc347 // indirect
 	github.com/0magnet/toilet-go v0.0.0-20260905011609-ab34357c2de4 // indirect
 	github.com/0magnet/u-root v0.16.1-0.20260814161052-156e0b67262b // indirect
-	github.com/0magnet/xterm-go v0.0.0-20260904164423-3896621e5b7c // indirect
 	github.com/alecthomas/chroma/v2 v2.27.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/benhoyt/goawk v1.31.0 // indirect

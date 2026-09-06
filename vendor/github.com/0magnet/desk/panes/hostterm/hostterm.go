@@ -38,10 +38,32 @@ type Pane struct {
 	funcs  []js.Func
 	shut   bool // Close was called; stop reporting the socket going away
 	opened bool // the socket got as far as opening, so a close is a disconnect
+
+	// session is the name this pane asks the agent to keep its shell under,
+	// and empty — the default — is a shell that dies with the window.
+	//
+	// The pane does not invent one. It cannot: a name that survives the
+	// window has to be chosen by whoever opens the window, because only they
+	// know whether this is the same terminal as the one they closed. A pane
+	// that generated and stored its own would either give every host terminal
+	// the same shell or give a reopened one a different shell, and both are
+	// worse than not offering the feature.
+	session string
 }
 
-// New makes a host terminal pane.
+// New makes a host terminal pane whose shell dies with the window.
 func New() *Pane { return &Pane{} }
+
+// NewSession makes one that asks the agent to keep its shell under a name, so
+// that closing the window and opening it again under the same name comes back
+// to the same shell with what it printed in the meantime replayed into it.
+//
+// An empty name is New. A name the agent was not started to honor — no
+// --reconnect — is ignored by it, and this pane behaves exactly as New does;
+// that is why nothing is injected into the page to say whether reconnection is
+// available. There is no failure to report and therefore nothing the page has
+// to be told in advance.
+func NewSession(name string) *Pane { return &Pane{session: name} }
 
 // Mount opens the terminal and connects it to the agent.
 //
@@ -127,6 +149,13 @@ func (p *Pane) socketURL(cfg agentConfig) string {
 	// leaves that prompt wrapped at a width nothing redraws.
 	q.Set(hostproto.ColsParam, strconv.Itoa(p.term.Core.Cols()))
 	q.Set(hostproto.RowsParam, strconv.Itoa(p.term.Core.Rows()))
+	// Only when there is one. An empty parameter and an absent one are the
+	// same to the agent, but sending nothing keeps the URL — which is what
+	// ends up in a log if anything logs one — free of a field that says
+	// nothing.
+	if p.session != "" {
+		q.Set(hostproto.SessionParam, p.session)
+	}
 	return scheme + loc.Get("host").String() + cfg.path + "?" + q.Encode()
 }
 
