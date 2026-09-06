@@ -228,6 +228,11 @@ var fragShaderCode = `
 	uniform float uDashCount;
 	uniform float uGradientFreq;
 	uniform float uGradientPhase;
+	// Where the colormap window starts. One more float against a fragment
+	// uniform budget palette_js.go already admits is over the guaranteed
+	// minimum — which is exactly why it is one float and not a second copy of
+	// uGradientFreq: the period this pairs with is the rainbow's, reused.
+	uniform float uPaletteShift;
 	uniform float uTrailHead;
 	// The depth partition. uSplitSide is 0 when there is none, which is the
 	// only state the rest of the app has ever produced, so nothing is discarded
@@ -305,10 +310,29 @@ var fragShaderCode = `
 				color = mix(uMidColor, uTopColor, (t - 0.5) * 2.0);
 			}
 		} else if (uGradientColors >= 5) {
-			// A spectrogram colormap. Sampled at the same t every other palette
-			// uses, so switching between them changes only the color language
-			// and not what the color is saying.
-			color = texture2D(uPalette, vec2(clamp(t, 0.0, 1.0), 0.5)).rgb;
+			// A spectrogram colormap, sampled at the same t every other palette
+			// uses — so switching between them changes the color language and
+			// not what the color is saying — but through a WINDOW onto the map.
+			// uGradientFreq (the period knob, shared with the rainbow) is how
+			// many times the map is crossed across the figure; uPaletteShift is
+			// where that crossing starts. At their defaults, 1 and 0, pt is t
+			// and the fold below is the identity on it, so an untouched view is
+			// the picture it was.
+			float pt = t * uGradientFreq + uPaletteShift;
+			// The fold, and it is a REFLECTION rather than a wrap. Hue is a
+			// circle so fract() joins its ends invisibly; a colormap is a line
+			// whose ends are different colors, and joining them draws a hard
+			// seam across the figure — one that MOVES once the shift is
+			// modulated, which is the most conspicuous thing on the screen and
+			// hides the sweep it is supposed to be showing. Clamping has no
+			// seam and no sweep either: the audio features are non-negative, so
+			// a routed shift spends most of its travel pinned at an end with
+			// every fragment the same color. Turning back at each end keeps the
+			// color field continuous and the sweep alive at any depth. See
+			// palettemod_js.go; foldPalette01 there is this same expression,
+			// and its test is what holds the two together.
+			pt = abs(pt - 2.0 * floor(pt * 0.5 + 0.5));
+			color = texture2D(uPalette, vec2(pt, 0.5)).rgb;
 		} else if (uGradientColors == 4) {
 			color = hsv2rgb(vec3(t * uGradientFreq + uGradientPhase, 1.0, 1.0));
 		} else {
@@ -403,6 +427,7 @@ func setupShaders() {
 	uGradientColorsLoc = gl.Call("getUniformLocation", shaderProgram, "uGradientColors")
 	uGradientFreqLoc = gl.Call("getUniformLocation", shaderProgram, "uGradientFreq")
 	uGradientPhaseLoc = gl.Call("getUniformLocation", shaderProgram, "uGradientPhase")
+	uPaletteShiftLoc = gl.Call("getUniformLocation", shaderProgram, "uPaletteShift")
 	uGradientReverseLoc = gl.Call("getUniformLocation", shaderProgram, "uGradientReverse")
 	uPointSizeLoc = gl.Call("getUniformLocation", shaderProgram, "uPointSize")
 	uMmatrixLoc = gl.Call("getUniformLocation", shaderProgram, "Mmatrix")
@@ -596,6 +621,14 @@ func generateForMode(mode string) {
 		gl.Call("uniform1f", uDashDutyLoc, dashDuty)
 		gl.Call("uniform1f", uDashCountLoc, dashCount)
 		gl.Call("uniform1f", uGradientFreqLoc, gradientFreq)
+		// The colormap window's other half. Uploaded beside the period it pairs
+		// with rather than under a "is this a colormap" test: the branch that
+		// reads it is in the shader already, and a second copy of that
+		// condition here is a second thing to keep in step with paletteFirst.
+		// Read AFTER applyViewModulation (which runs before generateForMode
+		// gets here), so a shift routed from audio lands on this frame rather
+		// than the next one — the same ordering the rainbow period depends on.
+		gl.Call("uniform1f", uPaletteShiftLoc, gradientShift)
 		// Animate the rainbow: advance the hue offset each frame so the
 		// spectrum flows. At a low period only a slice is visible at once,
 		// and it cycles gradually through all colors over time rather than

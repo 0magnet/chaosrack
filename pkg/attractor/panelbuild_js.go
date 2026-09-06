@@ -455,7 +455,10 @@ func buildModEQModules(params []paramDef) {
 		targets []modTarget
 	}{
 		{"Parameters", pTargets},
-		{"Colors", []modTarget{{"view-rfreq", "rainbow", false}, {"view-trail", "trail", false}}},
+		// In the Colors module's own order (period, shift, trail) so each card
+		// sits beside the knob it drives — NOT in viewModTargets order, which
+		// is fixed by the MIDI CC map and has the shift appended at the end.
+		{"Colors", []modTarget{{"view-rfreq", "period", false}, {"view-pshift", "shift", false}, {"view-trail", "trail", false}}},
 		{"View", []modTarget{{"view-spinx", "spin X", false}, {"view-spiny", "spin Y", false}, {"view-spinz", "spin Z", false}}},
 		// Order must match the Position control panel (X, Y, Zoom) so each MOD/EQ
 		// row lines up with the control it drives ("Pan" dropped — implied by the
