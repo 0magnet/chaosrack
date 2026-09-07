@@ -66,6 +66,10 @@ func ensureAudioSource() audiosrc.Source {
 	ws := audiosrc.WSOptions{
 		URL:        queryParam("wsurl"),
 		SampleRate: wsSampleRate(),
+		// Two channels, because the Stereo Embedding has nothing to show
+		// without them and will not invent them. A server that does not
+		// understand the request answers in mono, which still works.
+		Channels: 2,
 	}
 	switch audioBackendKind() {
 	case "ws", "websocket":
