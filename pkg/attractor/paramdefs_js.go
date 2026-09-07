@@ -34,6 +34,7 @@ var paramLabels = map[string][]string{
 	"turtle-view":  turtleViewNames(),
 	"spect-dft":    spectDFTNames(),
 	"spect-win":    spectWinNames,
+	"spect-chan":   spectChanNames,
 	"spect-col":    spectColNames,
 	"spect-scale":  spectScaleNames,
 	"globe-par":    {"rings", "spiral"},

@@ -5,6 +5,7 @@ package audiosrc
 import (
 	"encoding/base64"
 	"errors"
+	"strings"
 	"syscall/js"
 )
 
@@ -25,6 +26,11 @@ type WSOptions struct {
 	// window a consumer snapshots (FFT size) and the largest per-frame
 	// drain backlog. Default DefaultRingSize.
 	RingSize int
+
+	// Channels is 1 or 2. Two asks the server for the source as recorded and
+	// keeps a ring per channel, so TimeDomainStereo returns two real channels
+	// instead of one twice. Default 1.
+	Channels int
 }
 
 // NewWebSocket returns a Source that receives audio from a WebSocket
@@ -47,6 +53,9 @@ func NewWebSocket(opts WSOptions) Source {
 		opts.RingSize = DefaultRingSize
 	}
 	w := &wsSource{opts: opts, ring: newRing(opts.RingSize)}
+	if opts.Channels == 2 {
+		w.ringL, w.ringR = newRing(opts.RingSize), newRing(opts.RingSize)
+	}
 	if js.Global().Get("WebSocket").IsUndefined() {
 		w.err = errors.New("WebSocket not supported in this browser")
 		return w
@@ -54,6 +63,16 @@ func NewWebSocket(opts WSOptions) Source {
 	w.url = opts.URL
 	if w.url == "" {
 		w.url = sameOriginWSURL()
+	}
+	if opts.Channels == 2 {
+		// A server that does not know the parameter ignores it and sends mono,
+		// which handleMessage still reads — the page degrades to one channel
+		// rather than to nothing.
+		if strings.Contains(w.url, "?") {
+			w.url += "&ch=2"
+		} else {
+			w.url += "?ch=2"
+		}
 	}
 	w.onMsg = js.FuncOf(w.handleMessage)
 	w.onOpen = js.FuncOf(func(js.Value, []js.Value) interface{} {
@@ -90,7 +109,12 @@ type wsSource struct {
 	opts WSOptions
 	url  string
 	ws   js.Value
-	ring *ring
+	ring *ring // the mono fold every single-signal reader consumes
+
+	// ringL and ringR are the channels as received, non-nil only on a stereo
+	// stream. ring stays the fold of them so no reader has to know which it is.
+	ringL, ringR *ring
+	mono         MonoMode
 
 	// The socket's four callbacks, made ONCE and reused for every socket this
 	// source opens. connect() used to build three of them per attempt, and
@@ -154,6 +178,18 @@ func (w *wsSource) handleMessage(_ js.Value, p []js.Value) interface{} {
 	if len(samples) == 0 {
 		return nil
 	}
+	if w.ringL != nil {
+		// Stereo: keep the channels, and the fold the single-signal readers use.
+		l, r, mono := deinterleave(samples, w.mono)
+		if len(mono) == 0 {
+			return nil
+		}
+		w.ringL.write(l)
+		w.ringR.write(r)
+		w.ring.write(mono)
+		w.ready = true
+		return nil
+	}
 	w.ring.write(samples)
 	w.ready = true
 	return nil
@@ -204,6 +240,17 @@ func (w *wsSource) TimeDomainStereo(l, r []float32) {
 	if len(l) != len(r) {
 		panic("audiosrc: TimeDomainStereo requires len(l) == len(r)")
 	}
+	if !w.ready {
+		for i := range l {
+			l[i], r[i] = 0, 0
+		}
+		return
+	}
+	if w.ringL != nil {
+		w.ringL.latest(l)
+		w.ringR.latest(r)
+		return
+	}
 	w.TimeDomain(l)
 	copy(r, l) // mono stream: right mirrors left
 }
@@ -220,10 +267,22 @@ func (w *wsSource) Channels() int {
 	if !w.ready {
 		return 0
 	}
+	if w.ringL != nil {
+		return 2
+	}
 	return 1
 }
-func (w *wsSource) Ready() bool { return w.ready && !w.closed }
-func (w *wsSource) Err() error  { return w.err }
+
+// SetMonoMode chooses how two channels are folded for the readers that want
+// one. It takes effect on the next frame received; what is already in the ring
+// keeps the fold it was written with, which is a few milliseconds of the
+// previous choice and not worth re-deriving the ring to erase.
+func (w *wsSource) SetMonoMode(m MonoMode) { w.mono = m }
+
+// MonoMode reports the current fold.
+func (w *wsSource) MonoMode() MonoMode { return w.mono }
+func (w *wsSource) Ready() bool        { return w.ready && !w.closed }
+func (w *wsSource) Err() error         { return w.err }
 
 func (w *wsSource) Close() {
 	if w.closed {

@@ -154,6 +154,10 @@ func renderSpectrogramMode(nowMs float64) {
 // updateSpectrogramTexture drains the audio stream, advances the STFT, and
 // flushes queued columns onto the texture. No geometry is drawn here.
 func updateSpectrogramTexture(nowMs float64) {
+	// The channel knob is pushed to the source rather than applied on read:
+	// the fold happens as frames arrive, so what is already in the ring keeps
+	// the fold it was written with.
+	applySpectChannel()
 	if src := activeAudioSource(); src != nil && src.Ready() {
 		fvfOn := selectedMode == "fvf"
 		// When the FVF audio engine is running it is the single drainer of the
