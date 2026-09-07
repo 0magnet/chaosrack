@@ -63,7 +63,6 @@ var (
 	takensScratch []float32
 	takensCursor  = tapUnjoined // read position in the shared audio tap
 	takensFitted  bool          // camera fitted since real audio arrived
-	takensFitGain float32       // the GAIN that fit was made for; a change refits
 )
 
 // takensCubeDiag is √3: a delay vector reaches this multiple of its largest
@@ -214,7 +213,7 @@ func generateTakens() {
 		vertices[j+3] = float32(m) * invN
 	}
 	uploadVerticesOnly(vertices, attractorDrawMode, nv)
-	if !takensFitted || takensFitGain != takensGain {
+	if !takensFitted {
 		// The mode-entry auto-fit saw silence (a dot), so fit once when the
 		// first full window of real audio arrives — and fit to the FIXED
 		// scale's worst case, not to this window's extent. Fitting the
@@ -222,7 +221,7 @@ func generateTakens() {
 		// screen: whatever was playing at that moment became the whole
 		// viewport. Fitting the bound instead is correct for good, so this
 		// stays one-shot and never fights a manual zoom.
-		takensFitted, takensFitGain = true, takensGain
+		takensFitted = true
 		fitExtentOverride = takensFitExtent(takensGain)
 		autoFitCamera()
 	}
