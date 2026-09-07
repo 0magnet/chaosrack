@@ -99,7 +99,14 @@ func mountAudio(r *gin.Engine) {
 	r.GET("/ws", gin.WrapH(websocket.Handler(func(ws *websocket.Conn) {
 		addAudioConn(ws)
 		defer removeAudioConn(ws)
-		captureOptions().Serve(ws)
+		// ?ch=2 asks for the source as recorded, interleaved. Anything else is
+		// mono, which is what every reader written before this expected — an
+		// old page against a new server still gets the stream it can parse.
+		opts := captureOptions()
+		if ws.Request() != nil && ws.Request().URL.Query().Get("ch") == "2" {
+			opts.Channels = 2
+		}
+		opts.Serve(ws)
 	})))
 	log.Printf("chaosrack: --audio on; the page it serves connects to /ws by itself")
 
