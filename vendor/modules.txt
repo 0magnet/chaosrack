@@ -11,12 +11,10 @@ github.com/0magnet/afero/mem
 ## explicit; go 1.26.2
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
-# github.com/0magnet/calvin v0.0.0-20260907164811-60c88e364a88
+# github.com/0magnet/calvin v0.0.0-20260907211102-35b15c690884
 ## explicit; go 1.25.0
 github.com/0magnet/calvin
-# github.com/0magnet/coloredcobra v1.0.3
-## explicit; go 1.25.0
-github.com/0magnet/coloredcobra
+github.com/0magnet/calvin/clihelp
 # github.com/0magnet/desk v0.0.0-20260907180626-de20774940a9
 ## explicit; go 1.26
 github.com/0magnet/desk
@@ -249,9 +247,6 @@ github.com/dunglas/httpsfv
 # github.com/dustin/go-humanize v1.0.1
 ## explicit; go 1.16
 github.com/dustin/go-humanize
-# github.com/fatih/color v1.19.0
-## explicit; go 1.25.0
-github.com/fatih/color
 # github.com/gabriel-vasile/mimetype v1.4.15
 ## explicit; go 1.21
 github.com/gabriel-vasile/mimetype
@@ -387,9 +382,6 @@ github.com/leodido/go-urn/scim/schema
 # github.com/lucasb-eyer/go-colorful v1.4.1
 ## explicit; go 1.12
 github.com/lucasb-eyer/go-colorful
-# github.com/mattn/go-colorable v0.1.15
-## explicit; go 1.18
-github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.24
 ## explicit; go 1.20
 github.com/mattn/go-isatty
