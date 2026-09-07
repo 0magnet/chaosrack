@@ -162,7 +162,6 @@ var (
 
 	stereoL, stereoR []float32 // this frame's snapshot, oldest first
 	stereoFitted     bool      // camera fitted since real audio arrived
-	stereoFitGain    float32   // the GAIN that fit was made for; a change refits
 )
 
 func init() {
@@ -364,18 +363,14 @@ func generateStereo() {
 	corr, ok := stereoCorrelation(l, r)
 	stereoNoteState(src.Channels() < 2, ok, corr)
 
-	// Refit when the gain changes as well as on the first real audio. The fit
-	// is to the fixed scale's worst case, and that bound is gain*sqrt(3) — so a
-	// gain the camera was not fitted for puts the figure outside the viewport,
-	// which reads as the mode drawing nothing rather than as a zoom.
-	if !stereoFitted || stereoFitGain != stereoGain {
+	if !stereoFitted {
 		// Fitted to the FIXED scale's worst case, not to this window — see the
 		// same block in generateTakens for why fitting the instantaneous
 		// figure is what put loud passages off the screen. Every coordinate
 		// here is bounded by gain (samples are bounded to ±1; mid and side by
 		// construction; the time ramp by its own mapping), so the Takens
 		// mode's √3 cube-corner extent is the right bound unchanged.
-		stereoFitted, stereoFitGain = true, stereoGain
+		stereoFitted = true
 		fitExtentOverride = takensFitExtent(stereoGain)
 		autoFitCamera()
 	}
