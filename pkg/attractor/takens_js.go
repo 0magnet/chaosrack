@@ -61,7 +61,8 @@ var (
 	takensRing    []float32
 	takensW       int // monotonic write cursor into takensRing
 	takensScratch []float32
-	takensFitted  bool // camera fitted since real audio arrived
+	takensCursor  = tapUnjoined // read position in the shared audio tap
+	takensFitted  bool          // camera fitted since real audio arrived
 )
 
 // takensCubeDiag is √3: a delay vector reaches this multiple of its largest
@@ -155,12 +156,10 @@ func generateTakens() {
 	if takensScratch == nil {
 		takensScratch = make([]float32, 8192)
 	}
-	if src != nil && src.Ready() {
-		// Per-frame drain CAP, not drain-until-dry: the function generator
-		// synthesizes on demand and always fills the buffer, so an uncapped
-		// loop never terminates (froze the page on the first fg-on test).
+	if tapReady() {
+		// The tap has already drained this frame; take our own copy of it.
 		for drained := 0; drained < 16384; {
-			n := src.Drain(takensScratch)
+			n := tapRead(&takensCursor, takensScratch)
 			if n <= 0 {
 				break
 			}
