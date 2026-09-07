@@ -180,7 +180,7 @@ type Pipes struct {
 // tests repeatable.
 func New(seed int64) *Pipes {
 	return &Pipes{
-		rng:            rand.New(rand.NewSource(seed)),
+		rng:            rand.New(rand.NewSource(seed)), //nolint:gosec
 		StepsPerSecond: 20,
 		TurnChance:     7,
 		ColorChance:    3,

@@ -105,7 +105,7 @@ var DefaultPalette = canvas.NewPalette(
 // repeatable; anything else varies the soup.
 func New(seed int64) *Life {
 	return &Life{
-		rng:            rand.New(rand.NewSource(seed)),
+		rng:            rand.New(rand.NewSource(seed)), //nolint:gosec
 		pop:            -1,
 		GensPerSecond:  30,
 		Density:        0.32,

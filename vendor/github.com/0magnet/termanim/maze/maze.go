@@ -131,7 +131,7 @@ type Maze struct {
 // repeatable.
 func New(seed int64) *Maze {
 	return &Maze{
-		rng:          rand.New(rand.NewSource(seed)),
+		rng:          rand.New(rand.NewSource(seed)), //nolint:gosec
 		GenSeconds:   5,
 		SolveSeconds: 3,
 		TraceSeconds: 1.5,

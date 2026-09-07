@@ -97,7 +97,7 @@ var DefaultPalette = canvas.NewPalette(
 // repeatable; anything else varies where the grains scatter.
 func New(seed int64) *Sand {
 	return &Sand{
-		rng:            rand.New(rand.NewSource(seed)),
+		rng:            rand.New(rand.NewSource(seed)), //nolint:gosec
 		StepsPerSecond: 30,
 		Streams:        5,
 		EmitChance:     0.55,
@@ -133,7 +133,7 @@ func (s *Sand) Resize(w, h int) {
 // hue folds an arbitrary integer into a legal grain value. Zero is reserved
 // for empty air, so a grain can never be colored with it.
 func hue(v int) byte {
-	b := byte(v)
+	b := byte(v) //nolint:gosec
 	if b == 0 {
 		b = 1
 	}
