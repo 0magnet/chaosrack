@@ -5,7 +5,7 @@
 // the browser layer above it only uploads the field as a texture and samples
 // through its gradient.
 //
-// WHY A HEIGHT FIELD AND NOT A FLUID
+// # WHY A HEIGHT FIELD AND NOT A FLUID
 //
 // What a water surface does to an image is refract it, and refraction depends
 // on the surface NORMAL — which on a height field is the gradient. Simulating
