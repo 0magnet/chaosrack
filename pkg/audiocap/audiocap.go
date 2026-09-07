@@ -41,11 +41,21 @@ type Options struct {
 	// the monitor of the default sink — which is what "capture what is playing
 	// on this machine" means — or a source ID.
 	Source string
+
+	// Channels is 1 or 2. Two records the source as it is — a monitor of a
+	// stereo sink has two channels, and folding them together in the capture
+	// throws away the only thing a phase display has to show. One is the
+	// default because that is the wire format every existing reader expects;
+	// the page asks for two.
+	Channels int
 }
 
 func (o Options) withDefaults() Options {
 	if o.SampleRate == 0 {
 		o.SampleRate = 24000
+	}
+	if o.Channels != 2 {
+		o.Channels = 1
 	}
 	return o
 }
@@ -60,6 +70,12 @@ func (o Options) Start(write func([]float32) error) (func(), error) {
 	}
 
 	opts := []pulse.RecordOption{pulse.RecordSampleRate(o.SampleRate)}
+	if o.Channels == 2 {
+		// Interleaved L,R,L,R… — pulse writes the stream as it is recorded, and
+		// the reader de-interleaves. Nothing here mixes: what the display makes
+		// of two channels is the display's decision, not the capture's.
+		opts = append(opts, pulse.RecordStereo)
+	}
 	if o.Latency > 0 {
 		opts = append(opts, pulse.RecordLatency(o.Latency))
 	}

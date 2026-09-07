@@ -18,6 +18,7 @@ package attractor
 // fullscreen — which this panel already governs by other means.
 
 import (
+	"github.com/0magnet/chaosrack/pkg/audiosrc"
 	"strconv"
 
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
@@ -71,6 +72,7 @@ var spectParams = []paramDef{
 	{"spect-dft", "dft", &spectDFTF, 4, 0, float32(len(spectDFTSizes) - 1), 1},
 	{"spect-ovl", "ovlp", &spectOvlF, 50, 5, 95, 5},
 	{"spect-win", "win", &spectWinF, 0, 0, float32(len(spectWinNames) - 1), 1},
+	{"spect-chan", "chan", &spectChanF, 0, 0, float32(len(spectChanNames) - 1), 1},
 	{"spect-col", "color", &spectColF, 0, 0, float32(len(spectColNames) - 1), 1},
 	{"spect-scale", "scale", &spectScaleF, 0, 0, float32(len(spectScaleNames) - 1), 1},
 	{"spect-min", "min", &spectMinF, 0, -80, 80, 1},
@@ -123,5 +125,43 @@ func applySpectSettings() {
 	if size := spectDFTSizes[pick(spectDFTF, len(spectDFTSizes))]; size != sg.S.GetDFTSize() {
 		sg.S.SetDFTSize(size)
 		resizeSpectrogram()
+	}
+}
+
+// spectChanNames are the folds of a stereo source the spectrogram can show.
+//
+// The mix is first because it is the honest answer to "what is playing", and a
+// spectrogram of one channel of a stereo mix is a spectrogram of half of it.
+// The single channels are worth having because the sum hides things: an
+// instrument panned hard, a dead side of an interface, a channel out of
+// polarity with the other that cancels in the sum and looks like silence.
+//
+// A mono source ignores this: both channels are the same signal, so every
+// position shows the same picture.
+var spectChanNames = []string{"mix", "left", "right"}
+
+// spectChanF is the knob, an index into spectChanNames.
+var spectChanF float32
+
+// spectMonoMode turns the knob into the fold the source applies.
+func spectMonoMode() audiosrc.MonoMode {
+	switch pick(spectChanF, len(spectChanNames)) {
+	case 1:
+		return audiosrc.MonoLeft
+	case 2:
+		return audiosrc.MonoRight
+	default:
+		return audiosrc.MonoMix
+	}
+}
+
+// applySpectChannel pushes the knob to the source. The source folds as frames
+// arrive rather than on read, so this only has to happen when the knob moves —
+// but it is cheap, and calling it per frame means there is no separate place
+// that has to remember to.
+func applySpectChannel() {
+	type monoSetter interface{ SetMonoMode(audiosrc.MonoMode) }
+	if s, ok := ensureAudioSource().(monoSetter); ok {
+		s.SetMonoMode(spectMonoMode())
 	}
 }
