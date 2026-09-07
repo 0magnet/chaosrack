@@ -20,10 +20,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/0magnet/calvin"
+	"github.com/0magnet/calvin/clihelp"
 	"github.com/0magnet/chaosrack/assets/gowasm"
 	"github.com/0magnet/chaosrack/assets/tinywasm"
-	cc "github.com/0magnet/coloredcobra"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	"github.com/spf13/cobra"
@@ -47,18 +46,7 @@ func init() {
 
 // Execute runs the root CLI command (the server).
 func Execute() {
-	cc.Init(&cc.Config{
-		RootCmd:         runCmd,
-		Headings:        cc.HiBlue + cc.Bold,
-		Commands:        cc.HiBlue + cc.Bold,
-		CmdShortDescr:   cc.HiBlue,
-		Example:         cc.HiBlue + cc.Italic,
-		ExecName:        cc.HiBlue + cc.Bold,
-		Flags:           cc.HiBlue + cc.Bold,
-		FlagsDescr:      cc.HiBlue,
-		NoExtraNewlines: true,
-		NoBottomNewline: true,
-	})
+	clihelp.Init(runCmd, "chaosrack", true)
 	if err := runCmd.Execute(); err != nil {
 		log.Fatal("Failed to execute command: ", err)
 	}
@@ -67,7 +55,7 @@ func Execute() {
 var runCmd = &cobra.Command{
 	Use:   "chaosrack",
 	Short: "wasm attractors",
-	Long:  calvin.AsciiFont("chaosrack") + "\nwasm attractors",
+	Long:  "wasm attractors",
 	Run: func(_ *cobra.Command, _ []string) {
 		wg := new(sync.WaitGroup)
 		r1 := gin.New()

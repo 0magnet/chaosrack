@@ -4,8 +4,7 @@ go 1.26.5
 
 require (
 	github.com/0magnet/audioprism-go v0.0.0-20260907202323-ea3882abdb62
-	github.com/0magnet/calvin v0.0.0-20260907164811-60c88e364a88
-	github.com/0magnet/coloredcobra v1.0.3
+	github.com/0magnet/calvin v0.0.0-20260907211102-35b15c690884
 	github.com/0magnet/desk v0.0.0-20260907180626-de20774940a9
 	github.com/0magnet/desk/panes v0.0.0-20260907180626-de20774940a9
 	github.com/0magnet/pisano v0.0.0-20260907164814-34667a782f4c
@@ -58,7 +57,6 @@ require (
 	github.com/dlclark/regexp2/v2 v2.7.2 // indirect
 	github.com/dunglas/httpsfv v1.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/fatih/color v1.19.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.15 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/gdamore/tcell/v2 v2.13.10 // indirect
@@ -78,7 +76,6 @@ require (
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
-	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mattn/go-runewidth v0.0.29 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
