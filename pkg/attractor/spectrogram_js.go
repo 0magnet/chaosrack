@@ -41,6 +41,12 @@ const (
 	spectMaxQueue     = 120 // fast-forward the scroll if we fall this far behind
 	spectQueueCatchup = 60
 
+	// spectQueueTarget is the depth the queue is drained toward. Not zero: the
+	// producer and the flush are on different clocks, so a column or two in
+	// hand is what keeps the scroll smooth rather than stuttering whenever one
+	// arrives a moment late.
+	spectQueueTarget = 2
+
 	// The most audio one update may pull in. A source backed by a generator
 	// rather than a buffer never reports "nothing left", so the drain needs a
 	// ceiling of its own or it runs until the heap does. 32768 samples is about
@@ -254,6 +260,20 @@ func flushSpectColumns(nowMs float64) {
 	spectColFrac -= float64(toFlush)
 
 	for i := 0; i < toFlush && len(spectColQueue) > 0; i++ {
+		uploadSpectColumn(spectColQueue[0])
+		spectColQueue = spectColQueue[1:]
+	}
+	// Work off a standing backlog. The pacing above flushes at exactly the rate
+	// columns are produced, so a queue — however it formed — is never worked
+	// off: it just becomes permanent delay between what is heard and what is
+	// drawn. Behind the Takens embedding this parked at seventeen columns, a
+	// third of a second, and stayed there.
+	//
+	// One extra column per call clears that in about as long as it represents,
+	// and one column is a single texel of scroll, so the correction is not
+	// visible as a jump. The fast-forward below still handles the large
+	// backlogs this is too gentle for.
+	if len(spectColQueue) > spectQueueTarget {
 		uploadSpectColumn(spectColQueue[0])
 		spectColQueue = spectColQueue[1:]
 	}
