@@ -5,7 +5,7 @@ systems and live signals, rendered in real time by a Go→WebAssembly core and
 driven from an analog-equipment control surface: knobs with fine-trim rings,
 seven-segment LED readouts, toggle switches, concentric selector dials.
 
-**[Live demo](https://0magnet.github.io/chaosrack/)** — the whole rack in a tab: pick a model, turn the knobs, rotate the scene.
+**[Live demo](https://chaosrack.magnetosphere.net/)** — the whole rack in a tab: pick a model, turn the knobs, rotate the scene.
 
 **66 models in five kinds**, and they are no longer mostly attractors.
 Continuous **flows** — Lorenz, Rössler, Chua and the rest of the classics,
@@ -27,7 +27,7 @@ actually chaotic** by its largest Lyapunov exponent, paint with persistence,
 or flip the Model Out ring and **hear the system itself**. An homage to the
 analog computers at [glensstuff.com](https://glensstuff.com).
 
-**Live:** [0magnet.github.io/chaosrack](https://0magnet.github.io/chaosrack/) · [tinygo build](https://0magnet.github.io/chaosrack/tinygo/)
+**Live:** [chaosrack.magnetosphere.net](https://chaosrack.magnetosphere.net/) · [tinygo build](https://chaosrack.magnetosphere.net/tinygo/)
 
 ![The control panel docked at the bottom with the Lorenz attractor above it](docs/img/hero.jpg)
 
