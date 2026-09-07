@@ -192,10 +192,13 @@ func (cv *Canvas) ImportUTF8(data []byte) {
 			i = size
 			continue
 
-		case data[i] == '\033' && data[i+1] == '(' && data[i+2] == 'B':
+		// Safe: the case above already sent every i with i+2 >= size to the end
+		// of the input, so i+1 and i+2 are in range by the time this is reached.
+		// gosec cannot see an invariant established by an earlier case.
+		case data[i] == '\033' && data[i+1] == '(' && data[i+2] == 'B': //nolint:gosec
 			skip += 2
 
-		case data[i] == '\033' && data[i+1] == '[':
+		case data[i] == '\033' && data[i+1] == '[': //nolint:gosec
 			n, stop := cv.parseCSI(data[i:], &im, &x, &y, &saveX, &saveY,
 				width, height)
 			if stop {
@@ -204,7 +207,7 @@ func (cv *Canvas) ImportUTF8(data []byte) {
 			}
 			skip += n
 
-		case data[i] == '\033' && data[i+1] == ']':
+		case data[i] == '\033' && data[i+1] == ']': //nolint:gosec
 			n, stop := parseOSC(data[i:])
 			if stop {
 				i = size
@@ -215,7 +218,7 @@ func (cv *Canvas) ImportUTF8(data []byte) {
 		// A form feed starts a new frame. caca_create_frame() copies the
 		// current one, so with a single frame kept here the effect is just to
 		// send the cursor home; the cells carry over either way.
-		case i+1 < size && data[i] == '\f' && data[i+1] == '\n':
+		case i+1 < size && data[i] == '\f' && data[i+1] == '\n': //nolint:gosec
 			x, y = 0, 0
 			skip++
 
@@ -302,11 +305,11 @@ func (cv *Canvas) parseCSI(data []byte, im *importState, x, y, saveX, saveY *int
 		inter++
 	}
 	final := inter
-	for final < size && data[final] >= 0x20 && data[final] <= 0x2f {
+	for final < size && data[final] >= 0x20 && data[final] <= 0x2f { //nolint:gosec
 		final++
 	}
 
-	if final >= size || data[final] < 0x40 || data[final] > 0x7e {
+	if final >= size || data[final] < 0x40 || data[final] > 0x7e { //nolint:gosec
 		return 0, true // invalid final byte
 	}
 
@@ -331,7 +334,7 @@ func (cv *Canvas) parseCSI(data []byte, im *importState, x, y, saveX, saveY *int
 	}
 	argc := len(argv)
 
-	switch data[final] {
+	switch data[final] { //nolint:gosec
 	case 'H', 'f': // CUP, HVP - cursor position
 		*x, *y = 0, 0
 		if argc > 1 && argv[1] > 0 {

@@ -42,7 +42,7 @@ type Metaballs struct {
 // which makes tests repeatable.
 func New(seed int64) *Metaballs {
 	return &Metaballs{
-		rng:     rand.New(rand.NewSource(seed)),
+		rng:     rand.New(rand.NewSource(seed)), //nolint:gosec
 		Count:   6,
 		Palette: canvas.Plasma,
 	}

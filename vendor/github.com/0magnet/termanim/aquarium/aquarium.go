@@ -160,7 +160,7 @@ type Aquarium struct {
 
 // New returns an aquarium. seed of 0 gives a fixed arrangement.
 func New(seed int64) *Aquarium {
-	return &Aquarium{rng: rand.New(rand.NewSource(seed)), Fish: 8, StepRate: 20}
+	return &Aquarium{rng: rand.New(rand.NewSource(seed)), Fish: 8, StepRate: 20} //nolint:gosec
 }
 
 var fishColors = []tcell.Color{

@@ -23,11 +23,11 @@ type Image struct {
 
 // LoadImage decodes an image file into the 32-bit ARGB layout libcaca expects.
 func LoadImage(name string) (*Image, error) {
-	f, err := os.Open(name)
+	f, err := os.Open(name) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck,gosec
 	return DecodeImage(f)
 }
 

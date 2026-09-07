@@ -84,7 +84,7 @@ type LavaLamp struct {
 // tests repeatable.
 func New(seed int64) *LavaLamp {
 	return &LavaLamp{
-		rng:      rand.New(rand.NewSource(seed)),
+		rng:      rand.New(rand.NewSource(seed)), //nolint:gosec
 		Buoyancy: 36,
 		HeatRate: 0.6,
 		CoolRate: 0.48,

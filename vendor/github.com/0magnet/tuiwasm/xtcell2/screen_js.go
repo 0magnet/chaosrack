@@ -289,14 +289,18 @@ func (s *Screen) SetSize(w, h int) { s.resized(w, h) }
 
 func (s *Screen) SetContent(x, y int, primary rune, combining []rune, style tcell.Style) {
 	s.mu.Lock()
-	s.cells.SetContent(x, y, primary, combining, style)
+	// SetContent/GetContent are deprecated in favor of Put/Get, which are
+	// string-based. This Screen implements tcell.Screen, whose contract is
+	// rune-based, and the deprecated pair is exactly that shape — switching
+	// would mean re-deriving the rune-to-string handling they already do.
+	s.cells.SetContent(x, y, primary, combining, style) //nolint:staticcheck
 	s.mu.Unlock()
 }
 
 func (s *Screen) GetContent(x, y int) (rune, []rune, tcell.Style, int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.cells.GetContent(x, y)
+	return s.cells.GetContent(x, y) //nolint:staticcheck // see SetContent above
 }
 
 func (s *Screen) Get(x, y int) (string, tcell.Style, int) {

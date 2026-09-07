@@ -78,7 +78,7 @@ type Donut struct {
 // present the shape from a different sequence of angles; a given seed always
 // produces the same animation.
 func New(seed int64) *Donut {
-	rng := rand.New(rand.NewSource(seed))
+	rng := rand.New(rand.NewSource(seed)) //nolint:gosec
 	return &Donut{
 		// Radians per second, not per frame: the pose advances by elapsed time,
 		// so the torus turns at the same rate whatever the frame rate and

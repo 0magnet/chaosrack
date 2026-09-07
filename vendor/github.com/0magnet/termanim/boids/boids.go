@@ -114,7 +114,7 @@ var heading = canvas.NewPalette(
 // makes tests repeatable.
 func New(seed int64) *Boids {
 	return &Boids{
-		rng:        rand.New(rand.NewSource(seed)),
+		rng:        rand.New(rand.NewSource(seed)), //nolint:gosec
 		Separation: 1.6,
 		Alignment:  0.7,
 		Cohesion:   0.35,

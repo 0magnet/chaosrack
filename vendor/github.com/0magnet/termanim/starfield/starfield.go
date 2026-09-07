@@ -85,7 +85,7 @@ var starRamp = canvas.NewPalette(
 // tests repeatable.
 func New(seed int64) *Starfield {
 	return &Starfield{
-		rng:     rand.New(rand.NewSource(seed)),
+		rng:     rand.New(rand.NewSource(seed)), //nolint:gosec
 		Density: 70,
 		Speed:   1,
 		Palette: starRamp,

@@ -65,7 +65,8 @@ func (x *xtermTerm) putCell(col, row int, str string, fg, bg uint32, width int) 
 
 	// Combining marks attach to the cell just written.
 	for _, c := range str[size:] {
-		line.AddCodepointToCell(col, uint32(c), 0)
+		// A rune ranged out of a string is a valid code point, so never negative.
+		line.AddCodepointToCell(col, uint32(c), 0) //nolint:gosec
 	}
 }
 
@@ -89,10 +90,12 @@ func packStyle(style tcell.Style) (fg, bg uint32) {
 	fgc, bgc := style.GetForeground(), style.GetBackground()
 	attrs := style.GetAttributes()
 	if fgc.Valid() {
-		fg = vt.AttrCMRGB | (uint32(fgc.Hex()) & vt.AttrRGBMask)
+		// Guarded by Valid() above: a valid color hex is never negative.
+		fg = vt.AttrCMRGB | (uint32(fgc.Hex()) & vt.AttrRGBMask) //nolint:gosec
 	}
 	if bgc.Valid() {
-		bg = vt.AttrCMRGB | (uint32(bgc.Hex()) & vt.AttrRGBMask)
+		// Guarded by Valid() above: a valid color hex is never negative.
+		bg = vt.AttrCMRGB | (uint32(bgc.Hex()) & vt.AttrRGBMask) //nolint:gosec
 	}
 
 	if attrs&tcell.AttrBold != 0 {

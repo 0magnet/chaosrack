@@ -97,7 +97,7 @@ type Rain struct {
 // tests repeatable.
 func New(seed int64) *Rain {
 	return &Rain{
-		rng:        rand.New(rand.NewSource(seed)),
+		rng:        rand.New(rand.NewSource(seed)), //nolint:gosec
 		Density:    30,
 		Slant:      0.28,
 		SplashLife: 0.2,
