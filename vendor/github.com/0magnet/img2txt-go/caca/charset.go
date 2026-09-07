@@ -127,7 +127,7 @@ func IsFullwidth(ch rune) bool {
 type rngState struct{ r *rand.Rand }
 
 func newRNG() *rngState {
-	return &rngState{r: rand.New(rand.NewSource(rand.Int63()))}
+	return &rngState{r: rand.New(rand.NewSource(rand.Int63()))} //nolint:gosec
 }
 
 // rand returns a value in [min, max).

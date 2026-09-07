@@ -130,7 +130,7 @@ type Cube struct {
 // different seeds tumble differently; a given seed always produces the same
 // animation.
 func New(seed int64) *Cube {
-	rng := rand.New(rand.NewSource(seed))
+	rng := rand.New(rand.NewSource(seed)) //nolint:gosec
 	c := &Cube{
 		Solid:   NewCube(),
 		Speed:   1,

@@ -156,7 +156,7 @@ type Bonsai struct {
 // repeatable.
 func New(seed int64) *Bonsai {
 	return &Bonsai{
-		rng:               rand.New(rand.NewSource(seed)),
+		rng:               rand.New(rand.NewSource(seed)), //nolint:gosec
 		StepsPerSecond:    60,
 		MinBranchLife:     3,
 		TrunkBranchChance: 4,
