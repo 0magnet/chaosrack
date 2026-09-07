@@ -250,6 +250,9 @@ func updateAudioColorLUT(mode string) {
 // the trail with audio from two delays earlier than the trail was drawn
 // from, which is a shift of exactly the thing the mode is about.
 func audioColorWindow(mode string) ([]float32, int) {
+	if mode == "stereo" {
+		return stereoColorWindow()
+	}
 	if mode != "takens" || takensRing == nil {
 		return nil, 0
 	}
@@ -292,3 +295,48 @@ var audioColorWin []float32
 // Named because it is referenced from the render loop and the panel wiring, and
 // a bare 4 in two files is how those two drift apart.
 const gradientSourceAudio = 4
+
+// stereoColorWindow is audioColorWindow for the Stereo Embedding.
+//
+// It qualifies for the same reason Takens does: its vertices carry
+// aTrailT = m/(nv−1), a straight ramp across the displayed window, so slot k of
+// the table lines up with the k'th slice of that window.
+//
+// Without this the mode fell through to the flat fill, and with the gradient
+// following the sound that fill is one colour for the whole trail — which can
+// be the dark end of the palette, at which point a correct figure is drawn in
+// black on black and the mode looks broken. Not a theoretical case: it is what
+// a saved view carrying gs=4&gc=5 did, and it is why this mode was reported as
+// showing nothing at all.
+//
+// The walk mirrors generateStereo: source point k sits at tau + k*stride in the
+// snapshot, which is where the plan's undelayed axes read from. The delayed
+// axes reach back from there, as Takens' do, and the colour follows the trail
+// position rather than any one axis.
+func stereoColorWindow() ([]float32, int) {
+	src := ensureAudioSource()
+	sr := 24000
+	if src != nil && src.SampleRate() > 0 {
+		sr = src.SampleRate()
+	}
+	tau := int(stereoTau)
+	if tau < 1 {
+		tau = 1
+	}
+	n, stride := stereoWindow(stereoWin, sr, steps, tau)
+	if n <= 0 {
+		return nil, 0
+	}
+	span := (n-1)*stride + tau
+	if len(stereoL) < span+1 {
+		return nil, 0 // the snapshot for this window has not been taken yet
+	}
+	if cap(audioColorWin) < n {
+		audioColorWin = make([]float32, n)
+	}
+	out := audioColorWin[:n]
+	for k := 0; k < n; k++ {
+		out[k] = stereoL[tau+k*stride]
+	}
+	return out, sr
+}
