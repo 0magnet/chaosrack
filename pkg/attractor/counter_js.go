@@ -42,7 +42,7 @@ func counterTick() {
 	if counterBuf == nil {
 		counterBuf = make([]float32, 16384)
 	}
-	n := src.Drain(counterBuf)
+	n := tapRead(&counterCursor, counterBuf)
 	th := fgFloat(doc.Call("getElementById", "counter-trig")) / 100
 	if th < 1e-4 { // trig at 0 still needs hysteresis or it chatters
 		th = 1e-4
