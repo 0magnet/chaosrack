@@ -353,7 +353,7 @@ func rpFillFromAudio() bool {
 	}
 	if src != nil && src.Ready() {
 		for drained := 0; drained < rpDrainCap; {
-			n := src.Drain(rpScratch)
+			n := tapRead(&rpCursor, rpScratch)
 			if n <= 0 {
 				break
 			}

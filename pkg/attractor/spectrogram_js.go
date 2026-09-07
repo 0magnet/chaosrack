@@ -156,10 +156,12 @@ func renderSpectrogramMode(nowMs float64) {
 func updateSpectrogramTexture(nowMs float64) {
 	if src := activeAudioSource(); src != nil && src.Ready() {
 		fvfOn := selectedMode == "fvf"
-		// When the FVF audio engine is running it is the single drainer of
-		// the source (and plays it out); the spectrogram then reads its
-		// already-processed output (fvfVis) so display matches sound. Off,
-		// the spectrogram drains the source and processes it here.
+		// When the FVF audio engine is running it is the single drainer of the
+		// source (and plays it out), and the tap switches its upstream to that
+		// engine's already-processed output so display matches sound. Reading
+		// the tap therefore covers both states, and this no longer reaches into
+		// fvfVis itself — doing that was what made the spectrogram the only
+		// display FVF worked with.
 		listening := fvfOn && fvfAudioActive
 		if fvfOn && !listening {
 			ensureFVFProc()
@@ -178,15 +180,12 @@ func updateSpectrogramTexture(nowMs float64) {
 		// drained beyond about a frame's worth become columns that are thrown
 		// away as they arrive.
 		for len(spectAccum) < spectMaxAccum {
-			var n int
-			if listening {
-				n = fvfVis.drain(spectDrainBuf)
-			} else {
-				n = src.Drain(spectDrainBuf)
-				if fvfOn && fvfProc != nil {
-					for i := 0; i < n; i++ {
-						spectDrainBuf[i] = fvfProc.Process(spectDrainBuf[i])
-					}
+			n := tapRead(&spectCursor, spectDrainBuf)
+			// Under FVF the tap already carries processed samples, so only the
+			// not-listening case still has to run the filter here.
+			if fvfOn && !listening && fvfProc != nil {
+				for i := 0; i < n; i++ {
+					spectDrainBuf[i] = fvfProc.Process(spectDrainBuf[i])
 				}
 			}
 			if n == 0 {

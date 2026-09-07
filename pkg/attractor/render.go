@@ -717,6 +717,12 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 		jamTick(frameNowMs)
 	}
 
+	// Fan the audio stream out for this frame BEFORE anything reads it. Every
+	// consumer below (the counter here, the backdrop and the model later) takes
+	// its own copy from the tap; draining the source twice would split it.
+	// This sits ahead of the audio-mode return below, which is a live frame too.
+	tapPump()
+
 	// Refresh audio features (no-op unless audio-reactive is on); Phase 2
 	// mappings read these to modulate the attractors.
 	updateAudioFeatures()
