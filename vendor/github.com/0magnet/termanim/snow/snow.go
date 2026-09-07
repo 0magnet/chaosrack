@@ -89,7 +89,7 @@ type Snow struct {
 // repeatable.
 func New(seed int64) *Snow {
 	return &Snow{
-		rng:        rand.New(rand.NewSource(seed)),
+		rng:        rand.New(rand.NewSource(seed)), //nolint:gosec
 		Flakes:     18,
 		MaxDepth:   0.25,
 		MeltRate:   1,

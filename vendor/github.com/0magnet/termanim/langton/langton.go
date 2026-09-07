@@ -94,7 +94,7 @@ var antColors = [][3]int{
 // tests repeatable; anything else moves the ants' starting positions.
 func New(seed int64) *Langton {
 	return &Langton{
-		rng:            rand.New(rand.NewSource(seed)),
+		rng:            rand.New(rand.NewSource(seed)), //nolint:gosec
 		Ants:           3,
 		StepsPerSecond: 7500,
 		Fade:           150,

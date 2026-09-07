@@ -142,6 +142,6 @@ func unknownFlag(hc *interp.HandlerContext, cmd, flag string) int {
 }
 
 func fail(hc *interp.HandlerContext, msg string) int {
-	hc.Stderr.Write([]byte(msg + "\n")) //nolint:errcheck // a closed pipe is the caller's business
+	hc.Stderr.Write([]byte(msg + "\n")) //nolint:errcheck,gosec // a closed pipe is the caller's business
 	return 1
 }

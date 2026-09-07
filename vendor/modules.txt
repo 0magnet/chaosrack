@@ -7,21 +7,21 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.0-20260905161232-52a1f58d4844
+# github.com/0magnet/audioprism-go v0.0.0-20260905171937-900f18a2f23d
 ## explicit; go 1.26.2
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
-# github.com/0magnet/calvin v0.0.0-20260904172612-288ced851c19
+# github.com/0magnet/calvin v0.0.0-20260905171945-6d046e156c9b
 ## explicit; go 1.25.0
 github.com/0magnet/calvin
-# github.com/0magnet/coloredcobra v1.0.2
-## explicit; go 1.15
+# github.com/0magnet/coloredcobra v1.0.3
+## explicit; go 1.25.0
 github.com/0magnet/coloredcobra
-# github.com/0magnet/desk v0.0.0-20260905010738-0c9209d8b7b7
+# github.com/0magnet/desk v0.0.0-20260906155330-9925d12693bb
 ## explicit; go 1.26
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.0-20260906024135-2c832a4f6cd0
+# github.com/0magnet/desk/panes v0.0.0-20260906155330-9925d12693bb
 ## explicit; go 1.26
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -37,25 +37,25 @@ github.com/0magnet/glamour
 github.com/0magnet/glamour/ansi
 github.com/0magnet/glamour/internal/autolink
 github.com/0magnet/glamour/styles
-# github.com/0magnet/go-dsp v0.0.0-20260904172328-4474a45054c8
+# github.com/0magnet/go-dsp v0.0.0-20260905172003-9e5bb50ba887
 ## explicit; go 1.23.0
 github.com/0magnet/go-dsp/dsputils
 github.com/0magnet/go-dsp/fft
 github.com/0magnet/go-dsp/window
-# github.com/0magnet/img2txt-go v0.0.0-20260905001454-9b4ec5319d47
+# github.com/0magnet/img2txt-go v0.0.0-20260905172011-27f5dac61aad
 ## explicit; go 1.25.0
 github.com/0magnet/img2txt-go/caca
-# github.com/0magnet/lolcat-go v0.0.0-20260905001114-f97d678ce219
+# github.com/0magnet/lolcat-go v0.0.0-20260905172013-2cf578f3fc7d
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20260905010820-c038d89c660a
+# github.com/0magnet/pisano v0.0.0-20260905172022-2885ec4c921a
 ## explicit; go 1.26
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20260828143304-69dc438364d2
 ## explicit; go 1.25.0
 github.com/0magnet/proxima5
 github.com/0magnet/proxima5/internal/views
-# github.com/0magnet/rack-go v0.0.0-20260904162257-a9c019134c72
+# github.com/0magnet/rack-go v0.0.0-20260905172026-508511d515b0
 ## explicit; go 1.21
 github.com/0magnet/rack-go
 # github.com/0magnet/sh/v3 v3.13.2-0.20260818190530-13d0024da85c
@@ -66,7 +66,7 @@ github.com/0magnet/sh/v3/internal
 github.com/0magnet/sh/v3/interp
 github.com/0magnet/sh/v3/pattern
 github.com/0magnet/sh/v3/syntax
-# github.com/0magnet/termanim v0.0.0-20260905010830-f8788bcdc347
+# github.com/0magnet/termanim v0.0.0-20260905171704-496bb97da414
 ## explicit; go 1.25.0
 github.com/0magnet/termanim/aquarium
 github.com/0magnet/termanim/boids
@@ -91,13 +91,13 @@ github.com/0magnet/termanim/sand
 github.com/0magnet/termanim/snow
 github.com/0magnet/termanim/starfield
 github.com/0magnet/termanim/tunnel
-# github.com/0magnet/toilet-go v0.0.0-20260905011609-ab34357c2de4
+# github.com/0magnet/toilet-go v0.0.0-20260905172039-01d33b68c15d
 ## explicit; go 1.25.0
 github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20260905161317-ca18bd83ace3
+# github.com/0magnet/tuiwasm v0.0.0-20260906020837-9262a3b03061
 ## explicit; go 1.26.5
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -121,10 +121,10 @@ github.com/0magnet/u-root/pkg/ls
 ## explicit; go 1.25.7
 github.com/0magnet/websh/shell
 github.com/0magnet/websh/web
-# github.com/0magnet/winbox-go v0.0.0-20260905000411-6eefa77dea85
+# github.com/0magnet/winbox-go v0.0.0-20260905172045-cfee586c8360
 ## explicit; go 1.24
 github.com/0magnet/winbox-go
-# github.com/0magnet/xterm-go v0.0.0-20260904164423-3896621e5b7c
+# github.com/0magnet/xterm-go v0.0.0-20260905172047-f0008e1479ee
 ## explicit; go 1.24
 github.com/0magnet/xterm-go
 github.com/0magnet/xterm-go/vt
@@ -199,7 +199,7 @@ github.com/charmbracelet/colorprofile
 # github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 ## explicit; go 1.18
 github.com/charmbracelet/lipgloss
-# github.com/charmbracelet/ultraviolet v0.0.0-20260903151058-ae99b731b8c5
+# github.com/charmbracelet/ultraviolet v0.0.0-20260906173415-0277a179edd9
 ## explicit; go 1.25.0
 github.com/charmbracelet/ultraviolet
 # github.com/charmbracelet/x/ansi v0.11.8
@@ -210,7 +210,7 @@ github.com/charmbracelet/x/ansi/parser
 # github.com/charmbracelet/x/cellbuf v0.0.15
 ## explicit; go 1.24.2
 github.com/charmbracelet/x/cellbuf
-# github.com/charmbracelet/x/exp/slice v0.0.0-20260902165432-6f6ad8b37b0a
+# github.com/charmbracelet/x/exp/slice v0.0.0-20260906004030-3986e9119cf9
 ## explicit; go 1.24.0
 github.com/charmbracelet/x/exp/slice
 # github.com/charmbracelet/x/term v0.2.2

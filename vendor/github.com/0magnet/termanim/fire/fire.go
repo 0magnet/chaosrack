@@ -59,7 +59,7 @@ type Fire struct {
 // repeatable; anything else varies the flicker.
 func New(seed int64) *Fire {
 	return &Fire{
-		rng:      rand.New(rand.NewSource(seed)),
+		rng:      rand.New(rand.NewSource(seed)), //nolint:gosec
 		Palette:  canvas.Fire,
 		StepRate: 30,
 	}
@@ -167,7 +167,7 @@ func (f *Fire) step() {
 	fuel := f.heat[f.h]
 	for x := 0; x < f.w; x++ {
 		if f.rng.Intn(10) < 7 {
-			fuel[x] = byte(180 + f.rng.Intn(76))
+			fuel[x] = byte(180 + f.rng.Intn(76)) //nolint:gosec
 		} else {
 			fuel[x] = 0
 		}

@@ -110,7 +110,7 @@ type Fireworks struct {
 // makes tests repeatable.
 func New(seed int64) *Fireworks {
 	return &Fireworks{
-		rng:        rand.New(rand.NewSource(seed)),
+		rng:        rand.New(rand.NewSource(seed)), //nolint:gosec
 		Gravity:    0.54,
 		Rockets:    3,
 		LaunchRate: 1.2,
