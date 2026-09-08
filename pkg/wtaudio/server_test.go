@@ -10,7 +10,7 @@ func newTestServer(t *testing.T, addr string) *Server {
 	t.Helper()
 	s, err := New(Config{
 		Addr:       addr,
-		Capture:    func(func([]float32) error) (func(), error) { return func() {}, nil },
+		Capture:    func(*http.Request, func([]float32) error) (func(), error) { return func() {}, nil },
 		SampleRate: 24000,
 		Logf:       func(string, ...interface{}) {},
 	})
@@ -98,7 +98,7 @@ func TestNewRequiresACapture(t *testing.T) {
 	if _, err := New(Config{Addr: ":8080"}); err == nil {
 		t.Error("a server with no audio source was accepted")
 	}
-	if _, err := New(Config{Addr: "not-an-address", Capture: func(func([]float32) error) (func(), error) { return nil, nil }}); err == nil {
+	if _, err := New(Config{Addr: "not-an-address", Capture: func(*http.Request, func([]float32) error) (func(), error) { return nil, nil }}); err == nil {
 		t.Error("an unparsable address was accepted")
 	}
 }

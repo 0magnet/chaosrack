@@ -279,7 +279,7 @@ type htmlTemplateData struct {
 	CanonicalPath string
 	Debug         bool
 	HostConfig    htmpl.JS
-	AudioFeed     string // "ws" when this server is capturing; see audio.go
+	AudioFeed     string // the transport the page should prefer ("wt", "ws" or none); see audio.go
 	WobbulateCtl  bool   // the page may offer the FVF routing switch; see audio.go
 	// Dual mode: embed BOTH runtimes, default to Go, switch via ?wasm=tinygo.
 	Dual           bool
