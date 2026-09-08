@@ -45,11 +45,14 @@ type PageOptions struct {
 	// would have to find </head> in a file that also mentions it in a comment.
 	HostConfig htmpl.JS
 
-	// AudioFeed names the audio transport this server is offering -- "ws" when it
-	// is capturing, empty when it is not. The page reads it to decide where audio
-	// comes from WITHOUT being told in the URL: a server that captures gets used,
-	// a server that does not is never dialed, so neither silence-by-default nor
-	// an error overlay for a socket that was never going to answer.
+	// AudioFeed names the audio transport this server wants the page to PREFER:
+	// "wt" when it is capturing and has a WebTransport listener up, "ws" when it
+	// is capturing without one, empty when it is not capturing. The page reads it
+	// to decide where audio comes from WITHOUT being told in the URL: a server
+	// that captures gets used, a server that does not is never dialed, so neither
+	// silence-by-default nor an error overlay for a socket that was never going
+	// to answer. "wt" is a preference and not a promise -- the page falls back to
+	// the WebSocket by itself when WebTransport cannot be had.
 	AudioFeed string
 
 	// WobbulateCtl says the page may offer the FVF routing switch: this server

@@ -197,6 +197,18 @@ func main() {
 	}
 }
 
+// wtCapture is the WebTransport half of the /ws handler: same capture, same
+// reading of ?ch=2. It is a function rather than capOpts().Start because the
+// channel count is a property of the SESSION and not of the flags — one tab
+// asking for stereo must not change what another tab is already receiving.
+func wtCapture(r *http.Request, write func([]float32) error) (func(), error) {
+	o := capOpts()
+	if r != nil && r.URL != nil && r.URL.Query().Get("ch") == "2" {
+		o.Channels = 2
+	}
+	return o.Start(write)
+}
+
 // capOpts is this command.s capture configuration, from its flags. The capture
 // itself lives in pkg/audiocap so the root server can serve the same feed from
 // the same process that serves the page -- see its --audio flag.
@@ -222,7 +234,7 @@ func startWebTransport() *wtaudio.Server {
 	srv, err := wtaudio.New(wtaudio.Config{
 		Addr:       fmt.Sprintf(":%d", port),
 		Path:       wtPath,
-		Capture:    capOpts().Start,
+		Capture:    wtCapture,
 		SampleRate: sampleRate,
 	})
 	if err != nil {

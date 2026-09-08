@@ -42,12 +42,20 @@ var (
 //     audioprism-go-style /ws feed served by cmd/audiows). An optional
 //     ?wsurl= overrides the endpoint; default is same-origin /ws.
 //   - audio=wt (or webtransport): the same audio over WebTransport
-//     datagrams, which is an OPTION and not a replacement — it only pays
-//     off on a remote or lossy link (see pkg/audiosrc/datagram.go), and
-//     it falls back to the WebSocket by itself when the browser has no
-//     WebTransport or the handshake fails. The WebSocket remains what a
-//     page with no query parameter gets.
+//     datagrams, which pays off on a remote or lossy link because a lost
+//     packet costs one chunk instead of stalling the feed (see the
+//     framing in audioprism-go's wsaudio). It falls back to the WebSocket
+//     by itself when the browser has no WebTransport, the origin is not a
+//     secure context, or the handshake fails.
 //   - anything else / absent: the browser microphone via getUserMedia.
+//
+// This is a query parameter and, since the root server grew a WebTransport
+// listener, no longer the way anyone gets there: a capturing server writes
+// __crAudio="wt" into the page and the WebTransport source is what a plain
+// visit uses, falling back on its own. The parameter is what remains for
+// forcing one transport or the other while debugging a fallback — "?audio=ws"
+// pins the WebSocket, "?audio=wt" asks for WebTransport against a server whose
+// page did not offer it.
 func ensureAudioSource() audiosrc.Source {
 	// The function generator, when on, is the source — regardless of ws/mic.
 	if useFuncGen {
@@ -81,7 +89,12 @@ func ensureAudioSource() audiosrc.Source {
 			URL:        queryParam("wturl"),
 			CertHash:   queryParam("wthash"),
 			SampleRate: wsSampleRate(),
-			WS:         ws,
+			// Two channels here as well as on the fallback. Asking on only one
+			// of them would make the Stereo Embedding work or not depending on
+			// which transport the page happened to land on, which is
+			// indistinguishable from the mode being broken.
+			Channels: 2,
+			WS:       ws,
 		})
 	default:
 		// The capture graph rides the shared context. The mic lease is held
@@ -148,6 +161,12 @@ func activeAudioSource() audiosrc.Source {
 // connect and an error overlay, which is the app reporting a fault when nothing
 // is faulty. Neither case can arise now: the page asks for a feed exactly when
 // one exists.
+//
+// __crAudio is now "wt" whenever the server has a WebTransport listener up
+// beside /ws, which is the default. That is a PREFERENCE, not a promise: the
+// WebTransport source declines to the WebSocket by itself and says so. The
+// server answers "ws" when it has no listener, so the one case where the
+// fallback would be certain does not cost a /wt-info round trip to discover.
 func audioBackendKind() string {
 	if q := queryParam("audio"); q != "" {
 		return q
