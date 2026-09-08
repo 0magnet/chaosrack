@@ -413,6 +413,17 @@ func buildParamPanel(mode string) {
 		appendStereoReadout(grid)
 	}
 
+	if _, isFlow := lyapLiveSystem(mode); isFlow {
+		// The live Lyapunov exponent, same placement and same reason. Only on
+		// the continuous flows, and lyapLiveSystem is what draws that line —
+		// from the mode's declared class rather than from whether flowFor4
+		// happens to answer, for the reason spelled out there. A map's
+		// exponent is per iterate and a polyhedron has none; both belong to
+		// the Analysis module, which can say so in words, rather than to a
+		// cell in this grid that could only print a number or a dash.
+		appendLyapunovReadout(grid)
+	}
+
 	if mode == "fvf" {
 		// Into the GRID, not #params: the grid is the height-bounded
 		// column-wrap container, so extra cells flow into a new column and the

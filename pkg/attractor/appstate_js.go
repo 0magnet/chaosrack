@@ -69,6 +69,10 @@ func reseedAttractorState() {
 	bifInvalidate()  // bifurcation re-sweeps (source params may have changed)
 	mapInvalidate()  // a map orbit is only meaningful for the params that made it
 	lyapInvalidate() // and so is its Lyapunov exponent
+	// The live exponent restarts for the same reason, and it needs saying
+	// separately: lyapInvalidate re-runs the Analysis module's on-demand
+	// measurement, which is a different accumulation with a different clock.
+	lyapLiveInvalidate()
 	// Hyper-Rössler's hidden 4th state; start it on-attractor for that mode,
 	// zero otherwise (harmless — only that mode reads it).
 	if selectedMode == "hyperrossler" {
