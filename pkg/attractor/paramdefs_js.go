@@ -57,6 +57,10 @@ var paramLabels = map[string][]string{
 	// disagreed with the list of plans would put a dial position on a figure
 	// it does not draw.
 	"stereo-axes": stereoAxisNames,
+	// The polar embedding's radius map. Same arrangement and the same reason:
+	// the names live next to the maps they index (polar_js.go), so a dial
+	// position cannot come to name a curve it does not draw.
+	"polar-map": polarMapNames,
 }
 
 // paramRingLabels is what actually fits around the dial. A cell is a third of
@@ -85,6 +89,7 @@ var paramRingLabels = map[string][]string{
 	"globe-par":   {"ring", "spir"},
 	"globe-rev":   {"cw", "ccw"},
 	"stereo-axes": stereoAxisRing,
+	"polar-map":   polarMapRing,
 }
 
 // turtlePhysParams are the weight controls. They are not in attractorParams
