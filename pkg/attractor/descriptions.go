@@ -150,6 +150,30 @@ var attractorDescriptions = map[string]string{
 		"feed. The feed asks the capture for the source as it was recorded, over the WebSocket and " +
 		"over WebTransport alike, so a stereo sink gives real stereo either way; a server or a " +
 		"device with only one channel to give reads \"mono\".",
+	"polar": "Polar Embedding — the Takens delay vector drawn in a sphere " +
+		"instead of a cube. The Takens mode plots (s(t), s(t−τ), s(t−2τ)) coordinate by " +
+		"coordinate, and each coordinate is one sample bounded to ±1 and multiplied by GAIN, so the " +
+		"reachable set is a cube: loud passages pile up against its faces and hardest of all against " +
+		"its corners, where all three coordinates peak together. That box is an artifact of writing " +
+		"the vector down in coordinates; nothing in the sound knows about the axes. Here the vector " +
+		"is split into a direction and a length, the direction is kept exactly as it is, and only " +
+		"the length is passed through a curve that cannot exceed 1 — so the figure is bounded by a " +
+		"sphere, which looks the same from every angle, and no rotation finds an edge that is really " +
+		"the arithmetic showing through. The angles between successive delay vectors are untouched, " +
+		"which matters: those angles are the reconstructed geometry Takens' theorem is about, and a " +
+		"map that bent them would be drawing a different manifold. " +
+		"MAP picks the curve. tanh is the soft clipper: near-linear when it is quiet, asymptotic to " +
+		"the surface when it is loud. Algebraic reaches the same surface more slowly, so the " +
+		"mid-range keeps more of its dynamics. Direction only throws the loudness away completely " +
+		"and puts every point on the surface — what is left is the angular motion the amplitude was " +
+		"hiding, so a figure that merely swelled and shrank before now moves. DRIVE is how hard the " +
+		"signal is pushed into the curve, and it does nothing on the direction-only position, where " +
+		"there is no length left to compress. " +
+		"τ and WIN mean exactly what they mean in the Takens mode, and the scale is fixed there " +
+		"too — nothing auto-ranges, so quiet draws small and loud draws large. The camera is fitted " +
+		"once to the sphere, which is the whole of what a bounded radius can reach, so peaks stay on " +
+		"screen without the room the cube's corner needed. " +
+		"Audio comes from the active source — the microphone, a server feed, or the signal generators.",
 	"fvf": "FVF — Harmonic Wobbulator. A software analog of the " +
 		"Frequency→Voltage→Frequency converter with balanced modulator designed at bunkerofdoom.com " +
 		"(hardware built 1984). The live audio's " +
