@@ -253,6 +253,9 @@ func audioColorWindow(mode string) ([]float32, int) {
 	if mode == "stereo" {
 		return stereoColorWindow()
 	}
+	if mode == "polar" {
+		return polarColorWindow()
+	}
 	if mode != "takens" || takensRing == nil {
 		return nil, 0
 	}
