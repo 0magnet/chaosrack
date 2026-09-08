@@ -3,17 +3,17 @@ module github.com/0magnet/chaosrack
 go 1.26.5
 
 require (
-	github.com/0magnet/audioprism-go v0.0.0-20260907202323-ea3882abdb62
-	github.com/0magnet/calvin v0.0.0-20260907211102-35b15c690884
-	github.com/0magnet/desk v0.0.0-20260907180626-de20774940a9
-	github.com/0magnet/desk/panes v0.0.0-20260907180626-de20774940a9
-	github.com/0magnet/pisano v0.0.0-20260907164814-34667a782f4c
-	github.com/0magnet/rack-go v0.0.0-20260905172026-508511d515b0
-	github.com/0magnet/sh/v3 v3.13.2-0.20260818190530-13d0024da85c
-	github.com/0magnet/tuiwasm v0.0.0-20260907202354-fa4d6898ffac
-	github.com/0magnet/websh v0.0.0-20260907164820-23f622ba4adb
-	github.com/0magnet/winbox-go v0.0.0-20260907164818-1573f12aafdd
-	github.com/0magnet/xterm-go v0.0.0-20260907164817-c5d24e1daacc
+	github.com/0magnet/audioprism-go v0.0.0-20260908180356-d63d07feb642
+	github.com/0magnet/calvin v0.0.0-20260908180241-0893f4bff56a
+	github.com/0magnet/desk v0.0.0-20260908180101-e4718ff64abf
+	github.com/0magnet/desk/panes v0.0.0-20260908180101-e4718ff64abf
+	github.com/0magnet/pisano v0.0.0-20260908180306-39f12f0a09bc
+	github.com/0magnet/rack-go v0.0.0-20260908062801-a66d3de6933f
+	github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a
+	github.com/0magnet/tuiwasm v0.0.0-20260908180440-f4f55781ef83
+	github.com/0magnet/websh v0.0.0-20260908180323-42bb06485995
+	github.com/0magnet/winbox-go v0.0.0-20260908011106-113d480c4188
+	github.com/0magnet/xterm-go v0.0.0-20260908011048-6bbc23473554
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-gl/mathgl v1.2.0
 	github.com/jfreymuth/pulse v0.1.3
@@ -26,15 +26,15 @@ require (
 
 require (
 	charm.land/lipgloss/v2 v2.0.6 // indirect
-	github.com/0magnet/afero v1.15.1-0.20260816202415-9f9d46a34dcd // indirect
-	github.com/0magnet/glamour v1.0.1-0.20260828223301-bc6921785a82 // indirect
-	github.com/0magnet/go-dsp v0.0.0-20260905172003-9e5bb50ba887 // indirect
-	github.com/0magnet/img2txt-go v0.0.0-20260907164809-128847ee2923 // indirect
-	github.com/0magnet/lolcat-go v0.0.0-20260905172013-2cf578f3fc7d // indirect
-	github.com/0magnet/proxima5 v0.0.0-20260828143304-69dc438364d2 // indirect
-	github.com/0magnet/termanim v0.0.0-20260907160035-43b5e3d1c5a0 // indirect
-	github.com/0magnet/toilet-go v0.0.0-20260907202301-afb2ba54060e // indirect
-	github.com/0magnet/u-root v0.16.1-0.20260814161052-156e0b67262b // indirect
+	github.com/0magnet/afero v1.15.1-0.20260908180037-e149838f49bc // indirect
+	github.com/0magnet/glamour v1.0.1-0.20260908180111-5cbc46ca466e // indirect
+	github.com/0magnet/go-dsp v0.0.0-20260907230215-136ba239cc2d // indirect
+	github.com/0magnet/img2txt-go v0.0.0-20260908011236-7c1d5e1a34ff // indirect
+	github.com/0magnet/lolcat-go v0.0.0-20260907230215-22c54b7702c7 // indirect
+	github.com/0magnet/proxima5 v0.0.0-20260908180128-ed5a78054456 // indirect
+	github.com/0magnet/termanim v0.0.0-20260908180314-fe9fec6c934e // indirect
+	github.com/0magnet/toilet-go v0.0.0-20260908180153-f1e42989b143 // indirect
+	github.com/0magnet/u-root v0.16.1-0.20260907193324-47ff3c83f69d // indirect
 	github.com/alecthomas/chroma/v2 v2.27.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/benhoyt/goawk v1.31.0 // indirect
@@ -54,7 +54,7 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/creack/pty v1.1.24 // indirect
-	github.com/dlclark/regexp2/v2 v2.7.2 // indirect
+	github.com/dlclark/regexp2/v2 v2.8.0 // indirect
 	github.com/dunglas/httpsfv v1.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.15 // indirect
@@ -92,12 +92,12 @@ require (
 	github.com/yuin/goldmark v1.8.6 // indirect
 	github.com/yuin/goldmark-emoji v1.0.6 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.9.0 // indirect
-	golang.org/x/arch v0.30.0 // indirect
-	golang.org/x/crypto v0.56.0 // indirect
-	golang.org/x/image v0.45.0 // indirect
-	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/term v0.45.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
+	golang.org/x/arch v0.31.0 // indirect
+	golang.org/x/crypto v0.57.0 // indirect
+	golang.org/x/image v0.46.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/term v0.46.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )
