@@ -47,22 +47,40 @@ type WTOptions struct {
 	// RingSize is the number of samples retained. Default DefaultRingSize.
 	RingSize int
 
+	// Channels is 1 or 2, and means exactly what WSOptions.Channels means:
+	// two asks the server for the source as recorded (?ch=2 on the session
+	// URL) and keeps a ring per channel. It is here rather than only there
+	// because the two transports carry identical bytes and the page must not
+	// lose a channel by preferring one of them — a Stereo Embedding that read
+	// "mono" against a stereo capture is what a page silently on a
+	// one-channel WebTransport looked like. Default 1.
+	Channels int
+
 	// WS configures the WebSocket source used when WebTransport cannot
 	// be had. The fallback is not optional: Safari has no WebTransport
 	// at all, and a corporate network that blocks UDP has no QUIC.
+	//
+	// Its Channels defaults to this source's, so a caller that asks for two
+	// channels gets two on whichever transport it ends up on.
 	WS WSOptions
 }
 
 // NewWebTransport returns a Source that receives audio over WebTransport
 // datagrams, falling back to a WebSocket Source whenever it cannot.
 //
-// The fallback happens automatically at any of four points — no
-// WebTransport in this browser, no /wt-info from the server, a rejected
-// handshake, or a session that dies after working — and the reason is
-// reported through Notice(), which the status overlay shows. A silent
-// fallback would be indistinguishable from WebTransport working, which is
-// the worst possible outcome for a feature whose entire point is what
-// happens on a bad link.
+// The fallback happens automatically at any of five points — no
+// WebTransport in this browser, an origin it is not exposed in, no
+// /wt-info from the server, a rejected handshake, or a session that dies
+// after working — and the reason is reported through Notice(), which the
+// status overlay shows. A silent fallback would be indistinguishable from
+// WebTransport working, which is the worst possible outcome for a feature
+// whose entire point is what happens on a bad link.
+//
+// That reporting stopped being a nicety when the page began preferring this
+// transport with no query parameter (pkg/server/audiowt.go): a fallback is now
+// something that happens to someone who never asked for WebTransport at all,
+// and the notice is the only place they can find out which transport they are
+// on and why.
 func NewWebTransport(opts WTOptions) Source {
 	if opts.SampleRate == 0 {
 		opts.SampleRate = 24000
@@ -79,9 +97,23 @@ func NewWebTransport(opts WTOptions) Source {
 	if opts.WS.RingSize == 0 {
 		opts.WS.RingSize = opts.RingSize
 	}
+	if opts.WS.Channels == 0 {
+		opts.WS.Channels = opts.Channels
+	}
 
-	w := &wtSource{opts: opts, ring: newRing(opts.RingSize)}
+	w := &wtSource{opts: opts, rings: newStereoRings(opts.RingSize, opts.Channels)}
 	supported := !js.Global().Get("WebTransport").IsUndefined() && !js.Global().Get("WebTransport").IsNull()
+	if !supported && !secureContext() {
+		// SAY WHICH. WebTransport is only exposed in a secure context, so on a
+		// page served over plain http to anything but localhost the constructor
+		// is missing for a reason that has nothing to do with the browser —
+		// and "not supported by this browser" is then a wrong answer that sends
+		// whoever reads it looking at their browser version. This is the
+		// ordinary case for a server watched from across the LAN, which is
+		// precisely the link the transport exists for.
+		w.fallBack("WebTransport needs an https origin (http works only on localhost) — using WebSocket")
+		return w
+	}
 	if kind, reason := SelectTransport("wt", WTProbe{Supported: supported}); kind != TransportWebTransport {
 		w.fallBack(reason)
 		return w
@@ -96,8 +128,11 @@ func NewWebTransport(opts WTOptions) Source {
 
 type wtSource struct {
 	opts WTOptions
-	ring *ring
-	ra   Reassembler
+	// The samples, and the fold a single-signal reader gets — the WebSocket
+	// source's, because the two transports carry identical bytes and a
+	// difference here would be a difference in what the page can draw.
+	rings *stereoRings
+	ra    Reassembler
 
 	wt     js.Value
 	reader js.Value
@@ -155,7 +190,12 @@ func (w *wtSource) fetchInfo() {
 // the browser with --ignore-certificate-errors. Its cost is the 14-day
 // validity cap, which is why the fingerprint is fetched at runtime rather
 // than built in.
+//
+// The channel count rides on the URL's query, exactly as it does on the
+// WebSocket's: the CONNECT that opens the session carries it, and a server that
+// does not know the parameter answers in mono, which consume still decodes.
 func (w *wtSource) dial(url, certHash string) {
+	url = withChannels(url, w.opts.Channels)
 	raw, err := base64.RawStdEncoding.DecodeString(strings.TrimRight(certHash, "="))
 	if err != nil {
 		w.fallBackProbe(WTProbe{Supported: true, DialErr: errors.New("unreadable certificate hash")})
@@ -266,8 +306,17 @@ func (w *wtSource) consume(val js.Value) {
 	if payload == nil {
 		return
 	}
-	if samples := BytesToFloat32(payload); len(samples) > 0 {
-		w.ring.write(samples)
+	// The same rings the WebSocket writes into, so ?ch=2 de-interleaves here
+	// exactly as it does there.
+	//
+	// That the interleaving survives a lossy transport is the reassembler's
+	// doing, not luck: a fragment boundary is only aligned to a float32
+	// (DatagramPayloadSize rounds to four bytes, not eight), so a message
+	// delivered half-complete could well end mid-pair — and every sample after
+	// it would have its channels swapped, for the rest of the session. The
+	// reassembler never delivers a partial message; it abandons it whole. The
+	// cost of a loss is therefore one chunk of audio and never the alignment.
+	if samples := BytesToFloat32(payload); w.rings.write(samples) {
 		w.ready = true
 	}
 }
@@ -296,6 +345,12 @@ func (w *wtSource) fallBack(reason string) {
 	w.ready = false
 	w.ra.Reset()
 	w.fallback = NewWebSocket(w.opts.WS)
+	// The fold goes with it. A page that had set the spectrogram to "left"
+	// before the fallback would otherwise silently go back to the mix, which
+	// looks like the knob stopped working.
+	if s, ok := w.fallback.(interface{ SetMonoMode(MonoMode) }); ok {
+		s.SetMonoMode(w.rings.mono)
+	}
 	if !w.wt.IsUndefined() && w.wt.Truthy() {
 		w.wt.Call("close")
 		w.wt = js.Undefined()
@@ -316,7 +371,7 @@ func (w *wtSource) TimeDomain(dst []float32) []float32 {
 		}
 		return dst
 	}
-	w.ring.latest(dst)
+	w.rings.latest(dst)
 	return dst
 }
 
@@ -328,8 +383,13 @@ func (w *wtSource) TimeDomainStereo(l, r []float32) {
 	if len(l) != len(r) {
 		panic("audiosrc: TimeDomainStereo requires len(l) == len(r)")
 	}
-	w.TimeDomain(l)
-	copy(r, l) // mono stream: right mirrors left
+	if !w.ready {
+		for i := range l {
+			l[i], r[i] = 0, 0
+		}
+		return
+	}
+	w.rings.latestStereo(l, r)
 }
 
 func (w *wtSource) Drain(dst []float32) int {
@@ -339,7 +399,7 @@ func (w *wtSource) Drain(dst []float32) int {
 	if !w.ready {
 		return 0
 	}
-	return w.ring.drain(dst)
+	return w.rings.drain(dst)
 }
 
 func (w *wtSource) SampleRate() int {
@@ -356,8 +416,21 @@ func (w *wtSource) Channels() int {
 	if !w.ready {
 		return 0
 	}
-	return 1
+	return w.rings.channels()
 }
+
+// SetMonoMode chooses how two channels are folded for the readers that want
+// one; see stereoRings.setMono. It is applied to the WebSocket fallback too, so
+// the knob keeps working across a fallback that happens mid-session.
+func (w *wtSource) SetMonoMode(m MonoMode) {
+	w.rings.setMono(m)
+	if s, ok := w.fallback.(interface{ SetMonoMode(MonoMode) }); ok {
+		s.SetMonoMode(m)
+	}
+}
+
+// MonoMode reports the current fold.
+func (w *wtSource) MonoMode() MonoMode { return w.rings.mono }
 
 func (w *wtSource) Ready() bool {
 	if w.fallback != nil {
@@ -406,6 +479,22 @@ func jsError(args []js.Value, fallback string) error {
 		}
 	}
 	return errors.New(fallback)
+}
+
+// secureContext reports whether the page is one WebTransport is exposed in at
+// all: https anywhere, or plain http to localhost / 127.0.0.1, which browsers
+// treat as trustworthy. Everything else has no WebTransport constructor for a
+// reason that is about the page's origin and not about the browser, and saying
+// which is the difference between a fallback that explains itself and one that
+// sends the reader to check their browser version.
+//
+// isSecureContext has been in every browser that has WebTransport for far
+// longer than WebTransport has existed, so a missing property means an old
+// browser — read as "not secure" only in the sense that it is not the case this
+// message is for, and SelectTransport's wording is then the right one.
+func secureContext() bool {
+	v := js.Global().Get("isSecureContext")
+	return v.Truthy()
 }
 
 // openWebTransport is the WebTransport half of openWebSocket, for the same

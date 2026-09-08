@@ -22,6 +22,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/quic-go/quic-go"
@@ -36,7 +37,14 @@ import (
 //
 // write returning an error means the session is gone; the capture should
 // unwind.
-type Capture func(write func([]float32) error) (stop func(), err error)
+//
+// The CONNECT request comes along because the per-session parameters travel in
+// its query, exactly as the WebSocket handshake's do: ?ch=2 asks for the source
+// as recorded rather than folded to one channel. Nothing in this package reads
+// it — what a parameter means is the caller's business, the way it is in the
+// /ws handler — and handing over the whole request rather than a parsed struct
+// is what keeps it that way when the next parameter appears.
+type Capture func(r *http.Request, write func([]float32) error) (stop func(), err error)
 
 // Config configures a Server. Only Addr and Capture are required.
 type Config struct {
@@ -74,6 +82,15 @@ type Server struct {
 	cert *Cert
 	wt   *webtransport.Server
 	port string
+
+	// Live sessions, so a caller can end them without ending the server.
+	// The WebSocket side of this feed already has to do that: audiocap
+	// resolves "monitor" to the default sink once, when the stream opens,
+	// so a capture that was running when the default sink changed goes on
+	// recording a sink the audio no longer reaches — silence, with nothing
+	// in the logs. Closing is the fix there and has to be the fix here.
+	mu       sync.Mutex
+	sessions map[*webtransport.Session]struct{}
 }
 
 // Info is the JSON a page needs before it can open a WebTransport
@@ -120,7 +137,7 @@ func New(cfg Config) (*Server, error) {
 		return nil, err
 	}
 
-	s := &Server{cfg: cfg, cert: cert, port: port}
+	s := &Server{cfg: cfg, cert: cert, port: port, sessions: map[*webtransport.Session]struct{}{}}
 	h3 := &http3.Server{
 		Addr:      cfg.Addr,
 		TLSConfig: http3.ConfigureTLSConfig(cert.TLSConfig),
@@ -181,6 +198,44 @@ func (s *Server) Serve(conn net.PacketConn) error { return s.wt.Serve(conn) }
 // Close stops the server and every session on it.
 func (s *Server) Close() error { return s.wt.Close() }
 
+// CloseSessions ends every live session and leaves the listener up, so the
+// next thing a page does is open a fresh one against whatever the capture
+// resolves NOW. It is the WebSocket path's connection drop, which exists for
+// the same reason: the capture binds to a source when it opens, so changing
+// what should be recorded means ending the captures that bound to the old one.
+//
+// The cost is real and worth stating: the browser reads a closed session as a
+// failed WebTransport and moves to the WebSocket for the rest of the page's
+// life (see the "closed" handler in pkg/audiosrc/wt_js.go). Audio keeps
+// flowing and the page says so; it does not come back to WebTransport without
+// a reload. That is the right trade against silence with nothing in the logs,
+// and it is why this is called on a routing change and nowhere else.
+func (s *Server) CloseSessions() {
+	s.mu.Lock()
+	live := make([]*webtransport.Session, 0, len(s.sessions))
+	for sess := range s.sessions {
+		live = append(live, sess)
+	}
+	s.mu.Unlock()
+	// Outside the lock: CloseWithError unblocks handleSession, whose deferred
+	// removeSession takes this same mutex.
+	for _, sess := range live {
+		_ = sess.CloseWithError(0, "") //nolint:errcheck // the point is to end the session; one already gone is the outcome asked for
+	}
+}
+
+func (s *Server) addSession(sess *webtransport.Session) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.sessions[sess] = struct{}{}
+}
+
+func (s *Server) removeSession(sess *webtransport.Session) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.sessions, sess)
+}
+
 // checkOrigin accepts a page from the same host on any port. See the
 // comment where it is installed.
 func (s *Server) checkOrigin(r *http.Request) bool {
@@ -220,9 +275,11 @@ func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		_ = sess.CloseWithError(0, "") //nolint:errcheck // teardown on the way out; nothing is left to report a failure to
 	}()
+	s.addSession(sess)
+	defer s.removeSession(sess)
 
 	sender := NewSender(sess, 0)
-	stop, err := s.cfg.Capture(sender.Send)
+	stop, err := s.cfg.Capture(r, sender.Send)
 	if err != nil {
 		s.cfg.Logf("wtaudio: starting capture for %s: %v", sess.RemoteAddr(), err)
 		return

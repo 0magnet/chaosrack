@@ -47,7 +47,21 @@ var (
 	wobbulateSink string
 	wobbulateApps string
 	wobbulateCtl  bool
+
+	// The WebTransport listener beside /ws. On by DEFAULT, unlike everything
+	// else in this file, because it is not a second thing to ask for: it is the
+	// same capture --audio already started, offered over a transport that drops
+	// instead of stalling, and the page falls back to /ws by itself whenever it
+	// cannot be had. Off is for the machine where binding UDP is a problem, and
+	// for measuring the WebSocket path on purpose.
+	audioWT     bool
+	audioWTPort int
 )
+
+// audioWTPath is where the WebTransport session is opened. Not a flag: the
+// page finds it in /wt-info, so nothing is served by making it configurable
+// here that is not already configurable there.
+const audioWTPath = "/wt"
 
 func init() {
 	runCmd.Flags().BoolVar(&audioOn, "audio", false, "capture this machine's audio and serve it at /ws (needs PulseAudio/PipeWire)")
@@ -58,6 +72,8 @@ func init() {
 	runCmd.Flags().StringVar(&wobbulateSink, "wobbulate-sink", audioroute.DefaultSinkName, "name of the null sink --wobbulate creates")
 	runCmd.Flags().StringVar(&wobbulateApps, "wobbulate-apps", audioroute.DefaultOutApps, "app-name substrings whose playback --wobbulate moves back to the real speakers (the page's own Listen output)")
 	runCmd.Flags().BoolVar(&wobbulateCtl, "wobbulate-ctl", true, "let the page turn the FVF routing on and off (requests from this machine only)")
+	runCmd.Flags().BoolVar(&audioWT, "audio-wt", true, "also offer --audio over WebTransport (HTTP/3 over QUIC, UDP), which the page prefers and falls back from to /ws by itself")
+	runCmd.Flags().IntVar(&audioWTPort, "audio-wt-port", 0, "UDP port for --audio-wt (0 = the same number as --port; QUIC is UDP, so the numbers can be shared)")
 }
 
 // Live audio state. The routing can be switched while the server runs, so what
@@ -110,6 +126,8 @@ func mountAudio(r *gin.Engine) {
 	})))
 	log.Printf("chaosrack: --audio on; the page it serves connects to /ws by itself")
 
+	mountWebTransport(r)
+
 	if wobbulateOn {
 		if err := setWobbulate(true); err != nil {
 			log.Fatalf("chaosrack: --wobbulate: %v", err)
@@ -157,6 +175,10 @@ func dropAudioConns() {
 		_ = ws.Close() //nolint:errcheck // the point is to end the connection; a socket that is already gone is the outcome asked for
 	}
 	audioConns = map[*websocket.Conn]struct{}{}
+	// The WebTransport feed binds to a source in exactly the same way, so it
+	// has to be ended for exactly the same reason. Left running, its sessions
+	// would go on recording the sink the routing just moved away from.
+	dropWTSessions()
 }
 
 // setWobbulate installs or removes the FVF routing. Idempotent: asking for the
@@ -315,12 +337,23 @@ func sameOriginRequest(r *http.Request) bool {
 	return err == nil && u.Host == r.Host
 }
 
-// audioFeed is what the page is told about audio: "ws" when this server is
-// capturing, empty when it is not. Empty means the page never dials a socket
-// that nothing is listening on.
+// audioFeed is what the page is told about audio: the transport to PREFER when
+// this server is capturing, empty when it is not. Empty means the page never
+// dials a socket that nothing is listening on.
+//
+// "wt" does not promise WebTransport, it asks for it: the page tries the
+// WebTransport source, which falls back to the WebSocket by itself when the
+// browser has none, the origin is not a secure context, or the handshake is
+// refused (pkg/audiosrc/wt_js.go). So the answer here is about what this SERVER
+// is offering and nothing else — a listener that failed to bind leaves wtSrv
+// nil and the page is told "ws", which is the one case where a fallback would
+// be certain and there is therefore no point spending a /wt-info fetch on it.
 func audioFeed() string {
-	if audioOn {
-		return "ws"
+	if !audioOn {
+		return ""
 	}
-	return ""
+	if wtSrv != nil {
+		return "wt"
+	}
+	return "ws"
 }
