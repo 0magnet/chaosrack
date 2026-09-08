@@ -53,17 +53,50 @@ type Fire struct {
 	// Palette can be replaced before the first frame to burn a different
 	// color. Green fire is a perfectly good screensaver.
 	Palette canvas.Palette
+
+	// AudioGain scales how hard sound drives the flame. 1 is the tuned
+	// amount; 0 ignores audio entirely even with a source attached, which is
+	// the knob to reach for rather than detaching the source.
+	AudioGain float64
+
+	// audio is the last sound handed in and env smooths it. See Listen.
+	audio canvas.Audio
+	env   canvas.Envelope
+
+	// fuelGap is the heat the gaps in the fuel row carry this frame, worked
+	// out from the envelope once per frame rather than once per cell. Zero is
+	// silence, and zero is exactly what those gaps held before there was any
+	// audio at all.
+	fuelGap byte
 }
 
 // New returns a fire. seed of 0 takes a fixed sequence, which makes tests
 // repeatable; anything else varies the flicker.
 func New(seed int64) *Fire {
-	return &Fire{
-		rng:      rand.New(rand.NewSource(seed)), //nolint:gosec
-		Palette:  canvas.Fire,
-		StepRate: 30,
+	f := &Fire{
+		rng:       rand.New(rand.NewSource(seed)), //nolint:gosec
+		Palette:   canvas.Fire,
+		StepRate:  30,
+		AudioGain: 1,
 	}
+	// A flame answers a beat quickly and dies back slowly, which is what a
+	// real one does when something is thrown on it. 40 ms up is the package
+	// default and the fastest that still ignores a lone bad sample; the flame
+	// gets no less, because a leap that arrives late has missed the beat. The
+	// decay is longer than the default because heat takes time to leave a
+	// fire, and a flame that snapped back down between kicks reads as a strobe
+	// rather than as burning.
+	f.env.Attack = 0.040
+	f.env.Decay = 0.30
+	return f
 }
+
+// Listen takes the sound of the coming frame. See canvas.AudioListener.
+//
+// The value is only stored. It is smoothed in Frame, where dt is known, so the
+// envelope advances by elapsed time like everything else here rather than by
+// however often the host happens to call this.
+func (f *Fire) Listen(a canvas.Audio) { f.audio = a }
 
 // Resize allocates the heat grid. Called by canvas.Run before the first frame.
 func (f *Fire) Resize(w, h int) {
@@ -130,6 +163,11 @@ func decayTable(h int, reach float64) []int {
 
 // Frame advances the simulation and draws it.
 func (f *Fire) Frame(s *canvas.Surface, dt float64) {
+	// The sound of this frame decides how much fuel there is; see step. Done
+	// once per frame and not once per simulation step, because the envelope is
+	// in seconds and a step is not.
+	f.fuelGap = f.gapHeat(dt)
+
 	rate := f.StepRate
 	if rate <= 0 {
 		rate = 30
@@ -157,19 +195,56 @@ func (f *Fire) Frame(s *canvas.Surface, dt float64) {
 	}
 }
 
+// gapHeat advances the audio envelope by dt and returns the heat a beat puts
+// into the gaps of the fuel row.
+//
+// The mapping is: loudness fills the holes in the fuel.
+//
+// The fuel row is deliberately about a third gaps — that is what makes the
+// flame flicker and split instead of standing there as a wall — and how much
+// heat reaches the visible rows is governed by how much of that row is lit,
+// because every cell is the average of the three beneath it. So closing the
+// gaps is the one lever that makes the whole flame surge together, root and
+// tip, rather than brightening it in place. It also has room to move: the lit
+// cells are already at 180..255 and cannot go hotter, while the gaps are at
+// zero and can go all the way. At full level the fuel row is solid heat and
+// the flame leaps; in between the gaps glow and the flame thickens.
+//
+// The alternative considered was raising the lit cells' floor, which is a
+// change of a few percent because they are near saturation already, and
+// looked like nothing.
+func (f *Fire) gapHeat(dt float64) byte {
+	f.env.Step(f.audio, dt)
+	g := f.env.Level() * f.AudioGain
+	if g <= 0 {
+		// Silence, and the common case: no source attached at all. The gaps
+		// are empty, which is what they always were.
+		return 0
+	}
+	if g > 1 {
+		g = 1
+	}
+	return byte(g * 255) //nolint:gosec // g is clamped to 0..1 just above
+}
+
 func (f *Fire) step() {
 	if f.w == 0 || f.h == 0 {
 		return
 	}
 
 	// Re-seed the fuel row. Most of it burns hot; the gaps are what make the
-	// flame flicker and split rather than stand there as a solid wall.
+	// flame flicker and split rather than stand there as a solid wall — except
+	// on a beat, when they fill in and the flame leaps. See gapHeat.
+	//
+	// The random draws are unchanged and in the same order whatever the sound
+	// is doing, so a given seed produces the same flicker with audio as
+	// without; only what lands in the gaps differs.
 	fuel := f.heat[f.h]
 	for x := 0; x < f.w; x++ {
 		if f.rng.Intn(10) < 7 {
 			fuel[x] = byte(180 + f.rng.Intn(76)) //nolint:gosec
 		} else {
-			fuel[x] = 0
+			fuel[x] = f.fuelGap
 		}
 	}
 

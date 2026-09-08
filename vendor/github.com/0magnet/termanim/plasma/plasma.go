@@ -33,18 +33,47 @@ type Plasma struct {
 	// Palette must loop — its last entry should match its first, or a seam
 	// appears wherever the summed value wraps past 255.
 	Palette canvas.Palette
+
+	// AudioGain scales how hard sound drives the surge. 1 is the tuned
+	// amount, 0 ignores audio even with a source attached.
+	AudioGain float64
+
+	// audio is the last sound handed in and env smooths it. See Listen.
+	audio canvas.Audio
+	env   canvas.Envelope
 }
 
 const tabSize = 1024
 
+// audioSurge is how many extra times its resting speed the field drifts at
+// full level.
+//
+// Three, so a loud passage runs at four times the seethe. Anything much less
+// is invisible against a field that is already moving, and much more turns the
+// wave sum into a strobe: the terms have different rates, so pushing time hard
+// enough makes them beat against each other faster than the eye can integrate
+// and the field stops looking like a fluid.
+const audioSurge = 3
+
 // New returns a plasma.
 func New() *Plasma {
-	p := &Plasma{Speed: 1, Palette: canvas.Plasma}
+	p := &Plasma{Speed: 1, Palette: canvas.Plasma, AudioGain: 1}
 	for i := range p.sinTab {
 		p.sinTab[i] = math.Sin(float64(i) / tabSize * 2 * math.Pi)
 	}
+	// Slower at both ends than the flame. Phase is an integral: what is seen
+	// is not the level but everywhere the field has been pushed to since, so a
+	// sharper attack here only buys a jolt that is over before it can be read,
+	// while a long tail keeps the field coasting after the beat the way a
+	// fluid with momentum would. 50 ms up, 400 ms down.
+	p.env.Attack = 0.050
+	p.env.Decay = 0.400
 	return p
 }
+
+// Listen takes the sound of the coming frame. See canvas.AudioListener.
+// Smoothing happens in Frame, where dt is known.
+func (p *Plasma) Listen(a canvas.Audio) { p.audio = a }
 
 // sin looks up sin(turns) where turns is in revolutions rather than radians,
 // wrapping automatically.
@@ -60,10 +89,38 @@ func (p *Plasma) sin(turns float64) float64 {
 // function of position and time, so there is no buffer to keep.
 func (p *Plasma) Resize(w, h int) { p.w, p.h = w, h }
 
+// audioLevel advances the envelope by dt and returns the smoothed level,
+// clamped, scaled by the gain. Zero when nothing is listening, and exactly
+// zero rather than nearly.
+func (p *Plasma) audioLevel(dt float64) float64 {
+	p.env.Step(p.audio, dt)
+	v := p.env.Level() * p.AudioGain
+	if v <= 0 {
+		return 0
+	}
+	if v > 1 {
+		return 1
+	}
+	return v
+}
+
 // Frame advances time and draws the field.
 func (p *Plasma) Frame(s *canvas.Surface, dt float64) {
+	// The mapping is: loudness drives the rate of phase advance.
+	//
+	// The field is a pure function of position and time, so time is the only
+	// thing there is to drive — and driving it is the right thing to drive.
+	// Scaling brightness or the palette would make the plasma flash, which any
+	// screensaver does; scaling the phase makes the whole field lurch forward
+	// and then coast, so the surge is in the motion rather than painted on top
+	// of it. Because it is a rate and not a position, the field never jumps: a
+	// beat leaves it somewhere further along the same continuous drift.
+	//
+	// A level of exactly zero multiplies by exactly one, which is why an
+	// unattached plasma draws precisely what it always did.
+	surge := 1 + audioSurge*p.audioLevel(dt)
 	// 0.12 turns per second: the old 0.004 per frame at 30fps.
-	p.t += 0.12 * p.Speed * dt
+	p.t += 0.12 * p.Speed * surge * dt
 	if p.w == 0 || p.h == 0 {
 		return
 	}

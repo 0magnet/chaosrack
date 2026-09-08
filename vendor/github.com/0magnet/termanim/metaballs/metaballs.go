@@ -23,6 +23,10 @@ type ball struct {
 	x, y   float64 // position in pixels
 	dx, dy float64 // velocity in pixels per frame
 	r      float64 // radius: how far this ball's influence reaches
+	// r0 is the radius at rest. r is r0 scaled by this ball's band each
+	// frame, so the bulge is always measured from the size the ball was
+	// placed at rather than compounding off the last frame's.
+	r0 float64
 }
 
 // Metaballs is the animation. The zero value is not usable; call New.
@@ -36,17 +40,50 @@ type Metaballs struct {
 	Count int
 	// Palette colors the field, dim at the edges and bright in the cores.
 	Palette canvas.Palette
+
+	// AudioGain scales how hard sound swells the blobs. 1 is the tuned
+	// amount, 0 ignores audio even with a source attached.
+	AudioGain float64
+
+	// audio is the last sound handed in and env smooths it. See Listen.
+	audio canvas.Audio
+	env   canvas.Envelope
 }
+
+// audioBulge is how much of its resting radius a ball gains at full level on
+// its band.
+//
+// 0.6, so a band at full makes a ball 1.6 times its resting size. The field a
+// ball contributes goes as the square of its radius, so that is two and a half
+// times the influence — enough that a bulging ball reaches out and merges with
+// a neighbor it was clear of, which is the effect worth having. Much more and
+// the loud blobs swallow the quiet ones entirely and there is nothing left to
+// tell the bands apart.
+const audioBulge = 0.6
 
 // New returns a metaballs animation. seed of 0 gives a fixed arrangement,
 // which makes tests repeatable.
 func New(seed int64) *Metaballs {
-	return &Metaballs{
-		rng:     rand.New(rand.NewSource(seed)), //nolint:gosec
-		Count:   6,
-		Palette: canvas.Plasma,
+	m := &Metaballs{
+		rng:       rand.New(rand.NewSource(seed)), //nolint:gosec
+		Count:     6,
+		Palette:   canvas.Plasma,
+		AudioGain: 1,
 	}
+	// The shortest decay of the four. A radius is read directly — the blob is
+	// the size it is this frame, with no integral to hide a jitter in — so
+	// separate hits should read as separate pulses rather than as one long
+	// swell, and 180 ms lets them: a sixteenth note at 120bpm is 125 ms, so
+	// consecutive hits still fall apart. The attack stays near the default,
+	// because a radius driven any faster is where the shivering shows first.
+	m.env.Attack = 0.045
+	m.env.Decay = 0.180
+	return m
 }
+
+// Listen takes the sound of the coming frame. See canvas.AudioListener.
+// Smoothing happens in Frame, where dt is known.
+func (m *Metaballs) Listen(a canvas.Audio) { m.audio = a }
 
 // Resize places the balls. Called before the first frame and on every resize.
 func (m *Metaballs) Resize(w, h int) {
@@ -68,12 +105,29 @@ func (m *Metaballs) Resize(w, h int) {
 			dx: (m.rng.Float64()*2 - 1) * m.w * 30 / 200,
 			dy: (m.rng.Float64()*2 - 1) * m.h * 30 / 200,
 			r:  r,
+			r0: r,
 		}
 	}
 }
 
+// bandLevel is the smoothed level of the band ball i answers to, clamped and
+// scaled by the gain. Exactly zero when nothing is listening.
+func (m *Metaballs) bandLevel(i int) float64 {
+	v := m.env.Band(i%canvas.Bands) * m.AudioGain
+	if v <= 0 {
+		return 0
+	}
+	if v > 1 {
+		return 1
+	}
+	return v
+}
+
 // Frame moves the balls and draws the field.
 func (m *Metaballs) Frame(s *canvas.Surface, dt float64) {
+	// Advanced before the size check so that a window with no area still keeps
+	// the envelope in step with the music rather than banking it up.
+	m.env.Step(m.audio, dt)
 	if m.w == 0 || m.h == 0 {
 		return
 	}
@@ -81,6 +135,22 @@ func (m *Metaballs) Frame(s *canvas.Surface, dt float64) {
 	// blobs on screen, where a wrap would make one vanish and reappear.
 	for i := range m.balls {
 		b := &m.balls[i]
+		// The mapping is: each ball takes one frequency band, and that band
+		// swells its radius.
+		//
+		// Bands rather than the overall level because the balls are already
+		// separate things, and a field that merges them is the one effect here
+		// with somewhere to put a spectrum: the bass ball bulges into its
+		// neighbors on a kick while the treble ones stay small, so the picture
+		// shows the shape of the sound and not just its size. Ball i takes band
+		// i, wrapping, so raising Count past canvas.Bands doubles bands up
+		// rather than leaving the extra balls deaf.
+		//
+		// Recomputed from r0 rather than accumulated onto r, so the size is a
+		// function of the current band and cannot drift; and at silence the
+		// factor is exactly one, which leaves r bit-for-bit the radius Resize
+		// chose.
+		b.r = b.r0 * (1 + audioBulge*m.bandLevel(i))
 		b.x += b.dx * dt
 		b.y += b.dy * dt
 		if b.x < 0 {

@@ -74,18 +74,65 @@ type Tunnel struct {
 	// (no pattern at all) to 1 (black). Without a pattern on the wall there is
 	// nothing to move, and the tunnel is just a glowing ring.
 	Contrast float64
+
+	// AudioGain scales how hard sound accelerates the flight. 1 is the tuned
+	// amount, 0 ignores audio even with a source attached.
+	AudioGain float64
+
+	// audio is the last sound handed in and env smooths it. See Listen.
+	audio canvas.Audio
+	env   canvas.Envelope
 }
+
+// audioRush is how many extra times its cruising speed the viewer travels at
+// full level.
+//
+// Two, so a loud passage flies at three times the resting rate. The ceiling is
+// set by the pattern rather than by taste: a ring passes the viewer about
+// every one and a third seconds at rest, and at three times that they arrive
+// at more than two a second, which is about as fast as one can cross the
+// screen and still be read as a ring rather than as a flicker. There is no
+// simulation here to destabilize — the picture is a table lookup — so the eye
+// is the only limit.
+const audioRush = 2
 
 // New returns a tunnel. The seed is accepted so that every animation in this
 // repository is constructed the same way; nothing here is random.
 func New(seed int64) *Tunnel {
 	_ = seed
-	return &Tunnel{
-		Speed:    1,
-		Spin:     1,
-		Palette:  canvas.Fire,
-		Contrast: 0.5,
+	t := &Tunnel{
+		Speed:     1,
+		Spin:      1,
+		Palette:   canvas.Fire,
+		Contrast:  0.5,
+		AudioGain: 1,
 	}
+	// The slowest envelope of the four at both ends. Speed here is the
+	// derivative of what is seen, and a vehicle has mass: an instant jump in
+	// the travel rate tears the rings apart rather than accelerating past
+	// them, and an instant drop stops the tube dead. 70 ms up and 500 ms down
+	// gives a surge that reads as being pushed and a coast that reads as
+	// momentum, which is the thing the effect is pretending to have.
+	t.env.Attack = 0.070
+	t.env.Decay = 0.500
+	return t
+}
+
+// Listen takes the sound of the coming frame. See canvas.AudioListener.
+// Smoothing happens in Frame, where dt is known.
+func (t *Tunnel) Listen(a canvas.Audio) { t.audio = a }
+
+// audioLevel is the smoothed level, clamped and scaled by the gain. Exactly
+// zero when nothing is listening.
+func (t *Tunnel) audioLevel() float64 {
+	v := t.env.Level() * t.AudioGain
+	if v <= 0 {
+		return 0
+	}
+	if v > 1 {
+		return 1
+	}
+	return v
 }
 
 // Resize builds the per-pixel tables. This is the whole cost of the effect.
@@ -150,10 +197,26 @@ func (t *Tunnel) Resize(w, h int) {
 
 // Frame advances the offsets by dt seconds and draws the tube.
 func (t *Tunnel) Frame(s *canvas.Surface, dt float64) {
+	// Advanced before the size check so a window with no area keeps the
+	// envelope in step with the music rather than banking it up.
+	t.env.Step(t.audio, dt)
 	if t.w == 0 || t.h == 0 || t.angle == nil {
 		return
 	}
-	t.tDepth += baseDepth * t.Speed * dt
+	// The mapping is: loudness drives the speed of travel.
+	//
+	// Depth only, not spin. Flying faster is what a tunnel has to offer and
+	// what the ear expects a tunnel to do with a beat; rolling faster at the
+	// same time turns the picture into a corkscrew and, worse, muddies the
+	// one signal being shown — with both driven you cannot tell from looking
+	// whether the sound got louder or the tube simply turned. Leaving spin at
+	// its steady rate gives the surge something constant to be measured
+	// against.
+	//
+	// At a level of exactly zero this is a multiply by exactly one, so an
+	// unattached tunnel accumulates precisely the offsets it always did.
+	rush := 1 + audioRush*t.audioLevel()
+	t.tDepth += baseDepth * t.Speed * rush * dt
 	t.tSpin += baseSpin * t.Spin * dt
 	// Keeping the accumulators inside one period stops them from drifting into
 	// the range where a float64 can no longer resolve a single unit, which is
