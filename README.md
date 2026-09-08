@@ -19,7 +19,14 @@ solids**, including the rack's own panels as printable STL, and a **terminal**
 running a real Bash shell in the page, which you can rotate while it runs — and
 a whole **desk** you can rotate and still work in. And
 **live audio** — as a spectrogram, on an XY scope, or read back as an
-attractor through a delay embedding.
+attractor through a delay embedding, in a cube or in a sphere.
+
+And a **ripple tank** to look through: a fluid surface, stepped by the wave
+equation, that refracts whatever the rack is drawing. Drag to make waves, or
+put a speaker in the tank and let the sound do it. The walls run from a hard
+boundary that rings with its own echoes to open water a wave leaves for good.
+It is the oldest analog computer here — a ripple tank computed diffraction by
+having water do it, and was read by looking at the pattern.
 
 Rotate and zoom them, **type your own system** — as derivatives or as a map —
 route audio into any parameter, **measure whether what you are looking at is
@@ -1033,7 +1040,7 @@ p' = p + K·sin θ
 
 ### Scope
 
-[Lissajous](#lissajous) · [Graphic Artist](#graphic-artist) · [Scope Pong](#scope-pong) · [Fourier Text](#fourier-text) · [Scope Clock](#scope-clock) · [Bouncing Ball](#bouncing-ball) · [XY Scope](#xy-scope) · [Takens Embedding](#takens-embedding) · [Stereo Embedding](#stereo-embedding)
+[Lissajous](#lissajous) · [Graphic Artist](#graphic-artist) · [Scope Pong](#scope-pong) · [Fourier Text](#fourier-text) · [Scope Clock](#scope-clock) · [Bouncing Ball](#bouncing-ball) · [XY Scope](#xy-scope) · [Takens Embedding](#takens-embedding) · [Stereo Embedding](#stereo-embedding) · [Polar Embedding](#polar-embedding)
 
 #### Lissajous
 
@@ -1134,9 +1141,15 @@ Takens Delay Embedding — attractor reconstruction from a single signal (F. Tak
 
 #### Stereo Embedding
 
-Stereo Embedding — the Takens trail built from the two channels instead of one channel's past. Takens' theorem manufactures the missing axes out of a signal's own history because there is only one signal; a stereo source has already measured two, so this mode plots them against each other and what you see is the real relationship between the channels — phase, polarity, correlation, width — rather than a reconstruction. Looked at head-on it is the goniometer (vectorscope) of a mastering desk, which is the XY Scope's figure; the third axis is what a scope with two deflection plates cannot give you. AXES picks the assignment. L,R,L(t−τ) is the goniometer with a delay coordinate for depth: a tone that draws one ellipse edge-on unrolls into a helix, and τ still means what it means in the Takens mode. L,R,time sweeps the figure along a ribbon so successive cycles stack instead of overwriting — the only way to see a slow phase drift, which on a flat display just wobbles. The mid/side positions rotate the basis 45°: M=(L+R)/2 and S=(L−R)/2, so center content lies along one axis and difference content along the other and width is an extent rather than a tilt. τ is inert on the two time positions. CORR is the correlation meter: +1.00 means the channels are identical and the figure is a diagonal line, 0 means they are unrelated and it is a round cloud, −1.00 means one is the other inverted (and the difference vanishes if the mix is summed to mono). A mono source reads "mono" and draws the diagonal, which is the correct picture of a signal with no stereo information in it — nothing here fakes a second channel out of a delayed copy of the first, because that delayed copy is exactly what this mode exists to stop pretending is a channel. The mid/side positions are the ones worth turning to then: S is zero and what is left is an honest two-coordinate delay embedding. WIN is how much time the figure spans, in milliseconds — a phase display is read over a few tens of them, past a couple of hundred it is a filled blob; GAIN sets how large a full-scale sample draws, and as in the Takens mode the scale is fixed and nothing auto-ranges. Audio comes from the active source — microphone or the signal generators for real stereo; the websocket and WebTransport feeds carry one channel, so they read "mono".
+Stereo Embedding — the Takens trail built from the two channels instead of one channel's past. Takens' theorem manufactures the missing axes out of a signal's own history because there is only one signal; a stereo source has already measured two, so this mode plots them against each other and what you see is the real relationship between the channels — phase, polarity, correlation, width — rather than a reconstruction. Looked at head-on it is the goniometer (vectorscope) of a mastering desk, which is the XY Scope's figure; the third axis is what a scope with two deflection plates cannot give you. AXES picks the assignment. L,R,L(t−τ) is the goniometer with a delay coordinate for depth: a tone that draws one ellipse edge-on unrolls into a helix, and τ still means what it means in the Takens mode. L,R,time sweeps the figure along a ribbon so successive cycles stack instead of overwriting — the only way to see a slow phase drift, which on a flat display just wobbles. The mid/side positions rotate the basis 45°: M=(L+R)/2 and S=(L−R)/2, so center content lies along one axis and difference content along the other and width is an extent rather than a tilt. τ is inert on the two time positions. CORR is the correlation meter: +1.00 means the channels are identical and the figure is a diagonal line, 0 means they are unrelated and it is a round cloud, −1.00 means one is the other inverted (and the difference vanishes if the mix is summed to mono). A mono source reads "mono" and draws the diagonal, which is the correct picture of a signal with no stereo information in it — nothing here fakes a second channel out of a delayed copy of the first, because that delayed copy is exactly what this mode exists to stop pretending is a channel. The mid/side positions are the ones worth turning to then: S is zero and what is left is an honest two-coordinate delay embedding. WIN is how much time the figure spans, in milliseconds — a phase display is read over a few tens of them, past a couple of hundred it is a filled blob; GAIN sets how large a full-scale sample draws, and as in the Takens mode the scale is fixed and nothing auto-ranges. Audio comes from the active source — the microphone, the signal generators, or a server feed. The feed asks the capture for the source as it was recorded, over the WebSocket and over WebTransport alike, so a stereo sink gives real stereo either way; a server or a device with only one channel to give reads "mono".
 
 `#stereo` · parametric
+
+#### Polar Embedding
+
+Polar Embedding — the Takens delay vector drawn in a sphere instead of a cube. The Takens mode plots (s(t), s(t−τ), s(t−2τ)) coordinate by coordinate, and each coordinate is one sample bounded to ±1 and multiplied by GAIN, so the reachable set is a cube: loud passages pile up against its faces and hardest of all against its corners, where all three coordinates peak together. That box is an artifact of writing the vector down in coordinates; nothing in the sound knows about the axes. Here the vector is split into a direction and a length, the direction is kept exactly as it is, and only the length is passed through a curve that cannot exceed 1 — so the figure is bounded by a sphere, which looks the same from every angle, and no rotation finds an edge that is really the arithmetic showing through. The angles between successive delay vectors are untouched, which matters: those angles are the reconstructed geometry Takens' theorem is about, and a map that bent them would be drawing a different manifold. MAP picks the curve. tanh is the soft clipper: near-linear when it is quiet, asymptotic to the surface when it is loud. Algebraic reaches the same surface more slowly, so the mid-range keeps more of its dynamics. Direction only throws the loudness away completely and puts every point on the surface — what is left is the angular motion the amplitude was hiding, so a figure that merely swelled and shrank before now moves. DRIVE is how hard the signal is pushed into the curve, and it does nothing on the direction-only position, where there is no length left to compress. τ and WIN mean exactly what they mean in the Takens mode, and the scale is fixed there too — nothing auto-ranges, so quiet draws small and loud draws large. The camera is fitted once to the sphere, which is the whole of what a bounded radius can reach, so peaks stay on screen without the room the cube's corner needed. Audio comes from the active source — the microphone, a server feed, or the signal generators.
+
+`#polar` · parametric
 
 ### Polyhedra
 
@@ -1300,7 +1313,7 @@ Desk — a window manager, drawn as a model. The same texture-on-a-plane path th
 
 ### Audio
 
-[Spectrogram](#spectrogram) · [XY Scope](#xy-scope) · [FVF Wobbulator](#fvf-wobbulator) · [Takens Embedding](#takens-embedding) · [Stereo Embedding](#stereo-embedding) · [Recurrence Plot](#recurrence-plot)
+[Spectrogram](#spectrogram) · [XY Scope](#xy-scope) · [FVF Wobbulator](#fvf-wobbulator) · [Takens Embedding](#takens-embedding) · [Stereo Embedding](#stereo-embedding) · [Polar Embedding](#polar-embedding) · [Recurrence Plot](#recurrence-plot)
 
 #### Spectrogram
 
@@ -1333,6 +1346,10 @@ See [Takens Embedding](#takens-embedding) above.
 #### Stereo Embedding
 
 See [Stereo Embedding](#stereo-embedding) above.
+
+#### Polar Embedding
+
+See [Polar Embedding](#polar-embedding) above.
 
 #### Recurrence Plot
 
@@ -1626,7 +1643,7 @@ another slot. This reference is captured from the running rack by
 
 | | |
 |---|---|
-| <img src="docs/img/module/colors.jpg" alt="The Colors module" width="320"> | Colors — gradient source axis, palette, the palette window (period and shift), and trail length |
+| <img src="docs/img/module/colors.jpg" alt="The Colors module" width="320"> | Colors — gradient source axis, palette size, rainbow period, and trail length |
 
 ### Palette
 
