@@ -105,6 +105,12 @@ var modeInfo = map[string]ModeInfo{
 	// to come from the audio. What differs is where the axes come from — two
 	// recorded channels rather than one channel's own past.
 	"stereo": {"Stereo Embedding", ClassParametric, false},
+	// polar is the takens trail again with the bounding changed: the delay
+	// vector's LENGTH goes through a curve that cannot exceed 1 while its
+	// direction is left exactly as it was, so the figure lives in a sphere
+	// rather than in the cube that bounding each coordinate separately
+	// produces. Parametric for the same reason the other two are.
+	"polar": {"Polar Embedding", ClassParametric, false},
 	// bifurcation renders a progressive 2D scatter through the trail
 	// pipeline; Parametric so persist/gradient/points sizing apply.
 	"bifurcation": {"Bifurcation", ClassParametric, false},
@@ -153,7 +159,7 @@ var modeGroups = []struct {
 	// repeat the mistake that hid the turtle.
 	{"Maps", []string{"henon", "ikeda", "clifford", "dejong", "mira",
 		"tinkerbell", "standardmap"}},
-	{"Scope", []string{"lissajou", "graphicartist", "pong", "scopetext", "scopeclock", "bounceball", "xy", "takens", "stereo"}},
+	{"Scope", []string{"lissajou", "graphicartist", "pong", "scopetext", "scopeclock", "bounceball", "xy", "takens", "stereo", "polar"}},
 	{"Polyhedra", []string{"tetrahedron", "cube", "octahedron", "dodecahedron",
 		"icosahedron", "nestedcube"}},
 	{"Geometry", []string{"globe", "sphere", "torus", "magnetosphere"}},
@@ -167,7 +173,7 @@ var modeGroups = []struct {
 	// off disk plus a catalog of built-in solids — the rack, the geometry and
 	// every attractor swept as a tube — generated in the browser.
 	{"Solids", []string{"stlfile", "terminal", "termanim", "hostterm", "desk"}},
-	{"Audio", []string{"spectrogram", "xy", "fvf", "takens", "stereo", "recurrence"}},
+	{"Audio", []string{"spectrogram", "xy", "fvf", "takens", "stereo", "polar", "recurrence"}},
 	{"Analysis", []string{"bifurcation", "poincare", "recurrence"}},
 	// Custom is its own category and NOT also an entry in Attractors, where it
 	// used to be listed twice. It is a different kind of thing from the rest
