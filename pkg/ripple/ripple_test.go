@@ -153,3 +153,68 @@ func TestDropOutsideTheFieldIsClipped(t *testing.T) {
 		t.Errorf("a drop off the top-left wrapped to the far corner: %v", h)
 	}
 }
+
+// Open water must let a wave leave. With the walls absorbing, the tank should
+// empty; with them reflecting, the same disturbance stays in the field.
+//
+// This is the difference the knob exists for, so it is asserted as a
+// comparison rather than against a threshold: the absolute energy depends on
+// the damping and the drop, but the ordering does not.
+func TestReflectControlsWhetherWavesReturn(t *testing.T) {
+	run := func(reflect float32) float64 {
+		f := New(64, 64)
+		f.Reflect = reflect
+		f.Damping = 1 // isolate the boundary from the decay
+		f.Spread = 0
+		f.Drop(32, 32, 3, 1)
+		// Long enough for the front to reach a wall and, if it can, return.
+		for i := 0; i < 200; i++ {
+			f.Step()
+		}
+		return f.Energy()
+	}
+	open, wall := run(0), run(1)
+	if open >= wall {
+		t.Errorf("absorbing walls kept %.6g, reflecting kept %.6g — the wave did not leave", open, wall)
+	}
+	if open > wall*0.5 {
+		t.Errorf("absorbing walls kept %.6g of %.6g: more than half came back", open, wall)
+	}
+}
+
+// Half-reflecting edges should sit between the two ends rather than doing
+// something of their own.
+func TestPartialReflectionIsBetweenTheExtremes(t *testing.T) {
+	run := func(reflect float32) float64 {
+		f := New(64, 64)
+		f.Reflect = reflect
+		f.Damping = 1
+		f.Spread = 0
+		f.Drop(32, 32, 3, 1)
+		for i := 0; i < 200; i++ {
+			f.Step()
+		}
+		return f.Energy()
+	}
+	open, half, wall := run(0), run(0.5), run(1)
+	if half <= open || half >= wall {
+		t.Errorf("half-reflecting %.6g is not between open %.6g and wall %.6g", half, open, wall)
+	}
+}
+
+// Whatever the edges do, the field must stay finite: an absorbing boundary
+// written with the wrong sign is a classic way to make one that amplifies.
+func TestAbsorbingEdgesStayFinite(t *testing.T) {
+	f := New(48, 48)
+	f.Reflect = 0
+	f.Damping = 1
+	f.Drop(24, 24, 3, 1)
+	for i := 0; i < 2000; i++ {
+		f.Step()
+	}
+	for i, v := range f.Heights() {
+		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+			t.Fatalf("cell %d is %v: the absorbing boundary is amplifying", i, v)
+		}
+	}
+}

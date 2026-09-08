@@ -13,10 +13,11 @@
 // and exactly the same refraction, because the image never sees the velocity.
 // The wave equation is two multiply-adds per cell and the eye cannot tell.
 //
-// What the eye CAN tell is the three things below, which is why they are
+// What the eye CAN tell is the four things below, which is why they are
 // controls rather than constants: how fast waves travel, how long they last,
-// and how sharp they stay. Those are what make one medium read as water,
-// another as oil, another as a drum head.
+// how sharp they stay, and what the edges do to them. Those are what make one
+// medium read as water, another as oil, another as a drum head — and what
+// separates a tank with walls from open water.
 package ripple
 
 import "math"
@@ -42,6 +43,13 @@ type Field struct {
 	// below about 0.9 a drop dies before it crosses the tank. The useful
 	// range is narrow and near the top, which is why the knob is exponential.
 	Damping float32
+
+	// Reflect is what the walls do, 0..1. At 1 the boundary is a wall and the
+	// tank rings with its own echoes; at 0 it is open water and a wave leaves
+	// for good. In between, some of each wave comes back. See applyEdges — the
+	// two ends are different media, not two settings of one, which is why this
+	// is a knob.
+	Reflect float32
 
 	// Spread is a viscous smoothing applied after each step, 0..1. It is not
 	// in the wave equation: it is what separates water from a drum head. A
@@ -70,6 +78,7 @@ func New(w, h int) *Field {
 		prev:    make([]float32, n),
 		next:    make([]float32, n),
 		Speed:   0.5,
+		Reflect: 1,
 		Damping: 0.985,
 		Spread:  0.12,
 	}
@@ -168,7 +177,7 @@ func (f *Field) Step() {
 			f.next[i] = (2*f.cur[i] - f.prev[i] + c2*lap) * damp
 		}
 	}
-	f.reflectEdges()
+	f.applyEdges(c)
 	f.prev, f.cur, f.next = f.cur, f.next, f.prev
 
 	if f.Spread > 0 {
@@ -176,21 +185,60 @@ func (f *Field) Step() {
 	}
 }
 
-// reflectEdges copies the inward neighbor onto each boundary cell, which makes
-// the boundary a wall: a wave arrives, reflects, and comes back.
+// applyEdges sets the boundary cells according to Reflect.
 //
-// The alternative — holding the edge at zero — absorbs instead, and a tank
-// whose walls swallow every wave never develops the interference that makes
-// the surface interesting. A ripple tank has edges, and so does this.
-func (f *Field) reflectEdges() {
+// The two ends are different media, not two settings of one:
+//
+//   - A WALL (Reflect 1) copies the inward neighbor outward. A wave arrives,
+//     turns around and comes back, and the tank fills with the interference
+//     between what was sent and what returned. This is a ripple tank, and it
+//     is what makes a small surface interesting.
+//
+//   - OPEN WATER (Reflect 0) lets the wave leave and never come back, using
+//     the first-order Mur condition below. The surface then shows only what is
+//     being made right now, which is what you want when the disturbance is the
+//     signal — audio driving a speaker in the tank, say, where returning echoes
+//     are the previous second's music smeared over this one.
+//
+// Neither is "correct", which is why it is a knob and not a constant. In
+// between, a fraction of each wave returns: a tank with soft edges, which is
+// most real water.
+//
+// The Mur condition is the standard one for this stencil: at the boundary,
+//
+//	u[edge]^{n+1} = u[in]^n + (c-1)/(c+1) · (u[in]^{n+1} − u[edge]^n)
+//
+// It is exact for a wave arriving square-on and leaks a little for one
+// arriving at an angle, which is the usual trade and invisible here.
+func (f *Field) applyEdges(c float32) {
+	r := f.Reflect
+	if r > 1 {
+		r = 1
+	} else if r < 0 {
+		r = 0
+	}
+	k := (c - 1) / (c + 1)
+
+	// edge returns the blend of wall and open water for one boundary cell,
+	// given its inward neighbor.
+	edge := func(edgeIdx, inIdx int) float32 {
+		wall := f.next[inIdx]
+		open := f.cur[inIdx] + k*(f.next[inIdx]-f.cur[edgeIdx])
+		return open + (wall-open)*r
+	}
+
 	w, h := f.W, f.H
 	for x := 0; x < w; x++ {
-		f.next[x] = f.next[w+x]
-		f.next[(h-1)*w+x] = f.next[(h-2)*w+x]
+		top, topIn := x, w+x
+		bot, botIn := (h-1)*w+x, (h-2)*w+x
+		f.next[top] = edge(top, topIn)
+		f.next[bot] = edge(bot, botIn)
 	}
 	for y := 0; y < h; y++ {
-		f.next[y*w] = f.next[y*w+1]
-		f.next[y*w+w-1] = f.next[y*w+w-2]
+		left, leftIn := y*w, y*w+1
+		right, rightIn := y*w+w-1, y*w+w-2
+		f.next[left] = edge(left, leftIn)
+		f.next[right] = edge(right, rightIn)
 	}
 }
 
