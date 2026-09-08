@@ -265,6 +265,12 @@ func serializeState() string {
 const permaFullCheck = 8
 
 func startPermalinkSync() {
+	// Decided before anything is written: a fragment that was not ours when
+	// the page loaded stays not ours for the life of the page.
+	if h := js.Global().Get("location").Get("hash").String(); h != "" && !isAppHash(h) {
+		permaForeign = true
+	}
+
 	lastPermaHash = serializeState()
 
 	doc.Call("addEventListener", "input", trackedFuncOf(func(js.Value, []js.Value) interface{} {
@@ -305,6 +311,13 @@ func startPermalinkSync() {
 		if h == "" || h == lastPermaHash {
 			return nil
 		}
+		// Someone navigating the page we are sitting on, not pasting a
+		// permalink. Reloading on #about would throw away the section they
+		// just asked for, since :target is what reveals it.
+		if !isAppHash(h) {
+			permaForeign = true
+			return nil
+		}
 		permaFrozen = true
 		js.Global().Get("location").Call("reload")
 		return nil
@@ -318,9 +331,26 @@ func startPermalinkSync() {
 // which is exactly the bug this was added to fix, one layer deeper.
 var permaFrozen bool
 
+// permaForeign means the page was loaded with a fragment that is not ours, so
+// the address bar is not ours to write.
+//
+// The rack is not always the whole page. On magnetosphere.net it is the
+// backdrop of a store whose sections are plain anchors — #about, #policy,
+// #links — and the front page is served at the same URL. Booting there, the
+// app read the fragment, correctly ignored it as not being a permalink, and
+// then overwrote it with its own state a moment later: every shared link to
+// #about landed on the globe instead, and the section the visitor asked for
+// never appeared, because the CSS that reveals it keys on :target.
+//
+// So: if the fragment was not ours when we started, we neither write it nor
+// reload on it. A rack sharing a page has no business steering the address
+// bar, and the cost of staying quiet is only that a permalink cannot be
+// captured from a page that was never offering one.
+var permaForeign bool
+
 // syncPermalinkNow updates the URL hash immediately if the state changed.
 func syncPermalinkNow() {
-	if permaFrozen {
+	if permaFrozen || permaForeign {
 		return
 	}
 	s := serializeState()
