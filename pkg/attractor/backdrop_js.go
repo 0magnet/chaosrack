@@ -22,6 +22,13 @@ func bgVisualActive() bool {
 	if bgVisual == "" {
 		return false
 	}
+	// Water is in the same selector because that is where a hand looks for it,
+	// but it is not a backdrop: it is drawn THROUGH the finished frame rather
+	// than behind it, so the pre-pass must not clear for it or try to paint it.
+	// See drawWaterLens, called after the model instead.
+	if bgVisual == "water" {
+		return false
+	}
 	if isSpectroSurface(selectedMode) || isAudioMode(selectedMode) {
 		return false
 	}
