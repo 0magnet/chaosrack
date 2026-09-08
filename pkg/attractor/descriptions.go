@@ -146,8 +146,10 @@ var attractorDescriptions = map[string]string{
 		"few tens of them, past a couple of hundred it is a filled blob; GAIN sets how large a " +
 		"full-scale sample draws, and as in the Takens mode the scale is fixed and nothing " +
 		"auto-ranges. " +
-		"Audio comes from the active source — microphone or the signal generators for real stereo; " +
-		"the websocket and WebTransport feeds carry one channel, so they read \"mono\".",
+		"Audio comes from the active source — the microphone, the signal generators, or a server " +
+		"feed. The feed asks the capture for the source as it was recorded, over the WebSocket and " +
+		"over WebTransport alike, so a stereo sink gives real stereo either way; a server or a " +
+		"device with only one channel to give reads \"mono\".",
 	"fvf": "FVF — Harmonic Wobbulator. A software analog of the " +
 		"Frequency→Voltage→Frequency converter with balanced modulator designed at bunkerofdoom.com " +
 		"(hardware built 1984). The live audio's " +

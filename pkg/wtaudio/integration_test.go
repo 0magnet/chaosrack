@@ -20,6 +20,7 @@ import (
 	"errors"
 	"math"
 	"net"
+	"net/http"
 	"testing"
 	"time"
 
@@ -39,12 +40,19 @@ func TestServerStreamsToARealQUICClient(t *testing.T) {
 	defer pc.Close() //nolint:errcheck // the server closes it; this is belt and braces
 
 	chunk := samples(2400) // one PulseAudio chunk: 0.1 s at 24 kHz
+	// The channel count travels in the CONNECT's query, which is the ONLY
+	// place a per-session parameter can travel on this transport — there is no
+	// handshake message and the datagrams carry nothing but audio. Captured
+	// here so the assertion can be made after the session is up; the read
+	// happens on the same goroutine that the receive loop below waits on.
+	askedFor := make(chan string, 1)
 	srv, err := New(Config{
 		Addr:       pc.LocalAddr().String(),
 		Path:       "/wt",
 		SampleRate: 24000,
 		Logf:       t.Logf,
-		Capture: func(write func([]float32) error) (func(), error) {
+		Capture: func(r *http.Request, write func([]float32) error) (func(), error) {
+			askedFor <- r.URL.Query().Get("ch")
 			done := make(chan struct{})
 			go func() {
 				tick := time.NewTicker(5 * time.Millisecond)
@@ -96,7 +104,8 @@ func TestServerStreamsToARealQUICClient(t *testing.T) {
 
 	tr := &webtransport.Transport{TLSClientConfig: tlsConf}
 	defer tr.Close() //nolint:errcheck // teardown
-	rsp, sess, err := tr.Dial(ctx, info.URL, nil)
+	// ?ch=2 exactly as pkg/audiosrc appends it to the URL /wt-info published.
+	rsp, sess, err := tr.Dial(ctx, info.URL+"?ch=2", nil)
 	if err != nil {
 		t.Fatalf("dialing %s: %v", info.URL, err)
 	}
@@ -104,6 +113,14 @@ func TestServerStreamsToARealQUICClient(t *testing.T) {
 		t.Fatalf("CONNECT answered %d", rsp.StatusCode)
 	}
 	defer sess.CloseWithError(0, "") //nolint:errcheck // teardown
+
+	// A ServeMux matches on the path alone, so the query survives the routing
+	// — but nothing else would say so, and if it did not, a page asking for two
+	// channels would get one and the stereo displays would report a mono
+	// source against a stereo capture.
+	if ch := <-askedFor; ch != "2" {
+		t.Errorf("the capture was asked for ch=%q, want \"2\" — the session query did not reach it", ch)
+	}
 
 	var r audiosrc.Reassembler
 	var got []float32
@@ -145,7 +162,7 @@ func TestUnpinnedClientIsRefused(t *testing.T) {
 	srv, err := New(Config{
 		Addr:    pc.LocalAddr().String(),
 		Logf:    t.Logf,
-		Capture: func(func([]float32) error) (func(), error) { return func() {}, nil },
+		Capture: func(*http.Request, func([]float32) error) (func(), error) { return func() {}, nil },
 	})
 	if err != nil {
 		t.Fatal(err)
