@@ -13,27 +13,39 @@ import (
 	"github.com/gdamore/tcell/v3"
 
 	"github.com/0magnet/termanim/aquarium"
+	"github.com/0magnet/termanim/aurora"
 	"github.com/0magnet/termanim/boids"
 	"github.com/0magnet/termanim/bonsai"
+	"github.com/0magnet/termanim/bounce"
 	"github.com/0magnet/termanim/clock"
 	"github.com/0magnet/termanim/cube"
 	"github.com/0magnet/termanim/donut"
 	"github.com/0magnet/termanim/fire"
 	"github.com/0magnet/termanim/fireworks"
+	"github.com/0magnet/termanim/flow"
+	"github.com/0magnet/termanim/frost"
+	"github.com/0magnet/termanim/julia"
 	"github.com/0magnet/termanim/langton"
 	"github.com/0magnet/termanim/lavalamp"
 	"github.com/0magnet/termanim/life"
+	"github.com/0magnet/termanim/lightning"
 	"github.com/0magnet/termanim/matrix"
 	"github.com/0magnet/termanim/maze"
 	"github.com/0magnet/termanim/metaballs"
 	"github.com/0magnet/termanim/moire"
+	"github.com/0magnet/termanim/parrot"
+	"github.com/0magnet/termanim/pendulum"
+	"github.com/0magnet/termanim/physarum"
 	"github.com/0magnet/termanim/pipes"
 	"github.com/0magnet/termanim/plasma"
 	"github.com/0magnet/termanim/rain"
+	"github.com/0magnet/termanim/reaction"
+	"github.com/0magnet/termanim/ripple"
 	"github.com/0magnet/termanim/sand"
 	"github.com/0magnet/termanim/snow"
 	"github.com/0magnet/termanim/starfield"
 	"github.com/0magnet/termanim/tunnel"
+	"github.com/0magnet/termanim/wolfram"
 
 	"github.com/0magnet/tuiwasm/demos"
 )
@@ -58,6 +70,18 @@ func plain(run func(tcell.Screen) error) func(tcell.Screen, int, int) error {
 // every other demo package and keyed by name, so reading it back could not tell
 // which came from here.
 var registered = []demos.Demo{
+	{Name: "ripple", Desc: "a ripple tank: rain falling, rings meeting and interfering", Screen: seeded(ripple.Run)},
+	{Name: "reaction", Desc: "Gray-Scott reaction-diffusion: spots that divide into a labyrinth", Screen: seeded(reaction.Run)},
+	{Name: "physarum", Desc: "slime mold laying trails and building a transport network", Screen: seeded(physarum.Run)},
+	{Name: "flow", Desc: "particles carried through a divergence-free curl-noise field", Screen: seeded(flow.Run)},
+	{Name: "frost", Desc: "a crystal growing by diffusion-limited aggregation", Screen: seeded(frost.Run)},
+	{Name: "wolfram", Desc: "elementary cellular automata scrolling upward - 30, 90, 110", Screen: seeded(wolfram.Run)},
+	{Name: "pendulum", Desc: "double pendulums released together, shearing apart", Screen: seeded(pendulum.Run)},
+	{Name: "lightning", Desc: "a branching discharge: leader, return stroke, afterglow", Screen: seeded(lightning.Run)},
+	{Name: "aurora", Desc: "curtains of light, folding, with the creases where they turn", Screen: seeded(aurora.Run)},
+	{Name: "julia", Desc: "a Julia set morphing as its parameter walks the cardioid", Screen: plain(julia.Run)},
+	{Name: "parrot", Desc: "the party parrot, rolling once around the hue wheel", Screen: seeded(parrot.Run)},
+	{Name: "bounce", Desc: "the screensaver logo, and the wait for it to hit a corner", Screen: seeded(bounce.Run)},
 	{Name: "fire", Desc: "a heat grid seeded with noise and cooled upward", Screen: seeded(fire.Run)},
 	{Name: "plasma", Desc: "summed sine waves of position, offset by time", Screen: plain(plasma.Run)},
 	{Name: "metaballs", Desc: "blobs that bulge and merge as they approach", Screen: seeded(metaballs.Run)},
