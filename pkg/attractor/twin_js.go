@@ -9,35 +9,39 @@ package attractor
 // Both integrate with the SAME generic stepper (via flowFor4), so their
 // separation reflects the dynamics, never an integrator mismatch.
 //
-// The λ LED shows a running largest-Lyapunov-exponent estimate from a
-// dedicated probe pair advanced a fixed number of steps per frame and
-// renormalized every time unit (the same math as the native chaos guard) —
-// the VISIBLE pair is left unrenormalized so the on-screen separation stays
-// honest, while the probe keeps the measurement in the linear regime.
+// The λ measurement that used to live in this file has moved to lyaplive.go
+// and lyaplive_js.go. It is the same arithmetic — a probe pair renormalized on
+// a fixed schedule while the VISIBLE pair is left alone, so the picture stays
+// honest and the number stays in the linear regime — and two things changed.
+//
+// It runs for every flow mode now, not only while this switch is on: λ is a
+// property of the system, and hanging the measurement off a drawing choice
+// meant the panel could only say how chaotic the model was while you were also
+// asking it to draw two of them. And it says nothing until it has averaged
+// enough model time to be worth saying, which the old per-frame LED did not —
+// it published its first estimate one time unit in, when the average was still
+// almost entirely the approach onto the attractor.
+//
+// What stays here is the Trace row's LED, which annotates the two trajectories
+// on screen with the rate at which they are coming apart. lyapLiveShow writes
+// it.
 
-import (
-	"fmt"
-	"math"
-	"syscall/js"
-)
+import "syscall/js"
 
 var (
-	twinOn     bool
-	twinSeeded string     // mode the visible pair was seeded for
-	twinA      [4]float64 // visible reference trajectory
-	twinB      [4]float64 // visible perturbed trajectory
-	twinBuf    []float32  // trajectory B's vertex scratch (vertBuf holds A)
-
-	// λ probe pair + renormalization accumulators.
-	twinPA, twinPB   [4]float64
-	twinTau          float64 // integrated time since last renorm
-	twinLSum         float64
-	twinLN           int
-	twinLambdaEl     js.Value
-	twinLambdaFrames int
+	twinOn       bool
+	twinSeeded   string     // mode the visible pair was seeded for
+	twinA        [4]float64 // visible reference trajectory
+	twinB        [4]float64 // visible perturbed trajectory
+	twinBuf      []float32  // trajectory B's vertex scratch (vertBuf holds A)
+	twinLambdaEl js.Value   // the λ LED in the Trace row
 )
 
-const twinD0 = 1e-4 // initial/renormalized separation
+// twinD0 is the visible pair's initial separation, and it is deliberately the
+// probe's d0 rather than a second constant that happens to match: the picture
+// and the number are of the same thing, so the ε the eye watches grow is the ε
+// the exponent is measured against.
+const twinD0 = lyapLiveD0
 
 func twinInvalidate() { twinSeeded = "" }
 
@@ -61,14 +65,22 @@ func twinSeed(mode string, sys flowSys4) {
 	twinA = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.w()}
 	twinB = twinA
 	twinB[0] += twinD0
-	twinPA, twinPB = twinA, twinB
-	twinTau, twinLSum, twinLN = 0, 0, 0
 	twinSeeded = mode
 }
 
-// twinTick draws both trajectories and updates the λ LED. Returns false when
-// the normal scan generator should run instead (twin off / no flow).
+// twinTick draws both trajectories. Returns false when the normal scan
+// generator should run instead (twin off / no flow).
+//
+// It is also where the live λ probe is advanced, which is not where such a
+// thing belongs and is where it has to go. generateForMode reaches this call
+// every frame for every mode that has a trajectory at all, BEFORE any of the
+// switch-conditional branches, so it is the one per-frame hook a measurement
+// can hang off without editing the render loop — and the modes it does not
+// reach (the spectrogram surfaces, the recurrence plot, the audio scopes) are
+// exactly the modes with no exponent to measure. The call is first, above the
+// switch test, precisely so the measurement does not depend on the switch.
 func twinTick(mode string) bool {
+	lyapLiveTick(mode)
 	if !twinOn {
 		return false
 	}
@@ -83,7 +95,7 @@ func twinTick(mode string) bool {
 	if sys.interpreted {
 		budget = frameBudgetInterpreted
 	}
-	// Two visible trajectories + the probe pair share the frame budget.
+	// Two visible trajectories + the λ probe pair share the frame budget.
 	sub := effSubSteps(speedSteps, steps, budget/2)
 	dt := sys.dt() * float64(speedScale)
 	scale := sys.scale
@@ -126,53 +138,10 @@ func twinTick(mode string) bool {
 	uploadVerticesOnly(twinBuf[:steps*4], attractorDrawMode, steps)
 	gl.Call("uniform1i", uGradientColorsLoc, gradientColors)
 
-	twinProbe(sys, dt)
 	return true
 }
 
-// twinProbe advances the measurement pair a fixed slice per frame with
-// 1-time-unit renormalization and refreshes the λ LED.
-func twinProbe(sys flowSys4, dt float64) {
-	if dt <= 0 {
-		return
-	}
-	const probeSteps = 1024
-	for i := 0; i < probeSteps; i++ {
-		twinStep(sys, &twinPA, dt)
-		twinStep(sys, &twinPB, dt)
-		twinTau += dt
-		if twinDiverged(twinPA) || twinDiverged(twinPB) {
-			twinPA = twinA
-			twinPB = twinPA
-			twinPB[0] += twinD0
-			twinTau = 0
-			continue
-		}
-		if twinTau >= 1 {
-			var d2 float64
-			for k := 0; k < 4; k++ {
-				dd := twinPB[k] - twinPA[k]
-				d2 += dd * dd
-			}
-			if d2 > 0 {
-				d := math.Sqrt(d2)
-				twinLSum += math.Log(d/twinD0) / twinTau
-				twinLN++
-				sc := twinD0 / d
-				for k := 0; k < 4; k++ {
-					twinPB[k] = twinPA[k] + (twinPB[k]-twinPA[k])*sc
-				}
-			}
-			twinTau = 0
-		}
-	}
-	twinLambdaFrames++
-	if twinLambdaFrames%15 == 0 && twinLambdaEl.Truthy() && twinLN > 0 {
-		twinLambdaEl.Set("textContent", fmt.Sprintf("λ%+.2f", twinLSum/float64(twinLN)))
-	}
-}
-
-// wireTwinSwitch hooks up the Trace > Twin checkbox and the λ readout.
+// wireTwinSwitch hooks up the Trace > Twin checkbox and the λ LED beside it.
 func wireTwinSwitch() {
 	twinLambdaEl = doc.Call("getElementById", "twin-lambda")
 	sw := doc.Call("getElementById", "twin-sw")
@@ -182,13 +151,11 @@ func wireTwinSwitch() {
 	sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
 		twinOn = sw.Get("checked").Bool()
 		twinInvalidate()
-		if twinLambdaEl.Truthy() {
-			if twinOn {
-				twinLambdaEl.Set("textContent", "λ --")
-			} else {
-				twinLambdaEl.Set("textContent", "")
-			}
-		}
+		// The switch does NOT restart the measurement — the exponent belongs
+		// to the system and the system has not changed. Only the LED's
+		// last-written text is cleared, so the next frame writes the current
+		// reading into it (or blanks it) instead of skipping it as unchanged.
+		lyapLiveTrace = "\x00"
 		return nil
 	}))
 }
