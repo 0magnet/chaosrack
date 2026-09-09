@@ -7,7 +7,7 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.0-20260908184813-1e40adea64f5
+# github.com/0magnet/audioprism-go v0.0.0-20260909095746-1a5d93eaf7e4
 ## explicit; go 1.26.2
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
@@ -15,11 +15,11 @@ github.com/0magnet/audioprism-go/pkg/wsaudio
 ## explicit; go 1.26.0
 github.com/0magnet/calvin
 github.com/0magnet/calvin/clihelp
-# github.com/0magnet/desk v0.0.0-20260908180101-e4718ff64abf
+# github.com/0magnet/desk v0.0.0-20260909002914-271c2999cd2c
 ## explicit; go 1.26
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.0-20260908180101-e4718ff64abf
+# github.com/0magnet/desk/panes v0.0.0-20260909002914-271c2999cd2c
 ## explicit; go 1.26
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -64,9 +64,10 @@ github.com/0magnet/sh/v3/internal
 github.com/0magnet/sh/v3/interp
 github.com/0magnet/sh/v3/pattern
 github.com/0magnet/sh/v3/syntax
-# github.com/0magnet/termanim v0.0.0-20260908184637-fa4618403fe1
+# github.com/0magnet/termanim v0.0.0-20260908211604-399e16bb92f6
 ## explicit; go 1.26.0
 github.com/0magnet/termanim/aquarium
+github.com/0magnet/termanim/atom
 github.com/0magnet/termanim/aurora
 github.com/0magnet/termanim/boids
 github.com/0magnet/termanim/bonsai
@@ -84,6 +85,7 @@ github.com/0magnet/termanim/langton
 github.com/0magnet/termanim/lavalamp
 github.com/0magnet/termanim/life
 github.com/0magnet/termanim/lightning
+github.com/0magnet/termanim/magnetosphere
 github.com/0magnet/termanim/matrix
 github.com/0magnet/termanim/maze
 github.com/0magnet/termanim/metaballs
@@ -101,13 +103,13 @@ github.com/0magnet/termanim/snow
 github.com/0magnet/termanim/starfield
 github.com/0magnet/termanim/tunnel
 github.com/0magnet/termanim/wolfram
-# github.com/0magnet/toilet-go v0.0.0-20260908184643-00a3f30588b8
+# github.com/0magnet/toilet-go v0.0.0-20260909095410-ea1263b381d1
 ## explicit; go 1.26.0
 github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20260908185149-67a35e0a02e4
+# github.com/0magnet/tuiwasm v0.0.0-20260909100049-99a0f9924f16
 ## explicit; go 1.26.5
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -127,14 +129,14 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20260907193324-47ff3c83f69d
 ## explicit; go 1.26.0
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.0-20260908184825-10432f75b8da
+# github.com/0magnet/websh v0.0.0-20260909095802-ace31d005a7e
 ## explicit; go 1.26.0
 github.com/0magnet/websh/shell
 github.com/0magnet/websh/web
 # github.com/0magnet/winbox-go v0.0.0-20260908011106-113d480c4188
 ## explicit; go 1.24
 github.com/0magnet/winbox-go
-# github.com/0magnet/xterm-go v0.0.0-20260908011048-6bbc23473554
+# github.com/0magnet/xterm-go v0.0.0-20260908200322-79e29f0f6b91
 ## explicit; go 1.24
 github.com/0magnet/xterm-go
 github.com/0magnet/xterm-go/vt
@@ -525,8 +527,8 @@ golang.org/x/image/tiff/lzw
 golang.org/x/image/vp8
 golang.org/x/image/vp8l
 golang.org/x/image/webp
-# golang.org/x/net v0.58.0
-## explicit; go 1.25.0
+# golang.org/x/net v0.59.0
+## explicit; go 1.26.0
 golang.org/x/net/bpf
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2

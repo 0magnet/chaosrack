@@ -3,17 +3,17 @@ module github.com/0magnet/chaosrack
 go 1.26.5
 
 require (
-	github.com/0magnet/audioprism-go v0.0.0-20260908184813-1e40adea64f5
+	github.com/0magnet/audioprism-go v0.0.0-20260909095746-1a5d93eaf7e4
 	github.com/0magnet/calvin v0.0.0-20260908180241-0893f4bff56a
-	github.com/0magnet/desk v0.0.0-20260908180101-e4718ff64abf
-	github.com/0magnet/desk/panes v0.0.0-20260908180101-e4718ff64abf
+	github.com/0magnet/desk v0.0.0-20260909002914-271c2999cd2c
+	github.com/0magnet/desk/panes v0.0.0-20260909002914-271c2999cd2c
 	github.com/0magnet/pisano v0.0.0-20260908184626-62fb0d217996
 	github.com/0magnet/rack-go v0.0.0-20260908062801-a66d3de6933f
 	github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a
-	github.com/0magnet/tuiwasm v0.0.0-20260908185149-67a35e0a02e4
-	github.com/0magnet/websh v0.0.0-20260908184825-10432f75b8da
+	github.com/0magnet/tuiwasm v0.0.0-20260909100049-99a0f9924f16
+	github.com/0magnet/websh v0.0.0-20260909095802-ace31d005a7e
 	github.com/0magnet/winbox-go v0.0.0-20260908011106-113d480c4188
-	github.com/0magnet/xterm-go v0.0.0-20260908011048-6bbc23473554
+	github.com/0magnet/xterm-go v0.0.0-20260908200322-79e29f0f6b91
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-gl/mathgl v1.2.0
 	github.com/jfreymuth/pulse v0.1.3
@@ -21,7 +21,7 @@ require (
 	github.com/quic-go/webtransport-go v0.13.0
 	github.com/spf13/cobra v1.10.2
 	gitlab.com/russoj88/stl v1.0.2
-	golang.org/x/net v0.58.0
+	golang.org/x/net v0.59.0
 )
 
 require (
@@ -32,8 +32,8 @@ require (
 	github.com/0magnet/img2txt-go v0.0.0-20260908184618-c36a40322de2 // indirect
 	github.com/0magnet/lolcat-go v0.0.0-20260907230215-22c54b7702c7 // indirect
 	github.com/0magnet/proxima5 v0.0.0-20260908180128-ed5a78054456 // indirect
-	github.com/0magnet/termanim v0.0.0-20260908184637-fa4618403fe1 // indirect
-	github.com/0magnet/toilet-go v0.0.0-20260908184643-00a3f30588b8 // indirect
+	github.com/0magnet/termanim v0.0.0-20260908211604-399e16bb92f6 // indirect
+	github.com/0magnet/toilet-go v0.0.0-20260909095410-ea1263b381d1 // indirect
 	github.com/0magnet/u-root v0.16.1-0.20260907193324-47ff3c83f69d // indirect
 	github.com/alecthomas/chroma/v2 v2.27.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect

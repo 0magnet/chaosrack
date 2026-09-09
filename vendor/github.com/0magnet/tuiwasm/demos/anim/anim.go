@@ -13,6 +13,7 @@ import (
 	"github.com/gdamore/tcell/v3"
 
 	"github.com/0magnet/termanim/aquarium"
+	"github.com/0magnet/termanim/atom"
 	"github.com/0magnet/termanim/aurora"
 	"github.com/0magnet/termanim/boids"
 	"github.com/0magnet/termanim/bonsai"
@@ -29,6 +30,7 @@ import (
 	"github.com/0magnet/termanim/lavalamp"
 	"github.com/0magnet/termanim/life"
 	"github.com/0magnet/termanim/lightning"
+	"github.com/0magnet/termanim/magnetosphere"
 	"github.com/0magnet/termanim/matrix"
 	"github.com/0magnet/termanim/maze"
 	"github.com/0magnet/termanim/metaballs"
@@ -91,6 +93,8 @@ var registered = []demos.Demo{
 	{Name: "starfield", Desc: "stars streaming past the viewer", Screen: seeded(starfield.Run)},
 	{Name: "donut", Desc: "a lit torus with a z-buffer", Screen: seeded(donut.Run)},
 	{Name: "cube", Desc: "a rotating wireframe solid, shaded by depth", Screen: seeded(cube.Run)},
+	{Name: "atom", Desc: "electrons on tilted orbits round a glowing nucleus", Screen: seeded(atom.Run)},
+	{Name: "magnetosphere", Desc: "the logo from magnetosphere.net, counter-scrolling", Screen: seeded(magnetosphere.Run)},
 	{Name: "boids", Desc: "flocking by separation, alignment and cohesion", Screen: seeded(boids.Run)},
 	{Name: "rain", Desc: "drops with depth, slant, streaks and splashes", Screen: seeded(rain.Run)},
 	{Name: "snow", Desc: "flakes that sway, settle and drift into banks", Screen: seeded(snow.Run)},
