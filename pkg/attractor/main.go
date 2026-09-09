@@ -1322,14 +1322,20 @@ func Run() {
 		}
 	}
 
-	// Inject a host-page CSS rule killing vertical scroll caused by
-	// the controls panel growing the body height. Targets the actual
-	// magnetosphere.net symptom (~1cm of overflow) without breaking
-	// pages that legitimately scroll — Run() is only invoked on the
-	// animation page.
-	noScrollStyle := doc.Call("createElement", "style")
-	noScrollStyle.Set("textContent", "html,body{overflow:hidden!important;margin:0;padding:0;}")
-	doc.Get("head").Call("appendChild", noScrollStyle)
+	// Kill the vertical scroll the controls panel adds by growing the body.
+	//
+	// This used to be unconditional, on the stated grounds that "Run() is only
+	// invoked on the animation page" so nothing that legitimately scrolls could
+	// be affected. That stopped being true: magnetosphere.net's front page is
+	// both the animation page AND its catalog, because the category listings are
+	// :target views of the same document. The rule locked a 7908px document to
+	// the viewport, and the page could be scrolled for exactly as long as it took
+	// the wasm to boot and then never again.
+	if LockHostScroll {
+		noScrollStyle := doc.Call("createElement", "style")
+		noScrollStyle.Set("textContent", "html,body{overflow:hidden!important;margin:0;padding:0;}")
+		doc.Get("head").Call("appendChild", noScrollStyle)
+	}
 
 	// Random initial orientation + low-rate rotation so the model doesn't start
 	// in the same pose every load — UNLESS the permalink pinned an explicit pose
@@ -1392,6 +1398,7 @@ func Run() {
 	// Last of the wiring: the reveal chord hides the whole control surface, so
 	// it must run after every piece of that surface exists and has been placed.
 	initPanelRevealChord()
+	initHostPage() // centers the backdrop on a host element, if one was named
 
 	// Window resize: keep canvas pixel dimensions in sync with the
 	// viewport so the model doesn't get stretched when devtools opens
