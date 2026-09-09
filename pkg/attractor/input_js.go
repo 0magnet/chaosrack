@@ -225,7 +225,15 @@ func wireModelInput() {
 		return nil
 	}))
 
-	// Event: scroll wheel zoom
+	// Event: scroll wheel zoom.
+	//
+	// A host that names ZoomTargetSelector gets a document-level binding instead
+	// (see wireHostWheel): on a page where the canvas is pointer-events:none so
+	// links stay clickable, the canvas never receives a wheel event and this
+	// binding can never fire.
+	if wireHostWheel() {
+		return
+	}
 	canvasEl.Call("addEventListener", "wheel", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")

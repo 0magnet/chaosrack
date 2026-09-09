@@ -50,8 +50,22 @@ var (
 // width/height globals are backing-store pixels (aspect and NDC math are
 // ratio-based, so both stay correct).
 func sizeCanvasToViewport() bool {
-	cssW := doc.Get("body").Get("clientWidth").Int()
-	cssH := doc.Get("body").Get("clientHeight").Int()
+	// The VIEWPORT, not the body.
+	//
+	// documentElement.clientWidth/Height is the viewport minus any scrollbars,
+	// which is exactly what a full-window backdrop wants. body.clientHeight is
+	// the body's own content height, and the two are only equal while the page
+	// cannot scroll. On a host whose document is taller than the window — a
+	// catalog under the model — the body measurement sized the drawing buffer to
+	// the whole document: a 2364x7908 canvas, six times the pixels needed, for a
+	// picture that is only ever a window tall.
+	cssW := doc.Get("documentElement").Get("clientWidth").Int()
+	cssH := doc.Get("documentElement").Get("clientHeight").Int()
+	if cssW <= 0 || cssH <= 0 {
+		// A document with no layout yet; the body is the older fallback.
+		cssW = doc.Get("body").Get("clientWidth").Int()
+		cssH = doc.Get("body").Get("clientHeight").Int()
+	}
 	if cssW <= 0 || cssH <= 0 {
 		return false
 	}
