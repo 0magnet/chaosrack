@@ -264,5 +264,14 @@ func raiseMainCanvas(front bool) {
 		return
 	}
 	st.Set("zIndex", "var(--z-canvas)")
-	st.Set("pointerEvents", "auto")
+	// Give the property back to the page rather than asserting "auto".
+	//
+	// auto is the initial value, so setting it inline changes nothing for a
+	// host that has no opinion — but it silently beats any host that does. A
+	// page using the attractor as a full-window backdrop sets
+	// pointer-events:none on this container in its own stylesheet, and an
+	// inline auto from here overrode it and swallowed every click on the page
+	// underneath. Removing the inline property lets that stylesheet win and
+	// leaves a host without one exactly where it was.
+	st.Call("removeProperty", "pointer-events")
 }
