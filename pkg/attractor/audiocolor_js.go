@@ -306,7 +306,7 @@ const gradientSourceAudio = 4
 // the table lines up with the k'th slice of that window.
 //
 // Without this the mode fell through to the flat fill, and with the gradient
-// following the sound that fill is one colour for the whole trail — which can
+// following the sound that fill is one color for the whole trail — which can
 // be the dark end of the palette, at which point a correct figure is drawn in
 // black on black and the mode looks broken. Not a theoretical case: it is what
 // a saved view carrying gs=4&gc=5 did, and it is why this mode was reported as
@@ -314,7 +314,7 @@ const gradientSourceAudio = 4
 //
 // The walk mirrors generateStereo: source point k sits at tau + k*stride in the
 // snapshot, which is where the plan's undelayed axes read from. The delayed
-// axes reach back from there, as Takens' do, and the colour follows the trail
+// axes reach back from there, as Takens' do, and the color follows the trail
 // position rather than any one axis.
 func stereoColorWindow() ([]float32, int) {
 	src := ensureAudioSource()
