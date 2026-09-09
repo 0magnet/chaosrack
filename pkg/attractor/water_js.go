@@ -285,12 +285,15 @@ func rainOnWater() {
 		return
 	}
 	// The knob is drips per second; at frame rate that is a probability.
-	if rand.Float64() > float64(waterRain)/60 {
+	//
+	// math/rand, deliberately: this is where raindrops land on a decorative
+	// surface, and crypto/rand would buy nothing but a syscall per frame.
+	if rand.Float64() > float64(waterRain)/60 { //nolint:gosec // decorative, not security
 		return
 	}
 	waterField.Drop(
-		rand.Float32()*float32(waterW),
-		rand.Float32()*float32(waterH),
+		rand.Float32()*float32(waterW), //nolint:gosec // decorative, not security
+		rand.Float32()*float32(waterH), //nolint:gosec // decorative, not security
 		3, 0.5)
 }
 
@@ -352,7 +355,8 @@ func uploadWaterHeight() {
 		hi := int(u) >> 8
 		lo := int(u) & 0xff
 		j := i * 4
-		waterHeightBuf[j] = byte(hi)
+		// hi is 0..255: v is clamped to ±1 above, so u is 0..65535.
+		waterHeightBuf[j] = byte(hi) //nolint:gosec // range proved by the clamp above
 		waterHeightBuf[j+1] = byte(lo)
 		waterHeightBuf[j+2] = 0
 		waterHeightBuf[j+3] = 255
