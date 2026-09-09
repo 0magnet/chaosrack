@@ -316,11 +316,11 @@ func TestPolarMapSelClampsWhateverModulationDoes(t *testing.T) {
 	}
 }
 
-// The colour source has to know about this mode. audioColorWindow returns a
+// The color source has to know about this mode. audioColorWindow returns a
 // per-position window only for modes whose vertices carry aTrailT = m/(nv−1),
 // and this one's do; a mode that fills the attribute that way and is NOT listed
 // falls through to a flat fill, which with the gradient following the sound can
-// be one dark colour for the whole trail — a correct figure drawn in black on
+// be one dark color for the whole trail — a correct figure drawn in black on
 // black, which is exactly how the Stereo Embedding came to be reported as
 // showing nothing at all.
 func TestPolarIsInTheAudioColorSources(t *testing.T) {
@@ -333,7 +333,7 @@ func TestPolarIsInTheAudioColorSources(t *testing.T) {
 	// A source has to be in place before this runs: ensureAudioSource reads
 	// window.location for ?wsurl=, and there is no window under Node. Handing
 	// it one it already has is the only way in from a test, and it is also
-	// what the running app looks like by the time a colour window is asked for.
+	// what the running app looks like by the time a color window is asked for.
 	audioSource, audioSourceTried = stubSource{}, true
 
 	// No audio yet: the flat fill is the honest answer and nothing must panic.
@@ -342,7 +342,7 @@ func TestPolarIsInTheAudioColorSources(t *testing.T) {
 		t.Error("a window came back before any audio had been captured")
 	}
 
-	// A ring with a full window in it: the mode must be recognised, and the
+	// A ring with a full window in it: the mode must be recognized, and the
 	// window must be the ring's newest samples rather than an empty slice.
 	n, stride := takensWindow(polarWin, 24000, steps)
 	span := (n-1)*stride + 2*int(polarTau)
@@ -354,10 +354,10 @@ func TestPolarIsInTheAudioColorSources(t *testing.T) {
 	w, sr := audioColorWindow("polar")
 	if w == nil {
 		t.Fatal("the polar mode is not one of audioColorWindow's sources; with the gradient " +
-			"following the sound its trail would be filled one flat colour")
+			"following the sound its trail would be filled one flat color")
 	}
 	if len(w) != n {
-		t.Errorf("the colour window is %d samples, want the %d source points the trail was drawn from", len(w), n)
+		t.Errorf("the color window is %d samples, want the %d source points the trail was drawn from", len(w), n)
 	}
 	if sr <= 0 {
 		t.Errorf("sample rate %d; shortTimeCentroids cannot bin a spectrum without one", sr)

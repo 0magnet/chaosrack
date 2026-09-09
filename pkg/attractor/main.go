@@ -334,6 +334,7 @@ func Run() {
 	// Floating show/hide button for the whole control panel (it can block the
 	// view). Lives outside the panel so it can bring it back.
 	panelToggle := doc.Call("createElement", "button")
+	panelToggle.Set("id", "panel-toggle")
 	panelToggle.Set("textContent", "▤")
 	panelToggle.Set("title", "Show / hide controls (brings them back if the model's 'Front' overlay is hiding them)")
 	panelToggle.Set("style", "position:fixed;bottom:6px;left:6px;z-index:var(--z-toggle);background:#222;color:#ccc;border:1px solid #555;border-radius:3px;font-family:'B612 Mono',monospace;font-size:14px;cursor:pointer;padding:2px 8px;opacity:0.55;")
@@ -1387,6 +1388,10 @@ func Run() {
 
 	wireWheelBindings()
 	wireKnobArrowKeys()
+
+	// Last of the wiring: the reveal chord hides the whole control surface, so
+	// it must run after every piece of that surface exists and has been placed.
+	initPanelRevealChord()
 
 	// Window resize: keep canvas pixel dimensions in sync with the
 	// viewport so the model doesn't get stretched when devtools opens

@@ -34,16 +34,21 @@ func (f *rateFeeder) feed(l *liveLyapunov, rate, dt, until float64) {
 	}
 }
 
+// lyapTestStep is the model-time step every test feeds at. Small enough that
+// the exponent estimate is not dominated by the integration error, and the
+// same for all of them so their run lengths are comparable.
+const lyapTestStep = 0.01
+
 // feedRate is the single-phase case.
-func feedRate(l *liveLyapunov, rate, dt, until float64) {
-	newRateFeeder().feed(l, rate, dt, until)
+func feedRate(l *liveLyapunov, rate, until float64) {
+	newRateFeeder().feed(l, rate, lyapTestStep, until)
 }
 
 func TestLiveLyapunovConstantRate(t *testing.T) {
 	for _, rate := range []float64{0.9, 0, -0.4} {
 		var l liveLyapunov
 		l.reset()
-		feedRate(&l, rate, 0.01, lyapLiveWarmup+lyapLiveMinTime+50)
+		feedRate(&l, rate, lyapLiveWarmup+lyapLiveMinTime+50)
 		lam, ok := l.lambda()
 		if !ok {
 			t.Fatalf("rate %v: not ready after %v model time", rate, lyapLiveWarmup+lyapLiveMinTime+50)
@@ -60,11 +65,11 @@ func TestLiveLyapunovNotReadyBeforeMinTime(t *testing.T) {
 	var l liveLyapunov
 	l.reset()
 	// One interval short of the threshold, warmup included.
-	feedRate(&l, 0.9, 0.01, lyapLiveWarmup+lyapLiveMinTime-2*lyapLiveInterval)
+	feedRate(&l, 0.9, lyapLiveWarmup+lyapLiveMinTime-2*lyapLiveInterval)
 	if lam, ok := l.lambda(); ok {
 		t.Fatalf("reported %v with only %v model time accumulated; want not-yet-meaningful", lam, l.time)
 	}
-	feedRate(&l, 0.9, 0.01, 4*lyapLiveInterval)
+	feedRate(&l, 0.9, 4*lyapLiveInterval)
 	if _, ok := l.lambda(); !ok {
 		t.Fatalf("still not ready after %v model time, threshold is %v", l.time, lyapLiveMinTime)
 	}
@@ -288,7 +293,7 @@ func TestLiveLyapunovLorenzConvergence(t *testing.T) {
 func TestLiveLyapunovPeriodicReadsPeriodic(t *testing.T) {
 	var l liveLyapunov
 	l.reset()
-	feedRate(&l, 0, 0.01, lyapLiveWarmup+lyapLiveMinTime+10)
+	feedRate(&l, 0, lyapLiveWarmup+lyapLiveMinTime+10)
 	lam, ok := l.lambda()
 	if !ok {
 		t.Fatal("not ready")
