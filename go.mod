@@ -3,17 +3,17 @@ module github.com/0magnet/chaosrack
 go 1.26.5
 
 require (
-	github.com/0magnet/audioprism-go v0.0.0-20260909095746-1a5d93eaf7e4
+	github.com/0magnet/audioprism-go v0.0.0-20260910095201-fedabc6a228d
 	github.com/0magnet/calvin v0.0.0-20260908180241-0893f4bff56a
-	github.com/0magnet/desk v0.0.0-20260909002914-271c2999cd2c
-	github.com/0magnet/desk/panes v0.0.0-20260909002914-271c2999cd2c
-	github.com/0magnet/pisano v0.0.0-20260908184626-62fb0d217996
+	github.com/0magnet/desk v0.0.0-20260910005425-be63baa02041
+	github.com/0magnet/desk/panes v0.0.0-20260910005425-be63baa02041
+	github.com/0magnet/pisano v0.0.0-20260910095100-28998574c84c
 	github.com/0magnet/rack-go v0.0.0-20260908062801-a66d3de6933f
 	github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a
-	github.com/0magnet/tuiwasm v0.0.0-20260909100049-99a0f9924f16
-	github.com/0magnet/websh v0.0.0-20260909095802-ace31d005a7e
+	github.com/0magnet/tuiwasm v0.0.0-20260910095422-1a0dc0d8226f
+	github.com/0magnet/websh v0.0.0-20260910095218-3d6d74ccedfc
 	github.com/0magnet/winbox-go v0.0.0-20260908011106-113d480c4188
-	github.com/0magnet/xterm-go v0.0.0-20260908200322-79e29f0f6b91
+	github.com/0magnet/xterm-go v0.0.0-20260910002153-8f449d30e0f4
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-gl/mathgl v1.2.0
 	github.com/jfreymuth/pulse v0.1.3
@@ -77,7 +77,7 @@ require (
 	github.com/leodido/go-urn v1.5.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
-	github.com/mattn/go-runewidth v0.0.29 // indirect
+	github.com/mattn/go-runewidth v0.0.30 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
