@@ -10,7 +10,6 @@
 package viewer
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
 	"syscall/js"
@@ -48,13 +47,23 @@ func mimeOf(path string) (string, bool) {
 	return "text/plain", false
 }
 
-// Mount renders the file.
+// Mount renders the file. The read runs on its own goroutine: on js/wasm a
+// filesystem call from the goroutine servicing a JS event (the double-click
+// that opened this viewer) deadlocks the page, since the filesystem answers on
+// a microtask that cannot run until the handler returns. A file that cannot
+// be read shows its error in the window instead of failing the open.
 func (p *Pane) Mount(el js.Value) error {
+	p.el = el
+	go p.load(el)
+	return nil
+}
+
+func (p *Pane) load(el js.Value) {
 	data, err := afero.ReadFile(p.fs, p.path)
 	if err != nil {
-		return fmt.Errorf("viewer: %w", err)
+		el.Set("textContent", "viewer: "+err.Error())
+		return
 	}
-	p.el = el
 	mime, isImage := mimeOf(p.path)
 
 	style := el.Get("style")
@@ -75,7 +84,7 @@ func (p *Pane) Mount(el js.Value) error {
 		ps.Set("height", "100%")
 		ps.Set("boxSizing", "border-box")
 		el.Call("appendChild", pre)
-		return nil
+		return
 	}
 
 	// Copy into a JS Uint8Array, wrap in a Blob, and hand the image a URL for
@@ -101,7 +110,7 @@ func (p *Pane) Mount(el js.Value) error {
 	is.Set("padding", "8px")
 	is.Set("boxSizing", "border-box")
 	el.Call("appendChild", img)
-	return nil
+	return
 }
 
 // Close revokes the blob URL.
