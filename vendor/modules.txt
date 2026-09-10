@@ -7,7 +7,7 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.0-20260909095746-1a5d93eaf7e4
+# github.com/0magnet/audioprism-go v0.0.0-20260910095201-fedabc6a228d
 ## explicit; go 1.26.2
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
@@ -15,11 +15,11 @@ github.com/0magnet/audioprism-go/pkg/wsaudio
 ## explicit; go 1.26.0
 github.com/0magnet/calvin
 github.com/0magnet/calvin/clihelp
-# github.com/0magnet/desk v0.0.0-20260909002914-271c2999cd2c
+# github.com/0magnet/desk v0.0.0-20260910005425-be63baa02041
 ## explicit; go 1.26
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.0-20260909002914-271c2999cd2c
+# github.com/0magnet/desk/panes v0.0.0-20260910005425-be63baa02041
 ## explicit; go 1.26
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -46,7 +46,7 @@ github.com/0magnet/img2txt-go/caca
 # github.com/0magnet/lolcat-go v0.0.0-20260907230215-22c54b7702c7
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20260908184626-62fb0d217996
+# github.com/0magnet/pisano v0.0.0-20260910095100-28998574c84c
 ## explicit; go 1.26.0
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20260908180128-ed5a78054456
@@ -109,7 +109,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20260909100049-99a0f9924f16
+# github.com/0magnet/tuiwasm v0.0.0-20260910095422-1a0dc0d8226f
 ## explicit; go 1.26.5
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -129,14 +129,14 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20260907193324-47ff3c83f69d
 ## explicit; go 1.26.0
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.0-20260909095802-ace31d005a7e
+# github.com/0magnet/websh v0.0.0-20260910095218-3d6d74ccedfc
 ## explicit; go 1.26.0
 github.com/0magnet/websh/shell
 github.com/0magnet/websh/web
 # github.com/0magnet/winbox-go v0.0.0-20260908011106-113d480c4188
 ## explicit; go 1.24
 github.com/0magnet/winbox-go
-# github.com/0magnet/xterm-go v0.0.0-20260908200322-79e29f0f6b91
+# github.com/0magnet/xterm-go v0.0.0-20260910002153-8f449d30e0f4
 ## explicit; go 1.24
 github.com/0magnet/xterm-go
 github.com/0magnet/xterm-go/vt
@@ -399,7 +399,7 @@ github.com/lucasb-eyer/go-colorful
 # github.com/mattn/go-isatty v0.0.24
 ## explicit; go 1.20
 github.com/mattn/go-isatty
-# github.com/mattn/go-runewidth v0.0.29
+# github.com/mattn/go-runewidth v0.0.30
 ## explicit; go 1.23
 github.com/mattn/go-runewidth
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
