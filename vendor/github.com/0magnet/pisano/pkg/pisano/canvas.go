@@ -164,3 +164,18 @@ func minMax(a, b int) (int, int) {
 	}
 	return a, b
 }
+
+// ColorAt is the color last set on a cell, or "" where none was.
+//
+// A canvas is drawn segment by segment with a color per segment, and what it
+// keeps is the color per CELL — the last one written there, so a path crossing
+// itself takes the color of the later visit. That is the whole of what the
+// terminal renderer needs and it is enough for anything else drawing from the
+// same canvas, which is why this hands back the cell rather than the segments.
+func (c *Canvas) ColorAt(x, y int) string {
+	i, ok := c.idx(x, y)
+	if !ok {
+		return ""
+	}
+	return c.color[i]
+}
