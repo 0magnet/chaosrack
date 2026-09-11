@@ -7,7 +7,7 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.0-20260910095201-fedabc6a228d
+# github.com/0magnet/audioprism-go v0.0.0-20260911095310-ed52f289c3ee
 ## explicit; go 1.26.2
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
@@ -46,7 +46,7 @@ github.com/0magnet/img2txt-go/caca
 # github.com/0magnet/lolcat-go v0.0.0-20260907230215-22c54b7702c7
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20260910095100-28998574c84c
+# github.com/0magnet/pisano v0.0.0-20260911095031-f67313b1e65f
 ## explicit; go 1.26.0
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20260908180128-ed5a78054456
@@ -109,7 +109,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20260910095422-1a0dc0d8226f
+# github.com/0magnet/tuiwasm v0.0.0-20260911095522-a90e688d06dd
 ## explicit; go 1.26.5
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -129,7 +129,7 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20260907193324-47ff3c83f69d
 ## explicit; go 1.26.0
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.0-20260910095218-3d6d74ccedfc
+# github.com/0magnet/websh v0.0.0-20260910095512-6bcad1d93e01
 ## explicit; go 1.26.0
 github.com/0magnet/websh/shell
 github.com/0magnet/websh/web
@@ -163,7 +163,7 @@ github.com/benhoyt/goawk/parser
 # github.com/bytedance/gopkg v0.1.4
 ## explicit; go 1.18
 github.com/bytedance/gopkg/lang/dirtmake
-# github.com/bytedance/sonic v1.15.3
+# github.com/bytedance/sonic v1.15.4
 ## explicit; go 1.18
 github.com/bytedance/sonic
 github.com/bytedance/sonic/ast
@@ -211,7 +211,7 @@ github.com/charmbracelet/colorprofile
 # github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 ## explicit; go 1.18
 github.com/charmbracelet/lipgloss
-# github.com/charmbracelet/ultraviolet v0.0.0-20260906173415-0277a179edd9
+# github.com/charmbracelet/ultraviolet v0.0.0-20260910203606-6c9e17dc7a16
 ## explicit; go 1.25.0
 github.com/charmbracelet/ultraviolet
 # github.com/charmbracelet/x/ansi v0.11.8
@@ -499,7 +499,7 @@ github.com/yuin/goldmark-emoji/definition
 # gitlab.com/russoj88/stl v1.0.2
 ## explicit; go 1.12
 gitlab.com/russoj88/stl/stl
-# go.mongodb.org/mongo-driver/v2 v2.9.0
+# go.mongodb.org/mongo-driver/v2 v2.9.1
 ## explicit; go 1.25.0
 go.mongodb.org/mongo-driver/v2/bson
 go.mongodb.org/mongo-driver/v2/internal/binaryutil
