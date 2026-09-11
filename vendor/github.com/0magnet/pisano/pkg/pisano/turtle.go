@@ -295,3 +295,32 @@ func CanonicalPath(pts []Pt) string {
 	}
 	return best
 }
+
+// PassANSI is the six terminal colors RenderTurtle tints with, in the order it
+// uses them.
+func PassANSI() []string { return append([]string(nil), passColors...) }
+
+// PassHex is the same six as hex, for a renderer that draws where ANSI means
+// nothing — a browser, say — so a figure on a page comes out the colors the
+// terminal draws it.
+//
+// The SVG sheets do NOT use these. They have their own palette, tuned for a
+// white or near-white page and for lines a pixel wide rather than a character
+// wide, and PassColors is that one. Two palettes for two media is deliberate;
+// picking the wrong one gets a figure that is recognizably the same shape and
+// recognizably the wrong colors.
+//
+// The values are the xterm defaults for codes 31-36, which is what these
+// escapes get on a terminal that has not been retuned. Blue is the exception:
+// xterm's #0000ee is all but invisible on a dark background, and every terminal
+// anyone actually reads brightens it, so it is brightened here.
+func PassHex() []string {
+	return []string{
+		"#00cdcd", // 36 cyan
+		"#cd00cd", // 35 magenta
+		"#00cd00", // 32 green
+		"#cdcd00", // 33 yellow
+		"#5c5cff", // 34 blue, brightened
+		"#cd0000", // 31 red
+	}
+}
