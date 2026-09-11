@@ -320,3 +320,17 @@ func svgEscape(s string) string {
 	}
 	return b.String()
 }
+
+// PassColors is the six-color pass palette a sheet draws with, for the given
+// theme, so something rendering a figure outside this package can color it the
+// way the sheets do rather than picking six colors of its own.
+//
+// ThemeAuto has no fixed answer — the sheets resolve it with a media query, and
+// a caller that cannot ask the page gets the dark set, which is what this one's
+// pages are.
+func PassColors(t Theme) [6]string {
+	if t == ThemeLight {
+		return lightPalette.pass
+	}
+	return darkPalette.pass
+}
