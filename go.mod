@@ -3,14 +3,14 @@ module github.com/0magnet/chaosrack
 go 1.26.5
 
 require (
-	github.com/0magnet/audioprism-go v0.0.0-20260911095310-ed52f289c3ee
+	github.com/0magnet/audioprism-go v0.0.0-20260912092915-803b38c22d30
 	github.com/0magnet/calvin v0.0.0-20260908180241-0893f4bff56a
 	github.com/0magnet/desk v0.0.0-20260910005425-be63baa02041
 	github.com/0magnet/desk/panes v0.0.0-20260910005425-be63baa02041
-	github.com/0magnet/pisano v0.0.0-20260911095031-f67313b1e65f
+	github.com/0magnet/pisano v0.0.0-20260911100735-78708d324c6a
 	github.com/0magnet/rack-go v0.0.0-20260908062801-a66d3de6933f
 	github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a
-	github.com/0magnet/tuiwasm v0.0.0-20260911095522-a90e688d06dd
+	github.com/0magnet/tuiwasm v0.0.0-20260912093150-db4a46b8f6e6
 	github.com/0magnet/websh v0.0.0-20260910095512-6bcad1d93e01
 	github.com/0magnet/winbox-go v0.0.0-20260908011106-113d480c4188
 	github.com/0magnet/xterm-go v0.0.0-20260910002153-8f449d30e0f4
@@ -32,7 +32,7 @@ require (
 	github.com/0magnet/img2txt-go v0.0.0-20260908184618-c36a40322de2 // indirect
 	github.com/0magnet/lolcat-go v0.0.0-20260907230215-22c54b7702c7 // indirect
 	github.com/0magnet/proxima5 v0.0.0-20260908180128-ed5a78054456 // indirect
-	github.com/0magnet/termanim v0.0.0-20260908211604-399e16bb92f6 // indirect
+	github.com/0magnet/termanim v0.0.0-20260912092751-2d3151f78a72 // indirect
 	github.com/0magnet/toilet-go v0.0.0-20260909095410-ea1263b381d1 // indirect
 	github.com/0magnet/u-root v0.16.1-0.20260907193324-47ff3c83f69d // indirect
 	github.com/alecthomas/chroma/v2 v2.27.0 // indirect
@@ -60,7 +60,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.15 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/gdamore/tcell/v2 v2.13.10 // indirect
-	github.com/gdamore/tcell/v3 v3.4.2 // indirect
+	github.com/gdamore/tcell/v3 v3.5.0 // indirect
 	github.com/gin-contrib/sse v1.1.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
