@@ -27,11 +27,11 @@ import (
 // passed as BYTES: this package owns how it is encoded, so no caller can get
 // the encoding wrong or fall out of step with the template.
 type PageOptions struct {
-	Wasm          []byte   // the WebAssembly binary to inline
-	WasmExecJs    htmpl.JS // its matching wasm_exec.js
-	Title         string   // shown in the page's runtime switch
-	OtherLink     string   // href of the other runtime's page
-	OtherLabel    string   // its label
+	Wasm       []byte   // the WebAssembly binary to inline
+	WasmExecJs htmpl.JS // its matching wasm_exec.js
+	Title      string   // shown in the page's runtime switch
+	OtherLink  string   // href of the other runtime's page
+	OtherLabel string   // its label
 	// CanonicalPath is appended to the site root to form the page's canonical
 	// URL. It is empty for every page here on purpose: /, /go/ and /tinygo/
 	// differ only in which wasm runtime they boot, and three URLs serving one
