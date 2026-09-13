@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Desk — geometry, drawn live in the browser · chaosrack</title>
+<meta name="description" content="Desk — a window manager, drawn as a model. The same texture-on-a-plane path the spectrogram, the recurrence plot and the Terminal use, with a whole [desk](https://github.">
+<meta name="author" content="0magnet">
+<link rel="canonical" href="https://chaosrack.magnetosphere.net/models/desk.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="magnetosphere">
+<meta property="og:title" content="Desk — geometry, drawn live in the browser · chaosrack">
+<meta property="og:description" content="Desk — a window manager, drawn as a model. The same texture-on-a-plane path the spectrogram, the recurrence plot and the Terminal use, with a whole [desk](https://github.">
+<meta property="og:url" content="https://chaosrack.magnetosphere.net/models/desk.html">
+<meta property="og:image" content="https://chaosrack.magnetosphere.net/docs/img/hero.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Desk — geometry, drawn live in the browser · chaosrack">
+<meta name="twitter:description" content="Desk — a window manager, drawn as a model. The same texture-on-a-plane path the spectrogram, the recurrence plot and the Terminal use, with a whole [desk](https://github.">
+<meta name="twitter:image" content="https://chaosrack.magnetosphere.net/docs/img/hero.jpg">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","name":"Desk — geometry, drawn live in the browser · chaosrack","url":"https://chaosrack.magnetosphere.net/models/desk.html",
+"description":"Desk — a window manager, drawn as a model. The same texture-on-a-plane path the spectrogram, the recurrence plot and the Terminal use, with a whole [desk](https://github.","primaryImageOfPage":"https://chaosrack.magnetosphere.net/docs/img/hero.jpg",
+"isPartOf":{"@type":"WebSite","name":"chaosrack","url":"https://chaosrack.magnetosphere.net/"}}
+</script>
+<style>
+:root { color-scheme: light dark;
+        --bg:#ffffff; --fg:#15171c; --muted:#5c6470; --line:#e4e7ec; --accent:#7b4cd8; --card:#f7f8fa; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#0d0f14; --fg:#e6e9ee; --muted:#8b94a3; --line:#232833; --accent:#b08cff; --card:#141821; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+       font:16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+.wrap { max-width: 900px; margin:0 auto; padding: 2rem 1.1rem 5rem; }
+a { color:var(--accent); }
+header nav { font-size:.86rem; color:var(--muted); margin-bottom:2rem; }
+header nav a { color:var(--muted); text-decoration:none; }
+header nav a:hover { color:var(--accent); text-decoration:underline; }
+h1 { font-size:1.9rem; line-height:1.2; margin:0 0 .3rem; letter-spacing:-.01em; }
+.class { color:var(--muted); font-size:.85rem; text-transform:uppercase; letter-spacing:.09em; margin-bottom:1.6rem; }
+.shots { display:grid; gap:.9rem; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); margin:0 0 2rem; }
+figure { margin:0; }
+figure img { width:100%; height:auto; display:block; border:1px solid var(--line); border-radius:9px; background:#000; }
+figcaption { color:var(--muted); font-size:.78rem; margin-top:.4rem; text-transform:uppercase; letter-spacing:.07em; }
+pre { background:var(--card); border:1px solid var(--line); border-radius:9px;
+      padding:1rem; overflow-x:auto; font:14px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; }
+.open { display:inline-block; margin:1.6rem 0; padding:.75rem 1.3rem; border-radius:8px;
+        background:var(--accent); color:#fff; font-weight:600; text-decoration:none; }
+.open:hover { filter:brightness(1.1); }
+.pager { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap;
+         border-top:1px solid var(--line); margin-top:3rem; padding-top:1.2rem; font-size:.9rem; }
+.grid { display:grid; gap:1.1rem; grid-template-columns:repeat(auto-fill,minmax(215px,1fr)); margin:.6rem 0 2.6rem; }
+.card { border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card);
+        text-decoration:none; color:inherit; display:flex; flex-direction:column; }
+.card:hover { border-color:var(--accent); }
+.card img { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; background:#000; }
+.card .body { padding:.6rem .75rem .8rem; }
+.card b { display:block; font-size:.95rem; }
+.card span { color:var(--muted); font-size:.76rem; }
+h2 { font-size:1.15rem; margin:2.4rem 0 .2rem; padding-bottom:.45rem; border-bottom:1px solid var(--line); }
+.lead { color:var(--muted); max-width:68ch; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><nav><a href="../">chaosrack</a> › <a href="./">models</a> › Solids</nav></header>
+<h1>Desk</h1>
+<div class="class">geometry · <code>#desk</code></div>
+
+<p>Desk — a window manager, drawn as a model. The same texture-on-a-plane path the spectrogram, the recurrence plot and the Terminal use, with a whole [desk](https://github.com/0magnet/desk) on it: winbox windows, a [websh](https://github.com/0magnet/websh) shell in each, a file manager, all of them running while you rotate them. It needed something from desk to be possible at all. A window is more than its pane — its title, buttons and border are DOM, and DOM cannot be sampled into a texture — so texturing the panes alone would give a desk of frameless rectangles. desk&#39;s WebGL compositor can now REDRAW the frames instead: each title bar is rasterized with Canvas2D, text and buttons and all, into the same canvas it draws the panes into, and that canvas is a complete picture of the desk. Nothing types into it while it is a model, and that is the arrangement rather than an omission for the MOUSE: a click on a rotated quad would have to be cast through it to a texture coordinate and synthesized back into a DOM event at a place nothing is. What you get instead are two gestures. **Ctrl-drag** reaches the desk, so ctrl-dragging a title bar moves a window while an ordinary drag still turns the model; the **Pass-thru** switch in the Desk module swaps the two if you would rather drag windows directly and hold ctrl to turn. And the KEYBOARD does reach it: **double-click** the canvas to type into the focused window and **Esc** to give the keyboard back, the same pair the Terminal and Host Shell models use. Aiming is the honest limitation — you are pointing at a projection, so a title bar is not where the pointer says it is. The **Desk** switch (Console → Window) puts the same windows on the page as ordinary DOM, which is the one to use for arranging them; rearrange there, then come back here to look at it. Flatten to work, rotate to admire. It can also be the BACKDROP behind another model, the way the spectrogram and the terminal can.</p>
+
+
+<a class="open" href="https://chaosrack.magnetosphere.net/#desk">Open Desk in chaosrack →</a>
+<p class="lead">It opens running, on the model selector, with its own knobs. Rotate it by dragging,
+zoom with the wheel, and turn the parameters to see what the figure does when the system changes.</p>
+<div class="pager">
+<span>← <a href="hostterm.html">Host Shell</a></span>
+<span><a href="./">all models</a></span>
+<span><a href="spectrogram.html">Spectrogram</a> →</span>
+</div>
+</div>
+</body>
+</html>

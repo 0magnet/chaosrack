@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recurrence Plot — audio, drawn live in the browser · chaosrack</title>
+<meta name="description" content="Recurrence Plot — the picture of when a signal returns to where it has already been (J.-P. Eckmann, S. O. Kamphorst and D. Ruelle, &#34;Recurrence Plots of Dynamical Systems&#34;, 1987).">
+<meta name="author" content="0magnet">
+<link rel="canonical" href="https://chaosrack.magnetosphere.net/models/recurrence.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="magnetosphere">
+<meta property="og:title" content="Recurrence Plot — audio, drawn live in the browser · chaosrack">
+<meta property="og:description" content="Recurrence Plot — the picture of when a signal returns to where it has already been (J.-P. Eckmann, S. O. Kamphorst and D. Ruelle, &#34;Recurrence Plots of Dynamical Systems&#34;, 1987).">
+<meta property="og:url" content="https://chaosrack.magnetosphere.net/models/recurrence.html">
+<meta property="og:image" content="https://chaosrack.magnetosphere.net/docs/img/model/recurrence.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Recurrence Plot — audio, drawn live in the browser · chaosrack">
+<meta name="twitter:description" content="Recurrence Plot — the picture of when a signal returns to where it has already been (J.-P. Eckmann, S. O. Kamphorst and D. Ruelle, &#34;Recurrence Plots of Dynamical Systems&#34;, 1987).">
+<meta name="twitter:image" content="https://chaosrack.magnetosphere.net/docs/img/model/recurrence.jpg">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","name":"Recurrence Plot — audio, drawn live in the browser · chaosrack","url":"https://chaosrack.magnetosphere.net/models/recurrence.html",
+"description":"Recurrence Plot — the picture of when a signal returns to where it has already been (J.-P. Eckmann, S. O. Kamphorst and D. Ruelle, \"Recurrence Plots of Dynamical Systems\", 1987).","primaryImageOfPage":"https://chaosrack.magnetosphere.net/docs/img/model/recurrence.jpg",
+"isPartOf":{"@type":"WebSite","name":"chaosrack","url":"https://chaosrack.magnetosphere.net/"}}
+</script>
+<style>
+:root { color-scheme: light dark;
+        --bg:#ffffff; --fg:#15171c; --muted:#5c6470; --line:#e4e7ec; --accent:#7b4cd8; --card:#f7f8fa; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#0d0f14; --fg:#e6e9ee; --muted:#8b94a3; --line:#232833; --accent:#b08cff; --card:#141821; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+       font:16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+.wrap { max-width: 900px; margin:0 auto; padding: 2rem 1.1rem 5rem; }
+a { color:var(--accent); }
+header nav { font-size:.86rem; color:var(--muted); margin-bottom:2rem; }
+header nav a { color:var(--muted); text-decoration:none; }
+header nav a:hover { color:var(--accent); text-decoration:underline; }
+h1 { font-size:1.9rem; line-height:1.2; margin:0 0 .3rem; letter-spacing:-.01em; }
+.class { color:var(--muted); font-size:.85rem; text-transform:uppercase; letter-spacing:.09em; margin-bottom:1.6rem; }
+.shots { display:grid; gap:.9rem; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); margin:0 0 2rem; }
+figure { margin:0; }
+figure img { width:100%; height:auto; display:block; border:1px solid var(--line); border-radius:9px; background:#000; }
+figcaption { color:var(--muted); font-size:.78rem; margin-top:.4rem; text-transform:uppercase; letter-spacing:.07em; }
+pre { background:var(--card); border:1px solid var(--line); border-radius:9px;
+      padding:1rem; overflow-x:auto; font:14px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; }
+.open { display:inline-block; margin:1.6rem 0; padding:.75rem 1.3rem; border-radius:8px;
+        background:var(--accent); color:#fff; font-weight:600; text-decoration:none; }
+.open:hover { filter:brightness(1.1); }
+.pager { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap;
+         border-top:1px solid var(--line); margin-top:3rem; padding-top:1.2rem; font-size:.9rem; }
+.grid { display:grid; gap:1.1rem; grid-template-columns:repeat(auto-fill,minmax(215px,1fr)); margin:.6rem 0 2.6rem; }
+.card { border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card);
+        text-decoration:none; color:inherit; display:flex; flex-direction:column; }
+.card:hover { border-color:var(--accent); }
+.card img { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; background:#000; }
+.card .body { padding:.6rem .75rem .8rem; }
+.card b { display:block; font-size:.95rem; }
+.card span { color:var(--muted); font-size:.76rem; }
+h2 { font-size:1.15rem; margin:2.4rem 0 .2rem; padding-bottom:.45rem; border-bottom:1px solid var(--line); }
+.lead { color:var(--muted); max-width:68ch; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><nav><a href="../">chaosrack</a> › <a href="./">models</a> › Audio</nav></header>
+<h1>Recurrence Plot</h1>
+<div class="class">audio · <code>#recurrence</code></div>
+<div class="shots">
+<figure><img src="../docs/img/model/recurrence.jpg" alt="Recurrence Plot drawn by chaosrack" loading="lazy"><figcaption>Recurrence Plot</figcaption></figure>
+<figure><img src="../docs/img/model/recurrence.gif" alt="Recurrence Plot turning through the palette" loading="lazy"><figcaption>turning</figcaption></figure>
+<figure><img src="../docs/img/model/recurrence-params.jpg" alt="The parameter knobs for Recurrence Plot" loading="lazy"><figcaption>parameters</figcaption></figure>
+</div>
+<p>Recurrence Plot — the picture of when a signal returns to where it has already been (J.-P. Eckmann, S. O. Kamphorst and D. Ruelle, &#34;Recurrence Plots of Dynamical Systems&#34;, 1987). Time runs along both axes, and the cell (i, j) is lit when the two samples are within ε of each other, so the main diagonal is always lit and everything else says how the signal repeats. A steady tone draws unbroken diagonals spaced by its period; a chaotic or noisy source breaks them into short segments; a held sound is a solid block, and the instant the source changes is an edge running across the square. SRC picks what is being plotted: audio is the raw samples, embed is the Takens delay vector (s, s−τ, … s−(m−1)τ) of that same audio — the reconstructed phase space a recurrence plot is properly defined on, which removes the anti-diagonals a scalar signal shows because sin t equals sin(T/2 − t) — and traj is the most recent attractor&#39;s own trajectory, the way the Bifurcation explorer picks its system. τ is the Takens mode&#39;s own τ knob, so its MEAS button measures the delay for this plot too, and m is the embedding dimension. WIN is how much history the square covers: milliseconds for the audio sources, tenths of that in the system&#39;s own time units for a trajectory. ε is the threshold as a fraction of the source&#39;s scale — full scale for audio, the attractor&#39;s own diameter for a trajectory, which is what makes one default readable across systems that differ in width by fifty times. It is never taken from the current level, deliberately: a threshold that follows the music makes the plot&#39;s density pulse with it instead of describing it. RQA reads the picture back as three numbers — RR, the percentage lit and the number to turn ε by; DET, the share of that lying on diagonals, which is what separates a system from noise; and LAM, the share on verticals, which is states it sat in rather than passed through. Drawn as a texture on a square plane in the same 3-D pipeline as every other model.</p>
+
+
+<a class="open" href="https://chaosrack.magnetosphere.net/#recurrence">Open Recurrence Plot in chaosrack →</a>
+<p class="lead">It opens running, on the model selector, with its own knobs. Rotate it by dragging,
+zoom with the wheel, and turn the parameters to see what the figure does when the system changes.</p>
+<div class="pager">
+<span>← <a href="fvf.html">FVF Wobbulator</a></span>
+<span><a href="./">all models</a></span>
+<span><a href="bifurcation.html">Bifurcation</a> →</span>
+</div>
+</div>
+</body>
+</html>

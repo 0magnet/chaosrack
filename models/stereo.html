@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stereo Embedding — parametric, drawn live in the browser · chaosrack</title>
+<meta name="description" content="Stereo Embedding — the Takens trail built from the two channels instead of one channel&#39;s past.">
+<meta name="author" content="0magnet">
+<link rel="canonical" href="https://chaosrack.magnetosphere.net/models/stereo.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="magnetosphere">
+<meta property="og:title" content="Stereo Embedding — parametric, drawn live in the browser · chaosrack">
+<meta property="og:description" content="Stereo Embedding — the Takens trail built from the two channels instead of one channel&#39;s past.">
+<meta property="og:url" content="https://chaosrack.magnetosphere.net/models/stereo.html">
+<meta property="og:image" content="https://chaosrack.magnetosphere.net/docs/img/hero.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Stereo Embedding — parametric, drawn live in the browser · chaosrack">
+<meta name="twitter:description" content="Stereo Embedding — the Takens trail built from the two channels instead of one channel&#39;s past.">
+<meta name="twitter:image" content="https://chaosrack.magnetosphere.net/docs/img/hero.jpg">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","name":"Stereo Embedding — parametric, drawn live in the browser · chaosrack","url":"https://chaosrack.magnetosphere.net/models/stereo.html",
+"description":"Stereo Embedding — the Takens trail built from the two channels instead of one channel's past.","primaryImageOfPage":"https://chaosrack.magnetosphere.net/docs/img/hero.jpg",
+"isPartOf":{"@type":"WebSite","name":"chaosrack","url":"https://chaosrack.magnetosphere.net/"}}
+</script>
+<style>
+:root { color-scheme: light dark;
+        --bg:#ffffff; --fg:#15171c; --muted:#5c6470; --line:#e4e7ec; --accent:#7b4cd8; --card:#f7f8fa; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#0d0f14; --fg:#e6e9ee; --muted:#8b94a3; --line:#232833; --accent:#b08cff; --card:#141821; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+       font:16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+.wrap { max-width: 900px; margin:0 auto; padding: 2rem 1.1rem 5rem; }
+a { color:var(--accent); }
+header nav { font-size:.86rem; color:var(--muted); margin-bottom:2rem; }
+header nav a { color:var(--muted); text-decoration:none; }
+header nav a:hover { color:var(--accent); text-decoration:underline; }
+h1 { font-size:1.9rem; line-height:1.2; margin:0 0 .3rem; letter-spacing:-.01em; }
+.class { color:var(--muted); font-size:.85rem; text-transform:uppercase; letter-spacing:.09em; margin-bottom:1.6rem; }
+.shots { display:grid; gap:.9rem; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); margin:0 0 2rem; }
+figure { margin:0; }
+figure img { width:100%; height:auto; display:block; border:1px solid var(--line); border-radius:9px; background:#000; }
+figcaption { color:var(--muted); font-size:.78rem; margin-top:.4rem; text-transform:uppercase; letter-spacing:.07em; }
+pre { background:var(--card); border:1px solid var(--line); border-radius:9px;
+      padding:1rem; overflow-x:auto; font:14px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; }
+.open { display:inline-block; margin:1.6rem 0; padding:.75rem 1.3rem; border-radius:8px;
+        background:var(--accent); color:#fff; font-weight:600; text-decoration:none; }
+.open:hover { filter:brightness(1.1); }
+.pager { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap;
+         border-top:1px solid var(--line); margin-top:3rem; padding-top:1.2rem; font-size:.9rem; }
+.grid { display:grid; gap:1.1rem; grid-template-columns:repeat(auto-fill,minmax(215px,1fr)); margin:.6rem 0 2.6rem; }
+.card { border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card);
+        text-decoration:none; color:inherit; display:flex; flex-direction:column; }
+.card:hover { border-color:var(--accent); }
+.card img { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; background:#000; }
+.card .body { padding:.6rem .75rem .8rem; }
+.card b { display:block; font-size:.95rem; }
+.card span { color:var(--muted); font-size:.76rem; }
+h2 { font-size:1.15rem; margin:2.4rem 0 .2rem; padding-bottom:.45rem; border-bottom:1px solid var(--line); }
+.lead { color:var(--muted); max-width:68ch; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><nav><a href="../">chaosrack</a> › <a href="./">models</a> › Scope</nav></header>
+<h1>Stereo Embedding</h1>
+<div class="class">parametric · <code>#stereo</code></div>
+
+<p>Stereo Embedding — the Takens trail built from the two channels instead of one channel&#39;s past. Takens&#39; theorem manufactures the missing axes out of a signal&#39;s own history because there is only one signal; a stereo source has already measured two, so this mode plots them against each other and what you see is the real relationship between the channels — phase, polarity, correlation, width — rather than a reconstruction. Looked at head-on it is the goniometer (vectorscope) of a mastering desk, which is the XY Scope&#39;s figure; the third axis is what a scope with two deflection plates cannot give you. AXES picks the assignment. L,R,L(t−τ) is the goniometer with a delay coordinate for depth: a tone that draws one ellipse edge-on unrolls into a helix, and τ still means what it means in the Takens mode. L,R,time sweeps the figure along a ribbon so successive cycles stack instead of overwriting — the only way to see a slow phase drift, which on a flat display just wobbles. The mid/side positions rotate the basis 45°: M=(L&#43;R)/2 and S=(L−R)/2, so center content lies along one axis and difference content along the other and width is an extent rather than a tilt. τ is inert on the two time positions. CORR is the correlation meter: &#43;1.00 means the channels are identical and the figure is a diagonal line, 0 means they are unrelated and it is a round cloud, −1.00 means one is the other inverted (and the difference vanishes if the mix is summed to mono). A mono source reads &#34;mono&#34; and draws the diagonal, which is the correct picture of a signal with no stereo information in it — nothing here fakes a second channel out of a delayed copy of the first, because that delayed copy is exactly what this mode exists to stop pretending is a channel. The mid/side positions are the ones worth turning to then: S is zero and what is left is an honest two-coordinate delay embedding. WIN is how much time the figure spans, in milliseconds — a phase display is read over a few tens of them, past a couple of hundred it is a filled blob; GAIN sets how large a full-scale sample draws, and as in the Takens mode the scale is fixed and nothing auto-ranges. Audio comes from the active source — the microphone, the signal generators, or a server feed. The feed asks the capture for the source as it was recorded, over the WebSocket and over WebTransport alike, so a stereo sink gives real stereo either way; a server or a device with only one channel to give reads &#34;mono&#34;.</p>
+
+
+<a class="open" href="https://chaosrack.magnetosphere.net/#stereo">Open Stereo Embedding in chaosrack →</a>
+<p class="lead">It opens running, on the model selector, with its own knobs. Rotate it by dragging,
+zoom with the wheel, and turn the parameters to see what the figure does when the system changes.</p>
+<div class="pager">
+<span>← <a href="takens.html">Takens Embedding</a></span>
+<span><a href="./">all models</a></span>
+<span><a href="polar.html">Polar Embedding</a> →</span>
+</div>
+</div>
+</body>
+</html>

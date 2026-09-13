@@ -7,6 +7,7 @@
 //	uitool gifs   [flags]   animated README gallery capture (see gifs.go)
 //	uitool portraits [flags] per-model stills + loops for the README (see portraits.go)
 //	uitool readme [flags]   regenerate the README's generated regions (see readme.go)
+//	uitool site   [flags]   per-model HTML pages + sitemap (see site.go)
 //	uitool demo   [flags]   chaos-monkey demo-reel recorder (see demo.go)
 //	uitool layout [flags]   control-panel geometry invariants (see layout.go)
 //	uitool spec   [flags]   WAV → spectrogram PNG, and PNG diff (see spec.go)
@@ -49,6 +50,8 @@ func main() {
 		runGifs()
 	case "portraits":
 		runPortraits()
+	case "site":
+		runSite()
 	case "readme":
 		runReadme()
 	case "modules":
