@@ -15,11 +15,11 @@ github.com/0magnet/audioprism-go/pkg/wsaudio
 ## explicit; go 1.26.0
 github.com/0magnet/calvin
 github.com/0magnet/calvin/clihelp
-# github.com/0magnet/desk v0.0.0-20260910005425-be63baa02041
+# github.com/0magnet/desk v0.0.0-20260912154728-bfe10d475353
 ## explicit; go 1.26
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.0-20260910005425-be63baa02041
+# github.com/0magnet/desk/panes v0.0.0-20260912154728-bfe10d475353
 ## explicit; go 1.26
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -64,7 +64,7 @@ github.com/0magnet/sh/v3/internal
 github.com/0magnet/sh/v3/interp
 github.com/0magnet/sh/v3/pattern
 github.com/0magnet/sh/v3/syntax
-# github.com/0magnet/termanim v0.0.0-20260912092751-2d3151f78a72
+# github.com/0magnet/termanim v0.0.0-20260912180616-5fa253f0fdbd
 ## explicit; go 1.26.0
 github.com/0magnet/termanim/aquarium
 github.com/0magnet/termanim/atom
@@ -109,7 +109,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20260912093150-db4a46b8f6e6
+# github.com/0magnet/tuiwasm v0.0.0-20260913102840-ea61f8df4d31
 ## explicit; go 1.26.5
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -222,7 +222,7 @@ github.com/charmbracelet/x/ansi/parser
 # github.com/charmbracelet/x/cellbuf v0.0.15
 ## explicit; go 1.24.2
 github.com/charmbracelet/x/cellbuf
-# github.com/charmbracelet/x/exp/slice v0.0.0-20260906004030-3986e9119cf9
+# github.com/charmbracelet/x/exp/slice v0.0.0-20260913004009-c615ff2f7805
 ## explicit; go 1.24.0
 github.com/charmbracelet/x/exp/slice
 # github.com/charmbracelet/x/term v0.2.2
