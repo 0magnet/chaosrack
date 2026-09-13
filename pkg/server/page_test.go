@@ -156,3 +156,36 @@ func TestThePageComesBeforeItsPayload(t *testing.T) {
 			payload, desc)
 	}
 }
+
+// The fetched page must not ALSO carry the payload.
+//
+// The two forms are one switch, and the way to get it wrong is to set both: the
+// page then fetches the binary, runs perfectly, and is still twelve megabytes,
+// with the megabytes it ignores sitting in the document. Nothing fails, so
+// nothing says so — which is how the deployed page got big in the first place.
+func TestTheFetchedPageCarriesNoPayload(t *testing.T) {
+	html, err := RenderPage(PageOptions{
+		Wasm:       bytes.Repeat([]byte("\x00asm\x01\x00\x00\x00"), 128),
+		WasmExecJs: "/* wasm_exec */",
+		Title:      "Go",
+		WasmURL:    "/assets/gowasm/chaosrack.wasm",
+	})
+	if err != nil {
+		t.Fatalf("rendering: %v", err)
+	}
+	s := string(html)
+	if strings.Contains(s, `id="wasmgz"`) {
+		t.Error("the page names a URL to fetch and still carries the inlined payload")
+	}
+	if !strings.Contains(s, "instantiateStreaming(fetch(") {
+		t.Error("the page does not stream-compile: instantiateStreaming(fetch(…)) is the point of fetching it")
+	}
+	if !strings.Contains(s, "/assets/gowasm/chaosrack.wasm") {
+		t.Error("the page does not name the URL it was given")
+	}
+	// It is a page, not a payload: whatever a crawler is willing to read, this
+	// fits inside it many times over.
+	if len(html) > 200<<10 {
+		t.Errorf("the fetched page is %d bytes — it should be tens of kilobytes", len(html))
+	}
+}

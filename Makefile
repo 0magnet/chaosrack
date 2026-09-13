@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs pages site site-check
+.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs pages onefile site site-check
 
 # The targets that matter are `format` and `check`, and they mean the same
 # thing here as in 0pcom/skywire, which is the reference for these repos.
@@ -229,7 +229,12 @@ tinywasm: ## Rebuild the embedded TinyGo wasm (assets/tinywasm/chaosrack-tiny.wa
 
 wasms: wasm tinywasm ## Rebuild both embedded wasm binaries
 
-pages: ## Regenerate the self-contained index.html / go/index.html / tinygo/index.html
+pages: ## Regenerate the deployed index.html / go/index.html / tinygo/index.html
+	@# These FETCH the wasm from assets/, which is where it already is in this
+	@# repository and therefore on GitHub Pages. That makes them tens of
+	@# kilobytes instead of megabytes, lets instantiateStreaming compile the
+	@# module while it downloads, and stops the dual page transferring both
+	@# runtimes to run one of them. `make onefile` builds the other form.
 	@# The serverless pages are the served pages, saved. They carry their own
 	@# copy of the boot script, so a fix to assets/index.tmpl.html reaches the
 	@# GitHub Pages deployment only by regenerating them — which is why the
@@ -259,4 +264,28 @@ pages: ## Regenerate the self-contained index.html / go/index.html / tinygo/inde
 	curl -sf "http://127.0.0.1:$$port/go/" -o go/index.html && echo "pages: go/index.html"; \
 	mkdir -p tinygo && \
 	curl -sf "http://127.0.0.1:$$port/tinygo/" -o tinygo/index.html && echo "pages: tinygo/index.html"; \
+	kill $$srv 2>/dev/null; wait $$srv 2>/dev/null || true
+
+ONEFILE ?= chaosrack-standalone.html
+
+onefile: ## Build the single self-contained HTML file (wasm carried inside it)
+	@# The whole app in one file: no server, no sibling files, nothing to fetch.
+	@# Save it, mail it, open it off a disk. That is what --inline is for, and it
+	@# is the reason the inlining code is still there rather than deleted along
+	@# with the payload the deployed pages no longer carry.
+	@#
+	@# Both runtimes, because a file you were given should not also need to be
+	@# the right one: ?wasm=tinygo still switches inside it.
+	@port=$${PAGES_PORT:-8399}; \
+	if curl -sf -o /dev/null -m 2 "http://127.0.0.1:$$port/" 2>/dev/null; then \
+		echo "onefile: something is already serving 127.0.0.1:$$port — stop it, or set PAGES_PORT" >&2; \
+		exit 1; \
+	fi; \
+	go run ./cmd/chaosrack -p $$port --inline & srv=$$!; \
+	trap "kill $$srv 2>/dev/null" EXIT INT TERM; \
+	for i in $$(seq 1 300); do \
+		curl -sf -o /dev/null "http://127.0.0.1:$$port/" && break || sleep 1; \
+	done; \
+	curl -sf "http://127.0.0.1:$$port/" -o "$(ONEFILE)" && \
+		echo "onefile: $(ONEFILE) ($$(du -h '$(ONEFILE)' | cut -f1))"; \
 	kill $$srv 2>/dev/null; wait $$srv 2>/dev/null || true

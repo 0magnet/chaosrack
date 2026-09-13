@@ -134,8 +134,8 @@ window.__crWT = {
      that describes this page sat at roughly byte 13,500,000 and was never
      read. Nothing about the ordering matters to the browser; it matters to
      everything that reads the page without running it. -->
-<script type="text/plain" id="wasmgz-go">{{.Page.GoWasmGzB64}}</script>
-<script type="text/plain" id="wasmgz-tiny">{{.Page.TinyWasmGzB64}}</script>
+{{if not .Page.GoWasmURL}}<script type="text/plain" id="wasmgz-go">{{.Page.GoWasmGzB64}}</script>
+<script type="text/plain" id="wasmgz-tiny">{{.Page.TinyWasmGzB64}}</script>{{end}}
 <script>
 if (!WebAssembly.instantiateStreaming) {
   WebAssembly.instantiateStreaming = async (resp, importObject) => {
@@ -148,6 +148,26 @@ window.__WASM_DEBUG__ = {{.Page.Debug}};
 const __which = ((new URLSearchParams(location.search)).get('wasm')||'go').toLowerCase() === 'tinygo' ? 'tinygo' : 'go';
 const go = new (__which === 'tinygo' ? window.__GoTiny : window.__GoStd)();
 let mod, inst;
+{{if .Page.GoWasmURL}}
+// The DEPLOYED page fetches the binary as an ordinary resource.
+//
+// It is the better shape for a page that is served: only the runtime being run
+// is fetched, where the inlined dual page carried both and transferred 9.5 MB
+// to run one of them; instantiateStreaming compiles the module WHILE it
+// downloads rather than after; the base64 never exists, so nothing is atob'd
+// and nothing is inflated in JavaScript; and the HTML itself is small enough
+// to be read by things that are not browsers. The host serves .wasm gzipped,
+// so the wire cost of the binary is what the inlined copy cost anyway.
+//
+// The single-file build — `make onefile` — takes the other branch and carries
+// the binary in the document. That is the version to save, mail or open from a
+// disk with no server behind it; this one needs its siblings.
+const __wasmURL = __which === 'tinygo' ? {{.Page.TinyWasmURL}} : {{.Page.GoWasmURL}};
+console.log("[WASM-STUFF] Loading " + __which + " WASM from " + __wasmURL + "...");
+function __instantiate(imports) {
+  return WebAssembly.instantiateStreaming(fetch(__wasmURL), imports);
+}
+{{else}}
 // Read back out of the document. trim() because the payload sits on its own
 // line in the template and atob is only obliged to tolerate whitespace, not
 // to be relied on for it.
@@ -161,9 +181,8 @@ console.log("[WASM-STUFF] Loading " + __which + " WASM...");
 // DecompressionStream does the inflating — no library, and present in every
 // browser since Chrome 80, Firefox 113 and Safari 16.4. Where it is missing
 // the page falls back to fetching the wasm as an ordinary resource, which
-// works on the served page (the server routes /chaosrack.wasm) and not on the
-// single-file one, where there is nothing to fetch. That case says so rather
-// than failing as a decode error.
+// works beside a server that routes it and not in the single file, where there
+// is nothing to fetch. That case says so rather than failing as a decode error.
 async function __wasmBytes() {
   const packed = Uint8Array.from(atob(wasmGzB64), c => c.charCodeAt(0));
   if (typeof DecompressionStream === 'function') {
@@ -176,6 +195,10 @@ async function __wasmBytes() {
   throw new Error('this page needs DecompressionStream to unpack its WebAssembly ' +
     '(Chrome 80+, Firefox 113+, Safari 16.4+), and no ' + url + ' to fall back to');
 }
+function __instantiate(imports) {
+  return __wasmBytes().then((bin) => WebAssembly.instantiate(bin, imports));
+}
+{{end}}
 // The Go program looks up #gocanvas the moment it starts. This script now
 // runs at the end of <body>, after that element, but the document is still
 // parsing when it does — readyState is 'loading' until the last script
@@ -189,11 +212,16 @@ function __whenDOMReady(fn) {
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', fn, {once: true}); }
   else { fn(); }
 }
-// Unpack and compile immediately — that work overlaps the rest of the page
-// parsing — but only START the program once the document is ready.
-const __ready = __wasmBytes().then((bin) => WebAssembly.instantiate(bin, go.importObject));
+// Fetch or unpack, and compile, immediately — that work overlaps the rest of
+// the page parsing — but only START the program once the document is ready.
+const __ready = __instantiate(go.importObject);
 __whenDOMReady(() => __ready.then((result) => {
   mod = result.module; inst = result.instance;
+  // Said out loud, as the single-runtime branch has always said it. Without it
+  // the only things this page reports are "Loading" and, if it never gets
+  // there, nothing — so a run that had not finished compiling yet and a run
+  // that had silently died looked exactly alike from the outside.
+  console.log("[WASM-STUFF] " + __which + " WASM instantiated, starting...");
   return run();
 }).then((r) => console.log("[WASM-STUFF] " + __which + " WASM finished:", r),
         (f) => console.error("[WASM-STUFF] " + __which + " WASM failed:", f)));
@@ -209,7 +237,7 @@ async function run() {
 <!-- See the note in the dual-runtime branch: the payload is parked in the
      document, at the end, so that a crawler's bounded prefix of this file
      contains the page and not the first two megabytes of a base64 blob. -->
-<script type="text/plain" id="wasmgz">{{.Page.WasmGzB64}}</script>
+{{if not .Page.WasmURL}}<script type="text/plain" id="wasmgz">{{.Page.WasmGzB64}}</script>{{end}}
 <script>
 if (!WebAssembly.instantiateStreaming) {
   WebAssembly.instantiateStreaming = async (resp, importObject) => {
@@ -221,17 +249,21 @@ window.__WASM_DEBUG__ = {{.Page.Debug}};
 const go = new Go();
 let mod, inst;
 
-const wasmGzB64 = document.getElementById('wasmgz').textContent.trim();
-
-console.log("[WASM-STUFF] Loading {{.Page.Title}} WASM...");
-// See the notes in the dual-runtime branch: the binary is gzipped before it
-// is base64'd and parked in the document above, and the Go program looks up
-// #gocanvas as it starts — which is before the document has finished parsing,
-// even from here at the end of <body>.
+// See the notes in the dual-runtime branch — for why the Go program's start is
+// held until the document is ready, and for the difference between the two
+// branches below.
 function __whenDOMReady(fn) {
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', fn, {once: true}); }
   else { fn(); }
 }
+{{if .Page.WasmURL}}
+console.log("[WASM-STUFF] Loading {{.Page.Title}} WASM from {{.Page.WasmURL}}...");
+function __instantiate(imports) {
+  return WebAssembly.instantiateStreaming(fetch({{.Page.WasmURL}}), imports);
+}
+{{else}}
+const wasmGzB64 = document.getElementById('wasmgz').textContent.trim();
+console.log("[WASM-STUFF] Loading {{.Page.Title}} WASM...");
 async function __wasmBytes() {
   const packed = Uint8Array.from(atob(wasmGzB64), c => c.charCodeAt(0));
   if (typeof DecompressionStream === 'function') {
@@ -243,7 +275,11 @@ async function __wasmBytes() {
   throw new Error('this page needs DecompressionStream to unpack its WebAssembly ' +
     '(Chrome 80+, Firefox 113+, Safari 16.4+)');
 }
-const __ready = __wasmBytes().then((bin) => WebAssembly.instantiate(bin, go.importObject));
+function __instantiate(imports) {
+  return __wasmBytes().then((bin) => WebAssembly.instantiate(bin, imports));
+}
+{{end}}
+const __ready = __instantiate(go.importObject);
 __whenDOMReady(() => __ready.then((result) => {
   mod = result.module;
   inst = result.instance;
