@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terminal — geometry, drawn live in the browser · chaosrack</title>
+<meta name="description" content="Terminal — a live terminal, drawn as a model. It is the same texture-on-a-plane path the spectrogram and the recurrence plot use, so it rotates, zooms and takes a gradient like…">
+<meta name="author" content="0magnet">
+<link rel="canonical" href="https://chaosrack.magnetosphere.net/models/terminal.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="magnetosphere">
+<meta property="og:title" content="Terminal — geometry, drawn live in the browser · chaosrack">
+<meta property="og:description" content="Terminal — a live terminal, drawn as a model. It is the same texture-on-a-plane path the spectrogram and the recurrence plot use, so it rotates, zooms and takes a gradient like…">
+<meta property="og:url" content="https://chaosrack.magnetosphere.net/models/terminal.html">
+<meta property="og:image" content="https://chaosrack.magnetosphere.net/docs/img/hero.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Terminal — geometry, drawn live in the browser · chaosrack">
+<meta name="twitter:description" content="Terminal — a live terminal, drawn as a model. It is the same texture-on-a-plane path the spectrogram and the recurrence plot use, so it rotates, zooms and takes a gradient like…">
+<meta name="twitter:image" content="https://chaosrack.magnetosphere.net/docs/img/hero.jpg">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","name":"Terminal — geometry, drawn live in the browser · chaosrack","url":"https://chaosrack.magnetosphere.net/models/terminal.html",
+"description":"Terminal — a live terminal, drawn as a model. It is the same texture-on-a-plane path the spectrogram and the recurrence plot use, so it rotates, zooms and takes a gradient like…","primaryImageOfPage":"https://chaosrack.magnetosphere.net/docs/img/hero.jpg",
+"isPartOf":{"@type":"WebSite","name":"chaosrack","url":"https://chaosrack.magnetosphere.net/"}}
+</script>
+<style>
+:root { color-scheme: light dark;
+        --bg:#ffffff; --fg:#15171c; --muted:#5c6470; --line:#e4e7ec; --accent:#7b4cd8; --card:#f7f8fa; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#0d0f14; --fg:#e6e9ee; --muted:#8b94a3; --line:#232833; --accent:#b08cff; --card:#141821; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+       font:16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+.wrap { max-width: 900px; margin:0 auto; padding: 2rem 1.1rem 5rem; }
+a { color:var(--accent); }
+header nav { font-size:.86rem; color:var(--muted); margin-bottom:2rem; }
+header nav a { color:var(--muted); text-decoration:none; }
+header nav a:hover { color:var(--accent); text-decoration:underline; }
+h1 { font-size:1.9rem; line-height:1.2; margin:0 0 .3rem; letter-spacing:-.01em; }
+.class { color:var(--muted); font-size:.85rem; text-transform:uppercase; letter-spacing:.09em; margin-bottom:1.6rem; }
+.shots { display:grid; gap:.9rem; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); margin:0 0 2rem; }
+figure { margin:0; }
+figure img { width:100%; height:auto; display:block; border:1px solid var(--line); border-radius:9px; background:#000; }
+figcaption { color:var(--muted); font-size:.78rem; margin-top:.4rem; text-transform:uppercase; letter-spacing:.07em; }
+pre { background:var(--card); border:1px solid var(--line); border-radius:9px;
+      padding:1rem; overflow-x:auto; font:14px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; }
+.open { display:inline-block; margin:1.6rem 0; padding:.75rem 1.3rem; border-radius:8px;
+        background:var(--accent); color:#fff; font-weight:600; text-decoration:none; }
+.open:hover { filter:brightness(1.1); }
+.pager { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap;
+         border-top:1px solid var(--line); margin-top:3rem; padding-top:1.2rem; font-size:.9rem; }
+.grid { display:grid; gap:1.1rem; grid-template-columns:repeat(auto-fill,minmax(215px,1fr)); margin:.6rem 0 2.6rem; }
+.card { border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card);
+        text-decoration:none; color:inherit; display:flex; flex-direction:column; }
+.card:hover { border-color:var(--accent); }
+.card img { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; background:#000; }
+.card .body { padding:.6rem .75rem .8rem; }
+.card b { display:block; font-size:.95rem; }
+.card span { color:var(--muted); font-size:.76rem; }
+h2 { font-size:1.15rem; margin:2.4rem 0 .2rem; padding-bottom:.45rem; border-bottom:1px solid var(--line); }
+.lead { color:var(--muted); max-width:68ch; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><nav><a href="../">chaosrack</a> › <a href="./">models</a> › Solids</nav></header>
+<h1>Terminal</h1>
+<div class="class">geometry · <code>#terminal</code></div>
+
+<p>Terminal — a live terminal, drawn as a model. It is the same texture-on-a-plane path the spectrogram and the recurrence plot use, so it rotates, zooms and takes a gradient like any other model; what is on the texture is [xterm-go](https://github.com/0magnet/xterm-go), a Go port of xterm.js, rendering a real terminal grid with WebGL2. That last part is what makes this possible rather than merely desirable: a terminal drawn as DOM could not be sampled into a texture at all, and rasterizing DOM every frame is not a thing worth doing. xterm-go renders into a canvas, and a canvas is a texture source. Behind it runs [websh](https://github.com/0magnet/websh), a Bash interpreter compiled to wasm over an in-memory filesystem, so this is a session you can work in and not a picture of one: pipes, globs, redirection, `for` loops, all of it rotating with the model. **Double-click** the canvas to type into it and **Esc** to give the keyboard back — a double click because a single one is how you rotate the model, and the two must not be the same gesture. Focusing it silences the app&#39;s own key bindings automatically, since Pong, the Keys module and the hovered-knob arrows all already stand aside for a focused textarea, which is what a terminal captures keys on. It can also be the BACKDROP behind another model, the way the spectrogram can.</p>
+
+
+<a class="open" href="https://chaosrack.magnetosphere.net/#terminal">Open Terminal in chaosrack →</a>
+<p class="lead">It opens running, on the model selector, with its own knobs. Rotate it by dragging,
+zoom with the wheel, and turn the parameters to see what the figure does when the system changes.</p>
+<div class="pager">
+<span>← <a href="stlfile.html">STL File</a></span>
+<span><a href="./">all models</a></span>
+<span><a href="termanim.html">Terminal Animation</a> →</span>
+</div>
+</div>
+</body>
+</html>
