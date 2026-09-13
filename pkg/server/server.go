@@ -272,7 +272,7 @@ const (
 
 type htmlTemplateData struct {
 	WasmExecJs    htmpl.JS
-	WasmGzB64     string // gzipped, then base64 — see wasmgz.go
+	WasmGzB64     htmpl.HTML // gzipped, then base64 — see wasmgz.go
 	Title         string
 	OtherLink     string
 	OtherLabel    string
@@ -284,7 +284,7 @@ type htmlTemplateData struct {
 	// Dual mode: embed BOTH runtimes, default to Go, switch via ?wasm=tinygo.
 	Dual           bool
 	GoWasmExecJs   htmpl.JS
-	GoWasmGzB64    string
+	GoWasmGzB64    htmpl.HTML
 	TinyWasmExecJs htmpl.JS
-	TinyWasmGzB64  string
+	TinyWasmGzB64  htmpl.HTML
 }

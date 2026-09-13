@@ -4,6 +4,10 @@ package server
 
 import (
 	"bytes"
+	"compress/gzip"
+	"encoding/base64"
+	"io"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -63,5 +67,92 @@ func TestGzipBase64Compresses(t *testing.T) {
 	// that returned something different each call would defeat it.
 	if again := gzipBase64(raw); again != got {
 		t.Error("two calls returned different output")
+	}
+}
+
+// The payload has to survive the template, and the way it fails does not look
+// like a failure.
+//
+// It is base64 in an element the template escapes as HTML text, so a '+' comes
+// out as "&#43;". The page still renders, the test above still passes, the
+// bytes are still all there — and atob rejects them in the browser, which is
+// the only place anyone finds out. The same thing in the other direction cost
+// about 1.4 MB a page: in a JavaScript string literal '+' became a six-byte
+// unicode escape and '/' became an escaped slash, both of which JavaScript
+// decodes back, so it was merely expensive rather than broken and went
+// unnoticed for that reason.
+//
+// So: decode what the template actually wrote, and require a wasm out of it.
+func TestTheRenderedPayloadStillDecodes(t *testing.T) {
+	// A one-byte "wasm" is enough — this is about the encoding surviving, not
+	// about the module being loadable.
+	want := []byte("\x00asm\x01\x00\x00\x00")
+	html, err := RenderPage(PageOptions{
+		Wasm:       want,
+		WasmExecJs: "/* wasm_exec */",
+		Title:      "Go",
+	})
+	if err != nil {
+		t.Fatalf("rendering: %v", err)
+	}
+
+	re := regexp.MustCompile(`(?s)<script type="text/plain" id="wasmgz">(.*?)</script>`)
+	m := re.FindSubmatch(html)
+	if m == nil {
+		t.Fatal("no #wasmgz element in the rendered page: the payload is not where the boot script looks for it")
+	}
+	payload := strings.TrimSpace(string(m[1]))
+
+	if i := strings.IndexAny(payload, "&\\<"); i >= 0 {
+		t.Fatalf("the payload was escaped by the template at offset %d (%q): "+
+			"it is no longer valid base64 and the page will fail in the browser with an atob error",
+			i, payload[max(0, i-8):min(len(payload), i+8)])
+	}
+
+	packed, err := base64.StdEncoding.DecodeString(payload)
+	if err != nil {
+		t.Fatalf("the payload is not decodable base64: %v", err)
+	}
+	zr, err := gzip.NewReader(bytes.NewReader(packed))
+	if err != nil {
+		t.Fatalf("the payload is not gzip: %v", err)
+	}
+	got, err := io.ReadAll(zr)
+	if err != nil {
+		t.Fatalf("inflating the payload: %v", err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Errorf("the payload inflated to %q, want %q", got, want)
+	}
+}
+
+// The crawlable description has to come before the payload.
+//
+// Everything that reads this page without running it reads a bounded prefix
+// and discards the rest — Google documents 2 MB, measured on the uncompressed
+// bytes. With the payload in <head> the description sat at about byte
+// 13,500,000 and no crawler ever reached it. The ordering is the whole fix, so
+// assert it rather than trusting that nobody moves a <script> back.
+func TestThePageComesBeforeItsPayload(t *testing.T) {
+	html, err := RenderPage(PageOptions{
+		Wasm:       bytes.Repeat([]byte("\x00asm\x01\x00\x00\x00"), 128),
+		WasmExecJs: "/* wasm_exec */",
+		Title:      "Go",
+	})
+	if err != nil {
+		t.Fatalf("rendering: %v", err)
+	}
+	s := string(html)
+	desc := strings.Index(s, "<h1>")
+	payload := strings.Index(s, `id="wasmgz"`)
+	switch {
+	case desc < 0:
+		t.Fatal("the page has no <h1>: there is nothing for a crawler to read")
+	case payload < 0:
+		t.Fatal("no #wasmgz element in the rendered page")
+	case desc > payload:
+		t.Errorf("the payload starts at byte %d and the description at %d — "+
+			"the description is behind the payload again, which is what made it unreachable",
+			payload, desc)
 	}
 }

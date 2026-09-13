@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs pages
+.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs pages site site-check
 
 # The targets that matter are `format` and `check`, and they mean the same
 # thing here as in 0pcom/skywire, which is the reference for these repos.
@@ -179,6 +179,16 @@ install-linters: ## Install the linters
 docs: ## Regenerate the dependency graph and code counts in the README
 	./gendocs.sh
 
+site: ## Regenerate models/ — one readable page per model — and sitemap.xml
+	@# The app is one URL that draws every model onto a canvas, so the only
+	@# thing outside it that can name a model is a page that says so in text.
+	@# Same attractor.Catalog() the README and the selector knobs come from:
+	@# adding a mode adds a page, and `site-check` fails when it has not.
+	go run ./cmd/uitool site
+
+site-check: ## Report whether models/ is up to date; change nothing
+	go run ./cmd/uitool site -site-check
+
 wasm: ## Rebuild the embedded Go wasm (assets/gowasm/chaosrack.wasm)
 	CGO_ENABLED=0 GOOS=js GOARCH=wasm ${OPTS} go build -o assets/gowasm/chaosrack.wasm ./cmd/wasm
 	@cp "$$(go env GOROOT)/lib/wasm/wasm_exec.js" assets/gowasm/wasm_exec.js
@@ -227,10 +237,21 @@ pages: ## Regenerate the self-contained index.html / go/index.html / tinygo/inde
 	@# go/index.html is deployed and routed like the other two, and was the one
 	@# this target forgot: a template fix reached / and /tinygo/ and left /go/
 	@# on whatever it was built from, which is the same drift by a quieter road.
+	@# And refuse to run against a server that is already there. go run compiles
+	@# a 23 MB embedded asset before it execs, so the window between starting
+	@# this and the port being listened on is minutes long — long enough to
+	@# start a second one, have it fail to bind, and have the curls below fetch
+	@# three pages from the FIRST server's older binary and report success.
+	@# That is how a template fix and a payload fix both got saved as pages
+	@# built without them.
 	@port=$${PAGES_PORT:-8399}; \
+	if curl -sf -o /dev/null -m 2 "http://127.0.0.1:$$port/" 2>/dev/null; then \
+		echo "pages: something is already serving 127.0.0.1:$$port — stop it, or set PAGES_PORT" >&2; \
+		exit 1; \
+	fi; \
 	go run ./cmd/chaosrack -p $$port & srv=$$!; \
 	trap "kill $$srv 2>/dev/null" EXIT INT TERM; \
-	for i in $$(seq 1 60); do \
+	for i in $$(seq 1 300); do \
 		curl -sf -o /dev/null "http://127.0.0.1:$$port/" && break || sleep 1; \
 	done; \
 	curl -sf "http://127.0.0.1:$$port/" -o index.html && echo 'pages: index.html'; \
