@@ -133,7 +133,9 @@ module *while* it downloads instead of after; no base64 is parsed and nothing
 is inflated in JavaScript; and the host serves `.wasm` gzipped, so the binary
 costs the same on the wire either way — 5.7 MB for the Go build.
 
-**`make onefile` builds the other one.** `chaosrack-standalone.html` is 12.3 MB
+**`make onefile` builds the other one.**
+[chaosrack-standalone.html](chaosrack-standalone.html)
+([download](https://chaosrack.magnetosphere.net/chaosrack-standalone.html)) is 12.3 MB
 with both runtimes gzipped and base64'd inside it, and it needs nothing else at
 all: no server, no sibling files, no network after it is saved. That is the one
 to keep, mail, or open off a disk, and it is why the inlining code is still
