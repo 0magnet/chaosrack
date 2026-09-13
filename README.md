@@ -121,7 +121,7 @@ Then open:
 
 The wasm is **gzipped, then base64'd** into a single self-contained HTML file,
 so it also runs straight from static hosting with no server:
-* [index.html](index.html) · [tinygo/index.html](tinygo/index.html)
+* [index.html](index.html) · [go/index.html](go/index.html) · [tinygo/index.html](tinygo/index.html)
 
 Gzipping first matters more than it sounds. A 6 MB wasm base64s to 8.4 MB of
 JavaScript source that the browser must receive, parse and `atob` before
@@ -131,6 +131,24 @@ from about seven seconds to two. `DecompressionStream` does the inflating —
 no library, present since Chrome 80, Firefox 113 and Safari 16.4 — and where
 it is missing the served page falls back to fetching `/chaosrack.wasm` as an
 ordinary resource.
+
+The payload sits at the **end of the document**, in a `text/plain` script
+element the boot code reads with `textContent`, and the boot code sits after
+it. That is not about the browser, which does not care: it is about everything
+that reads the page without running it. A crawler fetches a bounded prefix and
+discards the rest — Google documents 2 MB, measured on the uncompressed
+bytes — so with the payload in `<head>` the page's own description sat at
+about byte 13,500,000 and was never read by anything. It is now at 16,667.
+
+It is also written out **unescaped**, which is worth a line because the two
+ways of getting that wrong look nothing alike. In a JavaScript string literal
+`html/template` turns every `+` into `+` and every `/` into `\/`, which
+JavaScript decodes back — correct, and about 1.4 MB a page. In the element it
+now lives in, the same escaper turns `+` into `&#43;`, which is not base64 any
+more and fails only in the browser, at `atob`, with the page otherwise looking
+perfectly well-formed. `pkg/server` types it so neither happens, and
+`page_test.go` decodes what the template actually wrote and requires a wasm
+back out of it.
 
 ## What's inside
 
@@ -364,6 +382,14 @@ ordinary resource.
   documents every module slot, and rendering is devicePixelRatio-native.
 
 ## Models
+
+Also published as one page per model at
+**[chaosrack.magnetosphere.net/models/](https://chaosrack.magnetosphere.net/models/)**,
+each with its equations, its captured figure, and a link that opens it running.
+Same source as this section — `attractor.Catalog()`, which is the selector's own
+registry — written out by `make site`, so adding a mode adds a page and
+`make site-check` fails when it has not. The app is a canvas: a model can only
+be *found* from outside it by a page that names it in text.
 
 <!-- BEGIN MODELS -->
 
