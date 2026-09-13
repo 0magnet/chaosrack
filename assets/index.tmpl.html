@@ -11,13 +11,17 @@
 <meta property="og:title" content="chaosrack — A Go/WASM Analog Computer">
 <meta property="og:description" content="An analog computer in the browser: 66 models in five kinds — continuous flows (Lorenz, Rossler, Chua, all twenty Sprott cases), discrete maps, parametric figures, geometry and solids — plus live audio as a spectrogram, XY scope and delay embedding, a Bash shell you can rotate while it runs, and a rigid-body floor. Go compiled to WebAssembly, rendered with WebGL, driven from an analog control surface.">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="magnetosphere">
 <meta property="og:url" content="https://chaosrack.magnetosphere.net/">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://chaosrack.magnetosphere.net/docs/img/hero.jpg">
+<meta property="og:image:alt" content="The chaosrack control panel docked at the bottom of the page with the Lorenz attractor drawn above it">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://chaosrack.magnetosphere.net/docs/img/hero.jpg">
 <meta name="twitter:title" content="chaosrack — A Go/WASM Analog Computer">
 <meta name="twitter:description" content="An analog computer in the browser: 66 models in five kinds — continuous flows (Lorenz, Rossler, Chua, all twenty Sprott cases), discrete maps, parametric figures, geometry and solids — plus live audio as a spectrogram, XY scope and delay embedding, a Bash shell you can rotate while it runs, and a rigid-body floor. Go compiled to WebAssembly, rendered with WebGL, driven from an analog control surface.">
 <link rel="canonical" href="https://chaosrack.magnetosphere.net/{{.Page.CanonicalPath}}">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"chaosrack — A Go/WASM Analog Computer","url":"https://chaosrack.magnetosphere.net/","applicationCategory":"EducationalApplication","operatingSystem":"Any (modern web browser)","browserRequirements":"Requires WebGL and WebAssembly","description":"An analog computer in the browser: 66 models in five kinds — continuous flows, discrete maps, parametric figures, geometry and solids, and a sequence walk with a rigid-body floor — plus live audio as a spectrogram, XY scope and delay embedding, and a Bash shell you can rotate while it runs. Go compiled to WebAssembly, rendered with WebGL, driven from an analog control surface.","author":{"@type":"Person","name":"0magnet"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"chaosrack — A Go/WASM Analog Computer","url":"https://chaosrack.magnetosphere.net/","applicationCategory":"EducationalApplication","image":"https://chaosrack.magnetosphere.net/docs/img/hero.jpg","sameAs":"https://github.com/0magnet/chaosrack","isAccessibleForFree":true,"operatingSystem":"Any (modern web browser)","browserRequirements":"Requires WebGL and WebAssembly","description":"An analog computer in the browser: 66 models in five kinds — continuous flows, discrete maps, parametric figures, geometry and solids, and a sequence walk with a rigid-body floor — plus live audio as a spectrogram, XY scope and delay embedding, and a Bash shell you can rotate while it runs. Go compiled to WebAssembly, rendered with WebGL, driven from an analog control surface.","author":{"@type":"Person","name":"0magnet"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
 </script>
 <style>
 body, html {
@@ -205,10 +209,15 @@ async function run() {
 <h1>chaosrack — an analog computer in the browser</h1>
 <p>Explore chaotic dynamical systems in real time, directly in your browser. This is a WebAssembly (Go / TinyGo) and WebGL visualizer that renders strange attractors as rotatable, zoomable 3D trajectories. Drag to rotate, scroll to zoom, and adjust each system's parameters with tactile control knobs.</p>
 <h2>Models</h2>
-<p>Lorenz, Rossler, Chua's double-scroll circuit, Aizawa, Thomas cyclically-symmetric, Halvorsen, Chen, Dadras, Rabinovich-Fabrikant, Burke-Shaw, Lissajous, the 4D hyperchaotic Rossler system, and all eighteen of J. C. Sprott's simple chaotic flows (cases B through S).</p>
+<p>Continuous flows: Lorenz, Rossler, Chua's double-scroll circuit, Aizawa, Thomas cyclically-symmetric, Halvorsen, Chen, Lu, Newton-Leipnik, Dadras, Rabinovich-Fabrikant, Burke-Shaw, the 4D hyperchaotic Rossler system, and J. C. Sprott's 1994 catalogue of simple chaotic flows, cases A through S.</p>
+<p>Discrete maps, which have no dt and no path between iterates: Henon, Ikeda, Clifford, Peter de Jong, Gumowski-Mira, Tinkerbell, and Chirikov's area-preserving standard map. Parametric figures including Lissajous curves, polyhedra and geometric solids exportable as printable STL, and a sequence walk with a rigid-body floor to drop it on.</p>
+<h2>Live audio in phase space</h2>
+<p>Audio from the microphone or from the built-in function generators, read three ways. As a spectrogram (STFT). On an XY oscilloscope. And as a Takens delay embedding — attractor reconstruction from a single signal, after F. Takens, "Detecting strange attractors in turbulence" (1981) — where each point is the delay vector of the live sound and a pure tone draws a closed loop while speech and music trace the geometry of whatever produced them. The embedding delay tau is measured from the first minimum of the average mutual information (Fraser and Swinney 1986) and the embedding dimension m by false nearest neighbours (Kennel et al. 1992), rather than guessed. A polar variant draws the same delay vector bounded by a sphere instead of a cube.</p>
+<p>A stereo embedding plots the two channels against each other instead of one channel's past: seen head-on it is the goniometer, or vectorscope, of a mastering desk, with a correlation meter, and the third axis is what a two-plate scope cannot give you. Phase space reconstruction, state space reconstruction and recurrence plots are the same family of tools, and they run here on live input rather than on a recorded file.</p>
 <h2>Type your own equations</h2>
-<p>A Custom mode lets you enter arbitrary differential equations (dx/dt, dy/dt, dz/dt, and an optional 4th dimension); any parameter you name is automatically given a control knob, and the resulting attractor is shareable as a link.</p>
-<p>Also includes audio-reactive modulation, a spectrogram and XY oscilloscope, polyhedra and geometric primitives, and color-gradient controls. An homage to the analog attractor computers at glensstuff.com.</p>
+<p>A Custom mode lets you enter arbitrary differential equations (dx/dt, dy/dt, dz/dt, and an optional 4th dimension) or a discrete map; any parameter you name is automatically given a control knob, and the resulting attractor is shareable as a link. Measure whether what you are looking at is actually chaotic by its largest Lyapunov exponent, route audio into any parameter, paint with persistence, or hear the system itself as sound.</p>
+<p>Also included: a ripple tank stepped by the wave equation that refracts whatever the rack is drawing, a real Bash shell running in the page that you can rotate while it runs, and a rotatable desktop. An homage to the analog attractor computers at glensstuff.com.</p>
+<p>Source code: <a href="https://github.com/0magnet/chaosrack">github.com/0magnet/chaosrack</a>. More Go and WebAssembly projects: <a href="https://magnetosphere.net/software">magnetosphere.net/software</a>.</p>
 </div>
 {{if .Page.Dual}}
 <div id="wasm-switch" style="position:fixed;top:10px;right:10px;z-index:20;font-family:monospace;font-size:12px;color:#556;letter-spacing:1px;user-select:none;" title="Switch WebAssembly runtime (reloads)">

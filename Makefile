@@ -219,11 +219,14 @@ tinywasm: ## Rebuild the embedded TinyGo wasm (assets/tinywasm/chaosrack-tiny.wa
 
 wasms: wasm tinywasm ## Rebuild both embedded wasm binaries
 
-pages: ## Regenerate the self-contained index.html / tinygo/index.html
+pages: ## Regenerate the self-contained index.html / go/index.html / tinygo/index.html
 	@# The serverless pages are the served pages, saved. They carry their own
 	@# copy of the boot script, so a fix to assets/index.tmpl.html reaches the
 	@# GitHub Pages deployment only by regenerating them — which is why the
 	@# #gocanvas boot race outlived its fix on the served page.
+	@# go/index.html is deployed and routed like the other two, and was the one
+	@# this target forgot: a template fix reached / and /tinygo/ and left /go/
+	@# on whatever it was built from, which is the same drift by a quieter road.
 	@port=$${PAGES_PORT:-8399}; \
 	go run ./cmd/chaosrack -p $$port & srv=$$!; \
 	trap "kill $$srv 2>/dev/null" EXIT INT TERM; \
@@ -231,6 +234,8 @@ pages: ## Regenerate the self-contained index.html / tinygo/index.html
 		curl -sf -o /dev/null "http://127.0.0.1:$$port/" && break || sleep 1; \
 	done; \
 	curl -sf "http://127.0.0.1:$$port/" -o index.html && echo 'pages: index.html'; \
+	mkdir -p go && \
+	curl -sf "http://127.0.0.1:$$port/go/" -o go/index.html && echo "pages: go/index.html"; \
 	mkdir -p tinygo && \
 	curl -sf "http://127.0.0.1:$$port/tinygo/" -o tinygo/index.html && echo "pages: tinygo/index.html"; \
 	kill $$srv 2>/dev/null; wait $$srv 2>/dev/null || true

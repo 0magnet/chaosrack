@@ -137,7 +137,7 @@ func main() {
 		Title:         "Go",
 		OtherLink:     "index.html",
 		OtherLabel:    "go",
-		CanonicalPath: "index.html",
+		CanonicalPath: "",
 	})
 	if err != nil {
 		log.Fatalf("rendering the page: %v", err)

@@ -74,7 +74,7 @@ var runCmd = &cobra.Command{
 				AudioFeed:     audioFeed(),
 				WobbulateCtl:  wobbulateCtlOffered(),
 				Title:         "Go",
-				CanonicalPath: "index.html",
+				CanonicalPath: "",
 				Debug:         debugMode,
 				Dual:          hasTinygo,
 				GoWasmExecJs:  htmpl.JS(gowasm.WasmExec), //nolint:gosec // wasm_exec.js, compiled into this binary by go:embed — not request data
@@ -106,7 +106,7 @@ var runCmd = &cobra.Command{
 				Title:         "Go",
 				OtherLink:     "../index.html",
 				OtherLabel:    "dual",
-				CanonicalPath: "go/index.html",
+				CanonicalPath: "",
 				Debug:         debugMode,
 				AudioFeed:     audioFeed(),
 				WobbulateCtl:  wobbulateCtlOffered(),
@@ -123,7 +123,7 @@ var runCmd = &cobra.Command{
 					Title:         "TinyGo",
 					OtherLink:     "../index.html",
 					OtherLabel:    "dual",
-					CanonicalPath: "tinygo/index.html",
+					CanonicalPath: "",
 					Debug:         debugMode,
 					AudioFeed:     audioFeed(),
 					WobbulateCtl:  wobbulateCtlOffered(),
@@ -276,7 +276,7 @@ type htmlTemplateData struct {
 	Title         string
 	OtherLink     string
 	OtherLabel    string
-	CanonicalPath string
+	CanonicalPath string // see PageOptions.CanonicalPath — empty means the site root
 	Debug         bool
 	HostConfig    htmpl.JS
 	AudioFeed     string // the transport the page should prefer ("wt", "ws" or none); see audio.go
