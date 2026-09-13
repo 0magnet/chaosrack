@@ -32,7 +32,12 @@ type PageOptions struct {
 	Title         string   // shown in the page's runtime switch
 	OtherLink     string   // href of the other runtime's page
 	OtherLabel    string   // its label
-	CanonicalPath string   // canonical URL path
+	// CanonicalPath is appended to the site root to form the page's canonical
+	// URL. It is empty for every page here on purpose: /, /go/ and /tinygo/
+	// differ only in which wasm runtime they boot, and three URLs serving one
+	// application compete with each other in a search index rather than adding
+	// anything. They all point at the root, which is the page to land on.
+	CanonicalPath string
 	Debug         bool
 
 	// HostConfig is the token and endpoints the page needs to reach the host
