@@ -32,6 +32,12 @@ type PageOptions struct {
 	Title      string   // shown in the page's runtime switch
 	OtherLink  string   // href of the other runtime's page
 	OtherLabel string   // its label
+
+	// WasmURL makes the page FETCH the binary from that URL instead of carrying
+	// it. Empty inlines it, which is the single-file build. Wasm is then unused
+	// and need not be supplied.
+	WasmURL string
+
 	// CanonicalPath is appended to the site root to form the page's canonical
 	// URL. It is empty for every page here on purpose: /, /go/ and /tinygo/
 	// differ only in which wasm runtime they boot, and three URLs serving one
@@ -70,8 +76,17 @@ type PageOptions struct {
 // RenderPage returns the finished HTML for a single-runtime page.
 func RenderPage(o PageOptions) ([]byte, error) {
 	return renderTemplate(htmlTemplateData{
-		WasmExecJs:    o.WasmExecJs,
-		WasmGzB64:     gzipBase64(o.Wasm),
+		WasmExecJs: o.WasmExecJs,
+		// Not gzipped at all when the page is going to fetch the binary: the
+		// template would skip the payload either way, but compressing 23 MB at
+		// maximum level to then throw it away is the expensive way to do that.
+		WasmGzB64: func() htmpl.HTML {
+			if o.WasmURL != "" {
+				return ""
+			}
+			return gzipBase64(o.Wasm)
+		}(),
+		WasmURL:       o.WasmURL,
 		Title:         o.Title,
 		OtherLink:     o.OtherLink,
 		OtherLabel:    o.OtherLabel,

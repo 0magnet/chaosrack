@@ -29,9 +29,20 @@ import (
 )
 
 var (
-	webPort   int
-	bindAddr  string
-	debugMode bool
+	webPort    int
+	bindAddr   string
+	debugMode  bool
+	inlineWasm bool
+)
+
+// The URLs the pages fetch their binary from when it is not inlined. They are
+// the paths the binaries already occupy in the repository, so the same page
+// works served from here and saved into a GitHub Pages checkout — which is the
+// property `make pages` depends on, since what it saves IS what this serves.
+// Absolute, because the same page is served at /, /go/ and /tinygo/.
+const (
+	goWasmURL   = "/assets/gowasm/chaosrack.wasm"
+	tinyWasmURL = "/assets/tinywasm/chaosrack-tiny.wasm"
 )
 
 func init() {
@@ -42,6 +53,7 @@ func init() {
 	runCmd.Flags().IntVarP(&webPort, "port", "p", defaultport, "port to serve on - env WEBPORT="+os.Getenv("WEBPORT"))
 	runCmd.Flags().StringVarP(&bindAddr, "bind", "b", "", "address to bind (default: every interface; 127.0.0.1 when --shell or --fs is on)")
 	runCmd.Flags().BoolVarP(&debugMode, "debug", "d", false, "enable /debug/stats profiling endpoint")
+	runCmd.Flags().BoolVar(&inlineWasm, "inline", false, "carry the wasm inside the HTML instead of fetching it (the single-file build; see `make onefile`)")
 }
 
 // Execute runs the root CLI command (the server).
@@ -78,14 +90,23 @@ var runCmd = &cobra.Command{
 				Debug:         debugMode,
 				Dual:          hasTinygo,
 				GoWasmExecJs:  htmpl.JS(gowasm.WasmExec), //nolint:gosec // wasm_exec.js, compiled into this binary by go:embed — not request data
-				GoWasmGzB64:   gzipBase64(gowasm.Wasm),
+			}
+			// Inlined, the dual page carries BOTH runtimes — 9.5 MB transferred
+			// to run one of them. Fetched, only the one selected is asked for.
+			if inlineWasm {
+				d.GoWasmGzB64 = gzipBase64(gowasm.Wasm)
+			} else {
+				d.GoWasmURL, d.TinyWasmURL = goWasmURL, tinyWasmURL
 			}
 			if hasTinygo {
 				d.TinyWasmExecJs = htmpl.JS(tinywasm.WasmExec) //nolint:gosec // wasm_exec.js, compiled into this binary by go:embed — not request data
-				d.TinyWasmGzB64 = gzipBase64(tinywasm.Wasm)
+				if inlineWasm {
+					d.TinyWasmGzB64 = gzipBase64(tinywasm.Wasm)
+				}
 			} else {
 				d.WasmExecJs = d.GoWasmExecJs
 				d.WasmGzB64 = d.GoWasmGzB64
+				d.WasmURL = d.GoWasmURL
 			}
 			serveInlineWasm(c, d)
 		}
@@ -97,12 +118,25 @@ var runCmd = &cobra.Command{
 		r1.GET("/chaosrack.wasm", func(c *gin.Context) {
 			c.Render(http.StatusOK, render.Data{ContentType: "application/wasm", Data: gowasm.Wasm})
 		})
+		// The same binaries at the paths they occupy in the repository, which is
+		// what the fetched pages ask for. Served here so a page saved by
+		// `make pages` behaves identically here and on GitHub Pages, where these
+		// are ordinary committed files — one page, two places, no rewriting.
+		r1.GET(goWasmURL, func(c *gin.Context) {
+			c.Render(http.StatusOK, render.Data{ContentType: "application/wasm", Data: gowasm.Wasm})
+		})
+		if hasTinygo {
+			r1.GET(tinyWasmURL, func(c *gin.Context) {
+				c.Render(http.StatusOK, render.Data{ContentType: "application/wasm", Data: tinywasm.Wasm})
+			})
+		}
 
 		// Standalone Go-only page.
 		goPage := func(c *gin.Context) {
 			serveInlineWasm(c, htmlTemplateData{
 				WasmExecJs:    htmpl.JS(gowasm.WasmExec), //nolint:gosec // wasm_exec.js, compiled into this binary by go:embed — not request data
-				WasmGzB64:     gzipBase64(gowasm.Wasm),
+				WasmGzB64:     inlineOnly(gowasm.Wasm),
+				WasmURL:       fetchedFrom(goWasmURL),
 				Title:         "Go",
 				OtherLink:     "../index.html",
 				OtherLabel:    "dual",
@@ -119,7 +153,8 @@ var runCmd = &cobra.Command{
 			tinyPage := func(c *gin.Context) {
 				serveInlineWasm(c, htmlTemplateData{
 					WasmExecJs:    htmpl.JS(tinywasm.WasmExec), //nolint:gosec // wasm_exec.js, compiled into this binary by go:embed — not request data
-					WasmGzB64:     gzipBase64(tinywasm.Wasm),
+					WasmGzB64:     inlineOnly(tinywasm.Wasm),
+					WasmURL:       fetchedFrom(tinyWasmURL),
 					Title:         "TinyGo",
 					OtherLink:     "../index.html",
 					OtherLabel:    "dual",
@@ -189,6 +224,25 @@ var runCmd = &cobra.Command{
 		}()
 		wg.Wait()
 	},
+}
+
+// inlineOnly and fetchedFrom are the two halves of the same switch, so a page
+// cannot end up with both a payload and a URL (the template would emit the
+// megabytes and then ignore them) or with neither (it would have nothing to
+// run). gzipBase64 is the expensive half and is not called at all when the
+// page is going to fetch instead.
+func inlineOnly(wasm []byte) htmpl.HTML {
+	if !inlineWasm {
+		return ""
+	}
+	return gzipBase64(wasm)
+}
+
+func fetchedFrom(url string) string {
+	if inlineWasm {
+		return ""
+	}
+	return url
 }
 
 func serveInlineWasm(c *gin.Context, data htmlTemplateData) {
@@ -273,6 +327,7 @@ const (
 type htmlTemplateData struct {
 	WasmExecJs    htmpl.JS
 	WasmGzB64     htmpl.HTML // gzipped, then base64 — see wasmgz.go
+	WasmURL       string     // fetched instead, when not inlined; see inlineOnly/fetchedFrom
 	Title         string
 	OtherLink     string
 	OtherLabel    string
@@ -285,6 +340,8 @@ type htmlTemplateData struct {
 	Dual           bool
 	GoWasmExecJs   htmpl.JS
 	GoWasmGzB64    htmpl.HTML
+	GoWasmURL      string
 	TinyWasmExecJs htmpl.JS
 	TinyWasmGzB64  htmpl.HTML
+	TinyWasmURL    string
 }
