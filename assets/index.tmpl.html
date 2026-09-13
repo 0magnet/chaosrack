@@ -77,6 +77,44 @@ window.__crWT = {
   open: function (u, init) { try { return new WebTransport(u, init); } catch (e) { return null; } }
 };
 </script>
+{{if .Page.HostConfig}}<script>window.__deskHost={{.Page.HostConfig}};</script>{{end}}
+{{if .Page.AudioFeed}}<script>window.__crAudio={{.Page.AudioFeed}};</script>{{end}}
+{{if .Page.WobbulateCtl}}<script>window.__crWobbulate=1;</script>{{end}}
+</head>
+<body style="margin: 0; padding: 0; width: 100%; height: 100%; background-color: black; color: white;">
+<!-- Crawlable description (the live UI is drawn on a WebGL canvas by WebAssembly). -->
+<div style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">
+<h1>chaosrack — an analog computer in the browser</h1>
+<p>Explore chaotic dynamical systems in real time, directly in your browser. This is a WebAssembly (Go / TinyGo) and WebGL visualizer that renders strange attractors as rotatable, zoomable 3D trajectories. Drag to rotate, scroll to zoom, and adjust each system's parameters with tactile control knobs.</p>
+<h2>Models</h2>
+<p>Continuous flows: Lorenz, Rossler, Chua's double-scroll circuit, Aizawa, Thomas cyclically-symmetric, Halvorsen, Chen, Lu, Newton-Leipnik, Dadras, Rabinovich-Fabrikant, Burke-Shaw, the 4D hyperchaotic Rossler system, and J. C. Sprott's 1994 catalogue of simple chaotic flows, cases A through S.</p>
+<p>Discrete maps, which have no dt and no path between iterates: Henon, Ikeda, Clifford, Peter de Jong, Gumowski-Mira, Tinkerbell, and Chirikov's area-preserving standard map. Parametric figures including Lissajous curves, polyhedra and geometric solids exportable as printable STL, and a sequence walk with a rigid-body floor to drop it on.</p>
+<h2>Live audio in phase space</h2>
+<p>Audio from the microphone or from the built-in function generators, read three ways. As a spectrogram (STFT). On an XY oscilloscope. And as a Takens delay embedding — attractor reconstruction from a single signal, after F. Takens, "Detecting strange attractors in turbulence" (1981) — where each point is the delay vector of the live sound and a pure tone draws a closed loop while speech and music trace the geometry of whatever produced them. The embedding delay tau is measured from the first minimum of the average mutual information (Fraser and Swinney 1986) and the embedding dimension m by false nearest neighbours (Kennel et al. 1992), rather than guessed. A polar variant draws the same delay vector bounded by a sphere instead of a cube.</p>
+<p>A stereo embedding plots the two channels against each other instead of one channel's past: seen head-on it is the goniometer, or vectorscope, of a mastering desk, with a correlation meter, and the third axis is what a two-plate scope cannot give you. Phase space reconstruction, state space reconstruction and recurrence plots are the same family of tools, and they run here on live input rather than on a recorded file.</p>
+<h2>Type your own equations</h2>
+<p>A Custom mode lets you enter arbitrary differential equations (dx/dt, dy/dt, dz/dt, and an optional 4th dimension) or a discrete map; any parameter you name is automatically given a control knob, and the resulting attractor is shareable as a link. Measure whether what you are looking at is actually chaotic by its largest Lyapunov exponent, route audio into any parameter, paint with persistence, or hear the system itself as sound.</p>
+<p>Also included: a ripple tank stepped by the wave equation that refracts whatever the rack is drawing, a real Bash shell running in the page that you can rotate while it runs, and a rotatable desktop. An homage to the analog attractor computers at glensstuff.com.</p>
+<p><a href="models/">Every model, one page each</a> — the equations, the figure and what the knobs do, for all of them. This link is also the only path a crawler has to those pages: nothing else on this page is a link, because everything else on it is drawn.</p>
+<p>Source code: <a href="https://github.com/0magnet/chaosrack">github.com/0magnet/chaosrack</a>. More Go and WebAssembly projects: <a href="https://magnetosphere.net/software">magnetosphere.net/software</a>.</p>
+</div>
+{{if .Page.Dual}}
+<div id="wasm-switch" style="position:fixed;top:10px;right:10px;z-index:20;font-family:monospace;font-size:12px;color:#556;letter-spacing:1px;user-select:none;" title="Switch WebAssembly runtime (reloads)">
+<span id="ws-go" style="cursor:pointer;">go</span><span style="opacity:.4;"> · </span><span id="ws-tiny" style="cursor:pointer;">tinygo</span></div>
+<script>
+(function(){
+  var w = ((new URLSearchParams(location.search)).get('wasm')||'go').toLowerCase()==='tinygo' ? 'tinygo':'go';
+  var g=document.getElementById('ws-go'), t=document.getElementById('ws-tiny');
+  var act=(w==='tinygo')?t:g; act.style.color='#8cf'; act.style.textShadow='0 0 5px #2a6a9a';
+  g.onclick=function(){ if(w!=='go'){ location.search='?wasm=go'; } };
+  t.onclick=function(){ if(w!=='tinygo'){ location.search='?wasm=tinygo'; } };
+})();
+</script>
+{{else}}
+<a href="{{.Page.OtherLink}}" style="position:fixed;top:10px;right:10px;z-index:20;color:#555;font-family:monospace;font-size:13px;text-decoration:none;">{{.Page.OtherLabel}}</a>
+{{end}}
+<div id='gocanvas-container' style="position: absolute; width: 100%; height: 100%; z-index: 3;">
+<canvas id='gocanvas' style="max-width: 100%; max-height: 100%; z-index: 3; touch-action: none;"></canvas></div>
 {{if .Page.Dual}}
 <script title="go-wasm_exec.js">
 {{.Page.GoWasmExecJs}}
@@ -86,6 +124,18 @@ window.__crWT = {
 {{.Page.TinyWasmExecJs}}
 </script>
 <script>window.__GoTiny = Go;</script>
+<!-- The binaries, gzipped and base64'd, parked in the document rather than in
+     a string literal in <head>. type="text/plain" is not executed and not
+     fetched; it is just a place to keep several megabytes of text that the
+     boot script below reads back with textContent.
+     Why they live at the END of the document: a crawler fetches a bounded
+     prefix of a file and discards the rest — Google documents 2 MB, measured
+     on the UNCOMPRESSED bytes — and with the payload in <head> everything
+     that describes this page sat at roughly byte 13,500,000 and was never
+     read. Nothing about the ordering matters to the browser; it matters to
+     everything that reads the page without running it. -->
+<script type="text/plain" id="wasmgz-go">{{.Page.GoWasmGzB64}}</script>
+<script type="text/plain" id="wasmgz-tiny">{{.Page.TinyWasmGzB64}}</script>
 <script>
 if (!WebAssembly.instantiateStreaming) {
   WebAssembly.instantiateStreaming = async (resp, importObject) => {
@@ -98,7 +148,10 @@ window.__WASM_DEBUG__ = {{.Page.Debug}};
 const __which = ((new URLSearchParams(location.search)).get('wasm')||'go').toLowerCase() === 'tinygo' ? 'tinygo' : 'go';
 const go = new (__which === 'tinygo' ? window.__GoTiny : window.__GoStd)();
 let mod, inst;
-const wasmGzB64 = __which === 'tinygo' ? `{{.Page.TinyWasmGzB64}}` : `{{.Page.GoWasmGzB64}}`;
+// Read back out of the document. trim() because the payload sits on its own
+// line in the template and atob is only obliged to tolerate whitespace, not
+// to be relied on for it.
+const wasmGzB64 = document.getElementById(__which === 'tinygo' ? 'wasmgz-tiny' : 'wasmgz-go').textContent.trim();
 console.log("[WASM-STUFF] Loading " + __which + " WASM...");
 
 // The inlined binary is GZIPPED, then base64'd. Raw, a 6 MB wasm base64s to
@@ -123,12 +176,15 @@ async function __wasmBytes() {
   throw new Error('this page needs DecompressionStream to unpack its WebAssembly ' +
     '(Chrome 80+, Firefox 113+, Safari 16.4+), and no ' + url + ' to fall back to');
 }
-// The Go program looks up #gocanvas the moment it starts, and this script is
-// in <head> — ahead of the element in the document. Instantiating a wasm
-// module is normally slower than parsing the rest of the page, so starting it
-// straight from the .then() usually worked; when the machine was busy it lost
-// that race and the program alerted "cannot find #gocanvas, exiting" instead.
-// Nothing about the ordering was ever guaranteed, so wait for the document.
+// The Go program looks up #gocanvas the moment it starts. This script now
+// runs at the end of <body>, after that element, but the document is still
+// parsing when it does — readyState is 'loading' until the last script
+// finishes — so the guard still has work to do and is still what makes the
+// ordering guaranteed rather than lucky. It was written when this script was
+// in <head>, where instantiating a wasm module was normally slower than
+// parsing the rest of the page, so starting straight from the .then() usually
+// worked and lost the race only on a busy machine: "cannot find #gocanvas,
+// exiting". Keep it.
 function __whenDOMReady(fn) {
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', fn, {once: true}); }
   else { fn(); }
@@ -150,6 +206,10 @@ async function run() {
 <script title="wasm_exec.js">
 {{.Page.WasmExecJs}}
 </script>
+<!-- See the note in the dual-runtime branch: the payload is parked in the
+     document, at the end, so that a crawler's bounded prefix of this file
+     contains the page and not the first two megabytes of a base64 blob. -->
+<script type="text/plain" id="wasmgz">{{.Page.WasmGzB64}}</script>
 <script>
 if (!WebAssembly.instantiateStreaming) {
   WebAssembly.instantiateStreaming = async (resp, importObject) => {
@@ -161,12 +221,13 @@ window.__WASM_DEBUG__ = {{.Page.Debug}};
 const go = new Go();
 let mod, inst;
 
-const wasmGzB64 = `{{.Page.WasmGzB64}}`;
+const wasmGzB64 = document.getElementById('wasmgz').textContent.trim();
 
 console.log("[WASM-STUFF] Loading {{.Page.Title}} WASM...");
 // See the notes in the dual-runtime branch: the binary is gzipped before it
-// is base64'd, and the Go program looks up #gocanvas as it starts — which is
-// before this script's element is parsed.
+// is base64'd and parked in the document above, and the Go program looks up
+// #gocanvas as it starts — which is before the document has finished parsing,
+// even from here at the end of <body>.
 function __whenDOMReady(fn) {
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', fn, {once: true}); }
   else { fn(); }
@@ -199,42 +260,5 @@ async function run() {
 }
 </script>
 {{end}}
-{{if .Page.HostConfig}}<script>window.__deskHost={{.Page.HostConfig}};</script>{{end}}
-{{if .Page.AudioFeed}}<script>window.__crAudio={{.Page.AudioFeed}};</script>{{end}}
-{{if .Page.WobbulateCtl}}<script>window.__crWobbulate=1;</script>{{end}}
-</head>
-<body style="margin: 0; padding: 0; width: 100%; height: 100%; background-color: black; color: white;">
-<!-- Crawlable description (the live UI is drawn on a WebGL canvas by WebAssembly). -->
-<div style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">
-<h1>chaosrack — an analog computer in the browser</h1>
-<p>Explore chaotic dynamical systems in real time, directly in your browser. This is a WebAssembly (Go / TinyGo) and WebGL visualizer that renders strange attractors as rotatable, zoomable 3D trajectories. Drag to rotate, scroll to zoom, and adjust each system's parameters with tactile control knobs.</p>
-<h2>Models</h2>
-<p>Continuous flows: Lorenz, Rossler, Chua's double-scroll circuit, Aizawa, Thomas cyclically-symmetric, Halvorsen, Chen, Lu, Newton-Leipnik, Dadras, Rabinovich-Fabrikant, Burke-Shaw, the 4D hyperchaotic Rossler system, and J. C. Sprott's 1994 catalogue of simple chaotic flows, cases A through S.</p>
-<p>Discrete maps, which have no dt and no path between iterates: Henon, Ikeda, Clifford, Peter de Jong, Gumowski-Mira, Tinkerbell, and Chirikov's area-preserving standard map. Parametric figures including Lissajous curves, polyhedra and geometric solids exportable as printable STL, and a sequence walk with a rigid-body floor to drop it on.</p>
-<h2>Live audio in phase space</h2>
-<p>Audio from the microphone or from the built-in function generators, read three ways. As a spectrogram (STFT). On an XY oscilloscope. And as a Takens delay embedding — attractor reconstruction from a single signal, after F. Takens, "Detecting strange attractors in turbulence" (1981) — where each point is the delay vector of the live sound and a pure tone draws a closed loop while speech and music trace the geometry of whatever produced them. The embedding delay tau is measured from the first minimum of the average mutual information (Fraser and Swinney 1986) and the embedding dimension m by false nearest neighbours (Kennel et al. 1992), rather than guessed. A polar variant draws the same delay vector bounded by a sphere instead of a cube.</p>
-<p>A stereo embedding plots the two channels against each other instead of one channel's past: seen head-on it is the goniometer, or vectorscope, of a mastering desk, with a correlation meter, and the third axis is what a two-plate scope cannot give you. Phase space reconstruction, state space reconstruction and recurrence plots are the same family of tools, and they run here on live input rather than on a recorded file.</p>
-<h2>Type your own equations</h2>
-<p>A Custom mode lets you enter arbitrary differential equations (dx/dt, dy/dt, dz/dt, and an optional 4th dimension) or a discrete map; any parameter you name is automatically given a control knob, and the resulting attractor is shareable as a link. Measure whether what you are looking at is actually chaotic by its largest Lyapunov exponent, route audio into any parameter, paint with persistence, or hear the system itself as sound.</p>
-<p>Also included: a ripple tank stepped by the wave equation that refracts whatever the rack is drawing, a real Bash shell running in the page that you can rotate while it runs, and a rotatable desktop. An homage to the analog attractor computers at glensstuff.com.</p>
-<p>Source code: <a href="https://github.com/0magnet/chaosrack">github.com/0magnet/chaosrack</a>. More Go and WebAssembly projects: <a href="https://magnetosphere.net/software">magnetosphere.net/software</a>.</p>
-</div>
-{{if .Page.Dual}}
-<div id="wasm-switch" style="position:fixed;top:10px;right:10px;z-index:20;font-family:monospace;font-size:12px;color:#556;letter-spacing:1px;user-select:none;" title="Switch WebAssembly runtime (reloads)">
-<span id="ws-go" style="cursor:pointer;">go</span><span style="opacity:.4;"> · </span><span id="ws-tiny" style="cursor:pointer;">tinygo</span></div>
-<script>
-(function(){
-  var w = ((new URLSearchParams(location.search)).get('wasm')||'go').toLowerCase()==='tinygo' ? 'tinygo':'go';
-  var g=document.getElementById('ws-go'), t=document.getElementById('ws-tiny');
-  var act=(w==='tinygo')?t:g; act.style.color='#8cf'; act.style.textShadow='0 0 5px #2a6a9a';
-  g.onclick=function(){ if(w!=='go'){ location.search='?wasm=go'; } };
-  t.onclick=function(){ if(w!=='tinygo'){ location.search='?wasm=tinygo'; } };
-})();
-</script>
-{{else}}
-<a href="{{.Page.OtherLink}}" style="position:fixed;top:10px;right:10px;z-index:20;color:#555;font-family:monospace;font-size:13px;text-decoration:none;">{{.Page.OtherLabel}}</a>
-{{end}}
-<div id='gocanvas-container' style="position: absolute; width: 100%; height: 100%; z-index: 3;">
-<canvas id='gocanvas' style="max-width: 100%; max-height: 100%; z-index: 3; touch-action: none;"></canvas></div>
 </body>
 </html>

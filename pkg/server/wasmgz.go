@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	htmpl "html/template"
 	"log"
 	"sync"
 )
@@ -25,23 +26,34 @@ import (
 // The result is cached because it is the same bytes every request and gzip at
 // maximum compression is not free — the first page load would otherwise pay
 // for it, and so would every one after that.
+//
+// It is typed htmpl.HTML so the template writes it out as it is. That is a
+// deliberate escape hatch and it needs a reason, so: the value is the standard
+// base64 alphabet and nothing else — [A-Za-z0-9+/=] — produced here from a
+// binary compiled into this program. It is not request data and it cannot
+// contain '<', so it cannot close the element it sits in. Left as a plain
+// string it is escaped for whatever context the template finds it in, and both
+// escapings are expensive at this size: in a JavaScript string literal every
+// '+' becomes + and every '/' becomes \/, which added about 1.4 MB to the
+// page, and in the element where the payload now lives every '+' becomes
+// &#43;, which silently corrupts it — base64 that no longer decodes.
 var (
-	gzOnce  sync.Map // [*byte]string, keyed by the slice's backing array
+	gzOnce  sync.Map // [*byte]htmpl.HTML, keyed by the slice's backing array
 	gzMutex sync.Mutex
 )
 
-func gzipBase64(b []byte) string {
+func gzipBase64(b []byte) htmpl.HTML {
 	if len(b) == 0 {
 		return ""
 	}
 	key := &b[0]
 	if v, ok := gzOnce.Load(key); ok {
-		return v.(string)
+		return v.(htmpl.HTML)
 	}
 	gzMutex.Lock()
 	defer gzMutex.Unlock()
 	if v, ok := gzOnce.Load(key); ok {
-		return v.(string)
+		return v.(htmpl.HTML)
 	}
 	var buf bytes.Buffer
 	zw, err := gzip.NewWriterLevel(&buf, gzip.BestCompression)
@@ -57,7 +69,7 @@ func gzipBase64(b []byte) string {
 		log.Println("server: gzip:", err)
 		return ""
 	}
-	out := base64.StdEncoding.EncodeToString(buf.Bytes())
+	out := htmpl.HTML(base64.StdEncoding.EncodeToString(buf.Bytes()))
 	gzOnce.Store(key, out)
 	return out
 }
