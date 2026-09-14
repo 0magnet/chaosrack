@@ -210,8 +210,23 @@ var attractorDescriptions = map[string]string{
 		"window's shape put there. An angle that cannot be trusted is the one thing a phase " +
 		"display may not have. A mono source is plotted against a lagged copy of itself, since a " +
 		"raw mono signal would otherwise be a featureless diagonal; the Stereo Embedding next " +
-		"door is the same figure with a third axis and a correlation meter, and it does not fake " +
-		"a channel that is not there.",
+		"door is the same figure with a third axis, and it does not fake a channel that is not " +
+		"there. " +
+		"AXES turns the display 45° into mid/side — M=(L+R)/2 and S=(L−R)/2, the orientation " +
+		"broadcast goniometers ship in, where center content lies along one axis and difference " +
+		"content along the other, so width is an extent rather than the eccentricity of a tilted " +
+		"ellipse. GAIN is the deflection; WIN the time base in milliseconds, short for the " +
+		"instantaneous phase relationship and long for the width of a whole mix; GLOW the " +
+		"afterglow, which is the control a hardware vectorscope is actually used through — at " +
+		"zero the frame is cleared as it always was, above it the trace decays instead, so a " +
+		"transient leaves something to read. LAG is how far a mono source is delayed against " +
+		"itself and SMTH how hard the beam is slew-limited between samples. " +
+		"CORR is the correlation meter: +1.00 means the channels are identical and the figure " +
+		"is the diagonal line, 0 means unrelated and a round cloud, −1.00 means one is the " +
+		"other's polarity inverted — which is exactly the content that disappears when the mix " +
+		"is summed to mono, and the reason this display is a mono-compatibility check. It reads " +
+		"L against R whatever AXES is set to, because it is a property of the channels rather " +
+		"than of the way they are drawn.",
 	"spectrogram": "Spectrogram — a scrolling short-time Fourier transform of the live " +
 		"audio: frequency up the plane, time scrolling right to left, magnitude as color. It is " +
 		"a display inspired by Vanya Sergeev's audioprism, written in Go " +

@@ -413,6 +413,13 @@ func buildParamPanel(mode string) {
 		appendStereoReadout(grid)
 	}
 
+	if mode == "xy" {
+		// The goniometer's own correlation meter — the number every hardware
+		// one carries beside the tube, and the one the figure cannot give you,
+		// because a thin ellipse and a line are the same picture at a glance.
+		appendXYReadout(grid)
+	}
+
 	if _, isFlow := lyapLiveSystem(mode); isFlow {
 		// The live Lyapunov exponent, same placement and same reason. Only on
 		// the continuous flows, and lyapLiveSystem is what draws that line —
