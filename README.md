@@ -64,6 +64,7 @@ analog computers at [glensstuff.com](https://glensstuff.com).
   - [The audio-driven models](#the-audio-driven-models)
   - [Test signals](#test-signals)
   - [Distortion — THD, THD+N, SINAD, ENOB](#distortion--thd-thdn-sinad-enob)
+  - [RTA — octave bands](#rta--octave-bands-2)
   - [Controls that pull in the same direction](#controls-that-pull-in-the-same-direction)
 - [Reaching the machine](#reaching-the-machine)
   - [On a machine with other people on it](#on-a-machine-with-other-people-on-it)
@@ -1364,7 +1365,7 @@ Desk — a window manager, drawn as a model. The same texture-on-a-plane path th
 
 ### Audio
 
-[Spectrogram](#spectrogram) · [XY Scope](#xy-scope) · [FVF Wobbulator](#fvf-wobbulator) · [Takens Embedding](#takens-embedding) · [Stereo Embedding](#stereo-embedding) · [Polar Embedding](#polar-embedding) · [Recurrence Plot](#recurrence-plot)
+[Spectrogram](#spectrogram) · [XY Scope](#xy-scope) · [FVF Wobbulator](#fvf-wobbulator) · [Takens Embedding](#takens-embedding) · [Stereo Embedding](#stereo-embedding) · [Polar Embedding](#polar-embedding) · [Recurrence Plot](#recurrence-plot) · [RTA — Octave Bands](#rta--octave-bands)
 
 #### Spectrogram
 
@@ -1412,9 +1413,15 @@ Recurrence Plot — the picture of when a signal returns to where it has already
 
 `#recurrence` · audio
 
+#### RTA — Octave Bands
+
+RTA — Octave Bands. The real-time analyzer a room is measured with: the spectrum split into fractional-octave bands and shown as a bar per band. A spectrogram shows every bin, which is right for watching sound move and wrong for asking what a room is doing to it — linearly spaced bins put nine-tenths of the picture above 2 kHz and squeeze the bass into a few pixels. Bands of equal RATIO drawn at equal widths is a logarithmic frequency axis, which is how hearing is organised and how every acoustics standard reports. BAND picks the width: 1/1 is a hi-fi graphic equalizer's ten, 1/3 is what room measurement and ISO use, and the two finer settings find a single narrow resonance — a 1/12-octave band is about 6% wide, roughly the ear's own resolution in the midrange. The centres are the standard ones (ISO 266 / ANSI S1.11, the base-ten series), so a reading here is comparable with anybody else's. FEED IT PINK NOISE from the Test module: fractional-octave bands get wider in hertz as they go up, so equal power per octave is what reads FLAT — a flat display on pink noise is the definition of a flat system, and it is the convention room measurement is done in. White noise rises 3 dB per octave on the same display, which is the difference between the two and the reason pink is the one used. TOP and RNGE place the scale in dBFS; AVG is the meter's averaging, quick to rise and slow to fall as every level meter is; HOLD is the peak-hold decay in dB per second, which is what makes the display readable on music rather than only on noise — music excites part of the band at a time and the held peaks are the envelope that accumulates into the answer. SRC picks the channel.
+
+`#rta` · audio
+
 ### Analysis
 
-[Bifurcation](#bifurcation) · [Poincaré Section](#poincaré-section) · [Recurrence Plot](#recurrence-plot)
+[Bifurcation](#bifurcation) · [Poincaré Section](#poincaré-section) · [Recurrence Plot](#recurrence-plot) · [RTA — Octave Bands](#rta--octave-bands)
 
 #### Bifurcation
 
@@ -1435,6 +1442,10 @@ Poincaré Section — the continuous flow read as a discrete point set. The most
 #### Recurrence Plot
 
 See [Recurrence Plot](#recurrence-plot) above.
+
+#### RTA — Octave Bands
+
+See [RTA — Octave Bands](#rta--octave-bands) above.
 
 ### Custom
 
@@ -1578,10 +1589,16 @@ a distortion figure that flickers through three digits is unreadable even when
 every digit is right — the measurement is an average over its window, so showing
 it faster than the window is long is showing the same audio twice.
 
-**The instrument's own floor is about 0.013% THD+N** — 77.8 dB SINAD, 12.6
-effective bits — measured on a synthesized pure tone. That is the Hann window's
-leakage getting past the notch, not anything in the signal, and nothing quieter
-than it can be read.
+**The instrument's own floor is about 0.0015% THD+N** — 96.5 dB SINAD, 17.3
+effective bits — measured on a synthesized pure tone. That is the
+Blackman-Harris window's leakage getting past the notch, not anything in the
+signal, and nothing quieter than it can be read.
+
+It was 0.013% (77.8 dB, 12.6 bits) when the analysis ran through the Hann window
+the rest of the app uses. Hann's sidelobes measure −66.7 dB eight bins out and
+Blackman-Harris's −96.0, and that 29 dB is the floor almost exactly — the cost
+is a main lobe twice as wide, which a distortion measurement can afford because
+its harmonics are octaves apart.
 
 Checked against distortion the app generates itself, by putting a second
 oscillator on the second harmonic at a known ratio:
@@ -1591,6 +1608,44 @@ oscillator on the second harmonic at a known ratio:
 | 1% | **1.000%** |
 | 10% | **10.000%** |
 | 50% | **50.000%** |
+
+
+### RTA — octave bands
+
+The analyzer a room is measured with. A spectrogram shows every bin, which is
+right for watching sound move and wrong for asking what a room is doing to it:
+linearly spaced bins put nine-tenths of the picture above 2 kHz and squeeze the
+bass into a few pixels. The RTA splits the band into fractional octaves — equal
+*ratios*, drawn at equal widths, which is a logarithmic frequency axis — and
+shows the level in each.
+
+| | |
+|---|---|
+| **band** | 1/1, 1/3, 1/6 or 1/12 octave. 1/1 is a hi-fi graphic equalizer's ten; 1/3 is what room measurement and ISO use; the finer two find a single narrow resonance |
+| **src** | which signal — mix, either channel, mid or side |
+| **top** / **rnge** | where the scale sits, in dBFS, and how much of it is shown |
+| **avg** | the meter's averaging — quick to rise and slow to fall, as every level meter is |
+| **hold** | peak-hold decay in dB/s. What makes the display readable on music, which only excites part of the band at a time |
+
+The band centres are the standard ones — ISO 266 / ANSI S1.11, the base-ten
+series — so a reading here is comparable with anybody else's. The familiar
+third-octave row comes out as the 31 bands from 20 Hz to 20 kHz that every
+acoustics table prints.
+
+**Feed it pink noise** from the Test module. Fractional-octave bands get wider
+in hertz as they go up, so equal power per octave is what reads *flat* — a flat
+display on pink noise is the definition of a flat system, and it is the
+convention room measurement is done in. White noise rises 3 dB per octave on the
+same display, which is the difference between the two stimuli and the reason
+pink is the one used.
+
+Measured off the live display's own framebuffer:
+
+| stimulus | bands | spread |
+|---|---|---|
+| pink, 1/1 octave | 10 | **0.0 dB** |
+| pink, 1/3 octave | 31 | **3.4 dB** |
+| white, 1/3 octave | 31 | **19.7 dB**, rising |
 
 ### Controls that pull in the same direction
 

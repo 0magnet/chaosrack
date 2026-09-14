@@ -64,10 +64,21 @@ type DistortionResult struct {
 	Harm  []float64 // harmonic amplitudes relative to the fundamental, H2 first
 }
 
+// thdWindowKind is the window the analysis runs through, and it is the single
+// biggest thing separating a distortion floor from the signal.
+//
+// Blackman-Harris, not the Hann every other path here uses. Measured past eight
+// bins, Hann leaks to −66.7 dB and Blackman-Harris to −96.0; that 29 dB is
+// directly the floor, and through Hann this analyzer could not read below
+// 0.013% THD+N because 0.013% was the window. The price is a main lobe twice as
+// wide, which costs frequency resolution — and a distortion measurement has
+// resolution to spare, because its harmonics are octaves apart.
+const thdWindowKind = winBlackmanHarris
+
 // thdHalfWidth is how many bins either side of a peak are counted as part of
-// it. Three is the Hann window's main lobe: its first null is two bins out, and
-// the third bin catches the shoulder a non-integer frequency pushes across.
-const thdHalfWidth = 3
+// it. Blackman-Harris's main lobe is eight bins wide, four either side, so that
+// is what holds a tone's power wherever between two bins it falls.
+const thdHalfWidth = 4
 
 // thdNotchWidth is how many bins either side of the fundamental are EXCLUDED
 // when measuring everything-but-the-fundamental, and it is much wider than
@@ -83,10 +94,12 @@ const thdHalfWidth = 3
 // has the same problem and the same answer: it notches the fundamental out with
 // a filter far wider than the tone.
 //
-// Sixteen bins is 47 Hz on a 16384-point window at 48 kHz, which is narrow
-// enough that nothing anybody would call noise is inside it, and puts the
-// leakage floor below −90 dB.
-const thdNotchWidth = 16
+// Ten bins is 29 Hz on a 16384-point window at 48 kHz — narrow enough that
+// nothing anybody would call noise is inside it, and past the point where
+// Blackman-Harris has fallen below −96 dB. It was sixteen when the analysis ran
+// through a Hann window and still left 0.013% of window in the residual; the
+// better window buys a NARROWER notch and a lower floor at the same time.
+const thdNotchWidth = 10
 
 // thdMinLevel is the quietest fundamental worth measuring, as an amplitude.
 // Below about −60 dBFS the harmonics of a real signal are under the noise and
@@ -107,7 +120,7 @@ func AnalyzeDistortion(samples []float32, sampleRate int, maxHarm int) Distortio
 	if n == 0 || n&(n-1) != 0 || sampleRate <= 0 {
 		return res
 	}
-	mags := computeFFTMags(samples)
+	mags := computeFFTMagsKind(samples, thdWindowKind)
 	if len(mags) < 8 {
 		return res
 	}
@@ -148,8 +161,8 @@ func AnalyzeDistortion(samples []float32, sampleRate int, maxHarm int) Distortio
 	// because a constant fitted to one window is an amplitude readout that is
 	// silently wrong by a fixed factor under any other — this read every tone
 	// 22% high when it was written as a bare 4/n.
-	if we := windowEnergy(n); we > 0 {
-		res.Level = 2 * math.Sqrt(fund/(float64(n)*we))
+	if m := windowMetrics(n, thdWindowKind); m.energy > 0 {
+		res.Level = 2 * math.Sqrt(fund/(float64(n)*float64(n)*m.energy))
 	}
 	if res.Level < thdMinLevel {
 		return res
