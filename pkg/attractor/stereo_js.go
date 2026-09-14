@@ -168,6 +168,36 @@ var (
 	// not a fit at another, and raising GAIN under a bool pushed the figure off
 	// the screen with only Zoom to bring it back.
 	stereoFitGain float32
+
+	// stereoAlign is an INTER-CHANNEL delay: right is read this many reference
+	// samples later than left, signed, so either channel can be the late one.
+	//
+	// The file comment above rejects making τ mean this — one knob with two
+	// meanings that swap under another knob is worse than a knob that is
+	// plainly inert — and that is right, but the thing it rejected is worth
+	// having on a dial of its own. A time offset between channels is the fault
+	// a goniometer gets reached for: a spaced pair of microphones, a mis-clocked
+	// converter, a plugin reporting its latency wrong. It draws as a figure that
+	// opens into an ellipse and rotates as the frequency moves, and the way to
+	// CONFIRM it is to dial the offset out and watch the figure collapse back
+	// onto the diagonal — at which point the knob reads how far apart they were.
+	//
+	// ±96 reference samples is ±2 ms: a 68 cm path difference in air, and well
+	// past any sane converter's error. In reference samples for tauSamples'
+	// reason, so the number is the same delay on every source.
+	stereoAlign float32
+
+	// stereoWidth scales SIDE against MID: at 1 the figure is what was
+	// recorded, below it the difference content shrinks toward mono, above it
+	// the figure spreads. It is a mid/side width control, and having it here is
+	// what lets the display answer "what would widening this do" — including
+	// the question underneath that one, which is what collapses when the result
+	// is summed to mono.
+	//
+	// It acts on the DRAWN figure only. Nothing is written back to the audio, so
+	// the correlation meter goes on reading the source as it actually is rather
+	// than as the knob is pretending.
+	stereoWidth float32 = 1
 )
 
 func init() {
@@ -177,6 +207,8 @@ func init() {
 		{"stereo-tau", "τ", &stereoTau, takensTauDef, 1, takensTauMax, 1},
 		{"stereo-win", "win", &stereoWin, 85, 5, stereoWinMax, 5},
 		{"stereo-gain", "gain", &stereoGain, 10, 0.5, 50, 0.5},
+		{"stereo-align", "algn", &stereoAlign, 0, -stereoAlignMax, stereoAlignMax, 1},
+		{"stereo-width", "wide", &stereoWidth, 1, 0, 3, 0.05},
 	}
 }
 
@@ -197,6 +229,12 @@ func init() {
 // window because a reconstructed manifold fills in as it accumulates; a
 // Lissajous just gets darker.
 const stereoWinMax = 250
+
+// stereoAlignMax is the ALIGN knob's reach either way, in reference samples:
+// 96 of them is 2 ms, which is a 68 cm path difference in air. The snapshot has
+// to hold the offset on top of the window and the delay, and stereoWindow's
+// clamp reserves it — see the invariant there.
+const stereoAlignMax = 96
 
 // stereoSpanMax is the most samples one frame may ask the source for. Named
 // against the source's own constant rather than repeating the number, so the
@@ -267,15 +305,70 @@ func stereoAxisSel() int {
 // the clamp reserves τ+1 of the budget before asking. (It would fail if τ could
 // approach stereoSpanMax itself, leaving less than takensWindow's 64-sample
 // floor; the knob tops out at 512, five bits short of that.)
-func stereoWindow(winMS float32, sampleRate, budget, tau int) (n, stride int) {
+func stereoWindow(winMS float32, sampleRate, budget, tau, align int) (n, stride int) {
 	sr := sampleRate
 	if sr <= 0 {
 		sr = 24000
 	}
-	if maxMS := float32(stereoSpanMax-tau-1) / float32(sr) * 1000; winMS > maxMS {
+	if align < 0 {
+		align = -align
+	}
+	// The ALIGN offset costs snapshot on top of τ, because the two channels are
+	// then read from indices that far apart and the snapshot has to cover both
+	// runs. Reserved here with τ for the same reason τ is: clamping the
+	// DURATION keeps the numbers that come back internally consistent, where
+	// trimming n afterwards would deliver a shorter window than the stride was
+	// computed for.
+	if maxMS := float32(stereoSpanMax-tau-align-1) / float32(sr) * 1000; winMS > maxMS {
 		winMS = maxMS
 	}
 	return takensWindow(winMS, sr, budget)
+}
+
+// stereoAlignSamples is the ALIGN knob in source samples, signed, clamped to
+// the knob's own reach — the snapshot bound is computed from that reach, so a
+// value past it (a hand-edited permalink, a modulator) would ask for samples
+// outside the buffer.
+func stereoAlignSamples(align float32, sr int) int {
+	if align > stereoAlignMax {
+		align = stereoAlignMax
+	} else if align < -stereoAlignMax {
+		align = -stereoAlignMax
+	} else if align != align { // NaN
+		return 0
+	}
+	neg := align < 0
+	if neg {
+		align = -align
+	}
+	n := tauSamples(align, sr)
+	if align < 0.5 {
+		n = 0 // tauSamples floors at 1; a zero offset has to stay zero
+	}
+	if neg {
+		return -n
+	}
+	return n
+}
+
+// stereoWiden applies the WIDTH knob to one (L, R) pair: side is scaled against
+// mid and the pair rebuilt from them. At 1 it is the identity.
+//
+// Done to the PAIR rather than to the side axis alone, so every axis assignment
+// sees the same widened signal — the L/R positions show what widening does to
+// the channels, which is the question, and the mid/side positions show it as an
+// extent along one axis. Scaling only the side axis would make the L/R
+// positions silently ignore the knob.
+func stereoWiden(l, r, width float32) (float32, float32) {
+	if width == 1 || width != width { // identity, and NaN leaves the pair alone
+		return l, r
+	}
+	if width < 0 {
+		width = 0
+	}
+	m := (l + r) * 0.5
+	s := (l - r) * 0.5 * width
+	return m + s, m - s
 }
 
 // generateStereo snapshots both channels and draws the newest window as a
@@ -287,12 +380,29 @@ func generateStereo() {
 		sr = src.SampleRate()
 	}
 	tau := tauSamples(stereoTau, sr)
-	n, stride := stereoWindow(stereoWin, sr, steps, tau)
+	align := stereoAlignSamples(stereoAlign, sr)
+	n, stride := stereoWindow(stereoWin, sr, steps, tau, align)
 	span := (n-1)*stride + tau
-	if need := span + 1; len(stereoL) < need {
+	// The two channels are read from indices `align` apart, so the snapshot has
+	// to cover both runs: |align| more samples, with the earlier channel
+	// starting at 0 and the later one offset into them. baseL and baseR are
+	// those two starts, and choosing them as max(±align, 0) keeps both inside
+	// [0, |align|] whichever way round the offset goes.
+	absA := align
+	if absA < 0 {
+		absA = -absA
+	}
+	baseL, baseR := 0, 0
+	if align > 0 {
+		baseL = align // right is read EARLIER, i.e. delayed into line with left
+	} else {
+		baseR = -align
+	}
+	snap := span + absA + 1
+	if len(stereoL) < snap {
 		// Grown by half again, as the Takens ring is, so that turning the WIN
 		// knob does not reallocate on every step of the dial.
-		stereoL = make([]float32, need+need/2)
+		stereoL = make([]float32, snap+snap/2)
 		stereoR = make([]float32, len(stereoL))
 	}
 	nv := takensVerts(n)
@@ -313,16 +423,21 @@ func generateStereo() {
 	// and the correlation reads low. It clears itself as the source's ring
 	// fills (a third of a second at 48 kHz on a 16384-sample ring) and it
 	// cannot cause a false report: the collapse notice wants a solid second.
-	l, r := stereoL[:span+1], stereoR[:span+1]
+	l, r := stereoL[:snap], stereoR[:snap]
 	src.TimeDomainStereo(l, r)
 
 	plan := stereoPlans[stereoAxisSel()]
 	g := stereoGain
+	width := stereoWidth
 
 	// at reads axis c at source point k, clamping k to the window so the
 	// spline's outer control points at either end are defined — the Takens
 	// mode's `at`, with the delay moved from the coordinate index into the
 	// plan, because here only some axes are delayed.
+	//
+	// The two channels are indexed from their own bases, which is where the
+	// ALIGN offset lives, and the pair is widened before the axis is taken from
+	// it so that every assignment sees the same signal.
 	at := func(c, k int) float32 {
 		if k < 0 {
 			k = 0
@@ -333,7 +448,8 @@ func generateStereo() {
 		if plan.delay[c] {
 			i -= tau
 		}
-		return stereoChanValue(plan.ch[c], l[i], r[i])
+		lv, rv := stereoWiden(l[baseL+i], r[baseR+i], width)
+		return stereoChanValue(plan.ch[c], lv, rv)
 	}
 	invN := float32(1) / float32(nv-1)
 	for m := 0; m < nv; m++ {
@@ -363,6 +479,9 @@ func generateStereo() {
 	}
 	uploadVerticesOnly(vertices, attractorDrawMode, nv)
 
+	// The RAW pair, not the widened or realigned one: the meter reports the
+	// source as it is, so that ALIGN and WIDE can be turned to ask what-if
+	// questions without the number moving to agree with the answer.
 	corr, ok := stereoCorrelation(l, r)
 	stereoNoteState(src.Channels() < 2, ok, corr)
 

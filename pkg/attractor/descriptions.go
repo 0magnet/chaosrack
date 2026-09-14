@@ -121,6 +121,11 @@ var attractorDescriptions = map[string]string{
 		"it. Press the button to measure again, or turn the knob and it stays where you put " +
 		"it. An m above 3 means the trail you are looking at is a projection of a " +
 		"higher-dimensional reconstruction. " +
+		"SRC picks which signal of the live pair is embedded. Takens' theorem takes ONE " +
+		"observable and this is the choice of which: the mix, either channel on its own, " +
+		"mid, or SIDE — what the two channels do not have in common, which on a real mix is " +
+		"the reverb and the room rather than the instruments, and which reconstructs a " +
+		"different manifold from the same recording. " +
 		"WIN is how much time the figure spans, in milliseconds — short is live and legible, " +
 		"long draws a denser tangle that turns over more slowly; GAIN sets how large a full-scale " +
 		"sample draws. The scale is fixed — nothing auto-ranges, so quiet passages draw small and " +
@@ -150,6 +155,14 @@ var attractorDescriptions = map[string]string{
 		"delayed copy of the first, because that delayed copy is exactly what this mode exists to " +
 		"stop pretending is a channel. The mid/side positions are the ones worth turning to then: " +
 		"S is zero and what is left is an honest two-coordinate delay embedding. " +
+		"ALGN is an inter-channel DELAY, ±2 ms, and it is the fault a goniometer gets reached " +
+		"for: a spaced pair of microphones, a mis-clocked converter, a plugin reporting its " +
+		"latency wrong. An offset draws as a figure that opens into an ellipse and rotates as " +
+		"the frequency moves; dial the knob until the figure collapses back onto the diagonal " +
+		"and it reads how far apart the channels were. WIDE scales side against mid — the width " +
+		"control of a mid/side processor, applied to the drawing rather than to the audio, so it " +
+		"answers what widening would do and what would collapse if the result were summed to " +
+		"mono. Neither moves CORR, which goes on reading the source as it actually is. " +
 		"WIN is how much time the figure spans, in milliseconds — a phase display is read over a " +
 		"few tens of them, past a couple of hundred it is a filled blob; GAIN sets how large a " +
 		"full-scale sample draws, and as in the Takens mode the scale is fixed and nothing " +
@@ -177,6 +190,7 @@ var attractorDescriptions = map[string]string{
 		"hiding, so a figure that merely swelled and shrank before now moves. DRIVE is how hard the " +
 		"signal is pushed into the curve, and it does nothing on the direction-only position, where " +
 		"there is no length left to compress. " +
+		"SRC picks which signal of the live pair is embedded, as in the Takens mode. " +
 		"τ and WIN mean exactly what they mean in the Takens mode, and the scale is fixed there " +
 		"too — nothing auto-ranges, so quiet draws small and loud draws large. The camera is fitted " +
 		"once to the sphere, which is the whole of what a bounded radius can reach, so peaks stay on " +

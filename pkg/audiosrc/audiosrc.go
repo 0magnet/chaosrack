@@ -43,6 +43,26 @@ type Source interface {
 	// Ready → returns 0.
 	Drain(dst []float32) int
 
+	// DrainStereo is Drain for both channels at once: it copies the
+	// samples that have arrived since the previous DrainStereo call into
+	// l and r (oldest first) and returns the number copied into each.
+	// len(l) must equal len(r). A one-channel source copies its stream
+	// into both, exactly as TimeDomainStereo does. Not Ready → 0.
+	//
+	// It exists because Drain is defined on the PRIMARY CHANNEL and is
+	// mono by construction — a consumer that wants the left channel, or
+	// mid/side, cannot get there from a stream already folded. Snapshots
+	// are no substitute: TimeDomainStereo re-reads the latest window
+	// every call, so a consumer accumulating a span longer than the
+	// source's ring has nothing to accumulate from.
+	//
+	// Drain and DrainStereo share no cursor, and a source should be read
+	// through one or the other: each hands every sample over exactly
+	// once, so two readers on one source split the stream rather than
+	// both seeing it. That is the defect audiotap_js.go exists to fix,
+	// and the tap is the single caller of whichever one it uses.
+	DrainStereo(l, r []float32) int
+
 	// SampleRate returns the underlying AudioContext's sampleRate in
 	// Hz (typically 44100 or 48000). Returns 0 before the context is
 	// established.

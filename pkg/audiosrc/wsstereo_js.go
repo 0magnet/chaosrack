@@ -183,3 +183,23 @@ func (s *stereoRings) channels() int {
 // milliseconds of the previous choice and not worth re-deriving the ring to
 // erase — and cannot be re-derived anyway once the source is one channel.
 func (s *stereoRings) setMono(m MonoMode) { s.mono = m }
+
+// drainStereo hands over both channels' unread samples; see Source.DrainStereo.
+// A one-channel stream drains its fold into l and copies it into r, which is
+// the same thing latestStereo does and the same thing the contract asks for.
+//
+// The two rings are written together by write, so they cannot come apart — but
+// the smaller count is reported anyway, because the alternative is handing back
+// a right-channel sample that was never written.
+func (s *stereoRings) drainStereo(l, r []float32) int {
+	if s.l == nil {
+		n := s.fold.drain(l)
+		copy(r[:n], l[:n])
+		return n
+	}
+	n := s.l.drain(l)
+	if got := s.r.drain(r); got < n {
+		n = got
+	}
+	return n
+}
