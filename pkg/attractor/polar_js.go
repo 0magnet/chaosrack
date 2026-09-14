@@ -67,18 +67,19 @@ import "math"
 const (
 	polarMapTanh = iota
 	polarMapAlgebraic
+	polarMapLog
 	polarMapUnit
 	polarMapCount
 )
 
 // polarMapNames are the dial's positions by name — the tooltip on each detent.
-var polarMapNames = []string{"tanh", "algebraic", "direction only"}
+var polarMapNames = []string{"tanh", "algebraic", "logarithmic (dB)", "direction only"}
 
 // polarMapRing is what fits AROUND the dial: five runes at most, and for a
 // named setting the ring IS the readout (the LED is hidden), so these have to
 // be told apart at a glance. "unit" for the direction-only map because that is
 // what it draws — the unit sphere — and "sphr" would describe all three.
-var polarMapRing = []string{"tanh", "soft", "unit"}
+var polarMapRing = []string{"tanh", "soft", "dB", "unit"}
 
 var (
 	polarMapF    float32 = 0            // map knob: an index into the constants above
@@ -91,6 +92,11 @@ var (
 	polarScratch []float32
 	polarCursor  = tapUnjoined // read position in the shared audio tap
 
+	// polarChanF is the SRC knob, the Takens mode's and for its reason: the
+	// delay vector is built from ONE observable, and which one is a choice the
+	// mode could not offer while the tap carried only the mix.
+	polarChanF float32
+
 	// polarFitGain is the GAIN the camera was last fitted to, 0 for not yet.
 	// A gain rather than a bool for takensFitGain's reason: the bound the fit
 	// is made against is a function of the gain — here the sphere's radius IS
@@ -101,6 +107,7 @@ var (
 func init() {
 	registerGenerate("polar", generatePolar)
 	attractorParams["polar"] = []paramDef{
+		{"polar-chan", "src", &polarChanF, 0, 0, float32(len(tapChanNames) - 1), 1},
 		{"polar-map", "map", &polarMapF, 0, 0, float32(polarMapCount - 1), 1},
 		{"polar-drive", "drv", &polarDrive, 2, 0.2, 10, 0.1},
 		{"polar-tau", "τ", &polarTau, takensTauDef, 1, takensTauMax, 1},
@@ -160,6 +167,41 @@ func polarRadius(m int, r, drive float32) float32 {
 		// modulator's arithmetic, and a NaN written into the vertex buffer is a
 		// hole in the trail that GL reports to nobody.
 		return 1 - 1/(1+drive*r)
+	case polarMapLog:
+		// r ↦ 1 + log₁₀(r)/drive: a DECIBEL radius. Full scale is the surface,
+		// and DRIVE is the window in DECADES below it that the sphere spends its
+		// radius on — 2 is 40 dB, about the useful range of a level meter, and
+		// the knob reaches from 4 dB to 200 dB.
+		//
+		// The other two curves are linear near the origin, and the origin is
+		// where almost all of the audio is: program material sits tens of dB
+		// below full scale, so tanh and the algebraic map draw the quiet
+		// nine-tenths of a signal in the middle tenth of the sphere and spend
+		// the outside on peaks that are hardly ever there. This spends radius on
+		// RATIOS instead — every doubling of level is the same step outward,
+		// 6 dB of the window wherever it falls — which is how a meter is scaled
+		// and how loudness is actually heard.
+		//
+		// It is NOT log(1+drive·r)/log(1+drive), which was tried first and is no
+		// decibel scale at all: normalizing that way divides the slope by
+		// log(1+drive), so at the default drive it draws the quiet end SMALLER
+		// than tanh does — the opposite of the point, and caught by the test that
+		// asks whether the map lifts the quiet end.
+		//
+		// Everything below the window is the origin rather than a negative
+		// radius, and everything at or past full scale is the surface. The clamps
+		// are not defensive decoration: a delay vector reaches √3 when its three
+		// coordinates peak together (takensCubeDiag), so r > 1 is ordinary here,
+		// and the maps are reachable from the audio modulator's arithmetic
+		// besides.
+		v := float32(1 + math.Log10(float64(r))/float64(drive))
+		if v > 1 {
+			return 1
+		}
+		if !(v > 0) { // false for NaN, and for everything under the window
+			return 0
+		}
+		return v
 	case polarMapUnit:
 		// Loudness removed entirely: the surface of the sphere and nothing else.
 		return 1
@@ -220,7 +262,7 @@ func generatePolar() {
 		// Drain hands each sample over exactly once, so two consumers on the
 		// raw source would split the stream rather than each see it.
 		for drained := 0; drained < 16384; {
-			got := tapRead(&polarCursor, polarScratch)
+			got := tapReadChan(&polarCursor, polarScratch, tapChanSel(polarChanF))
 			if got <= 0 {
 				break
 			}

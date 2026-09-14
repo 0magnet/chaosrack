@@ -23,21 +23,27 @@ func TestStereoWindowNeverOutrunsTheSnapshotRing(t *testing.T) {
 		for _, budget := range []int{2000, 20000, 200000} {
 			for _, win := range []float32{5, 85, 250, stereoWinMax, 5000} {
 				for _, tau := range []int{1, 32, 512} {
-					n, stride := stereoWindow(win, sr, budget, tau)
-					if n < 2 || stride < 1 {
-						t.Errorf("sr=%d budget=%d win=%v tau=%d: n=%d stride=%d",
-							sr, budget, win, tau, n, stride)
-						continue
-					}
-					// Exactly what generateStereo asks TimeDomainStereo for.
-					if need := (n-1)*stride + tau + 1; need > stereoSpanMax {
-						t.Errorf("sr=%d budget=%d win=%v tau=%d: snapshots %d samples from a "+
-							"%d-sample ring — the front of the window would be wrapped audio",
-							sr, budget, win, tau, need, stereoSpanMax)
-					}
-					if v := takensVerts(n); v > budget {
-						t.Errorf("sr=%d budget=%d win=%v tau=%d: %d vertices overruns the %d-vertex buffer",
-							sr, budget, win, tau, v, budget)
+					for _, align := range []int{-stereoAlignMax, -7, 0, 7, stereoAlignMax} {
+						n, stride := stereoWindow(win, sr, budget, tau, align)
+						if n < 2 || stride < 1 {
+							t.Errorf("sr=%d budget=%d win=%v tau=%d align=%d: n=%d stride=%d",
+								sr, budget, win, tau, align, n, stride)
+							continue
+						}
+						absA := align
+						if absA < 0 {
+							absA = -absA
+						}
+						// Exactly what generateStereo asks TimeDomainStereo for.
+						if need := (n-1)*stride + tau + absA + 1; need > stereoSpanMax {
+							t.Errorf("sr=%d budget=%d win=%v tau=%d align=%d: snapshots %d samples from a "+
+								"%d-sample ring — the front of the window would be wrapped audio",
+								sr, budget, win, tau, align, need, stereoSpanMax)
+						}
+						if v := takensVerts(n); v > budget {
+							t.Errorf("sr=%d budget=%d win=%v tau=%d align=%d: %d vertices overruns the %d-vertex buffer",
+								sr, budget, win, tau, align, v, budget)
+						}
 					}
 				}
 			}
@@ -51,7 +57,7 @@ func TestStereoWindowNeverOutrunsTheSnapshotRing(t *testing.T) {
 // stereoWinMax is the number to lower — not this test.
 func TestStereoWinMaxIsReachableAtEveryNormalRate(t *testing.T) {
 	for _, sr := range []int{22050, 24000, 44100, 48000} {
-		n, stride := stereoWindow(stereoWinMax, sr, 20000, 512)
+		n, stride := stereoWindow(stereoWinMax, sr, 20000, 512, stereoAlignMax)
 		want := float64(stereoWinMax) / 1000 * float64(sr)
 		if got := float64(n * stride); got < want*0.85 {
 			t.Errorf("sr=%d: the knob's maximum %v ms delivers %.0f samples, want ~%.0f — "+

@@ -17,6 +17,7 @@ type stubSource struct{}
 func (stubSource) TimeDomain(dst []float32) []float32 { return dst }
 func (stubSource) TimeDomainStereo(l, r []float32)    {}
 func (stubSource) Drain([]float32) int                { return 0 }
+func (stubSource) DrainStereo(l, r []float32) int     { return 0 }
 func (stubSource) SampleRate() int                    { return 24000 }
 func (stubSource) Channels() int                      { return 1 }
 func (stubSource) Ready() bool                        { return true }

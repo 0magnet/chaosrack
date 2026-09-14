@@ -28,12 +28,80 @@ import "github.com/0magnet/chaosrack/pkg/audiosrc"
 // same reason: when FVF is on it drains the source in the audio callback, so
 // the spectrogram reads fvfVis rather than draining a second time. That case
 // stays as it is — it is a different clock, not a frame-loop consumer.
+//
+// THE TAP CARRIES BOTH CHANNELS. It used to carry one — Source.Drain's, which
+// is the primary channel folded — and every consumer got the same mono stream
+// whether or not that was the signal it wanted. A consumer that wants the left
+// channel, or mid, or side cannot get there from a stream already folded, so
+// "which channel" was a question only the two modes that snapshot could answer
+// and the two that accumulate could not.
+//
+// So the tap drains stereo and keeps a ring per channel, and the fold is a
+// CONSUMER'S choice made on read (tapChan) rather than the source's made on
+// write. A mono source writes the same samples into both rings, which is what
+// Source.DrainStereo already promises, so nothing downstream has to special-case
+// it — asking for "side" of a mono source correctly gives silence.
 var (
-	tapRing    []float32
-	tapW       int // monotonic count of samples ever written into tapRing
-	tapScratch []float32
-	tapSrc     audiosrc.Source // source the cursors below are relative to
+	tapRingL    []float32
+	tapRingR    []float32
+	tapW        int // monotonic count of samples ever written into the rings
+	tapScratch  []float32
+	tapScratchR []float32
+	tapSrc      audiosrc.Source // source the cursors below are relative to
 )
+
+// tapChan names the signal a consumer reads out of the tap. The first three
+// are a fold of one (L, R) pair; they are the Stereo Embedding's basis choices
+// under the same names, because they are the same four signals.
+type tapChan uint8
+
+const (
+	tapMix  tapChan = iota // (L+R)/2 — what is playing, and what Drain used to give
+	tapLeft                // one channel as it is
+	tapRight
+	tapMid  // (L+R)/2 by construction; the same as the mix, and named for the pair
+	tapSide // (L−R)/2 — what is NOT common to the two, and silence on a mono source
+)
+
+// tapChanNames are the positions of any knob that selects one, and tapChanRing
+// what fits around such a dial.
+var (
+	tapChanNames = []string{"mix", "left", "right", "mid", "side"}
+	tapChanRing  = []string{"mix", "L", "R", "M", "S"}
+)
+
+// tapFold reduces one (L, R) pair to the signal a channel names. mid carries
+// the ½ and side carries it too, so that switching between them does not resize
+// the figure and a full-scale input stays inside ±1 — stereoChanValue's
+// argument, and the bound every fixed-scale camera fit in this package relies
+// on.
+func tapFold(c tapChan, l, r float32) float32 {
+	switch c {
+	case tapLeft:
+		return l
+	case tapRight:
+		return r
+	case tapSide:
+		return (l - r) * 0.5
+	default: // tapMix, tapMid
+		return (l + r) * 0.5
+	}
+}
+
+// tapChanSel clamps a knob value to a channel. Audio modulation can drive any
+// registered parameter, so the value arriving is not necessarily a detent, and
+// the range is checked BEFORE the conversion because a float-to-int conversion
+// whose value does not fit is implementation-defined in Go (stereoAxisSel's
+// argument, and its trap).
+func tapChanSel(v float32) tapChan {
+	if !(v > 0) { // false for NaN too
+		return tapMix
+	}
+	if last := float32(len(tapChanNames) - 1); v > last {
+		v = last
+	}
+	return tapChan(int(v + 0.5))
+}
 
 // tapDrainCap bounds one frame's pull. It is not optional: FuncGen synthesizes
 // on demand and always fills the buffer it is handed, so "drain until a partial
@@ -99,22 +167,30 @@ func tapPump() {
 	if src == nil || !src.Ready() {
 		return
 	}
-	if tapRing == nil {
-		tapRing = make([]float32, tapRingSize)
+	if tapRingL == nil {
+		tapRingL = make([]float32, tapRingSize)
+		tapRingR = make([]float32, tapRingSize)
 		tapScratch = make([]float32, 4096)
+		tapScratchR = make([]float32, 4096)
 	}
 	for drained := 0; drained < tapDrainCap; {
 		var n int
 		if up == tapFromFVF {
+			// The FVF engine's output is one processed signal — it is what is
+			// coming out of the speakers, and there is no second channel of it
+			// — so it goes into both rings. A consumer asking for "side" of it
+			// then gets silence, which is the true answer.
 			n = fvfVis.drain(tapScratch)
+			copy(tapScratchR[:n], tapScratch[:n])
 		} else {
-			n = src.Drain(tapScratch)
+			n = src.DrainStereo(tapScratch, tapScratchR)
 		}
 		if n <= 0 {
 			break
 		}
 		for i := 0; i < n; i++ {
-			tapRing[tapW%len(tapRing)] = tapScratch[i]
+			tapRingL[tapW%len(tapRingL)] = tapScratch[i]
+			tapRingR[tapW%len(tapRingR)] = tapScratchR[i]
 			tapW++
 		}
 		drained += n
@@ -132,11 +208,16 @@ func tapPump() {
 // A zero cursor on a running tap means "new consumer": it starts at the current
 // write position rather than replaying the whole ring, so switching a model on
 // does not hand it a backlog it would have to discard anyway.
-func tapRead(cursor *int, dst []float32) int {
-	if tapRing == nil || len(dst) == 0 {
+func tapRead(cursor *int, dst []float32) int { return tapReadChan(cursor, dst, tapMix) }
+
+// tapReadChan is tapRead with the fold chosen by the CONSUMER rather than by
+// the source. tapRead is the mix, which is what every reader got when the tap
+// was mono and what most of them still want.
+func tapReadChan(cursor *int, dst []float32, c tapChan) int {
+	if tapRingL == nil || len(dst) == 0 {
 		return 0
 	}
-	size := len(tapRing)
+	size := len(tapRingL)
 	if *cursor < 0 || *cursor > tapW {
 		// Not yet joined (the -1 sentinel), or pointing past the write head
 		// because a source switch reset it. Either way, start here.
@@ -156,7 +237,37 @@ func tapRead(cursor *int, dst []float32) int {
 		n = len(dst)
 	}
 	for i := 0; i < n; i++ {
-		dst[i] = tapRing[(*cursor+i)%size]
+		j := (*cursor + i) % size
+		dst[i] = tapFold(c, tapRingL[j], tapRingR[j])
+	}
+	*cursor += n
+	return n
+}
+
+// tapReadStereo is tapRead delivering BOTH channels, for a consumer that needs
+// the pair rather than a fold of it. One cursor still, so the two come back
+// sample-aligned — which is the whole point for anything measuring a
+// relationship between them.
+func tapReadStereo(cursor *int, l, r []float32) int {
+	if tapRingL == nil || len(l) == 0 || len(l) != len(r) {
+		return 0
+	}
+	size := len(tapRingL)
+	if *cursor < 0 || *cursor > tapW {
+		*cursor = tapW
+		return 0
+	}
+	if tapW-*cursor > size {
+		*cursor = tapW - size
+	}
+	n := tapW - *cursor
+	if n > len(l) {
+		n = len(l)
+	}
+	for i := 0; i < n; i++ {
+		j := (*cursor + i) % size
+		l[i] = tapRingL[j]
+		r[i] = tapRingR[j]
 	}
 	*cursor += n
 	return n

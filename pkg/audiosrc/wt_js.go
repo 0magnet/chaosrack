@@ -510,3 +510,20 @@ func openWebTransport(url string, init js.Value) js.Value {
 	}
 	return ctor.New(url, init) // the caller's recover() is the guard here
 }
+
+// DrainStereo hands over both channels' unread samples; see Source.DrainStereo.
+// Routed to the fallback while the WebTransport session is not the live one,
+// exactly as Drain is — the two transports carry identical bytes, so which one
+// is delivering them is not something a reader should have to know.
+func (w *wtSource) DrainStereo(l, r []float32) int {
+	if len(l) != len(r) {
+		panic("audiosrc: DrainStereo requires len(l) == len(r)")
+	}
+	if w.fallback != nil {
+		return w.fallback.DrainStereo(l, r)
+	}
+	if !w.ready {
+		return 0
+	}
+	return w.rings.drainStereo(l, r)
+}

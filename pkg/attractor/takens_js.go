@@ -67,6 +67,17 @@ var (
 	takensScratch []float32
 	takensCursor  = tapUnjoined // read position in the shared audio tap
 
+	// takensChanF is the SRC knob: which signal of the live pair is embedded.
+	//
+	// Takens' theorem takes ONE observable, and until the tap carried both
+	// channels the only observable available was the mix — so the one mode
+	// whose whole subject is "reconstruct the system behind this signal" could
+	// not be pointed at a signal. The side channel is the interesting position:
+	// it is what the two channels do NOT have in common, which on a real mix is
+	// the reverb, the stereo width and the room rather than the instruments, and
+	// it reconstructs a different manifold from the same recording.
+	takensChanF float32
+
 	// takensFitGain is the GAIN the camera was last fitted to, or 0 for "not
 	// fitted since audio arrived". It is a gain rather than a bool because the
 	// bound the fit is made against IS a function of the gain — see
@@ -95,6 +106,7 @@ const takensCubeDiag = 1.7320508
 func init() {
 	registerGenerate("takens", generateTakens)
 	attractorParams["takens"] = []paramDef{
+		{"takens-chan", "src", &takensChanF, 0, 0, float32(len(tapChanNames) - 1), 1},
 		{"takens-tau", "τ", &takensTau, takensTauDef, 1, takensTauMax, 1},
 		{"takens-win", "win", &takensWin, 85, 5, 500, 5},
 		{"takens-gain", "gain", &takensGain, 10, 0.5, 50, 0.5},
@@ -252,7 +264,7 @@ func generateTakens() {
 	if tapReady() {
 		// The tap has already drained this frame; take our own copy of it.
 		for drained := 0; drained < 16384; {
-			n := tapRead(&takensCursor, takensScratch)
+			n := tapReadChan(&takensCursor, takensScratch, tapChanSel(takensChanF))
 			if n <= 0 {
 				break
 			}
@@ -275,6 +287,14 @@ func generateTakens() {
 		takensFitGain = 0 // camera was fitted to silence — refit on real data
 		uploadVerticesOnly(vertBuf[:nv*4], attractorDrawMode, nv)
 		return
+	}
+	// A different SRC is a different signal, so the τ measured from the last
+	// one describes nothing about this one — the same argument the source swap
+	// makes, one level down. Re-arming rather than measuring, so the one-shot
+	// still has to see a full window before it fires.
+	if ch := tapChanSel(takensChanF); ch != takensChanMeasured {
+		takensChanMeasured = ch
+		takensArmAutoMeasure()
 	}
 	// Once, when the ring first holds enough to measure from — see the section
 	// comment below for why this is allowed to be reached from here at all, and
@@ -380,6 +400,12 @@ var (
 	// permalink case falls out of this rather than needing its own rule, since
 	// a permalink records a parameter only when it differs from the default.
 	takensAutoSet float32
+
+	// takensChanMeasured is the SRC the standing measurement was taken from, so
+	// that turning that knob re-arms the one-shot. It is deliberately NOT a
+	// pointer at the knob: the knob is a float a modulator can wobble, and what
+	// matters is the detent it lands on.
+	takensChanMeasured tapChan
 )
 
 // takensAutoMeasure runs the estimator ONCE, the first time the mode has enough

@@ -7,17 +7,23 @@ import "testing"
 // resetTap puts the tap back to its zero state so each test starts clean.
 func resetTap(t *testing.T) {
 	t.Helper()
-	tapRing = make([]float32, tapRingSize)
+	tapRingL = make([]float32, tapRingSize)
+	tapRingR = make([]float32, tapRingSize)
 	tapW = 0
 	tapScratch = make([]float32, 4096)
+	tapScratchR = make([]float32, 4096)
 	tapSrc = nil
 }
 
 // tapWrite pushes n samples carrying their own index as a value, so a reader
-// can assert not just how many samples it got but WHICH ones.
+// can assert not just how many samples it got but WHICH ones. Both channels get
+// the same value, so a fold of them is that value too and the existing
+// assertions read unchanged.
 func tapWrite(n int) {
 	for i := 0; i < n; i++ {
-		tapRing[tapW%len(tapRing)] = float32(tapW)
+		j := tapW % len(tapRingL)
+		tapRingL[j] = float32(tapW)
+		tapRingR[j] = float32(tapW)
 		tapW++
 	}
 }

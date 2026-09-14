@@ -64,6 +64,12 @@ var paramLabels = map[string][]string{
 	// The xy scope's basis, next to the pair it selects between for the same
 	// reason as the two above.
 	"xy-basis": xyBasisNames,
+	// Which signal of the live pair the two accumulating embeddings reconstruct.
+	// Defined next to the fold they index (audiotap_js.go) for the same reason
+	// the two above are: a name that disagreed with the fold would put a dial
+	// position on a signal it does not read.
+	"takens-chan": tapChanNames,
+	"polar-chan":  tapChanNames,
 }
 
 // paramRingLabels is what actually fits around the dial. A cell is a third of
@@ -94,6 +100,8 @@ var paramRingLabels = map[string][]string{
 	"stereo-axes": stereoAxisRing,
 	"polar-map":   polarMapRing,
 	"xy-basis":    xyBasisRing,
+	"takens-chan": tapChanRing,
+	"polar-chan":  tapChanRing,
 }
 
 // turtlePhysParams are the weight controls. They are not in attractorParams

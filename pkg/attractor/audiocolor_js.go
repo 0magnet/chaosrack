@@ -320,12 +320,21 @@ func stereoColorWindow() ([]float32, int) {
 		sr = src.SampleRate()
 	}
 	tau := tauSamples(stereoTau, sr)
-	n, stride := stereoWindow(stereoWin, sr, steps, tau)
+	align := stereoAlignSamples(stereoAlign, sr)
+	n, stride := stereoWindow(stereoWin, sr, steps, tau, align)
 	if n <= 0 {
 		return nil, 0
 	}
 	span := (n-1)*stride + tau
-	if len(stereoL) < span+1 {
+	// generateStereo's own indexing: the left channel starts at baseL, which is
+	// the ALIGN offset when right is the channel being pulled back. Reading from
+	// 0 instead would color the trail with audio from a different moment than the
+	// trail was drawn from, which is the shift this whole walk exists to avoid.
+	baseL := 0
+	if align > 0 {
+		baseL = align
+	}
+	if len(stereoL) < baseL+span+1 {
 		return nil, 0 // the snapshot for this window has not been taken yet
 	}
 	if cap(audioColorWin) < n {
@@ -333,7 +342,7 @@ func stereoColorWindow() ([]float32, int) {
 	}
 	out := audioColorWin[:n]
 	for k := 0; k < n; k++ {
-		out[k] = stereoL[tau+k*stride]
+		out[k] = stereoL[baseL+tau+k*stride]
 	}
 	return out, sr
 }
