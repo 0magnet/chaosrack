@@ -7,11 +7,11 @@ require (
 	github.com/0magnet/calvin v0.0.0-20260913215348-2de0c1f412b3
 	github.com/0magnet/desk v0.0.0-20260914105004-76463198b217
 	github.com/0magnet/desk/panes v0.0.0-20260914105004-76463198b217
-	github.com/0magnet/pisano v0.0.0-20260914104727-24169ea0c4f8
+	github.com/0magnet/pisano v0.0.0-20260914110222-a1da4896ba2b
 	github.com/0magnet/rack-go v0.0.0-20260913215439-e24fe22a39b2
 	github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a
-	github.com/0magnet/tuiwasm v0.0.0-20260914105339-caaa02e16bb0
-	github.com/0magnet/websh v0.0.0-20260914105002-5312a522f117
+	github.com/0magnet/tuiwasm v0.0.0-20260914192715-81013191e14e
+	github.com/0magnet/websh v0.0.0-20260914105251-9f3f0b910116
 	github.com/0magnet/winbox-go v0.0.0-20260913215348-e6a682de3c9b
 	github.com/0magnet/xterm-go v0.0.0-20260913215439-50280f9bd203
 	github.com/gin-gonic/gin v1.12.0
@@ -31,7 +31,7 @@ require (
 	github.com/0magnet/go-dsp v0.0.0-20260907230215-136ba239cc2d // indirect
 	github.com/0magnet/img2txt-go v0.0.0-20260913215439-b4b60335a39b // indirect
 	github.com/0magnet/lolcat-go v0.0.0-20260907230215-22c54b7702c7 // indirect
-	github.com/0magnet/proxima5 v0.0.0-20260908180128-ed5a78054456 // indirect
+	github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc // indirect
 	github.com/0magnet/termanim v0.0.0-20260914104740-c2d1737f7963 // indirect
 	github.com/0magnet/toilet-go v0.0.0-20260914104758-0bd3b6b76ab4 // indirect
 	github.com/0magnet/u-root v0.16.1-0.20260907193324-47ff3c83f69d // indirect
