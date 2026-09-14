@@ -30,16 +30,6 @@ type MicOptions struct {
 	Context js.Value
 }
 
-// NewMic requests microphone access via getUserMedia and captures the
-// continuous sample stream with a ScriptProcessorNode whose onaudioprocess
-// callback runs in Go (no separate JS worklet module — keeps everything in
-// wasm). Samples flow into per-channel ring buffers that serve both
-// TimeDomain (latest window, e.g. xy scope) and Drain (continuous stream
-// for the overlapping STFT spectrogram).
-//
-// getUserMedia requires a secure context (https or localhost). On file://
-// or plain http:// LAN pages, Err() is set once the browser refuses;
-// callers should render a fallback.
 // DefaultMicBufferSize is the ScriptProcessorNode buffer, in sample frames,
 // and it is THE display latency of every live-audio mode. The node cannot call
 // back until it has collected a whole buffer, so the rings it feeds are
@@ -67,6 +57,16 @@ type MicOptions struct {
 // package has so far avoided; 1024 buys most of the distance without it.
 const DefaultMicBufferSize = 1024
 
+// NewMic requests microphone access via getUserMedia and captures the
+// continuous sample stream with a ScriptProcessorNode whose onaudioprocess
+// callback runs in Go (no separate JS worklet module — keeps everything in
+// wasm). Samples flow into per-channel ring buffers that serve TimeDomain
+// (latest window, e.g. xy scope), Drain (the continuous mono stream the
+// overlapping STFT needs) and DrainStereo (the same, both channels).
+//
+// getUserMedia requires a secure context (https or localhost). On file://
+// or plain http:// LAN pages, Err() is set once the browser refuses;
+// callers should render a fallback.
 func NewMic(opts MicOptions) Source {
 	if opts.BufferSize == 0 {
 		opts.BufferSize = DefaultMicBufferSize
@@ -313,4 +313,30 @@ func stopTracks(stream js.Value) {
 	for i := 0; i < n; i++ {
 		tracks.Index(i).Call("stop")
 	}
+}
+
+// DrainStereo hands over both channels' unread samples. A mono capture copies
+// the one it has into both, as TimeDomainStereo does.
+//
+// The two rings are written in lockstep by handleProcess, so draining them
+// independently returns the same count from each — but the smaller of the two
+// is what gets reported rather than the left's, because a source that has just
+// gone from one channel to two has a right ring with nothing in it yet, and a
+// caller must never be handed a right-channel sample that was not written.
+func (m *micSource) DrainStereo(l, r []float32) int {
+	if len(l) != len(r) {
+		panic("audiosrc: DrainStereo requires len(l) == len(r)")
+	}
+	if !m.ready {
+		return 0
+	}
+	n := m.ringL.drain(l)
+	if m.ringR == nil {
+		copy(r[:n], l[:n])
+		return n
+	}
+	if got := m.ringR.drain(r); got < n {
+		n = got
+	}
+	return n
 }

@@ -296,3 +296,14 @@ func openWebSocket(url string) (ws js.Value) {
 	}
 	return ctor.New(url)
 }
+
+// DrainStereo hands over both channels' unread samples; see Source.DrainStereo.
+func (w *wsSource) DrainStereo(l, r []float32) int {
+	if len(l) != len(r) {
+		panic("audiosrc: DrainStereo requires len(l) == len(r)")
+	}
+	if !w.ready {
+		return 0
+	}
+	return w.rings.drainStereo(l, r)
+}
