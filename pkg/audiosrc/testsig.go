@@ -302,3 +302,67 @@ func (g *testGen) nextPolarity(sr float64) float64 {
 	const area = 2 * spike / math.Pi
 	return -area / (1 - spike) * math.Pi / 2 * math.Sin(math.Pi*(p-spike)/(1-spike))
 }
+
+// ── Using the stimuli without a browser ──────────────────────────────────
+
+// TestSource synthesizes one stimulus, and is the way to reach the library
+// from anywhere that is not a live page.
+//
+// FuncGen is the generator the app plays through, and it is js-tagged because
+// it is a Source — so without this the stimuli could only be produced inside a
+// browser, and anything wanting to check a measurement against a known signal
+// natively would have to write its own copy of that signal. A second
+// implementation written to agree is not a check; it is the same assumption
+// stated twice. This lets a test feed the real pink noise to the real analyzer
+// and find out whether the two halves of the app agree.
+type TestSource struct {
+	g  *testGen
+	sr int
+}
+
+// NewTestSource returns a generator for one stimulus at a sample rate.
+func NewTestSource(sig TestSignal, sampleRate int) *TestSource {
+	if sampleRate <= 0 {
+		sampleRate = 48000
+	}
+	g := newTestGen()
+	if sig >= 0 && sig < testSignalCount {
+		g.sig = sig
+	}
+	g.level = 1
+	return &TestSource{g: g, sr: sampleRate}
+}
+
+// SetLevel sets the amplitude, 0..1.
+func (t *TestSource) SetLevel(v float64) {
+	if !(v > 0) {
+		v = 0
+	} else if v > 1 {
+		v = 1
+	}
+	t.g.level = v
+}
+
+// Fill writes the next samples of both channels. len(l) must equal len(r).
+func (t *TestSource) Fill(l, r []float32) {
+	if len(l) != len(r) {
+		panic("audiosrc: TestSource.Fill requires len(l) == len(r)")
+	}
+	sr := float64(t.sr)
+	for i := range l {
+		l[i], r[i] = t.g.next(sr)
+	}
+}
+
+// FillMono writes the next samples of the stimulus folded to one channel —
+// the mix, which for the out-of-polarity stimulus is correctly silence.
+func (t *TestSource) FillMono(dst []float32) {
+	sr := float64(t.sr)
+	for i := range dst {
+		a, b := t.g.next(sr)
+		dst[i] = (a + b) * 0.5
+	}
+}
+
+// SweepPosition reports how far through one pass of the log sweep it is, 0..1.
+func (t *TestSource) SweepPosition() float64 { return t.g.SweepPosition() }

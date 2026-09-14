@@ -124,6 +124,10 @@ var modeInfo = map[string]ModeInfo{
 	// recurrence is Audio for the same reason the spectrogram is: it is a
 	// texture drawn on a plane, with no trail to persist, gradient or scan.
 	"recurrence": {"Recurrence Plot", ClassAudio, false},
+	// The RTA is Audio for the recurrence plot's reason: it is a picture drawn
+	// on the screen rather than a trajectory, with no trail to persist, gradient
+	// or scan. It draws with its own program, as the xy scope does.
+	"rta": {"RTA — Octave Bands", ClassAudio, false},
 	// A terminal is not audio and not a dynamical system; it is a live picture
 	// on a plane, which is what ClassGeometry already covers for the modes that
 	// are a surface rather than a trajectory.
@@ -173,8 +177,8 @@ var modeGroups = []struct {
 	// off disk plus a catalog of built-in solids — the rack, the geometry and
 	// every attractor swept as a tube — generated in the browser.
 	{"Solids", []string{"stlfile", "terminal", "termanim", "hostterm", "desk"}},
-	{"Audio", []string{"spectrogram", "xy", "fvf", "takens", "stereo", "polar", "recurrence"}},
-	{"Analysis", []string{"bifurcation", "poincare", "recurrence"}},
+	{"Audio", []string{"spectrogram", "xy", "fvf", "takens", "stereo", "polar", "recurrence", "rta"}},
+	{"Analysis", []string{"bifurcation", "poincare", "recurrence", "rta"}},
 	// Custom is its own category and NOT also an entry in Attractors, where it
 	// used to be listed twice. It is a different kind of thing from the rest
 	// of that list: every other entry is a system someone published and this

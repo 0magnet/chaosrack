@@ -326,3 +326,35 @@ func TestBadInputIsRefused(t *testing.T) {
 		}
 	}
 }
+
+// THE INSTRUMENT'S OWN FLOOR, stated as a test so it cannot quietly get worse.
+//
+// A synthesized pure tone has no distortion and no noise, so whatever the
+// analyzer reports for one is the window's leakage getting past the notch —
+// the quietest thing this instrument can see, and the number the module's
+// tooltip and the README quote. Through a Hann window it was 0.013%
+// (77.8 dB SINAD, 12.6 effective bits) and the analyzer could read nothing
+// below it, which is above the distortion of genuinely good equipment.
+func TestTheMeasurementFloorIsWhereItIsClaimed(t *testing.T) {
+	worstTHDN, worstSINAD, bestENOB := 0.0, 999.0, 0.0
+	for _, hz := range []float64{100, 440.5, 997, 1000, 3150, 7777.7, 12000.3} {
+		r := AnalyzeDistortion(distTone(16384, hz, 0.9), dtSR, 20)
+		if !r.OK {
+			t.Fatalf("%.1f Hz: no measurement", hz)
+		}
+		worstTHDN = math.Max(worstTHDN, r.THDN)
+		worstSINAD = math.Min(worstSINAD, r.SINAD)
+		bestENOB = math.Max(bestENOB, r.ENOB)
+	}
+	t.Logf("floor: %.5f%% THD+N, %.1f dB SINAD, %.1f ENOB", AsPercent(worstTHDN), worstSINAD, bestENOB)
+	// The claim. Loose enough not to be a trip-wire on an arithmetic change,
+	// tight enough that dropping back to a Hann window — which would land at
+	// 0.013% — fails it immediately.
+	if AsPercent(worstTHDN) > 0.002 {
+		t.Errorf("the floor is %.5f%% THD+N; the README claims better than 0.002%%",
+			AsPercent(worstTHDN))
+	}
+	if worstSINAD < 94 {
+		t.Errorf("the floor is %.1f dB SINAD; the README claims better than 94 dB", worstSINAD)
+	}
+}
