@@ -756,6 +756,7 @@ func Run() {
 	}))
 	buildGeneratorModule()
 	buildTestSignalModule()
+	wireDistortionModule()
 	buildSonifyModule()
 	wireCounterModule()
 	wireAnalysisModule()

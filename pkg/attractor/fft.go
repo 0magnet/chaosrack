@@ -138,3 +138,23 @@ func computeFFTMagsWindow(input []float32, wf sg.WindowFunc) []float64 {
 	}
 	return s.mags
 }
+
+// windowEnergy is Σw[n]² for the window a given FFT size uses — the quantity
+// that turns a summed band of magnitudes back into the amplitude of the tone
+// that made it.
+//
+// Taken from the scratch's own table rather than from the closed form for a
+// Hann window, so it cannot drift if the window ever changes: a scale factor
+// derived from a window the FFT is not actually applying is an amplitude
+// readout that is quietly wrong by a constant.
+func windowEnergy(n int) float64 {
+	s := fftScratchFor(n, sg.WindowHann)
+	if s == nil {
+		return 0
+	}
+	var e float64
+	for _, w := range s.win {
+		e += w * w
+	}
+	return e
+}
