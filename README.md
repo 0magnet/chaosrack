@@ -63,6 +63,7 @@ analog computers at [glensstuff.com](https://glensstuff.com).
   - [The global controls](#the-global-controls)
   - [The audio-driven models](#the-audio-driven-models)
   - [Test signals](#test-signals)
+  - [Distortion — THD, THD+N, SINAD, ENOB](#distortion--thd-thdn-sinad-enob)
   - [Controls that pull in the same direction](#controls-that-pull-in-the-same-direction)
 - [Reaching the machine](#reaching-the-machine)
   - [On a machine with other people on it](#on-a-machine-with-other-people-on-it)
@@ -1555,6 +1556,41 @@ Measured through chaosrack's own displays: the three noises read **r+1.00**,
 reference tones read **1000.0 Hz** and **3150.4 Hz** on the frequency counter.
 The left- and right-only signals read `r --`, which is the meter correctly
 saying one channel is dead and there is nothing to correlate.
+
+
+### Distortion — THD, THD+N, SINAD, ENOB
+
+The measurement a piece of audio equipment is specified by: feed a clean tone
+in, and ask how much of what comes back is *not* that tone. The **Test** module
+has the tone; the **Distortion** module makes the measurement.
+
+| | |
+|---|---|
+| **thd** | the harmonics alone, as a percentage of the fundamental. Noise is not counted, which is what makes it the number a spec sheet quotes and also what makes it flattering |
+| **thd+n** | everything that is not the fundamental — harmonics, noise, hum, intermodulation. Always at least THD, and the gap between them is how much of the rubbish is hiss rather than distortion |
+| **sinad** | the same ratio in decibels, the way a converter is specified |
+| **enob** | the ideal-converter relation run backwards: what a perfect converter would have to be to sound this clean. A perfect *n*-bit converter has a SINAD of 6.02*n* + 1.76 dB |
+| **src** | which signal is measured — mix, either channel, mid or side |
+| **harm** | how many harmonics are summed. Ones past Nyquist are never counted: they are not there |
+
+It runs every 400 ms rather than every frame. A 16384-point FFT is not free, and
+a distortion figure that flickers through three digits is unreadable even when
+every digit is right — the measurement is an average over its window, so showing
+it faster than the window is long is showing the same audio twice.
+
+**The instrument's own floor is about 0.013% THD+N** — 77.8 dB SINAD, 12.6
+effective bits — measured on a synthesized pure tone. That is the Hann window's
+leakage getting past the notch, not anything in the signal, and nothing quieter
+than it can be read.
+
+Checked against distortion the app generates itself, by putting a second
+oscillator on the second harmonic at a known ratio:
+
+| injected | measured |
+|---|---|
+| 1% | **1.000%** |
+| 10% | **10.000%** |
+| 50% | **50.000%** |
 
 ### Controls that pull in the same direction
 
