@@ -16,8 +16,7 @@ type MicOptions struct {
 	Stereo bool
 
 	// BufferSize is the ScriptProcessorNode buffer size in sample frames
-	// (a power of two, 256..16384). Larger = fewer callbacks but more
-	// latency. Default 4096.
+	// (a power of two, 256..16384). Default DefaultMicBufferSize.
 	BufferSize int
 
 	// RingSize is the number of samples retained per channel. Must exceed
@@ -41,9 +40,36 @@ type MicOptions struct {
 // getUserMedia requires a secure context (https or localhost). On file://
 // or plain http:// LAN pages, Err() is set once the browser refuses;
 // callers should render a fallback.
+// DefaultMicBufferSize is the ScriptProcessorNode buffer, in sample frames,
+// and it is THE display latency of every live-audio mode. The node cannot call
+// back until it has collected a whole buffer, so the rings it feeds are
+// refreshed once per buffer and hold still in between.
+//
+// It was 4096, which is 85 ms at 48 kHz, and measured against a real page: new
+// audio arrived at 12.3 Hz while the renderer ran at 60, so 70% of rendered
+// frames drew exactly what the frame before them drew. That is what "the scope
+// lags the sound" is — not a delay line somewhere, a display refreshed twelve
+// times a second. The samples are current when they arrive; the wait is for
+// them to arrive at all, which makes the visible lag anything from nothing to
+// a full buffer, averaging half of it.
+//
+// 1024 is 21 ms, measured at 41.7 Hz with NO stale frames at all against the
+// same page. Below that the numbers stop improving in the way they should: at
+// 512 the callbacks arrive in bursts a tenth of a millisecond apart, which is
+// the node dumping a queue because the main thread — where onaudioprocess runs,
+// alongside the WebGL render loop — did not get back in time. Buffers dropped
+// that way are gaps in the ring, and a gap is worse than a frame of staleness.
+// So this is the smallest size that still keeps ahead of the renderer, not the
+// smallest size the node will take.
+//
+// The real fix is an AudioWorklet, which runs on the audio thread and cannot be
+// starved by rendering at all. That means shipping a JS module, which this
+// package has so far avoided; 1024 buys most of the distance without it.
+const DefaultMicBufferSize = 1024
+
 func NewMic(opts MicOptions) Source {
 	if opts.BufferSize == 0 {
-		opts.BufferSize = 4096
+		opts.BufferSize = DefaultMicBufferSize
 	}
 	if opts.RingSize == 0 {
 		opts.RingSize = DefaultRingSize
