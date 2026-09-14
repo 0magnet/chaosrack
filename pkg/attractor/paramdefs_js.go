@@ -70,6 +70,9 @@ var paramLabels = map[string][]string{
 	// position on a signal it does not read.
 	"takens-chan": tapChanNames,
 	"polar-chan":  tapChanNames,
+	"rta-chan":    tapChanNames,
+	// The RTA's band width, next to the fractions it indexes.
+	"rta-frac": rtaFractionNames,
 }
 
 // paramRingLabels is what actually fits around the dial. A cell is a third of
@@ -102,6 +105,8 @@ var paramRingLabels = map[string][]string{
 	"xy-basis":    xyBasisRing,
 	"takens-chan": tapChanRing,
 	"polar-chan":  tapChanRing,
+	"rta-chan":    tapChanRing,
+	"rta-frac":    rtaFractionRing,
 }
 
 // turtlePhysParams are the weight controls. They are not in attractorParams
