@@ -113,7 +113,13 @@ func (f *FuncGen) advance(i int) float64 {
 
 // TimeDomainStereo: X oscillator → left, Y oscillator → right (the xy scope's
 // two axes).
-func (f *FuncGen) TimeDomainStereo(l, r []float32) {
+func (f *FuncGen) TimeDomainStereo(l, r []float32) { f.fillStereo(l, r) }
+
+// fillStereo is the two-channel synthesis both TimeDomainStereo and DrainStereo
+// deliver. One function because it is one signal: a generator has no ring to
+// snapshot, so "the latest window" and "the samples since last time" are the
+// same freshly synthesized run either way.
+func (f *FuncGen) fillStereo(l, r []float32) {
 	for i := range l {
 		xv := f.advance(OscX)
 		yv := f.advance(OscY)
@@ -147,4 +153,18 @@ func (f *FuncGen) TimeDomain(dst []float32) []float32 {
 func (f *FuncGen) Drain(dst []float32) int {
 	f.fillMono(dst)
 	return len(dst)
+}
+
+// DrainStereo synthesizes both channels, X into left and Y into right — the xy
+// scope's two axes, and the same assignment TimeDomainStereo makes.
+//
+// It ALWAYS RETURNS A FULL BUFFER, for Drain's reason: a generator has no
+// backlog, so there is no amount of reading that exhausts it, and a caller
+// whose loop runs "until a partial fill" does not terminate against one.
+func (f *FuncGen) DrainStereo(l, r []float32) int {
+	if len(l) != len(r) {
+		panic("audiosrc: DrainStereo requires len(l) == len(r)")
+	}
+	f.fillStereo(l, r)
+	return len(l)
 }
