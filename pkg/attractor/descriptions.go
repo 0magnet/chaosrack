@@ -107,12 +107,20 @@ var attractorDescriptions = map[string]string{
 		"from a single signal (F. Takens, \"Detecting strange attractors in turbulence\", 1981). " +
 		"Each trail point is the delay vector (s(t), s(t−τ), s(t−2τ)) of the live audio: a pure " +
 		"tone draws a closed loop, music and speech trace the geometry of whatever produced them. " +
-		"τ is the embedding delay in samples, and MEAS measures it rather than guessing: the " +
-		"first minimum of the signal's average mutual information (Fraser & Swinney 1986), " +
-		"reported beside the false-nearest-neighbor embedding dimension m (Kennel et al. 1992). " +
-		"It runs once, on the button — nothing here re-tunes itself per frame, because a knob " +
-		"that moves with the music makes the figure move with it. An m above 3 means the trail " +
-		"you are looking at is a projection of a higher-dimensional reconstruction. " +
+		"τ is the embedding delay, counted in samples at a fixed 48 kHz reference so that one " +
+		"knob position is one DURATION — the same delay whether the sound is arriving from a " +
+		"48 kHz microphone or a 24 kHz server feed, which is what it was not when the number " +
+		"was read as raw samples of whatever happened to be playing. The default of 72 is " +
+		"1.5 ms; the MEAS readout says what the current setting is in milliseconds. " +
+		"MEAS measures τ rather than guessing it: the first minimum of the signal's average " +
+		"mutual information (Fraser & Swinney 1986), reported beside the false-nearest-neighbor " +
+		"embedding dimension m (Kennel et al. 1992). It also runs BY ITSELF, once, as soon as " +
+		"the mode has enough audio to measure — and again if the source is swapped, because τ " +
+		"is a property of what is playing. Once is the whole of it: nothing here re-tunes " +
+		"itself per frame, because a knob that moves with the music makes the figure move with " +
+		"it. Press the button to measure again, or turn the knob and it stays where you put " +
+		"it. An m above 3 means the trail you are looking at is a projection of a " +
+		"higher-dimensional reconstruction. " +
 		"WIN is how much time the figure spans, in milliseconds — short is live and legible, " +
 		"long draws a denser tangle that turns over more slowly; GAIN sets how large a full-scale " +
 		"sample draws. The scale is fixed — nothing auto-ranges, so quiet passages draw small and " +
@@ -191,11 +199,19 @@ var attractorDescriptions = map[string]string{
 		"that component is lifted onto a real Z so the figure genuinely has depth.\n\n" +
 		"VERT = levelA·A + levelB·(B · C₊₄₅)\nHORIZ = levelD·D + levelB·(B · C₋₄₅)",
 	"xy": "X/Y Scope — the classic two-channel oscilloscope figure, drawing the live " +
-		"audio's (left, right) sample pairs as a line strip. Correlated channels lie on a " +
-		"diagonal, anti-correlated on the other, and a phase difference opens the diagonal into " +
-		"an ellipse — which is how the display doubles as a stereo phase meter. A mono source is " +
-		"plotted against a lagged copy of itself, since a raw mono signal would otherwise be a " +
-		"featureless diagonal.",
+		"audio's (left, right) sample pairs as a line strip. This is the goniometer, or stereo " +
+		"vectorscope, that sits on a mastering desk: correlated channels lie on a diagonal, " +
+		"anti-correlated on the other, and a phase difference opens the diagonal into an " +
+		"ellipse — which is how the display doubles as a stereo phase meter and a mono " +
+		"compatibility check, since what lies along the anti-correlated diagonal is exactly " +
+		"what disappears when the mix is summed to mono. " +
+		"The deflection is squared against the shorter side of the window, so the mono diagonal " +
+		"reads at 45° and a quarter-cycle phase difference draws a circle — not an ellipse the " +
+		"window's shape put there. An angle that cannot be trusted is the one thing a phase " +
+		"display may not have. A mono source is plotted against a lagged copy of itself, since a " +
+		"raw mono signal would otherwise be a featureless diagonal; the Stereo Embedding next " +
+		"door is the same figure with a third axis and a correlation meter, and it does not fake " +
+		"a channel that is not there.",
 	"spectrogram": "Spectrogram — a scrolling short-time Fourier transform of the live " +
 		"audio: frequency up the plane, time scrolling right to left, magnitude as color. It is " +
 		"a display inspired by Vanya Sergeev's audioprism, written in Go " +
