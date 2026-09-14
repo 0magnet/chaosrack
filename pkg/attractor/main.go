@@ -755,6 +755,7 @@ func Run() {
 		return nil
 	}))
 	buildGeneratorModule()
+	buildTestSignalModule()
 	buildSonifyModule()
 	wireCounterModule()
 	wireAnalysisModule()
