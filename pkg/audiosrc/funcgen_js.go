@@ -19,6 +19,13 @@ import "math"
 type FuncGen struct {
 	sr  int
 	osc [3]osc // X, Y, Z
+
+	// test is the stimulus library (testsig.go). When it is not TestOff it
+	// REPLACES the three oscillators: a measurement wants a defined signal, and
+	// a defined signal mixed with whatever the oscillators were left set to is
+	// not one. The oscillators keep their settings and come back untouched when
+	// the selector returns to off.
+	test *testGen
 }
 
 type osc struct {
@@ -40,7 +47,7 @@ const (
 // NewFuncGen returns a generator whose X/Y oscillators are in a 2:3 ratio so the
 // xy scope shows an interesting Lissajous by default; Z is a third tone.
 func NewFuncGen() *FuncGen {
-	f := &FuncGen{sr: 48000}
+	f := &FuncGen{sr: 48000, test: newTestGen()}
 	f.osc[OscX] = osc{wave: 0, freq: 196.00, amp: 0.8} // G3
 	f.osc[OscY] = osc{wave: 0, freq: 293.66, amp: 0.8} // D4 (a fifth above X)
 	f.osc[OscZ] = osc{wave: 0, freq: 146.83, amp: 0.8} // D3
@@ -120,6 +127,13 @@ func (f *FuncGen) TimeDomainStereo(l, r []float32) { f.fillStereo(l, r) }
 // snapshot, so "the latest window" and "the samples since last time" are the
 // same freshly synthesized run either way.
 func (f *FuncGen) fillStereo(l, r []float32) {
+	if f.testing() {
+		sr := float64(f.sr)
+		for i := range l {
+			l[i], r[i] = f.test.next(sr)
+		}
+		return
+	}
 	for i := range l {
 		xv := f.advance(OscX)
 		yv := f.advance(OscY)
@@ -131,6 +145,18 @@ func (f *FuncGen) fillStereo(l, r []float32) {
 
 // TimeDomain / Drain: mono mix of the three oscillators (features, spectrogram).
 func (f *FuncGen) fillMono(dst []float32) {
+	if f.testing() {
+		// The MIX of the stimulus, which is what every single-signal reader
+		// wants — and which is silence for the out-of-polarity position, exactly
+		// as it would be through a real mono sum. That is the point of that
+		// signal, so it must not be special-cased away here.
+		sr := float64(f.sr)
+		for i := range dst {
+			a, b := f.test.next(sr)
+			dst[i] = (a + b) * 0.5
+		}
+		return
+	}
 	for i := range dst {
 		m := (f.advance(OscX) + f.advance(OscY) + f.advance(OscZ)) / 3
 		dst[i] = float32(m)
@@ -168,3 +194,39 @@ func (f *FuncGen) DrainStereo(l, r []float32) int {
 	f.fillStereo(l, r)
 	return len(l)
 }
+
+// ── The test-signal library ──────────────────────────────────────────────
+
+// SetTestSignal selects a stimulus, or TestOff for the three oscillators.
+func (f *FuncGen) SetTestSignal(s TestSignal) {
+	if s < 0 || s >= testSignalCount {
+		s = TestOff
+	}
+	f.test.sig = s
+}
+
+// TestSignal reports the selected stimulus.
+func (f *FuncGen) TestSignal() TestSignal { return f.test.sig }
+
+// SetTestLevel sets the stimulus amplitude, 0..1. It is its own level rather
+// than one of the oscillators': a reference tone whose level moved with an
+// unrelated knob would not be a reference.
+func (f *FuncGen) SetTestLevel(v float64) {
+	if !(v > 0) {
+		v = 0
+	} else if v > 1 {
+		v = 1
+	}
+	f.test.level = v
+}
+
+// TestLevel reports the stimulus amplitude.
+func (f *FuncGen) TestLevel() float64 { return f.test.level }
+
+// SweepPosition reports how far through one pass of the log sweep the generator
+// is, 0..1 — what an impulse-response measurement needs to know which frequency
+// it is looking at, and when a pass has come round.
+func (f *FuncGen) SweepPosition() float64 { return f.test.SweepPosition() }
+
+// testing reports whether a stimulus has taken the oscillators' place.
+func (f *FuncGen) testing() bool { return f.test.sig != TestOff }

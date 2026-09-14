@@ -62,6 +62,7 @@ analog computers at [glensstuff.com](https://glensstuff.com).
 - [Which control does what, on which model](#which-control-does-what-on-which-model)
   - [The global controls](#the-global-controls)
   - [The audio-driven models](#the-audio-driven-models)
+  - [Test signals](#test-signals)
   - [Controls that pull in the same direction](#controls-that-pull-in-the-same-direction)
 - [Reaching the machine](#reaching-the-machine)
   - [On a machine with other people on it](#on-a-machine-with-other-people-on-it)
@@ -1525,6 +1526,35 @@ or turn the knob and it stays where you put it. It is worth pressing after a
 change of material: the estimator asked for 1.52 ms on a three-tone signal and
 the difference between that and a τ that is too short is the difference between
 an open reconstruction and a streak along the diagonal.
+
+
+### Test signals
+
+Every measurement compares what came back against what went out, and there was
+nothing defined to send: three oscillators are a fine instrument and not a
+reference. The **Test** module carries the signals a test record does,
+synthesized rather than played back, so they are exact and always to hand. It
+replaces the X/Y/Z oscillators while it is on — a defined signal summed with
+whatever the oscillators were left set to is not a defined signal — and they
+come back untouched at **off**.
+
+| | |
+|---|---|
+| **white noise** | the same noise in both channels: correlation **+1**, the diagonal |
+| **pink noise** | equal power per octave, which is the only stimulus a fractional-octave analyzer reads flat. Room measurement is done in this |
+| **log sweep** | 20 Hz–20 kHz in 4 s, repeating. Equal time per octave, so the bottom of the band gets as many cycles as the top — the stimulus an impulse response is deconvolved from |
+| **1 kHz reference** | the level and distortion reference. At lvl 100 it is 0 dBFS |
+| **3150 Hz** | the wow-and-flutter tone, because that is what the test records carry (DIN 45507 / IEC 60386) |
+| **left / right only** | which speaker is which |
+| **polarity pulse** | a short positive spike with a long shallow recovery, equal areas so it carries no DC. A tone cannot show polarity — it is the same shape upside down |
+| **uncorrelated noise** | two independent streams: correlation **0**, a round cloud |
+| **out-of-polarity noise** | one stream, one channel inverted: correlation **−1**, and *nothing left* when summed to mono. The mono-compatibility failure, on purpose |
+
+Measured through chaosrack's own displays: the three noises read **r+1.00**,
+**r−0.02** and **r−1.00** on the goniometer's correlation meter, and the two
+reference tones read **1000.0 Hz** and **3150.4 Hz** on the frequency counter.
+The left- and right-only signals read `r --`, which is the meter correctly
+saying one channel is dead and there is nothing to correlate.
 
 ### Controls that pull in the same direction
 
