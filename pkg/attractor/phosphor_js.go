@@ -229,6 +229,28 @@ func drawPhosphorFade() {
 		phosphorQuadReady = true
 	}
 	p := phosphors[phosphorIdx]
+	drawFadeQuad(float32(p.kr), float32(p.kg), float32(p.kb))
+}
+
+// drawFadeQuad multiplies the whole frame by a per-channel retention, which is
+// what turns a cleared buffer into a decaying one. Split out of
+// drawPhosphorFade so the xy scope's PERSIST knob can use it: an afterglow is
+// an afterglow, and a second fullscreen multiply written separately would be a
+// second thing to keep in step with whatever the blend state needs next.
+//
+// The caller is left with depth-testing DISABLED, as drawPhosphorFade's callers
+// always were.
+func drawFadeQuad(kr, kg, kb float32) {
+	if !xyReady {
+		initXY()
+	}
+	if !phosphorQuadReady {
+		verts := []float32{-1, -1, 1, -1, -1, 1, 1, 1}
+		phosphorQuadBuf = gl.Call("createBuffer")
+		gl.Call("bindBuffer", glTypes.ArrayBuffer, phosphorQuadBuf)
+		gl.Call("bufferData", glTypes.ArrayBuffer, SliceToTypedArray(verts), glTypes.StaticDraw)
+		phosphorQuadReady = true
+	}
 	gl.Call("disable", glTypes.DepthTest)
 	gl.Call("enable", gl.Get("BLEND"))
 	// dst_rgb = dst_rgb * src_rgb → multiply the frame by the retention color.
@@ -237,8 +259,9 @@ func drawPhosphorFade() {
 	gl.Call("bindBuffer", glTypes.ArrayBuffer, phosphorQuadBuf)
 	gl.Call("enableVertexAttribArray", xyAPos)
 	gl.Call("vertexAttribPointer", xyAPos, 2, glTypes.Float, false, 0, 0)
-	gl.Call("uniform3f", xyUColor, p.kr, p.kg, p.kb) // per-channel retention
+	gl.Call("uniform3f", xyUColor, kr, kg, kb) // per-channel retention
 	gl.Call("uniform1f", xyUAlpha, 1)
+	gl.Call("uniform2f", xyUOffset, 0, 0)
 	gl.Call("drawArrays", gl.Get("TRIANGLE_STRIP"), 0, 4)
 	gl.Call("blendFunc", gl.Get("SRC_ALPHA"), gl.Get("ONE_MINUS_SRC_ALPHA"))
 	gl.Call("disable", gl.Get("BLEND"))

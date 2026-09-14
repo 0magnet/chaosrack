@@ -124,3 +124,149 @@ func TestModulatedParametersDoNotCountAsKnobTurns(t *testing.T) {
 		}
 	}
 }
+
+// ── The controls this mode did not have ──────────────────────────────────
+
+// The window is a SNAPSHOT: TimeDomainStereo fills it from the source's ring,
+// and asking for more than the ring holds returns wrapped, already-overwritten
+// samples rather than failing — a plausible buffer of the wrong audio, which
+// nothing downstream can detect. The knob's ceiling and this clamp are what
+// keep that unreachable at every sample rate.
+func TestXYWindowNeverOutrunsTheSnapshotRing(t *testing.T) {
+	for _, sr := range []int{8000, 24000, 44100, 48000, 96000, 192000} {
+		got := xyWindowSamples(xyWinMax, sr)
+		if got > xySpanMax {
+			t.Errorf("at %d Hz the longest window is %d samples, past the %d the ring holds",
+				sr, got, xySpanMax)
+		}
+		if got < 64 {
+			t.Errorf("at %d Hz the longest window came back as %d samples", sr, got)
+		}
+	}
+}
+
+// A window shorter than a couple of cycles of anything is not a display, and a
+// zero-length one is a buffer nobody can index. The floor holds whatever the
+// knob and the rate conspire to ask for.
+func TestXYWindowHasAFloor(t *testing.T) {
+	for _, c := range []struct {
+		ms float32
+		sr int
+	}{{0, 48000}, {-5, 48000}, {0.001, 48000}, {43, 0}, {43, -1}} {
+		if got := xyWindowSamples(c.ms, c.sr); got < 64 {
+			t.Errorf("xyWindowSamples(%v, %d) = %d", c.ms, c.sr, got)
+		}
+	}
+}
+
+// WIN and LAG are durations, so one setting is one amount of time on every
+// source — tauSamples' argument, applied to the scope's own two.
+func TestXYWindowAndLagAreDurations(t *testing.T) {
+	for _, ms := range []float32{5, 43, 100} {
+		for _, sr := range []int{24000, 48000} {
+			if got := float32(xyWindowSamples(ms, sr)) / float32(sr) * 1000; got < ms*0.98 || got > ms*1.02 {
+				t.Errorf("a %v ms window is %.2f ms at %d Hz", ms, got, sr)
+			}
+			if got := float32(xyLagSamples(ms, sr)) / float32(sr) * 1000; got < ms*0.98 || got > ms*1.02 {
+				t.Errorf("a %v ms lag is %.2f ms at %d Hz", ms, got, sr)
+			}
+		}
+	}
+}
+
+// A zero lag is the raw mono diagonal the lag exists to avoid, so it can never
+// be the answer however the knob is driven.
+func TestXYLagIsNeverZero(t *testing.T) {
+	for _, c := range []struct {
+		ms float32
+		sr int
+	}{{0, 48000}, {-1, 48000}, {0.0001, 48000}, {2.67, 0}} {
+		if got := xyLagSamples(c.ms, c.sr); got < 1 {
+			t.Errorf("xyLagSamples(%v, %d) = %d", c.ms, c.sr, got)
+		}
+	}
+}
+
+// Every knob is a routable modulation destination, so each selector has to
+// survive an out-of-range float or a NaN — the value arriving is not
+// necessarily one the dial can be at. (stereoAxisSel's argument, and its trap:
+// the range is checked BEFORE the conversion, because a float-to-int
+// conversion whose value does not fit is implementation-defined in Go.)
+func TestXYSelectorsClampWhateverModulationDoes(t *testing.T) {
+	oldS, oldB, oldP := xySmoothF, xyBasisF, xyPersist
+	t.Cleanup(func() { xySmoothF, xyBasisF, xyPersist = oldS, oldB, oldP })
+
+	inf := float32(1)
+	for i := 0; i < 40; i++ {
+		inf *= 1e10
+	}
+	nan := inf - inf
+
+	for _, v := range []float32{-1e9, -1, 0, 0.5, 1, 4, 16, 1e9, inf, -inf, nan} {
+		xySmoothF = v
+		if got := xySmoothSel(); got < 1 || got > 16 {
+			t.Errorf("xySmoothSel() = %d for %v", got, v)
+		}
+		xyPersist = v
+		if got := xyPersistK(); got < 0 || got > 0.98 {
+			t.Errorf("xyPersistK() = %v for %v", got, v)
+		}
+		xyBasisF = v
+		_ = xyIsMidSide() // a bool cannot be out of range; this is here to catch a panic
+	}
+}
+
+// The retention may never reach 1. At exactly 1 the frame never decays, so the
+// display fills in and stays filled — a trace that cannot be erased is not a
+// long persistence, it is a stuck picture with no way out but leaving the mode.
+func TestXYPersistAlwaysDecays(t *testing.T) {
+	old := xyPersist
+	t.Cleanup(func() { xyPersist = old })
+	for _, v := range []float32{0.98, 1, 2, 1e9} {
+		xyPersist = v
+		if got := xyPersistK(); got >= 1 {
+			t.Errorf("a persist knob at %v gives a retention of %v, which never fades", v, got)
+		}
+	}
+	xyPersist = 0
+	if xyPersistK() != 0 {
+		t.Error("persist at zero must mean a plain clear, as the mode always did")
+	}
+}
+
+// The basis knob's names and its dial ring have to be the same length: a ring
+// that does not match its options is discarded whole by buildParamUnit, which
+// then falls back to the full names and draws the knob over the top of them.
+func TestXYBasisRingMatchesItsNames(t *testing.T) {
+	if len(xyBasisNames) != len(xyBasisRing) {
+		t.Fatalf("%d names, %d ring labels", len(xyBasisNames), len(xyBasisRing))
+	}
+	var p paramDef
+	for _, d := range attractorParams["xy"] {
+		if d.ID == "xy-basis" {
+			p = d
+		}
+	}
+	if p.ID == "" {
+		t.Fatal("the xy mode has no basis row")
+	}
+	if int(p.Max)+1 != len(xyBasisNames) {
+		t.Errorf("the basis knob runs 0..%v but there are %d names", p.Max, len(xyBasisNames))
+	}
+}
+
+// The mode had no parameters at all, and the Parameters module did not appear
+// for it. That it has them now is the feature, so it is worth a test that says
+// which — a knob quietly lost in a refactor is a control that stops existing.
+func TestXYHasItsControls(t *testing.T) {
+	want := []string{"xy-basis", "xy-gain", "xy-win", "xy-persist", "xy-lag", "xy-smooth"}
+	got := map[string]bool{}
+	for _, p := range attractorParams["xy"] {
+		got[p.ID] = true
+	}
+	for _, id := range want {
+		if !got[id] {
+			t.Errorf("the xy scope has lost its %s knob", id)
+		}
+	}
+}

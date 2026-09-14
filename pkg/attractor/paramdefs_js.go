@@ -61,6 +61,9 @@ var paramLabels = map[string][]string{
 	// the names live next to the maps they index (polar_js.go), so a dial
 	// position cannot come to name a curve it does not draw.
 	"polar-map": polarMapNames,
+	// The xy scope's basis, next to the pair it selects between for the same
+	// reason as the two above.
+	"xy-basis": xyBasisNames,
 }
 
 // paramRingLabels is what actually fits around the dial. A cell is a third of
@@ -90,6 +93,7 @@ var paramRingLabels = map[string][]string{
 	"globe-rev":   {"cw", "ccw"},
 	"stereo-axes": stereoAxisRing,
 	"polar-map":   polarMapRing,
+	"xy-basis":    xyBasisRing,
 }
 
 // turtlePhysParams are the weight controls. They are not in attractorParams

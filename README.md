@@ -1174,7 +1174,7 @@ y'' = −g, bounce: v ← −e·v at the floor
 | --- | --- |
 | ![XY Scope](docs/img/model/xy.jpg) | ![XY Scope turning](docs/img/model/xy.gif) |
 
-X/Y Scope — the classic two-channel oscilloscope figure, drawing the live audio's (left, right) sample pairs as a line strip. This is the goniometer, or stereo vectorscope, that sits on a mastering desk: correlated channels lie on a diagonal, anti-correlated on the other, and a phase difference opens the diagonal into an ellipse — which is how the display doubles as a stereo phase meter and a mono compatibility check, since what lies along the anti-correlated diagonal is exactly what disappears when the mix is summed to mono. The deflection is squared against the shorter side of the window, so the mono diagonal reads at 45° and a quarter-cycle phase difference draws a circle — not an ellipse the window's shape put there. An angle that cannot be trusted is the one thing a phase display may not have. A mono source is plotted against a lagged copy of itself, since a raw mono signal would otherwise be a featureless diagonal; the Stereo Embedding next door is the same figure with a third axis and a correlation meter, and it does not fake a channel that is not there.
+X/Y Scope — the classic two-channel oscilloscope figure, drawing the live audio's (left, right) sample pairs as a line strip. This is the goniometer, or stereo vectorscope, that sits on a mastering desk: correlated channels lie on a diagonal, anti-correlated on the other, and a phase difference opens the diagonal into an ellipse — which is how the display doubles as a stereo phase meter and a mono compatibility check, since what lies along the anti-correlated diagonal is exactly what disappears when the mix is summed to mono. The deflection is squared against the shorter side of the window, so the mono diagonal reads at 45° and a quarter-cycle phase difference draws a circle — not an ellipse the window's shape put there. An angle that cannot be trusted is the one thing a phase display may not have. A mono source is plotted against a lagged copy of itself, since a raw mono signal would otherwise be a featureless diagonal; the Stereo Embedding next door is the same figure with a third axis, and it does not fake a channel that is not there. AXES turns the display 45° into mid/side — M=(L+R)/2 and S=(L−R)/2, the orientation broadcast goniometers ship in, where center content lies along one axis and difference content along the other, so width is an extent rather than the eccentricity of a tilted ellipse. GAIN is the deflection; WIN the time base in milliseconds, short for the instantaneous phase relationship and long for the width of a whole mix; GLOW the afterglow, which is the control a hardware vectorscope is actually used through — at zero the frame is cleared as it always was, above it the trace decays instead, so a transient leaves something to read. LAG is how far a mono source is delayed against itself and SMTH how hard the beam is slew-limited between samples. CORR is the correlation meter: +1.00 means the channels are identical and the figure is the diagonal line, 0 means unrelated and a round cloud, −1.00 means one is the other's polarity inverted — which is exactly the content that disappears when the mix is summed to mono, and the reason this display is a mono-compatibility check. It reads L against R whatever AXES is set to, because it is a property of the channels rather than of the way they are drawn.
 
 `#xy` · audio
 
@@ -1465,7 +1465,7 @@ them do nothing on some models and the panel does not say so. This is the map.
 | **Persist** (Trace) | Stops the color buffer being cleared, so successive frames pile up | Forced off while a backdrop visualizer is painting, and while the Fore knob is splitting the draw across two canvases |
 | **Points** (Trace) | Draws the trail as separated points rather than a joined line | The texture-plane modes |
 | **Line** (Display) | `gl.lineWidth`, which most browsers and drivers cap at 1 — so usually nothing, anywhere | — |
-| **Phosphor** (Style) | Trace color plus per-channel afterglow; on an integrated model, also a short advancing beam instead of the whole curve | The afterglow needs a frame that is not cleared, so the audio modes (XY Scope, Spectrogram, FVF, Recurrence) take the color and not the glow. The beam is skipped on the three audio embeddings, where the budget is a resolution and shortening it would decimate the window rather than the figure |
+| **Phosphor** (Style) | Trace color plus per-channel afterglow; on an integrated model, also a short advancing beam instead of the whole curve | The afterglow needs a frame that is not cleared, so the audio modes (Spectrogram, FVF, Recurrence) take the color and not the glow — the XY Scope has its own **glow** knob instead. The beam is skipped on the three audio embeddings, where the budget is a resolution and shortening it would decimate the window rather than the figure |
 | **src** (Colors) | Which quantity the gradient follows: an axis, trail age, or the sound | `aud` needs an audio source. Where the trail is a time axis it paints the spectrum ALONG the figure; everywhere else it tints the whole figure with one feature |
 | **Zoom / X / Y** (Position) | The camera | Fixed face-on on the texture-plane modes |
 
@@ -1481,10 +1481,20 @@ samples further apart than the signal's own detail.
 all read the live audio source, and none of them integrate anything — so **Speed
 is inert on all four**.
 
-The XY Scope has no parameters of its own at all: its window (2048 samples), its
-deflection, its mono lag and its beam smoothing are fixed. Its deflection is
-squared against the shorter side of the canvas, so a correlated pair reads at 45°
-and a quarter-cycle phase difference draws a circle whatever shape the window is.
+The XY Scope's deflection is squared against the shorter side of the canvas, so
+a correlated pair reads at 45° and a quarter-cycle phase difference draws a
+circle whatever shape the window is. Its own grid:
+
+| | |
+|---|---|
+| **axes** | L/R, or mid/side — the 45° rotation broadcast goniometers ship in, where width is an extent along one axis rather than the eccentricity of a tilted ellipse |
+| **gain** | deflection |
+| **win** | time base, ms — short for the instantaneous phase relationship, long for the width of a whole mix |
+| **glow** | afterglow. At zero the frame is cleared as it always was; above it the trace decays instead, which is the control a hardware vectorscope is actually used through |
+| **lag** | how far a mono source is delayed against itself, ms |
+| **smth** | Catmull-Rom steps per sample — how hard the beam is slew-limited |
+| **corr** | correlation meter, −1…+1, measured on L against R whatever **axes** is set to |
+
 The other three share a grid:
 
 | | Takens | Stereo | Polar |
