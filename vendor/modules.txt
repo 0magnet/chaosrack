@@ -46,10 +46,10 @@ github.com/0magnet/img2txt-go/caca
 # github.com/0magnet/lolcat-go v0.0.0-20260907230215-22c54b7702c7
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20260914104727-24169ea0c4f8
+# github.com/0magnet/pisano v0.0.0-20260914110222-a1da4896ba2b
 ## explicit; go 1.26.0
 github.com/0magnet/pisano/pkg/pisano
-# github.com/0magnet/proxima5 v0.0.0-20260908180128-ed5a78054456
+# github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc
 ## explicit; go 1.26.0
 github.com/0magnet/proxima5
 github.com/0magnet/proxima5/internal/views
@@ -109,7 +109,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20260914105339-caaa02e16bb0
+# github.com/0magnet/tuiwasm v0.0.0-20260914192715-81013191e14e
 ## explicit; go 1.26.5
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -129,7 +129,7 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20260907193324-47ff3c83f69d
 ## explicit; go 1.26.0
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.0-20260914105002-5312a522f117
+# github.com/0magnet/websh v0.0.0-20260914105251-9f3f0b910116
 ## explicit; go 1.26.0
 github.com/0magnet/websh/shell
 github.com/0magnet/websh/web
