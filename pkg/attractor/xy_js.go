@@ -4,6 +4,8 @@ package attractor
 
 import (
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/audiosrc"
 )
 
 // The xy scope mode draws (L[i], R[i]) as a line strip on the shared
@@ -14,6 +16,54 @@ import (
 //
 // Own shader program (pass-through vertex + solid-color fragment) with a
 // dedicated dynamic-vertex buffer sized to the sample window.
+//
+// ── THE CONTROLS ─────────────────────────────────────────────────────────
+//
+// This mode had none. Its window, its deflection, its mono lag and its beam
+// smoothing were compile-time constants, and the Parameters module did not even
+// appear for it — which is an odd place to end up for the display with the
+// highest name recognition in the app, and the one an audio engineer arrives
+// looking for. Every one of those constants is now a knob, and the two things
+// a hardware goniometer has that this did not — a basis switch and a
+// persistence control — are knobs beside them.
+//
+//	BASIS   L/R or mid/side. M=(L+R)/2 and S=(L−R)/2 are the same plane turned
+//	        45°, which is the orientation broadcast goniometers ship in: center
+//	        content lies along one axis and difference content along the other,
+//	        so "how wide is this" is an extent rather than the eccentricity of a
+//	        tilted ellipse. The ½ is what keeps switching basis from resizing
+//	        the figure — see stereoChanValue, whose reasoning this shares.
+//
+//	GAIN    A multiplier on the deflection. The scope drew everything at 0.9 of
+//	        the screen and nothing could be done about it, so a quiet source was
+//	        a dot in the middle. Clipping is not a hazard the way it is on a
+//	        tube: a figure driven past the edge is simply drawn outside the
+//	        viewport, and turning the knob back brings it in.
+//
+//	WIN     The time base, in milliseconds, replacing a fixed 2048 samples.
+//	        Short is a single cycle of something low and the instantaneous phase
+//	        relationship; long is many cycles overlaid, which is how the width
+//	        of a whole mix reads.
+//
+//	PERSIST The afterglow. A hardware vectorscope's most-used control and the
+//	        one this could not do: the mode clears every frame, so a phosphor
+//	        selected in the Style module gave the trace its COLOR and no glow at
+//	        all. At zero the frame is cleared as before; above it the frame is
+//	        multiplied down each frame instead, so the trace decays rather than
+//	        vanishing and a transient leaves a trail that can actually be read.
+//
+//	LAG     How far a mono source is delayed against itself, in milliseconds
+//	        rather than in samples, so it means the same thing on every source.
+//
+//	SMOOTH  The Catmull-Rom upsample. An analog beam is slew-limited and never
+//	        draws a corner; this is how much of that to imitate.
+//
+// CORR is the correlation meter — the number beside every hardware goniometer,
+// and the one reading the figure alone cannot give you, because a thin ellipse
+// and a line are the same picture at a glance. It shares stereoCorrelation with
+// the Stereo Embedding rather than computing its own: it is the same quantity
+// over the same kind of window, and two implementations of Pearson's r would be
+// two things to keep in step.
 
 const xyVertShaderSrc = `
 	attribute vec2 aPos;
@@ -31,13 +81,6 @@ const xyFragShaderSrc = `
 		gl_FragColor = vec4(uColor, uAlpha);
 	}
 `
-
-// xySmooth is the beam-smoothing upsample factor: each sample-to-sample
-// segment is rendered as this many Catmull-Rom spline steps, so the trace
-// curves through the samples instead of turning a hard corner at each one —
-// an analog scope's beam is slew-limited by the amplifier and never draws
-// sharp angles.
-const xySmooth = 4
 
 // xyDeflection is the per-axis scale from a full-scale sample to clip space,
 // and it is TWO numbers because the canvas is not square.
@@ -75,15 +118,114 @@ var (
 	xyUAlpha  js.Value
 	xyUOffset js.Value
 	xyReady   bool
-	xyWindow  = 2048
+	xyWindow  = 2048 // current window, in samples; derived from the WIN knob
 	xyBufL    []float32
 	xyBufR    []float32
-	xyLine    []float32 // interleaved x,y pairs for GL upload (xySmooth per sample)
+	xyLine    []float32 // interleaved x,y pairs for GL upload (smoothing per sample)
 	xyJsUint8 js.Value  // persistent upload scratch (byte view)
 	xyJsFloat js.Value  // persistent upload scratch (float32 view)
 	xyScale   float32   = 0.9
-	xyMonoLag int       = 128
 )
+
+// The knobs. xyWinMS and xyLagMS are durations rather than sample counts for
+// tauSamples' reason: a sample is not a fixed amount of time, and the same
+// setting would otherwise mean one thing on the 48 kHz microphone and another
+// on the 24 kHz server feed.
+var (
+	xyBasisF  float32 = 0    // 0 = L/R, 1 = mid/side
+	xyGain    float32 = 1    // multiplier on the deflection
+	xyWinMS   float32 = 43   // time base, ms (2048 samples at 48 kHz: what it was)
+	xyPersist float32        // afterglow, 0 = clear every frame as before
+	xyLagMS   float32 = 2.67 // mono self-delay, ms (128 samples at 48 kHz)
+	xySmoothF float32 = 4    // Catmull-Rom steps per sample interval
+)
+
+// xyBasisNames are the dial's positions by name, and xyBasisRing what fits
+// around it — the same arrangement as the Stereo Embedding's axes knob, and
+// the same reason: for a named setting the ring IS the readout, because seven
+// segments cannot spell a word.
+var (
+	xyBasisNames = []string{"L, R", "mid, side"}
+	xyBasisRing  = []string{"LR", "MS"}
+)
+
+// xyWinMax is the WIN knob's ceiling, in milliseconds. The window is a SNAPSHOT
+// — TimeDomainStereo fills it from the source's ring — so it cannot exceed what
+// the ring holds without coming back silently wrapped, which is the trap
+// audiosrc.DefaultRingSize is named and exported to describe. 250 ms is 12000
+// samples at 48 kHz, comfortably inside the 16384-sample ring, and it is also
+// past the point where a phase display is a filled blob whatever the source is
+// doing — the Stereo Embedding's WIN tops out here for both of the same reasons.
+const xyWinMax = 250
+
+func init() {
+	attractorParams["xy"] = []paramDef{
+		{"xy-basis", "axes", &xyBasisF, 0, 0, float32(len(xyBasisNames) - 1), 1},
+		{"xy-gain", "gain", &xyGain, 1, 0.1, 8, 0.1},
+		{"xy-win", "win", &xyWinMS, 43, 2, xyWinMax, 1},
+		{"xy-persist", "glow", &xyPersist, 0, 0, 0.98, 0.02},
+		{"xy-lag", "lag", &xyLagMS, 2.67, 0.1, 25, 0.1},
+		{"xy-smooth", "smth", &xySmoothF, 4, 1, 16, 1},
+	}
+}
+
+// xySmoothSel is the SMOOTH knob as a step count, clamped. Audio modulation can
+// drive any registered parameter, so the value arriving here is not necessarily
+// on the dial — and a modulator riding a feature that has gone to zero or to
+// infinity can hand over an out-of-range float or a NaN. The range is checked
+// BEFORE the conversion, because a float-to-int conversion whose value does not
+// fit is implementation-defined in Go (this is stereoAxisSel's argument).
+func xySmoothSel() int {
+	v := xySmoothF
+	if !(v > 1) { // false for NaN too
+		return 1
+	}
+	if v > 16 {
+		return 16
+	}
+	return int(v + 0.5)
+}
+
+// xyIsMidSide reports the basis knob's position, by the same clamp.
+func xyIsMidSide() bool { return xyBasisF > 0.5 }
+
+// xyWindowSamples converts the WIN knob into a sample count, clamped to what
+// one snapshot may ask the source for. The clamp is on the DURATION, so the
+// only casualty is milliseconds that were asked for and cannot be had.
+func xyWindowSamples(winMS float32, sr int) int {
+	if sr <= 0 {
+		sr = 48000
+	}
+	if maxMS := float32(xySpanMax) / float32(sr) * 1000; winMS > maxMS {
+		winMS = maxMS
+	}
+	n := int(winMS / 1000 * float32(sr))
+	if n < 64 {
+		n = 64
+	}
+	return n
+}
+
+// xySpanMax is the most samples one snapshot may ask for, named against the
+// source's own constant rather than repeating the number so the two cannot
+// drift apart.
+const xySpanMax = audiosrc.DefaultRingSize
+
+// xyLagSamples is the LAG knob in source samples, at least one — a zero lag is
+// the raw mono diagonal this exists to avoid.
+func xyLagSamples(lagMS float32, sr int) int {
+	if sr <= 0 {
+		sr = 48000
+	}
+	if !(lagMS > 0) {
+		return 1
+	}
+	n := int(lagMS / 1000 * float32(sr))
+	if n < 1 {
+		n = 1
+	}
+	return n
+}
 
 func initXY() {
 	if xyReady {
@@ -107,15 +249,38 @@ func initXY() {
 	xyUOffset = gl.Call("getUniformLocation", xyProgram, "uOffset")
 
 	xyBuf = gl.Call("createBuffer")
-	xyBufL = make([]float32, xyWindow)
-	xyBufR = make([]float32, xyWindow)
-	xyLine = make([]float32, xyWindow*xySmooth*2)
-	// Persistent upload scratch — the trace re-uploads every frame, and a
-	// fresh typed array per frame is steady GC pressure (same pattern as
-	// jsVertUint8/jsVertFloat).
-	xyJsUint8 = js.Global().Get("Uint8Array").New(len(xyLine) * 4)
-	xyJsFloat = js.Global().Get("Float32Array").New(xyJsUint8.Get("buffer"), 0, len(xyLine))
 	xyReady = true
+	xyFitBuffers(xyWindow, xySmoothSel())
+}
+
+// xyFitBuffers sizes the sample buffers, the line buffer and the upload scratch
+// for a window and a smoothing factor, and does nothing when they already fit.
+//
+// The buffers used to be allocated once at the size of a constant. Both numbers
+// are knobs now, and the upload scratch is a JS typed array over a Go-side
+// buffer — so growing the line without rebuilding the pair leaves the scratch
+// describing a shorter run of memory than the copy writes, which is not a
+// resize bug that shows up as a small figure. They grow by half again so that
+// dragging the WIN dial does not reallocate on every pixel of the drag, and
+// they never shrink: the largest window a session has used is a fair guess at
+// what it will use again, and the buffer at the knob's ceiling is 1.5 MB.
+func xyFitBuffers(win, smooth int) {
+	if win < 2 {
+		win = 2
+	}
+	if len(xyBufL) < win {
+		grown := win + win/2
+		xyBufL = make([]float32, grown)
+		xyBufR = make([]float32, grown)
+	}
+	if need := win * smooth * 2; len(xyLine) < need {
+		xyLine = make([]float32, need+need/2)
+		// Persistent upload scratch — the trace re-uploads every frame, and a
+		// fresh typed array per frame is steady GC pressure (same pattern as
+		// jsVertUint8/jsVertFloat).
+		xyJsUint8 = js.Global().Get("Uint8Array").New(len(xyLine) * 4)
+		xyJsFloat = js.Global().Get("Float32Array").New(xyJsUint8.Get("buffer"), 0, len(xyLine))
+	}
 }
 
 // renderXYFrame is the full-screen xy-scope MODE: clear the canvas, then draw.
@@ -130,23 +295,48 @@ func drawXYScope(clear bool) {
 		initXY()
 	}
 	src := ensureAudioSource()
+	sr := 48000
+	if src != nil && src.SampleRate() > 0 {
+		sr = src.SampleRate()
+	}
+	smooth := xySmoothSel()
+	xyWindow = xyWindowSamples(xyWinMS, sr)
+	xyFitBuffers(xyWindow, smooth)
+	drawn := xyWindow * smooth
 
 	if src != nil && src.Ready() {
-		src.TimeDomainStereo(xyBufL, xyBufR)
+		l, r := xyBufL[:xyWindow], xyBufR[:xyWindow]
+		src.TimeDomainStereo(l, r)
 		// If the source only has one channel, fall back to a lagged
 		// pseudo-stereo so the trace isn't a straight diagonal.
-		if src.Channels() < 2 {
-			for i := 0; i < xyWindow; i++ {
-				j := i - xyMonoLag
-				if j < 0 {
-					xyBufR[i] = 0
+		mono := src.Channels() < 2
+		if mono {
+			lag := xyLagSamples(xyLagMS, sr)
+			// Backwards, so a sample is read before the same index is written:
+			// forwards, the lagged copy would be built out of samples this loop
+			// had already replaced, which for a lag shorter than the window is
+			// a feedback comb rather than a delay.
+			for i := xyWindow - 1; i >= 0; i-- {
+				if j := i - lag; j < 0 {
+					r[i] = 0
 				} else {
-					xyBufR[i] = xyBufL[j]
+					r[i] = l[j]
 				}
 			}
 		}
-		// Catmull-Rom upsample: xySmooth spline steps per sample segment, per
-		// channel, so the beam curves through the samples (analog slew) instead
+		// The correlation before the basis rotation, because it is a property
+		// of the CHANNELS: in mid/side the two axes are constructed to be
+		// uncorrelated for centered material, so measuring there would report
+		// the rotation rather than the source. A mono source has nothing to
+		// correlate and says so instead.
+		if mono {
+			xyNoteState(true, false, 0)
+		} else {
+			corr, ok := stereoCorrelation(l, r)
+			xyNoteState(false, ok, corr)
+		}
+		// Catmull-Rom upsample: `smooth` spline steps per sample segment, per
+		// axis, so the beam curves through the samples (analog slew) instead
 		// of cornering at every one.
 		clampIdx := func(i int) int {
 			if i < 0 {
@@ -157,15 +347,30 @@ func drawXYScope(clear bool) {
 			}
 			return i
 		}
+		// The basis is applied to the SAMPLES, before the spline, so the spline
+		// interpolates the axes actually being drawn. Rotating afterwards would
+		// give the same answer here — the rotation is linear and Catmull-Rom is
+		// a linear combination of its control points, so the two commute — but
+		// only while the basis stays linear, and doing it first costs nothing.
+		ms := xyIsMidSide()
+		ax := func(i int) (float32, float32) {
+			a, b := l[i], r[i]
+			if ms {
+				return (a + b) * 0.5, (a - b) * 0.5
+			}
+			return a, b
+		}
 		sx, sy := xyDeflection()
+		sx *= xyGain
+		sy *= xyGain
 		o := 0
 		for i := 0; i < xyWindow; i++ {
-			l0, l1 := xyBufL[clampIdx(i-1)], xyBufL[i]
-			l2, l3 := xyBufL[clampIdx(i+1)], xyBufL[clampIdx(i+2)]
-			r0, r1 := xyBufR[clampIdx(i-1)], xyBufR[i]
-			r2, r3 := xyBufR[clampIdx(i+1)], xyBufR[clampIdx(i+2)]
-			for s := 0; s < xySmooth; s++ {
-				t := float32(s) / xySmooth
+			l0, r0 := ax(clampIdx(i - 1))
+			l1, r1 := ax(i)
+			l2, r2 := ax(clampIdx(i + 1))
+			l3, r3 := ax(clampIdx(i + 2))
+			for s := 0; s < smooth; s++ {
+				t := float32(s) / float32(smooth)
 				xyLine[o] = catmullRom(l0, l1, l2, l3, t) * sx
 				xyLine[o+1] = catmullRom(r0, r1, r2, r3, t) * sy
 				o += 2
@@ -173,21 +378,32 @@ func drawXYScope(clear bool) {
 		}
 	} else {
 		// Blank the line so we don't draw stale data.
-		for i := range xyLine {
+		for i := 0; i < drawn*2; i++ {
 			xyLine[i] = 0
 		}
+		xyNoteState(false, false, 0)
 	}
 
 	// Draw as a flat 2D trace (no depth), so as a background it never occludes
 	// or z-fights the attractor layered on top.
 	gl.Call("disable", glTypes.DepthTest)
 	if clear {
-		// Transparent clear (alpha 0), like every other mode — so with "Front" on
-		// (canvas layered over the panel) the scope shows its trace over the
-		// controls instead of an opaque black block that hides the panel and can't
-		// be undone.
-		gl.Call("clearColor", 0, 0, 0, 0)
-		gl.Call("clear", glTypes.ColorBufferBit)
+		if k := xyPersistK(); k > 0 {
+			// PERSIST: multiply the frame down instead of clearing it, so the
+			// trace decays over several frames the way a phosphor does. Only on
+			// the self-clearing path — as a BACKDROP the scope draws onto a
+			// buffer somebody else owns and the model on top of it is redrawn
+			// whole every frame, so fading here would smear that instead.
+			drawFadeQuad(k, k, k)
+			gl.Call("disable", glTypes.DepthTest)
+		} else {
+			// Transparent clear (alpha 0), like every other mode — so with "Front" on
+			// (canvas layered over the panel) the scope shows its trace over the
+			// controls instead of an opaque black block that hides the panel and can't
+			// be undone.
+			gl.Call("clearColor", 0, 0, 0, 0)
+			gl.Call("clear", glTypes.ColorBufferBit)
+		}
 	}
 
 	gl.Call("useProgram", xyProgram)
@@ -219,11 +435,95 @@ func drawXYScope(clear bool) {
 	for _, h := range halo {
 		gl.Call("uniform2f", xyUOffset, h[0], h[1])
 		gl.Call("uniform1f", xyUAlpha, h[2])
-		gl.Call("drawArrays", glTypes.LineStrip, 0, xyWindow*xySmooth)
+		gl.Call("drawArrays", glTypes.LineStrip, 0, drawn)
 	}
 	// Bright center pass last so it sits on top of the halo.
 	gl.Call("uniform2f", xyUOffset, 0, 0)
 	gl.Call("uniform1f", xyUAlpha, 1.0)
-	gl.Call("drawArrays", glTypes.LineStrip, 0, xyWindow*xySmooth)
+	gl.Call("drawArrays", glTypes.LineStrip, 0, drawn)
 	gl.Call("disable", gl.Get("BLEND"))
+}
+
+// ── PERSIST, and the correlation meter ───────────────────────────────────
+
+// xyPersistK is the PERSIST knob as a per-frame retention factor, clamped to
+// [0, 0.98]. Zero means "clear", which is what the mode always did.
+//
+// The ceiling is not 1. At a retention of exactly 1 the frame never decays at
+// all, so the display fills in and then stays filled — a trace that cannot be
+// erased is not a long persistence, it is a stuck picture, and the only way out
+// of it would be to leave the mode. 0.98 is about a 2.5-second decay at 60 Hz,
+// which is longer than the longest phosphor in the Style module (P33 at 0.985
+// there is a decay per frame of the same kind), and it still goes away.
+func xyPersistK() float32 {
+	v := xyPersist
+	if !(v > 0) { // false for NaN too
+		return 0
+	}
+	if v > 0.98 {
+		return 0.98
+	}
+	return v
+}
+
+var (
+	xyCorrEl   js.Value // the correlation readout in the parameter grid
+	xyCorrText string   // last text written to it (DOM write only on change)
+
+	xyMonoSrc bool
+	xyCorrOK  bool
+	xyCorr    float32
+)
+
+// xyNoteState records this frame's measurement and updates the readout.
+// stereoReadout renders it, because it is the same reading of the same quantity
+// and two wordings of "mono" would be two things to keep in step.
+func xyNoteState(monoSrc, ok bool, corr float32) {
+	xyMonoSrc, xyCorrOK, xyCorr = monoSrc, ok, corr
+	s := stereoReadout(monoSrc, ok, corr)
+	if s == xyCorrText {
+		// The correlation moves continuously and the DOM does not need to hear
+		// about every frame of it — showStereoReadout's argument, and the same
+		// trap: a two-decimal readout re-rendered sixty times a second is
+		// unreadable even when it is correct.
+		return
+	}
+	xyCorrText = s
+	if xyCorrEl.Truthy() {
+		xyCorrEl.Set("textContent", s)
+	}
+}
+
+// appendXYReadout adds the CORR cell to the XY Scope's parameter grid. Into the
+// grid rather than #params, for appendStereoReadout's reason: #params stacks
+// below the height-bounded grid and gets clipped.
+func appendXYReadout(grid js.Value) {
+	card := doc.Call("createElement", "div")
+	card.Set("className", "punit")
+
+	lbl := doc.Call("createElement", "span")
+	lbl.Set("className", symClass("u-lbl", false))
+	lbl.Set("textContent", "corr")
+	card.Call("appendChild", lbl)
+
+	xyCorrEl = doc.Call("createElement", "span")
+	xyCorrEl.Set("className", "led counter-led")
+	xyCorrEl.Set("title", "Correlation between the two channels over the displayed window, as a goniometer's "+
+		"correlation meter reads it: +1.00 means the channels are identical and the figure is the diagonal "+
+		"line, 0 means they are unrelated and the figure is a round cloud, −1.00 means one is the other's "+
+		"polarity inverted — and that is the content that disappears if the mix is summed to mono. "+
+		"Measured on L and R whatever the axes knob is set to, because it is a property of the channels "+
+		"rather than of the way they are drawn. "+
+		"\"mono\" means the source has only one channel, so there is no stereo relationship to read. "+
+		"\"r --\" means silence, or one dead channel: nothing to correlate.")
+	// Seeded from the last measurement rather than from a placeholder: the
+	// panel is rebuilt on every module toggle, and a cell that came back
+	// reading "r --" over a live stereo source would be reporting a silence
+	// that is not there. xyCorrText is cleared so the next frame writes into
+	// the NEW element instead of skipping it as unchanged.
+	xyCorrText = ""
+	xyCorrEl.Set("textContent", stereoReadout(xyMonoSrc, xyCorrOK, xyCorr))
+	card.Call("appendChild", xyCorrEl)
+
+	grid.Call("appendChild", card)
 }
