@@ -81,16 +81,21 @@ var polarMapNames = []string{"tanh", "algebraic", "direction only"}
 var polarMapRing = []string{"tanh", "soft", "unit"}
 
 var (
-	polarMapF    float32 = 0  // map knob: an index into the constants above
-	polarDrive   float32 = 2  // how hard the length is pushed into the map
-	polarTau     float32 = 32 // delay τ, in source samples
-	polarWin     float32 = 85 // display window, milliseconds
-	polarGain    float32 = 10 // world units the sphere's surface sits at
+	polarMapF    float32 = 0            // map knob: an index into the constants above
+	polarDrive   float32 = 2            // how hard the length is pushed into the map
+	polarTau     float32 = takensTauDef // delay τ, in reference samples
+	polarWin     float32 = 85           // display window, milliseconds
+	polarGain    float32 = 10           // world units the sphere's surface sits at
 	polarRing    []float32
 	polarW       int // monotonic write cursor into polarRing
 	polarScratch []float32
 	polarCursor  = tapUnjoined // read position in the shared audio tap
-	polarFitted  bool          // camera fitted since real audio arrived
+
+	// polarFitGain is the GAIN the camera was last fitted to, 0 for not yet.
+	// A gain rather than a bool for takensFitGain's reason: the bound the fit
+	// is made against is a function of the gain — here the sphere's radius IS
+	// the gain — so a fit made at one gain is not a fit at another.
+	polarFitGain float32
 )
 
 func init() {
@@ -98,7 +103,7 @@ func init() {
 	attractorParams["polar"] = []paramDef{
 		{"polar-map", "map", &polarMapF, 0, 0, float32(polarMapCount - 1), 1},
 		{"polar-drive", "drv", &polarDrive, 2, 0.2, 10, 0.1},
-		{"polar-tau", "τ", &polarTau, 32, 1, 512, 1},
+		{"polar-tau", "τ", &polarTau, takensTauDef, 1, takensTauMax, 1},
 		{"polar-win", "win", &polarWin, 85, 5, 500, 5},
 		{"polar-gain", "gain", &polarGain, 10, 0.5, 50, 0.5},
 	}
@@ -196,14 +201,11 @@ func polarFitExtent(gain float32) float32 { return gain }
 // arithmetic, which is shared code up to the map.
 func generatePolar() {
 	src := ensureAudioSource()
-	tau := int(polarTau)
-	if tau < 1 {
-		tau = 1
-	}
 	sr := 24000
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
+	tau := tauSamples(polarTau, sr)
 	n, stride := takensWindow(polarWin, sr, steps)
 	span := (n-1)*stride + 2*tau
 	if need := span + 1; len(polarRing) < need {
@@ -238,7 +240,7 @@ func generatePolar() {
 	}
 	nv := takensVerts(n)
 	if avail < span+1 {
-		polarFitted = false // camera was fitted to silence — refit on real data
+		polarFitGain = 0 // camera was fitted to silence — refit on real data
 		uploadVerticesOnly(vertBuf[:nv*4], attractorDrawMode, nv)
 		return
 	}
@@ -301,12 +303,13 @@ func generatePolar() {
 		vertices[j+3] = float32(m) * invN
 	}
 	uploadVerticesOnly(vertices, attractorDrawMode, nv)
-	if !polarFitted {
-		// Fitted once, to the fixed scale's worst case rather than to this
-		// window's extent — see generateTakens for why fitting the
-		// instantaneous figure put loud passages off the screen. Here the
-		// worst case is the sphere, so the fit is exact and not merely safe.
-		polarFitted = true
+	if polarFitGain != polarGain && !paramIsModulated("polar-gain") {
+		// Fitted to the fixed scale's worst case rather than to this window's
+		// extent, and only when GAIN moves that case — see generateTakens for
+		// why fitting the instantaneous figure put loud passages off the
+		// screen. Here the worst case is the sphere, so the fit is exact and
+		// not merely safe.
+		polarFitGain = polarGain
 		fitExtentOverride = polarFitExtent(polarGain)
 		autoFitCamera()
 	}
@@ -340,10 +343,7 @@ func polarColorWindow() ([]float32, int) {
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := int(polarTau)
-	if tau < 1 {
-		tau = 1
-	}
+	tau := tauSamples(polarTau, sr)
 	n, stride := takensWindow(polarWin, sr, steps)
 	if n <= 0 {
 		return nil, 0

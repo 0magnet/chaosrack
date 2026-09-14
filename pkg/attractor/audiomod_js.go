@@ -35,6 +35,30 @@ type paramMod struct {
 
 var paramMods = map[string]paramMod{}
 
+// paramIsModulated reports whether the sound is currently driving a parameter,
+// so that a generator reading its own knob can tell the value it is holding
+// from the value somebody set.
+//
+// It exists for the audio embeddings' camera fit. Those modes frame the camera
+// to a bound computed from GAIN, so the fit has to be redone when GAIN moves —
+// but applyAudioModulation writes the modulated value straight into the
+// parameter for the duration of the step, so a GAIN with a modulator on it
+// "moves" on almost every frame. Re-fitting to that would put the camera back
+// under the music, which is the one thing every comment in takens_js.go is
+// there to prevent. A modulated gain therefore keeps the frame it had: the
+// bound the viewer chose is the base value, and the base value is what the
+// camera should be framed to whatever the sound does to it afterwards.
+//
+// The test is collectAudioModulation's own, so a parameter counts as modulated
+// exactly when that function would act on it.
+func paramIsModulated(id string) bool {
+	if !audioMod {
+		return false
+	}
+	m, ok := paramMods[id]
+	return ok && m.channel != "" && m.level != 0
+}
+
 // modChannels is the channel selector offered per parameter.
 var modChannels = []struct{ label, name string }{
 	{"— off —", ""}, {"stereo", "mono"}, {"left", "L"}, {"right", "R"},

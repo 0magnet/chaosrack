@@ -39,6 +39,34 @@ const xyFragShaderSrc = `
 // sharp angles.
 const xySmooth = 4
 
+// xyDeflection is the per-axis scale from a full-scale sample to clip space,
+// and it is TWO numbers because the canvas is not square.
+//
+// The vertex shader writes gl_Position straight from the sample pair, so a
+// coordinate of 1 is the edge of the viewport in whichever direction it is
+// written — which on a 1916x998 canvas is 958 pixels across and 499 pixels up.
+// A goniometer whose two deflection sensitivities differ by 1.92x is not
+// telling the truth about anything it exists to show: the L=R diagonal that
+// every mastering engineer reads as "mono" lands at atan(998/1916) = 27.5
+// degrees instead of 45, the circle a 90-degree phase difference draws comes
+// out as a wide ellipse, and the eccentricity that means "phase" is
+// indistinguishable from the eccentricity the window shape put there.
+//
+// So the scope is squared against the SHORTER side: the full range stays on
+// screen in both directions and the surplus on the long axis is left as
+// margin, rather than cropping the trace to fill it. Every other mode is
+// already isotropic — they go through mgl32.Perspective, which takes the
+// aspect ratio — so this is the one display that had to be told.
+func xyDeflection() (sx, sy float32) {
+	if width <= 0 || height <= 0 {
+		return xyScale, xyScale
+	}
+	if width > height {
+		return xyScale * float32(height) / float32(width), xyScale
+	}
+	return xyScale, xyScale * float32(width) / float32(height)
+}
+
 var (
 	xyProgram js.Value
 	xyBuf     js.Value
@@ -129,6 +157,7 @@ func drawXYScope(clear bool) {
 			}
 			return i
 		}
+		sx, sy := xyDeflection()
 		o := 0
 		for i := 0; i < xyWindow; i++ {
 			l0, l1 := xyBufL[clampIdx(i-1)], xyBufL[i]
@@ -137,8 +166,8 @@ func drawXYScope(clear bool) {
 			r2, r3 := xyBufR[clampIdx(i+1)], xyBufR[clampIdx(i+2)]
 			for s := 0; s < xySmooth; s++ {
 				t := float32(s) / xySmooth
-				xyLine[o] = catmullRom(l0, l1, l2, l3, t) * xyScale
-				xyLine[o+1] = catmullRom(r0, r1, r2, r3, t) * xyScale
+				xyLine[o] = catmullRom(l0, l1, l2, l3, t) * sx
+				xyLine[o+1] = catmullRom(r0, r1, r2, r3, t) * sy
 				o += 2
 			}
 		}

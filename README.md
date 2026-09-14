@@ -59,6 +59,10 @@ analog computers at [glensstuff.com](https://glensstuff.com).
   - [Audio](#audio)
   - [Analysis](#analysis)
   - [Custom](#custom)
+- [Which control does what, on which model](#which-control-does-what-on-which-model)
+  - [The global controls](#the-global-controls)
+  - [The audio-driven models](#the-audio-driven-models)
+  - [Controls that pull in the same direction](#controls-that-pull-in-the-same-direction)
 - [Reaching the machine](#reaching-the-machine)
   - [On a machine with other people on it](#on-a-machine-with-other-people-on-it)
 - [The rack](#the-rack)
@@ -1170,7 +1174,7 @@ y'' = −g, bounce: v ← −e·v at the floor
 | --- | --- |
 | ![XY Scope](docs/img/model/xy.jpg) | ![XY Scope turning](docs/img/model/xy.gif) |
 
-X/Y Scope — the classic two-channel oscilloscope figure, drawing the live audio's (left, right) sample pairs as a line strip. Correlated channels lie on a diagonal, anti-correlated on the other, and a phase difference opens the diagonal into an ellipse — which is how the display doubles as a stereo phase meter. A mono source is plotted against a lagged copy of itself, since a raw mono signal would otherwise be a featureless diagonal.
+X/Y Scope — the classic two-channel oscilloscope figure, drawing the live audio's (left, right) sample pairs as a line strip. This is the goniometer, or stereo vectorscope, that sits on a mastering desk: correlated channels lie on a diagonal, anti-correlated on the other, and a phase difference opens the diagonal into an ellipse — which is how the display doubles as a stereo phase meter and a mono compatibility check, since what lies along the anti-correlated diagonal is exactly what disappears when the mix is summed to mono. The deflection is squared against the shorter side of the window, so the mono diagonal reads at 45° and a quarter-cycle phase difference draws a circle — not an ellipse the window's shape put there. An angle that cannot be trusted is the one thing a phase display may not have. A mono source is plotted against a lagged copy of itself, since a raw mono signal would otherwise be a featureless diagonal; the Stereo Embedding next door is the same figure with a third axis and a correlation meter, and it does not fake a channel that is not there.
 
 `#xy` · audio
 
@@ -1180,7 +1184,7 @@ X/Y Scope — the classic two-channel oscilloscope figure, drawing the live audi
 | --- | --- | --- |
 | ![Takens Embedding](docs/img/model/takens.jpg) | ![Takens Embedding turning](docs/img/model/takens.gif) | ![Takens Embedding parameters](docs/img/model/takens-params.jpg) |
 
-Takens Delay Embedding — attractor reconstruction from a single signal (F. Takens, "Detecting strange attractors in turbulence", 1981). Each trail point is the delay vector (s(t), s(t−τ), s(t−2τ)) of the live audio: a pure tone draws a closed loop, music and speech trace the geometry of whatever produced them. τ is the embedding delay in samples, and MEAS measures it rather than guessing: the first minimum of the signal's average mutual information (Fraser & Swinney 1986), reported beside the false-nearest-neighbor embedding dimension m (Kennel et al. 1992). It runs once, on the button — nothing here re-tunes itself per frame, because a knob that moves with the music makes the figure move with it. An m above 3 means the trail you are looking at is a projection of a higher-dimensional reconstruction. WIN is how much time the figure spans, in milliseconds — short is live and legible, long draws a denser tangle that turns over more slowly; GAIN sets how large a full-scale sample draws. The scale is fixed — nothing auto-ranges, so quiet passages draw small and loud ones large, and the view never moves under you; the camera is fitted once to what full scale can reach, so peaks stay on screen. The trace is spline-smoothed between samples the way a scope's beam is. Audio comes from the active source — websocket stream, microphone, or the signal generators.
+Takens Delay Embedding — attractor reconstruction from a single signal (F. Takens, "Detecting strange attractors in turbulence", 1981). Each trail point is the delay vector (s(t), s(t−τ), s(t−2τ)) of the live audio: a pure tone draws a closed loop, music and speech trace the geometry of whatever produced them. τ is the embedding delay, counted in samples at a fixed 48 kHz reference so that one knob position is one DURATION — the same delay whether the sound is arriving from a 48 kHz microphone or a 24 kHz server feed, which is what it was not when the number was read as raw samples of whatever happened to be playing. The default of 72 is 1.5 ms; the MEAS readout says what the current setting is in milliseconds. MEAS measures τ rather than guessing it: the first minimum of the signal's average mutual information (Fraser & Swinney 1986), reported beside the false-nearest-neighbor embedding dimension m (Kennel et al. 1992). It also runs BY ITSELF, once, as soon as the mode has enough audio to measure — and again if the source is swapped, because τ is a property of what is playing. Once is the whole of it: nothing here re-tunes itself per frame, because a knob that moves with the music makes the figure move with it. Press the button to measure again, or turn the knob and it stays where you put it. An m above 3 means the trail you are looking at is a projection of a higher-dimensional reconstruction. WIN is how much time the figure spans, in milliseconds — short is live and legible, long draws a denser tangle that turns over more slowly; GAIN sets how large a full-scale sample draws. The scale is fixed — nothing auto-ranges, so quiet passages draw small and loud ones large, and the view never moves under you; the camera is fitted once to what full scale can reach, so peaks stay on screen. The trace is spline-smoothed between samples the way a scope's beam is. Audio comes from the active source — websocket stream, microphone, or the signal generators.
 
 `#takens` · parametric
 
@@ -1445,6 +1449,93 @@ Custom Equations — type your own system. The Equations module takes dx/dt, dy/
 `#custom` · 4-D flow
 
 <!-- END MODELS -->
+
+## Which control does what, on which model
+
+Every knob on the rack is always there, because the rack is a fixed panel and a
+control that comes and goes is a control nobody learns. The cost is that some of
+them do nothing on some models and the panel does not say so. This is the map.
+
+### The global controls
+
+| Control | What it sets | Where it does nothing |
+|---|---|---|
+| **Speed** (View) | The integration rate: sub-steps per frame at ×1 and above, a dt multiplier below it | Everything that is not integrated — the maps, all four audio-driven models (XY Scope, Takens, Stereo, Polar), Spectrogram, FVF, Recurrence, Bifurcation, Scope Clock, the polyhedra and the solids |
+| **Trail** (Colors) | The **vertex budget**: how many points a model may draw into. On an integrated model that is also a length; on an audio embedding it is a resolution (below) | Hidden on the modes that are a texture rather than a trail — Spectrogram, XY Scope, FVF, Recurrence |
+| **Persist** (Trace) | Stops the color buffer being cleared, so successive frames pile up | Forced off while a backdrop visualizer is painting, and while the Fore knob is splitting the draw across two canvases |
+| **Points** (Trace) | Draws the trail as separated points rather than a joined line | The texture-plane modes |
+| **Line** (Display) | `gl.lineWidth`, which most browsers and drivers cap at 1 — so usually nothing, anywhere | — |
+| **Phosphor** (Style) | Trace color plus per-channel afterglow; on an integrated model, also a short advancing beam instead of the whole curve | The afterglow needs a frame that is not cleared, so the audio modes (XY Scope, Spectrogram, FVF, Recurrence) take the color and not the glow. The beam is skipped on the three audio embeddings, where the budget is a resolution and shortening it would decimate the window rather than the figure |
+| **src** (Colors) | Which quantity the gradient follows: an axis, trail age, or the sound | `aud` needs an audio source. Where the trail is a time axis it paints the spectrum ALONG the figure; everywhere else it tints the whole figure with one feature |
+| **Zoom / X / Y** (Position) | The camera | Fixed face-on on the texture-plane modes |
+
+**Trail is not a duration on the audio embeddings.** On an integrated model it is
+both — more points is more trajectory. On Takens, Stereo and Polar the span comes
+from **WIN**, and Trail only decides how finely that span is sampled. A long WIN
+against a small Trail decimates, and the trace is then spline-smoothed through
+samples further apart than the signal's own detail.
+
+### The audio-driven models
+
+**XY Scope**, **Takens Embedding**, **Stereo Embedding** and **Polar Embedding**
+all read the live audio source, and none of them integrate anything — so **Speed
+is inert on all four**.
+
+The XY Scope has no parameters of its own at all: its window (2048 samples), its
+deflection, its mono lag and its beam smoothing are fixed. Its deflection is
+squared against the shorter side of the canvas, so a correlated pair reads at 45°
+and a quarter-cycle phase difference draws a circle whatever shape the window is.
+The other three share a grid:
+
+| | Takens | Stereo | Polar |
+|---|---|---|---|
+| **τ** | delay, in samples at a 48 kHz reference (so: a duration) | the same, on the two delay positions only | the same |
+| **win** | span of the figure, ms | span, ms (capped at 250 — the snapshot cannot outrun the source's ring) | span, ms |
+| **gain** | world units per full-scale sample | the same | the sphere's radius |
+| **axes** | — | which signal each of x, y, z carries | — |
+| **map / drv** | — | — | the radius curve, and how hard the length is driven into it |
+| **meas / corr** | measures τ and the FNN dimension — once by itself, then on the button | correlation meter, −1…+1 | — |
+
+**τ is counted in samples at a fixed 48 kHz reference**, so one knob position is
+one *duration*: the same delay whether the sound is arriving from a 48 kHz
+microphone or a 24 kHz server feed. Read as raw samples — which is what it was —
+the same setting was twice the delay on the feed that it was on the microphone,
+and a permalink meant different things on two machines with nothing saying so.
+The default of 72 is 1.5 ms, and the MEAS readout gives the current setting in
+milliseconds.
+
+The Takens mode **measures τ by itself, once**, as soon as it has enough audio —
+and again if the source is swapped, because τ is a property of what is playing.
+Once is the whole of it: nothing re-tunes per frame, because a knob that moves
+with the music makes the figure move with it. Press **MEAS** to measure again,
+or turn the knob and it stays where you put it. It is worth pressing after a
+change of material: the estimator asked for 1.52 ms on a three-tone signal and
+the difference between that and a τ that is too short is the difference between
+an open reconstruction and a streak along the diagonal.
+
+### Controls that pull in the same direction
+
+Several pairs change the same thing on screen by different means, which is worth
+knowing before reaching for the second one.
+
+- **GAIN and Zoom** both make the figure bigger. GAIN scales the model against
+  the fixed bound the camera is framed to; Zoom moves the camera. Turning GAIN
+  re-frames, so the figure keeps its place and changes its size relative to what
+  full scale can reach; Zoom leaves the model alone and changes how much of the
+  frame you are looking at. Reach for Zoom unless it is the headroom you want to
+  change.
+- **WIN and Trail** both change how much is on screen: WIN adds signal, Trail
+  adds resolution. A dense tangle wants less WIN; a coarse, angular figure wants
+  more Trail.
+- **WIN and Persist** both make the picture denser. WIN draws one longer window;
+  Persist superimposes many different ones. A drifting figure fills in under
+  Persist and merely blurs under WIN.
+- **τ and AXES** (Stereo) both change the figure's shape, but τ is inert on the
+  two `time` positions — there is no delay coordinate there to delay.
+- **DRV and GAIN** (Polar) both change how large a loud passage draws. DRV moves
+  where the radius curve saturates; GAIN sets the size of the sphere it
+  saturates against. DRV does nothing on the `unit` map, where the length has
+  already been thrown away.
 
 ## Reaching the machine
 
@@ -2118,8 +2209,20 @@ The spectrogram, XY oscilloscope, FVF Wobbulator, **audio-modulated
 attractors**, the **spectrogram skin** (paint the live spectrogram onto any
 model), and the spectro/XY **backdrops** all need an audio source:
 
-- **Microphone** (default) — the page uses `getUserMedia`.
-- **Signal generators** — flip on the built-in oscillators; fully client-side.
+- **Microphone** (default) — the page uses `getUserMedia`. Capture runs through
+  a `ScriptProcessorNode`, and that node's buffer is what the displays lag by:
+  it cannot hand anything over until it has collected a whole buffer, so the
+  rings it feeds are refreshed once per buffer and hold still in between. At the
+  old 4096 frames that was 85 ms at 48 kHz — measured against a running page,
+  new audio arrived at 12.3 Hz while the renderer ran at 60, so 70% of rendered
+  frames drew exactly what the frame before them drew. It is 1024 now: 21 ms,
+  measured at 41.7 Hz with no repeated frames at all. Smaller stops helping — at
+  512 the callbacks arrive in bursts, which is the node dumping a queue because
+  the main thread was busy rendering, and a dropped buffer is a hole in the ring
+  rather than a frame of staleness.
+- **Signal generators** — flip on the built-in oscillators; fully client-side,
+  and synthesized on demand rather than captured, so there is no buffer and no
+  lag at all.
 - **System audio over WebSocket** — start the server with `--audio` and it
   captures the default **PulseAudio / PipeWire** monitor and streams it to the
   page it is already serving:

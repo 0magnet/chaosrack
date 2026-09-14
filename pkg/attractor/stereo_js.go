@@ -155,20 +155,26 @@ var stereoAxisNames = []string{
 var stereoAxisRing = []string{"LRd", "LRt", "MSd", "MSt"}
 
 var (
-	stereoAxesF float32 = 0  // axes knob: an index into stereoPlans
-	stereoTau   float32 = 32 // delay τ, in source samples (delay positions only)
-	stereoWin   float32 = 85 // display window, milliseconds
-	stereoGain  float32 = 10 // world units a full-scale (±1) sample maps to
+	stereoAxesF float32 = 0            // axes knob: an index into stereoPlans
+	stereoTau   float32 = takensTauDef // delay τ, reference samples (delay positions only)
+	stereoWin   float32 = 85           // display window, milliseconds
+	stereoGain  float32 = 10           // world units a full-scale (±1) sample maps to
 
 	stereoL, stereoR []float32 // this frame's snapshot, oldest first
-	stereoFitted     bool      // camera fitted since real audio arrived
+
+	// stereoFitGain is the GAIN the camera was last fitted to, 0 for not yet.
+	// A gain rather than a bool for takensFitGain's reason: the bound the fit
+	// is made against is a function of the gain, so a fit made at one gain is
+	// not a fit at another, and raising GAIN under a bool pushed the figure off
+	// the screen with only Zoom to bring it back.
+	stereoFitGain float32
 )
 
 func init() {
 	registerGenerate("stereo", generateStereo)
 	attractorParams["stereo"] = []paramDef{
 		{"stereo-axes", "axes", &stereoAxesF, 0, 0, float32(len(stereoPlans) - 1), 1},
-		{"stereo-tau", "τ", &stereoTau, 32, 1, 512, 1},
+		{"stereo-tau", "τ", &stereoTau, takensTauDef, 1, takensTauMax, 1},
 		{"stereo-win", "win", &stereoWin, 85, 5, stereoWinMax, 5},
 		{"stereo-gain", "gain", &stereoGain, 10, 0.5, 50, 0.5},
 	}
@@ -276,14 +282,11 @@ func stereoWindow(winMS float32, sampleRate, budget, tau int) (n, stride int) {
 // trail through the normal 3D pipeline.
 func generateStereo() {
 	src := ensureAudioSource()
-	tau := int(stereoTau)
-	if tau < 1 {
-		tau = 1
-	}
 	sr := 24000
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
+	tau := tauSamples(stereoTau, sr)
 	n, stride := stereoWindow(stereoWin, sr, steps, tau)
 	span := (n-1)*stride + tau
 	if need := span + 1; len(stereoL) < need {
@@ -298,7 +301,7 @@ func generateStereo() {
 		// Re-upload the previous frame rather than a cleared buffer, so the
 		// model does not flicker while the source spins up — and refit when
 		// audio arrives, since the mode-entry fit saw whatever was here.
-		stereoFitted = false
+		stereoFitGain = 0
 		stereoNoteState(false, false, 0)
 		uploadVerticesOnly(vertices, attractorDrawMode, nv)
 		return
@@ -363,14 +366,14 @@ func generateStereo() {
 	corr, ok := stereoCorrelation(l, r)
 	stereoNoteState(src.Channels() < 2, ok, corr)
 
-	if !stereoFitted {
+	if stereoFitGain != stereoGain && !paramIsModulated("stereo-gain") {
 		// Fitted to the FIXED scale's worst case, not to this window — see the
 		// same block in generateTakens for why fitting the instantaneous
 		// figure is what put loud passages off the screen. Every coordinate
 		// here is bounded by gain (samples are bounded to ±1; mid and side by
 		// construction; the time ramp by its own mapping), so the Takens
 		// mode's √3 cube-corner extent is the right bound unchanged.
-		stereoFitted = true
+		stereoFitGain = stereoGain
 		fitExtentOverride = takensFitExtent(stereoGain)
 		autoFitCamera()
 	}

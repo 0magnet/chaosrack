@@ -264,10 +264,7 @@ func audioColorWindow(mode string) ([]float32, int) {
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := int(takensTau)
-	if tau < 1 {
-		tau = 1
-	}
+	tau := tauSamples(takensTau, sr)
 	n, stride := takensWindow(takensWin, sr, steps)
 	if n <= 0 {
 		return nil, 0
@@ -322,10 +319,7 @@ func stereoColorWindow() ([]float32, int) {
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := int(stereoTau)
-	if tau < 1 {
-		tau = 1
-	}
+	tau := tauSamples(stereoTau, sr)
 	n, stride := stereoWindow(stereoWin, sr, steps, tau)
 	if n <= 0 {
 		return nil, 0

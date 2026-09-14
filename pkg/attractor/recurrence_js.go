@@ -170,8 +170,21 @@ const (
 	// cursor, and resetting the cursor throws the buffered audio away: turning
 	// m from 1 to 8 would blank the plot eight times on the way. Sized for the
 	// worst case once, m and τ are free to move.
-	rpMaxTau      = 512
-	rpMaxLookback = (rpMaxDim - 1) * rpMaxTau
+	rpMaxTau = takensTauMax
+
+	// rpMaxTauSamples is rpMaxTau in SOURCE samples rather than in knob units.
+	// The knob counts samples at tauRefRate (see tauSamples in takens_js.go),
+	// so a source running faster than the reference turns the same knob
+	// position into more real samples — twice as many on a 96 kHz device. The
+	// ring has to hold the deepest lookback any rate can produce, not the
+	// deepest the knob's number looks like, or the delay coordinates read
+	// behind the start of the buffer on exactly the hardware nobody tests on.
+	//
+	// 2x covers every rate a browser AudioContext reports in practice: 44.1 and
+	// 48 kHz overwhelmingly, 88.2 and 96 on the interfaces that offer them. The
+	// cost of the headroom is the ring, and the ring is 14 KB.
+	rpMaxTauSamples = 2 * rpMaxTau
+	rpMaxLookback   = (rpMaxDim - 1) * rpMaxTauSamples
 )
 
 var (
@@ -214,7 +227,7 @@ func init() {
 		// note in the file comment. Def/Min/Max/Step must stay identical to the
 		// row in takens_js.go, or Reset All resets one knob to two different
 		// numbers depending on which of the two maps it walks last.
-		{"takens-tau", "τ", &takensTau, 32, 1, 512, 1},
+		{"takens-tau", "τ", &takensTau, takensTauDef, 1, takensTauMax, 1},
 	}
 }
 
@@ -329,16 +342,16 @@ func rpFillFromAudio() bool {
 		sr = src.SampleRate()
 	}
 	dim := rpEmbedDim()
-	// Clamped to the knob's own range rather than trusted, because the ring is
-	// sized from rpMaxLookback: a τ past rpMaxTau — from a hand-edited
-	// permalink, say — would ask for history behind the start of the buffer,
-	// and the index arithmetic below would go negative rather than merely
-	// wrong.
-	tau := int(takensTau)
-	if tau < 1 {
-		tau = 1
-	} else if tau > rpMaxTau {
-		tau = rpMaxTau
+	// Converted from the knob's reference-rate unit to this source's samples —
+	// the same delay in TIME whatever the source runs at, which is the whole of
+	// tauSamples' argument in takens_js.go — and then clamped, because the ring
+	// is sized from rpMaxLookback: a τ past that bound, from a hand-edited
+	// permalink or from a sample rate higher than the headroom allows for,
+	// would ask for history behind the start of the buffer, and the index
+	// arithmetic below would go negative rather than merely wrong.
+	tau := tauSamples(takensTau, sr)
+	if tau > rpMaxTauSamples {
+		tau = rpMaxTauSamples
 	}
 	span, stride := rpWindow(rpWin, sr)
 	// The delay coordinates read BACKWARDS from the start of the plot window,
