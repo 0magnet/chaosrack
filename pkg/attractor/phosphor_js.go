@@ -122,8 +122,31 @@ var crtBeamLen = 600
 // crtBeam reports whether to draw the short advancing-beam scope trace (a
 // phosphor is selected on an attractor model). Scope modes (Lissajous / Graphic
 // Artist) already draw a closed figure, so they keep their whole-curve draw.
+//
+// So do the three audio embeddings, and for a sharper reason than "it already
+// looks right". The beam is implemented by shrinking `steps` around the
+// generate call, which works because on an integrated model `steps` is how far
+// to ADVANCE: fewer steps is a shorter arc, drawn at the same resolution, which
+// is exactly a beam. On Takens, Stereo and Polar `steps` is not an advance at
+// all — it is the vertex BUDGET for a window whose length comes from WIN — so
+// shrinking it does not shorten the figure by one sample. It decimates it: at
+// the default trail and an 85 ms window, 600 vertices means a stride of 28, and
+// the Catmull-Rom then draws a smooth curve through samples 0.6 ms apart, which
+// is below Nyquist for anything above about 860 Hz. The result is a figure
+// whose high end is invented by the spline rather than measured, presented at
+// the same confidence as the real one — and the phosphor's own accumulation
+// hides it, because successive frames decimate at different offsets and pile up
+// into something that looks complete.
 func crtBeam() bool {
-	return phosphorActive() && isAttractorMode(selectedMode)
+	return phosphorActive() && isAttractorMode(selectedMode) && !isAudioEmbedding(selectedMode)
+}
+
+// isAudioEmbedding names the modes whose trail is a window of the live audio
+// rather than an integrated trajectory: the vertex budget is a resolution for
+// them and a length for everything else, so anything that reaches for `steps`
+// as a length has to ask.
+func isAudioEmbedding(mode string) bool {
+	return mode == "takens" || mode == "stereo" || mode == "polar"
 }
 
 // updateCRTDim dims the Controls a selected phosphor overrides (their color /

@@ -30,8 +30,8 @@ github.com/0magnet/termanim v0.0.0-20260914104740-c2d1737f7963 h1:qMGz7/l1zKhJk2
 github.com/0magnet/termanim v0.0.0-20260914104740-c2d1737f7963/go.mod h1:gBD3xdF/waL0X0BB0Ow9BvP5O+PFbUgKg6bYPlHknxQ=
 github.com/0magnet/toilet-go v0.0.0-20260914104758-0bd3b6b76ab4 h1:toqzySNS76upniIUju4/5+ex6nrQsKoi2YoM2CDNuvs=
 github.com/0magnet/toilet-go v0.0.0-20260914104758-0bd3b6b76ab4/go.mod h1:86WKHFMJMhhI7UySjMqqMHHkgLaQfUXUZfDaM2d+8ms=
-github.com/0magnet/tuiwasm v0.0.0-20260914192715-81013191e14e h1:YJYgIXo6HgS+Kp91e3yr9q2fsJjqpSXod7w1fhcP5Qw=
-github.com/0magnet/tuiwasm v0.0.0-20260914192715-81013191e14e/go.mod h1:9sjL9Npduk7dQ/beFvCIHMC7h6F3uCw7CBTf9q3k6H0=
+github.com/0magnet/tuiwasm v0.0.0-20260914223904-35e19ffbd4ac h1:pdg3YGLRx8sLw0LnH2MAiu5XzmHaTtO2X1sdpeD9778=
+github.com/0magnet/tuiwasm v0.0.0-20260914223904-35e19ffbd4ac/go.mod h1:9sjL9Npduk7dQ/beFvCIHMC7h6F3uCw7CBTf9q3k6H0=
 github.com/0magnet/u-root v0.16.1-0.20260907193324-47ff3c83f69d h1:zLUW8axnE6LsLz1Kt5ne06nYw094U6qC68DClAgGrX8=
 github.com/0magnet/u-root v0.16.1-0.20260907193324-47ff3c83f69d/go.mod h1:YBQz88D4gXBLb9++oXsiZZjfbtRC0bp4c2pduFOyZts=
 github.com/0magnet/websh v0.0.0-20260914105251-9f3f0b910116 h1:cnogw0gosbEAXxcbzgSPIFCCoyqm6EMsBIgnwlNa4Sw=

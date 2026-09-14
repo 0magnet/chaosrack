@@ -358,6 +358,19 @@ func (s *Screen) Fill(r rune, style tcell.Style) {
 	s.mu.Unlock()
 }
 
+// FillArea fills a rectangular region. tcell added it to the Screen interface
+// in v3.5.0, and without it this type stops satisfying tcell.Screen — which is
+// a compile error in every program that assigns one, not a missing feature.
+//
+// The CellBuffer clips the region itself: anything lying outside the buffer is
+// skipped and a zero or negative width or height fills nothing, so there is no
+// bound to check here that Fill does not also leave to it.
+func (s *Screen) FillArea(x, y, width, height int, r rune, style tcell.Style) {
+	s.mu.Lock()
+	s.cells.FillArea(x, y, width, height, r, style)
+	s.mu.Unlock()
+}
+
 func (s *Screen) Clear() { s.Fill(' ', s.style) }
 
 // ------------------------------------------------------------------ the frame

@@ -88,6 +88,13 @@ func tapPump() {
 		// next call.
 		tapSrc, tapUpstream = src, up
 		tapW = 0
+		// τ is a property of WHAT IS PLAYING, so a new source needs a new
+		// measurement: the one taken from the old stream describes a signal
+		// that is no longer there. This is the re-arm that matters, and it is
+		// here rather than beside the source switch itself because every way of
+		// changing the source — the backend selector, the generator switch, FVF
+		// taking the stream over — arrives at this comparison.
+		takensArmAutoMeasure()
 	}
 	if src == nil || !src.Ready() {
 		return
