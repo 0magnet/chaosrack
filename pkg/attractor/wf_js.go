@@ -3,7 +3,6 @@
 package attractor
 
 import (
-	"strconv"
 	"syscall/js"
 )
 
@@ -127,29 +126,26 @@ func wireWowFlutterModule() {
 	wfWeightedEl = doc.Call("getElementById", "wf-weighted-led")
 	wfCarrierEl = doc.Call("getElementById", "wf-carrier-led")
 	nom := doc.Call("getElementById", "wf-nom")
-	nomLED := doc.Call("getElementById", "wf-nom-led")
 	nstack := doc.Call("getElementById", "wf-nstack")
 	if !nom.Truthy() {
 		return
 	}
-	sizeLEDField(nomLED, 0, 20000, 0, false)
 	if nstack.Truthy() {
 		nstack.Call("appendChild", makeKnob(nom, js.Undefined(), true, false, true))
 	}
-	nom.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		wfNominal = float32(fgFloat(nom))
-		nomLED.Set("value", strconv.Itoa(int(wfNominal)))
-		if lbl := doc.Call("getElementById", "wf-nom-lbl"); lbl.Truthy() {
-			lbl.Set("textContent", formatLED(float64(wfNominal), 5, 1, false))
-		}
-		return nil
-	}))
-	nomLED.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if v, err := strconv.ParseFloat(nomLED.Get("value").String(), 64); err == nil {
-			nom.Set("value", strconv.FormatFloat(v, 'f', 0, 64))
-			nom.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-		}
-		return nil
-	}))
+	// Step 10 already gives whole hertz through ledDecimals, so no LEDStep is
+	// needed here. The LED gains the zero padding every other readout in the
+	// rack has — it was the one built with strconv.Itoa rather than formatLED,
+	// so 3150 showed unpadded where 03150 is the house style.
+	adoptDescControl(ControlDesc{
+		ID: "wf-nom", Label: "nom", Min: 0, Max: 20000, Step: 10, Def: 3150,
+		LEDID: "wf-nom-led", ResetID: "rst-wf-nom",
+		Apply: func(v float64) {
+			wfNominal = float32(v)
+			if lbl := doc.Call("getElementById", "wf-nom-lbl"); lbl.Truthy() {
+				lbl.Set("textContent", formatLED(v, 5, 1, false))
+			}
+		},
+	})
 	showWowFlutter()
 }
