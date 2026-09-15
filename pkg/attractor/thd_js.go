@@ -173,7 +173,7 @@ func wireDistortionModule() {
 	// A change of channel is a change of signal, so the window it was measuring
 	// no longer describes what is being asked about.
 	adoptDescControl(ControlDesc{
-		ID: "thd-chan", Label: "src", SelectDef: "0", PermaKey: "dc",
+		ID: "thd-chan", Label: "src", IsSelect: true, SelectDef: "0", PermaKey: "dc",
 		ResetID: "rst-thd-chan",
 		SelectApply: func(string) {
 			// A change of channel is a change of signal, so the window it was

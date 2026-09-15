@@ -498,6 +498,12 @@ func Run() {
 			}))
 			applyStyle()
 			st.Get("style").Set("display", "none")
+			// Style and LED color share the one reset their shared cell holds.
+			// No PermaKey: neither is carried by a link today, and adding two
+			// new hash keys is a separate decision from giving the cell a reset.
+			adoptDescControl(ControlDesc{
+				ID: "knob-style", Label: "Knob", IsSelect: true, SelectDef: "std", ResetID: "rst-knob-style",
+			})
 			// LED readout color presets → CSS vars on the panel.
 			if lc.Truthy() {
 				ledCols := map[string][4]string{}
@@ -541,6 +547,13 @@ func Run() {
 				applyLED()
 				updLEDRO()
 				lc.Get("style").Set("display", "none")
+				// The default is the first entry of the one ordered table the
+				// options were built from, rather than a color name written out
+				// again here — the list is allowed to be reordered.
+				adoptDescControl(ControlDesc{
+					ID: "led-color", Label: "LED", IsSelect: true, SelectDef: ledColorDefs[0].name,
+					ResetID: "rst-knob-style",
+				})
 			}
 		}
 		sr.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -575,6 +588,30 @@ func Run() {
 		} else {
 			applyKS()
 		}
+
+		// The three rings come home to the registry. Their effects stay wired
+		// above — the descriptor adds what they never had, which is a way back:
+		// a reset button on each cell, and, for Step and Fine, a place in the
+		// Reset All sweep that no longer has to name them by hand.
+		//
+		// Step and Fine share the one reset button their shared cell holds, the
+		// way Keys' range and base do: two descriptors naming the same ResetID
+		// each add a listener to it, so one click puts the pair back.
+		//
+		// No PermaKey on any of the three: all three are already carried by the
+		// permaCtls table, and a key in both places would write the hash twice.
+		adoptDescControl(ControlDesc{
+			ID: "step-ratio", Label: "step", IsSelect: true, SelectDef: "1", ResetID: "rst-stepfine",
+		})
+		adoptDescControl(ControlDesc{
+			ID: "fine-ratio", Label: "fine", IsSelect: true, SelectDef: "0.1", ResetID: "rst-stepfine",
+		})
+		// SkipResetAll: Size is a display preference, like the dock edge, and
+		// Reset All leaves those alone on purpose. Its own button still works.
+		adoptDescControl(ControlDesc{
+			ID: "knob-size", Label: "Size", IsSelect: true, SelectDef: "1",
+			ResetID: "rst-knob-size", SkipResetAll: true,
+		})
 	}
 
 	// Event: mode change
@@ -676,6 +713,10 @@ func Run() {
 		if holder := doc.Call("getElementById", "skin-stack"); holder.Truthy() {
 			holder.Call("appendChild", selectorKnobReadout(sk))
 		}
+		// No PermaKey: "sk" already carries it in permaCtls.
+		adoptDescControl(ControlDesc{
+			ID: "skin-visual", Label: "On", IsSelect: true, SelectDef: "", ResetID: "rst-skin-visual",
+		})
 	}
 	// Event: Backdrop — ONE selector, because the state is one-of-N.
 	//
@@ -700,6 +741,10 @@ func Run() {
 		if holder := doc.Call("getElementById", "bg-stack"); holder.Truthy() {
 			holder.Call("appendChild", selectorKnobReadout(bv))
 		}
+		// No PermaKey: "bd" already carries it in permaCtls.
+		adoptDescControl(ControlDesc{
+			ID: "bg-visual", Label: "Behind", IsSelect: true, SelectDef: "", ResetID: "rst-bg-visual",
+		})
 	}
 
 	// Phosphor selector — populate from the phosphor table + set phosphorIdx.
@@ -725,6 +770,13 @@ func Run() {
 			return nil
 		}))
 		ph.Set("title", "Phosphor — CRT trace color + afterglow for scope modes (P31 crisp green … P7 blue→green … P33 long amber)")
+		// Index 0 is the "off" phosphor, which is what a reset means here: out
+		// of CRT mode. The options are built from the phosphors table just above,
+		// so the default is that table's first entry by construction.
+		adoptDescControl(ControlDesc{
+			ID: "phosphor", Label: "Phosphor", IsSelect: true, SelectDef: "0",
+			ResetID: "rst-phosphor",
+		})
 		if holder := doc.Call("getElementById", "phosphor-stack"); holder.Truthy() {
 			pk := selectorKnobReadout(ph)
 			holder.Call("appendChild", pk)
@@ -846,10 +898,14 @@ func Run() {
 		// it read as a piece of somebody else's form dropped into the rack.
 		// The marquee is not decoration either; "Looking Glass" does not fit.
 		attachSelMarquee(dst, "#c9a0ff")
-		dst.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
-			setDeskStyle(dst.Get("value").String())
-			return nil
-		}))
+		// Through the registry, which is what gives the cell its reset button.
+		// deskFlat is the default the package variable already holds, so the
+		// reset target is that one constant rather than a second copy of it.
+		adoptDescControl(ControlDesc{
+			ID: "desk-style", Label: "style", IsSelect: true, SelectDef: deskFlat,
+			ResetID:     "rst-desk-style",
+			SelectApply: setDeskStyle,
+		})
 	}
 
 	// Event: patchbay module visibility.
@@ -912,24 +968,36 @@ func Run() {
 		return nil
 	}))
 
-	// Event: gradient source + colors selectors (each driven by a rotary knob)
-	doc.Call("getElementById", "gradient-source").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		if v, err := strconv.Atoi(doc.Call("getElementById", "gradient-source").Get("value").String()); err == nil {
-			gradientSource = v
-		}
-		// The source now decides whether the map ring and the swatches apply at
-		// all — OFF leaves nothing to map — so this has to refresh the dimming
-		// the way the map ring's own handler does.
-		updateGradientUI()
-		return nil
-	}))
-	doc.Call("getElementById", "gradient-colors").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		if v, err := strconv.Atoi(doc.Call("getElementById", "gradient-colors").Get("value").String()); err == nil {
-			gradientColors = v
-		}
-		updateGradientUI()
-		return nil
-	}))
+	// Event: gradient source + colors selectors (each driven by a rotary knob).
+	//
+	// Through the registry, so each ring gets the reset button its cell now
+	// carries and Reset All reaches both by driving the same Control the button
+	// does — rather than by setting the two elements and calling updateGradientUI
+	// itself, which is what it used to do and which could drift from these
+	// handlers. No PermaKey: "gs" and "gc" already carry them in permaCtls.
+	adoptDescControl(ControlDesc{
+		ID: "gradient-source", Label: "src", IsSelect: true, SelectDef: "2",
+		ResetID: "rst-gradient-source",
+		SelectApply: func(v string) {
+			if n, err := strconv.Atoi(v); err == nil {
+				gradientSource = n
+			}
+			// The source decides whether the map ring and the swatches apply at
+			// all — OFF leaves nothing to map — so this has to refresh the dimming
+			// the way the map ring's own handler does.
+			updateGradientUI()
+		},
+	})
+	adoptDescControl(ControlDesc{
+		ID: "gradient-colors", Label: "map", IsSelect: true, SelectDef: "2",
+		ResetID: "rst-gradient-colors",
+		SelectApply: func(v string) {
+			if n, err := strconv.Atoi(v); err == nil {
+				gradientColors = n
+			}
+			updateGradientUI()
+		},
+	})
 	doc.Call("getElementById", "gradient-reverse").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
 		gradientReverse = doc.Call("getElementById", "gradient-reverse").Get("checked").Bool()
 		return nil
@@ -1548,6 +1616,9 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 	// silently miss one again. (Rotation sliders + movMatrix are re-randomized
 	// below so the model never lands on the same view twice.)
 	for _, c := range builtControls {
+		if c.skipResetAll {
+			continue
+		}
 		c.resetToDefault()
 	}
 
@@ -1574,11 +1645,12 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 	doc.Call("getElementById", "info-overlay").Get("style").Set("display", "none")
 	persistTrail = false
 	doc.Call("getElementById", "persist-trail").Set("checked", false)
-	gradientSource = 2
-	gradientColors = 2
+	// The source and map rings are registry-owned, so the loop above has already
+	// put them back — including gradientSource / gradientColors and the dimming,
+	// because resetting a Control dispatches the change its own handler listens
+	// for. Only the Reverse switch, which is a checkbox and not a Control, is
+	// still this function's to set.
 	gradientReverse = false
-	doc.Call("getElementById", "gradient-source").Set("value", "2")
-	doc.Call("getElementById", "gradient-colors").Set("value", "2")
 	doc.Call("getElementById", "gradient-reverse").Set("checked", false)
 	updateGradientUI()
 
@@ -1630,45 +1702,18 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 			sw.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 		}
 	}
-	// Display-style + knob-behavior selectors back to defaults.
-	resetSel := func(id, val string) {
-		if s := doc.Call("getElementById", id); s.Truthy() && s.Get("value").String() != val {
-			s.Set("value", val)
-			s.Call("dispatchEvent", js.Global().Get("Event").New("change"))
-		}
-	}
-	// The backdrop is a selector now, not four switches, so it resets here
-	// rather than in the list above. Reset All promises "backdrops" in its own
-	// tooltip; when the switches went, this is what keeps that true.
-	resetSel("bg-visual", "")
-	resetSel("skin-visual", "")
-	resetSel("knob-style", "std")
-	resetSel("step-ratio", "1")
-	resetSel("fine-ratio", "0.1")
-	resetSel("sonify-map", "off")                          // Model Out ring back to off (silence)
-	for _, id := range []string{"phosphor", "led-color"} { // populated at runtime → first option is the default
-		if s := doc.Call("getElementById", id); s.Truthy() && s.Get("selectedIndex").Int() != 0 {
-			s.Set("selectedIndex", 0)
-			s.Call("dispatchEvent", js.Global().Get("Event").New("change"))
-		}
-	}
-	// Signal-generator oscillators back to their default note / level / wave, off.
+	// Every selector in the panel is a registry Control now, so the loop at the
+	// top of this function has already put them all back — the backdrop, the
+	// skin, the phosphor and LED color, Step and Fine, the Model Out rings, the
+	// three oscillators' routing and waveform, the envelope mode.
 	//
-	// There was a setInput helper here that wrote remembered values into hidden
-	// range inputs. Every default it carried is now a descriptor's Def, so the
-	// helper has no callers left: a bulk reset and a cell's own reset button are
-	// the same call on the same Control, and cannot drift apart.
-	// The generators: only the two SELECTORS need saying here. Their freq and
-	// level knobs are descriptor controls, so the builtControls loop above has
-	// already put them back — which is the whole point of that loop, and the
-	// reason this used to carry its own copy of six numbers the markup also
-	// stated.
-	for _, osc := range genOscs {
-		resetSel(osc.id+"-wave", "0")
-		resetSel(osc.id+"-out", "off")
-	}
-	// Envelope: likewise, only the mode selector. Attack and decay are controls.
-	resetSel("gen-env-mode", "off")
+	// What stood here was a resetSel closure and fourteen calls to it: a second,
+	// hand-maintained list of every selector and its default, beside the one the
+	// descriptors already state. Two lists of the same thing is how the Backdrop
+	// came to drive a select option that did not exist, and nothing had checked
+	// that this one still agreed with the panel either. The Size ring is the one
+	// deliberate exclusion, and it says so on its own descriptor (SkipResetAll)
+	// rather than by being absent from a list.
 
 	// Randomized starting pose + low-rate rotation. Replaces the old
 	// identity-matrix reset so each click of Reset All produces a

@@ -371,7 +371,7 @@ func wireRhythmModule() {
 	ostack.Call("appendChild", ostk)
 	// Another orphan: no reset, no Reset All, no permalink.
 	adoptDescControl(ControlDesc{
-		ID: "rhythm-out", Label: "out", SelectDef: "both", PermaKey: "ho",
+		ID: "rhythm-out", Label: "out", IsSelect: true, SelectDef: "both", PermaKey: "ho",
 		ResetID: "rst-rhythm-out", SelectApply: func(string) { rhythmUpdateRouting() },
 	})
 
