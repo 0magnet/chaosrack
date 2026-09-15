@@ -418,6 +418,11 @@ func buildParamPanel(mode string) {
 		appendTransferReadout(grid)
 	}
 
+	if mode == "waterfall" {
+		// The reverberation time, which the surface is far too shallow to show.
+		appendWaterfallReadout(grid)
+	}
+
 	if mode == "xy" {
 		// The goniometer's own correlation meter — the number every hardware
 		// one carries beside the tube, and the one the figure cannot give you,
