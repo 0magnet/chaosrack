@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"strconv"
+	"strings"
 	"syscall/js"
 )
 
@@ -60,8 +61,11 @@ func paramIsModulated(id string) bool {
 }
 
 // modChannels is the channel selector offered per parameter.
-var modChannels = []struct{ label, name string }{
-	{"— off —", ""}, {"stereo", "mono"}, {"left", "L"}, {"right", "R"},
+var modChannels = []struct{ label, name, desc string }{
+	{"— off —", "", "off — this parameter is not modulated by audio"},
+	{"stereo", "mono", "stereo — both channels summed drive this parameter"},
+	{"left", "L", "left — the left channel alone drives this parameter"},
+	{"right", "R", "right — the right channel alone drives this parameter"},
 }
 
 type savedParam struct {
@@ -371,6 +375,10 @@ func buildModUnit(id, label string) js.Value {
 		opt := doc.Call("createElement", "option")
 		opt.Set("value", s.name)
 		opt.Set("textContent", s.label)
+		// The parameter's own name goes in, so a panel of fourteen mod cards
+		// is fourteen different sentences rather than one repeated fourteen
+		// times — each detent says what IT does to THIS parameter.
+		opt.Set("title", strings.Replace(s.desc, "this parameter", label, 1))
 		if s.name == cur.channel {
 			opt.Set("selected", true)
 		}

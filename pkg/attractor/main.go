@@ -471,6 +471,7 @@ func Run() {
 						o := doc.Call("createElement", "option")
 						o.Set("value", d.name)
 						o.Set("textContent", d.name)
+						o.Set("title", d.desc)
 						lc.Call("appendChild", o)
 						dotCols = append(dotCols, d.col)
 					}
@@ -541,6 +542,7 @@ func Run() {
 							idx = 0
 						}
 						ledRO.Set("textContent", lc.Get("options").Index(idx).Get("text").String())
+						dialPosTitle(ledRO, lc, idx)
 					}
 				}
 				lc.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} { applyLED(); updLEDRO(); return nil }))
@@ -755,6 +757,7 @@ func Run() {
 			opt := doc.Call("createElement", "option")
 			opt.Set("value", strconv.Itoa(i))
 			opt.Set("textContent", p.name)
+			opt.Set("title", p.desc)
 			ph.Call("appendChild", opt)
 		}
 		ph.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
