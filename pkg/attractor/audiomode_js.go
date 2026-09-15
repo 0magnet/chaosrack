@@ -220,6 +220,8 @@ func renderAudioFrame(mode string) {
 		renderXYFrame()
 	case "rta":
 		generateRTA()
+	case "xfer":
+		generateTransfer()
 	}
 	maybeShowAudioStatus()
 }

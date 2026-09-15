@@ -413,6 +413,11 @@ func buildParamPanel(mode string) {
 		appendStereoReadout(grid)
 	}
 
+	if mode == "xfer" {
+		// The fitted bulk delay, into the grid for appendStereoReadout's reason.
+		appendTransferReadout(grid)
+	}
+
 	if mode == "xy" {
 		// The goniometer's own correlation meter — the number every hardware
 		// one carries beside the tube, and the one the figure cannot give you,
