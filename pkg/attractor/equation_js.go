@@ -411,11 +411,7 @@ func buildCustomPanel(paramsDiv js.Value) {
 		}
 	}
 	grid := doc.Call("createElement", "div")
-	gc := "punit-grid"
-	if len(defs) > 3 {
-		gc += " two-col"
-	}
-	grid.Set("className", gc)
+	grid.Set("className", "punit-grid")
 	for _, d := range defs {
 		grid.Call("appendChild", buildParamUnit(d))
 	}
