@@ -75,6 +75,7 @@ analog computers at [glensstuff.com](https://glensstuff.com).
 - [The rack](#the-rack)
   - [Console](#console)
   - [Parameters](#parameters)
+  - [Layers](#layers)
   - [Colors](#colors)
   - [Palette](#palette)
   - [Record](#record)
@@ -86,16 +87,27 @@ analog computers at [glensstuff.com](https://glensstuff.com).
   - [Gen Y](#gen-y)
   - [Gen Z](#gen-z)
   - [Envelope](#envelope)
+  - [Test](#test)
   - [Model Out](#model-out)
-  - [Patchbay](#patchbay)
+  - [Distortion](#distortion)
+  - [Loudness](#loudness)
+  - [Wow & Flutter](#wow--flutter)
   - [Mod](#mod)
   - [EQ](#eq)
+  - [Patchbay](#patchbay)
   - [Analysis](#analysis-1)
   - [Presets](#presets)
   - [Counter](#counter)
   - [Keys](#keys)
   - [Matrix](#matrix)
+  - [Rhythm](#rhythm)
   - [Template](#template)
+  - [Scoreboard](#scoreboard)
+  - [Banner](#banner)
+  - [Patch](#patch)
+  - [Launcher](#launcher)
+  - [Loader](#loader)
+  - [Equation](#equation)
 - [Physical dimensions](#physical-dimensions)
 - [Solid models (STL)](#solid-models-stl)
 - [Recording](#recording)
@@ -1205,7 +1217,7 @@ X/Y Scope — the classic two-channel oscilloscope figure, drawing the live audi
 | --- | --- | --- |
 | ![Takens Embedding](docs/img/model/takens.jpg) | ![Takens Embedding turning](docs/img/model/takens.gif) | ![Takens Embedding parameters](docs/img/model/takens-params.jpg) |
 
-Takens Delay Embedding — attractor reconstruction from a single signal (F. Takens, "Detecting strange attractors in turbulence", 1981). Each trail point is the delay vector (s(t), s(t−τ), s(t−2τ)) of the live audio: a pure tone draws a closed loop, music and speech trace the geometry of whatever produced them. τ is the embedding delay, counted in samples at a fixed 48 kHz reference so that one knob position is one DURATION — the same delay whether the sound is arriving from a 48 kHz microphone or a 24 kHz server feed, which is what it was not when the number was read as raw samples of whatever happened to be playing. The default of 72 is 1.5 ms; the MEAS readout says what the current setting is in milliseconds. MEAS measures τ rather than guessing it: the first minimum of the signal's average mutual information (Fraser & Swinney 1986), reported beside the false-nearest-neighbor embedding dimension m (Kennel et al. 1992). It also runs BY ITSELF, once, as soon as the mode has enough audio to measure — and again if the source is swapped, because τ is a property of what is playing. Once is the whole of it: nothing here re-tunes itself per frame, because a knob that moves with the music makes the figure move with it. Press the button to measure again, or turn the knob and it stays where you put it. An m above 3 means the trail you are looking at is a projection of a higher-dimensional reconstruction. SRC picks which signal of the live pair is embedded. Takens' theorem takes ONE observable and this is the choice of which: the mix, either channel on its own, mid, or SIDE — what the two channels do not have in common, which on a real mix is the reverb and the room rather than the instruments, and which reconstructs a different manifold from the same recording. WIN is how much time the figure spans, in milliseconds — short is live and legible, long draws a denser tangle that turns over more slowly; GAIN sets how large a full-scale sample draws. The scale is fixed — nothing auto-ranges, so quiet passages draw small and loud ones large, and the view never moves under you; the camera is fitted once to what full scale can reach, so peaks stay on screen. SMTH is how much the beam is spline-smoothed between samples, and it is the trade between how much WINDOW is on screen and how smooth the line is, because both come out of one vertex budget: at 1 the figure is raw chords through four times as many samples, which is what to use to see a long window; at 16 it is a glass-smooth beam through a short one. A straight line from one delay vector to the next is a chord, and chords are what put the visible hard corners in the figure — they are an artifact of the drawing, not something in the signal, since the true signal between two samples is a bandlimited curve. The same knob serves the stereo and polar embeddings, which draw their beams the same way. Audio comes from the active source — websocket stream, microphone, or the signal generators.
+Takens Delay Embedding — attractor reconstruction from a single signal (F. Takens, "Detecting strange attractors in turbulence", 1981). Each trail point is the delay vector (s(t), s(t−τ), s(t−2τ)) of the live audio: a pure tone draws a closed loop, music and speech trace the geometry of whatever produced them. τ is the embedding delay, counted in samples at a fixed 48 kHz reference so that one knob position is one DURATION — the same delay whether the sound is arriving from a 48 kHz microphone or a 24 kHz server feed, which is what it was not when the number was read as raw samples of whatever happened to be playing. The default of 72 is 1.5 ms; the MEAS readout says what the current setting is in milliseconds. MEAS measures τ rather than guessing it: the first minimum of the signal's average mutual information (Fraser & Swinney 1986), reported beside the false-nearest-neighbor embedding dimension m (Kennel et al. 1992). It also runs BY ITSELF, once, as soon as the mode has enough audio to measure — and again if the source is swapped, because τ is a property of what is playing. Once is the whole of it: nothing here re-tunes itself per frame, because a knob that moves with the music makes the figure move with it. Press the button to measure again, or turn the knob and it stays where you put it. An m above 3 means the trail you are looking at is a projection of a higher-dimensional reconstruction. SRC picks which signal of the live pair is embedded. Takens' theorem takes ONE observable and this is the choice of which: the mix, either channel on its own, mid, or SIDE — what the two channels do not have in common, which on a real mix is the reverb and the room rather than the instruments, and which reconstructs a different manifold from the same recording. WIN is how much time the figure spans, in milliseconds — short is live and legible, long draws a denser tangle that turns over more slowly; GAIN sets how large a full-scale sample draws. The scale is fixed — nothing auto-ranges, so quiet passages draw small and loud ones large, and the view never moves under you; the camera is fitted once to what full scale can reach, so peaks stay on screen. SMTH is the beam smoothing between samples, and it is the trade between how much WINDOW is on screen and how smooth the line is, since both come out of one vertex budget: at 1 the figure is raw chords through four times as many samples, which is what to use to see a long window; at 16 it is a glass-smooth beam through a short one. A straight line from one delay vector to the next is a chord, and chords are the hard corners you can see — an artifact of the drawing, not something in the signal. The same knob serves the stereo and polar embeddings. Audio comes from the active source — websocket stream, microphone, or the signal generators.
 
 `#takens` · parametric
 
@@ -1391,7 +1403,7 @@ Desk — a window manager, drawn as a model. The same texture-on-a-plane path th
 | --- | --- | --- |
 | ![Spectrogram](docs/img/model/spectrogram.jpg) | ![Spectrogram turning](docs/img/model/spectrogram.gif) | ![Spectrogram parameters](docs/img/model/spectrogram-params.jpg) |
 
-Spectrogram — a scrolling short-time Fourier transform of the live audio: frequency up the plane, time scrolling right to left, magnitude as color. It is a display inspired by Vanya Sergeev's audioprism, written in Go (github.com/0magnet/audioprism-go) and drawn here as a texture on a plane in the same 3-D pipeline as every other model, so it rotates and zooms like one — and the same texture can be painted onto other geometry with the skin switch. The Spectrogram module exposes the whole chain: transform size (DFT), overlap, window function (WFN — labelled apart from the embeddings' WIN, which is a window LENGTH), magnitude scale and limits. Its color comes from the MAP ring in the Colors module, the one the trace and every analyzer read — it used to carry a second colormap knob of its own naming the same six maps in the same order, and keeping two knobs in step by hand was how a viridis spectrogram ended up sitting behind a turbo trace.
+Spectrogram — a scrolling short-time Fourier transform of the live audio: frequency up the plane, time scrolling right to left, magnitude as color. It is a display inspired by Vanya Sergeev's audioprism, written in Go (github.com/0magnet/audioprism-go) and drawn here as a texture on a plane in the same 3-D pipeline as every other model, so it rotates and zooms like one — and the same texture can be painted onto other geometry with the skin switch. The Spectrogram module exposes the whole chain: transform size, overlap, window function, magnitude scale and limits, and color scheme.
 
 `#spectrogram` · audio
 
@@ -1433,19 +1445,19 @@ Recurrence Plot — the picture of when a signal returns to where it has already
 
 #### RTA — Octave Bands
 
-RTA — Octave Bands. The real-time analyzer a room is measured with: the spectrum split into fractional-octave bands and shown as a bar per band. A spectrogram shows every bin, which is right for watching sound move and wrong for asking what a room is doing to it — linearly spaced bins put nine-tenths of the picture above 2 kHz and squeeze the bass into a few pixels. Bands of equal RATIO drawn at equal widths is a logarithmic frequency axis, which is how hearing is organised and how every acoustics standard reports. BAND picks the width: 1/1 is a hi-fi graphic equalizer's ten, 1/3 is what room measurement and ISO use, and the two finer settings find a single narrow resonance — a 1/12-octave band is about 6% wide, roughly the ear's own resolution in the midrange. The centres are the standard ones (ISO 266 / ANSI S1.11, the base-ten series), so a reading here is comparable with anybody else's. FEED IT PINK NOISE from the Test module: fractional-octave bands get wider in hertz as they go up, so equal power per octave is what reads FLAT — a flat display on pink noise is the definition of a flat system, and it is the convention room measurement is done in. White noise rises 3 dB per octave on the same display, which is the difference between the two and the reason pink is the one used. TOP and RNGE place the scale in dBFS; AVG is the meter's averaging, quick to rise and slow to fall as every level meter is; HOLD is the peak-hold decay in dB per second, which is what makes the display readable on music rather than only on noise — music excites part of the band at a time and the held peaks are the envelope that accumulates into the answer. SRC picks the channel. THE BARS TAKE THE PALETTE: set the Colors module to one of the six colormaps — heat, blue, gray, turbo, viridis, magma — and each bar is colored by its own LEVEL, on the same map the spectrogram paints with, so a level that reads amber there reads amber here. The foot of a bar is drawn at the bottom of the scale and its top at its level, so a bar is a gradient up its own height rather than a flat stripe, and the peak marks take the color of the peak. One loud band among thirty is far more obvious as a color than as a height, which is the point: a row of bars is scanned for its SHAPE and a color ramp is scanned for its OUTLIERS. On the swatch-mixing palettes there is no scalar map to read, so the bars fall back to the single trace color.
+RTA — Octave Bands. The real-time analyzer a room is measured with: the spectrum split into fractional-octave bands and shown as a bar per band. A spectrogram shows every bin, which is right for watching sound move and wrong for asking what a room is doing to it — linearly spaced bins put nine-tenths of the picture above 2 kHz and squeeze the bass into a few pixels. Bands of equal RATIO drawn at equal widths is a logarithmic frequency axis, which is how hearing is organized and how every acoustics standard reports. BAND picks the width: 1/1 is a hi-fi graphic equalizer's ten, 1/3 is what room measurement and ISO use, and the two finer settings find a single narrow resonance — a 1/12-octave band is about 6% wide, roughly the ear's own resolution in the midrange. The centers are the standard ones (ISO 266 / ANSI S1.11, the base-ten series), so a reading here is comparable with anybody else's. FEED IT PINK NOISE from the Test module: fractional-octave bands get wider in hertz as they go up, so equal power per octave is what reads FLAT — a flat display on pink noise is the definition of a flat system, and it is the convention room measurement is done in. White noise rises 3 dB per octave on the same display, which is the difference between the two and the reason pink is the one used. TOP and RNGE place the scale in dBFS; AVG is the meter's averaging, quick to rise and slow to fall as every level meter is; HOLD is the peak-hold decay in dB per second, which is what makes the display readable on music rather than only on noise — music excites part of the band at a time and the held peaks are the envelope that accumulates into the answer. SRC picks the channel.
 
 `#rta` · audio
 
 #### Transfer Function
 
-Transfer Function — what the thing between two channels did to the sound. Every other measurement here asks about ONE signal; this one asks about the RELATIONSHIP between two, which is the question a system is actually tuned by. Send a signal into a loudspeaker, a room, a filter or a cable, capture what comes back, and read what happened in between. That is what a system-tuning rig does, and chaosrack already carries two channels end to end. MAGNITUDE is the frequency response in dB — flat is a system that changed nothing. PHASE is how far the output lags the input; a pure DELAY is a phase that falls linearly with frequency, and the slope IS the delay, which is what the DLY readout fits and what gets dialled into a delay line to line a speaker up. COHERENCE is the number that says whether to believe the other two: 1 means the output is fully explained by the input, and noise, a second source, a nonlinearity or a system that moved during the measurement all drive it down. A dip in the magnitude with the coherence still high is the system; the same dip with the coherence collapsed is the measurement giving up, and the curves are drawn together so the two can be told apart. AVERAGING IS NOT OPTIONAL. From a single window coherence is exactly 1 at every frequency — for any two signals whatever, including two unrelated noises — so a display built on one window is a row of perfect scores that means nothing. AVG sets how many windows are folded in before the result is shown, and the curves are drawn only where the coherence clears COH and the stimulus actually reached the band. REF says which channel is the reference, BAND how finely the bands are smoothed, RNGE the magnitude scale, SHOW which curves are drawn. Feed it pink noise or the log sweep from the Test module. THE CURVES TAKE THE PALETTE, AND THEY TAKE IT FROM THE COHERENCE: set the Colors module to one of the six colormaps and every curve — magnitude, coherence and phase alike — is colored by how trustworthy that band is, hot where the coherence is high and cold where it has collapsed. That puts the second reading ON the first instead of in a lane below it, which is how a system-tuning rig shows it: a dip you can believe and a dip you cannot are the same shape and different colors, and the eye catches the color first. On the swatch-mixing palettes the curves fall back to the single trace color.
+Transfer Function — what the thing between two channels did to the sound. Every other measurement here asks about ONE signal; this one asks about the RELATIONSHIP between two, which is the question a system is actually tuned by. Send a signal into a loudspeaker, a room, a filter or a cable, capture what comes back, and read what happened in between. That is what a system-tuning rig does, and chaosrack already carries two channels end to end. MAGNITUDE is the frequency response in dB — flat is a system that changed nothing. PHASE is how far the output lags the input; a pure DELAY is a phase that falls linearly with frequency, and the slope IS the delay, which is what the DLY readout fits and what gets dialed into a delay line to line a speaker up. COHERENCE is the number that says whether to believe the other two: 1 means the output is fully explained by the input, and noise, a second source, a nonlinearity or a system that moved during the measurement all drive it down. A dip in the magnitude with the coherence still high is the system; the same dip with the coherence collapsed is the measurement giving up, and the curves are drawn together so the two can be told apart. AVERAGING IS NOT OPTIONAL. From a single window coherence is exactly 1 at every frequency — for any two signals whatever, including two unrelated noises — so a display built on one window is a row of perfect scores that means nothing. AVG sets how many windows are folded in before the result is shown, and the curves are drawn only where the coherence clears COH and the stimulus actually reached the band. REF says which channel is the reference, BAND how finely the bands are smoothed, RNGE the magnitude scale, SHOW which curves are drawn. Feed it pink noise or the log sweep from the Test module.
 
 `#xfer` · audio
 
 #### Waterfall — Spectral Decay
 
-Waterfall — Cumulative Spectral Decay. The measurement a loudspeaker is characterised by, and the one display here that could only exist in this app: every other analyzer draws its own flat panel and this is a genuine 3-D surface, so it rides the same pipeline the attractors do and drags, rotates, zooms and takes the gradient like any other model. Frequency runs left to right, logarithmically, because hearing is organised in ratios; level runs up; and TIME runs into the screen. Each line is the spectrum of what is left of the impulse response from a moment onwards, so a flat loudspeaker's surface falls away evenly and a RESONANCE is a ridge running back into the screen at one frequency. That is what this is for: a frequency response cannot tell a resonance from a broad lift, because they are identical in magnitude and nothing alike in time. Feed it the log sweep from the Test module, with the sweep in one channel as the reference and what came back in the other. The impulse response is recovered by deconvolution and the surface rebuilt each time a sweep pass completes — so unlike every other audio mode the picture HOLDS STILL between passes, which is what makes it something to rotate and look at rather than something to freeze first. LINE is how many slices the surface has and STEP how far apart they are in milliseconds, so the two together are how deep it reaches in TIME — sixteen at 5 ms is the 80 ms a loudspeaker's resonances live in, thirty-two at 40 ms is the 1.3 seconds a bar of music takes. FFT is the transform each slice is taken through, and it is the one control here that is a genuine TRADE rather than a preference: 1k resolves time best and the bass worst, 8k the other way round, and a window longer than STEP means consecutive slices are looking at the same audio. TOP and RNGE place the level scale in dBFS exactly as they do on the RTA — TOP is the top of the screen and RNGE how far down it runs. DPTH is how far back the surface reaches on screen, which is geometry rather than time. CHAN is which channel the live surface analyses; REF is which channel the decay surface treats as the reference, because that one needs both. The three that differ most between the two surfaces — LINE, STEP and FFT — follow the SRC switch to what that surface wants, and stop following the moment you turn one, which is then yours. A sweep takes four seconds to cross the band, so the measurement needs a whole pass: a third of one is 20 Hz to 200 Hz and recovers an impulse five milliseconds wide. Because it rides the normal pipeline it takes the gradient whole, colormaps included, and the Colors module's SOURCE ring picks what the color reads. Z is the default and colors by DEPTH, so the map runs from the newest slice at the front to the oldest at the back; trail says the same thing. **Y is the one worth turning it to**: it colors by LEVEL across exactly the decibels TOP and RNGE show, so a ridge is the hot end of turbo or viridis and the floor is the cold end — which is how every published CSD plot is colored, and it lifts a resonance out of the surface instead of leaving it as only the tall part. X repeats the frequency axis the surface already has. AUDIO is the one to avoid here: its table is a short-time spectral centroid along the trail and only the Takens, stereo and polar embeddings fill it, so on this mode it comes out as one flat tint. SRC PICKS WHICH SURFACE, and it matters more than any other knob here: DCAY is the cumulative spectral decay above, which is a measurement and needs the sweep, and LIVE is the other thing the word waterfall means — successive spectra of whatever is playing, stacked into the screen as they age, so the z axis stops being time-since-the-impulse and becomes time-ago. Live is the one to reach for on music: a note is a ridge that rises at the front and travels back as it decays, a steady tone is a straight ridge running the whole depth, and the surface is 1.3 seconds of history refreshed twenty-five times a second. Decay is the one to reach for with a measurement rig. On decay the surface is rebuilt when a sweep pass completes, and when no sweep of ours is running — an EXTERNAL sweep fed into both channels, which is what a real rig does — it free-runs every two and a half seconds instead, because there is no wrap of ours to trigger on and waiting for one meant the surface was computed once and then held that picture forever. RT60 is the reverberation time of the room, in seconds, from the same impulse response by Schroeder backward integration and measured as T20 between -5 dB and -25 dB — the one number the surface cannot show, because it is eighty milliseconds deep and a room's decay runs for seconds. It reads blank on the live surface, which has no impulse to decay from, and blank through a wire, which has no decay to measure.
+Waterfall — Cumulative Spectral Decay. The measurement a loudspeaker is characterized by, and the one display here that could only exist in this app: every other analyzer draws its own flat panel and this is a genuine 3-D surface, so it rides the same pipeline the attractors do and drags, rotates, zooms and takes the gradient like any other model. Frequency runs left to right, logarithmically, because hearing is organized in ratios; level runs up; and TIME runs into the screen. Each line is the spectrum of what is left of the impulse response from a moment onwards, so a flat loudspeaker's surface falls away evenly and a RESONANCE is a ridge running back into the screen at one frequency. That is what this is for: a frequency response cannot tell a resonance from a broad lift, because they are identical in magnitude and nothing alike in time. Feed it the log sweep from the Test module, with the sweep in one channel as the reference and what came back in the other. The impulse response is recovered by deconvolution and the surface rebuilt each time a sweep pass completes — so unlike every other audio mode the picture HOLDS STILL between passes, which is what makes it something to rotate and look at rather than something to freeze first. LINE is how many slices the surface has and STEP how far apart they are in milliseconds, so the two are how deep it reaches in TIME: sixteen at 5 ms is the 80 ms a loudspeaker's resonances live in, thirty-two at 40 ms the 1.3 seconds a bar of music takes. FFT is the transform each slice is taken through, and it is a genuine trade — 1k resolves time best and the bass worst, 8k the other way, and a window longer than STEP means consecutive slices see the same audio. TOP and RNGE place the level scale in dBFS as they do on the RTA. DPTH is how far back the surface reaches on screen, which is geometry rather than time. CHAN is the channel the live surface analyses; REF is which channel the decay surface calls the reference, because that one needs both. LINE, STEP and FFT follow the SRC switch to what each surface wants, and stop following once you turn one. Turn the Colors SOURCE ring to Y: it colors by LEVEL across exactly the decibels TOP and RNGE show, which is how every published CSD plot is colored. Z and trail color by age, X repeats the frequency axis, and AUDIO is one flat tint here. A sweep takes four seconds to cross the band, so the measurement needs a whole pass: a third of one is 20 Hz to 200 Hz and recovers an impulse five milliseconds wide. SRC PICKS WHICH SURFACE. DCAY is the decay above, which is a measurement and needs the sweep. LIVE is the other thing the word waterfall means: successive spectra of whatever is playing, stacked into the screen as they age, so the depth axis stops being time-since-the-impulse and becomes time-ago. Live is the one for music — a note is a ridge that rises at the front and travels back as it decays — and decay is the one for a measurement rig. RT60 is the room's reverberation time from the same impulse, by Schroeder backward integration as T20 between -5 and -25 dB: the one number the surface is far too shallow to show. Blank on the live surface and blank through a wire, neither of which has a decay to measure.
 
 `#waterfall` · parametric
 
@@ -1665,7 +1677,7 @@ shows the level in each.
 | **avg** | the meter's averaging — quick to rise and slow to fall, as every level meter is |
 | **hold** | peak-hold decay in dB/s. What makes the display readable on music, which only excites part of the band at a time |
 
-The band centres are the standard ones — ISO 266 / ANSI S1.11, the base-ten
+The band centers are the standard ones — ISO 266 / ANSI S1.11, the base-ten
 series — so a reading here is comparable with anybody else's. The familiar
 third-octave row comes out as the 31 bands from 20 Hz to 20 kHz that every
 acoustics table prints.
@@ -1698,7 +1710,7 @@ back, and read what happened in between.
 | **magnitude** | the frequency response in dB. Flat is a system that changed nothing |
 | **phase** | how far the output lags the input. A pure **delay** is a phase that falls linearly with frequency, and the slope *is* the delay |
 | **coherence** | how much of the output is linearly explained by the input. The number that says whether to believe the other two |
-| **dly** | the bulk delay, fitted from the phase slope — what gets dialled into a delay line to line a speaker up |
+| **dly** | the bulk delay, fitted from the phase slope — what gets dialed into a delay line to line a speaker up |
 | **ref** | which channel is the reference. A swap, because half the time the cabling makes it the other way round |
 | **band** / **rnge** / **coh** / **avg** | the band smoothing, the magnitude scale, the coherence threshold below which curves are not drawn, and how many windows are averaged |
 
@@ -1828,7 +1840,7 @@ the quasi-peak detector holds a peak for a second and a half.
 
 ### Waterfall — cumulative spectral decay
 
-The measurement a loudspeaker is characterised by, and the one display here that
+The measurement a loudspeaker is characterized by, and the one display here that
 could only exist in this app: every other analyzer draws its own flat panel, and
 this is a genuine 3-D surface that rides the same vertex pipeline the attractors
 do — so it drags, rotates, zooms and takes the gradient like any other model.
@@ -2132,13 +2144,19 @@ another slot. This reference is captured from the running rack by
 
 | | |
 |---|---|
-| <img src="docs/img/module/parameters.jpg" alt="The Parameters module" width="320"> | Parameters — the current model's tunable constants (each with knob, LED value, step size, and reset) |
+| <img src="docs/img/module/params.jpg" alt="The Parameters module" width="320"> | Parameters — the current model's tunable constants (each with knob, LED value, step size, and reset) |
+
+### Layers
+
+| | |
+|---|---|
+| <img src="docs/img/module/layers.jpg" alt="The Layers module" width="320"> | Layers — where a second picture goes relative to the model. BEHIND draws one filling the canvas behind it; SKIN paints the spectrogram onto the model's own surface; FILL makes the spectrogram or FVF plane the whole screen, face-on, instead of a plane you can turn. Skin and Fill dim when the current model cannot take them. |
 
 ### Colors
 
 | | |
 |---|---|
-| <img src="docs/img/module/colors.jpg" alt="The Colors module" width="320"> | Colors — gradient source axis, palette size, rainbow period, and trail length |
+| <img src="docs/img/module/colors.jpg" alt="The Colors module" width="320"> | Colors — SRC (what the color follows, including OFF for a flat trace), MAP (how a value becomes a color, for every display including the spectrogram), the map window (period and shift), and trail length |
 
 ### Palette
 
@@ -2200,29 +2218,53 @@ another slot. This reference is captured from the running rack by
 |---|---|
 | <img src="docs/img/module/gen-env.jpg" alt="The Envelope module" width="320"> | Envelope — the Complex Sound Generator's shaper for the signal generator's speaker output: in RPT mode it cycles attack → decay continuously, a shaped tremolo over whatever Gen X/Y/Z are routed to the speakers. OFF passes the generators through untouched. Analysis paths (scope, spectrogram, meters) stay unshaped. |
 
+### Test
+
+| | |
+|---|---|
+| <img src="docs/img/module/testsig.jpg" alt="The Test module" width="320"> | Test — the stimulus library: the signals a test record carries, synthesized. Pink noise for a spectrum or a room, a logarithmic sweep for an impulse response, 1 kHz as a level and distortion reference, 3150 Hz for wow and flutter, left-only and right-only to find out which speaker is which, a polarity pulse whose direction is visible, and three noises whose channels are identical, independent or inverted — correlation +1, 0 and −1 to check a phase display against. It replaces the X/Y/Z oscillators while it is on; they keep their settings and come back when it is off. Needs Signal gen switched on in the Console. |
+
 ### Model Out
 
 | | |
 |---|---|
 | <img src="docs/img/module/sonify.jpg" alt="The Model Out module" width="320"> | Model Out — HEAR the attractor. Inner knob picks how: FLOW integrates the attractor's own equations at audio rate, so the pitch is the system's natural orbital frequency (chaos chirps, periodic windows lock to tones, parameter changes are audible) and RATE transposes it (A4 = ×1); SCAN traces the drawn trail as one waveform period at exactly RATE Hz (a stable, playable tone). MAP picks which two coordinates drive L/R (CAM = the screen's x/y, so rotating the model changes the sound; off = silent). LVL is output level. |
 
-### Patchbay
+### Distortion
 
 | | |
 |---|---|
-| <img src="docs/img/module/patch.jpg" alt="The Patchbay module" width="320"> | Patchbay — pin-matrix audio routing (sources × destinations) and the 8-slot patch memory bank |
+| <img src="docs/img/module/thd.jpg" alt="The Distortion module" width="320"> | Distortion — THD, THD+N, SINAD and ENOB of the live audio, measured against whichever tone is in it. Feed it the Test module's 1 kHz reference through whatever you want measured and read how much of what comes back is not that tone. THD is the harmonics alone, which is the number a specification quotes; THD+N is everything that is not the fundamental, which is the honest one and always the larger; SINAD is the same ratio in decibels, the way a converter is specified; ENOB runs the ideal-converter relation backwards and says how many bits would sound this clean. The gap between THD and THD+N is how much of the rubbish is hiss rather than distortion. The instrument's own floor is about 0.0015% THD+N (96.5 dB SINAD, 17.3 effective bits), measured on a synthesized pure tone — that is the Blackman-Harris window's leakage past the notch, and nothing quieter than it can be read. |
+
+### Loudness
+
+| | |
+|---|---|
+| <img src="docs/img/module/lufs.jpg" alt="The Loudness module" width="320"> | Loudness — LUFS to ITU-R BS.1770 and EBU R 128, the scale everything is delivered against. M is the momentary loudness over 400 ms, S the short-term over 3 s, I the INTEGRATED reading over everything since the last reset — gated, so silence and quiet passages do not drag a programme's number down, which is what makes it the number a delivery spec means. LRA is the loudness range, how far the loud parts sit above the quiet ones: one number for how dynamic the material is, and the thing a loudness target alone says nothing about. TP is the TRUE peak in dBTP, the peak of the reconstructed signal rather than of the samples — a full-scale tone at a quarter of the sample rate can have every sample at −3 dBFS and still clip the converter, which is why a delivery ceiling is a true-peak ceiling. K-weighting is derived from the analog prototype at whatever rate the audio is arriving at, not the 48 kHz coefficients the standard prints, so the weighting is the same filter at every rate. |
+
+### Wow & Flutter
+
+| | |
+|---|---|
+| <img src="docs/img/module/wf.jpg" alt="The Wow & Flutter module" width="320"> | Wow & Flutter — speed stability, measured off a 3150 Hz test tone. Every other analyzer here asks about amplitude; this asks whether the TIME AXIS is steady, which is what a turntable, a tape deck or a cassette is judged by. Play the Test module's 3150 Hz tone through the deck, capture the result, and read it here: SPEED is the mean frequency error as a percentage (a constant error is a pitch shift, a different fault from a wobble), WOW the slow 0.5–6 Hz modulation that once-per-revolution faults produce, FLUTTER the fast 6–100 Hz kind from capstans and idlers, and W&F the DIN-weighted quasi-peak that a specification quotes — the deviation through a filter peaked at 4 Hz, where the ear is most sensitive to pitch movement. 3150 Hz is the figure every test record carries (DIN 45507, IEC 60386). With no deck in the loop at all it reads 0.000% on the generator itself, which is the check that the instrument is not inventing the number. |
 
 ### Mod
 
 | | |
 |---|---|
-| <img src="docs/img/module/mod.jpg" alt="The Mod module" width="320"> | Modulation routing for the Colors module — a channel + depth card per control |
+| <img src="docs/img/module/mod.jpg" alt="The Mod module" width="320"> | Modulation routing for the Parameters module — a channel + depth card per control |
 
 ### EQ
 
 | | |
 |---|---|
-| <img src="docs/img/module/eq.jpg" alt="The EQ module" width="320"> | Graphic-EQ band weights for the Colors module's modulation — paint which frequency bands drive each control |
+| <img src="docs/img/module/eq.jpg" alt="The EQ module" width="320"> | Graphic-EQ band weights for the Parameters module's modulation — paint which frequency bands drive each control |
+
+### Patchbay
+
+| | |
+|---|---|
+| <img src="docs/img/module/patch.jpg" alt="The Patchbay module" width="320"> | Patchbay — pin-matrix audio routing (sources × destinations) and the 8-slot patch memory bank |
 
 ### Analysis
 
@@ -2254,11 +2296,53 @@ another slot. This reference is captured from the running rack by
 |---|---|
 | <img src="docs/img/module/tm.jpg" alt="The Matrix module" width="320"> | Matrix — a pentatonic tonematrix step sequencer: paint pads on the grid (click or drag; rows are pitches, columns are sixteenth-note steps) and the playhead loops them as pings at the tempo. The pentatonic rows mean any pattern is consonant. |
 
+### Rhythm
+
+| | |
+|---|---|
+| <img src="docs/img/module/rhythm.jpg" alt="The Rhythm module" width="320"> | Rhythm — the drum machine a home organ had built into it. Press a preset tab and the section plays that pattern in a loop at the tempo knob's BPM; the tabs interlock, so one plays at a time. The four voices (bass drum, snare, hi-hat, cymbal) are synthesized from oscillators and filtered noise, not samples. Sound out through the L/R ring; if the page is also listening to the system output, the drums drive the model too. |
+
 ### Template
 
 | | |
 |---|---|
 | <img src="docs/img/module/template.jpg" alt="The Template module" width="320"> | Template — a live legend built with the real cell builders: hover any slot for the Go struct field / builder it maps to (this header = Module.name, .sect-hdr) |
+
+### Scoreboard
+
+| | |
+|---|---|
+| <img src="docs/img/module/pong.jpg" alt="The Scoreboard module" width="320"> | Scoreboard — Scope Pong's front panel: each player's score over their paddle pot (turn it to seize the paddle from the machine; it spins by itself while the machine plays, like a motorized pot), plus a restart button |
+
+### Banner
+
+| | |
+|---|---|
+| <img src="docs/img/module/stext.jpg" alt="The Banner module" width="320"> | Banner — Fourier Text's input: what the harmonic character generator writes (A–Z, 0–9, dash, space). The harm knob in Parameters sets how many harmonics each glyph keeps. |
+
+### Patch
+
+| | |
+|---|---|
+| <img src="docs/img/module/smorph.jpg" alt="The Patch module" width="320"> | Patch — the self-programming analog computer's wiring readout: which two catalog systems the machine is blended between right now |
+
+### Launcher
+
+| | |
+|---|---|
+| <img src="docs/img/module/bounce.jpg" alt="The Launcher module" width="320"> | Launcher — Bouncing Ball's front panel: the drop-height pot (the analog demo's initial-condition setting), the machine's re-kick count, and a Drop button |
+
+### Loader
+
+| | |
+|---|---|
+| <img src="docs/img/module/stlfile.jpg" alt="The Loader module" width="320"> | Loader — STL File's front panel: load a stereolithograph (.stl, binary or ASCII) from disk and it renders as a rotating wireframe through the normal pipeline (gradient, spin, camera fit and Model Out all apply) |
+
+### Equation
+
+| | |
+|---|---|
+| <img src="docs/img/module/eqn.jpg" alt="The Equation module" width="320"> | Equation — the editable system: one derivative expression per state variable; commits on Enter/blur |
 
 <!-- END MODULES -->
 

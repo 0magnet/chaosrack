@@ -201,5 +201,47 @@
     "title": "Template — a live legend built with the real cell builders: hover any slot for the Go struct field / builder it maps to (this header = Module.name, .sect-hdr)",
     "image": "docs/img/module/template.jpg",
     "mode": "lorenz"
+  },
+  {
+    "id": "pong",
+    "label": "Scoreboard",
+    "title": "Scoreboard — Scope Pong's front panel: each player's score over their paddle pot (turn it to seize the paddle from the machine; it spins by itself while the machine plays, like a motorized pot), plus a restart button",
+    "image": "docs/img/module/pong.jpg",
+    "mode": "pong"
+  },
+  {
+    "id": "stext",
+    "label": "Banner",
+    "title": "Banner — Fourier Text's input: what the harmonic character generator writes (A–Z, 0–9, dash, space). The harm knob in Parameters sets how many harmonics each glyph keeps.",
+    "image": "docs/img/module/stext.jpg",
+    "mode": "scopetext"
+  },
+  {
+    "id": "smorph",
+    "label": "Patch",
+    "title": "Patch — the self-programming analog computer's wiring readout: which two catalog systems the machine is blended between right now",
+    "image": "docs/img/module/smorph.jpg",
+    "mode": "sprottmorph"
+  },
+  {
+    "id": "bounce",
+    "label": "Launcher",
+    "title": "Launcher — Bouncing Ball's front panel: the drop-height pot (the analog demo's initial-condition setting), the machine's re-kick count, and a Drop button",
+    "image": "docs/img/module/bounce.jpg",
+    "mode": "bounceball"
+  },
+  {
+    "id": "stlfile",
+    "label": "Loader",
+    "title": "Loader — STL File's front panel: load a stereolithograph (.stl, binary or ASCII) from disk and it renders as a rotating wireframe through the normal pipeline (gradient, spin, camera fit and Model Out all apply)",
+    "image": "docs/img/module/stlfile.jpg",
+    "mode": "stlfile"
+  },
+  {
+    "id": "eqn",
+    "label": "Equation",
+    "title": "Equation — the editable system: one derivative expression per state variable; commits on Enter/blur",
+    "image": "docs/img/module/eqn.jpg",
+    "mode": "custom"
   }
 ]

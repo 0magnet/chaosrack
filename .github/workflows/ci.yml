@@ -52,6 +52,12 @@ jobs:
       # Two passes: host config for the tools/server, GOOS=js for the app
       # (the default pass never loads //go:build js && wasm files).
       - run: make lint
+      # The README's generated regions are built from the app's own catalog,
+      # model descriptions and module tooltips. Nothing checked they still
+      # matched, and they had drifted a long way: the descriptions had been
+      # rewritten underneath the file, and the module reference listed 23 of
+      # the rack's 35 modules. This is the check that would have caught it.
+      - run: make readme-check
 
   tinygo:
     runs-on: ubuntu-latest
