@@ -16,6 +16,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/0magnet/chaosrack/pkg/attractor"
 	"image"
 	"math/rand"
 	"os"
@@ -141,10 +142,10 @@ func runDemo() {
 		case r < 0.58: // gradient knobs
 			if rng.Intn(2) == 0 {
 				act = "gradient-source"
-				setSel("gradient-source", fmt.Sprint(rng.Intn(4)))
+				setSel("gradient-source", fmt.Sprint(randGradSource(rng)))
 			} else {
 				act = "gradient-colors"
-				setSel("gradient-colors", fmt.Sprint(1+rng.Intn(4)))
+				setSel("gradient-colors", fmt.Sprint(randGradMap(rng)))
 			}
 		case r < 0.66: // pose drag on the canvas (real input; the panel is hidden)
 			act = "drag"
@@ -331,9 +332,9 @@ func runPerformance(c *cdp.Client) {
 				c.Eval(fmt.Sprintf(`(function(){var e=document.getElementById(%q);if(e){e.value=%q;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));}})()`,
 					ids[rng.Intn(len(ids))], fmt.Sprintf("#%02x%02x%02x", rng.Intn(256), rng.Intn(256), rng.Intn(256))))
 			} else if rng.Intn(2) == 0 {
-				setSel("gradient-source", fmt.Sprint(rng.Intn(4)))
+				setSel("gradient-source", fmt.Sprint(randGradSource(rng)))
 			} else {
-				setSel("gradient-colors", fmt.Sprint(1+rng.Intn(4)))
+				setSel("gradient-colors", fmt.Sprint(randGradMap(rng)))
 			}
 		case 3: // audio-mod routing monkey — split personalities: attractor
 			// PARAM targets (symbol-labeled cards) get whisper-level
@@ -442,4 +443,26 @@ func runPerformance(c *cdp.Client) {
 	c.Eval(`location.hash='#lorenz'`)
 	_, _ = c.Call("Page.reload", map[string]any{"ignoreCache": true}) //nolint:errcheck
 	fmt.Printf("performance done: %d actions\n", step)
+}
+
+// randGradSource and randGradMap pick a position on each of the Colors
+// module's two knobs.
+//
+// Named rather than inlined as rng.Intn spans because the two rings stopped
+// being interchangeable little integer ranges when mono moved off the map ring
+// and onto the source ring as OFF. The map's values now start at 2, and a demo
+// that went on asking for 1 would set a value the select does not have — which
+// a browser answers by leaving the select alone, so the knob would silently
+// never move and nobody would see a thing wrong in the recording.
+func randGradSource(rng *rand.Rand) int {
+	// X / Y / Z / trail, plus OFF as often as the old mono came up. audio is
+	// left out: it is one flat tint on everything but the delay embeddings, and
+	// a demo reel walks every model.
+	return []int{0, 1, 2, 3, attractor.GradientSourceOff}[rng.Intn(5)]
+}
+
+func randGradMap(rng *rand.Rand) int {
+	// 2-color / 3-color / hue sweep, the three the old range covered once mono
+	// is taken out of it.
+	return 2 + rng.Intn(3)
 }

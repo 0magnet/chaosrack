@@ -39,12 +39,15 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    Bodies come from the uniform geometry above; here we size only the label ring. */
 #gradient-stack .knobstack.has-dial{margin:calc(20px*var(--kscale,1));}
 #gradient-stack .knob-dial{width:calc(112px*var(--kscale,1));height:calc(112px*var(--kscale,1));}
-#gradient-stack .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
-/* Compact src/colors knob so BOTH label rings (source outer, colors inner) fit
-   clear of the knob within the tight module. */
-#gradient-stack .knobstack{width:calc(56px*var(--kscale,1));height:calc(56px*var(--kscale,1));}
-#gradient-stack .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
-#gradient-stack .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
+#gradient-stack .knob-dial-lab,#map-stack .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
+/* Compact src and map knobs so each label ring fits clear of its knob within
+   the tight module. Both are pinned rather than left at the default size: the
+   map knob came up at 80px against the src knob's 60 in an identical cell,
+   which put its nine labels 0.2px off the dial. The sizes are the same because
+   the two controls are the same kind of thing sitting side by side. */
+#gradient-stack .knobstack,#map-stack .knobstack{width:calc(56px*var(--kscale,1));height:calc(56px*var(--kscale,1));}
+#gradient-stack .knob-ring,#map-stack .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
+#gradient-stack .knob-ring>.knob-ptr,#map-stack .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
 #gradient-stack .knob-inner{width:calc(28px*var(--kscale,1))!important;height:calc(28px*var(--kscale,1))!important;}
 #gradient-stack .knob-inner>.knob-ptr{height:calc(12px*var(--kscale,1))!important;}
 /* Size/Step/Fine knob: three concentric label rings (Size outer, Step× mid,

@@ -258,7 +258,7 @@ back out of it.
   short-time spectrum of the moment it was drawn from, and a bass thump and a
   cymbal are different colors on the same curve. Models whose trail is not a
   clock take the current feature as one tint instead. Pick **audio** on the
-  gradient source ring, and a colormap on the palette ring beside it.
+  SRC ring, and a colormap on the MAP ring beside it.
 - **Points, or a line, or anywhere between.** The **Points** knob in the Trace
   module is a count, not a switch: 0 draws the solid trace, and lowering it
   breaks the line into that many points, further apart as the number falls.
@@ -334,13 +334,27 @@ back out of it.
   **Ring** switch's scope-style beam (only the advancing head integrates; the
   trail is its history, and knob changes bend the path from the head forward).
   **Persist** accumulates either into a long-exposure painting.
-- **Colors module:** gradient source ring (X / Y / Z / trail / **audio**) ×
-  palette ring
-  (mono / 2-color / 3-color / animated rainbow), color-wheel knobs for the
-  — the palette ring carries the three swatch mixes and a raw hue sweep, and
+- **Colors module:** two knobs, and reading a setting means reading the pair.
+  **SRC** is what the color follows — **off** / X / Y / Z / trail / **audio** —
+  and **MAP** is how that value becomes a color. Off is a flat trace in the
+  start swatch: the color follows nothing, which is a statement about the
+  SOURCE, and it is where what used to be called the "mono palette" belongs. On
+  the three delay embeddings the X / Y / Z positions are one signal at three
+  lags, so they run the color along different directions of the same figure
+  rather than showing three different quantities; **audio** paints the
+  short-time spectral centroid along the trail, and only the embeddings have a
+  trail that is a time axis, so elsewhere it is one flat tint. The src knob
+  dims in the modes that never consult it — the spectrogram, the RTA and the
+  transfer function each color one quantity of their own.
+  The map ring carries the two swatch mixes, a raw **hue** sweep, and
   then the same six colormaps the spectrogram uses: **heat, blue, gray, turbo,
   viridis, magma**. They are the library's own tables, so a value paints the
-  same color on the trace as it does in the spectrogram. The **period** and
+  same color on the trace as it does in the spectrogram — and now literally the
+  same knob paints both: the spectrogram had a second colormap control naming
+  those six maps in the same order, and two knobs that had to be kept in step by
+  hand were one knob too many. Which also means the swatch mixes reach it: set
+  MAP to 2 or 3 and the spectrogram is painted in your own Palette colors,
+  which neither knob could do before. The **period** and
   **shift** knobs beside them are a window onto the palette — period is how
   many times the map is crossed across the figure, shift is where the crossing
   starts — and both are audio-mod targets, so turning the period down to a
@@ -403,7 +417,7 @@ back out of it.
   whole canvas or a rectangle you drag out of it, with a transport, a
   timecode, a media-size readout and a single-frame still button.
 - **The spectrogram is the real one:** transform size, overlap, window
-  function, magnitude scale and limits, and color scheme are all on the panel,
+  function, magnitude scale and limits are all on the panel (its color is the shared MAP ring),
   matching [audioprism-go](https://github.com/0magnet/audioprism-go) — itself a
   Go port of vsergeev's audioprism, and the reference this was checked against
   frame by frame.
@@ -1377,7 +1391,7 @@ Desk — a window manager, drawn as a model. The same texture-on-a-plane path th
 | --- | --- | --- |
 | ![Spectrogram](docs/img/model/spectrogram.jpg) | ![Spectrogram turning](docs/img/model/spectrogram.gif) | ![Spectrogram parameters](docs/img/model/spectrogram-params.jpg) |
 
-Spectrogram — a scrolling short-time Fourier transform of the live audio: frequency up the plane, time scrolling right to left, magnitude as color. It is a display inspired by Vanya Sergeev's audioprism, written in Go (github.com/0magnet/audioprism-go) and drawn here as a texture on a plane in the same 3-D pipeline as every other model, so it rotates and zooms like one — and the same texture can be painted onto other geometry with the skin switch. The Spectrogram module exposes the whole chain: transform size (DFT), overlap, window function (WFN — labelled apart from the embeddings' WIN, which is a window LENGTH), magnitude scale and limits, and color scheme.
+Spectrogram — a scrolling short-time Fourier transform of the live audio: frequency up the plane, time scrolling right to left, magnitude as color. It is a display inspired by Vanya Sergeev's audioprism, written in Go (github.com/0magnet/audioprism-go) and drawn here as a texture on a plane in the same 3-D pipeline as every other model, so it rotates and zooms like one — and the same texture can be painted onto other geometry with the skin switch. The Spectrogram module exposes the whole chain: transform size (DFT), overlap, window function (WFN — labelled apart from the embeddings' WIN, which is a window LENGTH), magnitude scale and limits. Its color comes from the MAP ring in the Colors module, the one the trace and every analyzer read — it used to carry a second colormap knob of its own naming the same six maps in the same order, and keeping two knobs in step by hand was how a viridis spectrogram ended up sitting behind a turbo trace.
 
 `#spectrogram` · audio
 
@@ -2463,8 +2477,10 @@ mix (the audio drove every wiggle you see):
 ### Contact sheets (stills)
 
 <details>
-<summary><b>Full color-matrix contact sheets</b> — rows: mono / 2-color /
-3-color / rainbow · columns: source X / Y / Z / trail</summary>
+<summary><b>Full color-matrix contact sheets</b> — rows: SRC off / 2-color /
+3-color / hue sweep · columns: source X / Y / Z / trail. The first row is the
+flat trace, which the MAP knob cannot change — it was the "mono palette" until
+mono moved onto the source knob, where the absence of a value belongs.</summary>
 
 | Lorenz | Rössler |
 |---|---|
