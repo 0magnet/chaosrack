@@ -1644,27 +1644,21 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 		}
 	}
 	// Signal-generator oscillators back to their default note / level / wave, off.
-	setInput := func(sid, v string) {
-		if e := doc.Call("getElementById", sid); e.Truthy() && e.Get("value").String() != v {
-			e.Set("value", v)
-			e.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-		}
-	}
-	// The generators. Only the two selectors are written back by hand now: the
-	// freq and level knobs are descriptor controls, so their defaults live in
-	// one place (genOscs, which the descriptors take Def from) and Reset All
-	// restores them the same way their own reset buttons do. This loop used to
-	// carry its own copy of those six numbers, which is two copies of a default
-	// that the markup also states.
+	//
+	// There was a setInput helper here that wrote remembered values into hidden
+	// range inputs. Every default it carried is now a descriptor's Def, so the
+	// helper has no callers left: a bulk reset and a cell's own reset button are
+	// the same call on the same Control, and cannot drift apart.
+	// The generators: only the two SELECTORS need saying here. Their freq and
+	// level knobs are descriptor controls, so the builtControls loop above has
+	// already put them back — which is the whole point of that loop, and the
+	// reason this used to carry its own copy of six numbers the markup also
+	// stated.
 	for _, osc := range genOscs {
-		resetControlByID(osc.id + "-freq")
-		resetControlByID(osc.id + "-lvl")
 		resetSel(osc.id+"-wave", "0")
 		resetSel(osc.id+"-out", "off")
 	}
-	// Envelope module back to pass-through defaults.
-	setInput("gen-env-atk", "10")
-	setInput("gen-env-dcy", "300")
+	// Envelope: likewise, only the mode selector. Attack and decay are controls.
 	resetSel("gen-env-mode", "off")
 
 	// Randomized starting pose + low-rate rotation. Replaces the old
