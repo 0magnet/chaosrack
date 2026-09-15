@@ -53,10 +53,11 @@ func buildTestSignalModule() {
 		LEDID: "testsig-lvl-led", ResetID: "rst-testsig-lvl",
 		Apply: func(v float64) { fg().SetTestLevel(v / 100) },
 	})
-	sel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		applyTestSignal()
-		return nil
-	}))
+	adoptDescControl(ControlDesc{
+		ID: "testsig-sel", Label: "sig", SelectDef: "0", PermaKey: "tv",
+		ResetID:     "rst-testsig-sel",
+		SelectApply: func(string) { applyTestSignal() },
+	})
 	applyTestSignal()
 	fg().SetTestLevel(fgFloat(lvl) / 100)
 }

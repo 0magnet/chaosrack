@@ -369,10 +369,11 @@ func wireRhythmModule() {
 	ostk := makeSelectorKnob(out)
 	addSelectorLabels(ostk, []string{"off", "L", "R", "L+R"}, out, 50)
 	ostack.Call("appendChild", ostk)
-	out.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		rhythmUpdateRouting()
-		return nil
-	}))
+	// Another orphan: no reset, no Reset All, no permalink.
+	adoptDescControl(ControlDesc{
+		ID: "rhythm-out", Label: "out", SelectDef: "both", PermaKey: "ho",
+		ResetID: "rst-rhythm-out", SelectApply: func(string) { rhythmUpdateRouting() },
+	})
 
 	// The tab bank, and the hidden select that carries it in a link. Both are
 	// built from rhythmPatterns so there is ONE list of what the presets are —

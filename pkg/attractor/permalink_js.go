@@ -169,7 +169,18 @@ func serializeState() string {
 
 	// Registry-owned numeric controls that differ from their defaults.
 	for _, ctl := range builtControls {
-		if ctl.permaKey == "" || !ctl.slider.Truthy() {
+		if ctl.permaKey == "" {
+			continue
+		}
+		// A selector carries a named value, so "same as the default" is a string
+		// comparison rather than a float one within a tolerance.
+		if ctl.sel.Truthy() {
+			if v := ctl.sel.Get("value").String(); v != ctl.selDef {
+				b.WriteString("&" + ctl.permaKey + "=" + v)
+			}
+			continue
+		}
+		if !ctl.slider.Truthy() {
 			continue
 		}
 		v := ctl.slider.Get("value").String()
@@ -417,7 +428,15 @@ func applyControl(key, val string) {
 	// Registry-owned numeric controls first: set the slider, dispatch input
 	// (the descriptor's listener updates cache + LED).
 	for _, ctl := range builtControls {
-		if ctl.permaKey == key && ctl.slider.Truthy() {
+		if ctl.permaKey != key {
+			continue
+		}
+		if ctl.sel.Truthy() {
+			ctl.sel.Set("value", val)
+			ctl.sel.Call("dispatchEvent", permaEvent("change"))
+			return
+		}
+		if ctl.slider.Truthy() {
 			ctl.slider.Set("value", val)
 			ctl.slider.Call("dispatchEvent", permaEvent("input"))
 			return

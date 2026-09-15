@@ -172,11 +172,16 @@ func wireDistortionModule() {
 	})
 	// A change of channel is a change of signal, so the window it was measuring
 	// no longer describes what is being asked about.
-	thdChanSel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		thdFill = 0
-		thdRes = DistortionResult{}
-		showDistortion()
-		return nil
-	}))
+	adoptDescControl(ControlDesc{
+		ID: "thd-chan", Label: "src", SelectDef: "0", PermaKey: "dc",
+		ResetID: "rst-thd-chan",
+		SelectApply: func(string) {
+			// A change of channel is a change of signal, so the window it was
+			// measuring no longer describes what is being asked about.
+			thdFill = 0
+			thdRes = DistortionResult{}
+			showDistortion()
+		},
+	})
 	showDistortion()
 }

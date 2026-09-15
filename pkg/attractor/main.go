@@ -1290,7 +1290,16 @@ func Run() {
 	// value so engine state matches the panel by construction (the old code
 	// did this ad hoc — applyLineWidth() at wiring, readSliderCache, …).
 	for _, c := range builtControls {
-		c.slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		// Whichever element holds this control's value, and the event that
+		// commits it. A selector-backed Control has no slider at all, and Call on
+		// an undefined js.Value is a panic rather than a no-op — which took the
+		// whole runtime down the first time a selector reached this loop.
+		switch {
+		case c.sel.Truthy():
+			c.sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+		case c.slider.Truthy():
+			c.slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		}
 	}
 
 	// Permalink: capture pristine control defaults, restore any state

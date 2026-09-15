@@ -41,6 +41,16 @@ type ControlDesc struct {
 	// Adopt-path fields (adoptDescControl): ids of the template-declared
 	// elements the descriptor takes ownership of, plus any extra work a reset
 	// needs beyond restoring the value (e.g. Zoom also recenters the camera).
+	// A SELECTOR-backed control. SelectDef is the option value a reset returns
+	// to, and its presence is what tells adoptDescControl which kind this is —
+	// Min/Max/Step/Def and the LED fields are all meaningless for a select,
+	// whose value is one of a named set rather than a number on a scale.
+	//
+	// Apply still receives a float64 for a numeric control; a selector's effect
+	// goes in SelectApply, which gets the option value as the string it is.
+	SelectDef   string
+	SelectApply func(v string)
+
 	LEDID      string // existing numeric-readout element id
 	ResetID    string // existing reset-button id
 	ResetExtra func()
@@ -133,6 +143,9 @@ func buildDescControl(d ControlDesc) (*Control, js.Value) {
 // linkNumToSlider, a bespoke reset handler, and an onResetAll literal — each
 // of which could (and did) silently miss a control.
 func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will use the Control as migration continues
+	if d.SelectDef != "" {
+		return adoptSelectControl(d)
+	}
 	slider := doc.Call("getElementById", d.ID)
 	if !slider.Truthy() {
 		return nil
@@ -204,6 +217,47 @@ func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will
 		}))
 	}
 
+	builtControls = append(builtControls, ctl)
+	return ctl
+}
+
+// adoptSelectControl is adoptDescControl's selector half: it takes over a
+// <select> that already exists in the markup, wires its effect, and registers a
+// Control so the reset button, Reset All and the permalink all reach it.
+//
+// Selectors were the last controls wired entirely by hand, and it showed in a
+// way nothing else did. Eight of them — the test signal, the counter's gate,
+// the Keys range and output, the Matrix step count and output, the Rhythm
+// output, the distortion channel — had no reset button, were not touched by
+// Reset All, and were not in the permalink. Turn one and there was no way back
+// short of reloading the page, and no way to share the view you had made. That
+// is not a missing convenience; it is state with no way home.
+//
+// The value is the select's own, exactly as for a slider-backed control: the
+// element is the source of truth and everything else follows it, so a permalink
+// restore and a reset and a click on the ring all take the same path.
+func adoptSelectControl(d ControlDesc) *Control {
+	sel := doc.Call("getElementById", d.ID)
+	if !sel.Truthy() {
+		return nil
+	}
+	ctl := &Control{
+		module: "", kind: kindGeneric,
+		sel: sel, selDef: d.SelectDef,
+		permaKey: d.PermaKey, resetHook: d.ResetExtra,
+	}
+	if d.SelectApply != nil {
+		sel.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+			d.SelectApply(sel.Get("value").String())
+			return nil
+		}))
+	}
+	if rb := doc.Call("getElementById", d.ResetID); rb.Truthy() {
+		rb.Call("addEventListener", "click", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+			ctl.resetToDefault()
+			return nil
+		}))
+	}
 	builtControls = append(builtControls, ctl)
 	return ctl
 }
