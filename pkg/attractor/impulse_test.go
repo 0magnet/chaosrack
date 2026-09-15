@@ -357,3 +357,154 @@ func TestATruncatedSignalShowsASpuriousDecay(t *testing.T) {
 			real20, real30, rel*100)
 	}
 }
+
+// TestSpectrumPointsLevel checks the live surface reads an absolute level: a
+// full-scale tone at 0 dB, half of it 6 dB down, and nothing where there is
+// nothing.
+//
+// The absolute part is the point of the test rather than a detail of it. A CSD
+// is normalized to its own loudest point because it is read as decay; a live
+// waterfall is read as LEVEL, and one that normalized itself would draw a quiet
+// passage at the same height as a loud one.
+func TestSpectrumPointsLevel(t *testing.T) {
+	const (
+		n  = 4096
+		sr = 48000
+	)
+	freqs := LogFreqPoints(20, 20000, 96)
+	// The axis point nearest 1 kHz, and then the BIN CENTRE nearest that point,
+	// which is the tone the test uses.
+	//
+	// Both steps matter and neither is the function being lenient. The frequency
+	// axis is logarithmic, so 1000 Hz is not on it — the nearest point is 1015 —
+	// and a tone read three bins around the wrong centre is 1.2 dB light, which
+	// is scalloping loss and is a true fact about a 96-point axis over a 4096-bin
+	// transform rather than an error in the scaling this test is checking.
+	near := 0
+	for i, v := range freqs {
+		if math.Abs(math.Log(v/1000)) < math.Abs(math.Log(freqs[near]/1000)) {
+			near = i
+		}
+	}
+	binHz := float64(sr) / float64(n)
+	f := math.Round(freqs[near]/binHz) * binHz
+	out := make([]float64, len(freqs))
+	for _, amp := range []float64{1.0, 0.5} {
+		buf := make([]float32, n)
+		for i := range buf {
+			buf[i] = float32(amp * math.Sin(2*math.Pi*f*float64(i)/sr))
+		}
+		if !SpectrumPoints(buf, sr, freqs, winHann, out) {
+			t.Fatalf("SpectrumPoints refused a %d-sample block", n)
+		}
+		// AMPLITUDE-referenced, which is the convention rta.go already reads in and
+		// the one digital metering uses: a full-scale sine is 0 dBFS, not the
+		// -3.01 its RMS power would give. The two displays have to agree or a band
+		// that reads -20 on the RTA reads -23 on the waterfall beside it.
+		want := 20 * math.Log10(amp)
+		if got := out[near]; math.Abs(got-want) > 0.6 {
+			t.Errorf("amplitude %.2f: %.2f dB at %.0f Hz, want %.2f", amp, got, freqs[near], want)
+		}
+		// Well away from the tone there is nothing. Three octaves down, which is
+		// past any window's skirt.
+		far := 0
+		for i, v := range freqs {
+			if v > f/8 {
+				break
+			}
+			far = i
+		}
+		if out[far] > -60 {
+			t.Errorf("amplitude %.2f: %.2f dB at %.0f Hz, want silence", amp, out[far], freqs[far])
+		}
+	}
+}
+
+// TestSpectrumPointsRejects checks the sizes it will not accept, because a
+// non-power-of-two block is a silent wrong answer from the FFT rather than an
+// error.
+func TestSpectrumPointsRejects(t *testing.T) {
+	freqs := LogFreqPoints(20, 20000, 16)
+	out := make([]float64, len(freqs))
+	if SpectrumPoints(make([]float32, 1000), 48000, freqs, winHann, out) {
+		t.Error("accepted a block that is not a power of two")
+	}
+	if SpectrumPoints(make([]float32, 1024), 0, freqs, winHann, out) {
+		t.Error("accepted a zero sample rate")
+	}
+	if SpectrumPoints(make([]float32, 1024), 48000, freqs, winHann, out[:4]) {
+		t.Error("accepted an output shorter than the frequency axis")
+	}
+}
+
+// TestSpectrumPointsTonesBetweenAxisPoints is the regression for a tone that
+// vanished.
+//
+// A steady 3150 Hz sine drew a perfectly flat live surface. The axis points
+// either side of it are 3018 and 3243 Hz, the tone is eleven bins from either,
+// and the sampling read three bins around each point — so nothing on the axis
+// was looking anywhere near it. 1 kHz worked, which was the trap: it lands
+// close enough to a point to leak into it, so the display looked correct and
+// was reading almost nothing.
+//
+// Every tone the app can generate has to raise its own band well clear of the
+// rest of the axis, wherever it happens to fall between the points.
+func TestSpectrumPointsTonesBetweenAxisPoints(t *testing.T) {
+	const (
+		n  = 4096
+		sr = 48000
+	)
+	freqs := LogFreqPoints(20, 20000, 96)
+	out := make([]float64, len(freqs))
+	for _, f := range []float64{100, 440, 1000, 3150, 5000, 9000} {
+		buf := make([]float32, n)
+		for i := range buf {
+			buf[i] = float32(math.Sin(2 * math.Pi * f * float64(i) / sr))
+		}
+		if !SpectrumPoints(buf, sr, freqs, winHann, out) {
+			t.Fatalf("%.0f Hz: SpectrumPoints refused the block", f)
+		}
+		near, peak := 0, math.Inf(-1)
+		for i, v := range out {
+			if v > peak {
+				near, peak = i, v
+			}
+		}
+		// The peak of the axis has to be at the tone, within one point either
+		// side — the tone is between two points and either may hold more of it.
+		want := 0
+		for i, v := range freqs {
+			if math.Abs(math.Log(v/f)) < math.Abs(math.Log(freqs[want]/f)) {
+				want = i
+			}
+		}
+		if near < want-1 || near > want+1 {
+			t.Errorf("%.0f Hz: the axis peaks at %.0f Hz, want near %.0f Hz",
+				f, freqs[near], freqs[want])
+		}
+		// And it has to be a PEAK, not a rounding error: a full-scale tone is
+		// the whole of the signal, so everything else on the axis is leakage
+		// and sits far below it.
+		if peak < -3 {
+			t.Errorf("%.0f Hz: peak reads %.1f dB, want a full-scale tone near 0", f, peak)
+		}
+		// Everything more than a third of an octave away, which is the window's
+		// own skirt plus the points that share a bin with the tone. At the bottom
+		// of the axis the points are closer together than the transform can
+		// resolve — 7.5% at 100 Hz is 7.5 Hz and the bins are 11.7 — so several
+		// adjacent points legitimately read the same tone. That is the resolution
+		// saying so, not the sampling missing it.
+		var second float64 = -1e9
+		for i, v := range out {
+			if math.Abs(math.Log2(freqs[i]/f)) < 1.0/3 {
+				continue
+			}
+			if v > second {
+				second = v
+			}
+		}
+		if peak-second < 30 {
+			t.Errorf("%.0f Hz: tone is only %.1f dB above the rest of the axis", f, peak-second)
+		}
+	}
+}
