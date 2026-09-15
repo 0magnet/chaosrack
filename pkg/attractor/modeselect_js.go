@@ -175,20 +175,15 @@ func buildNestedModelSelector() {
 		short[i] = catShortLabel(c)
 	}
 	addSelectorLabels(stack, short, catSel, 40)
-	// Unique, concise tooltip per category label (turn/click to that category).
-	setLabelTooltips(stack, map[string]string{
-		"OFF":   "Power off — stop rendering and clear the display",
-		"ATTR":  "Attractors — chaotic systems (Lorenz, Rössler…) plus Custom",
-		"SCOPE": "Scope — Lissajous, Graphic Artist and XY oscilloscope figures",
-		"POLY":  "Polyhedra — wireframe Platonic solids",
-		"GEO":   "Geometry — sphere, torus, globe, magnetosphere",
-		"AUD":   "Audio — spectrogram, XY scope, FVF wobbulator and the Takens embedding",
-		"SPRT":  "Sprott systems — the twenty simple chaotic flows of J. C. Sprott, 1994",
-		"SEQ":   "Sequences — the Turtle Path: an integer sequence read as turn-and-step",
-		"SOLID": "Solids — the STL viewer: a file from disk, or a built-in model",
-		"ANLY":  "Analysis — the Bifurcation Explorer",
-		"CUST":  "Custom — type your own differential equations",
-	})
+	// A tooltip per detent, from the table beside the catalog. Written out here
+	// once, and missing Maps when it was.
+	tips := map[string]string{}
+	for _, c := range nestedCatOrder {
+		if t, ok := catTooltips[c]; ok {
+			tips[catShortLabel(c)] = t
+		}
+	}
+	setLabelTooltips(stack, tips)
 	holder.Call("appendChild", stack)
 	attachSelMarquee(catSel, "#8fd0ff")   // category (blue)
 	attachSelMarquee(modelSel, "#7fe0a0") // model (green) — scrolls long names

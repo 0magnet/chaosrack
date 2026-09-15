@@ -391,6 +391,23 @@ func TestSignalTablesLineUp(t *testing.T) {
 	if len(TestSignalRing) != TestSignalCount {
 		t.Errorf("%d ring labels for %d signals", len(TestSignalRing), TestSignalCount)
 	}
+	if len(TestSignalDescs) != TestSignalCount {
+		t.Errorf("%d descriptions for %d signals", len(TestSignalDescs), TestSignalCount)
+	}
+	// Each dial position gets its OWN tooltip. Two positions sharing one
+	// description is the failure this is here to catch: a label with nothing of
+	// its own to say falls through to the knob's tooltip, and eleven positions
+	// that all explain the knob explain none of themselves.
+	seen := map[string]int{}
+	for i, d := range TestSignalDescs {
+		if d == "" {
+			t.Errorf("signal %d (%q) has no description", i, TestSignalNames[i])
+		}
+		if j, dup := seen[d]; dup {
+			t.Errorf("signals %d and %d share the description %q", j, i, d)
+		}
+		seen[d] = i
+	}
 	for i, s := range TestSignalRing {
 		if len(s) > 5 {
 			t.Errorf("ring label %d %q is %d runes; five is what fits around the dial", i, s, len(s))

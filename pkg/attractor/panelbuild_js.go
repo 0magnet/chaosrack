@@ -248,7 +248,7 @@ func buildParamUnit(p paramDef) js.Value {
 		// recall all still drive this through exactly the path they drove the
 		// dial through.
 		if len(labels) == 2 {
-			unit.Call("appendChild", buildTwoWaySwitch(sel, labels))
+			unit.Call("appendChild", buildTwoWaySwitch(sel, labels, p.Label))
 		} else if !ringLabelsFit(ring) {
 			// Too many options, or names too long to sit round a dial. This is
 			// what selectorKnobReadout exists for and says so -- the Phosphor,
@@ -694,10 +694,15 @@ func hexToRGB(hex string) (float32, float32, float32) {
 //
 // The select remains the value. Everything that drives one of these — the
 // permalink, Reset All, a patch recall — moves the select and this follows.
-func buildTwoWaySwitch(sel js.Value, labels []string) js.Value {
+func buildTwoWaySwitch(sel js.Value, labels []string, label string) js.Value {
 	wrap := doc.Call("createElement", "label")
 	wrap.Set("className", "grp twoway")
 	wrap.Get("style").Set("cursor", "pointer")
+	// The switch had no tooltip anywhere on it — not the box, not the name, not
+	// this wrapper — so it was the one parameter control in the panel that
+	// explained nothing when you hovered it. The dial it replaced had a label
+	// ring whose every position said what that position was.
+	wrap.Set("title", label+" — a two-position switch: "+labels[0]+" or "+labels[1])
 
 	box := doc.Call("createElement", "input")
 	box.Set("type", "checkbox")
@@ -713,6 +718,10 @@ func buildTwoWaySwitch(sel js.Value, labels []string) js.Value {
 		}
 		box.Set("checked", i == 1)
 		name.Set("textContent", labels[clampIndex(i, len(labels))])
+		// What it is now, and what the next click gives — which is the question
+		// a two-position control actually raises, and one the wrapper's tooltip
+		// cannot answer because it does not change.
+		name.Set("title", labels[clampIndex(i, len(labels))]+" — click or scroll for "+labels[clampIndex(1-i, len(labels))])
 	}
 	box.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
 		idx := 0

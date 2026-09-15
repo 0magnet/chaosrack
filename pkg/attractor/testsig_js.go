@@ -39,6 +39,9 @@ func buildTestSignalModule() {
 		opt := doc.Call("createElement", "option")
 		opt.Set("value", strconv.Itoa(i))
 		opt.Set("textContent", name)
+		if i < len(audiosrc.TestSignalDescs) {
+			opt.Set("title", audiosrc.TestSignalDescs[i])
+		}
 		sel.Call("appendChild", opt)
 	}
 	sel.Set("value", "0")

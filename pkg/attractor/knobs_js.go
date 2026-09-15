@@ -363,6 +363,11 @@ func selectorKnobReadout(sel js.Value) js.Value {
 			idx = 0
 		}
 		readout.Set("textContent", sel.Get("options").Index(idx).Get("text").String())
+		// The readout describes what it is CURRENTLY showing. Without a title of
+		// its own it showed the cell's, which is a paragraph about the knob —
+		// the same paragraph whatever the readout said, and available from
+		// anywhere else in the cell anyway.
+		dialPosTitle(readout, sel, idx)
 	}
 	sel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} { set(); return nil }))
 	set()
@@ -396,6 +401,10 @@ func addAngleDial(stack js.Value) {
 		lab := doc.Call("createElement", "span")
 		lab.Set("className", "knob-dial-lab")
 		lab.Set("textContent", strconv.Itoa(d))
+		// The dial is decorative, but the label still needs a title: without one
+		// it shows the CELL's tooltip, so all four degree marks explained the
+		// axis rather than the quarter turn each of them marks.
+		lab.Set("title", strconv.Itoa(d)+"° — a quarter-turn mark on the angle scale")
 		lab.Get("style").Set("left", l)
 		lab.Get("style").Set("top", t)
 		dial.Call("appendChild", lab)
@@ -450,12 +459,22 @@ func addValueDial(wrap js.Value, min, max float64) {
 	}
 	// Numbers at the two sweep ends (major ticks), both in the lower half so they
 	// stay clear of the numeric LED above the knob.
-	for _, t := range []float64{0, 1} {
+	// Each end says which end it is. Without a title of its own a label shows
+	// its nearest titled ancestor's tooltip, which here is the whole cell — so
+	// hovering the "20" at the end of the palette-period scale explained what
+	// palette period means, and so did hovering the "0.05" at the other end.
+	for i, t := range []float64{0, 1} {
 		deg := -knobSweepDeg/2 + knobSweepDeg*t
 		l, tp := dialLabelPos(deg, 48)
 		lab := doc.Call("createElement", "span")
 		lab.Set("className", "knob-dial-lab")
-		lab.Set("textContent", fmtDialNum(min+(max-min)*t))
+		v := fmtDialNum(min + (max-min)*t)
+		lab.Set("textContent", v)
+		if i == 0 {
+			lab.Set("title", v+" — the lowest this knob goes; turned fully counter-clockwise")
+		} else {
+			lab.Set("title", v+" — the highest this knob goes; turned fully clockwise")
+		}
 		lab.Get("style").Set("left", l)
 		lab.Get("style").Set("top", tp)
 		dial.Call("appendChild", lab)
@@ -500,6 +519,7 @@ func addSelectorDotLabels(stack js.Value, colors []string, sel js.Value, offset 
 		dot.Get("style").Set("left", l)
 		dot.Get("style").Set("top", t)
 		dot.Get("style").Set("background", col)
+		dialPosTitle(dot, sel, i)
 		dotEls[i] = dot
 		if sel.Truthy() {
 			idx := i
@@ -569,6 +589,7 @@ func addSelectorLabels(stack js.Value, labels []string, sel js.Value, offset ...
 		lab.Set("textContent", txt)
 		lab.Get("style").Set("left", l)
 		lab.Get("style").Set("top", t)
+		dialPosTitle(lab, sel, i)
 		labEls[i] = lab
 		if sel.Truthy() {
 			lab.Get("classList").Call("add", "clickable")
@@ -737,4 +758,37 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 		addValueDial(wrap, min, max)
 	}
 	return wrap
+}
+
+// dialPosTitle gives one position on a selector's dial ring its own tooltip,
+// taken from the <option> that position selects: the option's title when it has
+// one, and otherwise the option's full text.
+//
+// Every dial position needs a title of its own, and not for decoration. An
+// element with no title of its own shows its nearest titled ANCESTOR's tooltip
+// instead, which for a dial label is the knob or the whole cell — so hovering
+// "3150" on the Test knob explained what the Test knob is, and hovering "pink"
+// beside it said exactly the same thing. Eleven positions, one sentence, and it
+// was the sentence you get anyway by hovering anywhere else in the cell.
+//
+// The option is where the description belongs because the option IS the
+// position: same order, same count, one list. A ring of tooltips written out
+// beside the ring of labels is a second list of the same things, which is how
+// the category ring came to be missing Maps.
+func dialPosTitle(el, sel js.Value, i int) {
+	if !sel.Truthy() {
+		return
+	}
+	opts := sel.Get("options")
+	if i < 0 || i >= opts.Get("length").Int() {
+		return
+	}
+	o := opts.Index(i)
+	t := o.Get("title").String()
+	if t == "" {
+		t = o.Get("text").String()
+	}
+	if t != "" {
+		el.Set("title", t)
+	}
 }

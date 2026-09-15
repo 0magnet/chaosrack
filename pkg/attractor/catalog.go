@@ -108,3 +108,28 @@ var catShortLabels = map[string]string{
 	"Custom":                "CUST",
 	nestedOffCat:            "OFF",
 }
+
+// catTooltips say what each category IS, one per category, and are what the
+// short tag around the knob ring carries as its tooltip.
+//
+// Beside catShortLabels for the reason catShortLabels is here: a dial label with
+// no title of its own shows the KNOB's tooltip instead, so every one of the
+// twelve tags explained the category knob and none explained itself. The table
+// that had been written out beside the knob was missing Maps — the same
+// omission, in the same category, that the generated ring tooltip was added to
+// fix — because a second list of the categories is a second thing to forget.
+// reachable_test.go guards this one the way it guards the tags.
+var catTooltips = map[string]string{
+	"Attractors":            "Attractors — chaotic flows (Lorenz, Rössler, Chua…) and your own equations",
+	"Sprott systems (1994)": "Sprott systems — the twenty simple chaotic flows of J. C. Sprott, 1994",
+	"Maps":                  "Maps — discrete iterated systems (Hénon, Ikeda, standard map…) rather than flows",
+	"Scope":                 "Scope — Lissajous figures, the Graphic Artist and the XY oscilloscope",
+	"Polyhedra":             "Polyhedra — the wireframe Platonic solids",
+	"Geometry":              "Geometry — sphere, torus, globe and magnetosphere",
+	"Sequences":             "Sequences — the Turtle Path: an integer sequence read as turn-and-step",
+	"Solids":                "Solids — the STL viewer: a file from disk, or a built-in model",
+	"Audio":                 "Audio — spectrogram, XY scope, FVF wobbulator and the Takens embedding",
+	"Analysis":              "Analysis — the Bifurcation Explorer",
+	"Custom":                "Custom — type your own differential equations",
+	nestedOffCat:            "Power off — stop rendering and clear the display",
+}

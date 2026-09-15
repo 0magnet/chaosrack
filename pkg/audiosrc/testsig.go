@@ -61,6 +61,27 @@ var TestSignalNames = []string{
 	"out-of-polarity noise",
 }
 
+// TestSignalDescs say what each position is FOR, one per position, and are what
+// the dial label round the knob carries as its tooltip.
+//
+// Here rather than beside the dial because the dial is built from this list:
+// three parallel slices, one per position, so a stimulus cannot acquire a label
+// without a description or a description without a signal. A ring of tooltips
+// written out beside the knob would be a second list of the same eleven things.
+var TestSignalDescs = []string{
+	"off — the X/Y/Z oscillators play again, exactly as they were left",
+	"white noise — equal power per hertz; reads as a rising tilt on an RTA",
+	"pink noise — equal power per octave; the stimulus an RTA reads FLAT, and what a room is measured with",
+	"log sweep, 20 Hz to 20 kHz in four seconds — the stimulus an impulse response is derived from",
+	"1 kHz reference tone — the level and distortion reference every meter is calibrated against",
+	"3150 Hz — the tone the wow-and-flutter standards specify, and what the W&F meter needs",
+	"left channel only — silence on the right; checks channel identity and leakage",
+	"right channel only — silence on the left; checks channel identity and leakage",
+	"polarity pulse — a one-sided click; shows which way round a speaker is wired",
+	"uncorrelated noise — independent noise per channel: correlation 0, the widest image there is",
+	"out-of-polarity noise — the same noise inverted on one channel: correlation -1, and mono-incompatible",
+}
+
 // TestSignalRing is five runes at most per position: for a named setting the
 // ring IS the readout, because seven segments cannot spell a word.
 var TestSignalRing = []string{
