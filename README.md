@@ -66,6 +66,7 @@ analog computers at [glensstuff.com](https://glensstuff.com).
   - [Distortion — THD, THD+N, SINAD, ENOB](#distortion--thd-thdn-sinad-enob)
   - [RTA — octave bands](#rta--octave-bands-2)
   - [Transfer function — magnitude, phase, coherence](#transfer-function--magnitude-phase-coherence)
+  - [Loudness — LUFS, loudness range, true peak](#loudness--lufs-loudness-range-true-peak)
   - [Controls that pull in the same direction](#controls-that-pull-in-the-same-direction)
 - [Reaching the machine](#reaching-the-machine)
   - [On a machine with other people on it](#on-a-machine-with-other-people-on-it)
@@ -1705,6 +1706,55 @@ than 0.05 ms. Live, through the app's own test signals:
 That last row is the distinction the display exists to make: a polarity flip is a
 perfect linear relationship with constant 180° phase and *no* delay, which a
 delay measurement must not confuse with one.
+
+
+### Loudness — LUFS, loudness range, true peak
+
+The scale everything is delivered against. A peak meter cannot answer the
+question, because loudness is not peak: a compressed mix and a dynamic one can
+share a peak and be ten decibels apart to listen to.
+
+| | |
+|---|---|
+| **M** / **S** | momentary (400 ms) and short-term (3 s), both ungated. What it sounds like now, and over the window a person actually judges level across |
+| **I** | integrated, over everything since the reset, **gated** — so silence and quiet passages do not drag a programme's number down. This is the one a delivery spec means |
+| **LRA** | the loudness range: the 95th percentile of the short-term distribution less the 10th. One number for how dynamic the material is, which a loudness target alone says nothing about |
+| **TP** | true peak in dBTP — the peak of the *reconstructed* signal, four-times oversampled |
+| **tgt** | a delivery target (−23 EBU R 128, −14 streaming, −16 podcast) with the distance from it beside |
+
+**K-weighting is derived from the analog prototype at whatever rate the audio is
+arriving at**, not the 48 kHz coefficients the standard prints — those are only
+correct at 48 kHz, and a meter using them at 44.1 would be weighting by a filter
+whose corners had quietly moved. A test checks the derivation reproduces the
+published numbers exactly at 48 kHz, which is what makes it the same filter
+rather than a similar one.
+
+The neatest check of the whole chain: K-weighting's gain at 997 Hz is **+0.691
+dB** and the loudness equation's offset is **−0.691 dB**, because the standard
+chose the offset to cancel the weighting at its reference frequency. So a 997 Hz
+sine of amplitude *A* in both channels reads exactly 20·log₁₀(*A*) LUFS — and
+every part of the chain has to be right for that to come out. It is also why
+997 Hz rather than 1000 appears throughout BS.1770: at 1 kHz the weighting is
++0.698 dB and the identity misses by seven thousandths of a decibel.
+
+Measured live, through the app's own test signals:
+
+| | M | S | I | LRA | TP |
+|---|---|---|---|---|---|
+| 1 kHz at 0.5 | −6.0 | −6.0 | −6.0 | 0.0 | −6.0 |
+| …then 20 dB quieter for 6 s | −26.0 | −26.0 | **−6.1** | **20.0** | −6.0 |
+
+The second row is the gate and the range demonstrating themselves: the ungated
+windows follow the signal down 20 LU, the integrated reading **holds**, and LRA
+reports exactly the 20 LU that was applied. The formula predicts −6.014 LUFS for
+the first row.
+
+**True peak is measured only where the interpolation kernel fits.** At a buffer's
+ends the taps run off the edge, and treating the audio either side as silence is
+a step discontinuity — which a bandlimited interpolator answers with exactly the
+overshoot the measurement exists to detect. Measured that way, a plain
+0.5-amplitude tone with no intersample peak at all read 0.534: the meter
+reporting the edge of its own buffer.
 
 ### Controls that pull in the same direction
 
