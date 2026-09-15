@@ -2,10 +2,6 @@
 
 package attractor
 
-import (
-	"syscall/js"
-)
-
 // The RTA mode — fractional-octave bands drawn as a bar display.
 //
 // The band arithmetic is in rta.go, untagged and checked against the Test
@@ -39,18 +35,15 @@ const (
 )
 
 var (
-	rtaCursor  = tapUnjoined
-	rtaBuf     []float32
-	rtaFill    int
-	rtaNextMs  float64
-	rtaBands   []RTABand
-	rtaLevels  []float64 // this analysis
-	rtaHeld    []float64 // after the meter ballistics
-	rtaPeaks   []float64
-	rtaLastB   int
-	rtaLine    []float32
-	rtaJsUint8 js.Value
-	rtaJsFloat js.Value
+	rtaCursor = tapUnjoined
+	rtaBuf    []float32
+	rtaFill   int
+	rtaNextMs float64
+	rtaBands  []RTABand
+	rtaLevels []float64 // this analysis
+	rtaHeld   []float64 // after the meter ballistics
+	rtaPeaks  []float64
+	rtaLastB  int
 
 	// The knobs.
 	rtaFracF  float32 = 1  // index into rtaFractions; 1 is third-octave
@@ -189,34 +182,59 @@ func rtaY(db float64) float32 {
 }
 
 // drawRTA draws the bars and the peak-hold marks.
-func drawRTA() {
-	if !xyReady {
-		initXY()
+// rtaBarColor is the colour of a bar at a level, through the Colors module's
+// palette.
+//
+// The value handed to the colormap is the bar's own HEIGHT on the displayed
+// scale — the same 0..1 the bar is drawn at — so the colour and the height say
+// the same thing twice, in two ways the eye reads differently. That is the
+// point rather than a redundancy: a row of bars is scanned for its SHAPE and a
+// colour ramp is scanned for its outliers, and one loud band among thirty is
+// far more obvious as a colour than as a height.
+func rtaBarColor(idx int, db float64) [3]float32 {
+	top := float64(rtaTopF)
+	rng := float64(rtaRangeF)
+	if rng < 1 {
+		rng = 1
 	}
+	return analyzerColorAt(idx, (db-(top-rng))/rng)
+}
+
+func drawRTA() {
+	initVColor()
 	n := len(rtaBands)
 	if n == 0 {
 		return
 	}
+	pal, coloured := analyzerPalette()
+	flat := analyzerTraceColor()
 	// Two vertices per bar, plus two per peak mark.
-	need := n * 8
-	if len(rtaLine) < need {
-		rtaLine = make([]float32, need+need/2)
-		rtaJsUint8 = js.Global().Get("Uint8Array").New(len(rtaLine) * 4)
-		rtaJsFloat = js.Global().Get("Float32Array").New(rtaJsUint8.Get("buffer"), 0, len(rtaLine))
-	}
+	vcFit(n * 4)
 	// Bars are spaced evenly across the screen rather than by frequency: the
 	// bands are already equal RATIOS, so equal widths is what puts a logarithmic
 	// frequency axis on the display. That is the whole visual point of a
 	// fractional-octave analyzer over a spectrogram's linear bins.
 	bottom := rtaY(rtaFloorDB)
-	o := 0
+	v := 0
 	for i := range rtaBands {
 		x := float32(-0.9 + 1.8*(float64(i)+0.5)/float64(n))
-		rtaLine[o], rtaLine[o+1] = x, bottom
-		rtaLine[o+2], rtaLine[o+3] = x, rtaY(rtaHeld[i])
-		o += 4
+		c := flat
+		if coloured {
+			c = rtaBarColor(pal, rtaHeld[i])
+		}
+		// The FOOT of the bar is drawn at the floor's colour rather than the
+		// level's, so a coloured bar is a gradient up its own height instead of
+		// a flat stripe. On a colormap that runs dark-to-bright that reads as a
+		// bar lit from its top, which is what the level is.
+		foot := c
+		if coloured {
+			foot = rtaBarColor(pal, rtaFloorDB)
+		}
+		vcPut(v, x, bottom, foot)
+		vcPut(v+1, x, rtaY(rtaHeld[i]), c)
+		v += 2
 	}
-	barVerts := o / 2
+	barVerts := v
 	// The peak marks: a short horizontal dash at each band's held maximum.
 	//
 	// Just over a third of the band spacing either side, so consecutive marks
@@ -227,45 +245,32 @@ func drawRTA() {
 	for i := range rtaBands {
 		y := rtaY(rtaPeaks[i])
 		x := float32(-0.9 + 1.8*(float64(i)+0.5)/float64(n))
-		rtaLine[o], rtaLine[o+1] = x-half, y
-		rtaLine[o+2], rtaLine[o+3] = x+half, y
-		o += 4
+		c := flat
+		if coloured {
+			c = rtaBarColor(pal, rtaPeaks[i])
+		}
+		vcPut(v, x-half, y, c)
+		vcPut(v+1, x+half, y, c)
+		v += 2
 	}
-	peakVerts := o/2 - barVerts
+	peakVerts := v - barVerts
 
 	gl.Call("disable", glTypes.DepthTest)
 	gl.Call("clearColor", 0, 0, 0, 0)
 	gl.Call("clear", glTypes.ColorBufferBit)
-
-	gl.Call("useProgram", xyProgram)
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, xyBuf)
-	js.CopyBytesToJS(rtaJsUint8, sliceToByteSlice(rtaLine))
-	gl.Call("bufferData", glTypes.ArrayBuffer, rtaJsFloat, glTypes.DynamicDraw)
-	gl.Call("enableVertexAttribArray", xyAPos)
-	gl.Call("vertexAttribPointer", xyAPos, 2, glTypes.Float, false, 0, 0)
-
-	col := [3]float32{0.4, 1.0, 0.45}
-	if phosphorActive() {
-		p := phosphors[phosphorIdx]
-		col = [3]float32{float32(p.tr), float32(p.tg), float32(p.tb)}
-	}
 	gl.Call("enable", gl.Get("BLEND"))
 	gl.Call("blendFunc", gl.Get("SRC_ALPHA"), gl.Get("ONE"))
-	gl.Call("uniform2f", xyUOffset, 0, 0)
 
 	// The bars, widened the way the scope's trace is: WebGL cannot be relied on
-	// for lineWidth, so a bar is drawn several times at sub-pixel offsets.
-	gl.Call("uniform3f", xyUColor, col[0], col[1], col[2])
+	// for lineWidth, so each is drawn several times at sub-pixel offsets.
+	vcUpload(v)
 	dx := float32(1.0) / float32(width)
 	for k := -2; k <= 2; k++ {
-		gl.Call("uniform2f", xyUOffset, float32(k)*dx, 0)
-		gl.Call("uniform1f", xyUAlpha, 0.5)
-		gl.Call("drawArrays", glTypes.Lines, 0, barVerts)
+		vcSpan(glTypes.Lines, 0, barVerts, 0.5, float32(k)*dx, 0)
 	}
-	// The peak marks, dimmer and in the same colour, so they read as a held
-	// maximum rather than as a second measurement.
-	gl.Call("uniform2f", xyUOffset, 0, 0)
-	gl.Call("uniform1f", xyUAlpha, 0.9)
-	gl.Call("drawArrays", glTypes.Lines, barVerts, peakVerts)
+	// The peak marks once and brighter: they are a held maximum rather than a
+	// level, and widening them would make them read as bars of their own.
+	vcSpan(glTypes.Lines, barVerts, peakVerts, 0.9, 0, 0)
+	vcDone()
 	gl.Call("disable", gl.Get("BLEND"))
 }
