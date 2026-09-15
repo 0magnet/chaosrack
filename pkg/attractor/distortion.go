@@ -39,7 +39,7 @@ import "math"
 // ── WHY THE POWER IS SUMMED OVER A BAND RATHER THAN READ FROM A BIN ──────
 //
 // A Hann window spreads a pure tone over about three bins, and the tone is
-// almost never exactly on a bin centre — the generator's frequency and the FFT's
+// almost never exactly on a bin center — the generator's frequency and the FFT's
 // bin spacing have no reason to divide. Reading the peak bin alone therefore
 // loses a scalloping-dependent fraction of the power, up to 1.4 dB with Hann,
 // and the loss is DIFFERENT for the fundamental and for each harmonic. That
@@ -48,7 +48,7 @@ import "math"
 //
 // Summing the band around each peak recovers the power whatever the alignment.
 // The bands have to be wide enough to hold the window's main lobe and narrow
-// enough not to swallow the neighbours, which for Hann is ±3 bins.
+// enough not to swallow the neighbors, which for Hann is ±3 bins.
 
 // DistortionResult is one measurement.
 type DistortionResult struct {
@@ -231,8 +231,8 @@ func bandPowerSum(mags []float64, lo, hi int) float64 {
 //
 // On the LOG magnitudes, because a windowed tone's main lobe is close to a
 // parabola in decibels and nothing like one in linear amplitude. The zero guard
-// is not decoration: a synthesized tone landing exactly on a bin centre leaves
-// its neighbours at the window's null, which is a true zero, and log(0) would
+// is not decoration: a synthesized tone landing exactly on a bin center leaves
+// its neighbors at the window's null, which is a true zero, and log(0) would
 // put a NaN into the frequency and from there into every harmonic band.
 func parabolicPeak(mags []float64, i int) float64 {
 	if i <= 0 || i >= len(mags)-1 {

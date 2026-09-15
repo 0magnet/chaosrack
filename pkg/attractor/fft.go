@@ -285,26 +285,6 @@ func computeFFTMagsKind(input []float32, wf winKind) []float64 {
 	return s.mags
 }
 
-// windowEnergy is Σw[n]² for the window a given FFT size uses — the quantity
-// that turns a summed band of magnitudes back into the amplitude of the tone
-// that made it.
-//
-// Taken from the scratch's own table rather than from the closed form for a
-// Hann window, so it cannot drift if the window ever changes: a scale factor
-// derived from a window the FFT is not actually applying is an amplitude
-// readout that is quietly wrong by a constant.
-func windowEnergy(n int) float64 {
-	s := fftScratchFor(n, winHann)
-	if s == nil {
-		return 0
-	}
-	var e float64
-	for _, w := range s.win {
-		e += w * w
-	}
-	return e
-}
-
 // computeFFTComplex is computeFFTMagsKind keeping the PHASE, into caller-owned
 // buffers.
 //
@@ -356,7 +336,10 @@ func inverseFFTReal(re, im []float64, n int, dst []float64) bool {
 	for i := 0; i < n; i++ {
 		var xr, xi float64
 		if i < half {
-			xr, xi = re[i], -im[i]
+			// half is n/2 and re/im are n/2+1 long, so i < half indexes inside
+			// them by construction — gosec cannot follow the bound from the
+			// loop condition to the slice length.
+			xr, xi = re[i], -im[i] //nolint:gosec // i < half <= len(re)-1
 		} else {
 			j := n - i
 			xr, xi = re[j], im[j] // conj of the conjugate is the value itself
@@ -369,7 +352,11 @@ func inverseFFTReal(re, im []float64, n int, dst []float64) bool {
 		tstep := n / size
 		for start := 0; start < n; start += size {
 			for k := 0; k < hs; k++ {
-				c, sn := s.cosT[k*tstep], s.sinT[k*tstep]
+				// k < hs and tstep = n/size, so k*tstep < n/2, which is the length
+				// of both tables by construction. gosec cannot follow that through
+				// the two loop bounds; a runtime check in the innermost line of an
+				// FFT is not the place to prove it.
+				c, sn := s.cosT[k*tstep], s.sinT[k*tstep] //nolint:gosec // bounded by hs and tstep above
 				i0, i1 := start+k, start+k+hs
 				tr := s.re[i1]*c - s.im[i1]*sn
 				ti := s.re[i1]*sn + s.im[i1]*c

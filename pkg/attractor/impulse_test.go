@@ -112,7 +112,7 @@ func decayingNoise(secs, t60 float64) []float64 {
 		rng ^= rng << 13
 		rng ^= rng >> 17
 		rng ^= rng << 5
-		v := float64(int32(rng)>>8) / (1 << 23)
+		v := float64(int32(rng)>>8) / (1 << 23) //nolint:gosec // the wrap to signed IS the bipolar swing
 		// −60 dB over t60 seconds is an amplitude factor of 10^(−3·t/t60).
 		out[i] = v * math.Pow(10, -3*float64(i)/irSR/t60)
 	}
@@ -262,7 +262,7 @@ func TestCSDRefusesBadInput(t *testing.T) {
 	}
 }
 
-// The frequency axis is logarithmic, because hearing is organised in ratios and
+// The frequency axis is logarithmic, because hearing is organized in ratios and
 // a linear axis spends nine-tenths of the width above 2 kHz.
 func TestLogFreqPointsAreLogarithmic(t *testing.T) {
 	f := LogFreqPoints(20, 20000, 100)
@@ -291,7 +291,7 @@ func TestInverseFFTUndoesTheForward(t *testing.T) {
 	rng := uint32(12345)
 	for i := range x {
 		rng = rng*1664525 + 1013904223
-		x[i] = float32(float64(int32(rng)>>8) / (1 << 23))
+		x[i] = float32(float64(int32(rng)>>8) / (1 << 23)) //nolint:gosec // the wrap to signed IS the bipolar swing
 	}
 	re := make([]float64, n/2+1)
 	im := make([]float64, n/2+1)
@@ -316,7 +316,7 @@ func TestInverseFFTUndoesTheForward(t *testing.T) {
 //
 // This is the limitation ReverbTime documents and does not solve; the usual
 // answer is Lundeby's method, finding the noise floor and truncating there. The
-// test exists so that the behaviour is a known quantity rather than a surprise,
+// test exists so that the behavior is a known quantity rather than a surprise,
 // and so that a future fix has something to change.
 //
 // It also records something worse than the limitation itself: the obvious check
@@ -372,12 +372,12 @@ func TestSpectrumPointsLevel(t *testing.T) {
 		sr = 48000
 	)
 	freqs := LogFreqPoints(20, 20000, 96)
-	// The axis point nearest 1 kHz, and then the BIN CENTRE nearest that point,
+	// The axis point nearest 1 kHz, and then the BIN CENTER nearest that point,
 	// which is the tone the test uses.
 	//
 	// Both steps matter and neither is the function being lenient. The frequency
 	// axis is logarithmic, so 1000 Hz is not on it — the nearest point is 1015 —
-	// and a tone read three bins around the wrong centre is 1.2 dB light, which
+	// and a tone read three bins around the wrong center is 1.2 dB light, which
 	// is scalloping loss and is a true fact about a 96-point axis over a 4096-bin
 	// transform rather than an error in the scaling this test is checking.
 	near := 0
@@ -494,7 +494,7 @@ func TestSpectrumPointsTonesBetweenAxisPoints(t *testing.T) {
 		// resolve — 7.5% at 100 Hz is 7.5 Hz and the bins are 11.7 — so several
 		// adjacent points legitimately read the same tone. That is the resolution
 		// saying so, not the sampling missing it.
-		var second float64 = -1e9
+		var second = -1e9
 		for i, v := range out {
 			if math.Abs(math.Log2(freqs[i]/f)) < 1.0/3 {
 				continue
