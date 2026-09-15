@@ -110,10 +110,11 @@ func init() {
 		{"takens-tau", "τ", &takensTau, takensTauDef, 1, takensTauMax, 1},
 		{"takens-win", "win", &takensWin, 85, 5, 500, 5},
 		{"takens-gain", "gain", &takensGain, 10, 0.5, 50, 0.5},
+		{"takens-smooth", "smth", &takensSmoothF, 4, 1, 16, 1},
 	}
 }
 
-// takensSmooth is the beam-smoothing upsample factor, exactly as the xy scope
+// takensSmoothF is the beam-smoothing upsample factor, exactly as the xy scope
 // uses it: each sample-to-sample step is drawn as this many Catmull-Rom spline
 // steps. A LINE_STRIP straight from one delay vector to the next is a chord,
 // and chords are what put the visible straight runs and hard corners in the
@@ -122,7 +123,34 @@ func init() {
 // the more faithful reconstruction, not a prettier lie. It also covers the
 // decimated case: when a long window forces stride > 1, the curve passes
 // through the kept samples instead of cutting across them.
-const takensSmooth = 4
+//
+// A KNOB, and it was a constant here while the xy scope — doing the identical
+// thing, and named in the sentence above as where it came from — has had it on
+// a knob all along. It is worth turning: it is the trade between how much
+// WINDOW is on screen and how smooth the beam is, because the two come out of
+// one vertex budget. Down at 1 the figure is raw chords through four times as
+// many samples, which is what to use to see a long window; up at 16 it is a
+// glass-smooth beam through a short one.
+//
+// Shared with the polar embedding, which draws its beam with the same
+// arithmetic — the recurrence plot already shares takens-tau the same way.
+var takensSmoothF float32 = 4
+
+// takensSmooth is that knob as a step count, clamped.
+//
+// Clamped rather than trusted because it is an audio-modulation target and it
+// is a DIVISOR: takensWindow spends budget/smooth on source points, so a
+// modulator that drives it to zero is a division by zero rather than an ugly
+// figure.
+func takensSmooth() int {
+	n := int(takensSmoothF + 0.5)
+	if n < 1 {
+		n = 1
+	} else if n > 16 {
+		n = 16
+	}
+	return n
+}
 
 // takensWindow converts the WIN knob into a sample count, a stride that fits
 // that many samples into the point budget, and the resulting source-point
@@ -138,7 +166,8 @@ func takensWindow(winMS float32, sampleRate, budget int) (n, stride int) {
 	if win < 64 {
 		win = 64
 	}
-	src := budget / takensSmooth
+	sm := takensSmooth()
+	src := budget / sm
 	if src < 2 {
 		src = 2
 	}
@@ -157,7 +186,7 @@ func takensWindow(winMS float32, sampleRate, budget int) (n, stride int) {
 }
 
 // takensVerts is how many vertices takensWindow's n source points draw.
-func takensVerts(n int) int { return (n-1)*takensSmooth + 1 }
+func takensVerts(n int) int { return (n-1)*takensSmooth() + 1 }
 
 // takensFitExtent is the extent the camera is fitted to: the worst case a fixed
 // scale can produce. Samples are bounded to ±1, so no coordinate exceeds gain,
@@ -316,9 +345,10 @@ func generateTakens() {
 	}
 	invN := float32(1) / float32(nv-1)
 	vertices := vertBuf[:nv*4]
+	sm := takensSmooth()
 	for m := 0; m < nv; m++ {
-		i := m / takensSmooth
-		f := float32(m%takensSmooth) / takensSmooth
+		i := m / sm
+		f := float32(m%sm) / float32(sm)
 		j := m * 4
 		for c, off := range [3]int{0, -tau, -2 * tau} {
 			p0, p1, p2, p3 := at(i-1, off), at(i, off), at(i+1, off), at(i+2, off)

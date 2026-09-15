@@ -196,3 +196,38 @@ func TestAutoMeasureDefersToAChosenTau(t *testing.T) {
 		t.Error("not due over the value the last automatic measurement wrote")
 	}
 }
+
+// TestTakensSmoothStaysInsideTheVertexBudget is the safety property of putting
+// the beam smoothing on a knob.
+//
+// The window arithmetic and the vertex count are two halves of one invariant:
+// takensWindow spends budget/smooth on source points and takensVerts draws
+// (n-1)*smooth+1 of them. If the two ever read different values of smooth — or
+// if a modulator drives it to zero, since it is a DIVISOR — the figure either
+// overruns the buffer or divides by zero. Neither is a wrong picture; both are
+// a crash.
+func TestTakensSmoothStaysInsideTheVertexBudget(t *testing.T) {
+	saved := takensSmoothF
+	t.Cleanup(func() { takensSmoothF = saved })
+
+	for _, knob := range []float32{-1e9, -1, 0, 0.4, 1, 4, 16, 17, 1e9} {
+		takensSmoothF = knob
+		sm := takensSmooth()
+		if sm < 1 || sm > 16 {
+			t.Errorf("smth %v clamped to %d, want 1..16", knob, sm)
+			continue
+		}
+		for _, budget := range []int{64, 2048, 20000} {
+			for _, winMS := range []float32{5, 85, 500} {
+				n, stride := takensWindow(winMS, 24000, budget)
+				if n < 2 || stride < 1 {
+					t.Fatalf("smth %v budget %d win %v: n=%d stride=%d", knob, budget, winMS, n, stride)
+				}
+				if v := takensVerts(n); v > budget {
+					t.Errorf("smth %v budget %d win %v: %d vertices overruns the budget",
+						knob, budget, winMS, v)
+				}
+			}
+		}
+	}
+}
