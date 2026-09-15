@@ -85,6 +85,10 @@ var paramLabels = map[string][]string{
 	// holds still between sweeps, or a live stack of spectra of whatever is
 	// playing, which is the other thing the word waterfall means.
 	"wfall-src": {"decay from a sweep", "live spectra"},
+	// Which channel the live surface analyses. The decay surface has no such
+	// choice — it needs both, and REF says which of the two is the reference.
+	"wfall-chan": tapChanNames,
+	"wfall-fft":  wfallFFTLabels,
 }
 
 // paramRingLabels is what actually fits around the dial. A cell is a third of
@@ -124,6 +128,8 @@ var paramRingLabels = map[string][]string{
 	"xf-swap":     {"L", "R"},
 	"wfall-swap":  {"L", "R"},
 	"wfall-src":   {"dcay", "live"},
+	"wfall-chan":  tapChanRing,
+	"wfall-fft":   wfallFFTRing,
 }
 
 // turtlePhysParams are the weight controls. They are not in attractorParams
