@@ -79,8 +79,10 @@ format: tidy ## Format the code. Needs goimports (make install-linters)
 	@# Files, not directories. goimports -w on a DIRECTORY walks it recursively,
 	@# and the module root is one of the directories `go list` returns — so the
 	@# /vendor/ filter that used to be here filtered a path that was never passed
-	@# and goimports reformatted all 263 vendored files anyway, every time.
-	${OPTS} goimports -w -local ${PROJECT_BASE} $(shell find . -name "*.go" -not -path "./vendor/*" -not -path "./.git/*")
+	@# and goimports reformatted all 263 vendored files anyway, every time. The
+	@# pattern matches at any depth: a nested vendor tree (0magnet/desk, pisano)
+	@# is not caught by an anchored ./vendor/*.
+	${OPTS} goimports -w -local ${PROJECT_BASE} $(shell find . -name "*.go" -not -path "*/vendor/*" -not -path "*/.git/*")
 
 lint: ## Run golangci-lint. Needs it installed (make install-linters)
 	command -v golangci-lint || go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
