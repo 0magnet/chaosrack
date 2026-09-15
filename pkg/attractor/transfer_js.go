@@ -42,9 +42,6 @@ var (
 	xfNextMs float64
 	xfAccum  TransferAccum
 	xfRes    TransferResult
-	xfLine   []float32
-	xfU8     js.Value
-	xfF32    js.Value
 
 	// The knobs.
 	xfSwapF  float32      // 0 = left is the reference, 1 = right
@@ -178,12 +175,6 @@ func drawTransfer() {
 		gl.Call("clear", glTypes.ColorBufferBit)
 		return
 	}
-	need := n * 3 * 2 * 2
-	if len(xfLine) < need {
-		xfLine = make([]float32, need+need/2)
-		xfU8 = js.Global().Get("Uint8Array").New(len(xfLine) * 4)
-		xfF32 = js.Global().Get("Float32Array").New(xfU8.Get("buffer"), 0, len(xfLine))
-	}
 	show := xfShowSel()
 	minCoh := float64(xfCohF) / 10
 	rng := float64(xfRangeF)
@@ -226,11 +217,35 @@ func drawTransfer() {
 		}
 	}
 
-	o := 0
-	seg := func(x0, y0, x1, y1 float32) {
-		xfLine[o], xfLine[o+1], xfLine[o+2], xfLine[o+3] = x0, y0, x1, y1
-		o += 4
+	// COLOURED BY COHERENCE, which is the whole reason this display has a
+	// colour at all.
+	//
+	// The three curves are read together — a dip in the magnitude with the
+	// coherence high is the system, and the same dip with it collapsed is the
+	// measurement giving up — and reading them together means moving the eye
+	// between two lanes and matching up frequencies by position. Colouring the
+	// magnitude by the coherence at that frequency puts the second reading ON
+	// the first, which is how a system-tuning rig shows it and why the coherence
+	// lane is a confirmation rather than the only place the reading exists.
+	//
+	// The colormap is the Colors module's own, so the value paints the same
+	// colour here as it does in the spectrogram and on the trail. With a
+	// swatch-mixing palette selected it falls back to the single trace colour,
+	// which is what this drew before.
+	pal, coloured := analyzerPalette()
+	flat := analyzerTraceColor()
+	// ONE rule for all three lanes: the colour at a band is its coherence.
+	// The coherence lane is then a colour ramp of exactly what it plots, which
+	// makes it the key to the other two rather than a fourth thing to learn.
+	colourFor := func(i int) [3]float32 {
+		if !coloured {
+			return flat
+		}
+		return analyzerColorAt(pal, xfRes.Coherence[i])
 	}
+
+	vcFit(n * 3 * 2)
+	v := 0
 	xAt := func(i int) float32 { return float32(-0.92 + 1.84*float64(i)/float64(n-1)) }
 	for _, ln := range lanes {
 		for i := 1; i < n; i++ {
@@ -245,46 +260,32 @@ func drawTransfer() {
 					continue
 				}
 			}
-			seg(xAt(i-1), xfY(ln.vals[i-1], ln.lo, ln.hi, ln.bandLo, ln.bandHi),
-				xAt(i), xfY(ln.vals[i], ln.lo, ln.hi, ln.bandLo, ln.bandHi))
+			vcPut(v, xAt(i-1), xfY(ln.vals[i-1], ln.lo, ln.hi, ln.bandLo, ln.bandHi), colourFor(i-1))
+			vcPut(v+1, xAt(i), xfY(ln.vals[i], ln.lo, ln.hi, ln.bandLo, ln.bandHi), colourFor(i))
+			v += 2
 		}
 	}
-	verts := o / 2
-	if verts == 0 {
+	if v == 0 {
 		gl.Call("disable", glTypes.DepthTest)
 		gl.Call("clearColor", 0, 0, 0, 0)
 		gl.Call("clear", glTypes.ColorBufferBit)
 		return
 	}
 
+	initVColor()
 	gl.Call("disable", glTypes.DepthTest)
 	gl.Call("clearColor", 0, 0, 0, 0)
 	gl.Call("clear", glTypes.ColorBufferBit)
-	gl.Call("useProgram", xyProgram)
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, xyBuf)
-	js.CopyBytesToJS(xfU8, sliceToByteSlice(xfLine))
-	gl.Call("bufferData", glTypes.ArrayBuffer, xfF32, glTypes.DynamicDraw)
-	gl.Call("enableVertexAttribArray", xyAPos)
-	gl.Call("vertexAttribPointer", xyAPos, 2, glTypes.Float, false, 0, 0)
-
-	col := [3]float32{0.4, 1.0, 0.45}
-	if phosphorActive() {
-		p := phosphors[phosphorIdx]
-		col = [3]float32{float32(p.tr), float32(p.tg), float32(p.tb)}
-	}
 	gl.Call("enable", gl.Get("BLEND"))
 	gl.Call("blendFunc", gl.Get("SRC_ALPHA"), gl.Get("ONE"))
-	gl.Call("uniform3f", xyUColor, col[0], col[1], col[2])
+	vcUpload(v)
 	dx := float32(1.2) / float32(width)
 	dy := float32(1.2) / float32(height)
 	for _, h := range [][3]float32{{dx, 0, 0.35}, {-dx, 0, 0.35}, {0, dy, 0.35}, {0, -dy, 0.35}} {
-		gl.Call("uniform2f", xyUOffset, h[0], h[1])
-		gl.Call("uniform1f", xyUAlpha, h[2])
-		gl.Call("drawArrays", glTypes.Lines, 0, verts)
+		vcSpan(glTypes.Lines, 0, v, h[2], h[0], h[1])
 	}
-	gl.Call("uniform2f", xyUOffset, 0, 0)
-	gl.Call("uniform1f", xyUAlpha, 1)
-	gl.Call("drawArrays", glTypes.Lines, 0, verts)
+	vcSpan(glTypes.Lines, 0, v, 1, 0, 0)
+	vcDone()
 	gl.Call("disable", gl.Get("BLEND"))
 
 	showTransferDelay()
