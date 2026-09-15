@@ -209,6 +209,7 @@ func init() {
 		{"stereo-gain", "gain", &stereoGain, 10, 0.5, 50, 0.5},
 		{"stereo-align", "algn", &stereoAlign, 0, -stereoAlignMax, stereoAlignMax, 1},
 		{"stereo-width", "wide", &stereoWidth, 1, 0, 3, 0.05},
+		{"takens-smooth", "smth", &takensSmoothF, 4, 1, 16, 1},
 	}
 }
 
@@ -452,9 +453,10 @@ func generateStereo() {
 		return stereoChanValue(plan.ch[c], lv, rv)
 	}
 	invN := float32(1) / float32(nv-1)
+	sm := takensSmooth()
 	for m := 0; m < nv; m++ {
-		i := m / takensSmooth
-		f := float32(m%takensSmooth) / takensSmooth
+		i := m / sm
+		f := float32(m%sm) / float32(sm)
 		j := m * 4
 		w := float32(m) * invN
 		for c := 0; c < 3; c++ {
