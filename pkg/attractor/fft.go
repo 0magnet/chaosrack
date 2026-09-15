@@ -332,3 +332,59 @@ func computeFFTComplex(input []float32, wf winKind, re, im []float64) bool {
 	copy(im, s.im[:n/2+1])
 	return true
 }
+
+// inverseFFTReal reconstructs a real signal from a Hermitian half-spectrum —
+// the n/2+1 complex bins a real transform produces — into dst, which must hold
+// n samples.
+//
+// Done with the FORWARD transform rather than a second butterfly loop, through
+// the identity IFFT(X) = conj(FFT(conj(X)))/n. One transform in the package is
+// one transform to keep correct; a separate inverse would be a second copy of
+// the same butterflies, differing only in a sign, which is exactly the kind of
+// near-duplicate that drifts.
+//
+// The half-spectrum is mirrored back to full length first: bins n/2+1..n-1 are
+// the conjugates of n/2-1 down to 1, which is what "Hermitian" means and what
+// makes the result real.
+func inverseFFTReal(re, im []float64, n int, dst []float64) bool {
+	half := n/2 + 1
+	if n == 0 || n&(n-1) != 0 || len(re) < half || len(im) < half || len(dst) < n {
+		return false
+	}
+	s := fftScratchFor(n, winRectangular)
+	// conj(X), mirrored to full length, bit-reversed into place.
+	for i := 0; i < n; i++ {
+		var xr, xi float64
+		if i < half {
+			xr, xi = re[i], -im[i]
+		} else {
+			j := n - i
+			xr, xi = re[j], im[j] // conj of the conjugate is the value itself
+		}
+		s.re[s.rev[i]] = xr
+		s.im[s.rev[i]] = xi
+	}
+	for size := 2; size <= n; size <<= 1 {
+		hs := size >> 1
+		tstep := n / size
+		for start := 0; start < n; start += size {
+			for k := 0; k < hs; k++ {
+				c, sn := s.cosT[k*tstep], s.sinT[k*tstep]
+				i0, i1 := start+k, start+k+hs
+				tr := s.re[i1]*c - s.im[i1]*sn
+				ti := s.re[i1]*sn + s.im[i1]*c
+				s.re[i1] = s.re[i0] - tr
+				s.im[i1] = s.im[i0] - ti
+				s.re[i0] += tr
+				s.im[i0] += ti
+			}
+		}
+	}
+	// conj again and scale: the real part is the answer, and the imaginary part
+	// is rounding for a properly Hermitian input.
+	inv := 1 / float64(n)
+	for i := 0; i < n; i++ {
+		dst[i] = s.re[i] * inv
+	}
+	return true
+}

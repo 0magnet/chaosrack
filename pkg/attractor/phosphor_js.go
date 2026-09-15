@@ -146,7 +146,7 @@ func crtBeam() bool {
 // them and a length for everything else, so anything that reaches for `steps`
 // as a length has to ask.
 func isAudioEmbedding(mode string) bool {
-	return mode == "takens" || mode == "stereo" || mode == "polar"
+	return mode == "takens" || mode == "stereo" || mode == "polar" || mode == "waterfall"
 }
 
 // updateCRTDim dims the Controls a selected phosphor overrides (their color /
