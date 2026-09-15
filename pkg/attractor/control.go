@@ -51,6 +51,17 @@ type Control struct {
 	ledSign   bool     // LED shows a sign
 	permaKey  string   // permalink key (e.g. "p.sigma")
 	resetHook func()   // extra work a reset needs beyond restoring the value
+
+	// A SELECTOR-backed control instead of a slider-backed one: sel is the
+	// <select> that holds the value and selDef the option value a reset returns
+	// to. Exactly one of slider and sel is ever set.
+	//
+	// Kept as its own field rather than overloading slider, because the two are
+	// read differently everywhere it matters — a slider's value is a float to
+	// compare with a tolerance, a select's is a string to compare exactly, and
+	// the event that commits one is "input" where the other is "change".
+	sel    js.Value
+	selDef string
 }
 
 // formatLED renders a value for this control's LED readout using its owned
@@ -63,6 +74,14 @@ func (c *Control) formatValue(v float64) string {
 // hidden slider, whose input handler does the real work). No-op for Controls
 // without a slider reference (e.g. purely DOM-derived ones).
 func (c *Control) resetToDefault() {
+	if c.sel.Truthy() {
+		c.sel.Set("value", c.selDef)
+		c.sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+		if c.resetHook != nil {
+			c.resetHook()
+		}
+		return
+	}
 	if !c.slider.Truthy() {
 		return
 	}

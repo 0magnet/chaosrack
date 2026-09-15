@@ -418,13 +418,21 @@ func wireTonematrixModule() {
 	addSelectorLabels(sstk, []string{"8", "16", "32"}, stepsSel, 50)
 	addSelectorLabels(sstk, []string{"C1", "C2", "C3", "C4"}, root, 36)
 	sstack.Call("appendChild", sstk)
-	rebuild := trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	rebuildTM := func() {
 		buildTMGrid()
 		quantizeModuleWidths()
-		return nil
+	}
+	// The step count and root share the steps cell's reset button, as the
+	// routing and waveform share the out cell's. All four were orphans: no
+	// reset, not restored by Reset All, not in the permalink.
+	adoptDescControl(ControlDesc{
+		ID: "tm-steps", Label: "steps", SelectDef: "16", PermaKey: "ms",
+		ResetID: "rst-tm-steps", SelectApply: func(string) { rebuildTM() },
 	})
-	stepsSel.Call("addEventListener", "change", rebuild)
-	root.Call("addEventListener", "change", rebuild)
+	adoptDescControl(ControlDesc{
+		ID: "tm-root", Label: "root", SelectDef: "3", PermaKey: "mr",
+		ResetID: "rst-tm-steps", SelectApply: func(string) { rebuildTM() },
+	})
 
 	// Level cell: standard value knob, LED and reset from the descriptor.
 	lstack.Call("appendChild", makeKnob(lvl, js.Undefined(), true, false, true))
@@ -439,10 +447,13 @@ func wireTonematrixModule() {
 	addSelectorLabels(ostk, []string{"off", "L", "R", "L+R"}, out, 50)
 	addSelectorWaveDial(ostk, wave, 38)
 	ostack.Call("appendChild", ostk)
-	out.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		tmUpdateRouting()
-		return nil
-	}))
+	adoptDescControl(ControlDesc{
+		ID: "tm-out", Label: "out", SelectDef: "both", PermaKey: "mo",
+		ResetID: "rst-tm-out", SelectApply: func(string) { tmUpdateRouting() },
+	})
+	adoptDescControl(ControlDesc{
+		ID: "tm-wave", Label: "wave", SelectDef: "0", PermaKey: "mv",
+	})
 
 	if run := doc.Call("getElementById", "tm-run"); run.Truthy() {
 		run.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
