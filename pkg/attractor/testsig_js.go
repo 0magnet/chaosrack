@@ -28,7 +28,6 @@ func buildTestSignalModule() {
 	sel := doc.Call("getElementById", "testsig-sel")
 	stack := doc.Call("getElementById", "testsig-stack")
 	lvl := doc.Call("getElementById", "testsig-lvl")
-	lvlLED := doc.Call("getElementById", "testsig-lvl-led")
 	lstack := doc.Call("getElementById", "testsig-lstack")
 	if !sel.Truthy() || !stack.Truthy() || !lvl.Truthy() {
 		return
@@ -48,25 +47,14 @@ func buildTestSignalModule() {
 	stack.Call("appendChild", knob)
 	addSelectorLabels(knob, audiosrc.TestSignalRing, sel, 50)
 
-	lvlLED.Set("value", formatLED(fgFloat(lvl), intDigits(100), 1, false))
-	sizeLEDField(lvlLED, 0, 100, 1, false)
 	lstack.Call("appendChild", makeKnob(lvl, js.Undefined(), true, false, true))
-
+	adoptDescControl(ControlDesc{
+		ID: "testsig-lvl", Label: "lvl", Min: 0, Max: 100, Step: 1, Def: 50,
+		LEDID: "testsig-lvl-led", ResetID: "rst-testsig-lvl",
+		Apply: func(v float64) { fg().SetTestLevel(v / 100) },
+	})
 	sel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
 		applyTestSignal()
-		return nil
-	}))
-	lvl.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		v := fgFloat(lvl)
-		lvlLED.Set("value", formatLED(v, intDigits(100), 1, false))
-		fg().SetTestLevel(v / 100)
-		return nil
-	}))
-	lvlLED.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if v, err := strconv.ParseFloat(lvlLED.Get("value").String(), 64); err == nil {
-			lvl.Set("value", strconv.FormatFloat(v, 'f', 0, 64))
-			lvl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-		}
 		return nil
 	}))
 	applyTestSignal()
