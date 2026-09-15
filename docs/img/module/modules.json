@@ -7,16 +7,23 @@
     "mode": "lorenz"
   },
   {
-    "id": "parameters",
+    "id": "params",
     "label": "Parameters",
     "title": "Parameters — the current model's tunable constants (each with knob, LED value, step size, and reset)",
-    "image": "docs/img/module/parameters.jpg",
+    "image": "docs/img/module/params.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "layers",
+    "label": "Layers",
+    "title": "Layers — where a second picture goes relative to the model. BEHIND draws one filling the canvas behind it; SKIN paints the spectrogram onto the model's own surface; FILL makes the spectrogram or FVF plane the whole screen, face-on, instead of a plane you can turn. Skin and Fill dim when the current model cannot take them.",
+    "image": "docs/img/module/layers.jpg",
     "mode": "lorenz"
   },
   {
     "id": "colors",
     "label": "Colors",
-    "title": "Colors — gradient source axis, palette size, rainbow period, and trail length",
+    "title": "Colors — SRC (what the color follows, including OFF for a flat trace), MAP (how a value becomes a color, for every display including the spectrogram), the map window (period and shift), and trail length",
     "image": "docs/img/module/colors.jpg",
     "mode": "lorenz"
   },
@@ -91,6 +98,13 @@
     "mode": "lorenz"
   },
   {
+    "id": "testsig",
+    "label": "Test",
+    "title": "Test — the stimulus library: the signals a test record carries, synthesized. Pink noise for a spectrum or a room, a logarithmic sweep for an impulse response, 1 kHz as a level and distortion reference, 3150 Hz for wow and flutter, left-only and right-only to find out which speaker is which, a polarity pulse whose direction is visible, and three noises whose channels are identical, independent or inverted — correlation +1, 0 and −1 to check a phase display against. It replaces the X/Y/Z oscillators while it is on; they keep their settings and come back when it is off. Needs Signal gen switched on in the Console.",
+    "image": "docs/img/module/testsig.jpg",
+    "mode": "lorenz"
+  },
+  {
     "id": "sonify",
     "label": "Model Out",
     "title": "Model Out — HEAR the attractor. Inner knob picks how: FLOW integrates the attractor's own equations at audio rate, so the pitch is the system's natural orbital frequency (chaos chirps, periodic windows lock to tones, parameter changes are audible) and RATE transposes it (A4 = ×1); SCAN traces the drawn trail as one waveform period at exactly RATE Hz (a stable, playable tone). MAP picks which two coordinates drive L/R (CAM = the screen's x/y, so rotating the model changes the sound; off = silent). LVL is output level.",
@@ -98,24 +112,45 @@
     "mode": "lorenz"
   },
   {
-    "id": "patch",
-    "label": "Patchbay",
-    "title": "Patchbay — pin-matrix audio routing (sources × destinations) and the 8-slot patch memory bank",
-    "image": "docs/img/module/patch.jpg",
+    "id": "thd",
+    "label": "Distortion",
+    "title": "Distortion — THD, THD+N, SINAD and ENOB of the live audio, measured against whichever tone is in it. Feed it the Test module's 1 kHz reference through whatever you want measured and read how much of what comes back is not that tone. THD is the harmonics alone, which is the number a specification quotes; THD+N is everything that is not the fundamental, which is the honest one and always the larger; SINAD is the same ratio in decibels, the way a converter is specified; ENOB runs the ideal-converter relation backwards and says how many bits would sound this clean. The gap between THD and THD+N is how much of the rubbish is hiss rather than distortion. The instrument's own floor is about 0.0015% THD+N (96.5 dB SINAD, 17.3 effective bits), measured on a synthesized pure tone — that is the Blackman-Harris window's leakage past the notch, and nothing quieter than it can be read.",
+    "image": "docs/img/module/thd.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "lufs",
+    "label": "Loudness",
+    "title": "Loudness — LUFS to ITU-R BS.1770 and EBU R 128, the scale everything is delivered against. M is the momentary loudness over 400 ms, S the short-term over 3 s, I the INTEGRATED reading over everything since the last reset — gated, so silence and quiet passages do not drag a programme's number down, which is what makes it the number a delivery spec means. LRA is the loudness range, how far the loud parts sit above the quiet ones: one number for how dynamic the material is, and the thing a loudness target alone says nothing about. TP is the TRUE peak in dBTP, the peak of the reconstructed signal rather than of the samples — a full-scale tone at a quarter of the sample rate can have every sample at −3 dBFS and still clip the converter, which is why a delivery ceiling is a true-peak ceiling. K-weighting is derived from the analog prototype at whatever rate the audio is arriving at, not the 48 kHz coefficients the standard prints, so the weighting is the same filter at every rate.",
+    "image": "docs/img/module/lufs.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "wf",
+    "label": "Wow \u0026 Flutter",
+    "title": "Wow \u0026 Flutter — speed stability, measured off a 3150 Hz test tone. Every other analyzer here asks about amplitude; this asks whether the TIME AXIS is steady, which is what a turntable, a tape deck or a cassette is judged by. Play the Test module's 3150 Hz tone through the deck, capture the result, and read it here: SPEED is the mean frequency error as a percentage (a constant error is a pitch shift, a different fault from a wobble), WOW the slow 0.5–6 Hz modulation that once-per-revolution faults produce, FLUTTER the fast 6–100 Hz kind from capstans and idlers, and W\u0026F the DIN-weighted quasi-peak that a specification quotes — the deviation through a filter peaked at 4 Hz, where the ear is most sensitive to pitch movement. 3150 Hz is the figure every test record carries (DIN 45507, IEC 60386). With no deck in the loop at all it reads 0.000% on the generator itself, which is the check that the instrument is not inventing the number.",
+    "image": "docs/img/module/wf.jpg",
     "mode": "lorenz"
   },
   {
     "id": "mod",
     "label": "Mod",
-    "title": "Modulation routing for the Colors module — a channel + depth card per control",
+    "title": "Modulation routing for the Parameters module — a channel + depth card per control",
     "image": "docs/img/module/mod.jpg",
     "mode": "lorenz"
   },
   {
     "id": "eq",
     "label": "EQ",
-    "title": "Graphic-EQ band weights for the Colors module's modulation — paint which frequency bands drive each control",
+    "title": "Graphic-EQ band weights for the Parameters module's modulation — paint which frequency bands drive each control",
     "image": "docs/img/module/eq.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "patch",
+    "label": "Patchbay",
+    "title": "Patchbay — pin-matrix audio routing (sources × destinations) and the 8-slot patch memory bank",
+    "image": "docs/img/module/patch.jpg",
     "mode": "lorenz"
   },
   {
@@ -151,6 +186,13 @@
     "label": "Matrix",
     "title": "Matrix — a pentatonic tonematrix step sequencer: paint pads on the grid (click or drag; rows are pitches, columns are sixteenth-note steps) and the playhead loops them as pings at the tempo. The pentatonic rows mean any pattern is consonant.",
     "image": "docs/img/module/tm.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "rhythm",
+    "label": "Rhythm",
+    "title": "Rhythm — the drum machine a home organ had built into it. Press a preset tab and the section plays that pattern in a loop at the tempo knob's BPM; the tabs interlock, so one plays at a time. The four voices (bass drum, snare, hi-hat, cymbal) are synthesized from oscillators and filtered noise, not samples. Sound out through the L/R ring; if the page is also listening to the system output, the drums drive the model too.",
+    "image": "docs/img/module/rhythm.jpg",
     "mode": "lorenz"
   },
   {
