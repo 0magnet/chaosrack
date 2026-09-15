@@ -155,7 +155,9 @@ func buildSite() ([]modelPage, indexPage) {
 				Loop:      imgURL(m.Key, ".gif"),
 				Prms:      imgURL(m.Key, "-params.jpg"),
 				Group:     g.Label,
-				CSS:       htmpl.CSS(sharedCSS),
+				// sharedCSS is this tool's own stylesheet, not input. htmpl.CSS is
+				// the type that says so, which is exactly its purpose.
+				CSS:       htmpl.CSS(sharedCSS), //nolint:gosec // our own stylesheet, not user input
 				Canonical: *siteBase + "/" + *siteDir + "/" + m.Key + ".html",
 				AppURL:    *siteBase + "/#" + m.Key,
 			}
@@ -190,7 +192,7 @@ func buildSite() ([]modelPage, indexPage) {
 		"each with its equations and a link that opens it running in the browser.", len(pages))
 	index.Canonical = *siteBase + "/" + *siteDir + "/"
 	index.Base = *siteBase
-	index.CSS = htmpl.CSS(sharedCSS)
+	index.CSS = htmpl.CSS(sharedCSS) //nolint:gosec // our own stylesheet, not user input
 	return pages, index
 }
 

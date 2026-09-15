@@ -26,7 +26,7 @@ func distTone(n int, hz, amp float64, harm ...[2]float64) []float32 {
 
 // A PURE TONE HAS NO DISTORTION. If the analyzer reports any, it is reporting
 // its own arithmetic — spectral leakage from a frequency that does not land on
-// a bin centre, most likely — and every other number it produces is built on
+// a bin center, most likely — and every other number it produces is built on
 // the same error.
 //
 // The frequencies here are deliberately NOT bin-aligned: 1000 Hz at 48 kHz over
@@ -141,8 +141,7 @@ func TestTHDNIsNeverLessThanTHD(t *testing.T) {
 		x := distTone(16384, 1000, fund, [2]float64{3, fund * 0.01})
 		rng := uint32(12345)
 		for i := range x {
-			rng = rng*1664525 + 1013904223
-			x[i] += float32(noise * (float64(int32(rng)>>8) / (1 << 23)))
+			x[i] += float32(noise * dtNoise(&rng))
 		}
 		r := AnalyzeDistortion(x, dtSR, 10)
 		if !r.OK {
@@ -172,8 +171,7 @@ func TestNoiseMovesTHDNAndNotTHD(t *testing.T) {
 		x := distTone(16384, 1000, fund, [2]float64{3, fund * dist})
 		rng := uint32(999)
 		for i := range x {
-			rng = rng*1664525 + 1013904223
-			x[i] += float32(noise * (float64(int32(rng)>>8) / (1 << 23)))
+			x[i] += float32(noise * dtNoise(&rng))
 		}
 		return AnalyzeDistortion(x, dtSR, 10)
 	}
@@ -214,8 +212,7 @@ func TestSINADAgreesWithTHDN(t *testing.T) {
 	x := distTone(16384, 1000, fund, [2]float64{2, fund * 0.02}, [2]float64{3, fund * 0.01})
 	rng := uint32(4242)
 	for i := range x {
-		rng = rng*1664525 + 1013904223
-		x[i] += float32(1e-3 * (float64(int32(rng)>>8) / (1 << 23)))
+		x[i] += float32(1e-3 * dtNoise(&rng))
 	}
 	r := AnalyzeDistortion(x, dtSR, 10)
 	if !r.OK {
@@ -236,7 +233,7 @@ func TestSINADAgreesWithTHDN(t *testing.T) {
 // level, it is what falls out of rounding.
 func TestENOBRecoversAQuantizedSignal(t *testing.T) {
 	for _, bits := range []int{8, 10, 12} {
-		x := distTone(16384, 1000.7, 0.98) // near full scale, off a bin centre
+		x := distTone(16384, 1000.7, 0.98) // near full scale, off a bin center
 		step := 2.0 / math.Pow(2, float64(bits))
 		for i := range x {
 			x[i] = float32(math.Round(float64(x[i])/step) * step)
@@ -357,4 +354,18 @@ func TestTheMeasurementFloorIsWhereItIsClaimed(t *testing.T) {
 	if worstSINAD < 94 {
 		t.Errorf("the floor is %.1f dB SINAD; the README claims better than 94 dB", worstSINAD)
 	}
+}
+
+// dtNoise is one sample of the LCG dither these tests add, in −1..1, advancing
+// the caller's state.
+//
+// int32(rng) is a deliberate wrap of the unsigned state into a signed value:
+// the sign is where the bipolar swing comes from. Taking the shift first —
+// int32(rng>>8) — gives 0..2 instead of ±1, which is a DC offset dressed up as
+// noise, and is a bug this suite has already caught once. gosec cannot tell an
+// intended wrap from an accident, so the exemption is here, once, rather than
+// at each of the three places that used to spell this out.
+func dtNoise(rng *uint32) float64 {
+	*rng = *rng*1664525 + 1013904223
+	return float64(int32(*rng)>>8) / (1 << 23) //nolint:gosec // the wrap to signed IS the bipolar swing
 }

@@ -47,6 +47,7 @@ import (
 	"sort"
 
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
+
 	"github.com/0magnet/chaosrack/pkg/attractor"
 )
 

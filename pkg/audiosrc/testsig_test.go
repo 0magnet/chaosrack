@@ -124,7 +124,7 @@ func TestStereoRelationshipsAreWhatTheyClaim(t *testing.T) {
 
 // The out-of-polarity pair must actually VANISH when summed. That is the
 // mono-compatibility failure this signal exists to demonstrate, and a version
-// that merely reads −1 on the meter without cancelling would demonstrate
+// that merely reads −1 on the meter without canceling would demonstrate
 // nothing.
 func TestOutOfPhaseSumsToSilence(t *testing.T) {
 	l, r := gen(TestOutOfPhase, int(testSR))
@@ -285,7 +285,8 @@ func TestSweepRepeats(t *testing.T) {
 // integrating it, so a band twice as wide does not read twice as high. White
 // noise is therefore flat here and pink falls at 3 dB per octave, which is the
 // definition of each and what the two tests below check.
-func psdIn(x []float64, sr, lo, hi float64) float64 {
+func psdIn(x []float64, lo, hi float64) float64 {
+	const sr = testSR
 	const probes, segs = 24, 8
 	seg := len(x) / segs
 	var total float64
@@ -317,9 +318,9 @@ func psdIn(x []float64, sr, lo, hi float64) float64 {
 func TestPinkNoiseFallsThreeDBPerOctave(t *testing.T) {
 	l, _ := gen(TestPink, 1<<17)
 	// Octaves well inside the band, away from the filter's ends.
-	a := psdIn(l, testSR, 250, 500)
-	b := psdIn(l, testSR, 500, 1000)
-	c := psdIn(l, testSR, 1000, 2000)
+	a := psdIn(l, 250, 500)
+	b := psdIn(l, 500, 1000)
+	c := psdIn(l, 1000, 2000)
 	for _, p := range []struct {
 		name string
 		x, y float64
@@ -336,8 +337,8 @@ func TestPinkNoiseFallsThreeDBPerOctave(t *testing.T) {
 // ever agree, one of them is mislabeled.
 func TestWhiteNoiseDensityIsFlat(t *testing.T) {
 	l, _ := gen(TestWhite, 1<<17)
-	a := psdIn(l, testSR, 250, 500)
-	b := psdIn(l, testSR, 1000, 2000)
+	a := psdIn(l, 250, 500)
+	b := psdIn(l, 1000, 2000)
 	if db := 10 * math.Log10(a/b); math.Abs(db) > 1.2 {
 		t.Errorf("white noise falls %.2f dB across two octaves; its density is flat, "+
 			"and if it slopes then it is not white", db)
@@ -348,7 +349,7 @@ func TestWhiteNoiseDensityIsFlat(t *testing.T) {
 
 // ASYMMETRY IS THE SIGNAL. A waveform that is its own inverse cannot show
 // polarity, which is why a tone will not do — the pulse has to have a
-// recognisable direction.
+// recognizable direction.
 func TestPolarityPulseIsAsymmetric(t *testing.T) {
 	l, _ := gen(TestPolarity, int(testSR))
 	pos, neg := 0.0, 0.0
