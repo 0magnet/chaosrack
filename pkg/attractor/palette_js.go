@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"image/color"
+	"math"
 	"syscall/js"
 
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
@@ -211,4 +212,115 @@ func updateDashFromPointCount(drawn int) {
 	// blinks as the trail advances; above it, points grow into dashes and the
 	// knob stops meaning what it says.
 	dashDuty = pointCount / float32(drawn)
+}
+
+// gradientColorsUniform is what uGradientColors is set to: the map ring, unless
+// the source is OFF, in which case the shader's monochrome branch.
+//
+// The derivation lives here rather than in the knob because OFF only silences
+// the displays that HAVE a source to turn off — the geometry, which reads the
+// src ring to decide what the colour follows. A display with one intrinsic
+// value never consulted that knob: the spectrogram's value is magnitude, the
+// RTA's is level, the transfer function's is coherence. Those read the map ring
+// directly and go on doing so, which is why gradientColors itself stays the map
+// and only this one call site folds OFF in.
+func gradientColorsUniform() int {
+	if gradientSource == GradientSourceOff {
+		return 1
+	}
+	return gradientColors
+}
+
+// modeUsesGradientSource reports whether the model on screen reads the SRC ring
+// at all.
+//
+// The geometry does: an attractor, an embedding, the waterfall surface — the
+// colour follows a coordinate, an age, or the sound, and which one is a choice.
+// A display built from one quantity does not: there is nothing to choose. The
+// panel has never said which is which, so the src knob sat there looking live
+// in modes that ignore it.
+func modeUsesGradientSource(mode string) bool {
+	switch mode {
+	case "spectrogram", "rta", "xfer":
+		return false
+	}
+	return true
+}
+
+// mapColorAt is the MAP ring applied to a 0..1 value: the one function that
+// turns a value into a color anywhere in the rack.
+//
+// Every position is a genuine mapping, which is what the ring now holds:
+// 2 and 3 mix the Palette module's own swatches, 4 sweeps hue, and 5 and up are
+// the published colormaps. The mono position is gone from here — it was the
+// absence of a source, not a mapping, and it lives on the src ring as OFF.
+//
+// This is the CPU twin of the branch in the fragment shader, and the two have
+// to agree: the shader paints the trace and this paints the spectrogram, and
+// the whole point of one ring is that a value looks the same on both. The
+// window (period and shift) is deliberately NOT applied here — see
+// spectrogramPixel.
+func mapColorAt(v float64) color.Color {
+	if v < 0 {
+		v = 0
+	} else if v > 1 {
+		v = 1
+	}
+	if idx, ok := paletteIndex(gradientColors); ok {
+		return paletteColorAt(idx, v)
+	}
+	mix := func(a, b [3]float32, t float64) color.Color {
+		f := func(x, y float32) uint8 {
+			return uint8(255 * mixClamp(float64(x)+(float64(y)-float64(x))*t)) //nolint:gosec
+		}
+		return color.RGBA{R: f(a[0], b[0]), G: f(a[1], b[1]), B: f(a[2], b[2]), A: 255}
+	}
+	switch gradientColors {
+	case 3:
+		if v < 0.5 {
+			return mix(baseColor, midColor, v*2)
+		}
+		return mix(midColor, topColor, (v-0.5)*2)
+	case 4:
+		r, g, b := hsv2rgb(math.Mod(v*float64(gradientFreq), 1), 1, 1)
+		return color.RGBA{R: uint8(255 * r), G: uint8(255 * g), B: uint8(255 * b), A: 255} //nolint:gosec
+	default: // 2-color, and anything unexpected
+		return mix(baseColor, topColor, v)
+	}
+}
+
+// mixClamp keeps a mixed channel inside 0..1. Named apart from clamp01, which
+// is the audio features' float32 one: the two want different types, and sharing
+// a name across them would cost a conversion at every call.
+func mixClamp(v float64) float64 {
+	if v < 0 {
+		return 0
+	}
+	if v > 1 {
+		return 1
+	}
+	return v
+}
+
+// spectrogramPixel is the color a raw magnitude paints on the spectrogram.
+//
+// The magnitude is normalized by the library — the same log/linear scale and
+// the same MIN/MAX window the spectrogram's own knobs set — and then colored by
+// the shared map ring. Splitting it there is what lets one ring paint the
+// spectrogram and the trace alike: the normalization is the spectrogram's
+// business, the mapping is everybody's.
+//
+// ── WHY THE PERIOD AND SHIFT WINDOW IS NOT APPLIED ───────────────────────
+//
+// On the trace the window is a lens: the figure is redrawn every frame, so
+// narrowing the period and sweeping the shift moves color ALONG the figure and
+// the whole of it moves together. A spectrogram column is written once and
+// scrolls; it is never repainted. A moving window would leave every column
+// wearing whatever the window happened to be when it was drawn, so two columns
+// of equal magnitude would be different colors and the color would stop meaning
+// the magnitude. The hue sweep's animated phase is left out for exactly the
+// same reason, which is why the case above reads gradientFreq but not
+// gradientPhase.
+func spectrogramPixel(mag float64) color.Color {
+	return mapColorAt(sg.Normalize(spectMagnitude(mag), spectMagMin(), spectMagMax()))
 }

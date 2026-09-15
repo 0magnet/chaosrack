@@ -131,12 +131,15 @@ func captureSheet(c *cdp.Client, mode string) {
 		draw.Draw(grid, image.Rect(x0, y0, x0+cell, y0+cell), cellImg, cellImg.Bounds().Min, draw.Src)
 	}
 
-	// Row 0: mono — the source knob has no effect, one unique frame (col 0).
-	setKnobs(1, 2)
+	// Row 0: SRC off — a flat trace in the start swatch, so the MAP knob has no
+	// effect and there is one unique frame (col 0). This was the mono palette
+	// until mono moved to the knob it belongs to: it was never a way of mapping a
+	// value, it was the absence of a value to map.
+	setKnobs(2, attractor.GradientSourceOff)
 	if img, err := c.Screenshot(); err == nil {
 		place(0, 0, img)
 	}
-	// Rows 1..3: 2-color / 3-color / rainbow × source X/Y/Z/trail.
+	// Rows 1..3: 2-color / 3-color / hue sweep × source X/Y/Z/trail.
 	for ri, gc := range []int{2, 3, 4} {
 		for gs := 0; gs < 4; gs++ {
 			setKnobs(gc, gs)

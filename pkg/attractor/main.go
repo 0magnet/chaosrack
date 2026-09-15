@@ -917,6 +917,10 @@ func Run() {
 		if v, err := strconv.Atoi(doc.Call("getElementById", "gradient-source").Get("value").String()); err == nil {
 			gradientSource = v
 		}
+		// The source now decides whether the map ring and the swatches apply at
+		// all — OFF leaves nothing to map — so this has to refresh the dimming
+		// the way the map ring's own handler does.
+		updateGradientUI()
 		return nil
 	}))
 	doc.Call("getElementById", "gradient-colors").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -1052,23 +1056,49 @@ func Run() {
 	buildModuleSwitches()
 	restoreRackBay()
 	wireModuleDrag()
-	// Gradient source + palette: one concentric knob (source ring outside,
-	// number-of-colors inside), with both dropdowns in a column beside it.
+	// Source and map: two knobs in two cells, each with its own ring and its own
+	// label.
+	//
+	// Concentric on one dial first, under a single cell labelled "src" — which
+	// named the outer ring and left the inner one unnamed, so the cell's tooltip
+	// had to open by correcting its own label. A cell holds one control; these
+	// are two, and they answer different questions (what the colour follows, and
+	// how a value becomes a colour).
 	gsrc := doc.Call("getElementById", "gradient-source")
 	gcol := doc.Call("getElementById", "gradient-colors")
 	if gsrc.Truthy() && gcol.Truthy() {
-		if holder := doc.Call("getElementById", "gradient-stack"); holder.Truthy() {
-			gstack := stackKnobs(makeSelectorKnob(gsrc), makeSelectorKnob(gcol))
-			// Concentric clickable labels replace the dropdowns: source (what the
-			// color follows) on the OUTER ring, palette (color count) on the INNER.
-			// The outer ring is named so updateGradientUI can dim it on its own:
-			// on the mono palette it selects nothing, and it was the one control
-			// in this module that never said so.
-			addSelectorLabels(gstack, []string{"X", "Y", "Z", "trl", "aud"}, gsrc, 43).
+		if sh := doc.Call("getElementById", "gradient-stack"); sh.Truthy() {
+			sstack := soloKnob(gsrc)
+			// OFF first, because it is the absence of a source rather than one more
+			// of them. Its option value is 5 while the five that follow keep 0..4,
+			// so a permalink written before this still names the same source: the
+			// ring binds a label to an option by INDEX and the link by VALUE, and
+			// those are free to disagree.
+			addSelectorLabels(sstack, []string{"off", "X", "Y", "Z", "trl", "aud"}, gsrc, 43).
 				Set("id", "grad-src-ring")
-			addSelectorLabels(gstack, []string{"1", "2", "3", "∞", "ht", "bl", "gy", "tb", "vr", "mg"}, gcol, 31)
-			holder.Call("appendChild", gstack)
+			sh.Call("appendChild", sstack)
 			gsrc.Get("style").Set("display", "none")
+		}
+		if mh := doc.Call("getElementById", "map-stack"); mh.Truthy() {
+			mstack := soloKnob(gcol)
+			// No "1" here any more: mono was never a map, it was the absence of a
+			// source, and it lives on the src ring as OFF. Every position left is
+			// a genuine mapping of a value to a colour.
+			//
+			// NINE labels for nine options, and the count is load-bearing: a ring
+			// that does not match its select is discarded whole and the dial falls
+			// back to full names, which is how the spectrogram's old colour dial
+			// came to read "graysca…e" and "…idis" under the knob when turbo,
+			// viridis and magma were added to a three-label ring. Add a map here
+			// and add its label in the same commit.
+			// 45 rather than the src ring's 43: "hue" is the one three-character
+			// label and it lands where its width points straight at the knob, so at
+			// the src ring's radius it touched the dial while every 2-character
+			// label beside it cleared. Two more percent is as far as it can go —
+			// past that the outermost labels clip the cell.
+			addSelectorLabels(mstack, []string{"2", "3", "hue", "ht", "bl", "gy", "tb", "vr", "mg"}, gcol, 45).
+				Set("id", "grad-map-ring")
+			mh.Call("appendChild", mstack)
 			gcol.Get("style").Set("display", "none")
 		}
 	}

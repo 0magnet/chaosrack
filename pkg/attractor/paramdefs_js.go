@@ -35,7 +35,6 @@ var paramLabels = map[string][]string{
 	"spect-dft":    spectDFTNames(),
 	"spect-win":    spectWinNames,
 	"spect-chan":   spectChanNames,
-	"spect-col":    spectColNames,
 	"spect-scale":  spectScaleNames,
 	"globe-par":    {"rings", "spiral"},
 	"globe-rev":    {"cw", "ccw"},
@@ -103,16 +102,8 @@ var paramRingLabels = map[string][]string{
 	"turtle-cam":   {"auto", "fit", "lock", "head"},
 	"turtle-view":  {"free", "end", "back", "acrs", "up"},
 	// Transform sizes abbreviated past 512, where the digits stop fitting.
-	"spect-dft": {"64", "128", "256", "512", "1k", "2k", "4k", "8k"},
-	"spect-win": {"hann", "hamm", "bart", "rect"},
-	// Six, because spectColNames is six. It was three, from before turbo,
-	// viridis and magma were added beside them — and a ring that does not match
-	// its options is DISCARDED whole by buildParamUnit, which then falls back to
-	// the full names. That is why this dial came up reading "graysca…e" and
-	// "…idis" with the knob over the top of them: adding three color maps
-	// silently turned the one dial whose label ring IS its readout (the LED is
-	// hidden for named settings) into an unreadable one.
-	"spect-col":   {"heat", "blue", "gray", "turb", "viri", "magm"},
+	"spect-dft":   {"64", "128", "256", "512", "1k", "2k", "4k", "8k"},
+	"spect-win":   {"hann", "hamm", "bart", "rect"},
 	"spect-scale": {"log", "lin"},
 	"globe-par":   {"ring", "spir"},
 	"globe-rev":   {"cw", "ccw"},

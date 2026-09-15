@@ -16,6 +16,8 @@ package attractor
 // same code, which is the only way the comparison means anything.
 
 import (
+	"image/color"
+
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
 )
 
@@ -51,17 +53,28 @@ func SpectrogramRows(dftSize int) int {
 // bottom row = 0 Hz, top row = Nyquist, colored by audioprism's own scale.
 //
 // The color is sg.MagnitudeToPixel, which applies the configured magnitude
-// scale and window and then the chosen color map — the same function the
-// original uses, so a difference in the output is a difference in the
-// magnitudes and not in how they were painted.
-// The sample rate is not a parameter because it cancels. Row y stands for
-// y/rows of the way up to Nyquist, so its frequency is y/rows × rate/2, and the
-// bin holding that frequency is freq × size/rate — the rate divides out and
-// what is left is y/rows × size/2, which is y/rows of the way up the bins. The
-// mapping is therefore 1:1 whenever there is one row per bin, at any rate, and
-// a proportional resampling when there is not.
+// scale and window and then the library's chosen color map — the same function
+// the original uses, so a difference in the output is a difference in the
+// magnitudes and not in how they were painted. That is what `uitool spec`
+// wants: a reference rendering to compare against, painted the reference way.
+//
+// The browser wants something else, and takes SpectrogramColumnWith below.
 func SpectrogramColumn(mags []float64, rows int) []byte {
-	if len(mags) < 2 || rows < 1 {
+	return SpectrogramColumnWith(mags, rows, sg.MagnitudeToPixel)
+}
+
+// SpectrogramColumnWith is the same mapping through a color function of the
+// caller's choosing, taking a raw magnitude and returning its pixel.
+//
+// Passed in rather than read from a setting because this file is UNTAGGED and
+// deliberately so: it renders PNGs on a machine through `uitool spec` as well
+// as textures in a browser, and that is the only reason the comparison against
+// the C++ original means anything. The browser's color comes from the MAP ring,
+// which lives behind a js build tag along with the swatches it mixes, so it
+// cannot be reached from here — and should not be, because the reference
+// rendering must not move when somebody turns a knob.
+func SpectrogramColumnWith(mags []float64, rows int, pixel func(float64) color.Color) []byte {
+	if len(mags) < 2 || rows < 1 || pixel == nil {
 		return nil
 	}
 	// len(mags)-1 rather than len(mags): the magnitudes run from DC up to and
@@ -75,7 +88,7 @@ func SpectrogramColumn(mags []float64, rows int) []byte {
 			col[y*4+3] = 255
 			continue
 		}
-		r, g, b, a := sg.MagnitudeToPixel(mags[bin]).RGBA()
+		r, g, b, a := pixel(mags[bin]).RGBA()
 		col[y*4+0] = byte(r >> 8 & 0xFF)
 		col[y*4+1] = byte(g >> 8 & 0xFF)
 		col[y*4+2] = byte(b >> 8 & 0xFF)

@@ -19,6 +19,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/audiosrc"
+	"math"
 	"strconv"
 
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
@@ -31,7 +32,6 @@ var (
 	spectDFTF   float32 = 4 // index into spectDFTSizes, not the size itself
 	spectOvlF   float32 = 50
 	spectWinF   float32
-	spectColF   float32
 	spectScaleF float32
 	spectMinF   float32
 	spectMaxF   float32 = 45
@@ -48,6 +48,11 @@ var (
 	// The last three are lookup tables from perceptually uniform maps, added
 	// upstream in audioprism-go. Appended rather than reordered: the knob
 	// position is persisted as an index.
+	// spectColNames is the colormap order the MAP ring and palette_js.go's
+	// paletteFns both follow. The spectrogram no longer has a knob of its own to
+	// label with it — it reads the ring — but the order is still the contract
+	// between the library's tables and ours, so it is named here where the
+	// library is imported.
 	spectColNames   = []string{"heat", "blue", "grayscale", "turbo", "viridis", "magma"}
 	spectScaleNames = []string{"logarithmic", "linear"}
 )
@@ -83,7 +88,6 @@ var spectParams = []paramDef{
 	{"spect-ovl", "ovlp", &spectOvlF, 50, 5, 95, 5},
 	{"spect-win", "wfn", &spectWinF, 0, 0, float32(len(spectWinNames) - 1), 1},
 	{"spect-chan", "chan", &spectChanF, 0, 0, float32(len(spectChanNames) - 1), 1},
-	{"spect-col", "color", &spectColF, 0, 0, float32(len(spectColNames) - 1), 1},
 	{"spect-scale", "scale", &spectScaleF, 0, 0, float32(len(spectScaleNames) - 1), 1},
 	{"spect-min", "min", &spectMinF, 0, -80, 80, 1},
 	{"spect-max", "max", &spectMaxF, 45, -80, 80, 1},
@@ -112,7 +116,6 @@ func pick(v float32, n int) int {
 // once a frame is a handful of comparisons and cannot get out of step.
 func applySpectSettings() {
 	sg.S.SetWindowByName(spectWinNames[pick(spectWinF, len(spectWinNames))])
-	sg.S.SetColorByName(spectColNames[pick(spectColF, len(spectColNames))])
 	sg.S.SetScaleByName(spectScaleNames[pick(spectScaleF, len(spectScaleNames))])
 
 	lo, hi := float64(spectMinF), float64(spectMaxF)
@@ -175,3 +178,22 @@ func applySpectChannel() {
 		s.SetMonoMode(spectMonoMode())
 	}
 }
+
+// The magnitude half of the spectrogram's coloring, split out so palette_js.go
+// can normalize a magnitude without reaching into the library's settings lock
+// at three separate call sites.
+//
+// spectMagnitude applies the scale knob: logarithmic is the decibel reading the
+// MIN and MAX knobs are calibrated in, linear is the raw magnitude.
+func spectMagnitude(v float64) float64 {
+	if sg.S.MagScale() == sg.ScaleLog {
+		return 20 * math.Log10(v+1e-10)
+	}
+	return v
+}
+
+// spectMagMin and spectMagMax are the window the normalization runs over — the
+// MIN and MAX knobs, read back through the library so there is one copy of
+// them rather than two that can drift.
+func spectMagMin() float64 { min, _ := sg.S.MagWindow(); return min }
+func spectMagMax() float64 { _, max := sg.S.MagWindow(); return max }

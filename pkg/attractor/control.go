@@ -93,7 +93,7 @@ var paramControls []*Control
 // crtOverriddenIDs are the cells a selected phosphor overrides (their color /
 // trail is taken over by the phosphor), so they dim in CRT mode.
 var crtOverriddenIDs = map[string]bool{
-	"src-cell": true, "grp-cstart": true, "grp-cmid": true, "grp-cend": true, "trail-controls": true,
+	"src-cell": true, "map-cell": true, "grp-cstart": true, "grp-cmid": true, "grp-cend": true, "trail-controls": true,
 }
 
 // buildControlModel (re)derives the Module/Control registry from the panel DOM.

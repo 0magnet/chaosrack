@@ -392,6 +392,9 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 	// Model Out likewise: suspend in modes it can't sonify (geometry,
 	// spectrogram…) instead of streaming zeros ~23×/s, resume in trail modes.
 	sonifyModeSync()
+	// Which rings apply depends on the model: a display built from one quantity
+	// has no source to choose, so the src knob dims in those modes.
+	updateGradientUI()
 	// No refreshGradient here. Armed above and taken by the first frame that
 	// actually uploads: scanning now would scan the previous model whenever this
 	// mode's generate has not drawn yet, which is every audio mode.
