@@ -67,6 +67,7 @@ analog computers at [glensstuff.com](https://glensstuff.com).
   - [RTA — octave bands](#rta--octave-bands-2)
   - [Transfer function — magnitude, phase, coherence](#transfer-function--magnitude-phase-coherence)
   - [Loudness — LUFS, loudness range, true peak](#loudness--lufs-loudness-range-true-peak)
+  - [Wow & flutter — speed stability](#wow--flutter--speed-stability)
   - [Controls that pull in the same direction](#controls-that-pull-in-the-same-direction)
 - [Reaching the machine](#reaching-the-machine)
   - [On a machine with other people on it](#on-a-machine-with-other-people-on-it)
@@ -1755,6 +1756,49 @@ a step discontinuity — which a bandlimited interpolator answers with exactly t
 overshoot the measurement exists to detect. Measured that way, a plain
 0.5-amplitude tone with no intersample peak at all read 0.534: the meter
 reporting the edge of its own buffer.
+
+
+### Wow & flutter — speed stability
+
+Every other analyzer here asks about amplitude. This asks whether the **time
+axis** is steady, which is what a turntable, a tape deck or a cassette is judged
+by. Play the Test module's 3150 Hz tone through the deck, capture it, and read
+the frequency modulation.
+
+| | |
+|---|---|
+| **speed** | the mean frequency error, %. A constant error is a pitch shift — a different fault from a wobble |
+| **wow** | the slow 0.5–6 Hz modulation. An off-centre spindle hole is wow at exactly the platter's rate |
+| **flutter** | the fast 6–100 Hz kind, from capstans and idlers, which the ear hears as roughness rather than pitch movement |
+| **w&f** | the DIN-weighted quasi-peak a specification quotes: the deviation through a filter peaked at 4 Hz, where the ear is most sensitive to pitch movement |
+| **nom** | what the tone is supposed to be. 3150 Hz is what the test records carry (DIN 45507, IEC 60386). Set it to 0 to measure wow and flutter without a speed figure — the honest reading when the tone's true frequency is not known |
+
+Demodulated in quadrature rather than by counting zero crossings: the analog
+instruments counted crossings, but their resolution is one sample per crossing
+and the deviations here are parts in ten thousand.
+
+The carrier is found from the signal rather than assumed. A deck running 2% fast
+puts the tone at 3213 Hz, and mixing against 3150 would leave a 63 Hz beat the
+demodulator would report as enormous flutter.
+
+**With no deck in the loop it reads zero** — which is the check that the
+instrument is not inventing the number:
+
+| | speed | carrier | wow | flutter | w&f |
+|---|---|---|---|---|---|
+| the generator's own 3150 Hz | +0.000% | 3150.0 Hz | 0.000% | 0.000% | 0.000% |
+| …with **nom** set to 3000 | **+5.000%** | 3150.0 Hz | 0.000% | 0.000% | — |
+| …with **nom** set to 3200 | **−1.563%** | 3150.0 Hz | 0.000% | 0.000% | — |
+
+That floor took two fixes. Mixing puts an image at twice the carrier, and
+whatever survives the filter aliases back into the measurement band on
+decimation, where it is indistinguishable from flutter — a single pole rejected
+6300 Hz by only 34 dB and read as **0.022% flutter** on a perfectly steady tone,
+which is within a factor of two of what a good deck is specified at. Four
+cascaded poles reject it by 96 dB. The weighted figure then still read 0.035%,
+which was the demodulator's *own* startup: until the filters settle, I and Q are
+climbing out of zero and the argument of a vector near the origin is noise, and
+the quasi-peak detector holds a peak for a second and a half.
 
 ### Controls that pull in the same direction
 

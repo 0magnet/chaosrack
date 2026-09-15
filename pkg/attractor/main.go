@@ -758,6 +758,7 @@ func Run() {
 	buildTestSignalModule()
 	wireDistortionModule()
 	wireLoudnessModule()
+	wireWowFlutterModule()
 	buildSonifyModule()
 	wireCounterModule()
 	wireAnalysisModule()

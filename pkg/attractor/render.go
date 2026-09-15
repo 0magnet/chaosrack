@@ -729,6 +729,7 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	counterTick()        // frequency-counter gate (no-op unless the module is on)
 	thdTick(frameNowMs)  // distortion analysis (no-op unless the module is on screen)
 	lufsTick(frameNowMs) // loudness (no-op unless the module is on screen)
+	wfTick(frameNowMs)   // wow & flutter (no-op unless the module is on screen)
 	genEnvTick()         // Envelope module shaper (no-op unless the gen audio runs)
 	tmTick()             // Tonematrix sequencer clock (no-op unless the module runs)
 	rhythmTick()         // Rhythm section clock (no-op unless the module runs)
