@@ -2,7 +2,10 @@
 
 package attractor
 
-import "syscall/js"
+import (
+	"strconv"
+	"syscall/js"
+)
 
 // The Waterfall mode — cumulative spectral decay, as a surface in the 3-D
 // pipeline.
@@ -32,28 +35,52 @@ import "syscall/js"
 // at rather than something you have to freeze first.
 
 const (
-	// wfallSlices is how many time slices the surface has, and wfallSliceMS how
-	// far apart they are. Sixteen slices five milliseconds apart is 80 ms of
-	// decay, which is where a loudspeaker's resonances live; a room's
-	// reverberation is a hundred times longer and is what the RT60 readout is
-	// for instead.
-	wfallSlices  = 16
-	wfallSliceMS = 5.0
-
 	// wfallBins is the frequency resolution of each slice — points across the
 	// display, not FFT bins.
 	wfallBins = 96
-
-	// wfallFFT is the transform each slice is taken with. 2048 at 48 kHz is a
-	// 43 ms window, which is long enough to resolve the low end and short
-	// enough that consecutive slices are looking at different audio.
-	wfallFFT = 2048
 
 	// wfallCaptureSec is how much audio is kept for the deconvolution. It has
 	// to cover a WHOLE sweep pass or the measurement only sees the bottom of
 	// the band — a third of a pass is 20 Hz to 200 Hz, and the impulse it
 	// recovers is a five-millisecond smear.
 	wfallCaptureSec = 6
+)
+
+// wfallFFTSizes are the transform sizes the FFT knob offers, and
+// wfallFFTRing labels it.
+//
+// The one control on a spectrum analyzer that is a genuine TRADE rather than a
+// preference: a longer transform resolves frequency better and time worse, and
+// there is no setting that is good at both. 2048 at 48 kHz is a 43 ms window
+// and 23 Hz bins; 8192 is 171 ms and 5.9 Hz. On the decay surface the window
+// wants to be SHORT — the slices are milliseconds apart and a window longer
+// than the spacing means consecutive slices are looking at the same audio, so
+// the decay smears. On the live surface it wants to be LONG, because the bottom
+// octave is a fifth of a logarithmic axis and 23 Hz bins draw that fifth as a
+// staircase.
+var (
+	wfallFFTSizes = []int{1024, 2048, 4096, 8192}
+	wfallFFTRing  = []string{"1k", "2k", "4k", "8k"}
+)
+
+// wfallSurfaceDefaults are the line count, spacing and transform each surface
+// wants, because the two want quite different ones.
+//
+// A decay is 16 lines 5 ms apart through a short window: 80 ms deep, which is
+// where a loudspeaker's resonances live. A live surface is 32 lines 40 ms apart
+// through a long one: 1.3 seconds, about a bar of music. Sharing one default
+// would make one of the two useless out of the box — 80 ms of live history
+// shimmers and shows no note decaying, and 1.3 seconds of CSD is past the end
+// of the impulse response.
+//
+// Applied on a source change the way takens_js.go applies a measured τ: only
+// while the knob still holds a value NOBODY CHOSE, so switching back and forth
+// does not throw away a setting somebody made.
+type wfallDefaults struct{ lines, step, fft float32 }
+
+var (
+	wfallDecayDefaults = wfallDefaults{lines: 16, step: 5, fft: 1}  // 2048
+	wfallLiveDefaults  = wfallDefaults{lines: 32, step: 40, fft: 2} // 4096
 )
 
 // The live surface.
@@ -63,31 +90,19 @@ const (
 // music playing expects to see: successive spectra of what is playing, stacked
 // into the screen as they age. Same axes, same surface, same gradient — only
 // the z axis stops being time-since-the-impulse and becomes time-ago.
-const (
-	// wfallLiveSlices is how deep the history runs and wfallLivePushMS how often
-	// a slice is pushed. Thirty-two at 40 ms is 1.3 seconds, which is about a
-	// bar of music — long enough to watch a note decay and short enough that
-	// the front of the surface is still what is playing now.
-	//
-	// Pushed on a CLOCK rather than per frame: a surface built per frame is a
-	// different length of history on a 60 Hz display than on a 144 Hz one, and
-	// the depth axis stops meaning seconds.
-	wfallLiveSlices = 32
-	wfallLivePushMS = 40.0
-
-	// wfallLiveFFT is the transform each slice is taken with. 4096 at 48 kHz is
-	// an 85 ms window and an 11.7 Hz resolution, which is what it takes to
-	// separate anything in the bottom octave — the log axis spends a fifth of
-	// its width below 80 Hz and a coarser window draws that fifth as one step.
-	wfallLiveFFT = 4096
-
-	// wfallLiveWindow is the window it is taken with. Hann rather than the
-	// Blackman-Harris the measurements use: this is a picture of a signal, not a
-	// measurement of a level beside a loud neighbour, and Hann is the narrower
-	// main lobe of the two — which on a log axis is the difference between two
-	// low notes being two ridges and being one.
-	wfallLiveWindow = winHann
-)
+//
+// wfallLiveWindow is the window the spectra are taken with. Hann rather than
+// the Blackman-Harris the measurements use: this is a picture of a signal, not
+// a measurement of a level beside a loud neighbour, and Hann is the narrower
+// main lobe of the two — which on a log axis is the difference between two low
+// notes being two ridges and being one.
+//
+// Slices are pushed on a CLOCK rather than per frame: a surface built per frame
+// is a different length of history on a 60 Hz display than on a 144 Hz one, and
+// the depth axis stops meaning seconds. STEP below a frame is the one case that
+// cannot be honoured — there is no more audio to have — and it degrades to one
+// slice per frame rather than to a burst.
+const wfallLiveWindow = winHann
 
 // How the decay surface re-measures when there is no generator sweep to trigger
 // on.
@@ -131,20 +146,146 @@ var (
 	wfallSurfaceSrc float32 = -1
 
 	// The knobs.
-	wfallRangeF float32 = 40 // dB of decay shown
+	wfallRangeF float32 = 40 // dB shown, below TOP
+	wfallTopF   float32      // dBFS at the top of the scale
 	wfallDepthF float32 = 1  // how far back the surface reaches, a scale
 	wfallSwapF  float32      // which channel is the reference
 	wfallSrcF   float32      // 0 = decay from a sweep, 1 = live spectra
+	wfallChanF  float32      // which channel the live surface analyses
+	wfallLinesF float32 = 16 // how many slices the surface has
+	wfallStepF  float32 = 5  // milliseconds between them
+	wfallFFTF   float32 = 1  // index into wfallFFTSizes
+
+	// wfallAutoSet is the triple the source switch last wrote, so a knob
+	// somebody turned can be told from one this put there — takens_js.go's rule
+	// for its measured τ, and for the same reason.
+	wfallAutoSet = wfallDecayDefaults
+
+	// wfallUserSet remembers which of the three somebody has turned, so the
+	// source switch never takes one back.
+	wfallUserSet struct{ lines, step, fft bool }
 )
 
 func init() {
 	registerGenerate("waterfall", generateWaterfall)
 	attractorParams["waterfall"] = []paramDef{
+		{"wfall-src", "src", &wfallSrcF, 0, 0, 1, 1},
+		{"wfall-chan", "chan", &wfallChanF, 0, 0, float32(len(tapChanNames) - 1), 1},
+		{"wfall-lines", "line", &wfallLinesF, 16, 4, 64, 1},
+		{"wfall-step", "step", &wfallStepF, 5, 1, 100, 1},
+		{"wfall-fft", "fft", &wfallFFTF, 1, 0, float32(len(wfallFFTSizes) - 1), 1},
+		{"wfall-top", "top", &wfallTopF, 0, -60, 20, 1},
 		{"wfall-range", "rnge", &wfallRangeF, 40, 10, 80, 5},
 		{"wfall-depth", "dpth", &wfallDepthF, 1, 0.2, 3, 0.1},
 		{"wfall-swap", "ref", &wfallSwapF, 0, 0, 1, 1},
-		{"wfall-src", "src", &wfallSrcF, 0, 0, 1, 1},
 	}
+}
+
+// The knobs as the values the code wants, clamped.
+//
+// Clamped rather than trusted, because every one of these is an audio-modulation
+// target: a modulator drives the knob past its own ends and a line count that
+// comes out zero or a transform size that indexes off the end of the table is a
+// crash rather than a wrong picture.
+
+// wfallLines is how many slices the surface holds.
+func wfallLines() int {
+	n := int(wfallLinesF + 0.5)
+	if n < 4 {
+		n = 4
+	} else if n > 64 {
+		n = 64
+	}
+	return n
+}
+
+// wfallStepMS is how far apart in time they are.
+func wfallStepMS() float64 {
+	ms := float64(wfallStepF)
+	if ms < 1 {
+		ms = 1
+	} else if ms > 100 {
+		ms = 100
+	}
+	return ms
+}
+
+// wfallFFTLen is the transform each slice is taken with.
+func wfallFFTLen() int {
+	i := int(wfallFFTF + 0.5)
+	if i < 0 {
+		i = 0
+	} else if i >= len(wfallFFTSizes) {
+		i = len(wfallFFTSizes) - 1
+	}
+	return wfallFFTSizes[i]
+}
+
+// wfallChan is the channel the live surface analyses. The decay surface does
+// not have one: it needs BOTH channels, and REF says which of the two is the
+// reference.
+func wfallChan() tapChan {
+	i := int(wfallChanF + 0.5)
+	if i < 0 {
+		i = 0
+	} else if i >= len(tapChanNames) {
+		i = len(tapChanNames) - 1
+	}
+	return tapChan(i)
+}
+
+// wfallApplyDefaults moves LINE, STEP and FFT to what the surface now selected
+// wants — but only the ones still holding a value nobody chose.
+//
+// The three differ by roughly an order of magnitude between the two surfaces,
+// so carrying one set across a switch leaves the other surface useless: 80 ms
+// of live history shimmers and never shows a note decay, and 1.3 seconds of CSD
+// runs off the end of the impulse response. Deferring to a turned knob is
+// takens_js.go's rule for its measured τ, and it is the same problem — a
+// control that silently takes the knob away is worse than no automation.
+func wfallApplyDefaults(d wfallDefaults) {
+	// A knob holding anything but what this last wrote was turned by hand, and
+	// from then on it is the user's for good.
+	//
+	// The "for good" is the part that is not obvious and is the part that was
+	// wrong first: recording the deferred-to value as though this had written it
+	// makes a chosen value indistinguishable from an automatic one at the NEXT
+	// switch, so a hand-set line count survived one switch and was reclaimed on
+	// the way back. A permalink falls out of the same rule — it arrives holding a
+	// value that differs from the default, so the first switch marks it chosen.
+	if wfallLinesF != wfallAutoSet.lines {
+		wfallUserSet.lines = true
+	}
+	if wfallStepF != wfallAutoSet.step {
+		wfallUserSet.step = true
+	}
+	if wfallFFTF != wfallAutoSet.fft {
+		wfallUserSet.fft = true
+	}
+	if !wfallUserSet.lines {
+		setWfallKnob("wfall-lines", &wfallLinesF, d.lines)
+	}
+	if !wfallUserSet.step {
+		setWfallKnob("wfall-step", &wfallStepF, d.step)
+	}
+	if !wfallUserSet.fft {
+		setWfallKnob("wfall-fft", &wfallFFTF, d.fft)
+	}
+	wfallAutoSet = wfallDefaults{lines: wfallLinesF, step: wfallStepF, fft: wfallFFTF}
+}
+
+// setWfallKnob writes a value into a knob, rather than only into the variable
+// behind it: the hidden range input is the value, and its input event is what
+// repaints the dial and the LED. Writing the variable alone would draw the new
+// surface under a knob still showing the old number.
+func setWfallKnob(id string, ptr *float32, v float32) {
+	*ptr = v
+	el := doc.Call("getElementById", id)
+	if !el.Truthy() {
+		return
+	}
+	el.Set("value", strconv.FormatFloat(float64(v), 'f', -1, 32))
+	el.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 }
 
 // generateWaterfall runs whichever surface SRC names, and draws it.
@@ -159,6 +300,11 @@ func generateWaterfall() {
 		wfallLiveFill = 0
 		wfallLiveNext = 0
 		wfallSurfaceSrc = wfallSrcF
+		if wfallSrcF > 0.5 {
+			wfallApplyDefaults(wfallLiveDefaults)
+		} else {
+			wfallApplyDefaults(wfallDecayDefaults)
+		}
 		wfallArmFit()
 	}
 	if wfallSrcF > 0.5 {
@@ -178,9 +324,14 @@ func generateWaterfall() {
 // no idea which of them they are showing.
 func wfallLiveTick() {
 	sr := takensSourceRate()
-	if len(wfallLiveBuf) != wfallLiveFFT {
-		wfallLiveBuf = make([]float32, wfallLiveFFT)
+	if len(wfallLiveBuf) != wfallFFTLen() {
+		wfallLiveBuf = make([]float32, wfallFFTLen())
 		wfallLiveFill = 0
+		// The surface is spectra of a window that no longer exists, at a
+		// resolution that no longer matches. Dropped rather than kept: half a
+		// surface at one resolution against half at another is a picture of the
+		// knob being turned, not of the sound.
+		wfallSurface = nil
 	}
 	// Drain the tap into the window, keeping the newest wfallLiveFFT samples.
 	// Drained EVERY frame even though a slice is only pushed every 40 ms: the
@@ -189,7 +340,7 @@ func wfallLiveTick() {
 	// adjacent to itself.
 	var blk [4096]float32
 	for {
-		n := tapReadChan(&wfallLiveCursor, blk[:], tapMix)
+		n := tapReadChan(&wfallLiveCursor, blk[:], wfallChan())
 		if n <= 0 {
 			break
 		}
@@ -217,10 +368,15 @@ func wfallLiveTick() {
 	// time: after a stall — a tab in the background, a mode just switched into —
 	// adding would fire a burst of slices to catch up, and the surface would
 	// show a tenth of a second stretched across its whole depth.
-	wfallLiveNext = frameNowMs + wfallLivePushMS
+	wfallLiveNext = frameNowMs + wfallStepMS()
 
-	if len(wfallSurface) < wfallLiveSlices {
+	lines := wfallLines()
+	if len(wfallSurface) < lines {
 		wfallSurface = append(wfallSurface, CSDSlice{DB: make([]float64, len(wfallFreqs))})
+	} else if len(wfallSurface) > lines {
+		// LINE turned down: drop from the BACK, which is the oldest, so the
+		// front of the surface — what is playing now — never jumps.
+		wfallSurface = wfallSurface[:lines]
 	}
 	// Rotate rather than reallocate: the oldest slice's buffer becomes the
 	// newest, so a surface of thirty-two spectra allocates thirty-two times and
@@ -232,7 +388,7 @@ func wfallLiveTick() {
 		return
 	}
 	for i := range wfallSurface {
-		wfallSurface[i].TimeMS = float64(i) * wfallLivePushMS
+		wfallSurface[i].TimeMS = float64(i) * wfallStepMS()
 	}
 	wfallHaveIR = true
 }
@@ -333,7 +489,7 @@ func wfallMeasure(sr int) {
 	if ir == nil {
 		return
 	}
-	wfallSurface = CSD(ir, sr, wfallSlices, wfallSliceMS, wfallFFT, wfallFreqs)
+	wfallSurface = CSD(ir, sr, wfallLines(), wfallStepMS(), wfallFFTLen(), wfallFreqs)
 	// The reverberation time from the same impulse, which is the one number the
 	// surface does not show: the surface is 80 ms deep and a room's decay is
 	// measured over seconds.
@@ -375,6 +531,7 @@ func wfallDraw() {
 	if rng < 1 {
 		rng = 1
 	}
+	top := float64(wfallTopF)
 	const span = 9.0 // world units either side, matching the other modes' fit
 	depth := span * float64(wfallDepthF)
 	v := vertBuf[:need*4]
@@ -382,7 +539,7 @@ func wfallDraw() {
 	put := func(bin, slice int) {
 		x := span * (2*float64(bin)/float64(bins-1) - 1)
 		db := wfallSurface[slice].DB[bin]
-		t := (db + rng) / rng // 0 at the bottom of the range, 1 at the top
+		t := (db - (top - rng)) / rng // 0 at the bottom of the range, 1 at the top
 		if t < 0 {
 			t = 0
 		} else if t > 1 {
@@ -405,6 +562,22 @@ func wfallDraw() {
 		}
 	}
 	uploadVerticesOnly(v, glTypes.Lines, need)
+	// The surface's bounds are exact rather than measured: x is the frequency
+	// axis end to end, y is the whole of TOP..TOP-RNGE because the level is
+	// clamped into it, and z is the depth DPTH asked for. Setting them is what
+	// makes the colormap span the surface instead of whatever range the model
+	// drawn before this one happened to occupy.
+	//
+	// Y is the source worth turning the Colors ring to here, and the reason is
+	// this line: with the extents exact, Y colours by LEVEL across exactly the
+	// decibels the scale shows, so a ridge is the hot end of the map and the
+	// floor is the cold end. Z and trail both colour by age, which is worth
+	// having and is the default. X repeats the frequency axis. AUDIO is the one
+	// to avoid: its table is a short-time centroid along the trail and only
+	// takens, stereo and polar fill it, so on this mode it is one flat tint.
+	setGradientRange(-float32(span), float32(span),
+		-float32(span/2), float32(span/2),
+		-float32(depth/2), float32(depth/2))
 	if !wfallFitted {
 		// Fitted to the surface's OWN half-span, which is exactly what its
 		// largest coordinate reaches — autoFitCamera measures extent as
@@ -481,4 +654,13 @@ func appendWaterfallReadout(grid js.Value) {
 	wfallRTTx = ""
 	card.Call("appendChild", wfallRTEl)
 	grid.Call("appendChild", card)
+}
+
+// wfallFFTLabels is the FFT knob's per-position tooltip: the size and what it
+// buys, because the number alone does not say which way the trade runs.
+var wfallFFTLabels = []string{
+	"1024 — 21 ms window, 47 Hz bins: the sharpest in time and the blindest in the bass",
+	"2048 — 43 ms window, 23 Hz bins: the decay surface's default",
+	"4096 — 85 ms window, 12 Hz bins: the live surface's default",
+	"8192 — 171 ms window, 5.9 Hz bins: separates low notes, smears anything quick",
 }
