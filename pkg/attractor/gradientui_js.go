@@ -9,11 +9,56 @@ import (
 
 // ── Event handlers ───────────────────────────────────────────────────────────
 
+// refreshGradient rescans the drawn geometry for the gradient's normalizing
+// extents. Called when a knob moves, which changes the shape under the scan.
 func refreshGradient() {
-	if shadersReady && len(attractorVertices) > 0 {
-		updateGradientRange(attractorVertices)
+	if !shadersReady || len(attractorVertices) == 0 {
+		return
 	}
+	updateGradientRange(attractorVertices)
+	gradientRangePending = false
+	gradientRangeSeq = vertexUploadSeq
 }
+
+// armGradientRange says the extents are owed, and records how many uploads had
+// happened when the mode changed — so the refresh can wait for one MORE.
+//
+// ── WHY WAITING FOR AN UPLOAD IS THE POINT ───────────────────────────────
+//
+// The mode switch runs one generate before refreshing, precisely so the scan
+// sees the new model. That is not enough for an audio mode, and the failure is
+// silent in both of its forms. The waterfall draws nothing at all until it has
+// measured, so the buffer is empty and the scan is skipped. The embeddings are
+// worse: generateTakens returns early until its ring has filled, WITHOUT
+// uploading, so the buffer still holds the previous model — the scan runs, it
+// succeeds, and it sets the extents of a figure that is no longer on screen.
+//
+// Nothing asked again in either case, so the mode was drawn for as long as it
+// was on screen with somebody else's bounding box. A Takens embedding entered
+// from the waterfall was normalized to the waterfall's ±4.5, which is a band
+// narrower than the figure: everything above it clamped to the top of the
+// colormap and everything below to the bottom, and six colormaps all came out
+// as two flat colors with a hard line between them.
+//
+// Counting uploads is what tells the two apart, because "the buffer changed" is
+// exactly the question and neither emptiness nor a mode name answers it.
+func armGradientRange() {
+	gradientRangePending = true
+	gradientRangeSeq = vertexUploadSeq
+}
+
+// gradientRangeDue reports whether an owed refresh can now be taken: something
+// has been uploaded since the mode changed, so the buffer is this mode's.
+func gradientRangeDue() bool {
+	return gradientRangePending && vertexUploadSeq != gradientRangeSeq
+}
+
+var (
+	// gradientRangePending says a refresh is owed, gradientRangeSeq the upload
+	// count it is waiting to see move.
+	gradientRangePending bool
+	gradientRangeSeq     uint64
+)
 
 // standalonePanel is true when the controls are our own fixed overlay (not
 // appended into a host page's <footer>); only then can we dock/move them.

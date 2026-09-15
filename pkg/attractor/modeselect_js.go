@@ -369,7 +369,10 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 	syncNestedFromMode()
 	updateTrailVisibility()
 	updatePhysVisibility()
-	// Run one frame to populate vertices, then update gradient and fit camera
+	// Run one frame to populate vertices, then update gradient and fit camera.
+	// Armed BEFORE that generate: an audio mode may not upload anything on it,
+	// and the refresh has to wait for the upload rather than for the call.
+	armGradientRange()
 	generateForMode(selectedMode)
 	if isTexturePlane(selectedMode) {
 		setSpectrogramCamera()
@@ -389,7 +392,9 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 	// Model Out likewise: suspend in modes it can't sonify (geometry,
 	// spectrogram…) instead of streaming zeros ~23×/s, resume in trail modes.
 	sonifyModeSync()
-	refreshGradient()
+	// No refreshGradient here. Armed above and taken by the first frame that
+	// actually uploads: scanning now would scan the previous model whenever this
+	// mode's generate has not drawn yet, which is every audio mode.
 	syncPermalinkNow() // reflect the new mode in the URL immediately
 	return nil
 }
