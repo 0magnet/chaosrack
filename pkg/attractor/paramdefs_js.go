@@ -79,7 +79,8 @@ var paramLabels = map[string][]string{
 	// Which channel is the reference — what went out — and which is what came
 	// back. A swap rather than a rewire, because half the time the cabling makes
 	// it the other way round.
-	"xf-swap": {"left is reference", "right is reference"},
+	"xf-swap":    {"left is reference", "right is reference"},
+	"wfall-swap": {"left is reference", "right is reference"},
 }
 
 // paramRingLabels is what actually fits around the dial. A cell is a third of
@@ -117,6 +118,7 @@ var paramRingLabels = map[string][]string{
 	"xf-frac":     rtaFractionRing,
 	"xf-show":     xfShowRing,
 	"xf-swap":     {"L", "R"},
+	"wfall-swap":  {"L", "R"},
 }
 
 // turtlePhysParams are the weight controls. They are not in attractorParams
