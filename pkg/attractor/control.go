@@ -62,6 +62,10 @@ type Control struct {
 	// the event that commits one is "input" where the other is "change".
 	sel    js.Value
 	selDef string
+
+	// skipResetAll excludes this control from the Reset All sweep (see
+	// ControlDesc.SkipResetAll); its own reset button still drives it.
+	skipResetAll bool
 }
 
 // formatLED renders a value for this control's LED readout using its owned

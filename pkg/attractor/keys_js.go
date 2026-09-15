@@ -414,19 +414,19 @@ func wireKeysModule() {
 	// share the output cell's: two descriptors naming the same ResetID each add
 	// a listener to it, so one click resets the pair the cell holds.
 	adoptDescControl(ControlDesc{
-		ID: "keys-span", Label: "range", SelectDef: "4", PermaKey: "kp",
+		ID: "keys-span", Label: "range", IsSelect: true, SelectDef: "4", PermaKey: "kp",
 		ResetID: "rst-keys-range", SelectApply: func(string) { rebuildKeys() },
 	})
 	adoptDescControl(ControlDesc{
-		ID: "keys-base", Label: "base", SelectDef: "2", PermaKey: "kc",
+		ID: "keys-base", Label: "base", IsSelect: true, SelectDef: "2", PermaKey: "kc",
 		ResetID: "rst-keys-range", SelectApply: func(string) { rebuildKeys() },
 	})
 	adoptDescControl(ControlDesc{
-		ID: "keys-out", Label: "out", SelectDef: "both", PermaKey: "ko",
+		ID: "keys-out", Label: "out", IsSelect: true, SelectDef: "both", PermaKey: "ko",
 		ResetID: "rst-keys-out", SelectApply: func(string) { keysUpdateRouting() },
 	})
 	adoptDescControl(ControlDesc{
-		ID: "keys-wave", Label: "wave", SelectDef: "0", PermaKey: "kv",
+		ID: "keys-wave", Label: "wave", IsSelect: true, SelectDef: "0", PermaKey: "kv",
 		SelectApply: func(v string) {
 			w, _ := strconv.Atoi(v) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 			if w == 4 {

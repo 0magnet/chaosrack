@@ -100,7 +100,7 @@ func wireCounterModule() {
 	// The gate had no reset, was not restored by Reset All and was not in the
 	// permalink: turn it and there was no way back but a page reload.
 	adoptDescControl(ControlDesc{
-		ID: "counter-gatesel", Label: "gate", SelectDef: "1", PermaKey: "cq",
+		ID: "counter-gatesel", Label: "gate", IsSelect: true, SelectDef: "1", PermaKey: "cq",
 		ResetID: "rst-counter-gate",
 	})
 	tstack.Call("appendChild", makeKnob(trig, js.Undefined(), true, false, true))
