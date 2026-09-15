@@ -70,6 +70,17 @@ var (
 	tapChanRing  = []string{"mix", "L", "R", "M", "S"}
 )
 
+// tapChanDescs say what each channel IS, one per position, and are what a
+// channel knob's dial label carries as its tooltip. Three parallel slices, so a
+// channel cannot acquire a detent without a sentence explaining it.
+var tapChanDescs = []string{
+	"mix — the two channels summed: what a mono meter would read",
+	"left — the left channel alone",
+	"right — the right channel alone",
+	"mid — the sum, halved: what both channels agree on, and what a mono listener hears",
+	"side — the difference, halved: what the two channels disagree about, which is the stereo width itself",
+}
+
 // tapFold reduces one (L, R) pair to the signal a channel names. mid carries
 // the ½ and side carries it too, so that switching between them does not resize
 // the figure and a full-scale input stays inside ±1 — stereoChanValue's

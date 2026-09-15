@@ -56,7 +56,7 @@ func addPhosphorTraces(stack, sel js.Value) {
 		phi := math.Atan2(math.Cos(rad), -math.Sin(rad)) * 180 / math.Pi
 		s := doc.Call("createElement", "div")
 		s.Set("className", "ph-trace clickable")
-		s.Set("title", p.name+" — CRT phosphor trace (color + persistence)")
+		s.Set("title", p.desc)
 		st := s.Get("style")
 		st.Set("left", l)
 		st.Set("top", t)
@@ -91,19 +91,24 @@ type phosphorSpec struct {
 	// let a two-layer phosphor decay through colors — e.g. P7's blue flash
 	// dies fast while its green afterglow lingers.
 	kr, kg, kb float64
+	// desc is what this phosphor IS, and it is what the knob's readout and each
+	// streak round the dial carry as their tooltip. It used to be the trailing
+	// comment on each row — the right words, in the one place a user could never
+	// see them.
+	desc string
 }
 
 var phosphors = []phosphorSpec{
-	{"— none —", 0, 0, 0, 1, 1, 1},
-	{"P31 green", 0.35, 1.00, 0.45, 0.62, 0.62, 0.62},     // Tek standard, bright green, short–medium
-	{"P1 green", 0.45, 1.00, 0.28, 0.80, 0.80, 0.80},      // willemite yellow-green, medium (~24 ms)
-	{"P2 yel-green", 0.75, 1.00, 0.25, 0.90, 0.90, 0.90},  // yellow-green, long
-	{"P3 amber", 1.00, 0.75, 0.15, 0.85, 0.85, 0.85},      // yellow-amber, medium (classic scope)
-	{"P4 white", 0.95, 0.97, 1.00, 0.58, 0.58, 0.58},      // TV white, short
-	{"P11 blue", 0.30, 0.45, 1.00, 0.60, 0.60, 0.60},      // photographic blue, short
-	{"P7 blue→green", 0.45, 0.80, 1.00, 0.58, 0.95, 0.55}, // blue flash (short) → green afterglow (long)
-	{"P39 green", 0.55, 1.00, 0.40, 0.94, 0.94, 0.94},     // long-persistence green (~150 ms)
-	{"P33 amber", 1.00, 0.50, 0.10, 0.985, 0.985, 0.985},  // very long persistence (radar amber)
+	{"— none —", 0, 0, 0, 1, 1, 1, "no phosphor — the trace keeps the palette's own colors and CRT mode is off"},
+	{"P31 green", 0.35, 1.00, 0.45, 0.62, 0.62, 0.62, "P31 — the Tektronix standard: bright green, short to medium persistence"},
+	{"P1 green", 0.45, 1.00, 0.28, 0.80, 0.80, 0.80, "P1 — willemite yellow-green, medium persistence (about 24 ms)"},
+	{"P2 yel-green", 0.75, 1.00, 0.25, 0.90, 0.90, 0.90, "P2 — yellow-green, long persistence"},
+	{"P3 amber", 1.00, 0.75, 0.15, 0.85, 0.85, 0.85, "P3 — yellow-amber, medium persistence: the classic oscilloscope tube"},
+	{"P4 white", 0.95, 0.97, 1.00, 0.58, 0.58, 0.58, "P4 — television white, short persistence"},
+	{"P11 blue", 0.30, 0.45, 1.00, 0.60, 0.60, 0.60, "P11 — photographic blue, short persistence: the tube built to expose film"},
+	{"P7 blue→green", 0.45, 0.80, 1.00, 0.58, 0.95, 0.55, "P7 — two layers: a blue flash that dies fast over a green afterglow that lingers"},
+	{"P39 green", 0.55, 1.00, 0.40, 0.94, 0.94, 0.94, "P39 — long-persistence green, about 150 ms"},
+	{"P33 amber", 1.00, 0.50, 0.10, 0.985, 0.985, 0.985, "P33 — radar amber: the longest persistence of the set"},
 }
 
 var phosphorIdx int // 0 = off

@@ -158,6 +158,9 @@ func wireDistortionModule() {
 		opt := doc.Call("createElement", "option")
 		opt.Set("value", strconv.Itoa(i))
 		opt.Set("textContent", name)
+		if i < len(tapChanDescs) {
+			opt.Set("title", tapChanDescs[i])
+		}
 		thdChanSel.Call("appendChild", opt)
 	}
 	thdChanSel.Set("value", "0")

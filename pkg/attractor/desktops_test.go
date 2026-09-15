@@ -107,3 +107,26 @@ func TestClampDegLeavesNaNAlone(t *testing.T) {
 		t.Errorf("clampDeg(NaN) = %v, want NaN", got)
 	}
 }
+
+func TestEveryDeskStyleHasADescription(t *testing.T) {
+	// The style knob is a rotary with a name readout, and a readout with no
+	// title of its own shows the CELL's — a paragraph about the knob, identical
+	// whichever desktop is selected. One description per style, checked here
+	// because deskStyleDesc is read only from js/wasm code that the host build
+	// cannot see.
+	seen := map[string]string{}
+	for _, k := range deskStyleOrder {
+		d := deskStyleDesc[k]
+		if d == "" {
+			t.Errorf("desktop style %q (%q) has no description", k, deskStyleLabel[k])
+			continue
+		}
+		if prev, dup := seen[d]; dup {
+			t.Errorf("styles %q and %q share the description %q", prev, k, d)
+		}
+		seen[d] = k
+	}
+	if len(deskStyleDesc) != len(deskStyleOrder) {
+		t.Errorf("%d descriptions for %d styles", len(deskStyleDesc), len(deskStyleOrder))
+	}
+}

@@ -195,7 +195,7 @@ func appendFVFSelectors(grid js.Value) {
 		// be applied here too — found by sweeping every model for two-option
 		// selects still wearing a knob, which turned up exactly this one.
 		if len(opts) == 2 {
-			grp.Call("appendChild", buildTwoWaySwitch(sel, opts))
+			grp.Call("appendChild", buildTwoWaySwitch(sel, opts, label))
 		} else {
 			grp.Call("appendChild", singleSelectorKnob(sel, ringLabels, 46))
 		}

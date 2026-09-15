@@ -53,6 +53,9 @@ func buildDeskStyleSelect() {
 		o := doc.Call("createElement", "option")
 		o.Set("value", k)
 		o.Set("textContent", deskStyleLabel[k])
+		if d, ok := deskStyleDesc[k]; ok {
+			o.Set("title", d)
+		}
 		sel.Call("appendChild", o)
 	}
 	sel.Set("value", deskStyle)
