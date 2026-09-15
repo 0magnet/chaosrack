@@ -55,6 +55,14 @@ func addOctaveDial(wrap js.Value) {
 		lab := doc.Call("createElement", "span")
 		lab.Set("className", "knob-dial-lab")
 		lab.Set("textContent", e.s)
+		// Which end, and what it is in hertz — the ring says A0 and A10 because
+		// every tick between them is an A, and the number is the thing a
+		// measurement actually needs.
+		end := "the lowest"
+		if e.f > genFreqLo {
+			end = "the highest"
+		}
+		lab.Set("title", e.s+" — "+strconv.FormatFloat(e.f, 'f', -1, 64)+" Hz, "+end+" this knob goes")
 		lab.Get("style").Set("left", l)
 		lab.Get("style").Set("top", tp)
 		dial.Call("appendChild", lab)
@@ -236,6 +244,7 @@ func addSelectorWaveDial(stack, sel js.Value, off float64) {
 		ic.Set("innerHTML", waveSVG[i])
 		ic.Get("style").Set("left", l)
 		ic.Get("style").Set("top", t)
+		dialPosTitle(ic, sel, i)
 		els[i] = ic
 		idx := i
 		ic.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {

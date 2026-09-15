@@ -34,6 +34,33 @@ func TestEveryCategoryHasARingTag(t *testing.T) {
 	}
 }
 
+func TestEveryCategoryHasARingTooltip(t *testing.T) {
+	// A ring label with no title of its own does not simply lack a tooltip: it
+	// shows its nearest titled ancestor's, which is the knob. So a missing entry
+	// here is a detent that claims to explain the whole control — the failure
+	// that was already live on this very ring, where the hand-written list had
+	// never mentioned Maps.
+	for _, g := range Catalog() {
+		if catTooltips[g.Label] == "" {
+			t.Errorf("category %q has no ring tooltip; its detent would explain the knob instead", g.Label)
+		}
+	}
+	if catTooltips[nestedOffCat] == "" {
+		t.Error("the OFF position has no ring tooltip")
+	}
+}
+
+func TestRingTooltipsAreDistinct(t *testing.T) {
+	// Two detents with the same sentence say nothing about either.
+	seen := map[string]string{}
+	for cat, tip := range catTooltips {
+		if prev, dup := seen[tip]; dup {
+			t.Errorf("categories %q and %q share the ring tooltip %q", prev, cat, tip)
+		}
+		seen[tip] = cat
+	}
+}
+
 func TestRingTagsAreDistinct(t *testing.T) {
 	// Two categories with the same tag is two detents that read identically:
 	// the model is still reachable, but only by turning past it and noticing.
