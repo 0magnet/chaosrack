@@ -521,7 +521,10 @@ func addSelectorDotLabels(stack js.Value, colors []string, sel js.Value, offset 
 // offset[0]. offset[1], if given, rotates the whole label ring by that many
 // degrees — used to stagger the style labels off the LED-color dots (which sit
 // at the same detent angles on the inner ring) so the two rings don't collide.
-func addSelectorLabels(stack js.Value, labels []string, sel js.Value, offset ...float64) {
+// Returns the ring it built, so a caller that has more than one on the same
+// knob can tell them apart afterwards — the concentric source/palette pair
+// needs to dim one ring without the other.
+func addSelectorLabels(stack js.Value, labels []string, sel js.Value, offset ...float64) js.Value {
 	off := 46.0
 	rot := 0.0
 	if len(offset) > 0 {
@@ -582,6 +585,7 @@ func addSelectorLabels(stack js.Value, labels []string, sel js.Value, offset ...
 	}
 	stack.Call("insertBefore", dial, stack.Get("firstChild"))
 	stack.Get("classList").Call("add", "has-dial")
+	return dial
 }
 
 // makeKnob builds a bounded knob assembly that drives slider. mirror, if

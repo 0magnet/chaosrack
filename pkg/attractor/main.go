@@ -1061,7 +1061,11 @@ func Run() {
 			gstack := stackKnobs(makeSelectorKnob(gsrc), makeSelectorKnob(gcol))
 			// Concentric clickable labels replace the dropdowns: source (what the
 			// color follows) on the OUTER ring, palette (color count) on the INNER.
-			addSelectorLabels(gstack, []string{"X", "Y", "Z", "trl", "aud"}, gsrc, 43)
+			// The outer ring is named so updateGradientUI can dim it on its own:
+			// on the mono palette it selects nothing, and it was the one control
+			// in this module that never said so.
+			addSelectorLabels(gstack, []string{"X", "Y", "Z", "trl", "aud"}, gsrc, 43).
+				Set("id", "grad-src-ring")
 			addSelectorLabels(gstack, []string{"1", "2", "3", "∞", "ht", "bl", "gy", "tb", "vr", "mg"}, gcol, 31)
 			holder.Call("appendChild", gstack)
 			gsrc.Get("style").Set("display", "none")

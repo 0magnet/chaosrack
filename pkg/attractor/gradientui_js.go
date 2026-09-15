@@ -83,6 +83,19 @@ func updateGradientUI() {
 	// uGradientPhase, which already exists and already animates.
 	dim("grp-rainbow", gradientColors != 4 && gradientColors < paletteFirst)
 	dim("grp-pshift", gradientColors < paletteFirst)
+	// The OUTER ring — what the colour follows — when the inner one is on mono.
+	//
+	// One colour is one colour whatever value it follows, so on mono the source
+	// ring reaches nothing. That is the same rule that already dims the mid
+	// swatch outside three-colour and the end swatch outside two; this ring was
+	// left out of it, and "I turn it and nothing happens" is the result.
+	//
+	// Only this case. A selected phosphor overrides BOTH rings — it forces the
+	// palette to monochrome in applyPhosphorColor, after the gradient uniforms
+	// are set — and that is already covered: src-cell is in crtOverriddenIDs, so
+	// the whole cell takes crt-dim. Dimming it a second time here would be two
+	// mechanisms for one rule.
+	dim("grad-src-ring", gradientColors == 1)
 	if lbl := doc.Call("getElementById", "lbl-cstart"); lbl.Truthy() {
 		if gradientColors == 1 {
 			lbl.Set("textContent", "color")
