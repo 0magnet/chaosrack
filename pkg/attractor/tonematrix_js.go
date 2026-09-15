@@ -426,11 +426,11 @@ func wireTonematrixModule() {
 	// routing and waveform share the out cell's. All four were orphans: no
 	// reset, not restored by Reset All, not in the permalink.
 	adoptDescControl(ControlDesc{
-		ID: "tm-steps", Label: "steps", SelectDef: "16", PermaKey: "ms",
+		ID: "tm-steps", Label: "steps", IsSelect: true, SelectDef: "16", PermaKey: "ms",
 		ResetID: "rst-tm-steps", SelectApply: func(string) { rebuildTM() },
 	})
 	adoptDescControl(ControlDesc{
-		ID: "tm-root", Label: "root", SelectDef: "3", PermaKey: "mr",
+		ID: "tm-root", Label: "root", IsSelect: true, SelectDef: "3", PermaKey: "mr",
 		ResetID: "rst-tm-steps", SelectApply: func(string) { rebuildTM() },
 	})
 
@@ -448,11 +448,11 @@ func wireTonematrixModule() {
 	addSelectorWaveDial(ostk, wave, 38)
 	ostack.Call("appendChild", ostk)
 	adoptDescControl(ControlDesc{
-		ID: "tm-out", Label: "out", SelectDef: "both", PermaKey: "mo",
+		ID: "tm-out", Label: "out", IsSelect: true, SelectDef: "both", PermaKey: "mo",
 		ResetID: "rst-tm-out", SelectApply: func(string) { tmUpdateRouting() },
 	})
 	adoptDescControl(ControlDesc{
-		ID: "tm-wave", Label: "wave", SelectDef: "0", PermaKey: "mv",
+		ID: "tm-wave", Label: "wave", IsSelect: true, SelectDef: "0", PermaKey: "mv",
 	})
 
 	if run := doc.Call("getElementById", "tm-run"); run.Truthy() {

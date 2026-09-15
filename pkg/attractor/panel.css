@@ -30,6 +30,11 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* Standard cell template: the reset button sits on the header line (with the
    LED readout), pinned to the cell's top-right — not tucked in the knob corner. */
 #params .punit>.rst,.vmcell>.rst,.axcol.axrot .rst{position:absolute;top:3px;right:3px;bottom:auto;left:auto;z-index:6;font-size:calc(12px*var(--kscale,1));line-height:1;}
+/* .rstcell is the same template for a selector cell that is not a .vmcell:
+   .pcell is not a positioned ancestor by default, so the cell has to become
+   one before its reset button can be pinned to the corner like every other. */
+.pcell.axcol.rstcell{position:relative;}
+.pcell.axcol.rstcell>.rst{position:absolute;top:3px;right:3px;bottom:auto;left:auto;z-index:6;font-size:calc(12px*var(--kscale,1));line-height:1;}
 .ctrl-btn{background:#333;color:#ccc;border:1px solid #555;padding:2px 8px;cursor:pointer;font-family:'B612 Mono',monospace;font-size:12px;}
 .ctrl-btn:hover{background:#555;}
 .dockb{padding:2px 7px;min-width:0;}

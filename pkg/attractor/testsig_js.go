@@ -54,7 +54,7 @@ func buildTestSignalModule() {
 		Apply: func(v float64) { fg().SetTestLevel(v / 100) },
 	})
 	adoptDescControl(ControlDesc{
-		ID: "testsig-sel", Label: "sig", SelectDef: "0", PermaKey: "tv",
+		ID: "testsig-sel", Label: "sig", IsSelect: true, SelectDef: "0", PermaKey: "tv",
 		ResetID:     "rst-testsig-sel",
 		SelectApply: func(string) { applyTestSignal() },
 	})

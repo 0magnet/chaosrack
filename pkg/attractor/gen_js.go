@@ -347,19 +347,29 @@ func buildGeneratorModule() {
 				genAudioUpdate(idx)
 			},
 		})
-		wave.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-			if w, err := strconv.Atoi(wave.Get("value").String()); err == nil {
-				fg().SetWave(idx, w)
-				genAudioUpdate(idx)
-			}
-			return nil
-		}))
+		// The two rings go through the descriptor path for the same reason the
+		// two knobs above it do. They were the last part of an oscillator with
+		// no way back: the freq and level knobs had reset buttons, the routing
+		// and the waveform sharing the cell beside them had none, and Reset All
+		// reached them only because it named them by hand.
+		//
 		// Channel ring: off mutes; any other value plays. Starts/stops the audio
 		// graph as needed (no separate Listen toggle).
-		out.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-			genAudioSync()
-			return nil
-		}))
+		adoptDescControl(ControlDesc{
+			ID: id + "-out", Label: "out", IsSelect: true, SelectDef: "off",
+			ResetID:     "rst-" + id + "-out",
+			SelectApply: func(string) { genAudioSync() },
+		})
+		adoptDescControl(ControlDesc{
+			ID: id + "-wave", Label: "wave", IsSelect: true, SelectDef: "0",
+			ResetID: "rst-" + id + "-out",
+			SelectApply: func(v string) {
+				if w, err := strconv.Atoi(v); err == nil {
+					fg().SetWave(idx, w)
+					genAudioUpdate(idx)
+				}
+			},
+		})
 		// Push HTML defaults into the FuncGen.
 		fg().SetFreq(idx, freqFromKnob(fgFloat(freq)))
 		fg().SetAmp(idx, fgFloat(lvl)/100)

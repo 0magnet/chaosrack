@@ -41,15 +41,31 @@ type ControlDesc struct {
 	// Adopt-path fields (adoptDescControl): ids of the template-declared
 	// elements the descriptor takes ownership of, plus any extra work a reset
 	// needs beyond restoring the value (e.g. Zoom also recenters the camera).
-	// A SELECTOR-backed control. SelectDef is the option value a reset returns
-	// to, and its presence is what tells adoptDescControl which kind this is —
+	// A SELECTOR-backed control. IsSelect is what tells adoptDescControl which
+	// kind this is, and SelectDef is the option value a reset returns to —
 	// Min/Max/Step/Def and the LED fields are all meaningless for a select,
 	// whose value is one of a named set rather than a number on a scale.
 	//
+	// IsSelect is a field of its own rather than "SelectDef is non-empty",
+	// which is what it used to be, because the empty string is a perfectly good
+	// option value: the Backdrop and Skin rings both default to OFF, whose
+	// value is "". Under the old rule those two read as numeric controls, took
+	// the slider path, found no slider, and silently registered nothing — the
+	// exact class of silent omission this type exists to end.
+	//
 	// Apply still receives a float64 for a numeric control; a selector's effect
 	// goes in SelectApply, which gets the option value as the string it is.
+	IsSelect    bool
 	SelectDef   string
 	SelectApply func(v string)
+
+	// SkipResetAll keeps this control out of the Reset All sweep while still
+	// giving it a reset button of its own. Exactly one control wants that: the
+	// interface Size ring is a display preference, like the dock edge, and
+	// resizing somebody's whole panel because they asked for a fresh view of the
+	// model is not what that button is for. Having its own reset is still right
+	// — a size you cannot get back out of is state with no way home.
+	SkipResetAll bool
 
 	LEDID      string // existing numeric-readout element id
 	ResetID    string // existing reset-button id
@@ -143,7 +159,7 @@ func buildDescControl(d ControlDesc) (*Control, js.Value) {
 // linkNumToSlider, a bespoke reset handler, and an onResetAll literal — each
 // of which could (and did) silently miss a control.
 func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will use the Control as migration continues
-	if d.SelectDef != "" {
+	if d.IsSelect {
 		return adoptSelectControl(d)
 	}
 	slider := doc.Call("getElementById", d.ID)
@@ -244,7 +260,8 @@ func adoptSelectControl(d ControlDesc) *Control {
 	ctl := &Control{
 		module: "", kind: kindGeneric,
 		sel: sel, selDef: d.SelectDef,
-		permaKey: d.PermaKey, resetHook: d.ResetExtra,
+		skipResetAll: d.SkipResetAll,
+		permaKey:     d.PermaKey, resetHook: d.ResetExtra,
 	}
 	if d.SelectApply != nil {
 		sel.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
