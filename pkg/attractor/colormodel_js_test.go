@@ -2,7 +2,10 @@
 
 package attractor
 
-import "testing"
+import (
+	"syscall/js"
+	"testing"
+)
 
 // The color model is two knobs: SRC says what the color follows, MAP says how
 // that value becomes a color. These check the two places the split has to hold
@@ -96,4 +99,46 @@ func TestEveryMapPositionMapsSomething(t *testing.T) {
 			t.Errorf("map %d does not clamp above 1", m)
 		}
 	}
+}
+
+// TestResetHandlesBothControlVariants is the regression for a runtime that died
+// on startup.
+//
+// Control grew a second variant — a selector-backed control, whose value lives
+// in a <select> and whose slider field is therefore the zero js.Value. Run
+// primes every registered control by dispatching an event at c.slider, and Call
+// on an undefined js.Value is a PANIC, not a no-op: the first selector to reach
+// that loop took the whole Go runtime down a moment after startup, leaving a
+// panel whose every knob was dead and whose LEDs were frozen at the values they
+// were given while the program was still alive.
+//
+// So: every path that touches a Control must branch on which element holds the
+// value, and must survive a Control holding neither.
+func TestResetHandlesBothControlVariants(t *testing.T) {
+	newEl := func(v string) js.Value {
+		el := js.Global().Get("Object").New()
+		el.Set("value", v)
+		el.Set("dispatchEvent", js.FuncOf(func(js.Value, []js.Value) any { return nil }))
+		return el
+	}
+
+	// Selector-backed: no slider at all. This is the shape that crashed.
+	sel := newEl("turbo")
+	c := &Control{sel: sel, selDef: "viridis"}
+	c.resetToDefault()
+	if got := sel.Get("value").String(); got != "viridis" {
+		t.Errorf("selector reset left %q, want the default %q", got, "viridis")
+	}
+
+	// Slider-backed: no sel. The original shape, which must still work.
+	sl := newEl("7")
+	c = &Control{slider: sl, def: 3}
+	c.resetToDefault()
+	if got := sl.Get("value").String(); got != "3" {
+		t.Errorf("slider reset left %q, want the default %q", got, "3")
+	}
+
+	// Neither: a no-op, not a panic. Nothing should ever build one, which is
+	// exactly why it must not be the thing that takes the runtime down.
+	(&Control{}).resetToDefault()
 }

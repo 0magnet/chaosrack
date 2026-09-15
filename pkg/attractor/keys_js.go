@@ -401,32 +401,44 @@ func wireKeysModule() {
 		}
 		sizeLED.Set("textContent", txt)
 	}
-	rebuild := trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	rebuildKeys := func() {
 		refreshSize()
 		buildKeysBed()
 		quantizeModuleWidths()
-		return nil
+	}
+	// The four selectors, through the descriptor path. All four were orphans:
+	// no reset button, not restored by Reset All, not in the permalink — so a
+	// range or a routing you had chosen could not be undone or shared.
+	//
+	// span and base share the range cell's one reset button, as out and wave
+	// share the output cell's: two descriptors naming the same ResetID each add
+	// a listener to it, so one click resets the pair the cell holds.
+	adoptDescControl(ControlDesc{
+		ID: "keys-span", Label: "range", SelectDef: "4", PermaKey: "kp",
+		ResetID: "rst-keys-range", SelectApply: func(string) { rebuildKeys() },
 	})
-	span.Call("addEventListener", "change", rebuild)
-	base.Call("addEventListener", "change", rebuild)
-
-	out.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		keysUpdateRouting()
-		return nil
-	}))
-	wave.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		w, _ := strconv.Atoi(wave.Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-		if w == 4 {
-			return nil // node-type change applies to NEW notes; held ones finish as-is
-		}
-		for _, osc := range keysVoices { // retype held periodic voices live
-			if osc.Get("type").Truthy() { // BufferSource (noise) has no type
-				osc.Set("type", waveTypeName(w))
+	adoptDescControl(ControlDesc{
+		ID: "keys-base", Label: "base", SelectDef: "2", PermaKey: "kc",
+		ResetID: "rst-keys-range", SelectApply: func(string) { rebuildKeys() },
+	})
+	adoptDescControl(ControlDesc{
+		ID: "keys-out", Label: "out", SelectDef: "both", PermaKey: "ko",
+		ResetID: "rst-keys-out", SelectApply: func(string) { keysUpdateRouting() },
+	})
+	adoptDescControl(ControlDesc{
+		ID: "keys-wave", Label: "wave", SelectDef: "0", PermaKey: "kv",
+		SelectApply: func(v string) {
+			w, _ := strconv.Atoi(v) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+			if w == 4 {
+				return // node-type change applies to NEW notes; held ones finish as-is
 			}
-		}
-		return nil
-	}))
-
+			for _, osc := range keysVoices { // retype held periodic voices live
+				if osc.Get("type").Truthy() { // BufferSource (noise) has no type
+					osc.Set("type", waveTypeName(w))
+				}
+			}
+		},
+	})
 	if sw.Truthy() {
 		sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
 			setKeysOn(sw.Get("checked").Bool())
