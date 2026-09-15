@@ -131,6 +131,11 @@ var modeInfo = map[string]ModeInfo{
 	// The transfer function is the same kind of thing: curves drawn on the
 	// screen with their own program, not a trajectory through the trail pipeline.
 	"xfer": {"Transfer Function", ClassAudio, false},
+	// The waterfall is Parametric rather than Audio: it is a genuine 3-D surface
+	// and rides the same vertex pipeline the attractors do, so it gets the
+	// camera, the drag-to-rotate and the gradient. It is the one analyzer here
+	// that could not be a flat panel.
+	"waterfall": {"Waterfall — Spectral Decay", ClassParametric, false},
 	// A terminal is not audio and not a dynamical system; it is a live picture
 	// on a plane, which is what ClassGeometry already covers for the modes that
 	// are a surface rather than a trajectory.
@@ -180,8 +185,8 @@ var modeGroups = []struct {
 	// off disk plus a catalog of built-in solids — the rack, the geometry and
 	// every attractor swept as a tube — generated in the browser.
 	{"Solids", []string{"stlfile", "terminal", "termanim", "hostterm", "desk"}},
-	{"Audio", []string{"spectrogram", "xy", "fvf", "takens", "stereo", "polar", "recurrence", "rta", "xfer"}},
-	{"Analysis", []string{"bifurcation", "poincare", "recurrence", "rta", "xfer"}},
+	{"Audio", []string{"spectrogram", "xy", "fvf", "takens", "stereo", "polar", "recurrence", "rta", "xfer", "waterfall"}},
+	{"Analysis", []string{"bifurcation", "poincare", "recurrence", "rta", "xfer", "waterfall"}},
 	// Custom is its own category and NOT also an entry in Attractors, where it
 	// used to be listed twice. It is a different kind of thing from the rest
 	// of that list: every other entry is a system someone published and this

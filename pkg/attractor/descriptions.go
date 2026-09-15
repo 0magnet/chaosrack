@@ -241,6 +241,27 @@ var attractorDescriptions = map[string]string{
 		"is summed to mono, and the reason this display is a mono-compatibility check. It reads " +
 		"L against R whatever AXES is set to, because it is a property of the channels rather " +
 		"than of the way they are drawn.",
+	"waterfall": "Waterfall — Cumulative Spectral Decay. The measurement a loudspeaker is " +
+		"characterised by, and the one display here that could only exist in this app: every " +
+		"other analyzer draws its own flat panel and this is a genuine 3-D surface, so it " +
+		"rides the same pipeline the attractors do and drags, rotates, zooms and takes the " +
+		"gradient like any other model. " +
+		"Frequency runs left to right, logarithmically, because hearing is organised in " +
+		"ratios; level runs up; and TIME runs into the screen. Each line is the spectrum of " +
+		"what is left of the impulse response from a moment onwards, so a flat loudspeaker's " +
+		"surface falls away evenly and a RESONANCE is a ridge running back into the screen at " +
+		"one frequency. That is what this is for: a frequency response cannot tell a " +
+		"resonance from a broad lift, because they are identical in magnitude and nothing " +
+		"alike in time. " +
+		"Feed it the log sweep from the Test module, with the sweep in one channel as the " +
+		"reference and what came back in the other. The impulse response is recovered by " +
+		"deconvolution and the surface rebuilt each time a sweep pass completes — so unlike " +
+		"every other audio mode the picture HOLDS STILL between passes, which is what makes " +
+		"it something to rotate and look at rather than something to freeze first. " +
+		"RNGE is how many decibels of decay are shown, DPTH how far back the surface " +
+		"reaches, REF which channel is the reference. A sweep takes four seconds to cross " +
+		"the band, so the measurement needs a whole pass: a third of one is 20 Hz to 200 Hz " +
+		"and recovers an impulse five milliseconds wide.",
 	"xfer": "Transfer Function — what the thing between two channels did to the sound. " +
 		"Every other measurement here asks about ONE signal; this one asks about the " +
 		"RELATIONSHIP between two, which is the question a system is actually tuned by. Send a " +

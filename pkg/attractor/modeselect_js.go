@@ -361,6 +361,7 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 	// swapped while the mode was away, leaving a measurement of a signal that
 	// is no longer playing.
 	takensArmAutoMeasure()
+	wfallArmFit()
 	resetAttractorState()
 	buildParamPanel(selectedMode)
 	updateInfoOverlay()

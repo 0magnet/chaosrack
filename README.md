@@ -68,6 +68,7 @@ analog computers at [glensstuff.com](https://glensstuff.com).
   - [Transfer function — magnitude, phase, coherence](#transfer-function--magnitude-phase-coherence)
   - [Loudness — LUFS, loudness range, true peak](#loudness--lufs-loudness-range-true-peak)
   - [Wow & flutter — speed stability](#wow--flutter--speed-stability)
+  - [Waterfall — cumulative spectral decay](#waterfall--cumulative-spectral-decay)
   - [Controls that pull in the same direction](#controls-that-pull-in-the-same-direction)
 - [Reaching the machine](#reaching-the-machine)
   - [On a machine with other people on it](#on-a-machine-with-other-people-on-it)
@@ -1368,7 +1369,7 @@ Desk — a window manager, drawn as a model. The same texture-on-a-plane path th
 
 ### Audio
 
-[Spectrogram](#spectrogram) · [XY Scope](#xy-scope) · [FVF Wobbulator](#fvf-wobbulator) · [Takens Embedding](#takens-embedding) · [Stereo Embedding](#stereo-embedding) · [Polar Embedding](#polar-embedding) · [Recurrence Plot](#recurrence-plot) · [RTA — Octave Bands](#rta--octave-bands) · [Transfer Function](#transfer-function)
+[Spectrogram](#spectrogram) · [XY Scope](#xy-scope) · [FVF Wobbulator](#fvf-wobbulator) · [Takens Embedding](#takens-embedding) · [Stereo Embedding](#stereo-embedding) · [Polar Embedding](#polar-embedding) · [Recurrence Plot](#recurrence-plot) · [RTA — Octave Bands](#rta--octave-bands) · [Transfer Function](#transfer-function) · [Waterfall — Spectral Decay](#waterfall--spectral-decay)
 
 #### Spectrogram
 
@@ -1428,9 +1429,15 @@ Transfer Function — what the thing between two channels did to the sound. Ever
 
 `#xfer` · audio
 
+#### Waterfall — Spectral Decay
+
+Waterfall — Cumulative Spectral Decay. The measurement a loudspeaker is characterised by, and the one display here that could only exist in this app: every other analyzer draws its own flat panel and this is a genuine 3-D surface, so it rides the same pipeline the attractors do and drags, rotates, zooms and takes the gradient like any other model. Frequency runs left to right, logarithmically, because hearing is organised in ratios; level runs up; and TIME runs into the screen. Each line is the spectrum of what is left of the impulse response from a moment onwards, so a flat loudspeaker's surface falls away evenly and a RESONANCE is a ridge running back into the screen at one frequency. That is what this is for: a frequency response cannot tell a resonance from a broad lift, because they are identical in magnitude and nothing alike in time. Feed it the log sweep from the Test module, with the sweep in one channel as the reference and what came back in the other. The impulse response is recovered by deconvolution and the surface rebuilt each time a sweep pass completes — so unlike every other audio mode the picture HOLDS STILL between passes, which is what makes it something to rotate and look at rather than something to freeze first. RNGE is how many decibels of decay are shown, DPTH how far back the surface reaches, REF which channel is the reference. A sweep takes four seconds to cross the band, so the measurement needs a whole pass: a third of one is 20 Hz to 200 Hz and recovers an impulse five milliseconds wide.
+
+`#waterfall` · parametric
+
 ### Analysis
 
-[Bifurcation](#bifurcation) · [Poincaré Section](#poincaré-section) · [Recurrence Plot](#recurrence-plot) · [RTA — Octave Bands](#rta--octave-bands) · [Transfer Function](#transfer-function)
+[Bifurcation](#bifurcation) · [Poincaré Section](#poincaré-section) · [Recurrence Plot](#recurrence-plot) · [RTA — Octave Bands](#rta--octave-bands) · [Transfer Function](#transfer-function) · [Waterfall — Spectral Decay](#waterfall--spectral-decay)
 
 #### Bifurcation
 
@@ -1459,6 +1466,10 @@ See [RTA — Octave Bands](#rta--octave-bands) above.
 #### Transfer Function
 
 See [Transfer Function](#transfer-function) above.
+
+#### Waterfall — Spectral Decay
+
+See [Waterfall — Spectral Decay](#waterfall--spectral-decay) above.
 
 ### Custom
 
@@ -1799,6 +1810,53 @@ cascaded poles reject it by 96 dB. The weighted figure then still read 0.035%,
 which was the demodulator's *own* startup: until the filters settle, I and Q are
 climbing out of zero and the argument of a vector near the origin is noise, and
 the quasi-peak detector holds a peak for a second and a half.
+
+
+### Waterfall — cumulative spectral decay
+
+The measurement a loudspeaker is characterised by, and the one display here that
+could only exist in this app: every other analyzer draws its own flat panel, and
+this is a genuine 3-D surface that rides the same vertex pipeline the attractors
+do — so it drags, rotates, zooms and takes the gradient like any other model.
+
+Frequency runs left to right (logarithmically), level up, and **time into the
+screen**. Each line is the spectrum of what is left of the impulse response from
+a moment onwards, so a flat loudspeaker's surface falls away evenly and a
+**resonance is a ridge running back into the screen** at one frequency. That is
+what it is for: a frequency response cannot tell a resonance from a broad lift,
+because they are identical in magnitude and nothing alike in time.
+
+Feed it the **log sweep** from the Test module, with the sweep as the reference
+in one channel and what came back in the other. The impulse response is recovered
+by deconvolution — H = Y·conj(X)/(|X|² + ε), inverse-transformed — and the
+surface is rebuilt each time a sweep pass completes. Unlike every other audio
+mode the picture then **holds still** between passes, which is what makes it
+something to rotate and look at rather than something to freeze first.
+
+**A sweep takes four seconds to cross the band, so the measurement needs a whole
+pass.** A third of one is 20 Hz to 200 Hz, and the impulse it recovers is a
+five-millisecond smear — which is how the delay tests were failing before the
+window was made long enough to hold a full pass.
+
+The deconvolution is windowed **rectangularly**, deliberately. Every other
+analysis here windows its input to stop a tone leaking across the spectrum; a
+deconvolution must not, because a window is a multiplication in time and so a
+convolution in frequency — it would smear the very response being recovered.
+
+Checked against systems whose answer is known: a passthrough gives a single spike
+at sample 0 of height 1, delays of 1, 17, 240 and 1000 samples put the spike at
+exactly those samples, gains scale it, and an exponential decay built to fall
+60 dB in a known time is recovered by both the T20 and T30 fits to within 8%.
+
+**One limitation, stated because it is real.** The reverberation time does not
+find the noise floor. A Schroeder integral of a *truncated* response always falls
+away at its end — the energy remaining after the last sample is zero however loud
+the signal was — so a recording that stops before the reverberation has shows a
+decay that is partly its own edge. Worse, the obvious check does not catch it: a
+T20 and a T30 that disagree are usually taken as the sign that a fit has run into
+the floor, and measured against a pure truncation ramp they **agree** to within
+6%, both returning about 1.5 s from a signal with no decay whatsoever. The usual
+answer is Lundeby's method; it is not here yet.
 
 ### Controls that pull in the same direction
 
