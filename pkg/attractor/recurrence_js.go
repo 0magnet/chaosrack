@@ -593,7 +593,7 @@ func rpFormatRQA(r RQAResult) string {
 // rather than below it, because the grid is the height-bounded column-wrap
 // container and anything appended after it is clipped.
 func appendRecurrenceRQA(grid js.Value) {
-	card, top := newPunitCard("rqa", false)
+	card, top := newPunitCard("rqa")
 
 	rpRQAEl = doc.Call("createElement", "span")
 	rpRQAEl.Set("className", "led counter-led")

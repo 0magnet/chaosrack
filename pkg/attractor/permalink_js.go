@@ -425,9 +425,9 @@ func applyControl(key, val string) {
 	}
 	// gc=1 was the mono palette, which is now the src ring's OFF position: the
 	// map ring has no such value to be set to, so a link written before the
-	// split would silently land on nothing and the trace would come up coloured.
+	// split would silently land on nothing and the trace would come up colored.
 	// Translated rather than dropped, because a permalink records a LOOK and
-	// "one flat colour" is one somebody chose.
+	// "one flat color" is one somebody chose.
 	if key == "gc" && val == "1" {
 		key, val = "gs", strconv.Itoa(GradientSourceOff)
 	}

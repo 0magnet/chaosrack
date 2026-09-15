@@ -763,20 +763,20 @@ func showParamsModule(on bool) {
 // .punit{align-items:center} and CENTERED their labels over the knob while
 // every cell beside them in the same grid row pinned theirs to the left edge.
 //
-// The wrapper is what puts the readout in the label's row as well, centred over
+// The wrapper is what puts the readout in the label's row as well, centered over
 // the knob's axis, which is the other half of the standard cell: a bare LED
-// under a bare label stacks two centred things where the panel everywhere else
+// under a bare label stacks two centered things where the panel everywhere else
 // has a left label with the value beside it.
 //
 // Returns the card and its top row, so the caller appends the readout to the
 // row and the control to the card.
-func newPunitCard(label string, sym bool) (card, top js.Value) {
+func newPunitCard(label string) (card, top js.Value) {
 	card = doc.Call("createElement", "div")
 	card.Set("className", "punit")
 	top = doc.Call("createElement", "span")
 	top.Set("className", "punit-top")
 	lbl := doc.Call("createElement", "span")
-	lbl.Set("className", symClass("u-lbl", sym))
+	lbl.Set("className", symClass("u-lbl", labelIsSym(label)))
 	lbl.Set("textContent", label)
 	top.Call("appendChild", lbl)
 	card.Call("appendChild", top)
