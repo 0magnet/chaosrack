@@ -133,7 +133,7 @@ github.com/0magnet/u-root/pkg/ls
 ## explicit; go 1.26.0
 github.com/0magnet/websh/shell
 github.com/0magnet/websh/web
-# github.com/0magnet/winbox-go v0.0.0-20260913215348-e6a682de3c9b
+# github.com/0magnet/winbox-go v0.0.0-20260915154346-4ab7a97ba459
 ## explicit; go 1.24
 github.com/0magnet/winbox-go
 # github.com/0magnet/xterm-go v0.0.0-20260913215439-50280f9bd203
