@@ -498,13 +498,7 @@ func xyNoteState(monoSrc, ok bool, corr float32) {
 // grid rather than #params, for appendStereoReadout's reason: #params stacks
 // below the height-bounded grid and gets clipped.
 func appendXYReadout(grid js.Value) {
-	card := doc.Call("createElement", "div")
-	card.Set("className", "punit")
-
-	lbl := doc.Call("createElement", "span")
-	lbl.Set("className", symClass("u-lbl", false))
-	lbl.Set("textContent", "corr")
-	card.Call("appendChild", lbl)
+	card, top := newPunitCard("corr", false)
 
 	xyCorrEl = doc.Call("createElement", "span")
 	xyCorrEl.Set("className", "led counter-led")
@@ -523,7 +517,7 @@ func appendXYReadout(grid js.Value) {
 	// the NEW element instead of skipping it as unchanged.
 	xyCorrText = ""
 	xyCorrEl.Set("textContent", stereoReadout(xyMonoSrc, xyCorrOK, xyCorr))
-	card.Call("appendChild", xyCorrEl)
+	top.Call("appendChild", xyCorrEl)
 
 	grid.Call("appendChild", card)
 }

@@ -593,13 +593,7 @@ func rpFormatRQA(r RQAResult) string {
 // rather than below it, because the grid is the height-bounded column-wrap
 // container and anything appended after it is clipped.
 func appendRecurrenceRQA(grid js.Value) {
-	card := doc.Call("createElement", "div")
-	card.Set("className", "punit")
-
-	lbl := doc.Call("createElement", "span")
-	lbl.Set("className", symClass("u-lbl", false))
-	lbl.Set("textContent", "rqa")
-	card.Call("appendChild", lbl)
+	card, top := newPunitCard("rqa", false)
 
 	rpRQAEl = doc.Call("createElement", "span")
 	rpRQAEl.Set("className", "led counter-led")
@@ -611,7 +605,7 @@ func appendRecurrenceRQA(grid js.Value) {
 		"The line of identity is left out of DET: every point recurs with itself, and counting that in "+
 		"would give noise a confident score for nothing.")
 	rpRQAEl.Set("textContent", rpFormatRQA(rpRQA))
-	card.Call("appendChild", rpRQAEl)
+	top.Call("appendChild", rpRQAEl)
 
 	// A source LABEL rather than a second knob. The trajectory source plots
 	// whichever flow was on screen last, and a plot of an unnamed system is not

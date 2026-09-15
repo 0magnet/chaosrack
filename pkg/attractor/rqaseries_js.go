@@ -313,11 +313,18 @@ func appendRecurrenceSeries(grid js.Value) {
 	card := doc.Call("createElement", "div")
 	card.Set("className", "punit")
 	// Inline, because #params .punit pins every cell to one --kcol by --krow.
-	// justify-content is reset to the top so the label sits above the chart and
-	// the chart takes the rest, rather than the pair being centered with slack
-	// above and below.
+	// justify-content is reset to the top so the chart takes the whole card
+	// rather than being centered with slack above and below.
+	//
+	// The left padding is the label's room. Every primary label in the rack is
+	// pinned to its cell's top-left corner and out of flow — that is the one
+	// rule the panel keeps across every module — so a chart that filled the card
+	// edge to edge would have the label sitting on top of it. Insetting the
+	// content is how the cell keeps both: the label where every other label is,
+	// and the chart unobscured.
 	card.Get("style").Set("cssText",
-		"grid-row:1/-1;grid-column:span 2;width:100%;height:100%;justify-content:flex-start;gap:2px;")
+		"grid-row:1/-1;grid-column:span 2;width:100%;height:100%;justify-content:flex-start;"+
+			"gap:2px;padding-left:16px;box-sizing:border-box;")
 
 	lbl := doc.Call("createElement", "span")
 	lbl.Set("className", symClass("u-lbl", false))
