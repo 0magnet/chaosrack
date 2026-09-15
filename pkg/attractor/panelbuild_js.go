@@ -723,6 +723,29 @@ func buildTwoWaySwitch(sel js.Value, labels []string) js.Value {
 		sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 		return nil
 	}))
+	// The wheel steps it, because every other control in the rack answers the
+	// wheel and these sit in the same grid as knobs that do. A two-position
+	// parameter is still a parameter; that it is drawn as a switch rather than a
+	// dial is a decision about which gesture is CHEAPEST (a click, not a drag),
+	// not a decision to answer fewer gestures than its neighbors.
+	//
+	// Up towards the earlier option, matching makeSelectorKnob, so the two agree
+	// about which way "up" is on a detented control.
+	wrap.Call("addEventListener", "wheel", trackedFuncOf(func(_ js.Value, args []js.Value) interface{} {
+		e := args[0]
+		e.Call("preventDefault")
+		e.Call("stopPropagation")
+		idx := 1
+		if e.Get("deltaY").Float() < 0 {
+			idx = 0
+		}
+		if sel.Get("selectedIndex").Int() == idx {
+			return nil
+		}
+		sel.Set("selectedIndex", idx)
+		sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+		return nil
+	}))
 	// The select can move without the switch being touched, and then the switch
 	// has to catch up or it is lying about the state it controls.
 	sel.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
