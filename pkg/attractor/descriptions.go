@@ -258,8 +258,20 @@ var attractorDescriptions = map[string]string{
 		"deconvolution and the surface rebuilt each time a sweep pass completes — so unlike " +
 		"every other audio mode the picture HOLDS STILL between passes, which is what makes " +
 		"it something to rotate and look at rather than something to freeze first. " +
-		"RNGE is how many decibels of decay are shown, DPTH how far back the surface " +
-		"reaches, REF which channel is the reference. A sweep takes four seconds to cross " +
+		"LINE is how many slices the surface has and STEP how far apart they are in " +
+		"milliseconds, so the two are how deep it reaches in TIME: sixteen at 5 ms is the " +
+		"80 ms a loudspeaker's resonances live in, thirty-two at 40 ms the 1.3 seconds a " +
+		"bar of music takes. FFT is the transform each slice is taken through, and it is a " +
+		"genuine trade — 1k resolves time best and the bass worst, 8k the other way, and a " +
+		"window longer than STEP means consecutive slices see the same audio. TOP and RNGE " +
+		"place the level scale in dBFS as they do on the RTA. DPTH is how far back the " +
+		"surface reaches on screen, which is geometry rather than time. CHAN is the channel " +
+		"the live surface analyses; REF is which channel the decay surface calls the " +
+		"reference, because that one needs both. LINE, STEP and FFT follow the SRC switch " +
+		"to what each surface wants, and stop following once you turn one. " +
+		"Turn the Colors SOURCE ring to Y: it colours by LEVEL across exactly the decibels " +
+		"TOP and RNGE show, which is how every published CSD plot is coloured. Z and trail " +
+		"colour by age, X repeats the frequency axis, and AUDIO is one flat tint here. A sweep takes four seconds to cross " +
 		"the band, so the measurement needs a whole pass: a third of one is 20 Hz to 200 Hz " +
 		"and recovers an impulse five milliseconds wide. " +
 		"SRC PICKS WHICH SURFACE. DCAY is the decay above, which is a measurement and needs " +

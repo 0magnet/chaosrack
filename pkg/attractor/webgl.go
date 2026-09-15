@@ -352,3 +352,34 @@ func SliceToTypedArray(s interface{}) js.Value {
 		panic("unexpected value at SliceToTypedArray")
 	}
 }
+
+// setGradientRange sets the gradient's normalizing extents directly, for
+// geometry whose bounds are known BY CONSTRUCTION rather than found by
+// scanning it.
+//
+// updateGradientRange scans the vertex buffer, and its doc comment says why it
+// is only called on a mode or parameter change: it is an O(n) pass over up to
+// twenty thousand points and it is not per-frame work. That is fine for a model
+// whose shape is settled by the time the mode is entered, and wrong for one
+// built from live audio — the scan runs on the PREVIOUS model's vertices,
+// because the new mode has not drawn yet, and the gradient then normalizes the
+// new geometry against the old one's bounds. A waterfall entered from an
+// attractor was coloured across whatever slice of the colormap its coordinates
+// happened to fall in inside the attractor's range, which is how six distinct
+// colormaps all came out looking like one flat tint.
+//
+// A surface with known bounds does not need the scan at all. centerOffset is
+// subtracted because uploadVerticesOnly subtracts it from the vertices, so the
+// bounds have to move with them or they describe a figure that is no longer
+// where it was.
+func setGradientRange(minX, maxX, minY, maxY, minZ, maxZ float32) {
+	if !shadersReady {
+		return
+	}
+	gl.Call("uniform1f", uMinXLoc, float64(minX-centerOffset[0]))
+	gl.Call("uniform1f", uMaxXLoc, float64(maxX-centerOffset[0]))
+	gl.Call("uniform1f", uMinYLoc, float64(minY-centerOffset[1]))
+	gl.Call("uniform1f", uMaxYLoc, float64(maxY-centerOffset[1]))
+	gl.Call("uniform1f", uMinZLoc, float64(minZ-centerOffset[2]))
+	gl.Call("uniform1f", uMaxZLoc, float64(maxZ-centerOffset[2]))
+}
