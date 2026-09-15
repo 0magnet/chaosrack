@@ -304,6 +304,18 @@ func stackKnobs(outer, inner js.Value) js.Value {
 	return stack
 }
 
+// soloKnob is stackKnobs' single-knob form: one selector knob in a knobstack,
+// for a cell that holds one ring rather than two concentric ones.
+func soloKnob(sel js.Value) js.Value {
+	stack := doc.Call("createElement", "span")
+	stack.Set("className", "knobstack")
+	stack.Call("setAttribute", "data-no-drag", "")
+	k := makeSelectorKnob(sel)
+	k.Get("classList").Call("add", "knob-ring")
+	stack.Call("appendChild", k)
+	return stack
+}
+
 // setLabelTooltips sets a per-label title on a selector knob's dial labels,
 // matched by the label text, so rotary-switch positions get unique tooltips.
 func setLabelTooltips(stack js.Value, tips map[string]string) {

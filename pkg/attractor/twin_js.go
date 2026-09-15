@@ -136,7 +136,7 @@ func twinTick(mode string) bool {
 	gl.Call("uniform1i", uGradientColorsLoc, 1)
 	gl.Call("uniform3f", uBaseColorLoc, 0.15, 1.0, 0.45)
 	uploadVerticesOnly(twinBuf[:steps*4], attractorDrawMode, steps)
-	gl.Call("uniform1i", uGradientColorsLoc, gradientColors)
+	gl.Call("uniform1i", uGradientColorsLoc, gradientColorsUniform())
 
 	return true
 }

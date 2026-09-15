@@ -291,7 +291,7 @@ func bifDrawCursor(p paramDef, span float64) {
 		applyPhosphorColor()
 		return
 	}
-	gl.Call("uniform1i", uGradientColorsLoc, gradientColors)
+	gl.Call("uniform1i", uGradientColorsLoc, gradientColorsUniform())
 	gl.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
 }
 

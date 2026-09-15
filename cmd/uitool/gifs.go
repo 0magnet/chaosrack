@@ -13,6 +13,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/0magnet/chaosrack/pkg/attractor"
 	"image"
 	"os"
 	"path/filepath"
@@ -141,7 +142,9 @@ func captureModelGif(c *cdp.Client, mode string) []*image.Paletted {
 	// The variation walk. Order matches the static sheets: mono once, then
 	// 2-color / 3-color / rainbow across sources X, Y, Z, trail.
 	type variation struct{ gc, gs int }
-	vars := []variation{{1, 2}}
+	// SRC off first — the flat trace, which the MAP knob cannot change. It was
+	// gc=1 (mono) before mono moved onto the source knob as OFF.
+	vars := []variation{{2, attractor.GradientSourceOff}}
 	for _, gc := range []int{2, 3, 4} {
 		for gs := 0; gs < 4; gs++ {
 			vars = append(vars, variation{gc, gs})
