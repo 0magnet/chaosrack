@@ -367,7 +367,8 @@ func setTonematrixOn(on bool) {
 	if on {
 		tmEnsureGraph() // the switch flip is our user gesture
 		tmNext = 0
-		if selectedMode != "spectrogram" && selectedMode != "xy" {
+		// Not while the saved switches are being put back: see restoringSwitches.
+		if selectedMode != "spectrogram" && selectedMode != "xy" && !restoringSwitches {
 			tmPrevMode = selectedMode
 			tmSwitchMode("spectrogram")
 		}
