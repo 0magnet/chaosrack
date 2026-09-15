@@ -429,6 +429,17 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    collapsing to content width (which crowded the label against the LED). */
 #params .punit,.modmodule .punit,.eqmodule .punit{position:relative;height:calc(160px*var(--kscale,1));width:calc(116px*var(--kscale,1));justify-content:center;box-sizing:border-box;}
 #params .punit>.punit-top,.modmodule .punit>.u-lbl,.eqmodule .punit>.u-lbl{position:absolute;top:2px;left:0;right:0;margin:0;z-index:3;}
+/* A card built by hand rather than by buildParamUnit puts its label straight
+   into the .punit with no .punit-top around it — the readouts (corr, dly, meas,
+   rqa, rt60, λ, trend) and the FVF selector cards all do. Without this they
+   matched neither rule above and fell through to .punit{align-items:center},
+   which CENTERED the label over the knob while every cell beside them pinned
+   theirs to the left edge. Same grid row, two label positions.
+   Mod and EQ have pinned a bare .u-lbl this way all along; this is #params
+   doing the same, so the fallback is correct rather than something each new
+   hand-built card has to remember a wrapper for. .plabel too: a punit should
+   carry a .u-lbl, but one that does not still has to line up. */
+#params .punit>.u-lbl,#params .punit>.plabel{position:absolute;top:3px;left:4px;right:auto;margin:0;z-index:3;transform:none;}
 /* params: label stacked above the numeric LED, both centered over the knob's axis
    (full width so centering is on the cell, not collapsed to content width). */
 /* Label to the LEFT of the LED (like the View module), LED centered over the
@@ -1109,8 +1120,15 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    option's name sits beside it because these are two THINGS — "logarithmic"
    and "linear" — rather than a thing and its absence, so "on" would not say
    which one is selected. */
-.punit .twoway{display:flex;align-items:center;gap:calc(4px*var(--kscale,1));justify-content:center;padding:calc(6px*var(--kscale,1)) 0;}
-.punit .twoway-name{font-size:calc(9px*var(--kscale,1));color:#8cf;letter-spacing:.04em;}
+/* A two-way switch names its live option beside it, and some of those names are
+   sentences: "decay from a sweep", "left is reference". Side by side with the
+   box that ran 20px past both edges of the 116px cell and printed itself across
+   the divider into the next column's cell. Stacked instead, with the name free
+   to wrap, the whole width of the cell is available to it and the informative
+   name survives — the alternative was abbreviating to the ring labels, and "L"
+   beside a switch does not say what "left is reference" says. */
+.punit .twoway{display:flex;flex-direction:column;align-items:center;gap:calc(2px*var(--kscale,1));justify-content:center;padding:calc(6px*var(--kscale,1)) 0;max-width:100%;}
+.punit .twoway-name{font-size:calc(9px*var(--kscale,1));color:#8cf;letter-spacing:.04em;white-space:normal;text-align:center;line-height:1.15;max-width:calc(108px*var(--kscale,1));}
 
 /* A CONTROL MUST NOT MOVE ITSELF WHEN YOU USE IT.
    Twin's switch carries the live λ readout beside its label. Empty, the span

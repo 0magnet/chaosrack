@@ -193,3 +193,35 @@ func quantizeModuleWidthsSoon() {
 	})
 	js.Global().Call("requestAnimationFrame", fn)
 }
+
+// requantizeAfterFonts re-measures the module widths once the panel's fonts
+// have actually been applied.
+//
+// The widths are measured from the content, and the content is mostly TEXT, so
+// the measurement is only as good as the font it was taken in. injectFonts adds
+// the @font-face rules at startup and the browser applies them asynchronously —
+// base64 in the rule rather than a network fetch does not change that — so the
+// first quantize can easily run against the fallback font and come out with a
+// module one slot too narrow. Nothing re-measured afterwards, so it stayed
+// narrow for the session: the Colors module came up at half its width, and
+// undocking and redocking the panel fixed it because docking re-quantizes.
+//
+// One extra measurement per session, on a promise that is already resolved by
+// the time it is asked on a warm cache.
+func requantizeAfterFonts() {
+	fonts := doc.Get("fonts")
+	if !fonts.Truthy() {
+		return
+	}
+	ready := fonts.Get("ready")
+	if !ready.Truthy() || ready.Type() != js.TypeObject {
+		return
+	}
+	var fn js.Func
+	fn = js.FuncOf(func(js.Value, []js.Value) interface{} {
+		fn.Release()
+		quantizeModuleWidths()
+		return nil
+	})
+	ready.Call("then", fn)
+}
