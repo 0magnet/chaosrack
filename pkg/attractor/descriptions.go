@@ -261,7 +261,16 @@ var attractorDescriptions = map[string]string{
 		"RNGE is how many decibels of decay are shown, DPTH how far back the surface " +
 		"reaches, REF which channel is the reference. A sweep takes four seconds to cross " +
 		"the band, so the measurement needs a whole pass: a third of one is 20 Hz to 200 Hz " +
-		"and recovers an impulse five milliseconds wide.",
+		"and recovers an impulse five milliseconds wide. " +
+		"SRC PICKS WHICH SURFACE. DCAY is the decay above, which is a measurement and needs " +
+		"the sweep. LIVE is the other thing the word waterfall means: successive spectra of " +
+		"whatever is playing, stacked into the screen as they age, so the depth axis stops " +
+		"being time-since-the-impulse and becomes time-ago. Live is the one for music — a " +
+		"note is a ridge that rises at the front and travels back as it decays — and decay " +
+		"is the one for a measurement rig. RT60 is the room's reverberation time from the " +
+		"same impulse, by Schroeder backward integration as T20 between -5 and -25 dB: the " +
+		"one number the surface is far too shallow to show. Blank on the live surface and " +
+		"blank through a wire, neither of which has a decay to measure.",
 	"xfer": "Transfer Function — what the thing between two channels did to the sound. " +
 		"Every other measurement here asks about ONE signal; this one asks about the " +
 		"RELATIONSHIP between two, which is the question a system is actually tuned by. Send a " +
