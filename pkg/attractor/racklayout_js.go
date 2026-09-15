@@ -108,7 +108,25 @@ func restorableHidden(keys []string) []string {
 // the hash carry every control to close that would cost every shared link its
 // length, for a case that is a module being present rather than a view being
 // wrong.
+// restoringSwitches is true only while restoreConsoleModuleSwitches is putting
+// this browser's saved switches back at start-up.
+//
+// A module switch is allowed to change the MODEL when a person flips it — the
+// Matrix hands the screen to the spectrogram, because while it runs the pattern
+// IS the scrolling spectrum, and that is the whole point of the switch. Putting
+// the same switch back at start-up is not that gesture. It is a preference
+// being restored, and it was silently overriding the model a permalink asked
+// for: #pong opened on the spectrogram for anyone who had ever left the Matrix
+// on, with nothing to say why.
+//
+// The rule this enforces is the one written directly below: a shared link wins
+// over this browser's own preference. The switch still comes back on; it just
+// does not take the view with it.
+var restoringSwitches bool
+
 func restoreConsoleModuleSwitches() {
+	restoringSwitches = true
+	defer func() { restoringSwitches = false }()
 	l := readRackLayout()
 	on := make(map[string]bool, len(l.Switches))
 	for _, id := range l.Switches {
