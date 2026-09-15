@@ -7,12 +7,12 @@ import (
 	"github.com/0magnet/chaosrack/pkg/audiosrc"
 )
 
-// THE BAND CENTRES ARE THE PUBLISHED ONES. An analyzer whose bands sit
+// THE BAND CENTERS ARE THE PUBLISHED ONES. An analyzer whose bands sit
 // somewhere else cannot be compared with anybody's measurement, and the
 // third-octave row is the one every acoustics table in the world prints.
 func TestThirdOctaveCentresAreTheStandardOnes(t *testing.T) {
 	bands := RTABands(3)
-	// ISO 266's preferred numbers, which are the exact centres rounded.
+	// ISO 266's preferred numbers, which are the exact centers rounded.
 	want := []float64{20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315,
 		400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000,
 		6300, 8000, 10000, 12500, 16000, 20000}
@@ -21,15 +21,15 @@ func TestThirdOctaveCentresAreTheStandardOnes(t *testing.T) {
 			len(bands), rtaLo, rtaHi, len(want))
 	}
 	for i, w := range want {
-		// Within 2%, which is the gap between the exact centre and the
+		// Within 2%, which is the gap between the exact center and the
 		// preferred number it is printed as.
 		if rel := math.Abs(bands[i].Center-w) / w; rel > 0.02 {
-			t.Errorf("band %d is centred at %.2f Hz, and the standard says %.1f", i, bands[i].Center, w)
+			t.Errorf("band %d is centered at %.2f Hz, and the standard says %.1f", i, bands[i].Center, w)
 		}
 	}
 }
 
-// One thousand hertz is a band centre at every fraction, because the whole
+// One thousand hertz is a band center at every fraction, because the whole
 // series is defined about it.
 func TestEveryFractionIsCentredOnAKilohertz(t *testing.T) {
 	for _, b := range rtaFractions {
@@ -64,7 +64,7 @@ func TestBandsPartitionWithoutGapsOrOverlap(t *testing.T) {
 }
 
 // A band an octave wide is a band whose edges are a factor of two apart, and a
-// third-octave band the cube root of two. If the widths are wrong the centres
+// third-octave band the cube root of two. If the widths are wrong the centers
 // being right does not save it.
 func TestBandWidthsAreTheFractionTheyClaim(t *testing.T) {
 	for _, b := range rtaFractions {
@@ -86,7 +86,7 @@ func rtaOf(x []float32, sr, b int) ([]RTABand, []float64) {
 	return bands, levels
 }
 
-// inBand reports the levels for bands whose centre lies between lo and hi,
+// inBand reports the levels for bands whose center lies between lo and hi,
 // which is how the tests below avoid the ends of the spectrum where a band can
 // be narrower than a bin.
 func inBand(bands []RTABand, levels []float64, lo, hi float64) []float64 {
@@ -254,16 +254,4 @@ func TestRTAFractionTablesLineUp(t *testing.T) {
 		t.Errorf("%d fractions, %d names, %d ring labels",
 			len(rtaFractions), len(rtaFractionNames), len(rtaFractionRing))
 	}
-}
-
-// pinkFromGenerator and whiteFromGenerator take the stimulus from the Test
-// module's own library, so these tests check the two features against each
-// other rather than against a second implementation written to agree.
-func pinkFromGenerator(n int) []float32  { return genStimulus(audiosrc.TestPink, n) }
-func whiteFromGenerator(n int) []float32 { return genStimulus(audiosrc.TestWhite, n) }
-
-func genStimulus(sig audiosrc.TestSignal, n int) []float32 {
-	out := make([]float32, n)
-	audiosrc.NewTestSource(sig, 48000).FillMono(out)
-	return out
 }

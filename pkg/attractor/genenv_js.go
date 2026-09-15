@@ -3,7 +3,6 @@
 package attractor
 
 import (
-	"strconv"
 	"syscall/js"
 )
 
@@ -71,9 +70,7 @@ func genEnvTick() {
 // switch. Called once from Run.
 func buildEnvModule() {
 	atk := doc.Call("getElementById", "gen-env-atk")
-	atkLED := doc.Call("getElementById", "gen-env-atk-led")
 	dcy := doc.Call("getElementById", "gen-env-dcy")
-	dcyLED := doc.Call("getElementById", "gen-env-dcy-led")
 	mode := doc.Call("getElementById", "gen-env-mode")
 	astack := doc.Call("getElementById", "gen-env-astack")
 	dstack := doc.Call("getElementById", "gen-env-dstack")
@@ -81,23 +78,24 @@ func buildEnvModule() {
 	if !atk.Truthy() || !astack.Truthy() {
 		return
 	}
-	wire := func(sl, led js.Value, max float64) {
-		led.Set("value", formatLED(fgFloat(sl), intDigits(max), 0, false))
-		sizeLEDField(led, 1, max, 0, false)
-		sl.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-			led.Set("value", formatLED(fgFloat(sl), intDigits(max), 0, false))
-			return nil
-		}))
-		led.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-			if v, err := strconv.ParseFloat(led.Get("value").String(), 64); err == nil {
-				sl.Set("value", strconv.FormatFloat(v, 'f', 0, 64))
-				sl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-			}
-			return nil
-		}))
-	}
-	wire(atk, atkLED, 2000)
-	wire(dcy, dcyLED, 5000)
+	// Both knobs go through the descriptor path: it owns the LED format, typed
+	// entry, wheel nudge and reset, which the local wire helper below used to
+	// duplicate for the two of them.
+	//
+	// LEDStep 10 rather than the Step of 1 is what keeps these reading whole
+	// milliseconds. ledDecimals works from step × fineRatio, so a step of 1
+	// asks for one decimal — right for a knob whose fine disc trims between
+	// steps, and noise on a value that is only ever a whole number of
+	// milliseconds. LEDStep is the field for saying so, and this preserves
+	// exactly what the module showed before.
+	adoptDescControl(ControlDesc{
+		ID: "gen-env-atk", Label: "atk", Min: 1, Max: 2000, Step: 1, Def: 10,
+		LEDID: "gen-env-atk-led", ResetID: "rst-gen-env-atk", LEDStep: 10,
+	})
+	adoptDescControl(ControlDesc{
+		ID: "gen-env-dcy", Label: "dcy", Min: 1, Max: 5000, Step: 1, Def: 300,
+		LEDID: "gen-env-dcy-led", ResetID: "rst-gen-env-dcy", LEDStep: 10,
+	})
 	astack.Call("appendChild", makeKnob(atk, js.Undefined(), true, false, true))
 	dstack.Call("appendChild", makeKnob(dcy, js.Undefined(), true, false, true))
 	mstack.Call("appendChild", singleSelectorKnob(mode, []string{"off", "rpt"}, 50))

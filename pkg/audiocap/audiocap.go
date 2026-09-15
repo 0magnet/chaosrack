@@ -20,9 +20,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/0magnet/chaosrack/pkg/audiosrc"
 	"github.com/jfreymuth/pulse"
 	"golang.org/x/net/websocket"
+
+	"github.com/0magnet/chaosrack/pkg/audiosrc"
 )
 
 // Options configure a capture. The zero value is usable: 24 kHz, the default

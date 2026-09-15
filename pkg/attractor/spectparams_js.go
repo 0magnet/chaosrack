@@ -18,9 +18,10 @@ package attractor
 // fullscreen — which this panel already governs by other means.
 
 import (
-	"github.com/0magnet/chaosrack/pkg/audiosrc"
 	"math"
 	"strconv"
+
+	"github.com/0magnet/chaosrack/pkg/audiosrc"
 
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
 )

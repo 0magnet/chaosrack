@@ -16,12 +16,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/0magnet/chaosrack/pkg/attractor"
 	"image"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/0magnet/chaosrack/pkg/attractor"
 
 	"github.com/0magnet/chaosrack/internal/cdp"
 	"github.com/0magnet/chaosrack/pkg/gifenc"

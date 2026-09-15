@@ -25,7 +25,7 @@ var allWindows = []struct {
 // how quiet a thing can be measured beside a loud one, which is the whole of
 // what a distortion floor is.
 func sidelobeFloor(wk winKind, n, skirt int) float64 {
-	// Deliberately off a bin centre by a third, which is the worst case for
+	// Deliberately off a bin center by a third, which is the worst case for
 	// leakage and the case a real signal is almost always in.
 	x := make([]float32, n)
 	for i := range x {

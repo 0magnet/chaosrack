@@ -69,7 +69,10 @@ func gzipBase64(b []byte) htmpl.HTML {
 		log.Println("server: gzip:", err)
 		return ""
 	}
-	out := htmpl.HTML(base64.StdEncoding.EncodeToString(buf.Bytes()))
+	// Base64 of our own gzipped asset. The alphabet is A-Za-z0-9+/= — it
+	// cannot contain a single HTML metacharacter, so there is nothing here for
+	// escaping to do.
+	out := htmpl.HTML(base64.StdEncoding.EncodeToString(buf.Bytes())) //nolint:gosec // base64 of our own asset; the alphabet has no HTML metacharacters
 	gzOnce.Store(key, out)
 	return out
 }

@@ -49,14 +49,15 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/render"
+	"golang.org/x/net/websocket"
+
 	"github.com/0magnet/chaosrack/assets/gowasm"
 	"github.com/0magnet/chaosrack/pkg/audiocap"
 	"github.com/0magnet/chaosrack/pkg/audioroute"
 	"github.com/0magnet/chaosrack/pkg/server"
 	"github.com/0magnet/chaosrack/pkg/wtaudio"
-	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/render"
-	"golang.org/x/net/websocket"
 )
 
 var (

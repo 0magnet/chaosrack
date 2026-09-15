@@ -172,8 +172,30 @@ func addPianoKeys(freq js.Value) js.Value {
 // a speaker-channel dropdown. It drives the shared FuncGen (scope / features)
 // and, when "Listen" is on, a parallel Web Audio graph for the speakers.
 
-var genOscIDs = []string{"gen-x", "gen-y", "gen-z"}
-var genOscIdx = map[string]int{"gen-x": 0, "gen-y": 1, "gen-z": 2}
+// genOscSpec is one oscillator of the signal generator: which DOM ids belong to it,
+// which slot of the function generator it drives, and where its two knobs sit
+// when nothing has been touched.
+//
+// One type because the same three oscillators were written out three times —
+// genOscIDs for the ids, genOscIdx for the index, and an anonymous struct
+// inside onResetAll carrying the defaults that the markup also carries. Three
+// places to keep in step, and the defaults were already stated twice: once as
+// the range input's value attribute and once in the reset. A ControlDesc's Def
+// is now the only copy, and Reset All restores through the control rather than
+// by writing remembered numbers back into the DOM.
+type genOscSpec struct {
+	id   string  // DOM id prefix: "gen-x" → gen-x-freq, gen-x-lvl, gen-x-out…
+	idx  int     // slot in the function generator
+	freq float64 // default frequency knob position, in semitones above A0
+	lvl  float64 // default level, 0..100
+}
+
+// genOscs are the three, in panel order.
+var genOscs = []genOscSpec{
+	{id: "gen-x", idx: 0, freq: 34, lvl: 80},
+	{id: "gen-y", idx: 1, freq: 41, lvl: 80},
+	{id: "gen-z", idx: 2, freq: 29, lvl: 80},
+}
 
 // waveSVG holds a tiny glyph per waveform (index matches the wave <select>:
 // 0 sine, 1 triangle, 2 square, 3 saw, 4 shift-register noise), stroked in
@@ -256,14 +278,12 @@ func waveTypeName(w int) string {
 // waveform (shown in the cell's readout). The channel ring's "off" position
 // mutes that oscillator (no separate Listen).
 func buildGeneratorModule() {
-	for _, id := range genOscIDs {
-		idx := genOscIdx[id]
+	for _, osc := range genOscs {
+		id, idx := osc.id, osc.idx
 		freq := doc.Call("getElementById", id+"-freq")
-		freqLED := doc.Call("getElementById", id+"-led")
 		wave := doc.Call("getElementById", id+"-wave")
 		fstack := doc.Call("getElementById", id+"-fstack")
 		lvl := doc.Call("getElementById", id+"-lvl")
-		lvlLED := doc.Call("getElementById", id+"-lvl-led")
 		out := doc.Call("getElementById", id+"-out")
 		lstack := doc.Call("getElementById", id+"-lstack")
 		ostack := doc.Call("getElementById", id+"-ostack")
@@ -276,21 +296,17 @@ func buildGeneratorModule() {
 		// the LED steps note-by-note (12 per octave); dragging still sweeps
 		// continuously and the fine disc trims sub-semitone. The LED is zero-padded
 		// to the widest value (so 20480 never clips to "2048") with a fixed decimal,
-		// like every other readout.
-		fdig := intDigits(genFreqHi)
-		freqLED.Set("value", formatLED(freqFromKnob(fgFloat(freq)), fdig, 1, false))
-		sizeLEDField(freqLED, genFreqLo, genFreqHi, 1, false)
+		// like every other readout — all of which the descriptor below sets up,
+		// along with the typed entry and the wheel nudge that used to be written
+		// out here beside every other cell that wanted them.
 		fknob := makeKnob(freq, js.Undefined(), true, false, false)
 		addOctaveDial(fknob)
 		fstack.Call("appendChild", fknob)
-		wheelNudge(freqLED, freq, 1, 0, genSemitones)
 		// One-octave piano strip under the knob, lighting the current note.
 		fstack.Get("parentNode").Get("parentNode").Call("appendChild", addPianoKeys(freq))
 
-		// Level cell: single level knob with a 0..100 value dial; LED matches the
-		// zero-padded, fixed-decimal style.
-		lvlLED.Set("value", formatLED(fgFloat(lvl), intDigits(100), 1, false))
-		sizeLEDField(lvlLED, 0, 100, 1, false)
+		// Level cell: single level knob with a 0..100 value dial; the LED is the
+		// descriptor's, in the same zero-padded, fixed-decimal style as the rest.
 		lstack.Call("appendChild", makeKnob(lvl, js.Undefined(), true, false, true))
 
 		// Out cell: dual concentric knob — outer ring = speaker channel (labeled),
@@ -301,34 +317,36 @@ func buildGeneratorModule() {
 		addSelectorWaveDial(ostk, wave, 38)
 		ostack.Call("appendChild", ostk)
 
-		freq.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-			hz := freqFromKnob(fgFloat(freq))
-			fg().SetFreq(idx, hz)
-			freqLED.Set("value", formatLED(hz, fdig, 1, false))
-			genAudioUpdate(idx)
-			return nil
-		}))
-		freqLED.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-			if hz, err := strconv.ParseFloat(freqLED.Get("value").String(), 64); err == nil && hz > 0 {
-				freq.Set("value", strconv.FormatFloat(knobFromFreq(hz), 'f', 1, 64))
-				freq.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-			}
-			return nil
-		}))
-		lvl.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-			v := fgFloat(lvl)
-			fg().SetAmp(idx, v/100)
-			lvlLED.Set("value", formatLED(v, intDigits(100), 1, false))
-			genAudioUpdate(idx)
-			return nil
-		}))
-		lvlLED.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-			if v, err := strconv.ParseFloat(lvlLED.Get("value").String(), 64); err == nil {
-				lvl.Set("value", strconv.FormatFloat(v, 'f', 0, 64))
-				lvl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-			}
-			return nil
-		}))
+		// The two value knobs go through the descriptor path, which is what
+		// gives them their LED formatting, typed entry, wheel nudge, reset and
+		// the Control that Reset All drives — rather than each re-implementing
+		// all of it beside the next one. Everything specific to an oscillator
+		// is the Apply closure; the rest is the same machinery every parameter
+		// cell in the rack already used.
+		//
+		// The frequency mapping is the one sonify_js.go already defines and,
+		// until now, used exactly once: the slider is in semitones and the LED
+		// is in hertz, which is precisely what SliderToVal / ValToSlider are
+		// for.
+		adoptDescControl(ControlDesc{
+			ID: id + "-freq", Label: "freq", Min: 0, Max: float64(genSemitones), Step: 1, Def: osc.freq,
+			LEDID: id + "-led", ResetID: "rst-" + id + "-freq",
+			Apply: func(v float64) {
+				fg().SetFreq(idx, freqFromKnob(v))
+				genAudioUpdate(idx)
+			},
+			SliderToVal: sonifyFreqFromSlider,
+			ValToSlider: sonifySliderFromFreq,
+			LEDMin:      genFreqLo, LEDMax: genFreqHi, LEDStep: 1,
+		})
+		adoptDescControl(ControlDesc{
+			ID: id + "-lvl", Label: "lvl", Min: 0, Max: 100, Step: 1, Def: osc.lvl,
+			LEDID: id + "-lvl-led", ResetID: "rst-" + id + "-lvl",
+			Apply: func(v float64) {
+				fg().SetAmp(idx, v/100)
+				genAudioUpdate(idx)
+			},
+		})
 		wave.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
 			if w, err := strconv.Atoi(wave.Get("value").String()); err == nil {
 				fg().SetWave(idx, w)
@@ -353,7 +371,8 @@ func buildGeneratorModule() {
 // running nodes.
 func genAudioSync() {
 	any := false
-	for _, id := range genOscIDs {
+	for _, osc := range genOscs {
+		id := osc.id
 		if o := doc.Call("getElementById", id+"-out"); o.Truthy() && o.Get("value").String() != "off" {
 			any = true
 		}
@@ -514,7 +533,7 @@ func genAudioUpdate(i int) {
 	}
 	// Channel routing from the dropdown: off / L / R / both.
 	route := "off"
-	if o := doc.Call("getElementById", genOscIDs[i]+"-out"); o.Truthy() {
+	if o := doc.Call("getElementById", genOscs[i].id+"-out"); o.Truthy() {
 		route = o.Get("value").String()
 	}
 	gain, pan := 0.0, 0.0

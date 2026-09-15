@@ -27,7 +27,7 @@ import "math"
 //	         from wow: a constant error is a pitch shift and a varying one is a
 //	         warble.
 //	WOW      the slow modulation, 0.5–6 Hz — once-per-revolution faults. An
-//	         off-centre spindle hole is wow at exactly the platter's rate.
+//	         off-center spindle hole is wow at exactly the platter's rate.
 //	FLUTTER  the fast modulation, 6–100 Hz — capstan and idler faults, and the
 //	         range the ear hears as roughness rather than as pitch movement.
 //	W&F      the DIN-weighted figure, which is the one a specification quotes:
@@ -244,7 +244,7 @@ func wfDemodulate(x []float32, sr, carrier float64) []float64 {
 	return out
 }
 
-// wfBiquadBandpass is a constant-skirt-gain bandpass, unity at its centre.
+// wfBiquadBandpass is a constant-skirt-gain bandpass, unity at its center.
 func wfBiquadBandpass(f0, q, sr float64) biquad {
 	w := 2 * math.Pi * f0 / sr
 	alpha := math.Sin(w) / (2 * q)
@@ -258,7 +258,7 @@ func wfBiquadBandpass(f0, q, sr float64) biquad {
 
 // wfBandRMS is the RMS of a deviation signal inside a band.
 //
-// Built from a bandpass centred on the band's geometric mean with a Q that
+// Built from a bandpass centered on the band's geometric mean with a Q that
 // spans it, which is a gentler shape than a brick wall and is what the analog
 // instruments had. The bands are a decade wide or more, so the skirts overlap a
 // little — wow and flutter are conventions about where one becomes the other

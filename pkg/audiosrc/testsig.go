@@ -105,7 +105,6 @@ type testGen struct {
 
 	rngL, rngR uint32
 	pinkL      pinkState
-	pinkR      pinkState
 
 	phase float64 // oscillator phase for the fixed tones, radians
 	sweep float64 // position through one sweep pass, 0..1
@@ -201,7 +200,7 @@ func xorshift(x uint32) uint32 {
 // offset and half the intended swing. It sounds like noise and it is not one:
 // every correlation, every spectrum and every level built on it would be wrong
 // by that offset.
-func noiseOf(x uint32) float64 { return float64(int32(x)>>8) / (1 << 23) }
+func noiseOf(x uint32) float64 { return float64(int32(x)>>8) / (1 << 23) } //nolint:gosec // the wrap to signed IS the bipolar swing; int32(x>>8) would be a DC offset
 
 // pinkState is Paul Kellet's refined pink-noise filter: six one-pole sections
 // summed, which tracks a −3 dB/octave slope to about ±0.05 dB over ten octaves.

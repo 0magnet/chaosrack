@@ -9,9 +9,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/0magnet/chaosrack/pkg/audiocap"
 	"github.com/0magnet/chaosrack/pkg/wtaudio"
-	"github.com/gin-gonic/gin"
 )
 
 // The WebTransport half of --audio, and why the page reaches for it FIRST.

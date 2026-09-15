@@ -4,9 +4,9 @@ import "math"
 
 // Impulse response, reverberation time and cumulative spectral decay.
 //
-// The measurement a room or a loudspeaker is characterised by, and the one
+// The measurement a room or a loudspeaker is characterized by, and the one
 // every other display here is a slice through: the impulse response contains
-// the whole linear behaviour of whatever it was measured through. The frequency
+// the whole linear behavior of whatever it was measured through. The frequency
 // response is its spectrum, the delay is where its peak is, the reverberation
 // time is how its energy decays, and the waterfall is what it looks like when
 // the decay is taken one frequency at a time.
@@ -308,7 +308,7 @@ func CSD(ir []float64, sampleRate int, slices int, sliceMS float64, fftLen int,
 }
 
 // LogFreqPoints builds n frequencies spaced logarithmically from lo to hi —
-// the x axis a waterfall is read on, because hearing is organised in ratios.
+// the x axis a waterfall is read on, because hearing is organized in ratios.
 func LogFreqPoints(lo, hi float64, n int) []float64 {
 	if n < 2 || lo <= 0 || hi <= lo {
 		return nil
@@ -375,7 +375,7 @@ const spectrumFloorDB = -200.0
 //
 // ── WHY A BAND AND NOT A FEW BINS ────────────────────────────────────────
 //
-// Reading a log axis by taking the nearest bin and its neighbours is the
+// Reading a log axis by taking the nearest bin and its neighbors is the
 // obvious thing and it is wrong, in a way that is invisible on noise and total
 // on a tone. The axis points are a fixed RATIO apart — ninety-six of them over
 // three decades is 7.5% — while the bins are a fixed NUMBER OF HERTZ apart, so
@@ -402,7 +402,7 @@ func logBandEdges(freqs []float64) (lo, hi []float64) {
 	for i, f := range freqs {
 		if i == 0 {
 			// The end bands run out to half the step, so the first and last
-			// points are as wide as their neighbours rather than half as wide.
+			// points are as wide as their neighbors rather than half as wide.
 			if n > 1 {
 				lo[i] = f * f / math.Sqrt(f*freqs[1])
 			} else {
