@@ -750,3 +750,35 @@ func showParamsModule(on bool) {
 	}
 	sect.Get("style").Set("display", "none")
 }
+
+// newPunitCard builds a parameter cell with the anatomy buildParamUnit gives
+// every cell it makes: a .punit whose .punit-top carries the label, and beside
+// it whatever readout the cell wants.
+//
+// Shared because it was not, and the drift showed. Ten places built this card by
+// hand — the readouts (corr, dly, meas, rqa, rt60, λ), the FVF selector cards —
+// and every one of them appended the label straight into the .punit with no
+// .punit-top around it. That matches neither of the two rules in panel.css that
+// pin a label to its cell's top-left corner, so they fell through to
+// .punit{align-items:center} and CENTERED their labels over the knob while
+// every cell beside them in the same grid row pinned theirs to the left edge.
+//
+// The wrapper is what puts the readout in the label's row as well, centred over
+// the knob's axis, which is the other half of the standard cell: a bare LED
+// under a bare label stacks two centred things where the panel everywhere else
+// has a left label with the value beside it.
+//
+// Returns the card and its top row, so the caller appends the readout to the
+// row and the control to the card.
+func newPunitCard(label string, sym bool) (card, top js.Value) {
+	card = doc.Call("createElement", "div")
+	card.Set("className", "punit")
+	top = doc.Call("createElement", "span")
+	top.Set("className", "punit-top")
+	lbl := doc.Call("createElement", "span")
+	lbl.Set("className", symClass("u-lbl", sym))
+	lbl.Set("textContent", label)
+	top.Call("appendChild", lbl)
+	card.Call("appendChild", top)
+	return card, top
+}

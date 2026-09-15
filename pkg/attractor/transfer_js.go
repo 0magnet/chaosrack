@@ -318,12 +318,7 @@ func showTransferDelay() {
 
 // appendTransferReadout adds the delay cell to the mode's parameter grid.
 func appendTransferReadout(grid js.Value) {
-	card := doc.Call("createElement", "div")
-	card.Set("className", "punit")
-	lbl := doc.Call("createElement", "span")
-	lbl.Set("className", symClass("u-lbl", false))
-	lbl.Set("textContent", "dly")
-	card.Call("appendChild", lbl)
+	card, top := newPunitCard("dly", false)
 
 	xfDelayEl = doc.Call("createElement", "span")
 	xfDelayEl.Set("className", "led counter-led")
@@ -335,6 +330,6 @@ func appendTransferReadout(grid js.Value) {
 		"phase — a real delay turns through 360° many times across the band, and a slope fitted to "+
 		"the wrapped curve is a slope fitted to a sawtooth.")
 	xfDelayTx = ""
-	card.Call("appendChild", xfDelayEl)
+	top.Call("appendChild", xfDelayEl)
 	grid.Call("appendChild", card)
 }
