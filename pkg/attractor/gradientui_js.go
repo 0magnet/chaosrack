@@ -64,7 +64,7 @@ var (
 // appended into a host page's <footer>); only then can we dock/move them.
 
 func updateGradientUI() {
-	// All the colour knobs stay visible; the ones that do not apply to the
+	// All the color knobs stay visible; the ones that do not apply to the
 	// current SRC and MAP setting are just dimmed, with no populate/depopulate
 	// reflow when either moves. bg always applies.
 	dim := func(id string, inactive bool) {
@@ -89,7 +89,7 @@ func updateGradientUI() {
 	// Both rules now fall out of what the knobs MEAN rather than being special
 	// cases bolted on. SRC is dimmed where there is no source to choose: the
 	// spectrogram, the RTA and the transfer function are each built from one
-	// quantity, so nothing about them is a choice of what the colour follows,
+	// quantity, so nothing about them is a choice of what the color follows,
 	// and the knob sat there looking live in those modes. MAP is dimmed where
 	// the source is OFF and the model reads the source at all — a trace that
 	// follows nothing has no value to map — but NOT in those same three modes,

@@ -9,7 +9,7 @@ package attractor
 // often the analysis runs, and the knobs.
 //
 // It draws with the xy scope's program — a pass-through vec2 vertex shader and
-// a solid-colour fragment — because that is exactly what a bar display needs
+// a solid-color fragment — because that is exactly what a bar display needs
 // and a second shader for the same job would be a second thing to keep working.
 // Bars are vertical LINES rather than quads: at any usable band count a bar is
 // a few pixels wide, the additive halo the scope already uses makes a line read
@@ -182,15 +182,15 @@ func rtaY(db float64) float32 {
 }
 
 // drawRTA draws the bars and the peak-hold marks.
-// rtaBarColor is the colour of a bar at a level, through the Colors module's
+// rtaBarColor is the color of a bar at a level, through the Colors module's
 // palette.
 //
 // The value handed to the colormap is the bar's own HEIGHT on the displayed
-// scale — the same 0..1 the bar is drawn at — so the colour and the height say
+// scale — the same 0..1 the bar is drawn at — so the color and the height say
 // the same thing twice, in two ways the eye reads differently. That is the
 // point rather than a redundancy: a row of bars is scanned for its SHAPE and a
-// colour ramp is scanned for its outliers, and one loud band among thirty is
-// far more obvious as a colour than as a height.
+// color ramp is scanned for its outliers, and one loud band among thirty is
+// far more obvious as a color than as a height.
 func rtaBarColor(idx int, db float64) [3]float32 {
 	top := float64(rtaTopF)
 	rng := float64(rtaRangeF)
@@ -206,7 +206,7 @@ func drawRTA() {
 	if n == 0 {
 		return
 	}
-	pal, coloured := analyzerPalette()
+	pal, colored := analyzerPalette()
 	flat := analyzerTraceColor()
 	// Two vertices per bar, plus two per peak mark.
 	vcFit(n * 4)
@@ -219,15 +219,15 @@ func drawRTA() {
 	for i := range rtaBands {
 		x := float32(-0.9 + 1.8*(float64(i)+0.5)/float64(n))
 		c := flat
-		if coloured {
+		if colored {
 			c = rtaBarColor(pal, rtaHeld[i])
 		}
-		// The FOOT of the bar is drawn at the floor's colour rather than the
-		// level's, so a coloured bar is a gradient up its own height instead of
+		// The FOOT of the bar is drawn at the floor's color rather than the
+		// level's, so a colored bar is a gradient up its own height instead of
 		// a flat stripe. On a colormap that runs dark-to-bright that reads as a
 		// bar lit from its top, which is what the level is.
 		foot := c
-		if coloured {
+		if colored {
 			foot = rtaBarColor(pal, rtaFloorDB)
 		}
 		vcPut(v, x, bottom, foot)
@@ -246,7 +246,7 @@ func drawRTA() {
 		y := rtaY(rtaPeaks[i])
 		x := float32(-0.9 + 1.8*(float64(i)+0.5)/float64(n))
 		c := flat
-		if coloured {
+		if colored {
 			c = rtaBarColor(pal, rtaPeaks[i])
 		}
 		vcPut(v, x-half, y, c)

@@ -217,28 +217,28 @@ func drawTransfer() {
 		}
 	}
 
-	// COLOURED BY COHERENCE, which is the whole reason this display has a
-	// colour at all.
+	// COLORED BY COHERENCE, which is the whole reason this display has a
+	// color at all.
 	//
 	// The three curves are read together — a dip in the magnitude with the
 	// coherence high is the system, and the same dip with it collapsed is the
 	// measurement giving up — and reading them together means moving the eye
-	// between two lanes and matching up frequencies by position. Colouring the
+	// between two lanes and matching up frequencies by position. Coloring the
 	// magnitude by the coherence at that frequency puts the second reading ON
 	// the first, which is how a system-tuning rig shows it and why the coherence
 	// lane is a confirmation rather than the only place the reading exists.
 	//
 	// The colormap is the Colors module's own, so the value paints the same
-	// colour here as it does in the spectrogram and on the trail. With a
-	// swatch-mixing palette selected it falls back to the single trace colour,
+	// color here as it does in the spectrogram and on the trail. With a
+	// swatch-mixing palette selected it falls back to the single trace color,
 	// which is what this drew before.
-	pal, coloured := analyzerPalette()
+	pal, colored := analyzerPalette()
 	flat := analyzerTraceColor()
-	// ONE rule for all three lanes: the colour at a band is its coherence.
-	// The coherence lane is then a colour ramp of exactly what it plots, which
+	// ONE rule for all three lanes: the color at a band is its coherence.
+	// The coherence lane is then a color ramp of exactly what it plots, which
 	// makes it the key to the other two rather than a fourth thing to learn.
 	colourFor := func(i int) [3]float32 {
-		if !coloured {
+		if !colored {
 			return flat
 		}
 		return analyzerColorAt(pal, xfRes.Coherence[i])
@@ -300,7 +300,7 @@ var (
 
 // showTransferDelay writes the fitted bulk delay, which is the number a
 // system-tuning rig is actually reached for: the slope of the phase IS the
-// offset between the two channels, and that is what gets dialled into a delay
+// offset between the two channels, and that is what gets dialed into a delay
 // line.
 func showTransferDelay() {
 	s := "-- ms"
@@ -318,13 +318,13 @@ func showTransferDelay() {
 
 // appendTransferReadout adds the delay cell to the mode's parameter grid.
 func appendTransferReadout(grid js.Value) {
-	card, top := newPunitCard("dly", false)
+	card, top := newPunitCard("dly")
 
 	xfDelayEl = doc.Call("createElement", "span")
 	xfDelayEl.Set("className", "led counter-led")
 	xfDelayEl.Set("title", "Bulk delay between the two channels, fitted from the slope of the phase — "+
 		"a pure delay is a phase that falls linearly with frequency, and the slope is the delay. "+
-		"This is the number a system-tuning rig is reached for: it is what gets dialled into a delay "+
+		"This is the number a system-tuning rig is reached for: it is what gets dialed into a delay "+
 		"line to line a loudspeaker up with the rest of the system. Fitted only across bands the "+
 		"stimulus actually reached and whose coherence clears the COH knob, and on the UNWRAPPED "+
 		"phase — a real delay turns through 360° many times across the band, and a slope fitted to "+

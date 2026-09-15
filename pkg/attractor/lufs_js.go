@@ -17,7 +17,7 @@ import (
 //
 // ── IT READS BOTH CHANNELS, CONTINUOUSLY ─────────────────────────────────
 //
-// Loudness is a property of the programme rather than of a window, so unlike
+// Loudness is a property of the program rather than of a window, so unlike
 // every other measurement here this one cannot run on a timer and look at the
 // newest window: the integrated reading is over EVERYTHING since the reset, and
 // a block missed is a block missing from the answer. So it drains the tap every
@@ -109,8 +109,12 @@ func showLoudness() {
 	}
 	set(lufsTPEl, lufsRes.TruePeak, lufsRes.TruePeak > LoudnessFloor)
 	if lufsDl.Truthy() {
-		if lufsRes.OK {
-			lufsDl.Set("textContent", formatLED(lufsRes.Integrated-float64(lufsTarget), 3, 1, true))
+		// Through lufsDistanceToTarget rather than subtracting here: it is the
+		// same arithmetic plus the floor guard, and an integrated reading that
+		// has not risen off the floor is not a distance from anything.
+		d := lufsDistanceToTarget(lufsRes.Integrated, float64(lufsTarget))
+		if lufsRes.OK && !math.IsNaN(d) {
+			lufsDl.Set("textContent", formatLED(d, 3, 1, true))
 		} else {
 			lufsDl.Set("textContent", "  --.-")
 		}
@@ -161,11 +165,6 @@ func wireLoudnessModule() {
 	}
 	showLoudness()
 }
-
-// lufsTargets are the conventions the target knob is usually set to, kept here
-// so the tooltip and any future preset agree: EBU R 128 broadcast, the streaming
-// norm, and the podcast one.
-var lufsTargets = map[string]float64{"ebu": -23, "streaming": -14, "podcast": -16}
 
 // lufsDistanceToTarget is how far a reading is from a target, in LU. Positive
 // is too loud, which is the direction that gets a delivery rejected.

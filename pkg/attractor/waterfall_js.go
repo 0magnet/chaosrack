@@ -18,7 +18,7 @@ import (
 // gets the camera, the drag-to-rotate, the gradient, the persist painting and
 // Model Out for nothing.
 //
-// Frequency runs left to right (logarithmically, because hearing is organised
+// Frequency runs left to right (logarithmically, because hearing is organized
 // in ratios), level up, and TIME INTO THE SCREEN. Each line is one slice: the
 // spectrum of what is left of the impulse response from a moment onwards. A
 // flat loudspeaker's surface falls away evenly; a resonance is a ridge running
@@ -93,14 +93,14 @@ var (
 //
 // wfallLiveWindow is the window the spectra are taken with. Hann rather than
 // the Blackman-Harris the measurements use: this is a picture of a signal, not
-// a measurement of a level beside a loud neighbour, and Hann is the narrower
+// a measurement of a level beside a loud neighbor, and Hann is the narrower
 // main lobe of the two — which on a log axis is the difference between two low
 // notes being two ridges and being one.
 //
 // Slices are pushed on a CLOCK rather than per frame: a surface built per frame
 // is a different length of history on a 60 Hz display than on a 144 Hz one, and
 // the depth axis stops meaning seconds. STEP below a frame is the one case that
-// cannot be honoured — there is no more audio to have — and it degrades to one
+// cannot be honored — there is no more audio to have — and it degrades to one
 // slice per frame rather than to a burst.
 const wfallLiveWindow = winHann
 
@@ -231,7 +231,9 @@ func wfallChan() tapChan {
 	} else if i >= len(tapChanNames) {
 		i = len(tapChanNames) - 1
 	}
-	return tapChan(i)
+	// Clamped to the name table just above, so the value is 0..4 — gosec sees
+	// only int → uint8 and cannot see the clamp.
+	return tapChan(i) //nolint:gosec // clamped to len(tapChanNames)-1 above
 }
 
 // wfallApplyDefaults moves LINE, STEP and FFT to what the surface now selected
@@ -316,7 +318,7 @@ func generateWaterfall() {
 }
 
 // wfallLiveTick pushes a spectrum of the newest audio onto the front of the
-// surface, on wfallLivePushMS centres, and ages everything behind it.
+// surface, on wfallLivePushMS centers, and ages everything behind it.
 //
 // Slice 0 is the front of the surface in wfallDraw, so the newest goes there and
 // the rest shift back — which is the direction the display already reads, and
@@ -549,8 +551,8 @@ func wfallDraw() {
 		z := depth * (float64(slice)/float64(n-1) - 0.5)
 		v[o], v[o+1], v[o+2] = float32(x), float32(y), float32(z)
 		// The trail attribute, which the gradient reads: DEPTH rather than
-		// position along the line, so the colour says how long ago rather than
-		// which frequency — the frequency is already the x axis and colouring
+		// position along the line, so the color says how long ago rather than
+		// which frequency — the frequency is already the x axis and coloring
 		// it again would spend the gradient saying the same thing twice.
 		v[o+3] = float32(slice) / float32(max(n-1, 1))
 		o += 4
@@ -569,9 +571,9 @@ func wfallDraw() {
 	// drawn before this one happened to occupy.
 	//
 	// Y is the source worth turning the Colors ring to here, and the reason is
-	// this line: with the extents exact, Y colours by LEVEL across exactly the
+	// this line: with the extents exact, Y colors by LEVEL across exactly the
 	// decibels the scale shows, so a ridge is the hot end of the map and the
-	// floor is the cold end. Z and trail both colour by age, which is worth
+	// floor is the cold end. Z and trail both color by age, which is worth
 	// having and is the default. X repeats the frequency axis. AUDIO is the one
 	// to avoid: its table is a short-time centroid along the trail and only
 	// takens, stereo and polar fill it, so on this mode it is one flat tint.
@@ -634,7 +636,7 @@ func showWaterfallRT() {
 
 // appendWaterfallReadout adds the RT60 cell to the mode's parameter grid.
 func appendWaterfallReadout(grid js.Value) {
-	card, top := newPunitCard("rt60", false)
+	card, top := newPunitCard("rt60")
 
 	wfallRTEl = doc.Call("createElement", "span")
 	wfallRTEl.Set("className", "led counter-led")

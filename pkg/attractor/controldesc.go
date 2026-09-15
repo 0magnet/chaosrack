@@ -208,8 +208,7 @@ func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will
 	return ctl
 }
 
-// resetControlByID restores one descriptor-owned control to its default,
-// reporting whether it found one.
+// resetControlByID restores one descriptor-owned control to its default.
 //
 // Reset All used to put the generators back by writing remembered numbers into
 // the DOM, which meant every default was stated three times: on the range
@@ -217,12 +216,11 @@ func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will
 // the reset loop. Going through the Control leaves one copy — the descriptor's
 // Def — and makes the bulk reset take the same path the cell's own ↺ takes, so
 // the two cannot come to disagree about what the default is.
-func resetControlByID(id string) bool {
+func resetControlByID(id string) {
 	for _, c := range builtControls {
 		if c.slider.Truthy() && c.slider.Get("id").String() == id {
 			c.resetToDefault()
-			return true
+			return
 		}
 	}
-	return false
 }

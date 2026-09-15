@@ -122,7 +122,7 @@ func syncLayersModule(mode string) {
 // document while a spectrogram backdrop was on screen. The backdrop could be
 // turned on and then not adjusted at all: no DFT size, no window, no scale.
 //
-// Its colour is not among them any more and deliberately so: the spectrogram
+// Its color is not among them any more and deliberately so: the spectrogram
 // reads the MAP ring in the Colors module, which is on screen whatever the
 // model is.
 //

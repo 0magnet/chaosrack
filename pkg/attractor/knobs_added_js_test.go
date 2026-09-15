@@ -58,7 +58,7 @@ func TestTapMidAndMixAgree(t *testing.T) {
 // because a float-to-int conversion whose value does not fit is
 // implementation-defined in Go.
 func TestTapChanSelClampsWhateverModulationDoes(t *testing.T) {
-	last := tapChan(len(tapChanNames) - 1)
+	last := tapChan(len(tapChanNames) - 1) //nolint:gosec // a test index clamped to the table above
 	for _, v := range []float32{-1e9, -1, 0, 0.4, 1, 2, 4, 4.6, 1e9, infF(), -infF(), nanF()} {
 		if got := tapChanSel(v); got > last {
 			t.Errorf("tapChanSel(%v) = %d, past the last position %d", v, got, last)
@@ -95,7 +95,7 @@ func TestTapChanRingMatchesItsNames(t *testing.T) {
 // ── The Stereo Embedding's alignment and width ───────────────────────────
 
 // ALIGN is a duration, so the offset it dials out is the same amount of time on
-// every source — the point of dialling it out at all is to READ how far apart
+// every source — the point of dialing it out at all is to READ how far apart
 // the channels were.
 func TestStereoAlignIsADuration(t *testing.T) {
 	for _, knob := range []float32{-stereoAlignMax, -48, 24, stereoAlignMax} {

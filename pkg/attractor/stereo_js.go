@@ -670,7 +670,7 @@ func showStereoReadout(s string) {
 // Into the grid, not #params, for the reason appendTakensEstimate is: #params
 // stacks below the height-bounded grid and gets clipped.
 func appendStereoReadout(grid js.Value) {
-	card, top := newPunitCard("corr", false)
+	card, top := newPunitCard("corr")
 
 	stereoReadEl = doc.Call("createElement", "span")
 	stereoReadEl.Set("className", "led counter-led")

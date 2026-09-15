@@ -366,7 +366,7 @@ func SliceToTypedArray(s interface{}) js.Value {
 // built from live audio — the scan runs on the PREVIOUS model's vertices,
 // because the new mode has not drawn yet, and the gradient then normalizes the
 // new geometry against the old one's bounds. A waterfall entered from an
-// attractor was coloured across whatever slice of the colormap its coordinates
+// attractor was colored across whatever slice of the colormap its coordinates
 // happened to fall in inside the attractor's range, which is how six distinct
 // colormaps all came out looking like one flat tint.
 //

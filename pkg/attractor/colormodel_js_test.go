@@ -4,8 +4,8 @@ package attractor
 
 import "testing"
 
-// The colour model is two knobs: SRC says what the colour follows, MAP says how
-// that value becomes a colour. These check the two places the split has to hold
+// The color model is two knobs: SRC says what the color follows, MAP says how
+// that value becomes a color. These check the two places the split has to hold
 // together — the uniform the geometry reads, and which modes consult SRC at all.
 
 func withColorKnobs(t *testing.T) {
@@ -16,9 +16,9 @@ func withColorKnobs(t *testing.T) {
 
 // TestSourceOffOnlySilencesTheGeometry is the load-bearing asymmetry.
 //
-// OFF means "the colour follows nothing", which is a thing you can say about a
-// figure whose colour is a CHOICE — an attractor, an embedding, the waterfall.
-// The spectrogram, the RTA and the transfer function each colour one quantity
+// OFF means "the color follows nothing", which is a thing you can say about a
+// figure whose color is a CHOICE — an attractor, an embedding, the waterfall.
+// The spectrogram, the RTA and the transfer function each color one quantity
 // of their own and never consulted the src ring, so OFF must not silence them:
 // they go on reading the map ring. That is why gradientColors stays the map and
 // only the shader's uniform folds OFF in.
@@ -54,7 +54,7 @@ func TestOnlyTheGeometryHasASourceToChoose(t *testing.T) {
 	}
 	for _, m := range []string{"takens", "stereo", "polar", "waterfall", "lorenz", "xy"} {
 		if !modeUsesGradientSource(m) {
-			t.Errorf("%s colours geometry, so SRC is a real choice in it", m)
+			t.Errorf("%s colors geometry, so SRC is a real choice in it", m)
 		}
 	}
 }
@@ -63,13 +63,13 @@ func TestOnlyTheGeometryHasASourceToChoose(t *testing.T) {
 //
 // The ring used to carry mono, which discarded the value — the one position
 // that contradicted the knob's own stated function. Every position left has to
-// turn a 0..1 value into a colour and turn DIFFERENT values into DIFFERENT
-// colours, or it is mono again under another name.
+// turn a 0..1 value into a color and turn DIFFERENT values into DIFFERENT
+// colors, or it is mono again under another name.
 //
 // Sampled across the range rather than at the two ends, because the hue sweep's
 // ends legitimately meet: hue is a circle, so 0 and 1 are the same red. That is
 // the same fact the shader's fold relies on — a colormap is a line whose ends
-// are different colours and needs reflecting, a hue circle does not — and it is
+// are different colors and needs reflecting, a hue circle does not — and it is
 // not the position failing to map anything.
 func TestEveryMapPositionMapsSomething(t *testing.T) {
 	withColorKnobs(t)
@@ -85,7 +85,7 @@ func TestEveryMapPositionMapsSomething(t *testing.T) {
 			seen[rgb(v)] = true
 		}
 		if len(seen) < 3 {
-			t.Errorf("map %d paints six values in only %d colours", m, len(seen))
+			t.Errorf("map %d paints six values in only %d colors", m, len(seen))
 		}
 		// And it stays inside the map past either end rather than wrapping to
 		// the far one, which would put a seam in the middle of a figure.
