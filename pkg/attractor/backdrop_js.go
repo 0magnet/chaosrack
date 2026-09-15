@@ -143,7 +143,7 @@ func syncSpectroModule(mode string) {
 		return
 	}
 	grid := doc.Call("createElement", "div")
-	grid.Set("className", "punit-grid two-col")
+	grid.Set("className", "punit-grid")
 	for _, p := range spectParams {
 		grid.Call("appendChild", buildParamUnit(p))
 	}
