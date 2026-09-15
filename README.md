@@ -1377,7 +1377,7 @@ Desk — a window manager, drawn as a model. The same texture-on-a-plane path th
 | --- | --- | --- |
 | ![Spectrogram](docs/img/model/spectrogram.jpg) | ![Spectrogram turning](docs/img/model/spectrogram.gif) | ![Spectrogram parameters](docs/img/model/spectrogram-params.jpg) |
 
-Spectrogram — a scrolling short-time Fourier transform of the live audio: frequency up the plane, time scrolling right to left, magnitude as color. It is a display inspired by Vanya Sergeev's audioprism, written in Go (github.com/0magnet/audioprism-go) and drawn here as a texture on a plane in the same 3-D pipeline as every other model, so it rotates and zooms like one — and the same texture can be painted onto other geometry with the skin switch. The Spectrogram module exposes the whole chain: transform size, overlap, window function, magnitude scale and limits, and color scheme.
+Spectrogram — a scrolling short-time Fourier transform of the live audio: frequency up the plane, time scrolling right to left, magnitude as color. It is a display inspired by Vanya Sergeev's audioprism, written in Go (github.com/0magnet/audioprism-go) and drawn here as a texture on a plane in the same 3-D pipeline as every other model, so it rotates and zooms like one — and the same texture can be painted onto other geometry with the skin switch. The Spectrogram module exposes the whole chain: transform size (DFT), overlap, window function (WFN — labelled apart from the embeddings' WIN, which is a window LENGTH), magnitude scale and limits, and color scheme.
 
 `#spectrogram` · audio
 

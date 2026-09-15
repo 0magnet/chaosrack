@@ -62,6 +62,16 @@ func spectDFTNames() []string {
 
 // spectParams are the controls as the Parameters module builds them.
 //
+// WFN, not "win". The three delay embeddings label a window LENGTH in
+// milliseconds "win", and this is a window FUNCTION — and the two can be on
+// screen at once, because the Spectro module keeps these controls while the
+// spectrogram is being used as a backdrop behind another model. One label
+// meaning two things three inches apart is a label doing harm.
+//
+// The knob's id stays spect-win, so permalinks and patch routings written
+// before the rename still land on it: the id is the wire and the label is what
+// is painted on the panel beside it.
+//
 // The magnitude pair runs over the logarithmic limits, -80 to 80, because that
 // is the scale the spectrogram is in unless it is told otherwise. In linear
 // mode the original allows up to 1000, but its own scale toggle lands at 0..50
@@ -71,7 +81,7 @@ func spectDFTNames() []string {
 var spectParams = []paramDef{
 	{"spect-dft", "dft", &spectDFTF, 4, 0, float32(len(spectDFTSizes) - 1), 1},
 	{"spect-ovl", "ovlp", &spectOvlF, 50, 5, 95, 5},
-	{"spect-win", "win", &spectWinF, 0, 0, float32(len(spectWinNames) - 1), 1},
+	{"spect-win", "wfn", &spectWinF, 0, 0, float32(len(spectWinNames) - 1), 1},
 	{"spect-chan", "chan", &spectChanF, 0, 0, float32(len(spectChanNames) - 1), 1},
 	{"spect-col", "color", &spectColF, 0, 0, float32(len(spectColNames) - 1), 1},
 	{"spect-scale", "scale", &spectScaleF, 0, 0, float32(len(spectScaleNames) - 1), 1},
