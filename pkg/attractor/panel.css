@@ -29,7 +29,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .rst:hover{color:#fff;}
 /* Standard cell template: the reset button sits on the header line (with the
    LED readout), pinned to the cell's top-right — not tucked in the knob corner. */
-#params .punit>.rst,.vmcell>.rst,.axcol.axrot .rst{position:absolute;top:3px;right:3px;bottom:auto;left:auto;z-index:6;font-size:calc(12px*var(--kscale,1));line-height:1;}
+.punit-grid .punit>.rst,.vmcell>.rst,.axcol.axrot .rst{position:absolute;top:3px;right:3px;bottom:auto;left:auto;z-index:6;font-size:calc(12px*var(--kscale,1));line-height:1;}
 /* .rstcell is the same template for a selector cell that is not a .vmcell:
    .pcell is not a positioned ancestor by default, so the cell has to become
    one before its reset button can be pinned to the corner like every other. */
@@ -438,8 +438,21 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .sect>.sect-hdr{cursor:grab;}
 .sect.sect-dragging{opacity:.55;outline:1px dashed var(--led,#c33);}
 .sect.sect-dragging>.sect-hdr{cursor:grabbing;}
-#params .punit,.physmodule .punit{}
 .modmodule .u-modlbl{display:none;}
+/* KEYED ON THE GRID, NOT ON #params.
+
+   These rules ARE the standard cell: a fixed 116x160 box, the label pinned to
+   its top-left, the numeric centered over the knob, the reset in the top-right
+   corner. Seven places in the panel build a .punit-grid of exactly these cells
+   — Parameters, MOD, EQ, Section, Spectro, Analysis and the turtle's physics —
+   and the selector used to name three of them by id and class. The other four
+   were built by the same buildParamUnit and then styled by nothing: the Section
+   module's cells came out position:static, which left its labels and its reset
+   buttons in normal flow and drawn on top of each other at x=48 and x=46.
+
+   The grid is what every one of those builders creates, so keying on it is what
+   makes "the standard cell template" true of every cell that is one, rather
+   than of the ones somebody remembered to add to a list. */
 /* Row alignment across a primary/MOD/EQ triad: every cell is a uniform height
    with its label pinned to the top and numeric/step pinned to the bottom, so the
    CONTROL (knob or EQ strip) is the only in-flow item and centers at the same Y
@@ -447,8 +460,8 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* Fixed cell width (= the grid track) so the label pins to the far-left and the
    LED centers over the knob exactly like the View / Position cells, instead of
    collapsing to content width (which crowded the label against the LED). */
-#params .punit,.modmodule .punit,.eqmodule .punit{position:relative;height:calc(160px*var(--kscale,1));width:calc(116px*var(--kscale,1));justify-content:center;box-sizing:border-box;}
-#params .punit>.punit-top,.modmodule .punit>.u-lbl,.eqmodule .punit>.u-lbl{position:absolute;top:2px;left:0;right:0;margin:0;z-index:3;}
+.punit-grid .punit{position:relative;height:calc(160px*var(--kscale,1));width:calc(116px*var(--kscale,1));justify-content:center;box-sizing:border-box;}
+.punit-grid .punit>.punit-top,.punit-grid .punit>.u-lbl{position:absolute;top:2px;left:0;right:0;margin:0;z-index:3;}
 /* A card built by hand rather than by buildParamUnit puts its label straight
    into the .punit with no .punit-top around it — the readouts (corr, dly, meas,
    rqa, rt60, λ, trend) and the FVF selector cards all do. Without this they
@@ -459,16 +472,16 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    doing the same, so the fallback is correct rather than something each new
    hand-built card has to remember a wrapper for. .plabel too: a punit should
    carry a .u-lbl, but one that does not still has to line up. */
-#params .punit>.u-lbl,#params .punit>.plabel{position:absolute;top:3px;left:4px;right:auto;margin:0;z-index:3;transform:none;}
+.punit-grid .punit>.u-lbl,.punit-grid .punit>.plabel{position:absolute;top:3px;left:4px;right:auto;margin:0;z-index:3;transform:none;}
 /* params: label stacked above the numeric LED, both centered over the knob's axis
    (full width so centering is on the cell, not collapsed to content width). */
 /* Label to the LEFT of the LED (like the View module), LED centered over the
    knob: pin the label to the cell's left edge, center the numeric. Uniform
    across params / Position / Display. */
-#params .punit>.punit-top{flex-direction:row;align-items:center;justify-content:center;gap:0;width:auto!important;}
-#params .punit>.punit-top>.u-lbl{position:absolute;left:4px;top:3px;transform:none;}
-#params .punit>.punit-top>.numin{position:static;}
-#params .punit>.u-step{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);}
+.punit-grid .punit>.punit-top{flex-direction:row;align-items:center;justify-content:center;gap:0;width:auto!important;}
+.punit-grid .punit>.punit-top>.u-lbl{position:absolute;left:4px;top:3px;transform:none;}
+.punit-grid .punit>.punit-top>.numin{position:static;}
+.punit-grid .punit>.u-step{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);}
 .modmodule .u-modval{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);}
 .punit-mod{margin:0!important;}
 .punit-mod .knob-ring-circle{display:none;} /* no guide circle on the small mod knobs */
@@ -669,6 +682,22 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    hidden and the overlay is click-through so the select still opens on click. */
 .selwrap{position:relative;display:inline-block;}
 .selwrap>.selwin{color:transparent!important;text-shadow:none!important;}
+/* THE OPTIONS KEEP THEIR COLOR.
+
+   That transparent above hides the closed control's own text so the marquee can
+   show the name instead — but `color` cascades into the <option>s, and the open
+   dropdown is painted by the browser with each option's color. So the list came
+   up as a column of invisible rows, and an entry only appeared when the pointer
+   reached it and the selection highlight drew behind it. Both Console
+   dropdowns, which are the two the catalog is navigated by.
+
+   Naming the options is the whole fix: the closed control still takes its
+   transparent from the rule above, so the marquee is not doubled. Each matches
+   its own marquee — category blue, model green — so an open list is the color
+   of the readout it came from. */
+.selwrap>.selwin>option,.selwrap>.selwin>optgroup{color:#cfe6ff;text-shadow:none;}
+#model-sel-grp .csel-cat>option,#model-sel-grp .csel-cat>optgroup{color:#8fd0ff;}
+#model-sel-grp .csel-model>option,#model-sel-grp .csel-model>optgroup{color:#7fe0a0;}
 .selmarq{position:absolute;left:0;right:16px;top:0;bottom:0;display:flex;align-items:center;overflow:hidden;pointer-events:none;padding-left:6px;white-space:nowrap;font-family:"Courier New",monospace;font-weight:bold;font-size:calc(11px*var(--kscale,1));letter-spacing:.5px;color:#7fe0a0;text-shadow:0 0 4px #2a9a5a;}
 .selmarq>span{display:inline-block;}
 .selmarq.scroll>span{animation:selmarq 5s ease-in-out infinite alternate;}
