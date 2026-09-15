@@ -130,8 +130,14 @@ var attractorDescriptions = map[string]string{
 		"long draws a denser tangle that turns over more slowly; GAIN sets how large a full-scale " +
 		"sample draws. The scale is fixed — nothing auto-ranges, so quiet passages draw small and " +
 		"loud ones large, and the view never moves under you; the camera is fitted once to what " +
-		"full scale can reach, so peaks stay on screen. The trace is spline-smoothed between " +
-		"samples the way a scope's beam is. " +
+		"full scale can reach, so peaks stay on screen. " +
+		"SMTH is the beam smoothing between samples, and it is the trade between how much " +
+		"WINDOW is on screen and how smooth the line is, since both come out of one vertex " +
+		"budget: at 1 the figure is raw chords through four times as many samples, which is " +
+		"what to use to see a long window; at 16 it is a glass-smooth beam through a short " +
+		"one. A straight line from one delay vector to the next is a chord, and chords are " +
+		"the hard corners you can see — an artifact of the drawing, not something in the " +
+		"signal. The same knob serves the stereo and polar embeddings. " +
 		"Audio comes from the active source — websocket stream, microphone, or the signal generators.",
 	"stereo": "Stereo Embedding — the Takens trail built from the two channels instead " +
 		"of one channel's past. Takens' theorem manufactures the missing axes out of a signal's own " +

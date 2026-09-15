@@ -113,6 +113,7 @@ func init() {
 		{"polar-tau", "τ", &polarTau, takensTauDef, 1, takensTauMax, 1},
 		{"polar-win", "win", &polarWin, 85, 5, 500, 5},
 		{"polar-gain", "gain", &polarGain, 10, 0.5, 50, 0.5},
+		{"takens-smooth", "smth", &takensSmoothF, 4, 1, 16, 1},
 	}
 }
 
@@ -305,9 +306,10 @@ func generatePolar() {
 	invN := float32(1) / float32(nv-1)
 	vertices := vertBuf[:nv*4]
 	var v [3]float32
+	sm := takensSmooth()
 	for m := 0; m < nv; m++ {
-		i := m / takensSmooth
-		f := float32(m%takensSmooth) / takensSmooth
+		i := m / sm
+		f := float32(m%sm) / float32(sm)
 		j := m * 4
 		for c, off := range [3]int{0, -tau, -2 * tau} {
 			p0, p1, p2, p3 := at(i-1, off), at(i, off), at(i+1, off), at(i+2, off)
