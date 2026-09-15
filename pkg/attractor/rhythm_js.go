@@ -3,7 +3,6 @@
 package attractor
 
 import (
-	"strconv"
 	"syscall/js"
 )
 
@@ -339,9 +338,7 @@ func setRhythmOn(on bool) {
 // its options when a link tries to set one.
 func wireRhythmModule() {
 	tempo := doc.Call("getElementById", "rhythm-tempo")
-	tempoLED := doc.Call("getElementById", "rhythm-tempo-led")
 	lvl := doc.Call("getElementById", "rhythm-lvl")
-	lvlLED := doc.Call("getElementById", "rhythm-lvl-led")
 	out := doc.Call("getElementById", "rhythm-out")
 	sel := doc.Call("getElementById", "rhythm-preset")
 	tabs := doc.Call("getElementById", "rhythm-tabs")
@@ -352,38 +349,21 @@ func wireRhythmModule() {
 		return
 	}
 
-	// Tempo cell: value knob + editable LED.
-	tempoLED.Set("value", formatLED(fgFloat(tempo), intDigits(240), 0, false))
-	sizeLEDField(tempoLED, 40, 240, 0, false)
+	// Tempo cell: value knob, LED and reset from the descriptor. LEDStep 10
+	// keeps it at whole BPM.
 	tstack.Call("appendChild", makeKnob(tempo, js.Undefined(), true, false, true))
-	tempo.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		tempoLED.Set("value", formatLED(fgFloat(tempo), intDigits(240), 0, false))
-		return nil
-	}))
-	tempoLED.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if v, err := strconv.ParseFloat(tempoLED.Get("value").String(), 64); err == nil {
-			tempo.Set("value", strconv.FormatFloat(v, 'f', 0, 64))
-			tempo.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-		}
-		return nil
-	}))
+	adoptDescControl(ControlDesc{
+		ID: "rhythm-tempo", Label: "tempo", Min: 40, Max: 240, Step: 1, Def: 100,
+		LEDID: "rhythm-tempo-led", ResetID: "rst-rhythm-tempo", LEDStep: 10,
+	})
 
-	// Level cell: value knob + LED.
-	lvlLED.Set("value", formatLED(fgFloat(lvl), intDigits(100), 1, false))
-	sizeLEDField(lvlLED, 0, 100, 1, false)
+	// Level cell: value knob, LED and reset from the descriptor.
 	lstack.Call("appendChild", makeKnob(lvl, js.Undefined(), true, false, true))
-	lvl.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		lvlLED.Set("value", formatLED(fgFloat(lvl), intDigits(100), 1, false))
-		rhythmUpdateRouting()
-		return nil
-	}))
-	lvlLED.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if v, err := strconv.ParseFloat(lvlLED.Get("value").String(), 64); err == nil {
-			lvl.Set("value", strconv.FormatFloat(v, 'f', 0, 64))
-			lvl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-		}
-		return nil
-	}))
+	adoptDescControl(ControlDesc{
+		ID: "rhythm-lvl", Label: "lvl", Min: 0, Max: 100, Step: 1, Def: 80,
+		LEDID: "rhythm-lvl-led", ResetID: "rst-rhythm-lvl",
+		Apply: func(float64) { rhythmUpdateRouting() },
+	})
 
 	// Out cell: the same routing ring every voice module has.
 	ostk := makeSelectorKnob(out)

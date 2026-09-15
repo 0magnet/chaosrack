@@ -90,7 +90,6 @@ func wireCounterModule() {
 	counterGateEl = doc.Call("getElementById", "counter-gate")
 	gatesel := doc.Call("getElementById", "counter-gatesel")
 	trig := doc.Call("getElementById", "counter-trig")
-	trigLED := doc.Call("getElementById", "counter-trig-led")
 	gstack := doc.Call("getElementById", "counter-gstack")
 	tstack := doc.Call("getElementById", "counter-tstack")
 	sw := doc.Call("getElementById", "counter-on")
@@ -98,20 +97,15 @@ func wireCounterModule() {
 		return
 	}
 	gstack.Call("appendChild", singleSelectorKnob(gatesel, []string{"0.1", "0.5", "1", "2"}, 50))
-	trigLED.Set("value", formatLED(fgFloat(trig), intDigits(30), 0, false))
-	sizeLEDField(trigLED, 0, 30, 0, false)
 	tstack.Call("appendChild", makeKnob(trig, js.Undefined(), true, false, true))
-	trig.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		trigLED.Set("value", formatLED(fgFloat(trig), intDigits(30), 0, false))
-		return nil
-	}))
-	trigLED.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if v, err := strconv.ParseFloat(trigLED.Get("value").String(), 64); err == nil {
-			trig.Set("value", strconv.FormatFloat(v, 'f', 0, 64))
-			trig.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-		}
-		return nil
-	}))
+	// The LED, its typed entry, the wheel nudge and the reset all come from the
+	// descriptor. LEDStep 10 keeps it reading whole percent, which is what it
+	// read before: ledDecimals works from step × fineRatio, so a step of 1 asks
+	// for a decimal this value never has.
+	adoptDescControl(ControlDesc{
+		ID: "counter-trig", Label: "trig", Min: 0, Max: 30, Step: 1, Def: 4,
+		LEDID: "counter-trig-led", ResetID: "rst-counter-trig", LEDStep: 10,
+	})
 	if sw.Truthy() {
 		sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
 			counterOn = sw.Get("checked").Bool()

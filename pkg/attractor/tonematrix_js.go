@@ -391,11 +391,9 @@ func setTonematrixOn(on bool) {
 // wires the Run/Clear controls. Called once from Run.
 func wireTonematrixModule() {
 	tempo := doc.Call("getElementById", "tm-tempo")
-	tempoLED := doc.Call("getElementById", "tm-tempo-led")
 	stepsSel := doc.Call("getElementById", "tm-steps")
 	root := doc.Call("getElementById", "tm-root")
 	lvl := doc.Call("getElementById", "tm-lvl")
-	lvlLED := doc.Call("getElementById", "tm-lvl-led")
 	out := doc.Call("getElementById", "tm-out")
 	wave := doc.Call("getElementById", "tm-wave")
 	sw := doc.Call("getElementById", "tm-on")
@@ -407,21 +405,13 @@ func wireTonematrixModule() {
 		return
 	}
 
-	// Tempo cell: standard value knob + editable LED.
-	tempoLED.Set("value", formatLED(fgFloat(tempo), intDigits(300), 0, false))
-	sizeLEDField(tempoLED, 40, 300, 0, false)
+	// Tempo cell: standard value knob, LED and reset from the descriptor.
+	// LEDStep 10 keeps it at whole BPM.
 	tstack.Call("appendChild", makeKnob(tempo, js.Undefined(), true, false, true))
-	tempo.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		tempoLED.Set("value", formatLED(fgFloat(tempo), intDigits(300), 0, false))
-		return nil
-	}))
-	tempoLED.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if v, err := strconv.ParseFloat(tempoLED.Get("value").String(), 64); err == nil {
-			tempo.Set("value", strconv.FormatFloat(v, 'f', 0, 64))
-			tempo.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-		}
-		return nil
-	}))
+	adoptDescControl(ControlDesc{
+		ID: "tm-tempo", Label: "tempo", Min: 40, Max: 300, Step: 1, Def: 120,
+		LEDID: "tm-tempo-led", ResetID: "rst-tm-tempo", LEDStep: 10,
+	})
 
 	// Steps cell: outer ring = column count, inner knob = root octave.
 	sstk := stackKnobs(makeSelectorKnob(stepsSel), makeSelectorKnob(root))
@@ -436,22 +426,13 @@ func wireTonematrixModule() {
 	stepsSel.Call("addEventListener", "change", rebuild)
 	root.Call("addEventListener", "change", rebuild)
 
-	// Level cell: standard value knob + LED.
-	lvlLED.Set("value", formatLED(fgFloat(lvl), intDigits(100), 1, false))
-	sizeLEDField(lvlLED, 0, 100, 1, false)
+	// Level cell: standard value knob, LED and reset from the descriptor.
 	lstack.Call("appendChild", makeKnob(lvl, js.Undefined(), true, false, true))
-	lvl.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		lvlLED.Set("value", formatLED(fgFloat(lvl), intDigits(100), 1, false))
-		tmUpdateRouting()
-		return nil
-	}))
-	lvlLED.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if v, err := strconv.ParseFloat(lvlLED.Get("value").String(), 64); err == nil {
-			lvl.Set("value", strconv.FormatFloat(v, 'f', 0, 64))
-			lvl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-		}
-		return nil
-	}))
+	adoptDescControl(ControlDesc{
+		ID: "tm-lvl", Label: "lvl", Min: 0, Max: 100, Step: 1, Def: 80,
+		LEDID: "tm-lvl-led", ResetID: "rst-tm-lvl",
+		Apply: func(float64) { tmUpdateRouting() },
+	})
 
 	// Out cell: Gen-oscillator anatomy — routing ring, waveform inner knob.
 	ostk := stackKnobs(makeSelectorKnob(out), makeSelectorKnob(wave))

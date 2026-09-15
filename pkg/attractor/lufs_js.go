@@ -4,7 +4,6 @@ package attractor
 
 import (
 	"math"
-	"strconv"
 	"syscall/js"
 )
 
@@ -131,25 +130,21 @@ func wireLoudnessModule() {
 	lufsTPEl = doc.Call("getElementById", "lufs-tp-led")
 	lufsDl = doc.Call("getElementById", "lufs-delta-led")
 	tgt := doc.Call("getElementById", "lufs-target")
-	tgtLED := doc.Call("getElementById", "lufs-target-led")
 	rst := doc.Call("getElementById", "lufs-reset")
 	if !tgt.Truthy() {
 		return
 	}
-	sizeLEDField(tgtLED, -40, 0, 0, true)
-	tgt.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		lufsTarget = float32(fgFloat(tgt))
-		tgtLED.Set("value", strconv.Itoa(int(lufsTarget)))
-		showLoudness()
-		return nil
-	}))
-	tgtLED.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if v, err := strconv.ParseFloat(tgtLED.Get("value").String(), 64); err == nil {
-			tgt.Set("value", strconv.FormatFloat(v, 'f', 0, 64))
-			tgt.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-		}
-		return nil
-	}))
+	// The target knob: the descriptor owns its LED, typed entry, wheel and
+	// reset. Signed, because a loudness target is always negative and the sign
+	// is not decoration. LEDStep 10 keeps it at whole LU.
+	adoptDescControl(ControlDesc{
+		ID: "lufs-target", Label: "tgt", Min: -40, Max: 0, Step: 1, Def: -23,
+		Signed: true, LEDID: "lufs-target-led", ResetID: "rst-lufs-target", LEDStep: 10,
+		Apply: func(v float64) {
+			lufsTarget = float32(v)
+			showLoudness()
+		},
+	})
 	if rst.Truthy() {
 		rst.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
 			if lufsMeter != nil {
