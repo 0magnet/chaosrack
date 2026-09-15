@@ -73,6 +73,13 @@ var paramLabels = map[string][]string{
 	"rta-chan":    tapChanNames,
 	// The RTA's band width, next to the fractions it indexes.
 	"rta-frac": rtaFractionNames,
+	"xf-frac":  rtaFractionNames,
+	// Which of the three curves the transfer display draws.
+	"xf-show": xfShowNames,
+	// Which channel is the reference — what went out — and which is what came
+	// back. A swap rather than a rewire, because half the time the cabling makes
+	// it the other way round.
+	"xf-swap": {"left is reference", "right is reference"},
 }
 
 // paramRingLabels is what actually fits around the dial. A cell is a third of
@@ -107,6 +114,9 @@ var paramRingLabels = map[string][]string{
 	"polar-chan":  tapChanRing,
 	"rta-chan":    tapChanRing,
 	"rta-frac":    rtaFractionRing,
+	"xf-frac":     rtaFractionRing,
+	"xf-show":     xfShowRing,
+	"xf-swap":     {"L", "R"},
 }
 
 // turtlePhysParams are the weight controls. They are not in attractorParams
