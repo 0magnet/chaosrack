@@ -304,3 +304,31 @@ func windowEnergy(n int) float64 {
 	}
 	return e
 }
+
+// computeFFTComplex is computeFFTMagsKind keeping the PHASE, into caller-owned
+// buffers.
+//
+// Magnitudes are enough for a spectrum, a spectrogram and a distortion figure,
+// which is why nothing here needed the complex result until now. A transfer
+// function is a phase measurement — its whole subject is how far the output
+// lags the input — so throwing the phase away is throwing away the answer.
+//
+// It writes into re and im rather than returning the scratch's own slices,
+// because a transfer function needs TWO spectra at once and the scratch has one
+// of each per size: the second call would overwrite the first, and the
+// measurement would come out as a signal correlated with itself. The copy is
+// n/2+1 pairs and happens a few times a second.
+func computeFFTComplex(input []float32, wf winKind, re, im []float64) bool {
+	n := len(input)
+	if n == 0 || n&(n-1) != 0 || len(re) < n/2+1 || len(im) < n/2+1 {
+		return false
+	}
+	// The magnitudes are not wanted, but the transform is, and it leaves its
+	// result in the scratch — so this runs the same one rather than repeating
+	// the butterflies here, where the two copies would drift apart.
+	s := fftScratchFor(n, wf)
+	computeFFTMagsKind(input, wf)
+	copy(re, s.re[:n/2+1])
+	copy(im, s.im[:n/2+1])
+	return true
+}
