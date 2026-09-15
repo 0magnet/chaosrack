@@ -856,6 +856,12 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	} else {
 		generateForMode(selectedMode)
 	}
+	// The gradient extents, if the mode change could not take them: an audio
+	// mode has no geometry on its first frame, and this is the first frame that
+	// does. Costs one comparison per frame once it has been paid.
+	if gradientRangeDue() {
+		refreshGradient()
+	}
 	// The lens goes last: it re-reads the finished frame through the fluid
 	// surface, so everything drawn above — model, backdrop, overlays — is what
 	// it refracts. Before the model it would only distort an empty buffer.

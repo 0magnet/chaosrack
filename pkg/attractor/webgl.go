@@ -132,6 +132,7 @@ func uploadVerticesOnly(vertices []float32, drawMode js.Value, count int) {
 		}
 	}
 	attractorVertices = vertices
+	vertexUploadSeq++
 	gradientStride = 4
 	// Set stride-4 attribute pointers for interleaved data
 	gl.Call("bindBuffer", glTypes.ArrayBuffer, attractorVertexBuffer)
@@ -228,6 +229,7 @@ func uploadBuffersIndexed(vertices []float32, indices []uint16, drawMode js.Valu
 	if staticGeomDirty {
 		attractorVertices = vertices
 		attractorIndices = indices
+		vertexUploadSeq++
 		gradientStride = 3
 		gl.Call("bindBuffer", glTypes.ArrayBuffer, attractorVertexBuffer)
 		// Switch to packed xyz stride for indexed geometry
@@ -383,3 +385,13 @@ func setGradientRange(minX, maxX, minY, maxY, minZ, maxZ float32) {
 	gl.Call("uniform1f", uMinZLoc, float64(minZ-centerOffset[2]))
 	gl.Call("uniform1f", uMaxZLoc, float64(maxZ-centerOffset[2]))
 }
+
+// vertexUploadSeq counts uploads into the attractor vertex buffer.
+//
+// The gradient's extents are the only reader, and what they need to know is
+// whether the buffer they are about to scan belongs to the mode now on screen
+// or to the one before it. A mode name cannot answer that — the mode has
+// changed and the buffer has not — and emptiness cannot either, because a mode
+// that draws nothing on its first frames leaves the previous model's vertices
+// in place rather than clearing them. An upload count answers it exactly.
+var vertexUploadSeq uint64
