@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs pages onefile site site-check
+.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs pages onefile site readme-check site-check
 
 # The targets that matter are `format` and `check`, and they mean the same
 # thing here as in 0pcom/skywire, which is the reference for these repos.
@@ -174,7 +174,7 @@ cover: ## Report test coverage per package
 	fi
 	$(recurse)
 
-check: lint vet test ## Run linters, vet and tests
+check: lint vet test readme-check ## Run linters, vet and tests
 
 install-linters: ## Install the linters
 	${OPTS} go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
@@ -189,6 +189,15 @@ site: ## Regenerate models/ — one readable page per model — and sitemap.xml
 	@# Same attractor.Catalog() the README and the selector knobs come from:
 	@# adding a mode adds a page, and `site-check` fails when it has not.
 	go run ./cmd/uitool site
+
+readme-check: ## Report whether README.md's generated regions are up to date
+	@# The models section is built from attractor.Catalog() and the same
+	@# descriptions the Info window shows, and the modules section from each
+	@# module header's own tooltip. Nothing checked that the file still matched
+	@# them, so it had drifted: the app's descriptions had been rewritten and
+	@# trimmed underneath it, and the modules section listed 23 of the rack's
+	@# 35 modules. Both are the kind of drift nobody notices by reading.
+	go run ./cmd/uitool readme -check
 
 site-check: ## Report whether models/ is up to date; change nothing
 	go run ./cmd/uitool site -site-check

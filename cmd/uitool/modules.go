@@ -146,7 +146,8 @@ func waitForModule(c *cdp.Client, id string) {
 		}
 		time.Sleep(400 * time.Millisecond)
 	}
-	fmt.Fprintf(os.Stderr, "modules: %s never appeared\n", id)
+	mode, _ := c.Eval(`(function(){var m=document.getElementById("mode-select");return (m?m.value:"?")+" hash="+location.hash+" sects="+document.querySelectorAll("#controls-panel .sect").length;})()`).(string)
+	fmt.Fprintf(os.Stderr, "modules: %s never appeared (app is on %s)\n", id, mode)
 }
 
 // featureSwitches reveal modules from outside the rack's own Modules column:
@@ -165,8 +166,29 @@ var featureSwitches = []string{"audio-mod", "counter-on", "keys-on", "tm-on", "r
 // capturePass photographs every module visible in one mode that has not been
 // photographed already, and returns them in DOM order.
 func capturePass(c *cdp.Client, mode, wantID string, only, have map[string]bool, flip bool) []panelModule {
-	c.Eval(fmt.Sprintf(`location.hash='#%s&ar=0&rot=25,40,0'`, mode))
-	c.Reload(4 * time.Second)
+	// A FRESH URL, NOT A NEW FRAGMENT ON THIS ONE.
+	//
+	// Setting location.hash and then reloading does not work here, and the way
+	// it fails is silent. The app writes its own state back into the fragment
+	// on a timer (startPermalinkSync), and a reload is asynchronous — so
+	// between the assignment and the navigation committing, the app rewrote the
+	// fragment to what was currently on screen, and the reload brought that
+	// back instead. The pass then looked for a module that only exists in a
+	// mode it was never in, and waited sixteen seconds to not find it.
+	//
+	// This is the "a different four of them each run" recorded above, with the
+	// wrong cause attached: not a module arriving a beat late, but the pass
+	// landing in the wrong mode entirely. It was every mode-owned module, every
+	// run, by the time this was measured — six modules the README's reference
+	// simply did not have.
+	//
+	// Navigating to a URL whose QUERY differs forces a real document load with
+	// our fragment in place from the start, and there is no window in which the
+	// app can rewrite it because the app is not running yet.
+	c.Eval(fmt.Sprintf(
+		`(function(){location.replace(location.origin+location.pathname+'?mp=%d'+'#%s&ar=0&rot=25,40,0');})()`,
+		time.Now().UnixNano(), mode))
+	time.Sleep(4 * time.Second)
 	waitForPanel(c)
 	waitForModule(c, wantID)
 
