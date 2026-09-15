@@ -291,6 +291,7 @@ func updateInfoOverlay() {
 		}
 	}
 	overlay.Set("textContent", text)
+	updateInfoTitle() // a window left open while the model changes says which one it describes
 }
 
 // updatePhysVisibility shows the Physics switch only where there is something

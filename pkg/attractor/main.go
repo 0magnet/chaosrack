@@ -931,25 +931,15 @@ func Run() {
 		return nil
 	}))
 
-	// Create info overlay div
-	infoOverlay := doc.Call("createElement", "div")
-	infoOverlay.Set("id", "info-overlay")
-	infoOverlay.Set("style", "display:none;position:fixed;top:140px;left:20px;right:20px;z-index:var(--z-hud);"+
-		"color:rgba(255,255,255,0.85);font-family:'B612 Mono',monospace;font-size:14px;line-height:1.6;"+
-		"white-space:pre-wrap;pointer-events:none;text-shadow:0 0 10px #000,0 0 20px #000;"+
-		"max-width:600px;")
-	body.Call("appendChild", infoOverlay)
-
-	// Event: show info checkbox
+	// Event: show info checkbox. The text lives in a window now (see
+	// infowindow_js.go) rather than in a caption pinned over the canvas, so
+	// there is no element to create here and nothing to position: a description
+	// taller than the screen scrolls, and one in the way can be moved.
 	doc.Call("getElementById", "show-info").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		checked := doc.Call("getElementById", "show-info").Get("checked").Bool()
-		overlay := doc.Call("getElementById", "info-overlay")
-		if checked {
-			updateInfoOverlay() // one place decides what the text says
-			overlay.Get("style").Set("display", "block")
-			positionInfoOverlay()
+		if doc.Call("getElementById", "show-info").Get("checked").Bool() {
+			showInfoWindow()
 		} else {
-			overlay.Get("style").Set("display", "none")
+			hideInfoWindow()
 		}
 		return nil
 	}))
@@ -1645,7 +1635,7 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 	doc.Call("getElementById", "auto-rotate").Set("checked", true)
 	doc.Call("getElementById", "use-points").Set("checked", false)
 	doc.Call("getElementById", "show-info").Set("checked", false)
-	doc.Call("getElementById", "info-overlay").Get("style").Set("display", "none")
+	hideInfoWindow()
 	persistTrail = false
 	doc.Call("getElementById", "persist-trail").Set("checked", false)
 	// The source and map rings are registry-owned, so the loop above has already

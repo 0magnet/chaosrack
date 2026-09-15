@@ -343,7 +343,6 @@ func positionResizeHandle() {
 		resizeHandle.Get("style").Set("display", "")
 	}
 	positionAudioMeters()
-	positionInfoOverlay()
 }
 
 // positionAudioMeters keeps the top-left audio-feature meter overlay clear of
@@ -368,35 +367,6 @@ func positionAudioMeters() {
 	st := afOverlay.Get("style")
 	st.Set("top", strconv.FormatFloat(top, 'f', 0, 64)+"px")
 	st.Set("left", strconv.FormatFloat(left, 'f', 0, 64)+"px")
-}
-
-// positionInfoOverlay keeps the Info text clear of the control panel (offset
-// past a left/top sidebar, or below a bottom dock's top edge).
-func positionInfoOverlay() {
-	ov := doc.Call("getElementById", "info-overlay")
-	if !ov.Truthy() || ov.Get("style").Get("display").String() == "none" {
-		return
-	}
-	st := ov.Get("style")
-	top, left, right := 70.0, 20.0, 20.0
-	if standalonePanel {
-		if p := doc.Call("getElementById", "controls-panel"); p.Truthy() && p.Get("style").Get("display").String() != "none" {
-			r := p.Call("getBoundingClientRect")
-			switch dockEdge {
-			case "left":
-				left = r.Get("right").Float() + 48 // clear the vertical dock-controls tab
-			case "right":
-				right = winW() - r.Get("left").Float() + 48 // clear the vertical dock-controls tab
-			case "top":
-				top = r.Get("bottom").Float() + 20
-			case "bottom":
-				// panel at the bottom; keep the overlay in the upper area
-			}
-		}
-	}
-	st.Set("top", strconv.FormatFloat(top, 'f', 0, 64)+"px")
-	st.Set("left", strconv.FormatFloat(left, 'f', 0, 64)+"px")
-	st.Set("right", strconv.FormatFloat(right, 'f', 0, 64)+"px")
 }
 
 // initDockResize creates the resize bar and its drag handlers (document-level
