@@ -376,11 +376,7 @@ func buildParamPanel(mode string) {
 	// flowing into as many columns as there are params. The enclosing section
 	// is the equipment module (its header names it).
 	grid := doc.Call("createElement", "div")
-	gridCls := "punit-grid"
-	if len(params) > 3 { // wraps into 2 columns → draw a divider between them
-		gridCls += " two-col"
-	}
-	grid.Set("className", gridCls)
+	grid.Set("className", "punit-grid")
 	for _, p := range params {
 		grid.Call("appendChild", buildParamUnit(p))
 	}
@@ -526,11 +522,7 @@ func buildModEQModules(params []paramDef) {
 		h.Set("title", tip)
 		mod.Call("appendChild", h)
 		g := doc.Call("createElement", "div")
-		gc := "punit-grid"
-		if len(cards) > 3 {
-			gc += " two-col"
-		}
-		g.Set("className", gc)
+		g.Set("className", "punit-grid")
 		for _, c := range cards {
 			g.Call("appendChild", c)
 		}
@@ -580,7 +572,7 @@ func buildTurtlePhysModule(mode string, paramsDiv js.Value) {
 	h.Set("title", "The figure as a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture. GRAV pulls either way up; FRIC is how much the surfaces bite; BOUNCE is how much of the speed a wall gives back; SPIN is how readily it turns.")
 	mod.Call("appendChild", h)
 	g := doc.Call("createElement", "div")
-	g.Set("className", "punit-grid two-col")
+	g.Set("className", "punit-grid")
 	for _, p := range turtlePhysParams {
 		g.Call("appendChild", buildParamUnit(p))
 	}
