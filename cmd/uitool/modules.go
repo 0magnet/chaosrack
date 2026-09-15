@@ -271,7 +271,29 @@ func listModules(c *cdp.Client) []panelModule {
 	    var stamp = 'm' + i;
 	    s.setAttribute('data-uitool', stamp);
 	    var id = s.id ? s.id.replace(/-module$/, '') : label.toLowerCase().replace(/[^a-z0-9]+/g,'-');
-	    out.push({id: id, label: label, title: hdr.getAttribute('title')||'', sel: stamp});
+	    // The cells this module offers, with their own tooltips and — for a
+	    // rotary switch — one entry per detent. Read from the panel rather
+	    // than written down anywhere, so the reference cannot drift from it.
+	    var ctrls = [];
+	    [].forEach.call(s.querySelectorAll('.pcell,.punit,label.grp'), function(c){
+	      if (c.querySelector('.pcell,.punit')) return;       // a wrapper, not a cell
+	      var lab = c.querySelector('.plabel,.u-lbl,.twoway-name');
+	      var label = lab ? (lab.textContent||'').trim() : (c.textContent||'').trim();
+	      var title = c.getAttribute('title') || '';
+	      if (!title) {
+	        var t = c.querySelector('[title]');
+	        if (t) title = t.getAttribute('title') || '';
+	      }
+	      if (!title) return;                                  // nothing to say
+	      var pos = [];
+	      [].forEach.call(c.querySelectorAll('.knob-dial-lab,.knob-dial-dot,.knob-dial-wave,.ph-trace'), function(p){
+	        var pt = p.getAttribute('title') || '';
+	        if (!pt || pt === title) return;
+	        pos.push({label: (p.textContent||'').trim(), title: pt});
+	      });
+	      ctrls.push({label: label.slice(0, 24), title: title, positions: pos});
+	    });
+	    out.push({id: id, label: label, title: hdr.getAttribute('title')||'', sel: stamp, controls: ctrls});
 	  });
 	  return JSON.stringify(out);
 	})()`).(string)

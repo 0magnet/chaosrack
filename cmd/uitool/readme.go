@@ -237,6 +237,30 @@ type panelModule struct {
 	// selector empty and photographed nothing at all.
 	Sel  string `json:"sel,omitempty"`
 	Mode string `json:"mode"` // the model it was photographed under
+	// Controls is what the module's panel actually offers, harvested from the
+	// live rack at the same moment the shot is taken. Each entry is a cell's
+	// label and its tooltip, and — for a rotary switch — one line per detent,
+	// because the detents are where a selector says what it does.
+	Controls []panelControl `json:"controls,omitempty"`
+}
+
+// panelControl is one cell of a module's panel, and panelPos one position of a
+// selector within it.
+//
+// The text is the panel's own: these are the tooltips, read out of the DOM
+// rather than written again here. That is the point — a description that has to
+// be written twice is a description that can disagree with itself, which is how
+// the module reference came to list 23 of 35 modules and how the category ring
+// came to deny that Maps existed.
+type panelControl struct {
+	Label     string     `json:"label"`
+	Title     string     `json:"title"`
+	Positions []panelPos `json:"positions,omitempty"`
+}
+
+type panelPos struct {
+	Label string `json:"label"`
+	Title string `json:"title"`
 }
 
 // modulesSection writes the module reference from the manifest. Absent a
@@ -274,7 +298,42 @@ func modulesSection() string {
 		case desc != "":
 			b.WriteString(desc + "\n")
 		}
+		b.WriteString(controlsList(m.Controls))
 	}
+	return b.String()
+}
+
+// controlsList renders a module's cells: each one's label and its own tooltip,
+// and under a rotary switch one line per detent.
+//
+// This is the reference the README did not have. Every one of these sentences
+// was already written — they are what the panel says when you hover it — and
+// none of them were anywhere in the documentation: of the 223 distinct
+// explanations the app carries, the README repeated 22. A control surface whose
+// only documentation is the control surface is fine until somebody wants to
+// read about it before they have it open.
+func controlsList(cs []panelControl) string {
+	if len(cs) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	b.WriteString("\n<details><summary>Controls</summary>\n\n")
+	for _, c := range cs {
+		name := strings.TrimSpace(c.Label)
+		if name == "" {
+			name = "—"
+		}
+		fmt.Fprintf(&b, "- **%s** — %s\n", mdEscape(name), tableText(c.Title))
+		for _, p := range c.Positions {
+			pl := strings.TrimSpace(p.Label)
+			if pl == "" {
+				fmt.Fprintf(&b, "  - %s\n", tableText(p.Title))
+				continue
+			}
+			fmt.Fprintf(&b, "  - `%s` — %s\n", pl, tableText(p.Title))
+		}
+	}
+	b.WriteString("\n</details>\n")
 	return b.String()
 }
 
