@@ -12,7 +12,7 @@ require (
 	github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a
 	github.com/0magnet/tuiwasm v0.0.0-20260914223904-35e19ffbd4ac
 	github.com/0magnet/websh v0.0.0-20260914105251-9f3f0b910116
-	github.com/0magnet/winbox-go v0.0.0-20260913215348-e6a682de3c9b
+	github.com/0magnet/winbox-go v0.0.0-20260915154346-4ab7a97ba459
 	github.com/0magnet/xterm-go v0.0.0-20260913215439-50280f9bd203
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-gl/mathgl v1.2.0
