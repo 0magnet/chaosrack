@@ -2,6 +2,8 @@
 
 package attractor
 
+import "syscall/js"
+
 // The Waterfall mode — cumulative spectral decay, as a surface in the 3-D
 // pipeline.
 //
@@ -54,6 +56,54 @@ const (
 	wfallCaptureSec = 6
 )
 
+// The live surface.
+//
+// A CSD is a measurement and holds still between sweeps; this is the other
+// thing the word waterfall means, and the one somebody selects the mode with
+// music playing expects to see: successive spectra of what is playing, stacked
+// into the screen as they age. Same axes, same surface, same gradient — only
+// the z axis stops being time-since-the-impulse and becomes time-ago.
+const (
+	// wfallLiveSlices is how deep the history runs and wfallLivePushMS how often
+	// a slice is pushed. Thirty-two at 40 ms is 1.3 seconds, which is about a
+	// bar of music — long enough to watch a note decay and short enough that
+	// the front of the surface is still what is playing now.
+	//
+	// Pushed on a CLOCK rather than per frame: a surface built per frame is a
+	// different length of history on a 60 Hz display than on a 144 Hz one, and
+	// the depth axis stops meaning seconds.
+	wfallLiveSlices = 32
+	wfallLivePushMS = 40.0
+
+	// wfallLiveFFT is the transform each slice is taken with. 4096 at 48 kHz is
+	// an 85 ms window and an 11.7 Hz resolution, which is what it takes to
+	// separate anything in the bottom octave — the log axis spends a fifth of
+	// its width below 80 Hz and a coarser window draws that fifth as one step.
+	wfallLiveFFT = 4096
+
+	// wfallLiveWindow is the window it is taken with. Hann rather than the
+	// Blackman-Harris the measurements use: this is a picture of a signal, not a
+	// measurement of a level beside a loud neighbour, and Hann is the narrower
+	// main lobe of the two — which on a log axis is the difference between two
+	// low notes being two ridges and being one.
+	wfallLiveWindow = winHann
+)
+
+// How the decay surface re-measures when there is no generator sweep to trigger
+// on.
+//
+// The trigger is the sweep wrapping, which is exact and is right whenever the
+// stimulus is this app's own. It is also the only trigger there was, so with an
+// EXTERNAL sweep — a measurement rig feeding both channels in, which is the
+// case this mode is most useful in — the surface was computed once and then
+// held forever, because the position it was watching never moved. Free-running
+// on a timer is the fallback: slower than a pass, so a pass is never cut in
+// half, and only when no sweep of ours has moved for a while.
+const (
+	wfallFreeMS      = 2500.0
+	wfallSweepIdleMS = 1000.0
+)
+
 var (
 	wfallCursor  = tapUnjoined
 	wfallRefBuf  []float32 // the reference: what went out
@@ -66,10 +116,25 @@ var (
 	wfallLastPos float64
 	wfallHaveIR  bool
 
+	// The free-running fallback: when the sweep position was last seen to move,
+	// and when the next untriggered measurement is due.
+	wfallSweepSeen float64
+	wfallNextFree  float64
+
+	// The live surface: its own tap cursor, its own window of audio, its own
+	// clock, and the source the surface currently holds so a switch does not
+	// leave half of one kind of slice behind half of the other.
+	wfallLiveCursor = tapUnjoined
+	wfallLiveBuf    []float32
+	wfallLiveFill   int
+	wfallLiveNext   float64
+	wfallSurfaceSrc float32 = -1
+
 	// The knobs.
 	wfallRangeF float32 = 40 // dB of decay shown
 	wfallDepthF float32 = 1  // how far back the surface reaches, a scale
 	wfallSwapF  float32      // which channel is the reference
+	wfallSrcF   float32      // 0 = decay from a sweep, 1 = live spectra
 )
 
 func init() {
@@ -78,13 +143,98 @@ func init() {
 		{"wfall-range", "rnge", &wfallRangeF, 40, 10, 80, 5},
 		{"wfall-depth", "dpth", &wfallDepthF, 1, 0.2, 3, 0.1},
 		{"wfall-swap", "ref", &wfallSwapF, 0, 0, 1, 1},
+		{"wfall-src", "src", &wfallSrcF, 0, 0, 1, 1},
 	}
 }
 
-// generateWaterfall captures, measures when a sweep pass completes, and draws.
+// generateWaterfall runs whichever surface SRC names, and draws it.
 func generateWaterfall() {
-	wfallCapture()
+	defer showWaterfallRT()
+	if wfallSrcF != wfallSurfaceSrc {
+		// The two surfaces are different lengths on different scales — a decay
+		// normalized to its own impulse, a live one in absolute dBFS — so the
+		// old one is dropped rather than grown or shrunk into the new one.
+		wfallSurface = nil
+		wfallHaveIR = false
+		wfallLiveFill = 0
+		wfallLiveNext = 0
+		wfallSurfaceSrc = wfallSrcF
+		wfallArmFit()
+	}
+	if wfallSrcF > 0.5 {
+		wfallLiveTick()
+	} else {
+		wfallCapture()
+	}
 	wfallDraw()
+}
+
+// wfallLiveTick pushes a spectrum of the newest audio onto the front of the
+// surface, on wfallLivePushMS centres, and ages everything behind it.
+//
+// Slice 0 is the front of the surface in wfallDraw, so the newest goes there and
+// the rest shift back — which is the direction the display already reads, and
+// means the live surface and the decay surface are drawn by the same code with
+// no idea which of them they are showing.
+func wfallLiveTick() {
+	sr := takensSourceRate()
+	if len(wfallLiveBuf) != wfallLiveFFT {
+		wfallLiveBuf = make([]float32, wfallLiveFFT)
+		wfallLiveFill = 0
+	}
+	// Drain the tap into the window, keeping the newest wfallLiveFFT samples.
+	// Drained EVERY frame even though a slice is only pushed every 40 ms: the
+	// ring is finite, and a reader that only reads when it wants a slice falls
+	// behind and then jumps, which is a surface built from audio that is not
+	// adjacent to itself.
+	var blk [4096]float32
+	for {
+		n := tapReadChan(&wfallLiveCursor, blk[:], tapMix)
+		if n <= 0 {
+			break
+		}
+		if n >= len(wfallLiveBuf) {
+			copy(wfallLiveBuf, blk[n-len(wfallLiveBuf):n])
+			wfallLiveFill = len(wfallLiveBuf)
+		} else {
+			copy(wfallLiveBuf, wfallLiveBuf[n:])
+			copy(wfallLiveBuf[len(wfallLiveBuf)-n:], blk[:n])
+			if wfallLiveFill += n; wfallLiveFill > len(wfallLiveBuf) {
+				wfallLiveFill = len(wfallLiveBuf)
+			}
+		}
+		if n < len(blk) {
+			break
+		}
+	}
+	if wfallLiveFill < len(wfallLiveBuf) {
+		return
+	}
+	if frameNowMs < wfallLiveNext {
+		return
+	}
+	// Set forward from NOW rather than by adding the interval to the last due
+	// time: after a stall — a tab in the background, a mode just switched into —
+	// adding would fire a burst of slices to catch up, and the surface would
+	// show a tenth of a second stretched across its whole depth.
+	wfallLiveNext = frameNowMs + wfallLivePushMS
+
+	if len(wfallSurface) < wfallLiveSlices {
+		wfallSurface = append(wfallSurface, CSDSlice{DB: make([]float64, len(wfallFreqs))})
+	}
+	// Rotate rather than reallocate: the oldest slice's buffer becomes the
+	// newest, so a surface of thirty-two spectra allocates thirty-two times and
+	// never again.
+	oldest := wfallSurface[len(wfallSurface)-1]
+	copy(wfallSurface[1:], wfallSurface[:len(wfallSurface)-1])
+	wfallSurface[0] = oldest
+	if !SpectrumPoints(wfallLiveBuf, sr, wfallFreqs, wfallLiveWindow, wfallSurface[0].DB) {
+		return
+	}
+	for i := range wfallSurface {
+		wfallSurface[i].TimeMS = float64(i) * wfallLivePushMS
+	}
+	wfallHaveIR = true
 }
 
 // wfallCapture keeps the rolling stereo buffer and triggers a measurement each
@@ -138,10 +288,31 @@ func wfallCapture() {
 		pos = funcGen.SweepPosition()
 	}
 	wrapped := pos < wfallLastPos
+	if pos != wfallLastPos {
+		wfallSweepSeen = frameNowMs
+	}
 	wfallLastPos = pos
-	if !wrapped && wfallHaveIR {
+	if wrapped {
+		wfallMeasure(sr)
+		wfallNextFree = frameNowMs + wfallFreeMS
 		return
 	}
+	// Mid-pass of a sweep of ours: wait for the wrap, which is the exact trigger.
+	if frameNowMs-wfallSweepSeen < wfallSweepIdleMS {
+		return
+	}
+	// NO SWEEP OF OURS IS RUNNING, so there is no wrap to wait for and waiting
+	// for one is how this used to freeze: it measured once from whatever was in
+	// the buffer and then held that picture forever, with nothing on screen
+	// saying so. An external sweep — the case a measurement rig is in — is a
+	// real stimulus and has to be picked up; program material is not, and the
+	// surface it gives is one channel deconvolved against the other, which is
+	// meaningless but is at least visibly moving rather than pretending to be a
+	// measurement. SRC live is the mode for program material.
+	if wfallHaveIR && frameNowMs < wfallNextFree {
+		return
+	}
+	wfallNextFree = frameNowMs + wfallFreeMS
 	wfallMeasure(sr)
 }
 
@@ -256,3 +427,58 @@ var wfallFitted bool
 
 // wfallArmFit re-arms it, for a mode change.
 func wfallArmFit() { wfallFitted = false }
+
+var (
+	wfallRTEl js.Value
+	wfallRTTx string
+)
+
+// showWaterfallRT writes the reverberation time beside the knobs.
+//
+// The one number the surface does not show and cannot: it is eighty
+// milliseconds deep, which is where a loudspeaker's resonances live, and a
+// room's decay is measured over seconds. It was being computed from the same
+// impulse response and then thrown away, so the README described a readout
+// that was not on screen.
+//
+// T20 extrapolated, from -5 dB to -25 dB: the first 5 dB is the direct sound
+// and the last of a real decay is in the noise, so the standard measures the
+// straight part between them and multiplies up. Blank in the live surface,
+// which is spectra of a signal and has no impulse to decay from.
+func showWaterfallRT() {
+	s := "--- s"
+	if wfallSrcF < 0.5 && wfallRTOK {
+		s = formatLED(wfallRT60, 1, 2, false) + " s"
+	}
+	if s == wfallRTTx {
+		return
+	}
+	wfallRTTx = s
+	if wfallRTEl.Truthy() {
+		wfallRTEl.Set("textContent", s)
+	}
+}
+
+// appendWaterfallReadout adds the RT60 cell to the mode's parameter grid.
+func appendWaterfallReadout(grid js.Value) {
+	card := doc.Call("createElement", "div")
+	card.Set("className", "punit")
+	lbl := doc.Call("createElement", "span")
+	lbl.Set("className", symClass("u-lbl", false))
+	lbl.Set("textContent", "rt60")
+	card.Call("appendChild", lbl)
+
+	wfallRTEl = doc.Call("createElement", "span")
+	wfallRTEl.Set("className", "led counter-led")
+	wfallRTEl.Set("title", "Reverberation time of the room, in seconds — how long a sound takes to "+
+		"fall 60 dB after it stops. Taken from the same impulse response the surface is, by "+
+		"Schroeder backward integration: the decay curve is the energy REMAINING after each "+
+		"moment, which turns a noisy decay into a smooth one without averaging repeated "+
+		"measurements. Measured as T20 and extrapolated — the straight part between -5 dB and "+
+		"-25 dB, because the first few decibels are direct sound and the last of a real decay is "+
+		"in the noise floor. Blank on the live surface, which has no impulse to decay from, and "+
+		"blank until a sweep has been measured.")
+	wfallRTTx = ""
+	card.Call("appendChild", wfallRTEl)
+	grid.Call("appendChild", card)
+}

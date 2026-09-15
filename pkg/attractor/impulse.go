@@ -248,6 +248,7 @@ func CSD(ir []float64, sampleRate int, slices int, sliceMS float64, fftLen int,
 	if rise < 1 {
 		rise = 1
 	}
+	loEdge, hiEdge := logBandEdges(freqs)
 	best := math.Inf(-1)
 	for s := 0; s < slices; s++ {
 		start := peak + s*step
@@ -270,19 +271,13 @@ func CSD(ir []float64, sampleRate int, slices int, sliceMS float64, fftLen int,
 		db := make([]float64, len(freqs))
 		binHz := float64(sampleRate) / float64(fftLen)
 		for k, f := range freqs {
-			b := int(math.Round(f / binHz))
-			if b < 1 || b >= len(mags) {
-				db[k] = -200
-				continue
-			}
-			// A few bins either side, so a point between bins is not read at
-			// the window's null.
-			var p float64
-			for j := b - 1; j <= b+1; j++ {
-				if j >= 0 && j < len(mags) {
-					p += mags[j] * mags[j]
-				}
-			}
+			// The whole band the point stands for. Three bins around it was the
+			// rule here first, and it leaves most of the spectrum read by nothing
+			// at all once the points are further apart than three bins — which is
+			// everywhere above a few hundred hertz. A narrow resonance falling
+			// between two points is exactly what this display exists to show and
+			// exactly what that missed. See logBandEdges.
+			p := bandPower(mags, binHz, loEdge[k], hiEdge[k], f)
 			if p <= 0 {
 				db[k] = -200
 				continue
@@ -323,4 +318,136 @@ func LogFreqPoints(lo, hi float64, n int) []float64 {
 		out[i] = lo * math.Pow(hi/lo, float64(i)/float64(n-1))
 	}
 	return out
+}
+
+// SpectrumPoints fills out with the level at each of freqs, in dB relative to
+// full scale, from one block of audio.
+//
+// The same reading a CSD slice is made of, taken from the SIGNAL rather than
+// from an impulse response — which is what a live waterfall is: a stack of
+// these, one per moment, instead of one per moment of a decay. Sharing the
+// sampling means the two surfaces have the same frequency axis and the same
+// "a few bins either side" rule, so one can be compared with the other rather
+// than each having its own idea of where 1 kHz is.
+//
+// ABSOLUTE, not normalized to its own loudest point. A CSD is a decay and is
+// read as dB below the impulse, so normalizing it is the measurement; a live
+// surface is a level and has to stay where it is put, or a quiet passage rises
+// to fill the display and the waterfall stops saying anything about loudness.
+//
+// The scaling is the one in rta.go: a tone of amplitude A puts A²n²·energy/4
+// into its bin, so 4/(n²·energy) turns summed bin power back into an amplitude
+// squared and a full-scale tone reads 0 dB.
+func SpectrumPoints(buf []float32, sampleRate int, freqs []float64, winK winKind, out []float64) bool {
+	n := len(buf)
+	if n == 0 || n&(n-1) != 0 || sampleRate <= 0 || len(out) < len(freqs) {
+		return false
+	}
+	mags := computeFFTMagsKind(buf, winK)
+	if mags == nil {
+		return false
+	}
+	m := windowMetrics(n, winK)
+	norm := 4 / (float64(n) * float64(n) * m.energy)
+	binHz := float64(sampleRate) / float64(n)
+	lo, hi := logBandEdges(freqs)
+	for k, f := range freqs {
+		p := bandPower(mags, binHz, lo[k], hi[k], f)
+		if p <= 0 {
+			out[k] = spectrumFloorDB
+			continue
+		}
+		out[k] = 10 * math.Log10(p*norm)
+		if out[k] < spectrumFloorDB {
+			out[k] = spectrumFloorDB
+		}
+	}
+	return true
+}
+
+// spectrumFloorDB is where an empty point reads, rather than at negative
+// infinity — which is not a height on a surface.
+const spectrumFloorDB = -200.0
+
+// logBandEdges gives each point of a logarithmic frequency axis the BAND it
+// stands for: from the geometric midpoint below it to the geometric midpoint
+// above.
+//
+// ── WHY A BAND AND NOT A FEW BINS ────────────────────────────────────────
+//
+// Reading a log axis by taking the nearest bin and its neighbours is the
+// obvious thing and it is wrong, in a way that is invisible on noise and total
+// on a tone. The axis points are a fixed RATIO apart — ninety-six of them over
+// three decades is 7.5% — while the bins are a fixed NUMBER OF HERTZ apart, so
+// above a few hundred hertz the points are many bins apart and three bins
+// around each one covers a fraction of the spectrum. Everything in between is
+// read by nothing at all.
+//
+// A steady 3150 Hz tone drew a completely flat surface: the nearest points are
+// 3018 and 3243 Hz, the tone is eleven bins from either, and a three-bin window
+// around each saw nothing. 1 kHz happened to land close enough to a point to
+// leak into it, which is worse than failing outright — it looked like it worked.
+//
+// The edges are the geometric midpoints, which is what makes the bands
+// PARTITION the axis: one band's top is exactly the next one's bottom, so every
+// bin is counted once and none twice. Same rule and the same reason as the
+// fractional-octave bands in rta.go, and it gives the same convention: band
+// POWER, so equal power per constant-ratio band — pink noise — reads flat.
+func logBandEdges(freqs []float64) (lo, hi []float64) {
+	n := len(freqs)
+	if n == 0 {
+		return nil, nil
+	}
+	lo, hi = make([]float64, n), make([]float64, n)
+	for i, f := range freqs {
+		if i == 0 {
+			// The end bands run out to half the step, so the first and last
+			// points are as wide as their neighbours rather than half as wide.
+			if n > 1 {
+				lo[i] = f * f / math.Sqrt(f*freqs[1])
+			} else {
+				lo[i] = f
+			}
+		} else {
+			lo[i] = math.Sqrt(freqs[i-1] * f)
+		}
+		if i == n-1 {
+			if n > 1 {
+				hi[i] = f * f / math.Sqrt(f*freqs[n-2])
+			} else {
+				hi[i] = f
+			}
+		} else {
+			hi[i] = math.Sqrt(f * freqs[i+1])
+		}
+	}
+	return lo, hi
+}
+
+// bandPower sums the power in mags between two frequencies.
+//
+// Falls back to the nearest bin when the band is narrower than one, which is
+// what happens at the bottom of the axis: a 7.5% band at 20 Hz is 1.5 Hz wide
+// and a 4096-point transform at 48 kHz has 11.7 Hz bins. The energy is there
+// and the resolution is not, and reporting silence would say the opposite.
+func bandPower(mags []float64, binHz, lo, hi, center float64) float64 {
+	a := int(math.Ceil(lo / binHz))
+	b := int(math.Floor(hi / binHz))
+	if a < 1 {
+		a = 1 // never DC: it is the window's leakage of any offset
+	}
+	if b >= len(mags) {
+		b = len(mags) - 1
+	}
+	var p float64
+	for k := a; k <= b; k++ {
+		p += mags[k] * mags[k]
+	}
+	if b < a {
+		k := int(math.Round(center / binHz))
+		if k >= 1 && k < len(mags) {
+			p = mags[k] * mags[k]
+		}
+	}
+	return p
 }

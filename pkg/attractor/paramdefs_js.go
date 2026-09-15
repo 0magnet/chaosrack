@@ -81,6 +81,10 @@ var paramLabels = map[string][]string{
 	// it the other way round.
 	"xf-swap":    {"left is reference", "right is reference"},
 	"wfall-swap": {"left is reference", "right is reference"},
+	// Which surface: the cumulative spectral decay of a measured impulse, which
+	// holds still between sweeps, or a live stack of spectra of whatever is
+	// playing, which is the other thing the word waterfall means.
+	"wfall-src": {"decay from a sweep", "live spectra"},
 }
 
 // paramRingLabels is what actually fits around the dial. A cell is a third of
@@ -119,6 +123,7 @@ var paramRingLabels = map[string][]string{
 	"xf-show":     xfShowRing,
 	"xf-swap":     {"L", "R"},
 	"wfall-swap":  {"L", "R"},
+	"wfall-src":   {"dcay", "live"},
 }
 
 // turtlePhysParams are the weight controls. They are not in attractorParams
