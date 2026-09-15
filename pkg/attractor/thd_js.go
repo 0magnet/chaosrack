@@ -149,7 +149,6 @@ func wireDistortionModule() {
 	thdLevelLED = doc.Call("getElementById", "thd-level-led")
 	thdChanSel = doc.Call("getElementById", "thd-chan")
 	harm := doc.Call("getElementById", "thd-harm")
-	harmLED := doc.Call("getElementById", "thd-harm-led")
 	cstack := doc.Call("getElementById", "thd-chanstack")
 	hstack := doc.Call("getElementById", "thd-hstack")
 	if !thdChanSel.Truthy() || !harm.Truthy() {
@@ -164,21 +163,13 @@ func wireDistortionModule() {
 	thdChanSel.Set("value", "0")
 	cstack.Call("appendChild", singleSelectorKnob(thdChanSel, tapChanRing, 50))
 
-	harmLED.Set("value", formatLED(fgFloat(harm), intDigits(20), 0, false))
-	sizeLEDField(harmLED, 2, 20, 0, false)
 	hstack.Call("appendChild", makeKnob(harm, js.Undefined(), true, false, true))
-	harm.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		thdHarmF = float32(fgFloat(harm))
-		harmLED.Set("value", formatLED(fgFloat(harm), intDigits(20), 0, false))
-		return nil
-	}))
-	harmLED.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if v, err := strconv.ParseFloat(harmLED.Get("value").String(), 64); err == nil {
-			harm.Set("value", strconv.FormatFloat(v, 'f', 0, 64))
-			harm.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-		}
-		return nil
-	}))
+	// LEDStep 10 to keep whole harmonics, as above.
+	adoptDescControl(ControlDesc{
+		ID: "thd-harm", Label: "harm", Min: 2, Max: 20, Step: 1, Def: 10,
+		LEDID: "thd-harm-led", ResetID: "rst-thd-harm", LEDStep: 10,
+		Apply: func(v float64) { thdHarmF = float32(v) },
+	})
 	// A change of channel is a change of signal, so the window it was measuring
 	// no longer describes what is being asked about.
 	thdChanSel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {

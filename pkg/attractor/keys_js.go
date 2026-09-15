@@ -360,7 +360,6 @@ func wireKeysModule() {
 	span := doc.Call("getElementById", "keys-span")
 	base := doc.Call("getElementById", "keys-base")
 	lvl := doc.Call("getElementById", "keys-lvl")
-	lvlLED := doc.Call("getElementById", "keys-lvl-led")
 	out := doc.Call("getElementById", "keys-out")
 	wave := doc.Call("getElementById", "keys-wave")
 	sw := doc.Call("getElementById", "keys-on")
@@ -378,10 +377,14 @@ func wireKeysModule() {
 	addSelectorLabels(rstk, []string{"C1", "C2", "C3", "C4", "C5"}, base, 36)
 	rstack.Call("appendChild", rstk)
 
-	// Level cell: standard value knob + LED.
-	lvlLED.Set("value", formatLED(fgFloat(lvl), intDigits(100), 1, false))
-	sizeLEDField(lvlLED, 0, 100, 1, false)
+	// Level cell: standard value knob, and the descriptor owns everything
+	// around it — LED, typed entry, wheel, reset.
 	lstack.Call("appendChild", makeKnob(lvl, js.Undefined(), true, false, true))
+	adoptDescControl(ControlDesc{
+		ID: "keys-lvl", Label: "lvl", Min: 0, Max: 100, Step: 1, Def: 80,
+		LEDID: "keys-lvl-led", ResetID: "rst-keys-lvl",
+		Apply: func(float64) { keysUpdateRouting() },
+	})
 
 	// Out cell: same anatomy as the Gen oscillators — outer ring = speaker
 	// routing, inner knob = waveform with the glyph dial.
@@ -420,18 +423,6 @@ func wireKeysModule() {
 			if osc.Get("type").Truthy() { // BufferSource (noise) has no type
 				osc.Set("type", waveTypeName(w))
 			}
-		}
-		return nil
-	}))
-	lvl.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		lvlLED.Set("value", formatLED(fgFloat(lvl), intDigits(100), 1, false))
-		keysUpdateRouting()
-		return nil
-	}))
-	lvlLED.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if v, err := strconv.ParseFloat(lvlLED.Get("value").String(), 64); err == nil {
-			lvl.Set("value", strconv.FormatFloat(v, 'f', 0, 64))
-			lvl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 		}
 		return nil
 	}))
