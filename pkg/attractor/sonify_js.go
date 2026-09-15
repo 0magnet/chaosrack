@@ -328,15 +328,22 @@ func buildSonifyModule() {
 	addSelectorLabels(mstk, []string{"FLOW", "SCAN"}, md, 38)
 	mstack.Call("appendChild", mstk)
 
-	mp.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		sonifyMap = mp.Get("value").String()
-		sonifySync()
-		return nil
-	}))
-	md.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		sonifyMode = md.Get("value").String()
-		return nil
-	}))
+	// Both rings through the registry: the cell had no reset button, and Reset
+	// All put the mapping back to off while leaving the mode wherever it was.
+	// No PermaKey on either — "sm" and "sn" already carry them in permaCtls.
+	adoptDescControl(ControlDesc{
+		ID: "sonify-map", Label: "map", IsSelect: true, SelectDef: "off",
+		ResetID: "rst-sonify-map",
+		SelectApply: func(v string) {
+			sonifyMap = v
+			sonifySync()
+		},
+	})
+	adoptDescControl(ControlDesc{
+		ID: "sonify-mode", Label: "mode", IsSelect: true, SelectDef: "flow",
+		ResetID:     "rst-sonify-map",
+		SelectApply: func(v string) { sonifyMode = v },
+	})
 	sonifyMap = mp.Get("value").String()
 	sonifyMode = md.Get("value").String()
 }
