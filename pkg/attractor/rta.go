@@ -18,9 +18,9 @@ import "math"
 // two facts have to be true together or neither is worth anything (see
 // rta_test.go, which checks exactly that against the Test module's pink noise).
 //
-// ── THE BAND CENTRES ARE THE STANDARD ONES ───────────────────────────────
+// ── THE BAND CENTERS ARE THE STANDARD ONES ───────────────────────────────
 //
-// ISO 266 and ANSI S1.11 place band centres on the base-ten system: f = 1000 ·
+// ISO 266 and ANSI S1.11 place band centers on the base-ten system: f = 1000 ·
 // 10^(n/(10·b)) for a 1/b octave band. Not the base-two system (1000 · 2^(n/b)),
 // which is off by a fraction of a percent and which every published
 // third-octave table disagrees with — the familiar 31.5, 63, 125, 250, 500,
@@ -48,11 +48,11 @@ var (
 )
 
 // rtaLo and rtaHi bound the analysis. 20 Hz to 20 kHz is the audible band, and
-// bands whose centre falls outside it are not built: a display that draws a
+// bands whose center falls outside it are not built: a display that draws a
 // band nobody can hear is spending width on it.
 //
 // rtaEdgeTol is why the comparison is not against those two numbers exactly.
-// The band everybody calls "20 Hz" has an EXACT centre of 19.953 Hz — 20 is the
+// The band everybody calls "20 Hz" has an EXACT center of 19.953 Hz — 20 is the
 // preferred number it is printed as, not the frequency it sits at — so a bound
 // of exactly 20.0 drops the bottom band and the top one, and the third-octave
 // series comes out with thirty bands where every acoustics table prints
@@ -66,13 +66,13 @@ const (
 
 // RTABand is one band of the analysis.
 type RTABand struct {
-	Center float64 // Hz, the standard centre
+	Center float64 // Hz, the standard center
 	Lo, Hi float64 // Hz, the band edges
 }
 
 // RTABands builds the bands for a 1/b octave analysis, low to high.
 //
-// The edges are the centre times 2^(±1/2b), which is what makes the bands
+// The edges are the center times 2^(±1/2b), which is what makes the bands
 // PARTITION the spectrum: one band's upper edge is exactly the next one's
 // lower, so every hertz is counted once and none is counted twice. An analyzer
 // whose bands overlap reports more total power than went in, and one with gaps

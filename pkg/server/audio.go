@@ -13,10 +13,11 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/0magnet/chaosrack/pkg/audiocap"
-	"github.com/0magnet/chaosrack/pkg/audioroute"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/net/websocket"
+
+	"github.com/0magnet/chaosrack/pkg/audiocap"
+	"github.com/0magnet/chaosrack/pkg/audioroute"
 )
 
 // The audio feed, served by the same process that serves the page.

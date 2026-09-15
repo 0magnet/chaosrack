@@ -20,8 +20,9 @@ import (
 	"strings"
 	"syscall/js"
 
-	"github.com/0magnet/chaosrack/pkg/meshstl"
 	"gitlab.com/russoj88/stl/stl"
+
+	"github.com/0magnet/chaosrack/pkg/meshstl"
 )
 
 var (

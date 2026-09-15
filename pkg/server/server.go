@@ -21,11 +21,12 @@ import (
 	"time"
 
 	"github.com/0magnet/calvin/clihelp"
-	"github.com/0magnet/chaosrack/assets/gowasm"
-	"github.com/0magnet/chaosrack/assets/tinywasm"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	"github.com/spf13/cobra"
+
+	"github.com/0magnet/chaosrack/assets/gowasm"
+	"github.com/0magnet/chaosrack/assets/tinywasm"
 )
 
 var (

@@ -6,8 +6,9 @@ import (
 	"math"
 	"unsafe"
 
-	"github.com/go-gl/mathgl/mgl32"
 	"syscall/js"
+
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 // The shaders are chaosrack's, cut down to what a wireframe globe needs: the

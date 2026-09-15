@@ -1244,13 +1244,13 @@ func Run() {
 	// pitch semitone scale (the LED shows Hz both directions via the mapping
 	// pair), plus output level. The MAP ring is wired in buildSonifyModule.
 	adoptDescControl(ControlDesc{ID: "sonify-freq", Label: "trace", Min: 0, Max: float64(genSemitones), Step: 1, Def: 24,
-		PermaKey: "sf", LEDID: "sonify-led", ResetID: "",
+		PermaKey: "sf", LEDID: "sonify-led", ResetID: "rst-sonify-freq",
 		Apply:       func(v float64) { sonifyHz = freqFromKnob(v) },
 		SliderToVal: sonifyFreqFromSlider,
 		ValToSlider: sonifySliderFromFreq,
 		LEDMin:      genFreqLo, LEDMax: genFreqHi, LEDStep: 1})
 	adoptDescControl(ControlDesc{ID: "sonify-lvl", Label: "lvl", Min: 0, Max: 100, Step: 1, Def: 60,
-		PermaKey: "sv", LEDID: "sonify-lvl-led", ResetID: "",
+		PermaKey: "sv", LEDID: "sonify-lvl-led", ResetID: "rst-sonify-lvl",
 		Apply: func(v float64) { sonifyLevel = v / 100 }})
 
 	// View spin rates: the last controls on the legacy wiring path. Reset
@@ -1650,14 +1650,17 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 			e.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 		}
 	}
-	for _, g := range []struct {
-		id        string
-		freq, lvl int
-	}{{"gen-x", 34, 80}, {"gen-y", 41, 80}, {"gen-z", 29, 80}} {
-		setInput(g.id+"-freq", strconv.Itoa(g.freq))
-		setInput(g.id+"-lvl", strconv.Itoa(g.lvl))
-		resetSel(g.id+"-wave", "0")
-		resetSel(g.id+"-out", "off")
+	// The generators. Only the two selectors are written back by hand now: the
+	// freq and level knobs are descriptor controls, so their defaults live in
+	// one place (genOscs, which the descriptors take Def from) and Reset All
+	// restores them the same way their own reset buttons do. This loop used to
+	// carry its own copy of those six numbers, which is two copies of a default
+	// that the markup also states.
+	for _, osc := range genOscs {
+		resetControlByID(osc.id + "-freq")
+		resetControlByID(osc.id + "-lvl")
+		resetSel(osc.id+"-wave", "0")
+		resetSel(osc.id+"-out", "off")
 	}
 	// Envelope module back to pass-through defaults.
 	setInput("gen-env-atk", "10")

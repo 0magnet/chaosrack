@@ -248,11 +248,11 @@ var attractorDescriptions = map[string]string{
 		"L against R whatever AXES is set to, because it is a property of the channels rather " +
 		"than of the way they are drawn.",
 	"waterfall": "Waterfall — Cumulative Spectral Decay. The measurement a loudspeaker is " +
-		"characterised by, and the one display here that could only exist in this app: every " +
+		"characterized by, and the one display here that could only exist in this app: every " +
 		"other analyzer draws its own flat panel and this is a genuine 3-D surface, so it " +
 		"rides the same pipeline the attractors do and drags, rotates, zooms and takes the " +
 		"gradient like any other model. " +
-		"Frequency runs left to right, logarithmically, because hearing is organised in " +
+		"Frequency runs left to right, logarithmically, because hearing is organized in " +
 		"ratios; level runs up; and TIME runs into the screen. Each line is the spectrum of " +
 		"what is left of the impulse response from a moment onwards, so a flat loudspeaker's " +
 		"surface falls away evenly and a RESONANCE is a ridge running back into the screen at " +
@@ -275,9 +275,9 @@ var attractorDescriptions = map[string]string{
 		"the live surface analyses; REF is which channel the decay surface calls the " +
 		"reference, because that one needs both. LINE, STEP and FFT follow the SRC switch " +
 		"to what each surface wants, and stop following once you turn one. " +
-		"Turn the Colors SOURCE ring to Y: it colours by LEVEL across exactly the decibels " +
-		"TOP and RNGE show, which is how every published CSD plot is coloured. Z and trail " +
-		"colour by age, X repeats the frequency axis, and AUDIO is one flat tint here. A sweep takes four seconds to cross " +
+		"Turn the Colors SOURCE ring to Y: it colors by LEVEL across exactly the decibels " +
+		"TOP and RNGE show, which is how every published CSD plot is colored. Z and trail " +
+		"color by age, X repeats the frequency axis, and AUDIO is one flat tint here. A sweep takes four seconds to cross " +
 		"the band, so the measurement needs a whole pass: a third of one is 20 Hz to 200 Hz " +
 		"and recovers an impulse five milliseconds wide. " +
 		"SRC PICKS WHICH SURFACE. DCAY is the decay above, which is a measurement and needs " +
@@ -298,7 +298,7 @@ var attractorDescriptions = map[string]string{
 		"MAGNITUDE is the frequency response in dB — flat is a system that changed nothing. " +
 		"PHASE is how far the output lags the input; a pure DELAY is a phase that falls " +
 		"linearly with frequency, and the slope IS the delay, which is what the DLY readout " +
-		"fits and what gets dialled into a delay line to line a speaker up. " +
+		"fits and what gets dialed into a delay line to line a speaker up. " +
 		"COHERENCE is the number that says whether to believe the other two: 1 means the " +
 		"output is fully explained by the input, and noise, a second source, a nonlinearity " +
 		"or a system that moved during the measurement all drive it down. A dip in the " +
@@ -319,11 +319,11 @@ var attractorDescriptions = map[string]string{
 		"asking what a room is doing to it — linearly spaced bins put nine-tenths of the " +
 		"picture above 2 kHz and squeeze the bass into a few pixels. Bands of equal RATIO " +
 		"drawn at equal widths is a logarithmic frequency axis, which is how hearing is " +
-		"organised and how every acoustics standard reports. " +
+		"organized and how every acoustics standard reports. " +
 		"BAND picks the width: 1/1 is a hi-fi graphic equalizer's ten, 1/3 is what room " +
 		"measurement and ISO use, and the two finer settings find a single narrow resonance " +
 		"— a 1/12-octave band is about 6% wide, roughly the ear's own resolution in the " +
-		"midrange. The centres are the standard ones (ISO 266 / ANSI S1.11, the base-ten " +
+		"midrange. The centers are the standard ones (ISO 266 / ANSI S1.11, the base-ten " +
 		"series), so a reading here is comparable with anybody else's. " +
 		"FEED IT PINK NOISE from the Test module: fractional-octave bands get wider in hertz " +
 		"as they go up, so equal power per octave is what reads FLAT — a flat display on " +

@@ -135,7 +135,7 @@ func TestDoublingAmplitudeIsSixDecibels(t *testing.T) {
 
 // The same signal in both channels is 3.01 louder than in one, because the
 // channel powers are SUMMED and not averaged. Getting this backwards is how a
-// meter comes to read every stereo programme 3 dB quiet.
+// meter comes to read every stereo program 3 dB quiet.
 func TestBothChannelsAreThreeDecibelsLouderThanOne(t *testing.T) {
 	l, r := ldTone(ldSR*8, 1000, 0.3, 0.3)
 	both := feed(l, r).Integrated
@@ -155,7 +155,7 @@ func TestSilenceDoesNotDragTheIntegratedLoudnessDown(t *testing.T) {
 	loud, _ := ldTone(ldSR*secs, 1000, 0.5, 0.5)
 	alone := feed(loud, loud).Integrated
 
-	// The same programme with an equal length of silence after it.
+	// The same program with an equal length of silence after it.
 	l := append(append([]float32{}, loud...), make([]float32, ldSR*secs)...)
 	withGap := feed(l, l).Integrated
 
@@ -180,7 +180,7 @@ func TestSilenceDoesNotDragTheIntegratedLoudnessDown(t *testing.T) {
 }
 
 // The relative gate goes further: a quiet passage that is not silence is still
-// excluded, so a programme's number describes its programme material rather
+// excluded, so a programme's number describes its program material rather
 // than an average with the intro in it.
 func TestAQuietPassageIsGatedOut(t *testing.T) {
 	const secs = 6
@@ -319,7 +319,7 @@ func TestResetRetunesTheFilter(t *testing.T) {
 // is −0.691 dB. They are the same number because the standard chose the offset
 // to cancel the weighting at its reference frequency — so a 997 Hz sine of
 // amplitude A in BOTH channels reads exactly 20·log₁₀(A) LUFS, with the two
-// channels' 3.01 dB and the half in a sine's mean square cancelling as well.
+// channels' 3.01 dB and the half in a sine's mean square canceling as well.
 //
 // Every part of the chain has to be right for that to come out: the filter, the
 // offset, the channel summing and the mean square. It is also why 997 Hz rather

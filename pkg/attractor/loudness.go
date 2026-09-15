@@ -166,7 +166,7 @@ type LoudnessResult struct {
 // LoudnessMeter accumulates the blocks the four numbers are made of.
 //
 // It keeps the mean square of each 100 ms block rather than the samples: the
-// integrated measurement needs every block of a whole programme and the short
+// integrated measurement needs every block of a whole program and the short
 // ones are windows over the same blocks, so one list of block powers serves all
 // four and the memory is a few hundred bytes a minute rather than the audio.
 type LoudnessMeter struct {
@@ -304,7 +304,7 @@ func (m *LoudnessMeter) overlappedBlocks() []float64 {
 //
 // The absolute gate first, then a relative one computed from what the absolute
 // gate left. Two stages because one cannot do it: an absolute threshold alone
-// cannot know what "quiet for this programme" means, and a relative one alone
+// cannot know what "quiet for this program" means, and a relative one alone
 // would be dragged down by the silence it is supposed to ignore.
 func gatedMean(blocks []float64) (float64, bool) {
 	var sum float64
@@ -337,10 +337,10 @@ func gatedMean(blocks []float64) (float64, bool) {
 //
 // Percentiles rather than the extremes, and that is the whole design: a single
 // cymbal or one moment of silence would otherwise set the range of a whole
-// programme. The gate is looser than the integrated measurement's because LRA
+// program. The gate is looser than the integrated measurement's because LRA
 // is ABOUT the quiet parts, and a −10 LU gate would discard what is being
 // measured.
-func loudnessRange(blocks []float64, sampleRate int) float64 {
+func loudnessRange(blocks []float64) float64 {
 	per := shortMS / stepMS
 	if len(blocks) < per {
 		return 0
@@ -377,7 +377,7 @@ func loudnessRange(blocks []float64, sampleRate int) float64 {
 }
 
 // percentileOf reads a percentile from a sorted slice, interpolating between
-// the two neighbours rather than snapping to one.
+// the two neighbors rather than snapping to one.
 func percentileOf(sorted []float64, p float64) float64 {
 	if len(sorted) == 0 {
 		return 0
@@ -408,7 +408,7 @@ func (m *LoudnessMeter) Result() LoudnessResult {
 		r.Integrated = loudnessOf(ms)
 		r.OK = true
 	}
-	r.LRA = loudnessRange(m.blocks, m.sampleRate)
+	r.LRA = loudnessRange(m.blocks)
 	return r
 }
 
