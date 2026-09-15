@@ -1157,3 +1157,15 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    it -- measured at 7px. Reserving the width means the readout appears in
    space that was already there. */
 .led#twin-lambda{display:inline-block;min-width:5ch;text-align:right;}
+
+/* The Info window's body — the model description, set to be read.
+
+   The window itself is winbox's, the same one the floating panel uses, so all
+   that is needed here is what is inside it: the typography, and the `overflow`
+   the old caption could not have. That caption was pinned over the canvas with
+   pointer-events off, which meant a description taller than the screen ran off
+   the bottom and no wheel could reach it — four of the descriptions do that at
+   983px of viewport and eleven do at 640. */
+.info-body{height:100%;box-sizing:border-box;overflow:auto;padding:10px 14px;
+  color:#cfd6dd;background:#0d1013;font-family:'B612 Mono',monospace;
+  font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:break-word;}
