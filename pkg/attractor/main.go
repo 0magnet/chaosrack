@@ -1103,6 +1103,9 @@ func Run() {
 		}
 	}
 	updateGradientUI()
+	// And again when the fonts land: the widths are measured from text, and the
+	// first pass can run before the panel's own font has been applied.
+	requantizeAfterFonts()
 
 	// Initialize persistent JS typed arrays for zero-alloc frame uploads
 	jsVertUint8 = js.Global().Get("Uint8Array").New(steps * 4 * 4)

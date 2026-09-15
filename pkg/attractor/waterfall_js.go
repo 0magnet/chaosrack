@@ -634,12 +634,7 @@ func showWaterfallRT() {
 
 // appendWaterfallReadout adds the RT60 cell to the mode's parameter grid.
 func appendWaterfallReadout(grid js.Value) {
-	card := doc.Call("createElement", "div")
-	card.Set("className", "punit")
-	lbl := doc.Call("createElement", "span")
-	lbl.Set("className", symClass("u-lbl", false))
-	lbl.Set("textContent", "rt60")
-	card.Call("appendChild", lbl)
+	card, top := newPunitCard("rt60", false)
 
 	wfallRTEl = doc.Call("createElement", "span")
 	wfallRTEl.Set("className", "led counter-led")
@@ -652,7 +647,7 @@ func appendWaterfallReadout(grid js.Value) {
 		"in the noise floor. Blank on the live surface, which has no impulse to decay from, and "+
 		"blank until a sweep has been measured.")
 	wfallRTTx = ""
-	card.Call("appendChild", wfallRTEl)
+	top.Call("appendChild", wfallRTEl)
 	grid.Call("appendChild", card)
 }
 
