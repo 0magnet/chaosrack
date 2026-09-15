@@ -4,35 +4,435 @@
     "label": "Console",
     "title": "Console — model selection, global actions, and every mode/effect switch in one module",
     "image": "docs/img/module/console.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "Edit eqn",
+        "title": "Load the current attractor's equations into the editable Custom mode; toggle off to return to it"
+      },
+      {
+        "label": "Auto-rotate",
+        "title": "Continuously spin the model about the vertical (Y) axis — folds into the Y spin-rate knob"
+      },
+      {
+        "label": "Pause",
+        "title": "Pause / freeze the animation"
+      },
+      {
+        "label": "Physics",
+        "title": "Physics — give the turtle path weight: it becomes a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture. Reveals the Physics module. Press on the figure to pick it up and throw it; press beside it to turn the view as usual."
+      },
+      {
+        "label": "Jam",
+        "title": "Jam / attract mode — the app performs itself: hops to a random attractor every 12–20 s with fresh gentle spin and occasional persist paint. Never touches speaker outputs."
+      },
+      {
+        "label": "Parameters",
+        "title": "Show or hide the parameters module"
+      },
+      {
+        "label": "Layers",
+        "title": "Show or hide the layers module"
+      },
+      {
+        "label": "Colors",
+        "title": "Show or hide the colors module"
+      },
+      {
+        "label": "Palette",
+        "title": "Show or hide the palette module"
+      },
+      {
+        "label": "Record",
+        "title": "Show or hide the record module"
+      },
+      {
+        "label": "View",
+        "title": "Show or hide the view module"
+      },
+      {
+        "label": "Position",
+        "title": "Show or hide the position module"
+      },
+      {
+        "label": "Display",
+        "title": "Show or hide the display module"
+      },
+      {
+        "label": "Style",
+        "title": "Show or hide the style module"
+      },
+      {
+        "label": "Gen X",
+        "title": "Show or hide the gen x module"
+      },
+      {
+        "label": "Gen Y",
+        "title": "Show or hide the gen y module"
+      },
+      {
+        "label": "Gen Z",
+        "title": "Show or hide the gen z module"
+      },
+      {
+        "label": "Envelope",
+        "title": "Show or hide the envelope module"
+      },
+      {
+        "label": "Test",
+        "title": "Show or hide the test module"
+      },
+      {
+        "label": "Model Out",
+        "title": "Show or hide the model out module"
+      },
+      {
+        "label": "Distortion",
+        "title": "Show or hide the distortion module"
+      },
+      {
+        "label": "Loudness",
+        "title": "Show or hide the loudness module"
+      },
+      {
+        "label": "Wow \u0026 Flutter",
+        "title": "Show or hide the wow \u0026 flutter module"
+      },
+      {
+        "label": "Points",
+        "title": "Draw the trajectory as discrete points instead of a connected line"
+      },
+      {
+        "label": "Persist",
+        "title": "Keep the entire trail on screen (never clear old points) — accumulates the full attractor"
+      },
+      {
+        "label": "Ring",
+        "title": "Ring trail — scope-style beam: only the advancing head integrates each frame (the trail is its history), so knob/audio changes bend the path from the head forward instead of reshaping the whole curve, and long trails cost almost nothing. Off = classic scan (whole curve recomputed and reshaped every frame)."
+      },
+      {
+        "label": "Twin",
+        "title": "Twin trajectories — a second copy of the flow starts ε apart (green) and the two visibly separate at the attractor's own Lyapunov rate; the λ readout is a live largest-Lyapunov-exponent estimate (positive = chaotic). Both copies use the same integrator, so what separates them is the dynamics."
+      },
+      {
+        "label": "Sect",
+        "title": "Poincaré section — sample the trajectory only where it pierces a plane, going one way through it, and draw the accumulated intersections in gold: the flow's sheets collapse into the section's fractal scatter. The crossing is interpolated between the two samples that straddle the plane rather than snapped to the nearer one, which would smear the section by up to half a step of arc. Reveals the Section module, where the plane is placed and its direction chosen. Analysis → Poincaré Section is the same section as a picture of its own, with the first-return map."
+      },
+      {
+        "label": "Invert",
+        "title": "Reverse the color-gradient direction (swap start and end)"
+      },
+      {
+        "label": "Audio mod",
+        "title": "Enable audio-reactive modulation — reveals the MOD + EQ modules for routing audio features to each control"
+      },
+      {
+        "label": "Test tone",
+        "title": "Play a sweeping test tone (captured back via the server) to exercise the audio modulation"
+      },
+      {
+        "label": "MIDI",
+        "title": "WebMIDI — hardware control: CC 1..N drive the current mode's parameter knobs in order, CC 21..28 the view targets (zoom, pans, spins, rainbow, trail), and any note hops to that note's attractor."
+      },
+      {
+        "label": "Meters",
+        "title": "Show / hide the top-left audio feature meters (amp / bass / mid / treble / cntr / beat) while Audio mod is on"
+      },
+      {
+        "label": "Signal gen",
+        "title": "Signal generator — a built-in client-side audio source (three X/Y/Z oscillators). Drives audio modulation, the spectrogram and the xy scope with no server or microphone, and can play over the speakers. Controls are in the Generator module."
+      },
+      {
+        "label": "Info",
+        "title": "Overlay a short description of the current attractor / model on the view"
+      },
+      {
+        "label": "Fullscreen",
+        "title": "Toggle browser fullscreen — the canvas fills the display; the panel stays available"
+      },
+      {
+        "label": "Template",
+        "title": "Show the Template module — a labeled legend of every named slot a module can have (header, label, readout, knob, ring, inner, fine, dial, reset). Hover a slot for the Go struct field it maps to."
+      },
+      {
+        "label": "Rack bay",
+        "title": "Rack bay — draw the 19-inch frame each ROW of modules sits in: rails above and below, an ear each side with a grab handle on it, and blank panels filling the leftover at the end of the row on the same slot pitch. The modules wrap, and a row is a bay, so a rack that has spilled onto a second row gets a second frame."
+      },
+      {
+        "label": "Patchbay",
+        "title": "Show the Patchbay module — an EMS-Synthi-style pin matrix routing audio energy (stereo/L/R) to any parameter or view control, plus an 8-slot patch memory bank (STO + slot stores, slot recalls)."
+      },
+      {
+        "label": "Desk",
+        "title": "Desk — run this app inside a desktop: the desk becomes the environment, its panel takes the bottom of the screen, and the rack floats as a window on it with a task button beside the desk's own. The scene keeps running behind. Open a terminal, the host shell or the file manager from the desk's Applications menu. The OTHER way to have the desk is as a MODEL (Solids → desk), where the whole desktop is drawn into the scene and turns with it."
+      },
+      {
+        "label": "Analysis",
+        "title": "Show the Analysis module — measures the largest Lyapunov exponent of the current model, the number that says whether it is really chaotic."
+      },
+      {
+        "label": "Counter",
+        "title": "Show the Counter module — a NAND-gate-style frequency counter: counts trigger crossings of the live audio source over a gate window and shows cycles per second on a DSEG readout."
+      },
+      {
+        "label": "Keys",
+        "title": "Show the Keys module — a playable polyphonic piano keyboard, up to the full 88 keys, with voice and speaker routing; the computer keyboard plays the labeled octaves (Z row + Q row)."
+      },
+      {
+        "label": "Matrix",
+        "title": "Show the Matrix module — a pentatonic tonematrix step sequencer: paint pads on a pitch-by-time grid and a playhead loops them as pings at the tempo knob's BPM."
+      },
+      {
+        "label": "Rhythm",
+        "title": "Show the Rhythm module — the drum machine a home organ had built into it: a bank of interlocking preset tabs (waltz, march, bossa, samba…), a tempo knob, and four synthesized voices (bass drum, snare, hi-hat, cymbal). One preset plays at a time, the way the tabs interlocked."
+      },
+      {
+        "label": "Presets",
+        "title": "Show the Presets module — save the whole current view under a name and bring it back later. A preset is exactly what the address bar carries, kept in this browser instead of in a link."
+      }
+    ]
   },
   {
     "id": "params",
     "label": "Parameters",
     "title": "Parameters — the current model's tunable constants (each with knob, LED value, step size, and reset)",
     "image": "docs/img/module/params.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "dt",
+        "title": "Parameters / dt / label",
+        "positions": [
+          {
+            "label": "0.001",
+            "title": "0.001 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "0.05",
+            "title": "0.05 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "σ",
+        "title": "Parameters / σ / label",
+        "positions": [
+          {
+            "label": "1",
+            "title": "1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "30",
+            "title": "30 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "ρ",
+        "title": "Parameters / ρ / label",
+        "positions": [
+          {
+            "label": "1",
+            "title": "1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "60",
+            "title": "60 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "β",
+        "title": "Parameters / β / label",
+        "positions": [
+          {
+            "label": "0.1",
+            "title": "0.1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "10",
+            "title": "10 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "λ",
+        "title": "Parameters / λ / label"
+      }
+    ]
   },
   {
     "id": "layers",
     "label": "Layers",
     "title": "Layers — where a second picture goes relative to the model. BEHIND draws one filling the canvas behind it; SKIN paints the spectrogram onto the model's own surface; FILL makes the spectrogram or FVF plane the whole screen, face-on, instead of a plane you can turn. Skin and Fill dim when the current model cannot take them.",
     "image": "docs/img/module/layers.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "Behind",
+        "title": "Backdrop — what is drawn behind the model, filling the canvas: the scrolling spectrogram, the XY oscilloscope, a live terminal, or the whole desk. Water is the exception: it is a LENS, drawn through the finished frame rather than behind it — drag on the canvas to make waves. One at a time, or off."
+      },
+      {
+        "label": "On",
+        "title": "Skin — what is painted ON the model's own surface, wrapped round it, for the models that have a surface to take it: the live spectrogram, a terminal, or the whole desk. Off leaves the wireframe. The same three pictures the Behind knob draws in the background; this puts one on the object instead."
+      },
+      {
+        "label": "Fill",
+        "title": "Fill the screen with the spectrogram / FVF display (face-on) instead of the rotatable plane"
+      },
+      {
+        "label": "Fill",
+        "title": "Fill the screen with the spectrogram / FVF display (face-on) instead of the rotatable plane"
+      }
+    ]
   },
   {
     "id": "colors",
     "label": "Colors",
     "title": "Colors — SRC (what the color follows, including OFF for a flat trace), MAP (how a value becomes a color, for every display including the spectrogram), the map window (period and shift), and trail length",
     "image": "docs/img/module/colors.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "src",
+        "title": "Source — what the color follows. OFF is a flat trace in the start swatch: the color follows nothing, which is what used to be called the mono palette and is a statement about the SOURCE rather than about the map. X / Y / Z follow a coordinate of the figure; on the three delay embeddings those axes are one signal at three lags, so they color along different directions of the same figure rather than showing three different quantities. TRAIL follows age along the window. AUDIO paints the short-time spectral centroid along the trail, and only the Takens, stereo and polar embeddings have a trail that is a time axis, so elsewhere it is one flat tint. Displays with a value of their own — the spectrogram, the RTA, the transfer function — do not consult this knob at all, and it dims in those modes.",
+        "positions": [
+          {
+            "label": "off",
+            "title": "OFF — a flat trace in the start swatch; the color follows nothing at all"
+          },
+          {
+            "label": "X",
+            "title": "X — the color follows the figure's X coordinate"
+          },
+          {
+            "label": "Y",
+            "title": "Y — the color follows the figure's Y coordinate"
+          },
+          {
+            "label": "Z",
+            "title": "Z — the color follows the figure's Z coordinate"
+          },
+          {
+            "label": "trl",
+            "title": "TRAIL — the color follows age along the trail, newest to oldest"
+          },
+          {
+            "label": "aud",
+            "title": "AUDIO — the color follows the short-time spectral centroid of the sound"
+          }
+        ]
+      },
+      {
+        "label": "map",
+        "title": "Map — how a value becomes a color, for every display in the rack including the spectrogram. 2 and 3 mix the Palette module's own swatches; HUE is a raw hue sweep; heat, blue, gray, turbo, viridis and magma are the published colormaps. Turbo and viridis are the even ones — equal steps in the value look like equal steps in color, which a hue sweep does not give you. This is the only colormap control there is: the spectrogram had a second one naming the same six maps, and two knobs that had to be kept in step by hand were one knob too many.",
+        "positions": [
+          {
+            "label": "2",
+            "title": "2-color — a straight mix between the Palette module's start and end swatches"
+          },
+          {
+            "label": "3",
+            "title": "3-color — the start, middle and end swatches mixed in turn"
+          },
+          {
+            "label": "hue",
+            "title": "hue sweep — a raw sweep round the hue circle: vivid, and not perceptually even"
+          },
+          {
+            "label": "ht",
+            "title": "heat — black through red and orange to white"
+          },
+          {
+            "label": "bl",
+            "title": "blue — the cool counterpart of heat"
+          },
+          {
+            "label": "gy",
+            "title": "gray — luminance alone: the map for reading shape rather than value"
+          },
+          {
+            "label": "tb",
+            "title": "turbo — an even rainbow; equal steps in the value look like equal steps in color"
+          },
+          {
+            "label": "vr",
+            "title": "viridis — even, and readable with color-blindness"
+          },
+          {
+            "label": "mg",
+            "title": "magma — even, black through purple and red to cream"
+          }
+        ]
+      },
+      {
+        "label": "period",
+        "title": "Palette period — how many times the palette is crossed across the trail (low = a narrow slice of it, which the shift knob then sweeps). Drives the rainbow AND the six colormaps: the question is the same one either way.",
+        "positions": [
+          {
+            "label": "0.05",
+            "title": "0.05 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "20",
+            "title": "20 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "shift",
+        "title": "Palette shift — where the window sits on the colormap. Turn the period down to a slice and this sweeps that slice along heat / blue / gray / turbo / viridis / magma; route it from audio in the Mod module and the sound moves the figure THROUGH the map instead of only tinting it. Past either end the map turns back rather than wrapping — turbo's two ends are different colors, and joining them puts a hard seam across the figure — so ±1 is the reversed map, not a dead stop.",
+        "positions": [
+          {
+            "label": "-1",
+            "title": "-1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "1",
+            "title": "1 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "Trail",
+        "title": "Trail length — how many recent points stay lit",
+        "positions": [
+          {
+            "label": "1k",
+            "title": "1k — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "500k",
+            "title": "500k — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "palette",
     "label": "Palette",
     "title": "Palette — the gradient's start / middle / end colors and the background",
     "image": "docs/img/module/palette.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "start",
+        "title": "Gradient START color (low end of the source axis) — pick with the swatch or dial it with the Hue (outer) / Level (inner) knob"
+      },
+      {
+        "label": "mid",
+        "title": "Gradient MIDDLE color (3-color palette only) — swatch or Hue / Level knob"
+      },
+      {
+        "label": "end",
+        "title": "Gradient END color (high end of the source axis) — swatch or Hue / Level knob"
+      },
+      {
+        "label": "bg",
+        "title": "Background color behind the model — swatch or Hue / Level knob"
+      }
+    ]
   },
   {
     "id": "record",
@@ -46,105 +446,1113 @@
     "label": "View",
     "title": "View — orientation: per-axis angle knobs and continuous spin rates",
     "image": "docs/img/module/view.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "X",
+        "title": "X axis — angle knob, spin rate, horizontal position",
+        "positions": [
+          {
+            "label": "0",
+            "title": "0° — a quarter-turn mark on the angle scale"
+          },
+          {
+            "label": "90",
+            "title": "90° — a quarter-turn mark on the angle scale"
+          },
+          {
+            "label": "180",
+            "title": "180° — a quarter-turn mark on the angle scale"
+          },
+          {
+            "label": "270",
+            "title": "270° — a quarter-turn mark on the angle scale"
+          }
+        ]
+      },
+      {
+        "label": "Y",
+        "title": "Y axis — angle knob, spin rate, vertical position",
+        "positions": [
+          {
+            "label": "0",
+            "title": "0° — a quarter-turn mark on the angle scale"
+          },
+          {
+            "label": "90",
+            "title": "90° — a quarter-turn mark on the angle scale"
+          },
+          {
+            "label": "180",
+            "title": "180° — a quarter-turn mark on the angle scale"
+          },
+          {
+            "label": "270",
+            "title": "270° — a quarter-turn mark on the angle scale"
+          }
+        ]
+      },
+      {
+        "label": "Z",
+        "title": "Z axis — angle knob, spin rate, zoom (depth)",
+        "positions": [
+          {
+            "label": "0",
+            "title": "0° — a quarter-turn mark on the angle scale"
+          },
+          {
+            "label": "90",
+            "title": "90° — a quarter-turn mark on the angle scale"
+          },
+          {
+            "label": "180",
+            "title": "180° — a quarter-turn mark on the angle scale"
+          },
+          {
+            "label": "270",
+            "title": "270° — a quarter-turn mark on the angle scale"
+          }
+        ]
+      },
+      {
+        "label": "fore",
+        "title": "Fore — where the model sits relative to the rack, as a moving partition rather than a switch. Fully back and all of it is behind the controls; fully forward and all of it is in front; anywhere between and the panel cuts through it, near half in front and far half behind. The cut is a plane parallel to the screen, so it stays put as you turn the model. A flat picture — the spectrogram, the terminal — has no depth to cut, so it moves whole.",
+        "positions": [
+          {
+            "label": "-1",
+            "title": "-1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "1",
+            "title": "1 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "position",
     "label": "Position",
     "title": "Position — slide the model horizontally / vertically and zoom the camera",
     "image": "docs/img/module/position.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "X",
+        "title": "Position / X / label",
+        "positions": [
+          {
+            "label": "-8",
+            "title": "-8 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "8",
+            "title": "8 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "Y",
+        "title": "Position / Y / label",
+        "positions": [
+          {
+            "label": "-8",
+            "title": "-8 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "8",
+            "title": "8 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "Zoom",
+        "title": "Position / Zoom / label",
+        "positions": [
+          {
+            "label": "-95",
+            "title": "-95 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "95",
+            "title": "95 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "display",
     "label": "Display",
     "title": "Display — animation speed, line width, and the knob step / fine multipliers",
     "image": "docs/img/module/display.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "Speed",
+        "title": "Display / Speed / label",
+        "positions": [
+          {
+            "label": "-2",
+            "title": "-2 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "2",
+            "title": "2 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "Line",
+        "title": "Display / Line / label",
+        "positions": [
+          {
+            "label": "1",
+            "title": "1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "10",
+            "title": "10 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "Points",
+        "title": "Display / Points / label",
+        "positions": [
+          {
+            "label": "0",
+            "title": "0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "4k",
+            "title": "4k — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "step",
+        "title": "Outer ring = Step× (coarse step), inner ring = Fine× (fraction of a step)",
+        "positions": [
+          {
+            "label": "1",
+            "title": "1 — the fine disc steps as far as the coarse ring does"
+          },
+          {
+            "label": ".1",
+            "title": "0.1 — the fine disc steps a tenth of a coarse step"
+          },
+          {
+            "label": ".01",
+            "title": "0.01 — the fine disc steps a hundredth of a coarse step"
+          },
+          {
+            "label": ".001",
+            "title": "0.001 — the fine disc steps a thousandth of a coarse step"
+          },
+          {
+            "label": ".25",
+            "title": "0.25x — a quarter of each knob's normal coarse step"
+          },
+          {
+            "label": ".5",
+            "title": "0.5x — half of each knob's normal coarse step"
+          },
+          {
+            "label": "1",
+            "title": "1x — each knob's normal coarse step"
+          },
+          {
+            "label": "2",
+            "title": "2x — twice each knob's normal coarse step"
+          },
+          {
+            "label": "5",
+            "title": "5x — five times each knob's normal coarse step"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "style",
     "label": "Style",
     "title": "Style — interface size, knob face + LED color, and CRT phosphor",
     "image": "docs/img/module/style.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "Size",
+        "title": "Size of every knob (S / M / L / XL) — scales the whole control interface.",
+        "positions": [
+          {
+            "label": "S",
+            "title": "S — small: every knob and readout at 85%"
+          },
+          {
+            "label": "M",
+            "title": "M — medium: the standard size"
+          },
+          {
+            "label": "L",
+            "title": "L — large: every knob and readout at 130%"
+          },
+          {
+            "label": "XL",
+            "title": "XL — extra large: every knob and readout at 170%"
+          }
+        ]
+      },
+      {
+        "label": "Knob",
+        "title": "Outer ring = knob appearance (std / flat / vint / chrome / gold / carbon); inner ring = LED readout color.",
+        "positions": [
+          {
+            "label": "",
+            "title": "red — the nixie-adjacent readout: highest contrast on black"
+          },
+          {
+            "label": "",
+            "title": "amber — the classic seven-segment LED, and the easiest on the eye"
+          },
+          {
+            "label": "",
+            "title": "green — the VFD and early-terminal readout"
+          },
+          {
+            "label": "",
+            "title": "blue — bright and cold; the newest of the six as a real display"
+          },
+          {
+            "label": "",
+            "title": "cyan — the hue the audio-mod readouts used before the LED color was a knob"
+          },
+          {
+            "label": "",
+            "title": "violet — no display was ever made in it; it is here because it reads well"
+          },
+          {
+            "label": "std",
+            "title": "std — the standard knob face"
+          },
+          {
+            "label": "flat",
+            "title": "flat — a matte face with no highlight"
+          },
+          {
+            "label": "vint",
+            "title": "vint — a vintage cream face"
+          },
+          {
+            "label": "chrm",
+            "title": "chrome — a polished metal face"
+          },
+          {
+            "label": "gold",
+            "title": "gold — a brushed gold face"
+          },
+          {
+            "label": "carb",
+            "title": "carbon — a carbon-fiber face"
+          }
+        ]
+      },
+      {
+        "label": "Phosphor",
+        "title": "CRT phosphor for scope traces (Lissajous / Graphic Artist) — sets trace color + afterglow. P31 crisp green … P7 blue→green … P33 long amber.",
+        "positions": [
+          {
+            "label": "",
+            "title": "P31 — the Tektronix standard: bright green, short to medium persistence"
+          },
+          {
+            "label": "",
+            "title": "P1 — willemite yellow-green, medium persistence (about 24 ms)"
+          },
+          {
+            "label": "",
+            "title": "P2 — yellow-green, long persistence"
+          },
+          {
+            "label": "",
+            "title": "P3 — yellow-amber, medium persistence: the classic oscilloscope tube"
+          },
+          {
+            "label": "",
+            "title": "P4 — television white, short persistence"
+          },
+          {
+            "label": "",
+            "title": "P11 — photographic blue, short persistence: the tube built to expose film"
+          },
+          {
+            "label": "",
+            "title": "P7 — two layers: a blue flash that dies fast over a green afterglow that lingers"
+          },
+          {
+            "label": "",
+            "title": "P39 — long-persistence green, about 150 ms"
+          },
+          {
+            "label": "",
+            "title": "P33 — radar amber: the longest persistence of the set"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "gen-x",
     "label": "Gen X",
     "title": "Oscillator X — the xy scope's horizontal axis. freq knob (log, equal turn per octave), level knob, and a dual knob: outer ring = speaker channel, inner = waveform.",
     "image": "docs/img/module/gen-x.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "freq",
+        "title": "Gen x / freq / label",
+        "positions": [
+          {
+            "label": "A0",
+            "title": "A0 — 27.5 Hz, the lowest this knob goes"
+          },
+          {
+            "label": "A10",
+            "title": "A10 — 28160 Hz, the highest this knob goes"
+          }
+        ]
+      },
+      {
+        "label": "lvl",
+        "title": "Gen x / lvl / label",
+        "positions": [
+          {
+            "label": "0",
+            "title": "0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "100",
+            "title": "100 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "out",
+        "title": "Gen x / out / label",
+        "positions": [
+          {
+            "label": "",
+            "title": "sine — one pure frequency and no harmonics at all"
+          },
+          {
+            "label": "",
+            "title": "triangle — odd harmonics falling away steeply: soft and hollow"
+          },
+          {
+            "label": "",
+            "title": "square — odd harmonics falling away slowly: hollow and reedy"
+          },
+          {
+            "label": "",
+            "title": "sawtooth — every harmonic, the brightest of the four"
+          },
+          {
+            "label": "",
+            "title": "noise — a 15-bit shift register; the freq knob sets its playback rate"
+          },
+          {
+            "label": "off",
+            "title": "off — Gen X is muted"
+          },
+          {
+            "label": "L",
+            "title": "L — Gen X plays the left channel only"
+          },
+          {
+            "label": "R",
+            "title": "R — Gen X plays the right channel only"
+          },
+          {
+            "label": "L+R",
+            "title": "L+R — Gen X plays both channels"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "gen-y",
     "label": "Gen Y",
     "title": "Oscillator Y — the xy scope's vertical axis. freq knob (log), level knob, and a dual knob: outer ring = speaker channel, inner = waveform.",
     "image": "docs/img/module/gen-y.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "freq",
+        "title": "Gen y / freq / label",
+        "positions": [
+          {
+            "label": "A0",
+            "title": "A0 — 27.5 Hz, the lowest this knob goes"
+          },
+          {
+            "label": "A10",
+            "title": "A10 — 28160 Hz, the highest this knob goes"
+          }
+        ]
+      },
+      {
+        "label": "lvl",
+        "title": "Gen y / lvl / label",
+        "positions": [
+          {
+            "label": "0",
+            "title": "0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "100",
+            "title": "100 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "out",
+        "title": "Gen y / out / label",
+        "positions": [
+          {
+            "label": "",
+            "title": "sine — one pure frequency and no harmonics at all"
+          },
+          {
+            "label": "",
+            "title": "triangle — odd harmonics falling away steeply: soft and hollow"
+          },
+          {
+            "label": "",
+            "title": "square — odd harmonics falling away slowly: hollow and reedy"
+          },
+          {
+            "label": "",
+            "title": "sawtooth — every harmonic, the brightest of the four"
+          },
+          {
+            "label": "",
+            "title": "noise — a 15-bit shift register; the freq knob sets its playback rate"
+          },
+          {
+            "label": "off",
+            "title": "off — Gen Y is muted"
+          },
+          {
+            "label": "L",
+            "title": "L — Gen Y plays the left channel only"
+          },
+          {
+            "label": "R",
+            "title": "R — Gen Y plays the right channel only"
+          },
+          {
+            "label": "L+R",
+            "title": "L+R — Gen Y plays both channels"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "gen-z",
     "label": "Gen Z",
     "title": "Oscillator Z — a third generator (audio / modulation). freq knob (log), level knob, and a dual knob: outer ring = speaker channel, inner = waveform.",
     "image": "docs/img/module/gen-z.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "freq",
+        "title": "Gen z / freq / label",
+        "positions": [
+          {
+            "label": "A0",
+            "title": "A0 — 27.5 Hz, the lowest this knob goes"
+          },
+          {
+            "label": "A10",
+            "title": "A10 — 28160 Hz, the highest this knob goes"
+          }
+        ]
+      },
+      {
+        "label": "lvl",
+        "title": "Gen z / lvl / label",
+        "positions": [
+          {
+            "label": "0",
+            "title": "0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "100",
+            "title": "100 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "out",
+        "title": "Gen z / out / label",
+        "positions": [
+          {
+            "label": "",
+            "title": "sine — one pure frequency and no harmonics at all"
+          },
+          {
+            "label": "",
+            "title": "triangle — odd harmonics falling away steeply: soft and hollow"
+          },
+          {
+            "label": "",
+            "title": "square — odd harmonics falling away slowly: hollow and reedy"
+          },
+          {
+            "label": "",
+            "title": "sawtooth — every harmonic, the brightest of the four"
+          },
+          {
+            "label": "",
+            "title": "noise — a 15-bit shift register; the freq knob sets its playback rate"
+          },
+          {
+            "label": "off",
+            "title": "off — Gen Z is muted"
+          },
+          {
+            "label": "L",
+            "title": "L — Gen Z plays the left channel only"
+          },
+          {
+            "label": "R",
+            "title": "R — Gen Z plays the right channel only"
+          },
+          {
+            "label": "L+R",
+            "title": "L+R — Gen Z plays both channels"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "gen-env",
     "label": "Envelope",
     "title": "Envelope — the Complex Sound Generator's shaper for the signal generator's speaker output: in RPT mode it cycles attack → decay continuously, a shaped tremolo over whatever Gen X/Y/Z are routed to the speakers. OFF passes the generators through untouched. Analysis paths (scope, spectrogram, meters) stay unshaped.",
     "image": "docs/img/module/gen-env.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "atk",
+        "title": "Envelope / atk / label",
+        "positions": [
+          {
+            "label": "1",
+            "title": "1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "2k",
+            "title": "2k — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "dcy",
+        "title": "Envelope / dcy / label",
+        "positions": [
+          {
+            "label": "1",
+            "title": "1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "5k",
+            "title": "5k — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "mode",
+        "title": "Envelope / mode / label",
+        "positions": [
+          {
+            "label": "off",
+            "title": "off — the generators pass through the envelope untouched"
+          },
+          {
+            "label": "rpt",
+            "title": "rpt — attack then decay, over and over: a shaped tremolo"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "testsig",
     "label": "Test",
     "title": "Test — the stimulus library: the signals a test record carries, synthesized. Pink noise for a spectrum or a room, a logarithmic sweep for an impulse response, 1 kHz as a level and distortion reference, 3150 Hz for wow and flutter, left-only and right-only to find out which speaker is which, a polarity pulse whose direction is visible, and three noises whose channels are identical, independent or inverted — correlation +1, 0 and −1 to check a phase display against. It replaces the X/Y/Z oscillators while it is on; they keep their settings and come back when it is off. Needs Signal gen switched on in the Console.",
     "image": "docs/img/module/testsig.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "sig",
+        "title": "Test / sig / label",
+        "positions": [
+          {
+            "label": "off",
+            "title": "off — the X/Y/Z oscillators play again, exactly as they were left"
+          },
+          {
+            "label": "whit",
+            "title": "white noise — equal power per hertz; reads as a rising tilt on an RTA"
+          },
+          {
+            "label": "pink",
+            "title": "pink noise — equal power per octave; the stimulus an RTA reads FLAT, and what a room is measured with"
+          },
+          {
+            "label": "swp",
+            "title": "log sweep, 20 Hz to 20 kHz in four seconds — the stimulus an impulse response is derived from"
+          },
+          {
+            "label": "1k",
+            "title": "1 kHz reference tone — the level and distortion reference every meter is calibrated against"
+          },
+          {
+            "label": "3150",
+            "title": "3150 Hz — the tone the wow-and-flutter standards specify, and what the W\u0026F meter needs"
+          },
+          {
+            "label": "L",
+            "title": "left channel only — silence on the right; checks channel identity and leakage"
+          },
+          {
+            "label": "R",
+            "title": "right channel only — silence on the left; checks channel identity and leakage"
+          },
+          {
+            "label": "pol",
+            "title": "polarity pulse — a one-sided click; shows which way round a speaker is wired"
+          },
+          {
+            "label": "wide",
+            "title": "uncorrelated noise — independent noise per channel: correlation 0, the widest image there is"
+          },
+          {
+            "label": "oop",
+            "title": "out-of-polarity noise — the same noise inverted on one channel: correlation -1, and mono-incompatible"
+          }
+        ]
+      },
+      {
+        "label": "lvl",
+        "title": "Test / lvl / label",
+        "positions": [
+          {
+            "label": "0",
+            "title": "0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "100",
+            "title": "100 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "sonify",
     "label": "Model Out",
     "title": "Model Out — HEAR the attractor. Inner knob picks how: FLOW integrates the attractor's own equations at audio rate, so the pitch is the system's natural orbital frequency (chaos chirps, periodic windows lock to tones, parameter changes are audible) and RATE transposes it (A4 = ×1); SCAN traces the drawn trail as one waveform period at exactly RATE Hz (a stable, playable tone). MAP picks which two coordinates drive L/R (CAM = the screen's x/y, so rotating the model changes the sound; off = silent). LVL is output level.",
     "image": "docs/img/module/sonify.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "rate",
+        "title": "Model out / rate / label",
+        "positions": [
+          {
+            "label": "A0",
+            "title": "A0 — 27.5 Hz, the lowest this knob goes"
+          },
+          {
+            "label": "A10",
+            "title": "A10 — 28160 Hz, the highest this knob goes"
+          }
+        ]
+      },
+      {
+        "label": "lvl",
+        "title": "Model out / lvl / label",
+        "positions": [
+          {
+            "label": "0",
+            "title": "0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "100",
+            "title": "100 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "map",
+        "title": "Model out / map / label",
+        "positions": [
+          {
+            "label": "FLOW",
+            "title": "FLOW — audify the dynamics: the pitch emerges from the system and RATE transposes it"
+          },
+          {
+            "label": "SCAN",
+            "title": "SCAN — read the trail as a wavetable; RATE is then an exact frequency in hertz"
+          },
+          {
+            "label": "off",
+            "title": "off — Model Out is silent"
+          },
+          {
+            "label": "CAM",
+            "title": "CAM — the two screen axes, as you are looking at the model, drive L and R"
+          },
+          {
+            "label": "XY",
+            "title": "XY — the model's X drives the left channel and Y the right"
+          },
+          {
+            "label": "XZ",
+            "title": "XZ — the model's X drives the left channel and Z the right"
+          },
+          {
+            "label": "YZ",
+            "title": "YZ — the model's Y drives the left channel and Z the right"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "thd",
     "label": "Distortion",
     "title": "Distortion — THD, THD+N, SINAD and ENOB of the live audio, measured against whichever tone is in it. Feed it the Test module's 1 kHz reference through whatever you want measured and read how much of what comes back is not that tone. THD is the harmonics alone, which is the number a specification quotes; THD+N is everything that is not the fundamental, which is the honest one and always the larger; SINAD is the same ratio in decibels, the way a converter is specified; ENOB runs the ideal-converter relation backwards and says how many bits would sound this clean. The gap between THD and THD+N is how much of the rubbish is hiss rather than distortion. The instrument's own floor is about 0.0015% THD+N (96.5 dB SINAD, 17.3 effective bits), measured on a synthesized pure tone — that is the Blackman-Harris window's leakage past the notch, and nothing quieter than it can be read.",
     "image": "docs/img/module/thd.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "thd",
+        "title": "Distortion / thd / label"
+      },
+      {
+        "label": "thd+n",
+        "title": "Distortion / thd+n / label"
+      },
+      {
+        "label": "sinad",
+        "title": "Distortion / sinad / label"
+      },
+      {
+        "label": "src",
+        "title": "Distortion / src / label",
+        "positions": [
+          {
+            "label": "mix",
+            "title": "mix — the two channels summed: what a mono meter would read"
+          },
+          {
+            "label": "L",
+            "title": "left — the left channel alone"
+          },
+          {
+            "label": "R",
+            "title": "right — the right channel alone"
+          },
+          {
+            "label": "M",
+            "title": "mid — the sum, halved: what both channels agree on, and what a mono listener hears"
+          },
+          {
+            "label": "S",
+            "title": "side — the difference, halved: what the two channels disagree about, which is the stereo width itself"
+          }
+        ]
+      },
+      {
+        "label": "harm",
+        "title": "Distortion / harm / label",
+        "positions": [
+          {
+            "label": "2",
+            "title": "2 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "20",
+            "title": "20 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "lufs",
     "label": "Loudness",
     "title": "Loudness — LUFS to ITU-R BS.1770 and EBU R 128, the scale everything is delivered against. M is the momentary loudness over 400 ms, S the short-term over 3 s, I the INTEGRATED reading over everything since the last reset — gated, so silence and quiet passages do not drag a programme's number down, which is what makes it the number a delivery spec means. LRA is the loudness range, how far the loud parts sit above the quiet ones: one number for how dynamic the material is, and the thing a loudness target alone says nothing about. TP is the TRUE peak in dBTP, the peak of the reconstructed signal rather than of the samples — a full-scale tone at a quarter of the sample rate can have every sample at −3 dBFS and still clip the converter, which is why a delivery ceiling is a true-peak ceiling. K-weighting is derived from the analog prototype at whatever rate the audio is arriving at, not the 48 kHz coefficients the standard prints, so the weighting is the same filter at every rate.",
     "image": "docs/img/module/lufs.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "M",
+        "title": "Loudness / M / label"
+      },
+      {
+        "label": "I",
+        "title": "Loudness / I / label"
+      },
+      {
+        "label": "TP",
+        "title": "Loudness / TP / label"
+      },
+      {
+        "label": "tgt",
+        "title": "Loudness / tgt / label"
+      }
+    ]
   },
   {
     "id": "wf",
     "label": "Wow \u0026 Flutter",
     "title": "Wow \u0026 Flutter — speed stability, measured off a 3150 Hz test tone. Every other analyzer here asks about amplitude; this asks whether the TIME AXIS is steady, which is what a turntable, a tape deck or a cassette is judged by. Play the Test module's 3150 Hz tone through the deck, capture the result, and read it here: SPEED is the mean frequency error as a percentage (a constant error is a pitch shift, a different fault from a wobble), WOW the slow 0.5–6 Hz modulation that once-per-revolution faults produce, FLUTTER the fast 6–100 Hz kind from capstans and idlers, and W\u0026F the DIN-weighted quasi-peak that a specification quotes — the deviation through a filter peaked at 4 Hz, where the ear is most sensitive to pitch movement. 3150 Hz is the figure every test record carries (DIN 45507, IEC 60386). With no deck in the loop at all it reads 0.000% on the generator itself, which is the check that the instrument is not inventing the number.",
     "image": "docs/img/module/wf.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "speed",
+        "title": "Wow \u0026 flutter / speed / label"
+      },
+      {
+        "label": "wow",
+        "title": "Wow \u0026 flutter / wow / label"
+      },
+      {
+        "label": "w\u0026f",
+        "title": "Wow \u0026 flutter / w\u0026f / label"
+      },
+      {
+        "label": "nom",
+        "title": "Wow \u0026 flutter / nom / label",
+        "positions": [
+          {
+            "label": "0",
+            "title": "0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "20k",
+            "title": "20k — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "mod",
     "label": "Mod",
     "title": "Modulation routing for the Parameters module — a channel + depth card per control",
     "image": "docs/img/module/mod.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "dft",
+        "title": "Mod / dft / label",
+        "positions": [
+          {
+            "label": "off",
+            "title": "off — dft is not modulated by audio"
+          },
+          {
+            "label": "st",
+            "title": "stereo — both channels summed drive dft"
+          },
+          {
+            "label": "L",
+            "title": "left — the left channel alone drives dft"
+          },
+          {
+            "label": "R",
+            "title": "right — the right channel alone drives dft"
+          }
+        ]
+      },
+      {
+        "label": "ovlp",
+        "title": "Mod / ovlp / label",
+        "positions": [
+          {
+            "label": "off",
+            "title": "off — ovlp is not modulated by audio"
+          },
+          {
+            "label": "st",
+            "title": "stereo — both channels summed drive ovlp"
+          },
+          {
+            "label": "L",
+            "title": "left — the left channel alone drives ovlp"
+          },
+          {
+            "label": "R",
+            "title": "right — the right channel alone drives ovlp"
+          }
+        ]
+      },
+      {
+        "label": "wfn",
+        "title": "Mod / wfn / label",
+        "positions": [
+          {
+            "label": "off",
+            "title": "off — wfn is not modulated by audio"
+          },
+          {
+            "label": "st",
+            "title": "stereo — both channels summed drive wfn"
+          },
+          {
+            "label": "L",
+            "title": "left — the left channel alone drives wfn"
+          },
+          {
+            "label": "R",
+            "title": "right — the right channel alone drives wfn"
+          }
+        ]
+      },
+      {
+        "label": "chan",
+        "title": "Mod / chan / label",
+        "positions": [
+          {
+            "label": "off",
+            "title": "off — chan is not modulated by audio"
+          },
+          {
+            "label": "st",
+            "title": "stereo — both channels summed drive chan"
+          },
+          {
+            "label": "L",
+            "title": "left — the left channel alone drives chan"
+          },
+          {
+            "label": "R",
+            "title": "right — the right channel alone drives chan"
+          }
+        ]
+      },
+      {
+        "label": "scale",
+        "title": "Mod / scale / label",
+        "positions": [
+          {
+            "label": "off",
+            "title": "off — scale is not modulated by audio"
+          },
+          {
+            "label": "st",
+            "title": "stereo — both channels summed drive scale"
+          },
+          {
+            "label": "L",
+            "title": "left — the left channel alone drives scale"
+          },
+          {
+            "label": "R",
+            "title": "right — the right channel alone drives scale"
+          }
+        ]
+      },
+      {
+        "label": "min",
+        "title": "Mod / min / label",
+        "positions": [
+          {
+            "label": "off",
+            "title": "off — min is not modulated by audio"
+          },
+          {
+            "label": "st",
+            "title": "stereo — both channels summed drive min"
+          },
+          {
+            "label": "L",
+            "title": "left — the left channel alone drives min"
+          },
+          {
+            "label": "R",
+            "title": "right — the right channel alone drives min"
+          }
+        ]
+      },
+      {
+        "label": "max",
+        "title": "Mod / max / label",
+        "positions": [
+          {
+            "label": "off",
+            "title": "off — max is not modulated by audio"
+          },
+          {
+            "label": "st",
+            "title": "stereo — both channels summed drive max"
+          },
+          {
+            "label": "L",
+            "title": "left — the left channel alone drives max"
+          },
+          {
+            "label": "R",
+            "title": "right — the right channel alone drives max"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "eq",
     "label": "EQ",
     "title": "Graphic-EQ band weights for the Parameters module's modulation — paint which frequency bands drive each control",
     "image": "docs/img/module/eq.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "dft",
+        "title": "Eq / dft / label"
+      },
+      {
+        "label": "ovlp",
+        "title": "Eq / ovlp / label"
+      },
+      {
+        "label": "wfn",
+        "title": "Eq / wfn / label"
+      },
+      {
+        "label": "chan",
+        "title": "Eq / chan / label"
+      },
+      {
+        "label": "scale",
+        "title": "Eq / scale / label"
+      },
+      {
+        "label": "min",
+        "title": "Eq / min / label"
+      },
+      {
+        "label": "max",
+        "title": "Eq / max / label"
+      }
+    ]
   },
   {
     "id": "patch",
@@ -158,90 +1566,624 @@
     "label": "Analysis",
     "title": "Analysis — the largest Lyapunov exponent of the model on screen: how fast two nearby trajectories separate. Positive means chaotic (prediction has a horizon); about zero means periodic or quasi-periodic; negative means the orbit is settling. Flows are per unit time, maps per iterate. Measured on demand, not per frame.",
     "image": "docs/img/module/analysis.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "lyap",
+        "title": "Analysis / lyap / label"
+      },
+      {
+        "label": "meas",
+        "title": "Analysis / meas / label"
+      }
+    ]
   },
   {
     "id": "preset",
     "label": "Presets",
     "title": "Presets — the current view, saved under a name. A preset holds everything the permalink holds: the model, every knob and color, the effect switches, the parameters and the pose. Recalling one resets to defaults and re-applies it, exactly as the Patchbay's numbered patch memories do; the difference is that these have names, and the address bar does not have to carry them.",
     "image": "docs/img/module/preset.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "name",
+        "title": "Presets / name / label"
+      },
+      {
+        "label": "saved",
+        "title": "Presets / saved / label"
+      }
+    ]
   },
   {
     "id": "counter",
     "label": "Counter",
     "title": "Counter — a frequency counter for the rack, in the spirit of the glensstuff.com NAND-gate counter: it counts trigger crossings of the live audio source over the gate window and shows cycles per second, the way the discrete-logic original did. Feed it the mic, the ws stream, or the signal generator.",
     "image": "docs/img/module/counter.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "freq",
+        "title": "Counter / freq / label"
+      },
+      {
+        "label": "gate",
+        "title": "Counter / gate / label",
+        "positions": [
+          {
+            "label": "0.1",
+            "title": "0.1 s gate — the fastest update and the coarsest resolution"
+          },
+          {
+            "label": "0.5",
+            "title": "0.5 s gate — twice a second"
+          },
+          {
+            "label": "1",
+            "title": "1 s gate — the standard frequency-counter gate: the reading is hertz directly"
+          },
+          {
+            "label": "2",
+            "title": "2 s gate — the slowest update and the finest resolution"
+          }
+        ]
+      },
+      {
+        "label": "trig",
+        "title": "Counter / trig / label",
+        "positions": [
+          {
+            "label": "0",
+            "title": "0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "30",
+            "title": "30 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "keys",
     "label": "Keys",
     "title": "Keys — a playable polyphonic keyboard: click or drag the keybed (glissando works), or play the computer keyboard on the labeled keys (Z row = lower octave, Q row = upper). The range ring sets the key count up to the full 88; voice and speaker routing live on the out knob.",
     "image": "docs/img/module/keys.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "range",
+        "title": "Keys / range / label",
+        "positions": [
+          {
+            "label": "C1",
+            "title": "C1 — the keybed starts two octaves below middle C"
+          },
+          {
+            "label": "C2",
+            "title": "C2 — the keybed starts one octave below middle C"
+          },
+          {
+            "label": "C3",
+            "title": "C3 — the keybed starts at middle C"
+          },
+          {
+            "label": "C4",
+            "title": "C4 — the keybed starts one octave above middle C"
+          },
+          {
+            "label": "C5",
+            "title": "C5 — the keybed starts two octaves above middle C"
+          },
+          {
+            "label": "13",
+            "title": "13 keys — one octave"
+          },
+          {
+            "label": "25",
+            "title": "25 keys — two octaves"
+          },
+          {
+            "label": "37",
+            "title": "37 keys — three octaves"
+          },
+          {
+            "label": "49",
+            "title": "49 keys — four octaves"
+          },
+          {
+            "label": "61",
+            "title": "61 keys — five octaves"
+          },
+          {
+            "label": "85",
+            "title": "85 keys — seven octaves"
+          },
+          {
+            "label": "88",
+            "title": "88 keys — the whole piano, A0 to C8; the base-octave knob has nothing left to say"
+          }
+        ]
+      },
+      {
+        "label": "lvl",
+        "title": "Keys / lvl / label",
+        "positions": [
+          {
+            "label": "0",
+            "title": "0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "100",
+            "title": "100 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "out",
+        "title": "Keys / out / label",
+        "positions": [
+          {
+            "label": "",
+            "title": "sine — one pure frequency and no harmonics at all"
+          },
+          {
+            "label": "",
+            "title": "triangle — odd harmonics falling away steeply: soft and hollow"
+          },
+          {
+            "label": "",
+            "title": "square — odd harmonics falling away slowly: hollow and reedy"
+          },
+          {
+            "label": "",
+            "title": "sawtooth — every harmonic, the brightest of the four"
+          },
+          {
+            "label": "",
+            "title": "noise — a 15-bit shift register; the freq knob sets its playback rate"
+          },
+          {
+            "label": "off",
+            "title": "off — the keyboard is muted"
+          },
+          {
+            "label": "L",
+            "title": "L — the keyboard plays the left channel only"
+          },
+          {
+            "label": "R",
+            "title": "R — the keyboard plays the right channel only"
+          },
+          {
+            "label": "L+R",
+            "title": "L+R — the keyboard plays both channels"
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "tm",
     "label": "Matrix",
     "title": "Matrix — a pentatonic tonematrix step sequencer: paint pads on the grid (click or drag; rows are pitches, columns are sixteenth-note steps) and the playhead loops them as pings at the tempo. The pentatonic rows mean any pattern is consonant.",
     "image": "docs/img/module/tm.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "tempo",
+        "title": "Matrix / tempo / label",
+        "positions": [
+          {
+            "label": "40",
+            "title": "40 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "300",
+            "title": "300 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "steps",
+        "title": "Matrix / steps / label",
+        "positions": [
+          {
+            "label": "C1",
+            "title": "C1 — the bottom row starts two octaves below middle C"
+          },
+          {
+            "label": "C2",
+            "title": "C2 — the bottom row starts one octave below middle C"
+          },
+          {
+            "label": "C3",
+            "title": "C3 — the bottom row starts at middle C"
+          },
+          {
+            "label": "C4",
+            "title": "C4 — the bottom row starts one octave above middle C"
+          },
+          {
+            "label": "8",
+            "title": "8 steps — a half-bar loop of sixteenths"
+          },
+          {
+            "label": "16",
+            "title": "16 steps — one bar of sixteenths"
+          },
+          {
+            "label": "32",
+            "title": "32 steps — two bars of sixteenths"
+          }
+        ]
+      },
+      {
+        "label": "lvl",
+        "title": "Matrix / lvl / label",
+        "positions": [
+          {
+            "label": "0",
+            "title": "0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "100",
+            "title": "100 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "out",
+        "title": "Matrix / out / label",
+        "positions": [
+          {
+            "label": "",
+            "title": "sine — one pure frequency and no harmonics at all"
+          },
+          {
+            "label": "",
+            "title": "triangle — odd harmonics falling away steeply: soft and hollow"
+          },
+          {
+            "label": "",
+            "title": "square — odd harmonics falling away slowly: hollow and reedy"
+          },
+          {
+            "label": "",
+            "title": "sawtooth — every harmonic, the brightest of the four"
+          },
+          {
+            "label": "",
+            "title": "noise — a 15-bit shift register; the pad's pitch sets its playback rate"
+          },
+          {
+            "label": "off",
+            "title": "off — the matrix is muted"
+          },
+          {
+            "label": "L",
+            "title": "L — the matrix plays the left channel only"
+          },
+          {
+            "label": "R",
+            "title": "R — the matrix plays the right channel only"
+          },
+          {
+            "label": "L+R",
+            "title": "L+R — the matrix plays both channels"
+          }
+        ]
+      },
+      {
+        "label": "RunClear",
+        "title": "Run — start/stop the playhead loop (painting works either way)"
+      },
+      {
+        "label": "Run",
+        "title": "Run — start/stop the playhead loop (painting works either way)"
+      }
+    ]
   },
   {
     "id": "rhythm",
     "label": "Rhythm",
     "title": "Rhythm — the drum machine a home organ had built into it. Press a preset tab and the section plays that pattern in a loop at the tempo knob's BPM; the tabs interlock, so one plays at a time. The four voices (bass drum, snare, hi-hat, cymbal) are synthesized from oscillators and filtered noise, not samples. Sound out through the L/R ring; if the page is also listening to the system output, the drums drive the model too.",
     "image": "docs/img/module/rhythm.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "tempo",
+        "title": "Rhythm / tempo / label",
+        "positions": [
+          {
+            "label": "40",
+            "title": "40 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "240",
+            "title": "240 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "lvl",
+        "title": "Rhythm / lvl / label",
+        "positions": [
+          {
+            "label": "0",
+            "title": "0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "100",
+            "title": "100 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "out",
+        "title": "Rhythm / out / label",
+        "positions": [
+          {
+            "label": "off",
+            "title": "off — the drum machine is muted"
+          },
+          {
+            "label": "L",
+            "title": "L — the drum machine plays the left channel only"
+          },
+          {
+            "label": "R",
+            "title": "R — the drum machine plays the right channel only"
+          },
+          {
+            "label": "L+R",
+            "title": "L+R — the drum machine plays both channels"
+          }
+        ]
+      },
+      {
+        "label": "Run",
+        "title": "Run — start/stop the rhythm section. Pressing a preset tab starts it too."
+      },
+      {
+        "label": "Run",
+        "title": "Run — start/stop the rhythm section. Pressing a preset tab starts it too."
+      }
+    ]
   },
   {
     "id": "template",
     "label": "Template",
     "title": "Template — a live legend built with the real cell builders: hover any slot for the Go struct field / builder it maps to (this header = Module.name, .sect-hdr)",
     "image": "docs/img/module/template.jpg",
-    "mode": "lorenz"
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "value",
+        "title": "value cell — one continuous Control (.pcell): label + LED + knob + reset (buildParamUnit pattern)",
+        "positions": [
+          {
+            "label": "0",
+            "title": "0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "10",
+            "title": "10 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "selector",
+        "title": "selector cell — a concentric dual selector: each ring drives a hidden \u003cselect\u003e (stackKnobs + makeSelectorKnob)",
+        "positions": [
+          {
+            "label": "1",
+            "title": "1"
+          },
+          {
+            "label": "2",
+            "title": "2"
+          },
+          {
+            "label": "3",
+            "title": "3"
+          },
+          {
+            "label": "∞",
+            "title": "∞"
+          },
+          {
+            "label": "A",
+            "title": "A"
+          },
+          {
+            "label": "B",
+            "title": "B"
+          },
+          {
+            "label": "C",
+            "title": "C"
+          },
+          {
+            "label": "trl",
+            "title": "trl"
+          }
+        ]
+      },
+      {
+        "label": "angle",
+        "title": "angle cell — a View axis (.axcol.axrot, kindRotation): pose knob with the spin-rate knob nested inside, degree LED, rate value row"
+      },
+      {
+        "label": "color",
+        "title": "color cell — a Palette color (.pal-cell, kindPalette): swatch + reset above the hue/level color knob"
+      },
+      {
+        "label": "mod",
+        "title": "mod card — routes an audio channel (outer ring) at a depth (inner disc) onto its control (buildModCard → paramMods)",
+        "positions": [
+          {
+            "label": "off",
+            "title": "off — mod is not modulated by audio"
+          },
+          {
+            "label": "st",
+            "title": "stereo — both channels summed drive mod"
+          },
+          {
+            "label": "L",
+            "title": "left — the left channel alone drives mod"
+          },
+          {
+            "label": "R",
+            "title": "right — the right channel alone drives mod"
+          }
+        ]
+      },
+      {
+        "label": "eq",
+        "title": "eq card — paint per-band weights on the strip; the weighted band energy drives the MOD route (buildEQCard → paramMod.bands)"
+      }
+    ]
   },
   {
     "id": "pong",
     "label": "Scoreboard",
     "title": "Scoreboard — Scope Pong's front panel: each player's score over their paddle pot (turn it to seize the paddle from the machine; it spins by itself while the machine plays, like a motorized pot), plus a restart button",
     "image": "docs/img/module/pong.jpg",
-    "mode": "pong"
+    "mode": "pong",
+    "controls": [
+      {
+        "label": "left",
+        "title": "Scoreboard / left / label",
+        "positions": [
+          {
+            "label": "-1",
+            "title": "-1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "1",
+            "title": "1 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "right",
+        "title": "Scoreboard / right / label",
+        "positions": [
+          {
+            "label": "-1",
+            "title": "-1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "1",
+            "title": "1 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "Restart",
+        "title": "Restart the match — zero both scores and serve fresh"
+      }
+    ]
   },
   {
     "id": "stext",
     "label": "Banner",
     "title": "Banner — Fourier Text's input: what the harmonic character generator writes (A–Z, 0–9, dash, space). The harm knob in Parameters sets how many harmonics each glyph keeps.",
     "image": "docs/img/module/stext.jpg",
-    "mode": "scopetext"
+    "mode": "scopetext",
+    "controls": [
+      {
+        "label": "text",
+        "title": "Banner / text / label"
+      }
+    ]
   },
   {
     "id": "smorph",
     "label": "Patch",
     "title": "Patch — the self-programming analog computer's wiring readout: which two catalog systems the machine is blended between right now",
     "image": "docs/img/module/smorph.jpg",
-    "mode": "sprottmorph"
+    "mode": "sprottmorph",
+    "controls": [
+      {
+        "label": "wired",
+        "title": "Patch / wired / label"
+      }
+    ]
   },
   {
     "id": "bounce",
     "label": "Launcher",
     "title": "Launcher — Bouncing Ball's front panel: the drop-height pot (the analog demo's initial-condition setting), the machine's re-kick count, and a Drop button",
     "image": "docs/img/module/bounce.jpg",
-    "mode": "bounceball"
+    "mode": "bounceball",
+    "controls": [
+      {
+        "label": "height",
+        "title": "Launcher / height / label",
+        "positions": [
+          {
+            "label": "0.2",
+            "title": "0.2 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "1",
+            "title": "1 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "kicks",
+        "title": "Launcher / kicks / label"
+      },
+      {
+        "label": "Drop",
+        "title": "Drop the ball again from the height pot's setting with a fresh drift"
+      }
+    ]
   },
   {
     "id": "stlfile",
     "label": "Loader",
     "title": "Loader — STL File's front panel: load a stereolithograph (.stl, binary or ASCII) from disk and it renders as a rotating wireframe through the normal pipeline (gradient, spin, camera fit and Model Out all apply)",
     "image": "docs/img/module/stlfile.jpg",
-    "mode": "stlfile"
+    "mode": "stlfile",
+    "controls": [
+      {
+        "label": "file",
+        "title": "Loader / file / label"
+      },
+      {
+        "label": "Load",
+        "title": "Load an .stl file from disk (binary or ASCII)"
+      },
+      {
+        "label": "built-in",
+        "title": "Loader / built-in / label"
+      }
+    ]
   },
   {
     "id": "eqn",
     "label": "Equation",
     "title": "Equation — the editable system: one derivative expression per state variable; commits on Enter/blur",
     "image": "docs/img/module/eqn.jpg",
-    "mode": "custom"
+    "mode": "custom",
+    "controls": [
+      {
+        "label": "dx/dt =dy/dt =dz/dt = it",
+        "title": "dx/dt — expression in x, y, z, t; any other letters become knobbed parameters (e / pi / tau are constants)"
+      },
+      {
+        "label": "iterate",
+        "title": "iterate — read the expressions as a discrete MAP (x = f(x,y,z)) instead of as derivatives to integrate (x += dt·f). No dt, no path between iterates, so it draws as points. Type 1 - 1.4x^2 + y and 0.3x for Henon."
+      },
+      {
+        "label": "4D (w)",
+        "title": "4D — add a fourth state variable w with its own dw/dt equation (hidden from the 3D plot, fed back through the others)"
+      }
+    ]
   }
 ]
