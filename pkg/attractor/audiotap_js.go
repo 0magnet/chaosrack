@@ -100,7 +100,9 @@ func tapChanSel(v float32) tapChan {
 	if last := float32(len(tapChanNames) - 1); v > last {
 		v = last
 	}
-	return tapChan(int(v + 0.5))
+	// Clamped to the name table just above, so the value is 0..4 — gosec sees
+	// only int → uint8 and cannot see the clamp.
+	return tapChan(int(v + 0.5)) //nolint:gosec // clamped to len(tapChanNames)-1 above
 }
 
 // tapDrainCap bounds one frame's pull. It is not optional: FuncGen synthesizes

@@ -219,7 +219,7 @@ func updateDashFromPointCount(drawn int) {
 //
 // The derivation lives here rather than in the knob because OFF only silences
 // the displays that HAVE a source to turn off — the geometry, which reads the
-// src ring to decide what the colour follows. A display with one intrinsic
+// src ring to decide what the color follows. A display with one intrinsic
 // value never consulted that knob: the spectrogram's value is magnitude, the
 // RTA's is level, the transfer function's is coherence. Those read the map ring
 // directly and go on doing so, which is why gradientColors itself stays the map
@@ -235,7 +235,7 @@ func gradientColorsUniform() int {
 // at all.
 //
 // The geometry does: an attractor, an embedding, the waterfall surface — the
-// colour follows a coordinate, an age, or the sound, and which one is a choice.
+// color follows a coordinate, an age, or the sound, and which one is a choice.
 // A display built from one quantity does not: there is nothing to choose. The
 // panel has never said which is which, so the src knob sat there looking live
 // in modes that ignore it.
