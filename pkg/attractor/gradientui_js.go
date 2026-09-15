@@ -64,40 +64,45 @@ var (
 // appended into a host page's <footer>); only then can we dock/move them.
 
 func updateGradientUI() {
-	// All palette knobs stay visible; the ones that don't apply to the current
-	// color count are just dimmed (no populate/depopulate reflow when the count
-	// changes). bg always applies.
+	// All the colour knobs stay visible; the ones that do not apply to the
+	// current SRC and MAP setting are just dimmed, with no populate/depopulate
+	// reflow when either moves. bg always applies.
 	dim := func(id string, inactive bool) {
 		if el := doc.Call("getElementById", id); el.Truthy() {
 			el.Get("style").Set("display", "")
 			el.Get("classList").Call("toggle", "pal-dim", inactive)
 		}
 	}
-	dim("grp-cstart", gradientColors == 4)                         // no fixed colors in rainbow
-	dim("grp-cmid", gradientColors != 3)                           // mid only in 3-color
-	dim("grp-cend", !(gradientColors == 2 || gradientColors == 3)) // end in 2- / 3-color
-	// The period is the palette WINDOW's width, and a window is something the
-	// rainbow and the colormaps both have — it stopped being the rainbow's
-	// private knob when the colormaps gained a shift to slide along it. The
-	// shift itself stays a colormap control: the rainbow's offset is
-	// uGradientPhase, which already exists and already animates.
+	dim("grp-cstart", gradientColors == 4 && gradientSource != GradientSourceOff) // no fixed colors in a hue sweep
+	dim("grp-cmid", gradientColors != 3 || gradientSource == GradientSourceOff)   // mid only in 3-color
+	dim("grp-cend", !(gradientColors == 2 || gradientColors == 3) ||
+		gradientSource == GradientSourceOff) // end in 2- / 3-color
+	// The period is the map WINDOW's width, and a window is something the hue
+	// sweep and the colormaps both have — it stopped being the rainbow's private
+	// knob when the colormaps gained a shift to slide along it. The shift itself
+	// stays a colormap control: the hue sweep's offset is uGradientPhase, which
+	// already exists and already animates.
 	dim("grp-rainbow", gradientColors != 4 && gradientColors < paletteFirst)
 	dim("grp-pshift", gradientColors < paletteFirst)
-	// The OUTER ring — what the colour follows — when the inner one is on mono.
+	// The two rings, dimmed when the model on screen cannot use them.
 	//
-	// One colour is one colour whatever value it follows, so on mono the source
-	// ring reaches nothing. That is the same rule that already dims the mid
-	// swatch outside three-colour and the end swatch outside two; this ring was
-	// left out of it, and "I turn it and nothing happens" is the result.
+	// Both rules now fall out of what the knobs MEAN rather than being special
+	// cases bolted on. SRC is dimmed where there is no source to choose: the
+	// spectrogram, the RTA and the transfer function are each built from one
+	// quantity, so nothing about them is a choice of what the colour follows,
+	// and the knob sat there looking live in those modes. MAP is dimmed where
+	// the source is OFF and the model reads the source at all — a trace that
+	// follows nothing has no value to map — but NOT in those same three modes,
+	// which keep mapping their own quantity whatever the src ring says.
 	//
-	// Only this case. A selected phosphor overrides BOTH rings — it forces the
-	// palette to monochrome in applyPhosphorColor, after the gradient uniforms
-	// are set — and that is already covered: src-cell is in crtOverriddenIDs, so
-	// the whole cell takes crt-dim. Dimming it a second time here would be two
-	// mechanisms for one rule.
-	dim("grad-src-ring", gradientColors == 1)
+	// A selected phosphor overrides both, and that is covered where it belongs:
+	// src-cell and map-cell are in crtOverriddenIDs, so the whole cell takes
+	// crt-dim without this function knowing about phosphors at all.
+	usesSrc := modeUsesGradientSource(selectedMode)
+	dim("src-cell", !usesSrc)
+	dim("map-cell", usesSrc && gradientSource == GradientSourceOff)
 	if lbl := doc.Call("getElementById", "lbl-cstart"); lbl.Truthy() {
-		if gradientColors == 1 {
+		if gradientSource == GradientSourceOff {
 			lbl.Set("textContent", "color")
 		} else {
 			lbl.Set("textContent", "start")

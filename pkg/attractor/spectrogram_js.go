@@ -307,7 +307,12 @@ func uploadSpectColumn(col []byte) {
 // the identical arithmetic on a machine and be diffed against the original's
 // own WAV→PNG render.
 func buildSpectColumn(mags []float64) []byte {
-	return SpectrogramColumn(mags, spectTexH)
+	// Through the MAP ring, like everything else in the rack. The spectrogram
+	// used to carry its own colormap knob naming the same six maps in the same
+	// order, and two knobs that had to be kept in step by hand meant the
+	// spectrogram and the trace beside it could disagree about what a value
+	// looks like — which is the one thing sharing the library's tables was for.
+	return SpectrogramColumnWith(mags, spectTexH, spectrogramPixel)
 }
 
 // setSpectrogramCamera frames the plane at a sensible default distance,

@@ -118,10 +118,13 @@ func syncLayersModule(mode string) {
 // it can be painted on one as the skin, and it can fill the canvas behind one
 // as the backdrop. In the second and third, Parameters is showing whatever the
 // model actually is, so the spectrogram's controls had nowhere to be — measured
-// before this, spect-col, spect-dft and spect-scale were all absent from the
+// before this, spect-dft, spect-win and spect-scale were all absent from the
 // document while a spectrogram backdrop was on screen. The backdrop could be
-// turned on and then not adjusted at all: no color map, no DFT size, no
-// window, no scale.
+// turned on and then not adjusted at all: no DFT size, no window, no scale.
+//
+// Its colour is not among them any more and deliberately so: the spectrogram
+// reads the MAP ring in the Colors module, which is on screen whatever the
+// model is.
 //
 // Built here rather than duplicated in markup, from the same spectParams the
 // Parameters module uses and through the same buildParamUnit, so there is one

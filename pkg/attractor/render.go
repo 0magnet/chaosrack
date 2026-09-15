@@ -609,12 +609,12 @@ func generateForMode(mode string) {
 			updateAudioColorLUT(selectedMode)
 			gl.Call("uniform1fv", uAudioLUTLoc, lutToTyped())
 		}
-		gl.Call("uniform1i", uGradientColorsLoc, gradientColors)
+		gl.Call("uniform1i", uGradientColorsLoc, gradientColorsUniform())
 		// Uploaded before the draw that reads it, and only when a colormap is
 		// actually selected — the upload is skipped on the palettes that do not
 		// sample it, and a failed build falls back to the two-color mix rather
 		// than sampling a texture that is not there.
-		if !ensurePaletteTexture(gradientColors) && gradientColors >= paletteFirst {
+		if !ensurePaletteTexture(gradientColors) && gradientColorsUniform() >= paletteFirst {
 			gl.Call("uniform1i", uGradientColorsLoc, 2)
 		}
 		updateDashFromPointCount(lastDrawnCount)
