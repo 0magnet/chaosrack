@@ -3409,6 +3409,71 @@ scripts/fvf status  # and the machine's current default sink
 scripts/fvf         # toggle
 ```
 
+
+### The hardware it models
+
+The 1984 build used a Teledyne **9400** V/F–F/V converter (Radio Shack
+276-1790). The signal path, and how each stage maps onto the DSP:
+
+```
+audio in ─▶ level ─▶ hard amp/limiter ─▶ F/V (9400) ─▶ gain(.01–100) ─▶ V/F (9400) ─▶ ┐
+   │                 (clip to square:                   + offset(±)     (new freq)    │
+   │                  extract zero-cross rate                                         ▼
+   │                  = "frequency", drop amplitude)                        ┌─ balanced /
+   └──────────────────── original audio ────────────────────────────────────┤  ring modulator ─▶ OUT
+                                                                            └─ (xfmrs + germanium
+                                                                                diodes, "lowest Vf")
+```
+
+1. **Limiter** — amplify until the input clips to a square-ish wave. Amplitude
+   is thrown away and only the zero-crossing rate survives: the audio becomes a
+   bare *frequency*. `fvf_js.go` does this directly as a zero-crossing count.
+2. **F/V** — square wave → DC voltage proportional to frequency (pitch → CV).
+3. **Gain + offset** — scale (0.01–100×) and shift the voltage; the `gain` and
+   `offset` knobs. The hardware constraint is that the voltage into the V/F must
+   stay **positive and never 0**: in the 9400's single-supply V/F mode
+   f_out ∝ V_in, so 0 V → 0 Hz → the carrier stops and the ring-mod output goes
+   silent (audio × 0). The offset therefore sets a **floor frequency** — a
+   minimum standing carrier present even in silence, with the tracked pitch
+   riding on top. That is what the `fmin` clamp is for:
+   `f_out = clamp(gain·f_in + offset, fmin, fmax)`, `fmin > 0`.
+4. **V/F** — the modified voltage becomes a *new* frequency. The 9400 has **two**
+   outputs, which are the two carrier waveforms in the mode's selector:
+   - **pin 8, "pulse freq out"** — a **fixed ~3 µs pulse** repeating at `f_out`
+     regardless of frequency, so duty = `3µs · f_out` *grows with pitch*. Low
+     notes give a very short, bright, harmonic-rich pulse that squares up as
+     pitch rises. This frequency-dependent harmonic content is much of the
+     "harmonic" character, and is what the **pulse** waveform models (the `duty`
+     knob generalizes it).
+   - **pin 10, "freq ÷2 out"** — flip-flop-divided `f_out/2` at 50 % duty: a
+     clean sub-octave square, odd harmonics only. The **sub-÷2** waveform.
+5. **Balanced/ring modulator** — transformer + germanium-diode ring modulator
+   multiplying the regenerated carrier by the **original** audio. Ring
+   modulation produces sum and difference frequencies, hence the metallic,
+   bell-like, inharmonic timbre.
+
+[9400 datasheet](https://ww1.microchip.com/downloads/en/DeviceDoc/21483d.pdf)
+
+**The crudeness is the feature.** The clip-and-count pitch tracker locks to the
+dominant zero-crossing rate, which on complex, polyphonic or noisy input (voice,
+guitar chords) jumps around — octave errors, glitches, wild excursions. That is
+the *wobbulator*. Detune the carrier and the ring-mod sidebands go inharmonic.
+Modelling the quirks rather than fixing them is the point, so tracking latency
+is kept low rather than smoothed away. Family resemblance: ring modulators, Bode
+frequency shifters, guitar-synth pitch extraction, EHX Frequency Analyzer.
+
+A tube-era ancestor from the '60s used a **6BN6 gated-beam tube** (a quadrature
+FM detector / product mixer), a VR105 regulator, and a **CRT** driven in
+quadrature (+180° / +270°) for a vector/Lissajous display of the twisted
+waveforms.
+
+**Open questions about the original.** A diode ring modulator is a switching
+multiplier: one port is the **carrier** (switching the germanium diodes — hence
+"lowest Vf"), the other passes the **signal** linearly. Unresolved: which V/F
+output drove the carrier (the bright fixed-width pulse, or the ÷2 square);
+which signal drove which port; and the relative drive levels, which set clean
+four-quadrant ring modulation against a more gated/AM character. All three are
+switchable here and can be tuned by ear.
 ## Testing & tooling
 
 The UI is tested against a real browser over the Chrome DevTools Protocol
