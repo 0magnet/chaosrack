@@ -1059,11 +1059,11 @@ func Run() {
 	// Source and map: two knobs in two cells, each with its own ring and its own
 	// label.
 	//
-	// Concentric on one dial first, under a single cell labelled "src" — which
+	// Concentric on one dial first, under a single cell labeled "src" — which
 	// named the outer ring and left the inner one unnamed, so the cell's tooltip
 	// had to open by correcting its own label. A cell holds one control; these
-	// are two, and they answer different questions (what the colour follows, and
-	// how a value becomes a colour).
+	// are two, and they answer different questions (what the color follows, and
+	// how a value becomes a color).
 	gsrc := doc.Call("getElementById", "gradient-source")
 	gcol := doc.Call("getElementById", "gradient-colors")
 	if gsrc.Truthy() && gcol.Truthy() {
@@ -1083,11 +1083,11 @@ func Run() {
 			mstack := soloKnob(gcol)
 			// No "1" here any more: mono was never a map, it was the absence of a
 			// source, and it lives on the src ring as OFF. Every position left is
-			// a genuine mapping of a value to a colour.
+			// a genuine mapping of a value to a color.
 			//
 			// NINE labels for nine options, and the count is load-bearing: a ring
 			// that does not match its select is discarded whole and the dial falls
-			// back to full names, which is how the spectrogram's old colour dial
+			// back to full names, which is how the spectrogram's old color dial
 			// came to read "graysca…e" and "…idis" under the knob when turbo,
 			// viridis and magma were added to a three-label ring. Add a map here
 			// and add its label in the same commit.
