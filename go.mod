@@ -3,15 +3,15 @@ module github.com/0magnet/chaosrack
 go 1.26.5
 
 require (
-	github.com/0magnet/audioprism-go v0.0.0-20260916100619-178abbbbad82
+	github.com/0magnet/audioprism-go v0.0.0-20260917100852-ac43966f02d1
 	github.com/0magnet/calvin v0.0.0-20260915170035-09af7075474e
 	github.com/0magnet/desk v0.0.0-20260915183806-a236d7492c93
 	github.com/0magnet/desk/panes v0.0.0-20260915183806-a236d7492c93
-	github.com/0magnet/pisano v0.0.0-20260916100313-045c4b6ad74a
+	github.com/0magnet/pisano v0.0.0-20260916102036-895cf54258c0
 	github.com/0magnet/rack-go v0.0.0-20260915170035-3de86c6a1464
 	github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a
-	github.com/0magnet/tuiwasm v0.0.0-20260916100934-1ec19446be4b
-	github.com/0magnet/websh v0.0.0-20260916100640-e79baee36b7f
+	github.com/0magnet/tuiwasm v0.0.0-20260917101028-950fa6fcb037
+	github.com/0magnet/websh v0.0.0-20260916100931-8694a72a6d94
 	github.com/0magnet/winbox-go v0.0.0-20260915183431-ca6572e4c323
 	github.com/0magnet/xterm-go v0.0.0-20260915170035-1ea079f51d60
 	github.com/gin-gonic/gin v1.12.0
@@ -55,7 +55,7 @@ require (
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/creack/pty v1.1.24 // indirect
 	github.com/dlclark/regexp2/v2 v2.8.0 // indirect
-	github.com/dunglas/httpsfv v1.1.1 // indirect
+	github.com/dunglas/httpsfv v1.1.2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.15 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
