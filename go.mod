@@ -10,8 +10,8 @@ require (
 	github.com/0magnet/pisano v0.0.0-20260916102036-895cf54258c0
 	github.com/0magnet/rack-go v0.0.0-20260915170035-3de86c6a1464
 	github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a
-	github.com/0magnet/tuiwasm v0.0.0-20260918095549-79a635cca113
-	github.com/0magnet/websh v0.0.0-20260918095400-01adea695972
+	github.com/0magnet/tuiwasm v0.0.0-20260918204018-fe0244604011
+	github.com/0magnet/websh v0.0.0-20260918134315-870649e5bd83
 	github.com/0magnet/winbox-go v0.0.0-20260915183431-ca6572e4c323
 	github.com/0magnet/xterm-go v0.0.0-20260918025541-d7185c9db583
 	github.com/gin-gonic/gin v1.12.0
