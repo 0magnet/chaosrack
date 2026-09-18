@@ -67,6 +67,22 @@ type Options struct {
 	// goroutine. It is where a caller flushes the filesystem somewhere
 	// durable, which has to happen after a command rather than during one.
 	AfterCommand func()
+
+	// OnExit runs when the shell exits — the `exit` builtin, or anything
+	// else that makes the interpreter report an exiting shell — on the
+	// shell's goroutine, and no further prompt is written.
+	//
+	// A shell in a page has nowhere to exit TO, so what happens next is
+	// the embedder's to decide: a window closes, a session restarts, a
+	// panel goes back to what it showed before. Without this the exit was
+	// simply unobserved — the interpreter recorded it, the session
+	// swallowed the status as it does any other, and printed the next
+	// prompt, so typing exit appeared to do nothing whatever.
+	//
+	// Nil keeps that: the prompt comes back and the session carries on,
+	// which is the only safe default for an embedder that has not said
+	// what else to do.
+	OnExit func()
 }
 
 // Session is a terminal with a shell attached, mounted on an element.
@@ -89,6 +105,7 @@ type Session struct {
 	closed    bool
 
 	afterCommand func()
+	onExit       func()
 }
 
 // NewSession builds a terminal on el and starts a shell on it.
@@ -116,6 +133,7 @@ func NewSession(el js.Value, opt Options) (*Session, error) {
 		host:         host,
 		lines:        make(chan string, 8),
 		afterCommand: opt.AfterCommand,
+		onExit:       opt.OnExit,
 	}
 
 	o := vt.NewOptions()
@@ -351,6 +369,12 @@ func (s *Session) run() {
 		}
 		if s.afterCommand != nil {
 			s.afterCommand()
+		}
+		// Checked here and nowhere else: the interpreter overwrites this at
+		// every Run, so it means the line just finished and not the shell.
+		if s.onExit != nil && s.Shell.Exited() {
+			s.onExit()
+			return
 		}
 		s.WritePrompt()
 	}

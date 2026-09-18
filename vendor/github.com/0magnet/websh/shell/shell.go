@@ -32,6 +32,8 @@ type Shell struct {
 
 	parser  *syntax.Parser
 	pending strings.Builder // continuation lines of an incomplete input
+	// exited records what Run found before it reset the runner. See Exited.
+	exited bool
 }
 
 // New creates a shell over the given filesystem (nil = fresh in-memory
@@ -169,13 +171,26 @@ func (s *Shell) Run(ctx context.Context, line string) (needMore bool, err error)
 	}
 	s.pending.Reset()
 	err = s.Runner.Run(ctx, file)
-	if s.Runner.Exited() {
+	// Remembered before the reset, because the reset is what erases it.
+	// The runner keeps this only until the next Run, and resetting here
+	// — so the shell stays usable whatever the embedder decides to do
+	// about the exit — clears it at once. A caller that asked the runner
+	// afterwards was always told no, which is why `exit` could not be
+	// acted on from outside.
+	s.exited = s.Runner.Exited()
+	if s.exited {
 		// plain `exit` in the top level shell: reset so the terminal
 		// session keeps working
 		s.Runner.Reset()
 	}
 	return false, err
 }
+
+// Exited reports whether the line just run exited the shell — the
+// `exit` builtin, or anything else the interpreter treats that way.
+//
+// Valid until the next Run, like the runner's own flag it stands in for.
+func (s *Shell) Exited() bool { return s.exited }
 
 // resolve makes a path absolute against the interpreter cwd.
 func resolve(ctx context.Context, path string) string {
