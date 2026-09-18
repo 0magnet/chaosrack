@@ -10,10 +10,10 @@ require (
 	github.com/0magnet/pisano v0.0.0-20260916102036-895cf54258c0
 	github.com/0magnet/rack-go v0.0.0-20260915170035-3de86c6a1464
 	github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a
-	github.com/0magnet/tuiwasm v0.0.0-20260917101028-950fa6fcb037
-	github.com/0magnet/websh v0.0.0-20260916100931-8694a72a6d94
+	github.com/0magnet/tuiwasm v0.0.0-20260918095549-79a635cca113
+	github.com/0magnet/websh v0.0.0-20260918095400-01adea695972
 	github.com/0magnet/winbox-go v0.0.0-20260915183431-ca6572e4c323
-	github.com/0magnet/xterm-go v0.0.0-20260915170035-1ea079f51d60
+	github.com/0magnet/xterm-go v0.0.0-20260918025541-d7185c9db583
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-gl/mathgl v1.2.0
 	github.com/jfreymuth/pulse v0.1.3
@@ -56,7 +56,7 @@ require (
 	github.com/creack/pty v1.1.24 // indirect
 	github.com/dlclark/regexp2/v2 v2.8.0 // indirect
 	github.com/dunglas/httpsfv v1.1.2 // indirect
-	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.15 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/gdamore/tcell/v2 v2.13.10 // indirect
