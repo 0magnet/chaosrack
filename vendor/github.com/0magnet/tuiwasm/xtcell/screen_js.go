@@ -48,6 +48,19 @@ func (x *xtermTerm) SetOnResize(f func(int, int)) { x.t.Core.OnResize = f }
 func (x *xtermTerm) OnData() func(string)         { return x.t.Core.OnData }
 func (x *xtermTerm) SetOnData(f func(string))     { x.t.Core.OnData = f }
 
+// ClaimMouse hands the pointer to the application, or gives it back. See
+// (*Screen).claimMouse.
+func (x *xtermTerm) ClaimMouse(on bool) {
+	p := "NONE"
+	if on {
+		p = "VT200"
+	}
+	x.t.Core.MouseService().SetActiveProtocol(p)
+}
+
+// ClearSelection drops the terminal's text selection.
+func (x *xtermTerm) ClearSelection() { x.t.ClearSelection() }
+
 // current is the screen holding the keyboard focus.
 //
 // It no longer decides who may draw. That used to be the whole of this
@@ -140,8 +153,12 @@ type Screen struct {
 	savedData func(string)
 
 	// Mouse reporting; see mouse_js.go.
-	mouseOn            bool
-	mdown, mup, mwheel js.Func
+	mouseOn                   bool
+	mouseFlags                tcell.MouseFlags
+	mdown, mup, mmove, mwheel js.Func
+	// The cell the pointer was last reported over, so motion is reported
+	// once per cell crossed rather than once per pixel.
+	lastCellX, lastCellY int
 
 	// sink is set when the terminal will take cells directly. See direct_js.go.
 	sink cellSink
@@ -250,6 +267,9 @@ func (s *Screen) Fini() {
 		close(s.stopq)
 		s.detachKeys()
 		s.detachMouse()
+		// Give the pointer back too, or the shell this screen ran over is
+		// left unable to select its own scrollback.
+		s.claimMouse(false)
 
 		s.mu.Lock()
 		// Leave the terminal in a state someone else can use: cursor back,
