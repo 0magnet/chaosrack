@@ -48,6 +48,19 @@ func (x *xtermTerm) SetOnResize(f func(int, int)) { x.t.Core.OnResize = f }
 func (x *xtermTerm) OnData() func(string)         { return x.t.Core.OnData }
 func (x *xtermTerm) SetOnData(f func(string))     { x.t.Core.OnData = f }
 
+// ClaimMouse hands the pointer to the application, or gives it back. See
+// (*Screen).claimMouse.
+func (x *xtermTerm) ClaimMouse(on bool) {
+	p := "NONE"
+	if on {
+		p = "VT200"
+	}
+	x.t.Core.MouseService().SetActiveProtocol(p)
+}
+
+// ClearSelection drops the terminal's text selection.
+func (x *xtermTerm) ClearSelection() { x.t.ClearSelection() }
+
 // current is the screen holding the keyboard focus.
 //
 // It no longer decides who may draw. That used to be the whole of this
@@ -140,8 +153,12 @@ type Screen struct {
 	savedData func(string)
 
 	// Mouse reporting; see mouse_js.go.
-	mouseOn            bool
-	mdown, mup, mwheel js.Func
+	mouseOn                   bool
+	mouseFlags                tcell.MouseFlags
+	mdown, mup, mmove, mwheel js.Func
+	// The cell the pointer was last reported over, so motion is reported
+	// once per cell crossed rather than once per pixel.
+	lastCellX, lastCellY int
 
 	// sink is set when the terminal will take cells directly. See direct_js.go.
 	sink cellSink
@@ -197,10 +214,21 @@ func (s *Screen) Init() error {
 		s.rows = 24
 	}
 	s.cells.Resize(s.cols, s.rows)
+	// Onto the alternate screen, which is what a full-screen program does
+	// and what tcell's own terminal screen does with the same sequence.
+	//
+	// It is not decoration. Without it the program draws over the shell it
+	// was started from and, on the way out, leaves its last frame standing
+	// there with the prompt continuing underneath — the scrollback gone and
+	// a dead copy of the interface in its place. The alt buffer is a second
+	// screen: the program has it to itself, and leaving it puts back what
+	// was underneath, exactly as quitting an editor does.
+	s.buf = append(s.buf, enterAltScreen...)
 	// Start from a terminal that is actually blank. A fresh CellBuffer reports
 	// nothing dirty — every cell's last and current contents are both the empty
 	// string — so without this the first frame would draw over whatever the
-	// terminal happened to be showing.
+	// terminal happened to be showing. The alt buffer arrives blank, but a
+	// terminal too old to have one does not, and this costs a clear either way.
 	s.buf = append(s.buf, clearScreenSeq(-1, -1)...)
 	s.haveStyle, s.penValid = false, false
 	s.flushLocked()
@@ -250,11 +278,16 @@ func (s *Screen) Fini() {
 		close(s.stopq)
 		s.detachKeys()
 		s.detachMouse()
+		// Give the pointer back too, or the shell this screen ran over is
+		// left unable to select its own scrollback.
+		s.claimMouse(false)
 
 		s.mu.Lock()
 		// Leave the terminal in a state someone else can use: cursor back,
-		// styling reset.
+		// styling reset, and off the alternate screen — which is what puts
+		// the shell's scrollback back in place of this program's last frame.
 		s.buf = append(s.buf, "\x1b[0m\x1b[?25h"...)
+		s.buf = append(s.buf, leaveAltScreen...)
 		s.haveStyle, s.penValid = false, false
 		s.flushLocked()
 		s.mu.Unlock()

@@ -122,6 +122,19 @@ func drawCellSeq(x, y int, s string, fg, bg int, attrs tcell.AttrMask, us tcell.
 	return cup(x, y) + sgr(fg, bg, attrs, us) + s
 }
 
+// enterAltScreen and leaveAltScreen switch the terminal to its second
+// screen buffer and back. DECSET 1049 saves the cursor, switches, and
+// clears; resetting it switches back and restores the cursor, leaving
+// whatever was on the first screen exactly as it was.
+//
+// The same pair tcell's own terminal screen sends, for the same reason:
+// a full-screen program should not spend the scrollback of the shell
+// that started it, nor leave its last frame standing there afterwards.
+const (
+	enterAltScreen = "\x1b[?1049h"
+	leaveAltScreen = "\x1b[?1049l"
+)
+
 // clearScreenSeq paints the whole screen in one color and homes the cursor.
 func clearScreenSeq(fg, bg int) string {
 	return sgr(fg, bg, tcell.AttrNone, tcell.UnderlineStyleNone) + "\x1b[2J\x1b[H"
