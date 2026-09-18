@@ -198,6 +198,40 @@ var (
 	// the correlation meter goes on reading the source as it actually is rather
 	// than as the knob is pretending.
 	stereoWidth float32 = 1
+
+	// stereoVGain is the VERTICAL GAIN a scope has and GAIN here is not.
+	//
+	// GAIN scales the geometry, and the camera fit is a function of it
+	// (fitExtentOverride = takensFitExtent(stereoGain)), so the two cancel
+	// exactly: the figure is the same size on screen at 0.5 as at 50. That is
+	// deliberate — fitting the instantaneous figure put loud passages off the
+	// screen — and it means the mode had nothing that turns a hot signal DOWN
+	// visually, which is the first thing a scope's vertical knob does.
+	//
+	// So this one multiplies the two SIGNAL axes and the fit does not know
+	// about it. Turning it up can push the trace off the frame, and that is
+	// the point: overdriving the vertical is a thing a scope does, and the
+	// operator decides when the interesting part is worth clipping the rest.
+	stereoVGain float32 = 1
+
+	// stereoSpan stretches the TIME axis, and only the time axis.
+	//
+	// The two dial positions with time as the third coordinate (LRt, MSt) read
+	// like a scope trace, and a scope trace is swept across the whole screen.
+	// This one was fitted to a cube — the bound is the cube's corner — so a
+	// figure that is a vector plane plus a time ramp sits in a small square in
+	// the middle of a wide window, using none of the width it has.
+	//
+	// Stretching one axis of a 3D model is normally a distortion and is not
+	// offered anywhere else here. Time is the exception, because it is not a
+	// spatial dimension that was measured: it is a ramp this code synthesizes
+	// from the vertex index. Scaling it is a TIMEBASE, the same control the
+	// instrument this resembles has always had, and it distorts nothing that
+	// was in the signal.
+	//
+	// Inert on the two delay positions (LRd, MSd), where all three coordinates
+	// are signal and stretching one WOULD be a distortion.
+	stereoSpan float32 = 1
 )
 
 func init() {
@@ -209,6 +243,8 @@ func init() {
 		{"stereo-gain", "gain", &stereoGain, 10, 0.5, 50, 0.5},
 		{"stereo-align", "algn", &stereoAlign, 0, -stereoAlignMax, stereoAlignMax, 1},
 		{"stereo-width", "wide", &stereoWidth, 1, 0, 3, 0.05},
+		{"stereo-vg", "vg", &stereoVGain, 1, 0.1, 8, 0.1},
+		{"stereo-span", "span", &stereoSpan, 1, 0.25, 8, 0.25},
 		{"takens-smooth", "smth", &takensSmoothF, 4, 1, 16, 1},
 	}
 }
@@ -430,6 +466,11 @@ func generateStereo() {
 	plan := stereoPlans[stereoAxisSel()]
 	g := stereoGain
 	width := stereoWidth
+	// Display-only scaling: neither is in the camera fit, which is what
+	// makes them scope controls rather than more of GAIN. See their
+	// declarations.
+	vg := stereoVGain
+	tspan := stereoSpan
 
 	// at reads axis c at source point k, clamping k to the window so the
 	// spline's outer control points at either end are defined — the Takens
@@ -468,14 +509,14 @@ func generateStereo() {
 				// axis that is the right price for defined endpoints; on a
 				// ramp it would be a visible kink in a straight edge, for a
 				// value that is exactly computable.
-				vertices[j+c] = (2*w - 1) * g
+				vertices[j+c] = (2*w - 1) * g * tspan
 				continue
 			}
 			p0, p1, p2, p3 := at(c, i-1), at(c, i), at(c, i+1), at(c, i+2)
 			// Catmull-Rom through p1..p2, as takensSmooth documents.
 			vertices[j+c] = 0.5 * (2*p1 + (-p0+p2)*f +
 				(2*p0-5*p1+4*p2-p3)*f*f +
-				(-p0+3*p1-3*p2+p3)*f*f*f) * g
+				(-p0+3*p1-3*p2+p3)*f*f*f) * g * vg
 		}
 		vertices[j+3] = w
 	}
