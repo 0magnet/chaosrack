@@ -925,3 +925,93 @@ func TestGratTablesLineUp(t *testing.T) {
 		t.Errorf("%d names for %d positions", len(gratNames), gratFull+1)
 	}
 }
+
+// The bug this pins: a waveform lock must follow the PHASE, not the
+// content. The audio advances between frames, so last frame's window is
+// now further back in the buffer and matches itself exactly. Preferring
+// that match freezes the display on steadily older audio until it scrolls
+// out of the margin, then jumps — which is what "it stutters and does not
+// track the sound" looks like.
+func TestLockFollowsPhaseNotStaleContent(t *testing.T) {
+	const (
+		period = 40  // samples
+		margin = 400 // ten periods of search
+		decim  = 1
+	)
+	n := lockPoints
+	wave := func(i int) float32 {
+		return float32(math.Sin(2 * math.Pi * float64(i) / period))
+	}
+
+	// Last frame drew a window; this frame the audio has advanced by a
+	// third of a period, so the identical content now sits that much
+	// further back.
+	const advance = period / 3
+	cur := make([]float32, margin+n*decim+1)
+	for i := range cur {
+		cur[i] = wave(i)
+	}
+	prev := make([]float32, n)
+	for i := range prev {
+		// The same samples the previous frame drew, which in this frame's
+		// buffer begin at margin-advance.
+		prev[i] = cur[margin-advance+i]
+	}
+
+	got, found := lockOffset(cur, prev, margin, decim)
+	if !found {
+		t.Fatal("no lock on a clean periodic signal")
+	}
+	// It must NOT sit on the identical-content match if a newer, equally
+	// good phase alignment exists. The newest such is within one period of
+	// the end.
+	if margin-got > period {
+		t.Errorf("locked %d samples back, more than the %d-sample period: "+
+			"that is the freeze, not a lock", margin-got, period)
+	}
+	// And it must actually be aligned: the matched window has to correlate
+	// with the reference.
+	var dot, na, nb float64
+	for i := 0; i < n; i++ {
+		a, b := float64(cur[got+i*decim]), float64(prev[i])
+		dot += a * b
+		na += a * a
+		nb += b * b
+	}
+	if score := dot / (math.Sqrt(na) * math.Sqrt(nb)); score < 0.9 {
+		t.Errorf("the chosen offset %d is not phase-aligned: score %.3f", got, score)
+	}
+}
+
+// The bias must not stop it locking: a signal whose only good match is
+// genuinely older still has to be found.
+func TestLockStillReachesBackWhenItMust(t *testing.T) {
+	const margin = 300
+	n := lockPoints
+	cur := make([]float32, margin+n+1)
+	// Noise everywhere except one stretch that matches the reference.
+	seed := uint32(12345)
+	rnd := func() float32 {
+		seed = seed*1664525 + 1013904223
+		return float32(seed%2000)/1000 - 1
+	}
+	for i := range cur {
+		cur[i] = rnd()
+	}
+	// On the search grid: candidates step by lockStep, and for a NOISE
+	// reference a miss of even two samples destroys the correlation
+	// entirely. Real signals are not like that — a few samples is a small
+	// phase error on anything periodic — but a test built from noise has
+	// to respect the resolution the search actually has.
+	const want = margin - 52*lockStep
+	prev := make([]float32, n)
+	copy(prev, cur[want:want+n])
+
+	got, found := lockOffset(cur, prev, margin, 1)
+	if !found {
+		t.Fatal("no lock on a signal containing the reference exactly")
+	}
+	if got != want {
+		t.Errorf("locked at %d, want %d — the bias swallowed a real match", got, want)
+	}
+}
