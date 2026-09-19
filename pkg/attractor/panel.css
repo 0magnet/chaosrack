@@ -96,23 +96,24 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* punit-top is itself offset 2px from the cell top, so its label pins at 2px to
    land at the same cell-relative height (4px) as the others. */
 .modules .pcell .punit-top>.plabel{position:absolute!important;top:2px!important;left:4px!important;transform:none!important;line-height:1.1;margin:0;z-index:3;}
-/* ── The control cell. Size / Knob / Phosphor / Palette / Step-Fine are
-   bare .pcell.axcol (no .vmcell, no .axrot); give them the SAME 116x160
-   box as the value cells and pin their label top-left, so every module
-   lines its label + control up identically (View is the reference).
+/* ── The control cell, and the one place its size is written.
 
-   NOT YET ONE CELL, and the gap is measured: on the live rack this rule
-   sizes 11 cells at 116x160 while .vmcell and .axcol.axrot take --krow
-   (116x152) with !important — so a control sits 8px higher in one
-   module than in another, and §2-132's "use a consistent pointer
-   position REGARDLESS of the above recommendations" is not yet met.
+   Woodson \& Conover §2-131 define the footprint a panel is laid out on:
+   not the knob, but "the exterior dimension of such items as dial face
+   or control knob, AND the interior dimension of the physical structure
+   of the control mechanism that will limit the proximity of adjacent
+   items" — the knob plus whatever stops the next one coming closer.
 
-   Dropping the two :not()s does not fix it: they carry specificity, and
-   at (0,3,0) instead of (0,5,0) other rules win and the cells scatter
-   into nine heights instead of two. Unifying them is a specificity
-   pass over the whole cell cascade, not an edit to this line. The two
-   sizes are named in pkg/rackspec (CellWidth, CellHeight) so the day
-   they converge they converge in one place. ── */
+   §2-132 makes sameness binding rather than tidy: having given rules for
+   orienting a single group, they say that "for several groups on the
+   same panel, use a consistent pointer position REGARDLESS of the above
+   recommendations". The panel is meant to be operated by position, so a
+   control being 8px lower in one module than another is not a cosmetic
+   difference, it is the thing that stops muscle memory working.
+
+   These cells and the --krow/--kcol ones were two different boxes, 160
+   and 152 tall. They are one now; uitool layout counts the distinct
+   footprints and fails if there is more than one. ── */
 .vmrow>.pcell.axcol:not(.axrot):not(.vmcell){width:calc(116px*var(--kscale,1));height:calc(160px*var(--kscale,1));box-sizing:border-box;position:relative;justify-content:center;}
 .vmrow>.pcell.axcol:not(.axrot):not(.vmcell) .knoblbl{position:static;}
 .vmrow>.pcell.axcol:not(.axrot):not(.vmcell) .knoblbl>.plabel{position:absolute;top:3px;left:3px;line-height:1.1;z-index:3;margin:0;}
@@ -295,7 +296,12 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .row{display:flex;flex-wrap:wrap;align-items:center;gap:5px 12px;margin-bottom:5px;}
 .grp{display:inline-flex;align-items:center;gap:3px;white-space:nowrap;color:#aaa;}
 .grp label{color:#aaa;}
-.pcell{display:inline-flex;flex-direction:column;align-items:center;gap:1px;white-space:nowrap;vertical-align:top;padding:2px 7px 3px;border-radius:4px;}
+/* Vertical padding is SYMMETRIC. It was 2px top and 3px bottom, and a cell
+   that centers its knob then centers it on 79.5 of a 160px box rather than
+   on 80 — so the knob sat a pixel or two high in every cell that had the
+   asymmetry, and no two modules agreed on where a knob is. A pixel is
+   nothing to look at and is the whole of "operable by position". */
+.pcell{display:inline-flex;flex-direction:column;align-items:center;gap:1px;white-space:nowrap;vertical-align:top;padding:3px 7px;border-radius:4px;}
 /* SINGLE SOURCE OF TRUTH for EVERY panel label. All three historical label
    classes (.plabel primary, .u-lbl param/model, .axlbl rate) share one look:
    9px·kscale Chakra Petch, letters stacked vertically (upright) down the cell's
@@ -529,14 +535,15 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
      lands on the same horizontal line — alignment by construction. --kcol is the
      matching column width.
 
-     29 mm wide and 38 mm tall. The width is the content column the panel
-     was always laid out on. The HEIGHT is the panel's own row pitch and
-     not, as it should be, two of Doepfer's 20 mm pot pitches — several
-     module grids are built on this number, and moving it to 40 scattered
-     the cells into nine different sizes. pkg/rackspec names both and a
-     test holds the drawn panel to them, so the day it moves it moves in
-     one place. */
-  --krow:calc(38*var(--mm)); --kcol:calc(29*var(--mm));}
+     29 mm wide and 40 mm tall: the content column the panel was always
+     laid out on, and two of the 20 mm pot pitches Doepfer and Analog
+     Solutions both space panel pots by. It was 38, which is two of
+     nothing, and only .vmcell and .axcol.axrot used it while the bare
+     cells carried their own 40 — so the panel had TWO cells and a
+     control sat 8px higher in one module than in another.
+     pkg/rackspec holds both numbers and a test fails if this line and
+     that package stop agreeing. */
+  --krow:calc(40*var(--mm)); --kcol:calc(29*var(--mm));}
 .modules{display:flex;flex-wrap:wrap;align-items:flex-start;gap:calc(0.5*var(--mm));}
 /* Sidebar docks: stack modules in one column (never side-by-side). */
 #controls-panel.dk-left .modules,#controls-panel.dk-right .modules{flex-direction:column;flex-wrap:nowrap;align-items:stretch;}

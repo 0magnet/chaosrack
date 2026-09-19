@@ -280,15 +280,13 @@ const (
 	// already laid out on — see ModuleHP, which is the 7 HP that holds it.
 	CellWidth = 29.0
 
-	// CellHeight is the panel's row pitch.
+	// CellHeight is the panel's row pitch: two pot pitches.
 	//
-	// It SHOULD be two pot pitches — Doepfer and Analog Solutions both
-	// space panel pots 20 mm apart — and it is 38, which is two of
-	// nothing. Several module grids are built on this number and moving
-	// it to 40 scattered the cells into nine different sizes, so it is
-	// recorded as it is rather than as it ought to be, and the gap is
-	// written down instead of being quietly rounded away.
-	CellHeight = 38.0
+	// It was 38 mm, which is two of nothing, and every knob cell was
+	// sized by it while the bare cells were sized by their own 40 — so
+	// the panel had two cells and a control sat 8px higher in one module
+	// than in another. One number, and it is the one the references give.
+	CellHeight = 2 * PotPitch
 
 	// PotPitch is the vertical spacing between panel potentiometers.
 	PotPitch = 20.0
