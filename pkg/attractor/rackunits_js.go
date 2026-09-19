@@ -48,6 +48,13 @@ const (
 // which a stored unit number would eventually manage.
 var unitRacks []*rack.Rack
 
+// unitHidden is the put-away set, shared by every opening's rack.
+//
+// One map, because being switched out is a fact about the MODULE and
+// not about the unit it happens to be packed into — and packing moves
+// modules between units whenever a width changes.
+var unitHidden = map[string]bool{}
+
 // instrumentUnits are the units that are a front panel rather than an
 // opening, by the id of the panel element they wrap. They are appended
 // after the subracks, which is a v1 simplification: a real frame lets you
@@ -392,16 +399,15 @@ func layoutRackHandles() {
 	}
 	cl := f.Get("classList")
 	st := f.Get("style")
-	if !bayOn {
+	// The class is the PAINT and nothing else. The geometry below runs
+	// either way, so flipping the switch does not move a single module —
+	// it used to shed the frame width, the centering and the ears all at
+	// once and shift the whole rack 69px left.
+	if bayOn {
+		cl.Call("add", "with-bay")
+	} else {
 		cl.Call("remove", "with-bay")
-		st.Set("width", "")
-		st.Set("marginLeft", "")
-		st.Set("marginRight", "")
-		st.Set("transform", "")
-		st.Set("marginBottom", "")
-		return
 	}
-	cl.Call("add", "with-bay")
 	// A whole 19-inch panel, always — not as many slots as the window
 	// happens to fit. A window narrower than that gets the rack DRAWN
 	// smaller, not cropped: see fitFrameToWidth below.
