@@ -193,10 +193,10 @@ func syncBounceExtras(mode string) {
 		// a speck. Hand the next fit the demo box's real extent AND set the
 		// camera directly (the hyper-Rössler pattern — no ordering dependence
 		// on which autoFitCamera call consumes the one-shot override).
-		fitExtentOverride = bounceWall + 0.1
-		dist := fitDistFor(fitExtentOverride)
-		initCameraDist = dist
-		defaultCameraDist = dist
+		view.fitOverride = bounceWall + 0.1
+		dist := fitDistFor(view.fitOverride)
+		view.initDist = dist
+		view.defaultDist = dist
 		updateViewMatrix()
 		return
 	}

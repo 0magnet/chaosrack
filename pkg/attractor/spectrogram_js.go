@@ -323,8 +323,8 @@ func buildSpectColumn(mags []float64) []byte {
 // stays available via drag, the X/Y/Z sliders, and the auto-rotate box.
 // Used instead of autoFitCamera (which reads attractor vertices).
 func setSpectrogramCamera() {
-	initCameraDist = 4.5
-	defaultCameraDist = 4.5
+	view.initDist = 4.5
+	view.defaultDist = 4.5
 	cachedZoom = 0
 	if cameraControl.Truthy() {
 		cameraControl.Set("value", "0")
