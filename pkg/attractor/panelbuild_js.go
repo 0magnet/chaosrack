@@ -287,6 +287,9 @@ func buildModCard(id, label string, sym bool) js.Value {
 }
 
 func buildParamPanel(mode string) {
+	// The sweep is over THIS model's parameters; a mode change makes the
+	// dial's list wrong before anything else in the panel is rebuilt.
+	syncSweepDialMode(mode)
 	// Free the previous build's listener closures, then collect this build's
 	// (see funcarena_js.go) — the wipe below kills their DOM in the same
 	// synchronous pass.
@@ -454,6 +457,7 @@ func buildParamPanel(mode string) {
 	}
 	quantizeModuleWidths()    // param count changed → re-snap module widths
 	annotateControlTooltips() // role-aware tooltips (labels/readouts/swatches)
+	syncSweptMarks()          // a rebuilt row has lost its swept marking
 }
 
 // modTarget is one modulatable control (its paramMods key + display label).
