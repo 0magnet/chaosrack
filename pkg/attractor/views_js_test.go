@@ -135,3 +135,66 @@ func TestInstanceForClamps(t *testing.T) {
 		}
 	}
 }
+
+// The color source and map are per view too, or the split cannot show the
+// same figure read two ways — which is the comparison it is most for.
+func TestColorIsPerViewWhenUnlinked(t *testing.T) {
+	savedLink, savedSplit, savedFocus := viewLink, viewSplit, viewFocus
+	savedColors := viewColors
+	defer func() {
+		viewLink, viewSplit, viewFocus = savedLink, savedSplit, savedFocus
+		viewColors = savedColors
+	}()
+
+	viewSplit, viewLink = true, false
+	viewColors[0] = viewColor{src: 7, cols: 8}  // corr / turbo
+	viewColors[1] = viewColor{src: 13, cols: 4} // pos / hue sweep
+
+	if colorFor(0) != (viewColor{7, 8}) || colorFor(1) != (viewColor{13, 4}) {
+		t.Errorf("unlinked views share a coloring: %v %v", colorFor(0), colorFor(1))
+	}
+
+	// Linked, both take view A's, whatever B's entry says.
+	viewLink = true
+	if colorFor(0) != colorFor(1) || colorFor(1) != (viewColor{7, 8}) {
+		t.Errorf("linked views do not share view A's coloring: %v %v", colorFor(0), colorFor(1))
+	}
+}
+
+// The gradient selects write to whichever entry the panel is showing, and
+// that is view A unless the views are split AND apart.
+func TestGradientSelectsWriteToTheFocusedView(t *testing.T) {
+	savedLink, savedSplit, savedFocus := viewLink, viewSplit, viewFocus
+	savedColors := viewColors
+	defer func() {
+		viewLink, viewSplit, viewFocus = savedLink, savedSplit, savedFocus
+		viewColors = savedColors
+	}()
+
+	viewSplit, viewLink, viewFocus = true, false, 1
+	if got := focusedColorIdx(); got != 1 {
+		t.Errorf("focused color index = %d, want 1", got)
+	}
+	noteGradientSource(9)
+	if viewColors[1].src != 9 {
+		t.Errorf("the source went to view %d instead of B", 0)
+	}
+	if viewColors[0].src == 9 {
+		t.Error("the source leaked into view A")
+	}
+
+	// Linked or unsplit, there is one coloring on screen and it is A's.
+	viewLink = true
+	if focusedColorIdx() != 0 {
+		t.Error("linked, the selects should write to the shared entry")
+	}
+	viewLink, viewSplit = false, false
+	if focusedColorIdx() != 0 {
+		t.Error("unsplit, the selects should write to the only view")
+	}
+	// An out-of-range focus must not index past the array.
+	viewSplit, viewLink, viewFocus = true, false, 7
+	if idx := focusedColorIdx(); idx < 0 || idx >= len(viewColors) {
+		t.Errorf("focused color index %d is out of range", idx)
+	}
+}

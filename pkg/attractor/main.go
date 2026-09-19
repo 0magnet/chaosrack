@@ -976,6 +976,9 @@ func Run() {
 		SelectApply: func(v string) {
 			if n, err := strconv.Atoi(v); err == nil {
 				gradientSource = n
+				// The focused view keeps it, so the two halves can be
+				// colored differently. See views_js.go.
+				noteGradientSource(n)
 			}
 			// The source decides whether the map ring and the swatches apply at
 			// all — OFF leaves nothing to map — so this has to refresh the dimming
@@ -997,6 +1000,7 @@ func Run() {
 		SelectApply: func(v string) {
 			if n, err := strconv.Atoi(v); err == nil {
 				gradientColors = n
+				noteGradientColors(n)
 			}
 			updateGradientUI()
 		},
