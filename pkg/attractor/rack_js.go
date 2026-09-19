@@ -21,7 +21,10 @@ import (
 	"github.com/0magnet/rack-go"
 )
 
-var panelRack *rack.Rack
+// panelRack is gone: there is no single rack any more. unitRacks (see
+// rackunits_js.go) holds one per unit opening, and the functions below
+// aggregate across them so the dozen call sites elsewhere did not have to
+// learn that the rack grew a level.
 
 // rackModuleContent is where a module's real width is measured from.
 //
@@ -36,14 +39,25 @@ const rackModuleContent = ".punit-grid, .recgrid, .toprow, .row:not(#params)"
 // from storage on boot, for one — and they should be no-ops rather than
 // ordering constraints.
 func ensureRack() *rack.Rack {
-	if panelRack != nil {
-		return panelRack
-	}
-	container := doc.Call("querySelector", ".modules")
-	if !container.Truthy() {
+	if f := ensureRackFrame(); !f.Truthy() {
 		return nil
 	}
-	panelRack = rack.New(rack.Options{
+	syncUnitRacks()
+	if len(unitRacks) == 0 {
+		return nil
+	}
+	return unitRacks[0]
+}
+
+// newOpeningRack builds the rack that manages ONE unit's opening.
+//
+// One per opening rather than one for the panel, because rack-go
+// enumerates its container's direct children and an opening is a real
+// container now. The options are identical for every opening: they are
+// all the same kind of subrack, and a rack whose slots were a different
+// pitch from its neighbor's would not be a rack.
+func newOpeningRack(container js.Value) *rack.Rack {
+	return rack.New(rack.Options{
 		Container: container,
 		// This panel's own names, so the rack manages the elements the rest of
 		// the app and 700 lines of CSS already know by these names.
@@ -64,7 +78,6 @@ func ensureRack() *rack.Rack {
 		OnReorder:    func([]string) { saveRackLayout() },
 		OnVisibility: func(string, bool) { saveRackLayout() },
 	})
-	return panelRack
 }
 
 // modulePinned names the modules that get no show/hide switch.
@@ -87,9 +100,12 @@ func modulePinned(key string) bool {
 	if moduleNeverSwitched(key) {
 		return true
 	}
-	r := panelRack
+	r, m := rackFor(key)
+	if r == nil {
+		return true // not in any opening yet: no switch to offer
+	}
 	return modulePinnedFrom(false, r.Hidden(key),
-		r.Module(key).Get("style").Get("display").String() == "none")
+		m.Get("style").Get("display").String() == "none")
 }
 
 // moduleNeverSwitched names the modules that can have no switch whatever their
@@ -97,12 +113,8 @@ func modulePinned(key string) bool {
 // that a MODE shows and hides by a class on the panel. A switch contradicting
 // the mode is only a way to get stuck.
 func moduleNeverSwitched(key string) bool {
-	r := panelRack
-	if r == nil {
-		return true
-	}
-	m := r.Module(key)
-	if !m.Truthy() {
+	r, m := rackFor(key)
+	if r == nil || !m.Truthy() {
 		return true
 	}
 	cl := m.Get("classList")
@@ -116,34 +128,51 @@ func moduleNeverSwitched(key string) bool {
 
 // quantizeModuleWidths snaps every module to a whole number of slots.
 func quantizeModuleWidths() {
-	if r := ensureRack(); r != nil {
+	if ensureRack() == nil {
+		return
+	}
+	// Every opening, then repack: a module's slot count is the input to
+	// packing, so it has to be settled before anything is moved.
+	for _, r := range unitRacks {
 		r.Quantize()
 	}
-	// The rows may have re-wrapped, and the rack handles are drawn per row.
-	// This is the one place every layout change passes through.
+	relayoutUnits()
+	// The widths changed, so the modules a unit holds may have; quantize
+	// the openings that now exist.
+	for _, r := range unitRacks {
+		r.Quantize()
+	}
 	layoutRackHandles()
 }
 
 // buildModuleSwitches fills the Console's Modules section with one switch per
 // module.
 func buildModuleSwitches() {
-	r := ensureRack()
-	if r == nil {
+	if ensureRack() == nil {
 		return
 	}
 	host := doc.Call("getElementById", "module-switches")
 	if !host.Truthy() {
 		return
 	}
-	r.Switches(host)
+	// One host, every opening: the switch list is of the RACK, not of a
+	// unit, and a reader should not have to know which unit a module
+	// happens to be bolted into to find its switch. Cleared once here
+	// because each rack appends to what it is given.
+	host.Set("innerHTML", "")
+	for _, r := range unitRacks {
+		r.Switches(host)
+	}
 }
 
 // applyModuleVisibility puts away what the switches say to put away, and leaves
 // everything else alone. Called after a rebuild, which replaces the elements the
 // last pass acted on.
 func applyModuleVisibility() {
-	if r := ensureRack(); r != nil {
-		r.Apply()
+	if ensureRack() != nil {
+		for _, r := range unitRacks {
+			r.Apply()
+		}
 	}
 	layoutRackHandles()
 }
@@ -156,7 +185,10 @@ func wireModuleDrag() { ensureRack() }
 // slots by it. The panel's own --kscale still drives the CSS; this is the same
 // number told to the thing that does the arithmetic.
 func rackSetScale(v float64) {
-	if r := ensureRack(); r != nil {
+	if ensureRack() == nil {
+		return
+	}
+	for _, r := range unitRacks {
 		r.SetScale(v)
 	}
 }
@@ -224,4 +256,75 @@ func requantizeAfterFonts() {
 		return nil
 	})
 	ready.Call("then", fn)
+}
+
+// rackFor finds the opening a module lives in, and the rack that manages
+// it. Zero values when the module is not in the frame — which is every call
+// made before the frame is built, and the modules a mode hides by class.
+func rackFor(key string) (*rack.Rack, js.Value) {
+	for _, r := range unitRacks {
+		if m := r.Module(key); m.Truthy() {
+			return r, m
+		}
+	}
+	return nil, js.Value{}
+}
+
+// rackAllModules is every module in the frame, in flat order: the units in
+// order, and each opening's modules in order. This is the list that is
+// saved and the list packing reads, and deriving it rather than storing it
+// is what keeps the flat order and the unit placement from disagreeing.
+func rackAllModules() []js.Value {
+	var out []js.Value
+	for _, r := range unitRacks {
+		out = append(out, r.Modules()...)
+	}
+	return out
+}
+
+// rackOrder is the flat order, by key.
+func rackOrder() []string {
+	var out []string
+	for _, r := range unitRacks {
+		out = append(out, r.Order()...)
+	}
+	return out
+}
+
+// rackSetOrder puts the modules back in a saved order.
+//
+// Applied to the FIRST opening, and the rest follows: every module is moved
+// into unit 0 in the given order and then repacked, because which unit a
+// module ends up in is derived from the flat order and not stored. Doing it
+// per opening instead would need the saved record to say which unit each
+// module was in, and a record that says that can disagree with the order it
+// also says.
+func rackSetOrder(order []string) {
+	if len(unitRacks) == 0 {
+		return
+	}
+	first := unitRacks[0]
+	for _, m := range rackAllModules() {
+		first.Root().Call("appendChild", m)
+	}
+	syncUnitRacks()
+	first.SetOrder(mergeModuleOrder(order, first.Order()))
+}
+
+// rackHiddenKeys is every put-away module, across the openings.
+func rackHiddenKeys() []string {
+	var out []string
+	for _, r := range unitRacks {
+		out = append(out, r.HiddenKeys()...)
+	}
+	return out
+}
+
+// rackSetHidden restores the put-away set. Each opening is given the whole
+// list and keeps the keys it owns, which is what SetHidden already does
+// with a key it has never heard of.
+func rackSetHidden(keys []string) {
+	for _, r := range unitRacks {
+		r.SetHidden(keys)
+	}
 }

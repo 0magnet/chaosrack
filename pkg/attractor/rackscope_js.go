@@ -300,16 +300,14 @@ func drawRackScope() {
 // scopeVisible reports whether the tube is on screen at all: the module
 // exists and the rack has not switched it out.
 func scopeVisible() bool {
-	m := doc.Call("getElementById", "scope-module")
-	if !m.Truthy() {
+	p := doc.Call("getElementById", "scope-panel")
+	if !p.Truthy() {
 		return false
 	}
-	if m.Get("style").Get("display").String() == "none" {
-		return false
-	}
-	// offsetParent is null for anything inside a hidden ancestor, which is
-	// how a collapsed drawer or a put-away rack reads here.
-	return m.Get("offsetParent").Truthy()
+	// offsetParent is null for anything inside a hidden ancestor, which
+	// is how a unit taken out of the frame, a collapsed drawer or a put
+	// away rack all read here.
+	return p.Get("offsetParent").Truthy()
 }
 
 // drawScopeFaceGrat draws the etched face — the same figure the model's

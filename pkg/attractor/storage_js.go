@@ -105,19 +105,3 @@ func lsSet(key, val string) {
 }
 
 // lsRemove deletes a key.
-func lsRemove(key string) {
-	defer func() {
-		if recover() != nil {
-			lsNote("delete", key)
-		}
-	}()
-	if st := crStore(); st.Truthy() {
-		st.Call("del", key)
-		return
-	}
-	ls := js.Global().Get("localStorage")
-	if !ls.Truthy() {
-		return
-	}
-	ls.Call("removeItem", key)
-}
