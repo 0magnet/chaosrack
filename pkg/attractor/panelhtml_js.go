@@ -79,7 +79,7 @@ const controlsBody = `
     </select></span>
   </div>
   <div class="swsec"><div class="swsec-hdr" title="Audio — modulation, sources (test tone / signal gen), MIDI, meters, and audio backdrops">Audio</div>
-    <label class="grp" style="cursor:pointer;" title="Enable audio-reactive modulation — reveals the MOD + EQ modules for routing audio features to each control"><input type="checkbox" class="sw" id="audio-mod"> Audio mod</label>
+    <label class="grp" style="cursor:pointer;" title="Enable modulation — reveals the MOD + EQ modules, where each control can be routed from a source with a signed depth. The sources are the audio features (a channel and a band curve) and the MODEL ITSELF: the attractor's own x, y, z or radius driving its own constants, which closes the loop and makes a different system out of the one named on the dial."><input type="checkbox" class="sw" id="audio-mod"> Mod</label>
     <label class="grp" style="cursor:pointer;" title="Play a sweeping test tone (captured back via the server) to exercise the audio modulation"><input type="checkbox" class="sw" id="test-tone"> Test tone</label>
     <label class="grp" style="cursor:pointer;" title="WebMIDI — hardware control: CC 1..N drive the current mode's parameter knobs in order, CC 21..28 the view targets (zoom, pans, spins, rainbow, trail), and any note hops to that note's attractor."><input type="checkbox" class="sw" id="midi-sw"> MIDI</label>
     <label class="grp" style="cursor:pointer;" title="Show / hide the top-left audio feature meters (amp / bass / mid / treble / cntr / beat) while Audio mod is on"><input type="checkbox" class="sw" id="show-meters" checked> Meters</label>
