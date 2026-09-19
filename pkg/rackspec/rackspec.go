@@ -258,3 +258,38 @@ const (
 	// concept.
 	TekPlugInHeight = 139.7
 )
+
+// The control cell: the footprint one control occupies on a panel.
+//
+// Woodson & Conover describe laying a panel out with paper cutouts (§2-131),
+// and say what a cutout must be: "the exterior dimension of such items as
+// dial face or control knob, AND the interior dimension of the physical
+// structure of the control mechanism that will limit the proximity of
+// adjacent items." A control's footprint is therefore the knob plus
+// whatever stops the next one coming closer — not the knob. Laying out by
+// the knob and discovering the limit afterwards is how a panel ends up with
+// widths nobody chose.
+//
+// §2-132 then makes consistency binding rather than tidy: having given
+// rules for orienting a single group, it says that "for several groups on
+// the same panel, use a consistent pointer position REGARDLESS of the above
+// recommendations". Sameness across groups outranks what is locally best,
+// which is the whole argument for one cell instead of a size per module.
+const (
+	// CellWidth is one control column. 29 mm is the column the panel was
+	// already laid out on — see ModuleHP, which is the 7 HP that holds it.
+	CellWidth = 29.0
+
+	// CellHeight is the panel's row pitch.
+	//
+	// It SHOULD be two pot pitches — Doepfer and Analog Solutions both
+	// space panel pots 20 mm apart — and it is 38, which is two of
+	// nothing. Several module grids are built on this number and moving
+	// it to 40 scattered the cells into nine different sizes, so it is
+	// recorded as it is rather than as it ought to be, and the gap is
+	// written down instead of being quietly rounded away.
+	CellHeight = 38.0
+
+	// PotPitch is the vertical spacing between panel potentiometers.
+	PotPitch = 20.0
+)
