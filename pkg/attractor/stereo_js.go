@@ -134,11 +134,16 @@ var stereoPlans = [...]stereoPlan{
 // stereoAxisNames are the dial's positions by name — the tooltip on each
 // detent. paramLabels turns a numeric knob into a labeled rotary switch given
 // these; paramdefs_js.go is where both tables are indexed.
+// The two TIME positions are goniometers in the instrument sense — a two
+// channel vector display — with the third axis sweeping like a scope
+// timebase. The two DELAY positions are not: a delayed copy on the third
+// axis makes them a delay embedding of the pair, which is a different
+// figure answering a different question, so they are not called one.
 var stereoAxisNames = []string{
-	"L, R, L(t−τ)",
-	"L, R, time",
-	"mid, side, mid(t−τ)",
-	"mid, side, time",
+	"L/R delay embedding — L, R, L(t−τ)",
+	"L/R goniometer — L, R, time sweep",
+	"mid/side delay embedding — M, S, M(t−τ)",
+	"mid/side goniometer — M, S, time sweep",
 }
 
 // stereoAxisRing is what fits AROUND the dial: five runes per position, and for

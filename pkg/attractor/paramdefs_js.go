@@ -276,3 +276,76 @@ var attractorParams = map[string][]paramDef{
 		{"torus-roll", "roll", &torusRollF, 0, -8, 8, 0.1},
 	},
 }
+
+// paramHelp says what a knob DOES, in one sentence, keyed by parameter id.
+//
+// The tooltip machinery names a control by where it sits — "Stereo ▸ smth ▸
+// knob" — which answers "what am I hovering" and not "what is this for". On a
+// panel whose labels are four characters because that is what fits under a
+// dial, the second question is the one that goes unanswered: "smth" is
+// unguessable, and so are algn, drv, τ and vg until someone reads the source.
+//
+// So a label that is an abbreviation spells the word out, and every entry says
+// what turning it does rather than restating the name. Anything without an
+// entry keeps the plain hierarchy tooltip, which is fine for a knob whose
+// label is already a word.
+var paramHelp = map[string]string{
+	// ── the delay embedding, shared by three modes ──────────────────────
+	"takens-tau": "tau — the delay between the coordinates, in samples at 48 kHz, " +
+		"so one position is the same duration on any source. Too short and the " +
+		"axes are nearly the same sample and the figure collapses onto the " +
+		"diagonal; too long and it folds back on itself.",
+	"takens-win": "window — how much recent audio is on screen, in milliseconds. " +
+		"The length of the trace, not its shape.",
+	"takens-gain": "gain — world units a full-scale sample maps to. The camera fit " +
+		"tracks this, so the figure stays the same size on screen; it sets the " +
+		"scale the geometry is built at, not how big it looks.",
+	"takens-smooth": "smooth — Catmull-Rom upsampling, in drawn points per source " +
+		"sample. A straight line between samples draws chords that are an " +
+		"artifact of the drawing; this curves the beam through them instead. " +
+		"Higher is smoother and costs vertices.",
+	"takens-chan": "source — which channel of the live pair is reconstructed.",
+
+	// ── stereo ──────────────────────────────────────────────────────────
+	"stereo-axes": "axes — what the three coordinates are. The two 't' positions " +
+		"put TIME on the third axis and draw a goniometer sweeping like a scope " +
+		"trace; the two 'd' positions put a delayed copy there and draw a delay " +
+		"embedding of the pair.",
+	"stereo-tau": "tau — the delay used by the two 'd' axis positions. Inert on the " +
+		"time positions, which have no delayed coordinate.",
+	"stereo-win": "window — how much recent audio is on screen, in milliseconds.",
+	"stereo-gain": "gain — the scale the geometry is built at. The camera fit tracks " +
+		"it, so this does NOT change how big the figure looks; vg is the one " +
+		"that does.",
+	"stereo-align": "align — an inter-channel delay, signed, in samples at 48 kHz: " +
+		"right is read this many later than left. A spaced pair of microphones or " +
+		"a mis-clocked converter opens the figure into a rotating ellipse; dial " +
+		"the offset out until it collapses back onto the diagonal and the knob " +
+		"reads how far apart they were.",
+	"stereo-width": "width — mid/side width on the DRAWN figure only: below 1 the " +
+		"difference content shrinks toward mono, above 1 it spreads. Nothing is " +
+		"written back to the audio, so the correlation meter goes on reading the " +
+		"source as it is and this asks 'what would widening do'.",
+	"stereo-vg": "vertical gain — scales the two signal axes against the frame, the " +
+		"way a scope's vertical knob does. The camera fit ignores it, so a loud " +
+		"passage can be turned down to fit or a quiet one driven off the top.",
+	"stereo-span": "span — timebase. Stretches the TIME axis only, so the trace can " +
+		"sweep across a wide window instead of sitting in a small square. Inert " +
+		"on the two 'd' positions, where all three axes are signal and stretching " +
+		"one would be a distortion.",
+
+	// ── polar ───────────────────────────────────────────────────────────
+	"polar-map": "map — how sample magnitude becomes radius: tanh and soft squash " +
+		"gently, dB is logarithmic, unit discards magnitude and keeps direction " +
+		"only, drawing on the unit sphere.",
+	"polar-drive": "drive — how hard the signal is pushed into the map before it " +
+		"squashes. Low leaves quiet material near the center; high pushes " +
+		"everything out toward the surface.",
+	"polar-tau":  "tau — the delay between the three coordinates, in samples at 48 kHz.",
+	"polar-win":  "window — how much recent audio is on screen, in milliseconds.",
+	"polar-gain": "gain — the scale the geometry is built at; the camera fit tracks it.",
+	"polar-chan": "source — which channel of the live pair is reconstructed.",
+}
+
+// helpFor returns the sentence for a parameter id, or "".
+func helpFor(id string) string { return paramHelp[id] }
