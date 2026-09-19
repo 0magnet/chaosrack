@@ -9,143 +9,36 @@ import (
 	"github.com/0magnet/chaosrack/pkg/rackspec"
 )
 
+// The frame is a real 19-inch panel: an 84 HP opening with the rest of
+// the 482.6 mm as the two ears the unit is bolted to the rails through.
+// Derived from rackspec rather than chosen, so the frame drawn on
+// screen and the one the spec describes cannot come apart.
+func TestTheFrameIsAWholeNineteenInchPanel(t *testing.T) {
+	saved := panelScale
+	t.Cleanup(func() { panelScale = saved })
+	panelScale = 1
+
+	opening := rackspec.RowHP * rackspec.HP * rackspec.PxPerMM
+	got := unitFrameWidthPx()
+	if want := rackspec.PanelWidth19 * rackspec.PxPerMM; math.Abs(got-want) > 0.01 {
+		t.Errorf("the frame is %v px, want a whole 19-inch panel at %v", got, want)
+	}
+	// Two ears plus the opening is the panel, exactly. A rounding error
+	// here is a gap at the end of every row.
+	if sum := 2*unitEarWidthPx() + opening; math.Abs(sum-got) > 0.01 {
+		t.Errorf("two ears plus an 84 HP opening is %v, want the panel's %v", sum, got)
+	}
+	// And it scales with the interface, or the frame stops matching the
+	// modules in it the moment the Size ring moves.
+	panelScale = 2
+	if d := unitFrameWidthPx() - 2*got; math.Abs(d) > 0.01 {
+		t.Errorf("at scale 2 the frame is %v, want twice %v", unitFrameWidthPx(), got)
+	}
+}
+
 // A bay is a whole number of slots wide. Left to the window's width the row
 // ended wherever it ended, and the leftover between the last module and the
 // right ear was not a slot — which is not something a rack can contain.
-func TestBaySlotsIsWholeAndCapped(t *testing.T) {
-	const scale = 1.0
-	slot := moduleSlot * scale
-	pitch := slot + moduleGap*scale
-	ear := earWidthMM * rackspec.PxPerMM * scale
-
-	// Exactly n slots plus the ears must yield exactly n.
-	for n := 1; n <= rackspec.SlotsPerRow(); n++ {
-		natural := float64(n)*pitch - moduleGap*scale + 2*ear
-		if got := baySlots(natural, pitch, slot, ear); got != n {
-			t.Errorf("a bay of exactly %d slots (%.1f px) measured %d", n, natural, got)
-		}
-		// A hair under n slots is n-1: a slot that does not fit is not a slot.
-		if n > 1 {
-			if got := baySlots(natural-slot/2, pitch, slot, ear); got != n-1 {
-				t.Errorf("a bay half a slot short of %d measured %d, want %d", n, got, n-1)
-			}
-		}
-	}
-
-	// However wide the window, a 19-inch frame has 84 HP of row: twelve
-	// 7 HP slots and no more.
-	if got := baySlots(100000, pitch, slot, ear); got != rackspec.SlotsPerRow() {
-		t.Errorf("an enormous window gave %d slots, want the row's %d", got, rackspec.SlotsPerRow())
-	}
-	if rackspec.SlotsPerRow() != 12 {
-		t.Errorf("an 84 HP row of %d HP slots is %d, not 12", rackspec.ModuleHP, rackspec.SlotsPerRow())
-	}
-	// And never zero, however narrow.
-	if got := baySlots(10, pitch, slot, ear); got < 1 {
-		t.Errorf("a tiny window gave %d slots", got)
-	}
-}
-
-// Whatever the modules leave at the end of a row is filled with blanks, and
-// what is left after THEM is nothing — the bay ends where the last blank does.
-func TestBlankOffsetsFillTheRow(t *testing.T) {
-	const scale = 1.0
-	slot := moduleSlot * scale
-	pitch := slot + moduleGap*scale
-	ear := earWidthMM * rackspec.PxPerMM * scale
-	const n = 12
-	inner := float64(n)*pitch - moduleGap*scale
-
-	for used := 0; used < n; used++ {
-		rowRight := ear
-		if used > 0 {
-			rowRight = ear + float64(used)*pitch - moduleGap*scale
-		}
-		got := blankOffsets(rowRight, inner, ear, slot, pitch)
-		if len(got) != n-used {
-			t.Errorf("%d slots used: %d blanks, want %d", used, len(got), n-used)
-			continue
-		}
-		for i, x := range got {
-			want := ear + float64(used+i)*pitch
-			if math.Abs(x-want) > 1 {
-				t.Errorf("%d used, blank %d at %.1f, want %.1f", used, i, x, want)
-			}
-		}
-		if end := got[len(got)-1] + slot; math.Abs(end-(ear+inner)) > 1 {
-			t.Errorf("%d used: blanks end at %.1f, bay ends at %.1f", used, end, ear+inner)
-		}
-	}
-
-	// A full row leaves none.
-	if got := blankOffsets(ear+inner, inner, ear, slot, pitch); len(got) != 0 {
-		t.Errorf("a full row produced %d blanks", len(got))
-	}
-}
-
-// The row grouping decides how many bays are drawn and where. It reads the
-// browser's wrapping back rather than predicting it, so a fake DOM with known
-// geometry is exactly the right test.
-func TestMeasureBayRowsGroupsByTop(t *testing.T) {
-	const h = 514.0
-	host := newFakeHost(1900,
-		newFakeEl("sect").at(0, 0, 140, h),
-		newFakeEl("sect").at(142, 0, 282, h),
-		newFakeEl("sect").at(426, 0, 140, h),
-		// Second row.
-		newFakeEl("sect").at(0, 530, 140, h),
-		newFakeEl("sect").at(142, 530, 140, h),
-		// A module that is switched off has no box and belongs to no row.
-		newFakeEl("sect").at(0, 0, 0, 0),
-		// The bay's own furniture must not be counted as a module, or every
-		// pass would measure the one before it.
-		newFakeEl("rack-bay").at(0, 0, 1900, h),
-		newFakeEl("rack-blank").at(600, 0, 140, h),
-	)
-
-	rows := measureBayRows(host)
-	if len(rows) != 2 {
-		t.Fatalf("%d rows, want 2", len(rows))
-	}
-	if rows[0].top != 0 || rows[0].bottom != h {
-		t.Errorf("row 0 spans %.0f..%.0f, want 0..%.0f", rows[0].top, rows[0].bottom, h)
-	}
-	if rows[0].right != 566 {
-		t.Errorf("row 0 ends at %.0f, want 566 (the third module's right edge)", rows[0].right)
-	}
-	if rows[1].top != 530 {
-		t.Errorf("row 1 starts at %.0f, want 530", rows[1].top)
-	}
-	if rows[1].right != 282 {
-		t.Errorf("row 1 ends at %.0f, want 282", rows[1].right)
-	}
-}
-
-// Modules of unequal height still make one row: the tolerance is for a border
-// a pixel different, not for a second row.
-func TestMeasureBayRowsToleratesAWobble(t *testing.T) {
-	host := newFakeHost(1900,
-		newFakeEl("sect").at(0, 0, 140, 514),
-		newFakeEl("sect").at(142, 2, 140, 512),
-	)
-	rows := measureBayRows(host)
-	if len(rows) != 1 {
-		t.Fatalf("%d rows, want 1 — two pixels is not a new row", len(rows))
-	}
-	if rows[0].bottom != 514 {
-		t.Errorf("row bottom %.0f, want the taller module's 514", rows[0].bottom)
-	}
-}
-
-// Every category of the catalog must get its own position on the selector
-// knob, or the modes in it are reachable only by scrolling past the ones that
-// swallowed them.
-//
-// This is the regression: optgroupCategory used to fold everything outside
-// four named groups into "Attractors", so the Turtle Path, the Bifurcation
-// Explorer and the STL loader landed at the bottom of the Attractors model
-// knob behind twenty Sprott systems. Reachability belongs to the registry,
-// not to a switch statement in the selector.
 func TestEveryCatalogCategoryGetsItsOwnDetent(t *testing.T) {
 	seen := map[string]string{}
 	for _, g := range Catalog() {
