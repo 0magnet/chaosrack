@@ -981,6 +981,14 @@ func Run() {
 			updateGradientUI()
 		},
 	})
+	// Whether the color ramp refits itself. A setting of the MAP rather than
+	// of any one mode, which is why it sits beside src and map and not in a
+	// mode row: every audio-fed source shares the one auto-range.
+	adoptDescControl(ControlDesc{
+		ID: "color-lock", Label: "rng", IsSelect: true, SelectDef: "0",
+		ResetID:     "rst-color-lock",
+		SelectApply: func(v string) { colorRangeLock = v == "1" },
+	})
 	adoptDescControl(ControlDesc{
 		ID: "gradient-colors", Label: "map", IsSelect: true, SelectDef: "2",
 		ResetID: "rst-gradient-colors",
