@@ -27,7 +27,9 @@ package attractor
 
 import (
 	"math"
+	"sort"
 	"strconv"
+	"strings"
 	"syscall/js"
 
 	"github.com/go-gl/mathgl/mgl32"
@@ -153,11 +155,18 @@ func drawViewPasses(mode string) {
 		// And then the sweep, which is a SOURCE for one parameter rather
 		// than a value of it: applied for this cell and put straight back,
 		// so the knob still holds what the operator set.
+		// Per-control link is the same kind of thing, applied the same way:
+		// a control pinned to view A takes its value for this pass and
+		// gives it back afterwards. Before the sweep, so a control that is
+		// both linked and swept is swept — the sweep is the more specific
+		// answer to "where does this cell's value come from".
+		unlink := applyLinks(mode, i)
 		restore := applySweep(mode, i, n)
 		gl.Call("scissor", r[0], r[1], r[2], r[3])
 		setViewport(r)
 		generateForMode(mode)
 		restore()
+		unlink()
 	}
 	stereo = focusedInst()
 	fc := colorFor(focusedColorIdx())
@@ -975,4 +984,179 @@ func buildFocusDialInto() {
 	stack := soloKnob(sel)
 	addSelectorLabels(stack, labels, sel, 43).Set("id", "focus-n-ring")
 	holder.Call("appendChild", stack)
+}
+
+// ── per-control link ────────────────────────────────────────────────────
+//
+// Link is one switch: on, every cell is view A; off, every cell is its own
+// instrument. That is the right pair of ends and the wrong granularity for
+// the thing people actually want, which is "these two settings differ and
+// everything else is the same". Unlinked, you had to set every other knob on
+// every cell by hand to get there, and keep them in step afterwards.
+//
+// So Link keeps its meaning as the default for a control, and any individual
+// control can be pinned back to view A's copy. It is the same mechanism the
+// sweep uses — a value applied for one cell's pass and put straight back —
+// because it is the same KIND of thing: the parameter's source for this pass
+// is somewhere other than this cell's own knob.
+
+// paramLinks names the controls that stay shared while the views are
+// unlinked. Absent means unlinked, which is what Link off already meant, so
+// an empty map is exactly today's behavior.
+var paramLinks = map[string]bool{}
+
+// perControlLinkLive reports whether per-control link can do anything: it
+// needs several cells that are NOT already all one instrument.
+func perControlLinkLive() bool { return viewSplit() && !viewLink }
+
+// applyLinks pins this cell's linked controls to view A's copies for the
+// pass, and returns a function that puts the cell's own values back.
+//
+// Cell 0 IS view A, so it is left alone — copying a value onto itself and
+// restoring it is work with no effect, and doing it anyway would make the
+// undo order matter where it does not.
+func applyLinks(mode string, i int) func() {
+	if i <= 0 || !perControlLinkLive() || len(paramLinks) == 0 {
+		return func() {}
+	}
+	inst, a := instanceFor(i), viewInsts[0]
+	if inst == a {
+		return func() {}
+	}
+	type held struct {
+		p *float32
+		v float32
+	}
+	var saved []held
+	for _, pd := range attractorParams[mode] {
+		if !paramLinks[pd.ID] {
+			continue
+		}
+		dst, src := inst.field(pd.ID), a.field(pd.ID)
+		if dst == nil || src == nil {
+			continue
+		}
+		saved = append(saved, held{dst, *dst})
+		*dst = *src
+	}
+	if len(saved) == 0 {
+		return func() {}
+	}
+	return func() {
+		for _, s := range saved {
+			*s.p = s.v
+		}
+	}
+}
+
+// linkMarkSel is the badge that says a control is pinned to view A, and the
+// click target that pins and unpins it.
+const linkMarkSel = "linkmark"
+
+// syncLinkMarks puts a link badge on every control that can be linked, and
+// takes them all off when there is nothing to link.
+//
+// Placed by DOM lookup for syncSweptMarks's reason: the controls are built in
+// several places and a rule re-implemented per builder is a rule that will be
+// missing from one of them. Rebuilt with the panel, so the click closures go
+// in the panel's own arena and die with the DOM they are attached to.
+func syncLinkMarks() {
+	old := doc.Call("querySelectorAll", "."+linkMarkSel)
+	for i := 0; i < old.Length(); i++ {
+		el := old.Index(i)
+		if p := el.Get("parentNode"); p.Truthy() {
+			p.Call("removeChild", el)
+		}
+	}
+	if !perControlLinkLive() {
+		return
+	}
+	for _, pd := range attractorParams[selectedMode] {
+		// Only controls this model keeps per view can be linked. A parameter
+		// with no per-instance field is already one copy for every cell, and
+		// a badge offering to link it would be a badge that does nothing.
+		if viewInsts[0].field(pd.ID) == nil {
+			continue
+		}
+		el := doc.Call("getElementById", pd.ID)
+		if !el.Truthy() {
+			continue
+		}
+		cell := el.Call("closest", ".punit, .pcell")
+		if !cell.Truthy() {
+			continue
+		}
+		addLinkMark(cell, pd.ID)
+	}
+}
+
+// addLinkMark hangs one badge on one cell.
+func addLinkMark(cell js.Value, id string) {
+	on := paramLinks[id]
+	m := doc.Call("createElement", "span")
+	cls := linkMarkSel
+	if on {
+		cls += " on"
+	}
+	m.Set("className", cls)
+	if on {
+		m.Set("textContent", "⚭") // a closed link
+		m.Set("title", "Linked — every cell uses view A's setting of this control, "+
+			"even though the views are unlinked. Click to give each cell its own again.")
+	} else {
+		m.Set("textContent", "⚮") // a broken one
+		m.Set("title", "Unlinked — each cell has its own setting of this control. "+
+			"Click to pin every cell to view A's, so this one knob drives them all "+
+			"while the rest stay independent.")
+	}
+	cell.Get("classList").Call("add", "linkable")
+	m.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		if len(a) > 0 {
+			a[0].Call("stopPropagation")
+			a[0].Call("preventDefault")
+		}
+		if paramLinks[id] {
+			delete(paramLinks, id)
+		} else {
+			paramLinks[id] = true
+		}
+		// Only the badges move; the rows themselves are unchanged, and
+		// rebuilding the panel here would destroy the element the click is
+		// still inside.
+		syncLinkMarks()
+		// The pinned set is part of the state a link carries, and nothing
+		// else here writes the URL — a control changed without the address
+		// bar following is a link that quietly restores something else.
+		syncPermalinkNow()
+		return nil
+	}))
+	cell.Call("appendChild", m)
+}
+
+// linkedParamList serializes the linked set for the permalink, sorted so the
+// same state always produces the same link.
+func linkedParamList() string {
+	if len(paramLinks) == 0 {
+		return ""
+	}
+	ids := make([]string, 0, len(paramLinks))
+	for id, on := range paramLinks {
+		if on {
+			ids = append(ids, id)
+		}
+	}
+	sort.Strings(ids)
+	return strings.Join(ids, ".")
+}
+
+// setLinkedParamList restores it.
+func setLinkedParamList(s string) {
+	for k := range paramLinks {
+		delete(paramLinks, k)
+	}
+	for _, id := range strings.Split(s, ".") {
+		if id != "" {
+			paramLinks[id] = true
+		}
+	}
 }

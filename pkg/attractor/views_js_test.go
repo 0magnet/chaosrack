@@ -848,3 +848,109 @@ func TestBothAxesRestoreWhatTheyChanged(t *testing.T) {
 		t.Errorf("the down axis left color map %d behind, want the knob's 1", gradientColors)
 	}
 }
+
+// Per-control link is a SOURCE, like the sweep: it puts view A's value on a
+// cell for the pass and gives the cell's own back. If it did not restore,
+// unlinking a control would leave every cell holding A's setting and the
+// independence the views were unlinked for would be gone for good.
+func TestAPinnedControlIsBorrowedAndGivenBack(t *testing.T) {
+	savedLink, savedFocus, savedN := viewLink, viewFocus, viewCountF
+	t.Cleanup(func() {
+		viewLink, viewFocus, viewCountF = savedLink, savedFocus, savedN
+		for k := range paramLinks {
+			delete(paramLinks, k)
+		}
+	})
+	viewLink = false
+	viewCountF = 1 // two cells
+
+	a, b := viewInsts[0], viewInsts[1]
+	a.tau, b.tau = 7, 99
+	a.gain, b.gain = 3, 44
+	paramLinks["stereo-tau"] = true
+
+	undo := applyLinks("stereo", 1)
+	if b.tau != 7 {
+		t.Errorf("the pinned control did not take view A's value: got %v, want 7", b.tau)
+	}
+	if b.gain != 44 {
+		t.Errorf("an unpinned control was changed too: gain is %v, want the cell's own 44", b.gain)
+	}
+	undo()
+	if b.tau != 99 {
+		t.Errorf("the cell's own value did not come back: got %v, want 99", b.tau)
+	}
+}
+
+// Cell 0 IS view A. Copying a value onto itself and restoring it is work
+// with no effect, and doing it anyway would make the undo order matter where
+// it does not.
+func TestViewAIsNotPinnedToItself(t *testing.T) {
+	savedLink, savedN := viewLink, viewCountF
+	t.Cleanup(func() {
+		viewLink, viewCountF = savedLink, savedN
+		delete(paramLinks, "stereo-tau")
+	})
+	viewLink, viewCountF = false, 1
+	paramLinks["stereo-tau"] = true
+	viewInsts[0].tau = 12
+	undo := applyLinks("stereo", 0)
+	undo()
+	if viewInsts[0].tau != 12 {
+		t.Errorf("view A's own value was disturbed: got %v, want 12", viewInsts[0].tau)
+	}
+}
+
+// With Link ON every cell is already one instrument, so per-control link has
+// nothing to do and must not claim otherwise — a badge offering to link what
+// is already linked is a control that does nothing.
+func TestPerControlLinkIsDeadWhileTheViewsAreLinked(t *testing.T) {
+	savedLink, savedN := viewLink, viewCountF
+	t.Cleanup(func() { viewLink, viewCountF = savedLink, savedN })
+
+	viewCountF = 1 // two cells
+	viewLink = true
+	if perControlLinkLive() {
+		t.Error("per-control link is live while Link is on, where every cell is already view A")
+	}
+	viewLink = false
+	if !perControlLinkLive() {
+		t.Error("per-control link is dead with two unlinked cells, which is exactly when it is for")
+	}
+	viewCountF = 0 // one cell
+	if perControlLinkLive() {
+		t.Error("per-control link is live with a single view, where there is nothing to link to")
+	}
+}
+
+// The set has to survive a permalink, and round-trip to the same set — a
+// link that restores a DIFFERENT set of pinned controls is worse than one
+// that restores none.
+func TestThePinnedSetRoundTripsThroughALink(t *testing.T) {
+	t.Cleanup(func() {
+		for k := range paramLinks {
+			delete(paramLinks, k)
+		}
+	})
+	for k := range paramLinks {
+		delete(paramLinks, k)
+	}
+	if got := linkedParamList(); got != "" {
+		t.Errorf("an empty set serialized to %q, want nothing in the link at all", got)
+	}
+	paramLinks["stereo-win"] = true
+	paramLinks["stereo-tau"] = true
+	s := linkedParamList()
+	// Sorted, so the same state always makes the same link.
+	if s != "stereo-tau.stereo-win" {
+		t.Errorf("serialized to %q, want the ids sorted", s)
+	}
+	setLinkedParamList("")
+	if len(paramLinks) != 0 {
+		t.Errorf("restoring an empty list left %d pinned", len(paramLinks))
+	}
+	setLinkedParamList(s)
+	if !paramLinks["stereo-tau"] || !paramLinks["stereo-win"] || len(paramLinks) != 2 {
+		t.Errorf("round trip gave %v, want exactly the two that went in", paramLinks)
+	}
+}
