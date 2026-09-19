@@ -1314,6 +1314,10 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* Blank panels fill the rest of an opening, because a rack does not have a
    ragged gap at the end of a row — it has blanks, cut to the same widths. */
 .runit-blank{flex:0 0 auto;align-self:stretch;border-radius:1px;position:relative;
+  /* border-box, or the 1px border either side makes every blank 2px wider
+     than the slot it stands in — seven of them at the end of a row drifted
+     14px past the opening and the rows stopped lining up. */
+  box-sizing:border-box;
   background:linear-gradient(180deg,#30353a,#22262a 60%,#1a1d21);
   border:1px solid rgba(0,0,0,0.5);
   box-shadow:inset 0 1px 0 rgba(255,255,255,0.05);}
