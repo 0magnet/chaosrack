@@ -46,7 +46,11 @@ func (r *Rack) Show(key string) bool {
 		return false
 	}
 	delete(r.hidden, key)
-	for _, m := range r.Modules() {
+	// Across the siblings, not just this rack's own children: with a
+	// shared hidden set the module may well be sitting in another
+	// container by now, and showing it means clearing the style on the
+	// element wherever it actually is.
+	for _, m := range r.reachableModules() {
 		if r.Key(m) == key {
 			m.Get("style").Set("display", "")
 		}
@@ -171,4 +175,21 @@ func (r *Rack) Switches(host js.Value) int {
 		n++
 	}
 	return n
+}
+
+// reachableModules is every module this rack can act on: its own, and those
+// of any sibling the host named. Hiding and showing are properties of the
+// module, so they have to reach it wherever it has been packed.
+func (r *Rack) reachableModules() []js.Value {
+	out := r.Modules()
+	if r.opts.Siblings == nil {
+		return out
+	}
+	for _, s := range r.opts.Siblings() {
+		if s == nil || s == r {
+			continue
+		}
+		out = append(out, s.Modules()...)
+	}
+	return out
 }

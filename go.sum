@@ -26,6 +26,8 @@ github.com/0magnet/rack-go v0.0.0-20260915170035-3de86c6a1464 h1:PCqL7Bw3EOfc6Gs
 github.com/0magnet/rack-go v0.0.0-20260915170035-3de86c6a1464/go.mod h1:+Ujv92EHuD24yOz6wOagRmnQZ3Aw5nphM7STt16gnhs=
 github.com/0magnet/rack-go v0.0.0-20260919224051-d4328702df8d h1:jDlTLCOtviMpfmN3eAxg/4LL/GEV7spMB8EniirMzJQ=
 github.com/0magnet/rack-go v0.0.0-20260919224051-d4328702df8d/go.mod h1:+Ujv92EHuD24yOz6wOagRmnQZ3Aw5nphM7STt16gnhs=
+github.com/0magnet/rack-go v0.0.0-20260919233711-83f82141d691 h1:YWJpBWbKBls3S7mt86UCrYCE4ZwJWlUSUvDQVONlN/g=
+github.com/0magnet/rack-go v0.0.0-20260919233711-83f82141d691/go.mod h1:+Ujv92EHuD24yOz6wOagRmnQZ3Aw5nphM7STt16gnhs=
 github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a h1:xSuwvwPPsjc6tSMXk2BNuC+G3eGLgJ+/8EgPz/XoqxM=
 github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a/go.mod h1:ngQcnC5AqtrdAe3n1WaXvxXU63Jex0A7zKpJ4xQMfmQ=
 github.com/0magnet/termanim v0.0.0-20260916100333-d501f348ee17 h1:haAs+7Tb5q91PJsAYOs4yEPX/KXHv411g905jeYJqkM=

@@ -1309,18 +1309,22 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    whatever the browser is doing, so which unit a module is in depends on
    the order it is in and how wide it is, and a window too narrow for a
    rack scrolls a rack. */
-.rack-frame.with-bay{box-sizing:border-box;display:block;}
-.rack-frame.with-bay > .runit{display:flex;align-items:stretch;margin:0 0 calc(6px*var(--kscale,1));
+.rack-frame{box-sizing:border-box;display:block;}
+/* GEOMETRY is unconditional; only the paint hangs off .with-bay. A
+   switch that rearranges the panel is one you have to undo to find what
+   you were looking at. */
+.rack-frame > .runit{display:flex;align-items:stretch;position:relative;
+  border:1px solid transparent;border-radius:2px;box-sizing:border-box;
+  margin:0 0 calc(6px*var(--kscale,1));}
+.rack-frame.with-bay > .runit{border-color:#101315;
   background:linear-gradient(180deg,#2a2e33 0%,#23272b 50%,#1b1e22 100%);
-  border:1px solid #101315;border-radius:2px;
   box-shadow:inset 0 1px 0 rgba(255,255,255,0.07),inset 0 -1px 0 rgba(0,0,0,0.5);}
 /* The rails: the frame members above and below the opening a unit bolts to. */
-.rack-frame.with-bay > .runit::before,
-.rack-frame.with-bay > .runit::after{content:"";position:absolute;left:0;right:0;height:1px;
+.rack-frame > .runit::before,
+.rack-frame > .runit::after{content:"";position:absolute;left:0;right:0;height:1px;
   background:rgba(255,255,255,0.05);pointer-events:none;}
-.rack-frame.with-bay > .runit{position:relative;}
-.rack-frame.with-bay > .runit::before{top:0;}
-.rack-frame.with-bay > .runit::after{bottom:0;}
+.rack-frame > .runit::before{top:0;}
+.rack-frame > .runit::after{bottom:0;}
 
 /* The ears: (482.6 − 426.72)/2 ≈ 28 mm either side of the opening, carrying
    the holes the unit is bolted to the rails through. */
@@ -1354,12 +1358,22 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .runit-panel{flex:1 1 auto;display:flex;min-width:0;}
 .runit-panel > .scope-panel{flex:1 1 auto;border:0;border-radius:0;box-shadow:none;}
 
-/* With the metalwork off the frame is the plain flow it always was. */
-.rack-frame:not(.with-bay) > .runit{display:contents;}
-.rack-frame:not(.with-bay) .runit-ear{display:none;}
-.rack-frame:not(.with-bay) .runit-blank{display:none;}
-.rack-frame:not(.with-bay) .runit-open{display:contents;}
-.rack-frame:not(.with-bay) .runit-panel{display:block;width:100%;}
+/* With the metalwork off, the LAYOUT does not change — only the paint.
+
+   It used to fall back to a plain wrapped flow, which moved every module
+   69px left the moment the switch was flipped. A switch that rearranges
+   the panel is a switch you have to undo to find what you were looking
+   at; the bay is a view of the rack, not a change to it, so the units,
+   the openings, the ears and the blanks all keep their geometry and
+   simply stop being drawn. */
+.rack-frame:not(.with-bay) > .runit{background:none;border-color:transparent;box-shadow:none;}
+.rack-frame:not(.with-bay) > .runit::before,
+.rack-frame:not(.with-bay) > .runit::after{background:none;}
+.rack-frame:not(.with-bay) .runit-ear{background:none;border-color:transparent;}
+.rack-frame:not(.with-bay) .runit-ear i{background:none;box-shadow:none;}
+.rack-frame:not(.with-bay) .runit-blank{background:none;border-color:transparent;box-shadow:none;}
+.rack-frame:not(.with-bay) .runit-blank::before,
+.rack-frame:not(.with-bay) .runit-blank::after{background:none;box-shadow:none;}
 /* A blank is a PANEL, not a hole: it has the same brushed face as a module
    and the two screws that hold it to the rails. Without them the end of a
    row read as a gap, which is the ragged edge blanks exist to remove. */
