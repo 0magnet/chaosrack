@@ -36,6 +36,7 @@ const rackLayoutKey = "wasmstuff-racklayout"
 // the modules sit in, not a module, and it already persists under its own key
 // through setRackBay / restoreRackBay.
 var consoleModuleSwitches = []string{
+	"scope-on",
 	"patch-on",
 	"analysis-on",
 	"counter-on",

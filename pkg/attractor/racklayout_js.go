@@ -28,8 +28,8 @@ func saveRackLayout() {
 		return
 	}
 	l := rackLayout{
-		Order:    r.Order(),
-		Hidden:   r.HiddenKeys(),
+		Order:    rackOrder(),
+		Hidden:   rackHiddenKeys(),
 		Switches: onConsoleModuleSwitches(),
 	}
 	lsSet(rackLayoutKey, l.encode())
@@ -58,9 +58,9 @@ func restoreRackLayout() {
 	}
 	l := readRackLayout()
 	if len(l.Order) > 0 {
-		r.SetOrder(mergeModuleOrder(l.Order, r.Order()))
+		rackSetOrder(l.Order)
 	}
-	r.SetHidden(restorableHidden(l.Hidden))
+	rackSetHidden(restorableHidden(l.Hidden))
 }
 
 // restorableHidden drops any module the panel offers no switch for.

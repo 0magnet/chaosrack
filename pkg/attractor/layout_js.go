@@ -25,21 +25,17 @@ var resizing bool
 // fixed-height 3-row grid (a plain height drag could only clip it).
 var panelScale = 1.0
 
-// setKScale sets the interface scale (clamped), persists it, and re-snaps the
-// module widths + resize bar to the new size.
-// setKScale sets the interface size as a USER edit.
-func setKScale(v float64) { setKScaleFrom(v, false) }
-
-// setKScaleFrom sets the interface size, saying where the change came from.
+// setKScale sets the interface size: clamped, persisted, and told to
+// every unit's rack so the slot pitch follows.
 //
-// The origin matters because the rack bay shrinks the size to fit a whole
-// 84 HP row and puts it back when it is switched off. A size change from
-// anywhere else is the user's: from then on the current size is the one they
-// asked for, and the bay must not put an older one back over it.
-func setKScaleFrom(v float64, fromBay bool) {
-	if !fromBay {
-		forgetScaleBeforeBay()
-	}
+// It used to take a flag saying whether the change came from the rack
+// bay, because the bay shrank the interface to make a whole 84 HP row
+// fit the window and had to put the size back afterwards. The frame is
+// a fixed 84 HP now and a window too narrow for it scrolls, so there is
+// nothing that changes the size behind the user's back and no size to
+// remember on their behalf.
+
+func setKScale(v float64) {
 	if v < 0.6 {
 		v = 0.6
 	} else if v > 2.2 {
@@ -51,8 +47,8 @@ func setKScaleFrom(v float64, fromBay bool) {
 	// because the slot pitch it snaps modules to scales with the interface.
 	// rackSetScale re-quantizes, so there is no separate call here.
 	rackSetScale(v)
-	// The modules are a different size, so the rows may have re-wrapped and
-	// the bay drawn behind them is stale.
+	// The modules are a different size, so what fits in a unit has
+	// changed and the frame is a different width.
 	layoutRackHandles()
 	positionResizeHandle()
 	lsSet("wasmstuff-kscale", strconv.FormatFloat(v, 'f', 3, 64))

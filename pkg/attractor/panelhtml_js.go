@@ -90,6 +90,7 @@ const controlsBody = `
     <label class="grp" style="cursor:pointer;" title="Toggle browser fullscreen — the canvas fills the display; the panel stays available"><input type="checkbox" class="sw" id="fullscreen-sw"> Fullscreen</label>
     <label class="grp" style="cursor:pointer;" title="Show the Template module — a labeled legend of every named slot a module can have (header, label, readout, knob, ring, inner, fine, dial, reset). Hover a slot for the Go struct field it maps to."><input type="checkbox" class="sw" id="tpl-on"> Template</label>
     <label class="grp" style="cursor:pointer;" title="Rack bay — draw the 19-inch frame each ROW of modules sits in: rails above and below, an ear each side with a grab handle on it, and blank panels filling the leftover at the end of the row on the same slot pitch. The modules wrap, and a row is a bay, so a rack that has spilled onto a second row gets a second frame."><input type="checkbox" class="sw" id="handles-on"> Rack bay</label>
+    <label class="grp" style="cursor:pointer;" title="Scope — bolt the rack-mount oscilloscope into the frame. It is a UNIT, not a plug-in module: a 19-inch instrument with its own tube, timebase and trigger, fed from the live audio and running whatever the MODEL knob is pointed at. This switch is the only thing that puts it in or takes it out."><input type="checkbox" class="sw" id="scope-on"> Scope</label>
     <label class="grp" style="cursor:pointer;" title="Show the Patchbay module — an EMS-Synthi-style pin matrix routing audio energy (stereo/L/R) to any parameter or view control, plus an 8-slot patch memory bank (STO + slot stores, slot recalls)."><input type="checkbox" class="sw" id="patch-on"> Patchbay</label>
     <label class="grp" style="cursor:pointer;" title="Desk — run this app inside a desktop: the desk becomes the environment, its panel takes the bottom of the screen, and the rack floats as a window on it with a task button beside the desk's own. The scene keeps running behind. Open a terminal, the host shell or the file manager from the desk's Applications menu. The OTHER way to have the desk is as a MODEL (Solids &#8594; desk), where the whole desktop is drawn into the scene and turns with it."><input type="checkbox" class="sw" id="desk-contain"> Desk</label>
     <label class="grp" style="cursor:pointer;" title="Show the Analysis module — measures the largest Lyapunov exponent of the current model, the number that says whether it is really chaotic."><input type="checkbox" class="sw" id="analysis-on"> Analysis</label>
@@ -101,9 +102,14 @@ const controlsBody = `
   </div>
 </div>
 </div>
-<div class="sect scopemodule" id="scope-module"><div class="sect-hdr" title="Scope — a rack-mount oscilloscope. Not another view of the model: it is a second instrument with its own tube, its own timebase and its own trigger, fed from the live audio, and it keeps running whatever the MODEL knob is pointed at. VOLTS/DIV and TIME/DIV are detented 1-2-5 range switches, so a division is worth a round number and a reading is counted off the graticule rather than computed.">Scope</div>
-  <div class="scope-panel">
-    <div class="scope-ear"><i></i><i></i><i></i></div>
+<!-- The scope is a rack UNIT, not a module. It is a 19-inch instrument
+     bolted to the rails, not a card in a subrack opening, and wrapping
+     it in a .sect made it the second of those — which is why it needed
+     a full-row span override to look right. It sits here in source
+     order and relayoutInstrumentUnits bolts it into a unit of its own.
+     A later revision that takes plug-ins gets an opening beside this
+     panel and needs nothing new from the container model. -->
+<div class="scope-panel" id="scope-panel">
     <div class="scope-tube"><canvas id="scope-screen" width="480" height="384"></canvas><div class="scope-glass"></div></div>
     <div class="scope-ctl">
       <div class="scope-brand"><b>CHAOSRACK</b><span>TYPE 1 · DUAL TRACE</span></div>
@@ -127,9 +133,7 @@ const controlsBody = `
         <label class="scope-sw" title="Beam on. Off blanks the tube and stops the sweep — the scope stays in the rack with its screen dark, which is what a scope that is switched off looks like."><input type="checkbox" class="sw" id="scope-beam" checked><span>BEAM</span></label>
       </div>
     </div>
-    <div class="scope-ear"><i></i><i></i><i></i></div>
   </div>
-</div>
 <div class="sect" id="params-module"><div class="sect-hdr" title="Parameters — the current model's tunable constants (each with knob, LED value, step size, and reset)">Parameters</div><div id="params" class="row"></div></div>
 <div class="sect" id="layers-module"><div class="sect-hdr" title="Layers — where a second picture goes relative to the model. BEHIND draws one filling the canvas behind it; SKIN paints the spectrogram onto the model's own surface; FILL makes the spectrogram or FVF plane the whole screen, face-on, instead of a plane you can turn. Skin and Fill dim when the current model cannot take them.">Layers</div>
 <div class="row vmrow">
