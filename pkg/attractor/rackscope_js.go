@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"strconv"
+	"strings"
 	"syscall/js"
 )
 
@@ -288,49 +289,9 @@ func drawRackScope() {
 
 // scopeVisible reports whether the tube is on screen at all: the module
 // exists and the rack has not switched it out.
-func scopeVisible() bool {
-	p := doc.Call("getElementById", "scope-panel")
-	if !p.Truthy() {
-		return false
-	}
-	// offsetParent is null for anything inside a hidden ancestor, which
-	// is how a unit taken out of the frame, a collapsed drawer or a put
-	// away rack all read here.
-	return p.Get("offsetParent").Truthy()
-}
 
 // drawScopeFaceGrat draws the etched face — the same figure the model's
 // graticule uses, so the two are one instrument.
-func drawScopeFaceGrat(w, h float64) {
-	px := w / float64(gratDivX)
-	py := h / float64(gratDivY)
-	cx, cy := w/2, h/2
-	for _, weight := range []gratWeight{gratWeightTick, gratWeightDiv, gratWeightAxis} {
-		switch weight {
-		case gratWeightAxis:
-			scopeCtx.Set("strokeStyle", "rgba(150,190,220,0.55)")
-			scopeCtx.Set("lineWidth", 1.2)
-		case gratWeightDiv:
-			scopeCtx.Set("strokeStyle", "rgba(120,155,185,0.30)")
-			scopeCtx.Set("lineWidth", 1.0)
-		default:
-			scopeCtx.Set("strokeStyle", "rgba(120,155,185,0.20)")
-			scopeCtx.Set("lineWidth", 1.0)
-		}
-		scopeCtx.Call("beginPath")
-		for _, l := range scopeGraticule() {
-			if l.W != weight {
-				continue
-			}
-			// +0.5 so a one-pixel line lands ON a pixel instead of across two
-			// of them, which is the difference between a ruled face and a
-			// blurred one.
-			scopeCtx.Call("moveTo", snapHalf(cx+float64(l.X0)*px), snapHalf(cy-float64(l.Y0)*py))
-			scopeCtx.Call("lineTo", snapHalf(cx+float64(l.X1)*px), snapHalf(cy-float64(l.Y1)*py))
-		}
-		scopeCtx.Call("stroke")
-	}
-}
 
 func snapHalf(v float64) float64 { return float64(int(v)) + 0.5 }
 
@@ -385,7 +346,10 @@ func drawScopeTrace(w, h float64) {
 	scopeCtx.Set("shadowBlur", 4+10*(1-scopeUI.focus))
 	scopeCtx.Set("shadowColor", "rgba(120,255,170,0.9)")
 	scopeCtx.Set("strokeStyle", scopeBeamColor())
-	scopeCtx.Call("beginPath")
+	// Built as ONE path string and handed over once. A moveTo/lineTo per
+	// sample is a Go/JS boundary crossing per sample, which at a few
+	// hundred samples a frame is the bulk of what this instrument costs.
+	scopeTracePath.Reset()
 
 	if scopeUI.chanSel == scopeChanXY {
 		// X-Y: the horizontal comes off the other channel and the timebase is
@@ -394,11 +358,7 @@ func drawScopeTrace(w, h float64) {
 		for i := 0; i < span && start+i < len(l); i++ {
 			x := cx + scopeYDiv(l[start+i], vpd, scopeUI.hpos)*px
 			y := cy - scopeYDiv(r[start+i], vpd, scopeUI.vpos)*py
-			if i == 0 {
-				scopeCtx.Call("moveTo", x, y)
-			} else {
-				scopeCtx.Call("lineTo", x, y)
-			}
+			scopeLineTo(i == 0, x, y)
 		}
 	} else {
 		// The sweep: one screen width in span samples, so x is the fraction
@@ -407,14 +367,12 @@ func drawScopeTrace(w, h float64) {
 			frac := float64(i) / float64(span-1)
 			x := cx + (frac-0.5+scopeUI.hpos/float64(gratDivX))*w
 			y := cy - scopeYDiv(vert[start+i], vpd, scopeUI.vpos)*py
-			if i == 0 {
-				scopeCtx.Call("moveTo", x, y)
-			} else {
-				scopeCtx.Call("lineTo", x, y)
-			}
+			scopeLineTo(i == 0, x, y)
 		}
 	}
-	scopeCtx.Call("stroke")
+	if p := js.Global().Get("Path2D"); p.Truthy() {
+		scopeCtx.Call("stroke", p.New(scopeTracePath.String()))
+	}
 	scopeCtx.Set("shadowBlur", 0)
 }
 
@@ -456,3 +414,150 @@ func scopeBeamColor() string {
 	p := phosphors[1]
 	return phColorCSS(p.tr, p.tg, p.tb)
 }
+
+// The face is drawn from three cached Path2D objects, one per line weight.
+//
+// It used to walk the graticule and issue a moveTo and a lineTo per line —
+// about three hundred crossings of the Go/JS boundary every frame, on top of
+// rebuilding the figure three times. syscall/js pays for each of those
+// crossings, and together they cost the model a third of its frame rate and
+// a visible hitch about once a second. A Path2D is built once and handed to
+// stroke, so a frame is three calls instead of three hundred.
+var (
+	scopeGratPaths [3]js.Value
+	scopeGratW     float64
+	scopeGratH     float64
+)
+
+// scopeGratWeights is the order the face is drawn in: ticks first, so the
+// heavier lines land on top of them where they cross.
+var scopeGratWeights = [3]gratWeight{gratWeightTick, gratWeightDiv, gratWeightAxis}
+
+// scopeGratStroke is how each weight is painted. A real graticule is not one
+// uniform grid — the center axes are cut heavier than the division lines and
+// the ticks are hairlines — and drawing them alike is what makes a rendered
+// one look like a spreadsheet.
+var scopeGratStroke = [3]struct {
+	color string
+	width float64
+}{
+	{"rgba(120,155,185,0.20)", 1.0},
+	{"rgba(120,155,185,0.30)", 1.0},
+	{"rgba(150,190,220,0.55)", 1.2},
+}
+
+// buildScopeGratPaths rebuilds the three paths for a canvas of this size.
+func buildScopeGratPaths(w, h float64) {
+	p2d := js.Global().Get("Path2D")
+	if !p2d.Truthy() {
+		return
+	}
+	px := w / float64(gratDivX)
+	py := h / float64(gratDivY)
+	cx, cy := w/2, h/2
+	var b strings.Builder
+	for i, weight := range scopeGratWeights {
+		b.Reset()
+		for _, l := range scopeGraticule() {
+			if l.W != weight {
+				continue
+			}
+			// +0.5 so a one-pixel line lands ON a pixel instead of across two
+			// of them, which is the difference between a ruled face and a
+			// blurred one.
+			b.WriteString("M")
+			appendNum(&b, snapHalf(cx+float64(l.X0)*px))
+			b.WriteString(" ")
+			appendNum(&b, snapHalf(cy-float64(l.Y0)*py))
+			b.WriteString("L")
+			appendNum(&b, snapHalf(cx+float64(l.X1)*px))
+			b.WriteString(" ")
+			appendNum(&b, snapHalf(cy-float64(l.Y1)*py))
+		}
+		scopeGratPaths[i] = p2d.New(b.String())
+	}
+	scopeGratW, scopeGratH = w, h
+}
+
+// drawScopeFaceGrat strokes the face.
+func drawScopeFaceGrat(w, h float64) {
+	if scopeGratW != w || scopeGratH != h || !scopeGratPaths[0].Truthy() {
+		buildScopeGratPaths(w, h)
+	}
+	for i := range scopeGratWeights {
+		p := scopeGratPaths[i]
+		if !p.Truthy() {
+			continue
+		}
+		scopeCtx.Set("strokeStyle", scopeGratStroke[i].color)
+		scopeCtx.Set("lineWidth", scopeGratStroke[i].width)
+		scopeCtx.Call("stroke", p)
+	}
+}
+
+// appendNum writes a coordinate with one decimal, which is as fine as a
+// canvas path needs and keeps the string short.
+func appendNum(b *strings.Builder, v float64) {
+	b.WriteString(strconv.FormatFloat(v, 'f', 1, 64))
+}
+
+// scopeTracePath is the sweep, accumulated as an SVG path. Reused between
+// frames: it is rewritten sixty times a second and a fresh builder each
+// time is garbage the collector has to come back for.
+var scopeTracePath strings.Builder
+
+// scopeLineTo appends one point to the trace.
+func scopeLineTo(first bool, x, y float64) {
+	if first {
+		scopeTracePath.WriteString("M")
+	} else {
+		scopeTracePath.WriteString("L")
+	}
+	appendNum(&scopeTracePath, x)
+	scopeTracePath.WriteString(" ")
+	appendNum(&scopeTracePath, y)
+}
+
+// scopeVisible reports whether the tube is on screen at all.
+//
+// Asked a few times a second rather than every frame. The answer needs
+// offsetParent, and reading that forces the browser to settle style and
+// layout before it can reply — sixty of those a second, interleaved with
+// the model's own rendering, is a cost paid on every frame whether the
+// scope is in the rack or not. It changes when a switch is flipped or the
+// panel is re-laid-out, which is nowhere near frame rate.
+var (
+	scopeVisCached bool
+	scopeVisAt     float64
+)
+
+// scopeVisEveryMs is how stale the answer is allowed to get. A quarter of a
+// second is four layout reads a second instead of sixty, and is far below
+// the time it takes to notice a panel has changed.
+const scopeVisEveryMs = 250
+
+func scopeVisible() bool {
+	if frameNowMs-scopeVisAt < scopeVisEveryMs && scopeVisAt != 0 {
+		return scopeVisCached
+	}
+	scopeVisAt = frameNowMs
+	scopeVisCached = scopeOnScreen()
+	return scopeVisCached
+}
+
+// scopeOnScreen is the real answer, measured.
+func scopeOnScreen() bool {
+	p := doc.Call("getElementById", "scope-panel")
+	if !p.Truthy() {
+		return false
+	}
+	// offsetParent is null for anything inside a hidden ancestor, which is
+	// how a unit taken out of the frame, a collapsed drawer or a put-away
+	// rack all read here.
+	return p.Get("offsetParent").Truthy()
+}
+
+// invalidateScopeVisible forces the next frame to measure again, for the
+// moments when the answer has just changed and waiting a quarter second to
+// notice would be visible.
+func invalidateScopeVisible() { scopeVisAt = 0 }
