@@ -163,97 +163,114 @@ var stereoAxisNames = []string{
 // apart at a glance is goniometer against embedding, not time against delay.
 var stereoAxisRing = []string{"LRd", "LRg", "MSd", "MSg"}
 
-var (
-	stereoAxesF float32 = 0            // axes knob: an index into stereoPlans
-	stereoTau   float32 = takensTauDef // delay τ, reference samples (delay positions only)
-	stereoWin   float32 = 85           // display window, milliseconds
-	stereoGain  float32 = 10           // world units a full-scale (±1) sample maps to
+// stereoInst is ONE stereo embedding: everything the mode reads or writes
+// while drawing, in a struct rather than in package variables.
+//
+// It was eighteen globals, which is the same thing said in a way that
+// permits exactly one of them. Two of these side by side — the same audio
+// under different axes, or one held while the other is turned — is not a
+// feature that could be added on top of globals; it is what having a struct
+// means. The pure helpers around it (stereoWiden, stereoWindow,
+// stereoCorrelation, stereoReadout) already took their arguments and so are
+// already instance-free; only the state lived in one place, and now it does
+// not.
+//
+// The knob table binds to the fields of an instance, so a second instance
+// gets a second row of knobs by construction rather than by a parallel set
+// of ids someone has to keep in step.
+type stereoInst struct {
+	axesF float32 // axes knob: an index into stereoPlans
+	tau   float32 // delay τ, reference samples (delay positions only)
+	win   float32 // display window, milliseconds
+	gain  float32 // world units a full-scale (±1) sample maps to
 
-	stereoL, stereoR []float32 // this frame's snapshot, oldest first
+	l, r []float32 // this frame's snapshot, oldest first
 
-	// stereoFitGain is the GAIN the camera was last fitted to, 0 for not yet.
+	// fitGain is the GAIN the camera was last fitted to, 0 for not yet.
 	// A gain rather than a bool for takensFitGain's reason: the bound the fit
 	// is made against is a function of the gain, so a fit made at one gain is
-	// not a fit at another, and raising GAIN under a bool pushed the figure off
-	// the screen with only Zoom to bring it back.
-	stereoFitGain float32
+	// not a fit at another, and raising GAIN under a bool pushed the figure
+	// off the screen with only Zoom to bring it back.
+	fitGain float32
 
-	// stereoAlign is an INTER-CHANNEL delay: right is read this many reference
+	// align is an INTER-CHANNEL delay: right is read this many reference
 	// samples later than left, signed, so either channel can be the late one.
-	//
-	// The file comment above rejects making τ mean this — one knob with two
-	// meanings that swap under another knob is worse than a knob that is
-	// plainly inert — and that is right, but the thing it rejected is worth
-	// having on a dial of its own. A time offset between channels is the fault
-	// a goniometer gets reached for: a spaced pair of microphones, a mis-clocked
-	// converter, a plugin reporting its latency wrong. It draws as a figure that
-	// opens into an ellipse and rotates as the frequency moves, and the way to
-	// CONFIRM it is to dial the offset out and watch the figure collapse back
-	// onto the diagonal — at which point the knob reads how far apart they were.
-	//
-	// ±96 reference samples is ±2 ms: a 68 cm path difference in air, and well
-	// past any sane converter's error. In reference samples for tauSamples'
-	// reason, so the number is the same delay on every source.
-	stereoAlign float32
+	// A time offset between channels is the fault a goniometer gets reached
+	// for — a spaced pair of microphones, a mis-clocked converter, a plugin
+	// reporting its latency wrong. It draws as a figure that opens into an
+	// ellipse and rotates as the frequency moves, and the way to CONFIRM it
+	// is to dial the offset out and watch the figure collapse back onto the
+	// diagonal, at which point the knob reads how far apart they were.
+	// ±96 reference samples is ±2 ms: a 68 cm path difference in air.
+	align float32
 
-	// stereoWidth scales SIDE against MID: at 1 the figure is what was
-	// recorded, below it the difference content shrinks toward mono, above it
-	// the figure spreads. It is a mid/side width control, and having it here is
-	// what lets the display answer "what would widening this do" — including
-	// the question underneath that one, which is what collapses when the result
-	// is summed to mono.
-	//
-	// It acts on the DRAWN figure only. Nothing is written back to the audio, so
-	// the correlation meter goes on reading the source as it actually is rather
-	// than as the knob is pretending.
-	stereoWidth float32 = 1
+	// width scales SIDE against MID: at 1 the figure is what was recorded,
+	// below it the difference content shrinks toward mono, above it the
+	// figure spreads. It acts on the DRAWN figure only — nothing is written
+	// back to the audio, so the correlation meter goes on reading the source
+	// as it actually is rather than as the knob is pretending.
+	width float32
 
-	// stereoVGain is the VERTICAL GAIN a scope has and GAIN here is not.
-	//
-	// GAIN scales the geometry, and the camera fit is a function of it
-	// (fitExtentOverride = takensFitExtent(stereoGain)), so the two cancel
-	// exactly: the figure is the same size on screen at 0.5 as at 50. That is
-	// deliberate — fitting the instantaneous figure put loud passages off the
-	// screen — and it means the mode had nothing that turns a hot signal DOWN
-	// visually, which is the first thing a scope's vertical knob does.
-	//
-	// So this one multiplies the two SIGNAL axes and the fit does not know
-	// about it. Turning it up can push the trace off the frame, and that is
-	// the point: overdriving the vertical is a thing a scope does, and the
-	// operator decides when the interesting part is worth clipping the rest.
-	stereoVGain float32 = 1
+	// vgain is the VERTICAL GAIN a scope has and gain here is not. gain
+	// scales the geometry and the camera fit is a function of it, so the two
+	// cancel and the figure is the same size on screen at 0.5 as at 50. This
+	// multiplies the two SIGNAL axes and the fit does not know about it, so
+	// turning it up can push the trace off the frame — which is the point.
+	vgain float32
 
-	// stereoSpan stretches the TIME axis, and only the time axis.
-	//
-	// The two dial positions with time as the third coordinate (LRt, MSt) read
-	// like a scope trace, and a scope trace is swept across the whole screen.
-	// This one was fitted to a cube — the bound is the cube's corner — so a
-	// figure that is a vector plane plus a time ramp sits in a small square in
-	// the middle of a wide window, using none of the width it has.
-	//
-	// Stretching one axis of a 3D model is normally a distortion and is not
-	// offered anywhere else here. Time is the exception, because it is not a
-	// spatial dimension that was measured: it is a ramp this code synthesizes
-	// from the vertex index. Scaling it is a TIMEBASE, the same control the
-	// instrument this resembles has always had, and it distorts nothing that
-	// was in the signal.
-	//
-	// Inert on the two delay positions (LRd, MSd), where all three coordinates
-	// are signal and stretching one WOULD be a distortion.
-	stereoSpan float32 = 1
-)
+	// span stretches the TIME axis, and only the time axis. Stretching one
+	// axis of a 3D model is a distortion and is offered nowhere else here;
+	// time is the exception, because it is a ramp this code synthesizes from
+	// the vertex index rather than a measured dimension. Scaling it is a
+	// TIMEBASE. Inert on the two delay positions, where all three
+	// coordinates are signal.
+	span float32
+
+	readEl   js.Value // the readout in the parameter grid
+	readText string   // last text written to it (DOM write only on change)
+
+	monoSrc bool    // the source itself has one channel
+	corrOK  bool    // there is enough signal for a correlation to mean anything
+	corr    float32 // Pearson r between the channels, −1..+1
+
+	// collapsed counts CONSECUTIVE frames in which the two axes carry the
+	// same signal. A count rather than a flag because music is mono for a bar
+	// at a time all the time — a solo instrument panned center, a fade to a
+	// single voice — and a notice that fired on that would be noise. A second
+	// of it is a property of the source, not of the passage.
+	collapsed int
+	noticed   bool // the notice has been shown once since audio started
+}
+
+// newStereoInst returns an instance at the defaults the knobs reset to.
+func newStereoInst() *stereoInst {
+	return &stereoInst{
+		axesF: 0,
+		tau:   takensTauDef,
+		win:   85,
+		gain:  10,
+		width: 1,
+		vgain: 1,
+		span:  1,
+	}
+}
+
+// stereo is the instance the single on-screen stereo mode draws. A second
+// view takes a second one of these; nothing below reaches past its receiver
+// to find state, which is what makes that possible.
+var stereo = newStereoInst()
 
 func init() {
-	registerGenerate("stereo", generateStereo)
+	registerGenerate("stereo", stereo.generate)
 	attractorParams["stereo"] = []paramDef{
-		{"stereo-axes", "axes", &stereoAxesF, 0, 0, float32(len(stereoPlans) - 1), 1},
-		{"stereo-tau", "τ", &stereoTau, takensTauDef, 1, takensTauMax, 1},
-		{"stereo-win", "win", &stereoWin, 85, 5, stereoWinMax, 5},
-		{"stereo-gain", "gain", &stereoGain, 10, 0.5, 50, 0.5},
-		{"stereo-align", "algn", &stereoAlign, 0, -stereoAlignMax, stereoAlignMax, 1},
-		{"stereo-width", "wide", &stereoWidth, 1, 0, 3, 0.05},
-		{"stereo-vg", "vg", &stereoVGain, 1, 0.1, 8, 0.1},
-		{"stereo-span", "span", &stereoSpan, 1, 0.25, 8, 0.25},
+		{"stereo-axes", "axes", &stereo.axesF, 0, 0, float32(len(stereoPlans) - 1), 1},
+		{"stereo-tau", "τ", &stereo.tau, takensTauDef, 1, takensTauMax, 1},
+		{"stereo-win", "win", &stereo.win, 85, 5, stereoWinMax, 5},
+		{"stereo-gain", "gain", &stereo.gain, 10, 0.5, 50, 0.5},
+		{"stereo-align", "algn", &stereo.align, 0, -stereoAlignMax, stereoAlignMax, 1},
+		{"stereo-width", "wide", &stereo.width, 1, 0, 3, 0.05},
+		{"stereo-vg", "vg", &stereo.vgain, 1, 0.1, 8, 0.1},
+		{"stereo-span", "span", &stereo.span, 1, 0.25, 8, 0.25},
 		{"takens-smooth", "smth", &takensSmoothF, 4, 1, 16, 1},
 	}
 }
@@ -324,9 +341,9 @@ func stereoChanValue(c stereoChan, l, r float32) float32 {
 // clamping the RESULT of int(±Inf + 0.5) is clamping whatever the runtime
 // happened to produce. NaN falls out of the same comparison, since every
 // comparison against a NaN is false.
-func stereoAxisSel() int {
+func (s *stereoInst) axisSel() int {
 	last := len(stereoPlans) - 1
-	v := stereoAxesF
+	v := s.axesF
 	if !(v > 0) { // false for NaN too
 		return 0
 	}
@@ -419,15 +436,15 @@ func stereoWiden(l, r, width float32) (float32, float32) {
 
 // generateStereo snapshots both channels and draws the newest window as a
 // trail through the normal 3D pipeline.
-func generateStereo() {
+func (s *stereoInst) generate() {
 	src := ensureAudioSource()
 	sr := 24000
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := tauSamples(stereoTau, sr)
-	align := stereoAlignSamples(stereoAlign, sr)
-	n, stride := stereoWindow(stereoWin, sr, steps, tau, align)
+	tau := tauSamples(s.tau, sr)
+	align := stereoAlignSamples(s.align, sr)
+	n, stride := stereoWindow(s.win, sr, steps, tau, align)
 	span := (n-1)*stride + tau
 	// The two channels are read from indices `align` apart, so the snapshot has
 	// to cover both runs: |align| more samples, with the earlier channel
@@ -445,11 +462,11 @@ func generateStereo() {
 		baseR = -align
 	}
 	snap := span + absA + 1
-	if len(stereoL) < snap {
+	if len(s.l) < snap {
 		// Grown by half again, as the Takens ring is, so that turning the WIN
 		// knob does not reallocate on every step of the dial.
-		stereoL = make([]float32, snap+snap/2)
-		stereoR = make([]float32, len(stereoL))
+		s.l = make([]float32, snap+snap/2)
+		s.r = make([]float32, len(s.l))
 	}
 	nv := takensVerts(n)
 	vertices := vertBuf[:nv*4]
@@ -457,8 +474,8 @@ func generateStereo() {
 		// Re-upload the previous frame rather than a cleared buffer, so the
 		// model does not flicker while the source spins up — and refit when
 		// audio arrives, since the mode-entry fit saw whatever was here.
-		stereoFitGain = 0
-		stereoNoteState(false, false, 0)
+		s.fitGain = 0
+		s.noteState(false, false, 0)
 		uploadVerticesOnly(vertices, attractorDrawMode, nv)
 		return
 	}
@@ -469,17 +486,17 @@ func generateStereo() {
 	// and the correlation reads low. It clears itself as the source's ring
 	// fills (a third of a second at 48 kHz on a 16384-sample ring) and it
 	// cannot cause a false report: the collapse notice wants a solid second.
-	l, r := stereoL[:snap], stereoR[:snap]
+	l, r := s.l[:snap], s.r[:snap]
 	src.TimeDomainStereo(l, r)
 
-	plan := stereoPlans[stereoAxisSel()]
-	g := stereoGain
-	width := stereoWidth
+	plan := stereoPlans[s.axisSel()]
+	g := s.gain
+	width := s.width
 	// Display-only scaling: neither is in the camera fit, which is what
 	// makes them scope controls rather than more of GAIN. See their
 	// declarations.
-	vg := stereoVGain
-	tspan := stereoSpan
+	vg := s.vgain
+	tspan := s.span
 
 	// at reads axis c at source point k, clamping k to the window so the
 	// spline's outer control points at either end are defined — the Takens
@@ -535,17 +552,17 @@ func generateStereo() {
 	// source as it is, so that ALIGN and WIDE can be turned to ask what-if
 	// questions without the number moving to agree with the answer.
 	corr, ok := stereoCorrelation(l, r)
-	stereoNoteState(src.Channels() < 2, ok, corr)
+	s.noteState(src.Channels() < 2, ok, corr)
 
-	if stereoFitGain != stereoGain && !paramIsModulated("stereo-gain") {
+	if s.fitGain != s.gain && !paramIsModulated("stereo-gain") {
 		// Fitted to the FIXED scale's worst case, not to this window — see the
 		// same block in generateTakens for why fitting the instantaneous
 		// figure is what put loud passages off the screen. Every coordinate
 		// here is bounded by gain (samples are bounded to ±1; mid and side by
 		// construction; the time ramp by its own mapping), so the Takens
 		// mode's √3 cube-corner extent is the right bound unchanged.
-		stereoFitGain = stereoGain
-		fitExtentOverride = takensFitExtent(stereoGain)
+		s.fitGain = s.gain
+		fitExtentOverride = takensFitExtent(s.gain)
 		autoFitCamera()
 	}
 }
@@ -557,23 +574,6 @@ func generateStereo() {
 // have. Two things say it instead: a readout that is always there, and a
 // one-shot notice for the case where the readout is not enough because you
 // were not looking at the panel.
-
-var (
-	stereoReadEl   js.Value // the readout in the parameter grid
-	stereoReadText string   // last text written to it (DOM write only on change)
-
-	stereoMonoSrc bool    // the source itself has one channel
-	stereoCorrOK  bool    // there is enough signal for a correlation to mean anything
-	stereoCorr    float32 // Pearson r between the channels, −1..+1
-
-	// stereoCollapsed counts CONSECUTIVE frames in which the two axes carry
-	// the same signal. A count rather than a flag because music is mono for a
-	// bar at a time all the time — a solo instrument panned center, a fade to
-	// a single voice — and a notice that fired on that would be noise. A
-	// second of it is a property of the source, not of the passage.
-	stereoCollapsed int
-	stereoNoticed   bool // the notice has been shown once since audio started
-)
 
 // stereoNoticeFrames is a second at 60 Hz.
 const stereoNoticeFrames = 60
@@ -666,9 +666,9 @@ func stereoIsCollapsed(monoSrc, ok bool, corr float32) bool {
 
 // stereoNoteState records this frame's measurement, updates the readout, and
 // raises the notice once the collapse has persisted.
-func stereoNoteState(monoSrc, ok bool, corr float32) {
-	stereoMonoSrc, stereoCorrOK, stereoCorr = monoSrc, ok, corr
-	showStereoReadout(stereoReadout(monoSrc, ok, corr))
+func (s *stereoInst) noteState(monoSrc, ok bool, corr float32) {
+	s.monoSrc, s.corrOK, s.corr = monoSrc, ok, corr
+	s.showReadout(stereoReadout(monoSrc, ok, corr))
 
 	if !stereoIsCollapsed(monoSrc, ok, corr) {
 		// Re-armed, so a source that is swapped for a mono one later in the
@@ -676,19 +676,19 @@ func stereoNoteState(monoSrc, ok bool, corr float32) {
 		// non-collapsed frame and the notice costs a further second of
 		// collapse, and showAudioStatus suppresses a message identical to the
 		// one it last showed anyway.
-		stereoCollapsed, stereoNoticed = 0, false
+		s.collapsed, s.noticed = 0, false
 		return
 	}
-	if stereoCollapsed < stereoNoticeFrames {
+	if s.collapsed < stereoNoticeFrames {
 		// Stops at the threshold rather than counting on: this runs every
 		// frame for as long as the mode is up, and the number past the
 		// threshold means nothing to anyone.
-		stereoCollapsed++
+		s.collapsed++
 	}
-	if stereoNoticed || stereoCollapsed < stereoNoticeFrames {
+	if s.noticed || s.collapsed < stereoNoticeFrames {
 		return
 	}
-	stereoNoticed = true
+	s.noticed = true
 	// Reusing the audio status overlay rather than inventing a second one: it
 	// already shows once per change, auto-hides, and can be tapped away, and a
 	// message about the audio belongs where the messages about the audio go.
@@ -706,25 +706,25 @@ func stereoNoteState(monoSrc, ok bool, corr float32) {
 // every frame of it; more to the point, a two-decimal readout that re-renders
 // sixty times a second is unreadable, which is the same complaint that keeps
 // the Takens mode's τ on a button.
-func showStereoReadout(s string) {
-	if s == stereoReadText {
+func (s *stereoInst) showReadout(text string) {
+	if text == s.readText {
 		return
 	}
-	stereoReadText = s
-	if stereoReadEl.Truthy() {
-		stereoReadEl.Set("textContent", s)
+	s.readText = text
+	if s.readEl.Truthy() {
+		s.readEl.Set("textContent", text)
 	}
 }
 
 // appendStereoReadout adds the correlation cell to the Stereo parameter grid.
 // Into the grid, not #params, for the reason appendTakensEstimate is: #params
 // stacks below the height-bounded grid and gets clipped.
-func appendStereoReadout(grid js.Value) {
+func (s *stereoInst) appendReadout(grid js.Value) {
 	card, top := newPunitCard("corr")
 
-	stereoReadEl = doc.Call("createElement", "span")
-	stereoReadEl.Set("className", "led counter-led")
-	stereoReadEl.Set("title", "Correlation between the two channels over the display window, as a goniometer's "+
+	s.readEl = doc.Call("createElement", "span")
+	s.readEl.Set("className", "led counter-led")
+	s.readEl.Set("title", "Correlation between the two channels over the display window, as a goniometer's "+
 		"correlation meter reads it: +1.00 means the channels are identical and the figure is the diagonal "+
 		"line, 0 means they are unrelated and the figure is a round cloud, −1.00 means one is the other's "+
 		"polarity inverted (and the difference disappears if the mix is summed to mono). "+
@@ -733,11 +733,11 @@ func appendStereoReadout(grid js.Value) {
 	// Seeded from the last measurement, not from a placeholder: the panel is
 	// rebuilt on every mode change and every module toggle, and a cell that
 	// came back reading "r --" over a live stereo source would be reporting
-	// silence that is not there. stereoReadText is cleared so the next frame
+	// silence that is not there. s.readText is cleared so the next frame
 	// writes into the NEW element rather than skipping it as unchanged.
-	stereoReadText = ""
-	stereoReadEl.Set("textContent", stereoReadout(stereoMonoSrc, stereoCorrOK, stereoCorr))
-	top.Call("appendChild", stereoReadEl)
+	s.readText = ""
+	s.readEl.Set("textContent", stereoReadout(s.monoSrc, s.corrOK, s.corr))
+	top.Call("appendChild", s.readEl)
 
 	grid.Call("appendChild", card)
 }

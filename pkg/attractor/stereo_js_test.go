@@ -199,18 +199,18 @@ func TestMonoCollapsesOntoTheDiagonalAndOntoMid(t *testing.T) {
 // Audio modulation can drive any registered parameter, and this one indexes a
 // table. Anything the modulator produces has to land on a real plan.
 func TestStereoAxisSelClampsWhateverModulationDoes(t *testing.T) {
-	saved := stereoAxesF
-	defer func() { stereoAxesF = saved }()
+	saved := stereo.axesF
+	defer func() { stereo.axesF = saved }()
 	for _, v := range []float32{-1000, -1, -0.4, 0, 0.6, 1, 2, 3, 3.4, 99, float32(math.Inf(1))} {
-		stereoAxesF = v
-		if i := stereoAxisSel(); i < 0 || i >= len(stereoPlans) {
+		stereo.axesF = v
+		if i := stereo.axisSel(); i < 0 || i >= len(stereoPlans) {
 			t.Errorf("axes = %v selected plan %d", v, i)
 		}
 	}
 	// And the detents themselves must round to themselves, not to a neighbor.
 	for want := range stereoPlans {
-		stereoAxesF = float32(want)
-		if got := stereoAxisSel(); got != want {
+		stereo.axesF = float32(want)
+		if got := stereo.axisSel(); got != want {
 			t.Errorf("detent %d selected plan %d", want, got)
 		}
 	}
@@ -417,5 +417,56 @@ func TestOnlyTimePositionsAreCalledGoniometers(t *testing.T) {
 			t.Errorf("position %d (%s): time=%v but named %q",
 				i, stereoAxisRing[i], isTime, stereoAxisNames[i])
 		}
+	}
+}
+
+// The whole point of the struct: two embeddings with independent controls.
+// While the state was eighteen package variables this test could not be
+// written, because there was only ever one of each.
+func TestTwoStereoInstancesAreIndependent(t *testing.T) {
+	a, b := newStereoInst(), newStereoInst()
+
+	if a.tau != b.tau || a.gain != b.gain || a.width != b.width {
+		t.Fatalf("fresh instances differ: %+v vs %+v", a, b)
+	}
+
+	a.axesF = 1 // L/R goniometer
+	a.tau = 200
+	a.gain = 40
+	a.vgain = 3
+	a.span = 4
+
+	if b.axesF != 0 || b.tau != takensTauDef || b.gain != 10 || b.vgain != 1 || b.span != 1 {
+		t.Errorf("turning a's knobs moved b: %+v", b)
+	}
+	if a.axisSel() == b.axisSel() {
+		t.Errorf("both instances selected axis %d", a.axisSel())
+	}
+
+	// The per-frame measurement state is per instance too, or two views of
+	// the same audio would overwrite each other's readout.
+	a.corr, a.corrOK, a.collapsed = 0.9, true, 5
+	if b.corr != 0 || b.corrOK || b.collapsed != 0 {
+		t.Errorf("a's measurement leaked into b: corr=%v ok=%v collapsed=%d",
+			b.corr, b.corrOK, b.collapsed)
+	}
+
+	// And the camera-fit memo, which is what would make one view refit
+	// because the other was turned.
+	a.fitGain = 40
+	if b.fitGain != 0 {
+		t.Errorf("a's camera fit leaked into b: %v", b.fitGain)
+	}
+}
+
+// The package-level instance is the one the on-screen mode draws, and it
+// has to start at the same defaults a fresh one does — otherwise Reset All
+// and a new view would disagree about what default means.
+func TestPackageInstanceStartsAtDefaults(t *testing.T) {
+	fresh := newStereoInst()
+	if stereo.tau != fresh.tau || stereo.win != fresh.win ||
+		stereo.gain != fresh.gain || stereo.width != fresh.width ||
+		stereo.vgain != fresh.vgain || stereo.span != fresh.span {
+		t.Errorf("the drawn instance is not at defaults:\n got %+v\nwant %+v", stereo, fresh)
 	}
 }
