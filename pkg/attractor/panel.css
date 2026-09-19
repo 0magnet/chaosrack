@@ -96,10 +96,23 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* punit-top is itself offset 2px from the cell top, so its label pins at 2px to
    land at the same cell-relative height (4px) as the others. */
 .modules .pcell .punit-top>.plabel{position:absolute!important;top:2px!important;left:4px!important;transform:none!important;line-height:1.1;margin:0;z-index:3;}
-/* ── Uniform knob-stack cell. Size / Knob / Phosphor / Palette / Step-Fine are
-   bare .pcell.axcol (no .vmcell, no .axrot); give them the SAME 116×160 box as
-   the value cells and pin their label top-left, so every module lines its label
-   + control up identically (View is the reference). ── */
+/* ── The control cell. Size / Knob / Phosphor / Palette / Step-Fine are
+   bare .pcell.axcol (no .vmcell, no .axrot); give them the SAME 116x160
+   box as the value cells and pin their label top-left, so every module
+   lines its label + control up identically (View is the reference).
+
+   NOT YET ONE CELL, and the gap is measured: on the live rack this rule
+   sizes 11 cells at 116x160 while .vmcell and .axcol.axrot take --krow
+   (116x152) with !important — so a control sits 8px higher in one
+   module than in another, and §2-132's "use a consistent pointer
+   position REGARDLESS of the above recommendations" is not yet met.
+
+   Dropping the two :not()s does not fix it: they carry specificity, and
+   at (0,3,0) instead of (0,5,0) other rules win and the cells scatter
+   into nine heights instead of two. Unifying them is a specificity
+   pass over the whole cell cascade, not an edit to this line. The two
+   sizes are named in pkg/rackspec (CellWidth, CellHeight) so the day
+   they converge they converge in one place. ── */
 .vmrow>.pcell.axcol:not(.axrot):not(.vmcell){width:calc(116px*var(--kscale,1));height:calc(160px*var(--kscale,1));box-sizing:border-box;position:relative;justify-content:center;}
 .vmrow>.pcell.axcol:not(.axrot):not(.vmcell) .knoblbl{position:static;}
 .vmrow>.pcell.axcol:not(.axrot):not(.vmcell) .knoblbl>.plabel{position:absolute;top:3px;left:3px;line-height:1.1;z-index:3;margin:0;}
@@ -514,7 +527,15 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
   /* --krow: the knob-row grid pitch. Every knob cell (.vmcell / .axcol.axrot)
      is exactly this tall and centers its knob, so the Nth knob of EVERY module
      lands on the same horizontal line — alignment by construction. --kcol is the
-     matching column width. */
+     matching column width.
+
+     29 mm wide and 38 mm tall. The width is the content column the panel
+     was always laid out on. The HEIGHT is the panel's own row pitch and
+     not, as it should be, two of Doepfer's 20 mm pot pitches — several
+     module grids are built on this number, and moving it to 40 scattered
+     the cells into nine different sizes. pkg/rackspec names both and a
+     test holds the drawn panel to them, so the day it moves it moves in
+     one place. */
   --krow:calc(38*var(--mm)); --kcol:calc(29*var(--mm));}
 .modules{display:flex;flex-wrap:wrap;align-items:flex-start;gap:calc(0.5*var(--mm));}
 /* Sidebar docks: stack modules in one column (never side-by-side). */

@@ -215,3 +215,53 @@ func TestTheTekPlugInIsNotOnTheHPGrid(t *testing.T) {
 		t.Errorf("the Tek plug-in is %v mm, not taller than a %v mm 3U panel", TekPlugInHeight, PanelHeight3U)
 	}
 }
+
+// One cell, and it is built out of the two units the references give: the
+// 29 mm content column the panel already used, and Doepfer's 20 mm pot
+// pitch. A cell height that is not a whole number of pot pitches is a cell
+// that cannot be stacked on the grid it claims to be on.
+
+// The stylesheet draws the cell the spec describes. Two copies of a
+// dimension is how the drawn panel and the specified one come apart, and
+// this pins them together.
+func TestStylesheetDrawsTheSpecifiedCell(t *testing.T) {
+	css, err := os.ReadFile("../attractor/panel.css")
+	if err != nil {
+		t.Skip("panel.css not readable from here:", err)
+	}
+	// The cell is declared in millimeters, as --krow (height) and --kcol
+	// (width), which is what every knob cell is sized by.
+	re := regexp.MustCompile(`--krow:\s*calc\(([0-9.]+)\*var\(--mm\)\);\s*--kcol:\s*calc\(([0-9.]+)\*var\(--mm\)\)`)
+	m := re.FindSubmatch(css)
+	if m == nil {
+		t.Fatal("panel.css does not declare --krow and --kcol together; the cell is not written down where the panel is drawn")
+	}
+	for i, want := range []float64{CellHeight, CellWidth} {
+		got, err := strconv.ParseFloat(string(m[i+1]), 64)
+		if err != nil {
+			t.Fatalf("cell dimension %d is not a number: %v", i, err)
+		}
+		if got != want {
+			t.Errorf("panel.css draws the cell at %g mm, rackspec says %g", got, want)
+		}
+	}
+}
+
+// The cell's width is the content column, and it fits the slot it lives in
+// with the module's own padding left over. Its HEIGHT is recorded as the
+// panel draws it, 38 mm, and the test says plainly that this is not the two
+// pot pitches it ought to be — so the discrepancy is visible rather than
+// rounded away, and whoever moves it knows what they are moving it toward.
+func TestTheCellFitsItsSlotAndItsHeightIsHonest(t *testing.T) {
+	if CellWidth >= SlotWidth {
+		t.Errorf("a %v mm cell does not fit a %v mm slot", CellWidth, SlotWidth)
+	}
+	if CellHeight >= PanelHeight3U {
+		t.Errorf("a %v mm cell does not fit a %v mm 3U panel", CellHeight, PanelHeight3U)
+	}
+	// Documented, not asserted: the reference value is 40.
+	if want := 2 * PotPitch; CellHeight == want {
+		t.Logf("the cell is now the reference %v mm; the comment in rackspec.go "+
+			"explaining why it was 38 can go", want)
+	}
+}
