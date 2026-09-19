@@ -58,6 +58,8 @@ var paramLabels = map[string][]string{
 	"stereo-axes": stereoAxisNames,
 	// The trigger edge, named the same way and for the same reason.
 	"stereo-trig": stereoTrigNames,
+	"stereo-tsrc": trigSrcNames,
+	"stereo-tcpl": trigCplNames,
 	// The polar embedding's radius map. Same arrangement and the same reason:
 	// the names live next to the maps they index (polar_js.go), so a dial
 	// position cannot come to name a curve it does not draw.
@@ -111,6 +113,8 @@ var paramRingLabels = map[string][]string{
 	"globe-rev":   {"cw", "ccw"},
 	"stereo-axes": stereoAxisRing,
 	"stereo-trig": stereoTrigRing,
+	"stereo-tsrc": trigSrcRing,
+	"stereo-tcpl": trigCplRing,
 	"polar-map":   polarMapRing,
 	"xy-basis":    xyBasisRing,
 	"takens-chan": tapChanRing,
@@ -339,6 +343,18 @@ var paramHelp = map[string]string{
 		"periodic signal stands still. Nothing periodic to lock to — noise, " +
 		"speech — and it free-runs rather than blanking, which is the AUTO " +
 		"behavior of a bench scope.",
+	"stereo-tsrc": "trigger source — which signal the trigger watches. It need not " +
+		"be what is drawn: locking to MID holds the whole figure, and locking to " +
+		"one channel is how to hold a figure whose other channel is the busy one.",
+	"stereo-tcpl": "trigger coupling — what reaches the trigger. DC passes " +
+		"everything, LF reject high-passes so bass and offset stop dragging the " +
+		"crossing around, HF reject low-passes so hiss and cymbals stop producing " +
+		"crossings of their own. This is the \"which frequency do I trigger on\" " +
+		"control, spelled the way a scope spells it.",
+	"stereo-hyst": "noise reject — how far past the level the signal must go " +
+		"before a crossing counts. Zero triggers on every dither across the level, " +
+		"which on program material means the figure flickers between two phases a " +
+		"sample apart. A few hundredths is usually enough.",
 	"stereo-lvl": "level — where the trigger looks for its crossing, in units of " +
 		"full scale. 0 is the zero crossing and is what to use unless the signal " +
 		"has an offset or the interesting edge is part way up it.",

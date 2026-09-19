@@ -232,6 +232,13 @@ type stereoInst struct {
 	// is what makes a periodic figure stand still.
 	trig float32
 	lvl  float32
+	tsrc float32 // trigger source: mid, L or R
+	tcpl float32 // trigger coupling: DC, LF reject, HF reject
+	hyst float32 // noise reject: how far past the level a crossing must go
+
+	// trigBuf is the trigger path for this frame, kept so a filter run does
+	// not allocate sixty times a second.
+	trigBuf []float32
 
 	readEl   js.Value // the readout in the parameter grid
 	readText string   // last text written to it (DOM write only on change)
@@ -261,6 +268,9 @@ func newStereoInst() *stereoInst {
 		span:  1,
 		trig:  stereoTrigOff,
 		lvl:   0,
+		tsrc:  trigSrcMid,
+		tcpl:  trigCplDC,
+		hyst:  0.02,
 	}
 }
 
@@ -282,6 +292,9 @@ func init() {
 		{"stereo-span", "span", &stereo.span, 1, 0.25, 8, 0.25},
 		{"stereo-trig", "trig", &stereo.trig, stereoTrigOff, stereoTrigOff, stereoTrigFalling, 1},
 		{"stereo-lvl", "lvl", &stereo.lvl, 0, -1, 1, 0.01},
+		{"stereo-tsrc", "tsrc", &stereo.tsrc, trigSrcMid, trigSrcMid, trigSrcR, 1},
+		{"stereo-tcpl", "tcpl", &stereo.tcpl, trigCplDC, trigCplDC, trigCplHFRej, 1},
+		{"stereo-hyst", "hyst", &stereo.hyst, 0.02, 0, 0.5, 0.01},
 		{"takens-smooth", "smth", &takensSmoothF, 4, 1, 16, 1},
 	}
 }
@@ -508,13 +521,8 @@ func (s *stereoInst) generate() {
 	// possible window", which is what an untriggered draw has always used.
 	toff := margin
 	if m := s.trigMode(); m != stereoTrigOff {
-		toff = triggerOffset(margin, s.lvl, m == stereoTrigRising, func(off int) float32 {
-			// The trigger watches MID, the sum of the pair: it is the signal
-			// both axes are built from, so locking to it holds the whole
-			// figure rather than one of its coordinates.
-			i := tau + off
-			return (l[baseL+i] + r[baseR+i]) * 0.5
-		})
+		trig := s.buildTrigSignal(l, r, baseL, baseR, tau, margin, sr)
+		toff = triggerOffset(trig, margin, s.lvl, s.hyst, m == stereoTrigRising)
 	}
 	baseL += toff
 	baseR += toff
@@ -845,39 +853,174 @@ func (s *stereoInst) trigMargin(span int) int {
 	return span
 }
 
-// triggerOffset picks where in the search margin the window should start.
+// triggerOffset picks where in the search margin the window starts.
 //
-// It returns an offset in 0..margin, counted from the OLDEST end, so margin
-// means "start at the newest possible point" — which is what an untriggered
-// draw does and what a failed search falls back to.
+// Offsets are added to the window base, so a LARGER offset is a NEWER
+// window: 0 is the oldest start the margin allows and margin is the newest,
+// which is where an untriggered draw begins and where a failed search falls
+// back to.
 //
-// The scan runs from the newest candidate backwards and takes the FIRST
-// crossing it finds, so the window is the most recent one that satisfies the
-// trigger. Searching forward would lock to the oldest crossing in the margin
-// and show audio that is a whole window staler than it needs to be.
+// The scan therefore runs DOWN from the newest and takes the first crossing,
+// which is the most recent one. It ran up before, and that is a bug worth
+// naming: it locked to the OLDEST crossing in the margin, so the window was
+// a whole margin stale and jumped whenever the margin's contents rolled —
+// which looks, from the front, exactly like a trigger that does not work.
 //
-// mid is read through a function rather than a slice so the caller does not
-// have to build a mixed-down copy of the pair every frame just to look for a
-// zero crossing in it.
-func triggerOffset(margin int, level float32, rising bool, mid func(off int) float32) int {
-	if margin <= 0 {
-		return 0
+// hyst is the noise-reject band. A crossing only counts once the signal has
+// been the far side of level by at least this much, so a waveform that
+// dithers across the level does not produce a trigger per dither. It is what
+// a bench scope calls noise reject, and on program material it is the
+// difference between a figure that holds and one that flickers between two
+// phases a sample apart.
+func triggerOffset(trig []float32, margin int, level, hyst float32, rising bool) int {
+	if margin <= 0 || len(trig) <= margin {
+		return margin
 	}
-	// Offsets count BACKWARDS: 0 is the newest sample the window could start
-	// at, margin the oldest. So the scan runs UP from 0 and takes the first
-	// crossing, which is the most recent one — searching the other way locks
-	// to the oldest crossing in the margin and shows audio a whole window
-	// staler than it needs to be.
-	//
-	// At offset off, the sample BEFORE it in time is off+1.
-	for off := 0; off < margin; off++ {
-		older, newer := mid(off+1), mid(off)
-		if rising && older < level && newer >= level {
-			return off
-		}
-		if !rising && older > level && newer <= level {
-			return off
+	armed := false
+	for off := margin; off > 0; off-- {
+		newer, older := trig[off], trig[off-1]
+		if rising {
+			// Walking backwards in time: arm once the signal is clearly
+			// ABOVE, then report the crossing that got it there.
+			if newer >= level+hyst {
+				armed = true
+			}
+			if armed && older < level && newer >= level {
+				return off
+			}
+		} else {
+			if newer <= level-hyst {
+				armed = true
+			}
+			if armed && older > level && newer <= level {
+				return off
+			}
 		}
 	}
 	return margin // nothing to lock to: free-run from the newest sample
+}
+
+// trigCoupling filters the trigger signal in place, oldest sample first.
+//
+// This is the "what frequency do I trigger on" control, and on a scope it is
+// spelled as coupling rather than as a frequency: the trigger has its own
+// path, and narrowing what reaches it is how a stable lock is found in
+// material that has too much going on.
+//
+//   - DC passes everything, which is right for a clean tone.
+//   - LF REJECT high-passes, so a bass line or DC offset stops dragging the
+//     crossing around and the trigger locks to the part you are looking at.
+//   - HF REJECT low-passes, so cymbals and hiss stop producing crossings of
+//     their own and the trigger follows the fundamental.
+//
+// One-pole each, which is what a scope's trigger path is: the point is to
+// tilt the balance, not to build a filter anyone would listen through.
+func trigCoupling(buf []float32, mode int, sr int) {
+	if len(buf) == 0 || sr <= 0 || mode == trigCplDC {
+		return
+	}
+	switch mode {
+	case trigCplLFRej:
+		// ~100 Hz high-pass: below a bass note's fundamental.
+		a := rcAlpha(100, sr)
+		var prevIn, prevOut float32
+		for i, x := range buf {
+			y := a * (prevOut + x - prevIn)
+			prevIn, prevOut = x, y
+			buf[i] = y
+		}
+	case trigCplHFRej:
+		// ~2 kHz low-pass: above most fundamentals, below most hiss.
+		a := rcAlpha(2000, sr)
+		var prevOut float32
+		for i, x := range buf {
+			prevOut += (1 - a) * (x - prevOut)
+			buf[i] = prevOut
+		}
+	}
+}
+
+// rcAlpha is the one-pole coefficient for a corner at hz.
+func rcAlpha(hz float32, sr int) float32 {
+	rc := 1 / (2 * math.Pi * float64(hz))
+	dt := 1 / float64(sr)
+	return float32(rc / (rc + dt))
+}
+
+// The rest of the trigger section: the controls a bench scope puts beside
+// LEVEL and SLOPE, which are the ones that decide whether a lock can be
+// found at all in material with more than one thing in it.
+
+const (
+	trigSrcMid = iota // the sum: what both axes are built from
+	trigSrcL
+	trigSrcR
+)
+
+var trigSrcNames = []string{
+	"mid — the sum of the pair, which is what both axes are built from",
+	"left — lock to the left channel alone",
+	"right — lock to the right channel alone",
+}
+
+var trigSrcRing = []string{"mid", "L", "R"}
+
+const (
+	trigCplDC = iota // everything reaches the trigger
+	trigCplLFRej
+	trigCplHFRej
+)
+
+var trigCplNames = []string{
+	"DC — the whole signal reaches the trigger",
+	"LF reject — high-passed, so bass and offset stop dragging the crossing",
+	"HF reject — low-passed, so hiss and cymbals stop triggering on themselves",
+}
+
+var trigCplRing = []string{"DC", "LFr", "HFr"}
+
+// clampSel reads a knob that is a rotary switch, clamped to 0..last.
+func clampSel(v float32, last int) int {
+	if !(v > 0) { // false for NaN too
+		return 0
+	}
+	if v > float32(last) {
+		return last
+	}
+	return int(v + 0.5)
+}
+
+func (s *stereoInst) trigSrc() int { return clampSel(s.tsrc, trigSrcR) }
+func (s *stereoInst) trigCpl() int { return clampSel(s.tcpl, trigCplHFRej) }
+
+// buildTrigSignal fills the trigger path for this frame: the chosen source
+// over the search margin, oldest sample first, coupled.
+//
+// Its own buffer and its own filter run, rather than reading the drawn axes:
+// the trigger is allowed to look at a different signal from the one on
+// screen, and on a scope that is the whole point of having a trigger source
+// and a coupling at all.
+func (s *stereoInst) buildTrigSignal(l, r []float32, baseL, baseR, tau, margin, sr int) []float32 {
+	if margin <= 0 {
+		return nil
+	}
+	n := margin + 1
+	if cap(s.trigBuf) < n {
+		s.trigBuf = make([]float32, n+n/2)
+	}
+	buf := s.trigBuf[:n]
+	src := s.trigSrc()
+	for off := 0; off < n; off++ {
+		i := tau + off
+		switch src {
+		case trigSrcL:
+			buf[off] = l[baseL+i]
+		case trigSrcR:
+			buf[off] = r[baseR+i]
+		default:
+			buf[off] = (l[baseL+i] + r[baseR+i]) * 0.5
+		}
+	}
+	trigCoupling(buf, s.trigCpl(), sr)
+	return buf
 }
