@@ -170,18 +170,7 @@ func buildScopeNameDial(id string, names []string, at int, set func(int)) {
 
 	holder.Set("innerHTML", "")
 	stack := soloKnob(sel)
-	// Radius by label count: fifteen timebase legends round a knob at the
-	// parameter grid's radius overlap into an unreadable smear, and a
-	// range switch you cannot read the positions of is a knob with no
-	// markings. The ring grows with what has to fit on it.
-	off := 44.0
-	if len(names) > 6 {
-		off = 52.0
-	}
-	if len(names) > 11 {
-		off = 62.0
-	}
-	addSelectorLabels(stack, ring, sel, off).Set("id", id+"-ring")
+	addSelectorLabels(stack, ring, sel).Set("id", id+"-ring")
 	holder.Call("appendChild", stack)
 
 	sel.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {

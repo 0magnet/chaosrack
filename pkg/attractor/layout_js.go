@@ -50,6 +50,7 @@ func setKScale(v float64) {
 	// The modules are a different size, so what fits in a unit has
 	// changed and the frame is a different width.
 	layoutRackHandles()
+	layoutSkirts() // every input to the skirt geometry scales with the interface
 	positionResizeHandle()
 	lsSet("wasmstuff-kscale", strconv.FormatFloat(v, 'f', 3, 64))
 }
@@ -285,6 +286,7 @@ func applyDock(edge string) {
 		rememberPreFloatEdge(edge)
 		unfloatPanelWindow()
 	}
+	layoutSkirts() // a re-dock may be the first time the panel has a size
 	positionResizeHandle()
 	for _, e := range []string{"top", "bottom", "left", "right", "float", "footer"} {
 		if b := doc.Call("getElementById", "dock-"+e); b.Truthy() {

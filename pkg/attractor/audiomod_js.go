@@ -442,7 +442,7 @@ func buildModUnit(id, label string) js.Value {
 		return nil
 	}))
 	chStack := stackKnobs(makeSelectorKnob(sel), makeKnob(lvl, lvlNum, true, false, false))
-	addSelectorLabels(chStack, []string{"off", "st", "L", "R"}, sel, 50)
+	addSelectorLabels(chStack, []string{"off", "st", "L", "R"}, sel)
 
 	mod := doc.Call("createElement", "div")
 	mod.Set("className", "punit-mod")

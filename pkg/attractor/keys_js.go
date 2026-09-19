@@ -373,8 +373,8 @@ func wireKeysModule() {
 
 	// Range cell: outer ring = key count, inner knob = starting octave.
 	rstk := stackKnobs(makeSelectorKnob(span), makeSelectorKnob(base))
-	addSelectorLabels(rstk, []string{"13", "25", "37", "49", "61", "85", "88"}, span, 50)
-	addSelectorLabels(rstk, []string{"C1", "C2", "C3", "C4", "C5"}, base, 36)
+	addSelectorLabels(rstk, []string{"13", "25", "37", "49", "61", "85", "88"}, span)
+	addSelectorLabels(rstk, []string{"C1", "C2", "C3", "C4", "C5"}, base)
 	rstack.Call("appendChild", rstk)
 
 	// Level cell: standard value knob, and the descriptor owns everything
@@ -389,7 +389,7 @@ func wireKeysModule() {
 	// Out cell: same anatomy as the Gen oscillators — outer ring = speaker
 	// routing, inner knob = waveform with the glyph dial.
 	ostk := stackKnobs(makeSelectorKnob(out), makeSelectorKnob(wave))
-	addSelectorLabels(ostk, []string{"off", "L", "R", "L+R"}, out, 50)
+	addSelectorLabels(ostk, []string{"off", "L", "R", "L+R"}, out)
 	addSelectorWaveDial(ostk, wave, 38)
 	ostack.Call("appendChild", ostk)
 

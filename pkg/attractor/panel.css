@@ -43,7 +43,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* src/colors knob: two concentric label rings (source outer, palette inner).
    Bodies come from the uniform geometry above; here we size only the label ring. */
 #gradient-stack .knobstack.has-dial{margin:calc(20px*var(--kscale,1));}
-#gradient-stack .knob-dial{width:calc(112px*var(--kscale,1));height:calc(112px*var(--kscale,1));}
 #gradient-stack .knob-dial-lab,#map-stack .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
 /* Compact src and map knobs so each label ring fits clear of its knob within
    the tight module. Both are pinned rather than left at the default size: the
@@ -61,14 +60,12 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* Step/Fine is now a 2-ring concentric (Size moved out), so a smaller label
    ring than the old 3-ring version — keeps it inside the module. */
 #stepfine-stack .knobstack.has-dial{margin:calc(22px*var(--kscale,1));}
-#stepfine-stack .knob-dial{width:calc(112px*var(--kscale,1));height:calc(112px*var(--kscale,1));}
 #stepfine-stack .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
 /* Size: lone labeled selector ring, same size as the other Style knobs. */
 #size-stack .knobstack{width:calc(56px*var(--kscale,1));height:calc(56px*var(--kscale,1));}
 #size-stack .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
 #size-stack .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
 #size-stack .knobstack.has-dial{margin:calc(20px*var(--kscale,1));}
-#size-stack .knob-dial{width:calc(96px*var(--kscale,1));height:calc(96px*var(--kscale,1));}
 #size-stack .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
 /* Knob-style / LED-color: sized to match the Step/Fine concentric knob, with
    the dial tucked close (small dial + small margin). */
@@ -78,12 +75,10 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 #knobstyle-stack .knob-inner{width:calc(28px*var(--kscale,1))!important;height:calc(28px*var(--kscale,1))!important;}
 #knobstyle-stack .knob-inner>.knob-ptr{height:calc(12px*var(--kscale,1))!important;}
 #knobstyle-stack .knobstack.has-dial{margin:calc(20px*var(--kscale,1));}
-#knobstyle-stack .knob-dial{width:calc(96px*var(--kscale,1));height:calc(96px*var(--kscale,1));}
 #knobstyle-stack .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
 /* Phosphor: single selector ring, same size as the Step-size selector. */
 #phosphor-stack .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
 #phosphor-stack .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
-#phosphor-stack .knob-dial{width:calc(96px*var(--kscale,1));height:calc(96px*var(--kscale,1));}
 /* The Knob-style knob's inner ring selects the LED color; glow its pointer in
    that color as a live cue (there's no room for an inner label ring). */
 #knobstyle-stack .knob-inner .knob-ptr{background:var(--led-col,#ff3b30)!important;box-shadow:0 0 5px var(--led-glow,#ff2a20)!important;}
@@ -131,7 +126,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    BESIDE the LED, giving a shorter header that otherwise rides the knobs ~18px
    high. */
 .gen-osc .knobstack.has-dial{margin:calc(20px*var(--kscale,1));}
-.gen-osc .knobstack .knob-dial{width:calc(96px*var(--kscale,1));height:calc(96px*var(--kscale,1));}
 .gen-osc .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
 /* freq & level are continuous knobs, so they're the LARGE size (--ko, like the
    Params / View knobs). Their value / octave dial gets a matching wider ring so
@@ -486,7 +480,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .punit-mod{margin:0!important;}
 .punit-mod .knob-ring-circle{display:none;} /* no guide circle on the small mod knobs */
 /* mod knob = a 2-ring concentric (channel + level); bodies from uniform geometry. */
-.punit-mod .knob-dial{width:calc(96px*var(--kscale,1))!important;height:calc(96px*var(--kscale,1))!important;}
 .punit-mod .knobstack.has-dial{margin:0!important;} /* center on the cell like the param/eq controls */
 /* hover: ring the knob the pointer is over; grab: stronger glow while turning */
 .knob:hover{box-shadow:0 0 0 2px #3a7bff66,0 1px 2px #000,inset 0 1px 1px #9a9a9a;}
@@ -666,7 +659,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* model knob: category (outer) + model (inner); bodies from uniform geometry. */
 /* Compact model knob so the Console (knob + category labels) fits one unit. */
 #modelknob-holder .knobstack.has-dial{margin:calc(20px*var(--kscale,1));}
-#modelknob-holder .knob-dial{width:calc(104px*var(--kscale,1));height:calc(104px*var(--kscale,1));}
 #modelknob-holder .knob-dial-lab{font-size:calc(8px*var(--kscale,1));color:#8fd0ff;opacity:.95;}
 #modelknob-holder .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
 #modelknob-holder .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
@@ -710,7 +702,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .punit{gap:0;}
 .punit-mod{margin-top:1px;}
 .punit-mod .knobstack.has-dial{margin:calc(4px*var(--kscale,1));}
-.punit-mod .knob-dial{width:calc(96px*var(--kscale,1));height:calc(96px*var(--kscale,1));}
 /* View & Motion: X/Y/Z stacked VERTICALLY; each axis is a NARROW vertical strip
    (label · degrees LED · knob-in-a-square · rate numeric, reset in the corner)
    so the module is as narrow as the knob. */
@@ -771,7 +762,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    (bodies from uniform geometry) plus its tick ring sit clear of the LED above
    and the numeric below. */
 .axknob-box{width:calc(100px*var(--kscale,1))!important;height:calc(100px*var(--kscale,1))!important;}
-.axknob-box .knob-dial{width:calc(100px*var(--kscale,1))!important;height:calc(100px*var(--kscale,1))!important;}
 /* Top chrome bar (always shown): title + dock/float controls, outside modules. */
 .float-title{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;position:sticky;top:0;z-index:6;background:linear-gradient(#18242f,#0c1218);color:#8fb3cf;padding:4px 8px;margin:-8px -12px 6px;border-bottom:1px solid #2a3a4a;user-select:none;touch-action:none;}
 .float-title.floating{cursor:move;border-radius:7px 7px 0 0;}
@@ -1073,42 +1063,12 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
   font-family:'B612 Mono',monospace;font-size:9px;padding:1px 2px;cursor:pointer;}
 .stl-builtin:hover{border-color:#8ac;}
 
-
-/* The rack bay: the 19-inch frame a row of modules sits in. Drawn behind the
-   modules, not in their flow — a frame that was a flex item would wrap like
-   one and change which modules landed in which row, which is the layout it
-   exists to draw. rackhandles_js.go measures the rows and places these. */
-.modules{position:relative;}
-.modules.with-bay{box-sizing:border-box;padding:calc(8*var(--mm)) calc(27.94*var(--mm));
-  row-gap:calc(17*var(--mm));}
-.modules.with-bay>.sect{position:relative;z-index:1;}
-.rack-bay{position:absolute;left:0;right:0;z-index:0;pointer-events:none;}
-/* Rails above and below the 3U opening, ears either side — the ears being
-   what makes the usable row 84 HP and not the full nineteen inches. */
-.rack-bay .rb-rail{position:absolute;left:0;right:0;height:calc(8*var(--mm));
-  background:linear-gradient(180deg,#4a545e,#333c45 55%,#242b32);
-  box-shadow:inset 0 1px 0 #69737d,inset 0 -1px 0 #171c21;}
-.rack-bay .rb-top{top:0;}
-.rack-bay .rb-bot{bottom:0;}
-.rack-bay .rb-ear{position:absolute;top:0;bottom:0;width:calc(27.94*var(--mm));
-  background:linear-gradient(100deg,#454e57,#333c45 60%,#272e35);
-  box-shadow:inset 1px 0 0 #5d6771,inset -1px 0 0 #1b2026;
-  display:flex;align-items:center;justify-content:center;}
-.rack-bay .rb-l{left:0;}
-.rack-bay .rb-r{right:0;}
-/* The grab handle bolted to an ear: two feet and a grip. */
-.rack-handle{width:calc(22*var(--mm));height:70%;display:flex;flex-direction:column;}
-.rack-handle .rh-foot{height:calc(7*var(--mm));border-radius:2px;
-  background:linear-gradient(160deg,#6c757e,#3c454e 60%,#2b323a);
-  box-shadow:inset 0 1px 0 #8b959e,0 1px 2px #000;}
-.rack-handle .rh-grip{flex:1 1 auto;margin:calc(-1*var(--mm)) calc(4*var(--mm));border-radius:3px;
-  background:linear-gradient(100deg,#7d868f,#454e57 55%,#2f363e);
-  box-shadow:inset 1px 0 0 #99a3ac,inset -1px 0 0 #1c2126,0 2px 4px #000;}
-/* Blank panels fill the end of a row, on the module slot pitch. */
-.rack-blank{position:absolute;z-index:0;pointer-events:none;box-sizing:border-box;
-  border:1px solid #2a333c;border-radius:6px;
-  background:linear-gradient(150deg,#333b44,#232a31 60%,#1b2027);
-  box-shadow:inset 0 1px 0 #4a545e,0 1px 3px #000;}
+/* The old bay is gone. It painted a frame BEHIND the wrapped flow of
+   modules and padded .modules by an ear-width either side so they
+   cleared the painted ears. The ears are real elements inside each
+   unit now, so that padding was being applied twice — a 112px gap to
+   the left of a rack that already had a 114px ear, and 32px above one
+   that has its own rails. See rackunits_js.go. */
 
 /* The switch rows scale with the interface, like everything else on the
    panel. They had not, and the Console showed why it matters: a module's
@@ -1349,8 +1309,8 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 
 /* The opening: where the plug-in modules go, on HP pitch. No wrapping —
    a unit holds what a unit holds, and the packing decides what that is. */
-.runit-open{flex:1 1 auto;display:flex;flex-wrap:nowrap;align-items:stretch;
-  gap:calc(2px*var(--kscale,1));padding:calc(3px*var(--kscale,1));min-width:0;}
+.runit-open{flex:0 0 var(--open-w);display:flex;flex-wrap:nowrap;align-items:stretch;
+  gap:calc(2px*var(--kscale,1));padding:0;min-width:0;}
 /* Blank panels fill the rest of an opening, because a rack does not have a
    ragged gap at the end of a row — it has blanks, cut to the same widths. */
 .runit-blank{flex:0 0 auto;align-self:stretch;border-radius:1px;position:relative;
@@ -1384,3 +1344,10 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    inches: a narrow window scrolls the rack, so a unit that rearranged
    itself would be the one thing in the frame changing shape with the
    browser — which is the collapse this whole level was built to undo. */
+
+/* Skirt geometry is DERIVED, not declared. The ten per-instance
+   `.knob-dial{width:…}` rules that used to live here each sized one dial by
+   eye; the radius now comes from the grip it must clear and the labels it
+   must carry (see skirt.go, after Woodson & Conover §2-104), and is written
+   as an inline size by layoutSkirts. A stylesheet rule here would only
+   fight it. */

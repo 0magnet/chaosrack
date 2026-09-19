@@ -19,8 +19,6 @@ import (
 // An optional nested inner disc gives fine trim (lower drag sensitivity), the
 // way scope/lab gear stacks a fine knob inside the coarse one.
 
-const knobSweepDeg = 270.0 // total pointer travel, centered on straight-up
-
 // Shared drag state (only one knob turns at a time). Document-level move/up
 // listeners (initKnobDrag) drive whichever knob grabbed last.
 // kb is the active knob-drag gesture — one grouped singleton instead of ten
@@ -331,14 +329,14 @@ func setLabelTooltips(stack js.Value, tips map[string]string) {
 // singleSelectorKnob builds a lone rotary-switch knob (not concentric) wrapped
 // in a stack so it gets a label ring, for standalone selectors like Size / Knob
 // style. Returns the stack element.
-func singleSelectorKnob(sel js.Value, labels []string, offset float64) js.Value {
+func singleSelectorKnob(sel js.Value, labels []string) js.Value {
 	stack := doc.Call("createElement", "span")
 	stack.Set("className", "knobstack")
 	stack.Call("setAttribute", "data-no-drag", "")
 	knob := makeSelectorKnob(sel)
 	knob.Get("classList").Call("add", "knob-ring")
 	stack.Call("appendChild", knob)
-	addSelectorLabels(stack, labels, sel, offset)
+	addSelectorLabels(stack, labels, sel)
 	return stack
 }
 
@@ -549,78 +547,6 @@ func addSelectorDotLabels(stack js.Value, colors []string, sel js.Value, offset 
 	stack.Get("classList").Call("add", "has-dial")
 }
 
-// addSelectorLabels places the option labels around a selector knob at radius
-// offset[0]. offset[1], if given, rotates the whole label ring by that many
-// degrees — used to stagger the style labels off the LED-color dots (which sit
-// at the same detent angles on the inner ring) so the two rings don't collide.
-// Returns the ring it built, so a caller that has more than one on the same
-// knob can tell them apart afterwards — the concentric source/palette pair
-// needs to dim one ring without the other.
-func addSelectorLabels(stack js.Value, labels []string, sel js.Value, offset ...float64) js.Value {
-	off := 46.0
-	rot := 0.0
-	if len(offset) > 0 {
-		off = offset[0]
-	}
-	if len(offset) > 1 {
-		rot = offset[1]
-	}
-	n := len(labels)
-	dial := doc.Call("createElement", "div")
-	dial.Set("className", "knob-dial")
-	// A thin guide circle at this ring's radius; the labels (opaque background)
-	// sit on it, breaking it into an arc with small gaps — visually tying each
-	// label ring to its concentric knob.
-	circle := doc.Call("createElement", "div")
-	circle.Set("className", "knob-ring-circle")
-	dia := strconv.FormatFloat(2*off, 'f', 1, 64) + "%"
-	circle.Get("style").Set("width", dia)
-	circle.Get("style").Set("height", dia)
-	dial.Call("appendChild", circle)
-	labEls := make([]js.Value, n)
-	for i, txt := range labels {
-		deg := rot
-		if n > 1 {
-			deg = -knobSweepDeg/2 + knobSweepDeg*float64(i)/float64(n-1) + rot
-		}
-		l, t := dialLabelPos(deg, off)
-		lab := doc.Call("createElement", "span")
-		lab.Set("className", "knob-dial-lab")
-		lab.Set("textContent", txt)
-		lab.Get("style").Set("left", l)
-		lab.Get("style").Set("top", t)
-		dialPosTitle(lab, sel, i)
-		labEls[i] = lab
-		if sel.Truthy() {
-			lab.Get("classList").Call("add", "clickable")
-			idx := i
-			lab.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-				sel.Set("selectedIndex", idx)
-				sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
-				return nil
-			}))
-		}
-		dial.Call("appendChild", lab)
-	}
-	if sel.Truthy() {
-		hi := func() {
-			ci := sel.Get("selectedIndex").Int()
-			for j, le := range labEls {
-				if j == ci {
-					le.Get("classList").Call("add", "lab-active")
-				} else {
-					le.Get("classList").Call("remove", "lab-active")
-				}
-			}
-		}
-		sel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} { hi(); return nil }))
-		hi()
-	}
-	stack.Call("insertBefore", dial, stack.Get("firstChild"))
-	stack.Get("classList").Call("add", "has-dial")
-	return dial
-}
-
 // makeKnob builds a bounded knob assembly that drives slider. mirror, if
 // truthy, is an extra element (e.g. the numeric box) whose 'input' also
 // refreshes the pointer. withFine adds a nested fine-trim disc. register
@@ -791,4 +717,207 @@ func dialPosTitle(el, sel js.Value, i int) {
 	if t != "" {
 		el.Set("title", t)
 	}
+}
+
+// addSelectorLabels engraves a rotary switch's positions on a skirt around
+// its knob.
+//
+// It no longer takes a radius. The radius is derived — see skirt.go — from
+// the grip the skirt has to clear and the size of the labels themselves,
+// because the twenty-six numbers this used to be given were chosen by eye
+// and 201 of the 261 labels they produced sat on top of their own grip.
+//
+// The measuring cannot happen here: most callers build the stack detached
+// and append it afterwards, so nothing has a size yet. Each label is left
+// carrying the angle it belongs at, and layoutSkirts does the geometry once
+// the dial is on screen. Returns the ring, so a caller with two on one knob
+// can still tell them apart.
+func addSelectorLabels(stack js.Value, labels []string, sel js.Value) js.Value {
+	return addSelectorLabelsRot(stack, labels, sel, 0)
+}
+
+// addSelectorLabelsRot is the same with the whole ring turned by rot
+// degrees.
+//
+// A rotation is NOT derivable the way the radius is: it exists to
+// stagger one ring off another's markings — the style labels off the
+// LED-color dots at the same detents — which is a fact about the other
+// ring, not about this one's geometry.
+func addSelectorLabelsRot(stack js.Value, labels []string, sel js.Value, rot float64) js.Value {
+	dial := doc.Call("createElement", "div")
+	dial.Set("className", "knob-dial")
+	// A thin guide circle at this ring's radius; the labels (opaque
+	// background) sit on it, breaking it into an arc with small gaps —
+	// visually tying each label ring to its concentric knob. Sized by
+	// layoutSkirts along with everything else.
+	circle := doc.Call("createElement", "div")
+	circle.Set("className", "knob-ring-circle")
+	dial.Call("appendChild", circle)
+
+	labEls := make([]js.Value, len(labels))
+	for i, txt := range labels {
+		lab := doc.Call("createElement", "span")
+		lab.Set("className", "knob-dial-lab")
+		lab.Set("textContent", txt)
+		lab.Call("setAttribute", "data-deg",
+			strconv.FormatFloat(skirtAngles(len(labels), knobSweepDeg)[i]+rot, 'f', 2, 64))
+		dialPosTitle(lab, sel, i)
+		labEls[i] = lab
+		if sel.Truthy() {
+			lab.Get("classList").Call("add", "clickable")
+			idx := i
+			lab.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+				sel.Set("selectedIndex", idx)
+				sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+				return nil
+			}))
+		}
+		dial.Call("appendChild", lab)
+	}
+	if sel.Truthy() {
+		hi := func() {
+			ci := sel.Get("selectedIndex").Int()
+			for j, le := range labEls {
+				if j == ci {
+					le.Get("classList").Call("add", "lab-active")
+				} else {
+					le.Get("classList").Call("remove", "lab-active")
+				}
+			}
+		}
+		sel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} { hi(); return nil }))
+		hi()
+	}
+	stack.Call("insertBefore", dial, stack.Get("firstChild"))
+	stack.Get("classList").Call("add", "has-dial")
+	layoutSkirtsIn(stack)
+	return dial
+}
+
+// skirtGapPx is the daylight between a skirt and what it clears, and
+// between two neighboring labels. Scales with the interface, because a
+// gap that stayed one pixel would close up as everything around it grew.
+func skirtGapPx() float64 { return 3.0 * panelScale }
+
+// layoutSkirts sizes every skirt on the panel.
+//
+// Run after a build rather than during one: a label has no width until it
+// is in the document, and most of these are built in a detached subtree.
+// Run again whenever the interface size changes, since every input to the
+// geometry — grip, label, gap — scales with it.
+func layoutSkirts() {
+	stacks := doc.Call("querySelectorAll", ".has-dial")
+	for i := 0; i < stacks.Get("length").Int(); i++ {
+		layoutSkirtsIn(stacks.Index(i))
+	}
+}
+
+// layoutSkirtsIn sizes the skirts on one knob, nesting them outward.
+//
+// Outward in DOM order, because a concentric control carries concentric
+// skirts: the inner knob's positions are engraved inside the outer knob's,
+// and each ring has to clear not just the grip but everything already
+// placed around it. That is what the 43-and-31 pairs at the old call sites
+// were doing by hand.
+func layoutSkirtsIn(stack js.Value) {
+	if !stack.Truthy() {
+		return
+	}
+	clear := gripRadiusPx(stack)
+	if clear <= 0 {
+		// Not laid out yet — a detached subtree, a module switched out, a
+		// panel not yet shown. ESTIMATE rather than bail: a skirt that is
+		// never laid out has no positions at all, and every one of its
+		// labels sits on the origin in a heap. A rough ring is wrong by a
+		// pixel or two; no ring is wrong by the width of the knob, and it
+		// was the larger half of what the audit found still broken.
+		clear = estGripRadiusPx()
+	}
+	gap := skirtGapPx()
+	dials := stack.Call("querySelectorAll", ":scope > .knob-dial")
+	for i := 0; i < dials.Get("length").Int(); i++ {
+		clear = layoutOneSkirt(dials.Index(i), clear, gap)
+	}
+}
+
+// gripRadiusPx is the radius of the largest knob on this stack — what the
+// first skirt has to clear.
+func gripRadiusPx(stack js.Value) float64 {
+	els := stack.Call("querySelectorAll", ".knob, .knob-ring")
+	max := 0.0
+	for i := 0; i < els.Get("length").Int(); i++ {
+		if w := els.Index(i).Get("offsetWidth").Float(); w/2 > max {
+			max = w / 2
+		}
+	}
+	return max
+}
+
+// layoutOneSkirt places one ring and returns how far out it reaches, for
+// the next ring to clear.
+func layoutOneSkirt(dial js.Value, clear, gap float64) float64 {
+	els := dial.Call("querySelectorAll", ".knob-dial-lab")
+	n := els.Get("length").Int()
+	labs := make([]skirtLabel, 0, n)
+	kept := make([]js.Value, 0, n)
+	for i := 0; i < n; i++ {
+		el := els.Index(i)
+		deg, err := strconv.ParseFloat(el.Call("getAttribute", "data-deg").String(), 64)
+		if err != nil {
+			continue // not one of ours (the angle dial's tick labels)
+		}
+		w := el.Get("offsetWidth").Float()
+		h := el.Get("offsetHeight").Float()
+		if w <= 0 || h <= 0 {
+			// Same reason as the grip above: estimated from the text, so an
+			// unmeasurable label still gets a place on the ring.
+			w, h = estLabelBoxPx(el.Get("textContent").String())
+		}
+		labs = append(labs, skirtLabel{W: w, H: h, Deg: deg})
+		kept = append(kept, el)
+	}
+	if len(labs) == 0 {
+		return clear
+	}
+	r := skirtRadius(clear, gap, labs)
+	out := skirtOuter(r, labs)
+
+	// The box has to contain the labels, or the element that exists to hold
+	// them is the thing clipping them.
+	box := 2 * (out + gap)
+	st := dial.Get("style")
+	st.Set("width", pxStr(box))
+	st.Set("height", pxStr(box))
+	for i, el := range kept {
+		x := box/2 + r*math.Sin(labs[i].Deg*math.Pi/180)
+		y := box/2 - r*math.Cos(labs[i].Deg*math.Pi/180)
+		es := el.Get("style")
+		es.Set("left", pxStr(x))
+		es.Set("top", pxStr(y))
+	}
+	if c := dial.Call("querySelector", ".knob-ring-circle"); c.Truthy() {
+		cs := c.Get("style")
+		cs.Set("width", pxStr(2*r))
+		cs.Set("height", pxStr(2*r))
+	}
+	return out
+}
+
+// The estimates a skirt falls back to when nothing can be measured yet.
+//
+// Both track the stylesheet: the knob is 38px at scale 1 (.knobb) and a
+// label is 'B612 Mono' at 8px (.knob-dial-lab). They are deliberately a
+// little generous — an estimate that is too small puts a label back on the
+// grip, which is the fault being fixed, while one that is too large only
+// leaves a slightly wide ring until the measured pass corrects it.
+func estGripRadiusPx() float64 { return 19.0 * panelScale }
+
+func estLabelBoxPx(text string) (w, h float64) {
+	const px = 8.0      // .knob-dial-lab font-size at scale 1
+	const perChar = 5.2 // B612 Mono advance at that size, rounded up
+	n := len([]rune(text))
+	if n < 1 {
+		n = 1
+	}
+	return float64(n) * perChar * panelScale, px * panelScale
 }

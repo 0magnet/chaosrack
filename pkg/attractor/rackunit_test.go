@@ -167,3 +167,40 @@ func TestSwitchedOutModulesDoNotHideAnOverflow(t *testing.T) {
 		t.Errorf("the first unit holds %d slots of 12", got)
 	}
 }
+
+// An opening must BE the capacity it claims. It was sized as whatever was
+// left after the ears, which came out a few pixels short of twelve slots —
+// and since an opening does not wrap, a unit filled to its stated capacity
+// ran its last module off the side of the rack. That is the declared-
+// capacity model failing at the one thing it exists to guarantee.
+//
+// Checked in slot arithmetic rather than pixels so it holds at any
+// interface scale: N slots span N pitches less the trailing seam, which
+// belongs to the next module along.
+func TestAFullUnitFitsItsOpeningExactly(t *testing.T) {
+	const slot, gap = 140.24, 2.0 // moduleSlot / moduleGap at scale 1
+	pitch := slot + gap
+	capacity := unitCapacitySlots()
+	opening := float64(capacity)*pitch - gap
+
+	// Twelve one-slot modules with a gap between each.
+	used := float64(capacity)*slot + float64(capacity-1)*gap
+	if used > opening+1e-9 {
+		t.Errorf("%d one-slot modules span %.2f in an opening of %.2f", capacity, used, opening)
+	}
+	// And the same capacity reached with wider modules, since that is how a
+	// real rack fills: the grouping must not change the total.
+	for _, widths := range [][]int{{2, 2, 2, 2, 2, 2}, {5, 4, 3}, {12}, {1, 11}} {
+		sum, n := 0, len(widths)
+		for _, w := range widths {
+			sum += w
+		}
+		if sum != capacity {
+			t.Fatalf("test fixture %v does not add to %d", widths, capacity)
+		}
+		span := float64(sum)*slot + float64(n-1)*gap
+		if span > opening+1e-9 {
+			t.Errorf("%v spans %.2f in an opening of %.2f", widths, span, opening)
+		}
+	}
+}

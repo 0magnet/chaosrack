@@ -164,7 +164,7 @@ func wireDistortionModule() {
 		thdChanSel.Call("appendChild", opt)
 	}
 	thdChanSel.Set("value", "0")
-	cstack.Call("appendChild", singleSelectorKnob(thdChanSel, tapChanRing, 50))
+	cstack.Call("appendChild", singleSelectorKnob(thdChanSel, tapChanRing))
 
 	hstack.Call("appendChild", makeKnob(harm, js.Undefined(), true, false, true))
 	// LEDStep 10 to keep whole harmonics, as above.

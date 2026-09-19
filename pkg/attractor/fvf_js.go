@@ -197,7 +197,7 @@ func appendFVFSelectors(grid js.Value) {
 		if len(opts) == 2 {
 			grp.Call("appendChild", buildTwoWaySwitch(sel, opts, label))
 		} else {
-			grp.Call("appendChild", singleSelectorKnob(sel, ringLabels, 46))
+			grp.Call("appendChild", singleSelectorKnob(sel, ringLabels))
 		}
 		card.Call("appendChild", grp)
 		return card

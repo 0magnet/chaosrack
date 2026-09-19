@@ -324,8 +324,8 @@ func buildSonifyModule() {
 	lstack.Call("appendChild", makeKnob(lvl, js.Undefined(), true, false, true))
 	md := doc.Call("getElementById", "sonify-mode")
 	mstk := stackKnobs(makeSelectorKnob(mp), makeSelectorKnob(md))
-	addSelectorLabels(mstk, []string{"off", "CAM", "XY", "XZ", "YZ"}, mp, 50)
-	addSelectorLabels(mstk, []string{"FLOW", "SCAN"}, md, 38)
+	addSelectorLabels(mstk, []string{"off", "CAM", "XY", "XZ", "YZ"}, mp)
+	addSelectorLabels(mstk, []string{"FLOW", "SCAN"}, md)
 	mstack.Call("appendChild", mstk)
 
 	// Both rings through the registry: the cell had no reset button, and Reset
