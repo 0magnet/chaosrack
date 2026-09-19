@@ -853,10 +853,15 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	// was. In between, the model is drawn twice — near half onto the canvas
 	// above the panel, far half onto the one below it — which is the only way
 	// to have DOM sitting between two parts of one scene.
-	if splitDrawing() {
+	switch {
+	case splitDrawing():
+		// The Fore knob owns the passes when it is in play: near and far
+		// of one scene are what it exists to draw, and stacking a
+		// side-by-side split inside that is two splits arguing.
 		drawSplitPasses(selectedMode)
-	} else {
-		generateForMode(selectedMode)
+	default:
+		// One view or two, side by side. See views_js.go.
+		drawViewPasses(selectedMode)
 	}
 	// The gradient extents, if the mode change could not take them: an audio
 	// mode has no geometry on its first frame, and this is the first frame that
