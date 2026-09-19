@@ -682,7 +682,7 @@ func (s *stereoInst) generate() {
 		// construction; the time ramp by its own mapping), so the Takens
 		// mode's √3 cube-corner extent is the right bound unchanged.
 		s.fitGain = s.gain
-		fitExtentOverride = takensFitExtent(s.gain)
+		view.fitOverride = takensFitExtent(s.gain)
 		autoFitCamera()
 	}
 }

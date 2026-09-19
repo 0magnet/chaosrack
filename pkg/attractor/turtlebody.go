@@ -103,7 +103,7 @@ func (b *turtleBody) turtleTiltBy(dax, day float32) {
 // bottom of the screen, and the figure appeared to move rather than simply get
 // bigger — which is not what a zoom does to a thing sitting on a floor.
 func turtleCamDist() float32 {
-	d := initCameraDist - cachedZoom
+	d := view.initDist - cachedZoom
 	if d < 0.1 {
 		d = 0.1
 	}

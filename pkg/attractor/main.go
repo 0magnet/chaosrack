@@ -1239,7 +1239,7 @@ func Run() {
 		Signed: true, PermaKey: "z", LEDID: "slider-value-zoom", ResetID: "rst-zoom",
 		Apply: func(v float64) { cachedZoom = float32(v) },
 		ResetExtra: func() {
-			defaultCameraDist = initCameraDist
+			view.defaultDist = view.initDist
 			updateViewMatrix()
 			syncKnobs()
 		}})
@@ -1621,7 +1621,7 @@ func installErrorNet() {
 
 func onResetAll(this js.Value, args []js.Value) interface{} {
 	// Reset camera
-	defaultCameraDist = initCameraDist
+	view.defaultDist = view.initDist
 	rotationX1, rotationY1, rotationZ1 = 0, 0, 0
 
 	// Static geometry may need re-upload (params reset to defaults).

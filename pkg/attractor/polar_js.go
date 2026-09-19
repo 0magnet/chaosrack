@@ -354,7 +354,7 @@ func generatePolar() {
 		// screen. Here the worst case is the sphere, so the fit is exact and
 		// not merely safe.
 		polarFitGain = polarGain
-		fitExtentOverride = polarFitExtent(polarGain)
+		view.fitOverride = polarFitExtent(polarGain)
 		autoFitCamera()
 	}
 }

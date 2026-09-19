@@ -7,8 +7,6 @@ import "github.com/go-gl/mathgl/mgl32"
 // ── Camera / view state ──────────────────────────────────────────────────────
 
 var (
-	initCameraDist                     float32 = 100
-	defaultCameraDist                  float32 = 100
 	rotationX, rotationY, rotationZ    float32
 	rotationX1, rotationY1, rotationZ1 float32
 	movMatrix                          mgl32.Mat4
@@ -125,3 +123,48 @@ var selectedMode string
 // preCustomMode remembers the attractor to return to when the "Edit eqn" switch
 // is toggled back off.
 var preCustomMode string
+
+// viewState is ONE view of a model: the camera fitted to it, how far the
+// model reaches, and the one-shot override a mode uses to say what the fit
+// should be measured against.
+//
+// These were four package variables in four files — camera_js.go, split_js.go
+// and render.go — which is the same state said in a way that permits exactly
+// one view. Drawing two embeddings side by side means two of these, so they
+// become a struct first and the second one becomes possible after.
+//
+// What is NOT here yet, and is the reason a second view cannot be DRAWN even
+// with this in place: autoFitCamera writes the on-screen zoom control
+// (cameraControl and sliderZoom), so the camera is bound to singleton DOM
+// elements. A second view needs those to follow whichever view has focus,
+// which is a panel decision rather than a rendering one. The state moving
+// here is what makes that decision implementable; it does not make it.
+type viewState struct {
+	// initDist and defaultDist are the fitted camera distance: what the view
+	// opens at, and what the zoom control returns to.
+	initDist    float32
+	defaultDist float32
+
+	// fitExtent is how far the model reaches from its center, as measured
+	// the last time the camera was fitted to it. Zero until then. The depth
+	// partition measures against it — see split_js.go.
+	fitExtent float32
+
+	// fitOverride is a bound a mode supplies for its own fit, consumed by
+	// the next autoFitCamera and cleared there. The audio modes use it to
+	// fit to a FIXED worst case rather than to the instantaneous figure,
+	// which is what keeps a loud passage from walking off the screen.
+	fitOverride float32
+}
+
+// newViewState returns a view at the distances the camera opens at.
+func newViewState() *viewState {
+	return &viewState{initDist: 100, defaultDist: 100}
+}
+
+// view is the single on-screen view. A second one is another of these.
+var view = newViewState()
+
+// Two views have independent cameras, which is the whole reason the state
+// moved into a struct. While it was four package variables this could not
+// be written, because there was only ever one of each.
