@@ -195,3 +195,47 @@ func TestStretchOpensFastAndClosesSlowly(t *testing.T) {
 		t.Errorf("the upper bound fell from %v to %v in five frames; it should ease back, not snap", wide, audioColorHi)
 	}
 }
+
+// Level is the quantity the spectrogram paints; the source exists so a
+// figure can agree with the backdrop instead of quietly disagreeing.
+func TestShortTimeLevelsFollowsAmplitude(t *testing.T) {
+	out := make([]float32, 4)
+	w := make([]float32, 400)
+	// Four slices, each louder than the last.
+	for i := range w {
+		amp := float32(i/100+1) * 0.2
+		if i%2 == 0 {
+			w[i] = amp
+		} else {
+			w[i] = -amp
+		}
+	}
+	shortTimeLevels(w, out)
+	for i := 1; i < len(out); i++ {
+		if out[i] <= out[i-1] {
+			t.Errorf("slot %d (%v) did not rise above %d (%v): %v", i, out[i], i-1, out[i-1], out)
+		}
+	}
+	// A constant ±0.2 square wave is RMS 0.2, not a peak of 0.2 scaled by
+	// anything: the value is the level, in units of full scale.
+	if out[0] < 0.15 || out[0] > 0.25 {
+		t.Errorf("first slot = %v, want about 0.2", out[0])
+	}
+}
+
+func TestShortTimeLevelsHandlesEmptyAndSilence(t *testing.T) {
+	out := make([]float32, 3)
+	shortTimeLevels(nil, out)
+	for i, v := range out {
+		if v != 0 {
+			t.Errorf("empty window slot %d = %v, want 0", i, v)
+		}
+	}
+	shortTimeLevels(make([]float32, 30), out)
+	for i, v := range out {
+		if v != 0 {
+			t.Errorf("silence slot %d = %v, want 0", i, v)
+		}
+	}
+	shortTimeLevels(make([]float32, 30), nil) // must not panic
+}
