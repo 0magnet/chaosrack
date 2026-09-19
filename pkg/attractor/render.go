@@ -290,7 +290,9 @@ var fragShaderCode = `
 			t = clamp((vPosition.y - uMinY) / max(uMaxY - uMinY, 0.001), 0.0, 1.0);
 		} else if (uGradientSource == 2) {
 			t = clamp((vPosition.z - uMinZ) / max(uMaxZ - uMinZ, 0.001), 0.0, 1.0);
-		} else if (uGradientSource == 4) {
+		} else if (uGradientSource == 4 || uGradientSource == 6) {
+			// Both audio sources arrive through the same trail table; which
+			// quantity filled it was decided on the CPU side.
 			t = vAudioT;
 		} else {
 			// Ring-trail mode: age relative to the beam head (uTrailHead=0 in
@@ -605,7 +607,7 @@ func generateForMode(mode string) {
 		gl.Call("uniform1i", uGradientSourceLoc, gradientSource)
 		// Only when it is being used: the fill runs a short FFT per table slot,
 		// which is not work to do for a figure colored by Z.
-		if gradientSource == gradientSourceAudio {
+		if gradientSource == gradientSourceAudio || gradientSource == gradientSourceLevel {
 			updateAudioColorLUT(selectedMode)
 			gl.Call("uniform1fv", uAudioLUTLoc, lutToTyped())
 		}
@@ -648,7 +650,7 @@ func generateForMode(mode string) {
 		// while the spectrum only sometimes moves, the drift is what the eye
 		// picks up. It reads as "the rainbow is cycling", which is precisely
 		// the reading that hides the feature.
-		if !(selectedMode == "turtle" && gradientSource == 3) && gradientSource != gradientSourceAudio {
+		if !(selectedMode == "turtle" && gradientSource == 3) && gradientSource != gradientSourceAudio && gradientSource != gradientSourceLevel {
 			gradientPhase += 0.003
 			if gradientPhase >= 1 {
 				gradientPhase -= 1
