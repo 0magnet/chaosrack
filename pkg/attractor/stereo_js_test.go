@@ -470,3 +470,105 @@ func TestPackageInstanceStartsAtDefaults(t *testing.T) {
 		t.Errorf("the drawn instance is not at defaults:\n got %+v\nwant %+v", stereo, fresh)
 	}
 }
+
+// A trigger has to find the most RECENT crossing, not the oldest one in
+// the search margin: locking to the oldest shows audio a whole window
+// staler than it needs to be.
+func TestTriggerFindsTheMostRecentCrossing(t *testing.T) {
+	// Offsets count backwards from the newest sample, so a sine over the
+	// margin gives several crossings and the scan must stop at the first.
+	mid := func(off int) float32 {
+		return float32(math.Sin(float64(100-off) * 0.3))
+	}
+	got := triggerOffset(100, 0, true, mid)
+	if got == 100 {
+		t.Fatal("no crossing found in a signal that crosses repeatedly")
+	}
+	// Verify it IS a rising crossing of zero. Offsets count backwards, so
+	// the sample before it in time is got+1.
+	if !(mid(got+1) < 0 && mid(got) >= 0) {
+		t.Errorf("offset %d is not a rising zero crossing: %v -> %v",
+			got, mid(got+1), mid(got))
+	}
+	// And that nothing more recent qualifies.
+	for off := 0; off < got; off++ {
+		if mid(off+1) < 0 && mid(off) >= 0 {
+			t.Errorf("offset %d is a more recent crossing than %d", off, got)
+			break
+		}
+	}
+}
+
+func TestTriggerSlopeAndFreeRun(t *testing.T) {
+	rising := func(off int) float32 {
+		if off > 50 {
+			return -1
+		}
+		return 1
+	}
+	if got := triggerOffset(100, 0, true, rising); got != 50 {
+		t.Errorf("rising edge found at %d, want 50", got)
+	}
+	// The same signal has no FALLING edge, so it must free-run.
+	if got := triggerOffset(100, 0, false, rising); got != 100 {
+		t.Errorf("falling search returned %d, want the free-run margin 100", got)
+	}
+	// Flat silence has nothing to lock to either.
+	flat := func(int) float32 { return 0 }
+	if got := triggerOffset(100, 0, true, flat); got != 100 {
+		t.Errorf("silence returned %d, want 100", got)
+	}
+	// No margin at all is the trigger being off.
+	if got := triggerOffset(0, 0, true, rising); got != 0 {
+		t.Errorf("zero margin returned %d, want 0", got)
+	}
+}
+
+// The level is where the crossing is looked for, not just zero.
+func TestTriggerLevel(t *testing.T) {
+	ramp := func(off int) float32 { return float32(100-off) / 100 } // 0 .. 1
+	got := triggerOffset(100, 0.5, true, ramp)
+	if got < 45 || got > 55 {
+		t.Errorf("crossing of 0.5 found at %d, want about 50", got)
+	}
+}
+
+// The trigger costs a margin of extra audio; when it is off it must cost
+// nothing, or turning it off would still pay for it.
+func TestTrigMarginIsZeroWhenOff(t *testing.T) {
+	s := newStereoInst()
+	if m := s.trigMargin(2000); m != 0 {
+		t.Errorf("margin with the trigger off = %d, want 0", m)
+	}
+	s.trig = stereoTrigRising
+	if m := s.trigMargin(2000); m != 2000 {
+		t.Errorf("margin = %d, want the window's own 2000", m)
+	}
+	if m := s.trigMargin(99999); m != stereoTrigMaxMargin {
+		t.Errorf("margin = %d, want the cap %d", m, stereoTrigMaxMargin)
+	}
+}
+
+func TestTrigModeClamps(t *testing.T) {
+	s := newStereoInst()
+	for _, v := range []float32{-5, 0, 0.4} {
+		s.trig = v
+		if s.trigMode() != stereoTrigOff {
+			t.Errorf("trig %v = %d, want off", v, s.trigMode())
+		}
+	}
+	s.trig = 99
+	if s.trigMode() != stereoTrigFalling {
+		t.Errorf("trig 99 = %d, want the last position", s.trigMode())
+	}
+}
+
+// The dial's names and its ring have to line up, as the axes dial's do.
+func TestTrigTablesLineUp(t *testing.T) {
+	if len(stereoTrigNames) != len(stereoTrigRing) {
+		t.Fatalf("%d names, %d ring labels", len(stereoTrigNames), len(stereoTrigRing))
+	}
+	if len(stereoTrigNames) != stereoTrigFalling+1 {
+		t.Errorf("%d names for %d positions", len(stereoTrigNames), stereoTrigFalling+1)
+	}
+}
