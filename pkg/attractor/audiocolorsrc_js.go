@@ -386,3 +386,15 @@ func fillFlat(out []float32, v float32) {
 		out[i] = v
 	}
 }
+
+// gradSrcRingLabels is what rings the color-source dial: ONE PER OPTION, in
+// the order the options appear in the panel HTML — not numeric by value,
+// because the ring binds a label to an option by index.
+//
+// Kept here beside the source constants rather than inline at the call site,
+// so that adding a source and forgetting the dial is a test failure instead
+// of a knob that silently goes on offering the old positions.
+var gradSrcRingLabels = []string{
+	"off", "X", "Y", "Z", "trl", "aud",
+	"lvl", "dB", "cor", "sid", "bal", "pos", "flx", "pch",
+}

@@ -1143,7 +1143,14 @@ func Run() {
 			// so a permalink written before this still names the same source: the
 			// ring binds a label to an option by INDEX and the link by VALUE, and
 			// those are free to disagree.
-			addSelectorLabels(sstack, []string{"off", "X", "Y", "Z", "trl", "aud"}, gsrc, 43).
+			//
+			// ONE LABEL PER OPTION, IN OPTION ORDER. Binding by index is what
+			// makes that a requirement rather than a nicety: seven audio sources
+			// were added to the select and this list was left at six, so the dial
+			// went on offering the original six and the new ones could not be
+			// reached from the knob at all — only from a permalink. The order
+			// here is the order in panelhtml_js.go, not numeric by value.
+			addSelectorLabels(sstack, gradSrcRingLabels, gsrc, 43).
 				Set("id", "grad-src-ring")
 			sh.Call("appendChild", sstack)
 			gsrc.Get("style").Set("display", "none")
