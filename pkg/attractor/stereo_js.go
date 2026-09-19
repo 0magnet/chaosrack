@@ -237,6 +237,7 @@ type stereoInst struct {
 	trun float32 // run mode: auto, normal, single
 	hold float32 // holdoff, milliseconds
 	tpos float32 // where the trigger sits in the window, 0..1
+	grat float32 // graticule: off, axes, full
 
 	// frozen is SINGLE having caught its frame; lastRun notices the dial
 	// moving, which is what re-arms it.
@@ -287,6 +288,7 @@ func newStereoInst() *stereoInst {
 		trun:  trigRunAuto,
 		hold:  0,
 		tpos:  0,
+		grat:  gratOff,
 	}
 }
 
@@ -314,6 +316,7 @@ func init() {
 		{"stereo-trun", "run", &stereo.trun, trigRunAuto, trigRunAuto, trigRunSingle, 1},
 		{"stereo-hold", "hold", &stereo.hold, 0, 0, 500, 5},
 		{"stereo-tpos", "tpos", &stereo.tpos, 0, 0, 1, 0.05},
+		{"stereo-grat", "grid", &stereo.grat, gratOff, gratOff, gratFull, 1},
 		{"takens-smooth", "smth", &takensSmoothF, 4, 1, 16, 1},
 	}
 }
@@ -661,6 +664,9 @@ func (s *stereoInst) generate() {
 		vertices[j+3] = w
 	}
 	uploadVerticesOnly(vertices, attractorDrawMode, nv)
+	// The reference lines go up after the trace, as the Poincaré overlay
+	// does: a separate draw call over the finished figure.
+	s.drawGraticule()
 
 	// The RAW pair, not the widened or realigned one: the meter reports the
 	// source as it is, so that ALIGN and WIDE can be turned to ask what-if
@@ -1325,4 +1331,97 @@ func lockDecim(span int) int {
 		d = 1
 	}
 	return d
+}
+
+// ── GRATICULE ───────────────────────────────────────────────────────────
+//
+// The lines a goniometer is read against. Without them the figure is a
+// shape in the dark and its angle has to be judged by eye, which is the
+// one thing the instrument is for.
+//
+// Which lines mean what depends on the axes, so this follows the dial:
+//
+//	L/R positions — x is L and y is R. The DIAGONALS carry the meaning:
+//	  x=y is in-phase material, which is what a centered mono signal draws,
+//	  and x=−y is out of phase, the content that vanishes when summed. The
+//	  axes themselves are hard left and hard right.
+//
+//	mid/side positions — x is mid and y is side. Now the AXES carry it:
+//	  side=0 is mono, and mid=0 is entirely out of phase. The diagonals are
+//	  hard left and hard right, the two being swapped relative to L/R.
+//
+// Drawn at z=0, in the plane the vector part of the figure lives in, and
+// scaled to the same extent the signal axes are: gain times the vertical
+// gain, so the lines stay with the trace when either is turned.
+const (
+	gratOff = iota
+	gratAxes
+	gratFull
+)
+
+var gratNames = []string{
+	"off — no reference lines",
+	"axes — the two coordinate axes only",
+	"full — axes, diagonals and the unit box",
+}
+
+var gratRing = []string{"off", "ax", "full"}
+
+func (s *stereoInst) gratMode() int { return clampSel(s.grat, gratFull) }
+
+// gratBuf is the graticule's own vertex buffer: a handful of lines, rebuilt
+// only when the extent or the mode changes.
+var gratBuf []float32
+
+// drawGraticule puts the reference lines up behind the trace.
+//
+// A separate draw call with a flat color, the way the Poincaré overlay does
+// it, and the uniforms are put back afterwards for the same reason: the
+// trail's own gradient is whatever the color knobs say, and leaving the
+// override set paints the next thing drawn in graticule gray.
+func (s *stereoInst) drawGraticule() {
+	m := s.gratMode()
+	if m == gratOff {
+		return
+	}
+	e := s.gain * s.vgain
+	if !(e > 0) {
+		return
+	}
+	// 2 axes, and in full 2 diagonals plus a 4-segment box: 16 vertices at
+	// most, 4 floats each.
+	if cap(gratBuf) < 16*4 {
+		gratBuf = make([]float32, 16*4)
+	}
+	v := gratBuf[:0]
+	line := func(x0, y0, x1, y1 float32) {
+		// The fourth float is the color coordinate; the flat override
+		// ignores it, and a constant keeps it out of any gradient that is
+		// somehow still bound.
+		v = append(v, x0, y0, 0, 0, x1, y1, 0, 0)
+	}
+	line(-e, 0, e, 0)
+	line(0, -e, 0, e)
+	if m == gratFull {
+		line(-e, -e, e, e)
+		line(-e, e, e, -e)
+		line(-e, -e, e, -e)
+		line(e, -e, e, e)
+		line(e, e, -e, e)
+		line(-e, e, -e, -e)
+	}
+	n := len(v) / 4
+
+	gl.Call("uniform1i", uGradientColorsLoc, 1)
+	gl.Call("uniform3f", uBaseColorLoc, 0.22, 0.26, 0.32)
+	uploadVerticesOnly(v, glTypes.Lines, n)
+	if phosphorActive() {
+		// The phosphor owns these two while it is on; handing them to the
+		// palette here would hand them to the wrong owner. sectTick says
+		// the same thing about the same pair.
+		applyPhosphorColor()
+		return
+	}
+	gl.Call("uniform1i", uGradientColorsLoc, gradientColorsUniform())
+	gl.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
 }
