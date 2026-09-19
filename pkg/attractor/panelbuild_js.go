@@ -406,7 +406,7 @@ func buildParamPanel(mode string) {
 
 	if mode == "stereo" {
 		// The correlation readout, into the grid for the same reason.
-		appendStereoReadout(grid)
+		stereo.appendReadout(grid)
 	}
 
 	if mode == "xfer" {
