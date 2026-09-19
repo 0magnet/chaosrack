@@ -25,6 +25,7 @@ package attractor
 // focused view is a panel change, not a rendering one).
 
 import (
+	"strconv"
 	"syscall/js"
 
 	"github.com/go-gl/mathgl/mgl32"
@@ -111,11 +112,15 @@ func drawViewPasses(mode string) {
 		// everything outside the passes — the readout, the panel, the
 		// next frame — means the focused one.
 		stereo = instanceFor(i)
+		c := colorFor(i)
+		gradientSource, gradientColors = c.src, c.cols
 		gl.Call("scissor", r[0], r[1], r[2], r[3])
 		setViewport(r)
 		generateForMode(mode)
 	}
 	stereo = focusedInst()
+	fc := colorFor(focusedColorIdx())
+	gradientSource, gradientColors = fc.src, fc.cols
 	gl.Call("disable", gl.Get("SCISSOR_TEST"))
 	// Back to the whole canvas, so everything drawn after these passes —
 	// the Poincaré overlay, the lens, the next frame's clear — sees the
@@ -183,6 +188,7 @@ func focusedInst() *stereoInst {
 // against the new instance moves both.
 func refocus() {
 	stereo = focusedInst()
+	applyFocusedColor()
 	buildParamPanel(selectedMode)
 }
 
@@ -205,4 +211,82 @@ func wireViewLinkSwitches() {
 			return nil
 		}))
 	}
+}
+
+// ── color per view ──────────────────────────────────────────────────────
+//
+// The color SOURCE and the MAP are package variables, because they apply to
+// every mode rather than to any one of them — and that made them the one
+// thing Link could not split. Two views of the same figure colored two ways
+// is the comparison the split is most useful for (the same moment read as
+// correlation and as stereo position, side by side), so they are per view
+// too.
+//
+// Kept beside viewState rather than in it: viewState is the camera, which
+// is still shared between the views, and putting a split field next to
+// unsplit ones in the same struct would be a struct that is half per-view.
+// When the camera splits these fold into it.
+type viewColor struct {
+	src  int // gradientSource
+	cols int // gradientColors
+}
+
+// viewColors is each view's coloring. The defaults are the ones the
+// gradient selects open at — Z, two-color — so an untouched second view
+// looks like the first until something is changed.
+var viewColors = [2]viewColor{{src: 2, cols: 2}, {src: 2, cols: 2}}
+
+// colorFor returns the coloring a view draws with, which is the shared one
+// while the views are linked.
+func colorFor(i int) viewColor {
+	if viewLink || i < 0 || i >= len(viewColors) {
+		return viewColors[0]
+	}
+	return viewColors[i]
+}
+
+// focusedColorIdx is which entry the gradient selects write to.
+func focusedColorIdx() int {
+	if !viewSplit || viewLink {
+		return 0
+	}
+	if viewFocus < 0 || viewFocus >= len(viewColors) {
+		return 0
+	}
+	return viewFocus
+}
+
+// noteGradientSource records a change the gradient select just made, so the
+// focused view keeps it. Called from the select's own handler, after the
+// global it drives has been set.
+func noteGradientSource(n int) { viewColors[focusedColorIdx()].src = n }
+
+// noteGradientColors is the same for the map.
+func noteGradientColors(n int) { viewColors[focusedColorIdx()].cols = n }
+
+// applyFocusedColor puts the focused view's coloring back into the globals
+// and onto the two selects, so the panel reads what the focused view draws.
+//
+// The selects are set WITHOUT dispatching: their handlers would write
+// straight back into the entry being read, which is harmless but circular,
+// and updateGradientUI is what the handlers call anyway.
+func applyFocusedColor() {
+	c := viewColors[focusedColorIdx()]
+	gradientSource, gradientColors = c.src, c.cols
+	setSelectQuiet("gradient-source", c.src)
+	setSelectQuiet("gradient-colors", c.cols)
+	updateGradientUI()
+}
+
+// setSelectQuiet sets a select's value and refreshes the knob ring built
+// over it, without running the select's change handler.
+func setSelectQuiet(id string, v int) {
+	el := doc.Call("getElementById", id)
+	if !el.Truthy() {
+		return
+	}
+	el.Set("value", strconv.Itoa(v))
+	// The ring is a set of labels over a hidden select; it reads the value
+	// on an input event, which is not the change event the handler wants.
+	el.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 }
