@@ -79,6 +79,10 @@ func newOpeningRack(container js.Value) *rack.Rack {
 		// carried up to the row above. Without it a rack held you inside
 		// whichever unit you picked the module up in.
 		Siblings: func() []*rack.Rack { return unitRacks },
+		// And ONE put-away set between them. A module repacked into another
+		// unit used to leave its "hidden" record behind in the rack it came
+		// from, so it stayed off-screen with its switch saying it was on.
+		Hidden: unitHidden,
 		OnReorder: func([]string) {
 			saveRackLayout()
 			// A module dropped into another unit changes what fits in both,

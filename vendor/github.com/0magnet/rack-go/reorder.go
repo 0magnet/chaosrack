@@ -215,21 +215,7 @@ func abs(v float64) float64 {
 	return v
 }
 
-// dropTargets is every module a drag may be dropped onto: this rack's, and
-// those of any sibling the host has named.
-//
-// The held module's own rack is first, so an ordinary reorder behaves
-// exactly as it did and costs no extra work when there are no siblings.
-func (r *Rack) dropTargets() []js.Value {
-	out := r.Modules()
-	if r.opts.Siblings == nil {
-		return out
-	}
-	for _, s := range r.opts.Siblings() {
-		if s == nil || s == r {
-			continue
-		}
-		out = append(out, s.Modules()...)
-	}
-	return out
-}
+// dropTargets is every module a drag may be dropped onto — the same set
+// hiding and showing reach, since both questions are "where is this module,
+// across the racks that share one logical rack".
+func (r *Rack) dropTargets() []js.Value { return r.reachableModules() }

@@ -118,6 +118,19 @@ type Options struct {
 	// construction would not know.
 	Siblings func() []*Rack
 
+	// Hidden, when set, is the put-away set SHARED with the sibling racks.
+	//
+	// A rack normally keeps its own. With several racks over one logical
+	// rack that breaks as soon as a module moves between them: the record
+	// that it is hidden stays with the rack it left, the rack it arrived
+	// in has never heard of it, and the module is stuck off-screen with
+	// its switch saying it is on. Sharing one map is what makes hiding a
+	// property of the MODULE rather than of whichever container it
+	// happens to be sitting in.
+	//
+	// Unset, the rack allocates its own and nothing changes.
+	Hidden map[string]bool
+
 	// so a host can persist them.
 	OnReorder    func(order []string)
 	OnVisibility func(key string, shown bool)
@@ -169,7 +182,11 @@ func New(opts Options) *Rack {
 
 	InjectCSS()
 
-	r := &Rack{opts: opts, hidden: map[string]bool{}}
+	hidden := opts.Hidden
+	if hidden == nil {
+		hidden = map[string]bool{}
+	}
+	r := &Rack{opts: opts, hidden: hidden}
 	r.root = opts.Container
 	if !r.root.Truthy() {
 		r.root = document.Call("createElement", "div")
