@@ -592,7 +592,7 @@ func wfallDraw() {
 		// SPHERE of that radius and the window is wider than it is tall. That is
 		// how every model here is framed and the zoom is how to fill the width.
 		wfallFitted = true
-		fitExtentOverride = span
+		view.fitOverride = span
 		autoFitCamera()
 	}
 }

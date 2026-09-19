@@ -144,14 +144,14 @@ func hyperRosslerWarmup() {
 			ext = e
 		}
 	}
-	fitExtentOverride = float32(ext) * hyperScale
+	view.fitOverride = float32(ext) * hyperScale
 	// Also set the camera DIRECTLY: boot/priming call autoFitCamera in orders
 	// that can pair the one-shot override with the wrong invocation, and any
 	// unpaired call would fit the momentary arc (or worse) instead of the
 	// structure. Direct assignment has no ordering dependence.
-	dist := fitDistFor(fitExtentOverride)
-	initCameraDist = dist
-	defaultCameraDist = dist
+	dist := fitDistFor(view.fitOverride)
+	view.initDist = dist
+	view.defaultDist = dist
 	updateViewMatrix()
 }
 

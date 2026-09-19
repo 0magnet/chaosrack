@@ -73,7 +73,7 @@ var (
 	// every system, since a Lorenz attractor and a Rössler attractor are
 	// different sizes. In fractions, the middle is always the middle.
 	//
-	// What is NOT borrowed is modelFitExtent, which splitFrac measures against.
+	// What is NOT borrowed is view.fitExtent, which splitFrac measures against.
 	// That is one scalar for all three axes (max|coordinate| over the whole
 	// model), so ±1 on a thin axis would put the plane well outside the
 	// attractor and the last part of the knob's travel would do nothing. The
@@ -223,7 +223,7 @@ func sectField(sys flowSys4, s [4]float64, dt float64) [3]float64 {
 //
 // The measurement is why this is not free and why it is cached behind
 // sectSignature. It is also why the pos knob means something: without it the
-// only thing available is modelFitExtent, which is the camera fit of whatever
+// only thing available is view.fitExtent, which is the camera fit of whatever
 // model was last DRAWN — on the Poincaré model that is not the source system
 // at all, so the plane would be positioned against the size of a dodecahedron
 // somebody looked at earlier.

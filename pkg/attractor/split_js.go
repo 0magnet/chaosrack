@@ -36,10 +36,6 @@ func setSplitPlane(side int, z float32) {
 	gl.Call("uniform1f", uSplitZLoc, float64(z))
 }
 
-// modelFitExtent is how far the model reaches from its center, as measured the
-// last time the camera was fitted to it. Zero until then.
-var modelFitExtent float32
-
 // splitFrac is the Fore knob: -1 puts the whole model behind the rack, +1 puts
 // all of it in front, and anything between is a plane cutting through it.
 //
@@ -118,19 +114,19 @@ func splitAllInFront() bool { return splitFrac >= 1-splitEpsilon }
 // splitPlaneZ is where the partition sits in view space.
 //
 // The camera is at the origin looking down -Z, so the model's center is at
-// -defaultCameraDist and its extent reaches modelFitExtent either side of that.
+// -view.defaultDist and its extent reaches view.fitExtent either side of that.
 // At frac -1 the plane is put in FRONT of everything, which leaves the whole
 // model on the far side; at +1 it goes behind everything and the whole model is
 // near. The sign is what makes the knob read the way a hand expects: turning it
 // up brings the model forward through the panel.
 func splitPlaneZ() float32 {
-	ext := modelFitExtent
+	ext := view.fitExtent
 	if ext <= 0 {
 		// Nothing has fitted the camera yet, so guess from the distance. Half
 		// of it is generous for anything the fitter would have chosen.
-		ext = defaultCameraDist * 0.5
+		ext = view.defaultDist * 0.5
 	}
-	return -defaultCameraDist - splitFrac*ext
+	return -view.defaultDist - splitFrac*ext
 }
 
 // drawSplitPasses draws the model twice, once for each side of the plane.

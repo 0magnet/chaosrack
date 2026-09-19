@@ -370,7 +370,7 @@ func generateTakens() {
 		// zoom and never moves with the signal. It fires again only when GAIN
 		// moves, because GAIN is what the bound is made of.
 		takensFitGain = takensGain
-		fitExtentOverride = takensFitExtent(takensGain)
+		view.fitOverride = takensFitExtent(takensGain)
 		autoFitCamera()
 	}
 }

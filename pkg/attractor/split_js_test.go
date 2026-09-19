@@ -8,10 +8,10 @@ import "testing"
 // stop meaning "all of it behind" and "all of it in front" — one stray fragment
 // on the wrong canvas is a piece of the model floating through the panel.
 func TestThePlaneClearsTheModelAtBothEnds(t *testing.T) {
-	oldFrac, oldExt, oldDist := splitFrac, modelFitExtent, defaultCameraDist
-	t.Cleanup(func() { splitFrac, modelFitExtent, defaultCameraDist = oldFrac, oldExt, oldDist })
+	oldFrac, oldExt, oldDist := splitFrac, view.fitExtent, view.defaultDist
+	t.Cleanup(func() { splitFrac, view.fitExtent, view.defaultDist = oldFrac, oldExt, oldDist })
 
-	modelFitExtent, defaultCameraDist = 4, 20
+	view.fitExtent, view.defaultDist = 4, 20
 	near, far := float32(-20+4), float32(-20-4) // the model spans these in view space
 
 	splitFrac = -1
@@ -61,10 +61,10 @@ func TestTheEndsOfTheKnobDoNotSplit(t *testing.T) {
 // at zero, which would be the camera's own position and would put the entire
 // model on the far side no matter where the knob is.
 func TestThePlaneCopesBeforeTheCameraHasBeenFitted(t *testing.T) {
-	oldExt, oldDist, oldFrac := modelFitExtent, defaultCameraDist, splitFrac
-	t.Cleanup(func() { modelFitExtent, defaultCameraDist, splitFrac = oldExt, oldDist, oldFrac })
+	oldExt, oldDist, oldFrac := view.fitExtent, view.defaultDist, splitFrac
+	t.Cleanup(func() { view.fitExtent, view.defaultDist, splitFrac = oldExt, oldDist, oldFrac })
 
-	modelFitExtent, defaultCameraDist, splitFrac = 0, 30, 0
+	view.fitExtent, view.defaultDist, splitFrac = 0, 30, 0
 	if z := splitPlaneZ(); z != -30 {
 		t.Errorf("plane at %v with no fit, want the camera distance -30", z)
 	}
@@ -136,5 +136,27 @@ func TestOnlyModesThatRedrawAreSplit(t *testing.T) {
 	selectedMode, splitFrac = "lorenz", -1
 	if splitDrawing() {
 		t.Error("the far end of the knob still asks for two passes")
+	}
+}
+
+func TestTwoViewsHaveIndependentCameras(t *testing.T) {
+	a, b := newViewState(), newViewState()
+	if a.initDist != b.initDist || a.defaultDist != b.defaultDist {
+		t.Fatalf("fresh views differ: %+v vs %+v", a, b)
+	}
+	a.initDist, a.defaultDist = 250, 250
+	a.fitExtent = 40
+	a.fitOverride = 12
+	if b.initDist != 100 || b.defaultDist != 100 || b.fitExtent != 0 || b.fitOverride != 0 {
+		t.Errorf("fitting a moved b: %+v", b)
+	}
+}
+
+// The on-screen view has to start where a fresh one does, or Reset and a
+// new view would disagree about what the camera's default is.
+func TestPackageViewStartsAtDefaults(t *testing.T) {
+	fresh := newViewState()
+	if view.initDist != fresh.initDist || view.defaultDist != fresh.defaultDist {
+		t.Errorf("the drawn view is not at defaults: %+v want %+v", view, fresh)
 	}
 }
