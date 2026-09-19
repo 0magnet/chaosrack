@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/0magnet/chaosrack/pkg/audiosrc"
@@ -372,5 +373,49 @@ func TestStereoFitBoundHoldsForEveryPlan(t *testing.T) {
 	// And the fit itself covers the corner of that cube, as it does for takens.
 	if got, want := takensFitExtent(gain), gain*1.7320508; got < want {
 		t.Errorf("fitted to %v but a corner reaches %v", got, want)
+	}
+}
+
+// Every knob whose label is an abbreviation has to say what it stands for
+// somewhere a hand can find it, or the panel is a row of four-letter words
+// only the source explains. "smth" was the one that prompted this.
+func TestAbbreviatedKnobsCarryHelp(t *testing.T) {
+	for _, id := range []string{
+		"takens-tau", "takens-win", "takens-gain", "takens-smooth", "takens-chan",
+		"stereo-axes", "stereo-tau", "stereo-win", "stereo-gain",
+		"stereo-align", "stereo-width", "stereo-vg", "stereo-span",
+		"polar-map", "polar-drive", "polar-tau", "polar-win", "polar-gain", "polar-chan",
+	} {
+		h := helpFor(id)
+		if h == "" {
+			t.Errorf("%s has no help sentence", id)
+			continue
+		}
+		if len(h) < 40 {
+			t.Errorf("%s help is too terse to explain anything: %q", id, h)
+		}
+	}
+}
+
+// The dial's names and its ring have to stay the same length and order, and
+// only the TIME positions may claim to be goniometers — a delayed copy on
+// the third axis is a delay embedding, not a two-channel vector display.
+func TestOnlyTimePositionsAreCalledGoniometers(t *testing.T) {
+	if len(stereoAxisNames) != len(stereoPlans) || len(stereoAxisRing) != len(stereoPlans) {
+		t.Fatalf("tables disagree: %d names, %d ring, %d plans",
+			len(stereoAxisNames), len(stereoAxisRing), len(stereoPlans))
+	}
+	for i, p := range stereoPlans {
+		isTime := false
+		for _, c := range p.ch {
+			if c == chTime {
+				isTime = true
+			}
+		}
+		named := strings.Contains(stereoAxisNames[i], "goniometer")
+		if isTime != named {
+			t.Errorf("position %d (%s): time=%v but named %q",
+				i, stereoAxisRing[i], isTime, stereoAxisNames[i])
+		}
 	}
 }

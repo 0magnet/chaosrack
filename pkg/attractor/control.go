@@ -233,8 +233,9 @@ func (c *Control) annotate() {
 			return
 		}
 		ctl := cellCtl(c.cell, c.module)
-		stampAll(c.cell, ".plabel:not(.ledcolor-lbl), .u-lbl", ctl+sep+"label")
-		stampAll(c.cell, ".led:not(.pal-hex)", ctl+sep+"LED readout")
+		help := cellHelp(c.cell)
+		stampAll(c.cell, ".plabel:not(.ledcolor-lbl), .u-lbl", withHelp(ctl+sep+"label", help))
+		stampAll(c.cell, ".led:not(.pal-hex)", withHelp(ctl+sep+"LED readout", help))
 		stampAll(c.cell, "input[type=range]", ctl+sep+"slider")
 		stampAll(c.cell, ".rst", ctl+sep+"reset")
 		stampAll(c.cell, ".eqstrip", ctl+sep+"audio EQ (drag to pick frequency bands)")
@@ -248,7 +249,7 @@ func (c *Control) annotate() {
 			}
 			n.Set("title", ctl+sep+role)
 		}
-		stampAll(c.cell, ".knob:not(.knobsel):not(.knob-fine)", ctl+sep+"knob")
+		stampAll(c.cell, ".knob:not(.knobsel):not(.knob-fine)", withHelp(ctl+sep+"knob", help))
 		if c.cell.Call("querySelector", ".knobsel").Truthy() {
 			stampSelectorKnobs(c.cell, c.module, ctl)
 		}

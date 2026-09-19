@@ -99,3 +99,24 @@ func stampSelectorKnobs(cell js.Value, mod, fallbackCtl string) {
 		knobs.Index(i).Set("title", ctl+sep+"selector knob")
 	}
 }
+
+// cellHelp is the paramHelp sentence for a cell, found from the hidden
+// slider that carries the parameter id, or "" when the knob has no entry.
+func cellHelp(cell js.Value) string {
+	s := cell.Call("querySelector", "input[type=range]")
+	if !s.Truthy() {
+		return ""
+	}
+	return helpFor(s.Get("id").String())
+}
+
+// withHelp appends the sentence to a tooltip. Used on the label, the knob
+// and the readout — the three things a hand actually rests on — and not on
+// every element, because the same paragraph repeated on a reset button and
+// a step field is noise rather than help.
+func withHelp(tip, help string) string {
+	if help == "" {
+		return tip
+	}
+	return tip + sep + help
+}
