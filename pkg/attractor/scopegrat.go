@@ -70,7 +70,23 @@ type gratLine struct {
 // table would be the spec copied out by hand — and a graticule whose ticks
 // have drifted one position out of step with its divisions is wrong in a way
 // nobody notices until they trust a reading.
+// scopeGraticuleCached is the figure, built once.
+//
+// It is constant — the same hundred and forty lines every time — and it
+// was being rebuilt three times a frame by the canvas drawing, which at
+// sixty frames a second is twenty-five thousand allocations a second of
+// something that never changes. In wasm that is collector pauses, and
+// they were visible: the model hesitated about once a second.
+var scopeGraticuleCache []gratLine
+
 func scopeGraticule() []gratLine {
+	if scopeGraticuleCache == nil {
+		scopeGraticuleCache = buildScopeGraticule()
+	}
+	return scopeGraticuleCache
+}
+
+func buildScopeGraticule() []gratLine {
 	out := make([]gratLine, 0, 64)
 
 	// The border and the interior division lines. The border is part of the
