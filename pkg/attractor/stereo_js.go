@@ -249,6 +249,10 @@ type stereoInst struct {
 	// not allocate sixty times a second.
 	trigBuf []float32
 
+	// lockWave is the stretch of trigger signal the last frame drew, kept
+	// for the waveform lock to match against.
+	lockWave []float32
+
 	readEl   js.Value // the readout in the parameter grid
 	readText string   // last text written to it (DOM write only on change)
 
@@ -302,7 +306,7 @@ func init() {
 		{"stereo-width", "wide", &stereo.width, 1, 0, 3, 0.05},
 		{"stereo-vg", "vg", &stereo.vgain, 1, 0.1, 8, 0.1},
 		{"stereo-span", "span", &stereo.span, 1, 0.25, 8, 0.25},
-		{"stereo-trig", "trig", &stereo.trig, stereoTrigOff, stereoTrigOff, stereoTrigFalling, 1},
+		{"stereo-trig", "trig", &stereo.trig, stereoTrigOff, stereoTrigOff, stereoTrigLock, 1},
 		{"stereo-lvl", "lvl", &stereo.lvl, 0, -1, 1, 0.01},
 		{"stereo-tsrc", "tsrc", &stereo.tsrc, trigSrcMid, trigSrcMid, trigSrcR, 1},
 		{"stereo-tcpl", "tcpl", &stereo.tcpl, trigCplDC, trigCplDC, trigCplHFRej, 1},
@@ -504,7 +508,14 @@ func (s *stereoInst) generate() {
 	// of older audio for it to look in. Zero when the trigger is off, which
 	// leaves the snapshot exactly the size it always was.
 	margin := s.trigMargin(span)
-	snap := span + absA + 1 + margin
+	// The waveform lock compares a whole window at every candidate offset,
+	// so the snapshot has to reach further back than the search margin
+	// alone would need.
+	lockPad := 0
+	if s.trigMode() == stereoTrigLock {
+		lockPad = lockPoints*lockDecim(span) + 1
+	}
+	snap := span + absA + 1 + margin + lockPad
 	if len(s.l) < snap {
 		// Grown by half again, as the Takens ring is, so that turning the WIN
 		// knob does not reallocate on every step of the dial.
@@ -544,9 +555,22 @@ func (s *stereoInst) generate() {
 			uploadVerticesOnly(vertices, attractorDrawMode, nv)
 			return
 		}
-		trig := s.buildTrigSignal(l, r, baseL, baseR, tau, margin, sr)
-		off, found := triggerOffset(trig, margin, s.trigHoldSamples(sr),
-			s.lvl, s.hyst, m == stereoTrigRising)
+		// LOCK compares a whole window, so it needs the window behind every
+		// candidate offset, not just the offsets themselves.
+		decim := lockDecim(span)
+		need := margin + 1
+		if m == stereoTrigLock {
+			need = margin + lockPoints*decim + 1
+		}
+		trig := s.buildTrigSignal(l, r, baseL, baseR, tau, need, sr)
+		var off int
+		var found bool
+		if m == stereoTrigLock {
+			off, found = lockOffset(trig, s.lockWave, margin, decim)
+		} else {
+			off, found = triggerOffset(trig, margin, s.trigHoldSamples(sr),
+				s.lvl, s.hyst, m == stereoTrigRising)
+		}
 		switch {
 		case found:
 			// The trigger point sits trigPos of the way into the window, so
@@ -567,6 +591,14 @@ func (s *stereoInst) generate() {
 			uploadVerticesOnly(vertices, attractorDrawMode, nv)
 			return
 		}
+	}
+	if s.trigMode() == stereoTrigLock {
+		// Record what this frame actually DREW — after the trigger position
+		// has moved it — so next frame matches the window on screen rather
+		// than one beside it, and the two do not walk apart. Recorded
+		// whether it locked or free-ran, which is how it recovers after a
+		// cut: one free-run frame becomes the next frame's reference.
+		s.sampleLockWave(s.trigBuf, toff, lockDecim(span))
 	}
 	baseL += toff
 	baseR += toff
@@ -853,15 +885,17 @@ var stereoTrigNames = []string{
 	"off — the window ends at the newest sample and the figure slides",
 	"rising — start where the signal crosses the level going up",
 	"falling — start where it crosses going down",
+	"lock — match the shape of the last frame, with no level or edge involved",
 }
 
 // stereoTrigRing is what fits around the dial.
-var stereoTrigRing = []string{"off", "rise", "fall"}
+var stereoTrigRing = []string{"off", "rise", "fall", "lock"}
 
 const (
 	stereoTrigOff = iota
 	stereoTrigRising
 	stereoTrigFalling
+	stereoTrigLock // match the previous frame's waveform; see WAVEFORM LOCK
 )
 
 // stereoTrigMaxMargin caps how far back a trigger will look, in samples.
@@ -878,8 +912,8 @@ func (s *stereoInst) trigMode() int {
 	if !(v > 0) { // false for NaN too
 		return stereoTrigOff
 	}
-	if v > stereoTrigFalling {
-		return stereoTrigFalling
+	if v > stereoTrigLock {
+		return stereoTrigLock
 	}
 	return int(v + 0.5)
 }
@@ -1073,18 +1107,33 @@ func (s *stereoInst) trigCpl() int { return clampSel(s.tcpl, trigCplHFRej) }
 // the trigger is allowed to look at a different signal from the one on
 // screen, and on a scope that is the whole point of having a trigger source
 // and a coupling at all.
-func (s *stereoInst) buildTrigSignal(l, r []float32, baseL, baseR, tau, margin, sr int) []float32 {
-	if margin <= 0 {
+func (s *stereoInst) buildTrigSignal(l, r []float32, baseL, baseR, tau, n, sr int) []float32 {
+	if n <= 0 {
 		return nil
 	}
-	n := margin + 1
 	if cap(s.trigBuf) < n {
 		s.trigBuf = make([]float32, n+n/2)
 	}
 	buf := s.trigBuf[:n]
 	src := s.trigSrc()
+	// Clamped: the lock asks for a window beyond the search margin, and a
+	// snapshot one sample short of it must repeat its oldest sample rather
+	// than index past the end.
+	last := len(l) - 1
+	if m := len(r) - 1; m < last {
+		last = m
+	}
 	for off := 0; off < n; off++ {
 		i := tau + off
+		if baseL+i > last {
+			i = last - baseL
+		}
+		if baseR+i > last {
+			i = last - baseR
+		}
+		if i < 0 {
+			i = 0
+		}
 		switch src {
 		case trigSrcL:
 			buf[off] = l[baseL+i]
@@ -1166,4 +1215,114 @@ func (s *stereoInst) rearmIfModeMoved() {
 		s.lastRun = m
 		s.frozen = false
 	}
+}
+
+// ── WAVEFORM LOCK ───────────────────────────────────────────────────────
+//
+// An edge trigger locks to ONE feature: the moment the signal crosses a
+// level. That is the right thing on a bench, where the signal is a square
+// wave and every cycle is the same. On music it is the weak link — a
+// polyphonic passage crosses any level many times per period, at moments
+// that are not the same feature from one cycle to the next, and the figure
+// settles onto whichever crossing happened to be newest.
+//
+// This locks to the SHAPE instead. Keep the stretch of signal the last
+// frame drew, slide it along the search margin, and start where it matches
+// best. Nothing has to cross anything, there is no level to set, and what
+// holds still is the whole waveform rather than one point on it.
+//
+// It is what a correlation-based pitch detector does with the answer thrown
+// away: the offset IS the answer, and a figure drawn from it stands where
+// the previous one did. On material an edge trigger cannot hold — chords,
+// speech, anything with several partials — this is the one that works.
+//
+// The cost is a search, so both sides are decimated: the comparison runs on
+// every lockDecim'th sample and the candidate offsets step by the same, for
+// roughly (margin/decim) × (span/decim) multiplies a frame. At the default
+// window that is a few hundred thousand, which is small beside the spline
+// the frame is about to run anyway.
+
+// lockPoints is how many samples the comparison uses. 192 is enough to
+// identify a waveform and few enough that the search stays cheap; past it
+// the extra points agree with the ones already counted.
+const lockPoints = 192
+
+// lockStep is how far apart the candidate offsets are, in samples. Every
+// offset would be exact and four times the work for a shift nobody can
+// see: a quarter-sample of jitter at 48 kHz is 20 microseconds.
+const lockStep = 4
+
+// lockOffset finds where in the margin the current signal best matches what
+// was drawn last frame.
+//
+// The score is a normalized dot product, so it compares SHAPE and not
+// loudness: a passage that swells must not drag the lock along with it.
+// Returns the free-run offset and false when there is no previous frame to
+// match, which is what the first frame after a mode change gets.
+func lockOffset(cur, prev []float32, margin, decim int) (int, bool) {
+	if len(prev) == 0 || margin <= 0 || decim < 1 {
+		return margin, false
+	}
+	n := len(prev)
+	if len(cur) < margin+n*decim {
+		return margin, false
+	}
+	var prevNorm float64
+	for _, v := range prev {
+		prevNorm += float64(v) * float64(v)
+	}
+	if prevNorm < 1e-9 {
+		return margin, false // silence last frame: nothing to match
+	}
+	prevNorm = math.Sqrt(prevNorm)
+
+	best, bestOff := -2.0, margin
+	for off := margin; off >= 0; off -= lockStep {
+		var dot, curNorm float64
+		for i := 0; i < n; i++ {
+			c := float64(cur[off+i*decim])
+			dot += c * float64(prev[i])
+			curNorm += c * c
+		}
+		if curNorm < 1e-9 {
+			continue
+		}
+		score := dot / (math.Sqrt(curNorm) * prevNorm)
+		if score > best {
+			best, bestOff = score, off
+		}
+	}
+	if best < 0 {
+		// Nothing resembles the last frame — a cut, a new section. Free-run
+		// rather than locking to the least bad of a bad set.
+		return margin, false
+	}
+	return bestOff, true
+}
+
+// sampleLockWave records the stretch the window just drew, decimated, as
+// next frame's thing to match.
+func (s *stereoInst) sampleLockWave(trig []float32, off, decim int) {
+	if cap(s.lockWave) < lockPoints {
+		s.lockWave = make([]float32, lockPoints)
+	}
+	w := s.lockWave[:lockPoints]
+	for i := range w {
+		j := off + i*decim
+		if j >= len(trig) {
+			j = len(trig) - 1
+		}
+		w[i] = trig[j]
+	}
+	s.lockWave = w
+}
+
+// lockDecim spreads lockPoints over the window, so the comparison covers
+// what is drawn rather than a sliver at the start of it.
+func lockDecim(span int) int {
+	d := span / lockPoints
+	if d < 1 {
+		d = 1
+	}
+	return d
 }

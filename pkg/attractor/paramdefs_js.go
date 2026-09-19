@@ -342,9 +342,12 @@ var paramHelp = map[string]string{
 		"the newest sample, so a steady tone is redrawn at a different phase each " +
 		"frame and the figure slides. RISE and FALL start it where the signal " +
 		"crosses the level, so successive frames begin at the same phase and a " +
-		"periodic signal stands still. Nothing periodic to lock to — noise, " +
-		"speech — and it free-runs rather than blanking, which is the AUTO " +
-		"behavior of a bench scope.",
+		"periodic signal stands still. LOCK is the one for music: it matches the " +
+		"SHAPE of the last frame instead of looking for an edge, so nothing has " +
+		"to cross a level and what holds still is the whole waveform rather than " +
+		"one point on it — which is what works on chords and speech, where an " +
+		"edge trigger cannot. Nothing to lock to and it free-runs rather than " +
+		"blanking, which is the AUTO behavior of a bench scope.",
 	"stereo-tsrc": "trigger source — which signal the trigger watches. It need not " +
 		"be what is drawn: locking to MID holds the whole figure, and locking to " +
 		"one channel is how to hold a figure whose other channel is the busy one.",

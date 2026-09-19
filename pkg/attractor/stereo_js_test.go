@@ -646,8 +646,8 @@ func TestTrigModeClamps(t *testing.T) {
 		}
 	}
 	s.trig = 99
-	if s.trigMode() != stereoTrigFalling {
-		t.Errorf("trig 99 = %d, want the last position", s.trigMode())
+	if s.trigMode() != stereoTrigLock {
+		t.Errorf("trig 99 = %d, want the last position (%d)", s.trigMode(), stereoTrigLock)
 	}
 }
 
@@ -656,8 +656,8 @@ func TestTrigTablesLineUp(t *testing.T) {
 	if len(stereoTrigNames) != len(stereoTrigRing) {
 		t.Fatalf("%d names, %d ring labels", len(stereoTrigNames), len(stereoTrigRing))
 	}
-	if len(stereoTrigNames) != stereoTrigFalling+1 {
-		t.Errorf("%d names for %d positions", len(stereoTrigNames), stereoTrigFalling+1)
+	if len(stereoTrigNames) != stereoTrigLock+1 {
+		t.Errorf("%d names for %d positions", len(stereoTrigNames), stereoTrigLock+1)
 	}
 }
 
@@ -783,5 +783,119 @@ func TestTrigHoldSamplesIsADuration(t *testing.T) {
 	// The same knob position is the same DURATION on a different rate.
 	if n := s.trigHoldSamples(24000); n != 2400 {
 		t.Errorf("100 ms at 24 kHz = %d samples, want 2400", n)
+	}
+}
+
+// The waveform lock finds where the current signal best matches what was
+// drawn last frame — no level, no edge, the whole shape.
+func TestLockFindsTheMatchingOffset(t *testing.T) {
+	decim := 1
+	n := lockPoints
+	margin := 300
+	// A signal with a clear period, and a reference taken from a known
+	// place in it. The lock must find that place again.
+	cur := make([]float32, margin+n*decim+1)
+	for i := range cur {
+		cur[i] = float32(math.Sin(float64(i) * 0.11))
+	}
+	const want = 132
+	prev := make([]float32, n)
+	copy(prev, cur[want:want+n])
+
+	got, found := lockOffset(cur, prev, margin, decim)
+	if !found {
+		t.Fatal("no match found in a signal that contains the reference exactly")
+	}
+	// Periodic, so any offset a whole period away is equally correct; what
+	// matters is that the matched window really does match.
+	var dot, na, nb float64
+	for i := 0; i < n; i++ {
+		a, b := float64(cur[got+i*decim]), float64(prev[i])
+		dot += a * b
+		na += a * a
+		nb += b * b
+	}
+	score := dot / (math.Sqrt(na) * math.Sqrt(nb))
+	if score < 0.99 {
+		t.Errorf("offset %d scores only %.3f against the reference", got, score)
+	}
+}
+
+// It compares SHAPE, not loudness: a passage that swells must not drag the
+// lock along with it.
+func TestLockIgnoresAmplitude(t *testing.T) {
+	decim, n, margin := 1, lockPoints, 200
+	cur := make([]float32, margin+n*decim+1)
+	for i := range cur {
+		cur[i] = float32(math.Sin(float64(i) * 0.09))
+	}
+	const want = 77
+	prev := make([]float32, n)
+	for i := range prev {
+		prev[i] = cur[want+i] * 0.05 // same shape, a twentieth the level
+	}
+	got, found := lockOffset(cur, prev, margin, decim)
+	if !found {
+		t.Fatal("a quiet reference found no match")
+	}
+	var dot, na, nb float64
+	for i := 0; i < n; i++ {
+		a, b := float64(cur[got+i]), float64(prev[i])
+		dot += a * b
+		na += a * a
+		nb += b * b
+	}
+	if score := dot / (math.Sqrt(na) * math.Sqrt(nb)); score < 0.99 {
+		t.Errorf("amplitude threw the match off: offset %d scores %.3f", got, score)
+	}
+}
+
+// With nothing to match — the first frame, or after silence — it free-runs
+// rather than locking onto noise.
+func TestLockFreeRunsWithoutAReference(t *testing.T) {
+	margin := 100
+	cur := make([]float32, margin+lockPoints+1)
+	for i := range cur {
+		cur[i] = float32(math.Sin(float64(i) * 0.2))
+	}
+	if off, found := lockOffset(cur, nil, margin, 1); found || off != margin {
+		t.Errorf("no reference gave off=%d found=%v, want the free-run margin", off, found)
+	}
+	silent := make([]float32, lockPoints)
+	if off, found := lockOffset(cur, silent, margin, 1); found || off != margin {
+		t.Errorf("a silent reference gave off=%d found=%v, want free-run", off, found)
+	}
+	// Too little signal to cover a window at every offset.
+	short := make([]float32, 10)
+	if off, found := lockOffset(short, make([]float32, lockPoints), margin, 1); found || off != margin {
+		t.Errorf("a short buffer gave off=%d found=%v, want free-run", off, found)
+	}
+}
+
+func TestLockDecimSpreadsOverTheWindow(t *testing.T) {
+	if d := lockDecim(lockPoints * 4); d != 4 {
+		t.Errorf("lockDecim = %d, want 4", d)
+	}
+	if d := lockDecim(10); d != 1 {
+		t.Errorf("a window shorter than the comparison gave decim %d, want 1", d)
+	}
+}
+
+// sampleLockWave records what was drawn, so the next frame has something
+// to match; it must not read past the buffer it is given.
+func TestSampleLockWaveStaysInBounds(t *testing.T) {
+	s := newStereoInst()
+	trig := make([]float32, 50)
+	for i := range trig {
+		trig[i] = float32(i)
+	}
+	s.sampleLockWave(trig, 40, 4) // would run well past the end
+	if len(s.lockWave) != lockPoints {
+		t.Fatalf("recorded %d points, want %d", len(s.lockWave), lockPoints)
+	}
+	for i, v := range s.lockWave {
+		if v > 49 {
+			t.Fatalf("point %d is %v, past the end of the buffer", i, v)
+		}
 	}
 }
