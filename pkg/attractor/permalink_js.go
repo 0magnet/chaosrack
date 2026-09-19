@@ -56,6 +56,7 @@ var permaCtls = []permaCtl{
 	{"ps", "persist-trail", true},
 	{"rb", "ring-sw", true},
 	{"tw", "twin-sw", true},
+	{"vw", "views-sw", true},
 	{"po", "sect-sw", true},
 	{"pb", "patch-on", true},
 	{"fc", "counter-on", true},
