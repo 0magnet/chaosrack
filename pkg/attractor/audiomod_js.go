@@ -66,6 +66,13 @@ var modChannels = []struct{ label, name, desc string }{
 	{"stereo", "mono", "stereo — both channels summed drive this parameter"},
 	{"left", "L", "left — the left channel alone drives this parameter"},
 	{"right", "R", "right — the right channel alone drives this parameter"},
+	// The model itself, closing the loop: the attractor's own current
+	// output driving its own constants. A different system from the one
+	// named on the dial, and deliberately so — see modelmod.go.
+	{"model x", modSrcModelX, "model x — the attractor's own current x drives this parameter, so the system feeds back into itself. Small depths drift the shape; large ones make a different system, which is the point. Smoothed, because a loop that answers within a frame of its own output is an oscillator at the frame rate."},
+	{"model y", modSrcModelY, "model y — as model x, on the y coordinate"},
+	{"model z", modSrcModelZ, "model z — as model x, on the z coordinate. The classic one to try: a Lorenz whose rho follows its own z."},
+	{"model r", modSrcModelR, "model r — the attractor's distance from the origin drives this parameter: a source that does not care which way the orbit went, only how far out it is"},
 }
 
 type savedParam struct {

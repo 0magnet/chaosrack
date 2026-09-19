@@ -344,6 +344,10 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 	// the knob, so the canvases have to be reconsidered here — not only when
 	// the knob moves.
 	syncSplitCanvas()
+	// A modulation loop's memory is of the system that is no longer
+	// running; carried across, it would drive the new model from the old
+	// one's last position. See modelmod.go.
+	resetModelMod()
 	// Keep the "Edit eqn" switch in sync with whether we're in Custom mode.
 	if sw := doc.Call("getElementById", "edit-eq-sw"); sw.Truthy() {
 		sw.Set("checked", selectedMode == "custom")

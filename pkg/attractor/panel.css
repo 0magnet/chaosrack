@@ -1303,3 +1303,15 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
   text-shadow:0 0 4px rgba(255,150,40,0.55);white-space:nowrap;}
 /* The skirt legends, small enough that fifteen of them fit round one knob. */
 .scope-knob .knob-dial-lab{font-size:calc(5.5px*var(--kscale,1));letter-spacing:0;}
+
+/* Per-control link. A control pinned to view A while the views are unlinked
+   is a knob that no longer describes its own cell, which is the same lie the
+   swept marking exists to stop — so it says so the same way. Closed link,
+   lit: shared. Broken link, dim: this cell's own. */
+.punit.linkable,.pcell.linkable{position:relative;}
+.linkmark{position:absolute;top:2px;left:calc(3px*var(--kscale,1));z-index:7;
+  font-size:calc(10px*var(--kscale,1));line-height:1;cursor:pointer;
+  color:#3f4a55;text-shadow:none;user-select:none;}
+.linkmark:hover{color:#8fa6bd;}
+.linkmark.on{color:#5fd7ff;text-shadow:0 0 5px rgba(60,170,255,0.7);}
+.punit:has(>.linkmark.on),.pcell:has(>.linkmark.on){box-shadow:inset 0 0 0 1px #2c6d8c;border-radius:4px;}

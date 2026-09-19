@@ -252,6 +252,14 @@ func serializeState() string {
 		}
 	}
 
+	// Which controls stay pinned to view A while the views are unlinked.
+	// One key holding the whole set, rather than a flag per control: it is
+	// a set, it is usually empty, and a dozen "pl.foo=0" pairs in every
+	// link would be a dozen ways to say nothing.
+	if s := linkedParamList(); s != "" {
+		b.WriteString("&pl=" + s)
+	}
+
 	// View-knob (camera/motion) modulation routing, keyed vm.<suffix>.
 	for _, vt := range viewModTargets {
 		if m := paramMods[vt.id]; m.channel != "" && m.level != 0 {
@@ -566,6 +574,11 @@ func applyStateFrom(h string) {
 			dragVal = val
 		case key == "q":
 			// Legacy quaternion pose (pre-euler links); ignored.
+		case key == "pl":
+			// The per-control link set. Applied straight away rather than
+			// deferred: nothing else in the link depends on it, and the
+			// panel rebuild at the end picks up the badges.
+			setLinkedParamList(val)
 		case key == "am":
 			amVal = val
 		case key == "eq":

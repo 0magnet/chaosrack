@@ -133,6 +133,13 @@ func eqModValue(channel string, weights []float32) float32 {
 	if channel == "" {
 		return 0
 	}
+	// The model's own output is a source like any other from here on: a
+	// 0..1 signal the depth knob scales. It has no spectrum, so the band
+	// EQ below means nothing to it and is skipped rather than applied to
+	// a coordinate as though it were one.
+	if isModelModSource(channel) {
+		return modelModValue(channel)
+	}
 	bands := afBand[channel]
 	if len(bands) == 0 {
 		return 0

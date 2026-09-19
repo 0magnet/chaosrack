@@ -458,6 +458,7 @@ func buildParamPanel(mode string) {
 	quantizeModuleWidths()    // param count changed → re-snap module widths
 	annotateControlTooltips() // role-aware tooltips (labels/readouts/swatches)
 	syncSweptMarks()          // a rebuilt row has lost its swept marking
+	syncLinkMarks()           // and its per-control link badges
 }
 
 // modTarget is one modulatable control (its paramMods key + display label).
