@@ -677,3 +677,174 @@ func TestFocusReachesEveryCell(t *testing.T) {
 			len(focusLabels(viewMax)), len(viewInsts))
 	}
 }
+
+// A grid cell is a fraction of the canvas, so a camera fitted to the canvas
+// draws a figure that fills a fraction of the cell. gridFitFactor is what
+// gives that back, and it must give back what the tighter axis lost and not
+// a pixel more — magnifying past that would push the other axis out of the
+// cell, which is worse than the black border it was meant to remove.
+func TestGridFitFactorFillsTheCellWithoutOverflowingIt(t *testing.T) {
+	for _, n := range viewCounts {
+		cols, rows := viewGridShape(n)
+		k := gridFitFactor(n)
+		if k < 1 {
+			t.Fatalf("%d cells: fit factor %d, a camera cannot magnify by less than 1", n, k)
+		}
+		// Magnified by k, the figure spans k/cols of the cell across and
+		// k/rows of it down. Neither may exceed the cell.
+		if k > cols || k > rows {
+			t.Errorf("%d cells (%dx%d): factor %d overflows the cell", n, cols, rows, k)
+		}
+		// And it must be the LARGEST such factor, or the cell keeps a border
+		// it did not have to keep.
+		if k+1 <= cols && k+1 <= rows {
+			t.Errorf("%d cells (%dx%d): factor %d leaves room; %d also fits", n, cols, rows, k, k+1)
+		}
+	}
+}
+
+// One cell is the whole canvas and two cells are still full height: neither
+// may move the camera, or turning the grid on would rescale a single view.
+func TestGridFitFactorLeavesTheSmallGridsAlone(t *testing.T) {
+	for _, n := range []int{1, 2} {
+		if k := gridFitFactor(n); k != 1 {
+			t.Errorf("%d cells: fit factor %d, want 1 — the cells are still full height", n, k)
+		}
+	}
+}
+
+// sweep2To points the down axis at a target, the way sweepTo points the
+// across one. It does NOT reset the target lists: the two axes share them,
+// and resetting would undo the across axis the caller just set.
+func sweep2To(t *testing.T, id string) {
+	t.Helper()
+	for i, got := range sweepIDs {
+		if got == id {
+			sweep2ParamF = float32(i)
+			return
+		}
+	}
+	t.Fatalf("no sweep target %s to put on the down axis", id)
+}
+
+func saveSweepState(t *testing.T) {
+	t.Helper()
+	ids, names, ring := sweepIDs, sweepNames, sweepRing
+	mode, a, b := sweepDialMode, sweepParamF, sweep2ParamF
+	t.Cleanup(func() {
+		sweepIDs, sweepNames, sweepRing = ids, names, ring
+		sweepDialMode, sweepParamF, sweep2ParamF = mode, a, b
+	})
+}
+
+// A lone sweep must keep spending the whole grid on itself — nine cells are
+// nine values. It is only when a second axis needs the other direction that
+// the first one gives up resolution for it, and the test is that it gives up
+// exactly then and not before.
+func TestALoneSweepSpendsEveryCellOnItself(t *testing.T) {
+	saveSweepState(t)
+	sweepTo(t, "stereo", "stereo-tau")
+	sweep2ParamF = 0 // none
+
+	seen := map[float32]bool{}
+	for i := 0; i < 9; i++ {
+		across, down := sweepAxisFracs(i, 9)
+		seen[across] = true
+		if down != 0 {
+			t.Errorf("cell %d: down axis is %v with nothing on it, want 0", i, down)
+		}
+	}
+	if len(seen) != 9 {
+		t.Errorf("a lone sweep over 9 cells produced %d distinct values, want 9", len(seen))
+	}
+}
+
+// With both axes set, the grid's own shape is the sweep: a column is one
+// value of across and a row is one value of down. If that is not true the
+// sheet is not a comparison — it is two variables scrambled together.
+func TestTwoSweepsBecomeTheColumnsAndTheRows(t *testing.T) {
+	saveSweepState(t)
+	sweepTo(t, "stereo", "stereo-tau")
+	sweep2To(t, "#map")
+
+	const n = 9
+	cols, rows := viewGridShape(n)
+	for i := 0; i < n; i++ {
+		across, down := sweepAxisFracs(i, n)
+		wantAcross := sweepFrac(i%cols, cols)
+		wantDown := sweepFrac(i/cols, rows)
+		if across != wantAcross || down != wantDown {
+			t.Errorf("cell %d of %dx%d: got (%v,%v), want (%v,%v)",
+				i, cols, rows, across, down, wantAcross, wantDown)
+		}
+	}
+	// Every cell in a column shares its across value, every cell in a row
+	// its down value, and no two cells share both.
+	pairs := map[[2]float32]bool{}
+	for i := 0; i < n; i++ {
+		p := [2]float32{}
+		p[0], p[1] = sweepAxisFracs(i, n)
+		if pairs[p] {
+			t.Errorf("cell %d repeats the pair %v — a cell of the sheet says nothing new", i, p)
+		}
+		pairs[p] = true
+	}
+}
+
+// Rows and columns varying the same parameter is not a comparison: the
+// diagonal would be the only honest cell and the rest would be duplicates.
+// The down axis yields, and must read as OFF everywhere — including to the
+// code that marks knobs and shows the range pair.
+func TestTheTwoAxesRefuseToShareATarget(t *testing.T) {
+	saveSweepState(t)
+	sweepTo(t, "stereo", "stereo-tau")
+	sweep2To(t, "stereo-tau")
+
+	if got := sweepTarget2(); got != "" {
+		t.Errorf("down axis reports %q while across has the same target, want it off", got)
+	}
+	// And with it off, the across axis gets the whole grid back.
+	seen := map[float32]bool{}
+	for i := 0; i < 9; i++ {
+		a, _ := sweepAxisFracs(i, 9)
+		seen[a] = true
+	}
+	if len(seen) != 9 {
+		t.Errorf("across axis fell back to %d values, want the full 9", len(seen))
+	}
+}
+
+// Both axes are sources, so both have to put their knobs back — and the
+// undo has to run in reverse, or two axes that ever touched one value
+// would restore the wrong one.
+func TestBothAxesRestoreWhatTheyChanged(t *testing.T) {
+	saveSweepState(t)
+
+	inst := newStereoInst()
+	prev := stereo
+	stereo = inst
+	t.Cleanup(func() { stereo = prev })
+
+	prevCols := gradientColors
+	t.Cleanup(func() { gradientColors = prevCols })
+
+	inst.tau = 123
+	gradientColors = 1
+	sweepTo(t, "stereo", "stereo-tau")
+	sweep2To(t, "#map")
+
+	restore := applySweep("stereo", 5, 9)
+	if inst.tau == 123 {
+		t.Error("the across axis did not set the cell's parameter")
+	}
+	if gradientColors == 1 {
+		t.Error("the down axis did not set the cell's color map")
+	}
+	restore()
+	if inst.tau != 123 {
+		t.Errorf("the across axis left %v behind, want the knob's 123", inst.tau)
+	}
+	if gradientColors != 1 {
+		t.Errorf("the down axis left color map %d behind, want the knob's 1", gradientColors)
+	}
+}

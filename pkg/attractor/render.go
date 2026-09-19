@@ -548,6 +548,14 @@ func fitDistFor(ext float32) float32 {
 	if w, h := canvasEl.Get("clientWidth").Float(), canvasEl.Get("clientHeight").Float(); w > 0 && h > 0 && w < h {
 		dist *= float32(h / w)
 	}
+	// A grid cell is a fraction of the canvas, and the viewport maps the
+	// same NDC cube into it, so a fit made for the whole canvas draws the
+	// figure at 1/cols by 1/rows inside the cell and leaves the rest of it
+	// black. Coming in by min(cols, rows) magnifies by exactly the amount
+	// the tighter axis lost: at 3x3 the figure fills the cell, and at 2x1 —
+	// full-height cells that only lost width — the factor is 1 and nothing
+	// moves, which is what the A/B view has always done.
+	dist /= float32(gridFitFactor(viewN()))
 	if dist < 5 {
 		dist = 5
 	}
@@ -570,6 +578,13 @@ func generateForMode(mode string) {
 	// exit. Its generator is in the registry like every other mode's; it is
 	// dispatched here instead of at the bottom of this function because the
 	// vertex pipeline in between would bind its shader over the plot's.
+	// The scope face goes up BEFORE the trace, so the trace is drawn over
+	// its own graticule rather than under it. Behind the early exits above
+	// because those modes are textured planes, and a ruled face behind a
+	// spectrogram would be a ruler behind a photograph.
+	if scopeFaceOn() {
+		drawScopeGraticule(view.fitExtent)
+	}
 	if mode == "recurrence" {
 		if fn := modeGenerate[mode]; fn != nil {
 			fn()
@@ -701,6 +716,11 @@ func generateForMode(mode string) {
 }
 
 func renderLoop(this js.Value, args []js.Value) interface{} {
+	// The rack scope is its own instrument on its own canvas: it draws
+	// every frame regardless of what the model is doing, and before the
+	// early exits below, because a scope that goes dark when the MODEL
+	// knob moves to a polyhedron is not an instrument in the rack.
+	drawRackScope()
 	// Stop button: clear once, do not reschedule. Loop dies here.
 	if stopped {
 		gl.Call("clearColor", 0, 0, 0, 0)

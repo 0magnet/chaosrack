@@ -157,3 +157,43 @@ func TestStylesheetDeclaresTheSameScale(t *testing.T) {
 	}
 	close(t, "pin pitch (head + gap)", PinHead+gap, PinPitch, 0.005)
 }
+
+// A division is the unit BOTH axes are read in, so it has to be square. A
+// graticule whose divisions are oblong makes every volts-per-division
+// reading a different size from every seconds-per-division one.
+func TestScopeDivisionsAreSquare(t *testing.T) {
+	if got := ScopeFaceW / ScopeDivX; got != ScopeDivMM {
+		t.Errorf("a horizontal division is %v mm, want %v", got, ScopeDivMM)
+	}
+	if got := ScopeFaceH / ScopeDivY; got != ScopeDivMM {
+		t.Errorf("a vertical division is %v mm, want %v", got, ScopeDivMM)
+	}
+}
+
+// The tube has to fit the row it is let into, with enough panel left over
+// for the clusters a scope is actually operated by. If it does not, the
+// answer is a bigger panel, not a smaller screen.
+func TestScopeFaceFitsItsRowWithRoomToOperateIt(t *testing.T) {
+	if ScopeHP != RowHP {
+		t.Errorf("the scope is %d HP, want a whole %d HP row", ScopeHP, RowHP)
+	}
+	if ScopeFaceOuterW >= RowWidth() {
+		t.Errorf("the tube is %v mm wide in a %v mm row, leaving no panel",
+			ScopeFaceOuterW, RowWidth())
+	}
+	// Three clusters of large knobs, two knobs wide each, is the floor for a
+	// panel you could operate: below that the screen has taken the panel.
+	want := 6 * KnobLarge
+	if got := ScopeControlsW(); got < want {
+		t.Errorf("%v mm left for the controls, want at least %v (six %v mm knobs)",
+			got, want, KnobLarge)
+	}
+}
+
+// The tube is shorter than the panel it is let into, or it does not fit the
+// opening at all.
+func TestScopeFaceFitsA3UPanel(t *testing.T) {
+	if ScopeFaceOuterH >= PanelHeight3U {
+		t.Errorf("the tube is %v mm tall on a %v mm panel", ScopeFaceOuterH, PanelHeight3U)
+	}
+}

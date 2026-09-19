@@ -418,6 +418,23 @@ func viewGridShape(n int) (cols, rows int) {
 	return cols, rows
 }
 
+// gridFitFactor is how much closer the camera has to come for a figure
+// fitted to the whole canvas to fill one cell of an n-cell grid.
+//
+// A cell is 1/cols of the canvas wide and 1/rows of it tall, and the
+// viewport maps the same NDC cube into it either way, so the figure
+// arrives shrunk by both. Magnifying by min(cols, rows) gives back
+// exactly what the TIGHTER axis lost and no more: any larger and the
+// other axis runs off the cell. At 2x1 that is 1 — the cells are still
+// full height, so nothing moves and the A/B view looks as it always has.
+func gridFitFactor(n int) int {
+	cols, rows := viewGridShape(n)
+	if rows < cols {
+		return rows
+	}
+	return cols
+}
+
 // ── the sweep: what varies across the grid ──────────────────────────────
 
 // sweepIDs are what a grid may vary, by control id, and sweepNames and
@@ -525,20 +542,47 @@ func setSweepTargets(mode string) bool {
 	// The dial cannot stay where it was: position 4 of one mode's list is a
 	// different parameter in another's, and silently sweeping something the
 	// operator did not pick is worse than starting from none.
-	sweepParamF = 0
+	sweepParamF, sweep2ParamF = 0, 0
 	return true
 }
 
-// sweepParamF is the dial: an index into sweepIDs.
-var sweepParamF float32
+// sweepParamF and sweep2ParamF are the two dials, each an index into
+// sweepIDs: across the grid and down it.
+//
+// Two, because a contact sheet of one variable is a strip, and a grid has
+// two directions. With one dial a three by three of nine delays wasted the
+// second direction, and asking for nine palettes meant giving up the nine
+// delays — the sheet could show what a parameter does OR what a coloring
+// does, never one against the other. The second axis is what makes the
+// SHAPE of the grid mean something: a column is one value of across, a row
+// is one value of down, and the cell where they meet is the pair.
+var sweepParamF, sweep2ParamF float32
 
 // sweepLo and sweepHi bound the sweep as a FRACTION of the target's own
 // range, which is what lets one pair of knobs drive any target: 0 is the
 // parameter's minimum and 1 its maximum, whatever those are.
 var sweepLo, sweepHi float32 = 0, 1
 
-// sweepTarget is the id the sweep varies, or "" for none.
-func sweepTarget() string { return sweepIDs[clampSel(sweepParamF, len(sweepIDs)-1)] }
+// sweepTarget is the id the across-the-grid sweep varies, sweepTarget2 the
+// id the down-the-grid one varies. Either is "" for none.
+func sweepTarget() string { return sweepTargetOf(sweepParamF) }
+
+// The down axis yields to the across one when both name the same thing. A
+// grid whose rows and columns vary the SAME parameter is not a comparison:
+// every cell on a diagonal would be identical and the sheet would say
+// nothing that a strip did not already say. Refused here, in the one place
+// that answers "what does this axis vary", rather than by disabling
+// options in the dial — the dial is rebuilt per mode and would have to
+// re-derive it, and an axis that is off must read as off everywhere,
+// including to the marking code.
+func sweepTarget2() string {
+	if id := sweepTargetOf(sweep2ParamF); id != sweepTarget() {
+		return id
+	}
+	return ""
+}
+
+func sweepTargetOf(f float32) string { return sweepIDs[clampSel(f, len(sweepIDs)-1)] }
 
 // sweepColorSrcs is the order the color-source sweep steps through: the
 // audio-fed sources, which are the ones worth comparing. Nine of them, and
@@ -568,6 +612,28 @@ func sweepFrac(i, n int) float32 {
 	return float32(i) / float32(n-1)
 }
 
+// sweepAxisFracs is where cell i sits on each axis, 0..1.
+//
+// With only one sweep set, it runs over ALL n cells in reading order, which
+// is what a strip should do and what the single-axis sweep has always done:
+// nine cells are nine values, not three values drawn three times. The
+// moment a second sweep is set that stops being possible — two independent
+// values cannot both be read off one index — and the axes become the grid's
+// own: across for the first, down for the second. So the resolution of a
+// lone sweep is never traded away for an axis nothing is using.
+func sweepAxisFracs(i, n int) (across, down float32) {
+	if sweepTarget2() == "" {
+		return sweepFrac(i, n), 0
+	}
+	cols, rows := viewGridShape(n)
+	if i < 0 {
+		i = 0
+	} else if i >= n {
+		i = n - 1
+	}
+	return sweepFrac(i%cols, cols), sweepFrac(i/cols, rows)
+}
+
 // paramRange finds a parameter's min and max in the mode's own table, so
 // the sweep covers what the knob covers and nothing outside it.
 func paramRange(mode, id string) (lo, hi float32, ok bool) {
@@ -579,19 +645,37 @@ func paramRange(mode, id string) (lo, hi float32, ok bool) {
 	return 0, 0, false
 }
 
-// applySweep sets cell i's swept value, and returns a function that puts
-// back what it changed.
+// applySweep sets cell i's swept values — both axes — and returns a
+// function that puts back what it changed.
 //
 // Restored rather than left, because the sweep is a SOURCE for a value and
 // not a new value: the knob still holds what the operator set, and turning
 // the sweep off has to give that back rather than whatever the last cell
 // happened to be.
+//
+// The two axes undo in reverse order. It costs nothing here, since no two
+// axes may name the same target, but an undo that runs forwards is a
+// restore that stops being correct the first time they overlap, and that
+// is not a thing to leave for later to discover.
 func applySweep(mode string, i, n int) func() {
-	id := sweepTarget()
-	if id == "" || n <= 1 {
+	if n <= 1 {
 		return func() {}
 	}
-	t := sweepLo + (sweepHi-sweepLo)*sweepFrac(i, n)
+	across, down := sweepAxisFracs(i, n)
+	undoA := applySweepAxis(mode, sweepTarget(), across)
+	undoB := applySweepAxis(mode, sweepTarget2(), down)
+	return func() {
+		undoB()
+		undoA()
+	}
+}
+
+// applySweepAxis applies one axis: target id at position frac along it.
+func applySweepAxis(mode, id string, frac float32) func() {
+	if id == "" {
+		return func() {}
+	}
+	t := sweepLo + (sweepHi-sweepLo)*frac
 
 	switch id {
 	case "#src":
@@ -638,13 +722,21 @@ func applySweep(mode string, i, n int) func() {
 
 // wireSweepDial hooks up the sweep dial.
 func wireSweepDial() {
-	sel := doc.Call("getElementById", "sweep-p")
+	wireOneSweepDial("sweep-p", &sweepParamF)
+	wireOneSweepDial("sweep2-p", &sweep2ParamF)
+	syncSweepCells()
+	syncSweptMarks()
+}
+
+// wireOneSweepDial hooks one axis's select to the index it drives.
+func wireOneSweepDial(selID string, into *float32) {
+	sel := doc.Call("getElementById", selID)
 	if !sel.Truthy() {
 		return
 	}
 	sel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
 		if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
-			sweepParamF = float32(n)
+			*into = float32(n)
 		}
 		// A swept parameter is no longer the knob's to set, and a knob that
 		// looks live while a sweep overrides it is the panel lying. The
@@ -654,8 +746,6 @@ func wireSweepDial() {
 		syncSweptMarks()
 		return nil
 	}))
-	syncSweepCells()
-	syncSweptMarks()
 }
 
 // ── saying so on the knob ───────────────────────────────────────────────
@@ -663,7 +753,9 @@ func wireSweepDial() {
 // sweepActive reports whether anything is actually being swept: a target
 // AND more than one cell to spread it over. A sweep set on a single view
 // changes nothing, and must not be announced as though it had.
-func sweepActive() bool { return viewN() > 1 && sweepTarget() != "" }
+func sweepActive() bool {
+	return viewN() > 1 && (sweepTarget() != "" || sweepTarget2() != "")
+}
 
 // sweptCell finds the panel cell for the swept parameter.
 //
@@ -673,8 +765,8 @@ func sweepActive() bool { return viewN() > 1 && sweepTarget() != "" }
 // rule that has to be re-implemented per builder is a rule that will be
 // missing from the fourth one. Every one of them puts the control's id on
 // an element inside its cell, so the cell is one closest() away.
-func sweptCell() js.Value {
-	switch id := sweepTarget(); id {
+func sweptCell(id string) js.Value {
+	switch id {
 	case "":
 		return js.Undefined()
 	case "#src":
@@ -720,17 +812,26 @@ func syncSweptMarks() {
 	if !sweepActive() {
 		return
 	}
-	cell := sweptCell()
+	// The arrow is the axis: across the grid, or down it. Two knobs both
+	// wearing "⇢" would say they vary together, which is the one thing the
+	// grid is built to show they do not.
+	markSwept(sweepTarget(), "⇢", "across the grid, left to right")
+	markSwept(sweepTarget2(), "⇣", "down the grid, top to bottom")
+}
+
+// markSwept puts one axis's marking on the cell of the control it varies.
+func markSwept(id, arrow, dir string) {
+	cell := sweptCell(id)
 	if !cell.Truthy() {
 		return
 	}
 	cell.Get("classList").Call("add", "swept")
 	m := doc.Call("createElement", "span")
 	m.Set("className", "sweptmark")
-	m.Set("textContent", "⇢")
-	m.Set("title", "Swept — this parameter's value comes from where each cell "+
-		"sits in the grid, not from this knob. The from and to knobs beside the "+
-		"Sweep dial say which part of its range the cells cover.")
+	m.Set("textContent", arrow)
+	m.Set("title", "Swept "+dir+" — this parameter's value comes from where each "+
+		"cell sits in the grid, not from this knob. The from and to knobs beside "+
+		"the Sweep dials say which part of its range the cells cover.")
 	cell.Call("appendChild", m)
 }
 
@@ -738,7 +839,7 @@ func syncSweptMarks() {
 // Two knobs bounding a sweep that is not running are two knobs that do
 // nothing, and the console has enough to read already.
 func syncSweepCells() {
-	on := sweepTarget() != ""
+	on := sweepTarget() != "" || sweepTarget2() != ""
 	for _, id := range []string{"sweep-lo-cell", "sweep-hi-cell"} {
 		if el := doc.Call("getElementById", id); el.Truthy() {
 			if on {
@@ -761,11 +862,19 @@ func syncSweepCells() {
 // on a different schedule from the panel's.
 var sweepDialFuncs []js.Func
 
-func buildSweepDial() { rebuildInto(&sweepDialFuncs, buildSweepDialInto) }
+func buildSweepDial() {
+	rebuildInto(&sweepDialFuncs, func() {
+		// Both axes, one arena: they are rebuilt together, by the same mode
+		// change, from the same target lists.
+		buildOneSweepDial("sweep-p", sweepParamF)
+		buildOneSweepDial("sweep2-p", sweep2ParamF)
+	})
+}
 
-func buildSweepDialInto() {
-	sel := doc.Call("getElementById", "sweep-p")
-	holder := doc.Call("getElementById", "sweep-p-stack")
+// buildOneSweepDial fills one axis's select and rings it.
+func buildOneSweepDial(selID string, at float32) {
+	sel := doc.Call("getElementById", selID)
+	holder := doc.Call("getElementById", selID+"-stack")
 	if !sel.Truthy() || !holder.Truthy() {
 		return
 	}
@@ -777,12 +886,12 @@ func buildSweepDialInto() {
 		opt.Set("title", name)
 		sel.Call("appendChild", opt)
 	}
-	sel.Set("value", strconv.Itoa(clampSel(sweepParamF, len(sweepIDs)-1)))
+	sel.Set("value", strconv.Itoa(clampSel(at, len(sweepIDs)-1)))
 	sel.Get("style").Set("display", "none")
 
 	holder.Set("innerHTML", "")
 	stack := soloKnob(sel)
-	addSelectorLabels(stack, sweepRing, sel, 45).Set("id", "sweep-p-ring")
+	addSelectorLabels(stack, sweepRing, sel, 45).Set("id", selID+"-ring")
 	holder.Call("appendChild", stack)
 }
 
