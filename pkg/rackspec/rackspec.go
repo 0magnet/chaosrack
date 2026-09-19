@@ -187,3 +187,52 @@ func RowWidth() float64 { return RowHP * HP }
 
 // SlotsPerRow is how many whole modules fit across a standard 84 HP row.
 func SlotsPerRow() int { return RowHP / ModuleHP }
+
+// The oscilloscope.
+//
+// A rack scope is not a module with a picture on it. It is a cathode ray tube
+// with a ruler etched on its face, and the ruler is the reason for every
+// other number here: the divisions are CENTIMETERS, because that is what a
+// division has been on every scope worth the name, and the screen is as big
+// as its divisions make it rather than as big as the space left over.
+const (
+	// ScopeDivX and ScopeDivY are the graticule: ten divisions across the
+	// time axis, eight up the amplitude axis. The pair the industry settled
+	// on, and the reason a scope screen is wider than it is tall.
+	ScopeDivX = 10
+	ScopeDivY = 8
+
+	// ScopeDivMM is one division. A centimeter — which is why a scope's
+	// specifications are quoted per division and mean something physical,
+	// and why a division has to be SQUARE on screen: the two axes are read
+	// in the same unit.
+	ScopeDivMM = 10.0
+
+	// ScopeFaceW and ScopeFaceH are the usable face of the tube: the
+	// graticule and nothing else. 100 by 80 mm, which is about a 5-inch
+	// diagonal — a small rack tube, and a real size.
+	ScopeFaceW = ScopeDivX * ScopeDivMM
+	ScopeFaceH = ScopeDivY * ScopeDivMM
+
+	// ScopeBezel is the frame around the tube: the mask that hides the edge
+	// of the glass, where the graticule illumination would come in from.
+	ScopeBezel = 7.0
+
+	// ScopeHP is how wide the scope's panel is. A whole row, because a tube
+	// this size plus the vertical, horizontal and trigger clusters is what a
+	// whole row is FOR — and because a scope narrower than its own screen is
+	// not a scope, it is a picture of one.
+	ScopeHP = RowHP
+)
+
+// ScopeFaceOuterW and ScopeFaceOuterH are the tube including its bezel: what
+// the panel has to make room for.
+const (
+	ScopeFaceOuterW = ScopeFaceW + 2*ScopeBezel
+	ScopeFaceOuterH = ScopeFaceH + 2*ScopeBezel
+)
+
+// ScopeControlsW is the panel width left for the control clusters once the
+// tube has been let into it — the vertical, horizontal and trigger groups a
+// scope is operated by.
+func ScopeControlsW() float64 { return RowWidth() - ScopeFaceOuterW }
