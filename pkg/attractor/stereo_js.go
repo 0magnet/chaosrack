@@ -293,11 +293,19 @@ func newStereoInst() *stereoInst {
 }
 
 // stereo is the instance the single on-screen stereo mode draws. A second
-// view takes a second one of these; nothing below reaches past its receiver
-// to find state, which is what makes that possible.
 // viewInsts are the stereo mode's per-view instances. Two, because Views
-// draws two; a third view would be a third entry and nothing else.
-var viewInsts = [2]*stereoInst{newStereoInst(), newStereoInst()}
+// viewInsts is one instance per grid cell, allocated for the largest grid
+// the dial offers: sixteen small structs, and only the cells actually
+// drawn ever allocate their sample buffers.
+var viewInsts = newViewInsts()
+
+func newViewInsts() [viewMax]*stereoInst {
+	var out [viewMax]*stereoInst
+	for i := range out {
+		out[i] = newStereoInst()
+	}
+	return out
+}
 
 // stereo is the instance the PANEL drives and the one anything outside the
 // draw passes means: the focused view's, or view A's when the views are
@@ -1462,4 +1470,49 @@ func (s *stereoInst) drawGraticule() {
 	}
 	gl.Call("uniform1i", uGradientColorsLoc, gradientColorsUniform())
 	gl.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
+}
+
+// field resolves a parameter id to the field it names ON THIS INSTANCE.
+//
+// The parameter table binds a knob to a field address when the row is
+// built, which is right for a knob and wrong for a sweep: a sweep has to
+// write the same parameter on a different cell's instance every pass, and
+// the table's pointer names only the focused one. This is the indirection
+// that makes "the same parameter, on that cell" expressible.
+//
+// Returns nil for an id this mode does not have, which is how a sweep
+// pointed at another mode's parameter does nothing rather than something
+// wrong.
+func (s *stereoInst) field(id string) *float32 {
+	switch id {
+	case "stereo-axes":
+		return &s.axesF
+	case "stereo-tau":
+		return &s.tau
+	case "stereo-win":
+		return &s.win
+	case "stereo-gain":
+		return &s.gain
+	case "stereo-align":
+		return &s.align
+	case "stereo-width":
+		return &s.width
+	case "stereo-vg":
+		return &s.vgain
+	case "stereo-span":
+		return &s.span
+	case "stereo-trig":
+		return &s.trig
+	case "stereo-lvl":
+		return &s.lvl
+	case "stereo-hyst":
+		return &s.hyst
+	case "stereo-hold":
+		return &s.hold
+	case "stereo-tpos":
+		return &s.tpos
+	case "stereo-grat":
+		return &s.grat
+	}
+	return nil
 }
