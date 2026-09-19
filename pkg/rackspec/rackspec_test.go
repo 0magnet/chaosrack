@@ -252,16 +252,18 @@ func TestStylesheetDrawsTheSpecifiedCell(t *testing.T) {
 // panel draws it, 38 mm, and the test says plainly that this is not the two
 // pot pitches it ought to be — so the discrepancy is visible rather than
 // rounded away, and whoever moves it knows what they are moving it toward.
-func TestTheCellFitsItsSlotAndItsHeightIsHonest(t *testing.T) {
+
+// The cell is a whole number of pot pitches and fits the slot it lives in.
+// A height that is not a multiple of the pitch is a cell that cannot be
+// stacked on the grid it claims to be on — which is what 38 mm was.
+func TestTheCellIsAWholeNumberOfPotPitches(t *testing.T) {
+	if n := CellHeight / PotPitch; n != float64(int(n)) {
+		t.Errorf("the cell is %v pot pitches tall — not a whole number", n)
+	}
 	if CellWidth >= SlotWidth {
 		t.Errorf("a %v mm cell does not fit a %v mm slot", CellWidth, SlotWidth)
 	}
 	if CellHeight >= PanelHeight3U {
 		t.Errorf("a %v mm cell does not fit a %v mm 3U panel", CellHeight, PanelHeight3U)
-	}
-	// Documented, not asserted: the reference value is 40.
-	if want := 2 * PotPitch; CellHeight == want {
-		t.Logf("the cell is now the reference %v mm; the comment in rackspec.go "+
-			"explaining why it was 38 can go", want)
 	}
 }

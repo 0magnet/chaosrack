@@ -31,6 +31,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 
 	"github.com/0magnet/chaosrack/internal/cdp"
 )
@@ -47,11 +49,40 @@ const layoutProbe = `JSON.stringify((() => {
   const vis = (el) => getComputedStyle(el).display !== 'none';
   return {
     panel: {...R(panel), scrollW: panel.scrollWidth, clientW: panel.clientWidth},
-    modules: [...panel.querySelectorAll('.modules > .sect')].filter(vis)
+    // A DESCENDANT, not a child: modules live inside a unit's opening
+    // now (.modules > .runit > .runit-open > .sect), and the child
+    // selector this used to be quietly matched nothing at all — so the
+    // "no module is wider than the panel" check had been passing on an
+    // empty list since the rack grew its unit level.
+    modules: [...panel.querySelectorAll('.modules .sect')].filter(vis)
       .map(s => ({name: named(s, '.sect-hdr'), ...R(s)})),
     swsecs: [...panel.querySelectorAll('.swsec')].filter(vis)
       .map(s => ({name: named(s, '.swsec-hdr'), ...R(s),
                   switches: s.querySelectorAll('input.sw').length})),
+    cells: (() => {
+      // The frame is drawn through a CSS transform when the window is
+      // narrower than nineteen inches, so every rect comes back scaled.
+      // Divide it out, or one footprint reads as two at 0.96.
+      const f = document.querySelector('.rack-frame');
+      let k = 1;
+      if (f) { const m = new DOMMatrix(getComputedStyle(f).transform); if (m.a > 0) k = m.a; }
+      const off = (el, r) => { const b = el.getBoundingClientRect();
+        return [Math.round((b.left - r.left) / k), Math.round((b.top - r.top) / k)]; };
+      return [...panel.querySelectorAll('.modules .pcell, .modules .punit')]
+        .filter(e => e.offsetParent !== null)
+        .map(e => {
+          const r = e.getBoundingClientRect();
+          const knob = e.querySelector('.knob, .knob-ring');
+          const led  = e.querySelector('.numin');
+          const o = {w: e.offsetWidth, h: e.offsetHeight,
+                     cls: [...e.classList].filter(c => c !== 'pcell').sort().join('.') || '(bare)'};
+          if (knob) { const b = knob.getBoundingClientRect();
+            o.kx = Math.round((b.left + b.width / 2 - r.left) / k);
+            o.ky = Math.round((b.top + b.height / 2 - r.top) / k); }
+          if (led) { const p = off(led, r); o.lx = p[0]; o.ly = p[1]; }
+          return o;
+        });
+    })(),
   };
 })())`
 
@@ -80,6 +111,7 @@ func runLayout() {
 	panel := numMap(m["panel"])
 	modules := boxes(m["modules"])
 	swsecs := boxes(m["swsecs"])
+	cells := cellsOf(m["cells"])
 	var fails []string
 
 	// 1. The panel must not overflow itself. A slack of a few pixels absorbs
@@ -122,6 +154,42 @@ func runLayout() {
 					s.Name, s.W, loName, lo, s.Switches))
 			}
 		}
+	}
+
+	// 4. THE CONTROL CELL. Every control on the panel occupies one
+	//    footprint, and its knob and readout sit at one place inside it.
+	//
+	//    This is the rule Woodson & Conover make binding rather than tidy
+	//    (Human Engineering Guide for Equipment Designers, 2nd ed. §2-132):
+	//    having given rules for orienting a single group, they say that
+	//    "for several groups on the same panel, use a consistent pointer
+	//    position REGARDLESS of the above recommendations". Sameness across
+	//    groups outranks what is locally best, because the panel is meant
+	//    to be operated by position — you find a control by where it is,
+	//    not by reading it.
+	//
+	//    It FAILS today, deliberately. The cell is declared in two places
+	//    with different values (.vmcell and .axcol.axrot take --krow with
+	//    !important; the bare cells take their own 116x160) and unifying
+	//    them is a pass over the whole cell cascade. The counts below are
+	//    the measurement that pass is against: they must fall to one and
+	//    never rise.
+	cellFoot := tally(cells, func(c layoutCell) string {
+		return fmt.Sprintf("%dx%d", c.W, c.H)
+	})
+	if len(cellFoot) > 1 {
+		fails = append(fails, fmt.Sprintf(
+			"%d control-cell footprints, want 1: %s", len(cellFoot), rank(cellFoot)))
+	}
+	cellKnob := tally(cells, func(c layoutCell) string {
+		if c.KX == 0 && c.KY == 0 {
+			return "" // no knob in this cell
+		}
+		return fmt.Sprintf("%d,%d", c.KX, c.KY)
+	})
+	if len(cellKnob) > 1 {
+		fails = append(fails, fmt.Sprintf(
+			"%d knob positions within the cell, want 1: %s", len(cellKnob), rank(cellKnob)))
 	}
 
 	{
@@ -195,4 +263,80 @@ func minW(bs []layoutBox) int {
 		}
 	}
 	return lo
+}
+
+// layoutCell is one control's footprint, and where its knob and readout sit
+// inside it.
+//
+// Woodson & Conover §2-131 define the footprint a panel is laid out on: not
+// the knob, but "the exterior dimension of such items as dial face or
+// control knob, AND the interior dimension of the physical structure of the
+// control mechanism that will limit the proximity of adjacent items." A
+// control's box is the knob plus whatever stops the next one coming closer,
+// which is what these numbers measure.
+type layoutCell struct {
+	W, H   int
+	KX, KY int
+	LX, LY int
+	Cls    string
+}
+
+// cellsOf reads the cells out of the probe's JSON.
+func cellsOf(v any) []layoutCell {
+	arr, _ := v.([]any)
+	out := make([]layoutCell, 0, len(arr))
+	for _, e := range arr {
+		m, _ := e.(map[string]any)
+		if m == nil {
+			continue
+		}
+		num := func(k string) int {
+			f, _ := m[k].(float64)
+			return int(f)
+		}
+		s, _ := m["cls"].(string)
+		out = append(out, layoutCell{
+			W: num("w"), H: num("h"),
+			KX: num("kx"), KY: num("ky"),
+			LX: num("lx"), LY: num("ly"),
+			Cls: s,
+		})
+	}
+	return out
+}
+
+// tally counts the cells by whatever key is asked for, skipping the ones the
+// key does not apply to (a cell with no knob has no knob position).
+func tally(cells []layoutCell, key func(layoutCell) string) map[string]int {
+	out := map[string]int{}
+	for _, c := range cells {
+		if k := key(c); k != "" {
+			out[k]++
+		}
+	}
+	return out
+}
+
+// rank renders a tally commonest-first, which is the order that says which
+// value is the majority and which are the strays to be brought into line.
+func rank(m map[string]int) string {
+	type kv struct {
+		k string
+		n int
+	}
+	list := make([]kv, 0, len(m))
+	for k, n := range m {
+		list = append(list, kv{k, n})
+	}
+	sort.Slice(list, func(i, j int) bool {
+		if list[i].n != list[j].n {
+			return list[i].n > list[j].n
+		}
+		return list[i].k < list[j].k
+	})
+	parts := make([]string, 0, len(list))
+	for _, e := range list {
+		parts = append(parts, fmt.Sprintf("%s x%d", e.k, e.n))
+	}
+	return strings.Join(parts, ", ")
 }
