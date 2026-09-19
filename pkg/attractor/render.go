@@ -487,7 +487,7 @@ func setupMatrices() {
 var panX, panY float32
 
 func updateViewMatrix() {
-	cameraPosition := mgl32.Vec3{-panX, -panY, defaultCameraDist}
+	cameraPosition := mgl32.Vec3{-panX, -panY, view.defaultDist}
 	center := mgl32.Vec3{-panX, -panY, 0.0}
 	viewMatrix = mgl32.LookAtV(cameraPosition, center, mgl32.Vec3{0.0, 1.0, 0.0})
 	gl.Call("useProgram", shaderProgram)
@@ -499,13 +499,13 @@ func updateModelMatrix() {
 	gl.Call("uniformMatrix4fv", uMmatrixLoc, false, mat4ToTyped(&movMatrix))
 }
 
-// fitExtentOverride, when set, provides the next autoFitCamera call with the
-// TRUE extent of the attractor (measured during a warmup) instead of the
-// current trail's — for systems whose visible window is only a small arc of a
-// much larger structure (hyper-Rössler), fitting the instantaneous arc left
-// the camera blind for most of the orbit.
-var fitExtentOverride float32
-
+// autoFitCamera fits the camera to what was last uploaded.
+//
+// view.fitOverride, when set, provides the TRUE extent of the attractor
+// (measured during a warmup) instead of the current trail's — for systems
+// whose visible window is only a small arc of a much larger structure
+// (hyper-Rössler), fitting the instantaneous arc left the camera blind for
+// most of the orbit. It is consumed and cleared here.
 func autoFitCamera() {
 	if len(attractorVertices) < 3 {
 		return
@@ -520,17 +520,17 @@ func autoFitCamera() {
 			maxAbs = v
 		}
 	}
-	if fitExtentOverride > 0 {
-		maxAbs = fitExtentOverride
-		fitExtentOverride = 0
+	if view.fitOverride > 0 {
+		maxAbs = view.fitOverride
+		view.fitOverride = 0
 	}
 	// Kept because the depth partition needs to know how deep the model is:
 	// the plane sweeps from just beyond its far side to just in front of its
 	// near one, and that span is this number. See split_js.go.
-	modelFitExtent = maxAbs
+	view.fitExtent = maxAbs
 	dist := fitDistFor(maxAbs)
-	initCameraDist = dist
-	defaultCameraDist = dist
+	view.initDist = dist
+	view.defaultDist = dist
 	cameraControl.Set("value", "0")
 	sliderZoom.Set("textContent", "0")
 	updateViewMatrix()
@@ -817,9 +817,9 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 		// Still allow camera interaction while paused (zoom read
 		// from the Go-side cache instead of parseFloat per frame).
 		zoomVal := cachedZoom
-		newDist := initCameraDist - zoomVal
-		if newDist != defaultCameraDist {
-			defaultCameraDist = newDist
+		newDist := view.initDist - zoomVal
+		if newDist != view.defaultDist {
+			view.defaultDist = newDist
 			updateViewMatrix()
 		}
 		// Still allow drag while paused (dragMatrix is updated by the
@@ -897,7 +897,7 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 
 	// Zoom slider directly controls camera distance (absolute position);
 	// the X/Y position knobs pan the scene. Both go through the view matrix.
-	newDist := initCameraDist - zoomVal
+	newDist := view.initDist - zoomVal
 	// Map the ±8 X/Y position sliders to ≈±1 screen of travel, so the model can
 	// be pushed just off-screen (like an oscilloscope's position controls) yet
 	// not miles away. The screen half-extent at the object plane is
@@ -912,8 +912,8 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	psY := halfH * 2 / 8
 	psX := psY * aspect
 	npx, npy := cachedPanX*psX, cachedPanY*psY
-	if newDist != defaultCameraDist || npx != panX || npy != panY {
-		defaultCameraDist = newDist
+	if newDist != view.defaultDist || npx != panX || npy != panY {
+		view.defaultDist = newDist
 		panX, panY = npx, npy
 		updateViewMatrix()
 	}

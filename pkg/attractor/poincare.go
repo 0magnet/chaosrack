@@ -93,7 +93,7 @@ var poincareDirNames = []string{"up", "down", "both"}
 // and on a dodecahedron; the section's pos knob says the same thing about d,
 // for the same reason. Two planes, one way of saying where a plane is. What it
 // does not share is splitFrac's yardstick — see sectPosF in poincare_js.go for
-// why modelFitExtent is the wrong number to measure this one against.
+// why view.fitExtent is the wrong number to measure this one against.
 //
 // u and v are an orthonormal basis OF the plane, so a crossing has 2-D
 // coordinates in it. They are derived from n once, at construction, because
