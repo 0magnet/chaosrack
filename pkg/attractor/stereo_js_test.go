@@ -483,7 +483,7 @@ func TestTriggerFindsTheMostRecentCrossing(t *testing.T) {
 	for off := range buf {
 		buf[off] = float32(math.Sin(float64(off) * 0.3))
 	}
-	got := triggerOffset(buf, margin, 0, 0, true)
+	got, _ := triggerOffset(buf, margin, 0, 0, 0, true)
 	if got == margin {
 		t.Fatal("no crossing found in a signal that crosses repeatedly")
 	}
@@ -509,18 +509,18 @@ func TestTriggerSlopeAndFreeRun(t *testing.T) {
 			buf[off] = 1
 		}
 	}
-	if got := triggerOffset(buf, margin, 0, 0, true); got != 50 {
+	if got, _ := triggerOffset(buf, margin, 0, 0, 0, true); got != 50 {
 		t.Errorf("rising edge found at %d, want 50", got)
 	}
 	// The same signal has no FALLING edge, so it must free-run.
-	if got := triggerOffset(buf, margin, 0, 0, false); got != margin {
+	if got, _ := triggerOffset(buf, margin, 0, 0, 0, false); got != margin {
 		t.Errorf("falling search returned %d, want the free-run margin %d", got, margin)
 	}
 	flat := make([]float32, margin+1)
-	if got := triggerOffset(flat, margin, 0, 0, true); got != margin {
+	if got, _ := triggerOffset(flat, margin, 0, 0, 0, true); got != margin {
 		t.Errorf("silence returned %d, want %d", got, margin)
 	}
-	if got := triggerOffset(buf, 0, 0, 0, true); got != 0 {
+	if got, _ := triggerOffset(buf, 0, 0, 0, 0, true); got != 0 {
 		t.Errorf("zero margin returned %d, want 0", got)
 	}
 }
@@ -531,7 +531,7 @@ func TestTriggerLevel(t *testing.T) {
 	for off := range buf {
 		buf[off] = float32(off) / float32(margin) // 0 .. 1, rising with time
 	}
-	got := triggerOffset(buf, margin, 0.5, 0, true)
+	got, _ := triggerOffset(buf, margin, 0, 0.5, 0, true)
 	if got < 45 || got > 55 {
 		t.Errorf("crossing of 0.5 found at %d, want about 50", got)
 	}
@@ -558,11 +558,11 @@ func TestTriggerHysteresisRejectsDither(t *testing.T) {
 		}
 	}
 	// With no hysteresis the dither wins, being more recent.
-	if got := triggerOffset(buf, margin, 0, 0, true); got <= 30 {
+	if got, _ := triggerOffset(buf, margin, 0, 0, 0, true); got <= 30 {
 		t.Errorf("without hysteresis got %d, expected it to lock to the dither", got)
 	}
 	// With it, the dither never arms and the real edge is found.
-	if got := triggerOffset(buf, margin, 0, 0.05, true); got != 20 {
+	if got, _ := triggerOffset(buf, margin, 0, 0, 0.05, true); got != 20 {
 		t.Errorf("with hysteresis got %d, want the real edge at 20", got)
 	}
 }
@@ -658,5 +658,130 @@ func TestTrigTablesLineUp(t *testing.T) {
 	}
 	if len(stereoTrigNames) != stereoTrigFalling+1 {
 		t.Errorf("%d names for %d positions", len(stereoTrigNames), stereoTrigFalling+1)
+	}
+}
+
+// Holdoff is what locks onto a pattern rather than a cycle inside one: an
+// edge counts only when nothing crossed in the hold BEFORE it.
+//
+// Offsets run oldest (0) to newest (margin), so "before" is downward.
+func TestTriggerHoldoffPicksThePatternStart(t *testing.T) {
+	margin := 300
+	buf := make([]float32, margin+1)
+	for off := range buf {
+		switch {
+		case off < 100: // oldest: quiet, below the level
+			buf[off] = -1
+		case off < 260: // one clean edge at 100, then held high
+			buf[off] = 1
+		default: // newest: a burst of fast crossings
+			if off%4 < 2 {
+				buf[off] = 1
+			} else {
+				buf[off] = -1
+			}
+		}
+	}
+	// No holdoff: the most recent crossing, which is inside the burst.
+	plain, found := triggerOffset(buf, margin, 0, 0, 0, true)
+	if !found || plain < 260 {
+		t.Errorf("without holdoff got %d (found=%v), expected an edge inside the burst", plain, found)
+	}
+	// With a holdoff longer than the burst's spacing, every edge INSIDE the
+	// burst has another crossing just before it and is disqualified. What
+	// survives is the burst's FIRST edge, the one preceded by quiet — which
+	// is what locking to a pattern means: the start of it, held steady,
+	// rather than whichever cycle within it happens to be newest.
+	const firstBurstEdge = 264
+	held, found := triggerOffset(buf, margin, 50, 0, 0, true)
+	if !found {
+		t.Fatal("holdoff rejected every edge")
+	}
+	if held != firstBurstEdge {
+		t.Errorf("with holdoff got %d, want the burst's first edge at %d", held, firstBurstEdge)
+	}
+	if plain == held {
+		t.Error("holdoff changed nothing; it should have moved off the newest edge")
+	}
+}
+
+// AUTO and NORMAL differ only in what happens with no trigger, so the
+// found flag has to be reported honestly.
+func TestTriggerReportsWhetherItFound(t *testing.T) {
+	margin := 50
+	flat := make([]float32, margin+1)
+	if off, found := triggerOffset(flat, margin, 0, 0, 0, true); found || off != margin {
+		t.Errorf("silence reported found=%v off=%d, want false and the free-run margin", found, off)
+	}
+	edge := make([]float32, margin+1)
+	for off := range edge {
+		if off < 25 {
+			edge[off] = -1
+		} else {
+			edge[off] = 1
+		}
+	}
+	if off, found := triggerOffset(edge, margin, 0, 0, 0, true); !found || off != 25 {
+		t.Errorf("a clean edge gave off=%d found=%v, want 25 and true", off, found)
+	}
+}
+
+func TestTrigRunAndPositionClamp(t *testing.T) {
+	s := newStereoInst()
+	if s.trigRun() != trigRunAuto {
+		t.Errorf("default run mode is %d, want auto", s.trigRun())
+	}
+	s.trun = 99
+	if s.trigRun() != trigRunSingle {
+		t.Errorf("out of range run mode = %d", s.trigRun())
+	}
+	s.tpos = -1
+	if s.trigPos() != 0 {
+		t.Errorf("negative position = %v", s.trigPos())
+	}
+	s.tpos = 5
+	if s.trigPos() != 1 {
+		t.Errorf("over-range position = %v", s.trigPos())
+	}
+	// Pre-trigger has to buy margin, or the window has no older audio to
+	// show and the position quietly does nothing.
+	s.trig, s.tpos = stereoTrigRising, 0
+	base := s.trigMargin(1000)
+	s.tpos = 1
+	if s.trigMargin(1000) <= base {
+		t.Errorf("pre-trigger did not widen the margin: %d vs %d", s.trigMargin(1000), base)
+	}
+}
+
+// SINGLE re-arms when the run dial moves; that is the only way to re-arm,
+// so it has to work.
+func TestSingleRearmsWhenTheDialMoves(t *testing.T) {
+	s := newStereoInst()
+	s.trun = trigRunSingle
+	s.rearmIfModeMoved() // first sight of the new mode
+	s.frozen = true
+	s.rearmIfModeMoved() // unchanged: stays frozen
+	if !s.frozen {
+		t.Error("the frame unfroze without the dial moving")
+	}
+	s.trun = trigRunAuto
+	s.rearmIfModeMoved()
+	if s.frozen {
+		t.Error("moving the dial did not re-arm")
+	}
+}
+
+func TestTrigHoldSamplesIsADuration(t *testing.T) {
+	s := newStereoInst()
+	if n := s.trigHoldSamples(48000); n != 0 {
+		t.Errorf("zero holdoff = %d samples, want 0", n)
+	}
+	s.hold = 100 // ms
+	if n := s.trigHoldSamples(48000); n != 4800 {
+		t.Errorf("100 ms at 48 kHz = %d samples, want 4800", n)
+	}
+	// The same knob position is the same DURATION on a different rate.
+	if n := s.trigHoldSamples(24000); n != 2400 {
+		t.Errorf("100 ms at 24 kHz = %d samples, want 2400", n)
 	}
 }
