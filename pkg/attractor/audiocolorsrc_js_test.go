@@ -168,3 +168,34 @@ func TestRangeLockFreezesTheScale(t *testing.T) {
 		}
 	}
 }
+
+// The src dial binds a label to an option BY INDEX, so the ring must have
+// one label per option in option order. It was left at six while seven
+// sources were added to the select, and the new ones were then unreachable
+// from the knob — permalink only.
+//
+// The option list lives in the panel HTML and the ring in main.go, so this
+// counts what each should hold and pins them together.
+func TestSrcRingCoversEverySource(t *testing.T) {
+	// Every source the code knows about, which is what the select carries:
+	// the four coordinate sources, OFF, and every audio-fed one.
+	want := 5 // X, Y, Z, trail, off
+	for s := gradientSourceAudio; s <= gradientSourceMax; s++ {
+		if s == GradientSourceOff {
+			continue
+		}
+		want++
+	}
+	if got := len(gradSrcRingLabels); got != want {
+		t.Errorf("the src ring has %d labels for %d sources; a label per option "+
+			"in option order is what index binding requires", got, want)
+	}
+	for i, l := range gradSrcRingLabels {
+		if l == "" {
+			t.Errorf("ring label %d is empty", i)
+		}
+		if len(l) > 3 {
+			t.Errorf("ring label %q is %d characters; the ring fits three", l, len(l))
+		}
+	}
+}
