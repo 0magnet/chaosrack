@@ -1283,12 +1283,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .scope-sw span{font-family:'Chakra Petch',sans-serif;font-size:calc(6.5px*var(--kscale,1));
   letter-spacing:0.12em;color:#8d959c;white-space:nowrap;}
 
-/* Narrow racks stack the tube over its controls rather than shrinking the
-   screen: a scope face smaller than its own graticule cannot be read. */
-@media (max-width:900px){
-  .scope-panel{flex-wrap:wrap;}
-  .scope-ctl{flex:1 1 100%;}
-}
 
 /* The window under a range switch: what it IS set to, as against the skirt
    legends which say what it could be. Fifteen timebase positions round one
@@ -1383,3 +1377,10 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
   box-shadow:inset 0 1px 1px rgba(0,0,0,0.9),0 1px 0 rgba(255,255,255,0.09);}
 .runit-blank::before{top:calc(6px*var(--kscale,1));}
 .runit-blank::after{bottom:calc(6px*var(--kscale,1));}
+
+/* The scope does NOT reflow on a narrow window. It used to stack its tube
+   over its controls below 900px, which made sense while it was a module in
+   a flow that re-wrapped. It is a rack unit now and the frame is a fixed 19
+   inches: a narrow window scrolls the rack, so a unit that rearranged
+   itself would be the one thing in the frame changing shape with the
+   browser — which is the collapse this whole level was built to undo. */
