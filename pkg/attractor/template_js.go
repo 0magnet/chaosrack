@@ -137,8 +137,8 @@ func buildTemplateModule() {
 	slbl.Set("title", "label — the Control's name (.plabel)")
 	sgrp.Call("appendChild", slbl)
 	sstack := stackKnobs(makeSelectorKnob(selA), makeSelectorKnob(selB))
-	addSelectorLabels(sstack, []string{"A", "B", "C", "trl"}, selA, 43)
-	addSelectorLabels(sstack, []string{"1", "2", "3", "∞"}, selB, 31)
+	addSelectorLabels(sstack, []string{"A", "B", "C", "trl"}, selA)
+	addSelectorLabels(sstack, []string{"1", "2", "3", "∞"}, selB)
 	if ring := sstack.Call("querySelector", ".knob-ring"); ring.Truthy() {
 		ring.Set("title", "ring — outer concentric selector (.knob-ring), one detent per <option>; its ring labels are clickable")
 		ring.Call("appendChild", tplOv("ring", "ring — outer concentric selector (.knob-ring), one detent per <option> (makeSelectorKnob)", 16))

@@ -367,7 +367,7 @@ func wireRhythmModule() {
 
 	// Out cell: the same routing ring every voice module has.
 	ostk := makeSelectorKnob(out)
-	addSelectorLabels(ostk, []string{"off", "L", "R", "L+R"}, out, 50)
+	addSelectorLabels(ostk, []string{"off", "L", "R", "L+R"}, out)
 	ostack.Call("appendChild", ostk)
 	// Another orphan: no reset, no Reset All, no permalink.
 	adoptDescControl(ControlDesc{

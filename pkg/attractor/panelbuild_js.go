@@ -256,7 +256,7 @@ func buildParamUnit(p paramDef) js.Value {
 			// ringed round a knob would be twenty overlapping words.
 			unit.Call("appendChild", selectorKnobReadout(sel))
 		} else {
-			stack := singleSelectorKnob(sel, ring, 46)
+			stack := singleSelectorKnob(sel, ring)
 			tips := map[string]string{}
 			for i, short := range ring {
 				tips[short] = p.Label + " " + labels[i]
@@ -459,6 +459,7 @@ func buildParamPanel(mode string) {
 	annotateControlTooltips() // role-aware tooltips (labels/readouts/swatches)
 	syncSweptMarks()          // a rebuilt row has lost its swept marking
 	syncLinkMarks()           // and its per-control link badges
+	layoutSkirts()            // skirts are measured, so they are sized once the rows exist
 }
 
 // modTarget is one modulatable control (its paramMods key + display label).

@@ -174,7 +174,7 @@ func buildNestedModelSelector() {
 	for i, c := range nestedCatOrder {
 		short[i] = catShortLabel(c)
 	}
-	addSelectorLabels(stack, short, catSel, 40)
+	addSelectorLabels(stack, short, catSel)
 	// A tooltip per detent, from the table beside the catalog. Written out here
 	// once, and missing Maps when it was.
 	tips := map[string]string{}

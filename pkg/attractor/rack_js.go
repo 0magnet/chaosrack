@@ -75,8 +75,24 @@ func newOpeningRack(container js.Value) *rack.Rack {
 		// The rack fires these only for a real change — SetOrder and SetHidden,
 		// which is how the record is restored, deliberately do not — so there
 		// is no boot-time loop of reading a layout and writing it straight back.
-		OnReorder:    func([]string) { saveRackLayout() },
-		OnVisibility: func(string, bool) { saveRackLayout() },
+		// Every opening is a drop target for every other, so a module can be
+		// carried up to the row above. Without it a rack held you inside
+		// whichever unit you picked the module up in.
+		Siblings: func() []*rack.Rack { return unitRacks },
+		OnReorder: func([]string) {
+			saveRackLayout()
+			// A module dropped into another unit changes what fits in both,
+			// and the flat order it was dropped into is what packing reads.
+			quantizeModuleWidthsSoon()
+		},
+		OnVisibility: func(string, bool) {
+			saveRackLayout()
+			// A module going in or out changes what fits in a unit, so the
+			// rack is repacked. Coalesced onto the next frame: the switch
+			// handler has not finished changing the DOM yet, and measuring
+			// it now measures the state being left behind.
+			quantizeModuleWidthsSoon()
+		},
 	})
 }
 
@@ -143,6 +159,12 @@ func quantizeModuleWidths() {
 		r.Quantize()
 	}
 	layoutRackHandles()
+	// Skirts are MEASURED, so they are sized after the layout that gives
+	// them a size. Here because this is the one funnel every layout
+	// change already passes through: a rebuild, a resize, a reorder, an
+	// interface-scale change. A skirt sized against a detached or
+	// zero-width knob is a skirt that never gets sized at all.
+	layoutSkirts()
 }
 
 // buildModuleSwitches fills the Console's Modules section with one switch per
@@ -174,7 +196,11 @@ func applyModuleVisibility() {
 			r.Apply()
 		}
 	}
-	layoutRackHandles()
+	// A module just switched IN changes what fits in a unit, so the rack
+	// has to be repacked — not merely redrawn. Without this a module
+	// switched on was appended to whatever unit it was last in and ran
+	// off the side of the frame, since an opening does not wrap.
+	quantizeModuleWidths()
 }
 
 // wireModuleDrag exists for the one call site that turns dragging on. The rack

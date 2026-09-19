@@ -48,7 +48,7 @@ func buildTestSignalModule() {
 
 	knob := makeSelectorKnob(sel)
 	stack.Call("appendChild", knob)
-	addSelectorLabels(knob, audiosrc.TestSignalRing, sel, 50)
+	addSelectorLabels(knob, audiosrc.TestSignalRing, sel)
 
 	lstack.Call("appendChild", makeKnob(lvl, js.Undefined(), true, false, true))
 	adoptDescControl(ControlDesc{

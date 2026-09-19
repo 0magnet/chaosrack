@@ -21,6 +21,7 @@ package attractor
 
 import (
 	"strconv"
+	"strings"
 	"syscall/js"
 
 	"github.com/0magnet/rack-go"
@@ -396,20 +397,29 @@ func layoutRackHandles() {
 		st.Set("width", "")
 		st.Set("marginLeft", "")
 		st.Set("marginRight", "")
+		st.Set("transform", "")
+		st.Set("marginBottom", "")
 		return
 	}
 	cl.Call("add", "with-bay")
 	// A whole 19-inch panel, always — not as many slots as the window
-	// happens to fit. A window narrower than a rack scrolls a rack.
+	// happens to fit. A window narrower than that gets the rack DRAWN
+	// smaller, not cropped: see fitFrameToWidth below.
 	st.Set("width", strconv.FormatFloat(unitFrameWidthPx(), 'f', 2, 64)+"px")
-	// The ear is a real dimension, not a look: (482.6 − 426.72)/2 of a
-	// 19-inch panel either side of the 84 HP opening, which is exactly
-	// what the handles bolt to. Published to the CSS rather than written
-	// there, so the drawn frame and the modeled one cannot disagree.
-	st.Call("setProperty", "--ear-w",
-		strconv.FormatFloat(unitEarWidthPx(), 'f', 2, 64)+"px")
+	// The opening is exactly its capacity, and the ears are what is left
+	// of the nineteen inches — in that order. Sizing the ears first and
+	// giving the opening the remainder is what made the opening too
+	// narrow to hold the twelve slots it claims.
+	st.Call("setProperty", "--open-w",
+		strconv.FormatFloat(unitOpeningWidthPx(), 'f', 2, 64)+"px")
+	ear := (unitFrameWidthPx() - unitOpeningWidthPx()) / 2
+	if ear < 0 {
+		ear = 0
+	}
+	st.Call("setProperty", "--ear-w", strconv.FormatFloat(ear, 'f', 2, 64)+"px")
 	st.Set("marginLeft", "auto")
 	st.Set("marginRight", "auto")
+	fitFrameToWidth(f)
 }
 
 // setScopeUnit bolts the scope's unit into the frame or takes it out.
@@ -458,4 +468,95 @@ func wireScopeUnit() {
 func unitEarWidthPx() float64 {
 	ear := (rackspec.PanelWidth19 - rackspec.RowHP*rackspec.HP) / 2
 	return ear * rackspec.PxPerMM * panelScale
+}
+
+// unitOpeningWidthPx is how wide a unit's opening is: exactly the capacity
+// it claims.
+//
+// Derived and set explicitly rather than left to flex, because the opening
+// declares it holds twelve slots and must therefore BE twelve slots. It was
+// sized as "whatever is left over after the ears", which came out a few
+// pixels narrower than twelve slots need — and since the opening does not
+// wrap, a unit filled to its stated capacity ran its last module off the
+// side of the rack. An opening that cannot hold what it says it holds is
+// the declared-capacity model failing at the one thing it is for.
+//
+// N slots span N pitches less the trailing seam, which belongs to the next
+// module along and not to this row.
+func unitOpeningWidthPx() float64 {
+	pitch := (moduleSlot + moduleGap) * panelScale
+	return float64(unitCapacitySlots())*pitch - moduleGap*panelScale
+}
+
+// fitFrameToWidth draws the whole rack smaller when the window is narrower
+// than nineteen inches.
+//
+// The frame is ALWAYS a whole 19-inch panel with an 84 HP opening — that is
+// the declared-capacity model and it does not bend. What bends is how big
+// it is drawn: a rack too large for the room is photographed smaller, not
+// cropped, and not left hanging out of the frame on a scrollbar. A window
+// fifty pixels short of a rack should not get a scrollbar for those fifty
+// pixels.
+//
+// A transform rather than the interface size, which is what the old bay
+// shrank. The Size ring is the operator's preference; changing it to make
+// something fit means remembering what it used to be and putting it back,
+// which is a whole mechanism (and was). Scaling the frame touches nothing
+// else and needs nothing remembered.
+//
+// Never larger than 1: a rack in a wide window stays its own size and sits
+// in the middle, the way it does on a bench.
+func fitFrameToWidth(f js.Value) {
+	st := f.Get("style")
+	st.Set("transform", "")
+	st.Set("transformOrigin", "")
+	st.Set("marginBottom", "")
+
+	avail := frameAvailWidthPx(f)
+	want := unitFrameWidthPx()
+	if avail <= 0 || want <= 0 || avail >= want {
+		return
+	}
+	k := avail / want
+	// Below this the legends stop being readable and a scrollbar is the
+	// lesser evil — the same floor the interface size has.
+	if k < 0.6 {
+		k = 0.6
+	}
+	// Origin at the left, and the space the frame no longer fills taken
+	// back with negative margins.
+	//
+	// A transform scales the PIXELS and not the layout box, so a scaled
+	// frame still reserved its full nineteen inches and the panel still
+	// scrolled — the thing being fixed. Shrinking the box by what the
+	// scale took off is what actually removes the scrollbar. Centering
+	// goes with it, and does not matter: scaling only happens when the
+	// rack does not fit, and then it fills the width anyway.
+	st.Set("transformOrigin", "top left")
+	st.Set("transform", "scale("+strconv.FormatFloat(k, 'f', 4, 64)+")")
+	// A transform does not change the space the element takes in the flow,
+	// so a scaled rack would leave the height it was NOT drawn at as a gap
+	// underneath. Take it back.
+	st.Set("marginLeft", "0")
+	st.Set("marginRight", strconv.FormatFloat(-want*(1-k), 'f', 2, 64)+"px")
+	if h := f.Get("offsetHeight").Float(); h > 0 {
+		st.Set("marginBottom", strconv.FormatFloat(-h*(1-k), 'f', 2, 64)+"px")
+	}
+}
+
+// frameAvailWidthPx is how much width the frame's container actually offers.
+func frameAvailWidthPx(f js.Value) float64 {
+	p := f.Get("parentElement")
+	if !p.Truthy() {
+		return 0
+	}
+	avail := p.Get("clientWidth").Float()
+	cs := js.Global().Call("getComputedStyle", p)
+	for _, side := range []string{"paddingLeft", "paddingRight"} {
+		if v, err := strconv.ParseFloat(
+			strings.TrimSuffix(cs.Get(side).String(), "px"), 64); err == nil {
+			avail -= v
+		}
+	}
+	return avail
 }

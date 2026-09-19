@@ -322,7 +322,7 @@ func buildGeneratorModule() {
 		// inner = waveform. Two dial rings: the sink labels (outer) and a ring of
 		// waveform glyphs (inner) that lights the selected wave.
 		ostk := stackKnobs(makeSelectorKnob(out), makeSelectorKnob(wave))
-		addSelectorLabels(ostk, []string{"off", "L", "R", "L+R"}, out, 50)
+		addSelectorLabels(ostk, []string{"off", "L", "R", "L+R"}, out)
 		addSelectorWaveDial(ostk, wave, 38)
 		ostack.Call("appendChild", ostk)
 

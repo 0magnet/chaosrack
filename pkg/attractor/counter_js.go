@@ -96,7 +96,7 @@ func wireCounterModule() {
 	if !gatesel.Truthy() || !gstack.Truthy() {
 		return
 	}
-	gstack.Call("appendChild", singleSelectorKnob(gatesel, []string{"0.1", "0.5", "1", "2"}, 50))
+	gstack.Call("appendChild", singleSelectorKnob(gatesel, []string{"0.1", "0.5", "1", "2"}))
 	// The gate had no reset, was not restored by Reset All and was not in the
 	// permalink: turn it and there was no way back but a page reload.
 	adoptDescControl(ControlDesc{

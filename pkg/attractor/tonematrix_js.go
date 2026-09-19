@@ -416,8 +416,8 @@ func wireTonematrixModule() {
 
 	// Steps cell: outer ring = column count, inner knob = root octave.
 	sstk := stackKnobs(makeSelectorKnob(stepsSel), makeSelectorKnob(root))
-	addSelectorLabels(sstk, []string{"8", "16", "32"}, stepsSel, 50)
-	addSelectorLabels(sstk, []string{"C1", "C2", "C3", "C4"}, root, 36)
+	addSelectorLabels(sstk, []string{"8", "16", "32"}, stepsSel)
+	addSelectorLabels(sstk, []string{"C1", "C2", "C3", "C4"}, root)
 	sstack.Call("appendChild", sstk)
 	rebuildTM := func() {
 		buildTMGrid()
@@ -445,7 +445,7 @@ func wireTonematrixModule() {
 
 	// Out cell: Gen-oscillator anatomy — routing ring, waveform inner knob.
 	ostk := stackKnobs(makeSelectorKnob(out), makeSelectorKnob(wave))
-	addSelectorLabels(ostk, []string{"off", "L", "R", "L+R"}, out, 50)
+	addSelectorLabels(ostk, []string{"off", "L", "R", "L+R"}, out)
 	addSelectorWaveDial(ostk, wave, 38)
 	ostack.Call("appendChild", ostk)
 	adoptDescControl(ControlDesc{
