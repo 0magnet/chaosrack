@@ -427,8 +427,8 @@ func Run() {
 			sr.Set("title", "Step × — coarse step-size multiplier for every parameter knob")
 			fr.Set("title", "Fine × — fine-trim step as a fraction of one coarse step")
 			stepFine := stackKnobs(makeSelectorKnob(sr), makeSelectorKnob(fr))
-			addSelectorLabels(stepFine, []string{".25", ".5", "1", "2", "5"}, sr, 43)
-			addSelectorLabels(stepFine, []string{"1", ".1", ".01", ".001"}, fr, 31)
+			addSelectorLabels(stepFine, []string{".25", ".5", "1", "2", "5"}, sr)
+			addSelectorLabels(stepFine, []string{"1", ".1", ".01", ".001"}, fr)
 			holder.Call("appendChild", stepFine)
 			sr.Get("style").Set("display", "none")
 			fr.Get("style").Set("display", "none")
@@ -456,7 +456,7 @@ func Run() {
 		// Size knob lives in its own Style module (a lone labeled selector ring).
 		if sh := doc.Call("getElementById", "size-stack"); sh.Truthy() {
 			ks.Set("title", "Size — scales the whole control interface (S / M / L / XL)")
-			sh.Call("appendChild", singleSelectorKnob(ks, []string{"S", "M", "L", "XL"}, 46))
+			sh.Call("appendChild", singleSelectorKnob(ks, []string{"S", "M", "L", "XL"}))
 			ks.Get("style").Set("display", "none")
 		}
 		// Knob-style selector (outer) with the LED-color selector stacked as its
@@ -481,11 +481,11 @@ func Run() {
 					// colored dots (one per option in its own LED color), the selected
 					// one highlighted.
 					stStack := stackKnobs(makeSelectorKnob(st, styleKnobRot), makeSelectorKnob(lc))
-					addSelectorLabels(stStack, []string{"std", "flat", "vint", "chrm", "gold", "carb"}, st, 46, styleKnobRot) // labels staggered off the LED dots; pointer offset to match
-					addSelectorDotLabels(stStack, dotCols, lc, 36)                                                            // ring just outside the style knob, inside its text labels
+					addSelectorLabelsRot(stStack, []string{"std", "flat", "vint", "chrm", "gold", "carb"}, st, styleKnobRot) // labels staggered off the LED dots; pointer offset to match
+					addSelectorDotLabels(stStack, dotCols, lc, 36)                                                           // ring just outside the style knob, inside its text labels
 					kh.Call("appendChild", stStack)
 				} else {
-					kh.Call("appendChild", singleSelectorKnob(st, []string{"std", "flat", "vint", "chrm", "gold", "carb"}, 44))
+					kh.Call("appendChild", singleSelectorKnob(st, []string{"std", "flat", "vint", "chrm", "gold", "carb"}))
 				}
 			}
 			applyStyle := func() {
@@ -1160,7 +1160,7 @@ func Run() {
 			// went on offering the original six and the new ones could not be
 			// reached from the knob at all — only from a permalink. The order
 			// here is the order in panelhtml_js.go, not numeric by value.
-			addSelectorLabels(sstack, gradSrcRingLabels, gsrc, 43).
+			addSelectorLabels(sstack, gradSrcRingLabels, gsrc).
 				Set("id", "grad-src-ring")
 			sh.Call("appendChild", sstack)
 			gsrc.Get("style").Set("display", "none")
@@ -1182,7 +1182,7 @@ func Run() {
 			// the src ring's radius it touched the dial while every 2-character
 			// label beside it cleared. Two more percent is as far as it can go —
 			// past that the outermost labels clip the cell.
-			addSelectorLabels(mstack, []string{"2", "3", "hue", "ht", "bl", "gy", "tb", "vr", "mg"}, gcol, 45).
+			addSelectorLabels(mstack, []string{"2", "3", "hue", "ht", "bl", "gy", "tb", "vr", "mg"}, gcol).
 				Set("id", "grad-map-ring")
 			mh.Call("appendChild", mstack)
 			gcol.Get("style").Set("display", "none")
@@ -1194,7 +1194,7 @@ func Run() {
 	if gsel := doc.Call("getElementById", "view-n"); gsel.Truthy() {
 		if gh := doc.Call("getElementById", "view-n-stack"); gh.Truthy() {
 			gstack := soloKnob(gsel)
-			addSelectorLabels(gstack, viewCountRing, gsel, 43).Set("id", "view-n-ring")
+			addSelectorLabels(gstack, viewCountRing, gsel).Set("id", "view-n-ring")
 			gh.Call("appendChild", gstack)
 			gsel.Get("style").Set("display", "none")
 		}
@@ -1208,7 +1208,7 @@ func Run() {
 	if clk := doc.Call("getElementById", "color-lock"); clk.Truthy() {
 		if ch := doc.Call("getElementById", "colorlock-stack"); ch.Truthy() {
 			cstack := soloKnob(clk)
-			addSelectorLabels(cstack, []string{"auto", "held"}, clk, 43).
+			addSelectorLabels(cstack, []string{"auto", "held"}, clk).
 				Set("id", "color-lock-ring")
 			ch.Call("appendChild", cstack)
 			clk.Get("style").Set("display", "none")

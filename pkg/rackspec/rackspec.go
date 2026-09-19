@@ -236,3 +236,25 @@ const (
 // tube has been let into it — the vertical, horizontal and trigger groups a
 // scope is operated by.
 func ScopeControlsW() float64 { return RowWidth() - ScopeFaceOuterW }
+
+// The Tektronix 7000-series plug-in, for the day an instrument unit takes
+// plug-ins of its own.
+//
+// A scope that accepts plug-ins is a unit with a PANEL and an OPENING —
+// which the container model already allows — and these are the dimensions
+// that opening would be on. Recorded now because they were hard to find:
+// the interface manual on TekWiki is an unreadable image scan, and these
+// come from the operator's side of the record rather than from
+// Tektronix Specification 704, which I have not seen.
+const (
+	// TekPlugInWidth is the standard 7000-series plug-in panel width,
+	// 3.75 in. Note that it is 18.75 HP — Tektronix predates the HP grid
+	// and owes it nothing, so a Tek opening does not tile with a Eurocard
+	// one and should not be made to.
+	TekPlugInWidth = 95.25
+
+	// TekPlugInHeight is the plug-in's panel height, 5.5 in. Howard Vollum
+	// settled on it for the 7000 series, replacing an earlier seven-inch
+	// concept.
+	TekPlugInHeight = 139.7
+)

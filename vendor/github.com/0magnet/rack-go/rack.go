@@ -104,7 +104,20 @@ type Options struct {
 	// disable it.
 	Fixed bool
 
-	// OnReorder and OnVisibility report changes the user made, by module key,
+	// Siblings, when set, are the other racks a module may be dragged INTO.
+	//
+	// A rack reorders within its own container, which is right until a host
+	// has several: chaosrack gives each 3U subrack opening its own rack, and
+	// without this a module could be moved along its row and never up to the
+	// row above — the rack would hold you inside whichever one you started
+	// in. With it, the drop target may be any module in any listed rack, and
+	// the held module is inserted into that module's own container.
+	//
+	// A function rather than a slice because the set changes: a rack that
+	// fills up grows a new one beside it, and a list captured at
+	// construction would not know.
+	Siblings func() []*Rack
+
 	// so a host can persist them.
 	OnReorder    func(order []string)
 	OnVisibility func(key string, shown bool)

@@ -197,3 +197,21 @@ func TestScopeFaceFitsA3UPanel(t *testing.T) {
 		t.Errorf("the tube is %v mm tall on a %v mm panel", ScopeFaceOuterH, PanelHeight3U)
 	}
 }
+
+// The Tektronix plug-in is 3.75 in by 5.5 in, and it is NOT on the HP grid
+// — 18.75 HP. Worth a test because the temptation is to round it to 19 HP
+// so it tiles with the Eurocard slots, and that would be inventing a
+// Tektronix that never existed.
+func TestTheTekPlugInIsNotOnTheHPGrid(t *testing.T) {
+	close(t, "Tek plug-in width", TekPlugInWidth/mmPerInch, 3.75, 0.001)
+	close(t, "Tek plug-in height", TekPlugInHeight/mmPerInch, 5.5, 0.001)
+	hp := TekPlugInWidth / HP
+	if hp == float64(int(hp)) {
+		t.Errorf("the Tek plug-in came out at a whole %v HP — it is 18.75 and should stay so", hp)
+	}
+	// And it is taller than a 3U panel, which is why a Tek-style instrument
+	// unit is not one row of the rack.
+	if TekPlugInHeight <= PanelHeight3U {
+		t.Errorf("the Tek plug-in is %v mm, not taller than a %v mm 3U panel", TekPlugInHeight, PanelHeight3U)
+	}
+}

@@ -71,7 +71,7 @@ func (r *Rack) wireDrag() {
 		}
 		e := args[0]
 		x, y := e.Get("clientX").Float(), e.Get("clientY").Float()
-		for _, other := range r.Modules() {
+		for _, other := range r.dropTargets() {
 			if other.Equal(r.dragHeld) || isHidden(other) {
 				continue
 			}
@@ -107,10 +107,17 @@ func (r *Rack) wireDrag() {
 			} else {
 				before = x < centerOf(rect, "left", "right")
 			}
+			// Into the target's OWN container, which is this rack for an
+			// ordinary reorder and a sibling when the module is being
+			// carried into another row.
+			into := other.Get("parentNode")
+			if !into.Truthy() {
+				continue
+			}
 			if before {
-				r.root.Call("insertBefore", r.dragHeld, other)
+				into.Call("insertBefore", r.dragHeld, other)
 			} else {
-				r.root.Call("insertBefore", r.dragHeld, other.Get("nextSibling"))
+				into.Call("insertBefore", r.dragHeld, other.Get("nextSibling"))
 			}
 			r.recapture()
 			break
@@ -206,4 +213,23 @@ func abs(v float64) float64 {
 		return -v
 	}
 	return v
+}
+
+// dropTargets is every module a drag may be dropped onto: this rack's, and
+// those of any sibling the host has named.
+//
+// The held module's own rack is first, so an ordinary reorder behaves
+// exactly as it did and costs no extra work when there are no siblings.
+func (r *Rack) dropTargets() []js.Value {
+	out := r.Modules()
+	if r.opts.Siblings == nil {
+		return out
+	}
+	for _, s := range r.opts.Siblings() {
+		if s == nil || s == r {
+			continue
+		}
+		out = append(out, s.Modules()...)
+	}
+	return out
 }

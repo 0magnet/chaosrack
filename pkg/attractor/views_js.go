@@ -900,7 +900,7 @@ func buildOneSweepDial(selID string, at float32) {
 
 	holder.Set("innerHTML", "")
 	stack := soloKnob(sel)
-	addSelectorLabels(stack, sweepRing, sel, 45).Set("id", selID+"-ring")
+	addSelectorLabels(stack, sweepRing, sel).Set("id", selID+"-ring")
 	holder.Call("appendChild", stack)
 }
 
@@ -982,7 +982,7 @@ func buildFocusDialInto() {
 
 	holder.Set("innerHTML", "")
 	stack := soloKnob(sel)
-	addSelectorLabels(stack, labels, sel, 43).Set("id", "focus-n-ring")
+	addSelectorLabels(stack, labels, sel).Set("id", "focus-n-ring")
 	holder.Call("appendChild", stack)
 }
 

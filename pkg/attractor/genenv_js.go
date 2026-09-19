@@ -98,7 +98,7 @@ func buildEnvModule() {
 	})
 	astack.Call("appendChild", makeKnob(atk, js.Undefined(), true, false, true))
 	dstack.Call("appendChild", makeKnob(dcy, js.Undefined(), true, false, true))
-	mstack.Call("appendChild", singleSelectorKnob(mode, []string{"off", "rpt"}, 50))
+	mstack.Call("appendChild", singleSelectorKnob(mode, []string{"off", "rpt"}))
 	// The mode ring, like the two knobs beside it. genEnvTick reads the select
 	// every frame rather than a cached mode, so there is no SelectApply to
 	// write: putting the value back IS applying it.
