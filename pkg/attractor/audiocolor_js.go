@@ -3,6 +3,8 @@
 package attractor
 
 import (
+	"math"
+
 	"unsafe"
 
 	"syscall/js"
@@ -226,10 +228,20 @@ func fillAudioColorLUTFlat(v float32) {
 // right answer depends on whether this model's trail parameter means time,
 // and only the mode knows that. Everything else gets the flat fill, so the
 // source is never dead — it always colors by SOMETHING about the sound.
+// updateAudioColorLUT fills the trail table for whichever audio source is
+// selected: the spectral centroid, or the level the spectrogram paints.
 func updateAudioColorLUT(mode string) {
 	if w, sr := audioColorWindow(mode); w != nil {
-		shortTimeCentroids(w, sr, audioColorLUT[:])
+		if gradientSource == gradientSourceLevel {
+			shortTimeLevels(w, audioColorLUT[:])
+		} else {
+			shortTimeCentroids(w, sr, audioColorLUT[:])
+		}
 		stretchAudioColorLUT(audioColorLUT[:])
+		return
+	}
+	if gradientSource == gradientSourceLevel {
+		fillAudioColorLUTFlat(afFeat["amp"])
 		return
 	}
 	fillAudioColorLUTFlat(afFeat[audioColorFeature])
@@ -345,4 +357,76 @@ func stereoColorWindow() ([]float32, int) {
 		out[k] = stereoL[baseL+tau+k*stride]
 	}
 	return out, sr
+}
+
+// ── coloring by LEVEL, which is what the spectrogram is painting ─────────
+//
+// gradientSourceAudio colors by spectral CENTROID: one frequency summarizing
+// each moment, run through whichever gradient is selected. That is a useful
+// thing and it is not what the spectrogram backdrop shows, which is
+// MAGNITUDE per bin through audioprism's own map. So a figure colored by
+// "audio" over a spectrogram disagrees with it on all three counts — a
+// different quantity, a different palette, and an auto-range against a fixed
+// scale — and the disagreement looks like a bug rather than a choice.
+//
+// This source is the other half of that pair: t is the short-time LEVEL of
+// the same slice the centroid was taken from. Put one of the colormap
+// palettes behind it (heat, turbo, viridis, magma — the ones the spectrogram
+// itself uses) and the figure and the backdrop are then saying the same
+// thing in the same language: loud is the hot end in both.
+//
+// It shares the LUT, the stretch and the trail indexing with the centroid
+// source, so it is one more fill rather than a second pipeline, and it is a
+// scalar like every other source — no per-vertex color, no shader branch
+// beyond naming it.
+const gradientSourceLevel = 6
+
+// shortTimeLevels fills out with the RMS level of successive slices of w,
+// one per slot, on the same slicing shortTimeCentroids uses so the two
+// sources index the trail identically.
+//
+// RMS rather than peak: peak follows single samples and makes a trace that
+// flickers a slot at a time, where the spectrogram's columns are an average
+// over their window and move smoothly.
+//
+// The values go out RAW, in 0..1 of full scale, and stretchAudioColorLUT
+// does the ranging — the same auto-range the centroid gets, which is what
+// keeps a quiet passage from being a flat black trace. Without a window
+// (a mode whose trail is not a time axis) it falls back to the "amp"
+// feature, flat, exactly as the centroid source falls back to "centroid".
+func shortTimeLevels(w []float32, out []float32) {
+	if len(out) == 0 {
+		return
+	}
+	if len(w) == 0 {
+		for i := range out {
+			out[i] = 0
+		}
+		return
+	}
+	step := len(w) / len(out)
+	if step < 1 {
+		step = 1
+	}
+	for i := range out {
+		start := i * step
+		if start >= len(w) {
+			out[i] = out[max(i-1, 0)]
+			continue
+		}
+		end := start + step
+		if end > len(w) {
+			end = len(w)
+		}
+		var sum float64
+		for _, v := range w[start:end] {
+			sum += float64(v) * float64(v)
+		}
+		n := end - start
+		if n <= 0 {
+			out[i] = 0
+			continue
+		}
+		out[i] = clampF(float32(math.Sqrt(sum/float64(n))), 0, 1)
+	}
 }
