@@ -295,7 +295,20 @@ func newStereoInst() *stereoInst {
 // stereo is the instance the single on-screen stereo mode draws. A second
 // view takes a second one of these; nothing below reaches past its receiver
 // to find state, which is what makes that possible.
-var stereo = newStereoInst()
+// viewInsts are the stereo mode's per-view instances. Two, because Views
+// draws two; a third view would be a third entry and nothing else.
+var viewInsts = [2]*stereoInst{newStereoInst(), newStereoInst()}
+
+// stereo is the instance the PANEL drives and the one anything outside the
+// draw passes means: the focused view's, or view A's when the views are
+// linked or there is only one.
+//
+// It is a pointer rather than a value because the draw swaps it per pass —
+// see drawViewPasses — and because the parameter rows bind to the fields of
+// whatever it points at WHEN THE ROW IS BUILT. That is why changing focus
+// rebuilds the panel rather than merely moving this: a row already built
+// holds &viewInsts[0].tau directly and would go on writing there.
+var stereo = viewInsts[0]
 
 func init() {
 	registerGenerate("stereo", stereo.generate)

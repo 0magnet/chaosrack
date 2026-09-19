@@ -925,6 +925,7 @@ func Run() {
 	// Event: Poincaré-section switch.
 	wireSectSwitch()
 	wireViewSplitSwitch()
+	wireViewLinkSwitches()
 
 	// Event: persist trail checkbox
 	doc.Call("getElementById", "persist-trail").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -1707,6 +1708,7 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 		{"tpl-on", false}, {"handles-on", false}, {"patch-on", false}, {"desk-pass", false}, {"desk-contain", false}, {"counter-on", false}, {"analysis-on", false}, {"keys-on", false}, {"tm-on", false}, {"rhythm-on", false}, {"rhythm-run", false}, {"jam-sw", false}, {"show-meters", true},
 		{"ring-sw", false}, {"twin-sw", false}, {"sect-sw", false},
 		{"views-sw", false},
+		{"link-sw", true}, {"focus-sw", false},
 		// Back to recording the full canvas. This one is here because of what
 		// it LEAVES BEHIND: choosing a region draws a dashed outline that dims
 		// everything outside it, and the outline stays after the selection is
