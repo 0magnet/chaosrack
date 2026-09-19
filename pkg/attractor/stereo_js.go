@@ -1266,6 +1266,14 @@ func (s *stereoInst) rearmIfModeMoved() {
 // the extra points agree with the ones already counted.
 const lockPoints = 192
 
+// lockBias is how much better an OLDER candidate must score before it is
+// preferred to a newer one, on a scale where 1 is an exact match.
+//
+// 0.02 is enough to reject the identical-content match that would freeze
+// the display and small enough that a genuinely better alignment still
+// wins. Zero reproduces the freeze; large values stop it locking at all.
+const lockBias = 0.02
+
 // lockStep is how far apart the candidate offsets are, in samples. Every
 // offset would be exact and four times the work for a shift nobody can
 // see: a quarter-sample of jitter at 48 kHz is 20 microseconds.
@@ -1295,6 +1303,23 @@ func lockOffset(cur, prev []float32, margin, decim int) (int, bool) {
 	}
 	prevNorm = math.Sqrt(prevNorm)
 
+	// Scanned NEWEST first, and an older candidate has to be clearly better
+	// to displace a newer one. That bias is not a refinement, it is the
+	// difference between a lock and a freeze.
+	//
+	// Without it the match is on CONTENT rather than on PHASE. The audio
+	// advances between frames, so last frame's window is now sitting further
+	// back in the buffer, and the best possible match is that same content
+	// exactly — score 1.0, every frame, until it scrolls out of the margin
+	// and the lock jumps to the next one. The display then holds still for a
+	// while and stutters, and what it is showing is steadily older audio
+	// rather than what is playing.
+	//
+	// A periodic signal matches nearly as well one period from the newest
+	// sample as it does against its own past self, so requiring a clear
+	// improvement makes the NEWEST acceptable match win. The figure is then
+	// phase-aligned and at most a period old, which is what a trigger is
+	// supposed to give.
 	best, bestOff := -2.0, margin
 	for off := margin; off >= 0; off -= lockStep {
 		var dot, curNorm float64
@@ -1307,7 +1332,7 @@ func lockOffset(cur, prev []float32, margin, decim int) (int, bool) {
 			continue
 		}
 		score := dot / (math.Sqrt(curNorm) * prevNorm)
-		if score > best {
+		if score > best+lockBias {
 			best, bestOff = score, off
 		}
 	}
