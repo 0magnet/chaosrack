@@ -157,7 +157,11 @@ var stereoAxisNames = []string{
 // size are the same few pixels, so the dial showed what looked like two "LRt"
 // and two "MSt" and there was no way to tell which of a pair was selected.
 // "d" for delay is not the notation, and it is legible, which beats it.
-var stereoAxisRing = []string{"LRd", "LRt", "MSd", "MSt"}
+// "g" for goniometer on the two TIME positions, "d" for delay on the other
+// two. It said "t" for time, which described the axis correctly and said
+// nothing about what the figure IS — and the pair a reader wants to tell
+// apart at a glance is goniometer against embedding, not time against delay.
+var stereoAxisRing = []string{"LRd", "LRg", "MSd", "MSg"}
 
 var (
 	stereoAxesF float32 = 0            // axes knob: an index into stereoPlans
