@@ -63,3 +63,75 @@ func TestViewRectsSurviveATinyCanvas(t *testing.T) {
 		}
 	}
 }
+
+// Link is what decides whether the two halves are one instrument or two.
+func TestLinkDecidesWhetherTheViewsShareParameters(t *testing.T) {
+	savedLink, savedSplit, savedFocus := viewLink, viewSplit, viewFocus
+	defer func() {
+		viewLink, viewSplit, viewFocus = savedLink, savedSplit, savedFocus
+		stereo = focusedInst()
+	}()
+
+	viewSplit = true
+
+	viewLink = true
+	if instanceFor(0) != instanceFor(1) {
+		t.Error("linked views draw different instances")
+	}
+	if focusedInst() != viewInsts[0] {
+		t.Error("linked focus is not view A")
+	}
+
+	viewLink = false
+	if instanceFor(0) == instanceFor(1) {
+		t.Error("unlinked views share an instance")
+	}
+	if instanceFor(0) != viewInsts[0] || instanceFor(1) != viewInsts[1] {
+		t.Error("unlinked views draw the wrong instances")
+	}
+
+	// Focus picks which one the panel means, but only when there is a
+	// choice: one view, or two linked, leaves exactly one instance on
+	// screen and the knobs must point at it.
+	viewFocus = 1
+	if focusedInst() != viewInsts[1] {
+		t.Error("focus B did not select view B's instance")
+	}
+	viewLink = true
+	if focusedInst() != viewInsts[0] {
+		t.Error("focus B while linked should still mean the shared instance")
+	}
+	viewLink, viewSplit = false, false
+	if focusedInst() != viewInsts[0] {
+		t.Error("focus B with one view should mean the only instance on screen")
+	}
+}
+
+// Unlinked views really are independent, which is the point of the switch.
+func TestUnlinkedViewsKeepSeparateSettings(t *testing.T) {
+	a, b := viewInsts[0], viewInsts[1]
+	savedA, savedB := a.tau, b.tau
+	defer func() { a.tau, b.tau = savedA, savedB }()
+
+	a.tau = 300
+	if b.tau == 300 {
+		t.Error("setting view A's tau moved view B's")
+	}
+	b.tau = 50
+	if a.tau != 300 {
+		t.Error("setting view B's tau moved view A's")
+	}
+}
+
+// Out-of-range view indices must not panic; the draw loop indexes by
+// position in viewRects and a third rect should degrade, not crash.
+func TestInstanceForClamps(t *testing.T) {
+	savedLink := viewLink
+	defer func() { viewLink = savedLink }()
+	viewLink = false
+	for _, i := range []int{-1, 2, 99} {
+		if instanceFor(i) != viewInsts[0] {
+			t.Errorf("instanceFor(%d) did not fall back to view A", i)
+		}
+	}
+}
