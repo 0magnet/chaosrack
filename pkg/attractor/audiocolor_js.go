@@ -367,9 +367,9 @@ func stereoColorWindow() ([]float32, int) {
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := tauSamples(stereoTau, sr)
-	align := stereoAlignSamples(stereoAlign, sr)
-	n, stride := stereoWindow(stereoWin, sr, steps, tau, align)
+	tau := tauSamples(stereo.tau, sr)
+	align := stereoAlignSamples(stereo.align, sr)
+	n, stride := stereoWindow(stereo.win, sr, steps, tau, align)
 	if n <= 0 {
 		return nil, 0
 	}
@@ -382,7 +382,7 @@ func stereoColorWindow() ([]float32, int) {
 	if align > 0 {
 		baseL = align
 	}
-	if len(stereoL) < baseL+span+1 {
+	if len(stereo.l) < baseL+span+1 {
 		return nil, 0 // the snapshot for this window has not been taken yet
 	}
 	if cap(audioColorWin) < n {
@@ -390,7 +390,7 @@ func stereoColorWindow() ([]float32, int) {
 	}
 	out := audioColorWin[:n]
 	for k := 0; k < n; k++ {
-		out[k] = stereoL[baseL+tau+k*stride]
+		out[k] = stereo.l[baseL+tau+k*stride]
 	}
 	return out, sr
 }
@@ -486,9 +486,9 @@ func stereoColorWindowPair(mode string) ([]float32, []float32, int) {
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := tauSamples(stereoTau, sr)
-	align := stereoAlignSamples(stereoAlign, sr)
-	n, stride := stereoWindow(stereoWin, sr, steps, tau, align)
+	tau := tauSamples(stereo.tau, sr)
+	align := stereoAlignSamples(stereo.align, sr)
+	n, stride := stereoWindow(stereo.win, sr, steps, tau, align)
 	if n <= 0 {
 		return nil, nil, 0
 	}
@@ -499,7 +499,7 @@ func stereoColorWindowPair(mode string) ([]float32, []float32, int) {
 	} else {
 		baseR = -align
 	}
-	if len(stereoL) < baseL+span+1 || len(stereoR) < baseR+span+1 {
+	if len(stereo.l) < baseL+span+1 || len(stereo.r) < baseR+span+1 {
 		return nil, nil, 0
 	}
 	if cap(audioColorWinL) < n {
@@ -508,8 +508,8 @@ func stereoColorWindowPair(mode string) ([]float32, []float32, int) {
 	}
 	l, r := audioColorWinL[:n], audioColorWinR[:n]
 	for k := 0; k < n; k++ {
-		l[k] = stereoL[baseL+tau+k*stride]
-		r[k] = stereoR[baseR+tau+k*stride]
+		l[k] = stereo.l[baseL+tau+k*stride]
+		r[k] = stereo.r[baseR+tau+k*stride]
 	}
 	return l, r, sr
 }
