@@ -30,8 +30,12 @@ type MicOptions struct {
 	Context js.Value
 }
 
-// DefaultMicBufferSize is the ScriptProcessorNode buffer, in sample frames,
-// and it is THE display latency of every live-audio mode. The node cannot call
+// DefaultMicBufferSize is the ScriptProcessorNode buffer, in sample frames.
+//
+// It is THE display latency of every live-audio mode ON THE FALLBACK PATH
+// ONLY. The capture now prefers an AudioWorklet (worklet_js.go), which runs
+// on the audio thread at 5.3 ms and cannot be starved by rendering; this is
+// what a browser that refuses one gets. The node cannot call
 // back until it has collected a whole buffer, so the rings it feeds are
 // refreshed once per buffer and hold still in between.
 //
@@ -52,9 +56,10 @@ type MicOptions struct {
 // So this is the smallest size that still keeps ahead of the renderer, not the
 // smallest size the node will take.
 //
-// The real fix is an AudioWorklet, which runs on the audio thread and cannot be
-// starved by rendering at all. That means shipping a JS module, which this
-// package has so far avoided; 1024 buys most of the distance without it.
+// The real fix is an AudioWorklet, which runs on the audio thread and cannot
+// be starved by rendering at all. That is now the default path — the module
+// is a dozen lines built as a Blob so nothing has to be deployed beside the
+// wasm — and this size is what remains for browsers that will not take it.
 const DefaultMicBufferSize = 1024
 
 // NewMic requests microphone access via getUserMedia and captures the
@@ -124,6 +129,8 @@ type micSource struct {
 	src       js.Value // MediaStreamAudioSourceNode
 	processor js.Value // ScriptProcessorNode
 	onProcess js.Func
+	worklet   js.Value // AudioWorkletNode, when the browser took one
+	onMessage js.Func  // its port handler
 
 	ringL *ring
 	ringR *ring // nil when mono
@@ -182,17 +189,20 @@ func (m *micSource) onStream(_ js.Value, args []js.Value) interface{} {
 
 	m.byteScratch = make([]byte, m.opts.BufferSize*4)
 
-	// ScriptProcessorNode: deprecated but universally supported and — key
-	// for the no-JS-worklet constraint — its callback runs here in Go.
-	m.processor = m.audioCtx.Call("createScriptProcessor", m.opts.BufferSize, m.channels, 1)
-	m.onProcess = js.FuncOf(m.handleProcess)
-	m.processor.Set("onaudioprocess", m.onProcess)
-	m.src.Call("connect", m.processor)
-	// Must reach the destination for onaudioprocess to fire. We never
-	// write the output buffer, so it stays silent (no mic→speaker echo).
-	m.processor.Call("connect", m.audioCtx.Get("destination"))
-
-	m.ready = true
+	// An AudioWorklet first: it runs on the audio thread, so its latency is
+	// a batching choice rather than a floor, and a late render frame cannot
+	// make it drop audio. It is asynchronous — the module has to compile
+	// before the node exists — so the ScriptProcessor goes up only if it
+	// fails. See worklet_js.go.
+	m.startWorklet(func(ok bool) {
+		if m.closed {
+			return
+		}
+		if !ok {
+			m.startScriptProcessor()
+		}
+		m.ready = true
+	})
 	return nil
 }
 
@@ -288,6 +298,10 @@ func (m *micSource) Close() {
 		m.processor.Call("disconnect")
 		m.processor.Set("onaudioprocess", js.Null())
 	}
+	if !m.worklet.IsUndefined() && m.worklet.Truthy() {
+		m.worklet.Get("port").Set("onmessage", js.Null())
+		m.worklet.Call("disconnect")
+	}
 	if !m.src.IsUndefined() {
 		m.src.Call("disconnect")
 	}
@@ -299,6 +313,9 @@ func (m *micSource) Close() {
 	}
 	if m.onProcess.Truthy() {
 		m.onProcess.Release()
+	}
+	if m.onMessage.Truthy() {
+		m.onMessage.Release()
 	}
 }
 
@@ -339,4 +356,19 @@ func (m *micSource) DrainStereo(l, r []float32) int {
 		n = got
 	}
 	return n
+}
+
+// startScriptProcessor is the original capture graph, kept for any browser
+// that will not take a worklet.
+//
+// Deprecated but universally supported, and — the reason it was the only
+// path — its callback runs here in Go without a JS module.
+func (m *micSource) startScriptProcessor() {
+	m.processor = m.audioCtx.Call("createScriptProcessor", m.opts.BufferSize, m.channels, 1)
+	m.onProcess = js.FuncOf(m.handleProcess)
+	m.processor.Set("onaudioprocess", m.onProcess)
+	m.src.Call("connect", m.processor)
+	// Must reach the destination for onaudioprocess to fire. We never write
+	// the output buffer, so it stays silent (no mic→speaker echo).
+	m.processor.Call("connect", m.audioCtx.Get("destination"))
 }
