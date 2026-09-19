@@ -234,6 +234,15 @@ type stereoInst struct {
 	lvl  float32
 	tsrc float32 // trigger source: mid, L or R
 	tcpl float32 // trigger coupling: DC, LF reject, HF reject
+	trun float32 // run mode: auto, normal, single
+	hold float32 // holdoff, milliseconds
+	tpos float32 // where the trigger sits in the window, 0..1
+
+	// frozen is SINGLE having caught its frame; lastRun notices the dial
+	// moving, which is what re-arms it.
+	frozen  bool
+	lastRun int
+
 	hyst float32 // noise reject: how far past the level a crossing must go
 
 	// trigBuf is the trigger path for this frame, kept so a filter run does
@@ -271,6 +280,9 @@ func newStereoInst() *stereoInst {
 		tsrc:  trigSrcMid,
 		tcpl:  trigCplDC,
 		hyst:  0.02,
+		trun:  trigRunAuto,
+		hold:  0,
+		tpos:  0,
 	}
 }
 
@@ -295,6 +307,9 @@ func init() {
 		{"stereo-tsrc", "tsrc", &stereo.tsrc, trigSrcMid, trigSrcMid, trigSrcR, 1},
 		{"stereo-tcpl", "tcpl", &stereo.tcpl, trigCplDC, trigCplDC, trigCplHFRej, 1},
 		{"stereo-hyst", "hyst", &stereo.hyst, 0.02, 0, 0.5, 0.01},
+		{"stereo-trun", "run", &stereo.trun, trigRunAuto, trigRunAuto, trigRunSingle, 1},
+		{"stereo-hold", "hold", &stereo.hold, 0, 0, 500, 5},
+		{"stereo-tpos", "tpos", &stereo.tpos, 0, 0, 1, 0.05},
 		{"takens-smooth", "smth", &takensSmoothF, 4, 1, 16, 1},
 	}
 }
@@ -519,10 +534,39 @@ func (s *stereoInst) generate() {
 
 	// Where in the margin this frame starts. margin means "the newest
 	// possible window", which is what an untriggered draw has always used.
+	s.rearmIfModeMoved()
 	toff := margin
 	if m := s.trigMode(); m != stereoTrigOff {
+		if s.frozen {
+			// SINGLE has its frame. Re-upload it rather than recomputing:
+			// the point of a single shot is that what is on screen stops
+			// changing, including in the ways a redraw would change it.
+			uploadVerticesOnly(vertices, attractorDrawMode, nv)
+			return
+		}
 		trig := s.buildTrigSignal(l, r, baseL, baseR, tau, margin, sr)
-		toff = triggerOffset(trig, margin, s.lvl, s.hyst, m == stereoTrigRising)
+		off, found := triggerOffset(trig, margin, s.trigHoldSamples(sr),
+			s.lvl, s.hyst, m == stereoTrigRising)
+		switch {
+		case found:
+			// The trigger point sits trigPos of the way into the window, so
+			// a position past zero shows what LED UP TO the edge. Clamped to
+			// the margin: there is only so much older audio to give back.
+			pre := int(s.trigPos() * float32(span))
+			if off+pre > margin {
+				pre = margin - off
+			}
+			toff = off + pre
+			if s.trigRun() == trigRunSingle {
+				s.frozen = true
+			}
+		case s.trigRun() == trigRunNormal, s.trigRun() == trigRunSingle:
+			// NORMAL holds the last frame rather than showing an untriggered
+			// one, which is what makes a figure that DID hold stay up to be
+			// read. SINGLE waits the same way until it catches something.
+			uploadVerticesOnly(vertices, attractorDrawMode, nv)
+			return
+		}
 	}
 	baseL += toff
 	baseR += toff
@@ -847,57 +891,86 @@ func (s *stereoInst) trigMargin(span int) int {
 	if s.trigMode() == stereoTrigOff {
 		return 0
 	}
-	if span > stereoTrigMaxMargin {
+	// One window to search in, plus however much pre-trigger is asked for:
+	// showing what led up to the edge means holding that much older audio,
+	// and without it the clamp in generate would quietly eat the position.
+	m := span + int(s.trigPos()*float32(span))
+	if m > stereoTrigMaxMargin {
 		return stereoTrigMaxMargin
 	}
-	return span
+	return m
 }
 
-// triggerOffset picks where in the search margin the window starts.
+// triggerOffset picks where in the search margin the window starts, and
+// reports whether it found a trigger at all.
 //
 // Offsets are added to the window base, so a LARGER offset is a NEWER
-// window: 0 is the oldest start the margin allows and margin is the newest,
+// window: 0 is the oldest start the margin allows and margin the newest,
 // which is where an untriggered draw begins and where a failed search falls
-// back to.
+// back to. The scan therefore runs DOWN from the newest and takes the first
+// crossing, which is the most recent one.
 //
-// The scan therefore runs DOWN from the newest and takes the first crossing,
-// which is the most recent one. It ran up before, and that is a bug worth
-// naming: it locked to the OLDEST crossing in the margin, so the window was
-// a whole margin stale and jumped whenever the margin's contents rolled —
-// which looks, from the front, exactly like a trigger that does not work.
-//
-// hyst is the noise-reject band. A crossing only counts once the signal has
+// hyst is the noise-reject band: a crossing only counts once the signal has
 // been the far side of level by at least this much, so a waveform that
-// dithers across the level does not produce a trigger per dither. It is what
-// a bench scope calls noise reject, and on program material it is the
-// difference between a figure that holds and one that flickers between two
-// phases a sample apart.
-func triggerOffset(trig []float32, margin int, level, hyst float32, rising bool) int {
+// dithers across the level does not produce a trigger per dither.
+//
+// hold is HOLDOFF, in samples, and it is what locks onto a pattern rather
+// than onto a cycle within one. A crossing qualifies only when there is no
+// other crossing in the hold samples BEFORE it — so the trigger lands on the
+// first edge after a quiet-enough gap rather than on whichever edge happens
+// to be newest. Set near a bar and a loop stands still; set near a period
+// and single cycles do. Zero is off, and is the plain most-recent-edge rule.
+//
+// The found flag is what separates AUTO from NORMAL upstream: auto draws
+// anyway from the newest sample, normal keeps the previous frame.
+func triggerOffset(trig []float32, margin, hold int, level, hyst float32, rising bool) (int, bool) {
 	if margin <= 0 || len(trig) <= margin {
-		return margin
+		return margin, false
+	}
+	crosses := func(off int) bool {
+		if off < 1 || off > margin {
+			return false
+		}
+		newer, older := trig[off], trig[off-1]
+		if rising {
+			return older < level && newer >= level
+		}
+		return older > level && newer <= level
 	}
 	armed := false
 	for off := margin; off > 0; off-- {
-		newer, older := trig[off], trig[off-1]
 		if rising {
-			// Walking backwards in time: arm once the signal is clearly
-			// ABOVE, then report the crossing that got it there.
-			if newer >= level+hyst {
+			if trig[off] >= level+hyst {
 				armed = true
 			}
-			if armed && older < level && newer >= level {
-				return off
+		} else if trig[off] <= level-hyst {
+			armed = true
+		}
+		if !armed || !crosses(off) {
+			continue
+		}
+		if hold > 0 {
+			// Look back over the holdoff for another crossing. One there
+			// means this edge is mid-pattern rather than the start of one.
+			//
+			// BACK is toward SMALLER offsets: larger is newer here, so the
+			// samples before this edge in time are the ones below it. Looking
+			// the other way asks whether anything follows, which every edge in
+			// a burst answers the same way and which disqualifies nothing.
+			quiet := true
+			for b := off - 1; b >= off-hold && b >= 1; b-- {
+				if crosses(b) {
+					quiet = false
+					break
+				}
 			}
-		} else {
-			if newer <= level-hyst {
-				armed = true
-			}
-			if armed && older > level && newer <= level {
-				return off
+			if !quiet {
+				continue
 			}
 		}
+		return off, true
 	}
-	return margin // nothing to lock to: free-run from the newest sample
+	return margin, false // nothing to lock to
 }
 
 // trigCoupling filters the trigger signal in place, oldest sample first.
@@ -1023,4 +1096,74 @@ func (s *stereoInst) buildTrigSignal(l, r []float32, baseL, baseR, tau, margin, 
 	}
 	trigCoupling(buf, s.trigCpl(), sr)
 	return buf
+}
+
+// ── the rest of a trigger section ───────────────────────────────────────
+
+const (
+	trigRunAuto   = iota // draw anyway when nothing triggers
+	trigRunNormal        // hold the last frame until something does
+	trigRunSingle        // catch one and freeze; move the knob to re-arm
+)
+
+var trigRunNames = []string{
+	"auto — draw anyway when nothing triggers, so the display never goes blank",
+	"normal — hold the last triggered frame until the next trigger",
+	"single — catch the next trigger and freeze; move this knob to re-arm",
+}
+
+var trigRunRing = []string{"auto", "norm", "sgl"}
+
+// trigRun reads the run-mode dial.
+//
+// AUTO, NORMAL and SINGLE are the three a bench scope has, and they differ
+// only in what happens when there is NO trigger — which is the whole
+// question on program material, where a lock comes and goes with the
+// music. Auto keeps drawing so the display is never blank; normal keeps
+// the last locked frame, so a figure that did hold stays up to be read
+// instead of dissolving the moment the signal changes; single catches one
+// and stops, which is the only way to look at a transient properly.
+func (s *stereoInst) trigRun() int { return clampSel(s.trun, trigRunSingle) }
+
+// trigHoldSamples is the holdoff knob in samples at the live rate. The knob
+// is in milliseconds, for tauSamples' reason: a sample is not a duration,
+// and a holdoff that meant different things on the microphone and the feed
+// would lock to different things on each.
+func (s *stereoInst) trigHoldSamples(sr int) int {
+	if !(s.hold > 0) {
+		return 0
+	}
+	n := int(s.hold * float32(sr) / 1000)
+	if n < 1 {
+		return 1
+	}
+	return n
+}
+
+// trigPos is where the trigger point sits IN the window, 0 at the left edge
+// and 1 at the right.
+//
+// A scope calls this the horizontal position, and it is how you see what
+// LED UP TO an event rather than only what followed it: put the trigger at
+// 0.5 and half the window is pre-trigger. Here it is a shift of the window
+// start, which is why it costs another half window of margin at 1.
+func (s *stereoInst) trigPos() float32 {
+	if s.tpos < 0 {
+		return 0
+	}
+	if s.tpos > 1 {
+		return 1
+	}
+	return s.tpos
+}
+
+// rearmIfModeMoved re-arms SINGLE when the run dial is touched, which is
+// how a scope's single-shot is re-armed: there is no separate button here,
+// and adding one for a mode that is not the usual one is a cell of panel
+// for a click a year.
+func (s *stereoInst) rearmIfModeMoved() {
+	if m := s.trigRun(); m != s.lastRun {
+		s.lastRun = m
+		s.frozen = false
+	}
 }
