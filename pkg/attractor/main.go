@@ -243,6 +243,8 @@ func Run() {
 	knobifyFixed("dash-duty", "slider-value-dash", true)
 	knobifyFixed("trail-slider", "slider-value-trail", true)
 	knobifyFixed("rainbow-freq", "slider-value-rfreq", true)
+	knobifyFixed("sweep-lo", "slider-value-swlo", true)
+	knobifyFixed("sweep-hi", "slider-value-swhi", true)
 	knobifyFixed("palette-shift", "slider-value-pshift", true)
 	rkx := knobifyFixed("rotation-controls-x", "slider-value-x", false)
 	rky := knobifyFixed("rotation-controls-y", "slider-value-y", false)
@@ -924,8 +926,9 @@ func Run() {
 	wireTwinSwitch()
 	// Event: Poincaré-section switch.
 	wireSectSwitch()
-	wireViewSplitSwitch()
+	wireViewGridDial()
 	wireViewLinkSwitches()
+	wireSweepDial()
 
 	// Event: persist trail checkbox
 	doc.Call("getElementById", "persist-trail").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -1186,6 +1189,20 @@ func Run() {
 	}
 	// The range lock, built the same way and for the same reason: two
 	// positions, so the ring is two labels and the hidden select goes away.
+	// The grid dial, built like the src and map rings beside it.
+	if gsel := doc.Call("getElementById", "view-n"); gsel.Truthy() {
+		if gh := doc.Call("getElementById", "view-n-stack"); gh.Truthy() {
+			gstack := soloKnob(gsel)
+			addSelectorLabels(gstack, viewCountRing, gsel, 43).Set("id", "view-n-ring")
+			gh.Call("appendChild", gstack)
+			gsel.Get("style").Set("display", "none")
+		}
+	}
+	// The sweep dial: what varies across the grid. Its options are the
+	// current mode's own parameters, so building it is a function the
+	// mode change calls too rather than a block written out here.
+	setSweepTargets(selectedMode)
+	buildSweepDial()
 	if clk := doc.Call("getElementById", "color-lock"); clk.Truthy() {
 		if ch := doc.Call("getElementById", "colorlock-stack"); ch.Truthy() {
 			cstack := soloKnob(clk)
@@ -1264,6 +1281,16 @@ func Run() {
 	adoptDescControl(ControlDesc{ID: "pan-y", Label: "Y", Min: -8, Max: 8, Step: 1, Def: 0,
 		Signed: true, PermaKey: "py", LEDID: "slider-value-pany", ResetID: "rst-pany",
 		Apply: func(v float64) { cachedPanY = float32(v) }})
+	// The sweep's own ends, as a fraction of whatever parameter it is
+	// pointed at — which is what lets one pair of knobs bound a sweep of
+	// any target. to below from runs the contact sheet backwards, which is
+	// deliberate and is why neither clamps against the other.
+	adoptDescControl(ControlDesc{ID: "sweep-lo", Label: "from", Min: 0, Max: 1, Step: 0.01, Def: 0,
+		PermaKey: "wl", LEDID: "slider-value-swlo", ResetID: "rst-swlo",
+		Apply: func(v float64) { sweepLo = float32(v) }})
+	adoptDescControl(ControlDesc{ID: "sweep-hi", Label: "to", Min: 0, Max: 1, Step: 0.01, Def: 1,
+		PermaKey: "wh", LEDID: "slider-value-swhi", ResetID: "rst-swhi",
+		Apply: func(v float64) { sweepHi = float32(v) }})
 	adoptDescControl(ControlDesc{ID: "rainbow-freq", Label: "period", Min: 0.05, Max: 20, Step: 0.05, Def: 1,
 		PermaKey: "rf", LEDID: "slider-value-rfreq", ResetID: "rst-rfreq",
 		Apply: func(v float64) { gradientFreq = float32(v) }})
@@ -1711,8 +1738,7 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 		{"test-tone", false}, {"fg-on", false}, {"spectro-skin", false},
 		{"tpl-on", false}, {"handles-on", false}, {"patch-on", false}, {"desk-pass", false}, {"desk-contain", false}, {"counter-on", false}, {"analysis-on", false}, {"keys-on", false}, {"tm-on", false}, {"rhythm-on", false}, {"rhythm-run", false}, {"jam-sw", false}, {"show-meters", true},
 		{"ring-sw", false}, {"twin-sw", false}, {"sect-sw", false},
-		{"views-sw", false},
-		{"link-sw", true}, {"focus-sw", false},
+		{"link-sw", true},
 		// Back to recording the full canvas. This one is here because of what
 		// it LEAVES BEHIND: choosing a region draws a dashed outline that dims
 		// everything outside it, and the outline stays after the selection is

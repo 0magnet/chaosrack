@@ -1198,3 +1198,19 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .info-body{height:100%;box-sizing:border-box;overflow:auto;padding:10px 14px;
   color:#cfd6dd;background:#0d1013;font-family:'B612 Mono',monospace;
   font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:break-word;}
+
+/* SWEPT: the value of this control comes from where each cell sits in the
+   grid, not from the knob. A knob that keeps its normal look while a sweep
+   overrides it is a panel that has stopped describing what is on screen —
+   the same reason a patched MOD row is marked — so the cell gets a rim in
+   the sweep's own amber and an arrow beside the reset button. Amber rather
+   than the panel's green: green is a live value, and this one is not. */
+.punit.swept,.pcell.swept{box-shadow:inset 0 0 0 1px #c8871f;border-radius:4px;}
+.sweptmark{position:absolute;top:2px;right:calc(16px*var(--kscale,1));z-index:7;
+  color:#f0b050;font-family:'Chakra Petch',sans-serif;font-weight:700;
+  font-size:calc(10px*var(--kscale,1));line-height:1;text-shadow:0 0 5px #a06008;cursor:help;}
+/* .pcell is only a positioned ancestor when it is .rstcell (see above); the
+   swept cells in the Colors module are, and the parameter cells are .punit,
+   which the grid already positions. This is the belt for anything else the
+   sweep is ever pointed at. */
+.pcell.swept{position:relative;}
