@@ -1178,6 +1178,17 @@ func Run() {
 			gcol.Get("style").Set("display", "none")
 		}
 	}
+	// The range lock, built the same way and for the same reason: two
+	// positions, so the ring is two labels and the hidden select goes away.
+	if clk := doc.Call("getElementById", "color-lock"); clk.Truthy() {
+		if ch := doc.Call("getElementById", "colorlock-stack"); ch.Truthy() {
+			cstack := soloKnob(clk)
+			addSelectorLabels(cstack, []string{"auto", "held"}, clk, 43).
+				Set("id", "color-lock-ring")
+			ch.Call("appendChild", cstack)
+			clk.Get("style").Set("display", "none")
+		}
+	}
 	updateGradientUI()
 	// And again when the fonts land: the widths are measured from text, and the
 	// first pass can run before the panel's own font has been applied.
