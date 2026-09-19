@@ -471,70 +471,158 @@ func TestPackageInstanceStartsAtDefaults(t *testing.T) {
 	}
 }
 
-// A trigger has to find the most RECENT crossing, not the oldest one in
-// the search margin: locking to the oldest shows audio a whole window
-// staler than it needs to be.
+// A trigger has to find the most RECENT crossing. Locking to the oldest in
+// the margin is the bug the first version shipped with: the window was a
+// whole margin stale and jumped whenever the margin's contents rolled,
+// which from the front looks exactly like a trigger that does not work.
 func TestTriggerFindsTheMostRecentCrossing(t *testing.T) {
-	// Offsets count backwards from the newest sample, so a sine over the
-	// margin gives several crossings and the scan must stop at the first.
-	mid := func(off int) float32 {
-		return float32(math.Sin(float64(100-off) * 0.3))
+	// Larger offset = newer sample, which is the convention the call site
+	// needs: the offset is ADDED to the window base.
+	margin := 100
+	buf := make([]float32, margin+1)
+	for off := range buf {
+		buf[off] = float32(math.Sin(float64(off) * 0.3))
 	}
-	got := triggerOffset(100, 0, true, mid)
-	if got == 100 {
+	got := triggerOffset(buf, margin, 0, 0, true)
+	if got == margin {
 		t.Fatal("no crossing found in a signal that crosses repeatedly")
 	}
-	// Verify it IS a rising crossing of zero. Offsets count backwards, so
-	// the sample before it in time is got+1.
-	if !(mid(got+1) < 0 && mid(got) >= 0) {
-		t.Errorf("offset %d is not a rising zero crossing: %v -> %v",
-			got, mid(got+1), mid(got))
+	if !(buf[got-1] < 0 && buf[got] >= 0) {
+		t.Errorf("offset %d is not a rising zero crossing: %v -> %v", got, buf[got-1], buf[got])
 	}
-	// And that nothing more recent qualifies.
-	for off := 0; off < got; off++ {
-		if mid(off+1) < 0 && mid(off) >= 0 {
-			t.Errorf("offset %d is a more recent crossing than %d", off, got)
+	for off := margin; off > got; off-- {
+		if buf[off-1] < 0 && buf[off] >= 0 {
+			t.Errorf("offset %d is more recent than the one returned, %d", off, got)
 			break
 		}
 	}
 }
 
 func TestTriggerSlopeAndFreeRun(t *testing.T) {
-	rising := func(off int) float32 {
-		if off > 50 {
-			return -1
+	margin := 100
+	// One rising edge, at offset 50 (older below, newer above).
+	buf := make([]float32, margin+1)
+	for off := range buf {
+		if off < 50 {
+			buf[off] = -1
+		} else {
+			buf[off] = 1
 		}
-		return 1
 	}
-	if got := triggerOffset(100, 0, true, rising); got != 50 {
+	if got := triggerOffset(buf, margin, 0, 0, true); got != 50 {
 		t.Errorf("rising edge found at %d, want 50", got)
 	}
 	// The same signal has no FALLING edge, so it must free-run.
-	if got := triggerOffset(100, 0, false, rising); got != 100 {
-		t.Errorf("falling search returned %d, want the free-run margin 100", got)
+	if got := triggerOffset(buf, margin, 0, 0, false); got != margin {
+		t.Errorf("falling search returned %d, want the free-run margin %d", got, margin)
 	}
-	// Flat silence has nothing to lock to either.
-	flat := func(int) float32 { return 0 }
-	if got := triggerOffset(100, 0, true, flat); got != 100 {
-		t.Errorf("silence returned %d, want 100", got)
+	flat := make([]float32, margin+1)
+	if got := triggerOffset(flat, margin, 0, 0, true); got != margin {
+		t.Errorf("silence returned %d, want %d", got, margin)
 	}
-	// No margin at all is the trigger being off.
-	if got := triggerOffset(0, 0, true, rising); got != 0 {
+	if got := triggerOffset(buf, 0, 0, 0, true); got != 0 {
 		t.Errorf("zero margin returned %d, want 0", got)
 	}
 }
 
-// The level is where the crossing is looked for, not just zero.
 func TestTriggerLevel(t *testing.T) {
-	ramp := func(off int) float32 { return float32(100-off) / 100 } // 0 .. 1
-	got := triggerOffset(100, 0.5, true, ramp)
+	margin := 100
+	buf := make([]float32, margin+1)
+	for off := range buf {
+		buf[off] = float32(off) / float32(margin) // 0 .. 1, rising with time
+	}
+	got := triggerOffset(buf, margin, 0.5, 0, true)
 	if got < 45 || got > 55 {
 		t.Errorf("crossing of 0.5 found at %d, want about 50", got)
 	}
 }
 
-// The trigger costs a margin of extra audio; when it is off it must cost
-// nothing, or turning it off would still pay for it.
+// Noise reject: a signal that dithers across the level must not produce a
+// trigger per dither, or the figure flickers between phases a sample apart.
+func TestTriggerHysteresisRejectsDither(t *testing.T) {
+	margin := 60
+	buf := make([]float32, margin+1)
+	// A clean edge well below, then dither around zero near the newest end.
+	for off := range buf {
+		switch {
+		case off < 20:
+			buf[off] = -1
+		case off < 30:
+			buf[off] = 1
+		default:
+			if off%2 == 0 {
+				buf[off] = 0.001
+			} else {
+				buf[off] = -0.001
+			}
+		}
+	}
+	// With no hysteresis the dither wins, being more recent.
+	if got := triggerOffset(buf, margin, 0, 0, true); got <= 30 {
+		t.Errorf("without hysteresis got %d, expected it to lock to the dither", got)
+	}
+	// With it, the dither never arms and the real edge is found.
+	if got := triggerOffset(buf, margin, 0, 0.05, true); got != 20 {
+		t.Errorf("with hysteresis got %d, want the real edge at 20", got)
+	}
+}
+
+// Coupling narrows what reaches the trigger. A DC offset must not survive
+// LF reject, and hiss must not survive HF reject.
+func TestTrigCoupling(t *testing.T) {
+	sr := 48000
+	n := 2000
+
+	dc := make([]float32, n)
+	for i := range dc {
+		dc[i] = 0.5
+	}
+	trigCoupling(dc, trigCplLFRej, sr)
+	if dc[n-1] > 0.05 || dc[n-1] < -0.05 {
+		t.Errorf("LF reject left a DC offset of %v", dc[n-1])
+	}
+
+	hiss := make([]float32, n)
+	for i := range hiss {
+		if i%2 == 0 {
+			hiss[i] = 1
+		} else {
+			hiss[i] = -1
+		}
+	}
+	trigCoupling(hiss, trigCplHFRej, sr)
+	var peak float32
+	for _, v := range hiss[n/2:] {
+		if v > peak {
+			peak = v
+		}
+	}
+	if peak > 0.5 {
+		t.Errorf("HF reject left nyquist-rate content at %v", peak)
+	}
+
+	// DC coupling changes nothing.
+	same := []float32{0.1, -0.2, 0.3}
+	trigCoupling(same, trigCplDC, sr)
+	if same[0] != 0.1 || same[1] != -0.2 || same[2] != 0.3 {
+		t.Errorf("DC coupling altered the signal: %v", same)
+	}
+}
+
+func TestTrigSelectorsClamp(t *testing.T) {
+	s := newStereoInst()
+	if s.trigSrc() != trigSrcMid || s.trigCpl() != trigCplDC {
+		t.Errorf("defaults are not mid/DC: %d %d", s.trigSrc(), s.trigCpl())
+	}
+	s.tsrc, s.tcpl = 99, 99
+	if s.trigSrc() != trigSrcR || s.trigCpl() != trigCplHFRej {
+		t.Errorf("out of range did not clamp to the last position")
+	}
+	s.tsrc, s.tcpl = -5, -5
+	if s.trigSrc() != trigSrcMid || s.trigCpl() != trigCplDC {
+		t.Errorf("negative did not clamp to the first position")
+	}
+}
 func TestTrigMarginIsZeroWhenOff(t *testing.T) {
 	s := newStereoInst()
 	if m := s.trigMargin(2000); m != 0 {
