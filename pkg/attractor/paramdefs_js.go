@@ -61,6 +61,7 @@ var paramLabels = map[string][]string{
 	"stereo-tsrc": trigSrcNames,
 	"stereo-tcpl": trigCplNames,
 	"stereo-trun": trigRunNames,
+	"stereo-grat": gratNames,
 	// The polar embedding's radius map. Same arrangement and the same reason:
 	// the names live next to the maps they index (polar_js.go), so a dial
 	// position cannot come to name a curve it does not draw.
@@ -117,6 +118,7 @@ var paramRingLabels = map[string][]string{
 	"stereo-tsrc": trigSrcRing,
 	"stereo-tcpl": trigCplRing,
 	"stereo-trun": trigRunRing,
+	"stereo-grat": gratRing,
 	"polar-map":   polarMapRing,
 	"xy-basis":    xyBasisRing,
 	"takens-chan": tapChanRing,
@@ -368,6 +370,12 @@ var paramHelp = map[string]string{
 		"length of a bar and a loop stands still; near a period and single cycles " +
 		"do. This is the control that locks onto a PATTERN rather than a cycle " +
 		"inside one.",
+	"stereo-grat": "graticule — the reference lines a goniometer is read " +
+		"against. Which lines carry the meaning follows the AXES dial: on the " +
+		"L/R positions the DIAGONALS do (x=y is in phase, x=-y is the content " +
+		"that vanishes when summed to mono) and on mid/side the AXES do " +
+		"(side=0 is mono, mid=0 is entirely out of phase). Scaled with gain and " +
+		"vg, so the lines stay with the trace.",
 	"stereo-tpos": "trigger position — where the trigger point sits in the " +
 		"window, 0 at the left edge and 1 at the right. Past zero the window " +
 		"holds audio from BEFORE the edge, which is how to see what led up to a " +

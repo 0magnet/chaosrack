@@ -899,3 +899,29 @@ func TestSampleLockWaveStaysInBounds(t *testing.T) {
 		}
 	}
 }
+
+// The graticule's lines scale with the signal axes, or they stop being a
+// reference the moment either gain is turned.
+func TestGraticuleScalesWithTheSignalAxes(t *testing.T) {
+	s := newStereoInst()
+	if s.gratMode() != gratOff {
+		t.Errorf("the graticule defaults to %d, want off", s.gratMode())
+	}
+	s.grat = 99
+	if s.gratMode() != gratFull {
+		t.Errorf("out of range = %d, want the last position", s.gratMode())
+	}
+	s.grat = -1
+	if s.gratMode() != gratOff {
+		t.Errorf("negative = %d, want off", s.gratMode())
+	}
+}
+
+func TestGratTablesLineUp(t *testing.T) {
+	if len(gratNames) != len(gratRing) {
+		t.Fatalf("%d names, %d ring labels", len(gratNames), len(gratRing))
+	}
+	if len(gratNames) != gratFull+1 {
+		t.Errorf("%d names for %d positions", len(gratNames), gratFull+1)
+	}
+}
