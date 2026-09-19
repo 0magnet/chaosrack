@@ -187,6 +187,19 @@ func stretchAudioColorLUT(lut []float32) {
 			hi = v
 		}
 	}
+	if colorRangeLock {
+		// Held: the ends stay where they were, so the same color goes on
+		// meaning the same level. Everything outside the frozen span clamps,
+		// which is what a locked scale is supposed to do.
+		span := audioColorHi - audioColorLo
+		if span < audioColorMinSpan {
+			span = audioColorMinSpan
+		}
+		for i, v := range lut {
+			lut[i] = clampF((v-audioColorLo)/span, 0, 1)
+		}
+		return
+	}
 	// Open at once to admit a new extreme; close slowly toward this frame's.
 	if lo < audioColorLo {
 		audioColorLo = lo
@@ -230,15 +243,38 @@ func fillAudioColorLUTFlat(v float32) {
 // source is never dead — it always colors by SOMETHING about the sound.
 // updateAudioColorLUT fills the trail table for whichever audio source is
 // selected: the spectral centroid, or the level the spectrogram paints.
+// updateAudioColorLUT fills the trail table for whichever audio source is
+// selected.
+//
+// The ABSOLUTE sources are not stretched: each is already on a scale where
+// half way up means one fixed thing, and auto-ranging would take that away.
+// See the note at the top of audiocolorsrc_js.go.
 func updateAudioColorLUT(mode string) {
-	if w, sr := audioColorWindow(mode); w != nil {
-		if gradientSource == gradientSourceLevel {
-			shortTimeLevels(w, audioColorLUT[:])
-		} else {
-			shortTimeCentroids(w, sr, audioColorLUT[:])
+	switch gradientSource {
+	case gradientSourceAudio, gradientSourceLevel:
+		if w, sr := audioColorWindow(mode); w != nil {
+			if gradientSource == gradientSourceLevel {
+				shortTimeLevels(w, audioColorLUT[:])
+			} else {
+				shortTimeCentroids(w, sr, audioColorLUT[:])
+			}
+			stretchAudioColorLUT(audioColorLUT[:])
+			return
 		}
-		stretchAudioColorLUT(audioColorLUT[:])
-		return
+	default:
+		if fillColorLUT(gradientSource, mode, audioColorLUT[:]) {
+			if !gradientSourceIsAbsolute(gradientSource) {
+				stretchAudioColorLUT(audioColorLUT[:])
+			}
+			return
+		}
+		// A stereo-only source in a mono mode, or a mode with no time axis:
+		// a flat middle is the honest answer, not a color derived from
+		// something that was not measured.
+		if gradientSourceIsAbsolute(gradientSource) {
+			fillAudioColorLUTFlat(0.5)
+			return
+		}
 	}
 	if gradientSource == gradientSourceLevel {
 		fillAudioColorLUTFlat(afFeat["amp"])
@@ -430,3 +466,54 @@ func shortTimeLevels(w []float32, out []float32) {
 		out[i] = clampF(float32(math.Sqrt(sum/float64(n))), 0, 1)
 	}
 }
+
+// stereoColorWindowPair is stereoColorWindow's walk, keeping BOTH channels.
+//
+// The single-channel version returns left alone, which is all a centroid or
+// a level needs. Correlation, side, balance and position are about the
+// relationship between the two, so they need the pair — read from their own
+// bases, the same ALIGN-aware indexing generateStereo draws from, or the
+// color would describe a different moment than the geometry under it.
+//
+// Only the stereo mode has two channels to walk; everything else gets nil
+// and the caller falls back to a flat tint.
+func stereoColorWindowPair(mode string) ([]float32, []float32, int) {
+	if mode != "stereo" {
+		return nil, nil, 0
+	}
+	src := ensureAudioSource()
+	sr := 24000
+	if src != nil && src.SampleRate() > 0 {
+		sr = src.SampleRate()
+	}
+	tau := tauSamples(stereoTau, sr)
+	align := stereoAlignSamples(stereoAlign, sr)
+	n, stride := stereoWindow(stereoWin, sr, steps, tau, align)
+	if n <= 0 {
+		return nil, nil, 0
+	}
+	span := (n-1)*stride + tau
+	baseL, baseR := 0, 0
+	if align > 0 {
+		baseL = align
+	} else {
+		baseR = -align
+	}
+	if len(stereoL) < baseL+span+1 || len(stereoR) < baseR+span+1 {
+		return nil, nil, 0
+	}
+	if cap(audioColorWinL) < n {
+		audioColorWinL = make([]float32, n)
+		audioColorWinR = make([]float32, n)
+	}
+	l, r := audioColorWinL[:n], audioColorWinR[:n]
+	for k := 0; k < n; k++ {
+		l[k] = stereoL[baseL+tau+k*stride]
+		r[k] = stereoR[baseR+tau+k*stride]
+	}
+	return l, r, sr
+}
+
+// audioColorWinL / audioColorWinR are the pair walk's own buffers, for the
+// reason audioColorWin has one: the per-frame drain buffers are in use.
+var audioColorWinL, audioColorWinR []float32
