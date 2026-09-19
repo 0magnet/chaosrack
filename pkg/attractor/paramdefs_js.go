@@ -60,6 +60,7 @@ var paramLabels = map[string][]string{
 	"stereo-trig": stereoTrigNames,
 	"stereo-tsrc": trigSrcNames,
 	"stereo-tcpl": trigCplNames,
+	"stereo-trun": trigRunNames,
 	// The polar embedding's radius map. Same arrangement and the same reason:
 	// the names live next to the maps they index (polar_js.go), so a dial
 	// position cannot come to name a curve it does not draw.
@@ -115,6 +116,7 @@ var paramRingLabels = map[string][]string{
 	"stereo-trig": stereoTrigRing,
 	"stereo-tsrc": trigSrcRing,
 	"stereo-tcpl": trigCplRing,
+	"stereo-trun": trigRunRing,
 	"polar-map":   polarMapRing,
 	"xy-basis":    xyBasisRing,
 	"takens-chan": tapChanRing,
@@ -351,6 +353,23 @@ var paramHelp = map[string]string{
 		"crossing around, HF reject low-passes so hiss and cymbals stop producing " +
 		"crossings of their own. This is the \"which frequency do I trigger on\" " +
 		"control, spelled the way a scope spells it.",
+	"stereo-trun": "run mode — what happens when NOTHING triggers, which is the " +
+		"whole question on music, where a lock comes and goes. AUTO draws anyway " +
+		"so the display is never blank. NORMAL holds the last triggered frame, so " +
+		"a figure that did hold stays up to be read instead of dissolving the " +
+		"moment the signal changes. SINGLE catches the next trigger and freezes; " +
+		"move this knob to re-arm.",
+	"stereo-hold": "holdoff, milliseconds — the minimum quiet before an edge " +
+		"counts. Zero takes whichever edge is newest, so a waveform with several " +
+		"crossings per pattern locks to a different one each frame. Set near the " +
+		"length of a bar and a loop stands still; near a period and single cycles " +
+		"do. This is the control that locks onto a PATTERN rather than a cycle " +
+		"inside one.",
+	"stereo-tpos": "trigger position — where the trigger point sits in the " +
+		"window, 0 at the left edge and 1 at the right. Past zero the window " +
+		"holds audio from BEFORE the edge, which is how to see what led up to a " +
+		"transient rather than only what followed it. A scope calls this the " +
+		"horizontal position; it costs that much more older audio to keep.",
 	"stereo-hyst": "noise reject — how far past the level the signal must go " +
 		"before a crossing counts. Zero triggers on every dither across the level, " +
 		"which on program material means the figure flickers between two phases a " +
