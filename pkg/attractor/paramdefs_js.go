@@ -56,6 +56,8 @@ var paramLabels = map[string][]string{
 	// disagreed with the list of plans would put a dial position on a figure
 	// it does not draw.
 	"stereo-axes": stereoAxisNames,
+	// The trigger edge, named the same way and for the same reason.
+	"stereo-trig": stereoTrigNames,
 	// The polar embedding's radius map. Same arrangement and the same reason:
 	// the names live next to the maps they index (polar_js.go), so a dial
 	// position cannot come to name a curve it does not draw.
@@ -108,6 +110,7 @@ var paramRingLabels = map[string][]string{
 	"globe-par":   {"ring", "spir"},
 	"globe-rev":   {"cw", "ccw"},
 	"stereo-axes": stereoAxisRing,
+	"stereo-trig": stereoTrigRing,
 	"polar-map":   polarMapRing,
 	"xy-basis":    xyBasisRing,
 	"takens-chan": tapChanRing,
@@ -329,6 +332,16 @@ var paramHelp = map[string]string{
 	"stereo-vg": "vertical gain — scales the two signal axes against the frame, the " +
 		"way a scope's vertical knob does. The camera fit ignores it, so a loud " +
 		"passage can be turned down to fit or a quiet one driven off the top.",
+	"stereo-trig": "trigger — what fixes the START of the window. OFF ends it at " +
+		"the newest sample, so a steady tone is redrawn at a different phase each " +
+		"frame and the figure slides. RISE and FALL start it where the signal " +
+		"crosses the level, so successive frames begin at the same phase and a " +
+		"periodic signal stands still. Nothing periodic to lock to — noise, " +
+		"speech — and it free-runs rather than blanking, which is the AUTO " +
+		"behavior of a bench scope.",
+	"stereo-lvl": "level — where the trigger looks for its crossing, in units of " +
+		"full scale. 0 is the zero crossing and is what to use unless the signal " +
+		"has an offset or the interesting edge is part way up it.",
 	"stereo-span": "span — timebase. Stretches the TIME axis only, so the trace can " +
 		"sweep across a wide window instead of sitting in a small square. Inert " +
 		"on the two 'd' positions, where all three axes are signal and stretching " +

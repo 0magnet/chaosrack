@@ -226,6 +226,13 @@ type stereoInst struct {
 	// coordinates are signal.
 	span float32
 
+	// trig selects the trigger edge, and lvl the level it looks for. See the
+	// TRIGGER section below: together they fix the START of the window to a
+	// repeatable feature of the signal instead of to the newest sample, which
+	// is what makes a periodic figure stand still.
+	trig float32
+	lvl  float32
+
 	readEl   js.Value // the readout in the parameter grid
 	readText string   // last text written to it (DOM write only on change)
 
@@ -252,6 +259,8 @@ func newStereoInst() *stereoInst {
 		width: 1,
 		vgain: 1,
 		span:  1,
+		trig:  stereoTrigOff,
+		lvl:   0,
 	}
 }
 
@@ -271,6 +280,8 @@ func init() {
 		{"stereo-width", "wide", &stereo.width, 1, 0, 3, 0.05},
 		{"stereo-vg", "vg", &stereo.vgain, 1, 0.1, 8, 0.1},
 		{"stereo-span", "span", &stereo.span, 1, 0.25, 8, 0.25},
+		{"stereo-trig", "trig", &stereo.trig, stereoTrigOff, stereoTrigOff, stereoTrigFalling, 1},
+		{"stereo-lvl", "lvl", &stereo.lvl, 0, -1, 1, 0.01},
 		{"takens-smooth", "smth", &takensSmoothF, 4, 1, 16, 1},
 	}
 }
@@ -461,7 +472,11 @@ func (s *stereoInst) generate() {
 	} else {
 		baseR = -align
 	}
-	snap := span + absA + 1
+	// The trigger searches BEHIND the window, so the snapshot carries a margin
+	// of older audio for it to look in. Zero when the trigger is off, which
+	// leaves the snapshot exactly the size it always was.
+	margin := s.trigMargin(span)
+	snap := span + absA + 1 + margin
 	if len(s.l) < snap {
 		// Grown by half again, as the Takens ring is, so that turning the WIN
 		// knob does not reallocate on every step of the dial.
@@ -488,6 +503,21 @@ func (s *stereoInst) generate() {
 	// cannot cause a false report: the collapse notice wants a solid second.
 	l, r := s.l[:snap], s.r[:snap]
 	src.TimeDomainStereo(l, r)
+
+	// Where in the margin this frame starts. margin means "the newest
+	// possible window", which is what an untriggered draw has always used.
+	toff := margin
+	if m := s.trigMode(); m != stereoTrigOff {
+		toff = triggerOffset(margin, s.lvl, m == stereoTrigRising, func(off int) float32 {
+			// The trigger watches MID, the sum of the pair: it is the signal
+			// both axes are built from, so locking to it holds the whole
+			// figure rather than one of its coordinates.
+			i := tau + off
+			return (l[baseL+i] + r[baseR+i]) * 0.5
+		})
+	}
+	baseL += toff
+	baseR += toff
 
 	plan := stereoPlans[s.axisSel()]
 	g := s.gain
@@ -740,4 +770,114 @@ func (s *stereoInst) appendReadout(grid js.Value) {
 	top.Call("appendChild", s.readEl)
 
 	grid.Call("appendChild", card)
+}
+
+// ── TRIGGER ─────────────────────────────────────────────────────────────
+//
+// The oldest control on the instrument this resembles, and the one that
+// turns a moving picture into something that can be read.
+//
+// Every window here ends at the newest sample, so the figure slides: a
+// steady tone is redrawn each frame starting at a different phase of itself,
+// and what stands still on a scope crawls here. A trigger fixes the START of
+// the window to a repeatable feature of the signal instead of to "now" — the
+// moment it crosses a level going up — so successive frames begin at the
+// same phase and a periodic signal is drawn in the same place every time.
+//
+// It works on audio for exactly the reason it works on a bench: audio is
+// periodic over the few milliseconds a window covers, far more often than
+// not. A held note, a bass line, a drum's body, feedback, a test tone — all
+// stand still. Noise and speech do not, because there is no period to lock
+// to, and that is information rather than a failure: a figure that will not
+// hold under a trigger is telling you it is not periodic.
+//
+// AUTO rather than NORMAL, in scope terms: when no crossing is found in the
+// search window the draw free-runs from the newest sample instead of holding
+// the last frame. A blank screen is the correct behavior on a bench, where
+// the operator is hunting a fault; here it would just look broken.
+
+// stereoTrigNames are the dial's positions.
+var stereoTrigNames = []string{
+	"off — the window ends at the newest sample and the figure slides",
+	"rising — start where the signal crosses the level going up",
+	"falling — start where it crosses going down",
+}
+
+// stereoTrigRing is what fits around the dial.
+var stereoTrigRing = []string{"off", "rise", "fall"}
+
+const (
+	stereoTrigOff = iota
+	stereoTrigRising
+	stereoTrigFalling
+)
+
+// stereoTrigMaxMargin caps how far back a trigger will look, in samples.
+//
+// The search costs a comparison per sample per frame and buys nothing past
+// one period of the lowest thing worth locking to: 4096 samples is 85 ms at
+// 48 kHz, which is a period of 11 Hz. Below that there is no pitch to hold
+// still anyway.
+const stereoTrigMaxMargin = 4096
+
+// trigMode reads the dial, clamped the way axisSel is.
+func (s *stereoInst) trigMode() int {
+	v := s.trig
+	if !(v > 0) { // false for NaN too
+		return stereoTrigOff
+	}
+	if v > stereoTrigFalling {
+		return stereoTrigFalling
+	}
+	return int(v + 0.5)
+}
+
+// trigMargin is how many samples of search the current mode wants behind
+// the window. Zero when the trigger is off, which is what keeps the
+// snapshot — and so the work — exactly as it was.
+func (s *stereoInst) trigMargin(span int) int {
+	if s.trigMode() == stereoTrigOff {
+		return 0
+	}
+	if span > stereoTrigMaxMargin {
+		return stereoTrigMaxMargin
+	}
+	return span
+}
+
+// triggerOffset picks where in the search margin the window should start.
+//
+// It returns an offset in 0..margin, counted from the OLDEST end, so margin
+// means "start at the newest possible point" — which is what an untriggered
+// draw does and what a failed search falls back to.
+//
+// The scan runs from the newest candidate backwards and takes the FIRST
+// crossing it finds, so the window is the most recent one that satisfies the
+// trigger. Searching forward would lock to the oldest crossing in the margin
+// and show audio that is a whole window staler than it needs to be.
+//
+// mid is read through a function rather than a slice so the caller does not
+// have to build a mixed-down copy of the pair every frame just to look for a
+// zero crossing in it.
+func triggerOffset(margin int, level float32, rising bool, mid func(off int) float32) int {
+	if margin <= 0 {
+		return 0
+	}
+	// Offsets count BACKWARDS: 0 is the newest sample the window could start
+	// at, margin the oldest. So the scan runs UP from 0 and takes the first
+	// crossing, which is the most recent one — searching the other way locks
+	// to the oldest crossing in the margin and shows audio a whole window
+	// staler than it needs to be.
+	//
+	// At offset off, the sample BEFORE it in time is off+1.
+	for off := 0; off < margin; off++ {
+		older, newer := mid(off+1), mid(off)
+		if rising && older < level && newer >= level {
+			return off
+		}
+		if !rising && older > level && newer <= level {
+			return off
+		}
+	}
+	return margin // nothing to lock to: free-run from the newest sample
 }
