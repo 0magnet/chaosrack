@@ -179,10 +179,18 @@ func applyDock(edge string) {
 	// shell's edges puts them on the panel's edges, with nothing to recompute.
 	//
 	// For the horizontal docks the shell is left to size itself to the panel
-	// and the panel keeps the max-height, rather than the shell taking a height
-	// and the panel filling it. A percentage max-height against an auto-height
-	// parent resolves to none, so the other way round the panel would grow past
+	// and the panel carries the height, rather than the shell taking a height
+	// and the panel filling it. A percentage height against an auto-height
+	// parent resolves to auto, so the other way round the panel would grow past
 	// the shell and the bar would sit somewhere in the middle of it.
+	//
+	// An explicit height and not a max-height: a drawer is the size it was
+	// pulled to. Under max-height the panel stopped at whatever its CONTENT
+	// happened to need, so pulling past that did nothing at all and the
+	// drawer could not be opened to cover the page — the drag was moving a
+	// number the layout had already ignored. Height with overflow-y:auto IS
+	// the drawer: too small and the modules scroll inside it, too large and
+	// it is simply open that far. The vertical docks always did it this way.
 	const shellBase = "position:fixed;box-sizing:border-box;pointer-events:auto;z-index:var(--z-panel);"
 	// NB: no z-index on the panel — its base z lives in CSS (#controls-panel →
 	// var(--z-panel)) so that clearing an inline override falls back to a value
@@ -201,7 +209,7 @@ func applyDock(edge string) {
 	switch edge {
 	case "top":
 		shellCSS = "left:0;right:0;top:0;"
-		panelCSS = "width:100%;max-height:" + hpx + ";overflow-y:auto;border-bottom:1px solid #333;"
+		panelCSS = "width:100%;height:" + hpx + ";overflow-y:auto;border-bottom:1px solid #333;"
 	case "left":
 		shellCSS = "top:0;bottom:0;left:0;width:" + wpx + ";"
 		panelCSS = "width:100%;height:100%;overflow-y:auto;border-right:1px solid #333;"
@@ -221,7 +229,7 @@ func applyDock(edge string) {
 	default:
 		edge = "bottom"
 		shellCSS = "left:0;right:0;bottom:0;"
-		panelCSS = "width:100%;max-height:" + hpx + ";overflow-y:auto;border-top:1px solid #333;"
+		panelCSS = "width:100%;height:" + hpx + ";overflow-y:auto;border-top:1px solid #333;"
 	}
 
 	if float {
@@ -410,16 +418,20 @@ func initDockResize() {
 		case "right":
 			dockSizeW = winW() - e.Get("clientX").Float()
 		}
-		if dockSizeH < 120 {
-			dockSizeH = 120
-		} else if dockSizeH > winH()*0.96 {
-			dockSizeH = winH() * 0.96
-		}
-		if dockSizeW < 150 {
-			dockSizeW = 150
-		} else if dockSizeW > winW()*0.95 {
-			dockSizeW = winW() * 0.95
-		}
+		// The panel travels the WHOLE edge: shut at one end, covering the
+		// page at the other.
+		//
+		// It used to stop 120px short of shut and 4% short of full, and both
+		// ends were wrong for the same reason — a drawer that will not close
+		// and will not open all the way is a drawer arguing with the hand on
+		// it. The old floor was guarding something real, that a panel pulled
+		// to nothing cannot be pulled back, and guarding it in the wrong
+		// place: the grip is its own element pinned to the dock EDGE, not to
+		// the panel's content, so it stays reachable at any size and the
+		// floor only has to keep the grip itself on screen.
+		grip := dockGripPx()
+		dockSizeH = clampDock(dockSizeH, grip, winH())
+		dockSizeW = clampDock(dockSizeW, grip, winW())
 		applyDock(dockEdge)
 	})
 	doc.Call("addEventListener", "pointerup", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
@@ -500,3 +512,40 @@ func readDockPref() string {
 // updateGradientUI shows only the color controls relevant to the current
 // palette: monochrome → one color; two-color → start+end; three-color →
 // start+mid+end; rainbow → no fixed colors, show the period knob instead.
+
+// dockGripPx is how much of the edge the resize grip needs to stay on
+// screen — the floor a shut drawer stops at, so there is always something
+// to pull it back out by.
+//
+// Measured rather than a constant because the grip is sized in CSS and
+// scales with the interface Size ring: a number written here would be the
+// right floor at one setting and would swallow the grip at another.
+func dockGripPx() float64 {
+	const fallback = 10.0 // before layout, or if the grip is display:none
+	if !resizeHandle.Truthy() {
+		return fallback
+	}
+	r := resizeHandle.Call("getBoundingClientRect")
+	grip := r.Get("height").Float()
+	if w := r.Get("width").Float(); w > 0 && w < grip {
+		grip = w // the vertical edges: the bar is tall and thin
+	}
+	if !(grip > 0) {
+		return fallback
+	}
+	return grip
+}
+
+// clampDock holds a dock size between the grip floor and the full window.
+func clampDock(v, lo, hi float64) float64 {
+	if lo > hi {
+		lo = hi
+	}
+	if v < lo {
+		return lo
+	}
+	if v > hi {
+		return hi
+	}
+	return v
+}

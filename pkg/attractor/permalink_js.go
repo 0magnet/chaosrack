@@ -58,6 +58,8 @@ var permaCtls = []permaCtl{
 	{"tw", "twin-sw", true},
 	{"vw", "view-n", false},
 	{"wp", "sweep-p", false},
+	{"w2", "sweep2-p", false},
+	{"sg", "scope-grat", true},
 	{"vl", "link-sw", true},
 	{"vf", "focus-n", false},
 	{"po", "sect-sw", true},

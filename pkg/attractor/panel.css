@@ -1214,3 +1214,92 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    which the grid already positions. This is the belt for anything else the
    sweep is ever pointed at. */
 .pcell.swept{position:relative;}
+
+/* ── the rack-mount scope ────────────────────────────────────────────────
+   A full row of the rack: rack ears with mounting holes, a brushed panel,
+   a tube let into it behind a bezel, and the control clusters a scope is
+   operated by. The proportions come from pkg/rackspec — the face is ten
+   divisions by eight at a centimeter a division, which is why it is wider
+   than it is tall and why it is the size it is rather than the size the
+   leftover space was. */
+.sect.scopemodule{flex:1 1 100%;}
+.scope-panel{display:flex;align-items:stretch;gap:0;
+  background:linear-gradient(180deg,#3a3f45 0%,#2e3338 6%,#272c31 50%,#22262a 94%,#191d21 100%);
+  border:1px solid #14171a;border-radius:3px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.10),inset 0 -1px 0 rgba(0,0,0,0.55),0 2px 6px rgba(0,0,0,0.5);
+  padding:calc(6px*var(--kscale,1));overflow:hidden;}
+/* The brushed-aluminium grain: fine vertical striations over the gradient. */
+.scope-panel::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,0.022) 0 1px,rgba(0,0,0,0.022) 1px 2px);}
+.sect.scopemodule .scope-panel{position:relative;}
+
+/* Rack ears. A 19-inch panel is bolted to the rails through these, and the
+   holes are what says "this is a rack unit" before anything else does. */
+.scope-ear{flex:0 0 auto;width:calc(15px*var(--kscale,1));
+  display:flex;flex-direction:column;justify-content:space-around;align-items:center;
+  padding:calc(4px*var(--kscale,1)) 0;
+  background:linear-gradient(90deg,#43484e,#2b3035);
+  border-right:1px solid rgba(0,0,0,0.5);}
+.scope-ear:last-child{border-right:0;border-left:1px solid rgba(0,0,0,0.5);
+  background:linear-gradient(90deg,#2b3035,#43484e);}
+.scope-ear i{display:block;width:calc(7px*var(--kscale,1));height:calc(7px*var(--kscale,1));
+  border-radius:50%;background:#0b0d0f;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,0.9),0 1px 0 rgba(255,255,255,0.12);}
+
+/* The tube. The bezel is the mask over the edge of the glass; the glass
+   itself gets a vignette and a highlight, because a CRT face is curved and
+   a flat black rectangle reads as an LCD. */
+.scope-tube{position:relative;flex:0 0 auto;margin:0 calc(8px*var(--kscale,1));
+  padding:calc(7px*var(--kscale,1));
+  background:linear-gradient(180deg,#0e1113,#1a1e22 40%,#0b0e10);
+  border:1px solid #0a0c0e;border-radius:calc(5px*var(--kscale,1));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.05),inset 0 2px 8px rgba(0,0,0,0.9);}
+.scope-tube canvas{display:block;width:calc(240px*var(--kscale,1));height:calc(192px*var(--kscale,1));
+  background:#05070a;border-radius:calc(3px*var(--kscale,1));}
+.scope-glass{position:absolute;inset:calc(7px*var(--kscale,1));pointer-events:none;
+  border-radius:calc(3px*var(--kscale,1));
+  background:radial-gradient(ellipse at 50% 42%,rgba(255,255,255,0.055) 0%,rgba(255,255,255,0.015) 45%,rgba(0,0,0,0.35) 100%);
+  box-shadow:inset 0 0 calc(18px*var(--kscale,1)) rgba(0,0,0,0.75);}
+
+/* The control side: clusters, each with its silkscreened group name. */
+.scope-ctl{flex:1 1 auto;display:flex;flex-wrap:wrap;align-content:flex-start;
+  gap:calc(6px*var(--kscale,1));padding-left:calc(4px*var(--kscale,1));}
+.scope-brand{flex:1 1 100%;display:flex;align-items:baseline;gap:calc(8px*var(--kscale,1));
+  font-family:'Chakra Petch',sans-serif;color:#c8ced4;letter-spacing:0.14em;
+  font-size:calc(11px*var(--kscale,1));text-shadow:0 1px 0 rgba(0,0,0,0.8);}
+.scope-brand span{font-size:calc(7px*var(--kscale,1));color:#7e878f;letter-spacing:0.22em;}
+.scope-grp{display:flex;gap:calc(7px*var(--kscale,1));align-items:flex-start;
+  padding:calc(4px*var(--kscale,1)) calc(7px*var(--kscale,1)) calc(3px*var(--kscale,1));
+  border:1px solid rgba(255,255,255,0.07);border-radius:calc(3px*var(--kscale,1));
+  background:rgba(0,0,0,0.13);position:relative;margin-top:calc(6px*var(--kscale,1));}
+.scope-grp-hdr{position:absolute;top:calc(-6px*var(--kscale,1));left:calc(6px*var(--kscale,1));
+  padding:0 calc(3px*var(--kscale,1));background:#2a2f34;
+  font-family:'Chakra Petch',sans-serif;font-size:calc(7px*var(--kscale,1));
+  letter-spacing:0.18em;color:#9aa3ab;}
+.scope-knob{display:flex;flex-direction:column;align-items:center;gap:calc(2px*var(--kscale,1));}
+.scope-lbl{font-family:'Chakra Petch',sans-serif;font-size:calc(6.5px*var(--kscale,1));
+  letter-spacing:0.12em;color:#8d959c;white-space:nowrap;}
+.scope-sw{display:flex;flex-direction:column;align-items:center;gap:calc(3px*var(--kscale,1));
+  cursor:pointer;align-self:center;}
+.scope-sw span{font-family:'Chakra Petch',sans-serif;font-size:calc(6.5px*var(--kscale,1));
+  letter-spacing:0.12em;color:#8d959c;white-space:nowrap;}
+
+/* Narrow racks stack the tube over its controls rather than shrinking the
+   screen: a scope face smaller than its own graticule cannot be read. */
+@media (max-width:900px){
+  .scope-panel{flex-wrap:wrap;}
+  .scope-ctl{flex:1 1 100%;}
+}
+
+/* The window under a range switch: what it IS set to, as against the skirt
+   legends which say what it could be. Fifteen timebase positions round one
+   knob are legible enough to choose from and too small to read at a glance,
+   which is exactly the split a real scope's window solves. */
+.scope-read{display:block;margin-top:calc(2px*var(--kscale,1));
+  min-width:calc(38px*var(--kscale,1));text-align:center;
+  font-family:'B612 Mono',monospace;font-size:calc(7px*var(--kscale,1));
+  color:#ffb060;background:#160d05;border:1px solid #2c1c0a;
+  border-radius:2px;padding:calc(1px*var(--kscale,1)) calc(2px*var(--kscale,1));
+  text-shadow:0 0 4px rgba(255,150,40,0.55);white-space:nowrap;}
+/* The skirt legends, small enough that fifteen of them fit round one knob. */
+.scope-knob .knob-dial-lab{font-size:calc(5.5px*var(--kscale,1));letter-spacing:0;}

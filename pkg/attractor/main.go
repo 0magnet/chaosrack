@@ -1203,6 +1203,7 @@ func Run() {
 	// mode change calls too rather than a block written out here.
 	setSweepTargets(selectedMode)
 	buildSweepDial()
+	buildRackScope() // the rack scope's own dials, independent of the model
 	if clk := doc.Call("getElementById", "color-lock"); clk.Truthy() {
 		if ch := doc.Call("getElementById", "colorlock-stack"); ch.Truthy() {
 			cstack := soloKnob(clk)
@@ -1739,6 +1740,7 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 		{"tpl-on", false}, {"handles-on", false}, {"patch-on", false}, {"desk-pass", false}, {"desk-contain", false}, {"counter-on", false}, {"analysis-on", false}, {"keys-on", false}, {"tm-on", false}, {"rhythm-on", false}, {"rhythm-run", false}, {"jam-sw", false}, {"show-meters", true},
 		{"ring-sw", false}, {"twin-sw", false}, {"sect-sw", false},
 		{"link-sw", true},
+		{"scope-grat", true}, // the graticule is what makes the trace measurable
 		// Back to recording the full canvas. This one is here because of what
 		// it LEAVES BEHIND: choosing a region draws a dashed outline that dims
 		// everything outside it, and the outline stays after the selection is
