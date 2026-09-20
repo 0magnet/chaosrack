@@ -35,8 +35,8 @@ const (
 
 var (
 	wfCursor  = tapUnjoined
-	wfBuf     []float32
-	wfFill    int
+	wfWin     slidingWindow // the newest wfWindowSec seconds
+	wfBuf     []float32     // wfWin laid out in order, for the analyzer
 	wfNextMs  float64
 	wfRes     WowFlutterResult
 	wfNominal float32 = wfCarrier
@@ -47,15 +47,17 @@ var (
 
 // wfTick keeps the rolling buffer full and remeasures on its own clock.
 func wfTick(nowMs float64) {
-	mod := doc.Call("getElementById", "wf-module")
-	if !mod.Truthy() || !mod.Get("offsetParent").Truthy() {
+	// Not merely "not display:none" — actually on screen. See
+	// moduleOnScreen: this module's DSP and readouts are most of what the
+	// panel costs per frame, and the drawer usually has it scrolled away.
+	if !moduleOnScreen("wf-module") {
 		return
 	}
 	sr := takensSourceRate()
 	want := sr * wfWindowSec
+	wfWin.Resize(want)
 	if len(wfBuf) != want {
 		wfBuf = make([]float32, want)
-		wfFill = 0
 	}
 	var scratch [4096]float32
 	for {
@@ -63,16 +65,7 @@ func wfTick(nowMs float64) {
 		if n <= 0 {
 			break
 		}
-		if n >= len(wfBuf) {
-			copy(wfBuf, scratch[n-len(wfBuf):n])
-			wfFill = len(wfBuf)
-		} else {
-			copy(wfBuf, wfBuf[n:])
-			copy(wfBuf[len(wfBuf)-n:], scratch[:n])
-			if wfFill += n; wfFill > len(wfBuf) {
-				wfFill = len(wfBuf)
-			}
-		}
+		wfWin.Push(scratch[:n])
 		if n < len(scratch) {
 			break
 		}
@@ -85,11 +78,11 @@ func wfTick(nowMs float64) {
 	// seconds: a partial buffer gives a usable flutter figure long before it
 	// gives a usable wow one, and AnalyzeWowFlutter refuses anything too short
 	// to mean something.
-	if wfFill < len(wfBuf) {
-		wfRes = AnalyzeWowFlutter(wfBuf[len(wfBuf)-wfFill:], sr, float64(wfNominal))
-	} else {
-		wfRes = AnalyzeWowFlutter(wfBuf, sr, float64(wfNominal))
-	}
+	// Laid out in order HERE, on the timer. Ten seconds at 48 kHz is 1.9 MB,
+	// and sliding that on every frame to produce a reading twice a second
+	// was about 115 MB/s of memmove. See slidingwindow.go.
+	n := wfWin.Linear(wfBuf)
+	wfRes = AnalyzeWowFlutter(wfBuf[:n], sr, float64(wfNominal))
 	showWowFlutter()
 }
 

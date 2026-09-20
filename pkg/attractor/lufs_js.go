@@ -43,8 +43,10 @@ var (
 // lufsTick drains the tap into the meter and updates the readouts on its own
 // clock. Called once a frame; does nothing while the module is off screen.
 func lufsTick(nowMs float64) {
-	mod := doc.Call("getElementById", "lufs-module")
-	if !mod.Truthy() || !mod.Get("offsetParent").Truthy() {
+	// Not merely "not display:none" — actually on screen. See
+	// moduleOnScreen: this module's DSP and readouts are most of what the
+	// panel costs per frame, and the drawer usually has it scrolled away.
+	if !moduleOnScreen("lufs-module") {
 		return
 	}
 	sr := takensSourceRate()
