@@ -43,7 +43,6 @@ var (
 	tmTouchAt float64 // performance.now() of the last pad touch — a tap's
 	// synthesized compatibility mousedown must not re-toggle the pad
 
-	tmPrevMode string // model showing before the Matrix took the display
 )
 
 type tmDueCol struct {
@@ -340,54 +339,6 @@ func tmTick() {
 
 // ── Wiring ───────────────────────────────────────────────────────────────
 
-// tmSwitchMode drives the model selector programmatically so every
-// mode-change side effect (panel rebuild, camera, permalink) applies.
-func tmSwitchMode(mode string) {
-	if sel := doc.Call("getElementById", "mode-select"); sel.Truthy() {
-		sel.Set("value", mode)
-		sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
-	}
-}
-
-// setTonematrixOn shows/hides the module; hiding parks the playhead and
-// drops the audio-context lease (the graph stays for the next resume).
-// While the Matrix runs the display shows the audio, not the attractor:
-// switching on hands the screen to the spectrogram (the scrolling spectrum
-// is the pattern itself in frequency × time), switching off restores the
-// model that was showing — unless the user picked another mode meanwhile.
-func setTonematrixOn(on bool) {
-	tmOn = on
-	if sect := doc.Call("getElementById", "tm-module"); sect.Truthy() {
-		if on {
-			sect.Get("style").Set("display", "")
-		} else {
-			sect.Get("style").Set("display", "none")
-		}
-	}
-	if on {
-		tmEnsureGraph() // the switch flip is our user gesture
-		tmNext = 0
-		// Not while the saved switches are being put back: see restoringSwitches.
-		if selectedMode != "spectrogram" && selectedMode != "xy" && !restoringSwitches {
-			tmPrevMode = selectedMode
-			tmSwitchMode("spectrogram")
-		}
-	} else {
-		tmSetPH(-1)
-		tmNext = 0
-		tmDue = tmDue[:0]
-		if tmCtx.Truthy() {
-			releaseAudioCtx("tmx")
-			tmCtx = js.Undefined()
-		}
-		if tmPrevMode != "" && selectedMode == "spectrogram" {
-			tmSwitchMode(tmPrevMode)
-		}
-		tmPrevMode = ""
-	}
-	quantizeModuleWidths()
-}
-
 // wireTonematrixModule builds the control cells, renders the pad grid, and
 // wires the Run/Clear controls. Called once from Run.
 func wireTonematrixModule() {
@@ -397,7 +348,6 @@ func wireTonematrixModule() {
 	lvl := doc.Call("getElementById", "tm-lvl")
 	out := doc.Call("getElementById", "tm-out")
 	wave := doc.Call("getElementById", "tm-wave")
-	sw := doc.Call("getElementById", "tm-on")
 	tstack := doc.Call("getElementById", "tm-tstack")
 	sstack := doc.Call("getElementById", "tm-sstack")
 	lstack := doc.Call("getElementById", "tm-lstack")
@@ -479,12 +429,13 @@ func wireTonematrixModule() {
 			return nil
 		}))
 	}
-	if sw.Truthy() {
-		sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-			setTonematrixOn(sw.Get("checked").Bool())
-			return nil
-		}))
-	}
+	// Always in the rack. The Console's module switches are gone, so there is
+	// no state in which this module is absent, and the flag that used to mean
+	// "switched in" is simply true. It is SET rather than the module's setter
+	// being called: the setter is the switch's behavior — it opens an audio
+	// graph and takes a context lease — and booting must not do that. What
+	// the module DOES is its own transport control.
+	tmOn = true
 	// Release a pad paint-drag wherever the mouse comes up.
 	doc.Call("addEventListener", "mouseup", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
 		tmPaint = -1

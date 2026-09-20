@@ -66,18 +66,12 @@ var permaCtls = []permaCtl{
 	{"vl", "link-sw", true},
 	{"vf", "focus-n", false},
 	{"po", "sect-sw", true},
-	{"pb", "patch-on", true},
-	{"fc", "counter-on", true},
-	{"an", "analysis-on", true},
-	{"ky", "keys-on", true},
-	{"tx", "tm-on", true},
-	{"ry", "rhythm-on", true},
 	{"rp", "rhythm-preset", false},
-	{"pp", "preset-on", true},
-	// The Template legend was the one module switch a link could not carry: it
-	// had been persisted nowhere and shared nowhere, so a panel with it open
-	// was a panel nobody else could be shown. Found by the test that says the
-	// saved layout and the permalink have to describe the same set of modules.
+	// The Template legend is the one module a link still has to carry, because
+	// it is the one module that still has a switch: it is a labeled legend of
+	// what a module can hold rather than an instrument, and a rack does not
+	// permanently carry its own documentation. Every other module is simply
+	// always there.
 	{"tl", "tpl-on", true},
 	{"gr", "gradient-reverse", true},
 	{"sk", "skin-visual", false},

@@ -160,8 +160,7 @@ func waitForModule(c *cdp.Client, id string) {
 // the Equation module, but by switching the app into Custom mode, which threw
 // away the mode-owned module every pass had just navigated to. The Equation
 // module is photographed in the "custom" pass instead, where it belongs.
-var featureSwitches = []string{"audio-mod", "counter-on", "keys-on", "tm-on", "rhythm-on", "tpl-on", "patch-on",
-	"analysis-on", "preset-on"}
+var featureSwitches = []string{"audio-mod", "tpl-on", "scope-on"}
 
 // capturePass photographs every module visible in one mode that has not been
 // photographed already, and returns them in DOM order.
@@ -232,19 +231,13 @@ func shootRound(c *cdp.Client, mode string, only, have map[string]bool) []panelM
 	return out
 }
 
-// showEveryModule turns on every switch in the Console's Modules column plus
-// the handful elsewhere that reveal a module. The Modules column's switches
-// are the rack's own, generated from the module list, so that part covers
-// whatever exists rather than a list kept in step by hand.
+// showEveryModule turns on the few switches that still reveal something.
+//
+// It used to walk the Console's Modules column, which was one generated
+// switch per module. There is no such column any more — every module is in
+// the rack — so what is left is the handful of switches that are not module
+// switches at all: the modulation bus, the Template legend, the scope unit.
 func showEveryModule(c *cdp.Client) {
-	c.Eval(`(function(){
-	  var host = document.getElementById('module-switches');
-	  if (host) {
-	    [].forEach.call(host.querySelectorAll('input[type=checkbox]'), function(sw){
-	      if (!sw.checked) { sw.checked = true; sw.dispatchEvent(new Event('change',{bubbles:true})); }
-	    });
-	  }
-	})()`)
 	c.Eval(fmt.Sprintf(`(function(){
 	  %q.split(',').forEach(function(id){
 	    var sw = document.getElementById(id);
