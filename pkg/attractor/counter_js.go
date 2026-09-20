@@ -35,6 +35,11 @@ func counterTick() {
 	if !counterOn {
 		return
 	}
+	// Same reason as the other analyzers: it counts crossings every frame,
+	// and the drawer usually has it scrolled away. See moduleOnScreen.
+	if !moduleOnScreen("counter-module") {
+		return
+	}
 	src := ensureAudioSource()
 	if src == nil || !src.Ready() || src.SampleRate() <= 0 {
 		return

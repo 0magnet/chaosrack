@@ -114,4 +114,102 @@ func wireScreenPower() {
 			return nil
 		}))
 	}
+
+	// Scrolling the drawer is the one thing that changes which modules are
+	// on screen, and waiting a quarter second to notice is long enough to
+	// see a readout sitting still after it has come into view. Forget the
+	// cached answers as soon as it moves; the next frame measures again.
+	forget := trackedFuncOf(func(js.Value, []js.Value) interface{} {
+		invalidateOnScreen()
+		return nil
+	})
+	opts := map[string]interface{}{"passive": true}
+	if p := doc.Call("getElementById", "controls-panel"); p.Truthy() {
+		p.Call("addEventListener", "scroll", forget, opts)
+	}
+	js.Global().Call("addEventListener", "scroll", forget, opts)
+	js.Global().Call("addEventListener", "resize", forget, opts)
+}
+
+// ── Is anyone actually looking at this module? ─────────────────────────────
+//
+// The analyzers each begin by checking offsetParent, which was the right
+// test when a module could be switched out of the rack: offsetParent is null
+// when something up the tree is display:none. It is NOT a test of whether
+// the module is on screen, and once the Console's module switches were
+// removed nothing is ever display:none — so every analyzer ran its DSP and
+// rewrote its readouts on every frame, forever, including the ones scrolled
+// out of the drawer.
+//
+// Measured with the whole rack shown, that is most of what the panel costs:
+//
+//	everything shown              132 frames / 6s
+//	the three live analyzers hidden   184   (+39%)
+//	every module hidden               200   (+52%)
+//	the whole panel hidden            215   (+63%)
+//
+// Three modules out of twenty-eight, and hiding them recovers well over half
+// of what hiding the entire panel does. Nothing about that is specific to
+// analyzers: it is the general case of doing work for a screen nobody can
+// see, which is the same thing screenPower exists to stop for the tubes.
+//
+// So this is the test they should have been making all along. It is a
+// viewport intersection, not a display check, and it is throttled for the
+// reason every other geometry read here is: getBoundingClientRect makes the
+// browser settle layout before it can answer, and asking sixty times a
+// second for each of them costs more than it saves.
+
+// onScreenEveryMs is how stale "is this module visible" may get. The same
+// quarter second screenPower uses — four layout reads a second rather than
+// sixty, and far below the time it takes to scroll and notice.
+const onScreenEveryMs = 250
+
+// onScreenAt remembers the last answer per element id.
+var onScreenAt = map[string]struct {
+	at  float64
+	vis bool
+}{}
+
+// moduleOnScreen reports whether the element with this id is both in the
+// layout and intersecting the viewport.
+//
+// A missing element is NOT on screen, which is the safe answer: a module
+// that has not been built yet has nothing to draw and no readout to write.
+func moduleOnScreen(id string) bool {
+	if c, ok := onScreenAt[id]; ok && frameNowMs-c.at < onScreenEveryMs && c.at != 0 {
+		return c.vis
+	}
+	vis := measureOnScreen(id)
+	onScreenAt[id] = struct {
+		at  float64
+		vis bool
+	}{frameNowMs, vis}
+	return vis
+}
+
+// measureOnScreen is the real answer.
+func measureOnScreen(id string) bool {
+	el := doc.Call("getElementById", id)
+	if !el.Truthy() || !el.Get("offsetParent").Truthy() {
+		return false
+	}
+	// Skipped mid-resize for the reason the monitors skip it: the rack
+	// re-measures every module on each pointer move, and a rectangle read in
+	// the middle of that is how a drag comes to cost the model a frame.
+	if resizing {
+		return true
+	}
+	r := el.Call("getBoundingClientRect")
+	h := js.Global().Get("innerHeight").Float()
+	w := js.Global().Get("innerWidth").Float()
+	return r.Get("bottom").Float() > 0 && r.Get("top").Float() < h &&
+		r.Get("right").Float() > 0 && r.Get("left").Float() < w
+}
+
+// invalidateOnScreen forgets every cached answer, for a scroll or a relayout
+// that should be noticed at once rather than at the next quarter second.
+func invalidateOnScreen() {
+	for k := range onScreenAt {
+		delete(onScreenAt, k)
+	}
 }
