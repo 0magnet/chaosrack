@@ -56,6 +56,8 @@ func main() {
 		runReadme()
 	case "modules":
 		runModules()
+	case "css":
+		runCSS()
 	case "demo":
 		runDemo()
 	default:
@@ -64,6 +66,6 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: uitool <monkey|golden|shots|gifs|portraits|modules|readme|demo> [flags]   (uitool <sub> -h for flags)")
+	fmt.Fprintln(os.Stderr, "usage: uitool <css|monkey|golden|shots|gifs|portraits|modules|readme|demo> [flags]   (uitool <sub> -h for flags)")
 	os.Exit(2)
 }
