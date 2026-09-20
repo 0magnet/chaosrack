@@ -150,6 +150,7 @@ const controlsBody = `
     <label class="grp" style="cursor:pointer;" title="Pass-through — where the mouse goes while the Desk MODEL is on screen. Off: dragging turns the model, and Ctrl-drag reaches the desk. On: dragging reaches the desk — moving windows, resizing them, pressing their buttons — and Ctrl-drag turns the model. Control always inverts the switch, so both gestures are available either way. The keyboard needs neither: double-click to type into the focused window, Esc to give it back."><input type="checkbox" class="sw" id="desk-pass"> Pass-thru</label>
   </span>
 <div class="row"><span class="pcell axcol" id="desk-monitor-cell" title="Desk monitor — the desktop as it is, face on, whatever the model is doing. The desk drawn as a model turns with the model, which is the point of it and also means a window you are working in can be edge-on or behind you; this always shows it flat. Same idea as the Record module's monitor."><span class="punit-top"><span class="plabel">monitor</span></span><canvas id="desk-monitor" width="244" height="150"></canvas></span></div>
+  <label class="grp" style="cursor:pointer;" title="Monitor — power to this module's screen, for the reason the Record monitor has one: it is a canvas copy every frame, and a screen nobody is watching should not cost the model anything."><input type="checkbox" class="sw" id="desk-mon-on" checked> Monitor</label>
 </div></div>
 <div class="sect" id="spectro-module" style="display:none"><div class="sect-hdr" title="Spectro — the spectrogram's own controls, for when it is a LAYER rather than the model: painted on a surface as the skin, or filling the canvas behind the model as the backdrop. As the model its controls are in Parameters, like every other model's; in either of the other two roles Parameters is showing something else, and these had nowhere to be at all.">Spectro</div>
 <div id="spectro-params" class="row"></div></div>
@@ -216,6 +217,7 @@ const controlsBody = `
 <div class="recgrid">
   <div class="rec-screen-unit" data-no-drag title="Monitor — the recorded area, live. Letterboxed, so the shape of the picture is the shape of the region. Timecode and status are burned into the picture the way a field monitor overlays them.">
     <span class="rec-bezel"><canvas id="rec-preview" width="244" height="230"></canvas><span id="rec-tally" class="rec-tally"></span></span>
+  <label class="grp" style="cursor:pointer;" title="Monitor — power to this module's screen. The picture is a copy out of the model's own drawing buffer every frame, which is not free; the rack shows every module in a bay now, so a screen you are not watching needs a switch of its own rather than relying on the module being put away. Off, the glass goes dark and the module costs nothing."><input type="checkbox" class="sw" id="rec-mon-on" checked> Monitor</label>
   </div>
   <div class="rec-controls">
     <div class="rec-unit" title="Format — WebM video (MediaRecorder; small, and plays anywhere a browser does) or animated GIF (256 colors, larger per second, plays anywhere at all). The GIF's palette is built from the clip itself, so gradients do not band.">
