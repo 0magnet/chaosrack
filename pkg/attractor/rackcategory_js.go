@@ -52,17 +52,14 @@ import (
 // categoryOffLabel is the rotary's first position.
 const categoryOffLabel = "off"
 
-// How much of a bay a category's first module spends before its parameters:
-// the monitor is two columns wide and the rotary is one cell. A column is
-// three cells and a bay is twelve columns, so the first module has ten
-// columns left and the rotary takes a cell out of one of them.
+// The row's geometry, in grid columns. A bay is twelve, a column holds
+// three cells, and the head of the first module spends two columns on the
+// monitor and one on the model rotary.
 const (
 	catCellsPerCol  = 3
 	catColsPerBay   = 12
 	catMonitorCols  = 2
-	catFirstCells   = (catColsPerBay - catMonitorCols) * catCellsPerCol // 30
-	catLaterCells   = catColsPerBay * catCellsPerCol                    // 36
-	catChunkMargin  = 3                                                 // leave a column spare for module chrome
+	catRotaryCols   = 1
 	catMonitorWidth = 232
 	catMonitorHigh  = 174
 )
@@ -121,76 +118,171 @@ func categorySelectID(label string) string { return "cat-" + categorySlug(label)
 func categoryMonitorID(label string) string   { return "cat-" + categorySlug(label) + "-mon" }
 func categoryMonSwitchID(label string) string { return categoryMonitorID(label) + "-on" }
 
+// modelGroup is one model's parameters, kept together and named.
+//
+// Fourteen of the Attractors' models have a step size and all fourteen are
+// labelled "dt"; seven have a constant labelled "a". A row that puts them
+// side by side with nothing between them is a row of knobs that read as one
+// knob drawn over and over.
+//
+// The CONSTANTS cannot be merged, and it is worth being exact about why,
+// because the labels suggest otherwise: chen-a runs 10..50 and rossler-a
+// runs 0.01..1 — the same letter naming two unrelated quantities. A knob
+// that silently meant a different quantity depending on what was playing
+// would be worse than fourteen honest ones. So each model's constants take
+// whole columns under a header carrying the model's name.
+//
+// The STEP is the other case, and it is one control. dt is not a constant of
+// any system; it is how finely the integrator walks it, the same setting
+// with the same meaning in every one of them. Its range does differ per
+// model — chen-dt is 0.0001..0.05 against lorenz-dt's 0.001..0.05, a stiffer
+// system needing finer steps — but a range is something a knob is given when
+// the model changes, not a reason for fourteen knobs. So the row has ONE
+// step cell, and it is whichever model the row is set to.
+//
+// Implemented by building every model's step cell and showing one, rather
+// than by one cell rebound on each change. The cells are already correct —
+// each has its own range, its own default and its own id — and that id is
+// what the permalink, the MIDI map and Reset All address. A single rebound
+// knob would have to fake all of that; a hidden cell simply keeps it.
+// Sprott's row goes from seven columns of identical-looking dt to one.
+type modelGroup struct {
+	mode    string
+	name    string
+	cells   []js.Value
+	stacked bool // all cells in one place, one of them shown
+}
+
+// cols is how many grid columns the group needs, three cells to a column —
+// or one, when the cells are stacked and only ever one is visible.
+func (g modelGroup) cols() int {
+	if g.stacked {
+		return 1
+	}
+	return (len(g.cells) + catCellsPerCol - 1) / catCellsPerCol
+}
+
 // buildCategoryRow builds one category's modules: the first carries the
-// monitor and the rotary, and as many parameters as a bay has room for; any
-// that are left over continue into further modules.
+// monitor and the rotary, then as many model groups as a bay has room for,
+// and any that are left over continue into further modules.
 //
 // claimed is shared across rows so a parameter that two categories' models
 // both declare is built once, by the first row that reaches it.
 func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
-	// The cells, in model order, so a model's constants stay together and a
-	// reader can see where one instrument's panel ends and the next begins.
-	var cells []js.Value
-	group := 0
+	var groups []modelGroup
+	// Every model's step cell, stacked in one place. One of them shows.
+	steps := modelGroup{name: "step  dt", stacked: true}
 	for _, mode := range categoryModes(label) {
 		if categoryOf(mode) != label {
 			continue // listed here but filed under the category that had it first
 		}
-		n := 0
+		g := modelGroup{mode: mode, name: modeLabel(mode)}
 		for _, p := range attractorParams[mode] {
 			if claimed[p.ID] {
 				continue
 			}
 			claimed[p.ID] = true
-			c := buildCategoryParamCell(mode, p)
-			// Alternating tint per model, so the eye can see where one
-			// instrument's panel ends and the next begins. The grid flows by
-			// column and a model's cells can start halfway down one, so a rule
-			// between groups would fall in the middle of a column — Woodson &
-			// Conover's other answer for the same job is "area color
-			// patterning" (§2-133), which does not care where the break falls.
-			c.Call("setAttribute", "data-mgroup", strconv.Itoa(group%2))
-			cells = append(cells, c)
-			n++
+			if strings.HasSuffix(p.ID, "-dt") {
+				steps.cells = append(steps.cells, buildCategoryStepCell(mode, p))
+				continue
+			}
+			g.cells = append(g.cells, buildCategoryParamCell(mode, p))
 		}
-		if n > 0 {
-			group++
+		if len(g.cells) > 0 {
+			groups = append(groups, g)
 		}
+	}
+	// Last, so a row reads constants-then-steps: the constants are what the
+	// model IS and the step is how finely it is walked.
+	if len(steps.cells) > 0 {
+		groups = append(groups, steps)
 	}
 
 	var mods []js.Value
-	n, first := 0, catFirstCells-catChunkMargin
-	for {
+	for n := 0; ; n++ {
 		grid := doc.Call("createElement", "div")
-		grid.Set("className", "punit-grid")
+		grid.Set("className", "punit-grid catgrid")
+		col := 1
 		if n == 0 {
-			grid.Call("appendChild", buildCategoryMonitor(label))
-			grid.Call("appendChild", buildCategoryRotary(label))
+			placeCategoryHead(grid, label)
+			col += catMonitorCols + catRotaryCols
 		}
-		room := catLaterCells - catChunkMargin
-		if n == 0 {
-			room = first
+		// As many whole groups as the bay has room for. A group is never
+		// split across modules: half a model's front panel at the end of one
+		// bay and the rest at the start of the next is the thing the headers
+		// are here to prevent.
+		took := 0
+		for _, g := range groups {
+			if took > 0 && col+g.cols() > catColsPerBay+1 {
+				break
+			}
+			placeModelGroup(grid, g, col, took+n)
+			col += g.cols()
+			took++
 		}
-		take := room
-		if take > len(cells) {
-			take = len(cells)
-		}
-		for _, c := range cells[:take] {
-			grid.Call("appendChild", c)
-		}
-		cells = cells[take:]
+		groups = groups[took:]
 
 		title := label
 		if n > 0 {
 			title = label + " " + strconv.Itoa(n+1)
 		}
 		mods = append(mods, wrapCategoryModule(label, n, title, grid))
-		n++
-		if len(cells) == 0 {
-			break
+		if len(groups) == 0 {
+			return mods
 		}
 	}
-	return mods
+}
+
+// placeCategoryHead puts the row's screen and its model rotary in the first
+// three columns, each under a label of its own.
+func placeCategoryHead(grid js.Value, label string) {
+	at(groupHeader("screen"), grid, 1, 1, 1, catMonitorCols)
+	at(buildCategoryMonitor(label), grid, 2, catCellsPerCol, 1, catMonitorCols)
+	at(groupHeader("model"), grid, 1, 1, 1+catMonitorCols, catRotaryCols)
+	at(buildCategoryRotary(label), grid, 2, catCellsPerCol, 1+catMonitorCols, catRotaryCols)
+}
+
+// placeModelGroup puts one model's header and cells into their columns.
+func placeModelGroup(grid js.Value, g modelGroup, col, tint int) {
+	at(groupHeader(g.name), grid, 1, 1, col, g.cols())
+	for i, c := range g.cells {
+		// Alternating ground per group as well as the header, so the extent
+		// of a group is readable at a glance and not only at its start —
+		// Woodson & Conover's "area color patterning" beside their "marked
+		// outlines around each group" (§2-133).
+		c.Call("setAttribute", "data-mgroup", strconv.Itoa(tint%2))
+		if g.stacked {
+			// All in the one cell. syncStepCells shows whichever model the
+			// row is set to; the rest are display:none, which costs no layout
+			// and no paint while keeping their ids addressable.
+			at(c, grid, 2, 1, col, 1)
+			continue
+		}
+		at(c, grid, 2+i%catCellsPerCol, 1, col+i/catCellsPerCol, 1)
+	}
+}
+
+// groupHeader is the silkscreen over a group of columns.
+func groupHeader(name string) js.Value {
+	h := doc.Call("createElement", "span")
+	h.Set("className", "pghdr")
+	h.Set("textContent", name)
+	h.Set("title", name)
+	return h
+}
+
+// at places an element in the grid: a row, a starting column, and how many
+// of each it spans.
+//
+// Placed explicitly rather than flowed. The grid used to be auto-flow
+// column, which fills three cells and moves right — fine for one model's
+// panel and wrong for eleven, because a group then starts wherever the
+// previous one happened to end and no header can sit over it.
+func at(el, grid js.Value, row, rowSpan, col, colSpan int) {
+	st := el.Get("style")
+	st.Set("gridRow", strconv.Itoa(row)+" / span "+strconv.Itoa(rowSpan))
+	st.Set("gridColumn", strconv.Itoa(col)+" / span "+strconv.Itoa(colSpan))
+	grid.Call("appendChild", el)
 }
 
 // wrapCategoryModule puts a grid in a module of its own.
@@ -241,6 +333,24 @@ func buildCategoryParamCell(mode string, p paramDef) js.Value {
 		name = info.Label
 	}
 	unit.Set("title", name+" — "+p.Label)
+	return unit
+}
+
+// buildCategoryStepCell is a model's integration step, for the block that
+// gathers every model's.
+//
+// Labelled by MODEL, not by parameter. Inside a block already headed "step"
+// the useful word on a cell is which system's step it is; "dt" written on
+// every one of them is exactly what made the row read as one knob repeated.
+func buildCategoryStepCell(mode string, p paramDef) js.Value {
+	unit := buildCategoryParamCell(mode, p)
+	unit.Get("classList").Call("add", "stepcell")
+	if l := unit.Call("querySelector", ".u-lbl"); l.Truthy() {
+		l.Set("textContent", categoryTag(modeLabel(mode)))
+		// The model name is words, and a cell label is set upright down the
+		// left edge, which is right for "dt" and wrong for "Newton-Leipnik".
+		l.Get("classList").Call("add", "wordlbl")
+	}
 	return unit
 }
 
@@ -379,6 +489,7 @@ func onCategoryRotary(label string) {
 		syncCategoryRotaries()
 		return
 	}
+	rowModel[label] = mode
 	// Choosing a model powers the rack back up, including when it is the
 	// model already selected — which is how a row comes back on after being
 	// switched off without having to pass through a different model first.
@@ -441,6 +552,10 @@ func syncCategoryRotaries() {
 		sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 		sel.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 	}
+	if activeCategory != "" && selectedMode != "" {
+		rowModel[activeCategory] = selectedMode
+	}
+	syncStepCells()
 	lightLiveParamCells()
 }
 
@@ -572,4 +687,49 @@ func saveHiddenRows() {
 		}
 	}
 	lsSet(rowHiddenKey, strings.Join(out, ","))
+}
+
+// ── Which step cell shows ──────────────────────────────────────────────────
+
+// rowModel is the model each row is set to, remembered even while the row is
+// not the one driving the rack.
+//
+// The rotaries interlock, so a row that is not driving reads OFF and cannot
+// say which of its models it is on. The row still has one — it is what comes
+// back when you turn the row on — and the step cell has to follow it, or a
+// row that is off shows the step of whatever model happens to be first.
+var rowModel = map[string]string{}
+
+// rowModelOf is the model a row is set to: what it was last turned to, or
+// the first model in the category before it has been turned at all.
+func rowModelOf(label string) string {
+	if m := rowModel[label]; m != "" {
+		return m
+	}
+	if ms := categoryModes(label); len(ms) > 0 {
+		return ms[0]
+	}
+	return ""
+}
+
+// syncStepCells shows one step cell per row: the one belonging to the model
+// that row is set to.
+func syncStepCells() {
+	if !doc.Truthy() {
+		return
+	}
+	want := make(map[string]string, len(modeGroups))
+	for _, label := range modelCategories() {
+		want[label] = rowModelOf(label)
+	}
+	cells := doc.Call("querySelectorAll", ".stepcell[data-mode]")
+	for i := 0; i < cells.Get("length").Int(); i++ {
+		c := cells.Index(i)
+		mode := c.Call("getAttribute", "data-mode").String()
+		if mode == want[categoryOf(mode)] {
+			c.Get("style").Set("display", "")
+			continue
+		}
+		c.Get("style").Set("display", "none")
+	}
 }
