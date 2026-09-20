@@ -249,7 +249,13 @@ func quantizeModuleWidthsSoon() {
 // undocking and redocking the panel fixed it because docking re-quantizes.
 //
 // One extra measurement per session, on a promise that is already resolved by
-// the time it is asked on a warm cache.
+// the time it is asked on a warm cache — which is the case this has to handle
+// as well. Resolved immediately, the callback runs on the next microtask,
+// which is still before the panel has been laid out once: measured then, the
+// widest category rows came out a slot short and stayed short, clipping 35px
+// of their last column, and a window resize put them right. So the measure is
+// taken two animation frames after the promise, which is after the first
+// paint on a warm cache and no later than it already was on a cold one.
 func requantizeAfterFonts() {
 	fonts := doc.Get("fonts")
 	if !fonts.Truthy() {
@@ -262,10 +268,28 @@ func requantizeAfterFonts() {
 	var fn js.Func
 	fn = js.FuncOf(func(js.Value, []js.Value) interface{} {
 		fn.Release()
-		quantizeModuleWidths()
+		afterTwoFrames(quantizeModuleWidths)
 		return nil
 	})
 	ready.Call("then", fn)
+}
+
+// afterTwoFrames runs f once the browser has had a frame to lay out and a
+// frame to paint. One is not enough: the first only gets as far as style and
+// layout for whatever was already dirty.
+func afterTwoFrames(f func()) {
+	var a, b js.Func
+	b = js.FuncOf(func(js.Value, []js.Value) interface{} {
+		b.Release()
+		f()
+		return nil
+	})
+	a = js.FuncOf(func(js.Value, []js.Value) interface{} {
+		a.Release()
+		js.Global().Call("requestAnimationFrame", b)
+		return nil
+	})
+	js.Global().Call("requestAnimationFrame", a)
 }
 
 // rackFor finds the opening a module lives in, and the rack that manages
