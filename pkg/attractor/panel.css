@@ -186,13 +186,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    explain the others is the right way round. */
 .template-mod .vmrow{grid-template-rows:repeat(2,var(--krow))!important;}
 .template-mod .tpl-note{font-family:'B612 Mono',monospace;font-size:calc(7.5px*var(--kscale,1));line-height:1.35;color:#7fa8c0;padding:calc(6px*var(--kscale,1));border-top:1px dashed #2a4a66;margin-top:calc(4px*var(--kscale,1));cursor:help;}
-.template-mod .tpl-note b{color:#bfe0ff;font-weight:normal;}
-.gen-module .gen-listen{padding-left:calc(8px*var(--kscale,1));margin-top:2px;}
-/* Signal-generator inline controls in the Switches ▸ Audio section. */
-.fg-row{display:flex;gap:4px;align-items:center;padding-left:calc(16px*var(--kscale,1));margin:1px 0;}
-.fg-row select{background:#12203a;color:#8cf;border:1px solid #446;border-radius:2px;font-family:'B612 Mono',monospace;font-size:calc(9px*var(--kscale,1));padding:0 2px;}
-.fg-row input[type=range]{width:calc(56px*var(--kscale,1));}
-/* Dimmed when a control doesn't apply: a phosphor overrides the trace color
+.template-mod .tpl-note b{color:#bfe0ff;font-weight:normal;}/* Signal-generator inline controls in the Switches ▸ Audio section. *//* Dimmed when a control doesn't apply: a phosphor overrides the trace color
    (.crt-dim), the palette color-count makes a swatch inactive (.pal-dim), or
    the Fore knob is mid-range and the two-pass split has to clear between the
    halves, which is the one thing Persist needs not to happen (.split-dim). */
@@ -448,10 +442,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* Modulation module: shown only while Audio mod is on. */
 #controls-panel.am-off .modmodule,#controls-panel.am-off .eqmodule{display:none;}
 #controls-panel.ph-off .physmodule{display:none;}
-.sect>.sect-hdr{cursor:grab;}
-.sect.sect-dragging{opacity:.55;outline:1px dashed var(--led,#c33);}
-.sect.sect-dragging>.sect-hdr{cursor:grabbing;}
-.modmodule .u-modlbl{display:none;}
+.sect>.sect-hdr{cursor:grab;}.modmodule .u-modlbl{display:none;}
 /* KEYED ON THE GRID, NOT ON #params.
 
    These rules ARE the standard cell: a fixed 116x160 box, the label pinned to
@@ -544,10 +535,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
      pkg/rackspec holds both numbers and a test fails if this line and
      that package stop agreeing. */
   --krow:calc(40*var(--mm)); --kcol:calc(29*var(--mm));}
-.modules{display:flex;flex-wrap:wrap;align-items:flex-start;gap:calc(0.5*var(--mm));}
-/* Sidebar docks: stack modules in one column (never side-by-side). */
-#controls-panel.dk-left .modules,#controls-panel.dk-right .modules{flex-direction:column;flex-wrap:nowrap;align-items:stretch;}
-/* Rack-module sizing: UNIFORM HEIGHT, width in slot multiples (min --mod-w, and
+.modules{display:flex;flex-wrap:wrap;align-items:flex-start;gap:calc(0.5*var(--mm));}/* Rack-module sizing: UNIFORM HEIGHT, width in slot multiples (min --mod-w, and
    2×/3× as content needs). Content flows in columns filling the height, so a
    module with more controls widens rather than growing taller. */
 .sect{margin:0;flex:0 0 auto;box-sizing:border-box;min-width:var(--mod-w,128px);width:max-content;height:var(--mod-h,474px);overflow:hidden;display:flex;flex-direction:column;align-items:center;border:1px solid #2a333c;border-radius:6px;background:linear-gradient(#15191e,#0d1013);box-shadow:inset 0 1px 0 #2f3944,0 1px 3px #000;padding:calc(0.5*var(--mm)) calc(2*var(--mm)) calc(0.5*var(--mm));}
@@ -790,19 +778,12 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    and the numeric below. */
 .axknob-box{width:calc(100px*var(--kscale,1))!important;height:calc(100px*var(--kscale,1))!important;}
 /* Top chrome bar (always shown): title + dock/float controls, outside modules. */
-.float-title{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;position:sticky;top:0;z-index:6;background:linear-gradient(#18242f,#0c1218);color:#8fb3cf;padding:4px 8px;margin:-8px -12px 6px;border-bottom:1px solid #2a3a4a;user-select:none;touch-action:none;}
-.float-title.floating{cursor:move;border-radius:7px 7px 0 0;}
-.float-title-lbl{font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:11px;letter-spacing:2px;}
 .dock-lbl{color:#7c93a8;font-size:10px;letter-spacing:1px;}
 /* Detached dock cluster clipped to the resize-bar end */
 #dock-controls .dockb{padding:2px 7px;font-size:13px;line-height:1;}
 /* The vertical form, for the side docks. Selected off the shell edge now
    rather than a .dc-vert class Go used to add, since the edge already says it. */
-#panel-shell.dk-left #dock-controls,#panel-shell.dk-right #dock-controls{gap:3px;}
-#panel-shell.dk-left #dock-controls .dock-lbl,#panel-shell.dk-right #dock-controls .dock-lbl{display:none;}
-/* bigger dock buttons for touch */
-.float-title .dockb{padding:3px 8px;font-size:13px;}
-.sect>.sect-hdr{cursor:pointer;color:#7c93a8;font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:10px;letter-spacing:2px;text-transform:uppercase;user-select:none;margin:-4px -8px 5px;padding:3px 8px;border-bottom:1px solid #232a30;background:rgba(255,255,255,0.02);border-radius:5px 5px 0 0;list-style-position:inside;}
+/* bigger dock buttons for touch */.sect>.sect-hdr{cursor:pointer;color:#7c93a8;font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:10px;letter-spacing:2px;text-transform:uppercase;user-select:none;margin:-4px -8px 5px;padding:3px 8px;border-bottom:1px solid #232a30;background:rgba(255,255,255,0.02);border-radius:5px 5px 0 0;list-style-position:inside;}
 .sect>.sect-hdr:hover{color:#cdd;}
 .sect>.sect-hdr{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} /* 1-line headers so module content starts at a uniform Y */
 .selwin{font-family:"Courier New",monospace;font-weight:bold;font-size:11px;color:#7fe0a0;background:#04140a;border:1px solid #164a2a;border-radius:2px;padding:2px 6px;min-width:96px;text-align:center;text-shadow:0 0 4px #2a9a5a;letter-spacing:.5px;}
@@ -835,10 +816,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .consec .modelsel-col{margin-top:2px;}
 .consec .console-btns{padding-left:0;margin-top:10px;align-self:flex-start;display:flex;}
 .consec>.swsec-hdr{align-self:stretch;}
-
-/* Template v2: six showcase cells in a 3-column grid → two module slots wide */
-.template-mod .tpl-row{display:grid!important;grid-template-columns:repeat(2,auto);gap:4px 12px;align-items:start;justify-content:center;}
-
 /* Template v3: real cells, standard vmrow flow; only chrome + overlays differ */
 .template-mod .tpl-cell{position:relative;}
 
@@ -846,7 +823,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    children of body, where site-global element rules (e.g. magnetosphere.net's
    .grid-container > div{padding:20px 0}) would otherwise reach them. Pin the
    box model of everything we position with our own math. */
-#dock-resize,#float-grip,#float-title,#crt-overlay{padding:0!important;margin:0!important;box-sizing:border-box!important;}
+#dock-resize,#crt-overlay{padding:0!important;margin:0!important;box-sizing:border-box!important;}
 
 /* Embed hardening: host clearfix pseudo-elements (::before/::after with
    content, e.g. display:table clearfixes) become real GRID/FLEX ITEMS inside
@@ -872,8 +849,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
  * dock change, panel resize, interface rescale and window resize.
  */
 #panel-shell { position: fixed; }
-#panel-shell.dk-footer { position: relative; }
-
 /* The bar straddles the panel's inner edge — the one facing the page center —
  * half on and half off, which is what makes it look like a grip on the edge
  * rather than a stripe inside the panel. */
@@ -882,19 +857,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
   padding: 0; margin: 0; box-sizing: border-box;
   background: linear-gradient(rgba(120,150,180,0.12), rgba(150,180,210,0.55), rgba(120,150,180,0.12));
 }
-#panel-shell.dk-bottom #dock-resize { left: 0; right: 0; top: -6px; height: 12px; cursor: ns-resize; }
-#panel-shell.dk-top    #dock-resize { left: 0; right: 0; bottom: -6px; height: 12px; cursor: ns-resize; }
-#panel-shell.dk-left   #dock-resize,
-#panel-shell.dk-right  #dock-resize {
-  top: 0; bottom: 0; width: 12px; height: auto; cursor: ew-resize;
-  background: linear-gradient(to right, rgba(120,150,180,0.12), rgba(150,180,210,0.55), rgba(120,150,180,0.12));
-}
-#panel-shell.dk-left  #dock-resize { right: -6px; left: auto; }
-#panel-shell.dk-right #dock-resize { left: -6px; right: auto; }
-/* Floating has its own corner grip, and the footer is placed by the host. */
-#panel-shell.dk-float #dock-resize,
-#panel-shell.dk-footer #dock-resize { display: none; }
-
+#panel-shell.dk-bottom #dock-resize { left: 0; right: 0; top: -6px; height: 12px; cursor: ns-resize; }/* Floating has its own corner grip, and the footer is placed by the host. */
 /* The dock cluster clips onto the end of that bar, protruding into the canvas,
  * so no top chrome bar is needed to hold it when docked. */
 #panel-shell #dock-controls {
@@ -904,14 +867,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
   border: 1px solid #2a3a4a; padding: 2px 5px; border-radius: 5px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.5);
 }
-#panel-shell.dk-bottom #dock-controls { right: 16px; bottom: 100%; margin-bottom: 2px; flex-direction: row; }
-#panel-shell.dk-top    #dock-controls { right: 16px; top: 100%; margin-top: 2px; flex-direction: row; }
-#panel-shell.dk-left   #dock-controls { left: 100%; margin-left: 2px; top: 16px; flex-direction: column; }
-#panel-shell.dk-right  #dock-controls { right: 100%; margin-right: 2px; top: 16px; flex-direction: column; }
-/* Floating: over the title bar's right end, so the label stays visible. */
-#panel-shell.dk-float  #dock-controls { right: 8px; top: 4px; flex-direction: row; }
-#panel-shell.dk-footer #dock-controls { right: 16px; top: 4px; flex-direction: row; }
-
+#panel-shell.dk-bottom #dock-controls { right: 16px; bottom: 100%; margin-bottom: 2px; flex-direction: row; }/* Floating: over the title bar's right end, so the label stays visible. */
 
 /* ── Record module ──────────────────────────────────────────────────────────
  *
@@ -1217,21 +1173,8 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* The brushed-aluminium grain: fine vertical striations over the gradient. */
 .scope-panel::before{content:"";position:absolute;inset:0;pointer-events:none;
   background:repeating-linear-gradient(90deg,rgba(255,255,255,0.022) 0 1px,rgba(0,0,0,0.022) 1px 2px);}
-.sect.scopemodule .scope-panel{position:relative;}
-
 /* Rack ears. A 19-inch panel is bolted to the rails through these, and the
    holes are what says "this is a rack unit" before anything else does. */
-.scope-ear{flex:0 0 auto;width:calc(15px*var(--kscale,1));
-  display:flex;flex-direction:column;justify-content:space-around;align-items:center;
-  padding:calc(4px*var(--kscale,1)) 0;
-  background:linear-gradient(90deg,#43484e,#2b3035);
-  border-right:1px solid rgba(0,0,0,0.5);}
-.scope-ear:last-child{border-right:0;border-left:1px solid rgba(0,0,0,0.5);
-  background:linear-gradient(90deg,#2b3035,#43484e);}
-.scope-ear i{display:block;width:calc(7px*var(--kscale,1));height:calc(7px*var(--kscale,1));
-  border-radius:50%;background:#0b0d0f;
-  box-shadow:inset 0 1px 2px rgba(0,0,0,0.9),0 1px 0 rgba(255,255,255,0.12);}
-
 /* The tube. The bezel is the mask over the edge of the glass; the glass
    itself gets a vignette and a highlight, because a CRT face is curved and
    a flat black rectangle reads as an LCD. */
