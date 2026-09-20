@@ -1453,9 +1453,14 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
  * of its own, which is also §2-132's "groups of six or more use rows or
  * columns" arriving from the other direction.
  */
-.pcell.swcell{justify-content:center;align-items:stretch;gap:calc(2px*var(--kscale,1));
-  padding-left:calc(15px*var(--kscale,1));}
+/* The gutter is a MARGIN on the lines, not padding on the cell. Padding
+ * moves the label too: the cell's vertical legend is absolutely positioned,
+ * and "left" on an absolutely positioned child resolves against its
+ * containing block's PADDING box, so padding the cell slid the legend right
+ * by exactly as much as it made room — and the switch text still sat on it. */
+.pcell.swcell{justify-content:center;align-items:stretch;gap:calc(2px*var(--kscale,1));}
 .swline{display:flex;align-items:center;gap:calc(3px*var(--kscale,1));cursor:pointer;
+  margin-left:calc(13px*var(--kscale,1));
   font-size:calc(10px*var(--kscale,1));line-height:1.1;white-space:nowrap;}
 .swline .sw{transform:scale(0.78);transform-origin:left center;margin:0 -3px 0 0;flex:0 0 auto;}
 .swline .led{margin-left:auto;}
@@ -1473,3 +1478,29 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
  */
 .swsec{flex-flow:column wrap;max-height:100%;align-content:flex-start;}
 .swsec>.swsec-hdr{flex:0 0 auto;}
+
+/* Meter modules: a readout cell is half a control cell.
+ *
+ * A control cell is sized for a knob — 116x160, enough for the grip, its
+ * legend ring and a readout under it. An analyzer has no knob on most of its
+ * cells: it has a label and a number. Measured across the panel, modules
+ * with knobs use 80-91% of their cells' height and the readout-only
+ * analyzers 52-67%, which is the emptiness that shows as a bay of mostly
+ * black panel.
+ *
+ * So a meter's row is six half-height rows instead of three full ones, a
+ * readout cell takes one of them, and anything with a knob in it still takes
+ * the two it was drawn for. Same pitch, same alignment, half the waste —
+ * which is how a real meter panel is laid out too: the VU is the size of the
+ * movement, and the trim pot beside it is the size of a pot.
+ */
+/* Six rows summing to exactly what the three did: the row height is auto, so
+ * a fraction would resolve against max-content and blow the module open.
+ * Three rows are 3*krow + 2 gaps; six are 6h + 5 gaps, so h is krow/2 minus
+ * half a gap. */
+.vmrow.meterrow{grid-template-rows:repeat(6,calc(var(--krow)/2 - 1px))!important;}
+.vmrow.meterrow>.pcell{grid-row:span 2;}
+/* A cell spans two rows only if it has a KNOB. Every knob is driven by a
+ * hidden range input, so testing for the input marked cells that have no
+ * knob on them at all — which is most of an analyzer. */
+.vmrow.meterrow>.pcell:not(:has(.knob)):not(:has(.knob-ring)){grid-row:span 1;}

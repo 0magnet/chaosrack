@@ -226,3 +226,143 @@ func TestATallerLabelReachesFurtherAtTheTop(t *testing.T) {
 		t.Errorf("at the side the reach is %.2f, want half the width, 15", got)
 	}
 }
+
+// A ring that already fits is left exactly alone — the fit step must not
+// shrink a knob that had no problem.
+func TestAFittingRingIsNotTouched(t *testing.T) {
+	labs := ringOf(4, 14, 9)
+	r := skirtRadius(19, 3, labs)
+	room := skirtOuter(r, labs) + 5 // more room than it needs
+	g, s := skirtFit(19, 3, room, labs)
+	if g != 19 || s != 1 {
+		t.Errorf("a ring with room to spare came back grip %.2f scale %.2f, want 19 and 1", g, s)
+	}
+}
+
+// An unmeasured cell must not shrink anything. A zero maxOuter is "I do not
+// know yet", not "no room at all" — the second reading would take every knob
+// on a panel that has not been laid out down to its floor.
+func TestAnUnmeasuredCellShrinksNothing(t *testing.T) {
+	labs := ringOf(6, 30, 9)
+	for _, room := range []float64{0, -1} {
+		if g, s := skirtFit(19, 3, room, labs); g != 19 || s != 1 {
+			t.Errorf("maxOuter %v gave grip %.2f scale %.2f, want the natural 19 and 1", room, g, s)
+		}
+	}
+}
+
+// The grip is spent before the legend is. A ring that fits once the knob is
+// a little smaller must not also shrink the type — the type is what the
+// silkscreen is for, and §2-103 gives knob size a range precisely so it can
+// be the part that gives.
+func TestTheGripGivesBeforeTheLegendDoes(t *testing.T) {
+	labs := ringOf(5, 26, 9)
+	natural := skirtOuter(skirtRadius(19, 3, labs), labs)
+	// Just short of what it wants: reachable by shrinking the grip alone.
+	g, s := skirtFit(19, 3, natural-3, labs)
+	if s != 1 {
+		t.Errorf("the legend was scaled to %.2f when a smaller grip would have done", s)
+	}
+	if g >= 19 {
+		t.Errorf("the grip did not shrink: %.2f", g)
+	}
+	sc := skirtScaleLabels(labs, s)
+	if got := skirtOuter(skirtRadius(g, 3, sc), sc); got > natural-3 {
+		t.Errorf("it still reaches %.2f, past the %.2f it was given", got, natural-3)
+	}
+}
+
+// When the grip is spent the legend shrinks, and the result actually fits.
+func TestATightCellShrinksTheLegendAndFits(t *testing.T) {
+	labs := ringOf(6, 34, 9)
+	// Tighter than a smaller grip alone can reach, but not impossible: the
+	// legend has to give as well. (Below about 41 for this ring both levers
+	// are spent and it overhangs, which is what TestTheLeversHaveFloors
+	// covers.)
+	room := 45.0
+	g, s := skirtFit(19, 3, room, labs)
+	if s >= 1 {
+		t.Errorf("the legend was not scaled: %.2f", s)
+	}
+	if g > 19*skirtMinGripFrac+1e-9 {
+		t.Errorf("the legend shrank before the grip was spent (grip %.2f)", g)
+	}
+	sc := skirtScaleLabels(labs, s)
+	if got := skirtOuter(skirtRadius(g, 3, sc), sc); got > room {
+		t.Errorf("after fitting it still reaches %.2f, past %.2f", got, room)
+	}
+}
+
+// Neither lever may run away: a cell far too small still leaves a knob you
+// can grip and type you can read, overhanging rather than vanishing.
+func TestTheLeversHaveFloors(t *testing.T) {
+	g, s := skirtFit(19, 3, 1, ringOf(9, 40, 9))
+	if g < 19*skirtMinGripFrac-1e-9 {
+		t.Errorf("the grip went below its floor: %.2f", g)
+	}
+	if s < skirtMinLabelScale-1e-9 {
+		t.Errorf("the legend went below its floor: %.2f", s)
+	}
+}
+
+// Scaling a ring scales the boxes and leaves the angles alone — a legend set
+// in smaller type is at the same position on the dial, not a different one.
+func TestScalingALegendKeepsItsPosition(t *testing.T) {
+	labs := ringOf(4, 20, 10)
+	got := skirtScaleLabels(labs, 0.5)
+	for i := range labs {
+		if got[i].Deg != labs[i].Deg {
+			t.Errorf("label %d moved from %v to %v", i, labs[i].Deg, got[i].Deg)
+		}
+		if got[i].W != labs[i].W*0.5 || got[i].H != labs[i].H*0.5 {
+			t.Errorf("label %d scaled to %vx%v", i, got[i].W, got[i].H)
+		}
+	}
+}
+
+// The grip is a parameter because the panel has knobs of more than one size —
+// a concentric stack's outer ring is the grip its skirt must clear. A bigger
+// grip in the same cell has less room left for the ring, so it must give up
+// more of itself than a small one would.
+func TestABiggerGripGivesUpMoreRoom(t *testing.T) {
+	labs := ringOf(5, 26, 9)
+	room := skirtOuter(skirtRadius(19, 3, labs), labs) - 2
+
+	small, _ := skirtFit(19, 3, room, labs)
+	big, _ := skirtFit(30, 3, room, labs)
+	if small >= 19 {
+		t.Errorf("the 19px grip did not shrink at all: %.2f", small)
+	}
+	if big >= 30 {
+		t.Errorf("the 30px grip did not shrink at all: %.2f", big)
+	}
+	if 30-big <= 19-small {
+		t.Errorf("the big grip gave up %.2f and the small one %.2f", 30-big, 19-small)
+	}
+	// The small grip had enough to give and actually fits. The big one is at
+	// its floor here and still overhangs slightly, which is the documented
+	// outcome when both levers are spent — see TestTheLeversHaveFloors.
+	if got := skirtOuter(skirtRadius(small, 3, labs), labs); got > room+1e-9 {
+		t.Errorf("the small grip still reaches %.2f, past %.2f", got, room)
+	}
+	if big > 30*skirtMinGripFrac+1e-9 {
+		t.Errorf("the big grip stopped at %.2f without reaching its floor", big)
+	}
+}
+
+// The gap is a parameter for the same reason skirtRadius takes one: it is a
+// design choice. A wider gap between grip and legend spends room the ring
+// needed, so fitting the same ring in the same cell costs the grip more.
+func TestAWiderGapCostsTheGripMore(t *testing.T) {
+	labs := ringOf(5, 26, 9)
+	room := skirtOuter(skirtRadius(19, 1, labs), labs)
+
+	tight, _ := skirtFit(19, 1, room, labs)
+	loose, _ := skirtFit(19, 8, room, labs)
+	if tight != 19 {
+		t.Errorf("at the gap it was measured with, the grip shrank to %.2f", tight)
+	}
+	if loose >= 19 {
+		t.Errorf("seven more pixels of gap cost the grip nothing: %.2f", loose)
+	}
+}

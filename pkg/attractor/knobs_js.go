@@ -5,6 +5,7 @@ package attractor
 import (
 	"math"
 	"strconv"
+	"strings"
 	"syscall/js"
 )
 
@@ -879,6 +880,24 @@ func layoutOneSkirt(dial js.Value, clear, gap float64) float64 {
 	if len(labs) == 0 {
 		return clear
 	}
+
+	// Fit the ring to the cell before placing it. A skirt sized only by its
+	// legends can reach past the control cell and into the next control's
+	// space — Model Out's off/CAM/XY/XZ/YZ ring did, by 25px. skirtFit takes
+	// the room out of the grip first and the legend only after that; see the
+	// note in skirt.go for why that order.
+	useGrip, scale := skirtFit(clear, gap, skirtRoomPx(dial), labs)
+	if scale < 1 {
+		labs = skirtScaleLabels(labs, scale)
+		for _, el := range kept {
+			el.Get("style").Set("font-size", pxStr(skirtLabelBasePx*panelScale*scale))
+		}
+	}
+	if useGrip < clear {
+		shrinkGrip(dial, useGrip/clear)
+	}
+	clear = useGrip
+
 	r := skirtRadius(clear, gap, labs)
 	out := skirtOuter(r, labs)
 
@@ -921,3 +940,66 @@ func estLabelBoxPx(text string) (w, h float64) {
 	}
 	return float64(n) * perChar * panelScale, px * panelScale
 }
+
+// skirtRoomPx is how far this ring may reach from its center before it is in
+// the next control's space: half the control cell it sits in, plus half the
+// gap between cells, which is the ring's own share of the space between two
+// of them.
+//
+// Zero when there is no cell to measure or it has not been laid out. That is
+// "unconstrained" rather than "no room": skirtFit reads it that way, and the
+// alternative is shrinking every knob on a panel nobody has shown yet.
+func skirtRoomPx(dial js.Value) float64 {
+	cell := dial.Call("closest", ".pcell")
+	if !cell.Truthy() {
+		return 0
+	}
+	w := cell.Get("clientWidth").Float()
+	if w <= 0 {
+		return 0
+	}
+	cs := js.Global().Call("getComputedStyle", cell)
+	pad := parsePx(cs.Get("paddingLeft").String()) + parsePx(cs.Get("paddingRight").String())
+	return (w - pad + skirtCellGapPx*panelScale) / 2
+}
+
+// shrinkGrip scales the knob this ring belongs to, so the room the ring
+// needed comes out of the grip. The knob is a sibling of the dial inside the
+// same stack; scaling rather than resizing keeps the pointer, the shading and
+// the ring circle in proportion with no second set of numbers to keep in step.
+func shrinkGrip(dial js.Value, f float64) {
+	if f <= 0 || f >= 1 {
+		return
+	}
+	stack := dial.Get("parentElement")
+	if !stack.Truthy() {
+		return
+	}
+	knobs := stack.Call("querySelectorAll", ":scope > .knob, :scope > .knob-ring")
+	for i := 0; i < knobs.Get("length").Int(); i++ {
+		st := knobs.Index(i).Get("style")
+		st.Set("transform", "scale("+strconv.FormatFloat(f, 'f', 3, 64)+")")
+		st.Set("transformOrigin", "center center")
+	}
+}
+
+// parsePx reads a computed length like "7px". Anything unparseable is zero,
+// which is the right answer for "auto" and for an empty string.
+func parsePx(v string) float64 {
+	v = strings.TrimSuffix(strings.TrimSpace(v), "px")
+	f, err := strconv.ParseFloat(v, 64)
+	if err != nil {
+		return 0
+	}
+	return f
+}
+
+// The constants the two helpers above read against the stylesheet.
+const (
+	// skirtLabelBasePx is .knob-dial-lab's font-size at scale 1.
+	skirtLabelBasePx = 8.0
+	// skirtCellGapPx is the horizontal gap between control cells, from
+	// .vmrow's column-gap. A ring may use half of it before it is in the
+	// next cell's half.
+	skirtCellGapPx = 20.0
+)
