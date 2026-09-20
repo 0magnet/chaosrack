@@ -244,7 +244,14 @@ func wireScopeSwitch(id string, set func(bool)) {
 // switched out of the rack must not cost a capture and a canvas paint per
 // frame for a tube nobody can see.
 func drawRackScope() {
-	if !scopeVisible() {
+	// Powered by its own BEAM switch, like any scope. Off, the tube is
+	// painted dark ONCE and then costs nothing — no capture, no path, no
+	// layout read. The rack shows every module in a bay now, so "nobody
+	// can see it" has stopped being what turns this off.
+	if !scopeScreenPower.on(scopeCanvasEl()) {
+		if scopeScreenPower.needsBlank() && scopeBlankFace() {
+			scopeScreenPower.markBlanked()
+		}
 		return
 	}
 	if !scopeCtx.Truthy() {
@@ -260,17 +267,6 @@ func drawRackScope() {
 	w := scopeCanvas.Get("width").Float()
 	h := scopeCanvas.Get("height").Float()
 	if !(w > 0 && h > 0) {
-		return
-	}
-
-	if !scopeUI.beam {
-		// Switched off: the glass goes dark and STAYS dark. Not a frozen last
-		// frame — a scope with no beam shows nothing, and leaving the trace up
-		// would say the instrument was still measuring.
-		scopeCtx.Set("globalAlpha", 1.0)
-		scopeCtx.Set("fillStyle", "#05070a")
-		scopeCtx.Call("fillRect", 0, 0, w, h)
-		drawScopeFaceGrat(w, h)
 		return
 	}
 
@@ -518,46 +514,40 @@ func scopeLineTo(first bool, x, y float64) {
 	appendNum(&scopeTracePath, y)
 }
 
-// scopeVisible reports whether the tube is on screen at all.
-//
-// Asked a few times a second rather than every frame. The answer needs
-// offsetParent, and reading that forces the browser to settle style and
-// layout before it can reply — sixty of those a second, interleaved with
-// the model's own rendering, is a cost paid on every frame whether the
-// scope is in the rack or not. It changes when a switch is flipped or the
-// panel is re-laid-out, which is nowhere near frame rate.
-var (
-	scopeVisCached bool
-	scopeVisAt     float64
-)
-
-// scopeVisEveryMs is how stale the answer is allowed to get. A quarter of a
-// second is four layout reads a second instead of sixty, and is far below
-// the time it takes to notice a panel has changed.
-const scopeVisEveryMs = 250
-
-func scopeVisible() bool {
-	if frameNowMs-scopeVisAt < scopeVisEveryMs && scopeVisAt != 0 {
-		return scopeVisCached
+// scopeCanvasEl is the tube's canvas, looked up lazily.
+func scopeCanvasEl() js.Value {
+	if !scopeCanvas.Truthy() {
+		scopeCanvas = doc.Call("getElementById", "scope-screen")
 	}
-	scopeVisAt = frameNowMs
-	scopeVisCached = scopeOnScreen()
-	return scopeVisCached
+	return scopeCanvas
 }
 
-// scopeOnScreen is the real answer, measured.
-func scopeOnScreen() bool {
-	p := doc.Call("getElementById", "scope-panel")
-	if !p.Truthy() {
+// scopeBlankFace paints the dark tube once, for a scope whose beam is off.
+//
+// A scope that is switched off should LOOK switched off — dark glass with
+// the graticule still faintly etched on it, because the graticule is
+// printed on the face and does not go anywhere when the beam does.
+// Returns false if there is nothing to paint on yet, so the caller knows
+// it still owes the blank.
+func scopeBlankFace() bool {
+	c := scopeCanvasEl()
+	if !c.Truthy() {
 		return false
 	}
-	// offsetParent is null for anything inside a hidden ancestor, which is
-	// how a unit taken out of the frame, a collapsed drawer or a put-away
-	// rack all read here.
-	return p.Get("offsetParent").Truthy()
+	if !scopeCtx.Truthy() {
+		scopeCtx = c.Call("getContext", "2d")
+		if !scopeCtx.Truthy() {
+			return false
+		}
+	}
+	w := c.Get("width").Float()
+	h := c.Get("height").Float()
+	if !(w > 0 && h > 0) {
+		return false
+	}
+	scopeCtx.Set("globalAlpha", 1.0)
+	scopeCtx.Set("fillStyle", "#05070a")
+	scopeCtx.Call("fillRect", 0, 0, w, h)
+	drawScopeFaceGrat(w, h)
+	return true
 }
-
-// invalidateScopeVisible forces the next frame to measure again, for the
-// moments when the answer has just changed and waiting a quarter second to
-// notice would be visible.
-func invalidateScopeVisible() { scopeVisAt = 0 }
