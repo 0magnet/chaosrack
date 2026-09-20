@@ -81,7 +81,12 @@ func sectionTitleOf(section string) string {
 var sectionTitle = map[string]string{
 	secConsole: "CONSOLE",
 	secInput:   "INPUT",
-	secAnalyze: "ANALYSIS",
+	// METERING and not ANALYSIS: there is now an Analysis model CATEGORY with
+	// a row of its own — the recurrence, transfer and waterfall displays — and
+	// two bays silkscreened ANALYSIS meaning different things is worse than
+	// either name alone. This bay holds meters: loudness, distortion, wow and
+	// flutter, the counter, the Lyapunov readout.
+	secAnalyze: "METERING",
 	secMod:     "MODULATION",
 	secModel:   "GENERATOR",
 	secDisplay: "DISPLAY",
@@ -112,6 +117,9 @@ var moduleSections = map[string]string{
 	"patchbay": secMod,
 
 	// The model, and the per-mode front panels that are its own controls.
+	// secModel means "part of the instrument rather than of the rack", and
+	// moduleSection turns that into the running model's category row.
+	"monitor":    secModel,
 	"parameters": secModel,
 	"patch":      secModel,
 	"scoreboard": secModel,
@@ -150,6 +158,13 @@ var moduleSections = map[string]string{
 // the way of the signal path.
 func moduleSection(key string) string {
 	if s, ok := moduleSections[key]; ok {
+		// The model's own panels go wherever the model is, which is its
+		// category's row. secModel in the table is a statement about what the
+		// module IS — part of the instrument rather than of the rack — and
+		// modelRowSection turns that into which row it is in today.
+		if s == secModel {
+			return modelRowSection()
+		}
 		return s
 	}
 	// A category row names itself: its module's header IS the category, so
@@ -212,6 +227,23 @@ func packBySection(items []packItem, capacity int) [][]int {
 	if capacity < 1 {
 		capacity = 1
 	}
+	// A model row takes a bay of its own only while it IS one. A category
+	// row carrying its model's parameters and its monitor is a whole
+	// instrument, and reading it means reading one row rather than finding
+	// where in a shared row it starts. A category row carrying nothing but
+	// its rotary is a SELECTOR, and eleven selectors on eleven rows of their
+	// own is how the rack reached 17 bays and 63% blank panel.
+	//
+	// Counted rather than asked, so the rule stays a property of what is in
+	// the rack: the row the running model's panels have been filed into is
+	// the row with more than one module in it.
+	inSection := map[string]int{}
+	for _, it := range items {
+		if isCategorySection(it.Section) {
+			inSection[it.Section]++
+		}
+	}
+	ownBay := func(sec string) bool { return isCategorySection(sec) && inSection[sec] > 1 }
 	var units [][]int
 	var cur []int
 	used := 0
@@ -227,11 +259,7 @@ func packBySection(items []packItem, capacity int) [][]int {
 		if w < 0 {
 			w = 0
 		}
-		// A model row gets a bay to itself. Every other section shares, but
-		// a category row is a whole instrument — its rotary, its model's
-		// parameters and its own monitor — and reading it means reading one
-		// row rather than finding where in a shared row it starts.
-		if it.Section != last && (isCategorySection(it.Section) || isCategorySection(last)) {
+		if it.Section != last && (ownBay(it.Section) || ownBay(last)) {
 			flush()
 		}
 		last = it.Section

@@ -114,8 +114,22 @@ func buildCategoryModule(label string) js.Value {
 
 	bay := doc.Call("createElement", "span")
 	bay.Set("className", "grp vmbay")
-	stack := singleSelectorKnob(sel, labels)
-	bay.Call("appendChild", stack)
+	// Ringed round the dial only if the names will go round it, which for
+	// model names they almost never do: ringLabelsFit allows eight labels of
+	// five characters, and a category holds up to twenty with names like
+	// "Chirikov Standard Map". Ringed anyway they ran clean out of the module
+	// and across its neighbor's — eleven of these rotaries side by side in
+	// the selector bay, each one's labels lying over the next one's knob.
+	//
+	// selectorKnobReadout is what that case is for, and what the parameter
+	// cells already do with their own long lists (see buildParamUnit): the
+	// dial keeps its detent action and the setting is named once, underneath,
+	// where the name has the width of the cell to be read in.
+	if ringLabelsFit(labels) {
+		bay.Call("appendChild", singleSelectorKnob(sel, labels))
+	} else {
+		bay.Call("appendChild", selectorKnobReadout(sel))
+	}
 	cell.Call("appendChild", bay)
 	cell.Call("appendChild", sel)
 
@@ -170,7 +184,11 @@ func syncCategoryRotaries() {
 	}
 	catRotarySyncing = true
 	defer func() { catRotarySyncing = false }()
-	active := categoryOf(selectedMode)
+	// Which row is the instrument. Set here as well as in onModeChange so
+	// that a path which syncs the knobs without going through it — the boot
+	// pass, a recall — files the model's panels into the right row too.
+	setActiveCategory(selectedMode)
+	active := activeCategory
 	for _, label := range modelCategories() {
 		sel := doc.Call("getElementById", categorySelectID(label))
 		if !sel.Truthy() {
@@ -184,8 +202,12 @@ func syncCategoryRotaries() {
 			continue
 		}
 		sel.Set("value", want)
-		// Through 'input' rather than 'change': the knob listens for it to
-		// move its pointer, and 'change' is what drives the interlock.
+		// Both events. The knob's pointer follows 'input'; the readout under
+		// a rotary too long to ring its labels follows 'change', and without
+		// it a row put to off still read out the model it used to be on.
+		// Dispatching 'change' is safe because catRotarySyncing is exactly
+		// what stops the interlock from answering its own writes.
+		sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 		sel.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 	}
 }
