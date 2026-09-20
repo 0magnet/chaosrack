@@ -78,8 +78,10 @@ func drawRowMonitors() {
 			continue
 		}
 		// A standby screen is not off — it is powered and showing nothing,
-		// which is one paint and then silence until it is driving again.
-		if label != active || !p.on(cv) {
+		// which is one paint and then silence until it is driving again. The
+		// whole rack powered down puts every screen here, including the one
+		// whose row was driving.
+		if stopped || label != active || !p.on(cv) {
 			if !rowMonBlanked[label] {
 				rowMonStandby(cv, label)
 				rowMonBlanked[label] = true

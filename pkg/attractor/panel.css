@@ -1525,3 +1525,14 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* Alternating groups: consecutive models' cells take slightly different
    ground, so a row of fifty knobs reads as the eight front panels it is. */
 .modules .punit[data-mgroup="1"]{background:rgba(150,180,210,0.045);border-radius:4px;}
+
+/* A category row's model selector: the knob, and the list under it. Column,
+   because the list is as wide as the cell and the knob is not. */
+.catsel{display:inline-flex;flex-direction:column;align-items:center;gap:4px;}
+.catsel>.selwin,.catsel .selwrap>.selwin{
+  width:calc(104px*var(--kscale,1));box-sizing:border-box;
+  font-size:calc(10px*var(--kscale,1));padding:1px 3px;min-width:0;
+}
+/* The Console's row switches: eleven of them, so a column like the other
+   switch groups rather than a line that would double the Console's width. */
+.rowsw{display:flex;flex-direction:column;align-items:flex-start;gap:1px;}

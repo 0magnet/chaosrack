@@ -1044,6 +1044,9 @@ func Run() {
 	if sw := doc.Call("getElementById", "power-sw"); sw.Truthy() {
 		sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
 			setPowerState(sw.Get("checked").Bool())
+			// The rotaries say the same thing the switch does: powered down,
+			// every row reads off, because no model is being drawn.
+			syncCategoryRotaries()
 			return nil
 		}))
 	}
@@ -1129,8 +1132,9 @@ func Run() {
 	// it. Before the first layout pass, so the rows are packed with
 	// everything else rather than appearing after it.
 	buildCategoryModules()
-	wireRowMonitors() // each row's screen, after the rows that hold them exist
-	wireScreenPower() // BEAM and the two Monitor switches: a screen you are not watching costs nothing
+	wireRowMonitors()  // each row's screen, after the rows that hold them exist
+	buildRowSwitches() // and the Console switches that put a whole row away
+	wireScreenPower()  // BEAM and the two Monitor switches: a screen you are not watching costs nothing
 	wireModuleDrag()
 	// Source and map: two knobs in two cells, each with its own ring and its own
 	// label.
