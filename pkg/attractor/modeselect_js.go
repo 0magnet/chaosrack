@@ -340,6 +340,11 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 	if sel.Truthy() {
 		selectedMode = sel.Get("value").String()
 	}
+	// Which row is the instrument, before anything rebuilds: the model's own
+	// panels are filed into its category's row, and buildParamPanel below
+	// re-measures and re-packs the rack. Set after that, every panel would be
+	// packed into the row the PREVIOUS model was in.
+	setActiveCategory(selectedMode)
 	// Whether the model is drawn in two halves depends on the mode as well as
 	// the knob, so the canvases have to be reconsidered here — not only when
 	// the knob moves.

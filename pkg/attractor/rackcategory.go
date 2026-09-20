@@ -107,3 +107,42 @@ func categoryOf(mode string) string {
 	}
 	return ""
 }
+
+// ── Which row is the instrument ────────────────────────────────────────────
+//
+// A row per category is only half of it. Eleven rows each holding one rotary
+// is eleven bays of eleven blank slots — the rack went to 17 bays and 63%
+// blank panel the moment the rows were added, which is worse than the
+// sparseness they were meant to fix.
+//
+// What fills a row is the model itself. The rack draws one model, so exactly
+// one row at a time is an instrument rather than a selector: the row whose
+// category the running model is in. Its rotary, that model's Parameters, the
+// model's own panels and its monitor all belong in that row, together, which
+// is Woodson & Conover's first rule for a panel (§2-132: a control belongs
+// "close to the display which they affect") applied to the thing the whole
+// rack is for.
+//
+// The other ten rows stay rotaries, and rotaries share a bay. See
+// packBySection for that half.
+
+// activeCategory is the category of the model currently driving the rack.
+// Empty before the first model is chosen, which is the only time the model's
+// panels have no row to go in.
+var activeCategory string
+
+// setActiveCategory records which row is the instrument. Called wherever the
+// model changes, from whatever moved it.
+func setActiveCategory(mode string) { activeCategory = categoryOf(mode) }
+
+// modelRowSection is the bay the running model's own panels belong in.
+//
+// Falls back to secModel — a bay of its own — when no category claims the
+// mode, so a model missing from modeGroups still has somewhere to be rather
+// than being filed under UTILITY with the presets.
+func modelRowSection() string {
+	if activeCategory == "" {
+		return secModel
+	}
+	return categorySection(activeCategory)
+}

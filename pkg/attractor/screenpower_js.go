@@ -93,17 +93,18 @@ func (p *screenPower) markBlanked() { p.blanked = true }
 // switch is flipped and waiting a quarter second to notice would be seen.
 func (p *screenPower) invalidate() { p.checkAt = 0 }
 
-// The three screens.
+// The screens.
 var (
-	scopeScreenPower = screenPower{switchID: "scope-beam"}
-	recScreenPower   = screenPower{switchID: "rec-mon-on"}
-	deskScreenPower  = screenPower{switchID: "desk-mon-on"}
+	scopeScreenPower  = screenPower{switchID: "scope-beam"}
+	recScreenPower    = screenPower{switchID: "rec-mon-on"}
+	deskScreenPower   = screenPower{switchID: "desk-mon-on"}
+	rowMonScreenPower = screenPower{switchID: "rowmon-on"}
 )
 
 // wireScreenPower hooks each screen's switch up so flipping it is noticed
 // at once rather than at the next check.
 func wireScreenPower() {
-	for _, p := range []*screenPower{&scopeScreenPower, &recScreenPower, &deskScreenPower} {
+	for _, p := range []*screenPower{&scopeScreenPower, &recScreenPower, &deskScreenPower, &rowMonScreenPower} {
 		sw := doc.Call("getElementById", p.switchID)
 		if !sw.Truthy() {
 			continue
