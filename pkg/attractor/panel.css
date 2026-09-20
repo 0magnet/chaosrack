@@ -1542,36 +1542,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* The Console's row switches: eleven of them, so a column like the other
    switch groups rather than a line that would double the Console's width. */
 .rowsw{display:flex;flex-direction:column;align-items:flex-start;gap:1px;}
-
-/* A CATEGORY ROW'S GRID has a silkscreen band across the top: every model's
-   parameters take whole columns, and the band over them carries the model's
-   name.
-   
-   Without it a combined row is unreadable. Fourteen of the Attractors' models
-   have a step size and all fourteen are labelled "dt"; seven have a constant
-   labelled "a". They are different variables, and side by side with nothing
-   between them they read as one knob drawn many times. This is Woodson &
-   Conover's "marked outlines around each group" (§2-133) — the thing a panel
-   does instead of hoping the reader infers the grouping. */
-.punit-grid.catgrid{
-  /* The header band costs height, and a module is a fixed number of U. So
-     the three cell rows give it back: 3 x 5px is the 15px band, and the
-     module ends exactly where every other module ends. */
-  --cathdr:15px;
-  grid-template-rows:var(--cathdr) repeat(3,calc(var(--krow) - var(--cathdr)/3));
-  grid-auto-flow:row;
-  align-content:start;
-}
-.catgrid .punit{height:calc(var(--krow) - var(--cathdr)/3);}
-.pghdr{
-  grid-row:1;align-self:end;justify-self:stretch;
-  font-family:'Chakra Petch',sans-serif;font-weight:600;
-  font-size:calc(8px*var(--kscale,1));letter-spacing:.06em;text-transform:uppercase;
-  color:#9fb4c8;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  padding:0 2px 2px;margin-bottom:2px;
-  border-bottom:1px solid #2e3a46;
-}
-/* A step cell is labelled with its MODEL, which is words rather than a
+/* A step cell is labeled with its MODEL, which is words rather than a
    symbol, so the label reads across the cell like the category cells' do —
    the same exception .catcell makes and for the same reason. */
 .modules .punit.stepcell>.punit-top{position:static;width:100%;}

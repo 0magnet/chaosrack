@@ -3,7 +3,6 @@
 package attractor
 
 import (
-	"strconv"
 	"strings"
 	"syscall/js"
 )
@@ -93,7 +92,7 @@ func buildCategoryModules() {
 	if !parent.Truthy() {
 		return
 	}
-	if doc.Call("getElementById", categoryModuleID(modelCategories()[0], 0)).Truthy() {
+	if doc.Call("getElementById", categoryHeadID(modelCategories()[0])).Truthy() {
 		return // already built
 	}
 	claimed := map[string]bool{}
@@ -105,11 +104,6 @@ func buildCategoryModules() {
 	syncCategoryRotaries()
 }
 
-// categoryModuleID is a row's nth module.
-func categoryModuleID(label string, n int) string {
-	return "cat-" + categorySlug(label) + "-" + strconv.Itoa(n) + "-module"
-}
-
 // categorySelectID is a category's rotary: the hidden select the knob drives.
 func categorySelectID(label string) string { return "cat-" + categorySlug(label) + "-sel" }
 
@@ -118,200 +112,143 @@ func categorySelectID(label string) string { return "cat-" + categorySlug(label)
 func categoryMonitorID(label string) string   { return "cat-" + categorySlug(label) + "-mon" }
 func categoryMonSwitchID(label string) string { return categoryMonitorID(label) + "-on" }
 
-// modelGroup is one model's parameters, kept together and named.
+// A CATEGORY IS A CAGE OF CARDS.
 //
-// Fourteen of the Attractors' models have a step size and all fourteen are
-// labelled "dt"; seven have a constant labelled "a". A row that puts them
-// side by side with nothing between them is a row of knobs that read as one
-// knob drawn over and over.
+// Each model that has constants of its own is a card with its NAME on it —
+// Lorenz, Chua, Aizawa — holding that model's constants and nothing else.
+// The category's own module sits at the head of the run with the monitor,
+// the rotary that chooses which card is playing, the step size, and any
+// control that belongs to the category rather than to one of its models.
+// The bay silkscreen marks the whole run.
 //
-// The CONSTANTS cannot be merged, and it is worth being exact about why,
-// because the labels suggest otherwise: chen-a runs 10..50 and rossler-a
-// runs 0.01..1 — the same letter naming two unrelated quantities. A knob
-// that silently meant a different quantity depending on what was playing
-// would be worse than fourteen honest ones. So each model's constants take
-// whole columns under a header carrying the model's name.
+// This replaces one wide grid per category with a silkscreened band over
+// each model's columns. The band was the right idea and the wrong object: a
+// group of controls with a name over it, sharing a panel with eleven other
+// groups, IS a card — so it should be one, and then it has an honest width,
+// it flows across bays the way any section too wide for one always has, and
+// it can be dragged and put away like everything else in the rack.
 //
-// The STEP is the other case, and it is one control. dt is not a constant of
-// any system; it is how finely the integrator walks it, the same setting
-// with the same meaning in every one of them. Its range does differ per
-// model — chen-dt is 0.0001..0.05 against lorenz-dt's 0.001..0.05, a stiffer
-// system needing finer steps — but a range is something a knob is given when
-// the model changes, not a reason for fourteen knobs. So the row has ONE
-// step cell, and it is whichever model the row is set to.
+// It also ends the continuation modules. "Attractors 2" existed because a
+// module cannot overflow a bay and a category's grid could; no equipment has
+// a panel called that. Fourteen cards called after fourteen systems is what
+// the thing actually is.
 //
-// Implemented by building every model's step cell and showing one, rather
-// than by one cell rebound on each change. The cells are already correct —
-// each has its own range, its own default and its own id — and that id is
-// what the permalink, the MIDI map and Reset All address. A single rebound
-// knob would have to fake all of that; a hidden cell simply keeps it.
-// Sprott's row goes from seven columns of identical-looking dt to one.
-type modelGroup struct {
-	mode    string
-	name    string
-	cells   []js.Value
-	stacked bool // all cells in one place, one of them shown
-}
+// Two kinds of parameter do NOT go on a card:
+//
+//   - The step size. dt is not a constant of any system, it is how finely
+//     the integrator walks it, so it belongs with the category's controls.
+//     Every model's step cell is built and stacked in one place and the head
+//     shows the one the row is set to. Sprott is the case that proves it:
+//     nineteen of its twenty models have a step and nothing else, so on cards
+//     they would be nineteen one-knob panels.
+//
+//   - A parameter several models declare. poly-op is the Conway operator
+//     applied to whichever Platonic seed is chosen and takens-smooth is
+//     shared by three of the Scope displays; neither is a property of any one
+//     model, and putting it on the first card that happened to claim it would
+//     say it was.
 
-// cols is how many grid columns the group needs, three cells to a column —
-// or one, when the cells are stacked and only ever one is visible.
-func (g modelGroup) cols() int {
-	if g.stacked {
-		return 1
-	}
-	return (len(g.cells) + catCellsPerCol - 1) / catCellsPerCol
-}
-
-// buildCategoryRow builds one category's modules: the first carries the
-// monitor and the rotary, then as many model groups as a bay has room for,
-// and any that are left over continue into further modules.
+// buildCategoryRow builds one category's modules: its head, then a card for
+// every model in it that has constants of its own.
 //
 // claimed is shared across rows so a parameter that two categories' models
 // both declare is built once, by the first row that reaches it.
 func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
-	var groups []modelGroup
-	// Every model's step cell, stacked in one place. One of them shows.
-	steps := modelGroup{name: "step  dt", stacked: true}
-	for _, mode := range categoryModes(label) {
-		if categoryOf(mode) != label {
-			continue // listed here but filed under the category that had it first
+	own := categoryOwnModes(label)
+
+	// Which parameters are the category's rather than a model's: the ones
+	// more than one of its models declares.
+	shared := map[string]int{}
+	for _, mode := range own {
+		for _, p := range attractorParams[mode] {
+			shared[p.ID]++
 		}
-		g := modelGroup{mode: mode, name: modeLabel(mode)}
+	}
+
+	head := doc.Call("createElement", "div")
+	head.Set("className", "punit-grid")
+	head.Call("appendChild", buildCategoryMonitor(label))
+	head.Call("appendChild", buildCategoryRotary(label))
+
+	mods := []js.Value{}
+	var cards []js.Value
+	for _, mode := range own {
+		card := doc.Call("createElement", "div")
+		card.Set("className", "punit-grid")
+		n := 0
 		for _, p := range attractorParams[mode] {
 			if claimed[p.ID] {
 				continue
 			}
 			claimed[p.ID] = true
-			if strings.HasSuffix(p.ID, "-dt") {
-				steps.cells = append(steps.cells, buildCategoryStepCell(mode, p))
-				continue
+			switch {
+			case strings.HasSuffix(p.ID, "-dt"):
+				head.Call("appendChild", buildCategoryStepCell(mode, p))
+			case shared[p.ID] > 1:
+				head.Call("appendChild", buildCategoryParamCell(mode, p))
+			default:
+				card.Call("appendChild", buildCategoryParamCell(mode, p))
+				n++
 			}
-			g.cells = append(g.cells, buildCategoryParamCell(mode, p))
 		}
-		if len(g.cells) > 0 {
-			groups = append(groups, g)
-		}
-	}
-	// Last, so a row reads constants-then-steps: the constants are what the
-	// model IS and the step is how finely it is walked.
-	if len(steps.cells) > 0 {
-		groups = append(groups, steps)
-	}
-
-	var mods []js.Value
-	for n := 0; ; n++ {
-		grid := doc.Call("createElement", "div")
-		grid.Set("className", "punit-grid catgrid")
-		col := 1
 		if n == 0 {
-			placeCategoryHead(grid, label)
-			col += catMonitorCols + catRotaryCols
+			continue // nothing of its own: the head carries what it has
 		}
-		// As many whole groups as the bay has room for. A group is never
-		// split across modules: half a model's front panel at the end of one
-		// bay and the rest at the start of the next is the thing the headers
-		// are here to prevent.
-		took := 0
-		for _, g := range groups {
-			if took > 0 && col+g.cols() > catColsPerBay+1 {
-				break
-			}
-			placeModelGroup(grid, g, col, took+n)
-			col += g.cols()
-			took++
-		}
-		groups = groups[took:]
+		cards = append(cards, wrapCategoryModule(label, cardModuleID(mode), modeLabel(mode), card,
+			modeInfo[mode].Label+" — this model's own constants. The step size and the model "+
+				"knob are on the "+label+" panel at the head of the row."))
+	}
 
-		title := label
-		if n > 0 {
-			title = label + " " + strconv.Itoa(n+1)
-		}
-		mods = append(mods, wrapCategoryModule(label, n, title, grid))
-		if len(groups) == 0 {
-			return mods
+	mods = append(mods, wrapCategoryModule(label, categoryHeadID(label), label, head, ""))
+	return append(mods, cards...)
+}
+
+// categoryOwnModes is the models filed under this category — the ones whose
+// cards and constants the row carries.
+func categoryOwnModes(label string) []string {
+	var out []string
+	for _, mode := range categoryModes(label) {
+		if categoryOf(mode) == label {
+			out = append(out, mode)
 		}
 	}
+	return out
 }
 
-// placeCategoryHead puts the row's screen and its model rotary in the first
-// three columns, each under a label of its own.
-func placeCategoryHead(grid js.Value, label string) {
-	at(groupHeader("screen"), grid, 1, 1, 1, catMonitorCols)
-	at(buildCategoryMonitor(label), grid, 2, catCellsPerCol, 1, catMonitorCols)
-	at(groupHeader("model"), grid, 1, 1, 1+catMonitorCols, catRotaryCols)
-	at(buildCategoryRotary(label), grid, 2, catCellsPerCol, 1+catMonitorCols, catRotaryCols)
-}
-
-// placeModelGroup puts one model's header and cells into their columns.
-func placeModelGroup(grid js.Value, g modelGroup, col, tint int) {
-	at(groupHeader(g.name), grid, 1, 1, col, g.cols())
-	for i, c := range g.cells {
-		// Alternating ground per group as well as the header, so the extent
-		// of a group is readable at a glance and not only at its start —
-		// Woodson & Conover's "area color patterning" beside their "marked
-		// outlines around each group" (§2-133).
-		c.Call("setAttribute", "data-mgroup", strconv.Itoa(tint%2))
-		if g.stacked {
-			// All in the one cell. syncStepCells shows whichever model the
-			// row is set to; the rest are display:none, which costs no layout
-			// and no paint while keeping their ids addressable.
-			at(c, grid, 2, 1, col, 1)
-			continue
-		}
-		at(c, grid, 2+i%catCellsPerCol, 1, col+i/catCellsPerCol, 1)
-	}
-}
-
-// groupHeader is the silkscreen over a group of columns.
-func groupHeader(name string) js.Value {
-	h := doc.Call("createElement", "span")
-	h.Set("className", "pghdr")
-	h.Set("textContent", name)
-	h.Set("title", name)
-	return h
-}
-
-// at places an element in the grid: a row, a starting column, and how many
-// of each it spans.
-//
-// Placed explicitly rather than flowed. The grid used to be auto-flow
-// column, which fills three cells and moves right — fine for one model's
-// panel and wrong for eleven, because a group then starts wherever the
-// previous one happened to end and no header can sit over it.
-func at(el, grid js.Value, row, rowSpan, col, colSpan int) {
-	st := el.Get("style")
-	st.Set("gridRow", strconv.Itoa(row)+" / span "+strconv.Itoa(rowSpan))
-	st.Set("gridColumn", strconv.Itoa(col)+" / span "+strconv.Itoa(colSpan))
-	grid.Call("appendChild", el)
-}
+// categoryHeadID and cardModuleID are the row's head panel and one model's
+// card.
+func categoryHeadID(label string) string { return "cat-" + categorySlug(label) + "-module" }
+func cardModuleID(mode string) string    { return "card-" + categorySlug(mode) + "-module" }
 
 // wrapCategoryModule puts a grid in a module of its own.
-func wrapCategoryModule(label string, n int, title string, grid js.Value) js.Value {
+func wrapCategoryModule(label, id, title string, grid js.Value, tip string) js.Value {
 	mod := doc.Call("createElement", "div")
 	mod.Set("className", "sect catmodule")
-	mod.Set("id", categoryModuleID(label, n))
+	mod.Set("id", id)
 	// The bay this module is in, declared rather than looked up from the
-	// header: two modules of the same row carry different headers, and the
-	// Analysis category collides by name with the Analysis meter.
+	// header: a card is named after its model, and the Analysis category
+	// collides by name with the Analysis meter.
 	mod.Call("setAttribute", "data-cat", label)
 
 	h := doc.Call("createElement", "div")
 	h.Set("className", "sect-hdr")
 	h.Set("textContent", title)
-	what := catTooltips[label]
-	if what == "" {
-		what = label
+	if tip == "" {
+		what := catTooltips[label]
+		if what == "" {
+			what = label
+		}
+		tip = what + "\n\nThe head of the row: the monitor, the knob that chooses which of " +
+			"this category's models is playing, its integration step, and anything that " +
+			"belongs to the category rather than to one model. Each model with constants " +
+			"of its own has a card of its own further along the row."
 	}
-	h.Set("title", what+"\n\nThe row is the whole category: its own monitor, the rotary that "+
-		"chooses which of its models is playing, and the constants of every model in it. "+
-		"The knobs of the model that is running are lit; the rest are the panels of "+
-		"instruments that are patched out, which is why they are still here to set.")
+	h.Set("title", tip)
 	mod.Call("appendChild", h)
 	mod.Call("appendChild", grid)
 	return mod
 }
 
-// buildCategoryParamCell is one parameter's cell, tagged with the model it
 // belongs to so the row can light the ones that are running.
 func buildCategoryParamCell(mode string, p paramDef) js.Value {
 	before := len(paramControls)
@@ -339,7 +276,7 @@ func buildCategoryParamCell(mode string, p paramDef) js.Value {
 // buildCategoryStepCell is a model's integration step, for the block that
 // gathers every model's.
 //
-// Labelled by MODEL, not by parameter. Inside a block already headed "step"
+// Labeled by MODEL, not by parameter. Inside a block already headed "step"
 // the useful word on a cell is which system's step it is; "dt" written on
 // every one of them is exactly what made the row read as one knob repeated.
 func buildCategoryStepCell(mode string, p paramDef) js.Value {
