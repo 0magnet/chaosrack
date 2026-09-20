@@ -1133,7 +1133,8 @@ func Run() {
 	restoreRackLayout()
 	buildModuleSwitches()
 	restoreRackBay()
-	wireScopeUnit() // the scope is a unit, so it has its own switch, not a module switch
+	wireScopeUnit()   // the scope is a unit, so it has its own switch, not a module switch
+	wireScreenPower() // BEAM and the two Monitor switches: a screen you are not watching costs nothing
 	wireModuleDrag()
 	// Source and map: two knobs in two cells, each with its own ring and its own
 	// label.

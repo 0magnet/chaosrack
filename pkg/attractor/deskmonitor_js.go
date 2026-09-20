@@ -57,7 +57,13 @@ func drawDeskMonitor() {
 	// resize for the reason the Record monitor is — the rack re-measures every
 	// module on each pointer move, and a canvas copy in the middle of that is
 	// how a drag comes to cost the model a frame.
-	if !deskMonitor.Get("offsetParent").Truthy() || resizing {
+	if !deskScreenPower.on(deskMonitor) {
+		if deskScreenPower.needsBlank() {
+			deskMonitorCtx.Set("fillStyle", "#0a0c0e")
+			deskMonitorCtx.Call("fillRect", 0, 0,
+				deskMonitor.Get("width").Float(), deskMonitor.Get("height").Float())
+			deskScreenPower.markBlanked()
+		}
 		return
 	}
 	w := deskMonitor.Get("width").Float()

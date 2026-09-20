@@ -470,7 +470,7 @@ func setScopeUnit(on bool) {
 	} else {
 		u.Get("style").Set("display", "none")
 	}
-	invalidateScopeVisible() // the answer just changed; do not wait to notice
+	scopeScreenPower.invalidate() // the answer just changed; do not wait to notice
 }
 
 // wireScopeUnit hooks the Scope switch up and applies its stored state.

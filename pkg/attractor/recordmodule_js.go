@@ -123,7 +123,13 @@ func drawRecPreview() {
 	// frame: the rack re-measures every module on each pointer move, and this
 	// forced a fresh snapshot in the middle of it. The picture is not
 	// interesting during a drag anyway.
-	if !recPreview.Get("offsetParent").Truthy() || resizing {
+	if !recScreenPower.on(recPreview) {
+		if recScreenPower.needsBlank() {
+			recPreviewCtx.Set("fillStyle", "#05070a")
+			recPreviewCtx.Call("fillRect", 0, 0,
+				recPreview.Get("width").Float(), recPreview.Get("height").Float())
+			recScreenPower.markBlanked()
+		}
 		return
 	}
 	pw := recPreview.Get("width").Float()
