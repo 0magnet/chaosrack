@@ -171,26 +171,6 @@ func quantizeModuleWidths() {
 	layoutSkirts()
 }
 
-// buildModuleSwitches fills the Console's Modules section with one switch per
-// module.
-func buildModuleSwitches() {
-	if ensureRack() == nil {
-		return
-	}
-	host := doc.Call("getElementById", "module-switches")
-	if !host.Truthy() {
-		return
-	}
-	// One host, every opening: the switch list is of the RACK, not of a
-	// unit, and a reader should not have to know which unit a module
-	// happens to be bolted into to find its switch. Cleared once here
-	// because each rack appends to what it is given.
-	host.Set("innerHTML", "")
-	for _, r := range unitRacks {
-		r.Switches(host)
-	}
-}
-
 // applyModuleVisibility puts away what the switches say to put away, and leaves
 // everything else alone. Called after a rebuild, which replaces the elements the
 // last pass acted on.
@@ -339,15 +319,6 @@ func rackSetOrder(order []string) {
 	}
 	syncUnitRacks()
 	first.SetOrder(mergeModuleOrder(order, first.Order()))
-}
-
-// rackHiddenKeys is every put-away module, across the openings.
-func rackHiddenKeys() []string {
-	var out []string
-	for _, r := range unitRacks {
-		out = append(out, r.HiddenKeys()...)
-	}
-	return out
 }
 
 // rackSetHidden restores the put-away set. Each opening is given the whole

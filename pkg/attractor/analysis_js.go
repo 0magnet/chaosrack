@@ -49,18 +49,15 @@ func analysisModuleVisible(on bool) {
 func wireAnalysisModule() {
 	lyapLEDEl = doc.Call("getElementById", "lyap-led")
 	lyapVerdEl = doc.Call("getElementById", "lyap-verdict")
-	sw := doc.Call("getElementById", "analysis-on")
-	if !sw.Truthy() {
-		return
-	}
-	sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		lyapOn = sw.Get("checked").Bool()
-		analysisModuleVisible(lyapOn)
-		if lyapOn {
-			scheduleLyapunov(0)
-		}
-		return nil
-	}))
+	// Always in the rack. The Console's module switches are gone, so there is
+	// no state in which this module is absent, and the flag that used to mean
+	// "switched in" is simply true. It is SET rather than the module's setter
+	// being called: the setter is the switch's behavior — it opens an audio
+	// graph and takes a context lease — and booting must not do that. What
+	// the module DOES is its own transport control.
+	lyapOn = true
+	analysisModuleVisible(true)
+	scheduleLyapunov(0)
 	if btn := doc.Call("getElementById", "lyap-remeasure"); btn.Truthy() {
 		btn.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
 			scheduleLyapunov(0)

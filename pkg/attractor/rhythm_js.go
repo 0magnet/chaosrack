@@ -303,36 +303,6 @@ func setRhythmRunning(on bool) {
 	}
 }
 
-// setRhythmOn shows or hides the module.
-//
-// Unlike the Matrix switch this does NOT change the model. The tonematrix
-// switches the view to the spectrogram because its pads are the picture — the
-// point of painting them is watching them play. A drum machine has no picture
-// to show, so taking over the user's model to open it would be seizing
-// something it has no use for.
-func setRhythmOn(on bool) {
-	rhythmOn = on
-	if sect := doc.Call("getElementById", "rhythm-module"); sect.Truthy() {
-		if on {
-			sect.Get("style").Set("display", "")
-		} else {
-			sect.Get("style").Set("display", "none")
-		}
-	}
-	rhythmRestart()
-	if on {
-		rhythmEnsureGraph() // the switch flip is our user gesture
-	} else if rhythmCtx.Truthy() {
-		// Hand the shared context back, as every other voice module does when
-		// it closes: the lease is what keeps it from being suspended, and a
-		// module nobody can see holding one open would keep the audio hardware
-		// awake for nothing.
-		releaseAudioCtx("rhythm")
-		rhythmCtx = js.Undefined()
-	}
-	quantizeModuleWidths()
-}
-
 // wireRhythmModule builds the control cells and the tab bank. Called once from
 // Run, BEFORE the permalink is applied, so the hidden preset select already has
 // its options when a link tries to set one.
@@ -414,11 +384,12 @@ func wireRhythmModule() {
 			return nil
 		}))
 	}
-	if sw := doc.Call("getElementById", "rhythm-on"); sw.Truthy() {
-		sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-			setRhythmOn(sw.Get("checked").Bool())
-			return nil
-		}))
-	}
+	// Always in the rack. The Console's module switches are gone, so there is
+	// no state in which this module is absent, and the flag that used to mean
+	// "switched in" is simply true. It is SET rather than the module's setter
+	// being called: the setter is the switch's behavior — it opens an audio
+	// graph and takes a context lease — and booting must not do that. What
+	// the module DOES is its own transport control.
+	rhythmOn = true
 	setRhythmPreset(rhythmPreset)
 }

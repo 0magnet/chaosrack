@@ -14,8 +14,6 @@ package attractor
 
 import "syscall/js"
 
-var presetOn bool
-
 // presetStore reads the saved presets.
 func presetStore() []preset {
 	raw, ok := lsGet(presetStoreKey)
@@ -86,18 +84,14 @@ func presetNameField() string {
 }
 
 func wirePresetModule() {
-	sw := doc.Call("getElementById", "preset-on")
-	if !sw.Truthy() {
-		return
-	}
-	sw.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
-		presetOn = sw.Get("checked").Bool()
-		presetModuleVisible(presetOn)
-		if presetOn {
-			refreshPresetList("")
-		}
-		return nil
-	}))
+	// Always in the rack. The Console's module switches are gone, so there is
+	// no state in which this module is absent, and the flag that used to mean
+	// "switched in" is simply true. It is SET rather than the module's setter
+	// being called: the setter is the switch's behavior — it opens an audio
+	// graph and takes a context lease — and booting must not do that. What
+	// the module DOES is its own transport control.
+	presetModuleVisible(true)
+	refreshPresetList("")
 
 	if b := doc.Call("getElementById", "preset-save"); b.Truthy() {
 		b.Call("addEventListener", "click", trackedFuncOf(func(js.Value, []js.Value) interface{} {

@@ -80,6 +80,7 @@ var moduleSections = map[string]string{
 	"loader":     secModel,
 	"animation":  secModel,
 
+	"grid":     secDisplay,
 	"view":     secDisplay,
 	"position": secDisplay,
 	"display":  secDisplay,

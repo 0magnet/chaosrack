@@ -44,14 +44,12 @@ func withFakeDoc(t *testing.T, byID map[string]js.Value) {
 // must mean "no such module", not a crash and no saved layout at all.
 func TestOnConsoleModuleSwitchesReadsTheCheckedOnes(t *testing.T) {
 	withFakeDoc(t, map[string]js.Value{
-		"analysis-on": fakeSwitch(true),
-		"keys-on":     fakeSwitch(false),
-		"tm-on":       fakeSwitch(true),
-		// patch-on, counter-on, tpl-on, preset-on absent entirely.
+		"scope-on": fakeSwitch(true),
+		// tpl-on absent entirely.
 	})
 	got := strings.Join(onConsoleModuleSwitches(), ",")
-	if got != "analysis-on,tm-on" {
-		t.Errorf("on switches came back %q, want %q", got, "analysis-on,tm-on")
+	if got != "scope-on" {
+		t.Errorf("on switches came back %q, want %q", got, "scope-on")
 	}
 }
 
@@ -99,22 +97,61 @@ func TestPersistedModuleSwitchesExistInTheMarkup(t *testing.T) {
 func TestPresetModuleMarkupHasItsControls(t *testing.T) {
 	for _, id := range []string{
 		"preset-module", "preset-name", "preset-list",
-		"preset-save", "preset-recall", "preset-del", "preset-on",
+		"preset-save", "preset-recall", "preset-del",
 	} {
 		if !strings.Contains(controlsBody, `id="`+id+`"`) {
 			t.Errorf("no element with id %q in the panel markup", id)
 		}
 	}
-	// It starts put away, like every other module that answers to a Window
-	// switch. Shipped visible it would be in everybody's rack whether they
-	// wanted it or not.
-	if !strings.Contains(controlsBody, `id="preset-module" style="display:none"`) {
-		t.Error("the Presets module does not start hidden")
+	// And it starts VISIBLE. It used to start put away behind a Console
+	// switch, along with seven other modules; those switches are gone, so a
+	// module that still shipped hidden would be one nothing could reveal.
+	if strings.Contains(controlsBody, `id="preset-module" style="display:none"`) {
+		t.Error("the Presets module still starts hidden, and nothing can bring it back")
 	}
 	// The name field's maxlength and the store's cap have to agree, or a name
 	// typed to the limit of the field comes back from storage shorter than the
 	// one on screen and Save stops finding the preset it just wrote.
 	if !strings.Contains(controlsBody, `maxlength="24"`) || presetNameMax != 24 {
 		t.Errorf("the name field's maxlength and presetNameMax (%d) disagree", presetNameMax)
+	}
+}
+
+// A module ships hidden only if something can still bring it back.
+//
+// Eight modules used to start with display:none because the Console carried a
+// switch for each. Those switches are gone — a module is in the rack — so a
+// module that still shipped hidden would be one nothing reveals: present in
+// the markup, absent from the rack, and unreachable from any control.
+//
+// What may still start hidden is a module the MODEL owns. Those are revealed
+// by choosing the model whose front panel they are, which is a control that
+// exists and cannot be removed, so they are listed here by name rather than
+// by rule.
+func TestOnlyModelOwnedModulesShipHidden(t *testing.T) {
+	modelOwned := map[string]bool{
+		"desk-module": true, "spectro-module": true, "pong-module": true,
+		"stext-module": true, "smorph-module": true, "bounce-module": true,
+		"stlfile-module": true, "termanim-module": true,
+	}
+	rest := controlsBody
+	for {
+		i := strings.Index(rest, ` style="display:none"`)
+		if i < 0 {
+			break
+		}
+		// The id is the last one declared before this attribute.
+		head := rest[:i]
+		j := strings.LastIndex(head, `id="`)
+		id := ""
+		if j >= 0 {
+			if k := strings.Index(head[j+4:], `"`); k >= 0 {
+				id = head[j+4 : j+4+k]
+			}
+		}
+		if strings.HasSuffix(id, "-module") && !modelOwned[id] {
+			t.Errorf("module %q starts hidden, and no switch is left to bring it back", id)
+		}
+		rest = rest[i+1:]
 	}
 }

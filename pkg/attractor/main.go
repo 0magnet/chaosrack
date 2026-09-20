@@ -913,15 +913,6 @@ func Run() {
 		})
 	}
 
-	// Event: patchbay module visibility.
-	if ps := doc.Call("getElementById", "patch-on"); ps.Truthy() {
-		ps.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-			patchOn = ps.Get("checked").Bool()
-			buildParamPanel(selectedMode)
-			return nil
-		}))
-	}
-
 	// Event: twin-trajectory switch + λ readout.
 	wireTwinSwitch()
 	// Event: Poincaré-section switch.
@@ -1131,7 +1122,6 @@ func Run() {
 	// builds each one checked or not from its own hidden set, so restoring
 	// afterward gives a switch that says a module is in while it is out.
 	restoreRackLayout()
-	buildModuleSwitches()
 	restoreRackBay()
 	wireScopeUnit()   // the scope is a unit, so it has its own switch, not a module switch
 	wireScreenPower() // BEAM and the two Monitor switches: a screen you are not watching costs nothing
@@ -1739,7 +1729,8 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 	}{
 		{"spect-fill", false}, {"audio-mod", false},
 		{"test-tone", false}, {"fg-on", false}, {"spectro-skin", false},
-		{"tpl-on", false}, {"handles-on", false}, {"patch-on", false}, {"desk-pass", false}, {"desk-contain", false}, {"counter-on", false}, {"analysis-on", false}, {"keys-on", false}, {"tm-on", false}, {"rhythm-on", false}, {"rhythm-run", false}, {"jam-sw", false}, {"show-meters", true},
+		{"tpl-on", false}, {"handles-on", false}, {"desk-pass", false}, {"desk-contain", false},
+		{"rhythm-run", false}, {"jam-sw", false}, {"show-meters", true},
 		{"ring-sw", false}, {"twin-sw", false}, {"sect-sw", false},
 		{"link-sw", true},
 		{"scope-grat", true}, // the graticule is what makes the trace measurable

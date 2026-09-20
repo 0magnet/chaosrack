@@ -26,7 +26,9 @@ import (
 )
 
 var (
-	patchOn     bool
+	// Always built: the Patchbay is a module, and the Console's module
+	// switches are gone.
+	patchOn     = true
 	patchStoArm bool
 )
 

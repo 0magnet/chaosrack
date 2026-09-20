@@ -330,27 +330,6 @@ func keysAllOff() {
 	keysMouseNote = -1
 }
 
-// setKeysOn shows/hides the module; hiding silences everything and drops
-// the audio-context lease (the graph stays for the next resume).
-func setKeysOn(on bool) {
-	keysOn = on
-	if sect := doc.Call("getElementById", "keys-module"); sect.Truthy() {
-		if on {
-			sect.Get("style").Set("display", "")
-		} else {
-			sect.Get("style").Set("display", "none")
-		}
-	}
-	if !on {
-		keysAllOff()
-		if keysCtx.Truthy() {
-			releaseAudioCtx("keys")
-			keysCtx = js.Undefined()
-		}
-	}
-	quantizeModuleWidths()
-}
-
 // ── Wiring ───────────────────────────────────────────────────────────────
 
 // wireKeysModule builds the three control cells (range, level, out/voice),
@@ -362,7 +341,6 @@ func wireKeysModule() {
 	lvl := doc.Call("getElementById", "keys-lvl")
 	out := doc.Call("getElementById", "keys-out")
 	wave := doc.Call("getElementById", "keys-wave")
-	sw := doc.Call("getElementById", "keys-on")
 	rstack := doc.Call("getElementById", "keys-rstack")
 	lstack := doc.Call("getElementById", "keys-lstack")
 	ostack := doc.Call("getElementById", "keys-ostack")
@@ -439,12 +417,13 @@ func wireKeysModule() {
 			}
 		},
 	})
-	if sw.Truthy() {
-		sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-			setKeysOn(sw.Get("checked").Bool())
-			return nil
-		}))
-	}
+	// Always in the rack. The Console's module switches are gone, so there is
+	// no state in which this module is absent, and the flag that used to mean
+	// "switched in" is simply true. It is SET rather than the module's setter
+	// being called: the setter is the switch's behavior — it opens an audio
+	// graph and takes a context lease — and booting must not do that. What
+	// the module DOES is its own transport control.
+	keysOn = true
 
 	// Computer keyboard: two tracker rows anchored near the range's middle
 	// C. Only while the module is shown, never while typing in a field.
