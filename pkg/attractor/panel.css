@@ -1580,3 +1580,13 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
   writing-mode:horizontal-tb;text-orientation:mixed;
   white-space:normal;text-align:center;width:100%;line-height:1.1;
 }
+/* A readout's own label, for the cells that carry two: momentary beside
+   short-term, SINAD beside ENOB, wow beside flutter. Inline and small — it
+   names the number next to it, where .plabel names the whole cell from its
+   top-left corner and cannot be used twice. */
+.modules .ledlbl{
+  font-family:'Chakra Petch',sans-serif;font-weight:600;
+  font-size:calc(8px*var(--kscale,1));letter-spacing:.04em;text-transform:uppercase;
+  color:#7e8f9e;margin-right:3px;white-space:nowrap;
+  writing-mode:horizontal-tb;text-orientation:mixed;
+}
