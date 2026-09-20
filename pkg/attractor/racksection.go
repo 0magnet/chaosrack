@@ -104,11 +104,6 @@ var sectionTitle = map[string]string{
 // landing in whatever bay it was declared next to.
 var moduleSections = map[string]string{
 	"console": secConsole,
-	// The bank of idle category rotaries. CONSOLE because that is what this
-	// section has always been for — "model choice and global acts" — and the
-	// rotary of the model actually running is not in here: it moves to the
-	// model's own row, which is what the Model module below is.
-	"models": secConsole,
 
 	"test": secInput,
 
@@ -124,8 +119,6 @@ var moduleSections = map[string]string{
 	// The model, and the per-mode front panels that are its own controls.
 	// secModel means "part of the instrument rather than of the rack", and
 	// moduleSection turns that into the running model's category row.
-	"model":      secModel,
-	"monitor":    secModel,
 	"parameters": secModel,
 	"patch":      secModel,
 	"scoreboard": secModel,
@@ -274,8 +267,14 @@ func packBySection(items []packItem, capacity int) [][]int {
 		if w < 0 {
 			w = 0
 		}
-		if it.Section != last && keepTogether(it.Section) &&
-			used > 0 && used+slotsIn[it.Section] > capacity {
+		// Keeping a row together is only worth a break if a break can
+		// achieve it. A row wider than a bay is going to be split whatever
+		// happens, so flushing before it buys nothing and costs the tail of
+		// the bay before it — measured, Solids alone in a bay with nine
+		// blank slots because Audio, which is eighteen, could not have fitted
+		// in an empty one either.
+		if tot := slotsIn[it.Section]; it.Section != last && keepTogether(it.Section) &&
+			used > 0 && tot <= capacity && used+tot > capacity {
 			flush()
 		}
 		last = it.Section

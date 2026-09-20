@@ -66,7 +66,13 @@ func wheelNudge(readout, slider js.Value, step, mn, mx float64) {
 // buildParamUnit builds one parameter "unit": the control (label · knob ·
 // value · step · reset) with its MOD/LVL half always beneath it (dimmed when
 // Audio mod is off — never reflows). Returns the unit element.
-func buildParamUnit(p paramDef) js.Value {
+//
+// The MODE is passed because a cell is no longer necessarily the running
+// model's: every category row carries the parameters of every model in it,
+// so a cell has to be built the way ITS model wants rather than the way
+// whatever happens to be playing does. See the fine-trim decision below,
+// which reads the mode's class.
+func buildParamUnit(mode string, p paramDef) js.Value {
 	dec := ledDecimals(float64(p.Step))
 	signed := p.Min < 0
 	intDig := ledIntDigits(float64(p.Min), float64(p.Max))
@@ -230,7 +236,7 @@ func buildParamUnit(p paramDef) js.Value {
 	// multiplier, a term limit and a set of named settings have no fractional
 	// part to trim.
 	fine := decimalsForStep(p.Step) > 0 ||
-		(modeInfo[selectedMode].Class != ClassGeometry && selectedMode != "turtle")
+		(modeInfo[mode].Class != ClassGeometry && mode != "turtle")
 	if sel.Truthy() {
 		ring := paramRingLabels[p.ID]
 		if len(ring) != len(labels) {
@@ -350,6 +356,9 @@ func buildParamPanel(mode string) {
 	buildSectionModule(mode, paramsDiv)
 
 	if mode == "custom" {
+		// Shown explicitly: these two build an editor into the module rather
+		// than knobs, and a mode before them may have left it hidden.
+		showParamsModule(true)
 		buildCustomPanel(paramsDiv)
 		if rebindParamWheel != nil {
 			rebindParamWheel()
@@ -359,31 +368,41 @@ func buildParamPanel(mode string) {
 	}
 
 	if mode == "bifurcation" {
+		showParamsModule(true)
 		buildBifPanel(paramsDiv)
 		quantizeModuleWidths()
 		return
 	}
 
-	// A module with nothing in it reads as broken rather than as empty. Six
-	// models have no tunable constants at all -- the desk, both terminals, the
-	// STL viewer, the magnetosphere, the bifurcation plot -- and each of them
-	// showed a Parameters module with a header and a void under it. Their
-	// settings, where they have any, live in modules of their own.
-	params, ok := attractorParams[mode]
-	showParamsModule(len(params) > 0)
-	if !ok || len(params) == 0 {
-		return
-	}
-
-	// Lay the params out as units in a grid: vertical groups of 3 (3 rows),
-	// flowing into as many columns as there are params. The enclosing section
-	// is the equipment module (its header names it).
+	// The KNOBS are not built here any more.
+	//
+	// Every model's parameters are on its category's row, all of them, all the
+	// time — see rackcategory_js.go. A model's constants are a property of the
+	// model and not of what is playing, so they are built once and stay built.
+	// This module used to throw the running model's away and build the next
+	// one's on every mode change, which is why there was only ever a single
+	// panel of them and why it had to live wherever that panel was rather than
+	// on the row of the model it belongs to.
+	//
+	// A parameter also has exactly ONE knob in the rack. Building them here as
+	// well would give every id in attractorParams[mode] a second element with
+	// the same id, and the MIDI map, the permalink and Reset All each address
+	// a parameter by that id.
+	//
+	// What is left in this module is what genuinely belongs to the RUNNING
+	// model and cannot be built ahead of time: the readouts that measure it
+	// (the Lyapunov exponent, RQA, correlation, the fitted delay), the
+	// selectors a mode adds to its own panel, and the Custom and Bifurcation
+	// panels, which are editors rather than knob grids. The grid below is
+	// their container; if nothing goes into it the module is hidden, because a
+	// module with a header and a void under it reads as broken rather than as
+	// empty.
+	params := attractorParams[mode]
 	grid := doc.Call("createElement", "div")
 	grid.Set("className", "punit-grid")
-	for _, p := range params {
-		grid.Call("appendChild", buildParamUnit(p))
-	}
 	paramsDiv.Call("appendChild", grid)
+	// Decided at the end, once the extras below have had their chance at it.
+	defer func() { showParamsModule(grid.Get("childElementCount").Int() > 0) }()
 
 	buildTurtlePhysModule(mode, paramsDiv)
 	applyModuleVisibility() // a rebuild puts back what the switches took away
@@ -580,7 +599,7 @@ func buildTurtlePhysModule(mode string, paramsDiv js.Value) {
 	g := doc.Call("createElement", "div")
 	g.Set("className", "punit-grid")
 	for _, p := range turtlePhysParams {
-		g.Call("appendChild", buildParamUnit(p))
+		g.Call("appendChild", buildParamUnit(selectedMode, p))
 	}
 	mod.Call("appendChild", g)
 	if primary := paramsDiv.Call("closest", ".sect"); primary.Truthy() {
@@ -629,7 +648,7 @@ func buildSectionModule(mode string, paramsDiv js.Value) {
 	g := doc.Call("createElement", "div")
 	g.Set("className", "punit-grid")
 	for _, p := range sectPlaneParams {
-		g.Call("appendChild", buildParamUnit(p))
+		g.Call("appendChild", buildParamUnit(selectedMode, p))
 	}
 	mod.Call("appendChild", g)
 	if primary := paramsDiv.Call("closest", ".sect"); primary.Truthy() {

@@ -433,3 +433,33 @@ func TestTheModelsPanelsFollowTheModel(t *testing.T) {
 		t.Errorf("the patchbay followed the model to %q; it is rack wiring, not a model panel", got)
 	}
 }
+
+// A row wider than a bay is going to be split however it is packed, so it
+// must not force a break it cannot benefit from. It did, and the bay before
+// it paid: Solids alone in a bay with nine blank slots, because Audio — at
+// eighteen slots — would not have fitted in an empty bay either.
+func TestAnOversizedRowDoesNotStrandTheBayBeforeIt(t *testing.T) {
+	small := categorySection("Solids")
+	big := categorySection("Audio")
+	items := []packItem{
+		{2, small}, {1, small}, // a row with no parameters: monitor and rotary
+		{6, big}, {6, big}, {6, big}, // eighteen slots, wider than any bay
+	}
+	units := packBySection(items, 12)
+	if len(units) != 2 {
+		t.Fatalf("got %d bays, want 2: %v", len(units), units)
+	}
+	// The small row and the first of the big one's modules share, rather than
+	// the small row sitting alone in front of a break that changed nothing.
+	if len(units[0]) != 3 {
+		t.Errorf("first bay holds %d modules, want the small row plus what fits: %v", len(units[0]), units)
+	}
+	// A row that DOES fit still gets its break, so the rule has not simply
+	// been turned off.
+	fits := []packItem{
+		{3, secMod}, {6, big}, {4, big},
+	}
+	if got := packBySection(fits, 12); len(got) != 2 || len(got[0]) != 1 {
+		t.Errorf("a row that fits was not kept together: %v", got)
+	}
+}
