@@ -220,7 +220,7 @@ func relayoutUnits() {
 		}
 		mods = append(mods, m)
 		slots = append(slots, w)
-		items = append(items, packItem{Slots: w, Section: moduleSection(moduleKeyOf(m))})
+		items = append(items, packItem{Slots: w, Section: sectionOfModule(m)})
 	}
 	if len(mods) == 0 {
 		return
@@ -625,7 +625,7 @@ func labelRuns(open js.Value, runs []sectionRun, mods []js.Value, idx []int) {
 		old.Index(i).Call("remove")
 	}
 	for _, r := range runs {
-		title := sectionTitle[r.Section]
+		title := sectionTitleOf(r.Section)
 		if title == "" || r.Count < 1 {
 			continue
 		}
@@ -731,4 +731,22 @@ func hideEmptyUnits(f js.Value) {
 			u.Get("style").Set("display", "none")
 		}
 	}
+}
+
+// sectionOfModule is the bay a module belongs to.
+//
+// A category row says so itself, on the element, rather than being looked up
+// by its header text. Two of them collide: there is an Analysis MODULE (the
+// Lyapunov measurement, which belongs in the metering bay) and an Analysis
+// CATEGORY (the measurement models, which is a row of its own). Keyed by
+// header they are the same string, and the category row was being filed into
+// the metering bay with the meter — two modules called Analysis in the rack
+// and no row for the category at all.
+func sectionOfModule(m js.Value) string {
+	if c := m.Call("getAttribute", "data-cat"); c.Truthy() {
+		if s := c.String(); s != "" {
+			return categorySection(s)
+		}
+	}
+	return moduleSection(moduleKeyOf(m))
 }

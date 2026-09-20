@@ -1,5 +1,7 @@
 package attractor
 
+import "strings"
+
 // Which bay a module belongs in.
 //
 // A rack is not a shelf. Woodson & Conover's panel-layout procedure (Human
@@ -30,11 +32,49 @@ const (
 	secUtility = "utility" // presets, template: about the rack, not in it
 )
 
-// sectionOrder is the order the bays are stacked, which is the order the
-// signal moves: in at the top, measured, routed, generated, displayed, out
-// at the bottom.
-var sectionOrder = []string{
+// fixedSectionOrder is the order of the bays that are not model rows: in
+// at the top, measured, routed, then the models, then displayed and out at
+// the bottom.
+//
+// secModel is where the per-category model rows are spliced in. It still
+// names a section of its own because the mode-owned panels that have not
+// been given to a category row yet land there.
+var fixedSectionOrder = []string{
 	secConsole, secInput, secAnalyze, secMod, secModel, secDisplay, secOutput, secUtility,
+}
+
+// sectionOrder is fixedSectionOrder with one row per model category spliced
+// in at the model position. Computed rather than written out, so a category
+// added to modeGroups gets its row with no second list to keep in step.
+var sectionOrder = buildSectionOrder()
+
+func buildSectionOrder() []string {
+	out := make([]string, 0, len(fixedSectionOrder)+len(modeGroups))
+	for _, s := range fixedSectionOrder {
+		if s == secModel {
+			for _, c := range modelCategories() {
+				out = append(out, categorySection(c))
+			}
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
+// sectionTitleOf is what is silkscreened on a bay, including the model
+// rows, whose name is the category's own.
+func sectionTitleOf(section string) string {
+	if t, ok := sectionTitle[section]; ok {
+		return t
+	}
+	if isCategorySection(section) {
+		for _, c := range modelCategories() {
+			if categorySection(c) == section {
+				return strings.ToUpper(c)
+			}
+		}
+	}
+	return ""
 }
 
 // sectionTitle is what is silkscreened on the bay.
@@ -112,6 +152,14 @@ func moduleSection(key string) string {
 	if s, ok := moduleSections[key]; ok {
 		return s
 	}
+	// A category row names itself: its module's header IS the category, so
+	// there is nothing to write in the table above and nothing that can
+	// disagree with modeGroups.
+	for _, c := range modelCategories() {
+		if strings.EqualFold(c, key) {
+			return categorySection(c)
+		}
+	}
 	return secUtility
 }
 
@@ -173,11 +221,20 @@ func packBySection(items []packItem, capacity int) [][]int {
 			cur, used = nil, 0
 		}
 	}
+	last := ""
 	for i, it := range items {
 		w := it.Slots
 		if w < 0 {
 			w = 0
 		}
+		// A model row gets a bay to itself. Every other section shares, but
+		// a category row is a whole instrument — its rotary, its model's
+		// parameters and its own monitor — and reading it means reading one
+		// row rather than finding where in a shared row it starts.
+		if it.Section != last && (isCategorySection(it.Section) || isCategorySection(last)) {
+			flush()
+		}
+		last = it.Section
 		if w > capacity {
 			// Too big for any bay. Its own, overhanging — visible, which is
 			// the right outcome for a thing that genuinely does not fit.
