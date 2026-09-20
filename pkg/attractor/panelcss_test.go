@@ -73,7 +73,7 @@ func TestThePanelStylesheetIsWellFormed(t *testing.T) {
 // this file carries it, which is the state this ratchet exists to stop
 // getting worse.
 func TestImportantDoesNotSpread(t *testing.T) {
-	const budget = 154 // lower this as the file improves; never raise it casually
+	const budget = 118 // lower this as the file improves; never raise it casually
 	got := strings.Count(readPanelCSS(t), "!important")
 	if got > budget {
 		t.Errorf("%d !important declarations, budget %d.\n"+
