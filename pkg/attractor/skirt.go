@@ -188,19 +188,28 @@ func skirtScaleLabels(labs []skirtLabel, s float64) []skirtLabel {
 // skirtFit is the grip radius and legend scale at which this ring fits
 // inside maxOuter.
 //
+// minGrip is how far the grip may shrink. It is a parameter rather than
+// grip*skirtMinGripFrac because not every ring is sitting on a knob: the
+// outer ring of a concentric control clears the ring INSIDE it, and there is
+// nothing there to take room from. Passing minGrip == grip disables the
+// first lever and puts the whole reduction on the legend, which is the
+// truthful answer for those.
+//
 // maxOuter of zero or less means unconstrained, which is the honest answer
 // when the cell has not been measured yet: an unmeasured cell must not shrink
 // a knob to nothing.
-func skirtFit(grip, gap, maxOuter float64, labs []skirtLabel) (useGrip, scale float64) {
+func skirtFit(grip, minGrip, gap, maxOuter float64, labs []skirtLabel) (useGrip, scale float64) {
 	fits := func(g, s float64) bool {
 		sc := skirtScaleLabels(labs, s)
 		return skirtOuter(skirtRadius(g, gap, sc), sc) <= maxOuter
+	}
+	if minGrip > grip {
+		minGrip = grip
 	}
 	if maxOuter <= 0 || len(labs) == 0 || fits(grip, 1) {
 		return grip, 1
 	}
 	// First lever: a smaller grip.
-	minGrip := grip * skirtMinGripFrac
 	for i := 1; i <= 8; i++ {
 		g := grip - (grip-minGrip)*float64(i)/8
 		if fits(g, 1) {

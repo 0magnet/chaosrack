@@ -837,7 +837,10 @@ func layoutSkirtsIn(stack js.Value) {
 	gap := skirtGapPx()
 	dials := stack.Call("querySelectorAll", ":scope > .knob-dial")
 	for i := 0; i < dials.Get("length").Int(); i++ {
-		clear = layoutOneSkirt(dials.Index(i), clear, gap)
+		// Only the first ring is sitting on the knob. For the ones outside
+		// it "clear" is the previous ring's outer edge, not a grip, so there
+		// is no grip for them to take room from — see layoutOneSkirt.
+		clear = layoutOneSkirt(dials.Index(i), clear, gap, i == 0)
 	}
 }
 
@@ -856,7 +859,7 @@ func gripRadiusPx(stack js.Value) float64 {
 
 // layoutOneSkirt places one ring and returns how far out it reaches, for
 // the next ring to clear.
-func layoutOneSkirt(dial js.Value, clear, gap float64) float64 {
+func layoutOneSkirt(dial js.Value, clear, gap float64, onGrip bool) float64 {
 	els := dial.Call("querySelectorAll", ".knob-dial-lab")
 	n := els.Get("length").Int()
 	labs := make([]skirtLabel, 0, n)
@@ -886,7 +889,14 @@ func layoutOneSkirt(dial js.Value, clear, gap float64) float64 {
 	// space — Model Out's off/CAM/XY/XZ/YZ ring did, by 25px. skirtFit takes
 	// the room out of the grip first and the legend only after that; see the
 	// note in skirt.go for why that order.
-	useGrip, scale := skirtFit(clear, gap, skirtRoomPx(dial), labs)
+	// A ring outside another one has no grip to take room from, so its floor
+	// is the radius it already has and the legend carries the whole
+	// reduction.
+	minGrip := clear
+	if onGrip {
+		minGrip = clear * skirtMinGripFrac
+	}
+	useGrip, scale := skirtFit(clear, minGrip, gap, skirtRoomPx(dial), labs)
 	if scale < 1 {
 		labs = skirtScaleLabels(labs, scale)
 		for _, el := range kept {
@@ -963,10 +973,19 @@ func skirtRoomPx(dial js.Value) float64 {
 	return (w - pad + skirtCellGapPx*panelScale) / 2
 }
 
-// shrinkGrip scales the knob this ring belongs to, so the room the ring
-// needed comes out of the grip. The knob is a sibling of the dial inside the
-// same stack; scaling rather than resizing keeps the pointer, the shading and
-// the ring circle in proportion with no second set of numbers to keep in step.
+// shrinkGrip scales the knob this ring sits on, so the room the ring needed
+// comes out of the grip. Scaling rather than resizing keeps the pointer, the
+// shading and the guide circle in proportion with no second set of numbers to
+// keep in step.
+//
+// Only the LARGEST knob on the stack, because that is the one gripRadiusPx
+// measured and therefore the one the radius was computed against. Scaling
+// every knob in a concentric stack moved the inner one for no reason.
+//
+// The centering translate has to be carried. A .knob-ring is placed with
+// left/top 50% and transform:translate(-50%,-50%); writing a bare scale()
+// over that is not a smaller knob, it is a knob half its own width down and
+// to the right — which is exactly what it looked like.
 func shrinkGrip(dial js.Value, f float64) {
 	if f <= 0 || f >= 1 {
 		return
@@ -976,11 +995,24 @@ func shrinkGrip(dial js.Value, f float64) {
 		return
 	}
 	knobs := stack.Call("querySelectorAll", ":scope > .knob, :scope > .knob-ring")
+	var biggest js.Value
+	max := 0.0
 	for i := 0; i < knobs.Get("length").Int(); i++ {
-		st := knobs.Index(i).Get("style")
-		st.Set("transform", "scale("+strconv.FormatFloat(f, 'f', 3, 64)+")")
-		st.Set("transformOrigin", "center center")
+		k := knobs.Index(i)
+		if w := k.Get("offsetWidth").Float(); w > max {
+			max, biggest = w, k
+		}
 	}
+	if !biggest.Truthy() {
+		return
+	}
+	s := "scale(" + strconv.FormatFloat(f, 'f', 3, 64) + ")"
+	if biggest.Get("classList").Call("contains", "knob-ring").Bool() {
+		s = "translate(-50%,-50%) " + s
+	}
+	st := biggest.Get("style")
+	st.Set("transform", s)
+	st.Set("transformOrigin", "center center")
 }
 
 // parsePx reads a computed length like "7px". Anything unparseable is zero,

@@ -233,7 +233,7 @@ func TestAFittingRingIsNotTouched(t *testing.T) {
 	labs := ringOf(4, 14, 9)
 	r := skirtRadius(19, 3, labs)
 	room := skirtOuter(r, labs) + 5 // more room than it needs
-	g, s := skirtFit(19, 3, room, labs)
+	g, s := skirtFit(19, 19*skirtMinGripFrac, 3, room, labs)
 	if g != 19 || s != 1 {
 		t.Errorf("a ring with room to spare came back grip %.2f scale %.2f, want 19 and 1", g, s)
 	}
@@ -245,7 +245,7 @@ func TestAFittingRingIsNotTouched(t *testing.T) {
 func TestAnUnmeasuredCellShrinksNothing(t *testing.T) {
 	labs := ringOf(6, 30, 9)
 	for _, room := range []float64{0, -1} {
-		if g, s := skirtFit(19, 3, room, labs); g != 19 || s != 1 {
+		if g, s := skirtFit(19, 19*skirtMinGripFrac, 3, room, labs); g != 19 || s != 1 {
 			t.Errorf("maxOuter %v gave grip %.2f scale %.2f, want the natural 19 and 1", room, g, s)
 		}
 	}
@@ -259,7 +259,7 @@ func TestTheGripGivesBeforeTheLegendDoes(t *testing.T) {
 	labs := ringOf(5, 26, 9)
 	natural := skirtOuter(skirtRadius(19, 3, labs), labs)
 	// Just short of what it wants: reachable by shrinking the grip alone.
-	g, s := skirtFit(19, 3, natural-3, labs)
+	g, s := skirtFit(19, 19*skirtMinGripFrac, 3, natural-3, labs)
 	if s != 1 {
 		t.Errorf("the legend was scaled to %.2f when a smaller grip would have done", s)
 	}
@@ -280,7 +280,7 @@ func TestATightCellShrinksTheLegendAndFits(t *testing.T) {
 	// are spent and it overhangs, which is what TestTheLeversHaveFloors
 	// covers.)
 	room := 45.0
-	g, s := skirtFit(19, 3, room, labs)
+	g, s := skirtFit(19, 19*skirtMinGripFrac, 3, room, labs)
 	if s >= 1 {
 		t.Errorf("the legend was not scaled: %.2f", s)
 	}
@@ -296,7 +296,7 @@ func TestATightCellShrinksTheLegendAndFits(t *testing.T) {
 // Neither lever may run away: a cell far too small still leaves a knob you
 // can grip and type you can read, overhanging rather than vanishing.
 func TestTheLeversHaveFloors(t *testing.T) {
-	g, s := skirtFit(19, 3, 1, ringOf(9, 40, 9))
+	g, s := skirtFit(19, 19*skirtMinGripFrac, 3, 1, ringOf(9, 40, 9))
 	if g < 19*skirtMinGripFrac-1e-9 {
 		t.Errorf("the grip went below its floor: %.2f", g)
 	}
@@ -328,8 +328,8 @@ func TestABiggerGripGivesUpMoreRoom(t *testing.T) {
 	labs := ringOf(5, 26, 9)
 	room := skirtOuter(skirtRadius(19, 3, labs), labs) - 2
 
-	small, _ := skirtFit(19, 3, room, labs)
-	big, _ := skirtFit(30, 3, room, labs)
+	small, _ := skirtFit(19, 19*skirtMinGripFrac, 3, room, labs)
+	big, _ := skirtFit(30, 30*skirtMinGripFrac, 3, room, labs)
 	if small >= 19 {
 		t.Errorf("the 19px grip did not shrink at all: %.2f", small)
 	}
@@ -357,12 +357,45 @@ func TestAWiderGapCostsTheGripMore(t *testing.T) {
 	labs := ringOf(5, 26, 9)
 	room := skirtOuter(skirtRadius(19, 1, labs), labs)
 
-	tight, _ := skirtFit(19, 1, room, labs)
-	loose, _ := skirtFit(19, 8, room, labs)
+	tight, _ := skirtFit(19, 19*skirtMinGripFrac, 1, room, labs)
+	loose, _ := skirtFit(19, 19*skirtMinGripFrac, 8, room, labs)
 	if tight != 19 {
 		t.Errorf("at the gap it was measured with, the grip shrank to %.2f", tight)
 	}
 	if loose >= 19 {
 		t.Errorf("seven more pixels of gap cost the grip nothing: %.2f", loose)
+	}
+}
+
+// A ring with no knob under it — the outer ring of a concentric control —
+// takes the whole reduction out of its legend. Passing minGrip == grip is
+// how the caller says "there is no grip here", and the radius it clears must
+// come back untouched: shrinking it would place the ring as though a knob
+// had got smaller that does not exist.
+func TestARingWithNoGripUnderItKeepsItsClearance(t *testing.T) {
+	labs := ringOf(5, 26, 9)
+	clear := 40.0 // the inner ring's outer edge, not a knob
+	room := skirtOuter(skirtRadius(clear, 3, labs), labs) - 4
+
+	g, s := skirtFit(clear, clear, 3, room, labs)
+	if g != clear {
+		t.Errorf("clearance moved from %.2f to %.2f with no grip to shrink", clear, g)
+	}
+	if s >= 1 {
+		t.Errorf("the legend did not take the reduction: scale %.2f", s)
+	}
+	sc := skirtScaleLabels(labs, s)
+	if got := skirtOuter(skirtRadius(g, 3, sc), sc); got > room+1e-9 {
+		t.Errorf("it still reaches %.2f, past the %.2f it was given", got, room)
+	}
+}
+
+// A minGrip bigger than the grip is nonsense and must not make the ring
+// GROW. It is clamped, which is the same as saying the grip cannot move.
+func TestAnImpossibleFloorIsClamped(t *testing.T) {
+	labs := ringOf(4, 22, 9)
+	room := skirtOuter(skirtRadius(19, 3, labs), labs) - 2
+	if g, _ := skirtFit(19, 40, 3, room, labs); g > 19 {
+		t.Errorf("a floor above the grip grew it to %.2f", g)
 	}
 }
