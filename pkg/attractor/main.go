@@ -872,6 +872,7 @@ func Run() {
 	wireRecordSwitch()
 	wireRegionSwitch()
 	wireRecordModule()
+	wireRowMonitor() // the model row's own screen, beside the knobs it answers to
 	initDeskMonitor()
 	wireJamSwitch()
 	wireMIDISwitch()

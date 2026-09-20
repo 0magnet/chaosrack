@@ -62,6 +62,7 @@ var permaCtls = []permaCtl{
 	{"sg", "scope-grat", true},
 	{"rm", "rec-mon-on", true},
 	{"dm", "desk-mon-on", true},
+	{"lm", "rowmon-on", true},
 	{"su", "scope-on", true},
 	{"vl", "link-sw", true},
 	{"vf", "focus-n", false},
