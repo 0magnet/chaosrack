@@ -44,8 +44,8 @@ const (
 
 var (
 	thdCursor = tapUnjoined
-	thdBuf    []float32
-	thdFill   int // how much of thdBuf holds audio
+	thdWin    slidingWindow // the newest thdWindow samples
+	thdBuf    []float32     // thdWin laid out in order, for the analyzer
 	thdNextMs float64
 	thdRes    DistortionResult
 
@@ -59,10 +59,13 @@ var (
 // Called once a frame from the render loop, and returns immediately on all but
 // a few of those calls.
 func thdTick(nowMs float64) {
-	mod := doc.Call("getElementById", "thd-module")
-	if !mod.Truthy() || !mod.Get("offsetParent").Truthy() {
+	// Not merely "not display:none" — actually on screen. See
+	// moduleOnScreen: this module's DSP and readouts are most of what the
+	// panel costs per frame, and the drawer usually has it scrolled away.
+	if !moduleOnScreen("thd-module") {
 		return
 	}
+	thdWin.Resize(thdWindow)
 	if thdBuf == nil {
 		thdBuf = make([]float32, thdWindow)
 	}
@@ -81,24 +84,20 @@ func thdTick(nowMs float64) {
 		if n <= 0 {
 			break
 		}
-		if n >= thdWindow {
-			copy(thdBuf, scratch[n-thdWindow:n])
-			thdFill = thdWindow
-		} else {
-			copy(thdBuf, thdBuf[n:])
-			copy(thdBuf[thdWindow-n:], scratch[:n])
-			if thdFill += n; thdFill > thdWindow {
-				thdFill = thdWindow
-			}
-		}
+		thdWin.Push(scratch[:n])
 		if n < len(scratch) {
 			break
 		}
 	}
-	if thdFill < thdWindow || nowMs < thdNextMs {
+	if !thdWin.Full() || nowMs < thdNextMs {
 		return
 	}
 	thdNextMs = nowMs + thdPeriodMs
+	// Laid out in order HERE, on the timer, not on the frame: putting the
+	// window in order is the only part that costs the window's length, and
+	// it is needed four hundred milliseconds apart rather than sixty times
+	// a second. See slidingwindow.go.
+	thdWin.Linear(thdBuf)
 	thdRes = AnalyzeDistortion(thdBuf, takensSourceRate(), int(thdHarmF))
 	showDistortion()
 }
@@ -181,7 +180,7 @@ func wireDistortionModule() {
 		SelectApply: func(string) {
 			// A change of channel is a change of signal, so the window it was
 			// measuring no longer describes what is being asked about.
-			thdFill = 0
+			thdWin.Reset()
 			thdRes = DistortionResult{}
 			showDistortion()
 		},
