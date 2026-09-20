@@ -16,19 +16,20 @@ import (
 
 // Run boots the panel: build it, wire every control, start the loop.
 //
-// KNOWN DEBT, and the largest piece of it in the Go here: this is sixteen
-// hundred lines and a cyclomatic complexity of 146, against a budget of
-// fifty that every other function in the module now meets. It grew that way
-// honestly — each control wired inline next to the last — and every feature
-// added since has made it longer, this session included.
+// It was sixteen hundred lines at a cyclomatic complexity of 146 — the
+// largest piece of debt in the Go here, grown honestly by wiring each
+// control inline next to the last. Thirteen blocks that touched none of its
+// locals came out whole, which took it to 843 lines and 97.
 //
-// It wants splitting into the sections it already has in comments: the GL
-// and canvas setup, the view knobs, the color and palette cells, the audio
-// wiring, the rack, the restore-and-permalink tail. That is a refactor of
-// its own and not a thing to do on the way past, so the linter is told the
-// number here rather than being turned off for everybody.
+// Still over the budget, and the reason is worth writing down: what is left
+// is not more of the same. The blocks that came out were sequences of calls
+// against package state. What remains is knitted together by two dozen
+// locals — the knob closures above all, where attachKnob, knobAngleAt,
+// knobRelease and stackAxis are declared once and used by every axis. Those
+// move when the locals are hoisted into a type or the closures are named,
+// which is a change with a design in it rather than a cut.
 //
-//nolint:gocyclo // 1600-line boot function; splitting it is its own task
+//nolint:gocyclo // 97 and falling; see above for what the rest needs
 func Run() {
 	// Lazy WebGL init — see initWebGL doc. Must run after the host
 	// DOM is ready (caller's responsibility); otherwise gocanvas
@@ -641,35 +642,7 @@ func Run() {
 	doc.Call("getElementById", "color-base").Call("addEventListener", "input", colorCallback)
 	doc.Call("getElementById", "color-mid").Call("addEventListener", "input", colorCallback)
 	doc.Call("getElementById", "color-top").Call("addEventListener", "input", colorCallback)
-	attachColorKnobs() // Hue/Sat/Val knob under each color swatch
-
-	// Event: per-control reset buttons for colors
-	doc.Call("getElementById", "rst-color-base").Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		baseColor = [3]float32{1.0, 0.0, 0.0}
-		doc.Call("getElementById", "color-base").Set("value", "#ff0000")
-		gl.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
-		return nil
-	}))
-	doc.Call("getElementById", "rst-color-mid").Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		midColor = [3]float32{0.0, 1.0, 0.0}
-		doc.Call("getElementById", "color-mid").Set("value", "#00ff00")
-		gl.Call("uniform3f", uMidColorLoc, midColor[0], midColor[1], midColor[2])
-		return nil
-	}))
-	doc.Call("getElementById", "rst-color-top").Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		topColor = [3]float32{0.0, 0.0, 1.0}
-		doc.Call("getElementById", "color-top").Set("value", "#0000ff")
-		gl.Call("uniform3f", uTopColorLoc, topColor[0], topColor[1], topColor[2])
-		return nil
-	}))
-
-	// Event: reset all button
-	doc.Call("getElementById", "reset-all-btn").Call("addEventListener", "click", trackedFuncOf(onResetAll))
-
-	// Any reset button (↺) — re-sync every knob pointer to its freshly-reset
-	// value on the next frame (after the button's own handler has set values),
-	// so knobs whose handler sets the slider without dispatching 'input' still
-	// snap their pointer back.
+	wireColorControls()
 	resetSync := trackedFuncOf(func(this js.Value, args []js.Value) interface{} { syncKnobs(); return nil })
 	doc.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
 		if t := a[0].Get("target"); t.Truthy() && t.Call("closest", ".rst").Truthy() {
@@ -677,6 +650,793 @@ func Run() {
 		}
 		return nil
 	}))
+	wirePanelSwitches()
+	if dst := doc.Call("getElementById", "desk-style"); dst.Truthy() {
+		// The same treatment the Console's selects get, for the same reason.
+		// This one arrived as a bare <select> and was the only control in the
+		// whole panel a browser drew for itself: light grey, Arial, a native
+		// arrow — every other select, switch, readout and button is styled, so
+		// it read as a piece of somebody else's form dropped into the rack.
+		// The marquee is not decoration either; "Looking Glass" does not fit.
+		attachSelMarquee(dst, "#c9a0ff")
+		// Through the registry, which is what gives the cell its reset button.
+		// deskFlat is the default the package variable already holds, so the
+		// reset target is that one constant rather than a second copy of it.
+		adoptDescControl(ControlDesc{
+			ID: "desk-style", Label: "style", IsSelect: true, SelectDef: deskFlat,
+			ResetID:     "rst-desk-style",
+			SelectApply: setDeskStyle,
+		})
+	}
+	wireColorAndViewControls()
+	// Event: physics switch — the weight is a switch on the Motion panel, not a
+	wirePhysSwitch()
+	// canvas, which is what the GPU costs, but keeps the control panel — so
+	wirePowerSwitch()
+	fsReject := trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		if sw := doc.Call("getElementById", "fullscreen-sw"); sw.Truthy() {
+			sw.Set("checked", doc.Get("fullscreenElement").Truthy() || doc.Get("webkitFullscreenElement").Truthy())
+		}
+		return nil
+	})
+	catchFs := func(pr js.Value) {
+		if pr.Truthy() && !pr.Get("then").IsUndefined() {
+			pr.Call("catch", fsReject)
+		}
+	}
+	doc.Call("getElementById", "fullscreen-sw").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		want := doc.Call("getElementById", "fullscreen-sw").Get("checked").Bool()
+		if want {
+			docEl := doc.Get("documentElement")
+			if !docEl.Get("requestFullscreen").IsUndefined() {
+				catchFs(docEl.Call("requestFullscreen"))
+			} else if !docEl.Get("webkitRequestFullscreen").IsUndefined() {
+				catchFs(docEl.Call("webkitRequestFullscreen"))
+			}
+		} else {
+			if !doc.Get("exitFullscreen").IsUndefined() {
+				catchFs(doc.Call("exitFullscreen"))
+			} else if !doc.Get("webkitExitFullscreen").IsUndefined() {
+				catchFs(doc.Call("webkitExitFullscreen"))
+			}
+		}
+		return nil
+	}))
+	syncFsSwitch := trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		if sw := doc.Call("getElementById", "fullscreen-sw"); sw.Truthy() {
+			sw.Set("checked", doc.Get("fullscreenElement").Truthy() || doc.Get("webkitFullscreenElement").Truthy())
+		}
+		return nil
+	})
+	doc.Call("addEventListener", "fullscreenchange", syncFsSwitch)
+	doc.Call("addEventListener", "webkitfullscreenchange", syncFsSwitch)
+
+	wireModelInput()
+
+	// Initial mode — read from URL hash if present. The hash may carry
+	// permalink state after the mode ("#aizawa&p.a=1.19&..."); take only
+	// the leading mode token here (the rest is applied post-setup).
+	selectedMode = "globe"
+	hash := js.Global().Get("location").Get("hash").String()
+	if len(hash) > 1 {
+		hashMode := hashModeToken()
+		// Validate against the mode registry. (The old params-map + hardcoded
+		// list pair silently rejected several real modes, e.g. sphere and fvf.)
+		if knownMode(hashMode) {
+			selectedMode = hashMode
+		}
+	}
+	// Select the matching dropdown option
+	sel := doc.Call("getElementById", "mode-select")
+	if !sel.IsNull() && !sel.IsUndefined() {
+		sel.Set("value", selectedMode)
+	}
+	buildParamPanel(selectedMode)
+	updateTrailVisibility()
+
+	// One-time drag listeners for every selector knob in the panel, the
+	buildRackAndRestore()
+	gsrc := doc.Call("getElementById", "gradient-source")
+	gcol := doc.Call("getElementById", "gradient-colors")
+	if gsrc.Truthy() && gcol.Truthy() {
+		if sh := doc.Call("getElementById", "gradient-stack"); sh.Truthy() {
+			sstack := soloKnob(gsrc)
+			// OFF first, because it is the absence of a source rather than one more
+			// of them. Its option value is 5 while the five that follow keep 0..4,
+			// so a permalink written before this still names the same source: the
+			// ring binds a label to an option by INDEX and the link by VALUE, and
+			// those are free to disagree.
+			//
+			// ONE LABEL PER OPTION, IN OPTION ORDER. Binding by index is what
+			// makes that a requirement rather than a nicety: seven audio sources
+			// were added to the select and this list was left at six, so the dial
+			// went on offering the original six and the new ones could not be
+			// reached from the knob at all — only from a permalink. The order
+			// here is the order in panelhtml_js.go, not numeric by value.
+			addSelectorLabels(sstack, gradSrcRingLabels, gsrc).
+				Set("id", "grad-src-ring")
+			sh.Call("appendChild", sstack)
+			gsrc.Get("style").Set("display", "none")
+		}
+		if mh := doc.Call("getElementById", "map-stack"); mh.Truthy() {
+			mstack := soloKnob(gcol)
+			// No "1" here any more: mono was never a map, it was the absence of a
+			// source, and it lives on the src ring as OFF. Every position left is
+			// a genuine mapping of a value to a color.
+			//
+			// NINE labels for nine options, and the count is load-bearing: a ring
+			// that does not match its select is discarded whole and the dial falls
+			// back to full names, which is how the spectrogram's old color dial
+			// came to read "graysca…e" and "…idis" under the knob when turbo,
+			// viridis and magma were added to a three-label ring. Add a map here
+			// and add its label in the same commit.
+			// 45 rather than the src ring's 43: "hue" is the one three-character
+			// label and it lands where its width points straight at the knob, so at
+			// the src ring's radius it touched the dial while every 2-character
+			// label beside it cleared. Two more percent is as far as it can go —
+			// past that the outermost labels clip the cell.
+			addSelectorLabels(mstack, []string{"2", "3", "hue", "ht", "bl", "gy", "tb", "vr", "mg"}, gcol).
+				Set("id", "grad-map-ring")
+			mh.Call("appendChild", mstack)
+			gcol.Get("style").Set("display", "none")
+		}
+	}
+	wireViewGridStack()
+	// first pass can run before the panel's own font has been applied.
+	requantizeAfterFonts()
+
+	// Initialize persistent JS typed arrays for zero-alloc frame uploads
+	jsVertUint8 = js.Global().Get("Uint8Array").New(steps * 4 * 4)
+	buf := jsVertUint8.Get("buffer")
+	jsVertFloat = js.Global().Get("Float32Array").New(buf, 0, steps*4)
+	initDrawState()
+	debugVal := js.Global().Get("__WASM_DEBUG__")
+	if !debugVal.IsUndefined() && debugVal.Bool() {
+		debugEnabled = true
+	}
+
+	// Registry-owned fixed controls (registry refactor). One ControlDesc per
+	// control owns the LED format, slider→state plumbing, typed entry,
+	// wheel-step, reset button, AND Reset All (via the builtControls loop in
+	// onResetAll) — previously each of those was a separate wiring site and
+	// Reset All silently missed pan-x/pan-y/period. Registered BEFORE the
+	// permalink restore below so a restored hash value drives Apply like any
+	registerViewControls()
+	adoptDescControl(ControlDesc{ID: "trail-slider", Label: "Trail", Min: 1000, Max: 500000, Step: 1000, Def: 20000,
+		PermaKey: "tr", LEDID: "slider-value-trail", ResetID: "rst-trail",
+		Apply: func(v float64) {
+			newSteps := int(v)
+			if newSteps != steps {
+				steps = newSteps
+				vertBuf = make([]float32, steps*4)
+				jsVertUint8 = js.Global().Get("Uint8Array").New(steps * 4 * 4)
+				buf := jsVertUint8.Get("buffer")
+				jsVertFloat = js.Global().Get("Float32Array").New(buf, 0, steps*4)
+				resetAttractorState()
+				refreshGradient()
+			}
+		},
+		ResetExtra: func() {
+			// Resetting the trail also drops persist mode (matches the old
+			// bespoke reset: a persisted trail makes the new length invisible).
+			persistTrail = false
+			doc.Call("getElementById", "persist-trail").Set("checked", false)
+		}})
+	registerOutputControls()
+	// value so engine state matches the panel by construction (the old code
+	// did this ad hoc — applyLineWidth() at wiring, readSliderCache, …).
+	for _, c := range builtControls {
+		// Whichever element holds this control's value, and the event that
+		// commits it. A selector-backed Control has no slider at all, and Call on
+		// an undefined js.Value is a panic rather than a no-op — which took the
+		// whole runtime down the first time a selector reached this loop.
+		switch {
+		case c.sel.Truthy():
+			c.sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+		case c.slider.Truthy():
+			c.slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		}
+	}
+
+	// Permalink: capture pristine control defaults, restore any state
+	// encoded in the URL hash, then keep the hash in sync with the live
+	// state so the current view is always shareable.
+	capturePermaDefaults()
+	// Between the two on purpose. After capturePermaDefaults, or a module this
+	// browser has open would be recorded as that switch's pristine value and
+	// then left out of every link shared from this session. Before
+	// applyStateFromHash, so a shared link beats a local preference — see
+	// restoreConsoleModuleSwitches for the whole argument.
+	restoreConsoleModuleSwitches()
+	applyStateFromHash()
+	wireConsoleModuleSwitchSaves()
+	startPermalinkSync()
+
+	// Final tooltip pass now that every selector (gradient / model / style) is
+	// built — some are created after the first buildParamPanel's annotate.
+	annotateControlTooltips()
+
+	// Start animation loop
+	done := make(chan struct{})
+	renderFrame = trackedFuncOf(renderLoop)
+	js.Global().Call("requestAnimationFrame", renderFrame)
+
+	// Set initial trail-controls visibility for the starting mode.
+	updateTrailVisibility()
+
+	// And the Physics switch, for the same reason and with the same timing.
+	// The earlier call (beside the switch's own listener) runs before the URL
+	// hash has chosen the mode, so it decided against the DEFAULT mode: booting
+	wireExtraNav()
+	// Kill the vertical scroll the controls panel adds by growing the body.
+	applyHostPageTweaks()
+	// had to skip doing so when the hash pinned a Y rate — because the
+	startBackgroundTasks()
+	<-done
+}
+
+func postDebugStats() {
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+
+	avgMs := float32(0)
+	fps := float32(0)
+	if frameCount > 0 {
+		avgMs = frameTotalMs / float32(frameCount)
+		fps = 1000.0 / avgMs
+	}
+
+	payload := fmt.Sprintf(
+		`{"mode":"%s","paused":%t,"fps":%.1f,"frame_avg_ms":%.2f,"frame_min_ms":%.2f,"frame_max_ms":%.2f,"frame_count":%d,"speed_steps":%d,"speed_scale":%.4f,"trail_steps":%d,"heap_alloc_mb":%.2f,"heap_sys_mb":%.2f,"heap_objects":%d,"gc_runs":%d,"goroutines":%d}`,
+		selectedMode, paused, fps, avgMs, frameMinMs, frameMaxMs, frameCount,
+		speedSteps, speedScale, steps,
+		float64(ms.HeapAlloc)/1048576, float64(ms.HeapSys)/1048576,
+		ms.HeapObjects, gcRunsCount(&ms), runtime.NumGoroutine(),
+	)
+
+	// Reset frame stats for next interval
+	frameCount = 0
+	frameTotalMs = 0
+	frameMinMs = 999
+	frameMaxMs = 0
+
+	// Post via fetch
+	headers := js.Global().Get("Headers").New()
+	headers.Call("set", "Content-Type", "application/json")
+	opts := js.Global().Get("Object").New()
+	opts.Set("method", "POST")
+	opts.Set("headers", headers)
+	opts.Set("body", payload)
+	js.Global().Call("fetch", "/debug/stats", opts)
+}
+
+// Per-attractor initial conditions — defaults to (0.1, 0.5, -0.6) for most.
+func installErrorNet() {
+	js.Global().Call("addEventListener", "unhandledrejection", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		if len(a) > 0 {
+			js.Global().Get("console").Call("warn", "[async rejection contained]", a[0].Get("reason"))
+			a[0].Call("preventDefault")
+		}
+		return nil
+	}))
+}
+
+func onResetAll(this js.Value, args []js.Value) interface{} {
+	// Reset camera
+	view.defaultDist = view.initDist
+	rotationX1, rotationY1, rotationZ1 = 0, 0, 0
+
+	// Static geometry may need re-upload (params reset to defaults).
+	staticGeomDirty = true
+
+	// Reset attractor position
+	resetAttractorState()
+
+	// Registry-owned controls (zoom, pan X/Y, rainbow period, …): each resets
+	// itself — value, LED format, and any reset hook — so Reset All can never
+	// silently miss one again. (Rotation sliders + movMatrix are re-randomized
+	// below so the model never lands on the same view twice.)
+	for _, c := range builtControls {
+		if c.skipResetAll {
+			continue
+		}
+		c.resetToDefault()
+	}
+
+	// Reset all parameters to defaults
+	for _, params := range attractorParams {
+		for _, p := range params {
+			*p.Value = p.Def
+		}
+	}
+	buildParamPanel(selectedMode)
+
+	// Reset auto-rotate, draw mode. (Speed / line width / trail — values,
+	// LEDs, buffer realloc, persist drop — are registry-owned above.)
+	paused = false
+	if ps := doc.Call("getElementById", "pause-sw"); ps.Truthy() {
+		ps.Set("checked", false)
+	}
+	usePoints = false
+	attractorDrawMode = glTypes.LineStrip
+	dragMatrix = mgl32.Ident4() // clear trackball drag orientation
+	doc.Call("getElementById", "auto-rotate").Set("checked", true)
+	doc.Call("getElementById", "use-points").Set("checked", false)
+	doc.Call("getElementById", "show-info").Set("checked", false)
+	hideInfoWindow()
+	persistTrail = false
+	doc.Call("getElementById", "persist-trail").Set("checked", false)
+	// The source and map rings are registry-owned, so the loop above has already
+	// put them back — including gradientSource / gradientColors and the dimming,
+	// because resetting a Control dispatches the change its own handler listens
+	// for. Only the Reverse switch, which is a checkbox and not a Control, is
+	// still this function's to set.
+	gradientReverse = false
+	doc.Call("getElementById", "gradient-reverse").Set("checked", false)
+	updateGradientUI()
+
+	// Reset colors
+	baseColor = [3]float32{1.0, 0.0, 0.0}
+	midColor = [3]float32{0.0, 1.0, 0.0}
+	topColor = [3]float32{0.0, 0.0, 1.0}
+	bgColor = [3]float32{0, 0, 0}
+	doc.Call("getElementById", "color-base").Set("value", "#ff0000")
+	doc.Call("getElementById", "color-mid").Set("value", "#00ff00")
+	doc.Call("getElementById", "color-top").Set("value", "#0000ff")
+	doc.Call("getElementById", "color-bg").Set("value", "#000000")
+	gl.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
+	gl.Call("uniform3f", uMidColorLoc, midColor[0], midColor[1], midColor[2])
+	gl.Call("uniform3f", uTopColorLoc, topColor[0], topColor[1], topColor[2])
+	// Alpha=0: don't paint over the host page's bg (SVG logo etc).
+	gl.Call("clearColor", 0, 0, 0, 0)
+
+	// Reset the remaining effect switches to their defaults — dispatch 'change'
+	// so each effect's own handler applies it (single source of truth). Layout
+	// prefs (dock edge, interface size) and mode toggles (Edit eqn, Fullscreen)
+	// are intentionally left alone.
+	//
+	// So is "preset-on", for the same reason and one more: recalling a preset
+	// runs this function first, so listing the Presets module here would make
+	// every recall close the drawer the recall was made from — unless the
+	// preset happened to have been saved with it open.
+	swDefaults := []struct {
+		id  string
+		def bool
+	}{
+		{"spect-fill", false}, {"audio-mod", false},
+		{"fg-on", false}, {"spectro-skin", false},
+		{"tpl-on", false}, {"handles-on", false}, {"desk-pass", false}, {"desk-contain", false},
+		{"rhythm-run", false}, {"jam-sw", false}, {"show-meters", true},
+		{"ring-sw", false}, {"twin-sw", false}, {"sect-sw", false},
+		{"link-sw", true},
+		{"scope-grat", true}, // the graticule is what makes the trace measurable
+		// Back to recording the full canvas. This one is here because of what
+		// it LEAVES BEHIND: choosing a region draws a dashed outline that dims
+		// everything outside it, and the outline stays after the selection is
+		// made, on purpose, so the chosen area is not something to remember.
+		// Switching back to "full" is what clears it — and someone who does not
+		// know that reaches for Reset All, which is exactly what that button is
+		// for. Without this it was the one piece of screen furniture the button
+		// could not remove.
+		{"rec-region-sw", false},
+	}
+	for _, s := range swDefaults {
+		if sw := doc.Call("getElementById", s.id); sw.Truthy() && sw.Get("checked").Bool() != s.def {
+			sw.Set("checked", s.def)
+			sw.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+		}
+	}
+	// Every selector in the panel is a registry Control now, so the loop at the
+	// top of this function has already put them all back — the backdrop, the
+	// skin, the phosphor and LED color, Step and Fine, the Model Out rings, the
+	// three oscillators' routing and waveform, the envelope mode.
+	//
+	// What stood here was a resetSel closure and fourteen calls to it: a second,
+	// hand-maintained list of every selector and its default, beside the one the
+	// descriptors already state. Two lists of the same thing is how the Backdrop
+	// came to drive a select option that did not exist, and nothing had checked
+	// that this one still agreed with the panel either. The Size ring is the one
+	// deliberate exclusion, and it says so on its own descriptor (SkipResetAll)
+	// rather than by being absent from a list.
+
+	// Randomized starting pose + low-rate rotation. Replaces the old
+	// identity-matrix reset so each click of Reset All produces a
+	// fresh viewing angle. randomizeOrientation zeroes the spin rates;
+	// re-enable the gentle auto-spin afterward (so its Y-rate shows).
+	// Flat scope modes stay face-on and still — screens, not models.
+	if isFlatScope(selectedMode) {
+		normalizeOrientation()
+	} else {
+		randomizeOrientation()
+		autoRotate = false
+		setAutoRotate(true)
+	}
+
+	// Reset view
+	generateForMode(selectedMode)
+	updateViewMatrix()
+	updateModelMatrix()
+
+	return nil
+}
+
+// startBackgroundTasks wires the input bindings that are not any one
+// control's, and starts the two tickers that run for the life of the page:
+// the wall clock in the header, and the debug stats when they are asked for.
+func startBackgroundTasks() {
+	// serialized ry already contained the contribution, and re-adding it crept
+	// the rate +0.1 on every reload (0.1 → 0.2 → 0.3 …, found live on
+	// magnetosphere.net). The contribution is added in the render loop now and
+	// never written to the slider, so there is nothing to put back, nothing to
+	// double, and no special case for a pinned rate.
+
+	wireWheelBindings()
+	wireKnobArrowKeys()
+
+	// Last of the wiring: the reveal chord hides the whole control surface, so
+	// it must run after every piece of that surface exists and has been placed.
+	initPanelRevealChord()
+	initHostPage() // centers the backdrop on a host element, if one was named
+
+	// Window resize: keep canvas pixel dimensions in sync with the
+	// viewport so the model doesn't get stretched when devtools opens
+	// or closes (or on phone orientation change).
+	js.Global().Call("addEventListener", "resize", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		if sizeCanvasToViewport() {
+			gl.Call("viewport", 0, 0, width, height)
+			setupMatrices()
+		}
+		return nil
+	}))
+
+	// Clock goroutine
+	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			if !rtc.IsUndefined() {
+				rtc.Set("innerHTML", time.Now().Format("2006-01-02 15:04:05"))
+			}
+		}
+	}()
+
+	// Debug stats reporter goroutine
+	if debugEnabled {
+		go func() {
+			ticker := time.NewTicker(2 * time.Second)
+			defer ticker.Stop()
+			for range ticker.C {
+				postDebugStats()
+			}
+		}()
+	}
+
+}
+
+// applyHostPageTweaks is what a page EMBEDDING the rack needs, rather than
+// anything the rack itself has: the scroll lock, and the footer handling that
+// goes with it.
+func applyHostPageTweaks() {
+	//
+	// This used to be unconditional, on the stated grounds that "Run() is only
+	// invoked on the animation page" so nothing that legitimately scrolls could
+	// be affected. That stopped being true: magnetosphere.net's front page is
+	// both the animation page AND its catalog, because the category listings are
+	// :target views of the same document. The rule locked a 7908px document to
+	// the viewport, and the page could be scrolled for exactly as long as it took
+	// the wasm to boot and then never again.
+	if LockHostScroll {
+		noScrollStyle := doc.Call("createElement", "style")
+		noScrollStyle.Set("textContent", "html,body{overflow:hidden!important;margin:0;padding:0;}")
+		doc.Get("head").Call("appendChild", noScrollStyle)
+	}
+
+	// Random initial orientation + low-rate rotation so the model doesn't start
+	// in the same pose every load — UNLESS the permalink pinned an explicit pose
+	// (&rot / &drag), in which case that must win so a shared still-view link is
+	// restored faithfully. Must run AFTER the rotation-controls-x/y/z elements
+	// are created and queried.
+	if !hashPinnedPose {
+		// Flat scope modes (Pong, Fourier Text) boot face-on (their mode-entry
+		// sync normalized the pose) rather than in a random pose.
+		if !isFlatScope(selectedMode) {
+			randomizeOrientation()
+		}
+		// randomizeOrientation zeroed the rate sliders — put back any spin
+		// rates the permalink explicitly pinned (&rx/&ry/&rz).
+		for ax, v := range hashPinnedSpin {
+			if sl := doc.Call("getElementById", "rotation-controls-"+ax); sl.Truthy() {
+				sl.Set("value", v)
+				sl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+			}
+		}
+		if len(hashPinnedSpin) > 0 {
+			syncKnobs()
+		}
+	} else {
+		// A pinned pose (&rot) is by construction a STILL view — rot is only
+		// serialized when auto-rotate is off and all spin rates are zero — so
+		// clear any residual spin rate so the restored view doesn't drift away
+		// from the shared pose.
+		//
+		// This used to be the place that swept up the negative Y rate a
+		// restored ar=0 left behind, which fixed the shared-still-view case and
+		// left every other one broken. The subtraction no longer happens, so
+		// this is back to being what it says: a guard on the pose.
+		for _, ax := range []string{"x", "y", "z"} {
+			if sl := doc.Call("getElementById", "rotation-controls-"+ax); sl.Truthy() && sl.Get("value").String() != "0" {
+				sl.Set("value", "0")
+				sl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+			}
+		}
+	}
+	// The spectrogram wants a static, face-on default instead — undo the
+	// randomized pose/spin for an initial #spectrogram load (mode switches
+	// go through onModeChange, which already handles this).
+	if isTexturePlane(selectedMode) {
+		setSpectrogramCamera()
+	}
+
+	// Nothing to re-apply here any more. This used to put auto-rotate's Y-rate
+	// contribution back after randomizeOrientation zeroed the spin sliders, and
+}
+
+// registerOutputControls declares the Model Out cells through the descriptor
+// path, which is what gives each of them its LED formatting, typed entry,
+// wheel nudge, reset and the Control that Reset All drives.
+func registerOutputControls() {
+	// Model Out (sonification): trace-rate knob on the generators' concert-
+	// pitch semitone scale (the LED shows Hz both directions via the mapping
+	// pair), plus output level. The MAP ring is wired in buildSonifyModule.
+	adoptDescControl(ControlDesc{ID: "sonify-freq", Label: "trace", Min: 0, Max: float64(genSemitones), Step: 1, Def: 24,
+		PermaKey: "sf", LEDID: "sonify-led", ResetID: "rst-sonify-freq",
+		Apply:       func(v float64) { sonifyHz = freqFromKnob(v) },
+		SliderToVal: sonifyFreqFromSlider,
+		ValToSlider: sonifySliderFromFreq,
+		LEDMin:      genFreqLo, LEDMax: genFreqHi, LEDStep: 1})
+	adoptDescControl(ControlDesc{ID: "sonify-lvl", Label: "lvl", Min: 0, Max: 100, Step: 1, Def: 60,
+		PermaKey: "sv", LEDID: "sonify-lvl-led", ResetID: "rst-sonify-lvl",
+		Apply: func(v float64) { sonifyLevel = v / 100 }})
+
+	// View spin rates: the last controls on the legacy wiring path. Reset
+	// also zeroes the axis ANGLE state and rebuilds the matrices (parity
+	// with the old bespoke rst-rx/ry/rz handlers).
+	adoptDescControl(ControlDesc{ID: "rotation-controls-x", Label: "X rate", Min: -1, Max: 1, Step: 0.1, Def: 0,
+		Signed: true, PermaKey: "rx", LEDID: "slider-value-x", ResetID: "rst-rx",
+		Apply: func(v float64) { cachedRotX = float32(v) },
+		ResetExtra: func() {
+			rotationX, rotationX1, angleX = 0, 0, 0
+			rebuildModelMatrix()
+			updateModelMatrix()
+			updateRotKnobs()
+			syncKnobs()
+		}})
+	adoptDescControl(ControlDesc{ID: "rotation-controls-y", Label: "Y rate", Min: -1, Max: 1, Step: 0.1, Def: 0,
+		Signed: true, PermaKey: "ry", LEDID: "slider-value-y", ResetID: "rst-ry",
+		Apply: func(v float64) { cachedRotY = float32(v) },
+		ResetExtra: func() {
+			rotationY, rotationY1, angleY = 0, 0, 0
+			clearAutoRotateFlag() // Y spin (incl. auto) just zeroed
+			rebuildModelMatrix()
+			updateModelMatrix()
+			updateRotKnobs()
+		}})
+	adoptDescControl(ControlDesc{ID: "rotation-controls-z", Label: "Z rate", Min: -1, Max: 1, Step: 0.1, Def: 0,
+		Signed: true, PermaKey: "rz", LEDID: "slider-value-z", ResetID: "rst-rz",
+		Apply: func(v float64) { cachedRotZ = float32(v) },
+		ResetExtra: func() {
+			rotationZ, rotationZ1, angleZ = 0, 0, 0
+			rebuildModelMatrix()
+			updateModelMatrix()
+			updateRotKnobs()
+		}})
+
+	// Prime every registry control once: run its Apply from the DOM's current
+}
+
+// registerViewControls declares the camera and view cells the same way:
+// zoom, the pans, the spins, and the trail.
+func registerViewControls() {
+	// other input.
+	// Step a quarter, not a whole. Distance is 100 − zoom, so a step of one is
+	// a hundredth of the way in at the far end and a TENTH of it at the near
+	// end: the knob gets about twenty times twitchier exactly where a close look
+	// is being taken. The mapping is left alone — it is what every saved
+	// permalink's z means — and the step is made small enough that the near end
+	// is usable. The knob's inner disc trims finer still.
+	adoptDescControl(ControlDesc{ID: "camera-zoom", Label: "Zoom", Min: -95, Max: 95, Step: 0.25, Def: 0,
+		Signed: true, PermaKey: "z", LEDID: "slider-value-zoom", ResetID: "rst-zoom",
+		Apply: func(v float64) { cachedZoom = float32(v) },
+		ResetExtra: func() {
+			view.defaultDist = view.initDist
+			updateViewMatrix()
+			syncKnobs()
+		}})
+	// Fore: where the model sits relative to the rack. The ends are the old
+	// Front switch — all behind, all in front — and everything between is a
+	// plane cutting the model, which is what the switch could never express.
+	adoptDescControl(ControlDesc{ID: "model-fore", Label: "fore", Min: -1, Max: 1, Step: 0.05, Def: -1,
+		Signed: true, PermaKey: "fo", LEDID: "slider-value-fore", ResetID: "rst-fore",
+		Apply: func(v float64) {
+			splitFrac = float32(v)
+			syncSplitCanvas()
+		}})
+	adoptDescControl(ControlDesc{ID: "pan-x", Label: "X", Min: -8, Max: 8, Step: 1, Def: 0,
+		Signed: true, PermaKey: "px", LEDID: "slider-value-panx", ResetID: "rst-panx",
+		Apply: func(v float64) { cachedPanX = float32(v) }})
+	adoptDescControl(ControlDesc{ID: "pan-y", Label: "Y", Min: -8, Max: 8, Step: 1, Def: 0,
+		Signed: true, PermaKey: "py", LEDID: "slider-value-pany", ResetID: "rst-pany",
+		Apply: func(v float64) { cachedPanY = float32(v) }})
+	// The sweep's own ends, as a fraction of whatever parameter it is
+	// pointed at — which is what lets one pair of knobs bound a sweep of
+	// any target. to below from runs the contact sheet backwards, which is
+	// deliberate and is why neither clamps against the other.
+	adoptDescControl(ControlDesc{ID: "sweep-lo", Label: "from", Min: 0, Max: 1, Step: 0.01, Def: 0,
+		PermaKey: "wl", LEDID: "slider-value-swlo", ResetID: "rst-swlo",
+		Apply: func(v float64) { sweepLo = float32(v) }})
+	adoptDescControl(ControlDesc{ID: "sweep-hi", Label: "to", Min: 0, Max: 1, Step: 0.01, Def: 1,
+		PermaKey: "wh", LEDID: "slider-value-swhi", ResetID: "rst-swhi",
+		Apply: func(v float64) { sweepHi = float32(v) }})
+	adoptDescControl(ControlDesc{ID: "rainbow-freq", Label: "period", Min: 0.05, Max: 20, Step: 0.05, Def: 1,
+		PermaKey: "rf", LEDID: "slider-value-rfreq", ResetID: "rst-rfreq",
+		Apply: func(v float64) { gradientFreq = float32(v) }})
+	// The colormap window's position, paired with the period above. Def 0 is
+	// the coordinate the colormaps already sampled, so a shared link opens on
+	// the picture it was made from until this is turned. See palettemod_js.go
+	// for why the range is exactly ±1 and why the ends are the reversed map
+	// rather than a stop.
+	adoptDescControl(ControlDesc{ID: "palette-shift", Label: "shift", Min: -1, Max: 1, Step: 0.01, Def: 0,
+		Signed: true, PermaKey: "gh", LEDID: "slider-value-pshift", ResetID: "rst-pshift",
+		Apply: func(v float64) { gradientShift = float32(v) }})
+	// Speed: the slider runs log10 (-2..2) while the LED shows the effective
+	// multiplier (0.01..100), whole sub-step counts at ≥1 — the one mapping
+	// pair below is the SSOT both directions.
+	adoptDescControl(ControlDesc{ID: "speed-slider", Label: "Speed", Min: -2, Max: 2, Step: 0.1, Def: 0,
+		PermaKey: "sp", LEDID: "slider-value-speed", ResetID: "rst-speed",
+		Apply:       applySpeedLog,
+		SliderToVal: speedDisplayVal,
+		ValToSlider: func(v float64) float64 {
+			if v <= 0 {
+				return -2
+			}
+			lg := math.Log10(v)
+			if lg < -2 {
+				lg = -2
+			}
+			if lg > 2 {
+				lg = 2
+			}
+			return lg
+		},
+		LEDMin: 0.01, LEDMax: 100, LEDStep: 0.1,
+		ResetExtra: syncKnobs})
+	// Line width: WebGL's gl.lineWidth() is capped at 1.0 on most modern
+	// browsers/drivers (Chrome enforces it; many ANGLE / Mesa stacks too) —
+	// the call still runs, but the visual effect is implementation-dependent.
+	adoptDescControl(ControlDesc{ID: "line-width", Label: "Line", Min: 1, Max: 10, Step: 1, Def: 1,
+		PermaKey: "lw", LEDID: "slider-value-line", ResetID: "rst-line",
+		Apply: func(v float64) {
+			if v < 1 {
+				v = 1
+			}
+			gl.Call("lineWidth", v)
+		}})
+	// The points/line continuum. Def 1 is the solid trace this has always
+	// drawn, so an existing view is unchanged until the knob is turned.
+	adoptDescControl(ControlDesc{ID: "dash-duty", Label: "Points", Min: 0, Max: 4000, Step: 10, Def: 0,
+		PermaKey: "pts", LEDID: "slider-value-dash", ResetID: "rst-dash",
+		Apply: func(v float64) { pointCount = float32(v) }})
+}
+
+// wireColorAndViewControls wires the gradient and color cells, and the view
+// switches that are not descriptor-owned — the twin canvas, the Poincare
+// section, the sweep and grid dials, and the link switches.
+func wireColorAndViewControls() {
+
+	// Event: twin-trajectory switch + λ readout.
+	wireTwinSwitch()
+	// Event: Poincaré-section switch.
+	wireSectSwitch()
+	wireViewGridDial()
+	wireViewLinkSwitches()
+	wireSweepDial()
+
+	// Event: persist trail checkbox
+	doc.Call("getElementById", "persist-trail").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		persistTrail = doc.Call("getElementById", "persist-trail").Get("checked").Bool()
+		return nil
+	}))
+
+	// Event: show info checkbox. The text lives in a window now (see
+	// infowindow_js.go) rather than in a caption pinned over the canvas, so
+	// there is no element to create here and nothing to position: a description
+	// taller than the screen scrolls, and one in the way can be moved.
+	doc.Call("getElementById", "show-info").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		if doc.Call("getElementById", "show-info").Get("checked").Bool() {
+			showInfoWindow()
+		} else {
+			hideInfoWindow()
+		}
+		return nil
+	}))
+
+	// Event: background color picker. Alpha=0 keeps the canvas
+	// transparent so the host page's background (e.g. m2's SVG logo)
+	// shows through — picking a non-black bg here only tints what's
+	// drawn, it doesn't paint over the host.
+	doc.Call("getElementById", "color-bg").Call("addEventListener", "input", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		hex := doc.Call("getElementById", "color-bg").Get("value").String()
+		bgColor[0], bgColor[1], bgColor[2] = hexToRGB(hex)
+		gl.Call("clearColor", bgColor[0], bgColor[1], bgColor[2], 0)
+		return nil
+	}))
+	doc.Call("getElementById", "rst-color-bg").Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		bgColor = [3]float32{0, 0, 0}
+		doc.Call("getElementById", "color-bg").Set("value", "#000000")
+		gl.Call("clearColor", 0, 0, 0, 0)
+		return nil
+	}))
+
+	// Event: gradient source + colors selectors (each driven by a rotary knob).
+	//
+	// Through the registry, so each ring gets the reset button its cell now
+	// carries and Reset All reaches both by driving the same Control the button
+	// does — rather than by setting the two elements and calling updateGradientUI
+	// itself, which is what it used to do and which could drift from these
+	// handlers. No PermaKey: "gs" and "gc" already carry them in permaCtls.
+	adoptDescControl(ControlDesc{
+		ID: "gradient-source", Label: "src", IsSelect: true, SelectDef: "2",
+		ResetID: "rst-gradient-source",
+		SelectApply: func(v string) {
+			if n, err := strconv.Atoi(v); err == nil {
+				gradientSource = n
+				// The focused view keeps it, so the two halves can be
+				// colored differently. See views_js.go.
+				noteGradientSource(n)
+			}
+			// The source decides whether the map ring and the swatches apply at
+			// all — OFF leaves nothing to map — so this has to refresh the dimming
+			// the way the map ring's own handler does.
+			updateGradientUI()
+		},
+	})
+	// Whether the color ramp refits itself. A setting of the MAP rather than
+	// of any one mode, which is why it sits beside src and map and not in a
+	// mode row: every audio-fed source shares the one auto-range.
+	adoptDescControl(ControlDesc{
+		ID: "color-lock", Label: "rng", IsSelect: true, SelectDef: "0",
+		ResetID:     "rst-color-lock",
+		SelectApply: func(v string) { colorRangeLock = v == "1" },
+	})
+	adoptDescControl(ControlDesc{
+		ID: "gradient-colors", Label: "map", IsSelect: true, SelectDef: "2",
+		ResetID: "rst-gradient-colors",
+		SelectApply: func(v string) {
+			if n, err := strconv.Atoi(v); err == nil {
+				gradientColors = n
+				noteGradientColors(n)
+			}
+			updateGradientUI()
+		},
+	})
+	doc.Call("getElementById", "gradient-reverse").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		gradientReverse = doc.Call("getElementById", "gradient-reverse").Get("checked").Bool()
+		return nil
+	}))
+
+	// Event: pause button
+	doc.Call("getElementById", "pause-sw").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		paused = doc.Call("getElementById", "pause-sw").Get("checked").Bool()
+		return nil
+	}))
+
+}
+
+// wirePanelSwitches wires every switch and selector knob on the panel that
+// no ControlDesc owns: the Console's own buttons and switches, and the three
+// visual selectors (backdrop, skin, phosphor) that pick what is drawn behind,
+// on and through the model.
+func wirePanelSwitches() {
 
 	// Event: normalize — reorient the current model to the default
 	// (identity) pose and stop any slider-driven spin.
@@ -904,577 +1664,11 @@ func Run() {
 
 	// Event: which of the four 3-D desktops the desk wears.
 	buildDeskStyleSelect()
-	if dst := doc.Call("getElementById", "desk-style"); dst.Truthy() {
-		// The same treatment the Console's selects get, for the same reason.
-		// This one arrived as a bare <select> and was the only control in the
-		// whole panel a browser drew for itself: light grey, Arial, a native
-		// arrow — every other select, switch, readout and button is styled, so
-		// it read as a piece of somebody else's form dropped into the rack.
-		// The marquee is not decoration either; "Looking Glass" does not fit.
-		attachSelMarquee(dst, "#c9a0ff")
-		// Through the registry, which is what gives the cell its reset button.
-		// deskFlat is the default the package variable already holds, so the
-		// reset target is that one constant rather than a second copy of it.
-		adoptDescControl(ControlDesc{
-			ID: "desk-style", Label: "style", IsSelect: true, SelectDef: deskFlat,
-			ResetID:     "rst-desk-style",
-			SelectApply: setDeskStyle,
-		})
-	}
+}
 
-	// Event: twin-trajectory switch + λ readout.
-	wireTwinSwitch()
-	// Event: Poincaré-section switch.
-	wireSectSwitch()
-	wireViewGridDial()
-	wireViewLinkSwitches()
-	wireSweepDial()
-
-	// Event: persist trail checkbox
-	doc.Call("getElementById", "persist-trail").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		persistTrail = doc.Call("getElementById", "persist-trail").Get("checked").Bool()
-		return nil
-	}))
-
-	// Event: show info checkbox. The text lives in a window now (see
-	// infowindow_js.go) rather than in a caption pinned over the canvas, so
-	// there is no element to create here and nothing to position: a description
-	// taller than the screen scrolls, and one in the way can be moved.
-	doc.Call("getElementById", "show-info").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		if doc.Call("getElementById", "show-info").Get("checked").Bool() {
-			showInfoWindow()
-		} else {
-			hideInfoWindow()
-		}
-		return nil
-	}))
-
-	// Event: background color picker. Alpha=0 keeps the canvas
-	// transparent so the host page's background (e.g. m2's SVG logo)
-	// shows through — picking a non-black bg here only tints what's
-	// drawn, it doesn't paint over the host.
-	doc.Call("getElementById", "color-bg").Call("addEventListener", "input", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		hex := doc.Call("getElementById", "color-bg").Get("value").String()
-		bgColor[0], bgColor[1], bgColor[2] = hexToRGB(hex)
-		gl.Call("clearColor", bgColor[0], bgColor[1], bgColor[2], 0)
-		return nil
-	}))
-	doc.Call("getElementById", "rst-color-bg").Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		bgColor = [3]float32{0, 0, 0}
-		doc.Call("getElementById", "color-bg").Set("value", "#000000")
-		gl.Call("clearColor", 0, 0, 0, 0)
-		return nil
-	}))
-
-	// Event: gradient source + colors selectors (each driven by a rotary knob).
-	//
-	// Through the registry, so each ring gets the reset button its cell now
-	// carries and Reset All reaches both by driving the same Control the button
-	// does — rather than by setting the two elements and calling updateGradientUI
-	// itself, which is what it used to do and which could drift from these
-	// handlers. No PermaKey: "gs" and "gc" already carry them in permaCtls.
-	adoptDescControl(ControlDesc{
-		ID: "gradient-source", Label: "src", IsSelect: true, SelectDef: "2",
-		ResetID: "rst-gradient-source",
-		SelectApply: func(v string) {
-			if n, err := strconv.Atoi(v); err == nil {
-				gradientSource = n
-				// The focused view keeps it, so the two halves can be
-				// colored differently. See views_js.go.
-				noteGradientSource(n)
-			}
-			// The source decides whether the map ring and the swatches apply at
-			// all — OFF leaves nothing to map — so this has to refresh the dimming
-			// the way the map ring's own handler does.
-			updateGradientUI()
-		},
-	})
-	// Whether the color ramp refits itself. A setting of the MAP rather than
-	// of any one mode, which is why it sits beside src and map and not in a
-	// mode row: every audio-fed source shares the one auto-range.
-	adoptDescControl(ControlDesc{
-		ID: "color-lock", Label: "rng", IsSelect: true, SelectDef: "0",
-		ResetID:     "rst-color-lock",
-		SelectApply: func(v string) { colorRangeLock = v == "1" },
-	})
-	adoptDescControl(ControlDesc{
-		ID: "gradient-colors", Label: "map", IsSelect: true, SelectDef: "2",
-		ResetID: "rst-gradient-colors",
-		SelectApply: func(v string) {
-			if n, err := strconv.Atoi(v); err == nil {
-				gradientColors = n
-				noteGradientColors(n)
-			}
-			updateGradientUI()
-		},
-	})
-	doc.Call("getElementById", "gradient-reverse").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		gradientReverse = doc.Call("getElementById", "gradient-reverse").Get("checked").Bool()
-		return nil
-	}))
-
-	// Event: pause button
-	doc.Call("getElementById", "pause-sw").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		paused = doc.Call("getElementById", "pause-sw").Get("checked").Bool()
-		return nil
-	}))
-
-	// Event: physics switch — the weight is a switch on the Motion panel, not a
-	// knob among the figure's parameters, because it is not one of them: the
-	// figure is the same figure whatever it weighs. Throwing it reveals the
-	// Physics module and hands the placing over to the body.
-	if ps := doc.Call("getElementById", "phys-sw"); ps.Truthy() {
-		ps.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-			turtlePhysOn = doc.Call("getElementById", "phys-sw").Get("checked").Bool()
-			if turtlePhysOn {
-				// Face the room. The body is simulated in the PLANE OF THE
-				// SCREEN — the floor is the bottom of the picture and the walls
-				// are its edges — which is only true if the model pose is
-				// identity. The turtle boots at a random orientation like every
-				// other model, so gravity pulled along world −y while the screen
-				// showed that direction rotated by (340°, 201°, 359°): the
-				// figure appeared to fall sideways, came to rest against a floor
-				// that was not the bottom of the picture, and settled at a tilt
-				// instead of flat. Picking it up had the same problem, since the
-				// grab hit-tests world positions against a screen pointer.
-				normalizeOrientation()
-			}
-			updatePhysVisibility()
-			return nil
-		}))
-		updatePhysVisibility() // a definite state before any mode change
-	}
-
-	// Power switch (default on): off stops the render loop and clears the
-	// canvas, which is what the GPU costs, but keeps the control panel — so
-	// every setting is still there to read and to change. A switch again: it
-	// had been folded into the model category knob's first detent, and when
-	// that knob moved to the rows it would have gone with it.
-	if sw := doc.Call("getElementById", "power-sw"); sw.Truthy() {
-		sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-			setPowerState(sw.Get("checked").Bool())
-			// The rotaries say the same thing the switch does: powered down,
-			// every row reads off, because no model is being drawn.
-			syncCategoryRotaries()
-			return nil
-		}))
-	}
-
-	// Fullscreen switch — on requests fullscreen, off exits. Kept in sync with
-	// the actual fullscreen state (fullscreenchange fires on Esc etc.).
-	// requestFullscreen/exitFullscreen return a promise that REJECTS when the
-	// browser refuses (no user gesture, a permissions-policy block, or some
-	// mobile/embedded contexts → "Permissions check failed"). Swallow that with
-	// a .catch and re-sync the switch to reality, so it never surfaces as an
-	// unhandled promise rejection.
-	fsReject := trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if sw := doc.Call("getElementById", "fullscreen-sw"); sw.Truthy() {
-			sw.Set("checked", doc.Get("fullscreenElement").Truthy() || doc.Get("webkitFullscreenElement").Truthy())
-		}
-		return nil
-	})
-	catchFs := func(pr js.Value) {
-		if pr.Truthy() && !pr.Get("then").IsUndefined() {
-			pr.Call("catch", fsReject)
-		}
-	}
-	doc.Call("getElementById", "fullscreen-sw").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		want := doc.Call("getElementById", "fullscreen-sw").Get("checked").Bool()
-		if want {
-			docEl := doc.Get("documentElement")
-			if !docEl.Get("requestFullscreen").IsUndefined() {
-				catchFs(docEl.Call("requestFullscreen"))
-			} else if !docEl.Get("webkitRequestFullscreen").IsUndefined() {
-				catchFs(docEl.Call("webkitRequestFullscreen"))
-			}
-		} else {
-			if !doc.Get("exitFullscreen").IsUndefined() {
-				catchFs(doc.Call("exitFullscreen"))
-			} else if !doc.Get("webkitExitFullscreen").IsUndefined() {
-				catchFs(doc.Call("webkitExitFullscreen"))
-			}
-		}
-		return nil
-	}))
-	syncFsSwitch := trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		if sw := doc.Call("getElementById", "fullscreen-sw"); sw.Truthy() {
-			sw.Set("checked", doc.Get("fullscreenElement").Truthy() || doc.Get("webkitFullscreenElement").Truthy())
-		}
-		return nil
-	})
-	doc.Call("addEventListener", "fullscreenchange", syncFsSwitch)
-	doc.Call("addEventListener", "webkitfullscreenchange", syncFsSwitch)
-
-	wireModelInput()
-
-	// Initial mode — read from URL hash if present. The hash may carry
-	// permalink state after the mode ("#aizawa&p.a=1.19&..."); take only
-	// the leading mode token here (the rest is applied post-setup).
-	selectedMode = "globe"
-	hash := js.Global().Get("location").Get("hash").String()
-	if len(hash) > 1 {
-		hashMode := hashModeToken()
-		// Validate against the mode registry. (The old params-map + hardcoded
-		// list pair silently rejected several real modes, e.g. sphere and fvf.)
-		if knownMode(hashMode) {
-			selectedMode = hashMode
-		}
-	}
-	// Select the matching dropdown option
-	sel := doc.Call("getElementById", "mode-select")
-	if !sel.IsNull() && !sel.IsUndefined() {
-		sel.Set("value", selectedMode)
-	}
-	buildParamPanel(selectedMode)
-	updateTrailVisibility()
-
-	// One-time drag listeners for every selector knob in the panel, the
-	// category rows' rotaries included.
-	initSelKnobDrag()
-	// The saved arrangement goes back BEFORE the switches are built: the rack
-	// builds each one checked or not from its own hidden set, so restoring
-	// afterward gives a switch that says a module is in while it is out.
-	restoreRackLayout()
-	restoreRackBay()
-	wireScopeUnit() // the scope is a unit, so it has its own switch, not a module switch
-	// One row per model category, each with the rotary that selects within
-	// it. Before the first layout pass, so the rows are packed with
-	// everything else rather than appearing after it.
-	buildCategoryModules()
-	wireRowMonitors()  // each row's screen, after the rows that hold them exist
-	buildRowSwitches() // and the Console switches that put a whole row away
-	// And measure the rack once it exists. The category rows are built here,
-	// after the boot pass that sized every other module, and a module whose
-	// width was never measured against its real content keeps whatever the
-	// last pass guessed — measured, the two widest rows came up a slot short
-	// and clipped 35px of their last column until the window was resized.
-	afterTwoFrames(func() {
-		// Twice: the first pass measures modules that the pass before it has
-		// just re-parented into their bays, and a module measured in the
-		// wrong opening is measured against the wrong available width.
-		quantizeModuleWidths()
-		quantizeModuleWidths()
-	})
-	wireScreenPower() // BEAM and the two Monitor switches: a screen you are not watching costs nothing
-	wireModuleDrag()
-	// Source and map: two knobs in two cells, each with its own ring and its own
-	// label.
-	//
-	// Concentric on one dial first, under a single cell labeled "src" — which
-	// named the outer ring and left the inner one unnamed, so the cell's tooltip
-	// had to open by correcting its own label. A cell holds one control; these
-	// are two, and they answer different questions (what the color follows, and
-	// how a value becomes a color).
-	gsrc := doc.Call("getElementById", "gradient-source")
-	gcol := doc.Call("getElementById", "gradient-colors")
-	if gsrc.Truthy() && gcol.Truthy() {
-		if sh := doc.Call("getElementById", "gradient-stack"); sh.Truthy() {
-			sstack := soloKnob(gsrc)
-			// OFF first, because it is the absence of a source rather than one more
-			// of them. Its option value is 5 while the five that follow keep 0..4,
-			// so a permalink written before this still names the same source: the
-			// ring binds a label to an option by INDEX and the link by VALUE, and
-			// those are free to disagree.
-			//
-			// ONE LABEL PER OPTION, IN OPTION ORDER. Binding by index is what
-			// makes that a requirement rather than a nicety: seven audio sources
-			// were added to the select and this list was left at six, so the dial
-			// went on offering the original six and the new ones could not be
-			// reached from the knob at all — only from a permalink. The order
-			// here is the order in panelhtml_js.go, not numeric by value.
-			addSelectorLabels(sstack, gradSrcRingLabels, gsrc).
-				Set("id", "grad-src-ring")
-			sh.Call("appendChild", sstack)
-			gsrc.Get("style").Set("display", "none")
-		}
-		if mh := doc.Call("getElementById", "map-stack"); mh.Truthy() {
-			mstack := soloKnob(gcol)
-			// No "1" here any more: mono was never a map, it was the absence of a
-			// source, and it lives on the src ring as OFF. Every position left is
-			// a genuine mapping of a value to a color.
-			//
-			// NINE labels for nine options, and the count is load-bearing: a ring
-			// that does not match its select is discarded whole and the dial falls
-			// back to full names, which is how the spectrogram's old color dial
-			// came to read "graysca…e" and "…idis" under the knob when turbo,
-			// viridis and magma were added to a three-label ring. Add a map here
-			// and add its label in the same commit.
-			// 45 rather than the src ring's 43: "hue" is the one three-character
-			// label and it lands where its width points straight at the knob, so at
-			// the src ring's radius it touched the dial while every 2-character
-			// label beside it cleared. Two more percent is as far as it can go —
-			// past that the outermost labels clip the cell.
-			addSelectorLabels(mstack, []string{"2", "3", "hue", "ht", "bl", "gy", "tb", "vr", "mg"}, gcol).
-				Set("id", "grad-map-ring")
-			mh.Call("appendChild", mstack)
-			gcol.Get("style").Set("display", "none")
-		}
-	}
-	// The range lock, built the same way and for the same reason: two
-	// positions, so the ring is two labels and the hidden select goes away.
-	// The grid dial, built like the src and map rings beside it.
-	if gsel := doc.Call("getElementById", "view-n"); gsel.Truthy() {
-		if gh := doc.Call("getElementById", "view-n-stack"); gh.Truthy() {
-			gstack := soloKnob(gsel)
-			addSelectorLabels(gstack, viewCountRing, gsel).Set("id", "view-n-ring")
-			gh.Call("appendChild", gstack)
-			gsel.Get("style").Set("display", "none")
-		}
-	}
-	// The sweep dial: what varies across the grid. Its options are the
-	// current mode's own parameters, so building it is a function the
-	// mode change calls too rather than a block written out here.
-	setSweepTargets(selectedMode)
-	buildSweepDial()
-	buildRackScope() // the rack scope's own dials, independent of the model
-	if clk := doc.Call("getElementById", "color-lock"); clk.Truthy() {
-		if ch := doc.Call("getElementById", "colorlock-stack"); ch.Truthy() {
-			cstack := soloKnob(clk)
-			addSelectorLabels(cstack, []string{"auto", "held"}, clk).
-				Set("id", "color-lock-ring")
-			ch.Call("appendChild", cstack)
-			clk.Get("style").Set("display", "none")
-		}
-	}
-	updateGradientUI()
-	// And again when the fonts land: the widths are measured from text, and the
-	// first pass can run before the panel's own font has been applied.
-	requantizeAfterFonts()
-
-	// Initialize persistent JS typed arrays for zero-alloc frame uploads
-	jsVertUint8 = js.Global().Get("Uint8Array").New(steps * 4 * 4)
-	buf := jsVertUint8.Get("buffer")
-	jsVertFloat = js.Global().Get("Float32Array").New(buf, 0, steps*4)
-
-	// Initialize WebGL
-	glTypes.New(gl)
-	attractorDrawMode = glTypes.LineStrip
-	// Bind buffers before setting up attrib pointers in setupShaders
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, attractorVertexBuffer)
-	gl.Call("bindBuffer", glTypes.ElementArrayBuffer, attractorIndexBuffer)
-	setupShaders()
-	setupTexShaders()
-	setupMatrices()
-	generateForMode(selectedMode)
-	if isTexturePlane(selectedMode) {
-		setSpectrogramCamera()
-	} else {
-		autoFitCamera()
-	}
-	refreshGradient()
-
-	// Check if debug mode is enabled via JS global
-	debugVal := js.Global().Get("__WASM_DEBUG__")
-	if !debugVal.IsUndefined() && debugVal.Bool() {
-		debugEnabled = true
-	}
-
-	// Registry-owned fixed controls (registry refactor). One ControlDesc per
-	// control owns the LED format, slider→state plumbing, typed entry,
-	// wheel-step, reset button, AND Reset All (via the builtControls loop in
-	// onResetAll) — previously each of those was a separate wiring site and
-	// Reset All silently missed pan-x/pan-y/period. Registered BEFORE the
-	// permalink restore below so a restored hash value drives Apply like any
-	// other input.
-	// Step a quarter, not a whole. Distance is 100 − zoom, so a step of one is
-	// a hundredth of the way in at the far end and a TENTH of it at the near
-	// end: the knob gets about twenty times twitchier exactly where a close look
-	// is being taken. The mapping is left alone — it is what every saved
-	// permalink's z means — and the step is made small enough that the near end
-	// is usable. The knob's inner disc trims finer still.
-	adoptDescControl(ControlDesc{ID: "camera-zoom", Label: "Zoom", Min: -95, Max: 95, Step: 0.25, Def: 0,
-		Signed: true, PermaKey: "z", LEDID: "slider-value-zoom", ResetID: "rst-zoom",
-		Apply: func(v float64) { cachedZoom = float32(v) },
-		ResetExtra: func() {
-			view.defaultDist = view.initDist
-			updateViewMatrix()
-			syncKnobs()
-		}})
-	// Fore: where the model sits relative to the rack. The ends are the old
-	// Front switch — all behind, all in front — and everything between is a
-	// plane cutting the model, which is what the switch could never express.
-	adoptDescControl(ControlDesc{ID: "model-fore", Label: "fore", Min: -1, Max: 1, Step: 0.05, Def: -1,
-		Signed: true, PermaKey: "fo", LEDID: "slider-value-fore", ResetID: "rst-fore",
-		Apply: func(v float64) {
-			splitFrac = float32(v)
-			syncSplitCanvas()
-		}})
-	adoptDescControl(ControlDesc{ID: "pan-x", Label: "X", Min: -8, Max: 8, Step: 1, Def: 0,
-		Signed: true, PermaKey: "px", LEDID: "slider-value-panx", ResetID: "rst-panx",
-		Apply: func(v float64) { cachedPanX = float32(v) }})
-	adoptDescControl(ControlDesc{ID: "pan-y", Label: "Y", Min: -8, Max: 8, Step: 1, Def: 0,
-		Signed: true, PermaKey: "py", LEDID: "slider-value-pany", ResetID: "rst-pany",
-		Apply: func(v float64) { cachedPanY = float32(v) }})
-	// The sweep's own ends, as a fraction of whatever parameter it is
-	// pointed at — which is what lets one pair of knobs bound a sweep of
-	// any target. to below from runs the contact sheet backwards, which is
-	// deliberate and is why neither clamps against the other.
-	adoptDescControl(ControlDesc{ID: "sweep-lo", Label: "from", Min: 0, Max: 1, Step: 0.01, Def: 0,
-		PermaKey: "wl", LEDID: "slider-value-swlo", ResetID: "rst-swlo",
-		Apply: func(v float64) { sweepLo = float32(v) }})
-	adoptDescControl(ControlDesc{ID: "sweep-hi", Label: "to", Min: 0, Max: 1, Step: 0.01, Def: 1,
-		PermaKey: "wh", LEDID: "slider-value-swhi", ResetID: "rst-swhi",
-		Apply: func(v float64) { sweepHi = float32(v) }})
-	adoptDescControl(ControlDesc{ID: "rainbow-freq", Label: "period", Min: 0.05, Max: 20, Step: 0.05, Def: 1,
-		PermaKey: "rf", LEDID: "slider-value-rfreq", ResetID: "rst-rfreq",
-		Apply: func(v float64) { gradientFreq = float32(v) }})
-	// The colormap window's position, paired with the period above. Def 0 is
-	// the coordinate the colormaps already sampled, so a shared link opens on
-	// the picture it was made from until this is turned. See palettemod_js.go
-	// for why the range is exactly ±1 and why the ends are the reversed map
-	// rather than a stop.
-	adoptDescControl(ControlDesc{ID: "palette-shift", Label: "shift", Min: -1, Max: 1, Step: 0.01, Def: 0,
-		Signed: true, PermaKey: "gh", LEDID: "slider-value-pshift", ResetID: "rst-pshift",
-		Apply: func(v float64) { gradientShift = float32(v) }})
-	// Speed: the slider runs log10 (-2..2) while the LED shows the effective
-	// multiplier (0.01..100), whole sub-step counts at ≥1 — the one mapping
-	// pair below is the SSOT both directions.
-	adoptDescControl(ControlDesc{ID: "speed-slider", Label: "Speed", Min: -2, Max: 2, Step: 0.1, Def: 0,
-		PermaKey: "sp", LEDID: "slider-value-speed", ResetID: "rst-speed",
-		Apply:       applySpeedLog,
-		SliderToVal: speedDisplayVal,
-		ValToSlider: func(v float64) float64 {
-			if v <= 0 {
-				return -2
-			}
-			lg := math.Log10(v)
-			if lg < -2 {
-				lg = -2
-			}
-			if lg > 2 {
-				lg = 2
-			}
-			return lg
-		},
-		LEDMin: 0.01, LEDMax: 100, LEDStep: 0.1,
-		ResetExtra: syncKnobs})
-	// Line width: WebGL's gl.lineWidth() is capped at 1.0 on most modern
-	// browsers/drivers (Chrome enforces it; many ANGLE / Mesa stacks too) —
-	// the call still runs, but the visual effect is implementation-dependent.
-	adoptDescControl(ControlDesc{ID: "line-width", Label: "Line", Min: 1, Max: 10, Step: 1, Def: 1,
-		PermaKey: "lw", LEDID: "slider-value-line", ResetID: "rst-line",
-		Apply: func(v float64) {
-			if v < 1 {
-				v = 1
-			}
-			gl.Call("lineWidth", v)
-		}})
-	// The points/line continuum. Def 1 is the solid trace this has always
-	// drawn, so an existing view is unchanged until the knob is turned.
-	adoptDescControl(ControlDesc{ID: "dash-duty", Label: "Points", Min: 0, Max: 4000, Step: 10, Def: 0,
-		PermaKey: "pts", LEDID: "slider-value-dash", ResetID: "rst-dash",
-		Apply: func(v float64) { pointCount = float32(v) }})
-	adoptDescControl(ControlDesc{ID: "trail-slider", Label: "Trail", Min: 1000, Max: 500000, Step: 1000, Def: 20000,
-		PermaKey: "tr", LEDID: "slider-value-trail", ResetID: "rst-trail",
-		Apply: func(v float64) {
-			newSteps := int(v)
-			if newSteps != steps {
-				steps = newSteps
-				vertBuf = make([]float32, steps*4)
-				jsVertUint8 = js.Global().Get("Uint8Array").New(steps * 4 * 4)
-				buf := jsVertUint8.Get("buffer")
-				jsVertFloat = js.Global().Get("Float32Array").New(buf, 0, steps*4)
-				resetAttractorState()
-				refreshGradient()
-			}
-		},
-		ResetExtra: func() {
-			// Resetting the trail also drops persist mode (matches the old
-			// bespoke reset: a persisted trail makes the new length invisible).
-			persistTrail = false
-			doc.Call("getElementById", "persist-trail").Set("checked", false)
-		}})
-	// Model Out (sonification): trace-rate knob on the generators' concert-
-	// pitch semitone scale (the LED shows Hz both directions via the mapping
-	// pair), plus output level. The MAP ring is wired in buildSonifyModule.
-	adoptDescControl(ControlDesc{ID: "sonify-freq", Label: "trace", Min: 0, Max: float64(genSemitones), Step: 1, Def: 24,
-		PermaKey: "sf", LEDID: "sonify-led", ResetID: "rst-sonify-freq",
-		Apply:       func(v float64) { sonifyHz = freqFromKnob(v) },
-		SliderToVal: sonifyFreqFromSlider,
-		ValToSlider: sonifySliderFromFreq,
-		LEDMin:      genFreqLo, LEDMax: genFreqHi, LEDStep: 1})
-	adoptDescControl(ControlDesc{ID: "sonify-lvl", Label: "lvl", Min: 0, Max: 100, Step: 1, Def: 60,
-		PermaKey: "sv", LEDID: "sonify-lvl-led", ResetID: "rst-sonify-lvl",
-		Apply: func(v float64) { sonifyLevel = v / 100 }})
-
-	// View spin rates: the last controls on the legacy wiring path. Reset
-	// also zeroes the axis ANGLE state and rebuilds the matrices (parity
-	// with the old bespoke rst-rx/ry/rz handlers).
-	adoptDescControl(ControlDesc{ID: "rotation-controls-x", Label: "X rate", Min: -1, Max: 1, Step: 0.1, Def: 0,
-		Signed: true, PermaKey: "rx", LEDID: "slider-value-x", ResetID: "rst-rx",
-		Apply: func(v float64) { cachedRotX = float32(v) },
-		ResetExtra: func() {
-			rotationX, rotationX1, angleX = 0, 0, 0
-			rebuildModelMatrix()
-			updateModelMatrix()
-			updateRotKnobs()
-			syncKnobs()
-		}})
-	adoptDescControl(ControlDesc{ID: "rotation-controls-y", Label: "Y rate", Min: -1, Max: 1, Step: 0.1, Def: 0,
-		Signed: true, PermaKey: "ry", LEDID: "slider-value-y", ResetID: "rst-ry",
-		Apply: func(v float64) { cachedRotY = float32(v) },
-		ResetExtra: func() {
-			rotationY, rotationY1, angleY = 0, 0, 0
-			clearAutoRotateFlag() // Y spin (incl. auto) just zeroed
-			rebuildModelMatrix()
-			updateModelMatrix()
-			updateRotKnobs()
-		}})
-	adoptDescControl(ControlDesc{ID: "rotation-controls-z", Label: "Z rate", Min: -1, Max: 1, Step: 0.1, Def: 0,
-		Signed: true, PermaKey: "rz", LEDID: "slider-value-z", ResetID: "rst-rz",
-		Apply: func(v float64) { cachedRotZ = float32(v) },
-		ResetExtra: func() {
-			rotationZ, rotationZ1, angleZ = 0, 0, 0
-			rebuildModelMatrix()
-			updateModelMatrix()
-			updateRotKnobs()
-		}})
-
-	// Prime every registry control once: run its Apply from the DOM's current
-	// value so engine state matches the panel by construction (the old code
-	// did this ad hoc — applyLineWidth() at wiring, readSliderCache, …).
-	for _, c := range builtControls {
-		// Whichever element holds this control's value, and the event that
-		// commits it. A selector-backed Control has no slider at all, and Call on
-		// an undefined js.Value is a panic rather than a no-op — which took the
-		// whole runtime down the first time a selector reached this loop.
-		switch {
-		case c.sel.Truthy():
-			c.sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
-		case c.slider.Truthy():
-			c.slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-		}
-	}
-
-	// Permalink: capture pristine control defaults, restore any state
-	// encoded in the URL hash, then keep the hash in sync with the live
-	// state so the current view is always shareable.
-	capturePermaDefaults()
-	// Between the two on purpose. After capturePermaDefaults, or a module this
-	// browser has open would be recorded as that switch's pristine value and
-	// then left out of every link shared from this session. Before
-	// applyStateFromHash, so a shared link beats a local preference — see
-	// restoreConsoleModuleSwitches for the whole argument.
-	restoreConsoleModuleSwitches()
-	applyStateFromHash()
-	wireConsoleModuleSwitchSaves()
-	startPermalinkSync()
-
-	// Final tooltip pass now that every selector (gradient / model / style) is
-	// built — some are created after the first buildParamPanel's annotate.
-	annotateControlTooltips()
-
-	// Start animation loop
-	done := make(chan struct{})
-	renderFrame = trackedFuncOf(renderLoop)
-	js.Global().Call("requestAnimationFrame", renderFrame)
-
-	// Set initial trail-controls visibility for the starting mode.
-	updateTrailVisibility()
-
-	// And the Physics switch, for the same reason and with the same timing.
-	// The earlier call (beside the switch's own listener) runs before the URL
-	// hash has chosen the mode, so it decided against the DEFAULT mode: booting
+// wireExtraNav puts the host page's own navigation into the Console, and
+// settles the Physics switch once the URL hash has chosen the mode.
+func wireExtraNav() {
 	// straight into #turtle left the switch hidden, and it only appeared after
 	// changing modes to somewhere else and back. Every shared link to the
 	// turtle — the README's included — came up with its physics unreachable.
@@ -1516,301 +1710,191 @@ func Run() {
 		}
 	}
 
-	// Kill the vertical scroll the controls panel adds by growing the body.
-	//
-	// This used to be unconditional, on the stated grounds that "Run() is only
-	// invoked on the animation page" so nothing that legitimately scrolls could
-	// be affected. That stopped being true: magnetosphere.net's front page is
-	// both the animation page AND its catalog, because the category listings are
-	// :target views of the same document. The rule locked a 7908px document to
-	// the viewport, and the page could be scrolled for exactly as long as it took
-	// the wasm to boot and then never again.
-	if LockHostScroll {
-		noScrollStyle := doc.Call("createElement", "style")
-		noScrollStyle.Set("textContent", "html,body{overflow:hidden!important;margin:0;padding:0;}")
-		doc.Get("head").Call("appendChild", noScrollStyle)
-	}
+}
 
-	// Random initial orientation + low-rate rotation so the model doesn't start
-	// in the same pose every load — UNLESS the permalink pinned an explicit pose
-	// (&rot / &drag), in which case that must win so a shared still-view link is
-	// restored faithfully. Must run AFTER the rotation-controls-x/y/z elements
-	// are created and queried.
-	if !hashPinnedPose {
-		// Flat scope modes (Pong, Fourier Text) boot face-on (their mode-entry
-		// sync normalized the pose) rather than in a random pose.
-		if !isFlatScope(selectedMode) {
-			randomizeOrientation()
-		}
-		// randomizeOrientation zeroed the rate sliders — put back any spin
-		// rates the permalink explicitly pinned (&rx/&ry/&rz).
-		for ax, v := range hashPinnedSpin {
-			if sl := doc.Call("getElementById", "rotation-controls-"+ax); sl.Truthy() {
-				sl.Set("value", v)
-				sl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-			}
-		}
-		if len(hashPinnedSpin) > 0 {
-			syncKnobs()
-		}
-	} else {
-		// A pinned pose (&rot) is by construction a STILL view — rot is only
-		// serialized when auto-rotate is off and all spin rates are zero — so
-		// clear any residual spin rate so the restored view doesn't drift away
-		// from the shared pose.
-		//
-		// This used to be the place that swept up the negative Y rate a
-		// restored ar=0 left behind, which fixed the shared-still-view case and
-		// left every other one broken. The subtraction no longer happens, so
-		// this is back to being what it says: a guard on the pose.
-		for _, ax := range []string{"x", "y", "z"} {
-			if sl := doc.Call("getElementById", "rotation-controls-"+ax); sl.Truthy() && sl.Get("value").String() != "0" {
-				sl.Set("value", "0")
-				sl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-			}
-		}
-	}
-	// The spectrogram wants a static, face-on default instead — undo the
-	// randomized pose/spin for an initial #spectrogram load (mode switches
-	// go through onModeChange, which already handles this).
+// initDrawState sets the GL enum table and the draw mode the first frame
+// will use.
+func initDrawState() {
+
+	// Initialize WebGL
+	glTypes.New(gl)
+	attractorDrawMode = glTypes.LineStrip
+	// Bind buffers before setting up attrib pointers in setupShaders
+	gl.Call("bindBuffer", glTypes.ArrayBuffer, attractorVertexBuffer)
+	gl.Call("bindBuffer", glTypes.ElementArrayBuffer, attractorIndexBuffer)
+	setupShaders()
+	setupTexShaders()
+	setupMatrices()
+	generateForMode(selectedMode)
 	if isTexturePlane(selectedMode) {
 		setSpectrogramCamera()
-	}
-
-	// Nothing to re-apply here any more. This used to put auto-rotate's Y-rate
-	// contribution back after randomizeOrientation zeroed the spin sliders, and
-	// had to skip doing so when the hash pinned a Y rate — because the
-	// serialized ry already contained the contribution, and re-adding it crept
-	// the rate +0.1 on every reload (0.1 → 0.2 → 0.3 …, found live on
-	// magnetosphere.net). The contribution is added in the render loop now and
-	// never written to the slider, so there is nothing to put back, nothing to
-	// double, and no special case for a pinned rate.
-
-	wireWheelBindings()
-	wireKnobArrowKeys()
-
-	// Last of the wiring: the reveal chord hides the whole control surface, so
-	// it must run after every piece of that surface exists and has been placed.
-	initPanelRevealChord()
-	initHostPage() // centers the backdrop on a host element, if one was named
-
-	// Window resize: keep canvas pixel dimensions in sync with the
-	// viewport so the model doesn't get stretched when devtools opens
-	// or closes (or on phone orientation change).
-	js.Global().Call("addEventListener", "resize", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		if sizeCanvasToViewport() {
-			gl.Call("viewport", 0, 0, width, height)
-			setupMatrices()
-		}
-		return nil
-	}))
-
-	// Clock goroutine
-	go func() {
-		ticker := time.NewTicker(time.Second)
-		defer ticker.Stop()
-		for range ticker.C {
-			if !rtc.IsUndefined() {
-				rtc.Set("innerHTML", time.Now().Format("2006-01-02 15:04:05"))
-			}
-		}
-	}()
-
-	// Debug stats reporter goroutine
-	if debugEnabled {
-		go func() {
-			ticker := time.NewTicker(2 * time.Second)
-			defer ticker.Stop()
-			for range ticker.C {
-				postDebugStats()
-			}
-		}()
-	}
-
-	<-done
-}
-
-func postDebugStats() {
-	var ms runtime.MemStats
-	runtime.ReadMemStats(&ms)
-
-	avgMs := float32(0)
-	fps := float32(0)
-	if frameCount > 0 {
-		avgMs = frameTotalMs / float32(frameCount)
-		fps = 1000.0 / avgMs
-	}
-
-	payload := fmt.Sprintf(
-		`{"mode":"%s","paused":%t,"fps":%.1f,"frame_avg_ms":%.2f,"frame_min_ms":%.2f,"frame_max_ms":%.2f,"frame_count":%d,"speed_steps":%d,"speed_scale":%.4f,"trail_steps":%d,"heap_alloc_mb":%.2f,"heap_sys_mb":%.2f,"heap_objects":%d,"gc_runs":%d,"goroutines":%d}`,
-		selectedMode, paused, fps, avgMs, frameMinMs, frameMaxMs, frameCount,
-		speedSteps, speedScale, steps,
-		float64(ms.HeapAlloc)/1048576, float64(ms.HeapSys)/1048576,
-		ms.HeapObjects, gcRunsCount(&ms), runtime.NumGoroutine(),
-	)
-
-	// Reset frame stats for next interval
-	frameCount = 0
-	frameTotalMs = 0
-	frameMinMs = 999
-	frameMaxMs = 0
-
-	// Post via fetch
-	headers := js.Global().Get("Headers").New()
-	headers.Call("set", "Content-Type", "application/json")
-	opts := js.Global().Get("Object").New()
-	opts.Set("method", "POST")
-	opts.Set("headers", headers)
-	opts.Set("body", payload)
-	js.Global().Call("fetch", "/debug/stats", opts)
-}
-
-// Per-attractor initial conditions — defaults to (0.1, 0.5, -0.6) for most.
-func installErrorNet() {
-	js.Global().Call("addEventListener", "unhandledrejection", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if len(a) > 0 {
-			js.Global().Get("console").Call("warn", "[async rejection contained]", a[0].Get("reason"))
-			a[0].Call("preventDefault")
-		}
-		return nil
-	}))
-}
-
-func onResetAll(this js.Value, args []js.Value) interface{} {
-	// Reset camera
-	view.defaultDist = view.initDist
-	rotationX1, rotationY1, rotationZ1 = 0, 0, 0
-
-	// Static geometry may need re-upload (params reset to defaults).
-	staticGeomDirty = true
-
-	// Reset attractor position
-	resetAttractorState()
-
-	// Registry-owned controls (zoom, pan X/Y, rainbow period, …): each resets
-	// itself — value, LED format, and any reset hook — so Reset All can never
-	// silently miss one again. (Rotation sliders + movMatrix are re-randomized
-	// below so the model never lands on the same view twice.)
-	for _, c := range builtControls {
-		if c.skipResetAll {
-			continue
-		}
-		c.resetToDefault()
-	}
-
-	// Reset all parameters to defaults
-	for _, params := range attractorParams {
-		for _, p := range params {
-			*p.Value = p.Def
-		}
-	}
-	buildParamPanel(selectedMode)
-
-	// Reset auto-rotate, draw mode. (Speed / line width / trail — values,
-	// LEDs, buffer realloc, persist drop — are registry-owned above.)
-	paused = false
-	if ps := doc.Call("getElementById", "pause-sw"); ps.Truthy() {
-		ps.Set("checked", false)
-	}
-	usePoints = false
-	attractorDrawMode = glTypes.LineStrip
-	dragMatrix = mgl32.Ident4() // clear trackball drag orientation
-	doc.Call("getElementById", "auto-rotate").Set("checked", true)
-	doc.Call("getElementById", "use-points").Set("checked", false)
-	doc.Call("getElementById", "show-info").Set("checked", false)
-	hideInfoWindow()
-	persistTrail = false
-	doc.Call("getElementById", "persist-trail").Set("checked", false)
-	// The source and map rings are registry-owned, so the loop above has already
-	// put them back — including gradientSource / gradientColors and the dimming,
-	// because resetting a Control dispatches the change its own handler listens
-	// for. Only the Reverse switch, which is a checkbox and not a Control, is
-	// still this function's to set.
-	gradientReverse = false
-	doc.Call("getElementById", "gradient-reverse").Set("checked", false)
-	updateGradientUI()
-
-	// Reset colors
-	baseColor = [3]float32{1.0, 0.0, 0.0}
-	midColor = [3]float32{0.0, 1.0, 0.0}
-	topColor = [3]float32{0.0, 0.0, 1.0}
-	bgColor = [3]float32{0, 0, 0}
-	doc.Call("getElementById", "color-base").Set("value", "#ff0000")
-	doc.Call("getElementById", "color-mid").Set("value", "#00ff00")
-	doc.Call("getElementById", "color-top").Set("value", "#0000ff")
-	doc.Call("getElementById", "color-bg").Set("value", "#000000")
-	gl.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
-	gl.Call("uniform3f", uMidColorLoc, midColor[0], midColor[1], midColor[2])
-	gl.Call("uniform3f", uTopColorLoc, topColor[0], topColor[1], topColor[2])
-	// Alpha=0: don't paint over the host page's bg (SVG logo etc).
-	gl.Call("clearColor", 0, 0, 0, 0)
-
-	// Reset the remaining effect switches to their defaults — dispatch 'change'
-	// so each effect's own handler applies it (single source of truth). Layout
-	// prefs (dock edge, interface size) and mode toggles (Edit eqn, Fullscreen)
-	// are intentionally left alone.
-	//
-	// So is "preset-on", for the same reason and one more: recalling a preset
-	// runs this function first, so listing the Presets module here would make
-	// every recall close the drawer the recall was made from — unless the
-	// preset happened to have been saved with it open.
-	swDefaults := []struct {
-		id  string
-		def bool
-	}{
-		{"spect-fill", false}, {"audio-mod", false},
-		{"fg-on", false}, {"spectro-skin", false},
-		{"tpl-on", false}, {"handles-on", false}, {"desk-pass", false}, {"desk-contain", false},
-		{"rhythm-run", false}, {"jam-sw", false}, {"show-meters", true},
-		{"ring-sw", false}, {"twin-sw", false}, {"sect-sw", false},
-		{"link-sw", true},
-		{"scope-grat", true}, // the graticule is what makes the trace measurable
-		// Back to recording the full canvas. This one is here because of what
-		// it LEAVES BEHIND: choosing a region draws a dashed outline that dims
-		// everything outside it, and the outline stays after the selection is
-		// made, on purpose, so the chosen area is not something to remember.
-		// Switching back to "full" is what clears it — and someone who does not
-		// know that reaches for Reset All, which is exactly what that button is
-		// for. Without this it was the one piece of screen furniture the button
-		// could not remove.
-		{"rec-region-sw", false},
-	}
-	for _, s := range swDefaults {
-		if sw := doc.Call("getElementById", s.id); sw.Truthy() && sw.Get("checked").Bool() != s.def {
-			sw.Set("checked", s.def)
-			sw.Call("dispatchEvent", js.Global().Get("Event").New("change"))
-		}
-	}
-	// Every selector in the panel is a registry Control now, so the loop at the
-	// top of this function has already put them all back — the backdrop, the
-	// skin, the phosphor and LED color, Step and Fine, the Model Out rings, the
-	// three oscillators' routing and waveform, the envelope mode.
-	//
-	// What stood here was a resetSel closure and fourteen calls to it: a second,
-	// hand-maintained list of every selector and its default, beside the one the
-	// descriptors already state. Two lists of the same thing is how the Backdrop
-	// came to drive a select option that did not exist, and nothing had checked
-	// that this one still agreed with the panel either. The Size ring is the one
-	// deliberate exclusion, and it says so on its own descriptor (SkipResetAll)
-	// rather than by being absent from a list.
-
-	// Randomized starting pose + low-rate rotation. Replaces the old
-	// identity-matrix reset so each click of Reset All produces a
-	// fresh viewing angle. randomizeOrientation zeroes the spin rates;
-	// re-enable the gentle auto-spin afterward (so its Y-rate shows).
-	// Flat scope modes stay face-on and still — screens, not models.
-	if isFlatScope(selectedMode) {
-		normalizeOrientation()
 	} else {
-		randomizeOrientation()
-		autoRotate = false
-		setAutoRotate(true)
+		autoFitCamera()
+	}
+	refreshGradient()
+
+	// Check if debug mode is enabled via JS global
+}
+
+// wireViewGridStack builds the view-count selector knob and its stack.
+func wireViewGridStack() {
+	// The range lock, built the same way and for the same reason: two
+	// positions, so the ring is two labels and the hidden select goes away.
+	// The grid dial, built like the src and map rings beside it.
+	if gsel := doc.Call("getElementById", "view-n"); gsel.Truthy() {
+		if gh := doc.Call("getElementById", "view-n-stack"); gh.Truthy() {
+			gstack := soloKnob(gsel)
+			addSelectorLabels(gstack, viewCountRing, gsel).Set("id", "view-n-ring")
+			gh.Call("appendChild", gstack)
+			gsel.Get("style").Set("display", "none")
+		}
+	}
+	// The sweep dial: what varies across the grid. Its options are the
+	// current mode's own parameters, so building it is a function the
+	// mode change calls too rather than a block written out here.
+	setSweepTargets(selectedMode)
+	buildSweepDial()
+	buildRackScope() // the rack scope's own dials, independent of the model
+	if clk := doc.Call("getElementById", "color-lock"); clk.Truthy() {
+		if ch := doc.Call("getElementById", "colorlock-stack"); ch.Truthy() {
+			cstack := soloKnob(clk)
+			addSelectorLabels(cstack, []string{"auto", "held"}, clk).
+				Set("id", "color-lock-ring")
+			ch.Call("appendChild", cstack)
+			clk.Get("style").Set("display", "none")
+		}
+	}
+	updateGradientUI()
+	// And again when the fonts land: the widths are measured from text, and the
+}
+
+// buildRackAndRestore assembles the rack — the category rows, their
+// monitors, the row switches — and puts back the arrangement this browser
+// last left, in the order the restore requires.
+func buildRackAndRestore() {
+	// category rows' rotaries included.
+	initSelKnobDrag()
+	// The saved arrangement goes back BEFORE the switches are built: the rack
+	// builds each one checked or not from its own hidden set, so restoring
+	// afterward gives a switch that says a module is in while it is out.
+	restoreRackLayout()
+	restoreRackBay()
+	wireScopeUnit() // the scope is a unit, so it has its own switch, not a module switch
+	// One row per model category, each with the rotary that selects within
+	// it. Before the first layout pass, so the rows are packed with
+	// everything else rather than appearing after it.
+	buildCategoryModules()
+	wireRowMonitors()  // each row's screen, after the rows that hold them exist
+	buildRowSwitches() // and the Console switches that put a whole row away
+	// And measure the rack once it exists. The category rows are built here,
+	// after the boot pass that sized every other module, and a module whose
+	// width was never measured against its real content keeps whatever the
+	// last pass guessed — measured, the two widest rows came up a slot short
+	// and clipped 35px of their last column until the window was resized.
+	afterTwoFrames(func() {
+		// Twice: the first pass measures modules that the pass before it has
+		// just re-parented into their bays, and a module measured in the
+		// wrong opening is measured against the wrong available width.
+		quantizeModuleWidths()
+		quantizeModuleWidths()
+	})
+	wireScreenPower() // BEAM and the two Monitor switches: a screen you are not watching costs nothing
+	wireModuleDrag()
+	// Source and map: two knobs in two cells, each with its own ring and its own
+	// label.
+	//
+	// Concentric on one dial first, under a single cell labeled "src" — which
+	// named the outer ring and left the inner one unnamed, so the cell's tooltip
+	// had to open by correcting its own label. A cell holds one control; these
+	// are two, and they answer different questions (what the color follows, and
+	// how a value becomes a color).
+}
+
+// wirePowerSwitch is the rack's own power: off stops the render loop and
+// clears the canvas, keeping the panel.
+func wirePowerSwitch() {
+	// every setting is still there to read and to change. A switch again: it
+	// had been folded into the model category knob's first detent, and when
+	// that knob moved to the rows it would have gone with it.
+	if sw := doc.Call("getElementById", "power-sw"); sw.Truthy() {
+		sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+			setPowerState(sw.Get("checked").Bool())
+			// The rotaries say the same thing the switch does: powered down,
+			// every row reads off, because no model is being drawn.
+			syncCategoryRotaries()
+			return nil
+		}))
 	}
 
-	// Reset view
-	generateForMode(selectedMode)
-	updateViewMatrix()
-	updateModelMatrix()
+	// Fullscreen switch — on requests fullscreen, off exits. Kept in sync with
+	// the actual fullscreen state (fullscreenchange fires on Esc etc.).
+	// requestFullscreen/exitFullscreen return a promise that REJECTS when the
+	// browser refuses (no user gesture, a permissions-policy block, or some
+	// mobile/embedded contexts → "Permissions check failed"). Swallow that with
+	// a .catch and re-sync the switch to reality, so it never surfaces as an
+	// unhandled promise rejection.
+}
 
-	return nil
+// wirePhysSwitch is the Physics switch and the module it reveals.
+func wirePhysSwitch() {
+	// knob among the figure's parameters, because it is not one of them: the
+	// figure is the same figure whatever it weighs. Throwing it reveals the
+	// Physics module and hands the placing over to the body.
+	if ps := doc.Call("getElementById", "phys-sw"); ps.Truthy() {
+		ps.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+			turtlePhysOn = doc.Call("getElementById", "phys-sw").Get("checked").Bool()
+			if turtlePhysOn {
+				// Face the room. The body is simulated in the PLANE OF THE
+				// SCREEN — the floor is the bottom of the picture and the walls
+				// are its edges — which is only true if the model pose is
+				// identity. The turtle boots at a random orientation like every
+				// other model, so gravity pulled along world −y while the screen
+				// showed that direction rotated by (340°, 201°, 359°): the
+				// figure appeared to fall sideways, came to rest against a floor
+				// that was not the bottom of the picture, and settled at a tilt
+				// instead of flat. Picking it up had the same problem, since the
+				// grab hit-tests world positions against a screen pointer.
+				normalizeOrientation()
+			}
+			updatePhysVisibility()
+			return nil
+		}))
+		updatePhysVisibility() // a definite state before any mode change
+	}
+
+	// Power switch (default on): off stops the render loop and clears the
+}
+
+// wireColorControls wires the color swatches, their Hue/Sat/Val knobs and
+// the resets that go with them.
+func wireColorControls() {
+	attachColorKnobs() // Hue/Sat/Val knob under each color swatch
+
+	// Event: per-control reset buttons for colors
+	doc.Call("getElementById", "rst-color-base").Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		baseColor = [3]float32{1.0, 0.0, 0.0}
+		doc.Call("getElementById", "color-base").Set("value", "#ff0000")
+		gl.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
+		return nil
+	}))
+	doc.Call("getElementById", "rst-color-mid").Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		midColor = [3]float32{0.0, 1.0, 0.0}
+		doc.Call("getElementById", "color-mid").Set("value", "#00ff00")
+		gl.Call("uniform3f", uMidColorLoc, midColor[0], midColor[1], midColor[2])
+		return nil
+	}))
+	doc.Call("getElementById", "rst-color-top").Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		topColor = [3]float32{0.0, 0.0, 1.0}
+		doc.Call("getElementById", "color-top").Set("value", "#0000ff")
+		gl.Call("uniform3f", uTopColorLoc, topColor[0], topColor[1], topColor[2])
+		return nil
+	}))
+
+	// Event: reset all button
+	doc.Call("getElementById", "reset-all-btn").Call("addEventListener", "click", trackedFuncOf(onResetAll))
+
+	// Any reset button (↺) — re-sync every knob pointer to its freshly-reset
+	// value on the next frame (after the button's own handler has set values),
+	// so knobs whose handler sets the slider without dispatching 'input' still
+	// snap their pointer back.
 }

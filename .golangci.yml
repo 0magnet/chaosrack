@@ -41,11 +41,9 @@ linters:
     gocyclo:
       # A ratchet, not a target. Ten is the number this config has always
       # named and nothing has ever enforced; at ten the existing code fails
-      # in dozens of places and the linter gets turned off again. Fifty
-      # catches a function that has clearly gone wrong while leaving the
-      # four that already have, each of which says so with a nolint and a
-      # reason. Lower it as those come down.
-      min-complexity: 50
+      # in dozens of places and the linter gets turned off again. Lower this
+      # as the outliers come down — it went 50 to 45 when Run was split.
+      min-complexity: 45
     lll:
       line-length: 120
       tab-width: 1
