@@ -17,14 +17,14 @@ const controlsBody = `
 <div class="modules">
 <div class="sect console"><div class="sect-hdr" title="Console — model selection, global actions, and every mode/effect switch in one module">Console</div>
 <div class="row toprow swrow swsecs">
-  <div class="swsec consec"><div class="swsec-hdr" title="Model selection, equation editing, and global panel actions">Model</div>
-  <span class="grp modelsel-col" data-no-drag id="model-sel-grp" title="Model selector — outer knob picks the category, inner knob the model">
-  <span class="u-lbl mlbl">Model</span>
-  <span id="modelknob-holder"></span>
-  <select id="mode-select" class="selwin" style="display:none"></select>
-  <select id="cat-select" class="selwin csel-cat" data-no-drag title="Model category — the optgroup the model knob is browsing"></select>
-  <select id="model-select" class="selwin csel-model" data-no-drag title="Model within the selected category"></select>
-  </span>
+  <div class="swsec consec"><div class="swsec-hdr" title="Equation editing and global panel actions. The model itself is chosen on its own category's row — see the rotary at the head of each model bay — rather than from a knob up here that changed what the whole instrument was.">Model</div>
+  <!-- The single source of truth for which model is running. It has no face
+       of its own any more: the two concentric knobs that used to drive it
+       sat on the Console, so the one control the whole rack is about was
+       nowhere near the controls it governed, and the rack had two model
+       selectors to keep in step with each other. The category rows are the
+       face now; this is the wire they all drive. -->
+  <select id="mode-select" style="display:none"></select>
   <label class="grp" style="cursor:pointer;" title="Load the current attractor's equations into the editable Custom mode; toggle off to return to it. It is a model choice — it moves the model knob to Custom — so it sits with the knob it moves."><input type="checkbox" class="sw" id="edit-eq-sw"> Edit eqn</label>
   <span id="extra-nav"></span>
   <div class="console-btns">
@@ -37,6 +37,7 @@ const controlsBody = `
     <label class="grp" style="cursor:pointer;" title="WebMIDI — hardware control: CC 1..N drive the current mode's parameter knobs in order, CC 21..28 the view targets (zoom, pans, spins, rainbow, trail), and any note hops to that note's attractor."><input type="checkbox" class="sw" id="midi-sw"> MIDI</label>
   </div>
   <div class="swsec"><div class="swsec-hdr" title="Rack — the frame itself and the window it is drawn in, rather than anything in the signal path. Nothing here has a knob elsewhere to be beside, which is why it is the one group of switches that stays central.">Rack</div>
+    <label class="grp" style="cursor:pointer;" title="Power — the render loop. Off stops it and clears the canvas, which is what the GPU costs; the panel stays, so every setting is still there to read and to change. A switch again, and back in the Rack group where the rest of the frame's own controls are: it had been folded into the model knob's first detent, which made powering down look like choosing a model called OFF and put the rack's power switch inside the one control that had nothing to do with the rack."><input type="checkbox" class="sw" id="power-sw" checked> Power</label>
     <label class="grp" style="cursor:pointer;" title="Rack bay — draw the 19-inch frame each ROW of modules sits in: rails above and below, an ear each side with a grab handle on it, and blank panels filling the leftover at the end of the row on the same slot pitch. The modules wrap, and a row is a bay, so a rack that has spilled onto a second row gets a second frame."><input type="checkbox" class="sw" id="handles-on"> Rack bay</label>
     <label class="grp" style="cursor:pointer;" title="Scope — bolt the rack-mount oscilloscope into the frame. It is a UNIT, not a plug-in module: a 19-inch instrument with its own tube, timebase and trigger, fed from the live audio and running whatever the MODEL knob is pointed at. This switch is the only thing that puts it in or takes it out."><input type="checkbox" class="sw" id="scope-on"> Scope</label>
     <label class="grp" style="cursor:pointer;" title="Show the Template module — a labeled legend of every named slot a module can have (header, label, readout, knob, ring, inner, fine, dial, reset). Hover a slot for the Go struct field it maps to. It is documentation about what a module can hold rather than an instrument, which is why it is the one module still on a switch."><input type="checkbox" class="sw" id="tpl-on"> Template</label>

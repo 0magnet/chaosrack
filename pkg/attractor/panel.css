@@ -666,27 +666,13 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* Fourier Text banner field (shown in the Console in Fourier Text mode) */
 .stext-in{width:150px;background:#0a0d10;color:#35e06a;border:1px solid #2a333c;border-radius:3px;font-family:'B612 Mono',monospace;font-size:11px;padding:2px 5px;text-transform:uppercase;letter-spacing:1px;}
 .stext-in:focus{outline:none;border-color:#4a5a6a;}
-/* Console holds only the model selector now — center it horizontally, top-aligned. */
+/* The Console's top row: three switch groups, since the model selector that
+   used to lead it moved to the model rows. */
 .console>.toprow{align-items:center;justify-content:flex-start;gap:3px 12px;}
-/* Nested model selector: label on top, concentric category/model knob, then the
-   two dropdowns stacked beneath (category first, model second). */
-.modelsel-col{flex-direction:column!important;align-items:center!important;gap:3px;}
-/* model knob: category (outer) + model (inner); bodies from uniform geometry. */
-/* Compact model knob so the Console (knob + category labels) fits one unit. */
-#modelknob-holder .knobstack.has-dial{margin:calc(20px*var(--kscale,1));}
-#modelknob-holder .knob-dial-lab{font-size:calc(8px*var(--kscale,1));color:#8fd0ff;opacity:.95;}
-#modelknob-holder .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
-#modelknob-holder .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
-#modelknob-holder .knob-inner{width:calc(28px*var(--kscale,1))!important;height:calc(28px*var(--kscale,1))!important;}
-#modelknob-holder .knob-inner>.knob-ptr{height:calc(12px*var(--kscale,1))!important;}
-#modelknob-holder .knobstack{width:calc(56px*var(--kscale,1));height:calc(56px*var(--kscale,1));}
-/* Both dropdowns are a FIXED width (the longest attractor name) so switching
-   category never resizes them. */
-#model-sel-grp .csel-cat{width:calc(116px*var(--kscale,1));box-sizing:border-box;color:#8fd0ff;text-shadow:0 0 4px #2a6a9a;background:#04101a;border-color:#164a6a;}
-#model-sel-grp .csel-model{width:calc(116px*var(--kscale,1));box-sizing:border-box;}
-/* Capped dropdowns keep Console at one unit; a marquee overlay shows the current
-   name (scrolling when a long attractor name overflows). The native text is
-   hidden and the overlay is click-through so the select still opens on click. */
+/* A marquee overlay reads out a capped <select>'s current option, scrolling
+   when the name overflows. The native text is hidden and the overlay is
+   click-through, so the select still opens on click. Built for the Console's
+   model dropdowns, which have gone; the Desk style select still takes it. */
 .selwrap{position:relative;display:inline-block;}
 .selwrap>.selwin{color:transparent!important;text-shadow:none!important;}
 /* THE OPTIONS KEEP THEIR COLOR.
@@ -694,17 +680,12 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    That transparent above hides the closed control's own text so the marquee can
    show the name instead — but `color` cascades into the <option>s, and the open
    dropdown is painted by the browser with each option's color. So the list came
-   up as a column of invisible rows, and an entry only appeared when the pointer
-   reached it and the selection highlight drew behind it. Both Console
-   dropdowns, which are the two the catalog is navigated by.
+   up as a column of invisible rows, and an entry only appeared when the
+   pointer reached it and the selection highlight drew behind it.
 
    Naming the options is the whole fix: the closed control still takes its
-   transparent from the rule above, so the marquee is not doubled. Each matches
-   its own marquee — category blue, model green — so an open list is the color
-   of the readout it came from. */
+   transparent from the rule above, so the marquee is not doubled. */
 .selwrap>.selwin>option,.selwrap>.selwin>optgroup{color:#cfe6ff;text-shadow:none;}
-#model-sel-grp .csel-cat>option,#model-sel-grp .csel-cat>optgroup{color:#8fd0ff;}
-#model-sel-grp .csel-model>option,#model-sel-grp .csel-model>optgroup{color:#7fe0a0;}
 .selmarq{position:absolute;left:0;right:16px;top:0;bottom:0;display:flex;align-items:center;overflow:hidden;pointer-events:none;padding-left:6px;white-space:nowrap;font-family:"Courier New",monospace;font-weight:bold;font-size:calc(11px*var(--kscale,1));letter-spacing:.5px;color:#7fe0a0;text-shadow:0 0 4px #2a9a5a;}
 .selmarq>span{display:inline-block;}
 .selmarq.scroll>span{animation:selmarq 5s ease-in-out infinite alternate;}
@@ -815,7 +796,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 
 /* Console column (Model knob + actions) folded into the switches flow */
 .consec{align-items:center;min-width:120px;}
-.consec .modelsel-col{margin-top:2px;}
 .consec .console-btns{padding-left:0;margin-top:10px;align-self:flex-start;display:flex;}
 .consec>.swsec-hdr{align-self:stretch;}
 /* Template v3: real cells, standard vmrow flow; only chrome + overlays differ */

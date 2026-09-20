@@ -348,8 +348,6 @@ func wireWheelBindings() {
 			return nil
 		}))
 	}
-	bindWheelToSelect("cat-select")
-	bindWheelToSelect("model-select")
 	bindWheelToSelect("gradient-source")
 	bindWheelToSelect("gradient-colors")
 	// Also wheel-bind every numeric input the param panel builds.

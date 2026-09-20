@@ -1,130 +1,94 @@
 package attractor
 
-import (
-	"strings"
-	"testing"
-)
+import "testing"
 
-// Every model has to be reachable by turning the two console knobs, and nothing
+// Every model has to be reachable by turning one knob on one row, and nothing
 // else. That is a chain, and each link is a separate way to lose a model:
 //
-//	modeInfo  →  modeGroups  →  a category on the outer ring
-//	                         →  a position on the inner ring
+//	modeInfo  →  modeGroups  →  a category, which is a row
+//	                         →  a position on that row's rotary
 //
-// TestEveryModeIsInAGroup already guards the first link. These guard the rest,
-// which had gone unguarded — and one of them was already broken: the outer
-// ring's tooltip was a hand-written list that never mentioned Maps, so the
-// category added most recently was the one the control surface denied existed.
-// It is generated now, and what is left to check is the label table it reads.
+// TestEveryModeIsInAGroup already guards the first link. These guard the rest.
+//
+// They used to guard a different control: two concentric knobs on the Console,
+// the outer ring picking a category from a table of four-character tags. The
+// tags went with the knob — a dial ring has room for four characters and a row
+// header has room for the name — so what is left to check is the row, the
+// rotary, and the one line that says what the category is for.
 
-func TestEveryCategoryHasARingTag(t *testing.T) {
+func TestEveryCategoryRowHasABayAndATitle(t *testing.T) {
+	// A category with no row is a category whose models can only be reached
+	// by a permalink, because the rotary that offers them IS the row.
 	for _, g := range Catalog() {
-		tag, ok := catShortLabels[g.Label]
-		if !ok {
-			t.Errorf("category %q has no ring tag; it would print its full name around the knob", g.Label)
+		sec := categorySection(g.Label)
+		if !isCategorySection(sec) {
+			t.Errorf("category %q produced %q, which is not a model row", g.Label, sec)
 			continue
 		}
-		if tag == "" {
-			t.Errorf("category %q has an empty ring tag", g.Label)
+		if sectionRank(sec) >= len(sectionOrder) {
+			t.Errorf("category %q has no bay in the rack", g.Label)
 		}
-	}
-	// OFF is synthetic — it is not a catalog group — so it is checked apart.
-	if catShortLabels[nestedOffCat] == "" {
-		t.Error("the OFF position has no ring tag")
+		if sectionTitleOf(sec) == "" {
+			t.Errorf("category %q has no title to silkscreen on its row", g.Label)
+		}
 	}
 }
 
-func TestEveryCategoryHasARingTooltip(t *testing.T) {
-	// A ring label with no title of its own does not simply lack a tooltip: it
-	// shows its nearest titled ancestor's, which is the knob. So a missing entry
-	// here is a detent that claims to explain the whole control — the failure
-	// that was already live on this very ring, where the hand-written list had
-	// never mentioned Maps.
+func TestEveryCategoryHasAHeaderTooltip(t *testing.T) {
+	// The row header is the only thing on a row that says what the category
+	// is FOR — the rotary names models, and a list of model names does not
+	// add up to the idea. With no entry the header falls back to repeating
+	// its own label, which explains nothing.
 	for _, g := range Catalog() {
 		if catTooltips[g.Label] == "" {
-			t.Errorf("category %q has no ring tooltip; its detent would explain the knob instead", g.Label)
+			t.Errorf("category %q has no header tooltip; its row would only repeat its own name", g.Label)
 		}
-	}
-	if catTooltips[nestedOffCat] == "" {
-		t.Error("the OFF position has no ring tooltip")
 	}
 }
 
-func TestRingTooltipsAreDistinct(t *testing.T) {
-	// Two detents with the same sentence say nothing about either.
+func TestHeaderTooltipsAreDistinct(t *testing.T) {
+	// Two rows with the same sentence say nothing about either.
 	seen := map[string]string{}
 	for cat, tip := range catTooltips {
 		if prev, dup := seen[tip]; dup {
-			t.Errorf("categories %q and %q share the ring tooltip %q", prev, cat, tip)
+			t.Errorf("categories %q and %q share the header tooltip %q", prev, cat, tip)
 		}
 		seen[tip] = cat
 	}
 }
 
-func TestRingTagsAreDistinct(t *testing.T) {
-	// Two categories with the same tag is two detents that read identically:
-	// the model is still reachable, but only by turning past it and noticing.
-	seen := map[string]string{}
-	for cat, tag := range catShortLabels {
-		if prev, dup := seen[tag]; dup {
-			t.Errorf("categories %q and %q both print %q on the ring", prev, cat, tag)
-		}
-		seen[tag] = cat
-	}
-}
-
-func TestRingTagsFitBetweenTheDetents(t *testing.T) {
-	// The ring is a circle of a fixed size with one label per detent. Six
-	// characters is what SCOPE and SOLID take; more overlaps its neighbors.
-	const max = 6
-	for cat, tag := range catShortLabels {
-		if len(tag) > max {
-			t.Errorf("category %q has a %d-character tag %q; the ring fits %d", cat, len(tag), tag, max)
-		}
-		if strings.TrimSpace(tag) != tag {
-			t.Errorf("category %q has a padded tag %q", cat, tag)
-		}
-	}
-}
-
-func TestNoRingTagIsOrphaned(t *testing.T) {
-	// The other direction: a tag for a category that no longer exists is a
-	// detent that was renamed, and its models are now reachable only through
-	// whatever the fallback prints.
-	live := map[string]bool{nestedOffCat: true}
+func TestNoHeaderTooltipIsOrphaned(t *testing.T) {
+	// The other direction: a tooltip for a category that does not exist any
+	// more is a description nobody can reach, while the live row it was
+	// renamed to falls back to its own name.
+	live := map[string]bool{}
 	for _, g := range Catalog() {
 		live[g.Label] = true
 	}
-	for cat := range catShortLabels {
+	for cat := range catTooltips {
 		if !live[cat] {
-			t.Errorf("ring tag for %q, which is not a category any more", cat)
+			t.Errorf("header tooltip for %q, which is not a category any more", cat)
 		}
 	}
 }
 
-func TestEveryModelIsReachableFromTheKnobs(t *testing.T) {
-	// The whole requirement, stated once: for every registered mode there is a
-	// category on the outer ring, and the model is one of the positions the
-	// inner ring turns through when that category is selected.
-	//
-	// The knobs are built from these groups at runtime — the outer ring from
-	// the optgroups and the inner from their options — so a model in a group
-	// with a tagged category is a model two turns away.
+func TestEveryModelIsReachableFromItsRow(t *testing.T) {
+	// The whole requirement, stated once: every registered mode is offered by
+	// some row's rotary.
 	reach := map[string]string{}
 	for _, g := range Catalog() {
-		if _, tagged := catShortLabels[g.Label]; !tagged {
-			continue // reported by TestEveryCategoryHasARingTag
-		}
 		for _, m := range g.Models {
 			if m.Label == "" {
-				t.Errorf("%s/%s has no label; the inner ring would show a blank detent", g.Label, m.Key)
+				t.Errorf("%s/%s has no label; the rotary would read out a blank", g.Label, m.Key)
 			}
-			reach[m.Key] = g.Label
+			if _, dup := reach[m.Key]; !dup {
+				reach[m.Key] = g.Label
+			}
 		}
 	}
 	for key, info := range modeInfo {
 		if _, ok := reach[key]; !ok {
-			t.Errorf("mode %q (%s) cannot be reached by turning the console knobs", key, info.Label)
+			t.Errorf("mode %q (%s) is on no row's rotary and cannot be reached", key, info.Label)
 		}
 	}
 	if len(reach) != len(modeInfo) {
