@@ -405,7 +405,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* View & Motion: top-align the cells and drop each cell's primary knob into a
    fixed-height bay so the angle/speed/line/size knobs share one horizontal line
    regardless of how much the surrounding readouts add. */
-.vmrow{align-items:flex-start;}
 .vmbay{min-height:calc(94px*var(--kscale,1));display:flex;align-items:center;justify-content:center;}
 /* a label stacked directly above its knob */
 .knoblbl{flex-direction:column;align-items:center;gap:1px;position:relative;}
@@ -424,7 +423,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 #controls-panel.rack .pcell.axrot{border-left:none;}
 /* X/Y/Z dial cells sit three-across even in rack mode */
 #controls-panel.rack .vmaxrow{flex-direction:row;flex-wrap:wrap;justify-content:space-between;}
-.punit-grid{display:grid;grid-auto-flow:column;grid-template-rows:repeat(3,auto);gap:6px 16px;justify-items:center;align-items:start;}
 .punit{display:flex;flex-direction:column;align-items:center;gap:1px;}
 /* numeric centered above the knob, label pinned to its left (knobs share a column) */
 /* label + numeric as a centered inline pair sized to its CONTENT (not the cell)
@@ -558,7 +556,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .sect>.row{display:flex;flex-flow:column wrap;height:calc(var(--mod-h,474px) - 30px);align-content:flex-start;gap:4px 14px;}
 /* Same box, but .punit-grid is display:grid below — so it takes the size and
    the spacing and not the flex direction, which did nothing here. */
-.punit-grid{height:calc(var(--mod-h,474px) - 30px);align-content:flex-start;gap:4px 14px;}
 /* content items keep their size and WRAP into a new column instead of shrinking */
 .punit,.sect>.row>*{flex:0 0 auto;}
 /* Console: controls flow in aligned columns (switches flush-left), natural
@@ -716,7 +713,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* Knob grids use a real CSS GRID: up to 3 rows per column (the 4th param wraps
    to a 2nd column), columns sized to their content and centered — no flex-wrap
    column overlap, and fixed 144px rows keep triads aligned. */
-.punit-grid,.vmrow,.vmaxrow{display:grid!important;grid-template-rows:repeat(3,var(--krow))!important;grid-auto-flow:column!important;grid-auto-columns:var(--kcol)!important;justify-content:center!important;justify-items:center!important;align-content:start!important;gap:2px calc(16px*var(--kscale,1) + 4px)!important;height:auto!important;width:auto!important;}
 .punit{gap:0;}
 .punit-mod{margin-top:1px;}
 .punit-mod .knobstack.has-dial{margin:calc(4px*var(--kscale,1));}
@@ -725,7 +721,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    so the module is as narrow as the knob. */
 /* align-items, justify-content and gap all mean something in grid; the
    flex direction and wrap did not, and read as though they did. */
-.vmaxrow{align-items:center;justify-content:space-evenly;gap:4px;}
 .axrot{padding:0!important;align-items:center;}
 .axstack{flex-direction:column;align-items:center;gap:1px;}
 .axstack .led{font-size:9px;line-height:1.5;min-width:40px;padding:2px 2px;}
@@ -755,7 +750,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .vmbay{min-height:0;}
 /* Position / Speed / Line / Size: numeric below the knob (label · knob · value),
    spread to fill the module height. */
-.vmrow{gap:4px 8px;justify-content:space-evenly;}
 .vmrow .vmbay{flex-direction:column;align-items:center;gap:1px;}
 .vmrow .vmbay .numin{width:44px;text-align:center;}
 /* Position / Display cells: numeric LED above the knob (label pinned left), knob
@@ -769,7 +763,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* === ROW ALIGNMENT === View & Position primaries use the SAME 104px fixed,
    top-aligned, centered-control cells as the params / MOD / EQ grids, so each
    primary/MOD/EQ triad lines up row-for-row (control centered in every cell). */
-.vmaxrow,.vmrow{align-content:flex-start!important;justify-content:flex-start!important;}
 .axcol.axrot,.vmcell{height:var(--krow)!important;width:var(--kcol)!important;position:relative;justify-content:center!important;box-sizing:border-box;}
 .axcol.axrot .axstack{height:100%;justify-content:center;position:relative;width:100%;}
 .axstack .toprow{position:absolute!important;top:2px;left:0;right:0;margin:0!important;}
@@ -1450,9 +1443,46 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
  * a fraction would resolve against max-content and blow the module open.
  * Three rows are 3*krow + 2 gaps; six are 6h + 5 gaps, so h is krow/2 minus
  * half a gap. */
-.vmrow.meterrow{grid-template-rows:repeat(6,calc(var(--krow)/2 - 1px))!important;}
 .vmrow.meterrow>.pcell{grid-row:span 2;}
 /* A cell spans two rows only if it has a KNOB. Every knob is driven by a
  * hidden range input, so testing for the input marked cells that have no
  * knob on them at all — which is most of an analyzer. */
 .vmrow.meterrow>.pcell:not(:has(.knob)):not(:has(.knob-ring)){grid-row:span 1;}
+
+/* ── What a module row is ──────────────────────────────────────────────────
+ *
+ * This used to be an argument. .sect>.row declared every module row
+ * display:flex; this rule took it back with display:grid!important; and then
+ * three more rules disagreed about justify-content, two of them !important,
+ * with the winner decided by source order. Ten !important declarations in
+ * one rule, and the only way to know what a .vmrow actually was, was to ask
+ * the browser.
+ *
+ * So it is stated once, here, after everything that used to fight it. The
+ * values are exactly what the browser was computing when the old chain
+ * resolved — captured before the change and compared after — so this is a
+ * rewrite of the SOURCE and not of the layout.
+ *
+ * A module row is a grid of control cells: --krow tall, --kcol wide, filling
+ * a column downwards and starting a new one when it is full. A row that is
+ * NOT that (the Console's switch columns, the patchbay's pin matrix, the
+ * keybeds, the spectrogram) keeps the flex column it always had, and is
+ * matched by not being one of these.
+ */
+.punit-grid,.vmrow,.vmaxrow{
+  display:grid;
+  grid-template-rows:repeat(3,var(--krow));
+  grid-auto-flow:column;
+  grid-auto-columns:var(--kcol);
+  justify-items:center;
+  align-content:flex-start;
+  gap:2px calc(16px*var(--kscale,1) + 4px);
+  height:auto;width:auto;
+}
+/* The three differ only in how they sit in the space they are given. */
+.vmrow,.vmaxrow{justify-content:flex-start;}
+.punit-grid{justify-content:center;align-items:start;}
+.vmrow{align-items:flex-start;}
+.vmaxrow{align-items:center;}
+/* A meter's cells are half height; see the note where .meterrow is used. */
+.vmrow.meterrow{grid-template-rows:repeat(6,calc(var(--krow)/2 - 1px));}
