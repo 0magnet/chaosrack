@@ -192,7 +192,16 @@ func buildPatchbayModule(paramsSect js.Value) {
 		rows := []struct{ label, ch string }{{"ST", "mono"}, {"L", "L"}, {"R", "R"}}
 		grid := doc.Call("createElement", "div")
 		grid.Set("className", "mxgrid")
-		grid.Get("style").Set("gridTemplateColumns", "repeat("+strconv.Itoa(len(dests)+1)+",auto)")
+		// The row labels take what they need; the destinations SHARE what is
+		// left. Sized with auto they sized the module instead of being sized
+		// by it — and because the destination list changes with the model,
+		// the Patchbay's width changed with it too, which is how it came to
+		// be quantized to two slots while asking for 277px of them. A pin is
+		// a fixed 3.5mm and is centered in its column, so a narrow column
+		// bleeds it symmetrically into the gutter rather than clipping it.
+		grid.Get("style").Set("gridTemplateColumns",
+			"auto repeat("+strconv.Itoa(len(dests))+",minmax(0,1fr))")
+		grid.Get("style").Set("width", "100%")
 		grid.Call("appendChild", doc.Call("createElement", "span")) // corner
 		for _, d := range dests {
 			cl := doc.Call("createElement", "span")
