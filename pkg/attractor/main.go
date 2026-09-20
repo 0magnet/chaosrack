@@ -1037,10 +1037,17 @@ func Run() {
 		updatePhysVisibility() // a definite state before any mode change
 	}
 
-	// Power switch (default on): OFF stops the render loop and clears the model
-	// (canvas) to save GPU, but KEEPS the control panel; ON resumes rendering.
-	// Power is now the model selector's "OFF" position (the outer category knob's
-	// 6th detent) — see setPowerState, driven from buildNestedModelSelector.
+	// Power switch (default on): off stops the render loop and clears the
+	// canvas, which is what the GPU costs, but keeps the control panel — so
+	// every setting is still there to read and to change. A switch again: it
+	// had been folded into the model category knob's first detent, and when
+	// that knob moved to the rows it would have gone with it.
+	if sw := doc.Call("getElementById", "power-sw"); sw.Truthy() {
+		sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+			setPowerState(sw.Get("checked").Bool())
+			return nil
+		}))
+	}
 
 	// Fullscreen switch — on requests fullscreen, off exits. Kept in sync with
 	// the actual fullscreen state (fullscreenchange fires on Esc etc.).
@@ -1110,15 +1117,9 @@ func Run() {
 	buildParamPanel(selectedMode)
 	updateTrailVisibility()
 
-	// Model selector: two concentric detented rotary encoders — the outer ring
-	// picks the category (attractors / polyhedra / geometry / audio / custom),
-	// the inner knob the model within it. Two dropdowns below mirror them. The
-	// hidden #mode-select stays the single source of truth for all the rest of
-	// the code (permalink, param panel, render loop).
-	selWindow = doc.Call("getElementById", "sel-window")
-	updateSelWindow()
+	// One-time drag listeners for every selector knob in the panel, the
+	// category rows' rotaries included.
 	initSelKnobDrag()
-	buildNestedModelSelector()
 	// The saved arrangement goes back BEFORE the switches are built: the rack
 	// builds each one checked or not from its own hidden set, so restoring
 	// afterward gives a switch that says a module is in while it is out.

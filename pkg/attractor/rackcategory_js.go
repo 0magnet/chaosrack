@@ -68,11 +68,18 @@ func buildCategoryModule(label string) js.Value {
 	h := doc.Call("createElement", "div")
 	h.Set("className", "sect-hdr")
 	h.Set("textContent", label)
-	h.Set("title", label+" — the models in this category and the knob that picks one. "+
-		"Every category has a row of its own, so the model you are running is chosen where "+
-		"its controls are rather than from a single knob on the Console that changed what the "+
-		"whole instrument was. The rotaries interlock: choosing a model here puts the other "+
-		"rows to off, because the rack draws one model at a time.")
+	// What this category IS comes from the table beside the catalog, so the
+	// header says something about the models rather than repeating the same
+	// paragraph about rows eleven times. The paragraph follows it, once.
+	what := catTooltips[label]
+	if what == "" {
+		what = label
+	}
+	h.Set("title", what+"\n\nEvery category has a row of its own, so the model you are running "+
+		"is chosen where its controls are rather than from a single knob on the Console that "+
+		"changed what the whole instrument was. The rotaries interlock: choosing a model here "+
+		"puts the other rows to off, because the rack draws one model at a time. The row "+
+		"driving the rack carries that model's parameters and its monitor.")
 	mod.Call("appendChild", h)
 
 	row := doc.Call("createElement", "div")

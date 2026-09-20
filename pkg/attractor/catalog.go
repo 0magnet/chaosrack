@@ -79,57 +79,28 @@ func (c ModeClass) String() string {
 	return "unknown"
 }
 
-// nestedOffCat is the synthetic first outer-knob category: turning to it powers
-// the model off (replacing the old PWR switch). It holds no models, and it is
-// here rather than beside the knob so the label table below can name it.
-const nestedOffCat = "OFF"
-
-// catShortLabels maps a catalog group's label to the short tag printed around
-// the outer selector knob's ring.
+// catTooltips say what each category IS, one line per category.
 //
-// The TABLE lives here, beside the catalog it labels and with no build tag,
-// while the lookup that reads it stays with the knob — because everything worth
-// checking about this is pure data: that EVERY category has an entry, that no
-// two share a tag, and that each is short enough to fit between the detents. A
-// category with no entry falls through to its own name, and
-// "Sprott systems (1994)" wrapped around a knob ring is how that announces
-// itself. reachable_test.go is the guard so it never has to.
-var catShortLabels = map[string]string{
-	"Attractors":            "ATTR",
-	"Sprott systems (1994)": "SPRT",
-	"Maps":                  "MAPS",
-	"Scope":                 "SCOPE",
-	"Polyhedra":             "POLY",
-	"Geometry":              "GEO",
-	"Sequences":             "SEQ",
-	"Solids":                "SOLID",
-	"Audio":                 "AUD",
-	"Analysis":              "ANLY",
-	"Custom":                "CUST",
-	nestedOffCat:            "OFF",
-}
-
-// catTooltips say what each category IS, one per category, and are what the
-// short tag around the knob ring carries as its tooltip.
+// The row header carries it: a rack bay per model category, and the header
+// is the only thing on the row that names what the category is FOR. It used
+// to be the tooltip on a short tag around the Console's category knob, which
+// is where the table comes from and why it lives here, beside the catalog it
+// describes and with no build tag — everything worth checking about it is
+// pure data. reachable_test.go is the guard.
 //
-// Beside catShortLabels for the reason catShortLabels is here: a dial label with
-// no title of its own shows the KNOB's tooltip instead, so every one of the
-// twelve tags explained the category knob and none explained itself. The table
-// that had been written out beside the knob was missing Maps — the same
-// omission, in the same category, that the generated ring tooltip was added to
-// fix — because a second list of the categories is a second thing to forget.
-// reachable_test.go guards this one the way it guards the tags.
+// The short-tag table that used to sit beside this one went with the knob:
+// four-character labels like SPRT and ANLY existed only because a dial ring
+// has room for four characters, and a row header has room for the name.
 var catTooltips = map[string]string{
-	"Attractors":            "Attractors — chaotic flows (Lorenz, Rössler, Chua…) and your own equations",
-	"Sprott systems (1994)": "Sprott systems — the twenty simple chaotic flows of J. C. Sprott, 1994",
-	"Maps":                  "Maps — discrete iterated systems (Hénon, Ikeda, standard map…) rather than flows",
-	"Scope":                 "Scope — Lissajous figures, the Graphic Artist and the XY oscilloscope",
-	"Polyhedra":             "Polyhedra — the wireframe Platonic solids",
-	"Geometry":              "Geometry — sphere, torus, globe and magnetosphere",
+	"Attractors":            "Attractors — chaotic flows (Lorenz, Rössler, Chua…) integrated in three dimensions",
+	"Sprott systems (1994)": "Sprott systems — the twenty simple chaotic flows of J. C. Sprott, 1994, and a morph between them",
+	"Maps":                  "Maps — discrete iterated systems (Hénon, Ikeda, the standard map…) rather than flows",
+	"Scope":                 "Scope — what an oscilloscope draws: Lissajous figures, the Graphic Artist, and the audio displays",
+	"Polyhedra":             "Polyhedra — a Platonic seed and a Conway operator: 17 solids, including most of the Archimedeans and their duals",
+	"Geometry":              "Geometry — sphere, torus, globe and magnetosphere: surfaces rather than trajectories",
 	"Sequences":             "Sequences — the Turtle Path: an integer sequence read as turn-and-step",
-	"Solids":                "Solids — the STL viewer: a file from disk, or a built-in model",
-	"Audio":                 "Audio — spectrogram, XY scope, FVF wobbulator and the Takens embedding",
-	"Analysis":              "Analysis — the Bifurcation Explorer",
+	"Solids":                "Solids — the STL viewer: a file from disk, a terminal, or the whole desk as an object",
+	"Audio":                 "Audio — displays of the live signal: spectrogram, goniometer, the FVF wobbulator and the delay embeddings",
+	"Analysis":              "Analysis — measurements drawn as pictures: the bifurcation plot, Poincaré sections, recurrence, RTA, transfer and waterfall",
 	"Custom":                "Custom — type your own differential equations",
-	nestedOffCat:            "Power off — stop rendering and clear the display",
 }
