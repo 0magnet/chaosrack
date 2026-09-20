@@ -144,3 +144,78 @@ func skirtAngles(n int, sweepDeg float64) []float64 {
 	}
 	return out
 }
+
+// ── Fitting a ring into the cell it has to live in ──────────────────────────
+//
+// A skirt is sized by its legends: enough radius to clear the grip and to
+// keep neighboring labels apart. Nothing in that says the result fits the
+// control cell, and for the widest legends it did not — Model Out's
+// off/CAM/XY/XZ/YZ ring reached 25px past its cell and into the next
+// control's space, and the step/fine ring 23px.
+//
+// Which lever to pull is a question Woodson & Conover already answer. Knob
+// size is given as a RANGE, not a value: "the preferred size is between 0.5
+// and 2 inches in diameter, 0.75 inch being normal" (2nd ed. §2-103). So a
+// crowded ring may take its room from the grip, because a slightly smaller
+// knob is still a correctly sized knob. Only when that is spent does the
+// legend itself shrink, and only to the point where it is still a legend.
+//
+// This matters more as the panel gains rotaries. A rotary switch says what
+// every one of its positions is without being touched, which a toggle cannot;
+// it is the right control wherever there are more than two settings, and the
+// reason not to use one should never be that its legend does not fit.
+
+// skirtMinGripFrac is how far the grip may shrink to make room, as a
+// fraction of its natural radius. 0.62 takes the panel's usual 38px knob to
+// 23.5px, which at this panel's scale is still inside §2-103's range.
+const skirtMinGripFrac = 0.62
+
+// skirtMinLabelScale is how far a legend may shrink once the grip is spent.
+// Below about three quarters the 8px face type stops being readable at arm's
+// length, which is the whole purpose of silkscreening it.
+const skirtMinLabelScale = 0.75
+
+// skirtScaleLabels is labs with every box scaled — the legends set in
+// smaller type, at the same angles.
+func skirtScaleLabels(labs []skirtLabel, s float64) []skirtLabel {
+	out := make([]skirtLabel, len(labs))
+	for i, l := range labs {
+		out[i] = skirtLabel{W: l.W * s, H: l.H * s, Deg: l.Deg}
+	}
+	return out
+}
+
+// skirtFit is the grip radius and legend scale at which this ring fits
+// inside maxOuter.
+//
+// maxOuter of zero or less means unconstrained, which is the honest answer
+// when the cell has not been measured yet: an unmeasured cell must not shrink
+// a knob to nothing.
+func skirtFit(grip, gap, maxOuter float64, labs []skirtLabel) (useGrip, scale float64) {
+	fits := func(g, s float64) bool {
+		sc := skirtScaleLabels(labs, s)
+		return skirtOuter(skirtRadius(g, gap, sc), sc) <= maxOuter
+	}
+	if maxOuter <= 0 || len(labs) == 0 || fits(grip, 1) {
+		return grip, 1
+	}
+	// First lever: a smaller grip.
+	minGrip := grip * skirtMinGripFrac
+	for i := 1; i <= 8; i++ {
+		g := grip - (grip-minGrip)*float64(i)/8
+		if fits(g, 1) {
+			return g, 1
+		}
+	}
+	// Second: smaller legends, with the grip already at its floor.
+	for i := 1; i <= 8; i++ {
+		s := 1 - (1-skirtMinLabelScale)*float64(i)/8
+		if fits(minGrip, s) {
+			return minGrip, s
+		}
+	}
+	// Both spent. Return the smallest of each: the ring still overhangs, but
+	// by as little as this panel is willing to make it, and an overhang that
+	// is visible is better than a legend that cannot be read.
+	return minGrip, skirtMinLabelScale
+}
