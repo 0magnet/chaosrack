@@ -839,12 +839,6 @@ func Run() {
 		return nil
 	}))
 
-	// Event: built-in test-tone generator (loops through the server's capture).
-	doc.Call("getElementById", "test-tone").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		setTestTone(doc.Call("getElementById", "test-tone").Get("checked").Bool())
-		return nil
-	}))
-
 	// Event: points/line toggle
 	doc.Call("getElementById", "use-points").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
 		usePoints = doc.Call("getElementById", "use-points").Get("checked").Bool()
@@ -1750,7 +1744,7 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 		def bool
 	}{
 		{"spect-fill", false}, {"audio-mod", false},
-		{"test-tone", false}, {"fg-on", false}, {"spectro-skin", false},
+		{"fg-on", false}, {"spectro-skin", false},
 		{"tpl-on", false}, {"handles-on", false}, {"desk-pass", false}, {"desk-contain", false},
 		{"rhythm-run", false}, {"jam-sw", false}, {"show-meters", true},
 		{"ring-sw", false}, {"twin-sw", false}, {"sect-sw", false},

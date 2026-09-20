@@ -61,9 +61,15 @@ func runDemo() {
 	c.Eval(`Object.keys(localStorage).filter(function(k){return k.indexOf('wasmstuff-')===0;}).forEach(function(k){localStorage.removeItem(k);})`)
 	c.Eval(`location.hash='#lorenz&rot=20,0,0'`)
 	c.Reload(3 * time.Second)
-	// Test tone on for the whole run so the spectrogram / xy / FVF modes and
-	// the audio backdrops have live content even on a silent feed.
-	c.Eval(`(function(){var t=document.getElementById('test-tone');if(t&&!t.checked){t.checked=true;t.dispatchEvent(new Event('change',{bubbles:true}));}})()`)
+	// A test signal on for the whole run so the spectrogram / xy / FVF modes
+	// and the audio backdrops have live content even on a silent feed.
+	//
+	// The Test module's own sweep, which is generated inside the page and
+	// reaches the analysis chain directly. The switch this replaced played a
+	// tone out of the speakers and got it back only if the server happened to
+	// be capturing the machine's monitor mix, so the demo had live content on
+	// one kind of host and silence on another.
+	c.Eval(`(function(){var s=document.getElementById('testsig-sel');if(s){s.value='3';s.dispatchEvent(new Event('change',{bubbles:true}));}})()`)
 	// WebAudio kickstart with a REAL click (the autoplay gesture): engage
 	// Model Out on the CAM ring so the attractor is HEARD — the soundtrack
 	// tracks the visuals. Must happen before the panel is hidden.
