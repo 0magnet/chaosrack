@@ -1405,11 +1405,12 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    the per-section tint below is the patterning. Silkscreened on the bay and
    not on the cards, because it is a fact about the BAY: it stays true when
    the cards in it are rearranged. */
-.runit-label{position:absolute;top:calc(-1px*var(--kscale,1));left:calc(20px*var(--kscale,1));
-  z-index:4;pointer-events:none;
+.runit-label{position:absolute;top:0;height:calc(9px*var(--kscale,1));
+  z-index:4;pointer-events:none;display:flex;align-items:center;
   font-family:'Chakra Petch',sans-serif;font-size:calc(7px*var(--kscale,1));
   letter-spacing:0.22em;color:#7f8a94;
-  padding:0 calc(4px*var(--kscale,1));background:#23272b;border-radius:0 0 2px 2px;}
+  padding:0 calc(4px*var(--kscale,1));
+  border-bottom:1px solid currentColor;opacity:.75;}
 .rack-frame:not(.with-bay) .runit-label{display:none;}
 /* Area color patterning, Tektronix-style: one hue per section, carried on
    the bay's own edge rather than on the controls, so it groups without
@@ -1423,3 +1424,18 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .runit[data-section="display"]{border-left-color:#4f7f8f;}
 .runit[data-section="output"]{border-left-color:#9f5f4f;}
 .runit[data-section="utility"]{border-left-color:#4a5058;}
+/* The label is coloured by its section, and the rule under it marks the
+   span — so a bay carrying three groups shows three marked outlines rather
+   than one name that is two-thirds wrong. */
+.runit-open{position:relative;}
+.runit-label[data-section="console"]{color:#8a94a0;}
+.runit-label[data-section="input"]{color:#6faf8f;}
+.runit-label[data-section="analyze"]{color:#6f9fcf;}
+.runit-label[data-section="mod"]{color:#bf9f6f;}
+.runit-label[data-section="model"]{color:#af7faf;}
+.runit-label[data-section="display"]{color:#7fafbf;}
+.runit-label[data-section="output"]{color:#cf8f7f;}
+.runit-label[data-section="utility"]{color:#7a8088;}
+/* The bay's left-edge tint was the per-section marker when a bay held one
+   section. It holds several now, so the edge goes back to plain frame. */
+.rack-frame.with-bay > .runit[data-section]{border-left-width:1px;}

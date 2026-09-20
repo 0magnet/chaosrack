@@ -270,7 +270,6 @@ func relayoutUnits() {
 	}
 
 	// Blanks first: they are the previous pass's and belong to nothing now.
-	prevSection := ""
 	clearUnitBlanks(f)
 	for ui, idx := range units {
 		open := opens[ui]
@@ -284,11 +283,20 @@ func relayoutUnits() {
 		}
 		// A rack does not have a ragged gap at the end of a row; it has
 		// blank panels, cut to the same widths.
-		sec := unitSection(items, idx)
-		labelUnit(open.Call("closest", "."+unitClass), sec, sec == prevSection)
-		prevSection = sec
 		for b := unitBlankSlots(slots, idx, unitCapacitySlots()); b > 0; b-- {
 			open.Call("appendChild", unitBlank())
+		}
+	}
+	// Labels in a SECOND pass, after every module has been re-parented.
+	// Their positions are measured off the modules they name, and while
+	// the first pass is still running the bays it has not reached yet
+	// hold last layout's modules — so a label measured then is placed
+	// against a layout that is about to change. Measured: every label
+	// in the rack offset by exactly the span of the runs before it, and
+	// two of them computing a non-positive width and being dropped.
+	for ui, idx := range units {
+		if ui < len(opens) {
+			labelRuns(opens[ui], sectionRuns(items, idx), mods, idx)
 		}
 	}
 	syncUnitRacks()
@@ -599,44 +607,75 @@ func moduleKeyOf(m js.Value) string {
 	return strings.ToLower(strings.TrimSpace(h.Get("textContent").String()))
 }
 
-// labelUnit silkscreens the bay's name on it.
+// labelRuns silkscreens each section's name over the modules it covers.
 //
-// On the unit and not on the modules, because the name is a fact about the
-// BAY: it says what this row of the rack is for, and it stays true when the
-// cards in it are rearranged. Woodson & Conover list "marked outlines
-// around each group" and "area color patterning" as the ways to identify a
-// group on a panel (§2-133); this is the outline, and the section color is
-// the patterning.
-func labelUnit(u js.Value, section string, continued bool) {
-	old := u.Call("querySelector", ":scope > .runit-label")
-	if old.Truthy() {
-		old.Call("remove")
+// Per run and not per bay, because a bay carries several sections now: one
+// label on a row holding three groups would be two-thirds wrong. This is
+// Woodson & Conover's way of identifying a group inside a row rather than
+// by giving it a row of its own — "adequate spacing of display or control
+// groups... marked outlines around each group... area color patterning"
+// (§2-133). The label is the name, the tinted rule under it is the
+// outline, and the section color is the patterning.
+//
+// Positioned over the run's own modules, measured after they have been
+// placed, so a label sits above what it names whatever the widths are.
+func labelRuns(open js.Value, runs []sectionRun, mods []js.Value, idx []int) {
+	old := open.Call("querySelectorAll", ":scope > .runit-label")
+	for i := 0; i < old.Get("length").Int(); i++ {
+		old.Index(i).Call("remove")
 	}
-	u.Get("dataset").Set("section", section)
-	title := sectionTitle[section]
-	if title == "" {
-		return
+	for _, r := range runs {
+		title := sectionTitle[r.Section]
+		if title == "" || r.Count < 1 {
+			continue
+		}
+		// The FIRST AND LAST VISIBLE module of the run, not the first and
+		// last of it. A run carries the modules that are switched out too
+		// — they pack at zero width and keep their place — and those have
+		// no position at all, so a run ending in one measured a negative
+		// width and was silently dropped. GENERATOR and UTILITY lost their
+		// labels that way, both being sections whose tail is mode-specific
+		// modules that are usually off.
+		a, b := js.Value{}, js.Value{}
+		for n := r.From; n < r.From+r.Count && n < len(idx); n++ {
+			m := mods[idx[n]]
+			if !m.Truthy() || m.Get("offsetParent").IsNull() {
+				continue
+			}
+			if !a.Truthy() {
+				a = m
+			}
+			b = m
+		}
+		if !a.Truthy() || !b.Truthy() {
+			continue // every module in this run is switched out
+		}
+		left := a.Get("offsetLeft").Float()
+		width := b.Get("offsetLeft").Float() + b.Get("offsetWidth").Float() - left
+		if width <= 0 {
+			continue
+		}
+		l := doc.Call("createElement", "div")
+		l.Set("className", "runit-label")
+		l.Get("dataset").Set("section", r.Section)
+		l.Set("textContent", title)
+		l.Set("title", title+" — one of the sections this bay carries. "+
+			"See docs/signal-flow.md: the bays run in signal order, and a "+
+			"control sits in the same row as the thing it affects.")
+		st := l.Get("style")
+		st.Set("left", pxStr(left))
+		st.Set("width", pxStr(width))
+		open.Call("appendChild", l)
 	}
-	l := doc.Call("createElement", "div")
-	l.Set("className", "runit-label")
-	if continued {
-		// A section wider than a bay runs into the next one. Saying so
-		// beats two bays with the same name, which reads as a mistake.
-		title += " (CONT)"
-	}
-	l.Set("textContent", title)
-	l.Set("title", "This bay holds the "+title+" section — see docs/signal-flow.md. "+
-		"A bay holds one section: the label has to be true of everything in it.")
-	u.Call("insertBefore", l, u.Get("firstChild"))
 }
 
 // groupBySection reorders the modules so each section's are contiguous,
 // keeping their relative order inside it.
 //
-// This is what makes a bay's label reliable: a section appears exactly
-// once, so there is never a second bay with the same name further down. It
-// also means an empty section produces no bay at all, rather than a labeled
-// row of blanks.
+// This is what makes a label reliable: a section appears in exactly one
+// run, so there is never a second label with the same name further down
+// the rack. It also means an empty section produces no label at all,
+// rather than a name over a stretch of blank panel.
 func groupBySection(items []packItem, mods []js.Value) ([]packItem, []js.Value) {
 	outItems := make([]packItem, 0, len(items))
 	outMods := make([]js.Value, 0, len(mods))
@@ -663,10 +702,9 @@ func groupBySection(items []packItem, mods []js.Value) ([]packItem, []js.Value) 
 
 // hideEmptyUnits puts away a bay with nothing switched on in it.
 //
-// A section whose every module is switched out would otherwise draw as a
-// labeled row of twelve blank panels — a bay advertising a section that is
-// not there. The modules stay parented in it, so switching one back on
-// brings the bay back with it.
+// A bay whose every module is switched out would otherwise draw as a row
+// of twelve blank panels with nothing in it. The modules stay parented
+// there, so switching one back on brings the bay back with it.
 func hideEmptyUnits(f js.Value) {
 	us := f.Call("querySelectorAll", ":scope > ."+unitClass)
 	for i := 0; i < us.Get("length").Int(); i++ {

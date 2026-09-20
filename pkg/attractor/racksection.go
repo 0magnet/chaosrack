@@ -132,13 +132,33 @@ type packItem struct {
 	Section string
 }
 
-// packBySection assigns modules to units, one section per unit.
+// unitSection is the bay a packed unit belongs to, which is the section of
+// whatever is in it. Empty for an empty unit.
+func unitSection(items []packItem, idx []int) string {
+	for _, i := range idx {
+		if i >= 0 && i < len(items) {
+			return items[i].Section
+		}
+	}
+	return ""
+}
+
+// packBySection assigns modules to bays, fitting as many sections into a
+// bay as will go.
 //
-// Within a section it is the same fill-and-overflow as before — cards go in
-// left to right until the next does not fit. Between sections it always
-// breaks, even with room to spare, because a bay that holds the tail of the
-// analysis rack and the head of the modulation rack is a bay whose label
-// would have to be a lie.
+// It used to break at every section, which made the labels honest and the
+// rack empty: ten bays, twenty-six modules and 69 blank slots of 120 — 58%
+// of the rack was blank panel. Most sections are nowhere near 84 HP wide,
+// and a bay per section spends a whole row on a section holding one module.
+//
+// So a bay carries several sections now, each marked over its own span.
+// That is what a real 84 HP row looks like — several functional groups
+// sharing it — and it is Woodson & Conover's own answer for identifying a
+// group WITHIN a row rather than by giving it a row: "adequate spacing of
+// display or control groups... marked outlines around each group... area
+// color patterning" (§2-133). Only the break rule changed; a section still
+// never interleaves with another, because groupBySection has already made
+// each one contiguous.
 func packBySection(items []packItem, capacity int) [][]int {
 	if capacity < 1 {
 		capacity = 1
@@ -146,7 +166,6 @@ func packBySection(items []packItem, capacity int) [][]int {
 	var units [][]int
 	var cur []int
 	used := 0
-	section := ""
 	flush := func() {
 		if len(cur) > 0 {
 			units = append(units, cur)
@@ -158,16 +177,11 @@ func packBySection(items []packItem, capacity int) [][]int {
 		if w < 0 {
 			w = 0
 		}
-		if len(cur) > 0 && it.Section != section {
-			flush()
-		}
-		section = it.Section
 		if w > capacity {
-			// Too big for any unit. Its own, overhanging — visible, which is
+			// Too big for any bay. Its own, overhanging — visible, which is
 			// the right outcome for a thing that genuinely does not fit.
 			flush()
 			units = append(units, []int{i})
-			section = ""
 			continue
 		}
 		if used+w > capacity && len(cur) > 0 {
@@ -180,13 +194,31 @@ func packBySection(items []packItem, capacity int) [][]int {
 	return units
 }
 
-// unitSection is the bay a packed unit belongs to, which is the section of
-// whatever is in it. Empty for an empty unit.
-func unitSection(items []packItem, idx []int) string {
-	for _, i := range idx {
+// sectionRun is one section's stretch inside a bay: where it starts among
+// the bay's modules, and how many of them it covers.
+type sectionRun struct {
+	Section string
+	From    int // index into the unit's own module list
+	Count   int
+}
+
+// sectionRuns splits a bay into the sections it carries, in order.
+//
+// A bay with three groups in it needs three labels, each over the modules
+// it names — one label on a bay holding three sections would be a label
+// that is two-thirds wrong.
+func sectionRuns(items []packItem, idx []int) []sectionRun {
+	var out []sectionRun
+	for n, i := range idx {
+		sec := ""
 		if i >= 0 && i < len(items) {
-			return items[i].Section
+			sec = items[i].Section
 		}
+		if len(out) > 0 && out[len(out)-1].Section == sec {
+			out[len(out)-1].Count++
+			continue
+		}
+		out = append(out, sectionRun{Section: sec, From: n, Count: 1})
 	}
-	return ""
+	return out
 }
