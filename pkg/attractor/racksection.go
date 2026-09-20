@@ -104,6 +104,11 @@ var sectionTitle = map[string]string{
 // landing in whatever bay it was declared next to.
 var moduleSections = map[string]string{
 	"console": secConsole,
+	// The bank of idle category rotaries. CONSOLE because that is what this
+	// section has always been for — "model choice and global acts" — and the
+	// rotary of the model actually running is not in here: it moves to the
+	// model's own row, which is what the Model module below is.
+	"models": secConsole,
 
 	"test": secInput,
 
@@ -119,6 +124,7 @@ var moduleSections = map[string]string{
 	// The model, and the per-mode front panels that are its own controls.
 	// secModel means "part of the instrument rather than of the rack", and
 	// moduleSection turns that into the running model's category row.
+	"model":      secModel,
 	"monitor":    secModel,
 	"parameters": secModel,
 	"patch":      secModel,
@@ -227,23 +233,32 @@ func packBySection(items []packItem, capacity int) [][]int {
 	if capacity < 1 {
 		capacity = 1
 	}
-	// A model row takes a bay of its own only while it IS one. A category
-	// row carrying its model's parameters and its monitor is a whole
-	// instrument, and reading it means reading one row rather than finding
-	// where in a shared row it starts. A category row carrying nothing but
-	// its rotary is a SELECTOR, and eleven selectors on eleven rows of their
-	// own is how the rack reached 17 bays and 63% blank panel.
+	// The running model's row is KEPT TOGETHER: its rotary, its parameters
+	// and its monitor are one instrument, and reading it across a bay break
+	// means reading half a front panel and then hunting for the rest.
 	//
-	// Counted rather than asked, so the rule stays a property of what is in
-	// the rack: the row the running model's panels have been filed into is
-	// the row with more than one module in it.
-	inSection := map[string]int{}
+	// Kept together is not the same as given a bay. It was given one, and
+	// that cost a whole bay of blank panel: the forced break left whatever
+	// came before it stranded — measured, the Patchbay alone in a bay with
+	// nine blank slots, 74 slots of content in 8 bays where 7 hold it. So
+	// the row starts a fresh bay only when it will not fit in what is left
+	// of this one, which is the ordinary keep-together rule and wastes
+	// nothing when it does fit.
+	//
+	// Counted rather than asked, so it stays a property of what is in the
+	// rack rather than of which mode is running: the category section that
+	// holds more than its own rotary is the one the model's panels went to.
+	inSection, slotsIn := map[string]int{}, map[string]int{}
 	for _, it := range items {
-		if isCategorySection(it.Section) {
-			inSection[it.Section]++
+		if !isCategorySection(it.Section) {
+			continue
+		}
+		inSection[it.Section]++
+		if it.Slots > 0 {
+			slotsIn[it.Section] += it.Slots
 		}
 	}
-	ownBay := func(sec string) bool { return isCategorySection(sec) && inSection[sec] > 1 }
+	keepTogether := func(sec string) bool { return isCategorySection(sec) && inSection[sec] > 1 }
 	var units [][]int
 	var cur []int
 	used := 0
@@ -259,7 +274,8 @@ func packBySection(items []packItem, capacity int) [][]int {
 		if w < 0 {
 			w = 0
 		}
-		if it.Section != last && (ownBay(it.Section) || ownBay(last)) {
+		if it.Section != last && keepTogether(it.Section) &&
+			used > 0 && used+slotsIn[it.Section] > capacity {
 			flush()
 		}
 		last = it.Section
