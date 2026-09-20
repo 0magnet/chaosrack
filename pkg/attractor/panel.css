@@ -1397,3 +1397,29 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    must carry (see skirt.go, after Woodson & Conover §2-104), and is written
    as an inline size by layoutSkirts. A stylesheet rule here would only
    fight it. */
+
+/* The bay label: which section of the rack this unit is.
+   Woodson & Conover list three ways to identify a group on a panel
+   (§2-133) — spacing, "marked outlines around each group", and "area color
+   patterning". The unit's frame is the outline; this is the name on it, and
+   the per-section tint below is the patterning. Silkscreened on the bay and
+   not on the cards, because it is a fact about the BAY: it stays true when
+   the cards in it are rearranged. */
+.runit-label{position:absolute;top:calc(-1px*var(--kscale,1));left:calc(20px*var(--kscale,1));
+  z-index:4;pointer-events:none;
+  font-family:'Chakra Petch',sans-serif;font-size:calc(7px*var(--kscale,1));
+  letter-spacing:0.22em;color:#7f8a94;
+  padding:0 calc(4px*var(--kscale,1));background:#23272b;border-radius:0 0 2px 2px;}
+.rack-frame:not(.with-bay) .runit-label{display:none;}
+/* Area color patterning, Tektronix-style: one hue per section, carried on
+   the bay's own edge rather than on the controls, so it groups without
+   competing with the functional colour of a knob. */
+.rack-frame.with-bay > .runit[data-section]{border-left-width:calc(3px*var(--kscale,1));}
+.runit[data-section="console"]{border-left-color:#5a6470;}
+.runit[data-section="input"]{border-left-color:#3f7f5f;}
+.runit[data-section="analyze"]{border-left-color:#3f6f9f;}
+.runit[data-section="mod"]{border-left-color:#8f6f3f;}
+.runit[data-section="model"]{border-left-color:#7f4f7f;}
+.runit[data-section="display"]{border-left-color:#4f7f8f;}
+.runit[data-section="output"]{border-left-color:#9f5f4f;}
+.runit[data-section="utility"]{border-left-color:#4a5058;}
