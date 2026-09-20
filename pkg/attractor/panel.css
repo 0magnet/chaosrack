@@ -803,7 +803,11 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* The pin matrix is on a 0.2 in (5.08 mm) grid — the same pitch as HP, and a
    standard pitch for a matrix board. The gap is the pitch less the head, so
    the pitch is the thing that is specified and the gap follows from it. */
-.mxgrid{display:grid;gap:calc(1.58*var(--mm));align-items:center;justify-items:center;margin-top:calc(1.5*var(--mm));}
+/* The gap stays 1.58mm: 3.5mm of pin head plus 1.58mm of gap is 5.08mm,
+   which is one HP exactly, and rackspec has a test that says so. The matrix
+   is made to fit by sharing the width between its columns instead — see
+   patchbay_js.go — so box-sizing and a ceiling are all that is needed here. */
+.mxgrid{display:grid;gap:calc(1.58*var(--mm));align-items:center;justify-items:center;margin-top:calc(1.5*var(--mm));box-sizing:border-box;max-width:100%;}
 /* A matrix PIN, 3.5 mm across the head — not a jack. It had been 3.25 mm on
    a 4.5 mm pitch, which is no grid at all and reads as an undersized socket. */
 .mxpin{width:calc(3.5*var(--mm));height:calc(3.5*var(--mm));border-radius:50%;border:1px solid #4a5560;background:#141a21;cursor:pointer;box-sizing:border-box;}
