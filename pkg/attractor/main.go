@@ -1123,7 +1123,11 @@ func Run() {
 	// afterward gives a switch that says a module is in while it is out.
 	restoreRackLayout()
 	restoreRackBay()
-	wireScopeUnit()   // the scope is a unit, so it has its own switch, not a module switch
+	wireScopeUnit() // the scope is a unit, so it has its own switch, not a module switch
+	// One row per model category, each with the rotary that selects within
+	// it. Before the first layout pass, so the rows are packed with
+	// everything else rather than appearing after it.
+	buildCategoryModules()
 	wireScreenPower() // BEAM and the two Monitor switches: a screen you are not watching costs nothing
 	wireModuleDrag()
 	// Source and map: two knobs in two cells, each with its own ring and its own

@@ -395,6 +395,9 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 	// Which rings apply depends on the model: a display built from one quantity
 	// has no source to choose, so the src knob dims in those modes.
 	updateGradientUI()
+	// The model's own row shows it and every other row shows off, whatever
+	// moved the model — this knob, a permalink, a preset, the jam performer.
+	syncCategoryRotaries()
 	// No refreshGradient here. Armed above and taken by the first frame that
 	// actually uploads: scanning now would scan the previous model whenever this
 	// mode's generate has not drawn yet, which is every audio mode.
