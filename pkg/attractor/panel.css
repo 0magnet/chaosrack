@@ -1483,3 +1483,18 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .vmaxrow{align-items:center;}
 /* A meter's cells are half height; see the note where .meterrow is used. */
 .vmrow.meterrow{grid-template-rows:repeat(6,calc(var(--krow)/2 - 1px));}
+
+/* A model-category cell names a CATEGORY, and category names are words —
+   several of them in one case. Every other cell label is a symbol or a
+   three-letter abbreviation and reads vertically down the left edge, which is
+   right for those and wrong for these: "SPROTT SYSTEMS" set upright is
+   fourteen letters tall and runs off the bottom of a 160px cell. So the
+   label reads across the cell, centered over the knob it names, and wraps
+   rather than overflowing — the same exception .mlbl already makes for a
+   header above a knob, plus the wrapping these need and that does not. */
+.modules .catcell>.punit-top{position:static;width:100%;}
+.modules .catcell>.punit-top>.plabel{
+  position:static!important;
+  writing-mode:horizontal-tb;text-orientation:mixed;
+  white-space:normal;text-align:center;width:100%;
+}

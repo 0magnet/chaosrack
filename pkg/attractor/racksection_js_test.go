@@ -37,10 +37,10 @@ func TestEveryBayNamesAModuleThatExists(t *testing.T) {
 	for _, k := range declaredModuleKeys(t) {
 		have[k] = true
 	}
-	// Built at runtime (buildPatchbayModule, buildTemplateModule) rather than
-	// declared in the markup, so the parser
-	// below cannot see them.
-	for _, k := range []string{"patchbay", "template"} {
+	// Built at runtime rather than declared in the markup, so the parser
+	// below cannot see them: the Patchbay, the Template legend, and the two
+	// model selectors (buildCategoryModules).
+	for _, k := range []string{"patchbay", "template", "models", "model"} {
 		have[k] = true
 	}
 	for k := range moduleSections {

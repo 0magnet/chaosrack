@@ -142,10 +142,12 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 		selectedMode = sel.Get("value").String()
 	}
 	// Which row is the instrument, before anything rebuilds: the model's own
-	// panels are filed into its category's row, and buildParamPanel below
-	// re-measures and re-packs the rack. Set after that, every panel would be
-	// packed into the row the PREVIOUS model was in.
-	setActiveCategory(selectedMode)
+	// panels and its rotary are filed into its category's row, and
+	// buildParamPanel below re-measures and re-packs the rack. Done after
+	// that, every one of them is packed into the row the PREVIOUS model was
+	// in. syncCategoryRotaries at the end of this function does it again,
+	// with the knob positions; this half moves no knobs and fires nothing.
+	homeCategoryCells()
 	// Whether the model is drawn in two halves depends on the mode as well as
 	// the knob, so the canvases have to be reconsidered here — not only when
 	// the knob moves.
