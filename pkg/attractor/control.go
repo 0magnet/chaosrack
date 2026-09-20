@@ -243,7 +243,7 @@ func (c *Control) annotate() {
 		ctl := cellCtl(c.cell, c.module)
 		help := cellHelp(c.cell)
 		stampAll(c.cell, ".plabel:not(.ledcolor-lbl), .u-lbl", withHelp(ctl+sep+"label", help))
-		stampAll(c.cell, ".led:not(.pal-hex)", withHelp(ctl+sep+"LED readout", help))
+		stampLEDs(c.cell, c.module, ctl, help)
 		stampAll(c.cell, "input[type=range]", ctl+sep+"slider")
 		stampAll(c.cell, ".rst", ctl+sep+"reset")
 		stampAll(c.cell, ".eqstrip", ctl+sep+"audio EQ (drag to pick frequency bands)")
@@ -267,4 +267,58 @@ func (c *Control) annotate() {
 // applyCRTDim dims (or restores) this control if a phosphor overrides it.
 func (c *Control) applyCRTDim(crt bool) {
 	c.cell.Get("classList").Call("toggle", "crt-dim", c.crtOverride && crt)
+}
+
+// stampLEDs names each readout in a cell, one at a time.
+//
+// A cell can carry TWO readouts. The Loudness module shows momentary beside
+// short-term, integrated beside loudness range, target beside the distance
+// from it; Distortion shows SINAD beside ENOB; Wow & Flutter shows wow beside
+// flutter. Named from the cell's single label — which is what stamping them
+// all at once did — the second one claimed to be the first: the short-term
+// readout's tooltip said "Loudness / M / LED readout". That is worse than no
+// tooltip, and it is the same bug the step/fine cell above is special-cased
+// for.
+//
+// So a readout with a label of its own is named by it, and the description
+// the markup gave it is kept rather than replaced. Those descriptions are the
+// only place the panel says what ENOB is, or which window "S" averages over,
+// and the stamp was destroying every one of them.
+func stampLEDs(cell js.Value, module, ctl, help string) {
+	leds := cell.Call("querySelectorAll", ".led:not(.pal-hex)")
+	for i := 0; i < leds.Get("length").Int(); i++ {
+		l := leds.Index(i)
+		name := ctl
+		if own := ledOwnLabel(l); own != "" {
+			name = module + sep + own
+		}
+		l.Set("title", withHelp(name+sep+"LED readout", ledDescription(l, help)))
+	}
+}
+
+// ledOwnLabel is the readout's own label, where it has one.
+func ledOwnLabel(led js.Value) string {
+	prev := led.Get("previousElementSibling")
+	if prev.Truthy() && prev.Get("classList").Call("contains", "ledlbl").Bool() {
+		return strings.TrimSpace(prev.Get("textContent").String())
+	}
+	return ""
+}
+
+// ledDescription is what the markup said this readout means.
+//
+// Captured on the first stamp, because the stamp is what overwrites it, and
+// annotate runs again on every panel rebuild.
+func ledDescription(led js.Value, fallback string) string {
+	if d := led.Call("getAttribute", "data-help"); d.Truthy() {
+		if s := d.String(); s != "" {
+			return s
+		}
+	}
+	t := strings.TrimSpace(led.Get("title").String())
+	if t == "" || strings.Contains(t, sep+"LED readout") {
+		return fallback // nothing authored, or already stamped by an earlier pass
+	}
+	led.Call("setAttribute", "data-help", t)
+	return t
 }
