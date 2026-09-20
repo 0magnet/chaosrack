@@ -2,38 +2,6 @@ package attractor
 
 import "testing"
 
-// A bay holds one section. That is the whole point of the grouping: the
-// label on a unit has to be true of everything in it, and a bay holding the
-// tail of one section and the head of the next has a label that lies.
-func TestABayHoldsOneSection(t *testing.T) {
-	items := []packItem{
-		{2, secInput}, {1, secInput},
-		{2, secAnalyze}, {2, secAnalyze}, {1, secAnalyze},
-		{3, secOutput},
-	}
-	units := packBySection(items, 12)
-	if len(units) != 3 {
-		t.Fatalf("got %d units for 3 sections, want 3: %v", len(units), units)
-	}
-	for u, idx := range units {
-		want := items[idx[0]].Section
-		for _, i := range idx {
-			if items[i].Section != want {
-				t.Errorf("unit %d mixes %q and %q", u, want, items[i].Section)
-			}
-		}
-	}
-}
-
-// It breaks between sections even with room to spare — five slots of
-// modules in three sections is three units, not one.
-func TestASectionAlwaysStartsANewBay(t *testing.T) {
-	items := []packItem{{1, secInput}, {1, secAnalyze}, {1, secOutput}}
-	if units := packBySection(items, 12); len(units) != 3 {
-		t.Errorf("got %d units, want one per section: %v", len(units), units)
-	}
-}
-
 // Within a section it is still fill-and-overflow, so a section wider than a
 // bay continues into the next one rather than being squeezed or dropped.
 func TestASectionWiderThanABayContinuesIntoTheNext(t *testing.T) {
@@ -224,5 +192,71 @@ func TestASmallerBayGivesMoreBays(t *testing.T) {
 	// A degenerate capacity must not loop or lose anything.
 	if got := packBySection(items, 0); len(got) != len(items) {
 		t.Errorf("capacity 0 gave %d bays for %d modules, want one each", len(got), len(items))
+	}
+}
+
+// A bay carries as many sections as fit. Breaking at every section made
+// the labels easy and the rack 58% blank panel; several groups sharing an
+// 84 HP row is what a real one looks like.
+func TestABayCarriesSeveralSections(t *testing.T) {
+	items := []packItem{
+		{1, secInput},
+		{2, secAnalyze}, {2, secAnalyze},
+		{1, secOutput},
+	}
+	units := packBySection(items, 12)
+	if len(units) != 1 {
+		t.Fatalf("six slots in three sections took %d bays, want 1: %v", len(units), units)
+	}
+	runs := sectionRuns(items, units[0])
+	if len(runs) != 3 {
+		t.Fatalf("got %d runs in the bay, want 3: %+v", len(runs), runs)
+	}
+	for i, want := range []sectionRun{
+		{secInput, 0, 1}, {secAnalyze, 1, 2}, {secOutput, 3, 1},
+	} {
+		if runs[i] != want {
+			t.Errorf("run %d is %+v, want %+v", i, runs[i], want)
+		}
+	}
+}
+
+// The runs cover every module in the bay exactly once, or a label is
+// missing from part of the row.
+func TestTheRunsCoverTheWholeBay(t *testing.T) {
+	items := []packItem{
+		{1, secInput}, {1, secAnalyze}, {1, secAnalyze}, {1, secMod}, {1, secOutput},
+	}
+	units := packBySection(items, 12)
+	for _, idx := range units {
+		covered := 0
+		for _, r := range sectionRuns(items, idx) {
+			if r.From != covered {
+				t.Errorf("a run starts at %d, want %d — there is a gap or an overlap", r.From, covered)
+			}
+			covered += r.Count
+		}
+		if covered != len(idx) {
+			t.Errorf("runs cover %d modules of %d in the bay", covered, len(idx))
+		}
+	}
+}
+
+// A section still never interleaves: grouping has made it contiguous, so
+// each one appears in exactly one run across the whole rack.
+func TestASectionStillAppearsOnce(t *testing.T) {
+	items := groupSectionsOnly([]packItem{
+		{1, secMod}, {2, secModel}, {1, secMod}, {1, secDisplay}, {2, secModel},
+	})
+	seen := map[string]int{}
+	for _, idx := range packBySection(items, 12) {
+		for _, r := range sectionRuns(items, idx) {
+			seen[r.Section]++
+		}
+	}
+	for sec, n := range seen {
+		if n != 1 {
+			t.Errorf("section %q appears in %d runs, want 1", sec, n)
+		}
 	}
 }
