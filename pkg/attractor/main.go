@@ -1134,7 +1134,19 @@ func Run() {
 	buildCategoryModules()
 	wireRowMonitors()  // each row's screen, after the rows that hold them exist
 	buildRowSwitches() // and the Console switches that put a whole row away
-	wireScreenPower()  // BEAM and the two Monitor switches: a screen you are not watching costs nothing
+	// And measure the rack once it exists. The category rows are built here,
+	// after the boot pass that sized every other module, and a module whose
+	// width was never measured against its real content keeps whatever the
+	// last pass guessed — measured, the two widest rows came up a slot short
+	// and clipped 35px of their last column until the window was resized.
+	afterTwoFrames(func() {
+		// Twice: the first pass measures modules that the pass before it has
+		// just re-parented into their bays, and a module measured in the
+		// wrong opening is measured against the wrong available width.
+		quantizeModuleWidths()
+		quantizeModuleWidths()
+	})
+	wireScreenPower() // BEAM and the two Monitor switches: a screen you are not watching costs nothing
 	wireModuleDrag()
 	// Source and map: two knobs in two cells, each with its own ring and its own
 	// label.

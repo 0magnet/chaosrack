@@ -1506,6 +1506,12 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    with the series plot, and the reason the grid is a real CSS grid. */
 .modules .punit.monunit{
   grid-row:span 3;grid-column:span 2;
+  /* .punit-grid .punit pins every cell to one column and one row. A screen
+     is the exception: it reserves a 2x3 area and has to be allowed to fill
+     it, or it is painted one column wide with the picture hanging out of it
+     — and the module measures 46px too narrow, because contentSpan reads the
+     left edge of a 116px box centred in a 252px area. */
+  width:auto;height:auto;
   display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
   gap:7px;padding-top:4px;
 }
@@ -1536,3 +1542,41 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* The Console's row switches: eleven of them, so a column like the other
    switch groups rather than a line that would double the Console's width. */
 .rowsw{display:flex;flex-direction:column;align-items:flex-start;gap:1px;}
+
+/* A CATEGORY ROW'S GRID has a silkscreen band across the top: every model's
+   parameters take whole columns, and the band over them carries the model's
+   name.
+   
+   Without it a combined row is unreadable. Fourteen of the Attractors' models
+   have a step size and all fourteen are labelled "dt"; seven have a constant
+   labelled "a". They are different variables, and side by side with nothing
+   between them they read as one knob drawn many times. This is Woodson &
+   Conover's "marked outlines around each group" (§2-133) — the thing a panel
+   does instead of hoping the reader infers the grouping. */
+.punit-grid.catgrid{
+  /* The header band costs height, and a module is a fixed number of U. So
+     the three cell rows give it back: 3 x 5px is the 15px band, and the
+     module ends exactly where every other module ends. */
+  --cathdr:15px;
+  grid-template-rows:var(--cathdr) repeat(3,calc(var(--krow) - var(--cathdr)/3));
+  grid-auto-flow:row;
+  align-content:start;
+}
+.catgrid .punit{height:calc(var(--krow) - var(--cathdr)/3);}
+.pghdr{
+  grid-row:1;align-self:end;justify-self:stretch;
+  font-family:'Chakra Petch',sans-serif;font-weight:600;
+  font-size:calc(8px*var(--kscale,1));letter-spacing:.06em;text-transform:uppercase;
+  color:#9fb4c8;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  padding:0 2px 2px;margin-bottom:2px;
+  border-bottom:1px solid #2e3a46;
+}
+/* A step cell is labelled with its MODEL, which is words rather than a
+   symbol, so the label reads across the cell like the category cells' do —
+   the same exception .catcell makes and for the same reason. */
+.modules .punit.stepcell>.punit-top{position:static;width:100%;}
+.modules .u-lbl.wordlbl{
+  position:static!important;
+  writing-mode:horizontal-tb;text-orientation:mixed;
+  white-space:normal;text-align:center;width:100%;line-height:1.1;
+}
