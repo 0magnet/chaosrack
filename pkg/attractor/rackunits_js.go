@@ -207,6 +207,7 @@ func relayoutUnits() {
 	els := f.Call("querySelectorAll", ".sect")
 	var mods []js.Value
 	var slots []int
+	var items []packItem
 	for i := 0; i < els.Get("length").Int(); i++ {
 		m := els.Index(i)
 		// A module that is switched off takes no slots but keeps its
@@ -219,11 +220,26 @@ func relayoutUnits() {
 		}
 		mods = append(mods, m)
 		slots = append(slots, w)
+		items = append(items, packItem{Slots: w, Section: moduleSection(moduleKeyOf(m))})
 	}
 	if len(mods) == 0 {
 		return
 	}
-	units := packUnits(slots, unitCapacitySlots())
+	// GROUPED before packing, not merely sorted once at boot. A module
+	// built at runtime — the patchbay, the template — appears after any
+	// boot-time sort has run, so an order that was in signal order
+	// stopped being in it and the rack grew a second MODULATION bay with
+	// a GENERATOR bay wedged between the two. The table decides which bay
+	// a module is in; dragging decides its order WITHIN that bay.
+	items, mods = groupBySection(items, mods)
+	// slots has to follow the grouping, or the blank count for a bay is
+	// computed from the widths of whichever modules USED to be at those
+	// indices.
+	slots = slots[:0]
+	for _, it := range items {
+		slots = append(slots, it.Slots)
+	}
+	units := packBySection(items, unitCapacitySlots())
 
 	// Make the frame hold exactly that many subrack units, before any
 	// instrument unit. Reused rather than rebuilt: recreating them every
@@ -254,6 +270,7 @@ func relayoutUnits() {
 	}
 
 	// Blanks first: they are the previous pass's and belong to nothing now.
+	prevSection := ""
 	clearUnitBlanks(f)
 	for ui, idx := range units {
 		open := opens[ui]
@@ -267,12 +284,16 @@ func relayoutUnits() {
 		}
 		// A rack does not have a ragged gap at the end of a row; it has
 		// blank panels, cut to the same widths.
+		sec := unitSection(items, idx)
+		labelUnit(open.Call("closest", "."+unitClass), sec, sec == prevSection)
+		prevSection = sec
 		for b := unitBlankSlots(slots, idx, unitCapacitySlots()); b > 0; b-- {
 			open.Call("appendChild", unitBlank())
 		}
 	}
 	syncUnitRacks()
 	relayoutInstrumentUnits(f)
+	hideEmptyUnits(f)
 }
 
 // clearUnitBlanks removes every blank panel in the frame.
@@ -566,4 +587,110 @@ func frameAvailWidthPx(f js.Value) float64 {
 		}
 	}
 	return avail
+}
+
+// moduleKeyOf is a module's key: its header text, lowercased, which is what
+// rack-go names it by and what moduleSections is keyed on.
+func moduleKeyOf(m js.Value) string {
+	h := m.Call("querySelector", ".sect-hdr")
+	if !h.Truthy() {
+		return ""
+	}
+	return strings.ToLower(strings.TrimSpace(h.Get("textContent").String()))
+}
+
+// labelUnit silkscreens the bay's name on it.
+//
+// On the unit and not on the modules, because the name is a fact about the
+// BAY: it says what this row of the rack is for, and it stays true when the
+// cards in it are rearranged. Woodson & Conover list "marked outlines
+// around each group" and "area color patterning" as the ways to identify a
+// group on a panel (§2-133); this is the outline, and the section color is
+// the patterning.
+func labelUnit(u js.Value, section string, continued bool) {
+	old := u.Call("querySelector", ":scope > .runit-label")
+	if old.Truthy() {
+		old.Call("remove")
+	}
+	u.Get("dataset").Set("section", section)
+	title := sectionTitle[section]
+	if title == "" {
+		return
+	}
+	l := doc.Call("createElement", "div")
+	l.Set("className", "runit-label")
+	if continued {
+		// A section wider than a bay runs into the next one. Saying so
+		// beats two bays with the same name, which reads as a mistake.
+		title += " (CONT)"
+	}
+	l.Set("textContent", title)
+	l.Set("title", "This bay holds the "+title+" section — see docs/signal-flow.md. "+
+		"A bay holds one section: the label has to be true of everything in it.")
+	u.Call("insertBefore", l, u.Get("firstChild"))
+}
+
+// groupBySection reorders the modules so each section's are contiguous,
+// keeping their relative order inside it.
+//
+// This is what makes a bay's label reliable: a section appears exactly
+// once, so there is never a second bay with the same name further down. It
+// also means an empty section produces no bay at all, rather than a labeled
+// row of blanks.
+func groupBySection(items []packItem, mods []js.Value) ([]packItem, []js.Value) {
+	outItems := make([]packItem, 0, len(items))
+	outMods := make([]js.Value, 0, len(mods))
+	for _, sec := range sectionOrder {
+		for i, it := range items {
+			if it.Section != sec {
+				continue
+			}
+			outItems = append(outItems, it)
+			outMods = append(outMods, mods[i])
+		}
+	}
+	// Anything whose section is not in the stack at all still has to be
+	// placed; losing a module is worse than putting it last.
+	for i, it := range items {
+		if sectionRank(it.Section) < len(sectionOrder) {
+			continue
+		}
+		outItems = append(outItems, it)
+		outMods = append(outMods, mods[i])
+	}
+	return outItems, outMods
+}
+
+// hideEmptyUnits puts away a bay with nothing switched on in it.
+//
+// A section whose every module is switched out would otherwise draw as a
+// labeled row of twelve blank panels — a bay advertising a section that is
+// not there. The modules stay parented in it, so switching one back on
+// brings the bay back with it.
+func hideEmptyUnits(f js.Value) {
+	us := f.Call("querySelectorAll", ":scope > ."+unitClass)
+	for i := 0; i < us.Get("length").Int(); i++ {
+		u := us.Index(i)
+		open := u.Call("querySelector", ":scope > ."+unitOpenCls)
+		if !open.Truthy() {
+			continue // an instrument unit has no opening and is never empty
+		}
+		mods := open.Call("querySelectorAll", ":scope > .sect")
+		live := false
+		for j := 0; j < mods.Get("length").Int(); j++ {
+			// The module's OWN display, not offsetParent: offsetParent is
+			// null for anything inside a hidden ancestor, so once a bay was
+			// hidden every module in it read as switched off and the bay
+			// could never come back. A latch, and it took Parameters with it.
+			if mods.Index(j).Get("style").Get("display").String() != "none" {
+				live = true
+				break
+			}
+		}
+		if live {
+			u.Get("style").Set("display", "")
+		} else {
+			u.Get("style").Set("display", "none")
+		}
+	}
 }
