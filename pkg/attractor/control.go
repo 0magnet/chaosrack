@@ -149,7 +149,15 @@ func buildControlModel() {
 // findBuiltControl returns the builder-constructed Control for a cell, if any
 // (matched by DOM identity), so the model reuses it instead of re-deriving.
 func findBuiltControl(cell js.Value) *Control {
+	// Both lists: paramControls is the running model's readouts and editors,
+	// cleared on every rebuild, and catParamControls is every category row's
+	// parameter cell, built once and kept.
 	for _, c := range paramControls {
+		if c.cell.Equal(cell) {
+			return c
+		}
+	}
+	for _, c := range catParamControls {
 		if c.cell.Equal(cell) {
 			return c
 		}
