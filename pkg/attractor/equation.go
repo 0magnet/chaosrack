@@ -101,6 +101,13 @@ func precedence(op byte) int {
 
 // tokenize splits s into tokens, inserting implicit-multiplication operators
 // (so "2x", "xy", ")(", "x(" all multiply) and tagging unary minus.
+//
+// Branchy by nature: a lexer is a decision per character class, and the
+// implicit-multiplication rule adds one per pair of adjacent kinds. Split
+// into helpers it would read worse, because the thing that has to be
+// obvious is which character leads where, and that is a switch.
+//
+//nolint:gocyclo // a lexer; the complexity is the character classes
 func tokenize(s string) ([]token, error) {
 	var out []token
 	prevValueLike := false // did the previous token end a value? (num, var, param, const, ')')

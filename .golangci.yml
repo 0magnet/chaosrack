@@ -19,6 +19,7 @@ linters:
   default: none
   enable:
     - errcheck
+    - gocyclo
     - gosec
     - ineffassign
     - misspell
@@ -38,7 +39,13 @@ linters:
       min-len: 3
       min-occurrences: 3
     gocyclo:
-      min-complexity: 10
+      # A ratchet, not a target. Ten is the number this config has always
+      # named and nothing has ever enforced; at ten the existing code fails
+      # in dozens of places and the linter gets turned off again. Fifty
+      # catches a function that has clearly gone wrong while leaving the
+      # four that already have, each of which says so with a nolint and a
+      # reason. Lower it as those come down.
+      min-complexity: 50
     lll:
       line-length: 120
       tab-width: 1
