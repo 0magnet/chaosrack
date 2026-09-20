@@ -146,3 +146,25 @@ func modelRowSection() string {
 	}
 	return categorySection(activeCategory)
 }
+
+// categoryTag is the category's name as it is printed over its rotary.
+//
+// The cell is one control column wide and the label reads across it, so the
+// name has to be a name and not a citation: "Sprott systems (1994)" is a
+// heading in the catalog and twenty-one characters over a knob. The year is
+// what identifies the paper, not the category, and it is still in the cell's
+// tooltip where the sentence about the category is.
+//
+// Derived rather than tabulated. A table of short tags is what the Console's
+// dial ring had, and a table is a second list of the categories to keep in
+// step with modeGroups — which is the mistake the generated rows exist to
+// end. A rule that is wrong for a future category is visible in the label;
+// a table that is missing one is not.
+//
+//nolint:unused // called from rackcategory_js.go, which the native lint pass cannot see
+func categoryTag(label string) string {
+	if i := strings.IndexByte(label, '('); i > 0 {
+		label = strings.TrimSpace(label[:i])
+	}
+	return label
+}

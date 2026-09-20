@@ -158,67 +158,99 @@ func TestTheModelRowsAreSplicedInSelectorOrder(t *testing.T) {
 	}
 }
 
-// The model row that is carrying the running model — its rotary plus that
-// model's own panels — is a whole instrument and takes a bay of its own,
-// rather than sharing one the way the fixed sections do.
-func TestTheActiveModelRowDoesNotShareItsBay(t *testing.T) {
+// The running model's row is never split across two bays: the rotary, the
+// parameters and the monitor are one front panel, and reading half of it
+// then hunting for the rest is what a bay break would cost.
+func TestTheModelRowIsNeverSplitAcrossBays(t *testing.T) {
 	cat := categorySection("Attractors")
+	// Nine slots of another section first, so the row cannot fit in what is
+	// left of the bay and has to start a new one.
 	items := []packItem{
-		{1, secMod}, {1, cat}, {3, cat}, {1, secDisplay},
+		{5, secMod}, {4, secMod}, {1, cat}, {2, cat}, {3, cat}, {1, secDisplay},
 	}
 	units := packBySection(items, 12)
-	if len(units) != 3 {
-		t.Fatalf("got %d bays, want 3 — the model row should be alone: %v", len(units), units)
+	bays, total := 0, 0
+	for _, u := range units {
+		n := 0
+		for _, i := range u {
+			if items[i].Section == cat {
+				n++
+			}
+		}
+		if n > 0 {
+			bays++
+			total += n
+		}
 	}
-	if unitSection(items, units[1]) != cat {
-		t.Errorf("the middle bay is %q, want the model row", unitSection(items, units[1]))
+	if bays != 1 {
+		t.Errorf("the model row is spread over %d bays: %v", bays, units)
 	}
-	if len(units[1]) != 2 {
-		t.Errorf("the model row holds %d modules, want its rotary and its panel", len(units[1]))
+	if total != 3 {
+		t.Errorf("%d of the row's 3 modules were placed: %v", total, units)
 	}
 }
 
-// A model row holding nothing but its rotary is a selector, not an
-// instrument, and it shares. Eleven categories means eleven rotaries, and
-// giving each of them a row of its own is what took the rack to 17 bays and
-// 63% blank panel.
-func TestIdleModelRowsShareABay(t *testing.T) {
-	var items []packItem
-	for _, c := range modelCategories() {
-		items = append(items, packItem{1, categorySection(c)})
+// ...but it does not take a bay of its own when it fits where it is. It did,
+// and that cost a whole bay: the forced break stranded whatever came before
+// it — measured, the Patchbay alone in a bay with nine blank slots, and 74
+// slots of content in 8 bays where 7 hold it.
+func TestTheModelRowSharesABayWhenItFits(t *testing.T) {
+	cat := categorySection("Attractors")
+	items := []packItem{
+		{3, secMod}, {1, cat}, {2, cat}, {3, cat}, {2, secDisplay},
 	}
-	n := len(items)
 	units := packBySection(items, 12)
-	want := (n + 11) / 12
-	if len(units) != want {
-		t.Fatalf("%d lone rotaries took %d bays, want %d", n, len(units), want)
+	if len(units) != 1 {
+		t.Fatalf("eleven slots took %d bays, want 1: %v", len(units), units)
 	}
-	// ...and the one that has been given the model's panels is lifted out of
-	// the shared bay into its own. Beside its own rotary, because grouping
-	// has already made each section contiguous by the time the packer runs.
-	active := categorySection(modelCategories()[3])
-	var withActive []packItem
-	for _, it := range items {
-		withActive = append(withActive, it)
-		if it.Section == active {
-			withActive = append(withActive, packItem{4, active})
+	// And the label still marks the row's own span inside the shared bay,
+	// which is what makes sharing readable at all.
+	runs := sectionRuns(items, units[0])
+	if len(runs) != 3 {
+		t.Fatalf("got %d runs, want MODULATION / the row / DISPLAY: %+v", len(runs), runs)
+	}
+	if runs[1] != (sectionRun{cat, 1, 3}) {
+		t.Errorf("the model row's run is %+v, want three modules from position 1", runs[1])
+	}
+}
+
+// A category section holding nothing but its rotary is a selector, not an
+// instrument, and gets no keep-together treatment at all.
+func TestALoneRotaryIsNotKeptTogether(t *testing.T) {
+	cat := categorySection("Attractors")
+	items := []packItem{
+		{10, secMod}, {1, cat}, {2, secDisplay},
+	}
+	units := packBySection(items, 12)
+	if len(units) != 2 {
+		t.Fatalf("got %d bays, want 2: %v", len(units), units)
+	}
+	if len(units[0]) != 2 {
+		t.Errorf("the lone rotary did not share the first bay: %v", units)
+	}
+}
+
+// Category sections cost nothing when they hold nothing. Every category has
+// a place in the stack whether or not the model running is in it, and an
+// empty one must not open a bay, a break, or a label.
+func TestEmptyCategorySectionsCostNothing(t *testing.T) {
+	plain := []packItem{
+		{3, secMod}, {3, secDisplay}, {3, secOutput},
+	}
+	base := packBySection(plain, 12)
+	if len(base) != 1 {
+		t.Fatalf("nine slots took %d bays: %v", len(base), base)
+	}
+	// The same rack with every category section declared but unfilled packs
+	// identically — there is nothing to declare, since an empty section
+	// contributes no items at all.
+	for _, c := range modelCategories() {
+		if sectionRank(categorySection(c)) >= len(sectionOrder) {
+			t.Errorf("category %q has no place in the stack", c)
 		}
 	}
-	units = packBySection(withActive, 12)
-	own := -1
-	for i, u := range units {
-		if unitSection(withActive, u) == active {
-			own = i
-		}
-	}
-	if own < 0 {
-		t.Fatalf("the active row has no bay at all: %v", units)
-	}
-	if len(units[own]) != 2 {
-		t.Errorf("the active row's bay holds %d modules, want only its own two", len(units[own]))
-	}
-	if len(units) != want+2 {
-		t.Errorf("got %d bays, want %d — the active row splits the shared one in two", len(units), want+2)
+	if got := packBySection(plain, 12); len(got) != len(base) {
+		t.Errorf("packing is not stable: %d bays then %d", len(base), len(got))
 	}
 }
 
