@@ -2,6 +2,13 @@
 
 package attractor
 
+// The Platonic solids' vertex tables.
+//
+// These are no longer what DRAWS them — the five seeds are generated from
+// their faces, with the Conway operator knob applied; see conway.go. They
+// remain because buildSkinMesh paints the spectrogram onto these solids and
+// reads the vertices directly.
+
 import "math"
 
 func tetrahedronVertices() []float32 {
@@ -14,19 +21,6 @@ func tetrahedronVertices() []float32 {
 	}
 }
 
-func generateTetrahedron() {
-	if staticGeomCached(glTypes.Line) {
-		return
-	}
-	vertices := tetrahedronVertices()
-	// 6 edges as vertex pairs for GL_LINES
-	indices := []uint16{
-		0, 1, 0, 2, 0, 3,
-		1, 2, 1, 3, 2, 3,
-	}
-	uploadBuffersIndexed(vertices, indices, glTypes.Line)
-}
-
 func octahedronVertices() []float32 {
 	return []float32{
 		1, 0, 0, // 0: +x
@@ -36,20 +30,6 @@ func octahedronVertices() []float32 {
 		0, 0, 1, // 4: +z
 		0, 0, -1, // 5: -z
 	}
-}
-
-func generateOctahedron() {
-	if staticGeomCached(glTypes.Line) {
-		return
-	}
-	vertices := octahedronVertices()
-	// 12 edges as vertex pairs for GL_LINES
-	indices := []uint16{
-		0, 2, 0, 3, 0, 4, 0, 5,
-		1, 2, 1, 3, 1, 4, 1, 5,
-		2, 4, 2, 5, 3, 4, 3, 5,
-	}
-	uploadBuffersIndexed(vertices, indices, glTypes.Line)
 }
 
 func dodecahedronVertices() []float32 {
@@ -68,27 +48,6 @@ func dodecahedronVertices() []float32 {
 	}
 }
 
-func generateDodecahedron() {
-	if staticGeomCached(glTypes.Line) {
-		return
-	}
-	vertices := dodecahedronVertices()
-	// Edges of a dodecahedron (30 edges)
-	indices := []uint16{
-		0, 8, 0, 12, 0, 16,
-		1, 9, 1, 13, 1, 16,
-		2, 10, 2, 12, 2, 17,
-		3, 11, 3, 13, 3, 17,
-		4, 8, 4, 14, 4, 18,
-		5, 9, 5, 15, 5, 18,
-		6, 10, 6, 14, 6, 19,
-		7, 11, 7, 15, 7, 19,
-		8, 9, 10, 11, 12, 14,
-		13, 15, 16, 17, 18, 19,
-	}
-	uploadBuffersIndexed(vertices, indices, glTypes.Line)
-}
-
 func icosahedronVertices() []float32 {
 	phi := float32((1 + math.Sqrt(5)) / 2)
 	return []float32{
@@ -96,23 +55,4 @@ func icosahedronVertices() []float32 {
 		1, phi, 0, 1, -phi, 0, -1, phi, 0, -1, -phi, 0,
 		phi, 0, 1, phi, 0, -1, -phi, 0, 1, -phi, 0, -1,
 	}
-}
-
-func generateIcosahedron() {
-	if staticGeomCached(glTypes.Line) {
-		return
-	}
-	vertices := icosahedronVertices()
-	indices := []uint16{
-		0, 2, 0, 4, 0, 6, 0, 8, 0, 10,
-		1, 3, 1, 4, 1, 6, 1, 9, 1, 11,
-		2, 5, 2, 8, 2, 10,
-		3, 5, 3, 9, 3, 11,
-		4, 6, 4, 8, 4, 9,
-		5, 7, 5, 8, 5, 9,
-		6, 10, 6, 11,
-		7, 10, 7, 11,
-		7, 2, 7, 3,
-	}
-	uploadBuffersIndexed(vertices, indices, glTypes.Line)
 }

@@ -30,10 +30,6 @@ var indicesCube = []uint16{
 	40, 41, 42, 41, 42, 43, 44, 45, 46, 45, 46, 47,
 }
 
-func generateCube() {
-	uploadBuffersIndexed(verticesCube[:72], indicesCube[:36], glTypes.Line)
-}
-
 func generateNestedCube() {
 	uploadBuffersIndexed(verticesCube, indicesCube, glTypes.Line)
 }
