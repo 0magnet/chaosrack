@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"strconv"
+	"strings"
 	"syscall/js"
 )
 
@@ -42,9 +43,11 @@ import (
 // The rotaries INTERLOCK, the mechanism the Rhythm module's preset tabs use
 // and for the same reason: the rack draws one model, so one row is driving
 // it and the rest are showing what they would play. Choosing a model on any
-// row puts every other row's rotary to OFF; choosing OFF on the row that is
-// driving snaps back, because a rack with nothing selected is not a state
-// the instrument has.
+// row puts every other row's rotary to OFF. Choosing OFF on the row that IS
+// driving powers the rack down — which is what OFF on the model selector has
+// always meant here, it being the first detent of the Console's old category
+// knob. It used to snap back instead, and a detent you cannot reach is a
+// broken control whatever the argument for it.
 
 // categoryOffLabel is the rotary's first position.
 const categoryOffLabel = "off"
@@ -294,8 +297,8 @@ func buildCategoryRotary(label string) js.Value {
 
 	sel := doc.Call("createElement", "select")
 	sel.Set("id", categorySelectID(label))
-	sel.Get("style").Set("display", "none")
-	labels := []string{categoryOffLabel}
+	sel.Set("className", "selwin")
+	sel.Set("title", "Model — pick one from the list, or turn the knob above it")
 	add := func(value, text string) {
 		o := doc.Call("createElement", "option")
 		o.Set("value", value)
@@ -309,26 +312,40 @@ func buildCategoryRotary(label string) js.Value {
 			name = info.Label
 		}
 		add(m, name)
-		labels = append(labels, name)
 	}
 
 	bay := doc.Call("createElement", "span")
 	bay.Set("className", "grp vmbay")
-	// Ringed round the dial only if the names will go round it, which for
-	// model names they almost never do: ringLabelsFit allows eight labels of
-	// five characters, and a category holds up to twenty with names like
-	// "Chirikov Standard Map". Ringed anyway they run out of the cell and
-	// across the parameters beside them. selectorKnobReadout is what that
-	// case is for, and what the parameter cells already do with their own
-	// long lists: the dial keeps its detent action and the setting is named
-	// once, underneath, with the width of the cell to be read in.
-	if ringLabelsFit(labels) {
-		bay.Call("appendChild", singleSelectorKnob(sel, labels))
-	} else {
-		bay.Call("appendChild", selectorKnobReadout(sel))
-	}
+	// A KNOB AND A LIST, which is what the Console's model selector was.
+	//
+	// A dial alone is the wrong control for this: Sprott has twenty positions
+	// and the Scope ten, and reaching the last of them means dragging through
+	// all the others while the rack re-renders at each one. The list is how
+	// you GO somewhere; the knob is how you walk. The same select drives
+	// both, so the two can never disagree.
+	//
+	// The names are not ringed round the dial either way: ringLabelsFit
+	// allows eight labels of five characters, and these are up to twenty of
+	// "Chirikov Standard Map". Ringed anyway they ran out of the cell and
+	// across the parameters beside them. The list is the readout now.
+	stack := doc.Call("createElement", "span")
+	stack.Set("className", "knobstack")
+	stack.Call("setAttribute", "data-no-drag", "")
+	knob := makeSelectorKnob(sel)
+	knob.Get("classList").Call("add", "knob-ring")
+	stack.Call("appendChild", knob)
+
+	wrap := doc.Call("createElement", "span")
+	wrap.Set("className", "catsel")
+	wrap.Call("appendChild", stack)
+	wrap.Call("appendChild", sel)
+	bay.Call("appendChild", wrap)
 	cell.Call("appendChild", bay)
-	cell.Call("appendChild", sel)
+	// After the select is in the document: the marquee wraps it in place, and
+	// it is the same treatment the Console's dropdowns had — the native text
+	// is hidden and a readout overlays it, scrolling when a name overflows,
+	// because "Chirikov Standard Map" does not fit a cell either.
+	attachSelMarquee(sel, "#7fe0a0")
 
 	sel.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
 		onCategoryRotary(label)
@@ -347,11 +364,27 @@ func onCategoryRotary(label string) {
 		return
 	}
 	mode := sel.Get("value").String()
-	if mode == "" || mode == selectedMode {
-		// OFF on the row that is driving, or the model it is already on. A
-		// rack displays something, so the knob comes back to where it was
-		// rather than leaving the instrument with no model — the way an
-		// interlocking tab cannot be released except by pressing another.
+	if mode == "" {
+		// OFF, and it means off.
+		//
+		// It used to snap back, on the argument that a rack with no model
+		// selected is not a state the instrument has. That was wrong twice
+		// over: the instrument does have the state — it is what the Power
+		// switch puts it in — and a detent you cannot reach is a broken
+		// control whatever the argument for it. OFF on the model selector
+		// has always meant this here; it was the first detent of the
+		// Console's category knob, and it called setPowerState too.
+		setPowerState(false)
+		setPowerSwitch(false)
+		syncCategoryRotaries()
+		return
+	}
+	// Choosing a model powers the rack back up, including when it is the
+	// model already selected — which is how a row comes back on after being
+	// switched off without having to pass through a different model first.
+	setPowerState(true)
+	setPowerSwitch(true)
+	if mode == selectedMode {
 		syncCategoryRotaries()
 		return
 	}
@@ -361,6 +394,15 @@ func onCategoryRotary(label string) {
 	}
 	ms.Set("value", mode)
 	ms.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+}
+
+// setPowerSwitch moves the Console's Power switch without firing it, so the
+// switch and the rotaries always say the same thing about whether the rack
+// is running.
+func setPowerSwitch(on bool) {
+	if sw := doc.Call("getElementById", "power-sw"); sw.Truthy() {
+		sw.Set("checked", on)
+	}
 }
 
 // syncCategoryRotaries puts every rotary where the current model says it
@@ -380,8 +422,11 @@ func syncCategoryRotaries() {
 		if !sel.Truthy() {
 			continue
 		}
+		// Powered down, every rotary reads off: no row is driving, because
+		// nothing is being drawn. The knobs keep their settings, the models
+		// keep theirs, and choosing one anywhere powers back up.
 		want := ""
-		if label == activeCategory {
+		if label == activeCategory && !stopped {
 			want = selectedMode
 		}
 		if sel.Get("value").String() == want {
@@ -408,7 +453,123 @@ func lightLiveParamCells() {
 	cells := doc.Call("querySelectorAll", ".punit[data-mode]")
 	for i := 0; i < cells.Get("length").Int(); i++ {
 		c := cells.Index(i)
-		live := c.Call("getAttribute", "data-mode").String() == selectedMode
+		// Nothing is lit while the rack is powered down, which is the same
+		// answer the rotaries give: no model is running, so no front panel
+		// on the rack is the one in the signal path.
+		live := !stopped && c.Call("getAttribute", "data-mode").String() == selectedMode
 		c.Get("classList").Call("toggle", "live", live)
 	}
+}
+
+// ── Putting a whole row away ───────────────────────────────────────────────
+//
+// Every model's knobs, always, is 213 parameter cells and 11 screens, and
+// that is most of the panel's cost: the DOM went from 3748 nodes to 10966
+// when the rows were filled, the relayout sweep from 0.30ms to 2.1ms, and
+// the panel from about a tenth of the frame budget to about a fifth.
+//
+// A switch per row is the answer a rack already has for this. Taking a row
+// out is display:none on its modules, which costs the browser nothing to
+// keep — no layout, no paint, no measurement — so a rack cut down to the
+// three categories somebody actually uses is as cheap as the rack was
+// before the rows were filled. The models in a row that is out still play:
+// this is putting the front panel away, not unplugging the instrument.
+//
+// The switches are on the CONSOLE and not on the rows, because a switch
+// that goes away with the thing it hides cannot bring it back.
+
+// rowHiddenKey is where the put-away rows are remembered. Its own record
+// rather than the rack layout's: that one lists which switches are ON, so an
+// empty record means everything off, and the right default here is that
+// every row is in the rack.
+const rowHiddenKey = "wasmstuff-rackrows-out"
+
+// rowSwitchID is a category's row switch.
+func rowSwitchID(label string) string { return "row-" + categorySlug(label) + "-sw" }
+
+// buildRowSwitches fills the Console's Rows group, one switch per category.
+func buildRowSwitches() {
+	host := doc.Call("getElementById", "row-switches")
+	if !host.Truthy() {
+		return
+	}
+	out := readHiddenRows()
+	for _, label := range modelCategories() {
+		lab := doc.Call("createElement", "label")
+		lab.Set("className", "grp")
+		lab.Get("style").Set("cursor", "pointer")
+		what := catTooltips[label]
+		if what == "" {
+			what = label
+		}
+		lab.Set("title", what+"\n\nIn the rack, or put away. A row that is out costs nothing "+
+			"to keep — no layout, no paint, no measurement — which is what the switch is "+
+			"for: every model's knobs, always, is 213 controls and most of the panel's "+
+			"cost. The models in a row that is out still play; this puts the front panel "+
+			"away, not the instrument.")
+		sw := doc.Call("createElement", "input")
+		sw.Set("type", "checkbox")
+		sw.Set("className", "sw")
+		sw.Set("id", rowSwitchID(label))
+		sw.Set("checked", !out[label])
+		lab.Call("appendChild", sw)
+		lab.Call("appendChild", doc.Call("createTextNode", " "+categoryTag(label)))
+		host.Call("appendChild", lab)
+
+		sw.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+			applyRowVisibility()
+			saveHiddenRows()
+			quantizeModuleWidths() // the rack is a different size now
+			return nil
+		}))
+	}
+	applyRowVisibility()
+}
+
+// applyRowVisibility puts each row in or out to match its switch.
+func applyRowVisibility() {
+	for _, label := range modelCategories() {
+		sw := doc.Call("getElementById", rowSwitchID(label))
+		in := !sw.Truthy() || sw.Get("checked").Bool()
+		mods := doc.Call("querySelectorAll", "[data-cat]")
+		for i := 0; i < mods.Get("length").Int(); i++ {
+			m := mods.Index(i)
+			if m.Call("getAttribute", "data-cat").String() != label {
+				continue
+			}
+			if in {
+				m.Get("style").Set("display", "")
+			} else {
+				m.Get("style").Set("display", "none")
+			}
+		}
+	}
+}
+
+// readHiddenRows is the set of categories that were put away.
+func readHiddenRows() map[string]bool {
+	out := map[string]bool{}
+	v, ok := lsGet(rowHiddenKey)
+	if !ok || v == "" {
+		return out
+	}
+	for _, s := range strings.Split(v, ",") {
+		if s != "" {
+			out[s] = true
+		}
+	}
+	return out
+}
+
+// saveHiddenRows records it, by label, so a category renamed comes back
+// rather than staying out under a name nothing matches.
+func saveHiddenRows() {
+	var out []string
+	for _, label := range modelCategories() {
+		sw := doc.Call("getElementById", rowSwitchID(label))
+		if sw.Truthy() && !sw.Get("checked").Bool() {
+			out = append(out, label)
+		}
+	}
+	lsSet(rowHiddenKey, strings.Join(out, ","))
 }
