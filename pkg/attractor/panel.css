@@ -555,7 +555,10 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* the content area column-wraps within a DEFINITE height (so wrapping triggers);
    more controls => more columns => the module widens. */
 #params{display:contents;}
-.sect>.row,.punit-grid{display:flex;flex-flow:column wrap;height:calc(var(--mod-h,474px) - 30px);align-content:flex-start;gap:4px 14px;}
+.sect>.row{display:flex;flex-flow:column wrap;height:calc(var(--mod-h,474px) - 30px);align-content:flex-start;gap:4px 14px;}
+/* Same box, but .punit-grid is display:grid below — so it takes the size and
+   the spacing and not the flex direction, which did nothing here. */
+.punit-grid{height:calc(var(--mod-h,474px) - 30px);align-content:flex-start;gap:4px 14px;}
 /* content items keep their size and WRAP into a new column instead of shrinking */
 .punit,.sect>.row>*{flex:0 0 auto;}
 /* Console: controls flow in aligned columns (switches flush-left), natural
@@ -720,7 +723,9 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* View & Motion: X/Y/Z stacked VERTICALLY; each axis is a NARROW vertical strip
    (label · degrees LED · knob-in-a-square · rate numeric, reset in the corner)
    so the module is as narrow as the knob. */
-.vmaxrow{flex-direction:column!important;flex-wrap:nowrap!important;align-items:center;justify-content:space-evenly;gap:4px;}
+/* align-items, justify-content and gap all mean something in grid; the
+   flex direction and wrap did not, and read as though they did. */
+.vmaxrow{align-items:center;justify-content:space-evenly;gap:4px;}
 .axrot{padding:0!important;align-items:center;}
 .axstack{flex-direction:column;align-items:center;gap:1px;}
 .axstack .led{font-size:9px;line-height:1.5;min-width:40px;padding:2px 2px;}
@@ -764,7 +769,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* === ROW ALIGNMENT === View & Position primaries use the SAME 104px fixed,
    top-aligned, centered-control cells as the params / MOD / EQ grids, so each
    primary/MOD/EQ triad lines up row-for-row (control centered in every cell). */
-.vmaxrow,.vmrow{flex-flow:column wrap!important;align-content:flex-start!important;justify-content:flex-start!important;}
+.vmaxrow,.vmrow{align-content:flex-start!important;justify-content:flex-start!important;}
 .axcol.axrot,.vmcell{height:var(--krow)!important;width:var(--kcol)!important;position:relative;justify-content:center!important;box-sizing:border-box;}
 .axcol.axrot .axstack{height:100%;justify-content:center;position:relative;width:100%;}
 .axstack .toprow{position:absolute!important;top:2px;left:0;right:0;margin:0!important;}
