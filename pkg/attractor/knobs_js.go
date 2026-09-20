@@ -896,7 +896,14 @@ func layoutOneSkirt(dial js.Value, clear, gap float64, onGrip bool) float64 {
 	if onGrip {
 		minGrip = clear * skirtMinGripFrac
 	}
-	useGrip, scale := skirtFit(clear, minGrip, gap, skirtRoomPx(dial), labs)
+	// Less the gap, because the box drawn below is 2*(out+gap): fitting to
+	// the bare room left every ring exactly one gap wider than the space it
+	// was fitted into, which is the 6px Model Out had left over.
+	room := skirtRoomPx(dial)
+	if room > 0 {
+		room -= gap
+	}
+	useGrip, scale := skirtFit(clear, minGrip, gap, room, labs)
 	if scale < 1 {
 		labs = skirtScaleLabels(labs, scale)
 		for _, el := range kept {
@@ -1030,8 +1037,14 @@ func parsePx(v string) float64 {
 const (
 	// skirtLabelBasePx is .knob-dial-lab's font-size at scale 1.
 	skirtLabelBasePx = 8.0
-	// skirtCellGapPx is the horizontal gap between control cells, from
-	// .vmrow's column-gap. A ring may use half of it before it is in the
-	// next cell's half.
-	skirtCellGapPx = 20.0
+	// skirtCellGapPx is how far past its cell a legend ring may reach.
+	//
+	// The gap between control cells is 20px, and a ring centered in one cell
+	// could take half of that before it met the next cell's half. But the
+	// cell at the END of a column has no neighbor to share a gutter with —
+	// past it is the module's own edge — so a ring sized against the full
+	// share put the module's scrollWidth past its width. Eight is what the
+	// module's own padding can absorb, and it still leaves the widest
+	// legends (CAM, .5) clear of everything.
+	skirtCellGapPx = 8.0
 )
