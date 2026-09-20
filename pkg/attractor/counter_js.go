@@ -92,7 +92,6 @@ func wireCounterModule() {
 	trig := doc.Call("getElementById", "counter-trig")
 	gstack := doc.Call("getElementById", "counter-gstack")
 	tstack := doc.Call("getElementById", "counter-tstack")
-	sw := doc.Call("getElementById", "counter-on")
 	if !gatesel.Truthy() || !gstack.Truthy() {
 		return
 	}
@@ -112,23 +111,17 @@ func wireCounterModule() {
 		ID: "counter-trig", Label: "trig", Min: 0, Max: 30, Step: 1, Def: 4,
 		LEDID: "counter-trig-led", ResetID: "rst-counter-trig", LEDStep: 10,
 	})
-	if sw.Truthy() {
-		sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-			counterOn = sw.Get("checked").Bool()
-			if sect := doc.Call("getElementById", "counter-module"); sect.Truthy() {
-				if counterOn {
-					sect.Get("style").Set("display", "")
-					// We're inside a user gesture: start the source now so the
-					// mic prompt / ws connect happens on the flip, not the
-					// first gate.
-					ensureAudioSource()
-					counterCycles, counterSamples, counterState = 0, 0, 0
-				} else {
-					sect.Get("style").Set("display", "none")
-				}
-			}
-			quantizeModuleWidths()
-			return nil
-		}))
-	}
+	// Always in the rack. The Console's module switches are gone, so there is
+	// no state in which this module is absent, and the flag that used to mean
+	// "switched in" is simply true. It is SET rather than the module's setter
+	// being called: the setter is the switch's behavior — it opens an audio
+	// graph and takes a context lease — and booting must not do that. What
+	// the module DOES is its own transport control.
+	// The audio source is NOT started here. It used to be, because the flip
+	// was a user gesture and the mic prompt belonged on it; a boot is not a
+	// gesture, and a page that asks for the microphone before anybody has
+	// touched anything is the thing that rule existed to avoid. The counter
+	// reads whatever source is already running and shows nothing until one is.
+	counterOn = true
+	counterCycles, counterSamples, counterState = 0, 0, 0
 }

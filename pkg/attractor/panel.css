@@ -587,7 +587,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    its labels out side by side and blows the column — and every sibling section
    sharing it — out to the width of the whole row. display:contents makes the
    wrapper vanish from layout so the switches stack like every hand-written one. */
-#module-switches{display:contents;}
 .swsec .grp,.swsec .btn-lbl{font-size:calc(10px*var(--kscale,1));}
 .swsec .sw{transform:scale(0.85);transform-origin:left center;margin-right:-2px;}
 .swsec-hdr{font-family:'Chakra Petch',sans-serif;font-size:calc(9px*var(--kscale,1));font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#7c93a8;border-bottom:1px solid #2a333c;margin-top:3px;padding-bottom:1px;}
@@ -1439,3 +1438,38 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* The bay's left-edge tint was the per-section marker when a bay held one
    section. It holds several now, so the edge goes back to plain frame. */
 .rack-frame.with-bay > .runit[data-section]{border-left-width:1px;}
+
+/* A cell of switches.
+ *
+ * Switches used to live only on the Console, in tall full-height columns,
+ * because that was the one module built out of them. Moving a switch to the
+ * module holding the knob it affects — which is Woodson & Conover's rule,
+ * "CONTROLS should be placed: Close to the display which they affect"
+ * (2nd ed. §2-132) — needs a switch to fit the ordinary control cell
+ * instead: the same 116x160 footprint every knob gets, so a row of them
+ * still reads as one pitch.
+ *
+ * Four switch lines is what a cell holds. Past that the group wants a cell
+ * of its own, which is also §2-132's "groups of six or more use rows or
+ * columns" arriving from the other direction.
+ */
+.pcell.swcell{justify-content:center;align-items:stretch;gap:calc(2px*var(--kscale,1));
+  padding-left:calc(15px*var(--kscale,1));}
+.swline{display:flex;align-items:center;gap:calc(3px*var(--kscale,1));cursor:pointer;
+  font-size:calc(10px*var(--kscale,1));line-height:1.1;white-space:nowrap;}
+.swline .sw{transform:scale(0.78);transform-origin:left center;margin:0 -3px 0 0;flex:0 0 auto;}
+.swline .led{margin-left:auto;}
+/* The focus cell carries Link under its dial, so the switch sits below the
+ * knob rather than beside it. */
+.pcell .swline{margin-top:calc(2px*var(--kscale,1));}
+
+/* A switch group wraps into columns rather than running off the panel.
+ *
+ * The Modules group is one switch per module and there are twenty-eight of
+ * them, which is 626px of column in a 484px opening. Woodson & Conover's
+ * answer is the same as the fix: "groups of six or more use rows or
+ * columns" (2nd ed. §2-132) — so the group takes a second column instead of
+ * overflowing, and the reading order stays top-to-bottom then left-to-right.
+ */
+.swsec{flex-flow:column wrap;max-height:100%;align-content:flex-start;}
+.swsec>.swsec-hdr{flex:0 0 auto;}

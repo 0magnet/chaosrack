@@ -27,9 +27,11 @@ func saveRackLayout() {
 	if r == nil {
 		return
 	}
+	// Hidden is left empty on purpose. Nothing takes a module out of the
+	// rack now, so there is nothing to write — and writing it would be a
+	// record of a state the panel can no longer be in.
 	l := rackLayout{
 		Order:    rackOrder(),
-		Hidden:   rackHiddenKeys(),
 		Switches: onConsoleModuleSwitches(),
 	}
 	lsSet(rackLayoutKey, l.encode())
@@ -60,73 +62,38 @@ func restoreRackLayout() {
 	if len(l.Order) > 0 {
 		rackSetOrder(l.Order)
 	}
-	rackSetHidden(restorableHidden(l.Hidden))
+	// The saved Hidden set is deliberately IGNORED, not merely no longer
+	// written. A record from a build that had module switches names modules
+	// this one cannot bring back: honoring it would take a module out of the
+	// rack permanently, on this load and every later one, with no control
+	// anywhere that could undo it. The order is still worth restoring; what
+	// was put away is not.
+	rackSetHidden(nil)
 }
 
-// restorableHidden drops any module the panel offers no switch for.
-//
-// Hide() refuses to put a pinned module away, but SetHidden — the RESTORE path
-// — does not consult Pinned at all, so what the UI will not let you do to the
-// Console a stored record can still do to it. A record naming the Console (an
-// older build's key, a hand edit in devtools, a future one that pins something
-// new) would hide the module the switches live in, leaving no way to bring
-// anything back and no way to undo it, on this load or any later one.
-//
-// Dropping the key is the whole fix: an arrangement that cannot be undone is
-// not an arrangement worth restoring.
-func restorableHidden(keys []string) []string {
-	out := make([]string, 0, len(keys))
-	for _, k := range keys {
-		if moduleNeverSwitched(k) {
-			continue
-		}
-		out = append(out, k)
-	}
-	return out
-}
-
-// restoreConsoleModuleSwitches puts back the Console switches for the modules
-// that start hidden — Analysis, Counter, Keys, Matrix, Rhythm, Patchbay,
-// Template, Presets.
+// restoreConsoleModuleSwitches puts back the two Console switches that still
+// put something in the rack: the scope unit and the Template legend.
 //
 // The timing is the whole of it, and it is why this is not folded into
 // restoreRackLayout. It has to run:
 //
 //   - AFTER capturePermaDefaults, or the permalink would record a restored
 //     switch as that control's pristine value and then omit it from the hash.
-//     Turn Keys on, copy the link, and the person you sent it to would get no
-//     Keys module — the state was there in the panel and missing from the only
-//     thing that describes it.
+//     Bolt the scope in, copy the link, and the person you sent it to would
+//     get no scope — the state was there in the panel and missing from the
+//     only thing that describes it.
 //
 //   - BEFORE applyStateFromHash, so a shared link WINS over this browser's own
 //     preference. A link is somebody describing a view on purpose; the saved
 //     layout is only where this browser left its furniture.
 //
 // The asymmetry that follows is real and is the price of the hash carrying
-// only what differs from a default: a link whose sender had Keys off says
-// nothing about Keys, so a local preference for Keys on survives it. Making
-// the hash carry every control to close that would cost every shared link its
-// length, for a case that is a module being present rather than a view being
-// wrong.
-// restoringSwitches is true only while restoreConsoleModuleSwitches is putting
-// this browser's saved switches back at start-up.
-//
-// A module switch is allowed to change the MODEL when a person flips it — the
-// Matrix hands the screen to the spectrogram, because while it runs the pattern
-// IS the scrolling spectrum, and that is the whole point of the switch. Putting
-// the same switch back at start-up is not that gesture. It is a preference
-// being restored, and it was silently overriding the model a permalink asked
-// for: #pong opened on the spectrogram for anyone who had ever left the Matrix
-// on, with nothing to say why.
-//
-// The rule this enforces is the one written directly below: a shared link wins
-// over this browser's own preference. The switch still comes back on; it just
-// does not take the view with it.
-var restoringSwitches bool
-
+// only what differs from a default: a link whose sender had the scope out
+// says nothing about the scope, so a local preference for it survives.
+// Making the hash carry every control to close that would cost every shared
+// link its length, for a case that is an instrument being present rather
+// than a view being wrong.
 func restoreConsoleModuleSwitches() {
-	restoringSwitches = true
-	defer func() { restoringSwitches = false }()
 	l := readRackLayout()
 	on := make(map[string]bool, len(l.Switches))
 	for _, id := range l.Switches {
