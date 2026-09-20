@@ -307,66 +307,6 @@ func applyViewModulation() []savedParam {
 	return saved
 }
 
-// testToneNodes holds the live Web Audio graph for the built-in test signal
-// generator ([osc, tremoloLFO, sweepLFO, outGain]); nil when off. The graph
-// hangs off the shared AudioContext.
-var testToneNodes []js.Value
-
-// setTestTone plays (or stops) a built-in test signal out the speakers: a
-// harmonic-rich sawtooth whose pitch slowly sweeps (moving the spectrum across
-// bass/mid/treble) with a tremolo on the amplitude (so amp/beat pulse). The
-// server's monitor capture picks it back up and streams it over the websocket,
-// exactly like external audio — a self-contained way to exercise the attractor
-// modulation. The toggle click is the user gesture that lets the AudioContext
-// start.
-func setTestTone(on bool) {
-	if on {
-		if len(testToneNodes) > 0 {
-			return
-		}
-		ctx := acquireAudioCtx("testtone")
-		if !ctx.Truthy() {
-			return
-		}
-		osc := ctx.Call("createOscillator")
-		osc.Set("type", "sawtooth")
-		osc.Get("frequency").Set("value", 300)
-		gain := ctx.Call("createGain")
-		gain.Get("gain").Set("value", 0.1)
-		// tremolo: modulate the output gain so amplitude/beat features pulse
-		trem := ctx.Call("createOscillator")
-		trem.Set("type", "sine")
-		trem.Get("frequency").Set("value", 2.3)
-		tremGain := ctx.Call("createGain")
-		tremGain.Get("gain").Set("value", 0.07)
-		trem.Call("connect", tremGain)
-		tremGain.Call("connect", gain.Get("gain"))
-		// slow pitch sweep so the spectral centroid / bands move over time
-		sweep := ctx.Call("createOscillator")
-		sweep.Set("type", "sine")
-		sweep.Get("frequency").Set("value", 0.13)
-		sweepGain := ctx.Call("createGain")
-		sweepGain.Get("gain").Set("value", 240) // 300 ± 240 Hz → ~60..540 Hz
-		sweep.Call("connect", sweepGain)
-		sweepGain.Call("connect", osc.Get("frequency"))
-		osc.Call("connect", gain)
-		gain.Call("connect", ctx.Get("destination"))
-		osc.Call("start")
-		trem.Call("start")
-		sweep.Call("start")
-		testToneNodes = []js.Value{osc, trem, sweep, gain}
-	} else {
-		if len(testToneNodes) > 0 {
-			for _, n := range testToneNodes[:3] {
-				n.Call("stop") // the oscillators
-			}
-			testToneNodes[3].Call("disconnect") // the output gain
-			releaseAudioCtx("testtone")
-		}
-		testToneNodes = nil
-	}
-}
-
 // buildModUnit builds the compact "MOD / LVL" half of a parameter unit: the
 // concentric channel(ring)+level(inner) knob with its rotary-switch labels and
 // the level numeric, stacked vertically. Always present in a unit (so toggling
