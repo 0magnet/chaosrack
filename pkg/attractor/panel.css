@@ -49,11 +49,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    map knob came up at 80px against the src knob's 60 in an identical cell,
    which put its nine labels 0.2px off the dial. The sizes are the same because
    the two controls are the same kind of thing sitting side by side. */
-#gradient-stack .knobstack,#map-stack .knobstack{width:calc(56px*var(--kscale,1));height:calc(56px*var(--kscale,1));}
-#gradient-stack .knob-ring,#map-stack .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
-#gradient-stack .knob-ring>.knob-ptr,#map-stack .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
-#gradient-stack .knob-inner{width:calc(28px*var(--kscale,1))!important;height:calc(28px*var(--kscale,1))!important;}
-#gradient-stack .knob-inner>.knob-ptr{height:calc(12px*var(--kscale,1))!important;}
 /* Size/Step/Fine knob: three concentric label rings (Size outer, Step× mid,
    Fine× inner). Bodies come from the uniform geometry above (⌀76·⌀56·⌀36 with
    grabbable ~10px annuli); here we size only the three label rings. */
@@ -62,23 +57,13 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 #stepfine-stack .knobstack.has-dial{margin:calc(22px*var(--kscale,1));}
 #stepfine-stack .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
 /* Size: lone labeled selector ring, same size as the other Style knobs. */
-#size-stack .knobstack{width:calc(56px*var(--kscale,1));height:calc(56px*var(--kscale,1));}
-#size-stack .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
-#size-stack .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
 #size-stack .knobstack.has-dial{margin:calc(20px*var(--kscale,1));}
 #size-stack .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
 /* Knob-style / LED-color: sized to match the Step/Fine concentric knob, with
    the dial tucked close (small dial + small margin). */
-#knobstyle-stack .knobstack{width:calc(56px*var(--kscale,1));height:calc(56px*var(--kscale,1));}
-#knobstyle-stack .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
-#knobstyle-stack .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
-#knobstyle-stack .knob-inner{width:calc(28px*var(--kscale,1))!important;height:calc(28px*var(--kscale,1))!important;}
-#knobstyle-stack .knob-inner>.knob-ptr{height:calc(12px*var(--kscale,1))!important;}
 #knobstyle-stack .knobstack.has-dial{margin:calc(20px*var(--kscale,1));}
 #knobstyle-stack .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
 /* Phosphor: single selector ring, same size as the Step-size selector. */
-#phosphor-stack .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
-#phosphor-stack .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
 /* The Knob-style knob's inner ring selects the LED color; glow its pointer in
    that color as a live cue (there's no room for an inner label ring). */
 #knobstyle-stack .knob-inner .knob-ptr{background:var(--led-col,#ff3b30)!important;box-shadow:0 0 5px var(--led-glow,#ff2a20)!important;}
@@ -129,12 +114,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* The out cell is a dual SELECTOR knob (set positions, not a continuous wiper),
    so it's small — like the Style / Display selector knobs (56px ring, 28px
    inner) — and the channel dial labels clear it. */
-.gen-osc .knobstack{width:calc(56px*var(--kscale,1));height:calc(56px*var(--kscale,1));}
-/* child combinator + extra class to beat the base `.knobstack>.knob-ring{--ko}` */
-.gen-osc .knobstack>.knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
-.gen-osc .knobstack>.knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
-.gen-osc .knob-inner{width:calc(28px*var(--kscale,1))!important;height:calc(28px*var(--kscale,1))!important;}
-.gen-osc .knob-inner>.knob-ptr{height:calc(12px*var(--kscale,1))!important;}
 /* extra top margin so the gen knobs sit on the same horizontal line as the top
    knobs in label-above-LED modules (Params/Position/…); the gen cells label
    BESIDE the LED, giving a shorter header that otherwise rides the knobs ~18px
@@ -247,11 +226,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .sf-cell>.vmbay{min-height:0;margin-top:0;}
 /* Compact Step/Fine knob so both label rings (Step outer, Fine inner) sit clear
    of the knob within the cell. */
-#stepfine-stack .knobstack{width:calc(56px*var(--kscale,1));height:calc(56px*var(--kscale,1));}
-#stepfine-stack .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
-#stepfine-stack .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
-#stepfine-stack .knob-inner{width:calc(28px*var(--kscale,1))!important;height:calc(28px*var(--kscale,1))!important;}
-#stepfine-stack .knob-inner>.knob-ptr{height:calc(12px*var(--kscale,1))!important;}
 /* ── Knob appearance styles (selected by the Knob-style knob). std = default. ── */
 #controls-panel.ks-flat .knob,#controls-panel.ks-flat .knobb{background:radial-gradient(circle at 50% 46%,#343434,#1d1d1d 74%,#141414)!important;border:1px solid #4c4c4c!important;box-shadow:inset 0 1px 1px #565656,0 1px 2px #000!important;}
 #controls-panel.ks-flat .knob-ptr{background:#7fe0a0!important;box-shadow:0 0 4px #2a9a5a!important;}
@@ -358,6 +332,33 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    middle ring lands exactly halfway between them (⌀36 inner · ⌀56 middle · ⌀76
    outer). The per-container blocks below tune ONLY the surrounding dial / label
    ring, never the knob bodies — that's what keeps them uniform. ===== */
+
+/* ── The compact knob stacks ───────────────────────────────────────────────
+ *
+ * Seven places want a smaller concentric stack than the rack's uniform
+ * ⌀76/56/36, and they used to get it by hard-coding 56/28/24/12 over the
+ * geometry rules — twenty-eight declarations saying the same four things,
+ * every one of them !important because the rule it was beating is
+ * !important too. That is also the exact thing the comment above the
+ * geometry block forbids: "the per-container blocks below tune ONLY the
+ * surrounding dial / label ring, never the knob bodies".
+ *
+ * The bodies are already sized from tokens, so a stack that wants a smaller
+ * one sets the tokens. No new rules, no specificity to beat, and the knob
+ * geometry stays the single place a knob's size is decided. 14/7 of --mm is
+ * the 56/28 those declarations spelled out.
+ *
+ * Scoped to the STACK and not to the container. .gen-osc is a class on the
+ * module — Counter, Distortion, Matrix and Rhythm all carry it, not just the
+ * three oscillators — so tokens set there shrink every plain knob in those
+ * modules from 76 to 57. The geometry snapshot caught exactly that.
+ */
+#gradient-stack .knobstack,#map-stack .knobstack,#size-stack .knobstack,
+#knobstyle-stack .knobstack,#phosphor-stack .knobstack,#stepfine-stack .knobstack,
+.gen-osc .knobstack{
+  --ko:calc(14*var(--mm)); --ki:calc(7*var(--mm));
+  --kpo:calc(6*var(--mm)); --kpi:calc(3*var(--mm));
+}
 .knobb{width:var(--ko);height:var(--ko);}                                          /* single value knob */
 .knob-box>.knobwrap>.knobb>.knob-ptr{height:var(--kpo);}
 .knobstack>.knob-ring{width:var(--ko)!important;height:var(--ko)!important;}        /* outer ring */
@@ -1104,8 +1105,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    "clear of the knob within the tight module") — the parameter cells were the
    ones that never got the rule. At radius 28 the ring's innermost label edge
    clears by five pixels. */
-.punit .knobstack .knob-ring{width:calc(56px*var(--kscale,1))!important;height:calc(56px*var(--kscale,1))!important;}
-.punit .knobstack .knob-ring>.knob-ptr{height:calc(24px*var(--kscale,1))!important;}
 
 /* A two-option parameter is a switch, not a dial (see buildTwoWaySwitch). The
    option's name sits beside it because these are two THINGS — "logarithmic"
@@ -1561,3 +1560,9 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
   color:#7e8f9e;margin-right:3px;white-space:nowrap;
   writing-mode:horizontal-tb;text-orientation:mixed;
 }
+/* A parameter cell's concentric stack is compact too, but ONLY its ring: the
+   plain knob in a cell keeps the rack's uniform body. Setting the tokens on
+   .punit itself shrank every single knob in every parameter cell from 76 to
+   57 — caught by the geometry snapshot, which is why that snapshot exists. */
+.punit .knobstack .knob-ring{width:calc(14*var(--mm))!important;height:calc(14*var(--mm))!important;}
+.punit .knobstack .knob-ring>.knob-ptr{height:calc(6*var(--mm))!important;}
