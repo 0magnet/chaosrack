@@ -56,6 +56,8 @@ func main() {
 		runReadme()
 	case "modules":
 		runModules()
+	case "html":
+		runHTML()
 	case "css":
 		runCSS()
 	case "demo":
