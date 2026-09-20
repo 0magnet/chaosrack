@@ -431,7 +431,7 @@ func buildBifPanel(paramsDiv js.Value) {
 			"The window slides inward at the ends of the range rather than clipping, so the quiet and loud "+
 			"parts of the music always map somewhere different.")
 		for _, pd := range bifDriveParams {
-			g.Call("appendChild", buildParamUnit(pd))
+			g.Call("appendChild", buildParamUnit(selectedMode, pd))
 		}
 		paramsDiv.Call("appendChild", g)
 	}

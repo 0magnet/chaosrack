@@ -1498,3 +1498,30 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
   writing-mode:horizontal-tb;text-orientation:mixed;
   white-space:normal;text-align:center;width:100%;
 }
+
+/* A category row's monitor sits IN the parameter grid rather than beside it,
+   so one layout places the screen, the rotary and the knobs. The grid flows
+   three cells to a column, so a screen is a cell that spans the column's full
+   height and two of its columns — the same thing appendRecurrenceSeries does
+   with the series plot, and the reason the grid is a real CSS grid. */
+.modules .punit.monunit{
+  grid-row:span 3;grid-column:span 2;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  gap:7px;padding-top:4px;
+}
+.modules .punit.monunit .grp{writing-mode:horizontal-tb;}
+
+/* WHICH KNOBS ARE LIVE. Every model's constants are on its category's row, all
+   of them, which is 213 knobs in the rack and three of them doing something.
+   Unmarked, the rows are a reference rather than an instrument. The running
+   model's cells are lit; the rest are the front panels of instruments that are
+   patched out — still there, still set, just not in the signal path. Dimmed
+   rather than hidden, because hiding them is what the single rebuilt
+   Parameters module used to do and is what the rows exist to stop. */
+.modules .punit[data-mode]{opacity:.42;transition:opacity .12s linear;}
+.modules .punit[data-mode].live{opacity:1;}
+.modules .punit[data-mode]:hover{opacity:.85;}
+.modules .punit[data-mode].live:hover{opacity:1;}
+/* Alternating groups: consecutive models' cells take slightly different
+   ground, so a row of fifty knobs reads as the eight front panels it is. */
+.modules .punit[data-mgroup="1"]{background:rgba(150,180,210,0.045);border-radius:4px;}

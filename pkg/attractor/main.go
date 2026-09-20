@@ -872,7 +872,6 @@ func Run() {
 	wireRecordSwitch()
 	wireRegionSwitch()
 	wireRecordModule()
-	wireRowMonitor() // the model row's own screen, beside the knobs it answers to
 	initDeskMonitor()
 	wireJamSwitch()
 	wireMIDISwitch()
@@ -1130,6 +1129,7 @@ func Run() {
 	// it. Before the first layout pass, so the rows are packed with
 	// everything else rather than appearing after it.
 	buildCategoryModules()
+	wireRowMonitors() // each row's screen, after the rows that hold them exist
 	wireScreenPower() // BEAM and the two Monitor switches: a screen you are not watching costs nothing
 	wireModuleDrag()
 	// Source and map: two knobs in two cells, each with its own ring and its own

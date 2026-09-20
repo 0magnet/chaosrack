@@ -95,16 +95,15 @@ func (p *screenPower) invalidate() { p.checkAt = 0 }
 
 // The screens.
 var (
-	scopeScreenPower  = screenPower{switchID: "scope-beam"}
-	recScreenPower    = screenPower{switchID: "rec-mon-on"}
-	deskScreenPower   = screenPower{switchID: "desk-mon-on"}
-	rowMonScreenPower = screenPower{switchID: "rowmon-on"}
+	scopeScreenPower = screenPower{switchID: "scope-beam"}
+	recScreenPower   = screenPower{switchID: "rec-mon-on"}
+	deskScreenPower  = screenPower{switchID: "desk-mon-on"}
 )
 
 // wireScreenPower hooks each screen's switch up so flipping it is noticed
 // at once rather than at the next check.
 func wireScreenPower() {
-	for _, p := range []*screenPower{&scopeScreenPower, &recScreenPower, &deskScreenPower, &rowMonScreenPower} {
+	for _, p := range []*screenPower{&scopeScreenPower, &recScreenPower, &deskScreenPower} {
 		sw := doc.Call("getElementById", p.switchID)
 		if !sw.Truthy() {
 			continue
