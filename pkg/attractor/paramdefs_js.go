@@ -36,6 +36,7 @@ var paramLabels = map[string][]string{
 	"spect-win":    spectWinNames,
 	"spect-chan":   spectChanNames,
 	"spect-scale":  spectScaleNames,
+	"poly-op":      polyOpNames(),
 	"globe-par":    {"rings", "spiral"},
 	"globe-rev":    {"cw", "ccw"},
 	// The Poincaré section's settings. dir takes its names from beside the
@@ -267,6 +268,15 @@ var attractorParams = map[string][]paramDef{
 	// The audio spectrogram's controls are the original audioprism's, defined
 	// next to the code that applies them.
 	"spectrogram": spectParams,
+	// The Platonic solids: one knob each, the Conway operator applied to
+	// the seed. Same variable on all five, because it is the same question
+	// and the setting should survive changing which solid it is asked of.
+	"tetrahedron":  {{"poly-op", "op", &polyOpF, 0, 0, 6, 1}},
+	"cube":         {{"poly-op", "op", &polyOpF, 0, 0, 6, 1}},
+	"octahedron":   {{"poly-op", "op", &polyOpF, 0, 0, 6, 1}},
+	"dodecahedron": {{"poly-op", "op", &polyOpF, 0, 0, 6, 1}},
+	"icosahedron":  {{"poly-op", "op", &polyOpF, 0, 0, 6, 1}},
+
 	"globe": {
 		{"globe-lat", "lat", &globeLatF, 18, 0, 90, 1},
 		{"globe-lon", "lon", &globeLonF, 36, 0, 180, 1},
