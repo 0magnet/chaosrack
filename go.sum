@@ -22,10 +22,6 @@ github.com/0magnet/pisano v0.0.0-20260916102036-895cf54258c0 h1:Uuj6qVvtk5ZlSp03
 github.com/0magnet/pisano v0.0.0-20260916102036-895cf54258c0/go.mod h1:ix/xEIiwWFraNmGf015yPFPqygjjUAuSTqNu/tMl3cs=
 github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc h1:6y75eIwQ0EswyiujMlGQxGHdaecl+qzYm17iRLn/Gy8=
 github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc/go.mod h1:tZ3EqtPbE2DQAzgP2iBdVgvPANj/EJBfGs/hAZRdBNo=
-github.com/0magnet/rack-go v0.0.0-20260915170035-3de86c6a1464 h1:PCqL7Bw3EOfc6GsKMmKoxXI4WayUIvczWg/yIbfsFuo=
-github.com/0magnet/rack-go v0.0.0-20260915170035-3de86c6a1464/go.mod h1:+Ujv92EHuD24yOz6wOagRmnQZ3Aw5nphM7STt16gnhs=
-github.com/0magnet/rack-go v0.0.0-20260919224051-d4328702df8d h1:jDlTLCOtviMpfmN3eAxg/4LL/GEV7spMB8EniirMzJQ=
-github.com/0magnet/rack-go v0.0.0-20260919224051-d4328702df8d/go.mod h1:+Ujv92EHuD24yOz6wOagRmnQZ3Aw5nphM7STt16gnhs=
 github.com/0magnet/rack-go v0.0.0-20260919233711-83f82141d691 h1:YWJpBWbKBls3S7mt86UCrYCE4ZwJWlUSUvDQVONlN/g=
 github.com/0magnet/rack-go v0.0.0-20260919233711-83f82141d691/go.mod h1:+Ujv92EHuD24yOz6wOagRmnQZ3Aw5nphM7STt16gnhs=
 github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a h1:xSuwvwPPsjc6tSMXk2BNuC+G3eGLgJ+/8EgPz/XoqxM=
@@ -34,8 +30,8 @@ github.com/0magnet/termanim v0.0.0-20260916100333-d501f348ee17 h1:haAs+7Tb5q91PJ
 github.com/0magnet/termanim v0.0.0-20260916100333-d501f348ee17/go.mod h1:MYXXCesDzLpSA5ULDgbrzOq+I5tIdSzfJiwa5s6qXYA=
 github.com/0magnet/toilet-go v0.0.0-20260916100348-f098e493c9ae h1:DNVg6QVUCN/p3GtE8J3Jq8rfXhPYUHbfIVUvr+/7KSg=
 github.com/0magnet/toilet-go v0.0.0-20260916100348-f098e493c9ae/go.mod h1:TnF45LsHpJY3O74LuimkYPfQzXKylLmp6oPNUeUJyss=
-github.com/0magnet/tuiwasm v0.0.0-20260918204018-fe0244604011 h1:aA3KdE31zaFXaW/kgcRmktxuPMwxuvTSm3ZxTDwnEs8=
-github.com/0magnet/tuiwasm v0.0.0-20260918204018-fe0244604011/go.mod h1:N2DokBV1CbCsX3CebFvkUDdscTaWERnt0BE9+bR6Q5s=
+github.com/0magnet/tuiwasm v0.0.0-20260920095604-3de8bc71a6ec h1:AlM/JhqoRA/xwF1+UpYStXtOSyH2OBb9WgjS+NBuz0s=
+github.com/0magnet/tuiwasm v0.0.0-20260920095604-3de8bc71a6ec/go.mod h1:uUZlQ7y9EHAfwSkLgKqxlCLqo16K6BNpZTpqa8Lc0pE=
 github.com/0magnet/u-root v0.16.1-0.20260907193324-47ff3c83f69d h1:zLUW8axnE6LsLz1Kt5ne06nYw094U6qC68DClAgGrX8=
 github.com/0magnet/u-root v0.16.1-0.20260907193324-47ff3c83f69d/go.mod h1:YBQz88D4gXBLb9++oXsiZZjfbtRC0bp4c2pduFOyZts=
 github.com/0magnet/websh v0.0.0-20260918134315-870649e5bd83 h1:LHp8bOghqwx4hThM3mMPAXKXXqxlHhMnKXLrYdZwMx4=
@@ -74,8 +70,8 @@ github.com/charmbracelet/x/cellbuf v0.0.15 h1:ur3pZy0o6z/R7EylET877CBxaiE1Sp1GMx
 github.com/charmbracelet/x/cellbuf v0.0.15/go.mod h1:J1YVbR7MUuEGIFPCaaZ96KDl5NoS0DAWkskup+mOY+Q=
 github.com/charmbracelet/x/exp/golden v0.0.0-20250806222409-83e3a29d542f h1:pk6gmGpCE7F3FcjaOEKYriCvpmIN4+6OS/RD0vm4uIA=
 github.com/charmbracelet/x/exp/golden v0.0.0-20250806222409-83e3a29d542f/go.mod h1:IfZAMTHB6XkZSeXUqriemErjAWCCzT0LwjKFYCZyw0I=
-github.com/charmbracelet/x/exp/slice v0.0.0-20260913004009-c615ff2f7805 h1:V2KXhqFYcfmdflcQumX3kU4241eJAjZIpQUUwHQ4QNM=
-github.com/charmbracelet/x/exp/slice v0.0.0-20260913004009-c615ff2f7805/go.mod h1:vqEfX6xzqW1pKKZUUiFOKg0OQ7bCh54Q2vR/tserrRA=
+github.com/charmbracelet/x/exp/slice v0.0.0-20260920004010-53e2afe73ae5 h1:VE9hnLa26cT2N+5m7Rj5dLkiFcBU4p6If0IH5Kug1bA=
+github.com/charmbracelet/x/exp/slice v0.0.0-20260920004010-53e2afe73ae5/go.mod h1:vqEfX6xzqW1pKKZUUiFOKg0OQ7bCh54Q2vR/tserrRA=
 github.com/charmbracelet/x/term v0.2.2 h1:xVRT/S2ZcKdhhOuSP4t5cLi5o+JxklsoEObBSgfgZRk=
 github.com/charmbracelet/x/term v0.2.2/go.mod h1:kF8CY5RddLWrsgVwpw4kAa6TESp6EB5y3uxGLeCqzAI=
 github.com/charmbracelet/x/termios v0.1.1 h1:o3Q2bT8eqzGnGPOYheoYS8eEleT5ZVNYNy8JawjaNZY=
