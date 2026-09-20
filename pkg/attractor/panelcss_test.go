@@ -73,7 +73,7 @@ func TestThePanelStylesheetIsWellFormed(t *testing.T) {
 // this file carries it, which is the state this ratchet exists to stop
 // getting worse.
 func TestImportantDoesNotSpread(t *testing.T) {
-	const budget = 170 // lower this as the file improves; never raise it casually
+	const budget = 154 // lower this as the file improves; never raise it casually
 	got := strings.Count(readPanelCSS(t), "!important")
 	if got > budget {
 		t.Errorf("%d !important declarations, budget %d.\n"+
@@ -89,7 +89,7 @@ func TestImportantDoesNotSpread(t *testing.T) {
 // change stops being predictable: which one wins depends on source order,
 // and neither mentions the other.
 func TestAPropertyIsNotSetTwiceForOneSelector(t *testing.T) {
-	const budget = 45 // as above: a ratchet, not a target
+	const budget = 32 // as above: a ratchet, not a target
 
 	props := map[string]map[string]int{}
 	for _, r := range panelRules(t) {
