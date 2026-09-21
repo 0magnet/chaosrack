@@ -206,7 +206,7 @@ func makeSelectorKnob(sel js.Value, rot ...float64) js.Value {
 	if len(rot) > 0 {
 		ptrRot = rot[0]
 	}
-	knob := doc.Call("createElement", "div")
+	knob := doc.Call("createElement", "span")
 	knob.Set("className", "knob knobsel")
 	knob.Call("setAttribute", "data-no-drag", "")
 	// Name the knob from the select it drives (single source: set the title on
@@ -390,9 +390,9 @@ func dialLabelPos(deg, offPct float64) (string, string) {
 // Decorative (pointer-events:none) and behind the knob, so only the part
 // outside the ring shows.
 func addAngleDial(stack js.Value) {
-	dial := doc.Call("createElement", "div")
+	dial := doc.Call("createElement", "span")
 	dial.Set("className", "knob-dial")
-	ticks := doc.Call("createElement", "div")
+	ticks := doc.Call("createElement", "span")
 	ticks.Set("className", "angle-dial-ticks")
 	dial.Call("appendChild", ticks)
 	for _, d := range []int{0, 90, 180, 270} {
@@ -432,7 +432,7 @@ func fmtDialNum(v float64) string {
 // ring conveys the gradations between. Decorative (pointer-events:none),
 // behind the knob.
 func addValueDial(wrap js.Value, min, max float64) {
-	dial := doc.Call("createElement", "div")
+	dial := doc.Call("createElement", "span")
 	dial.Set("className", "knob-dial value-dial")
 	// Discrete tick marks spanning ONLY the knob's 270° travel (−135°→+135°),
 	// not the full circle — so the scale matches how far the knob actually
@@ -498,9 +498,9 @@ func addSelectorDotLabels(stack js.Value, colors []string, sel js.Value, offset 
 		off = offset[0]
 	}
 	n := len(colors)
-	dial := doc.Call("createElement", "div")
+	dial := doc.Call("createElement", "span")
 	dial.Set("className", "knob-dial")
-	circle := doc.Call("createElement", "div")
+	circle := doc.Call("createElement", "span")
 	circle.Set("className", "knob-ring-circle")
 	dia := strconv.FormatFloat(2*off, 'f', 1, 64) + "%"
 	circle.Get("style").Set("width", dia)
@@ -573,7 +573,7 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 	wrap.Set("className", "knobwrap")
 	wrap.Call("setAttribute", "data-no-drag", "")
 
-	knob := doc.Call("createElement", "div")
+	knob := doc.Call("createElement", "span")
 	knob.Set("className", "knob knobb")
 	// Name the knob from its slider's title so hovering identifies the control.
 	if t := slider.Get("title").String(); t != "" {
@@ -586,7 +586,7 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 
 	var fine js.Value
 	if withFine {
-		fine = doc.Call("createElement", "div")
+		fine = doc.Call("createElement", "span")
 		fine.Set("className", "knob-fine")
 		// Fine-trim disc: name it from the control it trims (the slider title) so
 		// it isn't a generic "fine" on every knob.
@@ -745,13 +745,13 @@ func addSelectorLabels(stack js.Value, labels []string, sel js.Value) js.Value {
 // LED-color dots at the same detents — which is a fact about the other
 // ring, not about this one's geometry.
 func addSelectorLabelsRot(stack js.Value, labels []string, sel js.Value, rot float64) js.Value {
-	dial := doc.Call("createElement", "div")
+	dial := doc.Call("createElement", "span")
 	dial.Set("className", "knob-dial")
 	// A thin guide circle at this ring's radius; the labels (opaque
 	// background) sit on it, breaking it into an arc with small gaps —
 	// visually tying each label ring to its concentric knob. Sized by
 	// layoutSkirts along with everything else.
-	circle := doc.Call("createElement", "div")
+	circle := doc.Call("createElement", "span")
 	circle.Set("className", "knob-ring-circle")
 	dial.Call("appendChild", circle)
 

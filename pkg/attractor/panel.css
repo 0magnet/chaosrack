@@ -292,7 +292,18 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .numin[type=number]{-moz-appearance:textfield;}
 .row input[type=range]{vertical-align:middle;}
 .sep{width:1px;height:16px;background:#444;margin:0 2px;}
-.knob{position:relative;width:calc(32px*var(--kscale,1));height:calc(32px*var(--kscale,1));border-radius:50%;background:radial-gradient(circle at 35% 28%,#888,#3a3a3a 68%,#222);border:2px solid #111;box-shadow:0 1px 2px #000,inset 0 1px 1px #9a9a9a,inset 0 -2px 3px #000;cursor:grab;flex:0 0 auto;touch-action:none;}
+/* A knob is built out of SPANS, not divs: it is a control, and a control is
+   phrasing content, like the input and button beside it. That lets a knob sit
+   in the .pcell / .knobwrap spans this panel is made of without putting flow
+   content inside phrasing, which is invalid however well it renders. It makes
+   the box type this rule's business rather than the tag's, so it is stated
+   here as block: every knob is the child of an inline-flex .grp, .knobwrap
+   or .knobstack, which blockifies its items anyway, so this states what was
+   already happening rather than changing it. inline-block is what it must
+   NOT be: that gives the knob a line box, whose strut made every cell
+   holding a bare knob four pixels taller. The dials are position:absolute
+   and so are blockified already. */
+.knob{display:block;position:relative;width:calc(32px*var(--kscale,1));height:calc(32px*var(--kscale,1));border-radius:50%;background:radial-gradient(circle at 35% 28%,#888,#3a3a3a 68%,#222);border:2px solid #111;box-shadow:0 1px 2px #000,inset 0 1px 1px #9a9a9a,inset 0 -2px 3px #000;cursor:grab;flex:0 0 auto;touch-action:none;}
 .knob:active{cursor:grabbing;}
 .knob-ptr{position:absolute;left:50%;top:50%;width:2px;height:calc(15px*var(--kscale,1));background:#f0f0f0;border-radius:1px;transform-origin:50% 100%;transform:translate(-50%,-100%) rotate(0deg);box-shadow:0 0 3px #fff;pointer-events:none;z-index:3;}
 .led{font-family:'DSEG7 Classic',"Courier New",monospace;font-weight:bold;font-size:13px;line-height:1.5;color:var(--led-col,#ff3b30);background:var(--led-bg,#170000);border:1px solid var(--led-bd,#3a0000);border-radius:2px;padding:2px 5px;letter-spacing:1px;text-shadow:0 0 5px var(--led-glow,#ff2a20);min-width:44px;text-align:right;}
@@ -1105,6 +1116,10 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    to wrap, the whole width of the cell is available to it and the informative
    name survives — the alternative was abbreviating to the ring labels, and "L"
    beside a switch does not say what "left is reference" says. */
+/* The two-way switch's wrapper: it exists only to keep the hidden <select>
+   out of the <label> (one labelable descendant per label), so it must not
+   become a box of its own — the switch stays a direct child of the cell. */
+.twoway-wrap{display:contents;}
 .punit .twoway{display:flex;flex-direction:column;align-items:center;gap:calc(2px*var(--kscale,1));justify-content:center;padding:calc(6px*var(--kscale,1)) 0;max-width:100%;}
 .punit .twoway-name{font-size:calc(9px*var(--kscale,1));color:#8cf;letter-spacing:.04em;white-space:normal;text-align:center;line-height:1.15;max-width:calc(108px*var(--kscale,1));}
 
