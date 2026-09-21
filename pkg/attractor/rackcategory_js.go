@@ -355,7 +355,13 @@ func buildBayHead(label string, bay int, modes []string, steps map[string]js.Val
 	if bay > 0 {
 		title = label + " " + strconv.Itoa(bay+1)
 	}
-	return wrapCategoryModule(label, categoryHeadID(label)+"-"+strconv.Itoa(bay), title, grid, "")
+	mod := wrapCategoryModule(label, categoryHeadID(label)+"-"+strconv.Itoa(bay), title, grid, "")
+	// Declared on the module, because the rack packer works on the DOM and
+	// has no idea a category was ever divided into bays. Without it the
+	// packer refills the bays by width and this panel lands wherever it
+	// fits, which for nine of the eleven heads was not the left of a row.
+	mod.Call("setAttribute", bayHeadAttr, "1")
+	return mod
 }
 
 // categoryOwnModes is the models filed under this category — the ones whose

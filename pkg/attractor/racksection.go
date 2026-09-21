@@ -188,11 +188,14 @@ func sectionRank(section string) int {
 	return len(sectionOrder)
 }
 
-// packItem is one module as the packer sees it: how many slots it needs and
-// which bay it belongs in.
+// packItem is one module as the packer sees it: how many slots it needs,
+// which bay it belongs in, and whether it has to be the first thing in one.
 type packItem struct {
 	Slots   int
 	Section string
+	// Lead is a module that must START a bay: the head panel of a model
+	// row, which carries that row's monitor. See packBySection.
+	Lead bool
 }
 
 // unitSection is the bay a packed unit belongs to, which is the section of
@@ -222,62 +225,55 @@ func unitSection(items []packItem, idx []int) string {
 // color patterning" (§2-133). Only the break rule changed; a section still
 // never interleaves with another, because groupBySection has already made
 // each one contiguous.
+//
+// The one thing that does force a break is a Lead item — a bay head, which
+// carries a monitor. A BAY BEGINS WITH A SCREEN: whatever else shares the
+// row, the leftmost panel in it is a display, so a reader scanning down the
+// left edge of the frame finds one per row. See the break rule below.
 func packBySection(items []packItem, capacity int) [][]int {
 	if capacity < 1 {
 		capacity = 1
 	}
-	// The running model's row is KEPT TOGETHER: its rotary, its parameters
-	// and its monitor are one instrument, and reading it across a bay break
-	// means reading half a front panel and then hunting for the rest.
-	//
-	// Kept together is not the same as given a bay. It was given one, and
-	// that cost a whole bay of blank panel: the forced break left whatever
-	// came before it stranded — measured, the Patchbay alone in a bay with
-	// nine blank slots, 74 slots of content in 8 bays where 7 hold it. So
-	// the row starts a fresh bay only when it will not fit in what is left
-	// of this one, which is the ordinary keep-together rule and wastes
-	// nothing when it does fit.
-	//
-	// Counted rather than asked, so it stays a property of what is in the
-	// rack rather than of which mode is running: the category section that
-	// holds more than its own rotary is the one the model's panels went to.
-	inSection, slotsIn := map[string]int{}, map[string]int{}
-	for _, it := range items {
-		if !isCategorySection(it.Section) {
-			continue
-		}
-		inSection[it.Section]++
-		if it.Slots > 0 {
-			slotsIn[it.Section] += it.Slots
-		}
-	}
-	keepTogether := func(sec string) bool { return isCategorySection(sec) && inSection[sec] > 1 }
 	var units [][]int
 	var cur []int
 	used := 0
+	led := false // this bay begins with a head
 	flush := func() {
 		if len(cur) > 0 {
 			units = append(units, cur)
-			cur, used = nil, 0
+			cur, used, led = nil, 0, false
 		}
 	}
-	last := ""
 	for i, it := range items {
 		w := it.Slots
 		if w < 0 {
 			w = 0
 		}
-		// Keeping a row together is only worth a break if a break can
-		// achieve it. A row wider than a bay is going to be split whatever
-		// happens, so flushing before it buys nothing and costs the tail of
-		// the bay before it — measured, Solids alone in a bay with nine
-		// blank slots because Audio, which is eighteen, could not have fitted
-		// in an empty one either.
-		if tot := slotsIn[it.Section]; it.Section != last && keepTogether(it.Section) &&
-			used > 0 && tot <= capacity && used+tot > capacity {
+		// Where a head may go, in two parts.
+		//
+		// It may not follow something that is not part of a head's run,
+		// because then the bay would begin with that instead and the row
+		// would have no display at its left edge. And its whole run has
+		// to fit in what is left, because a head exists to introduce the
+		// generators beside it — buildCategoryRow already divided the
+		// category into bay-sized groups and put a head at the front of
+		// each, and a break inside one of those groups puts a monitor in
+		// a different row from the models it is monitoring.
+		//
+		// Otherwise a head is free to share: two or three small rows in
+		// one bay, each opening with its own screen, is what an 84 HP row
+		// of a real rack looks like and is the whole reason a bay carries
+		// several sections. Breaking at EVERY head instead reads the same
+		// and costs four bays of blank panel — measured, 21 bays where 17
+		// hold it, Polyhedra and Solids each alone in a row with ten
+		// blank slots.
+		//
+		// A head that is switched OUT takes no slots and breaks nothing:
+		// a bay boundary drawn for a module that is not in the rack is a
+		// blank row.
+		if it.Lead && w > 0 && used > 0 && (!led || used+leadRun(items, i) > capacity) {
 			flush()
 		}
-		last = it.Section
 		if w > capacity {
 			// Too big for any bay. Its own, overhanging — visible, which is
 			// the right outcome for a thing that genuinely does not fit.
@@ -288,11 +284,31 @@ func packBySection(items []packItem, capacity int) [][]int {
 		if used+w > capacity && len(cur) > 0 {
 			flush()
 		}
+		if len(cur) == 0 {
+			led = it.Lead && w > 0
+		}
 		cur = append(cur, i)
 		used += w
 	}
 	flush()
 	return units
+}
+
+// leadRun is how much room the head at i wants: itself, and the modules
+// that follow it until the next head or the end of its own section.
+//
+// That run is one group — a monitor, the selector that picks among the
+// generators beside it, and those generators. It is the thing that has to
+// stay in one row; the modules after it belong to some other head.
+func leadRun(items []packItem, i int) int {
+	n := items[i].Slots
+	for j := i + 1; j < len(items); j++ {
+		if items[j].Lead || items[j].Section != items[i].Section {
+			break
+		}
+		n += items[j].Slots
+	}
+	return n
 }
 
 // sectionRun is one section's stretch inside a bay: where it starts among
