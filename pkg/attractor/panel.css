@@ -189,8 +189,8 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    disc). The dials sit OUTSIDE the 76px outer knob: Level gradient ring just
    clear of the knob edge, Hue rainbow ring beyond it, both within the cell. */
 .colorknob .ck-dial{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(104px*var(--kscale,1));height:calc(104px*var(--kscale,1));border-radius:50%;pointer-events:none;z-index:0;}
-.colorknob .ck-hue{background:conic-gradient(from 0deg,#ff0000,#ffff00,#00ff00,#00ffff,#0000ff,#ff00ff,#ff0000);-webkit-mask:radial-gradient(circle closest-side,transparent 84%,#000 85%,#000 93%,transparent 94%);mask:radial-gradient(circle closest-side,transparent 84%,#000 85%,#000 93%,transparent 94%);}
-.colorknob .ck-level{background:conic-gradient(from 225deg,#000,var(--hue-col,#888) 135deg,#fff 270deg,transparent 270deg 360deg);-webkit-mask:radial-gradient(circle closest-side,transparent 73%,#000 74%,#000 82%,transparent 83%);mask:radial-gradient(circle closest-side,transparent 73%,#000 74%,#000 82%,transparent 83%);}
+.colorknob .ck-hue{background:conic-gradient(from 0deg,#ff0000,#ffff00,#00ff00,#00ffff,#0000ff,#ff00ff,#ff0000);-webkit-mask:radial-gradient(circle closest-side,transparent 84%,#000 85%,#000 93%,transparent 94%);mask-image:radial-gradient(circle closest-side,transparent 84%,#000 85%,#000 93%,transparent 94%);}
+.colorknob .ck-level{background:conic-gradient(from 225deg,#000,var(--hue-col,#888) 135deg,#fff 270deg,transparent 270deg 360deg);-webkit-mask:radial-gradient(circle closest-side,transparent 73%,#000 74%,#000 82%,transparent 83%);mask-image:radial-gradient(circle closest-side,transparent 73%,#000 74%,#000 82%,transparent 83%);}
 /* Phosphor selector: rotary knob + name readout in the Style module. The
    readout floats BELOW the knob (absolute, out of flow) so the knob itself
    centers in the cell and lines up with the knobs in every other module. */
@@ -391,7 +391,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .knob-dial-lab.lab-active{color:#7fe0a0;opacity:1;font-weight:bold;text-shadow:0 0 5px #2a9a5a;}
 /* three tick densities in one ring: minor every 10°, medium every 30°, and a
    bright cardinal every 90° (differentiated by brightness/width). */
-.angle-dial-ticks{position:absolute;inset:0;border-radius:50%;background:repeating-conic-gradient(#bfefff 0deg 2deg, transparent 2deg 90deg),repeating-conic-gradient(#7cf 0deg 1.3deg, transparent 1.3deg 30deg),repeating-conic-gradient(#3a6e8c 0deg 0.7deg, transparent 0.7deg 10deg);-webkit-mask:radial-gradient(circle, transparent 66%, #000 68%, #000 80%, transparent 82%);mask:radial-gradient(circle, transparent 66%, #000 68%, #000 80%, transparent 82%);opacity:.7;}
+.angle-dial-ticks{position:absolute;inset:0;border-radius:50%;background:repeating-conic-gradient(#bfefff 0deg 2deg, transparent 2deg 90deg),repeating-conic-gradient(#7cf 0deg 1.3deg, transparent 1.3deg 30deg),repeating-conic-gradient(#3a6e8c 0deg 0.7deg, transparent 0.7deg 10deg);-webkit-mask:radial-gradient(circle, transparent 66%, #000 68%, #000 80%, transparent 82%);mask-image:radial-gradient(circle, transparent 66%, #000 68%, #000 80%, transparent 82%);opacity:.7;}
 .knobstack.has-dial{margin:calc(15px*var(--kscale,1));}
 /* Numeric-scale dial around a value knob (tick ring + min/max numbers). The
    .knobwrap becomes the positioning context; the dial sits centered behind the
@@ -1554,3 +1554,31 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    57 — caught by the geometry snapshot, which is why that snapshot exists. */
 .punit .knobstack .knob-ring{width:calc(14*var(--mm))!important;height:calc(14*var(--mm))!important;}
 .punit .knobstack .knob-ring>.knob-ptr{height:calc(6*var(--mm))!important;}
+
+/* A GENERATOR MODULE's panel: a silkscreen band across the top, then three
+   control rows. Each generator on the unit owns a rectangle of the rows and
+   the band above it carries its name — which is the whole reason a unit can
+   hold three generators and still be read: you can see where one stops.
+   Woodson & Conover's "marked outlines around each group" (§2-133). */
+.punit-grid.catgrid{
+  /* The band costs height and a module is a fixed number of U, so the three
+     control rows give it back: 3 x 5px is the 15px band, and the module ends
+     exactly where every other module ends. */
+  --cathdr:15px; --cathdr3:5px; /* the band, and the third of it each row gives back */
+  grid-template-rows:var(--cathdr) repeat(3,calc(var(--krow) - var(--cathdr3)));
+  grid-auto-flow:row;
+  align-content:start;
+}
+.catgrid .punit{height:calc(var(--krow) - var(--cathdr3));}
+.pghdr{
+  grid-row:1;align-self:end;justify-self:stretch;
+  font-family:'Chakra Petch',sans-serif;font-weight:600;
+  font-size:calc(8px*var(--kscale,1));letter-spacing:.06em;text-transform:uppercase;
+  color:#9fb4c8;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  padding:0 2px 2px;margin-bottom:2px;
+  border-bottom:1px solid #2e3a46;
+}
+/* The module is a unit and the generators on it are sections of one panel,
+   so the tint marks the section rather than the module: alternating ground
+   under consecutive generators, which is the other half of §2-133. */
+.modules .catmodule{--catmod:1;}
