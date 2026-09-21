@@ -11,6 +11,7 @@ import (
 	"syscall/js"
 	"time"
 
+	"github.com/0magnet/rack-go"
 	"github.com/go-gl/mathgl/mgl32"
 )
 
@@ -74,7 +75,28 @@ func Run() {
 	shell.Set("id", "panel-shell")
 	panel := doc.Call("createElement", "div")
 	panel.Set("id", "controls-panel")
-	panel.Set("innerHTML", "<style>"+panelCSS+"</style>"+controlsBody)
+	// The panel's stylesheet goes in the HEAD, not in the panel.
+	//
+	// It used to be a <style> prepended to the panel's own innerHTML, which
+	// works in every browser and is invalid: style is metadata content, and
+	// metadata content belongs in the head. It rendered, so nothing said so
+	// until the page was put through a validator.
+	//
+	// Where it sits never scoped it — scoped was dropped from the spec, and
+	// these rules always applied to the whole document — but WHEN it is
+	// added decides the ties. rack-go's sheet and this one both carry
+	// single-class rules for the same element, .rack against .runit-open,
+	// and equal specificity is settled by source order alone. Sitting in
+	// the body made this sheet last by accident; moving it to the head made
+	// it first, and a bay went from nowrap to wrap and doubled in height.
+	// So rack-go's goes in explicitly, ahead of it. It still has to come
+	// last, and now it says so rather than happening to.
+	rack.InjectCSS()
+	css := doc.Call("createElement", "style")
+	css.Set("id", "chaosrack-panel-css")
+	css.Set("textContent", panelCSS)
+	doc.Get("head").Call("appendChild", css)
+	panel.Set("innerHTML", controlsBody)
 	buildModeSelect(panel) // the mode <select> derives from the mode registry
 	footers := doc.Call("getElementsByTagName", "footer")
 	var existingFooter js.Value

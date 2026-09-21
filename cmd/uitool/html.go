@@ -24,8 +24,14 @@
 //   - no text is mojibake: a replacement character, or the sequences a
 //     double-encoded UTF-8 file always produces
 //
+//   - no div sits inside a span: a div is flow content and a span holds
+//     phrasing, so that nests a block box in a line of text. It renders, and
+//     the panel was built out of spans, so this went unnoticed six hundred
+//     times over
+//
 //     uitool html                  # check the rendered DOM
 //     uitool html -save out.html   # and keep a copy, e.g. to feed to vnu
+//     uitool html -reload          # reload first, so it sees the current build
 package main
 
 import (
@@ -34,12 +40,16 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/0magnet/chaosrack/internal/cdp"
 	"golang.org/x/net/html"
 )
 
-var htmlSave = flag.String("save", "", "also write the rendered DOM to this file")
+var (
+	htmlSave   = flag.String("save", "", "also write the rendered DOM to this file")
+	htmlReload = flag.Bool("reload", false, "reload the tab first, so the check sees the current build")
+)
 
 // mojibakeMarks are the sequences that mean a UTF-8 string has been decoded
 // as Latin-1 and re-encoded. They are ordinary characters in isolation, so
@@ -51,6 +61,10 @@ func runHTML() {
 	if err != nil {
 		fmt.Println("dial:", err)
 		os.Exit(1)
+	}
+	if *htmlReload {
+		c.Reload(2 * time.Second)
+		waitForPanel(c)
 	}
 	src, ok := c.Eval("document.documentElement.outerHTML").(string)
 	if !ok || src == "" {
@@ -131,6 +145,18 @@ func runHTML() {
 			len(dangling), strings.Join(dangling, "\n    ")))
 	}
 
+	if nest := flowInPhrasing(doc); len(nest) > 0 {
+		var rows []string
+		total := 0
+		for k, n := range nest {
+			rows = append(rows, fmt.Sprintf("%6d  %s", n, k))
+			total += n
+		}
+		sort.Sort(sort.Reverse(sort.StringSlice(rows)))
+		faults = append(faults, fmt.Sprintf("%d divs inside spans (flow content in phrasing content):\n    %s",
+			total, strings.Join(rows, "\n    ")))
+	}
+
 	if len(mojibake) > 0 {
 		var m []string
 		for k, n := range mojibake {
@@ -150,4 +176,59 @@ func runHTML() {
 		fmt.Println("  FAIL", f)
 	}
 	os.Exit(1)
+}
+
+// attrOf is an element's attribute, or "" if it has none of that name.
+func attrOf(n *html.Node, key string) string {
+	for _, a := range n.Attr {
+		if a.Key == key {
+			return a.Val
+		}
+	}
+	return ""
+}
+
+// flowInPhrasing counts flow content nested inside phrasing content.
+//
+// A span's content model is phrasing: text and the things that sit in a line
+// of text. A div is flow content, and putting one in a span is invalid
+// however it renders — and it renders, which is why a panel built out of
+// spans that behave as grid cells has never shown the fault. It matters
+// because the two have different default layout and different parser
+// behavior: the parse tree a browser builds for a span holding a div is not
+// the tree the source implies in every context, and a span cannot legally
+// hold the block boxes this panel puts in one.
+//
+// Keyed by "span.CLASS > div.CLASS" so the report names the CELL rather than
+// counting to six hundred, because the fix is per container class.
+func flowInPhrasing(root *html.Node) map[string]int {
+	out := map[string]int{}
+	var walk func(n *html.Node, span *html.Node)
+	walk = func(n *html.Node, span *html.Node) {
+		if n.Type == html.ElementNode {
+			if n.Data == "div" && span != nil {
+				out[fmt.Sprintf("span.%s > div.%s",
+					firstClass(attrOf(span, "class")), firstClass(attrOf(n, "class")))]++
+			}
+			if n.Data == "span" {
+				span = n
+			}
+		}
+		for ch := n.FirstChild; ch != nil; ch = ch.NextSibling {
+			walk(ch, span)
+		}
+	}
+	walk(root, nil)
+	return out
+}
+
+// firstClass is the class a report names an element by: the first one, which
+// in this panel is the structural one — .pcell, .grp, .punit — with the
+// modifiers after it.
+func firstClass(class string) string {
+	f := strings.Fields(class)
+	if len(f) == 0 {
+		return "(none)"
+	}
+	return f[0]
 }

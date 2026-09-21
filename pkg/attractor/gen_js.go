@@ -24,7 +24,7 @@ import (
 // knob, decorative). The octave ticks land at genFreqLo·2ⁿ, which are evenly
 // spaced around the sweep because the knob is logarithmic.
 func addOctaveDial(wrap js.Value) {
-	dial := doc.Call("createElement", "div")
+	dial := doc.Call("createElement", "span")
 	dial.Set("className", "knob-dial value-dial")
 	nOct := int(math.Log2(genFreqHi / genFreqLo)) // whole octaves in range
 	for n := 0; n <= nOct; n++ {
@@ -227,9 +227,9 @@ func addSelectorWaveDial(stack, sel js.Value, off float64) {
 	if n > len(waveSVG) {
 		n = len(waveSVG)
 	}
-	dial := doc.Call("createElement", "div")
+	dial := doc.Call("createElement", "span")
 	dial.Set("className", "knob-dial")
-	circle := doc.Call("createElement", "div")
+	circle := doc.Call("createElement", "span")
 	circle.Set("className", "knob-ring-circle")
 	dia := strconv.FormatFloat(2*off, 'f', 1, 64) + "%"
 	circle.Get("style").Set("width", dia)

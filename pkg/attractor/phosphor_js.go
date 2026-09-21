@@ -37,7 +37,7 @@ func addPhosphorTraces(stack, sel js.Value) {
 	if n < 2 {
 		return
 	}
-	dial := doc.Call("createElement", "div")
+	dial := doc.Call("createElement", "span")
 	dial.Set("className", "knob-dial ph-dial")
 	// Streaks live in the band OUTSIDE the knob ring: the outer end sits near the
 	// cell edge and the trace points inward toward the knob, fading out. off is a
@@ -54,7 +54,7 @@ func addPhosphorTraces(stack, sel js.Value) {
 		length := 8 + persist*9             // px (kept short so it stays outside the knob)
 		hold := 15 + persist*55             // % of streak that stays bright before fading
 		phi := math.Atan2(math.Cos(rad), -math.Sin(rad)) * 180 / math.Pi
-		s := doc.Call("createElement", "div")
+		s := doc.Call("createElement", "span")
 		s.Set("className", "ph-trace clickable")
 		s.Set("title", p.desc)
 		st := s.Get("style")

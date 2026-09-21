@@ -713,6 +713,18 @@ func hexToRGB(hex string) (float32, float32, float32) {
 // The select remains the value. Everything that drives one of these — the
 // permalink, Reset All, a patch recall — moves the select and this follows.
 func buildTwoWaySwitch(sel js.Value, labels []string, label string) js.Value {
+	// The switch and the select it drives are SIBLINGS, inside a wrapper that
+	// is display:contents so the panel's grid still lays out the switch
+	// itself rather than a box around it.
+	//
+	// The select used to sit inside the label. A label may contain at most
+	// one labelable descendant, and a checkbox plus a select is two: which
+	// control the label names is then undefined, and so is what a click on
+	// the name does. It renders correctly, which is why it stood — this is
+	// the kind of fault only a validator finds.
+	outer := doc.Call("createElement", "span")
+	outer.Set("className", "twoway-wrap")
+
 	wrap := doc.Call("createElement", "label")
 	wrap.Set("className", "grp twoway")
 	wrap.Get("style").Set("cursor", "pointer")
@@ -783,8 +795,9 @@ func buildTwoWaySwitch(sel js.Value, labels []string, label string) js.Value {
 
 	wrap.Call("appendChild", box)
 	wrap.Call("appendChild", name)
-	wrap.Call("appendChild", sel)
-	return wrap
+	outer.Call("appendChild", wrap)
+	outer.Call("appendChild", sel)
+	return outer
 }
 
 // showParamsModule hides the Parameters module for a model that has no
