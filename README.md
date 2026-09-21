@@ -118,6 +118,7 @@ analog computers at [glensstuff.com](https://glensstuff.com).
   - [Contact sheets (stills)](#contact-sheets-stills)
 - [Audio](#audio-1)
 - [FVF — Harmonic Wobbulator](#fvf--harmonic-wobbulator)
+  - [The hardware it models](#the-hardware-it-models)
 - [Testing & tooling](#testing--tooling)
 - [Build](#build)
 - [Related / prior art](#related--prior-art)

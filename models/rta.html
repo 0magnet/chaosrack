@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RTA — Octave Bands — audio, drawn live in the browser · chaosrack</title>
+<meta name="description" content="RTA — Octave Bands. The real-time analyzer a room is measured with: the spectrum split into fractional-octave bands and shown as a bar per band.">
+<meta name="author" content="0magnet">
+<link rel="canonical" href="https://chaosrack.magnetosphere.net/models/rta.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="magnetosphere">
+<meta property="og:title" content="RTA — Octave Bands — audio, drawn live in the browser · chaosrack">
+<meta property="og:description" content="RTA — Octave Bands. The real-time analyzer a room is measured with: the spectrum split into fractional-octave bands and shown as a bar per band.">
+<meta property="og:url" content="https://chaosrack.magnetosphere.net/models/rta.html">
+<meta property="og:image" content="https://chaosrack.magnetosphere.net/docs/img/hero.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="RTA — Octave Bands — audio, drawn live in the browser · chaosrack">
+<meta name="twitter:description" content="RTA — Octave Bands. The real-time analyzer a room is measured with: the spectrum split into fractional-octave bands and shown as a bar per band.">
+<meta name="twitter:image" content="https://chaosrack.magnetosphere.net/docs/img/hero.jpg">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","name":"RTA — Octave Bands — audio, drawn live in the browser · chaosrack","url":"https://chaosrack.magnetosphere.net/models/rta.html",
+"description":"RTA — Octave Bands. The real-time analyzer a room is measured with: the spectrum split into fractional-octave bands and shown as a bar per band.","primaryImageOfPage":"https://chaosrack.magnetosphere.net/docs/img/hero.jpg",
+"isPartOf":{"@type":"WebSite","name":"chaosrack","url":"https://chaosrack.magnetosphere.net/"}}
+</script>
+<style>
+:root { color-scheme: light dark;
+        --bg:#ffffff; --fg:#15171c; --muted:#5c6470; --line:#e4e7ec; --accent:#7b4cd8; --card:#f7f8fa; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#0d0f14; --fg:#e6e9ee; --muted:#8b94a3; --line:#232833; --accent:#b08cff; --card:#141821; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+       font:16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+.wrap { max-width: 900px; margin:0 auto; padding: 2rem 1.1rem 5rem; }
+a { color:var(--accent); }
+header nav { font-size:.86rem; color:var(--muted); margin-bottom:2rem; }
+header nav a { color:var(--muted); text-decoration:none; }
+header nav a:hover { color:var(--accent); text-decoration:underline; }
+h1 { font-size:1.9rem; line-height:1.2; margin:0 0 .3rem; letter-spacing:-.01em; }
+.class { color:var(--muted); font-size:.85rem; text-transform:uppercase; letter-spacing:.09em; margin-bottom:1.6rem; }
+.shots { display:grid; gap:.9rem; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); margin:0 0 2rem; }
+figure { margin:0; }
+figure img { width:100%; height:auto; display:block; border:1px solid var(--line); border-radius:9px; background:#000; }
+figcaption { color:var(--muted); font-size:.78rem; margin-top:.4rem; text-transform:uppercase; letter-spacing:.07em; }
+pre { background:var(--card); border:1px solid var(--line); border-radius:9px;
+      padding:1rem; overflow-x:auto; font:14px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; }
+.open { display:inline-block; margin:1.6rem 0; padding:.75rem 1.3rem; border-radius:8px;
+        background:var(--accent); color:#fff; font-weight:600; text-decoration:none; }
+.open:hover { filter:brightness(1.1); }
+.pager { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap;
+         border-top:1px solid var(--line); margin-top:3rem; padding-top:1.2rem; font-size:.9rem; }
+.grid { display:grid; gap:1.1rem; grid-template-columns:repeat(auto-fill,minmax(215px,1fr)); margin:.6rem 0 2.6rem; }
+.card { border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card);
+        text-decoration:none; color:inherit; display:flex; flex-direction:column; }
+.card:hover { border-color:var(--accent); }
+.card img { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; background:#000; }
+.card .body { padding:.6rem .75rem .8rem; }
+.card b { display:block; font-size:.95rem; }
+.card span { color:var(--muted); font-size:.76rem; }
+h2 { font-size:1.15rem; margin:2.4rem 0 .2rem; padding-bottom:.45rem; border-bottom:1px solid var(--line); }
+.lead { color:var(--muted); max-width:68ch; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><nav><a href="../">chaosrack</a> › <a href="./">models</a> › Audio</nav></header>
+<h1>RTA — Octave Bands</h1>
+<div class="class">audio · <code>#rta</code></div>
+
+<p>RTA — Octave Bands. The real-time analyzer a room is measured with: the spectrum split into fractional-octave bands and shown as a bar per band. A spectrogram shows every bin, which is right for watching sound move and wrong for asking what a room is doing to it — linearly spaced bins put nine-tenths of the picture above 2 kHz and squeeze the bass into a few pixels. Bands of equal RATIO drawn at equal widths is a logarithmic frequency axis, which is how hearing is organized and how every acoustics standard reports. BAND picks the width: 1/1 is a hi-fi graphic equalizer&#39;s ten, 1/3 is what room measurement and ISO use, and the two finer settings find a single narrow resonance — a 1/12-octave band is about 6% wide, roughly the ear&#39;s own resolution in the midrange. The centers are the standard ones (ISO 266 / ANSI S1.11, the base-ten series), so a reading here is comparable with anybody else&#39;s. FEED IT PINK NOISE from the Test module: fractional-octave bands get wider in hertz as they go up, so equal power per octave is what reads FLAT — a flat display on pink noise is the definition of a flat system, and it is the convention room measurement is done in. White noise rises 3 dB per octave on the same display, which is the difference between the two and the reason pink is the one used. TOP and RNGE place the scale in dBFS; AVG is the meter&#39;s averaging, quick to rise and slow to fall as every level meter is; HOLD is the peak-hold decay in dB per second, which is what makes the display readable on music rather than only on noise — music excites part of the band at a time and the held peaks are the envelope that accumulates into the answer. SRC picks the channel.</p>
+
+
+<a class="open" href="https://chaosrack.magnetosphere.net/#rta">Open RTA — Octave Bands in chaosrack →</a>
+<p class="lead">It opens running, on the model selector, with its own knobs. Rotate it by dragging,
+zoom with the wheel, and turn the parameters to see what the figure does when the system changes.</p>
+<div class="pager">
+<span>← <a href="recurrence.html">Recurrence Plot</a></span>
+<span><a href="./">all models</a></span>
+<span><a href="xfer.html">Transfer Function</a> →</span>
+</div>
+</div>
+</body>
+</html>
