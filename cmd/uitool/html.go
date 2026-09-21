@@ -58,7 +58,10 @@ func runHTML() {
 		os.Exit(1)
 	}
 	if *htmlSave != "" {
-		if err := os.WriteFile(*htmlSave, []byte(src), 0o600); err != nil {
+		// With a doctype, which outerHTML does not carry: without it every
+		// validator opens with "start tag seen without seeing a doctype",
+		// which is true of the string and false of the page.
+		if err := os.WriteFile(*htmlSave, []byte("<!DOCTYPE html>\n"+src), 0o600); err != nil {
 			fmt.Println("save:", err)
 			os.Exit(1)
 		}

@@ -354,9 +354,7 @@ func buildModUnit(id, label string) js.Value {
 	lvlNum := doc.Call("createElement", "input")
 	lvlNum.Set("type", "text")
 	lvlNum.Set("inputmode", "decimal")
-	lvlNum.Set("min", "-4")
-	lvlNum.Set("max", "4")
-	lvlNum.Set("step", "0.01")
+	// No min/max/step: see buildParamUnit. They do nothing on a text input.
 	lvlNum.Set("value", formatLED(float64(cur.level), 1, 2, true))
 	lvlNum.Set("title", "Mod depth for "+label+" (± inverts, 0 = off; ~1.5+ overdrives)")
 	lvlNum.Set("className", "numin u-modval")

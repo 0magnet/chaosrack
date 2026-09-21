@@ -193,7 +193,16 @@ func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will
 
 	led := doc.Call("getElementById", d.LEDID)
 	if led.Truthy() {
-		led.Set("type", "text") // LED display: free-form so +/- and trailing zeros stick
+		// A readout is free-form text so +/- and trailing zeros stick. The
+		// markup declares it type=number with min/max/step, which is valid
+		// there and invalid the moment the type changes — 105 of the
+		// validator's complaints were these, left behind by this line. The
+		// range lives on the slider this readout mirrors, so nothing reads
+		// them here.
+		led.Set("type", "text")
+		for _, a := range []string{"min", "max", "step"} {
+			led.Call("removeAttribute", a)
+		}
 		sizeLEDField(led, ledMin, ledMax, dec, d.Signed)
 		if v, err := strconv.ParseFloat(slider.Get("value").String(), 64); err == nil {
 			led.Set("value", ctl.formatValue(disp(v)))
