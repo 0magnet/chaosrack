@@ -3,7 +3,7 @@ module github.com/0magnet/chaosrack
 go 1.26.5
 
 require (
-	github.com/0magnet/audioprism-go v0.0.0-20260917100852-ac43966f02d1
+	github.com/0magnet/audioprism-go v0.0.0-20260921105349-05d824d5274b
 	github.com/0magnet/calvin v0.0.0-20260915170035-09af7075474e
 	github.com/0magnet/desk v0.0.0-20260915183806-a236d7492c93
 	github.com/0magnet/desk/panes v0.0.0-20260915183806-a236d7492c93
@@ -63,8 +63,8 @@ require (
 	github.com/gdamore/tcell/v3 v3.5.0 // indirect
 	github.com/gin-contrib/sse v1.1.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
-	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.30.4 // indirect
+	github.com/go-playground/universal-translator v0.18.2 // indirect
+	github.com/go-playground/validator/v10 v10.30.5 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/guptarohit/asciigraph v0.10.0 // indirect
