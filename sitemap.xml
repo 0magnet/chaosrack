@@ -72,6 +72,9 @@
   <url><loc>https://chaosrack.magnetosphere.net/models/spectrogram.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/fvf.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/recurrence.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://chaosrack.magnetosphere.net/models/rta.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://chaosrack.magnetosphere.net/models/xfer.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://chaosrack.magnetosphere.net/models/waterfall.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/bifurcation.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/poincare.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/custom.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
