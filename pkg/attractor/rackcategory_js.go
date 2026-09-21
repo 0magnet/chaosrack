@@ -52,16 +52,19 @@ import (
 // categoryOffLabel is the rotary's first position.
 const categoryOffLabel = "off"
 
-// The row's geometry, in grid columns. A bay is twelve, a column holds
-// three cells, and the head of the first module spends two columns on the
-// monitor and one on the model rotary.
+// The row's geometry, in grid columns. A bay is twelve columns, a column
+// holds three control positions, and a bay's head is two of those columns:
+// the monitor across the top two rows, the model rotary and the step knob
+// side by side underneath it. That is six positions with nothing blank in
+// them, where the head used to be four columns to show three controls.
 const (
-	catCellsPerCol  = 3
-	catColsPerBay   = 12
-	catMonitorCols  = 2
-	catRotaryCols   = 1
+	catCellsPerCol = 3
+	catColsPerBay  = 12
+	catHeadCols    = 2
+	catMonitorRows = 2
+	// The screen fills the two columns it is given, less the bezel.
 	catMonitorWidth = 232
-	catMonitorHigh  = 174
+	catMonitorHigh  = 250
 )
 
 // catRotarySyncing guards the interlock against its own writes: putting the
@@ -146,10 +149,6 @@ func buildCategoryModules() {
 //
 // claimed is shared across rows so a parameter that two categories' models
 // both declare is built once, by the first row that reaches it.
-// bayGenCols is how many control columns a bay has left for generators once
-// its head has taken the monitor and the selector.
-const bayGenCols = catColsPerBay - catMonitorCols - catRotaryCols
-
 // buildCategoryRow builds one category's bays.
 //
 // A bay is the unit that means something here: one monitor, one selector
@@ -197,7 +196,14 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 		gens = append(gens, genSpec{Mode: mode, Constants: len(cells[mode])})
 	}
 
-	mods := packGenerators(gens, bayGenCols)
+	// How wide this category's heads are. Every bay spends catHeadCols on
+	// the monitor, the rotary and the step; the FIRST one also carries the
+	// parameters that belong to the category rather than to any of its
+	// models, so it is wider. The packer is given the tighter figure, which
+	// leaves the later bays a column of slack rather than letting the first
+	// one overhang its rack.
+	headCols := catHeadCols + (len(sharedCells)+catCellsPerCol-1)/catCellsPerCol
+	mods := packGenerators(gens, catColsPerBay-headCols)
 
 	// Modules into bays: as many as fit beside a head.
 	var out []js.Value
@@ -214,93 +220,135 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 		out = append(out, pending...)
 		pending, pendingModes, used = nil, nil, 0
 		bay++
+		headCols = catHeadCols
 	}
 	for _, m := range mods {
-		c := moduleCols(m)
-		if used+c > bayGenCols && len(pending) > 0 {
+		if used+m.Cols > catColsPerBay-headCols && len(pending) > 0 {
 			flush()
 		}
 		pending = append(pending, buildGenPanel(label, m, cells))
-		for _, t := range m {
+		for _, t := range m.Tiles {
 			pendingModes = append(pendingModes, t.Mode)
 		}
-		used += c
+		used += m.Cols
 	}
 	flush()
 	return out
 }
 
-// buildGenPanel is one hardware unit: up to three generators tiled
-// onto one panel, each in its own labeled rectangle.
-func buildGenPanel(label string, tiles []genTile, cells map[string][]js.Value) js.Value {
+// buildGenPanel is one hardware unit: up to three generators sharing one
+// panel, each holding a run of control positions filled in reading order.
+//
+// A generator is identified three ways, because it has to be: its positions
+// carry its ground tint, an outline is drawn round the run whatever shape it
+// came out, and the first position is tagged with the model's name. That is
+// Woodson & Conover's answer for a group inside a panel rather than a panel
+// per group (§2-133, "marked outlines around each group... area color
+// patterning"), and unlike a header strip along the top it still works for a
+// generator that sits along the bottom row.
+func buildGenPanel(label string, m genModule, cells map[string][]js.Value) js.Value {
 	grid := doc.Call("createElement", "div")
-	grid.Set("className", "punit-grid catgrid")
+	grid.Set("className", "punit-grid catgrid catgen")
 
 	var names []string
-	for i, t := range tiles {
-		names = append(names, categoryTag(modeLabel(t.Mode)))
-		// The rectangle's own silkscreen, spanning the columns it covers.
-		at(genGroupHeader(modeLabel(t.Mode)), grid, 1, 1, t.Col+1, t.W)
-		for j, c := range cells[t.Mode] {
-			// Column-major inside the rectangle, which is how a panel is
-			// read: down a column, then across.
-			dc, dr := j/t.H, j%t.H
-			if dc >= t.W {
-				break // more constants than the shape holds; see tileShape
+	for i, t := range m.Tiles {
+		name := modeLabel(t.Mode)
+		names = append(names, categoryTag(name))
+		own := cells[t.Mode]
+		for j := 0; j < t.N && j < len(own); j++ {
+			pos := t.Start + j
+			col, row := m.ColRow(pos)
+			c := own[j]
+			c.Call("setAttribute", "data-mgroup", strconv.Itoa(i%3))
+			markGroupEdges(c, m, t, pos)
+			if j == 0 {
+				c.Call("appendChild", genGroupTag(name))
 			}
-			c.Call("setAttribute", "data-mgroup", strconv.Itoa(i%2))
-			at(c, grid, 2+t.Row+dr, 1, 1+t.Col+dc, 1)
+			at(c, grid, 1+row, 1, 1+col, 1)
 		}
 	}
-	return wrapCategoryModule(label, genModuleID(tiles), strings.Join(names, " · "), grid,
-		"One unit, "+strconv.Itoa(len(tiles))+" generator(s): "+strings.Join(names, ", ")+
+	return wrapCategoryModule(label, genModuleID(m), strings.Join(names, " · "), grid,
+		"One unit, "+strconv.Itoa(len(m.Tiles))+" generator(s): "+strings.Join(names, ", ")+
 			".\n\nA module is a hardware unit — the same inputs and outputs as any other, "+
 			"dedicated to what is printed on it. A unit per generator is honest about the "+
-			"models and wrong about the hardware, because most of them are a knob wide; a "+
-			"panel is three control rows deep, so it carries up to three.")
+			"models and wrong about the hardware, because most of them are a knob wide. A "+
+			"panel is three control rows deep, so generators share one when between them "+
+			"they fill it; one that fills its own columns keeps them.")
+}
+
+// markGroupEdges draws the outline: a border on every side of a position
+// where the neighbor is not part of the same generator.
+//
+// Computed per position rather than drawn as a box, because a run is not
+// always a rectangle — five constants in a two-column panel are the top two
+// rows and one below — and an outline that only knew how to be a rectangle
+// would have to round up to one, which is the blank panel this is avoiding.
+func markGroupEdges(c js.Value, m genModule, t genTile, pos int) {
+	in := func(p int) bool { return p >= t.Start && p < t.Start+t.N }
+	col, _ := m.ColRow(pos)
+	cl := c.Get("classList")
+	if col == 0 || !in(pos-1) {
+		cl.Call("add", "ge-l")
+	}
+	if col == m.Cols-1 || !in(pos+1) {
+		cl.Call("add", "ge-r")
+	}
+	if !in(pos - m.Cols) {
+		cl.Call("add", "ge-t")
+	}
+	if !in(pos + m.Cols) {
+		cl.Call("add", "ge-b")
+	}
 }
 
 // genModuleID names a generator module by the models on it.
-func genModuleID(tiles []genTile) string {
-	parts := make([]string, 0, len(tiles))
-	for _, t := range tiles {
+func genModuleID(m genModule) string {
+	parts := make([]string, 0, len(m.Tiles))
+	for _, t := range m.Tiles {
 		parts = append(parts, categorySlug(t.Mode))
 	}
 	return "gen-" + strings.Join(parts, "-") + "-module"
 }
 
-// genGroupHeader is the silkscreen over one generator's rectangle.
-func genGroupHeader(name string) js.Value {
-	h := doc.Call("createElement", "span")
-	h.Set("className", "pghdr")
-	h.Set("textContent", name)
-	h.Set("title", name)
-	return h
+// genGroupTag is the model's name, silkscreened in the corner of the first
+// control position of its run.
+func genGroupTag(name string) js.Value {
+	t := doc.Call("createElement", "span")
+	t.Set("className", "gtag")
+	t.Set("textContent", name)
+	t.Set("title", name)
+	return t
 }
 
 // buildBayHead is the bay's own panel: its monitor, the selector that picks
-// among the generators in this bay, and their step sizes.
+// among the generators in this bay, and the step size.
+//
+// Two columns, six positions, nothing blank. The monitor takes the top two
+// rows across both columns — it is a screen, so the space it is given is
+// space it uses — and the rotary and the step knob sit side by side under
+// it. It was four columns for the same three controls, because the step had
+// a position reserved for every model in the bay while showing one: they are
+// stacked in ONE position now, which is what the panel always looked like.
 func buildBayHead(label string, bay int, modes []string, steps map[string]js.Value, extra []js.Value) js.Value {
 	grid := doc.Call("createElement", "div")
-	grid.Set("className", "punit-grid catgrid")
-	at(genGroupHeader("screen"), grid, 1, 1, 1, catMonitorCols)
-	at(buildCategoryMonitor(label, bay), grid, 2, catCellsPerCol, 1, catMonitorCols)
-	at(genGroupHeader("model"), grid, 1, 1, 1+catMonitorCols, catRotaryCols)
-	at(buildBayRotary(label, bay, modes), grid, 2, catCellsPerCol, 1+catMonitorCols, catRotaryCols)
+	grid.Set("className", "punit-grid catgrid cathead")
+	at(buildCategoryMonitor(label, bay), grid, 1, catMonitorRows, 1, catHeadCols)
+	at(buildBayRotary(label, bay, modes), grid, 1+catMonitorRows, 1, 1, 1)
 
-	col := 1 + catMonitorCols + catRotaryCols
-	var pack []js.Value
+	// Every step cell in the bay goes in the same position. Only one is ever
+	// shown — the one belonging to the model the bay is set to — so one
+	// position is what the panel needs, and a knob that re-ranges with the
+	// selector is what it has always been from the front.
 	for _, m := range modes {
 		if s, ok := steps[m]; ok {
-			pack = append(pack, s)
+			at(s, grid, 1+catMonitorRows, 1, 2, 1)
 		}
 	}
-	pack = append(pack, extra...)
-	if len(pack) > 0 {
-		at(genGroupHeader("step"), grid, 1, 1, col, (len(pack)+catCellsPerCol-1)/catCellsPerCol)
-		for i, c := range pack {
-			at(c, grid, 2+i%catCellsPerCol, 1, col+i/catCellsPerCol, 1)
-		}
+
+	// The category's own parameters — the ones more than one of its models
+	// declare — go in columns of their own, on the first bay only.
+	for i, c := range extra {
+		at(c, grid, 1+i%catCellsPerCol, 1, 1+catHeadCols+i/catCellsPerCol, 1)
 	}
 
 	title := label

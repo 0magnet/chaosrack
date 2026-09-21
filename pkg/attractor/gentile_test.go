@@ -1,142 +1,255 @@
 package attractor
 
-import "testing"
+import (
+	"fmt"
+	"sort"
+	"strings"
+	"testing"
+)
 
-// The worked example: Chua's four constants are a square, and the two
-// one-constant systems take the positions along the bottom beneath it. One
-// module, three generators, six control positions, no blank panel.
-func TestChuaThomasAndHalvorsenShareOnePanel(t *testing.T) {
-	mods := packGenerators([]genSpec{
-		{"chua", 4}, {"thomas", 1}, {"halvorsen", 1},
-	}, 12)
-	if len(mods) != 1 {
-		t.Fatalf("three generators took %d modules, want 1: %+v", len(mods), mods)
+// shape renders a packed module as the grid it will be built as, so a test
+// can state the layout it wants rather than a list of coordinates.
+//
+//	aa
+//	aa
+//	bc
+//
+// is Chua's four constants over Thomas and Halvorsen.
+func shape(m genModule) string {
+	cell := make([]byte, m.Cells())
+	for i := range cell {
+		cell[i] = '.'
 	}
-	want := []genTile{
-		{"chua", 0, 0, 2, 2},
-		{"thomas", 0, 2, 1, 1},
-		{"halvorsen", 1, 2, 1, 1},
-	}
-	for i, w := range want {
-		if mods[0][i] != w {
-			t.Errorf("tile %d is %+v, want %+v", i, mods[0][i], w)
+	for i, t := range m.Tiles {
+		for p := t.Start; p < t.Start+t.N && p < len(cell); p++ {
+			cell[p] = byte('a' + i)
 		}
 	}
-	if got := moduleCols(mods[0]); got != 2 {
-		t.Errorf("the module is %d columns, want 2", got)
+	var rows []string
+	for r := 0; r < modRows; r++ {
+		rows = append(rows, string(cell[r*m.Cols:(r+1)*m.Cols]))
 	}
+	return strings.Join(rows, "\n")
 }
 
-// A module carries three generators and no more, however small they are.
-// The limit is a statement about the hardware: a unit with eight generators
-// on it is not a module.
-func TestAModuleCarriesAtMostThreeGenerators(t *testing.T) {
-	var gens []genSpec
-	for i := 0; i < 9; i++ {
-		gens = append(gens, genSpec{"g", 1})
+func modeSet(m genModule) string {
+	var s []string
+	for _, t := range m.Tiles {
+		s = append(s, fmt.Sprintf("%s:%d", t.Mode, t.N))
 	}
-	mods := packGenerators(gens, 12)
-	if len(mods) != 3 {
-		t.Fatalf("nine one-knob generators took %d modules, want 3", len(mods))
-	}
-	for i, m := range mods {
-		if len(m) != maxGensPerModule {
-			t.Errorf("module %d carries %d generators, want %d", i, len(m), maxGensPerModule)
-		}
-	}
+	return strings.Join(s, " ")
 }
 
-// Nothing overlaps, nothing escapes the panel, and nothing is lost. The
-// invariant that matters: two generators must never be given the same
-// control position.
-func TestTilesNeverOverlapOrEscape(t *testing.T) {
+// The layout the user described: Chua's four constants arranged as a square,
+// with Thomas and Halvorsen taking the two positions along the bottom.
+func TestChuaThomasAndHalvorsenFillOnePanel(t *testing.T) {
 	gens := []genSpec{
-		{"a", 3}, {"b", 1}, {"c", 2}, {"d", 4}, {"e", 6}, {"f", 1},
-		{"g", 5}, {"h", 2}, {"i", 1}, {"j", 7}, {"k", 3}, {"l", 1},
+		{Mode: "chua", Constants: 4},
+		{Mode: "thomas", Constants: 1},
+		{Mode: "halvorsen", Constants: 1},
 	}
-	mods := packGenerators(gens, 12)
-	seen := 0
-	for mi, m := range mods {
-		used := map[[2]int]string{}
-		for _, tile := range m {
-			seen++
-			if tile.Row < 0 || tile.Row+tile.H > modRows {
-				t.Errorf("module %d: %s spans rows %d..%d, panel has %d",
-					mi, tile.Mode, tile.Row, tile.Row+tile.H-1, modRows)
+	mods := packGenerators(gens, 9)
+	if len(mods) != 1 {
+		t.Fatalf("want one module, got %d: %v", len(mods), mods)
+	}
+	want := "aa\naa\nbc"
+	if got := shape(mods[0]); got != want {
+		t.Errorf("layout:\n%s\nwant:\n%s", got, want)
+	}
+	if mods[0].Cells() != mods[0].Used() {
+		t.Errorf("panel not full: %d of %d", mods[0].Used(), mods[0].Cells())
+	}
+}
+
+// The combinations the rule is stated in terms of. Each fills its panel
+// exactly, which is the whole reason for putting them together.
+func TestStatedCombinationsFillTheirPanel(t *testing.T) {
+	cases := []struct {
+		counts []int
+		want   string
+	}{
+		{[]int{4, 2}, "aa\naa\nbb"},
+		{[]int{1, 2}, "a\nb\nb"},
+		{[]int{1, 1, 1}, "a\nb\nc"},
+		{[]int{5, 1}, "aa\naa\nab"},
+		{[]int{2, 2, 2}, "aa\nbb\ncc"},
+	}
+	for _, c := range cases {
+		var gens []genSpec
+		for i, n := range c.counts {
+			gens = append(gens, genSpec{Mode: fmt.Sprintf("m%d", i), Constants: n})
+		}
+		mods := packGenerators(gens, 9)
+		if len(mods) != 1 {
+			t.Errorf("%v: want one module, got %d", c.counts, len(mods))
+			continue
+		}
+		if got := shape(mods[0]); got != c.want {
+			t.Errorf("%v layout:\n%s\nwant:\n%s", c.counts, got, c.want)
+		}
+	}
+}
+
+// A generator that already fills its own columns has no room to share, so
+// sharing a panel would only put two unrelated things on one unit.
+func TestAGeneratorThatFillsItsColumnsStandsAlone(t *testing.T) {
+	gens := []genSpec{
+		{Mode: "rossler", Constants: 3},
+		{Mode: "lorenz", Constants: 3},
+		{Mode: "aizawa", Constants: 6},
+		{Mode: "chua", Constants: 4},
+		{Mode: "thomas", Constants: 1},
+		{Mode: "halvorsen", Constants: 1},
+	}
+	mods := packGenerators(gens, 9)
+	alone := map[string]bool{}
+	for _, m := range mods {
+		if len(m.Tiles) == 1 {
+			alone[m.Tiles[0].Mode] = true
+		}
+		for _, tl := range m.Tiles {
+			if tl.N%modRows == 0 && len(m.Tiles) > 1 {
+				t.Errorf("%s fills %d columns and should not share: %s",
+					tl.Mode, tl.N/modRows, modeSet(m))
 			}
-			for dc := 0; dc < tile.W; dc++ {
-				for dr := 0; dr < tile.H; dr++ {
-					p := [2]int{tile.Col + dc, tile.Row + dr}
-					if prev, dup := used[p]; dup {
-						t.Errorf("module %d: %s and %s both hold position %v",
-							mi, prev, tile.Mode, p)
-					}
-					used[p] = tile.Mode
+		}
+	}
+	for _, want := range []string{"rossler", "lorenz", "aizawa"} {
+		if !alone[want] {
+			t.Errorf("%s should have a panel of its own", want)
+		}
+	}
+}
+
+// Nothing is lost, nothing is duplicated, and the catalog order survives.
+func TestPackingKeepsEveryGeneratorOnce(t *testing.T) {
+	gens := []genSpec{
+		{Mode: "a", Constants: 2}, {Mode: "b", Constants: 5}, {Mode: "c", Constants: 0},
+		{Mode: "d", Constants: 3}, {Mode: "e", Constants: 1}, {Mode: "f", Constants: 4},
+		{Mode: "g", Constants: 2}, {Mode: "h", Constants: 7},
+	}
+	seen := map[string]int{}
+	for _, m := range packGenerators(gens, 9) {
+		for _, tl := range m.Tiles {
+			seen[tl.Mode]++
+		}
+	}
+	for _, g := range gens {
+		want := 1
+		if g.Constants == 0 {
+			want = 0 // nothing to mount
+		}
+		if seen[g.Mode] != want {
+			t.Errorf("%s appears %d times, want %d", g.Mode, seen[g.Mode], want)
+		}
+	}
+	// Within a panel the generators are in catalog order, and the panels
+	// themselves are ordered by the first generator on each. Across panels
+	// the order can step back — grouping is allowed to reach past a
+	// neighbor to fill a panel, which is the whole point of it.
+	for _, m := range packGenerators(gens, 9) {
+		var on []string
+		for _, tl := range m.Tiles {
+			on = append(on, tl.Mode)
+		}
+		sorted := append([]string(nil), on...)
+		sort.Strings(sorted)
+		if strings.Join(on, "") != strings.Join(sorted, "") {
+			t.Errorf("panel out of catalog order: %v", on)
+		}
+	}
+}
+
+// Runs stay inside the panel, do not overlap, and carry exactly as many
+// positions as the generator has constants.
+func TestRunsAreContiguousAndDoNotOverlap(t *testing.T) {
+	gens := []genSpec{
+		{Mode: "a", Constants: 5}, {Mode: "b", Constants: 1}, {Mode: "c", Constants: 2},
+		{Mode: "d", Constants: 4}, {Mode: "e", Constants: 2}, {Mode: "f", Constants: 8},
+		{Mode: "g", Constants: 1}, {Mode: "h", Constants: 2}, {Mode: "i", Constants: 7},
+	}
+	for _, m := range packGenerators(gens, 9) {
+		if len(m.Tiles) > maxGensPerModule {
+			t.Errorf("%d generators on one panel: %s", len(m.Tiles), modeSet(m))
+		}
+		taken := map[int]string{}
+		for _, tl := range m.Tiles {
+			if tl.N <= 0 {
+				t.Errorf("%s has no positions", tl.Mode)
+			}
+			for p := tl.Start; p < tl.Start+tl.N; p++ {
+				if p < 0 || p >= m.Cells() {
+					t.Errorf("%s reaches position %d of a %d-position panel", tl.Mode, p, m.Cells())
+					continue
 				}
+				if other, dup := taken[p]; dup {
+					t.Errorf("%s and %s both claim position %d", other, tl.Mode, p)
+				}
+				taken[p] = tl.Mode
 			}
 		}
 	}
-	if seen != len(gens) {
-		t.Errorf("%d generators went in, %d came out", len(gens), seen)
-	}
 }
 
-// Order is preserved: the rack reads in the order the catalog lists, so a
-// model cannot move because of how its neighbors happened to pack.
-func TestPackingKeepsCatalogOrder(t *testing.T) {
-	gens := []genSpec{{"a", 4}, {"b", 1}, {"c", 1}, {"d", 3}, {"e", 2}, {"f", 6}}
-	var got []string
-	for _, m := range packGenerators(gens, 12) {
-		for _, tile := range m {
-			got = append(got, tile.Mode)
-		}
+// Blank panel is the thing this is for. Whatever the counts, a shared panel
+// wastes no more than the arithmetic forces: the total that cannot be made
+// up into whole columns.
+func TestWasteIsTheLeastTheCountsAllow(t *testing.T) {
+	cases := [][]int{
+		{4, 2, 1, 1, 5, 2, 2, 2, 4}, // the attractors, less the ones that stand alone
+		{2, 1, 4, 4, 4, 1},          // the maps
+		{7, 7, 4},                   // the audio displays
+		{1, 1},
+		{2},
 	}
-	for i, g := range gens {
-		if got[i] != g.Mode {
-			t.Errorf("position %d is %q, want %q — packing reordered the rack", i, got[i], g.Mode)
+	for _, counts := range cases {
+		var gens []genSpec
+		total := 0
+		for i, n := range counts {
+			gens = append(gens, genSpec{Mode: fmt.Sprintf("m%d", i), Constants: n})
+			total += n
 		}
-	}
-}
-
-// A generator with no constants of its own does not take a panel position.
-// Its step size and its selector live on the bay's head.
-func TestAGeneratorWithNoConstantsTakesNoSpace(t *testing.T) {
-	mods := packGenerators([]genSpec{{"a", 0}, {"b", 2}, {"c", 0}}, 12)
-	if len(mods) != 1 || len(mods[0]) != 1 || mods[0][0].Mode != "b" {
-		t.Fatalf("got %+v, want just b", mods)
-	}
-}
-
-// The shapes are as square as the count allows, because a block of
-// constants reads at once and a line of four does not.
-func TestTheShapeOfAGeneratorIsAsSquareAsItCanBe(t *testing.T) {
-	for _, c := range []struct{ n, w, h int }{
-		{1, 1, 1}, {2, 1, 2}, {3, 1, 3}, {4, 2, 2}, {5, 2, 3}, {6, 2, 3},
-		{7, 3, 3}, {9, 3, 3}, {10, 4, 3},
-	} {
-		w, h := tileShape(c.n)
-		if w != c.w || h != c.h {
-			t.Errorf("%d constants shape %dx%d, want %dx%d", c.n, w, h, c.w, c.h)
+		waste := 0
+		for _, m := range packGenerators(gens, 9) {
+			waste += m.Cells() - m.Used()
 		}
-		if w*h < c.n {
-			t.Errorf("%d constants do not fit in %dx%d", c.n, w, h)
-		}
-		if h > modRows {
-			t.Errorf("%d constants want %d rows, a panel has %d", c.n, h, modRows)
+		if want := (modRows - total%modRows) % modRows; waste != want {
+			t.Errorf("%v: %d positions blank, %d is the least the counts allow", counts, waste, want)
 		}
 	}
 }
 
-// A module never grows wider than a bay, because a module wider than a bay
-// cannot be put in one.
-func TestAModuleNeverOutgrowsABay(t *testing.T) {
+// A panel cannot be wider than the bay it is mounted in — unless one
+// generator on its own is, in which case it overhangs, which is visible and
+// therefore the right thing for something that genuinely does not fit.
+func TestAPanelFitsItsBay(t *testing.T) {
+	gens := []genSpec{
+		{Mode: "small", Constants: 2}, {Mode: "huge", Constants: 40}, {Mode: "mid", Constants: 4},
+	}
+	for _, m := range packGenerators(gens, 5) {
+		if m.Cols > 5 && len(m.Tiles) > 1 {
+			t.Errorf("%d columns will not go in a 5-column bay: %s", m.Cols, modeSet(m))
+		}
+	}
+}
+
+// A category of one-knob models is the case that started this: nineteen of
+// Sprott's twenty have a step and nothing else, and on a panel each they
+// would be nineteen units a knob wide.
+func TestSingleKnobGeneratorsShareAColumn(t *testing.T) {
 	var gens []genSpec
-	for i := 0; i < 12; i++ {
-		gens = append(gens, genSpec{"g", 9})
+	for i := 0; i < 5; i++ {
+		gens = append(gens, genSpec{Mode: fmt.Sprintf("seed%d", i), Constants: 1})
 	}
-	for _, m := range packGenerators(gens, 4) {
-		if got := moduleCols(m); got > 4 {
-			t.Errorf("a module came out %d columns wide, bay holds 4", got)
-		}
+	mods := packGenerators(gens, 9)
+	if len(mods) != 2 {
+		t.Fatalf("five one-knob generators want two panels, got %d", len(mods))
+	}
+	// The blank position lands on the LAST panel, not the first.
+	if got := shape(mods[0]); got != "a\nb\nc" {
+		t.Errorf("first panel should be full:\n%s", got)
+	}
+	if got := shape(mods[1]); got != "a\nb\n." {
+		t.Errorf("last panel:\n%s", got)
 	}
 }
