@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transfer Function — audio, drawn live in the browser · chaosrack</title>
+<meta name="description" content="Transfer Function — what the thing between two channels did to the sound. Every other measurement here asks about ONE signal; this one asks about the RELATIONSHIP between two,…">
+<meta name="author" content="0magnet">
+<link rel="canonical" href="https://chaosrack.magnetosphere.net/models/xfer.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="magnetosphere">
+<meta property="og:title" content="Transfer Function — audio, drawn live in the browser · chaosrack">
+<meta property="og:description" content="Transfer Function — what the thing between two channels did to the sound. Every other measurement here asks about ONE signal; this one asks about the RELATIONSHIP between two,…">
+<meta property="og:url" content="https://chaosrack.magnetosphere.net/models/xfer.html">
+<meta property="og:image" content="https://chaosrack.magnetosphere.net/docs/img/hero.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Transfer Function — audio, drawn live in the browser · chaosrack">
+<meta name="twitter:description" content="Transfer Function — what the thing between two channels did to the sound. Every other measurement here asks about ONE signal; this one asks about the RELATIONSHIP between two,…">
+<meta name="twitter:image" content="https://chaosrack.magnetosphere.net/docs/img/hero.jpg">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","name":"Transfer Function — audio, drawn live in the browser · chaosrack","url":"https://chaosrack.magnetosphere.net/models/xfer.html",
+"description":"Transfer Function — what the thing between two channels did to the sound. Every other measurement here asks about ONE signal; this one asks about the RELATIONSHIP between two,…","primaryImageOfPage":"https://chaosrack.magnetosphere.net/docs/img/hero.jpg",
+"isPartOf":{"@type":"WebSite","name":"chaosrack","url":"https://chaosrack.magnetosphere.net/"}}
+</script>
+<style>
+:root { color-scheme: light dark;
+        --bg:#ffffff; --fg:#15171c; --muted:#5c6470; --line:#e4e7ec; --accent:#7b4cd8; --card:#f7f8fa; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#0d0f14; --fg:#e6e9ee; --muted:#8b94a3; --line:#232833; --accent:#b08cff; --card:#141821; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+       font:16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+.wrap { max-width: 900px; margin:0 auto; padding: 2rem 1.1rem 5rem; }
+a { color:var(--accent); }
+header nav { font-size:.86rem; color:var(--muted); margin-bottom:2rem; }
+header nav a { color:var(--muted); text-decoration:none; }
+header nav a:hover { color:var(--accent); text-decoration:underline; }
+h1 { font-size:1.9rem; line-height:1.2; margin:0 0 .3rem; letter-spacing:-.01em; }
+.class { color:var(--muted); font-size:.85rem; text-transform:uppercase; letter-spacing:.09em; margin-bottom:1.6rem; }
+.shots { display:grid; gap:.9rem; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); margin:0 0 2rem; }
+figure { margin:0; }
+figure img { width:100%; height:auto; display:block; border:1px solid var(--line); border-radius:9px; background:#000; }
+figcaption { color:var(--muted); font-size:.78rem; margin-top:.4rem; text-transform:uppercase; letter-spacing:.07em; }
+pre { background:var(--card); border:1px solid var(--line); border-radius:9px;
+      padding:1rem; overflow-x:auto; font:14px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; }
+.open { display:inline-block; margin:1.6rem 0; padding:.75rem 1.3rem; border-radius:8px;
+        background:var(--accent); color:#fff; font-weight:600; text-decoration:none; }
+.open:hover { filter:brightness(1.1); }
+.pager { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap;
+         border-top:1px solid var(--line); margin-top:3rem; padding-top:1.2rem; font-size:.9rem; }
+.grid { display:grid; gap:1.1rem; grid-template-columns:repeat(auto-fill,minmax(215px,1fr)); margin:.6rem 0 2.6rem; }
+.card { border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card);
+        text-decoration:none; color:inherit; display:flex; flex-direction:column; }
+.card:hover { border-color:var(--accent); }
+.card img { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; background:#000; }
+.card .body { padding:.6rem .75rem .8rem; }
+.card b { display:block; font-size:.95rem; }
+.card span { color:var(--muted); font-size:.76rem; }
+h2 { font-size:1.15rem; margin:2.4rem 0 .2rem; padding-bottom:.45rem; border-bottom:1px solid var(--line); }
+.lead { color:var(--muted); max-width:68ch; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><nav><a href="../">chaosrack</a> › <a href="./">models</a> › Audio</nav></header>
+<h1>Transfer Function</h1>
+<div class="class">audio · <code>#xfer</code></div>
+
+<p>Transfer Function — what the thing between two channels did to the sound. Every other measurement here asks about ONE signal; this one asks about the RELATIONSHIP between two, which is the question a system is actually tuned by. Send a signal into a loudspeaker, a room, a filter or a cable, capture what comes back, and read what happened in between. That is what a system-tuning rig does, and chaosrack already carries two channels end to end. MAGNITUDE is the frequency response in dB — flat is a system that changed nothing. PHASE is how far the output lags the input; a pure DELAY is a phase that falls linearly with frequency, and the slope IS the delay, which is what the DLY readout fits and what gets dialed into a delay line to line a speaker up. COHERENCE is the number that says whether to believe the other two: 1 means the output is fully explained by the input, and noise, a second source, a nonlinearity or a system that moved during the measurement all drive it down. A dip in the magnitude with the coherence still high is the system; the same dip with the coherence collapsed is the measurement giving up, and the curves are drawn together so the two can be told apart. AVERAGING IS NOT OPTIONAL. From a single window coherence is exactly 1 at every frequency — for any two signals whatever, including two unrelated noises — so a display built on one window is a row of perfect scores that means nothing. AVG sets how many windows are folded in before the result is shown, and the curves are drawn only where the coherence clears COH and the stimulus actually reached the band. REF says which channel is the reference, BAND how finely the bands are smoothed, RNGE the magnitude scale, SHOW which curves are drawn. Feed it pink noise or the log sweep from the Test module.</p>
+
+
+<a class="open" href="https://chaosrack.magnetosphere.net/#xfer">Open Transfer Function in chaosrack →</a>
+<p class="lead">It opens running, on the model selector, with its own knobs. Rotate it by dragging,
+zoom with the wheel, and turn the parameters to see what the figure does when the system changes.</p>
+<div class="pager">
+<span>← <a href="rta.html">RTA — Octave Bands</a></span>
+<span><a href="./">all models</a></span>
+<span><a href="waterfall.html">Waterfall — Spectral Decay</a> →</span>
+</div>
+</div>
+</body>
+</html>
