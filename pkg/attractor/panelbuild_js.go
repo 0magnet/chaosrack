@@ -111,9 +111,11 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 	numInput := doc.Call("createElement", "input")
 	numInput.Set("type", "text") // LED display: keeps +/- and trailing zeros
 	numInput.Set("inputmode", "decimal")
-	numInput.Set("min", minStr)
-	numInput.Set("max", maxStr)
-	numInput.Set("step", stepStr)
+	// No min/max/step here. They are only meaningful on a numeric input, and
+	// this is type=text so it can hold the LED's sign and trailing zeros —
+	// the validator counts 756 of them across the panel, and not one is read:
+	// the wheel over a readout goes through wheelNudge, which takes the range
+	// as Go arguments, and bindWheelEl binds only range and number inputs.
 	numInput.Set("className", "numin u-val")
 
 	// A named setting reads by name. The LED shows the label rather than its
@@ -214,7 +216,6 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 		if val, err := strconv.ParseFloat(stepInput.Get("value").String(), 64); err == nil && val > 0 {
 			newStep := strconv.FormatFloat(val, 'g', -1, 64)
 			slider.Set("step", newStep)
-			numInput.Set("step", newStep)
 		}
 		return nil
 	}))
