@@ -156,12 +156,14 @@ func quantizeModuleWidths() {
 	for _, r := range unitRacks {
 		r.Quantize()
 	}
+	latchModuleWidths()
 	relayoutUnits()
 	// The widths changed, so the modules a unit holds may have; quantize
 	// the openings that now exist.
 	for _, r := range unitRacks {
 		r.Quantize()
 	}
+	latchModuleWidths()
 	layoutRackHandles()
 	// Skirts are MEASURED, so they are sized after the layout that gives
 	// them a size. Here because this is the one funnel every layout
@@ -198,6 +200,9 @@ func rackSetScale(v float64) {
 	if ensureRack() == nil {
 		return
 	}
+	// Every panel is re-milled at a new interface size, so the widths
+	// latched at the old one mean nothing.
+	moduleWidthHighWater = map[string]int{}
 	for _, r := range unitRacks {
 		r.SetScale(v)
 	}
@@ -352,4 +357,70 @@ func rackSetHidden(keys []string) {
 	for _, r := range unitRacks {
 		r.SetHidden(keys)
 	}
+}
+
+// ── A panel is milled once ────────────────────────────────────────────────
+
+// moduleWidthHighWater is the widest each module has ever needed to be, in
+// slots, at the current interface size.
+//
+// Reset when the interface size changes (see rackSetScale), because that
+// re-mills every panel in the rack.
+var moduleWidthHighWater = map[string]int{}
+
+// latchModuleWidths stops a module from ever getting NARROWER.
+//
+// A module's width is quantized from what is currently on it, which means a
+// control that changes how much is on it changes the width of the panel it
+// is mounted on — and every module after it in the rack slides. Measured by
+// turning each of the panel's 44 selector knobs in turn, seven of them move
+// the rack, and the honest ones are the Matrix's step count (16 to 8), the
+// Keys span (4 to 1), the view count and the focus count. Turn the sequencer
+// down to eight steps and the whole rack below it re-flows.
+//
+// That is the metaphor breaking. A 19-inch panel is milled once, for the
+// widest thing it will ever carry; a knob changes what is ON the panel, not
+// how wide the panel is. Nobody's sequencer gets narrower in the rack when
+// they select fewer steps.
+//
+// So a module keeps its high-water width. It grows when it genuinely needs
+// to — the first time a mode puts more on it — and never shrinks back, so
+// the shift happens at most once per module per session instead of on every
+// turn of the knob, and turning the knob back does not move anything at all.
+func latchModuleWidths() {
+	f := rackFrame()
+	if !f.Truthy() {
+		return
+	}
+	els := f.Call("querySelectorAll", ".sect")
+	for i := 0; i < els.Get("length").Int(); i++ {
+		m := els.Index(i)
+		key := moduleKeyOf(m)
+		if key == "" || isHiddenModule(m) {
+			continue
+		}
+		n := moduleSlots(m)
+		if was := moduleWidthHighWater[key]; n < was {
+			m.Get("style").Set("width", pxStr(slotsWidthPx(was)))
+			continue
+		}
+		moduleWidthHighWater[key] = n
+	}
+}
+
+// isHiddenModule reports whether a module is switched out, in which case its
+// width is meaningless and must not be latched.
+func isHiddenModule(m js.Value) bool {
+	return m.Get("style").Get("display").String() == "none"
+}
+
+// slotsWidthPx is what rack-go makes an n-slot module: n panels and the n-1
+// seams between them. The seam is unscaled there, so it is unscaled here —
+// the two have to agree or a latched module is a different size from a
+// quantized one.
+func slotsWidthPx(n int) float64 {
+	if n < 1 {
+		n = 1
+	}
+	return float64(n)*moduleSlot*panelScale + float64(n-1)*moduleGap
 }
