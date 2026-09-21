@@ -267,3 +267,30 @@ func TestTheCellIsAWholeNumberOfPotPitches(t *testing.T) {
 		t.Errorf("a %v mm cell does not fit a %v mm 3U panel", CellHeight, PanelHeight3U)
 	}
 }
+
+// A 3U panel holds three rows of controls, and the panel has to be drawn so
+// that it does.
+//
+// Not a tautology about RowsPerPanel's own arithmetic: it is the claim that
+// the arithmetic comes out at three with room left over, and that nothing
+// has quietly eaten the room. The stylesheet had. Its content row reserved
+// the panel less a flat header and then spent what was left over on a
+// bottom margin and a row gap, so two rows fit where three do — and since a
+// module widens rather than growing taller, every module with three
+// controls on it was milled two slots wide to stand one knob in a column of
+// its own.
+func TestAPanelHoldsThreeRowsOfControls(t *testing.T) {
+	if got := RowsPerPanel(); got != 3 {
+		t.Errorf("a 3U panel holds %d rows of controls, want 3", got)
+	}
+	// The room left over is what the drawing has to spend, and it is one
+	// millimeter. A change that leaves none is a change that puts the
+	// stylesheet one rounding away from losing a row again.
+	spare := PanelHeight3U - HeaderHeight - float64(RowsPerPanel())*CellHeight
+	if spare < 0 {
+		t.Errorf("three rows and a legend are %v mm over a 3U panel", -spare)
+	}
+	if spare >= CellHeight {
+		t.Errorf("%v mm of a 3U panel is unused — that is another row", spare)
+	}
+}

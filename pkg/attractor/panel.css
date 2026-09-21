@@ -562,10 +562,36 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 #crt-overlay::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,0.30) 0px,rgba(0,0,0,0.30) 1px,transparent 1px,transparent 3px);opacity:0.55;}
 #crt-overlay::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 52%,rgba(0,0,0,0.55) 100%);}
 .sect>.sect-hdr{flex:0 0 auto;}
-/* the content area column-wraps within a DEFINITE height (so wrapping triggers);
-   more controls => more columns => the module widens. */
+/* The content area column-wraps within a DEFINITE height, so that wrapping
+   triggers at all: more controls => more columns => the module widens.
+
+   It must be the height the panel actually HAS, and it was not. The rule
+   asked for --mod-h less a flat 30px for the header, which comes to 484px
+   at the standard size — four pixels more than the 480 that three 40 mm
+   knob rows need, so three knobs in a module should have stood in one
+   column. They did not: the row also carried the 5px bottom margin every
+   .row has, which is for a row inside a flowing page and is nothing but
+   lost panel inside a box of fixed height, and the 4px row gap took the
+   rest. 482px of room for 488px of knobs. The third knob wrapped, the
+   module quantized to two slots to hold a column with one knob in it, and
+   every module with three controls on it — Style, Gen X, Gen Y, Gen Z,
+   Test, Counter, Envelope, Layers, Position, Model Out — was milled twice
+   as wide as its contents, with the bottom third of both columns blank.
+
+   So the row takes what is left of the panel below the silkscreen instead
+   of computing it, which cannot be off by a few pixels, and the rows sit
+   flush: a cell is a 40 mm box with its control centered in it, so the
+   daylight between two knobs is already inside the cells and a gap on top
+   of that is only a row of knobs that will not fit. Flush is also what
+   makes this hold at every interface size. The panel scales and the
+   silkscreen does not — it is lettering, set in points — so the small
+   size has proportionally less room below the legend than the large one,
+   and two pixels of gap were the difference between three rows and two.
+
+   Three rows of knobs is what a 3U panel holds: see rackspec.RowsPerPanel,
+   which does the arithmetic in millimeters where a test can check it. */
 #params{display:contents;}
-.sect>.row{display:flex;flex-flow:column wrap;height:calc(var(--mod-h,474px) - 30px);align-content:flex-start;gap:4px 14px;}
+.sect>.row{display:flex;flex-flow:column wrap;flex:1 1 auto;min-height:0;margin-bottom:0;align-content:flex-start;gap:0 14px;}
 /* Same box, but .punit-grid is display:grid below — so it takes the size and
    the spacing and not the flex direction, which did nothing here. */
 /* content items keep their size and WRAP into a new column instead of shrinking */
