@@ -18,18 +18,25 @@ import (
 //
 // It was sixteen hundred lines at a cyclomatic complexity of 146 — the
 // largest piece of debt in the Go here, grown honestly by wiring each
-// control inline next to the last. Thirteen blocks that touched none of its
-// locals came out whole, which took it to 843 lines and 97.
+// control inline next to the last. Twenty blocks have come out and it is
+// 487 lines at 56.
 //
-// Still over the budget, and the reason is worth writing down: what is left
-// is not more of the same. The blocks that came out were sequences of calls
-// against package state. What remains is knitted together by two dozen
-// locals — the knob closures above all, where attachKnob, knobAngleAt,
-// knobRelease and stackAxis are declared once and used by every axis. Those
-// move when the locals are hoisted into a type or the closures are named,
-// which is a change with a design in it rather than a cut.
+// They were found rather than chosen. Track brace depth through the body,
+// then take the runs where every mention of one of Run's locals is also a
+// declaration of it inside that run, bounded by statement boundaries and
+// containing no return that would exit Run rather than the new function.
+// Thirteen used no locals at all; the rest own theirs. buildPanelKnobs is
+// the one that mattered — six closures declared once and used by every axis
+// and every slider, private to that block all along, with Run for a scope.
 //
-//nolint:gocyclo // 97 and falling; see above for what the rest needs
+// That is as far as cutting goes: the analysis now finds exactly one run
+// left, and it is the guard at the top that returns out of Run. The 56 that
+// remains is spread thin across statements sharing locals that are read
+// hundreds of lines apart — panel, shell, hash, footers — and those come
+// down by giving the boot a struct to hang its state on, which is a design
+// and not a cut.
+//
+//nolint:gocyclo // 56, down from 146; see above for what the rest needs
 func Run() {
 	// Lazy WebGL init — see initWebGL doc. Must run after the host
 	// DOM is ready (caller's responsibility); otherwise gocanvas
@@ -123,232 +130,9 @@ func Run() {
 	doc = js.Global().Get("document")
 	body = doc.Get("body")
 	injectFonts() // embedded @font-face rules for the panel / LED / header fonts
-
-	// Get control element references
-	rtc = doc.Call("getElementById", "runtime")
-	cameraControl = doc.Call("getElementById", "camera-zoom")
-	rotationControlsX = doc.Call("getElementById", "rotation-controls-x")
-	rotationControlsY = doc.Call("getElementById", "rotation-controls-y")
-	rotationControlsZ = doc.Call("getElementById", "rotation-controls-z")
-	sliderZoom = doc.Call("getElementById", "slider-value-zoom")
-	sliderX = doc.Call("getElementById", "slider-value-x")
-	sliderY = doc.Call("getElementById", "slider-value-y")
-	sliderZ = doc.Call("getElementById", "slider-value-z")
-
-	// ── Rotation knobs (digital-pot style, one per axis) ──────────────
-	// Turning a knob sets that axis's absolute angle (position) and zeroes
-	// its spin rate — "the speed obeys the knob". Moving the rate slider
-	// spins the axis and the knob pointer/LED track it live — "the knob
+	cacheElementRefs()
 	// obeys the speed". Faithful to Glen's 3D projective unit, whose panel
-	// pots set absolute X/Y angles on 7-seg displays.
-	knobPtr[0] = doc.Call("getElementById", "knobptr-x")
-	knobPtr[1] = doc.Call("getElementById", "knobptr-y")
-	knobPtr[2] = doc.Call("getElementById", "knobptr-z")
-	knobLED[0] = doc.Call("getElementById", "led-x")
-	knobLED[1] = doc.Call("getElementById", "led-y")
-	knobLED[2] = doc.Call("getElementById", "led-z")
-	knobsReady = true
-	// Shared drag state (only one knob turns at a time). Document-level
-	// move/up listeners (below) let the drag continue when the cursor
-	// leaves the small knob, without setPointerCapture (a JS throw there
-	// would panic the Go callback).
-	knobAxis := -1 // which axis is being turned (-1 = none)
-	var knobCX, knobCY, knobPrevAng float64
-	knobAngleAt := func(e js.Value) float64 {
-		return math.Atan2(e.Get("clientY").Float()-knobCY, e.Get("clientX").Float()-knobCX)
-	}
-	attachKnob := func(knobID string, axis int, spin, spinNum js.Value) {
-		kn := doc.Call("getElementById", knobID)
-		if !kn.Truthy() {
-			return
-		}
-		kn.Call("addEventListener", "pointerdown", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-			e := args[0]
-			e.Call("preventDefault")
-			r := kn.Call("getBoundingClientRect")
-			knobCX = r.Get("left").Float() + r.Get("width").Float()/2
-			knobCY = r.Get("top").Float() + r.Get("height").Float()/2
-			knobPrevAng = knobAngleAt(e)
-			knobAxis = axis
-			// Grabbing the knob holds the pose: stop this axis's spin
-			// ("the speed obeys the knob").
-			spin.Set("value", "0")
-			if spinNum.Truthy() {
-				spinNum.Set("value", "0")
-			}
-			setSpinAxis(axis, 0)
-			if axis == 1 { // Y spin just zeroed → reflect auto-rotate off
-				clearAutoRotateFlag()
-			}
-			return nil
-		}))
-		// Scroll over the angle ring nudges the pose by 5° per notch.
-		kn.Call("addEventListener", "wheel", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-			e := args[0]
-			e.Call("preventDefault")
-			e.Call("stopPropagation")
-			step := float32(math.Pi / 36) // 5°
-			if e.Get("deltaY").Float() > 0 {
-				step = -step
-			}
-			addAngleAxis(axis, step)
-			return nil
-		}))
-	}
-	attachKnob("knob-x", 0, rotationControlsX, sliderX)
-	attachKnob("knob-y", 1, rotationControlsY, sliderY)
-	attachKnob("knob-z", 2, rotationControlsZ, sliderZ)
-	onPointerMove(func(e js.Value) {
-		if knobAxis < 0 {
-			return
-		}
-		cur := knobAngleAt(e)
-		d := cur - knobPrevAng
-		for d > math.Pi { // shortest-arc delta so it turns endlessly
-			d -= 2 * math.Pi
-		}
-		for d < -math.Pi {
-			d += 2 * math.Pi
-		}
-		knobPrevAng = cur
-		addAngleAxis(knobAxis, float32(d))
-	})
-	knobRelease := trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		knobAxis = -1
-		return nil
-	})
-	doc.Call("addEventListener", "pointerup", knobRelease)
-	doc.Call("addEventListener", "pointercancel", knobRelease)
-	updateRotKnobs()
-	initPointerMove() // the one shared pointermove listener the drags share
-	initKnobDrag()    // document listeners for the bounded param/camera knobs
-
-	// Knobify the fixed sliders too (zoom, speed, line, trail, spin rates):
-	// hide each range input and insert a bounded knob that drives it. Reuses
-	// each slider's existing 'input' handler, so behavior is unchanged.
-	knobifyFixed := func(sliderID, numID string, dial bool) js.Value {
-		sl := doc.Call("getElementById", sliderID)
-		if !sl.Truthy() {
-			return js.Undefined()
-		}
-		num := doc.Call("getElementById", numID)
-		sl.Get("style").Set("display", "none")
-		// The knob is inserted bare; the cell's reset button stays a cell child and
-		// is pinned to the header's top-right by CSS (standard cell template).
-		k := makeKnob(sl, num, true, true, dial)
-		parent := sl.Get("parentNode")
-		// Insert the knob right after the (hidden) slider. Only insertBefore the
-		// numeric when it's actually a sibling — with the label-column layout the
-		// numeric lives in a separate span, so we just append to the column.
-		if num.Truthy() && num.Get("parentNode").Equal(parent) {
-			parent.Call("insertBefore", k, num)
-		} else {
-			parent.Call("appendChild", k)
-		}
-		return k
-	}
-	// Value knobs get a numeric scale dial; the rotation-rate knobs don't (they
-	// nest as the inner disc of the View angle knobs, which already carry a
-	// degree dial — a second scale would collide).
-	knobifyFixed("camera-zoom", "slider-value-zoom", true)
-	knobifyFixed("model-fore", "slider-value-fore", true)
-	knobifyFixed("pan-x", "slider-value-panx", true)
-	knobifyFixed("pan-y", "slider-value-pany", true)
-	knobifyFixed("speed-slider", "slider-value-speed", true)
-	knobifyFixed("line-width", "slider-value-line", true)
-	knobifyFixed("dash-duty", "slider-value-dash", true)
-	knobifyFixed("trail-slider", "slider-value-trail", true)
-	knobifyFixed("rainbow-freq", "slider-value-rfreq", true)
-	knobifyFixed("sweep-lo", "slider-value-swlo", true)
-	knobifyFixed("sweep-hi", "slider-value-swhi", true)
-	knobifyFixed("palette-shift", "slider-value-pshift", true)
-	rkx := knobifyFixed("rotation-controls-x", "slider-value-x", false)
-	rky := knobifyFixed("rotation-controls-y", "slider-value-y", false)
-	rkz := knobifyFixed("rotation-controls-z", "slider-value-z", false)
-
-	// Stack each axis's angle knob (outer ring) around its spin-rate knob
-	// (inner), oscilloscope-style, with an analog degree dial around the ring.
-	// Beside it, a digital readout column: the degrees LED, then the spin-rate
-	// numeric directly below it, then reset. The cell label becomes "<axis> / Rate".
-	// Each axis is a NARROW vertical strip: label ("X / Rate") · degrees LED ·
-	// angle knob (in a square, with the reset tucked in its lower-right corner)
-	// · spin-rate numeric. This sets the minimum module slot width.
-	stackAxis := func(axisLbl, angleID, ledID, rateNumID, rateRstID string, rateKnob js.Value) {
-		ak := doc.Call("getElementById", angleID)
-		if !ak.Truthy() || !rateKnob.Truthy() {
-			return
-		}
-		led := doc.Call("getElementById", ledID)
-		rateNum := doc.Call("getElementById", rateNumID)
-		rst := doc.Call("getElementById", rateRstID)
-		cell := ak.Call("closest", ".pcell")
-		angleGrp := ak.Get("parentNode")
-		var rateGrp js.Value
-		if rateNum.Truthy() {
-			rateGrp = rateNum.Get("parentNode")
-		}
-
-		stack := stackKnobs(ak, rateKnob)
-		addAngleDial(stack)
-
-		// square wrapper so the reset can sit in the knob's corner
-		knobBox := doc.Call("createElement", "span")
-		knobBox.Set("className", "axknob-box")
-		knobBox.Call("appendChild", stack)
-		if rst.Truthy() {
-			rst.Get("classList").Call("add", "axknob-rst")
-			knobBox.Call("appendChild", rst)
-		}
-
-		col := doc.Call("createElement", "span")
-		col.Set("className", "grp axstack")
-		// Top line: axis label ("X") to the LEFT of the degrees LED readout.
-		topRow := doc.Call("createElement", "span")
-		topRow.Set("className", "grp axrow toprow")
-		if cell.Truthy() {
-			if lbl := cell.Call("querySelector", ".plabel"); lbl.Truthy() {
-				lbl.Set("textContent", axisLbl)
-				topRow.Call("appendChild", lbl)
-			}
-		}
-		if led.Truthy() {
-			topRow.Call("appendChild", led)
-		}
-		col.Call("appendChild", topRow)
-		col.Call("appendChild", knobBox)
-		// Bottom line: "Rate" label to the LEFT of the spin-rate numeric.
-		botRow := doc.Call("createElement", "span")
-		botRow.Set("className", "grp axrow botrow")
-		rlbl := doc.Call("createElement", "span")
-		rlbl.Set("className", "plabel sym") // ω = angular rate; .sym keeps it lowercase (not Ω)
-		rlbl.Set("textContent", "ω")
-		botRow.Call("appendChild", rlbl)
-		if rateNum.Truthy() {
-			botRow.Call("appendChild", rateNum)
-		}
-		col.Call("appendChild", botRow)
-
-		// swap the column in for the old [knob][led] grp, hide the rate row
-		if angleGrp.Truthy() {
-			p := angleGrp.Get("parentNode")
-			p.Call("insertBefore", col, angleGrp)
-			p.Call("removeChild", angleGrp)
-		}
-		if rateGrp.Truthy() {
-			rateGrp.Get("style").Set("display", "none")
-		}
-	}
-	stackAxis("X", "knob-x", "led-x", "slider-value-x", "rst-rx", rkx)
-	stackAxis("Y", "knob-y", "led-y", "slider-value-y", "rst-ry", rky)
-	stackAxis("Z", "knob-z", "led-z", "slider-value-z", "rst-rz", rkz)
-
-	if sf := doc.Call("getElementById", "spect-fill"); sf.Truthy() {
-		sf.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-			spectFill = sf.Get("checked").Bool()
-			return nil
-		}))
-	}
-
+	buildPanelKnobs()
 	// Floating show/hide button for the whole control panel (it can block the
 	// view). Lives outside the panel so it can bring it back.
 	panelToggle := doc.Call("createElement", "button")
@@ -633,24 +417,7 @@ func Run() {
 			ResetID: "rst-knob-size", SkipResetAll: true,
 		})
 	}
-
-	// Event: mode change
-	doc.Call("getElementById", "mode-select").Call("addEventListener", "change", trackedFuncOf(onModeChange))
-
-	// Event: color pickers
-	colorCallback := trackedFuncOf(onColorChange)
-	doc.Call("getElementById", "color-base").Call("addEventListener", "input", colorCallback)
-	doc.Call("getElementById", "color-mid").Call("addEventListener", "input", colorCallback)
-	doc.Call("getElementById", "color-top").Call("addEventListener", "input", colorCallback)
-	wireColorControls()
-	resetSync := trackedFuncOf(func(this js.Value, args []js.Value) interface{} { syncKnobs(); return nil })
-	doc.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if t := a[0].Get("target"); t.Truthy() && t.Call("closest", ".rst").Truthy() {
-			js.Global().Call("requestAnimationFrame", resetSync)
-		}
-		return nil
-	}))
-	wirePanelSwitches()
+	wireModeAndResetInputs()
 	if dst := doc.Call("getElementById", "desk-style"); dst.Truthy() {
 		// The same treatment the Console's selects get, for the same reason.
 		// This one arrived as a bare <select> and was the only control in the
@@ -672,47 +439,7 @@ func Run() {
 	// Event: physics switch — the weight is a switch on the Motion panel, not a
 	wirePhysSwitch()
 	// canvas, which is what the GPU costs, but keeps the control panel — so
-	wirePowerSwitch()
-	fsReject := trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if sw := doc.Call("getElementById", "fullscreen-sw"); sw.Truthy() {
-			sw.Set("checked", doc.Get("fullscreenElement").Truthy() || doc.Get("webkitFullscreenElement").Truthy())
-		}
-		return nil
-	})
-	catchFs := func(pr js.Value) {
-		if pr.Truthy() && !pr.Get("then").IsUndefined() {
-			pr.Call("catch", fsReject)
-		}
-	}
-	doc.Call("getElementById", "fullscreen-sw").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		want := doc.Call("getElementById", "fullscreen-sw").Get("checked").Bool()
-		if want {
-			docEl := doc.Get("documentElement")
-			if !docEl.Get("requestFullscreen").IsUndefined() {
-				catchFs(docEl.Call("requestFullscreen"))
-			} else if !docEl.Get("webkitRequestFullscreen").IsUndefined() {
-				catchFs(docEl.Call("webkitRequestFullscreen"))
-			}
-		} else {
-			if !doc.Get("exitFullscreen").IsUndefined() {
-				catchFs(doc.Call("exitFullscreen"))
-			} else if !doc.Get("webkitExitFullscreen").IsUndefined() {
-				catchFs(doc.Call("webkitExitFullscreen"))
-			}
-		}
-		return nil
-	}))
-	syncFsSwitch := trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		if sw := doc.Call("getElementById", "fullscreen-sw"); sw.Truthy() {
-			sw.Set("checked", doc.Get("fullscreenElement").Truthy() || doc.Get("webkitFullscreenElement").Truthy())
-		}
-		return nil
-	})
-	doc.Call("addEventListener", "fullscreenchange", syncFsSwitch)
-	doc.Call("addEventListener", "webkitfullscreenchange", syncFsSwitch)
-
-	wireModelInput()
-
+	wireFullscreenSwitch()
 	// Initial mode — read from URL hash if present. The hash may carry
 	// permalink state after the mode ("#aizawa&p.a=1.19&..."); take only
 	// the leading mode token here (the rest is applied post-setup).
@@ -735,53 +462,7 @@ func Run() {
 	updateTrailVisibility()
 
 	// One-time drag listeners for every selector knob in the panel, the
-	buildRackAndRestore()
-	gsrc := doc.Call("getElementById", "gradient-source")
-	gcol := doc.Call("getElementById", "gradient-colors")
-	if gsrc.Truthy() && gcol.Truthy() {
-		if sh := doc.Call("getElementById", "gradient-stack"); sh.Truthy() {
-			sstack := soloKnob(gsrc)
-			// OFF first, because it is the absence of a source rather than one more
-			// of them. Its option value is 5 while the five that follow keep 0..4,
-			// so a permalink written before this still names the same source: the
-			// ring binds a label to an option by INDEX and the link by VALUE, and
-			// those are free to disagree.
-			//
-			// ONE LABEL PER OPTION, IN OPTION ORDER. Binding by index is what
-			// makes that a requirement rather than a nicety: seven audio sources
-			// were added to the select and this list was left at six, so the dial
-			// went on offering the original six and the new ones could not be
-			// reached from the knob at all — only from a permalink. The order
-			// here is the order in panelhtml_js.go, not numeric by value.
-			addSelectorLabels(sstack, gradSrcRingLabels, gsrc).
-				Set("id", "grad-src-ring")
-			sh.Call("appendChild", sstack)
-			gsrc.Get("style").Set("display", "none")
-		}
-		if mh := doc.Call("getElementById", "map-stack"); mh.Truthy() {
-			mstack := soloKnob(gcol)
-			// No "1" here any more: mono was never a map, it was the absence of a
-			// source, and it lives on the src ring as OFF. Every position left is
-			// a genuine mapping of a value to a color.
-			//
-			// NINE labels for nine options, and the count is load-bearing: a ring
-			// that does not match its select is discarded whole and the dial falls
-			// back to full names, which is how the spectrogram's old color dial
-			// came to read "graysca…e" and "…idis" under the knob when turbo,
-			// viridis and magma were added to a three-label ring. Add a map here
-			// and add its label in the same commit.
-			// 45 rather than the src ring's 43: "hue" is the one three-character
-			// label and it lands where its width points straight at the knob, so at
-			// the src ring's radius it touched the dial while every 2-character
-			// label beside it cleared. Two more percent is as far as it can go —
-			// past that the outermost labels clip the cell.
-			addSelectorLabels(mstack, []string{"2", "3", "hue", "ht", "bl", "gy", "tb", "vr", "mg"}, gcol).
-				Set("id", "grad-map-ring")
-			mh.Call("appendChild", mstack)
-			gcol.Get("style").Set("display", "none")
-		}
-	}
-	wireViewGridStack()
+	wireGradientKnobs()
 	// first pass can run before the panel's own font has been applied.
 	requantizeAfterFonts()
 
@@ -824,39 +505,9 @@ func Run() {
 		}})
 	registerOutputControls()
 	// value so engine state matches the panel by construction (the old code
-	// did this ad hoc — applyLineWidth() at wiring, readSliderCache, …).
-	for _, c := range builtControls {
-		// Whichever element holds this control's value, and the event that
-		// commits it. A selector-backed Control has no slider at all, and Call on
-		// an undefined js.Value is a panic rather than a no-op — which took the
-		// whole runtime down the first time a selector reached this loop.
-		switch {
-		case c.sel.Truthy():
-			c.sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
-		case c.slider.Truthy():
-			c.slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-		}
-	}
-
-	// Permalink: capture pristine control defaults, restore any state
+	commitBuiltControls()
 	// encoded in the URL hash, then keep the hash in sync with the live
-	// state so the current view is always shareable.
-	capturePermaDefaults()
-	// Between the two on purpose. After capturePermaDefaults, or a module this
-	// browser has open would be recorded as that switch's pristine value and
-	// then left out of every link shared from this session. Before
-	// applyStateFromHash, so a shared link beats a local preference — see
-	// restoreConsoleModuleSwitches for the whole argument.
-	restoreConsoleModuleSwitches()
-	applyStateFromHash()
-	wireConsoleModuleSwitchSaves()
-	startPermalinkSync()
-
-	// Final tooltip pass now that every selector (gradient / model / style) is
-	// built — some are created after the first buildParamPanel's annotate.
-	annotateControlTooltips()
-
-	// Start animation loop
+	capturePermalinkAndRestore()
 	done := make(chan struct{})
 	renderFrame = trackedFuncOf(renderLoop)
 	js.Global().Call("requestAnimationFrame", renderFrame)
@@ -1897,4 +1548,416 @@ func wireColorControls() {
 	// value on the next frame (after the button's own handler has set values),
 	// so knobs whose handler sets the slider without dispatching 'input' still
 	// snap their pointer back.
+}
+
+// buildPanelKnobs turns the panel's fixed sliders into knobs and wires the
+// three rotation knobs that drag against each other.
+//
+// This is the block that kept Run above its complexity budget after the
+// thirteen straight cuts, and it is a unit rather than a sequence: knobAxis,
+// knobAngleAt, attachKnob, knobRelease, knobifyFixed and stackAxis are
+// declared once here and used by every axis and every slider below them.
+// Nothing outside mentions any of them, which is what makes it a function
+// and not a cut — the state was always private to this, it just had Run for
+// a scope.
+func buildPanelKnobs() {
+	// pots set absolute X/Y angles on 7-seg displays.
+	knobPtr[0] = doc.Call("getElementById", "knobptr-x")
+	knobPtr[1] = doc.Call("getElementById", "knobptr-y")
+	knobPtr[2] = doc.Call("getElementById", "knobptr-z")
+	knobLED[0] = doc.Call("getElementById", "led-x")
+	knobLED[1] = doc.Call("getElementById", "led-y")
+	knobLED[2] = doc.Call("getElementById", "led-z")
+	knobsReady = true
+	// Shared drag state (only one knob turns at a time). Document-level
+	// move/up listeners (below) let the drag continue when the cursor
+	// leaves the small knob, without setPointerCapture (a JS throw there
+	// would panic the Go callback).
+	knobAxis := -1 // which axis is being turned (-1 = none)
+	var knobCX, knobCY, knobPrevAng float64
+	knobAngleAt := func(e js.Value) float64 {
+		return math.Atan2(e.Get("clientY").Float()-knobCY, e.Get("clientX").Float()-knobCX)
+	}
+	attachKnob := func(knobID string, axis int, spin, spinNum js.Value) {
+		kn := doc.Call("getElementById", knobID)
+		if !kn.Truthy() {
+			return
+		}
+		kn.Call("addEventListener", "pointerdown", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+			e := args[0]
+			e.Call("preventDefault")
+			r := kn.Call("getBoundingClientRect")
+			knobCX = r.Get("left").Float() + r.Get("width").Float()/2
+			knobCY = r.Get("top").Float() + r.Get("height").Float()/2
+			knobPrevAng = knobAngleAt(e)
+			knobAxis = axis
+			// Grabbing the knob holds the pose: stop this axis's spin
+			// ("the speed obeys the knob").
+			spin.Set("value", "0")
+			if spinNum.Truthy() {
+				spinNum.Set("value", "0")
+			}
+			setSpinAxis(axis, 0)
+			if axis == 1 { // Y spin just zeroed → reflect auto-rotate off
+				clearAutoRotateFlag()
+			}
+			return nil
+		}))
+		// Scroll over the angle ring nudges the pose by 5° per notch.
+		kn.Call("addEventListener", "wheel", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+			e := args[0]
+			e.Call("preventDefault")
+			e.Call("stopPropagation")
+			step := float32(math.Pi / 36) // 5°
+			if e.Get("deltaY").Float() > 0 {
+				step = -step
+			}
+			addAngleAxis(axis, step)
+			return nil
+		}))
+	}
+	attachKnob("knob-x", 0, rotationControlsX, sliderX)
+	attachKnob("knob-y", 1, rotationControlsY, sliderY)
+	attachKnob("knob-z", 2, rotationControlsZ, sliderZ)
+	onPointerMove(func(e js.Value) {
+		if knobAxis < 0 {
+			return
+		}
+		cur := knobAngleAt(e)
+		d := cur - knobPrevAng
+		for d > math.Pi { // shortest-arc delta so it turns endlessly
+			d -= 2 * math.Pi
+		}
+		for d < -math.Pi {
+			d += 2 * math.Pi
+		}
+		knobPrevAng = cur
+		addAngleAxis(knobAxis, float32(d))
+	})
+	knobRelease := trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		knobAxis = -1
+		return nil
+	})
+	doc.Call("addEventListener", "pointerup", knobRelease)
+	doc.Call("addEventListener", "pointercancel", knobRelease)
+	updateRotKnobs()
+	initPointerMove() // the one shared pointermove listener the drags share
+	initKnobDrag()    // document listeners for the bounded param/camera knobs
+
+	// Knobify the fixed sliders too (zoom, speed, line, trail, spin rates):
+	// hide each range input and insert a bounded knob that drives it. Reuses
+	// each slider's existing 'input' handler, so behavior is unchanged.
+	knobifyFixed := func(sliderID, numID string, dial bool) js.Value {
+		sl := doc.Call("getElementById", sliderID)
+		if !sl.Truthy() {
+			return js.Undefined()
+		}
+		num := doc.Call("getElementById", numID)
+		sl.Get("style").Set("display", "none")
+		// The knob is inserted bare; the cell's reset button stays a cell child and
+		// is pinned to the header's top-right by CSS (standard cell template).
+		k := makeKnob(sl, num, true, true, dial)
+		parent := sl.Get("parentNode")
+		// Insert the knob right after the (hidden) slider. Only insertBefore the
+		// numeric when it's actually a sibling — with the label-column layout the
+		// numeric lives in a separate span, so we just append to the column.
+		if num.Truthy() && num.Get("parentNode").Equal(parent) {
+			parent.Call("insertBefore", k, num)
+		} else {
+			parent.Call("appendChild", k)
+		}
+		return k
+	}
+	// Value knobs get a numeric scale dial; the rotation-rate knobs don't (they
+	// nest as the inner disc of the View angle knobs, which already carry a
+	// degree dial — a second scale would collide).
+	knobifyFixed("camera-zoom", "slider-value-zoom", true)
+	knobifyFixed("model-fore", "slider-value-fore", true)
+	knobifyFixed("pan-x", "slider-value-panx", true)
+	knobifyFixed("pan-y", "slider-value-pany", true)
+	knobifyFixed("speed-slider", "slider-value-speed", true)
+	knobifyFixed("line-width", "slider-value-line", true)
+	knobifyFixed("dash-duty", "slider-value-dash", true)
+	knobifyFixed("trail-slider", "slider-value-trail", true)
+	knobifyFixed("rainbow-freq", "slider-value-rfreq", true)
+	knobifyFixed("sweep-lo", "slider-value-swlo", true)
+	knobifyFixed("sweep-hi", "slider-value-swhi", true)
+	knobifyFixed("palette-shift", "slider-value-pshift", true)
+	rkx := knobifyFixed("rotation-controls-x", "slider-value-x", false)
+	rky := knobifyFixed("rotation-controls-y", "slider-value-y", false)
+	rkz := knobifyFixed("rotation-controls-z", "slider-value-z", false)
+
+	// Stack each axis's angle knob (outer ring) around its spin-rate knob
+	// (inner), oscilloscope-style, with an analog degree dial around the ring.
+	// Beside it, a digital readout column: the degrees LED, then the spin-rate
+	// numeric directly below it, then reset. The cell label becomes "<axis> / Rate".
+	// Each axis is a NARROW vertical strip: label ("X / Rate") · degrees LED ·
+	// angle knob (in a square, with the reset tucked in its lower-right corner)
+	// · spin-rate numeric. This sets the minimum module slot width.
+	stackAxis := func(axisLbl, angleID, ledID, rateNumID, rateRstID string, rateKnob js.Value) {
+		ak := doc.Call("getElementById", angleID)
+		if !ak.Truthy() || !rateKnob.Truthy() {
+			return
+		}
+		led := doc.Call("getElementById", ledID)
+		rateNum := doc.Call("getElementById", rateNumID)
+		rst := doc.Call("getElementById", rateRstID)
+		cell := ak.Call("closest", ".pcell")
+		angleGrp := ak.Get("parentNode")
+		var rateGrp js.Value
+		if rateNum.Truthy() {
+			rateGrp = rateNum.Get("parentNode")
+		}
+
+		stack := stackKnobs(ak, rateKnob)
+		addAngleDial(stack)
+
+		// square wrapper so the reset can sit in the knob's corner
+		knobBox := doc.Call("createElement", "span")
+		knobBox.Set("className", "axknob-box")
+		knobBox.Call("appendChild", stack)
+		if rst.Truthy() {
+			rst.Get("classList").Call("add", "axknob-rst")
+			knobBox.Call("appendChild", rst)
+		}
+
+		col := doc.Call("createElement", "span")
+		col.Set("className", "grp axstack")
+		// Top line: axis label ("X") to the LEFT of the degrees LED readout.
+		topRow := doc.Call("createElement", "span")
+		topRow.Set("className", "grp axrow toprow")
+		if cell.Truthy() {
+			if lbl := cell.Call("querySelector", ".plabel"); lbl.Truthy() {
+				lbl.Set("textContent", axisLbl)
+				topRow.Call("appendChild", lbl)
+			}
+		}
+		if led.Truthy() {
+			topRow.Call("appendChild", led)
+		}
+		col.Call("appendChild", topRow)
+		col.Call("appendChild", knobBox)
+		// Bottom line: "Rate" label to the LEFT of the spin-rate numeric.
+		botRow := doc.Call("createElement", "span")
+		botRow.Set("className", "grp axrow botrow")
+		rlbl := doc.Call("createElement", "span")
+		rlbl.Set("className", "plabel sym") // ω = angular rate; .sym keeps it lowercase (not Ω)
+		rlbl.Set("textContent", "ω")
+		botRow.Call("appendChild", rlbl)
+		if rateNum.Truthy() {
+			botRow.Call("appendChild", rateNum)
+		}
+		col.Call("appendChild", botRow)
+
+		// swap the column in for the old [knob][led] grp, hide the rate row
+		if angleGrp.Truthy() {
+			p := angleGrp.Get("parentNode")
+			p.Call("insertBefore", col, angleGrp)
+			p.Call("removeChild", angleGrp)
+		}
+		if rateGrp.Truthy() {
+			rateGrp.Get("style").Set("display", "none")
+		}
+	}
+	stackAxis("X", "knob-x", "led-x", "slider-value-x", "rst-rx", rkx)
+	stackAxis("Y", "knob-y", "led-y", "slider-value-y", "rst-ry", rky)
+	stackAxis("Z", "knob-z", "led-z", "slider-value-z", "rst-rz", rkz)
+
+	if sf := doc.Call("getElementById", "spect-fill"); sf.Truthy() {
+		sf.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+			spectFill = sf.Get("checked").Bool()
+			return nil
+		}))
+	}
+
+}
+
+// capturePermalinkAndRestore takes the pristine defaults the permalink
+// diffs against, then puts back whatever the URL and this browser remember,
+// in the order those two have to happen in.
+func capturePermalinkAndRestore() {
+	// state so the current view is always shareable.
+	capturePermaDefaults()
+	// Between the two on purpose. After capturePermaDefaults, or a module this
+	// browser has open would be recorded as that switch's pristine value and
+	// then left out of every link shared from this session. Before
+	// applyStateFromHash, so a shared link beats a local preference — see
+	// restoreConsoleModuleSwitches for the whole argument.
+	restoreConsoleModuleSwitches()
+	applyStateFromHash()
+	wireConsoleModuleSwitchSaves()
+	startPermalinkSync()
+
+	// Final tooltip pass now that every selector (gradient / model / style) is
+	// built — some are created after the first buildParamPanel's annotate.
+	annotateControlTooltips()
+
+	// Start animation loop
+}
+
+// commitBuiltControls fires each registered control once so the value it
+// was built with actually reaches the thing it drives. A selector-backed
+// Control has no slider, and calling a method on an undefined js.Value is a
+// panic rather than a no-op.
+func commitBuiltControls() {
+	// did this ad hoc — applyLineWidth() at wiring, readSliderCache, …).
+	for _, c := range builtControls {
+		// Whichever element holds this control's value, and the event that
+		// commits it. A selector-backed Control has no slider at all, and Call on
+		// an undefined js.Value is a panic rather than a no-op — which took the
+		// whole runtime down the first time a selector reached this loop.
+		switch {
+		case c.sel.Truthy():
+			c.sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+		case c.slider.Truthy():
+			c.slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		}
+	}
+
+	// Permalink: capture pristine control defaults, restore any state
+}
+
+// wireGradientKnobs builds the two color rings — what the gradient follows,
+// and how a value becomes a color — as knobs over their hidden selects.
+func wireGradientKnobs() {
+	buildRackAndRestore()
+	gsrc := doc.Call("getElementById", "gradient-source")
+	gcol := doc.Call("getElementById", "gradient-colors")
+	if gsrc.Truthy() && gcol.Truthy() {
+		if sh := doc.Call("getElementById", "gradient-stack"); sh.Truthy() {
+			sstack := soloKnob(gsrc)
+			// OFF first, because it is the absence of a source rather than one more
+			// of them. Its option value is 5 while the five that follow keep 0..4,
+			// so a permalink written before this still names the same source: the
+			// ring binds a label to an option by INDEX and the link by VALUE, and
+			// those are free to disagree.
+			//
+			// ONE LABEL PER OPTION, IN OPTION ORDER. Binding by index is what
+			// makes that a requirement rather than a nicety: seven audio sources
+			// were added to the select and this list was left at six, so the dial
+			// went on offering the original six and the new ones could not be
+			// reached from the knob at all — only from a permalink. The order
+			// here is the order in panelhtml_js.go, not numeric by value.
+			addSelectorLabels(sstack, gradSrcRingLabels, gsrc).
+				Set("id", "grad-src-ring")
+			sh.Call("appendChild", sstack)
+			gsrc.Get("style").Set("display", "none")
+		}
+		if mh := doc.Call("getElementById", "map-stack"); mh.Truthy() {
+			mstack := soloKnob(gcol)
+			// No "1" here any more: mono was never a map, it was the absence of a
+			// source, and it lives on the src ring as OFF. Every position left is
+			// a genuine mapping of a value to a color.
+			//
+			// NINE labels for nine options, and the count is load-bearing: a ring
+			// that does not match its select is discarded whole and the dial falls
+			// back to full names, which is how the spectrogram's old color dial
+			// came to read "graysca…e" and "…idis" under the knob when turbo,
+			// viridis and magma were added to a three-label ring. Add a map here
+			// and add its label in the same commit.
+			// 45 rather than the src ring's 43: "hue" is the one three-character
+			// label and it lands where its width points straight at the knob, so at
+			// the src ring's radius it touched the dial while every 2-character
+			// label beside it cleared. Two more percent is as far as it can go —
+			// past that the outermost labels clip the cell.
+			addSelectorLabels(mstack, []string{"2", "3", "hue", "ht", "bl", "gy", "tb", "vr", "mg"}, gcol).
+				Set("id", "grad-map-ring")
+			mh.Call("appendChild", mstack)
+			gcol.Get("style").Set("display", "none")
+		}
+	}
+	wireViewGridStack()
+}
+
+// wireFullscreenSwitch drives browser fullscreen from the Console switch and
+// keeps the switch in step with the real state, which Esc can change without
+// asking. requestFullscreen rejects rather than throws when the browser
+// refuses, so the rejection has to be caught or it surfaces as an unhandled
+// promise.
+func wireFullscreenSwitch() {
+	wirePowerSwitch()
+	fsReject := trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		if sw := doc.Call("getElementById", "fullscreen-sw"); sw.Truthy() {
+			sw.Set("checked", doc.Get("fullscreenElement").Truthy() || doc.Get("webkitFullscreenElement").Truthy())
+		}
+		return nil
+	})
+	catchFs := func(pr js.Value) {
+		if pr.Truthy() && !pr.Get("then").IsUndefined() {
+			pr.Call("catch", fsReject)
+		}
+	}
+	doc.Call("getElementById", "fullscreen-sw").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		want := doc.Call("getElementById", "fullscreen-sw").Get("checked").Bool()
+		if want {
+			docEl := doc.Get("documentElement")
+			if !docEl.Get("requestFullscreen").IsUndefined() {
+				catchFs(docEl.Call("requestFullscreen"))
+			} else if !docEl.Get("webkitRequestFullscreen").IsUndefined() {
+				catchFs(docEl.Call("webkitRequestFullscreen"))
+			}
+		} else {
+			if !doc.Get("exitFullscreen").IsUndefined() {
+				catchFs(doc.Call("exitFullscreen"))
+			} else if !doc.Get("webkitExitFullscreen").IsUndefined() {
+				catchFs(doc.Call("webkitExitFullscreen"))
+			}
+		}
+		return nil
+	}))
+	syncFsSwitch := trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		if sw := doc.Call("getElementById", "fullscreen-sw"); sw.Truthy() {
+			sw.Set("checked", doc.Get("fullscreenElement").Truthy() || doc.Get("webkitFullscreenElement").Truthy())
+		}
+		return nil
+	})
+	doc.Call("addEventListener", "fullscreenchange", syncFsSwitch)
+	doc.Call("addEventListener", "webkitfullscreenchange", syncFsSwitch)
+
+	wireModelInput()
+
+}
+
+// wireModeAndResetInputs wires the model select, the color callback and the
+// document-level click that resyncs a control after a reset.
+func wireModeAndResetInputs() {
+
+	// Event: mode change
+	doc.Call("getElementById", "mode-select").Call("addEventListener", "change", trackedFuncOf(onModeChange))
+
+	// Event: color pickers
+	colorCallback := trackedFuncOf(onColorChange)
+	doc.Call("getElementById", "color-base").Call("addEventListener", "input", colorCallback)
+	doc.Call("getElementById", "color-mid").Call("addEventListener", "input", colorCallback)
+	doc.Call("getElementById", "color-top").Call("addEventListener", "input", colorCallback)
+	wireColorControls()
+	resetSync := trackedFuncOf(func(this js.Value, args []js.Value) interface{} { syncKnobs(); return nil })
+	doc.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		if t := a[0].Get("target"); t.Truthy() && t.Call("closest", ".rst").Truthy() {
+			js.Global().Call("requestAnimationFrame", resetSync)
+		}
+		return nil
+	}))
+	wirePanelSwitches()
+}
+
+// cacheElementRefs looks up the elements the render loop and the controls
+// reach for every frame, so neither pays for getElementById at 60Hz.
+func cacheElementRefs() {
+
+	// Get control element references
+	rtc = doc.Call("getElementById", "runtime")
+	cameraControl = doc.Call("getElementById", "camera-zoom")
+	rotationControlsX = doc.Call("getElementById", "rotation-controls-x")
+	rotationControlsY = doc.Call("getElementById", "rotation-controls-y")
+	rotationControlsZ = doc.Call("getElementById", "rotation-controls-z")
+	sliderZoom = doc.Call("getElementById", "slider-value-zoom")
+	sliderX = doc.Call("getElementById", "slider-value-x")
+	sliderY = doc.Call("getElementById", "slider-value-y")
+	sliderZ = doc.Call("getElementById", "slider-value-z")
+
+	// ── Rotation knobs (digital-pot style, one per axis) ──────────────
+	// Turning a knob sets that axis's absolute angle (position) and zeroes
+	// its spin rate — "the speed obeys the knob". Moving the rate slider
+	// spins the axis and the knob pointer/LED track it live — "the knob
 }
