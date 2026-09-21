@@ -64,3 +64,52 @@ func declaredModuleKeys(t *testing.T) []string {
 	}
 	return out
 }
+
+// A module with a screen in it leads a bay, and bayScreens is how the
+// packer knows which those are outside the model rows.
+//
+// The list is two entries and could have been a query — "does this module
+// contain a canvas" — except that the packer runs on slot counts before
+// anything has been laid out, and a module quietly acquiring a canvas
+// should move it in the rack only on purpose. So: a list, and this, which
+// fails if the markup and the list stop agreeing.
+func TestEveryModuleWithAScreenLeadsABay(t *testing.T) {
+	// The scope panel is a boundary too: it is an instrument unit bolted
+	// into a rack unit of its own rather than a module, so its tube is not
+	// the Console's screen even though it sits inside the Console's span of
+	// the markup.
+	start := regexp.MustCompile(`<div class="(sect[" ]|scope-panel")`)
+	hdr := regexp.MustCompile(`<div class="sect-hdr"[^>]*>([^<]*)</div>`)
+	at := start.FindAllStringIndex(controlsBody, -1)
+	if len(at) < 20 {
+		t.Fatalf("only found %d modules in the markup — the parser has stopped matching", len(at))
+	}
+	var withScreen []string
+	for i, m := range at {
+		end := len(controlsBody)
+		if i+1 < len(at) {
+			end = at[i+1][0]
+		}
+		body := controlsBody[m[0]:end]
+		h := hdr.FindStringSubmatch(body)
+		if h == nil || !strings.Contains(body, "<canvas") {
+			continue
+		}
+		k := strings.ToLower(strings.TrimSpace(html.UnescapeString(h[1])))
+		withScreen = append(withScreen, k)
+		if !bayScreens[k] {
+			t.Errorf("module %q has a screen in it but does not lead a bay; add it to bayScreens", k)
+		}
+	}
+	for k := range bayScreens {
+		found := false
+		for _, s := range withScreen {
+			if s == k {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("bayScreens names %q, which has no screen in it", k)
+		}
+	}
+}
