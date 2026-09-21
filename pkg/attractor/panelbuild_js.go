@@ -293,7 +293,49 @@ func buildModCard(id, label string, sym bool) js.Value {
 	return card
 }
 
+// Deferring the two things a control handler does that cost the whole rack.
+//
+// commitBuiltControls fires each control.s own event once, so that every
+// control applies its value the way it would if you had touched it. Sixty-
+// eight controls, and several of their handlers rebuild the parameter panel
+// or re-quantize the rack — a rebuild is a second of work now, and a
+// quantize stretches all seventy-eight modules to 3000px and measures them
+// back, which is a full layout of ten thousand nodes. Measured, the sweep
+// ran twenty-three quantizes and three panel rebuilds and took six seconds
+// of a thirteen-second boot.
+//
+// commitBuiltControls fires each control's own event once so that every
+// control applies its value the way it would if you had touched it. Several
+// of those handlers rebuild the parameter panel, and a rebuild is now a
+// second of work: the Behind and On selectors between them spent four and a
+// half seconds of a thirteen-second boot rebuilding a panel that nothing had
+// changed, twice. The sweep does not need the panel rebuilt between two
+// controls — it needs it right once at the end — so the requests are
+// collected and paid for once.
+// None of that is wrong between two controls — it is only wrong to do it
+// sixty-eight times when the rack is read once at the end. So the requests
+// are collected and paid for once.
+var deferLayout, paramPanelOwed, quantizeOwed bool
+
+// withDeferredLayout runs f with panel rebuilds and rack quantizes
+// collected, then does each once if anything asked for it.
+func withDeferredLayout(mode string, f func()) {
+	deferLayout, paramPanelOwed, quantizeOwed = true, false, false
+	f()
+	deferLayout = false
+	if paramPanelOwed {
+		buildParamPanel(mode)
+	}
+	if quantizeOwed {
+		quantizeModuleWidths()
+	}
+}
+
 func buildParamPanel(mode string) {
+	if deferLayout {
+		paramPanelOwed = true
+		return
+	}
 	// The sweep is over THIS model's parameters; a mode change makes the
 	// dial's list wrong before anything else in the panel is rebuilt.
 	syncSweepDialMode(mode)
