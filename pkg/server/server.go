@@ -22,7 +22,6 @@ import (
 
 	"github.com/0magnet/calvin/clihelp"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/render"
 	"github.com/spf13/cobra"
 
 	"github.com/0magnet/chaosrack/assets/gowasm"
@@ -114,21 +113,21 @@ var runCmd = &cobra.Command{
 		r1.GET("/", dualPage)
 		r1.GET("/index.html", dualPage)
 		r1.GET("/wasm_exec.js", func(c *gin.Context) {
-			c.Data(http.StatusOK, "application/javascript", gowasm.WasmExec)
+			serveAsset(c, "application/javascript", gowasm.WasmExec)
 		})
 		r1.GET("/chaosrack.wasm", func(c *gin.Context) {
-			c.Render(http.StatusOK, render.Data{ContentType: "application/wasm", Data: gowasm.Wasm})
+			serveAsset(c, "application/wasm", gowasm.Wasm)
 		})
 		// The same binaries at the paths they occupy in the repository, which is
 		// what the fetched pages ask for. Served here so a page saved by
 		// `make pages` behaves identically here and on GitHub Pages, where these
 		// are ordinary committed files — one page, two places, no rewriting.
 		r1.GET(goWasmURL, func(c *gin.Context) {
-			c.Render(http.StatusOK, render.Data{ContentType: "application/wasm", Data: gowasm.Wasm})
+			serveAsset(c, "application/wasm", gowasm.Wasm)
 		})
 		if hasTinygo {
 			r1.GET(tinyWasmURL, func(c *gin.Context) {
-				c.Render(http.StatusOK, render.Data{ContentType: "application/wasm", Data: tinywasm.Wasm})
+				serveAsset(c, "application/wasm", tinywasm.Wasm)
 			})
 		}
 
@@ -168,10 +167,10 @@ var runCmd = &cobra.Command{
 			r1.GET("/tinygo/", tinyPage)
 			r1.GET("/tinygo/index.html", tinyPage)
 			r1.GET("/tinygo/wasm_exec.js", func(c *gin.Context) {
-				c.Data(http.StatusOK, "application/javascript", tinywasm.WasmExec)
+				serveAsset(c, "application/javascript", tinywasm.WasmExec)
 			})
 			r1.GET("/tinygo/chaosrack-tiny.wasm", func(c *gin.Context) {
-				c.Render(http.StatusOK, render.Data{ContentType: "application/wasm", Data: tinywasm.Wasm})
+				serveAsset(c, "application/wasm", tinywasm.Wasm)
 			})
 		}
 
