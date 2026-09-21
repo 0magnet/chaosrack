@@ -121,7 +121,7 @@ func svToLevel(s, v float64) float64 {
 // cyclic). Returns a bare .knob so it stacks as a clean outer ring with a
 // visible pointer.
 func makeHueKnob(slider js.Value) js.Value {
-	knob := doc.Call("createElement", "div")
+	knob := doc.Call("createElement", "span")
 	knob.Set("className", "knob knobb hueknob")
 	knob.Call("setAttribute", "data-no-drag", "")
 	knob.Set("title", "Hue — turn all the way around the spectrum")
@@ -220,7 +220,7 @@ func buildColorKnob(colorInput js.Value) js.Value {
 
 	// Gradient dials behind the knobs (drawn as conic rings, no tick marks).
 	addColorDial := func(cls string) js.Value {
-		d := doc.Call("createElement", "div")
+		d := doc.Call("createElement", "span")
 		d.Set("className", "ck-dial "+cls)
 		stack.Call("insertBefore", d, stack.Get("firstChild"))
 		return d

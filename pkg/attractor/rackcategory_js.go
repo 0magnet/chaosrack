@@ -105,14 +105,6 @@ func buildCategoryModules() {
 	syncCategoryRotaries()
 }
 
-// categorySelectID is a category's rotary: the hidden select the knob drives.
-func categorySelectID(label string) string { return "cat-" + categorySlug(label) + "-sel" }
-
-// categoryMonitorID and categoryMonitorSwitchID are the row's screen and the
-// switch that powers it.
-func categoryMonitorID(label string) string   { return "cat-" + categorySlug(label) + "-mon" }
-func categoryMonSwitchID(label string) string { return categoryMonitorID(label) + "-on" }
-
 // A CATEGORY IS A CAGE OF CARDS.
 //
 // Each model that has constants of its own is a card with its NAME on it —
@@ -330,10 +322,8 @@ func categoryOwnModes(label string) []string {
 	return out
 }
 
-// categoryHeadID and cardModuleID are the row's head panel and one model's
-// card.
+// categoryHeadID is the row.s head panel.
 func categoryHeadID(label string) string { return "cat-" + categorySlug(label) + "-module" }
-func cardModuleID(mode string) string    { return "card-" + categorySlug(mode) + "-module" }
 
 // wrapCategoryModule puts a grid in a module of its own.
 func wrapCategoryModule(label, id, title string, grid js.Value, tip string) js.Value {
