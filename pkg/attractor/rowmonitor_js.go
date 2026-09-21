@@ -35,20 +35,21 @@ var rowMonPower = map[string]*screenPower{}
 // frame, so a row that is not driving costs one paint and then nothing.
 var rowMonBlanked = map[string]bool{}
 
-// wireRowMonitors starts the monitors. Safe to call before the rows exist,
-// and safe to call again.
+// wireRowMonitors starts the bay monitors. Safe to call before the bays
+// exist, and safe to call again.
 func wireRowMonitors() {
 	if !doc.Truthy() {
 		return
 	}
-	for _, label := range modelCategories() {
-		id := categoryMonSwitchID(label)
+	for _, b := range rackBays {
+		id := bayMonSwitchID(b.Label, b.N)
 		p := &screenPower{switchID: id}
-		rowMonPower[label] = p
+		rowMonPower[id] = p
 		if sw := doc.Call("getElementById", id); sw.Truthy() {
+			key := id
 			sw.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
 				p.invalidate()
-				rowMonBlanked[label] = false
+				rowMonBlanked[key] = false
 				return nil
 			}))
 		}
@@ -61,34 +62,35 @@ func wireRowMonitors() {
 	drawRowMonitors()
 }
 
-// drawRowMonitors paints one frame: the driving row's screen gets the model,
+// drawRowMonitors paints one frame: the driving bay's screen gets the model,
 // and any screen that has just stopped driving gets its one dark frame.
 func drawRowMonitors() {
 	if !doc.Truthy() {
 		return
 	}
-	active := activeCategory
-	for _, label := range modelCategories() {
-		cv := doc.Call("getElementById", categoryMonitorID(label))
+	live := bayOf(selectedMode)
+	for _, b := range rackBays {
+		cv := doc.Call("getElementById", bayMonitorID(b.Label, b.N))
 		if !cv.Truthy() {
 			continue
 		}
-		p := rowMonPower[label]
+		key := bayMonSwitchID(b.Label, b.N)
+		p := rowMonPower[key]
 		if p == nil {
 			continue
 		}
+		driving := !stopped && live != nil && live.Label == b.Label && live.N == b.N
 		// A standby screen is not off — it is powered and showing nothing,
 		// which is one paint and then silence until it is driving again. The
-		// whole rack powered down puts every screen here, including the one
-		// whose row was driving.
-		if stopped || label != active || !p.on(cv) {
-			if !rowMonBlanked[label] {
-				rowMonStandby(cv, label)
-				rowMonBlanked[label] = true
+		// whole rack powered down puts every screen here.
+		if !driving || !p.on(cv) {
+			if !rowMonBlanked[key] {
+				rowMonStandby(cv, b)
+				rowMonBlanked[key] = true
 			}
 			continue
 		}
-		rowMonBlanked[label] = false
+		rowMonBlanked[key] = false
 		drawRowMonitor(cv)
 	}
 }
@@ -133,7 +135,7 @@ func drawRowMonitor(cv js.Value) {
 // rowMonStandby paints the dark face of a screen that is not driving, with
 // the model its row would play burned in — which is the whole reason a
 // standby screen is worth having rather than blank glass.
-func rowMonStandby(cv js.Value, label string) {
+func rowMonStandby(cv js.Value, b bayRecord) {
 	ctx := cv.Call("getContext", "2d")
 	if !ctx.Truthy() {
 		return
@@ -143,10 +145,10 @@ func rowMonStandby(cv js.Value, label string) {
 	ctx.Set("fillStyle", rowMonDark)
 	ctx.Call("fillRect", 0, 0, pw, ph)
 
-	name := ""
-	if sel := doc.Call("getElementById", categorySelectID(label)); sel.Truthy() {
-		name = modeLabel(sel.Get("value").String())
-	}
+	// The generator this bay is SET to, not the one it is playing — a bay
+	// on standby is not playing anything, and what is worth knowing about
+	// it is what comes back when you turn it on.
+	name := modeLabel(bayModelOf(b))
 	ctx.Set("font", "10px ui-monospace, monospace")
 	ctx.Set("textAlign", "center")
 	ctx.Set("textBaseline", "middle")
