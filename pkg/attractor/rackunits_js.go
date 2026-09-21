@@ -190,6 +190,24 @@ func moduleSlots(m js.Value) int {
 	return n
 }
 
+// bayHeadAttr marks a module that has to be the first one in its bay. It is
+// an attribute rather than a class because it is a fact about packing and
+// not about appearance, and because the drag code rewrites className.
+const bayHeadAttr = "data-bayhead"
+
+// bayScreens are the modules OUTSIDE the model rows that carry a screen,
+// and so lead a bay for the same reason a model row's head does.
+//
+// Two of them, and a test keeps the list honest: every module in the rack
+// with a canvas in it is either a row head or named here. It is a list and
+// not a query because the packer runs on slot counts before anything has
+// been laid out, and because a module acquiring a canvas should be a
+// decision about where it goes rather than a silent relayout.
+var bayScreens = map[string]bool{
+	"desk":   true, // the desk monitor
+	"record": true, // the capture preview
+}
+
 // relayoutUnits is the whole of the new level: measure, pack, and put each
 // module in the unit it belongs to.
 //
@@ -220,7 +238,11 @@ func relayoutUnits() {
 		}
 		mods = append(mods, m)
 		slots = append(slots, w)
-		items = append(items, packItem{Slots: w, Section: sectionOfModule(m)})
+		items = append(items, packItem{
+			Slots:   w,
+			Section: sectionOfModule(m),
+			Lead:    m.Call("getAttribute", bayHeadAttr).Truthy() || bayScreens[moduleKeyOf(m)],
+		})
 	}
 	if len(mods) == 0 {
 		return

@@ -7,7 +7,7 @@ import "testing"
 func TestASectionWiderThanABayContinuesIntoTheNext(t *testing.T) {
 	var items []packItem
 	for i := 0; i < 14; i++ {
-		items = append(items, packItem{1, secDisplay})
+		items = append(items, packItem{Slots: 1, Section: secDisplay})
 	}
 	units := packBySection(items, 12)
 	if len(units) != 2 {
@@ -27,8 +27,8 @@ func TestASectionWiderThanABayContinuesIntoTheNext(t *testing.T) {
 // widths — the same guarantee the unsectioned packer gives.
 func TestSectionedPackingLosesNothingAndKeepsTheOrder(t *testing.T) {
 	items := []packItem{
-		{1, secConsole}, {5, secModel}, {2, secModel}, {0, secModel},
-		{2, secDisplay}, {1, secDisplay}, {20, secDisplay}, {1, secOutput},
+		{Slots: 1, Section: secConsole}, {Slots: 5, Section: secModel}, {Slots: 2, Section: secModel}, {Slots: 0, Section: secModel},
+		{Slots: 2, Section: secDisplay}, {Slots: 1, Section: secDisplay}, {Slots: 20, Section: secDisplay}, {Slots: 1, Section: secOutput},
 	}
 	var flat []int
 	for _, u := range packBySection(items, 12) {
@@ -47,7 +47,7 @@ func TestSectionedPackingLosesNothingAndKeepsTheOrder(t *testing.T) {
 // A module too wide for any bay gets its own and overhangs, and must not
 // drag the next section's modules in with it.
 func TestAnOversizedModuleDoesNotSwallowTheNextSection(t *testing.T) {
-	items := []packItem{{20, secModel}, {1, secDisplay}}
+	items := []packItem{{Slots: 20, Section: secModel}, {Slots: 1, Section: secDisplay}}
 	units := packBySection(items, 12)
 	if len(units) != 2 {
 		t.Fatalf("got %d units, want the oversized one alone then the next section", len(units))
@@ -158,15 +158,70 @@ func TestTheModelRowsAreSplicedInSelectorOrder(t *testing.T) {
 	}
 }
 
-// The running model's row is never split across two bays: the rotary, the
-// parameters and the monitor are one front panel, and reading half of it
-// then hunting for the rest is what a bay break would cost.
+// A bay opens with its head, so the monitor it carries is the leftmost
+// thing in the row it is the monitor for — here, even though the row would
+// have fitted in the tail of the bay before it.
+//
+// It used to start one only when the row would not otherwise have fitted,
+// which is the ordinary keep-together rule and reads perfectly well — but it
+// put the monitor wherever the row happened to begin. Measured on the rack,
+// two of eleven monitors led their bay and nine sat somewhere in the middle
+// of the row above their own.
+func TestABayOpensWithItsHead(t *testing.T) {
+	cat := categorySection("Attractors")
+	// Three slots of another section, then a row of six. It would fit in
+	// what is left of the bay — that is the point.
+	items := []packItem{
+		{Slots: 3, Section: secMod},
+		{Slots: 1, Section: cat, Lead: true}, {Slots: 2, Section: cat}, {Slots: 3, Section: cat},
+	}
+	units := packBySection(items, 12)
+	if len(units) != 2 {
+		t.Fatalf("nine slots took %d bays, want the head to have opened a second: %v", len(units), units)
+	}
+	if units[1][0] != 1 {
+		t.Errorf("the bay does not begin with its head: %v", units)
+	}
+}
+
+// Only a head breaks. A category module that is not one — a card, or a row
+// continuing into a bay it does not head — packs like anything else, or
+// every card in the rack would be a row of its own.
+func TestAModuleThatIsNotAHeadDoesNotBreak(t *testing.T) {
+	cat := categorySection("Attractors")
+	items := []packItem{
+		{Slots: 3, Section: secMod},
+		{Slots: 1, Section: cat}, {Slots: 2, Section: cat}, {Slots: 3, Section: cat},
+	}
+	if got := packBySection(items, 12); len(got) != 1 {
+		t.Errorf("nine slots with no head took %d bays, want 1: %v", len(got), got)
+	}
+}
+
+// A head that is switched OUT breaks nothing. It takes no slots, so a bay
+// opened for it would be a row of twelve blank panels.
+func TestAHeadThatIsSwitchedOutBreaksNothing(t *testing.T) {
+	cat := categorySection("Attractors")
+	items := []packItem{
+		{Slots: 3, Section: secMod},
+		{Slots: 0, Section: cat, Lead: true}, {Slots: 2, Section: cat},
+	}
+	if got := packBySection(items, 12); len(got) != 1 {
+		t.Errorf("a head that is not in the rack opened %d bays: %v", len(got), got)
+	}
+}
+
+// The row is not split across bays, which is what the head is dividing the
+// category into bay-sized groups FOR: each head is followed by exactly the
+// generators that fit beside it.
 func TestTheModelRowIsNeverSplitAcrossBays(t *testing.T) {
 	cat := categorySection("Attractors")
-	// Nine slots of another section first, so the row cannot fit in what is
-	// left of the bay and has to start a new one.
+	// Nine slots of another section first, so the row could not have fitted
+	// in what is left of the bay whatever the rule.
 	items := []packItem{
-		{5, secMod}, {4, secMod}, {1, cat}, {2, cat}, {3, cat}, {1, secDisplay},
+		{Slots: 5, Section: secMod}, {Slots: 4, Section: secMod},
+		{Slots: 1, Section: cat, Lead: true}, {Slots: 2, Section: cat}, {Slots: 3, Section: cat},
+		{Slots: 1, Section: secDisplay},
 	}
 	units := packBySection(items, 12)
 	bays, total := 0, 0
@@ -190,52 +245,12 @@ func TestTheModelRowIsNeverSplitAcrossBays(t *testing.T) {
 	}
 }
 
-// ...but it does not take a bay of its own when it fits where it is. It did,
-// and that cost a whole bay: the forced break stranded whatever came before
-// it — measured, the Patchbay alone in a bay with nine blank slots, and 74
-// slots of content in 8 bays where 7 hold it.
-func TestTheModelRowSharesABayWhenItFits(t *testing.T) {
-	cat := categorySection("Attractors")
-	items := []packItem{
-		{3, secMod}, {1, cat}, {2, cat}, {3, cat}, {2, secDisplay},
-	}
-	units := packBySection(items, 12)
-	if len(units) != 1 {
-		t.Fatalf("eleven slots took %d bays, want 1: %v", len(units), units)
-	}
-	// And the label still marks the row's own span inside the shared bay,
-	// which is what makes sharing readable at all.
-	runs := sectionRuns(items, units[0])
-	if len(runs) != 3 {
-		t.Fatalf("got %d runs, want MODULATION / the row / DISPLAY: %+v", len(runs), runs)
-	}
-	if runs[1] != (sectionRun{cat, 1, 3}) {
-		t.Errorf("the model row's run is %+v, want three modules from position 1", runs[1])
-	}
-}
-
-// A category section holding nothing but its rotary is a selector, not an
-// instrument, and gets no keep-together treatment at all.
-func TestALoneRotaryIsNotKeptTogether(t *testing.T) {
-	cat := categorySection("Attractors")
-	items := []packItem{
-		{10, secMod}, {1, cat}, {2, secDisplay},
-	}
-	units := packBySection(items, 12)
-	if len(units) != 2 {
-		t.Fatalf("got %d bays, want 2: %v", len(units), units)
-	}
-	if len(units[0]) != 2 {
-		t.Errorf("the lone rotary did not share the first bay: %v", units)
-	}
-}
-
 // Category sections cost nothing when they hold nothing. Every category has
 // a place in the stack whether or not the model running is in it, and an
 // empty one must not open a bay, a break, or a label.
 func TestEmptyCategorySectionsCostNothing(t *testing.T) {
 	plain := []packItem{
-		{3, secMod}, {3, secDisplay}, {3, secOutput},
+		{Slots: 3, Section: secMod}, {Slots: 3, Section: secDisplay}, {Slots: 3, Section: secOutput},
 	}
 	base := packBySection(plain, 12)
 	if len(base) != 1 {
@@ -262,7 +277,7 @@ func TestGroupingGivesEachSectionOneRun(t *testing.T) {
 	// Deliberately interleaved, as the live rack was when the patchbay was
 	// built after the parameters.
 	in := []packItem{
-		{1, secMod}, {2, secModel}, {1, secMod}, {1, secDisplay}, {2, secModel},
+		{Slots: 1, Section: secMod}, {Slots: 2, Section: secModel}, {Slots: 1, Section: secMod}, {Slots: 1, Section: secDisplay}, {Slots: 2, Section: secModel},
 	}
 	got := groupSectionsOnly(in)
 	seenRun := map[string]int{}
@@ -316,7 +331,7 @@ func groupSectionsOnly(items []packItem) []packItem {
 func TestASmallerBayGivesMoreBays(t *testing.T) {
 	var items []packItem
 	for i := 0; i < 8; i++ {
-		items = append(items, packItem{1, secDisplay})
+		items = append(items, packItem{Slots: 1, Section: secDisplay})
 	}
 	wide := packBySection(items, 8)
 	narrow := packBySection(items, 4)
@@ -342,9 +357,9 @@ func TestASmallerBayGivesMoreBays(t *testing.T) {
 // 84 HP row is what a real one looks like.
 func TestABayCarriesSeveralSections(t *testing.T) {
 	items := []packItem{
-		{1, secInput},
-		{2, secAnalyze}, {2, secAnalyze},
-		{1, secOutput},
+		{Slots: 1, Section: secInput},
+		{Slots: 2, Section: secAnalyze}, {Slots: 2, Section: secAnalyze},
+		{Slots: 1, Section: secOutput},
 	}
 	units := packBySection(items, 12)
 	if len(units) != 1 {
@@ -367,7 +382,7 @@ func TestABayCarriesSeveralSections(t *testing.T) {
 // missing from part of the row.
 func TestTheRunsCoverTheWholeBay(t *testing.T) {
 	items := []packItem{
-		{1, secInput}, {1, secAnalyze}, {1, secAnalyze}, {1, secMod}, {1, secOutput},
+		{Slots: 1, Section: secInput}, {Slots: 1, Section: secAnalyze}, {Slots: 1, Section: secAnalyze}, {Slots: 1, Section: secMod}, {Slots: 1, Section: secOutput},
 	}
 	units := packBySection(items, 12)
 	for _, idx := range units {
@@ -388,7 +403,7 @@ func TestTheRunsCoverTheWholeBay(t *testing.T) {
 // each one appears in exactly one run across the whole rack.
 func TestASectionStillAppearsOnce(t *testing.T) {
 	items := groupSectionsOnly([]packItem{
-		{1, secMod}, {2, secModel}, {1, secMod}, {1, secDisplay}, {2, secModel},
+		{Slots: 1, Section: secMod}, {Slots: 2, Section: secModel}, {Slots: 1, Section: secMod}, {Slots: 1, Section: secDisplay}, {Slots: 2, Section: secModel},
 	})
 	seen := map[string]int{}
 	for _, idx := range packBySection(items, 12) {
@@ -434,32 +449,81 @@ func TestTheModelsPanelsFollowTheModel(t *testing.T) {
 	}
 }
 
-// A row wider than a bay is going to be split however it is packed, so it
-// must not force a break it cannot benefit from. It did, and the bay before
-// it paid: Solids alone in a bay with nine blank slots, because Audio — at
-// eighteen slots — would not have fitted in an empty bay either.
-func TestAnOversizedRowDoesNotStrandTheBayBeforeIt(t *testing.T) {
+// What a leading head costs, stated: the bay before it ends where the head
+// begins, however much room was left in it.
+//
+// This is a deliberate trade and the old rule made the opposite one — it
+// let a row share the tail of the bay before it, and paid for that with a
+// monitor sitting in the middle of somebody else's row. A rack is read down
+// its left edge; one display per row there is worth a few blank slots.
+func TestALeadingHeadEndsTheBayBeforeIt(t *testing.T) {
 	small := categorySection("Solids")
 	big := categorySection("Audio")
 	items := []packItem{
-		{2, small}, {1, small}, // a row with no parameters: monitor and rotary
-		{6, big}, {6, big}, {6, big}, // eighteen slots, wider than any bay
+		{Slots: 2, Section: small, Lead: true}, {Slots: 1, Section: small}, // monitor and rotary, no parameters
+		{Slots: 6, Section: big, Lead: true}, {Slots: 6, Section: big}, {Slots: 6, Section: big}, // eighteen, wider than any bay
 	}
 	units := packBySection(items, 12)
-	if len(units) != 2 {
-		t.Fatalf("got %d bays, want 2: %v", len(units), units)
+	if len(units) != 3 {
+		t.Fatalf("got %d bays, want the two heads to open two of them: %v", len(units), units)
 	}
-	// The small row and the first of the big one's modules share, rather than
-	// the small row sitting alone in front of a break that changed nothing.
-	if len(units[0]) != 3 {
-		t.Errorf("first bay holds %d modules, want the small row plus what fits: %v", len(units[0]), units)
+	if len(units[0]) != 2 {
+		t.Errorf("the small row did not get the bay to itself: %v", units)
 	}
-	// A row that DOES fit still gets its break, so the rule has not simply
-	// been turned off.
-	fits := []packItem{
-		{3, secMod}, {6, big}, {4, big},
+	// A row wider than a bay still continues into the next one, and the
+	// continuation is not a head, so it does not open a third break of its
+	// own beyond the one overflow forces.
+	if units[1][0] != 2 || len(units[1]) != 2 {
+		t.Errorf("the big row's head did not open a bay and fill it: %v", units)
 	}
-	if got := packBySection(fits, 12); len(got) != 2 || len(got[0]) != 1 {
-		t.Errorf("a row that fits was not kept together: %v", got)
+}
+
+// Two small rows share a bay, each opening with its own screen. That is the
+// whole point of letting a bay carry several sections, and the reason the
+// break rule is "a bay begins with a head" rather than "a head begins a
+// bay": the second costs four rows of blank panel to say the same thing.
+func TestSmallRowsShareABayEachBehindItsOwnHead(t *testing.T) {
+	a := categorySection("Polyhedra")
+	b := categorySection("Geometry")
+	items := []packItem{
+		{Slots: 3, Section: a, Lead: true},
+		{Slots: 2, Section: b, Lead: true}, {Slots: 4, Section: b}, {Slots: 1, Section: b},
+	}
+	units := packBySection(items, 12)
+	if len(units) != 1 {
+		t.Fatalf("ten slots took %d bays, want 1: %v", len(units), units)
+	}
+	if len(units[0]) != 4 {
+		t.Errorf("the two rows did not share: %v", units)
+	}
+}
+
+// Every bay that holds a head opens with one. The invariant the rule is
+// for, checked against an arrangement rather than a hand-made case.
+func TestABayHoldingAHeadOpensWithOne(t *testing.T) {
+	cats := modelCategories()
+	if len(cats) < 4 {
+		t.Skip("not enough categories to arrange")
+	}
+	var items []packItem
+	items = append(items, packItem{Slots: 4, Section: secAnalyze})
+	for i, c := range cats {
+		sec := categorySection(c)
+		items = append(items, packItem{Slots: 2, Section: sec, Lead: true})
+		for n := 0; n < i%5; n++ {
+			items = append(items, packItem{Slots: 1 + n%3, Section: sec})
+		}
+	}
+	items = append(items, packItem{Slots: 3, Section: secOutput})
+	for _, u := range packBySection(items, 12) {
+		held := false
+		for _, i := range u {
+			if items[i].Lead {
+				held = true
+			}
+		}
+		if held && !items[u[0]].Lead {
+			t.Errorf("a bay holding a head opens with %+v instead: %v", items[u[0]], u)
+		}
 	}
 }
