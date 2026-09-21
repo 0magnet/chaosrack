@@ -35,6 +35,7 @@ import (
 	"strings"
 
 	"github.com/0magnet/chaosrack/internal/cdp"
+	"github.com/0magnet/chaosrack/pkg/rackspec"
 )
 
 // layoutProbe is evaluated in the page: it measures the panel, its modules and
@@ -83,6 +84,18 @@ const layoutProbe = `JSON.stringify((() => {
           return o;
         });
     })(),
+    // A module's knob grid: how many controls are on it, and how many
+    // columns they stand in. Cells fill a column downwards, so the second
+    // number follows from the first — see check 5.
+    grids: [...panel.querySelectorAll('.modules .sect')].filter(vis).map(s => {
+      const row = s.querySelector(':scope > .row.vmrow:not(.meterrow)');
+      if (!row) return null;
+      const cs = [...row.children].filter(e =>
+        e.classList.contains('pcell') && e.offsetWidth > 0 && e.offsetHeight > 0);
+      if (!cs.length) return null;
+      return {name: named(s, '.sect-hdr'), cells: cs.length, w: s.offsetWidth,
+              cols: new Set(cs.map(e => Math.round(e.getBoundingClientRect().left))).size};
+    }).filter(Boolean),
   };
 })())`
 
@@ -190,6 +203,29 @@ func runLayout() {
 	if len(cellKnob) > 1 {
 		fails = append(fails, fmt.Sprintf(
 			"%d knob positions within the cell, want 1: %s", len(cellKnob), rank(cellKnob)))
+	}
+
+	// 5. A MODULE IS AS NARROW AS ITS CONTROLS ALLOW. Cells fill a column
+	//    downwards and start a new one when the column is full, so a
+	//    module with N controls on it stands them in ceil(N/rows) columns
+	//    and is milled that many slots wide. More columns than that is a
+	//    panel carrying blank space it was charged a slot for.
+	//
+	//    This caught a module height two pixels short of three rows. The
+	//    content row reserved the panel less a flat header and then spent
+	//    the remainder on a bottom margin and a row gap, so every module
+	//    with three controls on it — Style, the three generators, Test,
+	//    Counter, Envelope, Layers, Position, Model Out — stood two and
+	//    one, was milled two slots wide, and left the bottom third of both
+	//    columns blank. Fifteen slots of the rack, and a whole 84 HP row.
+	rows := rackspec.RowsPerPanel()
+	for _, g := range gridsOf(m["grids"]) {
+		want := (g.Cells + rows - 1) / rows
+		if g.Cols > want {
+			fails = append(fails, fmt.Sprintf(
+				"module %q stands its %d controls in %d columns, want %d — %dpx of panel for %d blank positions",
+				g.Name, g.Cells, g.Cols, want, g.W, g.Cols*rows-g.Cells))
+		}
 	}
 
 	{
@@ -339,4 +375,38 @@ func rank(m map[string]int) string {
 		parts = append(parts, fmt.Sprintf("%s x%d", e.k, e.n))
 	}
 	return strings.Join(parts, ", ")
+}
+
+// layoutGrid is one module's knob grid: the controls on it, and the columns
+// they stand in.
+type layoutGrid struct {
+	Name  string
+	Cells int
+	Cols  int
+	W     int
+}
+
+func gridsOf(v any) []layoutGrid {
+	arr, _ := v.([]any)
+	out := make([]layoutGrid, 0, len(arr))
+	for _, e := range arr {
+		m, ok := e.(map[string]any)
+		if !ok {
+			continue
+		}
+		g := layoutGrid{}
+		if s, ok := m["name"].(string); ok {
+			g.Name = s
+		}
+		for _, f := range []struct {
+			k string
+			p *int
+		}{{"cells", &g.Cells}, {"cols", &g.Cols}, {"w", &g.W}} {
+			if n, ok := m[f.k].(float64); ok {
+				*f.p = int(n)
+			}
+		}
+		out = append(out, g)
+	}
+	return out
 }

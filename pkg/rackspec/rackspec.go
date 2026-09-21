@@ -33,6 +33,8 @@
 // nearest real part rather than to the nearest round number.
 package rackspec
 
+import "math"
+
 // Everything in this package is millimeters unless the name says otherwise.
 
 // The rack.
@@ -290,4 +292,32 @@ const (
 
 	// PotPitch is the vertical spacing between panel potentiometers.
 	PotPitch = 20.0
+
+	// HeaderHeight is the silkscreen band across the top of a module: the
+	// legend naming what the panel is, above the controls rather than
+	// among them.
+	//
+	// 7.5 mm is the 30 px the stylesheet reserves. It is the one part of a
+	// module that is set in points rather than millimeters, because it is
+	// lettering — so it is named here for the arithmetic below and drawn
+	// there.
+	HeaderHeight = 7.5
 )
+
+// RowsPerPanel is how many rows of controls a 3U module holds: the panel
+// less its legend, divided by the row pitch.
+//
+// Three. A 3U panel is 128.5 mm, the legend takes 7.5, and the 121 mm left
+// holds three 40 mm rows with a millimeter to spare. That millimeter is the
+// entire margin the layout has, which is how the stylesheet came to lose
+// it: the content row carried both a bottom margin meant for a row in a
+// flowing document and a gap between its rows, and inside a box of fixed
+// height neither of those is spacing — together they are a row of knobs
+// that will not fit.
+//
+// Written down here because it is the number that decides how wide a
+// module is. Cells fill a column downwards and start a new one when the
+// column is full, so a module with N controls on it is ceil(N/RowsPerPanel)
+// slots wide — and a panel that holds two rows instead of three mills every
+// module half again as wide as it needs to be.
+func RowsPerPanel() int { return int(math.Floor((PanelHeight3U - HeaderHeight) / CellHeight)) }
