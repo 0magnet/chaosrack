@@ -151,9 +151,11 @@ func Run() {
 	// Refresh DOM
 	doc = js.Global().Get("document")
 	body = doc.Get("body")
+	bootMark("fonts")
 	injectFonts() // embedded @font-face rules for the panel / LED / header fonts
 	cacheElementRefs()
 	// obeys the speed". Faithful to Glen's 3D projective unit, whose panel
+	bootMark("knobs-start")
 	buildPanelKnobs()
 	// Floating show/hide button for the whole control panel (it can block the
 	// view). Lives outside the panel so it can bring it back.
@@ -439,6 +441,7 @@ func Run() {
 			ResetID: "rst-knob-size", SkipResetAll: true,
 		})
 	}
+	bootMark("knobs-done")
 	wireModeAndResetInputs()
 	if dst := doc.Call("getElementById", "desk-style"); dst.Truthy() {
 		// The same treatment the Console's selects get, for the same reason.
@@ -480,12 +483,14 @@ func Run() {
 	if !sel.IsNull() && !sel.IsUndefined() {
 		sel.Set("value", selectedMode)
 	}
+	bootMark("params")
 	buildParamPanel(selectedMode)
 	updateTrailVisibility()
 
 	// One-time drag listeners for every selector knob in the panel, the
 	wireGradientKnobs()
 	// first pass can run before the panel's own font has been applied.
+	bootMark("quantize")
 	requantizeAfterFonts()
 
 	// Initialize persistent JS typed arrays for zero-alloc frame uploads
@@ -527,8 +532,10 @@ func Run() {
 		}})
 	registerOutputControls()
 	// value so engine state matches the panel by construction (the old code
+	bootMark("commit")
 	commitBuiltControls()
 	// encoded in the URL hash, then keep the hash in sync with the live
+	bootMark("permalink")
 	capturePermalinkAndRestore()
 	done := make(chan struct{})
 	renderFrame = trackedFuncOf(renderLoop)
@@ -544,7 +551,9 @@ func Run() {
 	// Kill the vertical scroll the controls panel adds by growing the body.
 	applyHostPageTweaks()
 	// had to skip doing so when the hash pinned a Y rate — because the
+	bootMark("bg-start")
 	startBackgroundTasks()
+	bootMark("run-end")
 	<-done
 }
 
@@ -1823,18 +1832,26 @@ func capturePermalinkAndRestore() {
 // panic rather than a no-op.
 func commitBuiltControls() {
 	// did this ad hoc — applyLineWidth() at wiring, readSliderCache, …).
-	for _, c := range builtControls {
-		// Whichever element holds this control's value, and the event that
-		// commits it. A selector-backed Control has no slider at all, and Call on
-		// an undefined js.Value is a panic rather than a no-op — which took the
-		// whole runtime down the first time a selector reached this loop.
-		switch {
-		case c.sel.Truthy():
-			c.sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
-		case c.slider.Truthy():
-			c.slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+	//
+	// Under withDeferredLayout, because several of these handlers rebuild the
+	// parameter panel or re-quantize the rack and none of them needs either
+	// to have happened before the next control is committed. Measured on this
+	// rack: twenty-three quantizes and three panel rebuilds, six seconds of a
+	// thirteen-second boot. One of each at the end is the same answer.
+	withDeferredLayout(selectedMode, func() {
+		for _, c := range builtControls {
+			// Whichever element holds this control's value, and the event that
+			// commits it. A selector-backed Control has no slider at all, and Call
+			// on an undefined js.Value is a panic rather than a no-op — which took
+			// the whole runtime down the first time a selector reached this loop.
+			switch {
+			case c.sel.Truthy():
+				c.sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+			case c.slider.Truthy():
+				c.slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+			}
 		}
-	}
+	})
 
 	// Permalink: capture pristine control defaults, restore any state
 }
@@ -1842,7 +1859,9 @@ func commitBuiltControls() {
 // wireGradientKnobs builds the two color rings — what the gradient follows,
 // and how a value becomes a color — as knobs over their hidden selects.
 func wireGradientKnobs() {
+	bootMark("rack-start")
 	buildRackAndRestore()
+	bootMark("rack-done")
 	gsrc := doc.Call("getElementById", "gradient-source")
 	gcol := doc.Call("getElementById", "gradient-colors")
 	if gsrc.Truthy() && gcol.Truthy() {
