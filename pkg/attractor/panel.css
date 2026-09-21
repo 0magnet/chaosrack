@@ -1507,7 +1507,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    height and two of its columns — the same thing appendRecurrenceSeries does
    with the series plot, and the reason the grid is a real CSS grid. */
 .modules .punit.monunit{
-  grid-row:span 3;grid-column:span 2;
+  grid-row:span 2;grid-column:span 2;
   /* .punit-grid .punit pins every cell to one column and one row. A screen
      is the exception: it reserves a 2x3 area and has to be allowed to fill
      it, or it is painted one column wide with the picture hanging out of it
@@ -1530,9 +1530,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .modules .punit[data-mode].live{opacity:1;}
 .modules .punit[data-mode]:hover{opacity:.85;}
 .modules .punit[data-mode].live:hover{opacity:1;}
-/* Alternating groups: consecutive models' cells take slightly different
-   ground, so a row of fifty knobs reads as the eight front panels it is. */
-.modules .punit[data-mgroup="1"]{background:rgba(150,180,210,0.045);border-radius:4px;}
 
 /* A category row's model selector: the knob, and the list under it. Column,
    because the list is as wide as the cell and the knob is not. */
@@ -1570,28 +1567,51 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .punit .knobstack .knob-ring{width:calc(14*var(--mm))!important;height:calc(14*var(--mm))!important;}
 .punit .knobstack .knob-ring>.knob-ptr{height:calc(6*var(--mm))!important;}
 
-/* A GENERATOR MODULE's panel: a silkscreen band across the top, then three
-   control rows. Each generator on the unit owns a rectangle of the rows and
-   the band above it carries its name — which is the whole reason a unit can
-   hold three generators and still be read: you can see where one stops.
-   Woodson & Conover's "marked outlines around each group" (§2-133). */
+/* A CATEGORY MODULE's panel: three control rows, and nothing else.
+
+   There used to be a silkscreen band across the top naming each generator
+   over its own columns. That worked while a generator was a rectangle of
+   whole columns and stopped working the moment they were allowed to share
+   a column — a generator along the bottom row has no band above it that is
+   not already somebody else's. The band is gone and the rows are back to
+   the rack's own --krow, which is also why a category cell is now the same
+   116x160 box as every other cell in the rack. */
 .punit-grid.catgrid{
-  /* The band costs height and a module is a fixed number of U, so the three
-     control rows give it back: 3 x 5px is the 15px band, and the module ends
-     exactly where every other module ends. */
-  --cathdr:15px; --cathdr3:5px; /* the band, and the third of it each row gives back */
-  grid-template-rows:var(--cathdr) repeat(3,calc(var(--krow) - var(--cathdr3)));
+  grid-template-rows:repeat(3,var(--krow));
   grid-auto-flow:row;
   align-content:start;
 }
-.catgrid .punit{height:calc(var(--krow) - var(--cathdr3));}
-.pghdr{
-  grid-row:1;align-self:end;justify-self:stretch;
+.catgrid .punit{height:var(--krow);}
+/* WHICH GENERATOR A KNOB BELONGS TO, three ways, because one is not enough
+   on a panel that holds three of them: the ground tint, an outline drawn
+   round the run whatever shape it came out, and the model's name in the
+   corner of the first position. Woodson & Conover, §2-133: "marked outlines
+   around each group... area color patterning". */
+.catgen .punit[data-mgroup="0"]{background:rgba(120,200,170,0.05);}
+.catgen .punit[data-mgroup="1"]{background:rgba(150,180,210,0.06);}
+.catgen .punit[data-mgroup="2"]{background:rgba(210,180,150,0.06);}
+.catgen .punit.ge-t{border-top:1px solid #475766;}
+.catgen .punit.ge-b{border-bottom:1px solid #475766;}
+.catgen .punit.ge-l{border-left:1px solid #475766;}
+.catgen .punit.ge-r{border-right:1px solid #475766;}
+.catgen .punit.ge-t.ge-l{border-top-left-radius:4px;}
+.catgen .punit.ge-t.ge-r{border-top-right-radius:4px;}
+.catgen .punit.ge-b.ge-l{border-bottom-left-radius:4px;}
+.catgen .punit.ge-b.ge-r{border-bottom-right-radius:4px;}
+/* The name, silkscreened DOWN THE LEFT EDGE of the group's first position.
+   Vertical and absolute, so it costs the panel no height and takes none of
+   the width a knob uses: a knob is 76px in a 116px cell, and the name goes
+   in the margin beside it. Across the top of the cell was the first try and
+   it sat on the parameter's own label — there is one line there and it is
+   already spoken for. */
+.gtag{
+  position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:2;
+  writing-mode:vertical-rl;text-orientation:mixed;
+  max-height:calc(100% - 30px);
   font-family:'Chakra Petch',sans-serif;font-weight:600;
   font-size:calc(8px*var(--kscale,1));letter-spacing:.06em;text-transform:uppercase;
-  color:#9fb4c8;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  padding:0 2px 2px;margin-bottom:2px;
-  border-bottom:1px solid #2e3a46;
+  color:#9fb4c8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  pointer-events:none;
 }
 /* The module is a unit and the generators on it are sections of one panel,
    so the tint marks the section rather than the module: alternating ground
