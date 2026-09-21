@@ -214,6 +214,12 @@ function __whenDOMReady(fn) {
 }
 // Fetch or unpack, and compile, immediately — that work overlaps the rest of
 // the page parsing — but only START the program once the document is ready.
+// Marked, not just logged. A console line says the order things happened
+// in; a mark says WHEN, and boot time here is dominated by one of two
+// things — compiling twenty-four megabytes of WebAssembly, or the Go
+// program building the panel — which look identical from the outside and
+// want completely different fixes.
+performance.mark("wasm-compile-start");
 const __ready = __instantiate(go.importObject);
 __whenDOMReady(() => __ready.then((result) => {
   mod = result.module; inst = result.instance;
@@ -221,6 +227,7 @@ __whenDOMReady(() => __ready.then((result) => {
   // the only things this page reports are "Loading" and, if it never gets
   // there, nothing — so a run that had not finished compiling yet and a run
   // that had silently died looked exactly alike from the outside.
+  performance.mark("wasm-instantiated");
   console.log("[WASM-STUFF] " + __which + " WASM instantiated, starting...");
   return run();
 }).then((r) => console.log("[WASM-STUFF] " + __which + " WASM finished:", r),
