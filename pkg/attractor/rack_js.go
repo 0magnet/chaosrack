@@ -155,6 +155,10 @@ func quantizeModuleWidths() {
 	if ensureRack() == nil {
 		return
 	}
+	// What the panels must be at least as wide as, before asking how wide
+	// they want to be: a legend ring bigger than its column is a part
+	// bolted to the panel, not content that flows.
+	fitModulesToTheirParts()
 	// Every opening, then repack: a module's slot count is the input to
 	// packing, so it has to be settled before anything is moved.
 	for _, r := range unitRacks {
@@ -175,6 +179,18 @@ func quantizeModuleWidths() {
 	// interface-scale change. A skirt sized against a detached or
 	// zero-width knob is a skirt that never gets sized at all.
 	layoutSkirts()
+	// And if that gave a ring a size the pass above did not know — the
+	// first build of a module, where every skirt was an estimate — the
+	// panel it is on may have to be wider. Once, and no further: the
+	// skirts are measured now, so a third pass would size them the same.
+	if fitModulesToTheirParts() {
+		for _, r := range unitRacks {
+			r.Quantize()
+		}
+		latchModuleWidths()
+		relayoutUnits()
+		layoutRackHandles()
+	}
 }
 
 // applyModuleVisibility puts away what the switches say to put away, and leaves
@@ -427,4 +443,88 @@ func slotsWidthPx(n int) float64 {
 		n = 1
 	}
 	return float64(n)*moduleSlot*panelScale + float64(n-1)*moduleGap
+}
+
+// fitModulesToTheirParts widens a module that carries a control bigger than
+// the column it is mounted in.
+//
+// A module's width is quantized from its content, and its content is a grid
+// of 29 mm columns. A legend ring is not: it is sized from the legends
+// engraved on it (see skirt.go), and a rotary with long enough ones needs a
+// ring wider than the column its knob sits in. The ring is absolutely
+// positioned, so it adds nothing to max-content — the panel is milled to the
+// column, and the ring draws past its edge and is clipped away by .sect's
+// overflow:hidden. Model Out's source ring is 150 px across on a 140 px
+// panel: five pixels of the legend were simply not there.
+//
+// A panel is at least as wide as the widest part bolted to it. skirtFit
+// tries the two cheaper answers first — a smaller grip, then smaller
+// lettering — and Model Out's off/CAM/XY/XZ/YZ ring is the one that spends
+// both and still overhangs. Past that the honest remedy is a bigger panel,
+// which is the same answer the scope tube gets.
+//
+// One minimum per MODULE and not per cell, because only the module that
+// cannot contain its own ring has to grow: widening the CELL would widen a
+// whole column of a multi-column module to suit one control in it.
+//
+// Reports whether any minimum changed, because a ring that has only just
+// been measured can want a panel the pass before it did not know about.
+func fitModulesToTheirParts() bool {
+	f := rackFrame()
+	if !f.Truthy() {
+		return false
+	}
+	changed := false
+	els := f.Call("querySelectorAll", ".sect")
+	for i := 0; i < els.Get("length").Int(); i++ {
+		m := els.Index(i)
+		if isHiddenModule(m) {
+			continue
+		}
+		widest := 0.0
+		ds := m.Call("querySelectorAll", ".knob-dial")
+		for j := 0; j < ds.Get("length").Int(); j++ {
+			if w := ds.Index(j).Get("offsetWidth").Float(); w > widest {
+				widest = w
+			}
+		}
+		// One slot is the floor already — .sect carries min-width:--mod-w
+		// — so a module that fits says nothing, rather than saying the
+		// same thing twice in two places that can drift apart.
+		want := ""
+		if n := slotsForWidthPx(widest + moduleEdgePx(m)); widest > 0 && n > 1 {
+			want = pxStr(slotsWidthPx(n))
+		}
+		if m.Get("style").Get("minWidth").String() != want {
+			m.Get("style").Set("minWidth", want)
+			changed = true
+		}
+	}
+	return changed
+}
+
+// moduleEdgePx is what a ring may not reach past: the panel's own border.
+//
+// The PADDING is deliberately not counted. A legend ring is allowed to
+// reach a little way past the cell it is centered in — skirtCellGapPx, and
+// the note there says in as many words that the module's padding is what
+// absorbs it. Charging a ring for padding it is entitled to use milled the
+// Grid module two slots wide for a ring eight tenths of a pixel over.
+func moduleEdgePx(m js.Value) float64 {
+	cs := js.Global().Call("getComputedStyle", m)
+	return parsePx(cs.Get("borderLeftWidth").String()) +
+		parsePx(cs.Get("borderRightWidth").String())
+}
+
+// slotsForWidthPx is the narrowest panel that holds w. A whole number of
+// slots, because a module is milled to the rack's pitch and there is no such
+// thing as a slot and a half; and never wider than a bay, because a module
+// that does not fit the rack is a different problem from a module that needs
+// a second slot.
+func slotsForWidthPx(w float64) int {
+	n := 1
+	for slotsWidthPx(n) < w && n < unitCapacitySlots() {
+		n++
+	}
+	return n
 }
