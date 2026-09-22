@@ -9,7 +9,7 @@ func TestASectionWiderThanABayContinuesIntoTheNext(t *testing.T) {
 	for i := 0; i < 14; i++ {
 		items = append(items, packItem{Slots: 1, Section: secDisplay})
 	}
-	units := packBySection(items, 12)
+	units := packBySection(items, 12, nil)
 	if len(units) != 2 {
 		t.Fatalf("got %d units for 14 slots in a 12-slot bay, want 2", len(units))
 	}
@@ -31,7 +31,7 @@ func TestSectionedPackingLosesNothingAndKeepsTheOrder(t *testing.T) {
 		{Slots: 2, Section: secDisplay}, {Slots: 1, Section: secDisplay}, {Slots: 20, Section: secDisplay}, {Slots: 1, Section: secOutput},
 	}
 	var flat []int
-	for _, u := range packBySection(items, 12) {
+	for _, u := range packBySection(items, 12, nil) {
 		flat = append(flat, u...)
 	}
 	if len(flat) != len(items) {
@@ -48,7 +48,7 @@ func TestSectionedPackingLosesNothingAndKeepsTheOrder(t *testing.T) {
 // drag the next section's modules in with it.
 func TestAnOversizedModuleDoesNotSwallowTheNextSection(t *testing.T) {
 	items := []packItem{{Slots: 20, Section: secModel}, {Slots: 1, Section: secDisplay}}
-	units := packBySection(items, 12)
+	units := packBySection(items, 12, nil)
 	if len(units) != 2 {
 		t.Fatalf("got %d units, want the oversized one alone then the next section", len(units))
 	}
@@ -175,7 +175,7 @@ func TestABayOpensWithItsHead(t *testing.T) {
 		{Slots: 3, Section: secMod},
 		{Slots: 1, Section: cat, Lead: true}, {Slots: 2, Section: cat}, {Slots: 3, Section: cat},
 	}
-	units := packBySection(items, 12)
+	units := packBySection(items, 12, nil)
 	if len(units) != 2 {
 		t.Fatalf("nine slots took %d bays, want the head to have opened a second: %v", len(units), units)
 	}
@@ -193,7 +193,7 @@ func TestAModuleThatIsNotAHeadDoesNotBreak(t *testing.T) {
 		{Slots: 3, Section: secMod},
 		{Slots: 1, Section: cat}, {Slots: 2, Section: cat}, {Slots: 3, Section: cat},
 	}
-	if got := packBySection(items, 12); len(got) != 1 {
+	if got := packBySection(items, 12, nil); len(got) != 1 {
 		t.Errorf("nine slots with no head took %d bays, want 1: %v", len(got), got)
 	}
 }
@@ -206,7 +206,7 @@ func TestAHeadThatIsSwitchedOutBreaksNothing(t *testing.T) {
 		{Slots: 3, Section: secMod},
 		{Slots: 0, Section: cat, Lead: true}, {Slots: 2, Section: cat},
 	}
-	if got := packBySection(items, 12); len(got) != 1 {
+	if got := packBySection(items, 12, nil); len(got) != 1 {
 		t.Errorf("a head that is not in the rack opened %d bays: %v", len(got), got)
 	}
 }
@@ -223,7 +223,7 @@ func TestTheModelRowIsNeverSplitAcrossBays(t *testing.T) {
 		{Slots: 1, Section: cat, Lead: true}, {Slots: 2, Section: cat}, {Slots: 3, Section: cat},
 		{Slots: 1, Section: secDisplay},
 	}
-	units := packBySection(items, 12)
+	units := packBySection(items, 12, nil)
 	bays, total := 0, 0
 	for _, u := range units {
 		n := 0
@@ -252,7 +252,7 @@ func TestEmptyCategorySectionsCostNothing(t *testing.T) {
 	plain := []packItem{
 		{Slots: 3, Section: secMod}, {Slots: 3, Section: secDisplay}, {Slots: 3, Section: secOutput},
 	}
-	base := packBySection(plain, 12)
+	base := packBySection(plain, 12, nil)
 	if len(base) != 1 {
 		t.Fatalf("nine slots took %d bays: %v", len(base), base)
 	}
@@ -264,7 +264,7 @@ func TestEmptyCategorySectionsCostNothing(t *testing.T) {
 			t.Errorf("category %q has no place in the stack", c)
 		}
 	}
-	if got := packBySection(plain, 12); len(got) != len(base) {
+	if got := packBySection(plain, 12, nil); len(got) != len(base) {
 		t.Errorf("packing is not stable: %d bays then %d", len(base), len(got))
 	}
 }
@@ -333,8 +333,8 @@ func TestASmallerBayGivesMoreBays(t *testing.T) {
 	for i := 0; i < 8; i++ {
 		items = append(items, packItem{Slots: 1, Section: secDisplay})
 	}
-	wide := packBySection(items, 8)
-	narrow := packBySection(items, 4)
+	wide := packBySection(items, 8, nil)
+	narrow := packBySection(items, 4, nil)
 	if len(wide) != 1 {
 		t.Errorf("eight slots in an eight-slot bay took %d bays, want 1", len(wide))
 	}
@@ -347,7 +347,7 @@ func TestASmallerBayGivesMoreBays(t *testing.T) {
 		}
 	}
 	// A degenerate capacity must not loop or lose anything.
-	if got := packBySection(items, 0); len(got) != len(items) {
+	if got := packBySection(items, 0, nil); len(got) != len(items) {
 		t.Errorf("capacity 0 gave %d bays for %d modules, want one each", len(got), len(items))
 	}
 }
@@ -361,7 +361,7 @@ func TestABayCarriesSeveralSections(t *testing.T) {
 		{Slots: 2, Section: secAnalyze}, {Slots: 2, Section: secAnalyze},
 		{Slots: 1, Section: secOutput},
 	}
-	units := packBySection(items, 12)
+	units := packBySection(items, 12, nil)
 	if len(units) != 1 {
 		t.Fatalf("six slots in three sections took %d bays, want 1: %v", len(units), units)
 	}
@@ -384,7 +384,7 @@ func TestTheRunsCoverTheWholeBay(t *testing.T) {
 	items := []packItem{
 		{Slots: 1, Section: secInput}, {Slots: 1, Section: secAnalyze}, {Slots: 1, Section: secAnalyze}, {Slots: 1, Section: secMod}, {Slots: 1, Section: secOutput},
 	}
-	units := packBySection(items, 12)
+	units := packBySection(items, 12, nil)
 	for _, idx := range units {
 		covered := 0
 		for _, r := range sectionRuns(items, idx) {
@@ -406,7 +406,7 @@ func TestASectionStillAppearsOnce(t *testing.T) {
 		{Slots: 1, Section: secMod}, {Slots: 2, Section: secModel}, {Slots: 1, Section: secMod}, {Slots: 1, Section: secDisplay}, {Slots: 2, Section: secModel},
 	})
 	seen := map[string]int{}
-	for _, idx := range packBySection(items, 12) {
+	for _, idx := range packBySection(items, 12, nil) {
 		for _, r := range sectionRuns(items, idx) {
 			seen[r.Section]++
 		}
@@ -463,7 +463,7 @@ func TestALeadingHeadEndsTheBayBeforeIt(t *testing.T) {
 		{Slots: 2, Section: small, Lead: true}, {Slots: 1, Section: small}, // monitor and rotary, no parameters
 		{Slots: 6, Section: big, Lead: true}, {Slots: 6, Section: big}, {Slots: 6, Section: big}, // eighteen, wider than any bay
 	}
-	units := packBySection(items, 12)
+	units := packBySection(items, 12, nil)
 	if len(units) != 3 {
 		t.Fatalf("got %d bays, want the two heads to open two of them: %v", len(units), units)
 	}
@@ -489,7 +489,7 @@ func TestSmallRowsShareABayEachBehindItsOwnHead(t *testing.T) {
 		{Slots: 3, Section: a, Lead: true},
 		{Slots: 2, Section: b, Lead: true}, {Slots: 4, Section: b}, {Slots: 1, Section: b},
 	}
-	units := packBySection(items, 12)
+	units := packBySection(items, 12, nil)
 	if len(units) != 1 {
 		t.Fatalf("ten slots took %d bays, want 1: %v", len(units), units)
 	}
@@ -515,7 +515,7 @@ func TestABayHoldingAHeadOpensWithOne(t *testing.T) {
 		}
 	}
 	items = append(items, packItem{Slots: 3, Section: secOutput})
-	for _, u := range packBySection(items, 12) {
+	for _, u := range packBySection(items, 12, nil) {
 		held := false
 		for _, i := range u {
 			if items[i].Lead {
@@ -524,6 +524,132 @@ func TestABayHoldingAHeadOpensWithOne(t *testing.T) {
 		}
 		if held && !items[u[0]].Lead {
 			t.Errorf("a bay holding a head opens with %+v instead: %v", items[u[0]], u)
+		}
+	}
+}
+
+// ── A bay is a chassis: it owns a monitor, and the monitor is at its left ──
+
+// baysOf is the sections each bay carries, in order, for the assertions below.
+func baysOf(items []packItem, units [][]int) []string {
+	out := make([]string, 0, len(units))
+	for _, u := range units {
+		out = append(out, unitSection(items, u))
+	}
+	return out
+}
+
+func TestABaysMonitorIsChargedAgainstItsWidth(t *testing.T) {
+	// Four 3-slot modules and a 12-slot bay fit in one row. Give the section
+	// a 3-slot monitor and one of them has to move: the monitor is part of
+	// the bay, not something the bay finds room for afterwards.
+	items := []packItem{
+		{Slots: 3, Section: "a"}, {Slots: 3, Section: "a"},
+		{Slots: 3, Section: "a"}, {Slots: 3, Section: "a"},
+	}
+	if got := len(packBySection(items, 12, nil)); got != 1 {
+		t.Fatalf("with no monitor the four fit in %d bays, want 1", got)
+	}
+	units := packBySection(items, 12, map[string]int{"a": 3})
+	if len(units) != 2 {
+		t.Fatalf("with a 3-slot monitor they took %d bays, want 2", len(units))
+	}
+	if len(units[0]) != 3 {
+		t.Fatalf("first bay holds %d modules, want 3 — the monitor takes the fourth's room", len(units[0]))
+	}
+}
+
+func TestEveryBayOfASectionGetsItsOwnMonitor(t *testing.T) {
+	// A section wide enough for three bays is three chassis, each with a
+	// screen at its left — which is what the category rows already do and the
+	// reason they read as instruments rather than as a shelf.
+	var items []packItem
+	for i := 0; i < 9; i++ {
+		items = append(items, packItem{Slots: 3, Section: "a"})
+	}
+	units := packBySection(items, 12, map[string]int{"a": 3})
+	if len(units) != 3 {
+		t.Fatalf("nine 3-slot modules behind a 3-slot monitor took %d bays, want 3", len(units))
+	}
+	for i, u := range units {
+		if len(u) != 3 {
+			t.Fatalf("bay %d holds %d modules, want 3 — every bay pays for its own monitor", i, len(u))
+		}
+	}
+}
+
+func TestTheMonitorBelongsToWhicheverSectionOpensTheBay(t *testing.T) {
+	// A bay carries one screen. Sections that come to share the row behind it
+	// plug into that one rather than each bringing another, or a row of three
+	// small sections would be three screens and no room.
+	items := []packItem{
+		{Slots: 2, Section: "a"},
+		{Slots: 2, Section: "b"},
+		{Slots: 2, Section: "c"},
+	}
+	units := packBySection(items, 12, map[string]int{"a": 3, "b": 3, "c": 3})
+	if len(units) != 1 {
+		t.Fatalf("three small sections took %d bays, want 1 — only the section that opens the bay is charged", len(units))
+	}
+	if got := baysOf(items, units); got[0] != "a" {
+		t.Fatalf("the bay reads as section %q, want the one that opened it", got[0])
+	}
+}
+
+func TestASectionWithNoMonitorPacksExactlyAsBefore(t *testing.T) {
+	// The table is filled one section at a time, so a section that has no
+	// monitor built yet must be untouched by the change.
+	items := []packItem{
+		{Slots: 4, Section: "a"}, {Slots: 4, Section: "a"}, {Slots: 4, Section: "a"},
+		{Slots: 4, Section: "b"}, {Slots: 4, Section: "b"},
+	}
+	want := packBySection(items, 12, nil)
+	got := packBySection(items, 12, map[string]int{"z": 6}) // a section not present
+	if len(got) != len(want) {
+		t.Fatalf("an unrelated monitor changed the packing: %d bays, want %d", len(got), len(want))
+	}
+	for i := range want {
+		if len(got[i]) != len(want[i]) {
+			t.Fatalf("bay %d holds %d, want %d", i, len(got[i]), len(want[i]))
+		}
+	}
+}
+
+func TestAMonitorWiderThanTheBayStillLeavesRoomToPlugInto(t *testing.T) {
+	// A screen with a caption is not a rack. Clamped rather than refused, so
+	// a mis-declared width degrades to a cramped row and not to an empty one.
+	items := []packItem{{Slots: 1, Section: "a"}, {Slots: 1, Section: "a"}}
+	units := packBySection(items, 6, map[string]int{"a": 99})
+	if len(units) == 0 {
+		t.Fatal("an over-wide monitor packed nothing at all")
+	}
+	n := 0
+	for _, u := range units {
+		n += len(u)
+	}
+	if n != len(items) {
+		t.Fatalf("packed %d of %d modules — an over-wide monitor lost some", n, len(items))
+	}
+}
+
+func TestEveryDeclaredBayMonitorNamesARealSection(t *testing.T) {
+	// The table is keyed by section, and a key that is not one is a monitor
+	// nobody gets: the packer would charge nothing, the bay would open with a
+	// knob at its left, and nothing would say so. Same guard the module table
+	// has, for the same reason.
+	for section, slots := range bayMonitorSlots {
+		if slots <= 0 {
+			t.Errorf("section %q declares a monitor of %d slots", section, slots)
+		}
+		found := false
+		for _, s := range sectionOrder {
+			if s == section {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("bayMonitorSlots names %q, which is not a section — see sectionOrder", section)
 		}
 	}
 }

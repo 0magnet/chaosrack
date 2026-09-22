@@ -283,7 +283,7 @@ func relayoutUnits() {
 	for _, it := range items {
 		slots = append(slots, it.Slots)
 	}
-	units := packBySection(items, unitCapacitySlots())
+	units := packBySection(items, unitCapacitySlots(), bayMonitorSlots)
 
 	// Make the frame hold exactly that many subrack units, before any
 	// instrument unit. Reused rather than rebuilt: recreating them every
