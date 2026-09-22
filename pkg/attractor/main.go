@@ -1274,6 +1274,9 @@ func wirePanelSwitches() {
 	// these calls hand them fresh elements, so the memory has to go with the
 	// old ones or a new LED stays blank until its reading happens to move.
 	forgetLEDText()
+	// Same reason, for the same elements: the visibility observer holds the
+	// ones it was given, and a rebuilt panel's are not those.
+	invalidateOnScreen()
 	wireDistortionModule()
 	wireLoudnessModule()
 	wireWowFlutterModule()

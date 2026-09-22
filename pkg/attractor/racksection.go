@@ -107,8 +107,12 @@ var moduleSections = map[string]string{
 
 	"test": secInput,
 
-	"analysis":      secAnalyze,
-	"timing":        secAnalyze,
+	"analysis": secAnalyze,
+	// Not secAnalyze: the metering bay measures the SIGNAL — loudness,
+	// distortion, speed stability, frequency. This one measures the
+	// INSTRUMENT, which is a global fact about the rack and belongs with the
+	// other global ones, at the top where it can be found without hunting.
+	"timing":        secConsole,
 	"loudness":      secAnalyze,
 	"distortion":    secAnalyze,
 	"wow & flutter": secAnalyze,
