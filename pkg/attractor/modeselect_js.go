@@ -169,10 +169,31 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 	takensArmAutoMeasure()
 	wfallArmFit()
 	resetAttractorState()
-	buildParamPanel(selectedMode)
-	updateInfoOverlay()
-	updateTrailVisibility()
-	updatePhysVisibility()
+	// The panel rebuild and the four mode-dependent visibility passes, as
+	// one layout.
+	//
+	// Every one of these asks the rack to re-measure itself, and each ask
+	// was answered in full: five passes stretching all seventy-odd modules
+	// out, reading them back, re-packing every bay and re-sizing every
+	// skirt. Measured, that was 2435ms of a 2903ms model change — against
+	// 10ms to integrate the attractor. The rack cannot be read between two
+	// of these calls, so it does not need to be settled between them; it
+	// needs to be settled once, here, before the camera is fitted to it.
+	//
+	// updateGradientUI belongs in this group and used to sit forty lines
+	// down among the audio calls. It is the same kind of thing as the three
+	// above it — which controls this model has any use for — and depends on
+	// nothing that happens in between.
+	withDeferredLayout(selectedMode, func() {
+		buildParamPanel(selectedMode)
+		updateInfoOverlay()
+		updateTrailVisibility()
+		updatePhysVisibility()
+		// Which rings apply depends on the model: a display built from one
+		// quantity has no source to choose, so the src knob dims in those
+		// modes.
+		updateGradientUI()
+	})
 	// Run one frame to populate vertices, then update gradient and fit camera.
 	// Armed BEFORE that generate: an audio mode may not upload anything on it,
 	// and the refresh has to wait for the upload rather than for the call.
@@ -196,9 +217,6 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 	// Model Out likewise: suspend in modes it can't sonify (geometry,
 	// spectrogram…) instead of streaming zeros ~23×/s, resume in trail modes.
 	sonifyModeSync()
-	// Which rings apply depends on the model: a display built from one quantity
-	// has no source to choose, so the src knob dims in those modes.
-	updateGradientUI()
 	// The model's own row shows it and every other row shows off, whatever
 	// moved the model — this knob, a permalink, a preset, the jam performer.
 	syncCategoryRotaries()

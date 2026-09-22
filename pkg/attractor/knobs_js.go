@@ -806,7 +806,22 @@ func skirtGapPx() float64 { return 3.0 * panelScale }
 // is in the document, and most of these are built in a detached subtree.
 // Run again whenever the interface size changes, since every input to the
 // geometry — grip, label, gap — scales with it.
+//
+// Deferred with the rest of the layout, because it is the tail of one.
+// quantizeModuleWidths ends in a skirt pass of its own — the sizes depend
+// on the widths it has just settled — and buildParamPanel asks for both, so
+// every rebuild sized every skirt on the panel twice over. Collected, the
+// second ask costs nothing and the one pass that runs is the later, better
+// informed one.
 func layoutSkirts() {
+	if deferLayout {
+		skirtsOwed = true
+		return
+	}
+	layoutSkirtsNow()
+}
+
+func layoutSkirtsNow() {
 	stacks := doc.Call("querySelectorAll", ".has-dial")
 	for i := 0; i < stacks.Get("length").Int(); i++ {
 		layoutSkirtsIn(stacks.Index(i))

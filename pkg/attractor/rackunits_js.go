@@ -233,7 +233,15 @@ func relayoutUnits() {
 		// it to the front of the rack, and it reserves nothing in the
 		// opening while it is out.
 		w := moduleSlots(m)
-		if m.Get("offsetParent").IsNull() && m.Get("style").Get("display").String() == "none" {
+		// offsetWidth and not offsetParent, which is the same test here and
+		// a much cheaper one. A js.Value wrapping a JS OBJECT gets a runtime
+		// finalizer so the JS-side reference can be released, and attaching
+		// one is the single most expensive thing this package does per DOM
+		// read; a js.Value wrapping a NUMBER gets none. offsetParent hands
+		// back an element, offsetWidth a float, and display:none zeroes the
+		// width just as surely as it clears the offset parent. The string
+		// read after it is only reached for a module that measured zero.
+		if m.Get("offsetWidth").Float() == 0 && m.Get("style").Get("display").String() == "none" {
 			w = 0
 		}
 		mods = append(mods, m)
@@ -316,11 +324,23 @@ func relayoutUnits() {
 	// against a layout that is about to change. Measured: every label
 	// in the rack offset by exactly the span of the runs before it, and
 	// two of them computing a non-positive width and being dropped.
-	for ui, idx := range units {
+	// And in three phases of their own: take the old ones away, measure
+	// every bay, then draw. Measuring is a read of the modules and drawing
+	// is a write, so a loop that finished one bay before starting the next
+	// forced the browser to re-lay out the whole rack sixteen times. See
+	// drawRunLabels.
+	for ui := range units {
 		if ui < len(opens) {
-			labelRuns(opens[ui], sectionRuns(items, idx), mods, idx)
+			clearRunLabels(opens[ui])
 		}
 	}
+	var labels []runLabel
+	for ui, idx := range units {
+		if ui < len(opens) {
+			labels = append(labels, planRunLabels(opens[ui], sectionRuns(items, idx), mods, idx)...)
+		}
+	}
+	drawRunLabels(labels)
 	syncUnitRacks()
 	relayoutInstrumentUnits(f)
 	hideEmptyUnits(f)
@@ -629,7 +649,9 @@ func moduleKeyOf(m js.Value) string {
 	return strings.ToLower(strings.TrimSpace(h.Get("textContent").String()))
 }
 
-// labelRuns silkscreens each section's name over the modules it covers.
+// Silkscreening each section's name over the modules it covers: measured in
+// planRunLabels, drawn in drawRunLabels, and split in two for the reason
+// given there.
 //
 // Per run and not per bay, because a bay carries several sections now: one
 // label on a row holding three groups would be two-thirds wrong. This is
@@ -641,11 +663,30 @@ func moduleKeyOf(m js.Value) string {
 //
 // Positioned over the run's own modules, measured after they have been
 // placed, so a label sits above what it names whatever the widths are.
-func labelRuns(open js.Value, runs []sectionRun, mods []js.Value, idx []int) {
+
+// runLabel is one bay label, measured but not yet drawn.
+type runLabel struct {
+	open    js.Value
+	section string
+	title   string
+	left    float64
+	width   float64
+}
+
+// clearRunLabels takes away a bay's labels from the previous pass.
+func clearRunLabels(open js.Value) {
 	old := open.Call("querySelectorAll", ":scope > .runit-label")
 	for i := 0; i < old.Get("length").Int(); i++ {
 		old.Index(i).Call("remove")
 	}
+}
+
+// planRunLabels measures where a bay's labels go, and draws nothing.
+//
+// Reading and writing are split across the whole rack — see drawRunLabels —
+// so this touches no element it does not measure.
+func planRunLabels(open js.Value, runs []sectionRun, mods []js.Value, idx []int) []runLabel {
+	var out []runLabel
 	for _, r := range runs {
 		title := sectionTitleOf(r.Section)
 		if title == "" || r.Count < 1 {
@@ -661,7 +702,11 @@ func labelRuns(open js.Value, runs []sectionRun, mods []js.Value, idx []int) {
 		a, b := js.Value{}, js.Value{}
 		for n := r.From; n < r.From+r.Count && n < len(idx); n++ {
 			m := mods[idx[n]]
-			if !m.Truthy() || m.Get("offsetParent").IsNull() {
+			// Zero width is what a switched-out module looks like, and
+			// reading a number rather than the element offsetParent hands
+			// back saves a finalizer per module — see the note in
+			// relayoutUnits.
+			if !m.Truthy() || m.Get("offsetWidth").Float() == 0 {
 				continue
 			}
 			if !a.Truthy() {
@@ -677,17 +722,39 @@ func labelRuns(open js.Value, runs []sectionRun, mods []js.Value, idx []int) {
 		if width <= 0 {
 			continue
 		}
-		l := doc.Call("createElement", "div")
-		l.Set("className", "runit-label")
-		l.Get("dataset").Set("section", r.Section)
-		l.Set("textContent", title)
-		l.Set("title", title+" — one of the sections this bay carries. "+
+		out = append(out, runLabel{open: open, section: r.Section, title: title, left: left, width: width})
+	}
+	return out
+}
+
+// drawRunLabels puts every bay's labels in, having measured them all first.
+//
+// One pass over the rack rather than one per bay, and that is the whole
+// reason the function is separate from the measuring.
+//
+// A label is measured off the modules it names — offsetLeft, offsetWidth,
+// offsetParent — and appending one is a write that dirties the layout, so a
+// loop that labeled each bay in turn made the browser re-lay out the whole
+// ten-thousand-element rack before every bay after the first. Sixteen bays,
+// sixteen forced layouts, and labelRuns came to 83% of a relayout and about
+// a fifth of the entire model change.
+//
+// The labels are position:absolute, so nothing here moves a module and
+// deferring the writes changes no geometry — only how many times the
+// browser is asked to compute it.
+func drawRunLabels(ls []runLabel) {
+	for _, l := range ls {
+		el := doc.Call("createElement", "div")
+		el.Set("className", "runit-label")
+		el.Get("dataset").Set("section", l.section)
+		el.Set("textContent", l.title)
+		el.Set("title", l.title+" — one of the sections this bay carries. "+
 			"See docs/signal-flow.md: the bays run in signal order, and a "+
 			"control sits in the same row as the thing it affects.")
-		st := l.Get("style")
-		st.Set("left", pxStr(left))
-		st.Set("width", pxStr(width))
-		open.Call("appendChild", l)
+		st := el.Get("style")
+		st.Set("left", pxStr(l.left))
+		st.Set("width", pxStr(l.width))
+		l.open.Call("appendChild", el)
 	}
 }
 
