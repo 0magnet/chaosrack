@@ -1,4 +1,4 @@
-package attractor
+package meters
 
 // Allocation-free real-FFT magnitudes for the audio pipeline. The upstream
 // audioprism ComputeFFT allocates four slices per call (window, windowed
@@ -63,34 +63,34 @@ type fftScratch struct {
 //	derivative, which makes it the better choice when the signal is not
 //	stationary across the window.
 //
-// winKind is the local enum. The first four values are audioprism's four in
+// WinKind is the local enum. The first four values are audioprism's four in
 // audioprism's order, so mapping is a conversion rather than a table — but it
 // is its own type on purpose, because the extra four are not settings the
 // spectrogram offers and must not appear on its dial.
-type winKind int
+type WinKind int
 
 const (
-	winHann winKind = iota
-	winHamming
-	winBartlett
-	winRectangular
+	WinHann WinKind = iota
+	WinHamming
+	WinBartlett
+	WinRectangular
 	winBlackman
-	winBlackmanHarris
+	WinBlackmanHarris
 	winNuttall
 	winFlatTop
 )
 
 // winKindOf maps the spectrogram's setting onto the local enum.
-func winKindOf(wf sg.WindowFunc) winKind {
+func winKindOf(wf sg.WindowFunc) WinKind {
 	switch wf {
 	case sg.WindowHamming:
-		return winHamming
+		return WinHamming
 	case sg.WindowBartlett:
-		return winBartlett
+		return WinBartlett
 	case sg.WindowRectangular:
-		return winRectangular
+		return WinRectangular
 	default:
-		return winHann
+		return WinHann
 	}
 }
 
@@ -102,7 +102,7 @@ func winKindOf(wf sg.WindowFunc) winKind {
 // they produced before. The cosine-sum windows added here use the same
 // denominator for consistency — at the sizes this app uses, the difference
 // between the symmetric and periodic forms is under a thousandth of a bin.
-func fillWindow(win []float64, wk winKind) {
+func fillWindow(win []float64, wk WinKind) {
 	n := len(win)
 	den := float64(n - 1)
 	// cosSum evaluates a cosine-sum window Σ (−1)^k a_k cos(2πkx/den), which is
@@ -124,19 +124,19 @@ func fillWindow(win []float64, wk winKind) {
 		}
 	}
 	switch wk {
-	case winHamming:
+	case WinHamming:
 		cosSum([]float64{0.54, 0.46})
-	case winBartlett:
+	case WinBartlett:
 		for i := range win {
 			win[i] = 1 - math.Abs((float64(i)-den/2)/(den/2))
 		}
-	case winRectangular:
+	case WinRectangular:
 		for i := range win {
 			win[i] = 1
 		}
 	case winBlackman:
 		cosSum([]float64{0.42, 0.5, 0.08})
-	case winBlackmanHarris:
+	case WinBlackmanHarris:
 		// Harris 1978, the 4-term minimum-sidelobe set: −92 dB.
 		cosSum([]float64{0.35875, 0.48829, 0.14128, 0.01168})
 	case winNuttall:
@@ -149,29 +149,29 @@ func fillWindow(win []float64, wk winKind) {
 		// NEGATIVE either side of its shoulders, which is correct and is why a
 		// flat-top's coherent gain is only 0.216.
 		cosSum([]float64{1, 1.93, 1.29, 0.388, 0.028})
-	default: // winHann
+	default: // WinHann
 		cosSum([]float64{0.5, 0.5})
 	}
 }
 
-// winMetrics are the two sums every amplitude and noise scaling needs.
+// WinMetrics are the two sums every amplitude and noise scaling needs.
 //
-// coherent gain (Σw/n) is what a TONE's peak is multiplied by, and energy
+// coherent gain (Σw/n) is what a TONE's peak is multiplied by, and Energy
 // (Σw²/n) is what NOISE power is multiplied by. Their ratio is the window's
 // noise-equivalent bandwidth, which is how many bins' worth of noise a single
 // bin of this window collects — the number that turns a spectrum into a noise
 // density. Getting an amplitude out of a spectrum without them is how a readout
 // comes to be wrong by a fixed factor nobody notices.
-type winMetrics struct {
-	coherentGain float64 // Σw / n
-	energy       float64 // Σw² / n
-	enbw         float64 // n·Σw² / (Σw)² — bins
+type WinMetrics struct {
+	CoherentGain float64 // Σw / n
+	Energy       float64 // Σw² / n
+	ENBW         float64 // n·Σw² / (Σw)² — bins
 }
 
-var winMetricsCache = map[fftKey]winMetrics{}
+var winMetricsCache = map[fftKey]WinMetrics{}
 
-// windowMetrics returns the metrics for the window an FFT size is using.
-func windowMetrics(n int, wk winKind) winMetrics {
+// WindowMetrics returns the metrics for the window an FFT size is using.
+func WindowMetrics(n int, wk WinKind) WinMetrics {
 	k := fftKey{n, wk}
 	if m, ok := winMetricsCache[k]; ok {
 		return m
@@ -182,9 +182,9 @@ func windowMetrics(n int, wk winKind) winMetrics {
 		sum += w
 		sum2 += w * w
 	}
-	m := winMetrics{coherentGain: sum / float64(n), energy: sum2 / float64(n)}
+	m := WinMetrics{CoherentGain: sum / float64(n), Energy: sum2 / float64(n)}
 	if sum != 0 {
-		m.enbw = float64(n) * sum2 / (sum * sum)
+		m.ENBW = float64(n) * sum2 / (sum * sum)
 	}
 	winMetricsCache[k] = m
 	return m
@@ -192,12 +192,12 @@ func windowMetrics(n int, wk winKind) winMetrics {
 
 type fftKey struct {
 	n  int
-	wf winKind
+	wf WinKind
 }
 
 var fftCache = map[fftKey]*fftScratch{}
 
-func fftScratchFor(n int, wf winKind) *fftScratch {
+func fftScratchFor(n int, wf WinKind) *fftScratch {
 	if s, ok := fftCache[fftKey{n, wf}]; ok {
 		return s
 	}
@@ -232,25 +232,25 @@ func fftScratchFor(n int, wf winKind) *fftScratch {
 	return s
 }
 
-// computeFFTMags windows the input (Hann), runs an in-place radix-2 FFT and
+// ComputeFFTMags windows the input (Hann), runs an in-place radix-2 FFT and
 // returns its n/2+1 magnitudes. The returned slice is the scratch's —
 // valid until the next call with the same size. n must be a power of two.
-func computeFFTMags(input []float32) []float64 {
-	return computeFFTMagsWindow(input, sg.WindowHann)
+func ComputeFFTMags(input []float32) []float64 {
+	return ComputeFFTMagsWindow(input, sg.WindowHann)
 }
 
-// computeFFTMagsWindow is computeFFTMags with the window function named, for
+// ComputeFFTMagsWindow is ComputeFFTMags with the window function named, for
 // the spectrogram, which lets it be chosen. Everything else wants Hann and says
 // so by calling the plain one.
-func computeFFTMagsWindow(input []float32, wf sg.WindowFunc) []float64 {
-	return computeFFTMagsKind(input, winKindOf(wf))
+func ComputeFFTMagsWindow(input []float32, wf sg.WindowFunc) []float64 {
+	return ComputeFFTMagsKind(input, winKindOf(wf))
 }
 
-// computeFFTMagsKind is the real entry point, taking the local window enum so
+// ComputeFFTMagsKind is the real entry point, taking the local window enum so
 // that the measurement paths can ask for a window the spectrogram does not
 // offer. The two wrappers above are the callers that only ever want Hann or one
 // of audioprism's four.
-func computeFFTMagsKind(input []float32, wf winKind) []float64 {
+func ComputeFFTMagsKind(input []float32, wf WinKind) []float64 {
 	n := len(input)
 	if n == 0 || n&(n-1) != 0 {
 		return nil
@@ -285,7 +285,7 @@ func computeFFTMagsKind(input []float32, wf winKind) []float64 {
 	return s.mags
 }
 
-// computeFFTComplex is computeFFTMagsKind keeping the PHASE, into caller-owned
+// ComputeFFTComplex is ComputeFFTMagsKind keeping the PHASE, into caller-owned
 // buffers.
 //
 // Magnitudes are enough for a spectrum, a spectrogram and a distortion figure,
@@ -298,7 +298,7 @@ func computeFFTMagsKind(input []float32, wf winKind) []float64 {
 // of each per size: the second call would overwrite the first, and the
 // measurement would come out as a signal correlated with itself. The copy is
 // n/2+1 pairs and happens a few times a second.
-func computeFFTComplex(input []float32, wf winKind, re, im []float64) bool {
+func ComputeFFTComplex(input []float32, wf WinKind, re, im []float64) bool {
 	n := len(input)
 	if n == 0 || n&(n-1) != 0 || len(re) < n/2+1 || len(im) < n/2+1 {
 		return false
@@ -307,13 +307,13 @@ func computeFFTComplex(input []float32, wf winKind, re, im []float64) bool {
 	// result in the scratch — so this runs the same one rather than repeating
 	// the butterflies here, where the two copies would drift apart.
 	s := fftScratchFor(n, wf)
-	computeFFTMagsKind(input, wf)
+	ComputeFFTMagsKind(input, wf)
 	copy(re, s.re[:n/2+1])
 	copy(im, s.im[:n/2+1])
 	return true
 }
 
-// inverseFFTReal reconstructs a real signal from a Hermitian half-spectrum —
+// InverseFFTReal reconstructs a real signal from a Hermitian half-spectrum —
 // the n/2+1 complex bins a real transform produces — into dst, which must hold
 // n samples.
 //
@@ -326,12 +326,12 @@ func computeFFTComplex(input []float32, wf winKind, re, im []float64) bool {
 // The half-spectrum is mirrored back to full length first: bins n/2+1..n-1 are
 // the conjugates of n/2-1 down to 1, which is what "Hermitian" means and what
 // makes the result real.
-func inverseFFTReal(re, im []float64, n int, dst []float64) bool {
+func InverseFFTReal(re, im []float64, n int, dst []float64) bool {
 	half := n/2 + 1
 	if n == 0 || n&(n-1) != 0 || len(re) < half || len(im) < half || len(dst) < n {
 		return false
 	}
-	s := fftScratchFor(n, winRectangular)
+	s := fftScratchFor(n, WinRectangular)
 	// conj(X), mirrored to full length, bit-reversed into place.
 	for i := 0; i < n; i++ {
 		var xr, xi float64

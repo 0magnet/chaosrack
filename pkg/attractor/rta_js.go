@@ -2,6 +2,8 @@
 
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/meters"
+
 // The RTA mode — fractional-octave bands drawn as a bar display.
 //
 // The band arithmetic is in rta.go, untagged and checked against the Test
@@ -123,7 +125,7 @@ func rtaAnalyze(nowMs float64) {
 		return
 	}
 	rtaNextMs = nowMs + rtaPeriodMs
-	RTALevels(computeFFTMagsKind(rtaBuf, rtaWindowKind), rtaFFT, takensSourceRate(),
+	RTALevels(meters.ComputeFFTMagsKind(rtaBuf, rtaWindowKind), rtaFFT, takensSourceRate(),
 		rtaBands, rtaWindowKind, rtaLevels)
 }
 

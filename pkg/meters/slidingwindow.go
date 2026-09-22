@@ -1,4 +1,4 @@
-package attractor
+package meters
 
 // A window over the newest samples, costing what ARRIVES rather than what it
 // holds.
@@ -18,7 +18,7 @@ package attractor
 // A ring costs what arrives. The samples are written at a cursor that wraps,
 // and the window is put in order only when something is actually going to
 // read it — which is on the analyzer's own timer, not on the frame.
-type slidingWindow struct {
+type SlidingWindow struct {
 	buf  []float32
 	head int // where the next sample goes
 	fill int // how many of buf are real, up to len(buf)
@@ -29,7 +29,7 @@ type slidingWindow struct {
 // Called when the source's sample rate changes, which is the one thing that
 // changes how many samples ten seconds is. A window of nothing is legal and
 // simply never fills.
-func (w *slidingWindow) Resize(n int) {
+func (w *SlidingWindow) Resize(n int) {
 	if n < 0 {
 		n = 0
 	}
@@ -45,22 +45,22 @@ func (w *slidingWindow) Resize(n int) {
 // For when the SIGNAL changes rather than its length — switching the
 // distortion analyzer from mix to left is a different waveform, and
 // measuring across the join would report a transient nobody played.
-func (w *slidingWindow) Reset() { w.head, w.fill = 0, 0 }
+func (w *SlidingWindow) Reset() { w.head, w.fill = 0, 0 }
 
 // Len is the window length.
-func (w *slidingWindow) Len() int { return len(w.buf) }
+func (w *SlidingWindow) Len() int { return len(w.buf) }
 
 // Full reports whether the window has as many real samples as it holds.
-func (w *slidingWindow) Full() bool { return len(w.buf) > 0 && w.fill >= len(w.buf) }
+func (w *SlidingWindow) Full() bool { return len(w.buf) > 0 && w.fill >= len(w.buf) }
 
 // Fill is how many real samples it has.
-func (w *slidingWindow) Fill() int { return w.fill }
+func (w *SlidingWindow) Fill() int { return w.fill }
 
 // Push adds samples, keeping the newest.
 //
 // A push longer than the window keeps only its tail, which is the same thing
 // the sliding version did and the only sensible reading of "the newest N".
-func (w *slidingWindow) Push(s []float32) {
+func (w *SlidingWindow) Push(s []float32) {
 	if len(w.buf) == 0 || len(s) == 0 {
 		return
 	}
@@ -85,7 +85,7 @@ func (w *slidingWindow) Push(s []float32) {
 // rather than on the frame — which is the whole point. dst must be at least
 // Fill() long; a shorter one takes the newest samples that fit, because a
 // truncated window should lose its oldest end, not its newest.
-func (w *slidingWindow) Linear(dst []float32) int {
+func (w *SlidingWindow) Linear(dst []float32) int {
 	n := w.fill
 	if n > len(dst) {
 		n = len(dst)

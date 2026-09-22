@@ -1,4 +1,4 @@
-package attractor
+package meters
 
 import "testing"
 
@@ -6,7 +6,7 @@ import "testing"
 // the analyzers measure a waveform, and a waveform out of order is a
 // different signal.
 func TestTheWindowIsTheNewestSamplesInOrder(t *testing.T) {
-	var w slidingWindow
+	var w SlidingWindow
 	w.Resize(5)
 	for i := 1; i <= 8; i++ {
 		w.Push([]float32{float32(i)})
@@ -26,7 +26,7 @@ func TestTheWindowIsTheNewestSamplesInOrder(t *testing.T) {
 // Pushes that straddle the wrap must come back in order too — this is the
 // case the ring exists for and the one a sliding copy could not get wrong.
 func TestAWrappedWindowStillReadsInOrder(t *testing.T) {
-	var w slidingWindow
+	var w SlidingWindow
 	w.Resize(6)
 	w.Push([]float32{1, 2, 3, 4})
 	w.Push([]float32{5, 6, 7}) // wraps
@@ -43,7 +43,7 @@ func TestAWrappedWindowStillReadsInOrder(t *testing.T) {
 // A push longer than the window keeps its tail. The old sliding code did the
 // same, and it is the only reading of "the newest N" that makes sense.
 func TestAnOversizedPushKeepsItsTail(t *testing.T) {
-	var w slidingWindow
+	var w SlidingWindow
 	w.Resize(3)
 	w.Push([]float32{1, 2, 3, 4, 5, 6, 7})
 	got := make([]float32, 3)
@@ -62,7 +62,7 @@ func TestAnOversizedPushKeepsItsTail(t *testing.T) {
 // Before it fills, it reports only what it really has — an analyzer that
 // measured the zeroes past the end would report silence it never heard.
 func TestAPartialWindowReportsOnlyWhatArrived(t *testing.T) {
-	var w slidingWindow
+	var w SlidingWindow
 	w.Resize(8)
 	w.Push([]float32{1, 2, 3})
 	if w.Full() {
@@ -85,7 +85,7 @@ func TestAPartialWindowReportsOnlyWhatArrived(t *testing.T) {
 // A short destination loses the OLDEST end, not the newest. An analyzer
 // given less room than the window still wants the most recent audio.
 func TestAShortDestinationKeepsTheNewest(t *testing.T) {
-	var w slidingWindow
+	var w SlidingWindow
 	w.Resize(6)
 	w.Push([]float32{1, 2, 3, 4, 5, 6})
 	got := make([]float32, 2)
@@ -102,7 +102,7 @@ func TestAShortDestinationKeepsTheNewest(t *testing.T) {
 // Resizing to the SAME length must not drop anything, or a per-frame call
 // that recomputes the length would empty it every frame.
 func TestResizeDropsOnlyWhenTheLengthChanges(t *testing.T) {
-	var w slidingWindow
+	var w SlidingWindow
 	w.Resize(4)
 	w.Push([]float32{1, 2, 3, 4})
 	w.Resize(4)
@@ -118,7 +118,7 @@ func TestResizeDropsOnlyWhenTheLengthChanges(t *testing.T) {
 // Degenerate sizes must not panic: a zero-length window simply never fills,
 // which is what a source with no sample rate yet gives.
 func TestAZeroWindowIsHarmless(t *testing.T) {
-	var w slidingWindow
+	var w SlidingWindow
 	w.Resize(0)
 	w.Push([]float32{1, 2, 3})
 	if w.Full() || w.Fill() != 0 {
@@ -137,7 +137,7 @@ func TestAZeroWindowIsHarmless(t *testing.T) {
 func TestPushingCostsWhatArrivesNotWhatItHolds(t *testing.T) {
 	const size, chunk = 480000, 800
 	const pushes = size/chunk + 50 // enough to fill it and keep going
-	var w slidingWindow
+	var w SlidingWindow
 	w.Resize(size)
 	s := make([]float32, chunk)
 	for i := 0; i < pushes; i++ {
@@ -160,7 +160,7 @@ func TestPushingCostsWhatArrivesNotWhatItHolds(t *testing.T) {
 // different signal, and measuring across the join reports a transient
 // nobody played.
 func TestResetForgetsTheSamplesAndKeepsTheRoom(t *testing.T) {
-	var w slidingWindow
+	var w SlidingWindow
 	w.Resize(4)
 	w.Push([]float32{1, 2, 3, 4})
 	w.Reset()
