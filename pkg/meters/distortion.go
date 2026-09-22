@@ -1,4 +1,4 @@
-package attractor
+package meters
 
 import "math"
 
@@ -73,7 +73,7 @@ type DistortionResult struct {
 // 0.013% THD+N because 0.013% was the window. The price is a main lobe twice as
 // wide, which costs frequency resolution — and a distortion measurement has
 // resolution to spare, because its harmonics are octaves apart.
-const thdWindowKind = winBlackmanHarris
+const thdWindowKind = WinBlackmanHarris
 
 // thdHalfWidth is how many bins either side of a peak are counted as part of
 // it. Blackman-Harris's main lobe is eight bins wide, four either side, so that
@@ -120,7 +120,7 @@ func AnalyzeDistortion(samples []float32, sampleRate int, maxHarm int) Distortio
 	if n == 0 || n&(n-1) != 0 || sampleRate <= 0 {
 		return res
 	}
-	mags := computeFFTMagsKind(samples, thdWindowKind)
+	mags := ComputeFFTMagsKind(samples, thdWindowKind)
 	if len(mags) < 8 {
 		return res
 	}
@@ -161,8 +161,8 @@ func AnalyzeDistortion(samples []float32, sampleRate int, maxHarm int) Distortio
 	// because a constant fitted to one window is an amplitude readout that is
 	// silently wrong by a fixed factor under any other — this read every tone
 	// 22% high when it was written as a bare 4/n.
-	if m := windowMetrics(n, thdWindowKind); m.energy > 0 {
-		res.Level = 2 * math.Sqrt(fund/(float64(n)*float64(n)*m.energy))
+	if m := WindowMetrics(n, thdWindowKind); m.Energy > 0 {
+		res.Level = 2 * math.Sqrt(fund/(float64(n)*float64(n)*m.Energy))
 	}
 	if res.Level < thdMinLevel {
 		return res

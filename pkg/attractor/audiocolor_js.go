@@ -8,6 +8,8 @@ import (
 	"unsafe"
 
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
 // Sound as a gradient source: the fifth thing the trace color can follow,
@@ -49,7 +51,7 @@ import (
 const audioColorLUTSize = 32
 
 // audioColorFFT is the short-time window, in samples, whose spectrum fills
-// one LUT slot. It must be a power of two (computeFFTMags returns nil
+// one LUT slot. It must be a power of two (meters.ComputeFFTMags returns nil
 // otherwise) and it is deliberately short: 128 samples at 24 kHz is about
 // 5 ms, so the color follows the sound closely enough that a transient shows
 // as a band on the trail rather than being averaged into its neighbors.
@@ -123,7 +125,7 @@ func shortTimeCentroids(w []float32, sampleRate int, out []float32) {
 		for j := n; j < audioColorFFT; j++ {
 			audioColorScratch[j] = 0
 		}
-		mags := computeFFTMags(audioColorScratch[:])
+		mags := meters.ComputeFFTMags(audioColorScratch[:])
 		if mags == nil {
 			out[i] = 0.5
 			continue

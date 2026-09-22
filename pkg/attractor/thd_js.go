@@ -6,6 +6,8 @@ import (
 	"math"
 	"strconv"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
 // The Distortion module — THD, THD+N, SINAD and ENOB of the live audio.
@@ -52,10 +54,10 @@ var thdPeriodMs float64 = 400
 
 var (
 	thdCursor = tapUnjoined
-	thdWin    slidingWindow // the newest thdWindow samples
-	thdBuf    []float32     // thdWin laid out in order, for the analyzer
+	thdWin    meters.SlidingWindow // the newest thdWindow samples
+	thdBuf    []float32            // thdWin laid out in order, for the analyzer
 	thdNextMs float64
-	thdRes    DistortionResult
+	thdRes    meters.DistortionResult
 
 	thdLED, thdnLED, thdSinadLED, thdEnobLED js.Value
 	thdFundLED, thdLevelLED                  js.Value
@@ -106,7 +108,7 @@ func thdTick(nowMs float64) {
 	// it is needed four hundred milliseconds apart rather than sixty times
 	// a second. See slidingwindow.go.
 	thdWin.Linear(thdBuf)
-	thdRes = AnalyzeDistortion(thdBuf, takensSourceRate(), int(thdHarmF))
+	thdRes = meters.AnalyzeDistortion(thdBuf, takensSourceRate(), int(thdHarmF))
 	showDistortion()
 }
 
@@ -126,8 +128,8 @@ func showDistortion() {
 		set("thd-level", thdLevelLED, "  --.-")
 		return
 	}
-	set("thd-thd", thdLED, formatLED(AsPercent(thdRes.THD), 2, 3, false))
-	set("thd-thdn", thdnLED, formatLED(AsPercent(thdRes.THDN), 2, 3, false))
+	set("thd-thd", thdLED, formatLED(meters.AsPercent(thdRes.THD), 2, 3, false))
+	set("thd-thdn", thdnLED, formatLED(meters.AsPercent(thdRes.THDN), 2, 3, false))
 	// A SINAD of 999 is the sentinel for "nothing but the fundamental in the
 	// window", which a synthesized tone with no noise really does produce. It
 	// is not a number to print — an infinite SINAD is a claim no measurement
@@ -187,7 +189,7 @@ func wireDistortionModule() {
 			// A change of channel is a change of signal, so the window it was
 			// measuring no longer describes what is being asked about.
 			thdWin.Reset()
-			thdRes = DistortionResult{}
+			thdRes = meters.DistortionResult{}
 			showDistortion()
 		},
 	})

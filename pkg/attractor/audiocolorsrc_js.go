@@ -32,6 +32,8 @@ package attractor
 
 import (
 	"math"
+
+	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
 const (
@@ -289,7 +291,7 @@ func shortTimeFlux(w []float32, out []float32) {
 		for j := n; j < audioColorFFT; j++ {
 			audioColorScratch[j] = 0
 		}
-		mags := computeFFTMags(audioColorScratch[:])
+		mags := meters.ComputeFFTMags(audioColorScratch[:])
 		if mags == nil {
 			out[i] = 0
 			return

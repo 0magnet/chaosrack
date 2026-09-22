@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/0magnet/chaosrack/pkg/audiosrc"
+	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
 // THE BAND CENTERS ARE THE PUBLISHED ONES. An analyzer whose bands sit
@@ -81,7 +82,7 @@ func TestBandWidthsAreTheFractionTheyClaim(t *testing.T) {
 func rtaOf(x []float32, sr, b int) ([]RTABand, []float64) {
 	bands := RTABands(b)
 	levels := make([]float64, len(bands))
-	mags := computeFFTMagsKind(x, rtaWindowKind)
+	mags := meters.ComputeFFTMagsKind(x, rtaWindowKind)
 	RTALevels(mags, len(x), sr, bands, rtaWindowKind, levels)
 	return bands, levels
 }
@@ -136,7 +137,7 @@ func rtaAveraged(sig audiosrc.TestSignal, windows, n, sr, b int) ([]RTABand, []f
 	buf := make([]float32, n)
 	for w := 0; w < windows; w++ {
 		src.FillMono(buf)
-		RTALevels(computeFFTMagsKind(buf, rtaWindowKind), n, sr, bands, rtaWindowKind, one)
+		RTALevels(meters.ComputeFFTMagsKind(buf, rtaWindowKind), n, sr, bands, rtaWindowKind, one)
 		for i, db := range one {
 			acc[i] += math.Pow(10, db/10) // average the power, not the decibels
 		}

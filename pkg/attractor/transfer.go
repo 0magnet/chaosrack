@@ -1,6 +1,10 @@
 package attractor
 
-import "math"
+import (
+	"math"
+
+	"github.com/0magnet/chaosrack/pkg/meters"
+)
 
 // The dual-channel transfer function — magnitude, phase and coherence.
 //
@@ -47,7 +51,7 @@ import "math"
 // CROSS-spectrum over many windows, which suppresses leakage by itself wherever
 // the phase does not line up, and Hann's narrower main lobe keeps the response
 // curve's resolution — a wide lobe smears a notch into a dip.
-const xfWindowKind = winHann
+const xfWindowKind = meters.WinHann
 
 // transferMinAvg is the fewest windows a result is given for. Below about eight
 // the coherence is still biased high — its expected value on pure noise is
@@ -126,16 +130,16 @@ func (a *TransferAccum) size(n int) {
 // Add folds one window of the two channels into the average. ref is the signal
 // that went out and meas what came back; the result describes what happened
 // between them.
-func (a *TransferAccum) Add(ref, meas []float32, wk winKind) bool {
+func (a *TransferAccum) Add(ref, meas []float32, wk meters.WinKind) bool {
 	n := len(ref)
 	if n != len(meas) || n == 0 || n&(n-1) != 0 {
 		return false
 	}
 	a.size(n)
-	if !computeFFTComplex(ref, wk, a.xre, a.xim) {
+	if !meters.ComputeFFTComplex(ref, wk, a.xre, a.xim) {
 		return false
 	}
-	if !computeFFTComplex(meas, wk, a.yre, a.yim) {
+	if !meters.ComputeFFTComplex(meas, wk, a.yre, a.yim) {
 		return false
 	}
 	for i := range a.sxx {

@@ -19,6 +19,7 @@ import (
 	"image/color"
 
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
+	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
 // SpectrogramMaxRows caps how tall a column may be.
@@ -107,5 +108,5 @@ func SpectrogramColumnWith(mags []float64, rows int, pixel func(float64) color.C
 // separately could be asked for one window while the picture was painted with
 // another.
 func SpectrogramMags(frame []float32) []float64 {
-	return computeFFTMagsWindow(frame, sg.S.WindowFunc())
+	return meters.ComputeFFTMagsWindow(frame, sg.S.WindowFunc())
 }

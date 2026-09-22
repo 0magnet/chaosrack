@@ -4,6 +4,8 @@ package attractor
 
 import (
 	"strconv"
+
+	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
 // The meters' own clocks, on the front panel.
@@ -157,7 +159,7 @@ func wireMeterClocks() {
 			// asked about, the same way a change of channel does on the
 			// distortion module.
 			wfWin.Reset()
-			wfRes = WowFlutterResult{}
+			wfRes = meters.WowFlutterResult{}
 			showWowFlutter()
 		})
 }

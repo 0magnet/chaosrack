@@ -1,4 +1,4 @@
-package attractor
+package meters
 
 import (
 	"math"
@@ -36,7 +36,7 @@ func wfTone(secs float64, carrier, devPct, modHz float64) []float32 {
 // instrument's own floor, and every figure it gives for a real deck is that
 // plus the deck.
 func TestASteadyToneHasNoWowOrFlutter(t *testing.T) {
-	r := AnalyzeWowFlutter(wfTone(8, wfCarrier, 0, 0), wfSR, wfCarrier)
+	r := AnalyzeWowFlutter(wfTone(8, WfCarrier, 0, 0), wfSR, WfCarrier)
 	if !r.OK {
 		t.Fatal("no measurement")
 	}
@@ -56,8 +56,8 @@ func TestASteadyToneHasNoWowOrFlutter(t *testing.T) {
 // A turntable running fast is a carrier that is high and perfectly steady.
 func TestSpeedErrorIsMeasuredAndIsNotWow(t *testing.T) {
 	for _, pct := range []float64{-2, -0.5, 0.33, 1, 2} {
-		f := wfCarrier * (1 + pct/100)
-		r := AnalyzeWowFlutter(wfTone(8, f, 0, 0), wfSR, wfCarrier)
+		f := WfCarrier * (1 + pct/100)
+		r := AnalyzeWowFlutter(wfTone(8, f, 0, 0), wfSR, WfCarrier)
 		if !r.OK {
 			t.Fatalf("%.2f%%: no measurement", pct)
 		}
@@ -78,7 +78,7 @@ func TestAKnownWobbleIsMeasured(t *testing.T) {
 	for _, c := range []struct{ devPct, modHz float64 }{
 		{0.5, 2}, {0.2, 3}, {1.0, 4}, {0.1, 1},
 	} {
-		r := AnalyzeWowFlutter(wfTone(12, wfCarrier, c.devPct, c.modHz), wfSR, wfCarrier)
+		r := AnalyzeWowFlutter(wfTone(12, WfCarrier, c.devPct, c.modHz), wfSR, WfCarrier)
 		if !r.OK {
 			t.Fatalf("%.2f%% at %.0f Hz: no measurement", c.devPct, c.modHz)
 		}
@@ -93,7 +93,7 @@ func TestAKnownWobbleIsMeasured(t *testing.T) {
 // ...and the same deviation up in the flutter band lands in flutter instead,
 // which is what makes the two separate readings rather than one number twice.
 func TestFastModulationIsFlutterAndNotWow(t *testing.T) {
-	r := AnalyzeWowFlutter(wfTone(12, wfCarrier, 0.4, 30), wfSR, wfCarrier)
+	r := AnalyzeWowFlutter(wfTone(12, WfCarrier, 0.4, 30), wfSR, WfCarrier)
 	if !r.OK {
 		t.Fatal("no measurement")
 	}
@@ -109,7 +109,7 @@ func TestFastModulationIsFlutterAndNotWow(t *testing.T) {
 
 // ...and the reverse, so neither band is simply picking up everything.
 func TestSlowModulationIsWowAndNotFlutter(t *testing.T) {
-	r := AnalyzeWowFlutter(wfTone(16, wfCarrier, 0.4, 1.5), wfSR, wfCarrier)
+	r := AnalyzeWowFlutter(wfTone(16, WfCarrier, 0.4, 1.5), wfSR, WfCarrier)
 	if !r.OK {
 		t.Fatal("no measurement")
 	}
@@ -126,7 +126,7 @@ func TestSlowModulationIsWowAndNotFlutter(t *testing.T) {
 func TestTheWeightingPeaksAtFourHertz(t *testing.T) {
 	const dev = 0.5
 	at := func(hz float64) float64 {
-		return AnalyzeWowFlutter(wfTone(16, wfCarrier, dev, hz), wfSR, wfCarrier).WeightedPct
+		return AnalyzeWowFlutter(wfTone(16, WfCarrier, dev, hz), wfSR, WfCarrier).WeightedPct
 	}
 	four := at(4)
 	for _, hz := range []float64{0.6, 40} {
@@ -142,8 +142,8 @@ func TestTheWeightingPeaksAtFourHertz(t *testing.T) {
 // would leave a beat the demodulator would report as enormous flutter.
 func TestTheCarrierIsFoundWhereverItIs(t *testing.T) {
 	for _, pct := range []float64{-5, 0, 5} {
-		f := wfCarrier * (1 + pct/100)
-		r := AnalyzeWowFlutter(wfTone(8, f, 0, 0), wfSR, wfCarrier)
+		f := WfCarrier * (1 + pct/100)
+		r := AnalyzeWowFlutter(wfTone(8, f, 0, 0), wfSR, WfCarrier)
 		if !r.OK {
 			t.Fatalf("%+.0f%%: no measurement", pct)
 		}
@@ -177,13 +177,13 @@ func TestWithoutANominalThereIsNoSpeedError(t *testing.T) {
 // Too little audio cannot hold a cycle of the slowest wow, and saying so beats
 // reporting a number made of a fraction of one.
 func TestTooShortIsRefusedForWowAndFlutter(t *testing.T) {
-	if r := AnalyzeWowFlutter(wfTone(0.2, wfCarrier, 0, 0), wfSR, wfCarrier); r.OK {
+	if r := AnalyzeWowFlutter(wfTone(0.2, WfCarrier, 0, 0), wfSR, WfCarrier); r.OK {
 		t.Errorf("a fifth of a second produced wow %.4f%%", r.WowPct)
 	}
-	if r := AnalyzeWowFlutter(nil, wfSR, wfCarrier); r.OK {
+	if r := AnalyzeWowFlutter(nil, wfSR, WfCarrier); r.OK {
 		t.Error("an empty buffer produced a measurement")
 	}
-	if r := AnalyzeWowFlutter(wfTone(4, wfCarrier, 0, 0), 0, wfCarrier); r.OK {
+	if r := AnalyzeWowFlutter(wfTone(4, WfCarrier, 0, 0), 0, WfCarrier); r.OK {
 		t.Error("a zero sample rate produced a measurement")
 	}
 }
@@ -191,7 +191,7 @@ func TestTooShortIsRefusedForWowAndFlutter(t *testing.T) {
 // Silence has no carrier to measure, and the search must not lock onto the
 // noise floor and report the wobble of nothing.
 func TestSilenceHasNoCarrier(t *testing.T) {
-	if r := AnalyzeWowFlutter(make([]float32, wfSR*4), wfSR, wfCarrier); r.OK && r.WowPct > 0.1 {
+	if r := AnalyzeWowFlutter(make([]float32, wfSR*4), wfSR, WfCarrier); r.OK && r.WowPct > 0.1 {
 		t.Errorf("silence measured %.4f%% wow at a carrier of %.1f Hz", r.WowPct, r.Carrier)
 	}
 }

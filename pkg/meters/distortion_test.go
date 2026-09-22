@@ -1,4 +1,4 @@
-package attractor
+package meters
 
 import (
 	"math"
@@ -11,7 +11,8 @@ const dtSR = 48000
 // harmonics named as (multiple, amplitude) pairs. Built rather than measured,
 // so the distortion in it is known exactly and the analyzer can be checked
 // against arithmetic instead of against another measurement.
-func distTone(n int, hz, amp float64, harm ...[2]float64) []float32 {
+func distTone(hz, amp float64, harm ...[2]float64) []float32 {
+	const n = 16384 // the analysis window, which is the only length these ask for
 	out := make([]float32, n)
 	for i := range out {
 		t := float64(i) / dtSR
@@ -34,7 +35,7 @@ func distTone(n int, hz, amp float64, harm ...[2]float64) []float32 {
 // breaks a peak-bin implementation.
 func TestAPureToneHasNoDistortion(t *testing.T) {
 	for _, hz := range []float64{1000, 997, 440.5, 3150, 7777.7} {
-		r := AnalyzeDistortion(distTone(16384, hz, 0.5), dtSR, 10)
+		r := AnalyzeDistortion(distTone(hz, 0.5), dtSR, 10)
 		if !r.OK {
 			t.Errorf("%.1f Hz: no measurement", hz)
 			continue
@@ -55,7 +56,7 @@ func TestAPureToneHasNoDistortion(t *testing.T) {
 func TestTheFundamentalIsFoundBetweenBins(t *testing.T) {
 	binHz := float64(dtSR) / 16384
 	for _, hz := range []float64{1000, 997.3, 440.5, 5000.7} {
-		r := AnalyzeDistortion(distTone(16384, hz, 0.5), dtSR, 5)
+		r := AnalyzeDistortion(distTone(hz, 0.5), dtSR, 5)
 		if !r.OK {
 			t.Fatalf("%.1f Hz: no measurement", hz)
 		}
@@ -77,7 +78,7 @@ func TestTHDRecoversAKnownHarmonic(t *testing.T) {
 		{3, 0.05}, {5, 0.02}, {7, 0.005},
 	} {
 		const fund = 0.5
-		x := distTone(16384, 1000, fund, [2]float64{c.mult, fund * c.ratio})
+		x := distTone(1000, fund, [2]float64{c.mult, fund * c.ratio})
 		r := AnalyzeDistortion(x, dtSR, 12)
 		if !r.OK {
 			t.Fatalf("H%.0f at %.3f: no measurement", c.mult, c.ratio)
@@ -95,7 +96,7 @@ func TestTHDRecoversAKnownHarmonic(t *testing.T) {
 // the number of harmonics, which on a real amplifier is most of the answer.
 func TestHarmonicsAddInPower(t *testing.T) {
 	const fund = 0.5
-	x := distTone(16384, 1000, fund,
+	x := distTone(1000, fund,
 		[2]float64{2, fund * 0.03},
 		[2]float64{3, fund * 0.04})
 	r := AnalyzeDistortion(x, dtSR, 10)
@@ -113,7 +114,7 @@ func TestHarmonicsAddInPower(t *testing.T) {
 // "3% all of it second harmonic" are different facts about an amplifier.
 func TestPerHarmonicLevelsAreReported(t *testing.T) {
 	const fund = 0.5
-	x := distTone(16384, 1000, fund,
+	x := distTone(1000, fund,
 		[2]float64{2, fund * 0.10},
 		[2]float64{4, fund * 0.02})
 	r := AnalyzeDistortion(x, dtSR, 6)
@@ -138,7 +139,7 @@ func TestPerHarmonicLevelsAreReported(t *testing.T) {
 func TestTHDNIsNeverLessThanTHD(t *testing.T) {
 	const fund = 0.5
 	for _, noise := range []float64{0, 1e-4, 1e-3, 1e-2} {
-		x := distTone(16384, 1000, fund, [2]float64{3, fund * 0.01})
+		x := distTone(1000, fund, [2]float64{3, fund * 0.01})
 		rng := uint32(12345)
 		for i := range x {
 			x[i] += float32(noise * dtNoise(&rng))
@@ -168,7 +169,7 @@ func TestNoiseMovesTHDNAndNotTHD(t *testing.T) {
 	const fund = 0.5
 	const dist = 0.01 // the third harmonic put in below
 	mk := func(noise float64) DistortionResult {
-		x := distTone(16384, 1000, fund, [2]float64{3, fund * dist})
+		x := distTone(1000, fund, [2]float64{3, fund * dist})
 		rng := uint32(999)
 		for i := range x {
 			x[i] += float32(noise * dtNoise(&rng))
@@ -209,7 +210,7 @@ func TestNoiseMovesTHDNAndNotTHD(t *testing.T) {
 // Two numbers that can drift apart are two chances to be wrong.
 func TestSINADAgreesWithTHDN(t *testing.T) {
 	const fund = 0.5
-	x := distTone(16384, 1000, fund, [2]float64{2, fund * 0.02}, [2]float64{3, fund * 0.01})
+	x := distTone(1000, fund, [2]float64{2, fund * 0.02}, [2]float64{3, fund * 0.01})
 	rng := uint32(4242)
 	for i := range x {
 		x[i] += float32(1e-3 * dtNoise(&rng))
@@ -233,7 +234,7 @@ func TestSINADAgreesWithTHDN(t *testing.T) {
 // level, it is what falls out of rounding.
 func TestENOBRecoversAQuantizedSignal(t *testing.T) {
 	for _, bits := range []int{8, 10, 12} {
-		x := distTone(16384, 1000.7, 0.98) // near full scale, off a bin center
+		x := distTone(1000.7, 0.98) // near full scale, off a bin center
 		step := 2.0 / math.Pow(2, float64(bits))
 		for i := range x {
 			x[i] = float32(math.Round(float64(x[i])/step) * step)
@@ -257,7 +258,7 @@ func TestSilenceIsReportedAsNoMeasurement(t *testing.T) {
 		t.Errorf("silence measured %.4f%% THD", AsPercent(r.THD))
 	}
 	// ...and so is a signal far below anything real.
-	if r := AnalyzeDistortion(distTone(16384, 1000, 1e-5), dtSR, 10); r.OK {
+	if r := AnalyzeDistortion(distTone(1000, 1e-5), dtSR, 10); r.OK {
 		t.Error("a signal 100 dB down was measured rather than refused")
 	}
 }
@@ -267,7 +268,7 @@ func TestSilenceIsReportedAsNoMeasurement(t *testing.T) {
 // the spectrum — a fundamental found there would make every harmonic a multiple
 // of nothing.
 func TestADCOffsetIsNotMistakenForTheFundamental(t *testing.T) {
-	x := distTone(16384, 1000, 0.3)
+	x := distTone(1000, 0.3)
 	for i := range x {
 		x[i] += 0.6
 	}
@@ -283,7 +284,7 @@ func TestADCOffsetIsNotMistakenForTheFundamental(t *testing.T) {
 // Harmonics past Nyquist are not there, and counting them would be counting
 // aliases. A 7 kHz tone at 48 kHz has three harmonics inside the band.
 func TestHarmonicsPastNyquistAreNotCounted(t *testing.T) {
-	r := AnalyzeDistortion(distTone(16384, 7000, 0.5), dtSR, 20)
+	r := AnalyzeDistortion(distTone(7000, 0.5), dtSR, 20)
 	if !r.OK {
 		t.Fatal("no measurement")
 	}
@@ -297,7 +298,7 @@ func TestHarmonicsPastNyquistAreNotCounted(t *testing.T) {
 // a half, and forgetting it reads every tone 6 dB low.
 func TestLevelIsRelativeToFullScale(t *testing.T) {
 	for _, amp := range []float64{1.0, 0.5, 0.1} {
-		r := AnalyzeDistortion(distTone(16384, 1000.5, amp), dtSR, 5)
+		r := AnalyzeDistortion(distTone(1000.5, amp), dtSR, 5)
 		if !r.OK {
 			t.Fatalf("amp %.2f: no measurement", amp)
 		}
@@ -335,7 +336,7 @@ func TestBadInputIsRefused(t *testing.T) {
 func TestTheMeasurementFloorIsWhereItIsClaimed(t *testing.T) {
 	worstTHDN, worstSINAD, bestENOB := 0.0, 999.0, 0.0
 	for _, hz := range []float64{100, 440.5, 997, 1000, 3150, 7777.7, 12000.3} {
-		r := AnalyzeDistortion(distTone(16384, hz, 0.9), dtSR, 20)
+		r := AnalyzeDistortion(distTone(hz, 0.9), dtSR, 20)
 		if !r.OK {
 			t.Fatalf("%.1f Hz: no measurement", hz)
 		}

@@ -4,6 +4,8 @@ package attractor
 
 import (
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
 // The Wow & Flutter module — speed stability off a test tone.
@@ -42,11 +44,11 @@ var (
 
 var (
 	wfCursor  = tapUnjoined
-	wfWin     slidingWindow // the newest wfWindowSec seconds
-	wfBuf     []float32     // wfWin laid out in order, for the analyzer
+	wfWin     meters.SlidingWindow // the newest wfWindowSec seconds
+	wfBuf     []float32            // wfWin laid out in order, for the analyzer
 	wfNextMs  float64
-	wfRes     WowFlutterResult
-	wfNominal float32 = wfCarrier
+	wfRes     meters.WowFlutterResult
+	wfNominal float32 = meters.WfCarrier
 
 	wfSpeedEl, wfWowEl, wfFlutEl js.Value
 	wfWeightedEl, wfCarrierEl    js.Value
@@ -83,13 +85,13 @@ func wfTick(nowMs float64) {
 	wfNextMs = nowMs + wfPeriodMs
 	// Measured over whatever has arrived rather than waiting for the whole ten
 	// seconds: a partial buffer gives a usable flutter figure long before it
-	// gives a usable wow one, and AnalyzeWowFlutter refuses anything too short
+	// gives a usable wow one, and meters.AnalyzeWowFlutter refuses anything too short
 	// to mean something.
 	// Laid out in order HERE, on the timer. Ten seconds at 48 kHz is 1.9 MB,
 	// and sliding that on every frame to produce a reading twice a second
 	// was about 115 MB/s of memmove. See slidingwindow.go.
 	n := wfWin.Linear(wfBuf)
-	wfRes = AnalyzeWowFlutter(wfBuf[:n], sr, float64(wfNominal))
+	wfRes = meters.AnalyzeWowFlutter(wfBuf[:n], sr, float64(wfNominal))
 	showWowFlutter()
 }
 

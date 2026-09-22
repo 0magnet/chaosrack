@@ -1,4 +1,4 @@
-package attractor
+package meters
 
 import "math"
 
@@ -45,8 +45,8 @@ import "math"
 // deviations being measured here are parts in ten thousand.
 
 const (
-	// wfCarrier is the standard test tone.
-	wfCarrier = 3150.0
+	// WfCarrier is the standard test tone.
+	WfCarrier = 3150.0
 
 	// wfWowLo and wfWowHi bound the slow band, wfFlutterHi the fast one. The
 	// 6 Hz split between wow and flutter is the conventional one and is about
@@ -146,7 +146,7 @@ func wfEstimateCarrier(x []float32, sampleRate int, nominal float64) float64 {
 	if n < 1024 {
 		return 0
 	}
-	mags := computeFFTMagsKind(x[len(x)-n:], winBlackmanHarris)
+	mags := ComputeFFTMagsKind(x[len(x)-n:], WinBlackmanHarris)
 	binHz := float64(sampleRate) / float64(n)
 	lo, hi := 1, len(mags)-1
 	if nominal > 0 {
@@ -305,7 +305,7 @@ func wfBandRMS(dev []float64, sr, lo, hi float64) float64 {
 //
 // A quasi-peak rather than an RMS or a true peak: DIN reads the meter's
 // deflection, which rises quickly and falls slowly, so a single lurch counts
-// for more than its energy would suggest and a steady warble is not
+// for more than its Energy would suggest and a steady warble is not
 // under-reported.
 func wfWeightedPeak(dev []float64, sr float64) float64 {
 	c := wfBiquadBandpass(4, 0.6, sr)
