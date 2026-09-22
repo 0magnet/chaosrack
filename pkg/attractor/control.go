@@ -39,6 +39,7 @@ type Control struct {
 	kind        controlKind // element layout
 	cell        js.Value    // the .pcell / .punit element
 	crtOverride bool        // dimmed while a phosphor (CRT mode) overrides it
+	tipIdx      int         // position in buildControlModel's cell enumeration, for the batched tooltip pass
 
 	// Element references and value metadata — populated when a builder
 	// constructs the Control (buildParamUnit). DOM-derived Controls leave these
@@ -122,6 +123,7 @@ var crtOverriddenIDs = map[string]bool{
 // buildControlModel (re)derives the Module/Control registry from the panel DOM.
 func buildControlModel() {
 	panelModules = panelModules[:0]
+	tipN := 0
 	sects := doc.Call("querySelectorAll", ".modules .sect:not(.template-mod)")
 	for i := 0; i < sects.Get("length").Int(); i++ {
 		sect := sects.Index(i)
@@ -137,6 +139,8 @@ func buildControlModel() {
 				c = &Control{module: m.name, cell: cell, kind: classifyControl(cell)}
 			}
 			c.module = m.name
+			c.tipIdx = tipN
+			tipN++
 			if id := cell.Get("id").String(); id != "" && crtOverriddenIDs[id] {
 				c.crtOverride = true
 			}
@@ -181,11 +185,17 @@ func classifyControl(cell js.Value) controlKind {
 // itself — the SINGLE SOURCE for "Module / Control / element" tooltips.
 func annotateControlTooltips() {
 	buildControlModel()
+	// Collected and applied in one crossing where the page allows it. Each
+	// control still works out its own titles; what is batched is putting
+	// them on. See queueStamp.
+	tipBatching = fastDOM().Truthy()
 	for _, m := range panelModules {
 		for _, c := range m.ctrls {
+			tipCell = c.tipIdx
 			c.annotate()
 		}
 	}
+	flushStamps()
 }
 
 // annotate stamps this control's elements with the module/control/element
@@ -292,7 +302,10 @@ func stampLEDs(cell js.Value, module, ctl, help string) {
 		if own := ledOwnLabel(l); own != "" {
 			name = module + sep + own
 		}
-		l.Set("title", withHelp(name+sep+"LED readout", ledDescription(l, help)))
+		t := withHelp(name+sep+"LED readout", ledDescription(l, help))
+		if !queueStamp(".led:not(.pal-hex)", t, i) {
+			l.Set("title", t)
+		}
 	}
 }
 
