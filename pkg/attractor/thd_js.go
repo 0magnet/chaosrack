@@ -37,10 +37,18 @@ const (
 	// distortion figure whose bandwidth moves under you is not comparable with
 	// anything, including itself a moment ago.
 	thdWindow = 16384
-
-	// thdPeriodMs is how often the measurement runs.
-	thdPeriodMs = 400
 )
+
+// thdPeriodMs is how often the measurement runs and is shown — for this module
+// those are one number, since showing it more often than the window is long is
+// showing the same audio twice. On the panel as RATE; see meterswitch_js.go.
+//
+// The WINDOW above stays fixed and is deliberately not beside it. Both would
+// be a switch on a real analyzer, but the argument written against it holds:
+// a distortion figure whose bandwidth moves under you is not comparable with
+// itself a moment ago, and RATE does not have that problem — it changes how
+// often you are told, not what you are told.
+var thdPeriodMs float64 = 400
 
 var (
 	thdCursor = tapUnjoined
