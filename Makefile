@@ -242,7 +242,14 @@ tinywasm: ## Rebuild the embedded TinyGo wasm (assets/tinywasm/chaosrack-tiny.wa
 	@sh scripts/fix-sleepticks.sh assets/tinywasm/tinygo_wasm_exec.js
 	@ls -l assets/tinywasm/chaosrack-tiny.wasm
 
-wasms: wasm tinywasm ## Rebuild both embedded wasm binaries
+metersworker: ## Rebuild the analyzers' worker wasm (assets/metersworker/meters.wasm)
+	@# The analyzers alone, for the Web Worker. Built out of pkg/meters rather
+	@# than pkg/attractor, which is the whole reason that package exists: the
+	@# same code compiled with the panel attached is 23 MB instead of 4.
+	CGO_ENABLED=0 GOOS=js GOARCH=wasm ${OPTS} go build -o assets/metersworker/meters.wasm ./cmd/wasmmeters
+	@ls -l assets/metersworker/meters.wasm
+
+wasms: wasm tinywasm metersworker ## Rebuild every embedded wasm binary
 
 pages: ## Regenerate the deployed index.html / go/index.html / tinygo/index.html
 	@# These FETCH the wasm from assets/, which is where it already is in this
