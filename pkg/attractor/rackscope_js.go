@@ -342,32 +342,67 @@ func drawScopeTrace(w, h float64) {
 	scopeCtx.Set("shadowBlur", 4+10*(1-scopeUI.focus))
 	scopeCtx.Set("shadowColor", "rgba(120,255,170,0.9)")
 	scopeCtx.Set("strokeStyle", scopeBeamColor())
-	// Built as ONE path string and handed over once. A moveTo/lineTo per
-	// sample is a Go/JS boundary crossing per sample, which at a few
-	// hundred samples a frame is the bulk of what this instrument costs.
-	scopeTracePath.Reset()
+	// Collected as x,y pairs and handed over in ONE crossing. A moveTo/lineTo
+	// per sample is a Go/JS boundary crossing per sample, which is what this
+	// used to avoid by building a path string instead — but the formatting
+	// cost more than the crossings did. See scopefast_js.go.
+	scopeTracePts = scopeTracePts[:0]
 
-	if scopeUI.chanSel == scopeChanXY {
+	switch {
+	case scopeUI.chanSel == scopeChanXY:
 		// X-Y: the horizontal comes off the other channel and the timebase is
 		// out of circuit entirely. This is the goniometer, made the way a
 		// scope makes one.
+		//
+		// No column envelope here, and there cannot be one: the figure is not
+		// a function of x, so "the samples in this column" is not a slice of
+		// it. A Lissajous pattern reduced to one vertical bar per column is a
+		// different figure.
 		for i := 0; i < span && start+i < len(l); i++ {
 			x := cx + scopeYDiv(l[start+i], vpd, scopeUI.hpos)*px
 			y := cy - scopeYDiv(r[start+i], vpd, scopeUI.vpos)*py
-			scopeLineTo(i == 0, x, y)
+			scopeTracePts = append(scopeTracePts, float32(x), float32(y))
 		}
-	} else {
+	case span > 2*scopeTraceCols(w):
+		// More samples than the face has columns: draw the envelope, which is
+		// what the dense trace looks like anyway. See scopetrace.go.
+		cols := scopeTraceCols(w)
+		if len(scopeEnvBuf) < cols*2 {
+			scopeEnvBuf = make([]float32, cols*2)
+		}
+		seg := vert[start:]
+		if span < len(seg) {
+			seg = seg[:span]
+		}
+		n := scopeTraceEnvelope(scopeEnvBuf, seg, cols)
+		for c := 0; c < n; c++ {
+			frac := float64(c) / float64(n-1)
+			x := float32(cx + (frac-0.5+scopeUI.hpos/float64(gratDivX))*w)
+			// The lowest sample in the column is the lowest point on the
+			// screen, the deflection being affine in the sample value.
+			lo := float32(cy - scopeYDiv(scopeEnvBuf[c*2], vpd, scopeUI.vpos)*py)
+			hi := float32(cy - scopeYDiv(scopeEnvBuf[c*2+1], vpd, scopeUI.vpos)*py)
+			// Alternate which end the column is entered from, so the join to
+			// the next one runs along the edge of the band rather than back
+			// across it. Same figure, half the diagonal.
+			if c%2 == 0 {
+				scopeTracePts = append(scopeTracePts, x, lo, x, hi)
+			} else {
+				scopeTracePts = append(scopeTracePts, x, hi, x, lo)
+			}
+		}
+	default:
 		// The sweep: one screen width in span samples, so x is the fraction
 		// of the way across and y is the deflection.
 		for i := 0; i < span && start+i < len(vert); i++ {
 			frac := float64(i) / float64(span-1)
 			x := cx + (frac-0.5+scopeUI.hpos/float64(gratDivX))*w
 			y := cy - scopeYDiv(vert[start+i], vpd, scopeUI.vpos)*py
-			scopeLineTo(i == 0, x, y)
+			scopeTracePts = append(scopeTracePts, float32(x), float32(y))
 		}
 	}
-	if p := js.Global().Get("Path2D"); p.Truthy() {
-		scopeCtx.Call("stroke", p.New(scopeTracePath.String()))
+	if !strokeScopePoints(scopeCtx, scopeTracePts) {
+		strokeScopePointsAsPath(scopeCtx, scopeTracePts)
 	}
 	scopeCtx.Set("shadowBlur", 0)
 }
@@ -497,21 +532,42 @@ func appendNum(b *strings.Builder, v float64) {
 	b.WriteString(strconv.FormatFloat(v, 'f', 1, 64))
 }
 
-// scopeTracePath is the sweep, accumulated as an SVG path. Reused between
-// frames: it is rewritten sixty times a second and a fresh builder each
-// time is garbage the collector has to come back for.
+// The sweep, as x,y pairs. Both reused between frames: they are rewritten
+// sixty times a second and a fresh allocation each time is garbage the
+// collector has to come back for.
+var (
+	scopeTracePts []float32 // the points handed to the canvas
+	scopeEnvBuf   []float32 // the column min/max pairs they are built from
+)
+
+// scopeTracePath is the fallback's SVG path, kept for the same reason.
 var scopeTracePath strings.Builder
 
-// scopeLineTo appends one point to the trace.
-func scopeLineTo(first bool, x, y float64) {
-	if first {
-		scopeTracePath.WriteString("M")
-	} else {
-		scopeTracePath.WriteString("L")
+// strokeScopePointsAsPath is the route for a page that will not evaluate the
+// JS helper — a Content-Security-Policy that forbids eval. Slower, because
+// every coordinate is formatted to a decimal string and parsed back, which
+// is exactly what the fast path exists to stop doing; it is here so such a
+// page still has a working scope rather than a blank tube.
+func strokeScopePointsAsPath(ctx js.Value, pts []float32) {
+	if len(pts) < 4 || !ctx.Truthy() {
+		return
 	}
-	appendNum(&scopeTracePath, x)
-	scopeTracePath.WriteString(" ")
-	appendNum(&scopeTracePath, y)
+	p2d := js.Global().Get("Path2D")
+	if !p2d.Truthy() {
+		return
+	}
+	scopeTracePath.Reset()
+	for i := 0; i+1 < len(pts); i += 2 {
+		if i == 0 {
+			scopeTracePath.WriteString("M")
+		} else {
+			scopeTracePath.WriteString("L")
+		}
+		appendNum(&scopeTracePath, float64(pts[i]))
+		scopeTracePath.WriteString(" ")
+		appendNum(&scopeTracePath, float64(pts[i+1]))
+	}
+	ctx.Call("stroke", p2d.New(scopeTracePath.String()))
 }
 
 // scopeCanvasEl is the tube's canvas, looked up lazily.
