@@ -297,6 +297,11 @@ func (r *Rack) Quantize() *Rack {
 	}
 
 	slot := r.opts.SlotWidth * r.opts.Scale
+	if h := fast(); h.Truthy() {
+		h.Call("quantize", r.root, r.opts.ModuleClass, r.opts.ContentSelector,
+			slot, r.opts.Gap, r.opts.Chrome)
+		return r
+	}
 	for _, m := range r.Modules() {
 		if isHidden(m) {
 			continue

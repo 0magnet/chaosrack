@@ -65,6 +65,9 @@ const sep = " / "
 
 // stampAll sets the same full title on every element matching sel within scope.
 func stampAll(scope js.Value, sel, title string) {
+	if queueStamp(sel, title, -1) {
+		return
+	}
 	list := scope.Call("querySelectorAll", sel)
 	for i := 0; i < list.Get("length").Int(); i++ {
 		list.Index(i).Set("title", title)
@@ -96,7 +99,9 @@ func stampSelectorKnobs(cell js.Value, mod, fallbackCtl string) {
 				ctl = mod + sep + t[:strings.Index(t, " — ")]
 			}
 		}
-		knobs.Index(i).Set("title", ctl+sep+"selector knob")
+		if !queueStamp(".knobsel", ctl+sep+"selector knob", i) {
+			knobs.Index(i).Set("title", ctl+sep+"selector knob")
+		}
 	}
 }
 

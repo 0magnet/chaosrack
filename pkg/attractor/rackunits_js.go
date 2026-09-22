@@ -329,18 +329,24 @@ func relayoutUnits() {
 	// is a write, so a loop that finished one bay before starting the next
 	// forced the browser to re-lay out the whole rack sixteen times. See
 	// drawRunLabels.
-	for ui := range units {
-		if ui < len(opens) {
-			clearRunLabels(opens[ui])
+	// In JavaScript where the page allows it: a read and a write on every
+	// module in the rack is exactly the shape that costs more in the
+	// crossing than in the work. See fastdom_js.go. The Go pass below is
+	// the same thing and stays for a page that will not evaluate it.
+	if !layoutBayLabels(f, units, items) {
+		for ui := range units {
+			if ui < len(opens) {
+				clearRunLabels(opens[ui])
+			}
 		}
-	}
-	var labels []runLabel
-	for ui, idx := range units {
-		if ui < len(opens) {
-			labels = append(labels, planRunLabels(opens[ui], sectionRuns(items, idx), mods, idx)...)
+		var labels []runLabel
+		for ui, idx := range units {
+			if ui < len(opens) {
+				labels = append(labels, planRunLabels(opens[ui], sectionRuns(items, idx), mods, idx)...)
+			}
 		}
+		drawRunLabels(labels)
 	}
-	drawRunLabels(labels)
 	syncUnitRacks()
 	relayoutInstrumentUnits(f)
 	hideEmptyUnits(f)
