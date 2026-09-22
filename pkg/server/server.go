@@ -25,6 +25,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/0magnet/chaosrack/assets/gowasm"
+	"github.com/0magnet/chaosrack/assets/metersworker"
 	"github.com/0magnet/chaosrack/assets/tinywasm"
 )
 
@@ -41,8 +42,14 @@ var (
 // property `make pages` depends on, since what it saves IS what this serves.
 // Absolute, because the same page is served at /, /go/ and /tinygo/.
 const (
-	goWasmURL   = "/assets/gowasm/chaosrack.wasm"
-	tinyWasmURL = "/assets/tinywasm/chaosrack-tiny.wasm"
+	goWasmURL = "/assets/gowasm/chaosrack.wasm"
+
+	// The analyzers' worker and what it loads. One directory, because a
+	// worker resolves importScripts and fetch against its own URL.
+	metersWorkerJS   = "/assets/metersworker/worker.js"
+	metersWorkerWasm = "/assets/metersworker/meters.wasm"
+	metersWorkerExec = "/assets/metersworker/wasm_exec.js"
+	tinyWasmURL      = "/assets/tinywasm/chaosrack-tiny.wasm"
 )
 
 func init() {
@@ -130,6 +137,19 @@ var runCmd = &cobra.Command{
 				serveAsset(c, "application/wasm", tinywasm.Wasm)
 			})
 		}
+		// The analyzers' worker: its own small wasm build, the script that
+		// loads it, and a copy of wasm_exec.js beside them. Same directory as
+		// the worker script, because importScripts and fetch inside a worker
+		// resolve against the worker's own URL and not the page's.
+		r1.GET(metersWorkerJS, func(c *gin.Context) {
+			serveAsset(c, "application/javascript", metersworker.WorkerJS)
+		})
+		r1.GET(metersWorkerWasm, func(c *gin.Context) {
+			serveAsset(c, "application/wasm", metersworker.Wasm)
+		})
+		r1.GET(metersWorkerExec, func(c *gin.Context) {
+			serveAsset(c, "application/javascript", gowasm.WasmExec)
+		})
 
 		// Standalone Go-only page.
 		goPage := func(c *gin.Context) {

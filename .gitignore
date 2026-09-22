@@ -18,3 +18,7 @@
 /uitool
 /uigolden
 /probecmd
+
+# cmd/wasmmeters, if it is ever built without -o. The worker binary belongs
+# in assets/metersworker, where `make metersworker` puts it.
+/wasmmeters
