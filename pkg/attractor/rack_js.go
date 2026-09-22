@@ -161,16 +161,16 @@ func quantizeModuleWidths() {
 	fitModulesToTheirParts()
 	// Every opening, then repack: a module's slot count is the input to
 	// packing, so it has to be settled before anything is moved.
-	for _, r := range unitRacks {
-		r.Quantize()
-	}
+	//
+	// All sixteen bays in one pass. Quantizing them one at a time made the
+	// browser recompute style and layout for the whole page between every
+	// pair — see rack.QuantizeAll.
+	rack.QuantizeAll(unitRacks)
 	latchModuleWidths()
 	relayoutUnits()
 	// The widths changed, so the modules a unit holds may have; quantize
 	// the openings that now exist.
-	for _, r := range unitRacks {
-		r.Quantize()
-	}
+	rack.QuantizeAll(unitRacks)
 	latchModuleWidths()
 	layoutRackHandles()
 	// Skirts are MEASURED, so they are sized after the layout that gives
@@ -184,9 +184,7 @@ func quantizeModuleWidths() {
 	// panel it is on may have to be wider. Once, and no further: the
 	// skirts are measured now, so a third pass would size them the same.
 	if fitModulesToTheirParts() {
-		for _, r := range unitRacks {
-			r.Quantize()
-		}
+		rack.QuantizeAll(unitRacks)
 		latchModuleWidths()
 		relayoutUnits()
 		layoutRackHandles()
@@ -198,9 +196,7 @@ func quantizeModuleWidths() {
 // last pass acted on.
 func applyModuleVisibility() {
 	if ensureRack() != nil {
-		for _, r := range unitRacks {
-			r.Apply()
-		}
+		rack.ApplyAll(unitRacks)
 	}
 	// A module just switched IN changes what fits in a unit, so the rack
 	// has to be repacked — not merely redrawn. Without this a module
