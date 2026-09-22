@@ -462,19 +462,91 @@ func TruePeak(x []float32) float64 {
 	if len(x) <= 2*truePeakTaps {
 		return peak // too short to reconstruct anything: the sample peak is the answer
 	}
-	for p := 1; p < truePeakOversample; p++ {
-		k := truePeakKernel(p)
-		for i := truePeakTaps; i < len(x)-truePeakTaps; i++ {
-			var s float64
-			for t := -truePeakTaps; t <= truePeakTaps; t++ {
-				s += float64(x[i+t]) * k[t+truePeakTaps]
+	// WHERE AN OVERSHOOT COULD NOT POSSIBLY BE, DO NOT LOOK.
+	//
+	// This is the loudness meter's expensive half and it runs on every sample
+	// of both channels on every frame — the meter's integration cannot skip a
+	// block, so unlike the distortion and wow-and-flutter analyzers it cannot
+	// be put on a timer. It was 6.5% of the whole page's main thread, the
+	// largest single leaf in the profile: 49 taps by three phases is 147
+	// multiply-adds a sample, ~14 million a second at 48 kHz stereo, to feed a
+	// readout that repaints five times a second.
+	//
+	// But an interpolated point is a weighted sum of the samples around it, so
+	// it cannot exceed the largest of them by more than the kernel's L1 norm:
+	//
+	//	|s| = |Σ x[i+t]·k[t]| ≤ max|x[i+t]| · Σ|k[t]|
+	//
+	// Take that bound over a block of positions at once — every sample any of
+	// them can reach — and where it does not beat the peak already found,
+	// none of those positions can, and the whole block's filtering is skipped.
+	// Scanning the block for its largest sample costs about two operations per
+	// position against the 147 it saves.
+	//
+	// The result is EXACTLY the one the full pass gives: the bound is a real
+	// bound, not an approximation, and peak only grows, so a block ruled out
+	// stays ruled out. What changes is that quiet audio — which is most audio,
+	// most of the time, a peak being by definition the rare part — stops being
+	// filtered at all. Silence now costs one scan instead of 147 multiplies a
+	// sample.
+	gain := truePeakMaxGain()
+	n := len(x)
+	for b0 := truePeakTaps; b0 < n-truePeakTaps; b0 += truePeakBlock {
+		b1 := b0 + truePeakBlock
+		if b1 > n-truePeakTaps {
+			b1 = n - truePeakTaps
+		}
+		reach := 0.0
+		for _, v := range x[b0-truePeakTaps : b1+truePeakTaps] {
+			if a := math.Abs(float64(v)); a > reach {
+				reach = a
 			}
-			if a := math.Abs(s); a > peak {
-				peak = a
+		}
+		if reach*gain <= peak {
+			continue
+		}
+		for i := b0; i < b1; i++ {
+			// Phases innermost so the block's samples are read once for all
+			// three rather than three times over.
+			for p := 1; p < truePeakOversample; p++ {
+				k := truePeakKernel(p)
+				var s float64
+				for t := -truePeakTaps; t <= truePeakTaps; t++ {
+					s += float64(x[i+t]) * k[t+truePeakTaps]
+				}
+				if a := math.Abs(s); a > peak {
+					peak = a
+				}
 			}
 		}
 	}
 	return peak
+}
+
+// truePeakBlock is how many positions share one bound check. Big enough that
+// the scan is cheap against what it skips, small enough that one loud sample
+// does not drag a long run of quiet ones through the filter with it.
+const truePeakBlock = 64
+
+// truePeakGain is the kernel's L1 norm — the most an interpolated point can
+// exceed the samples it is built from. Slightly above 1: the kernels sum to
+// 1 by construction, and the negative lobes of a windowed sinc are what puts
+// the absolute sum over.
+var truePeakGain float64
+
+func truePeakMaxGain() float64 {
+	if truePeakGain == 0 {
+		for p := 1; p < truePeakOversample; p++ {
+			s := 0.0
+			for _, v := range truePeakKernel(p) {
+				s += math.Abs(v)
+			}
+			if s > truePeakGain {
+				truePeakGain = s
+			}
+		}
+	}
+	return truePeakGain
 }
 
 // truePeakTaps is the kernel's half-width.
