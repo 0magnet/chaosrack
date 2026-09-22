@@ -106,35 +106,33 @@ func thdTick(nowMs float64) {
 // written as dashes rather than as a stale number: the last reading of a tone
 // that is no longer playing is the most misleading thing the module could show.
 func showDistortion() {
-	set := func(el js.Value, s string) {
-		if el.Truthy() {
-			el.Set("textContent", s)
-		}
+	set := func(key string, el js.Value, s string) {
+		setLEDText(key, el, s)
 	}
 	if !thdRes.OK {
-		set(thdLED, "  --.---")
-		set(thdnLED, "  --.---")
-		set(thdSinadLED, "  --.-")
-		set(thdEnobLED, "--.--")
-		set(thdFundLED, "-----.-")
-		set(thdLevelLED, "  --.-")
+		set("thd-thd", thdLED, "  --.---")
+		set("thd-thdn", thdnLED, "  --.---")
+		set("thd-sinad", thdSinadLED, "  --.-")
+		set("thd-enob", thdEnobLED, "--.--")
+		set("thd-fund", thdFundLED, "-----.-")
+		set("thd-level", thdLevelLED, "  --.-")
 		return
 	}
-	set(thdLED, formatLED(AsPercent(thdRes.THD), 2, 3, false))
-	set(thdnLED, formatLED(AsPercent(thdRes.THDN), 2, 3, false))
+	set("thd-thd", thdLED, formatLED(AsPercent(thdRes.THD), 2, 3, false))
+	set("thd-thdn", thdnLED, formatLED(AsPercent(thdRes.THDN), 2, 3, false))
 	// A SINAD of 999 is the sentinel for "nothing but the fundamental in the
 	// window", which a synthesized tone with no noise really does produce. It
 	// is not a number to print — an infinite SINAD is a claim no measurement
 	// can make — so it is shown as over-range.
 	if thdRes.SINAD >= 900 {
-		set(thdSinadLED, "  >99.9")
-		set(thdEnobLED, ">16.0")
+		set("thd-sinad", thdSinadLED, "  >99.9")
+		set("thd-enob", thdEnobLED, ">16.0")
 	} else {
-		set(thdSinadLED, formatLED(thdRes.SINAD, 3, 1, false))
-		set(thdEnobLED, formatLED(thdRes.ENOB, 2, 2, false))
+		set("thd-sinad", thdSinadLED, formatLED(thdRes.SINAD, 3, 1, false))
+		set("thd-enob", thdEnobLED, formatLED(thdRes.ENOB, 2, 2, false))
 	}
-	set(thdFundLED, formatLED(thdRes.Fundamental, 5, 1, false))
-	set(thdLevelLED, formatLED(20*math.Log10(math.Max(thdRes.Level, 1e-9)), 3, 1, true))
+	set("thd-fund", thdFundLED, formatLED(thdRes.Fundamental, 5, 1, false))
+	set("thd-level", thdLevelLED, formatLED(20*math.Log10(math.Max(thdRes.Level, 1e-9)), 3, 1, true))
 }
 
 // wireDistortionModule builds the two knobs and finds the readouts. Called once
