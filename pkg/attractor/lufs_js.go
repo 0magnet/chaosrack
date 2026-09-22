@@ -27,7 +27,12 @@ import (
 // oversampling TruePeak does; the meter's own peak is the sample peak, and the
 // higher of the two is what is shown.
 
-const lufsPeriodMs = 200
+// lufsPeriodMs is how often the readouts latch, and it is a DISPLAY rate
+// only: the meter itself integrates every sample that arrives, because an
+// integrated loudness with a block missing is a block missing from the
+// answer. Nothing about the measurement changes when this moves — only how
+// often you are shown it. On the panel as RATE; see meterswitch_js.go.
+var lufsPeriodMs float64 = 200
 
 var (
 	lufsCursor = tapUnjoined

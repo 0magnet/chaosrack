@@ -1283,6 +1283,7 @@ func wirePanelSwitches() {
 	buildSonifyModule()
 	wireCounterModule()
 	wireTimingModule()
+	wireMeterClocks()
 	wireAnalysisModule()
 	buildEnvModule()
 	wireKeysModule()
