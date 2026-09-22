@@ -53,7 +53,7 @@ github.com/0magnet/pisano/pkg/pisano
 ## explicit; go 1.26.0
 github.com/0magnet/proxima5
 github.com/0magnet/proxima5/internal/views
-# github.com/0magnet/rack-go v0.0.0-20260919233711-83f82141d691
+# github.com/0magnet/rack-go v0.0.0-20260922155830-6e8af213e96d
 ## explicit; go 1.21
 github.com/0magnet/rack-go
 # github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a

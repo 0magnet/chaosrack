@@ -474,6 +474,14 @@ func fitModulesToTheirParts() bool {
 	if !f.Truthy() {
 		return false
 	}
+	// Measured, decided and written in three phases where the page allows
+	// it — see fitModulesFast. The loop below alternates a read with a
+	// write per module, which is what made this expensive.
+	if h := fastDOM(); h.Truthy() {
+		if changed, ok := fitModulesFast(h, f); ok {
+			return changed
+		}
+	}
 	changed := false
 	els := f.Call("querySelectorAll", ".sect")
 	for i := 0; i < els.Get("length").Int(); i++ {

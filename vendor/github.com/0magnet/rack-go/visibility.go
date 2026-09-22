@@ -76,6 +76,14 @@ func (r *Rack) Toggle(key string) bool {
 // it after rebuilding the modules: a rebuild replaces the elements the last
 // pass acted on, so the hiding has to be re-applied to the new ones.
 func (r *Rack) Apply() *Rack {
+	// The whole hidden set in one crossing, rather than a header read per
+	// module to find the few that are in it. See fast_js.go.
+	if h := fast(); h.Truthy() {
+		if r.hideKeys(h, r.HiddenKeys()) {
+			r.Quantize()
+			return r
+		}
+	}
 	for _, m := range r.Modules() {
 		key := r.Key(m)
 		if key == "" || !r.hidden[key] {

@@ -822,6 +822,11 @@ func layoutSkirts() {
 }
 
 func layoutSkirtsNow() {
+	// Measured and applied in JavaScript where the page allows it, with the
+	// fitting still done here. See layoutSkirtsFast.
+	if h := fastDOM(); h.Truthy() && layoutSkirtsFast(h) {
+		return
+	}
 	stacks := doc.Call("querySelectorAll", ".has-dial")
 	for i := 0; i < stacks.Get("length").Int(); i++ {
 		layoutSkirtsIn(stacks.Index(i))
