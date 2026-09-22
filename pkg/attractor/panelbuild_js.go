@@ -315,19 +315,44 @@ func buildModCard(id, label string, sym bool) js.Value {
 // None of that is wrong between two controls — it is only wrong to do it
 // sixty-eight times when the rack is read once at the end. So the requests
 // are collected and paid for once.
-var deferLayout, paramPanelOwed, quantizeOwed bool
+var deferLayout, paramPanelOwed, quantizeOwed, skirtsOwed bool
 
 // withDeferredLayout runs f with panel rebuilds and rack quantizes
 // collected, then does each once if anything asked for it.
+//
+// The rebuild is paid for with the collecting still ON, and that is the
+// point rather than a detail: building the parameter panel asks for four
+// quantizes of its own — one directly, one from applyModuleVisibility, one
+// from the desk extras, one from the terminal-animation extras — so a flush
+// that switched collecting off first bought one pass and then paid for four.
+// Measured on a mode change before this: five full passes over the rack,
+// 2435ms of a 2903ms switch, all five computing the same answer.
+//
+// A nested call is the outer one's business. A handler that defers is often
+// reached from a sweep that already has, and an inner scope that reset the
+// flags on its way out would hand the rest of the outer scope's work back to
+// the unbatched path.
 func withDeferredLayout(mode string, f func()) {
-	deferLayout, paramPanelOwed, quantizeOwed = true, false, false
-	f()
-	deferLayout = false
-	if paramPanelOwed {
-		buildParamPanel(mode)
+	if deferLayout {
+		f()
+		return
 	}
+	deferLayout, paramPanelOwed, quantizeOwed, skirtsOwed = true, false, false, false
+	f()
+	// At most twice. A rebuild that asks for another rebuild is a loop
+	// rather than a request; the second pass is for the one honest case,
+	// a builder that only learns it needs the panel again from something
+	// the first build put on it.
+	for n := 0; paramPanelOwed && n < 2; n++ {
+		paramPanelOwed = false
+		buildParamPanelNow(mode)
+	}
+	deferLayout = false
 	if quantizeOwed {
+		// Which ends in a skirt pass of its own, so the owed one is paid.
 		quantizeModuleWidths()
+	} else if skirtsOwed {
+		layoutSkirts()
 	}
 }
 
@@ -336,6 +361,14 @@ func buildParamPanel(mode string) {
 		paramPanelOwed = true
 		return
 	}
+	buildParamPanelNow(mode)
+}
+
+// buildParamPanelNow is the rebuild itself, with no collecting check. The one
+// caller that runs it while layout is deferred is the flush above, which is
+// deferring precisely so that this function's own quantizes are collected
+// instead of paid for one at a time.
+func buildParamPanelNow(mode string) {
 	// The sweep is over THIS model's parameters; a mode change makes the
 	// dial's list wrong before anything else in the panel is rebuilt.
 	syncSweepDialMode(mode)
