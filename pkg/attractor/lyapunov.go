@@ -60,26 +60,46 @@ func classify(lam float64) string {
 //
 // n is how many advances make one renormalization interval, and intervals is
 // how many of those to average over.
-func lyapunovStep(step func([]float64) []float64, ic []float64, transient, n, intervals int) float64 {
+//
+// step writes the advanced state into dst rather than returning a new slice,
+// and dst is never src. A measurement is two trajectories over two thousand
+// intervals of a hundred steps — better than four hundred thousand advances —
+// and returning a fresh three-element slice from each was four hundred
+// thousand allocations for an answer that is one float64. Measured in the
+// browser, the readout took 296ms and blocked the main thread for all of it,
+// a quarter of a second after every model change.
+func lyapunovStep(step func(dst, src []float64), ic []float64, transient, n, intervals int) float64 {
 	if n < 1 || intervals < 1 || len(ic) == 0 {
 		return math.NaN()
 	}
 	s := append([]float64(nil), ic...)
+	next := make([]float64, len(ic))
+	advance := func(cur []float64) []float64 {
+		step(next, cur)
+		cur, next = next, cur // the old state is the next call's scratch
+		return cur
+	}
 	for i := 0; i < transient; i++ {
-		s = step(s)
+		s = advance(s)
 		if !finiteSlice(s) {
 			return math.NaN()
 		}
 	}
 	p := append([]float64(nil), s...)
 	p[0] += lyapDefaultD0
+	pNext := make([]float64, len(ic))
+	advanceP := func(cur []float64) []float64 {
+		step(pNext, cur)
+		cur, pNext = pNext, cur
+		return cur
+	}
 
 	var sum float64
 	var count int
 	for k := 0; k < intervals; k++ {
 		for i := 0; i < n; i++ {
-			s = step(s)
-			p = step(p)
+			s = advance(s)
+			p = advanceP(p)
 		}
 		if !finiteSlice(s) || !finiteSlice(p) {
 			return math.NaN()
@@ -126,9 +146,8 @@ func LyapunovForMap(key string) LyapunovResult {
 	if !ok {
 		return LyapunovResult{Verdict: "unknown", PerStep: true}
 	}
-	adv := func(s []float64) []float64 {
-		x, y, z := step(s[0], s[1], s[2])
-		return []float64{x, y, z}
+	adv := func(dst, s []float64) {
+		dst[0], dst[1], dst[2] = step(s[0], s[1], s[2])
 	}
 	// One iterate per interval: for a map the natural unit IS the iterate, and
 	// renormalizing every step keeps the separation firmly in the linear
@@ -163,13 +182,13 @@ func LyapunovForFlow(key string) LyapunovResult {
 	// and split its two cases; the readout has to make the same distinction or
 	// it will confidently mislabel a third of the Sprott catalog.
 	_, euler := classicSystems[key]
-	adv := func(s []float64) []float64 {
+	adv := func(dst, s []float64) {
 		if euler {
 			dx, dy, dz := sys.f(s[0], s[1], s[2])
-			return []float64{s[0] + dt*dx, s[1] + dt*dy, s[2] + dt*dz}
+			dst[0], dst[1], dst[2] = s[0]+dt*dx, s[1]+dt*dy, s[2]+dt*dz
+			return
 		}
-		x, y, z := rk4(sys.f, dt, s[0], s[1], s[2])
-		return []float64{x, y, z}
+		dst[0], dst[1], dst[2] = rk4(sys.f, dt, s[0], s[1], s[2])
 	}
 	ic := initCondFor(key)
 	// One time unit per renormalization, as the guard test uses.
@@ -203,13 +222,14 @@ func LyapunovForFlow4(key string) LyapunovResult {
 	if dt <= 0 {
 		return LyapunovResult{Verdict: "unknown"}
 	}
-	adv := func(v []float64) []float64 {
+	adv := func(dst, v []float64) {
 		if s.euler {
 			dx, dy, dz, dw := s.f(v[0], v[1], v[2], v[3])
-			return []float64{v[0] + dt*dx, v[1] + dt*dy, v[2] + dt*dz, v[3] + dt*dw}
+			dst[0], dst[1], dst[2], dst[3] = v[0]+dt*dx, v[1]+dt*dy, v[2]+dt*dz, v[3]+dt*dw
+			return
 		}
 		out := rk4x4(s.f, dt, [4]float64{v[0], v[1], v[2], v[3]})
-		return []float64{out[0], out[1], out[2], out[3]}
+		dst[0], dst[1], dst[2], dst[3] = out[0], out[1], out[2], out[3]
 	}
 	ic := initCondFor(key)
 	n := int(1.0/dt + 0.5)

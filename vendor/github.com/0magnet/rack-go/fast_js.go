@@ -79,12 +79,25 @@ const fastSource = `(function () {
     // where two will do. Every module is widened first, then every one is
     // measured, then every width is set.
     quantize: function (root, moduleClass, contentSel, slot, gap, chrome) {
-      var ms = modules(root, moduleClass), win = globalThis.window || globalThis;
-      var live = [], i, j;
-      for (i = 0; i < ms.length; i++) {
-        if (ms[i].style && ms[i].style.display === "none") continue;
-        ms[i].style.width = "3000px";
-        live.push(ms[i]);
+      return this.quantizeAll([root], moduleClass, contentSel, slot, gap, chrome);
+    },
+    // quantizeAll does the same for several racks at once, and that is the
+    // whole reason it exists. A rack of sixteen bays quantized one bay at a
+    // time widened, measured and set sixteen times over, and every measure
+    // after a set made the browser recompute style and layout for the whole
+    // page: measured, 106 style recalculations and layouts in one model
+    // change, 278ms of the 602ms it took. Widening every module in every bay
+    // before measuring any of them makes that two.
+    quantizeAll: function (roots, moduleClass, contentSel, slot, gap, chrome) {
+      var win = globalThis.window || globalThis;
+      var live = [], i, j, r, ms;
+      for (r = 0; r < roots.length; r++) {
+        ms = modules(roots[r], moduleClass);
+        for (i = 0; i < ms.length; i++) {
+          if (ms[i].style && ms[i].style.display === "none") continue;
+          ms[i].style.width = "3000px";
+          live.push(ms[i]);
+        }
       }
       var widths = [];
       for (i = 0; i < live.length; i++) {
@@ -154,4 +167,89 @@ func (r *Rack) hideKeys(h js.Value, keys []string) bool {
 	}
 	h.Call("hide", r.root, r.opts.ModuleClass, r.opts.HeaderClass, string(b))
 	return true
+}
+
+// QuantizeAll snaps every module in several racks in one pass.
+//
+// A frame of sixteen bays is sixteen racks, and quantizing them one at a
+// time widened, measured and set sixteen times over. Each measure after a
+// set makes the browser recompute style and layout for the whole page, so
+// the cost is not sixteen small layouts but sixteen full ones: measured in
+// chaosrack, 106 style recalculations and layouts in a single model change,
+// 278ms of the 602ms it took.
+//
+// Widening every module in every bay before measuring any of them makes
+// that two. The racks must agree on the slot geometry, which racks sharing
+// a frame do; any that do not are quantized on their own.
+func QuantizeAll(rs []*Rack) {
+	h := fast()
+	if !h.Truthy() || len(rs) == 0 {
+		for _, r := range rs {
+			r.Quantize()
+		}
+		return
+	}
+	var same []*Rack
+	var odd []*Rack
+	first := rs[0]
+	for _, r := range rs {
+		if r == nil || !r.visible() {
+			continue
+		}
+		if r.sameGeometry(first) {
+			same = append(same, r)
+		} else {
+			odd = append(odd, r)
+		}
+	}
+	for _, r := range odd {
+		r.Quantize()
+	}
+	if len(same) == 0 {
+		return
+	}
+	roots := js.Global().Get("Array").New(len(same))
+	for i, r := range same {
+		roots.SetIndex(i, r.root)
+	}
+	h.Call("quantizeAll", roots, first.opts.ModuleClass, first.opts.ContentSelector,
+		first.opts.SlotWidth*first.opts.Scale, first.opts.Gap, first.opts.Chrome)
+}
+
+// sameGeometry reports whether two racks snap to the same grid, and so can
+// be measured together.
+func (r *Rack) sameGeometry(o *Rack) bool {
+	return r.opts.ModuleClass == o.opts.ModuleClass &&
+		r.opts.ContentSelector == o.opts.ContentSelector &&
+		r.opts.SlotWidth == o.opts.SlotWidth &&
+		r.opts.Scale == o.opts.Scale &&
+		r.opts.Gap == o.opts.Gap &&
+		r.opts.Chrome == o.opts.Chrome
+}
+
+// ApplyAll puts away what has been hidden in every rack, then quantizes them
+// together. Apply on each would quantize once per rack; see QuantizeAll.
+func ApplyAll(rs []*Rack) {
+	h := fast()
+	if !h.Truthy() {
+		for _, r := range rs {
+			r.Apply()
+		}
+		return
+	}
+	for _, r := range rs {
+		if r == nil {
+			continue
+		}
+		if !r.hideKeys(h, r.HiddenKeys()) {
+			for _, m := range r.Modules() {
+				key := r.Key(m)
+				if key == "" || !r.hidden[key] {
+					continue
+				}
+				m.Get("style").Set("display", "none")
+			}
+		}
+	}
+	QuantizeAll(rs)
 }
