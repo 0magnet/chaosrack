@@ -235,9 +235,41 @@ func unitSection(items []packItem, idx []int) string {
 // carries a monitor. A BAY BEGINS WITH A SCREEN: whatever else shares the
 // row, the leftmost panel in it is a display, so a reader scanning down the
 // left edge of the frame finds one per row. See the break rule below.
-func packBySection(items []packItem, capacity int) [][]int {
+// A BAY IS A CHASSIS, NOT A SHELF.
+//
+// The line above this one has said "a bay begins with a screen" since the
+// heads were introduced, and for the model rows it was true: buildCategoryRow
+// divides a category into bay-sized groups and puts a monitor at the front of
+// each. Everywhere else it was an aspiration. CONSOLE, INPUT and METERING
+// carry no screen module at all, so their bays began with whatever sorted
+// first — the Timing module landed in a row whose left edge was a knob.
+//
+// So the monitor stops being a module that happens to sort first and becomes
+// part of the bay: when a bay is opened for a section, that section's monitor
+// is charged against the bay's width before anything is put in it. A section
+// that needs two bays gets two monitors, one at the left of each, which is
+// what the category rows already do and the reason they read as instruments
+// rather than as a shelf of panels.
+//
+// monitor maps a section to how many slots its built-in monitor takes. A
+// section that is not in it has none yet and packs exactly as before, so the
+// rack can grow monitors one bay at a time rather than in one change.
+func packBySection(items []packItem, capacity int, monitor map[string]int) [][]int {
 	if capacity < 1 {
 		capacity = 1
+	}
+	// A monitor wider than the bay it leads would leave no room for the
+	// modules it monitors, which is not a rack, it is a screen with a
+	// caption. Clamped rather than rejected: the rack still draws.
+	monitorFor := func(section string) int {
+		w := monitor[section]
+		if w < 0 {
+			w = 0
+		}
+		if w >= capacity {
+			w = capacity - 1
+		}
+		return w
 	}
 	var units [][]int
 	var cur []int
@@ -286,11 +318,22 @@ func packBySection(items []packItem, capacity int) [][]int {
 			units = append(units, []int{i})
 			continue
 		}
-		if used+w > capacity && len(cur) > 0 {
-			flush()
+		// The bay's own monitor, charged as the bay is opened. It belongs to
+		// whichever section opens the bay: a bay carries one screen at its
+		// left, and the sections that come to share the row behind it are
+		// plugged into that one rather than bringing their own.
+		open := len(cur) == 0
+		mw := 0
+		if open {
+			mw = monitorFor(it.Section)
 		}
-		if len(cur) == 0 {
-			led = it.Lead && w > 0
+		if used+mw+w > capacity && len(cur) > 0 {
+			flush()
+			open, mw = true, monitorFor(it.Section)
+		}
+		if open {
+			used += mw
+			led = mw > 0 || (it.Lead && w > 0)
 		}
 		cur = append(cur, i)
 		used += w
@@ -298,6 +341,15 @@ func packBySection(items []packItem, capacity int) [][]int {
 	flush()
 	return units
 }
+
+// bayMonitorSlots is what each section's built-in monitor occupies.
+//
+// Empty for now, and deliberately: the packer honors it and the invariant is
+// tested, but a section only appears here once there is a monitor built to
+// put in its bays. Filling it is what puts a screen on the left of every row;
+// doing it one section at a time is what keeps that from being one change
+// that moves every panel in the rack.
+var bayMonitorSlots = map[string]int{}
 
 // leadRun is how much room the head at i wants: itself, and the modules
 // that follow it until the next head or the end of its own section.
