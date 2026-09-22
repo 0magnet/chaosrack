@@ -108,6 +108,7 @@ var moduleSections = map[string]string{
 	"test": secInput,
 
 	"analysis":      secAnalyze,
+	"timing":        secAnalyze,
 	"loudness":      secAnalyze,
 	"distortion":    secAnalyze,
 	"wow & flutter": secAnalyze,
