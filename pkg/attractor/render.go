@@ -943,18 +943,21 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 		updateViewMatrix()
 	}
 	// Advance the absolute angles by the per-axis spin rate (the X/Y/Z
-	// rate sliders) — same increment as before, now integrated into the
-	// pose instead of post-multiplied onto an accumulating matrix.
+	// rate sliders), scaled by how long the frame actually took so the
+	// rate is per SECOND and not per frame. See frameScale: a fixed step
+	// per frame makes every dropped frame a visible hesitation and every
+	// refresh rate a different speed.
+	fs := frameScale(tdiff)
 	if rotationX != 0 {
-		rotationX1 = rotationX/20 + tdiff*0.00000001
+		rotationX1 = rotationX / 20 * fs
 		angleX += rotationX1
 	}
 	if rotationY != 0 {
-		rotationY1 = rotationY/20 + tdiff*0.00000001
+		rotationY1 = rotationY / 20 * fs
 		angleY += rotationY1
 	}
 	if rotationZ != 0 {
-		rotationZ1 = rotationZ/20 + tdiff*0.00000001
+		rotationZ1 = rotationZ / 20 * fs
 		angleZ += rotationZ1
 	}
 
