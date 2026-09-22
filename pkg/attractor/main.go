@@ -1279,6 +1279,7 @@ func wirePanelSwitches() {
 	wireWowFlutterModule()
 	buildSonifyModule()
 	wireCounterModule()
+	wireTimingModule()
 	wireAnalysisModule()
 	buildEnvModule()
 	wireKeysModule()

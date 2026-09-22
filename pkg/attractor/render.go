@@ -720,7 +720,9 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	// every frame regardless of what the model is doing, and before the
 	// early exits below, because a scope that goes dark when the MODEL
 	// knob moves to a polyhedron is not an instrument in the rack.
+	scopeMark := timingStart()
 	drawRackScope()
+	timingBudget.Scope += scopeMark.ms()
 	// Stop button: clear once, do not reschedule. Loop dies here.
 	if stopped {
 		gl.Call("clearColor", 0, 0, 0, 0)
@@ -736,8 +738,20 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	// audio modes so neither pipeline sees the other's state.
 	if len(args) > 0 {
 		frameNowMs = args[0].Float() // rAF timestamp (ms), used by spectrogram scroll
+		timingFrame(frameNowMs)      // the rack's own frame meter; see timing.go
+		// Latched here rather than at the end of the frame because renderLoop
+		// has four exits and a meter that misses the paused one would go blank
+		// exactly when someone stopped to read it. The window is thirty frames
+		// long, so latching before this frame's spans land costs nothing.
+		timingTick(frameNowMs)
 		jamTick(frameNowMs)
 	}
+
+	// Everything from the tap to the last sequencer clock is the METERS span
+	// of the frame budget: the work the rack does on its own audio rather than
+	// on the model. It is the share the analyzers' own knobs move, so it is
+	// the one worth showing beside the model's.
+	metersMark := timingStart()
 
 	// Fan the audio stream out for this frame BEFORE anything reads it. Every
 	// consumer below (the counter here, the backdrop and the model later) takes
@@ -755,6 +769,7 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	genEnvTick()         // Envelope module shaper (no-op unless the gen audio runs)
 	tmTick()             // Tonematrix sequencer clock (no-op unless the module runs)
 	rhythmTick()         // Rhythm section clock (no-op unless the module runs)
+	timingBudget.Meters += metersMark.ms()
 
 	if isAudioMode(selectedMode) {
 		if !audioModeActive {
@@ -873,6 +888,9 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	// was. In between, the model is drawn twice — near half onto the canvas
 	// above the panel, far half onto the one below it — which is the only way
 	// to have DOM sitting between two parts of one scene.
+	// The MODEL span of the frame budget: the passes that put the instrument
+	// on the canvas, which is what the rack is for.
+	modelMark := timingStart()
 	switch {
 	case splitDrawing():
 		// The Fore knob owns the passes when it is in play: near and far
@@ -883,6 +901,7 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 		// One view or two, side by side. See views_js.go.
 		drawViewPasses(selectedMode)
 	}
+	timingBudget.Model += modelMark.ms()
 	// The gradient extents, if the mode change could not take them: an audio
 	// mode has no geometry on its first frame, and this is the first frame that
 	// does. Costs one comparison per frame once it has been paid.
