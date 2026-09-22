@@ -215,7 +215,12 @@ var bayScreens = map[string]bool{
 // It does NOT re-quantize — the caller does that first, because a module's
 // slot count is the input here and asking for it again after moving things
 // would be a second measurement of the same thing.
+// strayBeforeRepack records that relayoutUnits found a module outside every
+// opening, and so one that the quantize before it did not measure.
+var strayBeforeRepack bool
+
 func relayoutUnits() {
+	strayBeforeRepack = false
 	f := rackFrame()
 	if !f.Truthy() {
 		return
@@ -243,6 +248,15 @@ func relayoutUnits() {
 		// read after it is only reached for a module that measured zero.
 		if m.Get("offsetWidth").Float() == 0 && m.Get("style").Get("display").String() == "none" {
 			w = 0
+		}
+		// A module sitting outside every opening has never been quantized:
+		// QuantizeAll measures the racks, and a rack is an opening. A panel
+		// just built and appended to the frame is the case. Noting it here
+		// is what lets the second quantize below be skipped in the usual
+		// one, where every module was already in a bay and re-measuring
+		// gives the width it already has.
+		if !m.Get("parentNode").Get("classList").Call("contains", unitOpenCls).Bool() {
+			strayBeforeRepack = true
 		}
 		mods = append(mods, m)
 		slots = append(slots, w)
