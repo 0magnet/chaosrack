@@ -120,7 +120,7 @@ func wireScreenPower() {
 	// see a readout sitting still after it has come into view. Forget the
 	// cached answers as soon as it moves; the next frame measures again.
 	forget := trackedFuncOf(func(js.Value, []js.Value) interface{} {
-		invalidateOnScreen()
+		scrollChangedWhatIsOnScreen()
 		return nil
 	})
 	opts := map[string]interface{}{"passive": true}
@@ -159,27 +159,97 @@ func wireScreenPower() {
 // browser settle layout before it can answer, and asking sixty times a
 // second for each of them costs more than it saves.
 
-// onScreenEveryMs is how stale "is this module visible" may get. The same
-// quarter second screenPower uses — four layout reads a second rather than
-// sixty, and far below the time it takes to scroll and notice.
+// LET THE BROWSER SAY WHEN IT CHANGES, RATHER THAN ASKING.
+//
+// This was a poll: every metered module asked getBoundingClientRect four
+// times a second, and each of those makes the browser settle layout before it
+// can answer. Four modules is sixteen forced layouts a second on a page of
+// ten thousand elements, to learn something that changes when the drawer is
+// scrolled and at no other time. The scroll listeners below existed only to
+// shorten the quarter-second lag that the polling itself created.
+//
+// IntersectionObserver is the same question asked the other way round: the
+// browser already knows where everything is, and it will say when a target
+// starts or stops meeting the viewport. No layout is forced, nothing is
+// asked on a clock, and the answer arrives sooner than the poll's quarter
+// second rather than later. The rack already observes this way for the panel
+// edge — see the ResizeObserver in layout_js.go.
+//
+// A threshold of zero means "any part of it", which is exactly what the
+// rectangle test spelled out, and a display:none element has no box and so
+// does not intersect — so the offsetParent check comes free as well.
+//
+// The poll is kept whole underneath as the fallback, because it is the answer
+// on a browser with no IntersectionObserver and because it seeds the first
+// frame: the observer's first callback arrives a moment after observe(), and
+// a meter that reads dashes for one frame on the way in is not worth a
+// special case.
+
+// onScreenEveryMs is how stale "is this module visible" may get on the
+// fallback path. Four layout reads a second rather than sixty, and far below
+// the time it takes to scroll and notice.
 const onScreenEveryMs = 250
 
-// onScreenAt remembers the last answer per element id.
+// onScreenAt remembers the last answer per element id, for the fallback.
 var onScreenAt = map[string]struct {
 	at  float64
 	vis bool
 }{}
 
+var (
+	onScreenObs   js.Value            // the IntersectionObserver, if this browser has one
+	onScreenTried bool                // constructed once, successfully or not
+	onScreenVis   = map[string]bool{} // what the observer last reported, by id
+)
+
+// onScreenObserver is the observer, or a zero Value where there is none.
+func onScreenObserver() js.Value {
+	if onScreenTried {
+		return onScreenObs
+	}
+	onScreenTried = true
+	ctor := js.Global().Get("IntersectionObserver")
+	if !ctor.Truthy() {
+		return js.Value{}
+	}
+	onScreenObs = ctor.New(trackedFuncOf(func(_ js.Value, args []js.Value) interface{} {
+		if len(args) == 0 {
+			return nil
+		}
+		entries := args[0]
+		for i := 0; i < entries.Length(); i++ {
+			e := entries.Index(i)
+			if id := e.Get("target").Get("id").String(); id != "" {
+				onScreenVis[id] = e.Get("isIntersecting").Bool()
+			}
+		}
+		return nil
+	}))
+	return onScreenObs
+}
+
 // moduleOnScreen reports whether the element with this id is both in the
 // layout and intersecting the viewport.
 //
-// A missing element is NOT on screen, which is the safe answer: a module
-// that has not been built yet has nothing to draw and no readout to write.
+// A missing element is NOT on screen, which is the safe answer: a module that
+// has not been built yet has nothing to draw and no readout to write.
 func moduleOnScreen(id string) bool {
-	if c, ok := onScreenAt[id]; ok && frameNowMs-c.at < onScreenEveryMs && c.at != 0 {
-		return c.vis
+	if vis, ok := onScreenVis[id]; ok {
+		return vis // the observer is watching this one; no DOM work at all
 	}
 	vis := measureOnScreen(id)
+	if obs := onScreenObserver(); obs.Truthy() {
+		if el := doc.Call("getElementById", id); el.Truthy() {
+			obs.Call("observe", el)
+			// Seeded with the measurement so this frame has an answer; the
+			// observer overwrites it with its own as soon as it reports.
+			onScreenVis[id] = vis
+			return vis
+		}
+		// No element to observe yet — the panel has not been built. Fall
+		// through to the throttle so this is not measured every frame until
+		// it appears.
+	}
 	onScreenAt[id] = struct {
 		at  float64
 		vis bool
@@ -187,8 +257,12 @@ func moduleOnScreen(id string) bool {
 	return vis
 }
 
-// measureOnScreen is the real answer.
+// measureOnScreen is the real answer, read out of layout. The fallback path,
+// and the seed for a target the observer has not reported on yet.
 func measureOnScreen(id string) bool {
+	if c, ok := onScreenAt[id]; ok && frameNowMs-c.at < onScreenEveryMs && c.at != 0 {
+		return c.vis
+	}
 	el := doc.Call("getElementById", id)
 	if !el.Truthy() || !el.Get("offsetParent").Truthy() {
 		return false
@@ -206,10 +280,28 @@ func measureOnScreen(id string) bool {
 		r.Get("right").Float() > 0 && r.Get("left").Float() < w
 }
 
-// invalidateOnScreen forgets every cached answer, for a scroll or a relayout
-// that should be noticed at once rather than at the next quarter second.
+// invalidateOnScreen forgets every cached answer AND every target, for a
+// panel that has been rebuilt: the elements the observer holds are then
+// detached, and watching them would report on markup nobody can see.
 func invalidateOnScreen() {
+	if onScreenObs.Truthy() {
+		onScreenObs.Call("disconnect")
+	}
+	for k := range onScreenVis {
+		delete(onScreenVis, k)
+	}
 	for k := range onScreenAt {
 		delete(onScreenAt, k)
 	}
+}
+
+// scrollChangedWhatIsOnScreen is what a scroll needs doing about it, which
+// with the observer live is nothing: it is already watching, and throwing the
+// answers away would re-measure every module on every scroll event — the one
+// thing worse than the poll this replaced.
+func scrollChangedWhatIsOnScreen() {
+	if onScreenObserver().Truthy() {
+		return
+	}
+	invalidateOnScreen()
 }
