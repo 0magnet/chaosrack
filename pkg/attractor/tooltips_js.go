@@ -75,7 +75,15 @@ func stampAll(scope js.Value, sel, title string) {
 }
 
 // cellCtl returns "Module / <primary label>" — the control level for a cell.
-func cellCtl(cell js.Value, mod string) string {
+//
+// f is what the read pass found, where there was one; see fastdom_js.go.
+func cellCtl(f *cellRead, cell js.Value, mod string) string {
+	if f != nil {
+		if t := strings.TrimSpace(f.Label); t != "" {
+			return mod + sep + t
+		}
+		return mod
+	}
 	if l := cell.Call("querySelector", ".plabel, .u-lbl"); l.Truthy() {
 		if t := strings.TrimSpace(l.Get("textContent").String()); t != "" {
 			return mod + sep + t
@@ -87,19 +95,39 @@ func cellCtl(cell js.Value, mod string) string {
 // stampSelectorKnobs names each selector knob in a cell from its own select
 // (paired by DOM order), so a concentric dual-knob cell names its rings
 // distinctly (e.g. Colors / Gradient source vs Colors / Number of colors).
-func stampSelectorKnobs(cell js.Value, mod, fallbackCtl string) {
-	knobs := cell.Call("querySelectorAll", ".knobsel")
-	sels := cell.Call("querySelectorAll", "select")
-	for i := 0; i < knobs.Get("length").Int(); i++ {
+func stampSelectorKnobs(f *cellRead, cell js.Value, mod, fallbackCtl string) {
+	n := 0
+	var knobs js.Value
+	var selTitle func(int) (string, bool)
+	if f != nil {
+		n = f.NKnob
+		selTitle = func(i int) (string, bool) {
+			if i < len(f.Sels) {
+				return f.Sels[i], true
+			}
+			return "", false
+		}
+	} else {
+		knobs = cell.Call("querySelectorAll", ".knobsel")
+		sels := cell.Call("querySelectorAll", "select")
+		n = knobs.Get("length").Int()
+		selTitle = func(i int) (string, bool) {
+			if i < sels.Get("length").Int() {
+				return sels.Index(i).Get("title").String(), true
+			}
+			return "", false
+		}
+	}
+	for i := 0; i < n; i++ {
 		ctl := fallbackCtl
-		if i < sels.Get("length").Int() {
+		if raw, ok := selTitle(i); ok {
 			// Only borrow the select's own name when it's a structured
 			// "Name — description" title; otherwise keep the cell's control name.
-			if t := strings.TrimSpace(sels.Index(i).Get("title").String()); strings.Contains(t, " — ") {
+			if t := strings.TrimSpace(raw); strings.Contains(t, " — ") {
 				ctl = mod + sep + t[:strings.Index(t, " — ")]
 			}
 		}
-		if !queueStamp(".knobsel", ctl+sep+"selector knob", i) {
+		if !queueStamp(".knobsel", ctl+sep+"selector knob", i) && knobs.Truthy() {
 			knobs.Index(i).Set("title", ctl+sep+"selector knob")
 		}
 	}
@@ -107,7 +135,10 @@ func stampSelectorKnobs(cell js.Value, mod, fallbackCtl string) {
 
 // cellHelp is the paramHelp sentence for a cell, found from the hidden
 // slider that carries the parameter id, or "" when the knob has no entry.
-func cellHelp(cell js.Value) string {
+func cellHelp(f *cellRead, cell js.Value) string {
+	if f != nil {
+		return helpFor(f.RID)
+	}
 	s := cell.Call("querySelector", "input[type=range]")
 	if !s.Truthy() {
 		return ""

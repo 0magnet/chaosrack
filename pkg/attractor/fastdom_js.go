@@ -33,6 +33,10 @@ import (
 // JavaScript and all of it is testable in Go.
 const fastSource = `(function () {
   var doc = globalThis.document;
+  function set(el, attr, v) {
+    if (attr === "title") { el.title = v; return; }
+    el.setAttribute(attr, v);
+  }
   var RUNSUFFIX = " — one of the sections this bay carries. " +
     "See docs/signal-flow.md: the bays run in signal order, and a " +
     "control sits in the same row as the thing it affects.";
@@ -201,27 +205,76 @@ const fastSource = `(function () {
     // panel module in document order, then its .pcell and .punit children —
     // so an instruction can name a cell by number instead of the Go side
     // handing an element across for each of a few thousand writes.
-    tipWrite: function (payload) {
+    // panelCells is the cell list both tooltip passes work from, enumerated
+    // exactly as buildControlModel does it: each panel module in document
+    // order, then its .pcell and .punit children.
+    cells: function () {
       var sects = doc.querySelectorAll(".modules .sect:not(.template-mod)");
-      var cells = [], i, j;
+      var out = [], i, j;
       for (i = 0; i < sects.length; i++) {
         var cs = sects[i].querySelectorAll(".pcell, .punit");
-        for (j = 0; j < cs.length; j++) cells.push(cs[j]);
+        for (j = 0; j < cs.length; j++) out.push(cs[j]);
       }
-      // cell US selector US title US nth RS, per stamp.
-      var recs = payload.split("\x1e"), n = 0;
+      return out;
+    },
+    // tipRead is everything the annotate pass needs to know about a cell to
+    // work out its tooltips: which kind of control it is, the labels it is
+    // named from, and the readouts and selectors it carries.
+    //
+    // One crossing for the whole panel. Each of these was a querySelector or
+    // a classList test from Go, a few per cell over some three hundred
+    // cells, and a js.Value holding an element or a string carries a
+    // finalizer while one holding a number does not.
+    tipRead: function () {
+      var cells = this.cells(), out = [], i, j;
+      for (i = 0; i < cells.length; i++) {
+        var c = cells[i], e;
+        var rec = {id: c.id || "", ax: false, pal: false, lbl: "", axl: "",
+                   rid: "", leds: [], sel: [], nk: 0, nums: []};
+        if (c.classList) {
+          rec.ax = c.classList.contains("axrot");
+          rec.pal = c.classList.contains("pal-cell");
+        }
+        e = c.querySelector(".plabel, .u-lbl");
+        if (e) rec.lbl = e.textContent;
+        e = c.querySelector(".toprow .plabel");
+        if (e) rec.axl = e.textContent;
+        e = c.querySelector("input[type=range]");
+        if (e) rec.rid = e.id || "";
+        var leds = c.querySelectorAll(".led:not(.pal-hex)");
+        for (j = 0; j < leds.length; j++) {
+          var l = leds[j], own = "";
+          var prev = l.previousElementSibling;
+          if (prev && prev.classList && prev.classList.contains("ledlbl")) own = prev.textContent;
+          rec.leds.push([own, l.getAttribute("data-help") || "", l.title || ""]);
+        }
+        var sels = c.querySelectorAll("select");
+        for (j = 0; j < sels.length; j++) rec.sel.push(sels[j].title || "");
+        rec.nk = c.querySelectorAll(".knobsel").length;
+        var nums = c.querySelectorAll(".numin");
+        for (j = 0; j < nums.length; j++) {
+          rec.nums.push(!!(nums[j].classList && nums[j].classList.contains("u-step")));
+        }
+        out.push(rec);
+      }
+      return JSON.stringify(out);
+    },
+    tipWrite: function (payload) {
+      var cells = this.cells();
+      // cell US selector US value US nth US attribute RS, per stamp.
+      var recs = payload.split("\x1e"), n = 0, i, j;
       for (i = 0; i < recs.length; i++) {
         if (!recs[i]) continue;
         var f = recs[i].split("\x1f");
-        if (f.length < 4) continue;
+        if (f.length < 5) continue;
         var cell = cells[+f[0]];
         if (!cell) continue;
-        var els = cell.querySelectorAll(f[1]), nth = +f[3];
+        var els = cell.querySelectorAll(f[1]), nth = +f[3], attr = f[4];
         if (nth >= 0) {
-          if (els[nth]) { els[nth].title = f[2]; n++; }
+          if (els[nth]) { set(els[nth], attr, f[2]); n++; }
           continue;
         }
-        for (j = 0; j < els.length; j++) { els[j].title = f[2]; n++; }
+        for (j = 0; j < els.length; j++) { set(els[j], attr, f[2]); n++; }
       }
       return n;
     }
@@ -520,7 +573,8 @@ type tipStamp struct {
 	Cell  int
 	Sel   string
 	Title string
-	Nth   int // -1 for every match
+	Nth   int    // -1 for every match
+	Attr  string // "title", or the attribute a readout memoizes into
 }
 
 var (
@@ -538,10 +592,15 @@ var (
 // js.Value with a finalizer attached. Measured, two thirds of the pass was
 // runtime.addspecial. Collected and sent once, it is a single crossing.
 func queueStamp(sel, title string, nth int) bool {
+	return queueAttr(sel, "title", title, nth)
+}
+
+// queueAttr is queueStamp for an attribute other than the tooltip.
+func queueAttr(sel, attr, value string, nth int) bool {
 	if !tipBatching {
 		return false
 	}
-	tipQueue = append(tipQueue, tipStamp{Cell: tipCell, Sel: sel, Title: title, Nth: nth})
+	tipQueue = append(tipQueue, tipStamp{Cell: tipCell, Sel: sel, Title: value, Nth: nth, Attr: attr})
 	return true
 }
 
@@ -569,7 +628,64 @@ func flushStamps() {
 		b.WriteString(s.Title)
 		b.WriteByte(0x1f)
 		b.WriteString(strconv.Itoa(s.Nth))
+		b.WriteByte(0x1f)
+		b.WriteString(s.Attr)
 		b.WriteByte(0x1e)
 	}
 	h.Call("tipWrite", b.String())
+}
+
+// ledRead is one readout as the JS pass found it: its own label where it has
+// one, the description the markup gave it, and its current tooltip.
+type ledRead struct {
+	Own   string
+	Help  string
+	Title string
+}
+
+// UnmarshalJSON reads the three-element array the read pass sends.
+func (l *ledRead) UnmarshalJSON(b []byte) error {
+	var raw []string
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return err
+	}
+	if len(raw) == 3 {
+		l.Own, l.Help, l.Title = raw[0], raw[1], raw[2]
+	}
+	return nil
+}
+
+// cellRead is everything the annotate pass needs to know about one control
+// cell, read once for the whole panel instead of a few queries per cell.
+type cellRead struct {
+	ID    string    `json:"id"`
+	AxRot bool      `json:"ax"`
+	Pal   bool      `json:"pal"`
+	Label string    `json:"lbl"`  // .plabel, .u-lbl — the control's own name
+	Axis  string    `json:"axl"`  // .toprow .plabel — X, Y or Z
+	RID   string    `json:"rid"`  // the hidden slider's id, which carries the help
+	LEDs  []ledRead `json:"leds"` // .led:not(.pal-hex), in order
+	Sels  []string  `json:"sel"`  // each select's title, for naming its knob
+	NKnob int       `json:"nk"`   // how many selector knobs
+	Nums  []bool    `json:"nums"` // .numin, true where it is a step field
+}
+
+// tipReads is the panel as the last read pass found it, indexed the same way
+// the stamps are. Empty when there was no read pass.
+var tipReads []cellRead
+
+// readPanelCells measures the whole panel's cells in one crossing.
+func readPanelCells(h js.Value) bool {
+	raw := h.Call("tipRead").String()
+	tipReads = tipReads[:0]
+	return json.Unmarshal([]byte(raw), &tipReads) == nil
+}
+
+// cellFacts is what the read pass found for this control, or nil when there
+// was none and the caller should ask the DOM itself.
+func (c *Control) cellFacts() *cellRead {
+	if !tipBatching || c.tipIdx < 0 || c.tipIdx >= len(tipReads) {
+		return nil
+	}
+	return &tipReads[c.tipIdx]
 }
