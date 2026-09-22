@@ -59,19 +59,26 @@ func timingFrame(nowMs float64) {
 }
 
 // timingTick latches the readouts on their own clock.
+//
+// ALONE AMONG THE METERS, THIS ONE DOES NOT STOP WHEN IT IS OFF SCREEN.
+// Every other module here checks moduleOnScreen first, and should: their work
+// is filtering and FFTs, and doing it for a panel nobody can see is the whole
+// point of the check. This module's work is nine guarded LED writes twice a
+// second — the readouts skip a write that would not change anything anyway —
+// and against that the check would cost more than it saves.
+//
+// The reason is not only cost. A frame meter that freezes while you look away
+// and shows the last numbers it had is worse than one that is simply right:
+// scroll back and the panel reads like a live instrument while displaying
+// whatever the rack was doing before you left. Blanking instead would be
+// honest but useless, since the question is always "what is it doing NOW".
+// So it keeps measuring and keeps latching, and is correct the instant it
+// comes into view.
 func timingTick(nowMs float64) {
 	if nowMs < timingNextMs {
 		return
 	}
 	timingNextMs = nowMs + timingPeriodMs
-	if !moduleOnScreen("timing-module") {
-		// Off screen: the window is still dropped, so scrolling to the panel
-		// shows the last half second rather than everything since the page
-		// loaded averaged into meaninglessness.
-		timingStats.reset()
-		timingBudget.reset()
-		return
-	}
 	showTiming()
 	timingStats.reset()
 	timingBudget.reset()
