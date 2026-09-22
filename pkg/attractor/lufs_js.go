@@ -88,37 +88,30 @@ func lufsTick(nowMs float64) {
 
 // showLoudness writes the readouts.
 func showLoudness() {
-	set := func(el js.Value, v float64, ok bool) {
-		if !el.Truthy() {
-			return
-		}
+	set := func(key string, el js.Value, v float64, ok bool) {
 		if !ok || v <= LoudnessFloor {
-			el.Set("textContent", "  --.-")
+			setLEDText(key, el, "  --.-")
 			return
 		}
-		el.Set("textContent", formatLED(v, 3, 1, true))
+		setLEDText(key, el, formatLED(v, 3, 1, true))
 	}
-	set(lufsMEl, lufsRes.Momentary, lufsRes.Momentary > LoudnessFloor)
-	set(lufsSEl, lufsRes.ShortTerm, lufsRes.ShortTerm > LoudnessFloor)
-	set(lufsIEl, lufsRes.Integrated, lufsRes.OK)
-	if lufsLRAEl.Truthy() {
-		if lufsRes.OK {
-			lufsLRAEl.Set("textContent", formatLED(lufsRes.LRA, 3, 1, false))
-		} else {
-			lufsLRAEl.Set("textContent", "  --.-")
-		}
+	set("lufs-m", lufsMEl, lufsRes.Momentary, lufsRes.Momentary > LoudnessFloor)
+	set("lufs-s", lufsSEl, lufsRes.ShortTerm, lufsRes.ShortTerm > LoudnessFloor)
+	set("lufs-i", lufsIEl, lufsRes.Integrated, lufsRes.OK)
+	if lufsRes.OK {
+		setLEDText("lufs-lra", lufsLRAEl, formatLED(lufsRes.LRA, 3, 1, false))
+	} else {
+		setLEDText("lufs-lra", lufsLRAEl, "  --.-")
 	}
-	set(lufsTPEl, lufsRes.TruePeak, lufsRes.TruePeak > LoudnessFloor)
-	if lufsDl.Truthy() {
-		// Through lufsDistanceToTarget rather than subtracting here: it is the
-		// same arithmetic plus the floor guard, and an integrated reading that
-		// has not risen off the floor is not a distance from anything.
-		d := lufsDistanceToTarget(lufsRes.Integrated, float64(lufsTarget))
-		if lufsRes.OK && !math.IsNaN(d) {
-			lufsDl.Set("textContent", formatLED(d, 3, 1, true))
-		} else {
-			lufsDl.Set("textContent", "  --.-")
-		}
+	set("lufs-tp", lufsTPEl, lufsRes.TruePeak, lufsRes.TruePeak > LoudnessFloor)
+	// Through lufsDistanceToTarget rather than subtracting here: it is the
+	// same arithmetic plus the floor guard, and an integrated reading that
+	// has not risen off the floor is not a distance from anything.
+	d := lufsDistanceToTarget(lufsRes.Integrated, float64(lufsTarget))
+	if lufsRes.OK && !math.IsNaN(d) {
+		setLEDText("lufs-d", lufsDl, formatLED(d, 3, 1, true))
+	} else {
+		setLEDText("lufs-d", lufsDl, "  --.-")
 	}
 }
 

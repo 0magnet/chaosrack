@@ -1270,6 +1270,10 @@ func wirePanelSwitches() {
 	}))
 	buildGeneratorModule()
 	buildTestSignalModule()
+	// The readouts remember what they are showing (see ledtext_js.go), and
+	// these calls hand them fresh elements, so the memory has to go with the
+	// old ones or a new LED stays blank until its reading happens to move.
+	forgetLEDText()
 	wireDistortionModule()
 	wireLoudnessModule()
 	wireWowFlutterModule()

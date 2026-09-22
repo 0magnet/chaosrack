@@ -88,26 +88,21 @@ func wfTick(nowMs float64) {
 
 // showWowFlutter writes the readouts.
 func showWowFlutter() {
-	set := func(el js.Value, v float64, signed bool) {
-		if !el.Truthy() {
-			return
-		}
+	set := func(key string, el js.Value, v float64, signed bool) {
 		if !wfRes.OK {
-			el.Set("textContent", "  --.---")
+			setLEDText(key, el, "  --.---")
 			return
 		}
-		el.Set("textContent", formatLED(v, 2, 3, signed))
+		setLEDText(key, el, formatLED(v, 2, 3, signed))
 	}
-	set(wfSpeedEl, wfRes.SpeedPct, true)
-	set(wfWowEl, wfRes.WowPct, false)
-	set(wfFlutEl, wfRes.FlutterPct, false)
-	set(wfWeightedEl, wfRes.WeightedPct, false)
-	if wfCarrierEl.Truthy() {
-		if wfRes.OK {
-			wfCarrierEl.Set("textContent", formatLED(wfRes.Carrier, 5, 1, false))
-		} else {
-			wfCarrierEl.Set("textContent", "-----.-")
-		}
+	set("wf-speed", wfSpeedEl, wfRes.SpeedPct, true)
+	set("wf-wow", wfWowEl, wfRes.WowPct, false)
+	set("wf-flut", wfFlutEl, wfRes.FlutterPct, false)
+	set("wf-wtd", wfWeightedEl, wfRes.WeightedPct, false)
+	if wfRes.OK {
+		setLEDText("wf-carrier", wfCarrierEl, formatLED(wfRes.Carrier, 5, 1, false))
+	} else {
+		setLEDText("wf-carrier", wfCarrierEl, "-----.-")
 	}
 }
 

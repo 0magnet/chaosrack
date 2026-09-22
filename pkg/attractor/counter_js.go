@@ -76,9 +76,7 @@ func counterTick() {
 	if counterSamples >= int(gate*float64(src.SampleRate())) {
 		// Latch: cycles over the ACTUAL window (sample-exact, not wall time).
 		hz := float64(counterCycles) / (float64(counterSamples) / float64(src.SampleRate()))
-		if counterLEDEl.Truthy() {
-			counterLEDEl.Set("textContent", formatLED(hz, 5, 1, false))
-		}
+		setLEDText("counter-hz", counterLEDEl, formatLED(hz, 5, 1, false))
 		counterCycles, counterSamples = 0, 0
 		// The gate lamp toggles at each latch — the classic heartbeat.
 		counterGateOn = !counterGateOn
