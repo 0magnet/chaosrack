@@ -3,7 +3,7 @@ module github.com/0magnet/chaosrack
 go 1.26.5
 
 require (
-	github.com/0magnet/audioprism-go v0.0.0-20260921105349-05d824d5274b
+	github.com/0magnet/audioprism-go v0.0.0-20260922100904-15bf6a74d732
 	github.com/0magnet/calvin v0.0.0-20260915170035-09af7075474e
 	github.com/0magnet/desk v0.0.0-20260915183806-a236d7492c93
 	github.com/0magnet/desk/panes v0.0.0-20260915183806-a236d7492c93
@@ -17,7 +17,7 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-gl/mathgl v1.2.0
 	github.com/jfreymuth/pulse v0.1.3
-	github.com/quic-go/quic-go v0.62.0
+	github.com/quic-go/quic-go v0.63.0
 	github.com/quic-go/webtransport-go v0.13.0
 	github.com/spf13/cobra v1.10.2
 	gitlab.com/russoj88/stl v1.0.2
