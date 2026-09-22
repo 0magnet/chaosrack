@@ -168,10 +168,24 @@ func quantizeModuleWidths() {
 	rack.QuantizeAll(unitRacks)
 	latchModuleWidths()
 	relayoutUnits()
-	// The widths changed, so the modules a unit holds may have; quantize
-	// the openings that now exist.
-	rack.QuantizeAll(unitRacks)
-	latchModuleWidths()
+	// A second pass, but only when the first one can have missed something.
+	//
+	// A module is measured by stretching it to 3000px and reading its
+	// content back, which is a width that depends on what is ON the panel
+	// and not on which bay it is in — so re-measuring a module the repack
+	// has merely MOVED gives the width it already has, and costs two full
+	// style-and-layout passes over the page to say so. Verified rather than
+	// assumed: six models and four interface sizes give a byte-identical
+	// rack either way.
+	//
+	// What the first pass can miss is a module that was not in any opening
+	// when it ran, because QuantizeAll measures racks and a rack is an
+	// opening. relayoutUnits has just put every module in one and says
+	// whether it found any outside.
+	if strayBeforeRepack {
+		rack.QuantizeAll(unitRacks)
+		latchModuleWidths()
+	}
 	layoutRackHandles()
 	// Skirts are MEASURED, so they are sized after the layout that gives
 	// them a size. Here because this is the one funnel every layout
