@@ -8,7 +8,7 @@ require (
 	github.com/0magnet/desk v0.0.0-20260915183806-a236d7492c93
 	github.com/0magnet/desk/panes v0.0.0-20260915183806-a236d7492c93
 	github.com/0magnet/pisano v0.0.0-20260916102036-895cf54258c0
-	github.com/0magnet/rack-go v0.0.0-20260922155830-6e8af213e96d
+	github.com/0magnet/rack-go v0.0.0-20260922163944-6ac30b77a4fd
 	github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a
 	github.com/0magnet/tuiwasm v0.0.0-20260920095604-3de8bc71a6ec
 	github.com/0magnet/websh v0.0.0-20260918134315-870649e5bd83
