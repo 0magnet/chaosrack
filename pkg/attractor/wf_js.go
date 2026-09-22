@@ -21,16 +21,23 @@ import (
 // analyzer, whose window is a fifth of a second and which can afford to look at
 // the newest one.
 
-const (
-	// wfWindowSec is how much audio each measurement is made over. Ten seconds
-	// holds five cycles of the slowest wow and is about as long as anybody
-	// wants to wait for a reading to settle after adjusting a deck.
-	wfWindowSec = 10
-
-	// wfPeriodMs is how often it is remeasured. The analysis walks ten seconds
-	// of audio, so this is the one measurement here that is genuinely worth
-	// pacing.
-	wfPeriodMs = 500
+// wfWindowSec is how much audio each measurement is made over, and wfPeriodMs
+// is how often it is remade. Both are on the panel — WINDOW and RATE — and
+// this is the module where the difference between them is easiest to see.
+//
+// The window is the measurement: ten seconds holds five cycles of the slowest
+// wow, and two seconds cannot see wow at all, only flutter. It is also the
+// cost — the analysis walks the whole window, so it is the single largest
+// lump of work in the rack's frame, and shortening it is the only thing that
+// makes that lump SMALLER.
+//
+// The rate is how often that lump lands. Turning it down does not make the
+// analysis cheaper, it makes the hesitation rarer, and it is the honest
+// trade: a wow-and-flutter reading that settles over ten seconds does not
+// need remaking twice a second.
+var (
+	wfWindowSec         = 10
+	wfPeriodMs  float64 = 500
 )
 
 var (
