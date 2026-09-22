@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/0magnet/chaosrack/pkg/audiosrc"
+	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
 const irSR = 48000
@@ -295,11 +296,11 @@ func TestInverseFFTUndoesTheForward(t *testing.T) {
 	}
 	re := make([]float64, n/2+1)
 	im := make([]float64, n/2+1)
-	if !computeFFTComplex(x, winRectangular, re, im) {
+	if !meters.ComputeFFTComplex(x, meters.WinRectangular, re, im) {
 		t.Fatal("the forward transform was refused")
 	}
 	back := make([]float64, n)
-	if !inverseFFTReal(re, im, n, back) {
+	if !meters.InverseFFTReal(re, im, n, back) {
 		t.Fatal("the inverse transform was refused")
 	}
 	for i := range x {
@@ -394,7 +395,7 @@ func TestSpectrumPointsLevel(t *testing.T) {
 		for i := range buf {
 			buf[i] = float32(amp * math.Sin(2*math.Pi*f*float64(i)/sr))
 		}
-		if !SpectrumPoints(buf, sr, freqs, winHann, out) {
+		if !SpectrumPoints(buf, sr, freqs, meters.WinHann, out) {
 			t.Fatalf("SpectrumPoints refused a %d-sample block", n)
 		}
 		// AMPLITUDE-referenced, which is the convention rta.go already reads in and
@@ -426,13 +427,13 @@ func TestSpectrumPointsLevel(t *testing.T) {
 func TestSpectrumPointsRejects(t *testing.T) {
 	freqs := LogFreqPoints(20, 20000, 16)
 	out := make([]float64, len(freqs))
-	if SpectrumPoints(make([]float32, 1000), 48000, freqs, winHann, out) {
+	if SpectrumPoints(make([]float32, 1000), 48000, freqs, meters.WinHann, out) {
 		t.Error("accepted a block that is not a power of two")
 	}
-	if SpectrumPoints(make([]float32, 1024), 0, freqs, winHann, out) {
+	if SpectrumPoints(make([]float32, 1024), 0, freqs, meters.WinHann, out) {
 		t.Error("accepted a zero sample rate")
 	}
-	if SpectrumPoints(make([]float32, 1024), 48000, freqs, winHann, out[:4]) {
+	if SpectrumPoints(make([]float32, 1024), 48000, freqs, meters.WinHann, out[:4]) {
 		t.Error("accepted an output shorter than the frequency axis")
 	}
 }
@@ -461,7 +462,7 @@ func TestSpectrumPointsTonesBetweenAxisPoints(t *testing.T) {
 		for i := range buf {
 			buf[i] = float32(math.Sin(2 * math.Pi * f * float64(i) / sr))
 		}
-		if !SpectrumPoints(buf, sr, freqs, winHann, out) {
+		if !SpectrumPoints(buf, sr, freqs, meters.WinHann, out) {
 			t.Fatalf("%.0f Hz: SpectrumPoints refused the block", f)
 		}
 		near, peak := 0, math.Inf(-1)

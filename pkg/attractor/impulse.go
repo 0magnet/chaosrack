@@ -1,6 +1,10 @@
 package attractor
 
-import "math"
+import (
+	"math"
+
+	"github.com/0magnet/chaosrack/pkg/meters"
+)
 
 // Impulse response, reverberation time and cumulative spectral decay.
 //
@@ -50,10 +54,10 @@ func ImpulseResponse(ref, meas []float32, epsilon float64) []float64 {
 	// frequency — it would smear the very response being recovered, and the
 	// sweep is already the whole buffer rather than a slice out of a longer
 	// signal, so there is no discontinuity at the ends to suppress.
-	if !computeFFTComplex(ref, winRectangular, xr, xi) {
+	if !meters.ComputeFFTComplex(ref, meters.WinRectangular, xr, xi) {
 		return nil
 	}
-	if !computeFFTComplex(meas, winRectangular, yr, yi) {
+	if !meters.ComputeFFTComplex(meas, meters.WinRectangular, yr, yi) {
 		return nil
 	}
 	var meanPow float64
@@ -77,7 +81,7 @@ func ImpulseResponse(ref, meas []float32, epsilon float64) []float64 {
 		hi[i] = (yi[i]*xr[i] - yr[i]*xi[i]) / den
 	}
 	out := make([]float64, n)
-	if !inverseFFTReal(hr, hi, n, out) {
+	if !meters.InverseFFTReal(hr, hi, n, out) {
 		return nil
 	}
 	return out
@@ -267,7 +271,7 @@ func CSD(ir []float64, sampleRate int, slices int, sliceMS float64, fftLen int,
 			}
 			buf[i] = float32(ir[j] * w)
 		}
-		mags := computeFFTMagsKind(buf, winBlackmanHarris)
+		mags := meters.ComputeFFTMagsKind(buf, meters.WinBlackmanHarris)
 		db := make([]float64, len(freqs))
 		binHz := float64(sampleRate) / float64(fftLen)
 		for k, f := range freqs {
@@ -338,17 +342,17 @@ func LogFreqPoints(lo, hi float64, n int) []float64 {
 // The scaling is the one in rta.go: a tone of amplitude A puts A²n²·energy/4
 // into its bin, so 4/(n²·energy) turns summed bin power back into an amplitude
 // squared and a full-scale tone reads 0 dB.
-func SpectrumPoints(buf []float32, sampleRate int, freqs []float64, winK winKind, out []float64) bool {
+func SpectrumPoints(buf []float32, sampleRate int, freqs []float64, winK meters.WinKind, out []float64) bool {
 	n := len(buf)
 	if n == 0 || n&(n-1) != 0 || sampleRate <= 0 || len(out) < len(freqs) {
 		return false
 	}
-	mags := computeFFTMagsKind(buf, winK)
+	mags := meters.ComputeFFTMagsKind(buf, winK)
 	if mags == nil {
 		return false
 	}
-	m := windowMetrics(n, winK)
-	norm := 4 / (float64(n) * float64(n) * m.energy)
+	m := meters.WindowMetrics(n, winK)
+	norm := 4 / (float64(n) * float64(n) * m.Energy)
 	binHz := float64(sampleRate) / float64(n)
 	lo, hi := logBandEdges(freqs)
 	for k, f := range freqs {

@@ -5,6 +5,8 @@ package attractor
 import (
 	"strconv"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
 // The Waterfall mode — cumulative spectral decay, as a surface in the 3-D
@@ -102,7 +104,7 @@ var (
 // the depth axis stops meaning seconds. STEP below a frame is the one case that
 // cannot be honored — there is no more audio to have — and it degrades to one
 // slice per frame rather than to a burst.
-const wfallLiveWindow = winHann
+const wfallLiveWindow = meters.WinHann
 
 // How the decay surface re-measures when there is no generator sweep to trigger
 // on.

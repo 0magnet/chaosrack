@@ -1,6 +1,10 @@
 package attractor
 
-import "math"
+import (
+	"math"
+
+	"github.com/0magnet/chaosrack/pkg/meters"
+)
 
 // Fractional-octave analysis — the RTA a room is measured with.
 //
@@ -31,7 +35,7 @@ import "math"
 // distortion analyzer's reason: a band's level is only as clean as the leakage
 // from the loud band beside it, and on a room measurement the bands beside each
 // other differ by tens of decibels.
-const rtaWindowKind = winBlackmanHarris
+const rtaWindowKind = meters.WinBlackmanHarris
 
 // rtaFractions are the band widths offered, as the b in "1/b octave".
 //
@@ -115,16 +119,16 @@ func RTABands(b int) []RTABand {
 // 20 Hz holds one and at 16 kHz holds several hundred — which is exactly why
 // the sum is normalized. Without it the display would rise 3 dB per octave on a
 // flat input, which is the slope of the bin count and not of the signal.
-func RTALevels(mags []float64, n, sampleRate int, bands []RTABand, winK winKind, levels []float64) {
+func RTALevels(mags []float64, n, sampleRate int, bands []RTABand, winK meters.WinKind, levels []float64) {
 	if len(levels) < len(bands) || len(mags) == 0 || sampleRate <= 0 {
 		return
 	}
-	m := windowMetrics(n, winK)
+	m := meters.WindowMetrics(n, winK)
 	binHz := float64(sampleRate) / float64(n)
 	// A tone of amplitude A puts A²·n²·energy/4 into its band (see the same
 	// derivation in distortion.go), so this is the factor that turns summed
 	// power back into an amplitude squared.
-	norm := 4 / (float64(n) * float64(n) * m.energy)
+	norm := 4 / (float64(n) * float64(n) * m.Energy)
 	for i, b := range bands {
 		lo := int(math.Ceil(b.Lo / binHz))
 		hi := int(math.Floor(b.Hi / binHz))

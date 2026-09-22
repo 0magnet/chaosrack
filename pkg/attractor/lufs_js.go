@@ -5,6 +5,8 @@ package attractor
 import (
 	"math"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
 // The Loudness module — LUFS, loudness range and true peak.
@@ -36,9 +38,9 @@ var lufsPeriodMs float64 = 200
 
 var (
 	lufsCursor = tapUnjoined
-	lufsMeter  *LoudnessMeter
+	lufsMeter  *meters.LoudnessMeter
 	lufsNextMs float64
-	lufsRes    LoudnessResult
+	lufsRes    meters.LoudnessResult
 	lufsTarget float32 = -23
 
 	lufsMEl, lufsSEl, lufsIEl   js.Value
@@ -56,7 +58,7 @@ func lufsTick(nowMs float64) {
 	}
 	sr := takensSourceRate()
 	if lufsMeter == nil {
-		lufsMeter = NewLoudnessMeter(sr)
+		lufsMeter = meters.NewLoudnessMeter(sr)
 	} else if lufsMeter.SampleRate() != sr {
 		// A change of source rate retunes the weighting — and drops the
 		// measurement with it, because an integrated loudness averaged across
@@ -73,10 +75,10 @@ func lufsTick(nowMs float64) {
 		// The true peak on the raw buffer, oversampled. Done here rather than
 		// inside the meter because it needs the samples either side of each
 		// point and the meter is a per-sample loop.
-		if p := TruePeak(sl[:n]); p > 0 {
+		if p := meters.TruePeak(sl[:n]); p > 0 {
 			lufsMeter.SetTruePeak(p)
 		}
-		if p := TruePeak(sr2[:n]); p > 0 {
+		if p := meters.TruePeak(sr2[:n]); p > 0 {
 			lufsMeter.SetTruePeak(p)
 		}
 		if n < len(sl) {
@@ -94,21 +96,21 @@ func lufsTick(nowMs float64) {
 // showLoudness writes the readouts.
 func showLoudness() {
 	set := func(key string, el js.Value, v float64, ok bool) {
-		if !ok || v <= LoudnessFloor {
+		if !ok || v <= meters.LoudnessFloor {
 			setLEDText(key, el, "  --.-")
 			return
 		}
 		setLEDText(key, el, formatLED(v, 3, 1, true))
 	}
-	set("lufs-m", lufsMEl, lufsRes.Momentary, lufsRes.Momentary > LoudnessFloor)
-	set("lufs-s", lufsSEl, lufsRes.ShortTerm, lufsRes.ShortTerm > LoudnessFloor)
+	set("lufs-m", lufsMEl, lufsRes.Momentary, lufsRes.Momentary > meters.LoudnessFloor)
+	set("lufs-s", lufsSEl, lufsRes.ShortTerm, lufsRes.ShortTerm > meters.LoudnessFloor)
 	set("lufs-i", lufsIEl, lufsRes.Integrated, lufsRes.OK)
 	if lufsRes.OK {
 		setLEDText("lufs-lra", lufsLRAEl, formatLED(lufsRes.LRA, 3, 1, false))
 	} else {
 		setLEDText("lufs-lra", lufsLRAEl, "  --.-")
 	}
-	set("lufs-tp", lufsTPEl, lufsRes.TruePeak, lufsRes.TruePeak > LoudnessFloor)
+	set("lufs-tp", lufsTPEl, lufsRes.TruePeak, lufsRes.TruePeak > meters.LoudnessFloor)
 	// Through lufsDistanceToTarget rather than subtracting here: it is the
 	// same arithmetic plus the floor guard, and an integrated reading that
 	// has not risen off the floor is not a distance from anything.
@@ -150,9 +152,9 @@ func wireLoudnessModule() {
 			if lufsMeter != nil {
 				lufsMeter.Reset(lufsMeter.SampleRate())
 			}
-			lufsRes = LoudnessResult{
-				Momentary: LoudnessFloor, ShortTerm: LoudnessFloor,
-				Integrated: LoudnessFloor, TruePeak: LoudnessFloor,
+			lufsRes = meters.LoudnessResult{
+				Momentary: meters.LoudnessFloor, ShortTerm: meters.LoudnessFloor,
+				Integrated: meters.LoudnessFloor, TruePeak: meters.LoudnessFloor,
 			}
 			showLoudness()
 			return nil
@@ -164,7 +166,7 @@ func wireLoudnessModule() {
 // lufsDistanceToTarget is how far a reading is from a target, in LU. Positive
 // is too loud, which is the direction that gets a delivery rejected.
 func lufsDistanceToTarget(integrated, target float64) float64 {
-	if integrated <= LoudnessFloor {
+	if integrated <= meters.LoudnessFloor {
 		return math.NaN()
 	}
 	return integrated - target

@@ -1,4 +1,4 @@
-package attractor
+package meters
 
 import (
 	"math"
@@ -18,7 +18,7 @@ func TestComputeFFTMagsMatchesUpstream(t *testing.T) {
 			input[i] = float32(seed%20000)/10000 - 1
 		}
 		want := sg.ComputeFFT(input)
-		got := computeFFTMags(input)
+		got := ComputeFFTMags(input)
 		if len(got) != len(want) {
 			t.Fatalf("n=%d: len %d, want %d", n, len(got), len(want))
 		}
@@ -31,10 +31,10 @@ func TestComputeFFTMagsMatchesUpstream(t *testing.T) {
 }
 
 func TestComputeFFTMagsRejectsNonPow2(t *testing.T) {
-	if computeFFTMags(make([]float32, 1000)) != nil {
+	if ComputeFFTMags(make([]float32, 1000)) != nil {
 		t.Error("non-power-of-two length must return nil")
 	}
-	if computeFFTMags(nil) != nil {
+	if ComputeFFTMags(nil) != nil {
 		t.Error("empty input must return nil")
 	}
 }
@@ -46,7 +46,7 @@ func BenchmarkComputeFFTMags(b *testing.B) {
 	}
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		computeFFTMags(input)
+		ComputeFFTMags(input)
 	}
 }
 

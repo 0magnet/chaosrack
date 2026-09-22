@@ -1,4 +1,4 @@
-package attractor
+package meters
 
 import (
 	"math"
@@ -7,15 +7,15 @@ import (
 
 // allWindows is every window the FFT can apply, with what each is for.
 var allWindows = []struct {
-	wk   winKind
+	wk   WinKind
 	name string
 }{
-	{winHann, "Hann"},
-	{winHamming, "Hamming"},
-	{winBartlett, "Bartlett"},
-	{winRectangular, "rectangular"},
+	{WinHann, "Hann"},
+	{WinHamming, "Hamming"},
+	{WinBartlett, "Bartlett"},
+	{WinRectangular, "rectangular"},
 	{winBlackman, "Blackman"},
-	{winBlackmanHarris, "Blackman-Harris"},
+	{WinBlackmanHarris, "Blackman-Harris"},
 	{winNuttall, "Nuttall"},
 	{winFlatTop, "flat-top"},
 }
@@ -24,14 +24,14 @@ var allWindows = []struct {
 // bins away from a tone, in dB below the peak. It is the number that decides
 // how quiet a thing can be measured beside a loud one, which is the whole of
 // what a distortion floor is.
-func sidelobeFloor(wk winKind, n, skirt int) float64 {
+func sidelobeFloor(wk WinKind, n, skirt int) float64 {
 	// Deliberately off a bin center by a third, which is the worst case for
 	// leakage and the case a real signal is almost always in.
 	x := make([]float32, n)
 	for i := range x {
 		x[i] = float32(math.Sin(2 * math.Pi * (float64(n)/8 + 0.333) * float64(i) / float64(n)))
 	}
-	mags := computeFFTMagsKind(x, wk)
+	mags := ComputeFFTMagsKind(x, wk)
 	peak, peakAt := 0.0, 0
 	for i, m := range mags {
 		if m > peak {
@@ -59,7 +59,7 @@ func sidelobeFloor(wk winKind, n, skirt int) float64 {
 // no point adding them.
 func TestLowSidelobeWindowsAreActuallyLow(t *testing.T) {
 	const n, skirt = 8192, 8
-	hann := sidelobeFloor(winHann, n, skirt)
+	hann := sidelobeFloor(WinHann, n, skirt)
 	t.Logf("Hann leaks to %.1f dB past %d bins", hann, skirt)
 	// The improvement each is required to buy is stated per window rather than
 	// as one threshold, because they are not the same kind of window. Blackman
@@ -69,13 +69,13 @@ func TestLowSidelobeWindowsAreActuallyLow(t *testing.T) {
 	// truth about Blackman. The 4-term windows are the ones that change what can
 	// be measured, and they are the ones the analyzers use.
 	for _, c := range []struct {
-		wk         winKind
+		wk         WinKind
 		name       string
 		want       float64 // dB, at worst
 		betterThan float64 // dB it must beat Hann by
 	}{
 		{winBlackman, "Blackman", -60, 5},
-		{winBlackmanHarris, "Blackman-Harris", -85, 20},
+		{WinBlackmanHarris, "Blackman-Harris", -85, 20},
 		{winNuttall, "Nuttall", -85, 20},
 	} {
 		got := sidelobeFloor(c.wk, n, skirt)
@@ -96,22 +96,22 @@ func TestLowSidelobeWindowsAreActuallyLow(t *testing.T) {
 // under a tenth of that.
 func TestFlatTopReadsAmplitudeWhereverTheToneFalls(t *testing.T) {
 	const n = 8192
-	amp := func(wk winKind, offset float64) float64 {
+	amp := func(wk WinKind, offset float64) float64 {
 		x := make([]float32, n)
 		for i := range x {
 			x[i] = float32(math.Sin(2 * math.Pi * (100 + offset) * float64(i) / float64(n)))
 		}
-		mags := computeFFTMagsKind(x, wk)
+		mags := ComputeFFTMagsKind(x, wk)
 		peak := 0.0
 		for _, m := range mags {
 			if m > peak {
 				peak = m
 			}
 		}
-		m := windowMetrics(n, wk)
-		return 2 * peak / (float64(n) * m.coherentGain)
+		m := WindowMetrics(n, wk)
+		return 2 * peak / (float64(n) * m.CoherentGain)
 	}
-	spread := func(wk winKind) float64 {
+	spread := func(wk WinKind) float64 {
 		lo, hi := math.Inf(1), math.Inf(-1)
 		for _, off := range []float64{0, 0.1, 0.25, 0.5, 0.75, 0.9} {
 			v := amp(wk, off)
@@ -119,7 +119,7 @@ func TestFlatTopReadsAmplitudeWhereverTheToneFalls(t *testing.T) {
 		}
 		return 20 * math.Log10(hi/lo)
 	}
-	flat, hann := spread(winFlatTop), spread(winHann)
+	flat, hann := spread(winFlatTop), spread(WinHann)
 	if flat > 0.15 {
 		t.Errorf("flat-top's peak amplitude varies by %.3f dB across a bin; it exists not to", flat)
 	}
@@ -135,37 +135,37 @@ func TestFlatTopReadsAmplitudeWhereverTheToneFalls(t *testing.T) {
 func TestWindowMetricsAreConsistent(t *testing.T) {
 	const n = 4096
 	for _, w := range allWindows {
-		m := windowMetrics(n, w.wk)
-		if m.energy <= 0 {
-			t.Errorf("%s: energy %v", w.name, m.energy)
+		m := WindowMetrics(n, w.wk)
+		if m.Energy <= 0 {
+			t.Errorf("%s: energy %v", w.name, m.Energy)
 		}
-		if m.coherentGain <= 0 {
+		if m.CoherentGain <= 0 {
 			t.Errorf("%s: coherent gain %v — a window that sums to nothing cannot scale a tone",
-				w.name, m.coherentGain)
+				w.name, m.CoherentGain)
 		}
-		if m.enbw < 0.99 {
+		if m.ENBW < 0.99 {
 			t.Errorf("%s: ENBW %.4f bins, and no window collects less noise than a rectangular one",
-				w.name, m.enbw)
+				w.name, m.ENBW)
 		}
 	}
-	if m := windowMetrics(n, winRectangular); math.Abs(m.enbw-1) > 1e-9 {
-		t.Errorf("a rectangular window's ENBW is %.6f bins; it is 1 by definition", m.enbw)
+	if m := WindowMetrics(n, WinRectangular); math.Abs(m.ENBW-1) > 1e-9 {
+		t.Errorf("a rectangular window's ENBW is %.6f bins; it is 1 by definition", m.ENBW)
 	}
-	if m := windowMetrics(n, winRectangular); math.Abs(m.coherentGain-1) > 1e-9 {
-		t.Errorf("a rectangular window's coherent gain is %.6f; it is 1 by definition", m.coherentGain)
+	if m := WindowMetrics(n, WinRectangular); math.Abs(m.CoherentGain-1) > 1e-9 {
+		t.Errorf("a rectangular window's coherent gain is %.6f; it is 1 by definition", m.CoherentGain)
 	}
 	// Hann's published figures, which is what makes these the right formulas
 	// rather than merely consistent ones.
-	m := windowMetrics(n, winHann)
-	if math.Abs(m.coherentGain-0.5) > 1e-3 {
-		t.Errorf("Hann's coherent gain is %.4f, and it is 0.5", m.coherentGain)
+	m := WindowMetrics(n, WinHann)
+	if math.Abs(m.CoherentGain-0.5) > 1e-3 {
+		t.Errorf("Hann's coherent gain is %.4f, and it is 0.5", m.CoherentGain)
 	}
-	if math.Abs(m.enbw-1.5) > 1e-3 {
-		t.Errorf("Hann's ENBW is %.4f bins, and it is 1.5", m.enbw)
+	if math.Abs(m.ENBW-1.5) > 1e-3 {
+		t.Errorf("Hann's ENBW is %.4f bins, and it is 1.5", m.ENBW)
 	}
 	// ...and Blackman-Harris's, the window the distortion analyzer runs on.
-	if m := windowMetrics(n, winBlackmanHarris); math.Abs(m.enbw-2.0044) > 5e-3 {
-		t.Errorf("Blackman-Harris's ENBW is %.4f bins, and it is 2.0044", m.enbw)
+	if m := WindowMetrics(n, WinBlackmanHarris); math.Abs(m.ENBW-2.0044) > 5e-3 {
+		t.Errorf("Blackman-Harris's ENBW is %.4f bins, and it is 2.0044", m.ENBW)
 	}
 }
 
@@ -175,11 +175,11 @@ func TestWindowMetricsAreConsistent(t *testing.T) {
 func TestSpectrogramWindowsAreUnchanged(t *testing.T) {
 	const n = 1024
 	den := float64(n - 1)
-	want := map[winKind]func(i int) float64{
-		winHann:        func(i int) float64 { return 0.5 * (1 - math.Cos(2*math.Pi*float64(i)/den)) },
-		winHamming:     func(i int) float64 { return 0.54 - 0.46*math.Cos(2*math.Pi*float64(i)/den) },
-		winBartlett:    func(i int) float64 { return 1 - math.Abs((float64(i)-den/2)/(den/2)) },
-		winRectangular: func(i int) float64 { return 1 },
+	want := map[WinKind]func(i int) float64{
+		WinHann:        func(i int) float64 { return 0.5 * (1 - math.Cos(2*math.Pi*float64(i)/den)) },
+		WinHamming:     func(i int) float64 { return 0.54 - 0.46*math.Cos(2*math.Pi*float64(i)/den) },
+		WinBartlett:    func(i int) float64 { return 1 - math.Abs((float64(i)-den/2)/(den/2)) },
+		WinRectangular: func(i int) float64 { return 1 },
 	}
 	for wk, f := range want {
 		s := fftScratchFor(n, wk)

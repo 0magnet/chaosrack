@@ -1,4 +1,4 @@
-package attractor
+package meters
 
 import (
 	"math"

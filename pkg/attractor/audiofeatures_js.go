@@ -8,6 +8,7 @@ import (
 	"syscall/js"
 
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
+	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
 // Audio-feature analysis for modulating the attractors. When "Audio mod"
@@ -235,8 +236,8 @@ func updateAudioFeatures() {
 	if afMagsL == nil {
 		afMagsL = make([]float64, sg.FFTSize/2+1)
 	}
-	magsL := afMagsL[:copy(afMagsL, computeFFTMags(afWindowL))]
-	magsR := computeFFTMags(afWindowR)
+	magsL := afMagsL[:copy(afMagsL, meters.ComputeFFTMags(afWindowL))]
+	magsR := meters.ComputeFFTMags(afWindowR)
 	bL, mL, tL, cL := bandEnergies(magsL, sr)
 	bR, mR, tR, cR := bandEnergies(magsR, sr)
 
