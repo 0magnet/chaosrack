@@ -1,10 +1,11 @@
 package attractor
 
-import "github.com/0magnet/chaosrack/pkg/dynamics"
-
 import (
 	"math"
 	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/analysis"
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 )
 
 // The accumulator is deliberately separable from the flow, the stepper and the
@@ -245,13 +246,13 @@ func TestLiveLyapunovAgreesWithOfflineLorenz(t *testing.T) {
 	if !ready {
 		t.Fatalf("not ready after %v model time (accumulated %v)", lyapLiveReadyTime, l.time)
 	}
-	off := LyapunovForFlow("lorenz")
+	off := analysis.LyapunovForFlow("lorenz")
 	if !off.OK {
 		t.Skip("offline estimator could not measure lorenz")
 	}
-	if classify(live) != classify(off.Lambda) {
+	if analysis.Classify(live) != analysis.Classify(off.Lambda) {
 		t.Errorf("live %v (%s) and offline %v (%s) disagree on the verdict",
-			live, classify(live), off.Lambda, classify(off.Lambda))
+			live, analysis.Classify(live), off.Lambda, analysis.Classify(off.Lambda))
 	}
 	// A tenth of an exponent: the live estimate averages over a window three
 	// hundred times shorter than the offline one and is expected to sit a
@@ -300,7 +301,7 @@ func TestLiveLyapunovPeriodicReadsPeriodic(t *testing.T) {
 	if !ok {
 		t.Fatal("not ready")
 	}
-	if classify(lam) != "periodic" {
-		t.Errorf("lambda %v classified %q, want periodic", lam, classify(lam))
+	if analysis.Classify(lam) != "periodic" {
+		t.Errorf("lambda %v classified %q, want periodic", lam, analysis.Classify(lam))
 	}
 }

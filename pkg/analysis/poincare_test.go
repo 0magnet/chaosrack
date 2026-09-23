@@ -1,4 +1,4 @@
-package attractor
+package analysis
 
 import (
 	"math"
@@ -22,13 +22,13 @@ func vec3dist(a, b [3]float64) float64 {
 // curvature for the cubic to correct, so linear and Hermite have to agree with
 // each other and with the algebra.
 func TestAStraightSegmentCrossesWhereTheAlgebraSaysItDoes(t *testing.T) {
-	pl := newPoincarePlane([3]float64{0, 0, 1}, 0)
+	pl := NewPoincarePlane([3]float64{0, 0, 1}, 0)
 	// From z=-1 to z=+3: the plane is a quarter of the way along.
 	a := [3]float64{0, 0, -1}
 	b := [3]float64{8, 4, 3}
 	want := [3]float64{2, 1, 0}
 
-	hit, ok := poincareCross(pl, a, b, [3]float64{}, [3]float64{}, crossRising)
+	hit, ok := PoincareCross(pl, a, b, [3]float64{}, [3]float64{}, CrossRising)
 	if !ok {
 		t.Fatal("no crossing reported for a segment that plainly crosses")
 	}
@@ -39,7 +39,7 @@ func TestAStraightSegmentCrossesWhereTheAlgebraSaysItDoes(t *testing.T) {
 	// The same segment traversed at constant velocity: the Hermite path has to
 	// reproduce the straight line, not bend it.
 	v := [3]float64{b[0] - a[0], b[1] - a[1], b[2] - a[2]}
-	hit, ok = poincareCross(pl, a, b, v, v, crossRising)
+	hit, ok = PoincareCross(pl, a, b, v, v, CrossRising)
 	if !ok {
 		t.Fatal("no crossing reported with velocities supplied")
 	}
@@ -70,20 +70,20 @@ func TestInterpolatingBeatsSnapping(t *testing.T) {
 		return [3]float64{-radius * math.Sin(th) * h, 0, radius * math.Cos(th) * h}
 	}
 
-	pl := newPoincarePlane([3]float64{0, 0, 1}, 0)
+	pl := NewPoincarePlane([3]float64{0, 0, 1}, 0)
 	th0 := -0.3 * h // crossing at θ=0, three tenths of a step in
 	a, b := at(th0), at(th0+h)
 	want := [3]float64{radius, 0, 0}
 
-	snapErr := vec3dist(poincareSnap(pl, a, b), want)
+	snapErr := vec3dist(PoincareSnap(pl, a, b), want)
 
-	linHit, ok := poincareCross(pl, a, b, [3]float64{}, [3]float64{}, crossRising)
+	linHit, ok := PoincareCross(pl, a, b, [3]float64{}, [3]float64{}, CrossRising)
 	if !ok {
 		t.Fatal("linear path found no crossing")
 	}
 	linErr := vec3dist(linHit, want)
 
-	herHit, ok := poincareCross(pl, a, b, vel(th0), vel(th0+h), crossRising)
+	herHit, ok := PoincareCross(pl, a, b, vel(th0), vel(th0+h), CrossRising)
 	if !ok {
 		t.Fatal("Hermite path found no crossing")
 	}
@@ -126,12 +126,12 @@ func TestTheInterpolatorsConvergeAtTheirStatedOrders(t *testing.T) {
 		vel := func(th float64) [3]float64 {
 			return [3]float64{-radius * math.Sin(th) * h, 0, radius * math.Cos(th) * h}
 		}
-		pl := newPoincarePlane([3]float64{0, 0, 1}, 0)
+		pl := NewPoincarePlane([3]float64{0, 0, 1}, 0)
 		th0 := -0.3 * h
 		a, b := at(th0), at(th0+h)
 		want := [3]float64{radius, 0, 0}
-		lh, _ := poincareCross(pl, a, b, [3]float64{}, [3]float64{}, crossRising)
-		hh, _ := poincareCross(pl, a, b, vel(th0), vel(th0+h), crossRising)
+		lh, _ := PoincareCross(pl, a, b, [3]float64{}, [3]float64{}, CrossRising)
+		hh, _ := PoincareCross(pl, a, b, vel(th0), vel(th0+h), CrossRising)
 		return vec3dist(lh, want), vec3dist(hh, want)
 	}
 	lin1, her1 := measure(64)
@@ -152,26 +152,26 @@ func TestTheInterpolatorsConvergeAtTheirStatedOrders(t *testing.T) {
 // superimposes two different sections and stops the return map being a
 // function.
 func TestOneWayIgnoresTheReturnTrip(t *testing.T) {
-	pl := newPoincarePlane([3]float64{0, 0, 1}, 0)
+	pl := NewPoincarePlane([3]float64{0, 0, 1}, 0)
 	up := [2][3]float64{{0, 0, -1}, {0, 0, 1}}
 	down := [2][3]float64{{0, 0, 1}, {0, 0, -1}}
 	zero := [3]float64{}
 
-	if _, ok := poincareCross(pl, up[0], up[1], zero, zero, crossRising); !ok {
+	if _, ok := PoincareCross(pl, up[0], up[1], zero, zero, CrossRising); !ok {
 		t.Error("rising mode missed a rising crossing")
 	}
-	if _, ok := poincareCross(pl, down[0], down[1], zero, zero, crossRising); ok {
+	if _, ok := PoincareCross(pl, down[0], down[1], zero, zero, CrossRising); ok {
 		t.Error("rising mode reported the downward return trip; the section would be two " +
 			"superimposed sheets and the return map would alternate between two rules")
 	}
-	if _, ok := poincareCross(pl, down[0], down[1], zero, zero, crossFalling); !ok {
+	if _, ok := PoincareCross(pl, down[0], down[1], zero, zero, CrossFalling); !ok {
 		t.Error("falling mode missed a falling crossing")
 	}
-	if _, ok := poincareCross(pl, up[0], up[1], zero, zero, crossFalling); ok {
+	if _, ok := PoincareCross(pl, up[0], up[1], zero, zero, CrossFalling); ok {
 		t.Error("falling mode reported a rising crossing")
 	}
 	for _, seg := range [][2][3]float64{up, down} {
-		if _, ok := poincareCross(pl, seg[0], seg[1], zero, zero, crossEither); !ok {
+		if _, ok := PoincareCross(pl, seg[0], seg[1], zero, zero, CrossEither); !ok {
 			t.Error("both-ways mode missed a crossing")
 		}
 	}
@@ -182,14 +182,14 @@ func TestOneWayIgnoresTheReturnTrip(t *testing.T) {
 // the plane must produce nothing, or the section fills with points that are
 // not crossings at all.
 func TestNoCrossingWithoutASignChange(t *testing.T) {
-	pl := newPoincarePlane([3]float64{0, 0, 1}, 0)
+	pl := NewPoincarePlane([3]float64{0, 0, 1}, 0)
 	zero := [3]float64{}
 	for _, seg := range [][2][3]float64{
 		{{0, 0, -1}, {0, 0, -1e-9}},
 		{{0, 0, 1e-9}, {0, 0, 1}},
 		{{5, 5, -3}, {-5, -5, -3}},
 	} {
-		if _, ok := poincareCross(pl, seg[0], seg[1], zero, zero, crossEither); ok {
+		if _, ok := PoincareCross(pl, seg[0], seg[1], zero, zero, CrossEither); ok {
 			t.Errorf("%v → %v reported as a crossing; both ends are on the same side", seg[0], seg[1])
 		}
 	}
@@ -201,13 +201,13 @@ func TestNoCrossingWithoutASignChange(t *testing.T) {
 // map's diagonal — a spurious fixed point, which is precisely the thing a
 // reader of a return map is looking for.
 func TestASampleOnThePlaneIsCountedOnce(t *testing.T) {
-	pl := newPoincarePlane([3]float64{0, 0, 1}, 0)
+	pl := NewPoincarePlane([3]float64{0, 0, 1}, 0)
 	zero := [3]float64{}
 	arrive := [2][3]float64{{0, 0, -1}, {0, 0, 0}} // g0 < 0, g1 == 0
 	depart := [2][3]float64{{0, 0, 0}, {0, 0, 1}}  // g0 == 0, g1 > 0
 
-	_, a := poincareCross(pl, arrive[0], arrive[1], zero, zero, crossRising)
-	_, d := poincareCross(pl, depart[0], depart[1], zero, zero, crossRising)
+	_, a := PoincareCross(pl, arrive[0], arrive[1], zero, zero, CrossRising)
+	_, d := PoincareCross(pl, depart[0], depart[1], zero, zero, CrossRising)
 	if a == d {
 		t.Errorf("the arriving step and the departing step both report %v for a sample "+
 			"sitting exactly on the plane; exactly one of them must", a)
@@ -228,7 +228,7 @@ func TestTheInPlaneBasisIsAnOrthonormalFrame(t *testing.T) {
 		{1, 1, 1}, {0.3, -0.9, 0.05}, {1e-9, 1, 1e-9},
 	}
 	for _, n := range normals {
-		pl := newPoincarePlane(n, 0)
+		pl := NewPoincarePlane(n, 0)
 		u, v, nn := pl.u, pl.v, pl.n
 		dot := func(a, b [3]float64) float64 { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2] }
 		for name, got := range map[string]float64{
@@ -266,14 +266,14 @@ func TestAxisAlignedPlanesReadInTheObviousCoordinates(t *testing.T) {
 		{[3]float64{0, 1, 0}, [3]float64{0, 0, 1}, [3]float64{1, 0, 0}},
 	}
 	for _, c := range cases {
-		pl := newPoincarePlane(c.n, 0)
+		pl := NewPoincarePlane(c.n, 0)
 		if vec3dist(pl.u, c.u) > 1e-12 || vec3dist(pl.v, c.v) > 1e-12 {
 			t.Errorf("normal %v gives basis (%v, %v), want (%v, %v)", c.n, pl.u, pl.v, c.u, c.v)
 		}
 	}
 	// And the projection then IS the pair of coordinates the labels promise.
-	pl := newPoincarePlane([3]float64{0, 0, 1}, 7)
-	s, u := pl.project([3]float64{3, -4, 7})
+	pl := NewPoincarePlane([3]float64{0, 0, 1}, 7)
+	s, u := pl.Project([3]float64{3, -4, 7})
 	if math.Abs(s-3) > 1e-12 || math.Abs(u+4) > 1e-12 {
 		t.Errorf("z-plane projection of (3,-4,7) is (%g,%g), want (3,-4)", s, u)
 	}
@@ -282,9 +282,9 @@ func TestAxisAlignedPlanesReadInTheObviousCoordinates(t *testing.T) {
 // A plane offset from the origin crosses where the offset says, not where the
 // origin is. Trivial, and it is the arithmetic the offset knob rides on.
 func TestTheOffsetMovesThePlane(t *testing.T) {
-	pl := newPoincarePlane([3]float64{0, 0, 1}, 25)
+	pl := NewPoincarePlane([3]float64{0, 0, 1}, 25)
 	zero := [3]float64{}
-	hit, ok := poincareCross(pl, [3]float64{0, 0, 20}, [3]float64{10, 0, 30}, zero, zero, crossRising)
+	hit, ok := PoincareCross(pl, [3]float64{0, 0, 20}, [3]float64{10, 0, 30}, zero, zero, CrossRising)
 	if !ok {
 		t.Fatal("no crossing of the offset plane")
 	}
@@ -301,17 +301,17 @@ func TestTheOffsetMovesThePlane(t *testing.T) {
 // which is one wrong pair per ring-full in the return map: rare enough to look
 // like a real stray point rather than like a bug.
 func TestTheLogReadsOldestFirstAcrossAWrap(t *testing.T) {
-	var l poincareLog
-	l.reset(4)
+	var l PoincareLog
+	l.Reset(4)
 	for i := 0; i < 7; i++ {
-		l.add(poincareHit{S: float32(i)})
+		l.Add(PoincareHit{S: float32(i)})
 	}
-	if l.len() != 4 {
-		t.Fatalf("ring of 4 holds %d hits", l.len())
+	if l.Len() != 4 {
+		t.Fatalf("ring of 4 holds %d hits", l.Len())
 	}
 	want := []float32{3, 4, 5, 6}
 	for i, w := range want {
-		if got := l.at(i).S; got != w {
+		if got := l.At(i).S; got != w {
 			t.Errorf("at(%d) = %v, want %v — the ring is being read in slot order", i, got, w)
 		}
 	}
@@ -322,25 +322,25 @@ func TestTheLogReadsOldestFirstAcrossAWrap(t *testing.T) {
 // point wherever the two happen to fall, which on an otherwise clean parabola
 // is a single dot in open space that reads as structure.
 func TestAReseedBreaksTheReturnMapChain(t *testing.T) {
-	var l poincareLog
-	l.reset(8)
-	l.add(poincareHit{S: 1})
-	l.add(poincareHit{S: 2})
-	l.breakChain()
-	l.add(poincareHit{S: 3})
-	l.add(poincareHit{S: 4})
+	var l PoincareLog
+	l.Reset(8)
+	l.Add(PoincareHit{S: 1})
+	l.Add(PoincareHit{S: 2})
+	l.BreakChain()
+	l.Add(PoincareHit{S: 3})
+	l.Add(PoincareHit{S: 4})
 
-	if !l.at(0).Gap {
+	if !l.At(0).Gap {
 		t.Error("the very first hit has no predecessor and must be flagged")
 	}
-	if l.at(1).Gap {
+	if l.At(1).Gap {
 		t.Error("a hit that does follow its predecessor is flagged as a break")
 	}
-	if !l.at(2).Gap {
+	if !l.At(2).Gap {
 		t.Error("the hit after a reseed is not flagged; the return map would join two " +
 			"unrelated trajectories into one point")
 	}
-	if l.at(3).Gap {
+	if l.At(3).Gap {
 		t.Error("the break leaked past the hit it belonged to")
 	}
 }

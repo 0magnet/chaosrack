@@ -4,6 +4,8 @@ package attractor
 
 import (
 	_ "embed"
+
+	"github.com/0magnet/chaosrack/pkg/analysis"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 )
 
@@ -46,7 +48,7 @@ var paramLabels = map[string][]string{
 	// All three are short enough to ring a dial as they stand, so none of them
 	// needs a paramRingLabels entry — see ringLabelsFit.
 	"sect-axis": sectAxisNames,
-	"sect-dir":  poincareDirNames,
+	"sect-dir":  analysis.PoincareDirNames,
 	"sect-view": sectViewNames,
 	// What the recurrence plot is a plot OF — the raw audio, the delay
 	// embedding of that same audio, or the running attractor's own trajectory.

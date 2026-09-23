@@ -3,9 +3,11 @@
 package attractor
 
 import (
+	"strconv"
+
+	"github.com/0magnet/chaosrack/pkg/analysis"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"github.com/0magnet/chaosrack/pkg/glctx"
-	"strconv"
 )
 
 // The Poincaré section, as a thing on screen. The arithmetic is next door in
@@ -84,7 +86,7 @@ var (
 	// Direction. crossRising is the default and poincare.go says at length
 	// why: keeping both directions superimposes two different sections and
 	// stops the return map being a function.
-	sectDirF  float32 = crossRising
+	sectDirF  float32 = analysis.CrossRising
 	sectViewF float32 = sectViewPlane
 )
 
@@ -107,7 +109,7 @@ var (
 var sectPlaneParams = []paramDef{
 	{"sect-axis", "axis", &sectAxisF, sectAxisZ, 0, 2, 1},
 	{"sect-pos", "pos", &sectPosF, 0, -1, 1, 0.01},
-	{"sect-dir", "dir", &sectDirF, crossRising, 0, 2, 1},
+	{"sect-dir", "dir", &sectDirF, analysis.CrossRising, 0, 2, 1},
 }
 
 // sectViewParams is the model's extra control, appended to the three above.
@@ -135,8 +137,8 @@ var (
 	sectOn    bool   // the Trace > Sect switch
 	sectSig   string // system + plane the accumulated crossings belong to
 	sectState [4]float64
-	sectPlane poincarePlane
-	sectLog   poincareLog
+	sectPlane analysis.PoincarePlane
+	sectLog   analysis.PoincareLog
 	sectDraw  []float32 // per-frame vertex scratch
 	sectFit   bool      // the model has fitted its camera to a section worth fitting
 )
@@ -161,8 +163,8 @@ func sectSignature(mode string) string {
 // sectDirection is the direction knob as one of poincare.go's constants.
 func sectDirection() int {
 	d := int(sectDirF + 0.5)
-	if d < 0 || d > crossEither {
-		return crossRising
+	if d < 0 || d > analysis.CrossEither {
+		return analysis.CrossRising
 	}
 	return d
 }
@@ -261,8 +263,8 @@ func sectSeed(mode string, sys dynamics.FlowSys4, dt float64) {
 		}
 	}
 	mid, half := (lo+hi)/2, (hi-lo)/2
-	sectPlane = newPoincarePlane(sectNormal(), mid+float64(sectPosF)*half)
-	sectLog.reset(sectCap)
+	sectPlane = analysis.NewPoincarePlane(sectNormal(), mid+float64(sectPosF)*half)
+	sectLog.Reset(sectCap)
 	sectFit = false
 }
 
@@ -279,7 +281,7 @@ func sectAdvance(mode string, sys dynamics.FlowSys4, dt float64, n int) {
 			// A reseeded trajectory's first crossing does not follow the last
 			// one in time, and the return map must not join them.
 			sectState = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W0}
-			sectLog.breakChain()
+			sectLog.BreakChain()
 			continue
 		}
 		a := [3]float64{prev[0], prev[1], prev[2]}
@@ -287,16 +289,16 @@ func sectAdvance(mode string, sys dynamics.FlowSys4, dt float64, n int) {
 		// The cheap test first: a sign change in the wanted direction, or
 		// nothing. Only a step that actually crosses pays for the two field
 		// evaluations below, which is what makes the cubic affordable.
-		if !poincareAccepts(sectPlane.signed(a), sectPlane.signed(b), dir) {
+		if !analysis.PoincareAccepts(sectPlane.Signed(a), sectPlane.Signed(b), dir) {
 			continue
 		}
-		hit, ok := poincareCross(sectPlane, a, b,
+		hit, ok := analysis.PoincareCross(sectPlane, a, b,
 			sectField(sys, prev, dt), sectField(sys, sectState, dt), dir)
 		if !ok {
 			continue
 		}
-		s, t := sectPlane.project(hit)
-		sectLog.add(poincareHit{
+		s, t := sectPlane.Project(hit)
+		sectLog.Add(analysis.PoincareHit{
 			P: [3]float32{float32(hit[0]) * sc, float32(hit[1]) * sc, float32(hit[2]) * sc},
 			S: float32(s) * sc,
 			T: float32(t) * sc,
@@ -331,7 +333,7 @@ func sectRun(mode string) bool {
 		sectSeed(mode, sys, dt)
 	}
 	sectAdvance(mode, sys, dt, sectBudget(sys))
-	return sectLog.len() >= 2
+	return sectLog.Len() >= 2
 }
 
 // sectBuf returns the vertex scratch, grown on demand and bounded by the
@@ -354,15 +356,15 @@ func sectBuf(n int) []float32 {
 // with the gradient parameter running 0..1 over them so age reads the way it
 // does on the trail. get pulls the coordinates out of a hit — which is the
 // only difference between drawing the section in place and drawing it flat.
-func sectFillNewest(v []float32, get func(poincareHit) (float32, float32, float32)) int {
+func sectFillNewest(v []float32, get func(analysis.PoincareHit) (float32, float32, float32)) int {
 	n := len(v) / 4
-	base := sectLog.len() - n
+	base := sectLog.Len() - n
 	inv := float32(1)
 	if n > 1 {
 		inv = 1 / float32(n-1)
 	}
 	for i := 0; i < n; i++ {
-		x, y, z := get(sectLog.at(base + i))
+		x, y, z := get(sectLog.At(base + i))
 		j := i * 4
 		v[j], v[j+1], v[j+2] = x, y, z
 		v[j+3] = float32(i) * inv
@@ -370,8 +372,10 @@ func sectFillNewest(v []float32, get func(poincareHit) (float32, float32, float3
 	return n
 }
 
-func sectHitInPlace(h poincareHit) (float32, float32, float32) { return h.P[0], h.P[1], h.P[2] }
-func sectHitFlat(h poincareHit) (float32, float32, float32)    { return h.S, h.T, 0 }
+func sectHitInPlace(h analysis.PoincareHit) (float32, float32, float32) {
+	return h.P[0], h.P[1], h.P[2]
+}
+func sectHitFlat(h analysis.PoincareHit) (float32, float32, float32) { return h.S, h.T, 0 }
 
 // ── The overlay (Trace > Sect) ───────────────────────────────────────────
 
@@ -385,7 +389,7 @@ func sectTick(mode string) {
 	if !sectRun(mode) {
 		return
 	}
-	v := sectBuf(sectLog.len())
+	v := sectBuf(sectLog.Len())
 	n := sectFillNewest(v, sectHitInPlace)
 	// Gold, via the monochrome override, and put back afterwards: the section
 	// has to be visibly not-the-trail, and the trail's own gradient is whatever
@@ -455,7 +459,7 @@ func generatePoincare() {
 		// same space, and scaling one against the other shears the fractal —
 		// the banding's spacing relative to the section's extent is the thing
 		// being looked at. The camera fits around it once instead.
-		v := sectBuf(sectLog.len())
+		v := sectBuf(sectLog.Len())
 		uploadVerticesOnly(v, glctx.Types.Points, sectFillNewest(v, sectHitFlat))
 	case sectViewMap:
 		sectDrawReturnMap()
@@ -463,14 +467,14 @@ func generatePoincare() {
 		// The same picture the overlay draws, with the flow that made it
 		// absent — the section in the attractor's own coordinates, so the
 		// shape learned while watching the overlay is the shape here.
-		v := sectBuf(sectLog.len())
+		v := sectBuf(sectLog.Len())
 		uploadVerticesOnly(v, glctx.Types.Points, sectFillNewest(v, sectHitInPlace))
 	}
 	// Fit once, and only once there is a section to fit to. Fitting every frame
 	// would rescale the picture as it fills, which is the mistake the Takens
 	// mode made with its gain and undid: a figure that resizes as it
 	// accumulates reads as the structure itself moving.
-	if !sectFit && sectLog.len() > 256 {
+	if !sectFit && sectLog.Len() > 256 {
 		sectFit = true
 		autoFitCamera()
 	}
@@ -506,7 +510,7 @@ func generatePoincare() {
 // bifurcation explorer does normalize, correctly, because ITS axes are a swept
 // parameter against a value and have no common scale.
 func sectDrawReturnMap() {
-	total := sectLog.len()
+	total := sectLog.Len()
 	if total < 2 {
 		uploadVerticesOnly(vertBuf[:0], glctx.Types.Points, 0)
 		return
@@ -516,14 +520,14 @@ func sectDrawReturnMap() {
 	n := 0
 	lo, hi := float32(0), float32(0)
 	for i := 1; i < total && n < room-sectMapGuides; i++ {
-		next := sectLog.at(i)
+		next := sectLog.At(i)
 		if next.Gap {
 			// The predecessor is on a different trajectory: joining them plots
 			// a point that is about nothing, and one stray dot in open space
 			// on an otherwise clean parabola reads as structure.
 			continue
 		}
-		cur := sectLog.at(i - 1)
+		cur := sectLog.At(i - 1)
 		j := n * 4
 		v[j], v[j+1], v[j+2] = cur.S, next.S, 0
 		v[j+3] = float32(i) / float32(total)

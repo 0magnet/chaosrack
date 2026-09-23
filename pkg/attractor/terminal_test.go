@@ -1,6 +1,10 @@
 package attractor
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/analysis"
+)
 
 // The terminal is a mode like any other and has to be reachable like one. A
 // mode that exists in the generator registry but not in the catalog is a mode
@@ -39,7 +43,7 @@ func TestTerminalIsAReachableMode(t *testing.T) {
 	}
 	// And it has no dynamics: it is a picture, not a system. The Analysis
 	// module must decline it rather than print an exponent for it.
-	if r := LyapunovFor("terminal"); r.Verdict != "n/a" {
+	if r := analysis.LyapunovFor("terminal"); r.Verdict != "n/a" {
 		t.Errorf("Lyapunov verdict for a terminal is %q, want n/a", r.Verdict)
 	}
 }
