@@ -92,7 +92,7 @@ func TestEveryTauRowAgrees(t *testing.T) {
 	}
 	for _, c := range []struct{ mode, id string }{
 		{"takens", "takens-tau"}, {"recurrence", "takens-tau"},
-		{"stereo", "stereo-tau"}, {"polar", "polar-tau"},
+		{"stereo", "stereo-tau"}, {"polar", "takens-tau"},
 	} {
 		p, ok := find(c.mode, c.id)
 		if !ok {
@@ -228,6 +228,48 @@ func TestTakensSmoothStaysInsideTheVertexBudget(t *testing.T) {
 						knob, budget, winMS, v)
 				}
 			}
+		}
+	}
+}
+
+// A shared knob has to be shared STORAGE, not merely a matching row.
+//
+// TestEveryTauRowAgrees above checks that the rows offer the same range and
+// default, which is what "shared" looked like before Polar actually shared:
+// it had a polar-tau of its own with identical numbers, so that test passed
+// while turning one knob left the other mode's delay where it was. The rack
+// builds one element per id, so two modes declaring the same id and DIFFERENT
+// pointers is worse than two knobs — it is one knob that writes to whichever
+// variable the last-built row happened to bind.
+//
+// Stereo is deliberately not in this list. It keeps a tau per view instance
+// because the view grid exists so two cells can be set differently, and a
+// shared one would move all sixteen at once.
+func TestTheSharedTauIsOneVariable(t *testing.T) {
+	ptrOf := func(mode, id string) *float32 {
+		t.Helper()
+		for _, p := range attractorParams[mode] {
+			if p.ID == id {
+				return p.Value
+			}
+		}
+		t.Fatalf("%s has no %s row", mode, id)
+		return nil
+	}
+	want := ptrOf("takens", "takens-tau")
+	if want != &takensTau {
+		t.Fatalf("takens-tau does not point at takensTau")
+	}
+	for _, mode := range []string{"polar", "recurrence"} {
+		if got := ptrOf(mode, "takens-tau"); got != want {
+			t.Errorf("%s/takens-tau points at %p, takens points at %p — same knob, two variables", mode, got, want)
+		}
+	}
+	// And the retired row is really gone: an id nothing declares is an id the
+	// permalink and the MIDI map can no longer address.
+	for _, p := range attractorParams["polar"] {
+		if p.ID == "polar-tau" {
+			t.Error("polar-tau still declared; it was replaced by the shared takens-tau")
 		}
 	}
 }

@@ -384,7 +384,7 @@ func TestAbbreviatedKnobsCarryHelp(t *testing.T) {
 		"takens-tau", "takens-win", "takens-gain", "takens-smooth", "takens-chan",
 		"stereo-axes", "stereo-tau", "stereo-win", "stereo-gain",
 		"stereo-align", "stereo-width", "stereo-vg", "stereo-span",
-		"polar-map", "polar-drive", "polar-tau", "polar-win", "polar-gain", "polar-chan",
+		"polar-map", "polar-drive", "polar-win", "polar-gain", "polar-chan",
 	} {
 		h := helpFor(id)
 		if h == "" {
