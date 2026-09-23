@@ -49,9 +49,9 @@ analog computers at [glensstuff.com](https://glensstuff.com).
 - [What's inside](#whats-inside)
 - [Models](#models)
   - [Attractors](#attractors)
-  - [Sprott systems (1994)](#sprott-systems-1994)
   - [Maps](#maps)
   - [Scope](#scope)
+  - [Embeddings](#embeddings)
   - [Polyhedra](#polyhedra)
   - [Geometry](#geometry)
   - [Sequences](#sequences)
@@ -464,7 +464,7 @@ such column. The prose is the same text the Info overlay shows.
 
 ### Attractors
 
-[Rossler](#rossler) · [Lorenz](#lorenz) · [Chua](#chua) · [Aizawa](#aizawa) · [Sprott](#sprott) · [Thomas](#thomas) · [Halvorsen](#halvorsen) · [Chen](#chen) · [Dadras](#dadras) · [Rabinovich-Fabrikant](#rabinovich-fabrikant) · [Burke-Shaw](#burke-shaw) · [Lü](#lü) · [Newton-Leipnik](#newton-leipnik) · [Hyper-Rössler (4D)](#hyper-rössler-4d)
+[Rossler](#rossler) · [Lorenz](#lorenz) · [Chua](#chua) · [Aizawa](#aizawa) · [Sprott](#sprott) · [Thomas](#thomas) · [Halvorsen](#halvorsen) · [Chen](#chen) · [Dadras](#dadras) · [Rabinovich-Fabrikant](#rabinovich-fabrikant) · [Burke-Shaw](#burke-shaw) · [Lü](#lü) · [Newton-Leipnik](#newton-leipnik) · [Hyper-Rössler (4D)](#hyper-rössler-4d) · [Sprott Morph](#sprott-morph) · [Sprott A](#sprott-a) · [Sprott B](#sprott-b) · [Sprott C](#sprott-c) · [Sprott D](#sprott-d) · [Sprott E](#sprott-e) · [Sprott F](#sprott-f) · [Sprott G](#sprott-g) · [Sprott H](#sprott-h) · [Sprott I](#sprott-i) · [Sprott J](#sprott-j) · [Sprott K](#sprott-k) · [Sprott L](#sprott-l) · [Sprott M](#sprott-m) · [Sprott N](#sprott-n) · [Sprott O](#sprott-o) · [Sprott P](#sprott-p) · [Sprott Q](#sprott-q) · [Sprott R](#sprott-r) · [Sprott S](#sprott-s)
 
 #### Rossler
 
@@ -691,10 +691,6 @@ dw/dt = −cz + dw
 ```
 
 `#hyperrossler` · 4-D flow
-
-### Sprott systems (1994)
-
-[Sprott Morph](#sprott-morph) · [Sprott A](#sprott-a) · [Sprott B](#sprott-b) · [Sprott C](#sprott-c) · [Sprott D](#sprott-d) · [Sprott E](#sprott-e) · [Sprott F](#sprott-f) · [Sprott G](#sprott-g) · [Sprott H](#sprott-h) · [Sprott I](#sprott-i) · [Sprott J](#sprott-j) · [Sprott K](#sprott-k) · [Sprott L](#sprott-l) · [Sprott M](#sprott-m) · [Sprott N](#sprott-n) · [Sprott O](#sprott-o) · [Sprott P](#sprott-p) · [Sprott Q](#sprott-q) · [Sprott R](#sprott-r) · [Sprott S](#sprott-s)
 
 #### Sprott Morph
 
@@ -1123,7 +1119,7 @@ p' = p + K·sin θ
 
 ### Scope
 
-[Lissajous](#lissajous) · [Graphic Artist](#graphic-artist) · [Scope Pong](#scope-pong) · [Fourier Text](#fourier-text) · [Scope Clock](#scope-clock) · [Bouncing Ball](#bouncing-ball) · [XY Scope](#xy-scope) · [Takens Embedding](#takens-embedding) · [Stereo Embedding](#stereo-embedding) · [Polar Embedding](#polar-embedding)
+[Lissajous](#lissajous) · [Graphic Artist](#graphic-artist) · [Scope Pong](#scope-pong) · [Fourier Text](#fourier-text) · [Scope Clock](#scope-clock) · [Bouncing Ball](#bouncing-ball) · [XY Scope](#xy-scope)
 
 #### Lissajous
 
@@ -1211,6 +1207,10 @@ y'' = −g, bounce: v ← −e·v at the floor
 X/Y Scope — the classic two-channel oscilloscope figure, drawing the live audio's (left, right) sample pairs as a line strip. This is the goniometer, or stereo vectorscope, that sits on a mastering desk: correlated channels lie on a diagonal, anti-correlated on the other, and a phase difference opens the diagonal into an ellipse — which is how the display doubles as a stereo phase meter and a mono compatibility check, since what lies along the anti-correlated diagonal is exactly what disappears when the mix is summed to mono. The deflection is squared against the shorter side of the window, so the mono diagonal reads at 45° and a quarter-cycle phase difference draws a circle — not an ellipse the window's shape put there. An angle that cannot be trusted is the one thing a phase display may not have. A mono source is plotted against a lagged copy of itself, since a raw mono signal would otherwise be a featureless diagonal; the Stereo Embedding next door is the same figure with a third axis, and it does not fake a channel that is not there. AXES turns the display 45° into mid/side — M=(L+R)/2 and S=(L−R)/2, the orientation broadcast goniometers ship in, where center content lies along one axis and difference content along the other, so width is an extent rather than the eccentricity of a tilted ellipse. GAIN is the deflection; WIN the time base in milliseconds, short for the instantaneous phase relationship and long for the width of a whole mix; GLOW the afterglow, which is the control a hardware vectorscope is actually used through — at zero the frame is cleared as it always was, above it the trace decays instead, so a transient leaves something to read. LAG is how far a mono source is delayed against itself and SMTH how hard the beam is slew-limited between samples. CORR is the correlation meter: +1.00 means the channels are identical and the figure is the diagonal line, 0 means unrelated and a round cloud, −1.00 means one is the other's polarity inverted — which is exactly the content that disappears when the mix is summed to mono, and the reason this display is a mono-compatibility check. It reads L against R whatever AXES is set to, because it is a property of the channels rather than of the way they are drawn.
 
 `#xy` · audio
+
+### Embeddings
+
+[Takens Embedding](#takens-embedding) · [Stereo Embedding](#stereo-embedding) · [Polar Embedding](#polar-embedding)
 
 #### Takens Embedding
 
@@ -3568,18 +3568,19 @@ gocloc --not-match-d='(vendor|node_modules|\.git)' .
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-Go                             276           3649          11730          35389
-HTML                             4            255            187           2258
-Markdown                         1            563              7           1658
-JSON                             4              0              0           1397
-JavaScript                       2            112             83            936
-CSS                              1             36            487            595
-Makefile                         1             25             52            159
-YAML                             1              0              7             98
+Go                             459           6863          27394          64920
+HTML                            82            630            318          10438
+JSON                             4              0              0           4103
+Markdown                         2            832              7           2915
+JavaScript                       3            118             95            951
+CSS                              1             75            859            720
+Makefile                         1             31             52            230
+YAML                             1              0             11             99
 Bourne Shell                     3             19             63             85
+XML                              1              0              0             81
 BASH                             1              8             25             79
-Plain Text                       1              0              0              1
+Plain Text                       2              1              0              4
 -------------------------------------------------------------------------------
-TOTAL                          295           4667          12641          42655
+TOTAL                          560           8577          28824          84625
 -------------------------------------------------------------------------------
 ```
