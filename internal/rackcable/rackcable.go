@@ -20,6 +20,7 @@ import (
 
 	"github.com/0magnet/chaosrack/internal/cdp"
 	"github.com/0magnet/chaosrack/pkg/attractor"
+	"github.com/0magnet/chaosrack/pkg/racksurface"
 	"github.com/0magnet/chaosrack/pkg/racktui"
 )
 
@@ -150,23 +151,9 @@ const readRack = `(function(){
 // model card belongs to. The sections and the bays are computed by the same
 // code the rack itself runs, so the drawing cannot disagree with it.
 func (r *Client) Rack() (string, error) {
-	s, _ := r.c.Eval(readRack).(string)
-	var mods []struct {
-		K string `json:"k"`
-		S int    `json:"s"`
-		C string `json:"c"`
-	}
-	if err := json.Unmarshal([]byte(s), &mods); err != nil {
-		return "", fmt.Errorf("reading the panel: %w", err)
-	}
-	if len(mods) == 0 {
-		return "", errors.New("the page reported no modules")
-	}
-	keys := make([]string, len(mods))
-	cats := make([]string, len(mods))
-	slots := make([]int, len(mods))
-	for i, m := range mods {
-		keys[i], slots[i], cats[i] = m.K, m.S, m.C
+	keys, cats, slots, err := r.measure()
+	if err != nil {
+		return "", err
 	}
 	var monitors map[string]int
 	if r.Monitor > 0 {
@@ -191,4 +178,43 @@ func (r *Client) slotsPerRow() int {
 		return int(v)
 	}
 	return 12
+}
+
+// Modules is what the frame holds, for a front end that lays the rack out
+// rather than printing it.
+//
+// It reads the same measurement Rack does and stops one step earlier: the
+// items, grouped into their bays, instead of the drawing made from them. Both
+// go through attractor, so the picture and the geometry cannot disagree.
+func (r *Client) Modules() ([]racksurface.Item, int, error) {
+	keys, cats, slots, err := r.measure()
+	if err != nil {
+		return nil, 0, err
+	}
+	return attractor.RackItemsFrom(keys, cats, slots, nil), r.slotsPerRow(), nil
+}
+
+// measure reads what only a laid-out panel can answer: each module's name, the
+// slots it takes at the interface scale in use, and the category a model card
+// belongs to.
+func (r *Client) measure() (keys, cats []string, slots []int, err error) {
+	s, _ := r.c.Eval(readRack).(string)
+	var mods []struct {
+		K string `json:"k"`
+		S int    `json:"s"`
+		C string `json:"c"`
+	}
+	if err := json.Unmarshal([]byte(s), &mods); err != nil {
+		return nil, nil, nil, fmt.Errorf("reading the panel: %w", err)
+	}
+	if len(mods) == 0 {
+		return nil, nil, nil, errors.New("the page reported no modules")
+	}
+	keys = make([]string, len(mods))
+	cats = make([]string, len(mods))
+	slots = make([]int, len(mods))
+	for i, m := range mods {
+		keys[i], slots[i], cats[i] = m.K, m.S, m.C
+	}
+	return keys, cats, slots, nil
 }

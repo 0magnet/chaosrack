@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/0magnet/chaosrack/pkg/controlspec"
+	"github.com/0magnet/chaosrack/pkg/racksurface"
 )
 
 // fakeRack is a rack that remembers what it was told.
@@ -14,7 +15,24 @@ type fakeRack struct {
 	fail bool
 }
 
-func (f *fakeRack) Rack() (string, error) { return "┌──┐\n│  │ bay 1\n└──┘\n", nil }
+// Modules reports one two-slot module per distinct module name among the
+// controls, so a fake rack is described by its controls alone.
+func (f *fakeRack) Modules() ([]racksurface.Item, int, error) {
+	var out []racksurface.Item
+	seen := map[string]bool{}
+	for _, c := range f.ctls {
+		k := c.Module
+		if k == "" {
+			k = "console"
+		}
+		if seen[k] {
+			continue
+		}
+		seen[k] = true
+		out = append(out, racksurface.Item{Key: k, Title: k, Slots: 2, Section: "test"})
+	}
+	return out, 12, nil
+}
 
 func (f *fakeRack) Controls() ([]Control, error) {
 	out := make([]Control, len(f.ctls))

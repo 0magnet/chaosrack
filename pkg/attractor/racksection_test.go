@@ -370,7 +370,7 @@ func TestABayCarriesSeveralSections(t *testing.T) {
 		t.Fatalf("got %d runs in the bay, want 3: %+v", len(runs), runs)
 	}
 	for i, want := range []sectionRun{
-		{secInput, 0, 1}, {secAnalyze, 1, 2}, {secOutput, 3, 1},
+		{Section: secInput, From: 0, Count: 1}, {Section: secAnalyze, From: 1, Count: 2}, {Section: secOutput, From: 3, Count: 1},
 	} {
 		if runs[i] != want {
 			t.Errorf("run %d is %+v, want %+v", i, runs[i], want)
