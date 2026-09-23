@@ -1,8 +1,10 @@
 package attractor
 
-import "github.com/0magnet/chaosrack/pkg/dynamics"
+import (
+	"math"
 
-import "math"
+	"github.com/0magnet/chaosrack/pkg/dynamics"
+)
 
 // The largest Lyapunov exponent — how fast two nearby trajectories separate,
 // which is the number that says whether what is on screen is actually chaotic.
@@ -144,10 +146,11 @@ func finiteSlice(v []float64) bool {
 // LyapunovForMap estimates the exponent of a registered discrete map, per
 // ITERATE — a map has no dt, so per-time would be meaningless.
 func LyapunovForMap(key string) LyapunovResult {
-	step, ic, ok := MapStep(key)
+	m, ok := dynamics.MapFor(key)
 	if !ok {
 		return LyapunovResult{Verdict: "unknown", PerStep: true}
 	}
+	step, ic := m.Step, m.IC
 	adv := func(dst, s []float64) {
 		dst[0], dst[1], dst[2] = step(s[0], s[1], s[2])
 	}
@@ -258,7 +261,7 @@ func LyapunovFor(mode string) LyapunovResult {
 		return LyapunovForFlow4(mode)
 	}
 	switch {
-	case IsMap(mode):
+	case dynamics.IsMap(mode):
 		return LyapunovForMap(mode)
 	case dynamics.HasFlow(mode):
 		return LyapunovForFlow(mode)

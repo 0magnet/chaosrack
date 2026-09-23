@@ -3,11 +3,12 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"strconv"
 	"strings"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 )
 
 // Custom mode: user-editable attractor equations. The three (optionally four)
@@ -150,14 +151,14 @@ func paramPtrs(exprs []*Expr) [][]*float32 {
 // fall back to scanning the drawn trail. The map registry takes it instead,
 // which is how IsMap/MapStep steer LyapunovFor to its per-iterate branch.
 func registerCustomSystem() {
-	dynamics.Unregister4(customModeKey)
-	clearCustomMap()
+	dynamics.Unregister4(dynamics.CustomKey)
+	dynamics.ClearCustomMap()
 	if customErr != "" || customExpr[0] == nil {
 		return
 	}
 	if customIterate {
 		pp := paramPtrs(customExpr[:3])
-		setCustomMap(newIterateStep(
+		dynamics.SetCustomMap(newIterateStep(
 			[3]*Expr{customExpr[0], customExpr[1], customExpr[2]},
 			[3][]*float32{pp[0], pp[1], pp[2]}))
 		return
@@ -180,7 +181,7 @@ func registerCustomFlow() {
 			pv[i] = make([]float64, len(exprs[i].Params))
 		}
 	}
-	dynamics.RegisterFlow4(customModeKey, dynamics.FlowSys4{
+	dynamics.RegisterFlow4(dynamics.CustomKey, dynamics.FlowSys4{
 		Dt:    func() float64 { return float64(customDT) },
 		Euler: true, // generateCustom integrates with forward Euler
 		F: func(x, y, z, w float64) (float64, float64, float64, float64) {
@@ -216,11 +217,11 @@ func registerCustomFlow() {
 func generateCustom() {
 	if customErr != "" || customExpr[0] == nil {
 		// Nothing valid to run — leave the last frame on screen.
-		uploadVerticesOnly(vertBuf[:steps*4], mapDrawMode(customModeKey), steps)
+		uploadVerticesOnly(vertBuf[:steps*4], mapDrawMode(dynamics.CustomKey), steps)
 		return
 	}
 	if customIterate {
-		generateMap(customModeKey)
+		generateMap(dynamics.CustomKey)
 		return
 	}
 	// Per-frame snapshot of each expression's parameter values (aligned to
