@@ -24,11 +24,12 @@ package attractor
 // also asking it to draw two of them.
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"math"
 	"strconv"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 )
 
 // How many probe sub-steps a frame pays for. The interpreted (equation-engine)

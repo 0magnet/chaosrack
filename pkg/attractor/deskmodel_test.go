@@ -3,6 +3,8 @@ package attractor
 import (
 	"strings"
 	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/analysis"
 )
 
 // The desk is a mode like any other and has to be reachable like one, for the
@@ -34,7 +36,7 @@ func TestDeskIsAReachableMode(t *testing.T) {
 	if !isTexturePlane("desk") {
 		t.Error("desk is not marked as a texture-plane mode")
 	}
-	if r := LyapunovFor("desk"); r.Verdict != "n/a" {
+	if r := analysis.LyapunovFor("desk"); r.Verdict != "n/a" {
 		t.Errorf("Lyapunov verdict for a desk is %q, want n/a", r.Verdict)
 	}
 }

@@ -1,10 +1,11 @@
 package attractor
 
-import "github.com/0magnet/chaosrack/pkg/dynamics"
-
 import (
 	"math"
 	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/analysis"
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 )
 
 // The defaults of every registered flow must actually be CHAOTIC — this is
@@ -28,7 +29,7 @@ func TestClassicDefaultsAreChaotic(t *testing.T) {
 	// at its own timestep reports a system the app does not run — Sprott M came
 	// out at λ≈0.0008 that way and would have been called periodic.
 	for _, mode := range dynamics.ClassicKeys() {
-		r := LyapunovForFlow(mode)
+		r := analysis.LyapunovForFlow(mode)
 		t.Logf("%-14s λ ≈ %+.4f", mode, r.Lambda)
 		if !r.OK {
 			t.Errorf("%s: trajectory diverged or degenerated during the Lyapunov estimate", mode)
@@ -48,7 +49,7 @@ func TestSprottCatalogDefaultsAreChaotic(t *testing.T) {
 		t.Fatal("sprott catalog is empty")
 	}
 	for _, c := range dynamics.SprottCases {
-		r := LyapunovForFlow(c.Key)
+		r := analysis.LyapunovForFlow(c.Key)
 		t.Logf("%-14s λ ≈ %+.4f", c.Key, r.Lambda)
 		if !r.OK {
 			t.Errorf("%s: trajectory diverged or degenerated during the Lyapunov estimate", c.Key)
@@ -65,7 +66,7 @@ func TestSprottCatalogDefaultsAreChaotic(t *testing.T) {
 // the guard is too. Two positive exponents in the ideal system; the largest
 // must survive the app's dt.
 func TestHyperRosslerDefaultIsChaotic(t *testing.T) {
-	r := LyapunovForFlow4("hyperrossler")
+	r := analysis.LyapunovForFlow4("hyperrossler")
 	t.Logf("hyperrossler λ ≈ %+.4f", r.Lambda)
 	if !r.OK || r.Verdict != "chaotic" {
 		t.Errorf("hyperrossler: largest Lyapunov exponent %.4f reads %q — defaults are NOT chaotic",
