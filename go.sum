@@ -22,8 +22,6 @@ github.com/0magnet/pisano v0.0.0-20260916102036-895cf54258c0 h1:Uuj6qVvtk5ZlSp03
 github.com/0magnet/pisano v0.0.0-20260916102036-895cf54258c0/go.mod h1:ix/xEIiwWFraNmGf015yPFPqygjjUAuSTqNu/tMl3cs=
 github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc h1:6y75eIwQ0EswyiujMlGQxGHdaecl+qzYm17iRLn/Gy8=
 github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc/go.mod h1:tZ3EqtPbE2DQAzgP2iBdVgvPANj/EJBfGs/hAZRdBNo=
-github.com/0magnet/rack-go v0.0.0-20260922155830-6e8af213e96d h1:RqEuYrKaiAWd1TceVlSkFe44sJQZwzF/GZL8vSnLarQ=
-github.com/0magnet/rack-go v0.0.0-20260922155830-6e8af213e96d/go.mod h1:+Ujv92EHuD24yOz6wOagRmnQZ3Aw5nphM7STt16gnhs=
 github.com/0magnet/rack-go v0.0.0-20260922163944-6ac30b77a4fd h1:K5XdXlK+5uBMRSbfSYSnew43lu49ZCSDpmtjYXJFQGg=
 github.com/0magnet/rack-go v0.0.0-20260922163944-6ac30b77a4fd/go.mod h1:+Ujv92EHuD24yOz6wOagRmnQZ3Aw5nphM7STt16gnhs=
 github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a h1:xSuwvwPPsjc6tSMXk2BNuC+G3eGLgJ+/8EgPz/XoqxM=

@@ -14,6 +14,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -53,15 +54,43 @@ func runRack() {
 		fmt.Fprintln(os.Stderr, "rack:", err)
 		os.Exit(1)
 	}
+	plain, err := drawLiveRack(c, 0)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "rack:", err)
+		os.Exit(1)
+	}
+	fmt.Println("AS IT IS")
+	fmt.Print(plain)
+	if *rackMon > 0 {
+		withMon, err := drawLiveRack(c, *rackMon)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "rack:", err)
+			os.Exit(1)
+		}
+		fmt.Printf("\nWITH A %d-SLOT MONITOR IN EVERY BAY\n", *rackMon)
+		fmt.Print(withMon)
+	}
+}
+
+// drawLiveRack reads the panel and draws its bays. Shared by `uitool rack`,
+// which prints it, and `uitool tui`, which puts it above the controls.
+//
+// What comes off the page is only what has to be MEASURED — a module's name,
+// how many slots it takes at the interface scale in use, and the category a
+// model card belongs to. The sections and the bays are then computed by the
+// same code the rack itself runs, so the drawing cannot disagree with it.
+func drawLiveRack(c *cdp.Client, mon int) (string, error) {
 	s, _ := c.Eval(readRack).(string)
 	var mods []struct {
 		K string `json:"k"`
 		S int    `json:"s"`
 		C string `json:"c"`
 	}
-	if err := json.Unmarshal([]byte(s), &mods); err != nil || len(mods) == 0 {
-		fmt.Fprintln(os.Stderr, "rack: the page reported no modules")
-		os.Exit(1)
+	if err := json.Unmarshal([]byte(s), &mods); err != nil {
+		return "", fmt.Errorf("reading the panel: %w", err)
+	}
+	if len(mods) == 0 {
+		return "", errors.New("the page reported no modules")
 	}
 	keys := make([]string, len(mods))
 	cats := make([]string, len(mods))
@@ -69,28 +98,28 @@ func runRack() {
 	for i, m := range mods {
 		keys[i], slots[i], cats[i] = m.K, m.S, m.C
 	}
-	capacity := *rackCap
-	if capacity <= 0 {
-		if v, ok := c.Eval(`(function(){
-		  var f=document.querySelector('.rack-frame');
-		  var scale=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--kscale'))||1;
-		  return f ? Math.max(1, Math.round(f.clientWidth/((140.24+2)*scale))) : 0})()`).(float64); ok && v > 0 {
-			capacity = int(v)
-		}
-	}
-	if capacity <= 0 {
-		capacity = 12
-	}
-	fmt.Printf("%d modules, %d slots a row\n\n", len(mods), capacity)
-	fmt.Println("AS IT IS")
-	fmt.Print(attractor.DrawRackFrom(keys, cats, slots, capacity, nil))
-	if *rackMon > 0 {
-		mon := map[string]int{}
+	capacity := rackCapacity(c)
+	var monitors map[string]int
+	if mon > 0 {
+		monitors = map[string]int{}
 		for i, k := range keys {
-			mon[attractor.DrawSectionOf(k, cats, i)] = *rackMon
-			_ = k
+			monitors[attractor.DrawSectionOf(k, cats, i)] = mon
 		}
-		fmt.Printf("\nWITH A %d-SLOT MONITOR IN EVERY BAY\n", *rackMon)
-		fmt.Print(attractor.DrawRackFrom(keys, cats, slots, capacity, mon))
 	}
+	return attractor.DrawRackFrom(keys, cats, slots, capacity, monitors), nil
+}
+
+// rackCapacity is how many slots a row holds, asked of the page because it
+// depends on the interface scale in use.
+func rackCapacity(c *cdp.Client) int {
+	if *rackCap > 0 {
+		return *rackCap
+	}
+	if v, ok := c.Eval(`(function(){
+	  var f=document.querySelector('.rack-frame');
+	  var scale=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--kscale'))||1;
+	  return f ? Math.max(1, Math.round(f.clientWidth/((140.24+2)*scale))) : 0})()`).(float64); ok && v > 0 {
+		return int(v)
+	}
+	return 12
 }
