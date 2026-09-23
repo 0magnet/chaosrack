@@ -1,5 +1,7 @@
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dynamics"
+
 import (
 	"math"
 	"testing"
@@ -26,8 +28,8 @@ func TestQuadExtractReproducesCatalog(t *testing.T) {
 		}
 	}
 	check("Sprott A", sprottADeriv)
-	for _, sc := range sprottCases {
-		check(sc.name, sc.deriv)
+	for _, sc := range dynamics.SprottCases {
+		check(sc.Name, sc.Deriv)
 	}
 }
 

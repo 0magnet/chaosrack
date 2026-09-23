@@ -20,6 +20,7 @@ package attractor
 // does not.
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"strconv"
 	"syscall/js"
 )
@@ -87,7 +88,7 @@ func bifParam() (paramDef, int, bool) {
 }
 
 func generateBifurcation() {
-	sys, ok := flowFor4(lastFlowMode)
+	sys, ok := dynamics.FlowFor4(lastFlowMode)
 	if !ok {
 		return
 	}
@@ -107,18 +108,18 @@ func generateBifurcation() {
 
 	// Progressive sweep: a few columns per frame.
 	cols := 3
-	if sys.interpreted {
+	if sys.Interpreted {
 		cols = 1
 	}
-	dt := sys.dt()
-	ic := initCondFor(lastFlowMode)
+	dt := sys.Dt()
+	ic := dynamics.InitCondFor(lastFlowMode)
 	for c := 0; c < cols && bifNextCol < bifCols; c++ {
 		j := bifNextCol
 		bifNextCol++
 		pv := p.Min + (p.Max-p.Min)*float32(j)/float32(bifCols-1)
 		saved := *p.Value
 		*p.Value = pv
-		s := [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.w()}
+		s := [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W()}
 		const transient = 1500
 		for i := 0; i < transient; i++ {
 			twinStep(sys, &s, dt)

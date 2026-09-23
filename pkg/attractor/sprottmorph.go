@@ -1,5 +1,7 @@
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dynamics"
+
 // Sprott Morph — the faithful version of the glensstuff.com Self-Programming
 // Analog Computer, which stepped itself through the Sprott catalog by
 // re-patching. Every Sprott A–S system is a QUADRATIC 3-D flow, i.e. a
@@ -89,19 +91,19 @@ func sprottADeriv(x, y, z float64) (float64, float64, float64) {
 // sprottMorphSystems builds the full A–S coefficient table from the
 // catalog's own equations.
 func sprottMorphSystems() []sprottMorphSys {
-	out := make([]sprottMorphSys, 0, 1+len(sprottCases))
+	out := make([]sprottMorphSys, 0, 1+len(dynamics.SprottCases))
 	out = append(out, sprottMorphSys{
 		letter: "A",
 		coefs:  quadExtract(sprottADeriv),
 		dt:     0.01,
 		ic:     [3]float32{0.1, 0.2, 0.3},
 	})
-	for _, sc := range sprottCases {
+	for _, sc := range dynamics.SprottCases {
 		out = append(out, sprottMorphSys{
-			letter: sc.name[len(sc.name)-1:],
-			coefs:  quadExtract(sc.deriv),
-			dt:     float64(sc.dt),
-			ic:     sc.ic,
+			letter: sc.Name[len(sc.Name)-1:],
+			coefs:  quadExtract(sc.Deriv),
+			dt:     float64(sc.DT),
+			ic:     sc.IC,
 		})
 	}
 	return out

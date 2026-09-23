@@ -1,5 +1,7 @@
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dynamics"
+
 import (
 	"math"
 	"math/rand"
@@ -362,7 +364,7 @@ func TestABareDiagonalHasNoDeterminismToReport(t *testing.T) {
 // exactly the size asked for — a short one would leave part of the square
 // unwritten and a long one would read past it.
 func TestTrajectorySeriesIsExactlyTheLengthAsked(t *testing.T) {
-	for _, mode := range FlowKeys() {
+	for _, mode := range dynamics.Keys() {
 		span := RecurrenceSpan(mode, 10, 256)
 		if span <= 0 {
 			t.Errorf("%s: no span at all", mode)
@@ -387,13 +389,13 @@ func TestTrajectorySeriesIsExactlyTheLengthAsked(t *testing.T) {
 // integrates at dt = 0.0005, so its span is capped an order of magnitude below
 // Lorenz's for the same cost.
 func TestSpanNeverBuysMoreStepsThanTheBudget(t *testing.T) {
-	for _, mode := range FlowKeys() {
-		sys, ok := flowFor4(mode)
+	for _, mode := range dynamics.Keys() {
+		sys, ok := dynamics.FlowFor4(mode)
 		if !ok {
 			t.Errorf("%s is in FlowKeys but has no 4D form", mode)
 			continue
 		}
-		dt := sys.dt()
+		dt := sys.Dt()
 		span := RecurrenceSpan(mode, 1e9, 256)
 		if steps := (recTrajTransient + span) / dt; steps > recTrajStepBudget+1 {
 			t.Errorf("%s: an unbounded request bought %.0f steps, over the %d budget",
@@ -409,17 +411,17 @@ func TestSpanNeverBuysMoreStepsThanTheBudget(t *testing.T) {
 // back nil, the texture kept the previous frame, and the mode looked hung.
 func TestSpanIsRaisedUntilItCanFillTheColumns(t *testing.T) {
 	const n = 256
-	for _, mode := range FlowKeys() {
-		sys, _ := flowFor4(mode)
+	for _, mode := range dynamics.Keys() {
+		sys, _ := dynamics.FlowFor4(mode)
 		span := RecurrenceSpan(mode, 10, n)
-		if steps := span / sys.dt(); steps < n {
+		if steps := span / sys.Dt(); steps < n {
 			t.Errorf("%s: a span of %v buys %.0f steps for a %d-column plot", mode, span, steps, n)
 		}
 		// A request that is already long enough must come back untouched, or
 		// the floor is quietly rewriting every span rather than the short ones.
-		if want := 200.0; want/sys.dt() >= n {
+		if want := 200.0; want/sys.Dt() >= n {
 			if got := RecurrenceSpan(mode, want, n); got != want &&
-				got != float64(recTrajStepBudget)*sys.dt()-recTrajTransient {
+				got != float64(recTrajStepBudget)*sys.Dt()-recTrajTransient {
 				t.Errorf("%s: a %v-unit span came back as %v", mode, want, got)
 			}
 		}
@@ -440,7 +442,7 @@ func TestTheDefaultEpsilonIsReadableOnEveryRegisteredSystem(t *testing.T) {
 	m := make([]byte, n*n)
 	worstLo, worstHi := "", ""
 	lo, hi := 1.0, 0.0
-	for _, mode := range FlowKeys() {
+	for _, mode := range dynamics.Keys() {
 		s := TrajectorySeries(mode, n, RecurrenceSpan(mode, 10, n))
 		if s == nil {
 			t.Errorf("%s: no trajectory", mode)

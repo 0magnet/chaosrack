@@ -1,4 +1,4 @@
-package attractor
+package dynamics
 
 // Data half of the systems that integrate through the shared RK4 loop: their
 // vector fields, timesteps and initial conditions, untagged so that anything
@@ -13,30 +13,30 @@ package attractor
 
 // ── Lü (Jinhu Lü and Guanrong Chen, 2002) ─────────────────────────────────
 // The third member of the Lorenz–Chen–Lü family.
-var luDT, luA, luB, luC float32 = 0.005, 36, 3, 20
+var LuDT, LuA, LuB, LuC float32 = 0.005, 36, 3, 20
 
-func luDeriv(x, y, z float64) (float64, float64, float64) {
-	a, b, c := float64(luA), float64(luB), float64(luC)
+func LuDeriv(x, y, z float64) (float64, float64, float64) {
+	a, b, c := float64(LuA), float64(LuB), float64(LuC)
 	return a * (y - x), c*y - x*z, x*y - b*z
 }
 
 // ── Newton–Leipnik ────────────────────────────────────────────────────────
 // A rigid-body rotation model with linear feedback torque, carrying two
 // coexisting scroll-shaped attractors.
-var nlDT, nlA, nlB float32 = 0.005, 0.4, 0.175
+var NlDT, NlA, NlB float32 = 0.005, 0.4, 0.175
 
-func nlDeriv(x, y, z float64) (float64, float64, float64) {
-	a, b := float64(nlA), float64(nlB)
+func NlDeriv(x, y, z float64) (float64, float64, float64) {
+	a, b := float64(NlA), float64(NlB)
 	return -a*x + y + 10*y*z, -x - 0.4*y + 5*x*z, b*z - 5*x*y
 }
 
 // ── Rabinovich–Fabrikant ──────────────────────────────────────────────────
 // Chaotic at α=1.1, γ=0.87 (the canonical set). Stiff, with a small basin,
 // which is why it runs in double precision: in single the trajectory escapes.
-var rabDT, rabAlpha, rabGamma float32 = 0.001, 1.1, 0.87
+var RabDT, RabAlpha, RabGamma float32 = 0.001, 1.1, 0.87
 
-func rabDeriv(x, y, z float64) (float64, float64, float64) {
-	al, ga := float64(rabAlpha), float64(rabGamma)
+func RabDeriv(x, y, z float64) (float64, float64, float64) {
+	al, ga := float64(RabAlpha), float64(RabGamma)
 	return y*(z-1+x*x) + ga*x, x*(3*z+1-x*x) + ga*y, -2 * z * (al + x*y)
 }
 
@@ -46,18 +46,18 @@ func init() {
 	// registry's own table, and writing a made-up one over it put the system
 	// outside its small basin, where it escaped during the transient and
 	// traced nothing at all.
-	attractorInitCond["lu"] = [3]float32{5, 5, 5}
-	attractorInitCond["newtonleipnik"] = [3]float32{0.349, 0, -0.16}
+	InitCond["lu"] = [3]float32{5, 5, 5}
+	InitCond["newtonleipnik"] = [3]float32{0.349, 0, -0.16}
 
-	registerFlow64("lu", &luDT, luDeriv)
-	registerFlow64("newtonleipnik", &nlDT, nlDeriv)
-	registerFlow64("rabinovich", &rabDT, rabDeriv)
+	registerFlow64("lu", &LuDT, LuDeriv)
+	registerFlow64("newtonleipnik", &NlDT, NlDeriv)
+	registerFlow64("rabinovich", &RabDT, RabDeriv)
 
 	// The Sprott catalog integrates through the same shared loop, so its
 	// cases were invisible to the registry for the same reason. Their fields
 	// are already untagged in sprottdata.go; this is the registration.
-	for i := range sprottCases {
-		c := &sprottCases[i]
-		registerFlow64(c.key, &c.dt, c.deriv)
+	for i := range SprottCases {
+		c := &SprottCases[i]
+		registerFlow64(c.Key, &c.DT, c.Deriv)
 	}
 }

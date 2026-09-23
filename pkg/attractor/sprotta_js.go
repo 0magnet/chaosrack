@@ -2,6 +2,8 @@
 
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dynamics"
+
 // Sprott case A — the conservative Nosé–Hoover oscillator, completing the
 // A–S set (cases B–S live in sprottdata.go / sprottcases.go). Needs the
 // double-precision RK4 loop: single-precision Euler damps it into a clean
@@ -19,5 +21,5 @@ func init() {
 	attractorParams["sprotta"] = []paramDef{
 		{"sprotta-dt", "dt", &sprottADT, 0.0005, 0.0001, 0.02, 0.0001},
 	}
-	attractorInitCond["sprotta"] = [3]float32{0, 5, 0}
+	dynamics.InitCond["sprotta"] = [3]float32{0, 5, 0}
 }

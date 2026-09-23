@@ -2,6 +2,8 @@
 
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dynamics"
+
 // generateClassic is THE render loop for every classic (bespoke-Euler) flow
 // mode: forward-Euler at the mode's dt, speedSteps sub-steps per stored
 // point, float32 state carried across frames. It replaced ten byte-identical
@@ -9,7 +11,7 @@ package attractor
 // and its deriv (registered in flowregistry.go), so the equations exist in exactly
 // one place, shared with the audio integrator.
 func generateClassic(mode string) {
-	sys, ok := classicSystems[mode]
+	dtp, deriv, ok := dynamics.Classic(mode)
 	if !ok {
 		return
 	}
@@ -17,9 +19,9 @@ func generateClassic(mode string) {
 	invN := float32(1) / float32(steps-1)
 	sub := effSubSteps(speedSteps, steps, frameBudgetCompiled)
 	for i := 0; i < steps; i++ {
-		dt := *sys.dt * speedScale
+		dt := *dtp * speedScale
 		for s := 0; s < sub; s++ {
-			dx, dy, dz := sys.f(x, y, z)
+			dx, dy, dz := deriv(x, y, z)
 			x, y, z = x+dt*dx, y+dt*dy, z+dt*dz
 			checkDiverged()
 		}

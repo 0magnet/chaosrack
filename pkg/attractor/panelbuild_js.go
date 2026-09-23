@@ -4,6 +4,7 @@ package attractor
 
 import (
 	_ "embed"
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"strconv"
 	"syscall/js"
 )
@@ -527,7 +528,7 @@ func buildParamPanelNow(mode string) {
 	if _, isFlow := lyapLiveSystem(mode); isFlow {
 		// The live Lyapunov exponent, same placement and same reason. Only on
 		// the continuous flows, and lyapLiveSystem is what draws that line —
-		// from the mode's declared class rather than from whether flowFor4
+		// from the mode's declared class rather than from whether dynamics.FlowFor4
 		// happens to answer, for the reason spelled out there. A map's
 		// exponent is per iterate and a polyhedron has none; both belong to
 		// the Analysis module, which can say so in words, rather than to a
@@ -714,7 +715,7 @@ func buildSectionModule(mode string, paramsDiv js.Value) {
 	if !sectOn || mode == "poincare" {
 		return
 	}
-	if _, isFlow := flowFor4(mode); !isFlow {
+	if _, isFlow := dynamics.FlowFor4(mode); !isFlow {
 		// Nothing to section. The switch stays on — it is a preference about
 		// flows, and hopping through a dodecahedron on the way to another
 		// attractor should not turn it off.

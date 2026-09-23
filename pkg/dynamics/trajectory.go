@@ -1,6 +1,9 @@
-package attractor
+package dynamics
 
-import "math"
+import (
+	"math"
+	"sort"
+)
 
 // Trajectories of the registered flows, for anything outside the browser that
 // wants the curve itself rather than a picture of it — the STL export, and
@@ -10,16 +13,26 @@ import "math"
 // the same registry the renderer integrates, so a path exported here is the
 // path the app draws, not a second implementation of the same equations.
 
-// FlowKeys returns every mode with a registered vector field, in the
-// catalog's order so the output is stable. 4-D systems are included: what
-// they trace is the (x,y,z) projection, which is what the renderer draws.
-func FlowKeys() []string {
-	var out []string
-	for _, k := range CatalogKeys() {
-		if HasFlow(k) {
+// Keys is every system with a registered vector field, sorted. 4-D systems
+// are included: what they trace is the (x,y,z) projection, which is what the
+// renderer draws.
+//
+// Sorted rather than in the catalog's order, which is what it used to be. The
+// catalog is the MODE SELECTOR — labels, groups, descriptions, the order a
+// knob turns through — and a package about vector fields has no business
+// knowing about it. Sorting is stable for the same reason and costs nothing;
+// a caller that wants them in panel order has the catalog and can say so.
+func Keys() []string {
+	out := make([]string, 0, len(flowSystems)+len(flowSystems4))
+	for k := range flowSystems {
+		out = append(out, k)
+	}
+	for k := range flowSystems4 {
+		if _, dup := flowSystems[k]; !dup {
 			out = append(out, k)
 		}
 	}
+	sort.Strings(out)
 	return out
 }
 
@@ -79,7 +92,7 @@ func Trajectory(mode string, o TrajectoryOptions) [][3]float64 {
 		o.MaxPoints = 2
 	}
 
-	ic := initCondFor(mode)
+	ic := InitCondFor(mode)
 	x, y, z := float64(ic[0]), float64(ic[1]), float64(ic[2])
 
 	// RK4, not the forward Euler the classic render loops use.
@@ -90,7 +103,7 @@ func Trajectory(mode string, o TrajectoryOptions) [][3]float64 {
 	// it through the shared RK4 loop for exactly that reason. For the systems
 	// that do run Euler in their render loop the attractor is the same set
 	// either way — a better integrator does not move it, it just stays on it.
-	step := func() { x, y, z = rk4(sys.f, dt, x, y, z) }
+	step := func() { x, y, z = RK4(sys.f, dt, x, y, z) }
 	for t := 0.0; t < o.Transient; t += dt {
 		step()
 		if diverged(x, y, z) {
@@ -143,8 +156,8 @@ func diverged(x, y, z float64) bool {
 // The hidden state has to be seeded on the attractor rather than at zero: the
 // hyper-Rössler DIVERGES from w=0 at the canonical parameters, and the render
 // loop only looks healthy there because its divergence guard keeps reseeding.
-func trajectory4(s flowSys4, mode string, o TrajectoryOptions) [][3]float64 {
-	dt := s.dt()
+func trajectory4(s FlowSys4, mode string, o TrajectoryOptions) [][3]float64 {
+	dt := s.Dt()
 	if dt <= 0 {
 		return nil
 	}
@@ -154,9 +167,9 @@ func trajectory4(s flowSys4, mode string, o TrajectoryOptions) [][3]float64 {
 	if o.MaxPoints < 2 {
 		o.MaxPoints = 2
 	}
-	ic := initCondFor(mode)
-	st := [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), s.w0}
-	step := func() { st = rk4x4(s.f, dt, st) }
+	ic := InitCondFor(mode)
+	st := [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), s.W0}
+	step := func() { st = RK4x4(s.F, dt, st) }
 	for t := 0.0; t < o.Transient; t += dt {
 		step()
 		if diverged(st[0], st[1], st[2]) {
@@ -172,7 +185,7 @@ func trajectory4(s flowSys4, mode string, o TrajectoryOptions) [][3]float64 {
 		every = (total + o.MaxPoints - 1) / o.MaxPoints
 	}
 	out := make([][3]float64, 0, total/every+1)
-	sc := float64(s.scale)
+	sc := float64(s.Scale)
 	for i := 0; i < total; i++ {
 		step()
 		if diverged(st[0], st[1], st[2]) {
@@ -185,8 +198,8 @@ func trajectory4(s flowSys4, mode string, o TrajectoryOptions) [][3]float64 {
 	return out
 }
 
-// rk4 advances a 3-D field by one step of classical Runge-Kutta.
-func rk4(f flowDeriv, dt, x, y, z float64) (float64, float64, float64) {
+// RK4 advances a 3-D field by one step of classical Runge-Kutta.
+func RK4(f Deriv, dt, x, y, z float64) (float64, float64, float64) {
 	k1x, k1y, k1z := f(x, y, z)
 	k2x, k2y, k2z := f(x+dt/2*k1x, y+dt/2*k1y, z+dt/2*k1z)
 	k3x, k3y, k3z := f(x+dt/2*k2x, y+dt/2*k2y, z+dt/2*k2z)
@@ -196,8 +209,8 @@ func rk4(f flowDeriv, dt, x, y, z float64) (float64, float64, float64) {
 		z + dt/6*(k1z+2*k2z+2*k3z+k4z)
 }
 
-// rk4x4 is the same step for a 4-D field.
-func rk4x4(f flowDeriv4, dt float64, s [4]float64) [4]float64 {
+// RK4x4 is the same step for a 4-D field.
+func RK4x4(f Deriv4, dt float64, s [4]float64) [4]float64 {
 	add := func(s [4]float64, k [4]float64, h float64) [4]float64 {
 		return [4]float64{s[0] + h*k[0], s[1] + h*k[1], s[2] + h*k[2], s[3] + h*k[3]}
 	}

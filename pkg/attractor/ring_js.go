@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"math"
 	"runtime"
 	"strconv"
@@ -32,7 +33,7 @@ import (
 //   - Priming = let the mode's normal scan generator run one frame (fills
 //     the buffer, warms centerOffset, and — for integrate3D modes — captures
 //     the vector field into the flow registry); the beam takes over next
-//     frame via flowFor4 (3D flows lifted with w≡0, so 4D equation modes —
+//     frame via dynamics.FlowFor4 (3D flows lifted with w≡0, so 4D equation modes —
 //     hyperrossler, custom — ring like everything else). Modes without a
 //     registered field (parametric, geometry) simply stay in scan mode.
 
@@ -61,7 +62,7 @@ func ringTick(mode string) bool {
 	if !ringOn {
 		return false
 	}
-	sys, ok := flowFor4(mode)
+	sys, ok := dynamics.FlowFor4(mode)
 	if !ok {
 		return false
 	}
@@ -80,24 +81,24 @@ func ringTick(mode string) bool {
 		n = steps
 	}
 	budget := frameBudgetCompiled
-	if sys.interpreted {
+	if sys.Interpreted {
 		budget = frameBudgetInterpreted
 	}
 	sub := effSubSteps(speedSteps, n, budget)
-	dt := sys.dt() * float64(speedScale)
+	dt := sys.Dt() * float64(speedScale)
 	const lim = 1e4
 	start := ringHead
 	invN := float32(1) / float32(steps-1)
-	scale := sys.scale
+	scale := sys.Scale
 	for i := 0; i < n; i++ {
 		for s := 0; s < sub; s++ {
-			dx, dy, dz, dw := sys.f(ringX, ringY, ringZ, ringW)
+			dx, dy, dz, dw := sys.F(ringX, ringY, ringZ, ringW)
 			ringX += dt * dx
 			ringY += dt * dy
 			ringZ += dt * dz
 			ringW += dt * dw
 			if !(ringX > -lim && ringX < lim && ringY > -lim && ringY < lim && ringZ > -lim && ringZ < lim && ringW > -lim && ringW < lim) {
-				ic := attractorInitCond[mode]
+				ic := dynamics.InitCond[mode]
 				ringX, ringY, ringZ = float64(ic[0]), float64(ic[1]), float64(ic[2])
 				ringW = 0
 			}
@@ -116,7 +117,7 @@ func ringTick(mode string) bool {
 	// and a later switch back to scan mode continue from the beam.
 	x, y, z = float32(ringX), float32(ringY), float32(ringZ)
 	x64, y64, z64 = ringX, ringY, ringZ
-	sys.setW(ringW)
+	sys.SetW(ringW)
 
 	ringUploadAndDraw(start, n)
 	return true
@@ -129,7 +130,7 @@ func ringPrimeAfterScan(mode string) {
 	if !ringOn {
 		return
 	}
-	sys, ok := flowFor4(mode)
+	sys, ok := dynamics.FlowFor4(mode)
 	if !ok {
 		return
 	}
@@ -144,7 +145,7 @@ func ringPrimeAfterScan(mode string) {
 	if ringX == 0 && ringY == 0 && ringZ == 0 {
 		ringX, ringY, ringZ = float64(x), float64(y), float64(z)
 	}
-	ringW = sys.w() // continue the hidden state, not restart it
+	ringW = sys.W() // continue the hidden state, not restart it
 }
 
 // ringUploadAndDraw pushes the newly written slots to the GPU (wrap-aware)
