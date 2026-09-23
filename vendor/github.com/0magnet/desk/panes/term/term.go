@@ -12,6 +12,7 @@
 package term
 
 import (
+	"context"
 	"sync"
 	"syscall/js"
 
@@ -88,6 +89,7 @@ type Pane struct {
 	greeting string
 	host     string
 	run      []string
+	exec     func(ctx context.Context, args []string) (int, bool)
 	session  *web.Session
 	el       js.Value // what Mount rendered into; Canvas looks inside it
 }
@@ -107,6 +109,19 @@ func (p *Pane) Run(lines ...string) *Pane {
 	return p
 }
 
+// Exec adds the embedder's own commands to this pane's shell, as websh's
+// Options.Exec: a command line whose first word is not a built-in applet is
+// offered to it before the filesystem is searched, and it runs as a Go function
+// in THIS program rather than as a separate wasm instance.
+//
+// It is how a program that hosts a desk puts its own full-screen interface on
+// the desk's terminal — the thing it would be a shell command for, if the
+// filesystem in a page could hold one that could see this program's internals.
+func (p *Pane) Exec(fn func(ctx context.Context, args []string) (int, bool)) *Pane {
+	p.exec = fn
+	return p
+}
+
 // Session is the shell running in this pane, or nil before it is mounted.
 func (p *Pane) Session() *web.Session { return p.session }
 
@@ -116,6 +131,7 @@ func (p *Pane) Mount(el js.Value) error {
 		FS:       FS(),
 		Host:     p.host,
 		Greeting: p.greeting,
+		Exec:     p.exec,
 	})
 	if err != nil {
 		return err
