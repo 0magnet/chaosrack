@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"strconv"
 	"syscall/js"
@@ -37,7 +38,7 @@ func addPhosphorTraces(stack, sel js.Value) {
 	if n < 2 {
 		return
 	}
-	dial := doc.Call("createElement", "span")
+	dial := dom.Doc.Call("createElement", "span")
 	dial.Set("className", "knob-dial ph-dial")
 	// Streaks live in the band OUTSIDE the knob ring: the outer end sits near the
 	// cell edge and the trace points inward toward the knob, fading out. off is a
@@ -54,7 +55,7 @@ func addPhosphorTraces(stack, sel js.Value) {
 		length := 8 + persist*9             // px (kept short so it stays outside the knob)
 		hold := 15 + persist*55             // % of streak that stays bright before fading
 		phi := math.Atan2(math.Cos(rad), -math.Sin(rad)) * 180 / math.Pi
-		s := doc.Call("createElement", "span")
+		s := dom.Doc.Call("createElement", "span")
 		s.Set("className", "ph-trace clickable")
 		s.Set("title", p.desc)
 		st := s.Get("style")
@@ -65,7 +66,7 @@ func addPhosphorTraces(stack, sel js.Value) {
 		st.Set("background", "linear-gradient(to right,"+col+","+col+" "+strconv.FormatFloat(hold, 'f', 0, 64)+"%,transparent)")
 		st.Set("box-shadow", "0 0 5px "+col)
 		idx := i
-		s.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		s.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			sel.Set("selectedIndex", idx)
 			sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 			return nil
@@ -203,9 +204,9 @@ var (
 // hides it otherwise. Called on every mode change (from buildParamPanel).
 func updateCRTOverlay() {
 	if !crtOverlay.Truthy() {
-		crtOverlay = doc.Call("createElement", "div")
+		crtOverlay = dom.Doc.Call("createElement", "div")
 		crtOverlay.Set("id", "crt-overlay")
-		body.Call("appendChild", crtOverlay)
+		dom.Body.Call("appendChild", crtOverlay)
 	}
 	if crtLook() {
 		crtOverlay.Get("classList").Call("add", "on")

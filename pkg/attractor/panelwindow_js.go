@@ -2,6 +2,8 @@
 
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dom"
+
 // Float mode: the panel as a real window, from github.com/0magnet/winbox-go.
 //
 // This replaces about a hundred and thirty lines of hand-rolled window — a
@@ -30,7 +32,7 @@ var panelWindow *winbox.WinBox
 // reusing it after — a window closed and rebuilt would lose its position, and
 // the position is the thing the user arranged.
 func floatPanelWindow() {
-	shell := doc.Call("getElementById", "panel-shell")
+	shell := dom.Doc.Call("getElementById", "panel-shell")
 	if !shell.Truthy() {
 		return
 	}
@@ -92,8 +94,8 @@ func floatPanelWindow() {
 		OnClose: func(w *winbox.WinBox, _ bool) bool {
 			panelWindow = nil
 			if deskContain {
-				w.Unmount(body)
-				if sh := doc.Call("getElementById", "panel-shell"); sh.Truthy() {
+				w.Unmount(dom.Body)
+				if sh := dom.Doc.Call("getElementById", "panel-shell"); sh.Truthy() {
 					sh.Get("style").Set("display", "none")
 				}
 				return false
@@ -123,7 +125,7 @@ func unfloatPanelWindow() {
 	// Cleared first: Close runs OnClose, which would otherwise re-enter
 	// applyDock and fight the dock that is being applied right now.
 	panelWindow = nil
-	w.Unmount(body)
+	w.Unmount(dom.Body)
 	w.Close(true)
 }
 

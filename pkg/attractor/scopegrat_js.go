@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 
 	"github.com/go-gl/mathgl/mgl32"
@@ -104,7 +105,7 @@ func drawScopeGraticule(halfH float32) {
 // showing, and the operator has not switched the graticule off.
 func scopeFaceOn() bool { return crtLook() && scopeGratWanted() }
 
-func scopeGratEl() js.Value { return doc.Call("getElementById", "scope-grat") }
+func scopeGratEl() js.Value { return dom.Doc.Call("getElementById", "scope-grat") }
 
 // scopeGratWanted reads the switch. Absent, the face is on: the graticule is
 // what makes a scope trace measurable, so it is the default and the switch is

@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"strconv"
 	"syscall/js"
@@ -285,7 +286,7 @@ func startSonify() {
 		return
 	}
 	sonifyNode = sonifyCtx.Call("createScriptProcessor", 2048, 0, 2)
-	sonifyFn = trackedFuncOf(sonifyProcess)
+	sonifyFn = dom.FuncOf(sonifyProcess)
 	sonifyNode.Set("onaudioprocess", sonifyFn)
 	sonifyNode.Call("connect", sonifyCtx.Get("destination"))
 	sonifyActive = true
@@ -310,12 +311,12 @@ func stopSonify() {
 // "off" position is the power switch. The trace/lvl sliders + LEDs are
 // registry-owned (adoptDescControl in Run); this only adds the knob layer.
 func buildSonifyModule() {
-	freq := doc.Call("getElementById", "sonify-freq")
-	fstack := doc.Call("getElementById", "sonify-fstack")
-	lvl := doc.Call("getElementById", "sonify-lvl")
-	lstack := doc.Call("getElementById", "sonify-lstack")
-	mp := doc.Call("getElementById", "sonify-map")
-	mstack := doc.Call("getElementById", "sonify-mstack")
+	freq := dom.Doc.Call("getElementById", "sonify-freq")
+	fstack := dom.Doc.Call("getElementById", "sonify-fstack")
+	lvl := dom.Doc.Call("getElementById", "sonify-lvl")
+	lstack := dom.Doc.Call("getElementById", "sonify-lstack")
+	mp := dom.Doc.Call("getElementById", "sonify-map")
+	mstack := dom.Doc.Call("getElementById", "sonify-mstack")
 	if !freq.Truthy() || !fstack.Truthy() {
 		return
 	}
@@ -323,7 +324,7 @@ func buildSonifyModule() {
 	addOctaveDial(fknob)
 	fstack.Call("appendChild", fknob)
 	lstack.Call("appendChild", makeKnob(lvl, js.Undefined(), true, false, true))
-	md := doc.Call("getElementById", "sonify-mode")
+	md := dom.Doc.Call("getElementById", "sonify-mode")
 	mstk := stackKnobs(makeSelectorKnob(mp), makeSelectorKnob(md))
 	addSelectorLabels(mstk, []string{"off", "CAM", "XY", "XZ", "YZ"}, mp)
 	addSelectorLabels(mstk, []string{"FLOW", "SCAN"}, md)

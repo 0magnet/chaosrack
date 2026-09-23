@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"strconv"
 	"syscall/js"
@@ -319,7 +320,7 @@ func setAudioMod(on bool) {
 	updateMetersVisibility()
 	// Show/hide the adjacent Modulation module (no param rebuild → the param
 	// knobs never move; a whole module just appears/disappears beside them).
-	if panel := doc.Call("getElementById", "controls-panel"); panel.Truthy() {
+	if panel := dom.Doc.Call("getElementById", "controls-panel"); panel.Truthy() {
 		cl := panel.Get("classList")
 		if on {
 			cl.Call("add", "am-on")
@@ -352,7 +353,7 @@ func updateMetersVisibility() {
 func showAudioMeters() {
 	if !afOverlay.Truthy() {
 		labels := [6]string{"amp", "bass", "mid", "treble", "cntr", "beat"}
-		afOverlay = doc.Call("createElement", "div")
+		afOverlay = dom.Doc.Call("createElement", "div")
 		afOverlay.Set("id", "audio-meters")
 		st := afOverlay.Get("style")
 		st.Set("position", "fixed")
@@ -366,18 +367,18 @@ func showAudioMeters() {
 		st.Set("z-index", "var(--z-hud)") // HUD level (with info overlay); below a recovered panel — see z-scale
 		st.Set("pointer-events", "none")
 		for i, lab := range labels {
-			row := doc.Call("createElement", "div")
+			row := dom.Doc.Call("createElement", "div")
 			row.Get("style").Set("display", "flex")
 			row.Get("style").Set("alignItems", "center")
 			row.Get("style").Set("margin", "1px 0")
-			name := doc.Call("createElement", "span")
+			name := dom.Doc.Call("createElement", "span")
 			name.Set("textContent", lab)
 			name.Get("style").Set("width", "34px")
-			track := doc.Call("createElement", "div")
+			track := dom.Doc.Call("createElement", "div")
 			track.Get("style").Set("width", "80px")
 			track.Get("style").Set("height", "6px")
 			track.Get("style").Set("background", "#333")
-			fill := doc.Call("createElement", "div")
+			fill := dom.Doc.Call("createElement", "div")
 			fill.Get("style").Set("height", "6px")
 			fill.Get("style").Set("width", "0%")
 			fill.Get("style").Set("background", "#4caf50")
@@ -387,7 +388,7 @@ func showAudioMeters() {
 			afOverlay.Call("appendChild", row)
 			afMeterFill[i] = fill
 		}
-		body.Call("appendChild", afOverlay)
+		dom.Body.Call("appendChild", afOverlay)
 	}
 	afOverlay.Get("style").Set("display", "block")
 	positionAudioMeters() // keep clear of a left/top-docked control panel

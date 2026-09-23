@@ -16,6 +16,7 @@ package attractor
 // and each of those call sites is still correct. Only the implementation moved.
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 
 	"github.com/0magnet/rack-go"
@@ -292,7 +293,7 @@ func quantizeModuleWidthsSoon() {
 // taken two animation frames after the promise, which is after the first
 // paint on a warm cache and no later than it already was on a cold one.
 func requantizeAfterFonts() {
-	fonts := doc.Get("fonts")
+	fonts := dom.Doc.Get("fonts")
 	if !fonts.Truthy() {
 		return
 	}

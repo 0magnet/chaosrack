@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -124,7 +125,7 @@ var crtOverriddenIDs = map[string]bool{
 func buildControlModel() {
 	panelModules = panelModules[:0]
 	tipN := 0
-	sects := doc.Call("querySelectorAll", ".modules .sect:not(.template-mod)")
+	sects := dom.Doc.Call("querySelectorAll", ".modules .sect:not(.template-mod)")
 	for i := 0; i < sects.Get("length").Int(); i++ {
 		sect := sects.Index(i)
 		m := &Module{sect: sect}

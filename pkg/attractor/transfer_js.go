@@ -2,7 +2,11 @@
 
 package attractor
 
-import "syscall/js"
+import (
+	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+)
 
 // The Transfer mode — magnitude, phase and coherence between two channels.
 //
@@ -320,7 +324,7 @@ func showTransferDelay() {
 func appendTransferReadout(grid js.Value) {
 	card, top := newPunitCard("dly")
 
-	xfDelayEl = doc.Call("createElement", "span")
+	xfDelayEl = dom.Doc.Call("createElement", "span")
 	xfDelayEl.Set("className", "led counter-led")
 	xfDelayEl.Set("title", "Bulk delay between the two channels, fitted from the slope of the phase — "+
 		"a pure delay is a phase that falls linearly with frequency, and the slope is the delay. "+

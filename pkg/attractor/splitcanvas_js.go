@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"syscall/js"
 )
@@ -38,14 +39,14 @@ func ensureFrontCanvas() bool {
 	if frontCanvas.Truthy() {
 		return true
 	}
-	if !doc.Truthy() {
+	if !dom.Doc.Truthy() {
 		return false
 	}
-	frontCanvas = doc.Call("createElement", "canvas")
+	frontCanvas = dom.Doc.Call("createElement", "canvas")
 	frontCanvas.Set("id", "gocanvas-front")
 	frontCanvas.Get("style").Set("cssText",
 		"position:fixed;left:0;top:0;pointer-events:none;z-index:var(--z-canvas-front);")
-	body.Call("appendChild", frontCanvas)
+	dom.Body.Call("appendChild", frontCanvas)
 	frontCtx = frontCanvas.Call("getContext", "2d")
 	sizeFrontCanvas()
 	return frontCtx.Truthy()
@@ -136,7 +137,7 @@ func captureCanvas(main js.Value) js.Value {
 		return main
 	}
 	if !capCanvas.Truthy() {
-		capCanvas = doc.Call("createElement", "canvas")
+		capCanvas = dom.Doc.Call("createElement", "canvas")
 		capCtx = capCanvas.Call("getContext", "2d")
 	}
 	if !capCtx.Truthy() {

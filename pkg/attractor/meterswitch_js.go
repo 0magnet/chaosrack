@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 
 	"github.com/0magnet/chaosrack/pkg/meters"
@@ -67,7 +68,7 @@ func detentLabels(d []meterDetent) []string {
 // replaces, where the counter reads its gate time out of the DOM sixty times
 // a second. scopeState says why: the listeners write in, the draw reads.
 func addMeterSwitch(moduleID, name, label, title, permaKey string, detents []meterDetent, def int, apply func(int)) {
-	row := doc.Call("querySelector", "#"+moduleID+" .vmrow")
+	row := dom.Doc.Call("querySelector", "#"+moduleID+" .vmrow")
 	if !row.Truthy() {
 		return
 	}
@@ -79,13 +80,13 @@ func addMeterSwitch(moduleID, name, label, title, permaKey string, detents []met
 			`<button class="rst" id="`+resetID+`" title="Reset `+label+`">&#8634;</button>`+
 			`<select id="`+selID+`" title="`+title+`" style="display:none"></select></span>`)
 
-	sel := doc.Call("getElementById", selID)
-	stack := doc.Call("getElementById", stackID)
+	sel := dom.Doc.Call("getElementById", selID)
+	stack := dom.Doc.Call("getElementById", stackID)
 	if !sel.Truthy() || !stack.Truthy() {
 		return
 	}
 	for _, d := range detents {
-		opt := doc.Call("createElement", "option")
+		opt := dom.Doc.Call("createElement", "option")
 		opt.Set("value", strconv.Itoa(d.V))
 		opt.Set("textContent", d.Label)
 		opt.Set("title", d.Desc)

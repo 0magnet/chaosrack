@@ -25,6 +25,7 @@ package attractor
 // that they belong to the take rather than to the furniture around it.
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"syscall/js"
 )
@@ -45,18 +46,18 @@ var (
 // wireRecordModule builds the module's controls and starts the monitor. Safe to
 // call before the panel exists — it does nothing and can be called again.
 func wireRecordModule() {
-	recPreview = doc.Call("getElementById", "rec-preview")
+	recPreview = dom.Doc.Call("getElementById", "rec-preview")
 	if !recPreview.Truthy() {
 		return
 	}
-	recTally = doc.Call("getElementById", "rec-tally")
-	recCounter = doc.Call("getElementById", "rec-status")
+	recTally = dom.Doc.Call("getElementById", "rec-tally")
+	recCounter = dom.Doc.Call("getElementById", "rec-status")
 	recPreviewCtx = recPreview.Call("getContext", "2d")
 
 	wireRecTransport()
 	wireStillButton()
 
-	tick := trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	tick := dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		drawRecPreview()
 		return nil
 	})
@@ -67,7 +68,7 @@ func wireRecordModule() {
 // recSetSwitch flips a switch and tells the recorder, exactly as a click on it
 // would. Used by the transport buttons, which drive the hidden record switch.
 func recSetSwitch(id string, on bool) {
-	sw := doc.Call("getElementById", id)
+	sw := dom.Doc.Call("getElementById", id)
 	if !sw.Truthy() {
 		return
 	}
@@ -80,7 +81,7 @@ func recSetSwitch(id string, on bool) {
 }
 
 func recSwitchOn(id string) bool {
-	sw := doc.Call("getElementById", id)
+	sw := dom.Doc.Call("getElementById", id)
 	return sw.Truthy() && sw.Get("checked").Bool()
 }
 
@@ -88,14 +89,14 @@ func recSwitchOn(id string) bool {
 // again stops — which is what a single-button recorder does and what anyone
 // will try — and Stop only ever stops.
 func wireRecTransport() {
-	if b := doc.Call("getElementById", "rec-btn"); b.Truthy() {
-		b.Call("addEventListener", "click", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	if b := dom.Doc.Call("getElementById", "rec-btn"); b.Truthy() {
+		b.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 			recSetSwitch("rec-sw", !recSwitchOn("rec-sw"))
 			return nil
 		}))
 	}
-	if b := doc.Call("getElementById", "rec-stop-btn"); b.Truthy() {
-		b.Call("addEventListener", "click", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	if b := dom.Doc.Call("getElementById", "rec-stop-btn"); b.Truthy() {
+		b.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 			recSetSwitch("rec-sw", false)
 			return nil
 		}))
@@ -231,7 +232,7 @@ func updateRecChrome(live bool, tc string) {
 			recTally.Get("classList").Call("remove", "live")
 		}
 	}
-	if b := doc.Call("getElementById", "rec-btn"); b.Truthy() {
+	if b := dom.Doc.Call("getElementById", "rec-btn"); b.Truthy() {
 		if live {
 			b.Get("classList").Call("add", "armed")
 		} else {
@@ -260,7 +261,7 @@ func updateRecChrome(live bool, tc string) {
 // Amber at three quarters and red at nine tenths, because the interesting thing
 // about the ceiling is not where it is but that you are approaching it.
 func updateRecMeter(live bool) {
-	fill := doc.Call("getElementById", "rec-meter-fill")
+	fill := dom.Doc.Call("getElementById", "rec-meter-fill")
 	if !fill.Truthy() {
 		return
 	}
@@ -315,7 +316,7 @@ func noteTakeStart() {
 // said what it had just written would be a strange one, and for a GIF this is
 // the only moment the size exists — it is encoded when the take ends.
 func logTake(ext string, bytes int) {
-	el := doc.Call("getElementById", "rec-log")
+	el := dom.Doc.Call("getElementById", "rec-log")
 	if !el.Truthy() {
 		return
 	}
@@ -365,11 +366,11 @@ func upper(s string) string {
 // At full resolution, not the monitor's: the monitor is 244 across and a still
 // should be worth keeping.
 func wireStillButton() {
-	btn := doc.Call("getElementById", "screenshot-btn")
+	btn := dom.Doc.Call("getElementById", "screenshot-btn")
 	if !btn.Truthy() {
 		return
 	}
-	btn.Call("addEventListener", "click", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	btn.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		takeStill()
 		return nil
 	}))
@@ -387,7 +388,7 @@ func takeStill() {
 
 	// Its own canvas, not the recorder's scratch: a still taken during a take
 	// would resize the scratch out from under the frames being collected.
-	still := doc.Call("createElement", "canvas")
+	still := dom.Doc.Call("createElement", "canvas")
 	still.Set("width", sw)
 	still.Set("height", sh)
 	ctx := still.Call("getContext", "2d")

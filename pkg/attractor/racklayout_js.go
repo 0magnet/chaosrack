@@ -6,7 +6,11 @@ package attractor
 // a browser. The record itself, and the ordering arithmetic, are in
 // racklayout.go where they can be tested without one.
 
-import "syscall/js"
+import (
+	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+)
 
 // readRackLayout loads the saved arrangement, or an empty one.
 func readRackLayout() rackLayout {
@@ -41,7 +45,7 @@ func saveRackLayout() {
 func onConsoleModuleSwitches() []string {
 	var out []string
 	for _, id := range consoleModuleSwitches {
-		if sw := doc.Call("getElementById", id); sw.Truthy() && sw.Get("checked").Bool() {
+		if sw := dom.Doc.Call("getElementById", id); sw.Truthy() && sw.Get("checked").Bool() {
 			out = append(out, id)
 		}
 	}
@@ -100,7 +104,7 @@ func restoreConsoleModuleSwitches() {
 		on[id] = true
 	}
 	for _, id := range consoleModuleSwitches {
-		sw := doc.Call("getElementById", id)
+		sw := dom.Doc.Call("getElementById", id)
 		if !sw.Truthy() || sw.Get("checked").Bool() == on[id] {
 			continue
 		}
@@ -117,11 +121,11 @@ func restoreConsoleModuleSwitches() {
 // dispatch does not write the record it just read.
 func wireConsoleModuleSwitchSaves() {
 	for _, id := range consoleModuleSwitches {
-		sw := doc.Call("getElementById", id)
+		sw := dom.Doc.Call("getElementById", id)
 		if !sw.Truthy() {
 			continue
 		}
-		sw.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+		sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 			saveRackLayout()
 			return nil
 		}))

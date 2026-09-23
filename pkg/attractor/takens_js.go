@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"syscall/js"
 )
@@ -613,7 +614,7 @@ func setTakensTau(tau int) {
 		tau = int(takensTauMax)
 	}
 	takensTau = float32(tau)
-	el := doc.Call("getElementById", "takens-tau")
+	el := dom.Doc.Call("getElementById", "takens-tau")
 	if !el.Truthy() {
 		return
 	}
@@ -630,27 +631,27 @@ func showTakensMeasurement(s string) {
 // appendTakensEstimate adds the MEAS cell — the button and its readout — to
 // the Takens parameter grid.
 func appendTakensEstimate(grid js.Value) {
-	card := doc.Call("createElement", "div")
+	card := dom.Doc.Call("createElement", "div")
 	card.Set("className", "punit")
 
-	lbl := doc.Call("createElement", "span")
+	lbl := dom.Doc.Call("createElement", "span")
 	lbl.Set("className", symClass("u-lbl", false))
 	lbl.Set("textContent", "meas")
 	card.Call("appendChild", lbl)
 
-	takensMeasEl = doc.Call("createElement", "span")
+	takensMeasEl = dom.Doc.Call("createElement", "span")
 	takensMeasEl.Set("className", "led counter-led")
 	takensMeasEl.Set("title", "Measured embedding, in milliseconds: τ is the first minimum of the signal's average mutual information, written into the τ knob; m is the false-nearest-neighbor dimension. m greater than 3 means the trail on screen is a projection of a higher-dimensional reconstruction. This runs by itself once the mode has enough audio, and again when the source changes — but never over a τ you have set yourself. The button measures again on demand.")
 	takensMeasEl.Set("textContent", takensMeasText())
 	card.Call("appendChild", takensMeasEl)
 
-	row := doc.Call("createElement", "span")
+	row := dom.Doc.Call("createElement", "span")
 	row.Set("className", "grp")
-	btn := doc.Call("createElement", "button")
+	btn := dom.Doc.Call("createElement", "button")
 	btn.Set("className", "rst")
 	btn.Set("textContent", "↻")
 	btn.Set("title", "Measure the embedding from the audio in the buffer and set τ from it. Once, on demand — this mode deliberately does not re-tune itself per frame, because a knob that moves with the music makes the figure move with it too.")
-	btn.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	btn.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		takensMeasure()
 		return nil
 	}))

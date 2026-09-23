@@ -4,6 +4,7 @@ package attractor
 
 import (
 	_ "embed"
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"strconv"
 	"syscall/js"
@@ -42,7 +43,7 @@ func wheelNudge(readout, slider js.Value, step, mn, mx float64) {
 	if step == 0 {
 		step = 1
 	}
-	readout.Call("addEventListener", "wheel", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	readout.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
 		e.Call("stopPropagation")
@@ -83,14 +84,14 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 
 	labels := paramLabels[p.ID]
 
-	unit := doc.Call("createElement", "div")
+	unit := dom.Doc.Call("createElement", "div")
 	unit.Set("className", "punit")
 
-	lbl := doc.Call("createElement", "span")
+	lbl := dom.Doc.Call("createElement", "span")
 	lbl.Set("className", symClass("u-lbl", labelIsSym(p.Label))) // symbols keep case; words uppercase
 	lbl.Set("textContent", p.Label)
 
-	slider := doc.Call("createElement", "input")
+	slider := dom.Doc.Call("createElement", "input")
 	slider.Set("type", "range")
 	slider.Set("id", p.ID)
 	slider.Set("min", minStr)
@@ -109,7 +110,7 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 	}
 	paramControls = append(paramControls, ctl)
 
-	numInput := doc.Call("createElement", "input")
+	numInput := dom.Doc.Call("createElement", "input")
 	numInput.Set("type", "text") // LED display: keeps +/- and trailing zeros
 	numInput.Set("inputmode", "decimal")
 	// No min/max/step here. They are only meaningful on a numeric input, and
@@ -130,10 +131,10 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 		// be a second, worse copy of it — seven segments cannot spell a word.
 		numInput.Set("readOnly", true)
 		numInput.Get("style").Set("display", "none")
-		sel = doc.Call("createElement", "select")
+		sel = dom.Doc.Call("createElement", "select")
 		sel.Set("style", "display:none;")
 		for i, l := range labels {
-			opt := doc.Call("createElement", "option")
+			opt := dom.Doc.Call("createElement", "option")
 			opt.Set("value", strconv.Itoa(i))
 			opt.Set("textContent", l)
 			sel.Call("appendChild", opt)
@@ -143,7 +144,7 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 		// the round trip, since the label highlight listens for the same change
 		// event this handler is answering.
 		syncing := false
-		sel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			if syncing {
 				return nil
 			}
@@ -171,7 +172,7 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 	}
 	showValue(float64(*p.Value))
 
-	slider.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	slider.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		if val, err := strconv.ParseFloat(slider.Get("value").String(), 64); err == nil {
 			*p.Value = float32(val)
 			showValue(val)
@@ -182,7 +183,7 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 		return nil
 	}))
 	if len(labels) == 0 {
-		numInput.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		numInput.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			if val, err := strconv.ParseFloat(numInput.Get("value").String(), 64); err == nil {
 				*p.Value = float32(val)
 				slider.Set("value", strconv.FormatFloat(val, 'g', -1, 64))
@@ -197,23 +198,23 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 	// reformats the readout).
 	wheelNudge(numInput, slider, float64(p.Step), float64(p.Min), float64(p.Max))
 
-	rst := doc.Call("createElement", "button")
+	rst := dom.Doc.Call("createElement", "button")
 	rst.Set("className", "rst")
 	rst.Set("title", "Reset "+p.Label)
 	rst.Set("textContent", "↺")
-	rst.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	rst.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		ctl.resetToDefault()
 		return nil
 	}))
 
-	stepInput := doc.Call("createElement", "input")
+	stepInput := dom.Doc.Call("createElement", "input")
 	stepInput.Set("type", "number")
 	stepInput.Set("min", "0.0000001")
 	stepInput.Set("step", "any")
 	stepInput.Set("value", stepStr)
 	stepInput.Set("title", "Step size for "+p.Label+" — how much one knob step changes the value")
 	stepInput.Set("className", "numin u-step")
-	stepInput.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	stepInput.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		if val, err := strconv.ParseFloat(stepInput.Get("value").String(), 64); err == nil && val > 0 {
 			newStep := strconv.FormatFloat(val, 'g', -1, 64)
 			slider.Set("step", newStep)
@@ -223,7 +224,7 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 
 	// Standard cell header: label pinned left, numeric LED centered over the knob,
 	// reset pinned right — all on one line above the knob (see .rst CSS).
-	top := doc.Call("createElement", "span")
+	top := dom.Doc.Call("createElement", "span")
 	top.Set("className", "punit-top")
 	top.Call("appendChild", lbl)
 	top.Call("appendChild", numInput)
@@ -284,9 +285,9 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 // above its MOD/LVL control (channel + level). All modulation controls live in
 // the dedicated Modulation module, never mixed into other modules.
 func buildModCard(id, label string, sym bool) js.Value {
-	card := doc.Call("createElement", "div")
+	card := dom.Doc.Call("createElement", "div")
 	card.Set("className", "punit")
-	lbl := doc.Call("createElement", "span")
+	lbl := dom.Doc.Call("createElement", "span")
 	lbl.Set("className", symClass("u-lbl", sym))
 	lbl.Set("textContent", label)
 	card.Call("appendChild", lbl)
@@ -374,18 +375,15 @@ func buildParamPanelNow(mode string) {
 	// dial's list wrong before anything else in the panel is rebuilt.
 	syncSweepDialMode(mode)
 	// Free the previous build's listener closures, then collect this build's
-	// (see funcarena_js.go) — the wipe below kills their DOM in the same
-	// synchronous pass.
-	releasePanelFuncs()
-	panelCollect = true
-	defer func() { panelCollect = false }()
+	// — the wipe below kills their DOM in the same synchronous pass.
+	defer dom.StartPanelBuild()()
 
-	paramsDiv := doc.Call("getElementById", "params")
+	paramsDiv := dom.Doc.Call("getElementById", "params")
 	paramsDiv.Set("innerHTML", "")
 	paramsDiv.Set("className", "row")
 	paramControls = paramControls[:0] // rebuilt below by buildParamUnit
 	// The panel's am-on/am-off class shows/hides the adjacent Modulation module.
-	if panel := doc.Call("getElementById", "controls-panel"); panel.Truthy() {
+	if panel := dom.Doc.Call("getElementById", "controls-panel"); panel.Truthy() {
 		cl := panel.Get("classList")
 		if audioMod {
 			cl.Call("add", "am-on")
@@ -417,7 +415,7 @@ func buildParamPanelNow(mode string) {
 
 	// The Equation module only exists in Custom mode (buildCustomPanel makes it).
 	if mode != "custom" {
-		if em := doc.Call("getElementById", "eqn-module"); em.Truthy() {
+		if em := dom.Doc.Call("getElementById", "eqn-module"); em.Truthy() {
 			em.Get("parentNode").Call("removeChild", em)
 		}
 	}
@@ -475,7 +473,7 @@ func buildParamPanelNow(mode string) {
 	// module with a header and a void under it reads as broken rather than as
 	// empty.
 	params := attractorParams[mode]
-	grid := doc.Call("createElement", "div")
+	grid := dom.Doc.Call("createElement", "div")
 	grid.Set("className", "punit-grid")
 	paramsDiv.Call("appendChild", grid)
 	// Decided at the end, once the extras below have had their chance at it.
@@ -570,7 +568,7 @@ type modTarget struct {
 // current mode; the view/camera/color targets are fixed. Only shown when Audio
 // mod is on.
 func buildModEQModules(params []paramDef) {
-	old := doc.Call("querySelectorAll", ".modmodule, .eqmodule")
+	old := dom.Doc.Call("querySelectorAll", ".modmodule, .eqmodule")
 	for i := old.Get("length").Int() - 1; i >= 0; i-- {
 		n := old.Index(i)
 		n.Get("parentNode").Call("removeChild", n)
@@ -618,7 +616,7 @@ func buildModEQModules(params []paramDef) {
 	// The insert below goes through the primary's own parentNode, so the pair
 	// still lands beside the module it modulates, in whatever bay that is.
 	findSect := func(hdr string) js.Value {
-		s := doc.Call("querySelectorAll", moduleSelector)
+		s := dom.Doc.Call("querySelectorAll", moduleSelector)
 		for i := 0; i < s.Get("length").Int(); i++ {
 			m := s.Index(i)
 			if h := m.Call("querySelector", ".sect-hdr"); h.Truthy() && h.Get("textContent").String() == hdr {
@@ -628,14 +626,14 @@ func buildModEQModules(params []paramDef) {
 		return js.Undefined()
 	}
 	makeMod := func(cls, title, tip string, cards []js.Value) js.Value {
-		mod := doc.Call("createElement", "div")
+		mod := dom.Doc.Call("createElement", "div")
 		mod.Set("className", "sect "+cls)
-		h := doc.Call("createElement", "div")
+		h := dom.Doc.Call("createElement", "div")
 		h.Set("className", "sect-hdr")
 		h.Set("textContent", title)
 		h.Set("title", tip)
 		mod.Call("appendChild", h)
-		g := doc.Call("createElement", "div")
+		g := dom.Doc.Call("createElement", "div")
 		g.Set("className", "punit-grid")
 		for _, c := range cards {
 			g.Call("appendChild", c)
@@ -678,14 +676,14 @@ func buildTurtlePhysModule(mode string, paramsDiv js.Value) {
 	if mode != "turtle" {
 		return
 	}
-	mod := doc.Call("createElement", "div")
+	mod := dom.Doc.Call("createElement", "div")
 	mod.Set("className", "sect physmodule")
-	h := doc.Call("createElement", "div")
+	h := dom.Doc.Call("createElement", "div")
 	h.Set("className", "sect-hdr")
 	h.Set("textContent", "Physics")
 	h.Set("title", "The figure as a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture. GRAV pulls either way up; FRIC is how much the surfaces bite; BOUNCE is how much of the speed a wall gives back; SPIN is how readily it turns.")
 	mod.Call("appendChild", h)
-	g := doc.Call("createElement", "div")
+	g := dom.Doc.Call("createElement", "div")
 	g.Set("className", "punit-grid")
 	for _, p := range turtlePhysParams {
 		g.Call("appendChild", buildParamUnit(selectedMode, p))
@@ -721,9 +719,9 @@ func buildSectionModule(mode string, paramsDiv js.Value) {
 		// attractor should not turn it off.
 		return
 	}
-	mod := doc.Call("createElement", "div")
+	mod := dom.Doc.Call("createElement", "div")
 	mod.Set("className", "sect sectmodule")
-	h := doc.Call("createElement", "div")
+	h := dom.Doc.Call("createElement", "div")
 	h.Set("className", "sect-hdr")
 	h.Set("textContent", "Section")
 	h.Set("title", "Where the Poincaré section's plane sits, and which way through it counts. "+
@@ -734,7 +732,7 @@ func buildSectionModule(mode string, paramsDiv js.Value) {
 		"physically are; Analysis → Poincaré Section is the same section as a picture of its "+
 		"own, with the return map.")
 	mod.Call("appendChild", h)
-	g := doc.Call("createElement", "div")
+	g := dom.Doc.Call("createElement", "div")
 	g.Set("className", "punit-grid")
 	for _, p := range sectPlaneParams {
 		g.Call("appendChild", buildParamUnit(selectedMode, p))
@@ -748,7 +746,7 @@ func buildSectionModule(mode string, paramsDiv js.Value) {
 // clearSectionModule takes it away again, on every panel build, before the
 // early returns — so the module cannot outlive the switch or the mode.
 func clearSectionModule() {
-	old := doc.Call("querySelectorAll", ".sectmodule")
+	old := dom.Doc.Call("querySelectorAll", ".sectmodule")
 	for i := old.Get("length").Int() - 1; i >= 0; i-- {
 		n := old.Index(i)
 		n.Get("parentNode").Call("removeChild", n)
@@ -759,7 +757,7 @@ func clearSectionModule() {
 // before the early returns for the modes that have no parameter grid at all,
 // so the module cannot outlive the mode it belongs to.
 func clearTurtlePhysModule() {
-	old := doc.Call("querySelectorAll", ".physmodule")
+	old := dom.Doc.Call("querySelectorAll", ".physmodule")
 	for i := old.Get("length").Int() - 1; i >= 0; i-- {
 		n := old.Index(i)
 		n.Get("parentNode").Call("removeChild", n)
@@ -768,9 +766,9 @@ func clearTurtlePhysModule() {
 
 // buildEQCard is one graphic-EQ band-painter card for the EQ module.
 func buildEQCard(id, label string, sym bool) js.Value {
-	card := doc.Call("createElement", "div")
+	card := dom.Doc.Call("createElement", "div")
 	card.Set("className", "punit")
-	lbl := doc.Call("createElement", "span")
+	lbl := dom.Doc.Call("createElement", "span")
 	lbl.Set("className", symClass("u-lbl", sym))
 	lbl.Set("textContent", label)
 	card.Call("appendChild", lbl)
@@ -810,10 +808,10 @@ func buildTwoWaySwitch(sel js.Value, labels []string, label string) js.Value {
 	// control the label names is then undefined, and so is what a click on
 	// the name does. It renders correctly, which is why it stood — this is
 	// the kind of fault only a validator finds.
-	outer := doc.Call("createElement", "span")
+	outer := dom.Doc.Call("createElement", "span")
 	outer.Set("className", "twoway-wrap")
 
-	wrap := doc.Call("createElement", "label")
+	wrap := dom.Doc.Call("createElement", "label")
 	wrap.Set("className", "grp twoway")
 	wrap.Get("style").Set("cursor", "pointer")
 	// The switch had no tooltip anywhere on it — not the box, not the name, not
@@ -822,11 +820,11 @@ func buildTwoWaySwitch(sel js.Value, labels []string, label string) js.Value {
 	// ring whose every position said what that position was.
 	wrap.Set("title", label+" — a two-position switch: "+labels[0]+" or "+labels[1])
 
-	box := doc.Call("createElement", "input")
+	box := dom.Doc.Call("createElement", "input")
 	box.Set("type", "checkbox")
 	box.Set("className", "sw")
 
-	name := doc.Call("createElement", "span")
+	name := dom.Doc.Call("createElement", "span")
 	name.Set("className", "twoway-name")
 
 	show := func() {
@@ -841,7 +839,7 @@ func buildTwoWaySwitch(sel js.Value, labels []string, label string) js.Value {
 		// cannot answer because it does not change.
 		name.Set("title", labels[clampIndex(i, len(labels))]+" — click or scroll for "+labels[clampIndex(1-i, len(labels))])
 	}
-	box.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	box.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		idx := 0
 		if box.Get("checked").Bool() {
 			idx = 1
@@ -858,7 +856,7 @@ func buildTwoWaySwitch(sel js.Value, labels []string, label string) js.Value {
 	//
 	// Up towards the earlier option, matching makeSelectorKnob, so the two agree
 	// about which way "up" is on a detented control.
-	wrap.Call("addEventListener", "wheel", trackedFuncOf(func(_ js.Value, args []js.Value) interface{} {
+	wrap.Call("addEventListener", "wheel", dom.FuncOf(func(_ js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
 		e.Call("stopPropagation")
@@ -875,7 +873,7 @@ func buildTwoWaySwitch(sel js.Value, labels []string, label string) js.Value {
 	}))
 	// The select can move without the switch being touched, and then the switch
 	// has to catch up or it is lying about the state it controls.
-	sel.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		show()
 		return nil
 	}))
@@ -891,7 +889,7 @@ func buildTwoWaySwitch(sel js.Value, labels []string, label string) js.Value {
 // showParamsModule hides the Parameters module for a model that has no
 // parameters, instead of leaving a titled empty box on the rack.
 func showParamsModule(on bool) {
-	sect := doc.Call("getElementById", "params-module")
+	sect := dom.Doc.Call("getElementById", "params-module")
 	if !sect.Truthy() {
 		return
 	}
@@ -922,11 +920,11 @@ func showParamsModule(on bool) {
 // Returns the card and its top row, so the caller appends the readout to the
 // row and the control to the card.
 func newPunitCard(label string) (card, top js.Value) {
-	card = doc.Call("createElement", "div")
+	card = dom.Doc.Call("createElement", "div")
 	card.Set("className", "punit")
-	top = doc.Call("createElement", "span")
+	top = dom.Doc.Call("createElement", "span")
 	top.Set("className", "punit-top")
-	lbl := doc.Call("createElement", "span")
+	lbl := dom.Doc.Call("createElement", "span")
 	lbl.Set("className", symClass("u-lbl", labelIsSym(label)))
 	lbl.Set("textContent", label)
 	top.Call("appendChild", lbl)

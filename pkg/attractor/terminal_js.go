@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 
 	"github.com/0magnet/websh/web"
@@ -85,14 +86,14 @@ func ensureTerminal() bool {
 	}
 	termTried = true
 
-	termHost = doc.Call("createElement", "div")
+	termHost = dom.Doc.Call("createElement", "div")
 	style := termHost.Get("style")
 	style.Set("position", "fixed")
 	style.Set("left", "-10000px") // offscreen, not display:none — see above
 	style.Set("top", "0")
 	style.Set("width", "900px")
 	style.Set("height", "560px")
-	doc.Get("body").Call("appendChild", termHost)
+	dom.Doc.Get("body").Call("appendChild", termHost)
 
 	// Nil FS: websh makes and seeds its own in-memory filesystem, which is the
 	// right one here. This terminal is a model in a visualizer, not a file
@@ -149,11 +150,11 @@ func wireTerminalFocus() {
 	}
 	termWired = true
 
-	canvasEl.Call("addEventListener", "dblclick", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	canvasEl.Call("addEventListener", "dblclick", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		focusModelKeyboard()
 		return nil
 	}))
-	doc.Call("addEventListener", "keydown", trackedFuncOf(func(_ js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
 		if len(a) == 0 || a[0].Get("key").String() != "Escape" {
 			return nil
 		}
@@ -310,7 +311,7 @@ func wireTerminalZoom() {
 		}
 		t.SetFontSize(v)
 	}
-	doc.Call("addEventListener", "wheel", trackedFuncOf(func(_ js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "wheel", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
 		if len(a) == 0 || !a[0].Get("ctrlKey").Bool() || !terminalOnScreen() {
 			return nil
 		}
@@ -322,7 +323,7 @@ func wireTerminalZoom() {
 		}
 		return nil
 	}), map[string]interface{}{"passive": false})
-	doc.Call("addEventListener", "keydown", trackedFuncOf(func(_ js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
 		if len(a) == 0 || !a[0].Get("ctrlKey").Bool() || !terminalOnScreen() {
 			return nil
 		}

@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"strconv"
 	"syscall/js"
@@ -863,7 +864,7 @@ func (s *stereoInst) showReadout(text string) {
 func (s *stereoInst) appendReadout(grid js.Value) {
 	card, top := newPunitCard("corr")
 
-	s.readEl = doc.Call("createElement", "span")
+	s.readEl = dom.Doc.Call("createElement", "span")
 	s.readEl.Set("className", "led counter-led")
 	s.readEl.Set("title", "Correlation between the two channels over the display window, as a goniometer's "+
 		"correlation meter reads it: +1.00 means the channels are identical and the figure is the diagonal "+

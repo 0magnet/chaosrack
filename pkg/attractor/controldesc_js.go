@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"syscall/js"
 )
@@ -28,7 +29,7 @@ func buildDescControl(d ControlDesc) (*Control, js.Value) {
 	dec := ledDecimals(d.Step)
 	intDig := ledIntDigits(d.Min, d.Max)
 
-	slider := doc.Call("createElement", "input")
+	slider := dom.Doc.Call("createElement", "input")
 	slider.Set("type", "range")
 	slider.Set("id", d.ID)
 	slider.Set("min", strconv.FormatFloat(d.Min, 'g', -1, 64))
@@ -42,7 +43,7 @@ func buildDescControl(d ControlDesc) (*Control, js.Value) {
 		ledInt: intDig, ledDec: dec, ledSign: d.Signed, permaKey: d.PermaKey,
 	}
 
-	led := doc.Call("createElement", "input")
+	led := dom.Doc.Call("createElement", "input")
 	led.Set("type", "text")
 	led.Set("inputmode", "decimal")
 	led.Set("className", "numin u-val")
@@ -55,13 +56,13 @@ func buildDescControl(d ControlDesc) (*Control, js.Value) {
 			d.Apply(v)
 		}
 	}
-	slider.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	slider.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if v, err := strconv.ParseFloat(slider.Get("value").String(), 64); err == nil {
 			apply(v)
 		}
 		return nil
 	}))
-	led.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	led.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if v, err := strconv.ParseFloat(led.Get("value").String(), 64); err == nil {
 			slider.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
 			apply(v)
@@ -89,7 +90,7 @@ func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will
 	if d.IsSelect {
 		return adoptSelectControl(d)
 	}
-	slider := doc.Call("getElementById", d.ID)
+	slider := dom.Doc.Call("getElementById", d.ID)
 	if !slider.Truthy() {
 		return nil
 	}
@@ -118,7 +119,7 @@ func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will
 		return s
 	}
 
-	led := doc.Call("getElementById", d.LEDID)
+	led := dom.Doc.Call("getElementById", d.LEDID)
 	if led.Truthy() {
 		// A readout is free-form text so +/- and trailing zeros stick. The
 		// markup declares it type=number with min/max/step, which is valid
@@ -136,7 +137,7 @@ func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will
 		}
 	}
 
-	slider.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	slider.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if v, err := strconv.ParseFloat(slider.Get("value").String(), 64); err == nil {
 			if d.Apply != nil {
 				d.Apply(v)
@@ -150,7 +151,7 @@ func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will
 	if led.Truthy() {
 		// Typed entry commits on Enter/blur ("change", not "input", so the
 		// slider handler's formatted write-back doesn't fight typing).
-		led.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		led.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			if v, err := strconv.ParseFloat(led.Get("value").String(), 64); err == nil {
 				if d.ValToSlider != nil {
 					v = d.ValToSlider(v)
@@ -162,8 +163,8 @@ func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will
 		}))
 		wheelNudge(led, slider, d.Step, d.Min, d.Max)
 	}
-	if rb := doc.Call("getElementById", d.ResetID); rb.Truthy() {
-		rb.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	if rb := dom.Doc.Call("getElementById", d.ResetID); rb.Truthy() {
+		rb.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			ctl.resetToDefault()
 			return nil
 		}))
@@ -189,7 +190,7 @@ func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will
 // element is the source of truth and everything else follows it, so a permalink
 // restore and a reset and a click on the ring all take the same path.
 func adoptSelectControl(d ControlDesc) *Control {
-	sel := doc.Call("getElementById", d.ID)
+	sel := dom.Doc.Call("getElementById", d.ID)
 	if !sel.Truthy() {
 		return nil
 	}
@@ -200,13 +201,13 @@ func adoptSelectControl(d ControlDesc) *Control {
 		permaKey:     d.PermaKey, resetHook: d.ResetExtra,
 	}
 	if d.SelectApply != nil {
-		sel.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+		sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 			d.SelectApply(sel.Get("value").String())
 			return nil
 		}))
 	}
-	if rb := doc.Call("getElementById", d.ResetID); rb.Truthy() {
-		rb.Call("addEventListener", "click", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	if rb := dom.Doc.Call("getElementById", d.ResetID); rb.Truthy() {
+		rb.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 			ctl.resetToDefault()
 			return nil
 		}))
@@ -222,7 +223,7 @@ func moduleOfControl(id string) string {
 	if id == "" {
 		return ""
 	}
-	el := doc.Call("getElementById", id)
+	el := dom.Doc.Call("getElementById", id)
 	if !el.Truthy() {
 		return ""
 	}

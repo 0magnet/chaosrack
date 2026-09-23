@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"syscall/js"
 )
@@ -39,7 +40,7 @@ func wireModelInput() {
 	// rotation still works when the host page paints other elements
 	// (e.g. magnetosphere.net's SVG logo) above the canvas. The target
 	// filter above lets clicks on links/buttons/inputs through.
-	doc.Call("addEventListener", "mousedown", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "mousedown", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		if isInteractiveDragTarget(e.Get("target")) {
 			return nil
@@ -62,7 +63,7 @@ func wireModelInput() {
 		//
 		// Only when the model actually holds the keyboard, so nothing else
 		// about a drag changes.
-		if ta := modelKeyboardTarget(); ta.Truthy() && doc.Get("activeElement").Equal(ta) {
+		if ta := modelKeyboardTarget(); ta.Truthy() && dom.Doc.Get("activeElement").Equal(ta) {
 			e.Call("preventDefault")
 		}
 		if selectedMode == "pong" {
@@ -80,7 +81,7 @@ func wireModelInput() {
 		beginDrag(e.Get("clientX").Float(), e.Get("clientY").Float())
 		return nil
 	}))
-	js.Global().Call("addEventListener", "mousemove", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	js.Global().Call("addEventListener", "mousemove", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		if pongPointer {
 			if e.Get("buttons").Float() == 0 {
@@ -111,7 +112,7 @@ func wireModelInput() {
 		dragMove(e.Get("clientX").Float(), e.Get("clientY").Float())
 		return nil
 	}))
-	js.Global().Call("addEventListener", "mouseup", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	js.Global().Call("addEventListener", "mouseup", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		dragging = false
 		pongPointer = false
 		turtleGrabEnd()
@@ -123,7 +124,7 @@ func wireModelInput() {
 	// gesture on host pages: dragging an <img>/SVG (magnetosphere.net's logo
 	// lifts "in hand" and eats every event until release) and text selection.
 	for _, ev := range []string{"dragstart", "selectstart"} {
-		doc.Call("addEventListener", ev, trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		dom.Doc.Call("addEventListener", ev, dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			if dragging {
 				args[0].Call("preventDefault")
 			}
@@ -143,7 +144,7 @@ func wireModelInput() {
 		dy := a.Get("clientY").Float() - b.Get("clientY").Float()
 		return dx*dx + dy*dy // squared is fine — only ratios of change matter
 	}
-	doc.Call("addEventListener", "touchstart", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "touchstart", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		if isInteractiveDragTarget(e.Get("target")) {
 			return nil
@@ -175,7 +176,7 @@ func wireModelInput() {
 		beginDrag(t.Get("clientX").Float(), t.Get("clientY").Float())
 		return nil
 	}))
-	doc.Call("addEventListener", "touchmove", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "touchmove", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		touches := e.Get("touches")
 		if selectedMode == "pong" && !isInteractiveDragTarget(e.Get("target")) {
@@ -214,7 +215,7 @@ func wireModelInput() {
 		dragMove(t.Get("clientX").Float(), t.Get("clientY").Float())
 		return nil
 	}))
-	doc.Call("addEventListener", "touchend", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "touchend", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		if args[0].Get("touches").Get("length").Int() < 2 {
 			pinching = false
 		}
@@ -234,7 +235,7 @@ func wireModelInput() {
 	if wireHostWheel() {
 		return
 	}
-	canvasEl.Call("addEventListener", "wheel", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	canvasEl.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		if ctrlWheelIsTerminalZoom(e) {
 			return nil // the terminal on the quad is zooming its own cell
@@ -275,7 +276,7 @@ func wireWheelBindings() {
 		if !el.Truthy() {
 			return
 		}
-		el.Call("addEventListener", "wheel", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		el.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			e := args[0]
 			e.Call("preventDefault")
 			deltaY := e.Get("deltaY").Float()
@@ -308,7 +309,7 @@ func wireWheelBindings() {
 		}))
 	}
 	bindWheelToInput := func(id string) {
-		bindWheelEl(doc.Call("getElementById", id))
+		bindWheelEl(dom.Doc.Call("getElementById", id))
 	}
 	for _, id := range []string{
 		"camera-zoom", "rotation-controls-x", "rotation-controls-y",
@@ -323,11 +324,11 @@ func wireWheelBindings() {
 	// listeners (mode-select onModeChange, gradient-type handler)
 	// react as if the user clicked.
 	bindWheelToSelect := func(id string) {
-		el := doc.Call("getElementById", id)
+		el := dom.Doc.Call("getElementById", id)
 		if !el.Truthy() {
 			return
 		}
-		el.Call("addEventListener", "wheel", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		el.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			e := args[0]
 			e.Call("preventDefault")
 			idx := el.Get("selectedIndex").Int()
@@ -358,7 +359,7 @@ func wireWheelBindings() {
 	// wired too — wrap the existing helper into a package-level
 	// rebinder we can call from buildParamPanel.
 	rebindParamWheel = func() {
-		params := doc.Call("getElementById", "params")
+		params := dom.Doc.Call("getElementById", "params")
 		if !params.Truthy() {
 			return
 		}

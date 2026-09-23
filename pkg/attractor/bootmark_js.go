@@ -2,7 +2,11 @@
 
 package attractor
 
-import "syscall/js"
+import (
+	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+)
 
 // Boot timing.
 //
@@ -18,7 +22,7 @@ import "syscall/js"
 // the loader's own marks, so `performance.getEntriesByType('mark')` in a
 // console — or uitool — reads the whole boot end to end.
 func bootMark(name string) {
-	if !doc.Truthy() {
+	if !dom.Doc.Truthy() {
 		return
 	}
 	p := js.Global().Get("performance")

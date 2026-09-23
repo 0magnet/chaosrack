@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -260,7 +261,7 @@ var viewModTargets = []viewModTarget{
 // rather than injected under each view knob, so nothing is mixed into other
 // modules. Any stray legacy rows are removed defensively.
 func updateViewModRows() {
-	ex := doc.Call("querySelectorAll", ".viewmod-row")
+	ex := dom.Doc.Call("querySelectorAll", ".viewmod-row")
 	for i := ex.Get("length").Int() - 1; i >= 0; i-- {
 		ex.Index(i).Call("remove")
 	}
@@ -315,11 +316,11 @@ func applyViewModulation() []savedParam {
 // driven by the knob.
 func buildModUnit(id, label string) js.Value {
 	cur := paramMods[id]
-	sel := doc.Call("createElement", "select")
+	sel := dom.Doc.Call("createElement", "select")
 	sel.Set("title", "Audio channel driving "+label)
 	sel.Set("style", "display:none;")
 	for _, s := range modChannels {
-		opt := doc.Call("createElement", "option")
+		opt := dom.Doc.Call("createElement", "option")
 		opt.Set("value", s.name)
 		opt.Set("textContent", s.label)
 		// The parameter's own name goes in, so a panel of fourteen mod cards
@@ -331,7 +332,7 @@ func buildModUnit(id, label string) js.Value {
 		}
 		sel.Call("appendChild", opt)
 	}
-	sel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		m := paramMods[id]
 		m.channel = sel.Get("value").String()
 		paramMods[id] = m
@@ -343,7 +344,7 @@ func buildModUnit(id, label string) js.Value {
 	// and the audio value f averages well below 1 for real music, so ±1 could
 	// only overdrive on rare peaks. ±4 gives enough gain to clearly (over)drive
 	// a parameter — dt into chaos — around level ~1.5, with headroom to spare.
-	lvl := doc.Call("createElement", "input")
+	lvl := dom.Doc.Call("createElement", "input")
 	lvl.Set("type", "range")
 	lvl.Set("min", "-4")
 	lvl.Set("max", "4")
@@ -351,14 +352,14 @@ func buildModUnit(id, label string) js.Value {
 	lvl.Set("title", "Audio-mod depth control for "+label+" — how strongly the selected channel drives it (hidden range behind the inner knob)")
 	lvl.Set("value", strconv.FormatFloat(float64(cur.level), 'g', -1, 32))
 	lvl.Set("style", "display:none;")
-	lvlNum := doc.Call("createElement", "input")
+	lvlNum := dom.Doc.Call("createElement", "input")
 	lvlNum.Set("type", "text")
 	lvlNum.Set("inputmode", "decimal")
 	// No min/max/step: see buildParamUnit. They do nothing on a text input.
 	lvlNum.Set("value", formatLED(float64(cur.level), 1, 2, true))
 	lvlNum.Set("title", "Mod depth for "+label+" (± inverts, 0 = off; ~1.5+ overdrives)")
 	lvlNum.Set("className", "numin u-modval")
-	lvl.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	lvl.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		if v, err := strconv.ParseFloat(lvl.Get("value").String(), 32); err == nil {
 			if v > -0.005 && v < 0.005 {
 				v = 0
@@ -370,7 +371,7 @@ func buildModUnit(id, label string) js.Value {
 		}
 		return nil
 	}))
-	lvlNum.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	lvlNum.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		if v, err := strconv.ParseFloat(lvlNum.Get("value").String(), 32); err == nil {
 			m := paramMods[id]
 			m.level = float32(v)
@@ -382,9 +383,9 @@ func buildModUnit(id, label string) js.Value {
 	chStack := stackKnobs(makeSelectorKnob(sel), makeKnob(lvl, lvlNum, true, false, false))
 	addSelectorLabels(chStack, []string{"off", "st", "L", "R"}, sel)
 
-	mod := doc.Call("createElement", "div")
+	mod := dom.Doc.Call("createElement", "div")
 	mod.Set("className", "punit-mod")
-	lbl := doc.Call("createElement", "span")
+	lbl := dom.Doc.Call("createElement", "span")
 	lbl.Set("className", "u-modlbl")
 	lbl.Set("textContent", "MOD / LVL")
 	mod.Call("appendChild", lbl)
@@ -404,16 +405,16 @@ func makeEQStrip(id string) js.Value {
 		m.bands = make([]float32, numEQBands)
 		paramMods[id] = m
 	}
-	wrap := doc.Call("createElement", "div")
+	wrap := dom.Doc.Call("createElement", "div")
 	wrap.Set("className", "eqstrip")
 	wrap.Call("setAttribute", "data-no-drag", "")
 	wrap.Set("title", "EQ for "+id+" — drag to pick which frequency bands (low→high) drive the "+id+" parameter")
 
 	fills := make([]js.Value, numEQBands)
 	for i := 0; i < numEQBands; i++ {
-		bar := doc.Call("createElement", "div")
+		bar := dom.Doc.Call("createElement", "div")
 		bar.Set("className", "eqbar")
-		fill := doc.Call("createElement", "div")
+		fill := dom.Doc.Call("createElement", "div")
 		fill.Set("className", "eqfill")
 		bar.Call("appendChild", fill)
 		wrap.Call("appendChild", bar)
@@ -455,20 +456,20 @@ func makeEQStrip(id string) js.Value {
 		render()
 	}
 	dragging := false
-	wrap.Call("addEventListener", "pointerdown", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	wrap.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		a[0].Call("preventDefault")
 		a[0].Call("stopPropagation")
 		dragging = true
 		apply(a[0])
 		return nil
 	}))
-	wrap.Call("addEventListener", "pointermove", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	wrap.Call("addEventListener", "pointermove", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if dragging {
 			apply(a[0])
 		}
 		return nil
 	}))
-	stop := trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	stop := dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if dragging {
 			dragging = false
 			syncPermalinkNow()

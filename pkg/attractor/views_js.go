@@ -26,6 +26,7 @@ package attractor
 // it comes from. They should end up sharing this path.
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"sort"
 	"strconv"
@@ -180,7 +181,7 @@ func drawViewPasses(mode string) {
 
 // wireViewGridDial hooks up the grid-size dial.
 func wireViewGridDial() {
-	sel := doc.Call("getElementById", "view-n")
+	sel := dom.Doc.Call("getElementById", "view-n")
 	if !sel.Truthy() {
 		return
 	}
@@ -205,7 +206,7 @@ func wireViewGridDial() {
 		// one.
 		autoFitCamera()
 	}
-	sel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		apply()
 		return nil
 	}))
@@ -260,15 +261,15 @@ func refocus() {
 
 // wireViewLinkSwitches hooks up Link and the A/B focus switch.
 func wireViewLinkSwitches() {
-	if sw := doc.Call("getElementById", "link-sw"); sw.Truthy() {
-		sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	if sw := dom.Doc.Call("getElementById", "link-sw"); sw.Truthy() {
+		sw.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			viewLink = sw.Get("checked").Bool()
 			refocus()
 			return nil
 		}))
 	}
-	if sel := doc.Call("getElementById", "focus-n"); sel.Truthy() {
-		sel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	if sel := dom.Doc.Call("getElementById", "focus-n"); sel.Truthy() {
+		sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
 				viewFocus = n
 			}
@@ -355,7 +356,7 @@ func applyFocusedColor() {
 // setSelectQuiet sets a select's value and refreshes the knob ring built
 // over it, without running the select's change handler.
 func setSelectQuiet(id string, v int) {
-	el := doc.Call("getElementById", id)
+	el := dom.Doc.Call("getElementById", id)
 	if !el.Truthy() {
 		return
 	}
@@ -739,11 +740,11 @@ func wireSweepDial() {
 
 // wireOneSweepDial hooks one axis's select to the index it drives.
 func wireOneSweepDial(selID string, into *float32) {
-	sel := doc.Call("getElementById", selID)
+	sel := dom.Doc.Call("getElementById", selID)
 	if !sel.Truthy() {
 		return
 	}
-	sel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
 			*into = float32(n)
 		}
@@ -779,11 +780,11 @@ func sweptCell(id string) js.Value {
 	case "":
 		return js.Undefined()
 	case "#src":
-		return doc.Call("getElementById", "src-cell")
+		return dom.Doc.Call("getElementById", "src-cell")
 	case "#map":
-		return doc.Call("getElementById", "map-cell")
+		return dom.Doc.Call("getElementById", "map-cell")
 	default:
-		el := doc.Call("getElementById", id)
+		el := dom.Doc.Call("getElementById", id)
 		if !el.Truthy() {
 			return js.Undefined()
 		}
@@ -806,7 +807,7 @@ func syncSweptMarks() {
 	// one cell, the panel rebuilds. All three leave a mark somewhere it no
 	// longer belongs.
 	for _, sel := range []string{".swept", ".sweptmark"} {
-		old := doc.Call("querySelectorAll", sel)
+		old := dom.Doc.Call("querySelectorAll", sel)
 		for i := 0; i < old.Length(); i++ {
 			el := old.Index(i)
 			if sel == ".swept" {
@@ -835,7 +836,7 @@ func markSwept(id, arrow, dir string) {
 		return
 	}
 	cell.Get("classList").Call("add", "swept")
-	m := doc.Call("createElement", "span")
+	m := dom.Doc.Call("createElement", "span")
 	m.Set("className", "sweptmark")
 	m.Set("textContent", arrow)
 	m.Set("title", "Swept "+dir+" — this parameter's value comes from where each "+
@@ -850,7 +851,7 @@ func markSwept(id, arrow, dir string) {
 func syncSweepCells() {
 	on := sweepTarget() != "" || sweepTarget2() != ""
 	for _, id := range []string{"sweep-lo-cell", "sweep-hi-cell"} {
-		if el := doc.Call("getElementById", id); el.Truthy() {
+		if el := dom.Doc.Call("getElementById", id); el.Truthy() {
 			if on {
 				el.Get("style").Set("display", "")
 			} else {
@@ -872,7 +873,7 @@ func syncSweepCells() {
 var sweepDialFuncs []js.Func
 
 func buildSweepDial() {
-	rebuildInto(&sweepDialFuncs, func() {
+	dom.RebuildInto(&sweepDialFuncs, func() {
 		// Both axes, one arena: they are rebuilt together, by the same mode
 		// change, from the same target lists.
 		buildOneSweepDial("sweep-p", sweepParamF)
@@ -882,14 +883,14 @@ func buildSweepDial() {
 
 // buildOneSweepDial fills one axis's select and rings it.
 func buildOneSweepDial(selID string, at float32) {
-	sel := doc.Call("getElementById", selID)
-	holder := doc.Call("getElementById", selID+"-stack")
+	sel := dom.Doc.Call("getElementById", selID)
+	holder := dom.Doc.Call("getElementById", selID+"-stack")
 	if !sel.Truthy() || !holder.Truthy() {
 		return
 	}
 	sel.Set("innerHTML", "")
 	for i, name := range sweepNames {
-		opt := doc.Call("createElement", "option")
+		opt := dom.Doc.Call("createElement", "option")
 		opt.Set("value", strconv.Itoa(i))
 		opt.Set("textContent", sweepRing[i])
 		opt.Set("title", name)
@@ -948,16 +949,16 @@ func focusLabels(n int) []string {
 // sixteen-cell sheet with a switch that can only reach two of them is a
 // panel that cannot drive what it is showing, so the control follows the
 // grid — the same rule as the sweep dial, for the same reason.
-func buildFocusDial() { rebuildInto(&focusDialFuncs, buildFocusDialInto) }
+func buildFocusDial() { dom.RebuildInto(&focusDialFuncs, buildFocusDialInto) }
 
 func buildFocusDialInto() {
-	sel := doc.Call("getElementById", "focus-n")
-	holder := doc.Call("getElementById", "focus-n-stack")
+	sel := dom.Doc.Call("getElementById", "focus-n")
+	holder := dom.Doc.Call("getElementById", "focus-n-stack")
 	if !sel.Truthy() || !holder.Truthy() {
 		return
 	}
 	n := viewN()
-	if cell := doc.Call("getElementById", "focus-n-cell"); cell.Truthy() {
+	if cell := dom.Doc.Call("getElementById", "focus-n-cell"); cell.Truthy() {
 		if n > 1 {
 			cell.Get("style").Set("display", "")
 		} else {
@@ -967,7 +968,7 @@ func buildFocusDialInto() {
 	labels := focusLabels(n)
 	sel.Set("innerHTML", "")
 	for i, l := range labels {
-		opt := doc.Call("createElement", "option")
+		opt := dom.Doc.Call("createElement", "option")
 		opt.Set("value", strconv.Itoa(i))
 		opt.Set("textContent", l)
 		opt.Set("title", l+" — cell "+strconv.Itoa(i+1)+" of "+strconv.Itoa(n)+
@@ -1061,7 +1062,7 @@ const linkMarkSel = "linkmark"
 // missing from one of them. Rebuilt with the panel, so the click closures go
 // in the panel's own arena and die with the DOM they are attached to.
 func syncLinkMarks() {
-	old := doc.Call("querySelectorAll", "."+linkMarkSel)
+	old := dom.Doc.Call("querySelectorAll", "."+linkMarkSel)
 	for i := 0; i < old.Length(); i++ {
 		el := old.Index(i)
 		if p := el.Get("parentNode"); p.Truthy() {
@@ -1078,7 +1079,7 @@ func syncLinkMarks() {
 		if viewInsts[0].field(pd.ID) == nil {
 			continue
 		}
-		el := doc.Call("getElementById", pd.ID)
+		el := dom.Doc.Call("getElementById", pd.ID)
 		if !el.Truthy() {
 			continue
 		}
@@ -1093,7 +1094,7 @@ func syncLinkMarks() {
 // addLinkMark hangs one badge on one cell.
 func addLinkMark(cell js.Value, id string) {
 	on := paramLinks[id]
-	m := doc.Call("createElement", "span")
+	m := dom.Doc.Call("createElement", "span")
 	cls := linkMarkSel
 	if on {
 		cls += " on"
@@ -1110,7 +1111,7 @@ func addLinkMark(cell js.Value, id string) {
 			"while the rest stay independent.")
 	}
 	cell.Get("classList").Call("add", "linkable")
-	m.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	m.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if len(a) > 0 {
 			a[0].Call("stopPropagation")
 			a[0].Call("preventDefault")

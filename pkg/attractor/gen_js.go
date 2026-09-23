@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"strconv"
 	"strings"
@@ -24,14 +25,14 @@ import (
 // knob, decorative). The octave ticks land at genFreqLo·2ⁿ, which are evenly
 // spaced around the sweep because the knob is logarithmic.
 func addOctaveDial(wrap js.Value) {
-	dial := doc.Call("createElement", "span")
+	dial := dom.Doc.Call("createElement", "span")
 	dial.Set("className", "knob-dial value-dial")
 	nOct := int(math.Log2(genFreqHi / genFreqLo)) // whole octaves in range
 	for n := 0; n <= nOct; n++ {
 		f := genFreqLo * math.Pow(2, float64(n))
 		deg := -knobSweepDeg/2 + knobSweepDeg*knobFromFreq(f)/genSemitones
 		l, tp := dialLabelPos(deg, 41)
-		tk := doc.Call("createElement", "span")
+		tk := dom.Doc.Call("createElement", "span")
 		cls := "vdial-tick"
 		if n%4 == 0 { // a longer tick every 4 octaves for a readable rhythm
 			cls += " major"
@@ -52,7 +53,7 @@ func addOctaveDial(wrap js.Value) {
 	}{{genFreqLo, "A0"}, {genFreqHi, "A10"}} {
 		deg := -knobSweepDeg/2 + knobSweepDeg*knobFromFreq(e.f)/genSemitones
 		l, tp := dialLabelPos(deg, 48)
-		lab := doc.Call("createElement", "span")
+		lab := dom.Doc.Call("createElement", "span")
 		lab.Set("className", "knob-dial-lab")
 		lab.Set("textContent", e.s)
 		// Which end, and what it is in hertz — the ring says A0 and A10 because
@@ -82,12 +83,12 @@ func addPianoKeys(freq js.Value) js.Value {
 	if id := freq.Get("id").String(); len(id) > 4 && id[:4] == "gen-" {
 		owner = "Gen " + strings.ToUpper(id[4:5])
 	}
-	wrap := doc.Call("createElement", "span")
+	wrap := dom.Doc.Call("createElement", "span")
 	wrap.Set("className", "gen-piano")
 	wrap.Call("setAttribute", "data-no-drag", "")
-	whites := doc.Call("createElement", "span")
+	whites := dom.Doc.Call("createElement", "span")
 	whites.Set("className", "pk-whites")
-	blacks := doc.Call("createElement", "span")
+	blacks := dom.Doc.Call("createElement", "span")
 	blacks.Set("className", "pk-blacks")
 
 	// Pitch classes with A=0 (0=A,1=A#,2=B,3=C,…). White keys C..B left→right;
@@ -101,7 +102,7 @@ func addPianoKeys(freq js.Value) js.Value {
 
 	var keyEls []js.Value
 	mk := func(pc int, name string, black bool, leftPct float64) js.Value {
-		el := doc.Call("createElement", "span")
+		el := dom.Doc.Call("createElement", "span")
 		if black {
 			el.Set("className", "pk-key pk-black")
 			el.Get("style").Set("left", strconv.FormatFloat(leftPct, 'f', 2, 64)+"%")
@@ -110,7 +111,7 @@ func addPianoKeys(freq js.Value) js.Value {
 		}
 		el.Call("setAttribute", "data-pc", strconv.Itoa(pc))
 		el.Set("title", owner+" — set note "+name+" (in the octave currently shown)")
-		el.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		el.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			// Set this note in the octave currently shown on the keyboard (the C..B
 			// register the current note is in), snapping out any detune.
 			cur := math.Round(fgFloat(freq))           // current note, semitones above A0
@@ -168,7 +169,7 @@ func addPianoKeys(freq js.Value) js.Value {
 		}
 	}
 	highlight()
-	freq.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	freq.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		highlight()
 		return nil
 	}))
@@ -227,9 +228,9 @@ func addSelectorWaveDial(stack, sel js.Value, off float64) {
 	if n > len(waveSVG) {
 		n = len(waveSVG)
 	}
-	dial := doc.Call("createElement", "span")
+	dial := dom.Doc.Call("createElement", "span")
 	dial.Set("className", "knob-dial")
-	circle := doc.Call("createElement", "span")
+	circle := dom.Doc.Call("createElement", "span")
 	circle.Set("className", "knob-ring-circle")
 	dia := strconv.FormatFloat(2*off, 'f', 1, 64) + "%"
 	circle.Get("style").Set("width", dia)
@@ -239,7 +240,7 @@ func addSelectorWaveDial(stack, sel js.Value, off float64) {
 	for i := 0; i < n; i++ {
 		deg := -knobSweepDeg/2 + knobSweepDeg*float64(i)/float64(n-1)
 		l, t := dialLabelPos(deg, off)
-		ic := doc.Call("createElement", "span")
+		ic := dom.Doc.Call("createElement", "span")
 		ic.Set("className", "knob-dial-wave clickable")
 		ic.Set("innerHTML", waveSVG[i])
 		ic.Get("style").Set("left", l)
@@ -247,7 +248,7 @@ func addSelectorWaveDial(stack, sel js.Value, off float64) {
 		dialPosTitle(ic, sel, i)
 		els[i] = ic
 		idx := i
-		ic.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		ic.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			sel.Set("selectedIndex", idx)
 			sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 			return nil
@@ -260,7 +261,7 @@ func addSelectorWaveDial(stack, sel js.Value, off float64) {
 			e.Get("classList").Call("toggle", "wave-active", j == ci)
 		}
 	}
-	sel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} { hi(); return nil }))
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} { hi(); return nil }))
 	hi()
 	stack.Call("insertBefore", dial, stack.Get("firstChild"))
 	stack.Get("classList").Call("add", "has-dial")
@@ -289,13 +290,13 @@ func waveTypeName(w int) string {
 func buildGeneratorModule() {
 	for _, osc := range genOscs {
 		id, idx := osc.id, osc.idx
-		freq := doc.Call("getElementById", id+"-freq")
-		wave := doc.Call("getElementById", id+"-wave")
-		fstack := doc.Call("getElementById", id+"-fstack")
-		lvl := doc.Call("getElementById", id+"-lvl")
-		out := doc.Call("getElementById", id+"-out")
-		lstack := doc.Call("getElementById", id+"-lstack")
-		ostack := doc.Call("getElementById", id+"-ostack")
+		freq := dom.Doc.Call("getElementById", id+"-freq")
+		wave := dom.Doc.Call("getElementById", id+"-wave")
+		fstack := dom.Doc.Call("getElementById", id+"-fstack")
+		lvl := dom.Doc.Call("getElementById", id+"-lvl")
+		out := dom.Doc.Call("getElementById", id+"-out")
+		lstack := dom.Doc.Call("getElementById", id+"-lstack")
+		ostack := dom.Doc.Call("getElementById", id+"-ostack")
 		if !freq.Truthy() || !fstack.Truthy() {
 			continue
 		}
@@ -392,7 +393,7 @@ func genAudioSync() {
 	any := false
 	for _, osc := range genOscs {
 		id := osc.id
-		if o := doc.Call("getElementById", id+"-out"); o.Truthy() && o.Get("value").String() != "off" {
+		if o := dom.Doc.Call("getElementById", id+"-out"); o.Truthy() && o.Get("value").String() != "off" {
 			any = true
 		}
 	}
@@ -552,7 +553,7 @@ func genAudioUpdate(i int) {
 	}
 	// Channel routing from the dropdown: off / L / R / both.
 	route := "off"
-	if o := doc.Call("getElementById", genOscs[i].id+"-out"); o.Truthy() {
+	if o := dom.Doc.Call("getElementById", genOscs[i].id+"-out"); o.Truthy() {
 		route = o.Get("value").String()
 	}
 	gain, pan := 0.0, 0.0

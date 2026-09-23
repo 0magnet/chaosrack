@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 
 	"github.com/0magnet/tuiwasm/demos"
@@ -85,14 +86,14 @@ func ensureTermAnim() bool {
 	// Offscreen, but with a box: the renderer sizes itself from the element,
 	// and a detached node has no box, so the terminal would come up zero by
 	// zero and the texture would be empty.
-	animHost = doc.Call("createElement", "div")
+	animHost = dom.Doc.Call("createElement", "div")
 	style := animHost.Get("style")
 	style.Set("position", "fixed")
 	style.Set("left", "-10000px")
 	style.Set("top", "0")
 	style.Set("width", "900px")
 	style.Set("height", "560px")
-	doc.Get("body").Call("appendChild", animHost)
+	dom.Doc.Get("body").Call("appendChild", animHost)
 
 	s, err := play.Mount(d, animHost)
 	if err != nil {
@@ -162,7 +163,7 @@ func termAnimTexture() (js.Value, bool) {
 // HTML, so it cannot drift from what is actually registered — the same reason
 // the STL module builds its catalog at runtime.
 func syncTermAnimExtras(mode string) {
-	sect := doc.Call("getElementById", "termanim-module")
+	sect := dom.Doc.Call("getElementById", "termanim-module")
 	if !sect.Truthy() {
 		return
 	}
@@ -181,12 +182,12 @@ func fillTermAnimPicker() {
 	if animPickerFilled {
 		return
 	}
-	sel := doc.Call("getElementById", "termanim-pick")
+	sel := dom.Doc.Call("getElementById", "termanim-pick")
 	if !sel.Truthy() {
 		return
 	}
 	for _, d := range demos.All() {
-		opt := doc.Call("createElement", "option")
+		opt := dom.Doc.Call("createElement", "option")
 		opt.Set("value", d.Name)
 		opt.Set("textContent", d.Name)
 		opt.Set("title", d.Desc)

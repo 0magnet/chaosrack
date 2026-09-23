@@ -21,7 +21,11 @@ package attractor
 // power switch and a viewport check, so one nobody is looking at costs
 // nothing — see screenpower_js.go.
 
-import "syscall/js"
+import (
+	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+)
 
 // rowMonFPS is how often the live monitor redraws. Ten, as the Record
 // monitor's does, and for the reason recPreviewFPS gives.
@@ -38,23 +42,23 @@ var rowMonBlanked = map[string]bool{}
 // wireRowMonitors starts the bay monitors. Safe to call before the bays
 // exist, and safe to call again.
 func wireRowMonitors() {
-	if !doc.Truthy() {
+	if !dom.Doc.Truthy() {
 		return
 	}
 	for _, b := range rackBays {
 		id := bayMonSwitchID(b.Label, b.N)
 		p := &screenPower{switchID: id}
 		rowMonPower[id] = p
-		if sw := doc.Call("getElementById", id); sw.Truthy() {
+		if sw := dom.Doc.Call("getElementById", id); sw.Truthy() {
 			key := id
-			sw.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+			sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 				p.invalidate()
 				rowMonBlanked[key] = false
 				return nil
 			}))
 		}
 	}
-	tick := trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	tick := dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		drawRowMonitors()
 		return nil
 	})
@@ -65,12 +69,12 @@ func wireRowMonitors() {
 // drawRowMonitors paints one frame: the driving bay's screen gets the model,
 // and any screen that has just stopped driving gets its one dark frame.
 func drawRowMonitors() {
-	if !doc.Truthy() {
+	if !dom.Doc.Truthy() {
 		return
 	}
 	live := bayOf(selectedMode)
 	for _, b := range rackBays {
-		cv := doc.Call("getElementById", bayMonitorID(b.Label, b.N))
+		cv := dom.Doc.Call("getElementById", bayMonitorID(b.Label, b.N))
 		if !cv.Truthy() {
 			continue
 		}

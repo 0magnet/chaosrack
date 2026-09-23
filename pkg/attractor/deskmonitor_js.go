@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 
 	"github.com/0magnet/desk"
@@ -33,7 +34,7 @@ var (
 )
 
 func initDeskMonitor() {
-	deskMonitor = doc.Call("getElementById", "desk-monitor")
+	deskMonitor = dom.Doc.Call("getElementById", "desk-monitor")
 	if !deskMonitor.Truthy() {
 		return
 	}
@@ -41,7 +42,7 @@ func initDeskMonitor() {
 	if !deskMonitorCtx.Truthy() {
 		return
 	}
-	js.Global().Call("setInterval", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	js.Global().Call("setInterval", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		drawDeskMonitor()
 		return nil
 	}), 1000/deskMonitorFPS)

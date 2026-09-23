@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strings"
 	"syscall/js"
 )
@@ -89,10 +90,10 @@ var panelSurfaceHidden bool
 // sibling of the shell rather than a child so that it can bring the shell back.
 func controlSurface() []js.Value {
 	var els []js.Value
-	if sh := doc.Call("getElementById", "panel-shell"); sh.Truthy() {
+	if sh := dom.Doc.Call("getElementById", "panel-shell"); sh.Truthy() {
 		els = append(els, sh)
 	}
-	if b := doc.Call("getElementById", "panel-toggle"); b.Truthy() {
+	if b := dom.Doc.Call("getElementById", "panel-toggle"); b.Truthy() {
 		els = append(els, b)
 	}
 	return els
@@ -132,7 +133,7 @@ func initPanelRevealChord() {
 		return
 	}
 	setPanelSurfaceHidden(true)
-	js.Global().Call("addEventListener", "keydown", trackedFuncOf(func(_ js.Value, a []js.Value) interface{} {
+	js.Global().Call("addEventListener", "keydown", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
 		if len(a) == 0 {
 			return nil
 		}

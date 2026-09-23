@@ -2,6 +2,8 @@
 
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dom"
+
 // Background visualizer: render a live audio display (scrolling spectrogram or
 // xy/Lissajous scope) BEHIND the current attractor / geometry model, so the
 // attractor floats over a reactive backdrop. It is a layer, not a mode — the
@@ -97,7 +99,7 @@ func syncLayersModule(mode string) {
 	// The switch dims by its label; the skin selector is a cell with a knob in
 	// it, so it dims by the cell. Same class, same sentence, different wrapper.
 	dimIn := func(id, wrapper string, applies bool) {
-		el := doc.Call("getElementById", id)
+		el := dom.Doc.Call("getElementById", id)
 		if !el.Truthy() {
 			return
 		}
@@ -131,8 +133,8 @@ func syncLayersModule(mode string) {
 // definition of what a spectrogram's controls are. It is only ever built when
 // the spectrogram is NOT the model, so the element ids stay unique.
 func syncSpectroModule(mode string) {
-	sect := doc.Call("getElementById", "spectro-module")
-	host := doc.Call("getElementById", "spectro-params")
+	sect := dom.Doc.Call("getElementById", "spectro-module")
+	host := dom.Doc.Call("getElementById", "spectro-params")
 	if !sect.Truthy() || !host.Truthy() {
 		return
 	}
@@ -142,7 +144,7 @@ func syncSpectroModule(mode string) {
 		sect.Get("style").Set("display", "none")
 		return
 	}
-	grid := doc.Call("createElement", "div")
+	grid := dom.Doc.Call("createElement", "div")
 	grid.Set("className", "punit-grid")
 	for _, p := range spectParams {
 		grid.Call("appendChild", buildParamUnit(selectedMode, p))

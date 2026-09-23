@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -157,7 +158,7 @@ func ctlValue(c permaCtl, el js.Value) string {
 func capturePermaDefaults() {
 	permaDefaults = map[string]string{}
 	for _, c := range permaCtls {
-		el := doc.Call("getElementById", c.id)
+		el := dom.Doc.Call("getElementById", c.id)
 		if el.Truthy() {
 			permaDefaults[c.key] = ctlValue(c, el)
 		}
@@ -197,7 +198,7 @@ func serializeState() string {
 
 	// Residual table-driven controls that differ from their captured defaults.
 	for _, c := range permaCtls {
-		el := doc.Call("getElementById", c.id)
+		el := dom.Doc.Call("getElementById", c.id)
 		if !el.Truthy() {
 			continue
 		}
@@ -295,17 +296,17 @@ func startPermalinkSync() {
 
 	lastPermaHash = serializeState()
 
-	doc.Call("addEventListener", "input", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "input", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		permaDirty = true
 		return nil
 	}), true)
-	doc.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		permaDirty = true
 		return nil
 	}), true)
 
 	ticks := 0
-	js.Global().Call("setInterval", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	js.Global().Call("setInterval", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		ticks++
 		if permaDirty || ticks%permaFullCheck == 0 {
 			permaDirty = false
@@ -328,7 +329,7 @@ func startPermalinkSync() {
 	//
 	// No loop is possible: the app writes its own hash with replaceState, which
 	// does not fire this event, and the comparison below ignores it anyway.
-	js.Global().Call("addEventListener", "hashchange", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	js.Global().Call("addEventListener", "hashchange", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		h := strings.TrimPrefix(js.Global().Get("location").Get("hash").String(), "#")
 		if h == "" || h == lastPermaHash {
 			return nil
@@ -465,7 +466,7 @@ func applyControl(key, val string) {
 		if c.key != key {
 			continue
 		}
-		el := doc.Call("getElementById", c.id)
+		el := dom.Doc.Call("getElementById", c.id)
 		if !el.Truthy() {
 			return
 		}
@@ -482,7 +483,7 @@ func applyControl(key, val string) {
 }
 
 func applyParam(suffix, val string) {
-	el := doc.Call("getElementById", selectedMode+"-"+suffix)
+	el := dom.Doc.Call("getElementById", selectedMode+"-"+suffix)
 	if !el.Truthy() {
 		return
 	}

@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"strconv"
 	"strings"
@@ -60,12 +61,12 @@ var (
 // keysRange returns the keybed's midi range from the range knobs: the full
 // piano for "88", else span whole octaves C-to-C from the base octave.
 func keysRange() (lo, hi int) {
-	if doc.Call("getElementById", "keys-span").Get("value").String() == "88" {
+	if dom.Doc.Call("getElementById", "keys-span").Get("value").String() == "88" {
 		return 21, 108 // A0..C8
 	}
-	n, _ := strconv.Atoi(doc.Call("getElementById", "keys-span").Get("value").String())    //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-	base, _ := strconv.Atoi(doc.Call("getElementById", "keys-base").Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-	lo = 12 * (base + 1)                                                                   // midi C(base): C1=24 … C5=72
+	n, _ := strconv.Atoi(dom.Doc.Call("getElementById", "keys-span").Get("value").String())    //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+	base, _ := strconv.Atoi(dom.Doc.Call("getElementById", "keys-base").Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+	lo = 12 * (base + 1)                                                                       // midi C(base): C1=24 … C5=72
 	return lo, lo + 12*n
 }
 
@@ -83,7 +84,7 @@ func keysIsBlack(midi int) bool {
 // width tracks the interface size (16px per white key × --kscale) so the
 // module quantizes to more slots as the range grows.
 func buildKeysBed() {
-	bed := doc.Call("getElementById", "keys-bed")
+	bed := dom.Doc.Call("getElementById", "keys-bed")
 	if !bed.Truthy() {
 		return
 	}
@@ -112,16 +113,16 @@ func buildKeysBed() {
 	}
 	bed.Get("style").Set("width", "calc("+strconv.Itoa(whitesTotal)+" * 16px * var(--kscale,1))")
 
-	whites := doc.Call("createElement", "span")
+	whites := dom.Doc.Call("createElement", "span")
 	whites.Set("className", "pk-whites")
-	blacks := doc.Call("createElement", "span")
+	blacks := dom.Doc.Call("createElement", "span")
 	blacks.Set("className", "pk-blacks")
 	blackW := 62.0 / float64(whitesTotal) // % of bed width, ~0.62 white keys
 
 	whitesBefore := 0
 	for m := lo; m <= hi; m++ {
 		midi := m
-		el := doc.Call("createElement", "span")
+		el := dom.Doc.Call("createElement", "span")
 		name := noteNames[midi%12] + strconv.Itoa(midi/12-1)
 		el.Set("title", "Keys — play "+name+" (hold and slide for glissando)")
 		if keysIsBlack(midi) {
@@ -145,7 +146,7 @@ func buildKeysBed() {
 				lab = kbLowKeys[off]
 			}
 			if lab != "" {
-				sp := doc.Call("createElement", "span")
+				sp := dom.Doc.Call("createElement", "span")
 				sp.Set("className", "pk-kb")
 				sp.Set("textContent", lab)
 				el.Call("appendChild", sp)
@@ -154,7 +155,7 @@ func buildKeysBed() {
 		keysKeyEls[midi] = el
 		el.Call("setAttribute", "data-midi", strconv.Itoa(midi))
 
-		el.Call("addEventListener", "mousedown", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		el.Call("addEventListener", "mousedown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			e := a[0]
 			e.Call("preventDefault")
 			e.Call("stopPropagation")
@@ -162,7 +163,7 @@ func buildKeysBed() {
 			keysNoteOn(midi)
 			return nil
 		}))
-		el.Call("addEventListener", "mouseenter", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		el.Call("addEventListener", "mouseenter", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			e := a[0]
 			// Glissando: only while a bed drag is in progress with the button
 			// still down (buttons==0 heals a mouseup we never saw).
@@ -181,14 +182,14 @@ func buildKeysBed() {
 			}
 			return nil
 		}))
-		el.Call("addEventListener", "touchstart", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		el.Call("addEventListener", "touchstart", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			a[0].Call("preventDefault")
 			keysTouchNote = midi
 			keysNoteOn(midi)
 			return nil
 		}))
 		for _, ev := range []string{"touchend", "touchcancel"} {
-			el.Call("addEventListener", ev, trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+			el.Call("addEventListener", ev, dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 				// The touch may have slid to another key (glissando below) —
 				// release whichever note the finger ended on, and the origin.
 				keysNoteOff(midi)
@@ -204,11 +205,11 @@ func buildKeysBed() {
 	bed.Call("appendChild", blacks)
 	// Touch glissando: touchmove keeps targeting the starting key, so track
 	// the finger with elementFromPoint and slide the sounding note.
-	bed.Call("addEventListener", "touchmove", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	bed.Call("addEventListener", "touchmove", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		e := a[0]
 		e.Call("preventDefault")
 		t := e.Get("touches").Index(0)
-		el := doc.Call("elementFromPoint", t.Get("clientX").Float(), t.Get("clientY").Float())
+		el := dom.Doc.Call("elementFromPoint", t.Get("clientX").Float(), t.Get("clientY").Float())
 		if !el.Truthy() {
 			return nil
 		}
@@ -254,9 +255,9 @@ func keysUpdateRouting() {
 	if !keysMaster.Truthy() {
 		return
 	}
-	lvl := fgFloat(doc.Call("getElementById", "keys-lvl")) / 100
+	lvl := fgFloat(dom.Doc.Call("getElementById", "keys-lvl")) / 100
 	gain, pan := 0.0, 0.0
-	switch doc.Call("getElementById", "keys-out").Get("value").String() {
+	switch dom.Doc.Call("getElementById", "keys-out").Get("value").String() {
 	case "l":
 		gain, pan = lvl, -1
 	case "r":
@@ -280,7 +281,7 @@ func keysNoteOn(midi int) {
 		return
 	}
 	hz := 440 * math.Pow(2, float64(midi-69)/12)
-	w, _ := strconv.Atoi(doc.Call("getElementById", "keys-wave").Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+	w, _ := strconv.Atoi(dom.Doc.Call("getElementById", "keys-wave").Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 	var osc js.Value
 	if w == 4 {
 		// Noise voice: the DCSG shift-register loop, pitched by playback rate
@@ -336,15 +337,15 @@ func keysAllOff() {
 // renders the keybed, and installs the global play listeners. Called once
 // from Run.
 func wireKeysModule() {
-	span := doc.Call("getElementById", "keys-span")
-	base := doc.Call("getElementById", "keys-base")
-	lvl := doc.Call("getElementById", "keys-lvl")
-	out := doc.Call("getElementById", "keys-out")
-	wave := doc.Call("getElementById", "keys-wave")
-	rstack := doc.Call("getElementById", "keys-rstack")
-	lstack := doc.Call("getElementById", "keys-lstack")
-	ostack := doc.Call("getElementById", "keys-ostack")
-	sizeLED := doc.Call("getElementById", "keys-size-led")
+	span := dom.Doc.Call("getElementById", "keys-span")
+	base := dom.Doc.Call("getElementById", "keys-base")
+	lvl := dom.Doc.Call("getElementById", "keys-lvl")
+	out := dom.Doc.Call("getElementById", "keys-out")
+	wave := dom.Doc.Call("getElementById", "keys-wave")
+	rstack := dom.Doc.Call("getElementById", "keys-rstack")
+	lstack := dom.Doc.Call("getElementById", "keys-lstack")
+	ostack := dom.Doc.Call("getElementById", "keys-ostack")
+	sizeLED := dom.Doc.Call("getElementById", "keys-size-led")
 	if !span.Truthy() || !rstack.Truthy() {
 		return
 	}
@@ -427,7 +428,7 @@ func wireKeysModule() {
 
 	// Computer keyboard: two tracker rows anchored near the range's middle
 	// C. Only while the module is shown, never while typing in a field.
-	doc.Call("addEventListener", "keydown", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		e := a[0]
 		if !keysOn || e.Get("repeat").Bool() ||
 			e.Get("ctrlKey").Bool() || e.Get("metaKey").Bool() || e.Get("altKey").Bool() {
@@ -454,7 +455,7 @@ func wireKeysModule() {
 		keysNoteOn(midi)
 		return nil
 	}))
-	doc.Call("addEventListener", "keyup", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "keyup", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if off, ok := kbOffset[strings.ToLower(a[0].Get("key").String())]; ok {
 			keysNoteOff(keysAnchor + off)
 		}
@@ -462,14 +463,14 @@ func wireKeysModule() {
 	}))
 	// Release the mouse-drag note anywhere; silence everything on tab blur
 	// so no note can stick when focus leaves.
-	doc.Call("addEventListener", "mouseup", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "mouseup", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if keysMouseNote >= 0 {
 			keysNoteOff(keysMouseNote)
 			keysMouseNote = -1
 		}
 		return nil
 	}))
-	js.Global().Call("addEventListener", "blur", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	js.Global().Call("addEventListener", "blur", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		keysAllOff()
 		return nil
 	}))

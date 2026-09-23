@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 )
 
@@ -62,9 +63,9 @@ func rhythmUpdateRouting() {
 	if !rhythmMaster.Truthy() {
 		return
 	}
-	lvl := fgFloat(doc.Call("getElementById", "rhythm-lvl")) / 100
+	lvl := fgFloat(dom.Doc.Call("getElementById", "rhythm-lvl")) / 100
 	gain, pan := 0.0, 0.0
-	switch doc.Call("getElementById", "rhythm-out").Get("value").String() {
+	switch dom.Doc.Call("getElementById", "rhythm-out").Get("value").String() {
 	case "l":
 		gain, pan = lvl, -1
 	case "r":
@@ -79,7 +80,7 @@ func rhythmUpdateRouting() {
 }
 
 func rhythmTempo() float64 {
-	bpm := fgFloat(doc.Call("getElementById", "rhythm-tempo"))
+	bpm := fgFloat(dom.Doc.Call("getElementById", "rhythm-tempo"))
 	if bpm < 40 {
 		bpm = 100
 	}
@@ -140,7 +141,7 @@ func rhythmUpdateLamps(p rhythmPattern, now, dur float64) {
 		return
 	}
 	rhythmLampAt = beat
-	lamps := doc.Call("getElementById", "rhythm-beats")
+	lamps := dom.Doc.Call("getElementById", "rhythm-beats")
 	if !lamps.Truthy() {
 		return
 	}
@@ -240,7 +241,7 @@ func setRhythmPreset(name string) {
 		return
 	}
 	rhythmPreset = name
-	tabs := doc.Call("getElementById", "rhythm-tabs")
+	tabs := dom.Doc.Call("getElementById", "rhythm-tabs")
 	if tabs.Truthy() {
 		kids := tabs.Get("children")
 		for i := 0; i < kids.Get("length").Int(); i++ {
@@ -248,7 +249,7 @@ func setRhythmPreset(name string) {
 			el.Get("classList").Call("toggle", "down", el.Call("getAttribute", "data-rp").String() == name)
 		}
 	}
-	if sel := doc.Call("getElementById", "rhythm-preset"); sel.Truthy() {
+	if sel := dom.Doc.Call("getElementById", "rhythm-preset"); sel.Truthy() {
 		sel.Set("value", name)
 	}
 	// The bar restarts on a change of pattern rather than continuing from
@@ -271,7 +272,7 @@ func rhythmRestart() {
 // shown — a fixed four lamps under a waltz would be counting a bar the pattern
 // does not have.
 func rhythmBuildLamps() {
-	host := doc.Call("getElementById", "rhythm-beats")
+	host := dom.Doc.Call("getElementById", "rhythm-beats")
 	if !host.Truthy() {
 		return
 	}
@@ -281,7 +282,7 @@ func rhythmBuildLamps() {
 	}
 	host.Set("innerHTML", "")
 	for i := 0; i < rhythmBeatsPerBar(p); i++ {
-		d := doc.Call("createElement", "span")
+		d := dom.Doc.Call("createElement", "span")
 		d.Set("className", "rhythm-beat")
 		host.Call("appendChild", d)
 	}
@@ -295,7 +296,7 @@ func setRhythmRunning(on bool) {
 		rhythmEnsureGraph()
 		return
 	}
-	if lamps := doc.Call("getElementById", "rhythm-beats"); lamps.Truthy() {
+	if lamps := dom.Doc.Call("getElementById", "rhythm-beats"); lamps.Truthy() {
 		kids := lamps.Get("children")
 		for i := 0; i < kids.Get("length").Int(); i++ {
 			kids.Index(i).Get("classList").Call("remove", "lit")
@@ -307,14 +308,14 @@ func setRhythmRunning(on bool) {
 // Run, BEFORE the permalink is applied, so the hidden preset select already has
 // its options when a link tries to set one.
 func wireRhythmModule() {
-	tempo := doc.Call("getElementById", "rhythm-tempo")
-	lvl := doc.Call("getElementById", "rhythm-lvl")
-	out := doc.Call("getElementById", "rhythm-out")
-	sel := doc.Call("getElementById", "rhythm-preset")
-	tabs := doc.Call("getElementById", "rhythm-tabs")
-	tstack := doc.Call("getElementById", "rhythm-tstack")
-	lstack := doc.Call("getElementById", "rhythm-lstack")
-	ostack := doc.Call("getElementById", "rhythm-ostack")
+	tempo := dom.Doc.Call("getElementById", "rhythm-tempo")
+	lvl := dom.Doc.Call("getElementById", "rhythm-lvl")
+	out := dom.Doc.Call("getElementById", "rhythm-out")
+	sel := dom.Doc.Call("getElementById", "rhythm-preset")
+	tabs := dom.Doc.Call("getElementById", "rhythm-tabs")
+	tstack := dom.Doc.Call("getElementById", "rhythm-tstack")
+	lstack := dom.Doc.Call("getElementById", "rhythm-lstack")
+	ostack := dom.Doc.Call("getElementById", "rhythm-ostack")
 	if !tempo.Truthy() || !tabs.Truthy() || !tstack.Truthy() {
 		return
 	}
@@ -349,21 +350,21 @@ func wireRhythmModule() {
 	// built from rhythmPatterns so there is ONE list of what the presets are —
 	// a tab with no matching option would be a preset no link could describe.
 	for _, p := range rhythmPatterns {
-		opt := doc.Call("createElement", "option")
+		opt := dom.Doc.Call("createElement", "option")
 		opt.Set("value", p.Name)
 		opt.Set("textContent", p.Name)
 		sel.Call("appendChild", opt)
 
 		name := p.Name
-		tab := doc.Call("createElement", "div")
+		tab := dom.Doc.Call("createElement", "div")
 		tab.Set("className", "rhythm-tab")
 		tab.Call("setAttribute", "data-rp", name)
 		tab.Set("textContent", name)
-		tab.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		tab.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			setRhythmPreset(name)
 			// Pressing a tab starts the section, as it did on the organ: the
 			// tabs WERE the start control there. Run stays the way to stop it.
-			if run := doc.Call("getElementById", "rhythm-run"); run.Truthy() && !run.Get("checked").Bool() {
+			if run := dom.Doc.Call("getElementById", "rhythm-run"); run.Truthy() && !run.Get("checked").Bool() {
 				run.Set("checked", true)
 				run.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 			}
@@ -373,13 +374,13 @@ func wireRhythmModule() {
 	}
 	// The select is what a permalink writes to; the tabs follow it.
 	sel.Set("value", rhythmPreset)
-	sel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		setRhythmPreset(sel.Get("value").String())
 		return nil
 	}))
 
-	if run := doc.Call("getElementById", "rhythm-run"); run.Truthy() {
-		run.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	if run := dom.Doc.Call("getElementById", "rhythm-run"); run.Truthy() {
+		run.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			setRhythmRunning(run.Get("checked").Bool())
 			return nil
 		}))

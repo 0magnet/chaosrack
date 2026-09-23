@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"syscall/js"
 
@@ -25,10 +26,10 @@ import (
 // buildTestSignalModule fills the selector from the library and wires both
 // controls. Called once, from the same place the generator module is built.
 func buildTestSignalModule() {
-	sel := doc.Call("getElementById", "testsig-sel")
-	stack := doc.Call("getElementById", "testsig-stack")
-	lvl := doc.Call("getElementById", "testsig-lvl")
-	lstack := doc.Call("getElementById", "testsig-lstack")
+	sel := dom.Doc.Call("getElementById", "testsig-sel")
+	stack := dom.Doc.Call("getElementById", "testsig-stack")
+	lvl := dom.Doc.Call("getElementById", "testsig-lvl")
+	lstack := dom.Doc.Call("getElementById", "testsig-lstack")
 	if !sel.Truthy() || !stack.Truthy() || !lvl.Truthy() {
 		return
 	}
@@ -36,7 +37,7 @@ func buildTestSignalModule() {
 	// The options come from the library's own list rather than from the HTML,
 	// so adding a stimulus is one edit in one file.
 	for i, name := range audiosrc.TestSignalNames {
-		opt := doc.Call("createElement", "option")
+		opt := dom.Doc.Call("createElement", "option")
 		opt.Set("value", strconv.Itoa(i))
 		opt.Set("textContent", name)
 		if i < len(audiosrc.TestSignalDescs) {
@@ -67,7 +68,7 @@ func buildTestSignalModule() {
 
 // testSignalSel is the selector's current position.
 func testSignalSel() audiosrc.TestSignal {
-	sel := doc.Call("getElementById", "testsig-sel")
+	sel := dom.Doc.Call("getElementById", "testsig-sel")
 	if !sel.Truthy() {
 		return audiosrc.TestOff
 	}
@@ -93,7 +94,7 @@ func applyTestSignal() {
 	if s == audiosrc.TestOff {
 		return
 	}
-	if sw := doc.Call("getElementById", "fg-on"); sw.Truthy() && !sw.Get("checked").Bool() {
+	if sw := dom.Doc.Call("getElementById", "fg-on"); sw.Truthy() && !sw.Get("checked").Bool() {
 		sw.Set("checked", true)
 		sw.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 	}

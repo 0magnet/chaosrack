@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 
 	"github.com/0magnet/desk/panes/hostterm"
@@ -44,14 +45,14 @@ func ensureHostTerm() bool {
 	}
 	hostTermTried = true
 
-	hostTermHost = doc.Call("createElement", "div")
+	hostTermHost = dom.Doc.Call("createElement", "div")
 	style := hostTermHost.Get("style")
 	style.Set("position", "fixed")
 	style.Set("left", "-10000px") // offscreen, not display:none — it needs a box
 	style.Set("top", "0")
 	style.Set("width", "900px")
 	style.Set("height", "560px")
-	doc.Get("body").Call("appendChild", hostTermHost)
+	dom.Doc.Get("body").Call("appendChild", hostTermHost)
 
 	p := hostterm.New()
 	if err := p.Mount(hostTermHost); err != nil {
