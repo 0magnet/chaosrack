@@ -1112,3 +1112,42 @@ func (t *Terminal) RefreshGlyphs() {
 		r.glyphs.clear()
 	}
 }
+
+// SetFontSize changes the cell size and refits the grid to the element the
+// terminal is mounted on — the terminal's own zoom, which is what a terminal
+// emulator's ctrl+scroll and ctrl+plus do.
+//
+// THE POINT IS THE GRID AND NOT THE TYPE. A smaller cell in the same box is
+// more rows and columns, and for a terminal that is drawing something rather
+// than printing to it — a full-screen panel, a plot, an image as text — that
+// is resolution. It is the difference between a dial you can put a pointer on
+// and a dial you can put an arc on.
+//
+// The cell has to be re-measured rather than scaled: a font's advance width is
+// not linear in its size at small sizes, because hinting rounds it to whole
+// pixels, so computing the new cell from the old one drifts and the grid ends
+// up not quite fitting its box. Re-measuring costs one hidden probe element.
+//
+// The WebGL renderer holds a texture atlas built for the old cell, so it is
+// rebuilt: nothing else here knows how to tell it its glyphs changed size.
+func (t *Terminal) SetFontSize(px float64) {
+	if !t.opened || px <= 0 || px == t.Core.Options.FontSize {
+		return
+	}
+	t.Core.Options.FontSize = px
+	t.element.Get("style").Set("fontSize", jsPx(px))
+	t.measureCharSize()
+	t.refreshRowEls()
+	t.updateScrollArea()
+	if _, ok := t.renderer.(*webglRenderer); ok {
+		// Rebuild rather than resize: the atlas is keyed by cell size and
+		// there is no way in from out here to say it changed.
+		t.DisableWebGL()
+		_ = t.EnableWebGL() //nolint:errcheck // it worked a moment ago; the DOM renderer is the fallback either way
+	}
+	t.Fit()
+	t.scheduleRender(true)
+}
+
+// FontSize is the cell size the terminal is drawing at.
+func (t *Terminal) FontSize() float64 { return t.Core.Options.FontSize }
