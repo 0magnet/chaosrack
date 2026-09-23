@@ -4,7 +4,6 @@ package attractor
 
 import (
 	"strconv"
-	"syscall/js"
 )
 
 // The Poincaré section, as a thing on screen. The arithmetic is next door in
@@ -416,16 +415,11 @@ func sectTick(mode string) {
 // because the Section module comes and goes with it — the same thing the
 // Patchbay switch does.
 func wireSectSwitch() {
-	sw := doc.Call("getElementById", "sect-sw")
-	if !sw.Truthy() {
-		return
-	}
-	sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		sectOn = sw.Get("checked").Bool()
+	wireSwitch("sect-sw", func(on bool) {
+		sectOn = on
 		sectInvalidate()
 		buildParamPanel(selectedMode)
-		return nil
-	}))
+	})
 }
 
 // ── The model (Analysis → Poincaré) ──────────────────────────────────────

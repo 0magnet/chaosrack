@@ -144,18 +144,13 @@ func twinTick(mode string) bool {
 // wireTwinSwitch hooks up the Trace > Twin checkbox and the λ LED beside it.
 func wireTwinSwitch() {
 	twinLambdaEl = doc.Call("getElementById", "twin-lambda")
-	sw := doc.Call("getElementById", "twin-sw")
-	if !sw.Truthy() {
-		return
-	}
-	sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		twinOn = sw.Get("checked").Bool()
+	wireSwitch("twin-sw", func(on bool) {
+		twinOn = on
 		twinInvalidate()
 		// The switch does NOT restart the measurement — the exponent belongs
 		// to the system and the system has not changed. Only the LED's
 		// last-written text is cleared, so the next frame writes the current
 		// reading into it (or blanks it) instead of skipping it as unchanged.
 		lyapLiveTrace = "\x00"
-		return nil
-	}))
+	})
 }

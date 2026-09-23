@@ -163,3 +163,30 @@ func rackControls() []controlspec.ControlInfo {
 	}
 	return out
 }
+
+// wireSwitch attaches a switch to the thing it turns on, and applies the
+// position it is already in.
+//
+// It was wireScopeSwitch, in rackscope_js.go, parameterized exactly like this
+// and used by the scope. Four others — jam, sect, twin, MIDI — were the same
+// function written again with the id inlined and the body in place of the
+// closure, which is how the registry came to be missing them: each site was
+// its own chance to forget to record one.
+//
+// The trailing set() is the part the copies left out. A switch that starts
+// closed — because the markup says so, or a permalink restored it — otherwise
+// never runs its effect until a hand moves it, and the Go state disagrees with
+// the panel until then. Every switch in the rack currently starts open, so
+// that was a hazard rather than a fault; applying it makes the two agree by
+// construction instead of by coincidence.
+func wireSwitch(id string, set func(bool)) {
+	el := doc.Call("getElementById", id)
+	if !el.Truthy() {
+		return
+	}
+	el.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+		set(el.Get("checked").Bool())
+		return nil
+	}))
+	set(el.Get("checked").Bool())
+}

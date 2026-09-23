@@ -129,8 +129,8 @@ func buildRackScope() {
 		wireScopeRange("scope-trig", func(v float64) { scopeUI.trigLvl = v })
 		wireScopeRange("scope-intens", func(v float64) { scopeUI.intens = v })
 		wireScopeRange("scope-focus", func(v float64) { scopeUI.focus = v })
-		wireScopeSwitch("scope-slope", func(on bool) { scopeUI.rising = on })
-		wireScopeSwitch("scope-beam", func(on bool) { scopeUI.beam = on })
+		wireSwitch("scope-slope", func(on bool) { scopeUI.rising = on })
+		wireSwitch("scope-beam", func(on bool) { scopeUI.beam = on })
 	})
 }
 
@@ -224,17 +224,6 @@ func wireScopeRange(id string, set func(float64)) {
 		return nil
 	}))
 	read()
-}
-func wireScopeSwitch(id string, set func(bool)) {
-	el := doc.Call("getElementById", id)
-	if !el.Truthy() {
-		return
-	}
-	el.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
-		set(el.Get("checked").Bool())
-		return nil
-	}))
-	set(el.Get("checked").Bool())
 }
 
 // ── the tube ────────────────────────────────────────────────────────────
