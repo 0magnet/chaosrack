@@ -1287,6 +1287,8 @@ func wirePanelSwitches() {
 	// The analyzers move off this thread if the browser will have them; see
 	// metersclient_js.go. Nothing downstream depends on whether it worked.
 	startMetersWorker()
+	// The control surface, reachable from outside the page; see rackctl_js.go.
+	exposeRackControl()
 	wireAnalysisModule()
 	buildEnvModule()
 	wireKeysModule()
