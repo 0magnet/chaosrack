@@ -117,17 +117,19 @@ var controlRegistry []ControlInfo
 
 // registerControl records a control as it is adopted. Idempotent by id, so a
 // panel rebuilt in place does not double the surface.
-func registerControl(d ControlDesc) {
+func registerControl(d ControlDesc, module string) {
 	if d.ID == "" {
 		return
 	}
+	info := d.Info()
+	info.Module = module
 	for i, c := range controlRegistry {
 		if c.ID == d.ID {
-			controlRegistry[i] = d.Info()
+			controlRegistry[i] = info
 			return
 		}
 	}
-	controlRegistry = append(controlRegistry, d.Info())
+	controlRegistry = append(controlRegistry, info)
 }
 
 // ControlRegistry is every control in the rack, as plain data. The order is

@@ -10,12 +10,12 @@ func TestTheRegistryRecordsWhatAFrontEndWouldNeed(t *testing.T) {
 	registerControl(ControlDesc{
 		ID: "zoom", Label: "zoom", Min: -8, Max: 8, Step: 0.1, Def: 0,
 		PermaKey: "z", ModTarget: true,
-	})
+	}, "view")
 	got := ControlRegistry()
 	if len(got) != 1 {
 		t.Fatalf("registered one control, surface has %d", len(got))
 	}
-	want := ControlInfo{ID: "zoom", Label: "zoom", Min: -8, Max: 8, Step: 0.1, PermaKey: "z", ModTarget: true}
+	want := ControlInfo{ID: "zoom", Label: "zoom", Min: -8, Max: 8, Step: 0.1, PermaKey: "z", ModTarget: true, Module: "view"}
 	if got[0] != want {
 		t.Fatalf("registry holds %+v, want %+v", got[0], want)
 	}
@@ -30,8 +30,8 @@ func TestAPanelRebuiltInPlaceDoesNotDoubleTheSurface(t *testing.T) {
 	t.Cleanup(func() { controlRegistry = saved })
 	controlRegistry = nil
 
-	registerControl(ControlDesc{ID: "zoom", Label: "zoom", Max: 8})
-	registerControl(ControlDesc{ID: "zoom", Label: "zoom", Max: 12}) // rebuilt, wider
+	registerControl(ControlDesc{ID: "zoom", Label: "zoom", Max: 8}, "view")
+	registerControl(ControlDesc{ID: "zoom", Label: "zoom", Max: 12}, "view") // rebuilt, wider
 	if n := len(ControlRegistry()); n != 1 {
 		t.Fatalf("re-registering one id gave %d controls, want 1", n)
 	}
@@ -47,7 +47,7 @@ func TestANamelessControlIsNotRegistered(t *testing.T) {
 	t.Cleanup(func() { controlRegistry = saved })
 	controlRegistry = nil
 
-	registerControl(ControlDesc{Label: "nameless"})
+	registerControl(ControlDesc{Label: "nameless"}, "")
 	if n := len(ControlRegistry()); n != 0 {
 		t.Fatalf("an id-less control was registered: %d", n)
 	}
@@ -60,7 +60,7 @@ func TestTheRegistryHandsOutACopy(t *testing.T) {
 	t.Cleanup(func() { controlRegistry = saved })
 	controlRegistry = nil
 
-	registerControl(ControlDesc{ID: "a", Label: "a"})
+	registerControl(ControlDesc{ID: "a", Label: "a"}, "console")
 	got := ControlRegistry()
 	got[0].Label = "clobbered"
 	if ControlRegistry()[0].Label != "a" {

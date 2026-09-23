@@ -26,5 +26,10 @@ type ControlInfo struct {
 	IsSelect  bool    `json:"select,omitempty"`
 	SelectDef string  `json:"selectDef,omitempty"`
 	PermaKey  string  `json:"perma,omitempty"`
-	ModTarget bool    `json:"mod,omitempty"`
+	// Module is the panel the control is mounted in — its header text, which
+	// is what the rack names a module by. A front end that draws the RACK
+	// rather than a list of settings needs it: a knob belongs to a panel, and
+	// a panel belongs to a bay.
+	Module    string `json:"module,omitempty"`
+	ModTarget bool   `json:"mod,omitempty"`
 }
