@@ -98,12 +98,52 @@ func TrailIndices(n int) []uint16 {
 
 // Draw renders a trajectory into a new image.
 func Draw(pts [][3]float64, o DrawOptions) *image.RGBA {
+	return DrawSpan(pts, 0, len(pts), o)
+}
+
+// DrawSpan renders only pts[lo:hi], with the picture still framed by ALL of
+// pts. It is how a trail is drawn sweeping along a path without the path
+// moving underneath it.
+//
+// Every frame is handed the whole trajectory and differs only in which
+// segments it joins. That is not an optimization, it is the thing that makes
+// the animation hold still: Render measures its fit and normalizes the
+// gradient over the vertices it is given, so drawing each window on its own
+// would re-center and re-scale to that window — and a trail sweeping a fixed
+// path would come out as a fixed trail sweeping a path that lurched and
+// breathed. The colors would crawl too, a window's own min and max not being
+// the run's.
+func DrawSpan(pts [][3]float64, lo, hi int, o DrawOptions) *image.RGBA {
 	o = o.withDefaults()
 	img := image.NewRGBA(image.Rect(0, 0, o.Width, o.Height))
 	draw.Draw(img, img.Bounds(), &image.Uniform{o.Background}, image.Point{}, draw.Src)
 	v := Vertices(Centered(pts))
-	o.View.Render(img, v, TrailIndices(len(v)/3), o.Gradient)
+	o.View.Render(img, v, SpanIndices(len(v)/3, lo, hi), o.Gradient)
 	return img
+}
+
+// SpanIndices joins points lo..hi of an n-point trail end to end.
+func SpanIndices(n, lo, hi int) []uint16 {
+	// uint16 is the renderer's index type, so nothing past 65535 can be
+	// addressed at all. Clamping rather than wrapping: a wrap would draw a
+	// line from the end of the attractor back to its start.
+	if n > 65536 {
+		n = 65536
+	}
+	if lo < 0 {
+		lo = 0
+	}
+	if hi > n {
+		hi = n
+	}
+	if hi-lo < 2 {
+		return nil
+	}
+	out := make([]uint16, 0, (hi-lo-1)*2)
+	for i := lo; i+1 < hi; i++ {
+		out = append(out, uint16(i), uint16(i+1)) //nolint:gosec // clamped to 65536 above
+	}
+	return out
 }
 
 // Extent is a trajectory's size along each axis.
