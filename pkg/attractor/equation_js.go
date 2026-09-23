@@ -9,6 +9,7 @@ import (
 
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
+	"github.com/0magnet/chaosrack/pkg/equation"
 )
 
 // Custom mode: user-editable attractor equations. The three (optionally four)
@@ -32,7 +33,7 @@ var (
 	customEq        = [4]string{"sigma*(y - x)", "x*(rho - z) - y", "x*y - beta*z", "-w"}
 	customUseW      bool
 	customIterate   bool // flavor: false = flow (derivatives), true = discrete map
-	customExpr      [4]*Expr
+	customExpr      [4]*equation.Expr
 	customDT        float32  = 0.005
 	customParamVal           = map[string]*float32{}
 	customParamList []string // union of params across the active expressions
@@ -84,20 +85,20 @@ func parseCustom() {
 		if i == 3 && !customFlavorW() {
 			continue
 		}
-		e, err := ParseExpr(customEq[i])
+		e, err := equation.ParseExpr(customEq[i])
 		if err != nil {
 			customErr = eqLabel(i) + ": " + err.Error()
 			return
 		}
 		if customIterate {
-			if why := iterateBlocker(e); why != "" {
+			if why := equation.IterateBlocker(e); why != "" {
 				customErr = eqLabel(i) + ": " + why
 				return
 			}
 		}
 		customExpr[i] = e
-		if len(e.rpn) > maxRPN {
-			maxRPN = len(e.rpn)
+		if e.StackNeed() > maxRPN {
+			maxRPN = e.StackNeed()
 		}
 		for _, p := range e.Params {
 			if !seen[p] {
@@ -119,7 +120,7 @@ func parseCustom() {
 // paramPtrs binds one pointer slice per expression, aligned to that
 // expression's Params. Binding the pointers once and dereferencing per step is
 // what keeps knob edits live without a map lookup in the hot loop.
-func paramPtrs(exprs []*Expr) [][]*float32 {
+func paramPtrs(exprs []*equation.Expr) [][]*float32 {
 	out := make([][]*float32, len(exprs))
 	for i, e := range exprs {
 		if e == nil {
@@ -158,8 +159,8 @@ func registerCustomSystem() {
 	}
 	if customIterate {
 		pp := paramPtrs(customExpr[:3])
-		dynamics.SetCustomMap(newIterateStep(
-			[3]*Expr{customExpr[0], customExpr[1], customExpr[2]},
+		dynamics.SetCustomMap(equation.NewIterateStep(
+			[3]*equation.Expr{customExpr[0], customExpr[1], customExpr[2]},
 			[3][]*float32{pp[0], pp[1], pp[2]}))
 		return
 	}

@@ -1,4 +1,4 @@
-package attractor
+package equation
 
 import (
 	"math"
@@ -24,7 +24,7 @@ func typedMap(t *testing.T, eq [3]string, params map[string]*float32) dynamics.M
 		if err != nil {
 			t.Fatalf("parse %q: %v", s, err)
 		}
-		if why := iterateBlocker(e); why != "" {
+		if why := IterateBlocker(e); why != "" {
 			t.Fatalf("%q refused: %s", s, why)
 		}
 		exprs[i] = e
@@ -37,7 +37,7 @@ func typedMap(t *testing.T, eq [3]string, params map[string]*float32) dynamics.M
 			ptrs[i][k] = ptr
 		}
 	}
-	return newIterateStep(exprs, ptrs)
+	return NewIterateStep(exprs, ptrs)
 }
 
 // typedHenon is the built-in map as a user would type it. The parameters are
@@ -144,7 +144,7 @@ func TestIterateRefusesTimeAndHiddenState(t *testing.T) {
 		if err != nil {
 			t.Fatalf("parse %q: %v", c.eq, err)
 		}
-		why := iterateBlocker(e)
+		why := IterateBlocker(e)
 		if (why == "") != (c.want == "") {
 			t.Errorf("%q: blocker %q, wanted %q", c.eq, why, c.want)
 		}

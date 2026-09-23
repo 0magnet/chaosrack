@@ -1,4 +1,4 @@
-package attractor
+package equation
 
 // A tiny, safe arithmetic-expression engine for the user-editable attractor
 // equations (the "Custom" mode). No eval / reflection: the input is
@@ -438,3 +438,11 @@ func applyFunc(name string, a float64) float64 {
 func isAlpha(c byte) bool {
 	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '_'
 }
+
+// StackNeed is the scratch-buffer length Eval requires for this expression.
+//
+// Eval's stack argument must be at least this long. It exists so a caller can
+// size one reused buffer for several expressions — take the max over them —
+// without the token slice having to be public: how the expression is compiled
+// is this package's business, and how much scratch it needs is the caller's.
+func (e *Expr) StackNeed() int { return len(e.rpn) }
