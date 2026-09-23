@@ -49,6 +49,11 @@ var (
 	renderColors int
 	renderSet    []string
 	renderParams bool
+	renderFrames int
+	renderFPS    int
+	renderTurn   []float64
+	renderTrail  int
+	renderGrad   string
 )
 
 func init() {
@@ -63,6 +68,11 @@ func init() {
 	renderCmd.Flags().BoolVar(&renderCheck, "check", false, "integrate every model and report the ones that draw nothing")
 	renderCmd.Flags().StringArrayVar(&renderSet, "set", nil, "turn a control before drawing, as id=value (repeatable)")
 	renderCmd.Flags().BoolVar(&renderParams, "params", false, "list the controls that --set can turn, with their ranges")
+	renderCmd.Flags().IntVar(&renderFrames, "frames", 0, "write an animation of this many frames (.gif or .svg); 0 = a still")
+	renderCmd.Flags().IntVar(&renderFPS, "fps", 20, "frames per second for --frames")
+	renderCmd.Flags().Float64SliceVar(&renderTurn, "turn", []float64{0, 0, 0}, "radians the camera also turns over the animation, x,y,z (default: still camera)")
+	renderCmd.Flags().IntVar(&renderTrail, "trail", 0, "points of trajectory visible at once (0 = a quarter of the run)")
+	renderCmd.Flags().StringVar(&renderGrad, "gradient", "z", "what the palette follows: x, y, z, or trail (position along the path)")
 	runCmd.AddCommand(renderCmd, modelsCmd)
 }
 
@@ -126,6 +136,12 @@ be static without a test noticing.`,
 		if math.Max(dx, math.Max(dy, dz)) == 0 {
 			return fmt.Errorf("%s: the trajectory has no extent — it is a fixed point, not an attractor", renderModel)
 		}
+		if renderFrames > 0 {
+			if renderOut == "" {
+				return fmt.Errorf("--frames needs -o: an animation has nowhere to go")
+			}
+			return writeAnimation(renderOut, pts)
+		}
 		if renderOut == "" {
 			fmt.Printf("%s: %d points, extent %.3f x %.3f x %.3f\n", renderModel, len(pts), dx, dy, dz)
 			return nil
@@ -135,13 +151,52 @@ be static without a test noticing.`,
 }
 
 // trajectoryFor integrates one model at the flags' settings.
+//
+// A DECIMATED TRACE IS A FACETED ONE, and the default used to be decimated.
+// Trajectory thins to MaxPoints by keeping every Nth step, so 220 seconds of
+// Lorenz at dt=0.005 — 44,000 steps — inside 20,000 points keeps every third,
+// and the curve is drawn as chords across three integration steps. That is
+// visibly polygonal at the turns, where the app's own trail, which draws every
+// step it integrates, is smooth. It looks like a worse renderer and is not.
+//
+// So the run is sized to the point budget rather than the budget being spent
+// on a longer run: with no --seconds, integrate exactly as long as --points can
+// hold at full resolution. A longer run still works and still decimates —
+// there is no way for it not to — but it now says so, because a quietly
+// coarser picture is the kind of difference that gets blamed on the renderer.
 func trajectoryFor(model string) [][3]float64 {
 	o := dynamics.DefaultTrajectory()
 	if renderPts > 1 {
 		o.MaxPoints = renderPts
 	}
-	if renderSecs > 0 {
+	dt, _, haveFlow := dynamics.FlowFor(model)
+	switch {
+	case renderSecs > 0:
 		o.Duration = renderSecs
+		if haveFlow && dt > 0 {
+			steps := int(renderSecs / dt)
+			// The same rounding Trajectory uses, or the message names a stride
+			// the picture was not drawn at.
+			if every := (steps + o.MaxPoints - 1) / o.MaxPoints; every > 1 {
+				fit := float64(o.MaxPoints) * dt
+				advice := fmt.Sprintf("--seconds %.4g fits the points asked for", fit)
+				// Only suggest more points if they can actually be indexed:
+				// the renderer's index type is uint16.
+				if steps <= 65536 {
+					advice = fmt.Sprintf("--points %d draws every step, or ", steps) + advice
+				} else {
+					advice += fmt.Sprintf(" (a run this long cannot be drawn whole: %d steps is past the %d the renderer can index)",
+						steps, 65536)
+				}
+				fmt.Fprintf(os.Stderr,
+					"chaosrack: %s over %g model-seconds is %d steps drawn with %d points — "+
+						"one point kept in %d, so the curve will be faceted.\n  %s.\n",
+					model, renderSecs, steps, o.MaxPoints, every, advice)
+			}
+		}
+	case haveFlow && dt > 0:
+		// The whole budget at full resolution: one point per integration step.
+		o.Duration = float64(o.MaxPoints) * dt
 	}
 	return dynamics.Trajectory(model, o)
 }
@@ -168,17 +223,17 @@ func writeModel(name string, pts [][3]float64) error {
 func drawOptions() attractor.DrawOptions {
 	a := [3]float64{}
 	copy(a[:], renderSpin)
-	g := rasterview.DefaultGradient()
-	if renderColors > 0 {
-		g.Colors = renderColors
-	}
+	// gradientFor, not a second copy of it. This built its own and so ignored
+	// --gradient entirely: the palette followed the flag in an SVG and stayed
+	// on z in a PNG, from one flag that only half the writers read — the same
+	// mistake the hardcoded SVG stroke was.
 	return attractor.DrawOptions{
 		Width:  renderW,
 		Height: renderH,
 		View: rasterview.View{
 			AngleX: a[0], AngleY: a[1], AngleZ: a[2],
 		},
-		Gradient: g,
+		Gradient: gradientFor(),
 	}
 }
 

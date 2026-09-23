@@ -16,8 +16,18 @@ import (
 // Gradient is the coloring model of pkg/attractor's fragment shader: a
 // source axis the gradient parameter t follows, and a palette applied to
 // it. The zero value is invisible — start from DefaultGradient.
+// SourceTrail colors by position ALONG THE TRAIL rather than by a model
+// coordinate: the head of the trail is one end of the palette and the tail the
+// other.
+//
+// It is the only source whose parameter is monotonic along the path, which
+// matters to more than looks. An SVG writer can encode it as a handful of
+// solid-colored runs, where a model axis makes the color oscillate with the
+// trajectory and needs a run per segment.
+const SourceTrail = 3
+
 type Gradient struct {
-	Source  int // t follows: 0=X, 1=Y, 2=Z (model space)
+	Source  int // t follows: 0=X, 1=Y, 2=Z (model space), 3=along the trail
 	Colors  int // palette: 1=monochrome, 2=two-color, 3=three-color, 4=rainbow
 	Base    [3]float32
 	Mid     [3]float32
@@ -120,7 +130,11 @@ func (v View) Render(dst *image.RGBA, vertices []float32, indices []uint16, g Gr
 		px[i] = cx + x2*r*persp
 		py[i] = cy - y3*r*persp
 
-		c := g.colorAt(vertices[i*3], vertices[i*3+1], vertices[i*3+2], min, max)
+		age := float32(0)
+		if n > 1 {
+			age = float32(i) / float32(n-1)
+		}
+		c := g.colorAt(vertices[i*3], vertices[i*3+1], vertices[i*3+2], min, max, age)
 		if z3 < 0 && v.BackDim > 0 {
 			dim := float32(1 - v.BackDim)
 			c[0] *= dim
@@ -163,21 +177,29 @@ func (v View) Render(dst *image.RGBA, vertices []float32, indices []uint16, g Gr
 
 // colorAt ports the fragment shader's coloring: t from the source axis
 // normalized over the model bounds, then the palette.
-func (g Gradient) colorAt(x, y, z float32, min, max [3]float32) [3]float32 {
-	var val, lo, hi float32
-	switch g.Source {
-	case 0:
-		val, lo, hi = x, min[0], max[0]
-	case 1:
-		val, lo, hi = y, min[1], max[1]
-	default:
-		val, lo, hi = z, min[2], max[2]
+func (g Gradient) colorAt(x, y, z float32, min, max [3]float32, age float32) [3]float32 {
+	var t float32
+	if g.Source == SourceTrail {
+		// Age along the trail: the parameter is handed in, because the answer
+		// is WHERE IN THE PATH this point is and no coordinate of the point
+		// knows that.
+		t = clamp01(age)
+	} else {
+		var val, lo, hi float32
+		switch g.Source {
+		case 0:
+			val, lo, hi = x, min[0], max[0]
+		case 1:
+			val, lo, hi = y, min[1], max[1]
+		default:
+			val, lo, hi = z, min[2], max[2]
+		}
+		span := hi - lo
+		if span < 0.001 {
+			span = 0.001
+		}
+		t = clamp01((val - lo) / span)
 	}
-	span := hi - lo
-	if span < 0.001 {
-		span = 0.001
-	}
-	t := clamp01((val - lo) / span)
 	if g.Reverse {
 		t = 1 - t
 	}
@@ -227,4 +249,40 @@ func hsv2rgb(h, s, v float32) [3]float32 {
 		out[i] = v * (1 + s*(clamp01(p-1)-1))
 	}
 	return out
+}
+
+// ColorAt is colorAt for callers outside this package that draw the same
+// trajectory some other way.
+//
+// The SVG writer is the one that needs it. It emits a path rather than pixels,
+// so it cannot go through Render, and without this it had a hardcoded stroke:
+// the same model exported twice came out rainbow as a PNG and flat cyan as an
+// SVG, from one --colors flag that only half the formats honored.
+func (g Gradient) ColorAt(x, y, z float32, min, max [3]float32, age float32) [3]float32 {
+	return g.colorAt(x, y, z, min, max, age)
+}
+
+// ModelBounds is the per-axis extent Render normalizes the gradient over.
+// A caller coloring the same points itself has to use the same bounds, or the
+// two pictures put the palette in different places.
+func ModelBounds(vertices []float32) (min, max [3]float32) {
+	n := len(vertices) / 3
+	if n == 0 {
+		return min, max
+	}
+	for a := 0; a < 3; a++ {
+		min[a], max[a] = vertices[a], vertices[a]
+	}
+	for i := 0; i < n; i++ {
+		for a := 0; a < 3; a++ {
+			v := vertices[i*3+a]
+			if v < min[a] {
+				min[a] = v
+			}
+			if v > max[a] {
+				max[a] = v
+			}
+		}
+	}
+	return min, max
 }
