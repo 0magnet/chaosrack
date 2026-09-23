@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
 	"syscall/js"
 
@@ -75,14 +76,14 @@ func wantsDeskMouse(e js.Value) bool {
 // desk, or reports that the ray missed the quad.
 func deskQuadHit(cx, cy float64) (px, py float64, ok bool) {
 	cv := desk.Canvas()
-	if !canvasEl.Truthy() || !cv.Truthy() {
+	if !glctx.Canvas.Truthy() || !cv.Truthy() {
 		return 0, 0, false
 	}
 	cw, ch := cv.Get("width").Float(), cv.Get("height").Float()
 	if cw <= 0 || ch <= 0 {
 		return 0, 0, false
 	}
-	box := canvasEl.Call("getBoundingClientRect")
+	box := glctx.Canvas.Call("getBoundingClientRect")
 	vw, vh := box.Get("width").Float(), box.Get("height").Float()
 	if vw <= 0 || vh <= 0 {
 		return 0, 0, false

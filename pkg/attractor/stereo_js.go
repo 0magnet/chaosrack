@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
 	"strconv"
 	"syscall/js"
@@ -1459,9 +1460,9 @@ func (s *stereoInst) drawGraticule() {
 	}
 	n := len(v) / 4
 
-	gl.Call("uniform1i", uGradientColorsLoc, 1)
-	gl.Call("uniform3f", uBaseColorLoc, 0.22, 0.26, 0.32)
-	uploadVerticesOnly(v, glTypes.Lines, n)
+	glctx.GL.Call("uniform1i", uGradientColorsLoc, 1)
+	glctx.GL.Call("uniform3f", uBaseColorLoc, 0.22, 0.26, 0.32)
+	uploadVerticesOnly(v, glctx.Types.Lines, n)
 	if phosphorActive() {
 		// The phosphor owns these two while it is on; handing them to the
 		// palette here would hand them to the wrong owner. sectTick says
@@ -1469,8 +1470,8 @@ func (s *stereoInst) drawGraticule() {
 		applyPhosphorColor()
 		return
 	}
-	gl.Call("uniform1i", uGradientColorsLoc, gradientColorsUniform())
-	gl.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
+	glctx.GL.Call("uniform1i", uGradientColorsLoc, gradientColorsUniform())
+	glctx.GL.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
 }
 
 // field resolves a parameter id to the field it names ON THIS INSTANCE.

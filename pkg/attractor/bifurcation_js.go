@@ -22,6 +22,7 @@ package attractor
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"strconv"
 	"syscall/js"
 )
@@ -157,7 +158,7 @@ func generateBifurcation() {
 	// correctly placed as later ones widen the range.
 	n := len(bifColOf)
 	if n < 2 || bifMax <= bifMin {
-		uploadVerticesOnly(vertBuf[:0], glTypes.Points, 0)
+		uploadVerticesOnly(vertBuf[:0], glctx.Types.Points, 0)
 		// The readout still tells the truth about the cursor here. There is
 		// nothing to point AT for the first frames of a sweep, but "mod off"
 		// with Audio mod on would be a lie about the audio rather than a
@@ -180,7 +181,7 @@ func generateBifurcation() {
 		vertices[k+2] = 0
 		vertices[k+3] = fx // gradient follows the sweep
 	}
-	uploadVerticesOnly(vertices, glTypes.Points, n)
+	uploadVerticesOnly(vertices, glctx.Types.Points, n)
 	bifDrawCursor(p, span)
 	if !bifFitDone && bifNextCol >= bifCols/4 {
 		bifFitDone = true
@@ -283,9 +284,9 @@ func bifDrawCursor(p paramDef, span float64) {
 	// set here would tint the next mode's trail until something touched a
 	// color knob — the bug the Poincaré overlay had and the reason its restore
 	// looks like this one.
-	gl.Call("uniform1i", uGradientColorsLoc, 1)
-	gl.Call("uniform3f", uBaseColorLoc, 1.0, 0.8, 0.15)
-	uploadVerticesOnly(buf, glTypes.Points, len(buf)/4)
+	glctx.GL.Call("uniform1i", uGradientColorsLoc, 1)
+	glctx.GL.Call("uniform3f", uBaseColorLoc, 1.0, 0.8, 0.15)
+	uploadVerticesOnly(buf, glctx.Types.Points, len(buf)/4)
 	if phosphorActive() {
 		// The phosphor owns both uniforms while it is on and renderFrame set
 		// them from it earlier this frame; handing them to the palette here
@@ -293,8 +294,8 @@ func bifDrawCursor(p paramDef, span float64) {
 		applyPhosphorColor()
 		return
 	}
-	gl.Call("uniform1i", uGradientColorsLoc, gradientColorsUniform())
-	gl.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
+	glctx.GL.Call("uniform1i", uGradientColorsLoc, gradientColorsUniform())
+	glctx.GL.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
 }
 
 // bifCursorReadout is the LED text: the parameter value the cursor is at, or

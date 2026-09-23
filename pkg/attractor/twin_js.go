@@ -28,6 +28,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/dynamics"
@@ -138,10 +139,10 @@ func twinTick(mode string) bool {
 	// Draw A with the normal gradient, then B in a fixed contrast color via
 	// the monochrome override (restored right after).
 	uploadVerticesOnly(vertices, attractorDrawMode, steps)
-	gl.Call("uniform1i", uGradientColorsLoc, 1)
-	gl.Call("uniform3f", uBaseColorLoc, 0.15, 1.0, 0.45)
+	glctx.GL.Call("uniform1i", uGradientColorsLoc, 1)
+	glctx.GL.Call("uniform3f", uBaseColorLoc, 0.15, 1.0, 0.45)
 	uploadVerticesOnly(twinBuf[:steps*4], attractorDrawMode, steps)
-	gl.Call("uniform1i", uGradientColorsLoc, gradientColorsUniform())
+	glctx.GL.Call("uniform1i", uGradientColorsLoc, gradientColorsUniform())
 
 	return true
 }

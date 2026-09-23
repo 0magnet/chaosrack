@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"strconv"
 	"syscall/js"
 )
@@ -56,12 +57,12 @@ func ensureFrontCanvas() bool {
 // store and the CSS box, so a copy between them is one-to-one and needs no
 // scaling. Called from the same place the main canvas is sized.
 func sizeFrontCanvas() {
-	if !frontCanvas.Truthy() || !canvasEl.Truthy() {
+	if !frontCanvas.Truthy() || !glctx.Canvas.Truthy() {
 		return
 	}
 	frontCanvas.Set("width", width)
 	frontCanvas.Set("height", height)
-	st := canvasEl.Get("style")
+	st := glctx.Canvas.Get("style")
 	fs := frontCanvas.Get("style")
 	fs.Set("width", st.Get("width"))
 	fs.Set("height", st.Get("height"))
@@ -102,7 +103,7 @@ func copyNearPassToFront() {
 		return
 	}
 	frontCtx.Call("clearRect", 0, 0, width, height)
-	frontCtx.Call("drawImage", canvasEl, 0, 0)
+	frontCtx.Call("drawImage", glctx.Canvas, 0, 0)
 }
 
 // frontCanvasPx reports the CSS size the near canvas is showing at, for tests
@@ -171,4 +172,4 @@ func captureCanvas(main js.Value) js.Value {
 //
 // canvasEl is the same element the renderer resolved by id at start-up, so this
 // asks the question by name and gets the answer the renderer is using.
-func modelCanvas() js.Value { return canvasEl }
+func modelCanvas() js.Value { return glctx.Canvas }

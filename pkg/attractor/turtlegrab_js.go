@@ -24,6 +24,7 @@ package attractor
 // is the same reason the floor can tip it over.
 
 import (
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"syscall/js"
 
 	"github.com/0magnet/pisano/pkg/pisano"
@@ -50,10 +51,10 @@ func mvpNow() mgl32.Mat4 { return projMatrix.Mul4(viewMatrix).Mul4(movMatrix) }
 // canvasPoint turns a client position into a position on the canvas, in the
 // canvas's own pixels.
 func canvasPoint(clientX, clientY float64) (x, y, w, h float32, ok bool) {
-	if !canvasEl.Truthy() {
+	if !glctx.Canvas.Truthy() {
 		return 0, 0, 0, 0, false
 	}
-	r := canvasEl.Call("getBoundingClientRect")
+	r := glctx.Canvas.Call("getBoundingClientRect")
 	rw, rh := float32(r.Get("width").Float()), float32(r.Get("height").Float())
 	if rw <= 0 || rh <= 0 {
 		return 0, 0, 0, 0, false
@@ -198,8 +199,8 @@ func segDist(ax, ay, bx, by, px, py float32) (d2, at float32) {
 }
 
 func setCanvasCursor(name string) {
-	if canvasEl.Truthy() {
-		canvasEl.Get("style").Set("cursor", name)
+	if glctx.Canvas.Truthy() {
+		glctx.Canvas.Get("style").Set("cursor", name)
 	}
 }
 

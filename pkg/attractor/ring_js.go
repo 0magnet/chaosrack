@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dynamics"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
 	"runtime"
 	"strconv"
@@ -151,11 +152,11 @@ func ringPrimeAfterScan(mode string) {
 // ringUploadAndDraw pushes the newly written slots to the GPU (wrap-aware)
 // and draws the trail as two strips split at the head.
 func ringUploadAndDraw(start, n int) {
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, attractorVertexBuffer)
-	gl.Call("vertexAttribPointer", positionLoc, 3, glTypes.Float, false, 16, 0)
-	gl.Call("enableVertexAttribArray", positionLoc)
-	gl.Call("vertexAttribPointer", aTrailTLoc, 1, glTypes.Float, false, 16, 12)
-	gl.Call("enableVertexAttribArray", aTrailTLoc)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, attractorVertexBuffer)
+	glctx.GL.Call("vertexAttribPointer", positionLoc, 3, glctx.Types.Float, false, 16, 0)
+	glctx.GL.Call("enableVertexAttribArray", positionLoc)
+	glctx.GL.Call("vertexAttribPointer", aTrailTLoc, 1, glctx.Types.Float, false, 16, 12)
+	glctx.GL.Call("enableVertexAttribArray", aTrailTLoc)
 
 	upload := func(from, count int) {
 		if count <= 0 {
@@ -163,7 +164,7 @@ func ringUploadAndDraw(start, n int) {
 		}
 		seg := vertBuf[from*4 : (from+count)*4]
 		js.CopyBytesToJS(jsSegUint8(len(seg)*4), sliceToByteSlice(seg))
-		gl.Call("bufferSubData", glTypes.ArrayBuffer, from*16, jsSegView(len(seg)))
+		glctx.GL.Call("bufferSubData", glctx.Types.ArrayBuffer, from*16, jsSegView(len(seg)))
 	}
 	if start+n <= steps {
 		upload(start, n)
@@ -177,14 +178,14 @@ func ringUploadAndDraw(start, n int) {
 	// is close enough between primes; exact per-segment mean would flicker).
 	ringUpdateDwell(start, n)
 
-	gl.Call("uniform1f", uTrailHeadLoc, float64(ringHead)/float64(steps-1))
+	glctx.GL.Call("uniform1f", uTrailHeadLoc, float64(ringHead)/float64(steps-1))
 	// Older stretch: head..end, newer stretch: 0..head. The split prevents a
 	// newest→oldest flyback line across the model.
 	if steps-ringHead >= 2 {
-		gl.Call("drawArrays", attractorDrawMode, ringHead, steps-ringHead)
+		glctx.GL.Call("drawArrays", attractorDrawMode, ringHead, steps-ringHead)
 	}
 	if ringHead >= 2 {
-		gl.Call("drawArrays", attractorDrawMode, 0, ringHead)
+		glctx.GL.Call("drawArrays", attractorDrawMode, 0, ringHead)
 	}
 }
 
@@ -242,10 +243,10 @@ func ringUpdateDwell(start, n int) {
 			ringDwellMean = 1e-6
 		}
 	}
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, dwellGL)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, dwellGL)
 	js.CopyBytesToJS(jsDwellU8, sliceToByteSlice(dwellBuf))
-	gl.Call("bufferData", glTypes.ArrayBuffer, jsDwellF32, glTypes.DynamicDraw)
-	gl.Call("vertexAttribPointer", aDwellLoc, 1, glTypes.Float, false, 0, 0)
-	gl.Call("enableVertexAttribArray", aDwellLoc)
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, attractorVertexBuffer)
+	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, jsDwellF32, glctx.Types.DynamicDraw)
+	glctx.GL.Call("vertexAttribPointer", aDwellLoc, 1, glctx.Types.Float, false, 0, 0)
+	glctx.GL.Call("enableVertexAttribArray", aDwellLoc)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, attractorVertexBuffer)
 }

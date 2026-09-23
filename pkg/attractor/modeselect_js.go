@@ -5,6 +5,7 @@ package attractor
 import (
 	_ "embed"
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"strconv"
 	"syscall/js"
 )
@@ -26,9 +27,9 @@ func setPowerState(on bool) {
 		return
 	}
 	stopped = true
-	gl.Call("clearColor", 0, 0, 0, 0)
-	gl.Call("clear", glTypes.ColorBufferBit)
-	gl.Call("clear", glTypes.DepthBufferBit)
+	glctx.GL.Call("clearColor", 0, 0, 0, 0)
+	glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
+	glctx.GL.Call("clear", glctx.Types.DepthBufferBit)
 }
 
 // attachSelMarquee caps a Console <select> to one unit and overlays a marquee

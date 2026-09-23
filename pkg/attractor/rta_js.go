@@ -2,7 +2,11 @@
 
 package attractor
 
-import "github.com/0magnet/chaosrack/pkg/meters"
+import (
+	"github.com/0magnet/chaosrack/pkg/meters"
+
+	"github.com/0magnet/chaosrack/pkg/glctx"
+)
 
 // The RTA mode — fractional-octave bands drawn as a bar display.
 //
@@ -257,22 +261,22 @@ func drawRTA() {
 	}
 	peakVerts := v - barVerts
 
-	gl.Call("disable", glTypes.DepthTest)
-	gl.Call("clearColor", 0, 0, 0, 0)
-	gl.Call("clear", glTypes.ColorBufferBit)
-	gl.Call("enable", gl.Get("BLEND"))
-	gl.Call("blendFunc", gl.Get("SRC_ALPHA"), gl.Get("ONE"))
+	glctx.GL.Call("disable", glctx.Types.DepthTest)
+	glctx.GL.Call("clearColor", 0, 0, 0, 0)
+	glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
+	glctx.GL.Call("enable", glctx.GL.Get("BLEND"))
+	glctx.GL.Call("blendFunc", glctx.GL.Get("SRC_ALPHA"), glctx.GL.Get("ONE"))
 
 	// The bars, widened the way the scope's trace is: WebGL cannot be relied on
 	// for lineWidth, so each is drawn several times at sub-pixel offsets.
 	vcUpload(v)
 	dx := float32(1.0) / float32(width)
 	for k := -2; k <= 2; k++ {
-		vcSpan(glTypes.Lines, 0, barVerts, 0.5, float32(k)*dx, 0)
+		vcSpan(glctx.Types.Lines, 0, barVerts, 0.5, float32(k)*dx, 0)
 	}
 	// The peak marks once and brighter: they are a held maximum rather than a
 	// level, and widening them would make them read as bars of their own.
-	vcSpan(glTypes.Lines, barVerts, peakVerts, 0.9, 0, 0)
+	vcSpan(glctx.Types.Lines, barVerts, peakVerts, 0.9, 0, 0)
 	vcDone()
-	gl.Call("disable", gl.Get("BLEND"))
+	glctx.GL.Call("disable", glctx.GL.Get("BLEND"))
 }
