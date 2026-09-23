@@ -98,9 +98,19 @@ func ensureTerminal() bool {
 	// right one here. This terminal is a model in a visualizer, not a file
 	// manager, and it has nowhere to persist to.
 	s, err := web.NewSession(termHost, web.Options{
-		Host: "chaosrack",
 		// `rack` is a command here; see rackcmd_js.go.
-		Exec:     rackShellCommand,
+		Exec: rackShellCommand,
+		// SMALLER TYPE IS MORE GRID AT THE SAME COST, which is the whole
+		// trick for a terminal that draws rather than prints. This one is a
+		// texture uploaded whole every frame, so making the BOX bigger costs
+		// upload bandwidth in proportion — but making the CELL smaller costs
+		// nothing at all and is what a panel drawn in here wants. Ten against
+		// the default fifteen is about a hundred and sixty columns instead of
+		// ninety: three of the rack panel's module boxes across, or six.
+		//
+		// Ctrl+wheel and ctrl+plus/minus change it live, the way a terminal
+		// emulator does. See wireTerminalZoom.
+		FontSize: 10,
 		Greeting: termGreeting,
 	})
 	if err != nil {
@@ -118,6 +128,7 @@ func ensureTerminal() bool {
 		return false
 	}
 	wireTerminalFocus()
+	wireTerminalZoom()
 	return true
 }
 
@@ -262,4 +273,66 @@ func drawTerminalBackground() {
 	gl.Call("disable", glTypes.DepthTest)
 	drawTexturedPlane(tex, 0)
 	spectFill = savedFill
+}
+
+// The terminal's zoom.
+//
+// Ctrl+wheel and ctrl+plus/minus, which is what every terminal emulator binds
+// and what this one is missing without it. It is not a cosmetic preference
+// here: the cell size decides how many rows and columns the panel drawn in
+// this terminal has to work with, and the box it is drawn in does not change,
+// so zooming out is free resolution. Zooming IN is the other half — a reading
+// you want to take from across the room rather than a panel you want all of.
+const (
+	termZoomMin  = 5
+	termZoomMax  = 28
+	termZoomStep = 1
+)
+
+// wireTerminalZoom binds the zoom. Listeners are on the document because the
+// terminal itself is parked off screen — what you are pointing at is the quad.
+func wireTerminalZoom() {
+	if termSession == nil || termSession.Term == nil {
+		return
+	}
+	zoom := func(by float64) {
+		t := termSession.Term
+		v := t.FontSize() + by
+		if v < termZoomMin {
+			v = termZoomMin
+		}
+		if v > termZoomMax {
+			v = termZoomMax
+		}
+		t.SetFontSize(v)
+	}
+	doc.Call("addEventListener", "wheel", trackedFuncOf(func(_ js.Value, a []js.Value) interface{} {
+		if len(a) == 0 || !a[0].Get("ctrlKey").Bool() || !terminalOnScreen() {
+			return nil
+		}
+		a[0].Call("preventDefault") // or the page zooms instead
+		if a[0].Get("deltaY").Float() > 0 {
+			zoom(-termZoomStep)
+		} else {
+			zoom(termZoomStep)
+		}
+		return nil
+	}), map[string]interface{}{"passive": false})
+	doc.Call("addEventListener", "keydown", trackedFuncOf(func(_ js.Value, a []js.Value) interface{} {
+		if len(a) == 0 || !a[0].Get("ctrlKey").Bool() || !terminalOnScreen() {
+			return nil
+		}
+		switch a[0].Get("key").String() {
+		case "+", "=":
+			zoom(termZoomStep)
+		case "-", "_":
+			zoom(-termZoomStep)
+		case "0":
+			termSession.Term.SetFontSize(10)
+		default:
+			return nil
+		}
+		a[0].Call("preventDefault")
+		return nil
+	}))
 }
