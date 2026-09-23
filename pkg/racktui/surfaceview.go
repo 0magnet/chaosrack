@@ -195,7 +195,14 @@ func drawOneControl(p Painter, v racksurface.View, x, y int, c Control, sel bool
 	// half off the edge of the window is the ordinary case once the rack is
 	// bigger than the terminal, and a renderer that writes past the edge
 	// corrupts whatever the host had drawn there — in a shell, the scrollback.
+	//
+	// A switch gets a lamp instead: it has a state, not a position, so there
+	// is nothing for a pointer to read and a dial would put a knob where the
+	// instrument has a toggle.
 	cells, rows := panelart.KnobCells(knobCols, fracOf(c), detentsOf(c), panelart.Dark)
+	if c.IsSwitch {
+		cells, rows = panelart.LampCells(knobCols, switchOn(c), panelart.Dark)
+	}
 	for ry := 0; ry < rows; ry++ {
 		sy := y + ctlLabelRows + ry - v.Y
 		if sy < 0 || sy >= v.H {

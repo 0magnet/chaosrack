@@ -34,7 +34,7 @@ func exposeRackControl() {
 	// list() → every control, as JSON. Plain data, so the caller does not
 	// need a Go type to read it.
 	o.Set("list", trackedFuncOf(func(js.Value, []js.Value) interface{} {
-		b, err := json.Marshal(ControlRegistry())
+		b, err := json.Marshal(rackControls())
 		if err != nil {
 			return "[]"
 		}
@@ -52,7 +52,7 @@ func exposeRackControl() {
 		if !el.Truthy() {
 			return nil
 		}
-		return el.Get("value")
+		return controlValueOf(el)
 	}))
 
 	// set(id, v) → drives the control the way a hand would: write the value
@@ -67,13 +67,8 @@ func exposeRackControl() {
 		if !el.Truthy() {
 			return false
 		}
-		el.Set("value", a[1])
-		ev := js.Global().Get("Event")
-		for _, kind := range []string{"input", "change"} {
-			opt := js.Global().Get("Object").New()
-			opt.Set("bubbles", true)
-			el.Call("dispatchEvent", ev.New(kind, opt))
-		}
+		setControlValue(el, a[1].String())
+		dispatchControlEvents(el)
 		return true
 	}))
 

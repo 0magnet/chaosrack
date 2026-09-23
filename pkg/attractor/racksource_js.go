@@ -33,12 +33,12 @@ func (inPageRack) Modules() ([]racksurface.Item, int, error) {
 }
 
 func (inPageRack) Controls() ([]racktui.Control, error) {
-	reg := ControlRegistry()
+	reg := rackControls()
 	out := make([]racktui.Control, 0, len(reg))
 	for _, in := range reg {
 		c := racktui.Control{ControlInfo: in}
 		if el := doc.Call("getElementById", in.ID); el.Truthy() {
-			c.Value = el.Get("value").String()
+			c.Value = controlValueOf(el)
 			if el.Get("tagName").String() == "SELECT" {
 				opts := el.Get("options")
 				for i := 0; i < opts.Get("length").Int(); i++ {
@@ -58,13 +58,8 @@ func (inPageRack) Set(id, value string) error {
 	if !el.Truthy() {
 		return errNoControl{id}
 	}
-	el.Set("value", value)
-	ev := js.Global().Get("Event")
-	for _, kind := range []string{"input", "change"} {
-		opt := js.Global().Get("Object").New()
-		opt.Set("bubbles", true)
-		el.Call("dispatchEvent", ev.New(kind, opt))
-	}
+	setControlValue(el, value)
+	dispatchControlEvents(el)
 	return nil
 }
 

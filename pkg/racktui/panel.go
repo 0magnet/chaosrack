@@ -273,6 +273,21 @@ func (p *panel) nudge(dir int) {
 	if !ok {
 		return
 	}
+	// A switch is thrown, not turned. Either arrow sets the position it points
+	// at — left off, right on — rather than "the other one", because a toggle
+	// whose result depends on where it already was cannot be driven blind.
+	//
+	// Caught BEFORE the numeric path, which is where it used to land: a switch
+	// carries no range, so that path read "1", added a step of 1 and wrote
+	// "2" — which the rack reads as off. Turning a switch up turned it off.
+	if c.IsSwitch {
+		if dir > 0 {
+			p.apply(c, "1")
+		} else {
+			p.apply(c, "0")
+		}
+		return
+	}
 	if c.IsSelect {
 		p.apply(c, nextOption(c, dir))
 		return

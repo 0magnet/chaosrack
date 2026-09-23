@@ -161,3 +161,18 @@ func byteOf(v uint32) uint8 {
 	}
 	return uint8(v)
 }
+
+// LampCells is a lamp at cols wide, already in cells — the switch's
+// counterpart to KnobCells.
+//
+// A switch is not a dial with two detents. It has a state, and a panel shows
+// a state with a lamp: lit or dark, no pointer to read. Drawing it as a dial
+// would put a knob where the instrument has a toggle.
+func LampCells(cols int, on bool, p Palette) (cells []Cell, rows int) {
+	if cols < 1 {
+		return nil, 0
+	}
+	rows = RowsFor(cols, cols, cols, cellAspect)
+	const ss = 4
+	return Render(Lamp(cols*ss, on, p), cols, rows), rows
+}
