@@ -604,8 +604,20 @@ func buildModEQModules(params []paramDef) {
 		// Position group).
 		{"Position", []modTarget{{"view-panx", "X", false}, {"view-pany", "Y", false}, {"view-zoom", "zoom", false}}},
 	}
+	// A DESCENDANT selector, not a child one, and the difference silently cost
+	// the whole feature.
+	//
+	// Modules used to be direct children of .modules. Bay packing wraps them —
+	// .modules > .runit > .runit-open > .sect — so `.modules > .sect` matched
+	// NOTHING, every group below took its `continue`, and audio-mod built no
+	// MOD or EQ modules at all. Nothing failed loudly: the checkbox still
+	// flipped the panel's am-on class and the CSS that hides .modmodule still
+	// worked, so there was simply never anything there to hide.
+	//
+	// The insert below goes through the primary's own parentNode, so the pair
+	// still lands beside the module it modulates, in whatever bay that is.
 	findSect := func(hdr string) js.Value {
-		s := doc.Call("querySelectorAll", ".modules > .sect")
+		s := doc.Call("querySelectorAll", moduleSelector)
 		for i := 0; i < s.Get("length").Int(); i++ {
 			m := s.Index(i)
 			if h := m.Call("querySelector", ".sect-hdr"); h.Truthy() && h.Get("textContent").String() == hdr {
