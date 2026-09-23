@@ -25,7 +25,17 @@ type ControlInfo struct {
 	Def       float64 `json:"def,omitempty"`
 	IsSelect  bool    `json:"select,omitempty"`
 	SelectDef string  `json:"selectDef,omitempty"`
-	PermaKey  string  `json:"perma,omitempty"`
+	// IsSwitch marks a two-state control — a checkbox on the panel, not a dial
+	// and not a rotary. Its value is "1" or "0".
+	//
+	// A flag of its own rather than a two-option select, because the two are
+	// not the same control: a select has an ordered list of detents and a
+	// switch has a state, and a front end that drew one as the other would put
+	// a dial where the panel has a toggle. It also has to be readable at all —
+	// a checkbox's .value is the string "on" whether it is checked or not, so
+	// whatever reads a control has to know which kind it is holding.
+	IsSwitch bool   `json:"switch,omitempty"`
+	PermaKey string `json:"perma,omitempty"`
 	// Module is the panel the control is mounted in — its header text, which
 	// is what the rack names a module by. A front end that draws the RACK
 	// rather than a list of settings needs it: a knob belongs to a panel, and

@@ -196,3 +196,33 @@ func TestSetCellAspectRefusesNonsense(t *testing.T) {
 		t.Errorf("a negative should restore the default, got %v", CellAspect())
 	}
 }
+
+// A lamp has to be the same size as a knob, or a panel of mixed controls
+// comes out ragged.
+func TestALampIsTheSameBoxAsAKnob(t *testing.T) {
+	for _, cols := range []int{8, 12, 16} {
+		_, kr := KnobCells(cols, 0.5, 0, Dark)
+		_, lr := LampCells(cols, true, Dark)
+		if kr != lr {
+			t.Errorf("%d cols: knob is %d rows, lamp is %d", cols, kr, lr)
+		}
+	}
+}
+
+func TestLampCellsLightUp(t *testing.T) {
+	off, _ := LampCells(12, false, Dark)
+	on, _ := LampCells(12, true, Dark)
+	sum := func(cs []Cell) int {
+		n := 0
+		for _, c := range cs {
+			n += int(c.Top.R) + int(c.Bottom.R)
+		}
+		return n
+	}
+	if sum(on) <= sum(off) {
+		t.Error("a lit lamp is not brighter than an unlit one")
+	}
+	if c, r := LampCells(0, true, Dark); c != nil || r != 0 {
+		t.Error("a zero-column lamp should draw nothing")
+	}
+}
