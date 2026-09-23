@@ -2,7 +2,11 @@
 
 package attractor
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/racklayout"
+)
 
 // A dial's short ring labels have to match its options one for one, and stay
 // short enough to read beside the knob.
@@ -80,7 +84,7 @@ func TestWhateverIsRingedFits(t *testing.T) {
 			// is not fine is a short ring that does not help.
 			continue
 		}
-		if !ringLabelsFit(ring) {
+		if !racklayout.RingLabelsFit(ring) {
 			t.Errorf("%s has a short ring that still does not fit: %v — either shorten it "+
 				"or drop it and let the dial take the readout", id, ring)
 		}

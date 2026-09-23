@@ -4,10 +4,12 @@ package attractor
 
 import (
 	_ "embed"
-	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"strconv"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/dynamics"
+	"github.com/0magnet/chaosrack/pkg/racklayout"
 )
 
 // ── UI helpers ───────────────────────────────────────────────────────────────
@@ -258,7 +260,7 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 		// dial through.
 		if len(labels) == 2 {
 			unit.Call("appendChild", buildTwoWaySwitch(sel, labels, p.Label))
-		} else if !ringLabelsFit(ring) {
+		} else if !racklayout.RingLabelsFit(ring) {
 			// Too many options, or names too long to sit round a dial. This is
 			// what selectorKnobReadout exists for and says so -- the Phosphor,
 			// Backdrop, Skin and Desk-style knobs all take it. Twenty demo names
