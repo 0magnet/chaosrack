@@ -236,6 +236,9 @@ func wireModelInput() {
 	}
 	canvasEl.Call("addEventListener", "wheel", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
+		if ctrlWheelIsTerminalZoom(e) {
+			return nil // the terminal on the quad is zooming its own cell
+		}
 		e.Call("preventDefault")
 		// deltaY is ~100–130 per mouse notch; keep the per-notch zoom step
 		// small (~2–3) while still scaling gently on fine trackpads.

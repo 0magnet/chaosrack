@@ -110,7 +110,6 @@ func (p *Pane) load(el js.Value) {
 	is.Set("padding", "8px")
 	is.Set("boxSizing", "border-box")
 	el.Call("appendChild", img)
-	return
 }
 
 // Close revokes the blob URL.

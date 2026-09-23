@@ -63,6 +63,13 @@ type Options struct {
 	// NoWebGL forces the DOM renderer.
 	NoWebGL bool
 
+	// NoZoom withholds the ctrl-wheel / ctrl-plus / ctrl-0 zoom, which is
+	// otherwise bound on the element the session was given. A page that wants
+	// those gestures to keep zooming the PAGE, or that binds its own because
+	// the terminal it draws is not the element the user is pointing at, sets
+	// this.
+	NoZoom bool
+
 	// AfterCommand runs after each command line finishes, on the shell's
 	// goroutine. It is where a caller flushes the filesystem somewhere
 	// durable, which has to happen after a command rather than during one.
@@ -78,6 +85,13 @@ type Options struct {
 	// in the program the shell is embedded in, with everything that program
 	// knows in scope. It may be full-screen — the terminal is right here, and
 	// Session sets RawMode and Size on the shell for exactly that.
+	//
+	//
+	// The context carries the shell that dispatched the command, so a
+	// full-screen one can find the terminal it was typed into:
+	// web.SessionForContext(ctx). A page can hold several terminals, and an
+	// embedder that instead remembers the one it built will draw on the wrong
+	// one as soon as it does.
 	//
 	// Report handled false for a command you do not recognize and the shell
 	// carries on as though the hook were not set.
@@ -118,6 +132,10 @@ type Session struct {
 	stdinQ    chan []byte
 	cancelRun context.CancelFunc
 	closed    bool
+
+	// zoomFns are the ctrl-wheel / ctrl-plus listeners; see zoom.go.
+	zoomEl  js.Value
+	zoomFns []zoomBinding
 
 	afterCommand func()
 	onExit       func()
@@ -168,6 +186,9 @@ func NewSession(el js.Value, opt Options) (*Session, error) {
 		if err := s.Term.EnableWebGL(); err != nil {
 			js.Global().Get("console").Call("log", "websh: webgl unavailable: "+err.Error())
 		}
+	}
+	if !opt.NoZoom {
+		s.wireZoom(el, s.Term.FontSize())
 	}
 
 	stdinR, stdinW := io.Pipe()
@@ -404,6 +425,7 @@ func (s *Session) Close() {
 	}
 	s.closed = true
 	forgetSession(s)
+	s.releaseZoom()
 	if s.stdinQ != nil {
 		close(s.stdinQ)
 		s.stdinQ = nil

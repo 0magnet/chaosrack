@@ -65,7 +65,9 @@ var (
 const deskGreeting = "" +
 	"\x1b[1;35mchaosrack\x1b[0m — a desk over the scene\r\n" +
 	"\x1b[2mthe model behind these windows is still running, and still yours to tune\x1b[0m\r\n\r\n" +
-	"  \x1b[1mapps\x1b[0m — what can be opened   ·   \x1b[1mopen files\x1b[0m   ·   \x1b[1mterm\x1b[0m\r\n\r\n"
+	"  \x1b[1mapps\x1b[0m — what can be opened   ·   \x1b[1mopen files\x1b[0m   ·   \x1b[1mterm\x1b[0m\r\n" +
+	"  \x1b[1mrack\x1b[0m — the control surface, here, as a full-screen panel\r\n" +
+	"  \x1b[2mctrl-wheel, or ctrl-+/-, resizes the cell; smaller fits the whole rack\x1b[0m\r\n\r\n"
 
 // setDeskOn shows or hides the desk.
 func setDeskOn(on bool) {
@@ -141,7 +143,11 @@ func ensureDesk() {
 		Width:  720,
 		Height: 420,
 		Open: func([]string) (desk.Pane, error) {
-			return term.New(deskGreeting, "chaosrack"), nil
+			// With the rack's own control surface in it. This is the arrangement
+			// the terminal wants to be in: not a shell drawn on a plane INSIDE the
+			// rack, but a window on the desktop the rack is also a window on, with
+			// a command in it that drives the rack.
+			return term.New(deskGreeting, "chaosrack").Exec(rackShellCommand), nil
 		},
 	})
 	// Registered whether or not an agent is there to talk to. Hiding it when

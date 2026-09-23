@@ -5,15 +5,15 @@ go 1.26.5
 require (
 	github.com/0magnet/audioprism-go v0.0.0-20260923100834-d4f750669db1
 	github.com/0magnet/calvin v0.0.0-20260915170035-09af7075474e
-	github.com/0magnet/desk v0.0.0-20260915183806-a236d7492c93
-	github.com/0magnet/desk/panes v0.0.0-20260915183806-a236d7492c93
+	github.com/0magnet/desk v0.0.0-20260923150416-f34edc52f2ef
+	github.com/0magnet/desk/panes v0.0.0-20260923150416-f34edc52f2ef
 	github.com/0magnet/pisano v0.0.0-20260923100638-358b99037f97
 	github.com/0magnet/rack-go v0.0.0-20260922163944-6ac30b77a4fd
 	github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a
 	github.com/0magnet/tuiwasm v0.0.0-20260923101027-829fc879b4df
-	github.com/0magnet/websh v0.0.0-20260923114653-8b0116f5b3ad
+	github.com/0magnet/websh v0.0.0-20260923150652-0d1c84b4c3fc
 	github.com/0magnet/winbox-go v0.0.0-20260915183431-ca6572e4c323
-	github.com/0magnet/xterm-go v0.0.0-20260923132114-f3d9a2dffc01
+	github.com/0magnet/xterm-go v0.0.0-20260923132223-00c1a8e687cc
 	github.com/gdamore/tcell/v3 v3.5.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-gl/mathgl v1.2.0

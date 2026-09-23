@@ -15,12 +15,12 @@ github.com/0magnet/audioprism-go/pkg/wsaudio
 ## explicit; go 1.26.0
 github.com/0magnet/calvin
 github.com/0magnet/calvin/clihelp
-# github.com/0magnet/desk v0.0.0-20260915183806-a236d7492c93
+# github.com/0magnet/desk v0.0.0-20260923150416-f34edc52f2ef
 ## explicit; go 1.26
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.0-20260915183806-a236d7492c93
-## explicit; go 1.26
+# github.com/0magnet/desk/panes v0.0.0-20260923150416-f34edc52f2ef
+## explicit; go 1.26.0
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
 github.com/0magnet/desk/panes/hostauth
@@ -129,14 +129,14 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20260907193324-47ff3c83f69d
 ## explicit; go 1.26.0
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.0-20260923114653-8b0116f5b3ad
+# github.com/0magnet/websh v0.0.0-20260923150652-0d1c84b4c3fc
 ## explicit; go 1.26.0
 github.com/0magnet/websh/shell
 github.com/0magnet/websh/web
 # github.com/0magnet/winbox-go v0.0.0-20260915183431-ca6572e4c323
 ## explicit; go 1.24
 github.com/0magnet/winbox-go
-# github.com/0magnet/xterm-go v0.0.0-20260923132114-f3d9a2dffc01
+# github.com/0magnet/xterm-go v0.0.0-20260923132223-00c1a8e687cc
 ## explicit; go 1.24
 github.com/0magnet/xterm-go
 github.com/0magnet/xterm-go/vt
