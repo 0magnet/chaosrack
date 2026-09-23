@@ -3,14 +3,14 @@ module github.com/0magnet/chaosrack
 go 1.26.5
 
 require (
-	github.com/0magnet/audioprism-go v0.0.0-20260922100904-15bf6a74d732
+	github.com/0magnet/audioprism-go v0.0.0-20260923100834-d4f750669db1
 	github.com/0magnet/calvin v0.0.0-20260915170035-09af7075474e
 	github.com/0magnet/desk v0.0.0-20260915183806-a236d7492c93
 	github.com/0magnet/desk/panes v0.0.0-20260915183806-a236d7492c93
-	github.com/0magnet/pisano v0.0.0-20260916102036-895cf54258c0
+	github.com/0magnet/pisano v0.0.0-20260923100638-358b99037f97
 	github.com/0magnet/rack-go v0.0.0-20260922163944-6ac30b77a4fd
 	github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a
-	github.com/0magnet/tuiwasm v0.0.0-20260920095604-3de8bc71a6ec
+	github.com/0magnet/tuiwasm v0.0.0-20260923101027-829fc879b4df
 	github.com/0magnet/websh v0.0.0-20260918134315-870649e5bd83
 	github.com/0magnet/winbox-go v0.0.0-20260915183431-ca6572e4c323
 	github.com/0magnet/xterm-go v0.0.0-20260918025541-d7185c9db583
@@ -44,7 +44,7 @@ require (
 	github.com/bytedance/sonic/loader v0.5.2 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20260910203606-6c9e17dc7a16 // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20260922123528-4e49372c11f9 // indirect
 	github.com/charmbracelet/x/ansi v0.11.8 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.15 // indirect
 	github.com/charmbracelet/x/exp/slice v0.0.0-20260920004010-53e2afe73ae5 // indirect
