@@ -149,39 +149,6 @@ var turtlePhysParams = []paramDef{
 }
 
 var attractorParams = map[string][]paramDef{
-	"lorenz": {
-		{"lorenz-dt", "dt", &dynamics.LorenzDT, 0.005, 0.001, 0.05, 0.001},
-		{"lorenz-s", "σ", &dynamics.LorenzS, 10.0, 1, 30, 0.1},
-		{"lorenz-r", "ρ", &dynamics.LorenzR, 28.0, 1, 60, 0.1},
-		{"lorenz-b", "β", &dynamics.LorenzB, 2.7, 0.1, 10, 0.1},
-	},
-	"rossler": {
-		{"rossler-dt", "dt", &dynamics.RosslerDT, 0.005, 0.001, 0.05, 0.001},
-		{"rossler-a", "a", &dynamics.RosslerA, 0.2, 0.01, 1, 0.01},
-		{"rossler-b", "b", &dynamics.RosslerB, 0.2, 0.01, 1, 0.01},
-		{"rossler-c", "c", &dynamics.RosslerC, 5.7, 1, 20, 0.1},
-	},
-	"chua": {
-		{"chua-dt", "dt", &dynamics.ChuaDT, 0.005, 0.001, 0.05, 0.001},
-		{"chua-alpha", "α", &dynamics.ChuaAlpha, 15.6, 5, 30, 0.1},
-		{"chua-beta", "β", &dynamics.ChuaBeta, 28.0, 10, 50, 0.1},
-		{"chua-m0", "m0", &dynamics.ChuaM0, -1.143, -2, 0, 0.001},
-		{"chua-m1", "m1", &dynamics.ChuaM1, -0.714, -2, 0, 0.001},
-	},
-	"aizawa": {
-		{"aizawa-dt", "dt", &dynamics.AizawaDT, 0.0052, 0.001, 0.02, 0.0001},
-		{"aizawa-a", "a", &dynamics.AizawaA, 0.95, 0.1, 2, 0.01},
-		{"aizawa-b", "b", &dynamics.AizawaB, 0.7, 0.1, 2, 0.01},
-		{"aizawa-c", "c", &dynamics.AizawaC, 0.6, 0.1, 2, 0.01},
-		{"aizawa-d", "d", &dynamics.AizawaD, 3.5, 0.1, 8, 0.01},
-		{"aizawa-e", "e", &dynamics.AizawaE, 0.25, 0.01, 1, 0.01},
-		{"aizawa-f", "f", &dynamics.AizawaF, 0.1, 0.01, 1, 0.01},
-	},
-	"sprott": {
-		{"sprott-dt", "dt", &dynamics.SprottDT, 0.005, 0.001, 0.05, 0.001},
-		{"sprott-a", "a", &dynamics.SprottA, 1.6, 0.1, 5, 0.01},
-		{"sprott-b", "b", &dynamics.SprottB, 1.85, 0.1, 5, 0.01},
-	},
 	"lissajou": {
 		{"lissajou-a", "a", &lissajouA, 3, 1, 20, 1},
 		{"lissajou-b", "b", &lissajouB, 2, 1, 20, 1},
@@ -219,38 +186,6 @@ var attractorParams = map[string][]paramDef{
 		{"pong-speed", "speed", &pongBallSpeed, 1, 0.2, 3, 0.05},
 		{"pong-paddle", "paddle", &pongPaddleH, 0.42, 0.1, 0.9, 0.01},
 		{"pong-skill", "skill", &pongAISkill, 0.7, 0, 1, 0.05},
-	},
-	"thomas": {
-		{"thomas-dt", "dt", &dynamics.ThomasDT, 0.05, 0.001, 0.1, 0.001},
-		{"thomas-b", "b", &dynamics.ThomasB, 0.185, 0.01, 1.0, 0.001},
-	},
-	"halvorsen": {
-		{"halvorsen-dt", "dt", &dynamics.HalvorsenDT, 0.003, 0.001, 0.05, 0.001},
-		{"halvorsen-a", "a", &dynamics.HalvorsenA, 1.4, 0.1, 5, 0.01},
-	},
-	"chen": {
-		{"chen-dt", "dt", &dynamics.ChenDT, 0.0005, 0.0001, 0.005, 0.0001},
-		{"chen-a", "a", &dynamics.ChenA, 35.0, 10, 50, 0.1},
-		{"chen-b", "b", &dynamics.ChenB, 3.0, 0.1, 10, 0.1},
-		{"chen-c", "c", &dynamics.ChenC, 28.0, 10, 40, 0.1},
-	},
-	"dadras": {
-		{"dadras-dt", "dt", &dynamics.DadrasDT, 0.005, 0.001, 0.05, 0.001},
-		{"dadras-p", "p", &dynamics.DadrasP, 3.0, 0.1, 10, 0.1},
-		{"dadras-q", "q", &dynamics.DadrasQ, 2.7, 0.1, 10, 0.1},
-		{"dadras-r", "r", &dynamics.DadrasR, 1.7, 0.1, 10, 0.1},
-		{"dadras-s", "s", &dynamics.DadrasS, 2.0, 0.1, 10, 0.1},
-		{"dadras-e", "e", &dynamics.DadrasE, 9.0, 0.1, 20, 0.1},
-	},
-	"rabinovich": {
-		{"rab-dt", "dt", &dynamics.RabDT, 0.001, 0.0001, 0.01, 0.0001},
-		{"rab-alpha", "α", &dynamics.RabAlpha, 1.1, 0.01, 2, 0.01},
-		{"rab-gamma", "γ", &dynamics.RabGamma, 0.87, 0.01, 1, 0.01},
-	},
-	"burkeshaw": {
-		{"burke-dt", "dt", &dynamics.BurkeDT, 0.005, 0.001, 0.05, 0.001},
-		{"burke-s", "S", &dynamics.BurkeS, 10.0, 1, 20, 0.1},
-		{"burke-v", "V", &dynamics.BurkeV, 4.272, 1, 10, 0.001},
 	},
 	// A turtle path has no continuous parameters; these are the arithmetic
 	// itself, and they are pisano's flags — mod, seq, mul, cap, reps, tint,
@@ -426,3 +361,27 @@ var paramHelp = map[string]string{
 
 // helpFor returns the sentence for a parameter id, or "".
 func helpFor(id string) string { return paramHelp[id] }
+
+// The systems' own constants come from pkg/dynamics rather than being listed
+// again here.
+//
+// They used to be 43 rows in this file, pointing at variables in that package
+// — the table and the values it described on opposite sides of a build tag,
+// so nothing without a browser could read the ranges of the very systems that
+// integrate perfectly well without one. dynamics.Params is that table, and
+// this fills the same map from it, so the panel still builds the same knobs
+// and there is one list to be wrong.
+//
+// The modes below this line keep their rows here, because their values are
+// package variables of the front end (turtle's physics, the scope's harmonics,
+// the globe's winding) and a vector field package has no business owning them.
+func init() {
+	for _, mode := range dynamics.ParamModes() {
+		ps := dynamics.Params(mode)
+		rows := make([]paramDef, 0, len(ps))
+		for _, p := range ps {
+			rows = append(rows, paramDef{p.ID, p.Label, p.Value, p.Def, p.Min, p.Max, p.Step})
+		}
+		attractorParams[mode] = rows
+	}
+}
