@@ -171,7 +171,27 @@ var modeGroups = []struct {
 	// repeat the mistake that hid the turtle.
 	{"Maps", []string{"henon", "ikeda", "clifford", "dejong", "mira",
 		"tinkerbell", "standardmap"}},
-	{"Scope", []string{"lissajou", "graphicartist", "pong", "scopetext", "scopeclock", "bounceball", "xy", "takens", "stereo", "polar"}},
+	{"Scope", []string{"lissajou", "graphicartist", "pong", "scopetext", "scopeclock", "bounceball", "xy"}},
+	// The three embeddings are one subject, so they get one row.
+	//
+	// They were the tail of Scope, and adjacent there — but Scope is wider
+	// than a bay, so buildCategoryRow divides it into bay-sized groups, and
+	// the division fell between stereo and polar: two of them under one
+	// monitor and the third alone in the next bay, which says they are
+	// unrelated.
+	//
+	// The mode table above already argues the opposite, twice: "stereo is the
+	// same kind of thing as takens", and polar "is the takens trail again with
+	// the bounding changed". All three reconstruct a state space from a signal
+	// and all three are steered by a delay. Giving them a category is the same
+	// move Sequences and Solids are — a thing that is not what it was filed
+	// under gets its own row — and it is the only way to GUARANTEE they share
+	// a bay, because a category row is what a bay is cut from.
+	//
+	// They stay in Audio as well. A mode in two categories is already how this
+	// works (xy is in both), and an embedding of a live signal belongs in the
+	// audio row as much as the spectrogram does.
+	{"Embeddings", []string{"takens", "stereo", "polar"}},
 	{"Polyhedra", []string{"tetrahedron", "cube", "octahedron", "dodecahedron",
 		"icosahedron", "nestedcube"}},
 	{"Geometry", []string{"globe", "sphere", "torus", "magnetosphere"}},
