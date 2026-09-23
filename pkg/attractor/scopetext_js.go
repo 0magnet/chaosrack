@@ -2,6 +2,8 @@
 
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dom"
+
 // Mode wiring for Fourier Text (the harmonic character generator lives in
 // scopetext.go). The beam sweeps the reconstructed curve continuously like
 // the Lissajous mode: the drawn window is exactly one period, so the whole
@@ -68,7 +70,7 @@ var (
 // active model, and normalizes the pose on entry — a banner reads face-on.
 // (The text field itself is static markup wired in buildDemoModules.)
 func syncScopeTextExtras(mode string) {
-	if sect := doc.Call("getElementById", "stext-module"); sect.Truthy() {
+	if sect := dom.Doc.Call("getElementById", "stext-module"); sect.Truthy() {
 		if mode == "scopetext" {
 			sect.Get("style").Set("display", "")
 		} else {

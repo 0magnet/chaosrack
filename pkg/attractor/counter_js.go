@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"syscall/js"
 )
@@ -48,7 +49,7 @@ func counterTick() {
 		counterBuf = make([]float32, 16384)
 	}
 	n := tapRead(&counterCursor, counterBuf)
-	th := fgFloat(doc.Call("getElementById", "counter-trig")) / 100
+	th := fgFloat(dom.Doc.Call("getElementById", "counter-trig")) / 100
 	if th < 1e-4 { // trig at 0 still needs hysteresis or it chatters
 		th = 1e-4
 	}
@@ -69,7 +70,7 @@ func counterTick() {
 		}
 	}
 	counterSamples += n
-	gate, _ := strconv.ParseFloat(doc.Call("getElementById", "counter-gatesel").Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+	gate, _ := strconv.ParseFloat(dom.Doc.Call("getElementById", "counter-gatesel").Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 	if gate <= 0 {
 		gate = 1
 	}
@@ -89,12 +90,12 @@ func counterTick() {
 // wireCounterModule builds the gate selector and trigger knobs and wires
 // the Window-group switch. Called once from Run.
 func wireCounterModule() {
-	counterLEDEl = doc.Call("getElementById", "counter-led")
-	counterGateEl = doc.Call("getElementById", "counter-gate")
-	gatesel := doc.Call("getElementById", "counter-gatesel")
-	trig := doc.Call("getElementById", "counter-trig")
-	gstack := doc.Call("getElementById", "counter-gstack")
-	tstack := doc.Call("getElementById", "counter-tstack")
+	counterLEDEl = dom.Doc.Call("getElementById", "counter-led")
+	counterGateEl = dom.Doc.Call("getElementById", "counter-gate")
+	gatesel := dom.Doc.Call("getElementById", "counter-gatesel")
+	trig := dom.Doc.Call("getElementById", "counter-trig")
+	gstack := dom.Doc.Call("getElementById", "counter-gstack")
+	tstack := dom.Doc.Call("getElementById", "counter-tstack")
 	if !gatesel.Truthy() || !gstack.Truthy() {
 		return
 	}

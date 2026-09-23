@@ -11,6 +11,7 @@ package attractor
 // switches are never touched.
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"syscall/js"
 )
@@ -45,18 +46,18 @@ func jamHop() {
 		return
 	}
 	next := pool[int(jamRand()*float64(len(pool)))%len(pool)]
-	if sel := doc.Call("getElementById", "mode-select"); sel.Truthy() {
+	if sel := dom.Doc.Call("getElementById", "mode-select"); sel.Truthy() {
 		sel.Set("value", next)
 		sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 	}
 	// Persist paint look ~35% of hops.
-	if p := doc.Call("getElementById", "persist-trail"); p.Truthy() {
+	if p := dom.Doc.Call("getElementById", "persist-trail"); p.Truthy() {
 		p.Set("checked", jamRand() < 0.35)
 		p.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 	}
 	// Fresh gentle spin: always some Y, sometimes a touch of X.
 	setSpin := func(axis string, v float64) {
-		if sl := doc.Call("getElementById", "rotation-controls-"+axis); sl.Truthy() {
+		if sl := dom.Doc.Call("getElementById", "rotation-controls-"+axis); sl.Truthy() {
 			sl.Set("value", strconv.FormatFloat(float64(int(v*10))/10, 'f', 1, 64))
 			sl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 		}

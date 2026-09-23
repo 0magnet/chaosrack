@@ -12,7 +12,11 @@ package attractor
 // point: a control added to the permalink table is in every preset from then
 // on, with nothing to add here.
 
-import "syscall/js"
+import (
+	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+)
 
 // presetStore reads the saved presets.
 func presetStore() []preset {
@@ -27,7 +31,7 @@ func presetStoreWrite(ps []preset) { lsSet(presetStoreKey, encodePresets(ps)) }
 
 // presetModuleVisible shows or hides the module.
 func presetModuleVisible(on bool) {
-	if sect := doc.Call("getElementById", "preset-module"); sect.Truthy() {
+	if sect := dom.Doc.Call("getElementById", "preset-module"); sect.Truthy() {
 		if on {
 			sect.Get("style").Set("display", "")
 		} else {
@@ -40,21 +44,21 @@ func presetModuleVisible(on bool) {
 // refreshPresetList rebuilds the <select>, leaving `selected` chosen when it
 // still exists.
 func refreshPresetList(selected string) {
-	sel := doc.Call("getElementById", "preset-list")
+	sel := dom.Doc.Call("getElementById", "preset-list")
 	if !sel.Truthy() {
 		return
 	}
 	sel.Set("innerHTML", "")
 	ps := presetStore()
 	if len(ps) == 0 {
-		opt := doc.Call("createElement", "option")
+		opt := dom.Doc.Call("createElement", "option")
 		opt.Set("value", "")
 		opt.Set("textContent", "— none saved —")
 		sel.Call("appendChild", opt)
 		return
 	}
 	for _, p := range ps {
-		opt := doc.Call("createElement", "option")
+		opt := dom.Doc.Call("createElement", "option")
 		opt.Set("value", p.Name)
 		opt.Set("textContent", p.Name)
 		sel.Call("appendChild", opt)
@@ -73,7 +77,7 @@ func refreshPresetList(selected string) {
 // second unnamed save from the same model updates that preset instead of
 // making "lorenz (2)".
 func presetNameField() string {
-	el := doc.Call("getElementById", "preset-name")
+	el := dom.Doc.Call("getElementById", "preset-name")
 	if !el.Truthy() {
 		return selectedMode
 	}
@@ -93,15 +97,15 @@ func wirePresetModule() {
 	presetModuleVisible(true)
 	refreshPresetList("")
 
-	if b := doc.Call("getElementById", "preset-save"); b.Truthy() {
-		b.Call("addEventListener", "click", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	if b := dom.Doc.Call("getElementById", "preset-save"); b.Truthy() {
+		b.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 			name := presetNameField()
 			presetStoreWrite(putPreset(presetStore(), name, serializeState()))
 			// Put the name in the field as well as the list: an unnamed save
 			// used the model's name, and the panel should say which one it
 			// picked rather than leaving the box empty over a preset that now
 			// exists.
-			if el := doc.Call("getElementById", "preset-name"); el.Truthy() {
+			if el := dom.Doc.Call("getElementById", "preset-name"); el.Truthy() {
 				el.Set("value", name)
 			}
 			refreshPresetList(name)
@@ -109,9 +113,9 @@ func wirePresetModule() {
 		}))
 	}
 
-	if b := doc.Call("getElementById", "preset-recall"); b.Truthy() {
-		b.Call("addEventListener", "click", trackedFuncOf(func(js.Value, []js.Value) interface{} {
-			sel := doc.Call("getElementById", "preset-list")
+	if b := dom.Doc.Call("getElementById", "preset-recall"); b.Truthy() {
+		b.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+			sel := dom.Doc.Call("getElementById", "preset-list")
 			if !sel.Truthy() {
 				return nil
 			}
@@ -125,16 +129,16 @@ func wirePresetModule() {
 			// path rewrites the list, so put it back, with the recalled preset
 			// still chosen — the next thing anyone does is recall another one.
 			refreshPresetList(p.Name)
-			if el := doc.Call("getElementById", "preset-name"); el.Truthy() {
+			if el := dom.Doc.Call("getElementById", "preset-name"); el.Truthy() {
 				el.Set("value", p.Name)
 			}
 			return nil
 		}))
 	}
 
-	if b := doc.Call("getElementById", "preset-del"); b.Truthy() {
-		b.Call("addEventListener", "click", trackedFuncOf(func(js.Value, []js.Value) interface{} {
-			sel := doc.Call("getElementById", "preset-list")
+	if b := dom.Doc.Call("getElementById", "preset-del"); b.Truthy() {
+		b.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+			sel := dom.Doc.Call("getElementById", "preset-list")
 			if !sel.Truthy() {
 				return nil
 			}
@@ -146,9 +150,9 @@ func wirePresetModule() {
 
 	// Picking from the list fills the name box, so Save over the same name is
 	// one click away and Delete is obviously about the thing that is named.
-	if sel := doc.Call("getElementById", "preset-list"); sel.Truthy() {
-		sel.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
-			if el := doc.Call("getElementById", "preset-name"); el.Truthy() {
+	if sel := dom.Doc.Call("getElementById", "preset-list"); sel.Truthy() {
+		sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+			if el := dom.Doc.Call("getElementById", "preset-name"); el.Truthy() {
 				el.Set("value", sel.Get("value").String())
 			}
 			return nil

@@ -4,6 +4,7 @@ package attractor
 
 import (
 	_ "embed"
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"syscall/js"
 
@@ -23,7 +24,7 @@ const autoRotYDelta = 0.1
 // independent fields.
 func setAutoRotate(on bool) {
 	autoRotate = on
-	if el := doc.Call("getElementById", "auto-rotate"); el.Truthy() {
+	if el := dom.Doc.Call("getElementById", "auto-rotate"); el.Truthy() {
 		el.Set("checked", on)
 	}
 }

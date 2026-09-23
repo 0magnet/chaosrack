@@ -26,7 +26,11 @@ package attractor
 // the recorder crops the backing store — a region in the wrong units records
 // the wrong part of the picture, and on a HiDPI screen it would be half of it.
 
-import "syscall/js"
+import (
+	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+)
 
 var (
 	regionOn      bool
@@ -39,11 +43,11 @@ var (
 
 // wireRegionSwitch turns selection mode on and off.
 func wireRegionSwitch() {
-	sw := doc.Call("getElementById", "rec-region-sw")
+	sw := dom.Doc.Call("getElementById", "rec-region-sw")
 	if !sw.Truthy() {
 		return
 	}
-	sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, _ []js.Value) interface{} {
+	sw.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, _ []js.Value) interface{} {
 		if this.Get("checked").Bool() {
 			startRegionSelect()
 		} else {
@@ -53,7 +57,7 @@ func wireRegionSwitch() {
 	}))
 	// The outline is placed from the stored region, so it has to be re-placed
 	// whenever the canvas moves or changes size under it.
-	js.Global().Call("addEventListener", "resize", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	js.Global().Call("addEventListener", "resize", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		placeRegionOutline()
 		placeRegionLayer()
 		return nil
@@ -116,21 +120,21 @@ func disarmRegionLayer() {
 // ensureRegionLayer builds the capture layer and the outline once.
 func ensureRegionLayer() {
 	if !regionLayer.Truthy() {
-		regionLayer = doc.Call("createElement", "div")
+		regionLayer = dom.Doc.Call("createElement", "div")
 		regionLayer.Set("id", "rec-region-layer")
 		regionLayer.Get("style").Set("cssText",
 			"position:fixed;z-index:var(--z-grip);cursor:crosshair;display:none;"+
 				"touch-action:none;background:rgba(0,0,0,0.12);")
-		body.Call("appendChild", regionLayer)
+		dom.Body.Call("appendChild", regionLayer)
 		wireRegionDrag()
 	}
 	if !regionOutline.Truthy() {
-		regionOutline = doc.Call("createElement", "div")
+		regionOutline = dom.Doc.Call("createElement", "div")
 		regionOutline.Set("id", "rec-region-outline")
 		regionOutline.Get("style").Set("cssText",
 			"position:fixed;z-index:var(--z-grip);pointer-events:none;display:none;"+
 				"border:1px dashed #6cf;box-shadow:0 0 0 9999px rgba(0,0,0,0.35);")
-		body.Call("appendChild", regionOutline)
+		dom.Body.Call("appendChild", regionOutline)
 	}
 }
 
@@ -175,7 +179,7 @@ func placeRegionOutline() {
 }
 
 func wireRegionDrag() {
-	regionLayer.Call("addEventListener", "pointerdown", trackedFuncOf(func(_ js.Value, a []js.Value) interface{} {
+	regionLayer.Call("addEventListener", "pointerdown", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
 		if len(a) == 0 || !regionOn {
 			return nil
 		}
@@ -191,7 +195,7 @@ func wireRegionDrag() {
 		setRegionFrom(regionX0, regionY0, regionX0, regionY0)
 		return nil
 	}))
-	regionLayer.Call("addEventListener", "pointermove", trackedFuncOf(func(_ js.Value, a []js.Value) interface{} {
+	regionLayer.Call("addEventListener", "pointermove", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
 		if !regionDrag || len(a) == 0 {
 			return nil
 		}
@@ -200,7 +204,7 @@ func wireRegionDrag() {
 		return nil
 	}))
 	for _, ev := range []string{"pointerup", "pointercancel"} {
-		regionLayer.Call("addEventListener", ev, trackedFuncOf(func(_ js.Value, a []js.Value) interface{} {
+		regionLayer.Call("addEventListener", ev, dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
 			if !regionDrag {
 				return nil
 			}

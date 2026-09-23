@@ -2,7 +2,11 @@
 
 package attractor
 
-import "syscall/js"
+import (
+	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+)
 
 // A module's own screen, and the switch that powers it.
 //
@@ -64,7 +68,7 @@ func (p *screenPower) measure(el js.Value) bool {
 		return false
 	}
 	if p.switchID != "" {
-		sw := doc.Call("getElementById", p.switchID)
+		sw := dom.Doc.Call("getElementById", p.switchID)
 		if sw.Truthy() && !sw.Get("checked").Bool() {
 			return false
 		}
@@ -104,12 +108,12 @@ var (
 // at once rather than at the next check.
 func wireScreenPower() {
 	for _, p := range []*screenPower{&scopeScreenPower, &recScreenPower, &deskScreenPower} {
-		sw := doc.Call("getElementById", p.switchID)
+		sw := dom.Doc.Call("getElementById", p.switchID)
 		if !sw.Truthy() {
 			continue
 		}
 		pp := p
-		sw.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+		sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 			pp.invalidate()
 			return nil
 		}))
@@ -119,12 +123,12 @@ func wireScreenPower() {
 	// on screen, and waiting a quarter second to notice is long enough to
 	// see a readout sitting still after it has come into view. Forget the
 	// cached answers as soon as it moves; the next frame measures again.
-	forget := trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	forget := dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		scrollChangedWhatIsOnScreen()
 		return nil
 	})
 	opts := map[string]interface{}{"passive": true}
-	if p := doc.Call("getElementById", "controls-panel"); p.Truthy() {
+	if p := dom.Doc.Call("getElementById", "controls-panel"); p.Truthy() {
 		p.Call("addEventListener", "scroll", forget, opts)
 	}
 	js.Global().Call("addEventListener", "scroll", forget, opts)
@@ -212,7 +216,7 @@ func onScreenObserver() js.Value {
 	if !ctor.Truthy() {
 		return js.Value{}
 	}
-	onScreenObs = ctor.New(trackedFuncOf(func(_ js.Value, args []js.Value) interface{} {
+	onScreenObs = ctor.New(dom.FuncOf(func(_ js.Value, args []js.Value) interface{} {
 		if len(args) == 0 {
 			return nil
 		}
@@ -239,7 +243,7 @@ func moduleOnScreen(id string) bool {
 	}
 	vis := measureOnScreen(id)
 	if obs := onScreenObserver(); obs.Truthy() {
-		if el := doc.Call("getElementById", id); el.Truthy() {
+		if el := dom.Doc.Call("getElementById", id); el.Truthy() {
 			obs.Call("observe", el)
 			// Seeded with the measurement so this frame has an answer; the
 			// observer overwrites it with its own as soon as it reports.
@@ -263,7 +267,7 @@ func measureOnScreen(id string) bool {
 	if c, ok := onScreenAt[id]; ok && frameNowMs-c.at < onScreenEveryMs && c.at != 0 {
 		return c.vis
 	}
-	el := doc.Call("getElementById", id)
+	el := dom.Doc.Call("getElementById", id)
 	if !el.Truthy() || !el.Get("offsetParent").Truthy() {
 		return false
 	}

@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"syscall/js"
 
@@ -284,7 +285,7 @@ func wfallApplyDefaults(d wfallDefaults) {
 // surface under a knob still showing the old number.
 func setWfallKnob(id string, ptr *float32, v float32) {
 	*ptr = v
-	el := doc.Call("getElementById", id)
+	el := dom.Doc.Call("getElementById", id)
 	if !el.Truthy() {
 		return
 	}
@@ -640,7 +641,7 @@ func showWaterfallRT() {
 func appendWaterfallReadout(grid js.Value) {
 	card, top := newPunitCard("rt60")
 
-	wfallRTEl = doc.Call("createElement", "span")
+	wfallRTEl = dom.Doc.Call("createElement", "span")
 	wfallRTEl.Set("className", "led counter-led")
 	wfallRTEl.Set("title", "Reverberation time of the room, in seconds — how long a sound takes to "+
 		"fall 60 dB after it stops. Taken from the same impulse response the surface is, by "+

@@ -1,6 +1,10 @@
 package attractor
 
-import "syscall/js"
+import (
+	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+)
 
 // Pointer movement is the busiest event a browser delivers — a drag produces
 // them faster than frames arrive — and under TinyGo every listener that
@@ -54,20 +58,20 @@ func initPointerMove() {
 	})
 	// Capture phase, so the move listener is on the document before any
 	// pointerdown handler that starts a gesture has run.
-	doc.Call("addEventListener", "pointerdown", js.FuncOf(func(js.Value, []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "pointerdown", js.FuncOf(func(js.Value, []js.Value) interface{} {
 		if !pointerMoveOn {
-			doc.Call("addEventListener", "pointermove", pointerMoveFunc)
+			dom.Doc.Call("addEventListener", "pointermove", pointerMoveFunc)
 			pointerMoveOn = true
 		}
 		return nil
 	}), true)
 	off := js.FuncOf(func(js.Value, []js.Value) interface{} {
 		if pointerMoveOn {
-			doc.Call("removeEventListener", "pointermove", pointerMoveFunc)
+			dom.Doc.Call("removeEventListener", "pointermove", pointerMoveFunc)
 			pointerMoveOn = false
 		}
 		return nil
 	})
-	doc.Call("addEventListener", "pointerup", off, true)
-	doc.Call("addEventListener", "pointercancel", off, true)
+	dom.Doc.Call("addEventListener", "pointerup", off, true)
+	dom.Doc.Call("addEventListener", "pointercancel", off, true)
 }

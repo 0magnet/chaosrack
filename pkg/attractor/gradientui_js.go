@@ -4,6 +4,7 @@ package attractor
 
 import (
 	_ "embed"
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 )
 
@@ -68,7 +69,7 @@ func updateGradientUI() {
 	// current SRC and MAP setting are just dimmed, with no populate/depopulate
 	// reflow when either moves. bg always applies.
 	dim := func(id string, inactive bool) {
-		if el := doc.Call("getElementById", id); el.Truthy() {
+		if el := dom.Doc.Call("getElementById", id); el.Truthy() {
 			el.Get("style").Set("display", "")
 			el.Get("classList").Call("toggle", "pal-dim", inactive)
 		}
@@ -101,7 +102,7 @@ func updateGradientUI() {
 	usesSrc := modeUsesGradientSource(selectedMode)
 	dim("src-cell", !usesSrc)
 	dim("map-cell", usesSrc && gradientSource == GradientSourceOff)
-	if lbl := doc.Call("getElementById", "lbl-cstart"); lbl.Truthy() {
+	if lbl := dom.Doc.Call("getElementById", "lbl-cstart"); lbl.Truthy() {
 		if gradientSource == GradientSourceOff {
 			lbl.Set("textContent", "color")
 		} else {
@@ -116,9 +117,9 @@ func updateGradientUI() {
 // the auto-spin shows up on the Y rate knob rather than being a hidden term.
 
 func onColorChange(this js.Value, args []js.Value) interface{} {
-	baseHex := doc.Call("getElementById", "color-base").Get("value").String()
-	midHex := doc.Call("getElementById", "color-mid").Get("value").String()
-	topHex := doc.Call("getElementById", "color-top").Get("value").String()
+	baseHex := dom.Doc.Call("getElementById", "color-base").Get("value").String()
+	midHex := dom.Doc.Call("getElementById", "color-mid").Get("value").String()
+	topHex := dom.Doc.Call("getElementById", "color-top").Get("value").String()
 	baseColor[0], baseColor[1], baseColor[2] = hexToRGB(baseHex)
 	midColor[0], midColor[1], midColor[2] = hexToRGB(midHex)
 	topColor[0], topColor[1], topColor[2] = hexToRGB(topHex)

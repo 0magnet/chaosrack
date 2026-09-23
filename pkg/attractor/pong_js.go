@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"strconv"
 	"strings"
@@ -233,10 +234,10 @@ func pongSyncScoreboard() {
 		return
 	}
 	pongShownL, pongShownR = pongScoreL, pongScoreR
-	if l := doc.Call("getElementById", "pong-score-l"); l.Truthy() {
+	if l := dom.Doc.Call("getElementById", "pong-score-l"); l.Truthy() {
 		l.Set("textContent", strconv.Itoa(pongScoreL))
 	}
-	if r := doc.Call("getElementById", "pong-score-r"); r.Truthy() {
+	if r := dom.Doc.Call("getElementById", "pong-score-r"); r.Truthy() {
 		r.Set("textContent", strconv.Itoa(pongScoreR))
 	}
 }
@@ -269,7 +270,7 @@ func pongWireInput() {
 		}
 		return true
 	}
-	doc.Call("addEventListener", "keydown", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		e := a[0]
 		if selectedMode != "pong" {
 			return nil
@@ -288,7 +289,7 @@ func pongWireInput() {
 		}
 		return nil
 	}))
-	doc.Call("addEventListener", "keyup", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "keyup", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		set(strings.ToLower(a[0].Get("key").String()), false)
 		return nil
 	}))
@@ -357,7 +358,7 @@ var pongActive bool
 // the camera with the spin stopped — it's a scope game, not a model;
 // leaving drops the beep lease and any held keys.
 func syncPongExtras(mode string) {
-	if sect := doc.Call("getElementById", "pong-module"); sect.Truthy() {
+	if sect := dom.Doc.Call("getElementById", "pong-module"); sect.Truthy() {
 		if mode == "pong" {
 			sect.Get("style").Set("display", "")
 		} else {

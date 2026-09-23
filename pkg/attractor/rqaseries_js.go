@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -310,7 +311,7 @@ func rqaTracePath(tr RQATrace, top int) string {
 // do (its content column-wraps within a fixed height; more content is more
 // columns, not a taller module).
 func appendRecurrenceSeries(grid js.Value) {
-	card := doc.Call("createElement", "div")
+	card := dom.Doc.Call("createElement", "div")
 	card.Set("className", "punit")
 	// Inline, because #params .punit pins every cell to one --kcol by --krow.
 	// justify-content is reset to the top so the chart takes the whole card
@@ -326,12 +327,12 @@ func appendRecurrenceSeries(grid js.Value) {
 		"grid-row:1/-1;grid-column:span 2;width:100%;height:100%;justify-content:flex-start;"+
 			"gap:2px;padding-left:16px;box-sizing:border-box;")
 
-	lbl := doc.Call("createElement", "span")
+	lbl := dom.Doc.Call("createElement", "span")
 	lbl.Set("className", symClass("u-lbl", false))
 	lbl.Set("textContent", "trend")
 	card.Call("appendChild", lbl)
 
-	rqaChartEl = doc.Call("createElement", "canvas")
+	rqaChartEl = dom.Doc.Call("createElement", "canvas")
 	rqaChartEl.Set("width", rqaChartCols)
 	rqaChartEl.Set("height", rqaChartH)
 	rqaChartEl.Set("title", "Recurrence quantification over time — the last "+

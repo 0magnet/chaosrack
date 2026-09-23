@@ -20,6 +20,7 @@ package attractor
 // does not.
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"strconv"
 	"syscall/js"
@@ -325,21 +326,21 @@ func bifShowCursor(s string) {
 // buildBifPanel fills the Parameters module for bifurcation mode: the source
 // system, the swept-parameter selector, and progress.
 func buildBifPanel(paramsDiv js.Value) {
-	col := doc.Call("createElement", "span")
+	col := dom.Doc.Call("createElement", "span")
 	col.Set("className", "pcell")
 
-	src := doc.Call("createElement", "span")
+	src := dom.Doc.Call("createElement", "span")
 	src.Set("className", "plabel")
 	src.Set("textContent", "SWEEP "+modeInfo[lastFlowMode].Label)
 	src.Set("title", "The system being swept — the most recent flow mode. Switch to an attractor, tune it, then come back.")
 	col.Call("appendChild", src)
 
-	sel := doc.Call("createElement", "select")
+	sel := dom.Doc.Call("createElement", "select")
 	sel.Set("title", "Swept parameter — the x axis of the diagram; each column integrates the system fresh at that value and plots the maxima of z")
 	sel.Set("style", "background:#222;color:#ccc;border:1px solid #555;font-family:monospace;font-size:12px;padding:2px 4px;")
 	_, cur, _ := bifParam()
 	for i, pd := range bifParams() {
-		opt := doc.Call("createElement", "option")
+		opt := dom.Doc.Call("createElement", "option")
 		opt.Set("value", strconv.Itoa(i))
 		opt.Set("textContent", pd.Label)
 		if i == cur {
@@ -347,14 +348,14 @@ func buildBifPanel(paramsDiv js.Value) {
 		}
 		sel.Call("appendChild", opt)
 	}
-	sel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if v, err := strconv.Atoi(sel.Get("value").String()); err == nil {
 			bifParamIdx = v
 			bifInvalidate()
 		}
 		return nil
 	}))
-	grp := doc.Call("createElement", "span")
+	grp := dom.Doc.Call("createElement", "span")
 	grp.Set("className", "grp")
 	grp.Call("appendChild", sel)
 	col.Call("appendChild", grp)
@@ -363,7 +364,7 @@ func buildBifPanel(paramsDiv js.Value) {
 	// the two are the same kind of control — which parameter, and what moves
 	// it — and giving one a select and the other a switch would have said they
 	// were different kinds of thing.
-	drv := doc.Call("createElement", "span")
+	drv := dom.Doc.Call("createElement", "span")
 	drv.Set("className", "plabel")
 	drv.Set("textContent", "DRIVE")
 	drv.Set("title", "What puts the system at a parameter value. \"sweep\" is the diagram alone, "+
@@ -374,11 +375,11 @@ func buildBifPanel(paramsDiv js.Value) {
 		"bifurcation diagram any more. Needs Audio mod on, which is what computes the envelope.")
 	col.Call("appendChild", drv)
 
-	dsel := doc.Call("createElement", "select")
+	dsel := dom.Doc.Call("createElement", "select")
 	dsel.Set("title", "sweep: the diagram alone. audio: the envelope moves a cursor along it.")
 	dsel.Set("style", "background:#222;color:#ccc;border:1px solid #555;font-family:monospace;font-size:12px;padding:2px 4px;")
 	for i, name := range []string{"sweep", "audio"} {
-		opt := doc.Call("createElement", "option")
+		opt := dom.Doc.Call("createElement", "option")
 		opt.Set("value", strconv.Itoa(i))
 		opt.Set("textContent", name)
 		if (i == 1) == bifDriveAudio {
@@ -386,7 +387,7 @@ func buildBifPanel(paramsDiv js.Value) {
 		}
 		dsel.Call("appendChild", opt)
 	}
-	dsel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	dsel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		bifDriveAudio = dsel.Get("value").String() == "1"
 		// Rebuild: the depth knob comes and goes with the choice, the way the
 		// Section module comes and goes with the Sect switch. A knob that is
@@ -394,14 +395,14 @@ func buildBifPanel(paramsDiv js.Value) {
 		buildParamPanel(selectedMode)
 		return nil
 	}))
-	dgrp := doc.Call("createElement", "span")
+	dgrp := dom.Doc.Call("createElement", "span")
 	dgrp.Set("className", "grp")
 	dgrp.Call("appendChild", dsel)
 	col.Call("appendChild", dgrp)
 
 	// The cursor's own readout, beside the control that creates it. It also
 	// says why there is no cursor when there is not.
-	bifCurEl = doc.Call("createElement", "span")
+	bifCurEl = dom.Doc.Call("createElement", "span")
 	bifCurEl.Set("className", "led counter-led")
 	bifCurEl.Set("title", "Where the audio envelope currently puts the swept parameter — the cursor's "+
 		"position on the diagram's x axis. \"sweep\" means the audio drive is off; \"mod off\" means it "+
@@ -420,7 +421,7 @@ func buildBifPanel(paramsDiv js.Value) {
 	// grid of its own because that is the container buildParamUnit's cells
 	// expect.
 	if bifDriveAudio {
-		g := doc.Call("createElement", "div")
+		g := dom.Doc.Call("createElement", "div")
 		g.Set("className", "punit-grid")
 		// The knob's own explanation goes on the grid, the way the Section
 		// module's goes on its header: a paramDef carries no description

@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"fmt"
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"strconv"
 	"strings"
@@ -44,13 +45,13 @@ var (
 // shape as the category tooltip that had quietly stopped mentioning Maps. One
 // list now, in Go, and the markup is an empty select.
 func buildDeskStyleSelect() {
-	sel := doc.Call("getElementById", "desk-style")
+	sel := dom.Doc.Call("getElementById", "desk-style")
 	if !sel.Truthy() {
 		return
 	}
 	sel.Set("innerHTML", "")
 	for _, k := range deskStyleOrder {
-		o := doc.Call("createElement", "option")
+		o := dom.Doc.Call("createElement", "option")
 		o.Set("value", k)
 		o.Set("textContent", deskStyleLabel[k])
 		if d, ok := deskStyleDesc[k]; ok {
@@ -64,7 +65,7 @@ func buildDeskStyleSelect() {
 	// that knob is for — too many for a label ring, too few to need a list —
 	// and a dropdown in a rack panel reads as a browser widget somebody forgot
 	// to finish. The select stays as the state and the knob is a view of it.
-	if holder := doc.Call("getElementById", "desk-style-stack"); holder.Truthy() &&
+	if holder := dom.Doc.Call("getElementById", "desk-style-stack"); holder.Truthy() &&
 		!holder.Get("firstChild").Truthy() {
 		holder.Call("appendChild", selectorKnobReadout(sel))
 	}
@@ -133,7 +134,7 @@ func setDeskTicking(on bool) {
 		return
 	}
 	if !deskTickFunc.Truthy() {
-		deskTickFunc = trackedFuncOf(func(js.Value, []js.Value) interface{} {
+		deskTickFunc = dom.FuncOf(func(js.Value, []js.Value) interface{} {
 			if !deskTicking {
 				return nil
 			}
@@ -232,7 +233,7 @@ func ensureBackFace(w js.Value) {
 	if t := w.Call("querySelector", ".wb-title"); t.Truthy() {
 		title = t.Get("textContent").String()
 	}
-	back := doc.Call("createElement", "div")
+	back := dom.Doc.Call("createElement", "div")
 	back.Set("className", "lg-back")
 	// z-index above the window's own chrome: without it the title bar shows
 	// through the back panel, mirrored, which reads as a rendering fault
@@ -328,7 +329,7 @@ const cubeRadius = 520.0
 
 // deskFloor is the top of the rack, which is as far down as the desk goes.
 func deskFloor() float64 {
-	if p := doc.Call("getElementById", "controls-panel"); p.Truthy() {
+	if p := dom.Doc.Call("getElementById", "controls-panel"); p.Truthy() {
 		if t := p.Call("getBoundingClientRect").Get("top").Float(); t > 0 {
 			return t
 		}
@@ -546,7 +547,7 @@ func wireDeskGestures() {
 
 	// Looking Glass: turn a window over. A double click, because winbox has
 	// already spent the single one on focus and the drag on moving.
-	doc.Call("addEventListener", "dblclick", trackedFuncOf(func(_ js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "dblclick", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
 		if deskStyle != deskGlass || len(a) == 0 {
 			return nil
 		}
@@ -568,7 +569,7 @@ func wireDeskGestures() {
 	// trade, and Metisse itself kept the ordinary drag too.
 	var turning js.Value
 	var lastX, lastY float64
-	doc.Call("addEventListener", "mousedown", trackedFuncOf(func(_ js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "mousedown", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
 		if deskStyle != deskMetisse || len(a) == 0 || !a[0].Get("shiftKey").Truthy() {
 			return nil
 		}
@@ -582,7 +583,7 @@ func wireDeskGestures() {
 		a[0].Call("stopPropagation")
 		return nil
 	}), map[string]any{"capture": true})
-	doc.Call("addEventListener", "mousemove", trackedFuncOf(func(_ js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "mousemove", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
 		if !turning.Truthy() || len(a) == 0 {
 			return nil
 		}
@@ -591,7 +592,7 @@ func wireDeskGestures() {
 		lastX, lastY = x, y
 		return nil
 	}), map[string]any{"capture": true})
-	doc.Call("addEventListener", "mouseup", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "mouseup", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		turning = js.Value{}
 		return nil
 	}), map[string]any{"capture": true})
@@ -599,7 +600,7 @@ func wireDeskGestures() {
 	// Compiz: the arrows spin the cube. Guarded the same way every other key
 	// binding here is — a focused input, select or textarea keeps its arrows,
 	// which is what lets a terminal in one of these windows still work.
-	doc.Call("addEventListener", "keydown", trackedFuncOf(func(_ js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
 		if deskStyle != deskCube || len(a) == 0 {
 			return nil
 		}

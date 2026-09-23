@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 
 	"github.com/0magnet/desk"
@@ -228,7 +229,7 @@ func init() {
 // environment is not a setting OF the desk, it is the thing that brings it
 // into being, and it has to be reachable when the module is not there.
 func syncDeskExtras(mode string) {
-	sect := doc.Call("getElementById", "desk-module")
+	sect := dom.Doc.Call("getElementById", "desk-module")
 	if !sect.Truthy() {
 		return
 	}

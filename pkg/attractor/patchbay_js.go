@@ -20,6 +20,7 @@ package attractor
 // Persisted in localStorage.
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -106,7 +107,7 @@ func recallSerializedState(snapshot string) {
 	mode := hashModeOf(snapshot)
 	onResetAll(js.Undefined(), nil)
 	if knownMode(mode) && mode != selectedMode {
-		if sel := doc.Call("getElementById", "mode-select"); sel.Truthy() {
+		if sel := dom.Doc.Call("getElementById", "mode-select"); sel.Truthy() {
 			sel.Set("value", mode)
 			sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 		}
@@ -122,21 +123,21 @@ func recallSerializedState(snapshot string) {
 // buildPatchbayModule (re)creates the PATCHBAY module. Called from
 // buildParamPanel so the matrix columns track the current mode.
 func buildPatchbayModule(paramsSect js.Value) {
-	if old := doc.Call("getElementById", "patch-module"); old.Truthy() {
+	if old := dom.Doc.Call("getElementById", "patch-module"); old.Truthy() {
 		old.Get("parentNode").Call("removeChild", old)
 	}
 	if !patchOn || !paramsSect.Truthy() {
 		return
 	}
-	mod := doc.Call("createElement", "div")
+	mod := dom.Doc.Call("createElement", "div")
 	mod.Set("className", "sect")
 	mod.Set("id", "patch-module")
-	hdr := doc.Call("createElement", "div")
+	hdr := dom.Doc.Call("createElement", "div")
 	hdr.Set("className", "sect-hdr")
 	hdr.Set("textContent", "Patchbay")
 	hdr.Set("title", "Patchbay — pin-matrix audio routing (sources × destinations) and the 8-slot patch memory bank")
 	mod.Call("appendChild", hdr)
-	body := doc.Call("createElement", "div")
+	body := dom.Doc.Call("createElement", "div")
 	body.Set("className", "row")
 
 	// ── Program bank ──
@@ -148,10 +149,10 @@ func buildPatchbayModule(paramsSect js.Value) {
 	//
 	// A rack panel is tall and narrow, so the memories go down it the way the
 	// numbered buttons on a synth's program bank do.
-	bankRow := doc.Call("createElement", "div")
+	bankRow := dom.Doc.Call("createElement", "div")
 	bankRow.Set("className", "pbank")
 	bank := patchBank()
-	sto := doc.Call("createElement", "button")
+	sto := dom.Doc.Call("createElement", "button")
 	sto.Set("className", "pslot")
 	sto.Set("textContent", "STO")
 	sto.Set("title", "Store mode — press STO, then a slot, to save the current patch there. Plain slot click recalls.")
@@ -162,7 +163,7 @@ func buildPatchbayModule(paramsSect js.Value) {
 			sto.Get("classList").Call("remove", "sto")
 		}
 	}
-	sto.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	sto.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		patchStoArm = !patchStoArm
 		refreshSto()
 		return nil
@@ -170,14 +171,14 @@ func buildPatchbayModule(paramsSect js.Value) {
 	bankRow.Call("appendChild", sto)
 	for i := 0; i < patchSlots; i++ {
 		i := i
-		b := doc.Call("createElement", "button")
+		b := dom.Doc.Call("createElement", "button")
 		b.Set("className", "pslot")
 		if bank[i] != "" {
 			b.Get("classList").Call("add", "full")
 		}
 		b.Set("textContent", strconv.Itoa(i+1))
 		b.Set("title", "Patch memory "+strconv.Itoa(i+1)+" — click to recall; STO first to store the current patch")
-		b.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			bank := patchBank()
 			if patchStoArm {
 				bank[i] = serializeState()
@@ -198,7 +199,7 @@ func buildPatchbayModule(paramsSect js.Value) {
 	dests := matrixDests(selectedMode)
 	if len(dests) > 0 {
 		rows := []struct{ label, ch string }{{"ST", "mono"}, {"L", "L"}, {"R", "R"}}
-		grid := doc.Call("createElement", "div")
+		grid := dom.Doc.Call("createElement", "div")
 		grid.Set("className", "mxgrid")
 		// The row labels take what they need; the destinations SHARE what is
 		// left. Sized with auto they sized the module instead of being sized
@@ -224,9 +225,9 @@ func buildPatchbayModule(paramsSect js.Value) {
 		// and legible, and ST/L/R are short enough to head a column upright.
 		grid.Get("style").Set("gridTemplateColumns",
 			"auto repeat("+strconv.Itoa(len(rows))+",auto)")
-		grid.Call("appendChild", doc.Call("createElement", "span")) // corner
+		grid.Call("appendChild", dom.Doc.Call("createElement", "span")) // corner
 		for _, row := range rows {
-			cl := doc.Call("createElement", "span")
+			cl := dom.Doc.Call("createElement", "span")
 			cl.Set("className", "mxlbl")
 			cl.Set("textContent", row.label)
 			cl.Set("title", "Source: "+row.label+" channel energy (loudest band unless EQ bands are painted on the MOD knob)")
@@ -234,14 +235,14 @@ func buildPatchbayModule(paramsSect js.Value) {
 		}
 		for _, d := range dests {
 			d := d
-			rl := doc.Call("createElement", "span")
+			rl := dom.Doc.Call("createElement", "span")
 			rl.Set("className", "mxdst")
 			rl.Set("textContent", d.label)
 			rl.Set("title", "Destination: "+d.label)
 			grid.Call("appendChild", rl)
 			for _, row := range rows {
 				row := row
-				pin := doc.Call("createElement", "span")
+				pin := dom.Doc.Call("createElement", "span")
 				pin.Set("className", "mxpin")
 				m := paramMods[d.id]
 				on := m.channel == row.ch && m.level != 0
@@ -250,7 +251,7 @@ func buildPatchbayModule(paramsSect js.Value) {
 					pin.Get("style").Set("opacity", strconv.FormatFloat(0.45+0.55*float64(m.level), 'f', 2, 64))
 				}
 				pin.Set("title", row.label+" → "+d.label+" — click to toggle, wheel to set depth (needs Audio mod on)")
-				pin.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+				pin.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 					m := paramMods[d.id]
 					if m.channel == row.ch && m.level != 0 {
 						m.channel = ""
@@ -265,7 +266,7 @@ func buildPatchbayModule(paramsSect js.Value) {
 					buildParamPanel(selectedMode) // resync MOD knobs + this matrix
 					return nil
 				}))
-				pin.Call("addEventListener", "wheel", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+				pin.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 					e := a[0]
 					e.Call("preventDefault")
 					m := paramMods[d.id]

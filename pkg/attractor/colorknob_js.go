@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"strconv"
 	"strings"
@@ -121,11 +122,11 @@ func svToLevel(s, v float64) float64 {
 // cyclic). Returns a bare .knob so it stacks as a clean outer ring with a
 // visible pointer.
 func makeHueKnob(slider js.Value) js.Value {
-	knob := doc.Call("createElement", "span")
+	knob := dom.Doc.Call("createElement", "span")
 	knob.Set("className", "knob knobb hueknob")
 	knob.Call("setAttribute", "data-no-drag", "")
 	knob.Set("title", "Hue — turn all the way around the spectrum")
-	ptr := doc.Call("createElement", "i")
+	ptr := dom.Doc.Call("createElement", "i")
 	ptr.Set("className", "knob-ptr")
 	knob.Call("appendChild", ptr)
 
@@ -134,7 +135,7 @@ func makeHueKnob(slider js.Value) js.Value {
 		ptr.Get("style").Set("transform", "translate(-50%,-100%) rotate("+strconv.FormatFloat(h, 'f', 1, 64)+"deg)")
 	}
 	update()
-	slider.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} { update(); return nil }))
+	slider.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} { update(); return nil }))
 
 	dragging := false
 	setFromEvent := func(e js.Value) {
@@ -149,7 +150,7 @@ func makeHueKnob(slider js.Value) js.Value {
 		slider.Set("value", strconv.FormatFloat(ang, 'f', 0, 64))
 		slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 	}
-	knob.Call("addEventListener", "pointerdown", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	knob.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		e := a[0]
 		e.Call("preventDefault")
 		e.Call("stopPropagation")
@@ -158,16 +159,16 @@ func makeHueKnob(slider js.Value) js.Value {
 		setFromEvent(e)
 		return nil
 	}))
-	knob.Call("addEventListener", "pointermove", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	knob.Call("addEventListener", "pointermove", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if dragging {
 			setFromEvent(a[0])
 		}
 		return nil
 	}))
-	rel := trackedFuncOf(func(this js.Value, a []js.Value) interface{} { dragging = false; return nil })
+	rel := dom.FuncOf(func(this js.Value, a []js.Value) interface{} { dragging = false; return nil })
 	knob.Call("addEventListener", "pointerup", rel)
 	knob.Call("addEventListener", "pointercancel", rel)
-	knob.Call("addEventListener", "wheel", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	knob.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		e := a[0]
 		e.Call("preventDefault")
 		e.Call("stopPropagation")
@@ -190,7 +191,7 @@ func makeHueKnob(slider js.Value) js.Value {
 
 func buildColorKnob(colorInput js.Value) js.Value {
 	mkRange := func(max int, val float64) js.Value {
-		r := doc.Call("createElement", "input")
+		r := dom.Doc.Call("createElement", "input")
 		r.Set("type", "range")
 		r.Set("min", "0")
 		r.Set("max", strconv.Itoa(max))
@@ -220,7 +221,7 @@ func buildColorKnob(colorInput js.Value) js.Value {
 
 	// Gradient dials behind the knobs (drawn as conic rings, no tick marks).
 	addColorDial := func(cls string) js.Value {
-		d := doc.Call("createElement", "span")
+		d := dom.Doc.Call("createElement", "span")
 		d.Set("className", "ck-dial "+cls)
 		stack.Call("insertBefore", d, stack.Get("firstChild"))
 		return d
@@ -246,10 +247,10 @@ func buildColorKnob(colorInput js.Value) js.Value {
 		setHueCol(h)
 	}
 	for _, rng := range []js.Value{hueR, levR} {
-		rng.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} { apply(); return nil }))
+		rng.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} { apply(); return nil }))
 	}
 	// External swatch pick → turn the knobs (and recolor the level dial) to match.
-	syncFromSwatch := trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	syncFromSwatch := dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if colorSyncing {
 			return nil
 		}
@@ -267,7 +268,7 @@ func buildColorKnob(colorInput js.Value) js.Value {
 	colorInput.Call("addEventListener", "change", syncFromSwatch)
 	colorInput.Call("addEventListener", "input", syncFromSwatch)
 
-	wrap := doc.Call("createElement", "span")
+	wrap := dom.Doc.Call("createElement", "span")
 	wrap.Set("className", "colorknob")
 	wrap.Call("appendChild", hueR)
 	wrap.Call("appendChild", levR)
@@ -280,11 +281,11 @@ func buildColorKnob(colorInput js.Value) js.Value {
 // it lands beneath the swatch in the templated palette cell.
 func attachColorKnobs() {
 	for _, id := range []string{"color-base", "color-mid", "color-top", "color-bg"} {
-		ci := doc.Call("getElementById", id)
+		ci := dom.Doc.Call("getElementById", id)
 		if !ci.Truthy() {
 			continue
 		}
-		holder := doc.Call("getElementById", "ck-"+id)
+		holder := dom.Doc.Call("getElementById", "ck-"+id)
 		if !holder.Truthy() {
 			continue
 		}
@@ -292,10 +293,10 @@ func attachColorKnobs() {
 		// LED readout of the HTML color (hex) below the knob, pinned to the cell
 		// bottom so it doesn't shift the knob's centering.
 		if cell := holder.Get("parentNode"); cell.Truthy() {
-			hex := doc.Call("createElement", "span")
+			hex := dom.Doc.Call("createElement", "span")
 			hex.Set("className", "led pal-hex")
 			ci := ci
-			upd := trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+			upd := dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 				v := ci.Get("value").String()
 				hex.Set("textContent", strings.ToUpper(strings.TrimPrefix(v, "#")))
 				return nil

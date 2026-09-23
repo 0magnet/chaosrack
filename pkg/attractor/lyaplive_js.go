@@ -24,6 +24,7 @@ package attractor
 // also asking it to draw two of them.
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"math"
 	"strconv"
@@ -215,15 +216,15 @@ func lyapLiveShow(s string) {
 // appendTakensEstimate are: #params stacks below the height-bounded grid and
 // gets clipped by the module's fixed height.
 func appendLyapunovReadout(grid js.Value) {
-	card := doc.Call("createElement", "div")
+	card := dom.Doc.Call("createElement", "div")
 	card.Set("className", "punit")
 
-	lbl := doc.Call("createElement", "span")
+	lbl := dom.Doc.Call("createElement", "span")
 	lbl.Set("className", symClass("u-lbl", true))
 	lbl.Set("textContent", "λ")
 	card.Call("appendChild", lbl)
 
-	lyapLiveEl = doc.Call("createElement", "span")
+	lyapLiveEl = dom.Doc.Call("createElement", "span")
 	lyapLiveEl.Set("className", "led counter-led")
 	lyapLiveEl.Set("title", "Largest Lyapunov exponent, measured live from a pair of trajectories started "+
 		"a hair apart: how fast two nearby states of THIS system, at these coefficients, separate. "+

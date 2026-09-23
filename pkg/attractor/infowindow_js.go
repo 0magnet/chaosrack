@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -47,11 +48,11 @@ const (
 // keeps the id the rest of the app knows it by, so updateInfoOverlay and the
 // turtle's live shape line need no changes at all.
 func infoContent() js.Value {
-	el := doc.Call("getElementById", "info-overlay")
+	el := dom.Doc.Call("getElementById", "info-overlay")
 	if el.Truthy() {
 		return el
 	}
-	el = doc.Call("createElement", "div")
+	el = dom.Doc.Call("createElement", "div")
 	el.Set("id", "info-overlay")
 	el.Set("className", "info-body")
 	return el
@@ -110,7 +111,7 @@ func placeInfoWindow() {
 	}
 	infoX, infoY = 20, 70
 	if standalonePanel {
-		if p := doc.Call("getElementById", "controls-panel"); p.Truthy() &&
+		if p := dom.Doc.Call("getElementById", "controls-panel"); p.Truthy() &&
 			p.Get("style").Get("display").String() != "none" {
 			r := p.Call("getBoundingClientRect")
 			switch dockEdge {
@@ -185,7 +186,7 @@ func showInfoWindow() {
 		// Canceling the close and hiding instead keeps the position.
 		OnClose: func(w *winbox.WinBox, _ bool) bool {
 			w.Hide()
-			if sw := doc.Call("getElementById", "show-info"); sw.Truthy() && sw.Get("checked").Bool() {
+			if sw := dom.Doc.Call("getElementById", "show-info"); sw.Truthy() && sw.Get("checked").Bool() {
 				sw.Set("checked", false)
 				sw.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 			}

@@ -13,6 +13,7 @@ package attractor
 // permalink and modulation stay truthful.
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"syscall/js"
 )
@@ -24,7 +25,7 @@ var (
 )
 
 func midiSetSlider(id string, min, max float32, v127 float64) {
-	sl := doc.Call("getElementById", id)
+	sl := dom.Doc.Call("getElementById", id)
 	if !sl.Truthy() {
 		return
 	}
@@ -75,7 +76,7 @@ func midiHandle(this js.Value, args []js.Value) interface{} {
 		}
 		next := keys[d1%len(keys)]
 		if next != selectedMode {
-			if sel := doc.Call("getElementById", "mode-select"); sel.Truthy() {
+			if sel := dom.Doc.Call("getElementById", "mode-select"); sel.Truthy() {
 				sel.Set("value", next)
 				sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 			}
@@ -89,7 +90,7 @@ func midiBindInputs() {
 		return
 	}
 	inputs := midiAccess.Get("inputs")
-	fn := trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	fn := dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		a[0].Set("onmidimessage", midiMsgFn)
 		return nil
 	})
@@ -102,17 +103,17 @@ func startMIDI() {
 		return
 	}
 	if midiMsgFn.IsUndefined() {
-		midiMsgFn = trackedFuncOf(midiHandle)
+		midiMsgFn = dom.FuncOf(midiHandle)
 	}
 	if midiAccess.Truthy() {
 		midiBindInputs()
 		return
 	}
-	then := trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	then := dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		midiAccess = a[0]
 		midiBindInputs()
 		// New devices plugged in later bind too.
-		midiAccess.Set("onstatechange", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+		midiAccess.Set("onstatechange", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 			midiBindInputs()
 			return nil
 		}))
@@ -125,7 +126,7 @@ func startMIDI() {
 	// in. The mic and the websocket already say when they fail; this now says
 	// it the same way and puts the switch back, so the panel stops claiming
 	// something that is not true.
-	fail := trackedFuncOf(func(_ js.Value, a []js.Value) interface{} {
+	fail := dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
 		reason := "denied"
 		if len(a) > 0 && a[0].Truthy() {
 			if m := a[0].Get("message"); m.Truthy() {
@@ -134,7 +135,7 @@ func startMIDI() {
 		}
 		showAudioStatus("MIDI: " + reason)
 		midiOn = false
-		if sw := doc.Call("getElementById", "midi-sw"); sw.Truthy() {
+		if sw := dom.Doc.Call("getElementById", "midi-sw"); sw.Truthy() {
 			sw.Set("checked", false)
 		}
 		return nil

@@ -5,6 +5,7 @@ package attractor
 import (
 	"context"
 	"fmt"
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strings"
 	"syscall/js"
 	"time"
@@ -98,15 +99,15 @@ func ensureDesk() {
 	}
 	deskBuilt = true
 
-	deskEl = doc.Call("createElement", "div")
+	deskEl = dom.Doc.Call("createElement", "div")
 	deskEl.Set("id", deskRootID)
 	// z-index 4 is the CRT overlay's layer: above the canvas at 3, below the
 	// control panel at 10. Being NUMBERED at all is what matters — that is
 	// what makes this a stacking context and keeps winbox's numbers inside.
 	deskEl.Set("style", "position:fixed;inset:0;z-index:4;pointer-events:none;")
-	doc.Get("body").Call("appendChild", deskEl)
+	dom.Doc.Get("body").Call("appendChild", deskEl)
 
-	style := doc.Call("createElement", "style")
+	style := dom.Doc.Call("createElement", "style")
 	// Windows take the mouse; the empty desktop does not. And when the desk is
 	// being drawn as a MODEL the windows must not either: they are hidden at
 	// opacity 0, and an element at opacity 0 still hit-tests, so an invisible
@@ -120,7 +121,7 @@ func ensureDesk() {
 		"#"+deskRootID+" .dk-panel,#"+deskRootID+" .dk-menu{pointer-events:auto;}"+
 		"#"+deskRootID+".as-model .winbox,"+
 		"#"+deskRootID+".as-model .dk-panel{pointer-events:none;}")
-	doc.Get("head").Call("appendChild", style)
+	dom.Doc.Get("head").Call("appendChild", style)
 
 	desk.SetRoot(deskEl)
 

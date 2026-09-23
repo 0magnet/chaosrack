@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"syscall/js"
 )
@@ -595,7 +596,7 @@ func rpFormatRQA(r RQAResult) string {
 func appendRecurrenceRQA(grid js.Value) {
 	card, top := newPunitCard("rqa")
 
-	rpRQAEl = doc.Call("createElement", "span")
+	rpRQAEl = dom.Doc.Call("createElement", "span")
 	rpRQAEl.Set("className", "led counter-led")
 	rpRQAEl.Set("title", "Recurrence quantification, as percentages: RR · DET · LAM. "+
 		"RR is how much of the square is lit — the number to turn ε by, and 1–5% is the readable range. "+
@@ -611,9 +612,9 @@ func appendRecurrenceRQA(grid js.Value) {
 	// whichever flow was on screen last, and a plot of an unnamed system is not
 	// a measurement of anything — the same reason, and the same wording, as the
 	// bifurcation explorer's SWEEP label, which picks its system the same way.
-	row := doc.Call("createElement", "span")
+	row := dom.Doc.Call("createElement", "span")
 	row.Set("className", "grp")
-	note := doc.Call("createElement", "span")
+	note := dom.Doc.Call("createElement", "span")
 	note.Set("className", "plabel")
 	if int(rpSrc) == rpSrcTraj {
 		note.Set("textContent", modeInfo[lastFlowMode].Label)

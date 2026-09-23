@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"strconv"
 	"syscall/js"
@@ -148,21 +149,21 @@ func showDistortion() {
 // wireDistortionModule builds the two knobs and finds the readouts. Called once
 // from Run.
 func wireDistortionModule() {
-	thdLED = doc.Call("getElementById", "thd-led")
-	thdnLED = doc.Call("getElementById", "thdn-led")
-	thdSinadLED = doc.Call("getElementById", "thd-sinad-led")
-	thdEnobLED = doc.Call("getElementById", "thd-enob-led")
-	thdFundLED = doc.Call("getElementById", "thd-fund-led")
-	thdLevelLED = doc.Call("getElementById", "thd-level-led")
-	thdChanSel = doc.Call("getElementById", "thd-chan")
-	harm := doc.Call("getElementById", "thd-harm")
-	cstack := doc.Call("getElementById", "thd-chanstack")
-	hstack := doc.Call("getElementById", "thd-hstack")
+	thdLED = dom.Doc.Call("getElementById", "thd-led")
+	thdnLED = dom.Doc.Call("getElementById", "thdn-led")
+	thdSinadLED = dom.Doc.Call("getElementById", "thd-sinad-led")
+	thdEnobLED = dom.Doc.Call("getElementById", "thd-enob-led")
+	thdFundLED = dom.Doc.Call("getElementById", "thd-fund-led")
+	thdLevelLED = dom.Doc.Call("getElementById", "thd-level-led")
+	thdChanSel = dom.Doc.Call("getElementById", "thd-chan")
+	harm := dom.Doc.Call("getElementById", "thd-harm")
+	cstack := dom.Doc.Call("getElementById", "thd-chanstack")
+	hstack := dom.Doc.Call("getElementById", "thd-hstack")
 	if !thdChanSel.Truthy() || !harm.Truthy() {
 		return
 	}
 	for i, name := range tapChanNames {
-		opt := doc.Call("createElement", "option")
+		opt := dom.Doc.Call("createElement", "option")
 		opt.Set("value", strconv.Itoa(i))
 		opt.Set("textContent", name)
 		if i < len(tapChanDescs) {

@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"strconv"
 	"syscall/js"
@@ -89,7 +90,7 @@ func wireHostWheel() bool {
 	if ZoomTargetSelector == "" {
 		return false
 	}
-	doc.Call("addEventListener", "wheel", trackedFuncOf(func(_ js.Value, args []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "wheel", dom.FuncOf(func(_ js.Value, args []js.Value) interface{} {
 		if len(args) == 0 {
 			return nil
 		}
@@ -121,7 +122,7 @@ func backdropCenterOffset() (dx, dy float64) {
 	if CenterOnSelector == "" {
 		return 0, 0
 	}
-	el := doc.Call("querySelector", CenterOnSelector)
+	el := dom.Doc.Call("querySelector", CenterOnSelector)
 	if !el.Truthy() {
 		return 0, 0
 	}
@@ -132,8 +133,8 @@ func backdropCenterOffset() (dx, dy float64) {
 	}
 	tx := r.Get("left").Float() + w/2
 	ty := r.Get("top").Float() + h/2
-	vw := doc.Get("documentElement").Get("clientWidth").Float()
-	vh := doc.Get("documentElement").Get("clientHeight").Float()
+	vw := dom.Doc.Get("documentElement").Get("clientWidth").Float()
+	vh := dom.Doc.Get("documentElement").Get("clientHeight").Float()
 	return tx - vw/2, ty - vh/2
 }
 
@@ -148,7 +149,7 @@ func applyCenterOn() {
 	if CenterOnSelector == "" {
 		return
 	}
-	cont := doc.Call("getElementById", "gocanvas-container")
+	cont := dom.Doc.Call("getElementById", "gocanvas-container")
 	if !cont.Truthy() {
 		return
 	}
@@ -180,7 +181,7 @@ func initHostPage() {
 	// for navigation change the page's height without a resize, and hashchange
 	// is what those are.
 	for _, ev := range []string{"resize", "hashchange", "load"} {
-		js.Global().Call("addEventListener", ev, trackedFuncOf(func(js.Value, []js.Value) interface{} {
+		js.Global().Call("addEventListener", ev, dom.FuncOf(func(js.Value, []js.Value) interface{} {
 			applyCenterOn()
 			return nil
 		}))

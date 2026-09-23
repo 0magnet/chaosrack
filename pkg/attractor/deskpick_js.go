@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"syscall/js"
 
@@ -138,7 +139,7 @@ func sendToDesk(kind string, px, py float64, src js.Value) {
 	// invisible windows swallowing the drag meant to turn the model — so they
 	// have to be made hittable for exactly as long as it takes to find one.
 	deskEl.Get("classList").Call("remove", "as-model")
-	el := doc.Call("elementFromPoint", px, py)
+	el := dom.Doc.Call("elementFromPoint", px, py)
 	deskEl.Get("classList").Call("add", "as-model")
 	js.Global().Set("__pick", map[string]any{"kind": kind, "px": px, "py": py,
 		"el": func() string {
@@ -173,7 +174,7 @@ func wireDeskPassthrough() {
 	capture := map[string]any{"capture": true}
 
 	handle := func(kind string) js.Func {
-		return trackedFuncOf(func(_ js.Value, a []js.Value) interface{} {
+		return dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
 			if len(a) == 0 {
 				return nil
 			}

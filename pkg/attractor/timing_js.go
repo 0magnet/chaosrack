@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 	"time"
 )
@@ -124,13 +125,13 @@ func showTiming() {
 
 // wireTimingModule finds the readouts. Called once from Run.
 func wireTimingModule() {
-	timingFpsEl = doc.Call("getElementById", "tm-fps-led")
-	timingFrameEl = doc.Call("getElementById", "tm-frame-led")
-	timingMinEl = doc.Call("getElementById", "tm-min-led")
-	timingMaxEl = doc.Call("getElementById", "tm-max-led")
-	timingLateEl = doc.Call("getElementById", "tm-late-led")
-	timingModelEl = doc.Call("getElementById", "tm-model-led")
-	timingMetersEl = doc.Call("getElementById", "tm-meters-led")
-	timingScopeEl = doc.Call("getElementById", "tm-scope-led")
-	timingRestEl = doc.Call("getElementById", "tm-rest-led")
+	timingFpsEl = dom.Doc.Call("getElementById", "tm-fps-led")
+	timingFrameEl = dom.Doc.Call("getElementById", "tm-frame-led")
+	timingMinEl = dom.Doc.Call("getElementById", "tm-min-led")
+	timingMaxEl = dom.Doc.Call("getElementById", "tm-max-led")
+	timingLateEl = dom.Doc.Call("getElementById", "tm-late-led")
+	timingModelEl = dom.Doc.Call("getElementById", "tm-model-led")
+	timingMetersEl = dom.Doc.Call("getElementById", "tm-meters-led")
+	timingScopeEl = dom.Doc.Call("getElementById", "tm-scope-led")
+	timingRestEl = dom.Doc.Call("getElementById", "tm-rest-led")
 }

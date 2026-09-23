@@ -21,6 +21,7 @@ package attractor
 
 import (
 	"bytes"
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"image"
 	"syscall/js"
 
@@ -113,7 +114,7 @@ func recRegionRect(canvas js.Value) (x, y, w, h float64) {
 // stalls on a readback.
 func ensureScratch(w, h float64) {
 	if !recScratch.Truthy() {
-		recScratch = doc.Call("createElement", "canvas")
+		recScratch = dom.Doc.Call("createElement", "canvas")
 	}
 	if recScratch.Get("width").Float() != w || recScratch.Get("height").Float() != h {
 		recScratch.Set("width", w)
@@ -142,7 +143,7 @@ func startGIFRecording() {
 	gifFrames = gifFrames[:0]
 	gifRecording = true
 
-	gifTickFn = trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	gifTickFn = dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if !gifRecording {
 			return nil
 		}
@@ -173,7 +174,7 @@ func startGIFRecording() {
 			// Stop rather than drop: a clip that silently skips frames looks
 			// like the app stuttering.
 			stopGIFRecording()
-			if sw := doc.Call("getElementById", "rec-sw"); sw.Truthy() {
+			if sw := dom.Doc.Call("getElementById", "rec-sw"); sw.Truthy() {
 				sw.Set("checked", false)
 			}
 		}
@@ -229,11 +230,11 @@ func downloadBytes(b []byte, mime, ext string) {
 // no file appeared.
 func saveBlob(blob js.Value, ext string) {
 	url := js.Global().Get("URL").Call("createObjectURL", blob)
-	anchor := doc.Call("createElement", "a")
+	anchor := dom.Doc.Call("createElement", "a")
 	anchor.Set("href", url)
 	anchor.Set("download", "chaosrack_"+fileStamp()+"."+ext)
 	anchor.Get("style").Set("display", "none")
-	body.Call("appendChild", anchor)
+	dom.Body.Call("appendChild", anchor)
 	anchor.Call("click")
 	anchor.Call("remove")
 	logTake(ext, blob.Get("size").Int())

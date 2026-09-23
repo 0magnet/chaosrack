@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/meters"
@@ -117,13 +118,13 @@ func showWowFlutter() {
 
 // wireWowFlutterModule finds the readouts and wires the nominal knob.
 func wireWowFlutterModule() {
-	wfSpeedEl = doc.Call("getElementById", "wf-speed-led")
-	wfWowEl = doc.Call("getElementById", "wf-wow-led")
-	wfFlutEl = doc.Call("getElementById", "wf-flutter-led")
-	wfWeightedEl = doc.Call("getElementById", "wf-weighted-led")
-	wfCarrierEl = doc.Call("getElementById", "wf-carrier-led")
-	nom := doc.Call("getElementById", "wf-nom")
-	nstack := doc.Call("getElementById", "wf-nstack")
+	wfSpeedEl = dom.Doc.Call("getElementById", "wf-speed-led")
+	wfWowEl = dom.Doc.Call("getElementById", "wf-wow-led")
+	wfFlutEl = dom.Doc.Call("getElementById", "wf-flutter-led")
+	wfWeightedEl = dom.Doc.Call("getElementById", "wf-weighted-led")
+	wfCarrierEl = dom.Doc.Call("getElementById", "wf-carrier-led")
+	nom := dom.Doc.Call("getElementById", "wf-nom")
+	nstack := dom.Doc.Call("getElementById", "wf-nstack")
 	if !nom.Truthy() {
 		return
 	}
@@ -139,7 +140,7 @@ func wireWowFlutterModule() {
 		LEDID: "wf-nom-led", ResetID: "rst-wf-nom",
 		Apply: func(v float64) {
 			wfNominal = float32(v)
-			if lbl := doc.Call("getElementById", "wf-nom-lbl"); lbl.Truthy() {
+			if lbl := dom.Doc.Call("getElementById", "wf-nom-lbl"); lbl.Truthy() {
 				lbl.Set("textContent", formatLED(v, 5, 1, false))
 			}
 		},
