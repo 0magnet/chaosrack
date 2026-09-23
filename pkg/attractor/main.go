@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"fmt"
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
 	"runtime"
 	"strconv"
@@ -48,7 +49,7 @@ func Run() {
 		js.Global().Call("alert", "cannot get html body, exiting")
 		return
 	}
-	if canvasEl.IsUndefined() || canvasEl.IsNull() {
+	if glctx.Canvas.IsUndefined() || glctx.Canvas.IsNull() {
 		js.Global().Call("alert", "cannot find #gocanvas, exiting")
 		return
 	}
@@ -639,7 +640,7 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 		ps.Set("checked", false)
 	}
 	usePoints = false
-	attractorDrawMode = glTypes.LineStrip
+	attractorDrawMode = glctx.Types.LineStrip
 	dragMatrix = mgl32.Ident4() // clear trackball drag orientation
 	dom.Doc.Call("getElementById", "auto-rotate").Set("checked", true)
 	dom.Doc.Call("getElementById", "use-points").Set("checked", false)
@@ -665,11 +666,11 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 	dom.Doc.Call("getElementById", "color-mid").Set("value", "#00ff00")
 	dom.Doc.Call("getElementById", "color-top").Set("value", "#0000ff")
 	dom.Doc.Call("getElementById", "color-bg").Set("value", "#000000")
-	gl.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
-	gl.Call("uniform3f", uMidColorLoc, midColor[0], midColor[1], midColor[2])
-	gl.Call("uniform3f", uTopColorLoc, topColor[0], topColor[1], topColor[2])
+	glctx.GL.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
+	glctx.GL.Call("uniform3f", uMidColorLoc, midColor[0], midColor[1], midColor[2])
+	glctx.GL.Call("uniform3f", uTopColorLoc, topColor[0], topColor[1], topColor[2])
 	// Alpha=0: don't paint over the host page's bg (SVG logo etc).
-	gl.Call("clearColor", 0, 0, 0, 0)
+	glctx.GL.Call("clearColor", 0, 0, 0, 0)
 
 	// Reset the remaining effect switches to their defaults — dispatch 'change'
 	// so each effect's own handler applies it (single source of truth). Layout
@@ -764,7 +765,7 @@ func startBackgroundTasks() {
 	// or closes (or on phone orientation change).
 	js.Global().Call("addEventListener", "resize", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		if sizeCanvasToViewport() {
-			gl.Call("viewport", 0, 0, width, height)
+			glctx.GL.Call("viewport", 0, 0, width, height)
 			setupMatrices()
 		}
 		return nil
@@ -1000,7 +1001,7 @@ func registerViewControls() {
 			if v < 1 {
 				v = 1
 			}
-			gl.Call("lineWidth", v)
+			glctx.GL.Call("lineWidth", v)
 		}})
 	// The points/line continuum. Def 1 is the solid trace this has always
 	// drawn, so an existing view is unchanged until the knob is turned.
@@ -1048,13 +1049,13 @@ func wireColorAndViewControls() {
 	dom.Doc.Call("getElementById", "color-bg").Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		hex := dom.Doc.Call("getElementById", "color-bg").Get("value").String()
 		bgColor[0], bgColor[1], bgColor[2] = hexToRGB(hex)
-		gl.Call("clearColor", bgColor[0], bgColor[1], bgColor[2], 0)
+		glctx.GL.Call("clearColor", bgColor[0], bgColor[1], bgColor[2], 0)
 		return nil
 	}))
 	dom.Doc.Call("getElementById", "rst-color-bg").Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		bgColor = [3]float32{0, 0, 0}
 		dom.Doc.Call("getElementById", "color-bg").Set("value", "#000000")
-		gl.Call("clearColor", 0, 0, 0, 0)
+		glctx.GL.Call("clearColor", 0, 0, 0, 0)
 		return nil
 	}))
 
@@ -1313,9 +1314,9 @@ func wirePanelSwitches() {
 	dom.Doc.Call("getElementById", "use-points").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		usePoints = dom.Doc.Call("getElementById", "use-points").Get("checked").Bool()
 		if usePoints {
-			attractorDrawMode = glTypes.Points
+			attractorDrawMode = glctx.Types.Points
 		} else {
-			attractorDrawMode = glTypes.LineStrip
+			attractorDrawMode = glctx.Types.LineStrip
 		}
 		return nil
 	}))
@@ -1410,13 +1411,11 @@ func wireExtraNav() {
 // initDrawState sets the GL enum table and the draw mode the first frame
 // will use.
 func initDrawState() {
-
-	// Initialize WebGL
-	glTypes.New(gl)
-	attractorDrawMode = glTypes.LineStrip
+	// The enum table is built by glctx.Init, with the context it belongs to.
+	attractorDrawMode = glctx.Types.LineStrip
 	// Bind buffers before setting up attrib pointers in setupShaders
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, attractorVertexBuffer)
-	gl.Call("bindBuffer", glTypes.ElementArrayBuffer, attractorIndexBuffer)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, attractorVertexBuffer)
+	glctx.GL.Call("bindBuffer", glctx.Types.ElementArrayBuffer, attractorIndexBuffer)
 	setupShaders()
 	setupTexShaders()
 	setupMatrices()
@@ -1569,19 +1568,19 @@ func wireColorControls() {
 	dom.Doc.Call("getElementById", "rst-color-base").Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		baseColor = [3]float32{1.0, 0.0, 0.0}
 		dom.Doc.Call("getElementById", "color-base").Set("value", "#ff0000")
-		gl.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
+		glctx.GL.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
 		return nil
 	}))
 	dom.Doc.Call("getElementById", "rst-color-mid").Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		midColor = [3]float32{0.0, 1.0, 0.0}
 		dom.Doc.Call("getElementById", "color-mid").Set("value", "#00ff00")
-		gl.Call("uniform3f", uMidColorLoc, midColor[0], midColor[1], midColor[2])
+		glctx.GL.Call("uniform3f", uMidColorLoc, midColor[0], midColor[1], midColor[2])
 		return nil
 	}))
 	dom.Doc.Call("getElementById", "rst-color-top").Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		topColor = [3]float32{0.0, 0.0, 1.0}
 		dom.Doc.Call("getElementById", "color-top").Set("value", "#0000ff")
-		gl.Call("uniform3f", uTopColorLoc, topColor[0], topColor[1], topColor[2])
+		glctx.GL.Call("uniform3f", uTopColorLoc, topColor[0], topColor[1], topColor[2])
 		return nil
 	}))
 

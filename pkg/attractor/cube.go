@@ -2,6 +2,8 @@
 
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/glctx"
+
 var verticesCube = []float32{
 	// outer cube (±1)
 	-1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1,
@@ -31,5 +33,5 @@ var indicesCube = []uint16{
 }
 
 func generateNestedCube() {
-	uploadBuffersIndexed(verticesCube, indicesCube, glTypes.Line)
+	uploadBuffersIndexed(verticesCube, indicesCube, glctx.Types.Line)
 }

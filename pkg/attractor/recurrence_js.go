@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"strconv"
 	"syscall/js"
 )
@@ -236,25 +237,25 @@ func initRecurrencePlot() {
 	if rpReady {
 		return
 	}
-	rpTexture = gl.Call("createTexture")
-	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), rpTexture)
+	rpTexture = glctx.GL.Call("createTexture")
+	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), rpTexture)
 	// NEAREST, not LINEAR: the cells are a yes/no answer, and interpolating
 	// between them invents half-recurrences that are not in the signal — at
 	// this size it also smears the single-pixel diagonals into a haze.
-	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_MIN_FILTER"), gl.Get("NEAREST"))
-	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_MAG_FILTER"), gl.Get("NEAREST"))
-	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_WRAP_S"), gl.Get("CLAMP_TO_EDGE"))
-	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_WRAP_T"), gl.Get("CLAMP_TO_EDGE"))
+	glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_MIN_FILTER"), glctx.GL.Get("NEAREST"))
+	glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_MAG_FILTER"), glctx.GL.Get("NEAREST"))
+	glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_WRAP_S"), glctx.GL.Get("CLAMP_TO_EDGE"))
+	glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_WRAP_T"), glctx.GL.Get("CLAMP_TO_EDGE"))
 
 	// LUMINANCE rather than RGBA: a binary matrix needs one byte per cell, not
 	// four, and the shared textured shader reads the single channel into all
 	// three color channels for free.
 	rpMat = make([]byte, rpN*rpN)
 	rpU8 = js.Global().Get("Uint8Array").New(rpN * rpN)
-	gl.Call("texImage2D",
-		gl.Get("TEXTURE_2D"), 0, gl.Get("LUMINANCE"),
+	glctx.GL.Call("texImage2D",
+		glctx.GL.Get("TEXTURE_2D"), 0, glctx.GL.Get("LUMINANCE"),
 		rpN, rpN, 0,
-		gl.Get("LUMINANCE"), gl.Get("UNSIGNED_BYTE"), rpU8)
+		glctx.GL.Get("LUMINANCE"), glctx.GL.Get("UNSIGNED_BYTE"), rpU8)
 
 	rpVec = make([]float64, rpN*rpMaxDim)
 	rpScratch = make([]float32, 8192)
@@ -314,10 +315,10 @@ func generateRecurrence() {
 	if fresh {
 		rpMatDirty = true
 		js.CopyBytesToJS(rpU8, rpMat)
-		gl.Call("bindTexture", gl.Get("TEXTURE_2D"), rpTexture)
-		gl.Call("texSubImage2D",
-			gl.Get("TEXTURE_2D"), 0, 0, 0, rpN, rpN,
-			gl.Get("LUMINANCE"), gl.Get("UNSIGNED_BYTE"), rpU8)
+		glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), rpTexture)
+		glctx.GL.Call("texSubImage2D",
+			glctx.GL.Get("TEXTURE_2D"), 0, 0, 0, rpN, rpN,
+			glctx.GL.Get("LUMINANCE"), glctx.GL.Get("UNSIGNED_BYTE"), rpU8)
 	}
 	// Outside the fresh branch, and that is not a tidy-up. The strip chart's
 	// axis is TIME, so it needs a slot per interval whether or not the matrix

@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
 	"strconv"
 	"strings"
@@ -300,7 +301,7 @@ func pongWireInput() {
 // both paddles. The touched side goes human (the same ~10 s window the
 // keys use) so the machine hands over immediately.
 func pongPointerPaddle(cx, cy float64) {
-	r := canvasEl.Call("getBoundingClientRect")
+	r := glctx.Canvas.Call("getBoundingClientRect")
 	h := r.Get("height").Float()
 	if h <= 0 {
 		return

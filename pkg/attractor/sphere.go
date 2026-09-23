@@ -2,7 +2,11 @@
 
 package attractor
 
-import "math"
+import (
+	"math"
+
+	"github.com/0magnet/chaosrack/pkg/glctx"
+)
 
 var (
 	sphereRadius  float32 = 1.0
@@ -90,13 +94,13 @@ func torusVerticesIndices(R, r float32, stacks, slices int, baseIdx uint16, roll
 }
 
 func generateSphere() {
-	if staticGeomCached(glTypes.Line) {
+	if staticGeomCached(glctx.Types.Line) {
 		return
 	}
 	stacks := int(sphereStacksF)
 	slices := int(sphereSlicesF)
 	vertices, indices := sphereVerticesIndices(sphereRadius, stacks, slices, 0)
-	uploadBuffersIndexed(vertices, indices, glTypes.Line)
+	uploadBuffersIndexed(vertices, indices, glctx.Types.Line)
 }
 
 func generateTorus() {
@@ -112,11 +116,11 @@ func generateTorus() {
 		torusRollPhi += torusRollF / 20
 		staticGeomDirty = true
 	}
-	if staticGeomCached(glTypes.Line) {
+	if staticGeomCached(glctx.Types.Line) {
 		return
 	}
 	vertices, indices := torusVerticesIndices(torusR, torusr, stacks, slices, 0, torusRollPhi)
-	uploadBuffersIndexed(vertices, indices, glTypes.Line)
+	uploadBuffersIndexed(vertices, indices, glctx.Types.Line)
 }
 
 // generateGlobe runs once per frame, and until now built its mesh into two
@@ -135,7 +139,7 @@ var (
 )
 
 func generateGlobe() {
-	if staticGeomCached(glTypes.Line) {
+	if staticGeomCached(glctx.Types.Line) {
 		return
 	}
 	lat := int(globeLatF)
@@ -216,7 +220,7 @@ func generateGlobe() {
 	}
 
 	globeVertBuf, globeIdxBuf = vertices, indices
-	uploadBuffersIndexed(vertices, indices, glTypes.Line)
+	uploadBuffersIndexed(vertices, indices, glctx.Types.Line)
 }
 
 // generateMagnetosphere runs per frame and, like generateGlobe, used to build
@@ -228,7 +232,7 @@ var (
 )
 
 func generateMagnetosphere() {
-	if staticGeomCached(glTypes.Line) {
+	if staticGeomCached(glctx.Types.Line) {
 		return
 	}
 	allVerts := magVertBuf[:0]
@@ -261,7 +265,7 @@ func generateMagnetosphere() {
 	}
 
 	magVertBuf, magIdxBuf = allVerts, allIdx
-	uploadBuffersIndexed(allVerts, allIdx, glTypes.Line)
+	uploadBuffersIndexed(allVerts, allIdx, glctx.Types.Line)
 }
 
 // globeSpiral reports whether the parallels are drawn as a single pole-to-pole

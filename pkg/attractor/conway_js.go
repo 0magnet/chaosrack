@@ -2,6 +2,8 @@
 
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/glctx"
+
 // Drawing a generated polyhedron.
 //
 // The five Platonic solids stay as the five models they always were — the
@@ -28,7 +30,7 @@ var polyBuilt = -1
 // generateSeed draws seed s with the operator knob applied.
 func generateSeed(s int) {
 	want := s*100 + int(polyOpF)
-	if polyBuilt == want && staticGeomCached(glTypes.Line) {
+	if polyBuilt == want && staticGeomCached(glctx.Types.Line) {
 		return
 	}
 	polyBuilt = want
@@ -43,7 +45,7 @@ func generateSeed(s int) {
 	for _, e := range edges {
 		idx = append(idx, uint16(e[0]), uint16(e[1])) //nolint:gosec // a generated solid is far below 65535 vertices; the largest here is bD at 120
 	}
-	uploadBuffersIndexed(verts, idx, glTypes.Line)
+	uploadBuffersIndexed(verts, idx, glctx.Types.Line)
 }
 
 // polyOpNames is the operator knob's positions, for the labeled rotary.

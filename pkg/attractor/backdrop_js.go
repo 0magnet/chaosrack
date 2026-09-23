@@ -2,7 +2,11 @@
 
 package attractor
 
-import "github.com/0magnet/chaosrack/pkg/dom"
+import (
+	"github.com/0magnet/chaosrack/pkg/dom"
+
+	"github.com/0magnet/chaosrack/pkg/glctx"
+)
 
 // Background visualizer: render a live audio display (scrolling spectrogram or
 // xy/Lissajous scope) BEHIND the current attractor / geometry model, so the
@@ -78,7 +82,7 @@ func drawSpectrogramBackground(nowMs float64) {
 	// (the background always fills; the Fill switch only governs the MODE).
 	savedFill := spectFill
 	spectFill = true
-	gl.Call("disable", glTypes.DepthTest)
+	glctx.GL.Call("disable", glctx.Types.DepthTest)
 	drawTexturedPlane(spectTexture, offset)
 	spectFill = savedFill
 }

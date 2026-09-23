@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"image/color"
 	"math"
 	"syscall/js"
@@ -118,7 +119,7 @@ func ensurePaletteTexture(gradientColors int) bool {
 		return false
 	}
 	if paletteTexture.IsUndefined() {
-		paletteTexture = gl.Call("createTexture")
+		paletteTexture = glctx.GL.Call("createTexture")
 		paletteJS = js.Global().Get("Uint8Array").New(len(paletteBytes))
 	}
 	if paletteBuilt != idx {
@@ -134,28 +135,28 @@ func ensurePaletteTexture(gradientColors int) bool {
 			paletteBytes[i*4+3] = 255
 		}
 		js.CopyBytesToJS(paletteJS, paletteBytes)
-		gl.Call("activeTexture", gl.Get("TEXTURE0").Int()+paletteUnit)
-		gl.Call("bindTexture", gl.Get("TEXTURE_2D"), paletteTexture)
-		gl.Call("texImage2D", gl.Get("TEXTURE_2D"), 0, gl.Get("RGBA"),
-			paletteTexels, 1, 0, gl.Get("RGBA"), gl.Get("UNSIGNED_BYTE"), paletteJS)
+		glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0").Int()+paletteUnit)
+		glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), paletteTexture)
+		glctx.GL.Call("texImage2D", glctx.GL.Get("TEXTURE_2D"), 0, glctx.GL.Get("RGBA"),
+			paletteTexels, 1, 0, glctx.GL.Get("RGBA"), glctx.GL.Get("UNSIGNED_BYTE"), paletteJS)
 		// CLAMP_TO_EDGE and LINEAR: the ends of a colormap are the ends, so a
 		// value at 0 or 1 must take the first or last color rather than wrap
 		// to the other end of the ramp, and the interpolation between texels
 		// is what makes 256 entries look continuous on a wide figure.
-		gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_MIN_FILTER"), gl.Get("LINEAR"))
-		gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_MAG_FILTER"), gl.Get("LINEAR"))
-		gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_WRAP_S"), gl.Get("CLAMP_TO_EDGE"))
-		gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_WRAP_T"), gl.Get("CLAMP_TO_EDGE"))
+		glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_MIN_FILTER"), glctx.GL.Get("LINEAR"))
+		glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_MAG_FILTER"), glctx.GL.Get("LINEAR"))
+		glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_WRAP_S"), glctx.GL.Get("CLAMP_TO_EDGE"))
+		glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_WRAP_T"), glctx.GL.Get("CLAMP_TO_EDGE"))
 		paletteBuilt = idx
-		gl.Call("activeTexture", gl.Get("TEXTURE0"))
+		glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0"))
 		return true
 	}
 	// Re-bind every frame it is used. Another draw may have left a different
 	// texture on this unit, and a colormap that is only bound once is a
 	// colormap that works until something else touches the unit.
-	gl.Call("activeTexture", gl.Get("TEXTURE0").Int()+paletteUnit)
-	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), paletteTexture)
-	gl.Call("activeTexture", gl.Get("TEXTURE0"))
+	glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0").Int()+paletteUnit)
+	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), paletteTexture)
+	glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0"))
 	return true
 }
 

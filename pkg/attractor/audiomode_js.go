@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"strconv"
 	"syscall/js"
 
@@ -244,7 +245,7 @@ func activateAudioMode() {
 func deactivateAudioMode() {
 	audioModeActive = false
 	if !shaderProgram.IsUndefined() {
-		gl.Call("useProgram", shaderProgram)
+		glctx.GL.Call("useProgram", shaderProgram)
 	}
 	staticGeomDirty = true
 	if audioOverlay.Truthy() {

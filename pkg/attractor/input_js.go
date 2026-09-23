@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"strconv"
 	"syscall/js"
 )
@@ -235,7 +236,7 @@ func wireModelInput() {
 	if wireHostWheel() {
 		return
 	}
-	canvasEl.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	glctx.Canvas.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		if ctrlWheelIsTerminalZoom(e) {
 			return nil // the terminal on the quad is zooming its own cell

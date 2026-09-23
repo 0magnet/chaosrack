@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"syscall/js"
 
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
@@ -95,17 +96,17 @@ func initSpectrogram() {
 	if spectReady {
 		return
 	}
-	spectTexture = gl.Call("createTexture")
-	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), spectTexture)
-	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_MIN_FILTER"), gl.Get("LINEAR"))
-	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_MAG_FILTER"), gl.Get("LINEAR"))
-	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_WRAP_S"), gl.Get("CLAMP_TO_EDGE"))
-	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_WRAP_T"), gl.Get("CLAMP_TO_EDGE"))
+	spectTexture = glctx.GL.Call("createTexture")
+	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), spectTexture)
+	glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_MIN_FILTER"), glctx.GL.Get("LINEAR"))
+	glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_MAG_FILTER"), glctx.GL.Get("LINEAR"))
+	glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_WRAP_S"), glctx.GL.Get("CLAMP_TO_EDGE"))
+	glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_WRAP_T"), glctx.GL.Get("CLAMP_TO_EDGE"))
 	zeroU8 := js.Global().Get("Uint8Array").New(spectTexW * spectTexH * 4)
-	gl.Call("texImage2D",
-		gl.Get("TEXTURE_2D"), 0, gl.Get("RGBA"),
+	glctx.GL.Call("texImage2D",
+		glctx.GL.Get("TEXTURE_2D"), 0, glctx.GL.Get("RGBA"),
 		spectTexW, spectTexH, 0,
-		gl.Get("RGBA"), gl.Get("UNSIGNED_BYTE"), zeroU8)
+		glctx.GL.Get("RGBA"), glctx.GL.Get("UNSIGNED_BYTE"), zeroU8)
 
 	spectColUint8 = js.Global().Get("Uint8Array").New(spectTexH * 4)
 
@@ -136,7 +137,7 @@ func resizeSpectrogram() {
 	}
 	spectReady = false
 	if spectTexture.Truthy() {
-		gl.Call("deleteTexture", spectTexture)
+		glctx.GL.Call("deleteTexture", spectTexture)
 	}
 	spectTexH = SpectrogramRows(sg.S.GetDFTSize())
 	initSpectrogram()
@@ -294,11 +295,11 @@ func flushSpectColumns(nowMs float64) {
 // position and advances the scroll cursor.
 func uploadSpectColumn(col []byte) {
 	js.CopyBytesToJS(spectColUint8, col)
-	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), spectTexture)
-	gl.Call("texSubImage2D",
-		gl.Get("TEXTURE_2D"), 0,
+	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), spectTexture)
+	glctx.GL.Call("texSubImage2D",
+		glctx.GL.Get("TEXTURE_2D"), 0,
 		spectTexCol, 0, 1, spectTexH,
-		gl.Get("RGBA"), gl.Get("UNSIGNED_BYTE"), spectColUint8)
+		glctx.GL.Get("RGBA"), glctx.GL.Get("UNSIGNED_BYTE"), spectColUint8)
 	spectTexCol = (spectTexCol + 1) % spectTexW
 }
 

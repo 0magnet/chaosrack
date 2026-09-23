@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
 	"sort"
 	"syscall/js"
@@ -105,15 +106,15 @@ func buildSkinMesh(mode string) {
 		verts, idx = sphereSkinMesh(sphereRadius, int(sphereStacksF), int(sphereSlicesF))
 	}
 	if skinVBuf.IsUndefined() {
-		skinVBuf = gl.Call("createBuffer")
+		skinVBuf = glctx.GL.Call("createBuffer")
 	}
 	if skinIBuf.IsUndefined() {
-		skinIBuf = gl.Call("createBuffer")
+		skinIBuf = glctx.GL.Call("createBuffer")
 	}
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, skinVBuf)
-	gl.Call("bufferData", glTypes.ArrayBuffer, SliceToTypedArray(verts), glTypes.StaticDraw)
-	gl.Call("bindBuffer", glTypes.ElementArrayBuffer, skinIBuf)
-	gl.Call("bufferData", glTypes.ElementArrayBuffer, SliceToTypedArray(idx), glTypes.StaticDraw)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, skinVBuf)
+	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, SliceToTypedArray(verts), glctx.Types.StaticDraw)
+	glctx.GL.Call("bindBuffer", glctx.Types.ElementArrayBuffer, skinIBuf)
+	glctx.GL.Call("bufferData", glctx.Types.ElementArrayBuffer, SliceToTypedArray(idx), glctx.Types.StaticDraw)
 	skinIdxCount = len(idx)
 }
 

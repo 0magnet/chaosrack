@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"syscall/js"
 
 	"github.com/0magnet/tuiwasm/demos"
@@ -215,7 +216,7 @@ func drawTermAnimBackground() {
 	}
 	savedFill := spectFill
 	spectFill = true
-	gl.Call("disable", glTypes.DepthTest)
+	glctx.GL.Call("disable", glctx.Types.DepthTest)
 	drawTexturedPlane(tex, 0)
 	spectFill = savedFill
 }

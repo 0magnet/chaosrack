@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/audiosrc"
@@ -232,24 +233,24 @@ func initXY() {
 	if xyReady {
 		return
 	}
-	vs := gl.Call("createShader", glTypes.VertexShader)
-	gl.Call("shaderSource", vs, xyVertShaderSrc)
-	gl.Call("compileShader", vs)
-	fs := gl.Call("createShader", glTypes.FragmentShader)
-	gl.Call("shaderSource", fs, xyFragShaderSrc)
-	gl.Call("compileShader", fs)
+	vs := glctx.GL.Call("createShader", glctx.Types.VertexShader)
+	glctx.GL.Call("shaderSource", vs, xyVertShaderSrc)
+	glctx.GL.Call("compileShader", vs)
+	fs := glctx.GL.Call("createShader", glctx.Types.FragmentShader)
+	glctx.GL.Call("shaderSource", fs, xyFragShaderSrc)
+	glctx.GL.Call("compileShader", fs)
 
-	xyProgram = gl.Call("createProgram")
-	gl.Call("attachShader", xyProgram, vs)
-	gl.Call("attachShader", xyProgram, fs)
-	gl.Call("linkProgram", xyProgram)
+	xyProgram = glctx.GL.Call("createProgram")
+	glctx.GL.Call("attachShader", xyProgram, vs)
+	glctx.GL.Call("attachShader", xyProgram, fs)
+	glctx.GL.Call("linkProgram", xyProgram)
 
-	xyAPos = gl.Call("getAttribLocation", xyProgram, "aPos")
-	xyUColor = gl.Call("getUniformLocation", xyProgram, "uColor")
-	xyUAlpha = gl.Call("getUniformLocation", xyProgram, "uAlpha")
-	xyUOffset = gl.Call("getUniformLocation", xyProgram, "uOffset")
+	xyAPos = glctx.GL.Call("getAttribLocation", xyProgram, "aPos")
+	xyUColor = glctx.GL.Call("getUniformLocation", xyProgram, "uColor")
+	xyUAlpha = glctx.GL.Call("getUniformLocation", xyProgram, "uAlpha")
+	xyUOffset = glctx.GL.Call("getUniformLocation", xyProgram, "uOffset")
 
-	xyBuf = gl.Call("createBuffer")
+	xyBuf = glctx.GL.Call("createBuffer")
 	xyReady = true
 	xyFitBuffers(xyWindow, xySmoothSel())
 }
@@ -387,7 +388,7 @@ func drawXYScope(clear bool) {
 
 	// Draw as a flat 2D trace (no depth), so as a background it never occludes
 	// or z-fights the attractor layered on top.
-	gl.Call("disable", glTypes.DepthTest)
+	glctx.GL.Call("disable", glctx.Types.DepthTest)
 	if clear {
 		if k := xyPersistK(); k > 0 {
 			// PERSIST: multiply the frame down instead of clearing it, so the
@@ -396,37 +397,37 @@ func drawXYScope(clear bool) {
 			// buffer somebody else owns and the model on top of it is redrawn
 			// whole every frame, so fading here would smear that instead.
 			drawFadeQuad(k, k, k)
-			gl.Call("disable", glTypes.DepthTest)
+			glctx.GL.Call("disable", glctx.Types.DepthTest)
 		} else {
 			// Transparent clear (alpha 0), like every other mode — so with "Front" on
 			// (canvas layered over the panel) the scope shows its trace over the
 			// controls instead of an opaque black block that hides the panel and can't
 			// be undone.
-			gl.Call("clearColor", 0, 0, 0, 0)
-			gl.Call("clear", glTypes.ColorBufferBit)
+			glctx.GL.Call("clearColor", 0, 0, 0, 0)
+			glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
 		}
 	}
 
-	gl.Call("useProgram", xyProgram)
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, xyBuf)
+	glctx.GL.Call("useProgram", xyProgram)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, xyBuf)
 	js.CopyBytesToJS(xyJsUint8, sliceToByteSlice(xyLine))
-	gl.Call("bufferData", glTypes.ArrayBuffer, xyJsFloat, glTypes.DynamicDraw)
-	gl.Call("enableVertexAttribArray", xyAPos)
-	gl.Call("vertexAttribPointer", xyAPos, 2, glTypes.Float, false, 0, 0)
+	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, xyJsFloat, glctx.Types.DynamicDraw)
+	glctx.GL.Call("enableVertexAttribArray", xyAPos)
+	glctx.GL.Call("vertexAttribPointer", xyAPos, 2, glctx.Types.Float, false, 0, 0)
 
 	col := [3]float32{0.4, 1.0, 0.45}
 	if phosphorActive() { // scope mode → trace in the selected phosphor color
 		p := phosphors[phosphorIdx]
 		col = [3]float32{float32(p.tr), float32(p.tg), float32(p.tb)}
 	}
-	gl.Call("uniform3f", xyUColor, col[0], col[1], col[2])
+	glctx.GL.Call("uniform3f", xyUColor, col[0], col[1], col[2])
 
 	// Additive multi-pass "beam": one bright center line plus dim sub-pixel-
 	// offset copies around it, so the 1px GL line reads as a thicker, soft-edged
 	// (antialiased) glowing trace like the attractor's lines — WebGL can't set
 	// lineWidth reliably, so we fake width + AA with offset passes.
-	gl.Call("enable", gl.Get("BLEND"))
-	gl.Call("blendFunc", gl.Get("SRC_ALPHA"), gl.Get("ONE")) // additive glow
+	glctx.GL.Call("enable", glctx.GL.Get("BLEND"))
+	glctx.GL.Call("blendFunc", glctx.GL.Get("SRC_ALPHA"), glctx.GL.Get("ONE")) // additive glow
 	dx := float32(1.4) / float32(width)
 	dy := float32(1.4) / float32(height)
 	halo := [][3]float32{ // x-offset, y-offset, alpha
@@ -434,15 +435,15 @@ func drawXYScope(clear bool) {
 		{dx, dy, 0.22}, {-dx, -dy, 0.22}, {dx, -dy, 0.22}, {-dx, dy, 0.22},
 	}
 	for _, h := range halo {
-		gl.Call("uniform2f", xyUOffset, h[0], h[1])
-		gl.Call("uniform1f", xyUAlpha, h[2])
-		gl.Call("drawArrays", glTypes.LineStrip, 0, drawn)
+		glctx.GL.Call("uniform2f", xyUOffset, h[0], h[1])
+		glctx.GL.Call("uniform1f", xyUAlpha, h[2])
+		glctx.GL.Call("drawArrays", glctx.Types.LineStrip, 0, drawn)
 	}
 	// Bright center pass last so it sits on top of the halo.
-	gl.Call("uniform2f", xyUOffset, 0, 0)
-	gl.Call("uniform1f", xyUAlpha, 1.0)
-	gl.Call("drawArrays", glTypes.LineStrip, 0, drawn)
-	gl.Call("disable", gl.Get("BLEND"))
+	glctx.GL.Call("uniform2f", xyUOffset, 0, 0)
+	glctx.GL.Call("uniform1f", xyUAlpha, 1.0)
+	glctx.GL.Call("drawArrays", glctx.Types.LineStrip, 0, drawn)
+	glctx.GL.Call("disable", glctx.GL.Get("BLEND"))
 }
 
 // ── PERSIST, and the correlation meter ───────────────────────────────────
