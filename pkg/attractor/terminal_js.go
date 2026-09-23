@@ -100,6 +100,10 @@ func ensureTerminal() bool {
 	s, err := web.NewSession(termHost, web.Options{
 		// `rack` is a command here; see rackcmd_js.go.
 		Exec: rackShellCommand,
+		// This session binds its own zoom (wireTerminalZoom): the terminal is
+		// parked off screen, so websh's element-level listeners would never see
+		// the gesture, which lands on the canvas the quad is drawn in.
+		NoZoom: true,
 		// SMALLER TYPE IS MORE GRID AT THE SAME COST, which is the whole
 		// trick for a terminal that draws rather than prints. This one is a
 		// texture uploaded whole every frame, so making the BOX bigger costs
@@ -335,4 +339,17 @@ func wireTerminalZoom() {
 		a[0].Call("preventDefault")
 		return nil
 	}))
+}
+
+// ctrlWheelIsTerminalZoom reports that this wheel event belongs to the
+// terminal's own zoom and must not also move the camera.
+//
+// It exists because both are wheel gestures on the same pixels. The terminal is
+// parked off screen and drawn as a texture, so its zoom listener is on the
+// document; the camera's is on the canvas, which is what the pointer is
+// actually over. Without this the canvas listener fires first and ctrl-wheel
+// does BOTH — and since the camera moves the whole quad, what you see is the
+// model flying away while the cell size quietly changes behind it.
+func ctrlWheelIsTerminalZoom(e js.Value) bool {
+	return e.Get("ctrlKey").Bool() && terminalOnScreen()
 }

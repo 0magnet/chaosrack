@@ -285,7 +285,9 @@ func (s *Shell) execHandler(next interp.ExecHandlerFunc) interp.ExecHandlerFunc 
 		}
 		// The embedder's own commands, in this process. See Shell.Exec.
 		if s.Exec != nil {
-			if code, handled := s.Exec(ctx, args); handled {
+			// With the shell in it, so a full-screen command can find its own
+			// terminal rather than the embedder's memory of one. See shellctx.go.
+			if code, handled := s.Exec(WithShell(ctx, s), args); handled {
 				if code < 0 || code > 255 {
 					code = 1
 				}

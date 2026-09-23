@@ -94,6 +94,9 @@ func wireHostWheel() bool {
 			return nil
 		}
 		e := args[0]
+		if ctrlWheelIsTerminalZoom(e) {
+			return nil // the terminal on the quad is zooming its own cell
+		}
 		t := e.Get("target")
 		if hostOwnsWheel(t) {
 			return nil
