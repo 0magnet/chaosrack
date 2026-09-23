@@ -1,5 +1,7 @@
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dynamics"
+
 import (
 	"bytes"
 	"fmt"
@@ -158,7 +160,7 @@ func STLModels() []STLModel {
 	}
 
 	// One per registered flow, swept as a tube along its own trajectory.
-	for _, key := range FlowKeys() {
+	for _, key := range dynamics.Keys() {
 		k := key
 		info := modeInfo[k]
 		label := info.Label
@@ -209,11 +211,11 @@ const STLViewerSeg = 6
 // seg × 2, so a coarse tube is allowed proportionally more of the trajectory
 // and both ends of the range land near the same total.
 func flowTube(mode string, seg int) meshstl.Mesh {
-	o := DefaultTrajectory()
+	o := dynamics.DefaultTrajectory()
 	if seg <= STLViewerSeg {
 		o.MaxPoints = stlFileMaxTris / (seg * 2)
 	}
-	path := Trajectory(mode, o)
+	path := dynamics.Trajectory(mode, o)
 	if len(path) < 2 {
 		return meshstl.Mesh{}
 	}

@@ -2,6 +2,8 @@
 
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dynamics"
+
 // Render/panel half of the Sprott "simple chaotic flows" (J. C. Sprott, "Some
 // simple chaotic flows", Phys. Rev. E 50, R647, 1994), cases B–S — the same
 // set built as analog circuits at glensstuff.com. Each is a 3-term-ish
@@ -17,21 +19,21 @@ package attractor
 var integ3DMode string
 
 func init() {
-	for i := range sprottCases {
-		c := sprottCases[i]
+	for i := range dynamics.SprottCases {
+		c := dynamics.SprottCases[i]
 		idx := i
-		registerGenerate(c.key, func() { generateSprottCase(idx) })
-		attractorParams[c.key] = []paramDef{
-			{c.key + "-dt", "dt", &sprottDTs[i], c.dt, 0.001, 0.05, 0.001},
+		registerGenerate(c.Key, func() { generateSprottCase(idx) })
+		attractorParams[c.Key] = []paramDef{
+			{c.Key + "-dt", "dt", &dynamics.SprottDTs[i], c.DT, 0.001, 0.05, 0.001},
 		}
 	}
 
 	attractorParams["hyperrossler"] = []paramDef{
-		{"hyperrossler-dt", "dt", &hyperDT, 0.001, 0.0002, 0.005, 0.0002},
-		{"hyperrossler-a", "a", &hyperA, 0.25, 0.01, 0.5, 0.01},
-		{"hyperrossler-b", "b", &hyperB, 3.0, 0.1, 6, 0.1},
-		{"hyperrossler-c", "c", &hyperC, 0.5, 0.05, 2, 0.01},
-		{"hyperrossler-d", "d", &hyperD, 0.05, 0.01, 0.5, 0.01},
+		{"hyperrossler-dt", "dt", &dynamics.HyperDT, 0.001, 0.0002, 0.005, 0.0002},
+		{"hyperrossler-a", "a", &dynamics.HyperA, 0.25, 0.01, 0.5, 0.01},
+		{"hyperrossler-b", "b", &dynamics.HyperB, 3.0, 0.1, 6, 0.1},
+		{"hyperrossler-c", "c", &dynamics.HyperC, 0.5, 0.05, 2, 0.01},
+		{"hyperrossler-d", "d", &dynamics.HyperD, 0.05, 0.01, 0.5, 0.01},
 	}
 }
 
@@ -46,11 +48,11 @@ func init() {
 func integrate3D(dt float64, deriv func(x, y, z float64) (float64, float64, float64)) {
 	// Publish this mode's vector field to the flow registry (Model Out FLOW
 	// sonification) — free coverage for every integrate3D system.
-	flowCapMode, flowCapDT, flowCapF = selectedMode, dt, deriv
+	dynamics.Capture(selectedMode, dt, deriv)
 	vertices := vertBuf[:steps*4]
 	invN := float32(1) / float32(steps-1)
 	d := dt * float64(speedScale)
-	ic := attractorInitCond[selectedMode]
+	ic := dynamics.InitCond[selectedMode]
 	// Seed the double-precision state from the initial condition when this
 	// mode first runs (resetAttractorState may not have run before the first
 	// frame on initial page load, which would otherwise leave x64 at 0 and
@@ -82,7 +84,7 @@ func integrate3D(dt float64, deriv func(x, y, z float64) (float64, float64, floa
 }
 
 func generateSprottCase(idx int) {
-	integrate3D(float64(sprottDTs[idx]), sprottCases[idx].deriv)
+	integrate3D(float64(dynamics.SprottDTs[idx]), dynamics.SprottCases[idx].Deriv)
 }
 
 // hyperRosslerWarmup advances the state through the initial transient so the
@@ -93,8 +95,8 @@ func generateSprottCase(idx int) {
 // made autoFitCamera frame a tiny inner arc and the mode looked broken).
 // 1.5M Euler steps at dt=0.001 is ~1500 time units — a few ms of wasm time.
 func hyperRosslerWarmup() {
-	dt := float64(hyperDT)
-	xf, yf, zf, wf := float64(x), float64(y), float64(z), float64(hyperW)
+	dt := float64(dynamics.HyperDT)
+	xf, yf, zf, wf := float64(x), float64(y), float64(z), float64(dynamics.HyperW)
 	// Track the attractor's real extent over the settled tail of the warmup:
 	// the visible trail is only a short arc that ORBITS this structure, so
 	// the camera and the (frozen) centering must frame the whole thing, not
@@ -104,7 +106,7 @@ func hyperRosslerWarmup() {
 	minY, maxY := 1e30, -1e30
 	minZ, maxZ := 1e30, -1e30
 	for i := 0; i < nWarm; i++ {
-		dx, dy, dz, dw := hyperDeriv(xf, yf, zf, wf)
+		dx, dy, dz, dw := dynamics.HyperDeriv(xf, yf, zf, wf)
 		xf, yf, zf, wf = xf+dt*dx, yf+dt*dy, zf+dt*dz, wf+dt*dw
 		// With divergent parameters the warmup itself blows up — bail
 		// instead of marching through NaNs.
@@ -132,11 +134,11 @@ func hyperRosslerWarmup() {
 			}
 		}
 	}
-	x, y, z, hyperW = float32(xf), float32(yf), float32(zf), float32(wf)
+	x, y, z, dynamics.HyperW = float32(xf), float32(yf), float32(zf), float32(wf)
 	// Freeze centering on the structure's true middle and hand autoFitCamera
-	// its true half-extent (both in display coordinates, i.e. ×hyperScale).
+	// its true half-extent (both in display coordinates, i.e. ×dynamics.HyperScale).
 	cx, cy, cz := (minX+maxX)/2, (minY+maxY)/2, (minZ+maxZ)/2
-	centerOffset = [3]float32{float32(cx) * hyperScale, float32(cy) * hyperScale, float32(cz) * hyperScale}
+	centerOffset = [3]float32{float32(cx) * dynamics.HyperScale, float32(cy) * dynamics.HyperScale, float32(cz) * dynamics.HyperScale}
 	centerReady = true
 	ext := maxX - cx
 	for _, e := range []float64{maxY - cy, maxZ - cz} {
@@ -144,7 +146,7 @@ func hyperRosslerWarmup() {
 			ext = e
 		}
 	}
-	view.fitOverride = float32(ext) * hyperScale
+	view.fitOverride = float32(ext) * dynamics.HyperScale
 	// Also set the camera DIRECTLY: boot/priming call autoFitCamera in orders
 	// that can pair the one-shot override with the wrong invocation, and any
 	// unpaired call would fit the momentary arc (or worse) instead of the
@@ -165,22 +167,22 @@ var hyperPrimed bool
 func generateHyperRossler() {
 	if !hyperPrimed {
 		hyperPrimed = true
-		ic := attractorInitCond["hyperrossler"]
-		x, y, z, hyperW = ic[0], ic[1], ic[2], hyperW0
+		ic := dynamics.InitCond["hyperrossler"]
+		x, y, z, dynamics.HyperW = ic[0], ic[1], ic[2], dynamics.HyperW0
 		hyperRosslerWarmup() // also centers + fits the camera to the true extent
 	}
 	vertices := vertBuf[:steps*4]
 	invN := float32(1) / float32(steps-1)
 	sub := effSubSteps(speedSteps, steps, frameBudgetCompiled)
 	for i := 0; i < steps; i++ {
-		dt := float64(hyperDT * speedScale)
+		dt := float64(dynamics.HyperDT * speedScale)
 		for s := 0; s < sub; s++ {
-			dx, dy, dz, dw := hyperDeriv(float64(x), float64(y), float64(z), float64(hyperW))
-			x, y, z, hyperW = x+float32(dt*dx), y+float32(dt*dy), z+float32(dt*dz), hyperW+float32(dt*dw)
+			dx, dy, dz, dw := dynamics.HyperDeriv(float64(x), float64(y), float64(z), float64(dynamics.HyperW))
+			x, y, z, dynamics.HyperW = x+float32(dt*dx), y+float32(dt*dy), z+float32(dt*dz), dynamics.HyperW+float32(dt*dw)
 			checkDiverged()
 		}
 		j := i * 4
-		vertices[j], vertices[j+1], vertices[j+2], vertices[j+3] = x*hyperScale, y*hyperScale, z*hyperScale, float32(i)*invN
+		vertices[j], vertices[j+1], vertices[j+2], vertices[j+3] = x*dynamics.HyperScale, y*dynamics.HyperScale, z*dynamics.HyperScale, float32(i)*invN
 	}
 	uploadVerticesOnly(vertices, attractorDrawMode, steps)
 }

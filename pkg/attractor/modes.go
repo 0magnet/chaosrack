@@ -118,7 +118,7 @@ var modeInfo = map[string]ModeInfo{
 	// accumulates through the trail pipeline. Parametric and not Flow3D even
 	// though a flow is what it integrates — what it DRAWS is not a trajectory,
 	// and filing it as a flow would offer it to every consumer that reaches
-	// for flowFor4 (Model Out FLOW, the ring beam, the section overlay itself)
+	// for dynamics.FlowFor4 (Model Out FLOW, the ring beam, the section overlay itself)
 	// as a system to integrate, which it is not.
 	"poincare": {"Poincaré Section", ClassParametric, false},
 	// recurrence is Audio for the same reason the spectrogram is: it is a

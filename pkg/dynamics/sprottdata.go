@@ -1,23 +1,28 @@
-package attractor
+package dynamics
 
 // Data half of the Sprott catalog + Rössler hyperchaos: the equations, dts,
 // and initial conditions, untagged so the native chaos guard integrates the
 // EXACT systems the app renders (the js half — panel registration and the
 // render loops — stays in sprottcases.go). See that file for citations.
 
-// sprottCase is one member of the Sprott catalog. deriv returns the time
+// Case is one member of the Sprott catalog. deriv returns the time
 // derivatives at (x,y,z); the coefficients are baked in (Sprott's systems are
 // specific, not tunable families) while dt stays user-adjustable.
-type sprottCase struct {
-	key   string // mode string, e.g. "sprottb"
-	name  string // dropdown label, e.g. "Sprott B"
-	eq    string // human-readable ODEs for the info overlay
-	dt    float32
-	ic    [3]float32
-	deriv func(x, y, z float64) (dx, dy, dz float64)
+// Case is one of Sprott's nineteen systems.
+//
+// The fields are exported because the catalog and the info overlay describe
+// these systems to the user: the label and the written-out equations are as
+// much a part of "what this system is" as the vector field is.
+type Case struct {
+	Key   string // mode string, e.g. "sprottb"
+	Name  string // dropdown label, e.g. "Sprott B"
+	Eq    string // human-readable ODEs for the info overlay
+	DT    float32
+	IC    [3]float32
+	Deriv Deriv
 }
 
-var sprottCases = []sprottCase{
+var SprottCases = []Case{
 	{"sprottb", "Sprott B", "dx/dt = yz\ndy/dt = x − y\ndz/dt = 1 − xy", 0.01, [3]float32{0.1, 0.2, 0.3},
 		func(x, y, z float64) (float64, float64, float64) { return y * z, x - y, 1 - x*y }},
 	{"sprottc", "Sprott C", "dx/dt = yz\ndy/dt = x − y\ndz/dt = 1 − x²", 0.01, [3]float32{0.1, 0.2, 0.3},
@@ -56,72 +61,72 @@ var sprottCases = []sprottCase{
 		func(x, y, z float64) (float64, float64, float64) { return -x - 4*y, x + z*z, 1 + x }},
 }
 
-// sprottDTs holds the live (user-adjustable) dt for each case; &sprottDTs[i]
-// is the stable pointer the param slider binds to. sprottCaseIndex maps a
+// SprottDTs holds the live (user-adjustable) dt for each case; &SprottDTs[i]
+// is the stable pointer the param slider binds to. CaseIndex maps a
 // mode string to its index for dispatch. Both are VAR initializers (not an
-// init() func) on purpose: sprottcases.go's init() takes &sprottDTs[i], and
+// init() func) on purpose: sprottcases.go's init() takes &SprottDTs[i], and
 // init() funcs run in file order (…cases.go before …data.go) while variable
 // initialization is dependency-ordered and always precedes every init().
 var (
-	sprottDTs = func() []float32 { //nolint:unused // built but not wired up yet; kept deliberately
-		d := make([]float32, len(sprottCases))
-		for i := range sprottCases {
-			d[i] = sprottCases[i].dt
+	SprottDTs = func() []float32 { //nolint:unused // built but not wired up yet; kept deliberately
+		d := make([]float32, len(SprottCases))
+		for i := range SprottCases {
+			d[i] = SprottCases[i].DT
 		}
 		return d
 	}()
-	sprottCaseIndex = func() map[string]int {
-		m := make(map[string]int, len(sprottCases))
-		for i := range sprottCases {
-			m[sprottCases[i].key] = i
+	CaseIndex = func() map[string]int {
+		m := make(map[string]int, len(SprottCases))
+		for i := range SprottCases {
+			m[SprottCases[i].Key] = i
 		}
 		return m
 	}()
 )
 
 func init() {
-	for i := range sprottCases {
-		attractorInitCond[sprottCases[i].key] = sprottCases[i].ic
+	for i := range SprottCases {
+		InitCond[SprottCases[i].Key] = SprottCases[i].IC
 	}
 }
 
 // ── Rössler hyperchaos (4D) ───────────────────────────────────────────────
 var (
-	hyperDT float32 = 0.001
-	hyperA  float32 = 0.25
-	hyperB  float32 = 3.0
-	hyperC  float32 = 0.5
-	hyperD  float32 = 0.05
-	hyperW  float32 // hidden fourth state; reset in resetAttractorState
+	HyperDT float32 = 0.001
+	HyperA  float32 = 0.25
+	HyperB  float32 = 3.0
+	HyperC  float32 = 0.5
+	HyperD  float32 = 0.05
+	HyperW  float32 // hidden fourth state; reset in resetAttractorState
 )
 
-// hyperW0 is the on-attractor seed for the hidden state: from w=0 the
+// HyperW0 is the on-attractor seed for the hidden state: from w=0 the
 // canonical parameters DIVERGE (t≈11 in float64 Euler — verified), and the
 // render loop only appeared healthy because the divergence guard kept
 // reseeding it. The literature IC for the 1979 system is (-10,-6,0,10).
-const hyperW0 float32 = 10
+const HyperW0 float32 = 10
 
-// hyperScale shrinks the stored coordinates so this attractor's large
+// HyperScale shrinks the stored coordinates so this attractor's large
 // natural extent (~120×120×230) fits the camera auto-fit like the others.
 // Integration still runs in the true coordinates.
-const hyperScale = 0.2
+const HyperScale = 0.2
 
-// hyperDeriv is THE hyper-Rössler vector field — the render loop, the flow
+// HyperDeriv is THE hyper-Rössler vector field — the render loop, the flow
 // registry (Model Out FLOW, ring beam) and the chaos guard all read it here.
-func hyperDeriv(x, y, z, w float64) (float64, float64, float64, float64) {
-	a, b, c, d := float64(hyperA), float64(hyperB), float64(hyperC), float64(hyperD)
+func HyperDeriv(x, y, z, w float64) (float64, float64, float64, float64) {
+	a, b, c, d := float64(HyperA), float64(HyperB), float64(HyperC), float64(HyperD)
 	return -y - z, x + a*y + w, b + x*z, -c*z + d*w
 }
 
 func init() {
-	attractorInitCond["hyperrossler"] = [3]float32{-10, -6, 0}
-	registerFlow4("hyperrossler", flowSys4{
-		dt:    func() float64 { return float64(hyperDT) },
-		f:     hyperDeriv,
-		w:     func() float64 { return float64(hyperW) },
-		setW:  func(v float64) { hyperW = float32(v) },
-		scale: hyperScale,
-		w0:    float64(hyperW0),
-		euler: true, // the hyper-Rössler render loop steps forward Euler
+	InitCond["hyperrossler"] = [3]float32{-10, -6, 0}
+	RegisterFlow4("hyperrossler", FlowSys4{
+		Dt:    func() float64 { return float64(HyperDT) },
+		F:     HyperDeriv,
+		W:     func() float64 { return float64(HyperW) },
+		SetW:  func(v float64) { HyperW = float32(v) },
+		Scale: HyperScale,
+		W0:    float64(HyperW0),
+		Euler: true, // the hyper-Rössler render loop steps forward Euler
 	})
 }

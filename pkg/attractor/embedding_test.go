@@ -1,5 +1,7 @@
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dynamics"
+
 import (
 	"math"
 	"math/rand"
@@ -34,7 +36,7 @@ func sineWithNoise(n int, period, noise float64, seed int64) []float64 {
 // 0.05 time units, close to the rate the app's own render loop draws it at.
 func lorenzSeries(t *testing.T) []float64 {
 	t.Helper()
-	p := Trajectory("lorenz", TrajectoryOptions{Transient: 40, Duration: 200, MaxPoints: 4000})
+	p := dynamics.Trajectory("lorenz", dynamics.TrajectoryOptions{Transient: 40, Duration: 200, MaxPoints: 4000})
 	if len(p) < 2000 {
 		t.Fatalf("the Lorenz trajectory came back %d points long; the test needs a few thousand", len(p))
 	}
@@ -158,7 +160,7 @@ func TestLorenzEmbedsInThreeDimensions(t *testing.T) {
 // estimator was not tuned on.
 func TestThreeDimensionalFlowsEmbedInThree(t *testing.T) {
 	for _, mode := range []string{"rossler", "chua", "aizawa", "halvorsen"} {
-		p := Trajectory(mode, TrajectoryOptions{Transient: 100, Duration: 400, MaxPoints: 6000})
+		p := dynamics.Trajectory(mode, dynamics.TrajectoryOptions{Transient: 100, Duration: 400, MaxPoints: 6000})
 		if len(p) < 2000 {
 			t.Errorf("%s: trajectory only %d points", mode, len(p))
 			continue

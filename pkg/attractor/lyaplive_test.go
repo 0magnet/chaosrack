@@ -1,5 +1,7 @@
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dynamics"
+
 import (
 	"math"
 	"testing"
@@ -183,30 +185,30 @@ func TestLiveLyapunovIgnoresNonPositiveDT(t *testing.T) {
 
 // driveFlow runs the accumulator against a real registered flow, integrating
 // the way the app integrates that mode — the distinction lyapunov.go had to
-// learn, and the reason the live probe consults classicSystems too.
+// learn, and the reason the live probe consults dynamics.IsClassic too.
 func driveFlow(mode string, modelTime float64) (*liveLyapunov, bool) {
-	sys, ok := flowFor4(mode)
+	sys, ok := dynamics.FlowFor4(mode)
 	if !ok {
 		return nil, false
 	}
-	dt := sys.dt()
+	dt := sys.Dt()
 	if dt <= 0 {
 		return nil, false
 	}
-	_, euler := classicSystems[mode]
+	euler := dynamics.IsClassic(mode)
 	step := func(s *[4]float64) {
-		if euler || sys.euler {
-			dx, dy, dz, dw := sys.f(s[0], s[1], s[2], s[3])
+		if euler || sys.Euler {
+			dx, dy, dz, dw := sys.F(s[0], s[1], s[2], s[3])
 			s[0] += dt * dx
 			s[1] += dt * dy
 			s[2] += dt * dz
 			s[3] += dt * dw
 			return
 		}
-		*s = rk4x4(sys.f, dt, *s)
+		*s = dynamics.RK4x4(sys.F, dt, *s)
 	}
-	ic := initCondFor(mode)
-	a := [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.w0}
+	ic := dynamics.InitCondFor(mode)
+	a := [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W0}
 	b := a
 	b[0] += lyapLiveD0
 
@@ -264,7 +266,7 @@ func TestLiveLyapunovAgreesWithOfflineLorenz(t *testing.T) {
 // rather than asserting it: past the threshold the value must stay inside the
 // band the readout displays to two decimals.
 func TestLiveLyapunovLorenzConvergence(t *testing.T) {
-	sys, ok := flowFor4("lorenz")
+	sys, ok := dynamics.FlowFor4("lorenz")
 	if !ok {
 		t.Skip("lorenz flow not registered in this build")
 	}

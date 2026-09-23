@@ -6,7 +6,7 @@ package attractor
 // the current flow from initial conditions ε apart and watch sensitive
 // dependence do its thing — the defining property of chaos, live. Trajectory
 // A keeps the normal gradient; trajectory B draws in a fixed contrast color.
-// Both integrate with the SAME generic stepper (via flowFor4), so their
+// Both integrate with the SAME generic stepper (via dynamics.FlowFor4), so their
 // separation reflects the dynamics, never an integrator mismatch.
 //
 // The λ measurement that used to live in this file has moved to lyaplive.go
@@ -26,7 +26,11 @@ package attractor
 // on screen with the rate at which they are coming apart. lyapLiveShow writes
 // it.
 
-import "syscall/js"
+import (
+	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dynamics"
+)
 
 var (
 	twinOn       bool
@@ -46,8 +50,8 @@ const twinD0 = lyapLiveD0
 func twinInvalidate() { twinSeeded = "" }
 
 // twinStep advances one state by a single Euler sub-step.
-func twinStep(sys flowSys4, s *[4]float64, dt float64) {
-	dx, dy, dz, dw := sys.f(s[0], s[1], s[2], s[3])
+func twinStep(sys dynamics.FlowSys4, s *[4]float64, dt float64) {
+	dx, dy, dz, dw := sys.F(s[0], s[1], s[2], s[3])
 	s[0] += dt * dx
 	s[1] += dt * dy
 	s[2] += dt * dz
@@ -60,9 +64,9 @@ func twinDiverged(s [4]float64) bool {
 		s[2] > -lim && s[2] < lim && s[3] > -lim && s[3] < lim)
 }
 
-func twinSeed(mode string, sys flowSys4) {
-	ic := initCondFor(mode)
-	twinA = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.w()}
+func twinSeed(mode string, sys dynamics.FlowSys4) {
+	ic := dynamics.InitCondFor(mode)
+	twinA = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W()}
 	twinB = twinA
 	twinB[0] += twinD0
 	twinSeeded = mode
@@ -84,7 +88,7 @@ func twinTick(mode string) bool {
 	if !twinOn {
 		return false
 	}
-	sys, ok := flowFor4(mode)
+	sys, ok := dynamics.FlowFor4(mode)
 	if !ok {
 		return false
 	}
@@ -92,13 +96,13 @@ func twinTick(mode string) bool {
 		twinSeed(mode, sys)
 	}
 	budget := frameBudgetCompiled
-	if sys.interpreted {
+	if sys.Interpreted {
 		budget = frameBudgetInterpreted
 	}
 	// Two visible trajectories + the λ probe pair share the frame budget.
 	sub := effSubSteps(speedSteps, steps, budget/2)
-	dt := sys.dt() * float64(speedScale)
-	scale := sys.scale
+	dt := sys.Dt() * float64(speedScale)
+	scale := sys.Scale
 	invN := float32(1) / float32(steps-1)
 
 	if len(twinBuf) < steps*4 {
@@ -109,8 +113,8 @@ func twinTick(mode string) bool {
 			for k := 0; k < sub; k++ {
 				twinStep(sys, s, dt)
 				if twinDiverged(*s) {
-					ic := initCondFor(mode)
-					*s = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.w()}
+					ic := dynamics.InitCondFor(mode)
+					*s = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W()}
 				}
 			}
 			j := i * 4
@@ -128,7 +132,7 @@ func twinTick(mode string) bool {
 	// permalink, Model Out SCAN and a later twin-off continue seamlessly.
 	x, y, z = float32(twinA[0]), float32(twinA[1]), float32(twinA[2])
 	x64, y64, z64 = twinA[0], twinA[1], twinA[2]
-	sys.setW(twinA[3])
+	sys.SetW(twinA[3])
 
 	// Draw A with the normal gradient, then B in a fixed contrast color via
 	// the monochrome override (restored right after).

@@ -1,6 +1,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"math"
 	"testing"
 )
@@ -162,10 +163,10 @@ func TestTypedIterateIsAMapAndNotAFlow(t *testing.T) {
 	if !IsMap(customModeKey) {
 		t.Fatal("a registered iterate system does not report as a map")
 	}
-	if HasFlow(customModeKey) {
+	if dynamics.HasFlow(customModeKey) {
 		t.Error("an iterate system is registered as a flow — everything downstream would integrate it with a dt it does not have")
 	}
-	if _, ok := flowFor4(customModeKey); ok {
+	if _, ok := dynamics.FlowFor4(customModeKey); ok {
 		t.Error("flowFor4 hands out an iterate system; Model Out FLOW and the Poincare section would run a system that does not exist")
 	}
 	for _, k := range MapKeys() {

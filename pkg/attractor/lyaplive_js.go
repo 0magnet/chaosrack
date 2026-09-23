@@ -24,6 +24,7 @@ package attractor
 // also asking it to draw two of them.
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"math"
 	"strconv"
 	"syscall/js"
@@ -53,7 +54,7 @@ var (
 // lyapLiveSystem answers whether a mode has a continuous flow to measure, and
 // hands back the system if so.
 //
-// The class test is not redundant with flowFor4. flowFor4 also answers from
+// The class test is not redundant with dynamics.FlowFor4. dynamics.FlowFor4 also answers from
 // integrate3D's per-frame capture, so any mode that has ever reached that loop
 // can name itself as a flow afterwards — the same trap the bifurcation and
 // Poincaré source tracking has to step around by name. Going through modeInfo
@@ -65,13 +66,13 @@ var (
 // category error. LyapunovForMap measures those per ITERATE, and the Analysis
 // module is where that is reported. Geometry and the audio displays have no
 // dynamics at all.
-func lyapLiveSystem(mode string) (flowSys4, bool) {
+func lyapLiveSystem(mode string) (dynamics.FlowSys4, bool) {
 	switch modeInfo[mode].Class {
 	case ClassFlow3D, ClassFlow4D:
 	default:
-		return flowSys4{}, false
+		return dynamics.FlowSys4{}, false
 	}
-	return flowFor4(mode)
+	return dynamics.FlowFor4(mode)
 }
 
 // lyapLiveInvalidate restarts the measurement, because the system it belongs
@@ -81,13 +82,13 @@ func lyapLiveSystem(mode string) (flowSys4, bool) {
 // outweighed the new ones.
 func lyapLiveInvalidate() { lyapLiveMode = "" }
 
-func lyapLiveSeed(mode string, sys flowSys4) {
-	ic := initCondFor(mode)
-	// w0, the on-attractor seed, not sys.w(), which is wherever the renderer
+func lyapLiveSeed(mode string, sys dynamics.FlowSys4) {
+	ic := dynamics.InitCondFor(mode)
+	// w0, the on-attractor seed, not sys.W(), which is wherever the renderer
 	// has got to. LyapunovForFlow4 makes the same distinction for the same
 	// reason: a fresh trajectory started from the running w is started from a
 	// state that belongs to a different trajectory.
-	lyapLiveA = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.w0}
+	lyapLiveA = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W0}
 	lyapLiveB = lyapLiveA
 	lyapLiveB[0] += lyapLiveD0
 	lyapLiveState.reset()
@@ -112,7 +113,7 @@ func lyapLiveTick(mode string) {
 	// The dt the app is ACTUALLY running: the mode's own knob times the Speed
 	// scale. Both belong in it — see lyaplive.go on why the exponent depends
 	// on dt rather than merely being reached sooner or later because of it.
-	dt := sys.dt() * float64(speedScale)
+	dt := sys.Dt() * float64(speedScale)
 	if dt <= 0 {
 		lyapLiveShow(lyapLiveReadout())
 		return
@@ -123,7 +124,7 @@ func lyapLiveTick(mode string) {
 	// a third of the Sprott catalog before it learned that.
 	step := sectAdvancer(mode, sys, dt)
 	n := lyapLiveProbeCompiled
-	if sys.interpreted {
+	if sys.Interpreted {
 		n = lyapLiveProbeInterpreted
 	}
 	for i := 0; i < n; i++ {

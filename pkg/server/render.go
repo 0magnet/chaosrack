@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"github.com/0magnet/chaosrack/pkg/rasterview"
 )
 
@@ -69,7 +70,7 @@ models that publish a vector field to the flow registry. The audio displays
 and the DOM-backed models — terminal, desk, the STL viewer — are not here,
 because without a browser they have no signal and no surface to read.`,
 	RunE: func(_ *cobra.Command, _ []string) error {
-		for _, k := range attractor.FlowKeys() {
+		for _, k := range dynamics.Keys() {
 			fmt.Println(k)
 		}
 		return nil
@@ -101,9 +102,9 @@ be static without a test noticing.`,
 		if renderModel == "" {
 			return fmt.Errorf("--model is required (chaosrack models lists them, --check tests them all)")
 		}
-		if !attractor.HasFlow(renderModel) {
+		if !dynamics.HasFlow(renderModel) {
 			return fmt.Errorf("no model named %q; chaosrack models lists the %d that can be drawn headless",
-				renderModel, len(attractor.FlowKeys()))
+				renderModel, len(dynamics.Keys()))
 		}
 		pts := trajectoryFor(renderModel)
 		if len(pts) == 0 {
@@ -123,14 +124,14 @@ be static without a test noticing.`,
 
 // trajectoryFor integrates one model at the flags' settings.
 func trajectoryFor(model string) [][3]float64 {
-	o := attractor.DefaultTrajectory()
+	o := dynamics.DefaultTrajectory()
 	if renderPts > 1 {
 		o.MaxPoints = renderPts
 	}
 	if renderSecs > 0 {
 		o.Duration = renderSecs
 	}
-	return attractor.Trajectory(model, o)
+	return dynamics.Trajectory(model, o)
 }
 
 // writeModel writes the picture in whichever format the name asks for.
@@ -175,7 +176,7 @@ func drawOptions() attractor.DrawOptions {
 // registered deriv, and a model whose flow is computed some other way is
 // skipped rather than failed. Extent needs only the trajectory.
 func checkEveryFlow() error {
-	keys := attractor.FlowKeys()
+	keys := dynamics.Keys()
 	sort.Strings(keys)
 	var dead []string
 	for _, k := range keys {

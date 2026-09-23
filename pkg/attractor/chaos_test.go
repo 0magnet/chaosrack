@@ -1,5 +1,7 @@
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dynamics"
+
 import (
 	"math"
 	"testing"
@@ -17,7 +19,7 @@ import (
 // functions, so the number on screen is the number the tests trust.
 
 func TestClassicDefaultsAreChaotic(t *testing.T) {
-	if len(classicSystems) == 0 {
+	if len(dynamics.ClassicKeys()) == 0 {
 		t.Fatal("classic registry is empty")
 	}
 	// LyapunovForFlow picks Euler or RK4 per mode, from the same registry the
@@ -25,7 +27,7 @@ func TestClassicDefaultsAreChaotic(t *testing.T) {
 	// once, and the reason is worth keeping: measuring an RK4 system with Euler
 	// at its own timestep reports a system the app does not run — Sprott M came
 	// out at λ≈0.0008 that way and would have been called periodic.
-	for mode := range classicSystems {
+	for _, mode := range dynamics.ClassicKeys() {
 		r := LyapunovForFlow(mode)
 		t.Logf("%-14s λ ≈ %+.4f", mode, r.Lambda)
 		if !r.OK {
@@ -42,24 +44,24 @@ func TestClassicDefaultsAreChaotic(t *testing.T) {
 // The Sprott catalog integrates with RK4 in the app (integrate3D), so the
 // guard steps RK4 too — the integrator is part of "the system the app runs".
 func TestSprottCatalogDefaultsAreChaotic(t *testing.T) {
-	if len(sprottCases) == 0 {
+	if len(dynamics.SprottCases) == 0 {
 		t.Fatal("sprott catalog is empty")
 	}
-	for _, c := range sprottCases {
-		r := LyapunovForFlow(c.key)
-		t.Logf("%-14s λ ≈ %+.4f", c.key, r.Lambda)
+	for _, c := range dynamics.SprottCases {
+		r := LyapunovForFlow(c.Key)
+		t.Logf("%-14s λ ≈ %+.4f", c.Key, r.Lambda)
 		if !r.OK {
-			t.Errorf("%s: trajectory diverged or degenerated during the Lyapunov estimate", c.key)
+			t.Errorf("%s: trajectory diverged or degenerated during the Lyapunov estimate", c.Key)
 			continue
 		}
 		if r.Verdict != "chaotic" {
 			t.Errorf("%s: largest Lyapunov exponent %.4f reads %q — defaults are NOT chaotic (periodic window or sink)",
-				c.key, r.Lambda, r.Verdict)
+				c.Key, r.Lambda, r.Verdict)
 		}
 	}
 }
 
-// The hyper-Rössler render loop is forward Euler on the shared hyperDeriv, so
+// The hyper-Rössler render loop is forward Euler on the shared dynamics.HyperDeriv, so
 // the guard is too. Two positive exponents in the ideal system; the largest
 // must survive the app's dt.
 func TestHyperRosslerDefaultIsChaotic(t *testing.T) {
@@ -111,24 +113,24 @@ func TestBuiltinEquationSeedsMatchNativeDerivs(t *testing.T) {
 		switch {
 		case mode == "hyperrossler":
 			native = func(p [4]float64) ([4]float64, bool) {
-				dx, dy, dz, dw := hyperDeriv(p[0], p[1], p[2], p[3])
+				dx, dy, dz, dw := dynamics.HyperDeriv(p[0], p[1], p[2], p[3])
 				return [4]float64{dx, dy, dz, dw}, true
 			}
-			tol = 1e-6 // float32 params inside hyperDeriv
-		case func() bool { _, ok := sprottCaseIndex[mode]; return ok }():
-			c := sprottCases[sprottCaseIndex[mode]]
+			tol = 1e-6 // float32 params inside dynamics.HyperDeriv
+		case func() bool { _, ok := dynamics.CaseIndex[mode]; return ok }():
+			c := dynamics.SprottCases[dynamics.CaseIndex[mode]]
 			native = func(p [4]float64) ([4]float64, bool) {
-				dx, dy, dz := c.deriv(p[0], p[1], p[2])
+				dx, dy, dz := c.Deriv(p[0], p[1], p[2])
 				return [4]float64{dx, dy, dz, 0}, true
 			}
 			tol = 1e-9 // pure float64 both sides
 		default:
-			sys, ok := flowSystems[mode]
+			_, ff, ok := dynamics.FlowFor(mode)
 			if !ok {
 				continue // native deriv lives behind the js build tag — not comparable here
 			}
 			native = func(p [4]float64) ([4]float64, bool) {
-				dx, dy, dz := sys.f(p[0], p[1], p[2])
+				dx, dy, dz := ff(p[0], p[1], p[2])
 				return [4]float64{dx, dy, dz, 0}, true
 			}
 			tol = 2e-3 // native path rounds through float32
@@ -155,33 +157,33 @@ func TestBuiltinEquationSeedsMatchNativeDerivs(t *testing.T) {
 	t.Logf("%d builtin-equation seeds verified against native derivatives", checked)
 }
 
-// The ring beam and Model Out FLOW consume flows through flowFor4 — assert
+// The ring beam and Model Out FLOW consume flows through dynamics.FlowFor4 — assert
 // the lookups that gate those features: native 4D registration (hyper), the
 // w≡0 lift for 3D classics, and the display scale/hidden-state plumbing.
 func TestFlowFor4Coverage(t *testing.T) {
-	s, ok := flowFor4("hyperrossler")
+	s, ok := dynamics.FlowFor4("hyperrossler")
 	if !ok {
 		t.Fatal("hyperrossler missing from the 4D flow registry")
 	}
-	if s.scale != hyperScale {
-		t.Errorf("hyperrossler scale = %v, want %v", s.scale, hyperScale)
+	if s.Scale != dynamics.HyperScale {
+		t.Errorf("hyperrossler scale = %v, want %v", s.Scale, dynamics.HyperScale)
 	}
-	dx, dy, dz, dw := s.f(-10, -6, 0, 10)
-	edx, edy, edz, edw := hyperDeriv(-10, -6, 0, 10)
+	dx, dy, dz, dw := s.F(-10, -6, 0, 10)
+	edx, edy, edz, edw := dynamics.HyperDeriv(-10, -6, 0, 10)
 	if dx != edx || dy != edy || dz != edz || dw != edw {
-		t.Error("hyperrossler flowFor4 does not dispatch to hyperDeriv")
+		t.Error("hyperrossler dynamics.FlowFor4 does not dispatch to dynamics.HyperDeriv")
 	}
-	s3, ok := flowFor4("lorenz")
+	s3, ok := dynamics.FlowFor4("lorenz")
 	if !ok {
-		t.Fatal("3D classics must lift into flowFor4")
+		t.Fatal("3D classics must lift into dynamics.FlowFor4")
 	}
-	if _, _, _, dw := s3.f(1, 1, 1, 5); dw != 0 {
+	if _, _, _, dw := s3.F(1, 1, 1, 5); dw != 0 {
 		t.Errorf("lifted 3D flow must hold dw≡0, got %v", dw)
 	}
-	if s3.scale != 1 {
-		t.Errorf("lifted 3D flow scale = %v, want 1", s3.scale)
+	if s3.Scale != 1 {
+		t.Errorf("lifted 3D flow scale = %v, want 1", s3.Scale)
 	}
-	if _, ok := flowFor4("globe"); ok {
+	if _, ok := dynamics.FlowFor4("globe"); ok {
 		t.Error("geometry modes must not report a flow")
 	}
 }

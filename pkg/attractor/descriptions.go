@@ -1,5 +1,7 @@
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dynamics"
+
 // The mode descriptions — the prose the info overlay shows and the README's
 // model reference is generated from. Untagged, next to the mode registry in
 // modes.go, for the same reason the Sprott equations live untagged in
@@ -408,11 +410,11 @@ var attractorDescriptions = map[string]string{
 
 func init() {
 	// Composed from the catalog data rather than written out nineteen times.
-	for _, c := range sprottCases {
-		attractorDescriptions[c.key] = c.name +
+	for _, c := range dynamics.SprottCases {
+		attractorDescriptions[c.Key] = c.Name +
 			" — one of J. C. Sprott's simple chaotic flows (1994), realized as an" +
 			" analog circuit at glensstuff.com. Found by systematic search for the" +
-			" algebraically simplest systems that still produce chaos.\n\n" + c.eq
+			" algebraically simplest systems that still produce chaos.\n\n" + c.Eq
 	}
 }
 

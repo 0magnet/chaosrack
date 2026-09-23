@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -133,10 +134,10 @@ func paramPtrs(exprs []*Expr) [][]*float32 {
 // registerCustomSystem publishes the compiled equations to the registry that
 // matches the FLAVOR — and, as much the point, withdraws them from the other.
 //
-// Flow flavor goes to flowSystems4, so Model Out FLOW and the ring beam
+// Flow flavor goes to dynamics.FlowSystems4, so Model Out FLOW and the ring beam
 // integrate the SAME system the renderer draws.
 //
-// Iterate flavor deliberately does NOT. Everything downstream of flowSystems4
+// Iterate flavor deliberately does NOT. Everything downstream of dynamics.FlowSystems4
 // does one thing with what it finds there: steps it with dt. For a map that
 // produces a different system — x' = 1 − 1.4x² + y read as a derivative at
 // dt = 0.005 is a slow crawl to a fixed point, not the fractal on the screen —
@@ -144,11 +145,11 @@ func paramPtrs(exprs []*Expr) [][]*float32 {
 // would hunt for crossings of a trajectory that does not exist (a map has no
 // path between iterates to cross anything), and the Lyapunov readout would
 // print a per-TIME exponent for a system with no time. Being absent from the
-// registry is a shape the consumers already handle: flowFor4 misses and they
+// registry is a shape the consumers already handle: dynamics.FlowFor4 misses and they
 // fall back to scanning the drawn trail. The map registry takes it instead,
 // which is how IsMap/MapStep steer LyapunovFor to its per-iterate branch.
 func registerCustomSystem() {
-	delete(flowSystems4, customModeKey)
+	dynamics.Unregister4(customModeKey)
 	clearCustomMap()
 	if customErr != "" || customExpr[0] == nil {
 		return
@@ -178,10 +179,10 @@ func registerCustomFlow() {
 			pv[i] = make([]float64, len(exprs[i].Params))
 		}
 	}
-	registerFlow4(customModeKey, flowSys4{
-		dt:    func() float64 { return float64(customDT) },
-		euler: true, // generateCustom integrates with forward Euler
-		f: func(x, y, z, w float64) (float64, float64, float64, float64) {
+	dynamics.RegisterFlow4(customModeKey, dynamics.FlowSys4{
+		Dt:    func() float64 { return float64(customDT) },
+		Euler: true, // generateCustom integrates with forward Euler
+		F: func(x, y, z, w float64) (float64, float64, float64, float64) {
 			vars := [5]float64{x, y, z, w, customT}
 			eval := func(i int) float64 {
 				if exprs[i] == nil {
@@ -201,9 +202,9 @@ func registerCustomFlow() {
 			}
 			return dx, dy, dz, dw
 		},
-		w:           func() float64 { return float64(customW) },
-		setW:        func(v float64) { customW = float32(v) },
-		interpreted: true,
+		W:           func() float64 { return float64(customW) },
+		SetW:        func(v float64) { customW = float32(v) },
+		Interpreted: true,
 	})
 }
 
