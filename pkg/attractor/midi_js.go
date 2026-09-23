@@ -143,15 +143,10 @@ func startMIDI() {
 }
 
 func wireMIDISwitch() {
-	sw := doc.Call("getElementById", "midi-sw")
-	if !sw.Truthy() {
-		return
-	}
-	sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		midiOn = sw.Get("checked").Bool()
+	wireSwitch("midi-sw", func(on bool) {
+		midiOn = on
 		if midiOn {
 			startMIDI()
 		}
-		return nil
-	}))
+	})
 }

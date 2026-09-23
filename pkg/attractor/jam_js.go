@@ -75,13 +75,8 @@ func jamHop() {
 }
 
 func wireJamSwitch() {
-	sw := doc.Call("getElementById", "jam-sw")
-	if !sw.Truthy() {
-		return
-	}
-	sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		jamOn = sw.Get("checked").Bool()
+	wireSwitch("jam-sw", func(on bool) {
+		jamOn = on
 		jamNext = 0 // first hop on the next frame
-		return nil
-	}))
+	})
 }
