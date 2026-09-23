@@ -7,25 +7,40 @@ import (
 
 	"github.com/gdamore/tcell/v3"
 	"github.com/gdamore/tcell/v3/color"
+
+	"github.com/0magnet/chaosrack/pkg/panelart"
+	"github.com/0magnet/chaosrack/pkg/racksurface"
 )
 
-// The panel: the bays above, the controls below, a cursor on one of them.
+// The panel: the rack on a surface of its own size, and a window onto it.
 //
-// Laid out the way the rack is rather than the way a settings list is — the
-// drawing at the top is the same drawing uitool rack prints, so what you are
-// turning a knob on is on screen above the knob.
+// The rack is drawn at the size the RACK is. A terminal too small to hold it
+// shows part of it and pans, exactly as the page does when the rack is put in
+// a window too small for it — which is also why the two now agree about what a
+// bay is. The older arrangement wrapped modules to the terminal's width, and
+// that is a second layout: it had no bays in it, and a module's neighbors were
+// whatever the wrap happened to put beside it.
 
 type panel struct {
 	src  Source
-	rack string
 	ctls []Control
 	all  []Control // before the filter
 	cur  int
-	top  int    // first control drawn, for scrolling
+	top  int    // first row drawn in the LIST view, for scrolling
 	filt string // substring filter
 	list bool   // show the table instead of the rack
 	msg  string // the last thing that happened
 	err  string
+
+	// The rack, laid out once, and the window onto it.
+	//
+	// The surface is built from ALL the controls rather than the filtered
+	// ones, so typing a filter does not make the rack rearrange itself under
+	// the cursor. A fixed surface that moves when you search is not fixed.
+	items []racksurface.Item
+	mods  []moduleCtls
+	surf  racksurface.Surface
+	view  racksurface.View
 }
 
 var (
@@ -44,6 +59,12 @@ func RunOn(sc tcell.Screen, src Source) error {
 	}
 	defer sc.Fini()
 	sc.SetStyle(stNormal)
+
+	// The dials are sampled into cells, so their shape depends on the shape
+	// of a cell. See CellShaper.
+	if sh, ok := src.(CellShaper); ok {
+		panelart.SetCellAspect(sh.CellAspect())
+	}
 
 	p := &panel{src: src}
 	p.reload()
@@ -66,9 +87,14 @@ func RunOn(sc tcell.Screen, src Source) error {
 	}
 }
 
-// reload asks the rack what it is now.
+// reload asks the rack what it is now, and lays it out again.
+//
+// The layout is redone on every reload rather than once at the start, because
+// a module can be switched out while the panel is open and the rack reflows
+// when it is. The VIEW survives: the window stays where it was looking, which
+// is what makes a knob change not throw the reader somewhere else.
 func (p *panel) reload() {
-	r, err := p.src.Rack()
+	mods, capacity, err := p.src.Modules()
 	if err != nil {
 		p.err = err.Error()
 		return
@@ -78,8 +104,34 @@ func (p *panel) reload() {
 		p.err = err.Error()
 		return
 	}
-	p.rack, p.all, p.err = r, c, ""
+	p.all, p.err = c, ""
+	p.layout(mods, capacity)
 	p.refilter()
+}
+
+// layout builds the surface: the module widths come from the rack, and the
+// module HEIGHTS from how tall this renderer's controls are.
+//
+// The asymmetry is the design. A module's width is the rack's business — a
+// whole number of slots in a frame a fixed number of slots across — but how
+// many rows its controls need depends on how they are drawn, which is a
+// different answer in a browser and in a terminal. So the renderer says how
+// tall, and the packer makes each bay as tall as the tallest module in it.
+func (p *panel) layout(mods []racksurface.Item, capacity int) {
+	if capacity < 1 {
+		capacity = 12
+	}
+	perModule := map[string]int{}
+	for _, c := range p.all {
+		perModule[fold(c.Module)]++
+	}
+	p.items = append(p.items[:0], mods...)
+	for i := range p.items {
+		p.items[i].Rows = ModuleRows(perModule[fold(p.items[i].Key)],
+			p.items[i].Slots, racksurface.DefaultMetrics.SlotCols)
+	}
+	p.surf = racksurface.Build(p.items, capacity, nil, racksurface.DefaultMetrics)
+	p.mods = attach(p.items, p.all)
 }
 
 func (p *panel) refilter() {
@@ -108,8 +160,20 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 	case tcell.KeyEscape, tcell.KeyCtrlC:
 		return true
 	case tcell.KeyUp:
+		// Control pans the window instead of moving the cursor. The arrows
+		// are already the two things a panel does — choose a control, turn it
+		// — so panning takes the modifier rather than a second set of keys to
+		// remember.
+		if ctrlHeld(ev) {
+			p.pan(0, -1)
+			return false
+		}
 		p.move(-1)
 	case tcell.KeyDown:
+		if ctrlHeld(ev) {
+			p.pan(0, 1)
+			return false
+		}
 		p.move(1)
 	case tcell.KeyPgUp:
 		p.move(-10)
@@ -120,8 +184,16 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 	case tcell.KeyEnd:
 		p.cur = len(p.ctls) - 1
 	case tcell.KeyLeft:
+		if ctrlHeld(ev) {
+			p.pan(-1, 0)
+			return false
+		}
 		p.nudge(-1)
 	case tcell.KeyRight:
+		if ctrlHeld(ev) {
+			p.pan(1, 0)
+			return false
+		}
 		p.nudge(1)
 	case tcell.KeyTab:
 		p.list = !p.list
@@ -275,26 +347,15 @@ func trimFloat(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) }
 func (p *panel) draw(sc tcell.Screen) {
 	sc.Clear()
 	w, h := sc.Size()
-	y := 0
-
-	// The bays, as the rack draws them.
-	for _, line := range strings.Split(strings.TrimRight(p.rack, "\n"), "\n") {
-		if y >= h/2 {
-			break
-		}
-		puts(sc, 0, y, line, stDim)
-		y++
-	}
-	y++
 
 	if !p.list {
-		p.drawRack(sc, y, w, h)
+		p.drawRack(sc, w, h)
 	} else {
-		p.drawList(sc, y, w, h)
+		p.drawList(sc, 0, w, h)
 	}
 
 	// The status line: what just happened, or how to work it.
-	status := "↑↓ move   ←→ turn   0 reset   tab rack/list   r reload   / clear filter   q quit"
+	status := "↑↓ move   ←→ turn   0 reset   ctrl+↑↓←→ pan   tab rack/list   r reload   q quit"
 	st := stDim
 	switch {
 	case p.err != "":
@@ -346,58 +407,65 @@ func firstRune(s string) rune {
 	return 0
 }
 
-// drawRack draws the controls as the instrument: panels, dials and lamps.
-func (p *panel) drawRack(sc tcell.Screen, y, w, h int) {
-	panels, where := groupByModule(p.ctls)
-	cp, ci := -1, -1
-	if p.cur >= 0 && p.cur < len(where) {
-		cp, ci = where[p.cur][0], where[p.cur][1]
-	}
-	lines, spots := layoutRack(panels, w)
+// drawRack paints the window onto the surface, and the bars that say where in
+// the rack the window is.
+//
+// The view is moved only to keep the selected control visible, and only by as
+// much as that takes. A view that recentered on every step would make the
+// whole rack lurch for a keypress that moved one control.
+func (p *panel) drawRack(sc tcell.Screen, w, h int) {
+	// One row for the status line, one for the horizontal bar, one column for
+	// the vertical one.
+	vw, vh := maxi(w-1, 1), maxi(h-2, 1)
+	p.view.W, p.view.H = vw, vh
+	p.view = p.view.Clamp(p.surf)
 
-	// Scroll so the control under the cursor stays on screen.
-	var curY0, curY1 = -1, -1
-	for _, s := range spots {
-		if s.Panel == cp && s.Index == ci {
-			curY0, curY1 = s.Y0, s.Y1
-			break
+	cur := p.cursor()
+	if x, y, cw, ch, ok := ctlRect(p.surf, p.mods, cur); ok {
+		p.view = p.view.Reveal(x, y, cw, ch, p.surf)
+	}
+	DrawSurface(screenPainter{sc: sc, w: vw, h: vh}, p.surf, p.view, p.mods, cur)
+
+	// Where in the rack this is. The bars are the whole reason a fixed
+	// surface is navigable: without them a window onto a rack six times the
+	// terminal's height is a panel with no edges.
+	if pos, n := racksurface.Bar(p.view.Y, vh, p.surf.Rows, vh); n > 0 {
+		for i := 0; i < n; i++ {
+			sc.SetContent(w-1, pos+i, '█', nil, stFrame)
 		}
 	}
-	rows := h - y - 1
-	if rows < 1 {
-		rows = 1
-	}
-	if curY0 >= 0 {
-		if curY0 < p.top {
-			p.top = curY0
-		}
-		if curY1 >= p.top+rows {
-			p.top = curY1 - rows + 1
+	if pos, n := racksurface.Bar(p.view.X, vw, p.surf.Cols, vw); n > 0 {
+		for i := 0; i < n; i++ {
+			sc.SetContent(pos+i, h-2, '▀', nil, stFrame)
 		}
 	}
-	if p.top < 0 {
-		p.top = 0
+	blank, share := p.surf.Blank()
+	puts(sc, 0, h-2, clip(fmt.Sprintf("%d bays  %dx%d  at %d,%d  %d blank (%.0f%%)",
+		len(p.surf.Bays), p.surf.Cols, p.surf.Rows, p.view.X, p.view.Y,
+		blank, share*100), maxi(w/2, 1)), stDim)
+}
+
+// cursor is where the selected control sits on the surface.
+//
+// It is looked up BY ID rather than kept as a position, because the surface is
+// rebuilt on every reload and a position would name a different control after
+// a module was switched out.
+func (p *panel) cursor() ctlAt {
+	c, ok := p.at()
+	if !ok {
+		return ctlAt{Module: -1}
 	}
-	for i := p.top; i < len(lines) && i < p.top+rows; i++ {
-		puts(sc, 0, y+i-p.top, clip(lines[i], w), stDim)
+	if a, found := cursorOf(p.mods, c.ID); found {
+		return a
 	}
-	// The cursor, drawn over the panel it is in.
-	if curY0 >= 0 {
-		for _, s := range spots {
-			if s.Panel != cp || s.Index != ci {
-				continue
-			}
-			for yy := s.Y0; yy <= s.Y1; yy++ {
-				if yy < p.top || yy-p.top >= rows {
-					continue
-				}
-				line := []rune(lines[yy])
-				for x := s.X; x < s.X+panelWidth && x < len(line) && x < w; x++ {
-					sc.SetContent(x, y+yy-p.top, line[x], nil, stCursor)
-				}
-			}
-		}
-	}
+	return ctlAt{Module: -1}
+}
+
+// pan moves the window by a fraction of itself, which is what a scroll does:
+// a whole screen is disorienting and one cell is useless.
+func (p *panel) pan(dx, dy int) {
+	p.view = p.view.Pan(dx*maxi(p.view.W/2, 1), dy*maxi(p.view.H/2, 1), p.surf)
+	p.msg = ""
 }
 
 // drawList draws the controls as a table, which is the view for finding one
@@ -431,3 +499,7 @@ func (p *panel) drawList(sc tcell.Screen, y, w, h int) {
 		y++
 	}
 }
+
+// ctrlHeld reports the control modifier, which is what separates panning the
+// window from moving the cursor.
+func ctrlHeld(ev *tcell.EventKey) bool { return ev.Modifiers()&tcell.ModCtrl != 0 }
