@@ -33,21 +33,53 @@ var (
 )
 
 // morphStep advances the trajectory one Euler tick under the blended flow,
-// with a divergence guard that reseeds onto the blend's home IC.
+// with a guard that reseeds onto the blend's home IC when the trajectory has
+// stopped being one — because it ran away, or because it is standing still.
 func morphStep(c *[30]float64, dt float64) {
 	dx, dy, dz := evalQuad(c, morphSX, morphSY, morphSZ)
+	// STANDING STILL IS AS DEAD AS DIVERGING, and only the second was caught.
+	//
+	// The state starts at the origin, which most of these systems have as an
+	// exact fixed point: system D is (-y, x+z, xz+3y²), so at (0,0,0) all
+	// three derivatives are exactly zero. The trajectory never moved, never
+	// left the bounds, never went NaN, so the divergence guard below never
+	// fired and the model sat there — a perfectly static "attractor" at the
+	// default sys=3. Sprott A escapes only because its ż is 1−y² = 1 at the
+	// origin, which is why this looked like it worked on some settings.
+	//
+	// Exact zeroes, not a threshold: a real trajectory slowing to a crawl near
+	// a fixed point is the interesting part of these systems and must not be
+	// jammed. Only a derivative that is identically zero means the integrator
+	// can never move again whatever the step size.
+	if dx == 0 && dy == 0 && dz == 0 {
+		morphReseed()
+		return
+	}
 	morphSX += dx * dt
 	morphSY += dy * dt
 	morphSZ += dz * dt
 	bad := morphSX != morphSX || morphSY != morphSY || morphSZ != morphSZ ||
 		morphSX < -60 || morphSX > 60 || morphSY < -60 || morphSY > 60 || morphSZ < -60 || morphSZ > 60
 	if bad {
-		i := int(morphM) % len(morphSystems)
-		ic := morphSystems[i].ic
-		morphSX = float64(ic[0]) + 0.01*jamRand()
-		morphSY = float64(ic[1]) + 0.01*jamRand()
-		morphSZ = float64(ic[2]) + 0.01*jamRand()
+		morphReseed()
 	}
+}
+
+// morphReseed puts the state back on the blend's home initial condition, with
+// a little jitter so a reseed onto a fixed point does not land exactly on it
+// again.
+func morphReseed() {
+	if len(morphSystems) == 0 {
+		return
+	}
+	i := int(morphM) % len(morphSystems)
+	if i < 0 {
+		i = 0
+	}
+	ic := morphSystems[i].ic
+	morphSX = float64(ic[0]) + 0.01*jamRand()
+	morphSY = float64(ic[1]) + 0.01*jamRand()
+	morphSZ = float64(ic[2]) + 0.01*jamRand()
 }
 
 // generateSprottMorph integrates the blended flow into the trail ring and
