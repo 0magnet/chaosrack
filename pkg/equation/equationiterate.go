@@ -1,4 +1,4 @@
-package attractor
+package equation
 
 import "github.com/0magnet/chaosrack/pkg/dynamics"
 
@@ -36,7 +36,7 @@ import "github.com/0magnet/chaosrack/pkg/dynamics"
 //     exist.
 //   - t. A map has no time. There is nothing between iterate n and n+1 for t to
 //     advance by, so an expression in t has no meaning to give it.
-func iterateBlocker(e *Expr) string {
+func IterateBlocker(e *Expr) string {
 	switch {
 	case e == nil:
 		return ""
@@ -60,7 +60,7 @@ func iterateBlocker(e *Expr) string {
 // two callers — the render loop and the Lyapunov readout, which steps a
 // reference and a perturbed copy one after the other — are both on the single
 // wasm thread and neither re-enters it.
-func newIterateStep(exprs [3]*Expr, params [3][]*float32) dynamics.MapStep {
+func NewIterateStep(exprs [3]*Expr, params [3][]*float32) dynamics.MapStep {
 	depth := 1
 	for _, e := range exprs {
 		if e != nil && len(e.rpn) > depth {

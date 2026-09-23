@@ -6,6 +6,7 @@ import (
 
 	"github.com/0magnet/chaosrack/pkg/analysis"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
+	"github.com/0magnet/chaosrack/pkg/equation"
 )
 
 // The defaults of every registered flow must actually be CHAOTIC — this is
@@ -91,7 +92,7 @@ func TestBuiltinEquationSeedsMatchNativeDerivs(t *testing.T) {
 			if be.eq[i] == "" {
 				continue
 			}
-			e, err := ParseExpr(be.eq[i])
+			e, err := equation.ParseExpr(be.eq[i])
 			if err != nil {
 				return out, err
 			}
@@ -99,7 +100,7 @@ func TestBuiltinEquationSeedsMatchNativeDerivs(t *testing.T) {
 			for k, name := range e.Params {
 				pv[k] = float64(be.params[name])
 			}
-			stack := make([]float64, len(e.rpn)+2)
+			stack := make([]float64, e.StackNeed()+2)
 			out[i] = e.Eval([5]float64{p[0], p[1], p[2], p[3], 0}, pv, stack)
 		}
 		return out, nil
