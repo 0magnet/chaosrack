@@ -1,5 +1,7 @@
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dynamics"
+
 // The ITERATE flavor of the Custom equation engine: the typed expressions read
 // as a discrete map instead of as a vector field.
 //
@@ -58,7 +60,7 @@ func iterateBlocker(e *Expr) string {
 // two callers — the render loop and the Lyapunov readout, which steps a
 // reference and a perturbed copy one after the other — are both on the single
 // wasm thread and neither re-enters it.
-func newIterateStep(exprs [3]*Expr, params [3][]*float32) mapStep {
+func newIterateStep(exprs [3]*Expr, params [3][]*float32) dynamics.MapStep {
 	depth := 1
 	for _, e := range exprs {
 		if e != nil && len(e.rpn) > depth {
