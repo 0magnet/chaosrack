@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"math"
 	"syscall/js"
 )
@@ -56,7 +57,7 @@ func resetAttractorState() {
 // condition WITHOUT any warmup — safe to call from the per-step divergence
 // guard, where the current parameters may make every trajectory blow up.
 func reseedAttractorState() {
-	if ic, ok := attractorInitCond[selectedMode]; ok {
+	if ic, ok := dynamics.InitCond[selectedMode]; ok {
 		x, y, z = ic[0], ic[1], ic[2]
 	} else {
 		x, y, z = 0.1, 0.5, -0.6
@@ -76,9 +77,9 @@ func reseedAttractorState() {
 	// Hyper-Rössler's hidden 4th state; start it on-attractor for that mode,
 	// zero otherwise (harmless — only that mode reads it).
 	if selectedMode == "hyperrossler" {
-		hyperW = hyperW0
+		dynamics.HyperW = dynamics.HyperW0
 	} else {
-		hyperW = 0
+		dynamics.HyperW = 0
 	}
 	customW = 0
 	customT = 0

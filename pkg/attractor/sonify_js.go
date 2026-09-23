@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"strconv"
 	"syscall/js"
 
@@ -50,7 +51,7 @@ var (
 	sonifyPhase float64 // scan: fractional position along the trail, in cycles
 
 	// FLOW state: a private integrator of the SAME vector field the renderer
-	// draws (via flowFor4 — 4D equation modes included), stepped at audio
+	// draws (via dynamics.FlowFor4 — 4D equation modes included), stepped at audio
 	// rate. Pitch is emergent — the attractor's own orbital frequency — and
 	// the knob transposes it.
 	sonFlowMode         string  // mode the flow state was seeded for
@@ -139,24 +140,24 @@ func sonifyProcess(_ js.Value, args []js.Value) interface{} {
 		l[i], r[i] = float32(vl), float32(vr)
 	}
 
-	sys, haveFlow := flowFor4(selectedMode)
+	sys, haveFlow := dynamics.FlowFor4(selectedMode)
 	if sonifyMode == "flow" && haveFlow {
 		// FLOW: audify the dynamics — integrate the mode's own vector field
 		// at audio rate. sonifyHz transposes: 440 (A4) = one integrator step
 		// per sample; each octave doubles the rate, so the knob moves the
 		// emergent pitch by exact musical intervals.
 		if sonFlowMode != selectedMode {
-			ic := initCondFor(selectedMode)
+			ic := dynamics.InitCondFor(selectedMode)
 			sonFX, sonFY, sonFZ = float64(ic[0]), float64(ic[1]), float64(ic[2])
 			if sonFX == 0 && sonFY == 0 && sonFZ == 0 {
 				sonFX, sonFY, sonFZ = 0.1, 0, 0 // don't strand at a fixed point
 			}
-			sonFW = sys.w()
+			sonFW = sys.W()
 			sonPX, sonPY, sonPZ = sonFX, sonFY, sonFZ
 			sonAcc = 0
 			sonFlowMode = selectedMode
 		}
-		dt := sys.dt()
+		dt := sys.Dt()
 		stepRate := sonifyHz / 440.0
 		const lim = 1e5
 		for i := 0; i < frames; i++ {
@@ -164,13 +165,13 @@ func sonifyProcess(_ js.Value, args []js.Value) interface{} {
 			for sonAcc >= 1 {
 				sonAcc--
 				sonPX, sonPY, sonPZ = sonFX, sonFY, sonFZ
-				dx, dy, dz, dw := sys.f(sonFX, sonFY, sonFZ, sonFW)
+				dx, dy, dz, dw := sys.F(sonFX, sonFY, sonFZ, sonFW)
 				sonFX += dt * dx
 				sonFY += dt * dy
 				sonFZ += dt * dz
 				sonFW += dt * dw
 				if !(sonFX > -lim && sonFX < lim && sonFY > -lim && sonFY < lim && sonFZ > -lim && sonFZ < lim && sonFW > -lim && sonFW < lim) {
-					ic := initCondFor(selectedMode)
+					ic := dynamics.InitCondFor(selectedMode)
 					sonFX, sonFY, sonFZ = float64(ic[0]), float64(ic[1]), float64(ic[2])
 					if sonFX == 0 && sonFY == 0 && sonFZ == 0 {
 						sonFX = 0.1

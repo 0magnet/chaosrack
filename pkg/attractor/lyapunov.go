@@ -1,5 +1,7 @@
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dynamics"
+
 import "math"
 
 // The largest Lyapunov exponent — how fast two nearby trajectories separate,
@@ -165,11 +167,10 @@ func LyapunovForMap(key string) LyapunovResult {
 // LyapunovForFlow estimates the exponent of a registered flow, per unit time,
 // integrating the way the flow registry does.
 func LyapunovForFlow(key string) LyapunovResult {
-	sys, ok := flowSystems[key]
+	dt, f, ok := dynamics.FlowFor(key)
 	if !ok {
 		return LyapunovResult{Verdict: "unknown"}
 	}
-	dt := sys.dt()
 	if dt <= 0 {
 		return LyapunovResult{Verdict: "unknown"}
 	}
@@ -181,16 +182,16 @@ func LyapunovForFlow(key string) LyapunovResult {
 	// screen while visibly filling an attractor. The guard test learned this
 	// and split its two cases; the readout has to make the same distinction or
 	// it will confidently mislabel a third of the Sprott catalog.
-	_, euler := classicSystems[key]
+	euler := dynamics.IsClassic(key)
 	adv := func(dst, s []float64) {
 		if euler {
-			dx, dy, dz := sys.f(s[0], s[1], s[2])
+			dx, dy, dz := f(s[0], s[1], s[2])
 			dst[0], dst[1], dst[2] = s[0]+dt*dx, s[1]+dt*dy, s[2]+dt*dz
 			return
 		}
-		dst[0], dst[1], dst[2] = rk4(sys.f, dt, s[0], s[1], s[2])
+		dst[0], dst[1], dst[2] = dynamics.RK4(f, dt, s[0], s[1], s[2])
 	}
-	ic := initCondFor(key)
+	ic := dynamics.InitCondFor(key)
 	// One time unit per renormalization, as the guard test uses.
 	n := int(1.0/dt + 0.5)
 	if n < 1 {
@@ -214,30 +215,30 @@ func LyapunovForFlow(key string) LyapunovResult {
 // w, which outside a browser is zero, and the hyper-Rössler diverges from
 // there.
 func LyapunovForFlow4(key string) LyapunovResult {
-	s, ok := flowSystems4[key]
+	s, ok := dynamics.FlowFor4(key)
 	if !ok {
 		return LyapunovResult{Verdict: "unknown"}
 	}
-	dt := s.dt()
+	dt := s.Dt()
 	if dt <= 0 {
 		return LyapunovResult{Verdict: "unknown"}
 	}
 	adv := func(dst, v []float64) {
-		if s.euler {
-			dx, dy, dz, dw := s.f(v[0], v[1], v[2], v[3])
+		if s.Euler {
+			dx, dy, dz, dw := s.F(v[0], v[1], v[2], v[3])
 			dst[0], dst[1], dst[2], dst[3] = v[0]+dt*dx, v[1]+dt*dy, v[2]+dt*dz, v[3]+dt*dw
 			return
 		}
-		out := rk4x4(s.f, dt, [4]float64{v[0], v[1], v[2], v[3]})
+		out := dynamics.RK4x4(s.F, dt, [4]float64{v[0], v[1], v[2], v[3]})
 		dst[0], dst[1], dst[2], dst[3] = out[0], out[1], out[2], out[3]
 	}
-	ic := initCondFor(key)
+	ic := dynamics.InitCondFor(key)
 	n := int(1.0/dt + 0.5)
 	if n < 1 {
 		n = 1
 	}
 	lam := lyapunovStep(adv,
-		[]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), s.w0},
+		[]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), s.W0},
 		int(200.0/dt), n, 2000)
 	return LyapunovResult{
 		Lambda:  lam,
@@ -253,13 +254,13 @@ func LyapunovFor(mode string) LyapunovResult {
 	// 4-D before 3-D: a native 4-D system is also reachable through the 3-D
 	// lookup (the registry lifts and projects), and measuring the projection
 	// would measure a system that does not exist.
-	if _, ok := flowSystems4[mode]; ok {
+	if dynamics.Registered4(mode) {
 		return LyapunovForFlow4(mode)
 	}
 	switch {
 	case IsMap(mode):
 		return LyapunovForMap(mode)
-	case HasFlow(mode):
+	case dynamics.HasFlow(mode):
 		return LyapunovForFlow(mode)
 	}
 	return LyapunovResult{Verdict: "n/a"}

@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"strconv"
 )
 
@@ -191,15 +192,15 @@ func sectNormal() [3]float64 {
 // TRAJECTORY THE APP DRAWS crosses a plane, so integrating it with a different
 // scheme sections a different system — lyapunov.go learned the same lesson the
 // hard way and mislabeled a third of the Sprott catalog until it stopped
-// pretending one integrator fits all. The classicSystems lookup is how that
-// file decides too; flowSys4.euler carries the same fact for the systems that
+// pretending one integrator fits all. The dynamics.ClassicSystems lookup is how that
+// file decides too; dynamics.FlowSys4.euler carries the same fact for the systems that
 // never had a float32 form.
-func sectAdvancer(mode string, sys flowSys4, dt float64) func(s *[4]float64) {
-	_, classic := classicSystems[mode]
-	if classic || sys.euler {
+func sectAdvancer(mode string, sys dynamics.FlowSys4, dt float64) func(s *[4]float64) {
+	classic := dynamics.IsClassic(mode)
+	if classic || sys.Euler {
 		return func(s *[4]float64) { twinStep(sys, s, dt) }
 	}
-	return func(s *[4]float64) { *s = rk4x4(sys.f, dt, *s) }
+	return func(s *[4]float64) { *s = dynamics.RK4x4(sys.F, dt, *s) }
 }
 
 // sectField evaluates the vector field at a state, scaled by dt: the "velocity
@@ -211,8 +212,8 @@ func sectAdvancer(mode string, sys flowSys4, dt float64) func(s *[4]float64) {
 // walk. That is why the section always takes the cubic rather than dropping to
 // the straight line on the expensive systems: the accuracy is worth three and
 // a half orders of magnitude and the cost does not show up.
-func sectField(sys flowSys4, s [4]float64, dt float64) [3]float64 {
-	dx, dy, dz, _ := sys.f(s[0], s[1], s[2], s[3])
+func sectField(sys dynamics.FlowSys4, s [4]float64, dt float64) [3]float64 {
+	dx, dy, dz, _ := sys.F(s[0], s[1], s[2], s[3])
 	return [3]float64{dx * dt, dy * dt, dz * dt}
 }
 
@@ -226,9 +227,9 @@ func sectField(sys flowSys4, s [4]float64, dt float64) [3]float64 {
 // model was last DRAWN — on the Poincaré model that is not the source system
 // at all, so the plane would be positioned against the size of a dodecahedron
 // somebody looked at earlier.
-func sectSeed(mode string, sys flowSys4, dt float64) {
-	ic := initCondFor(mode)
-	sectState = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.w0}
+func sectSeed(mode string, sys dynamics.FlowSys4, dt float64) {
+	ic := dynamics.InitCondFor(mode)
+	sectState = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W0}
 	adv := sectAdvancer(mode, sys, dt)
 	ax := sectAxis()
 	lo, hi := 0.0, 0.0
@@ -236,7 +237,7 @@ func sectSeed(mode string, sys flowSys4, dt float64) {
 	for i := 0; i < sectTransient; i++ {
 		adv(&sectState)
 		if twinDiverged(sectState) {
-			sectState = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.w0}
+			sectState = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W0}
 			lo, hi, measured = 0, 0, false
 			continue
 		}
@@ -265,18 +266,18 @@ func sectSeed(mode string, sys flowSys4, dt float64) {
 }
 
 // sectAdvance integrates n steps, recording every crossing.
-func sectAdvance(mode string, sys flowSys4, dt float64, n int) {
+func sectAdvance(mode string, sys dynamics.FlowSys4, dt float64, n int) {
 	adv := sectAdvancer(mode, sys, dt)
 	dir := sectDirection()
-	ic := initCondFor(mode)
-	sc := sys.scale
+	ic := dynamics.InitCondFor(mode)
+	sc := sys.Scale
 	for i := 0; i < n; i++ {
 		prev := sectState
 		adv(&sectState)
 		if twinDiverged(sectState) {
 			// A reseeded trajectory's first crossing does not follow the last
 			// one in time, and the return map must not join them.
-			sectState = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.w0}
+			sectState = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W0}
 			sectLog.breakChain()
 			continue
 		}
@@ -305,8 +306,8 @@ func sectAdvance(mode string, sys flowSys4, dt float64, n int) {
 // sectBudget is how many steps a frame integrates. The interpreted engine is
 // roughly ten times the per-step cost of a compiled field, and gets a tenth of
 // the steps for it — the same split flowregistry.go's frame budgets make.
-func sectBudget(sys flowSys4) int {
-	if sys.interpreted {
+func sectBudget(sys dynamics.FlowSys4) int {
+	if sys.Interpreted {
 		return 512
 	}
 	return 4096
@@ -316,11 +317,11 @@ func sectBudget(sys flowSys4) int {
 // anything that defines it has changed, then integrate a frame's worth.
 // Reports false when there is nothing to draw yet.
 func sectRun(mode string) bool {
-	sys, ok := flowFor4(mode)
+	sys, ok := dynamics.FlowFor4(mode)
 	if !ok {
 		return false
 	}
-	dt := sys.dt() * float64(speedScale)
+	dt := sys.Dt() * float64(speedScale)
 	if dt <= 0 {
 		return false
 	}

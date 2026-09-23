@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"math"
 	"testing"
 )
@@ -23,7 +24,7 @@ import (
 
 // sectTestSetup puts the section knobs in a known state and restores them, so
 // these tests cannot leak into each other or into the rest of the js suite.
-func sectTestSetup(t *testing.T, axis int, pos float32, dir int) (flowSys4, float64) {
+func sectTestSetup(t *testing.T, axis int, pos float32, dir int) (dynamics.FlowSys4, float64) {
 	t.Helper()
 	oldAxis, oldPos, oldDir, oldSig := sectAxisF, sectPosF, sectDirF, sectSig
 	t.Cleanup(func() {
@@ -32,11 +33,11 @@ func sectTestSetup(t *testing.T, axis int, pos float32, dir int) (flowSys4, floa
 	})
 	sectAxisF, sectPosF, sectDirF = float32(axis), pos, float32(dir)
 
-	sys, ok := flowFor4("lorenz")
+	sys, ok := dynamics.FlowFor4("lorenz")
 	if !ok {
 		t.Fatal("lorenz has no registered flow, so there is nothing to section")
 	}
-	dt := sys.dt()
+	dt := sys.Dt()
 	if dt <= 0 {
 		t.Fatalf("lorenz dt is %v", dt)
 	}
@@ -97,7 +98,7 @@ func TestTheDirectionKnobDecidesWhichCrossingsAreKept(t *testing.T) {
 		bad := 0
 		for i := 0; i < sectLog.len(); i++ {
 			h := sectLog.at(i)
-			_, _, dz, _ := sys.f(float64(h.P[0]), float64(h.P[1]), float64(h.P[2]), 0)
+			_, _, dz, _ := sys.F(float64(h.P[0]), float64(h.P[1]), float64(h.P[2]), 0)
 			if dz*c.want <= 0 {
 				bad++
 			}

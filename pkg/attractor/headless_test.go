@@ -1,5 +1,7 @@
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dynamics"
+
 import (
 	"image"
 	"testing"
@@ -14,12 +16,12 @@ import (
 // positions without a test noticing. An exponent needs a vector field; an
 // extent needs only the trajectory, so nothing can opt out of it.
 func TestEveryFlowDrawsSomething(t *testing.T) {
-	keys := FlowKeys()
+	keys := dynamics.Keys()
 	if len(keys) < 20 {
 		t.Fatalf("only %d flows registered; the registry is probably not loaded", len(keys))
 	}
 	for _, k := range keys {
-		pts := Trajectory(k, DefaultTrajectory())
+		pts := dynamics.Trajectory(k, dynamics.DefaultTrajectory())
 		if len(pts) == 0 {
 			t.Errorf("%s: integrated to nothing — the trajectory diverged", k)
 			continue

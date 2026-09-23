@@ -27,6 +27,7 @@ import (
 	"strings"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"github.com/0magnet/chaosrack/pkg/meshstl"
 	"github.com/0magnet/chaosrack/pkg/rackspec"
 )
@@ -115,7 +116,7 @@ func main() {
 	fmt.Printf("stlgen: a slot is %d HP = %.2f mm wide and %.1f mm tall; %d fit an %d HP row\n",
 		rackspec.ModuleHP, rackspec.SlotWidth, rackspec.PanelHeight3U,
 		rackspec.SlotsPerRow(), rackspec.RowHP)
-	if n := len(attractor.FlowKeys()); n > 0 {
+	if n := len(dynamics.Keys()); n > 0 {
 		fmt.Printf("stlgen: %d of them are integrated flows\n", n)
 	}
 }

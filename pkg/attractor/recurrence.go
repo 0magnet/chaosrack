@@ -1,5 +1,7 @@
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dynamics"
+
 import "math"
 
 // Recurrence plots and the RQA scalars read off them — the picture of when a
@@ -359,11 +361,11 @@ const recTrajStepBudget = 300000
 // The plot then covers a different span from the one asked for, which is
 // visible in the picture — more or fewer diagonals — rather than silent.
 func RecurrenceSpan(mode string, want float64, n int) float64 {
-	sys, ok := flowFor4(mode)
+	sys, ok := dynamics.FlowFor4(mode)
 	if !ok {
 		return 0
 	}
-	dt := sys.dt()
+	dt := sys.Dt()
 	if dt <= 0 || want <= 0 || n < 2 {
 		return 0
 	}
@@ -406,7 +408,7 @@ func TrajectorySeries(mode string, n int, span float64) []float64 {
 	if n < 2 || span <= 0 {
 		return nil
 	}
-	pts := Trajectory(mode, TrajectoryOptions{
+	pts := dynamics.Trajectory(mode, dynamics.TrajectoryOptions{
 		Transient: recTrajTransient,
 		Duration:  span,
 		MaxPoints: 4 * n,

@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"math"
 	"strconv"
 	"syscall/js"
@@ -688,10 +689,10 @@ func generateForMode(mode string) {
 	saved := applyAudioModulation(mode)
 	// Track the most recent real flow mode — the bifurcation explorer sweeps
 	// it and the Poincaré section sections it. Both are excluded by name: they
-	// are not flows, but flowFor4 also answers from integrate3D's per-frame
+	// are not flows, but dynamics.FlowFor4 also answers from integrate3D's per-frame
 	// capture, so a mode that ever reached that loop could name ITSELF as its
 	// own source and section its own scatter.
-	if _, isFlow := flowFor4(mode); isFlow && mode != "bifurcation" && mode != "poincare" {
+	if _, isFlow := dynamics.FlowFor4(mode); isFlow && mode != "bifurcation" && mode != "poincare" {
 		lastFlowMode = mode
 	}
 	// Twin-trajectory divergence (Trace > Twin): draws both copies itself.
