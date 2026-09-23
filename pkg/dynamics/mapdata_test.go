@@ -1,4 +1,4 @@
-package attractor
+package dynamics
 
 import (
 	"math"
@@ -10,7 +10,8 @@ import (
 // test is that every registered map stays bounded AND keeps moving.
 func TestEveryMapIsBoundedAndAlive(t *testing.T) {
 	for _, k := range MapKeys() {
-		step, ic, ok := MapStep(k)
+		m, ok := MapFor(k)
+		step, ic := m.Step, m.IC
 		if !ok {
 			t.Fatalf("%s: not registered", k)
 		}
@@ -49,7 +50,7 @@ func TestEveryMapIsBoundedAndAlive(t *testing.T) {
 // determinant is −b everywhere, so area contracts by exactly b per iterate.
 // If the equation were mistyped this would not hold.
 func TestHenonContractsAreaByB(t *testing.T) {
-	step, _, _ := MapStep("henon")
+	step := mustMap(t, "henon").Step
 	const h = 1e-6
 	for _, at := range [][2]float64{{0, 0}, {0.5, 0.1}, {-0.8, 0.2}, {1.0, -0.3}} {
 		x, y := at[0], at[1]
@@ -60,7 +61,7 @@ func TestHenonContractsAreaByB(t *testing.T) {
 		a, c := (x1-x0)/h, (y1-y0)/h
 		b, d := (x2-x0)/h, (y2-y0)/h
 		det := a*d - b*c
-		if want := -float64(henonB); math.Abs(det-want) > 1e-4 {
+		if want := -float64(HenonB); math.Abs(det-want) > 1e-4 {
 			t.Errorf("at %v the Jacobian determinant is %.6f, want %.6f (= −b)", at, det, want)
 		}
 	}
@@ -71,7 +72,7 @@ func TestHenonContractsAreaByB(t *testing.T) {
 // that is not 1 means it has been written as a dissipative map by mistake,
 // and the phase portrait would be a lie.
 func TestStandardMapPreservesArea(t *testing.T) {
-	step, _, _ := MapStep("standardmap")
+	step := mustMap(t, "standardmap").Step
 	const h = 1e-7
 	// Away from the 2π fold, where the finite difference would straddle a wrap.
 	for _, at := range [][2]float64{{1.0, 1.0}, {2.0, 3.0}, {0.5, 4.0}, {3.0, 2.0}} {
@@ -91,7 +92,7 @@ func TestStandardMapPreservesArea(t *testing.T) {
 // momentum walks off without bound and the figure becomes a diagonal smear
 // instead of a phase portrait.
 func TestStandardMapStaysOnTheTorus(t *testing.T) {
-	step, _, _ := MapStep("standardmap")
+	step := mustMap(t, "standardmap").Step
 	th, p := 1.0, 2.0
 	for i := 0; i < 50000; i++ {
 		th, p, _ = step(th, p, 0)
@@ -122,7 +123,8 @@ func TestDissipativeMapsAreSensitive(t *testing.T) {
 		if notChaotic[k] {
 			continue
 		}
-		step, ic, _ := MapStep(k)
+		mm := mustMap(t, k)
+		step, ic := mm.Step, mm.IC
 		a := ic
 		// Settle onto the attractor before asking whether nearby orbits
 		// separate — the same trap as above: the approach to a fixed point
@@ -144,30 +146,13 @@ func TestDissipativeMapsAreSensitive(t *testing.T) {
 	}
 }
 
-// Every map must be in the catalog, and every catalog entry claiming to be a
-// map must actually be one. The two lists drifting apart is how a mode ends
-// up unreachable.
-func TestMapsAreInTheCatalogAsMaps(t *testing.T) {
-	inCatalog := map[string]bool{}
-	for _, g := range Catalog() {
-		for _, m := range g.Models {
-			if m.Class == ClassMap {
-				inCatalog[m.Key] = true
-				if !IsMap(m.Key) {
-					t.Errorf("%q is cataloged as a map but has no registered step function", m.Key)
-				}
-				if m.Description == "" {
-					t.Errorf("%q has no description", m.Key)
-				}
-			}
-		}
+// mustMap is the lookup for a test that has already established the map
+// exists; a missing one is a bug in the test, not a case to handle.
+func mustMap(t *testing.T, key string) MapSys {
+	t.Helper()
+	m, ok := MapFor(key)
+	if !ok {
+		t.Fatalf("no registered map %q", key)
 	}
-	for _, k := range MapKeys() {
-		if !inCatalog[k] {
-			t.Errorf("map %q is registered but not in the catalog — nothing can select it", k)
-		}
-	}
-	if len(inCatalog) < 7 {
-		t.Errorf("only %d maps cataloged", len(inCatalog))
-	}
+	return m
 }

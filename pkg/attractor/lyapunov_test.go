@@ -3,6 +3,8 @@ package attractor
 import (
 	"math"
 	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 )
 
 // The estimator is checked against values that were published before this
@@ -43,7 +45,7 @@ func TestHenonExponentsSumToLogB(t *testing.T) {
 	if !r.OK {
 		t.Fatal("henon could not be measured")
 	}
-	sum := math.Log(float64(henonB)) // λ₁ + λ₂
+	sum := math.Log(float64(dynamics.HenonB)) // λ₁ + λ₂
 	lam2 := sum - r.Lambda
 	// λ₂ must be the strongly contracting one, and well below zero.
 	if lam2 > -1.0 {

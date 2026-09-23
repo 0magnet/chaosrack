@@ -1,9 +1,10 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"math"
 	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 )
 
 // The iterate flavor's whole claim is that a typed map is the SAME kind of
@@ -13,7 +14,7 @@ import (
 
 // typedMap compiles expression strings the way the panel does — parse, refuse
 // what a map cannot express, bind the knob pointers — and returns the step.
-func typedMap(t *testing.T, eq [3]string, params map[string]*float32) mapStep {
+func typedMap(t *testing.T, eq [3]string, params map[string]*float32) dynamics.MapStep {
 	t.Helper()
 	var exprs [3]*Expr
 	var ptrs [3][]*float32
@@ -41,10 +42,10 @@ func typedMap(t *testing.T, eq [3]string, params map[string]*float32) mapStep {
 // typedHenon is the built-in map as a user would type it. The parameters are
 // the same float32 vars the built-in reads, so a knob edit would move both and
 // the comparison is of the EQUATIONS, not of two different coefficient sets.
-func typedHenon(t *testing.T) mapStep {
+func typedHenon(t *testing.T) dynamics.MapStep {
 	t.Helper()
 	return typedMap(t, [3]string{"1 - a*x*x + y", "b*x", ""},
-		map[string]*float32{"a": &henonA, "b": &henonB})
+		map[string]*float32{"a": &dynamics.HenonA, "b": &dynamics.HenonB})
 }
 
 // Iterate for iterate, as far as a chaotic map allows. Exact agreement is not
@@ -57,10 +58,11 @@ func typedHenon(t *testing.T) mapStep {
 // leaves the long run to the attractor-level checks below.
 func TestTypedHenonMatchesBuiltinIterates(t *testing.T) {
 	typed := typedHenon(t)
-	ref, ic, ok := MapStep("henon")
+	builtin, ok := dynamics.MapFor("henon")
 	if !ok {
 		t.Fatal("henon is not registered")
 	}
+	ref, ic := builtin.Step, builtin.IC
 	a, b := ic, ic
 	for i := 0; i < 25; i++ {
 		a[0], a[1], a[2] = ref(a[0], a[1], a[2])
@@ -77,9 +79,10 @@ func TestTypedHenonMatchesBuiltinIterates(t *testing.T) {
 // must land on the set the built-in draws, not merely track it for a while.
 func TestTypedHenonDrawsTheSameAttractor(t *testing.T) {
 	typed := typedHenon(t)
-	ref, ic, _ := MapStep("henon")
+	builtin, _ := dynamics.MapFor("henon")
+	ref, ic := builtin.Step, builtin.IC
 
-	extent := func(step mapStep, from [3]float64) [4]float64 {
+	extent := func(step dynamics.MapStep, from [3]float64) [4]float64 {
 		p := from
 		for i := 0; i < 20000; i++ { // transient
 			p[0], p[1], p[2] = step(p[0], p[1], p[2])
@@ -95,7 +98,7 @@ func TestTypedHenonDrawsTheSameAttractor(t *testing.T) {
 	// The typed one starts where a typed map seeds, which is not Henon's own
 	// initial condition — a different point in the same basin.
 	want := extent(ref, ic)
-	got := extent(typed, customMapIC)
+	got := extent(typed, dynamics.CustomMapIC)
 	for k := range want {
 		if math.Abs(want[k]-got[k]) > 1e-3 {
 			t.Errorf("attractor extent %d: built-in %.6f, typed %.6f", k, want[k], got[k])
@@ -157,26 +160,26 @@ func TestIterateRefusesTimeAndHiddenState(t *testing.T) {
 // system as a flow would have all of them stepping x += dt·f, which at
 // dt = 0.005 is a slow crawl to a fixed point rather than Henon's fractal.
 func TestTypedIterateIsAMapAndNotAFlow(t *testing.T) {
-	setCustomMap(typedHenon(t))
-	t.Cleanup(clearCustomMap)
+	dynamics.SetCustomMap(typedHenon(t))
+	t.Cleanup(dynamics.ClearCustomMap)
 
-	if !IsMap(customModeKey) {
+	if !dynamics.IsMap(dynamics.CustomKey) {
 		t.Fatal("a registered iterate system does not report as a map")
 	}
-	if dynamics.HasFlow(customModeKey) {
+	if dynamics.HasFlow(dynamics.CustomKey) {
 		t.Error("an iterate system is registered as a flow — everything downstream would integrate it with a dt it does not have")
 	}
-	if _, ok := dynamics.FlowFor4(customModeKey); ok {
+	if _, ok := dynamics.FlowFor4(dynamics.CustomKey); ok {
 		t.Error("flowFor4 hands out an iterate system; Model Out FLOW and the Poincare section would run a system that does not exist")
 	}
-	for _, k := range MapKeys() {
-		if k == customModeKey {
+	for _, k := range dynamics.MapKeys() {
+		if k == dynamics.CustomKey {
 			t.Error("the typed map is in MapKeys — it has no catalog entry and nothing could select it there")
 		}
 	}
 
 	// The measurement itself: per iterate, and Henon's own exponent.
-	got := LyapunovFor(customModeKey)
+	got := LyapunovFor(dynamics.CustomKey)
 	if !got.PerStep {
 		t.Error("a typed map's exponent is reported per unit time; a map has no time")
 	}
@@ -188,9 +191,9 @@ func TestTypedIterateIsAMapAndNotAFlow(t *testing.T) {
 		t.Errorf("λ = %.4f/iterate, built-in henon = %.4f", got.Lambda, want.Lambda)
 	}
 
-	clearCustomMap()
-	_, _, stillThere := MapStep(customModeKey)
-	if IsMap(customModeKey) || stillThere {
+	dynamics.ClearCustomMap()
+	_, stillThere := dynamics.MapFor(dynamics.CustomKey)
+	if dynamics.IsMap(dynamics.CustomKey) || stillThere {
 		t.Error("withdrawing the typed map left it behind; the flow flavor would still look like a map")
 	}
 }
@@ -199,11 +202,14 @@ func TestTypedIterateIsAMapAndNotAFlow(t *testing.T) {
 // path to it, and gives up rather than seeding an escaped orbit — a typed map
 // can be made to diverge with one keystroke.
 func TestTypedMapSeedingDiscardsTransientAndSurvivesEscape(t *testing.T) {
-	t.Cleanup(func() { mapState, mapSeeded, mapOrbitsN = nil, "", 0 })
-	ic := customMapIC
+	ic := dynamics.CustomMapIC
 
-	seedMapState(customModeKey, mapSys{step: typedHenon(t), ic: ic, orbits: 1})
-	got := mapState[0]
+	// A local Orbits rather than the rack's: seeding is a question about a
+	// system, not about the screen, and a test that owns its state needs no
+	// cleanup hook to put three package globals back afterwards.
+	var bounded dynamics.Orbits
+	bounded.Ensure(dynamics.CustomKey, dynamics.MapSys{Step: typedHenon(t), IC: ic, Orbits: 1})
+	got := bounded.At(0)
 	if got == ic {
 		t.Error("the transient was not run: the orbit is still at the initial condition")
 	}
@@ -216,11 +222,12 @@ func TestTypedMapSeedingDiscardsTransientAndSurvivesEscape(t *testing.T) {
 	// x' = 2x, y' = 2y — one keystroke from a bounded map to an escaping one.
 	// The seeder must hand back a finite state rather than the infinities that
 	// would upload as NaNs and blank the whole figure.
-	seedMapState(customModeKey, mapSys{step: typedMap(t, [3]string{"2*x", "2*y", ""}, nil), ic: ic, orbits: 1})
-	if p := mapState[0]; !finite3(p[0], p[1], p[2]) {
+	var escaping dynamics.Orbits
+	escaping.Ensure(dynamics.CustomKey, dynamics.MapSys{Step: typedMap(t, [3]string{"2*x", "2*y", ""}, nil), IC: ic, Orbits: 1})
+	if p := escaping.At(0); !dynamics.Bounded(p[0], p[1], p[2]) {
 		t.Fatalf("an escaping typed map seeded to %v", p)
 	}
-	if mapState[0] != ic {
-		t.Errorf("an escaping typed map seeded to %v, want a reset to the initial condition %v", mapState[0], ic)
+	if p := escaping.At(0); p != ic {
+		t.Errorf("an escaping typed map seeded to %v, want a reset to the initial condition %v", p, ic)
 	}
 }
