@@ -2,7 +2,11 @@
 
 package attractor
 
-import "syscall/js"
+import (
+	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+)
 
 // The js-side half of the mode registry: the generate dispatch map and the
 // <select> builder. Generators register here (one call, next to the mode's
@@ -60,10 +64,10 @@ func buildModeSelect(panel js.Value) {
 		return
 	}
 	for _, g := range modeGroups {
-		og := doc.Call("createElement", "optgroup")
+		og := dom.Doc.Call("createElement", "optgroup")
 		og.Set("label", g.Label)
 		for _, k := range g.Keys {
-			opt := doc.Call("createElement", "option")
+			opt := dom.Doc.Call("createElement", "option")
 			opt.Set("value", k)
 			opt.Set("textContent", modeInfo[k].Label)
 			if k == defaultMode {

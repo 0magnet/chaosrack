@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strings"
 	"syscall/js"
 	"testing"
@@ -33,9 +34,8 @@ func fakeSwitch(checked bool) js.Value {
 // withFakeDoc swaps the package's document for the duration of a test.
 func withFakeDoc(t *testing.T, byID map[string]js.Value) {
 	t.Helper()
-	prev := doc
-	doc = fakeDoc(byID)
-	t.Cleanup(func() { doc = prev })
+	prev := dom.Swap(fakeDoc(byID))
+	t.Cleanup(func() { dom.Swap(prev) })
 }
 
 // Which switches are on is read off the panel, in the list's order, and a

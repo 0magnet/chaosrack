@@ -1,6 +1,6 @@
 //go:build js && wasm
 
-package attractor
+package dom
 
 import (
 	"syscall/js"
@@ -18,17 +18,17 @@ func TestRebuildIntoRecyclesItsArena(t *testing.T) {
 	var arena []js.Func
 	build := func() {
 		for i := 0; i < 3; i++ {
-			trackedFuncOf(func(js.Value, []js.Value) interface{} { return nil })
+			FuncOf(func(js.Value, []js.Value) interface{} { return nil })
 		}
 	}
 	for pass := 1; pass <= 4; pass++ {
-		rebuildInto(&arena, build)
+		RebuildInto(&arena, build)
 		if len(arena) != 3 {
 			t.Fatalf("pass %d left %d funcs in the arena, want 3", pass, len(arena))
 		}
 	}
 	// Clean up the last pass's funcs, which nothing else will.
-	rebuildInto(&arena, func() {})
+	RebuildInto(&arena, func() {})
 	if len(arena) != 0 {
 		t.Errorf("an empty rebuild left %d funcs", len(arena))
 	}
@@ -46,8 +46,8 @@ func TestRebuildIntoLeavesThePanelArenaAlone(t *testing.T) {
 
 	panelCollect = true
 	var arena []js.Func
-	rebuildInto(&arena, func() {
-		trackedFuncOf(func(js.Value, []js.Value) interface{} { return nil })
+	RebuildInto(&arena, func() {
+		FuncOf(func(js.Value, []js.Value) interface{} { return nil })
 	})
 	if len(panelFuncs) != savedLen {
 		t.Errorf("the panel arena grew by %d during a dial rebuild",
@@ -57,9 +57,9 @@ func TestRebuildIntoLeavesThePanelArenaAlone(t *testing.T) {
 		t.Errorf("the dial arena took %d funcs, want 1", len(arena))
 	}
 	// And collection goes back to the panel afterwards.
-	trackedFuncOf(func(js.Value, []js.Value) interface{} { return nil })
+	FuncOf(func(js.Value, []js.Value) interface{} { return nil })
 	if len(panelFuncs) != savedLen+1 {
 		t.Error("the panel arena did not resume collecting after the rebuild")
 	}
-	rebuildInto(&arena, func() {}) // free the one above
+	RebuildInto(&arena, func() {}) // free the one above
 }

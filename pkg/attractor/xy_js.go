@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/audiosrc"
@@ -500,7 +501,7 @@ func xyNoteState(monoSrc, ok bool, corr float32) {
 func appendXYReadout(grid js.Value) {
 	card, top := newPunitCard("corr")
 
-	xyCorrEl = doc.Call("createElement", "span")
+	xyCorrEl = dom.Doc.Call("createElement", "span")
 	xyCorrEl.Set("className", "led counter-led")
 	xyCorrEl.Set("title", "Correlation between the two channels over the displayed window, as a goniometer's "+
 		"correlation meter reads it: +1.00 means the channels are identical and the figure is the diagonal "+

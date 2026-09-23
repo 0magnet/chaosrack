@@ -7,7 +7,11 @@ package attractor
 // server. VP9 when the browser offers it, otherwise whatever default WebM
 // flavor MediaRecorder picks.
 
-import "syscall/js"
+import (
+	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+)
 
 var (
 	recOn     bool
@@ -36,13 +40,13 @@ func startRecording() {
 	opts.Set("videoBitsPerSecond", recBitrate(src, fps))
 	recorder = mr.New(stream, opts)
 	recChunks = js.Global().Get("Array").New()
-	recDataFn = trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	recDataFn = dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if d := a[0].Get("data"); d.Get("size").Int() > 0 {
 			recChunks.Call("push", d)
 		}
 		return nil
 	})
-	recStopFn = trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	recStopFn = dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		blob := js.Global().Get("Blob").New(recChunks, map[string]interface{}{"type": "video/webm"})
 		// Shared with the GIF path, which is where the download race this used
 		// to have is explained.
@@ -64,11 +68,11 @@ func stopRecording() {
 }
 
 func wireRecordSwitch() {
-	sw := doc.Call("getElementById", "rec-sw")
+	sw := dom.Doc.Call("getElementById", "rec-sw")
 	if !sw.Truthy() {
 		return
 	}
-	sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	sw.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		recOn = sw.Get("checked").Bool()
 		if recOn {
 			noteTakeStart()
@@ -93,7 +97,7 @@ func wireRecordSwitch() {
 // than remembered, so flipping it while nothing is recording just changes what
 // the next one will be.
 func recWantsGIF() bool {
-	sw := doc.Call("getElementById", "rec-gif-sw")
+	sw := dom.Doc.Call("getElementById", "rec-gif-sw")
 	return sw.Truthy() && sw.Get("checked").Bool()
 }
 
@@ -169,7 +173,7 @@ func recStreamSource(canvas js.Value) js.Value {
 	}
 
 	if !recFeed.Truthy() {
-		recFeed = doc.Call("createElement", "canvas")
+		recFeed = dom.Doc.Call("createElement", "canvas")
 	}
 	recFeed.Set("width", sw)
 	recFeed.Set("height", sh)

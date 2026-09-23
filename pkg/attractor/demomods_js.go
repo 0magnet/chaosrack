@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -19,8 +20,8 @@ var (
 // Scoreboard's Restart, Banner's text field, Launcher's Drop. Called once
 // from Run.
 func buildDemoModules() {
-	if b := doc.Call("getElementById", "pong-restart"); b.Truthy() {
-		b.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	if b := dom.Doc.Call("getElementById", "pong-restart"); b.Truthy() {
+		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			pongScoreL, pongScoreR = 0, 0
 			pongServeBall(1)
 			pongSyncScoreboard()
@@ -31,13 +32,13 @@ func buildDemoModules() {
 	// keys/touch); while the machine or keys drive the paddle, the pot spins
 	// to track it — pongSyncScoreboard writes it back with the guard up.
 	wirePad := func(slID, stackID string, pad *float64, human *int) js.Value {
-		sl := doc.Call("getElementById", slID)
-		stack := doc.Call("getElementById", stackID)
+		sl := dom.Doc.Call("getElementById", slID)
+		stack := dom.Doc.Call("getElementById", stackID)
 		if !sl.Truthy() || !stack.Truthy() {
 			return js.Undefined()
 		}
 		stack.Call("appendChild", makeKnob(sl, js.Undefined(), false, false, true))
-		sl.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		sl.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			if pongKnobGuard {
 				return nil
 			}
@@ -49,26 +50,26 @@ func buildDemoModules() {
 	}
 	pongPadSlL = wirePad("pong-pad-l", "pong-lstack", &pongPadL, &pongHumanL)
 	pongPadSlR = wirePad("pong-pad-r", "pong-rstack", &pongPadR, &pongHumanR)
-	if in := doc.Call("getElementById", "stext-in"); in.Truthy() {
+	if in := dom.Doc.Call("getElementById", "stext-in"); in.Truthy() {
 		in.Set("value", scopeTextStr)
-		in.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		in.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			scopeTextStr = strings.ToUpper(in.Get("value").String())
 			return nil
 		}))
 	}
 	// Launcher: the drop-height pot (initial condition) + the Drop button
 	// that releases from it.
-	if h, led, stack := doc.Call("getElementById", "bounce-height"),
-		doc.Call("getElementById", "bounce-height-led"),
-		doc.Call("getElementById", "bounce-hstack"); h.Truthy() && stack.Truthy() {
+	if h, led, stack := dom.Doc.Call("getElementById", "bounce-height"),
+		dom.Doc.Call("getElementById", "bounce-height-led"),
+		dom.Doc.Call("getElementById", "bounce-hstack"); h.Truthy() && stack.Truthy() {
 		led.Set("value", formatLED(fgFloat(h), 1, 2, false))
 		sizeLEDField(led, 0.2, 1, 2, false)
 		stack.Call("appendChild", makeKnob(h, js.Undefined(), true, false, true))
-		h.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		h.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			led.Set("value", formatLED(fgFloat(h), 1, 2, false))
 			return nil
 		}))
-		led.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		led.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			if v, err := strconv.ParseFloat(led.Get("value").String(), 64); err == nil {
 				h.Set("value", strconv.FormatFloat(v, 'f', 2, 64))
 				h.Call("dispatchEvent", js.Global().Get("Event").New("input"))
@@ -77,8 +78,8 @@ func buildDemoModules() {
 		}))
 	}
 	buildSTLFileModule()
-	if b := doc.Call("getElementById", "bounce-drop"); b.Truthy() {
-		b.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	if b := dom.Doc.Call("getElementById", "bounce-drop"); b.Truthy() {
+		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			bounceX, bounceY = -1.2, bounceDropHeight()
 			bounceVY = 0
 			bounceVX = float64(bounceDrift)
@@ -92,7 +93,7 @@ func buildDemoModules() {
 
 // bounceDropHeight reads the Launcher's height pot (court y for a release).
 func bounceDropHeight() float64 {
-	if h := doc.Call("getElementById", "bounce-height"); h.Truthy() {
+	if h := dom.Doc.Call("getElementById", "bounce-height"); h.Truthy() {
 		if v := fgFloat(h); v > 0 {
 			return v
 		}

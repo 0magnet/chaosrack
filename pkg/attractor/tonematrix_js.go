@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"strconv"
 	"syscall/js"
@@ -61,7 +62,7 @@ const (
 var tmPenta = [5]int{0, 2, 4, 7, 9}
 
 func tmStepCount() int {
-	n, _ := strconv.Atoi(doc.Call("getElementById", "tm-steps").Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+	n, _ := strconv.Atoi(dom.Doc.Call("getElementById", "tm-steps").Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 	if n < 1 || n > tmMaxSteps {
 		n = 16
 	}
@@ -70,8 +71,8 @@ func tmStepCount() int {
 
 // tmRootMidi reads the root knob: midi C of the chosen octave.
 func tmRootMidi() int {
-	oct, _ := strconv.Atoi(doc.Call("getElementById", "tm-root").Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-	return 12 * (oct + 1)                                                               // C1=24 … C4=60
+	oct, _ := strconv.Atoi(dom.Doc.Call("getElementById", "tm-root").Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+	return 12 * (oct + 1)                                                                   // C1=24 … C4=60
 }
 
 // tmMidiFor maps a grid row (0 = top) to its midi note: pentatonic degrees
@@ -87,7 +88,7 @@ func tmMidiFor(row int) int {
 // column-major spans so the playhead is one class toggle per step. Pads keep
 // their pattern state across rebuilds (it lives in tmPat, not the DOM).
 func buildTMGrid() {
-	grid := doc.Call("getElementById", "tm-grid")
+	grid := dom.Doc.Call("getElementById", "tm-grid")
 	if !grid.Truthy() {
 		return
 	}
@@ -101,7 +102,7 @@ func buildTMGrid() {
 		noteRow[r] = noteNames[m%12] + strconv.Itoa(m/12-1)
 	}
 	for c := 0; c < steps; c++ {
-		col := doc.Call("createElement", "span")
+		col := dom.Doc.Call("createElement", "span")
 		cls := "tm-col"
 		if c > 0 && c%4 == 0 {
 			cls += " tm-beat" // a breath every four columns, like bar lines
@@ -109,7 +110,7 @@ func buildTMGrid() {
 		col.Set("className", cls)
 		for r := 0; r < tmRows; r++ {
 			cc, rr := c, r
-			cell := doc.Call("createElement", "span")
+			cell := dom.Doc.Call("createElement", "span")
 			cell.Set("className", "tm-cell")
 			cell.Set("title", "Tonematrix pad — step "+strconv.Itoa(c+1)+", "+noteRow[r]+" (click to toggle, drag to paint)")
 			cell.Call("setAttribute", "data-tmc", strconv.Itoa(c))
@@ -117,7 +118,7 @@ func buildTMGrid() {
 			if tmPat[c][r] {
 				cell.Get("classList").Call("add", "on")
 			}
-			cell.Call("addEventListener", "mousedown", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+			cell.Call("addEventListener", "mousedown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 				a[0].Call("preventDefault")
 				if js.Global().Get("performance").Call("now").Float()-tmTouchAt < 800 {
 					return nil
@@ -131,7 +132,7 @@ func buildTMGrid() {
 				tmEnsureGraph() // user gesture: unlock audio for the loop
 				return nil
 			}))
-			cell.Call("addEventListener", "mouseenter", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+			cell.Call("addEventListener", "mouseenter", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 				if tmPaint < 0 {
 					return nil
 				}
@@ -142,7 +143,7 @@ func buildTMGrid() {
 				tmSetPad(cc, rr, tmPaint == 1)
 				return nil
 			}))
-			cell.Call("addEventListener", "touchstart", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+			cell.Call("addEventListener", "touchstart", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 				a[0].Call("preventDefault")
 				tmTouchAt = js.Global().Get("performance").Call("now").Float()
 				on := !tmPat[cc][rr]
@@ -162,14 +163,14 @@ func buildTMGrid() {
 	}
 	// Touch paint: touchmove keeps targeting the starting pad, so follow the
 	// finger with elementFromPoint (the keybed glissando pattern).
-	grid.Call("addEventListener", "touchmove", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	grid.Call("addEventListener", "touchmove", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		e := a[0]
 		e.Call("preventDefault")
 		if tmPaint < 0 {
 			return nil
 		}
 		t := e.Get("touches").Index(0)
-		el := doc.Call("elementFromPoint", t.Get("clientX").Float(), t.Get("clientY").Float())
+		el := dom.Doc.Call("elementFromPoint", t.Get("clientX").Float(), t.Get("clientY").Float())
 		if !el.Truthy() {
 			return nil
 		}
@@ -183,7 +184,7 @@ func buildTMGrid() {
 		return nil
 	}))
 	for _, ev := range []string{"touchend", "touchcancel"} {
-		grid.Call("addEventListener", ev, trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		grid.Call("addEventListener", ev, dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			tmPaint = -1
 			return nil
 		}))
@@ -246,9 +247,9 @@ func tmUpdateRouting() {
 	if !tmMaster.Truthy() {
 		return
 	}
-	lvl := fgFloat(doc.Call("getElementById", "tm-lvl")) / 100
+	lvl := fgFloat(dom.Doc.Call("getElementById", "tm-lvl")) / 100
 	gain, pan := 0.0, 0.0
-	switch doc.Call("getElementById", "tm-out").Get("value").String() {
+	switch dom.Doc.Call("getElementById", "tm-out").Get("value").String() {
 	case "l":
 		gain, pan = lvl, -1
 	case "r":
@@ -263,7 +264,7 @@ func tmUpdateRouting() {
 // tmStepDur returns one column's duration: columns are sixteenths, four to
 // the beat, so a 16-step loop is one bar at the tempo knob's BPM.
 func tmStepDur() float64 {
-	bpm := fgFloat(doc.Call("getElementById", "tm-tempo"))
+	bpm := fgFloat(dom.Doc.Call("getElementById", "tm-tempo"))
 	if bpm < 40 {
 		bpm = 120
 	}
@@ -273,7 +274,7 @@ func tmStepDur() float64 {
 // tmScheduleCol sounds every lit pad in the column at ctx time t: a short
 // ping (fast attack, exponential decay) per pad, fire-and-forget nodes.
 func tmScheduleCol(c int, t float64) {
-	w, _ := strconv.Atoi(doc.Call("getElementById", "tm-wave").Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+	w, _ := strconv.Atoi(dom.Doc.Call("getElementById", "tm-wave").Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 	dur := tmStepDur() * 2
 	if dur < 0.2 {
 		dur = 0.2
@@ -342,16 +343,16 @@ func tmTick() {
 // wireTonematrixModule builds the control cells, renders the pad grid, and
 // wires the Run/Clear controls. Called once from Run.
 func wireTonematrixModule() {
-	tempo := doc.Call("getElementById", "tm-tempo")
-	stepsSel := doc.Call("getElementById", "tm-steps")
-	root := doc.Call("getElementById", "tm-root")
-	lvl := doc.Call("getElementById", "tm-lvl")
-	out := doc.Call("getElementById", "tm-out")
-	wave := doc.Call("getElementById", "tm-wave")
-	tstack := doc.Call("getElementById", "tm-tstack")
-	sstack := doc.Call("getElementById", "tm-sstack")
-	lstack := doc.Call("getElementById", "tm-lstack")
-	ostack := doc.Call("getElementById", "tm-ostack")
+	tempo := dom.Doc.Call("getElementById", "tm-tempo")
+	stepsSel := dom.Doc.Call("getElementById", "tm-steps")
+	root := dom.Doc.Call("getElementById", "tm-root")
+	lvl := dom.Doc.Call("getElementById", "tm-lvl")
+	out := dom.Doc.Call("getElementById", "tm-out")
+	wave := dom.Doc.Call("getElementById", "tm-wave")
+	tstack := dom.Doc.Call("getElementById", "tm-tstack")
+	sstack := dom.Doc.Call("getElementById", "tm-sstack")
+	lstack := dom.Doc.Call("getElementById", "tm-lstack")
+	ostack := dom.Doc.Call("getElementById", "tm-ostack")
 	if !tempo.Truthy() || !tstack.Truthy() {
 		return
 	}
@@ -406,8 +407,8 @@ func wireTonematrixModule() {
 		ID: "tm-wave", Label: "wave", IsSelect: true, SelectDef: "0", PermaKey: "mv",
 	})
 
-	if run := doc.Call("getElementById", "tm-run"); run.Truthy() {
-		run.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	if run := dom.Doc.Call("getElementById", "tm-run"); run.Truthy() {
+		run.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			tmRun = run.Get("checked").Bool()
 			tmNext = 0 // restart cleanly rather than racing to catch up
 			tmDue = tmDue[:0]
@@ -419,8 +420,8 @@ func wireTonematrixModule() {
 			return nil
 		}))
 	}
-	if b := doc.Call("getElementById", "tm-clear"); b.Truthy() {
-		b.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	if b := dom.Doc.Call("getElementById", "tm-clear"); b.Truthy() {
+		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			for c := 0; c < tmMaxSteps; c++ {
 				for r := 0; r < tmRows; r++ {
 					tmSetPad(c, r, false)
@@ -437,7 +438,7 @@ func wireTonematrixModule() {
 	// the module DOES is its own transport control.
 	tmOn = true
 	// Release a pad paint-drag wherever the mouse comes up.
-	doc.Call("addEventListener", "mouseup", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "mouseup", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		tmPaint = -1
 		return nil
 	}))

@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"syscall/js"
 
@@ -37,7 +38,7 @@ func (inPageRack) Controls() ([]racktui.Control, error) {
 	out := make([]racktui.Control, 0, len(reg))
 	for _, in := range reg {
 		c := racktui.Control{ControlInfo: in}
-		if el := doc.Call("getElementById", in.ID); el.Truthy() {
+		if el := dom.Doc.Call("getElementById", in.ID); el.Truthy() {
 			c.Value = controlValueOf(el)
 			if el.Get("tagName").String() == "SELECT" {
 				opts := el.Get("options")
@@ -54,7 +55,7 @@ func (inPageRack) Controls() ([]racktui.Control, error) {
 // Set moves a control the way rackctl.set does, so the panel in the page and
 // the cable from a host take exactly the same path into the rack.
 func (inPageRack) Set(id, value string) error {
-	el := doc.Call("getElementById", id)
+	el := dom.Doc.Call("getElementById", id)
 	if !el.Truthy() {
 		return errNoControl{id}
 	}
@@ -113,12 +114,12 @@ func (inPageRack) CellAspect() float64 {
 		return 0
 	}
 	st := js.Global().Get("getComputedStyle").Invoke(host)
-	span := doc.Call("createElement", "span")
+	span := dom.Doc.Call("createElement", "span")
 	span.Get("style").Set("cssText",
 		"position:absolute;visibility:hidden;white-space:pre;font-family:"+
 			st.Get("fontFamily").String()+";font-size:"+st.Get("fontSize").String())
 	span.Set("textContent", "XXXXXXXXXX")
-	doc.Get("body").Call("appendChild", span)
+	dom.Doc.Get("body").Call("appendChild", span)
 	r := span.Call("getBoundingClientRect")
 	w, h := r.Get("width").Float()/10, r.Get("height").Float()
 	span.Call("remove")
@@ -132,7 +133,7 @@ func (inPageRack) CellAspect() float64 {
 // The panel is usually typed into that rather than into the Terminal model's
 // own shell, and the two can be at different zooms.
 func deskTerminalEl() js.Value {
-	els := doc.Call("querySelectorAll", ".xterm")
+	els := dom.Doc.Call("querySelectorAll", ".xterm")
 	for i := els.Get("length").Int() - 1; i >= 0; i-- {
 		el := els.Index(i)
 		// Not the Terminal model's own shell, which is parked off screen: the

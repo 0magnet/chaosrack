@@ -40,6 +40,7 @@ package attractor
 
 import (
 	"fmt"
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 
 	"github.com/0magnet/pisano/pkg/pisano"
@@ -659,7 +660,7 @@ func turtleCycle() {
 		return
 	}
 	turtleCycleAt = frameNowMs + secs*1000
-	knob := doc.Call("getElementById", "turtle-mod")
+	knob := dom.Doc.Call("getElementById", "turtle-mod")
 	if !knob.Truthy() {
 		return
 	}

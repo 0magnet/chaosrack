@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"strconv"
 	"syscall/js"
@@ -37,7 +38,7 @@ var (
 
 // analysisModuleVisible shows or hides the module.
 func analysisModuleVisible(on bool) {
-	if sect := doc.Call("getElementById", "analysis-module"); sect.Truthy() {
+	if sect := dom.Doc.Call("getElementById", "analysis-module"); sect.Truthy() {
 		if on {
 			sect.Get("style").Set("display", "")
 		} else {
@@ -47,8 +48,8 @@ func analysisModuleVisible(on bool) {
 }
 
 func wireAnalysisModule() {
-	lyapLEDEl = doc.Call("getElementById", "lyap-led")
-	lyapVerdEl = doc.Call("getElementById", "lyap-verdict")
+	lyapLEDEl = dom.Doc.Call("getElementById", "lyap-led")
+	lyapVerdEl = dom.Doc.Call("getElementById", "lyap-verdict")
 	// Always in the rack. The Console's module switches are gone, so there is
 	// no state in which this module is absent, and the flag that used to mean
 	// "switched in" is simply true. It is SET rather than the module's setter
@@ -58,8 +59,8 @@ func wireAnalysisModule() {
 	lyapOn = true
 	analysisModuleVisible(true)
 	scheduleLyapunov(0)
-	if btn := doc.Call("getElementById", "lyap-remeasure"); btn.Truthy() {
-		btn.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	if btn := dom.Doc.Call("getElementById", "lyap-remeasure"); btn.Truthy() {
+		btn.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			scheduleLyapunov(0)
 			return nil
 		}))
@@ -82,7 +83,7 @@ func scheduleLyapunov(delayMs int) {
 	if delayMs < 30 {
 		delayMs = 30
 	}
-	lyapTimer = js.Global().Call("setTimeout", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	lyapTimer = js.Global().Call("setTimeout", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		lyapPending = false
 		runLyapunov()
 		return nil

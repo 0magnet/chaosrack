@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
@@ -363,7 +364,7 @@ func restoreAutoRotateAfterSpectrogram() {
 // Go-side cache) to zero so the plane holds still.
 func zeroRotationSliders() {
 	for _, id := range []string{"rotation-controls-x", "rotation-controls-y", "rotation-controls-z"} {
-		el := doc.Call("getElementById", id)
+		el := dom.Doc.Call("getElementById", id)
 		if !el.Truthy() {
 			continue
 		}

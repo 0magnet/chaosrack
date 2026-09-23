@@ -16,6 +16,7 @@ package attractor
 import (
 	"bytes"
 	"errors"
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -143,7 +144,7 @@ func setSTLFileTris(n int, at func(int) [3]meshstl.V3) error {
 
 // stlFileSetLED writes the Loader readout (and its hover detail).
 func stlFileSetLED(text, title string) {
-	if led := doc.Call("getElementById", "stlfile-led"); led.Truthy() {
+	if led := dom.Doc.Call("getElementById", "stlfile-led"); led.Truthy() {
 		led.Set("textContent", text)
 		if title != "" {
 			led.Set("title", title)
@@ -157,17 +158,17 @@ func stlFileSetLED(text, title string) {
 // buildDemoModules), so the handlers live for the app's lifetime.
 func buildSTLFileModule() {
 	buildSTLBuiltInPicker()
-	btn := doc.Call("getElementById", "stlfile-load")
+	btn := dom.Doc.Call("getElementById", "stlfile-load")
 	if !btn.Truthy() {
 		return
 	}
-	input := doc.Call("createElement", "input")
+	input := dom.Doc.Call("createElement", "input")
 	input.Set("type", "file")
 	input.Set("accept", ".stl")
 	input.Get("style").Set("display", "none")
-	doc.Get("body").Call("appendChild", input)
+	dom.Doc.Get("body").Call("appendChild", input)
 
-	onParsed := trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	onParsed := dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		u8 := js.Global().Get("Uint8Array").New(a[0])
 		data := make([]byte, u8.Get("length").Int())
 		js.CopyBytesToGo(data, u8)
@@ -199,7 +200,7 @@ func buildSTLFileModule() {
 		input.Set("value", "")
 		return nil
 	})
-	input.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	input.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		files := input.Get("files")
 		if !files.Truthy() || files.Get("length").Int() == 0 {
 			return nil
@@ -207,7 +208,7 @@ func buildSTLFileModule() {
 		files.Index(0).Call("arrayBuffer").Call("then", onParsed)
 		return nil
 	}))
-	btn.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	btn.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		input.Call("click")
 		return nil
 	}))
@@ -216,7 +217,7 @@ func buildSTLFileModule() {
 // syncSTLFileExtras shows the Loader module while STL File is the active
 // model (the panel-rebuild hook, like the other mode-scoped modules).
 func syncSTLFileExtras(mode string) {
-	if sect := doc.Call("getElementById", "stlfile-module"); sect.Truthy() {
+	if sect := dom.Doc.Call("getElementById", "stlfile-module"); sect.Truthy() {
 		if mode == "stlfile" {
 			sect.Get("style").Set("display", "")
 		} else {
@@ -232,7 +233,7 @@ func syncSTLFileExtras(mode string) {
 // nothing is embedded: a hundred megabytes of STL would have to ship with the
 // app otherwise, and the generators are a few kilobytes of code.
 func buildSTLBuiltInPicker() {
-	sel := doc.Call("getElementById", "stlfile-builtin")
+	sel := dom.Doc.Call("getElementById", "stlfile-builtin")
 	if !sel.Truthy() {
 		return
 	}
@@ -240,19 +241,19 @@ func buildSTLBuiltInPicker() {
 	lastGroup := ""
 	for _, m := range STLModels() {
 		if m.Group != lastGroup {
-			group = doc.Call("createElement", "optgroup")
+			group = dom.Doc.Call("createElement", "optgroup")
 			group.Set("label", m.Group)
 			sel.Call("appendChild", group)
 			lastGroup = m.Group
 		}
-		opt := doc.Call("createElement", "option")
+		opt := dom.Doc.Call("createElement", "option")
 		opt.Set("value", m.Name)
 		opt.Set("textContent", m.Label)
 		opt.Set("title", m.Description)
 		group.Call("appendChild", opt)
 	}
 
-	sel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		name := sel.Get("value").String()
 		if name == "" {
 			return nil

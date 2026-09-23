@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"syscall/js"
 
@@ -297,7 +298,7 @@ func showAudioStatus(msg string) {
 	}
 	audioMsgLast = msg
 	if !audioOverlay.Truthy() {
-		audioOverlay = doc.Call("createElement", "div")
+		audioOverlay = dom.Doc.Call("createElement", "div")
 		audioOverlay.Set("id", "audio-status-overlay")
 		style := audioOverlay.Get("style")
 		style.Set("position", "fixed")
@@ -314,11 +315,11 @@ func showAudioStatus(msg string) {
 		style.Set("z-index", "var(--z-status)")
 		style.Set("cursor", "pointer") // tap to dismiss
 		style.Set("pointer-events", "auto")
-		audioOverlay.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		audioOverlay.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			audioOverlay.Get("style").Set("display", "none")
 			return nil
 		}))
-		body.Call("appendChild", audioOverlay)
+		dom.Body.Call("appendChild", audioOverlay)
 	}
 	audioOverlay.Set("textContent", msg+"   ✕")
 	audioOverlay.Get("style").Set("display", "block")
@@ -326,7 +327,7 @@ func showAudioStatus(msg string) {
 	// regardless. One cached js.Func — a fresh FuncOf per status change never
 	// got released, which leaked a closure every message on a flaky source.
 	if audioHideFn.IsUndefined() {
-		audioHideFn = trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		audioHideFn = dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			if audioOverlay.Truthy() {
 				audioOverlay.Get("style").Set("display", "none")
 			}

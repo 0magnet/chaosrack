@@ -16,6 +16,7 @@ package attractor
 // (pulse / square / ÷2 sub) → ring or AM modulation by the original audio.
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"strconv"
 	"syscall/js"
@@ -161,17 +162,17 @@ func (p *fvfProcessor) Process(x float32) float32 {
 // hidden <select> for wave/mod, and labeled switch cards for FX / Listen.
 func appendFVFSelectors(grid js.Value) {
 	mkSelCard := func(label, tip string, opts, ringLabels []string, cur int, onChange func(int)) js.Value {
-		card := doc.Call("createElement", "div")
+		card := dom.Doc.Call("createElement", "div")
 		card.Set("className", "punit")
-		lbl := doc.Call("createElement", "span")
+		lbl := dom.Doc.Call("createElement", "span")
 		lbl.Set("className", symClass("u-lbl", false))
 		lbl.Set("textContent", label)
 		card.Call("appendChild", lbl)
-		sel := doc.Call("createElement", "select")
+		sel := dom.Doc.Call("createElement", "select")
 		sel.Set("title", tip)
 		sel.Set("style", "display:none;")
 		for i, o := range opts {
-			opt := doc.Call("createElement", "option")
+			opt := dom.Doc.Call("createElement", "option")
 			opt.Set("value", strconv.Itoa(i))
 			opt.Set("textContent", o)
 			if i == cur {
@@ -179,14 +180,14 @@ func appendFVFSelectors(grid js.Value) {
 			}
 			sel.Call("appendChild", opt)
 		}
-		sel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			if v, err := strconv.Atoi(sel.Get("value").String()); err == nil {
 				onChange(v)
 			}
 			return nil
 		}))
 		card.Call("appendChild", sel)
-		grp := doc.Call("createElement", "span")
+		grp := dom.Doc.Call("createElement", "span")
 		grp.Set("className", "grp")
 		// Two positions is a switch here for the same reason it is in a
 		// parameter cell (buildParamUnit): a rotary that can only sit at one end
@@ -212,22 +213,22 @@ func appendFVFSelectors(grid js.Value) {
 		fvfMod, func(v int) { fvfMod = v }))
 
 	mkSwCard := func(label, tip string, checked bool, onChange func(bool)) js.Value {
-		card := doc.Call("createElement", "div")
+		card := dom.Doc.Call("createElement", "div")
 		card.Set("className", "punit")
-		lbl := doc.Call("createElement", "span")
+		lbl := dom.Doc.Call("createElement", "span")
 		lbl.Set("className", symClass("u-lbl", false))
 		lbl.Set("textContent", label)
 		card.Call("appendChild", lbl)
-		row := doc.Call("createElement", "label")
+		row := dom.Doc.Call("createElement", "label")
 		row.Set("className", "grp")
 		row.Get("style").Set("cursor", "pointer")
 		row.Get("style").Set("justifyContent", "center")
-		chk := doc.Call("createElement", "input")
+		chk := dom.Doc.Call("createElement", "input")
 		chk.Set("type", "checkbox")
 		chk.Set("className", "sw")
 		chk.Set("checked", checked)
 		chk.Set("title", tip)
-		chk.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		chk.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			onChange(chk.Get("checked").Bool())
 			return nil
 		}))
@@ -466,7 +467,7 @@ func startFVFAudio() {
 	fvfOutScratch = make([]float32, bufSize)
 	fvfSrcAcc, fvfResampLast = 0, 0
 	fvfAudioNode = fvfAudioCtx.Call("createScriptProcessor", bufSize, 1, 1)
-	fvfAudioFn = trackedFuncOf(fvfAudioProcess)
+	fvfAudioFn = dom.FuncOf(fvfAudioProcess)
 	fvfAudioNode.Set("onaudioprocess", fvfAudioFn)
 	fvfAudioNode.Call("connect", fvfAudioCtx.Get("destination"))
 	fvfAudioActive = true

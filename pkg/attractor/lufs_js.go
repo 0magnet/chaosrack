@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"syscall/js"
 
@@ -125,14 +126,14 @@ func showLoudness() {
 // wireLoudnessModule finds the readouts and wires the target knob and the
 // reset. Called once from Run.
 func wireLoudnessModule() {
-	lufsMEl = doc.Call("getElementById", "lufs-m-led")
-	lufsSEl = doc.Call("getElementById", "lufs-s-led")
-	lufsIEl = doc.Call("getElementById", "lufs-i-led")
-	lufsLRAEl = doc.Call("getElementById", "lufs-lra-led")
-	lufsTPEl = doc.Call("getElementById", "lufs-tp-led")
-	lufsDl = doc.Call("getElementById", "lufs-delta-led")
-	tgt := doc.Call("getElementById", "lufs-target")
-	rst := doc.Call("getElementById", "lufs-reset")
+	lufsMEl = dom.Doc.Call("getElementById", "lufs-m-led")
+	lufsSEl = dom.Doc.Call("getElementById", "lufs-s-led")
+	lufsIEl = dom.Doc.Call("getElementById", "lufs-i-led")
+	lufsLRAEl = dom.Doc.Call("getElementById", "lufs-lra-led")
+	lufsTPEl = dom.Doc.Call("getElementById", "lufs-tp-led")
+	lufsDl = dom.Doc.Call("getElementById", "lufs-delta-led")
+	tgt := dom.Doc.Call("getElementById", "lufs-target")
+	rst := dom.Doc.Call("getElementById", "lufs-reset")
 	if !tgt.Truthy() {
 		return
 	}
@@ -148,7 +149,7 @@ func wireLoudnessModule() {
 		},
 	})
 	if rst.Truthy() {
-		rst.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		rst.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			if lufsMeter != nil {
 				lufsMeter.Reset(lufsMeter.SampleRate())
 			}

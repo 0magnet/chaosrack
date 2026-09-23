@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"syscall/js"
 )
@@ -18,8 +19,6 @@ import (
 // "syscall/js: call of Value.Call on null". initWebGL(), called from
 // Run() once the canvas exists, populates them.
 var (
-	doc      js.Value
-	body     js.Value
 	canvasEl js.Value
 	width    int
 	height   int
@@ -59,12 +58,12 @@ func sizeCanvasToViewport() bool {
 	// catalog under the model — the body measurement sized the drawing buffer to
 	// the whole document: a 2364x7908 canvas, six times the pixels needed, for a
 	// picture that is only ever a window tall.
-	cssW := doc.Get("documentElement").Get("clientWidth").Int()
-	cssH := doc.Get("documentElement").Get("clientHeight").Int()
+	cssW := dom.Doc.Get("documentElement").Get("clientWidth").Int()
+	cssH := dom.Doc.Get("documentElement").Get("clientHeight").Int()
 	if cssW <= 0 || cssH <= 0 {
 		// A document with no layout yet; the body is the older fallback.
-		cssW = doc.Get("body").Get("clientWidth").Int()
-		cssH = doc.Get("body").Get("clientHeight").Int()
+		cssW = dom.Doc.Get("body").Get("clientWidth").Int()
+		cssH = dom.Doc.Get("body").Get("clientHeight").Int()
 	}
 	if cssW <= 0 || cssH <= 0 {
 		return false
@@ -91,9 +90,8 @@ func sizeCanvasToViewport() bool {
 }
 
 func initWebGL() {
-	doc = js.Global().Get("document")
-	body = doc.Get("body")
-	canvasEl = doc.Call("getElementById", "gocanvas")
+	dom.Init()
+	canvasEl = dom.Doc.Call("getElementById", "gocanvas")
 	if canvasEl.IsUndefined() || canvasEl.IsNull() {
 		return
 	}

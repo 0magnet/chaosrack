@@ -5,6 +5,7 @@ package attractor
 import (
 	_ "embed"
 	"encoding/base64"
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strings"
 )
 
@@ -39,7 +40,7 @@ func injectFonts() {
 	b.WriteString(fontFace("B612 Mono", "400", fontB612Regular))
 	b.WriteString(fontFace("B612 Mono", "700", fontB612Bold))
 	b.WriteString(fontFace("Chakra Petch", "600", fontChakra))
-	st := doc.Call("createElement", "style")
+	st := dom.Doc.Call("createElement", "style")
 	st.Set("textContent", b.String())
-	doc.Get("head").Call("appendChild", st)
+	dom.Doc.Get("head").Call("appendChild", st)
 }

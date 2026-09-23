@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -112,7 +113,7 @@ func clampIdx(i, n int) int {
 // buildRackScope fills the panel's dials and wires them. Called once, after
 // the control panel exists.
 func buildRackScope() {
-	rebuildInto(&scopeFuncs, func() {
+	dom.RebuildInto(&scopeFuncs, func() {
 		// The two range switches, from the sequences themselves — a hand-typed
 		// option list is a second copy of the spec, and the one that goes stale.
 		buildScopeDial("scope-volts", scopeVoltsDivs, scopeFormatVolts, scopeUI.voltsIdx,
@@ -149,8 +150,8 @@ func buildScopeDial(id string, steps []float64, label func(float64) string, at i
 // knob is the same object as every other knob in the rack — it turns the
 // same way, scrolls the same way, and is the same size.
 func buildScopeNameDial(id string, names []string, at int, set func(int)) {
-	sel := doc.Call("getElementById", id)
-	holder := doc.Call("getElementById", id+"-stack")
+	sel := dom.Doc.Call("getElementById", id)
+	holder := dom.Doc.Call("getElementById", id+"-stack")
 	if !sel.Truthy() || !holder.Truthy() || len(names) == 0 {
 		return
 	}
@@ -160,7 +161,7 @@ func buildScopeNameDial(id string, names []string, at int, set func(int)) {
 	// panel has had.
 	ring := make([]string, len(names))
 	for i, n := range names {
-		opt := doc.Call("createElement", "option")
+		opt := dom.Doc.Call("createElement", "option")
 		opt.Set("value", strconv.Itoa(i))
 		opt.Set("textContent", n)
 		sel.Call("appendChild", opt)
@@ -174,7 +175,7 @@ func buildScopeNameDial(id string, names []string, at int, set func(int)) {
 	addSelectorLabels(stack, ring, sel).Set("id", id+"-ring")
 	holder.Call("appendChild", stack)
 
-	sel.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
 			set(n)
 			setScopeReadout(id, names, n)
@@ -189,7 +190,7 @@ func buildScopeNameDial(id string, names []string, at int, set func(int)) {
 // says what it COULD be set to; the window says what it IS, and on an
 // instrument being read at a glance that is the one that matters.
 func setScopeReadout(id string, names []string, i int) {
-	el := doc.Call("getElementById", id+"-read")
+	el := dom.Doc.Call("getElementById", id+"-read")
 	if !el.Truthy() || len(names) == 0 {
 		return
 	}
@@ -204,8 +205,8 @@ func setScopeReadout(id string, names []string, i int) {
 // makeKnob is the same one every other knob in the rack is made by, so a
 // scope knob drags, scrolls and looks exactly like the rest.
 func wireScopeRange(id string, set func(float64)) {
-	el := doc.Call("getElementById", id)
-	holder := doc.Call("getElementById", id+"-stack")
+	el := dom.Doc.Call("getElementById", id)
+	holder := dom.Doc.Call("getElementById", id+"-stack")
 	if !el.Truthy() {
 		return
 	}
@@ -219,7 +220,7 @@ func wireScopeRange(id string, set func(float64)) {
 			set(v)
 		}
 	}
-	el.Call("addEventListener", "input", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	el.Call("addEventListener", "input", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		read()
 		return nil
 	}))
@@ -244,7 +245,7 @@ func drawRackScope() {
 		return
 	}
 	if !scopeCtx.Truthy() {
-		scopeCanvas = doc.Call("getElementById", "scope-screen")
+		scopeCanvas = dom.Doc.Call("getElementById", "scope-screen")
 		if !scopeCanvas.Truthy() {
 			return
 		}
@@ -562,7 +563,7 @@ func strokeScopePointsAsPath(ctx js.Value, pts []float32) {
 // scopeCanvasEl is the tube's canvas, looked up lazily.
 func scopeCanvasEl() js.Value {
 	if !scopeCanvas.Truthy() {
-		scopeCanvas = doc.Call("getElementById", "scope-screen")
+		scopeCanvas = dom.Doc.Call("getElementById", "scope-screen")
 	}
 	return scopeCanvas
 }

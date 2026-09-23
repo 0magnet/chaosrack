@@ -2,6 +2,8 @@
 
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/dom"
+
 // The depth partition: which side of a plane in front of the camera a pass is
 // allowed to draw.
 //
@@ -222,7 +224,7 @@ var (
 // sentence — this control does not apply right now — so it looks like the rest
 // of the panel rather than like a new idea.
 func markPersistSuspended(on bool) {
-	sw := doc.Call("getElementById", "persist-trail")
+	sw := dom.Doc.Call("getElementById", "persist-trail")
 	if !sw.Truthy() {
 		return
 	}
@@ -249,7 +251,7 @@ func markPersistSuspended(on bool) {
 // order — the original Front switch, kept because at the near end it does the
 // whole job on its own.
 func raiseMainCanvas(front bool) {
-	cont := doc.Call("getElementById", "gocanvas-container")
+	cont := dom.Doc.Call("getElementById", "gocanvas-container")
 	if !cont.Truthy() {
 		return
 	}

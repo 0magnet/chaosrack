@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 )
 
@@ -28,7 +29,7 @@ func genEnvTick() {
 		return
 	}
 	mode := "off"
-	if m := doc.Call("getElementById", "gen-env-mode"); m.Truthy() {
+	if m := dom.Doc.Call("getElementById", "gen-env-mode"); m.Truthy() {
 		mode = m.Get("value").String()
 	}
 	now := frameNowMs
@@ -44,8 +45,8 @@ func genEnvTick() {
 		g.Call("setTargetAtTime", 1, ctxNow, 0.02)
 		return
 	}
-	atk := fgFloat(doc.Call("getElementById", "gen-env-atk")) / 1000
-	dcy := fgFloat(doc.Call("getElementById", "gen-env-dcy")) / 1000
+	atk := fgFloat(dom.Doc.Call("getElementById", "gen-env-atk")) / 1000
+	dcy := fgFloat(dom.Doc.Call("getElementById", "gen-env-dcy")) / 1000
 	if atk < 0.001 {
 		atk = 0.001
 	}
@@ -69,12 +70,12 @@ func genEnvTick() {
 // buildEnvModule wires the Envelope module's attack/decay knobs and mode
 // switch. Called once from Run.
 func buildEnvModule() {
-	atk := doc.Call("getElementById", "gen-env-atk")
-	dcy := doc.Call("getElementById", "gen-env-dcy")
-	mode := doc.Call("getElementById", "gen-env-mode")
-	astack := doc.Call("getElementById", "gen-env-astack")
-	dstack := doc.Call("getElementById", "gen-env-dstack")
-	mstack := doc.Call("getElementById", "gen-env-mstack")
+	atk := dom.Doc.Call("getElementById", "gen-env-atk")
+	dcy := dom.Doc.Call("getElementById", "gen-env-dcy")
+	mode := dom.Doc.Call("getElementById", "gen-env-mode")
+	astack := dom.Doc.Call("getElementById", "gen-env-astack")
+	dstack := dom.Doc.Call("getElementById", "gen-env-dstack")
+	mstack := dom.Doc.Call("getElementById", "gen-env-mstack")
 	if !atk.Truthy() || !astack.Truthy() {
 		return
 	}

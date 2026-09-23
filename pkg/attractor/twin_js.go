@@ -27,6 +27,7 @@ package attractor
 // it.
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/dynamics"
@@ -147,7 +148,7 @@ func twinTick(mode string) bool {
 
 // wireTwinSwitch hooks up the Trace > Twin checkbox and the λ LED beside it.
 func wireTwinSwitch() {
-	twinLambdaEl = doc.Call("getElementById", "twin-lambda")
+	twinLambdaEl = dom.Doc.Call("getElementById", "twin-lambda")
 	wireSwitch("twin-sw", func(on bool) {
 		twinOn = on
 		twinInvalidate()

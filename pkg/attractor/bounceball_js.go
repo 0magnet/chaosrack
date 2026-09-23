@@ -2,7 +2,11 @@
 
 package attractor
 
-import "strconv"
+import (
+	"strconv"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+)
 
 // Bouncing Ball — the classic analog-computer demo (Telefunken shipped it
 // with their RA-series machines to sell integrators): two integrator
@@ -105,7 +109,7 @@ func generateBounceBall() {
 	}
 	if bounceKicks != bounceShownKicks {
 		bounceShownKicks = bounceKicks
-		if led := doc.Call("getElementById", "bounce-kicks"); led.Truthy() {
+		if led := dom.Doc.Call("getElementById", "bounce-kicks"); led.Truthy() {
 			led.Set("textContent", strconv.Itoa(bounceKicks))
 		}
 	}
@@ -162,7 +166,7 @@ func bounceBeep(freq float64, ms int) {
 // syncBounceExtras runs on every panel rebuild: entering re-drops the ball
 // face-on; leaving releases the blip lease.
 func syncBounceExtras(mode string) {
-	if sect := doc.Call("getElementById", "bounce-module"); sect.Truthy() {
+	if sect := dom.Doc.Call("getElementById", "bounce-module"); sect.Truthy() {
 		if mode == "bounceball" {
 			sect.Get("style").Set("display", "")
 		} else {

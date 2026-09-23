@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strings"
 	"syscall/js"
 )
@@ -41,11 +42,11 @@ func registerKnobHover(el js.Value, nudge func(up bool)) {
 	if !el.Truthy() {
 		return
 	}
-	el.Call("addEventListener", "pointerenter", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	el.Call("addEventListener", "pointerenter", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		hoverNudge = nudge
 		return nil
 	}))
-	el.Call("addEventListener", "pointerleave", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	el.Call("addEventListener", "pointerleave", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		// Only clear if this knob is still the live one. A pointerleave on the
 		// outer knob arrives when the pointer crosses onto the inner disc,
 		// which has already claimed the nudge — clearing unconditionally would
@@ -59,7 +60,7 @@ func registerKnobHover(el js.Value, nudge func(up bool)) {
 
 // wireKnobArrowKeys installs the one document-level key listener.
 func wireKnobArrowKeys() {
-	doc.Call("addEventListener", "keydown", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if hoverNudge == nil {
 			return nil
 		}

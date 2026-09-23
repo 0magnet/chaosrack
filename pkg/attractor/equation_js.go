@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"strconv"
 	"strings"
@@ -277,17 +278,17 @@ func generateCustom() {
 func buildCustomPanel(paramsDiv js.Value) {
 	parseCustom()
 
-	eqCol := doc.Call("createElement", "span")
+	eqCol := dom.Doc.Call("createElement", "span")
 	eqCol.Set("className", "pcell")
 	eqCol.Set("style", "gap:2px;")
 
 	makeEqField := func(i int) js.Value {
-		row := doc.Call("createElement", "span")
+		row := dom.Doc.Call("createElement", "span")
 		row.Set("className", "grp")
-		lbl := doc.Call("createElement", "span")
+		lbl := dom.Doc.Call("createElement", "span")
 		lbl.Set("textContent", eqLabel(i)+" =")
 		lbl.Set("style", "color:#8cf;min-width:44px;")
-		inp := doc.Call("createElement", "input")
+		inp := dom.Doc.Call("createElement", "input")
 		inp.Set("type", "text")
 		inp.Set("value", customEq[i])
 		inp.Set("spellcheck", false)
@@ -297,7 +298,7 @@ func buildCustomPanel(paramsDiv js.Value) {
 		what := map[bool]string{true: "the NEXT value of " + eqLabel(i)[:1], false: eqLabel(i)}[customIterate]
 		inp.Set("title", what+" — expression in "+vars+"; any other letters become knobbed parameters (e / pi / tau are constants)")
 		// Commit on change (blur/Enter) to avoid rebuilding mid-keystroke.
-		inp.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		inp.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			customEq[i] = inp.Get("value").String()
 			resetAttractorState()
 			buildParamPanel("custom") // reparse + refresh param knobs
@@ -316,22 +317,22 @@ func buildCustomPanel(paramsDiv js.Value) {
 	}
 
 	// Flavor + 4D toggles, then the error line.
-	ctlRow := doc.Call("createElement", "span")
+	ctlRow := dom.Doc.Call("createElement", "span")
 	ctlRow.Set("className", "grp")
 
 	// makeSwitch is the shared anatomy of both toggles: label · checkbox · text,
 	// committing through a reparse so the registry, the labels and the knobs all
 	// change together.
 	makeSwitch := func(text, title string, on bool, set func(bool)) js.Value {
-		lbl := doc.Call("createElement", "label")
+		lbl := dom.Doc.Call("createElement", "label")
 		lbl.Set("className", "grp")
 		lbl.Set("style", "cursor:pointer;color:#8cf;")
-		chk := doc.Call("createElement", "input")
+		chk := dom.Doc.Call("createElement", "input")
 		chk.Set("type", "checkbox")
 		chk.Set("className", "sw")
 		chk.Set("title", title)
 		chk.Set("checked", on)
-		chk.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		chk.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			set(chk.Get("checked").Bool())
 			// Reparse before the rebuild: the panel's mode-scoped syncs run
 			// ahead of buildCustomPanel, and IsMap("custom") has to be true by
@@ -344,7 +345,7 @@ func buildCustomPanel(paramsDiv js.Value) {
 			return nil
 		}))
 		lbl.Call("appendChild", chk)
-		txt := doc.Call("createElement", "span")
+		txt := dom.Doc.Call("createElement", "span")
 		txt.Set("textContent", " "+text)
 		lbl.Call("appendChild", txt)
 		return lbl
@@ -363,7 +364,7 @@ func buildCustomPanel(paramsDiv js.Value) {
 			customUseW, func(v bool) { customUseW = v }))
 	}
 	if customErr != "" {
-		errSpan := doc.Call("createElement", "span")
+		errSpan := dom.Doc.Call("createElement", "span")
 		errSpan.Set("textContent", "⚠ "+customErr)
 		errSpan.Set("style", "color:#f86;font-size:11px;margin-left:8px;")
 		ctlRow.Call("appendChild", errSpan)
@@ -373,13 +374,13 @@ func buildCustomPanel(paramsDiv js.Value) {
 	// The equation editor lives in its own "Equation" module, before Parameters
 	// (which holds the detected parameter knobs).
 	if paramsSect := paramsDiv.Call("closest", ".sect"); paramsSect.Truthy() {
-		if old := doc.Call("getElementById", "eqn-module"); old.Truthy() {
+		if old := dom.Doc.Call("getElementById", "eqn-module"); old.Truthy() {
 			old.Get("parentNode").Call("removeChild", old)
 		}
-		eqMod := doc.Call("createElement", "div")
+		eqMod := dom.Doc.Call("createElement", "div")
 		eqMod.Set("className", "sect eqnmodule")
 		eqMod.Set("id", "eqn-module")
-		hdr := doc.Call("createElement", "div")
+		hdr := dom.Doc.Call("createElement", "div")
 		hdr.Set("className", "sect-hdr")
 		hdr.Set("textContent", "Equation")
 		hdrTip := "Equation — the editable system: one derivative expression per state variable; commits on Enter/blur"
@@ -388,7 +389,7 @@ func buildCustomPanel(paramsDiv js.Value) {
 		}
 		hdr.Set("title", hdrTip)
 		eqMod.Call("appendChild", hdr)
-		body := doc.Call("createElement", "div")
+		body := dom.Doc.Call("createElement", "div")
 		body.Set("className", "row")
 		body.Call("appendChild", eqCol)
 		eqMod.Call("appendChild", body)
@@ -411,7 +412,7 @@ func buildCustomPanel(paramsDiv js.Value) {
 			defs = append(defs, paramDef{"custom-" + name, name, ptr, 1, -10, 10, 0.01})
 		}
 	}
-	grid := doc.Call("createElement", "div")
+	grid := dom.Doc.Call("createElement", "div")
 	grid.Set("className", "punit-grid")
 	for _, d := range defs {
 		grid.Call("appendChild", buildParamUnit(selectedMode, d))

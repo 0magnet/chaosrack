@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"encoding/json"
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/metersproto"
@@ -55,14 +56,14 @@ func startMetersWorker() {
 		}
 	}()
 	metersW = ctor.New(metersWorkerURL)
-	metersW.Set("onmessage", trackedFuncOf(func(_ js.Value, args []js.Value) interface{} {
+	metersW.Set("onmessage", dom.FuncOf(func(_ js.Value, args []js.Value) interface{} {
 		if len(args) == 0 {
 			return nil
 		}
 		onMetersMessage(args[0].Get("data"))
 		return nil
 	}))
-	metersW.Set("onerror", trackedFuncOf(func(_ js.Value, _ []js.Value) interface{} {
+	metersW.Set("onerror", dom.FuncOf(func(_ js.Value, _ []js.Value) interface{} {
 		// It failed to load or it panicked. Either way the panel takes the
 		// analyzers back rather than showing dashes forever.
 		metersWReady = false

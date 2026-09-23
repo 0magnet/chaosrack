@@ -4,6 +4,7 @@ package attractor
 
 import (
 	_ "embed"
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"strconv"
 	"strings"
@@ -42,7 +43,7 @@ func setKScale(v float64) {
 		v = 2.2
 	}
 	panelScale = v
-	doc.Get("documentElement").Get("style").Call("setProperty", "--kscale", strconv.FormatFloat(v, 'f', 3, 64))
+	dom.Doc.Get("documentElement").Get("style").Call("setProperty", "--kscale", strconv.FormatFloat(v, 'f', 3, 64))
 	// --kscale drives the CSS; the rack needs the same number told to it,
 	// because the slot pitch it snaps modules to scales with the interface.
 	// rackSetScale re-quantizes, so there is no separate call here.
@@ -154,8 +155,8 @@ var hostFooter js.Value
 // the panel INLINE into the host page's footer, below its existing content.
 // The edge + sizes persist in localStorage.
 func applyDock(edge string) {
-	shell := doc.Call("getElementById", "panel-shell")
-	p := doc.Call("getElementById", "controls-panel")
+	shell := dom.Doc.Call("getElementById", "panel-shell")
+	p := dom.Doc.Call("getElementById", "controls-panel")
 	if !shell.Truthy() || !p.Truthy() {
 		return
 	}
@@ -252,8 +253,8 @@ func applyDock(edge string) {
 		}
 	} else {
 		standalonePanel = true
-		if !shell.Get("parentElement").Equal(body) {
-			body.Call("appendChild", shell)
+		if !shell.Get("parentElement").Equal(dom.Body) {
+			dom.Body.Call("appendChild", shell)
 		}
 		shell.Get("style").Set("cssText", shellBase+shellCSS)
 		p.Get("style").Set("cssText", panelLook+panelCSS)
@@ -289,7 +290,7 @@ func applyDock(edge string) {
 	layoutSkirts() // a re-dock may be the first time the panel has a size
 	positionResizeHandle()
 	for _, e := range []string{"top", "bottom", "left", "right", "float", "footer"} {
-		if b := doc.Call("getElementById", "dock-"+e); b.Truthy() {
+		if b := dom.Doc.Call("getElementById", "dock-"+e); b.Truthy() {
 			if e == edge {
 				b.Get("classList").Call("add", "active")
 			} else {
@@ -341,7 +342,7 @@ func positionResizeHandle() {
 	if !resizeHandle.Truthy() {
 		return
 	}
-	p := doc.Call("getElementById", "controls-panel")
+	p := dom.Doc.Call("getElementById", "controls-panel")
 	hidden := !p.Truthy() || p.Get("style").Get("display").String() == "none"
 	if hidden || dockEdge == "float" {
 		resizeHandle.Get("style").Set("display", "none")
@@ -360,7 +361,7 @@ func positionAudioMeters() {
 	}
 	top, left := 8.0, 8.0
 	if standalonePanel {
-		if p := doc.Call("getElementById", "controls-panel"); p.Truthy() && p.Get("style").Get("display").String() != "none" {
+		if p := dom.Doc.Call("getElementById", "controls-panel"); p.Truthy() && p.Get("style").Get("display").String() != "none" {
 			r := p.Call("getBoundingClientRect")
 			switch dockEdge {
 			case "left":
@@ -380,22 +381,22 @@ func positionAudioMeters() {
 func initDockResize() {
 	// Declared in the shell's furniture now rather than built here: it has to
 	// be a child of the shell for CSS to place it against the dock edge.
-	resizeHandle = doc.Call("getElementById", "dock-resize")
+	resizeHandle = dom.Doc.Call("getElementById", "dock-resize")
 	if !resizeHandle.Truthy() {
 		return
 	}
-	resizeHandle.Call("addEventListener", "pointerdown", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	resizeHandle.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		a[0].Call("preventDefault")
 		resizing = true
 		return nil
 	}))
 	// The "DOCK" label doubles as a resize grip (a bigger, obvious touch target
 	// than the thin bar). Dragging it resizes exactly like the bar.
-	if dl := doc.Call("querySelector", "#dock-controls .dock-lbl"); dl.Truthy() {
+	if dl := dom.Doc.Call("querySelector", "#dock-controls .dock-lbl"); dl.Truthy() {
 		dl.Get("style").Set("cursor", "grab")
 		dl.Get("style").Set("touchAction", "none")
 		dl.Set("title", "DOCK — drag this label to resize the panel; the arrow buttons choose the dock edge or floating mode")
-		dl.Call("addEventListener", "pointerdown", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		dl.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			a[0].Call("preventDefault")
 			a[0].Call("stopPropagation")
 			resizing = true
@@ -432,7 +433,7 @@ func initDockResize() {
 		dockSizeW = clampDock(dockSizeW, grip, winW())
 		applyDock(dockEdge)
 	})
-	doc.Call("addEventListener", "pointerup", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "pointerup", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if resizing {
 			resizing = false
 			// Settle exactly, now that the once-a-frame path is done with, and
@@ -445,15 +446,15 @@ func initDockResize() {
 	// Keep the bar on the panel's edge as its content height changes
 	// (audio-mod rows, section collapse, mode switches, window resize).
 	if ro := js.Global().Get("ResizeObserver"); ro.Truthy() {
-		obs := ro.New(trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+		obs := ro.New(dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			positionResizeHandle()
 			return nil
 		}))
-		if p := doc.Call("getElementById", "controls-panel"); p.Truthy() {
+		if p := dom.Doc.Call("getElementById", "controls-panel"); p.Truthy() {
 			obs.Call("observe", p)
 		}
 	}
-	js.Global().Call("addEventListener", "resize", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	js.Global().Call("addEventListener", "resize", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if dockEdge == "float" {
 			reclampPanelWindow() // a saved position must not strand it off-screen
 		}
@@ -466,15 +467,15 @@ func initDockResize() {
 func wireDockButtons() {
 	for _, e := range []string{"top", "bottom", "left", "right", "float", "footer"} {
 		edge := e
-		if b := doc.Call("getElementById", "dock-"+e); b.Truthy() {
-			b.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		if b := dom.Doc.Call("getElementById", "dock-"+e); b.Truthy() {
+			b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 				applyDock(edge)
 				return nil
 			}))
 		}
 	}
 	// The footer dock target only exists on host pages that have a <footer>.
-	if fb := doc.Call("getElementById", "dock-footer"); fb.Truthy() && !hostFooter.Truthy() {
+	if fb := dom.Doc.Call("getElementById", "dock-footer"); fb.Truthy() && !hostFooter.Truthy() {
 		fb.Get("style").Set("display", "none")
 	}
 }

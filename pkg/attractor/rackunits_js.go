@@ -20,6 +20,7 @@ package attractor
 // here: give it a .runit-open as well and it gets an opening.
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -65,7 +66,7 @@ var instrumentUnits = []struct{ panelID, title string }{
 }
 
 // rackFrame is the 19-inch frame: the element the units are bolted into.
-func rackFrame() js.Value { return doc.Call("querySelector", rackFrameSel) }
+func rackFrame() js.Value { return dom.Doc.Call("querySelector", rackFrameSel) }
 
 // ensureRackFrame turns the flat .modules container into a frame with one
 // subrack unit in it, moving the modules into that unit's opening.
@@ -77,13 +78,13 @@ func ensureRackFrame() js.Value {
 	if f := rackFrame(); f.Truthy() {
 		return f
 	}
-	host := doc.Call("querySelector", ".modules")
+	host := dom.Doc.Call("querySelector", ".modules")
 	if !host.Truthy() {
 		return js.Undefined()
 	}
 	// .modules becomes the FRAME. Its children become the first opening's.
 	host.Get("classList").Call("add", "rack-frame")
-	open := doc.Call("createElement", "div")
+	open := dom.Doc.Call("createElement", "div")
 	open.Set("className", unitOpenCls)
 	for host.Get("firstChild").Truthy() {
 		c := host.Get("firstChild")
@@ -101,7 +102,7 @@ func ensureRackFrame() js.Value {
 // and below, all of it the unit's own chrome rather than something drawn
 // behind a row of modules.
 func newSubrackUnit(open js.Value) js.Value {
-	u := doc.Call("createElement", "div")
+	u := dom.Doc.Call("createElement", "div")
 	u.Set("className", unitClass)
 	u.Call("appendChild", unitEar())
 	u.Call("appendChild", open)
@@ -113,10 +114,10 @@ func newSubrackUnit(open js.Value) js.Value {
 // is bolted through. A 19-inch frame has (482.6 - 426.72)/2 of ear per
 // side, which is what the handles bolt to.
 func unitEar() js.Value {
-	e := doc.Call("createElement", "div")
+	e := dom.Doc.Call("createElement", "div")
 	e.Set("className", unitEarCls)
 	for i := 0; i < 3; i++ {
-		e.Call("appendChild", doc.Call("createElement", "i"))
+		e.Call("appendChild", dom.Doc.Call("createElement", "i"))
 	}
 	return e
 }
@@ -291,7 +292,7 @@ func relayoutUnits() {
 	// every resize.
 	opens := unitOpenings()
 	for len(opens) < len(units) {
-		open := doc.Call("createElement", "div")
+		open := dom.Doc.Call("createElement", "div")
 		open.Set("className", unitOpenCls)
 		u := newSubrackUnit(open)
 		f.Call("appendChild", u)
@@ -376,7 +377,7 @@ func clearUnitBlanks(f js.Value) {
 
 // unitBlank is one blank panel, one slot wide.
 func unitBlank() js.Value {
-	b := doc.Call("createElement", "div")
+	b := dom.Doc.Call("createElement", "div")
 	b.Set("className", unitBlankCls)
 	b.Get("style").Set("width", strconv.FormatFloat(moduleSlot*panelScale, 'f', 2, 64)+"px")
 	return b
@@ -390,7 +391,7 @@ func unitBlank() js.Value {
 // without knowing it is in a rack.
 func relayoutInstrumentUnits(f js.Value) {
 	for _, iu := range instrumentUnits {
-		panel := doc.Call("getElementById", iu.panelID)
+		panel := dom.Doc.Call("getElementById", iu.panelID)
 		if !panel.Truthy() {
 			continue
 		}
@@ -419,10 +420,10 @@ func relayoutInstrumentUnits(f js.Value) {
 // beside the panel and it has an opening, and the packing above will
 // fill it like any other.
 func newInstrumentUnit(panel js.Value) js.Value {
-	u := doc.Call("createElement", "div")
+	u := dom.Doc.Call("createElement", "div")
 	u.Set("className", unitClass+" runit-instr")
 	u.Call("appendChild", unitEar())
-	w := doc.Call("createElement", "div")
+	w := dom.Doc.Call("createElement", "div")
 	w.Set("className", unitPanelCls)
 	w.Call("appendChild", panel)
 	u.Call("appendChild", w)
@@ -468,7 +469,7 @@ func restoreRackBay() {
 	if v, ok := lsGet("wasmstuff-handles"); ok {
 		bayOn = v == "1"
 	}
-	if sw := doc.Call("getElementById", "handles-on"); sw.Truthy() {
+	if sw := dom.Doc.Call("getElementById", "handles-on"); sw.Truthy() {
 		sw.Set("checked", bayOn)
 	}
 	layoutRackHandles()
@@ -527,7 +528,7 @@ func layoutRackHandles() {
 // independent of the MODEL knob — nothing about which model is on the main
 // canvas has any bearing on whether an instrument is in the rack.
 func setScopeUnit(on bool) {
-	p := doc.Call("getElementById", "scope-panel")
+	p := dom.Doc.Call("getElementById", "scope-panel")
 	if !p.Truthy() {
 		return
 	}
@@ -545,11 +546,11 @@ func setScopeUnit(on bool) {
 
 // wireScopeUnit hooks the Scope switch up and applies its stored state.
 func wireScopeUnit() {
-	sw := doc.Call("getElementById", "scope-on")
+	sw := dom.Doc.Call("getElementById", "scope-on")
 	if !sw.Truthy() {
 		return
 	}
-	sw.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		setScopeUnit(sw.Get("checked").Bool())
 		saveRackLayout()
 		return nil
@@ -764,7 +765,7 @@ func planRunLabels(open js.Value, runs []sectionRun, mods []js.Value, idx []int)
 // browser is asked to compute it.
 func drawRunLabels(ls []runLabel) {
 	for _, l := range ls {
-		el := doc.Call("createElement", "div")
+		el := dom.Doc.Call("createElement", "div")
 		el.Set("className", "runit-label")
 		el.Get("dataset").Set("section", l.section)
 		el.Set("textContent", l.title)

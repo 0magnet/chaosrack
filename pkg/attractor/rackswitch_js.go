@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strings"
 	"syscall/js"
 
@@ -30,10 +31,10 @@ import (
 
 // switchControls is every two-state control on the panel, as plain data.
 func switchControls() []controlspec.ControlInfo {
-	if !doc.Truthy() {
+	if !dom.Doc.Truthy() {
 		return nil
 	}
-	els := doc.Call("querySelectorAll", "input[type=checkbox]")
+	els := dom.Doc.Call("querySelectorAll", "input[type=checkbox]")
 	n := els.Get("length").Int()
 	out := make([]controlspec.ControlInfo, 0, n)
 	for i := 0; i < n; i++ {
@@ -180,11 +181,11 @@ func rackControls() []controlspec.ControlInfo {
 // that was a hazard rather than a fault; applying it makes the two agree by
 // construction instead of by coincidence.
 func wireSwitch(id string, set func(bool)) {
-	el := doc.Call("getElementById", id)
+	el := dom.Doc.Call("getElementById", id)
 	if !el.Truthy() {
 		return
 	}
-	el.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	el.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		set(el.Get("checked").Bool())
 		return nil
 	}))

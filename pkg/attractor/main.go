@@ -5,6 +5,7 @@ package attractor
 import (
 	_ "embed"
 	"fmt"
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"runtime"
 	"strconv"
@@ -43,7 +44,7 @@ func Run() {
 	// DOM is ready (caller's responsibility); otherwise gocanvas
 	// won't exist yet and canvasEl.Call("getContext", ...) panics.
 	initWebGL()
-	if body.IsUndefined() || body.IsNull() {
+	if dom.Body.IsUndefined() || dom.Body.IsNull() {
 		js.Global().Call("alert", "cannot get html body, exiting")
 		return
 	}
@@ -71,9 +72,9 @@ func Run() {
 	// It also gives the panel one thing to move rather than several: whatever
 	// ends up owning the geometry — an edge dock, a floating window, a host
 	// page's footer — moves the shell, and the furniture goes with it.
-	shell := doc.Call("createElement", "div")
+	shell := dom.Doc.Call("createElement", "div")
 	shell.Set("id", "panel-shell")
-	panel := doc.Call("createElement", "div")
+	panel := dom.Doc.Call("createElement", "div")
 	panel.Set("id", "controls-panel")
 	// The panel's stylesheet goes in the HEAD, not in the panel.
 	//
@@ -92,13 +93,13 @@ func Run() {
 	// So rack-go's goes in explicitly, ahead of it. It still has to come
 	// last, and now it says so rather than happening to.
 	rack.InjectCSS()
-	css := doc.Call("createElement", "style")
+	css := dom.Doc.Call("createElement", "style")
 	css.Set("id", "chaosrack-panel-css")
 	css.Set("textContent", panelCSS)
-	doc.Get("head").Call("appendChild", css)
+	dom.Doc.Get("head").Call("appendChild", css)
 	panel.Set("innerHTML", controlsBody)
 	buildModeSelect(panel) // the mode <select> derives from the mode registry
-	footers := doc.Call("getElementsByTagName", "footer")
+	footers := dom.Doc.Call("getElementsByTagName", "footer")
 	var existingFooter js.Value
 	if footers.Get("length").Int() > 0 {
 		existingFooter = footers.Index(0)
@@ -119,13 +120,13 @@ func Run() {
 	// and re-serializing the shell would hand back a fresh copy of it with
 	// every listener and every knob dropped.
 	{
-		tmp := doc.Call("createElement", "div")
+		tmp := dom.Doc.Call("createElement", "div")
 		tmp.Set("innerHTML", shellFurniture)
 		for tmp.Get("firstChild").Truthy() {
 			shell.Call("appendChild", tmp.Get("firstChild"))
 		}
 	}
-	body.Call("appendChild", shell)
+	dom.Body.Call("appendChild", shell)
 	wireDockButtons()
 	initDockResize()
 	if hostFooter.Truthy() && !ForceStandalonePanel {
@@ -148,9 +149,7 @@ func Run() {
 		}
 	}
 
-	// Refresh DOM
-	doc = js.Global().Get("document")
-	body = doc.Get("body")
+	dom.Init() // refresh the handles; the host's document may have changed
 	bootMark("fonts")
 	injectFonts() // embedded @font-face rules for the panel / LED / header fonts
 	cacheElementRefs()
@@ -159,13 +158,13 @@ func Run() {
 	buildPanelKnobs()
 	// Floating show/hide button for the whole control panel (it can block the
 	// view). Lives outside the panel so it can bring it back.
-	panelToggle := doc.Call("createElement", "button")
+	panelToggle := dom.Doc.Call("createElement", "button")
 	panelToggle.Set("id", "panel-toggle")
 	panelToggle.Set("textContent", "▤")
 	panelToggle.Set("title", "Show / hide controls (brings them back if the model's 'Front' overlay is hiding them)")
 	panelToggle.Set("style", "position:fixed;bottom:6px;left:6px;z-index:var(--z-toggle);background:#222;color:#ccc;border:1px solid #555;border-radius:3px;font-family:'B612 Mono',monospace;font-size:14px;cursor:pointer;padding:2px 8px;opacity:0.55;")
-	panelToggle.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		p := doc.Call("getElementById", "controls-panel")
+	panelToggle.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		p := dom.Doc.Call("getElementById", "controls-panel")
 		if !p.Truthy() {
 			return nil
 		}
@@ -176,14 +175,14 @@ func Run() {
 		// the shell around it, so a button that asked only the panel thought the
 		// controls were on screen, hid them again, and had to be pressed twice
 		// to give back something that was never visible in between.
-		if sh := doc.Call("getElementById", "panel-shell"); sh.Truthy() &&
+		if sh := dom.Doc.Call("getElementById", "panel-shell"); sh.Truthy() &&
 			sh.Get("style").Get("display").String() == "none" {
 			hidden = true
 		}
 		// The recovery-raise is ONE bit: body.panel-raised. CSS lifts the panel
 		// AND its chrome (resize strip, float grip, dock buttons) together, so
 		// the whole recovery unit surfaces above the Front canvas as a piece.
-		cl := body.Get("classList")
+		cl := dom.Body.Get("classList")
 		raised := cl.Call("contains", "panel-raised").Bool()
 		// Is any of the model drawn over the panel? It used to be a switch, so
 		// this was a checkbox read; with the Fore knob it is anything but the
@@ -212,7 +211,7 @@ func Run() {
 			// a person would try.
 			if deskContain && panelWindow == nil {
 				relaunchRack()
-			} else if sh := doc.Call("getElementById", "panel-shell"); sh.Truthy() {
+			} else if sh := dom.Doc.Call("getElementById", "panel-shell"); sh.Truthy() {
 				sh.Get("style").Set("display", "")
 			}
 			// First show after a hidden boot: module widths were never
@@ -234,18 +233,18 @@ func Run() {
 		}
 		return nil
 	}))
-	body.Call("appendChild", panelToggle)
+	dom.Body.Call("appendChild", panelToggle)
 
 	// "Size / Step × / Fine ×" — one 3-layer concentric knob: the outermost
 	// ring is Size (scales every knob via --kscale), the middle ring is Step×
 	// (scales every param knob's coarse step), the inner knob is Fine× (the
 	// inner disc's fraction of a coarse step). Step×/Fine× are read live by the
 	// param knobs.
-	sr := doc.Call("getElementById", "step-ratio")
-	fr := doc.Call("getElementById", "fine-ratio")
-	ks := doc.Call("getElementById", "knob-size")
+	sr := dom.Doc.Call("getElementById", "step-ratio")
+	fr := dom.Doc.Call("getElementById", "fine-ratio")
+	ks := dom.Doc.Call("getElementById", "knob-size")
 	if sr.Truthy() && fr.Truthy() && ks.Truthy() {
-		if holder := doc.Call("getElementById", "stepfine-stack"); holder.Truthy() {
+		if holder := dom.Doc.Call("getElementById", "stepfine-stack"); holder.Truthy() {
 			// Two concentric clickable label rings: Step× (outer) · Fine× (inner).
 			// Size moved to its own Style module so this stays compact.
 			sr.Set("title", "Step × — coarse step-size multiplier for every parameter knob")
@@ -259,8 +258,8 @@ func Run() {
 			// Separate LED readouts for Step× and Fine× (mirror the label rings).
 			// Fixed decimals so the readouts are constant width (zero-padded) and
 			// never resize as the ratios change.
-			sled := doc.Call("getElementById", "step-led")
-			fled := doc.Call("getElementById", "fine-led")
+			sled := dom.Doc.Call("getElementById", "step-led")
+			fled := dom.Doc.Call("getElementById", "fine-led")
 			fmtF := func(s string, dec int) string {
 				v, _ := strconv.ParseFloat(s, 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 				return strconv.FormatFloat(v, 'f', dec, 64)
@@ -273,28 +272,28 @@ func Run() {
 					fled.Set("textContent", fmtF(fr.Get("value").String(), 3)) // 1.000 … 0.001
 				}
 			}
-			sr.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} { upd(); return nil }))
-			fr.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} { upd(); return nil }))
+			sr.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} { upd(); return nil }))
+			fr.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} { upd(); return nil }))
 			upd()
 		}
 		// Size knob lives in its own Style module (a lone labeled selector ring).
-		if sh := doc.Call("getElementById", "size-stack"); sh.Truthy() {
+		if sh := dom.Doc.Call("getElementById", "size-stack"); sh.Truthy() {
 			ks.Set("title", "Size — scales the whole control interface (S / M / L / XL)")
 			sh.Call("appendChild", singleSelectorKnob(ks, []string{"S", "M", "L", "XL"}))
 			ks.Get("style").Set("display", "none")
 		}
 		// Knob-style selector (outer) with the LED-color selector stacked as its
 		// inner ring — appearance + readout color on one shaft, saving a cell.
-		if st := doc.Call("getElementById", "knob-style"); st.Truthy() {
-			lc := doc.Call("getElementById", "led-color")
+		if st := dom.Doc.Call("getElementById", "knob-style"); st.Truthy() {
+			lc := dom.Doc.Call("getElementById", "led-color")
 			st.Set("title", "Knob style — knob face appearance (std / flat / vint / chrome / gold / carbon)")
-			if kh := doc.Call("getElementById", "knobstyle-stack"); kh.Truthy() {
+			if kh := dom.Doc.Call("getElementById", "knobstyle-stack"); kh.Truthy() {
 				if lc.Truthy() {
 					lc.Set("title", "LED color — readout color for every numeric LED readout")
 					// Populate the LED-color options from the single ordered source.
 					var dotCols []string
 					for _, d := range ledColorDefs {
-						o := doc.Call("createElement", "option")
+						o := dom.Doc.Call("createElement", "option")
 						o.Set("value", d.name)
 						o.Set("textContent", d.name)
 						o.Set("title", d.desc)
@@ -313,13 +312,13 @@ func Run() {
 				}
 			}
 			applyStyle := func() {
-				cl := doc.Call("getElementById", "controls-panel").Get("classList")
+				cl := dom.Doc.Call("getElementById", "controls-panel").Get("classList")
 				for _, s := range []string{"ks-std", "ks-flat", "ks-vint", "ks-chrome", "ks-gold", "ks-carbon"} {
 					cl.Call("remove", s)
 				}
 				cl.Call("add", "ks-"+st.Get("value").String())
 			}
-			st.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+			st.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 				applyStyle()
 				return nil
 			}))
@@ -339,7 +338,7 @@ func Run() {
 				}
 				applyLED := func() {
 					c := ledCols[lc.Get("value").String()]
-					s := doc.Call("getElementById", "controls-panel").Get("style")
+					s := dom.Doc.Call("getElementById", "controls-panel").Get("style")
 					s.Call("setProperty", "--led-col", c[0])
 					s.Call("setProperty", "--led-glow", c[1])
 					s.Call("setProperty", "--led-bg", c[2])
@@ -348,14 +347,14 @@ func Run() {
 				// Readout below the knob: an "LED" label to the left of a color-name
 				// display (shown in the current LED color), like a labeled readout.
 				var ledRO js.Value
-				if kh := doc.Call("getElementById", "knobstyle-stack"); kh.Truthy() {
-					row := doc.Call("createElement", "span")
+				if kh := dom.Doc.Call("getElementById", "knobstyle-stack"); kh.Truthy() {
+					row := dom.Doc.Call("createElement", "span")
 					row.Set("className", "ledcolor-row")
-					lab := doc.Call("createElement", "span")
+					lab := dom.Doc.Call("createElement", "span")
 					lab.Set("className", "plabel ledcolor-lbl")
 					lab.Set("textContent", "LED")
 					lab.Set("title", "LED — the readout shows the selected LED color's name (inner knob)")
-					ledRO = doc.Call("createElement", "span")
+					ledRO = dom.Doc.Call("createElement", "span")
 					ledRO.Set("className", "selk-readout ledcolor-ro")
 					row.Call("appendChild", lab)
 					row.Call("appendChild", ledRO)
@@ -371,7 +370,7 @@ func Run() {
 						dialPosTitle(ledRO, lc, idx)
 					}
 				}
-				lc.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} { applyLED(); updLEDRO(); return nil }))
+				lc.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} { applyLED(); updLEDRO(); return nil }))
 				applyLED()
 				updLEDRO()
 				lc.Get("style").Set("display", "none")
@@ -384,13 +383,13 @@ func Run() {
 				})
 			}
 		}
-		sr.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		sr.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			if v, err := strconv.ParseFloat(sr.Get("value").String(), 64); err == nil && v > 0 {
 				coarseRatio = v
 			}
 			return nil
 		}))
-		fr.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		fr.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			if v, err := strconv.ParseFloat(fr.Get("value").String(), 64); err == nil && v > 0 {
 				fineRatio = v
 			}
@@ -401,7 +400,7 @@ func Run() {
 				setKScale(v)
 			}
 		}
-		ks.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		ks.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			applyKS()
 			return nil
 		}))
@@ -443,7 +442,7 @@ func Run() {
 	}
 	bootMark("knobs-done")
 	wireModeAndResetInputs()
-	if dst := doc.Call("getElementById", "desk-style"); dst.Truthy() {
+	if dst := dom.Doc.Call("getElementById", "desk-style"); dst.Truthy() {
 		// The same treatment the Console's selects get, for the same reason.
 		// This one arrived as a bare <select> and was the only control in the
 		// whole panel a browser drew for itself: light grey, Arial, a native
@@ -479,7 +478,7 @@ func Run() {
 		}
 	}
 	// Select the matching dropdown option
-	sel := doc.Call("getElementById", "mode-select")
+	sel := dom.Doc.Call("getElementById", "mode-select")
 	if !sel.IsNull() && !sel.IsUndefined() {
 		sel.Set("value", selectedMode)
 	}
@@ -528,7 +527,7 @@ func Run() {
 			// Resetting the trail also drops persist mode (matches the old
 			// bespoke reset: a persisted trail makes the new length invisible).
 			persistTrail = false
-			doc.Call("getElementById", "persist-trail").Set("checked", false)
+			dom.Doc.Call("getElementById", "persist-trail").Set("checked", false)
 		}})
 	registerOutputControls()
 	// value so engine state matches the panel by construction (the old code
@@ -538,7 +537,7 @@ func Run() {
 	bootMark("permalink")
 	capturePermalinkAndRestore()
 	done := make(chan struct{})
-	renderFrame = trackedFuncOf(renderLoop)
+	renderFrame = dom.FuncOf(renderLoop)
 	js.Global().Call("requestAnimationFrame", renderFrame)
 
 	// Set initial trail-controls visibility for the starting mode.
@@ -594,7 +593,7 @@ func postDebugStats() {
 
 // Per-attractor initial conditions — defaults to (0.1, 0.5, -0.6) for most.
 func installErrorNet() {
-	js.Global().Call("addEventListener", "unhandledrejection", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	js.Global().Call("addEventListener", "unhandledrejection", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if len(a) > 0 {
 			js.Global().Get("console").Call("warn", "[async rejection contained]", a[0].Get("reason"))
 			a[0].Call("preventDefault")
@@ -636,25 +635,25 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 	// Reset auto-rotate, draw mode. (Speed / line width / trail — values,
 	// LEDs, buffer realloc, persist drop — are registry-owned above.)
 	paused = false
-	if ps := doc.Call("getElementById", "pause-sw"); ps.Truthy() {
+	if ps := dom.Doc.Call("getElementById", "pause-sw"); ps.Truthy() {
 		ps.Set("checked", false)
 	}
 	usePoints = false
 	attractorDrawMode = glTypes.LineStrip
 	dragMatrix = mgl32.Ident4() // clear trackball drag orientation
-	doc.Call("getElementById", "auto-rotate").Set("checked", true)
-	doc.Call("getElementById", "use-points").Set("checked", false)
-	doc.Call("getElementById", "show-info").Set("checked", false)
+	dom.Doc.Call("getElementById", "auto-rotate").Set("checked", true)
+	dom.Doc.Call("getElementById", "use-points").Set("checked", false)
+	dom.Doc.Call("getElementById", "show-info").Set("checked", false)
 	hideInfoWindow()
 	persistTrail = false
-	doc.Call("getElementById", "persist-trail").Set("checked", false)
+	dom.Doc.Call("getElementById", "persist-trail").Set("checked", false)
 	// The source and map rings are registry-owned, so the loop above has already
 	// put them back — including gradientSource / gradientColors and the dimming,
 	// because resetting a Control dispatches the change its own handler listens
 	// for. Only the Reverse switch, which is a checkbox and not a Control, is
 	// still this function's to set.
 	gradientReverse = false
-	doc.Call("getElementById", "gradient-reverse").Set("checked", false)
+	dom.Doc.Call("getElementById", "gradient-reverse").Set("checked", false)
 	updateGradientUI()
 
 	// Reset colors
@@ -662,10 +661,10 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 	midColor = [3]float32{0.0, 1.0, 0.0}
 	topColor = [3]float32{0.0, 0.0, 1.0}
 	bgColor = [3]float32{0, 0, 0}
-	doc.Call("getElementById", "color-base").Set("value", "#ff0000")
-	doc.Call("getElementById", "color-mid").Set("value", "#00ff00")
-	doc.Call("getElementById", "color-top").Set("value", "#0000ff")
-	doc.Call("getElementById", "color-bg").Set("value", "#000000")
+	dom.Doc.Call("getElementById", "color-base").Set("value", "#ff0000")
+	dom.Doc.Call("getElementById", "color-mid").Set("value", "#00ff00")
+	dom.Doc.Call("getElementById", "color-top").Set("value", "#0000ff")
+	dom.Doc.Call("getElementById", "color-bg").Set("value", "#000000")
 	gl.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
 	gl.Call("uniform3f", uMidColorLoc, midColor[0], midColor[1], midColor[2])
 	gl.Call("uniform3f", uTopColorLoc, topColor[0], topColor[1], topColor[2])
@@ -703,7 +702,7 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 		{"rec-region-sw", false},
 	}
 	for _, s := range swDefaults {
-		if sw := doc.Call("getElementById", s.id); sw.Truthy() && sw.Get("checked").Bool() != s.def {
+		if sw := dom.Doc.Call("getElementById", s.id); sw.Truthy() && sw.Get("checked").Bool() != s.def {
 			sw.Set("checked", s.def)
 			sw.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 		}
@@ -763,7 +762,7 @@ func startBackgroundTasks() {
 	// Window resize: keep canvas pixel dimensions in sync with the
 	// viewport so the model doesn't get stretched when devtools opens
 	// or closes (or on phone orientation change).
-	js.Global().Call("addEventListener", "resize", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	js.Global().Call("addEventListener", "resize", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		if sizeCanvasToViewport() {
 			gl.Call("viewport", 0, 0, width, height)
 			setupMatrices()
@@ -808,9 +807,9 @@ func applyHostPageTweaks() {
 	// the viewport, and the page could be scrolled for exactly as long as it took
 	// the wasm to boot and then never again.
 	if LockHostScroll {
-		noScrollStyle := doc.Call("createElement", "style")
+		noScrollStyle := dom.Doc.Call("createElement", "style")
 		noScrollStyle.Set("textContent", "html,body{overflow:hidden!important;margin:0;padding:0;}")
-		doc.Get("head").Call("appendChild", noScrollStyle)
+		dom.Doc.Get("head").Call("appendChild", noScrollStyle)
 	}
 
 	// Random initial orientation + low-rate rotation so the model doesn't start
@@ -827,7 +826,7 @@ func applyHostPageTweaks() {
 		// randomizeOrientation zeroed the rate sliders — put back any spin
 		// rates the permalink explicitly pinned (&rx/&ry/&rz).
 		for ax, v := range hashPinnedSpin {
-			if sl := doc.Call("getElementById", "rotation-controls-"+ax); sl.Truthy() {
+			if sl := dom.Doc.Call("getElementById", "rotation-controls-"+ax); sl.Truthy() {
 				sl.Set("value", v)
 				sl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 			}
@@ -846,7 +845,7 @@ func applyHostPageTweaks() {
 		// left every other one broken. The subtraction no longer happens, so
 		// this is back to being what it says: a guard on the pose.
 		for _, ax := range []string{"x", "y", "z"} {
-			if sl := doc.Call("getElementById", "rotation-controls-"+ax); sl.Truthy() && sl.Get("value").String() != "0" {
+			if sl := dom.Doc.Call("getElementById", "rotation-controls-"+ax); sl.Truthy() && sl.Get("value").String() != "0" {
 				sl.Set("value", "0")
 				sl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 			}
@@ -1024,8 +1023,8 @@ func wireColorAndViewControls() {
 	wireSweepDial()
 
 	// Event: persist trail checkbox
-	doc.Call("getElementById", "persist-trail").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		persistTrail = doc.Call("getElementById", "persist-trail").Get("checked").Bool()
+	dom.Doc.Call("getElementById", "persist-trail").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		persistTrail = dom.Doc.Call("getElementById", "persist-trail").Get("checked").Bool()
 		return nil
 	}))
 
@@ -1033,8 +1032,8 @@ func wireColorAndViewControls() {
 	// infowindow_js.go) rather than in a caption pinned over the canvas, so
 	// there is no element to create here and nothing to position: a description
 	// taller than the screen scrolls, and one in the way can be moved.
-	doc.Call("getElementById", "show-info").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		if doc.Call("getElementById", "show-info").Get("checked").Bool() {
+	dom.Doc.Call("getElementById", "show-info").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		if dom.Doc.Call("getElementById", "show-info").Get("checked").Bool() {
 			showInfoWindow()
 		} else {
 			hideInfoWindow()
@@ -1046,15 +1045,15 @@ func wireColorAndViewControls() {
 	// transparent so the host page's background (e.g. m2's SVG logo)
 	// shows through — picking a non-black bg here only tints what's
 	// drawn, it doesn't paint over the host.
-	doc.Call("getElementById", "color-bg").Call("addEventListener", "input", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		hex := doc.Call("getElementById", "color-bg").Get("value").String()
+	dom.Doc.Call("getElementById", "color-bg").Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		hex := dom.Doc.Call("getElementById", "color-bg").Get("value").String()
 		bgColor[0], bgColor[1], bgColor[2] = hexToRGB(hex)
 		gl.Call("clearColor", bgColor[0], bgColor[1], bgColor[2], 0)
 		return nil
 	}))
-	doc.Call("getElementById", "rst-color-bg").Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	dom.Doc.Call("getElementById", "rst-color-bg").Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		bgColor = [3]float32{0, 0, 0}
-		doc.Call("getElementById", "color-bg").Set("value", "#000000")
+		dom.Doc.Call("getElementById", "color-bg").Set("value", "#000000")
 		gl.Call("clearColor", 0, 0, 0, 0)
 		return nil
 	}))
@@ -1101,14 +1100,14 @@ func wireColorAndViewControls() {
 			updateGradientUI()
 		},
 	})
-	doc.Call("getElementById", "gradient-reverse").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		gradientReverse = doc.Call("getElementById", "gradient-reverse").Get("checked").Bool()
+	dom.Doc.Call("getElementById", "gradient-reverse").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		gradientReverse = dom.Doc.Call("getElementById", "gradient-reverse").Get("checked").Bool()
 		return nil
 	}))
 
 	// Event: pause button
-	doc.Call("getElementById", "pause-sw").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		paused = doc.Call("getElementById", "pause-sw").Get("checked").Bool()
+	dom.Doc.Call("getElementById", "pause-sw").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		paused = dom.Doc.Call("getElementById", "pause-sw").Get("checked").Bool()
 		return nil
 	}))
 
@@ -1122,16 +1121,16 @@ func wirePanelSwitches() {
 
 	// Event: normalize — reorient the current model to the default
 	// (identity) pose and stop any slider-driven spin.
-	doc.Call("getElementById", "normalize-btn").Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	dom.Doc.Call("getElementById", "normalize-btn").Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		normalizeOrientation()
 		return nil
 	}))
 
 	// Event: Edit eqn — load the current attractor's equations into the
 	// editable Custom mode (if we have parseable forms for it) and switch.
-	doc.Call("getElementById", "edit-eq-sw").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		sw := doc.Call("getElementById", "edit-eq-sw")
-		s := doc.Call("getElementById", "mode-select")
+	dom.Doc.Call("getElementById", "edit-eq-sw").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		sw := dom.Doc.Call("getElementById", "edit-eq-sw")
+		s := dom.Doc.Call("getElementById", "mode-select")
 		if sw.Get("checked").Bool() {
 			if selectedMode != "custom" {
 				preCustomMode = selectedMode // remember where to return
@@ -1153,8 +1152,8 @@ func wirePanelSwitches() {
 	// (Speed's input/reset wiring is owned by its ControlDesc registration.)
 
 	// Event: auto-rotate switch — fold the auto-spin into the Y rate knob.
-	doc.Call("getElementById", "auto-rotate").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		setAutoRotate(doc.Call("getElementById", "auto-rotate").Get("checked").Bool())
+	dom.Doc.Call("getElementById", "auto-rotate").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		setAutoRotate(dom.Doc.Call("getElementById", "auto-rotate").Get("checked").Bool())
 		return nil
 	}))
 
@@ -1163,15 +1162,15 @@ func wirePanelSwitches() {
 	// A selector rather than the switch it was, for the reason the Backdrop is
 	// one: the skin is one of three places a picture can go, and the other two
 	// already take any source. The mesh does not care what is on it.
-	if sk := doc.Call("getElementById", "skin-visual"); sk.Truthy() {
-		sk.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	if sk := dom.Doc.Call("getElementById", "skin-visual"); sk.Truthy() {
+		sk.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 			skinSource = sk.Get("value").String()
 			skinDirty = true
 			generateForMode(selectedMode)
 			buildParamPanel(selectedMode) // the Spectro module arrives and leaves with it
 			return nil
 		}))
-		if holder := doc.Call("getElementById", "skin-stack"); holder.Truthy() {
+		if holder := dom.Doc.Call("getElementById", "skin-stack"); holder.Truthy() {
 			holder.Call("appendChild", selectorKnobReadout(sk))
 		}
 		// No PermaKey: "sk" already carries it in permaCtls.
@@ -1192,14 +1191,14 @@ func wirePanelSwitches() {
 	//
 	// The select is now the only source of truth and the knob is a view of it,
 	// so a backdrop that is not in the list cannot be selected by anything.
-	if bv := doc.Call("getElementById", "bg-visual"); bv.Truthy() {
-		bv.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	if bv := dom.Doc.Call("getElementById", "bg-visual"); bv.Truthy() {
+		bv.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			setBackgroundVisual(bv.Get("value").String())
 			syncDeskExtras(selectedMode)  // the desk's own module follows it here
 			buildParamPanel(selectedMode) // so does the spectrogram's
 			return nil
 		}))
-		if holder := doc.Call("getElementById", "bg-stack"); holder.Truthy() {
+		if holder := dom.Doc.Call("getElementById", "bg-stack"); holder.Truthy() {
 			holder.Call("appendChild", selectorKnobReadout(bv))
 		}
 		// No PermaKey: "bd" already carries it in permaCtls.
@@ -1211,15 +1210,15 @@ func wirePanelSwitches() {
 	// Phosphor selector — populate from the phosphor table + set phosphorIdx.
 	// Lives in the Style module as a rotary knob with a name readout (too many
 	// options / too-long names for a label ring).
-	if ph := doc.Call("getElementById", "phosphor"); ph.Truthy() {
+	if ph := dom.Doc.Call("getElementById", "phosphor"); ph.Truthy() {
 		for i, p := range phosphors {
-			opt := doc.Call("createElement", "option")
+			opt := dom.Doc.Call("createElement", "option")
 			opt.Set("value", strconv.Itoa(i))
 			opt.Set("textContent", p.name)
 			opt.Set("title", p.desc)
 			ph.Call("appendChild", opt)
 		}
-		ph.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		ph.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			if v, err := strconv.Atoi(ph.Get("value").String()); err == nil {
 				phosphorIdx = v
 			}
@@ -1239,7 +1238,7 @@ func wirePanelSwitches() {
 			ID: "phosphor", Label: "Phosphor", IsSelect: true, SelectDef: "0",
 			ResetID: "rst-phosphor",
 		})
-		if holder := doc.Call("getElementById", "phosphor-stack"); holder.Truthy() {
+		if holder := dom.Doc.Call("getElementById", "phosphor-stack"); holder.Truthy() {
 			pk := selectorKnobReadout(ph)
 			holder.Call("appendChild", pk)
 			addPhosphorTraces(pk.Call("querySelector", ".knobstack"), ph)
@@ -1249,14 +1248,14 @@ func wirePanelSwitches() {
 	// Event: audio-mod checkbox — enable per-parameter audio modulation.
 	// The per-parameter routing controls appear under each attractor
 	// parameter (built by buildParamPanel) while this is checked.
-	doc.Call("getElementById", "audio-mod").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		setAudioMod(doc.Call("getElementById", "audio-mod").Get("checked").Bool())
+	dom.Doc.Call("getElementById", "audio-mod").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		setAudioMod(dom.Doc.Call("getElementById", "audio-mod").Get("checked").Bool())
 		return nil
 	}))
 
 	// Event: Meters switch — show/hide the top-left audio feature meters.
-	doc.Call("getElementById", "show-meters").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		metersEnabled = doc.Call("getElementById", "show-meters").Get("checked").Bool()
+	dom.Doc.Call("getElementById", "show-meters").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		metersEnabled = dom.Doc.Call("getElementById", "show-meters").Get("checked").Bool()
 		updateMetersVisibility()
 		return nil
 	}))
@@ -1264,8 +1263,8 @@ func wirePanelSwitches() {
 	// Event: function/signal generator — a client-side audio source that works
 	// with no server or mic (so audio modulation / spectrogram / xy work on the
 	// static site). Toggle + waveform + sweep-rate.
-	doc.Call("getElementById", "fg-on").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		setFuncGen(doc.Call("getElementById", "fg-on").Get("checked").Bool())
+	dom.Doc.Call("getElementById", "fg-on").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		setFuncGen(dom.Doc.Call("getElementById", "fg-on").Get("checked").Bool())
 		return nil
 	}))
 	buildGeneratorModule()
@@ -1299,20 +1298,20 @@ func wirePanelSwitches() {
 
 	// Template legend module + its Window-group toggle.
 	buildTemplateModule()
-	if sw := doc.Call("getElementById", "handles-on"); sw.Truthy() {
-		sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	if sw := dom.Doc.Call("getElementById", "handles-on"); sw.Truthy() {
+		sw.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			setRackBay(sw.Get("checked").Bool())
 			return nil
 		}))
 	}
-	doc.Call("getElementById", "tpl-on").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		setTemplate(doc.Call("getElementById", "tpl-on").Get("checked").Bool())
+	dom.Doc.Call("getElementById", "tpl-on").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		setTemplate(dom.Doc.Call("getElementById", "tpl-on").Get("checked").Bool())
 		return nil
 	}))
 
 	// Event: points/line toggle
-	doc.Call("getElementById", "use-points").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		usePoints = doc.Call("getElementById", "use-points").Get("checked").Bool()
+	dom.Doc.Call("getElementById", "use-points").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		usePoints = dom.Doc.Call("getElementById", "use-points").Get("checked").Bool()
 		if usePoints {
 			attractorDrawMode = glTypes.Points
 		} else {
@@ -1325,8 +1324,8 @@ func wirePanelSwitches() {
 	// (Trail's input/reset wiring is owned by its ControlDesc registration.)
 
 	// Event: ring-trail switch — beam model on/off (re-primes on enable).
-	if rs := doc.Call("getElementById", "ring-sw"); rs.Truthy() {
-		rs.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	if rs := dom.Doc.Call("getElementById", "ring-sw"); rs.Truthy() {
+		rs.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			ringOn = rs.Get("checked").Bool()
 			ringInvalidate()
 			return nil
@@ -1342,8 +1341,8 @@ func wirePanelSwitches() {
 	wireMIDISwitch()
 
 	// Event: the desk as the environment, with this app inside it.
-	if dc := doc.Call("getElementById", "desk-contain"); dc.Truthy() {
-		dc.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	if dc := dom.Doc.Call("getElementById", "desk-contain"); dc.Truthy() {
+		dc.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 			setDeskContain(dc.Get("checked").Bool())
 			syncDeskExtras(selectedMode) // the desk's settings arrive and leave with it
 			return nil
@@ -1351,8 +1350,8 @@ func wirePanelSwitches() {
 	}
 
 	// Event: where the mouse goes while the desk is a model.
-	if dp := doc.Call("getElementById", "desk-pass"); dp.Truthy() {
-		dp.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
+	if dp := dom.Doc.Call("getElementById", "desk-pass"); dp.Truthy() {
+		dp.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 			deskPassOn = dp.Get("checked").Bool()
 			return nil
 		}))
@@ -1400,7 +1399,7 @@ func wireExtraNav() {
 
 	// Optional host-injected nav snippet (e.g. m2 links to /attractors).
 	if ExtraNavHTML != "" {
-		nav := doc.Call("getElementById", "extra-nav")
+		nav := dom.Doc.Call("getElementById", "extra-nav")
 		if nav.Truthy() {
 			nav.Set("innerHTML", ExtraNavHTML)
 		}
@@ -1437,8 +1436,8 @@ func wireViewGridStack() {
 	// The range lock, built the same way and for the same reason: two
 	// positions, so the ring is two labels and the hidden select goes away.
 	// The grid dial, built like the src and map rings beside it.
-	if gsel := doc.Call("getElementById", "view-n"); gsel.Truthy() {
-		if gh := doc.Call("getElementById", "view-n-stack"); gh.Truthy() {
+	if gsel := dom.Doc.Call("getElementById", "view-n"); gsel.Truthy() {
+		if gh := dom.Doc.Call("getElementById", "view-n-stack"); gh.Truthy() {
 			gstack := soloKnob(gsel)
 			addSelectorLabels(gstack, viewCountRing, gsel).Set("id", "view-n-ring")
 			gh.Call("appendChild", gstack)
@@ -1451,8 +1450,8 @@ func wireViewGridStack() {
 	setSweepTargets(selectedMode)
 	buildSweepDial()
 	buildRackScope() // the rack scope's own dials, independent of the model
-	if clk := doc.Call("getElementById", "color-lock"); clk.Truthy() {
-		if ch := doc.Call("getElementById", "colorlock-stack"); ch.Truthy() {
+	if clk := dom.Doc.Call("getElementById", "color-lock"); clk.Truthy() {
+		if ch := dom.Doc.Call("getElementById", "colorlock-stack"); ch.Truthy() {
 			cstack := soloKnob(clk)
 			addSelectorLabels(cstack, []string{"auto", "held"}, clk).
 				Set("id", "color-lock-ring")
@@ -1512,8 +1511,8 @@ func wirePowerSwitch() {
 	// every setting is still there to read and to change. A switch again: it
 	// had been folded into the model category knob's first detent, and when
 	// that knob moved to the rows it would have gone with it.
-	if sw := doc.Call("getElementById", "power-sw"); sw.Truthy() {
-		sw.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	if sw := dom.Doc.Call("getElementById", "power-sw"); sw.Truthy() {
+		sw.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			setPowerState(sw.Get("checked").Bool())
 			// The rotaries say the same thing the switch does: powered down,
 			// every row reads off, because no model is being drawn.
@@ -1536,9 +1535,9 @@ func wirePhysSwitch() {
 	// knob among the figure's parameters, because it is not one of them: the
 	// figure is the same figure whatever it weighs. Throwing it reveals the
 	// Physics module and hands the placing over to the body.
-	if ps := doc.Call("getElementById", "phys-sw"); ps.Truthy() {
-		ps.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-			turtlePhysOn = doc.Call("getElementById", "phys-sw").Get("checked").Bool()
+	if ps := dom.Doc.Call("getElementById", "phys-sw"); ps.Truthy() {
+		ps.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			turtlePhysOn = dom.Doc.Call("getElementById", "phys-sw").Get("checked").Bool()
 			if turtlePhysOn {
 				// Face the room. The body is simulated in the PLANE OF THE
 				// SCREEN — the floor is the bottom of the picture and the walls
@@ -1567,27 +1566,27 @@ func wireColorControls() {
 	attachColorKnobs() // Hue/Sat/Val knob under each color swatch
 
 	// Event: per-control reset buttons for colors
-	doc.Call("getElementById", "rst-color-base").Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	dom.Doc.Call("getElementById", "rst-color-base").Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		baseColor = [3]float32{1.0, 0.0, 0.0}
-		doc.Call("getElementById", "color-base").Set("value", "#ff0000")
+		dom.Doc.Call("getElementById", "color-base").Set("value", "#ff0000")
 		gl.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
 		return nil
 	}))
-	doc.Call("getElementById", "rst-color-mid").Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	dom.Doc.Call("getElementById", "rst-color-mid").Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		midColor = [3]float32{0.0, 1.0, 0.0}
-		doc.Call("getElementById", "color-mid").Set("value", "#00ff00")
+		dom.Doc.Call("getElementById", "color-mid").Set("value", "#00ff00")
 		gl.Call("uniform3f", uMidColorLoc, midColor[0], midColor[1], midColor[2])
 		return nil
 	}))
-	doc.Call("getElementById", "rst-color-top").Call("addEventListener", "click", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	dom.Doc.Call("getElementById", "rst-color-top").Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		topColor = [3]float32{0.0, 0.0, 1.0}
-		doc.Call("getElementById", "color-top").Set("value", "#0000ff")
+		dom.Doc.Call("getElementById", "color-top").Set("value", "#0000ff")
 		gl.Call("uniform3f", uTopColorLoc, topColor[0], topColor[1], topColor[2])
 		return nil
 	}))
 
 	// Event: reset all button
-	doc.Call("getElementById", "reset-all-btn").Call("addEventListener", "click", trackedFuncOf(onResetAll))
+	dom.Doc.Call("getElementById", "reset-all-btn").Call("addEventListener", "click", dom.FuncOf(onResetAll))
 
 	// Any reset button (↺) — re-sync every knob pointer to its freshly-reset
 	// value on the next frame (after the button's own handler has set values),
@@ -1607,12 +1606,12 @@ func wireColorControls() {
 // a scope.
 func buildPanelKnobs() {
 	// pots set absolute X/Y angles on 7-seg displays.
-	knobPtr[0] = doc.Call("getElementById", "knobptr-x")
-	knobPtr[1] = doc.Call("getElementById", "knobptr-y")
-	knobPtr[2] = doc.Call("getElementById", "knobptr-z")
-	knobLED[0] = doc.Call("getElementById", "led-x")
-	knobLED[1] = doc.Call("getElementById", "led-y")
-	knobLED[2] = doc.Call("getElementById", "led-z")
+	knobPtr[0] = dom.Doc.Call("getElementById", "knobptr-x")
+	knobPtr[1] = dom.Doc.Call("getElementById", "knobptr-y")
+	knobPtr[2] = dom.Doc.Call("getElementById", "knobptr-z")
+	knobLED[0] = dom.Doc.Call("getElementById", "led-x")
+	knobLED[1] = dom.Doc.Call("getElementById", "led-y")
+	knobLED[2] = dom.Doc.Call("getElementById", "led-z")
 	knobsReady = true
 	// Shared drag state (only one knob turns at a time). Document-level
 	// move/up listeners (below) let the drag continue when the cursor
@@ -1624,11 +1623,11 @@ func buildPanelKnobs() {
 		return math.Atan2(e.Get("clientY").Float()-knobCY, e.Get("clientX").Float()-knobCX)
 	}
 	attachKnob := func(knobID string, axis int, spin, spinNum js.Value) {
-		kn := doc.Call("getElementById", knobID)
+		kn := dom.Doc.Call("getElementById", knobID)
 		if !kn.Truthy() {
 			return
 		}
-		kn.Call("addEventListener", "pointerdown", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		kn.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			e := args[0]
 			e.Call("preventDefault")
 			r := kn.Call("getBoundingClientRect")
@@ -1649,7 +1648,7 @@ func buildPanelKnobs() {
 			return nil
 		}))
 		// Scroll over the angle ring nudges the pose by 5° per notch.
-		kn.Call("addEventListener", "wheel", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+		kn.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			e := args[0]
 			e.Call("preventDefault")
 			e.Call("stopPropagation")
@@ -1679,12 +1678,12 @@ func buildPanelKnobs() {
 		knobPrevAng = cur
 		addAngleAxis(knobAxis, float32(d))
 	})
-	knobRelease := trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	knobRelease := dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		knobAxis = -1
 		return nil
 	})
-	doc.Call("addEventListener", "pointerup", knobRelease)
-	doc.Call("addEventListener", "pointercancel", knobRelease)
+	dom.Doc.Call("addEventListener", "pointerup", knobRelease)
+	dom.Doc.Call("addEventListener", "pointercancel", knobRelease)
 	updateRotKnobs()
 	initPointerMove() // the one shared pointermove listener the drags share
 	initKnobDrag()    // document listeners for the bounded param/camera knobs
@@ -1693,11 +1692,11 @@ func buildPanelKnobs() {
 	// hide each range input and insert a bounded knob that drives it. Reuses
 	// each slider's existing 'input' handler, so behavior is unchanged.
 	knobifyFixed := func(sliderID, numID string, dial bool) js.Value {
-		sl := doc.Call("getElementById", sliderID)
+		sl := dom.Doc.Call("getElementById", sliderID)
 		if !sl.Truthy() {
 			return js.Undefined()
 		}
-		num := doc.Call("getElementById", numID)
+		num := dom.Doc.Call("getElementById", numID)
 		sl.Get("style").Set("display", "none")
 		// The knob is inserted bare; the cell's reset button stays a cell child and
 		// is pinned to the header's top-right by CSS (standard cell template).
@@ -1740,13 +1739,13 @@ func buildPanelKnobs() {
 	// angle knob (in a square, with the reset tucked in its lower-right corner)
 	// · spin-rate numeric. This sets the minimum module slot width.
 	stackAxis := func(axisLbl, angleID, ledID, rateNumID, rateRstID string, rateKnob js.Value) {
-		ak := doc.Call("getElementById", angleID)
+		ak := dom.Doc.Call("getElementById", angleID)
 		if !ak.Truthy() || !rateKnob.Truthy() {
 			return
 		}
-		led := doc.Call("getElementById", ledID)
-		rateNum := doc.Call("getElementById", rateNumID)
-		rst := doc.Call("getElementById", rateRstID)
+		led := dom.Doc.Call("getElementById", ledID)
+		rateNum := dom.Doc.Call("getElementById", rateNumID)
+		rst := dom.Doc.Call("getElementById", rateRstID)
 		cell := ak.Call("closest", ".pcell")
 		angleGrp := ak.Get("parentNode")
 		var rateGrp js.Value
@@ -1758,7 +1757,7 @@ func buildPanelKnobs() {
 		addAngleDial(stack)
 
 		// square wrapper so the reset can sit in the knob's corner
-		knobBox := doc.Call("createElement", "span")
+		knobBox := dom.Doc.Call("createElement", "span")
 		knobBox.Set("className", "axknob-box")
 		knobBox.Call("appendChild", stack)
 		if rst.Truthy() {
@@ -1766,10 +1765,10 @@ func buildPanelKnobs() {
 			knobBox.Call("appendChild", rst)
 		}
 
-		col := doc.Call("createElement", "span")
+		col := dom.Doc.Call("createElement", "span")
 		col.Set("className", "grp axstack")
 		// Top line: axis label ("X") to the LEFT of the degrees LED readout.
-		topRow := doc.Call("createElement", "span")
+		topRow := dom.Doc.Call("createElement", "span")
 		topRow.Set("className", "grp axrow toprow")
 		if cell.Truthy() {
 			if lbl := cell.Call("querySelector", ".plabel"); lbl.Truthy() {
@@ -1783,9 +1782,9 @@ func buildPanelKnobs() {
 		col.Call("appendChild", topRow)
 		col.Call("appendChild", knobBox)
 		// Bottom line: "Rate" label to the LEFT of the spin-rate numeric.
-		botRow := doc.Call("createElement", "span")
+		botRow := dom.Doc.Call("createElement", "span")
 		botRow.Set("className", "grp axrow botrow")
-		rlbl := doc.Call("createElement", "span")
+		rlbl := dom.Doc.Call("createElement", "span")
 		rlbl.Set("className", "plabel sym") // ω = angular rate; .sym keeps it lowercase (not Ω)
 		rlbl.Set("textContent", "ω")
 		botRow.Call("appendChild", rlbl)
@@ -1808,8 +1807,8 @@ func buildPanelKnobs() {
 	stackAxis("Y", "knob-y", "led-y", "slider-value-y", "rst-ry", rky)
 	stackAxis("Z", "knob-z", "led-z", "slider-value-z", "rst-rz", rkz)
 
-	if sf := doc.Call("getElementById", "spect-fill"); sf.Truthy() {
-		sf.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
+	if sf := dom.Doc.Call("getElementById", "spect-fill"); sf.Truthy() {
+		sf.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			spectFill = sf.Get("checked").Bool()
 			return nil
 		}))
@@ -1876,10 +1875,10 @@ func wireGradientKnobs() {
 	bootMark("rack-start")
 	buildRackAndRestore()
 	bootMark("rack-done")
-	gsrc := doc.Call("getElementById", "gradient-source")
-	gcol := doc.Call("getElementById", "gradient-colors")
+	gsrc := dom.Doc.Call("getElementById", "gradient-source")
+	gcol := dom.Doc.Call("getElementById", "gradient-colors")
 	if gsrc.Truthy() && gcol.Truthy() {
-		if sh := doc.Call("getElementById", "gradient-stack"); sh.Truthy() {
+		if sh := dom.Doc.Call("getElementById", "gradient-stack"); sh.Truthy() {
 			sstack := soloKnob(gsrc)
 			// OFF first, because it is the absence of a source rather than one more
 			// of them. Its option value is 5 while the five that follow keep 0..4,
@@ -1898,7 +1897,7 @@ func wireGradientKnobs() {
 			sh.Call("appendChild", sstack)
 			gsrc.Get("style").Set("display", "none")
 		}
-		if mh := doc.Call("getElementById", "map-stack"); mh.Truthy() {
+		if mh := dom.Doc.Call("getElementById", "map-stack"); mh.Truthy() {
 			mstack := soloKnob(gcol)
 			// No "1" here any more: mono was never a map, it was the absence of a
 			// source, and it lives on the src ring as OFF. Every position left is
@@ -1931,9 +1930,9 @@ func wireGradientKnobs() {
 // promise.
 func wireFullscreenSwitch() {
 	wirePowerSwitch()
-	fsReject := trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if sw := doc.Call("getElementById", "fullscreen-sw"); sw.Truthy() {
-			sw.Set("checked", doc.Get("fullscreenElement").Truthy() || doc.Get("webkitFullscreenElement").Truthy())
+	fsReject := dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		if sw := dom.Doc.Call("getElementById", "fullscreen-sw"); sw.Truthy() {
+			sw.Set("checked", dom.Doc.Get("fullscreenElement").Truthy() || dom.Doc.Get("webkitFullscreenElement").Truthy())
 		}
 		return nil
 	})
@@ -1942,32 +1941,32 @@ func wireFullscreenSwitch() {
 			pr.Call("catch", fsReject)
 		}
 	}
-	doc.Call("getElementById", "fullscreen-sw").Call("addEventListener", "change", trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		want := doc.Call("getElementById", "fullscreen-sw").Get("checked").Bool()
+	dom.Doc.Call("getElementById", "fullscreen-sw").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		want := dom.Doc.Call("getElementById", "fullscreen-sw").Get("checked").Bool()
 		if want {
-			docEl := doc.Get("documentElement")
+			docEl := dom.Doc.Get("documentElement")
 			if !docEl.Get("requestFullscreen").IsUndefined() {
 				catchFs(docEl.Call("requestFullscreen"))
 			} else if !docEl.Get("webkitRequestFullscreen").IsUndefined() {
 				catchFs(docEl.Call("webkitRequestFullscreen"))
 			}
 		} else {
-			if !doc.Get("exitFullscreen").IsUndefined() {
-				catchFs(doc.Call("exitFullscreen"))
-			} else if !doc.Get("webkitExitFullscreen").IsUndefined() {
-				catchFs(doc.Call("webkitExitFullscreen"))
+			if !dom.Doc.Get("exitFullscreen").IsUndefined() {
+				catchFs(dom.Doc.Call("exitFullscreen"))
+			} else if !dom.Doc.Get("webkitExitFullscreen").IsUndefined() {
+				catchFs(dom.Doc.Call("webkitExitFullscreen"))
 			}
 		}
 		return nil
 	}))
-	syncFsSwitch := trackedFuncOf(func(this js.Value, args []js.Value) interface{} {
-		if sw := doc.Call("getElementById", "fullscreen-sw"); sw.Truthy() {
-			sw.Set("checked", doc.Get("fullscreenElement").Truthy() || doc.Get("webkitFullscreenElement").Truthy())
+	syncFsSwitch := dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		if sw := dom.Doc.Call("getElementById", "fullscreen-sw"); sw.Truthy() {
+			sw.Set("checked", dom.Doc.Get("fullscreenElement").Truthy() || dom.Doc.Get("webkitFullscreenElement").Truthy())
 		}
 		return nil
 	})
-	doc.Call("addEventListener", "fullscreenchange", syncFsSwitch)
-	doc.Call("addEventListener", "webkitfullscreenchange", syncFsSwitch)
+	dom.Doc.Call("addEventListener", "fullscreenchange", syncFsSwitch)
+	dom.Doc.Call("addEventListener", "webkitfullscreenchange", syncFsSwitch)
 
 	wireModelInput()
 
@@ -1978,16 +1977,16 @@ func wireFullscreenSwitch() {
 func wireModeAndResetInputs() {
 
 	// Event: mode change
-	doc.Call("getElementById", "mode-select").Call("addEventListener", "change", trackedFuncOf(onModeChange))
+	dom.Doc.Call("getElementById", "mode-select").Call("addEventListener", "change", dom.FuncOf(onModeChange))
 
 	// Event: color pickers
-	colorCallback := trackedFuncOf(onColorChange)
-	doc.Call("getElementById", "color-base").Call("addEventListener", "input", colorCallback)
-	doc.Call("getElementById", "color-mid").Call("addEventListener", "input", colorCallback)
-	doc.Call("getElementById", "color-top").Call("addEventListener", "input", colorCallback)
+	colorCallback := dom.FuncOf(onColorChange)
+	dom.Doc.Call("getElementById", "color-base").Call("addEventListener", "input", colorCallback)
+	dom.Doc.Call("getElementById", "color-mid").Call("addEventListener", "input", colorCallback)
+	dom.Doc.Call("getElementById", "color-top").Call("addEventListener", "input", colorCallback)
 	wireColorControls()
-	resetSync := trackedFuncOf(func(this js.Value, args []js.Value) interface{} { syncKnobs(); return nil })
-	doc.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
+	resetSync := dom.FuncOf(func(this js.Value, args []js.Value) interface{} { syncKnobs(); return nil })
+	dom.Doc.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if t := a[0].Get("target"); t.Truthy() && t.Call("closest", ".rst").Truthy() {
 			js.Global().Call("requestAnimationFrame", resetSync)
 		}
@@ -2001,15 +2000,15 @@ func wireModeAndResetInputs() {
 func cacheElementRefs() {
 
 	// Get control element references
-	rtc = doc.Call("getElementById", "runtime")
-	cameraControl = doc.Call("getElementById", "camera-zoom")
-	rotationControlsX = doc.Call("getElementById", "rotation-controls-x")
-	rotationControlsY = doc.Call("getElementById", "rotation-controls-y")
-	rotationControlsZ = doc.Call("getElementById", "rotation-controls-z")
-	sliderZoom = doc.Call("getElementById", "slider-value-zoom")
-	sliderX = doc.Call("getElementById", "slider-value-x")
-	sliderY = doc.Call("getElementById", "slider-value-y")
-	sliderZ = doc.Call("getElementById", "slider-value-z")
+	rtc = dom.Doc.Call("getElementById", "runtime")
+	cameraControl = dom.Doc.Call("getElementById", "camera-zoom")
+	rotationControlsX = dom.Doc.Call("getElementById", "rotation-controls-x")
+	rotationControlsY = dom.Doc.Call("getElementById", "rotation-controls-y")
+	rotationControlsZ = dom.Doc.Call("getElementById", "rotation-controls-z")
+	sliderZoom = dom.Doc.Call("getElementById", "slider-value-zoom")
+	sliderX = dom.Doc.Call("getElementById", "slider-value-x")
+	sliderY = dom.Doc.Call("getElementById", "slider-value-y")
+	sliderZ = dom.Doc.Call("getElementById", "slider-value-z")
 
 	// ── Rotation knobs (digital-pot style, one per axis) ──────────────
 	// Turning a knob sets that axis's absolute angle (position) and zeroes

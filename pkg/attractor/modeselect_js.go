@@ -4,6 +4,7 @@ package attractor
 
 import (
 	_ "embed"
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"syscall/js"
 )
@@ -39,16 +40,16 @@ func attachSelMarquee(sel js.Value, colorHex string) {
 	if !parent.Truthy() {
 		return
 	}
-	wrap := doc.Call("createElement", "span")
+	wrap := dom.Doc.Call("createElement", "span")
 	wrap.Set("className", "selwrap")
 	parent.Call("insertBefore", wrap, sel)
 	wrap.Call("appendChild", sel)
-	marq := doc.Call("createElement", "span")
+	marq := dom.Doc.Call("createElement", "span")
 	marq.Set("className", "selmarq")
 	if colorHex != "" {
 		marq.Get("style").Set("color", colorHex)
 	}
-	inner := doc.Call("createElement", "span")
+	inner := dom.Doc.Call("createElement", "span")
 	marq.Call("appendChild", inner)
 	wrap.Call("appendChild", marq)
 	upd := func() {
@@ -66,16 +67,16 @@ func attachSelMarquee(sel js.Value, colorHex string) {
 			marq.Get("classList").Call("remove", "scroll")
 		}
 	}
-	sel.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} { upd(); return nil }))
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} { upd(); return nil }))
 	upd()
 }
 
 func updateInfoOverlay() {
-	overlay := doc.Call("getElementById", "info-overlay")
+	overlay := dom.Doc.Call("getElementById", "info-overlay")
 	if overlay.IsNull() || overlay.IsUndefined() {
 		return
 	}
-	showInfo := doc.Call("getElementById", "show-info")
+	showInfo := dom.Doc.Call("getElementById", "show-info")
 	if showInfo.IsNull() || showInfo.IsUndefined() || !showInfo.Get("checked").Bool() {
 		return
 	}
@@ -99,14 +100,14 @@ func updateInfoOverlay() {
 // to weigh, and keeps the panel's ph-on/ph-off class in step with it so the
 // Physics module appears and disappears with the switch.
 func updatePhysVisibility() {
-	if w := doc.Call("getElementById", "phys-sw-wrap"); w.Truthy() {
+	if w := dom.Doc.Call("getElementById", "phys-sw-wrap"); w.Truthy() {
 		if selectedMode == "turtle" {
 			w.Get("style").Set("display", "")
 		} else {
 			w.Get("style").Set("display", "none")
 		}
 	}
-	if panel := doc.Call("getElementById", "controls-panel"); panel.Truthy() {
+	if panel := dom.Doc.Call("getElementById", "controls-panel"); panel.Truthy() {
 		cl := panel.Get("classList")
 		if physOn() {
 			cl.Call("add", "ph-on")
@@ -121,7 +122,7 @@ func updatePhysVisibility() {
 // updateTrailVisibility shows/hides the Trail slider + Persist
 // checkbox depending on whether the current mode renders a trail.
 func updateTrailVisibility() {
-	el := doc.Call("getElementById", "trail-controls")
+	el := dom.Doc.Call("getElementById", "trail-controls")
 	if !el.Truthy() {
 		return
 	}
@@ -137,7 +138,7 @@ func updateTrailVisibility() {
 // Auto-rotate (if on) still applies afterward.
 
 func onModeChange(this js.Value, args []js.Value) interface{} {
-	sel := doc.Call("getElementById", "mode-select")
+	sel := dom.Doc.Call("getElementById", "mode-select")
 	if sel.Truthy() {
 		selectedMode = sel.Get("value").String()
 	}
@@ -155,7 +156,7 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 	// one's last position. See modelmod.go.
 	resetModelMod()
 	// Keep the "Edit eqn" switch in sync with whether we're in Custom mode.
-	if sw := doc.Call("getElementById", "edit-eq-sw"); sw.Truthy() {
+	if sw := dom.Doc.Call("getElementById", "edit-eq-sw"); sw.Truthy() {
 		sw.Set("checked", selectedMode == "custom")
 	}
 	// New mode means fresh geometry — force an upload on the next

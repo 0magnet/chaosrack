@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"syscall/js"
 )
@@ -153,14 +154,14 @@ func generateSprottMorph() {
 // frames the camera from the warmed extent; while active, the Patch module
 // (static markup, big wired readout) is shown.
 func syncSprottMorphExtras(mode string) {
-	if sect := doc.Call("getElementById", "smorph-module"); sect.Truthy() {
+	if sect := dom.Doc.Call("getElementById", "smorph-module"); sect.Truthy() {
 		if mode == "sprottmorph" {
 			sect.Get("style").Set("display", "")
 		} else {
 			sect.Get("style").Set("display", "none")
 		}
 	}
-	morphLED = doc.Call("getElementById", "smorph-led")
+	morphLED = dom.Doc.Call("getElementById", "smorph-led")
 	if mode != "sprottmorph" {
 		morphActive = false
 		return

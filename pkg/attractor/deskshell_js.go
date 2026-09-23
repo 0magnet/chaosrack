@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/desk"
 	winbox "github.com/0magnet/winbox-go"
 )
@@ -209,7 +210,7 @@ func deskContainHidesEverything() bool { return deskContain && deskEl.Truthy() }
 // edge in the meantime, and launching the rack from a menu should produce a
 // window either way.
 func relaunchRack() {
-	if sh := doc.Call("getElementById", "panel-shell"); sh.Truthy() {
+	if sh := dom.Doc.Call("getElementById", "panel-shell"); sh.Truthy() {
 		sh.Get("style").Set("display", "")
 	}
 	if dockEdge != "float" {
