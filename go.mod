@@ -11,7 +11,7 @@ require (
 	github.com/0magnet/rack-go v0.0.0-20260922163944-6ac30b77a4fd
 	github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a
 	github.com/0magnet/tuiwasm v0.0.0-20260923101027-829fc879b4df
-	github.com/0magnet/websh v0.0.0-20260918134315-870649e5bd83
+	github.com/0magnet/websh v0.0.0-20260923114653-8b0116f5b3ad
 	github.com/0magnet/winbox-go v0.0.0-20260915183431-ca6572e4c323
 	github.com/0magnet/xterm-go v0.0.0-20260918025541-d7185c9db583
 	github.com/gdamore/tcell/v3 v3.5.0

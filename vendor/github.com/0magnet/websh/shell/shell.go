@@ -30,6 +30,24 @@ type Shell struct {
 	// Size, when set, reports the terminal dimensions.
 	Size func() (cols, rows int)
 
+	// Exec, when set, is offered any command that is not a built-in applet,
+	// before the filesystem is searched. It runs IN THIS PROCESS on the
+	// shell's own goroutine, which is the whole reason it exists: a program
+	// exec'd from the filesystem on js/wasm is a separate wasm instance (see
+	// exec_js.go) and cannot touch the embedder's own state.
+	//
+	// That is what an embedded shell is usually wanted for. A page that runs
+	// websh inside some larger program — an instrument, an editor, a desk —
+	// has one thing the shell cannot otherwise reach: the program it is
+	// embedded in. This is the door to it, and a command reached through it
+	// can be a full-screen one, because RawMode and Size are right here.
+	//
+	// handled false means "I do not know this command", and the shell carries
+	// on to the filesystem and then to "command not found". Applets are tried
+	// FIRST and win a name clash, so an embedder cannot quietly replace cd or
+	// echo with something else.
+	Exec func(ctx context.Context, args []string) (code int, handled bool)
+
 	parser  *syntax.Parser
 	pending strings.Builder // continuation lines of an incomplete input
 	// exited records what Run found before it reset the runner. See Exited.
@@ -264,6 +282,18 @@ func (s *Shell) execHandler(next interp.ExecHandlerFunc) interp.ExecHandlerFunc 
 				return interp.ExitStatus(code)
 			}
 			return nil
+		}
+		// The embedder's own commands, in this process. See Shell.Exec.
+		if s.Exec != nil {
+			if code, handled := s.Exec(ctx, args); handled {
+				if code < 0 || code > 255 {
+					code = 1
+				}
+				if code != 0 {
+					return interp.ExitStatus(code)
+				}
+				return nil
+			}
 		}
 		// Not a built-in applet: try to exec it as a program on the
 		// filesystem. On js/wasm this spawns a wasm binary as a child process

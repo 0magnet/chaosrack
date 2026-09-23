@@ -68,6 +68,21 @@ type Options struct {
 	// durable, which has to happen after a command rather than during one.
 	AfterCommand func()
 
+	// Exec is the embedder's own commands. Any command line whose first word
+	// is not a built-in applet is offered here before the filesystem is
+	// searched, and it runs in THIS process on the shell's goroutine.
+	//
+	// That is the difference that matters in a page. A program exec'd from
+	// the filesystem on js/wasm is a separate wasm instance and can only talk
+	// back through pipes; a command reached through this one is a Go function
+	// in the program the shell is embedded in, with everything that program
+	// knows in scope. It may be full-screen — the terminal is right here, and
+	// Session sets RawMode and Size on the shell for exactly that.
+	//
+	// Report handled false for a command you do not recognize and the shell
+	// carries on as though the hook were not set.
+	Exec func(ctx context.Context, args []string) (code int, handled bool)
+
 	// OnExit runs when the shell exits — the `exit` builtin, or anything
 	// else that makes the interpreter report an exiting shell — on the
 	// shell's goroutine, and no further prompt is written.
@@ -193,6 +208,7 @@ func NewSession(el js.Value, opt Options) (*Session, error) {
 
 	// Full-screen applets take raw bytes and need the size.
 	sh.RawMode = func(on bool) { s.rawInput = on }
+	sh.Exec = opt.Exec
 	sh.Size = func() (int, int) { return s.Term.Core.Cols(), s.Term.Core.Rows() }
 
 	s.Term.Core.OnData = s.onData
