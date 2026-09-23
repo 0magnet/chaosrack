@@ -60,12 +60,6 @@ func main() {
 		runHTML()
 	case "css":
 		runCSS()
-	case "tui":
-		runTUI()
-	case "ctl":
-		runCtl()
-	case "rack":
-		runRack()
 	case "demo":
 		runDemo()
 	default:
