@@ -125,13 +125,17 @@ func flatten(mods []moduleCtls) []ctlAt {
 }
 
 // detentsOf is how many positions a control has, for the ticks round its dial.
-// A continuous control has none.
+// A continuous control has none, and a switch is not drawn as a dial at all.
 func detentsOf(c Control) int {
 	if c.IsSelect {
 		return len(c.Options)
 	}
 	return 0
 }
+
+// switchOn reports a two-state control's position. The value is "1" or "0";
+// anything else is read as off rather than guessed at.
+func switchOn(c Control) bool { return c.Value == "1" }
 
 // shortLabel is a control's name, trimmed to fit over its dial.
 func shortLabel(c Control) string {
@@ -144,6 +148,14 @@ func shortLabel(c Control) string {
 
 // readingOf is what the LED under a control says.
 func readingOf(c Control) string {
+	if c.IsSwitch {
+		// The word, not the digit. A panel legend says ON, and "1" under a lit
+		// lamp reads as a quantity rather than a position.
+		if switchOn(c) {
+			return "on"
+		}
+		return "off"
+	}
 	if c.IsSelect {
 		return c.Value
 	}

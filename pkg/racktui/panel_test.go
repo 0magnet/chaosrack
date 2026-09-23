@@ -203,3 +203,51 @@ func TestThePanelShowsWhatTheRackTookAndNotWhatWasAsked(t *testing.T) {
 		t.Fatalf("panel shows %q, want the reloaded 6", p.ctls[0].Value)
 	}
 }
+
+// sw2 is a two-state control. The id is fixed: what these tests care about
+// is the KIND, and a switch behaves the same whichever one it is.
+func sw2(val string) Control {
+	return Control{
+		ControlInfo: controlspec.ControlInfo{ID: "power", Label: "power", IsSwitch: true},
+		Value:       val,
+	}
+}
+
+// A switch has no range, so the numeric path read "1", added a step of 1 and
+// wrote "2" — which the rack reads as OFF. Turning a switch up turned it off.
+func TestThrowingASwitchWritesAPosition(t *testing.T) {
+	f := &fakeRack{ctls: []Control{sw2("0")}}
+	p := newPanel(f)
+	p.nudge(1)
+	if len(f.sets) != 1 || f.sets[0] != "power=1" {
+		t.Fatalf("nudging up set %v, want [power=1]", f.sets)
+	}
+	p.nudge(-1)
+	if f.sets[1] != "power=0" {
+		t.Errorf("nudging down set %q, want power=0", f.sets[1])
+	}
+}
+
+// Either arrow sets the position it points at, so the same key twice does not
+// flip it back: a toggle that depends on where it was cannot be driven blind.
+func TestASwitchIsNotAToggle(t *testing.T) {
+	f := &fakeRack{ctls: []Control{sw2("0")}}
+	p := newPanel(f)
+	p.nudge(1)
+	p.nudge(1)
+	for _, s := range f.sets {
+		if s != "power=1" {
+			t.Fatalf("pressing right twice gave %v; both should be power=1", f.sets)
+		}
+	}
+}
+
+// And it reads as a position rather than a quantity.
+func TestASwitchReadsAsAWord(t *testing.T) {
+	if got := readingOf(sw2("1")); got != "on" {
+		t.Errorf("a closed switch reads %q, want on", got)
+	}
+	if got := readingOf(sw2("0")); got != "off" {
+		t.Errorf("an open switch reads %q, want off", got)
+	}
+}
