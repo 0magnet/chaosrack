@@ -155,14 +155,24 @@ var modeGroups = []struct {
 	Label string
 	Keys  []string
 }{
+	// The Sprott systems are in here rather than in a category of their own.
+	//
+	// They used to be the next heading down, on the argument that a catalog
+	// from one 1994 paper is its own subject. What that produced on the panel
+	// was a row holding a rotary, a monitor and TWO knobs — because nineteen
+	// systems that differ only in their coefficients share one parameter set,
+	// so there is almost nothing for a Sprott row to show. A bay that is
+	// mostly its own monitor is a heading pretending to be an instrument.
+	//
+	// Folded in, they are what they always were: nineteen more attractors,
+	// reached by the Attractors rotary like every other flow, with the morph
+	// at the head of them because it is the one that moves between them. The
+	// row that held them is gone, and so is its monitor — both derived from
+	// this list, so deleting the group deletes them.
 	{"Attractors", []string{"rossler", "lorenz", "chua", "aizawa", "sprott", "thomas",
 		"halvorsen", "chen", "dadras", "rabinovich", "burkeshaw", "lu", "newtonleipnik",
-		"hyperrossler"}},
-	// Directly after Attractors, because they ARE attractors — a catalog of
-	// twenty of them from one 1994 paper, which is why they stay their own
-	// category rather than being folded in, but there is no reason for the
-	// Scope modes to have sat between the two.
-	{"Sprott systems (1994)", []string{"sprottmorph", "sprotta", "sprottb", "sprottc", "sprottd",
+		"hyperrossler",
+		"sprottmorph", "sprotta", "sprottb", "sprottc", "sprottd",
 		"sprotte", "sprottf", "sprottg", "sprotth", "sprotti", "sprottj", "sprottk",
 		"sprottl", "sprottm", "sprottn", "sprotto", "sprottp", "sprottq", "sprottr", "sprotts"}},
 	// Discrete maps sit with the other dynamical systems rather than after the

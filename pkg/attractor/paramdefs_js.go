@@ -314,11 +314,17 @@ var attractorParams = map[string][]paramDef{
 // entry keeps the plain hierarchy tooltip, which is fine for a knob whose
 // label is already a word.
 var paramHelp = map[string]string{
-	// ── the delay embedding, shared by three modes ──────────────────────
+	// ── the delay embedding, shared across modes ───────────────────────
+	//
+	// takens-tau is ONE knob read by Takens, Polar and the recurrence plot,
+	// and takens-smooth is one read by Takens, Polar and Stereo. Stereo keeps
+	// a tau of its own because it has sixteen instances, one per view cell,
+	// and the grid exists so two views can be set differently.
 	"takens-tau": "tau — the delay between the coordinates, in samples at 48 kHz, " +
 		"so one position is the same duration on any source. Too short and the " +
 		"axes are nearly the same sample and the figure collapses onto the " +
-		"diagonal; too long and it folds back on itself.",
+		"diagonal; too long and it folds back on itself. One knob: Takens, " +
+		"Polar and the recurrence plot all read it.",
 	"takens-win": "window — how much recent audio is on screen, in milliseconds. " +
 		"The length of the trace, not its shape.",
 	"takens-gain": "gain — world units a full-scale sample maps to. The camera fit " +
@@ -413,7 +419,6 @@ var paramHelp = map[string]string{
 	"polar-drive": "drive — how hard the signal is pushed into the map before it " +
 		"squashes. Low leaves quiet material near the center; high pushes " +
 		"everything out toward the surface.",
-	"polar-tau":  "tau — the delay between the three coordinates, in samples at 48 kHz.",
 	"polar-win":  "window — how much recent audio is on screen, in milliseconds.",
 	"polar-gain": "gain — the scale the geometry is built at; the camera fit tracks it.",
 	"polar-chan": "source — which channel of the live pair is reconstructed.",

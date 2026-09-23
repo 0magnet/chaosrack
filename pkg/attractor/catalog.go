@@ -92,16 +92,15 @@ func (c ModeClass) String() string {
 // four-character labels like SPRT and ANLY existed only because a dial ring
 // has room for four characters, and a row header has room for the name.
 var catTooltips = map[string]string{
-	"Attractors":            "Attractors — chaotic flows (Lorenz, Rössler, Chua…) integrated in three dimensions",
-	"Sprott systems (1994)": "Sprott systems — the twenty simple chaotic flows of J. C. Sprott, 1994, and a morph between them",
-	"Maps":                  "Maps — discrete iterated systems (Hénon, Ikeda, the standard map…) rather than flows",
-	"Scope":                 "Scope — what an oscilloscope draws: Lissajous figures, the Graphic Artist, and the audio displays",
-	"Embeddings":            "Embeddings — a state space rebuilt from one signal by delaying it against itself: Takens against its own past, Stereo against the other channel, Polar with the delay wrapped onto an angle. All three are steered by the delay τ",
-	"Polyhedra":             "Polyhedra — a Platonic seed and a Conway operator: 17 solids, including most of the Archimedeans and their duals",
-	"Geometry":              "Geometry — sphere, torus, globe and magnetosphere: surfaces rather than trajectories",
-	"Sequences":             "Sequences — the Turtle Path: an integer sequence read as turn-and-step",
-	"Solids":                "Solids — the STL viewer: a file from disk, a terminal, or the whole desk as an object",
-	"Audio":                 "Audio — displays of the live signal: spectrogram, goniometer, the FVF wobbulator and the delay embeddings",
-	"Analysis":              "Analysis — measurements drawn as pictures: the bifurcation plot, Poincaré sections, recurrence, RTA, transfer and waterfall",
-	"Custom":                "Custom — type your own differential equations",
+	"Attractors": "Attractors — chaotic flows integrated in three dimensions: Lorenz, Rössler, Chua and the rest, then the nineteen simple systems of J. C. Sprott, 1994, and a morph between them",
+	"Maps":       "Maps — discrete iterated systems (Hénon, Ikeda, the standard map…) rather than flows",
+	"Scope":      "Scope — what an oscilloscope draws: Lissajous figures, the Graphic Artist, and the audio displays",
+	"Embeddings": "Embeddings — a state space rebuilt from one signal by delaying it against itself: Takens against its own past, Stereo against the other channel, Polar with the delay wrapped onto an angle. All three are steered by the delay τ",
+	"Polyhedra":  "Polyhedra — a Platonic seed and a Conway operator: 17 solids, including most of the Archimedeans and their duals",
+	"Geometry":   "Geometry — sphere, torus, globe and magnetosphere: surfaces rather than trajectories",
+	"Sequences":  "Sequences — the Turtle Path: an integer sequence read as turn-and-step",
+	"Solids":     "Solids — the STL viewer: a file from disk, a terminal, or the whole desk as an object",
+	"Audio":      "Audio — displays of the live signal: spectrogram, goniometer, the FVF wobbulator and the delay embeddings",
+	"Analysis":   "Analysis — measurements drawn as pictures: the bifurcation plot, Poincaré sections, recurrence, RTA, transfer and waterfall",
+	"Custom":     "Custom — type your own differential equations",
 }

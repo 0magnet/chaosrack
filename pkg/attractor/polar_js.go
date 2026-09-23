@@ -82,11 +82,10 @@ var polarMapNames = []string{"tanh", "algebraic", "logarithmic (dB)", "direction
 var polarMapRing = []string{"tanh", "soft", "dB", "unit"}
 
 var (
-	polarMapF    float32 = 0            // map knob: an index into the constants above
-	polarDrive   float32 = 2            // how hard the length is pushed into the map
-	polarTau     float32 = takensTauDef // delay τ, in reference samples
-	polarWin     float32 = 85           // display window, milliseconds
-	polarGain    float32 = 10           // world units the sphere's surface sits at
+	polarMapF    float32 = 0  // map knob: an index into the constants above
+	polarDrive   float32 = 2  // how hard the length is pushed into the map
+	polarWin     float32 = 85 // display window, milliseconds
+	polarGain    float32 = 10 // world units the sphere's surface sits at
 	polarRing    []float32
 	polarW       int // monotonic write cursor into polarRing
 	polarScratch []float32
@@ -110,7 +109,11 @@ func init() {
 		{"polar-chan", "src", &polarChanF, 0, 0, float32(len(tapChanNames) - 1), 1},
 		{"polar-map", "map", &polarMapF, 0, 0, float32(polarMapCount - 1), 1},
 		{"polar-drive", "drv", &polarDrive, 2, 0.2, 10, 0.1},
-		{"polar-tau", "τ", &polarTau, takensTauDef, 1, takensTauMax, 1},
+		// τ is takens-tau, not a polar copy of it: the polar figure IS the takens
+		// delay embedding with the delay wrapped onto an angle, so a τ that
+		// differed between them would be two names for one quantity — and the
+		// recurrence plot and takens-smooth above already share this way.
+		{"takens-tau", "τ", &takensTau, takensTauDef, 1, takensTauMax, 1},
 		{"polar-win", "win", &polarWin, 85, 5, 500, 5},
 		{"polar-gain", "gain", &polarGain, 10, 0.5, 50, 0.5},
 		{"takens-smooth", "smth", &takensSmoothF, 4, 1, 16, 1},
@@ -248,7 +251,7 @@ func generatePolar() {
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := tauSamples(polarTau, sr)
+	tau := tauSamples(takensTau, sr)
 	n, stride := takensWindow(polarWin, sr, steps)
 	span := (n-1)*stride + 2*tau
 	if need := span + 1; len(polarRing) < need {
@@ -387,7 +390,7 @@ func polarColorWindow() ([]float32, int) {
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := tauSamples(polarTau, sr)
+	tau := tauSamples(takensTau, sr)
 	n, stride := takensWindow(polarWin, sr, steps)
 	if n <= 0 {
 		return nil, 0
