@@ -1,5 +1,7 @@
 package attractor
 
+import "github.com/0magnet/chaosrack/pkg/controlspec"
+
 // The control surface, described once and rendered by whoever is rendering.
 //
 // This file is UNTAGGED and the builders beside it are not, which is the whole
@@ -92,23 +94,10 @@ type ControlDesc struct {
 
 // ── The surface, enumerable ──────────────────────────────────────────────
 
-// ControlInfo is a control stripped of everything that only means something
-// inside the running rack: the closures, the element ids, the display mapping.
-// What is left is what a description of the control surface would have to say
-// — and it is all plain data, so it can be listed, printed, diffed, sent over
-// a wire, or drawn by a front end that has never heard of a DOM.
-type ControlInfo struct {
-	ID        string  `json:"id"`
-	Label     string  `json:"label"`
-	Min       float64 `json:"min,omitempty"`
-	Max       float64 `json:"max,omitempty"`
-	Step      float64 `json:"step,omitempty"`
-	Def       float64 `json:"def,omitempty"`
-	IsSelect  bool    `json:"select,omitempty"`
-	SelectDef string  `json:"selectDef,omitempty"`
-	PermaKey  string  `json:"perma,omitempty"`
-	ModTarget bool    `json:"mod,omitempty"`
-}
+// ControlInfo is a control as plain data. The type lives in pkg/controlspec
+// so that a front end and the rack can both have it without either importing
+// the other — which is what putting a terminal panel inside the rack needs.
+type ControlInfo = controlspec.ControlInfo
 
 // Info is the plain-data half of a descriptor.
 func (d ControlDesc) Info() ControlInfo {
