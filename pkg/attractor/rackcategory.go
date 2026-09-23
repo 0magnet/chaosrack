@@ -23,7 +23,7 @@ import "strings"
 //	Analysis    1 + 4 + 2 =  7
 //	Attractors  1 + 3 + 2 =  6
 //	Solids      1 + 3 + 2 =  6
-//	Sprott, Maps, Scope, Geometry, Custom     5
+//	Maps, Scope, Geometry, Custom             5
 //	Polyhedra   1 + 0 + 2 =  3   (no model in it has a tunable constant)
 //
 // so the worst case is ten slots of twelve and there is room in every row
@@ -150,10 +150,10 @@ func modelRowSection() string {
 // categoryTag is the category's name as it is printed over its rotary.
 //
 // The cell is one control column wide and the label reads across it, so the
-// name has to be a name and not a citation: "Sprott systems (1994)" is a
-// heading in the catalog and twenty-one characters over a knob. The year is
-// what identifies the paper, not the category, and it is still in the cell's
-// tooltip where the sentence about the category is.
+// name has to be a name and not a citation. "Sprott systems (1994)" was a
+// heading in the catalog and twenty-one characters over a knob, which is what
+// this rule was written for; those systems are inside Attractors now, but a
+// category whose name does not fit a knob can be added again tomorrow.
 //
 // Derived rather than tabulated. A table of short tags is what the Console's
 // dial ring had, and a table is a second list of the categories to keep in

@@ -24,9 +24,14 @@ import (
 //
 // Measured, the union of parameters per category:
 //
-//	Attractors 55   Scope 50   Audio 40   Sprott 21   Maps 19
+//	Attractors 76   Scope 50   Audio 40   Maps 19
 //	Geometry   13   Sequences 10   Analysis 4   Polyhedra 1
-//	Solids      0   Custom     0                       = 213
+//	Solids      0   Custom     0                  = 213
+//
+// Attractors is 76 because the Sprott systems were folded into it; it was 55
+// and they were 21. The total is unchanged — the same knobs, one heading
+// fewer — and it is the widest category by some way, which is what the
+// continuation modules below are for.
 //
 // Three of those are wider than an 84 HP bay, so those categories continue
 // into a second module and the section flows into the next bay, which is
@@ -135,9 +140,9 @@ func buildCategoryModules() {
 //   - The step size. dt is not a constant of any system, it is how finely
 //     the integrator walks it, so it belongs with the category's controls.
 //     Every model's step cell is built and stacked in one place and the head
-//     shows the one the row is set to. Sprott is the case that proves it:
-//     nineteen of its twenty models have a step and nothing else, so on cards
-//     they would be nineteen one-knob panels.
+//     shows the one the row is set to. The Sprott systems are the case that
+//     proves it: all nineteen have a step and nothing else, so on cards they
+//     would be nineteen one-knob panels.
 //
 //   - A parameter several models declare. poly-op is the Conway operator
 //     applied to whichever Platonic seed is chosen and takens-smooth is
