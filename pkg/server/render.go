@@ -9,7 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 
@@ -45,6 +47,8 @@ var (
 	renderSpin   []float64
 	renderCheck  bool
 	renderColors int
+	renderSet    []string
+	renderParams bool
 )
 
 func init() {
@@ -57,6 +61,8 @@ func init() {
 	renderCmd.Flags().Float64SliceVar(&renderSpin, "angle", []float64{0.6, 0.9, 0}, "view angles x,y,z in radians")
 	renderCmd.Flags().IntVar(&renderColors, "colors", 4, "palette: 1 mono, 2 two-color, 3 three-color, 4 rainbow")
 	renderCmd.Flags().BoolVar(&renderCheck, "check", false, "integrate every model and report the ones that draw nothing")
+	renderCmd.Flags().StringArrayVar(&renderSet, "set", nil, "turn a control before drawing, as id=value (repeatable)")
+	renderCmd.Flags().BoolVar(&renderParams, "params", false, "list the controls that --set can turn, with their ranges")
 	runCmd.AddCommand(renderCmd, modelsCmd)
 }
 
@@ -96,6 +102,12 @@ than an attractor. That is a failure the Lyapunov guard cannot catch for a
 model it cannot measure, and it is how a third of the Sprott catalog came to
 be static without a test noticing.`,
 	RunE: func(_ *cobra.Command, _ []string) error {
+		if renderParams {
+			return listParams()
+		}
+		if err := applySets(); err != nil {
+			return err
+		}
 		if renderCheck {
 			return checkEveryFlow()
 		}
@@ -198,4 +210,52 @@ func checkEveryFlow() error {
 	}
 	fmt.Printf("\nall %d models draw something\n", len(keys))
 	return nil
+}
+
+// applySets turns the controls named by --set before anything is integrated.
+//
+// It goes through dynamics.SetParam rather than writing the variable, so the
+// range the panel's knob enforces is enforced here too: a value the knob could
+// not have produced is refused instead of quietly clamped, because a test that
+// asks for rho=600 and silently measures rho=60 reports a pass about a system
+// nobody ran.
+func applySets() error {
+	for _, s := range renderSet {
+		id, val, ok := strings.Cut(s, "=")
+		if !ok {
+			return fmt.Errorf("--set %q is not id=value", s)
+		}
+		v, err := strconv.ParseFloat(strings.TrimSpace(val), 32)
+		if err != nil {
+			return fmt.Errorf("--set %s: %q is not a number", id, val)
+		}
+		if err := dynamics.SetParam(strings.TrimSpace(id), float32(v)); err != nil {
+			return fmt.Errorf("--set: %w", err)
+		}
+	}
+	return nil
+}
+
+// listParams prints what --set can turn. The same table the panel builds its
+// knobs from, which is the point: what you can set from a shell and what you
+// can turn on screen are one list.
+func listParams() error {
+	var b strings.Builder
+	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
+	if _, err := fmt.Fprintln(w, "ID\tLABEL\tDEFAULT\tRANGE\tSTEP"); err != nil {
+		return err
+	}
+	for _, mode := range dynamics.ParamModes() {
+		for _, p := range dynamics.Params(mode) {
+			if _, err := fmt.Fprintf(w, "%s\t%s\t%g\t%g .. %g\t%g\n",
+				p.ID, p.Label, p.Def, p.Min, p.Max, p.Step); err != nil {
+				return err
+			}
+		}
+	}
+	if err := w.Flush(); err != nil {
+		return err
+	}
+	_, err := os.Stdout.WriteString(b.String())
+	return err
 }
