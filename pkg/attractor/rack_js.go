@@ -16,8 +16,10 @@ package attractor
 // and each of those call sites is still correct. Only the implementation moved.
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/racklayout"
 
 	"github.com/0magnet/rack-go"
 )
@@ -125,7 +127,7 @@ func modulePinned(key string) bool {
 	if r == nil {
 		return true // not in any opening yet: no switch to offer
 	}
-	return modulePinnedFrom(false, r.Hidden(key),
+	return racklayout.ModulePinnedFrom(false, r.Hidden(key),
 		m.Get("style").Get("display").String() == "none")
 }
 
@@ -396,7 +398,7 @@ func rackSetOrder(order []string) {
 		first.Root().Call("appendChild", m)
 	}
 	syncUnitRacks()
-	first.SetOrder(mergeModuleOrder(order, first.Order()))
+	first.SetOrder(racklayout.MergeModuleOrder(order, first.Order()))
 }
 
 // rackSetHidden restores the put-away set. Each opening is given the whole
