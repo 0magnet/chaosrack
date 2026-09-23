@@ -98,7 +98,9 @@ func ensureTerminal() bool {
 	// right one here. This terminal is a model in a visualizer, not a file
 	// manager, and it has nowhere to persist to.
 	s, err := web.NewSession(termHost, web.Options{
-		Host:     "chaosrack",
+		Host: "chaosrack",
+		// `rack` is a command here; see rackcmd_js.go.
+		Exec:     rackShellCommand,
 		Greeting: termGreeting,
 	})
 	if err != nil {
