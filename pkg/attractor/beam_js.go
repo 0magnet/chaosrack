@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
 	"syscall/js"
 )
@@ -104,7 +105,7 @@ func beamLines(strokes [][]float64, phase float64) int {
 // Points switch asks for dots.
 func beamDrawMode() js.Value {
 	if usePoints {
-		return glTypes.Points
+		return glctx.Types.Points
 	}
-	return glTypes.Lines
+	return glctx.Types.Lines
 }

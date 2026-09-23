@@ -27,6 +27,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
 	"sort"
 	"strconv"
@@ -122,15 +123,15 @@ func gridEdges(total, n int) ([][2]int, bool) {
 // texProgram also reads, so it is restored by the caller running the full
 // rect last.
 func setViewport(r [4]int) {
-	gl.Call("viewport", r[0], r[1], r[2], r[3])
+	glctx.GL.Call("viewport", r[0], r[1], r[2], r[3])
 	h := r[3]
 	if h < 1 {
 		h = 1
 	}
 	projMatrix = mgl32.Perspective(mgl32.DegToRad(45.0), float32(r[2])/float32(h), 1, 1500.0)
-	gl.Call("useProgram", shaderProgram)
-	gl.Call("uniformMatrix4fv",
-		gl.Call("getUniformLocation", shaderProgram, "Pmatrix"), false, mat4ToTyped(&projMatrix))
+	glctx.GL.Call("useProgram", shaderProgram)
+	glctx.GL.Call("uniformMatrix4fv",
+		glctx.GL.Call("getUniformLocation", shaderProgram, "Pmatrix"), false, mat4ToTyped(&projMatrix))
 }
 
 // drawViewPasses draws the mode once per view.
@@ -145,7 +146,7 @@ func drawViewPasses(mode string) {
 		return
 	}
 	n := len(rects)
-	gl.Call("enable", gl.Get("SCISSOR_TEST"))
+	glctx.GL.Call("enable", glctx.GL.Get("SCISSOR_TEST"))
 	for i, r := range rects {
 		// Each pass draws ITS cell's instance. Restored below, because
 		// everything outside the passes — the readout, the panel, the
@@ -163,7 +164,7 @@ func drawViewPasses(mode string) {
 		// answer to "where does this cell's value come from".
 		unlink := applyLinks(mode, i)
 		restore := applySweep(mode, i, n)
-		gl.Call("scissor", r[0], r[1], r[2], r[3])
+		glctx.GL.Call("scissor", r[0], r[1], r[2], r[3])
 		setViewport(r)
 		generateForMode(mode)
 		restore()
@@ -172,7 +173,7 @@ func drawViewPasses(mode string) {
 	stereo = focusedInst()
 	fc := colorFor(focusedColorIdx())
 	gradientSource, gradientColors = fc.src, fc.cols
-	gl.Call("disable", gl.Get("SCISSOR_TEST"))
+	glctx.GL.Call("disable", glctx.GL.Get("SCISSOR_TEST"))
 	// Back to the whole canvas, so everything drawn after these passes —
 	// the Poincaré overlay, the lens, the next frame's clear — sees the
 	// state it has always seen.

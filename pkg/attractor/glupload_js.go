@@ -7,55 +7,10 @@ import (
 	"runtime"
 	"syscall/js"
 	"unsafe"
+
+	"github.com/0magnet/chaosrack/pkg/glctx"
 )
 
-// GLTypes holds WebGL constant values.
-type GLTypes struct {
-	StaticDraw         js.Value
-	ArrayBuffer        js.Value
-	ElementArrayBuffer js.Value
-	VertexShader       js.Value
-	FragmentShader     js.Value
-	Float              js.Value
-	DepthTest          js.Value
-	ColorBufferBit     js.Value
-	DepthBufferBit     js.Value
-	Triangles          js.Value
-	UnsignedShort      js.Value
-	LEqual             js.Value
-	LineLoop           js.Value
-	Line               js.Value
-	LineStrip          js.Value
-	Lines              js.Value
-	Points             js.Value
-	DynamicDraw        js.Value
-}
-
-func (types *GLTypes) New(gl js.Value) {
-	types.StaticDraw = gl.Get("STATIC_DRAW")
-	types.ArrayBuffer = gl.Get("ARRAY_BUFFER")
-	types.ElementArrayBuffer = gl.Get("ELEMENT_ARRAY_BUFFER")
-	types.VertexShader = gl.Get("VERTEX_SHADER")
-	types.FragmentShader = gl.Get("FRAGMENT_SHADER")
-	types.Float = gl.Get("FLOAT")
-	types.DepthTest = gl.Get("DEPTH_TEST")
-	types.ColorBufferBit = gl.Get("COLOR_BUFFER_BIT")
-	types.Triangles = gl.Get("TRIANGLES")
-	types.UnsignedShort = gl.Get("UNSIGNED_SHORT")
-	types.LEqual = gl.Get("LEQUAL")
-	types.DepthBufferBit = gl.Get("DEPTH_BUFFER_BIT")
-	types.LineLoop = gl.Get("LINE_LOOP")
-	types.Line = gl.Get("LINES")
-	types.LineStrip = gl.Get("LINE_STRIP")
-	types.Lines = gl.Get("LINES")
-	types.Points = gl.Get("POINTS")
-	types.DynamicDraw = gl.Get("DYNAMIC_DRAW")
-}
-
-// updateGradientRange scans vertices and sets min/max uniforms for x, y, and z.
-// Stride is gradientStride floats per vertex: 4 for interleaved
-// attractor data (x,y,z,t), 3 for packed indexed geometry (x,y,z).
-// Only called on mode/param change, NOT per frame.
 func updateGradientRange(vertices []float32) {
 	stride := gradientStride
 	if !shadersReady || len(vertices) < stride {
@@ -90,12 +45,12 @@ func updateGradientRange(vertices []float32) {
 			maxZ = vertices[i+2]
 		}
 	}
-	gl.Call("uniform1f", uMinXLoc, float64(minX))
-	gl.Call("uniform1f", uMaxXLoc, float64(maxX))
-	gl.Call("uniform1f", uMinYLoc, float64(minY))
-	gl.Call("uniform1f", uMaxYLoc, float64(maxY))
-	gl.Call("uniform1f", uMinZLoc, float64(minZ))
-	gl.Call("uniform1f", uMaxZLoc, float64(maxZ))
+	glctx.GL.Call("uniform1f", uMinXLoc, float64(minX))
+	glctx.GL.Call("uniform1f", uMaxXLoc, float64(maxX))
+	glctx.GL.Call("uniform1f", uMinYLoc, float64(minY))
+	glctx.GL.Call("uniform1f", uMaxYLoc, float64(maxY))
+	glctx.GL.Call("uniform1f", uMinZLoc, float64(minZ))
+	glctx.GL.Call("uniform1f", uMaxZLoc, float64(maxZ))
 }
 
 // uploadVerticesOnly uploads vertex data and draws with drawArrays (no index buffer).
@@ -135,16 +90,16 @@ func uploadVerticesOnly(vertices []float32, drawMode js.Value, count int) {
 	vertexUploadSeq++
 	gradientStride = 4
 	// Set stride-4 attribute pointers for interleaved data
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, attractorVertexBuffer)
-	gl.Call("vertexAttribPointer", positionLoc, 3, glTypes.Float, false, 16, 0)
-	gl.Call("enableVertexAttribArray", positionLoc)
-	gl.Call("vertexAttribPointer", aTrailTLoc, 1, glTypes.Float, false, 16, 12)
-	gl.Call("enableVertexAttribArray", aTrailTLoc)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, attractorVertexBuffer)
+	glctx.GL.Call("vertexAttribPointer", positionLoc, 3, glctx.Types.Float, false, 16, 0)
+	glctx.GL.Call("enableVertexAttribArray", positionLoc)
+	glctx.GL.Call("vertexAttribPointer", aTrailTLoc, 1, glctx.Types.Float, false, 16, 12)
+	glctx.GL.Call("enableVertexAttribArray", aTrailTLoc)
 	js.CopyBytesToJS(jsVertUint8, sliceToByteSlice(vertices))
 	runtime.KeepAlive(vertices)
-	gl.Call("bufferData", glTypes.ArrayBuffer, jsVertFloat, glTypes.StaticDraw)
+	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, jsVertFloat, glctx.Types.StaticDraw)
 	uploadDwell(vertices, n)
-	gl.Call("uniform1f", uTrailHeadLoc, 0) // scan frames are head-less (ring mode sets its own)
+	glctx.GL.Call("uniform1f", uTrailHeadLoc, 0) // scan frames are head-less (ring mode sets its own)
 	// Audio-modulated trail length: draw only the most-recent frac·count points
 	// (a shorter line-strip tail) — no buffer realloc. frac==1 draws it all.
 	first := 0
@@ -157,7 +112,7 @@ func uploadVerticesOnly(vertices []float32, drawMode js.Value, count int) {
 		first = count - drawN
 	}
 	lastDrawnCount = drawN
-	gl.Call("drawArrays", drawMode, first, drawN)
+	glctx.GL.Call("drawArrays", drawMode, first, drawN)
 }
 
 // Beam-dwell exposure: per-vertex brightness ∝ how long the beam lingered
@@ -180,7 +135,7 @@ func uploadDwell(vertices []float32, n int) {
 		jsDwellF32 = js.Global().Get("Float32Array").New(jsDwellU8.Get("buffer"), 0, n)
 	}
 	if dwellGL.IsUndefined() {
-		dwellGL = gl.Call("createBuffer")
+		dwellGL = glctx.GL.Call("createBuffer")
 	}
 	// mean step distance (squared math avoided: one sqrt per point)
 	var total float32
@@ -207,13 +162,13 @@ func uploadDwell(vertices []float32, n int) {
 		}
 		dwellBuf[i] = w
 	}
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, dwellGL)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, dwellGL)
 	js.CopyBytesToJS(jsDwellU8, sliceToByteSlice(dwellBuf))
-	gl.Call("bufferData", glTypes.ArrayBuffer, jsDwellF32, glTypes.DynamicDraw)
-	gl.Call("vertexAttribPointer", aDwellLoc, 1, glTypes.Float, false, 0, 0)
-	gl.Call("enableVertexAttribArray", aDwellLoc)
+	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, jsDwellF32, glctx.Types.DynamicDraw)
+	glctx.GL.Call("vertexAttribPointer", aDwellLoc, 1, glctx.Types.Float, false, 0, 0)
+	glctx.GL.Call("enableVertexAttribArray", aDwellLoc)
 	// leave ARRAY_BUFFER bound to the vertex buffer for any later subdata
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, attractorVertexBuffer)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, attractorVertexBuffer)
 }
 
 // uploadBuffersIndexed uploads and draws with drawElements.
@@ -231,20 +186,20 @@ func uploadBuffersIndexed(vertices []float32, indices []uint16, drawMode js.Valu
 		attractorIndices = indices
 		vertexUploadSeq++
 		gradientStride = 3
-		gl.Call("bindBuffer", glTypes.ArrayBuffer, attractorVertexBuffer)
+		glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, attractorVertexBuffer)
 		// Switch to packed xyz stride for indexed geometry
-		gl.Call("vertexAttribPointer", positionLoc, 3, glTypes.Float, false, 0, 0)
-		gl.Call("enableVertexAttribArray", positionLoc)
-		gl.Call("disableVertexAttribArray", aTrailTLoc)
-		gl.Call("disableVertexAttribArray", aDwellLoc)
-		gl.Call("vertexAttrib1f", aDwellLoc, 1.0)
-		gl.Call("vertexAttrib1f", aTrailTLoc, 0.0)
-		gl.Call("bufferData", glTypes.ArrayBuffer, SliceToTypedArray(attractorVertices), glTypes.StaticDraw)
-		gl.Call("bindBuffer", glTypes.ElementArrayBuffer, attractorIndexBuffer)
-		gl.Call("bufferData", glTypes.ElementArrayBuffer, SliceToTypedArray(attractorIndices), glTypes.StaticDraw)
+		glctx.GL.Call("vertexAttribPointer", positionLoc, 3, glctx.Types.Float, false, 0, 0)
+		glctx.GL.Call("enableVertexAttribArray", positionLoc)
+		glctx.GL.Call("disableVertexAttribArray", aTrailTLoc)
+		glctx.GL.Call("disableVertexAttribArray", aDwellLoc)
+		glctx.GL.Call("vertexAttrib1f", aDwellLoc, 1.0)
+		glctx.GL.Call("vertexAttrib1f", aTrailTLoc, 0.0)
+		glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, SliceToTypedArray(attractorVertices), glctx.Types.StaticDraw)
+		glctx.GL.Call("bindBuffer", glctx.Types.ElementArrayBuffer, attractorIndexBuffer)
+		glctx.GL.Call("bufferData", glctx.Types.ElementArrayBuffer, SliceToTypedArray(attractorIndices), glctx.Types.StaticDraw)
 		staticGeomDirty = false
 	}
-	gl.Call("drawElements", drawMode, len(attractorIndices), glTypes.UnsignedShort, 0)
+	glctx.GL.Call("drawElements", drawMode, len(attractorIndices), glctx.Types.UnsignedShort, 0)
 }
 
 // staticGeomCached reports that the geometry already on the GPU is still what
@@ -270,7 +225,7 @@ func staticGeomCached(drawMode js.Value) bool {
 	if staticGeomDirty {
 		return false
 	}
-	gl.Call("drawElements", drawMode, len(attractorIndices), glTypes.UnsignedShort, 0)
+	glctx.GL.Call("drawElements", drawMode, len(attractorIndices), glctx.Types.UnsignedShort, 0)
 	return true
 }
 
@@ -378,12 +333,12 @@ func setGradientRange(minX, maxX, minY, maxY, minZ, maxZ float32) {
 	if !shadersReady {
 		return
 	}
-	gl.Call("uniform1f", uMinXLoc, float64(minX-centerOffset[0]))
-	gl.Call("uniform1f", uMaxXLoc, float64(maxX-centerOffset[0]))
-	gl.Call("uniform1f", uMinYLoc, float64(minY-centerOffset[1]))
-	gl.Call("uniform1f", uMaxYLoc, float64(maxY-centerOffset[1]))
-	gl.Call("uniform1f", uMinZLoc, float64(minZ-centerOffset[2]))
-	gl.Call("uniform1f", uMaxZLoc, float64(maxZ-centerOffset[2]))
+	glctx.GL.Call("uniform1f", uMinXLoc, float64(minX-centerOffset[0]))
+	glctx.GL.Call("uniform1f", uMaxXLoc, float64(maxX-centerOffset[0]))
+	glctx.GL.Call("uniform1f", uMinYLoc, float64(minY-centerOffset[1]))
+	glctx.GL.Call("uniform1f", uMaxYLoc, float64(maxY-centerOffset[1]))
+	glctx.GL.Call("uniform1f", uMinZLoc, float64(minZ-centerOffset[2]))
+	glctx.GL.Call("uniform1f", uMaxZLoc, float64(maxZ-centerOffset[2]))
 }
 
 // vertexUploadSeq counts uploads into the attractor vertex buffer.

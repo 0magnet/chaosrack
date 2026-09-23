@@ -2,7 +2,11 @@
 
 package attractor
 
-import "github.com/0magnet/chaosrack/pkg/dom"
+import (
+	"github.com/0magnet/chaosrack/pkg/dom"
+
+	"github.com/0magnet/chaosrack/pkg/glctx"
+)
 
 // The depth partition: which side of a plane in front of the camera a pass is
 // allowed to draw.
@@ -31,11 +35,11 @@ const (
 // which is what makes a knob that slides the model "through" the panel behave
 // the way a hand would expect.
 func setSplitPlane(side int, z float32) {
-	if !gl.Truthy() || uSplitSideLoc.IsUndefined() || uSplitSideLoc.IsNull() {
+	if !glctx.GL.Truthy() || uSplitSideLoc.IsUndefined() || uSplitSideLoc.IsNull() {
 		return
 	}
-	gl.Call("uniform1i", uSplitSideLoc, side)
-	gl.Call("uniform1f", uSplitZLoc, float64(z))
+	glctx.GL.Call("uniform1i", uSplitSideLoc, side)
+	glctx.GL.Call("uniform1f", uSplitZLoc, float64(z))
 }
 
 // splitFrac is the Fore knob: -1 puts the whole model behind the rack, +1 puts
@@ -162,8 +166,8 @@ func drawSplitPasses(mode string) {
 	copyNearPassToFront()
 
 	setSplitPlane(splitFar, z)
-	gl.Call("clear", glTypes.ColorBufferBit)
-	gl.Call("clear", glTypes.DepthBufferBit)
+	glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
+	glctx.GL.Call("clear", glctx.Types.DepthBufferBit)
 	switch {
 	case splitRegenerates(mode):
 		// Nothing to advance, so the far half is the generator run again with
@@ -171,7 +175,7 @@ func drawSplitPasses(mode string) {
 		// second pass for geometry and the wrong one for an attractor.
 		generateForMode(mode)
 	case drawn > 0:
-		gl.Call("drawArrays", mapDrawMode(mode), 0, drawn)
+		glctx.GL.Call("drawArrays", mapDrawMode(mode), 0, drawn)
 	}
 
 	setSplitPlane(splitNone, 0)

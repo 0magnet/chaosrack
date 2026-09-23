@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"syscall/js"
 )
 
@@ -72,21 +73,21 @@ func initVColor() {
 	if vcReady {
 		return
 	}
-	vs := gl.Call("createShader", glTypes.VertexShader)
-	gl.Call("shaderSource", vs, vcVertShaderSrc)
-	gl.Call("compileShader", vs)
-	fs := gl.Call("createShader", glTypes.FragmentShader)
-	gl.Call("shaderSource", fs, vcFragShaderSrc)
-	gl.Call("compileShader", fs)
-	vcProgram = gl.Call("createProgram")
-	gl.Call("attachShader", vcProgram, vs)
-	gl.Call("attachShader", vcProgram, fs)
-	gl.Call("linkProgram", vcProgram)
-	vcAPos = gl.Call("getAttribLocation", vcProgram, "aPos")
-	vcACol = gl.Call("getAttribLocation", vcProgram, "aCol")
-	vcUAlpha = gl.Call("getUniformLocation", vcProgram, "uAlpha")
-	vcUOffset = gl.Call("getUniformLocation", vcProgram, "uOffset")
-	vcBuf = gl.Call("createBuffer")
+	vs := glctx.GL.Call("createShader", glctx.Types.VertexShader)
+	glctx.GL.Call("shaderSource", vs, vcVertShaderSrc)
+	glctx.GL.Call("compileShader", vs)
+	fs := glctx.GL.Call("createShader", glctx.Types.FragmentShader)
+	glctx.GL.Call("shaderSource", fs, vcFragShaderSrc)
+	glctx.GL.Call("compileShader", fs)
+	vcProgram = glctx.GL.Call("createProgram")
+	glctx.GL.Call("attachShader", vcProgram, vs)
+	glctx.GL.Call("attachShader", vcProgram, fs)
+	glctx.GL.Call("linkProgram", vcProgram)
+	vcAPos = glctx.GL.Call("getAttribLocation", vcProgram, "aPos")
+	vcACol = glctx.GL.Call("getAttribLocation", vcProgram, "aCol")
+	vcUAlpha = glctx.GL.Call("getUniformLocation", vcProgram, "uAlpha")
+	vcUOffset = glctx.GL.Call("getUniformLocation", vcProgram, "uOffset")
+	vcBuf = glctx.GL.Call("createBuffer")
 	vcReady = true
 }
 
@@ -115,14 +116,14 @@ func vcUpload(n int) {
 	if n <= 0 {
 		return
 	}
-	gl.Call("useProgram", vcProgram)
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, vcBuf)
+	glctx.GL.Call("useProgram", vcProgram)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, vcBuf)
 	js.CopyBytesToJS(vcU8, sliceToByteSlice(vcData))
-	gl.Call("bufferData", glTypes.ArrayBuffer, vcF32, glTypes.DynamicDraw)
-	gl.Call("enableVertexAttribArray", vcAPos)
-	gl.Call("vertexAttribPointer", vcAPos, 2, glTypes.Float, false, vcStride*4, 0)
-	gl.Call("enableVertexAttribArray", vcACol)
-	gl.Call("vertexAttribPointer", vcACol, 3, glTypes.Float, false, vcStride*4, 2*4)
+	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, vcF32, glctx.Types.DynamicDraw)
+	glctx.GL.Call("enableVertexAttribArray", vcAPos)
+	glctx.GL.Call("vertexAttribPointer", vcAPos, 2, glctx.Types.Float, false, vcStride*4, 0)
+	glctx.GL.Call("enableVertexAttribArray", vcACol)
+	glctx.GL.Call("vertexAttribPointer", vcACol, 3, glctx.Types.Float, false, vcStride*4, 2*4)
 }
 
 // vcSpan draws count vertices starting at first, offset by (dx, dy) in clip
@@ -137,14 +138,14 @@ func vcSpan(mode js.Value, first, count int, alpha, dx, dy float32) {
 	if count <= 0 {
 		return
 	}
-	gl.Call("uniform1f", vcUAlpha, alpha)
-	gl.Call("uniform2f", vcUOffset, dx, dy)
-	gl.Call("drawArrays", mode, first, count)
+	glctx.GL.Call("uniform1f", vcUAlpha, alpha)
+	glctx.GL.Call("uniform2f", vcUOffset, dx, dy)
+	glctx.GL.Call("drawArrays", mode, first, count)
 }
 
 // vcDone releases the color attribute, which the other programs do not have
 // and would otherwise inherit as a stale binding.
-func vcDone() { gl.Call("disableVertexAttribArray", vcACol) }
+func vcDone() { glctx.GL.Call("disableVertexAttribArray", vcACol) }
 
 // analyzerPalette reports the colormap the Colors module currently names, if it
 // names one at all.

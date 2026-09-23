@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
 	"syscall/js"
 	"unsafe"
@@ -87,25 +88,25 @@ const (
 )
 
 func setupTexShaders() {
-	vs := gl.Call("createShader", glTypes.VertexShader)
-	gl.Call("shaderSource", vs, texVertShaderSrc)
-	gl.Call("compileShader", vs)
-	fs := gl.Call("createShader", glTypes.FragmentShader)
-	gl.Call("shaderSource", fs, texFragShaderSrc)
-	gl.Call("compileShader", fs)
+	vs := glctx.GL.Call("createShader", glctx.Types.VertexShader)
+	glctx.GL.Call("shaderSource", vs, texVertShaderSrc)
+	glctx.GL.Call("compileShader", vs)
+	fs := glctx.GL.Call("createShader", glctx.Types.FragmentShader)
+	glctx.GL.Call("shaderSource", fs, texFragShaderSrc)
+	glctx.GL.Call("compileShader", fs)
 
-	texProgram = gl.Call("createProgram")
-	gl.Call("attachShader", texProgram, vs)
-	gl.Call("attachShader", texProgram, fs)
-	gl.Call("linkProgram", texProgram)
+	texProgram = glctx.GL.Call("createProgram")
+	glctx.GL.Call("attachShader", texProgram, vs)
+	glctx.GL.Call("attachShader", texProgram, fs)
+	glctx.GL.Call("linkProgram", texProgram)
 
-	texPosLoc = gl.Call("getAttribLocation", texProgram, "aPos")
-	texUVLoc = gl.Call("getAttribLocation", texProgram, "aUV")
-	texUSamplerLoc = gl.Call("getUniformLocation", texProgram, "uSampler")
-	texUOffsetLoc = gl.Call("getUniformLocation", texProgram, "uOffset")
-	texPmatLoc = gl.Call("getUniformLocation", texProgram, "Pmatrix")
-	texVmatLoc = gl.Call("getUniformLocation", texProgram, "Vmatrix")
-	texMmatLoc = gl.Call("getUniformLocation", texProgram, "Mmatrix")
+	texPosLoc = glctx.GL.Call("getAttribLocation", texProgram, "aPos")
+	texUVLoc = glctx.GL.Call("getAttribLocation", texProgram, "aUV")
+	texUSamplerLoc = glctx.GL.Call("getUniformLocation", texProgram, "uSampler")
+	texUOffsetLoc = glctx.GL.Call("getUniformLocation", texProgram, "uOffset")
+	texPmatLoc = glctx.GL.Call("getUniformLocation", texProgram, "Pmatrix")
+	texVmatLoc = glctx.GL.Call("getUniformLocation", texProgram, "Vmatrix")
+	texMmatLoc = glctx.GL.Call("getUniformLocation", texProgram, "Mmatrix")
 	texReady = true
 }
 
@@ -137,9 +138,9 @@ func newTexQuad(hw, hh float32) js.Value {
 		-hw, hh, 0, 0, 1,
 		hw, hh, 0, 1, 1,
 	}
-	buf := gl.Call("createBuffer")
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, buf)
-	gl.Call("bufferData", glTypes.ArrayBuffer, SliceToTypedArray(verts), glTypes.StaticDraw)
+	buf := glctx.GL.Call("createBuffer")
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, buf)
+	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, SliceToTypedArray(verts), glctx.Types.StaticDraw)
 	return buf
 }
 
@@ -168,10 +169,10 @@ func mat4ToTyped(m *mgl32.Mat4) js.Value {
 // useTexProgram activates texProgram and uploads the current P/V/M
 // matrices to it. Call before any textured draw.
 func useTexProgram() {
-	gl.Call("useProgram", texProgram)
-	gl.Call("uniformMatrix4fv", texPmatLoc, false, mat4ToTyped(&projMatrix))
-	gl.Call("uniformMatrix4fv", texVmatLoc, false, mat4ToTyped(&viewMatrix))
-	gl.Call("uniformMatrix4fv", texMmatLoc, false, mat4ToTyped(&movMatrix))
+	glctx.GL.Call("useProgram", texProgram)
+	glctx.GL.Call("uniformMatrix4fv", texPmatLoc, false, mat4ToTyped(&projMatrix))
+	glctx.GL.Call("uniformMatrix4fv", texVmatLoc, false, mat4ToTyped(&viewMatrix))
+	glctx.GL.Call("uniformMatrix4fv", texMmatLoc, false, mat4ToTyped(&movMatrix))
 }
 
 // drawTexturedPlane draws the unit plane with the given texture and scroll
@@ -190,9 +191,9 @@ func drawTexturedPlane(texture js.Value, offset float32) {
 		fill[0] = 1.0 / planeHalfW
 		fill[5] = 1.0 / planeHalfH
 		id := mgl32.Ident4()
-		gl.Call("uniformMatrix4fv", texPmatLoc, false, mat4ToTyped(&fill))
-		gl.Call("uniformMatrix4fv", texVmatLoc, false, mat4ToTyped(&id))
-		gl.Call("uniformMatrix4fv", texMmatLoc, false, mat4ToTyped(&id))
+		glctx.GL.Call("uniformMatrix4fv", texPmatLoc, false, mat4ToTyped(&fill))
+		glctx.GL.Call("uniformMatrix4fv", texVmatLoc, false, mat4ToTyped(&id))
+		glctx.GL.Call("uniformMatrix4fv", texMmatLoc, false, mat4ToTyped(&id))
 	}
 
 	drawTexQuad(texPlaneBuf, texture, offset)
@@ -260,19 +261,19 @@ func canvasAspect(cv js.Value) float32 {
 // drawTexQuad binds one quad buffer and the texture and draws it. Assumes
 // texProgram is current and its matrices are already uploaded.
 func drawTexQuad(buf, texture js.Value, offset float32) {
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, buf)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, buf)
 	// stride 20 bytes: 3 floats pos + 2 floats uv
-	gl.Call("vertexAttribPointer", texPosLoc, 3, glTypes.Float, false, 20, 0)
-	gl.Call("enableVertexAttribArray", texPosLoc)
-	gl.Call("vertexAttribPointer", texUVLoc, 2, glTypes.Float, false, 20, 12)
-	gl.Call("enableVertexAttribArray", texUVLoc)
+	glctx.GL.Call("vertexAttribPointer", texPosLoc, 3, glctx.Types.Float, false, 20, 0)
+	glctx.GL.Call("enableVertexAttribArray", texPosLoc)
+	glctx.GL.Call("vertexAttribPointer", texUVLoc, 2, glctx.Types.Float, false, 20, 12)
+	glctx.GL.Call("enableVertexAttribArray", texUVLoc)
 
-	gl.Call("activeTexture", gl.Get("TEXTURE0"))
-	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), texture)
-	gl.Call("uniform1i", texUSamplerLoc, 0)
-	gl.Call("uniform1f", texUOffsetLoc, float64(offset))
+	glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0"))
+	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), texture)
+	glctx.GL.Call("uniform1i", texUSamplerLoc, 0)
+	glctx.GL.Call("uniform1f", texUOffsetLoc, float64(offset))
 
-	gl.Call("drawArrays", gl.Get("TRIANGLE_STRIP"), 0, 4)
+	glctx.GL.Call("drawArrays", glctx.GL.Get("TRIANGLE_STRIP"), 0, 4)
 }
 
 // drawTexturedMesh draws an indexed triangle mesh (interleaved pos+uv,
@@ -285,17 +286,17 @@ func drawTexturedMesh(vertBuf, idxBuf js.Value, idxCount int, texture js.Value, 
 	}
 	useTexProgram()
 
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, vertBuf)
-	gl.Call("vertexAttribPointer", texPosLoc, 3, glTypes.Float, false, 20, 0)
-	gl.Call("enableVertexAttribArray", texPosLoc)
-	gl.Call("vertexAttribPointer", texUVLoc, 2, glTypes.Float, false, 20, 12)
-	gl.Call("enableVertexAttribArray", texUVLoc)
-	gl.Call("bindBuffer", glTypes.ElementArrayBuffer, idxBuf)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, vertBuf)
+	glctx.GL.Call("vertexAttribPointer", texPosLoc, 3, glctx.Types.Float, false, 20, 0)
+	glctx.GL.Call("enableVertexAttribArray", texPosLoc)
+	glctx.GL.Call("vertexAttribPointer", texUVLoc, 2, glctx.Types.Float, false, 20, 12)
+	glctx.GL.Call("enableVertexAttribArray", texUVLoc)
+	glctx.GL.Call("bindBuffer", glctx.Types.ElementArrayBuffer, idxBuf)
 
-	gl.Call("activeTexture", gl.Get("TEXTURE0"))
-	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), texture)
-	gl.Call("uniform1i", texUSamplerLoc, 0)
-	gl.Call("uniform1f", texUOffsetLoc, float64(offset))
+	glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0"))
+	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), texture)
+	glctx.GL.Call("uniform1i", texUSamplerLoc, 0)
+	glctx.GL.Call("uniform1f", texUOffsetLoc, float64(offset))
 
-	gl.Call("drawElements", gl.Get("TRIANGLES"), idxCount, glTypes.UnsignedShort, 0)
+	glctx.GL.Call("drawElements", glctx.GL.Get("TRIANGLES"), idxCount, glctx.Types.UnsignedShort, 0)
 }

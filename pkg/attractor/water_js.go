@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
 	"math/rand/v2"
 	"syscall/js"
@@ -152,26 +153,26 @@ void main(){
   gl_FragColor = vec4(c, 1.0);
 }`
 
-	vsh := gl.Call("createShader", glTypes.VertexShader)
-	gl.Call("shaderSource", vsh, vs)
-	gl.Call("compileShader", vsh)
-	fsh := gl.Call("createShader", glTypes.FragmentShader)
-	gl.Call("shaderSource", fsh, fs)
-	gl.Call("compileShader", fsh)
-	waterProgram = gl.Call("createProgram")
-	gl.Call("attachShader", waterProgram, vsh)
-	gl.Call("attachShader", waterProgram, fsh)
-	gl.Call("linkProgram", waterProgram)
-	waterAPos = gl.Call("getAttribLocation", waterProgram, "aPos")
-	waterUScene = gl.Call("getUniformLocation", waterProgram, "uScene")
-	waterUHeight = gl.Call("getUniformLocation", waterProgram, "uHeight")
-	waterUAmount = gl.Call("getUniformLocation", waterProgram, "uAmount")
-	waterUTexel = gl.Call("getUniformLocation", waterProgram, "uTexel")
+	vsh := glctx.GL.Call("createShader", glctx.Types.VertexShader)
+	glctx.GL.Call("shaderSource", vsh, vs)
+	glctx.GL.Call("compileShader", vsh)
+	fsh := glctx.GL.Call("createShader", glctx.Types.FragmentShader)
+	glctx.GL.Call("shaderSource", fsh, fs)
+	glctx.GL.Call("compileShader", fsh)
+	waterProgram = glctx.GL.Call("createProgram")
+	glctx.GL.Call("attachShader", waterProgram, vsh)
+	glctx.GL.Call("attachShader", waterProgram, fsh)
+	glctx.GL.Call("linkProgram", waterProgram)
+	waterAPos = glctx.GL.Call("getAttribLocation", waterProgram, "aPos")
+	waterUScene = glctx.GL.Call("getUniformLocation", waterProgram, "uScene")
+	waterUHeight = glctx.GL.Call("getUniformLocation", waterProgram, "uHeight")
+	waterUAmount = glctx.GL.Call("getUniformLocation", waterProgram, "uAmount")
+	waterUTexel = glctx.GL.Call("getUniformLocation", waterProgram, "uTexel")
 
 	verts := []float32{-1, -1, 1, -1, -1, 1, 1, 1}
-	waterQuadBuf = gl.Call("createBuffer")
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, waterQuadBuf)
-	gl.Call("bufferData", glTypes.ArrayBuffer, SliceToTypedArray(verts), glTypes.StaticDraw)
+	waterQuadBuf = glctx.GL.Call("createBuffer")
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, waterQuadBuf)
+	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, SliceToTypedArray(verts), glctx.Types.StaticDraw)
 
 	waterSceneTex = newClampedTexture()
 	waterHeightTex = newClampedTexture()
@@ -184,12 +185,12 @@ void main(){
 // default wrap is REPEAT, and a lens that samples past the edge would then
 // show the opposite side of the screen smeared along the border.
 func newClampedTexture() js.Value {
-	t := gl.Call("createTexture")
-	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), t)
-	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_MIN_FILTER"), gl.Get("LINEAR"))
-	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_MAG_FILTER"), gl.Get("LINEAR"))
-	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_WRAP_S"), gl.Get("CLAMP_TO_EDGE"))
-	gl.Call("texParameteri", gl.Get("TEXTURE_2D"), gl.Get("TEXTURE_WRAP_T"), gl.Get("CLAMP_TO_EDGE"))
+	t := glctx.GL.Call("createTexture")
+	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), t)
+	glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_MIN_FILTER"), glctx.GL.Get("LINEAR"))
+	glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_MAG_FILTER"), glctx.GL.Get("LINEAR"))
+	glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_WRAP_S"), glctx.GL.Get("CLAMP_TO_EDGE"))
+	glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_WRAP_T"), glctx.GL.Get("CLAMP_TO_EDGE"))
 	return t
 }
 
@@ -200,7 +201,7 @@ func newClampedTexture() js.Value {
 // page ends up with forty of them, and a drag that starts before the layer is
 // on should not be half-tracked.
 func wireWaterPointer() {
-	el := gl.Get("canvas")
+	el := glctx.GL.Get("canvas")
 	if !el.Truthy() {
 		return
 	}
@@ -315,28 +316,28 @@ func drawWaterLens() {
 	waterField.Step()
 
 	// The scene as it stands, into a texture.
-	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), waterSceneTex)
-	gl.Call("copyTexImage2D", gl.Get("TEXTURE_2D"), 0, gl.Get("RGBA"), 0, 0, width, height, 0)
+	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), waterSceneTex)
+	glctx.GL.Call("copyTexImage2D", glctx.GL.Get("TEXTURE_2D"), 0, glctx.GL.Get("RGBA"), 0, 0, width, height, 0)
 
 	uploadWaterHeight()
 
-	gl.Call("disable", glTypes.DepthTest)
-	gl.Call("useProgram", waterProgram)
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, waterQuadBuf)
-	gl.Call("enableVertexAttribArray", waterAPos)
-	gl.Call("vertexAttribPointer", waterAPos, 2, glTypes.Float, false, 0, 0)
+	glctx.GL.Call("disable", glctx.Types.DepthTest)
+	glctx.GL.Call("useProgram", waterProgram)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, waterQuadBuf)
+	glctx.GL.Call("enableVertexAttribArray", waterAPos)
+	glctx.GL.Call("vertexAttribPointer", waterAPos, 2, glctx.Types.Float, false, 0, 0)
 
-	gl.Call("activeTexture", gl.Get("TEXTURE0"))
-	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), waterSceneTex)
-	gl.Call("uniform1i", waterUScene, 0)
-	gl.Call("activeTexture", gl.Get("TEXTURE1"))
-	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), waterHeightTex)
-	gl.Call("uniform1i", waterUHeight, 1)
-	gl.Call("activeTexture", gl.Get("TEXTURE0"))
+	glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0"))
+	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), waterSceneTex)
+	glctx.GL.Call("uniform1i", waterUScene, 0)
+	glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE1"))
+	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), waterHeightTex)
+	glctx.GL.Call("uniform1i", waterUHeight, 1)
+	glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0"))
 
-	gl.Call("uniform1f", waterUAmount, waterAmount)
-	gl.Call("uniform2f", waterUTexel, 1/float32(waterW), 1/float32(waterH))
-	gl.Call("drawArrays", gl.Get("TRIANGLE_STRIP"), 0, 4)
+	glctx.GL.Call("uniform1f", waterUAmount, waterAmount)
+	glctx.GL.Call("uniform2f", waterUTexel, 1/float32(waterW), 1/float32(waterH))
+	glctx.GL.Call("drawArrays", glctx.GL.Get("TRIANGLE_STRIP"), 0, 4)
 }
 
 // uploadWaterHeight quantizes the field into the two-byte encoding the shader
@@ -361,10 +362,10 @@ func uploadWaterHeight() {
 		waterHeightBuf[j+2] = 0
 		waterHeightBuf[j+3] = 255
 	}
-	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), waterHeightTex)
+	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), waterHeightTex)
 	js.CopyBytesToJS(waterHeightJS(), waterHeightBuf)
-	gl.Call("texImage2D", gl.Get("TEXTURE_2D"), 0, gl.Get("RGBA"),
-		waterW, waterH, 0, gl.Get("RGBA"), gl.Get("UNSIGNED_BYTE"), waterHeightJS())
+	glctx.GL.Call("texImage2D", glctx.GL.Get("TEXTURE_2D"), 0, glctx.GL.Get("RGBA"),
+		waterW, waterH, 0, glctx.GL.Get("RGBA"), glctx.GL.Get("UNSIGNED_BYTE"), waterHeightJS())
 }
 
 var waterHeightArr js.Value

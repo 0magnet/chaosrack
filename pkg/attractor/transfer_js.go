@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/dom"
@@ -174,9 +175,9 @@ func drawTransfer() {
 	}
 	n := len(xfRes.Bands)
 	if !xfRes.OK || n < 2 {
-		gl.Call("disable", glTypes.DepthTest)
-		gl.Call("clearColor", 0, 0, 0, 0)
-		gl.Call("clear", glTypes.ColorBufferBit)
+		glctx.GL.Call("disable", glctx.Types.DepthTest)
+		glctx.GL.Call("clearColor", 0, 0, 0, 0)
+		glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
 		return
 	}
 	show := xfShowSel()
@@ -270,27 +271,27 @@ func drawTransfer() {
 		}
 	}
 	if v == 0 {
-		gl.Call("disable", glTypes.DepthTest)
-		gl.Call("clearColor", 0, 0, 0, 0)
-		gl.Call("clear", glTypes.ColorBufferBit)
+		glctx.GL.Call("disable", glctx.Types.DepthTest)
+		glctx.GL.Call("clearColor", 0, 0, 0, 0)
+		glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
 		return
 	}
 
 	initVColor()
-	gl.Call("disable", glTypes.DepthTest)
-	gl.Call("clearColor", 0, 0, 0, 0)
-	gl.Call("clear", glTypes.ColorBufferBit)
-	gl.Call("enable", gl.Get("BLEND"))
-	gl.Call("blendFunc", gl.Get("SRC_ALPHA"), gl.Get("ONE"))
+	glctx.GL.Call("disable", glctx.Types.DepthTest)
+	glctx.GL.Call("clearColor", 0, 0, 0, 0)
+	glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
+	glctx.GL.Call("enable", glctx.GL.Get("BLEND"))
+	glctx.GL.Call("blendFunc", glctx.GL.Get("SRC_ALPHA"), glctx.GL.Get("ONE"))
 	vcUpload(v)
 	dx := float32(1.2) / float32(width)
 	dy := float32(1.2) / float32(height)
 	for _, h := range [][3]float32{{dx, 0, 0.35}, {-dx, 0, 0.35}, {0, dy, 0.35}, {0, -dy, 0.35}} {
-		vcSpan(glTypes.Lines, 0, v, h[2], h[0], h[1])
+		vcSpan(glctx.Types.Lines, 0, v, h[2], h[0], h[1])
 	}
-	vcSpan(glTypes.Lines, 0, v, 1, 0, 0)
+	vcSpan(glctx.Types.Lines, 0, v, 1, 0, 0)
 	vcDone()
-	gl.Call("disable", gl.Get("BLEND"))
+	glctx.GL.Call("disable", glctx.GL.Get("BLEND"))
 
 	showTransferDelay()
 }

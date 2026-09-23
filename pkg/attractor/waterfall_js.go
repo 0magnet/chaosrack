@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"strconv"
 	"syscall/js"
 
@@ -516,7 +517,7 @@ func wfallMeasure(sr int) {
 func wfallDraw() {
 	n := len(wfallSurface)
 	if n == 0 || len(wfallFreqs) < 2 {
-		uploadVerticesOnly(vertBuf[:0], glTypes.Lines, 0)
+		uploadVerticesOnly(vertBuf[:0], glctx.Types.Lines, 0)
 		return
 	}
 	bins := len(wfallFreqs)
@@ -527,7 +528,7 @@ func wfallDraw() {
 		// slices is a better answer than drawing a corrupt surface.
 		n = len(vertBuf) / 4 / ((bins - 1) * 2)
 		if n < 1 {
-			uploadVerticesOnly(vertBuf[:0], glTypes.Lines, 0)
+			uploadVerticesOnly(vertBuf[:0], glctx.Types.Lines, 0)
 			return
 		}
 		need = n * (bins - 1) * 2
@@ -566,7 +567,7 @@ func wfallDraw() {
 			put(b, s)
 		}
 	}
-	uploadVerticesOnly(v, glTypes.Lines, need)
+	uploadVerticesOnly(v, glctx.Types.Lines, need)
 	// The surface's bounds are exact rather than measured: x is the frequency
 	// axis end to end, y is the whole of TOP..TOP-RNGE because the level is
 	// clamped into it, and z is the depth DPTH asked for. Setting them is what

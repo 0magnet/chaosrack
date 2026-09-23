@@ -2,7 +2,11 @@
 
 package attractor
 
-import "syscall/js"
+import (
+	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/glctx"
+)
 
 // The render loop for every discrete map. One loop for all of them, the way
 // generateClassic is one loop for every classic flow: each map contributes
@@ -78,7 +82,7 @@ func generateMap(mode string) {
 		}
 		mapState[o] = p
 	}
-	uploadVerticesOnly(vertices, glTypes.Points, total)
+	uploadVerticesOnly(vertices, glctx.Types.Points, total)
 }
 
 // mapDrawMode is the draw mode for a model that may be a map: points for one
@@ -91,7 +95,7 @@ func generateMap(mode string) {
 // error (which withdraws the map) still redraws the last cloud as a cloud.
 func mapDrawMode(mode string) js.Value {
 	if IsMap(mode) || (mode == customModeKey && customIterate) {
-		return glTypes.Points
+		return glctx.Types.Points
 	}
 	return attractorDrawMode
 }

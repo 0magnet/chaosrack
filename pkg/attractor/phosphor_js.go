@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
 	"strconv"
 	"syscall/js"
@@ -190,8 +191,8 @@ func phosphorActive() bool {
 // color. Called after the gradient uniforms are set in generateForMode.
 func applyPhosphorColor() {
 	p := phosphors[phosphorIdx]
-	gl.Call("uniform1i", uGradientColorsLoc, 1) // monochrome
-	gl.Call("uniform3f", uBaseColorLoc, p.tr, p.tg, p.tb)
+	glctx.GL.Call("uniform1i", uGradientColorsLoc, 1) // monochrome
+	glctx.GL.Call("uniform3f", uBaseColorLoc, p.tr, p.tg, p.tb)
 }
 
 var (
@@ -229,9 +230,9 @@ func drawPhosphorFade() {
 	}
 	if !phosphorQuadReady {
 		verts := []float32{-1, -1, 1, -1, -1, 1, 1, 1}
-		phosphorQuadBuf = gl.Call("createBuffer")
-		gl.Call("bindBuffer", glTypes.ArrayBuffer, phosphorQuadBuf)
-		gl.Call("bufferData", glTypes.ArrayBuffer, SliceToTypedArray(verts), glTypes.StaticDraw)
+		phosphorQuadBuf = glctx.GL.Call("createBuffer")
+		glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, phosphorQuadBuf)
+		glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, SliceToTypedArray(verts), glctx.Types.StaticDraw)
 		phosphorQuadReady = true
 	}
 	p := phosphors[phosphorIdx]
@@ -252,23 +253,23 @@ func drawFadeQuad(kr, kg, kb float32) {
 	}
 	if !phosphorQuadReady {
 		verts := []float32{-1, -1, 1, -1, -1, 1, 1, 1}
-		phosphorQuadBuf = gl.Call("createBuffer")
-		gl.Call("bindBuffer", glTypes.ArrayBuffer, phosphorQuadBuf)
-		gl.Call("bufferData", glTypes.ArrayBuffer, SliceToTypedArray(verts), glTypes.StaticDraw)
+		phosphorQuadBuf = glctx.GL.Call("createBuffer")
+		glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, phosphorQuadBuf)
+		glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, SliceToTypedArray(verts), glctx.Types.StaticDraw)
 		phosphorQuadReady = true
 	}
-	gl.Call("disable", glTypes.DepthTest)
-	gl.Call("enable", gl.Get("BLEND"))
+	glctx.GL.Call("disable", glctx.Types.DepthTest)
+	glctx.GL.Call("enable", glctx.GL.Get("BLEND"))
 	// dst_rgb = dst_rgb * src_rgb → multiply the frame by the retention color.
-	gl.Call("blendFunc", gl.Get("ZERO"), gl.Get("SRC_COLOR"))
-	gl.Call("useProgram", xyProgram)
-	gl.Call("bindBuffer", glTypes.ArrayBuffer, phosphorQuadBuf)
-	gl.Call("enableVertexAttribArray", xyAPos)
-	gl.Call("vertexAttribPointer", xyAPos, 2, glTypes.Float, false, 0, 0)
-	gl.Call("uniform3f", xyUColor, kr, kg, kb) // per-channel retention
-	gl.Call("uniform1f", xyUAlpha, 1)
-	gl.Call("uniform2f", xyUOffset, 0, 0)
-	gl.Call("drawArrays", gl.Get("TRIANGLE_STRIP"), 0, 4)
-	gl.Call("blendFunc", gl.Get("SRC_ALPHA"), gl.Get("ONE_MINUS_SRC_ALPHA"))
-	gl.Call("disable", gl.Get("BLEND"))
+	glctx.GL.Call("blendFunc", glctx.GL.Get("ZERO"), glctx.GL.Get("SRC_COLOR"))
+	glctx.GL.Call("useProgram", xyProgram)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, phosphorQuadBuf)
+	glctx.GL.Call("enableVertexAttribArray", xyAPos)
+	glctx.GL.Call("vertexAttribPointer", xyAPos, 2, glctx.Types.Float, false, 0, 0)
+	glctx.GL.Call("uniform3f", xyUColor, kr, kg, kb) // per-channel retention
+	glctx.GL.Call("uniform1f", xyUAlpha, 1)
+	glctx.GL.Call("uniform2f", xyUOffset, 0, 0)
+	glctx.GL.Call("drawArrays", glctx.GL.Get("TRIANGLE_STRIP"), 0, 4)
+	glctx.GL.Call("blendFunc", glctx.GL.Get("SRC_ALPHA"), glctx.GL.Get("ONE_MINUS_SRC_ALPHA"))
+	glctx.GL.Call("disable", glctx.GL.Get("BLEND"))
 }

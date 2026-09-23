@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"syscall/js"
 
 	"github.com/0magnet/websh/web"
@@ -150,7 +151,7 @@ func wireTerminalFocus() {
 	}
 	termWired = true
 
-	canvasEl.Call("addEventListener", "dblclick", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	glctx.Canvas.Call("addEventListener", "dblclick", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		focusModelKeyboard()
 		return nil
 	}))
@@ -275,7 +276,7 @@ func drawTerminalBackground() {
 	// of the pose. A background always fills; the Fill switch governs the MODE.
 	savedFill := spectFill
 	spectFill = true
-	gl.Call("disable", glTypes.DepthTest)
+	glctx.GL.Call("disable", glctx.Types.DepthTest)
 	drawTexturedPlane(tex, 0)
 	spectFill = savedFill
 }
