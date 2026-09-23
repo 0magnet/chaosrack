@@ -303,7 +303,25 @@ func requantizeAfterFonts() {
 	var fn js.Func
 	fn = js.FuncOf(func(js.Value, []js.Value) interface{} {
 		fn.Release()
-		afterTwoFrames(quantizeModuleWidths)
+		afterTwoFrames(func() {
+			// Forget what the panels measured in the wrong font.
+			//
+			// latchModuleWidths stops a module ever getting NARROWER, which is
+			// right for a knob that changes what is on a panel and wrong for
+			// this one: the first pass measures in the fallback face, before
+			// the panel's own has been applied, and whatever it got is then
+			// held for the rest of the session. Analysis is two half-height
+			// cells that stack into one column and want ONE slot; measured
+			// early they sat side by side, latched at two, and the module
+			// stayed twice as wide as anything on it.
+			//
+			// Clearing the marks here is the argument rackSetScale already
+			// makes when it clears them: measuring again in a different font
+			// re-mills every panel, so the old marks describe a rack that no
+			// longer exists.
+			moduleWidthHighWater = map[string]int{}
+			quantizeModuleWidths()
+		})
 		return nil
 	})
 	ready.Call("then", fn)
