@@ -1,6 +1,10 @@
 package attractor
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/racklayout"
+)
 
 // The truth table for whether a module gets a show/hide switch.
 //
@@ -22,7 +26,7 @@ func TestModulePinnedRule(t *testing.T) {
 		{"a module the rack put away KEEPS its switch", false, true, true, false},
 		{"a module a mode took away gets none", false, false, true, true},
 	} {
-		if got := modulePinnedFrom(c.neverSwitched, c.rackHidden, c.display); got != c.want {
+		if got := racklayout.ModulePinnedFrom(c.neverSwitched, c.rackHidden, c.display); got != c.want {
 			t.Errorf("%s: pinned=%v, want %v", c.name, got, c.want)
 		}
 	}
@@ -34,7 +38,7 @@ func TestModulePinnedRule(t *testing.T) {
 // needs one is the one that is currently put away.
 func TestHiddenModuleAlwaysKeepsItsSwitch(t *testing.T) {
 	for _, display := range []bool{true, false} {
-		if modulePinnedFrom(false, true, display) {
+		if racklayout.ModulePinnedFrom(false, true, display) {
 			t.Errorf("a rack-hidden module was pinned (display:none=%v), so nothing would bring it back", display)
 		}
 	}

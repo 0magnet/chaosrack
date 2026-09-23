@@ -1,4 +1,4 @@
-package attractor
+package racklayout
 
 // The rack layout, as a thing that can be written down.
 //
@@ -20,9 +20,9 @@ package attractor
 
 import "strings"
 
-// rackLayoutKey is where the arrangement lives, alongside wasmstuff-dock,
+// LayoutKey is where the arrangement lives, alongside wasmstuff-dock,
 // wasmstuff-kscale and wasmstuff-handles.
-const rackLayoutKey = "wasmstuff-racklayout"
+const LayoutKey = "wasmstuff-racklayout"
 
 // consoleModuleSwitches are the two Console checkboxes that still put
 // something in or out of the rack, and therefore still have to be persisted.
@@ -45,14 +45,14 @@ const rackLayoutKey = "wasmstuff-racklayout"
 // The rack bay's "handles-on" is deliberately NOT here: the bay is the frame
 // the modules sit in, not a module, and it already persists under its own key
 // through setRackBay / restoreRackBay.
-var consoleModuleSwitches = []string{
+var ConsoleModuleSwitches = []string{
 	"scope-on",
 	"tpl-on",
 }
 
 // rackLayout is the panel's arrangement: which modules are in it, in what
 // order, and which of the Console's own module switches are on.
-type rackLayout struct {
+type Layout struct {
 	Order    []string // module keys, left to right, as the rack reports them
 	Hidden   []string // module keys taken out through a rack switch
 	Switches []string // ids of the Console module switches that are ON
@@ -68,7 +68,7 @@ const (
 )
 
 // encode renders the layout for localStorage.
-func (l rackLayout) encode() string {
+func (l Layout) Encode() string {
 	return strings.Join([]string{
 		"order=" + joinLayoutList(l.Order),
 		"hidden=" + joinLayoutList(l.Hidden),
@@ -80,8 +80,8 @@ func (l rackLayout) encode() string {
 // for that field rather than an error: a preference that cannot be read is a
 // preference that was never set, and refusing to boot over it would be worse
 // than starting from the factory order.
-func decodeRackLayout(s string) rackLayout {
-	var l rackLayout
+func Decode(s string) Layout {
+	var l Layout
 	for _, field := range strings.Split(s, layoutFieldSep) {
 		kv := strings.SplitN(field, "=", 2)
 		if len(kv) != 2 {
@@ -145,7 +145,7 @@ func splitLayoutList(s string) []string {
 // module is display:none for exactly the reason the rack hid it, and restore
 // hides before the switches are built, so "hidden" read as "pinned" and the
 // switch was never made: hide a module, reload, and it was gone for good.
-func modulePinnedFrom(neverSwitched, rackHidden, displayNone bool) bool {
+func ModulePinnedFrom(neverSwitched, rackHidden, displayNone bool) bool {
 	if neverSwitched {
 		return true
 	}
@@ -167,7 +167,7 @@ func modulePinnedFrom(neverSwitched, rackHidden, displayNone bool) bool {
 // the list stays where it was and ends up in FRONT of the whole rack. A new
 // module would have shoved the Console out of the first slot, which is the one
 // module whose position anybody depends on.
-func mergeModuleOrder(saved, present []string) []string {
+func MergeModuleOrder(saved, present []string) []string {
 	have := make(map[string]bool, len(present))
 	for _, k := range present {
 		have[k] = true
@@ -203,7 +203,7 @@ func mergeModuleOrder(saved, present []string) []string {
 // all take it; so do the twenty-odd terminal demos, whose names are words.
 //
 //nolint:unused // called from panelbuild_js.go and paramrings_js_test.go, both js-tagged, which the native lint pass cannot see
-func ringLabelsFit(labels []string) bool {
+func RingLabelsFit(labels []string) bool {
 	const maxRingLabels = 8
 	const maxRingLabelRunes = 5
 	if len(labels) > maxRingLabels {

@@ -3,10 +3,12 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"strings"
 	"syscall/js"
 	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/racklayout"
 )
 
 // fakeDoc is a document with nothing in it but the elements the test names —
@@ -55,7 +57,7 @@ func TestOnConsoleModuleSwitchesReadsTheCheckedOnes(t *testing.T) {
 
 func TestOnConsoleModuleSwitchesNoneOn(t *testing.T) {
 	byID := map[string]js.Value{}
-	for _, id := range consoleModuleSwitches {
+	for _, id := range racklayout.ConsoleModuleSwitches {
 		byID[id] = fakeSwitch(false)
 	}
 	withFakeDoc(t, byID)
@@ -73,7 +75,7 @@ func TestPersistedModuleSwitchesAreAlsoShareable(t *testing.T) {
 	for _, c := range permaCtls {
 		inPerma[c.id] = true
 	}
-	for _, id := range consoleModuleSwitches {
+	for _, id := range racklayout.ConsoleModuleSwitches {
 		if !inPerma[id] {
 			t.Errorf("%q is saved to localStorage but is in no permalink row, so a link cannot carry it", id)
 		}
@@ -84,7 +86,7 @@ func TestPersistedModuleSwitchesAreAlsoShareable(t *testing.T) {
 // serializes nothing, silently. The panel markup is a const in this package,
 // so the check costs a substring search.
 func TestPersistedModuleSwitchesExistInTheMarkup(t *testing.T) {
-	for _, id := range consoleModuleSwitches {
+	for _, id := range racklayout.ConsoleModuleSwitches {
 		if !strings.Contains(controlsBody, `id="`+id+`"`) {
 			t.Errorf("no element with id %q in the panel markup", id)
 		}

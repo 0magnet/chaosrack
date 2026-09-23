@@ -10,15 +10,16 @@ import (
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/racklayout"
 )
 
 // readRackLayout loads the saved arrangement, or an empty one.
-func readRackLayout() rackLayout {
-	v, ok := lsGet(rackLayoutKey)
+func readRackLayout() racklayout.Layout {
+	v, ok := lsGet(racklayout.LayoutKey)
 	if !ok {
-		return rackLayout{}
+		return racklayout.Layout{}
 	}
-	return decodeRackLayout(v)
+	return racklayout.Decode(v)
 }
 
 // saveRackLayout writes the arrangement as it stands.
@@ -34,17 +35,17 @@ func saveRackLayout() {
 	// Hidden is left empty on purpose. Nothing takes a module out of the
 	// rack now, so there is nothing to write — and writing it would be a
 	// record of a state the panel can no longer be in.
-	l := rackLayout{
+	l := racklayout.Layout{
 		Order:    rackOrder(),
 		Switches: onConsoleModuleSwitches(),
 	}
-	lsSet(rackLayoutKey, l.encode())
+	lsSet(racklayout.LayoutKey, l.Encode())
 }
 
 // onConsoleModuleSwitches is which of the Console's module switches are on.
 func onConsoleModuleSwitches() []string {
 	var out []string
-	for _, id := range consoleModuleSwitches {
+	for _, id := range racklayout.ConsoleModuleSwitches {
 		if sw := dom.Doc.Call("getElementById", id); sw.Truthy() && sw.Get("checked").Bool() {
 			out = append(out, id)
 		}
@@ -103,7 +104,7 @@ func restoreConsoleModuleSwitches() {
 	for _, id := range l.Switches {
 		on[id] = true
 	}
-	for _, id := range consoleModuleSwitches {
+	for _, id := range racklayout.ConsoleModuleSwitches {
 		sw := dom.Doc.Call("getElementById", id)
 		if !sw.Truthy() || sw.Get("checked").Bool() == on[id] {
 			continue
@@ -120,7 +121,7 @@ func restoreConsoleModuleSwitches() {
 // one is flipped. Registered after the restore above so the restore's own
 // dispatch does not write the record it just read.
 func wireConsoleModuleSwitchSaves() {
-	for _, id := range consoleModuleSwitches {
+	for _, id := range racklayout.ConsoleModuleSwitches {
 		sw := dom.Doc.Call("getElementById", id)
 		if !sw.Truthy() {
 			continue

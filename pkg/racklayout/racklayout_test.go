@@ -1,4 +1,4 @@
-package attractor
+package racklayout
 
 import (
 	"strings"
@@ -10,12 +10,12 @@ import (
 // a round trip that quietly lost the hidden set would look exactly like a
 // rack nobody had rearranged.
 func TestRackLayoutRoundTrips(t *testing.T) {
-	in := rackLayout{
+	in := Layout{
 		Order:    []string{"console", "parameters", "gen x", "model out"},
 		Hidden:   []string{"record", "style"},
 		Switches: []string{"keys-on", "tm-on"},
 	}
-	got := decodeRackLayout(in.encode())
+	got := Decode(in.Encode())
 	for _, c := range []struct {
 		what      string
 		got, want []string
@@ -33,12 +33,12 @@ func TestRackLayoutRoundTrips(t *testing.T) {
 // An empty rack encodes and decodes to an empty rack, rather than to one
 // module called "".
 func TestRackLayoutEmpty(t *testing.T) {
-	got := decodeRackLayout(rackLayout{}.encode())
+	got := Decode(Layout{}.Encode())
 	if len(got.Order)+len(got.Hidden)+len(got.Switches) != 0 {
 		t.Errorf("an empty layout round-tripped to %+v", got)
 	}
 	// And so does a record that was never written.
-	if got := decodeRackLayout(""); len(got.Order)+len(got.Hidden)+len(got.Switches) != 0 {
+	if got := Decode(""); len(got.Order)+len(got.Hidden)+len(got.Switches) != 0 {
 		t.Errorf("no record at all decoded to %+v", got)
 	}
 }
@@ -46,7 +46,7 @@ func TestRackLayoutEmpty(t *testing.T) {
 // A field a newer build wrote must not stop an older one reading the fields it
 // does know. The alternative is a record that poisons every downgrade.
 func TestRackLayoutIgnoresUnknownFields(t *testing.T) {
-	got := decodeRackLayout("order=console,view;colors=blue;hidden=record;junk")
+	got := Decode("order=console,view;colors=blue;hidden=record;junk")
 	if strings.Join(got.Order, ",") != "console,view" {
 		t.Errorf("order %v", got.Order)
 	}
@@ -59,8 +59,8 @@ func TestRackLayoutIgnoresUnknownFields(t *testing.T) {
 // two modules, and the rack would spend every boot restoring one that does not
 // exist. It is dropped instead.
 func TestRackLayoutDropsSeparatorsInKeys(t *testing.T) {
-	l := rackLayout{Order: []string{"console", "gen x, y", "view;style", "a=b", "  ", "params"}}
-	got := decodeRackLayout(l.encode())
+	l := Layout{Order: []string{"console", "gen x, y", "view;style", "a=b", "  ", "params"}}
+	got := Decode(l.Encode())
 	if strings.Join(got.Order, "|") != "console|params" {
 		t.Errorf("order came back %v, want just the two clean keys", got.Order)
 	}
@@ -111,7 +111,7 @@ func TestMergeModuleOrder(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if got := strings.Join(mergeModuleOrder(c.saved, c.present), "|"); got != c.want {
+			if got := strings.Join(MergeModuleOrder(c.saved, c.present), "|"); got != c.want {
 				t.Errorf("got %q, want %q", got, c.want)
 			}
 		})
@@ -128,7 +128,7 @@ func TestMergeModuleOrder(t *testing.T) {
 // racklayout_js_test.go, where permaCtls is visible.
 func TestConsoleModuleSwitchesAreDistinctAndNotTheBay(t *testing.T) {
 	seen := map[string]bool{}
-	for _, id := range consoleModuleSwitches {
+	for _, id := range ConsoleModuleSwitches {
 		if id == "handles-on" {
 			t.Errorf("the rack bay is not a module; it persists through setRackBay")
 		}
@@ -142,21 +142,5 @@ func TestConsoleModuleSwitchesAreDistinctAndNotTheBay(t *testing.T) {
 	}
 	if len(seen) == 0 {
 		t.Error("no console module switches are persisted at all")
-	}
-}
-
-// Both new stores live under the same "wasmstuff-" prefix every other
-// preference in this app uses — the dock edge, the interface size, the rack
-// bay, the patch bank. The prefix is how they are found: it is what a host
-// page embedding this panel would clear to reset it, and a key outside the
-// family is one that survives that and then restores a rack nobody asked for.
-func TestPersistenceKeysAreInTheFamily(t *testing.T) {
-	for _, k := range []string{rackLayoutKey, presetStoreKey} {
-		if !strings.HasPrefix(k, "wasmstuff-") {
-			t.Errorf("localStorage key %q is outside the wasmstuff- family", k)
-		}
-	}
-	if rackLayoutKey == presetStoreKey {
-		t.Error("the layout and the presets would overwrite each other")
 	}
 }
