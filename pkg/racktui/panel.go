@@ -23,6 +23,7 @@ type panel struct {
 	cur  int
 	top  int    // first control drawn, for scrolling
 	filt string // substring filter
+	list bool   // show the table instead of the rack
 	msg  string // the last thing that happened
 	err  string
 }
@@ -122,6 +123,8 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 		p.nudge(-1)
 	case tcell.KeyRight:
 		p.nudge(1)
+	case tcell.KeyTab:
+		p.list = !p.list
 	case tcell.KeyBackspace, tcell.KeyBackspace2:
 		if p.filt != "" {
 			p.filt = p.filt[:len(p.filt)-1]
@@ -135,6 +138,8 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 				return true
 			}
 			p.typeFilter(r)
+		case '\t':
+			p.list = !p.list
 		case '/':
 			p.filt = ""
 			p.refilter()
@@ -282,38 +287,14 @@ func (p *panel) draw(sc tcell.Screen) {
 	}
 	y++
 
-	puts(sc, 0, y, fmt.Sprintf("%-24s %-14s %-12s %s", "CONTROL", "LABEL", "VALUE", "RANGE"), stHead)
-	y++
-
-	// Keep the cursor on screen.
-	rows := h - y - 1
-	if rows < 1 {
-		rows = 1
-	}
-	if p.cur < p.top {
-		p.top = p.cur
-	}
-	if p.cur >= p.top+rows {
-		p.top = p.cur - rows + 1
-	}
-	for i := p.top; i < len(p.ctls) && i < p.top+rows; i++ {
-		c := p.ctls[i]
-		st := stNormal
-		if i == p.cur {
-			st = stCursor
-		}
-		puts(sc, 0, y, fmt.Sprintf("%-24s %-14s", clip(c.ID, 24), clip(c.Label, 14)), st)
-		vs := stValue
-		if i == p.cur {
-			vs = st
-		}
-		puts(sc, 40, y, fmt.Sprintf("%-12s", clip(c.Value, 12)), vs)
-		puts(sc, 53, y, clip(rangeOf(c), max(0, w-54)), stDim)
-		y++
+	if !p.list {
+		p.drawRack(sc, y, w, h)
+	} else {
+		p.drawList(sc, y, w, h)
 	}
 
 	// The status line: what just happened, or how to work it.
-	status := "↑↓ move   ←→ turn   0 reset   r reload   / clear filter   q quit"
+	status := "↑↓ move   ←→ turn   0 reset   tab rack/list   r reload   / clear filter   q quit"
 	st := stDim
 	switch {
 	case p.err != "":
@@ -363,4 +344,90 @@ func firstRune(s string) rune {
 		return r
 	}
 	return 0
+}
+
+// drawRack draws the controls as the instrument: panels, dials and lamps.
+func (p *panel) drawRack(sc tcell.Screen, y, w, h int) {
+	panels, where := groupByModule(p.ctls)
+	cp, ci := -1, -1
+	if p.cur >= 0 && p.cur < len(where) {
+		cp, ci = where[p.cur][0], where[p.cur][1]
+	}
+	lines, spots := layoutRack(panels, w)
+
+	// Scroll so the control under the cursor stays on screen.
+	var curY0, curY1 = -1, -1
+	for _, s := range spots {
+		if s.Panel == cp && s.Index == ci {
+			curY0, curY1 = s.Y0, s.Y1
+			break
+		}
+	}
+	rows := h - y - 1
+	if rows < 1 {
+		rows = 1
+	}
+	if curY0 >= 0 {
+		if curY0 < p.top {
+			p.top = curY0
+		}
+		if curY1 >= p.top+rows {
+			p.top = curY1 - rows + 1
+		}
+	}
+	if p.top < 0 {
+		p.top = 0
+	}
+	for i := p.top; i < len(lines) && i < p.top+rows; i++ {
+		puts(sc, 0, y+i-p.top, clip(lines[i], w), stDim)
+	}
+	// The cursor, drawn over the panel it is in.
+	if curY0 >= 0 {
+		for _, s := range spots {
+			if s.Panel != cp || s.Index != ci {
+				continue
+			}
+			for yy := s.Y0; yy <= s.Y1; yy++ {
+				if yy < p.top || yy-p.top >= rows {
+					continue
+				}
+				line := []rune(lines[yy])
+				for x := s.X; x < s.X+panelWidth && x < len(line) && x < w; x++ {
+					sc.SetContent(x, y+yy-p.top, line[x], nil, stCursor)
+				}
+			}
+		}
+	}
+}
+
+// drawList draws the controls as a table, which is the view for finding one
+// by name among seventy rather than for turning it.
+func (p *panel) drawList(sc tcell.Screen, y, w, h int) {
+	puts(sc, 0, y, fmt.Sprintf("%-24s %-14s %-12s %s", "CONTROL", "LABEL", "VALUE", "RANGE"), stHead)
+	y++
+	rows := h - y - 1
+	if rows < 1 {
+		rows = 1
+	}
+	if p.cur < p.top {
+		p.top = p.cur
+	}
+	if p.cur >= p.top+rows {
+		p.top = p.cur - rows + 1
+	}
+	for i := p.top; i < len(p.ctls) && i < p.top+rows; i++ {
+		c := p.ctls[i]
+		st := stNormal
+		if i == p.cur {
+			st = stCursor
+		}
+		puts(sc, 0, y, fmt.Sprintf("%-24s %-14s", clip(c.ID, 24), clip(c.Label, 14)), st)
+		vs := stValue
+		if i == p.cur {
+			vs = st
+		}
+		puts(sc, 40, y, fmt.Sprintf("%-12s", clip(c.Value, 12)), vs)
+		puts(sc, 53, y, clip(rangeOf(c), max(0, w-54)), stDim)
+		y++
+	}
 }

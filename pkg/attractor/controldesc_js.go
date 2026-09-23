@@ -83,7 +83,9 @@ func buildDescControl(d ControlDesc) (*Control, js.Value) {
 // linkNumToSlider, a bespoke reset handler, and an onResetAll literal — each
 // of which could (and did) silently miss a control.
 func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will use the Control as migration continues
-	registerControl(d) // the surface is recorded as it is built; see ControlRegistry
+	// The module it is mounted in, read off the panel as it is adopted: the
+	// descriptor does not name one, and the DOM is the only thing that knows.
+	registerControl(d, moduleOfControl(d.ID)) // see ControlRegistry
 	if d.IsSelect {
 		return adoptSelectControl(d)
 	}
@@ -211,4 +213,22 @@ func adoptSelectControl(d ControlDesc) *Control {
 	}
 	builtControls = append(builtControls, ctl)
 	return ctl
+}
+
+// moduleOfControl is the panel a control sits in, by the name the rack knows
+// it by — its header text. Empty for a control that is not in a module, which
+// the Console's own switches are.
+func moduleOfControl(id string) string {
+	if id == "" {
+		return ""
+	}
+	el := doc.Call("getElementById", id)
+	if !el.Truthy() {
+		return ""
+	}
+	sect := el.Call("closest", ".sect")
+	if !sect.Truthy() {
+		return ""
+	}
+	return moduleKeyOf(sect)
 }
