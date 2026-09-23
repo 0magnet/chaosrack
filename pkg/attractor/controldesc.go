@@ -1,11 +1,18 @@
-//go:build js && wasm
-
 package attractor
 
-import (
-	"strconv"
-	"syscall/js"
-)
+// The control surface, described once and rendered by whoever is rendering.
+//
+// This file is UNTAGGED and the builders beside it are not, which is the whole
+// point of the split. A ControlDesc says what a control IS — its range, its
+// step, its default, whether it is a switch or a dial, what it does when it
+// moves, how it is spelled in a permalink. None of that is a fact about the
+// DOM, and none of it needs a browser to be true.
+//
+// What the DOM half does with it (controldesc_js.go) is one way of drawing it:
+// a hidden range input, an LED, a knob, a reset button. A terminal is another,
+// and the rack's layout is already renderable that way — see rackascii.go, and
+// racksection.go, rackunit.go and pkg/rackspec, which have always been pure.
+// The controls were the last piece still welded to one front end.
 
 // ControlDesc is the single, declarative description of one panel control.
 //
@@ -83,207 +90,61 @@ type ControlDesc struct {
 	LEDStep     float64 // display step driving LED decimals (0 ⇒ Step)
 }
 
-// builtControls holds Controls constructed from descriptors (persistent, unlike
-// paramControls which is cleared per param-panel rebuild). buildControlModel
-// will reuse these so reset / permalink / tooltip read owned metadata rather
-// than re-deriving from the DOM.
-var builtControls []*Control
+// ── The surface, enumerable ──────────────────────────────────────────────
 
-// buildDescControl builds one control from its descriptor: a hidden range
-// slider (the value source of truth), an LED numeric readout with a
-// single-sourced format, wheel-to-step, and a reset button — all owned by a
-// Control registered in builtControls. The knob and the cell's placement are
-// the caller's job (compose with makeKnob(ctl.slider) etc.), so this stays
-// layout-agnostic. Returns the Control and the numeric-readout element.
-//
-// This is the one place that decides a control's LED format, reset behavior,
-// and value-change plumbing, so those can never again drift between call sites.
-//
-//nolint:unused // the CREATE path of the registry — dormant until modules are built from descriptors
-func buildDescControl(d ControlDesc) (*Control, js.Value) {
-	dec := ledDecimals(d.Step)
-	intDig := ledIntDigits(d.Min, d.Max)
-
-	slider := doc.Call("createElement", "input")
-	slider.Set("type", "range")
-	slider.Set("id", d.ID)
-	slider.Set("min", strconv.FormatFloat(d.Min, 'g', -1, 64))
-	slider.Set("max", strconv.FormatFloat(d.Max, 'g', -1, 64))
-	slider.Set("step", strconv.FormatFloat(d.Step, 'g', -1, 64)) // before value so the thumb isn't snapped
-	slider.Set("value", strconv.FormatFloat(d.Def, 'g', -1, 64))
-	slider.Set("style", "display:none;")
-
-	ctl := &Control{
-		module: "", kind: kindGeneric, slider: slider, def: float32(d.Def),
-		ledInt: intDig, ledDec: dec, ledSign: d.Signed, permaKey: d.PermaKey,
-	}
-
-	led := doc.Call("createElement", "input")
-	led.Set("type", "text")
-	led.Set("inputmode", "decimal")
-	led.Set("className", "numin u-val")
-	led.Set("value", ctl.formatValue(d.Def))
-	sizeLEDField(led, d.Min, d.Max, dec, d.Signed)
-
-	apply := func(v float64) {
-		led.Set("value", ctl.formatValue(v))
-		if d.Apply != nil {
-			d.Apply(v)
-		}
-	}
-	slider.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if v, err := strconv.ParseFloat(slider.Get("value").String(), 64); err == nil {
-			apply(v)
-		}
-		return nil
-	}))
-	led.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if v, err := strconv.ParseFloat(led.Get("value").String(), 64); err == nil {
-			slider.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
-			apply(v)
-		}
-		return nil
-	}))
-	wheelNudge(led, slider, d.Step, d.Min, d.Max)
-
-	builtControls = append(builtControls, ctl)
-	return ctl, led
+// ControlInfo is a control stripped of everything that only means something
+// inside the running rack: the closures, the element ids, the display mapping.
+// What is left is what a description of the control surface would have to say
+// — and it is all plain data, so it can be listed, printed, diffed, sent over
+// a wire, or drawn by a front end that has never heard of a DOM.
+type ControlInfo struct {
+	ID        string  `json:"id"`
+	Label     string  `json:"label"`
+	Min       float64 `json:"min,omitempty"`
+	Max       float64 `json:"max,omitempty"`
+	Step      float64 `json:"step,omitempty"`
+	Def       float64 `json:"def,omitempty"`
+	IsSelect  bool    `json:"select,omitempty"`
+	SelectDef string  `json:"selectDef,omitempty"`
+	PermaKey  string  `json:"perma,omitempty"`
+	ModTarget bool    `json:"mod,omitempty"`
 }
 
-// adoptDescControl wires an EXISTING template-declared control (slider + LED
-// readout + reset button already in the DOM) onto a descriptor, making the
-// descriptor the single owner of its behavior: LED format, slider→state
-// plumbing, typed LED entry, wheel-to-step, and reset (button + Reset All via
-// builtControls). The template keeps owning layout/labels/tooltips; this owns
-// everything that used to be spread across attachSliderInput,
-// linkNumToSlider, a bespoke reset handler, and an onResetAll literal — each
-// of which could (and did) silently miss a control.
-func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will use the Control as migration continues
-	if d.IsSelect {
-		return adoptSelectControl(d)
+// Info is the plain-data half of a descriptor.
+func (d ControlDesc) Info() ControlInfo {
+	return ControlInfo{
+		ID: d.ID, Label: d.Label,
+		Min: d.Min, Max: d.Max, Step: d.Step, Def: d.Def,
+		IsSelect: d.IsSelect, SelectDef: d.SelectDef,
+		PermaKey: d.PermaKey, ModTarget: d.ModTarget,
 	}
-	slider := doc.Call("getElementById", d.ID)
-	if !slider.Truthy() {
-		return nil
-	}
-	// LED format derives from the DISPLAY domain (differs from the slider
-	// domain only for mapped controls like Speed's log slider).
-	ledStep, ledMin, ledMax := d.Step, d.Min, d.Max
-	if d.LEDStep != 0 {
-		ledStep = d.LEDStep
-	}
-	if d.LEDMax != 0 {
-		ledMin, ledMax = d.LEDMin, d.LEDMax
-	}
-	dec := ledDecimals(ledStep)
-	intDig := ledIntDigits(ledMin, ledMax)
-
-	ctl := &Control{
-		module: "", kind: kindGeneric, slider: slider, def: float32(d.Def),
-		ledInt: intDig, ledDec: dec, ledSign: d.Signed, permaKey: d.PermaKey,
-		resetHook: d.ResetExtra,
-	}
-
-	disp := func(s float64) float64 {
-		if d.SliderToVal != nil {
-			return d.SliderToVal(s)
-		}
-		return s
-	}
-
-	led := doc.Call("getElementById", d.LEDID)
-	if led.Truthy() {
-		// A readout is free-form text so +/- and trailing zeros stick. The
-		// markup declares it type=number with min/max/step, which is valid
-		// there and invalid the moment the type changes — 105 of the
-		// validator's complaints were these, left behind by this line. The
-		// range lives on the slider this readout mirrors, so nothing reads
-		// them here.
-		led.Set("type", "text")
-		for _, a := range []string{"min", "max", "step"} {
-			led.Call("removeAttribute", a)
-		}
-		sizeLEDField(led, ledMin, ledMax, dec, d.Signed)
-		if v, err := strconv.ParseFloat(slider.Get("value").String(), 64); err == nil {
-			led.Set("value", ctl.formatValue(disp(v)))
-		}
-	}
-
-	slider.Call("addEventListener", "input", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-		if v, err := strconv.ParseFloat(slider.Get("value").String(), 64); err == nil {
-			if d.Apply != nil {
-				d.Apply(v)
-			}
-			if led.Truthy() {
-				led.Set("value", ctl.formatValue(disp(v)))
-			}
-		}
-		return nil
-	}))
-	if led.Truthy() {
-		// Typed entry commits on Enter/blur ("change", not "input", so the
-		// slider handler's formatted write-back doesn't fight typing).
-		led.Call("addEventListener", "change", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-			if v, err := strconv.ParseFloat(led.Get("value").String(), 64); err == nil {
-				if d.ValToSlider != nil {
-					v = d.ValToSlider(v)
-				}
-				slider.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
-				slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-			}
-			return nil
-		}))
-		wheelNudge(led, slider, d.Step, d.Min, d.Max)
-	}
-	if rb := doc.Call("getElementById", d.ResetID); rb.Truthy() {
-		rb.Call("addEventListener", "click", trackedFuncOf(func(this js.Value, a []js.Value) interface{} {
-			ctl.resetToDefault()
-			return nil
-		}))
-	}
-
-	builtControls = append(builtControls, ctl)
-	return ctl
 }
 
-// adoptSelectControl is adoptDescControl's selector half: it takes over a
-// <select> that already exists in the markup, wires its effect, and registers a
-// Control so the reset button, Reset All and the permalink all reach it.
-//
-// Selectors were the last controls wired entirely by hand, and it showed in a
-// way nothing else did. Eight of them — the test signal, the counter's gate,
-// the Keys range and output, the Matrix step count and output, the Rhythm
-// output, the distortion channel — had no reset button, were not touched by
-// Reset All, and were not in the permalink. Turn one and there was no way back
-// short of reloading the page, and no way to share the view you had made. That
-// is not a missing convenience; it is state with no way home.
-//
-// The value is the select's own, exactly as for a slider-backed control: the
-// element is the source of truth and everything else follows it, so a permalink
-// restore and a reset and a click on the ring all take the same path.
-func adoptSelectControl(d ControlDesc) *Control {
-	sel := doc.Call("getElementById", d.ID)
-	if !sel.Truthy() {
-		return nil
+// controlRegistry is every control the rack has adopted, in the order it was
+// built. Recorded as the panel is wired rather than declared separately: a
+// second list would be a list that can be wrong, and the failure would be a
+// control missing from a front end with nothing to say so.
+var controlRegistry []ControlInfo
+
+// registerControl records a control as it is adopted. Idempotent by id, so a
+// panel rebuilt in place does not double the surface.
+func registerControl(d ControlDesc) {
+	if d.ID == "" {
+		return
 	}
-	ctl := &Control{
-		module: "", kind: kindGeneric,
-		sel: sel, selDef: d.SelectDef,
-		skipResetAll: d.SkipResetAll,
-		permaKey:     d.PermaKey, resetHook: d.ResetExtra,
+	for i, c := range controlRegistry {
+		if c.ID == d.ID {
+			controlRegistry[i] = d.Info()
+			return
+		}
 	}
-	if d.SelectApply != nil {
-		sel.Call("addEventListener", "change", trackedFuncOf(func(js.Value, []js.Value) interface{} {
-			d.SelectApply(sel.Get("value").String())
-			return nil
-		}))
-	}
-	if rb := doc.Call("getElementById", d.ResetID); rb.Truthy() {
-		rb.Call("addEventListener", "click", trackedFuncOf(func(js.Value, []js.Value) interface{} {
-			ctl.resetToDefault()
-			return nil
-		}))
-	}
-	builtControls = append(builtControls, ctl)
-	return ctl
+	controlRegistry = append(controlRegistry, d.Info())
+}
+
+// ControlRegistry is every control in the rack, as plain data. The order is
+// the order the panel was wired in, which is the order the rack reads.
+func ControlRegistry() []ControlInfo {
+	out := make([]ControlInfo, len(controlRegistry))
+	copy(out, controlRegistry)
+	return out
 }
