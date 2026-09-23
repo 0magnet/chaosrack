@@ -26,13 +26,13 @@ import (
 
 	"github.com/gdamore/tcell/v3"
 
-	"github.com/0magnet/chaosrack/pkg/attractor"
+	"github.com/0magnet/chaosrack/pkg/controlspec"
 )
 
 // Control is one control as a panel needs it: what it IS, from the registry,
 // plus what it currently SAYS, which only the running rack knows.
 type Control struct {
-	attractor.ControlInfo
+	controlspec.ControlInfo
 	Value   string
 	Options []string // a selector's detents, in order; nil for a dial
 }

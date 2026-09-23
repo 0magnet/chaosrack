@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/0magnet/chaosrack/pkg/attractor"
+	"github.com/0magnet/chaosrack/pkg/controlspec"
 )
 
 // fakeRack is a rack that remembers what it was told.
@@ -38,14 +38,14 @@ func (f *fakeRack) Set(id, value string) error {
 
 func dial(id string, min, max, step, def float64, val string) Control {
 	return Control{
-		ControlInfo: attractor.ControlInfo{ID: id, Label: id, Min: min, Max: max, Step: step, Def: def},
+		ControlInfo: controlspec.ControlInfo{ID: id, Label: id, Min: min, Max: max, Step: step, Def: def},
 		Value:       val,
 	}
 }
 
 func sw(id string, opts []string, def, val string) Control {
 	return Control{
-		ControlInfo: attractor.ControlInfo{ID: id, Label: id, IsSelect: true, SelectDef: def},
+		ControlInfo: controlspec.ControlInfo{ID: id, Label: id, IsSelect: true, SelectDef: def},
 		Options:     opts, Value: val,
 	}
 }
