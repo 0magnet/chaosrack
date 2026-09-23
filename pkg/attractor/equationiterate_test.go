@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/0magnet/chaosrack/pkg/analysis"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 )
 
@@ -179,14 +180,14 @@ func TestTypedIterateIsAMapAndNotAFlow(t *testing.T) {
 	}
 
 	// The measurement itself: per iterate, and Henon's own exponent.
-	got := LyapunovFor(dynamics.CustomKey)
+	got := analysis.LyapunovFor(dynamics.CustomKey)
 	if !got.PerStep {
 		t.Error("a typed map's exponent is reported per unit time; a map has no time")
 	}
 	if got.Verdict != "chaotic" {
 		t.Errorf("verdict %q, want chaotic", got.Verdict)
 	}
-	want := LyapunovForMap("henon")
+	want := analysis.LyapunovForMap("henon")
 	if math.Abs(got.Lambda-want.Lambda) > 0.02 {
 		t.Errorf("λ = %.4f/iterate, built-in henon = %.4f", got.Lambda, want.Lambda)
 	}

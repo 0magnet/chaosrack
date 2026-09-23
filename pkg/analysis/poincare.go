@@ -1,4 +1,4 @@
-package attractor
+package analysis
 
 import "math"
 
@@ -57,9 +57,9 @@ import "math"
 // Crossing direction, in terms of the sign of the plane's signed distance
 // along the trajectory. Rising is − → + and is the default; see above.
 const (
-	crossRising  = 0
-	crossFalling = 1
-	crossEither  = 2
+	CrossRising  = 0
+	CrossFalling = 1
+	CrossEither  = 2
 )
 
 // poincareDirNames are the panel's names for those values, in index order
@@ -69,7 +69,7 @@ const (
 // them, which is what the suppression below is about.
 //
 //nolint:unused // read from paramdefs_js.go, and the panel is js-only
-var poincareDirNames = []string{"up", "down", "both"}
+var PoincareDirNames = []string{"up", "down", "both"}
 
 // poincarePlane is an oriented plane in the SYSTEM'S OWN state space: the set
 // of points p with n·p == d, with n a unit normal.
@@ -99,7 +99,7 @@ var poincareDirNames = []string{"up", "down", "both"}
 // coordinates in it. They are derived from n once, at construction, because
 // they must be the same basis for every crossing — a basis recomputed
 // per-point from anything that moves would rotate the section under itself.
-type poincarePlane struct {
+type PoincarePlane struct {
 	n    [3]float64
 	d    float64
 	u, v [3]float64
@@ -109,14 +109,14 @@ type poincarePlane struct {
 // or degenerate normal falls back to +z, which is the plane the section had
 // before it was given an orientation at all: the honest failure here is the
 // old behavior, not a plane with no direction.
-func newPoincarePlane(n [3]float64, d float64) poincarePlane {
+func NewPoincarePlane(n [3]float64, d float64) PoincarePlane {
 	l := math.Sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2])
 	if l < 1e-12 || math.IsNaN(l) || math.IsInf(l, 0) {
 		n, l = [3]float64{0, 0, 1}, 1
 	}
 	n = [3]float64{n[0] / l, n[1] / l, n[2] / l}
 	u, v := poincareBasis(n)
-	return poincarePlane{n: n, d: d, u: u, v: v}
+	return PoincarePlane{n: n, d: d, u: u, v: v}
 }
 
 // poincareBasis builds an orthonormal (u, v) spanning the plane with normal n,
@@ -165,7 +165,7 @@ func poincareBasis(n [3]float64) (u, v [3]float64) {
 // signed is the signed distance from p to the plane, positive on the side the
 // normal points to. This is the scalar the whole file is about: a crossing is
 // a sign change in it, and the crossing point is its root.
-func (pl poincarePlane) signed(p [3]float64) float64 {
+func (pl PoincarePlane) Signed(p [3]float64) float64 {
 	return pl.n[0]*p[0] + pl.n[1]*p[1] + pl.n[2]*p[2] - pl.d
 }
 
@@ -173,7 +173,7 @@ func (pl poincarePlane) signed(p [3]float64) float64 {
 // a crossing this is the section itself; applied to anything off the plane it
 // is that point's shadow on it, which is not something this feature wants and
 // is why only crossings are ever passed in.
-func (pl poincarePlane) project(p [3]float64) (s, t float64) {
+func (pl PoincarePlane) Project(p [3]float64) (s, t float64) {
 	return p[0]*pl.u[0] + p[1]*pl.u[1] + p[2]*pl.u[2],
 		p[0]*pl.v[0] + p[1]*pl.v[1] + p[2]*pl.v[2]
 }
@@ -189,13 +189,13 @@ func (pl poincarePlane) project(p [3]float64) (s, t float64) {
 // the section is a doubled point in the return map, i.e. a spurious fixed
 // point sitting on the diagonal, which is exactly the feature someone reading
 // a return map is looking for.
-func poincareAccepts(g0, g1 float64, dir int) bool {
+func PoincareAccepts(g0, g1 float64, dir int) bool {
 	rising := g0 < 0 && g1 >= 0
 	falling := g0 >= 0 && g1 < 0
 	switch dir {
-	case crossFalling:
+	case CrossFalling:
 		return falling
-	case crossEither:
+	case CrossEither:
 		return rising || falling
 	default:
 		return rising
@@ -311,10 +311,10 @@ func poincareClamp01(v float64) float64 {
 // for both to get the linear crossing — callers that cannot cheaply evaluate
 // the field (the equation engine, where a field evaluation is an AST walk) do
 // exactly that, and the linear answer is still two orders better than snapping.
-func poincareCross(pl poincarePlane, a, b, va, vb [3]float64, dir int) (hit [3]float64, ok bool) {
-	g0 := pl.signed(a)
-	g1 := pl.signed(b)
-	if !poincareAccepts(g0, g1, dir) {
+func PoincareCross(pl PoincarePlane, a, b, va, vb [3]float64, dir int) (hit [3]float64, ok bool) {
+	g0 := pl.Signed(a)
+	g1 := pl.Signed(b)
+	if !PoincareAccepts(g0, g1, dir) {
 		return hit, false
 	}
 	m0 := pl.n[0]*va[0] + pl.n[1]*va[1] + pl.n[2]*va[2]
@@ -330,8 +330,8 @@ func poincareCross(pl poincarePlane, a, b, va, vb [3]float64, dir int) (hit [3]f
 // here so the test can measure the thing that was rejected instead of
 // asserting in a comment that it would have been worse — the claim at the top
 // of this file about a 40× difference is checked, not remembered.
-func poincareSnap(pl poincarePlane, a, b [3]float64) [3]float64 {
-	if math.Abs(pl.signed(a)) <= math.Abs(pl.signed(b)) {
+func PoincareSnap(pl PoincarePlane, a, b [3]float64) [3]float64 {
+	if math.Abs(pl.Signed(a)) <= math.Abs(pl.Signed(b)) {
 		return a
 	}
 	return b
@@ -348,7 +348,7 @@ func poincareSnap(pl poincarePlane, a, b [3]float64) [3]float64 {
 // is float64: a section is the difference between nearby trajectory sheets,
 // and doing the root solve in the precision the buffer happens to use would
 // throw away the accuracy the root solve is for.
-type poincareHit struct {
+type PoincareHit struct {
 	P    [3]float32
 	S, T float32
 	// Gap marks a hit whose predecessor in the log is NOT its predecessor in
@@ -367,16 +367,16 @@ type poincareHit struct {
 // pairs and "consecutive" is a statement about time. Reading the ring in slot
 // order instead would join the newest point to the oldest once per wrap, which
 // is one wrong dot per 8192 and therefore invisible until someone believes it.
-type poincareLog struct {
-	hits []poincareHit
+type PoincareLog struct {
+	hits []PoincareHit
 	head int // next slot to write
 	n    int // how many slots hold a hit
 	gap  bool
 }
 
-func (l *poincareLog) reset(capacity int) {
+func (l *PoincareLog) Reset(capacity int) {
 	if cap(l.hits) < capacity {
-		l.hits = make([]poincareHit, capacity)
+		l.hits = make([]PoincareHit, capacity)
 	}
 	l.hits = l.hits[:capacity]
 	l.head, l.n = 0, 0
@@ -386,9 +386,9 @@ func (l *poincareLog) reset(capacity int) {
 }
 
 // breakChain says the next hit does not follow the previous one in time.
-func (l *poincareLog) breakChain() { l.gap = true }
+func (l *PoincareLog) BreakChain() { l.gap = true }
 
-func (l *poincareLog) add(h poincareHit) {
+func (l *PoincareLog) Add(h PoincareHit) {
 	if len(l.hits) == 0 {
 		return
 	}
@@ -401,12 +401,12 @@ func (l *poincareLog) add(h poincareHit) {
 	}
 }
 
-func (l *poincareLog) len() int { return l.n }
+func (l *PoincareLog) Len() int { return l.n }
 
 // at returns the i-th hit counting from the OLDEST still in the ring.
-func (l *poincareLog) at(i int) poincareHit {
+func (l *PoincareLog) At(i int) PoincareHit {
 	if i < 0 || i >= l.n {
-		return poincareHit{}
+		return PoincareHit{}
 	}
 	start := l.head - l.n
 	if start < 0 {

@@ -3,10 +3,12 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"strconv"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/analysis"
+	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
 // The Analysis module: the largest Lyapunov exponent of whatever is on screen.
@@ -94,7 +96,7 @@ func scheduleLyapunov(delayMs int) {
 func runLyapunov() {
 	mode := selectedMode
 	lyapLastMode = mode
-	r := LyapunovFor(mode)
+	r := analysis.LyapunovFor(mode)
 	if r.Verdict == "n/a" {
 		// Not a dynamical system. Saying so is the honest readout; printing
 		// 0.0000 beside a dodecahedron would be a category error with a

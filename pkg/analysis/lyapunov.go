@@ -1,4 +1,4 @@
-package attractor
+package analysis
 
 import (
 	"math"
@@ -44,7 +44,7 @@ type LyapunovResult struct {
 // 1e-3 (a closed orbit's neighbors neither separate nor converge, and what is
 // left is round-off), so anything inside that band is "not measurably
 // exponential" rather than "exactly zero".
-func classify(lam float64) string {
+func Classify(lam float64) string {
 	switch {
 	case math.IsNaN(lam) || math.IsInf(lam, 0):
 		return "diverged"
@@ -161,7 +161,7 @@ func LyapunovForMap(key string) LyapunovResult {
 	lam := lyapunovStep(adv, []float64{ic[0], ic[1], ic[2]}, 20000, 1, 20000)
 	return LyapunovResult{
 		Lambda:  lam,
-		Verdict: classify(lam),
+		Verdict: Classify(lam),
 		PerStep: true,
 		OK:      !math.IsNaN(lam) && !math.IsInf(lam, 0),
 	}
@@ -204,7 +204,7 @@ func LyapunovForFlow(key string) LyapunovResult {
 		int(200.0/dt), n, 2000)
 	return LyapunovResult{
 		Lambda:  lam,
-		Verdict: classify(lam),
+		Verdict: Classify(lam),
 		OK:      !math.IsNaN(lam) && !math.IsInf(lam, 0),
 	}
 }
@@ -245,7 +245,7 @@ func LyapunovForFlow4(key string) LyapunovResult {
 		int(200.0/dt), n, 2000)
 	return LyapunovResult{
 		Lambda:  lam,
-		Verdict: classify(lam),
+		Verdict: Classify(lam),
 		OK:      !math.IsNaN(lam) && !math.IsInf(lam, 0),
 	}
 }
