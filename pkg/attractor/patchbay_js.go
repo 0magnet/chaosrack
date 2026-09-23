@@ -140,8 +140,16 @@ func buildPatchbayModule(paramsSect js.Value) {
 	body.Set("className", "row")
 
 	// ── Program bank ──
+	//
+	// Two columns, not a line of nine. STO and eight slots side by side is
+	// 270px of button, and it was the bank — not the matrix — that made this
+	// module two slots wide: the matrix had already been changed to share
+	// whatever width it was given rather than ask for its own.
+	//
+	// A rack panel is tall and narrow, so the memories go down it the way the
+	// numbered buttons on a synth's program bank do.
 	bankRow := doc.Call("createElement", "div")
-	bankRow.Set("className", "grp")
+	bankRow.Set("className", "pbank")
 	bank := patchBank()
 	sto := doc.Call("createElement", "button")
 	sto.Set("className", "pslot")
@@ -199,26 +207,40 @@ func buildPatchbayModule(paramsSect js.Value) {
 		// be quantized to two slots while asking for 277px of them. A pin is
 		// a fixed 3.5mm and is centered in its column, so a narrow column
 		// bleeds it symmetrically into the gutter rather than clipping it.
+		// TRANSPOSED: the destinations go DOWN and the three sources across.
+		//
+		// This is what stops the module's width depending on the model. With
+		// destinations as columns the matrix was as wide as the mode had
+		// parameters — and it had to be told to share the width it was given
+		// so it did not drag the panel wider, which in turn squeezed the pins
+		// into whatever was left. Down the side there are only ever three
+		// columns, so the width is fixed and the pins keep their 3.5mm however
+		// many destinations a model has; a long list costs height, which a
+		// rack panel has and width is what it has not.
+		//
+		// It also reads better. The destination names are words — "spin X",
+		// "period" — and as column heads they had to be rotated on their side
+		// (.mxcol is writing-mode:vertical-rl). As row labels they are level
+		// and legible, and ST/L/R are short enough to head a column upright.
 		grid.Get("style").Set("gridTemplateColumns",
-			"auto repeat("+strconv.Itoa(len(dests))+",minmax(0,1fr))")
-		grid.Get("style").Set("width", "100%")
+			"auto repeat("+strconv.Itoa(len(rows))+",auto)")
 		grid.Call("appendChild", doc.Call("createElement", "span")) // corner
-		for _, d := range dests {
+		for _, row := range rows {
 			cl := doc.Call("createElement", "span")
-			cl.Set("className", "mxcol")
-			cl.Set("textContent", d.label)
-			cl.Set("title", "Destination: "+d.label)
+			cl.Set("className", "mxlbl")
+			cl.Set("textContent", row.label)
+			cl.Set("title", "Source: "+row.label+" channel energy (loudest band unless EQ bands are painted on the MOD knob)")
 			grid.Call("appendChild", cl)
 		}
-		for _, row := range rows {
-			row := row
+		for _, d := range dests {
+			d := d
 			rl := doc.Call("createElement", "span")
-			rl.Set("className", "mxlbl")
-			rl.Set("textContent", row.label)
-			rl.Set("title", "Source: "+row.label+" channel energy (loudest band unless EQ bands are painted on the MOD knob)")
+			rl.Set("className", "mxdst")
+			rl.Set("textContent", d.label)
+			rl.Set("title", "Destination: "+d.label)
 			grid.Call("appendChild", rl)
-			for _, d := range dests {
-				d := d
+			for _, row := range rows {
+				row := row
 				pin := doc.Call("createElement", "span")
 				pin.Set("className", "mxpin")
 				m := paramMods[d.id]

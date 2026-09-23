@@ -1643,3 +1643,12 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    so the tint marks the section rather than the module: alternating ground
    under consecutive generators, which is the other half of §2-133. */
 .modules .catmodule{--catmod:1;}
+
+/* Patchbay program bank: two columns down the panel rather than a line of
+   nine across it. Nine buttons in a row were 270px and made the module two
+   slots wide on their own. STO spans both columns, as the odd one out. */
+.pbank{display:grid;grid-template-columns:repeat(2,auto);gap:calc(1.2*var(--mm));justify-content:start;justify-items:center;}
+.pbank>.pslot:first-child{grid-column:1 / -1;width:100%;}
+/* A destination label in the transposed pin matrix: level and left-aligned,
+   where .mxcol had to turn them on their side to fit as column heads. */
+.mxdst{font-size:9px;color:#7c93a8;font-family:'B612 Mono',monospace;justify-self:start;white-space:nowrap;}
