@@ -3,7 +3,7 @@
 package attractor
 
 // The Presets module (Window > Presets): the front panel of the store in
-// presets.go.
+// pkg/preset.
 //
 // Save writes serializeState() — the same string the address bar carries and
 // the same one the patch bank stores — under the name in the field. Recall
@@ -16,18 +16,19 @@ import (
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/preset"
 )
 
 // presetStore reads the saved presets.
-func presetStore() []preset {
-	raw, ok := lsGet(presetStoreKey)
+func presetStore() preset.List {
+	raw, ok := lsGet(preset.StoreKey)
 	if !ok {
 		return nil
 	}
-	return decodePresets(raw)
+	return preset.Decode(raw)
 }
 
-func presetStoreWrite(ps []preset) { lsSet(presetStoreKey, encodePresets(ps)) }
+func presetStoreWrite(ps preset.List) { lsSet(preset.StoreKey, ps.Encode()) }
 
 // presetModuleVisible shows or hides the module.
 func presetModuleVisible(on bool) {
@@ -63,7 +64,7 @@ func refreshPresetList(selected string) {
 		opt.Set("textContent", p.Name)
 		sel.Call("appendChild", opt)
 	}
-	if _, ok := findPreset(ps, selected); ok {
+	if _, ok := ps.Find(selected); ok {
 		sel.Set("value", selected)
 	}
 }
@@ -81,7 +82,7 @@ func presetNameField() string {
 	if !el.Truthy() {
 		return selectedMode
 	}
-	if n := cleanPresetName(el.Get("value").String()); n != "" {
+	if n := preset.CleanName(el.Get("value").String()); n != "" {
 		return n
 	}
 	return selectedMode
@@ -100,7 +101,7 @@ func wirePresetModule() {
 	if b := dom.Doc.Call("getElementById", "preset-save"); b.Truthy() {
 		b.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 			name := presetNameField()
-			presetStoreWrite(putPreset(presetStore(), name, serializeState()))
+			presetStoreWrite(presetStore().Put(name, serializeState()))
 			// Put the name in the field as well as the list: an unnamed save
 			// used the model's name, and the panel should say which one it
 			// picked rather than leaving the box empty over a preset that now
@@ -119,7 +120,7 @@ func wirePresetModule() {
 			if !sel.Truthy() {
 				return nil
 			}
-			p, ok := findPreset(presetStore(), sel.Get("value").String())
+			p, ok := presetStore().Find(sel.Get("value").String())
 			if !ok {
 				return nil
 			}
@@ -142,7 +143,7 @@ func wirePresetModule() {
 			if !sel.Truthy() {
 				return nil
 			}
-			presetStoreWrite(deletePreset(presetStore(), sel.Get("value").String()))
+			presetStoreWrite(presetStore().Delete(sel.Get("value").String()))
 			refreshPresetList("")
 			return nil
 		}))
