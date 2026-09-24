@@ -34,7 +34,7 @@ func exposeRackControl() {
 
 	// list() → every control, as JSON. Plain data, so the caller does not
 	// need a Go type to read it.
-	o.Set("list", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	o.Set("list", dom.FuncOf(func(js.Value, []js.Value) any {
 		b, err := json.Marshal(rackControls())
 		if err != nil {
 			return "[]"
@@ -45,7 +45,7 @@ func exposeRackControl() {
 	// get(id) → the control's current value as a string, or null if the rack
 	// has no such control. The element is the source of truth: a descriptor
 	// says what a control CAN be, the input says what it is.
-	o.Set("get", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+	o.Set("get", dom.FuncOf(func(_ js.Value, a []js.Value) any {
 		if len(a) == 0 {
 			return nil
 		}
@@ -60,7 +60,7 @@ func exposeRackControl() {
 	// and dispatch the events the panel listens for. Both, because a range
 	// input reports dragging as "input" and settling as "change", and
 	// different controls were wired to different ones.
-	o.Set("set", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+	o.Set("set", dom.FuncOf(func(_ js.Value, a []js.Value) any {
 		if len(a) < 2 {
 			return false
 		}

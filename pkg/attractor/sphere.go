@@ -92,7 +92,7 @@ func sphereVerticesIndices(radius float32, stacks, slices int, baseIdx uint16) (
 			vertices = append(vertices, xv, yv, zv)
 		}
 	}
-	for i := 0; i < stacks; i++ {
+	for i := range stacks {
 		for j := 0; j <= slices; j++ {
 			indices = append(indices, baseIdx+uint16(i*(slices+1)+j), baseIdx+uint16((i+1)*(slices+1)+j)) //nolint:gosec // a mesh index, bounded by the stack/slice counts a few lines up
 		}
@@ -124,8 +124,8 @@ func torusVerticesIndices(R, r float32, stacks, slices int, baseIdx uint16, roll
 			vertices = append(vertices, xv, yv, zv)
 		}
 	}
-	for i := 0; i < stacks; i++ {
-		for j := 0; j < slices; j++ {
+	for i := range stacks {
+		for j := range slices {
 			cur := baseIdx + uint16(i*(slices+1)+j) //nolint:gosec // a mesh index, bounded by the stack/slice counts a few lines up
 			next := cur + 1
 			below := baseIdx + uint16((i+1)*(slices+1)+j) //nolint:gosec // a mesh index, bounded by the stack/slice counts a few lines up
@@ -233,7 +233,7 @@ func (g *globeShape) generate() {
 	// version of what the parallels get from par+dir, and the two compose: a
 	// spiral of parallels through a twisted cage is a ball of string.
 	twist := float64(g.twistF)
-	for j := 0; j < lon; j++ {
+	for j := range lon {
 		theta0 := float64(j) * 2.0 * math.Pi / float64(lon)
 		base := uint16(len(vertices) / 3) //nolint:gosec // a mesh index, bounded by the stack/slice counts a few lines up
 		for i := 0; i <= pts; i++ {
@@ -276,7 +276,7 @@ func generateMagnetosphere() {
 	// Magnetic field lines — dipole field: r = R*cos²(θ)
 	nLines := 12
 	ptsPerLine := 80
-	for i := 0; i < nLines; i++ {
+	for i := range nLines {
 		angle := float32(i) * 2.0 * math.Pi / float32(nLines)
 		base := uint16(len(allVerts) / 3) //nolint:gosec // a mesh index, bounded by the stack/slice counts a few lines up
 		R := float32(3.0)

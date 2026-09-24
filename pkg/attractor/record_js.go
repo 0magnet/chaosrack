@@ -66,14 +66,14 @@ func (c *canvasRecorder) startRecording() {
 	opts.Set("videoBitsPerSecond", recBitrate(src, fps))
 	c.recorder = mr.New(stream, opts)
 	c.chunks = js.Global().Get("Array").New()
-	c.dataFn = dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	c.dataFn = dom.FuncOf(func(this js.Value, a []js.Value) any {
 		if d := a[0].Get("data"); d.Get("size").Int() > 0 {
 			c.chunks.Call("push", d)
 		}
 		return nil
 	})
-	c.stopFn = dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-		blob := js.Global().Get("Blob").New(c.chunks, map[string]interface{}{"type": "video/webm"})
+	c.stopFn = dom.FuncOf(func(this js.Value, a []js.Value) any {
+		blob := js.Global().Get("Blob").New(c.chunks, map[string]any{"type": "video/webm"})
 		// Shared with the GIF path, which is where the download race this used
 		// to have is explained.
 		saveBlob(blob, "webm")
@@ -98,7 +98,7 @@ func (c *canvasRecorder) wireRecordSwitch() {
 	if !sw.Truthy() {
 		return
 	}
-	sw.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	sw.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		c.on = sw.Get("checked").Bool()
 		if c.on {
 			recmod.noteTakeStart()
@@ -150,10 +150,7 @@ func recBitrate(canvas js.Value, fps int) int {
 		return 12_000_000
 	}
 	const bitsPerPixelPerFrame = 0.10
-	bps := int(w * h * float64(fps) * bitsPerPixelPerFrame)
-	if bps < 8_000_000 {
-		bps = 8_000_000
-	}
+	bps := max(int(w*h*float64(fps)*bitsPerPixelPerFrame), 8_000_000)
 	if bps > 40_000_000 {
 		bps = 40_000_000
 	}
@@ -184,7 +181,7 @@ func (c *canvasRecorder) streamSource(canvas js.Value) js.Value {
 
 	// Driven by rAF rather than a timer: the stream samples the canvas when it
 	// changes, and the moment it changes is the frame.
-	c.feedFn = js.FuncOf(func(js.Value, []js.Value) interface{} {
+	c.feedFn = js.FuncOf(func(js.Value, []js.Value) any {
 		if !c.feedOn {
 			return nil
 		}

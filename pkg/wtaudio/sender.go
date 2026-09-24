@@ -68,7 +68,7 @@ func (s *Sender) Send(samples []float32) error {
 	// Two attempts: the original size, then whatever the stack said. A
 	// third would mean the stack changed its answer, which is a bug
 	// worth surfacing rather than looping over.
-	for attempt := 0; attempt < 2; attempt++ {
+	for range 2 {
 		dgs := audiosrc.SplitDatagrams(s.id, payload, s.max)
 		s.id++
 		if dgs == nil {

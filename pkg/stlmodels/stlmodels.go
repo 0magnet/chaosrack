@@ -235,7 +235,7 @@ func flowTube(mode string, seg int) meshstl.Mesh {
 func pathBounds(p []meshstl.V3) meshstl.V3 {
 	min, max := p[0], p[0]
 	for _, v := range p {
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			if v[i] < min[i] {
 				min[i] = v[i]
 			}
@@ -257,7 +257,7 @@ func demoPanel(hp, seg int) meshstl.Mesh {
 	var ctl []meshstl.Control
 	// Knobs on the same 38 mm row pitch the screen panel uses.
 	const rowPitch = 38.0
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		ctl = append(ctl, meshstl.Control{
 			X: w / 2, Y: h - 20 - float64(i)*rowPitch,
 			Kind: meshstl.KnobControl, Diam: rackspec.KnobLarge,
@@ -266,7 +266,7 @@ func demoPanel(hp, seg int) meshstl.Mesh {
 	if hp >= 2*rackspec.ModuleHP {
 		// A wider panel gets the patch matrix and a button row beside them.
 		ctl = append(ctl, meshstl.PinMatrix(w*0.75, h*0.55, 6, 6)...)
-		for i := 0; i < 4; i++ {
+		for i := range 4 {
 			ctl = append(ctl, meshstl.Control{
 				X: w*0.75 - 12 + float64(i)*8, Y: 14,
 				Kind: meshstl.ButtonControl,

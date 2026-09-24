@@ -134,7 +134,7 @@ func runSpec() {
 		if len(col) < rows*4 {
 			break
 		}
-		for y := 0; y < rows; y++ {
+		for y := range rows {
 			// 0 Hz is row 0 of the column and the BOTTOM of the picture, which
 			// is how the original orients it too.
 			img.Set(x, rows-1-y, color.RGBA{col[y*4], col[y*4+1], col[y*4+2], 255})
@@ -207,8 +207,8 @@ func runSpecDiff(spec string) {
 	var contentA, contentB int
 	var sum, worst float64
 	var off int
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
+	for y := range h {
+		for x := range w {
 			bx := rb.Min.X + x - *specShift
 			if bx < rb.Min.X || bx >= rb.Max.X {
 				continue
@@ -348,7 +348,7 @@ func readWAV(path string) ([]float32, int, error) {
 	}
 	frames := len(data) / 2 / channels
 	out := make([]float32, frames)
-	for i := 0; i < frames; i++ {
+	for i := range frames {
 		var acc float64
 		for c := 0; c < channels; c++ {
 			s := int16(binary.LittleEndian.Uint16(data[(i*channels+c)*2:])) //nolint:gosec // PCM is signed

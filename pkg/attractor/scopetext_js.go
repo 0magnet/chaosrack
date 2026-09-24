@@ -43,10 +43,7 @@ var (
 // clock); the strip's short glyph-to-glyph connectors are the multiplexer
 // hand-off an unblanked scope would show.
 func (f *fourierText) generateScopeText() {
-	h := int(f.harm + 0.5)
-	if h < 1 {
-		h = 1
-	}
+	h := max(int(f.harm+0.5), 1)
 	if f.drawn == nil || f.keyS != f.str || f.keyH != h {
 		glyphs := scope.TextGlyphStrokes(f.str)
 		f.drawn = f.drawn[:0]

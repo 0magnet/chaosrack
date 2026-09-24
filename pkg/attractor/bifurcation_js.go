@@ -134,7 +134,7 @@ func (b *bifurcation) generateBifurcation() {
 		*p.Value = pv
 		s := [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W()}
 		const transient = 1500
-		for i := 0; i < transient; i++ {
+		for range transient {
 			twinStep(sys, &s, dt)
 			if twinDiverged(s) {
 				break
@@ -269,7 +269,7 @@ func (b *bifurcation) drawCursor(p paramDef, span float64) {
 	buf := b.curBuf[:0]
 	fx := bifFrac(v, p.Min, p.Max)
 	x := (fx*2 - 1) * 20
-	for i := 0; i < bifCursorRulePts; i++ {
+	for i := range bifCursorRulePts {
 		fy := float32(i) / float32(bifCursorRulePts-1)
 		buf = append(buf, x, (fy*2-1)*12, 0, fy)
 	}
@@ -358,7 +358,7 @@ func (b *bifurcation) buildBifPanel(paramsDiv js.Value) {
 		}
 		sel.Call("appendChild", opt)
 	}
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		if v, err := strconv.Atoi(sel.Get("value").String()); err == nil {
 			b.paramIdx = v
 			b.invalidate()
@@ -397,7 +397,7 @@ func (b *bifurcation) buildBifPanel(paramsDiv js.Value) {
 		}
 		dsel.Call("appendChild", opt)
 	}
-	dsel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	dsel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		b.driveAudio = dsel.Get("value").String() == "1"
 		// Rebuild: the depth knob comes and goes with the choice, the way the
 		// Section module comes and goes with the Sect switch. A knob that is

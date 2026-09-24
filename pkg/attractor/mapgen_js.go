@@ -46,22 +46,16 @@ func generateMap(mode string) {
 	orbits := m.Count()
 	mapOrbits.Ensure(mode, m)
 
-	n := sim.steps
-	if n < 2 {
-		n = 2
-	}
+	n := max(sim.steps, 2)
 	// Split the point budget across the ensemble; every orbit gets the same
 	// share so no orbit is drawn denser than another.
-	per := n / orbits
-	if per < 1 {
-		per = 1
-	}
+	per := max(n/orbits, 1)
 	total := per * orbits
 
 	vertices := sim.vertBuf[:total*4]
 	invN := float32(1) / float32(total-1)
 	idx := 0
-	for o := 0; o < orbits; o++ {
+	for o := range orbits {
 		p := mapOrbits.At(o)
 		for i := 0; i < per; i++ {
 			nx, ny, nz := m.Step(p[0], p[1], p[2])
@@ -111,7 +105,6 @@ func mapLeave() { mapPosed = "" }
 
 func init() {
 	for _, k := range dynamics.MapKeys() {
-		k := k
 		registerGenerate(k, func() { generateMap(k) })
 	}
 

@@ -83,7 +83,7 @@ func lyapunovStep(step func(dst, src []float64), ic []float64, transient, n, int
 		cur, next = next, cur // the old state is the next call's scratch
 		return cur
 	}
-	for i := 0; i < transient; i++ {
+	for range transient {
 		s = advance(s)
 		if !finiteSlice(s) {
 			return math.NaN()
@@ -100,8 +100,8 @@ func lyapunovStep(step func(dst, src []float64), ic []float64, transient, n, int
 
 	var sum float64
 	var count int
-	for k := 0; k < intervals; k++ {
-		for i := 0; i < n; i++ {
+	for range intervals {
+		for range n {
 			s = advance(s)
 			p = advanceP(p)
 		}
@@ -196,10 +196,7 @@ func LyapunovForFlow(key string) LyapunovResult {
 	}
 	ic := dynamics.InitCondFor(key)
 	// One time unit per renormalization, as the guard test uses.
-	n := int(1.0/dt + 0.5)
-	if n < 1 {
-		n = 1
-	}
+	n := max(int(1.0/dt+0.5), 1)
 	lam := lyapunovStep(adv, []float64{float64(ic[0]), float64(ic[1]), float64(ic[2])},
 		int(200.0/dt), n, 2000)
 	return LyapunovResult{
@@ -236,10 +233,7 @@ func LyapunovForFlow4(key string) LyapunovResult {
 		dst[0], dst[1], dst[2], dst[3] = out[0], out[1], out[2], out[3]
 	}
 	ic := dynamics.InitCondFor(key)
-	n := int(1.0/dt + 0.5)
-	if n < 1 {
-		n = 1
-	}
+	n := max(int(1.0/dt+0.5), 1)
 	lam := lyapunovStep(adv,
 		[]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), s.W0},
 		int(200.0/dt), n, 2000)

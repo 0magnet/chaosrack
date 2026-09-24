@@ -112,7 +112,7 @@ func addPianoKeys(freq js.Value) js.Value {
 		}
 		el.Call("setAttribute", "data-pc", strconv.Itoa(pc))
 		el.Set("title", owner+" — set note "+name+" (in the octave currently shown)")
-		el.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		el.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			// Set this note in the octave currently shown on the keyboard (the C..B
 			// register the current note is in), snapping out any detune.
 			cur := math.Round(fgFloat(freq))           // current note, semitones above A0
@@ -170,7 +170,7 @@ func addPianoKeys(freq js.Value) js.Value {
 		}
 	}
 	highlight()
-	freq.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	freq.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		highlight()
 		return nil
 	}))
@@ -225,10 +225,7 @@ var waveSVG = []string{
 func addSelectorWaveDial(stack, sel js.Value, off float64) {
 	// One glyph per OPTION (not per known waveform) — a select offering only
 	// the periodic waves must not grow a phantom noise detent.
-	n := sel.Get("options").Get("length").Int()
-	if n > len(waveSVG) {
-		n = len(waveSVG)
-	}
+	n := min(sel.Get("options").Get("length").Int(), len(waveSVG))
 	dial := dom.Doc.Call("createElement", "span")
 	dial.Set("className", "knob-dial")
 	circle := dom.Doc.Call("createElement", "span")
@@ -249,7 +246,7 @@ func addSelectorWaveDial(stack, sel js.Value, off float64) {
 		dialPosTitle(ic, sel, i)
 		els[i] = ic
 		idx := i
-		ic.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		ic.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			sel.Set("selectedIndex", idx)
 			sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 			return nil
@@ -262,7 +259,7 @@ func addSelectorWaveDial(stack, sel js.Value, off float64) {
 			e.Get("classList").Call("toggle", "wave-active", j == ci)
 		}
 	}
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} { hi(); return nil }))
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any { hi(); return nil }))
 	hi()
 	stack.Call("insertBefore", dial, stack.Get("firstChild"))
 	stack.Get("classList").Call("add", "has-dial")
@@ -404,7 +401,7 @@ func (g *generator) audioSync() {
 	case !any && g.running:
 		g.audioStop()
 	case g.running:
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			g.audioUpdate(i)
 		}
 	}
@@ -499,7 +496,7 @@ func (g *generator) audioStart() {
 	// Pans feed the Envelope module's shaper gain, then the speakers.
 	g.envGain = g.ctx.Call("createGain")
 	g.envGain.Call("connect", g.ctx.Get("destination"))
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		gain := g.ctx.Call("createGain")
 		pan := g.ctx.Call("createStereoPanner")
 		gain.Call("connect", pan)
@@ -509,7 +506,7 @@ func (g *generator) audioStart() {
 		g.ensureNode(i, aud.fg().Wave(i) == 4)
 	}
 	g.running = true
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		g.audioUpdate(i)
 	}
 }
@@ -518,7 +515,7 @@ func (g *generator) audioStop() {
 	if !g.running {
 		return
 	}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		if g.osc[i].Truthy() {
 			g.osc[i].Call("stop")
 			g.osc[i].Call("disconnect")

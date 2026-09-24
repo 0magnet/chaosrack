@@ -57,7 +57,7 @@ func (f *freqCounter) tick() {
 	if th < 1e-4 { // trig at 0 still needs hysteresis or it chatters
 		th = 1e-4
 	}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		s := float64(f.buf[i])
 		switch {
 		case s >= th:

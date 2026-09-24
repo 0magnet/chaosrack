@@ -87,10 +87,7 @@ func (r *ringTrail) tick(mode string) bool {
 	// (and the Speed knob's meaning) is unchanged — only the redraw model is.
 	// The sub-steps get the same anti-freeze budget as the scan generators
 	// (interpreted equation systems are ~10× the per-step cost).
-	n := ringPointsPerFrame
-	if n > sim.steps {
-		n = sim.steps
-	}
+	n := min(ringPointsPerFrame, sim.steps)
 	budget := frameBudgetCompiled
 	if sys.Interpreted {
 		budget = frameBudgetInterpreted
@@ -102,7 +99,7 @@ func (r *ringTrail) tick(mode string) bool {
 	invN := float32(1) / float32(sim.steps-1)
 	scale := sys.Scale
 	for i := 0; i < n; i++ {
-		for s := 0; s < sub; s++ {
+		for range sub {
 			dx, dy, dz, dw := sys.F(r.x, r.y, r.z, r.w)
 			r.x += dt * dx
 			r.y += dt * dy
@@ -238,7 +235,7 @@ func (r *ringTrail) updateDwell(start, n int) {
 		}
 		gpu.dwell.buf[i] = w
 	}
-	for k := 0; k < n; k++ {
+	for k := range n {
 		upd((start + k) % sim.steps)
 	}
 	if cnt > 0 { // slow-track the mean so long ring sessions stay calibrated

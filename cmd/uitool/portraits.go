@@ -161,16 +161,13 @@ func capturePortrait(c *cdp.Client, mode string, idx int) bool {
 	frames := make([]*image.RGBA, 0, *portFrames)
 	var still *image.RGBA
 	bestLit := -1
-	per := *portFrames / len(vars)
-	if per < 1 {
-		per = 1
-	}
+	per := max(*portFrames/len(vars), 1)
 	for vi, v := range vars {
 		if sweep {
 			setColors(c, v.gc, v.gs)
 			time.Sleep(450 * time.Millisecond)
 		}
-		for i := 0; i < per; i++ {
+		for range per {
 			img, err := c.Screenshot()
 			if err != nil {
 				continue
@@ -222,7 +219,7 @@ func capturePortrait(c *cdp.Client, mode string, idx int) bool {
 func portraitCrop(c *cdp.Client) (image.Rectangle, bool) {
 	full := image.Rect(0, 0, 1280, 800)
 	var bb image.Rectangle
-	for i := 0; i < 6; i++ {
+	for range 6 {
 		img, err := c.Screenshot()
 		if err != nil {
 			continue
@@ -394,7 +391,7 @@ func gotoModel(c *cdp.Client, query, hash string) {
 // capture its four mode-owned modules once the app grew slow enough to boot
 // for the gap to matter.
 func waitForPanel(c *cdp.Client) {
-	for i := 0; i < 60; i++ {
+	for range 60 {
 		if n, ok := c.Eval(`document.querySelectorAll('.sect').length`).(float64); ok && n > 0 {
 			// One more beat: the first module existing does not mean the last
 			// one does.
@@ -622,7 +619,7 @@ func captureVariants(c *cdp.Client, mode string) {
 		crop, _ := portraitCrop(c)
 		var best *image.RGBA
 		bestLit := -1
-		for i := 0; i < 6; i++ {
+		for range 6 {
 			img, err := c.Screenshot()
 			if err != nil {
 				continue

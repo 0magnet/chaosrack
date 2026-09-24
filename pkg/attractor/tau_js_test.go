@@ -43,7 +43,7 @@ func TestTauIsUnchangedAtTheReferenceRate(t *testing.T) {
 // a feature that has gone to zero or to infinity can deliver anything.
 func TestTauSamplesNeverReturnsSomethingUnusable(t *testing.T) {
 	inf := float32(1)
-	for i := 0; i < 40; i++ {
+	for range 40 {
 		inf *= 1e10 // +Inf without importing math
 	}
 	cases := []struct {

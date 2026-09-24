@@ -56,7 +56,7 @@ func TestFlatIsFirst(t *testing.T) {
 
 func TestFaceOfCyclesThroughEveryWorkspace(t *testing.T) {
 	seen := map[int]bool{}
-	for i := 0; i < deskFaces*3; i++ {
+	for i := range deskFaces * 3 {
 		f := faceOf(i)
 		if f < 0 || f >= deskFaces {
 			t.Fatalf("faceOf(%d) = %d, outside 0..%d", i, f, deskFaces-1)

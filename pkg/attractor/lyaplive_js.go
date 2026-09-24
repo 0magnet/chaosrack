@@ -145,13 +145,13 @@ func (l *liveLyapunov) tick(mode string) {
 			break
 		}
 		var d2 float64
-		for k := 0; k < 4; k++ {
+		for k := range 4 {
 			e := l.b[k] - l.a[k]
 			d2 += e * e
 		}
 		sc, renormed := l.state.Advance(dt, math.Sqrt(d2))
 		if renormed {
-			for k := 0; k < 4; k++ {
+			for k := range 4 {
 				l.b[k] = l.a[k] + (l.b[k]-l.a[k])*sc
 			}
 		}

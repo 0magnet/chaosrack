@@ -191,7 +191,7 @@ func (p *polarMode) generatePolar() {
 			if got <= 0 {
 				break
 			}
-			for i := 0; i < got; i++ {
+			for i := range got {
 				p.ring[p.w%len(p.ring)] = p.scratch[i]
 				p.w++
 			}
@@ -201,10 +201,7 @@ func (p *polarMode) generatePolar() {
 			}
 		}
 	}
-	avail := p.w
-	if avail > len(p.ring) {
-		avail = len(p.ring)
-	}
+	avail := min(p.w, len(p.ring))
 	nv := takensVerts(n)
 	if avail < span+1 {
 		p.fitGain = 0 // camera was fitted to silence — refit on real data
@@ -231,7 +228,7 @@ func (p *polarMode) generatePolar() {
 	vertices := sim.vertBuf[:nv*4]
 	var v [3]float32
 	sm := takensSmooth()
-	for m := 0; m < nv; m++ {
+	for m := range nv {
 		i := m / sm
 		f := float32(m%sm) / float32(sm)
 		j := m * 4
@@ -326,7 +323,7 @@ func (p *polarMode) colorWindow() ([]float32, int) {
 	}
 	out := acolor.win[:n]
 	base := p.w - 1 - span
-	for k := 0; k < n; k++ {
+	for k := range n {
 		out[k] = p.ring[(base+2*tau+k*stride)%rn]
 	}
 	return out, sr

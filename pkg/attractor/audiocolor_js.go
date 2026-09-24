@@ -131,10 +131,7 @@ func (a *audioColor) shortTimeCentroids(w []float32, sampleRate int, out []float
 		}
 		return
 	}
-	step := len(w) / len(out)
-	if step < 1 {
-		step = 1
-	}
+	step := max(len(w)/len(out), 1)
 	for i := range out {
 		start := i * step
 		if start >= len(w) {
@@ -349,7 +346,7 @@ func (a *audioColor) window(mode string) ([]float32, int) {
 	}
 	out := a.win[:n]
 	base := emb.w - 1 - span
-	for k := 0; k < n; k++ {
+	for k := range n {
 		out[k] = emb.ring[(base+2*tau+k*stride)%rn]
 	}
 	return out, sr
@@ -394,10 +391,7 @@ func (a *audioColor) stereoColorWindow() ([]float32, int) {
 	// the ALIGN offset when right is the channel being pulled back. Reading from
 	// 0 instead would color the trail with audio from a different moment than the
 	// trail was drawn from, which is the shift this whole walk exists to avoid.
-	baseL := 0
-	if align > 0 {
-		baseL = align
-	}
+	baseL := max(align, 0)
 	if len(stereo.l) < baseL+span+1 {
 		return nil, 0 // the snapshot for this window has not been taken yet
 	}
@@ -405,7 +399,7 @@ func (a *audioColor) stereoColorWindow() ([]float32, int) {
 		a.win = make([]float32, n)
 	}
 	out := a.win[:n]
-	for k := 0; k < n; k++ {
+	for k := range n {
 		out[k] = stereo.l[baseL+tau+k*stride]
 	}
 	return out, sr
@@ -456,20 +450,14 @@ func shortTimeLevels(w []float32, out []float32) {
 		}
 		return
 	}
-	step := len(w) / len(out)
-	if step < 1 {
-		step = 1
-	}
+	step := max(len(w)/len(out), 1)
 	for i := range out {
 		start := i * step
 		if start >= len(w) {
 			out[i] = out[max(i-1, 0)]
 			continue
 		}
-		end := start + step
-		if end > len(w) {
-			end = len(w)
-		}
+		end := min(start+step, len(w))
 		var sum float64
 		for _, v := range w[start:end] {
 			sum += float64(v) * float64(v)
@@ -523,7 +511,7 @@ func (a *audioColor) stereoColorWindowPair(mode string) ([]float32, []float32, i
 		a.winR = make([]float32, n)
 	}
 	l, r := a.winL[:n], a.winR[:n]
-	for k := 0; k < n; k++ {
+	for k := range n {
 		l[k] = stereo.l[baseL+tau+k*stride]
 		r[k] = stereo.r[baseR+tau+k*stride]
 	}

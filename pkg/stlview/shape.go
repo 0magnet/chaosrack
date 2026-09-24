@@ -62,7 +62,7 @@ func generateSphereVertices(radius float32, stacks, slices int) ([]float32, []ui
 	}
 
 	// Generate sphere indices
-	for i := 0; i < stacks; i++ {
+	for i := range stacks {
 		for j := 0; j <= slices; j++ {
 			indices = append(indices, uint32(i*(slices+1)+j), uint32((i+1)*(slices+1)+j)) //nolint:gosec // a mesh index, bounded by the stack/slice counts a few lines up
 		}

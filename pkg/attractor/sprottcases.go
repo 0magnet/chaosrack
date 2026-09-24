@@ -64,7 +64,7 @@ func integrate3D(dt float64, deriv func(x, y, z float64) (float64, float64, floa
 	const lim = 1e4
 	sub := effSubSteps(sim.speedSteps, sim.steps, frameBudgetCompiled)
 	for i := 0; i < sim.steps; i++ {
-		for s := 0; s < sub; s++ {
+		for range sub {
 			k1x, k1y, k1z := deriv(sim.x64, sim.y64, sim.z64)
 			k2x, k2y, k2z := deriv(sim.x64+d/2*k1x, sim.y64+d/2*k1y, sim.z64+d/2*k1z)
 			k3x, k3y, k3z := deriv(sim.x64+d/2*k2x, sim.y64+d/2*k2y, sim.z64+d/2*k2z)
@@ -105,7 +105,7 @@ func hyperRosslerWarmup() {
 	minX, maxX := 1e30, -1e30
 	minY, maxY := 1e30, -1e30
 	minZ, maxZ := 1e30, -1e30
-	for i := 0; i < nWarm; i++ {
+	for i := range nWarm {
 		dx, dy, dz, dw := dynamics.HyperDeriv(xf, yf, zf, wf)
 		xf, yf, zf, wf = xf+dt*dx, yf+dt*dy, zf+dt*dz, wf+dt*dw
 		// With divergent parameters the warmup itself blows up — bail
@@ -176,7 +176,7 @@ func generateHyperRossler() {
 	sub := effSubSteps(sim.speedSteps, sim.steps, frameBudgetCompiled)
 	for i := 0; i < sim.steps; i++ {
 		dt := float64(dynamics.HyperDT * sim.speedScale)
-		for s := 0; s < sub; s++ {
+		for range sub {
 			dx, dy, dz, dw := dynamics.HyperDeriv(float64(sim.x), float64(sim.y), float64(sim.z), float64(dynamics.HyperW))
 			sim.x, sim.y, sim.z, dynamics.HyperW = sim.x+float32(dt*dx), sim.y+float32(dt*dy), sim.z+float32(dt*dz), dynamics.HyperW+float32(dt*dw)
 			sim.checkDiverged()

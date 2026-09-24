@@ -13,10 +13,10 @@ import (
 // after the split the renderer's cycles should be marking a heap of a few
 // hundred kilobytes while the control plane still holds its megabytes.
 func ExportStats(name string) {
-	js.Global().Set(name, js.FuncOf(func(js.Value, []js.Value) interface{} {
+	js.Global().Set(name, js.FuncOf(func(js.Value, []js.Value) any {
 		var m runtime.MemStats
 		runtime.ReadMemStats(&m)
-		return map[string]interface{}{
+		return map[string]any{
 			"heapAlloc":   float64(m.HeapAlloc),
 			"heapSys":     float64(m.HeapSys),
 			"heapObjects": float64(m.HeapObjects),

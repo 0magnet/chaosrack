@@ -284,7 +284,7 @@ func (wa *waterLens) driveWaterFromAudio() {
 	}
 	amp := env * wa.drive / 100
 	n := int(wa.srcs)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		x, y := waterSourcePos(i, n)
 		wa.field.Drop(x, y, 5, amp)
 	}

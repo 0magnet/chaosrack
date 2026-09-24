@@ -44,7 +44,7 @@ func TestPatternRowsFillTheirBar(t *testing.T) {
 func TestEveryPresetPlays(t *testing.T) {
 	for _, p := range Patterns {
 		hits := 0
-		for v := 0; v < VoiceCount; v++ {
+		for v := range VoiceCount {
 			hits += strings.Count(p.Rows[v], "x")
 		}
 		if hits == 0 {

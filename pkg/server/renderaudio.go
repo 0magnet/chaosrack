@@ -233,10 +233,7 @@ func renderAudio(cmd *cobra.Command) error {
 			return err
 		}
 		defer f.Close() //nolint:errcheck // the encode error below is the one that matters
-		delay := int(math.Round(100 / float64(renderFPS)))
-		if delay < 1 {
-			delay = 1
-		}
+		delay := max(int(math.Round(100/float64(renderFPS))), 1)
 		return gifenc.EncodeRGBA(f, imgs, delay)
 	case ".svg":
 		return os.WriteFile(renderOut, []byte(audioSVG(figs, all, views)), 0o600)

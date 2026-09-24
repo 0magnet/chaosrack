@@ -51,7 +51,7 @@ func (types *GLTypes) New(gl js.Value) js.Value {
 	return js.Null()
 }
 
-func sliceToByteSlice(s interface{}) []byte {
+func sliceToByteSlice(s any) []byte {
 	switch s := s.(type) {
 	case []int8:
 		h := (*r.SliceHeader)(u.Pointer(&s)) // nolint
@@ -112,7 +112,7 @@ const (
 )
 
 // S2TA converts Slice To TypedArray
-func S2TA(s interface{}) js.Value {
+func S2TA(s any) js.Value {
 	switch s := s.(type) {
 	case []int8:
 		a := js.Global().Get(u8a).New(len(s))

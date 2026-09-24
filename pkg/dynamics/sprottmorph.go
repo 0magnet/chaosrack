@@ -64,7 +64,7 @@ func quadExtractEq(f func(x, y, z float64) float64) [quadTerms]float64 {
 // quadExtract recovers all 30 coefficients of a 3-equation quadratic flow.
 func quadExtract(deriv func(x, y, z float64) (float64, float64, float64)) [3 * quadTerms]float64 {
 	var out [3 * quadTerms]float64
-	for eq := 0; eq < 3; eq++ {
+	for eq := range 3 {
 		e := eq
 		c := quadExtractEq(func(x, y, z float64) float64 {
 			dx, dy, dz := deriv(x, y, z)
@@ -111,9 +111,9 @@ func SprottMorphSystems() []SprottMorphSys {
 func EvalQuad(c *[3 * quadTerms]float64, x, y, z float64) (float64, float64, float64) {
 	t := [quadTerms]float64{1, x, y, z, x * x, y * y, z * z, x * y, x * z, y * z}
 	var d [3]float64
-	for eq := 0; eq < 3; eq++ {
+	for eq := range 3 {
 		s := 0.0
-		for i := 0; i < quadTerms; i++ {
+		for i := range quadTerms {
 			s += c[eq*quadTerms+i] * t[i]
 		}
 		d[eq] = s

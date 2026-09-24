@@ -33,7 +33,7 @@ var (
 
 // FuncOf is this app's js.FuncOf: identical outside a rebuild, and
 // arena-registered inside one.
-func FuncOf(fn func(this js.Value, args []js.Value) interface{}) js.Func {
+func FuncOf(fn func(this js.Value, args []js.Value) any) js.Func {
 	f := js.FuncOf(fn)
 	switch {
 	case altArena != nil:

@@ -32,7 +32,7 @@ func TestARepeatedReadingIsNotWritten(t *testing.T) {
 	el, writes := countingLED(t)
 	// A rack with nothing playing into it: the same dashes, over and over,
 	// five times a second for as long as the page is open.
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		r.Set("t-repeat", el, "  --.-")
 	}
 	if got := writes(); got != 1 {

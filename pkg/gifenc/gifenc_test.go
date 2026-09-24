@@ -64,7 +64,7 @@ func TestAdaptivePaletteAlwaysHoldsBlackFirst(t *testing.T) {
 func TestAdaptivePaletteIsDeterministic(t *testing.T) {
 	frames := []*image.RGBA{gradient(48, 48), solid(48, 48, color.RGBA{10, 20, 30, 255})}
 	first := AdaptivePalette(frames)
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		again := AdaptivePalette(frames)
 		if len(again) != len(first) {
 			t.Fatalf("run %d gave %d colors, the first gave %d", i, len(again), len(first))

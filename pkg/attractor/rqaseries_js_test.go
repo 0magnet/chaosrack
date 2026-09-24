@@ -28,7 +28,7 @@ func TestTheRingIsExactlyTheChartsWidth(t *testing.T) {
 	// Every trace needs a color; a missing one is the empty string, which the
 	// canvas ignores, and the trace would be drawn in whatever the pane before
 	// it was using.
-	for tr := recurrence.RQATrace(0); tr < recurrence.RQATraceCount; tr++ {
+	for tr := range recurrence.RQATraceCount {
 		if rqaTraceColor[tr] == "" {
 			t.Errorf("%v has no color", tr)
 		}
@@ -38,7 +38,7 @@ func TestTheRingIsExactlyTheChartsWidth(t *testing.T) {
 // Every pane must map its whole range inside its own band of the canvas, or one
 // trace draws over another and the chart reads as a single tangled plot.
 func TestEachPaneStaysInsideItsOwnBandOfTheCanvas(t *testing.T) {
-	for tr := recurrence.RQATrace(0); tr < recurrence.RQATraceCount; tr++ {
+	for tr := range recurrence.RQATraceCount {
 		top := int(tr) * rqaPaneH
 		for _, f := range []float64{0, 0.5, 1} {
 			y := rqaPaneY(top, f)

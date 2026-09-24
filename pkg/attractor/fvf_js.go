@@ -209,7 +209,7 @@ func (w *wobbulator) appendFVFSelectors(grid js.Value) {
 			}
 			sel.Call("appendChild", opt)
 		}
-		sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			if v, err := strconv.Atoi(sel.Get("value").String()); err == nil {
 				onChange(v)
 			}
@@ -257,7 +257,7 @@ func (w *wobbulator) appendFVFSelectors(grid js.Value) {
 		chk.Set("className", "sw")
 		chk.Set("checked", checked)
 		chk.Set("title", tip)
-		chk.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		chk.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			onChange(chk.Get("checked").Bool())
 			return nil
 		}))
@@ -373,11 +373,11 @@ func fetchJSONOnce(url string, opts js.Value, done func(ok bool, body js.Value))
 		done(ok, body)
 	}
 	respOK := false
-	onErr = js.FuncOf(func(js.Value, []js.Value) interface{} {
+	onErr = js.FuncOf(func(js.Value, []js.Value) any {
 		settle(false, js.Undefined())
 		return nil
 	})
-	onJSON = js.FuncOf(func(_ js.Value, args []js.Value) interface{} {
+	onJSON = js.FuncOf(func(_ js.Value, args []js.Value) any {
 		body := js.Undefined()
 		if len(args) > 0 {
 			body = args[0]
@@ -385,7 +385,7 @@ func fetchJSONOnce(url string, opts js.Value, done func(ok bool, body js.Value))
 		settle(respOK, body)
 		return nil
 	})
-	onResp = js.FuncOf(func(_ js.Value, args []js.Value) interface{} {
+	onResp = js.FuncOf(func(_ js.Value, args []js.Value) any {
 		if len(args) == 0 {
 			settle(false, js.Undefined())
 			return nil
@@ -431,10 +431,7 @@ func (rr *fvfRing) drain(dst []float32) int {
 	if rr.w-rr.r > n {
 		rr.r = rr.w - n
 	}
-	c := rr.w - rr.r
-	if c > len(dst) {
-		c = len(dst)
-	}
+	c := min(rr.w-rr.r, len(dst))
 	for i := 0; i < c; i++ {
 		dst[i] = rr.buf[(rr.r+i)%n]
 	}
@@ -502,16 +499,13 @@ func (w *wobbulator) stopFVFAudio() {
 // to the context rate for playback. fvf.vis gets the source-rate stream (the
 // spectrogram's scroll pacing is derived from the source rate). Underflow
 // samples are processed as silence so the carrier keeps running.
-func (w *wobbulator) audioProcess(_ js.Value, args []js.Value) interface{} {
+func (w *wobbulator) audioProcess(_ js.Value, args []js.Value) any {
 	if !w.audioActive || w.audioProc == nil {
 		return nil
 	}
 	out := args[0].Get("outputBuffer")
 	outData := out.Call("getChannelData", 0)
-	n := outData.Get("length").Int()
-	if n > len(w.outScratch) {
-		n = len(w.outScratch)
-	}
+	n := min(outData.Get("length").Int(), len(w.outScratch))
 
 	// How many source-rate samples this context-rate block spans. The source
 	// rate can settle late (ws connect after Listen), so track it live.
@@ -522,10 +516,7 @@ func (w *wobbulator) audioProcess(_ js.Value, args []js.Value) interface{} {
 	w.audioProc.sampleRate = srcRate
 	ctxRate := out.Get("sampleRate").Float()
 	w.srcAcc += srcRate / ctxRate * float64(n)
-	m := int(w.srcAcc)
-	if m > len(w.drainScratch) {
-		m = len(w.drainScratch)
-	}
+	m := min(int(w.srcAcc), len(w.drainScratch))
 	w.srcAcc -= float64(m)
 
 	got := 0

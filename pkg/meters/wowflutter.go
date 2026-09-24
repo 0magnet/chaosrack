@@ -179,10 +179,7 @@ func wfEstimateCarrier(x []float32, sampleRate int, nominal float64) float64 {
 // wfDemodulate mixes the carrier to baseband and returns the instantaneous
 // frequency deviation in Hz, decimated to wfDemodRate.
 func wfDemodulate(x []float32, sr, carrier float64) []float64 {
-	decim := int(sr / wfDemodRate)
-	if decim < 1 {
-		decim = 1
-	}
+	decim := max(int(sr/wfDemodRate), 1)
 	// FOUR cascaded one-poles on each quadrature arm, not one.
 	//
 	// Mixing puts an image at twice the carrier — 6300 Hz for the standard tone
@@ -216,7 +213,7 @@ func wfDemodulate(x []float32, sr, carrier float64) []float64 {
 		ph := w * float64(i)
 		s := float64(v)
 		xi, xq := s*math.Cos(ph), -s*math.Sin(ph)
-		for k := 0; k < wfLPPoles; k++ {
+		for k := range wfLPPoles {
 			fi[k] = (1-a)*xi + a*fi[k]
 			fq[k] = (1-a)*xq + a*fq[k]
 			xi, xq = fi[k], fq[k]
@@ -272,10 +269,7 @@ func wfBandRMS(dev []float64, sr, lo, hi float64) float64 {
 	// Run twice, forward only, to steepen the skirts. The filter's own settling
 	// is skipped rather than measured: a bandpass handed a step at t=0 rings,
 	// and that ring is not in the signal.
-	skip := int(sr * 2 / lo)
-	if skip > len(dev)/2 {
-		skip = len(dev) / 2
-	}
+	skip := min(int(sr*2/lo), len(dev)/2)
 	var sum float64
 	var n int
 	for i, v := range dev {

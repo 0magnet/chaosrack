@@ -173,7 +173,7 @@ func TestLiveLyapunovIgnoresNonPositiveDT(t *testing.T) {
 	var l LiveLyapunov
 	l.Reset()
 	l.warm = 0
-	for i := 0; i < 1000; i++ {
+	for range 1000 {
 		if _, ok := l.Advance(0, LiveD0*2); ok {
 			t.Fatal("dt = 0 closed an interval")
 		}
@@ -218,13 +218,13 @@ func driveFlow(mode string, modelTime float64) (*LiveLyapunov, bool) {
 		step(&a)
 		step(&b)
 		var d2 float64
-		for k := 0; k < 4; k++ {
+		for k := range 4 {
 			e := b[k] - a[k]
 			d2 += e * e
 		}
 		sc, renormed := l.Advance(dt, math.Sqrt(d2))
 		if renormed {
-			for k := 0; k < 4; k++ {
+			for k := range 4 {
 				b[k] = a[k] + (b[k]-a[k])*sc
 			}
 		}

@@ -13,7 +13,7 @@ import (
 // otherwise needs none.
 func infF() float32 {
 	v := float32(1)
-	for i := 0; i < 40; i++ {
+	for range 40 {
 		v *= 1e10
 	}
 	return v

@@ -217,10 +217,7 @@ func xyWindowSamples(winMS float32, sr int) int {
 	if maxMS := float32(xySpanMax) / float32(sr) * 1000; winMS > maxMS {
 		winMS = maxMS
 	}
-	n := int(winMS / 1000 * float32(sr))
-	if n < 64 {
-		n = 64
-	}
+	n := max(int(winMS/1000*float32(sr)), 64)
 	return n
 }
 
@@ -238,10 +235,7 @@ func xyLagSamples(lagMS float32, sr int) int {
 	if !(lagMS > 0) {
 		return 1
 	}
-	n := int(lagMS / 1000 * float32(sr))
-	if n < 1 {
-		n = 1
-	}
+	n := max(int(lagMS/1000*float32(sr)), 1)
 	return n
 }
 
@@ -387,7 +381,7 @@ func (x *xyScope) drawXYScope(clear bool) {
 			l1, r1 := ax(i)
 			l2, r2 := ax(clampIdx(i + 1))
 			l3, r3 := ax(clampIdx(i + 2))
-			for s := 0; s < smooth; s++ {
+			for s := range smooth {
 				t := float32(s) / float32(smooth)
 				x.line[o] = catmullRom(l0, l1, l2, l3, t) * sx
 				x.line[o+1] = catmullRom(r0, r1, r2, r3, t) * sy

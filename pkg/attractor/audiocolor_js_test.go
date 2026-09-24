@@ -136,7 +136,7 @@ func TestStretchUsesTheWholeRamp(t *testing.T) {
 	// contract is that a steady signal reaches the full ramp within about a
 	// second, not that one frame does it.
 	var lut []float32
-	for i := 0; i < 120; i++ {
+	for range 120 {
 		lut = []float32{0.10, 0.12, 0.14, 0.16, 0.18, 0.20}
 		acolor.stretchAudioColorLUT(lut)
 	}
@@ -188,7 +188,7 @@ func TestStretchOpensFastAndClosesSlowly(t *testing.T) {
 		t.Errorf("the upper bound is %v after a 0.9 peak; it should have opened to admit it at once", acolor.hi)
 	}
 	wide := acolor.hi
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		acolor.stretchAudioColorLUT([]float32{0.4, 0.5}) // the transient is over
 	}
 	if acolor.hi < wide*0.8 {

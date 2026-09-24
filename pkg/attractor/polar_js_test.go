@@ -39,7 +39,7 @@ const polarMaxLen = 1.7320508
 // map that could exceed 1 would put peaks off the screen with no symptom other
 // than a figure that occasionally leaves the frame.
 func TestPolarRadiusStaysInsideTheSphere(t *testing.T) {
-	for m := 0; m < takens.PolarCount; m++ {
+	for m := range takens.PolarCount {
 		for _, drive := range []float32{0.2, 1, 2, 10, 1000} {
 			for _, r := range []float32{0, 1e-9, 0.001, 0.1, 1, polarMaxLen, 10, 1e6} {
 				got := takens.PolarRadius(m, r, drive)
@@ -61,7 +61,7 @@ func TestPolarRadiusStaysInsideTheSphere(t *testing.T) {
 func TestPolarHandlesTheZeroVectorAndRubbish(t *testing.T) {
 	nan := float32(math.NaN())
 	inf := float32(math.Inf(1))
-	for m := 0; m < takens.PolarCount; m++ {
+	for m := range takens.PolarCount {
 		for _, r := range []float32{0, -1, nan} {
 			if got := takens.PolarRadius(m, r, 1); got != 0 {
 				t.Errorf("map %d at r=%v: radius %v, want 0", m, r, got)
@@ -96,7 +96,7 @@ func TestPolarPreservesDirection(t *testing.T) {
 	vecs := [][3]float32{
 		{1, 0, 0}, {0.3, -0.7, 0.2}, {-1, 1, -1}, {0.01, 0.02, -0.005}, {1, 1, 1},
 	}
-	for m := 0; m < takens.PolarCount; m++ {
+	for m := range takens.PolarCount {
 		for _, drive := range []float32{0.2, 1, 2, 10} {
 			for _, v := range vecs {
 				r := float32(math.Sqrt(float64(v[0]*v[0] + v[1]*v[1] + v[2]*v[2])))
@@ -218,7 +218,7 @@ func TestPolarFitIsTheSphereNotTheCube(t *testing.T) {
 				gain, fit, takensFitExtent(gain))
 		}
 		// Nothing drawn can exceed it, at any map, drive or input.
-		for m := 0; m < takens.PolarCount; m++ {
+		for m := range takens.PolarCount {
 			for _, drive := range []float32{0.2, 2, 10, 1000} {
 				if got := takens.PolarRadius(m, polarMaxLen, drive) * gain; got > fit+1e-5 {
 					t.Errorf("gain %v map %d drive %v: full scale draws at %v, past the fitted %v",
@@ -247,7 +247,7 @@ func TestCatmullRomBulgesPastControlPointsOnTheSphere(t *testing.T) {
 	for i := 0; i <= 100; i++ {
 		f := float32(i) / 100
 		var out [3]float32
-		for c := 0; c < 3; c++ {
+		for c := range 3 {
 			out[c] = 0.5 * (2*p[1][c] + (-p[0][c]+p[2][c])*f +
 				(2*p[0][c]-5*p[1][c]+4*p[2][c]-p[3][c])*f*f +
 				(-p[0][c]+3*p[1][c]-3*p[2][c]+p[3][c])*f*f*f)
@@ -310,7 +310,7 @@ func TestPolarMapSelClampsWhateverModulationDoes(t *testing.T) {
 		}
 	}
 	// And the detents themselves must round to themselves, not to a neighbor.
-	for want := 0; want < takens.PolarCount; want++ {
+	for want := range takens.PolarCount {
 		polar.mapF = float32(want)
 		if got := polar.mapSel(); got != want {
 			t.Errorf("detent %d selected map %d", want, got)

@@ -97,7 +97,7 @@ func Decode(s string) List {
 		return nil
 	}
 	var out List
-	for _, rec := range strings.Split(s, recSep) {
+	for rec := range strings.SplitSeq(s, recSep) {
 		kv := strings.SplitN(rec, fieldSep, 2)
 		if len(kv) != 2 {
 			continue

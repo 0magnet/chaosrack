@@ -86,10 +86,7 @@ func (w *SlidingWindow) Push(s []float32) {
 // Fill() long; a shorter one takes the newest samples that fit, because a
 // truncated window should lose its oldest end, not its newest.
 func (w *SlidingWindow) Linear(dst []float32) int {
-	n := w.fill
-	if n > len(dst) {
-		n = len(dst)
-	}
+	n := min(w.fill, len(dst))
 	if n == 0 {
 		return 0
 	}

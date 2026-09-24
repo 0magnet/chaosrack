@@ -228,13 +228,13 @@ func (f *Field) applyEdges(c float32) {
 	}
 
 	w, h := f.W, f.H
-	for x := 0; x < w; x++ {
+	for x := range w {
 		top, topIn := x, w+x
 		bot, botIn := (h-1)*w+x, (h-2)*w+x
 		f.next[top] = edge(top, topIn)
 		f.next[bot] = edge(bot, botIn)
 	}
-	for y := 0; y < h; y++ {
+	for y := range h {
 		left, leftIn := y*w, y*w+1
 		right, rightIn := y*w+w-1, y*w+w-2
 		f.next[left] = edge(left, leftIn)

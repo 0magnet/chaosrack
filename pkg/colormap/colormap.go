@@ -93,7 +93,7 @@ const Texels = 256
 // Fill writes colormap idx into dst as Texels opaque RGBA texels, the form a
 // GL texture upload takes.
 func Fill(dst []byte, idx int) {
-	for i := 0; i < Texels; i++ {
+	for i := range Texels {
 		c := At(idx, float64(i)/float64(Texels-1))
 		// RGBA returns 16-bit premultiplied values; >>8 takes the high
 		// byte, so each is already 0..255 by construction — the colormap

@@ -42,10 +42,7 @@ func beamLines(strokes [][]float64, phase float64) int {
 	if nSeg == 0 {
 		return 0
 	}
-	stride := (nSeg*2 + maxV - 1) / maxV
-	if stride < 1 {
-		stride = 1
-	}
+	stride := max((nSeg*2+maxV-1)/maxV, 1)
 	total := 0.0
 	nChords := 0
 	eachChord := func(fn func(s []float64, j, k int)) {

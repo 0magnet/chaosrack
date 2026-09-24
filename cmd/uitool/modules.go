@@ -54,7 +54,7 @@ func runModules() {
 
 	only := map[string]bool{}
 	if *modOnly != "" {
-		for _, k := range strings.Split(*modOnly, ",") {
+		for k := range strings.SplitSeq(*modOnly, ",") {
 			only[strings.TrimSpace(k)] = true
 		}
 	}
@@ -138,7 +138,7 @@ func waitForModule(c *cdp.Client, id string) {
 	if id == "" {
 		return
 	}
-	for i := 0; i < 40; i++ {
+	for range 40 {
 		v, _ := c.Eval(fmt.Sprintf(`(function(){var e=document.getElementById(%q);
 		  return !!e && e.getBoundingClientRect().width > 4;})()`, id)).(bool)
 		if v {

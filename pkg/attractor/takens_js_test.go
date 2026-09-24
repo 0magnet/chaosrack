@@ -106,7 +106,7 @@ func TestTakensScaleIsFixed(t *testing.T) {
 	emb.gain = 10
 	quiet := 0.05 * emb.gain
 	loud := 0.90 * emb.gain
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		if got := 0.05 * emb.gain; got != quiet {
 			t.Fatalf("a fixed scale drifted: %v then %v", quiet, got)
 		}

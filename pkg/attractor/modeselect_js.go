@@ -68,7 +68,7 @@ func attachSelMarquee(sel js.Value, colorHex string) {
 			marq.Get("classList").Call("remove", "scroll")
 		}
 	}
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} { upd(); return nil }))
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any { upd(); return nil }))
 	upd()
 }
 
@@ -138,7 +138,7 @@ func updateTrailVisibility() {
 // pose and zeroes the per-axis spin rates, so it faces the camera head-on.
 // Auto-rotate (if on) still applies afterward.
 
-func onModeChange(this js.Value, args []js.Value) interface{} {
+func onModeChange(this js.Value, args []js.Value) any {
 	sel := dom.Doc.Call("getElementById", "mode-select")
 	if sel.Truthy() {
 		run.selectedMode = sel.Get("value").String()

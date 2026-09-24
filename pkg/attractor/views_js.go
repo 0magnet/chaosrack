@@ -76,7 +76,7 @@ func viewRects() [][4]int {
 		return full
 	}
 	out := make([][4]int, 0, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		cx := i % cols
 		cy := i / cols
 		// GL counts y from the bottom; the cells are numbered from the top.
@@ -103,7 +103,7 @@ func gridEdges(total, n int) ([][2]int, bool) {
 	}
 	span := total + viewGap // the gaps come out of the boundaries below
 	out := make([][2]int, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		start := i * span / n
 		end := (i+1)*span/n - viewGap
 		if end-start < 1 {
@@ -124,10 +124,7 @@ func gridEdges(total, n int) ([][2]int, bool) {
 // rect last.
 func setViewport(r [4]int) {
 	glctx.GL.Call("viewport", r[0], r[1], r[2], r[3])
-	h := r[3]
-	if h < 1 {
-		h = 1
-	}
+	h := max(r[3], 1)
 	gpu.proj = mgl32.Perspective(mgl32.DegToRad(45.0), float32(r[2])/float32(h), 1, 1500.0)
 	glctx.GL.Call("useProgram", gpu.program)
 	glctx.GL.Call("uniformMatrix4fv",
@@ -207,7 +204,7 @@ func (vi *viewGrid) wireViewGridDial() {
 		// one.
 		view.autoFitCamera()
 	}
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		apply()
 		return nil
 	}))
@@ -346,14 +343,14 @@ func refocus() {
 // wireViewLinkSwitches hooks up Link and the A/B focus switch.
 func (vi *viewGrid) wireViewLinkSwitches() {
 	if sw := dom.Doc.Call("getElementById", "link-sw"); sw.Truthy() {
-		sw.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		sw.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
 			vi.link = sw.Get("checked").Bool()
 			refocus()
 			return nil
 		}))
 	}
 	if sel := dom.Doc.Call("getElementById", "focus-n"); sel.Truthy() {
-		sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
 			if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
 				vi.focused = n
 			}
@@ -779,7 +776,7 @@ func wireOneSweepDial(selID string, into *float32) {
 	if !sel.Truthy() {
 		return
 	}
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
 			*into = float32(n)
 		}
@@ -1126,7 +1123,7 @@ func (vi *viewGrid) addLinkMark(cell js.Value, id string) {
 			"while the rest stay independent.")
 	}
 	cell.Get("classList").Call("add", "linkable")
-	m.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	m.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		if len(a) > 0 {
 			a[0].Call("stopPropagation")
 			a[0].Call("preventDefault")
@@ -1170,7 +1167,7 @@ func (vi *viewGrid) setLinkedParamList(s string) {
 	for k := range vi.paramLinks {
 		delete(vi.paramLinks, k)
 	}
-	for _, id := range strings.Split(s, ".") {
+	for id := range strings.SplitSeq(s, ".") {
 		if id != "" {
 			vi.paramLinks[id] = true
 		}

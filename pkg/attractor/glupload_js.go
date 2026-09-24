@@ -98,10 +98,7 @@ func (r *renderer) uploadVerticesOnly(vertices []float32, drawMode js.Value, cou
 	first := 0
 	drawN := count
 	if style.trailModFrac < 0.999 && count > 2 {
-		drawN = int(float32(count) * style.trailModFrac)
-		if drawN < 2 {
-			drawN = 2
-		}
+		drawN = max(int(float32(count)*style.trailModFrac), 2)
 		first = count - drawN
 	}
 	r.lastDrawn = drawN
@@ -212,7 +209,7 @@ func (r *renderer) staticGeomCached(drawMode js.Value) bool {
 	return true
 }
 
-func sliceToByteSlice(s interface{}) []byte {
+func sliceToByteSlice(s any) []byte {
 	switch s := s.(type) {
 	case []int8:
 		return unsafe.Slice((*byte)(unsafe.Pointer(unsafe.SliceData(s))), len(s)) //nolint:gosec // reinterpreting a typed slice as the bytes that back it, to hand to WebGL; the length is exactly the element size times the count
@@ -239,7 +236,7 @@ func sliceToByteSlice(s interface{}) []byte {
 	}
 }
 
-func SliceToTypedArray(s interface{}) js.Value {
+func SliceToTypedArray(s any) js.Value {
 	switch s := s.(type) {
 	case []int8:
 		a := js.Global().Get("Uint8Array").New(len(s))

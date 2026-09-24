@@ -104,10 +104,7 @@ func (b *bouncingBall) generateBounceBall() {
 		b.ring = make([]float64, sim.steps*2)
 		b.head, b.fill = 0, 0
 	}
-	n := sim.speedSteps
-	if n < 1 {
-		n = 1
-	}
+	n := max(sim.speedSteps, 1)
 	dt := 0.016 * float64(sim.speedScale)
 	for s := 0; s < n; s++ {
 		b.step(dt)

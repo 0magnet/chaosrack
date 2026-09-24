@@ -266,7 +266,7 @@ func quantizeModuleWidthsSoon() {
 	}
 	quantizePending = true
 	var fn js.Func
-	fn = js.FuncOf(func(js.Value, []js.Value) interface{} {
+	fn = js.FuncOf(func(js.Value, []js.Value) any {
 		quantizePending = false
 		fn.Release()
 		quantizeModuleWidths()
@@ -305,7 +305,7 @@ func requantizeAfterFonts() {
 		return
 	}
 	var fn js.Func
-	fn = js.FuncOf(func(js.Value, []js.Value) interface{} {
+	fn = js.FuncOf(func(js.Value, []js.Value) any {
 		fn.Release()
 		afterTwoFrames(func() {
 			// Forget what the panels measured in the wrong font.
@@ -336,12 +336,12 @@ func requantizeAfterFonts() {
 // layout for whatever was already dirty.
 func afterTwoFrames(f func()) {
 	var a, b js.Func
-	b = js.FuncOf(func(js.Value, []js.Value) interface{} {
+	b = js.FuncOf(func(js.Value, []js.Value) any {
 		b.Release()
 		f()
 		return nil
 	})
-	a = js.FuncOf(func(js.Value, []js.Value) interface{} {
+	a = js.FuncOf(func(js.Value, []js.Value) any {
 		a.Release()
 		js.Global().Call("requestAnimationFrame", b)
 		return nil

@@ -97,7 +97,7 @@ func TextJumpFractions(strokes []float64) [][2]float64 {
 	}
 	total := 0.0
 	lens := make([]float64, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		j := (i + 1) % n
 		lens[i] = math.Hypot(strokes[j*2]-strokes[i*2], strokes[j*2+1]-strokes[i*2+1])
 		total += lens[i]
@@ -107,7 +107,7 @@ func TextJumpFractions(strokes []float64) [][2]float64 {
 	}
 	var spans [][2]float64
 	arc := 0.0
-	for i := 0; i < n; i++ {
+	for i := range n {
 		if i%2 == 1 { // leaving a stroke END → retrace (incl. the wrap)
 			spans = append(spans, [2]float64{arc / total, (arc + lens[i]) / total})
 		}
@@ -134,7 +134,7 @@ func TextSplitCurve(curve []float64, spans [][2]float64) [][]float64 {
 	}
 	var out [][]float64
 	var run []float64
-	for k := 0; k < res; k++ {
+	for k := range res {
 		if inJump(float64(k) / float64(res)) {
 			if len(run) >= 4 {
 				out = append(out, run)
@@ -164,7 +164,7 @@ func TextSynth(strokes []float64, harmonics, res int) []float64 {
 	const m = 2048
 	n := len(strokes) / 2
 	total := 0.0
-	for i := 0; i < n; i++ {
+	for i := range n {
 		j := (i + 1) % n
 		total += math.Hypot(strokes[j*2]-strokes[i*2], strokes[j*2+1]-strokes[i*2+1])
 	}
@@ -175,7 +175,7 @@ func TextSynth(strokes []float64, harmonics, res int) []float64 {
 	py := make([]float64, m)
 	seg, segStart := 0, 0.0
 	segLen := math.Hypot(strokes[2]-strokes[0], strokes[3]-strokes[1])
-	for k := 0; k < m; k++ {
+	for k := range m {
 		s := total * float64(k) / float64(m)
 		for s > segStart+segLen && seg < n-1 {
 			segStart += segLen
@@ -201,13 +201,13 @@ func TextSynth(strokes []float64, harmonics, res int) []float64 {
 	nh := 2*harmonics + 1
 	cre := make([]float64, nh)
 	cim := make([]float64, nh)
-	for h := 0; h < nh; h++ {
+	for h := range nh {
 		fn := float64(h - harmonics)
 		wc := math.Cos(-2 * math.Pi * fn / m)
 		ws := math.Sin(-2 * math.Pi * fn / m)
 		rc, rs := 1.0, 0.0 // e^{−2πi·fn·k/m}, stepped per k
 		var sre, sim float64
-		for k := 0; k < m; k++ {
+		for k := range m {
 			// (px+ipy)·r: re = px·rc − py·rs, im = px·rs + py·rc
 			sre += px[k]*rc - py[k]*rs
 			sim += px[k]*rs + py[k]*rc
@@ -217,13 +217,13 @@ func TextSynth(strokes []float64, harmonics, res int) []float64 {
 	}
 	// Reconstruct res samples: p(t) = Σ c_n e^{int}, n stepped by e^{it}.
 	out := make([]float64, res*2)
-	for k := 0; k < res; k++ {
+	for k := range res {
 		t := 2 * math.Pi * float64(k) / float64(res)
 		wc, ws := math.Cos(t), math.Sin(t)
 		fn := -float64(harmonics)
 		rc, rs := math.Cos(fn*t), math.Sin(fn*t)
 		var x, y float64
-		for h := 0; h < nh; h++ {
+		for h := range nh {
 			x += cre[h]*rc - cim[h]*rs
 			y += cre[h]*rs + cim[h]*rc
 			rc, rs = rc*wc-rs*ws, rc*ws+rs*wc

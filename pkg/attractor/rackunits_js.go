@@ -117,7 +117,7 @@ func newSubrackUnit(open js.Value) js.Value {
 func unitEar() js.Value {
 	e := dom.Doc.Call("createElement", "div")
 	e.Set("className", unitEarCls)
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		e.Call("appendChild", dom.Doc.Call("createElement", "i"))
 	}
 	return e
@@ -551,7 +551,7 @@ func wireScopeUnit() {
 	if !sw.Truthy() {
 		return
 	}
-	sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
 		setScopeUnit(sw.Get("checked").Bool())
 		saveRackLayout()
 		return nil

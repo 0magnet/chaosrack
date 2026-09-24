@@ -175,7 +175,7 @@ func wireDeskPassthrough() {
 	capture := map[string]any{"capture": true}
 
 	handle := func(kind string) js.Func {
-		return dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+		return dom.FuncOf(func(_ js.Value, a []js.Value) any {
 			if len(a) == 0 {
 				return nil
 			}

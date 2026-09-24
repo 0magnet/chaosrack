@@ -12,7 +12,7 @@ func TestADropRadiates(t *testing.T) {
 	f.Drop(32, 32, 3, 1)
 
 	near := math.Abs(float64(f.Height(38, 32)))
-	for i := 0; i < 20; i++ {
+	for range 20 {
 		f.Step()
 	}
 	after := math.Abs(float64(f.Height(38, 32)))
@@ -30,7 +30,7 @@ func TestDampingSettles(t *testing.T) {
 	f.Drop(24, 24, 3, 1)
 
 	start := f.Energy()
-	for i := 0; i < 400; i++ {
+	for range 400 {
 		f.Step()
 	}
 	end := f.Energy()
@@ -48,7 +48,7 @@ func TestSpeedIsClampedToStability(t *testing.T) {
 	f.Damping = 1
 	f.Drop(24, 24, 2, 1)
 
-	for i := 0; i < 500; i++ {
+	for range 500 {
 		f.Step()
 	}
 	for i, v := range f.Heights() {
@@ -69,7 +69,7 @@ func TestEdgesReflect(t *testing.T) {
 	f.Drop(20, 20, 2, 1)
 
 	// Long enough for the front to reach a wall and return.
-	for i := 0; i < 120; i++ {
+	for range 120 {
 		f.Step()
 	}
 	if f.Energy() < 1e-6 {
@@ -125,7 +125,7 @@ func TestSpreadRemovesTheFinestRipples(t *testing.T) {
 				}
 			}
 		}
-		for i := 0; i < 12; i++ {
+		for range 12 {
 			f.Step()
 		}
 		return f.Energy()
@@ -168,7 +168,7 @@ func TestReflectControlsWhetherWavesReturn(t *testing.T) {
 		f.Spread = 0
 		f.Drop(32, 32, 3, 1)
 		// Long enough for the front to reach a wall and, if it can, return.
-		for i := 0; i < 200; i++ {
+		for range 200 {
 			f.Step()
 		}
 		return f.Energy()
@@ -191,7 +191,7 @@ func TestPartialReflectionIsBetweenTheExtremes(t *testing.T) {
 		f.Damping = 1
 		f.Spread = 0
 		f.Drop(32, 32, 3, 1)
-		for i := 0; i < 200; i++ {
+		for range 200 {
 			f.Step()
 		}
 		return f.Energy()
@@ -209,7 +209,7 @@ func TestAbsorbingEdgesStayFinite(t *testing.T) {
 	f.Reflect = 0
 	f.Damping = 1
 	f.Drop(24, 24, 3, 1)
-	for i := 0; i < 2000; i++ {
+	for range 2000 {
 		f.Step()
 	}
 	for i, v := range f.Heights() {

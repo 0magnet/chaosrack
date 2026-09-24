@@ -256,7 +256,7 @@ func TestSweepRepeats(t *testing.T) {
 	g := newTestGen()
 	g.sig = TestSweep
 	g.level = 1
-	for i := 0; i < int(sweepSeconds*testSR)+100; i++ {
+	for range int(sweepSeconds*testSR) + 100 {
 		g.nextSweep(testSR)
 	}
 	if p := g.SweepPosition(); p < 0 || p >= 1 {
@@ -290,9 +290,9 @@ func psdIn(x []float64, lo, hi float64) float64 {
 	const probes, segs = 24, 8
 	seg := len(x) / segs
 	var total float64
-	for s := 0; s < segs; s++ {
+	for s := range segs {
 		part := x[s*seg : (s+1)*seg]
-		for i := 0; i < probes; i++ {
+		for i := range probes {
 			f := lo * math.Pow(hi/lo, (float64(i)+0.5)/probes)
 			w := 2 * math.Pi * f / sr
 			var re, im float64

@@ -287,7 +287,7 @@ func TestInstanceForClamps(t *testing.T) {
 	}
 	// In range, every cell has its own instance and no two share one.
 	seen := map[*stereoInst]bool{}
-	for i := 0; i < viewMax; i++ {
+	for i := range viewMax {
 		inst := grid.instanceFor(i)
 		if inst == nil {
 			t.Fatalf("instanceFor(%d) is nil", i)
@@ -510,7 +510,7 @@ func TestSweepRestoresTheKnob(t *testing.T) {
 
 	// Each cell gets a DIFFERENT value, or a sweep is nine copies.
 	seen := map[float32]bool{}
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		r := applySweep("stereo", i, 9)
 		seen[inst.tau] = true
 		r()
@@ -747,7 +747,7 @@ func TestALoneSweepSpendsEveryCellOnItself(t *testing.T) {
 	grid.sweep2ParamF = 0 // none
 
 	seen := map[float32]bool{}
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		across, down := sweepAxisFracs(i, 9)
 		seen[across] = true
 		if down != 0 {
@@ -769,7 +769,7 @@ func TestTwoSweepsBecomeTheColumnsAndTheRows(t *testing.T) {
 
 	const n = 9
 	cols, rows := viewGridShape(n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		across, down := sweepAxisFracs(i, n)
 		wantAcross := sweepFrac(i%cols, cols)
 		wantDown := sweepFrac(i/cols, rows)
@@ -781,7 +781,7 @@ func TestTwoSweepsBecomeTheColumnsAndTheRows(t *testing.T) {
 	// Every cell in a column shares its across value, every cell in a row
 	// its down value, and no two cells share both.
 	pairs := map[[2]float32]bool{}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		p := [2]float32{}
 		p[0], p[1] = sweepAxisFracs(i, n)
 		if pairs[p] {
@@ -805,7 +805,7 @@ func TestTheTwoAxesRefuseToShareATarget(t *testing.T) {
 	}
 	// And with it off, the across axis gets the whole grid back.
 	seen := map[float32]bool{}
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		a, _ := sweepAxisFracs(i, 9)
 		seen[a] = true
 	}

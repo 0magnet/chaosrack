@@ -36,7 +36,7 @@ func TestStopIsIgnoredOnceItHasStarted(t *testing.T) {
 	// Three more presses, the way an impatient person produces them. Each must
 	// fall out at the guard: reaching the body would drive the renderer, and
 	// reaching the end would close `done` a second time.
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		if got := stopApplication(js.Undefined(), nil); got != nil {
 			t.Fatalf("press %d returned %v, so it did not stop at the guard", i+1, got)
 		}

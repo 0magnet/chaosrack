@@ -29,7 +29,7 @@ func extent(p [][3]float64) (dx, dy, dz float64) {
 	}
 	lo, hi := p[0], p[0]
 	for _, q := range p {
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			lo[i] = math.Min(lo[i], q[i])
 			hi[i] = math.Max(hi[i], q[i])
 		}
@@ -44,7 +44,7 @@ func differs(a, b [][3]float64) bool {
 		return true
 	}
 	for i := range a {
-		for k := 0; k < 3; k++ {
+		for k := range 3 {
 			if math.Abs(a[i][k]-b[i][k]) > 1e-9 {
 				return true
 			}

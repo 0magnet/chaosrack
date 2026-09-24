@@ -1,6 +1,9 @@
 package attractor
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 // A rack row per model category.
 //
@@ -99,10 +102,8 @@ func categoryModes(label string) []string {
 // reordered.
 func categoryOf(mode string) string {
 	for _, g := range modeGroups {
-		for _, k := range g.Keys {
-			if k == mode {
-				return g.Label
-			}
+		if slices.Contains(g.Keys, mode) {
+			return g.Label
 		}
 	}
 	return ""

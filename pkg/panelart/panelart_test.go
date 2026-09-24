@@ -92,8 +92,8 @@ func TestRowsForRefusesNonsense(t *testing.T) {
 // should come back grey rather than one or the other.
 func TestRenderAveragesRatherThanPicking(t *testing.T) {
 	im := image.NewRGBA(image.Rect(0, 0, 8, 8))
-	for y := 0; y < 8; y++ {
-		for x := 0; x < 8; x++ {
+	for y := range 8 {
+		for x := range 8 {
 			c := color.RGBA{A: 255}
 			if x%2 == 0 {
 				c = color.RGBA{255, 255, 255, 255}

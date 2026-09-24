@@ -210,7 +210,7 @@ func niam() {
 	}
 
 	var renderFrame js.Func
-	renderFrame = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	renderFrame = js.FuncOf(func(this js.Value, args []js.Value) any {
 		rr.Render(this, args)
 		js.Global().Call("requestAnimationFrame", renderFrame)
 		return nil

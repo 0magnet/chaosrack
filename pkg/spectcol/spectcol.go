@@ -40,13 +40,7 @@ const MaxRows = 2048
 // out to bin = y/2, so each is stored twice); this is that picture without the
 // duplication.
 func Rows(dftSize int) int {
-	rows := dftSize / 2
-	if rows > MaxRows {
-		rows = MaxRows
-	}
-	if rows < 1 {
-		rows = 1
-	}
+	rows := max(min(dftSize/2, MaxRows), 1)
 	return rows
 }
 
@@ -83,7 +77,7 @@ func ColumnWith(mags []float64, rows int, pixel func(float64) color.Color) []byt
 	// The top row is Nyquist, not one bin short of it.
 	bins := len(mags) - 1
 	col := make([]byte, rows*4)
-	for y := 0; y < rows; y++ {
+	for y := range rows {
 		bin := int(float64(y) / float64(rows) * float64(bins))
 		if bin < 0 || bin >= len(mags) {
 			col[y*4+3] = 255

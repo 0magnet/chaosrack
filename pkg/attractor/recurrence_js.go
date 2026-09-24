@@ -323,14 +323,8 @@ func rpWindow(winMS float32, sampleRate int) (span, stride int) {
 	if sampleRate <= 0 {
 		sampleRate = 24000
 	}
-	span = int(winMS / 1000 * float32(sampleRate))
-	if span < rpN {
-		span = rpN
-	}
-	stride = span / rpN
-	if stride < 1 {
-		stride = 1
-	}
+	span = max(int(winMS/1000*float32(sampleRate)), rpN)
+	stride = max(span/rpN, 1)
 	return stride * rpN, stride
 }
 
@@ -389,10 +383,7 @@ func (r *recurrencePlot) fillFromAudio() bool {
 	// permalink or from a sample rate higher than the headroom allows for,
 	// would ask for history behind the start of the buffer, and the index
 	// arithmetic below would go negative rather than merely wrong.
-	tau := takens.TauSamples(emb.tau, sr)
-	if tau > rpMaxTauSamples {
-		tau = rpMaxTauSamples
-	}
+	tau := min(takens.TauSamples(emb.tau, sr), rpMaxTauSamples)
 	span, stride := rpWindow(r.win, sr)
 	// The delay coordinates read BACKWARDS from the start of the plot window,
 	// in source samples — τ is a delay in the signal, not in decimated columns,
@@ -410,7 +401,7 @@ func (r *recurrencePlot) fillFromAudio() bool {
 			if n <= 0 {
 				break
 			}
-			for i := 0; i < n; i++ {
+			for i := range n {
 				r.ring[r.w%len(r.ring)] = r.scratch[i]
 				r.w++
 			}
@@ -420,10 +411,7 @@ func (r *recurrencePlot) fillFromAudio() bool {
 			}
 		}
 	}
-	avail := r.w
-	if avail > len(r.ring) {
-		avail = len(r.ring)
-	}
+	avail := min(r.w, len(r.ring))
 	// span + lookback, not span: with the delays included, requiring only span
 	// would index behind the start of the ring on the first frames after a
 	// resize. avail ≤ rp.w, so this also guarantees base − lookback ≥ 0 and the
@@ -450,11 +438,11 @@ func (r *recurrencePlot) fillFromAudio() bool {
 	rn := len(r.ring)
 	base := r.w - span
 	inv := 1 / float64(stride)
-	for i := 0; i < rpN; i++ {
-		for c := 0; c < dim; c++ {
+	for i := range rpN {
+		for c := range dim {
 			off := base + i*stride - c*tau
 			var sum float32
-			for k := 0; k < stride; k++ {
+			for k := range stride {
 				sum += r.ring[(off+k)%rn]
 			}
 			r.vec[i*dim+c] = float64(sum) * inv

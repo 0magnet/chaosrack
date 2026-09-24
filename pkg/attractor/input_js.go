@@ -41,7 +41,7 @@ func wireModelInput() {
 	// rotation still works when the host page paints other elements
 	// (e.g. magnetosphere.net's SVG logo) above the canvas. The target
 	// filter above lets clicks on links/buttons/inputs through.
-	dom.Doc.Call("addEventListener", "mousedown", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "mousedown", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		if isInteractiveDragTarget(e.Get("target")) {
 			return nil
@@ -82,7 +82,7 @@ func wireModelInput() {
 		beginDrag(e.Get("clientX").Float(), e.Get("clientY").Float())
 		return nil
 	}))
-	js.Global().Call("addEventListener", "mousemove", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	js.Global().Call("addEventListener", "mousemove", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		if pongPointer {
 			if e.Get("buttons").Float() == 0 {
@@ -113,7 +113,7 @@ func wireModelInput() {
 		dragMove(e.Get("clientX").Float(), e.Get("clientY").Float())
 		return nil
 	}))
-	js.Global().Call("addEventListener", "mouseup", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	js.Global().Call("addEventListener", "mouseup", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		dragging = false
 		pongPointer = false
 		grab.grabEnd()
@@ -125,7 +125,7 @@ func wireModelInput() {
 	// gesture on host pages: dragging an <img>/SVG (magnetosphere.net's logo
 	// lifts "in hand" and eats every event until release) and text selection.
 	for _, ev := range []string{"dragstart", "selectstart"} {
-		dom.Doc.Call("addEventListener", ev, dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		dom.Doc.Call("addEventListener", ev, dom.FuncOf(func(this js.Value, args []js.Value) any {
 			if dragging {
 				args[0].Call("preventDefault")
 			}
@@ -145,7 +145,7 @@ func wireModelInput() {
 		dy := a.Get("clientY").Float() - b.Get("clientY").Float()
 		return dx*dx + dy*dy // squared is fine — only ratios of change matter
 	}
-	dom.Doc.Call("addEventListener", "touchstart", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "touchstart", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		if isInteractiveDragTarget(e.Get("target")) {
 			return nil
@@ -177,7 +177,7 @@ func wireModelInput() {
 		beginDrag(t.Get("clientX").Float(), t.Get("clientY").Float())
 		return nil
 	}))
-	dom.Doc.Call("addEventListener", "touchmove", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "touchmove", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		touches := e.Get("touches")
 		if run.selectedMode == "pong" && !isInteractiveDragTarget(e.Get("target")) {
@@ -216,7 +216,7 @@ func wireModelInput() {
 		dragMove(t.Get("clientX").Float(), t.Get("clientY").Float())
 		return nil
 	}))
-	dom.Doc.Call("addEventListener", "touchend", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "touchend", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		if args[0].Get("touches").Get("length").Int() < 2 {
 			pinching = false
 		}
@@ -236,7 +236,7 @@ func wireModelInput() {
 	if wireHostWheel() {
 		return
 	}
-	glctx.Canvas.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	glctx.Canvas.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		if ctrlWheelIsTerminalZoom(e) {
 			return nil // the terminal on the quad is zooming its own cell
@@ -277,7 +277,7 @@ func wireWheelBindings() {
 		if !el.Truthy() {
 			return
 		}
-		el.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		el.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) any {
 			e := args[0]
 			e.Call("preventDefault")
 			deltaY := e.Get("deltaY").Float()
@@ -329,7 +329,7 @@ func wireWheelBindings() {
 		if !el.Truthy() {
 			return
 		}
-		el.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		el.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) any {
 			e := args[0]
 			e.Call("preventDefault")
 			idx := el.Get("selectedIndex").Int()

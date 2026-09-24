@@ -88,7 +88,7 @@ func TestBuiltinEquationSeedsMatchNativeDerivs(t *testing.T) {
 	}
 	evalSeed := func(be builtinEq, p [4]float64) ([4]float64, error) {
 		var out [4]float64
-		for i := 0; i < 4; i++ {
+		for i := range 4 {
 			if be.eq[i] == "" {
 				continue
 			}
@@ -145,7 +145,7 @@ func TestBuiltinEquationSeedsMatchNativeDerivs(t *testing.T) {
 				t.Errorf("%s: seed does not parse: %v", mode, err)
 				break
 			}
-			for i := 0; i < 4; i++ {
+			for i := range 4 {
 				if !approx(got[i], want[i], tol) {
 					t.Errorf("%s: seed deriv[%d] at %v = %g, native = %g — seed table drifted from the real system",
 						mode, i, p, got[i], want[i])

@@ -113,7 +113,7 @@ func wireScreenPower() {
 			continue
 		}
 		pp := p
-		sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+		sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
 			pp.invalidate()
 			return nil
 		}))
@@ -123,11 +123,11 @@ func wireScreenPower() {
 	// on screen, and waiting a quarter second to notice is long enough to
 	// see a readout sitting still after it has come into view. Forget the
 	// cached answers as soon as it moves; the next frame measures again.
-	forget := dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	forget := dom.FuncOf(func(js.Value, []js.Value) any {
 		scrollChangedWhatIsOnScreen()
 		return nil
 	})
-	opts := map[string]interface{}{"passive": true}
+	opts := map[string]any{"passive": true}
 	if p := dom.Doc.Call("getElementById", "controls-panel"); p.Truthy() {
 		p.Call("addEventListener", "scroll", forget, opts)
 	}
@@ -225,7 +225,7 @@ func (s *screenObserver) observer() js.Value {
 	if !ctor.Truthy() {
 		return js.Value{}
 	}
-	s.obs = ctor.New(dom.FuncOf(func(_ js.Value, args []js.Value) interface{} {
+	s.obs = ctor.New(dom.FuncOf(func(_ js.Value, args []js.Value) any {
 		if len(args) == 0 {
 			return nil
 		}

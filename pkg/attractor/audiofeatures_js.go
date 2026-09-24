@@ -156,7 +156,7 @@ func (a *audioFeatures) eqModValue(channel string, weights []float32) float32 {
 		return 0
 	}
 	var sum, wsum, maxb float32
-	for i := 0; i < len(bands); i++ {
+	for i := range bands {
 		var w float32
 		if i < len(weights) {
 			w = weights[i]
@@ -261,7 +261,7 @@ func (a *audioFeatures) updateAudioFeatures() {
 			a.band[ch] = cur
 		}
 		keys := afEQKeys[ch]
-		for i := 0; i < numEQBands; i++ {
+		for i := range numEQBands {
 			cur[i] = afSmooth(cur[i], a.normMap(keys[i], raw[i]))
 		}
 	}
@@ -293,10 +293,7 @@ func (a *audioFeatures) updateAudioFeatures() {
 
 	// Onset/beat from mixed-magnitude spectral flux → decaying pulse.
 	var flux float64
-	n := len(magsL)
-	if n > len(magsR) {
-		n = len(magsR)
-	}
+	n := min(len(magsL), len(magsR))
 	if a.prevMix == nil {
 		a.prevMix = make([]float64, n)
 	}

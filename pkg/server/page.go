@@ -105,7 +105,7 @@ func renderTemplate(d htmlTemplateData) ([]byte, error) {
 		return nil, fmt.Errorf("parsing the page template: %w", err)
 	}
 	var out bytes.Buffer
-	if err := tmpl.Execute(&out, map[string]interface{}{"Page": d}); err != nil {
+	if err := tmpl.Execute(&out, map[string]any{"Page": d}); err != nil {
 		return nil, fmt.Errorf("executing the page template: %w", err)
 	}
 	return out.Bytes(), nil

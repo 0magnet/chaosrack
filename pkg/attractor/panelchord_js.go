@@ -52,7 +52,7 @@ type chord struct {
 // than binding every Ctrl press.
 func parseChord(spec string) (chord, bool) {
 	var c chord
-	for _, part := range strings.Split(spec, "+") {
+	for part := range strings.SplitSeq(spec, "+") {
 		switch p := strings.ToLower(strings.TrimSpace(part)); p {
 		case "":
 			continue
@@ -133,7 +133,7 @@ func initPanelRevealChord() {
 		return
 	}
 	setPanelSurfaceHidden(true)
-	js.Global().Call("addEventListener", "keydown", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+	js.Global().Call("addEventListener", "keydown", dom.FuncOf(func(_ js.Value, a []js.Value) any {
 		if len(a) == 0 {
 			return nil
 		}

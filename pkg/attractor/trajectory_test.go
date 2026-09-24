@@ -23,7 +23,7 @@ func TestEveryFlowTraces(t *testing.T) {
 		var min, max [3]float64
 		min, max = path[0], path[0]
 		for _, p := range path {
-			for i := 0; i < 3; i++ {
+			for i := range 3 {
 				if p[i] < min[i] {
 					min[i] = p[i]
 				}
@@ -32,7 +32,7 @@ func TestEveryFlowTraces(t *testing.T) {
 				}
 			}
 		}
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			if max[i]-min[i] <= 0 {
 				t.Errorf("%s: axis %d has no extent — the figure is flat or a point", k, i)
 			}

@@ -17,8 +17,8 @@ func TestRebuildIntoRecyclesItsArena(t *testing.T) {
 
 	var arena []js.Func
 	build := func() {
-		for i := 0; i < 3; i++ {
-			FuncOf(func(js.Value, []js.Value) interface{} { return nil })
+		for range 3 {
+			FuncOf(func(js.Value, []js.Value) any { return nil })
 		}
 	}
 	for pass := 1; pass <= 4; pass++ {
@@ -47,7 +47,7 @@ func TestRebuildIntoLeavesThePanelArenaAlone(t *testing.T) {
 	panelCollect = true
 	var arena []js.Func
 	RebuildInto(&arena, func() {
-		FuncOf(func(js.Value, []js.Value) interface{} { return nil })
+		FuncOf(func(js.Value, []js.Value) any { return nil })
 	})
 	if len(panelFuncs) != savedLen {
 		t.Errorf("the panel arena grew by %d during a dial rebuild",
@@ -57,7 +57,7 @@ func TestRebuildIntoLeavesThePanelArenaAlone(t *testing.T) {
 		t.Errorf("the dial arena took %d funcs, want 1", len(arena))
 	}
 	// And collection goes back to the panel afterwards.
-	FuncOf(func(js.Value, []js.Value) interface{} { return nil })
+	FuncOf(func(js.Value, []js.Value) any { return nil })
 	if len(panelFuncs) != savedLen+1 {
 		t.Error("the panel arena did not resume collecting after the rebuild")
 	}

@@ -281,7 +281,7 @@ func (r *Renderer) UpdateIndicesBuffer(buffer []uint32) {
 }
 
 // Render renders
-func (r *Renderer) Render(_ js.Value, args []js.Value) interface{} { // nolint
+func (r *Renderer) Render(_ js.Value, args []js.Value) any { // nolint
 	now := float32(args[0].Float())
 	tdiff := now - r.tmark
 	r.tmark = now

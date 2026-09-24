@@ -20,7 +20,7 @@ func resetTap(t *testing.T) {
 // the same value, so a fold of them is that value too and the existing
 // assertions read unchanged.
 func tapWrite(n int) {
-	for i := 0; i < n; i++ {
+	for range n {
 		j := tap.w % len(tap.ringL)
 		tap.ringL[j] = float32(tap.w)
 		tap.ringR[j] = float32(tap.w)
@@ -89,7 +89,7 @@ func TestTapPreservesOrderAndValues(t *testing.T) {
 	if got != 64 {
 		t.Fatalf("read %d, want 64", got)
 	}
-	for i := 0; i < got; i++ {
+	for i := range got {
 		if want := float32(i); dst[i] != want {
 			t.Fatalf("sample %d = %v, want %v", i, dst[i], want)
 		}

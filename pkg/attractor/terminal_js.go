@@ -154,11 +154,11 @@ func (te *terminal) wireTerminalFocus() {
 	}
 	te.wired = true
 
-	glctx.Canvas.Call("addEventListener", "dblclick", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	glctx.Canvas.Call("addEventListener", "dblclick", dom.FuncOf(func(js.Value, []js.Value) any {
 		focusModelKeyboard()
 		return nil
 	}))
-	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(_ js.Value, a []js.Value) any {
 		if len(a) == 0 || a[0].Get("key").String() != "Escape" {
 			return nil
 		}
@@ -315,7 +315,7 @@ func (te *terminal) wireTerminalZoom() {
 		}
 		t.SetFontSize(v)
 	}
-	dom.Doc.Call("addEventListener", "wheel", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "wheel", dom.FuncOf(func(_ js.Value, a []js.Value) any {
 		if len(a) == 0 || !a[0].Get("ctrlKey").Bool() || !terminalOnScreen() {
 			return nil
 		}
@@ -326,8 +326,8 @@ func (te *terminal) wireTerminalZoom() {
 			zoom(termZoomStep)
 		}
 		return nil
-	}), map[string]interface{}{"passive": false})
-	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+	}), map[string]any{"passive": false})
+	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(_ js.Value, a []js.Value) any {
 		if len(a) == 0 || !a[0].Get("ctrlKey").Bool() || !terminalOnScreen() {
 			return nil
 		}

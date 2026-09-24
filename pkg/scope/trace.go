@@ -66,10 +66,7 @@ func TraceEnvelope(dst, src []float32, cols int) int {
 	}
 	for c := 0; c < cols; c++ {
 		lo := c * n / cols
-		hi := (c + 1) * n / cols
-		if hi > n {
-			hi = n
-		}
+		hi := min((c+1)*n/cols, n)
 		if hi <= lo {
 			// A column narrower than one sample still has to show that
 			// sample; an empty column would be a gap in the trace.

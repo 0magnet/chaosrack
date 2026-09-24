@@ -78,11 +78,11 @@ func (v View) Render(dst *image.RGBA, vertices []float32, indices []uint16, g Gr
 	// Model bounds: the shader's uMin/uMax gradient normalization, and
 	// the fit radius for projection.
 	var min, max [3]float32
-	for a := 0; a < 3; a++ {
+	for a := range 3 {
 		min[a], max[a] = vertices[a], vertices[a]
 	}
 	maxLen := 0.0
-	for i := 0; i < n; i++ {
+	for i := range n {
 		x, y, z := vertices[i*3], vertices[i*3+1], vertices[i*3+2]
 		for a, val := range [3]float32{x, y, z} {
 			if val < min[a] {
@@ -115,7 +115,7 @@ func (v View) Render(dst *image.RGBA, vertices []float32, indices []uint16, g Gr
 	px := make([]float64, n)
 	py := make([]float64, n)
 	cr := make([][3]float32, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		x0 := float64(vertices[i*3])
 		y0 := float64(vertices[i*3+1])
 		z0 := float64(vertices[i*3+2])
@@ -169,7 +169,7 @@ func (v View) Render(dst *image.RGBA, vertices []float32, indices []uint16, g Gr
 		for s := 0; s <= steps; s++ {
 			t := float64(s) / float64(steps)
 			var c [3]float32
-			for k := 0; k < 3; k++ {
+			for k := range 3 {
 				c[k] = cr[a][k] + float32(t)*(cr[bIdx][k]-cr[a][k])
 			}
 			set(int(px[a]+dx*t), int(py[a]+dy*t), c)
@@ -257,11 +257,11 @@ func ModelBounds(vertices []float32) (min, max [3]float32) {
 	if n == 0 {
 		return min, max
 	}
-	for a := 0; a < 3; a++ {
+	for a := range 3 {
 		min[a], max[a] = vertices[a], vertices[a]
 	}
-	for i := 0; i < n; i++ {
-		for a := 0; a < 3; a++ {
+	for i := range n {
+		for a := range 3 {
 			v := vertices[i*3+a]
 			if v < min[a] {
 				min[a] = v

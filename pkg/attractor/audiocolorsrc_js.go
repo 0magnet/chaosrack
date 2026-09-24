@@ -128,28 +128,22 @@ func fillColorLUT(src int, mode string, out []float32) bool {
 	return true
 }
 
-// slices walks out's slots over w, handing each its span. Shared by every
+// forEachSlot walks out's slots over w, handing each its span. Shared by every
 // fill here so they all index the trail identically — a source that sliced
 // differently would put its color a slot away from the geometry it
 // describes.
-func slices(n int, out []float32, f func(i, start, end int)) {
+func forEachSlot(n int, out []float32, f func(i, start, end int)) {
 	if len(out) == 0 || n <= 0 {
 		return
 	}
-	step := n / len(out)
-	if step < 1 {
-		step = 1
-	}
+	step := max(n/len(out), 1)
 	for i := range out {
 		start := i * step
 		if start >= n {
 			f(i, -1, -1)
 			continue
 		}
-		end := start + step
-		if end > n {
-			end = n
-		}
+		end := min(start+step, n)
 		f(i, start, end)
 	}
 }
@@ -165,7 +159,7 @@ func slices(n int, out []float32, f func(i, start, end int)) {
 // phase"; this says which part.
 func shortTimeCorrelation(l, r, out []float32) {
 	n := min(len(l), len(r))
-	slices(n, out, func(i, start, end int) {
+	forEachSlot(n, out, func(i, start, end int) {
 		if start < 0 {
 			out[i] = out[max(i-1, 0)]
 			return
@@ -197,7 +191,7 @@ func shortTimeCorrelation(l, r, out []float32) {
 // question it answers is which parts are wider than which.
 func shortTimeSide(l, r, out []float32) {
 	n := min(len(l), len(r))
-	slices(n, out, func(i, start, end int) {
+	forEachSlot(n, out, func(i, start, end int) {
 		if start < 0 {
 			out[i] = out[max(i-1, 0)]
 			return
@@ -220,7 +214,7 @@ func shortTimeSide(l, r, out []float32) {
 // than as a shape one has to judge by eye.
 func shortTimeBalance(l, r, out []float32) {
 	n := min(len(l), len(r))
-	slices(n, out, func(i, start, end int) {
+	forEachSlot(n, out, func(i, start, end int) {
 		if start < 0 {
 			out[i] = out[max(i-1, 0)]
 			return
@@ -250,7 +244,7 @@ func shortTimeBalance(l, r, out []float32) {
 // arms take a color per direction, which is the display the mode is for.
 func shortTimePosition(l, r, out []float32) {
 	n := min(len(l), len(r))
-	slices(n, out, func(i, start, end int) {
+	forEachSlot(n, out, func(i, start, end int) {
 		if start < 0 {
 			out[i] = out[max(i-1, 0)]
 			return
@@ -282,7 +276,7 @@ func shortTimePosition(l, r, out []float32) {
 // Relative, and auto-ranged: flux has no natural full scale.
 func shortTimeFlux(w []float32, out []float32) {
 	var prev []float64
-	slices(len(w), out, func(i, start, end int) {
+	forEachSlot(len(w), out, func(i, start, end int) {
 		if start < 0 {
 			out[i] = out[max(i-1, 0)]
 			return
@@ -333,7 +327,7 @@ const dbFloor = -60.0
 // this ramp is always −30 dB rather than "half as loud as the loudest thing
 // currently in the window".
 func shortTimeDB(w []float32, out []float32) {
-	slices(len(w), out, func(i, start, end int) {
+	forEachSlot(len(w), out, func(i, start, end int) {
 		if start < 0 {
 			out[i] = out[max(i-1, 0)]
 			return

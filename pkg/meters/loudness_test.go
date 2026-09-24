@@ -210,7 +210,7 @@ func TestLRAFindsTheSpreadBetweenTwoLevels(t *testing.T) {
 	hi, _ := ldTone(ldSR*secs, 1000, 0.5, 0.5)
 	lo, _ := ldTone(ldSR*secs, 1000, 0.5*math.Pow(10, -spread/20), 0.5*math.Pow(10, -spread/20))
 	var l []float32
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		l = append(l, hi...)
 		l = append(l, lo...)
 	}

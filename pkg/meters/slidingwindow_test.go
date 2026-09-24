@@ -140,7 +140,7 @@ func TestPushingCostsWhatArrivesNotWhatItHolds(t *testing.T) {
 	var w SlidingWindow
 	w.Resize(size)
 	s := make([]float32, chunk)
-	for i := 0; i < pushes; i++ {
+	for range pushes {
 		w.Push(s)
 	}
 	// The sliding version moved the whole window per push; the ring moves

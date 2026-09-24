@@ -20,7 +20,7 @@ import (
 // as well. One flag closes both.
 var stopping bool
 
-func stopApplication(_ js.Value, _ []js.Value) interface{} {
+func stopApplication(_ js.Value, _ []js.Value) any {
 	if stopping {
 		return nil
 	}
@@ -36,7 +36,7 @@ func stopApplication(_ js.Value, _ []js.Value) interface{} {
 	}
 
 	var fin js.Func
-	fin = js.FuncOf(func(js.Value, []js.Value) interface{} {
+	fin = js.FuncOf(func(js.Value, []js.Value) any {
 		close(done)
 		fin.Release()
 		return nil
@@ -45,7 +45,7 @@ func stopApplication(_ js.Value, _ []js.Value) interface{} {
 	return nil
 }
 
-func sCX(this js.Value, _ []js.Value) interface{} {
+func sCX(this js.Value, _ []js.Value) any {
 	sSpeed := this.Get("value").String()
 	s, _ := strconv.ParseFloat(sSpeed, 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 	rr.SetX(float32(s))
@@ -61,7 +61,7 @@ func sCX(this js.Value, _ []js.Value) interface{} {
 	return nil
 }
 
-func sCY(this js.Value, _ []js.Value) interface{} {
+func sCY(this js.Value, _ []js.Value) any {
 	sS := this.Get("value").String()
 	s, _ := strconv.ParseFloat(sS, 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 	rr.SetY(float32(s))
@@ -77,7 +77,7 @@ func sCY(this js.Value, _ []js.Value) interface{} {
 	return nil
 }
 
-func sCZ(this js.Value, _ []js.Value) interface{} {
+func sCZ(this js.Value, _ []js.Value) any {
 	sS := this.Get("value").String()
 	s, _ := strconv.ParseFloat(sS, 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 	rr.SetZ(float32(s))
@@ -93,7 +93,7 @@ func sCZ(this js.Value, _ []js.Value) interface{} {
 	return nil
 }
 
-func sCZoom(this js.Value, _ []js.Value) interface{} {
+func sCZoom(this js.Value, _ []js.Value) any {
 	sS := this.Get("value").String()
 	s, _ := strconv.ParseFloat(sS, 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 	if s < 10 {

@@ -92,10 +92,7 @@ func Pack(items []Item, capacity int, monitor map[string]int) [][]int {
 	// modules it monitors, which is not a rack, it is a screen with a
 	// caption. Clamped rather than rejected: the rack still draws.
 	monitorFor := func(section string) int {
-		w := monitor[section]
-		if w < 0 {
-			w = 0
-		}
+		w := max(monitor[section], 0)
 		if w >= capacity {
 			w = capacity - 1
 		}
@@ -112,10 +109,7 @@ func Pack(items []Item, capacity int, monitor map[string]int) [][]int {
 		}
 	}
 	for i, it := range items {
-		w := it.Slots
-		if w < 0 {
-			w = 0
-		}
+		w := max(it.Slots, 0)
 		// Where a head may go, in two parts.
 		//
 		// It may not follow something that is not part of a head's run,

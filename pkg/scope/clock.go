@@ -84,11 +84,11 @@ func ClockPolyline(now time.Time) []ClockPt {
 		return d
 	}
 	nodes := make([]rimNode, 0, faceSegs+13)
-	for i := 0; i < faceSegs; i++ {
+	for i := range faceSegs {
 		f := secFrac + float64(i)/faceSegs
 		nodes = append(nodes, rimNode{f: f, d: float64(i) / faceSegs})
 	}
-	for h := 0; h < 12; h++ {
+	for h := range 12 {
 		f := float64(h) / 12
 		// Longer at the quarters — the hierarchy a real dial has, and what makes
 		// the orientation readable at a glance.

@@ -22,11 +22,11 @@ func TestEveryMapIsBoundedAndAlive(t *testing.T) {
 		// measured the approach and called it an attractor. On screen it was a
 		// single dot. Settling has to be given time to happen before the
 		// question "is there anything here" can be asked.
-		for i := 0; i < 200000; i++ {
+		for range 200000 {
 			p[0], p[1], p[2] = step(p[0], p[1], p[2])
 		}
 		var minX, maxX, minY, maxY = math.Inf(1), math.Inf(-1), math.Inf(1), math.Inf(-1)
-		for i := 0; i < 20000; i++ {
+		for i := range 20000 {
 			p[0], p[1], p[2] = step(p[0], p[1], p[2])
 			for _, v := range p {
 				if math.IsNaN(v) || math.IsInf(v, 0) {
@@ -94,7 +94,7 @@ func TestStandardMapPreservesArea(t *testing.T) {
 func TestStandardMapStaysOnTheTorus(t *testing.T) {
 	step := mustMap(t, "standardmap").Step
 	th, p := 1.0, 2.0
-	for i := 0; i < 50000; i++ {
+	for i := range 50000 {
 		th, p, _ = step(th, p, 0)
 		if th < 0 || th >= 2*math.Pi+1e-9 || p < 0 || p >= 2*math.Pi+1e-9 {
 			t.Fatalf("iterate %d left [0,2π): θ=%v p=%v", i, th, p)
@@ -130,12 +130,12 @@ func TestDissipativeMapsAreSensitive(t *testing.T) {
 		// separate — the same trap as above: the approach to a fixed point
 		// looks like motion, and two orbits converging to it look like they
 		// are diverging while they still have far to fall.
-		for i := 0; i < 200000; i++ {
+		for range 200000 {
 			a[0], a[1], a[2] = step(a[0], a[1], a[2])
 		}
 		b := a
 		b[0] += 1e-9
-		for i := 0; i < 500; i++ {
+		for range 500 {
 			a[0], a[1], a[2] = step(a[0], a[1], a[2])
 			b[0], b[1], b[2] = step(b[0], b[1], b[2])
 		}

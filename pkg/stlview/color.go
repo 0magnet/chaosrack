@@ -110,7 +110,7 @@ func GenerateGradient(numColors int, steps int) []Color {
 
 	segments := numColors - 1
 	out := make([]Color, 0, steps)
-	for i := 0; i < segments; i++ {
+	for i := range segments {
 		size := steps*(i+1)/segments - steps*i/segments
 		interpolation := NewColorInterpolation(colors[i], colors[i+1])
 		out = append(out, generateSingleGradient(interpolation, size)...)
@@ -120,7 +120,7 @@ func GenerateGradient(numColors int, steps int) []Color {
 
 func generateSingleGradient(c ColorInterpolation, numSteps int) []Color {
 	output := make([]Color, numSteps)
-	for i := 0; i < numSteps; i++ {
+	for i := range numSteps {
 		percent := float32(i) / float32(numSteps)
 		output[i] = c.Interpolate(percent)
 	}

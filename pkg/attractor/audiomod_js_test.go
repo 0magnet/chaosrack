@@ -116,7 +116,7 @@ func TestModulatingACountNeverDriftsTheSlider(t *testing.T) {
 	defer routeMono(t, id)()
 
 	base := *pd.Value
-	for i := 0; i < 240; i++ {
+	for range 240 {
 		restoreAudioModulation(applyAudioModulation(mode))
 	}
 	if *pd.Value != base {
@@ -142,7 +142,7 @@ func TestGeometryRebuildsOnlyWhenTheCountActuallyChanges(t *testing.T) {
 	}
 	// Every frame after it, with the signal held constant, lands on the same
 	// integer and must leave the flag alone.
-	for i := 0; i < 120; i++ {
+	for i := range 120 {
 		gpu.staticDirty = false
 		restoreAudioModulation(applyAudioModulation(mode))
 		if gpu.staticDirty {
@@ -210,7 +210,7 @@ func TestQuantizedCountsDoNotChatterOnASteadyTone(t *testing.T) {
 	var f, held float32
 	var nearest, deadband, prevNearest, prevDeadband float32
 	var nearestChanges, deadbandChanges int
-	for i := 0; i < frames; i++ {
+	for i := range frames {
 		// A steady tone at half scale, plus the jitter any real room puts on a
 		// normalized band energy.
 		raw := clamp01(float32(0.5 + rng.NormFloat64()*0.03))
@@ -266,7 +266,7 @@ func TestTheDeadbandKeepsModulationThatIsReallyThere(t *testing.T) {
 	var f, held float32
 	var prevNearest, prevDeadband float32
 	var nearestChanges, deadbandChanges int
-	for i := 0; i < frames; i++ {
+	for i := range frames {
 		// A 2 Hz beat: the signal genuinely traverses many whole counts.
 		t := float64(i) / 60
 		raw := clamp01(float32(0.5 + 0.45*math.Sin(2*math.Pi*2*t) + rng.NormFloat64()*0.03))
