@@ -1,6 +1,4 @@
-package attractor
-
-import "github.com/0magnet/chaosrack/pkg/dynamics"
+package dynamics
 
 // Sprott Morph — the faithful version of the glensstuff.com Self-Programming
 // Analog Computer, which stepped itself through the Sprott catalog by
@@ -24,12 +22,12 @@ import "github.com/0magnet/chaosrack/pkg/dynamics"
 // 1, x, y, z, x², y², z², xy, xz, yz.
 const quadTerms = 10
 
-// sprottMorphSys is one catalog member in coefficient form.
-type sprottMorphSys struct {
-	letter string
-	coefs  [3 * quadTerms]float64
-	dt     float64
-	ic     [3]float32
+// SprottMorphSys is one catalog member in coefficient form.
+type SprottMorphSys struct {
+	Letter string
+	Coefs  [3 * quadTerms]float64
+	DT     float64
+	IC     [3]float32
 }
 
 // quadExtractEq recovers one equation's 10 quadratic coefficients from a
@@ -88,29 +86,29 @@ func sprottADeriv(x, y, z float64) (float64, float64, float64) {
 	return y, -x + y*z, 1 - y*y
 }
 
-// sprottMorphSystems builds the full A–S coefficient table from the
+// SprottMorphSystems builds the full A–S coefficient table from the
 // catalog's own equations.
-func sprottMorphSystems() []sprottMorphSys {
-	out := make([]sprottMorphSys, 0, 1+len(dynamics.SprottCases))
-	out = append(out, sprottMorphSys{
-		letter: "A",
-		coefs:  quadExtract(sprottADeriv),
-		dt:     0.01,
-		ic:     [3]float32{0.1, 0.2, 0.3},
+func SprottMorphSystems() []SprottMorphSys {
+	out := make([]SprottMorphSys, 0, 1+len(SprottCases))
+	out = append(out, SprottMorphSys{
+		Letter: "A",
+		Coefs:  quadExtract(sprottADeriv),
+		DT:     0.01,
+		IC:     [3]float32{0.1, 0.2, 0.3},
 	})
-	for _, sc := range dynamics.SprottCases {
-		out = append(out, sprottMorphSys{
-			letter: sc.Name[len(sc.Name)-1:],
-			coefs:  quadExtract(sc.Deriv),
-			dt:     float64(sc.DT),
-			ic:     sc.IC,
+	for _, sc := range SprottCases {
+		out = append(out, SprottMorphSys{
+			Letter: sc.Name[len(sc.Name)-1:],
+			Coefs:  quadExtract(sc.Deriv),
+			DT:     float64(sc.DT),
+			IC:     sc.IC,
 		})
 	}
 	return out
 }
 
-// evalQuad evaluates a 30-coefficient quadratic flow at (x, y, z).
-func evalQuad(c *[3 * quadTerms]float64, x, y, z float64) (float64, float64, float64) {
+// EvalQuad evaluates a 30-coefficient quadratic flow at (x, y, z).
+func EvalQuad(c *[3 * quadTerms]float64, x, y, z float64) (float64, float64, float64) {
 	t := [quadTerms]float64{1, x, y, z, x * x, y * y, z * z, x * y, x * z, y * z}
 	var d [3]float64
 	for eq := 0; eq < 3; eq++ {
@@ -123,10 +121,10 @@ func evalQuad(c *[3 * quadTerms]float64, x, y, z float64) (float64, float64, flo
 	return d[0], d[1], d[2]
 }
 
-// morphBlend interpolates the coefficient table at position m ∈ [0, n):
+// SprottMorphBlend interpolates the coefficient table at position m ∈ [0, n):
 // systems floor(m) and floor(m)+1 (wrapping) blended by the fraction, dt
 // blended alongside so integration stays stable across timescale changes.
-func morphBlend(systems []sprottMorphSys, m float64) (c [3 * quadTerms]float64, dt float64, i, j int, frac float64) {
+func SprottMorphBlend(systems []SprottMorphSys, m float64) (c [3 * quadTerms]float64, dt float64, i, j int, frac float64) {
 	n := len(systems)
 	for m < 0 {
 		m += float64(n)
@@ -141,8 +139,8 @@ func morphBlend(systems []sprottMorphSys, m float64) (c [3 * quadTerms]float64, 
 	j = (i + 1) % n
 	frac = m - float64(i)
 	for k := range c {
-		c[k] = systems[i].coefs[k]*(1-frac) + systems[j].coefs[k]*frac
+		c[k] = systems[i].Coefs[k]*(1-frac) + systems[j].Coefs[k]*frac
 	}
-	dt = systems[i].dt*(1-frac) + systems[j].dt*frac
+	dt = systems[i].DT*(1-frac) + systems[j].DT*frac
 	return
 }
