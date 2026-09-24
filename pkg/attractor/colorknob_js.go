@@ -18,103 +18,8 @@ import (
 // the swatch (and the shader, via the swatch's existing input handler); picking
 // a color with the native swatch turns the knobs to match.
 
-// hexRGB64 wraps the existing float32 hexToRGB as float64 for the HSV math.
-func hexRGB64(hex string) (r, g, b float64) {
-	r32, g32, b32 := hexToRGB(hex)
-	return float64(r32), float64(g32), float64(b32)
-}
-
-func rgbToHex(r, g, b float64) string {
-	cl := func(x float64) int64 {
-		v := int64(math.Round(x * 255))
-		if v < 0 {
-			v = 0
-		} else if v > 255 {
-			v = 255
-		}
-		return v
-	}
-	h := "0123456789abcdef"
-	to := func(v int64) string { return string([]byte{h[v>>4], h[v&0xf]}) }
-	return "#" + to(cl(r)) + to(cl(g)) + to(cl(b))
-}
-
-// rgb2hsv: h in 0..360, s/v in 0..1.
-func rgb2hsv(r, g, b float64) (h, s, v float64) {
-	mx := math.Max(r, math.Max(g, b))
-	mn := math.Min(r, math.Min(g, b))
-	v = mx
-	d := mx - mn
-	if mx > 0 {
-		s = d / mx
-	}
-	if d == 0 {
-		return 0, s, v
-	}
-	switch mx {
-	case r:
-		h = math.Mod((g-b)/d, 6)
-	case g:
-		h = (b-r)/d + 2
-	default:
-		h = (r-g)/d + 4
-	}
-	h *= 60
-	if h < 0 {
-		h += 360
-	}
-	return h, s, v
-}
-
-// hsv2rgb: h 0..360, s/v 0..1.
-func hsv2rgb(h, s, v float64) (r, g, b float64) {
-	c := v * s
-	x := c * (1 - math.Abs(math.Mod(h/60, 2)-1))
-	m := v - c
-	switch {
-	case h < 60:
-		r, g, b = c, x, 0
-	case h < 120:
-		r, g, b = x, c, 0
-	case h < 180:
-		r, g, b = 0, c, x
-	case h < 240:
-		r, g, b = 0, x, c
-	case h < 300:
-		r, g, b = x, 0, c
-	default:
-		r, g, b = c, 0, x
-	}
-	return r + m, g + m, b + m
-}
-
-// buildColorKnob returns a concentric color knob wired two-way to a
-// <input type=color>, styled to stay in character with the rest of the panel:
-// the OUTER ring turns Hue and is ringed by a rainbow spectrum dial (in place
-// of tick marks); the INNER ring turns Level — a black → pure-hue → white shade
-// axis — ringed by a matching gradient dial that recolors with the hue. The
-// native swatch (shown above, current color) stays the source of truth for
-// arbitrary colors; the knob is the analog way to dial one in.
 // colorSyncing guards against the knob→swatch→knob loop.
 var colorSyncing bool
-
-// levelToSV maps the 0..100 Level axis to HSV saturation/value: 0 = black,
-// 50 = pure saturated hue, 100 = white.
-func levelToSV(l float64) (s, v float64) {
-	if l <= 50 {
-		return 1, l / 50
-	}
-	return 1 - (l-50)/50, 1
-}
-
-// svToLevel is the inverse used when an arbitrary swatch color is picked; it is
-// approximate for muted colors (the swatch, not the knob, is authoritative).
-func svToLevel(s, v float64) float64 {
-	if v < 0.999 {
-		return v * 50
-	}
-	return 50 + (1-s)*50
-}
 
 // makeHueKnob builds a full-360° continuous rotary over slider (a 0..360 hue
 // range): the pointer points straight at the hue's position on the rainbow
@@ -189,6 +94,13 @@ func makeHueKnob(slider js.Value) js.Value {
 	return knob
 }
 
+// buildColorKnob returns a concentric color knob wired two-way to a
+// <input type=color>, styled to stay in character with the rest of the panel:
+// the OUTER ring turns Hue and is ringed by a rainbow spectrum dial (in place
+// of tick marks); the INNER ring turns Level — a black → pure-hue → white shade
+// axis — ringed by a matching gradient dial that recolors with the hue. The
+// native swatch (shown above, current color) stays the source of truth for
+// arbitrary colors; the knob is the analog way to dial one in.
 func buildColorKnob(colorInput js.Value) js.Value {
 	mkRange := func(max int, val float64) js.Value {
 		r := dom.Doc.Call("createElement", "input")
@@ -200,8 +112,7 @@ func buildColorKnob(colorInput js.Value) js.Value {
 		r.Set("style", "display:none")
 		return r
 	}
-	r0, g0, b0 := hexRGB64(colorInput.Get("value").String())
-	h0, s0, v0 := rgb2hsv(r0, g0, b0)
+	h0, s0, v0 := knobHSV(colorInput.Get("value").String())
 	hueR := mkRange(360, h0)
 	levR := mkRange(100, svToLevel(s0, v0))
 
@@ -229,7 +140,7 @@ func buildColorKnob(colorInput js.Value) js.Value {
 	levDial := addColorDial("ck-level") // inner ring, recolors with hue
 	addColorDial("ck-hue")              // outer full-360° rainbow ring
 	setHueCol := func(h float64) {
-		levDial.Get("style").Call("setProperty", "--hue-col", rgbToHex(hsv2rgb(h, 1, 1)))
+		levDial.Get("style").Call("setProperty", "--hue-col", knobHex(h, 1, 1))
 	}
 	setHueCol(h0)
 
@@ -241,7 +152,7 @@ func buildColorKnob(colorInput js.Value) js.Value {
 		l, _ := strconv.ParseFloat(levR.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 		s, v := levelToSV(l)
 		colorSyncing = true
-		colorInput.Set("value", rgbToHex(hsv2rgb(h, s, v)))
+		colorInput.Set("value", knobHex(h, s, v))
 		colorInput.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 		colorSyncing = false
 		setHueCol(h)
@@ -254,8 +165,7 @@ func buildColorKnob(colorInput js.Value) js.Value {
 		if colorSyncing {
 			return nil
 		}
-		r, g, b := hexRGB64(colorInput.Get("value").String())
-		h, s, v := rgb2hsv(r, g, b)
+		h, s, v := knobHSV(colorInput.Get("value").String())
 		colorSyncing = true
 		hueR.Set("value", strconv.FormatFloat(h, 'f', 0, 64))
 		levR.Set("value", strconv.FormatFloat(svToLevel(s, v), 'f', 0, 64))
