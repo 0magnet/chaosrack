@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/0magnet/chaosrack/pkg/audiosrc"
+	"github.com/0magnet/chaosrack/pkg/takens"
 )
 
 // stubSource stands in for a live audio source so that the paths which merely
@@ -38,10 +39,10 @@ const polarMaxLen = 1.7320508
 // map that could exceed 1 would put peaks off the screen with no symptom other
 // than a figure that occasionally leaves the frame.
 func TestPolarRadiusStaysInsideTheSphere(t *testing.T) {
-	for m := 0; m < polarMapCount; m++ {
+	for m := 0; m < takens.PolarCount; m++ {
 		for _, drive := range []float32{0.2, 1, 2, 10, 1000} {
 			for _, r := range []float32{0, 1e-9, 0.001, 0.1, 1, polarMaxLen, 10, 1e6} {
-				got := polarRadius(m, r, drive)
+				got := takens.PolarRadius(m, r, drive)
 				if !(got >= 0 && got <= 1) {
 					t.Errorf("map %d drive %v r %v: radius %v is outside [0,1]", m, drive, r, got)
 				}
@@ -60,24 +61,24 @@ func TestPolarRadiusStaysInsideTheSphere(t *testing.T) {
 func TestPolarHandlesTheZeroVectorAndRubbish(t *testing.T) {
 	nan := float32(math.NaN())
 	inf := float32(math.Inf(1))
-	for m := 0; m < polarMapCount; m++ {
+	for m := 0; m < takens.PolarCount; m++ {
 		for _, r := range []float32{0, -1, nan} {
-			if got := polarRadius(m, r, 1); got != 0 {
+			if got := takens.PolarRadius(m, r, 1); got != 0 {
 				t.Errorf("map %d at r=%v: radius %v, want 0", m, r, got)
 			}
-			if got := polarScale(m, r, 1); got != 0 {
+			if got := takens.PolarScale(m, r, 1); got != 0 {
 				t.Errorf("map %d at r=%v: scale %v, want 0", m, r, got)
 			}
 		}
 		// An infinite length can only come from an infinite sample, but the
 		// answer still has to be a drawable number.
-		if got := polarRadius(m, inf, 1); !(got >= 0 && got <= 1) {
+		if got := takens.PolarRadius(m, inf, 1); !(got >= 0 && got <= 1) {
 			t.Errorf("map %d at r=+Inf: radius %v is outside [0,1]", m, got)
 		}
 		// A drive knob driven to zero or below by audio modulation must not
 		// collapse the figure to a point or divide by nothing.
 		for _, d := range []float32{0, -5, nan} {
-			got := polarRadius(m, 1, d)
+			got := takens.PolarRadius(m, 1, d)
 			if !(got > 0 && got <= 1) {
 				t.Errorf("map %d at drive=%v: radius %v, want something drawable in (0,1]", m, d, got)
 			}
@@ -95,11 +96,11 @@ func TestPolarPreservesDirection(t *testing.T) {
 	vecs := [][3]float32{
 		{1, 0, 0}, {0.3, -0.7, 0.2}, {-1, 1, -1}, {0.01, 0.02, -0.005}, {1, 1, 1},
 	}
-	for m := 0; m < polarMapCount; m++ {
+	for m := 0; m < takens.PolarCount; m++ {
 		for _, drive := range []float32{0.2, 1, 2, 10} {
 			for _, v := range vecs {
 				r := float32(math.Sqrt(float64(v[0]*v[0] + v[1]*v[1] + v[2]*v[2])))
-				s := polarScale(m, r, drive)
+				s := takens.PolarScale(m, r, drive)
 				if s < 0 {
 					t.Fatalf("map %d drive %v: a negative scale %v flips the figure through the origin", m, drive, s)
 				}
@@ -112,7 +113,7 @@ func TestPolarPreservesDirection(t *testing.T) {
 						m, drive, v, out, cos)
 				}
 				// And the length it came out at is the map's answer.
-				if want := float64(polarRadius(m, r, drive)); math.Abs(outLen-want) > 1e-5 {
+				if want := float64(takens.PolarRadius(m, r, drive)); math.Abs(outLen-want) > 1e-5 {
 					t.Errorf("map %d drive %v v %v: drawn at radius %v, want %v", m, drive, v, outLen, want)
 				}
 			}
@@ -127,10 +128,10 @@ func TestPolarMapsDoWhatTheyAreOffered_For(t *testing.T) {
 	// tanh and algebraic must be strictly increasing in r: louder draws
 	// larger, which is the fixed-scale honesty the Takens mode argues for and
 	// this mode does not abandon, it only bounds.
-	for _, m := range []int{polarMapTanh, polarMapAlgebraic} {
+	for _, m := range []int{takens.PolarTanh, takens.PolarAlgebraic} {
 		prev := float32(-1)
 		for r := float32(0.01); r <= 3; r += 0.01 {
-			got := polarRadius(m, r, drive)
+			got := takens.PolarRadius(m, r, drive)
 			if got <= prev {
 				t.Errorf("map %d: radius did not increase at r=%v (%v after %v)", m, r, got, prev)
 				break
@@ -142,13 +143,13 @@ func TestPolarMapsDoWhatTheyAreOffered_For(t *testing.T) {
 	// Direction only removes loudness completely: two vectors of wildly
 	// different length come back the same size, which is the point — what is
 	// left on screen is the angular motion the amplitude was hiding.
-	quiet := polarRadius(polarMapUnit, 0.001, drive)
-	loud := polarRadius(polarMapUnit, polarMaxLen, drive)
+	quiet := takens.PolarRadius(takens.PolarUnit, 0.001, drive)
+	loud := takens.PolarRadius(takens.PolarUnit, polarMaxLen, drive)
 	if quiet != loud || quiet != 1 {
 		t.Errorf("direction only drew %v and %v; both should be the surface, 1", quiet, loud)
 	}
 	// And drive is inert there, which descriptions.go tells the user.
-	if polarRadius(polarMapUnit, 0.5, 0.2) != polarRadius(polarMapUnit, 0.5, 10) {
+	if takens.PolarRadius(takens.PolarUnit, 0.5, 0.2) != takens.PolarRadius(takens.PolarUnit, 0.5, 10) {
 		t.Error("drive changed the direction-only map, which has no length left to compress")
 	}
 
@@ -156,8 +157,8 @@ func TestPolarMapsDoWhatTheyAreOffered_For(t *testing.T) {
 	// that is the "gentler knee" the knob offers, and if it ever stopped being
 	// true the two positions would be doing the same job.
 	for r := float32(0.05); r <= 3; r += 0.05 {
-		a := polarRadius(polarMapAlgebraic, r, drive)
-		h := polarRadius(polarMapTanh, r, drive)
+		a := takens.PolarRadius(takens.PolarAlgebraic, r, drive)
+		h := takens.PolarRadius(takens.PolarTanh, r, drive)
 		if !(a < h) {
 			t.Errorf("at r=%v algebraic (%v) is not below tanh (%v)", r, a, h)
 			break
@@ -166,8 +167,8 @@ func TestPolarMapsDoWhatTheyAreOffered_For(t *testing.T) {
 
 	// Drive is a compression control: more of it draws a given length larger,
 	// which is what makes a quiet passage usable without auto-ranging.
-	for _, m := range []int{polarMapTanh, polarMapAlgebraic} {
-		if !(polarRadius(m, 0.1, 1) < polarRadius(m, 0.1, 4)) {
+	for _, m := range []int{takens.PolarTanh, takens.PolarAlgebraic} {
+		if !(takens.PolarRadius(m, 0.1, 1) < takens.PolarRadius(m, 0.1, 4)) {
 			t.Errorf("map %d: turning drive up did not push a quiet vector further out", m)
 		}
 	}
@@ -190,12 +191,12 @@ func TestPolarDefaultDriveIsVisiblyDoingSomething(t *testing.T) {
 		t.Fatal("the polar mode has no drive knob")
 	}
 	const typical = 0.1 // an unremarkable RMS for music
-	if got := polarRadius(polarMapTanh, typical, drive); got < typical*1.5 {
+	if got := takens.PolarRadius(takens.PolarTanh, typical, drive); got < typical*1.5 {
 		t.Errorf("at the default drive %v a typical vector of %v draws at %v — "+
 			"near enough the identity that the mode looks like it is doing nothing", drive, typical, got)
 	}
 	// ...and the loud end still saturates, or it is only a gain control.
-	if got := polarRadius(polarMapTanh, polarMaxLen, drive); got < 0.95 {
+	if got := takens.PolarRadius(takens.PolarTanh, polarMaxLen, drive); got < 0.95 {
 		t.Errorf("at the default drive %v full scale reaches only %v of the sphere", drive, got)
 	}
 }
@@ -217,9 +218,9 @@ func TestPolarFitIsTheSphereNotTheCube(t *testing.T) {
 				gain, fit, takensFitExtent(gain))
 		}
 		// Nothing drawn can exceed it, at any map, drive or input.
-		for m := 0; m < polarMapCount; m++ {
+		for m := 0; m < takens.PolarCount; m++ {
 			for _, drive := range []float32{0.2, 2, 10, 1000} {
-				if got := polarRadius(m, polarMaxLen, drive) * gain; got > fit+1e-5 {
+				if got := takens.PolarRadius(m, polarMaxLen, drive) * gain; got > fit+1e-5 {
 					t.Errorf("gain %v map %d drive %v: full scale draws at %v, past the fitted %v",
 						gain, m, drive, got, fit)
 				}
@@ -270,24 +271,24 @@ func TestCatmullRomBulgesPastControlPointsOnTheSphere(t *testing.T) {
 // stay the same length and the same order. A name indexing a map it does not
 // describe would be a detent pointing at the wrong curve.
 func TestPolarMapTablesLineUp(t *testing.T) {
-	if len(polarMapNames) != polarMapCount {
-		t.Errorf("%d position names for %d maps", len(polarMapNames), polarMapCount)
+	if len(polarMapNames) != takens.PolarCount {
+		t.Errorf("%d position names for %d maps", len(polarMapNames), takens.PolarCount)
 	}
-	if len(polarMapRing) != polarMapCount {
-		t.Errorf("%d ring labels for %d maps", len(polarMapRing), polarMapCount)
+	if len(polarMapRing) != takens.PolarCount {
+		t.Errorf("%d ring labels for %d maps", len(polarMapRing), takens.PolarCount)
 	}
-	if got := paramLabels["polar-map"]; len(got) != polarMapCount {
+	if got := paramLabels["polar-map"]; len(got) != takens.PolarCount {
 		t.Errorf("paramLabels has %d positions for %d maps — the dial and the drawing disagree",
-			len(got), polarMapCount)
+			len(got), takens.PolarCount)
 	}
 	for _, p := range attractorParams["polar"] {
 		if p.ID != "polar-map" {
 			continue
 		}
-		if int(p.Max) != polarMapCount-1 {
-			t.Errorf("the map knob runs to %v for %d maps", p.Max, polarMapCount)
+		if int(p.Max) != takens.PolarCount-1 {
+			t.Errorf("the map knob runs to %v for %d maps", p.Max, takens.PolarCount)
 		}
-		if int(p.Def) < 0 || int(p.Def) >= polarMapCount {
+		if int(p.Def) < 0 || int(p.Def) >= takens.PolarCount {
 			t.Errorf("the map knob defaults to %v, which is not a map", p.Def)
 		}
 	}
@@ -304,12 +305,12 @@ func TestPolarMapSelClampsWhateverModulationDoes(t *testing.T) {
 		float32(math.Inf(1)), float32(math.Inf(-1)), float32(math.NaN()),
 	} {
 		polarMapF = v
-		if i := polarMapSel(); i < 0 || i >= polarMapCount {
+		if i := polarMapSel(); i < 0 || i >= takens.PolarCount {
 			t.Errorf("map = %v selected %d", v, i)
 		}
 	}
 	// And the detents themselves must round to themselves, not to a neighbor.
-	for want := 0; want < polarMapCount; want++ {
+	for want := 0; want < takens.PolarCount; want++ {
 		polarMapF = float32(want)
 		if got := polarMapSel(); got != want {
 			t.Errorf("detent %d selected map %d", want, got)
