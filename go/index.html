@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>chaosrack — A Go/WASM Analog Computer</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZmYzYjZiIi8+PHN0b3Agb2Zmc2V0PSIwLjUiIHN0b3AtY29sb3I9IiNiMDYwZmYiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzNWI4ZmYiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxMyIgZmlsbD0iIzBhMGMxMiIvPjxwYXRoIGQ9Ik0yMy40NCwyNy44MCBMMjQuNzIsMzEuNzcgTDI0Ljc2LDM0Ljg3IEwyMy42NywzNi41MyBMMjEuNjAsMzUuOTYgTDE4Ljg2LDMyLjMxIEwxNi41MywyNi4xMCBMMTYuMjksMjEuMDggTDE4LjYwLDIwLjg5IEwyMS44MiwyNC40NCBMMjQuMjIsMjguOTQgTDI1LjI2LDMyLjk5IEwyNS4wMywzNi4wMSBMMjMuNjgsMzcuNDUgTDIxLjMwLDM2LjQwIEwxOC4yOSwzMS44OSBMMTUuOTUsMjQuODQgTDE2LjE2LDE5Ljk2IEwxOS4wNiwyMC43MyBMMjIuNTUsMjQuOTkgTDI0LjkxLDI5LjgwIEwyNS44MSwzMy45NyBMMjUuNDMsMzcuMDUgTDIzLjkyLDM4LjQ4IEwyMS4zMywzNy4yNSBMMTguMDIsMzIuMTkgTDE1LjQ2LDI0LjI1IEwxNS44MywxOS4wMCBMMTkuMTcsMjAuMjIgTDIzLjAwLDI1LjAzIEwyNS41MCwzMC4xOCBMMjYuNDMsMzQuNjAgTDI2LjA3LDM3LjkzIEwyNC41OCwzOS42OSBMMjEuOTMsMzguODYgTDE4LjM0LDMzLjkyIEwxNS4xNiwyNS4wOCBMMTUuMDQsMTguMjYgTDE4LjU2LDE4LjkzIEwyMi45MywyNC4xMCBMMjUuOTAsMjkuNzIgTDI3LjE0LDM0LjU2IEwyNy4wNSwzOC4zOSBMMjUuODcsNDAuOTAgTDIzLjUxLDQxLjI5IEwxOS45MCwzNy45MiBMMTUuNzYsMjkuMjUgTDEzLjgyLDE5LjEwIEwxNi40OCwxNi41MCBMMjEuNTksMjEuMjkgTDI1LjY4LDI3LjYwIEwyNy43OCwzMy4xNiBMMjguMzUsMzcuNzQgTDI3Ljg1LDQxLjMyIEwyNi4zNyw0My42MCBMMjMuNjgsNDMuNjUgTDE5LjUwLDM5LjM1IEwxNC42OCwyOC41MyBMMTIuNzgsMTYuNTUgTDE2LjYyLDE1LjA0IEwyMi43NSwyMS40MiBMMjcuMTcsMjguMzYgTDI5LjM1LDM0LjE2IEwzMC4wOCwzOC45NSBMMzAuMDIsNDIuOTAgTDI5LjM3LDQ2LjA4IEwyOC4wMiw0OC4zMiBMMjUuNTUsNDguOTQgTDIxLjI4LDQ1LjgyIEwxNS4xOSwzNC42OSBMMTAuNzIsMTYuODQgTDEzLjkxLDEwLjU3IEwyMi4wMCwxOC4wNSBMMjguMjksMjYuMzkgTDMxLjU5LDMyLjc0IEwzMy4yMiwzNy43MSBMMzQuMzcsNDEuNjMgTDM1LjgxLDQ0LjQzIEwzOC4xMiw0NS41NCBMNDEuODcsNDMuMzAgTDQ3LjA2LDM0LjYwIEw1MS4xNiwyMC4xNiBMNDkuNDUsMTIuOTQgTDQyLjk3LDE3LjkwIEwzNy4xNywyNS41OCBMMzMuOTUsMzIuMDMgTDMyLjU1LDM3LjI4IEwzMi4wNCw0MS42NCBMMzEuOTAsNDUuMjkgTDMxLjkwLDQ4LjM1IEwzMS45OSw1MC45MSBMMzIuMTksNTMuMDUgTDMyLjU4LDU0LjgyIEwzMy4zNSw1Ni4yMSBMMzQuODYsNTcuMDAgTDM3Ljg1LDU2LjI0IEw0My40NSw1MC40NCBMNTEuNzAsMzEuODggTDU1LjY4LDcuNDAgTDQ3LjU2LDguMzEgTDM2Ljc0LDE5Ljk2IEwzMC4yNiwyNy42MSBMMjcuMDQsMzIuMzEgTDI1LjAwLDM1LjE0IEwyMi45MSwzNS45NSBMMjAuMzUsMzQuMDggTDE3LjcxLDI5LjIzIEwxNi4zMiwyMy40MSBMMTcuMzYsMjAuNzggTDIwLjE5LDIyLjY0IEwyMi45OSwyNi43MCBMMjQuNjQsMzAuODkgTDI0Ljk5LDM0LjM0IEwyNC4xOSwzNi41MCBMMjIuMzMsMzYuNjcgTDE5LjY1LDMzLjg3IEwxNi45NiwyNy45NyBMMTUuOTUsMjEuOTAgTDE3LjcwLDIwLjIyIEwyMC45OSwyMy4xNCBMMjMuODAsMjcuNjkgTDI1LjI1LDMyLjAzIEwyNS4zNywzNS40NyBMMjQuMzQsMzcuNTIgTDIyLjIyLDM3LjM4IEwxOS4yNCwzMy45NCBMMTYuMzgsMjcuMTIgTDE1LjYwLDIwLjcwIEwxNy45MSwxOS42OSBMMjEuNTgsMjMuMzggTDI0LjQ3LDI4LjM0IEwyNS44NSwzMi44NyBMMjUuODcsMzYuNDMgTDI0LjczLDM4LjU4IEwyMi40OCwzOC40OCBMMTkuMjQsMzQuODIgTDE2LjAzLDI3LjIzIEwxNS4wOSwxOS45MSBMMTcuNjgsMTguODMgTDIxLjc4LDIzLjAwIEwyNC45NSwyOC4zOSBMMjYuNDcsMzMuMjMgTDI2LjU5LDM3LjA5IEwyNS41NSwzOS42NSBMMjMuMzYsNDAuMTQgTDIwLjAxLDM3LjExIEwxNi4yMiwyOS4zNSBMMTQuMzUsMjAuMTYgTDE2LjU4LDE3LjM2IEwyMS4xOCwyMS40MyBMMjUuMDMsMjcuMzIgTDI3LjA2LDMyLjY4IEwyNy41NiwzNy4wOCBMMjYuOTEsNDAuMzggTDI1LjE5LDQyLjExIEwyMi4yMCw0MS4xMSBMMTguMDEsMzUuMjggTDE0LjE3LDI0LjM4IEwxNC4xNCwxNi4xNSBMMTguNjMsMTcuNjcgTDIzLjg0LDIzLjk3IEwyNy4xOCwzMC4yMSBMMjguNjEsMzUuNDUgTDI4Ljc3LDM5LjczIEwyOC4wMiw0My4wMyBMMjYuMzIsNDQuOTkgTDIzLjMxLDQ0LjUwIEwxOC43MSwzOS4wMyBMMTMuNzAsMjYuNDYgTDEyLjU0LDE0LjU0IEwxNy41MSwxNS4xMCBMMjMuOTcsMjIuNDEgTDI4LjIyLDI5LjQxIEwzMC4yMywzNS4xMSBMMzAuOTgsMzkuODIgTDMxLjE0LDQzLjc1IEwzMC45OSw0Ny4wNCBMMzAuNTgsNDkuNzUgTDI5Ljc3LDUxLjkwIEwyOC4yMyw1My4yNyBMMjUuMzMsNTIuOTQgTDIwLjEzLDQ3Ljg0IEwxMi43NywzMS44NCBMOC45OCwxMC41MCBMMTUuNDcsOS40MSBMMjUuMTcsMTkuODAgTDMxLjM3LDI3Ljg0IEwzNC40OCwzMy4zMiBMMzYuMzYsMzcuMTggTDM4LjI4LDM5LjM3IEw0MC45NCwzOS4xMCBMNDQuNDgsMzQuOTMgTDQ3Ljg4LDI2LjU0IEw0OC42MywxOC45MSBMNDUuNTcsMTguNDQgTDQxLjE1LDIzLjIyIEwzNy45MiwyOC44OCBMMzYuNDMsMzMuODUgTDM2LjM1LDM3LjgzIEwzNy4zNyw0MC41NiBMMzkuNTQsNDEuMzIgTDQyLjk4LDM4LjYyIEw0Ny4xMywzMC43MSBMNDkuNTcsMjAuMzAgTDQ3LjU1LDE2LjM1IEw0Mi41NywyMC40NiBMMzguMjUsMjYuNzQgTDM1LjkwLDMyLjQyIEwzNS4xNiwzNy4xMiBMMzUuNTQsNDAuODMgTDM2LjkwLDQzLjI4IEwzOS40NCw0My42NiBMNDMuNDQsMzkuOTkgTDQ4LjI2LDI5LjkyIEw1MC42NywxNy41OCBMNDcuNDIsMTQuNzUgTDQxLjM1LDIwLjY2IEwzNi43MCwyNy42NyBMMzQuMzMsMzMuNTcgTDMzLjUwLDM4LjQ0IEwzMy41Miw0Mi40NyBMMzQuMTcsNDUuNjkgTDM1LjUzLDQ3Ljk1IEwzOC4wNCw0OC41NCBMNDIuMzIsNDUuMzIgTDQ4LjM1LDM0LjEyIEw1Mi42MCwxNi42OCBMNDkuMzAsMTAuOTEgTDQxLjM1LDE4LjM0IEwzNS4yMSwyNi41NyBMMzIuMDEsMzIuODkgTDMwLjQ0LDM3Ljg3IEwyOS4zNiw0MS44NCBMMjguMDUsNDQuNzcgTDI1LjkzLDQ2LjIwIEwyMi40MCw0NC42OCBMMTcuMjQsMzcuMDcgTDEyLjQyLDIyLjM4IEwxMy4wMSwxMi41OCBMMTkuMzcsMTYuMzkgTDI1LjczLDI0LjMyIEwyOS40NSwzMS4wNyBMMzEuMTUsMzYuNTAgTDMxLjg4LDQwLjk5IEwzMi4yOCw0NC43MyBMMzIuNzEsNDcuODMgTDMzLjQwLDUwLjMzIEwzNC42Niw1Mi4xNCBMMzcuMDEsNTIuNjYgTDQxLjMwLDQ5LjgxIEw0OC4wMywzOC4zOCBMNTMuOTUsMTYuOTEgTDUxLjAwLDcuNzIgTDQxLjQ4LDE2LjQwIEwzNC4wNSwyNS41MCBMMzAuMTcsMzEuNzkgTDI4LjEwLDM2LjMxIEwyNi4zNywzOS4zNSBMMjQuMTAsNDAuNDQgTDIwLjg0LDM4LjI5IEwxNi45MCwzMS4zNiBMMTQuMzMsMjEuNjMgTDE1Ljc0LDE3LjAyIEwyMC4yNSwyMC4yMSBMMjQuNDksMjYuMTMgTDI2LjkyLDMxLjcxIEwyNy43MSwzNi4zNiBMMjcuMzEsMzkuOTYgTDI1Ljg2LDQyLjE5IEwyMy4yMCw0Mi4xMCBMMTkuMjEsMzcuNzEgTDE0Ljg4LDI3LjU2IEwxMy40OCwxNy4yMCBMMTcuMTMsMTYuMjQgTDIyLjY3LDIyLjExIEwyNi42NSwyOC42NSBMMjguNTcsMzQuMjEgTDI5LjA2LDM4LjgwIEwyOC42Miw0Mi40NSBMMjcuMzIsNDUuMDEgTDI0LjkwLDQ1Ljc1IEwyMC45MCw0Mi43NSBMMTUuNTYsMzIuODEgTDExLjk5LDE4LjE1IEwxNC43MiwxMi45MiBMMjEuNTEsMTguOTcgTDI3LjAwLDI2LjYxIEwyOS45MiwzMi44NyBMMzEuMTcsMzcuOTggTDMxLjY1LDQyLjIyIEwzMS44Nyw0NS43OCBMMzIuMDQsNDguNzUgTDMyLjI5LDUxLjI0IEwzMi43Myw1My4yOSBMMzMuNTgsNTQuODggTDM1LjIzLDU1Ljc2IEwzOC40Myw1NC44MiBMNDQuMjUsNDguMjQgTDUyLjI0LDI4Ljg3IEw1NC45NSw3LjAwIEw0Ni40MCw5Ljk0IEwzNi4yOCwyMS4wNCBMMzAuMzgsMjguNDMgTDI3LjQyLDMzLjE5IEwyNS40NSwzNi4xOCBMMjMuMzEsMzcuMTcgTDIwLjU1LDM1LjMwIEwxNy41NCwyOS45MyBMMTUuNzgsMjMuMDcgTDE2Ljg0LDE5Ljc2IEwyMC4wOCwyMS44MiBMMjMuMzAsMjYuMzggTDI1LjIyLDMxLjAyIEwyNS43MSwzNC44NyBMMjUuMDAsMzcuNTAgTDIzLjE4LDM4LjI0IEwyMC4zMywzNS45NiBMMTcuMDksMjkuODEgTDE1LjI4LDIyLjE1IEwxNi43MCwxOC45MSBMMjAuNDAsMjEuNjIgTDIzLjg2LDI2LjY2IEwyNS44MywzMS41OCBMMjYuMzEsMzUuNjQgTDI1LjU4LDM4LjQ5IEwyMy43MywzOS41MCBMMjAuNzQsMzcuNDQgTDE3LjEyLDMxLjAzIEwxNC43NywyMi4xOSBMMTYuMDMsMTcuODcgTDIwLjExLDIwLjYxIEwyNC4wNiwyNi4xMSBMMjYuMzYsMzEuNDQgTDI3LjA4LDM1Ljg5IEwyNi41NywzOS4yNCBMMjQuOTYsNDEuMDIgTDIyLjEzLDQwLjE0IEwxOC4yMCwzNC43NyBMMTQuNjQsMjQuODIgTDE0LjUwLDE3LjEzIEwxOC41MiwxOC4xNSBMMjMuMzgsMjMuOTQgTDI2LjU4LDI5LjkzIEwyNy45NSwzNS4wMyBMMjguMDAsMzkuMTUgTDI3LjA0LDQyLjE0IEwyNC45OSw0My40MyBMMjEuNTgsNDEuNTcgTDE2Ljk0LDM0LjA3IEwxMy4yNCwyMS42NyBMMTQuMzcsMTQuNjggTDE5Ljg2LDE4LjI3IEwyNS4xNywyNS4yNSBMMjguMjUsMzEuNTEgTDI5LjUwLDM2LjcwIEwyOS42Nyw0MC45NyBMMjkuMTEsNDQuNDAgTDI3Ljc5LDQ2LjgzIEwyNS4zNyw0Ny41OCBMMjEuMjYsNDQuNjcgTDE1LjUwLDM0LjI4IEwxMS4yOSwxNy44MCBMMTQuMDcsMTEuNTAgTDIxLjU2LDE4LjE4IEwyNy42MCwyNi4yOSBMMzAuODEsMzIuNjggTDMyLjMxLDM3Ljc4IEwzMy4xOSw0MS45NCBMMzQuMTIsNDUuMjQgTDM1LjU4LDQ3LjU1IEwzOC4xMSw0OC4xNiBMNDIuMzcsNDQuOTQgTDQ4LjMyLDMzLjg1IEw1Mi40NSwxNi44MCBMNDkuMTksMTEuMTkgTDQxLjM5LDE4LjQ2IEwzNS4zNiwyNi42MiBMMzIuMjAsMzIuOTQgTDMwLjY4LDM3Ljk0IEwyOS42OCw0MS45NyBMMjguNTAsNDUuMDMgTDI2LjYwLDQ2LjgwIEwyMy4zOCw0Ni4wNiBMMTguMzksMzkuODcgTDEyLjkzLDI1LjY1IEwxMi4wMSwxMi44NSBMMTcuODYsMTQuNTUgTDI0Ljg2LDIyLjY2IEwyOS4yMywyOS44MSBMMzEuMzIsMzUuNDggTDMyLjI5LDQwLjExIEwzMi45Myw0My45MyBMMzMuNzIsNDcuMDEgTDM1LjAzLDQ5LjIzIEwzNy4zNyw1MC4wMiBMNDEuNDgsNDcuNDMgTDQ3LjY2LDM3LjAyIEw1Mi45MiwxOC4yMiBMNTAuNTIsOS41NyBMNDIuMTQsMTYuODAgTDM1LjI1LDI1LjU0IEwzMS41NywzMi4wNSBMMjkuNzIsMzcuMDMgTDI4LjM4LDQwLjg0IEwyNi43MCw0My4zNCBMMjQuMDUsNDMuNzIgTDE5Ljk5LDQwLjAyIEwxNS4xNCwyOS44NiBMMTIuNzQsMTcuNDYgTDE2LjA0LDE0LjcxIEwyMi4xNSwyMC42OSBMMjYuODAsMjcuNzEgTDI5LjE3LDMzLjYxIEwzMC4wMSwzOC40OSBMMzAuMDAsNDIuNTIgTDI5LjM4LDQ1Ljc2IEwyOC4wOCw0OC4wNyBMMjUuNjcsNDguODEgTDIxLjUxLDQ1Ljk2IEwxNS41MCwzNS4zNSBMMTAuODUsMTcuNjUgTDEzLjYyLDEwLjU1IEwyMS41OSwxNy42NiBMMjguMDAsMjYuMDUgTDMxLjQwLDMyLjQ5IEwzMy4wNiwzNy41MyBMMzQuMTksNDEuNTIgTDM1LjU0LDQ0LjQ0IEwzNy43MSw0NS44MSBMNDEuMjgsNDQuMTIgTDQ2LjQyLDM2LjI5IEw1MC45OSwyMS44MiBMNTAuMTEsMTIuODEgTDQzLjc5LDE2Ljg3IEwzNy42NCwyNC42NyBMMzQuMDksMzEuMzIgTDMyLjQ5LDM2LjcwIEwzMS44Niw0MS4xNiBMMzEuNjAsNDQuODggTDMxLjQxLDQ4LjAwIEwzMS4xNyw1MC42MSBMMzAuNzQsNTIuNzYgTDI5Ljk0LDU0LjQ2IEwyOC4zOCw1NS40NiBMMjUuMzYsNTQuODAgTDE5LjgzLDQ5LjAzIEwxMS45MywzMS4wOSBMOC4zMiw4LjI2IEwxNi4wNCw5LjA2IEwyNi4zMywyMC4yMCBMMzIuNTcsMjcuOTQgTDM1LjY5LDMyLjkzIEwzNy42OCwzNi4xNSBMMzkuNzcsMzcuNDMgTDQyLjQ5LDM1Ljk2IEw0NS42MCwzMC44OSBMNDcuNjksMjMuNzQgTDQ2Ljk5LDE5LjY0IEw0My44MSwyMS4yMSBMNDAuNDAsMjUuNzQgTDM4LjI2LDMwLjUzIEwzNy41NywzNC41OCBMMzguMTIsMzcuNDcgTDM5LjgwLDM4LjYwIEw0Mi41NiwzNi44NyBMNDUuOTEsMzEuMTkgTDQ4LjIwLDIzLjEzIEw0Ny4zMSwxOC43MCBMNDMuNjgsMjAuNzQgTDM5Ljk1LDI1Ljc4IEwzNy42NywzMC44OSBMMzYuOTMsMzUuMjAgTDM3LjQ1LDM4LjM3IEwzOS4wOSwzOS44OCBMNDEuOTAsMzguNjIgTDQ1LjU5LDMzLjA0IEw0OC41NywyMy45MSBMNDguMTgsMTcuODEgTDQ0LjMyLDE5LjM3IEw0MC4wMCwyNC44MSBMMzcuMjQsMzAuNDAgTDM2LjE3LDM1LjE1IEwzNi4zOSwzOC44NyBMMzcuNjksNDEuMjIgTDQwLjE4LDQxLjM1IEw0My45MywzNy40OCBMNDguMDYsMjguMjYgTDQ5LjY2LDE4LjMxIEw0Ni41NSwxNi42MSBMNDEuMzQsMjEuODQgTDM3LjQwLDI4LjE3IEwzNS40NSwzMy42NyBMMzQuOTgsMzguMTkgTDM1LjU0LDQxLjcxIEwzNy4wNiw0My45MyBMMzkuODIsNDMuODkgTDQ0LjA5LDM5LjM3IEw0OC45NywyOC4xOCBMNTAuNzUsMTYuMTEgTDQ2LjY4LDE0Ljk4IEw0MC40NSwyMS41OSBMMzYuMDQsMjguNTcgTDMzLjg5LDM0LjM1IEwzMy4xNSwzOS4xMyBMMzMuMTYsNDMuMTAgTDMzLjcwLDQ2LjMyIEwzNC44NCw0OC43MiBMMzYuOTcsNDkuODIgTDQwLjc1LDQ3Ljk3IEw0Ni42MywzOS4xMyBMNTIuNDAsMjEuMDkgTDUxLjQwLDkuNzAgTDQzLjQ3LDE1LjQyIEwzNi4xNiwyNC4zOCBMMzIuMDksMzEuMjAgTDMwLjA4LDM2LjQwIEwyOC43Niw0MC40MyBMMjcuMjMsNDMuMjUgTDI0Ljg1LDQ0LjI0IEwyMS4xMCw0MS43MSBMMTYuMTcsMzIuOTcgTDEyLjY5LDE5LjczIEwxNC43MywxMy45OCBMMjAuODAsMTguODkgTDI2LjA3LDI2LjE1IEwyOC45NiwzMi4zNyBMMzAuMTIsMzcuNDkgTDMwLjM0LDQxLjczIEwyOS45OCw0NS4yMiBMMjkuMDgsNDcuOTQgTDI3LjM1LDQ5LjYwIEwyNC4yNCw0OS4xMCBMMTkuMDYsNDMuMjkgTDEyLjY3LDI3Ljg5IEwxMC42NCwxMS40OCBMMTYuOTQsMTIuMzcgTDI1LjEwLDIxLjQ4IEwzMC4yMywyOS4wNSBMMzIuNzgsMzQuNzQgTDM0LjIxLDM5LjE3IEwzNS41Nyw0Mi40NiBMMzcuNTcsNDQuMjMgTDQwLjc4LDQzLjI4IEw0NS40MywzNy4wNiBMNDkuOTcsMjQuNDUgTDUwLjIwLDE0LjQ5IEw0NC45OSwxNi4zOCBMMzkuMDAsMjMuNTYgTDM1LjI1LDMwLjI0IEwzMy41NiwzNS43MyBMMzMuMDUsNDAuMjggTDMzLjIwLDQ0LjA1IEwzMy44NCw0Ny4wOSBMMzUuMTUsNDkuMjYgTDM3LjU1LDQ5Ljk0IEw0MS43Nyw0Ny4wNyBMNDguMDEsMzYuMTQgTDUzLjAyLDE3LjMyIEw1MC4xNCw5LjcyIEw0MS43MSwxNy4zMSBMMzUuMDEsMjUuOTMgTDMxLjQ3LDMyLjM1IEwyOS42OCwzNy4yOCBMMjguMzUsNDEuMDQgTDI2LjY0LDQzLjQ3IEwyMy45NSw0My43NiBMMTkuODQsMzkuODYgTDE0Ljk3LDI5LjQ1IEwxMi43MiwxNy4xMiBMMTYuMjEsMTQuNzYgTDIyLjM2LDIwLjkxIEwyNi45NSwyNy45MiBMMjkuMjYsMzMuODAgTDMwLjA4LDM4LjY1IEwzMC4wNiw0Mi42NiBMMjkuNDYsNDUuODkgTDI4LjE5LDQ4LjIyIEwyNS44Myw0OS4wNCBMMjEuNzQsNDYuMzkgTDE1LjczLDM2LjA4IEwxMC44NCwxOC4yMSBMMTMuMzEsMTAuMzIgTDIxLjMyLDE3LjI0IEwyNy45MCwyNS43NSBMMzEuNDIsMzIuMjUgTDMzLjE0LDM3LjMyIEwzNC4zMSw0MS4zMSBMMzUuNzEsNDQuMjAgTDM3Ljk1LDQ1LjQ2IEw0MS41OSw0My41MiBMNDYuNzEsMzUuMzQgTDUxLjAwLDIxLjA2IEw0OS43MywxMy4wMyBMNDMuNDEsMTcuNDUgTDM3LjQ5LDI1LjEzIEwzNC4xMywzMS42NiBMMzIuNjYsMzYuOTcgTDMyLjEzLDQxLjM4IEwzMi4wMCw0NS4wNyBMMzIuMDYsNDguMTYgTDMyLjI1LDUwLjc0IEwzMi42Myw1Mi44OCBMMzMuMzgsNTQuNTcgTDM0Ljg0LDU1LjY0IEwzNy42OCw1NS4yMCBMNDIuOTUsNTAuMTcgTDUwLjgxLDMzLjQ5IEw1NS4zNSw5LjUyIEw0OC40Niw4LjAwIEwzNy44NywxOS4yNCBMMzEuMjAsMjcuMzIgTDI3Ljg3LDMyLjQ3IEwyNS44MywzNS43OSBMMjMuNzcsMzcuMjEgTDIxLjEzLDM1Ljk2IEwxOC4wOCwzMS4yMiBMMTUuOTEsMjQuMjUgTDE2LjM5LDE5LjkwIEwxOS40MCwyMS4xMSBMMjIuNzgsMjUuNDUgTDI0Ljk5LDMwLjE5IEwyNS43NCwzNC4yNCBMMjUuMjUsMzcuMTYgTDIzLjY0LDM4LjM0IEwyMC45NiwzNi43NSBMMTcuNjgsMzEuMzEgTDE1LjM5LDIzLjQ3IEwxNi4xNCwxOC45NiBMMTkuNjIsMjAuNzUgTDIzLjMwLDI1LjYzIEwyNS41OSwzMC42OCBMMjYuMzUsMzQuOTUgTDI1Ljg1LDM4LjA5IEwyNC4yMywzOS41NiBMMjEuNDUsMzguMjYgTDE3Ljg0LDMyLjc0IEwxNC45OSwyMy44OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ1cmwoI2cpIiBzdHJva2Utd2lkdGg9IjEuMTUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC45NSIvPjwvc3ZnPg==">
+<meta name="description" content="An analog computer in the browser: 66 models in five kinds — continuous flows (Lorenz, Rossler, Chua, all twenty Sprott cases), discrete maps, parametric figures, geometry and solids — plus live audio as a spectrogram, XY scope and delay embedding, a Bash shell you can rotate while it runs, and a rigid-body floor. Go compiled to WebAssembly, rendered with WebGL, driven from an analog control surface.">
+<meta name="keywords" content="strange attractor, chaotic attractor, 3D attractor visualizer, chaos theory, dynamical systems, differential equations, ODE, phase portrait, WebAssembly, WASM, WebGL, Go, TinyGo, Lorenz attractor, Rossler attractor, hyperchaos, hyper-Rossler, Chua circuit, Aizawa, Sprott attractors, Sprott system, Thomas attractor, Halvorsen, Chen attractor, Dadras, Rabinovich-Fabrikant, Burke-Shaw, Lissajous, custom equation, editable equation, audio reactive, oscilloscope, analog computer, attractor generator">
+<meta name="author" content="0magnet">
+<meta property="og:title" content="chaosrack — A Go/WASM Analog Computer">
+<meta property="og:description" content="An analog computer in the browser: 66 models in five kinds — continuous flows (Lorenz, Rossler, Chua, all twenty Sprott cases), discrete maps, parametric figures, geometry and solids — plus live audio as a spectrogram, XY scope and delay embedding, a Bash shell you can rotate while it runs, and a rigid-body floor. Go compiled to WebAssembly, rendered with WebGL, driven from an analog control surface.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="magnetosphere">
+<meta property="og:url" content="https://chaosrack.magnetosphere.net/">
+<meta property="og:image" content="https://chaosrack.magnetosphere.net/docs/img/hero.jpg">
+<meta property="og:image:alt" content="The chaosrack control panel docked at the bottom of the page with the Lorenz attractor drawn above it">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://chaosrack.magnetosphere.net/docs/img/hero.jpg">
+<meta name="twitter:title" content="chaosrack — A Go/WASM Analog Computer">
+<meta name="twitter:description" content="An analog computer in the browser: 66 models in five kinds — continuous flows (Lorenz, Rossler, Chua, all twenty Sprott cases), discrete maps, parametric figures, geometry and solids — plus live audio as a spectrogram, XY scope and delay embedding, a Bash shell you can rotate while it runs, and a rigid-body floor. Go compiled to WebAssembly, rendered with WebGL, driven from an analog control surface.">
+<link rel="canonical" href="https://chaosrack.magnetosphere.net/">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"chaosrack — A Go/WASM Analog Computer","url":"https://chaosrack.magnetosphere.net/","applicationCategory":"EducationalApplication","image":"https://chaosrack.magnetosphere.net/docs/img/hero.jpg","sameAs":"https://github.com/0magnet/chaosrack","isAccessibleForFree":true,"operatingSystem":"Any (modern web browser)","browserRequirements":"Requires WebGL and WebAssembly","description":"An analog computer in the browser: 66 models in five kinds — continuous flows, discrete maps, parametric figures, geometry and solids, and a sequence walk with a rigid-body floor — plus live audio as a spectrogram, XY scope and delay embedding, and a Bash shell you can rotate while it runs. Go compiled to WebAssembly, rendered with WebGL, driven from an analog control surface.","author":{"@type":"Person","name":"0magnet"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+</script>
+<style>
+body, html {
+margin: 0;
+padding: 0;
+width: 100%;
+height: 100%;
+background-color: black;
+color: white;
+}
+</style>
+<script>
+
+
+window.__crStore = {
+  get: function (k) { try { var v = localStorage.getItem(k); return v == null ? "" : v; } catch (e) { return ""; } },
+  set: function (k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } },
+  del: function (k) { try { localStorage.removeItem(k); return true; } catch (e) { return false; } }
+};
+
+
+window.__crHash = {
+  set: function (h) { try { history.replaceState(null, "", h); return true; } catch (e) { return false; } }
+};
+
+
+window.__crWS = {
+  open: function (u) { try { return new WebSocket(u); } catch (e) { return null; } }
+};
+
+
+window.__crWT = {
+  open: function (u, init) { try { return new WebTransport(u, init); } catch (e) { return null; } }
+};
+</script>
+
+
+
+</head>
+<body style="margin: 0; padding: 0; width: 100%; height: 100%; background-color: black; color: white;">
+
+<div style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">
+<h1>chaosrack — an analog computer in the browser</h1>
+<p>Explore chaotic dynamical systems in real time, directly in your browser. This is a WebAssembly (Go / TinyGo) and WebGL visualizer that renders strange attractors as rotatable, zoomable 3D trajectories. Drag to rotate, scroll to zoom, and adjust each system's parameters with tactile control knobs.</p>
+<h2>Models</h2>
+<p>Continuous flows: Lorenz, Rossler, Chua's double-scroll circuit, Aizawa, Thomas cyclically-symmetric, Halvorsen, Chen, Lu, Newton-Leipnik, Dadras, Rabinovich-Fabrikant, Burke-Shaw, the 4D hyperchaotic Rossler system, and J. C. Sprott's 1994 catalogue of simple chaotic flows, cases A through S.</p>
+<p>Discrete maps, which have no dt and no path between iterates: Henon, Ikeda, Clifford, Peter de Jong, Gumowski-Mira, Tinkerbell, and Chirikov's area-preserving standard map. Parametric figures including Lissajous curves, polyhedra and geometric solids exportable as printable STL, and a sequence walk with a rigid-body floor to drop it on.</p>
+<h2>Live audio in phase space</h2>
+<p>Audio from the microphone or from the built-in function generators, read three ways. As a spectrogram (STFT). On an XY oscilloscope. And as a Takens delay embedding — attractor reconstruction from a single signal, after F. Takens, "Detecting strange attractors in turbulence" (1981) — where each point is the delay vector of the live sound and a pure tone draws a closed loop while speech and music trace the geometry of whatever produced them. The embedding delay tau is measured from the first minimum of the average mutual information (Fraser and Swinney 1986) and the embedding dimension m by false nearest neighbours (Kennel et al. 1992), rather than guessed. A polar variant draws the same delay vector bounded by a sphere instead of a cube.</p>
+<p>A stereo embedding plots the two channels against each other instead of one channel's past: seen head-on it is the goniometer, or vectorscope, of a mastering desk, with a correlation meter, and the third axis is what a two-plate scope cannot give you. Phase space reconstruction, state space reconstruction and recurrence plots are the same family of tools, and they run here on live input rather than on a recorded file.</p>
+<h2>Type your own equations</h2>
+<p>A Custom mode lets you enter arbitrary differential equations (dx/dt, dy/dt, dz/dt, and an optional 4th dimension) or a discrete map; any parameter you name is automatically given a control knob, and the resulting attractor is shareable as a link. Measure whether what you are looking at is actually chaotic by its largest Lyapunov exponent, route audio into any parameter, paint with persistence, or hear the system itself as sound.</p>
+<p>Also included: a ripple tank stepped by the wave equation that refracts whatever the rack is drawing, a real Bash shell running in the page that you can rotate while it runs, and a rotatable desktop. An homage to the analog attractor computers at glensstuff.com.</p>
+<p><a href="models/">Every model, one page each</a> — the equations, the figure and what the knobs do, for all of them. This link is also the only path a crawler has to those pages: nothing else on this page is a link, because everything else on it is drawn.</p>
+<p>Source code: <a href="https://github.com/0magnet/chaosrack">github.com/0magnet/chaosrack</a>. More Go and WebAssembly projects: <a href="https://magnetosphere.net/software">magnetosphere.net/software</a>.</p>
+</div>
+
+<a href="../index.html" style="position:fixed;top:10px;right:10px;z-index:20;color:#555;font-family:monospace;font-size:13px;text-decoration:none;">dual</a>
+
+<div id='gocanvas-container' style="position: absolute; width: 100%; height: 100%; z-index: 3;">
+<canvas id='gocanvas' style="max-width: 100%; max-height: 100%; z-index: 3; touch-action: none;"></canvas></div>
+
+<script title="wasm_exec.js">
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+"use strict";
+
+(() => {
+	const enosys = () => {
+		const err = new Error("not implemented");
+		err.code = "ENOSYS";
+		return err;
+	};
+
+	if (!globalThis.fs) {
+		let outputBuf = "";
+		globalThis.fs = {
+			constants: { O_WRONLY: -1, O_RDWR: -1, O_CREAT: -1, O_TRUNC: -1, O_APPEND: -1, O_EXCL: -1, O_DIRECTORY: -1 }, // unused
+			writeSync(fd, buf) {
+				outputBuf += decoder.decode(buf);
+				const nl = outputBuf.lastIndexOf("\n");
+				if (nl != -1) {
+					console.log(outputBuf.substring(0, nl));
+					outputBuf = outputBuf.substring(nl + 1);
+				}
+				return buf.length;
+			},
+			write(fd, buf, offset, length, position, callback) {
+				if (offset !== 0 || length !== buf.length || position !== null) {
+					callback(enosys());
+					return;
+				}
+				const n = this.writeSync(fd, buf);
+				callback(null, n);
+			},
+			chmod(path, mode, callback) { callback(enosys()); },
+			chown(path, uid, gid, callback) { callback(enosys()); },
+			close(fd, callback) { callback(enosys()); },
+			fchmod(fd, mode, callback) { callback(enosys()); },
+			fchown(fd, uid, gid, callback) { callback(enosys()); },
+			fstat(fd, callback) { callback(enosys()); },
+			fsync(fd, callback) { callback(null); },
+			ftruncate(fd, length, callback) { callback(enosys()); },
+			lchown(path, uid, gid, callback) { callback(enosys()); },
+			link(path, link, callback) { callback(enosys()); },
+			lstat(path, callback) { callback(enosys()); },
+			mkdir(path, perm, callback) { callback(enosys()); },
+			open(path, flags, mode, callback) { callback(enosys()); },
+			read(fd, buffer, offset, length, position, callback) { callback(enosys()); },
+			readdir(path, callback) { callback(enosys()); },
+			readlink(path, callback) { callback(enosys()); },
+			rename(from, to, callback) { callback(enosys()); },
+			rmdir(path, callback) { callback(enosys()); },
+			stat(path, callback) { callback(enosys()); },
+			symlink(path, link, callback) { callback(enosys()); },
+			truncate(path, length, callback) { callback(enosys()); },
+			unlink(path, callback) { callback(enosys()); },
+			utimes(path, atime, mtime, callback) { callback(enosys()); },
+		};
+	}
+
+	if (!globalThis.process) {
+		globalThis.process = {
+			getuid() { return -1; },
+			getgid() { return -1; },
+			geteuid() { return -1; },
+			getegid() { return -1; },
+			getgroups() { throw enosys(); },
+			pid: -1,
+			ppid: -1,
+			umask() { throw enosys(); },
+			cwd() { throw enosys(); },
+			chdir() { throw enosys(); },
+		}
+	}
+
+	if (!globalThis.path) {
+		globalThis.path = {
+			resolve(...pathSegments) {
+				return pathSegments.join("/");
+			}
+		}
+	}
+
+	if (!globalThis.crypto) {
+		throw new Error("globalThis.crypto is not available, polyfill required (crypto.getRandomValues only)");
+	}
+
+	if (!globalThis.performance) {
+		throw new Error("globalThis.performance is not available, polyfill required (performance.now only)");
+	}
+
+	if (!globalThis.TextEncoder) {
+		throw new Error("globalThis.TextEncoder is not available, polyfill required");
+	}
+
+	if (!globalThis.TextDecoder) {
+		throw new Error("globalThis.TextDecoder is not available, polyfill required");
+	}
+
+	const encoder = new TextEncoder("utf-8");
+	const decoder = new TextDecoder("utf-8");
+
+	globalThis.Go = class {
+		constructor() {
+			this.argv = ["js"];
+			this.env = {};
+			this.exit = (code) => {
+				if (code !== 0) {
+					console.warn("exit code:", code);
+				}
+			};
+			this._exitPromise = new Promise((resolve) => {
+				this._resolveExitPromise = resolve;
+			});
+			this._pendingEvent = null;
+			this._scheduledTimeouts = new Map();
+			this._nextCallbackTimeoutID = 1;
+
+			const setInt64 = (addr, v) => {
+				this.mem.setUint32(addr + 0, v, true);
+				this.mem.setUint32(addr + 4, Math.floor(v / 4294967296), true);
+			}
+
+			const setInt32 = (addr, v) => {
+				this.mem.setUint32(addr + 0, v, true);
+			}
+
+			const getInt64 = (addr) => {
+				const low = this.mem.getUint32(addr + 0, true);
+				const high = this.mem.getInt32(addr + 4, true);
+				return low + high * 4294967296;
+			}
+
+			const loadValue = (addr) => {
+				const f = this.mem.getFloat64(addr, true);
+				if (f === 0) {
+					return undefined;
+				}
+				if (!isNaN(f)) {
+					return f;
+				}
+
+				const id = this.mem.getUint32(addr, true);
+				return this._values[id];
+			}
+
+			const storeValue = (addr, v) => {
+				const nanHead = 0x7FF80000;
+
+				if (typeof v === "number" && v !== 0) {
+					if (isNaN(v)) {
+						this.mem.setUint32(addr + 4, nanHead, true);
+						this.mem.setUint32(addr, 0, true);
+						return;
+					}
+					this.mem.setFloat64(addr, v, true);
+					return;
+				}
+
+				if (v === undefined) {
+					this.mem.setFloat64(addr, 0, true);
+					return;
+				}
+
+				let id = this._ids.get(v);
+				if (id === undefined) {
+					id = this._idPool.pop();
+					if (id === undefined) {
+						id = this._values.length;
+					}
+					this._values[id] = v;
+					this._goRefCounts[id] = 0;
+					this._ids.set(v, id);
+				}
+				this._goRefCounts[id]++;
+				let typeFlag = 0;
+				switch (typeof v) {
+					case "object":
+						if (v !== null) {
+							typeFlag = 1;
+						}
+						break;
+					case "string":
+						typeFlag = 2;
+						break;
+					case "symbol":
+						typeFlag = 3;
+						break;
+					case "function":
+						typeFlag = 4;
+						break;
+				}
+				this.mem.setUint32(addr + 4, nanHead | typeFlag, true);
+				this.mem.setUint32(addr, id, true);
+			}
+
+			const loadSlice = (addr) => {
+				const array = getInt64(addr + 0);
+				const len = getInt64(addr + 8);
+				return new Uint8Array(this._inst.exports.mem.buffer, array, len);
+			}
+
+			const loadSliceOfValues = (addr) => {
+				const array = getInt64(addr + 0);
+				const len = getInt64(addr + 8);
+				const a = new Array(len);
+				for (let i = 0; i < len; i++) {
+					a[i] = loadValue(array + i * 8);
+				}
+				return a;
+			}
+
+			const loadString = (addr) => {
+				const saddr = getInt64(addr + 0);
+				const len = getInt64(addr + 8);
+				return decoder.decode(new DataView(this._inst.exports.mem.buffer, saddr, len));
+			}
+
+			const testCallExport = (a, b) => {
+				this._inst.exports.testExport0();
+				return this._inst.exports.testExport(a, b);
+			}
+
+			const timeOrigin = Date.now() - performance.now();
+			this.importObject = {
+				_gotest: {
+					add: (a, b) => a + b,
+					callExport: testCallExport,
+				},
+				gojs: {
+					// Go's SP does not change as long as no Go code is running. Some operations (e.g. calls, getters and setters)
+					// may synchronously trigger a Go event handler. This makes Go code get executed in the middle of the imported
+					// function. A goroutine can switch to a new stack if the current stack is too small (see morestack function).
+					// This changes the SP, thus we have to update the SP used by the imported function.
+
+					// func wasmExit(code int32)
+					"runtime.wasmExit": (sp) => {
+						sp >>>= 0;
+						const code = this.mem.getInt32(sp + 8, true);
+						this.exited = true;
+						delete this._inst;
+						delete this._values;
+						delete this._goRefCounts;
+						delete this._ids;
+						delete this._idPool;
+						this.exit(code);
+					},
+
+					// func wasmWrite(fd uintptr, p unsafe.Pointer, n int32)
+					"runtime.wasmWrite": (sp) => {
+						sp >>>= 0;
+						const fd = getInt64(sp + 8);
+						const p = getInt64(sp + 16);
+						const n = this.mem.getInt32(sp + 24, true);
+						fs.writeSync(fd, new Uint8Array(this._inst.exports.mem.buffer, p, n));
+					},
+
+					// func resetMemoryDataView()
+					"runtime.resetMemoryDataView": (sp) => {
+						sp >>>= 0;
+						this.mem = new DataView(this._inst.exports.mem.buffer);
+					},
+
+					// func nanotime1() int64
+					"runtime.nanotime1": (sp) => {
+						sp >>>= 0;
+						setInt64(sp + 8, (timeOrigin + performance.now()) * 1000000);
+					},
+
+					// func walltime() (sec int64, nsec int32)
+					"runtime.walltime": (sp) => {
+						sp >>>= 0;
+						const msec = (new Date).getTime();
+						setInt64(sp + 8, msec / 1000);
+						this.mem.setInt32(sp + 16, (msec % 1000) * 1000000, true);
+					},
+
+					// func scheduleTimeoutEvent(delay int64) int32
+					"runtime.scheduleTimeoutEvent": (sp) => {
+						sp >>>= 0;
+						const id = this._nextCallbackTimeoutID;
+						this._nextCallbackTimeoutID++;
+						this._scheduledTimeouts.set(id, setTimeout(
+							() => {
+								this._resume();
+								while (this._scheduledTimeouts.has(id)) {
+									// for some reason Go failed to register the timeout event, log and try again
+									// (temporary workaround for https://github.com/golang/go/issues/28975)
+									console.warn("scheduleTimeoutEvent: missed timeout event");
+									this._resume();
+								}
+							},
+							getInt64(sp + 8),
+						));
+						this.mem.setInt32(sp + 16, id, true);
+					},
+
+					// func clearTimeoutEvent(id int32)
+					"runtime.clearTimeoutEvent": (sp) => {
+						sp >>>= 0;
+						const id = this.mem.getInt32(sp + 8, true);
+						clearTimeout(this._scheduledTimeouts.get(id));
+						this._scheduledTimeouts.delete(id);
+					},
+
+					// func getRandomData(r []byte)
+					"runtime.getRandomData": (sp) => {
+						sp >>>= 0;
+						crypto.getRandomValues(loadSlice(sp + 8));
+					},
+
+					// func finalizeRef(v ref)
+					"syscall/js.finalizeRef": (sp) => {
+						sp >>>= 0;
+						const id = this.mem.getUint32(sp + 8, true);
+						this._goRefCounts[id]--;
+						if (this._goRefCounts[id] === 0) {
+							const v = this._values[id];
+							this._values[id] = null;
+							this._ids.delete(v);
+							this._idPool.push(id);
+						}
+					},
+
+					// func stringVal(value string) ref
+					"syscall/js.stringVal": (sp) => {
+						sp >>>= 0;
+						storeValue(sp + 24, loadString(sp + 8));
+					},
+
+					// func valueGet(v ref, p string) ref
+					"syscall/js.valueGet": (sp) => {
+						sp >>>= 0;
+						const result = Reflect.get(loadValue(sp + 8), loadString(sp + 16));
+						sp = this._inst.exports.getsp() >>> 0; // see comment above
+						storeValue(sp + 32, result);
+					},
+
+					// func valueSet(v ref, p string, x ref)
+					"syscall/js.valueSet": (sp) => {
+						sp >>>= 0;
+						Reflect.set(loadValue(sp + 8), loadString(sp + 16), loadValue(sp + 32));
+					},
+
+					// func valueDelete(v ref, p string)
+					"syscall/js.valueDelete": (sp) => {
+						sp >>>= 0;
+						Reflect.deleteProperty(loadValue(sp + 8), loadString(sp + 16));
+					},
+
+					// func valueIndex(v ref, i int) ref
+					"syscall/js.valueIndex": (sp) => {
+						sp >>>= 0;
+						storeValue(sp + 24, Reflect.get(loadValue(sp + 8), getInt64(sp + 16)));
+					},
+
+					// valueSetIndex(v ref, i int, x ref)
+					"syscall/js.valueSetIndex": (sp) => {
+						sp >>>= 0;
+						Reflect.set(loadValue(sp + 8), getInt64(sp + 16), loadValue(sp + 24));
+					},
+
+					// func valueCall(v ref, m string, args []ref) (ref, bool)
+					"syscall/js.valueCall": (sp) => {
+						sp >>>= 0;
+						try {
+							const v = loadValue(sp + 8);
+							const m = Reflect.get(v, loadString(sp + 16));
+							const args = loadSliceOfValues(sp + 32);
+							const result = Reflect.apply(m, v, args);
+							sp = this._inst.exports.getsp() >>> 0; // see comment above
+							storeValue(sp + 56, result);
+							this.mem.setUint8(sp + 64, 1);
+						} catch (err) {
+							sp = this._inst.exports.getsp() >>> 0; // see comment above
+							storeValue(sp + 56, err);
+							this.mem.setUint8(sp + 64, 0);
+						}
+					},
+
+					// func valueInvoke(v ref, args []ref) (ref, bool)
+					"syscall/js.valueInvoke": (sp) => {
+						sp >>>= 0;
+						try {
+							const v = loadValue(sp + 8);
+							const args = loadSliceOfValues(sp + 16);
+							const result = Reflect.apply(v, undefined, args);
+							sp = this._inst.exports.getsp() >>> 0; // see comment above
+							storeValue(sp + 40, result);
+							this.mem.setUint8(sp + 48, 1);
+						} catch (err) {
+							sp = this._inst.exports.getsp() >>> 0; // see comment above
+							storeValue(sp + 40, err);
+							this.mem.setUint8(sp + 48, 0);
+						}
+					},
+
+					// func valueNew(v ref, args []ref) (ref, bool)
+					"syscall/js.valueNew": (sp) => {
+						sp >>>= 0;
+						try {
+							const v = loadValue(sp + 8);
+							const args = loadSliceOfValues(sp + 16);
+							const result = Reflect.construct(v, args);
+							sp = this._inst.exports.getsp() >>> 0; // see comment above
+							storeValue(sp + 40, result);
+							this.mem.setUint8(sp + 48, 1);
+						} catch (err) {
+							sp = this._inst.exports.getsp() >>> 0; // see comment above
+							storeValue(sp + 40, err);
+							this.mem.setUint8(sp + 48, 0);
+						}
+					},
+
+					// func valueLength(v ref) int
+					"syscall/js.valueLength": (sp) => {
+						sp >>>= 0;
+						setInt64(sp + 16, parseInt(loadValue(sp + 8).length));
+					},
+
+					// valuePrepareString(v ref) (ref, int)
+					"syscall/js.valuePrepareString": (sp) => {
+						sp >>>= 0;
+						const str = encoder.encode(String(loadValue(sp + 8)));
+						storeValue(sp + 16, str);
+						setInt64(sp + 24, str.length);
+					},
+
+					// valueLoadString(v ref, b []byte)
+					"syscall/js.valueLoadString": (sp) => {
+						sp >>>= 0;
+						const str = loadValue(sp + 8);
+						loadSlice(sp + 16).set(str);
+					},
+
+					// func valueInstanceOf(v ref, t ref) bool
+					"syscall/js.valueInstanceOf": (sp) => {
+						sp >>>= 0;
+						this.mem.setUint8(sp + 24, (loadValue(sp + 8) instanceof loadValue(sp + 16)) ? 1 : 0);
+					},
+
+					// func copyBytesToGo(dst []byte, src ref) (int, bool)
+					"syscall/js.copyBytesToGo": (sp) => {
+						sp >>>= 0;
+						const dst = loadSlice(sp + 8);
+						const src = loadValue(sp + 32);
+						if (!(src instanceof Uint8Array || src instanceof Uint8ClampedArray)) {
+							this.mem.setUint8(sp + 48, 0);
+							return;
+						}
+						const toCopy = src.subarray(0, dst.length);
+						dst.set(toCopy);
+						setInt64(sp + 40, toCopy.length);
+						this.mem.setUint8(sp + 48, 1);
+					},
+
+					// func copyBytesToJS(dst ref, src []byte) (int, bool)
+					"syscall/js.copyBytesToJS": (sp) => {
+						sp >>>= 0;
+						const dst = loadValue(sp + 8);
+						const src = loadSlice(sp + 16);
+						if (!(dst instanceof Uint8Array || dst instanceof Uint8ClampedArray)) {
+							this.mem.setUint8(sp + 48, 0);
+							return;
+						}
+						const toCopy = src.subarray(0, dst.length);
+						dst.set(toCopy);
+						setInt64(sp + 40, toCopy.length);
+						this.mem.setUint8(sp + 48, 1);
+					},
+
+					"debug": (value) => {
+						console.log(value);
+					},
+				}
+			};
+		}
+
+		async run(instance) {
+			if (!(instance instanceof WebAssembly.Instance)) {
+				throw new Error("Go.run: WebAssembly.Instance expected");
+			}
+			this._inst = instance;
+			this.mem = new DataView(this._inst.exports.mem.buffer);
+			this._values = [ // JS values that Go currently has references to, indexed by reference id
+				NaN,
+				0,
+				null,
+				true,
+				false,
+				globalThis,
+				this,
+			];
+			this._goRefCounts = new Array(this._values.length).fill(Infinity); // number of references that Go has to a JS value, indexed by reference id
+			this._ids = new Map([ // mapping from JS values to reference ids
+				[0, 1],
+				[null, 2],
+				[true, 3],
+				[false, 4],
+				[globalThis, 5],
+				[this, 6],
+			]);
+			this._idPool = [];   // unused ids that have been garbage collected
+			this.exited = false; // whether the Go program has exited
+
+			// Pass command line arguments and environment variables to WebAssembly by writing them to the linear memory.
+			let offset = 4096;
+
+			const strPtr = (str) => {
+				const ptr = offset;
+				const bytes = encoder.encode(str + "\0");
+				new Uint8Array(this.mem.buffer, offset, bytes.length).set(bytes);
+				offset += bytes.length;
+				if (offset % 8 !== 0) {
+					offset += 8 - (offset % 8);
+				}
+				return ptr;
+			};
+
+			const argc = this.argv.length;
+
+			const argvPtrs = [];
+			this.argv.forEach((arg) => {
+				argvPtrs.push(strPtr(arg));
+			});
+			argvPtrs.push(0);
+
+			const keys = Object.keys(this.env).sort();
+			keys.forEach((key) => {
+				argvPtrs.push(strPtr(`${key}=${this.env[key]}`));
+			});
+			argvPtrs.push(0);
+
+			const argv = offset;
+			argvPtrs.forEach((ptr) => {
+				this.mem.setUint32(offset, ptr, true);
+				this.mem.setUint32(offset + 4, 0, true);
+				offset += 8;
+			});
+
+			// The linker guarantees global data starts from at least wasmMinDataAddr.
+			// Keep in sync with cmd/link/internal/ld/data.go:wasmMinDataAddr.
+			const wasmMinDataAddr = 4096 + 8192;
+			if (offset >= wasmMinDataAddr) {
+				throw new Error("total length of command line and environment variables exceeds limit");
+			}
+
+			this._inst.exports.run(argc, argv);
+			if (this.exited) {
+				this._resolveExitPromise();
+			}
+			await this._exitPromise;
+		}
+
+		_resume() {
+			if (this.exited) {
+				throw new Error("Go program has already exited");
+			}
+			this._inst.exports.resume();
+			if (this.exited) {
+				this._resolveExitPromise();
+			}
+		}
+
+		_makeFuncWrapper(id) {
+			const go = this;
+			return function () {
+				const event = { id: id, this: this, args: arguments };
+				go._pendingEvent = event;
+				go._resume();
+				return event.result;
+			};
+		}
+	}
+})();
+
+</script>
+
+
+<script>
+if (!WebAssembly.instantiateStreaming) {
+  WebAssembly.instantiateStreaming = async (resp, importObject) => {
+    const source = await (await resp).arrayBuffer();
+    return await WebAssembly.instantiate(source, importObject);
+  };
+}
+window.__WASM_DEBUG__ =  false ;
+const go = new Go();
+let mod, inst;
+
+
+
+
+function __whenDOMReady(fn) {
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', fn, {once: true}); }
+  else { fn(); }
+}
+
+console.log("[WASM-STUFF] Loading Go WASM from \/assets\/gowasm\/chaosrack.wasm...");
+function __instantiate(imports) {
+  return WebAssembly.instantiateStreaming(fetch("/assets/gowasm/chaosrack.wasm"), imports);
+}
+
+const __ready = __instantiate(go.importObject);
+__whenDOMReady(() => __ready.then((result) => {
+  mod = result.module;
+  inst = result.instance;
+  console.log("[WASM-STUFF] Go WASM instantiated, starting...");
+  return run();
+}).then((result) => {
+  console.log("[WASM-STUFF] Go WASM finished: ", result)
+}, (failure) => {
+  console.error("[WASM-STUFF] Go WASM failed: ", failure)
+}));
+async function run() {
+  await go.run(inst);
+  inst = await WebAssembly.instantiate(mod, go.importObject);
+}
+</script>
+
+</body>
+</html>
