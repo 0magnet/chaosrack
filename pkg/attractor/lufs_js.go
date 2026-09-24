@@ -54,7 +54,7 @@ var lufs = loudness{
 	target:   -23,
 }
 
-// lufsTick drains the tap into the meter and updates the readouts on its own
+// tick drains the tap into the meter and updates the readouts on its own
 // clock. Called once a frame; does nothing while the module is off screen.
 func (l *loudness) tick(nowMs float64) {
 	// Not merely "not display:none" — actually on screen. See

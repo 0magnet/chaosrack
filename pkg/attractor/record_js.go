@@ -160,7 +160,7 @@ func recBitrate(canvas js.Value, fps int) int {
 	return bps
 }
 
-// recStreamSource returns the element to capture, building the region feed when
+// streamSource returns the element to capture, building the region feed when
 // one is needed.
 func (c *canvasRecorder) streamSource(canvas js.Value) js.Value {
 	sx, sy, sw, sh := recRegionRect(canvas)

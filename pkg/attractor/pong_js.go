@@ -72,7 +72,7 @@ const (
 	pongBall = 0.05 // ball diamond radius
 )
 
-// pongStep advances one frame of game state, honoring the Speed control the
+// step advances one frame of game state, honoring the Speed control the
 // way the integrators do (sub-steps × dt scale).
 func (p *pongGame) step() {
 	k := float64(sim.speedScale) * float64(sim.speedSteps)
@@ -82,7 +82,7 @@ func (p *pongGame) step() {
 	move := func(pad *float64, up, dn bool, human *int, aiming bool) {
 		if *human > 0 {
 			*human--
-			// Keys nudge; pointer control (pongPointerPaddle) writes the pad
+			// Keys nudge; pointer control (pong.pointerPaddle) writes the pad
 			// position directly, so with no key held this just clamps.
 			d := 0.0
 			if up {
@@ -166,7 +166,7 @@ func (p *pongGame) step() {
 	}
 }
 
-// pongServeBall re-centers the ball and aims it at dir (±1) after a pause.
+// serveBall re-centers the ball and aims it at dir (±1) after a pause.
 func (p *pongGame) serveBall(dir float64) {
 	p.bx, p.by = 0, 0
 	p.vx = dir * 0.6
@@ -225,7 +225,7 @@ func (p *pongGame) generatePong() {
 	}
 }
 
-// pongSyncScoreboard latches the Scoreboard module's LEDs when a score
+// syncScoreboard latches the Scoreboard module's LEDs when a score
 // changes, and spins the paddle pots to track the live paddles (motorized
 // pots: the machine plays its own knobs) — except a pot the user is
 // actually holding, which is theirs.
@@ -259,7 +259,7 @@ func (p *pongGame) syncScoreboard() {
 
 // ── Input + sound ────────────────────────────────────────────────────────
 
-// pongWireInput installs the paddle key listeners once (lazily on the first
+// wireInput installs the paddle key listeners once (lazily on the first
 // generated frame). Handlers no-op outside pong mode. A real keydown is a
 // user gesture, so it also lifts the audio context for the beeps.
 func (p *pongGame) wireInput() {
@@ -308,7 +308,7 @@ func (p *pongGame) wireInput() {
 	}))
 }
 
-// pongPointerPaddle drives the paddle on the pointer's half of the screen
+// pointerPaddle drives the paddle on the pointer's half of the screen
 // toward the court height under it — mouse or finger, and two fingers play
 // both paddles. The touched side goes human (the same ~10 s window the
 // keys use) so the machine hands over immediately.
@@ -337,7 +337,7 @@ func (p *pongGame) pointerPaddle(cx, cy float64) {
 	}
 }
 
-// pongBeep plays one classic square blip (hit 459 Hz, wall 226 Hz, point
+// beep plays one classic square blip (hit 459 Hz, wall 226 Hz, point
 // 490 Hz) through the shared context. Silent until a real key grants the
 // context, and outside pong mode.
 func (p *pongGame) beep(freq float64, ms int) {

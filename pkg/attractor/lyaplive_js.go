@@ -34,7 +34,7 @@ import (
 )
 
 // How many probe sub-steps a frame pays for. The interpreted (equation-engine)
-// systems get fewer for the reason twinTick splits its budget the same way: an
+// systems get fewer for the reason twin.tick splits its budget the same way: an
 // AST walk is about ten times a compiled derivative, and the probe must not be
 // what makes Custom mode stutter. The consequence is only that the readout
 // settles later on those systems, never that it settles somewhere else.
@@ -81,7 +81,7 @@ func lyapLiveSystem(mode string) (dynamics.FlowSys4, bool) {
 	return dynamics.FlowFor4(mode)
 }
 
-// lyapLiveInvalidate restarts the measurement, because the system it belongs
+// invalidate restarts the measurement, because the system it belongs
 // to has changed. An exponent is a property of a set of coefficients; carrying
 // an average across a knob edit would report a system that is no longer
 // running, and would keep reporting it for as long as the old samples
@@ -101,8 +101,8 @@ func (l *liveLyapunov) seed(mode string, sys dynamics.FlowSys4) {
 	l.mode = mode
 }
 
-// lyapLiveTick advances the probe by one frame's slice and refreshes the
-// readout. Called from twinTick, which generateForMode reaches every frame for
+// tick advances the probe by one frame's slice and refreshes the
+// readout. Called from twin.tick, which generateForMode reaches every frame for
 // every mode that has a trajectory at all — the modes it does not reach are
 // the spectrogram surfaces, the recurrence plot and the audio scopes, which
 // are exactly the modes with no exponent to measure.
@@ -159,9 +159,9 @@ func (l *liveLyapunov) tick(mode string) {
 	l.show(l.readout())
 }
 
-// lyapLiveReadout is the value text, WITHOUT a λ on the front — the panel cell
+// readout is the value text, WITHOUT a λ on the front — the panel cell
 // has a λ label of its own and read "λλ+0.96" the first time this was put in
-// front of a browser. The Trace row's LED has no label, so lyapLiveShow puts
+// front of a browser. The Trace row's LED has no label, so lyapLive.show puts
 // the symbol back for that one.
 //
 // Two decimals, not the Analysis module's four. They are different readouts:
@@ -187,7 +187,7 @@ func (l *liveLyapunov) readout() string {
 	return s
 }
 
-// lyapLiveShow writes the text to both places it appears, and only when it has
+// show writes the text to both places it appears, and only when it has
 // changed — the exponent drifts in the third decimal every frame, the DOM does
 // not need to hear about that, and a cell that re-renders sixty times a second
 // is unreadable anyway. It is the rule showStereoReadout keeps.

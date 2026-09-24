@@ -164,7 +164,7 @@ func (s *spectControls) applySpectSettings() {
 // position shows the same picture.
 var spectChanNames = []string{"mix", "left", "right"}
 
-// spectMonoMode turns the knob into the fold the source applies.
+// monoMode turns the knob into the fold the source applies.
 func (s *spectControls) monoMode() audiosrc.MonoMode {
 	switch pick(s.chanF, len(spectChanNames)) {
 	case 1:

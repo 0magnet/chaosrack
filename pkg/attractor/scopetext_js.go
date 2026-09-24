@@ -21,8 +21,8 @@ type fourierText struct {
 	keyH int     // …and harmonic count
 	t    float64 // beam phase, 0..1 of the banner sweep
 
-	// scopeTextActive tracks mode residency (entry setup once per entry, like
-	// pongActive — panel rebuilds must not re-normalize the pose).
+	// ftext.active tracks mode residency (entry setup once per entry, like
+	// pong.active — panel rebuilds must not re-normalize the pose).
 	active bool
 	drawn  [][]float64 // cached drawable strokes (blanked circuits)
 }

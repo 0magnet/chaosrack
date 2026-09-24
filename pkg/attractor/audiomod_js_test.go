@@ -11,7 +11,7 @@ import (
 // These drive applyAudioModulation itself, with the real eqModValue and the
 // real paramDefs, and touch neither the DOM nor GL — the modulation path is
 // arithmetic over package globals, and the only reason the file is tagged is
-// that paramDef and paramMods are. Node is enough to run them (make test-wasm).
+// that paramDef and pmod.params are. Node is enough to run them (make test-wasm).
 //
 // Each one leaves the globals it moved as it found them: they are the same
 // variables the rest of the suite and the running program read.

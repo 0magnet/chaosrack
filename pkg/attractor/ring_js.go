@@ -62,10 +62,10 @@ var ring = ringTrail{
 	dwellMean: 1,
 }
 
-// ringInvalidate forces a re-prime (mode/trail-length/reset changes).
+// invalidate forces a re-prime (mode/trail-length/reset changes).
 func (r *ringTrail) invalidate() { r.sig = "" }
 
-// ringTick advances and draws the ring trail. Returns false when the caller's
+// tick advances and draws the ring trail. Returns false when the caller's
 // normal scan generator should run instead (ring off, mode has no registered
 // flow, or the ring isn't primed for this mode/steps yet — the scan frame it
 // falls back to IS the priming pass).
@@ -134,7 +134,7 @@ func (r *ringTrail) tick(mode string) bool {
 	return true
 }
 
-// ringPrimeAfterScan records the ring baseline right after a scan frame has
+// primeAfterScan records the ring baseline right after a scan frame has
 // filled the buffer (called at the end of generateForMode). The scan frame
 // already uploaded + drew; the beam takes over on the next frame.
 func (r *ringTrail) primeAfterScan(mode string) {
@@ -159,7 +159,7 @@ func (r *ringTrail) primeAfterScan(mode string) {
 	r.w = sys.W() // continue the hidden state, not restart it
 }
 
-// ringUploadAndDraw pushes the newly written slots to the GPU (wrap-aware)
+// uploadAndDraw pushes the newly written slots to the GPU (wrap-aware)
 // and draws the trail as two strips split at the head.
 func (r *ringTrail) uploadAndDraw(start, n int) {
 	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, gpu.vbuf)
@@ -211,7 +211,7 @@ func (r *ringTrail) jsSegView(nFloats int) js.Value {
 	return js.Global().Get("Float32Array").New(r.segUint8.Get("buffer"), 0, nFloats)
 }
 
-// ringUpdateDwell refreshes the beam-dwell attribute for the slots the beam
+// updateDwell refreshes the beam-dwell attribute for the slots the beam
 // just rewrote, using the mean already established by the priming scan.
 func (r *ringTrail) updateDwell(start, n int) {
 	if len(gpu.dwell.buf) != sim.steps || gpu.dwell.gl.IsUndefined() {

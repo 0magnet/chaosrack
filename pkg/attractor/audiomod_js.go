@@ -102,7 +102,7 @@ type savedParam struct {
 }
 
 // appliedMod is one parameter and the value modulation actually gave it this
-// frame. modAppliedPrev/modAppliedCur hold consecutive frames' worth, in
+// frame. pmod.appliedPrev/pmod.appliedCur hold consecutive frames' worth, in
 // parameter order, so a frame can ask whether anything CHANGED rather than
 // whether anything was modulated — see applyAudioModulation.
 type appliedMod struct {
@@ -124,7 +124,7 @@ func applyAudioModulation(mode string) []savedParam {
 	// quantizing is that most frames produce the same integer, and a mesh
 	// rebuild per frame is the one thing this feature must not reintroduce.
 	// staticGeomCached's own comment records what that costs — 45% of all
-	// allocation in generateGlobe and a 66-100ms collector pause every 400ms,
+	// allocation in globe.generate and a 66-100ms collector pause every 400ms,
 	// the stutter that could be SEEN — and dirtying the flag unconditionally
 	// while a count knob was routed would hand all of it straight back.
 	// Simulated over ten seconds of steady tone driving sphere latitude, the
@@ -191,7 +191,7 @@ func (p *paramModulation) collectAudioModulation(mode string) []savedParam {
 	return saved
 }
 
-// modApplyChanged reports whether this frame's applied modulation differs from
+// applyChanged reports whether this frame's applied modulation differs from
 // the previous frame's, and takes this frame's as the new baseline.
 //
 // Positional comparison is enough because both lists are built by walking
@@ -320,7 +320,7 @@ func (p *paramModulation) applyViewModulation() []savedParam {
 // concentric channel(ring)+level(inner) knob with its rotary-switch labels and
 // the level numeric, stacked vertically. Always present in a unit (so toggling
 // Audio mod never reflows the panel — it just dims); state lives in
-// paramMods[id]. The channel <select> + level <range> stay hidden in the DOM,
+// pmod.params[id]. The channel <select> + level <range> stay hidden in the DOM,
 // driven by the knob.
 func buildModUnit(id, label string) js.Value {
 	cur := pmod.params[id]
@@ -406,7 +406,7 @@ func buildModUnit(id, label string) js.Value {
 
 // makeEQStrip builds the graphic-EQ band-picker for parameter id: numEQBands
 // draggable columns (low→high) whose heights are the band weights in
-// paramMods[id].bands. Drag across to paint the curve.
+// pmod.params[id].bands. Drag across to paint the curve.
 func makeEQStrip(id string) js.Value {
 	m := pmod.params[id]
 	if m.bands == nil {

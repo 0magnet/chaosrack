@@ -84,7 +84,7 @@ type polarMode struct {
 	win     float32 // display window, milliseconds
 	gain    float32 // world units the sphere's surface sits at
 	ring    []float32
-	w       int // monotonic write cursor into polarRing
+	w       int // monotonic write cursor into polar.ring
 	scratch []float32
 	cursor  int // read position in the shared audio tap
 
@@ -94,7 +94,7 @@ type polarMode struct {
 	chanF float32
 
 	// fitGain is the GAIN the camera was last fitted to, 0 for not yet.
-	// A gain rather than a bool for takensFitGain's reason: the bound the fit
+	// A gain rather than a bool for emb.fitGain's reason: the bound the fit
 	// is made against is a function of the gain — here the sphere's radius IS
 	// the gain — so a fit made at one gain is not a fit at another.
 	fitGain float32
@@ -124,7 +124,7 @@ func init() {
 	}
 }
 
-// polarMapSel is the map knob as an index, clamped.
+// mapSel is the map knob as an index, clamped.
 //
 // Audio modulation can drive any registered parameter, this one included, so
 // the value arriving here is not necessarily one of the detents — and a
@@ -267,7 +267,7 @@ func (p *polarMode) generatePolar() {
 		vertices[j+0] = v[0] * s
 		vertices[j+1] = v[1] * s
 		vertices[j+2] = v[2] * s
-		// The trail ramp, which is also what audioColorWindow's table indexes.
+		// The trail ramp, which is also what acolor.window's table indexes.
 		vertices[j+3] = float32(m) * invN
 	}
 	gpu.uploadVerticesOnly(vertices, gpu.drawMode, nv)
@@ -283,7 +283,7 @@ func (p *polarMode) generatePolar() {
 	}
 }
 
-// polarColorWindow is audioColorWindow for this mode.
+// colorWindow is acolor.window for this mode.
 //
 // It qualifies for the same reason Takens does: its vertices carry
 // aTrailT = m/(nv−1), a straight ramp across the displayed window, so slot k of

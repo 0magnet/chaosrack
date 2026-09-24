@@ -53,7 +53,7 @@ type scopeBeam struct {
 
 var sfast scopeBeam
 
-// scopeFast is the JS helper, or a zero Value on a page that will not
+// fast is the JS helper, or a zero Value on a page that will not
 // evaluate it. Tried once; the recover is the point, because a
 // Content-Security-Policy that forbids eval reaches Go as a panic and the
 // caller still has its path-string route. See fastDOM, which does the same.
@@ -71,7 +71,7 @@ func (s *scopeBeam) fast() (v js.Value) {
 	return s.helper
 }
 
-// scopePtsArrays returns the Float32Array and Uint8Array views, big enough
+// ptsArrays returns the Float32Array and Uint8Array views, big enough
 // for n floats, or false if this page cannot make them.
 func (s *scopeBeam) ptsArrays(n int) (f32, u8 js.Value, ok bool) {
 	if n <= 0 {

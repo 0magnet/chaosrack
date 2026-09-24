@@ -75,7 +75,7 @@ func gaWave(kind float32, ph float64) float64 {
 }
 
 // generateGraphicArtist traces one closed pass of the Lissajous wireframe into
-// the vertex buffer, animated by gaPhase. Called every frame from
+// the vertex buffer, animated by ga.phase. Called every frame from
 // generateForMode, so it continuously renders like the attractors.
 func (g *graphicArtist) generateGraphicArtist() {
 	vertices := sim.vertBuf[:sim.steps*4]

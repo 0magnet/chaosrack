@@ -405,7 +405,7 @@ func fetchJSONOnce(url string, opts js.Value, done func(ok bool, body js.Value))
 // source-rate sample, and linearly upsamples the processed stream to the
 // context rate for playback (the shared context runs at the hardware rate, so
 // a 24 kHz ws feed can't get a private matched-rate context any more). The
-// processed source-rate samples also feed the spectrogram (fvfVis) so the
+// processed source-rate samples also feed the spectrogram (fvf.vis) so the
 // display matches the sound. Works for any source — the microphone, or the
 // PulseAudio/WebSocket stream (music), the latter via a null-sink so the
 // browser's output isn't re-captured.
@@ -497,9 +497,9 @@ func (w *wobbulator) stopFVFAudio() {
 	releaseAudioCtx("fvf")
 }
 
-// fvfAudioProcess is the ScriptProcessor callback (runs in Go): drain the
+// audioProcess is the ScriptProcessor callback (runs in Go): drain the
 // source, run FVF per source-rate sample, then upsample the processed block
-// to the context rate for playback. fvfVis gets the source-rate stream (the
+// to the context rate for playback. fvf.vis gets the source-rate stream (the
 // spectrogram's scroll pacing is derived from the source rate). Underflow
 // samples are processed as silence so the carrier keeps running.
 func (w *wobbulator) audioProcess(_ js.Value, args []js.Value) interface{} {
@@ -542,7 +542,7 @@ func (w *wobbulator) audioProcess(_ js.Value, args []js.Value) interface{} {
 	w.vis.write(w.drainScratch[:m])
 
 	// Linear-interpolate the m processed samples up to n output samples,
-	// with fvfResampLast carrying continuity across callback boundaries.
+	// with fvf.resampLast carrying continuity across callback boundaries.
 	seq := func(k int) float32 {
 		if k <= 0 {
 			return w.resampLast

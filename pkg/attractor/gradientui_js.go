@@ -64,7 +64,7 @@ var (
 	gradientRangeSeq     uint64
 )
 
-// standalonePanel is true when the controls are our own fixed overlay (not
+// layout.standalone is true when the controls are our own fixed overlay (not
 // appended into a host page's <footer>); only then can we dock/move them.
 
 func updateGradientUI() {

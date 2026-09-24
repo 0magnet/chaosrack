@@ -565,7 +565,7 @@ func buildParamPanelNow(mode string) {
 	layoutSkirts()            // skirts are measured, so they are sized once the rows exist
 }
 
-// modTarget is one modulatable control (its paramMods key + display label).
+// modTarget is one modulatable control (its pmod.params key + display label).
 type modTarget struct {
 	id, label string
 	sym       bool // label is a math parameter symbol (kept lowercase), not a word

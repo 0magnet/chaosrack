@@ -27,9 +27,9 @@ type audioTap struct {
 	// read cursor into what was drained. Each consumer then sees the whole stream,
 	// which is what each of them was written to assume.
 	//
-	// This is the same shape as the existing fvfVis ring, which was added for the
+	// This is the same shape as the existing fvf.vis ring, which was added for the
 	// same reason: when FVF is on it drains the source in the audio callback, so
-	// the spectrogram reads fvfVis rather than draining a second time. That case
+	// the spectrogram reads fvf.vis rather than draining a second time. That case
 	// stays as it is — it is a different clock, not a frame-loop consumer.
 	//
 	// THE TAP CARRIES BOTH CHANNELS. It used to carry one — Source.Drain's, which
@@ -139,19 +139,19 @@ type tapUpstreamKind int
 
 const (
 	tapFromSource tapUpstreamKind = iota // Source.Drain
-	tapFromFVF                           // fvfVis, the FVF engine's processed output
+	tapFromFVF                           // fvf.vis, the FVF engine's processed output
 )
 
 // tapPumpUpstream reports where this frame's audio should come from.
 //
 // When the FVF audio engine is running it OWNS the source: it drains it in the
-// audio callback and publishes the processed result to fvfVis. Draining the
+// audio callback and publishes the processed result to fvf.vis. Draining the
 // source here too would take samples out from under it, and in that state the
 // processed stream is what every display should show anyway — it is the sound
 // actually coming out. So the tap switches upstream rather than competing.
 //
-// The spectrogram used to reach into fvfVis itself, which is precisely why it
-// was the ONLY display that worked while FVF was listening. Routing fvfVis
+// The spectrogram used to reach into fvf.vis itself, which is precisely why it
+// was the ONLY display that worked while FVF was listening. Routing fvf.vis
 // through the tap gives every consumer the same stream.
 func tapPumpUpstream() tapUpstreamKind {
 	if run.selectedMode == "fvf" && fvf.audioActive {
@@ -160,7 +160,7 @@ func tapPumpUpstream() tapUpstreamKind {
 	return tapFromSource
 }
 
-// tapPump fills the tap once per frame. Call it before anything that reads
+// pump fills the tap once per frame. Call it before anything that reads
 // audio — the backdrop, the model, the counter — and exactly once.
 func (a *audioTap) pump() {
 	src := aud.ensureAudioSource()
@@ -226,7 +226,7 @@ func (a *audioTap) pump() {
 // does not hand it a backlog it would have to discard anyway.
 func tapRead(cursor *int, dst []float32) int { return tap.readChan(cursor, dst, tapMix) }
 
-// tapReadChan is tapRead with the fold chosen by the CONSUMER rather than by
+// readChan is tapRead with the fold chosen by the CONSUMER rather than by
 // the source. tapRead is the mix, which is what every reader got when the tap
 // was mono and what most of them still want.
 func (a *audioTap) readChan(cursor *int, dst []float32, c tapChan) int {
@@ -260,7 +260,7 @@ func (a *audioTap) readChan(cursor *int, dst []float32, c tapChan) int {
 	return n
 }
 
-// tapReadStereo is tapRead delivering BOTH channels, for a consumer that needs
+// readStereo is tapRead delivering BOTH channels, for a consumer that needs
 // the pair rather than a fold of it. One cursor still, so the two come back
 // sample-aligned — which is the whole point for anything measuring a
 // relationship between them.
@@ -289,7 +289,7 @@ func (a *audioTap) readStereo(cursor *int, l, r []float32) int {
 	return n
 }
 
-// tapReady reports whether the tap has a live source behind it, so callers can
+// ready reports whether the tap has a live source behind it, so callers can
 // keep the "no audio yet" branches they had around Drain.
 func (a *audioTap) ready() bool { return a.src != nil && a.src.Ready() }
 

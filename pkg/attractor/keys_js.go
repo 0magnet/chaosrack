@@ -242,7 +242,7 @@ func (k *keyboard) buildKeysBed() {
 
 // ── Voice engine ─────────────────────────────────────────────────────────
 
-// keysEnsureGraph acquires the shared context (we're inside a user gesture:
+// ensureGraph acquires the shared context (we're inside a user gesture:
 // a key click or keydown) and lazily builds the master gain → panner chain.
 func (k *keyboard) ensureGraph() js.Value {
 	ctx := acquireAudioCtx("keys")
@@ -260,7 +260,7 @@ func (k *keyboard) ensureGraph() js.Value {
 	return ctx
 }
 
-// keysUpdateRouting pushes the out ring + level knob into the master chain.
+// updateRouting pushes the out ring + level knob into the master chain.
 func (k *keyboard) updateRouting() {
 	if !k.master.Truthy() {
 		return

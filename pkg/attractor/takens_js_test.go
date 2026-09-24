@@ -9,7 +9,7 @@ import "testing"
 // figure was a dense tangle that a frame's worth of new audio barely touched;
 // measured against the frame 250 ms before it, 0.0% of the lit pixels changed.
 // The window is a DURATION now, and its default matches the xy scope's
-// long-standing xyWindow of 2048 samples.
+// long-standing xy.window of 2048 samples.
 func TestTakensWindowIsADurationNotAPointCount(t *testing.T) {
 	const sr = 24000
 	const budget = 20000 // the trail knob's default, i.e. vertBuf's capacity

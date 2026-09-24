@@ -20,7 +20,7 @@ import (
 //
 // The slowest thing being measured is 0.5 Hz, which is two seconds a cycle, and
 // a wow figure taken over less than several cycles is a figure made of one
-// lurch. So this keeps a rolling buffer of the last wfWindowSec seconds and
+// lurch. So this keeps a rolling buffer of the last wow.windowSec seconds and
 // re-measures a few times a second over the whole of it — unlike the distortion
 // analyzer, whose window is a fifth of a second and which can afford to look at
 // the newest one.
@@ -28,7 +28,7 @@ import (
 // wowFlutter is the Wow & Flutter module: its window of audio, the last
 // result and its LEDs.
 type wowFlutter struct {
-	// wfWindowSec is how much audio each measurement is made over, and wfPeriodMs
+	// wow.windowSec is how much audio each measurement is made over, and wow.periodMs
 	// is how often it is remade. Both are on the panel — WINDOW and RATE — and
 	// this is the module where the difference between them is easiest to see.
 	//
@@ -45,8 +45,8 @@ type wowFlutter struct {
 	windowSec              int
 	periodMs               float64
 	cursor                 int
-	win                    meters.SlidingWindow // the newest wfWindowSec seconds
-	buf                    []float32            // wfWin laid out in order, for the analyzer
+	win                    meters.SlidingWindow // the newest wow.windowSec seconds
+	buf                    []float32            // wow.win laid out in order, for the analyzer
 	nextMs                 float64
 	res                    meters.WowFlutterResult
 	nominal                float32
@@ -61,7 +61,7 @@ var wow = wowFlutter{
 	nominal:   meters.WfCarrier,
 }
 
-// wfTick keeps the rolling buffer full and remeasures on its own clock.
+// tick keeps the rolling buffer full and remeasures on its own clock.
 func (w *wowFlutter) tick(nowMs float64) {
 	// Not merely "not display:none" — actually on screen. See
 	// moduleOnScreen: this module's DSP and readouts are most of what the

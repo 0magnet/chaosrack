@@ -55,7 +55,7 @@ var (
 	audioMod bool
 )
 
-// afNormMap scales x by an adaptive per-key peak (instant rise, slow
+// normMap scales x by an adaptive per-key peak (instant rise, slow
 // decay) → a level-independent 0..1 value.
 func (a *audioFeatures) normMap(key string, x float32) float32 {
 	p := a.peak[key]

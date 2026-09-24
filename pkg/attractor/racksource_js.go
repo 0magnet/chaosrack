@@ -138,7 +138,7 @@ func deskTerminalEl() js.Value {
 		el := els.Index(i)
 		// Not the Terminal model's own shell, which is parked off screen: the
 		// panel is usually typed into a desk window, and the two can be at
-		// different zooms. contains rather than Equal because termHost is the
+		// different zooms. contains rather than Equal because termPane.host is the
 		// container the session was mounted on and .xterm is inside it.
 		if termPane.host.Truthy() && termPane.host.Call("contains", el).Bool() {
 			continue

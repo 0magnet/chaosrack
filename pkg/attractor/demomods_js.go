@@ -31,7 +31,7 @@ func buildDemoModules() {
 	}
 	// Paddle pots: turning one seizes that paddle (same human window as the
 	// keys/touch); while the machine or keys drive the paddle, the pot spins
-	// to track it — pongSyncScoreboard writes it back with the guard up.
+	// to track it — pong.syncScoreboard writes it back with the guard up.
 	wirePad := func(slID, stackID string, pad *float64, human *int) js.Value {
 		sl := dom.Doc.Call("getElementById", slID)
 		stack := dom.Doc.Call("getElementById", stackID)

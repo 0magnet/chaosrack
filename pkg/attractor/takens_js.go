@@ -28,7 +28,7 @@ import (
 // alongside it (see pkg/takens). That is measured ONCE when the mode first
 // has audio, again when the source changes, and on the MEAS button whenever
 // asked — but never over a τ somebody has set, and never per frame. The
-// section comment above takensMeasure is where that rule is argued.
+// section comment above emb.measure is where that rule is argued.
 //
 // The WIN knob is what makes it feel live, and it is a DURATION, not a point
 // count. This mode used to take its span from the global trail knob the way
@@ -36,7 +36,7 @@ import (
 // window: 833 ms at 24 kHz. A frame then replaced ~2% of a dense tangle, and
 // measured against the previous frame 250 ms earlier, 0.0% of the lit pixels
 // changed — an image that is technically live and looks frozen. The xy scope
-// next door had it right all along with a fixed xyWindow of 2048 samples, so
+// next door had it right all along with a fixed xy.window of 2048 samples, so
 // that is the default here too: 85 ms, at which the same measurement changes
 // ~80%. The trail knob still sets the point BUDGET (the stride is derived to
 // fit the window into it), so a long window stays affordable.
@@ -68,7 +68,7 @@ type takensMode struct {
 	gain    float32 // world units a full-scale (±1) sample maps to
 	win     float32 // display window, milliseconds
 	ring    []float32
-	w       int // monotonic write cursor into takensRing
+	w       int // monotonic write cursor into emb.ring
 	scratch []float32
 	cursor  int // read position in the shared audio tap
 
@@ -102,7 +102,7 @@ type takensMode struct {
 	meas    takens.EmbeddingResult // last measurement, for the readout
 
 	// autoDone is the one-shot guard. Set the first time the automatic
-	// measurement runs, and cleared only by takensArmAutoMeasure — which mode
+	// measurement runs, and cleared only by emb.armAutoMeasure — which mode
 	// entry and a change of audio source call, and nothing else does.
 	autoDone bool
 
@@ -282,13 +282,13 @@ func (t *takensMode) generateTakens() {
 // that is wrong collapses the figure toward the diagonal, and the one control
 // that fixes it was a button nobody knew to press. So the measurement now also
 // runs ONCE when the mode first has enough audio to measure it from — see
-// takensAutoMeasure.
+// emb.autoMeasure.
 //
 // What has NOT changed is the property the old rule was protecting. The
 // measurement is still one-shot and still never per-frame; the guard that makes
 // it so is a flag that only mode entry and a change of source clear. Nothing
 // here may acquire a caller that runs more often than that, and the frame loop
-// reaches exactly one function here — takensAutoMeasure — which is written to
+// reaches exactly one function here — emb.autoMeasure — which is written to
 // do nothing on all but one of the frames it is called on.
 
 // takensEstMax caps the measurement window. The estimators are O(n²) in the
@@ -296,14 +296,14 @@ func (t *takensMode) generateTakens() {
 // and already far more data than the histograms need.
 const takensEstMax = 4096
 
-// takensAutoMeasure runs the estimator ONCE, the first time the mode has enough
+// autoMeasure runs the estimator ONCE, the first time the mode has enough
 // audio to measure from, and writes the answer into the τ knob.
 //
 // Called from generateTakens, which is the only place that knows when the audio
 // has arrived — and which calls it on every frame, so the very first thing it
 // does is refuse. Two conditions guard it, and they are different in kind:
 //
-//   - takensAutoDone is the ONE-SHOT. It is what makes this a measurement
+//   - emb.autoDone is the ONE-SHOT. It is what makes this a measurement
 //     rather than a control loop, and it is why calling this from the frame
 //     loop does not reintroduce the per-frame auto-tuning the section comment
 //     above rejects.
@@ -321,7 +321,7 @@ func (t *takensMode) autoMeasure() {
 	if !t.autoDue() {
 		return
 	}
-	// Set BEFORE measuring, not after. takensMeasure writes the τ knob, which
+	// Set BEFORE measuring, not after. emb.measure writes the τ knob, which
 	// dispatches a DOM input event, and an event handler that reached the frame
 	// loop again would find the guard still open and measure a second time.
 	t.autoDone = true
@@ -333,14 +333,14 @@ func (t *takensMode) autoMeasure() {
 	t.autoSet = t.tau
 }
 
-// takensAutoDue is takensAutoMeasure's guard on its own, so that the one-shot,
+// autoDue is emb.autoMeasure's guard on its own, so that the one-shot,
 // the quality gate and the deference to a chosen τ can all be tested without a
 // DOM to write a knob into.
 func (t *takensMode) autoDue() bool {
 	if t.autoDone {
 		return false
 	}
-	// Never over a τ somebody chose — see takensAutoSet. The knob is theirs
+	// Never over a τ somebody chose — see emb.autoSet. The knob is theirs
 	// from the moment they touch it, and a measurement that overrides it is not
 	// a convenience, it is a control fighting the person using it.
 	if t.tau != takens.TauDef && t.tau != t.autoSet {
@@ -353,7 +353,7 @@ func (t *takensMode) autoDue() bool {
 	return avail >= takensEstMax
 }
 
-// takensArmAutoMeasure re-arms the one-shot: the next time the mode has a full
+// armAutoMeasure re-arms the one-shot: the next time the mode has a full
 // window it measures again.
 //
 // A change of source is the case that matters. τ is a property of what is
@@ -363,7 +363,7 @@ func (t *takensMode) autoDue() bool {
 // one step removed: the source may well have changed while the mode was away.
 func (t *takensMode) armAutoMeasure() { t.autoDone = false }
 
-// takensEstWindow copies the newest samples out of the ring, oldest first, as
+// estWindow copies the newest samples out of the ring, oldest first, as
 // the float64 series the estimators take. Returns nil when there is not enough
 // audio to measure — the ring is empty until the mode has been running.
 func (t *takensMode) estWindow() []float64 {
@@ -386,7 +386,7 @@ func (t *takensMode) estWindow() []float64 {
 	return out
 }
 
-// takensMeasure runs both estimators on the current window and writes τ into
+// measure runs both estimators on the current window and writes τ into
 // the knob. The dimension is a READOUT rather than a second knob: the trail is
 // three delay coordinates because the screen has three axes, so when the
 // signal needs more than three the honest thing to say is that what is drawn
@@ -421,7 +421,7 @@ func (t *takensMode) measure() {
 	t.showTakensMeasurement(t.measText())
 }
 
-// takensMeasText renders the measurement cell. One function rather than two
+// measText renders the measurement cell. One function rather than two
 // because the cell is written from two places — here, when a measurement lands,
 // and appendTakensEstimate, which rebuilds the cell on every panel rebuild and
 // has to put back what was there. Written twice, the rebuild kept the old
@@ -462,7 +462,7 @@ func setTakensTauSamples(tauSrc, sr int) {
 
 // setTakensTau moves the knob, rather than only the variable behind it: the
 // hidden range input is the value, and its input event is what repaints the
-// dial and the LED. Writing takensTau alone would draw the new embedding under
+// dial and the LED. Writing emb.tau alone would draw the new embedding under
 // a knob still showing the old number.
 func (t *takensMode) setTakensTau(tau int) {
 	if tau < 1 {

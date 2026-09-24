@@ -216,7 +216,7 @@ func init() {
 // comes out zero or a transform size that indexes off the end of the table is a
 // crash rather than a wrong picture.
 
-// wfallLines is how many slices the surface holds.
+// lines is how many slices the surface holds.
 func (w *waterfall) lines() int {
 	n := int(w.linesF + 0.5)
 	if n < 4 {
@@ -227,7 +227,7 @@ func (w *waterfall) lines() int {
 	return n
 }
 
-// wfallStepMS is how far apart in time they are.
+// stepMS is how far apart in time they are.
 func (w *waterfall) stepMS() float64 {
 	ms := float64(w.stepF)
 	if ms < 1 {
@@ -238,7 +238,7 @@ func (w *waterfall) stepMS() float64 {
 	return ms
 }
 
-// wfallFFTLen is the transform each slice is taken with.
+// fftLen is the transform each slice is taken with.
 func (w *waterfall) fftLen() int {
 	i := int(w.fftF + 0.5)
 	if i < 0 {
@@ -249,7 +249,7 @@ func (w *waterfall) fftLen() int {
 	return wfallFFTSizes[i]
 }
 
-// wfallChan is the channel the live surface analyses. The decay surface does
+// channel is the channel the live surface analyses. The decay surface does
 // not have one: it needs BOTH channels, and REF says which of the two is the
 // reference.
 func (w *waterfall) channel() tapChan {
@@ -264,7 +264,7 @@ func (w *waterfall) channel() tapChan {
 	return tapChan(i) //nolint:gosec // clamped to len(tapChanNames)-1 above
 }
 
-// wfallApplyDefaults moves LINE, STEP and FFT to what the surface now selected
+// applyDefaults moves LINE, STEP and FFT to what the surface now selected
 // wants — but only the ones still holding a value nobody chose.
 //
 // The three differ by roughly an order of magnitude between the two surfaces,
@@ -318,7 +318,7 @@ func setWfallKnob(id string, ptr *float32, v float32) {
 	el.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 }
 
-// generateWaterfall runs whichever surface SRC names, and draws it.
+// generate runs whichever surface SRC names, and draws it.
 func (w *waterfall) generate() {
 	defer w.showRT()
 	if w.srcF != w.surfaceSrc {
@@ -345,10 +345,10 @@ func (w *waterfall) generate() {
 	w.draw()
 }
 
-// wfallLiveTick pushes a spectrum of the newest audio onto the front of the
+// liveTick pushes a spectrum of the newest audio onto the front of the
 // surface, on wfallLivePushMS centers, and ages everything behind it.
 //
-// Slice 0 is the front of the surface in wfallDraw, so the newest goes there and
+// Slice 0 is the front of the surface in wfall.draw, so the newest goes there and
 // the rest shift back — which is the direction the display already reads, and
 // means the live surface and the decay surface are drawn by the same code with
 // no idea which of them they are showing.
@@ -423,7 +423,7 @@ func (w *waterfall) liveTick() {
 	w.haveIR = true
 }
 
-// wfallCapture keeps the rolling stereo buffer and triggers a measurement each
+// capture keeps the rolling stereo buffer and triggers a measurement each
 // time the generator's sweep comes round.
 //
 // Triggered on the SWEEP'S OWN POSITION rather than on a timer: a measurement
@@ -502,7 +502,7 @@ func (w *waterfall) capture() {
 	w.measure(sr)
 }
 
-// wfallMeasure deconvolves and builds the surface.
+// measure deconvolves and builds the surface.
 func (w *waterfall) measure(sr int) {
 	// A power of two of the captured audio, taken from the end — the most
 	// recent whole pass.
@@ -532,7 +532,7 @@ func (w *waterfall) measure(sr int) {
 	w.haveIR = len(w.surface) > 0
 }
 
-// wfallDraw builds the surface's vertices and hands them to the normal pipeline.
+// draw builds the surface's vertices and hands them to the normal pipeline.
 //
 // As LINES rather than a line strip: the slices are separate curves, and a
 // strip would draw a diagonal from the end of each one back to the start of the
@@ -625,10 +625,10 @@ func (w *waterfall) draw() {
 	}
 }
 
-// wfallArmFit re-arms it, for a mode change.
+// armFit re-arms it, for a mode change.
 func (w *waterfall) armFit() { w.fitted = false }
 
-// showWaterfallRT writes the reverberation time beside the knobs.
+// showRT writes the reverberation time beside the knobs.
 //
 // The one number the surface does not show and cannot: it is eighty
 // milliseconds deep, which is where a loudspeaker's resonances live, and a
@@ -654,7 +654,7 @@ func (w *waterfall) showRT() {
 	}
 }
 
-// appendWaterfallReadout adds the RT60 cell to the mode's parameter grid.
+// appendReadout adds the RT60 cell to the mode's parameter grid.
 func (w *waterfall) appendReadout(grid js.Value) {
 	card, top := newPunitCard("rt60")
 

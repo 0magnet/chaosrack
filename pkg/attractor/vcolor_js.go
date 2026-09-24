@@ -96,7 +96,7 @@ func (v *vcolorPipe) initVColor() {
 	v.ready = true
 }
 
-// vcFit sizes the interleaved buffer and its upload scratch for n vertices.
+// fit sizes the interleaved buffer and its upload scratch for n vertices.
 func (v *vcolorPipe) fit(n int) {
 	need := n * vcStride
 	if len(v.data) >= need {
@@ -107,15 +107,15 @@ func (v *vcolorPipe) fit(n int) {
 	v.f32 = js.Global().Get("Float32Array").New(v.u8.Get("buffer"), 0, len(v.data))
 }
 
-// vcPut writes one vertex at index i.
+// put writes one vertex at index i.
 func (v *vcolorPipe) put(i int, x, y float32, c [3]float32) {
 	o := i * vcStride
 	v.data[o], v.data[o+1] = x, y
 	v.data[o+2], v.data[o+3], v.data[o+4] = c[0], c[1], c[2]
 }
 
-// vcUpload binds the program and hands the buffer over. Called once before a
-// run of vcSpan calls, so the geometry is uploaded once however many passes are
+// upload binds the program and hands the buffer over. Called once before a
+// run of vc.span calls, so the geometry is uploaded once however many passes are
 // drawn from it.
 func (v *vcolorPipe) upload(n int) {
 	if n <= 0 {
@@ -131,7 +131,7 @@ func (v *vcolorPipe) upload(n int) {
 	glctx.GL.Call("vertexAttribPointer", v.aCol, 3, glctx.Types.Float, false, vcStride*4, 2*4)
 }
 
-// vcSpan draws count vertices starting at first, offset by (dx, dy) in clip
+// span draws count vertices starting at first, offset by (dx, dy) in clip
 // space.
 //
 // The offset is a UNIFORM rather than a shift applied to the vertices, which is
@@ -148,7 +148,7 @@ func (v *vcolorPipe) span(mode js.Value, first, count int, alpha, dx, dy float32
 	glctx.GL.Call("drawArrays", mode, first, count)
 }
 
-// vcDone releases the color attribute, which the other programs do not have
+// done releases the color attribute, which the other programs do not have
 // and would otherwise inherit as a stale binding.
 func (v *vcolorPipe) done() { glctx.GL.Call("disableVertexAttribArray", v.aCol) }
 

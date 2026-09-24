@@ -67,7 +67,7 @@ func (h *hostTerminal) ensureHostTerm() bool {
 	return true
 }
 
-// hostTermCanvas is the pane's own canvas, or nothing.
+// canvas is the pane's own canvas, or nothing.
 //
 // Canvas() returning nothing is how the pane reports that it is drawing through
 // the DOM instead — which a texture cannot sample — so this is asked EVERY

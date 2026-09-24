@@ -11,7 +11,7 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
-// Textured rendering pipeline. A second shader program (texProgram) draws
+// Textured rendering pipeline. A second shader program (texp.program) draws
 // geometry with a sampled 2D texture instead of the attractor's gradient
 // coloring, reusing the same P/V/M matrices so textured models rotate,
 // zoom, and auto-rotate exactly like every other model. It backs both the
@@ -175,7 +175,7 @@ func (t *texturedPipe) mat4ToTyped(m *mgl32.Mat4) js.Value {
 	return t.matF32
 }
 
-// useTexProgram activates texProgram and uploads the current P/V/M
+// useTexProgram activates texp.program and uploads the current P/V/M
 // matrices to it. Call before any textured draw.
 func (t *texturedPipe) useTexProgram() {
 	glctx.GL.Call("useProgram", t.program)
@@ -185,7 +185,7 @@ func (t *texturedPipe) useTexProgram() {
 }
 
 // drawTexturedPlane draws the unit plane with the given texture and scroll
-// offset through texProgram (and thus the shared camera/rotation state).
+// offset through texp.program (and thus the shared camera/rotation state).
 func (t *texturedPipe) drawTexturedPlane(texture js.Value, offset float32) {
 	if !t.ready {
 		return
@@ -261,7 +261,7 @@ func canvasAspect(cv js.Value) float32 {
 }
 
 // drawTexQuad binds one quad buffer and the texture and draws it. Assumes
-// texProgram is current and its matrices are already uploaded.
+// texp.program is current and its matrices are already uploaded.
 func (t *texturedPipe) drawTexQuad(buf, texture js.Value, offset float32) {
 	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, buf)
 	// stride 20 bytes: 3 floats pos + 2 floats uv
@@ -279,7 +279,7 @@ func (t *texturedPipe) drawTexQuad(buf, texture js.Value, offset float32) {
 }
 
 // drawTexturedMesh draws an indexed triangle mesh (interleaved pos+uv,
-// stride 20) with the given texture and scroll offset through texProgram,
+// stride 20) with the given texture and scroll offset through texp.program,
 // so it shares the camera/rotation state. Used for the spectrogram skin
 // on surface models.
 func (t *texturedPipe) drawTexturedMesh(vertBuf, idxBuf js.Value, idxCount int, texture js.Value, offset float32) {

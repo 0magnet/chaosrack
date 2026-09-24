@@ -32,7 +32,7 @@ type torusShape struct {
 	// rollF is the POLOIDAL spin rate: the tube turning about the torus's
 	// own core circle, the circle running through the middle of the tube body.
 	// Signed, and zero by default so the torus is still until asked.
-	rollF   float32 // poloidal rate; see generateTorus
+	rollF   float32 // poloidal rate; see torus.generate
 	rollPhi float32 // accumulated poloidal angle
 }
 
@@ -57,7 +57,7 @@ type globeShape struct {
 	twistF float32
 	lonF   float32
 
-	// generateGlobe runs once per frame, and until now built its mesh into two
+	// globe.generate runs once per frame, and until now built its mesh into two
 	// fresh slices every time. Profiling the TinyGo build in the browser put 72%
 	// of all allocation in this one function, and TinyGo's conservative collector
 	// then spent about 39% of the CPU scanning for the result — enough to blow the
@@ -253,7 +253,7 @@ func (g *globeShape) generate() {
 	gpu.uploadBuffersIndexed(vertices, indices, glctx.Types.Line)
 }
 
-// generateMagnetosphere runs per frame and, like generateGlobe, used to build
+// generateMagnetosphere runs per frame and, like globe.generate, used to build
 // its mesh into fresh slices each time. Same treatment: keep the arrays and
 // refill them.
 var (
@@ -298,6 +298,6 @@ func generateMagnetosphere() {
 	gpu.uploadBuffersIndexed(allVerts, allIdx, glctx.Types.Line)
 }
 
-// globeSpiral reports whether the parallels are drawn as a single pole-to-pole
+// spiral reports whether the parallels are drawn as a single pole-to-pole
 // spiral instead of as separate rings.
 func (g *globeShape) spiral() bool { return g.spiralF >= 0.5 }

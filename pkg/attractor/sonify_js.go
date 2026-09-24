@@ -68,7 +68,7 @@ type sonifier struct {
 
 	// Preallocated per-callback scratch (the callback runs ~23×/s forever
 	// while playing — allocating there is steady-state GC pressure on the
-	// same thread as the render loop; see fvfDrainScratch for the pattern).
+	// same thread as the render loop; see fvf.drainScratch for the pattern).
 	scrL, scrR []float32
 	zero       []float32
 }
@@ -89,7 +89,7 @@ func sonifyWrite(dst js.Value, src []float32) {
 	js.CopyBytesToJS(u8, sliceToByteSlice(src))
 }
 
-// sonifySample projects trail point (x,y,z) to a stereo pair per the MAP ring.
+// sample projects trail point (x,y,z) to a stereo pair per the MAP ring.
 func (so *sonifier) sample(x, y, z float32) (float64, float64) {
 	switch so.mapping {
 	case "xy":
@@ -104,7 +104,7 @@ func (so *sonifier) sample(x, y, z float32) (float64, float64) {
 	}
 }
 
-// sonifyProcess is the stereo ScriptProcessor callback (runs in Go on the
+// process is the stereo ScriptProcessor callback (runs in Go on the
 // main thread, so reading vertBuf/view.modelMat needs no synchronization).
 func (so *sonifier) process(_ js.Value, args []js.Value) interface{} {
 	if !so.active {
@@ -153,7 +153,7 @@ func (so *sonifier) process(_ js.Value, args []js.Value) interface{} {
 	sys, haveFlow := dynamics.FlowFor4(run.selectedMode)
 	if so.mode == "flow" && haveFlow {
 		// FLOW: audify the dynamics — integrate the mode's own vector field
-		// at audio rate. sonifyHz transposes: 440 (A4) = one integrator step
+		// at audio rate. son.hz transposes: 440 (A4) = one integrator step
 		// per sample; each octave doubles the rate, so the knob moves the
 		// emergent pitch by exact musical intervals.
 		if so.flowMode != run.selectedMode {
@@ -197,7 +197,7 @@ func (so *sonifier) process(_ js.Value, args []js.Value) interface{} {
 				float32(so.pz+(so.fz-so.pz)*t))
 		}
 	} else {
-		// SCAN: trail as wavetable — sweep the whole drawn trail sonifyHz
+		// SCAN: trail as wavetable — sweep the whole drawn trail son.hz
 		// times per second (exact, knob-set pitch). Also the FLOW fallback
 		// for trail modes without a registered vector field (parametric
 		// curves). Geometry modes never reach here (the
@@ -258,7 +258,7 @@ func (so *sonifier) process(_ js.Value, args []js.Value) interface{} {
 	return nil
 }
 
-// sonifySync starts the audio graph when the MAP ring leaves "off", stops it
+// sync starts the audio graph when the MAP ring leaves "off", stops it
 // when it returns there — the ring is the power switch, like the generators'
 // channel ring (the click is also the user gesture WebAudio needs).
 func (so *sonifier) sync() {
@@ -269,7 +269,7 @@ func (so *sonifier) sync() {
 	}
 }
 
-// sonifyModeSync detaches the subgraph in modes Model Out can't sonify and
+// modeSync detaches the subgraph in modes Model Out can't sonify and
 // reattaches it in trail modes (called on every mode change) — cheaper than
 // letting the callback stream zeros. A disconnected ScriptProcessor doesn't
 // fire; reconnecting to the same destination twice is a spec'd no-op, and it
@@ -315,7 +315,7 @@ func (so *sonifier) stop() {
 	releaseAudioCtx("sonify")
 }
 
-// buildSonifyModule builds the Model Out module's knobs: a TRACE-rate knob
+// buildModule builds the Model Out module's knobs: a TRACE-rate knob
 // with the generators' octave dial, a LVL knob, and a MAP selector ring whose
 // "off" position is the power switch. The trace/lvl sliders + LEDs are
 // registry-owned (adoptDescControl in Run); this only adds the knob layer.

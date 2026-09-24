@@ -83,7 +83,7 @@ func init() {
 	}
 }
 
-// rtaFraction is the band-width knob as a 1/b, clamped. Audio modulation can
+// fraction is the band-width knob as a 1/b, clamped. Audio modulation can
 // drive any registered parameter, so the value arriving is not necessarily a
 // detent, and the range is checked before the conversion (stereoAxisSel's trap).
 func (r *rtaMode) fraction() int {
@@ -98,7 +98,7 @@ func (r *rtaMode) fraction() int {
 	return acoustics.RTAFractions[int(v+0.5)]
 }
 
-// rtaAnalyze drains the tap and runs the FFT when its period is up.
+// analyze drains the tap and runs the FFT when its period is up.
 func (r *rtaMode) analyze(nowMs float64) {
 	b := r.fraction()
 	if b != r.lastB || r.bands == nil {
@@ -144,7 +144,7 @@ func (r *rtaMode) analyze(nowMs float64) {
 		r.bands, acoustics.RTAWindowKind, r.levels)
 }
 
-// rtaAdvance applies the meter ballistics, once a frame.
+// advance applies the meter ballistics, once a frame.
 //
 // Per frame rather than per analysis, so the bars move smoothly between
 // measurements — which is what makes a 6 Hz analysis look like a 60 Hz display.
@@ -181,7 +181,7 @@ func generateRTA() {
 	rta.drawRTA()
 }
 
-// rtaY maps a level in dB to a clip-space y, with the top of the scale at the
+// y maps a level in dB to a clip-space y, with the top of the scale at the
 // top of the screen and the bottom of the range at the bottom.
 func (r *rtaMode) y(db float64) float32 {
 	top := float64(r.topF)
@@ -199,7 +199,7 @@ func (r *rtaMode) y(db float64) float32 {
 }
 
 // drawRTA draws the bars and the peak-hold marks.
-// rtaBarColor is the color of a bar at a level, through the Colors module's
+// rta.barColor is the color of a bar at a level, through the Colors module's
 // palette.
 //
 // The value handed to the colormap is the bar's own HEIGHT on the displayed

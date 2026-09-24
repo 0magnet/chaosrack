@@ -70,7 +70,7 @@ type spectrogram struct {
 	texture  js.Value
 	ready    bool
 	texCol   int
-	colUint8 js.Value // reused Uint8Array, spectTexH*4 bytes
+	colUint8 js.Value // reused Uint8Array, spect.texH*4 bytes
 
 	// Overlapping-STFT state. accum buffers drained samples until a
 	// full StepSize hop is available; overlap is the sliding window.
@@ -151,7 +151,7 @@ func (s *spectrogram) resizeSpectrogram() {
 
 // renderSpectrogramMode is the "spectrogram" model's per-frame entry point,
 // called from generateForMode. It keeps the scrolling texture current and
-// draws it on the shared plane through texProgram (so camera/rotation from
+// draws it on the shared plane through texp.program (so camera/rotation from
 // the normal render loop apply). nowMs is the rAF timestamp.
 func (s *spectrogram) renderSpectrogramMode(nowMs float64) {
 	if !s.ready {
@@ -178,7 +178,7 @@ func (s *spectrogram) updateSpectrogramTexture(nowMs float64) {
 		// source (and plays it out), and the tap switches its upstream to that
 		// engine's already-processed output so display matches sound. Reading
 		// the tap therefore covers both states, and this no longer reaches into
-		// fvfVis itself — doing that was what made the spectrogram the only
+		// fvf.vis itself — doing that was what made the spectrogram the only
 		// display FVF worked with.
 		listening := fvfOn && fvf.audioActive
 		if fvfOn && !listening {
@@ -309,7 +309,7 @@ func (s *spectrogram) uploadSpectColumn(col []byte) {
 	s.texCol = (s.texCol + 1) % spectTexW
 }
 
-// buildSpectColumn maps FFT magnitudes to one RGBA column (spectTexH*4 bytes),
+// buildSpectColumn maps FFT magnitudes to one RGBA column (spect.texH*4 bytes),
 // full 0..Nyquist with 0 Hz at the bottom, matching audioprism-go. The mapping
 // itself is in pkg/spectcol, without a build tag, so that `uitool spec` can run
 // the identical arithmetic on a machine and be diffed against the original's

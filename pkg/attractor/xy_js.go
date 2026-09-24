@@ -129,7 +129,7 @@ type xyScope struct {
 	jsUint8 js.Value  // persistent upload scratch (byte view)
 	jsFloat js.Value  // persistent upload scratch (float32 view)
 
-	// The knobs. xyWinMS and xyLagMS are durations rather than sample counts for
+	// The knobs. xy.winMS and xy.lagMS are durations rather than sample counts for
 	// takens.TauSamples' reason: a sample is not a fixed amount of time, and the same
 	// setting would otherwise mean one thing on the 48 kHz microphone and another
 	// on the 24 kHz server feed.
@@ -187,7 +187,7 @@ func init() {
 	}
 }
 
-// xySmoothSel is the SMOOTH knob as a step count, clamped. Audio modulation can
+// smoothSel is the SMOOTH knob as a step count, clamped. Audio modulation can
 // drive any registered parameter, so the value arriving here is not necessarily
 // on the dial — and a modulator riding a feature that has gone to zero or to
 // infinity can hand over an out-of-range float or a NaN. The range is checked
@@ -204,7 +204,7 @@ func (x *xyScope) smoothSel() int {
 	return int(v + 0.5)
 }
 
-// xyIsMidSide reports the basis knob's position, by the same clamp.
+// isMidSide reports the basis knob's position, by the same clamp.
 func (x *xyScope) isMidSide() bool { return x.basisF > 0.5 }
 
 // xyWindowSamples converts the WIN knob into a sample count, clamped to what
@@ -271,7 +271,7 @@ func (x *xyScope) initXY() {
 	x.fitBuffers(x.window, x.smoothSel())
 }
 
-// xyFitBuffers sizes the sample buffers, the line buffer and the upload scratch
+// fitBuffers sizes the sample buffers, the line buffer and the upload scratch
 // for a window and a smoothing factor, and does nothing when they already fit.
 //
 // The buffers used to be allocated once at the size of a constant. Both numbers
@@ -464,7 +464,7 @@ func (x *xyScope) drawXYScope(clear bool) {
 
 // ── PERSIST, and the correlation meter ───────────────────────────────────
 
-// xyPersistK is the PERSIST knob as a per-frame retention factor, clamped to
+// persistK is the PERSIST knob as a per-frame retention factor, clamped to
 // [0, 0.98]. Zero means "clear", which is what the mode always did.
 //
 // The ceiling is not 1. At a retention of exactly 1 the frame never decays at
@@ -484,7 +484,7 @@ func (x *xyScope) persistK() float32 {
 	return v
 }
 
-// xyNoteState records this frame's measurement and updates the readout.
+// noteState records this frame's measurement and updates the readout.
 // stereoReadout renders it, because it is the same reading of the same quantity
 // and two wordings of "mono" would be two things to keep in step.
 func (x *xyScope) noteState(monoSrc, ok bool, corr float32) {
@@ -522,7 +522,7 @@ func (x *xyScope) appendXYReadout(grid js.Value) {
 	// Seeded from the last measurement rather than from a placeholder: the
 	// panel is rebuilt on every module toggle, and a cell that came back
 	// reading "r --" over a live stereo source would be reporting a silence
-	// that is not there. xyCorrText is cleared so the next frame writes into
+	// that is not there. xy.corrText is cleared so the next frame writes into
 	// the NEW element instead of skipping it as unchanged.
 	x.corrText = ""
 	x.corrEl.Set("textContent", stereoReadout(x.monoSrc, x.corrOK, x.corr))
