@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/skirt"
 )
 
 // The passes that touch every element, written in JavaScript.
@@ -125,7 +127,7 @@ const fastSource = `(function () {
     // engraved on it. Two hundred and fifty stacks and near seven hundred
     // legends, which from Go was a quarter of a model change.
     //
-    // It decides nothing. skirtFit and the radii stay in Go, where they are
+    // It decides nothing. skirt.Fit and the radii stay in Go, where they are
     // tested; this hands them their inputs and skirtWrite takes the answers.
     skirtRead: function () {
       var stacks = doc.querySelectorAll(".has-dial");
@@ -471,7 +473,7 @@ type skirtStackWrite struct {
 //
 // The arithmetic below is layoutSkirtsIn and layoutOneSkirt unchanged — the
 // same clear-and-gap chain outward through a concentric stack, the same
-// skirtFit, the same estimates when a label cannot be measured yet. What has
+// skirt.Fit, the same estimates when a label cannot be measured yet. What has
 // gone is the two hundred and fifty round trips per pass.
 func layoutSkirtsFast(h js.Value) bool {
 	raw := h.Call("skirtRead").String()
@@ -492,7 +494,7 @@ func layoutSkirtsFast(h js.Value) bool {
 		}
 		w := skirtStackWrite{BI: s.Big, Ring: s.IsRing, Dials: make([]skirtDialWrite, 0, len(s.Dials))}
 		for di, d := range s.Dials {
-			labs := make([]skirtLabel, 0, len(d.Labs))
+			labs := make([]skirt.Label, 0, len(d.Labs))
 			kept := make([]int, 0, len(d.Labs))
 			for li, l := range d.Labs {
 				deg, err := strconv.ParseFloat(l.Deg, 64)
@@ -503,7 +505,7 @@ func layoutSkirtsFast(h js.Value) bool {
 				if lw <= 0 || lh <= 0 {
 					lw, lh = estLabelBoxPx(l.Text)
 				}
-				labs = append(labs, skirtLabel{W: lw, H: lh, Deg: deg})
+				labs = append(labs, skirt.Label{W: lw, H: lh, Deg: deg})
 				kept = append(kept, li)
 			}
 			dw := skirtDialWrite{Li: kept}
@@ -516,7 +518,7 @@ func layoutSkirtsFast(h js.Value) bool {
 			// the whole reduction.
 			minGrip := clear
 			if di == 0 {
-				minGrip = clear * skirtMinGripFrac
+				minGrip = clear * skirt.MinGripFrac
 			}
 			room := 0.0
 			if d.CellW > 0 {
@@ -525,9 +527,9 @@ func layoutSkirtsFast(h js.Value) bool {
 			if room > 0 {
 				room -= gap
 			}
-			useGrip, scale := skirtFit(clear, minGrip, gap, room, labs)
+			useGrip, scale := skirt.Fit(clear, minGrip, gap, room, labs)
 			if scale < 1 {
-				labs = skirtScaleLabels(labs, scale)
+				labs = skirt.ScaleLabels(labs, scale)
 				dw.Font = pxStr(skirtLabelBasePx * panelScale * scale)
 			}
 			if useGrip < clear && useGrip > 0 {
@@ -535,8 +537,8 @@ func layoutSkirtsFast(h js.Value) bool {
 				w.Grip = strconv.FormatFloat(useGrip/clear, 'f', 3, 64)
 			}
 			clear = useGrip
-			r := skirtRadius(clear, gap, labs)
-			o := skirtOuter(r, labs)
+			r := skirt.Radius(clear, gap, labs)
+			o := skirt.Outer(r, labs)
 			// The box has to contain the labels, or the element that exists
 			// to hold them is the thing clipping them.
 			box := 2 * (o + gap)

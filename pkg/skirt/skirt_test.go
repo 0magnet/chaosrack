@@ -1,4 +1,4 @@
-package attractor
+package skirt
 
 import (
 	"math"
@@ -14,9 +14,9 @@ func TestNoLabelEverSitsOnTheGrip(t *testing.T) {
 	const gap = 3.0
 	for _, n := range []int{1, 2, 3, 4, 5, 6, 9, 12, 15, 16} {
 		labs := ringOf(n, 26, 9)
-		r := skirtRadius(grip, gap, labs)
+		r := Radius(grip, gap, labs)
 		for i, l := range labs {
-			inner := r - skirtRadialHalf(l)
+			inner := r - radialHalf(l)
 			if inner < grip+gap-1e-9 {
 				t.Errorf("%d labels: label %d reaches in to %.2f, inside the grip+gap at %.2f",
 					n, i, inner, grip+gap)
@@ -31,7 +31,7 @@ func TestNeighboringLabelsComeApart(t *testing.T) {
 	const grip, gap = 19.0, 3.0
 	for _, n := range []int{2, 3, 4, 5, 6, 9, 12, 15, 16} {
 		labs := ringOf(n, 26, 9)
-		r := skirtRadius(grip, gap, labs)
+		r := Radius(grip, gap, labs)
 		for i := 1; i < len(labs); i++ {
 			if overlaps(r, labs[i-1], labs[i]) {
 				t.Errorf("%d labels: %d and %d overlap at radius %.2f", n, i-1, i, r)
@@ -44,8 +44,8 @@ func TestNeighboringLabelsComeApart(t *testing.T) {
 // scope's "500 ms" ring would be sized for a ring of "1"s.
 func TestALongerLegendNeedsABiggerSkirt(t *testing.T) {
 	const grip, gap = 19.0, 3.0
-	short := skirtRadius(grip, gap, ringOf(15, 10, 9))
-	long := skirtRadius(grip, gap, ringOf(15, 42, 9))
+	short := Radius(grip, gap, ringOf(15, 10, 9))
+	long := Radius(grip, gap, ringOf(15, 42, 9))
 	if long <= short {
 		t.Errorf("wide labels gave radius %.2f, narrow ones %.2f — the legend width is being ignored",
 			long, short)
@@ -59,9 +59,9 @@ func TestALongerLegendNeedsABiggerSkirt(t *testing.T) {
 func TestSeparationOnOneAxisIsEnough(t *testing.T) {
 	// Two labels near the bottom of the sweep, far apart vertically and
 	// close horizontally.
-	a := skirtLabel{W: 40, H: 8, Deg: 100}
-	b := skirtLabel{W: 40, H: 8, Deg: 135}
-	r := skirtPairRadius(a, b)
+	a := Label{W: 40, H: 8, Deg: 100}
+	b := Label{W: 40, H: 8, Deg: 135}
+	r := pairRadius(a, b)
 	if overlaps(r, a, b) {
 		t.Errorf("the pair still overlaps at the radius returned, %.2f", r)
 	}
@@ -77,12 +77,12 @@ func TestSeparationOnOneAxisIsEnough(t *testing.T) {
 // separated by any radius, and an infinite answer would size the dial to
 // infinity rather than merely look wrong.
 func TestADegenerateRingDoesNotBlowUp(t *testing.T) {
-	same := skirtLabel{W: 20, H: 8, Deg: 45}
-	if got := skirtPairRadius(same, same); got != 0 || math.IsInf(got, 0) {
+	same := Label{W: 20, H: 8, Deg: 45}
+	if got := pairRadius(same, same); got != 0 || math.IsInf(got, 0) {
 		t.Errorf("two labels at one angle gave %v, want 0", got)
 	}
-	for _, labs := range [][]skirtLabel{nil, {}, {{W: 20, H: 8, Deg: 0}}} {
-		r := skirtRadius(19, 3, labs)
+	for _, labs := range [][]Label{nil, {}, {{W: 20, H: 8, Deg: 0}}} {
+		r := Radius(19, 3, labs)
 		if math.IsInf(r, 0) || math.IsNaN(r) || r < 19 {
 			t.Errorf("%d labels gave radius %v, want a finite radius clearing the grip", len(labs), r)
 		}
@@ -98,12 +98,12 @@ func TestConcentricSkirtsNest(t *testing.T) {
 	inner := ringOf(4, 22, 9)
 	outer := ringOf(6, 30, 9)
 
-	rIn := skirtRadius(9, gap, inner)     // clears the small inner knob
-	edge := skirtOuter(rIn, inner)        // ... and reaches this far
-	rOut := skirtRadius(edge, gap, outer) // the next skirt clears THAT
+	rIn := Radius(9, gap, inner)     // clears the small inner knob
+	edge := Outer(rIn, inner)        // ... and reaches this far
+	rOut := Radius(edge, gap, outer) // the next skirt clears THAT
 
 	for i, l := range outer {
-		if in := rOut - skirtRadialHalf(l); in < edge+gap-1e-9 {
+		if in := rOut - radialHalf(l); in < edge+gap-1e-9 {
 			t.Errorf("outer label %d reaches in to %.2f, into the inner ring ending at %.2f",
 				i, in, edge)
 		}
@@ -117,10 +117,10 @@ func TestConcentricSkirtsNest(t *testing.T) {
 // element that exists to hold them.
 func TestTheRingReportsWhatItActuallyReaches(t *testing.T) {
 	labs := ringOf(9, 30, 9)
-	r := skirtRadius(19, 3, labs)
-	out := skirtOuter(r, labs)
+	r := Radius(19, 3, labs)
+	out := Outer(r, labs)
 	for i, l := range labs {
-		if reach := r + skirtRadialHalf(l); reach > out+1e-9 {
+		if reach := r + radialHalf(l); reach > out+1e-9 {
 			t.Errorf("label %d reaches %.2f, past the reported outer edge %.2f", i, reach, out)
 		}
 	}
@@ -133,10 +133,10 @@ func TestTheRingReportsWhatItActuallyReaches(t *testing.T) {
 // straight up, spanning the sweep. A single position sits at the top,
 // because one position is not a range.
 func TestPositionsSpanThePointersTravel(t *testing.T) {
-	if got := skirtAngles(1, 270); len(got) != 1 || got[0] != 0 {
+	if got := Angles(1, 270); len(got) != 1 || got[0] != 0 {
 		t.Errorf("one position at %v, want straight up", got)
 	}
-	got := skirtAngles(5, 270)
+	got := Angles(5, 270)
 	if len(got) != 5 {
 		t.Fatalf("got %d angles, want 5", len(got))
 	}
@@ -148,7 +148,7 @@ func TestPositionsSpanThePointersTravel(t *testing.T) {
 			t.Errorf("step %d is %v degrees, want an even 67.5", i, d)
 		}
 	}
-	if len(skirtAngles(0, 270)) != 0 {
+	if len(Angles(0, 270)) != 0 {
 		t.Error("no positions should give no angles")
 	}
 }
@@ -156,16 +156,16 @@ func TestPositionsSpanThePointersTravel(t *testing.T) {
 // ── helpers ──
 
 // ringOf is n labels of the given box size, spread over the pointer sweep.
-func ringOf(n int, w, h float64) []skirtLabel {
-	out := make([]skirtLabel, n)
-	for i, deg := range skirtAngles(n, knobSweepDeg) {
-		out[i] = skirtLabel{W: w, H: h, Deg: deg}
+func ringOf(n int, w, h float64) []Label {
+	out := make([]Label, n)
+	for i, deg := range Angles(n, SweepDeg) {
+		out[i] = Label{W: w, H: h, Deg: deg}
 	}
 	return out
 }
 
 // overlaps reports whether two labels' boxes intersect at this radius.
-func overlaps(r float64, a, b skirtLabel) bool {
+func overlaps(r float64, a, b Label) bool {
 	ax, ay := r*math.Sin(a.Deg*math.Pi/180), -r*math.Cos(a.Deg*math.Pi/180)
 	bx, by := r*math.Sin(b.Deg*math.Pi/180), -r*math.Cos(b.Deg*math.Pi/180)
 	return math.Abs(ax-bx) < (a.W+b.W)/2-1e-9 && math.Abs(ay-by) < (a.H+b.H)/2-1e-9
@@ -176,8 +176,8 @@ func overlaps(r float64, a, b skirtLabel) bool {
 // doing anything.
 func TestAWiderGapPushesTheSkirtOut(t *testing.T) {
 	labs := ringOf(6, 24, 10)
-	tight := skirtRadius(19, 1, labs)
-	loose := skirtRadius(19, 8, labs)
+	tight := Radius(19, 1, labs)
+	loose := Radius(19, 8, labs)
 	if loose <= tight {
 		t.Errorf("gap 8 gave radius %.2f, gap 1 gave %.2f — the gap is ignored", loose, tight)
 	}
@@ -190,8 +190,8 @@ func TestAWiderGapPushesTheSkirtOut(t *testing.T) {
 // positions into a narrower arc, which is a harder crowding problem, not an
 // easier one.
 func TestANarrowerSweepCrowdsThePositions(t *testing.T) {
-	wide := skirtAngles(5, 270)
-	narrow := skirtAngles(5, 90)
+	wide := Angles(5, 270)
+	narrow := Angles(5, 90)
 	if narrow[0] != -45 || narrow[4] != 45 {
 		t.Errorf("a 90 degree sweep runs %v..%v, want -45..45", narrow[0], narrow[4])
 	}
@@ -201,14 +201,14 @@ func TestANarrowerSweepCrowdsThePositions(t *testing.T) {
 		t.Errorf("the narrow sweep spans %v, the wide one %v", spanN, spanW)
 	}
 	// Crowded positions need a bigger radius to come apart on.
-	mk := func(angles []float64) []skirtLabel {
-		out := make([]skirtLabel, len(angles))
+	mk := func(angles []float64) []Label {
+		out := make([]Label, len(angles))
 		for i, d := range angles {
-			out[i] = skirtLabel{W: 30, H: 9, Deg: d}
+			out[i] = Label{W: 30, H: 9, Deg: d}
 		}
 		return out
 	}
-	if rN, rW := skirtRadius(19, 3, mk(narrow)), skirtRadius(19, 3, mk(wide)); rN <= rW {
+	if rN, rW := Radius(19, 3, mk(narrow)), Radius(19, 3, mk(wide)); rN <= rW {
 		t.Errorf("the crowded ring came out at %.2f, no bigger than the roomy one at %.2f", rN, rW)
 	}
 }
@@ -216,13 +216,13 @@ func TestANarrowerSweepCrowdsThePositions(t *testing.T) {
 // A taller label reaches further along the radius where the ring is near
 // vertical, which is the case a half-diagonal would get wrong.
 func TestATallerLabelReachesFurtherAtTheTop(t *testing.T) {
-	short := skirtRadialHalf(skirtLabel{W: 30, H: 8, Deg: 0})
-	tall := skirtRadialHalf(skirtLabel{W: 30, H: 20, Deg: 0})
+	short := radialHalf(Label{W: 30, H: 8, Deg: 0})
+	tall := radialHalf(Label{W: 30, H: 20, Deg: 0})
 	if tall <= short {
 		t.Errorf("at the top a 20px-tall label reaches %.2f and an 8px one %.2f", tall, short)
 	}
 	// And at the side it is the WIDTH that decides, not the height.
-	if got := skirtRadialHalf(skirtLabel{W: 30, H: 20, Deg: 90}); math.Abs(got-15) > 1e-9 {
+	if got := radialHalf(Label{W: 30, H: 20, Deg: 90}); math.Abs(got-15) > 1e-9 {
 		t.Errorf("at the side the reach is %.2f, want half the width, 15", got)
 	}
 }
@@ -231,9 +231,9 @@ func TestATallerLabelReachesFurtherAtTheTop(t *testing.T) {
 // shrink a knob that had no problem.
 func TestAFittingRingIsNotTouched(t *testing.T) {
 	labs := ringOf(4, 14, 9)
-	r := skirtRadius(19, 3, labs)
-	room := skirtOuter(r, labs) + 5 // more room than it needs
-	g, s := skirtFit(19, 19*skirtMinGripFrac, 3, room, labs)
+	r := Radius(19, 3, labs)
+	room := Outer(r, labs) + 5 // more room than it needs
+	g, s := Fit(19, 19*MinGripFrac, 3, room, labs)
 	if g != 19 || s != 1 {
 		t.Errorf("a ring with room to spare came back grip %.2f scale %.2f, want 19 and 1", g, s)
 	}
@@ -245,7 +245,7 @@ func TestAFittingRingIsNotTouched(t *testing.T) {
 func TestAnUnmeasuredCellShrinksNothing(t *testing.T) {
 	labs := ringOf(6, 30, 9)
 	for _, room := range []float64{0, -1} {
-		if g, s := skirtFit(19, 19*skirtMinGripFrac, 3, room, labs); g != 19 || s != 1 {
+		if g, s := Fit(19, 19*MinGripFrac, 3, room, labs); g != 19 || s != 1 {
 			t.Errorf("maxOuter %v gave grip %.2f scale %.2f, want the natural 19 and 1", room, g, s)
 		}
 	}
@@ -257,17 +257,17 @@ func TestAnUnmeasuredCellShrinksNothing(t *testing.T) {
 // be the part that gives.
 func TestTheGripGivesBeforeTheLegendDoes(t *testing.T) {
 	labs := ringOf(5, 26, 9)
-	natural := skirtOuter(skirtRadius(19, 3, labs), labs)
+	natural := Outer(Radius(19, 3, labs), labs)
 	// Just short of what it wants: reachable by shrinking the grip alone.
-	g, s := skirtFit(19, 19*skirtMinGripFrac, 3, natural-3, labs)
+	g, s := Fit(19, 19*MinGripFrac, 3, natural-3, labs)
 	if s != 1 {
 		t.Errorf("the legend was scaled to %.2f when a smaller grip would have done", s)
 	}
 	if g >= 19 {
 		t.Errorf("the grip did not shrink: %.2f", g)
 	}
-	sc := skirtScaleLabels(labs, s)
-	if got := skirtOuter(skirtRadius(g, 3, sc), sc); got > natural-3 {
+	sc := ScaleLabels(labs, s)
+	if got := Outer(Radius(g, 3, sc), sc); got > natural-3 {
 		t.Errorf("it still reaches %.2f, past the %.2f it was given", got, natural-3)
 	}
 }
@@ -280,15 +280,15 @@ func TestATightCellShrinksTheLegendAndFits(t *testing.T) {
 	// are spent and it overhangs, which is what TestTheLeversHaveFloors
 	// covers.)
 	room := 45.0
-	g, s := skirtFit(19, 19*skirtMinGripFrac, 3, room, labs)
+	g, s := Fit(19, 19*MinGripFrac, 3, room, labs)
 	if s >= 1 {
 		t.Errorf("the legend was not scaled: %.2f", s)
 	}
-	if g > 19*skirtMinGripFrac+1e-9 {
+	if g > 19*MinGripFrac+1e-9 {
 		t.Errorf("the legend shrank before the grip was spent (grip %.2f)", g)
 	}
-	sc := skirtScaleLabels(labs, s)
-	if got := skirtOuter(skirtRadius(g, 3, sc), sc); got > room {
+	sc := ScaleLabels(labs, s)
+	if got := Outer(Radius(g, 3, sc), sc); got > room {
 		t.Errorf("after fitting it still reaches %.2f, past %.2f", got, room)
 	}
 }
@@ -296,11 +296,11 @@ func TestATightCellShrinksTheLegendAndFits(t *testing.T) {
 // Neither lever may run away: a cell far too small still leaves a knob you
 // can grip and type you can read, overhanging rather than vanishing.
 func TestTheLeversHaveFloors(t *testing.T) {
-	g, s := skirtFit(19, 19*skirtMinGripFrac, 3, 1, ringOf(9, 40, 9))
-	if g < 19*skirtMinGripFrac-1e-9 {
+	g, s := Fit(19, 19*MinGripFrac, 3, 1, ringOf(9, 40, 9))
+	if g < 19*MinGripFrac-1e-9 {
 		t.Errorf("the grip went below its floor: %.2f", g)
 	}
-	if s < skirtMinLabelScale-1e-9 {
+	if s < minLabelScale-1e-9 {
 		t.Errorf("the legend went below its floor: %.2f", s)
 	}
 }
@@ -309,7 +309,7 @@ func TestTheLeversHaveFloors(t *testing.T) {
 // in smaller type is at the same position on the dial, not a different one.
 func TestScalingALegendKeepsItsPosition(t *testing.T) {
 	labs := ringOf(4, 20, 10)
-	got := skirtScaleLabels(labs, 0.5)
+	got := ScaleLabels(labs, 0.5)
 	for i := range labs {
 		if got[i].Deg != labs[i].Deg {
 			t.Errorf("label %d moved from %v to %v", i, labs[i].Deg, got[i].Deg)
@@ -326,10 +326,10 @@ func TestScalingALegendKeepsItsPosition(t *testing.T) {
 // more of itself than a small one would.
 func TestABiggerGripGivesUpMoreRoom(t *testing.T) {
 	labs := ringOf(5, 26, 9)
-	room := skirtOuter(skirtRadius(19, 3, labs), labs) - 2
+	room := Outer(Radius(19, 3, labs), labs) - 2
 
-	small, _ := skirtFit(19, 19*skirtMinGripFrac, 3, room, labs)
-	big, _ := skirtFit(30, 30*skirtMinGripFrac, 3, room, labs)
+	small, _ := Fit(19, 19*MinGripFrac, 3, room, labs)
+	big, _ := Fit(30, 30*MinGripFrac, 3, room, labs)
 	if small >= 19 {
 		t.Errorf("the 19px grip did not shrink at all: %.2f", small)
 	}
@@ -342,23 +342,23 @@ func TestABiggerGripGivesUpMoreRoom(t *testing.T) {
 	// The small grip had enough to give and actually fits. The big one is at
 	// its floor here and still overhangs slightly, which is the documented
 	// outcome when both levers are spent — see TestTheLeversHaveFloors.
-	if got := skirtOuter(skirtRadius(small, 3, labs), labs); got > room+1e-9 {
+	if got := Outer(Radius(small, 3, labs), labs); got > room+1e-9 {
 		t.Errorf("the small grip still reaches %.2f, past %.2f", got, room)
 	}
-	if big > 30*skirtMinGripFrac+1e-9 {
+	if big > 30*MinGripFrac+1e-9 {
 		t.Errorf("the big grip stopped at %.2f without reaching its floor", big)
 	}
 }
 
-// The gap is a parameter for the same reason skirtRadius takes one: it is a
+// The gap is a parameter for the same reason Radius takes one: it is a
 // design choice. A wider gap between grip and legend spends room the ring
 // needed, so fitting the same ring in the same cell costs the grip more.
 func TestAWiderGapCostsTheGripMore(t *testing.T) {
 	labs := ringOf(5, 26, 9)
-	room := skirtOuter(skirtRadius(19, 1, labs), labs)
+	room := Outer(Radius(19, 1, labs), labs)
 
-	tight, _ := skirtFit(19, 19*skirtMinGripFrac, 1, room, labs)
-	loose, _ := skirtFit(19, 19*skirtMinGripFrac, 8, room, labs)
+	tight, _ := Fit(19, 19*MinGripFrac, 1, room, labs)
+	loose, _ := Fit(19, 19*MinGripFrac, 8, room, labs)
 	if tight != 19 {
 		t.Errorf("at the gap it was measured with, the grip shrank to %.2f", tight)
 	}
@@ -375,17 +375,17 @@ func TestAWiderGapCostsTheGripMore(t *testing.T) {
 func TestARingWithNoGripUnderItKeepsItsClearance(t *testing.T) {
 	labs := ringOf(5, 26, 9)
 	clear := 40.0 // the inner ring's outer edge, not a knob
-	room := skirtOuter(skirtRadius(clear, 3, labs), labs) - 4
+	room := Outer(Radius(clear, 3, labs), labs) - 4
 
-	g, s := skirtFit(clear, clear, 3, room, labs)
+	g, s := Fit(clear, clear, 3, room, labs)
 	if g != clear {
 		t.Errorf("clearance moved from %.2f to %.2f with no grip to shrink", clear, g)
 	}
 	if s >= 1 {
 		t.Errorf("the legend did not take the reduction: scale %.2f", s)
 	}
-	sc := skirtScaleLabels(labs, s)
-	if got := skirtOuter(skirtRadius(g, 3, sc), sc); got > room+1e-9 {
+	sc := ScaleLabels(labs, s)
+	if got := Outer(Radius(g, 3, sc), sc); got > room+1e-9 {
 		t.Errorf("it still reaches %.2f, past the %.2f it was given", got, room)
 	}
 }
@@ -394,8 +394,8 @@ func TestARingWithNoGripUnderItKeepsItsClearance(t *testing.T) {
 // GROW. It is clamped, which is the same as saying the grip cannot move.
 func TestAnImpossibleFloorIsClamped(t *testing.T) {
 	labs := ringOf(4, 22, 9)
-	room := skirtOuter(skirtRadius(19, 3, labs), labs) - 2
-	if g, _ := skirtFit(19, 40, 3, room, labs); g > 19 {
+	room := Outer(Radius(19, 3, labs), labs) - 2
+	if g, _ := Fit(19, 40, 3, room, labs); g > 19 {
 		t.Errorf("a floor above the grip grew it to %.2f", g)
 	}
 }
