@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"strconv"
 	"syscall/js"
 )
@@ -19,7 +20,7 @@ var (
 	morphSysKnob float32 = 3 // catalog position the sys knob requests (3 = D)
 	morphRate    float32 = 3 // self-programming speed, systems/minute
 
-	morphSystems []sprottMorphSys
+	morphSystems []dynamics.SprottMorphSys
 	morphM       float64 = 3 // live catalog position (knob + auto-advance)
 	morphKnobPrv float32 = 3
 	morphSX      float64
@@ -37,7 +38,7 @@ var (
 // with a guard that reseeds onto the blend's home IC when the trajectory has
 // stopped being one — because it ran away, or because it is standing still.
 func morphStep(c *[30]float64, dt float64) {
-	dx, dy, dz := evalQuad(c, morphSX, morphSY, morphSZ)
+	dx, dy, dz := dynamics.EvalQuad(c, morphSX, morphSY, morphSZ)
 	// STANDING STILL IS AS DEAD AS DIVERGING, and only the second was caught.
 	//
 	// The state starts at the origin, which most of these systems have as an
@@ -77,7 +78,7 @@ func morphReseed() {
 	if i < 0 {
 		i = 0
 	}
-	ic := morphSystems[i].ic
+	ic := morphSystems[i].IC
 	morphSX = float64(ic[0]) + 0.01*jamRand()
 	morphSY = float64(ic[1]) + 0.01*jamRand()
 	morphSZ = float64(ic[2]) + 0.01*jamRand()
@@ -87,7 +88,7 @@ func morphReseed() {
 // keeps the PATCH readout current.
 func generateSprottMorph() {
 	if morphSystems == nil {
-		morphSystems = sprottMorphSystems()
+		morphSystems = dynamics.SprottMorphSystems()
 	}
 	// The sys knob seizes the position when the user moves it; otherwise the
 	// machine advances itself at the rate knob's systems-per-minute.
@@ -103,7 +104,7 @@ func generateSprottMorph() {
 	for morphM >= float64(len(morphSystems)) {
 		morphM -= float64(len(morphSystems))
 	}
-	c, dt, i, j, frac := morphBlend(morphSystems, morphM)
+	c, dt, i, j, frac := dynamics.SprottMorphBlend(morphSystems, morphM)
 	if len(morphRing) != steps*3 {
 		morphRing = make([]float64, steps*3)
 		morphHead, morphFill = 0, 0
@@ -142,9 +143,9 @@ func generateSprottMorph() {
 	morphTick++
 	if morphLED.Truthy() && morphTick%10 == 0 {
 		// A dash, not an arrow — the DSEG LED font has no → glyph.
-		txt := morphSystems[i].letter
+		txt := morphSystems[i].Letter
 		if frac >= 0.005 {
-			txt += "-" + morphSystems[j].letter + " " + strconv.Itoa(int(frac*100+0.5)) + "%"
+			txt += "-" + morphSystems[j].Letter + " " + strconv.Itoa(int(frac*100+0.5)) + "%"
 		}
 		morphLED.Set("textContent", txt)
 	}
@@ -169,12 +170,12 @@ func syncSprottMorphExtras(mode string) {
 	if !morphActive {
 		morphActive = true
 		if morphSystems == nil {
-			morphSystems = sprottMorphSystems()
+			morphSystems = dynamics.SprottMorphSystems()
 		}
 		morphM = float64(morphSysKnob)
-		c, dt, _, _, _ := morphBlend(morphSystems, morphM)
+		c, dt, _, _, _ := dynamics.SprottMorphBlend(morphSystems, morphM)
 		i := int(morphM) % len(morphSystems)
-		ic := morphSystems[i].ic
+		ic := morphSystems[i].IC
 		morphSX, morphSY, morphSZ = float64(ic[0]), float64(ic[1]), float64(ic[2])
 		morphRing = make([]float64, steps*3)
 		ext := 0.0

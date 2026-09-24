@@ -1,4 +1,4 @@
-package attractor
+package dynamics
 
 import (
 	"math"
@@ -18,7 +18,7 @@ import (
 // TestSprottCatalogDefaultsAreChaotic — but a fixed point is not an attractor
 // at any tolerance.
 func TestSprottMorphMovesAtEveryPosition(t *testing.T) {
-	sys := sprottMorphSystems()
+	sys := SprottMorphSystems()
 	if len(sys) == 0 {
 		t.Fatal("no morph systems")
 	}
@@ -32,7 +32,7 @@ func TestSprottMorphMovesAtEveryPosition(t *testing.T) {
 		if span := math.Max(x, math.Max(y, z)); span < 1e-6 {
 			i, _, _, _, _ := morphBlendAt(sys, m)
 			t.Errorf("m=%.1f (%s): the trajectory spans %g — it is a fixed point, not an attractor",
-				m, sys[i].letter, span)
+				m, sys[i].Letter, span)
 		}
 	}
 }
@@ -40,7 +40,7 @@ func TestSprottMorphMovesAtEveryPosition(t *testing.T) {
 // The default the panel comes up on, called out separately: this is the one a
 // user sees without touching anything.
 func TestSprottMorphDefaultIsNotAFixedPoint(t *testing.T) {
-	sys := sprottMorphSystems()
+	sys := SprottMorphSystems()
 	const def = 3 // paramdefs_js.go: smorph-sys defaults to 3
 	x, y, z, ok := morphRun(sys, def, 4000)
 	if !ok {
@@ -57,19 +57,19 @@ func TestSprottMorphDefaultIsNotAFixedPoint(t *testing.T) {
 // Starting from zero is the point. Seeding it with the system's own IC here
 // would test a trajectory the app never runs, and would have passed happily
 // while the app sat on the origin.
-func morphRun(sys []sprottMorphSys, m float64, steps int) (sx, sy, sz float64, ok bool) {
-	c, dt, _, _, _ := morphBlend(sys, m)
+func morphRun(sys []SprottMorphSys, m float64, steps int) (sx, sy, sz float64, ok bool) {
+	c, dt, _, _, _ := SprottMorphBlend(sys, m)
 	var x, y, z float64
 	reseed := func() {
 		i := int(m) % len(sys)
-		x = float64(sys[i].ic[0]) + 0.01
-		y = float64(sys[i].ic[1]) + 0.01
-		z = float64(sys[i].ic[2]) + 0.01
+		x = float64(sys[i].IC[0]) + 0.01
+		y = float64(sys[i].IC[1]) + 0.01
+		z = float64(sys[i].IC[2]) + 0.01
 	}
 	minv := [3]float64{math.Inf(1), math.Inf(1), math.Inf(1)}
 	maxv := [3]float64{math.Inf(-1), math.Inf(-1), math.Inf(-1)}
 	for s := 0; s < steps; s++ {
-		dx, dy, dz := evalQuad(&c, x, y, z)
+		dx, dy, dz := EvalQuad(&c, x, y, z)
 		if dx == 0 && dy == 0 && dz == 0 {
 			reseed()
 			continue
@@ -98,8 +98,8 @@ func morphRun(sys []sprottMorphSys, m float64, steps int) (sx, sy, sz float64, o
 	return maxv[0] - minv[0], maxv[1] - minv[1], maxv[2] - minv[2], true
 }
 
-// morphBlendAt is morphBlend with the indices first, for a message.
-func morphBlendAt(sys []sprottMorphSys, m float64) (i, j int, frac, dt float64, n int) {
-	_, d, a, b, f := morphBlend(sys, m)
+// morphBlendAt is SprottMorphBlend with the indices first, for a message.
+func morphBlendAt(sys []SprottMorphSys, m float64) (i, j int, frac, dt float64, n int) {
+	_, d, a, b, f := SprottMorphBlend(sys, m)
 	return a, b, f, d, len(sys)
 }
