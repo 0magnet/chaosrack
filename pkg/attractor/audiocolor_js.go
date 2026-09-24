@@ -373,7 +373,7 @@ const gradientSourceAudio = 4
 // a saved view carrying gs=4&gc=5 did, and it is why this mode was reported as
 // showing nothing at all.
 //
-// The walk mirrors generateStereo: source point k sits at tau + k*stride in the
+// The walk mirrors stereoInst.generate: source point k sits at tau + k*stride in the
 // snapshot, which is where the plan's undelayed axes read from. The delayed
 // axes reach back from there, as Takens' do, and the color follows the trail
 // position rather than any one axis.
@@ -390,7 +390,7 @@ func (a *audioColor) stereoColorWindow() ([]float32, int) {
 		return nil, 0
 	}
 	span := (n-1)*stride + tau
-	// generateStereo's own indexing: the left channel starts at baseL, which is
+	// stereoInst.generate's own indexing: the left channel starts at baseL, which is
 	// the ALIGN offset when right is the channel being pulled back. Reading from
 	// 0 instead would color the trail with audio from a different moment than the
 	// trail was drawn from, which is the shift this whole walk exists to avoid.
@@ -488,7 +488,7 @@ func shortTimeLevels(w []float32, out []float32) {
 // The single-channel version returns left alone, which is all a centroid or
 // a level needs. Correlation, side, balance and position are about the
 // relationship between the two, so they need the pair — read from their own
-// bases, the same ALIGN-aware indexing generateStereo draws from, or the
+// bases, the same ALIGN-aware indexing stereoInst.generate draws from, or the
 // color would describe a different moment than the geometry under it.
 //
 // Only the stereo mode has two channels to walk; everything else gets nil
