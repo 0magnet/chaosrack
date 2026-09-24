@@ -41,7 +41,7 @@ var (
 func cssClasses(t *testing.T) map[string]bool {
 	t.Helper()
 	out := map[string]bool{}
-	for _, block := range strings.Split(readPanelCSS(t), "}") {
+	for block := range strings.SplitSeq(readPanelCSS(t), "}") {
 		sel, _, ok := strings.Cut(block, "{")
 		if !ok {
 			continue
@@ -59,7 +59,7 @@ func goClasses(t *testing.T) map[string]bool {
 	for _, src := range panelGoSources(t) {
 		for _, m := range goClassRe.FindAllStringSubmatch(src, -1) {
 			for _, g := range m[1:] {
-				for _, c := range strings.Fields(g) {
+				for c := range strings.FieldsSeq(g) {
 					if classNameRe.MatchString(c) {
 						out[c] = true
 					}

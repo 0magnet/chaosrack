@@ -662,12 +662,12 @@ func (s *stereoInst) generate() {
 	}
 	invN := float32(1) / float32(nv-1)
 	sm := takensSmooth()
-	for m := 0; m < nv; m++ {
+	for m := range nv {
 		i := m / sm
 		f := float32(m%sm) / float32(sm)
 		j := m * 4
 		w := float32(m) * invN
-		for c := 0; c < 3; c++ {
+		for c := range 3 {
 			if plan.ch[c] == chTime {
 				// Straight from the vertex index, not through the spline. A
 				// Catmull-Rom through equally spaced collinear points returns
@@ -750,13 +750,13 @@ func stereoCorrelation(l, r []float32) (float32, bool) {
 		return 0, false
 	}
 	var sl, sr float64
-	for i := 0; i < n; i++ {
+	for i := range n {
 		sl += float64(l[i])
 		sr += float64(r[i])
 	}
 	ml, mr := sl/float64(n), sr/float64(n)
 	var sll, srr, slr float64
-	for i := 0; i < n; i++ {
+	for i := range n {
 		a := float64(l[i]) - ml
 		b := float64(r[i]) - mr
 		sll += a * a
@@ -1153,7 +1153,7 @@ func (s *stereoInst) buildTrigSignal(l, r []float32, baseL, baseR, tau, n, sr in
 	if m := len(r) - 1; m < last {
 		last = m
 	}
-	for off := 0; off < n; off++ {
+	for off := range n {
 		i := tau + off
 		if baseL+i > last {
 			i = last - baseL
@@ -1334,7 +1334,7 @@ func lockOffset(cur, prev []float32, margin, decim int) (int, bool) {
 	best, bestOff := -2.0, margin
 	for off := margin; off >= 0; off -= lockStep {
 		var dot, curNorm float64
-		for i := 0; i < n; i++ {
+		for i := range n {
 			c := float64(cur[off+i*decim])
 			dot += c * float64(prev[i])
 			curNorm += c * c
@@ -1375,10 +1375,7 @@ func (s *stereoInst) sampleLockWave(trig []float32, off, decim int) {
 // lockDecim spreads lockPoints over the window, so the comparison covers
 // what is drawn rather than a sliver at the start of it.
 func lockDecim(span int) int {
-	d := span / lockPoints
-	if d < 1 {
-		d = 1
-	}
+	d := max(span/lockPoints, 1)
 	return d
 }
 

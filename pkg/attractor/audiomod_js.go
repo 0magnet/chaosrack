@@ -340,7 +340,7 @@ func buildModUnit(id, label string) js.Value {
 		}
 		sel.Call("appendChild", opt)
 	}
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		m := pmod.params[id]
 		m.channel = sel.Get("value").String()
 		pmod.params[id] = m
@@ -367,7 +367,7 @@ func buildModUnit(id, label string) js.Value {
 	lvlNum.Set("value", led.Format(float64(cur.level), 1, 2, true))
 	lvlNum.Set("title", "Mod depth for "+label+" (± inverts, 0 = off; ~1.5+ overdrives)")
 	lvlNum.Set("className", "numin u-modval")
-	lvl.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	lvl.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		if v, err := strconv.ParseFloat(lvl.Get("value").String(), 32); err == nil {
 			if v > -0.005 && v < 0.005 {
 				v = 0
@@ -379,7 +379,7 @@ func buildModUnit(id, label string) js.Value {
 		}
 		return nil
 	}))
-	lvlNum.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	lvlNum.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		if v, err := strconv.ParseFloat(lvlNum.Get("value").String(), 32); err == nil {
 			m := pmod.params[id]
 			m.level = float32(v)
@@ -419,7 +419,7 @@ func makeEQStrip(id string) js.Value {
 	wrap.Set("title", "EQ for "+id+" — drag to pick which frequency bands (low→high) drive the "+id+" parameter")
 
 	fills := make([]js.Value, numEQBands)
-	for i := 0; i < numEQBands; i++ {
+	for i := range numEQBands {
 		bar := dom.Doc.Call("createElement", "div")
 		bar.Set("className", "eqbar")
 		fill := dom.Doc.Call("createElement", "div")
@@ -464,20 +464,20 @@ func makeEQStrip(id string) js.Value {
 		render()
 	}
 	dragging := false
-	wrap.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	wrap.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		a[0].Call("preventDefault")
 		a[0].Call("stopPropagation")
 		dragging = true
 		apply(a[0])
 		return nil
 	}))
-	wrap.Call("addEventListener", "pointermove", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	wrap.Call("addEventListener", "pointermove", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		if dragging {
 			apply(a[0])
 		}
 		return nil
 	}))
-	stop := dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	stop := dom.FuncOf(func(this js.Value, a []js.Value) any {
 		if dragging {
 			dragging = false
 			perma.syncPermalinkNow()

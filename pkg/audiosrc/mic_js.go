@@ -85,8 +85,8 @@ func NewMic(opts MicOptions) Source {
 		m.err = errors.New("navigator.mediaDevices unavailable (need https or localhost)")
 		return m
 	}
-	constraints := map[string]interface{}{
-		"audio": map[string]interface{}{
+	constraints := map[string]any{
+		"audio": map[string]any{
 			"channelCount":     boolTernary(opts.Stereo, 2, 1),
 			"echoCancellation": false,
 			"noiseSuppression": false,
@@ -145,7 +145,7 @@ type micSource struct {
 	closed     bool
 }
 
-func (m *micSource) onStream(_ js.Value, args []js.Value) interface{} {
+func (m *micSource) onStream(_ js.Value, args []js.Value) any {
 	if m.closed {
 		if len(args) > 0 {
 			stopTracks(args[0])
@@ -208,7 +208,7 @@ func (m *micSource) onStream(_ js.Value, args []js.Value) interface{} {
 
 // handleProcess pulls one buffer of input samples per channel into the
 // rings. Runs on the JS main thread, serialized with the render loop.
-func (m *micSource) handleProcess(_ js.Value, args []js.Value) interface{} {
+func (m *micSource) handleProcess(_ js.Value, args []js.Value) any {
 	if m.closed || len(args) == 0 {
 		return nil
 	}
@@ -236,7 +236,7 @@ func (m *micSource) pullChannel(inBuf js.Value, ch int, r *ring) {
 	r.write(samples)
 }
 
-func (m *micSource) onError(_ js.Value, args []js.Value) interface{} {
+func (m *micSource) onError(_ js.Value, args []js.Value) any {
 	msg := "mic permission denied"
 	if len(args) > 0 {
 		if name := args[0].Get("name"); !name.IsUndefined() {
@@ -327,7 +327,7 @@ func stopTracks(stream js.Value) {
 	}
 	tracks := stream.Call("getTracks")
 	n := tracks.Length()
-	for i := 0; i < n; i++ {
+	for i := range n {
 		tracks.Index(i).Call("stop")
 	}
 }

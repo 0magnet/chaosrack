@@ -203,10 +203,7 @@ func (m *LoudnessMeter) Reset(sampleRate int) {
 	}
 	m.acc = [2]float64{}
 	m.accN = 0
-	m.blockLen = sampleRate * stepMS / 1000
-	if m.blockLen < 1 {
-		m.blockLen = 1
-	}
+	m.blockLen = max(sampleRate*stepMS/1000, 1)
 	m.blocks = m.blocks[:0]
 	m.truePeak = 0
 }
@@ -492,10 +489,7 @@ func TruePeak(x []float32) float64 {
 	gain := truePeakMaxGain()
 	n := len(x)
 	for b0 := truePeakTaps; b0 < n-truePeakTaps; b0 += truePeakBlock {
-		b1 := b0 + truePeakBlock
-		if b1 > n-truePeakTaps {
-			b1 = n - truePeakTaps
-		}
+		b1 := min(b0+truePeakBlock, n-truePeakTaps)
 		reach := 0.0
 		for _, v := range x[b0-truePeakTaps : b1+truePeakTaps] {
 			if a := math.Abs(float64(v)); a > reach {

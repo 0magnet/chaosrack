@@ -11,7 +11,7 @@ import "testing"
 func TestCryptoRandIntnStaysInRange(t *testing.T) {
 	for _, max := range []int{1, 2, 5, 6, 57, 256, 1000} {
 		seen := make(map[int]bool)
-		for i := 0; i < 20000; i++ {
+		for i := range 20000 {
 			got, err := cryptoRandIntn(max)
 			if err != nil {
 				t.Fatalf("max=%d: %v", max, err)

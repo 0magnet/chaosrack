@@ -82,10 +82,7 @@ func (sp *sprottMorph) reseed() {
 	if len(sp.systems) == 0 {
 		return
 	}
-	i := int(sp.m) % len(sp.systems)
-	if i < 0 {
-		i = 0
-	}
+	i := max(int(sp.m)%len(sp.systems), 0)
 	ic := sp.systems[i].IC
 	sp.sx = float64(ic[0]) + 0.01*jamRand()
 	sp.sy = float64(ic[1]) + 0.01*jamRand()
@@ -104,10 +101,7 @@ func (sp *sprottMorph) generateSprottMorph() {
 		sp.knobPrv = sp.sysKnob
 		sp.m = float64(sp.sysKnob)
 	}
-	n := sim.speedSteps
-	if n < 1 {
-		n = 1
-	}
+	n := max(sim.speedSteps, 1)
 	sp.m += float64(sp.rate) / 60 / 60 * float64(n) * float64(sim.speedScale)
 	for sp.m >= float64(len(sp.systems)) {
 		sp.m -= float64(len(sp.systems))

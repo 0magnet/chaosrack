@@ -32,7 +32,7 @@ func buildControlHeap(mb, objects int) {
 	per := (mb << 20) / objects
 	cpHeap = make([]*cpObject, 0, objects)
 	var prev *cpObject
-	for i := 0; i < objects; i++ {
+	for i := range objects {
 		o := &cpObject{
 			name: "control " + strconv.Itoa(i),
 			kind: "knob",
@@ -106,7 +106,7 @@ func StartControl(heapMB, heapObjects int) {
 		val.Get("style").Set("cssText", "width:44px;text-align:right;opacity:.7")
 
 		spec := k
-		inp.Call("addEventListener", "input", js.FuncOf(func(this js.Value, _ []js.Value) interface{} {
+		inp.Call("addEventListener", "input", js.FuncOf(func(this js.Value, _ []js.Value) any {
 			f, err := strconv.ParseFloat(this.Get("value").String(), 64)
 			if err != nil {
 				return nil
@@ -133,7 +133,7 @@ func StartControl(heapMB, heapObjects int) {
 	box := doc.Call("createElement", "input")
 	box.Set("type", "checkbox")
 	box.Set("checked", Defaults[PAuto] >= 0.5)
-	box.Call("addEventListener", "change", js.FuncOf(func(this js.Value, _ []js.Value) interface{} {
+	box.Call("addEventListener", "change", js.FuncOf(func(this js.Value, _ []js.Value) any {
 		v := float64(0)
 		if this.Get("checked").Bool() {
 			v = 1

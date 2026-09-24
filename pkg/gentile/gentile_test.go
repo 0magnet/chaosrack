@@ -26,7 +26,7 @@ func shape(m Module) string {
 		}
 	}
 	var rows []string
-	for r := 0; r < modRows; r++ {
+	for r := range modRows {
 		rows = append(rows, string(cell[r*m.Cols:(r+1)*m.Cols]))
 	}
 	return strings.Join(rows, "\n")
@@ -238,7 +238,7 @@ func TestAPanelFitsItsBay(t *testing.T) {
 // would be nineteen units a knob wide.
 func TestSingleKnobGeneratorsShareAColumn(t *testing.T) {
 	var gens []Spec
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		gens = append(gens, Spec{Mode: fmt.Sprintf("seed%d", i), Constants: 1})
 	}
 	mods := Pack(gens, 9)

@@ -212,7 +212,7 @@ func StartRenderer() {
 		canvas.Set("height", r.height)
 		gl.Call("viewport", 0, 0, r.width, r.height)
 	}
-	js.Global().Call("addEventListener", "resize", js.FuncOf(func(js.Value, []js.Value) interface{} {
+	js.Global().Call("addEventListener", "resize", js.FuncOf(func(js.Value, []js.Value) any {
 		resize()
 		return nil
 	}))
@@ -228,7 +228,7 @@ func StartRenderer() {
 	mjU8 := js.Global().Get("Uint8Array").New(mj.Get("buffer"))
 
 	allocKB := frameAllocKBFromQuery()
-	r.frameFn = js.FuncOf(func(_ js.Value, args []js.Value) interface{} {
+	r.frameFn = js.FuncOf(func(_ js.Value, args []js.Value) any {
 		allocFrame(allocKB / 2)
 		allocFragmented(allocKB / 2)
 		r.readParams()

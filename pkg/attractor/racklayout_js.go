@@ -126,7 +126,7 @@ func wireConsoleModuleSwitchSaves() {
 		if !sw.Truthy() {
 			continue
 		}
-		sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+		sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
 			saveRackLayout()
 			return nil
 		}))

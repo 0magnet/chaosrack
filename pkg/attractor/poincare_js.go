@@ -244,7 +244,7 @@ func (p *poincareSection) seed(mode string, sys dynamics.FlowSys4, dt float64) {
 	ax := p.axis()
 	lo, hi := 0.0, 0.0
 	measured := false
-	for i := 0; i < sectTransient; i++ {
+	for i := range sectTransient {
 		adv(&p.state)
 		if twinDiverged(p.state) {
 			p.state = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W0}
@@ -281,7 +281,7 @@ func (p *poincareSection) advance(mode string, sys dynamics.FlowSys4, dt float64
 	dir := p.direction()
 	ic := dynamics.InitCondFor(mode)
 	sc := sys.Scale
-	for i := 0; i < n; i++ {
+	for range n {
 		prev := p.state
 		adv(&p.state)
 		if twinDiverged(p.state) {
@@ -370,7 +370,7 @@ func (p *poincareSection) fillNewest(v []float32, get func(analysis.PoincareHit)
 	if n > 1 {
 		inv = 1 / float32(n-1)
 	}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		x, y, z := get(p.log.At(base + i))
 		j := i * 4
 		v[j], v[j+1], v[j+2] = x, y, z

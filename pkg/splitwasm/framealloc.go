@@ -35,7 +35,7 @@ func allocFrame(kb int) {
 	n := kb * 1024 / 64
 	junkSink = make([]*frameJunk, 0, n)
 	var prev *frameJunk
-	for i := 0; i < n; i++ {
+	for range n {
 		o := &frameJunk{tag: "frame", refs: make([]*frameJunk, 4)}
 		o.refs[0] = prev
 		junkSink = append(junkSink, o)
@@ -85,10 +85,7 @@ func allocFragmented(kb int) {
 		fragSeed ^= fragSeed << 13
 		fragSeed ^= fragSeed >> 17
 		fragSeed ^= fragSeed << 5
-		sz := int(fragSeed%8192) + 16
-		if sz > remaining {
-			sz = remaining
-		}
+		sz := min(int(fragSeed%8192)+16, remaining)
 		b := make([]byte, sz)
 		b[0] = byte(sz) //nolint:gosec // G115: sz is 16..8207 and the byte is only touched so the allocation is not optimized away; the value is never read
 		fragSink = append(fragSink, b)

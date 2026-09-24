@@ -65,7 +65,7 @@ func TestTypedHenonMatchesBuiltinIterates(t *testing.T) {
 	}
 	ref, ic := builtin.Step, builtin.IC
 	a, b := ic, ic
-	for i := 0; i < 25; i++ {
+	for i := range 25 {
 		a[0], a[1], a[2] = ref(a[0], a[1], a[2])
 		b[0], b[1], b[2] = typed(b[0], b[1], b[2])
 		for k := range a {
@@ -85,11 +85,11 @@ func TestTypedHenonDrawsTheSameAttractor(t *testing.T) {
 
 	extent := func(step dynamics.MapStep, from [3]float64) [4]float64 {
 		p := from
-		for i := 0; i < 20000; i++ { // transient
+		for range 20000 { // transient
 			p[0], p[1], p[2] = step(p[0], p[1], p[2])
 		}
 		box := [4]float64{math.Inf(1), math.Inf(-1), math.Inf(1), math.Inf(-1)}
-		for i := 0; i < 200000; i++ {
+		for range 200000 {
 			p[0], p[1], p[2] = step(p[0], p[1], p[2])
 			box[0], box[1] = math.Min(box[0], p[0]), math.Max(box[1], p[0])
 			box[2], box[3] = math.Min(box[2], p[1]), math.Max(box[3], p[1])

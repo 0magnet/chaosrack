@@ -51,14 +51,14 @@ func wireRowMonitors() {
 		rowMonPower[id] = p
 		if sw := dom.Doc.Call("getElementById", id); sw.Truthy() {
 			key := id
-			sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+			sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
 				p.invalidate()
 				rowMonBlanked[key] = false
 				return nil
 			}))
 		}
 	}
-	tick := dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	tick := dom.FuncOf(func(js.Value, []js.Value) any {
 		drawRowMonitors()
 		return nil
 	})

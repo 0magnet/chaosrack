@@ -119,7 +119,7 @@ func TestPutPresetRefusesEmpty(t *testing.T) {
 // At the cap the OLDEST goes, so the Save the user just pressed always takes.
 func TestPutPresetCapDropsTheOldest(t *testing.T) {
 	var ps List
-	for i := 0; i < maxPresets+3; i++ {
+	for i := range maxPresets + 3 {
 		ps = ps.Put("p"+strconv.Itoa(i), "s"+strconv.Itoa(i))
 	}
 	if len(ps) != maxPresets {

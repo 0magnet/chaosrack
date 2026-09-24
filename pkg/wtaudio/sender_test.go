@@ -81,7 +81,7 @@ func TestSenderAdvancesTheMessageID(t *testing.T) {
 	conn := &fakeConn{}
 	s := NewSender(conn, 0)
 	const chunks = 5
-	for i := 0; i < chunks; i++ {
+	for range chunks {
 		if err := s.Send(samples(2400)); err != nil {
 			t.Fatal(err)
 		}

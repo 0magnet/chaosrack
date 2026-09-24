@@ -96,7 +96,7 @@ func buildTemplateModule() {
 	vled.Set("type", "text")
 	vled.Set("value", "05.0")
 	vled.Set("title", "readout — the value LED (.numin.u-val); format = Control.ledInt / ledDec / ledSign")
-	vslider.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	vslider.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		if v, err := strconv.ParseFloat(vslider.Get("value").String(), 64); err == nil {
 			tplDemoVal = float32(v)
 			vled.Set("value", strconv.FormatFloat(v, 'f', 1, 64))

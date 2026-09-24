@@ -122,7 +122,7 @@ func MutualInformation(x []float64, tau, bins int) float64 {
 	joint := make([]int, bins*bins)
 	px := make([]int, bins)
 	py := make([]int, bins)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		a, b := bin(x[i]), bin(x[i+tau])
 		joint[a*bins+b]++
 		px[a]++
@@ -245,12 +245,12 @@ func FalseNearestFraction(x []float64, tau, m, theiler int) float64 {
 	var checked, false0 int
 	for i := 0; i < n; i += step {
 		best, bestJ := math.Inf(1), -1
-		for j := 0; j < n; j++ {
+		for j := range n {
 			if j >= i-theiler && j <= i+theiler {
 				continue
 			}
 			var d2 float64
-			for k := 0; k < m; k++ {
+			for k := range m {
 				d := x[i+k*tau] - x[j+k*tau]
 				d2 += d * d
 				if d2 >= best {

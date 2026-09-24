@@ -27,11 +27,11 @@ func TestRecurrenceMatrixIsSymmetricAboutALitDiagonal(t *testing.T) {
 	m := make([]byte, len(x)*len(x))
 	Matrix(x, 0.1, m)
 	n := len(x)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		if m[i*n+i] != 255 {
 			t.Fatalf("the diagonal is dark at %d", i)
 		}
-		for j := 0; j < n; j++ {
+		for j := range n {
 			if m[i*n+j] != m[j*n+i] {
 				t.Fatalf("asymmetric at (%d,%d)", i, j)
 			}
@@ -176,8 +176,8 @@ func delayEmbed(x []float64, dim, tau int) []float64 {
 		return nil
 	}
 	out := make([]float64, n*dim)
-	for i := 0; i < n; i++ {
-		for c := 0; c < dim; c++ {
+	for i := range n {
+		for c := range dim {
 			out[i*dim+c] = x[base+i-c*tau]
 		}
 	}
@@ -278,7 +278,7 @@ func TestDeterminismSeparatesAnOrbitFromNoise(t *testing.T) {
 		pts := len(v) / dim
 		m := make([]byte, pts*pts)
 		lo, hi := 1e-6, 100.0
-		for k := 0; k < 50; k++ {
+		for range 50 {
 			mid := (lo + hi) / 2
 			MatrixVec(v, dim, mid, m)
 			if RQA(m, pts).RR < 0.05 {
@@ -343,7 +343,7 @@ func TestASolidSquareReadsAsEntirelyDeterministic(t *testing.T) {
 func TestABareDiagonalHasNoDeterminismToReport(t *testing.T) {
 	const n = 16
 	m := make([]byte, n*n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		m[i*n+i] = 255
 	}
 	r := RQA(m, n)

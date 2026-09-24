@@ -38,13 +38,13 @@ func (b *buf) art() int {
 func demoSurface(nmods, slots int) (racksurface.Surface, []moduleCtls) {
 	var items []racksurface.Item
 	var ctls []Control
-	for i := 0; i < nmods; i++ {
+	for i := range nmods {
 		k := string(rune('a' + i))
 		items = append(items, racksurface.Item{
 			Key: k, Title: k, Slots: slots, Section: "s",
 			Rows: ModuleRows(3, slots, racksurface.DefaultMetrics.SlotCols),
 		})
-		for j := 0; j < 3; j++ {
+		for j := range 3 {
 			ctls = append(ctls, Control{
 				ControlInfo: controlspec.ControlInfo{
 					ID: k + string(rune('0'+j)), Label: "L", Module: k, Min: 0, Max: 10,

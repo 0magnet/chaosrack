@@ -94,10 +94,7 @@ func writeFigureAnimation(name string, f attractor.Figure) error {
 			return err
 		}
 		defer file.Close() //nolint:errcheck // the encode error below is the one that matters
-		delay := int(math.Round(100 / float64(renderFPS)))
-		if delay < 1 {
-			delay = 1
-		}
+		delay := max(int(math.Round(100/float64(renderFPS))), 1)
 		return gifenc.EncodeRGBA(file, frames, delay)
 	case ".svg":
 		return os.WriteFile(name, []byte(svgFrames(f, views)), 0o600)

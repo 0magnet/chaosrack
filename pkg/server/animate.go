@@ -117,10 +117,7 @@ func writeGIF(name string, pts [][3]float64, views [][3]float64) error {
 	// GIF delays are hundredths of a second, and the format cannot express a
 	// rate that is not one: 20 fps is 5, 30 fps is 3.33 and becomes 3, which
 	// is 33 fps. Rounding is the honest thing the format allows.
-	delay := int(math.Round(100 / float64(renderFPS)))
-	if delay < 1 {
-		delay = 1
-	}
+	delay := max(int(math.Round(100/float64(renderFPS))), 1)
 	return gifenc.EncodeRGBA(f, frames, delay)
 }
 

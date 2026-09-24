@@ -125,9 +125,9 @@ func (s *STL) addRotatedVertex(index *uint32, vertex Vertex, rotation mgl32.Mat4
 // style string (anything after the first "base64," marker).
 func ParseBase64(input string) ([]byte, error) {
 	const marker = "base64,"
-	index := strings.Index(input, marker)
-	if index < 0 {
+	_, after, ok := strings.Cut(input, marker)
+	if !ok {
 		return nil, errors.New("no base64 payload found")
 	}
-	return base64.StdEncoding.DecodeString(input[index+len(marker):])
+	return base64.StdEncoding.DecodeString(after)
 }

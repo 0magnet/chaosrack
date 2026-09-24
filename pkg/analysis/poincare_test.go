@@ -303,7 +303,7 @@ func TestTheOffsetMovesThePlane(t *testing.T) {
 func TestTheLogReadsOldestFirstAcrossAWrap(t *testing.T) {
 	var l PoincareLog
 	l.Reset(4)
-	for i := 0; i < 7; i++ {
+	for i := range 7 {
 		l.Add(PoincareHit{S: float32(i)})
 	}
 	if l.Len() != 4 {

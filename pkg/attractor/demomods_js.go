@@ -22,7 +22,7 @@ var (
 // from Run.
 func buildDemoModules() {
 	if b := dom.Doc.Call("getElementById", "pong-restart"); b.Truthy() {
-		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			pong.scoreL, pong.scoreR = 0, 0
 			pong.serveBall(1)
 			pong.syncScoreboard()
@@ -39,7 +39,7 @@ func buildDemoModules() {
 			return js.Undefined()
 		}
 		stack.Call("appendChild", makeKnob(sl, js.Undefined(), false, false, true))
-		sl.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		sl.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			if pongKnobGuard {
 				return nil
 			}
@@ -53,7 +53,7 @@ func buildDemoModules() {
 	pongPadSlR = wirePad("pong-pad-r", "pong-rstack", &pong.padR, &pong.humanR)
 	if in := dom.Doc.Call("getElementById", "stext-in"); in.Truthy() {
 		in.Set("value", ftext.str)
-		in.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		in.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			ftext.str = strings.ToUpper(in.Get("value").String())
 			return nil
 		}))
@@ -66,11 +66,11 @@ func buildDemoModules() {
 		ledEl.Set("value", led.Format(fgFloat(h), 1, 2, false))
 		sizeLEDField(ledEl, 0.2, 1, 2, false)
 		stack.Call("appendChild", makeKnob(h, js.Undefined(), true, false, true))
-		h.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		h.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			ledEl.Set("value", led.Format(fgFloat(h), 1, 2, false))
 			return nil
 		}))
-		ledEl.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		ledEl.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			if v, err := strconv.ParseFloat(ledEl.Get("value").String(), 64); err == nil {
 				h.Set("value", strconv.FormatFloat(v, 'f', 2, 64))
 				h.Call("dispatchEvent", js.Global().Get("Event").New("input"))
@@ -80,7 +80,7 @@ func buildDemoModules() {
 	}
 	buildSTLFileModule()
 	if b := dom.Doc.Call("getElementById", "bounce-drop"); b.Truthy() {
-		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			ball.x, ball.y = -1.2, bounceDropHeight()
 			ball.vy = 0
 			ball.vx = float64(ball.drift)

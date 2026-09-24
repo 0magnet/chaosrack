@@ -140,7 +140,7 @@ func (de *desktops) setDeskTicking(on bool) {
 		return
 	}
 	if !de.tickFunc.Truthy() {
-		de.tickFunc = dom.FuncOf(func(js.Value, []js.Value) interface{} {
+		de.tickFunc = dom.FuncOf(func(js.Value, []js.Value) any {
 			if !de.ticking {
 				return nil
 			}
@@ -551,7 +551,7 @@ func (de *desktops) wireDeskGestures() {
 
 	// Looking Glass: turn a window over. A double click, because winbox has
 	// already spent the single one on focus and the drag on moving.
-	dom.Doc.Call("addEventListener", "dblclick", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "dblclick", dom.FuncOf(func(_ js.Value, a []js.Value) any {
 		if de.style != deskGlass || len(a) == 0 {
 			return nil
 		}
@@ -573,7 +573,7 @@ func (de *desktops) wireDeskGestures() {
 	// trade, and Metisse itself kept the ordinary drag too.
 	var turning js.Value
 	var lastX, lastY float64
-	dom.Doc.Call("addEventListener", "mousedown", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "mousedown", dom.FuncOf(func(_ js.Value, a []js.Value) any {
 		if de.style != deskMetisse || len(a) == 0 || !a[0].Get("shiftKey").Truthy() {
 			return nil
 		}
@@ -587,7 +587,7 @@ func (de *desktops) wireDeskGestures() {
 		a[0].Call("stopPropagation")
 		return nil
 	}), map[string]any{"capture": true})
-	dom.Doc.Call("addEventListener", "mousemove", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "mousemove", dom.FuncOf(func(_ js.Value, a []js.Value) any {
 		if !turning.Truthy() || len(a) == 0 {
 			return nil
 		}
@@ -596,7 +596,7 @@ func (de *desktops) wireDeskGestures() {
 		lastX, lastY = x, y
 		return nil
 	}), map[string]any{"capture": true})
-	dom.Doc.Call("addEventListener", "mouseup", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "mouseup", dom.FuncOf(func(js.Value, []js.Value) any {
 		turning = js.Value{}
 		return nil
 	}), map[string]any{"capture": true})
@@ -604,7 +604,7 @@ func (de *desktops) wireDeskGestures() {
 	// Compiz: the arrows spin the cube. Guarded the same way every other key
 	// binding here is — a focused input, select or textarea keeps its arrows,
 	// which is what lets a terminal in one of these windows still work.
-	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(_ js.Value, a []js.Value) any {
 		if de.style != deskCube || len(a) == 0 {
 			return nil
 		}

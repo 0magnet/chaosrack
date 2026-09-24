@@ -163,7 +163,7 @@ func TestTakensMeasurementWindowIsInTimeOrder(t *testing.T) {
 	// Write more than the ring holds, so the window has wrapped — the case
 	// that a naive copy from index 0 gets wrong.
 	rng := rand.New(rand.NewSource(17)) //nolint:gosec // a deterministic test signal, not a secret
-	for i := 0; i < 12000; i++ {
+	for i := range 12000 {
 		// A little noise, for the reason embedding_test.go gives: a noiseless
 		// tone at an exact integer period visits only 40 distinct sample
 		// values, and the histogram behind the estimate then has nothing to
@@ -217,7 +217,7 @@ func TestGeneratingAFrameDoesNotRetuneTau(t *testing.T) {
 
 	emb.ring = make([]float32, 4096)
 	emb.w = 0
-	for i := 0; i < 20000; i++ {
+	for i := range 20000 {
 		emb.ring[emb.w%len(emb.ring)] = float32(math.Sin(2 * math.Pi * float64(i) / 40))
 		emb.w++
 	}
@@ -291,7 +291,7 @@ func TestADragIntegratesNothingUntilTheKnobSettles(t *testing.T) {
 	if sigma == nil {
 		t.Fatal("lorenz has no σ parameter to drag")
 	}
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		frameNowMs += 16
 		*sigma += 0.1
 		if rp.fillFromTrajectory() {
@@ -321,7 +321,7 @@ func TestADragIntegratesNothingUntilTheKnobSettles(t *testing.T) {
 
 	// A still knob is a still picture: the following frames must do no work,
 	// because the series is static and the matrix on the texture is already it.
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		frameNowMs += 16
 		if rp.fillFromTrajectory() {
 			t.Errorf("frame %d after settling rebuilt a matrix that had not changed", i)

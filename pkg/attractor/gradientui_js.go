@@ -119,7 +119,7 @@ func updateGradientUI() {
 // autoRotYDelta is the Y spin-rate the Auto-rotate switch contributes, so
 // the auto-spin shows up on the Y rate knob rather than being a hidden term.
 
-func onColorChange(this js.Value, args []js.Value) interface{} {
+func onColorChange(this js.Value, args []js.Value) any {
 	baseHex := dom.Doc.Call("getElementById", "color-base").Get("value").String()
 	midHex := dom.Doc.Call("getElementById", "color-mid").Get("value").String()
 	topHex := dom.Doc.Call("getElementById", "color-top").Get("value").String()

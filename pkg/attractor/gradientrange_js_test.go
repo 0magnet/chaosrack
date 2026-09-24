@@ -40,7 +40,7 @@ func TestGradientRangeWaitsForTheModeToDraw(t *testing.T) {
 		t.Error("the refresh was taken while the buffer was still the previous mode's")
 	}
 	// Frames go by with the mode drawing nothing of its own.
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		if gradientRangeDue() {
 			t.Fatalf("frame %d took the refresh before anything was uploaded", i)
 		}

@@ -3,6 +3,8 @@
 package attractor
 
 import (
+	"slices"
+
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/gentile"
 	"strconv"
@@ -493,10 +495,8 @@ func baySelectID(label string, n int) string    { return bayID(label, n) + "-sel
 // bayOf is the bay a model is mounted in, or nil.
 func bayOf(mode string) *bayRecord {
 	for i := range rackBays {
-		for _, m := range rackBays[i].Modes {
-			if m == mode {
-				return &rackBays[i]
-			}
+		if slices.Contains(rackBays[i].Modes, mode) {
+			return &rackBays[i]
 		}
 	}
 	return nil
@@ -611,7 +611,7 @@ func buildBayRotary(label string, bay int, modes []string) js.Value {
 	attachSelMarquee(sel, "#7fe0a0")
 
 	lb, nb := label, bay
-	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
 		onBayRotary(lb, nb)
 		return nil
 	}))
@@ -798,7 +798,7 @@ func buildRowSwitches() {
 		lab.Call("appendChild", dom.Doc.Call("createTextNode", " "+categoryTag(label)))
 		host.Call("appendChild", lab)
 
-		sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+		sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
 			applyRowVisibility()
 			saveHiddenRows()
 			quantizeModuleWidths() // the rack is a different size now
@@ -835,7 +835,7 @@ func readHiddenRows() map[string]bool {
 	if !ok || v == "" {
 		return out
 	}
-	for _, s := range strings.Split(v, ",") {
+	for s := range strings.SplitSeq(v, ",") {
 		if s != "" {
 			out[s] = true
 		}

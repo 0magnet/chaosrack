@@ -2,6 +2,7 @@ package conway
 
 import (
 	"math"
+	"slices"
 	"sort"
 )
 
@@ -154,11 +155,8 @@ func (p Solid) dual() Solid {
 		// leaving v to reach the next face around it.
 		start := -1
 		for fi, f := range p.Faces {
-			for _, x := range f {
-				if x == v {
-					start = fi
-					break
-				}
+			if slices.Contains(f, v) {
+				start = fi
 			}
 			if start >= 0 {
 				break
@@ -250,11 +248,8 @@ func (p Solid) ambo() Solid {
 	for v := range p.Verts {
 		start := -1
 		for fi, f := range p.Faces {
-			for _, x := range f {
-				if x == v {
-					start = fi
-					break
-				}
+			if slices.Contains(f, v) {
+				start = fi
 			}
 			if start >= 0 {
 				break
@@ -332,11 +327,8 @@ func (p Solid) truncate(t float64) Solid {
 	for v := range p.Verts {
 		start := -1
 		for fi, f := range p.Faces {
-			for _, x := range f {
-				if x == v {
-					start = fi
-					break
-				}
+			if slices.Contains(f, v) {
+				start = fi
 			}
 			if start >= 0 {
 				break

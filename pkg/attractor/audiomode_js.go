@@ -320,7 +320,7 @@ func (au *audioModes) showAudioStatus(msg string) {
 		style.Set("z-index", "var(--z-status)")
 		style.Set("cursor", "pointer") // tap to dismiss
 		style.Set("pointer-events", "auto")
-		au.overlay.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		au.overlay.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			au.overlay.Get("style").Set("display", "none")
 			return nil
 		}))
@@ -332,7 +332,7 @@ func (au *audioModes) showAudioStatus(msg string) {
 	// regardless. One cached js.Func — a fresh FuncOf per status change never
 	// got released, which leaked a closure every message on a flaky source.
 	if au.hideFn.IsUndefined() {
-		au.hideFn = dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		au.hideFn = dom.FuncOf(func(this js.Value, a []js.Value) any {
 			if au.overlay.Truthy() {
 				au.overlay.Get("style").Set("display", "none")
 			}

@@ -107,10 +107,7 @@ var spectParams = []paramDef{
 // pick reads a knob as an index into a list, since a knob can be dragged past
 // either end of one by audio modulation or by a permalink written by hand.
 func pick(v float32, n int) int {
-	i := int(v + 0.5)
-	if i < 0 {
-		i = 0
-	}
+	i := max(int(v+0.5), 0)
 	if i >= n {
 		i = n - 1
 	}

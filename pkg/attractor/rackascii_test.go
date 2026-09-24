@@ -60,7 +60,7 @@ func TestTheDrawingShowsTheChassisMonitor(t *testing.T) {
 		t.Fatalf("no monitor drawn:\n%s", got)
 	}
 	// Every bay must open with one, which is the whole invariant.
-	for _, line := range strings.Split(got, "\n") {
+	for line := range strings.SplitSeq(got, "\n") {
 		if !strings.HasPrefix(line, "│") || !strings.Contains(line, "bay ") {
 			continue
 		}

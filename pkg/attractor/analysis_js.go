@@ -65,7 +65,7 @@ func (l *lyapunovProbe) wireAnalysisModule() {
 	analysisModuleVisible(true)
 	l.scheduleLyapunov(0)
 	if btn := dom.Doc.Call("getElementById", "lyap-remeasure"); btn.Truthy() {
-		btn.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		btn.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			l.scheduleLyapunov(0)
 			return nil
 		}))
@@ -88,7 +88,7 @@ func (l *lyapunovProbe) scheduleLyapunov(delayMs int) {
 	if delayMs < 30 {
 		delayMs = 30
 	}
-	l.timer = js.Global().Call("setTimeout", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	l.timer = js.Global().Call("setTimeout", dom.FuncOf(func(js.Value, []js.Value) any {
 		l.pending = false
 		l.runLyapunov()
 		return nil

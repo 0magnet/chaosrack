@@ -16,8 +16,8 @@ import "strings"
 // hashModeOf extracts the mode token from a serialized snapshot: everything
 // before the first '&', which is where serializeState puts the model.
 func hashModeOf(s string) string {
-	if i := strings.IndexByte(s, '&'); i >= 0 {
-		return s[:i]
+	if before, _, ok := strings.Cut(s, "&"); ok {
+		return before
 	}
 	return s
 }

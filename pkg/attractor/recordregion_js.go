@@ -51,7 +51,7 @@ func wireRegionSwitch() {
 	if !sw.Truthy() {
 		return
 	}
-	sw.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, _ []js.Value) interface{} {
+	sw.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, _ []js.Value) any {
 		if this.Get("checked").Bool() {
 			region.startRegionSelect()
 		} else {
@@ -61,7 +61,7 @@ func wireRegionSwitch() {
 	}))
 	// The outline is placed from the stored region, so it has to be re-placed
 	// whenever the canvas moves or changes size under it.
-	js.Global().Call("addEventListener", "resize", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	js.Global().Call("addEventListener", "resize", dom.FuncOf(func(js.Value, []js.Value) any {
 		region.placeRegionOutline()
 		region.placeRegionLayer()
 		return nil
@@ -183,7 +183,7 @@ func (re *regionPicker) placeRegionOutline() {
 }
 
 func (re *regionPicker) wireRegionDrag() {
-	re.layer.Call("addEventListener", "pointerdown", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+	re.layer.Call("addEventListener", "pointerdown", dom.FuncOf(func(_ js.Value, a []js.Value) any {
 		if len(a) == 0 || !re.on {
 			return nil
 		}
@@ -199,7 +199,7 @@ func (re *regionPicker) wireRegionDrag() {
 		setRegionFrom(re.x0, re.y0, re.x0, re.y0)
 		return nil
 	}))
-	re.layer.Call("addEventListener", "pointermove", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+	re.layer.Call("addEventListener", "pointermove", dom.FuncOf(func(_ js.Value, a []js.Value) any {
 		if !re.drag || len(a) == 0 {
 			return nil
 		}
@@ -208,7 +208,7 @@ func (re *regionPicker) wireRegionDrag() {
 		return nil
 	}))
 	for _, ev := range []string{"pointerup", "pointercancel"} {
-		re.layer.Call("addEventListener", ev, dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+		re.layer.Call("addEventListener", ev, dom.FuncOf(func(_ js.Value, a []js.Value) any {
 			if !re.drag {
 				return nil
 			}

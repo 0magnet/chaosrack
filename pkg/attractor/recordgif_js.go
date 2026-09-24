@@ -149,7 +149,7 @@ func (g *gifRecorder) startGIFRecording() {
 	g.frames = g.frames[:0]
 	g.recording = true
 
-	g.tickFn = dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	g.tickFn = dom.FuncOf(func(this js.Value, a []js.Value) any {
 		if !g.recording {
 			return nil
 		}
@@ -221,7 +221,7 @@ func downloadBytes(b []byte, mime, ext string) {
 	js.CopyBytesToJS(arr, b)
 	parts := js.Global().Get("Array").New()
 	parts.Call("push", arr)
-	blob := js.Global().Get("Blob").New(parts, map[string]interface{}{"type": mime})
+	blob := js.Global().Get("Blob").New(parts, map[string]any{"type": mime})
 	saveBlob(blob, ext)
 }
 
@@ -246,7 +246,7 @@ func saveBlob(blob js.Value, ext string) {
 	recmod.logTake(ext, blob.Get("size").Int())
 
 	var revoke js.Func
-	revoke = js.FuncOf(func(js.Value, []js.Value) interface{} {
+	revoke = js.FuncOf(func(js.Value, []js.Value) any {
 		js.Global().Get("URL").Call("revokeObjectURL", url)
 		revoke.Release()
 		return nil

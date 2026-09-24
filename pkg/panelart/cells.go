@@ -64,10 +64,7 @@ func RowsFor(w, h, cols int, aspect float64) int {
 	// truncating gives 5, which is 55 screen pixels against 66 wide, and the
 	// circle comes out as a visible vertical ellipse. This one call is the
 	// whole reason the first prototype's knobs were egg-shaped.
-	rows := int(float64(cols)*float64(h)/float64(w)/aspect + 0.5)
-	if rows < 1 {
-		rows = 1
-	}
+	rows := max(int(float64(cols)*float64(h)/float64(w)/aspect+0.5), 1)
 	return rows
 }
 
@@ -114,8 +111,8 @@ func Render(src image.Image, cols, rows int) []Cell {
 		}
 		return color.RGBA{R: byteOf(r / n), G: byteOf(g / n), B: byteOf(bl / n), A: 255}
 	}
-	for cy := 0; cy < rows; cy++ {
-		for cx := 0; cx < cols; cx++ {
+	for cy := range rows {
+		for cx := range cols {
 			out[cy*cols+cx] = Cell{Top: at(cx, cy*2), Bottom: at(cx, cy*2+1)}
 		}
 	}

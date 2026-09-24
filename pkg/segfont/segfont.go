@@ -104,7 +104,7 @@ func Segments(r rune) (segs [][4]float64, ok bool) {
 	if !ok {
 		return nil, false
 	}
-	for s := 0; s < 16; s++ {
+	for s := range 16 {
 		if mask&(1<<s) != 0 {
 			segs = append(segs, segEnds[s])
 		}

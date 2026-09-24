@@ -163,13 +163,13 @@ func buildPatchbayModule(paramsSect js.Value) {
 			sto.Get("classList").Call("remove", "sto")
 		}
 	}
-	sto.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	sto.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		patchStoArm = !patchStoArm
 		refreshSto()
 		return nil
 	}))
 	bankRow.Call("appendChild", sto)
-	for i := 0; i < patchSlots; i++ {
+	for i := range patchSlots {
 		i := i
 		b := dom.Doc.Call("createElement", "button")
 		b.Set("className", "pslot")
@@ -178,7 +178,7 @@ func buildPatchbayModule(paramsSect js.Value) {
 		}
 		b.Set("textContent", strconv.Itoa(i+1))
 		b.Set("title", "Patch memory "+strconv.Itoa(i+1)+" — click to recall; STO first to store the current patch")
-		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			bank := patchBank()
 			if patchStoArm {
 				bank[i] = perma.serializeState()
@@ -234,14 +234,12 @@ func buildPatchbayModule(paramsSect js.Value) {
 			grid.Call("appendChild", cl)
 		}
 		for _, d := range dests {
-			d := d
 			rl := dom.Doc.Call("createElement", "span")
 			rl.Set("className", "mxdst")
 			rl.Set("textContent", d.label)
 			rl.Set("title", "Destination: "+d.label)
 			grid.Call("appendChild", rl)
 			for _, row := range rows {
-				row := row
 				pin := dom.Doc.Call("createElement", "span")
 				pin.Set("className", "mxpin")
 				m := pmod.params[d.id]
@@ -251,7 +249,7 @@ func buildPatchbayModule(paramsSect js.Value) {
 					pin.Get("style").Set("opacity", strconv.FormatFloat(0.45+0.55*float64(m.level), 'f', 2, 64))
 				}
 				pin.Set("title", row.label+" → "+d.label+" — click to toggle, wheel to set depth (needs Audio mod on)")
-				pin.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+				pin.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 					m := pmod.params[d.id]
 					if m.channel == row.ch && m.level != 0 {
 						m.channel = ""
@@ -266,7 +264,7 @@ func buildPatchbayModule(paramsSect js.Value) {
 					buildParamPanel(run.selectedMode) // resync MOD knobs + this matrix
 					return nil
 				}))
-				pin.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+				pin.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, a []js.Value) any {
 					e := a[0]
 					e.Call("preventDefault")
 					m := pmod.params[d.id]

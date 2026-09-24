@@ -183,7 +183,7 @@ func TestSpectrogramWindowsAreUnchanged(t *testing.T) {
 	}
 	for wk, f := range want {
 		s := fftScratchFor(n, wk)
-		for i := 0; i < n; i++ {
+		for i := range n {
 			if math.Abs(s.win[i]-f(i)) > 1e-12 {
 				t.Fatalf("window %d coefficient %d is %.15f, was %.15f", wk, i, s.win[i], f(i))
 			}

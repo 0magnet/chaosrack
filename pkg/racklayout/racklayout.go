@@ -82,7 +82,7 @@ func (l Layout) Encode() string {
 // than starting from the factory order.
 func Decode(s string) Layout {
 	var l Layout
-	for _, field := range strings.Split(s, layoutFieldSep) {
+	for field := range strings.SplitSeq(s, layoutFieldSep) {
 		kv := strings.SplitN(field, "=", 2)
 		if len(kv) != 2 {
 			continue
@@ -120,7 +120,7 @@ func joinLayoutList(items []string) string {
 
 func splitLayoutList(s string) []string {
 	var out []string
-	for _, it := range strings.Split(s, layoutListSep) {
+	for it := range strings.SplitSeq(s, layoutListSep) {
 		if it = strings.TrimSpace(it); it != "" {
 			out = append(out, it)
 		}

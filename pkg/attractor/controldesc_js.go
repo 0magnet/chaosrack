@@ -57,13 +57,13 @@ func buildDescControl(d ControlDesc) (*Control, js.Value) {
 			d.Apply(v)
 		}
 	}
-	slider.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	slider.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		if v, err := strconv.ParseFloat(slider.Get("value").String(), 64); err == nil {
 			apply(v)
 		}
 		return nil
 	}))
-	led.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	led.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		if v, err := strconv.ParseFloat(led.Get("value").String(), 64); err == nil {
 			slider.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
 			apply(v)
@@ -138,7 +138,7 @@ func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will
 		}
 	}
 
-	slider.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	slider.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		if v, err := strconv.ParseFloat(slider.Get("value").String(), 64); err == nil {
 			if d.Apply != nil {
 				d.Apply(v)
@@ -152,7 +152,7 @@ func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will
 	if led.Truthy() {
 		// Typed entry commits on Enter/blur ("change", not "input", so the
 		// slider handler's formatted write-back doesn't fight typing).
-		led.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		led.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			if v, err := strconv.ParseFloat(led.Get("value").String(), 64); err == nil {
 				if d.ValToSlider != nil {
 					v = d.ValToSlider(v)
@@ -165,7 +165,7 @@ func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will
 		wheelNudge(led, slider, d.Step, d.Min, d.Max)
 	}
 	if rb := dom.Doc.Call("getElementById", d.ResetID); rb.Truthy() {
-		rb.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		rb.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			ctl.resetToDefault()
 			return nil
 		}))
@@ -202,13 +202,13 @@ func adoptSelectControl(d ControlDesc) *Control {
 		permaKey:     d.PermaKey, resetHook: d.ResetExtra,
 	}
 	if d.SelectApply != nil {
-		sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+		sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
 			d.SelectApply(sel.Get("value").String())
 			return nil
 		}))
 	}
 	if rb := dom.Doc.Call("getElementById", d.ResetID); rb.Truthy() {
-		rb.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+		rb.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) any {
 			ctl.resetToDefault()
 			return nil
 		}))

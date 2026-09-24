@@ -32,25 +32,13 @@ func Window(winMS float32, sampleRate, budget, smooth int) (n, stride int) {
 	if sampleRate <= 0 {
 		sampleRate = 24000
 	}
-	win := int(winMS / 1000 * float32(sampleRate))
-	if win < 64 {
-		win = 64
-	}
-	src := budget / smooth
-	if src < 2 {
-		src = 2
-	}
+	win := max(int(winMS/1000*float32(sampleRate)), 64)
+	src := max(budget/smooth, 2)
 	// Enough points to draw the window, decimating only when it does not fit.
-	stride = (win + src - 1) / src
-	if stride < 1 {
-		stride = 1
-	}
+	stride = max((win+src-1)/src, 1)
 	// n <= src follows from the ceiling above; the two delays cost ring
 	// space, not vertex budget, and the ring is sized from the span.
-	n = win / stride
-	if n < 2 {
-		n = 2
-	}
+	n = max(win/stride, 2)
 	return n, stride
 }
 
@@ -123,9 +111,6 @@ func TauSamples(tauRef float32, sr int) int {
 	if sr > 0 && sr != RefRate {
 		t = tauRef * float32(sr) / float32(RefRate)
 	}
-	n := int(t + 0.5)
-	if n < 1 {
-		n = 1
-	}
+	n := max(int(t+0.5), 1)
 	return n
 }

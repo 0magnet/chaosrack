@@ -123,10 +123,7 @@ func Build(items []Item, capacity int, monitor map[string]int, m Metrics) Surfac
 		// list owns.
 		slot := monitorSlots(monitor, SectionOf(items, unit), capacity)
 		for _, it := range unit {
-			w := items[it].Slots
-			if w < 0 {
-				w = 0
-			}
+			w := max(items[it].Slots, 0)
 			p := Panel{
 				Item: it,
 				Bay:  bi,

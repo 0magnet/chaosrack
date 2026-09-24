@@ -68,10 +68,7 @@ func drawRack(mods []rackModule, items []packItem, units [][]int, capacity int, 
 			row.WriteString(panelCell(mods[i].Key, mods[i].Slots))
 			used += mods[i].Slots
 		}
-		blank := capacity - used
-		if blank < 0 {
-			blank = 0
-		}
+		blank := max(capacity-used, 0)
 		blankTotal += blank
 		row.WriteString(strings.Repeat("·", blank*rackDrawWidth))
 		fmt.Fprintf(&b, "│%s│ bay %-2d %s\n", padRunes(row.String(), total), n+1, bayLabel(items, u))
@@ -89,10 +86,7 @@ func drawRack(mods []rackModule, items []packItem, units [][]int, capacity int, 
 // room the module actually has. Exactly slots*rackDrawWidth runes wide, so a
 // row's width is the sum of what is in it and nothing has to be measured.
 func panelCell(name string, slots int) string {
-	w := slots*rackDrawWidth - 1
-	if w < 1 {
-		w = 1
-	}
+	w := max(slots*rackDrawWidth-1, 1)
 	r := []rune(name)
 	if len(r) > w {
 		r = r[:w]
@@ -136,13 +130,10 @@ func padRunes(s string, w int) string {
 // Exported for cmd/uitool, and for whatever renders the rack next: this is
 // the whole input a second front end needs.
 func DrawRackFrom(keys, cats []string, slots []int, capacity int, monitors map[string]int) string {
-	n := len(keys)
-	if len(slots) < n {
-		n = len(slots)
-	}
+	n := min(len(slots), len(keys))
 	mods := make([]rackModule, 0, n)
 	items := make([]packItem, 0, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		mods = append(mods, rackModule{Key: keys[i], Slots: slots[i]})
 		items = append(items, packItem{
 			Slots:   slots[i],

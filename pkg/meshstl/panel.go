@@ -274,8 +274,8 @@ func PinMatrix(cx, cy float64, cols, rows int) []Control {
 	var out []Control
 	w := float64(cols-1) * rackspec.PinPitch
 	h := float64(rows-1) * rackspec.PinPitch
-	for r := 0; r < rows; r++ {
-		for c := 0; c < cols; c++ {
+	for r := range rows {
+		for c := range cols {
 			out = append(out, Control{
 				X:    cx - w/2 + float64(c)*rackspec.PinPitch,
 				Y:    cy + h/2 - float64(r)*rackspec.PinPitch,

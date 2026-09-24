@@ -445,12 +445,12 @@ func (p *panel) drawRack(sc tcell.Screen, w, h int) {
 	// surface is navigable: without them a window onto a rack six times the
 	// terminal's height is a panel with no edges.
 	if pos, n := racksurface.Bar(p.view.Y, vh, p.surf.Rows, vh); n > 0 {
-		for i := 0; i < n; i++ {
+		for i := range n {
 			sc.SetContent(w-1, pos+i, '█', nil, stFrame)
 		}
 	}
 	if pos, n := racksurface.Bar(p.view.X, vw, p.surf.Cols, vw); n > 0 {
-		for i := 0; i < n; i++ {
+		for i := range n {
 			sc.SetContent(pos+i, h-2, '▀', nil, stFrame)
 		}
 	}
@@ -488,10 +488,7 @@ func (p *panel) pan(dx, dy int) {
 func (p *panel) drawList(sc tcell.Screen, y, w, h int) {
 	puts(sc, 0, y, fmt.Sprintf("%-24s %-14s %-12s %s", "CONTROL", "LABEL", "VALUE", "RANGE"), stHead)
 	y++
-	rows := h - y - 1
-	if rows < 1 {
-		rows = 1
-	}
+	rows := max(h-y-1, 1)
 	if p.cur < p.top {
 		p.top = p.cur
 	}

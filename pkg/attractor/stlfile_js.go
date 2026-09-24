@@ -170,7 +170,7 @@ func buildSTLFileModule() {
 	input.Get("style").Set("display", "none")
 	dom.Doc.Get("body").Call("appendChild", input)
 
-	onParsed := dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	onParsed := dom.FuncOf(func(this js.Value, a []js.Value) any {
 		u8 := js.Global().Get("Uint8Array").New(a[0])
 		data := make([]byte, u8.Get("length").Int())
 		js.CopyBytesToGo(data, u8)
@@ -202,7 +202,7 @@ func buildSTLFileModule() {
 		input.Set("value", "")
 		return nil
 	})
-	input.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	input.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		files := input.Get("files")
 		if !files.Truthy() || files.Get("length").Int() == 0 {
 			return nil
@@ -210,7 +210,7 @@ func buildSTLFileModule() {
 		files.Index(0).Call("arrayBuffer").Call("then", onParsed)
 		return nil
 	}))
-	btn.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	btn.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		input.Call("click")
 		return nil
 	}))
@@ -255,7 +255,7 @@ func buildSTLBuiltInPicker() {
 		group.Call("appendChild", opt)
 	}
 
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		name := sel.Get("value").String()
 		if name == "" {
 			return nil

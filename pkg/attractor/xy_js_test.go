@@ -197,7 +197,7 @@ func TestXYSelectorsClampWhateverModulationDoes(t *testing.T) {
 	t.Cleanup(func() { xy.smoothF, xy.basisF, xy.persist = oldS, oldB, oldP })
 
 	inf := float32(1)
-	for i := 0; i < 40; i++ {
+	for range 40 {
 		inf *= 1e10
 	}
 	nan := inf - inf

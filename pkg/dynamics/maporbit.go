@@ -69,7 +69,7 @@ func (o *Orbits) seed(mode string, m MapSys, n int) {
 		// area-preserving and has no attractor to settle onto, so it gets no
 		// transient: every iterate is as valid as any other.
 		if m.Seed == nil {
-			for k := 0; k < mapTransient; k++ {
+			for range mapTransient {
 				p := o.p[i]
 				nx, ny, nz := m.Step(p[0], p[1], p[2])
 				if !Bounded(nx, ny, nz) {
@@ -172,16 +172,13 @@ func MapPoints(key string, n int) [][3]float64 {
 		return nil
 	}
 	orbits := m.Count()
-	per := n / orbits
-	if per < 1 {
-		per = 1
-	}
+	per := max(n/orbits, 1)
 	var o Orbits
 	o.Ensure(key, m)
 	out := make([][3]float64, 0, per*orbits)
-	for i := 0; i < orbits; i++ {
+	for i := range orbits {
 		p := o.At(i)
-		for k := 0; k < per; k++ {
+		for range per {
 			nx, ny, nz := m.Step(p[0], p[1], p[2])
 			if !Bounded(nx, ny, nz) {
 				p = m.Start(i, orbits)

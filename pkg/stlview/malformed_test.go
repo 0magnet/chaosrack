@@ -21,7 +21,7 @@ func TestNewSTLSurvivesRubbish(t *testing.T) {
 	nan := func() []byte {
 		b := bin(1, 0)
 		tri := make([]byte, 50)
-		for i := 0; i < 12; i++ {
+		for i := range 12 {
 			binary.LittleEndian.PutUint32(tri[i*4:], math.Float32bits(float32(math.NaN())))
 		}
 		return append(b, tri...)

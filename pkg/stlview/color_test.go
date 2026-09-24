@@ -54,7 +54,7 @@ func TestInterpolateIsLinearInTheMiddle(t *testing.T) {
 }
 
 func TestNewRandomColorStaysInRange(t *testing.T) {
-	for i := 0; i < 200; i++ {
+	for range 200 {
 		c := NewRandomColor()
 		for name, v := range map[string]float32{"red": c.Red, "green": c.Green, "blue": c.Blue} {
 			if v < 0 || v > 255 {
@@ -67,7 +67,7 @@ func TestNewRandomColorStaysInRange(t *testing.T) {
 // Two calls returning the same color would mean the source was not random.
 func TestNewRandomColorVaries(t *testing.T) {
 	first := NewRandomColor()
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		if !sameColor(NewRandomColor(), first) {
 			return
 		}

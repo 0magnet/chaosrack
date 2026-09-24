@@ -76,7 +76,7 @@ func EnsureShared() js.Value {
 		return v
 	}
 	v = g.Get("Float32Array").New(ParamCount)
-	for i := 0; i < ParamCount; i++ {
+	for i := range ParamCount {
 		v.SetIndex(i, Defaults[i])
 	}
 	g.Set(SharedName, v)

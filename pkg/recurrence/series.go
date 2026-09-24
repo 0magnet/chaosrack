@@ -223,18 +223,12 @@ func (s *RQASeries) Snapshot(dst []RQASample) int {
 	if s.buf == nil || len(dst) == 0 {
 		return 0
 	}
-	n := s.w
-	if n > RQASeriesLen {
-		n = RQASeriesLen
-	}
-	if n > len(dst) {
-		n = len(dst)
-	}
+	n := min(min(s.w, RQASeriesLen), len(dst))
 	// Right-aligned: the i-th newest slot goes i columns in from the right, so
 	// a half-full series leaves the LEFT of the chart empty. That is the
 	// direction it has to be — the newest reading is the one being watched, and
 	// it must not walk across the chart as the buffer fills.
-	for i := 0; i < n; i++ {
+	for i := range n {
 		dst[len(dst)-1-i] = s.buf[(s.w-1-i)%RQASeriesLen]
 	}
 	return n

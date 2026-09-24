@@ -10,7 +10,7 @@ func fill(s *frameStats, ms ...float32) {
 
 func TestAPerfectSixtyHertzWindowHasNoLateFrames(t *testing.T) {
 	var s frameStats
-	for i := 0; i < 60; i++ {
+	for range 60 {
 		s.add(16.7)
 	}
 	if got := s.latePct(); got != 0 {
@@ -24,7 +24,7 @@ func TestAPerfectSixtyHertzWindowHasNoLateFrames(t *testing.T) {
 func TestAMissedVsyncCountsAsLate(t *testing.T) {
 	var s frameStats
 	// Three frames in four make it; the fourth misses one interval.
-	for i := 0; i < 15; i++ {
+	for range 15 {
 		fill(&s, 16.7, 16.7, 16.7, 33.4)
 	}
 	if got := s.latePct(); got < 24 || got > 26 {
@@ -36,7 +36,7 @@ func TestLatenessIsJudgedAgainstTheDisplayNotAConstant(t *testing.T) {
 	// The same shape of stutter on a 144 Hz panel must read the same. If the
 	// limit were hardcoded to 16.7 ms, none of these would count as late.
 	var s frameStats
-	for i := 0; i < 15; i++ {
+	for range 15 {
 		fill(&s, 6.94, 6.94, 6.94, 13.9)
 	}
 	if got := s.latePct(); got < 24 || got > 26 {
@@ -46,7 +46,7 @@ func TestLatenessIsJudgedAgainstTheDisplayNotAConstant(t *testing.T) {
 
 func TestJitterInsideAnIntervalIsNotLateness(t *testing.T) {
 	var s frameStats
-	for i := 0; i < 40; i++ {
+	for range 40 {
 		fill(&s, 16.0, 17.4)
 	}
 	if got := s.latePct(); got != 0 {
@@ -58,7 +58,7 @@ func TestOneLongFrameIsNotAveragedAway(t *testing.T) {
 	// The reason fps comes off the mean and not the median: a rack that
 	// hesitates once a second is not a 60 fps rack.
 	var s frameStats
-	for i := 0; i < 59; i++ {
+	for range 59 {
 		s.add(16.7)
 	}
 	s.add(200)

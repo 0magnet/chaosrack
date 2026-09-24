@@ -25,7 +25,7 @@ func TestAudioFeedNamesTheTransportOnOffer(t *testing.T) {
 	srv, err := wtaudio.New(wtaudio.Config{
 		Addr:    ":8080",
 		Capture: wtCapture,
-		Logf:    func(string, ...interface{}) {},
+		Logf:    func(string, ...any) {},
 	})
 	if err != nil {
 		t.Fatal(err)

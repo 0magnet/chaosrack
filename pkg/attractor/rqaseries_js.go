@@ -233,7 +233,7 @@ func (rq *rqaChart) paint() {
 	ctx.Set("font", "9px 'Chakra Petch',sans-serif")
 	ctx.Set("textBaseline", "top")
 
-	for tr := recurrence.RQATrace(0); tr < recurrence.RQATraceCount; tr++ {
+	for tr := range recurrence.RQATraceCount {
 		top := int(tr) * rqaPaneH
 		if tr == recurrence.RQATraceRR {
 			// The band the plot is readable in, shaded behind the trace: below

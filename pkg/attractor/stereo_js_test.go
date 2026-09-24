@@ -118,7 +118,7 @@ func TestStereoAxisTablesLineUp(t *testing.T) {
 func TestEveryPlanHasAGenuineThirdAxis(t *testing.T) {
 	for i, p := range stereoPlans {
 		independent := false
-		for c := 0; c < 3; c++ {
+		for c := range 3 {
 			if p.delay[c] || p.ch[c] == chTime {
 				independent = true
 			}
@@ -129,7 +129,7 @@ func TestEveryPlanHasAGenuineThirdAxis(t *testing.T) {
 		}
 		// The time ramp is filled from the vertex index, and stereoInst.generate
 		// only looks for it — it never mixes it with a delay.
-		for c := 0; c < 3; c++ {
+		for c := range 3 {
 			if p.ch[c] == chTime && p.delay[c] {
 				t.Errorf("plan %d delays its time axis, which means nothing", i)
 			}
@@ -355,7 +355,7 @@ func TestStereoFitBoundHoldsForEveryPlan(t *testing.T) {
 	corners := []struct{ l, r float32 }{{1, 1}, {1, -1}, {-1, 1}, {-1, -1}}
 	for i, p := range stereoPlans {
 		for _, c := range corners {
-			for axis := 0; axis < 3; axis++ {
+			for axis := range 3 {
 				var v float32
 				if p.ch[axis] == chTime {
 					// stereoInst.generate maps the window onto (2w−1)·gain for w in
@@ -810,7 +810,7 @@ func TestLockFindsTheMatchingOffset(t *testing.T) {
 	// Periodic, so any offset a whole period away is equally correct; what
 	// matters is that the matched window really does match.
 	var dot, na, nb float64
-	for i := 0; i < n; i++ {
+	for i := range n {
 		a, b := float64(cur[got+i*decim]), float64(prev[i])
 		dot += a * b
 		na += a * a
@@ -840,7 +840,7 @@ func TestLockIgnoresAmplitude(t *testing.T) {
 		t.Fatal("a quiet reference found no match")
 	}
 	var dot, na, nb float64
-	for i := 0; i < n; i++ {
+	for i := range n {
 		a, b := float64(cur[got+i]), float64(prev[i])
 		dot += a * b
 		na += a * a
@@ -973,7 +973,7 @@ func TestLockFollowsPhaseNotStaleContent(t *testing.T) {
 	// And it must actually be aligned: the matched window has to correlate
 	// with the reference.
 	var dot, na, nb float64
-	for i := 0; i < n; i++ {
+	for i := range n {
 		a, b := float64(cur[got+i*decim]), float64(prev[i])
 		dot += a * b
 		na += a * a

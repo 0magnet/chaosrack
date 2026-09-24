@@ -202,7 +202,7 @@ func (s *spectrogram) updateSpectrogramTexture(nowMs float64) {
 			// Under FVF the tap already carries processed samples, so only the
 			// not-listening case still has to run the filter here.
 			if fvfOn && !listening && fvf.proc != nil {
-				for i := 0; i < n; i++ {
+				for i := range n {
 					s.drainBuf[i] = fvf.proc.Process(s.drainBuf[i])
 				}
 			}
@@ -257,10 +257,7 @@ func (s *spectrogram) flushSpectColumns(nowMs float64) {
 	if src := aud.activeAudioSource(); src != nil && src.SampleRate() > 0 {
 		sampleRate = src.SampleRate()
 	}
-	step := sg.S.StepSize()
-	if step < 1 {
-		step = 1
-	}
+	step := max(sg.S.StepSize(), 1)
 	colsPerMs := float64(sampleRate) / float64(step) / 1000.0
 
 	s.colFrac += elapsed * colsPerMs
@@ -287,7 +284,7 @@ func (s *spectrogram) flushSpectColumns(nowMs float64) {
 	}
 	if len(s.colQueue) > spectMaxQueue {
 		drop := len(s.colQueue) - spectQueueCatchup
-		for i := 0; i < drop; i++ {
+		for i := range drop {
 			s.uploadSpectColumn(s.colQueue[i])
 		}
 		s.colQueue = s.colQueue[drop:]

@@ -65,14 +65,14 @@ func (me *metersClient) startMetersWorker() {
 		}
 	}()
 	me.w = ctor.New(metersWorkerURL)
-	me.w.Set("onmessage", dom.FuncOf(func(_ js.Value, args []js.Value) interface{} {
+	me.w.Set("onmessage", dom.FuncOf(func(_ js.Value, args []js.Value) any {
 		if len(args) == 0 {
 			return nil
 		}
 		me.onMetersMessage(args[0].Get("data"))
 		return nil
 	}))
-	me.w.Set("onerror", dom.FuncOf(func(_ js.Value, _ []js.Value) interface{} {
+	me.w.Set("onerror", dom.FuncOf(func(_ js.Value, _ []js.Value) any {
 		// It failed to load or it panicked. Either way the panel takes the
 		// analyzers back rather than showing dashes forever.
 		me.wReady = false

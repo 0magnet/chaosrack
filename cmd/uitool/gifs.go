@@ -102,7 +102,7 @@ func captureModelGif(c *cdp.Client, mode string) []*image.Paletted {
 	// Framing: union the bright bbox over half a rotation so the model stays
 	// inside the crop while spinning, pad 15%, square, clamp.
 	var crop image.Rectangle
-	for i := 0; i < 8; i++ {
+	for range 8 {
 		img, err := c.Screenshot()
 		if err != nil {
 			continue
@@ -147,7 +147,7 @@ func captureModelGif(c *cdp.Client, mode string) []*image.Paletted {
 	// gc=1 (mono) before mono moved onto the source knob as OFF.
 	vars := []variation{{2, attractor.GradientSourceOff}}
 	for _, gc := range []int{2, 3, 4} {
-		for gs := 0; gs < 4; gs++ {
+		for gs := range 4 {
 			vars = append(vars, variation{gc, gs})
 		}
 	}
@@ -159,7 +159,7 @@ func captureModelGif(c *cdp.Client, mode string) []*image.Paletted {
 		setKnobs(v.gc, v.gs)
 		setPersist(false)
 		time.Sleep(350 * time.Millisecond)
-		for i := 0; i < gifFlowFrames; i++ {
+		for range gifFlowFrames {
 			if img, err := c.Screenshot(); err == nil {
 				frames = append(frames, scaleBox(cropTo(img, crop), px, px))
 			}
@@ -168,7 +168,7 @@ func captureModelGif(c *cdp.Client, mode string) []*image.Paletted {
 		if v.gc == 4 && v.gs == 2 {
 			reelStart = len(frames)
 		}
-		for i := 0; i < gifPersistFrames; i++ {
+		for range gifPersistFrames {
 			if img, err := c.Screenshot(); err == nil {
 				frames = append(frames, scaleBox(cropTo(img, crop), px, px))
 			}

@@ -216,7 +216,7 @@ func fftScratchFor(n int, wf WinKind) *fftScratch {
 	for 1<<bits < n {
 		bits++
 	}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r := 0
 		for b := 0; b < bits; b++ {
 			r = r<<1 | (i>>b)&1
@@ -256,7 +256,7 @@ func ComputeFFTMagsKind(input []float32, wf WinKind) []float64 {
 		return nil
 	}
 	s := fftScratchFor(n, wf)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		s.re[s.rev[i]] = float64(input[i]) * s.win[i]
 		s.im[s.rev[i]] = 0
 	}
@@ -264,7 +264,7 @@ func ComputeFFTMagsKind(input []float32, wf WinKind) []float64 {
 		half := size >> 1
 		tstep := n / size
 		for start := 0; start < n; start += size {
-			for k := 0; k < half; k++ {
+			for k := range half {
 				c, sn := s.cosT[k*tstep], s.sinT[k*tstep]
 				i0, i1 := start+k, start+k+half
 				tr := s.re[i1]*c - s.im[i1]*sn
@@ -333,7 +333,7 @@ func InverseFFTReal(re, im []float64, n int, dst []float64) bool {
 	}
 	s := fftScratchFor(n, WinRectangular)
 	// conj(X), mirrored to full length, bit-reversed into place.
-	for i := 0; i < n; i++ {
+	for i := range n {
 		var xr, xi float64
 		if i < half {
 			// half is n/2 and re/im are n/2+1 long, so i < half indexes inside
@@ -351,7 +351,7 @@ func InverseFFTReal(re, im []float64, n int, dst []float64) bool {
 		hs := size >> 1
 		tstep := n / size
 		for start := 0; start < n; start += size {
-			for k := 0; k < hs; k++ {
+			for k := range hs {
 				// k < hs and tstep = n/size, so k*tstep < n/2, which is the length
 				// of both tables by construction. gosec cannot follow that through
 				// the two loop bounds; a runtime check in the innermost line of an
@@ -370,7 +370,7 @@ func InverseFFTReal(re, im []float64, n int, dst []float64) bool {
 	// conj again and scale: the real part is the answer, and the imaginary part
 	// is rounding for a properly Hermitian input.
 	inv := 1 / float64(n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		dst[i] = s.re[i] * inv
 	}
 	return true

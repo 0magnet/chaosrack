@@ -100,18 +100,18 @@ func (to *tonematrix) buildTMGrid() {
 	to.setPH(-1)
 	steps := tmStepCount()
 	noteRow := make([]string, tmRows)
-	for r := 0; r < tmRows; r++ {
+	for r := range tmRows {
 		m := tmMidiFor(r)
 		noteRow[r] = noteNames[m%12] + strconv.Itoa(m/12-1)
 	}
-	for c := 0; c < steps; c++ {
+	for c := range steps {
 		col := dom.Doc.Call("createElement", "span")
 		cls := "tm-col"
 		if c > 0 && c%4 == 0 {
 			cls += " tm-beat" // a breath every four columns, like bar lines
 		}
 		col.Set("className", cls)
-		for r := 0; r < tmRows; r++ {
+		for r := range tmRows {
 			cc, rr := c, r
 			cell := dom.Doc.Call("createElement", "span")
 			cell.Set("className", "tm-cell")
@@ -121,7 +121,7 @@ func (to *tonematrix) buildTMGrid() {
 			if to.pat[c][r] {
 				cell.Get("classList").Call("add", "on")
 			}
-			cell.Call("addEventListener", "mousedown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+			cell.Call("addEventListener", "mousedown", dom.FuncOf(func(this js.Value, a []js.Value) any {
 				a[0].Call("preventDefault")
 				if js.Global().Get("performance").Call("now").Float()-to.touchAt < 800 {
 					return nil
@@ -135,7 +135,7 @@ func (to *tonematrix) buildTMGrid() {
 				to.ensureGraph() // user gesture: unlock audio for the loop
 				return nil
 			}))
-			cell.Call("addEventListener", "mouseenter", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+			cell.Call("addEventListener", "mouseenter", dom.FuncOf(func(this js.Value, a []js.Value) any {
 				if to.paint < 0 {
 					return nil
 				}
@@ -146,7 +146,7 @@ func (to *tonematrix) buildTMGrid() {
 				to.setPad(cc, rr, to.paint == 1)
 				return nil
 			}))
-			cell.Call("addEventListener", "touchstart", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+			cell.Call("addEventListener", "touchstart", dom.FuncOf(func(this js.Value, a []js.Value) any {
 				a[0].Call("preventDefault")
 				to.touchAt = js.Global().Get("performance").Call("now").Float()
 				on := !to.pat[cc][rr]
@@ -166,7 +166,7 @@ func (to *tonematrix) buildTMGrid() {
 	}
 	// Touch paint: touchmove keeps targeting the starting pad, so follow the
 	// finger with elementFromPoint (the keybed glissando pattern).
-	grid.Call("addEventListener", "touchmove", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	grid.Call("addEventListener", "touchmove", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		e := a[0]
 		e.Call("preventDefault")
 		if to.paint < 0 {
@@ -187,7 +187,7 @@ func (to *tonematrix) buildTMGrid() {
 		return nil
 	}))
 	for _, ev := range []string{"touchend", "touchcancel"} {
-		grid.Call("addEventListener", ev, dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		grid.Call("addEventListener", ev, dom.FuncOf(func(this js.Value, a []js.Value) any {
 			to.paint = -1
 			return nil
 		}))
@@ -285,7 +285,7 @@ func (to *tonematrix) scheduleCol(c int, t float64) {
 	if dur > 0.5 {
 		dur = 0.5
 	}
-	for r := 0; r < tmRows; r++ {
+	for r := range tmRows {
 		if !to.pat[c][r] {
 			continue
 		}
@@ -411,7 +411,7 @@ func (to *tonematrix) wireTonematrixModule() {
 	})
 
 	if run := dom.Doc.Call("getElementById", "tm-run"); run.Truthy() {
-		run.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		run.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			to.run = run.Get("checked").Bool()
 			to.next = 0 // restart cleanly rather than racing to catch up
 			to.due = to.due[:0]
@@ -424,9 +424,9 @@ func (to *tonematrix) wireTonematrixModule() {
 		}))
 	}
 	if b := dom.Doc.Call("getElementById", "tm-clear"); b.Truthy() {
-		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-			for c := 0; c < tmMaxSteps; c++ {
-				for r := 0; r < tmRows; r++ {
+		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
+			for c := range tmMaxSteps {
+				for r := range tmRows {
 					to.setPad(c, r, false)
 				}
 			}
@@ -441,7 +441,7 @@ func (to *tonematrix) wireTonematrixModule() {
 	// the module DOES is its own transport control.
 	to.on = true
 	// Release a pad paint-drag wherever the mouse comes up.
-	dom.Doc.Call("addEventListener", "mouseup", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "mouseup", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		to.paint = -1
 		return nil
 	}))

@@ -96,7 +96,7 @@ func initKnobDrag() {
 		kb.slider.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
 		kb.slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 	})
-	release := dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	release := dom.FuncOf(func(this js.Value, args []js.Value) any {
 		kb.active = false
 		if kb.knobEl.Truthy() {
 			kb.knobEl.Get("classList").Call("remove", "knob-grab")
@@ -194,7 +194,7 @@ func (s *selectorKnob) initSelKnobDrag() {
 			s.step(-1)
 		}
 	})
-	rel := dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	rel := dom.FuncOf(func(this js.Value, args []js.Value) any {
 		s.active = false
 		return nil
 	})
@@ -239,12 +239,12 @@ func (s *selectorKnob) makeSelectorKnob(sel js.Value, rot ...float64) js.Value {
 		}
 		ptr.Get("style").Set("transform", "translate(-50%,-100%) rotate("+strconv.FormatFloat(ang, 'f', 1, 64)+"deg)")
 	}
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		snap()
 		return nil
 	}))
 	snap()
-	knob.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	knob.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
 		e.Call("stopPropagation")
@@ -278,7 +278,7 @@ func (s *selectorKnob) makeSelectorKnob(sel js.Value, rot ...float64) js.Value {
 	}
 	// Scroll wheel over the knob steps the selection (like scrolling the
 	// select itself), firing change so the bound handler reacts.
-	knob.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	knob.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
 		e.Call("stopPropagation")
@@ -363,10 +363,7 @@ func selectorKnobReadout(sel js.Value) js.Value {
 	readout := dom.Doc.Call("createElement", "span")
 	readout.Set("className", "selk-readout")
 	set := func() {
-		idx := sel.Get("selectedIndex").Int()
-		if idx < 0 {
-			idx = 0
-		}
+		idx := max(sel.Get("selectedIndex").Int(), 0)
 		readout.Set("textContent", sel.Get("options").Index(idx).Get("text").String())
 		// The readout describes what it is CURRENTLY showing. Without a title of
 		// its own it showed the cell's, which is a paragraph about the knob —
@@ -374,7 +371,7 @@ func selectorKnobReadout(sel js.Value) js.Value {
 		// anywhere else in the cell anyway.
 		dialPosTitle(readout, sel, idx)
 	}
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} { set(); return nil }))
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any { set(); return nil }))
 	set()
 	wrap.Call("appendChild", stack)
 	wrap.Call("appendChild", readout)
@@ -528,7 +525,7 @@ func addSelectorDotLabels(stack js.Value, colors []string, sel js.Value, offset 
 		dotEls[i] = dot
 		if sel.Truthy() {
 			idx := i
-			dot.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+			dot.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 				sel.Set("selectedIndex", idx)
 				sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 				return nil
@@ -547,7 +544,7 @@ func addSelectorDotLabels(stack js.Value, colors []string, sel js.Value, offset 
 				}
 			}
 		}
-		sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} { hi(); return nil }))
+		sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any { hi(); return nil }))
 		hi()
 	}
 	stack.Call("insertBefore", dial, stack.Get("firstChild"))
@@ -610,7 +607,7 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 		ptr.Get("style").Set("transform", "translate(-50%,-100%) rotate("+strconv.FormatFloat(ang, 'f', 1, 64)+"deg)")
 	}
 	update()
-	upd := dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	upd := dom.FuncOf(func(this js.Value, args []js.Value) any {
 		update()
 		return nil
 	})
@@ -623,7 +620,7 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 	}
 
 	grab := func(fineMode bool, el js.Value) js.Func {
-		return dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		return dom.FuncOf(func(this js.Value, args []js.Value) any {
 			e := args[0]
 			e.Call("preventDefault")
 			e.Call("stopPropagation")
@@ -673,7 +670,7 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 	}
 	wheel := func(fineMode bool) js.Func {
 		step := nudge(fineMode)
-		return dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		return dom.FuncOf(func(this js.Value, args []js.Value) any {
 			e := args[0]
 			e.Call("preventDefault")
 			e.Call("stopPropagation")
@@ -773,7 +770,7 @@ func addSelectorLabelsRot(stack js.Value, labels []string, sel js.Value, rot flo
 		if sel.Truthy() {
 			lab.Get("classList").Call("add", "clickable")
 			idx := i
-			lab.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+			lab.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 				sel.Set("selectedIndex", idx)
 				sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 				return nil
@@ -792,7 +789,7 @@ func addSelectorLabelsRot(stack js.Value, labels []string, sel js.Value, rot flo
 				}
 			}
 		}
-		sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} { hi(); return nil }))
+		sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any { hi(); return nil }))
 		hi()
 	}
 	stack.Call("insertBefore", dial, stack.Get("firstChild"))
@@ -890,7 +887,7 @@ func layoutOneSkirt(dial js.Value, clear, gap float64, onGrip bool) float64 {
 	n := els.Get("length").Int()
 	labs := make([]skirt.Label, 0, n)
 	kept := make([]js.Value, 0, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		el := els.Index(i)
 		deg, err := strconv.ParseFloat(el.Call("getAttribute", "data-deg").String(), 64)
 		if err != nil {
@@ -977,10 +974,7 @@ func estGripRadiusPx() float64 { return 19.0 * layout.scale }
 func estLabelBoxPx(text string) (w, h float64) {
 	const px = 8.0      // .knob-dial-lab font-size at scale 1
 	const perChar = 5.2 // B612 Mono advance at that size, rounded up
-	n := len([]rune(text))
-	if n < 1 {
-		n = 1
-	}
+	n := max(len([]rune(text)), 1)
 	return float64(n) * perChar * layout.scale, px * layout.scale
 }
 
