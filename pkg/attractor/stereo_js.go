@@ -382,7 +382,7 @@ const stereoSpanMax = audiosrc.DefaultRingSize
 // which is what lets takensFitExtent's fixed camera fit apply unchanged.
 //
 // chTime returns 0 and is never called in anger: a time axis is a function of
-// where you are in the window, not of the sample there, so generateStereo
+// where you are in the window, not of the sample there, so stereoInst.generate
 // fills it from the vertex index. It is in the enum because it is an axis
 // ASSIGNMENT, and returning 0 rather than panicking keeps a plan built wrong
 // in future to a flat figure instead of a dead page.
@@ -504,7 +504,7 @@ func stereoWiden(l, r, width float32) (float32, float32) {
 	return m + s, m - s
 }
 
-// generateStereo snapshots both channels and draws the newest window as a
+// generate snapshots both channels and draws the newest window as a
 // trail through the normal 3D pipeline.
 func (s *stereoInst) generate() {
 	src := aud.ensureAudioSource()
@@ -808,7 +808,7 @@ func stereoIsCollapsed(monoSrc, ok bool, corr float32) bool {
 	return ok && float64(corr) >= stereoCollapseR
 }
 
-// stereoNoteState records this frame's measurement, updates the readout, and
+// noteState records this frame's measurement, updates the readout, and
 // raises the notice once the collapse has persisted.
 func (s *stereoInst) noteState(monoSrc, ok bool, corr float32) {
 	s.monoSrc, s.corrOK, s.corr = monoSrc, ok, corr
@@ -845,7 +845,7 @@ func (s *stereoInst) noteState(monoSrc, ok bool, corr float32) {
 	}
 }
 
-// showStereoReadout writes the LED, but only when the text actually changes.
+// showReadout writes the LED, but only when the text actually changes.
 // The correlation moves continuously and the DOM does not need to hear about
 // every frame of it; more to the point, a two-decimal readout that re-renders
 // sixty times a second is unreadable, which is the same complaint that keeps
@@ -860,7 +860,7 @@ func (s *stereoInst) showReadout(text string) {
 	}
 }
 
-// appendStereoReadout adds the correlation cell to the Stereo parameter grid.
+// appendReadout adds the correlation cell to the Stereo parameter grid.
 // Into the grid, not #params, for the reason appendTakensEstimate is: #params
 // stacks below the height-bounded grid and gets clipped.
 func (s *stereoInst) appendReadout(grid js.Value) {

@@ -492,7 +492,7 @@ func (x *xyScope) noteState(monoSrc, ok bool, corr float32) {
 	s := stereoReadout(monoSrc, ok, corr)
 	if s == x.corrText {
 		// The correlation moves continuously and the DOM does not need to hear
-		// about every frame of it — showStereoReadout's argument, and the same
+		// about every frame of it — stereoInst.showReadout's argument, and the same
 		// trap: a two-decimal readout re-rendered sixty times a second is
 		// unreadable even when it is correct.
 		return
@@ -504,7 +504,7 @@ func (x *xyScope) noteState(monoSrc, ok bool, corr float32) {
 }
 
 // appendXYReadout adds the CORR cell to the XY Scope's parameter grid. Into the
-// grid rather than #params, for appendStereoReadout's reason: #params stacks
+// grid rather than #params, for stereoInst.appendReadout's reason: #params stacks
 // below the height-bounded grid and gets clipped.
 func (x *xyScope) appendXYReadout(grid js.Value) {
 	card, top := newPunitCard("corr")

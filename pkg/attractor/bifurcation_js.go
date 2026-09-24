@@ -322,7 +322,7 @@ func (b *bifurcation) cursorReadout(p paramDef, v float32, ok bool) string {
 
 // showCursor writes the readout, and only when it changes — the value moves
 // with every beat and the DOM does not need sixty writes a second of it. The
-// rule showStereoReadout keeps, for the same reason.
+// rule stereoInst.showReadout keeps, for the same reason.
 func (b *bifurcation) showCursor(s string) {
 	if s == b.curText {
 		return

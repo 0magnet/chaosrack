@@ -190,7 +190,7 @@ func (l *liveLyapunov) readout() string {
 // show writes the text to both places it appears, and only when it has
 // changed — the exponent drifts in the third decimal every frame, the DOM does
 // not need to hear about that, and a cell that re-renders sixty times a second
-// is unreadable anyway. It is the rule showStereoReadout keeps.
+// is unreadable anyway. It is the rule stereoInst.showReadout keeps.
 func (l *liveLyapunov) show(s string) {
 	if s != l.text {
 		l.text = s
@@ -217,7 +217,7 @@ func (l *liveLyapunov) show(s string) {
 }
 
 // appendLyapunovReadout adds the λ cell to a flow mode's parameter grid. Into
-// the grid and not #params, for the reason appendStereoReadout and
+// the grid and not #params, for the reason stereoInst.appendReadout and
 // appendTakensEstimate are: #params stacks below the height-bounded grid and
 // gets clipped by the module's fixed height.
 func (l *liveLyapunov) appendLyapunovReadout(grid js.Value) {

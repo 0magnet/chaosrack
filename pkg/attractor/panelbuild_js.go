@@ -516,7 +516,7 @@ func buildParamPanelNow(mode string) {
 	}
 
 	if mode == "xfer" {
-		// The fitted bulk delay, into the grid for appendStereoReadout's reason.
+		// The fitted bulk delay, into the grid for stereoInst.appendReadout's reason.
 		xf.appendTransferReadout(grid)
 	}
 
