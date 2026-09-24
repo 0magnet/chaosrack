@@ -11,6 +11,8 @@ import (
 	"image"
 	"image/color"
 	"math"
+
+	"github.com/0magnet/chaosrack/pkg/colorspace"
 )
 
 // Gradient is the coloring model of pkg/attractor's fragment shader: a
@@ -212,7 +214,7 @@ func (g Gradient) colorAt(x, y, z float32, min, max [3]float32, age float32) [3]
 		}
 		return mix(g.Mid, g.Top, (t-0.5)*2)
 	case 4:
-		return hsv2rgb(t*g.Freq+g.Phase, 1, 1)
+		return colorspace.FromHSV(t*g.Freq+g.Phase, 1, 1)
 	default:
 		return mix(g.Base, g.Top, t)
 	}
@@ -234,21 +236,6 @@ func clamp01(v float32) float32 {
 		return 1
 	}
 	return v
-}
-
-// hsv2rgb ports the shader's helper exactly:
-//
-//	K = (1, 2/3, 1/3, 3); p = abs(fract(h + K.xyz)*6 - K.www)
-//	rgb = v * mix(K.xxx, clamp(p - K.xxx, 0, 1), s)
-func hsv2rgb(h, s, v float32) [3]float32 {
-	fract := func(x float32) float32 { return x - float32(math.Floor(float64(x))) }
-	k := [3]float32{0, 2.0 / 3.0, 1.0 / 3.0}
-	var out [3]float32
-	for i := 0; i < 3; i++ {
-		p := float32(math.Abs(float64(fract(h+k[i])*6 - 3)))
-		out[i] = v * (1 + s*(clamp01(p-1)-1))
-	}
-	return out
 }
 
 // ColorAt is colorAt for callers outside this package that draw the same

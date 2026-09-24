@@ -5,6 +5,7 @@ package attractor
 import (
 	_ "embed"
 	"fmt"
+	"github.com/0magnet/chaosrack/pkg/colorspace"
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
@@ -1048,7 +1049,7 @@ func wireColorAndViewControls() {
 	// drawn, it doesn't paint over the host.
 	dom.Doc.Call("getElementById", "color-bg").Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		hex := dom.Doc.Call("getElementById", "color-bg").Get("value").String()
-		bgColor[0], bgColor[1], bgColor[2] = hexToRGB(hex)
+		bgColor = colorspace.ParseHex(hex)
 		glctx.GL.Call("clearColor", bgColor[0], bgColor[1], bgColor[2], 0)
 		return nil
 	}))
