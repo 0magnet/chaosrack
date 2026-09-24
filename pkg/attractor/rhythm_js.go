@@ -47,7 +47,7 @@ var rhy = rhythmSection{
 // figure the tonematrix uses, for the same reason: a few frames of headroom.
 const rhythmLookahead = 0.12
 
-// rhythmEnsureGraph acquires the shared context and builds the output chain,
+// ensureGraph acquires the shared context and builds the output chain,
 // the gain-into-panner-into-destination shape every voice module here has.
 func (r *rhythmSection) ensureGraph() {
 	ctx := acquireAudioCtx("rhythm")
@@ -64,7 +64,7 @@ func (r *rhythmSection) ensureGraph() {
 	r.updateRouting()
 }
 
-// rhythmUpdateRouting pushes the out ring and level knob into the master chain.
+// updateRouting pushes the out ring and level knob into the master chain.
 func (r *rhythmSection) updateRouting() {
 	if !r.master.Truthy() {
 		return
@@ -93,7 +93,7 @@ func rhythmTempo() float64 {
 	return bpm
 }
 
-// rhythmTick runs every frame from the render loop and is a no-op unless the
+// tick runs every frame from the render loop and is a no-op unless the
 // section is running.
 func (r *rhythmSection) tick() {
 	if !r.on || !r.running || !r.ctx.Truthy() {
@@ -122,14 +122,14 @@ func (r *rhythmSection) tick() {
 	r.updateLamps(pat, now, dur)
 }
 
-// rhythmUpdateLamps lights the beat the listener is HEARING, not the one being
+// updateLamps lights the beat the listener is HEARING, not the one being
 // scheduled.
 //
 // Those are a lookahead apart, and a lookahead is a tenth of a second — enough
 // that lamps driven off the scheduling counter run visibly ahead of the sound
 // and read as a machine that is out of time with itself. So the audible step is
-// worked back from the audio clock: rhythmStep is the index of the step at
-// rhythmNext, so however many step-durations rhythmNext is in the future is how
+// worked back from the audio clock: rhy.step is the index of the step at
+// rhy.next, so however many step-durations rhy.next is in the future is how
 // far back the ear currently is.
 func (r *rhythmSection) updateLamps(p rhythm.Pattern, now, dur float64) {
 	beats := rhythm.BeatsPerBar(p)
@@ -166,7 +166,7 @@ func rhythmScheduleStep(p rhythm.Pattern, step int, t float64) {
 	}
 }
 
-// rhythmVoice builds one drum at time t and lets it fall away.
+// voice builds one drum at time t and lets it fall away.
 //
 // Nodes are made per hit and left to be collected once they have stopped, which
 // is how Web Audio is meant to be driven: a node is a note, not an instrument.
@@ -265,14 +265,14 @@ func (r *rhythmSection) setRhythmPreset(name string) {
 	r.buildLamps()
 }
 
-// rhythmRestart drops the schedule so the next tick begins a fresh bar.
+// restart drops the schedule so the next tick begins a fresh bar.
 func (r *rhythmSection) restart() {
 	r.next = 0
 	r.step = 0
 	r.lampAt = -1
 }
 
-// rhythmBuildLamps puts one lamp per beat of the current bar.
+// buildLamps puts one lamp per beat of the current bar.
 //
 // Three for a waltz and four for a march, because the count is the thing being
 // shown — a fixed four lamps under a waltz would be counting a bar the pattern

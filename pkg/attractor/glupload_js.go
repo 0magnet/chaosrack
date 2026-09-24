@@ -199,7 +199,7 @@ func (r *renderer) uploadBuffersIndexed(vertices []float32, indices []uint16, dr
 // thousand sin/cos and a few thousand appends, sixty times a second, to produce
 // bytes identical to the ones already in the buffer. Under TinyGo's collector
 // it was also most of the garbage in the program: profiling the browser put
-// 45% of all allocation in generateGlobe alone, and the collector then stopped
+// 45% of all allocation in globe.generate alone, and the collector then stopped
 // the frame for 66-100ms about every 400ms to sweep up after it, which is
 // exactly the stutter that could be seen.
 //

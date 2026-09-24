@@ -42,7 +42,7 @@ var morph = sprottMorph{
 	knobPrv: 3,
 }
 
-// morphStep advances the trajectory one Euler tick under the blended flow,
+// step advances the trajectory one Euler tick under the blended flow,
 // with a guard that reseeds onto the blend's home IC when the trajectory has
 // stopped being one — because it ran away, or because it is standing still.
 func (sp *sprottMorph) step(c *[30]float64, dt float64) {
@@ -75,7 +75,7 @@ func (sp *sprottMorph) step(c *[30]float64, dt float64) {
 	}
 }
 
-// morphReseed puts the state back on the blend's home initial condition, with
+// reseed puts the state back on the blend's home initial condition, with
 // a little jitter so a reseed onto a fixed point does not land exactly on it
 // again.
 func (sp *sprottMorph) reseed() {

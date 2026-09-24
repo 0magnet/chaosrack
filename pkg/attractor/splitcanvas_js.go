@@ -47,7 +47,7 @@ type nearCanvas struct {
 
 var near nearCanvas
 
-// ensureFrontCanvas builds the near-side canvas on first use.
+// ensure builds the near-side canvas on first use.
 //
 // pointer-events are off: it covers the whole viewport including the controls,
 // and a canvas that swallowed clicks would make the rack unusable the moment
@@ -71,7 +71,7 @@ func (n *nearCanvas) ensure() bool {
 	return n.frontCtx.Truthy()
 }
 
-// sizeFrontCanvas matches the near canvas to the main one, in both the backing
+// size matches the near canvas to the main one, in both the backing
 // store and the CSS box, so a copy between them is one-to-one and needs no
 // scaling. Called from the same place the main canvas is sized.
 func (n *nearCanvas) size() {
@@ -86,7 +86,7 @@ func (n *nearCanvas) size() {
 	fs.Set("height", st.Get("height"))
 }
 
-// showFrontCanvas hides the near canvas outright when nothing is on that side.
+// show hides the near canvas outright when nothing is on that side.
 // An empty transparent canvas over the whole page costs a composite every frame
 // for nothing, and this is the common case: the knob spends most of its life at
 // one end or the other.

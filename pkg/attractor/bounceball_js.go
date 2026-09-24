@@ -53,7 +53,7 @@ const (
 	bounceWall  = 1.4
 )
 
-// bounceStep advances the ball by one integrator tick.
+// step advances the ball by one integrator tick.
 func (b *bouncingBall) step(dt float64) {
 	b.vy -= float64(b.grav) * dt
 	b.x += b.vx * dt
@@ -148,7 +148,7 @@ func (b *bouncingBall) generateBounceBall() {
 	gpu.uploadVerticesOnly(vertices, gpu.drawMode, sim.steps)
 }
 
-// bounceBeep: one short sine blip on the shared context. The acquire only
+// beep: one short sine blip on the shared context. The acquire only
 // audibly resumes once some real user gesture has unlocked audio; until
 // then the demo just runs silent.
 func (b *bouncingBall) beep(freq float64, ms int) {

@@ -42,7 +42,7 @@ import (
 // see takens_js.go for why the scale is fixed and why the window is a duration.
 //
 // WHAT IS NOT SHARED, and why: the samples. takens_js.go drains the source
-// into takensRing, and Drain is defined on the PRIMARY CHANNEL only — that
+// into emb.ring, and Drain is defined on the PRIMARY CHANNEL only — that
 // ring is mono by construction and no amount of reading it produces a right
 // channel. Real per-channel samples come from Source.TimeDomainStereo, which
 // is a snapshot (latest N, oldest first) rather than a stream, so this mode
@@ -190,7 +190,7 @@ type stereoInst struct {
 	l, r []float32 // this frame's snapshot, oldest first
 
 	// fitGain is the GAIN the camera was last fitted to, 0 for not yet.
-	// A gain rather than a bool for takensFitGain's reason: the bound the fit
+	// A gain rather than a bool for emb.fitGain's reason: the bound the fit
 	// is made against is a function of the gain, so a fit made at one gain is
 	// not a fit at another, and raising GAIN under a bool pushed the figure
 	// off the screen with only Zoom to bring it back.
@@ -1466,7 +1466,7 @@ func (s *stereoInst) drawGraticule() {
 	gpu.uploadVerticesOnly(v, glctx.Types.Lines, n)
 	if phos.active() {
 		// The phosphor owns these two while it is on; handing them to the
-		// palette here would hand them to the wrong owner. sectTick says
+		// palette here would hand them to the wrong owner. sect.tick says
 		// the same thing about the same pair.
 		phos.applyPhosphorColor()
 		return

@@ -53,7 +53,7 @@ import (
 //
 // ── WHAT IT COSTS ────────────────────────────────────────────────────────
 //
-// Nothing is measured here. The chart is fed from rpMaybeMeasure, which has
+// Nothing is measured here. The chart is fed from rp.maybeMeasure, which has
 // rate-limited the RQA scan to recurrence.RQASamplePeriodMs since the readout existed; all
 // this does is keep the answers. A knob drag therefore cannot provoke a storm
 // of recomputation through this path, because this path recomputes nothing —
@@ -145,7 +145,7 @@ var rqa = rqaChart{
 // pkg/recurrence.
 //
 // Compared by VALUE rather than hooked off the knobs, for the reason
-// rpTrajChanged gives about the trajectory cache: an edit that reaches a
+// rp.trajChanged gives about the trajectory cache: an edit that reaches a
 // parameter by any route at all — knob, permalink, preset, Reset All, MIDI,
 // audio modulation — moves a float that this then sees, and nothing added later
 // can forget to announce itself.
@@ -169,7 +169,7 @@ func rqaConfigNow() rqaConfig {
 	return c
 }
 
-// rqaSample records one measurement and repaints. Called from rpMaybeMeasure,
+// sample records one measurement and repaints. Called from rp.maybeMeasure,
 // on its tick, with whatever the readout is showing — including a result with
 // nothing lit, which Push stores as a gap rather than as three zeros.
 func (rq *rqaChart) sample(nowMs float64, r recurrence.RQAResult) {
@@ -194,7 +194,7 @@ func rqaPaneY(top int, f float64) float64 {
 	return float64(top) + 1 + float64(rqaPaneH-3)*(1-f)
 }
 
-// rqaPaint redraws the whole chart from the ring.
+// paint redraws the whole chart from the ring.
 //
 // Skipped when nothing can see it: offsetParent is null while the Parameters
 // module is hidden, and the rack re-measures every module on each pointer move
@@ -265,7 +265,7 @@ func (rq *rqaChart) paint() {
 	}
 }
 
-// rqaTracePath builds one trace as an SVG path, broken across the slots with no
+// tracePath builds one trace as an SVG path, broken across the slots with no
 // measurement in them. Empty when the whole window is a gap.
 //
 // A string handed to Path2D rather than a run of moveTo/lineTo calls: see the
@@ -286,7 +286,7 @@ func (rq *rqaChart) tracePath(tr recurrence.RQATrace, top int) string {
 		y := strconv.FormatFloat(rqaPaneY(top, recurrence.RQATraceY(tr, s.Value(tr))), 'f', 1, 64)
 		if !pen {
 			// Opened as a degenerate segment so a lone reading is a round dot
-			// rather than nothing; see the lineCap in rqaPaint.
+			// rather than nothing; see the lineCap in rqa.paint.
 			b.WriteString("M" + x + " " + y + "L")
 			pen = true
 		} else {

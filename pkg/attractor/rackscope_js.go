@@ -38,7 +38,7 @@ type rackScope struct {
 	// on, auto trigger so silence still draws a baseline, and the beam on.
 	ui scopeState
 
-	// scopeCanvas and scopeCtx are the tube, looked up once.
+	// rscope.canvas and rscope.ctx are the tube, looked up once.
 	canvas js.Value
 	ctx    js.Value
 
@@ -427,7 +427,7 @@ func (ra *rackScope) drawScopeTrace(w, h float64) {
 	ra.ctx.Set("shadowBlur", 0)
 }
 
-// scopeVertical is the signal on the vertical axis, per the SOURCE switch.
+// vertical is the signal on the vertical axis, per the SOURCE switch.
 // X-Y has no single vertical — it uses both channels directly — so it reads
 // as CH 1 here and the caller takes the other branch.
 func (ra *rackScope) vertical(l, r []float32) []float32 {
@@ -563,7 +563,7 @@ func (ra *rackScope) strokeScopePointsAsPath(ctx js.Value, pts []float32) {
 	ctx.Call("stroke", p2d.New(ra.tracePath.String()))
 }
 
-// scopeCanvasEl is the tube's canvas, looked up lazily.
+// canvasEl is the tube's canvas, looked up lazily.
 func (ra *rackScope) canvasEl() js.Value {
 	if !ra.canvas.Truthy() {
 		ra.canvas = dom.Doc.Call("getElementById", "scope-screen")
@@ -571,7 +571,7 @@ func (ra *rackScope) canvasEl() js.Value {
 	return ra.canvas
 }
 
-// scopeBlankFace paints the dark tube once, for a scope whose beam is off.
+// blankFace paints the dark tube once, for a scope whose beam is off.
 //
 // A scope that is switched off should LOOK switched off — dark glass with
 // the graticule still faintly etched on it, because the graticule is

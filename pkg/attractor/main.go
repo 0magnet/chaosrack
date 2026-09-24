@@ -869,7 +869,7 @@ func applyHostPageTweaks() {
 func registerOutputControls() {
 	// Model Out (sonification): trace-rate knob on the generators' concert-
 	// pitch semitone scale (the LED shows Hz both directions via the mapping
-	// pair), plus output level. The MAP ring is wired in buildSonifyModule.
+	// pair), plus output level. The MAP ring is wired in son.buildModule.
 	adoptDescControl(ControlDesc{ID: "sonify-freq", Label: "trace", Min: 0, Max: float64(genSemitones), Step: 1, Def: 24,
 		PermaKey: "sf", LEDID: "sonify-led", ResetID: "rst-sonify-freq",
 		Apply:       func(v float64) { son.hz = freqFromKnob(v) },
@@ -1208,7 +1208,7 @@ func wirePanelSwitches() {
 		})
 	}
 
-	// Phosphor selector — populate from the phosphor table + set phosphorIdx.
+	// Phosphor selector — populate from the phosphor table + set phos.index.
 	// Lives in the Style module as a rotary knob with a name readout (too many
 	// options / too-long names for a label ring).
 	if ph := dom.Doc.Call("getElementById", "phosphor"); ph.Truthy() {

@@ -46,7 +46,7 @@ func (m timingMark) ms() float32 {
 	return float32(time.Since(time.Time(m)).Microseconds()) / 1000
 }
 
-// timingFrame records one frame. Called from renderLoop with the rAF
+// frame records one frame. Called from renderLoop with the rAF
 // timestamp, before anything else uses it.
 //
 // Accumulated whether or not the panel is on screen, unlike every other meter
@@ -62,7 +62,7 @@ func (t *timingPanel) frame(nowMs float64) {
 	t.lastMs = nowMs
 }
 
-// timingTick latches the readouts on their own clock.
+// tick latches the readouts on their own clock.
 //
 // ALONE AMONG THE METERS, THIS ONE DOES NOT STOP WHEN IT IS OFF SCREEN.
 // Every other module here checks moduleOnScreen first, and should: their work

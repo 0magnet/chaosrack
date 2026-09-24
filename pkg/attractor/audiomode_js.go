@@ -135,7 +135,7 @@ func (au *audioModes) setFuncGen(on bool) {
 // function generator while it is on, otherwise whatever backend was created.
 //
 // It exists because ensureAudioSource returns the generator without ever
-// storing it in audioSource, so code that read that variable directly saw
+// storing it in aud.source, so code that read that variable directly saw
 // nothing when the generator was the source — the xy scope, which asks for
 // the source properly, drew a Lissajous while the spectrogram and the FVF
 // display next to it stayed black. Unlike ensureAudioSource this creates

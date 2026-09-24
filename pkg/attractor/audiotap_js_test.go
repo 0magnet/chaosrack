@@ -132,7 +132,7 @@ func TestTapSurvivesASourceSwitch(t *testing.T) {
 		t.Fatalf("read %d, want 128", got)
 	}
 
-	// Source switch: tapPump zeroes tapW while the cursor still points high.
+	// Source switch: tap.pump zeroes tap.w while the cursor still points high.
 	tap.w = 0
 	if got := tapRead(&c, dst); got != 0 {
 		t.Fatalf("cursor past the write head read %d, want 0", got)

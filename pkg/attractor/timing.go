@@ -2,8 +2,8 @@ package attractor
 
 // The rack's own frame meter.
 //
-// chaosrack has always measured its frame time — frameCount, frameMinMs and
-// frameMaxMs have sat in stats_js.go since early on — and the only way to read
+// chaosrack has always measured its frame time — fstats.count, fstats.minMs and
+// fstats.maxMs have sat in stats_js.go since early on — and the only way to read
 // any of it was to start the binary with --debug and fetch /debug/stats. That
 // is a meter with no panel, in an instrument whose scope module argues, in its
 // own comment, that "a scope you have to put the rack into a particular state
