@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/preset"
 	"github.com/0magnet/chaosrack/pkg/racklayout"
 )
 
@@ -114,8 +115,8 @@ func TestPresetModuleMarkupHasItsControls(t *testing.T) {
 	// The name field's maxlength and the store's cap have to agree, or a name
 	// typed to the limit of the field comes back from storage shorter than the
 	// one on screen and Save stops finding the preset it just wrote.
-	if !strings.Contains(controlsBody, `maxlength="24"`) || presetNameMax != 24 {
-		t.Errorf("the name field's maxlength and presetNameMax (%d) disagree", presetNameMax)
+	if !strings.Contains(controlsBody, `maxlength="24"`) || preset.NameMax != 24 {
+		t.Errorf("the name field's maxlength and preset.NameMax (%d) disagree", preset.NameMax)
 	}
 }
 
