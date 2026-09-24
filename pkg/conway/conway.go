@@ -1,3 +1,4 @@
+// Package conway builds polyhedra by applying Conway operators to seed solids.
 package conway
 
 import (

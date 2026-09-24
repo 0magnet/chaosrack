@@ -1,3 +1,4 @@
+// Package spectcol maps spectra onto the columns of a spectrogram texture.
 package spectcol
 
 // The spectrogram's column mapping, kept out of the wasm-only renderer so
