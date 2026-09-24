@@ -5,7 +5,7 @@ package attractor
 // The Platonic solids' vertex tables.
 //
 // These are no longer what DRAWS them — the five seeds are generated from
-// their faces, with the Conway operator knob applied; see conway.go. They
+// their faces, with the Conway operator knob applied; see pkg/conway. They
 // remain because buildSkinMesh paints the spectrogram onto these solids and
 // reads the vertices directly.
 

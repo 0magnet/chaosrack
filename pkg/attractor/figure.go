@@ -5,6 +5,7 @@ import (
 	"image/draw"
 	"math"
 
+	"github.com/0magnet/chaosrack/pkg/conway"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"github.com/0magnet/chaosrack/pkg/geom"
 )
@@ -14,7 +15,7 @@ import (
 // headless.go draws a flow's trajectory. The catalog has more than flows that
 // need nothing a browser provides: a map's iterates are arithmetic, the
 // polyhedra and the sphere, torus, globe and magnetosphere are line lists from
-// pkg/geom and conway.go, and the Lissajous figure is three sines. Each is
+// pkg/geom and pkg/conway, and the Lissajous figure is three sines. Each is
 // built here from the same code the page's generator uses, so `chaosrack
 // render` draws what the page draws.
 
@@ -46,9 +47,9 @@ func StaticFigure(key string, points int) (Figure, bool) {
 	if pts := dynamics.MapPoints(key, points); pts != nil {
 		return Figure{Kind: FigurePoints, Points: pts}, true
 	}
-	for i, s := range polySeeds {
+	for i, s := range conway.Seeds {
 		if s.Name == key {
-			return polyFigure(conwaySolid(i, 0)), true
+			return polyFigure(conway.Build(i, 0)), true
 		}
 	}
 	switch key {
@@ -79,7 +80,7 @@ func Drawable(key string) bool {
 	return ok
 }
 
-func polyFigure(p polyhedron) Figure {
+func polyFigure(p conway.Solid) Figure {
 	f := Figure{Kind: FigureLines}
 	for _, v := range p.Verts {
 		f.Points = append(f.Points, [3]float64{v.X, v.Y, v.Z})

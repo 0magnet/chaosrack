@@ -1,4 +1,4 @@
-package attractor
+package conway
 
 import (
 	"fmt"
@@ -9,17 +9,17 @@ import (
 // vef is the shape of a solid, which is what identifies it: a solid with 24
 // vertices, 36 edges and 14 faces IS a truncated cube, whatever the
 // coordinates came out as.
-func vef(p polyhedron) (int, int, int) { return len(p.Verts), len(p.Edges()), len(p.Faces) }
+func vef(p Solid) (int, int, int) { return len(p.Verts), len(p.Edges()), len(p.Faces) }
 
-func name(s, o int) string { return conwayName(s, o) }
+func name(s, o int) string { return Name(s, o) }
 
 // Euler's formula is the one test that says a result is a solid rather than
 // a bag of polygons: V - E + F = 2 for anything sphere-like, and every
 // operator here has to preserve it.
 func TestEveryGeneratedSolidSatisfiesEuler(t *testing.T) {
-	for s := range polySeeds {
-		for o := range polyOps {
-			p := conwaySolid(s, o)
+	for s := range Seeds {
+		for o := range Ops {
+			p := Build(s, o)
 			if got := p.Euler(); got != 2 {
 				v, e, f := vef(p)
 				t.Errorf("%s: V-E+F = %d-%d+%d = %d, want 2", name(s, o), v, e, f, got)
@@ -34,8 +34,8 @@ func TestTheSeedsAreThePlatonicSolids(t *testing.T) {
 		"T": {4, 6, 4}, "C": {8, 12, 6}, "O": {6, 12, 8},
 		"D": {20, 30, 12}, "I": {12, 30, 20},
 	}
-	for s, seed := range polySeeds {
-		p := conwaySolid(s, 0)
+	for s, seed := range Seeds {
+		p := Build(s, 0)
 		v, e, f := vef(p)
 		if got, w := [3]int{v, e, f}, want[seed.Letter]; got != w {
 			t.Errorf("%s (%s) is V%d E%d F%d, want V%d E%d F%d",
@@ -56,12 +56,12 @@ func TestTheOperatorsProduceTheNamedSolids(t *testing.T) {
 		}
 		return -1
 	}
-	seeds := make([]string, len(polySeeds))
-	for i, s := range polySeeds {
+	seeds := make([]string, len(Seeds))
+	for i, s := range Seeds {
 		seeds[i] = s.Letter
 	}
-	ops := make([]string, len(polyOps))
-	for i, o := range polyOps {
+	ops := make([]string, len(Ops))
+	for i, o := range Ops {
 		ops[i] = o.Letter
 	}
 
@@ -91,7 +91,7 @@ func TestTheOperatorsProduceTheNamedSolids(t *testing.T) {
 		if si < 0 || oi < 0 {
 			t.Fatalf("no seed %q or operator %q", c.seed, c.op)
 		}
-		p := conwaySolid(si, oi)
+		p := Build(si, oi)
 		v, e, f := vef(p)
 		if v != c.v || e != c.e || f != c.f {
 			t.Errorf("%s is V%d E%d F%d, want V%d E%d F%d (%s)",
@@ -103,9 +103,9 @@ func TestTheOperatorsProduceTheNamedSolids(t *testing.T) {
 // Every face is a closed polygon of at least three DISTINCT vertices. A
 // face that repeats a vertex is a fold, and it draws as a spike.
 func TestNoFaceIsDegenerate(t *testing.T) {
-	for s := range polySeeds {
-		for o := range polyOps {
-			p := conwaySolid(s, o)
+	for s := range Seeds {
+		for o := range Ops {
+			p := Build(s, o)
 			for fi, f := range p.Faces {
 				if len(f) < 3 {
 					t.Errorf("%s face %d has %d vertices", name(s, o), fi, len(f))
@@ -130,9 +130,9 @@ func TestNoFaceIsDegenerate(t *testing.T) {
 // Every edge is shared by exactly two faces. One face means a hole, three
 // means the winding is wrong somewhere.
 func TestEveryEdgeIsSharedByTwoFaces(t *testing.T) {
-	for s := range polySeeds {
-		for o := range polyOps {
-			p := conwaySolid(s, o)
+	for s := range Seeds {
+		for o := range Ops {
+			p := Build(s, o)
 			count := map[[2]int]int{}
 			for _, f := range p.Faces {
 				for i := range f {
@@ -155,9 +155,9 @@ func TestEveryEdgeIsSharedByTwoFaces(t *testing.T) {
 // Normalizing puts every vertex on the unit sphere, which is what makes a
 // generated solid look like the one it names.
 func TestNormalizePutsEveryVertexOnTheSphere(t *testing.T) {
-	for s := range polySeeds {
-		for o := range polyOps {
-			p := conwaySolid(s, o)
+	for s := range Seeds {
+		for o := range Ops {
+			p := Build(s, o)
 			for i, v := range p.Verts {
 				d := math.Sqrt(v.X*v.X + v.Y*v.Y + v.Z*v.Z)
 				if math.Abs(d-1) > 1e-9 {
@@ -171,7 +171,7 @@ func TestNormalizePutsEveryVertexOnTheSphere(t *testing.T) {
 // Edges come back once each, in a stable order, so the wireframe's index
 // buffer does not change between builds of the same solid.
 func TestEdgesAreUniqueAndStable(t *testing.T) {
-	p := conwaySolid(1, 3) // tC
+	p := Build(1, 3) // tC
 	a, b := p.Edges(), p.Edges()
 	if len(a) != len(b) {
 		t.Fatalf("two calls gave %d and %d edges", len(a), len(b))
@@ -199,16 +199,16 @@ func TestTheNameIsConwayNotation(t *testing.T) {
 	}{
 		{1, 0, "C"}, {1, 3, "tC"}, {1, 2, "aC"}, {3, 2, "aD"},
 	} {
-		if got := conwayName(c.s, c.o); got != c.want {
+		if got := Name(c.s, c.o); got != c.want {
 			t.Errorf("seed %d op %d gives %q, want %q", c.s, c.o, got, c.want)
 		}
 	}
 	// Out-of-range comes back as something buildable rather than panicking:
 	// a knob position that does not exist must not take the rack down.
-	if got := conwayName(99, 99); got == "" {
+	if got := Name(99, 99); got == "" {
 		t.Error("an out-of-range seed and operator gave no name")
 	}
-	if p := conwaySolid(-1, -1); p.Euler() != 2 {
+	if p := Build(-1, -1); p.Euler() != 2 {
 		t.Error("an out-of-range seed and operator gave something that is not a solid")
 	}
 }
@@ -217,9 +217,9 @@ func TestTheNameIsConwayNotation(t *testing.T) {
 // many distinct solids, counting by shape rather than by name.
 func TestTheGeneratorReachesMoreSolidsThanTheSelectorHad(t *testing.T) {
 	shapes := map[string]string{}
-	for s := range polySeeds {
-		for o := range polyOps {
-			v, e, f := vef(conwaySolid(s, o))
+	for s := range Seeds {
+		for o := range Ops {
+			v, e, f := vef(Build(s, o))
 			shapes[fmt.Sprintf("%d-%d-%d", v, e, f)] = name(s, o)
 		}
 	}
@@ -227,5 +227,5 @@ func TestTheGeneratorReachesMoreSolidsThanTheSelectorHad(t *testing.T) {
 	if len(shapes) <= 6 {
 		t.Errorf("the generator reaches %d distinct solids, no better than the six-model selector", len(shapes))
 	}
-	t.Logf("%d distinct solids from %d seeds x %d operators", len(shapes), len(polySeeds), len(polyOps))
+	t.Logf("%d distinct solids from %d seeds x %d operators", len(shapes), len(Seeds), len(Ops))
 }
