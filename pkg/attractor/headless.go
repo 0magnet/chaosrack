@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"math"
 
 	"github.com/0magnet/chaosrack/pkg/rasterview"
 )
@@ -42,6 +43,12 @@ type DrawOptions struct {
 	// transparent black, so a caller that forgets gets a picture that is
 	// invisible on anything that shows transparency as white.
 	Background color.RGBA
+	// Fit, when set, frames the picture to these points instead of the ones
+	// drawn: centered on their bounding box and scaled to their reach. It is
+	// how the frames of an animation whose figure changes every frame share
+	// one camera, so that a quiet passage draws small rather than being
+	// blown up to fill the frame.
+	Fit [][3]float64
 }
 
 func (o DrawOptions) withDefaults() DrawOptions {
@@ -117,9 +124,68 @@ func DrawSpan(pts [][3]float64, lo, hi int, o DrawOptions) *image.RGBA {
 	o = o.withDefaults()
 	img := image.NewRGBA(image.Rect(0, 0, o.Width, o.Height))
 	draw.Draw(img, img.Bounds(), &image.Uniform{o.Background}, image.Point{}, draw.Src)
-	v := Vertices(Centered(pts))
-	o.View.Render(img, v, SpanIndices(len(v)/3, lo, hi), o.Gradient)
+	v, view := o.place(pts)
+	view.Render(img, v, SpanIndices(len(v)/3, lo, hi), o.Gradient)
 	return img
+}
+
+// place centers pts for drawing, on their own bounding box or on o.Fit's,
+// and returns the view that frames them.
+func (o DrawOptions) place(pts [][3]float64) ([]float32, rasterview.View) {
+	if o.Fit == nil {
+		return Vertices(Centered(pts)), o.View
+	}
+	mid := BoundsMid(o.Fit)
+	shift := func(ps [][3]float64) [][3]float64 {
+		out := make([][3]float64, len(ps))
+		for i, p := range ps {
+			out[i] = [3]float64{p[0] - mid[0], p[1] - mid[1], p[2] - mid[2]}
+		}
+		return out
+	}
+	v := Vertices(shift(pts))
+	view := o.View
+	// The renderer fits by the drawn vertices' reach from the origin, so the
+	// scale that makes o.Fit's reach fill the frame is the default scaled by
+	// the ratio of the two.
+	drawn, ref := reach(v), reach(Vertices(shift(o.Fit)))
+	scale := view.Scale
+	if scale == 0 {
+		scale = 0.85
+	}
+	if drawn > 0 && ref > 0 {
+		view.Scale = scale * drawn / ref
+	}
+	return v, view
+}
+
+// BoundsMid is the middle of pts' bounding box.
+func BoundsMid(pts [][3]float64) [3]float64 {
+	var mid [3]float64
+	if len(pts) == 0 {
+		return mid
+	}
+	mn, mx := pts[0], pts[0]
+	for _, p := range pts {
+		for a := 0; a < 3; a++ {
+			mn[a] = math.Min(mn[a], p[a])
+			mx[a] = math.Max(mx[a], p[a])
+		}
+	}
+	for a := 0; a < 3; a++ {
+		mid[a] = (mn[a] + mx[a]) / 2
+	}
+	return mid
+}
+
+// reach is the furthest vertex from the origin, the renderer's fit radius.
+func reach(v []float32) float64 {
+	r := 0.0
+	for i := 0; i+2 < len(v); i += 3 {
+		x, y, z := float64(v[i]), float64(v[i+1]), float64(v[i+2])
+		r = math.Max(r, math.Sqrt(x*x+y*y+z*z))
+	}
+	return r
 }
 
 // SpanIndices joins points lo..hi of an n-point trail end to end.
