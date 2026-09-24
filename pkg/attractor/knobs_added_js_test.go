@@ -4,6 +4,8 @@ package attractor
 
 import (
 	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/takens"
 )
 
 // nanF and infF build the values a modulator riding a feature that has gone to
@@ -185,7 +187,7 @@ func TestStereoWidthSurvivesRubbish(t *testing.T) {
 func TestPolarLogMapStaysInsideTheSphere(t *testing.T) {
 	for _, drive := range []float32{0.2, 1, 2, 10, 1e6, infF(), nanF()} {
 		for _, r := range []float32{0, 1e-9, 0.1, 0.5, 1, 1.7320508, 1e6, infF(), nanF()} {
-			got := polarRadius(polarMapLog, r, drive)
+			got := takens.PolarRadius(takens.PolarLog, r, drive)
 			if got < 0 || got > 1 {
 				t.Errorf("log map: r=%v drive=%v gave %v, outside [0,1]", r, drive, got)
 			}
@@ -197,7 +199,7 @@ func TestPolarLogMapStaysInsideTheSphere(t *testing.T) {
 // map a normalized decibel radius rather than an arbitrary curve.
 func TestPolarLogMapReachesTheSurfaceAtFullScale(t *testing.T) {
 	for _, drive := range []float32{0.5, 2, 10} {
-		if got := polarRadius(polarMapLog, 1, drive); got < 0.999 || got > 1.001 {
+		if got := takens.PolarRadius(takens.PolarLog, 1, drive); got < 0.999 || got > 1.001 {
 			t.Errorf("drive %v: a full-scale vector draws at %v, not the surface", drive, got)
 		}
 	}
@@ -210,8 +212,8 @@ func TestPolarLogMapReachesTheSurfaceAtFullScale(t *testing.T) {
 func TestPolarLogMapLiftsTheQuietEnd(t *testing.T) {
 	const drive = 2 // two decades: a 40 dB window
 	for _, r := range []float32{0.02, 0.05, 0.1, 0.3} {
-		lg := polarRadius(polarMapLog, r, drive)
-		th := polarRadius(polarMapTanh, r, drive)
+		lg := takens.PolarRadius(takens.PolarLog, r, drive)
+		th := takens.PolarRadius(takens.PolarTanh, r, drive)
 		if lg <= th {
 			t.Errorf("at r=%v the log map draws %v and tanh %v — it is not lifting the quiet end",
 				r, lg, th)
@@ -222,12 +224,12 @@ func TestPolarLogMapLiftsTheQuietEnd(t *testing.T) {
 // Every map's names and ring have to stay the same length as the map count, or
 // the dial names a curve it does not draw.
 func TestPolarMapTablesCoverTheNewMap(t *testing.T) {
-	if len(polarMapNames) != polarMapCount || len(polarMapRing) != polarMapCount {
-		t.Fatalf("%d maps, %d names, %d ring labels", polarMapCount, len(polarMapNames), len(polarMapRing))
+	if len(polarMapNames) != takens.PolarCount || len(polarMapRing) != takens.PolarCount {
+		t.Fatalf("%d maps, %d names, %d ring labels", takens.PolarCount, len(polarMapNames), len(polarMapRing))
 	}
 	for _, d := range attractorParams["polar"] {
-		if d.ID == "polar-map" && int(d.Max)+1 != polarMapCount {
-			t.Errorf("the map knob runs 0..%v but there are %d maps", d.Max, polarMapCount)
+		if d.ID == "polar-map" && int(d.Max)+1 != takens.PolarCount {
+			t.Errorf("the map knob runs 0..%v but there are %d maps", d.Max, takens.PolarCount)
 		}
 	}
 }
@@ -240,8 +242,8 @@ func TestPolarLogMapIsADecibelScale(t *testing.T) {
 		// A decade is exactly 1/drive of the radius, wherever it falls.
 		want := 1 / drive
 		for _, r := range []float32{1, 0.1, 0.01} {
-			hi := polarRadius(polarMapLog, r, drive)
-			lo := polarRadius(polarMapLog, r/10, drive)
+			hi := takens.PolarRadius(takens.PolarLog, r, drive)
+			lo := takens.PolarRadius(takens.PolarLog, r/10, drive)
 			if lo <= 0 || hi <= 0 {
 				continue // under the window, where the map is the origin by design
 			}
@@ -254,7 +256,7 @@ func TestPolarLogMapIsADecibelScale(t *testing.T) {
 		for i := float32(0); i < drive; i++ {
 			floor /= 10
 		}
-		if got := polarRadius(polarMapLog, floor, drive); got > 0.001 {
+		if got := takens.PolarRadius(takens.PolarLog, floor, drive); got > 0.001 {
 			t.Errorf("drive %v: the bottom of the window draws at %v, not the origin", drive, got)
 		}
 	}

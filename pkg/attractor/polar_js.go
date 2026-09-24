@@ -102,7 +102,7 @@ func init() {
 	registerGenerate("polar", generatePolar)
 	attractorParams["polar"] = []paramDef{
 		{"polar-chan", "src", &polarChanF, 0, 0, float32(len(tapChanNames) - 1), 1},
-		{"polar-map", "map", &polarMapF, 0, 0, float32(polarMapCount - 1), 1},
+		{"polar-map", "map", &polarMapF, 0, 0, float32(takens.PolarCount - 1), 1},
 		{"polar-drive", "drv", &polarDrive, 2, 0.2, 10, 0.1},
 		// τ is takens-tau, not a polar copy of it: the polar figure IS the takens
 		// delay embedding with the delay wrapped onto an angle, so a τ that
@@ -131,8 +131,8 @@ func polarMapSel() int {
 	if !(v > 0) { // false for NaN too
 		return 0
 	}
-	if v > float32(polarMapCount-1) {
-		return polarMapCount - 1
+	if v > float32(takens.PolarCount-1) {
+		return takens.PolarCount - 1
 	}
 	return int(v + 0.5)
 }
@@ -143,7 +143,7 @@ func polarMapSel() int {
 // The √3 in takensFitExtent is the CUBE'S CORNER: the Takens mode's three
 // coordinates are three independent samples, each bounded by gain, so the
 // vector can reach √3·gain when all three peak together. Here the bound is on
-// the vector's LENGTH rather than on its coordinates, polarRadius never exceeds
+// the vector's LENGTH rather than on its coordinates, takens.PolarRadius never exceeds
 // 1, and the reachable set is therefore the ball of radius gain exactly. There
 // is no corner to leave room for.
 //
@@ -254,7 +254,7 @@ func generatePolar() {
 		// BETWEEN samples, and the radius map is a property of the display, so
 		// the display map belongs on the reconstructed signal rather than on
 		// the samples it was reconstructed from.
-		s := polarScale(mapSel, float32(math.Sqrt(float64(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]))), drive) * g
+		s := takens.PolarScale(mapSel, float32(math.Sqrt(float64(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]))), drive) * g
 		vertices[j+0] = v[0] * s
 		vertices[j+1] = v[1] * s
 		vertices[j+2] = v[2] * s

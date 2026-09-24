@@ -1,21 +1,21 @@
-package attractor
+package takens
 
 import "math"
 
-// The polar embedding's radial maps. Untagged, unlike the generator in
-// polar_js.go, so `chaosrack render` bends the delay vector exactly as the page
-// does.
+// The polar embedding's radial maps. Here rather than beside the generator
+// in pkg/attractor/polar_js.go, so `chaosrack render` bends the delay vector
+// exactly as the page does.
 
 // The radius maps, in knob order.
 const (
-	polarMapTanh = iota
-	polarMapAlgebraic
-	polarMapLog
-	polarMapUnit
-	polarMapCount
+	PolarTanh = iota
+	PolarAlgebraic
+	PolarLog
+	PolarUnit
+	PolarCount
 )
 
-// polarRadius maps a delay vector's length to the length it is DRAWN at, as a
+// PolarRadius maps a delay vector's length to the length it is DRAWN at, as a
 // fraction of GAIN. Every map returns a value in [0, 1] for every non-negative
 // r and every positive drive, which is the whole property this mode is built
 // on and what polarFitExtent relies on.
@@ -24,7 +24,7 @@ const (
 // from a square root of a sum of squares of audio samples, so it can only be
 // either of those if the samples were, and a NaN coordinate multiplied through
 // the vertex buffer is a hole in the trail that GL will not tell anyone about.
-func polarRadius(m int, r, drive float32) float32 {
+func PolarRadius(m int, r, drive float32) float32 {
 	if !(r > 0) { // false for NaN, and 0 is already the answer for 0
 		return 0
 	}
@@ -32,7 +32,7 @@ func polarRadius(m int, r, drive float32) float32 {
 		drive = 0.2 // the knob's floor; a zero drive would collapse the figure to a point
 	}
 	switch m {
-	case polarMapAlgebraic:
+	case PolarAlgebraic:
 		// drive·r/(1 + drive·r), written as 1 − 1/(1 + drive·r). Below tanh
 		// everywhere past the origin, so the same drive keeps more of the
 		// mid-range and reaches the surface later.
@@ -44,7 +44,7 @@ func polarRadius(m int, r, drive float32) float32 {
 		// modulator's arithmetic, and a NaN written into the vertex buffer is a
 		// hole in the trail that GL reports to nobody.
 		return 1 - 1/(1+drive*r)
-	case polarMapLog:
+	case PolarLog:
 		// r ↦ 1 + log₁₀(r)/drive: a DECIBEL radius. Full scale is the surface,
 		// and DRIVE is the window in DECADES below it that the sphere spends its
 		// radius on — 2 is 40 dB, about the useful range of a level meter, and
@@ -79,21 +79,21 @@ func polarRadius(m int, r, drive float32) float32 {
 			return 0
 		}
 		return v
-	case polarMapUnit:
+	case PolarUnit:
 		// Loudness removed entirely: the surface of the sphere and nothing else.
 		return 1
-	default: // polarMapTanh
+	default: // PolarTanh
 		return float32(math.Tanh(float64(drive * r)))
 	}
 }
 
-// polarScale is the factor each coordinate of a vector of length r is
+// PolarScale is the factor each coordinate of a vector of length r is
 // multiplied by. Isotropic by construction — one factor for all three — which
 // is what keeps the direction, and therefore the reconstructed geometry,
 // exactly as the delay vector had it.
-func polarScale(m int, r, drive float32) float32 {
+func PolarScale(m int, r, drive float32) float32 {
 	if !(r > 0) {
 		return 0 // a zero vector has no direction to preserve; it stays at the origin
 	}
-	return polarRadius(m, r, drive) / r
+	return PolarRadius(m, r, drive) / r
 }
