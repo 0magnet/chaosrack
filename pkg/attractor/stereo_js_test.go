@@ -36,7 +36,7 @@ func TestStereoWindowNeverOutrunsTheSnapshotRing(t *testing.T) {
 						if absA < 0 {
 							absA = -absA
 						}
-						// Exactly what generateStereo asks TimeDomainStereo for.
+						// Exactly what stereoInst.generate asks TimeDomainStereo for.
 						if need := (n-1)*stride + tau + absA + 1; need > stereoSpanMax {
 							t.Errorf("sr=%d budget=%d win=%v tau=%d align=%d: snapshots %d samples from a "+
 								"%d-sample ring — the front of the window would be wrapped audio",
@@ -127,7 +127,7 @@ func TestEveryPlanHasAGenuineThirdAxis(t *testing.T) {
 			t.Errorf("plan %d (%s) is three linear functions of one sample pair; every point "+
 				"lies in a plane and the figure is a sheet", i, stereoAxisNames[i])
 		}
-		// The time ramp is filled from the vertex index, and generateStereo
+		// The time ramp is filled from the vertex index, and stereoInst.generate
 		// only looks for it — it never mixes it with a delay.
 		for c := 0; c < 3; c++ {
 			if p.ch[c] == chTime && p.delay[c] {
@@ -358,7 +358,7 @@ func TestStereoFitBoundHoldsForEveryPlan(t *testing.T) {
 			for axis := 0; axis < 3; axis++ {
 				var v float32
 				if p.ch[axis] == chTime {
-					// generateStereo maps the window onto (2w−1)·gain for w in
+					// stereoInst.generate maps the window onto (2w−1)·gain for w in
 					// 0..1; the extremes are the ends of the window.
 					v = gain
 				} else {
