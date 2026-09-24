@@ -1,5 +1,5 @@
 // Command uitool bundles the CDP-driven UI test harnesses as subcommands of
-// one binary (they share internal/cdp and most flags):
+// one binary (they share github.com/0magnet/cdp and most flags):
 //
 //	uitool monkey [flags]   random-walk invariant fuzzer (see monkey.go)
 //	uitool golden [flags]   known-state oracle + golden images (see golden.go)
