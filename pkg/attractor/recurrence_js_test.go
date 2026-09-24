@@ -6,6 +6,8 @@ import (
 	"math"
 	"math/rand"
 	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/led"
 )
 
 // The window arithmetic is what the picture is OF, and it is the same
@@ -130,7 +132,7 @@ func TestTheSharedTauKnobAgreesBetweenBothModes(t *testing.T) {
 	// Integer step is what keeps the shared id out of the patchbay and the
 	// audio-mod matrix, both of which key routings by parameter id alone and
 	// would otherwise apply a routing made in one mode to the other.
-	if decimalsForStep(a.Step) != 0 {
+	if led.StepDecimals(a.Step) != 0 {
 		t.Error("takens-tau has a fractional step, so it becomes a routable destination " +
 			"under an id that two modes share")
 	}

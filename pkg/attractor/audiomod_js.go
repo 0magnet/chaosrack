@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/led"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -171,7 +172,7 @@ func collectAudioModulation(mode string) []savedParam {
 		// added, the fix is to give it the finer step it always wanted rather
 		// than an exception here, because the same coarse step is already
 		// quantizing its knob, its wheel and its LED.
-		if decimalsForStep(pd.Step) == 0 {
+		if led.StepDecimals(pd.Step) == 0 {
 			held, has := modHold[pd.ID]
 			v = quantizeHeld(v, held, has, pd.Min, pd.Max, pd.Step)
 			modHold[pd.ID] = v
@@ -356,7 +357,7 @@ func buildModUnit(id, label string) js.Value {
 	lvlNum.Set("type", "text")
 	lvlNum.Set("inputmode", "decimal")
 	// No min/max/step: see buildParamUnit. They do nothing on a text input.
-	lvlNum.Set("value", formatLED(float64(cur.level), 1, 2, true))
+	lvlNum.Set("value", led.Format(float64(cur.level), 1, 2, true))
 	lvlNum.Set("title", "Mod depth for "+label+" (± inverts, 0 = off; ~1.5+ overdrives)")
 	lvlNum.Set("className", "numin u-modval")
 	lvl.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -367,7 +368,7 @@ func buildModUnit(id, label string) js.Value {
 			m := paramMods[id]
 			m.level = float32(v)
 			paramMods[id] = m
-			lvlNum.Set("value", formatLED(v, 1, 2, true))
+			lvlNum.Set("value", led.Format(v, 1, 2, true))
 		}
 		return nil
 	}))

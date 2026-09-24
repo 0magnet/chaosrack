@@ -1270,10 +1270,10 @@ func wirePanelSwitches() {
 	}))
 	buildGeneratorModule()
 	buildTestSignalModule()
-	// The readouts remember what they are showing (see ledtext_js.go), and
+	// The readouts remember what they are showing (see led.Readouts), and
 	// these calls hand them fresh elements, so the memory has to go with the
 	// old ones or a new LED stays blank until its reading happens to move.
-	forgetLEDText()
+	readouts.Forget()
 	// Same reason, for the same elements: the visibility observer holds the
 	// ones it was given, and a rebuilt panel's are not those.
 	invalidateOnScreen()

@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/led"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -70,10 +71,10 @@ type Control struct {
 	skipResetAll bool
 }
 
-// formatLED renders a value for this control's LED readout using its owned
+// formatValue renders a value for this control's LED readout using its owned
 // integer/decimal/sign format.
 func (c *Control) formatValue(v float64) string {
-	return formatLED(v, c.ledInt, c.ledDec, c.ledSign)
+	return led.Format(v, c.ledInt, c.ledDec, c.ledSign)
 }
 
 // resetToDefault sets the control's value back to its default (drives the

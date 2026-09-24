@@ -6,6 +6,7 @@ import (
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 
+	"github.com/0magnet/chaosrack/pkg/led"
 	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
@@ -100,19 +101,19 @@ func wfTick(nowMs float64) {
 func showWowFlutter() {
 	set := func(key string, el js.Value, v float64, signed bool) {
 		if !wfRes.OK {
-			setLEDText(key, el, "  --.---")
+			readouts.Set(key, el, "  --.---")
 			return
 		}
-		setLEDText(key, el, formatLED(v, 2, 3, signed))
+		readouts.Set(key, el, led.Format(v, 2, 3, signed))
 	}
 	set("wf-speed", wfSpeedEl, wfRes.SpeedPct, true)
 	set("wf-wow", wfWowEl, wfRes.WowPct, false)
 	set("wf-flut", wfFlutEl, wfRes.FlutterPct, false)
 	set("wf-wtd", wfWeightedEl, wfRes.WeightedPct, false)
 	if wfRes.OK {
-		setLEDText("wf-carrier", wfCarrierEl, formatLED(wfRes.Carrier, 5, 1, false))
+		readouts.Set("wf-carrier", wfCarrierEl, led.Format(wfRes.Carrier, 5, 1, false))
 	} else {
-		setLEDText("wf-carrier", wfCarrierEl, "-----.-")
+		readouts.Set("wf-carrier", wfCarrierEl, "-----.-")
 	}
 }
 
@@ -131,9 +132,9 @@ func wireWowFlutterModule() {
 	if nstack.Truthy() {
 		nstack.Call("appendChild", makeKnob(nom, js.Undefined(), true, false, true))
 	}
-	// Step 10 already gives whole hertz through ledDecimals, so no LEDStep is
+	// Step 10 already gives whole hertz through led.Decimals, so no LEDStep is
 	// needed here. The LED gains the zero padding every other readout in the
-	// rack has — it was the one built with strconv.Itoa rather than formatLED,
+	// rack has — it was the one built with strconv.Itoa rather than led.Format,
 	// so 3150 showed unpadded where 03150 is the house style.
 	adoptDescControl(ControlDesc{
 		ID: "wf-nom", Label: "nom", Min: 0, Max: 20000, Step: 10, Def: 3150,
@@ -141,7 +142,7 @@ func wireWowFlutterModule() {
 		Apply: func(v float64) {
 			wfNominal = float32(v)
 			if lbl := dom.Doc.Call("getElementById", "wf-nom-lbl"); lbl.Truthy() {
-				lbl.Set("textContent", formatLED(v, 5, 1, false))
+				lbl.Set("textContent", led.Format(v, 5, 1, false))
 			}
 		},
 	})
