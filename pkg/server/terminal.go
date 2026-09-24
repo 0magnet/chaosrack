@@ -65,13 +65,28 @@ func dialRack() *rackcable.Client {
 var tuiCmd = &cobra.Command{
 	Use:   "tui",
 	Short: "drive the rack from a terminal",
-	Long: `The rack's control surface in a terminal.
+	Long: `Control a running rack from a terminal.
 
-The bays above, every control below. Arrows move and turn — one step for a
-dial, one detent for a switch. 0 resets to the control's own default, r
-reloads, typing filters, q quits.
+The top of the screen shows the rack's bays and the bottom lists every
+control. Changes take effect in the browser immediately.
 
-Drives a running rack: start the server, open it in a browser, then attach.`,
+  up/down        select a control (PgUp/PgDn jump 10, Home/End go to the ends)
+  left/right     turn it one step, or move a switch one position
+  ctrl+arrows    scroll the view
+  0              reset the control to its default
+  tab            switch between the panel and list views
+  type           filter controls by name (backspace erases, / clears)
+  r              reload the controls from the page
+  q, esc         quit
+
+Requires a rack open in a browser started with remote debugging:
+
+  chaosrack &
+  chromium --remote-debugging-port=9222 http://127.0.0.1:8080/
+  chaosrack tui
+
+By default it connects to the tab on this binary's --port. Use --attach to
+choose a different tab and --cdp to use a different debugging port.`,
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		return racktui.Run(cmd.Context(), dialRack())
 	},
@@ -80,13 +95,18 @@ Drives a running rack: start the server, open it in a browser, then attach.`,
 var rackCmd = &cobra.Command{
 	Use:   "rack",
 	Short: "draw the rack's bays as text",
-	Long: `Draw the bays.
+	Long: `Print the running rack's layout as text.
 
-A rack of 84 HP rows is a table — a row is a fixed number of slots, a module
-occupies a whole number of them, the rest is blank panel — so it is drawn from
-the packer's own output rather than described. With --monitor it is drawn a
-second time with a chassis monitor at the left of every bay, which is what the
-rack would look like if every row opened with a screen.`,
+Each row of the rack is a fixed number of slots. Each module takes up a whole
+number of slots, and blank panels fill the rest. The layout printed is the
+one the page is currently using.
+
+--slots sets the number of slots per row. By default the page decides.
+--monitor N also prints the layout with an N-slot monitor at the start of
+each bay, for comparison.
+
+Like tui, this needs a rack open in a browser with remote debugging enabled
+(see chaosrack tui --help).`,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		c := dialRack()
 		mon := c.Monitor
@@ -113,17 +133,21 @@ rack would look like if every row opened with a screen.`,
 var ctlCmd = &cobra.Command{
 	Use:   "ctl [id | id=value ...]",
 	Short: "list, read or set the rack's controls",
-	Long: `Read and turn the rack's controls by name.
+	Long: `List, read or set the running rack's controls by id.
 
-With no arguments it lists the whole surface. An argument that is a bare id
-prints that control's value; one that is id=value turns it.
+With no arguments, ctl lists every control with its label and range. Add
+--values to show every control's current value too. An argument that is just
+an id prints that control's value. An argument of the form id=value sets it.
 
-	chaosrack ctl
-	chaosrack ctl wf-win
-	chaosrack ctl wf-win=2 lufs-rate=1000
+  chaosrack ctl
+  chaosrack ctl wf-win
+  chaosrack ctl wf-win=2 lufs-rate=1000
 
-Setting a control goes through the rack's own state machinery, so it is the
-same as moving the knob: the permalink follows it.`,
+Setting a control has the same effect as turning it in the page, and the
+page's permalink updates to match.
+
+Like tui, this needs a rack open in a browser with remote debugging enabled
+(see chaosrack tui --help).`,
 	RunE: func(_ *cobra.Command, args []string) error {
 		c := dialRack()
 		if len(args) == 0 {
