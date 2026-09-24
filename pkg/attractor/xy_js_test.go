@@ -160,7 +160,7 @@ func TestXYWindowHasAFloor(t *testing.T) {
 }
 
 // WIN and LAG are durations, so one setting is one amount of time on every
-// source — tauSamples' argument, applied to the scope's own two.
+// source — takens.TauSamples' argument, applied to the scope's own two.
 func TestXYWindowAndLagAreDurations(t *testing.T) {
 	for _, ms := range []float32{5, 43, 100} {
 		for _, sr := range []int{24000, 48000} {

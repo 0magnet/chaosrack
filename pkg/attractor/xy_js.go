@@ -130,7 +130,7 @@ var (
 )
 
 // The knobs. xyWinMS and xyLagMS are durations rather than sample counts for
-// tauSamples' reason: a sample is not a fixed amount of time, and the same
+// takens.TauSamples' reason: a sample is not a fixed amount of time, and the same
 // setting would otherwise mean one thing on the 48 kHz microphone and another
 // on the 24 kHz server feed.
 var (

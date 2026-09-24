@@ -1,8 +1,10 @@
 package attractor
 
-import "github.com/0magnet/chaosrack/pkg/dynamics"
+import (
+	"testing"
 
-import "testing"
+	"github.com/0magnet/chaosrack/pkg/dynamics"
+)
 
 // Every registered flow must trace a bounded, non-degenerate figure — the
 // export turns these into meshes, and a mode that returns three points or a

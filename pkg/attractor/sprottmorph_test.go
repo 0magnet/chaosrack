@@ -1,10 +1,10 @@
 package attractor
 
-import "github.com/0magnet/chaosrack/pkg/dynamics"
-
 import (
 	"math"
 	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 )
 
 // The coefficient extraction must reproduce every catalog deriv EXACTLY

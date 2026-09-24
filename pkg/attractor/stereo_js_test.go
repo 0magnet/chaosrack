@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/0magnet/chaosrack/pkg/audiosrc"
+	"github.com/0magnet/chaosrack/pkg/takens"
 )
 
 // THE ONE THAT CANNOT BE SEEN. Unlike the Takens mode, which accumulates its
@@ -436,7 +437,7 @@ func TestTwoStereoInstancesAreIndependent(t *testing.T) {
 	a.vgain = 3
 	a.span = 4
 
-	if b.axesF != 0 || b.tau != takensTauDef || b.gain != 10 || b.vgain != 1 || b.span != 1 {
+	if b.axesF != 0 || b.tau != takens.TauDef || b.gain != 10 || b.vgain != 1 || b.span != 1 {
 		t.Errorf("turning a's knobs moved b: %+v", b)
 	}
 	if a.axisSel() == b.axisSel() {

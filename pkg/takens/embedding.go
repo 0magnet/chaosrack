@@ -1,4 +1,4 @@
-package attractor
+package takens
 
 import "math"
 

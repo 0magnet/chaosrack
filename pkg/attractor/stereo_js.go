@@ -5,6 +5,7 @@ package attractor
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
+	"github.com/0magnet/chaosrack/pkg/takens"
 	"math"
 	"strconv"
 	"syscall/js"
@@ -276,7 +277,7 @@ type stereoInst struct {
 func newStereoInst() *stereoInst {
 	return &stereoInst{
 		axesF: 0,
-		tau:   takensTauDef,
+		tau:   takens.TauDef,
 		win:   85,
 		gain:  10,
 		width: 1,
@@ -324,7 +325,7 @@ func init() {
 	registerGenerate("stereo", stereo.generate)
 	attractorParams["stereo"] = []paramDef{
 		{"stereo-axes", "axes", &stereo.axesF, 0, 0, float32(len(stereoPlans) - 1), 1},
-		{"stereo-tau", "τ", &stereo.tau, takensTauDef, 1, takensTauMax, 1},
+		{"stereo-tau", "τ", &stereo.tau, takens.TauDef, 1, takens.TauMax, 1},
 		{"stereo-win", "win", &stereo.win, 85, 5, stereoWinMax, 5},
 		{"stereo-gain", "gain", &stereo.gain, 10, 0.5, 50, 0.5},
 		{"stereo-align", "algn", &stereo.align, 0, -stereoAlignMax, stereoAlignMax, 1},
@@ -473,9 +474,9 @@ func stereoAlignSamples(align float32, sr int) int {
 	if neg {
 		align = -align
 	}
-	n := tauSamples(align, sr)
+	n := takens.TauSamples(align, sr)
 	if align < 0.5 {
-		n = 0 // tauSamples floors at 1; a zero offset has to stay zero
+		n = 0 // takens.TauSamples floors at 1; a zero offset has to stay zero
 	}
 	if neg {
 		return -n
@@ -511,7 +512,7 @@ func (s *stereoInst) generate() {
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := tauSamples(s.tau, sr)
+	tau := takens.TauSamples(s.tau, sr)
 	align := stereoAlignSamples(s.align, sr)
 	n, stride := stereoWindow(s.win, sr, steps, tau, align)
 	span := (n-1)*stride + tau
@@ -1204,7 +1205,7 @@ var trigRunRing = []string{"auto", "norm", "sgl"}
 func (s *stereoInst) trigRun() int { return clampSel(s.trun, trigRunSingle) }
 
 // trigHoldSamples is the holdoff knob in samples at the live rate. The knob
-// is in milliseconds, for tauSamples' reason: a sample is not a duration,
+// is in milliseconds, for takens.TauSamples' reason: a sample is not a duration,
 // and a holdoff that meant different things on the microphone and the feed
 // would lock to different things on each.
 func (s *stereoInst) trigHoldSamples(sr int) int {
