@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/gentile"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -183,7 +184,7 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 	cells := map[string][]js.Value{}
 	steps := map[string]js.Value{}
 	var sharedCells []js.Value
-	var gens []genSpec
+	var gens []gentile.Spec
 	for _, mode := range own {
 		for _, p := range attractorParams[mode] {
 			if claimed[p.ID] {
@@ -199,7 +200,7 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 				cells[mode] = append(cells[mode], buildCategoryParamCell(mode, p))
 			}
 		}
-		gens = append(gens, genSpec{Mode: mode, Constants: len(cells[mode])})
+		gens = append(gens, gentile.Spec{Mode: mode, Constants: len(cells[mode])})
 	}
 
 	// How wide this category's heads are. Every bay spends catHeadCols on
@@ -209,7 +210,7 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 	// leaves the later bays a column of slack rather than letting the first
 	// one overhang its rack.
 	headCols := catHeadCols + (len(sharedCells)+catCellsPerCol-1)/catCellsPerCol
-	mods := packGenerators(gens, catColsPerBay-headCols)
+	mods := gentile.Pack(gens, catColsPerBay-headCols)
 
 	// Modules into bays: as many as fit beside a head.
 	var out []js.Value
@@ -252,7 +253,7 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 // per group (§2-133, "marked outlines around each group... area color
 // patterning"), and unlike a header strip along the top it still works for a
 // generator that sits along the bottom row.
-func buildGenPanel(label string, m genModule, cells map[string][]js.Value) js.Value {
+func buildGenPanel(label string, m gentile.Module, cells map[string][]js.Value) js.Value {
 	grid := dom.Doc.Call("createElement", "div")
 	grid.Set("className", "punit-grid catgrid catgen")
 
@@ -289,7 +290,7 @@ func buildGenPanel(label string, m genModule, cells map[string][]js.Value) js.Va
 // always a rectangle — five constants in a two-column panel are the top two
 // rows and one below — and an outline that only knew how to be a rectangle
 // would have to round up to one, which is the blank panel this is avoiding.
-func markGroupEdges(c js.Value, m genModule, t genTile, pos int) {
+func markGroupEdges(c js.Value, m gentile.Module, t gentile.Tile, pos int) {
 	in := func(p int) bool { return p >= t.Start && p < t.Start+t.N }
 	col, _ := m.ColRow(pos)
 	cl := c.Get("classList")
@@ -308,7 +309,7 @@ func markGroupEdges(c js.Value, m genModule, t genTile, pos int) {
 }
 
 // genModuleID names a generator module by the models on it.
-func genModuleID(m genModule) string {
+func genModuleID(m gentile.Module) string {
 	parts := make([]string, 0, len(m.Tiles))
 	for _, t := range m.Tiles {
 		parts = append(parts, categorySlug(t.Mode))
