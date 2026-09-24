@@ -38,7 +38,7 @@ func jamHop() {
 	keys := ModeKeys(ClassFlow3D, ClassFlow4D)
 	var pool []string
 	for _, k := range keys {
-		if k != "custom" && k != selectedMode {
+		if k != "custom" && k != run.selectedMode {
 			pool = append(pool, k)
 		}
 	}

@@ -514,7 +514,7 @@ func (s *stereoInst) generate() {
 	}
 	tau := takens.TauSamples(s.tau, sr)
 	align := stereoAlignSamples(s.align, sr)
-	n, stride := stereoWindow(s.win, sr, steps, tau, align)
+	n, stride := stereoWindow(s.win, sr, sim.steps, tau, align)
 	span := (n-1)*stride + tau
 	// The two channels are read from indices `align` apart, so the snapshot has
 	// to cover both runs: |align| more samples, with the earlier channel
@@ -550,7 +550,7 @@ func (s *stereoInst) generate() {
 		s.r = make([]float32, len(s.l))
 	}
 	nv := takensVerts(n)
-	vertices := vertBuf[:nv*4]
+	vertices := sim.vertBuf[:nv*4]
 	if src == nil || !src.Ready() {
 		// Re-upload the previous frame rather than a cleared buffer, so the
 		// model does not flicker while the source spins up — and refit when
@@ -698,7 +698,7 @@ func (s *stereoInst) generate() {
 	corr, ok := stereoCorrelation(l, r)
 	s.noteState(src.Channels() < 2, ok, corr)
 
-	if s.fitGain != s.gain && !paramIsModulated("stereo-gain") {
+	if s.fitGain != s.gain && !pmod.paramIsModulated("stereo-gain") {
 		// Fitted to the FIXED scale's worst case, not to this window — see the
 		// same block in generateTakens for why fitting the instantaneous
 		// figure is what put loud passages off the screen. Every coordinate
@@ -1464,15 +1464,15 @@ func (s *stereoInst) drawGraticule() {
 	glctx.GL.Call("uniform1i", gpu.u.gradientColors, 1)
 	glctx.GL.Call("uniform3f", gpu.u.baseColor, 0.22, 0.26, 0.32)
 	gpu.uploadVerticesOnly(v, glctx.Types.Lines, n)
-	if phosphorActive() {
+	if phos.active() {
 		// The phosphor owns these two while it is on; handing them to the
 		// palette here would hand them to the wrong owner. sectTick says
 		// the same thing about the same pair.
-		applyPhosphorColor()
+		phos.applyPhosphorColor()
 		return
 	}
 	glctx.GL.Call("uniform1i", gpu.u.gradientColors, gradientColorsUniform())
-	glctx.GL.Call("uniform3f", gpu.u.baseColor, baseColor[0], baseColor[1], baseColor[2])
+	glctx.GL.Call("uniform3f", gpu.u.baseColor, style.baseColor[0], style.baseColor[1], style.baseColor[2])
 }
 
 // field resolves a parameter id to the field it names ON THIS INSTANCE.

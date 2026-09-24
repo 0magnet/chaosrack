@@ -22,12 +22,12 @@ var modelModState = map[string]float32{}
 // before there is a trail, which is every frame of a mode change and the
 // first frames after a reset.
 func modelModHead() (x, y, z float32, ok bool) {
-	n := steps
-	if n < 1 || len(vertBuf) < n*4 {
+	n := sim.steps
+	if n < 1 || len(sim.vertBuf) < n*4 {
 		return 0, 0, 0, false
 	}
 	i := (n - 1) * 4
-	return vertBuf[i], vertBuf[i+1], vertBuf[i+2], true
+	return sim.vertBuf[i], sim.vertBuf[i+1], sim.vertBuf[i+2], true
 }
 
 // modelModValue is one model source's current value, 0..1, smoothed.

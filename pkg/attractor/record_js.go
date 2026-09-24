@@ -193,7 +193,7 @@ func (c *canvasRecorder) streamSource(canvas js.Value) js.Value {
 		// composites instead of replacing and every frame keeps the last one.
 		c.feedCtx.Set("fillStyle", "#000000")
 		c.feedCtx.Call("fillRect", 0, 0, sw, sh)
-		c.feedCtx.Call("drawImage", captureCanvas(canvas), sx, sy, sw, sh, 0, 0, sw, sh)
+		c.feedCtx.Call("drawImage", near.captureCanvas(canvas), sx, sy, sw, sh, 0, 0, sw, sh)
 		js.Global().Call("requestAnimationFrame", c.feedFn)
 		return nil
 	})

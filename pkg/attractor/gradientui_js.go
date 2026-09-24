@@ -77,17 +77,17 @@ func updateGradientUI() {
 			el.Get("classList").Call("toggle", "pal-dim", inactive)
 		}
 	}
-	dim("grp-cstart", gradientColors == 4 && gradientSource != GradientSourceOff) // no fixed colors in a hue sweep
-	dim("grp-cmid", gradientColors != 3 || gradientSource == GradientSourceOff)   // mid only in 3-color
-	dim("grp-cend", !(gradientColors == 2 || gradientColors == 3) ||
-		gradientSource == GradientSourceOff) // end in 2- / 3-color
+	dim("grp-cstart", style.gradientColors == 4 && style.gradientSource != GradientSourceOff) // no fixed colors in a hue sweep
+	dim("grp-cmid", style.gradientColors != 3 || style.gradientSource == GradientSourceOff)   // mid only in 3-color
+	dim("grp-cend", !(style.gradientColors == 2 || style.gradientColors == 3) ||
+		style.gradientSource == GradientSourceOff) // end in 2- / 3-color
 	// The period is the map WINDOW's width, and a window is something the hue
 	// sweep and the colormaps both have — it stopped being the rainbow's private
 	// knob when the colormaps gained a shift to slide along it. The shift itself
 	// stays a colormap control: the hue sweep's offset is uGradientPhase, which
 	// already exists and already animates.
-	dim("grp-rainbow", gradientColors != 4 && gradientColors < colormap.First)
-	dim("grp-pshift", gradientColors < colormap.First)
+	dim("grp-rainbow", style.gradientColors != 4 && style.gradientColors < colormap.First)
+	dim("grp-pshift", style.gradientColors < colormap.First)
 	// The two rings, dimmed when the model on screen cannot use them.
 	//
 	// Both rules now fall out of what the knobs MEAN rather than being special
@@ -102,11 +102,11 @@ func updateGradientUI() {
 	// A selected phosphor overrides both, and that is covered where it belongs:
 	// src-cell and map-cell are in crtOverriddenIDs, so the whole cell takes
 	// crt-dim without this function knowing about phosphors at all.
-	usesSrc := modeUsesGradientSource(selectedMode)
+	usesSrc := modeUsesGradientSource(run.selectedMode)
 	dim("src-cell", !usesSrc)
-	dim("map-cell", usesSrc && gradientSource == GradientSourceOff)
+	dim("map-cell", usesSrc && style.gradientSource == GradientSourceOff)
 	if lbl := dom.Doc.Call("getElementById", "lbl-cstart"); lbl.Truthy() {
-		if gradientSource == GradientSourceOff {
+		if style.gradientSource == GradientSourceOff {
 			lbl.Set("textContent", "color")
 		} else {
 			lbl.Set("textContent", "start")
@@ -123,12 +123,12 @@ func onColorChange(this js.Value, args []js.Value) interface{} {
 	baseHex := dom.Doc.Call("getElementById", "color-base").Get("value").String()
 	midHex := dom.Doc.Call("getElementById", "color-mid").Get("value").String()
 	topHex := dom.Doc.Call("getElementById", "color-top").Get("value").String()
-	baseColor = colorspace.ParseHex(baseHex)
-	midColor = colorspace.ParseHex(midHex)
-	topColor = colorspace.ParseHex(topHex)
-	glctx.GL.Call("uniform3f", gpu.u.baseColor, baseColor[0], baseColor[1], baseColor[2])
-	glctx.GL.Call("uniform3f", gpu.u.midColor, midColor[0], midColor[1], midColor[2])
-	glctx.GL.Call("uniform3f", gpu.u.topColor, topColor[0], topColor[1], topColor[2])
+	style.baseColor = colorspace.ParseHex(baseHex)
+	style.midColor = colorspace.ParseHex(midHex)
+	style.topColor = colorspace.ParseHex(topHex)
+	glctx.GL.Call("uniform3f", gpu.u.baseColor, style.baseColor[0], style.baseColor[1], style.baseColor[2])
+	glctx.GL.Call("uniform3f", gpu.u.midColor, style.midColor[0], style.midColor[1], style.midColor[2])
+	glctx.GL.Call("uniform3f", gpu.u.topColor, style.topColor[0], style.topColor[1], style.topColor[2])
 	return nil
 }
 

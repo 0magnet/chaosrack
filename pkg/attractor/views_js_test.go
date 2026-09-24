@@ -532,29 +532,29 @@ func TestSweepRestoresTheKnob(t *testing.T) {
 func TestColorSweepStepsAndRestores(t *testing.T) {
 	savedIDs, savedNames, savedRing := grid.sweepIDs, grid.sweepNames, grid.sweepRing
 	savedMode, savedP := grid.sweepDialMode, grid.sweepParamF
-	savedSrc, savedCols := gradientSource, gradientColors
+	savedSrc, savedCols := style.gradientSource, style.gradientColors
 	defer func() {
 		grid.sweepIDs, grid.sweepNames, grid.sweepRing = savedIDs, savedNames, savedRing
 		grid.sweepDialMode, grid.sweepParamF = savedMode, savedP
-		gradientSource, gradientColors = savedSrc, savedCols
+		style.gradientSource, style.gradientColors = savedSrc, savedCols
 	}()
 
 	sweepTo(t, "stereo", "#src")
-	gradientSource = 2
+	style.gradientSource = 2
 	n := len(sweepColorSrcs)
 
 	first := applySweep("stereo", 0, n)
-	got := gradientSource
+	got := style.gradientSource
 	first()
 	if got != sweepColorSrcs[0] {
 		t.Errorf("first cell used source %d, want %d", got, sweepColorSrcs[0])
 	}
-	if gradientSource != 2 {
-		t.Errorf("the source was left at %d instead of restored", gradientSource)
+	if style.gradientSource != 2 {
+		t.Errorf("the source was left at %d instead of restored", style.gradientSource)
 	}
 
 	last := applySweep("stereo", n-1, n)
-	got = gradientSource
+	got = style.gradientSource
 	last()
 	if got != sweepColorSrcs[n-1] {
 		t.Errorf("last cell used source %d, want %d", got, sweepColorSrcs[n-1])
@@ -569,15 +569,15 @@ func TestColorSweepStepsAndRestores(t *testing.T) {
 	// The colorings sweep in EVERY mode, including the ones with no
 	// numeric target: a coloring is recomputed per pass wherever it is.
 	sweepTo(t, "lorenz", "#map")
-	gradientColors = 0
+	style.gradientColors = 0
 	r := applySweep("lorenz", 8, 9)
-	got = gradientColors
+	got = style.gradientColors
 	r()
 	if got != sweepColorMaps[8] {
 		t.Errorf("a flow's map sweep used %d, want %d", got, sweepColorMaps[8])
 	}
-	if gradientColors != 0 {
-		t.Errorf("the map was left at %d instead of restored", gradientColors)
+	if style.gradientColors != 0 {
+		t.Errorf("the map was left at %d instead of restored", style.gradientColors)
 	}
 }
 
@@ -825,11 +825,11 @@ func TestBothAxesRestoreWhatTheyChanged(t *testing.T) {
 	stereo = inst
 	t.Cleanup(func() { stereo = prev })
 
-	prevCols := gradientColors
-	t.Cleanup(func() { gradientColors = prevCols })
+	prevCols := style.gradientColors
+	t.Cleanup(func() { style.gradientColors = prevCols })
 
 	inst.tau = 123
-	gradientColors = 1
+	style.gradientColors = 1
 	sweepTo(t, "stereo", "stereo-tau")
 	sweep2To(t, "#map")
 
@@ -837,15 +837,15 @@ func TestBothAxesRestoreWhatTheyChanged(t *testing.T) {
 	if inst.tau == 123 {
 		t.Error("the across axis did not set the cell's parameter")
 	}
-	if gradientColors == 1 {
+	if style.gradientColors == 1 {
 		t.Error("the down axis did not set the cell's color map")
 	}
 	restore()
 	if inst.tau != 123 {
 		t.Errorf("the across axis left %v behind, want the knob's 123", inst.tau)
 	}
-	if gradientColors != 1 {
-		t.Errorf("the down axis left color map %d behind, want the knob's 1", gradientColors)
+	if style.gradientColors != 1 {
+		t.Errorf("the down axis left color map %d behind, want the knob's 1", style.gradientColors)
 	}
 }
 

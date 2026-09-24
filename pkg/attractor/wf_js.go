@@ -66,7 +66,7 @@ func (w *wowFlutter) tick(nowMs float64) {
 	// Not merely "not display:none" — actually on screen. See
 	// moduleOnScreen: this module's DSP and readouts are most of what the
 	// panel costs per frame, and the drawer usually has it scrolled away.
-	if !moduleOnScreen("wf-module") {
+	if !onScreen.moduleOnScreen("wf-module") {
 		return
 	}
 	sr := takensSourceRate()
@@ -106,19 +106,19 @@ func (w *wowFlutter) tick(nowMs float64) {
 func (w *wowFlutter) showWowFlutter() {
 	set := func(key string, el js.Value, v float64, signed bool) {
 		if !w.res.OK {
-			readouts.Set(key, el, "  --.---")
+			owed.readouts.Set(key, el, "  --.---")
 			return
 		}
-		readouts.Set(key, el, led.Format(v, 2, 3, signed))
+		owed.readouts.Set(key, el, led.Format(v, 2, 3, signed))
 	}
 	set("wf-speed", w.speedEl, w.res.SpeedPct, true)
 	set("wf-wow", w.wowEl, w.res.WowPct, false)
 	set("wf-flut", w.flutEl, w.res.FlutterPct, false)
 	set("wf-wtd", w.weightedEl, w.res.WeightedPct, false)
 	if w.res.OK {
-		readouts.Set("wf-carrier", w.carrierEl, led.Format(w.res.Carrier, 5, 1, false))
+		owed.readouts.Set("wf-carrier", w.carrierEl, led.Format(w.res.Carrier, 5, 1, false))
 	} else {
-		readouts.Set("wf-carrier", w.carrierEl, "-----.-")
+		owed.readouts.Set("wf-carrier", w.carrierEl, "-----.-")
 	}
 }
 

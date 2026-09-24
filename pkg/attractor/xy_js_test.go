@@ -98,10 +98,10 @@ func TestCRTBeamSkipsTheAudioEmbeddings(t *testing.T) {
 // that would put the camera back under the music — the one thing takens_js.go's
 // comments exist to prevent.
 func TestModulatedParametersDoNotCountAsKnobTurns(t *testing.T) {
-	oldMod, oldMods := audioMod, paramMods
-	t.Cleanup(func() { audioMod, paramMods = oldMod, oldMods })
+	oldMod, oldMods := audioMod, pmod.params
+	t.Cleanup(func() { audioMod, pmod.params = oldMod, oldMods })
 
-	paramMods = map[string]paramMod{
+	pmod.params = map[string]paramMod{
 		"takens-gain": {channel: "mono", level: 0.5},
 		"stereo-gain": {channel: "L", level: 0},  // routed, but at zero depth
 		"polar-gain":  {channel: "", level: 0.5}, // depth, but no channel
@@ -109,17 +109,17 @@ func TestModulatedParametersDoNotCountAsKnobTurns(t *testing.T) {
 
 	audioMod = false
 	for _, id := range []string{"takens-gain", "stereo-gain", "polar-gain", "nonesuch"} {
-		if paramIsModulated(id) {
+		if pmod.paramIsModulated(id) {
 			t.Errorf("%s reads as modulated with Audio mod switched off", id)
 		}
 	}
 
 	audioMod = true
-	if !paramIsModulated("takens-gain") {
+	if !pmod.paramIsModulated("takens-gain") {
 		t.Error("a parameter with a channel and a level is modulated")
 	}
 	for _, id := range []string{"stereo-gain", "polar-gain", "nonesuch"} {
-		if paramIsModulated(id) {
+		if pmod.paramIsModulated(id) {
 			t.Errorf("%s has nothing driving it and must not read as modulated", id)
 		}
 	}

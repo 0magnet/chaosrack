@@ -35,7 +35,7 @@ func bgVisualActive() bool {
 	if bgVisual == "water" {
 		return false
 	}
-	if isSpectroSurface(selectedMode) || isAudioMode(selectedMode) {
+	if isSpectroSurface(run.selectedMode) || isAudioMode(run.selectedMode) {
 		return false
 	}
 	return true
@@ -151,7 +151,7 @@ func syncSpectroModule(mode string) {
 	grid := dom.Doc.Call("createElement", "div")
 	grid.Set("className", "punit-grid")
 	for _, p := range spectParams {
-		grid.Call("appendChild", buildParamUnit(selectedMode, p))
+		grid.Call("appendChild", buildParamUnit(run.selectedMode, p))
 	}
 	host.Call("appendChild", grid)
 	sect.Get("style").Set("display", "")

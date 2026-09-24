@@ -166,7 +166,7 @@ func (r *recordModule) drawRecPreview() {
 	}
 	dw, dh := sw*k, sh*k
 	dx, dy := (pw-dw)/2, (ph-dh)/2
-	r.previewCtx.Call("drawImage", captureCanvas(canvas), sx, sy, sw, sh, dx, dy, dw, dh)
+	r.previewCtx.Call("drawImage", near.captureCanvas(canvas), sx, sy, sw, sh, dx, dy, dw, dh)
 
 	r.drawRecOSD(pw, ph, sw, sh)
 }
@@ -395,7 +395,7 @@ func takeStill() {
 	still.Set("width", sw)
 	still.Set("height", sh)
 	ctx := still.Call("getContext", "2d")
-	ctx.Call("drawImage", captureCanvas(canvas), sx, sy, sw, sh, 0, 0, sw, sh)
+	ctx.Call("drawImage", near.captureCanvas(canvas), sx, sy, sw, sh, 0, 0, sw, sh)
 
 	recmod.noteTakeStart() // so the still reports a duration of zero, not the last take's
 	var cb js.Func

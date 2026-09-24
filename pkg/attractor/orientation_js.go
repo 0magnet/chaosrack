@@ -43,7 +43,7 @@ func normalizeOrientation() {
 	zeroRotationSliders()
 	clearAutoRotateFlag()
 	view.rebuildModelMatrix()
-	updateRotKnobs()
+	rotKnobs.update()
 	view.updateModelMatrix()
 }
 
@@ -68,5 +68,5 @@ func randomizeOrientation() {
 
 	// Ensure the spin-rate sliders (and their cache) are zeroed.
 	zeroRotationSliders()
-	updateRotKnobs()
+	rotKnobs.update()
 }

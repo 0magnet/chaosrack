@@ -214,7 +214,7 @@ func (in *infoPane) hideInfoWindow() {
 // infoTitle names the model the text is about, so a window left open while the
 // model changes says which one it is describing.
 func infoTitle() string {
-	if m, ok := modeInfo[selectedMode]; ok && m.Label != "" {
+	if m, ok := modeInfo[run.selectedMode]; ok && m.Label != "" {
 		return m.Label
 	}
 	return "model info"

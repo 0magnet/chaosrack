@@ -48,39 +48,39 @@ func init() {
 func integrate3D(dt float64, deriv func(x, y, z float64) (float64, float64, float64)) {
 	// Publish this mode's vector field to the flow registry (Model Out FLOW
 	// sonification) — free coverage for every integrate3D system.
-	dynamics.Capture(selectedMode, dt, deriv)
-	vertices := vertBuf[:steps*4]
-	invN := float32(1) / float32(steps-1)
-	d := dt * float64(speedScale)
-	ic := dynamics.InitCond[selectedMode]
+	dynamics.Capture(run.selectedMode, dt, deriv)
+	vertices := sim.vertBuf[:sim.steps*4]
+	invN := float32(1) / float32(sim.steps-1)
+	d := dt * float64(sim.speedScale)
+	ic := dynamics.InitCond[run.selectedMode]
 	// Seed the double-precision state from the initial condition when this
 	// mode first runs (resetAttractorState may not have run before the first
 	// frame on initial page load, which would otherwise leave x64 at 0 and
 	// strand systems whose origin is a fixed point).
-	if integ3DMode != selectedMode {
-		x64, y64, z64 = float64(ic[0]), float64(ic[1]), float64(ic[2])
-		integ3DMode = selectedMode
+	if integ3DMode != run.selectedMode {
+		sim.x64, sim.y64, sim.z64 = float64(ic[0]), float64(ic[1]), float64(ic[2])
+		integ3DMode = run.selectedMode
 	}
 	const lim = 1e4
-	sub := effSubSteps(speedSteps, steps, frameBudgetCompiled)
-	for i := 0; i < steps; i++ {
+	sub := effSubSteps(sim.speedSteps, sim.steps, frameBudgetCompiled)
+	for i := 0; i < sim.steps; i++ {
 		for s := 0; s < sub; s++ {
-			k1x, k1y, k1z := deriv(x64, y64, z64)
-			k2x, k2y, k2z := deriv(x64+d/2*k1x, y64+d/2*k1y, z64+d/2*k1z)
-			k3x, k3y, k3z := deriv(x64+d/2*k2x, y64+d/2*k2y, z64+d/2*k2z)
-			k4x, k4y, k4z := deriv(x64+d*k3x, y64+d*k3y, z64+d*k3z)
-			x64 += d / 6 * (k1x + 2*k2x + 2*k3x + k4x)
-			y64 += d / 6 * (k1y + 2*k2y + 2*k3y + k4y)
-			z64 += d / 6 * (k1z + 2*k2z + 2*k3z + k4z)
-			if x64 != x64 || x64 > lim || x64 < -lim || y64 > lim || y64 < -lim || z64 > lim || z64 < -lim {
-				x64, y64, z64 = float64(ic[0]), float64(ic[1]), float64(ic[2])
+			k1x, k1y, k1z := deriv(sim.x64, sim.y64, sim.z64)
+			k2x, k2y, k2z := deriv(sim.x64+d/2*k1x, sim.y64+d/2*k1y, sim.z64+d/2*k1z)
+			k3x, k3y, k3z := deriv(sim.x64+d/2*k2x, sim.y64+d/2*k2y, sim.z64+d/2*k2z)
+			k4x, k4y, k4z := deriv(sim.x64+d*k3x, sim.y64+d*k3y, sim.z64+d*k3z)
+			sim.x64 += d / 6 * (k1x + 2*k2x + 2*k3x + k4x)
+			sim.y64 += d / 6 * (k1y + 2*k2y + 2*k3y + k4y)
+			sim.z64 += d / 6 * (k1z + 2*k2z + 2*k3z + k4z)
+			if sim.x64 != sim.x64 || sim.x64 > lim || sim.x64 < -lim || sim.y64 > lim || sim.y64 < -lim || sim.z64 > lim || sim.z64 < -lim {
+				sim.x64, sim.y64, sim.z64 = float64(ic[0]), float64(ic[1]), float64(ic[2])
 			}
 		}
 		j := i * 4
-		vertices[j], vertices[j+1], vertices[j+2], vertices[j+3] = float32(x64), float32(y64), float32(z64), float32(i)*invN
+		vertices[j], vertices[j+1], vertices[j+2], vertices[j+3] = float32(sim.x64), float32(sim.y64), float32(sim.z64), float32(i)*invN
 	}
-	x, y, z = float32(x64), float32(y64), float32(z64)
-	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
+	sim.x, sim.y, sim.z = float32(sim.x64), float32(sim.y64), float32(sim.z64)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, sim.steps)
 }
 
 func generateSprottCase(idx int) {
@@ -96,7 +96,7 @@ func generateSprottCase(idx int) {
 // 1.5M Euler steps at dt=0.001 is ~1500 time units — a few ms of wasm time.
 func hyperRosslerWarmup() {
 	dt := float64(dynamics.HyperDT)
-	xf, yf, zf, wf := float64(x), float64(y), float64(z), float64(dynamics.HyperW)
+	xf, yf, zf, wf := float64(sim.x), float64(sim.y), float64(sim.z), float64(dynamics.HyperW)
 	// Track the attractor's real extent over the settled tail of the warmup:
 	// the visible trail is only a short arc that ORBITS this structure, so
 	// the camera and the (frozen) centering must frame the whole thing, not
@@ -134,12 +134,12 @@ func hyperRosslerWarmup() {
 			}
 		}
 	}
-	x, y, z, dynamics.HyperW = float32(xf), float32(yf), float32(zf), float32(wf)
+	sim.x, sim.y, sim.z, dynamics.HyperW = float32(xf), float32(yf), float32(zf), float32(wf)
 	// Freeze centering on the structure's true middle and hand autoFitCamera
 	// its true half-extent (both in display coordinates, i.e. ×dynamics.HyperScale).
 	cx, cy, cz := (minX+maxX)/2, (minY+maxY)/2, (minZ+maxZ)/2
-	centerOffset = [3]float32{float32(cx) * dynamics.HyperScale, float32(cy) * dynamics.HyperScale, float32(cz) * dynamics.HyperScale}
-	centerReady = true
+	sim.centerOffset = [3]float32{float32(cx) * dynamics.HyperScale, float32(cy) * dynamics.HyperScale, float32(cz) * dynamics.HyperScale}
+	sim.centerReady = true
 	ext := maxX - cx
 	for _, e := range []float64{maxY - cy, maxZ - cz} {
 		if e > ext {
@@ -168,21 +168,21 @@ func generateHyperRossler() {
 	if !hyperPrimed {
 		hyperPrimed = true
 		ic := dynamics.InitCond["hyperrossler"]
-		x, y, z, dynamics.HyperW = ic[0], ic[1], ic[2], dynamics.HyperW0
+		sim.x, sim.y, sim.z, dynamics.HyperW = ic[0], ic[1], ic[2], dynamics.HyperW0
 		hyperRosslerWarmup() // also centers + fits the camera to the true extent
 	}
-	vertices := vertBuf[:steps*4]
-	invN := float32(1) / float32(steps-1)
-	sub := effSubSteps(speedSteps, steps, frameBudgetCompiled)
-	for i := 0; i < steps; i++ {
-		dt := float64(dynamics.HyperDT * speedScale)
+	vertices := sim.vertBuf[:sim.steps*4]
+	invN := float32(1) / float32(sim.steps-1)
+	sub := effSubSteps(sim.speedSteps, sim.steps, frameBudgetCompiled)
+	for i := 0; i < sim.steps; i++ {
+		dt := float64(dynamics.HyperDT * sim.speedScale)
 		for s := 0; s < sub; s++ {
-			dx, dy, dz, dw := dynamics.HyperDeriv(float64(x), float64(y), float64(z), float64(dynamics.HyperW))
-			x, y, z, dynamics.HyperW = x+float32(dt*dx), y+float32(dt*dy), z+float32(dt*dz), dynamics.HyperW+float32(dt*dw)
-			checkDiverged()
+			dx, dy, dz, dw := dynamics.HyperDeriv(float64(sim.x), float64(sim.y), float64(sim.z), float64(dynamics.HyperW))
+			sim.x, sim.y, sim.z, dynamics.HyperW = sim.x+float32(dt*dx), sim.y+float32(dt*dy), sim.z+float32(dt*dz), dynamics.HyperW+float32(dt*dw)
+			sim.checkDiverged()
 		}
 		j := i * 4
-		vertices[j], vertices[j+1], vertices[j+2], vertices[j+3] = x*dynamics.HyperScale, y*dynamics.HyperScale, z*dynamics.HyperScale, float32(i)*invN
+		vertices[j], vertices[j+1], vertices[j+2], vertices[j+3] = sim.x*dynamics.HyperScale, sim.y*dynamics.HyperScale, sim.z*dynamics.HyperScale, float32(i)*invN
 	}
-	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, sim.steps)
 }

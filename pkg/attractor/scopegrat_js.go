@@ -94,18 +94,18 @@ func drawScopeGraticule(halfH float32) {
 	// Hand the uniforms back, exactly as drawGraticule does: the trail's own
 	// gradient is whatever the color knobs say, and leaving the override set
 	// paints the next thing drawn in graticule gray.
-	if phosphorActive() {
+	if phos.active() {
 		// The phosphor owns these two while it is on.
-		applyPhosphorColor()
+		phos.applyPhosphorColor()
 		return
 	}
 	glctx.GL.Call("uniform1i", gpu.u.gradientColors, gradientColorsUniform())
-	glctx.GL.Call("uniform3f", gpu.u.baseColor, baseColor[0], baseColor[1], baseColor[2])
+	glctx.GL.Call("uniform3f", gpu.u.baseColor, style.baseColor[0], style.baseColor[1], style.baseColor[2])
 }
 
 // scopeFaceOn reports whether the scope face should be drawn: the CRT look is
 // showing, and the operator has not switched the graticule off.
-func scopeFaceOn() bool { return crtLook() && scopeGratWanted() }
+func scopeFaceOn() bool { return phos.crtLook() && scopeGratWanted() }
 
 func scopeGratEl() js.Value { return dom.Doc.Call("getElementById", "scope-grat") }
 

@@ -106,7 +106,7 @@ func recallSerializedState(snapshot string) {
 	}
 	mode := hashModeOf(snapshot)
 	onResetAll(js.Undefined(), nil)
-	if knownMode(mode) && mode != selectedMode {
+	if knownMode(mode) && mode != run.selectedMode {
 		if sel := dom.Doc.Call("getElementById", "mode-select"); sel.Truthy() {
 			sel.Set("value", mode)
 			sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
@@ -116,7 +116,7 @@ func recallSerializedState(snapshot string) {
 	// resyncs the permalink, so location.hash can't be the carrier here.
 	perma.applyStateFrom("#" + snapshot)
 	syncKnobs()
-	buildParamPanel(selectedMode)
+	buildParamPanel(run.selectedMode)
 	perma.syncPermalinkNow() // canonicalize the URL to the recalled state
 }
 
@@ -196,7 +196,7 @@ func buildPatchbayModule(paramsSect js.Value) {
 	body.Call("appendChild", bankRow)
 
 	// ── Pin matrix ──
-	dests := matrixDests(selectedMode)
+	dests := matrixDests(run.selectedMode)
 	if len(dests) > 0 {
 		rows := []struct{ label, ch string }{{"ST", "mono"}, {"L", "L"}, {"R", "R"}}
 		grid := dom.Doc.Call("createElement", "div")
@@ -244,7 +244,7 @@ func buildPatchbayModule(paramsSect js.Value) {
 				row := row
 				pin := dom.Doc.Call("createElement", "span")
 				pin.Set("className", "mxpin")
-				m := paramMods[d.id]
+				m := pmod.params[d.id]
 				on := m.channel == row.ch && m.level != 0
 				if on {
 					pin.Get("classList").Call("add", "on")
@@ -252,7 +252,7 @@ func buildPatchbayModule(paramsSect js.Value) {
 				}
 				pin.Set("title", row.label+" → "+d.label+" — click to toggle, wheel to set depth (needs Audio mod on)")
 				pin.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-					m := paramMods[d.id]
+					m := pmod.params[d.id]
 					if m.channel == row.ch && m.level != 0 {
 						m.channel = ""
 					} else {
@@ -261,15 +261,15 @@ func buildPatchbayModule(paramsSect js.Value) {
 							m.level = 0.4
 						}
 					}
-					paramMods[d.id] = m
+					pmod.params[d.id] = m
 					perma.syncPermalinkNow()
-					buildParamPanel(selectedMode) // resync MOD knobs + this matrix
+					buildParamPanel(run.selectedMode) // resync MOD knobs + this matrix
 					return nil
 				}))
 				pin.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 					e := a[0]
 					e.Call("preventDefault")
-					m := paramMods[d.id]
+					m := pmod.params[d.id]
 					if m.channel != row.ch {
 						return nil
 					}
@@ -278,7 +278,7 @@ func buildPatchbayModule(paramsSect js.Value) {
 						dl = -dl
 					}
 					m.level = clampF(m.level+dl, 0, 1)
-					paramMods[d.id] = m
+					pmod.params[d.id] = m
 					pin.Get("style").Set("opacity", strconv.FormatFloat(0.45+0.55*float64(m.level), 'f', 2, 64))
 					pin.Set("title", row.label+" → "+d.label+" — depth "+strconv.FormatFloat(float64(m.level), 'f', 2, 64))
 					perma.syncPermalinkNow()

@@ -44,9 +44,9 @@ func init() {
 	registerGenerate("icosahedron", func() { generateSeed(4) })
 	registerGenerate("nestedcube", generateNestedCube)
 	registerGenerate("turtle", turtle.generateTurtle)
-	registerGenerate("globe", generateGlobe)
+	registerGenerate("globe", globe.generate)
 	registerGenerate("sphere", generateSphere)
-	registerGenerate("torus", generateTorus)
+	registerGenerate("torus", torus.generate)
 	registerGenerate("magnetosphere", generateMagnetosphere)
 	registerGenerate("stlfile", generateSTLFile)
 	// spectrogram / fvf / xy are dispatched before the generate lookup

@@ -78,11 +78,11 @@ func gaWave(kind float32, ph float64) float64 {
 // the vertex buffer, animated by gaPhase. Called every frame from
 // generateForMode, so it continuously renders like the attractors.
 func (g *graphicArtist) generateGraphicArtist() {
-	vertices := vertBuf[:steps*4]
-	invN := float32(1) / float32(steps-1)
+	vertices := sim.vertBuf[:sim.steps*4]
+	invN := float32(1) / float32(sim.steps-1)
 	// Slow global drift so the figure "revolves/oscillates" as the article
 	// describes, scaled by the speed control.
-	g.phase += 0.006 * speedScale
+	g.phase += 0.006 * sim.speedScale
 	if g.phase > 1e6 {
 		g.phase = 0
 	}
@@ -92,7 +92,7 @@ func (g *graphicArtist) generateGraphicArtist() {
 	// Sweep the master phase over one full 2π cycle; because B/C/D are integer
 	// harmonics the whole figure closes in that span.
 	span := 2 * math.Pi
-	for i := 0; i < steps; i++ {
+	for i := 0; i < sim.steps; i++ {
 		t := float64(i)*invN64()*span + float64(g.phase)
 		a := gaWave(g.waveA, t)
 		b := gaWave(g.waveB, t*float64(g.harmB))
@@ -109,15 +109,15 @@ func (g *graphicArtist) generateGraphicArtist() {
 		vertices[j+2] = float32(z)
 		vertices[j+3] = float32(i) * invN
 	}
-	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, sim.steps)
 }
 
 // invN64 is 1/(steps-1) in float64 for the phase sweep.
 func invN64() float64 {
-	if steps <= 1 {
+	if sim.steps <= 1 {
 		return 0
 	}
-	return 1 / float64(steps-1)
+	return 1 / float64(sim.steps-1)
 }
 
 // syncGAWaveSwitches shows the WAVEFORM A/B/C/D toggles (triangle ↔ square) in

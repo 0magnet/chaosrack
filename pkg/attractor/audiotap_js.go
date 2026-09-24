@@ -154,7 +154,7 @@ const (
 // was the ONLY display that worked while FVF was listening. Routing fvfVis
 // through the tap gives every consumer the same stream.
 func tapPumpUpstream() tapUpstreamKind {
-	if selectedMode == "fvf" && fvf.audioActive {
+	if run.selectedMode == "fvf" && fvf.audioActive {
 		return tapFromFVF
 	}
 	return tapFromSource

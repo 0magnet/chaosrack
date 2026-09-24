@@ -92,9 +92,9 @@ func (s *skinSurface) buildSkinMesh(mode string) {
 	var idx []uint16
 	switch mode {
 	case "torus":
-		verts, idx = torusSkinMesh(torusR, torusr, int(torusStacksF), int(torusSlicesF))
+		verts, idx = torusSkinMesh(torus.major, torus.minor, int(torus.stacksF), int(torus.slicesF))
 	case "globe":
-		verts, idx = sphereSkinMesh(1.0, int(globeLatF)*2, int(globeLonF))
+		verts, idx = sphereSkinMesh(1.0, int(globe.latF)*2, int(globe.lonF))
 	case "cube":
 		verts, idx = cubeSkinMesh(verticesCube[:72], indicesCube[:36])
 	case "nestedcube":
@@ -108,7 +108,7 @@ func (s *skinSurface) buildSkinMesh(mode string) {
 	case "icosahedron":
 		verts, idx = polySkinMesh(icosahedronVertices())
 	default: // sphere
-		verts, idx = sphereSkinMesh(sphereRadius, int(sphereStacksF), int(sphereSlicesF))
+		verts, idx = sphereSkinMesh(sphere.radius, int(sphere.stacksF), int(sphere.slicesF))
 	}
 	if s.vBuf.IsUndefined() {
 		s.vBuf = glctx.GL.Call("createBuffer")
@@ -172,7 +172,7 @@ func torusSkinMesh(R, r float32, stacks, slices int) ([]float32, []uint16) {
 			// with it rather than sitting still while its wireframe rolls. The UV
 			// below deliberately does NOT take the roll: the texture stays put on
 			// the surface, and it is the surface that moves under it.
-			phi := float64(j)*2.0*math.Pi/float64(slices) + float64(torusRollPhi)
+			phi := float64(j)*2.0*math.Pi/float64(slices) + float64(torus.rollPhi)
 			x := (float64(R) + float64(r)*math.Cos(phi)) * math.Cos(theta)
 			y := (float64(R) + float64(r)*math.Cos(phi)) * math.Sin(theta)
 			z := float64(r) * math.Sin(phi)

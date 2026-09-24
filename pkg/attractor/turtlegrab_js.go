@@ -84,7 +84,7 @@ var grab turtleGrab
 
 // turtleGrabbable reports whether a press should take hold of the figure rather
 // than turn the view.
-func turtleGrabbable() bool { return selectedMode == "turtle" && physOn() }
+func turtleGrabbable() bool { return run.selectedMode == "turtle" && physOn() }
 
 // mvpNow is the matrix the shader is drawing with, which is the one a cursor
 // has to be compared against.
@@ -122,7 +122,7 @@ func turtleHit(clientX, clientY float64, stride int) (step int, depth float32, o
 		return 0, 0, false
 	}
 	mvp := mvpNow()
-	n := min(len(t.pts), min(steps, t.trailLen()))
+	n := min(len(t.pts), min(sim.steps, t.trailLen()))
 	base := len(t.pts) - n
 
 	// What is on screen is the LINE, not the points it is bent at. A figure of

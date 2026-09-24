@@ -185,7 +185,7 @@ func wireDeskPassthrough() {
 			if !e.Get("isTrusted").Truthy() {
 				return nil
 			}
-			if !deskModelOn || selectedMode != "desk" {
+			if !deskModelOn || run.selectedMode != "desk" {
 				return nil
 			}
 			switch kind {

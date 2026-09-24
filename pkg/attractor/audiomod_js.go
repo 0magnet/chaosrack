@@ -37,7 +37,25 @@ type paramMod struct {
 	level   float32
 }
 
-var paramMods = map[string]paramMod{}
+// paramModulation is per-parameter audio modulation: which parameters follow
+// which feature, and what was applied last frame.
+type paramModulation struct {
+	params map[string]paramMod
+
+	// hold is the quantizer's memory: the whole-grid value each COUNT parameter
+	// was last given, keyed by paramDef.ID. quantizeHeld needs a previous value to
+	// be sticky about, and the only place that survives between frames is here.
+	// Keys are parameter ids, so it is bounded by the number of parameters in the
+	// build and never grows with time.
+	hold        map[string]float32
+	appliedPrev []appliedMod
+	appliedCur  []appliedMod
+}
+
+var pmod = paramModulation{
+	params: map[string]paramMod{},
+	hold:   map[string]float32{},
+}
 
 // paramIsModulated reports whether the sound is currently driving a parameter,
 // so that a generator reading its own knob can tell the value it is holding
@@ -55,11 +73,11 @@ var paramMods = map[string]paramMod{}
 //
 // The test is collectAudioModulation's own, so a parameter counts as modulated
 // exactly when that function would act on it.
-func paramIsModulated(id string) bool {
+func (p *paramModulation) paramIsModulated(id string) bool {
 	if !audioMod {
 		return false
 	}
-	m, ok := paramMods[id]
+	m, ok := p.params[id]
 	return ok && m.channel != "" && m.level != 0
 }
 
@@ -83,13 +101,6 @@ type savedParam struct {
 	v float32
 }
 
-// modHold is the quantizer's memory: the whole-grid value each COUNT parameter
-// was last given, keyed by paramDef.ID. quantizeHeld needs a previous value to
-// be sticky about, and the only place that survives between frames is here.
-// Keys are parameter ids, so it is bounded by the number of parameters in the
-// build and never grows with time.
-var modHold = map[string]float32{}
-
 // appliedMod is one parameter and the value modulation actually gave it this
 // frame. modAppliedPrev/modAppliedCur hold consecutive frames' worth, in
 // parameter order, so a frame can ask whether anything CHANGED rather than
@@ -99,15 +110,10 @@ type appliedMod struct {
 	v  float32
 }
 
-var (
-	modAppliedPrev []appliedMod
-	modAppliedCur  []appliedMod
-)
-
 // applyAudioModulation overrides each routed parameter of the current
 // attractor for this integration step and returns the saved originals.
 func applyAudioModulation(mode string) []savedParam {
-	saved := collectAudioModulation(mode)
+	saved := pmod.collectAudioModulation(mode)
 	// Attractors regenerate every frame; a static model (sphere/torus/globe/…)
 	// only rebuilds when marked dirty, so a rebuild has to be forced whenever
 	// this frame's values differ from the mesh already on the GPU.
@@ -132,7 +138,7 @@ func applyAudioModulation(mode string) []savedParam {
 	// disappearance of a value IS a change and rebuilds once. And a float
 	// parameter under a genuinely constant feature no longer rebuilds an
 	// identical mesh sixty times a second.
-	if modApplyChanged() && !isAttractorMode(mode) {
+	if pmod.applyChanged() && !isAttractorMode(mode) {
 		gpu.staticDirty = true
 	}
 	return saved
@@ -142,8 +148,8 @@ func applyAudioModulation(mode string) []savedParam {
 // the rebuild decision above runs on every path — including the two early
 // returns, where the interesting case is precisely that nothing was applied
 // this frame although something was applied last frame.
-func collectAudioModulation(mode string) []savedParam {
-	modAppliedCur = modAppliedCur[:0]
+func (p *paramModulation) collectAudioModulation(mode string) []savedParam {
+	p.appliedCur = p.appliedCur[:0]
 	if !audioMod {
 		return nil
 	}
@@ -153,7 +159,7 @@ func collectAudioModulation(mode string) []savedParam {
 	}
 	var saved []savedParam
 	for _, pd := range params {
-		m, ok := paramMods[pd.ID]
+		m, ok := p.params[pd.ID]
 		if !ok || m.channel == "" || m.level == 0 {
 			continue
 		}
@@ -174,13 +180,13 @@ func collectAudioModulation(mode string) []savedParam {
 		// than an exception here, because the same coarse step is already
 		// quantizing its knob, its wheel and its LED.
 		if led.StepDecimals(pd.Step) == 0 {
-			held, has := modHold[pd.ID]
+			held, has := p.hold[pd.ID]
 			v = quantizeHeld(v, held, has, pd.Min, pd.Max, pd.Step)
-			modHold[pd.ID] = v
+			p.hold[pd.ID] = v
 		}
 		saved = append(saved, savedParam{pd.Value, base})
 		*pd.Value = v
-		modAppliedCur = append(modAppliedCur, appliedMod{pd.ID, v})
+		p.appliedCur = append(p.appliedCur, appliedMod{pd.ID, v})
 	}
 	return saved
 }
@@ -198,14 +204,14 @@ func collectAudioModulation(mode string) []savedParam {
 // the life of the tab, and the js/wasm builds (TinyGo especially) pay for
 // garbage in collector pauses, which is the very cost this function exists to
 // avoid.
-func modApplyChanged() bool {
-	if len(modAppliedCur) != len(modAppliedPrev) {
-		modAppliedPrev = append(modAppliedPrev[:0], modAppliedCur...)
+func (p *paramModulation) applyChanged() bool {
+	if len(p.appliedCur) != len(p.appliedPrev) {
+		p.appliedPrev = append(p.appliedPrev[:0], p.appliedCur...)
 		return true
 	}
-	for i, a := range modAppliedCur {
-		if modAppliedPrev[i] != a {
-			modAppliedPrev = append(modAppliedPrev[:0], modAppliedCur...)
+	for i, a := range p.appliedCur {
+		if p.appliedPrev[i] != a {
+			p.appliedPrev = append(p.appliedPrev[:0], p.appliedCur...)
 			return true
 		}
 	}
@@ -241,8 +247,8 @@ var viewModTargets = []viewModTarget{
 	{"view-spinx", "spin X", &view.ctl.spinX, -1, 1, "rotation-controls-x"},
 	{"view-spiny", "spin Y", &view.ctl.spinY, -1, 1, "rotation-controls-y"},
 	{"view-spinz", "spin Z", &view.ctl.spinZ, -1, 1, "rotation-controls-z"},
-	{"view-rfreq", "period", &gradientFreq, 0.05, 20, "rainbow-freq"},
-	{"view-trail", "trail", &trailModFrac, 0.02, 1, "trail-slider"},
+	{"view-rfreq", "period", &style.gradientFreq, 0.05, 20, "rainbow-freq"},
+	{"view-trail", "trail", &style.trailModFrac, 0.02, 1, "trail-slider"},
 	// APPENDED, not slotted in beside the period it belongs with. midi_js.go
 	// hands CC 21+i to viewModTargets[i], so the position in this slice is a
 	// controller's knob assignment: inserting in the middle would silently
@@ -273,16 +279,16 @@ func updateViewModRows() {
 // rates, line width) in place before the render loop consumes them; the caller
 // restores them afterward (restoreAudioModulation). No-op in the audio display
 // modes, whose camera is managed specially.
-func applyViewModulation() []savedParam {
+func (p *paramModulation) applyViewModulation() []savedParam {
 	if !audioMod {
 		return nil
 	}
-	if isSpectroSurface(selectedMode) || isAudioMode(selectedMode) {
+	if isSpectroSurface(run.selectedMode) || isAudioMode(run.selectedMode) {
 		return nil
 	}
 	var saved []savedParam
 	for _, vt := range viewModTargets {
-		m, ok := paramMods[vt.id]
+		m, ok := p.params[vt.id]
 		if !ok || m.channel == "" || m.level == 0 {
 			continue
 		}
@@ -317,7 +323,7 @@ func applyViewModulation() []savedParam {
 // paramMods[id]. The channel <select> + level <range> stay hidden in the DOM,
 // driven by the knob.
 func buildModUnit(id, label string) js.Value {
-	cur := paramMods[id]
+	cur := pmod.params[id]
 	sel := dom.Doc.Call("createElement", "select")
 	sel.Set("title", "Audio channel driving "+label)
 	sel.Set("style", "display:none;")
@@ -335,9 +341,9 @@ func buildModUnit(id, label string) js.Value {
 		sel.Call("appendChild", opt)
 	}
 	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		m := paramMods[id]
+		m := pmod.params[id]
 		m.channel = sel.Get("value").String()
-		paramMods[id] = m
+		pmod.params[id] = m
 		perma.syncPermalinkNow()
 		return nil
 	}))
@@ -366,18 +372,18 @@ func buildModUnit(id, label string) js.Value {
 			if v > -0.005 && v < 0.005 {
 				v = 0
 			}
-			m := paramMods[id]
+			m := pmod.params[id]
 			m.level = float32(v)
-			paramMods[id] = m
+			pmod.params[id] = m
 			lvlNum.Set("value", led.Format(v, 1, 2, true))
 		}
 		return nil
 	}))
 	lvlNum.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		if v, err := strconv.ParseFloat(lvlNum.Get("value").String(), 32); err == nil {
-			m := paramMods[id]
+			m := pmod.params[id]
 			m.level = float32(v)
-			paramMods[id] = m
+			pmod.params[id] = m
 			lvl.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
 		}
 		return nil
@@ -402,10 +408,10 @@ func buildModUnit(id, label string) js.Value {
 // draggable columns (low→high) whose heights are the band weights in
 // paramMods[id].bands. Drag across to paint the curve.
 func makeEQStrip(id string) js.Value {
-	m := paramMods[id]
+	m := pmod.params[id]
 	if m.bands == nil {
 		m.bands = make([]float32, numEQBands)
-		paramMods[id] = m
+		pmod.params[id] = m
 	}
 	wrap := dom.Doc.Call("createElement", "div")
 	wrap.Set("className", "eqstrip")
@@ -423,7 +429,7 @@ func makeEQStrip(id string) js.Value {
 		fills[i] = fill
 	}
 	render := func() {
-		mm := paramMods[id]
+		mm := pmod.params[id]
 		for i := 0; i < numEQBands && i < len(mm.bands); i++ {
 			fills[i].Get("style").Set("height", strconv.FormatFloat(float64(mm.bands[i]*100), 'f', 0, 64)+"%")
 		}
@@ -449,12 +455,12 @@ func makeEQStrip(id string) js.Value {
 		} else if v > 1 {
 			v = 1
 		}
-		mm := paramMods[id]
+		mm := pmod.params[id]
 		if mm.bands == nil {
 			mm.bands = make([]float32, numEQBands)
 		}
 		mm.bands[idx] = float32(v)
-		paramMods[id] = mm
+		pmod.params[id] = mm
 		render()
 	}
 	dragging := false

@@ -269,10 +269,10 @@ func (a *audioColor) fillAudioColorLUTFlat(v float32) {
 // half way up means one fixed thing, and auto-ranging would take that away.
 // See the note at the top of audiocolorsrc_js.go.
 func (a *audioColor) updateAudioColorLUT(mode string) {
-	switch gradientSource {
+	switch style.gradientSource {
 	case gradientSourceAudio, gradientSourceLevel:
 		if w, sr := a.window(mode); w != nil {
-			if gradientSource == gradientSourceLevel {
+			if style.gradientSource == gradientSourceLevel {
 				shortTimeLevels(w, a.lut[:])
 			} else {
 				a.shortTimeCentroids(w, sr, a.lut[:])
@@ -281,8 +281,8 @@ func (a *audioColor) updateAudioColorLUT(mode string) {
 			return
 		}
 	default:
-		if fillColorLUT(gradientSource, mode, a.lut[:]) {
-			if !gradientSourceIsAbsolute(gradientSource) {
+		if fillColorLUT(style.gradientSource, mode, a.lut[:]) {
+			if !gradientSourceIsAbsolute(style.gradientSource) {
 				a.stretchAudioColorLUT(a.lut[:])
 			}
 			return
@@ -290,12 +290,12 @@ func (a *audioColor) updateAudioColorLUT(mode string) {
 		// A stereo-only source in a mono mode, or a mode with no time axis:
 		// a flat middle is the honest answer, not a color derived from
 		// something that was not measured.
-		if gradientSourceIsAbsolute(gradientSource) {
+		if gradientSourceIsAbsolute(style.gradientSource) {
 			a.fillAudioColorLUTFlat(0.5)
 			return
 		}
 	}
-	if gradientSource == gradientSourceLevel {
+	if style.gradientSource == gradientSourceLevel {
 		a.fillAudioColorLUTFlat(af.feat["amp"])
 		return
 	}
@@ -332,7 +332,7 @@ func (a *audioColor) window(mode string) ([]float32, int) {
 		sr = src.SampleRate()
 	}
 	tau := takens.TauSamples(emb.tau, sr)
-	n, stride := takensWindow(emb.win, sr, steps)
+	n, stride := takensWindow(emb.win, sr, sim.steps)
 	if n <= 0 {
 		return nil, 0
 	}
@@ -385,7 +385,7 @@ func (a *audioColor) stereoColorWindow() ([]float32, int) {
 	}
 	tau := takens.TauSamples(stereo.tau, sr)
 	align := stereoAlignSamples(stereo.align, sr)
-	n, stride := stereoWindow(stereo.win, sr, steps, tau, align)
+	n, stride := stereoWindow(stereo.win, sr, sim.steps, tau, align)
 	if n <= 0 {
 		return nil, 0
 	}
@@ -504,7 +504,7 @@ func (a *audioColor) stereoColorWindowPair(mode string) ([]float32, []float32, i
 	}
 	tau := takens.TauSamples(stereo.tau, sr)
 	align := stereoAlignSamples(stereo.align, sr)
-	n, stride := stereoWindow(stereo.win, sr, steps, tau, align)
+	n, stride := stereoWindow(stereo.win, sr, sim.steps, tau, align)
 	if n <= 0 {
 		return nil, nil, 0
 	}

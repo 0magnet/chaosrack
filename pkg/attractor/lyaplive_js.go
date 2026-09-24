@@ -119,7 +119,7 @@ func (l *liveLyapunov) tick(mode string) {
 	// The dt the app is ACTUALLY running: the mode's own knob times the Speed
 	// scale. Both belong in it — see pkg/analysis on why the exponent depends
 	// on dt rather than merely being reached sooner or later because of it.
-	dt := sys.Dt() * float64(speedScale)
+	dt := sys.Dt() * float64(sim.speedScale)
 	if dt <= 0 {
 		l.show(l.readout())
 		return
