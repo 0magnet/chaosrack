@@ -14,6 +14,7 @@ import (
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"
 
+	"github.com/0magnet/chaosrack/pkg/acoustics"
 	"github.com/0magnet/chaosrack/pkg/attractor"
 	"github.com/0magnet/chaosrack/pkg/meters"
 	"github.com/0magnet/chaosrack/pkg/recurrence"
@@ -69,7 +70,7 @@ func plotMinSamples(key string) int {
 	case "rta":
 		return rtaFFT
 	case "xfer":
-		return xferFFT + (transferMinAvg-1)*xferFFT/2
+		return xferFFT + (acoustics.TransferMinAvg-1)*xferFFT/2
 	case "recurrence":
 		span, _ := recurrenceWindow()
 		return span
@@ -262,17 +263,17 @@ func plotRTA(x []float32) (*image.RGBA, error) {
 	if len(x) < rtaFFT {
 		return nil, fmt.Errorf("rta needs at least %d ms of signal", rtaFFT*1000/renderSampleRate)
 	}
-	bands := attractor.RTABands(3)
+	bands := acoustics.RTABands(3)
 	avg := make([]float64, len(bands))
 	peak := make([]float64, len(bands))
 	levels := make([]float64, len(bands))
 	for i := range peak {
-		peak[i] = -120
+		peak[i] = acoustics.RTAFloorDB
 	}
 	n := 0
 	for at := 0; at+rtaFFT <= len(x); at += rtaFFT / 2 {
-		mags := meters.ComputeFFTMagsKind(x[at:at+rtaFFT], meters.WinBlackmanHarris)
-		attractor.RTALevels(mags, rtaFFT, renderSampleRate, bands, meters.WinBlackmanHarris, levels)
+		mags := meters.ComputeFFTMagsKind(x[at:at+rtaFFT], acoustics.RTAWindowKind)
+		acoustics.RTALevels(mags, rtaFFT, renderSampleRate, bands, acoustics.RTAWindowKind, levels)
 		for i, db := range levels {
 			avg[i] += math.Pow(10, db/10)
 			peak[i] = math.Max(peak[i], db)
@@ -296,22 +297,21 @@ func plotRTA(x []float32) (*image.RGBA, error) {
 // ── transfer function ────────────────────────────────────────────────────
 
 const (
-	xferFFT        = 8192 // the page's analysis length
-	transferMinAvg = 8    // attractor's floor on windows in a result
+	xferFFT = 8192 // the page's analysis length
 )
 
 // plotTransfer is the transfer function from the left channel (reference) to
 // the right (measurement): magnitude above, phase below, each band drawn as
 // brightly as its coherence and grey where the reference had no energy.
 func plotTransfer(l, r []float32) (*image.RGBA, error) {
-	var acc attractor.TransferAccum
+	var acc acoustics.TransferAccum
 	for at := 0; at+xferFFT <= len(l); at += xferFFT / 2 {
-		acc.Add(l[at:at+xferFFT], r[at:at+xferFFT], meters.WinHann)
+		acc.Add(l[at:at+xferFFT], r[at:at+xferFFT], acoustics.TransferWindowKind)
 	}
 	res := acc.Result(renderSampleRate, 6)
 	if !res.OK {
 		return nil, fmt.Errorf("xfer needs at least %d windows (%.1f s of signal)",
-			transferMinAvg, float64(plotMinSamples("xfer"))/renderSampleRate)
+			acoustics.TransferMinAvg, float64(plotMinSamples("xfer"))/renderSampleRate)
 	}
 	c := newCanvas(fmt.Sprintf("transfer function  left -> right, 1/6 octave, %d averages", res.Averages))
 	c.freqGrid()
@@ -346,7 +346,7 @@ func plotTransfer(l, r []float32) (*image.RGBA, error) {
 		}
 		px, pm, pp = x, m, p
 	}
-	if d, ok := attractor.TransferDelayMS(res, 0.8); ok {
+	if d, ok := acoustics.TransferDelayMS(res, 0.8); ok {
 		c.textRight(c.x1, c.y0-8, fmt.Sprintf("delay %.2f ms", d), plotText)
 	}
 	return c.img, nil
@@ -414,7 +414,7 @@ const (
 // (measurement), as the page draws after a sweep; otherwise it is the page's
 // live mode, the spectrum at even steps through the recording.
 func waterfallFigure(l, r []float32) (attractor.Figure, error) {
-	freqs := attractor.LogFreqPoints(plotLoHz, plotHiHz, 96)
+	freqs := acoustics.LogFreqPoints(plotLoHz, plotHiHz, 96)
 	var slices [][]float64
 	if renderImpulse {
 		n := 1
@@ -424,8 +424,8 @@ func waterfallFigure(l, r []float32) (attractor.Figure, error) {
 		if n < 1<<15 {
 			return attractor.Figure{}, fmt.Errorf("--impulse needs at least %.2f s of signal", float64(1<<15)/renderSampleRate)
 		}
-		ir := attractor.ImpulseResponse(l[len(l)-n:], r[len(r)-n:], 1e-4)
-		for _, s := range attractor.CSD(ir, renderSampleRate, wfallSlices, 5, wfallFFT, freqs) {
+		ir := acoustics.ImpulseResponse(l[len(l)-n:], r[len(r)-n:], 1e-4)
+		for _, s := range acoustics.CSD(ir, renderSampleRate, wfallSlices, 5, wfallFFT, freqs) {
 			slices = append(slices, s.DB)
 		}
 	} else {
@@ -437,7 +437,7 @@ func waterfallFigure(l, r []float32) (attractor.Figure, error) {
 			// Newest first, like the page: the front line is now.
 			end := len(x) - (len(x)-wfallFFT)*i/(wfallSlices-1)
 			db := make([]float64, len(freqs))
-			if attractor.SpectrumPoints(x[end-wfallFFT:end], renderSampleRate, freqs, meters.WinHann, db) {
+			if acoustics.SpectrumPoints(x[end-wfallFFT:end], renderSampleRate, freqs, meters.WinHann, db) {
 				slices = append(slices, db)
 			}
 		}
