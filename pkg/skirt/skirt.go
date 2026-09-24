@@ -1,4 +1,4 @@
-package attractor
+package skirt
 
 import "math"
 
@@ -23,34 +23,34 @@ import "math"
 // constraints, no judgement, and it holds for a two-position switch and for
 // the scope's fifteen-position timebase alike.
 
-// knobSweepDeg is the pointer's total travel, centered on straight up.
+// SweepDeg is the pointer's total travel, centered on straight up.
 //
 // Here rather than beside the knob drawing because it is the number the
 // skirt geometry is built on: where a label sits is a function of the
 // sweep, and a second copy of it would be a ring whose labels do not
 // line up with the pointer that selects them.
-const knobSweepDeg = 270.0
+const SweepDeg = 270.0
 
-// skirtLabel is one engraved label: the size of its box, and where on the
+// Label is one engraved label: the size of its box, and where on the
 // ring it sits. Degrees are measured from straight up, clockwise, matching
 // the pointer's own travel.
-type skirtLabel struct {
+type Label struct {
 	W, H, Deg float64
 }
 
-// skirtRadialHalf is how far a label reaches along the radius — the half
+// radialHalf is how far a label reaches along the radius — the half
 // extent of its box in the direction the radius points.
 //
 // Not the half diagonal, which is what a first guess reaches for: a wide
 // short label at the top of the ring reaches up by half its HEIGHT, and
 // charging it half its diagonal would push every ring out to suit a label
 // that is nowhere near the part of the ring it is being measured against.
-func skirtRadialHalf(l skirtLabel) float64 {
+func radialHalf(l Label) float64 {
 	r := l.Deg * math.Pi / 180
 	return (math.Abs(math.Sin(r))*l.W + math.Abs(math.Cos(r))*l.H) / 2
 }
 
-// skirtRadius is the radius the label CENTERS must sit at.
+// Radius is the radius the label CENTERS must sit at.
 //
 // clear is the radius of everything inside the skirt that it has to stay off
 // — the grip, or the outer edge of a ring already placed on the same knob,
@@ -65,22 +65,22 @@ func skirtRadialHalf(l skirtLabel) float64 {
 // A ring with one label has only the first, and a ring with none has
 // neither — both are answered by the clearance alone rather than by a
 // special case.
-func skirtRadius(clear, gap float64, labs []skirtLabel) float64 {
+func Radius(clear, gap float64, labs []Label) float64 {
 	r := clear + gap
 	for _, l := range labs {
-		if v := clear + gap + skirtRadialHalf(l); v > r {
+		if v := clear + gap + radialHalf(l); v > r {
 			r = v
 		}
 	}
 	for i := 1; i < len(labs); i++ {
-		if v := skirtPairRadius(labs[i-1], labs[i]); v > r {
+		if v := pairRadius(labs[i-1], labs[i]); v > r {
 			r = v
 		}
 	}
 	return r
 }
 
-// skirtPairRadius is the smallest radius at which two neighboring labels
+// pairRadius is the smallest radius at which two neighboring labels
 // come apart.
 //
 // Two axis-aligned boxes miss each other as soon as they are separated
@@ -88,7 +88,7 @@ func skirtRadius(clear, gap float64, labs []skirtLabel) float64 {
 // is the smaller of the two radii that would do it, which is what keeps a
 // column of short labels from being pushed out as far as a row of wide ones
 // would need.
-func skirtPairRadius(a, b skirtLabel) float64 {
+func pairRadius(a, b Label) float64 {
 	ra := a.Deg * math.Pi / 180
 	rb := b.Deg * math.Pi / 180
 	// Centers sit at (R·sin, −R·cos), so the separation grows linearly with
@@ -112,26 +112,26 @@ func skirtPairRadius(a, b skirtLabel) float64 {
 	return need
 }
 
-// skirtOuter is how far the ring reaches in total — the radius its labels
+// Outer is how far the ring reaches in total — the radius its labels
 // are centered on plus the furthest any of them sticks out past that.
 //
 // What the next skirt out has to clear, and half of what the dial box has to
 // be to avoid clipping the labels it contains.
-func skirtOuter(radius float64, labs []skirtLabel) float64 {
+func Outer(radius float64, labs []Label) float64 {
 	out := radius
 	for _, l := range labs {
-		if v := radius + skirtRadialHalf(l); v > out {
+		if v := radius + radialHalf(l); v > out {
 			out = v
 		}
 	}
 	return out
 }
 
-// skirtAngles is where n positions sit on a sweep, in the pointer's own
+// Angles is where n positions sit on a sweep, in the pointer's own
 // travel: evenly spaced across it, centered on straight up. One position
 // sits at the top rather than at the start of the sweep, because a single
 // position is not a range.
-func skirtAngles(n int, sweepDeg float64) []float64 {
+func Angles(n int, sweepDeg float64) []float64 {
 	if n <= 0 {
 		return nil
 	}
@@ -165,31 +165,31 @@ func skirtAngles(n int, sweepDeg float64) []float64 {
 // it is the right control wherever there are more than two settings, and the
 // reason not to use one should never be that its legend does not fit.
 
-// skirtMinGripFrac is how far the grip may shrink to make room, as a
+// MinGripFrac is how far the grip may shrink to make room, as a
 // fraction of its natural radius. 0.62 takes the panel's usual 38px knob to
 // 23.5px, which at this panel's scale is still inside §2-103's range.
-const skirtMinGripFrac = 0.62
+const MinGripFrac = 0.62
 
-// skirtMinLabelScale is how far a legend may shrink once the grip is spent.
+// minLabelScale is how far a legend may shrink once the grip is spent.
 // Below about three quarters the 8px face type stops being readable at arm's
 // length, which is the whole purpose of silkscreening it.
-const skirtMinLabelScale = 0.75
+const minLabelScale = 0.75
 
-// skirtScaleLabels is labs with every box scaled — the legends set in
+// ScaleLabels is labs with every box scaled — the legends set in
 // smaller type, at the same angles.
-func skirtScaleLabels(labs []skirtLabel, s float64) []skirtLabel {
-	out := make([]skirtLabel, len(labs))
+func ScaleLabels(labs []Label, s float64) []Label {
+	out := make([]Label, len(labs))
 	for i, l := range labs {
-		out[i] = skirtLabel{W: l.W * s, H: l.H * s, Deg: l.Deg}
+		out[i] = Label{W: l.W * s, H: l.H * s, Deg: l.Deg}
 	}
 	return out
 }
 
-// skirtFit is the grip radius and legend scale at which this ring fits
+// Fit is the grip radius and legend scale at which this ring fits
 // inside maxOuter.
 //
 // minGrip is how far the grip may shrink. It is a parameter rather than
-// grip*skirtMinGripFrac because not every ring is sitting on a knob: the
+// grip*MinGripFrac because not every ring is sitting on a knob: the
 // outer ring of a concentric control clears the ring INSIDE it, and there is
 // nothing there to take room from. Passing minGrip == grip disables the
 // first lever and puts the whole reduction on the legend, which is the
@@ -198,10 +198,10 @@ func skirtScaleLabels(labs []skirtLabel, s float64) []skirtLabel {
 // maxOuter of zero or less means unconstrained, which is the honest answer
 // when the cell has not been measured yet: an unmeasured cell must not shrink
 // a knob to nothing.
-func skirtFit(grip, minGrip, gap, maxOuter float64, labs []skirtLabel) (useGrip, scale float64) {
+func Fit(grip, minGrip, gap, maxOuter float64, labs []Label) (useGrip, scale float64) {
 	fits := func(g, s float64) bool {
-		sc := skirtScaleLabels(labs, s)
-		return skirtOuter(skirtRadius(g, gap, sc), sc) <= maxOuter
+		sc := ScaleLabels(labs, s)
+		return Outer(Radius(g, gap, sc), sc) <= maxOuter
 	}
 	if minGrip > grip {
 		minGrip = grip
@@ -218,7 +218,7 @@ func skirtFit(grip, minGrip, gap, maxOuter float64, labs []skirtLabel) (useGrip,
 	}
 	// Second: smaller legends, with the grip already at its floor.
 	for i := 1; i <= 8; i++ {
-		s := 1 - (1-skirtMinLabelScale)*float64(i)/8
+		s := 1 - (1-minLabelScale)*float64(i)/8
 		if fits(minGrip, s) {
 			return minGrip, s
 		}
@@ -226,5 +226,5 @@ func skirtFit(grip, minGrip, gap, maxOuter float64, labs []skirtLabel) (useGrip,
 	// Both spent. Return the smallest of each: the ring still overhangs, but
 	// by as little as this panel is willing to make it, and an overhang that
 	// is visible is better than a legend that cannot be read.
-	return minGrip, skirtMinLabelScale
+	return minGrip, minLabelScale
 }
