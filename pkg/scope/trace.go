@@ -1,4 +1,4 @@
-package attractor
+package scope
 
 // What the tube can actually show.
 //
@@ -34,10 +34,10 @@ package attractor
 // So: one column per pixel, two points in it, and the cost of a sweep stops
 // depending on the timebase at all.
 
-// scopeTraceCols is how many columns a tube this wide has. One per pixel:
+// TraceCols is how many columns a tube this wide has. One per pixel:
 // the min/max pair in a column already covers everything between them, so a
 // second column inside the same pixel adds nothing that can be seen.
-func scopeTraceCols(w float64) int {
+func TraceCols(w float64) int {
 	c := int(w)
 	if c < 2 {
 		return 2
@@ -45,7 +45,7 @@ func scopeTraceCols(w float64) int {
 	return c
 }
 
-// scopeTraceEnvelope reduces a sweep to one min/max pair per column.
+// TraceEnvelope reduces a sweep to one min/max pair per column.
 //
 // Writes 2 float32s per column into dst — the column's lowest sample then
 // its highest — and returns how many columns it filled. Works on the raw
@@ -53,7 +53,7 @@ func scopeTraceCols(w float64) int {
 // affine in the sample value, so the lowest sample is the lowest point on
 // the screen; transforming two values per column instead of every sample is
 // the rest of the saving.
-func scopeTraceEnvelope(dst, src []float32, cols int) int {
+func TraceEnvelope(dst, src []float32, cols int) int {
 	if cols < 1 || len(src) == 0 || len(dst) < 2 {
 		return 0
 	}

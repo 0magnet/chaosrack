@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/scope"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -64,8 +65,8 @@ var scopeChanNames = []string{"CH 1", "CH 2", "MID", "X-Y"}
 // range that fits a normalized signal, a sweep slow enough to see a waveform
 // on, auto trigger so silence still draws a baseline, and the beam on.
 var scopeUI = scopeState{
-	voltsIdx: scopeNearestStep(scopeVoltsDivs, 0.5),
-	timeIdx:  scopeNearestStep(scopeTimebases, 2e-3),
+	voltsIdx: scope.NearestStep(scope.VoltsDivs, 0.5),
+	timeIdx:  scope.NearestStep(scope.Timebases, 2e-3),
 	rising:   true,
 	trigAuto: true,
 	intens:   0.6,
@@ -84,17 +85,17 @@ var (
 )
 
 func scopeSecPerDiv() float64 {
-	if len(scopeTimebases) == 0 {
+	if len(scope.Timebases) == 0 {
 		return 1e-3
 	}
-	return scopeTimebases[clampIdx(scopeUI.timeIdx, len(scopeTimebases))]
+	return scope.Timebases[clampIdx(scopeUI.timeIdx, len(scope.Timebases))]
 }
 
 func scopeVoltsPerDiv() float64 {
-	if len(scopeVoltsDivs) == 0 {
+	if len(scope.VoltsDivs) == 0 {
 		return 0.5
 	}
-	return scopeVoltsDivs[clampIdx(scopeUI.voltsIdx, len(scopeVoltsDivs))]
+	return scope.VoltsDivs[clampIdx(scopeUI.voltsIdx, len(scope.VoltsDivs))]
 }
 
 func clampIdx(i, n int) int {
@@ -116,9 +117,9 @@ func buildRackScope() {
 	dom.RebuildInto(&scopeFuncs, func() {
 		// The two range switches, from the sequences themselves — a hand-typed
 		// option list is a second copy of the spec, and the one that goes stale.
-		buildScopeDial("scope-volts", scopeVoltsDivs, scopeFormatVolts, scopeUI.voltsIdx,
+		buildScopeDial("scope-volts", scope.VoltsDivs, scope.FormatVolts, scopeUI.voltsIdx,
 			func(i int) { scopeUI.voltsIdx = i })
-		buildScopeDial("scope-time", scopeTimebases, scopeFormatTime, scopeUI.timeIdx,
+		buildScopeDial("scope-time", scope.Timebases, scope.FormatTime, scopeUI.timeIdx,
 			func(i int) { scopeUI.timeIdx = i })
 		buildScopeNameDial("scope-chan", scopeChanNames, scopeUI.chanSel,
 			func(i int) { scopeUI.chanSel = i })
@@ -291,7 +292,7 @@ func drawScopeTrace(w, h float64) {
 	if sr <= 0 {
 		sr = 24000
 	}
-	span := scopeSweepSamples(scopeSecPerDiv(), sr)
+	span := scope.SweepSamples(scopeSecPerDiv(), sr)
 	// A margin behind the window for the trigger to search in — one screen's
 	// worth, so an edge anywhere in the last two screens can be found.
 	need := span * 2
@@ -304,7 +305,7 @@ func drawScopeTrace(w, h float64) {
 
 	vert := scopeVertical(l, r)
 	start := span // the newest whole window, which is what a free run shows
-	if i := scopeTriggerIndex(vert, float32(scopeUI.trigLvl), scopeUI.rising, span); i >= 0 {
+	if i := scope.TriggerIndex(vert, float32(scopeUI.trigLvl), scopeUI.rising, span); i >= 0 {
 		start = i
 	} else if !scopeUI.trigAuto {
 		// NORM: no edge, no sweep. The tube keeps whatever was on it and
@@ -318,8 +319,8 @@ func drawScopeTrace(w, h float64) {
 		start = 0
 	}
 
-	px := w / float64(gratDivX)
-	py := h / float64(gratDivY)
+	px := w / float64(scope.DivX)
+	py := h / float64(scope.DivY)
 	cx, cy := w/2, h/2
 	vpd := scopeVoltsPerDiv()
 
@@ -349,14 +350,14 @@ func drawScopeTrace(w, h float64) {
 		// it. A Lissajous pattern reduced to one vertical bar per column is a
 		// different figure.
 		for i := 0; i < span && start+i < len(l); i++ {
-			x := cx + scopeYDiv(l[start+i], vpd, scopeUI.hpos)*px
-			y := cy - scopeYDiv(r[start+i], vpd, scopeUI.vpos)*py
+			x := cx + scope.YDiv(l[start+i], vpd, scopeUI.hpos)*px
+			y := cy - scope.YDiv(r[start+i], vpd, scopeUI.vpos)*py
 			scopeTracePts = append(scopeTracePts, float32(x), float32(y))
 		}
-	case span > 2*scopeTraceCols(w):
+	case span > 2*scope.TraceCols(w):
 		// More samples than the face has columns: draw the envelope, which is
-		// what the dense trace looks like anyway. See scopetrace.go.
-		cols := scopeTraceCols(w)
+		// what the dense trace looks like anyway. See pkg/scope/trace.go.
+		cols := scope.TraceCols(w)
 		if len(scopeEnvBuf) < cols*2 {
 			scopeEnvBuf = make([]float32, cols*2)
 		}
@@ -364,14 +365,14 @@ func drawScopeTrace(w, h float64) {
 		if span < len(seg) {
 			seg = seg[:span]
 		}
-		n := scopeTraceEnvelope(scopeEnvBuf, seg, cols)
+		n := scope.TraceEnvelope(scopeEnvBuf, seg, cols)
 		for c := 0; c < n; c++ {
 			frac := float64(c) / float64(n-1)
-			x := float32(cx + (frac-0.5+scopeUI.hpos/float64(gratDivX))*w)
+			x := float32(cx + (frac-0.5+scopeUI.hpos/float64(scope.DivX))*w)
 			// The lowest sample in the column is the lowest point on the
 			// screen, the deflection being affine in the sample value.
-			lo := float32(cy - scopeYDiv(scopeEnvBuf[c*2], vpd, scopeUI.vpos)*py)
-			hi := float32(cy - scopeYDiv(scopeEnvBuf[c*2+1], vpd, scopeUI.vpos)*py)
+			lo := float32(cy - scope.YDiv(scopeEnvBuf[c*2], vpd, scopeUI.vpos)*py)
+			hi := float32(cy - scope.YDiv(scopeEnvBuf[c*2+1], vpd, scopeUI.vpos)*py)
 			// Alternate which end the column is entered from, so the join to
 			// the next one runs along the edge of the band rather than back
 			// across it. Same figure, half the diagonal.
@@ -386,8 +387,8 @@ func drawScopeTrace(w, h float64) {
 		// of the way across and y is the deflection.
 		for i := 0; i < span && start+i < len(vert); i++ {
 			frac := float64(i) / float64(span-1)
-			x := cx + (frac-0.5+scopeUI.hpos/float64(gratDivX))*w
-			y := cy - scopeYDiv(vert[start+i], vpd, scopeUI.vpos)*py
+			x := cx + (frac-0.5+scopeUI.hpos/float64(scope.DivX))*w
+			y := cy - scope.YDiv(vert[start+i], vpd, scopeUI.vpos)*py
 			scopeTracePts = append(scopeTracePts, float32(x), float32(y))
 		}
 	}
@@ -452,7 +453,7 @@ var (
 
 // scopeGratWeights is the order the face is drawn in: ticks first, so the
 // heavier lines land on top of them where they cross.
-var scopeGratWeights = [3]gratWeight{gratWeightTick, gratWeightDiv, gratWeightAxis}
+var scopeGratWeights = [3]scope.Weight{scope.WeightTick, scope.WeightDiv, scope.WeightAxis}
 
 // scopeGratStroke is how each weight is painted. A real graticule is not one
 // uniform grid — the center axes are cut heavier than the division lines and
@@ -473,13 +474,13 @@ func buildScopeGratPaths(w, h float64) {
 	if !p2d.Truthy() {
 		return
 	}
-	px := w / float64(gratDivX)
-	py := h / float64(gratDivY)
+	px := w / float64(scope.DivX)
+	py := h / float64(scope.DivY)
 	cx, cy := w/2, h/2
 	var b strings.Builder
 	for i, weight := range scopeGratWeights {
 		b.Reset()
-		for _, l := range scopeGraticule() {
+		for _, l := range scope.Graticule() {
 			if l.W != weight {
 				continue
 			}

@@ -1,4 +1,4 @@
-package attractor
+package scope
 
 import (
 	"math"
@@ -21,14 +21,14 @@ import (
 // This file is untagged: the font, layout, and Fourier machinery are pure
 // math (tested natively); the mode wiring lives in scopetext_js.go.
 
-// scopeTextGlyphStrokes lays the string out on the segment font and returns
+// TextGlyphStrokes lays the string out on the segment font and returns
 // one beam tour PER GLYPH (x,y waypoint pairs), glyphs positioned along the
 // baseline and scaled to fit a ~3-wide, ~1.6-tall scope face. Each glyph is
 // its own closed circuit — the hardware character generator synthesized
 // characters individually, and per-glyph synthesis keeps every retrace
 // swoop inside its own letterform. Spaces (and empty masks) yield nil
 // entries. Unknown runes draw as '?'.
-func scopeTextGlyphStrokes(text string) [][]float64 {
+func TextGlyphStrokes(text string) [][]float64 {
 	const adv = 2.8 // cell width 2 + gap
 	runes := []rune(text)
 	if len(runes) == 0 {
@@ -84,13 +84,13 @@ func scopeTextGlyphStrokes(text string) [][]float64 {
 	return out
 }
 
-// scopeTextJumpFractions returns the glyph tour's retrace spans — the
+// TextJumpFractions returns the glyph tour's retrace spans — the
 // jumps between strokes plus the closing wrap — as arc-length fractions of
 // the closed circuit. The tour alternates stroke-start/stroke-end points,
 // so every segment leaving an odd-indexed point is a jump. These are the
 // spans a hardware character generator would key the z-axis off for; the
 // renderer blanks the reconstructed curve across them.
-func scopeTextJumpFractions(strokes []float64) [][2]float64 { //nolint:unused // built but not wired up yet; kept deliberately
+func TextJumpFractions(strokes []float64) [][2]float64 {
 	n := len(strokes) / 2
 	if n < 2 {
 		return nil
@@ -116,10 +116,10 @@ func scopeTextJumpFractions(strokes []float64) [][2]float64 { //nolint:unused //
 	return spans
 }
 
-// scopeTextSplitCurve cuts a reconstructed closed curve (x,y pairs, arc
+// TextSplitCurve cuts a reconstructed closed curve (x,y pairs, arc
 // parameter uniform in [0,1)) into drawable sub-strokes, dropping the
 // samples that fall inside the tour's retrace spans — beam blanking.
-func scopeTextSplitCurve(curve []float64, spans [][2]float64) [][]float64 { //nolint:unused // built but not wired up yet; kept deliberately
+func TextSplitCurve(curve []float64, spans [][2]float64) [][]float64 {
 	res := len(curve) / 2
 	if res == 0 {
 		return nil
@@ -150,12 +150,12 @@ func scopeTextSplitCurve(curve []float64, spans [][2]float64) [][]float64 { //no
 	return out
 }
 
-// scopeTextSynth resamples the beam tour into a uniform-arc-length closed
+// TextSynth resamples the beam tour into a uniform-arc-length closed
 // loop, takes its complex Fourier coefficients, and reconstructs the curve
 // from only harmonics −N..N (n=0 is the centroid). Returns curve samples
 // (x,y pairs, res points). The retrace jumps are part of the signal, so a
 // truncated series turns them into the characteristic inter-glyph swoops.
-func scopeTextSynth(strokes []float64, harmonics, res int) []float64 {
+func TextSynth(strokes []float64, harmonics, res int) []float64 {
 	if len(strokes) < 4 || harmonics < 1 || res < 8 {
 		return nil
 	}

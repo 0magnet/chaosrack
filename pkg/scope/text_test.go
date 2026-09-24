@@ -1,4 +1,4 @@
-package attractor
+package scope
 
 import (
 	"math"
@@ -11,7 +11,7 @@ import (
 
 func TestScopeTextStrokesCoverFont(t *testing.T) {
 	for _, s := range []string{"A", "CHAOSRACK", "0123456789", "V-2"} {
-		glyphs := scopeTextGlyphStrokes(s)
+		glyphs := TextGlyphStrokes(s)
 		if len(glyphs) != len([]rune(s)) {
 			t.Fatalf("strokes(%q): %d glyphs, want %d", s, len(glyphs), len(s))
 		}
@@ -26,15 +26,15 @@ func TestScopeTextStrokesCoverFont(t *testing.T) {
 			}
 		}
 	}
-	sp := scopeTextGlyphStrokes(" ")
+	sp := TextGlyphStrokes(" ")
 	if len(sp) != 1 || sp[0] != nil {
 		t.Fatal("space should be one empty glyph")
 	}
 }
 
 func TestScopeTextSynthConverges(t *testing.T) {
-	for _, g := range scopeTextGlyphStrokes("HI") {
-		curve := scopeTextSynth(g, 300, 1024)
+	for _, g := range TextGlyphStrokes("HI") {
+		curve := TextSynth(g, 300, 1024)
 		if len(curve) != 2048 {
 			t.Fatalf("synth: got %d coords, want 2048", len(curve))
 		}
@@ -53,7 +53,7 @@ func TestScopeTextSynthConverges(t *testing.T) {
 }
 
 func TestScopeTextSynthOneHarmonicIsEllipse(t *testing.T) {
-	curve := scopeTextSynth(scopeTextGlyphStrokes("R")[0], 1, 512)
+	curve := TextSynth(TextGlyphStrokes("R")[0], 1, 512)
 	// Harmonics −1..1 give an ellipse about the centroid — no sharp corner
 	// survives, so the curve's second differences stay tiny.
 	maxKink := 0.0
