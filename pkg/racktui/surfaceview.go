@@ -200,7 +200,7 @@ func drawOneControl(p Painter, v racksurface.View, x, y int, c Control, sel bool
 	if c.IsSwitch {
 		cells, rows = panelart.LampCells(knobCols, switchOn(c), panelart.Dark)
 	}
-	for ry := 0; ry < rows; ry++ {
+	for ry := range rows {
 		sy := y + ctlLabelRows + ry - v.Y
 		if sy < 0 || sy >= v.H {
 			continue

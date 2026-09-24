@@ -98,7 +98,7 @@ func (r *ringTrail) tick(mode string) bool {
 	start := r.head
 	invN := float32(1) / float32(sim.steps-1)
 	scale := sys.Scale
-	for i := 0; i < n; i++ {
+	for range n {
 		for range sub {
 			dx, dy, dz, dw := sys.F(r.x, r.y, r.z, r.w)
 			r.x += dt * dx

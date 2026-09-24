@@ -297,7 +297,7 @@ func (a *audioFeatures) updateAudioFeatures() {
 	if a.prevMix == nil {
 		a.prevMix = make([]float64, n)
 	}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		mix := (magsL[i] + magsR[i]) / 2
 		if d := mix - a.prevMix[i]; d > 0 {
 			flux += d

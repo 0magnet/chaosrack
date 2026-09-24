@@ -57,7 +57,7 @@ func generateMap(mode string) {
 	idx := 0
 	for o := range orbits {
 		p := mapOrbits.At(o)
-		for i := 0; i < per; i++ {
+		for range per {
 			nx, ny, nz := m.Step(p[0], p[1], p[2])
 			if !dynamics.Bounded(nx, ny, nz) {
 				// A parameter edit can push a map out of its bounded regime;

@@ -111,7 +111,7 @@ func (sp *sprottMorph) generateSprottMorph() {
 		sp.ring = make([]float64, sim.steps*3)
 		sp.head, sp.fill = 0, 0
 	}
-	for s := 0; s < n; s++ {
+	for range n {
 		sp.step(&c, dt*float64(sim.speedScale))
 		sp.ring[sp.head*3] = sp.sx
 		sp.ring[sp.head*3+1] = sp.sy
@@ -126,7 +126,7 @@ func (sp *sprottMorph) generateSprottMorph() {
 	}
 	vertices := sim.vertBuf[:sim.steps*4]
 	invN := float32(1) / float32(sim.steps-1)
-	for k := 0; k < sim.steps; k++ {
+	for k := range sim.steps {
 		age := sim.steps - 1 - k
 		idx := 0
 		if age < sp.fill {
@@ -181,7 +181,7 @@ func (sp *sprottMorph) syncSprottMorphExtras(mode string) {
 		sp.sx, sp.sy, sp.sz = float64(ic[0]), float64(ic[1]), float64(ic[2])
 		sp.ring = make([]float64, sim.steps*3)
 		ext := 0.0
-		for k := 0; k < sim.steps; k++ {
+		for k := range sim.steps {
 			sp.step(&c, dt)
 			sp.ring[k*3] = sp.sx
 			sp.ring[k*3+1] = sp.sy

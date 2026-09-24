@@ -204,7 +204,7 @@ func (a *audioTap) pump() {
 		if n <= 0 {
 			break
 		}
-		for i := 0; i < n; i++ {
+		for i := range n {
 			a.ringL[a.w%len(a.ringL)] = a.scratch[i]
 			a.ringR[a.w%len(a.ringR)] = a.scratchR[i]
 			a.w++
@@ -249,7 +249,7 @@ func (a *audioTap) readChan(cursor *int, dst []float32, c tapChan) int {
 		*cursor = a.w - size
 	}
 	n := min(a.w-*cursor, len(dst))
-	for i := 0; i < n; i++ {
+	for i := range n {
 		j := (*cursor + i) % size
 		dst[i] = tapFold(c, a.ringL[j], a.ringR[j])
 	}
@@ -274,7 +274,7 @@ func (a *audioTap) readStereo(cursor *int, l, r []float32) int {
 		*cursor = a.w - size
 	}
 	n := min(a.w-*cursor, len(l))
-	for i := 0; i < n; i++ {
+	for i := range n {
 		j := (*cursor + i) % size
 		l[i] = a.ringL[j]
 		r[i] = a.ringR[j]

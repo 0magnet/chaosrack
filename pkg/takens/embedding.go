@@ -131,12 +131,12 @@ func MutualInformation(x []float64, tau, bins int) float64 {
 
 	inv := 1 / float64(n)
 	var mi float64
-	for a := 0; a < bins; a++ {
+	for a := range bins {
 		if px[a] == 0 {
 			continue
 		}
 		pa := float64(px[a]) * inv
-		for b := 0; b < bins; b++ {
+		for b := range bins {
 			c := joint[a*bins+b]
 			if c == 0 {
 				continue

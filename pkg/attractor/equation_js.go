@@ -253,7 +253,7 @@ func (c *customEquation) generateCustom() {
 	vertices := sim.vertBuf[:sim.steps*4]
 	invN := float32(1) / float32(sim.steps-1)
 	sub := effSubSteps(sim.speedSteps, sim.steps, frameBudgetInterpreted)
-	for i := 0; i < sim.steps; i++ {
+	for i := range sim.steps {
 		for range sub {
 			vars := [5]float64{float64(sim.x), float64(sim.y), float64(sim.z), float64(c.w), c.t}
 			dx := c.expr[0].Eval(vars, pv[0], stack)
@@ -471,7 +471,7 @@ func (c *customEquation) serializeCustom(b *strings.Builder) {
 		n = 4
 	}
 	parts := make([]string, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		parts[i] = jsEncodeURI(c.eq[i])
 	}
 	b.WriteString(strings.Join(parts, ";"))

@@ -376,7 +376,7 @@ func (x *xyScope) drawXYScope(clear bool) {
 		sx *= x.gain
 		sy *= x.gain
 		o := 0
-		for i := 0; i < x.window; i++ {
+		for i := range x.window {
 			l0, r0 := ax(clampIdx(i - 1))
 			l1, r1 := ax(i)
 			l2, r2 := ax(clampIdx(i + 1))
@@ -390,7 +390,7 @@ func (x *xyScope) drawXYScope(clear bool) {
 		}
 	} else {
 		// Blank the line so we don't draw stale data.
-		for i := 0; i < drawn*2; i++ {
+		for i := range drawn * 2 {
 			x.line[i] = 0
 		}
 		x.noteState(false, false, 0)

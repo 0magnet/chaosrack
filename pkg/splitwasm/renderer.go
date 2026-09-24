@@ -107,7 +107,7 @@ func (r *renderer) buildGlobe(lat, lon int, twist float64) {
 			}
 		}
 	}
-	for j := 0; j < lon; j++ {
+	for j := range lon {
 		th0 := float64(j) * 2 * math.Pi / float64(lon)
 		base := uint16(len(v) / 3) //nolint:gosec // G115: bounded by the knob maxima; see buildGlobe
 		for i := 0; i <= pts; i++ {

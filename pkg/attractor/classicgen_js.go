@@ -18,7 +18,7 @@ func generateClassic(mode string) {
 	vertices := sim.vertBuf[:sim.steps*4]
 	invN := float32(1) / float32(sim.steps-1)
 	sub := effSubSteps(sim.speedSteps, sim.steps, frameBudgetCompiled)
-	for i := 0; i < sim.steps; i++ {
+	for i := range sim.steps {
 		dt := *dtp * sim.speedScale
 		for range sub {
 			dx, dy, dz := deriv(sim.x, sim.y, sim.z)

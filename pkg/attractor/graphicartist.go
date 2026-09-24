@@ -92,7 +92,7 @@ func (g *graphicArtist) generateGraphicArtist() {
 	// Sweep the master phase over one full 2π cycle; because B/C/D are integer
 	// harmonics the whole figure closes in that span.
 	span := 2 * math.Pi
-	for i := 0; i < sim.steps; i++ {
+	for i := range sim.steps {
 		t := float64(i)*invN64()*span + float64(g.phase)
 		a := gaWave(g.waveA, t)
 		b := gaWave(g.waveB, t*float64(g.harmB))

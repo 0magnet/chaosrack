@@ -174,7 +174,7 @@ func TestPlatonicSolids(t *testing.T) {
 // This is the check that the transported frame is not collapsing or twisting.
 func TestTubeAlongALineIsACylinder(t *testing.T) {
 	path := make([]V3, 0, 101)
-	for i := 0; i <= 100; i++ {
+	for i := range 101 {
 		path = append(path, V3{0, 0, float64(i) / 10})
 	}
 	m := Tube(path, 0.5, 128, true)
@@ -192,7 +192,7 @@ func TestTubeAlongALineIsACylinder(t *testing.T) {
 // that climbs through vertical exercises it; a pinched tube loses volume.
 func TestTubeSurvivesAVerticalTangent(t *testing.T) {
 	var path []V3
-	for i := 0; i <= 400; i++ {
+	for i := range 401 {
 		u := float64(i) / 400 * 4 * math.Pi
 		// A curve whose tangent sweeps through +Z and back.
 		path = append(path, V3{math.Cos(u), math.Sin(u), math.Sin(u/2) * 4})

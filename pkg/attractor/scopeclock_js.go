@@ -31,7 +31,7 @@ func generateScopeClock() {
 	vertices := sim.vertBuf[:sim.steps*4]
 	invN := float32(1) / float32(sim.steps-1)
 	seg := 1
-	for i := 0; i < sim.steps; i++ {
+	for i := range sim.steps {
 		want := total * float64(i) / float64(sim.steps-1)
 		for seg < len(cum)-1 && cum[seg] < want {
 			seg++

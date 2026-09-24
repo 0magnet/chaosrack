@@ -327,7 +327,7 @@ func renderPlot(cmd *cobra.Command, l, r []float32) error {
 	}
 	frames = max(frames, 1)
 	imgs := make([]*image.RGBA, 0, frames)
-	for i := 0; i < frames; i++ {
+	for i := range frames {
 		end := len(l)
 		if frames > 1 {
 			end = start + (len(l)-start)*i/(frames-1)

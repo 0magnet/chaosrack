@@ -26,14 +26,14 @@ func Cylinder(base V3, r, h float64, seg int) Mesh {
 	top := base.Add(V3{0, 0, h})
 	ring := func(c V3) []V3 {
 		out := make([]V3, seg)
-		for i := 0; i < seg; i++ {
+		for i := range seg {
 			a := 2 * math.Pi * float64(i) / float64(seg)
 			out[i] = V3{c[0] + r*math.Cos(a), c[1] + r*math.Sin(a), c[2]}
 		}
 		return out
 	}
 	lo, hi := ring(base), ring(top)
-	for i := 0; i < seg; i++ {
+	for i := range seg {
 		j := (i + 1) % seg
 		m.AddQuad(lo[i], lo[j], hi[j], hi[i])
 		m.Add(Tri{top, hi[i], hi[j]})  // top cap, outward +Z
@@ -51,14 +51,14 @@ func Cone(base V3, r0, r1, h float64, seg int) Mesh {
 	top := base.Add(V3{0, 0, h})
 	ring := func(c V3, r float64) []V3 {
 		out := make([]V3, seg)
-		for i := 0; i < seg; i++ {
+		for i := range seg {
 			a := 2 * math.Pi * float64(i) / float64(seg)
 			out[i] = V3{c[0] + r*math.Cos(a), c[1] + r*math.Sin(a), c[2]}
 		}
 		return out
 	}
 	lo, hi := ring(base, r0), ring(top, r1)
-	for i := 0; i < seg; i++ {
+	for i := range seg {
 		j := (i + 1) % seg
 		m.AddQuad(lo[i], lo[j], hi[j], hi[i])
 		m.Add(Tri{top, hi[i], hi[j]})
@@ -85,8 +85,8 @@ func UVSphere(c V3, r float64, stacks, slices int) Mesh {
 		}
 	}
 	var m Mesh
-	for i := 0; i < stacks; i++ {
-		for j := 0; j < slices; j++ {
+	for i := range stacks {
+		for j := range slices {
 			a, b := at(i, j), at(i, j+1)
 			cc, d := at(i+1, j+1), at(i+1, j)
 			// Wound a-d-c-b, not a-b-c-d: i increases southward and j
@@ -119,8 +119,8 @@ func Torus(c V3, R, r float64, major, minor int) Mesh {
 		}
 	}
 	var m Mesh
-	for i := 0; i < major; i++ {
-		for j := 0; j < minor; j++ {
+	for i := range major {
+		for j := range minor {
 			m.AddQuad(at(i, j), at(i+1, j), at(i+1, j+1), at(i, j+1))
 		}
 	}
@@ -187,7 +187,7 @@ func Tube(path []V3, r float64, seg int, capEnds bool) Mesh {
 		n = n.Sub(t.Mul(n.Dot(t))).Norm() // re-orthogonalize against drift
 		b := t.Cross(n)
 		ring := make([]V3, seg)
-		for j := 0; j < seg; j++ {
+		for j := range seg {
 			a := 2 * math.Pi * float64(j) / float64(seg)
 			ring[j] = pts[i].Add(n.Mul(r * math.Cos(a))).Add(b.Mul(r * math.Sin(a)))
 		}
@@ -197,14 +197,14 @@ func Tube(path []V3, r float64, seg int, capEnds bool) Mesh {
 
 	var m Mesh
 	for i := 0; i+1 < len(rings); i++ {
-		for j := 0; j < seg; j++ {
+		for j := range seg {
 			k := (j + 1) % seg
 			m.AddQuad(rings[i][j], rings[i][k], rings[i+1][k], rings[i+1][j])
 		}
 	}
 	if capEnds {
 		first, last := rings[0], rings[len(rings)-1]
-		for j := 0; j < seg; j++ {
+		for j := range seg {
 			k := (j + 1) % seg
 			m.Add(Tri{pts[0], first[k], first[j]})
 			m.Add(Tri{pts[len(pts)-1], last[j], last[k]})

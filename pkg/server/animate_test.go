@@ -187,7 +187,7 @@ func TestTheTrailSweepsTheWholeRun(t *testing.T) {
 		const total = 1000
 		seen := map[[2]int]bool{}
 		var lastHi int
-		for i := 0; i < renderFrames; i++ {
+		for i := range renderFrames {
 			lo, hi := frameSpan(total, i, renderFrames)
 			if lo < 0 || hi > total || hi-lo < 2 {
 				t.Fatalf("frame %d spans %d..%d, which is not inside 0..%d", i, lo, hi, total)

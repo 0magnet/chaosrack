@@ -263,7 +263,7 @@ func (s *RQASeries) fillGaps(nowMs float64) {
 	// base is read once: write moves s.at, so reading it inside the loop would
 	// compound the offset and stamp the gaps at 1, 3, 6… intervals out.
 	base := s.at
-	for i := 0; i < n; i++ {
+	for i := range n {
 		s.write(base+float64(i+1)*RQASamplePeriodMs, RQASample{})
 	}
 }
