@@ -23,7 +23,7 @@ func TestDecomposeXYZRoundTrip(t *testing.T) {
 				r := mgl32.HomogRotate3DX(gx).
 					Mul4(mgl32.HomogRotate3DY(gy)).
 					Mul4(mgl32.HomogRotate3DZ(gz))
-				for i := 0; i < 16; i++ {
+				for i := range 16 {
 					if d := math.Abs(float64(m[i] - r[i])); d > 2e-3 {
 						t.Fatalf("angles (%v,%v,%v): recomposed matrix differs at [%d] by %v (got angles %v,%v,%v)",
 							ax, ay, az, i, d, gx, gy, gz)
@@ -49,7 +49,7 @@ func TestDecomposeXYZGimbal(t *testing.T) {
 		r := mgl32.HomogRotate3DX(gx).
 			Mul4(mgl32.HomogRotate3DY(gy)).
 			Mul4(mgl32.HomogRotate3DZ(gz))
-		for i := 0; i < 16; i++ {
+		for i := range 16 {
 			if d := math.Abs(float64(m[i] - r[i])); d > 5e-3 {
 				t.Fatalf("gimbal recompose differs at [%d] by %v", i, d)
 			}

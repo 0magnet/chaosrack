@@ -93,14 +93,14 @@ func TestAPropertyIsNotSetTwiceForOneSelector(t *testing.T) {
 
 	props := map[string]map[string]int{}
 	for _, r := range panelRules(t) {
-		for _, s := range strings.Split(r.sel, ",") {
+		for s := range strings.SplitSeq(r.sel, ",") {
 			if s = strings.TrimSpace(s); s == "" {
 				continue
 			}
 			if props[s] == nil {
 				props[s] = map[string]int{}
 			}
-			for _, d := range strings.Split(r.body, ";") {
+			for d := range strings.SplitSeq(r.body, ";") {
 				if i := strings.Index(d, ":"); i > 0 {
 					props[s][strings.TrimSpace(d[:i])]++
 				}
@@ -142,11 +142,11 @@ func TestNoFlexOnlyPropertyOnAGridContainer(t *testing.T) {
 	sets := map[string][]string{}  // selector -> inert properties set on it
 
 	for _, r := range panelRules(t) {
-		for _, s := range strings.Split(r.sel, ",") {
+		for s := range strings.SplitSeq(r.sel, ",") {
 			if s = strings.TrimSpace(s); s == "" {
 				continue
 			}
-			for _, d := range strings.Split(r.body, ";") {
+			for d := range strings.SplitSeq(r.body, ";") {
 				i := strings.Index(d, ":")
 				if i <= 0 {
 					continue

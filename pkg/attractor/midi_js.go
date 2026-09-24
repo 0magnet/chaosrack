@@ -35,7 +35,7 @@ func midiSetSlider(id string, min, max float32, v127 float64) {
 	sl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 }
 
-func midiHandle(this js.Value, args []js.Value) interface{} {
+func midiHandle(this js.Value, args []js.Value) any {
 	if !midiOn || len(args) == 0 {
 		return nil
 	}
@@ -91,7 +91,7 @@ func midiBindInputs() {
 		return
 	}
 	inputs := midiAccess.Get("inputs")
-	fn := dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	fn := dom.FuncOf(func(this js.Value, a []js.Value) any {
 		a[0].Set("onmidimessage", midiMsgFn)
 		return nil
 	})
@@ -110,11 +110,11 @@ func startMIDI() {
 		midiBindInputs()
 		return
 	}
-	then := dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	then := dom.FuncOf(func(this js.Value, a []js.Value) any {
 		midiAccess = a[0]
 		midiBindInputs()
 		// New devices plugged in later bind too.
-		midiAccess.Set("onstatechange", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+		midiAccess.Set("onstatechange", dom.FuncOf(func(js.Value, []js.Value) any {
 			midiBindInputs()
 			return nil
 		}))
@@ -127,7 +127,7 @@ func startMIDI() {
 	// in. The mic and the websocket already say when they fail; this now says
 	// it the same way and puts the switch back, so the panel stops claiming
 	// something that is not true.
-	fail := dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+	fail := dom.FuncOf(func(_ js.Value, a []js.Value) any {
 		reason := "denied"
 		if len(a) > 0 && a[0].Truthy() {
 			if m := a[0].Get("message"); m.Truthy() {

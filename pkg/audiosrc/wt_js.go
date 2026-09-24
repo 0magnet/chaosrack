@@ -153,11 +153,11 @@ type wtSource struct {
 // a server started without -wt, so it falls back quietly rather than
 // erroring.
 func (w *wtSource) fetchInfo() {
-	onErr := js.FuncOf(func(_ js.Value, args []js.Value) interface{} {
+	onErr := js.FuncOf(func(_ js.Value, args []js.Value) any {
 		w.fallBackProbe(WTProbe{Supported: true, InfoErr: jsError(args, "cannot reach "+w.opts.InfoURL)})
 		return nil
 	})
-	onJSON := js.FuncOf(func(_ js.Value, args []js.Value) interface{} {
+	onJSON := js.FuncOf(func(_ js.Value, args []js.Value) any {
 		if len(args) == 0 {
 			w.fallBackProbe(WTProbe{Supported: true, InfoErr: errors.New("empty " + w.opts.InfoURL)})
 			return nil
@@ -171,7 +171,7 @@ func (w *wtSource) fetchInfo() {
 		w.dial(url.String(), hash.String())
 		return nil
 	})
-	onResp := js.FuncOf(func(_ js.Value, args []js.Value) interface{} {
+	onResp := js.FuncOf(func(_ js.Value, args []js.Value) any {
 		if len(args) == 0 || !args[0].Get("ok").Bool() {
 			w.fallBackProbe(WTProbe{Supported: true, InfoErr: errors.New(w.opts.InfoURL + " is not being served")})
 			return nil
@@ -231,11 +231,11 @@ func (w *wtSource) dial(url, certHash string) {
 	}
 	w.wt = wt
 
-	onDialErr := js.FuncOf(func(_ js.Value, args []js.Value) interface{} {
+	onDialErr := js.FuncOf(func(_ js.Value, args []js.Value) any {
 		w.fallBackProbe(WTProbe{Supported: true, DialErr: jsError(args, "handshake to "+url+" failed")})
 		return nil
 	})
-	onReady := js.FuncOf(func(js.Value, []js.Value) interface{} {
+	onReady := js.FuncOf(func(js.Value, []js.Value) any {
 		w.startReading()
 		return nil
 	})
@@ -245,7 +245,7 @@ func (w *wtSource) dial(url, certHash string) {
 	// re-dialing on a link that has just proved unreliable, while the
 	// WebSocket source already reconnects itself every 2 s — so the
 	// simpler path is also the one that recovers.
-	wt.Get("closed").Call("then", js.FuncOf(func(js.Value, []js.Value) interface{} {
+	wt.Get("closed").Call("then", js.FuncOf(func(js.Value, []js.Value) any {
 		w.fallBackProbe(WTProbe{Supported: true, DialErr: errors.New("session closed")})
 		return nil
 	})).Call("catch", onDialErr)
@@ -264,7 +264,7 @@ func (w *wtSource) startReading() {
 	}
 	w.reader = dgrams.Get("readable").Call("getReader")
 
-	onReadErr := js.FuncOf(func(_ js.Value, args []js.Value) interface{} {
+	onReadErr := js.FuncOf(func(_ js.Value, args []js.Value) any {
 		w.fallBackProbe(WTProbe{Supported: true, DialErr: jsError(args, "datagram stream ended")})
 		return nil
 	})
@@ -272,7 +272,7 @@ func (w *wtSource) startReading() {
 	// resolves once per datagram, so the handler has to schedule the
 	// next read from inside itself.
 	var onChunk js.Func
-	onChunk = js.FuncOf(func(_ js.Value, args []js.Value) interface{} {
+	onChunk = js.FuncOf(func(_ js.Value, args []js.Value) any {
 		if w.closed || w.fallback != nil {
 			return nil
 		}

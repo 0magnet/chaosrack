@@ -48,7 +48,7 @@ func isClosed(m Mesh) (bool, int) {
 		}
 		a, b := r(p), r(q)
 		// Undirected: order the endpoints canonically.
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			if a[i] != b[i] {
 				if a[i] > b[i] {
 					a, b = b, a

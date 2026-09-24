@@ -95,13 +95,13 @@ func MatrixVec(x []float64, dim int, eps float64, dst []byte) {
 	for i := range dst[:n*n] {
 		dst[i] = 0
 	}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		dst[i*n+i] = 255
 		pi := x[i*dim : i*dim+dim]
 		for j := i + 1; j < n; j++ {
 			pj := x[j*dim : j*dim+dim]
 			var d2 float64
-			for c := 0; c < dim; c++ {
+			for c := range dim {
 				d := pi[c] - pj[c]
 				d2 += d * d
 			}
@@ -127,8 +127,8 @@ func Rate(x []float64, eps float64) float64 {
 		return 0
 	}
 	var lit int
-	for i := 0; i < n; i++ {
-		for j := 0; j < n; j++ {
+	for i := range n {
+		for j := range n {
 			// i == j is lit by convention rather than by the test, exactly as
 			// Matrix draws it: a point recurs with itself, and the
 			// two functions describing the same picture must not disagree
@@ -178,12 +178,12 @@ func Diameter(x []float64, dim int) float64 {
 	}
 	n := len(x) / dim
 	var max2 float64
-	for i := 0; i < n; i++ {
+	for i := range n {
 		pi := x[i*dim : i*dim+dim]
 		for j := i + 1; j < n; j++ {
 			pj := x[j*dim : j*dim+dim]
 			var d2 float64
-			for c := 0; c < dim; c++ {
+			for c := range dim {
 				d := pi[c] - pj[c]
 				d2 += d * d
 			}
@@ -274,9 +274,9 @@ func RQA(mat []byte, n int) RQAResult {
 	vRun := make([]int32, n)
 	var dLine, dLit, vLine int64
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		row := mat[i*n : i*n+n]
-		for j := 0; j < n; j++ {
+		for j := range n {
 			lit := row[j] != 0
 			if lit {
 				r.Lit++
@@ -420,7 +420,7 @@ func TrajectorySeries(mode string, n int, span float64) []float64 {
 		return nil
 	}
 	out := make([]float64, 3*n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		p := pts[i*(m-1)/(n-1)]
 		out[3*i], out[3*i+1], out[3*i+2] = p[0], p[1], p[2]
 	}

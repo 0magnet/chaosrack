@@ -45,7 +45,7 @@ func main() {
 	models := attractor.STLModels()
 	want := map[string]bool{}
 	if *only != "" {
-		for _, k := range strings.Split(*only, ",") {
+		for k := range strings.SplitSeq(*only, ",") {
 			want[strings.TrimSpace(k)] = true
 		}
 	}

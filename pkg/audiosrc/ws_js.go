@@ -63,16 +63,16 @@ func NewWebSocket(opts WSOptions) Source {
 	}
 	w.url = withChannels(w.url, opts.Channels)
 	w.onMsg = js.FuncOf(w.handleMessage)
-	w.onOpen = js.FuncOf(func(js.Value, []js.Value) interface{} {
+	w.onOpen = js.FuncOf(func(js.Value, []js.Value) any {
 		w.reconnecting = false
 		w.err = nil
 		return nil
 	})
-	w.onDown = js.FuncOf(func(js.Value, []js.Value) interface{} {
+	w.onDown = js.FuncOf(func(js.Value, []js.Value) any {
 		w.scheduleReconnect(2000)
 		return nil
 	})
-	w.onErr = js.FuncOf(func(js.Value, []js.Value) interface{} {
+	w.onErr = js.FuncOf(func(js.Value, []js.Value) any {
 		if w.err == nil {
 			w.err = errors.New("websocket error connecting to " + w.url)
 		}
@@ -149,7 +149,7 @@ func (w *wsSource) scheduleReconnect(delayMs int) {
 		return
 	}
 	w.reconnecting = true
-	js.Global().Call("setTimeout", js.FuncOf(func(js.Value, []js.Value) interface{} {
+	js.Global().Call("setTimeout", js.FuncOf(func(js.Value, []js.Value) any {
 		w.reconnecting = false
 		w.connect()
 		return nil
@@ -157,7 +157,7 @@ func (w *wsSource) scheduleReconnect(delayMs int) {
 }
 
 // handleMessage writes one decoded chunk into the ring.
-func (w *wsSource) handleMessage(_ js.Value, p []js.Value) interface{} {
+func (w *wsSource) handleMessage(_ js.Value, p []js.Value) any {
 	if len(p) == 0 {
 		return nil
 	}

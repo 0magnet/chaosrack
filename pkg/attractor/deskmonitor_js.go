@@ -42,7 +42,7 @@ func initDeskMonitor() {
 	if !deskMonitorCtx.Truthy() {
 		return
 	}
-	js.Global().Call("setInterval", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	js.Global().Call("setInterval", dom.FuncOf(func(js.Value, []js.Value) any {
 		drawDeskMonitor()
 		return nil
 	}), 1000/deskMonitorFPS)

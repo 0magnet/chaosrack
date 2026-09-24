@@ -122,8 +122,8 @@ func TestAnimatedSVGIsWellFormedAndShowsOneFrameAtATime(t *testing.T) {
 func valuesAttrs(doc string) []string {
 	var out []string
 	for _, part := range strings.Split(doc, `values="`)[1:] {
-		if i := strings.IndexByte(part, '"'); i >= 0 {
-			out = append(out, part[:i])
+		if before, _, ok := strings.Cut(part, "\""); ok {
+			out = append(out, before)
 		}
 	}
 	return out

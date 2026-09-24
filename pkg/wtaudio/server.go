@@ -73,7 +73,7 @@ type Config struct {
 	SampleRate int
 
 	// Logf receives operational messages. Defaults to log.Printf.
-	Logf func(format string, args ...interface{})
+	Logf func(format string, args ...any)
 }
 
 // Server is a WebTransport endpoint streaming audio datagrams.

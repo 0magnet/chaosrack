@@ -128,8 +128,8 @@ func (s *skinSurface) buildSkinMesh(mode string) {
 func gridTriangles(stacks, slices int) []uint16 {
 	idx := make([]uint16, 0, stacks*slices*6)
 	row := slices + 1
-	for i := 0; i < stacks; i++ {
-		for j := 0; j < slices; j++ {
+	for i := range stacks {
+		for j := range slices {
 			a := uint16(i*row + j) //nolint:gosec // a mesh index, bounded by the stack/slice counts a few lines up
 			b := a + 1
 			c := uint16((i+1)*row + j) //nolint:gosec // a mesh index, bounded by the stack/slice counts a few lines up
@@ -191,7 +191,7 @@ func cubeSkinMesh(cubeVerts []float32, _ []uint16) ([]float32, []uint16) {
 	quadUV := [4][2]float32{{0, 0}, {1, 0}, {1, 1}, {0, 1}}
 	n := len(cubeVerts) / 3
 	out := make([]float32, 0, n*5)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		uv := quadUV[i%4]
 		out = append(out, cubeVerts[i*3], cubeVerts[i*3+1], cubeVerts[i*3+2], uv[0], uv[1])
 	}
@@ -281,7 +281,7 @@ func convexFaces(verts []float32) [][]int {
 	const eps = 1e-4
 	var faces [][]int
 	seen := map[[4]int]bool{}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		for j := i + 1; j < n; j++ {
 			for k := j + 1; k < n; k++ {
 				ax, ay, az := px(i)
@@ -302,7 +302,7 @@ func convexFaces(verts []float32) [][]int {
 					nx, ny, nz, d = -nx, -ny, -nz, -d
 				}
 				supporting := true
-				for m := 0; m < n; m++ {
+				for m := range n {
 					mx, my, mz := px(m)
 					if nx*mx+ny*my+nz*mz > d+eps {
 						supporting = false
@@ -318,7 +318,7 @@ func convexFaces(verts []float32) [][]int {
 				}
 				seen[key] = true
 				var face []int
-				for m := 0; m < n; m++ {
+				for m := range n {
 					mx, my, mz := px(m)
 					if float32(math.Abs(float64(nx*mx+ny*my+nz*mz-d))) < eps {
 						face = append(face, m)

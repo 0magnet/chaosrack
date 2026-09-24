@@ -39,10 +39,7 @@ func usedSlots(slots []int, idx []int) int {
 		if i < 0 || i >= len(slots) {
 			continue
 		}
-		w := slots[i]
-		if w < 0 {
-			w = 0
-		}
+		w := max(slots[i], 0)
 		used += w
 	}
 	return used

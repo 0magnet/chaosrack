@@ -68,7 +68,7 @@ func morphRun(sys []SprottMorphSys, m float64, steps int) (sx, sy, sz float64, o
 	}
 	minv := [3]float64{math.Inf(1), math.Inf(1), math.Inf(1)}
 	maxv := [3]float64{math.Inf(-1), math.Inf(-1), math.Inf(-1)}
-	for s := 0; s < steps; s++ {
+	for s := range steps {
 		dx, dy, dz := EvalQuad(&c, x, y, z)
 		if dx == 0 && dy == 0 && dz == 0 {
 			reseed()

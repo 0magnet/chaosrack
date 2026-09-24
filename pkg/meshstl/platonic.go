@@ -85,7 +85,7 @@ func NestedCube(r, inner, strut float64) Mesh {
 		}[i]
 		return v.Mul(s / math.Sqrt(3))
 	}
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		m.Append(Tube([]V3{corner(i, r*inner), corner(i, r)}, strut, 8, true))
 	}
 	return m

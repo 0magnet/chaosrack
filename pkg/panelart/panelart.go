@@ -111,7 +111,7 @@ func Knob(size int, frac float64, detents int, p Palette) *image.RGBA {
 		plot(im, c+math.Cos(ang)*r*t, c+math.Sin(ang)*r*t, p.Mark)
 	}
 	if detents >= 2 {
-		for i := 0; i < detents; i++ {
+		for i := range detents {
 			a := knobStart + knobSweep*float64(i)/float64(detents-1)
 			for t := 1.06; t < 1.24; t += 0.5 / r {
 				plot(im, c+math.Cos(a)*r*t, c+math.Sin(a)*r*t, p.Detent)

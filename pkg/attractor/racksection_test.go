@@ -1,12 +1,15 @@
 package attractor
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 // Within a section it is still fill-and-overflow, so a section wider than a
 // bay continues into the next one rather than being squeezed or dropped.
 func TestASectionWiderThanABayContinuesIntoTheNext(t *testing.T) {
 	var items []packItem
-	for i := 0; i < 14; i++ {
+	for range 14 {
 		items = append(items, packItem{Slots: 1, Section: secDisplay})
 	}
 	units := packBySection(items, 12, nil)
@@ -330,7 +333,7 @@ func groupSectionsOnly(items []packItem) []packItem {
 // build. A smaller bay must give more bays, not a fuller one.
 func TestASmallerBayGivesMoreBays(t *testing.T) {
 	var items []packItem
-	for i := 0; i < 8; i++ {
+	for range 8 {
 		items = append(items, packItem{Slots: 1, Section: secDisplay})
 	}
 	wide := packBySection(items, 8, nil)
@@ -564,7 +567,7 @@ func TestEveryBayOfASectionGetsItsOwnMonitor(t *testing.T) {
 	// screen at its left — which is what the category rows already do and the
 	// reason they read as instruments rather than as a shelf.
 	var items []packItem
-	for i := 0; i < 9; i++ {
+	for range 9 {
 		items = append(items, packItem{Slots: 3, Section: "a"})
 	}
 	units := packBySection(items, 12, map[string]int{"a": 3})
@@ -641,13 +644,7 @@ func TestEveryDeclaredBayMonitorNamesARealSection(t *testing.T) {
 		if slots <= 0 {
 			t.Errorf("section %q declares a monitor of %d slots", section, slots)
 		}
-		found := false
-		for _, s := range sectionOrder {
-			if s == section {
-				found = true
-				break
-			}
-		}
+		found := slices.Contains(sectionOrder, section)
 		if !found {
 			t.Errorf("bayMonitorSlots names %q, which is not a section — see sectionOrder", section)
 		}

@@ -46,7 +46,7 @@ func initPointerMove() {
 	if !pointerMoveFunc.IsUndefined() {
 		return
 	}
-	pointerMoveFunc = js.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+	pointerMoveFunc = js.FuncOf(func(_ js.Value, a []js.Value) any {
 		if len(a) == 0 {
 			return nil
 		}
@@ -58,14 +58,14 @@ func initPointerMove() {
 	})
 	// Capture phase, so the move listener is on the document before any
 	// pointerdown handler that starts a gesture has run.
-	dom.Doc.Call("addEventListener", "pointerdown", js.FuncOf(func(js.Value, []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "pointerdown", js.FuncOf(func(js.Value, []js.Value) any {
 		if !pointerMoveOn {
 			dom.Doc.Call("addEventListener", "pointermove", pointerMoveFunc)
 			pointerMoveOn = true
 		}
 		return nil
 	}), true)
-	off := js.FuncOf(func(js.Value, []js.Value) interface{} {
+	off := js.FuncOf(func(js.Value, []js.Value) any {
 		if pointerMoveOn {
 			dom.Doc.Call("removeEventListener", "pointermove", pointerMoveFunc)
 			pointerMoveOn = false

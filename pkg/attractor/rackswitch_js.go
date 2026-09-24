@@ -37,7 +37,7 @@ func switchControls() []controlspec.ControlInfo {
 	els := dom.Doc.Call("querySelectorAll", "input[type=checkbox]")
 	n := els.Get("length").Int()
 	out := make([]controlspec.ControlInfo, 0, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		el := els.Index(i)
 		id := el.Get("id").String()
 		if id == "" {
@@ -185,7 +185,7 @@ func wireSwitch(id string, set func(bool)) {
 	if !el.Truthy() {
 		return
 	}
-	el.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	el.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
 		set(el.Get("checked").Bool())
 		return nil
 	}))

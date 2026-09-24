@@ -23,7 +23,7 @@ func xfRun(sig audiosrc.TestSignal, windows, n int, system func(ref, meas []floa
 	src.FillMono(total)
 	ref := make([]float32, n)
 	meas := make([]float32, n)
-	for w := 0; w < windows; w++ {
+	for w := range windows {
 		copy(ref, total[w*n+n:(w+1)*n+n])
 		system(ref, meas)
 		a.Add(ref, meas, TransferWindowKind)
@@ -112,7 +112,7 @@ func TestADelayIsRecoveredFromThePhaseSlope(t *testing.T) {
 		var a TransferAccum
 		ref := make([]float32, n)
 		meas := make([]float32, n)
-		for w := 0; w < windows; w++ {
+		for w := range windows {
 			base := w*n + n
 			copy(ref, stream[base:base+n])
 			copy(meas, stream[base-samples:base-samples+n])
@@ -143,7 +143,7 @@ func TestIndependentSignalsHaveNoCoherence(t *testing.T) {
 	var a TransferAccum
 	l := make([]float32, n)
 	rr := make([]float32, n)
-	for w := 0; w < windows; w++ {
+	for range windows {
 		left.Fill(l, rr) // the "wide" stimulus is two independent streams
 		a.Add(l, rr, TransferWindowKind)
 	}
@@ -201,7 +201,7 @@ func TestASingleWindowIsRefused(t *testing.T) {
 	var a TransferAccum
 	l := make([]float32, n)
 	rr := make([]float32, n)
-	for w := 0; w < TransferMinAvg-1; w++ {
+	for w := range TransferMinAvg - 1 {
 		src.Fill(l, rr)
 		if r := a.Result(xfSR, 6); r.OK {
 			t.Fatalf("a result was given after %d windows, and %d are needed", w, TransferMinAvg)
@@ -219,7 +219,7 @@ func TestABandWithNoInputIsMarkedByTheReferenceLevel(t *testing.T) {
 	const n, windows = 4096, 16
 	var a TransferAccum
 	ref := distTone(n, 1000, 0.5)
-	for w := 0; w < windows; w++ {
+	for range windows {
 		a.Add(ref, ref, TransferWindowKind)
 	}
 	r := a.Result(xfSR, 3)
@@ -254,7 +254,7 @@ func TestResetDropsTheAverage(t *testing.T) {
 	const n = 4096
 	var a TransferAccum
 	ref := distTone(n, 1000, 0.5)
-	for w := 0; w < TransferMinAvg+4; w++ {
+	for range TransferMinAvg + 4 {
 		a.Add(ref, ref, TransferWindowKind)
 	}
 	if r := a.Result(xfSR, 3); !r.OK {

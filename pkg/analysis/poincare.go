@@ -228,7 +228,7 @@ func poincareFracLinear(g0, g1 float64) float64 {
 // interval it was found in.
 func poincareFracHermite(g0, g1, m0, m1 float64) float64 {
 	s := poincareFracLinear(g0, g1)
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		g := hermite1(g0, m0, g1, m1, s)
 		d := hermite1d(g0, m0, g1, m1, s)
 		if d == 0 || math.IsNaN(d) || math.IsInf(d, 0) {
@@ -257,7 +257,7 @@ func poincareFracHermite(g0, g1, m0, m1 float64) float64 {
 // without velocities take poincareLerp instead; poincareCross picks.
 func poincarePoint(a, b, va, vb [3]float64, s float64) [3]float64 {
 	var out [3]float64
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		out[i] = hermite1(a[i], va[i], b[i], vb[i], s)
 	}
 	return out

@@ -157,7 +157,7 @@ func (g *graphicArtist) syncGAWaveSwitches(mode string) {
 		if *ptr >= 0.5 {
 			cb.Set("checked", true)
 		}
-		cb.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		cb.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			if cb.Get("checked").Bool() {
 				*ptr = 1
 			} else {

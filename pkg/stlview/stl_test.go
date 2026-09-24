@@ -70,9 +70,9 @@ func binarySTL(n uint32) []byte {
 	b := make([]byte, stlHeaderBytes)
 	copy(b, "a binary header")
 	b = binary.LittleEndian.AppendUint32(b, n)
-	for i := uint32(0); i < n; i++ {
+	for range n {
 		tri := make([]byte, 0, stlTriangleBytes)
-		for j := 0; j < 12; j++ { // normal + three vertices, three floats each
+		for j := range 12 { // normal + three vertices, three floats each
 			tri = binary.LittleEndian.AppendUint32(tri, math.Float32bits(float32(j)))
 		}
 		tri = append(tri, 0, 0) // attribute byte count

@@ -95,7 +95,7 @@ func (m Mesh) Bounds() (min, max V3) {
 	min, max = m.Tris[0].A, m.Tris[0].A
 	for _, t := range m.Tris {
 		for _, v := range [3]V3{t.A, t.B, t.C} {
-			for i := 0; i < 3; i++ {
+			for i := range 3 {
 				if v[i] < min[i] {
 					min[i] = v[i]
 				}
@@ -166,7 +166,7 @@ func WriteBinarySTL(w io.Writer, m Mesh, header string) error {
 	for _, t := range m.Tris {
 		n := t.Normal()
 		v := [4]V3{n, t.A, t.B, t.C}
-		for i := 0; i < 4; i++ {
+		for i := range 4 {
 			buf[i*3+0] = float32(v[i][0])
 			buf[i*3+1] = float32(v[i][1])
 			buf[i*3+2] = float32(v[i][2])

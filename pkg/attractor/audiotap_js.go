@@ -248,10 +248,7 @@ func (a *audioTap) readChan(cursor *int, dst []float32, c tapChan) int {
 	if a.w-*cursor > size {
 		*cursor = a.w - size
 	}
-	n := a.w - *cursor
-	if n > len(dst) {
-		n = len(dst)
-	}
+	n := min(a.w-*cursor, len(dst))
 	for i := 0; i < n; i++ {
 		j := (*cursor + i) % size
 		dst[i] = tapFold(c, a.ringL[j], a.ringR[j])
@@ -276,10 +273,7 @@ func (a *audioTap) readStereo(cursor *int, l, r []float32) int {
 	if a.w-*cursor > size {
 		*cursor = a.w - size
 	}
-	n := a.w - *cursor
-	if n > len(l) {
-		n = len(l)
-	}
+	n := min(a.w-*cursor, len(l))
 	for i := 0; i < n; i++ {
 		j := (*cursor + i) % size
 		l[i] = a.ringL[j]

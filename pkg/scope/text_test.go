@@ -58,7 +58,7 @@ func TestScopeTextSynthOneHarmonicIsEllipse(t *testing.T) {
 	// survives, so the curve's second differences stay tiny.
 	maxKink := 0.0
 	n := len(curve) / 2
-	for k := 0; k < n; k++ {
+	for k := range n {
 		a, b, c := (k-1+n)%n, k, (k+1)%n
 		ddx := curve[a*2] - 2*curve[b*2] + curve[c*2]
 		ddy := curve[a*2+1] - 2*curve[b*2+1] + curve[c*2+1]
@@ -77,7 +77,7 @@ func TestScopeTextSynthOneHarmonicIsEllipse(t *testing.T) {
 func distToStrokes(x, y float64, strokes []float64) float64 {
 	best := math.Inf(1)
 	n := len(strokes) / 2
-	for i := 0; i < n; i++ {
+	for i := range n {
 		j := (i + 1) % n
 		d := distToSeg(x, y, strokes[i*2], strokes[i*2+1], strokes[j*2], strokes[j*2+1])
 		if d < best {

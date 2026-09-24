@@ -48,7 +48,7 @@ func TestLocalStorageGoesThroughTheHelpers(t *testing.T) {
 			t.Fatalf("reading %s: %v", name, err)
 		}
 		checked++
-		for _, line := range strings.Split(string(src), "\n") {
+		for line := range strings.SplitSeq(string(src), "\n") {
 			code := line
 			if i := strings.Index(code, "//"); i >= 0 {
 				code = code[:i] // a comment may discuss localStorage; only code counts

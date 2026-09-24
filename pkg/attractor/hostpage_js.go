@@ -90,7 +90,7 @@ func wireHostWheel() bool {
 	if ZoomTargetSelector == "" {
 		return false
 	}
-	dom.Doc.Call("addEventListener", "wheel", dom.FuncOf(func(_ js.Value, args []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "wheel", dom.FuncOf(func(_ js.Value, args []js.Value) any {
 		if len(args) == 0 {
 			return nil
 		}
@@ -181,7 +181,7 @@ func initHostPage() {
 	// for navigation change the page's height without a resize, and hashchange
 	// is what those are.
 	for _, ev := range []string{"resize", "hashchange", "load"} {
-		js.Global().Call("addEventListener", ev, dom.FuncOf(func(js.Value, []js.Value) interface{} {
+		js.Global().Call("addEventListener", ev, dom.FuncOf(func(js.Value, []js.Value) any {
 			applyCenterOn()
 			return nil
 		}))

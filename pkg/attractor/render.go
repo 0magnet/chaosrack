@@ -182,7 +182,7 @@ func (r *rotationKnobs) update() {
 		return
 	}
 	angs := [3]float32{view.angleX, view.angleY, view.angleZ}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		deg := int(angs[i]*57.2957795+0.5) % 360
 		if deg == r.lastDeg[i] {
 			continue
@@ -707,7 +707,7 @@ func generateForMode(mode string) {
 // frame from.
 var tmark float32
 
-func renderLoop(this js.Value, args []js.Value) interface{} {
+func renderLoop(this js.Value, args []js.Value) any {
 	// The rack scope is its own instrument on its own canvas: it draws
 	// every frame regardless of what the model is doing, and before the
 	// early exits below, because a scope that goes dark when the MODEL

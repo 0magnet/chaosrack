@@ -117,7 +117,7 @@ func (t *twinTrail) tick(mode string) bool {
 	}
 	trace := func(s *[4]float64, out []float32) {
 		for i := 0; i < sim.steps; i++ {
-			for k := 0; k < sub; k++ {
+			for range sub {
 				twinStep(sys, s, dt)
 				if twinDiverged(*s) {
 					ic := dynamics.InitCondFor(mode)

@@ -146,7 +146,7 @@ func (r *ring) write(s []float32) { //nolint:unused // used by the js/wasm trans
 func (r *ring) latest(dst []float32) { //nolint:unused // used by the js/wasm transports; invisible to the host pass
 	size := len(r.buf)
 	n := len(dst)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		idx := r.writeTotal - n + i
 		if idx < 0 {
 			dst[i] = 0
@@ -164,11 +164,8 @@ func (r *ring) drain(dst []float32) int { //nolint:unused // used by the js/wasm
 	if r.writeTotal-r.readTotal > size {
 		r.readTotal = r.writeTotal - size
 	}
-	n := r.writeTotal - r.readTotal
-	if n > len(dst) {
-		n = len(dst)
-	}
-	for i := 0; i < n; i++ {
+	n := min(r.writeTotal-r.readTotal, len(dst))
+	for i := range n {
 		dst[i] = r.buf[(r.readTotal+i)%size]
 	}
 	r.readTotal += n

@@ -159,7 +159,7 @@ func (r *rhythmSection) updateLamps(p rhythm.Pattern, now, dur float64) {
 
 // rhythmScheduleStep places whatever plays on this step onto the audio clock.
 func rhythmScheduleStep(p rhythm.Pattern, step int, t float64) {
-	for v := 0; v < rhythm.VoiceCount; v++ {
+	for v := range rhythm.VoiceCount {
 		if rhythm.Hit(p, v, step) {
 			rhy.voice(v, t)
 		}
@@ -366,7 +366,7 @@ func (r *rhythmSection) wireRhythmModule() {
 		tab.Set("className", "rhythm-tab")
 		tab.Call("setAttribute", "data-rp", name)
 		tab.Set("textContent", name)
-		tab.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		tab.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			r.setRhythmPreset(name)
 			// Pressing a tab starts the section, as it did on the organ: the
 			// tabs WERE the start control there. Run stays the way to stop it.
@@ -380,13 +380,13 @@ func (r *rhythmSection) wireRhythmModule() {
 	}
 	// The select is what a permalink writes to; the tabs follow it.
 	sel.Set("value", r.preset)
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		r.setRhythmPreset(sel.Get("value").String())
 		return nil
 	}))
 
 	if run := dom.Doc.Call("getElementById", "rhythm-run"); run.Truthy() {
-		run.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		run.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			r.setRhythmRunning(run.Get("checked").Bool())
 			return nil
 		}))

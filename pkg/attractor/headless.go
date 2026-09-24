@@ -167,12 +167,12 @@ func BoundsMid(pts [][3]float64) [3]float64 {
 	}
 	mn, mx := pts[0], pts[0]
 	for _, p := range pts {
-		for a := 0; a < 3; a++ {
+		for a := range 3 {
 			mn[a] = math.Min(mn[a], p[a])
 			mx[a] = math.Max(mx[a], p[a])
 		}
 	}
-	for a := 0; a < 3; a++ {
+	for a := range 3 {
 		mid[a] = (mn[a] + mx[a]) / 2
 	}
 	return mid
@@ -224,7 +224,7 @@ func Extent(pts [][3]float64) (dx, dy, dz float64) {
 	}
 	mn, mx := pts[0], pts[0]
 	for _, p := range pts {
-		for a := 0; a < 3; a++ {
+		for a := range 3 {
 			if p[a] < mn[a] {
 				mn[a] = p[a]
 			}
@@ -254,7 +254,7 @@ func Centered(pts [][3]float64) [][3]float64 {
 	}
 	mn, mx := pts[0], pts[0]
 	for _, p := range pts {
-		for a := 0; a < 3; a++ {
+		for a := range 3 {
 			if p[a] < mn[a] {
 				mn[a] = p[a]
 			}
@@ -264,7 +264,7 @@ func Centered(pts [][3]float64) [][3]float64 {
 		}
 	}
 	var mid [3]float64
-	for a := 0; a < 3; a++ {
+	for a := range 3 {
 		mid[a] = (mn[a] + mx[a]) / 2
 	}
 	out := make([][3]float64, len(pts))

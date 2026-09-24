@@ -20,7 +20,6 @@ func init() {
 	// The classics all share one loop, keyed by the flow registry.
 	for _, k := range []string{"lorenz", "rossler", "chua", "aizawa", "sprott",
 		"thomas", "halvorsen", "chen", "dadras", "burkeshaw"} {
-		k := k
 		registerGenerate(k, func() { generateClassic(k) })
 	}
 	registerGenerate("lissajou", liss.generateLissajou)

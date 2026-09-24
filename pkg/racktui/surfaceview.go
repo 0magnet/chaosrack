@@ -64,10 +64,7 @@ func ctlsAcross(slots, slotCols int) int {
 		slots = 1
 	}
 	inner := slots*slotCols - panelPad*2 - 2 // less the border
-	n := inner / (knobCols + 1)
-	if n < 1 {
-		n = 1
-	}
+	n := max(inner/(knobCols+1), 1)
 	return n
 }
 
@@ -208,7 +205,7 @@ func drawOneControl(p Painter, v racksurface.View, x, y int, c Control, sel bool
 		if sy < 0 || sy >= v.H {
 			continue
 		}
-		for rx := 0; rx < knobCols; rx++ {
+		for rx := range knobCols {
 			sx := x + rx - v.X
 			if sx < 0 || sx >= v.W {
 				continue

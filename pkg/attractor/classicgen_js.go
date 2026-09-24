@@ -20,7 +20,7 @@ func generateClassic(mode string) {
 	sub := effSubSteps(sim.speedSteps, sim.steps, frameBudgetCompiled)
 	for i := 0; i < sim.steps; i++ {
 		dt := *dtp * sim.speedScale
-		for s := 0; s < sub; s++ {
+		for range sub {
 			dx, dy, dz := deriv(sim.x, sim.y, sim.z)
 			sim.x, sim.y, sim.z = sim.x+dt*dx, sim.y+dt*dy, sim.z+dt*dz
 			sim.checkDiverged()

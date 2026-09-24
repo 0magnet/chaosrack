@@ -71,7 +71,7 @@ func TestTrailIndicesDoNotWrapAround(t *testing.T) {
 func TestCenteredPutsTheBoxOnTheOrigin(t *testing.T) {
 	pts := [][3]float64{{10, 20, 30}, {20, 40, 60}}
 	got := Centered(pts)
-	for a := 0; a < 3; a++ {
+	for a := range 3 {
 		if got[0][a] != -got[1][a] {
 			t.Errorf("axis %d: %v and %v are not symmetric about 0", a, got[0][a], got[1][a])
 		}

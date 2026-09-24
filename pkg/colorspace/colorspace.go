@@ -23,7 +23,7 @@ func FromHSV(h, s, v float32) [3]float32 {
 	fract := func(x float32) float32 { return x - float32(math.Floor(float64(x))) }
 	k := [3]float32{0, 2.0 / 3.0, 1.0 / 3.0}
 	var out [3]float32
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		p := float32(math.Abs(float64(fract(h+k[i])*6 - 3)))
 		out[i] = v * (1 + s*(clamp01(p-1)-1))
 	}

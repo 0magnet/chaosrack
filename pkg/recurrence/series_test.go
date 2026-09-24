@@ -24,7 +24,7 @@ func rqaAt(rr, det, lam float64) RQAResult {
 func TestTheSeriesIsInTimeOrderAcrossTheWrap(t *testing.T) {
 	var s RQASeries
 	const n = 3 * RQASeriesLen
-	for i := 0; i < n; i++ {
+	for i := range n {
 		// A ramp, so any rotation or reversal shows up as a value out of place
 		// rather than as a plausible-looking wiggle.
 		v := float64(i) / float64(n)
@@ -54,14 +54,14 @@ func TestTheSeriesIsInTimeOrderAcrossTheWrap(t *testing.T) {
 func TestAPartlyFilledSeriesIsRightAligned(t *testing.T) {
 	var s RQASeries
 	const have = 10
-	for i := 0; i < have; i++ {
+	for i := range have {
 		s.Push(float64(i)*RQASamplePeriodMs, rqaAt(0.5, 0.5, 0.5))
 	}
 	dst := make([]RQASample, RQASeriesLen)
 	if got := s.Snapshot(dst); got != have {
 		t.Fatalf("snapshot reports %d real slots after %d pushes", got, have)
 	}
-	for i := 0; i < RQASeriesLen-have; i++ {
+	for i := range RQASeriesLen - have {
 		if dst[i].OK {
 			t.Fatalf("column %d is a reading; the unfilled part of the chart must be empty", i)
 		}
@@ -124,7 +124,7 @@ func TestFrameJitterDoesNotPunchHolesInTheChart(t *testing.T) {
 // spend a loop proving that by writing thousands of empty slots.
 func TestAStallLongerThanTheRingEmptiesIt(t *testing.T) {
 	var s RQASeries
-	for i := 0; i < RQASeriesLen; i++ {
+	for i := range RQASeriesLen {
 		s.Push(float64(i)*RQASamplePeriodMs, rqaAt(0.02, 0.9, 0.5))
 	}
 	before := s.w
@@ -137,7 +137,7 @@ func TestAStallLongerThanTheRingEmptiesIt(t *testing.T) {
 	if n := s.Snapshot(dst); n != RQASeriesLen {
 		t.Fatalf("snapshot reports %d slots", n)
 	}
-	for i := 0; i < RQASeriesLen-1; i++ {
+	for i := range RQASeriesLen - 1 {
 		if dst[i].OK {
 			t.Fatalf("column %d survived a stall longer than the ring", i)
 		}
@@ -153,7 +153,7 @@ func TestAStallLongerThanTheRingEmptiesIt(t *testing.T) {
 // the chart is good for is watching what your own ε change did.
 func TestAMeasurementChangeIsASeamAndNotAReset(t *testing.T) {
 	var s RQASeries
-	for i := 0; i < 20; i++ {
+	for i := range 20 {
 		s.Push(float64(i)*RQASamplePeriodMs, rqaAt(0.02, 0.9, 0.5))
 	}
 	s.Break(20 * RQASamplePeriodMs)
@@ -167,7 +167,7 @@ func TestAMeasurementChangeIsASeamAndNotAReset(t *testing.T) {
 	// Counted from the newest: 4 readings at the new setting, one seam, 20 at
 	// the old one — all of them still there.
 	last := RQASeriesLen - 1
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		if !dst[last-i].OK {
 			t.Fatalf("column %d back is empty; only the seam itself is", i)
 		}
@@ -288,7 +288,7 @@ func TestTheHistoryIsAboutFortySecondsOfWallClock(t *testing.T) {
 // panes are labeled with.
 func TestEveryTraceIsLabeled(t *testing.T) {
 	seen := map[string]bool{}
-	for tr := RQATrace(0); tr < RQATraceCount; tr++ {
+	for tr := range RQATraceCount {
 		s := tr.String()
 		if s == "" {
 			t.Errorf("trace %d has no label", tr)

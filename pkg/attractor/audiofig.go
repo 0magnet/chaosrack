@@ -2,6 +2,7 @@ package attractor
 
 import (
 	"math"
+	"slices"
 
 	"github.com/0magnet/chaosrack/pkg/takens"
 )
@@ -20,12 +21,7 @@ var AudioModels = []string{"takens", "stereo", "polar", "xy"}
 
 // IsAudioModel reports whether a model is drawn from a signal.
 func IsAudioModel(key string) bool {
-	for _, k := range AudioModels {
-		if k == key {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(AudioModels, key)
 }
 
 // AudioOptions are the page's knobs for an embedding.
@@ -145,7 +141,7 @@ func AudioFigure(key string, l, r []float32, end int, o AudioOptions) (Figure, b
 		i := m / sm
 		f := float32(m%sm) / float32(sm)
 		var v [3]float32
-		for c := 0; c < 3; c++ {
+		for c := range 3 {
 			p0, p1, p2, p3 := at(c, i-1), at(c, i), at(c, i+1), at(c, i+2)
 			v[c] = 0.5 * (2*p1 + (-p0+p2)*f +
 				(2*p0-5*p1+4*p2-p3)*f*f +

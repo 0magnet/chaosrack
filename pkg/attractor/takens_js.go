@@ -187,7 +187,7 @@ func (t *takensMode) generateTakens() {
 			if n <= 0 {
 				break
 			}
-			for i := 0; i < n; i++ {
+			for i := range n {
 				t.ring[t.w%len(t.ring)] = t.scratch[i]
 				t.w++
 			}
@@ -197,10 +197,7 @@ func (t *takensMode) generateTakens() {
 			}
 		}
 	}
-	avail := t.w
-	if avail > len(t.ring) {
-		avail = len(t.ring)
-	}
+	avail := min(t.w, len(t.ring))
 	nv := takensVerts(n)
 	if avail < span+1 {
 		t.fitGain = 0 // camera was fitted to silence — refit on real data
@@ -236,7 +233,7 @@ func (t *takensMode) generateTakens() {
 	invN := float32(1) / float32(nv-1)
 	vertices := sim.vertBuf[:nv*4]
 	sm := takensSmooth()
-	for m := 0; m < nv; m++ {
+	for m := range nv {
 		i := m / sm
 		f := float32(m%sm) / float32(sm)
 		j := m * 4
@@ -346,10 +343,7 @@ func (t *takensMode) autoDue() bool {
 	if t.tau != takens.TauDef && t.tau != t.autoSet {
 		return false
 	}
-	avail := t.w
-	if avail > len(t.ring) {
-		avail = len(t.ring)
-	}
+	avail := min(t.w, len(t.ring))
 	return avail >= takensEstMax
 }
 
@@ -367,10 +361,7 @@ func (t *takensMode) armAutoMeasure() { t.autoDone = false }
 // the float64 series the estimators take. Returns nil when there is not enough
 // audio to measure — the ring is empty until the mode has been running.
 func (t *takensMode) estWindow() []float64 {
-	avail := t.w
-	if avail > len(t.ring) {
-		avail = len(t.ring)
-	}
+	avail := min(t.w, len(t.ring))
 	if avail > takensEstMax {
 		avail = takensEstMax
 	}
@@ -508,7 +499,7 @@ func (t *takensMode) appendTakensEstimate(grid js.Value) {
 	btn.Set("className", "rst")
 	btn.Set("textContent", "↻")
 	btn.Set("title", "Measure the embedding from the audio in the buffer and set τ from it. Once, on demand — this mode deliberately does not re-tune itself per frame, because a knob that moves with the music makes the figure move with it too.")
-	btn.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	btn.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		t.measure()
 		return nil
 	}))

@@ -337,17 +337,17 @@ func (pe *permalinkState) startPermalinkSync() {
 
 	pe.lastPermaHash = pe.serializeState()
 
-	dom.Doc.Call("addEventListener", "input", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "input", dom.FuncOf(func(js.Value, []js.Value) any {
 		pe.dirty = true
 		return nil
 	}), true)
-	dom.Doc.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
 		pe.dirty = true
 		return nil
 	}), true)
 
 	ticks := 0
-	js.Global().Call("setInterval", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	js.Global().Call("setInterval", dom.FuncOf(func(js.Value, []js.Value) any {
 		ticks++
 		if pe.dirty || ticks%permaFullCheck == 0 {
 			pe.dirty = false
@@ -370,7 +370,7 @@ func (pe *permalinkState) startPermalinkSync() {
 	//
 	// No loop is possible: the app writes its own hash with replaceState, which
 	// does not fire this event, and the comparison below ignores it anyway.
-	js.Global().Call("addEventListener", "hashchange", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	js.Global().Call("addEventListener", "hashchange", dom.FuncOf(func(js.Value, []js.Value) any {
 		h := strings.TrimPrefix(js.Global().Get("location").Get("hash").String(), "#")
 		if h == "" || h == pe.lastPermaHash {
 			return nil
@@ -514,7 +514,7 @@ func applyRot(val string) {
 		return
 	}
 	var a [3]float32
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		v, err := strconv.ParseFloat(f[i], 32)
 		if err != nil {
 			return
@@ -658,7 +658,7 @@ func (pe *permalinkState) applyStateFrom(h string) {
 	if dragVal != "" {
 		if q := strings.Split(dragVal, ","); len(q) == 4 {
 			f := [4]float32{}
-			for i := 0; i < 4; i++ {
+			for i := range 4 {
 				v, _ := strconv.ParseFloat(q[i], 32) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 				f[i] = float32(v)
 			}

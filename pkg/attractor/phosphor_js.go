@@ -14,10 +14,7 @@ import (
 // phColorCSS converts a phosphor's 0..1 emission color to a CSS rgb() string.
 func phColorCSS(r, g, b float64) string {
 	cl := func(x float64) int {
-		v := int(x*255 + 0.5)
-		if v < 0 {
-			v = 0
-		}
+		v := max(int(x*255+0.5), 0)
 		if v > 255 {
 			v = 255
 		}
@@ -68,7 +65,7 @@ func addPhosphorTraces(stack, sel js.Value) {
 		st.Set("background", "linear-gradient(to right,"+col+","+col+" "+strconv.FormatFloat(hold, 'f', 0, 64)+"%,transparent)")
 		st.Set("box-shadow", "0 0 5px "+col)
 		idx := i
-		s.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		s.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			sel.Set("selectedIndex", idx)
 			sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 			return nil

@@ -30,12 +30,9 @@ import "github.com/0magnet/chaosrack/pkg/racksurface"
 // result is an index into the surface; the Key on each item is how a caller
 // finds its own module again.
 func RackItemsFrom(keys, cats []string, slots, rows []int) []racksurface.Item {
-	n := len(keys)
-	if len(slots) < n {
-		n = len(slots)
-	}
+	n := min(len(slots), len(keys))
 	items := make([]packItem, 0, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		it := packItem{
 			Key:     keys[i],
 			Title:   keys[i],

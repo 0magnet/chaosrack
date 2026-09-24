@@ -33,7 +33,7 @@ func TestEnvelopeKeepsTheSignalsExtremes(t *testing.T) {
 		t.Fatalf("filled %d columns, want 480", cols)
 	}
 	lo, hi := float32(math.Inf(1)), float32(math.Inf(-1))
-	for c := 0; c < cols; c++ {
+	for c := range cols {
 		if dst[c*2] > dst[c*2+1] {
 			t.Fatalf("column %d has min %v above max %v", c, dst[c*2], dst[c*2+1])
 		}
@@ -50,7 +50,7 @@ func TestEnvelopeKeepsTheSignalsExtremes(t *testing.T) {
 	// And every column must be a band, not a line: a signal cycling many
 	// times inside one column has to fill it.
 	flat := 0
-	for c := 0; c < cols; c++ {
+	for c := range cols {
 		if dst[c*2+1]-dst[c*2] < 1.5 {
 			flat++
 		}

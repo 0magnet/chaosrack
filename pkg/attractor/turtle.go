@@ -313,7 +313,7 @@ func (tu *turtleMode) generateTurtle() {
 		if !run.paused {
 			t.body.step(t, t.pts[base:])
 		}
-		for i := 0; i < n; i++ {
+		for i := range n {
 			x, y, z := t.body.place(t, t.pts[base+i])
 			d := i * 4
 			sim.vertBuf[d], sim.vertBuf[d+1], sim.vertBuf[d+2], sim.vertBuf[d+3] = x, y, z, t.tint[base+i]
@@ -323,7 +323,7 @@ func (tu *turtleMode) generateTurtle() {
 	}
 	t.body.placed = false // dropped again next time, from wherever it is standing
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		p := t.pts[base+i]
 		d := i * 4
 		// pisano's Y grows downward, matching a terminal; here up is up.
@@ -465,7 +465,7 @@ func (t *turtleWalk) trailLen() int {
 // advance walks n terms and drops whatever has aged out of the trail.
 func (t *turtleWalk) advance(n int) {
 	const inv = 1.0 / float32(turtlePalette)
-	for i := 0; i < n; i++ {
+	for range n {
 		var to pisano.Pt3
 		var idx int
 		switch {
@@ -679,7 +679,7 @@ func (tu *turtleMode) cycle() {
 		next = 1
 	}
 	knob.Set("value", next)
-	knob.Call("dispatchEvent", js.Global().Get("Event").New("input", map[string]interface{}{"bubbles": true}))
+	knob.Call("dispatchEvent", js.Global().Get("Event").New("input", map[string]any{"bubbles": true}))
 }
 
 // turtleModMax is the MOD knob's top, kept beside the knob definition it has to

@@ -397,7 +397,7 @@ func (pa *panelLayout) initDockResize() {
 	if !pa.resizeHandle.Truthy() {
 		return
 	}
-	pa.resizeHandle.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	pa.resizeHandle.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		a[0].Call("preventDefault")
 		pa.resizing = true
 		return nil
@@ -408,7 +408,7 @@ func (pa *panelLayout) initDockResize() {
 		dl.Get("style").Set("cursor", "grab")
 		dl.Get("style").Set("touchAction", "none")
 		dl.Set("title", "DOCK — drag this label to resize the panel; the arrow buttons choose the dock edge or floating mode")
-		dl.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		dl.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			a[0].Call("preventDefault")
 			a[0].Call("stopPropagation")
 			pa.resizing = true
@@ -445,7 +445,7 @@ func (pa *panelLayout) initDockResize() {
 		pa.dockSizeW = clampDock(pa.dockSizeW, grip, winW())
 		pa.applyDock(pa.dockEdge)
 	})
-	dom.Doc.Call("addEventListener", "pointerup", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "pointerup", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		if pa.resizing {
 			pa.resizing = false
 			// Settle exactly, now that the once-a-frame path is done with, and
@@ -458,7 +458,7 @@ func (pa *panelLayout) initDockResize() {
 	// Keep the bar on the panel's edge as its content height changes
 	// (audio-mod rows, section collapse, mode switches, window resize).
 	if ro := js.Global().Get("ResizeObserver"); ro.Truthy() {
-		obs := ro.New(dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		obs := ro.New(dom.FuncOf(func(this js.Value, a []js.Value) any {
 			pa.positionResizeHandle()
 			return nil
 		}))
@@ -466,7 +466,7 @@ func (pa *panelLayout) initDockResize() {
 			obs.Call("observe", p)
 		}
 	}
-	js.Global().Call("addEventListener", "resize", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	js.Global().Call("addEventListener", "resize", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		if pa.dockEdge == "float" {
 			reclampPanelWindow() // a saved position must not strand it off-screen
 		}
@@ -480,7 +480,7 @@ func (pa *panelLayout) wireDockButtons() {
 	for _, e := range []string{"top", "bottom", "left", "right", "float", "footer"} {
 		edge := e
 		if b := dom.Doc.Call("getElementById", "dock-"+e); b.Truthy() {
-			b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) any {
 				pa.applyDock(edge)
 				return nil
 			}))

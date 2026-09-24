@@ -141,7 +141,7 @@ func captureSheet(c *cdp.Client, mode string) {
 	}
 	// Rows 1..3: 2-color / 3-color / hue sweep × source X/Y/Z/trail.
 	for ri, gc := range []int{2, 3, 4} {
-		for gs := 0; gs < 4; gs++ {
+		for gs := range 4 {
 			setKnobs(gc, gs)
 			if img, err := c.Screenshot(); err == nil {
 				place(ri+1, gs, img)
@@ -191,13 +191,13 @@ func cropTo(img image.Image, r image.Rectangle) image.Image {
 func scaleBox(src image.Image, w, h int) *image.RGBA {
 	sb := src.Bounds()
 	out := image.NewRGBA(image.Rect(0, 0, w, h))
-	for y := 0; y < h; y++ {
+	for y := range h {
 		sy0 := sb.Min.Y + y*sb.Dy()/h
 		sy1 := sb.Min.Y + (y+1)*sb.Dy()/h
 		if sy1 <= sy0 {
 			sy1 = sy0 + 1
 		}
-		for x := 0; x < w; x++ {
+		for x := range w {
 			sx0 := sb.Min.X + x*sb.Dx()/w
 			sx1 := sb.Min.X + (x+1)*sb.Dx()/w
 			if sx1 <= sx0 {

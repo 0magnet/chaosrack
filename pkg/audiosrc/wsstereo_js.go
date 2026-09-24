@@ -79,7 +79,7 @@ func deinterleave(src []float32, mode MonoMode) (l, r, mono []float32) {
 	l = make([]float32, n)
 	r = make([]float32, n)
 	mono = make([]float32, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		l[i] = src[2*i]
 		r[i] = src[2*i+1]
 		mono[i] = mode.fold(l[i], r[i])

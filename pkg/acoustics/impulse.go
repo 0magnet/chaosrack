@@ -61,7 +61,7 @@ func ImpulseResponse(ref, meas []float32, epsilon float64) []float64 {
 		return nil
 	}
 	var meanPow float64
-	for i := 0; i < half; i++ {
+	for i := range half {
 		meanPow += xr[i]*xr[i] + xi[i]*xi[i]
 	}
 	meanPow /= float64(half)
@@ -74,7 +74,7 @@ func ImpulseResponse(ref, meas []float32, epsilon float64) []float64 {
 	eps := epsilon * meanPow
 	hr := make([]float64, half)
 	hi := make([]float64, half)
-	for i := 0; i < half; i++ {
+	for i := range half {
 		den := xr[i]*xr[i] + xi[i]*xi[i] + eps
 		// Y · conj(X) / (|X|² + ε)
 		hr[i] = (yr[i]*xr[i] + yi[i]*xi[i]) / den
@@ -239,22 +239,16 @@ func CSD(ir []float64, sampleRate int, slices int, sliceMS float64, fftLen int,
 		return nil
 	}
 	peak, _ := IRPeak(ir)
-	step := int(sliceMS / 1000 * float64(sampleRate))
-	if step < 1 {
-		step = 1
-	}
+	step := max(int(sliceMS/1000*float64(sampleRate)), 1)
 	buf := make([]float32, fftLen)
 	out := make([]CSDSlice, 0, slices)
 	// The rise is a raised cosine over a tenth of the window, which is long
 	// enough to have no step in it and short enough not to hide the very decay
 	// being measured.
-	rise := fftLen / 10
-	if rise < 1 {
-		rise = 1
-	}
+	rise := max(fftLen/10, 1)
 	loEdge, hiEdge := logBandEdges(freqs)
 	best := math.Inf(-1)
-	for s := 0; s < slices; s++ {
+	for s := range slices {
 		start := peak + s*step
 		if start >= len(ir) {
 			break

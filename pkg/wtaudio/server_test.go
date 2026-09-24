@@ -12,7 +12,7 @@ func newTestServer(t *testing.T, addr string) *Server {
 		Addr:       addr,
 		Capture:    func(*http.Request, func([]float32) error) (func(), error) { return func() {}, nil },
 		SampleRate: 24000,
-		Logf:       func(string, ...interface{}) {},
+		Logf:       func(string, ...any) {},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -49,7 +49,7 @@ func TestInfoJSONCarriesWhatTheBrowserNeeds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var got map[string]interface{}
+	var got map[string]any
 	if err := json.Unmarshal(b, &got); err != nil {
 		t.Fatal(err)
 	}

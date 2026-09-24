@@ -111,10 +111,7 @@ func Trajectory(mode string, o TrajectoryOptions) [][3]float64 {
 		}
 	}
 
-	total := int(o.Duration / dt)
-	if total < 2 {
-		total = 2
-	}
+	total := max(int(o.Duration/dt), 2)
 	// Round the stride UP, or MaxPoints is not a maximum: flooring lets a
 	// trace of 11000 steps capped at 4000 take every 2nd step and return
 	// 5500, which is how one attractor came out half again as heavy as the
@@ -124,7 +121,7 @@ func Trajectory(mode string, o TrajectoryOptions) [][3]float64 {
 		every = (total + o.MaxPoints - 1) / o.MaxPoints
 	}
 	out := make([][3]float64, 0, total/every+1)
-	for i := 0; i < total; i++ {
+	for i := range total {
 		step()
 		if diverged(x, y, z) {
 			break
@@ -176,17 +173,14 @@ func trajectory4(s FlowSys4, mode string, o TrajectoryOptions) [][3]float64 {
 			return nil
 		}
 	}
-	total := int(o.Duration / dt)
-	if total < 2 {
-		total = 2
-	}
+	total := max(int(o.Duration/dt), 2)
 	every := 1
 	if total > o.MaxPoints {
 		every = (total + o.MaxPoints - 1) / o.MaxPoints
 	}
 	out := make([][3]float64, 0, total/every+1)
 	sc := float64(s.Scale)
-	for i := 0; i < total; i++ {
+	for i := range total {
 		step()
 		if diverged(st[0], st[1], st[2]) {
 			break
@@ -223,7 +217,7 @@ func RK4x4(f Deriv4, dt float64, s [4]float64) [4]float64 {
 	k3 := eval(add(s, k2, dt/2))
 	k4 := eval(add(s, k3, dt))
 	var out [4]float64
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		out[i] = s[i] + dt/6*(k1[i]+2*k2[i]+2*k3[i]+k4[i])
 	}
 	return out

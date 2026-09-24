@@ -65,7 +65,7 @@ func (r *recordModule) wireRecordModule() {
 	wireRecTransport()
 	wireStillButton()
 
-	tick := dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	tick := dom.FuncOf(func(js.Value, []js.Value) any {
 		r.drawRecPreview()
 		return nil
 	})
@@ -84,7 +84,7 @@ func recSetSwitch(id string, on bool) {
 		return
 	}
 	sw.Set("checked", on)
-	ev := js.Global().Get("Event").New("change", map[string]interface{}{"bubbles": true})
+	ev := js.Global().Get("Event").New("change", map[string]any{"bubbles": true})
 	sw.Call("dispatchEvent", ev)
 }
 
@@ -98,13 +98,13 @@ func recSwitchOn(id string) bool {
 // will try — and Stop only ever stops.
 func wireRecTransport() {
 	if b := dom.Doc.Call("getElementById", "rec-btn"); b.Truthy() {
-		b.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+		b.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) any {
 			recSetSwitch("rec-sw", !recSwitchOn("rec-sw"))
 			return nil
 		}))
 	}
 	if b := dom.Doc.Call("getElementById", "rec-stop-btn"); b.Truthy() {
-		b.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+		b.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) any {
 			recSetSwitch("rec-sw", false)
 			return nil
 		}))
@@ -373,7 +373,7 @@ func wireStillButton() {
 	if !btn.Truthy() {
 		return
 	}
-	btn.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	btn.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) any {
 		takeStill()
 		return nil
 	}))
@@ -399,7 +399,7 @@ func takeStill() {
 
 	recmod.noteTakeStart() // so the still reports a duration of zero, not the last take's
 	var cb js.Func
-	cb = js.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+	cb = js.FuncOf(func(_ js.Value, a []js.Value) any {
 		defer cb.Release()
 		if len(a) == 0 || !a[0].Truthy() {
 			return nil

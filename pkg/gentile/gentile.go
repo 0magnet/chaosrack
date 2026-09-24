@@ -189,7 +189,7 @@ func fillColumns(gens []Spec, idx []int, maxCols int) [][]int {
 		dp[i] = cost{inf, inf, inf}
 	}
 	dp[0] = cost{}
-	for mask := 0; mask < full; mask++ {
+	for mask := range full {
 		if dp[mask].waste == inf {
 			continue
 		}
@@ -214,7 +214,7 @@ func fillColumns(gens []Spec, idx []int, maxCols int) [][]int {
 			}
 			blank := cols*modRows - sum
 			left := 0
-			for k := 0; k < n; k++ {
+			for k := range n {
 				if next&(1<<k) == 0 {
 					left++
 				}

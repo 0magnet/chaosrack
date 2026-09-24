@@ -8,6 +8,7 @@ import (
 	"image/color"
 	"image/draw"
 	"math"
+	"slices"
 
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
 	"golang.org/x/image/font"
@@ -37,12 +38,7 @@ import (
 var plotModels = []string{"spectrogram", "rta", "xfer", "recurrence"}
 
 func isPlotModel(key string) bool {
-	for _, k := range plotModels {
-		if k == key {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(plotModels, key)
 }
 
 // plotFrame draws analyzer key over the first end samples of l and r.
@@ -218,7 +214,7 @@ func plotSpectrogram(x []float32, total int) (*image.RGBA, error) {
 	cols := (len(x)-size)/step + 1
 	src := image.NewRGBA(image.Rect(0, 0, cols, rows))
 	frame := make([]float32, size)
-	for i := 0; i < cols; i++ {
+	for i := range cols {
 		copy(frame, x[i*step:i*step+size])
 		col := spectcol.Column(spectcol.Mags(frame), rows)
 		for y := 0; y < rows && len(col) >= rows*4; y++ {
@@ -227,14 +223,11 @@ func plotSpectrogram(x []float32, total int) (*image.RGBA, error) {
 	}
 	c := newCanvas(fmt.Sprintf("spectrogram  %d-point FFT, %d-sample hop, %.2f s", size, step, float64(len(x))/renderSampleRate))
 	// Nearest-neighbor into the plot area.
-	full := (total - size) / step
-	if full < cols {
-		full = cols
-	}
+	full := max((total-size)/step, cols)
 	w, h := c.x1-c.x0, c.y1-c.y0
-	for py := 0; py < h; py++ {
+	for py := range h {
 		sy := py * rows / h
-		for px := 0; px < w; px++ {
+		for px := range w {
 			sx := px * full / w
 			if sx >= cols {
 				break
@@ -378,7 +371,7 @@ func plotRecurrence(x []float32) (*image.RGBA, error) {
 	series := make([]float64, recN)
 	for i := range series {
 		var s float32
-		for k := 0; k < stride; k++ {
+		for k := range stride {
 			s += x[base+i*stride+k]
 		}
 		series[i] = float64(s) / float64(stride)
@@ -389,9 +382,9 @@ func plotRecurrence(x []float32) (*image.RGBA, error) {
 	c := newCanvas(fmt.Sprintf("recurrence  %d ms, eps %.2f   RR %.3f  DET %.3f  LAM %.3f", recWin, recEps, q.RR, q.DET, q.LAM))
 	side := min(c.x1-c.x0, c.y1-c.y0)
 	ox, oy := c.x0+(c.x1-c.x0-side)/2, c.y0
-	for py := 0; py < side; py++ {
+	for py := range side {
 		j := (side - 1 - py) * recN / side // time runs up, as on the page
-		for px := 0; px < side; px++ {
+		for px := range side {
 			if mat[j*recN+px*recN/side] != 0 {
 				c.img.SetRGBA(ox+px, oy+py, plotTrace)
 			}
@@ -434,7 +427,7 @@ func waterfallFigure(l, r []float32) (attractor.Figure, error) {
 		if len(x) < wfallFFT {
 			return attractor.Figure{}, fmt.Errorf("waterfall needs at least %d samples", wfallFFT)
 		}
-		for i := 0; i < wfallSlices; i++ {
+		for i := range wfallSlices {
 			// Newest first, like the page: the front line is now.
 			end := len(x) - (len(x)-wfallFFT)*i/(wfallSlices-1)
 			db := make([]float64, len(freqs))

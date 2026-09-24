@@ -165,7 +165,7 @@ func (k *keyboard) buildKeysBed() {
 		k.keyEls[midi] = el
 		el.Call("setAttribute", "data-midi", strconv.Itoa(midi))
 
-		el.Call("addEventListener", "mousedown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		el.Call("addEventListener", "mousedown", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			e := a[0]
 			e.Call("preventDefault")
 			e.Call("stopPropagation")
@@ -173,7 +173,7 @@ func (k *keyboard) buildKeysBed() {
 			k.noteOn(midi)
 			return nil
 		}))
-		el.Call("addEventListener", "mouseenter", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		el.Call("addEventListener", "mouseenter", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			e := a[0]
 			// Glissando: only while a bed drag is in progress with the button
 			// still down (buttons==0 heals a mouseup we never saw).
@@ -192,14 +192,14 @@ func (k *keyboard) buildKeysBed() {
 			}
 			return nil
 		}))
-		el.Call("addEventListener", "touchstart", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		el.Call("addEventListener", "touchstart", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			a[0].Call("preventDefault")
 			k.touchNote = midi
 			k.noteOn(midi)
 			return nil
 		}))
 		for _, ev := range []string{"touchend", "touchcancel"} {
-			el.Call("addEventListener", ev, dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+			el.Call("addEventListener", ev, dom.FuncOf(func(this js.Value, a []js.Value) any {
 				// The touch may have slid to another key (glissando below) —
 				// release whichever note the finger ended on, and the origin.
 				k.noteOff(midi)
@@ -215,7 +215,7 @@ func (k *keyboard) buildKeysBed() {
 	bed.Call("appendChild", blacks)
 	// Touch glissando: touchmove keeps targeting the starting key, so track
 	// the finger with elementFromPoint and slide the sounding note.
-	bed.Call("addEventListener", "touchmove", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	bed.Call("addEventListener", "touchmove", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		e := a[0]
 		e.Call("preventDefault")
 		t := e.Get("touches").Index(0)
@@ -438,7 +438,7 @@ func (k *keyboard) wireKeysModule() {
 
 	// Computer keyboard: two tracker rows anchored near the range's middle
 	// C. Only while the module is shown, never while typing in a field.
-	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		e := a[0]
 		if !k.on || e.Get("repeat").Bool() ||
 			e.Get("ctrlKey").Bool() || e.Get("metaKey").Bool() || e.Get("altKey").Bool() {
@@ -465,7 +465,7 @@ func (k *keyboard) wireKeysModule() {
 		k.noteOn(midi)
 		return nil
 	}))
-	dom.Doc.Call("addEventListener", "keyup", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "keyup", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		if off, ok := kbOffset[strings.ToLower(a[0].Get("key").String())]; ok {
 			k.noteOff(k.anchor + off)
 		}
@@ -473,14 +473,14 @@ func (k *keyboard) wireKeysModule() {
 	}))
 	// Release the mouse-drag note anywhere; silence everything on tab blur
 	// so no note can stick when focus leaves.
-	dom.Doc.Call("addEventListener", "mouseup", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	dom.Doc.Call("addEventListener", "mouseup", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		if k.mouseNote >= 0 {
 			k.noteOff(k.mouseNote)
 			k.mouseNote = -1
 		}
 		return nil
 	}))
-	js.Global().Call("addEventListener", "blur", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	js.Global().Call("addEventListener", "blur", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		k.allOff()
 		return nil
 	}))

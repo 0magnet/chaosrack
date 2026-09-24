@@ -205,7 +205,7 @@ func buildScopeNameDial(id string, names []string, at int, set func(int)) {
 	addSelectorLabels(stack, ring, sel).Set("id", id+"-ring")
 	holder.Call("appendChild", stack)
 
-	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
 		if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
 			set(n)
 			setScopeReadout(id, names, n)
@@ -250,7 +250,7 @@ func wireScopeRange(id string, set func(float64)) {
 			set(v)
 		}
 	}
-	el.Call("addEventListener", "input", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+	el.Call("addEventListener", "input", dom.FuncOf(func(js.Value, []js.Value) any {
 		read()
 		return nil
 	}))
@@ -395,7 +395,7 @@ func (ra *rackScope) drawScopeTrace(w, h float64) {
 			seg = seg[:span]
 		}
 		n := scope.TraceEnvelope(ra.envBuf, seg, cols)
-		for c := 0; c < n; c++ {
+		for c := range n {
 			frac := float64(c) / float64(n-1)
 			x := float32(cx + (frac-0.5+ra.ui.hpos/float64(scope.DivX))*w)
 			// The lowest sample in the column is the lowest point on the

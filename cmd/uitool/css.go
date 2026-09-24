@@ -76,7 +76,7 @@ func runCSS() {
 	bang := strings.Count(txt, "!important")
 	props := map[string]map[string]int{} // selector -> property -> times set
 	for _, r := range rules {
-		for _, s := range strings.Split(r.sel, ",") {
+		for s := range strings.SplitSeq(r.sel, ",") {
 			s = strings.TrimSpace(s)
 			if s == "" {
 				continue
@@ -84,7 +84,7 @@ func runCSS() {
 			if props[s] == nil {
 				props[s] = map[string]int{}
 			}
-			for _, d := range strings.Split(r.body, ";") {
+			for d := range strings.SplitSeq(r.body, ";") {
 				if i := strings.Index(d, ":"); i > 0 {
 					props[s][strings.TrimSpace(d[:i])]++
 				}
@@ -135,7 +135,7 @@ func runCSS() {
 	seen := map[string]bool{}
 	var sels []string
 	for _, r := range rules {
-		for _, s := range strings.Split(r.sel, ",") {
+		for s := range strings.SplitSeq(r.sel, ",") {
 			s = strings.TrimSpace(s)
 			// A pseudo-element is invisible to querySelectorAll, so it can
 			// never be judged this way and must not be reported as dead.
@@ -209,11 +209,4 @@ func runCSS() {
 			fmt.Println("  ", s)
 		}
 	}
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }

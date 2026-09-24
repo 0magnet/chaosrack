@@ -135,7 +135,7 @@ func rtaAveraged(sig audiosrc.TestSignal, windows, n, sr, b int) ([]RTABand, []f
 	src := audiosrc.NewTestSource(sig, sr)
 	src.SetLevel(1)
 	buf := make([]float32, n)
-	for w := 0; w < windows; w++ {
+	for range windows {
 		src.FillMono(buf)
 		RTALevels(meters.ComputeFFTMagsKind(buf, RTAWindowKind), n, sr, bands, RTAWindowKind, one)
 		for i, db := range one {
@@ -240,7 +240,7 @@ func TestPeakHoldTakesMaximaAtOnceAndDecays(t *testing.T) {
 	if peaks[0] != -11 {
 		t.Errorf("after one decay step the hold is %.1f, want -11", peaks[0])
 	}
-	for i := 0; i < 1000; i++ {
+	for range 1000 {
 		RTAPeakHold(peaks, []float64{-200}, 1)
 	}
 	if peaks[0] != RTAFloorDB {

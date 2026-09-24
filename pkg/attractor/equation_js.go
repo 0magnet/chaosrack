@@ -88,7 +88,7 @@ func (c *customEquation) parseCustom() {
 	seen := map[string]bool{}
 	var order []string
 	maxRPN := 1
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		c.expr[i] = nil
 		if i == 3 && !c.flavorW() {
 			continue
@@ -185,7 +185,7 @@ func (c *customEquation) registerCustomFlow() {
 	stack := make([]float64, len(c.stack))
 	pv := [4][]float64{}
 	pp := c.paramPtrs(exprs[:])
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		if exprs[i] != nil {
 			pv[i] = make([]float64, len(exprs[i].Params))
 		}
@@ -236,7 +236,7 @@ func (c *customEquation) generateCustom() {
 	// Per-frame snapshot of each expression's parameter values (aligned to
 	// its own Params slice), so the hot loop does no map lookups.
 	var pv [4][]float64
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		if c.expr[i] == nil {
 			continue
 		}
@@ -254,7 +254,7 @@ func (c *customEquation) generateCustom() {
 	invN := float32(1) / float32(sim.steps-1)
 	sub := effSubSteps(sim.speedSteps, sim.steps, frameBudgetInterpreted)
 	for i := 0; i < sim.steps; i++ {
-		for s := 0; s < sub; s++ {
+		for range sub {
 			vars := [5]float64{float64(sim.x), float64(sim.y), float64(sim.z), float64(c.w), c.t}
 			dx := c.expr[0].Eval(vars, pv[0], stack)
 			dy := 0.0
@@ -308,7 +308,7 @@ func (c *customEquation) buildCustomPanel(paramsDiv js.Value) {
 		what := map[bool]string{true: "the NEXT value of " + c.eqLabel(i)[:1], false: c.eqLabel(i)}[c.iterate]
 		inp.Set("title", what+" — expression in "+vars+"; any other letters become knobbed parameters (e / pi / tau are constants)")
 		// Commit on change (blur/Enter) to avoid rebuilding mid-keystroke.
-		inp.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		inp.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			c.eq[i] = inp.Get("value").String()
 			resetAttractorState()
 			buildParamPanel("custom") // reparse + refresh param knobs
@@ -342,7 +342,7 @@ func (c *customEquation) buildCustomPanel(paramsDiv js.Value) {
 		chk.Set("className", "sw")
 		chk.Set("title", title)
 		chk.Set("checked", on)
-		chk.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		chk.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			set(chk.Get("checked").Bool())
 			// Reparse before the rebuild: the panel's mode-scoped syncs run
 			// ahead of buildCustomPanel, and IsMap("custom") has to be true by
@@ -489,7 +489,7 @@ func (c *customEquation) serializeCustom(b *strings.Builder) {
 func (c *customEquation) applyCustomEq(val string) {
 	parts := strings.Split(val, ";")
 	c.useW = len(parts) >= 4
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		if i < len(parts) {
 			c.eq[i] = jsDecodeURI(parts[i])
 		}

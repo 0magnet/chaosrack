@@ -294,10 +294,7 @@ func runPerformance(c *cdp.Client) {
 	fmt.Println("GO", time.Now().Unix())
 
 	end := start.Add(time.Duration(*demoDur) * time.Second)
-	nStreams := *demoMonkeys
-	if nStreams < 1 {
-		nStreams = 1
-	}
+	nStreams := max(*demoMonkeys, 1)
 	rngs := make([]*rand.Rand, nStreams)
 	for i := range rngs {
 		rngs[i] = rand.New(rand.NewSource(*demoSeed + int64(i)*7919)) //nolint:gosec // picking demo values and fake input; not a security decision

@@ -242,7 +242,7 @@ func blurb(desc string) string {
 
 func paragraphs(prose string) []string {
 	var out []string
-	for _, p := range strings.Split(prose, "\n\n") {
+	for p := range strings.SplitSeq(prose, "\n\n") {
 		if p = strings.TrimSpace(p); p != "" {
 			out = append(out, p)
 		}

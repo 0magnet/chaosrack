@@ -106,7 +106,7 @@ func (so *sonifier) sample(x, y, z float32) (float64, float64) {
 
 // process is the stereo ScriptProcessor callback (runs in Go on the
 // main thread, so reading vertBuf/view.modelMat needs no synchronization).
-func (so *sonifier) process(_ js.Value, args []js.Value) interface{} {
+func (so *sonifier) process(_ js.Value, args []js.Value) any {
 	if !so.active {
 		return nil
 	}
@@ -170,7 +170,7 @@ func (so *sonifier) process(_ js.Value, args []js.Value) interface{} {
 		dt := sys.Dt()
 		stepRate := so.hz / 440.0
 		const lim = 1e5
-		for i := 0; i < frames; i++ {
+		for i := range frames {
 			so.acc += stepRate
 			for so.acc >= 1 {
 				so.acc--
@@ -203,7 +203,7 @@ func (so *sonifier) process(_ js.Value, args []js.Value) interface{} {
 		// curves). Geometry modes never reach here (the
 		// isAttractorMode gate above): they don't write vertBuf.
 		inc := so.hz / sr
-		for i := 0; i < frames; i++ {
+		for i := range frames {
 			so.phase += inc
 			if so.phase >= 1 {
 				so.phase -= float64(int(so.phase))

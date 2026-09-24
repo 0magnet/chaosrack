@@ -269,8 +269,7 @@ browser. render and models draw models to image files without a browser.`,
 		mountHostAgent(r1, ln)
 		mountAudio(r1)
 
-		wg.Add(1)
-		go func() {
+		wg.Go(func() {
 			fmt.Printf("listening on http://127.0.0.1:%d using gin router\n", webPort)
 			fmt.Printf("  Go WASM:     http://127.0.0.1:%d/index.html\n", webPort)
 			if hasTinygo {
@@ -279,8 +278,7 @@ browser. render and models draw models to image files without a browser.`,
 			if err := r1.RunListener(ln); err != nil {
 				panic(err)
 			}
-			wg.Done()
-		}()
+		})
 		wg.Wait()
 	},
 }

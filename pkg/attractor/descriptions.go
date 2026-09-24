@@ -1,6 +1,10 @@
 package attractor
 
-import "github.com/0magnet/chaosrack/pkg/dynamics"
+import (
+	"maps"
+
+	"github.com/0magnet/chaosrack/pkg/dynamics"
+)
 
 // The mode descriptions — the prose the info overlay shows and the README's
 // model reference is generated from. Untagged, next to the mode registry in
@@ -422,7 +426,7 @@ func init() {
 // because that is the whole difference: there is no dt and no trajectory
 // between iterates, only where the point lands next.
 func init() {
-	for k, v := range map[string]string{
+	maps.Copy(attractorDescriptions, map[string]string{
 		"henon": "Hénon map (M. Hénon, \"A two-dimensional mapping with a strange attractor\", 1976) —" +
 			" the example that showed a strange attractor needs neither a flow nor three dimensions," +
 			" only a stretch and a fold. Zoom in anywhere on a filament and it resolves into more" +
@@ -464,9 +468,7 @@ func init() {
 			" with islands of stability stranded in it; near K ≈ 0.9716 the last curve spanning the" +
 			" phase space goes, and orbits can wander in momentum without bound.\n\n" +
 			"p' = p + K·sin θ\nθ' = θ + p'   (both mod 2π)",
-	} {
-		attractorDescriptions[k] = v
-	}
+	})
 }
 
 // The terminal is a mode whose content is another program's rendering, which

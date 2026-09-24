@@ -84,10 +84,7 @@ func Bar(offset, window, total, track int) (pos, length int) {
 	if window >= total || total <= 0 || track <= 0 {
 		return 0, 0
 	}
-	length = window * track / total
-	if length < 1 {
-		length = 1
-	}
+	length = max(window*track/total, 1)
 	// The thumb's travel is the track minus the thumb, so the far end of the
 	// surface puts the thumb against the far end of the track. Dividing by
 	// total instead leaves a gap there that reads as "there is more", and
