@@ -1,4 +1,4 @@
-package attractor
+package analysis
 
 import "math"
 
@@ -37,31 +37,31 @@ import "math"
 // thresholds on that, and the readout uses the same ones, because two verdicts
 // that disagreed about the same system would be worse than one.
 
-// lyapLiveD0 is the probe pair's separation, in state-space units — the
+// LiveD0 is the probe pair's separation, in state-space units — the
 // live twin of lyapDefaultD0 and the same value for the same reason: far
 // enough above float64 round-off at attractor coordinates to be a real
 // distance, far enough below the attractor's own extent that the pair stays
 // in the linear regime instead of folding around the attractor before the
 // interval is up.
-const lyapLiveD0 = 1e-4
+const LiveD0 = 1e-4
 
-// lyapLiveInterval is the model time between renormalizations, matching the
+// liveInterval is the model time between renormalizations, matching the
 // offline estimator's one time unit. It is a compromise the estimator has
 // already made: long enough that the separation grows measurably above
 // round-off, short enough that it has not saturated across the attractor,
 // where the log would report the attractor's diameter and not a rate.
-const lyapLiveInterval = 1.0
+const liveInterval = 1.0
 
-// lyapLiveWarmup is the model time discarded before anything is accumulated.
+// liveWarmup is the model time discarded before anything is accumulated.
 // Two transients have to die in it, not one: the trajectory's approach ONTO
 // the attractor, and the separation direction's convergence onto the most
 // unstable one. The second is what makes this the LARGEST exponent rather
 // than some exponent, and it only happens while the pair is being
 // renormalized — so the warmup renormalizes and throws the logs away, it does
 // not simply wait.
-const lyapLiveWarmup = 60.0
+const liveWarmup = 60.0
 
-// lyapLiveMinTime is how much model time must be averaged before the readout
+// LiveMinTime is how much model time must be averaged before the readout
 // shows a number at all. Below it the answer is mostly transient, and a
 // confident "+0.31" that will be "+0.90" a second later is worse than "--":
 // it is wrong in the one direction the readout exists to be right in, since
@@ -71,23 +71,23 @@ const lyapLiveWarmup = 60.0
 // (TestLiveLyapunovLorenzConvergence measures it). At the default speed the
 // probe covers that in well under two seconds, so the cost of the honesty is
 // a dash for about a second after a mode change.
-const lyapLiveMinTime = 300.0
+const LiveMinTime = 300.0
 
-// liveLyapunov accumulates ln(separation/d0) against the model time it took,
-// one renormalization interval at a time. Zero value is not usable — reset()
+// LiveLyapunov accumulates ln(separation/d0) against the model time it took,
+// one renormalization interval at a time. Zero value is not usable — Reset
 // installs the warmup.
-type liveLyapunov struct {
+type LiveLyapunov struct {
 	sum  float64 // Σ ln(d/d0) over completed, post-warmup intervals
 	time float64 // model time those intervals span
 	tau  float64 // model time since the last renormalization
 	warm float64 // model time still to discard
 }
 
-// reset restarts the accumulation, e.g. because the mode or a coefficient
+// Reset restarts the accumulation, e.g. because the mode or a coefficient
 // changed and the exponent now belongs to a different system.
-func (l *liveLyapunov) reset() { *l = liveLyapunov{warm: lyapLiveWarmup} }
+func (l *LiveLyapunov) Reset() { *l = LiveLyapunov{warm: liveWarmup} }
 
-// advance records that dt of model time has passed with the pair currently d
+// Advance records that dt of model time has passed with the pair currently d
 // apart, and folds the interval in once a full one has elapsed. It returns the
 // factor the caller must scale the separation VECTOR by to pull the copy back
 // to d0 — the direction is kept, which is the whole trick — and whether a
@@ -96,12 +96,12 @@ func (l *liveLyapunov) reset() { *l = liveLyapunov{warm: lyapLiveWarmup} }
 // The caller passes d rather than the two states so that this stays testable
 // without a flow, a stepper or a GL context: the arithmetic that can be got
 // wrong is here, and integrating is the caller's business.
-func (l *liveLyapunov) advance(dt, d float64) (scale float64, renormed bool) {
+func (l *LiveLyapunov) Advance(dt, d float64) (scale float64, renormed bool) {
 	if !(dt > 0) {
 		return 1, false
 	}
 	l.tau += dt
-	if l.tau < lyapLiveInterval {
+	if l.tau < liveInterval {
 		return 1, false
 	}
 	tau := l.tau
@@ -114,24 +114,24 @@ func (l *liveLyapunov) advance(dt, d float64) (scale float64, renormed bool) {
 	}
 	if l.warm > 0 {
 		l.warm -= tau
-		return lyapLiveD0 / d, true
+		return LiveD0 / d, true
 	}
-	l.sum += math.Log(d / lyapLiveD0)
+	l.sum += math.Log(d / LiveD0)
 	l.time += tau
-	return lyapLiveD0 / d, true
+	return LiveD0 / d, true
 }
 
-// lambda is the exponent per unit of model time, and whether enough model time
+// Lambda is the exponent per unit of model time, and whether enough model time
 // has accumulated for it to mean anything.
 //
 // Σlog / Σtime, not the mean of the per-interval rates. The two agree only
 // when every interval is the same length, and they are not: an interval ends
-// on the first step that crosses lyapLiveInterval, so it overshoots by up to
+// on the first step that crosses liveInterval, so it overshoots by up to
 // one dt, and a mode's dt moves with its own knob and with Speed. Averaging
 // rates would then weight a short interval the same as a long one, which is
 // the wrong quotient — the exponent is a total growth over a total time.
-func (l *liveLyapunov) lambda() (float64, bool) {
-	if l.time < lyapLiveMinTime {
+func (l *LiveLyapunov) Lambda() (float64, bool) {
+	if l.time < LiveMinTime {
 		return 0, false
 	}
 	lam := l.sum / l.time
