@@ -144,7 +144,7 @@ func PointIndices(n, hi int) []uint16 {
 		hi = 65536
 	}
 	out := make([]uint16, 0, hi*2)
-	for i := 0; i < hi; i++ {
+	for i := range hi {
 		out = append(out, uint16(i), uint16(i)) //nolint:gosec // clamped to 65536 above
 	}
 	return out

@@ -116,7 +116,7 @@ func (t *twinTrail) tick(mode string) bool {
 		t.buf = make([]float32, cap(sim.vertBuf))
 	}
 	trace := func(s *[4]float64, out []float32) {
-		for i := 0; i < sim.steps; i++ {
+		for i := range sim.steps {
 			for range sub {
 				twinStep(sys, s, dt)
 				if twinDiverged(*s) {

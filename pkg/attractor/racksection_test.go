@@ -513,7 +513,7 @@ func TestABayHoldingAHeadOpensWithOne(t *testing.T) {
 	for i, c := range cats {
 		sec := categorySection(c)
 		items = append(items, packItem{Slots: 2, Section: sec, Lead: true})
-		for n := 0; n < i%5; n++ {
+		for n := range i % 5 {
 			items = append(items, packItem{Slots: 1 + n%3, Section: sec})
 		}
 	}

@@ -432,7 +432,7 @@ func (rr *fvfRing) drain(dst []float32) int {
 		rr.r = rr.w - n
 	}
 	c := min(rr.w-rr.r, len(dst))
-	for i := 0; i < c; i++ {
+	for i := range c {
 		dst[i] = rr.buf[(rr.r+i)%n]
 	}
 	rr.r += c
@@ -523,7 +523,7 @@ func (w *wobbulator) audioProcess(_ js.Value, args []js.Value) any {
 	if src := aud.activeAudioSource(); src != nil && src.Ready() {
 		got = src.Drain(w.drainScratch[:m])
 	}
-	for i := 0; i < m; i++ {
+	for i := range m {
 		var x float32
 		if i < got {
 			x = w.drainScratch[i]
@@ -541,7 +541,7 @@ func (w *wobbulator) audioProcess(_ js.Value, args []js.Value) any {
 		return w.drainScratch[k-1]
 	}
 	step := float64(m) / float64(n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		pos := float64(i) * step
 		j := int(pos)
 		frac := float32(pos - float64(j))

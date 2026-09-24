@@ -85,8 +85,8 @@ func Knob(size int, frac float64, detents int, p Palette) *image.RGBA {
 
 	c := float64(size-1) / 2
 	r := c * 0.72
-	for y := 0; y < size; y++ {
-		for x := 0; x < size; x++ {
+	for y := range size {
+		for x := range size {
 			dx, dy := float64(x)-c, float64(y)-c
 			d := math.Hypot(dx, dy)
 			if d > r {
@@ -134,8 +134,8 @@ func Lamp(size int, on bool, p Palette) *image.RGBA {
 	if on {
 		body = p.LEDOn
 	}
-	for y := 0; y < size; y++ {
-		for x := 0; x < size; x++ {
+	for y := range size {
+		for x := range size {
 			d := math.Hypot(float64(x)-c, float64(y)-c)
 			if d > r {
 				continue

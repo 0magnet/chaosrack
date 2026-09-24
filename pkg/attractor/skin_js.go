@@ -201,7 +201,7 @@ func cubeSkinMesh(cubeVerts []float32, _ []uint16) ([]float32, []uint16) {
 	// filled triangles abc+bcd don't tile the quad: the corner triangle at
 	// vertex d is left uncovered (an unskinned triangular hole on every face).
 	idx := make([]uint16, 0, (n/4)*6)
-	for f := 0; f < n/4; f++ {
+	for f := range n / 4 {
 		b := uint16(f * 4)
 		idx = append(idx, b, b+1, b+2, b, b+2, b+3)
 	}

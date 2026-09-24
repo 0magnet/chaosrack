@@ -128,7 +128,7 @@ func runSpec() {
 
 	img := image.NewRGBA(image.Rect(0, 0, cols, rows))
 	frame := make([]float32, size)
-	for x := 0; x < cols; x++ {
+	for x := range cols {
 		copy(frame, samples[x*step:x*step+size])
 		col := spectcol.Column(spectcol.Mags(frame), rows)
 		if len(col) < rows*4 {
@@ -150,7 +150,7 @@ func runSpecDiff(spec string) {
 	if n, _ := fmt.Sscanf(spec, "%s", &a); n == 0 { //nolint:errcheck
 		os.Exit(2)
 	}
-	for i := 0; i < len(spec); i++ {
+	for i := range len(spec) {
 		if spec[i] == ',' {
 			a, b = spec[:i], spec[i+1:]
 			break
@@ -350,7 +350,7 @@ func readWAV(path string) ([]float32, int, error) {
 	out := make([]float32, frames)
 	for i := range frames {
 		var acc float64
-		for c := 0; c < channels; c++ {
+		for c := range channels {
 			s := int16(binary.LittleEndian.Uint16(data[(i*channels+c)*2:])) //nolint:gosec // PCM is signed
 			acc += float64(s) / 32768
 		}

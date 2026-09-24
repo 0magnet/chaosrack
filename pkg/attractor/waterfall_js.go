@@ -585,7 +585,7 @@ func (w *waterfall) draw() {
 		v[o+3] = float32(slice) / float32(max(n-1, 1))
 		o += 4
 	}
-	for s := 0; s < n; s++ {
+	for s := range n {
 		for b := 1; b < bins; b++ {
 			put(b-1, s)
 			put(b, s)

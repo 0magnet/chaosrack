@@ -131,7 +131,7 @@ func runMonkey() {
 	var log []string
 	var viols []violation
 
-	for step := 0; step < *steps; step++ {
+	for step := range *steps {
 		st := c.EvalJSON(controlsJS)
 		controls := toList(st["controls"])
 		knobs := toList(st["knobs"])

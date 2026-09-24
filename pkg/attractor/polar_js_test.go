@@ -244,7 +244,7 @@ func TestCatmullRomBulgesPastControlPointsOnTheSphere(t *testing.T) {
 	// thing for audio, where consecutive delay vectors reverse all the time.
 	p := [4][3]float32{{-1, 0, 0}, {1, 0, 0}, {1, 0, 0}, {-1, 0, 0}}
 	worst := 0.0
-	for i := 0; i <= 100; i++ {
+	for i := range 101 {
 		f := float32(i) / 100
 		var out [3]float32
 		for c := range 3 {

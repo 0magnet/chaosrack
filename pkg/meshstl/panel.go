@@ -309,7 +309,7 @@ func RackWithHandles(rows int, handles bool) Mesh {
 	inset := (w - rackspec.RowWidth()) / 2 // the frame either side of the row
 	bayH := 2*RailHeight + rackspec.PanelHeight3U
 
-	for r := 0; r < rows; r++ {
+	for r := range rows {
 		y := float64(r) * bayH
 
 		// Bottom and top rails, spanning the full 19 inches.

@@ -133,7 +133,7 @@ func (l *liveLyapunov) tick(mode string) {
 	if sys.Interpreted {
 		n = lyapLiveProbeInterpreted
 	}
-	for i := 0; i < n; i++ {
+	for range n {
 		step(&l.a)
 		step(&l.b)
 		if twinDiverged(l.a) || twinDiverged(l.b) {
