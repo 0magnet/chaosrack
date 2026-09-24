@@ -56,7 +56,7 @@ var (
 )
 
 func init() {
-	renderCmd.Flags().StringVar(&renderModel, "model", "", "which model to draw (see --list)")
+	renderCmd.Flags().StringVar(&renderModel, "model", "", "which model to draw (chaosrack models lists them)")
 	renderCmd.Flags().StringVarP(&renderOut, "out", "o", "", "file to write; .png or .svg by extension")
 	renderCmd.Flags().IntVar(&renderW, "width", 1000, "image width in pixels")
 	renderCmd.Flags().IntVar(&renderH, "height", 1000, "image height in pixels")
@@ -82,9 +82,15 @@ var modelsCmd = &cobra.Command{
 
 These are the models that can be computed without a browser: the flows, the
 discrete maps, the Lissajous figure, the polyhedra, and the sphere, torus,
-globe and magnetosphere wireframes. Models driven by live audio, and
-page-based models such as the terminal, the desk and the STL viewer, are not
-included because they need a browser.`,
+globe and magnetosphere wireframes.
+
+The models marked "--audio or --signal" are drawn from sound: the Takens,
+stereo and polar embeddings, the xy scope, the spectrogram, the RTA, the
+transfer function, the recurrence plot and the waterfall. render records them
+from this machine's audio, or draws them from a built-in test signal.
+
+Page-based models such as the terminal, the desk and the STL viewer are not
+listed, because they need a browser.`,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		labels := map[string][2]string{}
 		for _, g := range attractor.Catalog() {
@@ -95,15 +101,24 @@ included because they need a browser.`,
 			}
 		}
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		if _, err := fmt.Fprintln(w, "MODEL\tLABEL\tGROUP"); err != nil {
+		if _, err := fmt.Fprintln(w, "MODEL\tLABEL\tGROUP\tDRAWN FROM"); err != nil {
 			return err
 		}
-		for _, k := range drawableKeys() {
+		row := func(k, from string) error {
 			l := labels[k]
 			if l[0] == "" {
 				l = [2]string{k, "Attractors"}
 			}
-			if _, err := fmt.Fprintf(w, "%s\t%s\t%s\n", k, l[0], l[1]); err != nil {
+			_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", k, l[0], l[1], from)
+			return err
+		}
+		for _, k := range drawableKeys() {
+			if err := row(k, ""); err != nil {
+				return err
+			}
+		}
+		for _, k := range audioInputModels() {
+			if err := row(k, "--audio or --signal"); err != nil {
 				return err
 			}
 		}
@@ -113,14 +128,14 @@ included because they need a browser.`,
 
 var renderCmd = &cobra.Command{
 	Use:   "render",
-	Short: "draw a model to a PNG or SVG, without a browser",
+	Short: "draw a model to a PNG, SVG or GIF, without a browser",
 	Long: `Draw a model to an image file without a browser.
 
 The output format comes from the -o file extension:
 
   .png   a still image with the same depth shading and colors as the page
   .svg   a still image as a vector polyline, or an animation with --frames
-  .gif   an animation (requires --frames)
+  .gif   an animation (requires --frames, except for audio models)
 
 Without -o, render prints the number of points and the size of the result
 instead of writing a file.
@@ -141,9 +156,36 @@ Use chaosrack models to list the available models. Use --params to list the
 controls that --set can change, with their ranges. Values outside a control's
 range are rejected rather than clamped.
 
---check draws every model and reports any that produce nothing: a trajectory
-that diverges, or one that stays at a single point. It exits with an error if
-any fail.`,
+AUDIO MODELS
+
+The models that are drawn from sound need a signal. --audio SECONDS records
+that long from this machine's audio through PulseAudio or PipeWire, by
+default whatever is playing (--audio-source monitor). --signal NAME uses a
+built-in test signal instead, 2 seconds of it unless --audio says otherwise.
+
+  chaosrack render --model takens --audio 5 -o music.png
+  chaosrack render --model stereo --audio 10 -o music.gif
+  chaosrack render --model spectrogram --audio 10 -o spec.png
+  chaosrack render --model rta --signal pink -o rta.png
+  chaosrack render --model xfer --signal oop -o xfer.png
+
+- takens, stereo, polar and xy draw the last window of the signal as the page
+  does: 85 ms (43 ms for xy), or --window. takens and polar measure the delay
+  from the signal as the page does, unless --tau is given.
+- spectrogram, rta, xfer and recurrence are drawn as .png plots of the whole
+  signal. The transfer function runs from the left channel (reference) to
+  the right (measurement).
+- waterfall is a 3-D surface of the spectrum at even steps through the
+  signal. With --impulse it is instead the cumulative spectral decay from
+  the left channel to the right, as the page draws it after a sweep.
+- A .gif of an audio model plays back in real time: its frames step through
+  the signal, one per 1/--fps of a second, unless --frames is given. The
+  waterfall is the exception: it is one surface, animated with --frames and
+  --turn like the other 3-D models.
+
+--check draws every model that needs no signal and reports any that produce
+nothing: a trajectory that diverges, or one that stays at a single point. It
+exits with an error if any fail.`,
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		if renderParams {
 			return listParams()
@@ -156,6 +198,9 @@ any fail.`,
 		}
 		if renderModel == "" {
 			return fmt.Errorf("--model is required (chaosrack models lists them, --check tests them all)")
+		}
+		if isAudioInput(renderModel) {
+			return renderAudio(cmd)
 		}
 		fig, err := figureFor(renderModel)
 		if err != nil {

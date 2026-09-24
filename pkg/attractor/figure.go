@@ -124,12 +124,12 @@ func DrawFigure(f Figure, lo, hi int, o DrawOptions) *image.RGBA {
 	o = o.withDefaults()
 	img := image.NewRGBA(image.Rect(0, 0, o.Width, o.Height))
 	draw.Draw(img, img.Bounds(), &image.Uniform{o.Background}, image.Point{}, draw.Src)
-	v := Vertices(Centered(f.Points))
+	v, view := o.place(f.Points)
 	idx := f.Edges
 	if f.Kind == FigurePoints {
 		idx = PointIndices(len(f.Points), hi)
 	}
-	o.View.Render(img, v, idx, o.Gradient)
+	view.Render(img, v, idx, o.Gradient)
 	return img
 }
 
