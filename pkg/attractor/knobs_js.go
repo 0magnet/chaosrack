@@ -40,6 +40,7 @@ var kb struct {
 // fineRatio: the fine knob's step and drag sensitivity as a fraction of the
 // coarse step (0.1 = fine moves in tenths of a coarse step). Adjustable at
 // runtime via the "Fine ×" control; read live by drag and wheel.
+var fineRatio = 0.1
 
 // coarseRatio scales the coarse step / drag sensitivity of every param knob
 // (the "Step ×" control), read live so changes take effect without a rebuild.

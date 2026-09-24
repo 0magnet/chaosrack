@@ -14,6 +14,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/led"
 	"strconv"
 	"syscall/js"
 )
@@ -56,7 +57,7 @@ func midiHandle(this js.Value, args []js.Value) interface{} {
 			params := attractorParams[selectedMode]
 			idx := 0
 			for _, pd := range params {
-				if decimalsForStep(pd.Step) == 0 {
+				if led.StepDecimals(pd.Step) == 0 {
 					continue
 				}
 				idx++

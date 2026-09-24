@@ -7,6 +7,7 @@ import (
 	"math"
 	"syscall/js"
 
+	"github.com/0magnet/chaosrack/pkg/led"
 	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
@@ -98,18 +99,18 @@ func lufsTick(nowMs float64) {
 func showLoudness() {
 	set := func(key string, el js.Value, v float64, ok bool) {
 		if !ok || v <= meters.LoudnessFloor {
-			setLEDText(key, el, "  --.-")
+			readouts.Set(key, el, "  --.-")
 			return
 		}
-		setLEDText(key, el, formatLED(v, 3, 1, true))
+		readouts.Set(key, el, led.Format(v, 3, 1, true))
 	}
 	set("lufs-m", lufsMEl, lufsRes.Momentary, lufsRes.Momentary > meters.LoudnessFloor)
 	set("lufs-s", lufsSEl, lufsRes.ShortTerm, lufsRes.ShortTerm > meters.LoudnessFloor)
 	set("lufs-i", lufsIEl, lufsRes.Integrated, lufsRes.OK)
 	if lufsRes.OK {
-		setLEDText("lufs-lra", lufsLRAEl, formatLED(lufsRes.LRA, 3, 1, false))
+		readouts.Set("lufs-lra", lufsLRAEl, led.Format(lufsRes.LRA, 3, 1, false))
 	} else {
-		setLEDText("lufs-lra", lufsLRAEl, "  --.-")
+		readouts.Set("lufs-lra", lufsLRAEl, "  --.-")
 	}
 	set("lufs-tp", lufsTPEl, lufsRes.TruePeak, lufsRes.TruePeak > meters.LoudnessFloor)
 	// Through lufsDistanceToTarget rather than subtracting here: it is the
@@ -117,9 +118,9 @@ func showLoudness() {
 	// has not risen off the floor is not a distance from anything.
 	d := lufsDistanceToTarget(lufsRes.Integrated, float64(lufsTarget))
 	if lufsRes.OK && !math.IsNaN(d) {
-		setLEDText("lufs-d", lufsDl, formatLED(d, 3, 1, true))
+		readouts.Set("lufs-d", lufsDl, led.Format(d, 3, 1, true))
 	} else {
-		setLEDText("lufs-d", lufsDl, "  --.-")
+		readouts.Set("lufs-d", lufsDl, "  --.-")
 	}
 }
 

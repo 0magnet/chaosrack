@@ -84,7 +84,7 @@ func buildEnvModule() {
 	// duplicate for the two of them.
 	//
 	// LEDStep 10 rather than the Step of 1 is what keeps these reading whole
-	// milliseconds. ledDecimals works from step × fineRatio, so a step of 1
+	// milliseconds. led.Decimals works from step × fineRatio, so a step of 1
 	// asks for one decimal — right for a knob whose fine disc trims between
 	// steps, and noise on a value that is only ever a whole number of
 	// milliseconds. LEDStep is the field for saying so, and this preserves

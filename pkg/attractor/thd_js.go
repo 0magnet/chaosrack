@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"syscall/js"
 
+	"github.com/0magnet/chaosrack/pkg/led"
 	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
@@ -118,7 +119,7 @@ func thdTick(nowMs float64) {
 // that is no longer playing is the most misleading thing the module could show.
 func showDistortion() {
 	set := func(key string, el js.Value, s string) {
-		setLEDText(key, el, s)
+		readouts.Set(key, el, s)
 	}
 	if !thdRes.OK {
 		set("thd-thd", thdLED, "  --.---")
@@ -129,8 +130,8 @@ func showDistortion() {
 		set("thd-level", thdLevelLED, "  --.-")
 		return
 	}
-	set("thd-thd", thdLED, formatLED(meters.AsPercent(thdRes.THD), 2, 3, false))
-	set("thd-thdn", thdnLED, formatLED(meters.AsPercent(thdRes.THDN), 2, 3, false))
+	set("thd-thd", thdLED, led.Format(meters.AsPercent(thdRes.THD), 2, 3, false))
+	set("thd-thdn", thdnLED, led.Format(meters.AsPercent(thdRes.THDN), 2, 3, false))
 	// A SINAD of 999 is the sentinel for "nothing but the fundamental in the
 	// window", which a synthesized tone with no noise really does produce. It
 	// is not a number to print — an infinite SINAD is a claim no measurement
@@ -139,11 +140,11 @@ func showDistortion() {
 		set("thd-sinad", thdSinadLED, "  >99.9")
 		set("thd-enob", thdEnobLED, ">16.0")
 	} else {
-		set("thd-sinad", thdSinadLED, formatLED(thdRes.SINAD, 3, 1, false))
-		set("thd-enob", thdEnobLED, formatLED(thdRes.ENOB, 2, 2, false))
+		set("thd-sinad", thdSinadLED, led.Format(thdRes.SINAD, 3, 1, false))
+		set("thd-enob", thdEnobLED, led.Format(thdRes.ENOB, 2, 2, false))
 	}
-	set("thd-fund", thdFundLED, formatLED(thdRes.Fundamental, 5, 1, false))
-	set("thd-level", thdLevelLED, formatLED(20*math.Log10(math.Max(thdRes.Level, 1e-9)), 3, 1, true))
+	set("thd-fund", thdFundLED, led.Format(thdRes.Fundamental, 5, 1, false))
+	set("thd-level", thdLevelLED, led.Format(20*math.Log10(math.Max(thdRes.Level, 1e-9)), 3, 1, true))
 }
 
 // wireDistortionModule builds the two knobs and finds the readouts. Called once
