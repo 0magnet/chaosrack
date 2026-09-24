@@ -5,13 +5,13 @@ go 1.26.5
 require (
 	github.com/0magnet/audioprism-go v0.0.0-20260923100834-d4f750669db1
 	github.com/0magnet/calvin v0.0.0-20260915170035-09af7075474e
-	github.com/0magnet/desk v0.0.0-20260923150416-f34edc52f2ef
-	github.com/0magnet/desk/panes v0.0.0-20260923150416-f34edc52f2ef
-	github.com/0magnet/pisano v0.0.0-20260923100638-358b99037f97
+	github.com/0magnet/desk v0.0.0-20260923150657-2a7f55804f01
+	github.com/0magnet/desk/panes v0.0.0-20260923150657-2a7f55804f01
+	github.com/0magnet/pisano v0.0.0-20260923102342-ec397908300f
 	github.com/0magnet/rack-go v0.0.0-20260922163944-6ac30b77a4fd
 	github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a
-	github.com/0magnet/tuiwasm v0.0.0-20260923101027-829fc879b4df
-	github.com/0magnet/websh v0.0.0-20260923150652-0d1c84b4c3fc
+	github.com/0magnet/tuiwasm v0.0.0-20260924101441-aa75cd80d501
+	github.com/0magnet/websh v0.0.0-20260924101249-532bfb67c68a
 	github.com/0magnet/winbox-go v0.0.0-20260915183431-ca6572e4c323
 	github.com/0magnet/xterm-go v0.0.0-20260923132223-00c1a8e687cc
 	github.com/gdamore/tcell/v3 v3.5.0
@@ -22,6 +22,7 @@ require (
 	github.com/quic-go/webtransport-go v0.13.0
 	github.com/spf13/cobra v1.10.2
 	gitlab.com/russoj88/stl v1.0.2
+	golang.org/x/image v0.46.0
 	golang.org/x/net v0.59.0
 )
 
@@ -94,7 +95,6 @@ require (
 	go.mongodb.org/mongo-driver/v2 v2.9.1 // indirect
 	golang.org/x/arch v0.31.0 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
-	golang.org/x/image v0.46.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/term v0.46.0 // indirect
