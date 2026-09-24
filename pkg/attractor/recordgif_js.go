@@ -64,11 +64,17 @@ func gifScale(w, h float64) float64 {
 	return gifMaxDim / longest
 }
 
+// gifRecorder is a recording to GIF in progress.
+type gifRecorder struct {
+	recording bool
+	frames    []*image.RGBA
+	timer     js.Value
+	tickFn    js.Func
+}
+
+var gif gifRecorder
+
 var (
-	gifRecording bool
-	gifFrames    []*image.RGBA
-	gifTimer     js.Value
-	gifTickFn    js.Func
 
 	// recScratch is where a frame is drawn before it is read: the crop happens
 	// in the drawImage, so the pixels read back are already the region.
@@ -129,9 +135,9 @@ func ensureScratch(w, h float64) {
 }
 
 // startGIFRecording begins collecting frames.
-func startGIFRecording() {
+func (g *gifRecorder) startGIFRecording() {
 	canvas := modelCanvas()
-	if !canvas.Truthy() || gifRecording {
+	if !canvas.Truthy() || g.recording {
 		return
 	}
 	sx, sy, sw, sh := recRegionRect(canvas)
@@ -140,11 +146,11 @@ func startGIFRecording() {
 	k := gifScale(sw, sh)
 	dw, dh := float64(int(sw*k)), float64(int(sh*k))
 	ensureScratch(dw, dh)
-	gifFrames = gifFrames[:0]
-	gifRecording = true
+	g.frames = g.frames[:0]
+	g.recording = true
 
-	gifTickFn = dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-		if !gifRecording {
+	g.tickFn = dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		if !g.recording {
 			return nil
 		}
 		// Cleared to opaque black FIRST, every frame.
@@ -169,33 +175,33 @@ func startGIFRecording() {
 		if len(frame.Pix) >= n {
 			js.CopyBytesToGo(frame.Pix, js.Global().Get("Uint8Array").New(data.Get("buffer")))
 		}
-		gifFrames = append(gifFrames, frame)
-		if len(gifFrames) >= gifMaxFrames {
+		g.frames = append(g.frames, frame)
+		if len(g.frames) >= gifMaxFrames {
 			// Stop rather than drop: a clip that silently skips frames looks
 			// like the app stuttering.
-			stopGIFRecording()
+			g.stopGIFRecording()
 			if sw := dom.Doc.Call("getElementById", "rec-sw"); sw.Truthy() {
 				sw.Set("checked", false)
 			}
 		}
 		return nil
 	})
-	gifTimer = js.Global().Call("setInterval", gifTickFn, 1000/gifFPS)
+	g.timer = js.Global().Call("setInterval", g.tickFn, 1000/gifFPS)
 }
 
 // stopGIFRecording encodes what was collected and hands it to the browser as a
 // download.
-func stopGIFRecording() {
-	if !gifRecording {
+func (g *gifRecorder) stopGIFRecording() {
+	if !g.recording {
 		return
 	}
-	gifRecording = false
-	if gifTimer.Truthy() {
-		js.Global().Call("clearInterval", gifTimer)
-		gifTimer = js.Undefined()
+	g.recording = false
+	if g.timer.Truthy() {
+		js.Global().Call("clearInterval", g.timer)
+		g.timer = js.Undefined()
 	}
-	frames := gifFrames
-	gifFrames = nil
+	frames := g.frames
+	g.frames = nil
 	if len(frames) == 0 {
 		return
 	}
@@ -237,7 +243,7 @@ func saveBlob(blob js.Value, ext string) {
 	dom.Body.Call("appendChild", anchor)
 	anchor.Call("click")
 	anchor.Call("remove")
-	logTake(ext, blob.Get("size").Int())
+	recmod.logTake(ext, blob.Get("size").Int())
 
 	var revoke js.Func
 	revoke = js.FuncOf(func(js.Value, []js.Value) interface{} {

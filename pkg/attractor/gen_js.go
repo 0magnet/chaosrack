@@ -323,7 +323,7 @@ func buildGeneratorModule() {
 		// Out cell: dual concentric knob — outer ring = speaker channel (labeled),
 		// inner = waveform. Two dial rings: the sink labels (outer) and a ring of
 		// waveform glyphs (inner) that lights the selected wave.
-		ostk := stackKnobs(makeSelectorKnob(out), makeSelectorKnob(wave))
+		ostk := stackKnobs(selk.makeSelectorKnob(out), selk.makeSelectorKnob(wave))
 		addSelectorLabels(ostk, []string{"off", "L", "R", "L+R"}, out)
 		addSelectorWaveDial(ostk, wave, 38)
 		ostack.Call("appendChild", ostk)
@@ -343,8 +343,8 @@ func buildGeneratorModule() {
 			ID: id + "-freq", Label: "freq", Min: 0, Max: float64(genSemitones), Step: 1, Def: osc.freq,
 			LEDID: id + "-led", ResetID: "rst-" + id + "-freq",
 			Apply: func(v float64) {
-				fg().SetFreq(idx, freqFromKnob(v))
-				genAudioUpdate(idx)
+				aud.fg().SetFreq(idx, freqFromKnob(v))
+				gen.audioUpdate(idx)
 			},
 			SliderToVal: sonifyFreqFromSlider,
 			ValToSlider: sonifySliderFromFreq,
@@ -354,8 +354,8 @@ func buildGeneratorModule() {
 			ID: id + "-lvl", Label: "lvl", Min: 0, Max: 100, Step: 1, Def: osc.lvl,
 			LEDID: id + "-lvl-led", ResetID: "rst-" + id + "-lvl",
 			Apply: func(v float64) {
-				fg().SetAmp(idx, v/100)
-				genAudioUpdate(idx)
+				aud.fg().SetAmp(idx, v/100)
+				gen.audioUpdate(idx)
 			},
 		})
 		// The two rings go through the descriptor path for the same reason the
@@ -369,28 +369,28 @@ func buildGeneratorModule() {
 		adoptDescControl(ControlDesc{
 			ID: id + "-out", Label: "out", IsSelect: true, SelectDef: "off",
 			ResetID:     "rst-" + id + "-out",
-			SelectApply: func(string) { genAudioSync() },
+			SelectApply: func(string) { gen.audioSync() },
 		})
 		adoptDescControl(ControlDesc{
 			ID: id + "-wave", Label: "wave", IsSelect: true, SelectDef: "0",
 			ResetID: "rst-" + id + "-out",
 			SelectApply: func(v string) {
 				if w, err := strconv.Atoi(v); err == nil {
-					fg().SetWave(idx, w)
-					genAudioUpdate(idx)
+					aud.fg().SetWave(idx, w)
+					gen.audioUpdate(idx)
 				}
 			},
 		})
 		// Push HTML defaults into the FuncGen.
-		fg().SetFreq(idx, freqFromKnob(fgFloat(freq)))
-		fg().SetAmp(idx, fgFloat(lvl)/100)
+		aud.fg().SetFreq(idx, freqFromKnob(fgFloat(freq)))
+		aud.fg().SetAmp(idx, fgFloat(lvl)/100)
 	}
 }
 
 // genAudioSync starts the Web Audio graph if any oscillator is routed to a
 // channel (not "off"), stops it if none are, and otherwise just refreshes the
 // running nodes.
-func genAudioSync() {
+func (g *generator) audioSync() {
 	any := false
 	for _, osc := range genOscs {
 		id := osc.id
@@ -399,13 +399,13 @@ func genAudioSync() {
 		}
 	}
 	switch {
-	case any && !genRunning:
-		genAudioStart()
-	case !any && genRunning:
-		genAudioStop()
-	case genRunning:
+	case any && !g.running:
+		g.audioStart()
+	case !any && g.running:
+		g.audioStop()
+	case g.running:
 		for i := 0; i < 3; i++ {
-			genAudioUpdate(i)
+			g.audioUpdate(i)
 		}
 	}
 }
@@ -417,24 +417,27 @@ func fgFloat(el js.Value) float64 {
 
 // ── Web Audio output ──────────────────────────────────────────────────────
 
-var (
-	genCtx      js.Value
-	genOsc      [3]js.Value
-	genKind     [3]string // "osc" or "noise" — which node type genOsc[i] holds
-	genGain     [3]js.Value
-	genPan      [3]js.Value
-	genEnvGain  js.Value // Envelope module's master shaper (pans → env → out)
-	genNoiseBuf js.Value // shared 2-s LFSR noise loop
-	genRunning  bool
-)
+// generator is the signal generator's audio graph.
+type generator struct {
+	ctx      js.Value
+	osc      [3]js.Value
+	kind     [3]string // "osc" or "noise" — which node type genOsc[i] holds
+	gain     [3]js.Value
+	pan      [3]js.Value
+	envGain  js.Value // Envelope module's master shaper (pans → env → out)
+	noiseBuf js.Value // shared 2-s LFSR noise loop
+	running  bool
+}
+
+var gen generator
 
 // genNoiseBuffer builds (once) the shift-register noise loop the noise wave
 // plays through an AudioBufferSourceNode — the same 15-bit LFSR the FuncGen
 // analysis path steps, so what you hear is what the scope sees. The freq
 // knob maps to playbackRate, sweeping the noise from rumble to hiss.
-func genNoiseBuffer(ctx js.Value) js.Value {
-	if genNoiseBuf.Truthy() {
-		return genNoiseBuf
+func (g *generator) noiseBuffer(ctx js.Value) js.Value {
+	if g.noiseBuf.Truthy() {
+		return g.noiseBuf
 	}
 	sr := int(ctx.Get("sampleRate").Float())
 	buf := ctx.Call("createBuffer", 1, sr*2, sr)
@@ -449,108 +452,108 @@ func genNoiseBuffer(ctx js.Value) js.Value {
 		}
 		data.SetIndex(i, v)
 	}
-	genNoiseBuf = buf
+	g.noiseBuf = buf
 	return buf
 }
 
 // genEnsureNode makes genOsc[i] the right node type for the waveform —
 // OscillatorNode for the periodic waves, a looped AudioBufferSourceNode of
 // LFSR noise for wave 4 — replacing the node when the kind changes.
-func genEnsureNode(i int, noise bool) {
+func (g *generator) ensureNode(i int, noise bool) {
 	want := "osc"
 	if noise {
 		want = "noise"
 	}
-	if genKind[i] == want && genOsc[i].Truthy() {
+	if g.kind[i] == want && g.osc[i].Truthy() {
 		return
 	}
-	if genOsc[i].Truthy() {
-		genOsc[i].Call("stop")
-		genOsc[i].Call("disconnect")
+	if g.osc[i].Truthy() {
+		g.osc[i].Call("stop")
+		g.osc[i].Call("disconnect")
 	}
 	var node js.Value
 	if noise {
-		node = genCtx.Call("createBufferSource")
-		node.Set("buffer", genNoiseBuffer(genCtx))
+		node = g.ctx.Call("createBufferSource")
+		node.Set("buffer", g.noiseBuffer(g.ctx))
 		node.Set("loop", true)
 	} else {
-		node = genCtx.Call("createOscillator")
+		node = g.ctx.Call("createOscillator")
 	}
-	node.Call("connect", genGain[i])
+	node.Call("connect", g.gain[i])
 	node.Call("start")
-	genOsc[i], genKind[i] = node, want
+	g.osc[i], g.kind[i] = node, want
 }
 
 // genAudioStart builds the Web Audio graph (one OscillatorNode per generator →
 // gain → stereo panner → speakers) and starts it, mirroring the FuncGen params.
-func genAudioStart() {
-	if genRunning {
+func (g *generator) audioStart() {
+	if g.running {
 		return
 	}
 	// We're inside a user-gesture handler, so the acquire's resume is allowed
 	// under the browser autoplay policy.
-	genCtx = acquireAudioCtx("gen")
-	if !genCtx.Truthy() {
+	g.ctx = acquireAudioCtx("gen")
+	if !g.ctx.Truthy() {
 		return
 	}
 	// Pans feed the Envelope module's shaper gain, then the speakers.
-	genEnvGain = genCtx.Call("createGain")
-	genEnvGain.Call("connect", genCtx.Get("destination"))
+	g.envGain = g.ctx.Call("createGain")
+	g.envGain.Call("connect", g.ctx.Get("destination"))
 	for i := 0; i < 3; i++ {
-		gain := genCtx.Call("createGain")
-		pan := genCtx.Call("createStereoPanner")
+		gain := g.ctx.Call("createGain")
+		pan := g.ctx.Call("createStereoPanner")
 		gain.Call("connect", pan)
-		pan.Call("connect", genEnvGain)
-		genGain[i], genPan[i] = gain, pan
-		genKind[i] = ""
-		genEnsureNode(i, fg().Wave(i) == 4)
+		pan.Call("connect", g.envGain)
+		g.gain[i], g.pan[i] = gain, pan
+		g.kind[i] = ""
+		g.ensureNode(i, aud.fg().Wave(i) == 4)
 	}
-	genRunning = true
+	g.running = true
 	for i := 0; i < 3; i++ {
-		genAudioUpdate(i)
+		g.audioUpdate(i)
 	}
 }
 
-func genAudioStop() {
-	if !genRunning {
+func (g *generator) audioStop() {
+	if !g.running {
 		return
 	}
 	for i := 0; i < 3; i++ {
-		if genOsc[i].Truthy() {
-			genOsc[i].Call("stop")
-			genOsc[i].Call("disconnect")
+		if g.osc[i].Truthy() {
+			g.osc[i].Call("stop")
+			g.osc[i].Call("disconnect")
 		}
-		if genPan[i].Truthy() {
-			genPan[i].Call("disconnect")
+		if g.pan[i].Truthy() {
+			g.pan[i].Call("disconnect")
 		}
-		genOsc[i], genGain[i], genPan[i] = js.Undefined(), js.Undefined(), js.Undefined()
-		genKind[i] = ""
+		g.osc[i], g.gain[i], g.pan[i] = js.Undefined(), js.Undefined(), js.Undefined()
+		g.kind[i] = ""
 	}
-	if genEnvGain.Truthy() {
-		genEnvGain.Call("disconnect")
-		genEnvGain = js.Undefined()
+	if g.envGain.Truthy() {
+		g.envGain.Call("disconnect")
+		g.envGain = js.Undefined()
 	}
-	genCtx = js.Undefined()
-	genRunning = false
+	g.ctx = js.Undefined()
+	g.running = false
 	releaseAudioCtx("gen")
 }
 
 // genAudioUpdate pushes oscillator i's waveform / frequency / channel routing to
 // its Web Audio nodes.
-func genAudioUpdate(i int) {
-	if !genRunning || !genOsc[i].Truthy() {
+func (g *generator) audioUpdate(i int) {
+	if !g.running || !g.osc[i].Truthy() {
 		return
 	}
-	noise := fg().Wave(i) == 4
-	genEnsureNode(i, noise)
+	noise := aud.fg().Wave(i) == 4
+	g.ensureNode(i, noise)
 	if noise {
 		// The LFSR loop's clock tracks the freq knob via playback rate, the
 		// same 32× mapping the analysis path uses.
-		rate := fg().Freq(i) * 32 / genCtx.Get("sampleRate").Float()
-		genOsc[i].Get("playbackRate").Set("value", rate)
+		rate := aud.fg().Freq(i) * 32 / g.ctx.Get("sampleRate").Float()
+		g.osc[i].Get("playbackRate").Set("value", rate)
 	} else {
-		genOsc[i].Set("type", waveTypeName(fg().Wave(i)))
-		genOsc[i].Get("frequency").Set("value", fg().Freq(i))
+		g.osc[i].Set("type", waveTypeName(aud.fg().Wave(i)))
+		g.osc[i].Get("frequency").Set("value", aud.fg().Freq(i))
 	}
 	// Channel routing from the dropdown: off / L / R / both.
 	route := "off"
@@ -560,12 +563,12 @@ func genAudioUpdate(i int) {
 	gain, pan := 0.0, 0.0
 	switch route {
 	case "l":
-		gain, pan = fg().Amp(i), -1
+		gain, pan = aud.fg().Amp(i), -1
 	case "r":
-		gain, pan = fg().Amp(i), 1
+		gain, pan = aud.fg().Amp(i), 1
 	case "both":
-		gain, pan = fg().Amp(i), 0
+		gain, pan = aud.fg().Amp(i), 0
 	}
-	genGain[i].Get("gain").Set("value", gain*0.3) // headroom
-	genPan[i].Get("pan").Set("value", pan)
+	g.gain[i].Get("gain").Set("value", gain*0.3) // headroom
+	g.pan[i].Get("pan").Set("value", pan)
 }

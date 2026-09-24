@@ -143,66 +143,66 @@ var paramRingLabels = map[string][]string{
 // because they are not the Parameters module: they get their own, which appears
 // with the Physics switch and goes away with it.
 var turtlePhysParams = []paramDef{
-	{"turtle-grav", "grav", &turtleGravF, 3, -8, 8, 0.1},
-	{"turtle-fric", "fric", &turtleFricF, 0.6, 0, 2, 0.05},
-	{"turtle-bounce", "bounce", &turtleBounceF, 0.2, 0, 1, 0.05},
-	{"turtle-spin", "spin", &turtleSpinF, 1, 0.1, 8, 0.1},
+	{"turtle-grav", "grav", &turtle.gravF, 3, -8, 8, 0.1},
+	{"turtle-fric", "fric", &turtle.fricF, 0.6, 0, 2, 0.05},
+	{"turtle-bounce", "bounce", &turtle.bounceF, 0.2, 0, 1, 0.05},
+	{"turtle-spin", "spin", &turtle.spinF, 1, 0.1, 8, 0.1},
 }
 
 var attractorParams = map[string][]paramDef{
 	"lissajou": {
-		{"lissajou-a", "a", &lissajouA, 3, 1, 20, 1},
-		{"lissajou-b", "b", &lissajouB, 2, 1, 20, 1},
-		{"lissajou-c", "c", &lissajouC, 5, 1, 20, 1},
+		{"lissajou-a", "a", &liss.a, 3, 1, 20, 1},
+		{"lissajou-b", "b", &liss.b, 2, 1, 20, 1},
+		{"lissajou-c", "c", &liss.c, 5, 1, 20, 1},
 	},
 	// Graphic Artist: LEVEL A/B/D + HARMONIC B/C/D (integer). Waveform A/B/C/D
 	// tri/square are separate switches (buildGraphicArtistControls).
 	// Short labels (Lv/Hm + oscillator letter) so they fit to the left of the
 	// centered LED without overlapping it.
 	"graphicartist": {
-		{"ga-la", "LvA", &gaLevelA, 0.55, 0, 1, 0.05},
-		{"ga-lb", "LvB", &gaLevelB, 0.45, 0, 1, 0.05},
-		{"ga-ld", "LvD", &gaLevelD, 0.55, 0, 1, 0.05},
-		{"ga-hb", "HmB", &gaHarmB, 2, 1, 16, 1},
-		{"ga-hc", "HmC", &gaHarmC, 12, 1, 32, 1},
-		{"ga-hd", "HmD", &gaHarmD, 1, 1, 16, 1},
+		{"ga-la", "LvA", &ga.levelA, 0.55, 0, 1, 0.05},
+		{"ga-lb", "LvB", &ga.levelB, 0.45, 0, 1, 0.05},
+		{"ga-ld", "LvD", &ga.levelD, 0.55, 0, 1, 0.05},
+		{"ga-hb", "HmB", &ga.harmB, 2, 1, 16, 1},
+		{"ga-hc", "HmC", &ga.harmC, 12, 1, 32, 1},
+		{"ga-hd", "HmD", &ga.harmD, 1, 1, 16, 1},
 	},
 	// Fourier Text: how many harmonics of the beam tour survive.
 	"scopetext": {
-		{"stext-harm", "harm", &scopeTextHarm, 24, 1, 64, 1},
+		{"stext-harm", "harm", &ftext.harm, 24, 1, 64, 1},
 	},
 	// Sprott Morph: position in the A…S catalog cycle + self-step rate.
 	"sprottmorph": {
-		{"smorph-sys", "sys", &morphSysKnob, 3, 0, 19, 0.01},
-		{"smorph-rate", "rate", &morphRate, 3, 0, 10, 0.1},
+		{"smorph-sys", "sys", &morph.sysKnob, 3, 0, 19, 0.01},
+		{"smorph-rate", "rate", &morph.rate, 3, 0, 10, 0.1},
 	},
 	// Bouncing Ball: the analog-computer demo's three panel pots.
 	"bounceball": {
-		{"bounce-grav", "grav", &bounceGrav, 12, 2, 30, 0.5},
-		{"bounce-rest", "bounce", &bounceRest, 0.88, 0.5, 0.99, 0.01},
-		{"bounce-drift", "drift", &bounceDrift, 0.7, 0, 2, 0.05},
+		{"bounce-grav", "grav", &ball.grav, 12, 2, 30, 0.5},
+		{"bounce-rest", "bounce", &ball.rest, 0.88, 0.5, 0.99, 0.01},
+		{"bounce-drift", "drift", &ball.drift, 0.7, 0, 2, 0.05},
 	},
 	// Scope Pong: game feel — ball speed, paddle size, machine skill.
 	"pong": {
-		{"pong-speed", "speed", &pongBallSpeed, 1, 0.2, 3, 0.05},
-		{"pong-paddle", "paddle", &pongPaddleH, 0.42, 0.1, 0.9, 0.01},
-		{"pong-skill", "skill", &pongAISkill, 0.7, 0, 1, 0.05},
+		{"pong-speed", "speed", &pong.ballSpeed, 1, 0.2, 3, 0.05},
+		{"pong-paddle", "paddle", &pong.paddleH, 0.42, 0.1, 0.9, 0.01},
+		{"pong-skill", "skill", &pong.aiSkill, 0.7, 0, 1, 0.05},
 	},
 	// A turtle path has no continuous parameters; these are the arithmetic
 	// itself, and they are pisano's flags — mod, seq, mul, cap, reps, tint,
 	// trail, cycle. MOD 0 means no modulus at all: the sequence unreduced.
 	// CAP 0 lets the modulus pick its own term limit.
 	"turtle": {
-		{"turtle-mod", "mod", &turtleModF, 25, 0, turtleModMax, 1},
-		{"turtle-seq", "seq", &turtleSeqF, 0, 0, 4, 1},
-		{"turtle-mul", "mul", &turtleMulF, 1, 1, 12, 1},
-		{"turtle-cap", "cap", &turtleCapF, 0, 0, 20000, 100},
-		{"turtle-dim", "dim", &turtleDimF, 3, 2, 3, 1},
-		{"turtle-tint", "tint", &turtleTintF, 0, 0, 6, 1},
-		{"turtle-trail", "trail", &turtleTrailF, 0, 0, 3, 1},
-		{"turtle-cam", "cam", &turtleCamF, 0, 0, 3, 1},
-		{"turtle-view", "view", &turtleViewF, 0, 0, 4, 1},
-		{"turtle-cycle", "cycle", &turtleCycleF, 0, 0, 30, 1},
+		{"turtle-mod", "mod", &turtle.modF, 25, 0, turtleModMax, 1},
+		{"turtle-seq", "seq", &turtle.seqF, 0, 0, 4, 1},
+		{"turtle-mul", "mul", &turtle.mulF, 1, 1, 12, 1},
+		{"turtle-cap", "cap", &turtle.capF, 0, 0, 20000, 100},
+		{"turtle-dim", "dim", &turtle.dimF, 3, 2, 3, 1},
+		{"turtle-tint", "tint", &turtle.tintF, 0, 0, 6, 1},
+		{"turtle-trail", "trail", &turtle.trailF, 0, 0, 3, 1},
+		{"turtle-cam", "cam", &turtle.camF, 0, 0, 3, 1},
+		{"turtle-view", "view", &turtle.viewF, 0, 0, 4, 1},
+		{"turtle-cycle", "cycle", &turtle.cycleF, 0, 0, 30, 1},
 	},
 	// The audio spectrogram's controls are the original audioprism's, defined
 	// next to the code that applies them.

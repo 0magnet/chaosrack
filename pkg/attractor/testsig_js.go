@@ -47,7 +47,7 @@ func buildTestSignalModule() {
 	}
 	sel.Set("value", "0")
 
-	knob := makeSelectorKnob(sel)
+	knob := selk.makeSelectorKnob(sel)
 	stack.Call("appendChild", knob)
 	addSelectorLabels(knob, audiosrc.TestSignalRing, sel)
 
@@ -55,7 +55,7 @@ func buildTestSignalModule() {
 	adoptDescControl(ControlDesc{
 		ID: "testsig-lvl", Label: "lvl", Min: 0, Max: 100, Step: 1, Def: 50,
 		LEDID: "testsig-lvl-led", ResetID: "rst-testsig-lvl",
-		Apply: func(v float64) { fg().SetTestLevel(v / 100) },
+		Apply: func(v float64) { aud.fg().SetTestLevel(v / 100) },
 	})
 	adoptDescControl(ControlDesc{
 		ID: "testsig-sel", Label: "sig", IsSelect: true, SelectDef: "0", PermaKey: "tv",
@@ -63,7 +63,7 @@ func buildTestSignalModule() {
 		SelectApply: func(string) { applyTestSignal() },
 	})
 	applyTestSignal()
-	fg().SetTestLevel(fgFloat(lvl) / 100)
+	aud.fg().SetTestLevel(fgFloat(lvl) / 100)
 }
 
 // testSignalSel is the selector's current position.
@@ -90,7 +90,7 @@ func testSignalSel() audiosrc.TestSignal {
 // here, and leaving it running is the reversible half.
 func applyTestSignal() {
 	s := testSignalSel()
-	fg().SetTestSignal(s)
+	aud.fg().SetTestSignal(s)
 	if s == audiosrc.TestOff {
 		return
 	}

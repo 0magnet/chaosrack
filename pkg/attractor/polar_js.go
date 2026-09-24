@@ -76,41 +76,50 @@ var polarMapNames = []string{"tanh", "algebraic", "logarithmic (dB)", "direction
 // what it draws — the unit sphere — and "sphr" would describe all three.
 var polarMapRing = []string{"tanh", "soft", "dB", "unit"}
 
-var (
-	polarMapF    float32 = 0  // map knob: an index into the constants above
-	polarDrive   float32 = 2  // how hard the length is pushed into the map
-	polarWin     float32 = 85 // display window, milliseconds
-	polarGain    float32 = 10 // world units the sphere's surface sits at
-	polarRing    []float32
-	polarW       int // monotonic write cursor into polarRing
-	polarScratch []float32
-	polarCursor  = tapUnjoined // read position in the shared audio tap
+// polarMode is the polar embedding mode: the window of audio it embeds and
+// its knobs.
+type polarMode struct {
+	mapF    float32 // map knob: an index into the constants above
+	drive   float32 // how hard the length is pushed into the map
+	win     float32 // display window, milliseconds
+	gain    float32 // world units the sphere's surface sits at
+	ring    []float32
+	w       int // monotonic write cursor into polarRing
+	scratch []float32
+	cursor  int // read position in the shared audio tap
 
-	// polarChanF is the SRC knob, the Takens mode's and for its reason: the
+	// chanF is the SRC knob, the Takens mode's and for its reason: the
 	// delay vector is built from ONE observable, and which one is a choice the
 	// mode could not offer while the tap carried only the mix.
-	polarChanF float32
+	chanF float32
 
-	// polarFitGain is the GAIN the camera was last fitted to, 0 for not yet.
+	// fitGain is the GAIN the camera was last fitted to, 0 for not yet.
 	// A gain rather than a bool for takensFitGain's reason: the bound the fit
 	// is made against is a function of the gain — here the sphere's radius IS
 	// the gain — so a fit made at one gain is not a fit at another.
-	polarFitGain float32
-)
+	fitGain float32
+}
+
+var polar = polarMode{
+	drive:  2,
+	win:    85,
+	gain:   10,
+	cursor: tapUnjoined,
+}
 
 func init() {
-	registerGenerate("polar", generatePolar)
+	registerGenerate("polar", polar.generatePolar)
 	attractorParams["polar"] = []paramDef{
-		{"polar-chan", "src", &polarChanF, 0, 0, float32(len(tapChanNames) - 1), 1},
-		{"polar-map", "map", &polarMapF, 0, 0, float32(takens.PolarCount - 1), 1},
-		{"polar-drive", "drv", &polarDrive, 2, 0.2, 10, 0.1},
+		{"polar-chan", "src", &polar.chanF, 0, 0, float32(len(tapChanNames) - 1), 1},
+		{"polar-map", "map", &polar.mapF, 0, 0, float32(takens.PolarCount - 1), 1},
+		{"polar-drive", "drv", &polar.drive, 2, 0.2, 10, 0.1},
 		// τ is takens-tau, not a polar copy of it: the polar figure IS the takens
 		// delay embedding with the delay wrapped onto an angle, so a τ that
 		// differed between them would be two names for one quantity — and the
 		// recurrence plot and takens-smooth above already share this way.
-		{"takens-tau", "τ", &takensTau, takens.TauDef, 1, takens.TauMax, 1},
-		{"polar-win", "win", &polarWin, 85, 5, 500, 5},
-		{"polar-gain", "gain", &polarGain, 10, 0.5, 50, 0.5},
+		{"takens-tau", "τ", &emb.tau, takens.TauDef, 1, takens.TauMax, 1},
+		{"polar-win", "win", &polar.win, 85, 5, 500, 5},
+		{"polar-gain", "gain", &polar.gain, 10, 0.5, 50, 0.5},
 		{"takens-smooth", "smth", &takensSmoothF, 4, 1, 16, 1},
 	}
 }
@@ -126,8 +135,8 @@ func init() {
 // clamping whatever the runtime happened to produce. NaN falls out of the same
 // comparison, since every comparison against a NaN is false. (This is
 // stereoAxisSel's argument, and the same trap.)
-func polarMapSel() int {
-	v := polarMapF
+func (p *polarMode) mapSel() int {
+	v := p.mapF
 	if !(v > 0) { // false for NaN too
 		return 0
 	}
@@ -157,56 +166,56 @@ func polarFitExtent(gain float32) float32 { return gain }
 // enough) audio the previous frame is re-uploaded, so the model does not
 // flicker while the source spins up — generateTakens' behavior, and its ring
 // arithmetic, which is shared code up to the map.
-func generatePolar() {
-	src := ensureAudioSource()
+func (p *polarMode) generatePolar() {
+	src := aud.ensureAudioSource()
 	sr := 24000
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := takens.TauSamples(takensTau, sr)
-	n, stride := takensWindow(polarWin, sr, steps)
+	tau := takens.TauSamples(emb.tau, sr)
+	n, stride := takensWindow(p.win, sr, steps)
 	span := (n-1)*stride + 2*tau
-	if need := span + 1; len(polarRing) < need {
-		polarRing = make([]float32, need+need/2)
-		polarW = 0
+	if need := span + 1; len(p.ring) < need {
+		p.ring = make([]float32, need+need/2)
+		p.w = 0
 	}
-	if polarScratch == nil {
-		polarScratch = make([]float32, 8192)
+	if p.scratch == nil {
+		p.scratch = make([]float32, 8192)
 	}
-	if tapReady() {
+	if tap.ready() {
 		// Its own cursor into the shared tap, as every frame-loop consumer has:
 		// Drain hands each sample over exactly once, so two consumers on the
 		// raw source would split the stream rather than each see it.
 		for drained := 0; drained < 16384; {
-			got := tapReadChan(&polarCursor, polarScratch, tapChanSel(polarChanF))
+			got := tap.readChan(&p.cursor, p.scratch, tapChanSel(p.chanF))
 			if got <= 0 {
 				break
 			}
 			for i := 0; i < got; i++ {
-				polarRing[polarW%len(polarRing)] = polarScratch[i]
-				polarW++
+				p.ring[p.w%len(p.ring)] = p.scratch[i]
+				p.w++
 			}
 			drained += got
-			if got < len(polarScratch) {
+			if got < len(p.scratch) {
 				break
 			}
 		}
 	}
-	avail := polarW
-	if avail > len(polarRing) {
-		avail = len(polarRing)
+	avail := p.w
+	if avail > len(p.ring) {
+		avail = len(p.ring)
 	}
 	nv := takensVerts(n)
 	if avail < span+1 {
-		polarFitGain = 0 // camera was fitted to silence — refit on real data
+		p.fitGain = 0 // camera was fitted to silence — refit on real data
 		gpu.uploadVerticesOnly(vertBuf[:nv*4], gpu.drawMode, nv)
 		return
 	}
-	rn := len(polarRing)
-	base := polarW - 1 - span
-	g := polarGain
-	mapSel := polarMapSel()
-	drive := polarDrive
+	rn := len(p.ring)
+	base := p.w - 1 - span
+	g := p.gain
+	mapSel := p.mapSel()
+	drive := p.drive
 
 	// at reads source point k at delay offset off, clamping k to the window so
 	// the spline's outer control points at either end are defined.
@@ -216,7 +225,7 @@ func generatePolar() {
 		} else if k > n-1 {
 			k = n - 1
 		}
-		return polarRing[(base+2*tau+k*stride+off)%rn]
+		return p.ring[(base+2*tau+k*stride+off)%rn]
 	}
 	invN := float32(1) / float32(nv-1)
 	vertices := vertBuf[:nv*4]
@@ -262,14 +271,14 @@ func generatePolar() {
 		vertices[j+3] = float32(m) * invN
 	}
 	gpu.uploadVerticesOnly(vertices, gpu.drawMode, nv)
-	if polarFitGain != polarGain && !paramIsModulated("polar-gain") {
+	if p.fitGain != p.gain && !paramIsModulated("polar-gain") {
 		// Fitted to the fixed scale's worst case rather than to this window's
 		// extent, and only when GAIN moves that case — see generateTakens for
 		// why fitting the instantaneous figure put loud passages off the
 		// screen. Here the worst case is the sphere, so the fit is exact and
 		// not merely safe.
-		polarFitGain = polarGain
-		view.fitOverride = polarFitExtent(polarGain)
+		p.fitGain = p.gain
+		view.fitOverride = polarFitExtent(p.gain)
 		view.autoFitCamera()
 	}
 }
@@ -293,32 +302,32 @@ func generatePolar() {
 // The RAW samples, not the mapped radius. The color says what was playing where
 // the trail was drawn from, and the radius map is a display decision — coloring
 // by it would make the gradient repeat what the geometry already shows.
-func polarColorWindow() ([]float32, int) {
-	if polarRing == nil {
+func (p *polarMode) colorWindow() ([]float32, int) {
+	if p.ring == nil {
 		return nil, 0
 	}
-	src := ensureAudioSource()
+	src := aud.ensureAudioSource()
 	sr := 24000
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := takens.TauSamples(takensTau, sr)
-	n, stride := takensWindow(polarWin, sr, steps)
+	tau := takens.TauSamples(emb.tau, sr)
+	n, stride := takensWindow(p.win, sr, steps)
 	if n <= 0 {
 		return nil, 0
 	}
-	rn := len(polarRing)
+	rn := len(p.ring)
 	span := (n-1)*stride + 2*tau
-	if rn == 0 || polarW < span+1 {
+	if rn == 0 || p.w < span+1 {
 		return nil, 0 // not enough audio yet; the flat fill is the honest answer
 	}
-	if cap(audioColorWin) < n {
-		audioColorWin = make([]float32, n)
+	if cap(acolor.win) < n {
+		acolor.win = make([]float32, n)
 	}
-	out := audioColorWin[:n]
-	base := polarW - 1 - span
+	out := acolor.win[:n]
+	base := p.w - 1 - span
 	for k := 0; k < n; k++ {
-		out[k] = polarRing[(base+2*tau+k*stride)%rn]
+		out[k] = p.ring[(base+2*tau+k*stride)%rn]
 	}
 	return out, sr
 }

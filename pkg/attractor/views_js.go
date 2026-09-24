@@ -43,7 +43,7 @@ import (
 // there is one place that says how many cells there are. Everything that
 // asks "are we split" means "is there more than one", which is the same
 // question whether the answer is two cells or sixteen.
-func viewSplit() bool { return viewN() > 1 }
+func viewSplit() bool { return grid.n() > 1 }
 
 // viewGap is the gutter between cells, in pixels. Without one the figures
 // touch and a grid reads as a single crowded picture.
@@ -65,7 +65,7 @@ func viewRects() [][4]int {
 	}
 	full := [][4]int{{0, 0, w, h}}
 
-	n := viewN()
+	n := grid.n()
 	if n <= 1 {
 		return full
 	}
@@ -131,7 +131,7 @@ func setViewport(r [4]int) {
 	gpu.proj = mgl32.Perspective(mgl32.DegToRad(45.0), float32(r[2])/float32(h), 1, 1500.0)
 	glctx.GL.Call("useProgram", gpu.program)
 	glctx.GL.Call("uniformMatrix4fv",
-		glctx.GL.Call("getUniformLocation", gpu.program, "Pmatrix"), false, mat4ToTyped(&gpu.proj))
+		glctx.GL.Call("getUniformLocation", gpu.program, "Pmatrix"), false, texp.mat4ToTyped(&gpu.proj))
 }
 
 // drawViewPasses draws the mode once per view.
@@ -151,8 +151,8 @@ func drawViewPasses(mode string) {
 		// Each pass draws ITS cell's instance. Restored below, because
 		// everything outside the passes — the readout, the panel, the
 		// next frame — means the focused one.
-		stereo = instanceFor(i)
-		c := colorFor(i)
+		stereo = grid.instanceFor(i)
+		c := grid.colorFor(i)
 		gradientSource, gradientColors = c.src, c.cols
 		// And then the sweep, which is a SOURCE for one parameter rather
 		// than a value of it: applied for this cell and put straight back,
@@ -162,7 +162,7 @@ func drawViewPasses(mode string) {
 		// gives it back afterwards. Before the sweep, so a control that is
 		// both linked and swept is swept — the sweep is the more specific
 		// answer to "where does this cell's value come from".
-		unlink := applyLinks(mode, i)
+		unlink := grid.applyLinks(mode, i)
 		restore := applySweep(mode, i, n)
 		glctx.GL.Call("scissor", r[0], r[1], r[2], r[3])
 		setViewport(r)
@@ -170,8 +170,8 @@ func drawViewPasses(mode string) {
 		restore()
 		unlink()
 	}
-	stereo = focusedInst()
-	fc := colorFor(focusedColorIdx())
+	stereo = grid.focusedInst()
+	fc := grid.colorFor(grid.focusedColorIdx())
 	gradientSource, gradientColors = fc.src, fc.cols
 	glctx.GL.Call("disable", glctx.GL.Get("SCISSOR_TEST"))
 	// Back to the whole canvas, so everything drawn after these passes —
@@ -181,23 +181,23 @@ func drawViewPasses(mode string) {
 }
 
 // wireViewGridDial hooks up the grid-size dial.
-func wireViewGridDial() {
+func (vi *viewGrid) wireViewGridDial() {
 	sel := dom.Doc.Call("getElementById", "view-n")
 	if !sel.Truthy() {
 		return
 	}
 	apply := func() {
 		if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
-			viewCountF = float32(n)
+			vi.countF = float32(n)
 		}
 		// Focus can be past the end of a grid that just shrank, and the
 		// panel has to follow whichever instance is now in play.
-		if viewFocus >= viewN() {
-			viewFocus = 0
+		if vi.focused >= vi.n() {
+			vi.focused = 0
 		}
 		// The focus dial has one position per cell, so it is rebuilt
 		// with the grid — before refocus, which reads viewFocus.
-		buildFocusDial()
+		vi.buildFocusDial()
 		refocus()
 		// After the rebuild, or the marking goes onto rows that are
 		// about to be replaced.
@@ -216,22 +216,105 @@ func wireViewGridDial() {
 
 // ── which view the knobs drive, and whether they drive both ─────────────
 
-// viewLink shares one parameter set between the views. On, both halves
-// draw the same instance and the panel means both — which is the state
-// that behaves exactly as a single view always did, and is why it is the
-// default. Off, each half has its own and the panel means the focused one.
-//
-// A switch rather than a decision: comparing two settings of one instrument
-// wants them separate, and comparing two COLORINGS or two camera angles of
-// one setting wants them together, and both are things to want.
-var viewLink = true
+// viewGrid is the grid of views of one model and the parameter sweep across
+// it.
+type viewGrid struct {
+	// link shares one parameter set between the views. On, both halves
+	// draw the same instance and the panel means both — which is the state
+	// that behaves exactly as a single view always did, and is why it is the
+	// default. Off, each half has its own and the panel means the focused one.
+	//
+	// A switch rather than a decision: comparing two settings of one instrument
+	// wants them separate, and comparing two COLORINGS or two camera angles of
+	// one setting wants them together, and both are things to want.
+	link bool
 
-// viewFocus is which view the panel drives while they are unlinked.
-var viewFocus int
+	// focused is which view the panel drives while they are unlinked.
+	focused int
+
+	// colors is each view's coloring. The defaults are the ones the
+	// gradient selects open at — Z, two-color — so an untouched second view
+	// looks like the first until something is changed.
+	colors [16]viewColor
+
+	// countF is the dial: an index into viewCounts.
+	countF float32
+
+	// sweepIDs are what a grid may vary, by control id, and sweepNames and
+	// sweepRing are how the dial says them. All three are REBUILT PER MODE by
+	// setSweepTargets: a sweep is over the parameters of the model on screen,
+	// and a fixed list would offer the stereo embedding's delay while a
+	// polyhedron is drawn.
+	//
+	// The first entry is always "nothing varies", which is the default and
+	// makes a grid N copies. The last two begin with a hash and are not
+	// parameters at all but the coloring, which has no id in any mode's table
+	// because it is not a knob of a model. They are the Warhol case — the same
+	// figure, a different reading of it in every cell — and they are the
+	// reason the sweep is not restricted to numbers.
+	sweepIDs   []string
+	sweepNames []string
+	sweepRing  []string
+
+	// sweepDialMode is the mode the three lists above were built for, so a
+	// panel rebuild that is not a mode change leaves the dial alone.
+	sweepDialMode string
+
+	// sweepParamF and sweep2ParamF are the two dials, each an index into
+	// sweepIDs: across the grid and down it.
+	//
+	// Two, because a contact sheet of one variable is a strip, and a grid has
+	// two directions. With one dial a three by three of nine delays wasted the
+	// second direction, and asking for nine palettes meant giving up the nine
+	// delays — the sheet could show what a parameter does OR what a coloring
+	// does, never one against the other. The second axis is what makes the
+	// SHAPE of the grid mean something: a column is one value of across, a row
+	// is one value of down, and the cell where they meet is the pair.
+	sweepParamF, sweep2ParamF float32
+
+	// sweepLo and sweepHi bound the sweep as a FRACTION of the target's own
+	// range, which is what lets one pair of knobs drive any target: 0 is the
+	// parameter's minimum and 1 its maximum, whatever those are.
+	sweepLo, sweepHi float32
+
+	// buildSweepDial fills the sweep select from the current target lists and
+	// puts a fresh labeled rotary around it.
+	//
+	// Rebuilt rather than relabeled because the ring is a ring of positioned
+	// elements sized to the option count: a mode with three parameters and one
+	// with nine are two different dials, and editing one into the other in
+	// place is how the label at position n stops meaning option n.
+	// sweepDialFuncs is the dial's own arena: its ring is rebuilt per mode,
+	// on a different schedule from the panel's.
+	sweepDialFuncs []js.Func
+
+	// focusDialFuncs is the focus dial's arena, for buildSweepDial's reason:
+	// its ring is rebuilt whenever the grid changes size.
+	focusDialFuncs []js.Func
+
+	// paramLinks names the controls that stay shared while the views are
+	// unlinked. Absent means unlinked, which is what Link off already meant, so
+	// an empty map is exactly today's behavior.
+	paramLinks map[string]bool
+}
+
+var grid = viewGrid{
+	link:     true,
+	colors:   newViewColors(),
+	sweepIDs: []string{"", "#src", "#map"},
+	sweepNames: []string{
+		"none — every cell the same",
+		"color source — a different reading of the same figure per cell",
+		"color map — the same reading in a different palette per cell",
+	},
+	sweepRing:  []string{"—", "csrc", "cmap"},
+	sweepHi:    1,
+	paramLinks: map[string]bool{},
+}
 
 // instanceFor returns the stereo instance a view draws.
-func instanceFor(i int) *stereoInst {
-	if viewLink || i < 0 || i >= len(viewInsts) {
+func (vi *viewGrid) instanceFor(i int) *stereoInst {
+	if vi.link || i < 0 || i >= len(viewInsts) {
 		return viewInsts[0]
 	}
 	return viewInsts[i]
@@ -241,11 +324,11 @@ func instanceFor(i int) *stereoInst {
 // views are split and unlinked, and view A's otherwise. With one view or
 // with the two linked there is only one instance in play, and pointing the
 // knobs at the other would be pointing them at something not on screen.
-func focusedInst() *stereoInst {
-	if !viewSplit() || viewLink {
+func (vi *viewGrid) focusedInst() *stereoInst {
+	if !viewSplit() || vi.link {
 		return viewInsts[0]
 	}
-	return instanceFor(viewFocus)
+	return vi.instanceFor(vi.focused)
 }
 
 // refocus points the panel at the right instance and rebuilds the rows.
@@ -255,16 +338,16 @@ func focusedInst() *stereoInst {
 // DRAW reads and not what a knob WRITES; only building the rows again
 // against the new instance moves both.
 func refocus() {
-	stereo = focusedInst()
-	applyFocusedColor()
+	stereo = grid.focusedInst()
+	grid.applyFocusedColor()
 	buildParamPanel(selectedMode)
 }
 
 // wireViewLinkSwitches hooks up Link and the A/B focus switch.
-func wireViewLinkSwitches() {
+func (vi *viewGrid) wireViewLinkSwitches() {
 	if sw := dom.Doc.Call("getElementById", "link-sw"); sw.Truthy() {
 		sw.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
-			viewLink = sw.Get("checked").Bool()
+			vi.link = sw.Get("checked").Bool()
 			refocus()
 			return nil
 		}))
@@ -272,13 +355,13 @@ func wireViewLinkSwitches() {
 	if sel := dom.Doc.Call("getElementById", "focus-n"); sel.Truthy() {
 		sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
-				viewFocus = n
+				vi.focused = n
 			}
 			refocus()
 			return nil
 		}))
 	}
-	buildFocusDial()
+	vi.buildFocusDial()
 }
 
 // ── color per view ──────────────────────────────────────────────────────
@@ -299,11 +382,6 @@ type viewColor struct {
 	cols int // gradientColors
 }
 
-// viewColors is each view's coloring. The defaults are the ones the
-// gradient selects open at — Z, two-color — so an untouched second view
-// looks like the first until something is changed.
-var viewColors = newViewColors()
-
 func newViewColors() [viewMax]viewColor {
 	var out [viewMax]viewColor
 	for i := range out {
@@ -314,31 +392,31 @@ func newViewColors() [viewMax]viewColor {
 
 // colorFor returns the coloring a view draws with, which is the shared one
 // while the views are linked.
-func colorFor(i int) viewColor {
-	if viewLink || i < 0 || i >= len(viewColors) {
-		return viewColors[0]
+func (vi *viewGrid) colorFor(i int) viewColor {
+	if vi.link || i < 0 || i >= len(vi.colors) {
+		return vi.colors[0]
 	}
-	return viewColors[i]
+	return vi.colors[i]
 }
 
 // focusedColorIdx is which entry the gradient selects write to.
-func focusedColorIdx() int {
-	if !viewSplit() || viewLink {
+func (vi *viewGrid) focusedColorIdx() int {
+	if !viewSplit() || vi.link {
 		return 0
 	}
-	if viewFocus < 0 || viewFocus >= len(viewColors) {
+	if vi.focused < 0 || vi.focused >= len(vi.colors) {
 		return 0
 	}
-	return viewFocus
+	return vi.focused
 }
 
 // noteGradientSource records a change the gradient select just made, so the
 // focused view keeps it. Called from the select's own handler, after the
 // global it drives has been set.
-func noteGradientSource(n int) { viewColors[focusedColorIdx()].src = n }
+func (vi *viewGrid) noteGradientSource(n int) { vi.colors[vi.focusedColorIdx()].src = n }
 
 // noteGradientColors is the same for the map.
-func noteGradientColors(n int) { viewColors[focusedColorIdx()].cols = n }
+func (vi *viewGrid) noteGradientColors(n int) { vi.colors[vi.focusedColorIdx()].cols = n }
 
 // applyFocusedColor puts the focused view's coloring back into the globals
 // and onto the two selects, so the panel reads what the focused view draws.
@@ -346,8 +424,8 @@ func noteGradientColors(n int) { viewColors[focusedColorIdx()].cols = n }
 // The selects are set WITHOUT dispatching: their handlers would write
 // straight back into the entry being read, which is harmless but circular,
 // and updateGradientUI is what the handlers call anyway.
-func applyFocusedColor() {
-	c := viewColors[focusedColorIdx()]
+func (vi *viewGrid) applyFocusedColor() {
+	c := vi.colors[vi.focusedColorIdx()]
 	gradientSource, gradientColors = c.src, c.cols
 	setSelectQuiet("gradient-source", c.src)
 	setSelectQuiet("gradient-colors", c.cols)
@@ -404,12 +482,9 @@ var viewCountNames = []string{
 
 var viewCountRing = []string{"1", "2", "4", "9", "16"}
 
-// viewCountF is the dial: an index into viewCounts.
-var viewCountF float32
-
 // viewN is how many cells are drawn.
-func viewN() int {
-	i := clampSel(viewCountF, len(viewCounts)-1)
+func (vi *viewGrid) n() int {
+	i := clampSel(vi.countF, len(viewCounts)-1)
 	return viewCounts[i]
 }
 
@@ -448,32 +523,6 @@ func gridFitFactor(n int) int {
 
 // ── the sweep: what varies across the grid ──────────────────────────────
 
-// sweepIDs are what a grid may vary, by control id, and sweepNames and
-// sweepRing are how the dial says them. All three are REBUILT PER MODE by
-// setSweepTargets: a sweep is over the parameters of the model on screen,
-// and a fixed list would offer the stereo embedding's delay while a
-// polyhedron is drawn.
-//
-// The first entry is always "nothing varies", which is the default and
-// makes a grid N copies. The last two begin with a hash and are not
-// parameters at all but the coloring, which has no id in any mode's table
-// because it is not a knob of a model. They are the Warhol case — the same
-// figure, a different reading of it in every cell — and they are the
-// reason the sweep is not restricted to numbers.
-var (
-	sweepIDs   = []string{"", "#src", "#map"}
-	sweepNames = []string{
-		"none — every cell the same",
-		"color source — a different reading of the same figure per cell",
-		"color map — the same reading in a different palette per cell",
-	}
-	sweepRing = []string{"—", "csrc", "cmap"}
-)
-
-// sweepDialMode is the mode the three lists above were built for, so a
-// panel rebuild that is not a mode change leaves the dial alone.
-var sweepDialMode string
-
 // sweepNumericOK reports whether a numeric sweep of this mode would be
 // TRUE — whether cell i's picture is a function of cell i's value alone.
 //
@@ -501,7 +550,7 @@ func sweepNumericOK(mode string) bool {
 // short label — the same text the knob under it carries — and the option
 // name is that label plus the sentence the help table has for it, so the
 // dial explains what it is about to vary rather than naming it twice.
-func setSweepTargets(mode string) bool {
+func (vi *viewGrid) setSweepTargets(mode string) bool {
 	ids := []string{""}
 	names := []string{"none — every cell the same"}
 	ring := []string{"—"}
@@ -536,10 +585,10 @@ func setSweepTargets(mode string) bool {
 		"color source — a different reading of the same figure per cell",
 		"color map — the same reading in a different palette per cell")
 
-	if sweepDialMode == mode && len(ids) == len(sweepIDs) {
+	if vi.sweepDialMode == mode && len(ids) == len(vi.sweepIDs) {
 		same := true
 		for i := range ids {
-			if ids[i] != sweepIDs[i] {
+			if ids[i] != vi.sweepIDs[i] {
 				same = false
 				break
 			}
@@ -548,35 +597,18 @@ func setSweepTargets(mode string) bool {
 			return false
 		}
 	}
-	sweepIDs, sweepNames, sweepRing = ids, names, ring
-	sweepDialMode = mode
+	vi.sweepIDs, vi.sweepNames, vi.sweepRing = ids, names, ring
+	vi.sweepDialMode = mode
 	// The dial cannot stay where it was: position 4 of one mode's list is a
 	// different parameter in another's, and silently sweeping something the
 	// operator did not pick is worse than starting from none.
-	sweepParamF, sweep2ParamF = 0, 0
+	vi.sweepParamF, vi.sweep2ParamF = 0, 0
 	return true
 }
 
-// sweepParamF and sweep2ParamF are the two dials, each an index into
-// sweepIDs: across the grid and down it.
-//
-// Two, because a contact sheet of one variable is a strip, and a grid has
-// two directions. With one dial a three by three of nine delays wasted the
-// second direction, and asking for nine palettes meant giving up the nine
-// delays — the sheet could show what a parameter does OR what a coloring
-// does, never one against the other. The second axis is what makes the
-// SHAPE of the grid mean something: a column is one value of across, a row
-// is one value of down, and the cell where they meet is the pair.
-var sweepParamF, sweep2ParamF float32
-
-// sweepLo and sweepHi bound the sweep as a FRACTION of the target's own
-// range, which is what lets one pair of knobs drive any target: 0 is the
-// parameter's minimum and 1 its maximum, whatever those are.
-var sweepLo, sweepHi float32 = 0, 1
-
 // sweepTarget is the id the across-the-grid sweep varies, sweepTarget2 the
 // id the down-the-grid one varies. Either is "" for none.
-func sweepTarget() string { return sweepTargetOf(sweepParamF) }
+func (vi *viewGrid) sweepTarget() string { return vi.sweepTargetOf(vi.sweepParamF) }
 
 // The down axis yields to the across one when both name the same thing. A
 // grid whose rows and columns vary the SAME parameter is not a comparison:
@@ -586,14 +618,16 @@ func sweepTarget() string { return sweepTargetOf(sweepParamF) }
 // options in the dial — the dial is rebuilt per mode and would have to
 // re-derive it, and an axis that is off must read as off everywhere,
 // including to the marking code.
-func sweepTarget2() string {
-	if id := sweepTargetOf(sweep2ParamF); id != sweepTarget() {
+func (vi *viewGrid) sweepTarget2() string {
+	if id := vi.sweepTargetOf(vi.sweep2ParamF); id != vi.sweepTarget() {
 		return id
 	}
 	return ""
 }
 
-func sweepTargetOf(f float32) string { return sweepIDs[clampSel(f, len(sweepIDs)-1)] }
+func (vi *viewGrid) sweepTargetOf(f float32) string {
+	return vi.sweepIDs[clampSel(f, len(vi.sweepIDs)-1)]
+}
 
 // sweepColorSrcs is the order the color-source sweep steps through: the
 // audio-fed sources, which are the ones worth comparing. Nine of them, and
@@ -633,7 +667,7 @@ func sweepFrac(i, n int) float32 {
 // own: across for the first, down for the second. So the resolution of a
 // lone sweep is never traded away for an axis nothing is using.
 func sweepAxisFracs(i, n int) (across, down float32) {
-	if sweepTarget2() == "" {
+	if grid.sweepTarget2() == "" {
 		return sweepFrac(i, n), 0
 	}
 	cols, rows := viewGridShape(n)
@@ -673,8 +707,8 @@ func applySweep(mode string, i, n int) func() {
 		return func() {}
 	}
 	across, down := sweepAxisFracs(i, n)
-	undoA := applySweepAxis(mode, sweepTarget(), across)
-	undoB := applySweepAxis(mode, sweepTarget2(), down)
+	undoA := grid.applySweepAxis(mode, grid.sweepTarget(), across)
+	undoB := grid.applySweepAxis(mode, grid.sweepTarget2(), down)
 	return func() {
 		undoB()
 		undoA()
@@ -682,11 +716,11 @@ func applySweep(mode string, i, n int) func() {
 }
 
 // applySweepAxis applies one axis: target id at position frac along it.
-func applySweepAxis(mode, id string, frac float32) func() {
+func (vi *viewGrid) applySweepAxis(mode, id string, frac float32) func() {
 	if id == "" {
 		return func() {}
 	}
-	t := sweepLo + (sweepHi-sweepLo)*frac
+	t := vi.sweepLo + (vi.sweepHi-vi.sweepLo)*frac
 
 	switch id {
 	case "#src":
@@ -732,9 +766,9 @@ func applySweepAxis(mode, id string, frac float32) func() {
 }
 
 // wireSweepDial hooks up the sweep dial.
-func wireSweepDial() {
-	wireOneSweepDial("sweep-p", &sweepParamF)
-	wireOneSweepDial("sweep2-p", &sweep2ParamF)
+func (vi *viewGrid) wireSweepDial() {
+	wireOneSweepDial("sweep-p", &vi.sweepParamF)
+	wireOneSweepDial("sweep2-p", &vi.sweep2ParamF)
 	syncSweepCells()
 	syncSweptMarks()
 }
@@ -765,7 +799,7 @@ func wireOneSweepDial(selID string, into *float32) {
 // AND more than one cell to spread it over. A sweep set on a single view
 // changes nothing, and must not be announced as though it had.
 func sweepActive() bool {
-	return viewN() > 1 && (sweepTarget() != "" || sweepTarget2() != "")
+	return grid.n() > 1 && (grid.sweepTarget() != "" || grid.sweepTarget2() != "")
 }
 
 // sweptCell finds the panel cell for the swept parameter.
@@ -826,8 +860,8 @@ func syncSweptMarks() {
 	// The arrow is the axis: across the grid, or down it. Two knobs both
 	// wearing "⇢" would say they vary together, which is the one thing the
 	// grid is built to show they do not.
-	markSwept(sweepTarget(), "⇢", "across the grid, left to right")
-	markSwept(sweepTarget2(), "⇣", "down the grid, top to bottom")
+	markSwept(grid.sweepTarget(), "⇢", "across the grid, left to right")
+	markSwept(grid.sweepTarget2(), "⇣", "down the grid, top to bottom")
 }
 
 // markSwept puts one axis's marking on the cell of the control it varies.
@@ -850,7 +884,7 @@ func markSwept(id, arrow, dir string) {
 // Two knobs bounding a sweep that is not running are two knobs that do
 // nothing, and the console has enough to read already.
 func syncSweepCells() {
-	on := sweepTarget() != "" || sweepTarget2() != ""
+	on := grid.sweepTarget() != "" || grid.sweepTarget2() != ""
 	for _, id := range []string{"sweep-lo-cell", "sweep-hi-cell"} {
 		if el := dom.Doc.Call("getElementById", id); el.Truthy() {
 			if on {
@@ -862,47 +896,36 @@ func syncSweepCells() {
 	}
 }
 
-// buildSweepDial fills the sweep select from the current target lists and
-// puts a fresh labeled rotary around it.
-//
-// Rebuilt rather than relabeled because the ring is a ring of positioned
-// elements sized to the option count: a mode with three parameters and one
-// with nine are two different dials, and editing one into the other in
-// place is how the label at position n stops meaning option n.
-// sweepDialFuncs is the dial's own arena: its ring is rebuilt per mode,
-// on a different schedule from the panel's.
-var sweepDialFuncs []js.Func
-
-func buildSweepDial() {
-	dom.RebuildInto(&sweepDialFuncs, func() {
+func (vi *viewGrid) buildSweepDial() {
+	dom.RebuildInto(&vi.sweepDialFuncs, func() {
 		// Both axes, one arena: they are rebuilt together, by the same mode
 		// change, from the same target lists.
-		buildOneSweepDial("sweep-p", sweepParamF)
-		buildOneSweepDial("sweep2-p", sweep2ParamF)
+		vi.buildOneSweepDial("sweep-p", vi.sweepParamF)
+		vi.buildOneSweepDial("sweep2-p", vi.sweep2ParamF)
 	})
 }
 
 // buildOneSweepDial fills one axis's select and rings it.
-func buildOneSweepDial(selID string, at float32) {
+func (vi *viewGrid) buildOneSweepDial(selID string, at float32) {
 	sel := dom.Doc.Call("getElementById", selID)
 	holder := dom.Doc.Call("getElementById", selID+"-stack")
 	if !sel.Truthy() || !holder.Truthy() {
 		return
 	}
 	sel.Set("innerHTML", "")
-	for i, name := range sweepNames {
+	for i, name := range vi.sweepNames {
 		opt := dom.Doc.Call("createElement", "option")
 		opt.Set("value", strconv.Itoa(i))
-		opt.Set("textContent", sweepRing[i])
+		opt.Set("textContent", vi.sweepRing[i])
 		opt.Set("title", name)
 		sel.Call("appendChild", opt)
 	}
-	sel.Set("value", strconv.Itoa(clampSel(at, len(sweepIDs)-1)))
+	sel.Set("value", strconv.Itoa(clampSel(at, len(vi.sweepIDs)-1)))
 	sel.Get("style").Set("display", "none")
 
 	holder.Set("innerHTML", "")
 	stack := soloKnob(sel)
-	addSelectorLabels(stack, sweepRing, sel).Set("id", selID+"-ring")
+	addSelectorLabels(stack, vi.sweepRing, sel).Set("id", selID+"-ring")
 	holder.Call("appendChild", stack)
 }
 
@@ -910,10 +933,10 @@ func buildOneSweepDial(selID string, at float32) {
 // changed under it. Called from the panel rebuild, which is the one thing
 // that happens on every mode change.
 func syncSweepDialMode(mode string) {
-	if !setSweepTargets(mode) {
+	if !grid.setSweepTargets(mode) {
 		return
 	}
-	buildSweepDial()
+	grid.buildSweepDial()
 	syncSweepCells()
 	syncSweptMarks()
 }
@@ -928,10 +951,6 @@ func paramValue(mode, id string) *float32 {
 	}
 	return nil
 }
-
-// focusDialFuncs is the focus dial's arena, for buildSweepDial's reason:
-// its ring is rebuilt whenever the grid changes size.
-var focusDialFuncs []js.Func
 
 // focusLabels names the cells: A, B, C … in the order viewRects lays them
 // out, which is reading order from the top left.
@@ -950,15 +969,15 @@ func focusLabels(n int) []string {
 // sixteen-cell sheet with a switch that can only reach two of them is a
 // panel that cannot drive what it is showing, so the control follows the
 // grid — the same rule as the sweep dial, for the same reason.
-func buildFocusDial() { dom.RebuildInto(&focusDialFuncs, buildFocusDialInto) }
+func (vi *viewGrid) buildFocusDial() { dom.RebuildInto(&vi.focusDialFuncs, vi.buildFocusDialInto) }
 
-func buildFocusDialInto() {
+func (vi *viewGrid) buildFocusDialInto() {
 	sel := dom.Doc.Call("getElementById", "focus-n")
 	holder := dom.Doc.Call("getElementById", "focus-n-stack")
 	if !sel.Truthy() || !holder.Truthy() {
 		return
 	}
-	n := viewN()
+	n := vi.n()
 	if cell := dom.Doc.Call("getElementById", "focus-n-cell"); cell.Truthy() {
 		if n > 1 {
 			cell.Get("style").Set("display", "")
@@ -976,10 +995,10 @@ func buildFocusDialInto() {
 			", counting from the top left")
 		sel.Call("appendChild", opt)
 	}
-	if viewFocus >= n {
-		viewFocus = 0
+	if vi.focused >= n {
+		vi.focused = 0
 	}
-	sel.Set("value", strconv.Itoa(viewFocus))
+	sel.Set("value", strconv.Itoa(vi.focused))
 	sel.Get("style").Set("display", "none")
 
 	holder.Set("innerHTML", "")
@@ -1002,14 +1021,9 @@ func buildFocusDialInto() {
 // because it is the same KIND of thing: the parameter's source for this pass
 // is somewhere other than this cell's own knob.
 
-// paramLinks names the controls that stay shared while the views are
-// unlinked. Absent means unlinked, which is what Link off already meant, so
-// an empty map is exactly today's behavior.
-var paramLinks = map[string]bool{}
-
 // perControlLinkLive reports whether per-control link can do anything: it
 // needs several cells that are NOT already all one instrument.
-func perControlLinkLive() bool { return viewSplit() && !viewLink }
+func (vi *viewGrid) perControlLinkLive() bool { return viewSplit() && !vi.link }
 
 // applyLinks pins this cell's linked controls to view A's copies for the
 // pass, and returns a function that puts the cell's own values back.
@@ -1017,11 +1031,11 @@ func perControlLinkLive() bool { return viewSplit() && !viewLink }
 // Cell 0 IS view A, so it is left alone — copying a value onto itself and
 // restoring it is work with no effect, and doing it anyway would make the
 // undo order matter where it does not.
-func applyLinks(mode string, i int) func() {
-	if i <= 0 || !perControlLinkLive() || len(paramLinks) == 0 {
+func (vi *viewGrid) applyLinks(mode string, i int) func() {
+	if i <= 0 || !vi.perControlLinkLive() || len(vi.paramLinks) == 0 {
 		return func() {}
 	}
-	inst, a := instanceFor(i), viewInsts[0]
+	inst, a := vi.instanceFor(i), viewInsts[0]
 	if inst == a {
 		return func() {}
 	}
@@ -1031,7 +1045,7 @@ func applyLinks(mode string, i int) func() {
 	}
 	var saved []held
 	for _, pd := range attractorParams[mode] {
-		if !paramLinks[pd.ID] {
+		if !vi.paramLinks[pd.ID] {
 			continue
 		}
 		dst, src := inst.field(pd.ID), a.field(pd.ID)
@@ -1070,7 +1084,7 @@ func syncLinkMarks() {
 			p.Call("removeChild", el)
 		}
 	}
-	if !perControlLinkLive() {
+	if !grid.perControlLinkLive() {
 		return
 	}
 	for _, pd := range attractorParams[selectedMode] {
@@ -1088,13 +1102,13 @@ func syncLinkMarks() {
 		if !cell.Truthy() {
 			continue
 		}
-		addLinkMark(cell, pd.ID)
+		grid.addLinkMark(cell, pd.ID)
 	}
 }
 
 // addLinkMark hangs one badge on one cell.
-func addLinkMark(cell js.Value, id string) {
-	on := paramLinks[id]
+func (vi *viewGrid) addLinkMark(cell js.Value, id string) {
+	on := vi.paramLinks[id]
 	m := dom.Doc.Call("createElement", "span")
 	cls := linkMarkSel
 	if on {
@@ -1117,10 +1131,10 @@ func addLinkMark(cell js.Value, id string) {
 			a[0].Call("stopPropagation")
 			a[0].Call("preventDefault")
 		}
-		if paramLinks[id] {
-			delete(paramLinks, id)
+		if vi.paramLinks[id] {
+			delete(vi.paramLinks, id)
 		} else {
-			paramLinks[id] = true
+			vi.paramLinks[id] = true
 		}
 		// Only the badges move; the rows themselves are unchanged, and
 		// rebuilding the panel here would destroy the element the click is
@@ -1129,7 +1143,7 @@ func addLinkMark(cell js.Value, id string) {
 		// The pinned set is part of the state a link carries, and nothing
 		// else here writes the URL — a control changed without the address
 		// bar following is a link that quietly restores something else.
-		syncPermalinkNow()
+		perma.syncPermalinkNow()
 		return nil
 	}))
 	cell.Call("appendChild", m)
@@ -1137,12 +1151,12 @@ func addLinkMark(cell js.Value, id string) {
 
 // linkedParamList serializes the linked set for the permalink, sorted so the
 // same state always produces the same link.
-func linkedParamList() string {
-	if len(paramLinks) == 0 {
+func (vi *viewGrid) linkedParamList() string {
+	if len(vi.paramLinks) == 0 {
 		return ""
 	}
-	ids := make([]string, 0, len(paramLinks))
-	for id, on := range paramLinks {
+	ids := make([]string, 0, len(vi.paramLinks))
+	for id, on := range vi.paramLinks {
 		if on {
 			ids = append(ids, id)
 		}
@@ -1152,13 +1166,13 @@ func linkedParamList() string {
 }
 
 // setLinkedParamList restores it.
-func setLinkedParamList(s string) {
-	for k := range paramLinks {
-		delete(paramLinks, k)
+func (vi *viewGrid) setLinkedParamList(s string) {
+	for k := range vi.paramLinks {
+		delete(vi.paramLinks, k)
 	}
 	for _, id := range strings.Split(s, ".") {
 		if id != "" {
-			paramLinks[id] = true
+			vi.paramLinks[id] = true
 		}
 	}
 }

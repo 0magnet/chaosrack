@@ -69,13 +69,13 @@ func wireModelInput() {
 		}
 		if selectedMode == "pong" {
 			pongPointer = true
-			pongPointerPaddle(e.Get("clientX").Float(), e.Get("clientY").Float())
+			pong.pointerPaddle(e.Get("clientX").Float(), e.Get("clientY").Float())
 			return nil
 		}
 		// A figure with weight can be picked up. What is under the cursor
 		// decides which gesture this is: on the figure takes hold of it, off it
 		// turns the view, and neither needs a mode set first.
-		if turtleGrabBegin(e.Get("clientX").Float(), e.Get("clientY").Float()) {
+		if grab.grabBegin(e.Get("clientX").Float(), e.Get("clientY").Float()) {
 			return nil
 		}
 		dragging = true
@@ -89,19 +89,19 @@ func wireModelInput() {
 				pongPointer = false
 				return nil
 			}
-			pongPointerPaddle(e.Get("clientX").Float(), e.Get("clientY").Float())
+			pong.pointerPaddle(e.Get("clientX").Float(), e.Get("clientY").Float())
 			return nil
 		}
-		if turtleGrabState.held {
+		if grab.grabState.held {
 			if e.Get("buttons").Float() == 0 {
-				turtleGrabEnd()
+				grab.grabEnd()
 				return nil
 			}
-			turtleGrabMove(e.Get("clientX").Float(), e.Get("clientY").Float())
+			grab.grabMove(e.Get("clientX").Float(), e.Get("clientY").Float())
 			return nil
 		}
 		if !dragging {
-			turtleGrabHover(e.Get("clientX").Float(), e.Get("clientY").Float())
+			grab.grabHover(e.Get("clientX").Float(), e.Get("clientY").Float())
 			return nil
 		}
 		// Self-heal a missed mouseup (a native drag or an off-window release
@@ -116,9 +116,9 @@ func wireModelInput() {
 	js.Global().Call("addEventListener", "mouseup", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		dragging = false
 		pongPointer = false
-		turtleGrabEnd()
-		turtleSpinEnd()
-		turtleTiltEnd()
+		grab.grabEnd()
+		grab.spinEnd()
+		grab.tiltEnd()
 		return nil
 	}))
 	// While rotating, kill the browser's native behaviors that hijack the
@@ -157,7 +157,7 @@ func wireModelInput() {
 			// one phone works.
 			for i := 0; i < touches.Get("length").Int(); i++ {
 				t := touches.Index(i)
-				pongPointerPaddle(t.Get("clientX").Float(), t.Get("clientY").Float())
+				pong.pointerPaddle(t.Get("clientX").Float(), t.Get("clientY").Float())
 			}
 			return nil
 		}
@@ -170,7 +170,7 @@ func wireModelInput() {
 		t := touches.Index(0)
 		// One finger on the figure moves the figure, off it turns the view —
 		// the same rule the mouse follows, so the two read the same way.
-		if turtleGrabBegin(t.Get("clientX").Float(), t.Get("clientY").Float()) {
+		if grab.grabBegin(t.Get("clientX").Float(), t.Get("clientY").Float()) {
 			return nil
 		}
 		dragging = true
@@ -184,7 +184,7 @@ func wireModelInput() {
 			e.Call("preventDefault")
 			for i := 0; i < touches.Get("length").Int(); i++ {
 				t := touches.Index(i)
-				pongPointerPaddle(t.Get("clientX").Float(), t.Get("clientY").Float())
+				pong.pointerPaddle(t.Get("clientX").Float(), t.Get("clientY").Float())
 			}
 			return nil
 		}
@@ -198,14 +198,14 @@ func wireModelInput() {
 			pinchDist = d
 			return nil
 		}
-		if turtleGrabState.held {
+		if grab.grabState.held {
 			if touches.Get("length").Int() == 0 {
-				turtleGrabEnd()
+				grab.grabEnd()
 				return nil
 			}
 			e.Call("preventDefault")
 			t := touches.Index(0)
-			turtleGrabMove(t.Get("clientX").Float(), t.Get("clientY").Float())
+			grab.grabMove(t.Get("clientX").Float(), t.Get("clientY").Float())
 			return nil
 		}
 		if !dragging {
@@ -221,7 +221,7 @@ func wireModelInput() {
 			pinching = false
 		}
 		if args[0].Get("touches").Get("length").Int() == 0 {
-			turtleGrabEnd() // last finger up: let go of the figure
+			grab.grabEnd() // last finger up: let go of the figure
 		}
 		dragging = false
 		return nil

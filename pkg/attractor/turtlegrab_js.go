@@ -31,14 +31,56 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
-// turtleGrabState is the hand: which piece of path is held, and where it is
-// being pulled to.
-var turtleGrabState struct {
-	held   bool
-	point  int     // which step of the WALK, not which slot of the trail
-	tx, ty float32 // where it is being pulled to, in model space
-	depth  float32 // the clip depth it was picked at, so it stays in its own plane
+// turtleGrab is picking the turtle figure up.
+type turtleGrab struct {
+	// grabState is the hand: which piece of path is held, and where it is
+	// being pulled to.
+	grabState struct {
+		held   bool
+		point  int     // which step of the WALK, not which slot of the trail
+		tx, ty float32 // where it is being pulled to, in model space
+		depth  float32 // the clip depth it was picked at, so it stays in its own plane
+	}
+
+	// spinDrag is a drag on the RIM while the figure has weight: it spins the
+	// figure itself rather than rolling the camera.
+	//
+	// Without weight a drag is a trackball — near the middle it tilts the model
+	// about the screen axes, near the rim it rolls it about the screen normal — and
+	// both of those should survive the physics switch. Tilt cannot: the body is a
+	// rigid body in the PLANE of the screen, and tipping that plane out of the
+	// screen is what made gravity pull sideways in the first place. So off the
+	// figure, near the middle, a drag still turns the view as it always did, and
+	// physics is only meaningful while that view is square on.
+	//
+	// Roll is different. Rolling keeps the figure in the screen plane, so it stays
+	// compatible — and there is a better thing to point it at than the camera. With
+	// weight on, the figure is an object you can already pick up and throw, so a
+	// twist at the rim turns THE OBJECT: it spins under your hand, keeps the spin
+	// when you let go, and the floor takes it back through friction. The gesture is
+	// the one that was already there, aimed at the thing that now has mass.
+	spinDrag bool
+
+	// tiltDrag is a drag near the MIDDLE while the figure has weight: it
+	// turns the figure in three dimensions rather than turning the camera.
+	//
+	// This is the part that makes it a three-dimensional object trapped in a
+	// two-dimensional world rather than a flat shape that happens to be drawn from
+	// a 3-D walk. The physics reads every point through the figure's own
+	// orientation, so what falls, what the floor holds up and what the walls stop
+	// is the SILHOUETTE of however it is turned. Tilt a long walk edge-on and it
+	// lands as a short one, because from there it is a short one.
+	//
+	// Turning the CAMERA instead would tip the plane the physics lives in out of
+	// the screen, which is what made gravity appear to pull sideways. The camera
+	// stays square on to the room; the object turns inside it.
+	tiltDrag bool
+
+	// spinMs is when the last twist was measured.
+	spinMs float64
 }
+
+var grab turtleGrab
 
 // turtleGrabbable reports whether a press should take hold of the figure rather
 // than turn the view.
@@ -71,7 +113,7 @@ func canvasPoint(clientX, clientY float64) (x, y, w, h float32, ok bool) {
 // what the cursor is over, one point in eight of a line that is drawn a pixel
 // wide is the same answer for an eighth of the work.
 func turtleHit(clientX, clientY float64, stride int) (step int, depth float32, ok bool) {
-	t := turtleState
+	t := turtle.state
 	if t == nil || len(t.pts) < 2 {
 		return 0, 0, false
 	}
@@ -122,7 +164,7 @@ func turtleHit(clientX, clientY float64, stride int) (step int, depth float32, o
 
 // turtleGrabBegin takes hold, if the press was on the figure. It reports
 // whether it did, so the caller knows not to start turning the view.
-func turtleGrabBegin(clientX, clientY float64) bool {
+func (t *turtleGrab) grabBegin(clientX, clientY float64) bool {
 	if !turtleGrabbable() {
 		return false
 	}
@@ -130,10 +172,10 @@ func turtleGrabBegin(clientX, clientY float64) bool {
 	if !ok {
 		return false
 	}
-	turtleGrabState.held = true
-	turtleGrabState.point = step
-	turtleGrabState.depth = depth
-	turtleGrabMove(clientX, clientY)
+	t.grabState.held = true
+	t.grabState.point = step
+	t.grabState.depth = depth
+	t.grabMove(clientX, clientY)
 	setCanvasCursor("grabbing")
 	return true
 }
@@ -141,8 +183,8 @@ func turtleGrabBegin(clientX, clientY float64) bool {
 // turtleGrabMove aims the hand at wherever the cursor has got to, on the plane
 // the figure was picked at — so dragging moves it across the screen rather than
 // pushing it away from or toward the eye.
-func turtleGrabMove(clientX, clientY float64) {
-	if !turtleGrabState.held {
+func (t *turtleGrab) grabMove(clientX, clientY float64) {
+	if !t.grabState.held {
 		return
 	}
 	cx, cy, w, h, ok := canvasPoint(clientX, clientY)
@@ -150,26 +192,26 @@ func turtleGrabMove(clientX, clientY float64) {
 		return
 	}
 	inv := mvpNow().Inv()
-	ndc := mgl32.Vec4{cx/w*2 - 1, 1 - cy/h*2, turtleGrabState.depth, 1}
+	ndc := mgl32.Vec4{cx/w*2 - 1, 1 - cy/h*2, t.grabState.depth, 1}
 	p := inv.Mul4x1(ndc)
 	if p.W() == 0 {
 		return
 	}
-	turtleGrabState.tx, turtleGrabState.ty = p.X()/p.W(), p.Y()/p.W()
+	t.grabState.tx, t.grabState.ty = p.X()/p.W(), p.Y()/p.W()
 }
 
-func turtleGrabEnd() {
-	if !turtleGrabState.held {
+func (t *turtleGrab) grabEnd() {
+	if !t.grabState.held {
 		return
 	}
-	turtleGrabState.held = false
+	t.grabState.held = false
 	setCanvasCursor("")
 }
 
 // turtleGrabHover is the affordance: over the figure the cursor becomes a hand,
 // so the two things a drag can do are visible before committing to one.
-func turtleGrabHover(clientX, clientY float64) {
-	if turtleGrabState.held || dragging {
+func (t *turtleGrab) grabHover(clientX, clientY float64) {
+	if t.grabState.held || dragging {
 		return
 	}
 	if !turtleGrabbable() {
@@ -212,14 +254,14 @@ func setCanvasCursor(name string) {
 // interface, and there is no claim here that a lattice point weighs anything in
 // particular.
 func (b *turtleBody) grabForce(t *turtleWalk, pts []pisano.Pt3, mass float32) (fx, fy, torque float32) {
-	if !turtleGrabState.held {
+	if !grab.grabState.held {
 		return 0, 0, 0
 	}
 	// Which slot of the trail that step is in now. The walk scrolls out from
 	// under the hand, so a piece of path held long enough ages off the tail;
 	// holding the oldest that is left keeps hold of the end of the figure
 	// rather than dropping it without warning.
-	i := turtleGrabState.point - t.dropped
+	i := grab.grabState.point - t.dropped
 	base := len(t.pts) - len(pts)
 	if i < base {
 		i = base
@@ -237,79 +279,45 @@ func (b *turtleBody) grabForce(t *turtleWalk, pts []pisano.Pt3, mass float32) (f
 
 	const pull = 90 // how hard the hand pulls, per unit out of place
 	const ease = 14 // and how much of the swinging it takes back out
-	fx = mass * (pull*(turtleGrabState.tx-x) - ease*pvx)
-	fy = mass * (pull*(turtleGrabState.ty-y) - ease*pvy)
+	fx = mass * (pull*(grab.grabState.tx-x) - ease*pvx)
+	fy = mass * (pull*(grab.grabState.ty-y) - ease*pvy)
 	return fx, fy, rx*fy - ry*fx
 }
 
-// turtleSpinDrag is a drag on the RIM while the figure has weight: it spins the
-// figure itself rather than rolling the camera.
-//
-// Without weight a drag is a trackball — near the middle it tilts the model
-// about the screen axes, near the rim it rolls it about the screen normal — and
-// both of those should survive the physics switch. Tilt cannot: the body is a
-// rigid body in the PLANE of the screen, and tipping that plane out of the
-// screen is what made gravity pull sideways in the first place. So off the
-// figure, near the middle, a drag still turns the view as it always did, and
-// physics is only meaningful while that view is square on.
-//
-// Roll is different. Rolling keeps the figure in the screen plane, so it stays
-// compatible — and there is a better thing to point it at than the camera. With
-// weight on, the figure is an object you can already pick up and throw, so a
-// twist at the rim turns THE OBJECT: it spins under your hand, keeps the spin
-// when you let go, and the floor takes it back through friction. The gesture is
-// the one that was already there, aimed at the thing that now has mass.
-var turtleSpinDrag bool
-
-// turtleTiltDrag is a drag near the MIDDLE while the figure has weight: it
-// turns the figure in three dimensions rather than turning the camera.
-//
-// This is the part that makes it a three-dimensional object trapped in a
-// two-dimensional world rather than a flat shape that happens to be drawn from
-// a 3-D walk. The physics reads every point through the figure's own
-// orientation, so what falls, what the floor holds up and what the walls stop
-// is the SILHOUETTE of however it is turned. Tilt a long walk edge-on and it
-// lands as a short one, because from there it is a short one.
-//
-// Turning the CAMERA instead would tip the plane the physics lives in out of
-// the screen, which is what made gravity appear to pull sideways. The camera
-// stays square on to the room; the object turns inside it.
-var turtleTiltDrag bool
-
 // turtleTiltBegin claims a middle drag for the figure.
-func turtleTiltBegin() bool {
-	if !turtleGrabbable() || turtleState == nil {
+func (t *turtleGrab) tiltBegin() bool {
+	if !turtleGrabbable() || turtle.state == nil {
 		return false
 	}
-	turtleTiltDrag = true
+	t.tiltDrag = true
 	setCanvasCursor("grabbing")
 	return true
 }
 
 // turtleTiltMove turns the figure about the screen axes.
-func turtleTiltMove(dax, day float32) {
-	if !turtleTiltDrag || turtleState == nil {
+func (t *turtleGrab) tiltMove(dax, day float32) {
+	if !t.tiltDrag || turtle.state == nil {
 		return
 	}
-	turtleState.body.turtleTiltBy(dax, day)
+	turtle.state.body.turtleTiltBy(dax, day)
 }
 
-func turtleTiltEnd() {
-	if !turtleTiltDrag {
+func (t *turtleGrab) tiltEnd() {
+	if !t.tiltDrag {
 		return
 	}
-	turtleTiltDrag = false
+	t.tiltDrag = false
 	setCanvasCursor("")
 }
 
 // turtleSpinBegin claims a rim drag for the figure, if there is a figure with
 // weight to claim it. Reports whether it did.
-func turtleSpinBegin() bool {
-	if !turtleGrabbable() || turtleState == nil {
+func (t *turtleGrab) spinBegin() bool {
+	if !turtleGrabbable() || turtle.state == nil {
 		return false
 	}
-	turtleSpinDrag = true
-	turtleSpinMs = 0
+	t.spinDrag = true
+	t.spinMs = 0
 	setCanvasCursor("grabbing")
 	return true
 }
@@ -322,28 +330,25 @@ func turtleSpinBegin() bool {
 // frame. Pointer moves do not arrive on the frame clock — they arrive when the
 // hand moves — so dividing by a fixed 16 ms turned a leisurely twist into a
 // hard flick and the figure carried on spinning long after it was let go.
-func turtleSpinBy(d float32) {
-	if !turtleSpinDrag || turtleState == nil {
+func (t *turtleGrab) spinBy(d float32) {
+	if !t.spinDrag || turtle.state == nil {
 		return
 	}
-	b := &turtleState.body
+	b := &turtle.state.body
 	b.ang += d
 	now := js.Global().Get("performance").Call("now").Float()
-	if turtleSpinMs > 0 {
-		if dt := float32(now-turtleSpinMs) / 1000; dt > 0.001 {
+	if t.spinMs > 0 {
+		if dt := float32(now-t.spinMs) / 1000; dt > 0.001 {
 			b.spin = d / dt
 		}
 	}
-	turtleSpinMs = now
+	t.spinMs = now
 }
 
-// turtleSpinMs is when the last twist was measured.
-var turtleSpinMs float64
-
-func turtleSpinEnd() {
-	if !turtleSpinDrag {
+func (t *turtleGrab) spinEnd() {
+	if !t.spinDrag {
 		return
 	}
-	turtleSpinDrag = false
+	t.spinDrag = false
 	setCanvasCursor("")
 }

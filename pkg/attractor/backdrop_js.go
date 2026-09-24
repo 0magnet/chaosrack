@@ -46,7 +46,7 @@ func bgVisualActive() bool {
 func setBackgroundVisual(kind string) {
 	bgVisual = kind
 	if bgVisual != "" {
-		ensureAudioSource()
+		aud.ensureAudioSource()
 	}
 }
 
@@ -56,7 +56,7 @@ func setBackgroundVisual(kind string) {
 func renderBackgroundVisual(nowMs float64) {
 	switch bgVisual {
 	case "xy":
-		drawXYScope(false) // no self-clear — layer onto the current buffer
+		xy.drawXYScope(false) // no self-clear — layer onto the current buffer
 	case "spectrogram":
 		drawSpectrogramBackground(nowMs)
 	case "desk":
@@ -72,19 +72,19 @@ func renderBackgroundVisual(nowMs float64) {
 // draws it face-on filling the canvas (regardless of the Fill switch), with no
 // clear, so it sits behind the model.
 func drawSpectrogramBackground(nowMs float64) {
-	if !spectReady {
-		initSpectrogram()
+	if !spect.ready {
+		spect.initSpectrogram()
 	}
-	ensureAudioSource()
-	updateSpectrogramTexture(nowMs)
-	offset := float32(spectTexCol) / float32(spectTexW)
+	aud.ensureAudioSource()
+	spect.updateSpectrogramTexture(nowMs)
+	offset := float32(spect.texCol) / float32(spectTexW)
 	// Force the full-screen face-on placement for the duration of this draw
 	// (the background always fills; the Fill switch only governs the MODE).
-	savedFill := spectFill
-	spectFill = true
+	savedFill := spect.fill
+	spect.fill = true
 	glctx.GL.Call("disable", glctx.Types.DepthTest)
-	drawTexturedPlane(spectTexture, offset)
-	spectFill = savedFill
+	texp.drawTexturedPlane(spect.texture, offset)
+	spect.fill = savedFill
 }
 
 // syncLayersModule dims the two layer controls the current model cannot take.
@@ -143,7 +143,7 @@ func syncSpectroModule(mode string) {
 		return
 	}
 	host.Set("innerHTML", "")
-	asLayer := (skinSource == "spectrogram" && isSkinnable(mode)) || bgVisual == "spectrogram"
+	asLayer := (skin.source == "spectrogram" && isSkinnable(mode)) || bgVisual == "spectrogram"
 	if !asLayer || isSpectroSurface(mode) {
 		sect.Get("style").Set("display", "none")
 		return

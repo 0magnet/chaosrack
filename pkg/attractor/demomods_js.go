@@ -23,9 +23,9 @@ var (
 func buildDemoModules() {
 	if b := dom.Doc.Call("getElementById", "pong-restart"); b.Truthy() {
 		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-			pongScoreL, pongScoreR = 0, 0
-			pongServeBall(1)
-			pongSyncScoreboard()
+			pong.scoreL, pong.scoreR = 0, 0
+			pong.serveBall(1)
+			pong.syncScoreboard()
 			return nil
 		}))
 	}
@@ -49,12 +49,12 @@ func buildDemoModules() {
 		}))
 		return sl
 	}
-	pongPadSlL = wirePad("pong-pad-l", "pong-lstack", &pongPadL, &pongHumanL)
-	pongPadSlR = wirePad("pong-pad-r", "pong-rstack", &pongPadR, &pongHumanR)
+	pongPadSlL = wirePad("pong-pad-l", "pong-lstack", &pong.padL, &pong.humanL)
+	pongPadSlR = wirePad("pong-pad-r", "pong-rstack", &pong.padR, &pong.humanR)
 	if in := dom.Doc.Call("getElementById", "stext-in"); in.Truthy() {
-		in.Set("value", scopeTextStr)
+		in.Set("value", ftext.str)
 		in.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-			scopeTextStr = strings.ToUpper(in.Get("value").String())
+			ftext.str = strings.ToUpper(in.Get("value").String())
 			return nil
 		}))
 	}
@@ -81,11 +81,11 @@ func buildDemoModules() {
 	buildSTLFileModule()
 	if b := dom.Doc.Call("getElementById", "bounce-drop"); b.Truthy() {
 		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-			bounceX, bounceY = -1.2, bounceDropHeight()
-			bounceVY = 0
-			bounceVX = float64(bounceDrift)
+			ball.x, ball.y = -1.2, bounceDropHeight()
+			ball.vy = 0
+			ball.vx = float64(ball.drift)
 			if jamRand() < 0.5 {
-				bounceVX = -bounceVX
+				ball.vx = -ball.vx
 			}
 			return nil
 		}))

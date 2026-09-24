@@ -31,27 +31,32 @@ import (
 // oversampling TruePeak does; the meter's own peak is the sample peak, and the
 // higher of the two is what is shown.
 
-// lufsPeriodMs is how often the readouts latch, and it is a DISPLAY rate
-// only: the meter itself integrates every sample that arrives, because an
-// integrated loudness with a block missing is a block missing from the
-// answer. Nothing about the measurement changes when this moves — only how
-// often you are shown it. On the panel as RATE; see meterswitch_js.go.
-var lufsPeriodMs float64 = 200
+// loudness is the Loudness module: the meter, its refresh clock and its LEDs.
+type loudness struct {
+	// periodMs is how often the readouts latch, and it is a DISPLAY rate
+	// only: the meter itself integrates every sample that arrives, because an
+	// integrated loudness with a block missing is a block missing from the
+	// answer. Nothing about the measurement changes when this moves — only how
+	// often you are shown it. On the panel as RATE; see meterswitch_js.go.
+	periodMs        float64
+	cursor          int
+	meter           *meters.LoudnessMeter
+	nextMs          float64
+	res             meters.LoudnessResult
+	target          float32
+	mEl, sEl, iEl   js.Value
+	lraEl, tpEl, dl js.Value
+}
 
-var (
-	lufsCursor = tapUnjoined
-	lufsMeter  *meters.LoudnessMeter
-	lufsNextMs float64
-	lufsRes    meters.LoudnessResult
-	lufsTarget float32 = -23
-
-	lufsMEl, lufsSEl, lufsIEl   js.Value
-	lufsLRAEl, lufsTPEl, lufsDl js.Value
-)
+var lufs = loudness{
+	periodMs: 200,
+	cursor:   tapUnjoined,
+	target:   -23,
+}
 
 // lufsTick drains the tap into the meter and updates the readouts on its own
 // clock. Called once a frame; does nothing while the module is off screen.
-func lufsTick(nowMs float64) {
+func (l *loudness) tick(nowMs float64) {
 	// Not merely "not display:none" — actually on screen. See
 	// moduleOnScreen: this module's DSP and readouts are most of what the
 	// panel costs per frame, and the drawer usually has it scrolled away.
@@ -59,44 +64,44 @@ func lufsTick(nowMs float64) {
 		return
 	}
 	sr := takensSourceRate()
-	if lufsMeter == nil {
-		lufsMeter = meters.NewLoudnessMeter(sr)
-	} else if lufsMeter.SampleRate() != sr {
+	if l.meter == nil {
+		l.meter = meters.NewLoudnessMeter(sr)
+	} else if l.meter.SampleRate() != sr {
 		// A change of source rate retunes the weighting — and drops the
 		// measurement with it, because an integrated loudness averaged across
 		// two different filters describes neither.
-		lufsMeter.Reset(sr)
+		l.meter.Reset(sr)
 	}
 	var sl, sr2 [4096]float32
 	for {
-		n := tapReadStereo(&lufsCursor, sl[:], sr2[:])
+		n := tap.readStereo(&l.cursor, sl[:], sr2[:])
 		if n <= 0 {
 			break
 		}
-		lufsMeter.Add(sl[:n], sr2[:n])
+		l.meter.Add(sl[:n], sr2[:n])
 		// The true peak on the raw buffer, oversampled. Done here rather than
 		// inside the meter because it needs the samples either side of each
 		// point and the meter is a per-sample loop.
 		if p := meters.TruePeak(sl[:n]); p > 0 {
-			lufsMeter.SetTruePeak(p)
+			l.meter.SetTruePeak(p)
 		}
 		if p := meters.TruePeak(sr2[:n]); p > 0 {
-			lufsMeter.SetTruePeak(p)
+			l.meter.SetTruePeak(p)
 		}
 		if n < len(sl) {
 			break
 		}
 	}
-	if nowMs < lufsNextMs {
+	if nowMs < l.nextMs {
 		return
 	}
-	lufsNextMs = nowMs + lufsPeriodMs
-	lufsRes = lufsMeter.Result()
-	showLoudness()
+	l.nextMs = nowMs + l.periodMs
+	l.res = l.meter.Result()
+	l.showLoudness()
 }
 
 // showLoudness writes the readouts.
-func showLoudness() {
+func (l *loudness) showLoudness() {
 	set := func(key string, el js.Value, v float64, ok bool) {
 		if !ok || v <= meters.LoudnessFloor {
 			readouts.Set(key, el, "  --.-")
@@ -104,35 +109,35 @@ func showLoudness() {
 		}
 		readouts.Set(key, el, led.Format(v, 3, 1, true))
 	}
-	set("lufs-m", lufsMEl, lufsRes.Momentary, lufsRes.Momentary > meters.LoudnessFloor)
-	set("lufs-s", lufsSEl, lufsRes.ShortTerm, lufsRes.ShortTerm > meters.LoudnessFloor)
-	set("lufs-i", lufsIEl, lufsRes.Integrated, lufsRes.OK)
-	if lufsRes.OK {
-		readouts.Set("lufs-lra", lufsLRAEl, led.Format(lufsRes.LRA, 3, 1, false))
+	set("lufs-m", l.mEl, l.res.Momentary, l.res.Momentary > meters.LoudnessFloor)
+	set("lufs-s", l.sEl, l.res.ShortTerm, l.res.ShortTerm > meters.LoudnessFloor)
+	set("lufs-i", l.iEl, l.res.Integrated, l.res.OK)
+	if l.res.OK {
+		readouts.Set("lufs-lra", l.lraEl, led.Format(l.res.LRA, 3, 1, false))
 	} else {
-		readouts.Set("lufs-lra", lufsLRAEl, "  --.-")
+		readouts.Set("lufs-lra", l.lraEl, "  --.-")
 	}
-	set("lufs-tp", lufsTPEl, lufsRes.TruePeak, lufsRes.TruePeak > meters.LoudnessFloor)
+	set("lufs-tp", l.tpEl, l.res.TruePeak, l.res.TruePeak > meters.LoudnessFloor)
 	// Through lufsDistanceToTarget rather than subtracting here: it is the
 	// same arithmetic plus the floor guard, and an integrated reading that
 	// has not risen off the floor is not a distance from anything.
-	d := lufsDistanceToTarget(lufsRes.Integrated, float64(lufsTarget))
-	if lufsRes.OK && !math.IsNaN(d) {
-		readouts.Set("lufs-d", lufsDl, led.Format(d, 3, 1, true))
+	d := lufsDistanceToTarget(l.res.Integrated, float64(l.target))
+	if l.res.OK && !math.IsNaN(d) {
+		readouts.Set("lufs-d", l.dl, led.Format(d, 3, 1, true))
 	} else {
-		readouts.Set("lufs-d", lufsDl, "  --.-")
+		readouts.Set("lufs-d", l.dl, "  --.-")
 	}
 }
 
 // wireLoudnessModule finds the readouts and wires the target knob and the
 // reset. Called once from Run.
-func wireLoudnessModule() {
-	lufsMEl = dom.Doc.Call("getElementById", "lufs-m-led")
-	lufsSEl = dom.Doc.Call("getElementById", "lufs-s-led")
-	lufsIEl = dom.Doc.Call("getElementById", "lufs-i-led")
-	lufsLRAEl = dom.Doc.Call("getElementById", "lufs-lra-led")
-	lufsTPEl = dom.Doc.Call("getElementById", "lufs-tp-led")
-	lufsDl = dom.Doc.Call("getElementById", "lufs-delta-led")
+func (l *loudness) wireLoudnessModule() {
+	l.mEl = dom.Doc.Call("getElementById", "lufs-m-led")
+	l.sEl = dom.Doc.Call("getElementById", "lufs-s-led")
+	l.iEl = dom.Doc.Call("getElementById", "lufs-i-led")
+	l.lraEl = dom.Doc.Call("getElementById", "lufs-lra-led")
+	l.tpEl = dom.Doc.Call("getElementById", "lufs-tp-led")
+	l.dl = dom.Doc.Call("getElementById", "lufs-delta-led")
 	tgt := dom.Doc.Call("getElementById", "lufs-target")
 	rst := dom.Doc.Call("getElementById", "lufs-reset")
 	if !tgt.Truthy() {
@@ -145,24 +150,24 @@ func wireLoudnessModule() {
 		ID: "lufs-target", Label: "tgt", Min: -40, Max: 0, Step: 1, Def: -23,
 		Signed: true, LEDID: "lufs-target-led", ResetID: "rst-lufs-target", LEDStep: 10,
 		Apply: func(v float64) {
-			lufsTarget = float32(v)
-			showLoudness()
+			l.target = float32(v)
+			l.showLoudness()
 		},
 	})
 	if rst.Truthy() {
 		rst.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-			if lufsMeter != nil {
-				lufsMeter.Reset(lufsMeter.SampleRate())
+			if l.meter != nil {
+				l.meter.Reset(l.meter.SampleRate())
 			}
-			lufsRes = meters.LoudnessResult{
+			l.res = meters.LoudnessResult{
 				Momentary: meters.LoudnessFloor, ShortTerm: meters.LoudnessFloor,
 				Integrated: meters.LoudnessFloor, TruePeak: meters.LoudnessFloor,
 			}
-			showLoudness()
+			l.showLoudness()
 			return nil
 		}))
 	}
-	showLoudness()
+	l.showLoudness()
 }
 
 // lufsDistanceToTarget is how far a reading is from a target, in LU. Positive

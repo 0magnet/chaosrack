@@ -137,7 +137,7 @@ func buildTemplateModule() {
 	slbl.Set("textContent", "selector")
 	slbl.Set("title", "label — the Control's name (.plabel)")
 	sgrp.Call("appendChild", slbl)
-	sstack := stackKnobs(makeSelectorKnob(selA), makeSelectorKnob(selB))
+	sstack := stackKnobs(selk.makeSelectorKnob(selA), selk.makeSelectorKnob(selB))
 	addSelectorLabels(sstack, []string{"A", "B", "C", "trl"}, selA)
 	addSelectorLabels(sstack, []string{"1", "2", "3", "∞"}, selB)
 	if ring := sstack.Call("querySelector", ".knob-ring"); ring.Truthy() {

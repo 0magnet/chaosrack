@@ -68,7 +68,7 @@ func enterDeskModel() bool {
 		DrawChrome: true,
 		Background: [4]float32{0.063, 0.075, 0.102, 1},
 	}); err != nil {
-		showAudioStatus("the desk cannot be drawn here: " + err.Error())
+		aud.showAudioStatus("the desk cannot be drawn here: " + err.Error())
 		return false
 	}
 	// The compositor's own canvas is a full-page layer above everything. It
@@ -95,7 +95,7 @@ func syncDeskModel(mode string) {
 	// The skin counts too: it borrows the same compositor, so releasing it here
 	// while a desk is painted on a torus would take the picture away and let the
 	// next frame ask for it back, once per frame, forever.
-	if mode != "desk" && bgVisual != "desk" && skinSource != "desk" {
+	if mode != "desk" && bgVisual != "desk" && skin.source != "desk" {
 		leaveDeskModel()
 	}
 }
@@ -142,7 +142,7 @@ func deskOnSwitchIsSet() bool { return deskContain }
 // one. Taking the keyboard when it is not visible would be a keyboard stolen by
 // something nobody can see.
 func deskOnScreen() bool {
-	return selectedMode == "desk" || bgVisual == "desk" || skinSource == "desk"
+	return selectedMode == "desk" || bgVisual == "desk" || skin.source == "desk"
 }
 
 // deskKeyboardTarget is what a keystroke should reach inside the composited
@@ -180,7 +180,7 @@ func generateDeskModel() {
 	uploadCanvasTexture(&deskModelTexture, cv)
 	// On a quad shaped like the desk, not a square: a 1920×999 desktop on a
 	// 1:1 quad is a desktop squashed to half its width.
-	drawTexturedAspect(deskModelTexture, canvasAspect(cv))
+	texp.drawTexturedAspect(deskModelTexture, canvasAspect(cv))
 }
 
 // deskModelCanvas is what the backdrop asks for.
@@ -203,11 +203,11 @@ func drawDeskBackground() {
 	if !ok {
 		return
 	}
-	savedFill := spectFill
-	spectFill = true
+	savedFill := spect.fill
+	spect.fill = true
 	glctx.GL.Call("disable", glctx.Types.DepthTest)
-	drawTexturedPlane(tex, 0)
-	spectFill = savedFill
+	texp.drawTexturedPlane(tex, 0)
+	spect.fill = savedFill
 }
 
 func init() {

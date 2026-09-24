@@ -12,13 +12,28 @@ import (
 // the Lissajous mode: the drawn window is exactly one period, so the whole
 // banner is always on screen and the gradient head visibly retraces it.
 
+// fourierText is the Fourier Text mode: the string, the harmonics that draw
+// it and its clock.
+type fourierText struct {
+	str  string
+	harm float32 // harmonics kept per glyph (the knob)
+	keyS string  // cache keys: text…
+	keyH int     // …and harmonic count
+	t    float64 // beam phase, 0..1 of the banner sweep
+
+	// scopeTextActive tracks mode residency (entry setup once per entry, like
+	// pongActive — panel rebuilds must not re-normalize the pose).
+	active bool
+	drawn  [][]float64 // cached drawable strokes (blanked circuits)
+}
+
+var ftext = fourierText{
+	str:  "CHAOSRACK",
+	harm: 24,
+}
+
 var (
-	scopeTextStr          = "CHAOSRACK"
-	scopeTextHarm float32 = 24 // harmonics kept per glyph (the knob)
-	scopeTextKeyS string       // cache keys: text…
-	scopeTextKeyH int          // …and harmonic count
-	scopeTextT    float64      // beam phase, 0..1 of the banner sweep
-	scopeTextRes  = 1024       // reconstruction samples per glyph
+	scopeTextRes = 1024 // reconstruction samples per glyph
 )
 
 // generateScopeText rebuilds the per-glyph harmonic reconstructions when
@@ -27,14 +42,14 @@ var (
 // (all at the same phase, like a bank of character generators sharing one
 // clock); the strip's short glyph-to-glyph connectors are the multiplexer
 // hand-off an unblanked scope would show.
-func generateScopeText() {
-	h := int(scopeTextHarm + 0.5)
+func (f *fourierText) generateScopeText() {
+	h := int(f.harm + 0.5)
 	if h < 1 {
 		h = 1
 	}
-	if scopeTextDrawn == nil || scopeTextKeyS != scopeTextStr || scopeTextKeyH != h {
-		glyphs := scope.TextGlyphStrokes(scopeTextStr)
-		scopeTextDrawn = scopeTextDrawn[:0]
+	if f.drawn == nil || f.keyS != f.str || f.keyH != h {
+		glyphs := scope.TextGlyphStrokes(f.str)
+		f.drawn = f.drawn[:0]
 		for _, g := range glyphs {
 			c := scope.TextSynth(g, h, scopeTextRes)
 			if c == nil {
@@ -44,35 +59,28 @@ func generateScopeText() {
 			// z-axis keying a hardware character generator would apply. The
 			// glyph-to-glyph hand-off is likewise never drawn (separate
 			// strokes), so no beam appears anywhere it shouldn't.
-			scopeTextDrawn = append(scopeTextDrawn, scope.TextSplitCurve(c, scope.TextJumpFractions(g))...)
+			f.drawn = append(f.drawn, scope.TextSplitCurve(c, scope.TextJumpFractions(g))...)
 		}
-		scopeTextKeyS, scopeTextKeyH = scopeTextStr, h
+		f.keyS, f.keyH = f.str, h
 	}
-	if len(scopeTextDrawn) == 0 || steps < 2 {
+	if len(f.drawn) == 0 || steps < 2 {
 		return
 	}
 	// One full period ≈ 3 s at speed 1, scaled like the integrators; the
 	// phase sweeps the gradient along the banner.
-	scopeTextT += float64(speedScale) * float64(speedSteps) / 180
-	for scopeTextT >= 1 {
-		scopeTextT--
+	f.t += float64(speedScale) * float64(speedSteps) / 180
+	for f.t >= 1 {
+		f.t--
 	}
-	if v := beamLines(scopeTextDrawn, scopeTextT); v > 0 {
+	if v := beamLines(f.drawn, f.t); v > 0 {
 		gpu.uploadVerticesOnly(vertBuf[:v*4], beamDrawMode(), v)
 	}
 }
 
-// scopeTextActive tracks mode residency (entry setup once per entry, like
-// pongActive — panel rebuilds must not re-normalize the pose).
-var (
-	scopeTextActive bool
-	scopeTextDrawn  [][]float64 // cached drawable strokes (blanked circuits)
-)
-
 // syncScopeTextExtras shows the Banner module while Fourier Text is the
 // active model, and normalizes the pose on entry — a banner reads face-on.
 // (The text field itself is static markup wired in buildDemoModules.)
-func syncScopeTextExtras(mode string) {
+func (f *fourierText) syncScopeTextExtras(mode string) {
 	if sect := dom.Doc.Call("getElementById", "stext-module"); sect.Truthy() {
 		if mode == "scopetext" {
 			sect.Get("style").Set("display", "")
@@ -81,11 +89,11 @@ func syncScopeTextExtras(mode string) {
 		}
 	}
 	if mode != "scopetext" {
-		scopeTextActive = false
+		f.active = false
 		return
 	}
-	if !scopeTextActive {
-		scopeTextActive = true
+	if !f.active {
+		f.active = true
 		normalizeOrientation()
 	}
 }

@@ -7,12 +7,12 @@ import "testing"
 // resetTap puts the tap back to its zero state so each test starts clean.
 func resetTap(t *testing.T) {
 	t.Helper()
-	tapRingL = make([]float32, tapRingSize)
-	tapRingR = make([]float32, tapRingSize)
-	tapW = 0
-	tapScratch = make([]float32, 4096)
-	tapScratchR = make([]float32, 4096)
-	tapSrc = nil
+	tap.ringL = make([]float32, tapRingSize)
+	tap.ringR = make([]float32, tapRingSize)
+	tap.w = 0
+	tap.scratch = make([]float32, 4096)
+	tap.scratchR = make([]float32, 4096)
+	tap.src = nil
 }
 
 // tapWrite pushes n samples carrying their own index as a value, so a reader
@@ -21,10 +21,10 @@ func resetTap(t *testing.T) {
 // assertions read unchanged.
 func tapWrite(n int) {
 	for i := 0; i < n; i++ {
-		j := tapW % len(tapRingL)
-		tapRingL[j] = float32(tapW)
-		tapRingR[j] = float32(tapW)
-		tapW++
+		j := tap.w % len(tap.ringL)
+		tap.ringL[j] = float32(tap.w)
+		tap.ringR[j] = float32(tap.w)
+		tap.w++
 	}
 }
 
@@ -113,7 +113,7 @@ func TestTapFastForwardsAStaleCursor(t *testing.T) {
 		t.Fatalf("stale cursor read %d, want %d", got, len(dst))
 	}
 	// It must resume at the oldest sample still present, not at 0.
-	oldest := float32(tapW - tapRingSize)
+	oldest := float32(tap.w - tapRingSize)
 	if dst[0] != oldest {
 		t.Fatalf("stale cursor resumed at %v, want the oldest retained sample %v", dst[0], oldest)
 	}
@@ -133,7 +133,7 @@ func TestTapSurvivesASourceSwitch(t *testing.T) {
 	}
 
 	// Source switch: tapPump zeroes tapW while the cursor still points high.
-	tapW = 0
+	tap.w = 0
 	if got := tapRead(&c, dst); got != 0 {
 		t.Fatalf("cursor past the write head read %d, want 0", got)
 	}
@@ -151,24 +151,24 @@ func TestTapSurvivesASourceSwitch(t *testing.T) {
 // switch has to invalidate the cursors — they index a different stream.
 func TestTapSwitchesUpstreamForFVF(t *testing.T) {
 	resetTap(t)
-	tapUpstream = tapFromSource
+	tap.upstream = tapFromSource
 
-	savedMode, savedActive := selectedMode, fvfAudioActive
-	defer func() { selectedMode, fvfAudioActive = savedMode, savedActive }()
+	savedMode, savedActive := selectedMode, fvf.audioActive
+	defer func() { selectedMode, fvf.audioActive = savedMode, savedActive }()
 
-	selectedMode, fvfAudioActive = "lorenz", false
+	selectedMode, fvf.audioActive = "lorenz", false
 	if got := tapPumpUpstream(); got != tapFromSource {
 		t.Fatalf("upstream = %v with FVF off, want tapFromSource", got)
 	}
 
 	// FVF selected but its audio engine not started: it is not draining the
 	// source yet, so the tap must stay on the source.
-	selectedMode, fvfAudioActive = "fvf", false
+	selectedMode, fvf.audioActive = "fvf", false
 	if got := tapPumpUpstream(); got != tapFromSource {
 		t.Fatalf("upstream = %v with the FVF engine stopped, want tapFromSource", got)
 	}
 
-	selectedMode, fvfAudioActive = "fvf", true
+	selectedMode, fvf.audioActive = "fvf", true
 	if got := tapPumpUpstream(); got != tapFromFVF {
 		t.Fatalf("upstream = %v with the FVF engine running, want tapFromFVF", got)
 	}

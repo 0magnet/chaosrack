@@ -400,11 +400,11 @@ func buildParamPanelNow(mode string) {
 
 	// Mode-scoped scope extras (run before any early return so they clean up on
 	// every mode change): GA waveform switches + the CRT overlay.
-	syncGAWaveSwitches(mode)
-	syncPongExtras(mode)
-	syncScopeTextExtras(mode)
-	syncBounceExtras(mode)
-	syncSprottMorphExtras(mode)
+	ga.syncGAWaveSwitches(mode)
+	pong.syncPongExtras(mode)
+	ftext.syncScopeTextExtras(mode)
+	ball.syncBounceExtras(mode)
+	morph.syncSprottMorphExtras(mode)
 	syncSTLFileExtras(mode)
 	syncMapExtras(mode)
 	syncDeskExtras(mode)
@@ -412,7 +412,7 @@ func buildParamPanelNow(mode string) {
 	syncLayersModule(mode)
 	syncSpectroModule(mode)
 	syncDeskModel(mode)
-	syncAnalysisModule(mode)
+	lyap.syncAnalysisModule(mode)
 	clearTurtlePhysModule()
 	clearSectionModule()
 	updateCRTOverlay()
@@ -438,7 +438,7 @@ func buildParamPanelNow(mode string) {
 		// Shown explicitly: these two build an editor into the module rather
 		// than knobs, and a mode before them may have left it hidden.
 		showParamsModule(true)
-		buildCustomPanel(paramsDiv)
+		custom.buildCustomPanel(paramsDiv)
 		if rebindParamWheel != nil {
 			rebindParamWheel()
 		}
@@ -448,7 +448,7 @@ func buildParamPanelNow(mode string) {
 
 	if mode == "bifurcation" {
 		showParamsModule(true)
-		buildBifPanel(paramsDiv)
+		bif.buildBifPanel(paramsDiv)
 		quantizeModuleWidths()
 		return
 	}
@@ -489,7 +489,7 @@ func buildParamPanelNow(mode string) {
 	if mode == "takens" {
 		// Into the grid for the same reason the FVF selectors are: #params
 		// stacks below the height-bounded grid and gets clipped.
-		appendTakensEstimate(grid)
+		emb.appendTakensEstimate(grid)
 	}
 
 	if mode == "recurrence" {
@@ -497,12 +497,12 @@ func buildParamPanelNow(mode string) {
 		// readout element, so the per-frame scan knows whether anything is
 		// displaying its result — a panel rebuild replaces the element, and
 		// this is where the new one is handed over.
-		appendRecurrenceRQA(grid)
+		rp.appendRecurrenceRQA(grid)
 		// ...and the history of those same three numbers, in the cell after
 		// them, which is the reading RQA is actually for. Last, because it
 		// spans a whole column group of the grid and everything appended after
 		// a full-height item flows into the columns past it.
-		appendRecurrenceSeries(grid)
+		rqa.appendRecurrenceSeries(grid)
 	}
 
 	if mode == "stereo" {
@@ -512,19 +512,19 @@ func buildParamPanelNow(mode string) {
 
 	if mode == "xfer" {
 		// The fitted bulk delay, into the grid for appendStereoReadout's reason.
-		appendTransferReadout(grid)
+		xf.appendTransferReadout(grid)
 	}
 
 	if mode == "waterfall" {
 		// The reverberation time, which the surface is far too shallow to show.
-		appendWaterfallReadout(grid)
+		wfall.appendReadout(grid)
 	}
 
 	if mode == "xy" {
 		// The goniometer's own correlation meter — the number every hardware
 		// one carries beside the tube, and the one the figure cannot give you,
 		// because a thin ellipse and a line are the same picture at a glance.
-		appendXYReadout(grid)
+		xy.appendXYReadout(grid)
 	}
 
 	if _, isFlow := lyapLiveSystem(mode); isFlow {
@@ -535,7 +535,7 @@ func buildParamPanelNow(mode string) {
 		// exponent is per iterate and a polyhedron has none; both belong to
 		// the Analysis module, which can say so in words, rather than to a
 		// cell in this grid that could only print a number or a dash.
-		appendLyapunovReadout(grid)
+		lyapLive.appendLyapunovReadout(grid)
 	}
 
 	if mode == "fvf" {
@@ -543,7 +543,7 @@ func buildParamPanelNow(mode string) {
 		// column-wrap container, so extra cells flow into a new column and the
 		// width quantizer widens the module. Appended to #params they stacked
 		// BELOW the grid and were clipped by the module's fixed height.
-		appendFVFSelectors(grid) // wave + modulator selector knobs + FX/Listen
+		fvf.appendFVFSelectors(grid) // wave + modulator selector knobs + FX/Listen
 	}
 
 	// Audio-modulation controls live in per-group MOD + EQ modules, each pair
@@ -714,7 +714,7 @@ func buildTurtlePhysModule(mode string, paramsDiv js.Value) {
 // one's dial would silently drive the first one's slider.
 func buildSectionModule(mode string, paramsDiv js.Value) {
 	clearSectionModule()
-	if !sectOn || mode == "poincare" {
+	if !sect.on || mode == "poincare" {
 		return
 	}
 	if _, isFlow := dynamics.FlowFor4(mode); !isFlow {

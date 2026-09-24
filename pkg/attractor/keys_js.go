@@ -45,18 +45,28 @@ var (
 // Tonematrix module's row labels).
 var noteNames = []string{"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
 
-var (
-	keysOn        bool
-	keysCtx       js.Value             // shared ctx while the lease is held
-	keysMaster    js.Value             // master gain (level × routing)
-	keysPanNode   js.Value             // stereo panner (routing)
-	keysVoices    = map[int]js.Value{} // held midi note → OscillatorNode
-	keysGains     = map[int]js.Value{} // held midi note → its GainNode
-	keysKeyEls    = map[int]js.Value{} // midi note → key element (highlight)
-	keysAnchor    int                  // midi note the Z row's C lands on
-	keysMouseNote = -1                 // note held by the current mouse drag
-	keysTouchNote = -1                 // note held by the current touch (glissando)
-)
+// keyboard is the Keys module: its voices, its audio graph and the key being
+// held.
+type keyboard struct {
+	on        bool
+	ctx       js.Value         // shared ctx while the lease is held
+	master    js.Value         // master gain (level × routing)
+	panNode   js.Value         // stereo panner (routing)
+	voices    map[int]js.Value // held midi note → OscillatorNode
+	gains     map[int]js.Value // held midi note → its GainNode
+	keyEls    map[int]js.Value // midi note → key element (highlight)
+	anchor    int              // midi note the Z row's C lands on
+	mouseNote int              // note held by the current mouse drag
+	touchNote int              // note held by the current touch (glissando)
+}
+
+var keys = keyboard{
+	voices:    map[int]js.Value{},
+	gains:     map[int]js.Value{},
+	keyEls:    map[int]js.Value{},
+	mouseNote: -1,
+	touchNote: -1,
+}
 
 // keysRange returns the keybed's midi range from the range knobs: the full
 // piano for "88", else span whole octaves C-to-C from the base octave.
@@ -83,26 +93,26 @@ func keysIsBlack(midi int) bool {
 // boundaries, letter labels on the computer-keyboard-mapped span. The bed's
 // width tracks the interface size (16px per white key × --kscale) so the
 // module quantizes to more slots as the range grows.
-func buildKeysBed() {
+func (k *keyboard) buildKeysBed() {
 	bed := dom.Doc.Call("getElementById", "keys-bed")
 	if !bed.Truthy() {
 		return
 	}
-	keysAllOff()
+	k.allOff()
 	bed.Set("innerHTML", "")
-	keysKeyEls = map[int]js.Value{}
+	k.keyEls = map[int]js.Value{}
 	lo, hi := keysRange()
 
 	// Anchor the Z row on the C nearest the middle so both mapped octaves
 	// sit in the played range; slide down an octave if the Q row would
 	// spill off the top, but never below the low end.
 	mid := (lo + hi) / 2
-	keysAnchor = mid - mid%12
-	if keysAnchor+24 > hi && keysAnchor-12 >= lo {
-		keysAnchor -= 12
+	k.anchor = mid - mid%12
+	if k.anchor+24 > hi && k.anchor-12 >= lo {
+		k.anchor -= 12
 	}
-	if keysAnchor < lo {
-		keysAnchor = lo + (12-lo%12)%12
+	if k.anchor < lo {
+		k.anchor = lo + (12-lo%12)%12
 	}
 
 	whitesTotal := 0
@@ -138,7 +148,7 @@ func buildKeysBed() {
 		}
 		// Letter label where the computer keyboard lands (Q row wins on the
 		// overlap so every label is a distinct physical key).
-		if off := midi - keysAnchor; off >= 0 {
+		if off := midi - k.anchor; off >= 0 {
 			lab := ""
 			if off >= 12 && off-12 < len(kbHighKeys) {
 				lab = kbHighKeys[off-12]
@@ -152,51 +162,51 @@ func buildKeysBed() {
 				el.Call("appendChild", sp)
 			}
 		}
-		keysKeyEls[midi] = el
+		k.keyEls[midi] = el
 		el.Call("setAttribute", "data-midi", strconv.Itoa(midi))
 
 		el.Call("addEventListener", "mousedown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			e := a[0]
 			e.Call("preventDefault")
 			e.Call("stopPropagation")
-			keysMouseNote = midi
-			keysNoteOn(midi)
+			k.mouseNote = midi
+			k.noteOn(midi)
 			return nil
 		}))
 		el.Call("addEventListener", "mouseenter", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			e := a[0]
 			// Glissando: only while a bed drag is in progress with the button
 			// still down (buttons==0 heals a mouseup we never saw).
-			if keysMouseNote < 0 {
+			if k.mouseNote < 0 {
 				return nil
 			}
 			if int(e.Get("buttons").Float())&1 == 0 {
-				keysNoteOff(keysMouseNote)
-				keysMouseNote = -1
+				k.noteOff(k.mouseNote)
+				k.mouseNote = -1
 				return nil
 			}
-			if keysMouseNote != midi {
-				keysNoteOff(keysMouseNote)
-				keysMouseNote = midi
-				keysNoteOn(midi)
+			if k.mouseNote != midi {
+				k.noteOff(k.mouseNote)
+				k.mouseNote = midi
+				k.noteOn(midi)
 			}
 			return nil
 		}))
 		el.Call("addEventListener", "touchstart", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			a[0].Call("preventDefault")
-			keysTouchNote = midi
-			keysNoteOn(midi)
+			k.touchNote = midi
+			k.noteOn(midi)
 			return nil
 		}))
 		for _, ev := range []string{"touchend", "touchcancel"} {
 			el.Call("addEventListener", ev, dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 				// The touch may have slid to another key (glissando below) —
 				// release whichever note the finger ended on, and the origin.
-				keysNoteOff(midi)
-				if keysTouchNote >= 0 && keysTouchNote != midi {
-					keysNoteOff(keysTouchNote)
+				k.noteOff(midi)
+				if k.touchNote >= 0 && k.touchNote != midi {
+					k.noteOff(k.touchNote)
 				}
-				keysTouchNote = -1
+				k.touchNote = -1
 				return nil
 			}))
 		}
@@ -218,14 +228,14 @@ func buildKeysBed() {
 			return nil
 		}
 		midi, err := strconv.Atoi(m.String())
-		if err != nil || midi == keysTouchNote {
+		if err != nil || midi == k.touchNote {
 			return nil
 		}
-		if keysTouchNote >= 0 {
-			keysNoteOff(keysTouchNote)
+		if k.touchNote >= 0 {
+			k.noteOff(k.touchNote)
 		}
-		keysTouchNote = midi
-		keysNoteOn(midi)
+		k.touchNote = midi
+		k.noteOn(midi)
 		return nil
 	}))
 }
@@ -234,25 +244,25 @@ func buildKeysBed() {
 
 // keysEnsureGraph acquires the shared context (we're inside a user gesture:
 // a key click or keydown) and lazily builds the master gain → panner chain.
-func keysEnsureGraph() js.Value {
+func (k *keyboard) ensureGraph() js.Value {
 	ctx := acquireAudioCtx("keys")
 	if !ctx.Truthy() {
 		return js.Undefined()
 	}
-	if !keysMaster.Truthy() {
-		keysMaster = ctx.Call("createGain")
-		keysPanNode = ctx.Call("createStereoPanner")
-		keysMaster.Call("connect", keysPanNode)
-		keysPanNode.Call("connect", ctx.Get("destination"))
+	if !k.master.Truthy() {
+		k.master = ctx.Call("createGain")
+		k.panNode = ctx.Call("createStereoPanner")
+		k.master.Call("connect", k.panNode)
+		k.panNode.Call("connect", ctx.Get("destination"))
 	}
-	keysCtx = ctx
-	keysUpdateRouting()
+	k.ctx = ctx
+	k.updateRouting()
 	return ctx
 }
 
 // keysUpdateRouting pushes the out ring + level knob into the master chain.
-func keysUpdateRouting() {
-	if !keysMaster.Truthy() {
+func (k *keyboard) updateRouting() {
+	if !k.master.Truthy() {
 		return
 	}
 	lvl := fgFloat(dom.Doc.Call("getElementById", "keys-lvl")) / 100
@@ -265,18 +275,18 @@ func keysUpdateRouting() {
 	case "both":
 		gain, pan = lvl, 0
 	}
-	keysMaster.Get("gain").Set("value", gain*0.25) // headroom for chords
-	keysPanNode.Get("pan").Set("value", pan)
+	k.master.Get("gain").Set("value", gain*0.25) // headroom for chords
+	k.panNode.Get("pan").Set("value", pan)
 }
 
-func keysNoteOn(midi int) {
-	if _, held := keysVoices[midi]; held {
+func (k *keyboard) noteOn(midi int) {
+	if _, held := k.voices[midi]; held {
 		return
 	}
-	if el, ok := keysKeyEls[midi]; ok {
+	if el, ok := k.keyEls[midi]; ok {
 		el.Get("classList").Call("add", "held")
 	}
-	ctx := keysEnsureGraph()
+	ctx := k.ensureGraph()
 	if !ctx.Truthy() {
 		return
 	}
@@ -287,7 +297,7 @@ func keysNoteOn(midi int) {
 		// Noise voice: the DCSG shift-register loop, pitched by playback rate
 		// so the keyboard plays tuned noise (chiff/percussion territory).
 		osc = ctx.Call("createBufferSource")
-		osc.Set("buffer", genNoiseBuffer(ctx))
+		osc.Set("buffer", gen.noiseBuffer(ctx))
 		osc.Set("loop", true)
 		osc.Get("playbackRate").Set("value", hz*32/ctx.Get("sampleRate").Float())
 	} else {
@@ -300,35 +310,35 @@ func keysNoteOn(midi int) {
 	g.Get("gain").Call("setValueAtTime", 0, now)
 	g.Get("gain").Call("linearRampToValueAtTime", 1, now+0.008)
 	osc.Call("connect", g)
-	g.Call("connect", keysMaster)
+	g.Call("connect", k.master)
 	osc.Call("start")
-	keysVoices[midi] = osc
-	keysGains[midi] = g
+	k.voices[midi] = osc
+	k.gains[midi] = g
 }
 
-func keysNoteOff(midi int) {
-	if el, ok := keysKeyEls[midi]; ok {
+func (k *keyboard) noteOff(midi int) {
+	if el, ok := k.keyEls[midi]; ok {
 		el.Get("classList").Call("remove", "held")
 	}
-	osc, held := keysVoices[midi]
+	osc, held := k.voices[midi]
 	if !held {
 		return
 	}
-	g := keysGains[midi].Get("gain")
-	delete(keysVoices, midi)
-	delete(keysGains, midi)
-	now := keysCtx.Get("currentTime").Float()
+	g := k.gains[midi].Get("gain")
+	delete(k.voices, midi)
+	delete(k.gains, midi)
+	now := k.ctx.Get("currentTime").Float()
 	g.Call("cancelScheduledValues", now)
 	g.Call("setValueAtTime", g.Get("value"), now)
 	g.Call("linearRampToValueAtTime", 0, now+0.12)
 	osc.Call("stop", now+0.16)
 }
 
-func keysAllOff() {
-	for m := range keysVoices {
-		keysNoteOff(m)
+func (k *keyboard) allOff() {
+	for m := range k.voices {
+		k.noteOff(m)
 	}
-	keysMouseNote = -1
+	k.mouseNote = -1
 }
 
 // ── Wiring ───────────────────────────────────────────────────────────────
@@ -336,7 +346,7 @@ func keysAllOff() {
 // wireKeysModule builds the three control cells (range, level, out/voice),
 // renders the keybed, and installs the global play listeners. Called once
 // from Run.
-func wireKeysModule() {
+func (k *keyboard) wireKeysModule() {
 	span := dom.Doc.Call("getElementById", "keys-span")
 	base := dom.Doc.Call("getElementById", "keys-base")
 	lvl := dom.Doc.Call("getElementById", "keys-lvl")
@@ -351,7 +361,7 @@ func wireKeysModule() {
 	}
 
 	// Range cell: outer ring = key count, inner knob = starting octave.
-	rstk := stackKnobs(makeSelectorKnob(span), makeSelectorKnob(base))
+	rstk := stackKnobs(selk.makeSelectorKnob(span), selk.makeSelectorKnob(base))
 	addSelectorLabels(rstk, []string{"13", "25", "37", "49", "61", "85", "88"}, span)
 	addSelectorLabels(rstk, []string{"C1", "C2", "C3", "C4", "C5"}, base)
 	rstack.Call("appendChild", rstk)
@@ -362,12 +372,12 @@ func wireKeysModule() {
 	adoptDescControl(ControlDesc{
 		ID: "keys-lvl", Label: "lvl", Min: 0, Max: 100, Step: 1, Def: 80,
 		LEDID: "keys-lvl-led", ResetID: "rst-keys-lvl",
-		Apply: func(float64) { keysUpdateRouting() },
+		Apply: func(float64) { k.updateRouting() },
 	})
 
 	// Out cell: same anatomy as the Gen oscillators — outer ring = speaker
 	// routing, inner knob = waveform with the glyph dial.
-	ostk := stackKnobs(makeSelectorKnob(out), makeSelectorKnob(wave))
+	ostk := stackKnobs(selk.makeSelectorKnob(out), selk.makeSelectorKnob(wave))
 	addSelectorLabels(ostk, []string{"off", "L", "R", "L+R"}, out)
 	addSelectorWaveDial(ostk, wave, 38)
 	ostack.Call("appendChild", ostk)
@@ -382,7 +392,7 @@ func wireKeysModule() {
 	}
 	rebuildKeys := func() {
 		refreshSize()
-		buildKeysBed()
+		k.buildKeysBed()
 		quantizeModuleWidths()
 	}
 	// The four selectors, through the descriptor path. All four were orphans:
@@ -402,7 +412,7 @@ func wireKeysModule() {
 	})
 	adoptDescControl(ControlDesc{
 		ID: "keys-out", Label: "out", IsSelect: true, SelectDef: "both", PermaKey: "ko",
-		ResetID: "rst-keys-out", SelectApply: func(string) { keysUpdateRouting() },
+		ResetID: "rst-keys-out", SelectApply: func(string) { k.updateRouting() },
 	})
 	adoptDescControl(ControlDesc{
 		ID: "keys-wave", Label: "wave", IsSelect: true, SelectDef: "0", PermaKey: "kv",
@@ -411,7 +421,7 @@ func wireKeysModule() {
 			if w == 4 {
 				return // node-type change applies to NEW notes; held ones finish as-is
 			}
-			for _, osc := range keysVoices { // retype held periodic voices live
+			for _, osc := range k.voices { // retype held periodic voices live
 				if osc.Get("type").Truthy() { // BufferSource (noise) has no type
 					osc.Set("type", waveTypeName(w))
 				}
@@ -424,13 +434,13 @@ func wireKeysModule() {
 	// being called: the setter is the switch's behavior — it opens an audio
 	// graph and takes a context lease — and booting must not do that. What
 	// the module DOES is its own transport control.
-	keysOn = true
+	k.on = true
 
 	// Computer keyboard: two tracker rows anchored near the range's middle
 	// C. Only while the module is shown, never while typing in a field.
 	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		e := a[0]
-		if !keysOn || e.Get("repeat").Bool() ||
+		if !k.on || e.Get("repeat").Bool() ||
 			e.Get("ctrlKey").Bool() || e.Get("metaKey").Bool() || e.Get("altKey").Bool() {
 			return nil
 		}
@@ -447,34 +457,34 @@ func wireKeysModule() {
 		if !ok {
 			return nil
 		}
-		midi := keysAnchor + off
+		midi := k.anchor + off
 		if lo, hi := keysRange(); midi < lo || midi > hi {
 			return nil
 		}
 		e.Call("preventDefault")
-		keysNoteOn(midi)
+		k.noteOn(midi)
 		return nil
 	}))
 	dom.Doc.Call("addEventListener", "keyup", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if off, ok := kbOffset[strings.ToLower(a[0].Get("key").String())]; ok {
-			keysNoteOff(keysAnchor + off)
+			k.noteOff(k.anchor + off)
 		}
 		return nil
 	}))
 	// Release the mouse-drag note anywhere; silence everything on tab blur
 	// so no note can stick when focus leaves.
 	dom.Doc.Call("addEventListener", "mouseup", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-		if keysMouseNote >= 0 {
-			keysNoteOff(keysMouseNote)
-			keysMouseNote = -1
+		if k.mouseNote >= 0 {
+			k.noteOff(k.mouseNote)
+			k.mouseNote = -1
 		}
 		return nil
 	}))
 	js.Global().Call("addEventListener", "blur", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-		keysAllOff()
+		k.allOff()
 		return nil
 	}))
 
 	refreshSize()
-	buildKeysBed()
+	k.buildKeysBed()
 }

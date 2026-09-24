@@ -28,29 +28,58 @@ const (
 	fvfPitchCeil  = 3000.0
 )
 
-var (
-	fvfGain   float32 = 1    // f_out = gain·f_in + offset
-	fvfOffset float32 = 0    // Hz floor / transposition
-	fvfFMin   float32 = 30   // Hz; carrier never stops (V/F can't do 0 Hz)
-	fvfFMax   float32 = 6000 // Hz ceiling
-	fvfDuty   float32 = 0.12 // pulse duty (brightness)
-	fvfMix    float32 = 1    // 0 = dry .. 1 = fully processed
-	fvfGlide  float32 = 0.25 // pitch smoothing (low = snappy/glitchy = faithful)
-	fvfWave   int     = 1    // 0 square, 1 pulse, 2 sub (÷2)
-	fvfMod    int     = 0    // 0 ring, 1 AM
-	fvfBypass bool           // true = pass raw input through (FX switch off)
-	fvfProc   *fvfProcessor
-)
+// wobbulator is the FVF harmonic wobbulator: its audio graph, its knobs and
+// the running state of its processor.
+type wobbulator struct {
+	gain   float32 // f_out = gain·f_in + offset
+	offset float32 // Hz floor / transposition
+	fMin   float32 // Hz; carrier never stops (V/F can't do 0 Hz)
+	fMax   float32 // Hz ceiling
+	duty   float32 // pulse duty (brightness)
+	mix    float32 // 0 = dry .. 1 = fully processed
+	glide  float32 // pitch smoothing (low = snappy/glitchy = faithful)
+	wave   int     // 0 square, 1 pulse, 2 sub (÷2)
+	mod    int     // 0 ring, 1 AM
+	bypass bool    // true = pass raw input through (FX switch off)
+	proc   *fvfProcessor
+
+	// routeSw is the checkbox itself, kept so the server's answer can move it.
+	// The routing is not this page's state to remember: another tab, the --wobbulate
+	// flag, or the operator's own pactl can all have changed it.
+	routeSw      js.Value
+	listen       bool
+	audioCtx     js.Value
+	audioNode    js.Value
+	audioFn      js.Func
+	audioProc    *fvfProcessor
+	audioActive  bool
+	drainScratch []float32 // source-rate: drained input, then processed output
+	outScratch   []float32 // context-rate: upsampled playback samples
+	srcAcc       float64   // fractional source samples owed to the resampler
+	resampLast   float32   // last processed sample (interp continuity across callbacks)
+	vis          *fvfRing  // ~1s of processed samples for the spectrogram
+}
+
+var fvf = wobbulator{
+	gain:  1,
+	fMin:  30,
+	fMax:  6000,
+	duty:  0.12,
+	mix:   1,
+	glide: 0.25,
+	wave:  1,
+	vis:   newFVFRing(48000),
+}
 
 func init() {
 	attractorParams["fvf"] = []paramDef{
-		{"fvf-gain", "gain", &fvfGain, 1, 0.01, 20, 0.01},
-		{"fvf-offset", "offset", &fvfOffset, 0, 0, 4000, 10},
-		{"fvf-fmin", "fmin", &fvfFMin, 30, 10, 2000, 10},
-		{"fvf-fmax", "fmax", &fvfFMax, 6000, 500, 12000, 50},
-		{"fvf-duty", "duty", &fvfDuty, 0.12, 0.01, 0.5, 0.01},
-		{"fvf-mix", "mix", &fvfMix, 1, 0, 1, 0.01},
-		{"fvf-glide", "glide", &fvfGlide, 0.25, 0.01, 1, 0.01},
+		{"fvf-gain", "gain", &fvf.gain, 1, 0.01, 20, 0.01},
+		{"fvf-offset", "offset", &fvf.offset, 0, 0, 4000, 10},
+		{"fvf-fmin", "fmin", &fvf.fMin, 30, 10, 2000, 10},
+		{"fvf-fmax", "fmax", &fvf.fMax, 6000, 500, 12000, 50},
+		{"fvf-duty", "duty", &fvf.duty, 0.12, 0.01, 0.5, 0.01},
+		{"fvf-mix", "mix", &fvf.mix, 1, 0, 1, 0.01},
+		{"fvf-glide", "glide", &fvf.glide, 0.25, 0.01, 1, 0.01},
 	}
 }
 
@@ -63,13 +92,13 @@ type fvfProcessor struct {
 	fIn, phase, subPh float64
 }
 
-func ensureFVFProc() {
+func (w *wobbulator) ensureFVFProc() {
 	sr := 24000.0
-	if src := activeAudioSource(); src != nil && src.SampleRate() > 0 {
+	if src := aud.activeAudioSource(); src != nil && src.SampleRate() > 0 {
 		sr = float64(src.SampleRate())
 	}
-	if fvfProc == nil || fvfProc.sampleRate != sr {
-		fvfProc = &fvfProcessor{sampleRate: sr}
+	if w.proc == nil || w.proc.sampleRate != sr {
+		w.proc = &fvfProcessor{sampleRate: sr}
 	}
 }
 
@@ -77,7 +106,7 @@ func (p *fvfProcessor) Process(x float32) float32 {
 	// Bypass = pass the raw incoming audio straight through, so the "FX"
 	// switch is an instant A/B between the untouched signal and the
 	// wobbulated one (independent of the mix knob's position).
-	if fvfBypass {
+	if fvf.bypass {
 		return x
 	}
 	xf := float64(x)
@@ -89,19 +118,19 @@ func (p *fvfProcessor) Process(x float32) float32 {
 	if pos && !p.lastPos && p.sinceCross > 1 {
 		f := p.sampleRate / float64(p.sinceCross)
 		if f >= fvfPitchFloor && f <= fvfPitchCeil {
-			p.fIn += float64(fvfGlide) * (f - p.fIn)
+			p.fIn += float64(fvf.glide) * (f - p.fIn)
 		}
 		p.sinceCross = 0
 	}
 	p.lastPos = pos
 
 	// gain·f + offset, clamped so the carrier never dies.
-	fOut := float64(fvfGain)*p.fIn + float64(fvfOffset)
-	if fOut < float64(fvfFMin) {
-		fOut = float64(fvfFMin)
+	fOut := float64(fvf.gain)*p.fIn + float64(fvf.offset)
+	if fOut < float64(fvf.fMin) {
+		fOut = float64(fvf.fMin)
 	}
-	if fOut > float64(fvfFMax) {
-		fOut = float64(fvfFMax)
+	if fOut > float64(fvf.fMax) {
+		fOut = float64(fvf.fMax)
 	}
 
 	p.phase += fOut / p.sampleRate
@@ -114,9 +143,9 @@ func (p *fvfProcessor) Process(x float32) float32 {
 	}
 
 	var carrier float64
-	switch fvfWave {
+	switch fvf.wave {
 	case 1: // variable-duty pulse (bright, harmonic-rich)
-		duty := float64(fvfDuty)
+		duty := float64(fvf.duty)
 		if duty < 0.001 {
 			duty = 0.001
 		} else if duty > 0.5 {
@@ -142,12 +171,12 @@ func (p *fvfProcessor) Process(x float32) float32 {
 	}
 
 	var wet float64
-	if fvfMod == 1 { // AM / balanced
+	if fvf.mod == 1 { // AM / balanced
 		wet = xf * (1 + carrier) * 0.5
 	} else { // ring (four-quadrant)
 		wet = xf * carrier
 	}
-	out := float64(fvfMix)*wet + (1-float64(fvfMix))*xf
+	out := float64(fvf.mix)*wet + (1-float64(fvf.mix))*xf
 	if out > 1 {
 		out = 1
 	} else if out < -1 {
@@ -160,7 +189,7 @@ func (p *fvfProcessor) Process(x float32) float32 {
 // using the SAME anatomy as every other module: standard .punit cards with an
 // u-lbl on top, a labeled selector-ring knob (singleSelectorKnob) over a
 // hidden <select> for wave/mod, and labeled switch cards for FX / Listen.
-func appendFVFSelectors(grid js.Value) {
+func (w *wobbulator) appendFVFSelectors(grid js.Value) {
 	mkSelCard := func(label, tip string, opts, ringLabels []string, cur int, onChange func(int)) js.Value {
 		card := dom.Doc.Call("createElement", "div")
 		card.Set("className", "punit")
@@ -206,11 +235,11 @@ func appendFVFSelectors(grid js.Value) {
 	grid.Call("appendChild", mkSelCard("wave",
 		"Wave — carrier waveform (square / pulse / sub-octave ÷2)",
 		[]string{"square", "pulse", "sub ÷2"}, []string{"sqr", "pls", "sub"},
-		fvfWave, func(v int) { fvfWave = v }))
+		w.wave, func(v int) { w.wave = v }))
 	grid.Call("appendChild", mkSelCard("mod",
 		"Mod — modulator topology (ring = four-quadrant, AM = balanced)",
 		[]string{"ring", "AM"}, []string{"ring", "AM"},
-		fvfMod, func(v int) { fvfMod = v }))
+		w.mod, func(v int) { w.mod = v }))
 
 	mkSwCard := func(label, tip string, checked bool, onChange func(bool)) js.Value {
 		card := dom.Doc.Call("createElement", "div")
@@ -238,10 +267,10 @@ func appendFVFSelectors(grid js.Value) {
 	}
 	grid.Call("appendChild", mkSwCard("FX",
 		"FX — on: wobbulated (processed) audio; off: the raw incoming audio straight through (instant A/B, independent of the MIX knob; affects both sound and spectrogram)",
-		!fvfBypass, func(on bool) { fvfBypass = !on }))
+		!w.bypass, func(on bool) { w.bypass = !on }))
 	grid.Call("appendChild", mkSwCard("listen",
 		"Listen — play the wobbulated audio out the speakers (mic: use headphones; music: see the null-sink setup)",
-		fvfListen, func(on bool) { setFVFListen(on) }))
+		w.listen, func(on bool) { w.setFVFListen(on) }))
 
 	// The routing switch, offered only by a server that can actually do it
 	// (chaosrack --audio on a machine with pactl). It is unlike every other
@@ -251,7 +280,7 @@ func appendFVFSelectors(grid js.Value) {
 	if js.Global().Get("__crWobbulate").Truthy() {
 		card := mkSwCard("route", fvfRouteTip, false, func(on bool) { setFVFRoute(on) })
 		grid.Call("appendChild", card)
-		fvfRouteSw = card.Call("querySelector", "input.sw")
+		w.routeSw = card.Call("querySelector", "input.sw")
 		syncFVFRoute()
 	}
 }
@@ -274,11 +303,6 @@ const fvfRouteTip = "Route — send ALL system audio through a temporary null si
 	"Turn it on, play something in any app, then turn on Listen. Off restores the previous default sink; " +
 	"so does stopping the server. Only a page on the same machine can switch it."
 
-// fvfRouteSw is the checkbox itself, kept so the server's answer can move it.
-// The routing is not this page's state to remember: another tab, the --wobbulate
-// flag, or the operator's own pactl can all have changed it.
-var fvfRouteSw js.Value
-
 // setFVFRoute asks the server to install or remove the routing.
 func setFVFRoute(on bool) {
 	body := `{"on":false}`
@@ -294,13 +318,13 @@ func setFVFRoute(on bool) {
 	opts.Set("method", "POST")
 	opts.Set("headers", headers)
 	opts.Set("body", body)
-	fetchJSONOnce(fvfRouteURL, opts, func(ok bool, b js.Value) { applyFVFRoute(ok, b, on) })
+	fetchJSONOnce(fvfRouteURL, opts, func(ok bool, b js.Value) { fvf.applyFVFRoute(ok, b, on) })
 }
 
 // syncFVFRoute puts the switch where the machine actually is, at panel-build
 // time.
 func syncFVFRoute() {
-	fetchJSONOnce(fvfRouteURL, js.Undefined(), func(ok bool, b js.Value) { applyFVFRoute(ok, b, false) })
+	fetchJSONOnce(fvfRouteURL, js.Undefined(), func(ok bool, b js.Value) { fvf.applyFVFRoute(ok, b, false) })
 }
 
 // applyFVFRoute moves the switch to whatever the server reports, and puts it
@@ -309,21 +333,21 @@ func syncFVFRoute() {
 // Back matters. A switch that stays where the click left it claims a routing
 // that was never installed, and the symptom of believing that is silence with
 // no explanation -- the exact failure this whole feature exists to avoid.
-func applyFVFRoute(ok bool, body js.Value, wanted bool) {
-	if !fvfRouteSw.Truthy() {
+func (w *wobbulator) applyFVFRoute(ok bool, body js.Value, wanted bool) {
+	if !w.routeSw.Truthy() {
 		return
 	}
 	if ok && body.Truthy() {
-		fvfRouteSw.Set("checked", body.Get("on").Bool())
-		fvfRouteSw.Set("title", fvfRouteTip)
+		w.routeSw.Set("checked", body.Get("on").Bool())
+		w.routeSw.Set("title", fvfRouteTip)
 		return
 	}
-	fvfRouteSw.Set("checked", !wanted)
+	w.routeSw.Set("checked", !wanted)
 	msg := "no answer from the server"
 	if body.Truthy() && body.Get("error").Truthy() {
 		msg = body.Get("error").String()
 	}
-	fvfRouteSw.Set("title", fvfRouteTip+"\n\nlast attempt failed: "+msg)
+	w.routeSw.Set("title", fvfRouteTip+"\n\nlast attempt failed: "+msg)
 	js.Global().Get("console").Call("warn", "[chaosrack] audio routing: "+msg)
 }
 
@@ -386,20 +410,6 @@ func fetchJSONOnce(url string, opts js.Value, done func(ok bool, body js.Value))
 // PulseAudio/WebSocket stream (music), the latter via a null-sink so the
 // browser's output isn't re-captured.
 
-var (
-	fvfListen       bool
-	fvfAudioCtx     js.Value
-	fvfAudioNode    js.Value
-	fvfAudioFn      js.Func
-	fvfAudioProc    *fvfProcessor
-	fvfAudioActive  bool
-	fvfDrainScratch []float32           // source-rate: drained input, then processed output
-	fvfOutScratch   []float32           // context-rate: upsampled playback samples
-	fvfSrcAcc       float64             // fractional source samples owed to the resampler
-	fvfResampLast   float32             // last processed sample (interp continuity across callbacks)
-	fvfVis          = newFVFRing(48000) // ~1s of processed samples for the spectrogram
-)
-
 // fvfRing is a minimal single-producer/single-consumer float32 ring.
 type fvfRing struct {
 	buf  []float32
@@ -433,17 +443,17 @@ func (rr *fvfRing) drain(dst []float32) int {
 }
 
 // setFVFListen starts/stops the audio-output engine.
-func setFVFListen(on bool) {
-	fvfListen = on
+func (w *wobbulator) setFVFListen(on bool) {
+	w.listen = on
 	if on {
-		startFVFAudio()
+		w.startFVFAudio()
 	} else {
-		stopFVFAudio()
+		w.stopFVFAudio()
 	}
 }
 
-func startFVFAudio() {
-	src := ensureAudioSource()
+func (w *wobbulator) startFVFAudio() {
+	src := aud.ensureAudioSource()
 	if src == nil {
 		return
 	}
@@ -451,39 +461,39 @@ func startFVFAudio() {
 	if src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	if fvfAudioActive {
+	if w.audioActive {
 		acquireAudioCtx("fvf")
 		return
 	}
-	fvfAudioCtx = acquireAudioCtx("fvf")
-	if !fvfAudioCtx.Truthy() {
+	w.audioCtx = acquireAudioCtx("fvf")
+	if !w.audioCtx.Truthy() {
 		return
 	}
-	fvfAudioProc = &fvfProcessor{sampleRate: float64(sr)}
+	w.audioProc = &fvfProcessor{sampleRate: float64(sr)}
 	const bufSize = 2048
 	// The source-rate scratch must hold bufSize·(srcRate/ctxRate) samples;
 	// 2× covers any plausible rate pair (e.g. 96 kHz source on a 48 kHz ctx).
-	fvfDrainScratch = make([]float32, 2*bufSize)
-	fvfOutScratch = make([]float32, bufSize)
-	fvfSrcAcc, fvfResampLast = 0, 0
-	fvfAudioNode = fvfAudioCtx.Call("createScriptProcessor", bufSize, 1, 1)
-	fvfAudioFn = dom.FuncOf(fvfAudioProcess)
-	fvfAudioNode.Set("onaudioprocess", fvfAudioFn)
-	fvfAudioNode.Call("connect", fvfAudioCtx.Get("destination"))
-	fvfAudioActive = true
+	w.drainScratch = make([]float32, 2*bufSize)
+	w.outScratch = make([]float32, bufSize)
+	w.srcAcc, w.resampLast = 0, 0
+	w.audioNode = w.audioCtx.Call("createScriptProcessor", bufSize, 1, 1)
+	w.audioFn = dom.FuncOf(w.audioProcess)
+	w.audioNode.Set("onaudioprocess", w.audioFn)
+	w.audioNode.Call("connect", w.audioCtx.Get("destination"))
+	w.audioActive = true
 }
 
-func stopFVFAudio() {
-	if !fvfAudioActive {
+func (w *wobbulator) stopFVFAudio() {
+	if !w.audioActive {
 		return
 	}
-	if fvfAudioNode.Truthy() {
-		fvfAudioNode.Set("onaudioprocess", js.Null())
-		fvfAudioNode.Call("disconnect")
+	if w.audioNode.Truthy() {
+		w.audioNode.Set("onaudioprocess", js.Null())
+		w.audioNode.Call("disconnect")
 	}
-	fvfAudioNode, fvfAudioCtx = js.Undefined(), js.Undefined()
-	fvfAudioFn.Release() // symmetric with startFVFAudio's FuncOf (was leaked per Listen toggle)
-	fvfAudioActive = false
+	w.audioNode, w.audioCtx = js.Undefined(), js.Undefined()
+	w.audioFn.Release() // symmetric with startFVFAudio's FuncOf (was leaked per Listen toggle)
+	w.audioActive = false
 	releaseAudioCtx("fvf")
 }
 
@@ -492,52 +502,52 @@ func stopFVFAudio() {
 // to the context rate for playback. fvfVis gets the source-rate stream (the
 // spectrogram's scroll pacing is derived from the source rate). Underflow
 // samples are processed as silence so the carrier keeps running.
-func fvfAudioProcess(_ js.Value, args []js.Value) interface{} {
-	if !fvfAudioActive || fvfAudioProc == nil {
+func (w *wobbulator) audioProcess(_ js.Value, args []js.Value) interface{} {
+	if !w.audioActive || w.audioProc == nil {
 		return nil
 	}
 	out := args[0].Get("outputBuffer")
 	outData := out.Call("getChannelData", 0)
 	n := outData.Get("length").Int()
-	if n > len(fvfOutScratch) {
-		n = len(fvfOutScratch)
+	if n > len(w.outScratch) {
+		n = len(w.outScratch)
 	}
 
 	// How many source-rate samples this context-rate block spans. The source
 	// rate can settle late (ws connect after Listen), so track it live.
 	srcRate := 24000.0
-	if src := activeAudioSource(); src != nil && src.SampleRate() > 0 {
+	if src := aud.activeAudioSource(); src != nil && src.SampleRate() > 0 {
 		srcRate = float64(src.SampleRate())
 	}
-	fvfAudioProc.sampleRate = srcRate
+	w.audioProc.sampleRate = srcRate
 	ctxRate := out.Get("sampleRate").Float()
-	fvfSrcAcc += srcRate / ctxRate * float64(n)
-	m := int(fvfSrcAcc)
-	if m > len(fvfDrainScratch) {
-		m = len(fvfDrainScratch)
+	w.srcAcc += srcRate / ctxRate * float64(n)
+	m := int(w.srcAcc)
+	if m > len(w.drainScratch) {
+		m = len(w.drainScratch)
 	}
-	fvfSrcAcc -= float64(m)
+	w.srcAcc -= float64(m)
 
 	got := 0
-	if src := activeAudioSource(); src != nil && src.Ready() {
-		got = src.Drain(fvfDrainScratch[:m])
+	if src := aud.activeAudioSource(); src != nil && src.Ready() {
+		got = src.Drain(w.drainScratch[:m])
 	}
 	for i := 0; i < m; i++ {
 		var x float32
 		if i < got {
-			x = fvfDrainScratch[i]
+			x = w.drainScratch[i]
 		}
-		fvfDrainScratch[i] = fvfAudioProc.Process(x)
+		w.drainScratch[i] = w.audioProc.Process(x)
 	}
-	fvfVis.write(fvfDrainScratch[:m])
+	w.vis.write(w.drainScratch[:m])
 
 	// Linear-interpolate the m processed samples up to n output samples,
 	// with fvfResampLast carrying continuity across callback boundaries.
 	seq := func(k int) float32 {
 		if k <= 0 {
-			return fvfResampLast
+			return w.resampLast
 		}
-		return fvfDrainScratch[k-1]
+		return w.drainScratch[k-1]
 	}
 	step := float64(m) / float64(n)
 	for i := 0; i < n; i++ {
@@ -545,12 +555,12 @@ func fvfAudioProcess(_ js.Value, args []js.Value) interface{} {
 		j := int(pos)
 		frac := float32(pos - float64(j))
 		a := seq(j)
-		fvfOutScratch[i] = a + frac*(seq(j+1)-a)
+		w.outScratch[i] = a + frac*(seq(j+1)-a)
 	}
 	if m > 0 {
-		fvfResampLast = fvfDrainScratch[m-1]
+		w.resampLast = w.drainScratch[m-1]
 	}
-	b := unsafe.Slice((*byte)(unsafe.Pointer(&fvfOutScratch[0])), n*4) //nolint:gosec // reinterpreting a typed slice as its backing bytes to cross into JS without a second copy
+	b := unsafe.Slice((*byte)(unsafe.Pointer(&w.outScratch[0])), n*4) //nolint:gosec // reinterpreting a typed slice as its backing bytes to cross into JS without a second copy
 	u8 := js.Global().Get("Uint8Array").New(outData.Get("buffer"))
 	js.CopyBytesToJS(u8, b)
 	return nil

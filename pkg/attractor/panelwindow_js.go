@@ -43,17 +43,17 @@ func floatPanelWindow() {
 		return
 	}
 
-	clampFloatPos() // a stale saved position must not strand it off-screen
+	layout.clampFloatPos() // a stale saved position must not strand it off-screen
 
 	panelWindow = winbox.New(&winbox.Options{
 		ID:        "panel-window",
 		Title:     "chaosrack controls",
 		Class:     []string{"panel-window"},
 		Mount:     shell,
-		X:         winbox.Px(floatX),
-		Y:         winbox.Px(floatY),
-		Width:     winbox.Px(floatW),
-		Height:    winbox.Px(floatH),
+		X:         winbox.Px(layout.floatX),
+		Y:         winbox.Px(layout.floatY),
+		Width:     winbox.Px(layout.floatW),
+		Height:    winbox.Px(layout.floatH),
 		MinWidth:  winbox.Px(floatMinW),
 		MinHeight: winbox.Px(floatMinH),
 		// PARKED IS NOT PLACED. winbox puts a minimized window in a slot along
@@ -68,15 +68,15 @@ func floatPanelWindow() {
 			if w.Min || w.Max {
 				return
 			}
-			floatX, floatY = x, y
-			saveFloatGeom()
+			layout.floatX, layout.floatY = x, y
+			layout.saveFloatGeom()
 		},
 		OnResize: func(w *winbox.WinBox, wd, h float64) {
 			if w.Min || w.Max {
 				return
 			}
-			floatW, floatH = wd, h
-			saveFloatGeom()
+			layout.floatW, layout.floatH = wd, h
+			layout.saveFloatGeom()
 			// The modules re-flow into however many columns now fit.
 			quantizeModuleWidths()
 		},
@@ -102,7 +102,7 @@ func floatPanelWindow() {
 				}
 				return false
 			}
-			applyDock(lastDockedEdge())
+			layout.applyDock(lastDockedEdge())
 			return false
 		},
 	})
@@ -160,6 +160,6 @@ func reclampPanelWindow() {
 	if panelWindow == nil {
 		return
 	}
-	clampFloatPos()
-	panelWindow.Move(winbox.Px(floatX), winbox.Px(floatY))
+	layout.clampFloatPos()
+	panelWindow.Move(winbox.Px(layout.floatX), winbox.Px(layout.floatY))
 }

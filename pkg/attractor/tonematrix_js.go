@@ -21,30 +21,33 @@ import (
 // with click-drag or touch-drag; the pattern survives a steps change (the
 // hidden columns keep their pads).
 
-var (
-	tmOn      bool
-	tmRun     = true
-	tmCtx     js.Value // shared ctx while the lease is held
-	tmMaster  js.Value // master gain (level × routing)
-	tmPanNode js.Value // stereo panner (routing)
-
-	tmPat   [tmMaxSteps][tmRows]bool
-	tmCells [tmMaxSteps][tmRows]js.Value
-	tmCols  []js.Value
-
-	tmStep  int     // next column to schedule
-	tmNext  float64 // ctx time the next column sounds at
-	tmPHCol = -1    // column currently highlighted as the playhead
+// tonematrix is the Tonematrix module: the cells, the pattern, the clock and
+// the audio graph.
+type tonematrix struct {
+	on      bool
+	run     bool
+	ctx     js.Value // shared ctx while the lease is held
+	master  js.Value // master gain (level × routing)
+	panNode js.Value // stereo panner (routing)
+	pat     [tmMaxSteps][tmRows]bool
+	cells   [tmMaxSteps][tmRows]js.Value
+	cols    []js.Value
+	step    int     // next column to schedule
+	next    float64 // ctx time the next column sounds at
+	phCol   int     // column currently highlighted as the playhead
 
 	// Scheduled-but-not-yet-sounding columns (audio runs ~a lookahead ahead
 	// of the display; the playhead advances when a column's time arrives).
-	tmDue []tmDueCol
+	due     []tmDueCol
+	paint   int     // pad state being painted by the current drag (-1 = none)
+	touchAt float64 // performance.now() of the last pad touch — a tap's
+}
 
-	tmPaint   = -1    // pad state being painted by the current drag (-1 = none)
-	tmTouchAt float64 // performance.now() of the last pad touch — a tap's
-	// synthesized compatibility mousedown must not re-toggle the pad
-
-)
+var tm = tonematrix{
+	run:   true,
+	phCol: -1,
+	paint: -1,
+}
 
 type tmDueCol struct {
 	step int
@@ -87,14 +90,14 @@ func tmMidiFor(row int) int {
 // buildTMGrid (re)renders the pad grid for the current step count and root:
 // column-major spans so the playhead is one class toggle per step. Pads keep
 // their pattern state across rebuilds (it lives in tmPat, not the DOM).
-func buildTMGrid() {
+func (to *tonematrix) buildTMGrid() {
 	grid := dom.Doc.Call("getElementById", "tm-grid")
 	if !grid.Truthy() {
 		return
 	}
 	grid.Set("innerHTML", "")
-	tmCols = tmCols[:0]
-	tmSetPH(-1)
+	to.cols = to.cols[:0]
+	to.setPH(-1)
 	steps := tmStepCount()
 	noteRow := make([]string, tmRows)
 	for r := 0; r < tmRows; r++ {
@@ -115,50 +118,50 @@ func buildTMGrid() {
 			cell.Set("title", "Tonematrix pad — step "+strconv.Itoa(c+1)+", "+noteRow[r]+" (click to toggle, drag to paint)")
 			cell.Call("setAttribute", "data-tmc", strconv.Itoa(c))
 			cell.Call("setAttribute", "data-tmr", strconv.Itoa(r))
-			if tmPat[c][r] {
+			if to.pat[c][r] {
 				cell.Get("classList").Call("add", "on")
 			}
 			cell.Call("addEventListener", "mousedown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 				a[0].Call("preventDefault")
-				if js.Global().Get("performance").Call("now").Float()-tmTouchAt < 800 {
+				if js.Global().Get("performance").Call("now").Float()-to.touchAt < 800 {
 					return nil
 				}
-				on := !tmPat[cc][rr]
-				tmSetPad(cc, rr, on)
-				tmPaint = 0
+				on := !to.pat[cc][rr]
+				to.setPad(cc, rr, on)
+				to.paint = 0
 				if on {
-					tmPaint = 1
+					to.paint = 1
 				}
-				tmEnsureGraph() // user gesture: unlock audio for the loop
+				to.ensureGraph() // user gesture: unlock audio for the loop
 				return nil
 			}))
 			cell.Call("addEventListener", "mouseenter", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-				if tmPaint < 0 {
+				if to.paint < 0 {
 					return nil
 				}
 				if int(a[0].Get("buttons").Float())&1 == 0 {
-					tmPaint = -1
+					to.paint = -1
 					return nil
 				}
-				tmSetPad(cc, rr, tmPaint == 1)
+				to.setPad(cc, rr, to.paint == 1)
 				return nil
 			}))
 			cell.Call("addEventListener", "touchstart", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 				a[0].Call("preventDefault")
-				tmTouchAt = js.Global().Get("performance").Call("now").Float()
-				on := !tmPat[cc][rr]
-				tmSetPad(cc, rr, on)
-				tmPaint = 0
+				to.touchAt = js.Global().Get("performance").Call("now").Float()
+				on := !to.pat[cc][rr]
+				to.setPad(cc, rr, on)
+				to.paint = 0
 				if on {
-					tmPaint = 1
+					to.paint = 1
 				}
-				tmEnsureGraph()
+				to.ensureGraph()
 				return nil
 			}))
-			tmCells[c][r] = cell
+			to.cells[c][r] = cell
 			col.Call("appendChild", cell)
 		}
-		tmCols = append(tmCols, col)
+		to.cols = append(to.cols, col)
 		grid.Call("appendChild", col)
 	}
 	// Touch paint: touchmove keeps targeting the starting pad, so follow the
@@ -166,7 +169,7 @@ func buildTMGrid() {
 	grid.Call("addEventListener", "touchmove", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		e := a[0]
 		e.Call("preventDefault")
-		if tmPaint < 0 {
+		if to.paint < 0 {
 			return nil
 		}
 		t := e.Get("touches").Index(0)
@@ -180,26 +183,26 @@ func buildTMGrid() {
 		}
 		c, _ := strconv.Atoi(cAttr.String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 		r, _ := strconv.Atoi(rAttr.String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-		tmSetPad(c, r, tmPaint == 1)
+		to.setPad(c, r, to.paint == 1)
 		return nil
 	}))
 	for _, ev := range []string{"touchend", "touchcancel"} {
 		grid.Call("addEventListener", ev, dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-			tmPaint = -1
+			to.paint = -1
 			return nil
 		}))
 	}
-	if tmStep >= steps {
-		tmStep = 0
+	if to.step >= steps {
+		to.step = 0
 	}
 }
 
-func tmSetPad(c, r int, on bool) {
-	if tmPat[c][r] == on {
+func (to *tonematrix) setPad(c, r int, on bool) {
+	if to.pat[c][r] == on {
 		return
 	}
-	tmPat[c][r] = on
-	if el := tmCells[c][r]; el.Truthy() {
+	to.pat[c][r] = on
+	if el := to.cells[c][r]; el.Truthy() {
 		if on {
 			el.Get("classList").Call("add", "on")
 		} else {
@@ -209,16 +212,16 @@ func tmSetPad(c, r int, on bool) {
 }
 
 // tmSetPH moves the playhead highlight to col (-1 = off).
-func tmSetPH(col int) {
-	if tmPHCol == col {
+func (to *tonematrix) setPH(col int) {
+	if to.phCol == col {
 		return
 	}
-	if tmPHCol >= 0 && tmPHCol < len(tmCols) {
-		tmCols[tmPHCol].Get("classList").Call("remove", "ph")
+	if to.phCol >= 0 && to.phCol < len(to.cols) {
+		to.cols[to.phCol].Get("classList").Call("remove", "ph")
 	}
-	tmPHCol = col
-	if col >= 0 && col < len(tmCols) {
-		tmCols[col].Get("classList").Call("add", "ph")
+	to.phCol = col
+	if col >= 0 && col < len(to.cols) {
+		to.cols[col].Get("classList").Call("add", "ph")
 	}
 }
 
@@ -227,24 +230,24 @@ func tmSetPH(col int) {
 // tmEnsureGraph acquires the shared context (call from a user gesture so
 // the autoplay policy lets it start) and lazily builds master gain → panner.
 // The context it acquired is tmCtx, which stays unset if the acquire failed.
-func tmEnsureGraph() {
+func (to *tonematrix) ensureGraph() {
 	ctx := acquireAudioCtx("tmx")
 	if !ctx.Truthy() {
 		return
 	}
-	if !tmMaster.Truthy() {
-		tmMaster = ctx.Call("createGain")
-		tmPanNode = ctx.Call("createStereoPanner")
-		tmMaster.Call("connect", tmPanNode)
-		tmPanNode.Call("connect", ctx.Get("destination"))
+	if !to.master.Truthy() {
+		to.master = ctx.Call("createGain")
+		to.panNode = ctx.Call("createStereoPanner")
+		to.master.Call("connect", to.panNode)
+		to.panNode.Call("connect", ctx.Get("destination"))
 	}
-	tmCtx = ctx
-	tmUpdateRouting()
+	to.ctx = ctx
+	to.updateRouting()
 }
 
 // tmUpdateRouting pushes the out ring + level knob into the master chain.
-func tmUpdateRouting() {
-	if !tmMaster.Truthy() {
+func (to *tonematrix) updateRouting() {
+	if !to.master.Truthy() {
 		return
 	}
 	lvl := fgFloat(dom.Doc.Call("getElementById", "tm-lvl")) / 100
@@ -257,8 +260,8 @@ func tmUpdateRouting() {
 	case "both":
 		gain, pan = lvl, 0
 	}
-	tmMaster.Get("gain").Set("value", gain*0.3) // headroom for full columns
-	tmPanNode.Get("pan").Set("value", pan)
+	to.master.Get("gain").Set("value", gain*0.3) // headroom for full columns
+	to.panNode.Get("pan").Set("value", pan)
 }
 
 // tmStepDur returns one column's duration: columns are sixteenths, four to
@@ -273,7 +276,7 @@ func tmStepDur() float64 {
 
 // tmScheduleCol sounds every lit pad in the column at ctx time t: a short
 // ping (fast attack, exponential decay) per pad, fire-and-forget nodes.
-func tmScheduleCol(c int, t float64) {
+func (to *tonematrix) scheduleCol(c int, t float64) {
 	w, _ := strconv.Atoi(dom.Doc.Call("getElementById", "tm-wave").Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 	dur := tmStepDur() * 2
 	if dur < 0.2 {
@@ -283,7 +286,7 @@ func tmScheduleCol(c int, t float64) {
 		dur = 0.5
 	}
 	for r := 0; r < tmRows; r++ {
-		if !tmPat[c][r] {
+		if !to.pat[c][r] {
 			continue
 		}
 		hz := 440 * math.Pow(2, float64(tmMidiFor(r)-69)/12)
@@ -291,22 +294,22 @@ func tmScheduleCol(c int, t float64) {
 		if w == 4 {
 			// Noise pad: the DCSG shift-register loop pitched by playback rate
 			// (snare/hat territory — higher rows = brighter bursts).
-			osc = tmCtx.Call("createBufferSource")
-			osc.Set("buffer", genNoiseBuffer(tmCtx))
+			osc = to.ctx.Call("createBufferSource")
+			osc.Set("buffer", gen.noiseBuffer(to.ctx))
 			osc.Set("loop", true)
-			osc.Get("playbackRate").Set("value", hz*32/tmCtx.Get("sampleRate").Float())
+			osc.Get("playbackRate").Set("value", hz*32/to.ctx.Get("sampleRate").Float())
 		} else {
-			osc = tmCtx.Call("createOscillator")
+			osc = to.ctx.Call("createOscillator")
 			osc.Set("type", waveTypeName(w))
 			osc.Get("frequency").Set("value", hz)
 		}
-		g := tmCtx.Call("createGain")
+		g := to.ctx.Call("createGain")
 		gg := g.Get("gain")
 		gg.Call("setValueAtTime", 0, t)
 		gg.Call("linearRampToValueAtTime", 1, t+0.006)
 		gg.Call("exponentialRampToValueAtTime", 0.001, t+dur)
 		osc.Call("connect", g)
-		g.Call("connect", tmMaster)
+		g.Call("connect", to.master)
 		osc.Call("start", t)
 		osc.Call("stop", t+dur+0.02)
 	}
@@ -316,25 +319,25 @@ func tmScheduleCol(c int, t float64) {
 // lookahead ahead of the audio clock, and advance the playhead as each
 // scheduled column's time arrives. A long gap (hidden tab froze rAF)
 // resynchronizes instead of racing to catch up.
-func tmTick() {
-	if !tmOn || !tmRun || !tmCtx.Truthy() {
+func (to *tonematrix) tick() {
+	if !to.on || !to.run || !to.ctx.Truthy() {
 		return
 	}
-	now := tmCtx.Get("currentTime").Float()
-	if tmNext == 0 || tmNext < now-0.5 {
-		tmNext = now + 0.05
-		tmDue = tmDue[:0]
+	now := to.ctx.Get("currentTime").Float()
+	if to.next == 0 || to.next < now-0.5 {
+		to.next = now + 0.05
+		to.due = to.due[:0]
 	}
 	steps := tmStepCount()
-	for tmNext < now+tmLookah {
-		tmScheduleCol(tmStep, tmNext)
-		tmDue = append(tmDue, tmDueCol{tmStep, tmNext})
-		tmStep = (tmStep + 1) % steps
-		tmNext += tmStepDur()
+	for to.next < now+tmLookah {
+		to.scheduleCol(to.step, to.next)
+		to.due = append(to.due, tmDueCol{to.step, to.next})
+		to.step = (to.step + 1) % steps
+		to.next += tmStepDur()
 	}
-	for len(tmDue) > 0 && tmDue[0].t <= now {
-		tmSetPH(tmDue[0].step)
-		tmDue = tmDue[1:]
+	for len(to.due) > 0 && to.due[0].t <= now {
+		to.setPH(to.due[0].step)
+		to.due = to.due[1:]
 	}
 }
 
@@ -342,7 +345,7 @@ func tmTick() {
 
 // wireTonematrixModule builds the control cells, renders the pad grid, and
 // wires the Run/Clear controls. Called once from Run.
-func wireTonematrixModule() {
+func (to *tonematrix) wireTonematrixModule() {
 	tempo := dom.Doc.Call("getElementById", "tm-tempo")
 	stepsSel := dom.Doc.Call("getElementById", "tm-steps")
 	root := dom.Doc.Call("getElementById", "tm-root")
@@ -366,12 +369,12 @@ func wireTonematrixModule() {
 	})
 
 	// Steps cell: outer ring = column count, inner knob = root octave.
-	sstk := stackKnobs(makeSelectorKnob(stepsSel), makeSelectorKnob(root))
+	sstk := stackKnobs(selk.makeSelectorKnob(stepsSel), selk.makeSelectorKnob(root))
 	addSelectorLabels(sstk, []string{"8", "16", "32"}, stepsSel)
 	addSelectorLabels(sstk, []string{"C1", "C2", "C3", "C4"}, root)
 	sstack.Call("appendChild", sstk)
 	rebuildTM := func() {
-		buildTMGrid()
+		to.buildTMGrid()
 		quantizeModuleWidths()
 	}
 	// The step count and root share the steps cell's reset button, as the
@@ -391,17 +394,17 @@ func wireTonematrixModule() {
 	adoptDescControl(ControlDesc{
 		ID: "tm-lvl", Label: "lvl", Min: 0, Max: 100, Step: 1, Def: 80,
 		LEDID: "tm-lvl-led", ResetID: "rst-tm-lvl",
-		Apply: func(float64) { tmUpdateRouting() },
+		Apply: func(float64) { to.updateRouting() },
 	})
 
 	// Out cell: Gen-oscillator anatomy — routing ring, waveform inner knob.
-	ostk := stackKnobs(makeSelectorKnob(out), makeSelectorKnob(wave))
+	ostk := stackKnobs(selk.makeSelectorKnob(out), selk.makeSelectorKnob(wave))
 	addSelectorLabels(ostk, []string{"off", "L", "R", "L+R"}, out)
 	addSelectorWaveDial(ostk, wave, 38)
 	ostack.Call("appendChild", ostk)
 	adoptDescControl(ControlDesc{
 		ID: "tm-out", Label: "out", IsSelect: true, SelectDef: "both", PermaKey: "mo",
-		ResetID: "rst-tm-out", SelectApply: func(string) { tmUpdateRouting() },
+		ResetID: "rst-tm-out", SelectApply: func(string) { to.updateRouting() },
 	})
 	adoptDescControl(ControlDesc{
 		ID: "tm-wave", Label: "wave", IsSelect: true, SelectDef: "0", PermaKey: "mv",
@@ -409,13 +412,13 @@ func wireTonematrixModule() {
 
 	if run := dom.Doc.Call("getElementById", "tm-run"); run.Truthy() {
 		run.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-			tmRun = run.Get("checked").Bool()
-			tmNext = 0 // restart cleanly rather than racing to catch up
-			tmDue = tmDue[:0]
-			if tmRun {
-				tmEnsureGraph()
+			to.run = run.Get("checked").Bool()
+			to.next = 0 // restart cleanly rather than racing to catch up
+			to.due = to.due[:0]
+			if to.run {
+				to.ensureGraph()
 			} else {
-				tmSetPH(-1)
+				to.setPH(-1)
 			}
 			return nil
 		}))
@@ -424,7 +427,7 @@ func wireTonematrixModule() {
 		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			for c := 0; c < tmMaxSteps; c++ {
 				for r := 0; r < tmRows; r++ {
-					tmSetPad(c, r, false)
+					to.setPad(c, r, false)
 				}
 			}
 			return nil
@@ -436,12 +439,12 @@ func wireTonematrixModule() {
 	// being called: the setter is the switch's behavior — it opens an audio
 	// graph and takes a context lease — and booting must not do that. What
 	// the module DOES is its own transport control.
-	tmOn = true
+	to.on = true
 	// Release a pad paint-drag wherever the mouse comes up.
 	dom.Doc.Call("addEventListener", "mouseup", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-		tmPaint = -1
+		to.paint = -1
 		return nil
 	}))
 
-	buildTMGrid()
+	to.buildTMGrid()
 }

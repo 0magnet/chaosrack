@@ -149,7 +149,7 @@ func initPanelRevealChord() {
 			// ever measurable, so the module widths have no quantization and
 			// the resize strip no position. Same recovery the ▤ button does.
 			quantizeModuleWidths()
-			positionResizeHandle()
+			layout.positionResizeHandle()
 		}
 		return nil
 	}), map[string]any{"capture": true})

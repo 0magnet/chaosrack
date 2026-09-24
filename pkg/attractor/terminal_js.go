@@ -54,15 +54,18 @@ import (
 // rotates and steals the keyboard would make the model impossible to turn
 // without also typing into it.
 
-var (
-	termSession *web.Session
-	termHost    js.Value // the offscreen div the terminal is mounted in
-	termCanvas  js.Value // xterm-go's WebGL canvas, the texture source
-	termTexture js.Value
-	termTried   bool   // mount attempted; do not retry every frame
-	termFailed  string // why there is no terminal, if there is not
-	termWired   bool   // the focus listeners are attached
-)
+// terminal is a terminal shown as a model.
+type terminal struct {
+	session *web.Session
+	host    js.Value // the offscreen div the terminal is mounted in
+	canvas  js.Value // xterm-go's WebGL canvas, the texture source
+	texture js.Value
+	tried   bool   // mount attempted; do not retry every frame
+	failed  string // why there is no terminal, if there is not
+	wired   bool   // the focus listeners are attached
+}
+
+var termPane terminal
 
 // termGreeting is deliberately EMPTY: the terminal comes up as a bare prompt.
 //
@@ -81,25 +84,25 @@ const termGreeting = ""
 // renderer sizes itself from the element's box, and a detached element has no
 // box — the terminal would come up zero by zero and the texture would be
 // empty. Offscreen and one pixel is enough to have a box without being seen.
-func ensureTerminal() bool {
-	if termTried {
-		return termFailed == "" && termSession != nil
+func (te *terminal) ensureTerminal() bool {
+	if te.tried {
+		return te.failed == "" && te.session != nil
 	}
-	termTried = true
+	te.tried = true
 
-	termHost = dom.Doc.Call("createElement", "div")
-	style := termHost.Get("style")
+	te.host = dom.Doc.Call("createElement", "div")
+	style := te.host.Get("style")
 	style.Set("position", "fixed")
 	style.Set("left", "-10000px") // offscreen, not display:none — see above
 	style.Set("top", "0")
 	style.Set("width", "900px")
 	style.Set("height", "560px")
-	dom.Doc.Get("body").Call("appendChild", termHost)
+	dom.Doc.Get("body").Call("appendChild", te.host)
 
 	// Nil FS: websh makes and seeds its own in-memory filesystem, which is the
 	// right one here. This terminal is a model in a visualizer, not a file
 	// manager, and it has nowhere to persist to.
-	s, err := web.NewSession(termHost, web.Options{
+	s, err := web.NewSession(te.host, web.Options{
 		// `rack` is a command here; see rackcmd_js.go.
 		Exec: rackShellCommand,
 		// This session binds its own zoom (wireTerminalZoom): the terminal is
@@ -120,21 +123,21 @@ func ensureTerminal() bool {
 		Greeting: termGreeting,
 	})
 	if err != nil {
-		termFailed = "the shell would not start: " + err.Error()
+		te.failed = "the shell would not start: " + err.Error()
 		return false
 	}
-	termSession = s
+	te.session = s
 
-	termCanvas = termHost.Call("querySelector", "canvas.xterm-webgl-canvas")
-	if !termCanvas.Truthy() {
+	te.canvas = te.host.Call("querySelector", "canvas.xterm-webgl-canvas")
+	if !te.canvas.Truthy() {
 		// websh falls back to the DOM renderer where WebGL2 is missing, and a
 		// DOM terminal cannot be a texture — which is the only thing this mode
 		// wants from it.
-		termFailed = "no WebGL renderer — a DOM-rendered terminal cannot be a texture"
+		te.failed = "no WebGL renderer — a DOM-rendered terminal cannot be a texture"
 		return false
 	}
-	wireTerminalFocus()
-	wireTerminalZoom()
+	te.wireTerminalFocus()
+	te.wireTerminalZoom()
 	return true
 }
 
@@ -145,11 +148,11 @@ func ensureTerminal() bool {
 // terminal is parked offscreen: it has a box, so it renders, but nothing can be
 // clicked on it. What is on screen is the quad, and clicking that is clicking
 // the canvas.
-func wireTerminalFocus() {
-	if termWired {
+func (te *terminal) wireTerminalFocus() {
+	if te.wired {
 		return
 	}
-	termWired = true
+	te.wired = true
 
 	glctx.Canvas.Call("addEventListener", "dblclick", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		focusModelKeyboard()
@@ -173,14 +176,14 @@ func wireTerminalFocus() {
 // screen as one on a quad, and typing into it did nothing because this only
 // asked the first two questions.
 func terminalOnScreen() bool {
-	return selectedMode == "terminal" || bgVisual == "terminal" || skinSource == "terminal"
+	return selectedMode == "terminal" || bgVisual == "terminal" || skin.source == "terminal"
 }
 
-func terminalTextarea() js.Value {
-	if !termHost.Truthy() {
+func (te *terminal) terminalTextarea() js.Value {
+	if !te.host.Truthy() {
 		return js.Value{}
 	}
-	return termHost.Call("querySelector", "textarea.xterm-helper-textarea")
+	return te.host.Call("querySelector", "textarea.xterm-helper-textarea")
 }
 
 // focusModelKeyboard gives the keyboard to whatever texture-plane model is on
@@ -208,9 +211,9 @@ func blurModelKeyboard() {
 func modelKeyboardTarget() js.Value {
 	switch {
 	case terminalOnScreen():
-		return terminalTextarea()
+		return termPane.terminalTextarea()
 	case hostTermOnScreen():
-		return hostTermTextarea()
+		return hostTerm.textarea()
 	case deskOnScreen():
 		return deskKeyboardTarget()
 	}
@@ -218,15 +221,15 @@ func modelKeyboardTarget() js.Value {
 }
 
 // generateTerminal keeps the texture current and draws it.
-func generateTerminal() {
-	if !ensureTerminal() {
-		showTerminalTrouble()
+func (te *terminal) generateTerminal() {
+	if !te.ensureTerminal() {
+		te.showTerminalTrouble()
 		return
 	}
-	uploadTerminalTexture()
+	te.uploadTerminalTexture()
 	// The terminal's canvas is not square either — it was drawn on a square
 	// quad until the desk made the same squashing obvious.
-	drawTexturedAspect(termTexture, canvasAspect(termCanvas))
+	texp.drawTexturedAspect(te.texture, canvasAspect(te.canvas))
 }
 
 // uploadTerminalTexture copies xterm-go's canvas into a GL texture.
@@ -235,50 +238,50 @@ func generateTerminal() {
 // driver does the copy, which is the cheap path and the reason this works at
 // all. UNPACK_FLIP_Y is set because a canvas's origin is top-left and a
 // texture's is bottom-left, so without it the terminal is drawn upside down.
-func uploadTerminalTexture() { uploadCanvasTexture(&termTexture, termCanvas) }
+func (te *terminal) uploadTerminalTexture() { uploadCanvasTexture(&te.texture, te.canvas) }
 
 // showTerminalTrouble reports why there is no terminal, through the same
 // overlay the audio modes use for the same purpose. Drawing nothing and
 // saying nothing is the one outcome worth ruling out.
-func showTerminalTrouble() {
-	if termFailed == "" {
-		termFailed = "the terminal could not be started"
+func (te *terminal) showTerminalTrouble() {
+	if te.failed == "" {
+		te.failed = "the terminal could not be started"
 	}
-	showAudioStatus(termFailed)
+	aud.showAudioStatus(te.failed)
 }
 
 // terminalTexture is what the backdrop asks for when it wants to paint the
 // terminal behind another model. It returns a texture only when there is one,
 // so the backdrop can fall through to drawing nothing rather than binding a
 // texture that was never filled.
-func terminalTexture() (js.Value, bool) {
-	if !ensureTerminal() {
+func (te *terminal) terminalTexture() (js.Value, bool) {
+	if !te.ensureTerminal() {
 		return js.Undefined(), false
 	}
-	uploadTerminalTexture()
-	return termTexture, true
+	te.uploadTerminalTexture()
+	return te.texture, true
 }
 
 func init() {
-	registerGenerate("terminal", generateTerminal)
+	registerGenerate("terminal", termPane.generateTerminal)
 }
 
 // drawTerminalBackground paints the terminal behind whatever model is on
 // screen, the way the spectrogram can be. Face-on and filling the canvas, with
 // no clear, so it layers under the model rather than replacing it.
 func drawTerminalBackground() {
-	tex, ok := terminalTexture()
+	tex, ok := termPane.terminalTexture()
 	if !ok {
 		return // no terminal: draw nothing rather than a black square
 	}
 	// The same trick the spectrogram background uses: spectFill maps the
 	// plane straight to clip space, so it fills the canvas face-on regardless
 	// of the pose. A background always fills; the Fill switch governs the MODE.
-	savedFill := spectFill
-	spectFill = true
+	savedFill := spect.fill
+	spect.fill = true
 	glctx.GL.Call("disable", glctx.Types.DepthTest)
-	drawTexturedPlane(tex, 0)
-	spectFill = savedFill
+	texp.drawTexturedPlane(tex, 0)
+	spect.fill = savedFill
 }
 
 // The terminal's zoom.
@@ -297,12 +300,12 @@ const (
 
 // wireTerminalZoom binds the zoom. Listeners are on the document because the
 // terminal itself is parked off screen — what you are pointing at is the quad.
-func wireTerminalZoom() {
-	if termSession == nil || termSession.Term == nil {
+func (te *terminal) wireTerminalZoom() {
+	if te.session == nil || te.session.Term == nil {
 		return
 	}
 	zoom := func(by float64) {
-		t := termSession.Term
+		t := te.session.Term
 		v := t.FontSize() + by
 		if v < termZoomMin {
 			v = termZoomMin
@@ -334,7 +337,7 @@ func wireTerminalZoom() {
 		case "-", "_":
 			zoom(-termZoomStep)
 		case "0":
-			termSession.Term.SetFontSize(10)
+			te.session.Term.SetFontSize(10)
 		default:
 			return nil
 		}

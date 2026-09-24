@@ -298,21 +298,21 @@ func TestPolarMapTablesLineUp(t *testing.T) {
 // table. Anything the modulator produces has to land on a real map — including
 // the values a float-to-int conversion is not defined for.
 func TestPolarMapSelClampsWhateverModulationDoes(t *testing.T) {
-	saved := polarMapF
-	defer func() { polarMapF = saved }()
+	saved := polar.mapF
+	defer func() { polar.mapF = saved }()
 	for _, v := range []float32{
 		-1000, -1, -0.4, 0, 0.6, 1, 2, 2.4, 99,
 		float32(math.Inf(1)), float32(math.Inf(-1)), float32(math.NaN()),
 	} {
-		polarMapF = v
-		if i := polarMapSel(); i < 0 || i >= takens.PolarCount {
+		polar.mapF = v
+		if i := polar.mapSel(); i < 0 || i >= takens.PolarCount {
 			t.Errorf("map = %v selected %d", v, i)
 		}
 	}
 	// And the detents themselves must round to themselves, not to a neighbor.
 	for want := 0; want < takens.PolarCount; want++ {
-		polarMapF = float32(want)
-		if got := polarMapSel(); got != want {
+		polar.mapF = float32(want)
+		if got := polar.mapSel(); got != want {
 			t.Errorf("detent %d selected map %d", want, got)
 		}
 	}
@@ -326,34 +326,34 @@ func TestPolarMapSelClampsWhateverModulationDoes(t *testing.T) {
 // black, which is exactly how the Stereo Embedding came to be reported as
 // showing nothing at all.
 func TestPolarIsInTheAudioColorSources(t *testing.T) {
-	savedRing, savedW := polarRing, polarW
-	savedSrc, savedTried := audioSource, audioSourceTried
+	savedRing, savedW := polar.ring, polar.w
+	savedSrc, savedTried := aud.source, aud.sourceTried
 	defer func() {
-		polarRing, polarW = savedRing, savedW
-		audioSource, audioSourceTried = savedSrc, savedTried
+		polar.ring, polar.w = savedRing, savedW
+		aud.source, aud.sourceTried = savedSrc, savedTried
 	}()
 	// A source has to be in place before this runs: ensureAudioSource reads
 	// window.location for ?wsurl=, and there is no window under Node. Handing
 	// it one it already has is the only way in from a test, and it is also
 	// what the running app looks like by the time a color window is asked for.
-	audioSource, audioSourceTried = stubSource{}, true
+	aud.source, aud.sourceTried = stubSource{}, true
 
 	// No audio yet: the flat fill is the honest answer and nothing must panic.
-	polarRing, polarW = nil, 0
-	if w, _ := audioColorWindow("polar"); w != nil {
+	polar.ring, polar.w = nil, 0
+	if w, _ := acolor.window("polar"); w != nil {
 		t.Error("a window came back before any audio had been captured")
 	}
 
 	// A ring with a full window in it: the mode must be recognized, and the
 	// window must be the ring's newest samples rather than an empty slice.
-	n, stride := takensWindow(polarWin, 24000, steps)
-	span := (n-1)*stride + 2*int(takensTau)
-	polarRing = make([]float32, span+1)
-	for i := range polarRing {
-		polarRing[i] = float32(i%17) / 17
+	n, stride := takensWindow(polar.win, 24000, steps)
+	span := (n-1)*stride + 2*int(emb.tau)
+	polar.ring = make([]float32, span+1)
+	for i := range polar.ring {
+		polar.ring[i] = float32(i%17) / 17
 	}
-	polarW = len(polarRing)
-	w, sr := audioColorWindow("polar")
+	polar.w = len(polar.ring)
+	w, sr := acolor.window("polar")
 	if w == nil {
 		t.Fatal("the polar mode is not one of audioColorWindow's sources; with the gradient " +
 			"following the sound its trail would be filled one flat color")

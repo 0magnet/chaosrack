@@ -19,22 +19,33 @@ import (
 // so persist paints the full arc family, and each floor hit blips the
 // shared audio context at a pitch set by impact speed.
 
-var (
-	bounceGrav  float32 = 12   // gravity
-	bounceRest  float32 = 0.88 // restitution (bounce energy keep)
-	bounceDrift float32 = 0.7  // horizontal speed
+// bouncingBall is the Bouncing Ball demo: the ball, its trail, and the audio
+// context it holds.
+type bouncingBall struct {
+	grav       float32 // gravity
+	rest       float32 // restitution (bounce energy keep)
+	drift      float32 // horizontal speed
+	x, y       float64
+	vx, vy     float64
+	ring       []float64
+	head       int
+	fill       int
+	ctxHeld    bool
+	active     bool
+	warm       bool // entry warmup in progress (mute the blips)
+	kicks      int  // machine re-kicks since mode entry
+	shownKicks int  // last count latched onto the Launcher LED
+}
 
-	bounceX, bounceY   float64 = -1.2, 0.9
-	bounceVX, bounceVY float64 = 0.7, 0
-	bounceRing         []float64
-	bounceHead         int
-	bounceFill         int
-	bounceCtxHeld      bool
-	bounceActive       bool
-	bounceWarm         bool // entry warmup in progress (mute the blips)
-	bounceKicks        int  // machine re-kicks since mode entry
-	bounceShownKicks   = -1 // last count latched onto the Launcher LED
-)
+var ball = bouncingBall{
+	grav:       12,
+	rest:       0.88,
+	drift:      0.7,
+	x:          -1.2,
+	y:          0.9,
+	vx:         0.7,
+	shownKicks: -1,
+}
 
 const (
 	bounceFloor = -1.0
@@ -43,55 +54,55 @@ const (
 )
 
 // bounceStep advances the ball by one integrator tick.
-func bounceStep(dt float64) {
-	bounceVY -= float64(bounceGrav) * dt
-	bounceX += bounceVX * dt
-	bounceY += bounceVY * dt
+func (b *bouncingBall) step(dt float64) {
+	b.vy -= float64(b.grav) * dt
+	b.x += b.vx * dt
+	b.y += b.vy * dt
 	// Comparator: floor bounce with restitution, plus a blip whose pitch
 	// follows the impact speed (harder hit = higher blip).
-	if bounceY < bounceFloor && bounceVY < 0 {
-		bounceY = bounceFloor
-		imp := -bounceVY
-		bounceVY = imp * float64(bounceRest)
-		bounceBeep(180+90*imp, 45)
+	if b.y < bounceFloor && b.vy < 0 {
+		b.y = bounceFloor
+		imp := -b.vy
+		b.vy = imp * float64(b.rest)
+		b.beep(180+90*imp, 45)
 		// Re-kick when the bounces have decayed away, like the unattended
 		// trade-show loop: fresh upward velocity, fresh drift direction.
-		if bounceVY < 0.25 {
-			bounceVY = 3.6 + 1.4*jamRand()
-			bounceVX = float64(bounceDrift) * (0.4 + 0.6*jamRand())
+		if b.vy < 0.25 {
+			b.vy = 3.6 + 1.4*jamRand()
+			b.vx = float64(b.drift) * (0.4 + 0.6*jamRand())
 			if jamRand() < 0.5 {
-				bounceVX = -bounceVX
+				b.vx = -b.vx
 			}
-			if !bounceWarm {
-				bounceKicks++
+			if !b.warm {
+				b.kicks++
 			}
-			bounceBeep(490, 90)
+			b.beep(490, 90)
 		}
 	}
-	if bounceY > bounceCeil && bounceVY > 0 {
-		bounceY = bounceCeil
-		bounceVY = -bounceVY * float64(bounceRest)
-		bounceBeep(320, 40)
+	if b.y > bounceCeil && b.vy > 0 {
+		b.y = bounceCeil
+		b.vy = -b.vy * float64(b.rest)
+		b.beep(320, 40)
 	}
-	if bounceX > bounceWall && bounceVX > 0 || bounceX < -bounceWall && bounceVX < 0 {
-		bounceVX = -bounceVX
-		bounceBeep(226, 40)
+	if b.x > bounceWall && b.vx > 0 || b.x < -bounceWall && b.vx < 0 {
+		b.vx = -b.vx
+		b.beep(226, 40)
 	}
 	// The drift knob retunes the horizontal speed live (sign preserved).
-	if bounceVX > 0 {
-		bounceVX = float64(bounceDrift)
-	} else if bounceVX < 0 {
-		bounceVX = -float64(bounceDrift)
+	if b.vx > 0 {
+		b.vx = float64(b.drift)
+	} else if b.vx < 0 {
+		b.vx = -float64(b.drift)
 	}
 }
 
 // generateBounceBall advances the integrators (sub-stepped by the Speed
 // control like the flows) into a private position ring, then streams the
 // ring oldest→newest into the trail buffer.
-func generateBounceBall() {
-	if len(bounceRing) != steps*2 {
-		bounceRing = make([]float64, steps*2)
-		bounceHead, bounceFill = 0, 0
+func (b *bouncingBall) generateBounceBall() {
+	if len(b.ring) != steps*2 {
+		b.ring = make([]float64, steps*2)
+		b.head, b.fill = 0, 0
 	}
 	n := speedSteps
 	if n < 1 {
@@ -99,21 +110,21 @@ func generateBounceBall() {
 	}
 	dt := 0.016 * float64(speedScale)
 	for s := 0; s < n; s++ {
-		bounceStep(dt)
-		bounceRing[bounceHead*2] = bounceX
-		bounceRing[bounceHead*2+1] = bounceY
-		bounceHead = (bounceHead + 1) % steps
-		if bounceFill < steps {
-			bounceFill++
+		b.step(dt)
+		b.ring[b.head*2] = b.x
+		b.ring[b.head*2+1] = b.y
+		b.head = (b.head + 1) % steps
+		if b.fill < steps {
+			b.fill++
 		}
 	}
-	if bounceKicks != bounceShownKicks {
-		bounceShownKicks = bounceKicks
+	if b.kicks != b.shownKicks {
+		b.shownKicks = b.kicks
 		if led := dom.Doc.Call("getElementById", "bounce-kicks"); led.Truthy() {
-			led.Set("textContent", strconv.Itoa(bounceKicks))
+			led.Set("textContent", strconv.Itoa(b.kicks))
 		}
 	}
-	if bounceFill < 2 {
+	if b.fill < 2 {
 		return
 	}
 	vertices := vertBuf[:steps*4]
@@ -123,14 +134,14 @@ func generateBounceBall() {
 		// we have so the strip stays degenerate rather than garbage.
 		age := steps - 1 - i
 		idx := 0
-		if age < bounceFill {
-			idx = (bounceHead - 1 - age + steps + steps) % steps
+		if age < b.fill {
+			idx = (b.head - 1 - age + steps + steps) % steps
 		} else {
-			idx = (bounceHead - bounceFill + steps + steps) % steps
+			idx = (b.head - b.fill + steps + steps) % steps
 		}
 		j := i * 4
-		vertices[j] = float32(bounceRing[idx*2])
-		vertices[j+1] = float32(bounceRing[idx*2+1])
+		vertices[j] = float32(b.ring[idx*2])
+		vertices[j+1] = float32(b.ring[idx*2+1])
 		vertices[j+2] = 0
 		vertices[j+3] = float32(i) * invN
 	}
@@ -140,15 +151,15 @@ func generateBounceBall() {
 // bounceBeep: one short sine blip on the shared context. The acquire only
 // audibly resumes once some real user gesture has unlocked audio; until
 // then the demo just runs silent.
-func bounceBeep(freq float64, ms int) {
-	if bounceWarm || selectedMode != "bounceball" {
+func (b *bouncingBall) beep(freq float64, ms int) {
+	if b.warm || selectedMode != "bounceball" {
 		return
 	}
 	ctx := acquireAudioCtx("bounce")
 	if !ctx.Truthy() {
 		return
 	}
-	bounceCtxHeld = true
+	b.ctxHeld = true
 	osc := ctx.Call("createOscillator")
 	g := ctx.Call("createGain")
 	osc.Set("type", "sine")
@@ -165,7 +176,7 @@ func bounceBeep(freq float64, ms int) {
 
 // syncBounceExtras runs on every panel rebuild: entering re-drops the ball
 // face-on; leaving releases the blip lease.
-func syncBounceExtras(mode string) {
+func (b *bouncingBall) syncBounceExtras(mode string) {
 	if sect := dom.Doc.Call("getElementById", "bounce-module"); sect.Truthy() {
 		if mode == "bounceball" {
 			sect.Get("style").Set("display", "")
@@ -174,24 +185,24 @@ func syncBounceExtras(mode string) {
 		}
 	}
 	if mode == "bounceball" {
-		if bounceActive {
+		if b.active {
 			return
 		}
-		bounceActive = true
-		bounceKicks = 0
-		bounceX, bounceY = -1.2, bounceDropHeight()
-		bounceVX, bounceVY = float64(bounceDrift), 0
+		b.active = true
+		b.kicks = 0
+		b.x, b.y = -1.2, bounceDropHeight()
+		b.vx, b.vy = float64(b.drift), 0
 		// Warm the ring with a real trajectory (blips muted) so every camera
 		// fit measures true arcs, never a near-empty ring.
-		bounceWarm = true
-		bounceRing = make([]float64, steps*2)
+		b.warm = true
+		b.ring = make([]float64, steps*2)
 		for i := 0; i < steps; i++ {
-			bounceStep(0.016)
-			bounceRing[i*2] = bounceX
-			bounceRing[i*2+1] = bounceY
+			b.step(0.016)
+			b.ring[i*2] = b.x
+			b.ring[i*2+1] = b.y
 		}
-		bounceWarm = false
-		bounceHead, bounceFill = 0, steps
+		b.warm = false
+		b.head, b.fill = 0, steps
 		normalizeOrientation()
 		// The trail ring is nearly empty at entry, so any auto-fit would frame
 		// a speck. Hand the next fit the demo box's real extent AND set the
@@ -204,9 +215,9 @@ func syncBounceExtras(mode string) {
 		view.updateViewMatrix()
 		return
 	}
-	bounceActive = false
-	if bounceCtxHeld {
+	b.active = false
+	if b.ctxHeld {
 		releaseAudioCtx("bounce")
-		bounceCtxHeld = false
+		b.ctxHeld = false
 	}
 }

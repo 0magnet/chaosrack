@@ -95,7 +95,7 @@ var colorRangeLock bool
 // source under a stereo-only coloring, honestly deserves.
 func fillColorLUT(src int, mode string, out []float32) bool {
 	if gradientSourceNeedsStereo(src) {
-		l, r, _ := stereoColorWindowPair(mode)
+		l, r, _ := acolor.stereoColorWindowPair(mode)
 		if l == nil || r == nil {
 			return false
 		}
@@ -111,7 +111,7 @@ func fillColorLUT(src int, mode string, out []float32) bool {
 		}
 		return true
 	}
-	w, sr := audioColorWindow(mode)
+	w, sr := acolor.window(mode)
 	if w == nil {
 		return false
 	}
@@ -287,11 +287,11 @@ func shortTimeFlux(w []float32, out []float32) {
 			out[i] = out[max(i-1, 0)]
 			return
 		}
-		n := copy(audioColorScratch[:], w[start:])
+		n := copy(acolor.scratch[:], w[start:])
 		for j := n; j < audioColorFFT; j++ {
-			audioColorScratch[j] = 0
+			acolor.scratch[j] = 0
 		}
-		mags := meters.ComputeFFTMags(audioColorScratch[:])
+		mags := meters.ComputeFFTMags(acolor.scratch[:])
 		if mags == nil {
 			out[i] = 0
 			return
@@ -371,7 +371,7 @@ func shortTimePitch(w []float32, sampleRate int, out []float32) {
 	// The centroid arrives normalized against Nyquist; turn it back into a
 	// frequency before taking its log, or the fold is of the wrong number.
 	nyq := float64(sampleRate) / 2
-	shortTimeCentroids(w, sampleRate, out)
+	acolor.shortTimeCentroids(w, sampleRate, out)
 	for i, v := range out {
 		f := float64(v) * nyq
 		if f < 20 { // below hearing: no pitch class to speak of

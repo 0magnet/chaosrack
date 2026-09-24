@@ -134,7 +134,7 @@ func startMIDI() {
 				reason = m.String()
 			}
 		}
-		showAudioStatus("MIDI: " + reason)
+		aud.showAudioStatus("MIDI: " + reason)
 		midiOn = false
 		if sw := dom.Doc.Call("getElementById", "midi-sw"); sw.Truthy() {
 			sw.Set("checked", false)

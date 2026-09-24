@@ -19,38 +19,43 @@ import (
 // The skinned model is a filled, UV-mapped triangle mesh drawn through
 // texProgram, so it rotates/zooms/auto-rotates via the normal render path.
 
-// skinSource is WHICH picture is painted on the surface: "" for none, or
-// "spectrogram", "terminal" or "desk".
-//
-// It was a switch, and a switch could only mean the spectrogram. But the skin
-// is one of three places a second picture can go — behind the model, ON it, or
-// as it — and the other two already take any of the sources. There was no
-// reason for this one to take only the audio: the mesh does not care what is on
-// it, and each of these already keeps a canvas that is a texture.
-var (
-	skinSource   string
-	skinDirty    = true
-	skinVBuf     js.Value
-	skinIBuf     js.Value
-	skinIdxCount int
-)
+// skinSurface is the surface the spectrogram skin is painted on.
+type skinSurface struct {
+	// skinSource is WHICH picture is painted on the surface: "" for none, or
+	// "spectrogram", "terminal" or "desk".
+	//
+	// It was a switch, and a switch could only mean the spectrogram. But the skin
+	// is one of three places a second picture can go — behind the model, ON it, or
+	// as it — and the other two already take any of the sources. There was no
+	// reason for this one to take only the audio: the mesh does not care what is on
+	// it, and each of these already keeps a canvas that is a texture.
+	source   string
+	dirty    bool
+	vBuf     js.Value
+	iBuf     js.Value
+	idxCount int
+}
+
+var skin = skinSurface{
+	dirty: true,
+}
 
 // spectroSkin reports whether anything is painted on the surface.
-func spectroSkin() bool { return skinSource != "" }
+func (s *skinSurface) spectroSkin() bool { return s.source != "" }
 
 // renderSkinnedMode keeps the spectrogram texture current and draws the
 // current surface model as a filled, textured mesh. Called from
 // generateForMode when the skin is on and the mode is skinnable.
-func renderSkinnedMode(mode string, nowMs float64) {
-	tex, offset, ok := skinTexture(nowMs)
+func (s *skinSurface) renderSkinnedMode(mode string, nowMs float64) {
+	tex, offset, ok := s.texture(nowMs)
 	if !ok {
 		return // the source has nothing to give yet; it says why itself
 	}
-	if skinDirty || skinVBuf.IsUndefined() {
-		buildSkinMesh(mode)
-		skinDirty = false
+	if s.dirty || s.vBuf.IsUndefined() {
+		s.buildSkinMesh(mode)
+		s.dirty = false
 	}
-	drawTexturedMesh(skinVBuf, skinIBuf, skinIdxCount, tex, offset)
+	texp.drawTexturedMesh(s.vBuf, s.iBuf, s.idxCount, tex, offset)
 }
 
 // skinTexture is the picture to paint and how far it has scrolled.
@@ -61,28 +66,28 @@ func renderSkinnedMode(mode string, nowMs float64) {
 // is the only thing the three sources do differently here — the mesh, the
 // program and the draw are identical, which is why this was worth generalising
 // rather than writing twice more.
-func skinTexture(nowMs float64) (js.Value, float32, bool) {
-	switch skinSource {
+func (s *skinSurface) texture(nowMs float64) (js.Value, float32, bool) {
+	switch s.source {
 	case "terminal":
-		t, ok := terminalTexture()
+		t, ok := termPane.terminalTexture()
 		return t, 0, ok
 	case "desk":
 		t, ok := deskModelCanvas()
 		return t, 0, ok
 	default:
-		if !spectReady {
-			initSpectrogram()
+		if !spect.ready {
+			spect.initSpectrogram()
 		}
-		ensureAudioSource()
-		updateSpectrogramTexture(nowMs)
-		maybeShowAudioStatus()
-		return spectTexture, float32(spectTexCol) / float32(spectTexW), true
+		aud.ensureAudioSource()
+		spect.updateSpectrogramTexture(nowMs)
+		aud.maybeShowAudioStatus()
+		return spect.texture, float32(spect.texCol) / float32(spectTexW), true
 	}
 }
 
 // buildSkinMesh (re)generates and uploads the interleaved pos+uv vertex
 // buffer and triangle index buffer for the current mode's surface.
-func buildSkinMesh(mode string) {
+func (s *skinSurface) buildSkinMesh(mode string) {
 	var verts []float32
 	var idx []uint16
 	switch mode {
@@ -105,17 +110,17 @@ func buildSkinMesh(mode string) {
 	default: // sphere
 		verts, idx = sphereSkinMesh(sphereRadius, int(sphereStacksF), int(sphereSlicesF))
 	}
-	if skinVBuf.IsUndefined() {
-		skinVBuf = glctx.GL.Call("createBuffer")
+	if s.vBuf.IsUndefined() {
+		s.vBuf = glctx.GL.Call("createBuffer")
 	}
-	if skinIBuf.IsUndefined() {
-		skinIBuf = glctx.GL.Call("createBuffer")
+	if s.iBuf.IsUndefined() {
+		s.iBuf = glctx.GL.Call("createBuffer")
 	}
-	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, skinVBuf)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, s.vBuf)
 	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, SliceToTypedArray(verts), glctx.Types.StaticDraw)
-	glctx.GL.Call("bindBuffer", glctx.Types.ElementArrayBuffer, skinIBuf)
+	glctx.GL.Call("bindBuffer", glctx.Types.ElementArrayBuffer, s.iBuf)
 	glctx.GL.Call("bufferData", glctx.Types.ElementArrayBuffer, SliceToTypedArray(idx), glctx.Types.StaticDraw)
-	skinIdxCount = len(idx)
+	s.idxCount = len(idx)
 }
 
 // gridTriangles emits two triangles per (stacks x slices) grid quad for a

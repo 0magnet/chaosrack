@@ -28,12 +28,12 @@ import (
 // these tests cannot leak into each other or into the rest of the js suite.
 func sectTestSetup(t *testing.T, axis int, pos float32, dir int) (dynamics.FlowSys4, float64) {
 	t.Helper()
-	oldAxis, oldPos, oldDir, oldSig := sectAxisF, sectPosF, sectDirF, sectSig
+	oldAxis, oldPos, oldDir, oldSig := sect.axisF, sect.posF, sect.dirF, sect.sig
 	t.Cleanup(func() {
-		sectAxisF, sectPosF, sectDirF, sectSig = oldAxis, oldPos, oldDir, oldSig
-		sectLog.Reset(0)
+		sect.axisF, sect.posF, sect.dirF, sect.sig = oldAxis, oldPos, oldDir, oldSig
+		sect.log.Reset(0)
 	})
-	sectAxisF, sectPosF, sectDirF = float32(axis), pos, float32(dir)
+	sect.axisF, sect.posF, sect.dirF = float32(axis), pos, float32(dir)
 
 	sys, ok := dynamics.FlowFor4("lorenz")
 	if !ok {
@@ -43,7 +43,7 @@ func sectTestSetup(t *testing.T, axis int, pos float32, dir int) (dynamics.FlowS
 	if dt <= 0 {
 		t.Fatalf("lorenz dt is %v", dt)
 	}
-	sectSeed("lorenz", sys, dt)
+	sect.seed("lorenz", sys, dt)
 	return sys, dt
 }
 
@@ -58,20 +58,20 @@ func sectTestSetup(t *testing.T, axis int, pos float32, dir int) (dynamics.FlowS
 // buffer, and a coordinate of order 25 has about 1e-6 of resolution there.
 func TestEveryAccumulatedCrossingLandsOnThePlane(t *testing.T) {
 	sys, dt := sectTestSetup(t, sectAxisZ, 0, analysis.CrossRising)
-	sectAdvance("lorenz", sys, dt, 60000)
+	sect.advance("lorenz", sys, dt, 60000)
 
-	if n := sectLog.Len(); n < 50 {
+	if n := sect.log.Len(); n < 50 {
 		t.Fatalf("only %d crossings in 60000 steps; the section is not being fed", n)
 	}
 	worst := 0.0
-	for i := 0; i < sectLog.Len(); i++ {
-		h := sectLog.At(i)
-		d := math.Abs(sectPlane.Signed([3]float64{float64(h.P[0]), float64(h.P[1]), float64(h.P[2])}))
+	for i := 0; i < sect.log.Len(); i++ {
+		h := sect.log.At(i)
+		d := math.Abs(sect.plane.Signed([3]float64{float64(h.P[0]), float64(h.P[1]), float64(h.P[2])}))
 		if d > worst {
 			worst = d
 		}
 	}
-	t.Logf("%d crossings, worst distance from the plane %.3e", sectLog.Len(), worst)
+	t.Logf("%d crossings, worst distance from the plane %.3e", sect.log.Len(), worst)
 	if worst > 1e-4 {
 		t.Errorf("a recorded crossing is %.3e from the plane; an interpolated crossing is on it, "+
 			"and a snapped sample would be about 1e-1 away — this is what a section drawn from "+
@@ -93,13 +93,13 @@ func TestTheDirectionKnobDecidesWhichCrossingsAreKept(t *testing.T) {
 		{analysis.CrossFalling, "down", -1},
 	} {
 		sys, dt := sectTestSetup(t, sectAxisZ, 0, c.dir)
-		sectAdvance("lorenz", sys, dt, 60000)
-		if n := sectLog.Len(); n < 50 {
+		sect.advance("lorenz", sys, dt, 60000)
+		if n := sect.log.Len(); n < 50 {
 			t.Fatalf("%s: only %d crossings", c.name, n)
 		}
 		bad := 0
-		for i := 0; i < sectLog.Len(); i++ {
-			h := sectLog.At(i)
+		for i := 0; i < sect.log.Len(); i++ {
+			h := sect.log.At(i)
 			_, _, dz, _ := sys.F(float64(h.P[0]), float64(h.P[1]), float64(h.P[2]), 0)
 			if dz*c.want <= 0 {
 				bad++
@@ -108,7 +108,7 @@ func TestTheDirectionKnobDecidesWhichCrossingsAreKept(t *testing.T) {
 		if bad > 0 {
 			t.Errorf("%s: %d of %d crossings run the wrong way through the plane; the section "+
 				"is two superimposed sheets and the return map is not a function",
-				c.name, bad, sectLog.Len())
+				c.name, bad, sect.log.Len())
 		}
 	}
 }
@@ -120,15 +120,15 @@ func TestTheDirectionKnobDecidesWhichCrossingsAreKept(t *testing.T) {
 func TestThePosKnobMovesTheSectionThroughTheAttractor(t *testing.T) {
 	meanZ := func(pos float32) float64 {
 		sys, dt := sectTestSetup(t, sectAxisZ, pos, analysis.CrossRising)
-		sectAdvance("lorenz", sys, dt, 60000)
-		if sectLog.Len() < 20 {
-			t.Fatalf("pos %v: only %d crossings", pos, sectLog.Len())
+		sect.advance("lorenz", sys, dt, 60000)
+		if sect.log.Len() < 20 {
+			t.Fatalf("pos %v: only %d crossings", pos, sect.log.Len())
 		}
 		sum := 0.0
-		for i := 0; i < sectLog.Len(); i++ {
-			sum += float64(sectLog.At(i).P[2])
+		for i := 0; i < sect.log.Len(); i++ {
+			sum += float64(sect.log.At(i).P[2])
 		}
-		return sum / float64(sectLog.Len())
+		return sum / float64(sect.log.Len())
 	}
 	low, mid, high := meanZ(-0.5), meanZ(0), meanZ(0.5)
 	t.Logf("mean crossing height: pos-0.5 %.3f  pos0 %.3f  pos+0.5 %.3f", low, mid, high)
@@ -143,12 +143,12 @@ func TestThePosKnobMovesTheSectionThroughTheAttractor(t *testing.T) {
 // chain agrees, since S and T are what the flat view and the return map plot.
 func TestTheAxisKnobPicksThePlaneAndItsCoordinates(t *testing.T) {
 	sys, dt := sectTestSetup(t, sectAxisX, 0, analysis.CrossRising)
-	sectAdvance("lorenz", sys, dt, 60000)
-	if sectLog.Len() < 20 {
-		t.Fatalf("only %d crossings through an x plane", sectLog.Len())
+	sect.advance("lorenz", sys, dt, 60000)
+	if sect.log.Len() < 20 {
+		t.Fatalf("only %d crossings through an x plane", sect.log.Len())
 	}
-	for i := 0; i < sectLog.Len(); i++ {
-		h := sectLog.At(i)
+	for i := 0; i < sect.log.Len(); i++ {
+		h := sect.log.At(i)
 		if math.Abs(float64(h.S-h.P[1])) > 1e-4 || math.Abs(float64(h.T-h.P[2])) > 1e-4 {
 			t.Fatalf("crossing %d reads as (%v, %v) in the plane but sits at (%v, %v, %v); an "+
 				"x-plane section is read in (y, z)", i, h.S, h.T, h.P[0], h.P[1], h.P[2])
@@ -160,25 +160,25 @@ func TestTheAxisKnobPicksThePlaneAndItsCoordinates(t *testing.T) {
 // section that keeps stale points after a knob moves — two planes' crossings
 // in one scatter, which looks like a thicker section rather than like a bug.
 func TestTheSignatureCoversEveryControlThatChangesTheSection(t *testing.T) {
-	oldAxis, oldPos, oldDir := sectAxisF, sectPosF, sectDirF
-	t.Cleanup(func() { sectAxisF, sectPosF, sectDirF = oldAxis, oldPos, oldDir })
+	oldAxis, oldPos, oldDir := sect.axisF, sect.posF, sect.dirF
+	t.Cleanup(func() { sect.axisF, sect.posF, sect.dirF = oldAxis, oldPos, oldDir })
 
-	sectAxisF, sectPosF, sectDirF = sectAxisZ, 0, analysis.CrossRising
-	base := sectSignature("lorenz")
+	sect.axisF, sect.posF, sect.dirF = sectAxisZ, 0, analysis.CrossRising
+	base := sect.signature("lorenz")
 	for name, move := range map[string]func(){
-		"axis": func() { sectAxisF = sectAxisX },
-		"pos":  func() { sectPosF = 0.25 },
-		"dir":  func() { sectDirF = analysis.CrossFalling },
+		"axis": func() { sect.axisF = sectAxisX },
+		"pos":  func() { sect.posF = 0.25 },
+		"dir":  func() { sect.dirF = analysis.CrossFalling },
 	} {
-		sectAxisF, sectPosF, sectDirF = sectAxisZ, 0, analysis.CrossRising
+		sect.axisF, sect.posF, sect.dirF = sectAxisZ, 0, analysis.CrossRising
 		move()
-		if sectSignature("lorenz") == base {
+		if sect.signature("lorenz") == base {
 			t.Errorf("moving %s leaves the signature unchanged, so the crossings from the old "+
 				"setting stay in the scatter", name)
 		}
 	}
-	sectAxisF, sectPosF, sectDirF = sectAxisZ, 0, analysis.CrossRising
-	if sectSignature("rossler") == base {
+	sect.axisF, sect.posF, sect.dirF = sectAxisZ, 0, analysis.CrossRising
+	if sect.signature("rossler") == base {
 		t.Error("two different source systems share a signature")
 	}
 }

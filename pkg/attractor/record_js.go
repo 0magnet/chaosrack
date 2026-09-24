@@ -13,15 +13,41 @@ import (
 	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
-var (
-	recOn     bool
-	recorder  js.Value
-	recChunks js.Value
-	recStopFn js.Func
-	recDataFn js.Func
-)
+// canvasRecorder is the in-app recorder: the MediaRecorder, its chunks, and
+// the audio fed into it.
+type canvasRecorder struct {
+	on       bool
+	recorder js.Value
+	chunks   js.Value
+	stopFn   js.Func
+	dataFn   js.Func
 
-func startRecording() {
+	// The feed: what the video stream is captured from.
+	//
+	// With no region that is the canvas itself, captured directly — no copy, no
+	// per-frame cost, and the recording is exactly what is on screen. With a region
+	// it is a canvas of the region's size that the region is drawn into every
+	// frame, and the stream comes from that.
+	//
+	// This is what the AREA switch already promises. The monitor showed the region,
+	// the still wrote the region, the GIF recorded the region — and the video
+	// recorded the whole canvas, because it handed captureStream the canvas and
+	// never looked at the area at all.
+	//
+	// At the region's own resolution, not scaled down. Scaling is the wrong lever
+	// for this picture: the content is one-pixel lines, and resampling a one-pixel
+	// line is how you lose it. Fewer pixels to encode is a real benefit of
+	// recording a region, but it comes from recording less of the picture, not from
+	// recording the same picture worse.
+	feed    js.Value
+	feedCtx js.Value
+	feedFn  js.Func
+	feedOn  bool
+}
+
+var rec canvasRecorder
+
+func (c *canvasRecorder) startRecording() {
 	canvas := modelCanvas()
 	if !canvas.Truthy() {
 		return
@@ -31,63 +57,63 @@ func startRecording() {
 		return
 	}
 	const fps = 60
-	src := recStreamSource(canvas)
+	src := c.streamSource(canvas)
 	stream := src.Call("captureStream", fps)
 	opts := js.Global().Get("Object").New()
 	if mr.Call("isTypeSupported", "video/webm;codecs=vp9").Truthy() {
 		opts.Set("mimeType", "video/webm;codecs=vp9")
 	}
 	opts.Set("videoBitsPerSecond", recBitrate(src, fps))
-	recorder = mr.New(stream, opts)
-	recChunks = js.Global().Get("Array").New()
-	recDataFn = dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	c.recorder = mr.New(stream, opts)
+	c.chunks = js.Global().Get("Array").New()
+	c.dataFn = dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if d := a[0].Get("data"); d.Get("size").Int() > 0 {
-			recChunks.Call("push", d)
+			c.chunks.Call("push", d)
 		}
 		return nil
 	})
-	recStopFn = dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-		blob := js.Global().Get("Blob").New(recChunks, map[string]interface{}{"type": "video/webm"})
+	c.stopFn = dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+		blob := js.Global().Get("Blob").New(c.chunks, map[string]interface{}{"type": "video/webm"})
 		// Shared with the GIF path, which is where the download race this used
 		// to have is explained.
 		saveBlob(blob, "webm")
-		recChunks = js.Undefined()
+		c.chunks = js.Undefined()
 		return nil
 	})
-	recorder.Set("ondataavailable", recDataFn)
-	recorder.Set("onstop", recStopFn)
-	recorder.Call("start", 1000) // chunk every second
+	c.recorder.Set("ondataavailable", c.dataFn)
+	c.recorder.Set("onstop", c.stopFn)
+	c.recorder.Call("start", 1000) // chunk every second
 }
 
-func stopRecording() {
-	stopRecFeed()
-	if recorder.Truthy() && recorder.Get("state").String() != "inactive" {
-		recorder.Call("stop") // onstop finalizes + downloads
+func (c *canvasRecorder) stopRecording() {
+	c.stopRecFeed()
+	if c.recorder.Truthy() && c.recorder.Get("state").String() != "inactive" {
+		c.recorder.Call("stop") // onstop finalizes + downloads
 	}
-	recorder = js.Undefined()
+	c.recorder = js.Undefined()
 }
 
-func wireRecordSwitch() {
+func (c *canvasRecorder) wireRecordSwitch() {
 	sw := dom.Doc.Call("getElementById", "rec-sw")
 	if !sw.Truthy() {
 		return
 	}
 	sw.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		recOn = sw.Get("checked").Bool()
-		if recOn {
-			noteTakeStart()
+		c.on = sw.Get("checked").Bool()
+		if c.on {
+			recmod.noteTakeStart()
 		}
 		switch {
-		case recOn && recWantsGIF():
-			startGIFRecording()
-		case recOn:
-			startRecording()
+		case c.on && recWantsGIF():
+			gif.startGIFRecording()
+		case c.on:
+			c.startRecording()
 		default:
 			// Both are stopped regardless of which the switch now says, because
 			// the format switch can be flipped mid-recording and the one that
 			// is actually running is the one that has to be told.
-			stopRecording()
-			stopGIFRecording()
+			c.stopRecording()
+			gif.stopGIFRecording()
 		}
 		return nil
 	}))
@@ -134,33 +160,9 @@ func recBitrate(canvas js.Value, fps int) int {
 	return bps
 }
 
-// The feed: what the video stream is captured from.
-//
-// With no region that is the canvas itself, captured directly — no copy, no
-// per-frame cost, and the recording is exactly what is on screen. With a region
-// it is a canvas of the region's size that the region is drawn into every
-// frame, and the stream comes from that.
-//
-// This is what the AREA switch already promises. The monitor showed the region,
-// the still wrote the region, the GIF recorded the region — and the video
-// recorded the whole canvas, because it handed captureStream the canvas and
-// never looked at the area at all.
-//
-// At the region's own resolution, not scaled down. Scaling is the wrong lever
-// for this picture: the content is one-pixel lines, and resampling a one-pixel
-// line is how you lose it. Fewer pixels to encode is a real benefit of
-// recording a region, but it comes from recording less of the picture, not from
-// recording the same picture worse.
-var (
-	recFeed    js.Value
-	recFeedCtx js.Value
-	recFeedFn  js.Func
-	recFeedOn  bool
-)
-
 // recStreamSource returns the element to capture, building the region feed when
 // one is needed.
-func recStreamSource(canvas js.Value) js.Value {
+func (c *canvasRecorder) streamSource(canvas js.Value) js.Value {
 	sx, sy, sw, sh := recRegionRect(canvas)
 	// Handing the canvas straight to MediaRecorder is the cheap path and stays
 	// the default — but it can only be done when ONE canvas holds the picture.
@@ -168,41 +170,41 @@ func recStreamSource(canvas js.Value) js.Value {
 	// front of the panel, so the per-frame feed below (already built for
 	// regions) does the compositing instead.
 	if sw >= canvas.Get("width").Float() && sh >= canvas.Get("height").Float() && !splitDrawing() {
-		stopRecFeed()
+		c.stopRecFeed()
 		return canvas
 	}
 
-	if !recFeed.Truthy() {
-		recFeed = dom.Doc.Call("createElement", "canvas")
+	if !c.feed.Truthy() {
+		c.feed = dom.Doc.Call("createElement", "canvas")
 	}
-	recFeed.Set("width", sw)
-	recFeed.Set("height", sh)
-	recFeedCtx = recFeed.Call("getContext", "2d")
-	recFeedOn = true
+	c.feed.Set("width", sw)
+	c.feed.Set("height", sh)
+	c.feedCtx = c.feed.Call("getContext", "2d")
+	c.feedOn = true
 
 	// Driven by rAF rather than a timer: the stream samples the canvas when it
 	// changes, and the moment it changes is the frame.
-	recFeedFn = js.FuncOf(func(js.Value, []js.Value) interface{} {
-		if !recFeedOn {
+	c.feedFn = js.FuncOf(func(js.Value, []js.Value) interface{} {
+		if !c.feedOn {
 			return nil
 		}
 		// Cleared first, for the reason the GIF path is: the model's canvas is
 		// transparent where nothing is drawn, so drawing it onto another canvas
 		// composites instead of replacing and every frame keeps the last one.
-		recFeedCtx.Set("fillStyle", "#000000")
-		recFeedCtx.Call("fillRect", 0, 0, sw, sh)
-		recFeedCtx.Call("drawImage", captureCanvas(canvas), sx, sy, sw, sh, 0, 0, sw, sh)
-		js.Global().Call("requestAnimationFrame", recFeedFn)
+		c.feedCtx.Set("fillStyle", "#000000")
+		c.feedCtx.Call("fillRect", 0, 0, sw, sh)
+		c.feedCtx.Call("drawImage", captureCanvas(canvas), sx, sy, sw, sh, 0, 0, sw, sh)
+		js.Global().Call("requestAnimationFrame", c.feedFn)
 		return nil
 	})
-	js.Global().Call("requestAnimationFrame", recFeedFn)
-	return recFeed
+	js.Global().Call("requestAnimationFrame", c.feedFn)
+	return c.feed
 }
 
-func stopRecFeed() {
-	recFeedOn = false
-	if recFeedFn.Truthy() {
-		recFeedFn.Release()
-		recFeedFn = js.Func{}
+func (c *canvasRecorder) stopRecFeed() {
+	c.feedOn = false
+	if c.feedFn.Truthy() {
+		c.feedFn.Release()
+		c.feedFn = js.Func{}
 	}
 }
