@@ -9,7 +9,7 @@ package attractor
 // Both integrate with the SAME generic stepper (via dynamics.FlowFor4), so their
 // separation reflects the dynamics, never an integrator mismatch.
 //
-// The λ measurement that used to live in this file has moved to lyaplive.go
+// The λ measurement that used to live in this file has moved to pkg/analysis
 // and lyaplive_js.go. It is the same arithmetic — a probe pair renormalized on
 // a fixed schedule while the VISIBLE pair is left alone, so the picture stays
 // honest and the number stays in the linear regime — and two things changed.
@@ -27,6 +27,7 @@ package attractor
 // it.
 
 import (
+	"github.com/0magnet/chaosrack/pkg/analysis"
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"syscall/js"
@@ -47,7 +48,7 @@ var (
 // probe's d0 rather than a second constant that happens to match: the picture
 // and the number are of the same thing, so the ε the eye watches grow is the ε
 // the exponent is measured against.
-const twinD0 = lyapLiveD0
+const twinD0 = analysis.LiveD0
 
 func twinInvalidate() { twinSeeded = "" }
 

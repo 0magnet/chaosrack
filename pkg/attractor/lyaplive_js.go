@@ -3,7 +3,7 @@
 package attractor
 
 // The live λ readout: a dedicated probe pair, advanced a slice at a time out
-// of the render loop, feeding the accumulator in lyaplive.go.
+// of the render loop, feeding the accumulator in pkg/analysis.
 //
 // The measurement was already on screen as a PICTURE — Trace > Twin draws two
 // copies of the flow ε apart and lets you watch them come apart — and a
@@ -28,6 +28,7 @@ import (
 	"strconv"
 	"syscall/js"
 
+	"github.com/0magnet/chaosrack/pkg/analysis"
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 )
@@ -43,7 +44,7 @@ const (
 )
 
 var (
-	lyapLiveState liveLyapunov
+	lyapLiveState analysis.LiveLyapunov
 	lyapLiveA     [4]float64 // probe reference
 	lyapLiveB     [4]float64 // probe copy, held d0 away
 	lyapLiveMode  string     // the mode the pair belongs to; "" = unseeded
@@ -92,8 +93,8 @@ func lyapLiveSeed(mode string, sys dynamics.FlowSys4) {
 	// state that belongs to a different trajectory.
 	lyapLiveA = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W0}
 	lyapLiveB = lyapLiveA
-	lyapLiveB[0] += lyapLiveD0
-	lyapLiveState.reset()
+	lyapLiveB[0] += analysis.LiveD0
+	lyapLiveState.Reset()
 	lyapLiveMode = mode
 }
 
@@ -113,7 +114,7 @@ func lyapLiveTick(mode string) {
 		lyapLiveSeed(mode, sys)
 	}
 	// The dt the app is ACTUALLY running: the mode's own knob times the Speed
-	// scale. Both belong in it — see lyaplive.go on why the exponent depends
+	// scale. Both belong in it — see pkg/analysis on why the exponent depends
 	// on dt rather than merely being reached sooner or later because of it.
 	dt := sys.Dt() * float64(speedScale)
 	if dt <= 0 {
@@ -145,7 +146,7 @@ func lyapLiveTick(mode string) {
 			e := lyapLiveB[k] - lyapLiveA[k]
 			d2 += e * e
 		}
-		sc, renormed := lyapLiveState.advance(dt, math.Sqrt(d2))
+		sc, renormed := lyapLiveState.Advance(dt, math.Sqrt(d2))
 		if renormed {
 			for k := 0; k < 4; k++ {
 				lyapLiveB[k] = lyapLiveA[k] + (lyapLiveB[k]-lyapLiveA[k])*sc
@@ -163,10 +164,10 @@ func lyapLiveTick(mode string) {
 // Two decimals, not the Analysis module's four. They are different readouts:
 // that one runs a few hundred thousand steps on demand and can stand behind
 // its fourth decimal, this one averages over a window three hundred times
-// shorter and can stand behind its second — which is what lyapLiveMinTime is
+// shorter and can stand behind its second — which is what analysis.LiveMinTime is
 // calibrated to. Printing four here would be printing two digits of noise.
 func lyapLiveReadout() string {
-	lam, ok := lyapLiveState.lambda()
+	lam, ok := lyapLiveState.Lambda()
 	if !ok {
 		// Not "+0.00". Below the threshold the average is mostly the approach
 		// onto the attractor, and a small number there reads as "periodic" —
