@@ -200,7 +200,7 @@ func drawTexturedPlane(texture js.Value, offset float32) {
 }
 
 // drawTexturedSquare draws the 1:1 quad with the given texture and no scroll
-// offset — for a texture whose two axes are the same axis (recurrence.go).
+// offset — for a texture whose two axes are the same axis (pkg/recurrence).
 func drawTexturedSquare(texture js.Value) {
 	if !texReady {
 		return

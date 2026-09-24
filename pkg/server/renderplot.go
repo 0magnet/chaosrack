@@ -16,6 +16,7 @@ import (
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
 	"github.com/0magnet/chaosrack/pkg/meters"
+	"github.com/0magnet/chaosrack/pkg/recurrence"
 )
 
 // The audio analyzers, as pictures.
@@ -382,8 +383,8 @@ func plotRecurrence(x []float32) (*image.RGBA, error) {
 		series[i] = float64(s) / float64(stride)
 	}
 	mat := make([]byte, recN*recN)
-	attractor.RecurrenceMatrixVec(series, 1, recEps*attractor.RecurrenceVectorScale(1), mat)
-	q := attractor.RQA(mat, recN)
+	recurrence.MatrixVec(series, 1, recEps*recurrence.VectorScale(1), mat)
+	q := recurrence.RQA(mat, recN)
 	c := newCanvas(fmt.Sprintf("recurrence  %d ms, eps %.2f   RR %.3f  DET %.3f  LAM %.3f", recWin, recEps, q.RR, q.DET, q.LAM))
 	side := min(c.x1-c.x0, c.y1-c.y0)
 	ox, oy := c.x0+(c.x1-c.x0-side)/2, c.y0

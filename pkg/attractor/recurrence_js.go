@@ -5,6 +5,7 @@ package attractor
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
+	"github.com/0magnet/chaosrack/pkg/recurrence"
 	"strconv"
 	"syscall/js"
 )
@@ -23,7 +24,7 @@ import (
 // because both of its axes are the same axis and the main diagonal has to come
 // out at 45°.
 //
-// The matrix, the two normalizers and the RQA scalars are all in recurrence.go,
+// The matrix, the two normalizers and the RQA scalars are all in pkg/recurrence,
 // untagged, so the properties that make the picture legible — a periodic signal
 // gives a matrix invariant under shifting both indices by its period, DET
 // separates an orbit from noise, one ε works across systems of wildly different
@@ -75,7 +76,7 @@ import (
 //   - audio and embed normalize against the signal's KNOWN BOUND — samples are
 //     ±1, so a delay vector lives in a cube whose half-diagonal is √m. Nothing
 //     about the current audio enters it, and the same knob position means the
-//     same thing at every m (RecurrenceVectorScale).
+//     same thing at every m (recurrence.VectorScale).
 //
 //   - traj normalizes against the attractor's own DIAMETER, which is legitimate
 //     here for a reason that does not hold for audio: the trajectory is a
@@ -102,7 +103,7 @@ import (
 //     taking one sample per stride — see the note at the decimation itself,
 //     which is where an earlier version drew the recurrences of an aliased
 //     signal nobody was playing;
-//   - RQA runs at RQASamplePeriodMs rather than per frame, because 283 µs for
+//   - RQA runs at recurrence.RQASamplePeriodMs rather than per frame, because 283 µs for
 //     three numbers a human reads a few times a second is the kind of thing
 //     that looks free and is not. That same tick feeds the strip chart beside
 //     the readout (rqaseries_js.go), which is the whole of what the chart
@@ -113,7 +114,7 @@ import (
 //     times smaller; recomputing that on every frame of a knob DRAG is exactly
 //     the failure this file must not have, so a drag recomputes nothing until
 //     the knob has been still for rpTrajSettleMs. The step budget in
-//     recurrence.go caps the 24 ms; the settle delay caps how often it is paid.
+//     pkg/recurrence caps the 24 ms; the settle delay caps how often it is paid.
 const (
 	// rpN is the matrix side, and the texture is rpN×rpN. 256 columns over
 	// the window is enough for the diagonals to be legible and costs 65536
@@ -159,7 +160,7 @@ const (
 	// result, and long enough that nothing is recomputed mid-drag.
 	rpTrajSettleMs = 200
 
-	// The rate limit on the readout is RQASamplePeriodMs, in rqaseries.go —
+	// The rate limit on the readout is recurrence.RQASamplePeriodMs, in pkg/recurrence —
 	// moved there when the strip chart was added, because the tick that
 	// rate-limits the scan and the tick that spaces the series are one tick and
 	// two names for it would be two things to keep in step. The reasoning for
@@ -422,7 +423,7 @@ func rpFillFromAudio() bool {
 			rpVec[i*dim+c] = float64(sum) * inv
 		}
 	}
-	RecurrenceMatrixVec(rpVec[:rpN*dim], dim, float64(rpEps)*RecurrenceVectorScale(dim), rpMat)
+	recurrence.MatrixVec(rpVec[:rpN*dim], dim, float64(rpEps)*recurrence.VectorScale(dim), rpMat)
 	return true
 }
 
@@ -488,9 +489,9 @@ func rpFillFromTrajectory() bool {
 			return false
 		}
 		rpTrajStale = false
-		span := RecurrenceSpan(lastFlowMode, float64(rpWin)/rpTrajWinDiv, rpN)
-		rpTrajSeries = TrajectorySeries(lastFlowMode, rpN, span)
-		rpTrajDiam = RecurrenceDiameter(rpTrajSeries, 3)
+		span := recurrence.Span(lastFlowMode, float64(rpWin)/rpTrajWinDiv, rpN)
+		rpTrajSeries = recurrence.TrajectorySeries(lastFlowMode, rpN, span)
+		rpTrajDiam = recurrence.Diameter(rpTrajSeries, 3)
 		rpTrajBuilt = false
 		// A different curve, so the RQA read off it is an answer about a
 		// different object and the strip chart takes a seam. Counted rather
@@ -514,7 +515,7 @@ func rpFillFromTrajectory() bool {
 		return false
 	}
 	rpTrajEps, rpTrajBuilt = rpEps, true
-	RecurrenceMatrixVec(rpTrajSeries, 3, float64(rpEps)*rpTrajDiam, rpMat)
+	recurrence.MatrixVec(rpTrajSeries, 3, float64(rpEps)*rpTrajDiam, rpMat)
 	return true
 }
 
@@ -530,11 +531,11 @@ func rpFillFromTrajectory() bool {
 // plus the two that say whether the texture is structure or speckle.
 //
 // The same tick drives the strip chart in the cell beside it — the history of
-// these three numbers, which is the thing RQA is actually for (rqaseries.go).
+// these three numbers, which is the thing RQA is actually for (pkg/recurrence).
 
 var (
 	rpRQAEl   js.Value
-	rpRQA     RQAResult
+	rpRQA     recurrence.RQAResult
 	rpRQANext float64 // frameNowMs the next measurement is due
 
 	// rpMatDirty says the matrix has changed since the last scan. It is sticky
@@ -547,7 +548,7 @@ var (
 )
 
 // rpMaybeMeasure recomputes the scalars from the matrix, at most every
-// RQASamplePeriodMs, and only while the readout is actually on the panel —
+// recurrence.RQASamplePeriodMs, and only while the readout is actually on the panel —
 // there is no reason to scan 64 KB for a number nothing is displaying. The
 // scan is skipped again when the matrix has not moved since the last one,
 // which is the common case for the trajectory source and free for the others.
@@ -561,10 +562,10 @@ func rpMaybeMeasure() {
 	if !rpRQAEl.Truthy() || frameNowMs < rpRQANext {
 		return
 	}
-	rpRQANext = frameNowMs + RQASamplePeriodMs
+	rpRQANext = frameNowMs + recurrence.RQASamplePeriodMs
 	if rpMatDirty {
 		rpMatDirty = false
-		rpRQA = RQA(rpMat, rpN)
+		rpRQA = recurrence.RQA(rpMat, rpN)
 		rpRQAEl.Set("textContent", rpFormatRQA(rpRQA))
 	}
 	rqaSample(frameNowMs, rpRQA)
@@ -575,7 +576,7 @@ func rpMaybeMeasure() {
 // width makes the whole cell jump, and this one updates several times a second.
 // RR keeps a decimal because its useful range is the bottom few percent, where
 // whole numbers would read 2, 3, 2, 3 and say nothing.
-func rpFormatRQA(r RQAResult) string {
+func rpFormatRQA(r recurrence.RQAResult) string {
 	if r.Lit == 0 {
 		return " --.- --- ---"
 	}

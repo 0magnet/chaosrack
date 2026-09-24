@@ -4,13 +4,14 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/recurrence"
 	"strconv"
 	"strings"
 	"syscall/js"
 )
 
-// The RQA strip chart: RR, DET and LAM over the last RQASeriesSpanMs, scrolling
-// beside the recurrence plot. The ring and the scales are in rqaseries.go,
+// The RQA strip chart: RR, DET and LAM over the last recurrence.RQASeriesSpanMs, scrolling
+// beside the recurrence plot. The ring and the scales are in pkg/recurrence,
 // untagged; this file is the cell it lives in and the pixels.
 //
 // ── WHERE IT LIVES, AND THE THREE PLACES IT DOES NOT ─────────────────────
@@ -53,14 +54,14 @@ import (
 // ── WHAT IT COSTS ────────────────────────────────────────────────────────
 //
 // Nothing is measured here. The chart is fed from rpMaybeMeasure, which has
-// rate-limited the RQA scan to RQASamplePeriodMs since the readout existed; all
+// rate-limited the RQA scan to recurrence.RQASamplePeriodMs since the readout existed; all
 // this does is keep the answers. A knob drag therefore cannot provoke a storm
 // of recomputation through this path, because this path recomputes nothing —
 // the settle delay on the trajectory source and the ε cache in recurrence_js.go
 // are still the only things deciding how often the expensive work happens, and
 // the chart is downstream of both.
 //
-// The drawing is a full redraw of RQASeriesLen columns × 3 panes, at 6.25 Hz.
+// The drawing is a full redraw of recurrence.RQASeriesLen columns × 3 panes, at 6.25 Hz.
 // The spectrogram scrolls its texture in place — one column uploaded per step,
 // the read offset advanced — because a full re-upload there is 2048×512 RGBA,
 // four megabytes a frame. Here a full redraw is a 256×456 canvas six times a
@@ -81,9 +82,9 @@ import (
 const (
 	// rqaChartCols is the chart's width in backing-store pixels, and so how
 	// many samples it can show: one per column, the spectrogram's rule. It is
-	// RQASeriesLen because the ring is sized for the chart rather than the
+	// recurrence.RQASeriesLen because the ring is sized for the chart rather than the
 	// other way round — history that is never drawn is not history.
-	rqaChartCols = RQASeriesLen
+	rqaChartCols = recurrence.RQASeriesLen
 
 	// rqaPaneH is one trace's pane, in backing-store pixels. --krow is 38 mm =
 	// 152 px at interface scale 1, so at that scale the backing store and the
@@ -95,7 +96,7 @@ const (
 
 	// rqaChartH is the whole canvas: one pane per trace, stacked, so the cell
 	// is exactly the three grid rows tall that it spans.
-	rqaChartH = rqaPaneH * int(RQATraceCount)
+	rqaChartH = rqaPaneH * int(recurrence.RQATraceCount)
 
 	// rqaTimeTickMs is the spacing of the faint vertical rules. Ten seconds is
 	// 62.5 columns here — close enough to a rule every inch of chart to read a
@@ -118,15 +119,15 @@ const (
 // it is drawn in — it is the same number, and it is the first field of that
 // readout — and the other two are picked to stay apart from it and from each
 // other on a dark ground rather than to mean anything.
-var rqaTraceColor = [RQATraceCount]string{
-	RQATraceRR:  "#ff3b30",
-	RQATraceDET: "#5ad1ff",
-	RQATraceLAM: "#ffd24a",
+var rqaTraceColor = [recurrence.RQATraceCount]string{
+	recurrence.RQATraceRR:  "#ff3b30",
+	recurrence.RQATraceDET: "#5ad1ff",
+	recurrence.RQATraceLAM: "#ffd24a",
 }
 
 var (
-	rqaSeries RQASeries
-	rqaSnap   = make([]RQASample, rqaChartCols) // reused; Snapshot fills it whole
+	rqaSeries recurrence.RQASeries
+	rqaSnap   = make([]recurrence.RQASample, rqaChartCols) // reused; Snapshot fills it whole
 
 	rqaChartEl  js.Value
 	rqaChartCtx js.Value
@@ -135,7 +136,7 @@ var (
 // rqaConfig is everything that decides WHAT is being measured, as one
 // comparable value. When it changes, the readings before and after are answers
 // to different questions and the series takes a seam — see the gap note in
-// rqaseries.go.
+// pkg/recurrence.
 //
 // Compared by VALUE rather than hooked off the knobs, for the reason
 // rpTrajChanged gives about the trajectory cache: an edit that reaches a
@@ -170,7 +171,7 @@ func rqaConfigNow() rqaConfig {
 // rqaSample records one measurement and repaints. Called from rpMaybeMeasure,
 // on its tick, with whatever the readout is showing — including a result with
 // nothing lit, which Push stores as a gap rather than as three zeros.
-func rqaSample(nowMs float64, r RQAResult) {
+func rqaSample(nowMs float64, r recurrence.RQAResult) {
 	if cfg := rqaConfigNow(); cfg != rqaCfg {
 		// Not on the first sample: there is no history for the seam to
 		// separate, and a chart that opens with a break in it reads as a fault.
@@ -214,8 +215,8 @@ func rqaPaint() {
 	// The time rules run the full height, under everything, so a step in one
 	// pane can be read against a step in another.
 	ctx.Set("fillStyle", rqaColRule)
-	for ms := rqaTimeTickMs; ms < RQASeriesSpanMs; ms += rqaTimeTickMs {
-		x := float64(rqaChartCols) - float64(ms)/RQASamplePeriodMs
+	for ms := rqaTimeTickMs; ms < recurrence.RQASeriesSpanMs; ms += rqaTimeTickMs {
+		x := float64(rqaChartCols) - float64(ms)/recurrence.RQASamplePeriodMs
 		if x < 0 {
 			break
 		}
@@ -231,15 +232,15 @@ func rqaPaint() {
 	ctx.Set("font", "9px 'Chakra Petch',sans-serif")
 	ctx.Set("textBaseline", "top")
 
-	for tr := RQATrace(0); tr < RQATraceCount; tr++ {
+	for tr := recurrence.RQATrace(0); tr < recurrence.RQATraceCount; tr++ {
 		top := int(tr) * rqaPaneH
-		if tr == RQATraceRR {
+		if tr == recurrence.RQATraceRR {
 			// The band the plot is readable in, shaded behind the trace: below
 			// it there is nothing but the diagonal, above it the square
 			// saturates. It turns "turn ε until RR is a few percent" from a
 			// sentence in a tooltip into somewhere to aim.
-			hi := rqaPaneY(top, RQATraceY(tr, RQAReadableHi))
-			lo := rqaPaneY(top, RQATraceY(tr, RQAReadableLo))
+			hi := rqaPaneY(top, recurrence.RQATraceY(tr, recurrence.RQAReadableHi))
+			lo := rqaPaneY(top, recurrence.RQATraceY(tr, recurrence.RQAReadableLo))
 			ctx.Set("fillStyle", rqaColBand)
 			ctx.Call("fillRect", 0, hi, rqaChartCols, lo-hi)
 		} else {
@@ -248,7 +249,7 @@ func rqaPaint() {
 			ctx.Set("fillStyle", rqaColRule)
 			ctx.Call("fillRect", 0, int(rqaPaneY(top, 0.5)), rqaChartCols, 1)
 		}
-		if tr+1 < RQATraceCount {
+		if tr+1 < recurrence.RQATraceCount {
 			ctx.Set("fillStyle", rqaColEdge)
 			ctx.Call("fillRect", 0, top+rqaPaneH-1, rqaChartCols, 1)
 		}
@@ -270,7 +271,7 @@ func rqaPaint() {
 // note on the boundary at the top of this file. Coordinates get one decimal,
 // which is exact for the x (column + a half) and a tenth of a pixel on the y,
 // well under the resampling the CSS box does at any interface size but 1.
-func rqaTracePath(tr RQATrace, top int) string {
+func rqaTracePath(tr recurrence.RQATrace, top int) string {
 	var b strings.Builder
 	pen := false
 	for i, s := range rqaSnap {
@@ -281,7 +282,7 @@ func rqaTracePath(tr RQATrace, top int) string {
 		// Column i is the i-th oldest slot, so time runs left to right and the
 		// newest reading is against the right edge.
 		x := strconv.FormatFloat(float64(i)+0.5, 'f', 1, 64)
-		y := strconv.FormatFloat(rqaPaneY(top, RQATraceY(tr, s.Value(tr))), 'f', 1, 64)
+		y := strconv.FormatFloat(rqaPaneY(top, recurrence.RQATraceY(tr, s.Value(tr))), 'f', 1, 64)
 		if !pen {
 			// Opened as a degenerate segment so a lone reading is a round dot
 			// rather than nothing; see the lineCap in rqaPaint.
@@ -336,7 +337,7 @@ func appendRecurrenceSeries(grid js.Value) {
 	rqaChartEl.Set("width", rqaChartCols)
 	rqaChartEl.Set("height", rqaChartH)
 	rqaChartEl.Set("title", "Recurrence quantification over time — the last "+
-		strconv.Itoa(RQASeriesSpanMs/1000)+" seconds, newest at the right, one column per measurement "+
+		strconv.Itoa(recurrence.RQASeriesSpanMs/1000)+" seconds, newest at the right, one column per measurement "+
 		"(about six a second). Vertical rules every 10 s. "+
 		"THE THREE PANES DO NOT SHARE A SCALE and their heights are not comparable; what they share is "+
 		"the time axis, which is the only one they have in common. "+
