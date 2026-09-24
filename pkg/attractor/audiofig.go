@@ -10,8 +10,8 @@ import (
 //
 // takens_js.go, polar_js.go, stereo_js.go and xy_js.go read the page's audio
 // tap every frame and draw the newest window. The window, the delay, the
-// Catmull-Rom beam and the polar map are the arithmetic in pkg/takens and
-// polarmap.go; what is here is the same walk over a plain slice, so that
+// Catmull-Rom beam and the polar map are the arithmetic in pkg/takens; what
+// is here is the same walk over a plain slice, so that
 // `chaosrack render` can draw an embedding of audio it recorded itself. Each
 // mode is drawn at the page's default settings.
 
@@ -154,7 +154,7 @@ func AudioFigure(key string, l, r []float32, end int, o AudioOptions) (Figure, b
 		if key == "polar" {
 			// The default map, tanh at drive 2, bends the vector's length
 			// and keeps its direction.
-			s := polarScale(polarMapTanh, float32(math.Sqrt(float64(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]))), 2)
+			s := takens.PolarScale(takens.PolarTanh, float32(math.Sqrt(float64(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]))), 2)
 			v[0], v[1], v[2] = v[0]*s, v[1]*s, v[2]*s
 		}
 		pts[m] = [3]float64{float64(v[0]), float64(v[1]), float64(v[2])}
