@@ -30,7 +30,7 @@ type inPageRack struct{}
 // its controls are drawn, and that is the renderer's to decide.
 func (inPageRack) Modules() ([]racksurface.Item, int, error) {
 	keys, cats, slots := rackModulesNow()
-	return RackItemsFrom(keys, cats, slots, nil), unitCapacitySlots(), nil
+	return RackItemsFrom(keys, cats, slots, nil), racksurface.UnitCapacity(), nil
 }
 
 func (inPageRack) Controls() ([]racktui.Control, error) {
