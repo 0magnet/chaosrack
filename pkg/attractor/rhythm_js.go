@@ -4,11 +4,12 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/rhythm"
 	"syscall/js"
 )
 
 // The rhythm section's sound, clock and panel. The patterns themselves are in
-// rhythm.go, untagged, where they can be read and checked on the host.
+// pkg/rhythm, where they can be read and checked on the host.
 //
 // THE DRUMS ARE SYNTHESIZED, not sampled, for the same reason the rest of the
 // audio here is: a sample is a file to ship and a decision nobody can see
@@ -27,7 +28,7 @@ import (
 var (
 	rhythmOn      bool
 	rhythmRunning bool
-	rhythmPreset  = rhythmDefaultPreset
+	rhythmPreset  = rhythm.DefaultPreset
 
 	rhythmCtx    js.Value
 	rhythmMaster js.Value
@@ -93,11 +94,11 @@ func rhythmTick() {
 	if !rhythmOn || !rhythmRunning || !rhythmCtx.Truthy() {
 		return
 	}
-	pat, ok := rhythmPatternByName(rhythmPreset)
+	pat, ok := rhythm.ByName(rhythmPreset)
 	if !ok {
 		return
 	}
-	dur := rhythmStepSeconds(rhythmTempo(), pat)
+	dur := rhythm.StepSeconds(rhythmTempo(), pat)
 	if dur <= 0 {
 		return
 	}
@@ -125,8 +126,8 @@ func rhythmTick() {
 // worked back from the audio clock: rhythmStep is the index of the step at
 // rhythmNext, so however many step-durations rhythmNext is in the future is how
 // far back the ear currently is.
-func rhythmUpdateLamps(p rhythmPattern, now, dur float64) {
-	beats := rhythmBeatsPerBar(p)
+func rhythmUpdateLamps(p rhythm.Pattern, now, dur float64) {
+	beats := rhythm.BeatsPerBar(p)
 	perBeat := p.Steps / beats
 	if perBeat <= 0 {
 		return
@@ -152,9 +153,9 @@ func rhythmUpdateLamps(p rhythmPattern, now, dur float64) {
 }
 
 // rhythmScheduleStep places whatever plays on this step onto the audio clock.
-func rhythmScheduleStep(p rhythmPattern, step int, t float64) {
-	for v := 0; v < rhythmVoiceCount; v++ {
-		if rhythmHit(p, v, step) {
+func rhythmScheduleStep(p rhythm.Pattern, step int, t float64) {
+	for v := 0; v < rhythm.VoiceCount; v++ {
+		if rhythm.Hit(p, v, step) {
 			rhythmVoice(v, t)
 		}
 	}
@@ -171,7 +172,7 @@ func rhythmVoice(v int, t float64) {
 	g.Call("connect", rhythmMaster)
 
 	switch v {
-	case voiceBass:
+	case rhythm.Bass:
 		// A sine swept 150 → 45 Hz in a twentieth of a second. The sweep IS the
 		// sound: held at one pitch this is an organ note, not a drum.
 		osc := ctx.Call("createOscillator")
@@ -185,7 +186,7 @@ func rhythmVoice(v int, t float64) {
 		osc.Call("start", t)
 		osc.Call("stop", t+0.3)
 
-	case voiceSnare:
+	case rhythm.Snare:
 		// Noise for the wires and a triangle for the head, together: either one
 		// on its own reads as a hiss or as a tom.
 		n := ctx.Call("createBufferSource")
@@ -210,7 +211,7 @@ func rhythmVoice(v int, t float64) {
 		tone.Call("start", t)
 		tone.Call("stop", t+0.2)
 
-	case voiceHat, voiceCymbal:
+	case rhythm.Hat, rhythm.Cymbal:
 		// The same noise twice, told apart by how much of it is left and how
 		// long it lasts: a hat is a tick, a cymbal is a wash.
 		n := ctx.Call("createBufferSource")
@@ -219,7 +220,7 @@ func rhythmVoice(v int, t float64) {
 		hp := ctx.Call("createBiquadFilter")
 		hp.Set("type", "highpass")
 		decay, peak := 0.05, 0.35
-		if v == voiceCymbal {
+		if v == rhythm.Cymbal {
 			hp.Get("frequency").Set("value", 4000)
 			decay, peak = 0.45, 0.25
 		} else {
@@ -237,7 +238,7 @@ func rhythmVoice(v int, t float64) {
 // setRhythmPreset picks a pattern and interlocks the tabs, as the row of tabs
 // on the organ did: pressing one popped the last one out.
 func setRhythmPreset(name string) {
-	if _, ok := rhythmPatternByName(name); !ok {
+	if _, ok := rhythm.ByName(name); !ok {
 		return
 	}
 	rhythmPreset = name
@@ -276,12 +277,12 @@ func rhythmBuildLamps() {
 	if !host.Truthy() {
 		return
 	}
-	p, ok := rhythmPatternByName(rhythmPreset)
+	p, ok := rhythm.ByName(rhythmPreset)
 	if !ok {
 		return
 	}
 	host.Set("innerHTML", "")
-	for i := 0; i < rhythmBeatsPerBar(p); i++ {
+	for i := 0; i < rhythm.BeatsPerBar(p); i++ {
 		d := dom.Doc.Call("createElement", "span")
 		d.Set("className", "rhythm-beat")
 		host.Call("appendChild", d)
@@ -347,9 +348,9 @@ func wireRhythmModule() {
 	})
 
 	// The tab bank, and the hidden select that carries it in a link. Both are
-	// built from rhythmPatterns so there is ONE list of what the presets are —
+	// built from rhythm.Patterns so there is ONE list of what the presets are —
 	// a tab with no matching option would be a preset no link could describe.
-	for _, p := range rhythmPatterns {
+	for _, p := range rhythm.Patterns {
 		opt := dom.Doc.Call("createElement", "option")
 		opt.Set("value", p.Name)
 		opt.Set("textContent", p.Name)
