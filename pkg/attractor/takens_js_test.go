@@ -22,7 +22,7 @@ func TestTakensWindowIsADurationNotAPointCount(t *testing.T) {
 	if spanMS > 300 {
 		t.Errorf("the default window is %.0f ms; at that length the figure is visually frozen", spanMS)
 	}
-	if want := xyWindow; n*stride < want/2 || n*stride > want*2 {
+	if want := xy.window; n*stride < want/2 || n*stride > want*2 {
 		t.Errorf("the default window is %d samples, want the same order as the xy scope's %d", n*stride, want)
 	}
 
@@ -98,19 +98,19 @@ func TestTakensFitCoversFullScale(t *testing.T) {
 // the user asked for after three attempts at automatic scaling, each of which
 // resized the figure as the music moved.
 func TestTakensScaleIsFixed(t *testing.T) {
-	saved := takensGain
-	defer func() { takensGain = saved }()
+	saved := emb.gain
+	defer func() { emb.gain = saved }()
 
 	// The same sample must map to the same world coordinate every time,
 	// whatever came before it.
-	takensGain = 10
-	quiet := 0.05 * takensGain
-	loud := 0.90 * takensGain
+	emb.gain = 10
+	quiet := 0.05 * emb.gain
+	loud := 0.90 * emb.gain
 	for i := 0; i < 100; i++ {
-		if got := 0.05 * takensGain; got != quiet {
+		if got := 0.05 * emb.gain; got != quiet {
 			t.Fatalf("a fixed scale drifted: %v then %v", quiet, got)
 		}
-		if got := 0.90 * takensGain; got != loud {
+		if got := 0.90 * emb.gain; got != loud {
 			t.Fatalf("a fixed scale drifted: %v then %v", loud, got)
 		}
 	}
@@ -120,7 +120,7 @@ func TestTakensScaleIsFixed(t *testing.T) {
 		t.Errorf("quiet %v is not smaller than loud %v", quiet, loud)
 	}
 	// And the loudest possible input still sits inside the fit.
-	if full := 1.0 * takensGain; full*1.7320508 > takensFitExtent(takensGain) {
-		t.Errorf("full scale (%v) exceeds the fitted extent %v", full, takensFitExtent(takensGain))
+	if full := 1.0 * emb.gain; full*1.7320508 > takensFitExtent(emb.gain) {
+		t.Errorf("full scale (%v) exceeds the fitted extent %v", full, takensFitExtent(emb.gain))
 	}
 }

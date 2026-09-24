@@ -11,12 +11,12 @@ import (
 // exactly — a rounding error here is a column of pixels one view clears and
 // the other never draws into.
 func TestViewRectsTileTheCanvas(t *testing.T) {
-	savedW, savedH, savedSplit := gpu.width, gpu.height, viewCountF
-	defer func() { gpu.width, gpu.height, viewCountF = savedW, savedH, savedSplit }()
+	savedW, savedH, savedSplit := gpu.width, gpu.height, grid.countF
+	defer func() { gpu.width, gpu.height, grid.countF = savedW, savedH, savedSplit }()
 
 	gpu.width, gpu.height = 1281, 720 // odd, so the halves cannot be equal
 
-	viewCountF = 0 // one cell
+	grid.countF = 0 // one cell
 	one := viewRects()
 	if len(one) != 1 {
 		t.Fatalf("unsplit gave %d rects", len(one))
@@ -25,7 +25,7 @@ func TestViewRectsTileTheCanvas(t *testing.T) {
 		t.Errorf("unsplit rect = %v, want the whole canvas", one[0])
 	}
 
-	viewCountF = 1 // two cells
+	grid.countF = 1 // two cells
 	two := viewRects()
 	if len(two) != 2 {
 		t.Fatalf("split gave %d rects", len(two))
@@ -53,10 +53,10 @@ func TestViewRectsTileTheCanvas(t *testing.T) {
 // A canvas too narrow to split must still give usable rects rather than a
 // zero or negative width, which GL rejects.
 func TestViewRectsSurviveATinyCanvas(t *testing.T) {
-	savedW, savedH, savedSplit := gpu.width, gpu.height, viewCountF
-	defer func() { gpu.width, gpu.height, viewCountF = savedW, savedH, savedSplit }()
+	savedW, savedH, savedSplit := gpu.width, gpu.height, grid.countF
+	defer func() { gpu.width, gpu.height, grid.countF = savedW, savedH, savedSplit }()
 
-	viewCountF = 1 // two cells
+	grid.countF = 1 // two cells
 	for _, w := range []int{0, 1, 2, 3, 4} {
 		gpu.width, gpu.height = w, 100
 		for i, r := range viewRects() {
@@ -69,43 +69,43 @@ func TestViewRectsSurviveATinyCanvas(t *testing.T) {
 
 // Link is what decides whether the two halves are one instrument or two.
 func TestLinkDecidesWhetherTheViewsShareParameters(t *testing.T) {
-	savedLink, savedSplit, savedFocus := viewLink, viewCountF, viewFocus
+	savedLink, savedSplit, savedFocus := grid.link, grid.countF, grid.focused
 	defer func() {
-		viewLink, viewCountF, viewFocus = savedLink, savedSplit, savedFocus
-		stereo = focusedInst()
+		grid.link, grid.countF, grid.focused = savedLink, savedSplit, savedFocus
+		stereo = grid.focusedInst()
 	}()
 
-	viewCountF = 1 // two cells
+	grid.countF = 1 // two cells
 
-	viewLink = true
-	if instanceFor(0) != instanceFor(1) {
+	grid.link = true
+	if grid.instanceFor(0) != grid.instanceFor(1) {
 		t.Error("linked views draw different instances")
 	}
-	if focusedInst() != viewInsts[0] {
+	if grid.focusedInst() != viewInsts[0] {
 		t.Error("linked focus is not view A")
 	}
 
-	viewLink = false
-	if instanceFor(0) == instanceFor(1) {
+	grid.link = false
+	if grid.instanceFor(0) == grid.instanceFor(1) {
 		t.Error("unlinked views share an instance")
 	}
-	if instanceFor(0) != viewInsts[0] || instanceFor(1) != viewInsts[1] {
+	if grid.instanceFor(0) != viewInsts[0] || grid.instanceFor(1) != viewInsts[1] {
 		t.Error("unlinked views draw the wrong instances")
 	}
 
 	// Focus picks which one the panel means, but only when there is a
 	// choice: one view, or two linked, leaves exactly one instance on
 	// screen and the knobs must point at it.
-	viewFocus = 1
-	if focusedInst() != viewInsts[1] {
+	grid.focused = 1
+	if grid.focusedInst() != viewInsts[1] {
 		t.Error("focus B did not select view B's instance")
 	}
-	viewLink = true
-	if focusedInst() != viewInsts[0] {
+	grid.link = true
+	if grid.focusedInst() != viewInsts[0] {
 		t.Error("focus B while linked should still mean the shared instance")
 	}
-	viewLink, viewCountF = false, 0
-	if focusedInst() != viewInsts[0] {
+	grid.link, grid.countF = false, 0
+	if grid.focusedInst() != viewInsts[0] {
 		t.Error("focus B with one view should mean the only instance on screen")
 	}
 }
@@ -129,62 +129,62 @@ func TestUnlinkedViewsKeepSeparateSettings(t *testing.T) {
 // The color source and map are per view too, or the split cannot show the
 // same figure read two ways — which is the comparison it is most for.
 func TestColorIsPerViewWhenUnlinked(t *testing.T) {
-	savedLink, savedSplit, savedFocus := viewLink, viewCountF, viewFocus
-	savedColors := viewColors
+	savedLink, savedSplit, savedFocus := grid.link, grid.countF, grid.focused
+	savedColors := grid.colors
 	defer func() {
-		viewLink, viewCountF, viewFocus = savedLink, savedSplit, savedFocus
-		viewColors = savedColors
+		grid.link, grid.countF, grid.focused = savedLink, savedSplit, savedFocus
+		grid.colors = savedColors
 	}()
 
-	viewCountF, viewLink = 1, false
-	viewColors[0] = viewColor{src: 7, cols: 8}  // corr / turbo
-	viewColors[1] = viewColor{src: 13, cols: 4} // pos / hue sweep
+	grid.countF, grid.link = 1, false
+	grid.colors[0] = viewColor{src: 7, cols: 8}  // corr / turbo
+	grid.colors[1] = viewColor{src: 13, cols: 4} // pos / hue sweep
 
-	if colorFor(0) != (viewColor{7, 8}) || colorFor(1) != (viewColor{13, 4}) {
-		t.Errorf("unlinked views share a coloring: %v %v", colorFor(0), colorFor(1))
+	if grid.colorFor(0) != (viewColor{7, 8}) || grid.colorFor(1) != (viewColor{13, 4}) {
+		t.Errorf("unlinked views share a coloring: %v %v", grid.colorFor(0), grid.colorFor(1))
 	}
 
 	// Linked, both take view A's, whatever B's entry says.
-	viewLink = true
-	if colorFor(0) != colorFor(1) || colorFor(1) != (viewColor{7, 8}) {
-		t.Errorf("linked views do not share view A's coloring: %v %v", colorFor(0), colorFor(1))
+	grid.link = true
+	if grid.colorFor(0) != grid.colorFor(1) || grid.colorFor(1) != (viewColor{7, 8}) {
+		t.Errorf("linked views do not share view A's coloring: %v %v", grid.colorFor(0), grid.colorFor(1))
 	}
 }
 
 // The gradient selects write to whichever entry the panel is showing, and
 // that is view A unless the views are split AND apart.
 func TestGradientSelectsWriteToTheFocusedView(t *testing.T) {
-	savedLink, savedSplit, savedFocus := viewLink, viewCountF, viewFocus
-	savedColors := viewColors
+	savedLink, savedSplit, savedFocus := grid.link, grid.countF, grid.focused
+	savedColors := grid.colors
 	defer func() {
-		viewLink, viewCountF, viewFocus = savedLink, savedSplit, savedFocus
-		viewColors = savedColors
+		grid.link, grid.countF, grid.focused = savedLink, savedSplit, savedFocus
+		grid.colors = savedColors
 	}()
 
-	viewCountF, viewLink, viewFocus = 1, false, 1
-	if got := focusedColorIdx(); got != 1 {
+	grid.countF, grid.link, grid.focused = 1, false, 1
+	if got := grid.focusedColorIdx(); got != 1 {
 		t.Errorf("focused color index = %d, want 1", got)
 	}
-	noteGradientSource(9)
-	if viewColors[1].src != 9 {
+	grid.noteGradientSource(9)
+	if grid.colors[1].src != 9 {
 		t.Errorf("the source went to view %d instead of B", 0)
 	}
-	if viewColors[0].src == 9 {
+	if grid.colors[0].src == 9 {
 		t.Error("the source leaked into view A")
 	}
 
 	// Linked or unsplit, there is one coloring on screen and it is A's.
-	viewLink = true
-	if focusedColorIdx() != 0 {
+	grid.link = true
+	if grid.focusedColorIdx() != 0 {
 		t.Error("linked, the selects should write to the shared entry")
 	}
-	viewLink, viewCountF = false, 0
-	if focusedColorIdx() != 0 {
+	grid.link, grid.countF = false, 0
+	if grid.focusedColorIdx() != 0 {
 		t.Error("unsplit, the selects should write to the only view")
 	}
 	// An out-of-range focus must not index past the array.
-	viewCountF, viewLink, viewFocus = 1, false, 7
-	if idx := focusedColorIdx(); idx < 0 || idx >= len(viewColors) {
+	grid.countF, grid.link, grid.focused = 1, false, 7
+	if idx := grid.focusedColorIdx(); idx < 0 || idx >= len(grid.colors) {
 		t.Errorf("focused color index %d is out of range", idx)
 	}
 }
@@ -192,12 +192,12 @@ func TestGradientSelectsWriteToTheFocusedView(t *testing.T) {
 // The grid tiles without leaving a cell off the edge, at every size the
 // dial offers.
 func TestGridTilesAtEverySize(t *testing.T) {
-	savedW, savedH, savedN := gpu.width, gpu.height, viewCountF
-	defer func() { gpu.width, gpu.height, viewCountF = savedW, savedH, savedN }()
+	savedW, savedH, savedN := gpu.width, gpu.height, grid.countF
+	defer func() { gpu.width, gpu.height, grid.countF = savedW, savedH, savedN }()
 	gpu.width, gpu.height = 1281, 721 // odd both ways
 
 	for idx, want := range viewCounts {
-		viewCountF = float32(idx)
+		grid.countF = float32(idx)
 		rects := viewRects()
 		if want == 1 {
 			if len(rects) != 1 {
@@ -252,9 +252,9 @@ func TestSweepSpansTheRangeEndToEnd(t *testing.T) {
 
 // The dial's tables have to line up, as every other rotary's do.
 func TestSweepAndGridTablesLineUp(t *testing.T) {
-	if len(sweepIDs) != len(sweepNames) || len(sweepIDs) != len(sweepRing) {
+	if len(grid.sweepIDs) != len(grid.sweepNames) || len(grid.sweepIDs) != len(grid.sweepRing) {
 		t.Errorf("sweep: %d ids, %d names, %d ring",
-			len(sweepIDs), len(sweepNames), len(sweepRing))
+			len(grid.sweepIDs), len(grid.sweepNames), len(grid.sweepRing))
 	}
 	if len(viewCounts) != len(viewCountNames) || len(viewCounts) != len(viewCountRing) {
 		t.Errorf("grid: %d counts, %d names, %d ring",
@@ -263,7 +263,7 @@ func TestSweepAndGridTablesLineUp(t *testing.T) {
 	// Every numeric sweep target must name a real field, or the sweep
 	// silently does nothing.
 	inst := newStereoInst()
-	for i, id := range sweepIDs {
+	for i, id := range grid.sweepIDs {
 		if id == "" || id[0] == '#' {
 			continue
 		}
@@ -277,18 +277,18 @@ func TestSweepAndGridTablesLineUp(t *testing.T) {
 // position in viewRects, and an index past the last instance should
 // degrade to view A rather than crash.
 func TestInstanceForClamps(t *testing.T) {
-	savedLink := viewLink
-	defer func() { viewLink = savedLink }()
-	viewLink = false
+	savedLink := grid.link
+	defer func() { grid.link = savedLink }()
+	grid.link = false
 	for _, i := range []int{-1, viewMax, viewMax + 1, 99} {
-		if instanceFor(i) != viewInsts[0] {
+		if grid.instanceFor(i) != viewInsts[0] {
 			t.Errorf("instanceFor(%d) did not fall back to view A", i)
 		}
 	}
 	// In range, every cell has its own instance and no two share one.
 	seen := map[*stereoInst]bool{}
 	for i := 0; i < viewMax; i++ {
-		inst := instanceFor(i)
+		inst := grid.instanceFor(i)
 		if inst == nil {
 			t.Fatalf("instanceFor(%d) is nil", i)
 		}
@@ -303,8 +303,8 @@ func TestInstanceForClamps(t *testing.T) {
 // over; announcing one on a single view would mark a knob that is still
 // setting the value.
 func TestSweepActiveNeedsBothATargetAndAGrid(t *testing.T) {
-	savedN, savedP := viewCountF, sweepParamF
-	defer func() { viewCountF, sweepParamF = savedN, savedP }()
+	savedN, savedP := grid.countF, grid.sweepParamF
+	defer func() { grid.countF, grid.sweepParamF = savedN, savedP }()
 
 	for _, c := range []struct {
 		n, p float32
@@ -315,7 +315,7 @@ func TestSweepActiveNeedsBothATargetAndAGrid(t *testing.T) {
 		{2, 0, false}, // four views, no target: four copies
 		{2, 1, true},  // four views and a target
 	} {
-		viewCountF, sweepParamF = c.n, c.p
+		grid.countF, grid.sweepParamF = c.n, c.p
 		if got := sweepActive(); got != c.want {
 			t.Errorf("grid %v target %v: active = %v, want %v", c.n, c.p, got, c.want)
 		}
@@ -329,34 +329,34 @@ func TestSweepActiveNeedsBothATargetAndAGrid(t *testing.T) {
 // so what this guards is that the loop keeps them equal for every mode —
 // including the modes that contribute no numeric target at all.
 func TestSweepTablesLineUpForEveryMode(t *testing.T) {
-	savedIDs, savedNames, savedRing := sweepIDs, sweepNames, sweepRing
-	savedMode, savedP := sweepDialMode, sweepParamF
+	savedIDs, savedNames, savedRing := grid.sweepIDs, grid.sweepNames, grid.sweepRing
+	savedMode, savedP := grid.sweepDialMode, grid.sweepParamF
 	defer func() {
-		sweepIDs, sweepNames, sweepRing = savedIDs, savedNames, savedRing
-		sweepDialMode, sweepParamF = savedMode, savedP
+		grid.sweepIDs, grid.sweepNames, grid.sweepRing = savedIDs, savedNames, savedRing
+		grid.sweepDialMode, grid.sweepParamF = savedMode, savedP
 	}()
 
 	for mode := range modeInfo {
-		sweepDialMode = "" // force the rebuild
-		setSweepTargets(mode)
-		if len(sweepIDs) != len(sweepNames) || len(sweepIDs) != len(sweepRing) {
+		grid.sweepDialMode = "" // force the rebuild
+		grid.setSweepTargets(mode)
+		if len(grid.sweepIDs) != len(grid.sweepNames) || len(grid.sweepIDs) != len(grid.sweepRing) {
 			t.Errorf("%s: %d ids, %d names, %d ring labels",
-				mode, len(sweepIDs), len(sweepNames), len(sweepRing))
+				mode, len(grid.sweepIDs), len(grid.sweepNames), len(grid.sweepRing))
 		}
-		if len(sweepIDs) < 3 {
+		if len(grid.sweepIDs) < 3 {
 			t.Errorf("%s: %d targets, want at least none + the two colorings",
-				mode, len(sweepIDs))
+				mode, len(grid.sweepIDs))
 		}
-		if sweepIDs[0] != "" {
-			t.Errorf("%s: the first target is %q, want none", mode, sweepIDs[0])
+		if grid.sweepIDs[0] != "" {
+			t.Errorf("%s: the first target is %q, want none", mode, grid.sweepIDs[0])
 		}
-		last := sweepIDs[len(sweepIDs)-2:]
+		last := grid.sweepIDs[len(grid.sweepIDs)-2:]
 		if last[0] != "#src" || last[1] != "#map" {
 			t.Errorf("%s: the colorings are not the last two targets: %v", mode, last)
 		}
 		// Every numeric target must name a real parameter with a real
 		// range, or the sweep silently does nothing.
-		for _, id := range sweepIDs[1 : len(sweepIDs)-2] {
+		for _, id := range grid.sweepIDs[1 : len(grid.sweepIDs)-2] {
 			lo, hi, ok := paramRange(mode, id)
 			if !ok {
 				t.Errorf("%s: target %s is in no parameter table", mode, id)
@@ -371,17 +371,17 @@ func TestSweepTablesLineUpForEveryMode(t *testing.T) {
 // rather than one trajectory per cell, so the dial does not offer it.
 // The colorings, which are recomputed per pass, are offered everywhere.
 func TestNumericSweepsOnlyWhereTheyAreTrue(t *testing.T) {
-	savedIDs, savedNames, savedRing := sweepIDs, sweepNames, sweepRing
-	savedMode, savedP := sweepDialMode, sweepParamF
+	savedIDs, savedNames, savedRing := grid.sweepIDs, grid.sweepNames, grid.sweepRing
+	savedMode, savedP := grid.sweepDialMode, grid.sweepParamF
 	defer func() {
-		sweepIDs, sweepNames, sweepRing = savedIDs, savedNames, savedRing
-		sweepDialMode, sweepParamF = savedMode, savedP
+		grid.sweepIDs, grid.sweepNames, grid.sweepRing = savedIDs, savedNames, savedRing
+		grid.sweepDialMode, grid.sweepParamF = savedMode, savedP
 	}()
 
 	numeric := func(mode string) int {
-		sweepDialMode = ""
-		setSweepTargets(mode)
-		return len(sweepIDs) - 3 // none, #src, #map
+		grid.sweepDialMode = ""
+		grid.setSweepTargets(mode)
+		return len(grid.sweepIDs) - 3 // none, #src, #map
 	}
 	for mode, info := range modeInfo {
 		n := numeric(mode)
@@ -413,36 +413,36 @@ func TestNumericSweepsOnlyWhereTheyAreTrue(t *testing.T) {
 // Switching modes must not leave the dial pointed at position 4 of a list
 // it is no longer showing.
 func TestModeChangeResetsTheSweep(t *testing.T) {
-	savedIDs, savedNames, savedRing := sweepIDs, sweepNames, sweepRing
-	savedMode, savedP := sweepDialMode, sweepParamF
+	savedIDs, savedNames, savedRing := grid.sweepIDs, grid.sweepNames, grid.sweepRing
+	savedMode, savedP := grid.sweepDialMode, grid.sweepParamF
 	defer func() {
-		sweepIDs, sweepNames, sweepRing = savedIDs, savedNames, savedRing
-		sweepDialMode, sweepParamF = savedMode, savedP
+		grid.sweepIDs, grid.sweepNames, grid.sweepRing = savedIDs, savedNames, savedRing
+		grid.sweepDialMode, grid.sweepParamF = savedMode, savedP
 	}()
 
-	sweepDialMode = ""
-	setSweepTargets("stereo")
-	sweepParamF = 2
-	target := sweepTarget()
+	grid.sweepDialMode = ""
+	grid.setSweepTargets("stereo")
+	grid.sweepParamF = 2
+	target := grid.sweepTarget()
 	if target == "" {
 		t.Fatal("nothing at position 2 of the stereo list")
 	}
 	// The same mode again changes nothing and must leave the dial alone.
-	if setSweepTargets("stereo") {
+	if grid.setSweepTargets("stereo") {
 		t.Error("the same mode rebuilt the dial")
 	}
-	if sweepTarget() != target {
-		t.Errorf("the dial moved to %q on a no-op rebuild", sweepTarget())
+	if grid.sweepTarget() != target {
+		t.Errorf("the dial moved to %q on a no-op rebuild", grid.sweepTarget())
 	}
-	if !setSweepTargets("lorenz") {
+	if !grid.setSweepTargets("lorenz") {
 		t.Fatal("a mode with different parameters did not rebuild the dial")
 	}
-	if sweepParamF != 0 {
-		t.Errorf("the dial stayed at %v across a mode change", sweepParamF)
+	if grid.sweepParamF != 0 {
+		t.Errorf("the dial stayed at %v across a mode change", grid.sweepParamF)
 	}
 	// And the index is always in range, whatever it was before.
-	if sweepTarget() != "" {
-		t.Errorf("after a mode change the dial reads %q, want none", sweepTarget())
+	if grid.sweepTarget() != "" {
+		t.Errorf("after a mode change the dial reads %q, want none", grid.sweepTarget())
 	}
 }
 
@@ -470,11 +470,11 @@ func TestSweepMarkupCarriesItsControls(t *testing.T) {
 // now that the positions are per mode.
 func sweepTo(t *testing.T, mode, id string) {
 	t.Helper()
-	sweepDialMode = ""
-	setSweepTargets(mode)
-	for i, got := range sweepIDs {
+	grid.sweepDialMode = ""
+	grid.setSweepTargets(mode)
+	for i, got := range grid.sweepIDs {
 		if got == id {
-			sweepParamF = float32(i)
+			grid.sweepParamF = float32(i)
 			return
 		}
 	}
@@ -485,11 +485,11 @@ func sweepTo(t *testing.T, mode, id string) {
 // back when the pass is over, or turning the sweep off would leave the
 // last cell's value behind.
 func TestSweepRestoresTheKnob(t *testing.T) {
-	savedIDs, savedNames, savedRing := sweepIDs, sweepNames, sweepRing
-	savedMode, savedP := sweepDialMode, sweepParamF
+	savedIDs, savedNames, savedRing := grid.sweepIDs, grid.sweepNames, grid.sweepRing
+	savedMode, savedP := grid.sweepDialMode, grid.sweepParamF
 	defer func() {
-		sweepIDs, sweepNames, sweepRing = savedIDs, savedNames, savedRing
-		sweepDialMode, sweepParamF = savedMode, savedP
+		grid.sweepIDs, grid.sweepNames, grid.sweepRing = savedIDs, savedNames, savedRing
+		grid.sweepDialMode, grid.sweepParamF = savedMode, savedP
 	}()
 
 	inst := newStereoInst()
@@ -520,7 +520,7 @@ func TestSweepRestoresTheKnob(t *testing.T) {
 	}
 
 	// With no sweep selected nothing is touched at all.
-	sweepParamF = 0
+	grid.sweepParamF = 0
 	inst.tau = 55
 	applySweep("stereo", 3, 9)()
 	if inst.tau != 55 {
@@ -530,12 +530,12 @@ func TestSweepRestoresTheKnob(t *testing.T) {
 
 // The color sweeps step through their lists and restore the globals.
 func TestColorSweepStepsAndRestores(t *testing.T) {
-	savedIDs, savedNames, savedRing := sweepIDs, sweepNames, sweepRing
-	savedMode, savedP := sweepDialMode, sweepParamF
+	savedIDs, savedNames, savedRing := grid.sweepIDs, grid.sweepNames, grid.sweepRing
+	savedMode, savedP := grid.sweepDialMode, grid.sweepParamF
 	savedSrc, savedCols := gradientSource, gradientColors
 	defer func() {
-		sweepIDs, sweepNames, sweepRing = savedIDs, savedNames, savedRing
-		sweepDialMode, sweepParamF = savedMode, savedP
+		grid.sweepIDs, grid.sweepNames, grid.sweepRing = savedIDs, savedNames, savedRing
+		grid.sweepDialMode, grid.sweepParamF = savedMode, savedP
 		gradientSource, gradientColors = savedSrc, savedCols
 	}()
 
@@ -585,13 +585,13 @@ func TestColorSweepStepsAndRestores(t *testing.T) {
 // them turned in, the cells cover a slice in detail instead of the whole
 // range coarsely, which is the whole reason they exist.
 func TestSweepRangeKnobsBoundIt(t *testing.T) {
-	savedIDs, savedNames, savedRing := sweepIDs, sweepNames, sweepRing
-	savedMode, savedP := sweepDialMode, sweepParamF
-	savedLo, savedHi := sweepLo, sweepHi
+	savedIDs, savedNames, savedRing := grid.sweepIDs, grid.sweepNames, grid.sweepRing
+	savedMode, savedP := grid.sweepDialMode, grid.sweepParamF
+	savedLo, savedHi := grid.sweepLo, grid.sweepHi
 	defer func() {
-		sweepIDs, sweepNames, sweepRing = savedIDs, savedNames, savedRing
-		sweepDialMode, sweepParamF = savedMode, savedP
-		sweepLo, sweepHi = savedLo, savedHi
+		grid.sweepIDs, grid.sweepNames, grid.sweepRing = savedIDs, savedNames, savedRing
+		grid.sweepDialMode, grid.sweepParamF = savedMode, savedP
+		grid.sweepLo, grid.sweepHi = savedLo, savedHi
 	}()
 
 	inst := newStereoInst()
@@ -612,7 +612,7 @@ func TestSweepRangeKnobsBoundIt(t *testing.T) {
 		return v
 	}
 
-	sweepLo, sweepHi = 0, 1
+	grid.sweepLo, grid.sweepHi = 0, 1
 	if got := read(0, 4); got != lo {
 		t.Errorf("the first cell is %v, want the parameter's minimum %v", got, lo)
 	}
@@ -621,14 +621,14 @@ func TestSweepRangeKnobsBoundIt(t *testing.T) {
 	}
 
 	// Half the range, from the middle up.
-	sweepLo, sweepHi = 0.5, 1
+	grid.sweepLo, grid.sweepHi = 0.5, 1
 	mid := lo + (hi-lo)*0.5
 	if got := read(0, 4); got != mid {
 		t.Errorf("with from at 0.5 the first cell is %v, want %v", got, mid)
 	}
 
 	// Backwards, which is deliberate: neither knob clamps against the other.
-	sweepLo, sweepHi = 1, 0
+	grid.sweepLo, grid.sweepHi = 1, 0
 	if read(0, 4) <= read(3, 4) {
 		t.Error("to below from did not run the sweep backwards")
 	}
@@ -639,15 +639,15 @@ func TestSweepRangeKnobsBoundIt(t *testing.T) {
 // switch that reaches two of them is a panel that cannot drive what it is
 // showing.
 func TestFocusReachesEveryCell(t *testing.T) {
-	savedN, savedFocus := viewCountF, viewFocus
+	savedN, savedFocus := grid.countF, grid.focused
 	defer func() {
-		viewCountF, viewFocus = savedN, savedFocus
-		stereo = focusedInst()
+		grid.countF, grid.focused = savedN, savedFocus
+		stereo = grid.focusedInst()
 	}()
 
 	for idx, want := range viewCounts {
-		viewCountF = float32(idx)
-		labels := focusLabels(viewN())
+		grid.countF = float32(idx)
+		labels := focusLabels(grid.n())
 		if len(labels) != want {
 			t.Errorf("a grid of %d offers %d focus positions", want, len(labels))
 		}
@@ -659,11 +659,11 @@ func TestFocusReachesEveryCell(t *testing.T) {
 		}
 		// Every position selects a different instance, or two of them name
 		// the same knobs.
-		viewLink = false
+		grid.link = false
 		seen := map[*stereoInst]bool{}
 		for i := range labels {
-			viewFocus = i
-			inst := focusedInst()
+			grid.focused = i
+			inst := grid.focusedInst()
 			if seen[inst] {
 				t.Errorf("grid of %d: position %d focuses an instance already focused",
 					want, i)
@@ -718,9 +718,9 @@ func TestGridFitFactorLeavesTheSmallGridsAlone(t *testing.T) {
 // and resetting would undo the across axis the caller just set.
 func sweep2To(t *testing.T, id string) {
 	t.Helper()
-	for i, got := range sweepIDs {
+	for i, got := range grid.sweepIDs {
 		if got == id {
-			sweep2ParamF = float32(i)
+			grid.sweep2ParamF = float32(i)
 			return
 		}
 	}
@@ -729,11 +729,11 @@ func sweep2To(t *testing.T, id string) {
 
 func saveSweepState(t *testing.T) {
 	t.Helper()
-	ids, names, ring := sweepIDs, sweepNames, sweepRing
-	mode, a, b := sweepDialMode, sweepParamF, sweep2ParamF
+	ids, names, ring := grid.sweepIDs, grid.sweepNames, grid.sweepRing
+	mode, a, b := grid.sweepDialMode, grid.sweepParamF, grid.sweep2ParamF
 	t.Cleanup(func() {
-		sweepIDs, sweepNames, sweepRing = ids, names, ring
-		sweepDialMode, sweepParamF, sweep2ParamF = mode, a, b
+		grid.sweepIDs, grid.sweepNames, grid.sweepRing = ids, names, ring
+		grid.sweepDialMode, grid.sweepParamF, grid.sweep2ParamF = mode, a, b
 	})
 }
 
@@ -744,7 +744,7 @@ func saveSweepState(t *testing.T) {
 func TestALoneSweepSpendsEveryCellOnItself(t *testing.T) {
 	saveSweepState(t)
 	sweepTo(t, "stereo", "stereo-tau")
-	sweep2ParamF = 0 // none
+	grid.sweep2ParamF = 0 // none
 
 	seen := map[float32]bool{}
 	for i := 0; i < 9; i++ {
@@ -800,7 +800,7 @@ func TestTheTwoAxesRefuseToShareATarget(t *testing.T) {
 	sweepTo(t, "stereo", "stereo-tau")
 	sweep2To(t, "stereo-tau")
 
-	if got := sweepTarget2(); got != "" {
+	if got := grid.sweepTarget2(); got != "" {
 		t.Errorf("down axis reports %q while across has the same target, want it off", got)
 	}
 	// And with it off, the across axis gets the whole grid back.
@@ -854,22 +854,22 @@ func TestBothAxesRestoreWhatTheyChanged(t *testing.T) {
 // unlinking a control would leave every cell holding A's setting and the
 // independence the views were unlinked for would be gone for good.
 func TestAPinnedControlIsBorrowedAndGivenBack(t *testing.T) {
-	savedLink, savedFocus, savedN := viewLink, viewFocus, viewCountF
+	savedLink, savedFocus, savedN := grid.link, grid.focused, grid.countF
 	t.Cleanup(func() {
-		viewLink, viewFocus, viewCountF = savedLink, savedFocus, savedN
-		for k := range paramLinks {
-			delete(paramLinks, k)
+		grid.link, grid.focused, grid.countF = savedLink, savedFocus, savedN
+		for k := range grid.paramLinks {
+			delete(grid.paramLinks, k)
 		}
 	})
-	viewLink = false
-	viewCountF = 1 // two cells
+	grid.link = false
+	grid.countF = 1 // two cells
 
 	a, b := viewInsts[0], viewInsts[1]
 	a.tau, b.tau = 7, 99
 	a.gain, b.gain = 3, 44
-	paramLinks["stereo-tau"] = true
+	grid.paramLinks["stereo-tau"] = true
 
-	undo := applyLinks("stereo", 1)
+	undo := grid.applyLinks("stereo", 1)
 	if b.tau != 7 {
 		t.Errorf("the pinned control did not take view A's value: got %v, want 7", b.tau)
 	}
@@ -886,15 +886,15 @@ func TestAPinnedControlIsBorrowedAndGivenBack(t *testing.T) {
 // with no effect, and doing it anyway would make the undo order matter where
 // it does not.
 func TestViewAIsNotPinnedToItself(t *testing.T) {
-	savedLink, savedN := viewLink, viewCountF
+	savedLink, savedN := grid.link, grid.countF
 	t.Cleanup(func() {
-		viewLink, viewCountF = savedLink, savedN
-		delete(paramLinks, "stereo-tau")
+		grid.link, grid.countF = savedLink, savedN
+		delete(grid.paramLinks, "stereo-tau")
 	})
-	viewLink, viewCountF = false, 1
-	paramLinks["stereo-tau"] = true
+	grid.link, grid.countF = false, 1
+	grid.paramLinks["stereo-tau"] = true
 	viewInsts[0].tau = 12
-	undo := applyLinks("stereo", 0)
+	undo := grid.applyLinks("stereo", 0)
 	undo()
 	if viewInsts[0].tau != 12 {
 		t.Errorf("view A's own value was disturbed: got %v, want 12", viewInsts[0].tau)
@@ -905,20 +905,20 @@ func TestViewAIsNotPinnedToItself(t *testing.T) {
 // nothing to do and must not claim otherwise — a badge offering to link what
 // is already linked is a control that does nothing.
 func TestPerControlLinkIsDeadWhileTheViewsAreLinked(t *testing.T) {
-	savedLink, savedN := viewLink, viewCountF
-	t.Cleanup(func() { viewLink, viewCountF = savedLink, savedN })
+	savedLink, savedN := grid.link, grid.countF
+	t.Cleanup(func() { grid.link, grid.countF = savedLink, savedN })
 
-	viewCountF = 1 // two cells
-	viewLink = true
-	if perControlLinkLive() {
+	grid.countF = 1 // two cells
+	grid.link = true
+	if grid.perControlLinkLive() {
 		t.Error("per-control link is live while Link is on, where every cell is already view A")
 	}
-	viewLink = false
-	if !perControlLinkLive() {
+	grid.link = false
+	if !grid.perControlLinkLive() {
 		t.Error("per-control link is dead with two unlinked cells, which is exactly when it is for")
 	}
-	viewCountF = 0 // one cell
-	if perControlLinkLive() {
+	grid.countF = 0 // one cell
+	if grid.perControlLinkLive() {
 		t.Error("per-control link is live with a single view, where there is nothing to link to")
 	}
 }
@@ -928,29 +928,29 @@ func TestPerControlLinkIsDeadWhileTheViewsAreLinked(t *testing.T) {
 // that restores none.
 func TestThePinnedSetRoundTripsThroughALink(t *testing.T) {
 	t.Cleanup(func() {
-		for k := range paramLinks {
-			delete(paramLinks, k)
+		for k := range grid.paramLinks {
+			delete(grid.paramLinks, k)
 		}
 	})
-	for k := range paramLinks {
-		delete(paramLinks, k)
+	for k := range grid.paramLinks {
+		delete(grid.paramLinks, k)
 	}
-	if got := linkedParamList(); got != "" {
+	if got := grid.linkedParamList(); got != "" {
 		t.Errorf("an empty set serialized to %q, want nothing in the link at all", got)
 	}
-	paramLinks["stereo-win"] = true
-	paramLinks["stereo-tau"] = true
-	s := linkedParamList()
+	grid.paramLinks["stereo-win"] = true
+	grid.paramLinks["stereo-tau"] = true
+	s := grid.linkedParamList()
 	// Sorted, so the same state always makes the same link.
 	if s != "stereo-tau.stereo-win" {
 		t.Errorf("serialized to %q, want the ids sorted", s)
 	}
-	setLinkedParamList("")
-	if len(paramLinks) != 0 {
-		t.Errorf("restoring an empty list left %d pinned", len(paramLinks))
+	grid.setLinkedParamList("")
+	if len(grid.paramLinks) != 0 {
+		t.Errorf("restoring an empty list left %d pinned", len(grid.paramLinks))
 	}
-	setLinkedParamList(s)
-	if !paramLinks["stereo-tau"] || !paramLinks["stereo-win"] || len(paramLinks) != 2 {
-		t.Errorf("round trip gave %v, want exactly the two that went in", paramLinks)
+	grid.setLinkedParamList(s)
+	if !grid.paramLinks["stereo-tau"] || !grid.paramLinks["stereo-win"] || len(grid.paramLinks) != 2 {
+		t.Errorf("round trip gave %v, want exactly the two that went in", grid.paramLinks)
 	}
 }

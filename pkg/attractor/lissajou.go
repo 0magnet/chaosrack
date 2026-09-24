@@ -4,21 +4,30 @@ package attractor
 
 import "math"
 
-var lissajouA, lissajouB, lissajouC float32 = 3, 2, 5
+// lissajousBeam is the Lissajous beam's running phase and its knobs.
+type lissajousBeam struct {
+	a, b, c float32
 
-// The beam runs CONTINUOUSLY, like the attractor integrators and the xy
-// scope: lissajouT is the persistent parameter time, advanced every frame at
-// a rate the Speed knob scales, and the trail is the trailing window of the
-// beam's path — index steps-1 is the beam head (newest), matching the
-// attractors' convention so the gradient head visibly sweeps the figure.
-// With integer a:b:c the curve is closed, so the FIGURE holds still while
-// the beam runs it — exactly how a real scope behaves with locked ratios —
-// and the slow relative-phase drift (lissajouPhase) precesses it on top,
-// standing in for the detune that rotates a real scope's figure.
-var lissajouT float64
-var lissajouPhase float32
+	// The beam runs CONTINUOUSLY, like the attractor integrators and the xy
+	// scope: t is the persistent parameter time, advanced every frame at
+	// a rate the Speed knob scales, and the trail is the trailing window of the
+	// beam's path — index steps-1 is the beam head (newest), matching the
+	// attractors' convention so the gradient head visibly sweeps the figure.
+	// With integer a:b:c the curve is closed, so the FIGURE holds still while
+	// the beam runs it — exactly how a real scope behaves with locked ratios —
+	// and the slow relative-phase drift (phase) precesses it on top,
+	// standing in for the detune that rotates a real scope's figure.
+	t     float64
+	phase float32
+}
 
-func generateLissajou() {
+var liss = lissajousBeam{
+	a: 3,
+	b: 2,
+	c: 5,
+}
+
+func (l *lissajousBeam) generateLissajou() {
 	vertices := vertBuf[:steps*4]
 	invN := float32(1) / float32(steps-1)
 	// The visible window spans a fixed 2 base periods (enough to always show
@@ -27,12 +36,12 @@ func generateLissajou() {
 	const cycles = 2
 	delta := 2 * math.Pi * cycles / float64(steps)
 	// Base period ≈ 2 s at speed 1 (sub-steps and dt-scale both speed it up).
-	lissajouT += (2 * math.Pi / 120) * float64(speedScale) * float64(speedSteps)
-	lissajouPhase += 0.004 * speedScale
-	ph := float64(lissajouPhase)
-	a, b, c := float64(lissajouA), float64(lissajouB), float64(lissajouC)
+	l.t += (2 * math.Pi / 120) * float64(speedScale) * float64(speedSteps)
+	l.phase += 0.004 * speedScale
+	ph := float64(l.phase)
+	a, b, c := float64(l.a), float64(l.b), float64(l.c)
 	for i := 0; i < steps; i++ {
-		t := lissajouT - float64(steps-1-i)*delta
+		t := l.t - float64(steps-1-i)*delta
 		j := i * 4
 		vertices[j] = float32(math.Sin(a*t + ph))
 		vertices[j+1] = float32(math.Sin(b * t))

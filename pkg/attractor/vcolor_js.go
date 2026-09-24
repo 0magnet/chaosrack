@@ -54,24 +54,28 @@ const vcFragShaderSrc = `
 	}
 `
 
-var (
-	vcProgram js.Value
-	vcBuf     js.Value
-	vcAPos    js.Value
-	vcACol    js.Value
-	vcUAlpha  js.Value
-	vcUOffset js.Value
-	vcReady   bool
-	vcData    []float32 // interleaved x,y,r,g,b
-	vcU8      js.Value
-	vcF32     js.Value
-)
+// vcolorPipe is the per-vertex-color program the flat analyzers are drawn
+// with.
+type vcolorPipe struct {
+	program js.Value
+	buf     js.Value
+	aPos    js.Value
+	aCol    js.Value
+	uAlpha  js.Value
+	uOffset js.Value
+	ready   bool
+	data    []float32 // interleaved x,y,r,g,b
+	u8      js.Value
+	f32     js.Value
+}
+
+var vc vcolorPipe
 
 // vcStride is the floats per vertex: two of position and three of color.
 const vcStride = 5
 
-func initVColor() {
-	if vcReady {
+func (v *vcolorPipe) initVColor() {
+	if v.ready {
 		return
 	}
 	vs := glctx.GL.Call("createShader", glctx.Types.VertexShader)
@@ -80,51 +84,51 @@ func initVColor() {
 	fs := glctx.GL.Call("createShader", glctx.Types.FragmentShader)
 	glctx.GL.Call("shaderSource", fs, vcFragShaderSrc)
 	glctx.GL.Call("compileShader", fs)
-	vcProgram = glctx.GL.Call("createProgram")
-	glctx.GL.Call("attachShader", vcProgram, vs)
-	glctx.GL.Call("attachShader", vcProgram, fs)
-	glctx.GL.Call("linkProgram", vcProgram)
-	vcAPos = glctx.GL.Call("getAttribLocation", vcProgram, "aPos")
-	vcACol = glctx.GL.Call("getAttribLocation", vcProgram, "aCol")
-	vcUAlpha = glctx.GL.Call("getUniformLocation", vcProgram, "uAlpha")
-	vcUOffset = glctx.GL.Call("getUniformLocation", vcProgram, "uOffset")
-	vcBuf = glctx.GL.Call("createBuffer")
-	vcReady = true
+	v.program = glctx.GL.Call("createProgram")
+	glctx.GL.Call("attachShader", v.program, vs)
+	glctx.GL.Call("attachShader", v.program, fs)
+	glctx.GL.Call("linkProgram", v.program)
+	v.aPos = glctx.GL.Call("getAttribLocation", v.program, "aPos")
+	v.aCol = glctx.GL.Call("getAttribLocation", v.program, "aCol")
+	v.uAlpha = glctx.GL.Call("getUniformLocation", v.program, "uAlpha")
+	v.uOffset = glctx.GL.Call("getUniformLocation", v.program, "uOffset")
+	v.buf = glctx.GL.Call("createBuffer")
+	v.ready = true
 }
 
 // vcFit sizes the interleaved buffer and its upload scratch for n vertices.
-func vcFit(n int) {
+func (v *vcolorPipe) fit(n int) {
 	need := n * vcStride
-	if len(vcData) >= need {
+	if len(v.data) >= need {
 		return
 	}
-	vcData = make([]float32, need+need/2)
-	vcU8 = js.Global().Get("Uint8Array").New(len(vcData) * 4)
-	vcF32 = js.Global().Get("Float32Array").New(vcU8.Get("buffer"), 0, len(vcData))
+	v.data = make([]float32, need+need/2)
+	v.u8 = js.Global().Get("Uint8Array").New(len(v.data) * 4)
+	v.f32 = js.Global().Get("Float32Array").New(v.u8.Get("buffer"), 0, len(v.data))
 }
 
 // vcPut writes one vertex at index i.
-func vcPut(i int, x, y float32, c [3]float32) {
+func (v *vcolorPipe) put(i int, x, y float32, c [3]float32) {
 	o := i * vcStride
-	vcData[o], vcData[o+1] = x, y
-	vcData[o+2], vcData[o+3], vcData[o+4] = c[0], c[1], c[2]
+	v.data[o], v.data[o+1] = x, y
+	v.data[o+2], v.data[o+3], v.data[o+4] = c[0], c[1], c[2]
 }
 
 // vcUpload binds the program and hands the buffer over. Called once before a
 // run of vcSpan calls, so the geometry is uploaded once however many passes are
 // drawn from it.
-func vcUpload(n int) {
+func (v *vcolorPipe) upload(n int) {
 	if n <= 0 {
 		return
 	}
-	glctx.GL.Call("useProgram", vcProgram)
-	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, vcBuf)
-	js.CopyBytesToJS(vcU8, sliceToByteSlice(vcData))
-	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, vcF32, glctx.Types.DynamicDraw)
-	glctx.GL.Call("enableVertexAttribArray", vcAPos)
-	glctx.GL.Call("vertexAttribPointer", vcAPos, 2, glctx.Types.Float, false, vcStride*4, 0)
-	glctx.GL.Call("enableVertexAttribArray", vcACol)
-	glctx.GL.Call("vertexAttribPointer", vcACol, 3, glctx.Types.Float, false, vcStride*4, 2*4)
+	glctx.GL.Call("useProgram", v.program)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, v.buf)
+	js.CopyBytesToJS(v.u8, sliceToByteSlice(v.data))
+	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, v.f32, glctx.Types.DynamicDraw)
+	glctx.GL.Call("enableVertexAttribArray", v.aPos)
+	glctx.GL.Call("vertexAttribPointer", v.aPos, 2, glctx.Types.Float, false, vcStride*4, 0)
+	glctx.GL.Call("enableVertexAttribArray", v.aCol)
+	glctx.GL.Call("vertexAttribPointer", v.aCol, 3, glctx.Types.Float, false, vcStride*4, 2*4)
 }
 
 // vcSpan draws count vertices starting at first, offset by (dx, dy) in clip
@@ -135,18 +139,18 @@ func vcUpload(n int) {
 // other way first — adding dx to every x between passes and subtracting it back
 // afterwards — it was both slower and wrong, because the shifts accumulated
 // asymmetrically and the halo ended up on one side.
-func vcSpan(mode js.Value, first, count int, alpha, dx, dy float32) {
+func (v *vcolorPipe) span(mode js.Value, first, count int, alpha, dx, dy float32) {
 	if count <= 0 {
 		return
 	}
-	glctx.GL.Call("uniform1f", vcUAlpha, alpha)
-	glctx.GL.Call("uniform2f", vcUOffset, dx, dy)
+	glctx.GL.Call("uniform1f", v.uAlpha, alpha)
+	glctx.GL.Call("uniform2f", v.uOffset, dx, dy)
 	glctx.GL.Call("drawArrays", mode, first, count)
 }
 
 // vcDone releases the color attribute, which the other programs do not have
 // and would otherwise inherit as a stale binding.
-func vcDone() { glctx.GL.Call("disableVertexAttribArray", vcACol) }
+func (v *vcolorPipe) done() { glctx.GL.Call("disableVertexAttribArray", v.aCol) }
 
 // analyzerPalette reports the colormap the Colors module currently names, if it
 // names one at all.

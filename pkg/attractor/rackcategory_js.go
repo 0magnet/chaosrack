@@ -598,7 +598,7 @@ func buildBayRotary(label string, bay int, modes []string) js.Value {
 	stack := dom.Doc.Call("createElement", "span")
 	stack.Set("className", "knobstack")
 	stack.Call("setAttribute", "data-no-drag", "")
-	knob := makeSelectorKnob(sel)
+	knob := selk.makeSelectorKnob(sel)
 	knob.Get("classList").Call("add", "knob-ring")
 	stack.Call("appendChild", knob)
 

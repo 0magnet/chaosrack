@@ -38,14 +38,23 @@ import (
 // dismissed by a stray keystroke and not restarted would be a worse model than
 // one that simply runs.
 
-var (
-	animHost    js.Value // the offscreen div the terminal is mounted in
-	animCanvas  js.Value // xterm-go's WebGL canvas, the texture source
-	animTexture js.Value
-	animSession *play.Session
-	animRunning string // the demo currently mounted, if any
-	animFailed  string // why there is no animation, if there is not
-)
+// termAnim is a terminal animation shown as a model.
+type termAnim struct {
+	host    js.Value // the offscreen div the terminal is mounted in
+	canvas  js.Value // xterm-go's WebGL canvas, the texture source
+	texture js.Value
+	session *play.Session
+	running string // the demo currently mounted, if any
+	failed  string // why there is no animation, if there is not
+
+	// pick is the demo the panel's selector last asked for.
+	pick         string
+	pickerFilled bool
+}
+
+var anim = termAnim{
+	pick: animDefault,
+}
 
 // animDefault is what the model shows before anything is picked.
 //
@@ -55,61 +64,58 @@ var (
 // texture that says nothing about where it came from.
 const animDefault = "matrix"
 
-// animPick is the demo the panel's selector last asked for.
-var animPick = animDefault
-
 // ensureTermAnim mounts the demo named by animPick, replacing whatever was
 // running. It returns false when there is nothing to draw.
-func ensureTermAnim() bool {
-	if animSession != nil && animRunning == animPick {
-		return animFailed == ""
+func (t *termAnim) ensureTermAnim() bool {
+	if t.session != nil && t.running == t.pick {
+		return t.failed == ""
 	}
 
 	// Switching demos: the old one goes first. Closing the session finalizes
 	// its screen, which is what ends the animation's own goroutine — see
 	// canvas.Run in termanim, which returns when the event queue closes.
-	if animSession != nil {
-		animSession.Close()
-		animSession = nil
+	if t.session != nil {
+		t.session.Close()
+		t.session = nil
 	}
-	if animHost.Truthy() {
-		animHost.Call("remove")
-		animHost = js.Undefined()
+	if t.host.Truthy() {
+		t.host.Call("remove")
+		t.host = js.Undefined()
 	}
-	animFailed = ""
+	t.failed = ""
 
-	d, ok := demos.Lookup(animPick)
+	d, ok := demos.Lookup(t.pick)
 	if !ok {
-		animFailed = "no demo called " + animPick
+		t.failed = "no demo called " + t.pick
 		return false
 	}
 
 	// Offscreen, but with a box: the renderer sizes itself from the element,
 	// and a detached node has no box, so the terminal would come up zero by
 	// zero and the texture would be empty.
-	animHost = dom.Doc.Call("createElement", "div")
-	style := animHost.Get("style")
+	t.host = dom.Doc.Call("createElement", "div")
+	style := t.host.Get("style")
 	style.Set("position", "fixed")
 	style.Set("left", "-10000px")
 	style.Set("top", "0")
 	style.Set("width", "900px")
 	style.Set("height", "560px")
-	dom.Doc.Get("body").Call("appendChild", animHost)
+	dom.Doc.Get("body").Call("appendChild", t.host)
 
-	s, err := play.Mount(d, animHost)
+	s, err := play.Mount(d, t.host)
 	if err != nil {
-		animFailed = "the demo would not start: " + err.Error()
+		t.failed = "the demo would not start: " + err.Error()
 		return false
 	}
-	animSession = s
-	animRunning = animPick
+	t.session = s
+	t.running = t.pick
 
-	animCanvas = animHost.Call("querySelector", "canvas.xterm-webgl-canvas")
-	if !animCanvas.Truthy() {
+	t.canvas = t.host.Call("querySelector", "canvas.xterm-webgl-canvas")
+	if !t.canvas.Truthy() {
 		// Without the WebGL renderer there is no canvas to sample, and a
 		// DOM-rendered terminal cannot be a texture — which is the only thing
 		// this mode wants from it.
-		animFailed = "no WebGL renderer — a DOM-rendered terminal cannot be a texture"
+		t.failed = "no WebGL renderer — a DOM-rendered terminal cannot be a texture"
 		return false
 	}
 	return true
@@ -118,43 +124,43 @@ func ensureTermAnim() bool {
 // setTermAnim asks for a different demo. The switch happens on the next frame,
 // in ensureTermAnim, so that tearing one down and building another never
 // happens in the middle of a draw.
-func setTermAnim(name string) {
+func (t *termAnim) setTermAnim(name string) {
 	if name == "" {
 		name = animDefault
 	}
-	animPick = name
+	t.pick = name
 }
 
-func generateTermAnim() {
-	if !ensureTermAnim() {
-		showTermAnimTrouble()
+func (t *termAnim) generateTermAnim() {
+	if !t.ensureTermAnim() {
+		t.showTermAnimTrouble()
 		return
 	}
-	uploadCanvasTexture(&animTexture, animCanvas)
+	uploadCanvasTexture(&t.texture, t.canvas)
 	// Its canvas is not square, and drawing it on a square quad squashes the
 	// glyphs — which on a terminal is the whole of what there is to look at.
-	drawTexturedAspect(animTexture, canvasAspect(animCanvas))
+	texp.drawTexturedAspect(t.texture, canvasAspect(t.canvas))
 }
 
 // showTermAnimTrouble reports why there is nothing to see, through the same
 // overlay the audio modes use for the same purpose. Drawing nothing and saying
 // nothing is the one outcome worth ruling out.
-func showTermAnimTrouble() {
-	if animFailed == "" {
-		animFailed = "the animation could not be started"
+func (t *termAnim) showTermAnimTrouble() {
+	if t.failed == "" {
+		t.failed = "the animation could not be started"
 	}
-	showAudioStatus(animFailed)
+	aud.showAudioStatus(t.failed)
 }
 
 // termAnimTexture is what the backdrop asks for to paint an animation behind
 // another model. It returns a texture only when there is one, so the backdrop
 // falls through to drawing nothing rather than binding a texture never filled.
-func termAnimTexture() (js.Value, bool) {
-	if !ensureTermAnim() {
+func (t *termAnim) termAnimTexture() (js.Value, bool) {
+	if !t.ensureTermAnim() {
 		return js.Undefined(), false
 	}
-	uploadCanvasTexture(&animTexture, animCanvas)
-	return animTexture, true
+	uploadCanvasTexture(&t.texture, t.canvas)
+	return t.texture, true
 }
 
 // syncTermAnimExtras shows this model's panel section when it is the model, or
@@ -173,14 +179,12 @@ func syncTermAnimExtras(mode string) {
 	} else {
 		sect.Get("style").Set("display", "none")
 	}
-	fillTermAnimPicker()
+	anim.fillTermAnimPicker()
 	quantizeModuleWidths()
 }
 
-var animPickerFilled bool
-
-func fillTermAnimPicker() {
-	if animPickerFilled {
+func (t *termAnim) fillTermAnimPicker() {
+	if t.pickerFilled {
 		return
 	}
 	sel := dom.Doc.Call("getElementById", "termanim-pick")
@@ -192,16 +196,16 @@ func fillTermAnimPicker() {
 		opt.Set("value", d.Name)
 		opt.Set("textContent", d.Name)
 		opt.Set("title", d.Desc)
-		if d.Name == animPick {
+		if d.Name == t.pick {
 			opt.Set("selected", true)
 		}
 		sel.Call("appendChild", opt)
 	}
 	sel.Call("addEventListener", "change", js.FuncOf(func(this js.Value, _ []js.Value) any {
-		setTermAnim(this.Get("value").String())
+		t.setTermAnim(this.Get("value").String())
 		return nil
 	}))
-	animPickerFilled = true
+	t.pickerFilled = true
 }
 
 // drawTermAnimBackground paints the animation behind whatever model is on
@@ -210,17 +214,17 @@ func fillTermAnimPicker() {
 // it — an animation is a better backdrop than a shell, since it is moving and
 // has nothing to read.
 func drawTermAnimBackground() {
-	tex, ok := termAnimTexture()
+	tex, ok := anim.termAnimTexture()
 	if !ok {
 		return // nothing running: draw nothing rather than a black square
 	}
-	savedFill := spectFill
-	spectFill = true
+	savedFill := spect.fill
+	spect.fill = true
 	glctx.GL.Call("disable", glctx.Types.DepthTest)
-	drawTexturedPlane(tex, 0)
-	spectFill = savedFill
+	texp.drawTexturedPlane(tex, 0)
+	spect.fill = savedFill
 }
 
 func init() {
-	registerGenerate("termanim", generateTermAnim)
+	registerGenerate("termanim", anim.generateTermAnim)
 }

@@ -77,7 +77,7 @@ func (p *screenPower) measure(el js.Value) bool {
 	// skipped it: the rack re-measures every module on each pointer move,
 	// and a canvas copy in the middle of that is how a drag comes to cost
 	// the model a frame.
-	if resizing {
+	if layout.resizing {
 		return false
 	}
 	return el.Get("offsetParent").Truthy()
@@ -274,7 +274,7 @@ func measureOnScreen(id string) bool {
 	// Skipped mid-resize for the reason the monitors skip it: the rack
 	// re-measures every module on each pointer move, and a rectangle read in
 	// the middle of that is how a drag comes to cost the model a frame.
-	if resizing {
+	if layout.resizing {
 		return true
 	}
 	r := el.Call("getBoundingClientRect")

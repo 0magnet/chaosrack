@@ -43,124 +43,130 @@ const (
 	thdWindow = 16384
 )
 
-// thdPeriodMs is how often the measurement runs and is shown — for this module
-// those are one number, since showing it more often than the window is long is
-// showing the same audio twice. On the panel as RATE; see meterswitch_js.go.
-//
-// The WINDOW above stays fixed and is deliberately not beside it. Both would
-// be a switch on a real analyzer, but the argument written against it holds:
-// a distortion figure whose bandwidth moves under you is not comparable with
-// itself a moment ago, and RATE does not have that problem — it changes how
-// often you are told, not what you are told.
-var thdPeriodMs float64 = 400
+// distortion is the Distortion module: its window of audio, the last result
+// and its LEDs.
+type distortion struct {
+	// periodMs is how often the measurement runs and is shown — for this module
+	// those are one number, since showing it more often than the window is long is
+	// showing the same audio twice. On the panel as RATE; see meterswitch_js.go.
+	//
+	// The WINDOW above stays fixed and is deliberately not beside it. Both would
+	// be a switch on a real analyzer, but the argument written against it holds:
+	// a distortion figure whose bandwidth moves under you is not comparable with
+	// itself a moment ago, and RATE does not have that problem — it changes how
+	// often you are told, not what you are told.
+	periodMs                        float64
+	cursor                          int
+	win                             meters.SlidingWindow // the newest thdWindow samples
+	buf                             []float32            // thdWin laid out in order, for the analyzer
+	nextMs                          float64
+	res                             meters.DistortionResult
+	led, thdnLED, sinadLED, enobLED js.Value
+	fundLED, levelLED               js.Value
+	chanSel                         js.Value
+	harmF                           float32
+}
 
-var (
-	thdCursor = tapUnjoined
-	thdWin    meters.SlidingWindow // the newest thdWindow samples
-	thdBuf    []float32            // thdWin laid out in order, for the analyzer
-	thdNextMs float64
-	thdRes    meters.DistortionResult
-
-	thdLED, thdnLED, thdSinadLED, thdEnobLED js.Value
-	thdFundLED, thdLevelLED                  js.Value
-	thdChanSel                               js.Value
-	thdHarmF                                 float32 = 10
-)
+var thd = distortion{
+	periodMs: 400,
+	cursor:   tapUnjoined,
+	harmF:    10,
+}
 
 // thdTick accumulates audio and runs the measurement when its period is up.
 // Called once a frame from the render loop, and returns immediately on all but
 // a few of those calls.
-func thdTick(nowMs float64) {
+func (d *distortion) tick(nowMs float64) {
 	// Not merely "not display:none" — actually on screen. See
 	// moduleOnScreen: this module's DSP and readouts are most of what the
 	// panel costs per frame, and the drawer usually has it scrolled away.
 	if !moduleOnScreen("thd-module") {
 		return
 	}
-	thdWin.Resize(thdWindow)
-	if thdBuf == nil {
-		thdBuf = make([]float32, thdWindow)
+	d.win.Resize(thdWindow)
+	if d.buf == nil {
+		d.buf = make([]float32, thdWindow)
 	}
 	// Drain into the window, oldest first, keeping the newest thdWindow
 	// samples. The tap hands each sample over once, so this cannot double-count
 	// and cannot miss any that arrived while another consumer was reading.
 	ch := tapMix
-	if thdChanSel.Truthy() {
-		if i, err := strconv.Atoi(thdChanSel.Get("value").String()); err == nil {
+	if d.chanSel.Truthy() {
+		if i, err := strconv.Atoi(d.chanSel.Get("value").String()); err == nil {
 			ch = tapChanSel(float32(i))
 		}
 	}
 	var scratch [4096]float32
 	for {
-		n := tapReadChan(&thdCursor, scratch[:], ch)
+		n := tap.readChan(&d.cursor, scratch[:], ch)
 		if n <= 0 {
 			break
 		}
-		thdWin.Push(scratch[:n])
+		d.win.Push(scratch[:n])
 		if n < len(scratch) {
 			break
 		}
 	}
-	if !thdWin.Full() || nowMs < thdNextMs {
+	if !d.win.Full() || nowMs < d.nextMs {
 		return
 	}
-	thdNextMs = nowMs + thdPeriodMs
+	d.nextMs = nowMs + d.periodMs
 	// Laid out in order HERE, on the timer, not on the frame: putting the
 	// window in order is the only part that costs the window's length, and
 	// it is needed four hundred milliseconds apart rather than sixty times
 	// a second. See slidingwindow.go.
-	thdWin.Linear(thdBuf)
-	thdRes = meters.AnalyzeDistortion(thdBuf, takensSourceRate(), int(thdHarmF))
-	showDistortion()
+	d.win.Linear(d.buf)
+	d.res = meters.AnalyzeDistortion(d.buf, takensSourceRate(), int(d.harmF))
+	d.showDistortion()
 }
 
 // showDistortion writes the readouts. A measurement that came back OK=false is
 // written as dashes rather than as a stale number: the last reading of a tone
 // that is no longer playing is the most misleading thing the module could show.
-func showDistortion() {
+func (d *distortion) showDistortion() {
 	set := func(key string, el js.Value, s string) {
 		readouts.Set(key, el, s)
 	}
-	if !thdRes.OK {
-		set("thd-thd", thdLED, "  --.---")
-		set("thd-thdn", thdnLED, "  --.---")
-		set("thd-sinad", thdSinadLED, "  --.-")
-		set("thd-enob", thdEnobLED, "--.--")
-		set("thd-fund", thdFundLED, "-----.-")
-		set("thd-level", thdLevelLED, "  --.-")
+	if !d.res.OK {
+		set("thd-thd", d.led, "  --.---")
+		set("thd-thdn", d.thdnLED, "  --.---")
+		set("thd-sinad", d.sinadLED, "  --.-")
+		set("thd-enob", d.enobLED, "--.--")
+		set("thd-fund", d.fundLED, "-----.-")
+		set("thd-level", d.levelLED, "  --.-")
 		return
 	}
-	set("thd-thd", thdLED, led.Format(meters.AsPercent(thdRes.THD), 2, 3, false))
-	set("thd-thdn", thdnLED, led.Format(meters.AsPercent(thdRes.THDN), 2, 3, false))
+	set("thd-thd", d.led, led.Format(meters.AsPercent(d.res.THD), 2, 3, false))
+	set("thd-thdn", d.thdnLED, led.Format(meters.AsPercent(d.res.THDN), 2, 3, false))
 	// A SINAD of 999 is the sentinel for "nothing but the fundamental in the
 	// window", which a synthesized tone with no noise really does produce. It
 	// is not a number to print — an infinite SINAD is a claim no measurement
 	// can make — so it is shown as over-range.
-	if thdRes.SINAD >= 900 {
-		set("thd-sinad", thdSinadLED, "  >99.9")
-		set("thd-enob", thdEnobLED, ">16.0")
+	if d.res.SINAD >= 900 {
+		set("thd-sinad", d.sinadLED, "  >99.9")
+		set("thd-enob", d.enobLED, ">16.0")
 	} else {
-		set("thd-sinad", thdSinadLED, led.Format(thdRes.SINAD, 3, 1, false))
-		set("thd-enob", thdEnobLED, led.Format(thdRes.ENOB, 2, 2, false))
+		set("thd-sinad", d.sinadLED, led.Format(d.res.SINAD, 3, 1, false))
+		set("thd-enob", d.enobLED, led.Format(d.res.ENOB, 2, 2, false))
 	}
-	set("thd-fund", thdFundLED, led.Format(thdRes.Fundamental, 5, 1, false))
-	set("thd-level", thdLevelLED, led.Format(20*math.Log10(math.Max(thdRes.Level, 1e-9)), 3, 1, true))
+	set("thd-fund", d.fundLED, led.Format(d.res.Fundamental, 5, 1, false))
+	set("thd-level", d.levelLED, led.Format(20*math.Log10(math.Max(d.res.Level, 1e-9)), 3, 1, true))
 }
 
 // wireDistortionModule builds the two knobs and finds the readouts. Called once
 // from Run.
-func wireDistortionModule() {
-	thdLED = dom.Doc.Call("getElementById", "thd-led")
-	thdnLED = dom.Doc.Call("getElementById", "thdn-led")
-	thdSinadLED = dom.Doc.Call("getElementById", "thd-sinad-led")
-	thdEnobLED = dom.Doc.Call("getElementById", "thd-enob-led")
-	thdFundLED = dom.Doc.Call("getElementById", "thd-fund-led")
-	thdLevelLED = dom.Doc.Call("getElementById", "thd-level-led")
-	thdChanSel = dom.Doc.Call("getElementById", "thd-chan")
+func (d *distortion) wireDistortionModule() {
+	d.led = dom.Doc.Call("getElementById", "thd-led")
+	d.thdnLED = dom.Doc.Call("getElementById", "thdn-led")
+	d.sinadLED = dom.Doc.Call("getElementById", "thd-sinad-led")
+	d.enobLED = dom.Doc.Call("getElementById", "thd-enob-led")
+	d.fundLED = dom.Doc.Call("getElementById", "thd-fund-led")
+	d.levelLED = dom.Doc.Call("getElementById", "thd-level-led")
+	d.chanSel = dom.Doc.Call("getElementById", "thd-chan")
 	harm := dom.Doc.Call("getElementById", "thd-harm")
 	cstack := dom.Doc.Call("getElementById", "thd-chanstack")
 	hstack := dom.Doc.Call("getElementById", "thd-hstack")
-	if !thdChanSel.Truthy() || !harm.Truthy() {
+	if !d.chanSel.Truthy() || !harm.Truthy() {
 		return
 	}
 	for i, name := range tapChanNames {
@@ -170,17 +176,17 @@ func wireDistortionModule() {
 		if i < len(tapChanDescs) {
 			opt.Set("title", tapChanDescs[i])
 		}
-		thdChanSel.Call("appendChild", opt)
+		d.chanSel.Call("appendChild", opt)
 	}
-	thdChanSel.Set("value", "0")
-	cstack.Call("appendChild", singleSelectorKnob(thdChanSel, tapChanRing))
+	d.chanSel.Set("value", "0")
+	cstack.Call("appendChild", singleSelectorKnob(d.chanSel, tapChanRing))
 
 	hstack.Call("appendChild", makeKnob(harm, js.Undefined(), true, false, true))
 	// LEDStep 10 to keep whole harmonics, as above.
 	adoptDescControl(ControlDesc{
 		ID: "thd-harm", Label: "harm", Min: 2, Max: 20, Step: 1, Def: 10,
 		LEDID: "thd-harm-led", ResetID: "rst-thd-harm", LEDStep: 10,
-		Apply: func(v float64) { thdHarmF = float32(v) },
+		Apply: func(v float64) { d.harmF = float32(v) },
 	})
 	// A change of channel is a change of signal, so the window it was measuring
 	// no longer describes what is being asked about.
@@ -190,10 +196,10 @@ func wireDistortionModule() {
 		SelectApply: func(string) {
 			// A change of channel is a change of signal, so the window it was
 			// measuring no longer describes what is being asked about.
-			thdWin.Reset()
-			thdRes = meters.DistortionResult{}
-			showDistortion()
+			d.win.Reset()
+			d.res = meters.DistortionResult{}
+			d.showDistortion()
 		},
 	})
-	showDistortion()
+	d.showDistortion()
 }

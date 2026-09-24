@@ -142,25 +142,25 @@ var (
 func wireMeterClocks() {
 	addMeterSwitch("lufs-module", "lufs-rate", "rate",
 		"How often the loudness readouts latch. This is a DISPLAY rate only — the meter integrates every sample that arrives whatever this says, because an integrated loudness with a block missing is a block missing from the answer. Slower is steadier to read and costs the panel less.",
-		"lr", lufsRateDetents, 200, func(v int) { lufsPeriodMs = float64(v) })
+		"lr", lufsRateDetents, 200, func(v int) { lufs.periodMs = float64(v) })
 
 	addMeterSwitch("thd-module", "thd-rate", "rate",
 		"How often the distortion measurement is made and shown. The analysis window is 341 ms, so measuring faster than about three times a second measures the same audio twice; slower is the same reading for less work.",
-		"tr", thdRateDetents, 400, func(v int) { thdPeriodMs = float64(v) })
+		"tr", thdRateDetents, 400, func(v int) { thd.periodMs = float64(v) })
 
 	addMeterSwitch("wf-module", "wf-rate", "rate",
 		"How often the wow-and-flutter measurement is remade. This does not make the analysis cheaper — it makes it rarer. The same lump of work lands on one frame in sixty instead of one in thirty, so this is the control for how OFTEN the rack hesitates, not for how much.",
-		"wr", wfRateDetents, 500, func(v int) { wfPeriodMs = float64(v) })
+		"wr", wfRateDetents, 500, func(v int) { wow.periodMs = float64(v) })
 
 	addMeterSwitch("wf-module", "wf-win", "window",
 		"How much audio each wow-and-flutter reading is made over. This is the measurement: ten seconds holds five cycles of the slowest wow, and two seconds cannot see wow at all, only flutter. It is also the cost — the analysis walks the whole window — so unlike RATE, this is the control that makes the work itself smaller.",
 		"ww", wfWindowDetents, 10, func(v int) {
-			wfWindowSec = v
+			wow.windowSec = v
 			// The window it was measuring no longer describes what is being
 			// asked about, the same way a change of channel does on the
 			// distortion module.
-			wfWin.Reset()
-			wfRes = meters.WowFlutterResult{}
-			showWowFlutter()
+			wow.win.Reset()
+			wow.res = meters.WowFlutterResult{}
+			wow.showWowFlutter()
 		})
 }

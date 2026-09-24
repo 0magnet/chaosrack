@@ -46,34 +46,55 @@ import (
 	"github.com/0magnet/pisano/pkg/pisano"
 )
 
-// The knobs. These are pisano's command-line flags, as far as they mean
-// anything here: --mod, --seq, --mul, --cap, --tint, --trail, --cam, --cycle.
-// The ones left behind write files (--out, --split, --cell, --cols, --grid,
-// --labels), dress a terminal (--theme, --plain, --mono), or are a different
-// design altogether (--circle). --speed is the panel's own Speed knob and
-// --paused its Pause switch; --max-points is the Trail slider, which is what
-// bounds the walk here. DIM is the one knob with no flag behind it: pisano
-// draws in a terminal, which has no third dimension to offer.
-var (
-	turtleModF   float32 = 25 // 0 draws the sequence unreduced
-	turtleSeqF   float32      // index into turtleSequences
-	turtleMulF   float32 = 1  // multiply the Fibonacci sequence by this
-	turtleCapF   float32      // term limit; 0 lets the modulus choose its own
-	turtleDimF   float32 = 3
-	turtleTintF  float32 // index into pisano.TintModes()
-	turtleTrailF float32 // index into turtleTrails
-	turtleCamF   float32 // index into turtleCams
-	turtleViewF  float32 // index into turtleViews: which way to face the axis
-	turtleCycleF float32 // seconds between moduli; 0 stays on one
+// turtleMode is the Turtle mode: the walk and its knobs.
+type turtleMode struct {
+	// The knobs. These are pisano's command-line flags, as far as they mean
+	// anything here: --mod, --seq, --mul, --cap, --tint, --trail, --cam, --cycle.
+	// The ones left behind write files (--out, --split, --cell, --cols, --grid,
+	// --labels), dress a terminal (--theme, --plain, --mono), or are a different
+	// design altogether (--circle). --speed is the panel's own Speed knob and
+	// --paused its Pause switch; --max-points is the Trail slider, which is what
+	// bounds the walk here. DIM is the one knob with no flag behind it: pisano
+	// draws in a terminal, which has no third dimension to offer.
+	modF   float32 // 0 draws the sequence unreduced
+	seqF   float32 // index into turtleSequences
+	mulF   float32 // multiply the Fibonacci sequence by this
+	capF   float32 // term limit; 0 lets the modulus choose its own
+	dimF   float32
+	tintF  float32 // index into pisano.TintModes()
+	trailF float32 // index into turtleTrails
+	camF   float32 // index into turtleCams
+	viewF  float32 // index into turtleViews: which way to face the axis
+	cycleF float32 // seconds between moduli; 0 stays on one
 
 	// Weight. PHYS is the switch — gravity cannot be it now that pulling upward
 	// is a thing you can ask for, and zero gravity inside a box is a perfectly
 	// good place to be: it floats, and you can still throw it at a wall.
-	turtleGravF   float32 = 3 // pull, world units per second squared; below zero lifts
-	turtleFricF   float32 = 0.6
-	turtleBounceF float32 = 0.2
-	turtleSpinF   float32 = 1 // how hard the figure is to turn
-)
+	gravF   float32 // pull, world units per second squared; below zero lifts
+	fricF   float32
+	bounceF float32
+	spinF   float32 // how hard the figure is to turn
+	state   *turtleWalk
+
+	// cycleAt is when the CYCLE knob next steps the modulus (frameNowMs).
+	cycleAt float64
+
+	// infoTick paces the Info overlay's refresh. What it says about the walk
+	// — how much of it is on screen, how far it has got — is true only for the
+	// frame it was written on, and rewriting it sixty times a second to update a
+	// number nobody can read that fast is waste.
+	infoTick int
+}
+
+var turtle = turtleMode{
+	modF:    25,
+	mulF:    1,
+	dimF:    3,
+	gravF:   3,
+	fricF:   0.6,
+	bounceF: 0.2,
+	spinF:   1,
+}
 
 // turtleSequences is the SEQ knob's dial, in the order pisano lists them. Only
 // the Fibonacci sequence takes a multiplier — "fib×k" is a sequence, where
@@ -226,28 +247,17 @@ type turtleWalk struct {
 	lockSet bool
 }
 
-var turtleState *turtleWalk
-
-// turtleCycleAt is when the CYCLE knob next steps the modulus (frameNowMs).
-var turtleCycleAt float64
-
-// turtleInfoTick paces the Info overlay's refresh. What it says about the walk
-// — how much of it is on screen, how far it has got — is true only for the
-// frame it was written on, and rewriting it sixty times a second to update a
-// number nobody can read that fast is waste.
-var turtleInfoTick int
-
-func generateTurtle() {
-	key := turtleKeyNow()
-	if turtleState == nil || turtleState.key != key {
-		turtleState = newTurtleWalk(key)
+func (tu *turtleMode) generateTurtle() {
+	key := tu.keyNow()
+	if tu.state == nil || tu.state.key != key {
+		tu.state = newTurtleWalk(key)
 		// The knobs moved, so the sentence under Info is about a different
 		// figure now. Doing it here rather than every frame keeps it to the one
 		// moment it can change.
 		updateInfoOverlay()
 	}
-	t := turtleState
-	turtleCycle()
+	t := tu.state
+	tu.cycle()
 
 	// The upload path centers a trail on the running mean of what it is handed,
 	// which for an attractor is the whole orbit but here would fight the camera
@@ -261,7 +271,7 @@ func generateTurtle() {
 	// keeps trying to march out of your hand — you are pulling one way and the
 	// floor is driving it the other, and neither of you is winning. Picking a
 	// thing up should stop it going anywhere.
-	if !paused && !turtleGrabState.held && !turtleSpinDrag && !turtleTiltDrag {
+	if !paused && !grab.grabState.held && !grab.spinDrag && !grab.tiltDrag {
 		// Below one step a frame the rate has to be carried between frames, or
 		// truncation would round the whole Speed knob's lower half down to zero
 		// and the walk would stand still.
@@ -270,9 +280,9 @@ func generateTurtle() {
 		t.pending -= float64(whole)
 		t.advance(whole)
 
-		turtleInfoTick++
-		if turtleInfoTick >= 30 {
-			turtleInfoTick = 0
+		tu.infoTick++
+		if tu.infoTick >= 30 {
+			tu.infoTick = 0
 			updateInfoOverlay()
 		}
 	}
@@ -437,7 +447,7 @@ func (t *turtleWalk) newTinter() {
 // slider is the ceiling, since that is the size of the buffer they are drawn
 // from — pisano's --max-points, wearing the panel's clothes.
 func (t *turtleWalk) trailLen() int {
-	n := turtleTrails[clampIndex(int(turtleTrailF), len(turtleTrails))].n
+	n := turtleTrails[clampIndex(int(turtle.trailF), len(turtleTrails))].n
 	if n == 0 {
 		// "Whole" is one circuit for a closed figure — not as much of it as
 		// there is room for. Keeping more would leave lap upon lap of the same
@@ -633,7 +643,7 @@ const box float32 = 2.4
 // camera resolves the auto setting the way pisano's does: a figure that closes
 // is fitted, and the drift of one that does not is canceled.
 func (t *turtleWalk) camera() int {
-	c := clampIndex(int(turtleCamF), len(turtleCams))
+	c := clampIndex(int(turtle.camF), len(turtleCams))
 	if c != camAuto {
 		return c
 	}
@@ -646,25 +656,25 @@ func (t *turtleWalk) camera() int {
 // turtleCycle is pisano's --cycle: step to the next modulus every so often. It
 // drives the knob rather than the variable, so the panel readout, the permalink
 // and the restart all follow from the one place they normally would.
-func turtleCycle() {
-	secs := float64(turtleCycleF)
+func (tu *turtleMode) cycle() {
+	secs := float64(tu.cycleF)
 	if secs <= 0 || paused {
-		turtleCycleAt = 0
+		tu.cycleAt = 0
 		return
 	}
-	if turtleCycleAt == 0 {
-		turtleCycleAt = frameNowMs + secs*1000
+	if tu.cycleAt == 0 {
+		tu.cycleAt = frameNowMs + secs*1000
 		return
 	}
-	if frameNowMs < turtleCycleAt {
+	if frameNowMs < tu.cycleAt {
 		return
 	}
-	turtleCycleAt = frameNowMs + secs*1000
+	tu.cycleAt = frameNowMs + secs*1000
 	knob := dom.Doc.Call("getElementById", "turtle-mod")
 	if !knob.Truthy() {
 		return
 	}
-	next := int(turtleModF) + 1
+	next := int(tu.modF) + 1
 	if next > int(turtleModMax) {
 		next = 1
 	}
@@ -676,14 +686,14 @@ func turtleCycle() {
 // agree with so cycling wraps where the dial does.
 const turtleModMax float32 = 300
 
-func turtleKeyNow() turtleKey {
+func (tu *turtleMode) keyNow() turtleKey {
 	return turtleKey{
-		mod:  int(turtleModF),
-		seq:  clampIndex(int(turtleSeqF), len(turtleSequences)),
-		mul:  max(1, int(turtleMulF)),
-		cap:  max(0, int(turtleCapF)),
-		dim:  int(turtleDimF),
-		tint: clampIndex(int(turtleTintF), len(pisano.TintModes())),
+		mod:  int(tu.modF),
+		seq:  clampIndex(int(tu.seqF), len(turtleSequences)),
+		mul:  max(1, int(tu.mulF)),
+		cap:  max(0, int(tu.capF)),
+		dim:  int(tu.dimF),
+		tint: clampIndex(int(tu.tintF), len(pisano.TintModes())),
 	}
 }
 
@@ -697,14 +707,14 @@ func clampIndex(i, n int) int {
 // turtleShapeLabel is what the Info overlay adds for this mode: which figure is
 // being walked and what it does when the walk is repeated forever — decided
 // from one pass, without walking it — then how far the walk has actually got.
-func turtleShapeLabel() string {
-	t := turtleState
+func (tu *turtleMode) shapeLabel() string {
+	t := tu.state
 	if t == nil {
 		return ""
 	}
 	tint := pisano.TintModes()[clampIndex(t.key.tint, len(pisano.TintModes()))]
-	trail := turtleTrails[clampIndex(int(turtleTrailF), len(turtleTrails))].name
-	cam := turtleCams[clampIndex(int(turtleCamF), len(turtleCams))].name
+	trail := turtleTrails[clampIndex(int(tu.trailF), len(turtleTrails))].name
+	cam := turtleCams[clampIndex(int(tu.camF), len(turtleCams))].name
 	if cam == "auto" {
 		cam += "/" + turtleCams[t.camera()].name
 	}

@@ -226,8 +226,8 @@ func updateCRTOverlay() {
 // done with blendFunc(ZERO, SRC_COLOR). Leaves depth-test disabled; the caller
 // re-enables it.
 func drawPhosphorFade() {
-	if !xyReady {
-		initXY()
+	if !xy.ready {
+		xy.initXY()
 	}
 	if !phosphorQuadReady {
 		verts := []float32{-1, -1, 1, -1, -1, 1, 1, 1}
@@ -249,8 +249,8 @@ func drawPhosphorFade() {
 // The caller is left with depth-testing DISABLED, as drawPhosphorFade's callers
 // always were.
 func drawFadeQuad(kr, kg, kb float32) {
-	if !xyReady {
-		initXY()
+	if !xy.ready {
+		xy.initXY()
 	}
 	if !phosphorQuadReady {
 		verts := []float32{-1, -1, 1, -1, -1, 1, 1, 1}
@@ -263,13 +263,13 @@ func drawFadeQuad(kr, kg, kb float32) {
 	glctx.GL.Call("enable", glctx.GL.Get("BLEND"))
 	// dst_rgb = dst_rgb * src_rgb → multiply the frame by the retention color.
 	glctx.GL.Call("blendFunc", glctx.GL.Get("ZERO"), glctx.GL.Get("SRC_COLOR"))
-	glctx.GL.Call("useProgram", xyProgram)
+	glctx.GL.Call("useProgram", xy.program)
 	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, phosphorQuadBuf)
-	glctx.GL.Call("enableVertexAttribArray", xyAPos)
-	glctx.GL.Call("vertexAttribPointer", xyAPos, 2, glctx.Types.Float, false, 0, 0)
-	glctx.GL.Call("uniform3f", xyUColor, kr, kg, kb) // per-channel retention
-	glctx.GL.Call("uniform1f", xyUAlpha, 1)
-	glctx.GL.Call("uniform2f", xyUOffset, 0, 0)
+	glctx.GL.Call("enableVertexAttribArray", xy.aPos)
+	glctx.GL.Call("vertexAttribPointer", xy.aPos, 2, glctx.Types.Float, false, 0, 0)
+	glctx.GL.Call("uniform3f", xy.uColor, kr, kg, kb) // per-channel retention
+	glctx.GL.Call("uniform1f", xy.uAlpha, 1)
+	glctx.GL.Call("uniform2f", xy.uOffset, 0, 0)
 	glctx.GL.Call("drawArrays", glctx.GL.Get("TRIANGLE_STRIP"), 0, 4)
 	glctx.GL.Call("blendFunc", glctx.GL.Get("SRC_ALPHA"), glctx.GL.Get("ONE_MINUS_SRC_ALPHA"))
 	glctx.GL.Call("disable", glctx.GL.Get("BLEND"))

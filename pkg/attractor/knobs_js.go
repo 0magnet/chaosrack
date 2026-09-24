@@ -119,80 +119,83 @@ func syncKnobs() {
 	}
 }
 
-// ── Multi-position selector knobs (rotary encoder over a <select>) ───────────
-// Shared drag state + one-time document listeners, so per-parameter selector
-// knobs rebuilt with the panel don't accumulate listeners.
-var (
-	selkActive                        bool
-	selkSel, selkKnob                 js.Value
-	selkCX, selkCY, selkPrev, selkAcc float64
-	selkDragInit                      bool
-)
+// selectorKnob is the selector-knob drag in progress.
+type selectorKnob struct {
+	// ── Multi-position selector knobs (rotary encoder over a <select>) ───────────
+	// Shared drag state + one-time document listeners, so per-parameter selector
+	// knobs rebuilt with the panel don't accumulate listeners.
+	active            bool
+	sel, knob         js.Value
+	cx, cy, prev, acc float64
+	dragInit          bool
+}
 
-func selkStep(dir int) {
-	if !selkSel.Truthy() {
+var selk selectorKnob
+
+func (s *selectorKnob) step(dir int) {
+	if !s.sel.Truthy() {
 		return
 	}
-	n := selkSel.Get("options").Get("length").Int()
+	n := s.sel.Get("options").Get("length").Int()
 	if n == 0 {
 		return
 	}
-	idx := selkSel.Get("selectedIndex").Int() + dir
+	idx := s.sel.Get("selectedIndex").Int() + dir
 	for idx < 0 {
 		idx += n
 	}
 	idx %= n
-	selkSel.Set("selectedIndex", idx)
-	selkSel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+	s.sel.Set("selectedIndex", idx)
+	s.sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 }
 
 // initSelKnobDrag wires the one-time document move/up listeners that turn the
 // active selector knob. Recomputes the center each move and resyncs on a
 // panel reflow so one detent = one step. Called once from Run.
-func initSelKnobDrag() {
-	if selkDragInit {
+func (s *selectorKnob) initSelKnobDrag() {
+	if s.dragInit {
 		return
 	}
-	selkDragInit = true
+	s.dragInit = true
 	onPointerMove(func(e js.Value) {
-		if !selkActive {
+		if !s.active {
 			return
 		}
-		r := selkKnob.Call("getBoundingClientRect")
+		r := s.knob.Call("getBoundingClientRect")
 		cx := r.Get("left").Float() + r.Get("width").Float()/2
 		cy := r.Get("top").Float() + r.Get("height").Float()/2
 		cur := math.Atan2(e.Get("clientY").Float()-cy, e.Get("clientX").Float()-cx)
-		if math.Abs(cx-selkCX) > 1 || math.Abs(cy-selkCY) > 1 {
-			selkCX, selkCY, selkPrev = cx, cy, cur
+		if math.Abs(cx-s.cx) > 1 || math.Abs(cy-s.cy) > 1 {
+			s.cx, s.cy, s.prev = cx, cy, cur
 			return
 		}
-		d := cur - selkPrev
+		d := cur - s.prev
 		for d > math.Pi {
 			d -= 2 * math.Pi
 		}
 		for d < -math.Pi {
 			d += 2 * math.Pi
 		}
-		selkPrev = cur
+		s.prev = cur
 		dDeg := d * 180 / math.Pi
 		// The pointer isn't turned freely here — it snaps to the selected slot
 		// via the select's 'change' handler each time a detent steps it.
 		// One full turn = one pass through the options: detent = 360°/N.
 		detent := 24.0
-		if selkSel.Truthy() {
-			if n := selkSel.Get("options").Get("length").Int(); n > 0 {
+		if s.sel.Truthy() {
+			if n := s.sel.Get("options").Get("length").Int(); n > 0 {
 				detent = 360.0 / float64(n)
 			}
 		}
-		for selkAcc += dDeg; selkAcc >= detent; selkAcc -= detent {
-			selkStep(1)
+		for s.acc += dDeg; s.acc >= detent; s.acc -= detent {
+			s.step(1)
 		}
-		for ; selkAcc <= -detent; selkAcc += detent {
-			selkStep(-1)
+		for ; s.acc <= -detent; s.acc += detent {
+			s.step(-1)
 		}
 	})
 	rel := dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		selkActive = false
+		s.active = false
 		return nil
 	})
 	dom.Doc.Call("addEventListener", "pointerup", rel)
@@ -204,7 +207,7 @@ func initSelKnobDrag() {
 // makeSelectorKnob builds a rotary selector over sel. An optional rot (degrees)
 // offsets the pointer so it lines up with labels that were rotated by the same
 // amount (e.g. the knob-style ring, staggered off the LED-color dots).
-func makeSelectorKnob(sel js.Value, rot ...float64) js.Value {
+func (s *selectorKnob) makeSelectorKnob(sel js.Value, rot ...float64) js.Value {
 	ptrRot := 0.0
 	if len(rot) > 0 {
 		ptrRot = rot[0]
@@ -246,12 +249,12 @@ func makeSelectorKnob(sel js.Value, rot ...float64) js.Value {
 		e.Call("preventDefault")
 		e.Call("stopPropagation")
 		r := knob.Call("getBoundingClientRect")
-		selkCX = r.Get("left").Float() + r.Get("width").Float()/2
-		selkCY = r.Get("top").Float() + r.Get("height").Float()/2
-		selkPrev = math.Atan2(e.Get("clientY").Float()-selkCY, e.Get("clientX").Float()-selkCX)
-		selkSel, selkKnob = sel, knob
-		selkAcc = 0
-		selkActive = true
+		s.cx = r.Get("left").Float() + r.Get("width").Float()/2
+		s.cy = r.Get("top").Float() + r.Get("height").Float()/2
+		s.prev = math.Atan2(e.Get("clientY").Float()-s.cy, e.Get("clientX").Float()-s.cx)
+		s.sel, s.knob = sel, knob
+		s.acc = 0
+		s.active = true
 		return nil
 	}))
 	// One step of the selection, shared by the wheel and the arrow keys, for
@@ -312,7 +315,7 @@ func soloKnob(sel js.Value) js.Value {
 	stack := dom.Doc.Call("createElement", "span")
 	stack.Set("className", "knobstack")
 	stack.Call("setAttribute", "data-no-drag", "")
-	k := makeSelectorKnob(sel)
+	k := selk.makeSelectorKnob(sel)
 	k.Get("classList").Call("add", "knob-ring")
 	stack.Call("appendChild", k)
 	return stack
@@ -337,7 +340,7 @@ func singleSelectorKnob(sel js.Value, labels []string) js.Value {
 	stack := dom.Doc.Call("createElement", "span")
 	stack.Set("className", "knobstack")
 	stack.Call("setAttribute", "data-no-drag", "")
-	knob := makeSelectorKnob(sel)
+	knob := selk.makeSelectorKnob(sel)
 	knob.Get("classList").Call("add", "knob-ring")
 	stack.Call("appendChild", knob)
 	addSelectorLabels(stack, labels, sel)
@@ -354,7 +357,7 @@ func selectorKnobReadout(sel js.Value) js.Value {
 	stack := dom.Doc.Call("createElement", "span")
 	stack.Set("className", "knobstack")
 	stack.Call("setAttribute", "data-no-drag", "")
-	knob := makeSelectorKnob(sel)
+	knob := selk.makeSelectorKnob(sel)
 	knob.Get("classList").Call("add", "knob-ring")
 	stack.Call("appendChild", knob)
 	readout := dom.Doc.Call("createElement", "span")
@@ -801,7 +804,7 @@ func addSelectorLabelsRot(stack js.Value, labels []string, sel js.Value, rot flo
 // skirtGapPx is the daylight between a skirt and what it clears, and
 // between two neighboring labels. Scales with the interface, because a
 // gap that stayed one pixel would close up as everything around it grew.
-func skirtGapPx() float64 { return 3.0 * panelScale }
+func skirtGapPx() float64 { return 3.0 * layout.scale }
 
 // layoutSkirts sizes every skirt on the panel.
 //
@@ -930,7 +933,7 @@ func layoutOneSkirt(dial js.Value, clear, gap float64, onGrip bool) float64 {
 	if scale < 1 {
 		labs = skirt.ScaleLabels(labs, scale)
 		for _, el := range kept {
-			el.Get("style").Set("font-size", pxStr(skirtLabelBasePx*panelScale*scale))
+			el.Get("style").Set("font-size", pxStr(skirtLabelBasePx*layout.scale*scale))
 		}
 	}
 	if useGrip < clear {
@@ -969,7 +972,7 @@ func layoutOneSkirt(dial js.Value, clear, gap float64, onGrip bool) float64 {
 // little generous — an estimate that is too small puts a label back on the
 // grip, which is the fault being fixed, while one that is too large only
 // leaves a slightly wide ring until the measured pass corrects it.
-func estGripRadiusPx() float64 { return 19.0 * panelScale }
+func estGripRadiusPx() float64 { return 19.0 * layout.scale }
 
 func estLabelBoxPx(text string) (w, h float64) {
 	const px = 8.0      // .knob-dial-lab font-size at scale 1
@@ -978,7 +981,7 @@ func estLabelBoxPx(text string) (w, h float64) {
 	if n < 1 {
 		n = 1
 	}
-	return float64(n) * perChar * panelScale, px * panelScale
+	return float64(n) * perChar * layout.scale, px * layout.scale
 }
 
 // skirtRoomPx is how far this ring may reach from its center before it is in
@@ -1000,7 +1003,7 @@ func skirtRoomPx(dial js.Value) float64 {
 	}
 	cs := js.Global().Call("getComputedStyle", cell)
 	pad := parsePx(cs.Get("paddingLeft").String()) + parsePx(cs.Get("paddingRight").String())
-	return (w - pad + skirtCellGapPx*panelScale) / 2
+	return (w - pad + skirtCellGapPx*layout.scale) / 2
 }
 
 // shrinkGrip scales the knob this ring sits on, so the room the ring needed

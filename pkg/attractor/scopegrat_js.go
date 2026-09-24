@@ -58,7 +58,7 @@ func drawScopeGraticule(halfH float32) {
 	// way the color uniforms below are — the pose the operator set is still
 	// the pose, and the next thing drawn has to see it.
 	glctx.GL.Call("useProgram", gpu.program)
-	glctx.GL.Call("uniformMatrix4fv", gpu.u.model, false, mat4ToTyped(&identMatrix))
+	glctx.GL.Call("uniformMatrix4fv", gpu.u.model, false, texp.mat4ToTyped(&identMatrix))
 	defer view.updateModelMatrix()
 
 	perDiv := halfH / float32(scope.HalfH)

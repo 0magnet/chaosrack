@@ -14,13 +14,13 @@ import (
 // resetWfallKnobs puts the three back where the package starts them.
 func resetWfallKnobs(t *testing.T) {
 	t.Helper()
-	l, s, f, a, u := wfallLinesF, wfallStepF, wfallFFTF, wfallAutoSet, wfallUserSet
+	l, s, f, a, u := wfall.linesF, wfall.stepF, wfall.fftF, wfall.autoSet, wfall.userSet
 	t.Cleanup(func() {
-		wfallLinesF, wfallStepF, wfallFFTF, wfallAutoSet, wfallUserSet = l, s, f, a, u
+		wfall.linesF, wfall.stepF, wfall.fftF, wfall.autoSet, wfall.userSet = l, s, f, a, u
 	})
-	wfallLinesF, wfallStepF, wfallFFTF = 16, 5, 1
-	wfallAutoSet = wfallDecayDefaults
-	wfallUserSet = struct{ lines, step, fft bool }{}
+	wfall.linesF, wfall.stepF, wfall.fftF = 16, 5, 1
+	wfall.autoSet = wfallDecayDefaults
+	wfall.userSet = struct{ lines, step, fft bool }{}
 	// No DOM: setWfallKnob writes the variable and then gives up on the element,
 	// which is the half this test is about.
 	withFakeDoc(t, map[string]js.Value{})
@@ -28,13 +28,13 @@ func resetWfallKnobs(t *testing.T) {
 
 func TestWaterfallDefaultsFollowTheSource(t *testing.T) {
 	resetWfallKnobs(t)
-	wfallApplyDefaults(wfallLiveDefaults)
-	if wfallLinesF != 32 || wfallStepF != 40 || wfallFFTF != 2 {
-		t.Fatalf("live: line=%v step=%v fft=%v, want 32/40/2", wfallLinesF, wfallStepF, wfallFFTF)
+	wfall.applyDefaults(wfallLiveDefaults)
+	if wfall.linesF != 32 || wfall.stepF != 40 || wfall.fftF != 2 {
+		t.Fatalf("live: line=%v step=%v fft=%v, want 32/40/2", wfall.linesF, wfall.stepF, wfall.fftF)
 	}
-	wfallApplyDefaults(wfallDecayDefaults)
-	if wfallLinesF != 16 || wfallStepF != 5 || wfallFFTF != 1 {
-		t.Fatalf("decay: line=%v step=%v fft=%v, want 16/5/1", wfallLinesF, wfallStepF, wfallFFTF)
+	wfall.applyDefaults(wfallDecayDefaults)
+	if wfall.linesF != 16 || wfall.stepF != 5 || wfall.fftF != 1 {
+		t.Fatalf("decay: line=%v step=%v fft=%v, want 16/5/1", wfall.linesF, wfall.stepF, wfall.fftF)
 	}
 }
 
@@ -47,16 +47,16 @@ func TestWaterfallDefaultsFollowTheSource(t *testing.T) {
 // automation permanently, not for one switch.
 func TestWaterfallDefaultsDeferForGood(t *testing.T) {
 	resetWfallKnobs(t)
-	wfallApplyDefaults(wfallLiveDefaults)
-	wfallLinesF = 48 // as if somebody turned it
+	wfall.applyDefaults(wfallLiveDefaults)
+	wfall.linesF = 48 // as if somebody turned it
 	for i, d := range []wfallDefaults{wfallDecayDefaults, wfallLiveDefaults, wfallDecayDefaults} {
-		wfallApplyDefaults(d)
-		if wfallLinesF != 48 {
-			t.Fatalf("switch %d: line=%v, want the chosen 48", i, wfallLinesF)
+		wfall.applyDefaults(d)
+		if wfall.linesF != 48 {
+			t.Fatalf("switch %d: line=%v, want the chosen 48", i, wfall.linesF)
 		}
 		// The two nobody touched still follow.
-		if wfallStepF != d.step || wfallFFTF != d.fft {
-			t.Errorf("switch %d: step=%v fft=%v, want %v/%v", i, wfallStepF, wfallFFTF, d.step, d.fft)
+		if wfall.stepF != d.step || wfall.fftF != d.fft {
+			t.Errorf("switch %d: step=%v fft=%v, want %v/%v", i, wfall.stepF, wfall.fftF, d.step, d.fft)
 		}
 	}
 }
@@ -68,21 +68,21 @@ func TestWaterfallDefaultsDeferForGood(t *testing.T) {
 func TestWaterfallKnobsClamp(t *testing.T) {
 	resetWfallKnobs(t)
 	for _, v := range []float32{-1e9, -1, 0, 3, 16, 64, 1e9} {
-		wfallLinesF = v
-		if n := wfallLines(); n < 4 || n > 64 {
+		wfall.linesF = v
+		if n := wfall.lines(); n < 4 || n > 64 {
 			t.Errorf("LINE %v gave %d slices", v, n)
 		}
-		wfallStepF = v
-		if ms := wfallStepMS(); ms < 1 || ms > 100 {
+		wfall.stepF = v
+		if ms := wfall.stepMS(); ms < 1 || ms > 100 {
 			t.Errorf("STEP %v gave %v ms", v, ms)
 		}
-		wfallFFTF = v
-		n := wfallFFTLen()
+		wfall.fftF = v
+		n := wfall.fftLen()
 		if n&(n-1) != 0 || n < 1024 || n > 8192 {
 			t.Errorf("FFT %v gave a %d-point transform", v, n)
 		}
-		wfallChanF = v
-		if c := wfallChan(); int(c) < 0 || int(c) >= len(tapChanNames) {
+		wfall.chanF = v
+		if c := wfall.channel(); int(c) < 0 || int(c) >= len(tapChanNames) {
 			t.Errorf("CHAN %v gave channel %d", v, c)
 		}
 	}

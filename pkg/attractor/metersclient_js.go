@@ -26,24 +26,33 @@ import (
 
 const metersWorkerURL = "/assets/metersworker/worker.js"
 
-var (
-	metersW       js.Value // the Worker
-	metersWReady  bool     // its Go instance has reported in
-	metersWTried  bool
-	metersWCfg    string // the last config sent, to avoid resending it
-	metersWL      js.Value
-	metersWR      js.Value
-	metersWCap    int
-	metersWantNow uint8
-)
+// metersClient is the panel's half of the analyzers-in-a-worker arrangement.
+type metersClient struct {
+	w       js.Value // the Worker
+	wReady  bool     // its Go instance has reported in
+	wTried  bool
+	wCfg    string // the last config sent, to avoid resending it
+	wl      js.Value
+	wr      js.Value
+	wCap    int
+	wantNow uint8
+
+	// cursor is the worker's own read position in the tap, separate from
+	// every in-thread analyzer's: the tap hands each sample over once per reader.
+	cursor int
+}
+
+var mc = metersClient{
+	cursor: tapUnjoined,
+}
 
 // startMetersWorker builds the Worker. Called once from Run; failure is not
 // an error, it just leaves the in-thread path in charge.
-func startMetersWorker() {
-	if metersWTried {
+func (me *metersClient) startMetersWorker() {
+	if me.wTried {
 		return
 	}
-	metersWTried = true
+	me.wTried = true
 	ctor := js.Global().Get("Worker")
 	if !ctor.Truthy() {
 		return
@@ -52,50 +61,50 @@ func startMetersWorker() {
 		// A Content-Security-Policy that forbids workers throws here, and the
 		// recover is the point: the panel keeps its own analyzers.
 		if recover() != nil {
-			metersW, metersWReady = js.Value{}, false
+			me.w, me.wReady = js.Value{}, false
 		}
 	}()
-	metersW = ctor.New(metersWorkerURL)
-	metersW.Set("onmessage", dom.FuncOf(func(_ js.Value, args []js.Value) interface{} {
+	me.w = ctor.New(metersWorkerURL)
+	me.w.Set("onmessage", dom.FuncOf(func(_ js.Value, args []js.Value) interface{} {
 		if len(args) == 0 {
 			return nil
 		}
-		onMetersMessage(args[0].Get("data"))
+		me.onMetersMessage(args[0].Get("data"))
 		return nil
 	}))
-	metersW.Set("onerror", dom.FuncOf(func(_ js.Value, _ []js.Value) interface{} {
+	me.w.Set("onerror", dom.FuncOf(func(_ js.Value, _ []js.Value) interface{} {
 		// It failed to load or it panicked. Either way the panel takes the
 		// analyzers back rather than showing dashes forever.
-		metersWReady = false
+		me.wReady = false
 		return nil
 	}))
 }
 
 // onMetersMessage takes a result and writes it to the readouts.
-func onMetersMessage(data js.Value) {
+func (me *metersClient) onMetersMessage(data js.Value) {
 	var msg metersproto.Envelope
 	if err := json.Unmarshal([]byte(data.String()), &msg); err != nil {
 		return
 	}
 	switch msg.T {
 	case metersproto.TypeReady:
-		metersWReady = true
-		metersWCfg = "" // the far side knows nothing yet; tell it on the next block
+		me.wReady = true
+		me.wCfg = "" // the far side knows nothing yet; tell it on the next block
 	case metersproto.TypeResult:
 		if msg.V == nil {
 			return
 		}
 		if r := msg.V.Lufs; r != nil {
-			lufsRes = *r
-			showLoudness()
+			lufs.res = *r
+			lufs.showLoudness()
 		}
 		if r := msg.V.Thd; r != nil {
-			thdRes = *r
-			showDistortion()
+			thd.res = *r
+			thd.showDistortion()
 		}
 		if r := msg.V.Wf; r != nil {
-			wfRes = *r
-			showWowFlutter()
+			wow.res = *r
+			wow.showWowFlutter()
 		}
 	}
 }
@@ -118,83 +127,83 @@ func metersWorkerWant() uint8 {
 
 // sendMetersConfig tells the worker what the panel's switches say, and only
 // when one of them has moved.
-func sendMetersConfig(sr int) {
+func (me *metersClient) sendMetersConfig(sr int) {
 	b, err := json.Marshal(metersproto.Config{
 		SampleRate: sr,
-		ThdPeriod:  thdPeriodMs,
-		ThdHarm:    int(thdHarmF),
-		WfPeriod:   wfPeriodMs,
-		WfWindow:   wfWindowSec,
-		WfNominal:  float64(wfNominal),
-		LufsPeriod: lufsPeriodMs,
-		Want:       metersWantNow,
+		ThdPeriod:  thd.periodMs,
+		ThdHarm:    int(thd.harmF),
+		WfPeriod:   wow.periodMs,
+		WfWindow:   wow.windowSec,
+		WfNominal:  float64(wow.nominal),
+		LufsPeriod: lufs.periodMs,
+		Want:       me.wantNow,
 	})
 	if err != nil {
 		return
 	}
 	s := string(b)
-	if s == metersWCfg {
+	if s == me.wCfg {
 		return
 	}
-	metersWCfg = s
+	me.wCfg = s
 	m := js.Global().Get("Object").New()
 	m.Set("t", metersproto.TypeConfig)
 	m.Set("v", s)
-	metersW.Call("postMessage", m)
+	me.w.Call("postMessage", m)
 }
 
 // metersWorkerArrays are the buffers the blocks cross in, grown rather than
 // reallocated: a fresh pair per block is two finalized js.Values a block.
-func metersWorkerArrays(n int) bool {
-	if metersWCap >= n && metersWL.Truthy() {
+func (me *metersClient) workerArrays(n int) bool {
+	if me.wCap >= n && me.wl.Truthy() {
 		return true
 	}
 	f32 := js.Global().Get("Float32Array")
 	if !f32.Truthy() {
 		return false
 	}
-	metersWL = f32.New(n)
-	metersWR = f32.New(n)
-	metersWCap = n
+	me.wl = f32.New(n)
+	me.wr = f32.New(n)
+	me.wCap = n
 	return true
 }
 
 // metersWorkerTick drains the tap and hands the audio over. Returns false if
 // the worker is not carrying the analyzers, so the caller runs its own.
-func metersWorkerTick() bool {
-	if !metersWReady || !metersW.Truthy() {
+func (me *metersClient) workerTick() bool {
+	if !me.wReady || !me.w.Truthy() {
 		return false
 	}
 	want := metersWorkerWant()
-	if want != metersWantNow {
-		metersWantNow = want
-		metersWCfg = "" // the far side is told on the next block
+	if want != me.wantNow {
+		me.wantNow = want
+		me.wCfg = "" // the far side is told on the next block
 	}
 	sr := takensSourceRate()
 	if sr <= 0 {
 		return true // nothing to send, but the analyzers are still not ours
 	}
-	sendMetersConfig(sr)
+	me.sendMetersConfig(sr)
 	if want == 0 {
 		// Nothing on screen. The tap still has to be drained or its ring
 		// wraps and the next reading starts mid-sentence.
-		drainMetersTap()
+		me.drainMetersTap()
 		return true
 	}
 	var sl, sr2 [4096]float32
 	for {
-		n := tapReadStereo(&metersCursor, sl[:], sr2[:])
+		n := tap.readStereo(&me.cursor, sl[:], sr2[:])
 		if n <= 0 {
 			break
 		}
-		if metersWorkerArrays(n) {
-			js.CopyBytesToJS(js.Global().Get("Uint8Array").New(metersWL.Get("buffer"), 0, n*4), sliceToByteSlice(sl[:n]))
-			js.CopyBytesToJS(js.Global().Get("Uint8Array").New(metersWR.Get("buffer"), 0, n*4), sliceToByteSlice(sr2[:n]))
+		if me.workerArrays(n) {
+			js.CopyBytesToJS(js.Global().Get("Uint8Array").New(me.wl.Get("buffer"), 0, n*4), sliceToByteSlice(sl[:n]))
+			js.CopyBytesToJS(js.Global().Get("Uint8Array").New(me.wr.Get("buffer"), 0, n*4), sliceToByteSlice(sr2[:n]))
 			m := js.Global().Get("Object").New()
 			m.Set("t", metersproto.TypeAudio)
-			m.Set("l", metersWL.Call("subarray", 0, n))
-			m.Set("r", metersWR.Call("subarray", 0, n))
-			metersW.Call("postMessage", m)
+			m.Set("l", me.wl.Call("subarray", 0, n))
+			m.Set("r", me.wr.Call("subarray", 0, n))
+			me.w.Call("postMessage", m)
 		}
 		if n < len(sl) {
 			break
@@ -204,16 +213,12 @@ func metersWorkerTick() bool {
 }
 
 // drainMetersTap throws away what has arrived, so the cursor keeps up.
-func drainMetersTap() {
+func (me *metersClient) drainMetersTap() {
 	var sl, sr2 [4096]float32
 	for {
-		n := tapReadStereo(&metersCursor, sl[:], sr2[:])
+		n := tap.readStereo(&me.cursor, sl[:], sr2[:])
 		if n <= 0 || n < len(sl) {
 			break
 		}
 	}
 }
-
-// metersCursor is the worker's own read position in the tap, separate from
-// every in-thread analyzer's: the tap hands each sample over once per reader.
-var metersCursor = tapUnjoined

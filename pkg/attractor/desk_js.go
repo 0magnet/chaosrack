@@ -79,7 +79,7 @@ func setDeskOn(on bool) {
 		// Stop the per-frame loop as well as hiding the windows. A hidden
 		// desktop still ticking is a BumpTop pile being simulated, and a cube
 		// being dimmed, sixty times a second behind a display:none.
-		setDeskTicking(false)
+		desks.setDeskTicking(false)
 		return
 	}
 	ensureDesk()
@@ -90,7 +90,7 @@ func setDeskOn(on bool) {
 	// selector can be turned before the desk is switched on, and setDeskStyle
 	// gives up early when there is no desk yet, so without this the chosen
 	// desktop stays inert until the selector is touched a second time.
-	setDeskStyle(deskStyle)
+	desks.setDeskStyle(desks.style)
 }
 
 func ensureDesk() {
@@ -213,7 +213,7 @@ func ensureDesk() {
 	})
 	registerDemoApps()
 	registerDeskApplets()
-	wireDeskGestures()
+	desks.wireDeskGestures()
 	wireDeskPassthrough()
 	makeDeskPanel()
 

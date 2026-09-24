@@ -128,38 +128,38 @@ func TestRecurrenceRingCoversTheFastestSource(t *testing.T) {
 // so the thing that keeps it from being the per-frame auto-tuning the mode
 // exists not to have is the guard — and the guard is what this pins.
 func TestAutoMeasureIsAOneShot(t *testing.T) {
-	oldDone, oldRing, oldW := takensAutoDone, takensRing, takensW
-	t.Cleanup(func() { takensAutoDone, takensRing, takensW = oldDone, oldRing, oldW })
+	oldDone, oldRing, oldW := emb.autoDone, emb.ring, emb.w
+	t.Cleanup(func() { emb.autoDone, emb.ring, emb.w = oldDone, oldRing, oldW })
 
-	takensRing = make([]float32, takensEstMax)
+	emb.ring = make([]float32, takensEstMax)
 
 	// Short of a full window it is not due — measuring the first samples of a
 	// source that has just opened is measuring its fade-in.
-	takensAutoDone = false
-	takensW = takensEstMax - 1
-	if takensAutoDue() {
+	emb.autoDone = false
+	emb.w = takensEstMax - 1
+	if emb.autoDue() {
 		t.Error("due on a window shorter than takensEstMax")
 	}
 
 	// A full window is due.
-	takensW = takensEstMax
-	if !takensAutoDue() {
+	emb.w = takensEstMax
+	if !emb.autoDue() {
 		t.Fatal("a full window is not due")
 	}
 
 	// Having run, it is never due again — which is what every later frame asks.
-	takensAutoDone = true
-	if takensAutoDue() {
+	emb.autoDone = true
+	if emb.autoDue() {
 		t.Error("still due after the one-shot has fired")
 	}
-	takensW = takensEstMax * 4
-	if takensAutoDue() {
+	emb.w = takensEstMax * 4
+	if emb.autoDue() {
 		t.Error("more audio re-opened the one-shot")
 	}
 
 	// Only an explicit re-arm brings it back.
-	takensArmAutoMeasure()
-	if !takensAutoDue() {
+	emb.armAutoMeasure()
+	if !emb.autoDue() {
 		t.Error("takensArmAutoMeasure did not re-arm the one-shot")
 	}
 }
@@ -169,34 +169,34 @@ func TestAutoMeasureIsAOneShot(t *testing.T) {
 // parameter only when it differs from the default — stands, and leaving the
 // mode and coming back does not quietly replace it.
 func TestAutoMeasureDefersToAChosenTau(t *testing.T) {
-	oldDone, oldSet, oldTau := takensAutoDone, takensAutoSet, takensTau
-	oldRing, oldW := takensRing, takensW
+	oldDone, oldSet, oldTau := emb.autoDone, emb.autoSet, emb.tau
+	oldRing, oldW := emb.ring, emb.w
 	t.Cleanup(func() {
-		takensAutoDone, takensAutoSet, takensTau = oldDone, oldSet, oldTau
-		takensRing, takensW = oldRing, oldW
+		emb.autoDone, emb.autoSet, emb.tau = oldDone, oldSet, oldTau
+		emb.ring, emb.w = oldRing, oldW
 	})
-	takensRing = make([]float32, takensEstMax)
-	takensW = takensEstMax
+	emb.ring = make([]float32, takensEstMax)
+	emb.w = takensEstMax
 
 	// The default is nobody's choice, so it is due.
-	takensAutoDone, takensAutoSet, takensTau = false, 0, takens.TauDef
-	if !takensAutoDue() {
+	emb.autoDone, emb.autoSet, emb.tau = false, 0, takens.TauDef
+	if !emb.autoDue() {
 		t.Error("not due at the default τ")
 	}
 
 	// A hand-set τ is a choice, and re-arming must not undo it.
-	takensTau = 300
-	takensArmAutoMeasure()
-	if takensAutoDue() {
+	emb.tau = 300
+	emb.armAutoMeasure()
+	if emb.autoDue() {
 		t.Error("due over a τ that was set by hand")
 	}
 
 	// The value a previous automatic measurement wrote is not a choice, so a
 	// new source measures again rather than keeping an answer about the old one.
-	takensAutoSet = 43
-	takensTau = 43
-	takensArmAutoMeasure()
-	if !takensAutoDue() {
+	emb.autoSet = 43
+	emb.tau = 43
+	emb.armAutoMeasure()
+	if !emb.autoDue() {
 		t.Error("not due over the value the last automatic measurement wrote")
 	}
 }
@@ -261,7 +261,7 @@ func TestTheSharedTauIsOneVariable(t *testing.T) {
 		return nil
 	}
 	want := ptrOf("takens", "takens-tau")
-	if want != &takensTau {
+	if want != &emb.tau {
 		t.Fatalf("takens-tau does not point at takensTau")
 	}
 	for _, mode := range []string{"polar", "recurrence"} {

@@ -61,16 +61,18 @@ import (
 // samples are bounded to ±1, so no coordinate exceeds GAIN and the camera is
 // fitted once to that bound rather than to whatever happened to be playing.
 
-var (
-	takensTau     float32 = takens.TauDef // delay τ, in reference samples (see takens.TauSamples)
-	takensGain    float32 = 10            // world units a full-scale (±1) sample maps to
-	takensWin     float32 = 85            // display window, milliseconds
-	takensRing    []float32
-	takensW       int // monotonic write cursor into takensRing
-	takensScratch []float32
-	takensCursor  = tapUnjoined // read position in the shared audio tap
+// takensMode is the Takens embedding mode: the window of audio it embeds, the
+// measured delay, and its knobs.
+type takensMode struct {
+	tau     float32 // delay τ, in reference samples (see takens.TauSamples)
+	gain    float32 // world units a full-scale (±1) sample maps to
+	win     float32 // display window, milliseconds
+	ring    []float32
+	w       int // monotonic write cursor into takensRing
+	scratch []float32
+	cursor  int // read position in the shared audio tap
 
-	// takensChanF is the SRC knob: which signal of the live pair is embedded.
+	// chanF is the SRC knob: which signal of the live pair is embedded.
 	//
 	// Takens' theorem takes ONE observable, and until the tap carried both
 	// channels the only observable available was the mix — so the one mode
@@ -79,9 +81,9 @@ var (
 	// it is what the two channels do NOT have in common, which on a real mix is
 	// the reverb, the stereo width and the room rather than the instruments, and
 	// it reconstructs a different manifold from the same recording.
-	takensChanF float32
+	chanF float32
 
-	// takensFitGain is the GAIN the camera was last fitted to, or 0 for "not
+	// fitGain is the GAIN the camera was last fitted to, or 0 for "not
 	// fitted since audio arrived". It is a gain rather than a bool because the
 	// bound the fit is made against IS a function of the gain — see
 	// takensFitExtent — so a fit made at one gain is simply not a fit at
@@ -95,8 +97,44 @@ var (
 	// signal, which is what makes the view move in time with the music; the
 	// gain is a knob somebody turned, and a knob that moves the bound should
 	// move the frame with it.
-	takensFitGain float32
-)
+	fitGain float32
+	measEl  js.Value               // the readout beside the button
+	meas    takens.EmbeddingResult // last measurement, for the readout
+
+	// autoDone is the one-shot guard. Set the first time the automatic
+	// measurement runs, and cleared only by takensArmAutoMeasure — which mode
+	// entry and a change of audio source call, and nothing else does.
+	autoDone bool
+
+	// autoSet is the τ the automatic measurement last wrote, and it is
+	// what lets the measurement tell ITS OWN value from one somebody chose.
+	//
+	// Without it the automatic measurement is a control that takes the knob
+	// away: set τ by hand, switch to Lorenz to compare, come back, and the
+	// measurement has thrown the setting away and replaced it. A permalink is
+	// the same problem one step worse — a link that carries a τ carries it
+	// because whoever made the link meant that τ, and measuring over it
+	// discards the one thing the link was for.
+	//
+	// So the measurement only runs while τ is a value NOBODY CHOSE: the
+	// default, or whatever a previous automatic measurement put there. The
+	// permalink case falls out of this rather than needing its own rule, since
+	// a permalink records a parameter only when it differs from the default.
+	autoSet float32
+
+	// chanMeasured is the SRC the standing measurement was taken from, so
+	// that turning that knob re-arms the one-shot. It is deliberately NOT a
+	// pointer at the knob: the knob is a float a modulator can wobble, and what
+	// matters is the detent it lands on.
+	chanMeasured tapChan
+}
+
+var emb = takensMode{
+	tau:    takens.TauDef,
+	gain:   10,
+	win:    85,
+	cursor: tapUnjoined,
+}
 
 // takensCubeDiag is √3: a delay vector reaches this multiple of its largest
 // single coordinate when all three coordinates peak together, which they do on
@@ -107,12 +145,12 @@ var (
 const takensCubeDiag = 1.7320508
 
 func init() {
-	registerGenerate("takens", generateTakens)
+	registerGenerate("takens", emb.generateTakens)
 	attractorParams["takens"] = []paramDef{
-		{"takens-chan", "src", &takensChanF, 0, 0, float32(len(tapChanNames) - 1), 1},
-		{"takens-tau", "τ", &takensTau, takens.TauDef, 1, takens.TauMax, 1},
-		{"takens-win", "win", &takensWin, 85, 5, 500, 5},
-		{"takens-gain", "gain", &takensGain, 10, 0.5, 50, 0.5},
+		{"takens-chan", "src", &emb.chanF, 0, 0, float32(len(tapChanNames) - 1), 1},
+		{"takens-tau", "τ", &emb.tau, takens.TauDef, 1, takens.TauMax, 1},
+		{"takens-win", "win", &emb.win, 85, 5, 500, 5},
+		{"takens-gain", "gain", &emb.gain, 10, 0.5, 50, 0.5},
 		{"takens-smooth", "smth", &takensSmoothF, 4, 1, 16, 1},
 	}
 }
@@ -126,46 +164,46 @@ func takensFitExtent(gain float32) float32 { return gain * takensCubeDiag }
 // newest window of delay vectors. When there's no (or not yet enough) audio
 // the previous frame is re-uploaded, so the model doesn't flicker while the
 // source spins up.
-func generateTakens() {
-	src := ensureAudioSource()
+func (t *takensMode) generateTakens() {
+	src := aud.ensureAudioSource()
 	sr := 24000
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := takens.TauSamples(takensTau, sr)
-	n, stride := takensWindow(takensWin, sr, steps)
+	tau := takens.TauSamples(t.tau, sr)
+	n, stride := takensWindow(t.win, sr, steps)
 	span := (n-1)*stride + 2*tau
-	if need := span + 1; len(takensRing) < need {
-		takensRing = make([]float32, need+need/2)
-		takensW = 0
+	if need := span + 1; len(t.ring) < need {
+		t.ring = make([]float32, need+need/2)
+		t.w = 0
 	}
-	if takensScratch == nil {
-		takensScratch = make([]float32, 8192)
+	if t.scratch == nil {
+		t.scratch = make([]float32, 8192)
 	}
-	if tapReady() {
+	if tap.ready() {
 		// The tap has already drained this frame; take our own copy of it.
 		for drained := 0; drained < 16384; {
-			n := tapReadChan(&takensCursor, takensScratch, tapChanSel(takensChanF))
+			n := tap.readChan(&t.cursor, t.scratch, tapChanSel(t.chanF))
 			if n <= 0 {
 				break
 			}
 			for i := 0; i < n; i++ {
-				takensRing[takensW%len(takensRing)] = takensScratch[i]
-				takensW++
+				t.ring[t.w%len(t.ring)] = t.scratch[i]
+				t.w++
 			}
 			drained += n
-			if n < len(takensScratch) {
+			if n < len(t.scratch) {
 				break
 			}
 		}
 	}
-	avail := takensW
-	if avail > len(takensRing) {
-		avail = len(takensRing)
+	avail := t.w
+	if avail > len(t.ring) {
+		avail = len(t.ring)
 	}
 	nv := takensVerts(n)
 	if avail < span+1 {
-		takensFitGain = 0 // camera was fitted to silence — refit on real data
+		t.fitGain = 0 // camera was fitted to silence — refit on real data
 		gpu.uploadVerticesOnly(vertBuf[:nv*4], gpu.drawMode, nv)
 		return
 	}
@@ -173,17 +211,17 @@ func generateTakens() {
 	// one describes nothing about this one — the same argument the source swap
 	// makes, one level down. Re-arming rather than measuring, so the one-shot
 	// still has to see a full window before it fires.
-	if ch := tapChanSel(takensChanF); ch != takensChanMeasured {
-		takensChanMeasured = ch
-		takensArmAutoMeasure()
+	if ch := tapChanSel(t.chanF); ch != t.chanMeasured {
+		t.chanMeasured = ch
+		t.armAutoMeasure()
 	}
 	// Once, when the ring first holds enough to measure from — see the section
 	// comment below for why this is allowed to be reached from here at all, and
 	// why it does nothing on every frame but one.
-	takensAutoMeasure()
-	rn := len(takensRing)
-	base := takensW - 1 - span // oldest sample the window needs
-	g := takensGain
+	t.autoMeasure()
+	rn := len(t.ring)
+	base := t.w - 1 - span // oldest sample the window needs
+	g := t.gain
 
 	// at reads source point k at delay offset off, clamping k to the window so
 	// the spline's outer control points at either end are defined.
@@ -193,7 +231,7 @@ func generateTakens() {
 		} else if k > n-1 {
 			k = n - 1
 		}
-		return takensRing[(base+2*tau+k*stride+off)%rn]
+		return t.ring[(base+2*tau+k*stride+off)%rn]
 	}
 	invN := float32(1) / float32(nv-1)
 	vertices := vertBuf[:nv*4]
@@ -212,7 +250,7 @@ func generateTakens() {
 		vertices[j+3] = float32(m) * invN
 	}
 	gpu.uploadVerticesOnly(vertices, gpu.drawMode, nv)
-	if takensFitGain != takensGain && !paramIsModulated("takens-gain") {
+	if t.fitGain != t.gain && !paramIsModulated("takens-gain") {
 		// The mode-entry auto-fit saw silence (a dot), so fit when the first
 		// full window of real audio arrives — and fit to the FIXED scale's
 		// worst case, not to this window's extent. Fitting the instantaneous
@@ -221,8 +259,8 @@ func generateTakens() {
 		// bound instead is correct for good, so this never fights a manual
 		// zoom and never moves with the signal. It fires again only when GAIN
 		// moves, because GAIN is what the bound is made of.
-		takensFitGain = takensGain
-		view.fitOverride = takensFitExtent(takensGain)
+		t.fitGain = t.gain
+		view.fitOverride = takensFitExtent(t.gain)
 		view.autoFitCamera()
 	}
 }
@@ -258,38 +296,6 @@ func generateTakens() {
 // and already far more data than the histograms need.
 const takensEstMax = 4096
 
-var (
-	takensMeasEl js.Value               // the readout beside the button
-	takensMeas   takens.EmbeddingResult // last measurement, for the readout
-
-	// takensAutoDone is the one-shot guard. Set the first time the automatic
-	// measurement runs, and cleared only by takensArmAutoMeasure — which mode
-	// entry and a change of audio source call, and nothing else does.
-	takensAutoDone bool
-
-	// takensAutoSet is the τ the automatic measurement last wrote, and it is
-	// what lets the measurement tell ITS OWN value from one somebody chose.
-	//
-	// Without it the automatic measurement is a control that takes the knob
-	// away: set τ by hand, switch to Lorenz to compare, come back, and the
-	// measurement has thrown the setting away and replaced it. A permalink is
-	// the same problem one step worse — a link that carries a τ carries it
-	// because whoever made the link meant that τ, and measuring over it
-	// discards the one thing the link was for.
-	//
-	// So the measurement only runs while τ is a value NOBODY CHOSE: the
-	// default, or whatever a previous automatic measurement put there. The
-	// permalink case falls out of this rather than needing its own rule, since
-	// a permalink records a parameter only when it differs from the default.
-	takensAutoSet float32
-
-	// takensChanMeasured is the SRC the standing measurement was taken from, so
-	// that turning that knob re-arms the one-shot. It is deliberately NOT a
-	// pointer at the knob: the knob is a float a modulator can wobble, and what
-	// matters is the detent it lands on.
-	takensChanMeasured tapChan
-)
-
 // takensAutoMeasure runs the estimator ONCE, the first time the mode has enough
 // audio to measure from, and writes the answer into the τ knob.
 //
@@ -311,38 +317,38 @@ var (
 // little structure to have one) still counts as done. Retrying it every frame
 // against a source that cannot produce an answer is exactly the per-frame work
 // this is not allowed to be, and "no min" is an answer.
-func takensAutoMeasure() {
-	if !takensAutoDue() {
+func (t *takensMode) autoMeasure() {
+	if !t.autoDue() {
 		return
 	}
 	// Set BEFORE measuring, not after. takensMeasure writes the τ knob, which
 	// dispatches a DOM input event, and an event handler that reached the frame
 	// loop again would find the guard still open and measure a second time.
-	takensAutoDone = true
-	takensMeasure()
+	t.autoDone = true
+	t.measure()
 	// Remember what it wrote, so a later automatic measurement can tell this
 	// value from one somebody turned the knob to. Recorded whether or not the
 	// estimate landed: "no min" leaves τ where it was, and where it was is
 	// still not a value anybody chose.
-	takensAutoSet = takensTau
+	t.autoSet = t.tau
 }
 
 // takensAutoDue is takensAutoMeasure's guard on its own, so that the one-shot,
 // the quality gate and the deference to a chosen τ can all be tested without a
 // DOM to write a knob into.
-func takensAutoDue() bool {
-	if takensAutoDone {
+func (t *takensMode) autoDue() bool {
+	if t.autoDone {
 		return false
 	}
 	// Never over a τ somebody chose — see takensAutoSet. The knob is theirs
 	// from the moment they touch it, and a measurement that overrides it is not
 	// a convenience, it is a control fighting the person using it.
-	if takensTau != takens.TauDef && takensTau != takensAutoSet {
+	if t.tau != takens.TauDef && t.tau != t.autoSet {
 		return false
 	}
-	avail := takensW
-	if avail > len(takensRing) {
-		avail = len(takensRing)
+	avail := t.w
+	if avail > len(t.ring) {
+		avail = len(t.ring)
 	}
 	return avail >= takensEstMax
 }
@@ -355,15 +361,15 @@ func takensAutoDue() bool {
 // generator swaps what is playing entirely — the measured τ from the old source
 // describes nothing about the new one. Mode entry re-arms for the same reason
 // one step removed: the source may well have changed while the mode was away.
-func takensArmAutoMeasure() { takensAutoDone = false }
+func (t *takensMode) armAutoMeasure() { t.autoDone = false }
 
 // takensEstWindow copies the newest samples out of the ring, oldest first, as
 // the float64 series the estimators take. Returns nil when there is not enough
 // audio to measure — the ring is empty until the mode has been running.
-func takensEstWindow() []float64 {
-	avail := takensW
-	if avail > len(takensRing) {
-		avail = len(takensRing)
+func (t *takensMode) estWindow() []float64 {
+	avail := t.w
+	if avail > len(t.ring) {
+		avail = len(t.ring)
 	}
 	if avail > takensEstMax {
 		avail = takensEstMax
@@ -372,10 +378,10 @@ func takensEstWindow() []float64 {
 		return nil
 	}
 	out := make([]float64, avail)
-	rn := len(takensRing)
-	base := takensW - avail
+	rn := len(t.ring)
+	base := t.w - avail
 	for i := range out {
-		out[i] = float64(takensRing[(base+i)%rn])
+		out[i] = float64(t.ring[(base+i)%rn])
 	}
 	return out
 }
@@ -385,11 +391,11 @@ func takensEstWindow() []float64 {
 // three delay coordinates because the screen has three axes, so when the
 // signal needs more than three the honest thing to say is that what is drawn
 // is a projection — not to silently draw something else.
-func takensMeasure() {
-	x := takensEstWindow()
+func (t *takensMode) measure() {
+	x := t.estWindow()
 	if x == nil {
-		takensMeas = takens.EmbeddingResult{}
-		showTakensMeasurement("no audio")
+		t.meas = takens.EmbeddingResult{}
+		t.showTakensMeasurement("no audio")
 		return
 	}
 	// The knob's reach is the search range: an answer the knob cannot hold
@@ -399,20 +405,20 @@ func takensMeasure() {
 	// the estimator's units on the way in and the answer back out again.
 	sr := takensSourceRate()
 	r := takens.EstimateEmbedding(x, takens.TauSamples(takens.TauMax, sr), 8)
-	takensMeas = r
+	t.meas = r
 	if r.Tau < 1 {
 		// White noise has no first minimum — its mutual information is at the
 		// estimator's floor for every delay — and neither does a signal too
 		// short to have one. Saying so beats moving the knob to a number that
 		// means nothing.
-		showTakensMeasurement("no min")
+		t.showTakensMeasurement("no min")
 		return
 	}
 	setTakensTauSamples(r.Tau, sr)
 	// Milliseconds, not the sample count: the knob is the same delay on every
 	// source now, and a readout in a unit that changes with the source would be
 	// the one place left saying otherwise.
-	showTakensMeasurement(takensMeasText())
+	t.showTakensMeasurement(t.measText())
 }
 
 // takensMeasText renders the measurement cell. One function rather than two
@@ -424,21 +430,21 @@ func takensMeasure() {
 //
 // Six characters is what the cell holds — a third of a module wide — so one
 // decimal and no space: "τ1.5m3" where it used to say "τ73 m3".
-func takensMeasText() string {
-	if takensMeas.Tau < 1 {
+func (t *takensMode) measText() string {
+	if t.meas.Tau < 1 {
 		return "τ-- m-"
 	}
-	s := "τ" + led.Format(float64(tauMS(takensTau)), 1, 1, false)
-	if takensMeas.OK {
-		return s + "m" + strconv.Itoa(takensMeas.Dim)
+	s := "τ" + led.Format(float64(tauMS(t.tau)), 1, 1, false)
+	if t.meas.OK {
+		return s + "m" + strconv.Itoa(t.meas.Dim)
 	}
-	return s + "m>" + strconv.Itoa(takensMeas.Dim) // FNN never settled inside the search
+	return s + "m>" + strconv.Itoa(t.meas.Dim) // FNN never settled inside the search
 }
 
 // takensSourceRate is the live source's sample rate, or the fallback every
 // other function here uses when it has not reported one yet.
 func takensSourceRate() int {
-	if src := ensureAudioSource(); src != nil && src.SampleRate() > 0 {
+	if src := aud.ensureAudioSource(); src != nil && src.SampleRate() > 0 {
 		return src.SampleRate()
 	}
 	return 24000
@@ -451,20 +457,20 @@ func setTakensTauSamples(tauSrc, sr int) {
 	if sr > 0 && sr != takens.RefRate {
 		ref = float32(tauSrc) * float32(takens.RefRate) / float32(sr)
 	}
-	setTakensTau(int(ref + 0.5))
+	emb.setTakensTau(int(ref + 0.5))
 }
 
 // setTakensTau moves the knob, rather than only the variable behind it: the
 // hidden range input is the value, and its input event is what repaints the
 // dial and the LED. Writing takensTau alone would draw the new embedding under
 // a knob still showing the old number.
-func setTakensTau(tau int) {
+func (t *takensMode) setTakensTau(tau int) {
 	if tau < 1 {
 		tau = 1
 	} else if tau > int(takens.TauMax) {
 		tau = int(takens.TauMax)
 	}
-	takensTau = float32(tau)
+	t.tau = float32(tau)
 	el := dom.Doc.Call("getElementById", "takens-tau")
 	if !el.Truthy() {
 		return
@@ -473,15 +479,15 @@ func setTakensTau(tau int) {
 	el.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 }
 
-func showTakensMeasurement(s string) {
-	if takensMeasEl.Truthy() {
-		takensMeasEl.Set("textContent", s)
+func (t *takensMode) showTakensMeasurement(s string) {
+	if t.measEl.Truthy() {
+		t.measEl.Set("textContent", s)
 	}
 }
 
 // appendTakensEstimate adds the MEAS cell — the button and its readout — to
 // the Takens parameter grid.
-func appendTakensEstimate(grid js.Value) {
+func (t *takensMode) appendTakensEstimate(grid js.Value) {
 	card := dom.Doc.Call("createElement", "div")
 	card.Set("className", "punit")
 
@@ -490,11 +496,11 @@ func appendTakensEstimate(grid js.Value) {
 	lbl.Set("textContent", "meas")
 	card.Call("appendChild", lbl)
 
-	takensMeasEl = dom.Doc.Call("createElement", "span")
-	takensMeasEl.Set("className", "led counter-led")
-	takensMeasEl.Set("title", "Measured embedding, in milliseconds: τ is the first minimum of the signal's average mutual information, written into the τ knob; m is the false-nearest-neighbor dimension. m greater than 3 means the trail on screen is a projection of a higher-dimensional reconstruction. This runs by itself once the mode has enough audio, and again when the source changes — but never over a τ you have set yourself. The button measures again on demand.")
-	takensMeasEl.Set("textContent", takensMeasText())
-	card.Call("appendChild", takensMeasEl)
+	t.measEl = dom.Doc.Call("createElement", "span")
+	t.measEl.Set("className", "led counter-led")
+	t.measEl.Set("title", "Measured embedding, in milliseconds: τ is the first minimum of the signal's average mutual information, written into the τ knob; m is the false-nearest-neighbor dimension. m greater than 3 means the trail on screen is a projection of a higher-dimensional reconstruction. This runs by itself once the mode has enough audio, and again when the source changes — but never over a τ you have set yourself. The button measures again on demand.")
+	t.measEl.Set("textContent", t.measText())
+	card.Call("appendChild", t.measEl)
 
 	row := dom.Doc.Call("createElement", "span")
 	row.Set("className", "grp")
@@ -503,7 +509,7 @@ func appendTakensEstimate(grid js.Value) {
 	btn.Set("textContent", "↻")
 	btn.Set("title", "Measure the embedding from the audio in the buffer and set τ from it. Once, on demand — this mode deliberately does not re-tune itself per frame, because a knob that moves with the music makes the figure move with it too.")
 	btn.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-		takensMeasure()
+		t.measure()
 		return nil
 	}))
 	row.Call("appendChild", btn)

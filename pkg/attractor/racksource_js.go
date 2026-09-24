@@ -106,7 +106,7 @@ func rackModulesNow() (keys, cats []string, slots []int) {
 // xterm-go, because what matters is the shape the glyphs are actually drawn
 // at, and that is a question for the font engine.
 func (inPageRack) CellAspect() float64 {
-	host := termHost
+	host := termPane.host
 	if s := deskTerminalEl(); s.Truthy() {
 		host = s
 	}
@@ -140,7 +140,7 @@ func deskTerminalEl() js.Value {
 		// panel is usually typed into a desk window, and the two can be at
 		// different zooms. contains rather than Equal because termHost is the
 		// container the session was mounted on and .xterm is inside it.
-		if termHost.Truthy() && termHost.Call("contains", el).Bool() {
+		if termPane.host.Truthy() && termPane.host.Call("contains", el).Bool() {
 			continue
 		}
 		return el

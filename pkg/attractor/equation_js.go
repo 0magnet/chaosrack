@@ -29,25 +29,33 @@ import (
 // not cosmetic — NOT published to the flow registry. The machinery for it is
 // in equationiterate.go, untagged so it can be tested off the browser.
 
-var (
-	customEq        = [4]string{"sigma*(y - x)", "x*(rho - z) - y", "x*y - beta*z", "-w"}
-	customUseW      bool
-	customIterate   bool // flavor: false = flow (derivatives), true = discrete map
-	customExpr      [4]*equation.Expr
-	customDT        float32  = 0.005
-	customParamVal           = map[string]*float32{}
-	customParamList []string // union of params across the active expressions
-	customErr       string
-	customStack     []float64 // reused eval scratch
-	customT         float64   // running t for time-dependent systems
-	customW         float32   // 4th state when useW
-)
+// customEquation is the Custom mode: the equations as typed, compiled and
+// running.
+type customEquation struct {
+	eq        [4]string
+	useW      bool
+	iterate   bool // flavor: false = flow (derivatives), true = discrete map
+	expr      [4]*equation.Expr
+	dt        float32
+	paramVal  map[string]*float32
+	paramList []string // union of params across the active expressions
+	err       string
+	stack     []float64 // reused eval scratch
+	t         float64   // running t for time-dependent systems
+	w         float32   // 4th state when useW
+}
+
+var custom = customEquation{
+	eq:       [4]string{"sigma*(y - x)", "x*(rho - z) - y", "x*y - beta*z", "-w"},
+	dt:       0.005,
+	paramVal: map[string]*float32{},
+}
 
 // eqLabel names row i of the editor in the current flavor. A map's rows are
 // not derivatives and must not be labeled as though they were: x' = 1 − ax² + y
 // is Henon, dx/dt = 1 − ax² + y is something else entirely.
-func eqLabel(i int) string {
-	if customIterate {
+func (c *customEquation) eqLabel(i int) string {
+	if c.iterate {
 		return [4]string{"x'", "y'", "z'", "w'"}[i]
 	}
 	return [4]string{"dx/dt", "dy/dt", "dz/dt", "dw/dt"}[i]
@@ -56,47 +64,47 @@ func eqLabel(i int) string {
 // customFlavorW reports whether the 4th state is in play: iterate is 3-D, so
 // the w equation is not compiled there even when the toggle is left on (which
 // keeps a typed dw/dt safe across a flavor round-trip).
-func customFlavorW() bool { return customUseW && !customIterate }
+func (c *customEquation) flavorW() bool { return c.useW && !c.iterate }
 
 // Seed the default template's parameters (Lorenz) so Custom mode shows a real
 // attractor immediately, before any editing or seeding.
 func init() {
 	for n, v := range map[string]float32{"sigma": 10, "rho": 28, "beta": 2.6667} {
 		vv := v
-		customParamVal[n] = &vv
+		custom.paramVal[n] = &vv
 	}
 }
 
 // parseCustom (re)compiles the equation strings, refreshes the parameter list
 // (keeping existing values), and records any parse error in customErr.
-func parseCustom() {
+func (c *customEquation) parseCustom() {
 	// Deferred, so that the error returns below re-publish too: they used to
 	// return without touching the registry, which left the PREVIOUS system
 	// registered — Model Out FLOW would keep sonifying equations that were no
 	// longer on screen, and now a flavor switch would leave a map registered as
 	// a flow. Withdrawing is as much the job as registering.
-	defer registerCustomSystem()
-	customErr = ""
+	defer c.registerCustomSystem()
+	c.err = ""
 	seen := map[string]bool{}
 	var order []string
 	maxRPN := 1
 	for i := 0; i < 4; i++ {
-		customExpr[i] = nil
-		if i == 3 && !customFlavorW() {
+		c.expr[i] = nil
+		if i == 3 && !c.flavorW() {
 			continue
 		}
-		e, err := equation.ParseExpr(customEq[i])
+		e, err := equation.ParseExpr(c.eq[i])
 		if err != nil {
-			customErr = eqLabel(i) + ": " + err.Error()
+			c.err = c.eqLabel(i) + ": " + err.Error()
 			return
 		}
-		if customIterate {
+		if c.iterate {
 			if why := equation.IterateBlocker(e); why != "" {
-				customErr = eqLabel(i) + ": " + why
+				c.err = c.eqLabel(i) + ": " + why
 				return
 			}
 		}
-		customExpr[i] = e
+		c.expr[i] = e
 		if e.StackNeed() > maxRPN {
 			maxRPN = e.StackNeed()
 		}
@@ -108,19 +116,19 @@ func parseCustom() {
 		}
 	}
 	for _, p := range order {
-		if _, ok := customParamVal[p]; !ok {
+		if _, ok := c.paramVal[p]; !ok {
 			v := float32(1)
-			customParamVal[p] = &v
+			c.paramVal[p] = &v
 		}
 	}
-	customParamList = order
-	customStack = make([]float64, maxRPN+2)
+	c.paramList = order
+	c.stack = make([]float64, maxRPN+2)
 }
 
 // paramPtrs binds one pointer slice per expression, aligned to that
 // expression's Params. Binding the pointers once and dereferencing per step is
 // what keeps knob edits live without a map lookup in the hot loop.
-func paramPtrs(exprs []*equation.Expr) [][]*float32 {
+func (c *customEquation) paramPtrs(exprs []*equation.Expr) [][]*float32 {
 	out := make([][]*float32, len(exprs))
 	for i, e := range exprs {
 		if e == nil {
@@ -128,7 +136,7 @@ func paramPtrs(exprs []*equation.Expr) [][]*float32 {
 		}
 		out[i] = make([]*float32, len(e.Params))
 		for k, p := range e.Params {
-			out[i][k] = customParamVal[p]
+			out[i][k] = c.paramVal[p]
 		}
 	}
 	return out
@@ -151,42 +159,42 @@ func paramPtrs(exprs []*equation.Expr) [][]*float32 {
 // registry is a shape the consumers already handle: dynamics.FlowFor4 misses and they
 // fall back to scanning the drawn trail. The map registry takes it instead,
 // which is how IsMap/MapStep steer LyapunovFor to its per-iterate branch.
-func registerCustomSystem() {
+func (c *customEquation) registerCustomSystem() {
 	dynamics.Unregister4(dynamics.CustomKey)
 	dynamics.ClearCustomMap()
-	if customErr != "" || customExpr[0] == nil {
+	if c.err != "" || c.expr[0] == nil {
 		return
 	}
-	if customIterate {
-		pp := paramPtrs(customExpr[:3])
+	if c.iterate {
+		pp := c.paramPtrs(c.expr[:3])
 		dynamics.SetCustomMap(equation.NewIterateStep(
-			[3]*equation.Expr{customExpr[0], customExpr[1], customExpr[2]},
+			[3]*equation.Expr{c.expr[0], c.expr[1], c.expr[2]},
 			[3][]*float32{pp[0], pp[1], pp[2]}))
 		return
 	}
-	registerCustomFlow()
+	c.registerCustomFlow()
 }
 
 // registerCustomFlow publishes the flow flavor. The closure keeps its own eval
 // scratch (everything runs on the one JS thread, but the audio callback must
 // not share generateCustom's stack mid-frame) and re-reads parameter values
 // each call so knob edits are live.
-func registerCustomFlow() {
-	exprs := customExpr
-	useW := customFlavorW()
-	stack := make([]float64, len(customStack))
+func (c *customEquation) registerCustomFlow() {
+	exprs := c.expr
+	useW := c.flavorW()
+	stack := make([]float64, len(c.stack))
 	pv := [4][]float64{}
-	pp := paramPtrs(exprs[:])
+	pp := c.paramPtrs(exprs[:])
 	for i := 0; i < 4; i++ {
 		if exprs[i] != nil {
 			pv[i] = make([]float64, len(exprs[i].Params))
 		}
 	}
 	dynamics.RegisterFlow4(dynamics.CustomKey, dynamics.FlowSys4{
-		Dt:    func() float64 { return float64(customDT) },
+		Dt:    func() float64 { return float64(c.dt) },
 		Euler: true, // generateCustom integrates with forward Euler
 		F: func(x, y, z, w float64) (float64, float64, float64, float64) {
-			vars := [5]float64{x, y, z, w, customT}
+			vars := [5]float64{x, y, z, w, c.t}
 			eval := func(i int) float64 {
 				if exprs[i] == nil {
 					return 0
@@ -205,8 +213,8 @@ func registerCustomFlow() {
 			}
 			return dx, dy, dz, dw
 		},
-		W:           func() float64 { return float64(customW) },
-		SetW:        func(v float64) { customW = float32(v) },
+		W:           func() float64 { return float64(c.w) },
+		SetW:        func(v float64) { c.w = float32(v) },
 		Interpreted: true,
 	})
 }
@@ -215,13 +223,13 @@ func registerCustomFlow() {
 // derivatives, exactly like the built-in attractors, or — in iterate flavor —
 // the shared discrete-map loop, which is where the points draw mode, the
 // discarded transient and the escape-reseed already live.
-func generateCustom() {
-	if customErr != "" || customExpr[0] == nil {
+func (c *customEquation) generateCustom() {
+	if c.err != "" || c.expr[0] == nil {
 		// Nothing valid to run — leave the last frame on screen.
 		gpu.uploadVerticesOnly(vertBuf[:steps*4], mapDrawMode(dynamics.CustomKey), steps)
 		return
 	}
-	if customIterate {
+	if c.iterate {
 		generateMap(dynamics.CustomKey)
 		return
 	}
@@ -229,41 +237,41 @@ func generateCustom() {
 	// its own Params slice), so the hot loop does no map lookups.
 	var pv [4][]float64
 	for i := 0; i < 4; i++ {
-		if customExpr[i] == nil {
+		if c.expr[i] == nil {
 			continue
 		}
-		s := make([]float64, len(customExpr[i].Params))
-		for k, p := range customExpr[i].Params {
-			if ptr := customParamVal[p]; ptr != nil {
+		s := make([]float64, len(c.expr[i].Params))
+		for k, p := range c.expr[i].Params {
+			if ptr := c.paramVal[p]; ptr != nil {
 				s[k] = float64(*ptr)
 			}
 		}
 		pv[i] = s
 	}
-	dt := float64(customDT) * float64(speedScale)
-	stack := customStack
+	dt := float64(c.dt) * float64(speedScale)
+	stack := c.stack
 	vertices := vertBuf[:steps*4]
 	invN := float32(1) / float32(steps-1)
 	sub := effSubSteps(speedSteps, steps, frameBudgetInterpreted)
 	for i := 0; i < steps; i++ {
 		for s := 0; s < sub; s++ {
-			vars := [5]float64{float64(x), float64(y), float64(z), float64(customW), customT}
-			dx := customExpr[0].Eval(vars, pv[0], stack)
+			vars := [5]float64{float64(x), float64(y), float64(z), float64(c.w), c.t}
+			dx := c.expr[0].Eval(vars, pv[0], stack)
 			dy := 0.0
-			if customExpr[1] != nil {
-				dy = customExpr[1].Eval(vars, pv[1], stack)
+			if c.expr[1] != nil {
+				dy = c.expr[1].Eval(vars, pv[1], stack)
 			}
 			dz := 0.0
-			if customExpr[2] != nil {
-				dz = customExpr[2].Eval(vars, pv[2], stack)
+			if c.expr[2] != nil {
+				dz = c.expr[2].Eval(vars, pv[2], stack)
 			}
 			x += float32(dt * dx)
 			y += float32(dt * dy)
 			z += float32(dt * dz)
-			if customUseW && customExpr[3] != nil {
-				customW += float32(dt * customExpr[3].Eval(vars, pv[3], stack))
+			if c.useW && c.expr[3] != nil {
+				c.w += float32(dt * c.expr[3].Eval(vars, pv[3], stack))
 			}
-			customT += dt
+			c.t += dt
 			checkDiverged()
 		}
 		j := i * 4
@@ -277,8 +285,8 @@ func generateCustom() {
 // buildCustomPanel renders the equation editor into #params: three/four
 // equation fields, a 4D toggle, a dt knob, a parse-error line, and a knob per
 // detected parameter. Called from buildParamPanel when mode == "custom".
-func buildCustomPanel(paramsDiv js.Value) {
-	parseCustom()
+func (c *customEquation) buildCustomPanel(paramsDiv js.Value) {
+	c.parseCustom()
 
 	eqCol := dom.Doc.Call("createElement", "span")
 	eqCol.Set("className", "pcell")
@@ -288,23 +296,23 @@ func buildCustomPanel(paramsDiv js.Value) {
 		row := dom.Doc.Call("createElement", "span")
 		row.Set("className", "grp")
 		lbl := dom.Doc.Call("createElement", "span")
-		lbl.Set("textContent", eqLabel(i)+" =")
+		lbl.Set("textContent", c.eqLabel(i)+" =")
 		lbl.Set("style", "color:#8cf;min-width:44px;")
 		inp := dom.Doc.Call("createElement", "input")
 		inp.Set("type", "text")
-		inp.Set("value", customEq[i])
+		inp.Set("value", c.eq[i])
 		inp.Set("spellcheck", false)
 		inp.Set("style", "width:180px;background:#0a1420;color:#cde;border:1px solid #345;font-family:monospace;font-size:12px;padding:2px 4px;")
-		vars := "x, y, z" + map[bool]string{true: ", w", false: ""}[customFlavorW()] +
-			map[bool]string{true: "", false: ", t"}[customIterate]
-		what := map[bool]string{true: "the NEXT value of " + eqLabel(i)[:1], false: eqLabel(i)}[customIterate]
+		vars := "x, y, z" + map[bool]string{true: ", w", false: ""}[c.flavorW()] +
+			map[bool]string{true: "", false: ", t"}[c.iterate]
+		what := map[bool]string{true: "the NEXT value of " + c.eqLabel(i)[:1], false: c.eqLabel(i)}[c.iterate]
 		inp.Set("title", what+" — expression in "+vars+"; any other letters become knobbed parameters (e / pi / tau are constants)")
 		// Commit on change (blur/Enter) to avoid rebuilding mid-keystroke.
 		inp.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-			customEq[i] = inp.Get("value").String()
+			c.eq[i] = inp.Get("value").String()
 			resetAttractorState()
 			buildParamPanel("custom") // reparse + refresh param knobs
-			syncPermalinkNow()
+			perma.syncPermalinkNow()
 			return nil
 		}))
 		row.Call("appendChild", lbl)
@@ -314,7 +322,7 @@ func buildCustomPanel(paramsDiv js.Value) {
 	eqCol.Call("appendChild", makeEqField(0))
 	eqCol.Call("appendChild", makeEqField(1))
 	eqCol.Call("appendChild", makeEqField(2))
-	if customFlavorW() {
+	if c.flavorW() {
 		eqCol.Call("appendChild", makeEqField(3))
 	}
 
@@ -340,10 +348,10 @@ func buildCustomPanel(paramsDiv js.Value) {
 			// ahead of buildCustomPanel, and IsMap("custom") has to be true by
 			// the time syncMapExtras asks — otherwise a switch to iterate poses
 			// the (plane) figure face-on one rebuild late.
-			parseCustom()
+			c.parseCustom()
 			resetAttractorState()
 			buildParamPanel("custom")
-			syncPermalinkNow()
+			perma.syncPermalinkNow()
 			return nil
 		}))
 		lbl.Call("appendChild", chk)
@@ -355,19 +363,19 @@ func buildCustomPanel(paramsDiv js.Value) {
 
 	ctlRow.Call("appendChild", makeSwitch("iterate",
 		"iterate — read the expressions as a discrete MAP (x = f(x,y,z)) instead of as derivatives to integrate (x += dt·f). No dt, no path between iterates, so it draws as points. Type 1 - 1.4x^2 + y and 0.3x for Henon.",
-		customIterate, func(v bool) { customIterate = v }))
-	if !customIterate {
+		c.iterate, func(v bool) { c.iterate = v }))
+	if !c.iterate {
 		// A map has no hidden 4th state here: the 3-D map machinery cannot carry
 		// one, and the Lyapunov estimator runs two copies of the step side by
 		// side, which a package-var w would have them share. The typed dw/dt is
 		// kept, just not compiled, so flipping back restores it.
 		ctlRow.Call("appendChild", makeSwitch("4D (w)",
 			"4D — add a fourth state variable w with its own dw/dt equation (hidden from the 3D plot, fed back through the others)",
-			customUseW, func(v bool) { customUseW = v }))
+			c.useW, func(v bool) { c.useW = v }))
 	}
-	if customErr != "" {
+	if c.err != "" {
 		errSpan := dom.Doc.Call("createElement", "span")
-		errSpan.Set("textContent", "⚠ "+customErr)
+		errSpan.Set("textContent", "⚠ "+c.err)
 		errSpan.Set("style", "color:#f86;font-size:11px;margin-left:8px;")
 		ctlRow.Call("appendChild", errSpan)
 	}
@@ -386,7 +394,7 @@ func buildCustomPanel(paramsDiv js.Value) {
 		hdr.Set("className", "sect-hdr")
 		hdr.Set("textContent", "Equation")
 		hdrTip := "Equation — the editable system: one derivative expression per state variable; commits on Enter/blur"
-		if customIterate {
+		if c.iterate {
 			hdrTip = "Equation — the editable system: one expression per state variable giving its NEXT value (a discrete map); commits on Enter/blur"
 		}
 		hdr.Set("title", hdrTip)
@@ -406,11 +414,11 @@ func buildCustomPanel(paramsDiv js.Value) {
 	// No dt knob in iterate flavor: a map has no timestep, and a knob that
 	// changes nothing is worse than a missing one.
 	var defs []paramDef
-	if !customIterate {
-		defs = append(defs, paramDef{"custom-dt", "dt", &customDT, 0.005, 0.0001, 0.05, 0.0001})
+	if !c.iterate {
+		defs = append(defs, paramDef{"custom-dt", "dt", &c.dt, 0.005, 0.0001, 0.05, 0.0001})
 	}
-	for _, name := range customParamList {
-		if ptr := customParamVal[name]; ptr != nil {
+	for _, name := range c.paramList {
+		if ptr := c.paramVal[name]; ptr != nil {
 			defs = append(defs, paramDef{"custom-" + name, name, ptr, 1, -10, 10, 0.01})
 		}
 	}
@@ -427,72 +435,72 @@ func buildCustomPanel(paramsDiv js.Value) {
 // seedCustomFromMode loads the given built-in's equations into the editor
 // (falling back to the current default template if unknown) and returns
 // "custom" so the caller can switch modes.
-func seedCustomFromMode(mode string) {
+func (c *customEquation) seedCustomFromMode(mode string) {
 	be, ok := builtinEquations[mode]
 	if !ok {
 		return // keep whatever's already in the editor
 	}
-	customEq = be.eq
-	customUseW = be.useW
-	customDT = be.dt
+	c.eq = be.eq
+	c.useW = be.useW
+	c.dt = be.dt
 	// Every seed in the table is a FLOW (the guard in chaos_test.go checks each
 	// one against the mode's vector field), so seeding leaves the iterate
 	// flavor: read as a map, Lorenz's dx/dt is not Lorenz.
-	customIterate = false
-	customParamVal = map[string]*float32{}
+	c.iterate = false
+	c.paramVal = map[string]*float32{}
 	for name, val := range be.params {
 		v := val
-		customParamVal[name] = &v
+		c.paramVal[name] = &v
 	}
-	customT = 0
-	customW = 0
-	parseCustom()
+	c.t = 0
+	c.w = 0
+	c.parseCustom()
 }
 
 // serializeCustom appends the custom equations + params to the permalink.
-func serializeCustom(b *strings.Builder) {
+func (c *customEquation) serializeCustom(b *strings.Builder) {
 	// The flavor first: it decides what the expressions MEAN, and a link that
 	// restored Henon's equations as a flow would restore a different system.
 	// Omitted when false, like every other control at its default.
-	if customIterate {
+	if c.iterate {
 		b.WriteString("&cit=1")
 	}
 	b.WriteString("&eq=")
 	n := 3
-	if customUseW {
+	if c.useW {
 		n = 4
 	}
 	parts := make([]string, n)
 	for i := 0; i < n; i++ {
-		parts[i] = jsEncodeURI(customEq[i])
+		parts[i] = jsEncodeURI(c.eq[i])
 	}
 	b.WriteString(strings.Join(parts, ";"))
-	for _, name := range customParamList {
-		if ptr := customParamVal[name]; ptr != nil {
+	for _, name := range c.paramList {
+		if ptr := c.paramVal[name]; ptr != nil {
 			b.WriteString("&cp." + name + "=" + permaFmt(*ptr))
 		}
 	}
-	if !customIterate {
-		b.WriteString("&cdt=" + permaFmt(customDT))
+	if !c.iterate {
+		b.WriteString("&cdt=" + permaFmt(c.dt))
 	}
 }
 
 // applyCustomEq / applyCustomParam restore permalinked custom state.
-func applyCustomEq(val string) {
+func (c *customEquation) applyCustomEq(val string) {
 	parts := strings.Split(val, ";")
-	customUseW = len(parts) >= 4
+	c.useW = len(parts) >= 4
 	for i := 0; i < 4; i++ {
 		if i < len(parts) {
-			customEq[i] = jsDecodeURI(parts[i])
+			c.eq[i] = jsDecodeURI(parts[i])
 		}
 	}
-	parseCustom()
+	c.parseCustom()
 }
 
-func applyCustomParam(name, val string) {
+func (c *customEquation) applyCustomParam(name, val string) {
 	if v, err := strconv.ParseFloat(val, 32); err == nil {
 		f := float32(v)
-		customParamVal[name] = &f
+		c.paramVal[name] = &f
 	}
 }
 

@@ -13,18 +13,45 @@ import (
 	"github.com/0magnet/chaosrack/pkg/rackspec"
 )
 
-var standalonePanel bool
-var dockEdge = "bottom"
-var dockSizeH float64 // panel height (px) when docked bottom/top
-var dockSizeW = 360.0 // panel width (px) when docked left/right
-var resizeHandle js.Value
-var resizing bool
+// panelLayout is the control panel's geometry: its size, where it is docked
+// or floating, and its scale.
+type panelLayout struct {
+	standalone   bool
+	dockEdge     string
+	dockSizeH    float64 // panel height (px) when docked bottom/top
+	dockSizeW    float64 // panel width (px) when docked left/right
+	resizeHandle js.Value
+	resizing     bool
 
-// panelScale mirrors the CSS --kscale (interface size). Both the Size knob and
-// the bottom/top dock resize-drag drive it, so "resize the panel" scales the
-// whole control interface — which works even though every module is a
-// fixed-height 3-row grid (a plain height drag could only clip it).
-var panelScale = 1.0
+	// scale mirrors the CSS --kscale (interface size). Both the Size knob and
+	// the bottom/top dock resize-drag drive it, so "resize the panel" scales the
+	// whole control interface — which works even though every module is a
+	// fixed-height 3-row grid (a plain height drag could only clip it).
+	scale float64
+
+	// Float mode geometry, persisted across sessions. The window itself is
+	// winbox-go now (panelwindow_js.go); these are what it is created with and what
+	// its move and resize callbacks write back.
+	floatX float64
+	floatY float64
+	floatW float64
+	floatH float64
+
+	// hostFooter is the host page's <footer> element, when one exists — the
+	// "footer" dock edge appends the panel inline into it (below the host's own
+	// content, e.g. a store's cart links).
+	hostFooter js.Value
+}
+
+var layout = panelLayout{
+	dockEdge:  "bottom",
+	dockSizeW: 360.0,
+	scale:     1.0,
+	floatX:    floatDefX,
+	floatY:    floatDefY,
+	floatW:    floatDefW,
+	floatH:    floatDefH,
+}
 
 // setKScale sets the interface size: clamped, persisted, and told to
 // every unit's rack so the slot pitch follows.
@@ -36,13 +63,13 @@ var panelScale = 1.0
 // nothing that changes the size behind the user's back and no size to
 // remember on their behalf.
 
-func setKScale(v float64) {
+func (pa *panelLayout) setKScale(v float64) {
 	if v < 0.6 {
 		v = 0.6
 	} else if v > 2.2 {
 		v = 2.2
 	}
-	panelScale = v
+	pa.scale = v
 	dom.Doc.Get("documentElement").Get("style").Call("setProperty", "--kscale", strconv.FormatFloat(v, 'f', 3, 64))
 	// --kscale drives the CSS; the rack needs the same number told to it,
 	// because the slot pitch it snaps modules to scales with the interface.
@@ -52,19 +79,9 @@ func setKScale(v float64) {
 	// changed and the frame is a different width.
 	layoutRackHandles()
 	layoutSkirts() // every input to the skirt geometry scales with the interface
-	positionResizeHandle()
+	pa.positionResizeHandle()
 	lsSet("wasmstuff-kscale", strconv.FormatFloat(v, 'f', 3, 64))
 }
-
-// Float mode geometry, persisted across sessions. The window itself is
-// winbox-go now (panelwindow_js.go); these are what it is created with and what
-// its move and resize callbacks write back.
-var (
-	floatX = floatDefX
-	floatY = floatDefY
-	floatW = floatDefW
-	floatH = floatDefH
-)
 
 func pxStr(v float64) string { return strconv.FormatFloat(v, 'f', 0, 64) + "px" }
 
@@ -73,18 +90,18 @@ func pxStr(v float64) string { return strconv.FormatFloat(v, 'f', 0, 64) + "px" 
 // dragging, a persisted position restored into a smaller window, a window
 // resize — goes through the one clamp; a stale localStorage position can
 // never strand the panel off-screen.
-func clampFloatPos() {
-	if floatX < 8-floatW+120 {
-		floatX = 8 - floatW + 120
+func (pa *panelLayout) clampFloatPos() {
+	if pa.floatX < 8-pa.floatW+120 {
+		pa.floatX = 8 - pa.floatW + 120
 	}
-	if floatX > winW()-40 {
-		floatX = winW() - 40
+	if pa.floatX > winW()-40 {
+		pa.floatX = winW() - 40
 	}
-	if floatY < 0 {
-		floatY = 0
+	if pa.floatY < 0 {
+		pa.floatY = 0
 	}
-	if floatY > winH()-30 {
-		floatY = winH() - 30
+	if pa.floatY > winH()-30 {
+		pa.floatY = winH() - 30
 	}
 }
 
@@ -115,20 +132,20 @@ const (
 // on the bottom edge, where restoring its real height hangs it off the screen.
 // Repairing only what fails the test leaves a panel that is technically within
 // its limits and practically unusable.
-func healFloatGeom() {
-	if floatW >= floatMinW && floatH >= floatMinH {
+func (pa *panelLayout) healFloatGeom() {
+	if pa.floatW >= floatMinW && pa.floatH >= floatMinH {
 		return
 	}
-	floatX, floatY = floatDefX, floatDefY
-	floatW, floatH = floatDefW, floatDefH
-	saveFloatGeom()
+	pa.floatX, pa.floatY = floatDefX, floatDefY
+	pa.floatW, pa.floatH = floatDefW, floatDefH
+	pa.saveFloatGeom()
 }
 
-func saveFloatGeom() {
-	lsSet("wasmstuff-floatX", pxStr(floatX))
-	lsSet("wasmstuff-floatY", pxStr(floatY))
-	lsSet("wasmstuff-floatW", pxStr(floatW))
-	lsSet("wasmstuff-floatH", pxStr(floatH))
+func (pa *panelLayout) saveFloatGeom() {
+	lsSet("wasmstuff-floatX", pxStr(pa.floatX))
+	lsSet("wasmstuff-floatY", pxStr(pa.floatY))
+	lsSet("wasmstuff-floatW", pxStr(pa.floatW))
+	lsSet("wasmstuff-floatH", pxStr(pa.floatH))
 }
 
 func winH() float64 {
@@ -144,32 +161,27 @@ func winW() float64 {
 	return 1200
 }
 
-// hostFooter is the host page's <footer> element, when one exists — the
-// "footer" dock edge appends the panel inline into it (below the host's own
-// content, e.g. a store's cart links).
-var hostFooter js.Value
-
 // applyDock positions the controls panel against a window edge: bottom/top
 // become a fixed horizontal strip (height dockSizeH), left/right a vertical
 // sidebar (width dockSizeW), float a draggable window — and "footer" appends
 // the panel INLINE into the host page's footer, below its existing content.
 // The edge + sizes persist in localStorage.
-func applyDock(edge string) {
+func (pa *panelLayout) applyDock(edge string) {
 	shell := dom.Doc.Call("getElementById", "panel-shell")
 	p := dom.Doc.Call("getElementById", "controls-panel")
 	if !shell.Truthy() || !p.Truthy() {
 		return
 	}
-	if edge == "footer" && !hostFooter.Truthy() {
+	if edge == "footer" && !pa.hostFooter.Truthy() {
 		edge = "bottom" // no host footer to dock into
 	}
-	if dockSizeH <= 0 {
+	if pa.dockSizeH <= 0 {
 		// Default tall enough to show a full module row (~545px at scale 1)
 		// without clipping, capped so it never eats the whole viewport.
-		dockSizeH = math.Min(560, winH()*0.9)
+		pa.dockSizeH = math.Min(560, winH()*0.9)
 	}
-	hpx := strconv.FormatFloat(dockSizeH, 'f', 0, 64) + "px"
-	wpx := strconv.FormatFloat(dockSizeW, 'f', 0, 64) + "px"
+	hpx := strconv.FormatFloat(pa.dockSizeH, 'f', 0, 64) + "px"
+	wpx := strconv.FormatFloat(pa.dockSizeW, 'f', 0, 64) + "px"
 
 	// The SHELL is placed; the panel fills it. Which way round matters for the
 	// furniture: the resize bar and the dock cluster are the shell's children,
@@ -234,12 +246,12 @@ func applyDock(edge string) {
 		// Inside a window's body, so the window owns the geometry and the shell
 		// just fills it. Left fixed here it would ignore the window entirely and
 		// sit against the viewport while the window moved around it.
-		standalonePanel = true
+		pa.standalone = true
 		shell.Get("style").Set("cssText",
 			"position:relative;width:100%;height:100%;box-sizing:border-box;pointer-events:auto;")
 		p.Get("style").Set("cssText", panelLook+panelCSS)
 	} else if edge == "footer" {
-		standalonePanel = false
+		pa.standalone = false
 		// position:relative (NOT static): the inline shell must participate in
 		// z stacking, or the positioned canvas (z 3) paints over it and the
 		// Front switch appears dead — static elements ignore z-index.
@@ -248,11 +260,11 @@ func applyDock(edge string) {
 		p.Get("style").Set("cssText", panelLook+
 			"display:block;position:relative;width:100%;max-height:"+hpx+
 			";overflow:auto;border-top:1px solid #333;")
-		if !shell.Get("parentElement").Equal(hostFooter) {
-			hostFooter.Call("appendChild", shell)
+		if !shell.Get("parentElement").Equal(pa.hostFooter) {
+			pa.hostFooter.Call("appendChild", shell)
 		}
 	} else {
-		standalonePanel = true
+		pa.standalone = true
 		if !shell.Get("parentElement").Equal(dom.Body) {
 			dom.Body.Call("appendChild", shell)
 		}
@@ -262,7 +274,7 @@ func applyDock(edge string) {
 	if wasHidden {
 		p.Get("style").Set("display", "none")
 	}
-	dockEdge = edge
+	pa.dockEdge = edge
 
 	// (The legacy "rack" horizontal-strip layout is superseded by the module
 	// system, which lays out the same in every dock mode.)
@@ -288,7 +300,7 @@ func applyDock(edge string) {
 		unfloatPanelWindow()
 	}
 	layoutSkirts() // a re-dock may be the first time the panel has a size
-	positionResizeHandle()
+	pa.positionResizeHandle()
 	for _, e := range []string{"top", "bottom", "left", "right", "float", "footer"} {
 		if b := dom.Doc.Call("getElementById", "dock-"+e); b.Truthy() {
 			if e == edge {
@@ -299,12 +311,12 @@ func applyDock(edge string) {
 		}
 	}
 	lsSet("wasmstuff-dock", edge)
-	lsSet("wasmstuff-dockH", strconv.FormatFloat(dockSizeH, 'f', 0, 64))
-	lsSet("wasmstuff-dockW", strconv.FormatFloat(dockSizeW, 'f', 0, 64))
+	lsSet("wasmstuff-dockH", strconv.FormatFloat(pa.dockSizeH, 'f', 0, 64))
+	lsSet("wasmstuff-dockW", strconv.FormatFloat(pa.dockSizeW, 'f', 0, 64))
 	// Mid-drag the widths are re-snapped at most once a frame: a drag fires
 	// pointermove far faster than that, and re-measuring every module on each
 	// one is what cost the model a frame. Settled synchronously on release.
-	if resizing {
+	if pa.resizing {
 		quantizeModuleWidthsSoon()
 	} else {
 		quantizeModuleWidths()
@@ -338,32 +350,32 @@ const moduleGap = rackspec.Seam * rackspec.PxPerMM
 //
 // The name stays because a dozen call sites say it and each of them still means
 // "the panel's geometry changed".
-func positionResizeHandle() {
-	if !resizeHandle.Truthy() {
+func (pa *panelLayout) positionResizeHandle() {
+	if !pa.resizeHandle.Truthy() {
 		return
 	}
 	p := dom.Doc.Call("getElementById", "controls-panel")
 	hidden := !p.Truthy() || p.Get("style").Get("display").String() == "none"
-	if hidden || dockEdge == "float" {
-		resizeHandle.Get("style").Set("display", "none")
+	if hidden || pa.dockEdge == "float" {
+		pa.resizeHandle.Get("style").Set("display", "none")
 	} else {
-		resizeHandle.Get("style").Set("display", "")
+		pa.resizeHandle.Get("style").Set("display", "")
 	}
-	positionAudioMeters()
+	pa.positionAudioMeters()
 }
 
 // positionAudioMeters keeps the top-left audio-feature meter overlay clear of
 // the control panel: it shifts right of a left sidebar or below a top strip,
 // and returns to the corner for bottom/right docks or when the panel is hidden.
-func positionAudioMeters() {
-	if !afOverlay.Truthy() {
+func (pa *panelLayout) positionAudioMeters() {
+	if !af.overlay.Truthy() {
 		return
 	}
 	top, left := 8.0, 8.0
-	if standalonePanel {
+	if pa.standalone {
 		if p := dom.Doc.Call("getElementById", "controls-panel"); p.Truthy() && p.Get("style").Get("display").String() != "none" {
 			r := p.Call("getBoundingClientRect")
-			switch dockEdge {
+			switch pa.dockEdge {
 			case "left":
 				left = r.Get("right").Float() + 48 // clear the vertical dock-controls tab
 			case "top":
@@ -371,23 +383,23 @@ func positionAudioMeters() {
 			}
 		}
 	}
-	st := afOverlay.Get("style")
+	st := af.overlay.Get("style")
 	st.Set("top", strconv.FormatFloat(top, 'f', 0, 64)+"px")
 	st.Set("left", strconv.FormatFloat(left, 'f', 0, 64)+"px")
 }
 
 // initDockResize creates the resize bar and its drag handlers (document-level
 // so the drag continues past the thin bar).
-func initDockResize() {
+func (pa *panelLayout) initDockResize() {
 	// Declared in the shell's furniture now rather than built here: it has to
 	// be a child of the shell for CSS to place it against the dock edge.
-	resizeHandle = dom.Doc.Call("getElementById", "dock-resize")
-	if !resizeHandle.Truthy() {
+	pa.resizeHandle = dom.Doc.Call("getElementById", "dock-resize")
+	if !pa.resizeHandle.Truthy() {
 		return
 	}
-	resizeHandle.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+	pa.resizeHandle.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		a[0].Call("preventDefault")
-		resizing = true
+		pa.resizing = true
 		return nil
 	}))
 	// The "DOCK" label doubles as a resize grip (a bigger, obvious touch target
@@ -399,23 +411,23 @@ func initDockResize() {
 		dl.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			a[0].Call("preventDefault")
 			a[0].Call("stopPropagation")
-			resizing = true
+			pa.resizing = true
 			return nil
 		}))
 	}
 	onPointerMove(func(e js.Value) {
-		if !resizing {
+		if !pa.resizing {
 			return
 		}
-		switch dockEdge {
+		switch pa.dockEdge {
 		case "bottom", "footer":
-			dockSizeH = winH() - e.Get("clientY").Float()
+			pa.dockSizeH = winH() - e.Get("clientY").Float()
 		case "top":
-			dockSizeH = e.Get("clientY").Float()
+			pa.dockSizeH = e.Get("clientY").Float()
 		case "left":
-			dockSizeW = e.Get("clientX").Float()
+			pa.dockSizeW = e.Get("clientX").Float()
 		case "right":
-			dockSizeW = winW() - e.Get("clientX").Float()
+			pa.dockSizeW = winW() - e.Get("clientX").Float()
 		}
 		// The panel travels the WHOLE edge: shut at one end, covering the
 		// page at the other.
@@ -428,18 +440,18 @@ func initDockResize() {
 		// place: the grip is its own element pinned to the dock EDGE, not to
 		// the panel's content, so it stays reachable at any size and the
 		// floor only has to keep the grip itself on screen.
-		grip := dockGripPx()
-		dockSizeH = clampDock(dockSizeH, grip, winH())
-		dockSizeW = clampDock(dockSizeW, grip, winW())
-		applyDock(dockEdge)
+		grip := pa.dockGripPx()
+		pa.dockSizeH = clampDock(pa.dockSizeH, grip, winH())
+		pa.dockSizeW = clampDock(pa.dockSizeW, grip, winW())
+		pa.applyDock(pa.dockEdge)
 	})
 	dom.Doc.Call("addEventListener", "pointerup", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-		if resizing {
-			resizing = false
+		if pa.resizing {
+			pa.resizing = false
 			// Settle exactly, now that the once-a-frame path is done with, and
 			// let the monitor start drawing again.
 			quantizeModuleWidths()
-			positionResizeHandle()
+			pa.positionResizeHandle()
 		}
 		return nil
 	}))
@@ -447,7 +459,7 @@ func initDockResize() {
 	// (audio-mod rows, section collapse, mode switches, window resize).
 	if ro := js.Global().Get("ResizeObserver"); ro.Truthy() {
 		obs := ro.New(dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-			positionResizeHandle()
+			pa.positionResizeHandle()
 			return nil
 		}))
 		if p := dom.Doc.Call("getElementById", "controls-panel"); p.Truthy() {
@@ -455,45 +467,45 @@ func initDockResize() {
 		}
 	}
 	js.Global().Call("addEventListener", "resize", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-		if dockEdge == "float" {
+		if pa.dockEdge == "float" {
 			reclampPanelWindow() // a saved position must not strand it off-screen
 		}
-		positionResizeHandle()
+		pa.positionResizeHandle()
 		quantizeModuleWidths()
 		return nil
 	}))
 }
 
-func wireDockButtons() {
+func (pa *panelLayout) wireDockButtons() {
 	for _, e := range []string{"top", "bottom", "left", "right", "float", "footer"} {
 		edge := e
 		if b := dom.Doc.Call("getElementById", "dock-"+e); b.Truthy() {
 			b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
-				applyDock(edge)
+				pa.applyDock(edge)
 				return nil
 			}))
 		}
 	}
 	// The footer dock target only exists on host pages that have a <footer>.
-	if fb := dom.Doc.Call("getElementById", "dock-footer"); fb.Truthy() && !hostFooter.Truthy() {
+	if fb := dom.Doc.Call("getElementById", "dock-footer"); fb.Truthy() && !pa.hostFooter.Truthy() {
 		fb.Get("style").Set("display", "none")
 	}
 }
 
-func readDockPref() string {
+func (pa *panelLayout) readDockPref() string {
 	if v, ok := lsGet("wasmstuff-dockH"); ok {
 		if n, err := strconv.ParseFloat(v, 64); err == nil && n > 0 {
-			dockSizeH = n
+			pa.dockSizeH = n
 		}
 	}
 	if v, ok := lsGet("wasmstuff-dockW"); ok {
 		if n, err := strconv.ParseFloat(v, 64); err == nil && n > 0 {
-			dockSizeW = n
+			pa.dockSizeW = n
 		}
 	}
 	for key, dst := range map[string]*float64{
-		"wasmstuff-floatX": &floatX, "wasmstuff-floatY": &floatY,
-		"wasmstuff-floatW": &floatW, "wasmstuff-floatH": &floatH,
+		"wasmstuff-floatX": &pa.floatX, "wasmstuff-floatY": &pa.floatY,
+		"wasmstuff-floatW": &pa.floatW, "wasmstuff-floatH": &pa.floatH,
 	} {
 		if v, ok := lsGet(key); ok {
 			if n, err := strconv.ParseFloat(strings.TrimSuffix(v, "px"), 64); err == nil && n > 0 {
@@ -501,7 +513,7 @@ func readDockPref() string {
 			}
 		}
 	}
-	healFloatGeom()
+	pa.healFloatGeom()
 	if v, ok := lsGet("wasmstuff-dock"); ok {
 		return v
 	}
@@ -519,12 +531,12 @@ func readDockPref() string {
 // Measured rather than a constant because the grip is sized in CSS and
 // scales with the interface Size ring: a number written here would be the
 // right floor at one setting and would swallow the grip at another.
-func dockGripPx() float64 {
+func (pa *panelLayout) dockGripPx() float64 {
 	const fallback = 10.0 // before layout, or if the grip is display:none
-	if !resizeHandle.Truthy() {
+	if !pa.resizeHandle.Truthy() {
 		return fallback
 	}
-	r := resizeHandle.Call("getBoundingClientRect")
+	r := pa.resizeHandle.Call("getBoundingClientRect")
 	grip := r.Get("height").Float()
 	if w := r.Get("width").Float(); w > 0 && w < grip {
 		grip = w // the vertical edges: the bar is tall and thin

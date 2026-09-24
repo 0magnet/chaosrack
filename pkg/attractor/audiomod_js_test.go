@@ -31,7 +31,7 @@ const (
 func routeMono(t *testing.T, id string) func() {
 	t.Helper()
 	prevMods, hadMod := paramMods[id]
-	prevBand := afBand["mono"]
+	prevBand := af.band["mono"]
 	prevOn := audioMod
 	prevHold, hadHold := modHold[id]
 
@@ -39,7 +39,7 @@ func routeMono(t *testing.T, id string) func() {
 	for i := range band {
 		band[i] = testModEnergy
 	}
-	afBand["mono"] = band
+	af.band["mono"] = band
 	paramMods[id] = paramMod{channel: "mono", level: testModLevel}
 	audioMod = true
 	delete(modHold, id)
@@ -47,7 +47,7 @@ func routeMono(t *testing.T, id string) func() {
 
 	return func() {
 		audioMod = prevOn
-		afBand["mono"] = prevBand
+		af.band["mono"] = prevBand
 		if hadMod {
 			paramMods[id] = prevMods
 		} else {

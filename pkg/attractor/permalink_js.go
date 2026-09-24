@@ -81,13 +81,54 @@ var permaCtls = []permaCtl{
 	{"am", "audio-mod", true},
 }
 
-var (
-	permaDefaults = map[string]string{}
+// permalinkState is the permalink's bookkeeping: what was last written, the
+// defaults, and what a link pins.
+type permalinkState struct {
+	defaults      map[string]string
 	lastPermaHash string
-	// permaDirty is set by any input or change event and cleared when the hash
+
+	// dirty is set by any input or change event and cleared when the hash
 	// is next written. See startPermalinkSync.
-	permaDirty bool
-)
+	dirty bool
+
+	// frozen stops the app writing the hash. Set while a reload is on its way,
+	// because reload() is a request rather than an instant: the page keeps running
+	// for a few frames, and the 700ms sync firing in that gap would replaceState the
+	// pasted link away and the reload would then boot with the app's own state --
+	// which is exactly the bug this was added to fix, one layer deeper.
+	frozen bool
+
+	// foreign means the page was loaded with a fragment that is not ours, so
+	// the address bar is not ours to write.
+	//
+	// The rack is not always the whole page. On magnetosphere.net it is the
+	// backdrop of a store whose sections are plain anchors — #about, #policy,
+	// #links — and the front page is served at the same URL. Booting there, the
+	// app read the fragment, correctly ignored it as not being a permalink, and
+	// then overwrote it with its own state a moment later: every shared link to
+	// #about landed on the globe instead, and the section the visitor asked for
+	// never appeared, because the CSS that reveals it keys on :target.
+	//
+	// So: if the fragment was not ours when we started, we neither write it nor
+	// reload on it. A rack sharing a page has no business steering the address
+	// bar, and the cost of staying quiet is only that a permalink cannot be
+	// captured from a page that was never offering one.
+	foreign bool
+
+	// hashPinnedSpin holds spin rates (axis → slider value) the loaded permalink
+	// set via &rx/&ry/&rz, so the load-time orientation randomize can restore
+	// them after zeroing the rate sliders.
+	hashPinnedSpin map[string]string
+
+	// hashPinnedPose is true when the loaded permalink specified an explicit
+	// orientation (&rot= or &drag=), so the startup randomizer should stand down.
+	hashPinnedPose bool
+}
+
+var perma = permalinkState{
+	defaults:       map[string]string{},
+	hashPinnedSpin: map[string]string{},
+}
 
 func isColorKey(k string) bool { return k == "cb" || k == "cm" || k == "ct" || k == "cg" }
 
@@ -155,19 +196,19 @@ func ctlValue(c permaCtl, el js.Value) string {
 // capturePermaDefaults records the pristine value of each tracked control
 // so serialization can omit anything left at its default. Must run before
 // applyStateFromHash.
-func capturePermaDefaults() {
-	permaDefaults = map[string]string{}
+func (pe *permalinkState) capturePermaDefaults() {
+	pe.defaults = map[string]string{}
 	for _, c := range permaCtls {
 		el := dom.Doc.Call("getElementById", c.id)
 		if el.Truthy() {
-			permaDefaults[c.key] = ctlValue(c, el)
+			pe.defaults[c.key] = ctlValue(c, el)
 		}
 	}
 }
 
 // serializeState builds the hash content (without the leading '#') from the
 // current live state.
-func serializeState() string {
+func (pe *permalinkState) serializeState() string {
 	var b strings.Builder
 	b.WriteString(selectedMode)
 
@@ -203,7 +244,7 @@ func serializeState() string {
 			continue
 		}
 		v := ctlValue(c, el)
-		if v != permaDefaults[c.key] {
+		if v != pe.defaults[c.key] {
 			b.WriteString("&")
 			b.WriteString(c.key)
 			b.WriteString("=")
@@ -223,7 +264,7 @@ func serializeState() string {
 
 	// Custom mode: the equations + their parameters.
 	if selectedMode == "custom" {
-		serializeCustom(&b)
+		custom.serializeCustom(&b)
 	}
 
 	// Orientation — the absolute X/Y/Z angles in degrees, only when the
@@ -254,7 +295,7 @@ func serializeState() string {
 	// One key holding the whole set, rather than a flag per control: it is
 	// a set, it is usually empty, and a dozen "pl.foo=0" pairs in every
 	// link would be a dozen ways to say nothing.
-	if s := linkedParamList(); s != "" {
+	if s := grid.linkedParamList(); s != "" {
 		b.WriteString("&pl=" + s)
 	}
 
@@ -287,30 +328,30 @@ func serializeState() string {
 // forever, which is the failure worth having.
 const permaFullCheck = 8
 
-func startPermalinkSync() {
+func (pe *permalinkState) startPermalinkSync() {
 	// Decided before anything is written: a fragment that was not ours when
 	// the page loaded stays not ours for the life of the page.
 	if h := js.Global().Get("location").Get("hash").String(); h != "" && !isAppHash(h) {
-		permaForeign = true
+		pe.foreign = true
 	}
 
-	lastPermaHash = serializeState()
+	pe.lastPermaHash = pe.serializeState()
 
 	dom.Doc.Call("addEventListener", "input", dom.FuncOf(func(js.Value, []js.Value) interface{} {
-		permaDirty = true
+		pe.dirty = true
 		return nil
 	}), true)
 	dom.Doc.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
-		permaDirty = true
+		pe.dirty = true
 		return nil
 	}), true)
 
 	ticks := 0
 	js.Global().Call("setInterval", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		ticks++
-		if permaDirty || ticks%permaFullCheck == 0 {
-			permaDirty = false
-			syncPermalinkNow()
+		if pe.dirty || ticks%permaFullCheck == 0 {
+			pe.dirty = false
+			pe.syncPermalinkNow()
 		}
 		return nil
 	}), 700)
@@ -331,56 +372,32 @@ func startPermalinkSync() {
 	// does not fire this event, and the comparison below ignores it anyway.
 	js.Global().Call("addEventListener", "hashchange", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 		h := strings.TrimPrefix(js.Global().Get("location").Get("hash").String(), "#")
-		if h == "" || h == lastPermaHash {
+		if h == "" || h == pe.lastPermaHash {
 			return nil
 		}
 		// Someone navigating the page we are sitting on, not pasting a
 		// permalink. Reloading on #about would throw away the section they
 		// just asked for, since :target is what reveals it.
 		if !isAppHash(h) {
-			permaForeign = true
+			pe.foreign = true
 			return nil
 		}
-		permaFrozen = true
+		pe.frozen = true
 		js.Global().Get("location").Call("reload")
 		return nil
 	}))
 }
 
-// permaFrozen stops the app writing the hash. Set while a reload is on its way,
-// because reload() is a request rather than an instant: the page keeps running
-// for a few frames, and the 700ms sync firing in that gap would replaceState the
-// pasted link away and the reload would then boot with the app's own state --
-// which is exactly the bug this was added to fix, one layer deeper.
-var permaFrozen bool
-
-// permaForeign means the page was loaded with a fragment that is not ours, so
-// the address bar is not ours to write.
-//
-// The rack is not always the whole page. On magnetosphere.net it is the
-// backdrop of a store whose sections are plain anchors — #about, #policy,
-// #links — and the front page is served at the same URL. Booting there, the
-// app read the fragment, correctly ignored it as not being a permalink, and
-// then overwrote it with its own state a moment later: every shared link to
-// #about landed on the globe instead, and the section the visitor asked for
-// never appeared, because the CSS that reveals it keys on :target.
-//
-// So: if the fragment was not ours when we started, we neither write it nor
-// reload on it. A rack sharing a page has no business steering the address
-// bar, and the cost of staying quiet is only that a permalink cannot be
-// captured from a page that was never offering one.
-var permaForeign bool
-
 // syncPermalinkNow updates the URL hash immediately if the state changed.
-func syncPermalinkNow() {
-	if permaFrozen || permaForeign {
+func (pe *permalinkState) syncPermalinkNow() {
+	if pe.frozen || pe.foreign {
 		return
 	}
-	s := serializeState()
-	if s == lastPermaHash {
+	s := pe.serializeState()
+	if s == pe.lastPermaHash {
 		return
 	}
-	lastPermaHash = s
+	pe.lastPermaHash = s
 	writeHash("#" + s)
 }
 
@@ -515,13 +532,13 @@ func applyRot(val string) {
 // audio-mod last so its panel rebuild reflects the params + routing), then
 // the held pose.
 func applyStateFromHash() {
-	applyStateFrom(js.Global().Get("location").Get("hash").String())
+	perma.applyStateFrom(js.Global().Get("location").Get("hash").String())
 }
 
 // applyStateFrom applies a serialized state (leading '#' included) without
 // reading the live URL — mid-session restores (the patch bank) must not race
 // the permalink sync, which rewrites location.hash on mode changes.
-func applyStateFrom(h string) {
+func (pe *permalinkState) applyStateFrom(h string) {
 	if len(h) < 2 {
 		return
 	}
@@ -576,7 +593,7 @@ func applyStateFrom(h string) {
 			// The per-control link set. Applied straight away rather than
 			// deferred: nothing else in the link depends on it, and the
 			// panel rebuild at the end picks up the badges.
-			setLinkedParamList(val)
+			grid.setLinkedParamList(val)
 		case key == "am":
 			amVal = val
 		case key == "eq":
@@ -586,14 +603,14 @@ func applyStateFrom(h string) {
 			// The Custom mode's flavor: iterate (a discrete map) rather than
 			// flow. It decides what the equations MEAN, so it has to be in
 			// place before they are compiled below.
-			customIterate = val == "1"
+			custom.iterate = val == "1"
 			haveCustom, haveFlavor = true, true
 		case key == "cdt":
 			if v, err := strconv.ParseFloat(val, 32); err == nil {
-				customDT = float32(v)
+				custom.dt = float32(v)
 			}
 		case strings.HasPrefix(key, "cp."):
-			applyCustomParam(strings.TrimPrefix(key, "cp."), val)
+			custom.applyCustomParam(strings.TrimPrefix(key, "cp."), val)
 			haveCustom = true
 		case strings.HasPrefix(key, "p."):
 			applyParam(strings.TrimPrefix(key, "p."), val)
@@ -609,7 +626,7 @@ func applyStateFrom(h string) {
 			if key == "rx" || key == "ry" || key == "rz" {
 				// Remember hash-pinned spin rates: Run()'s randomizeOrientation
 				// zeroes the rate sliders, and must re-apply these afterward.
-				hashPinnedSpin[key[1:]] = val
+				pe.hashPinnedSpin[key[1:]] = val
 			}
 			applyControl(key, val)
 		}
@@ -623,14 +640,14 @@ func applyStateFrom(h string) {
 		// to CLEAR the flavor. Leaving whatever the editor was last set to
 		// would reinterpret somebody else's derivatives as a map.
 		if !haveFlavor {
-			customIterate = false
+			custom.iterate = false
 		}
-		applyCustomEq(eqVal)
+		custom.applyCustomEq(eqVal)
 	} else if haveFlavor {
 		// A link can pin the flavor without pinning the equations (the editor's
 		// default template is the Lorenz one). Recompiling is what moves the
 		// system between the flow and map registries, so it still has to happen.
-		parseCustom()
+		custom.parseCustom()
 	}
 	if haveCustom && selectedMode == "custom" {
 		buildParamPanel("custom") // reflect restored equations + params
@@ -651,15 +668,6 @@ func applyStateFrom(h string) {
 	// Record whether the link pinned an explicit pose, so Run() only applies the
 	// "fresh random view each load" when the link DIDN'T — otherwise a shared
 	// still-view link is faithfully restored (save→restore fidelity).
-	hashPinnedPose = poseVal != "" || dragVal != ""
+	pe.hashPinnedPose = poseVal != "" || dragVal != ""
 	syncKnobs() // move fixed-knob pointers to the restored values
 }
-
-// hashPinnedSpin holds spin rates (axis → slider value) the loaded permalink
-// set via &rx/&ry/&rz, so the load-time orientation randomize can restore
-// them after zeroing the rate sliders.
-var hashPinnedSpin = map[string]string{}
-
-// hashPinnedPose is true when the loaded permalink specified an explicit
-// orientation (&rot= or &drag=), so the startup randomizer should stand down.
-var hashPinnedPose bool

@@ -58,36 +58,55 @@ const audioColorLUTSize = 32
 // as a band on the trail rather than being averaged into its neighbors.
 const audioColorFFT = 128
 
+// audioColor is sound as a gradient source: the windows it reads and the
+// lookup table it uploads.
+type audioColor struct {
+	// lut is the current table, 0..1 per slot.
+	lut [audioColorLUTSize]float32
+
+	// scratch is one short-time window, reused every slot so the
+	// per-frame fill allocates nothing.
+	scratch [audioColorFFT]float32
+	lutU8   js.Value // persistent Uint8Array backing the upload
+	lutF32  js.Value // Float32Array view of it
+
+	// lo/Hi are the adaptive bounds the table is mapped across.
+	lo, hi float32
+
+	// win is the reusable copy of the trail's source samples.
+	win []float32
+
+	// winL / winR are the pair walk's own buffers, for the
+	// reason win has one: the per-frame drain buffers are in use.
+	winL, winR []float32
+}
+
+var acolor = audioColor{
+	lo: 0.5,
+	hi: 0.5,
+}
+
 var (
-	// audioColorLUT is the current table, 0..1 per slot.
-	audioColorLUT [audioColorLUTSize]float32
 
 	// audioColorFeature names the global feature used to fill the table flat
 	// when the trail is not a time axis. Any key afFeat carries works;
 	// centroid is the default because it is the one that means "brightness"
 	// and so maps to color without needing to be explained.
 	audioColorFeature = "centroid"
-
-	// audioColorScratch is one short-time window, reused every slot so the
-	// per-frame fill allocates nothing.
-	audioColorScratch [audioColorFFT]float32
-
-	jsLUTUint8 js.Value // persistent Uint8Array backing the upload
-	jsLUTFloat js.Value // Float32Array view of it
 )
 
 // lutToTyped returns the LUT as a JS Float32Array for uniform upload,
 // reusing one persistent typed array — the same trick mat4ToTyped uses, for
 // the same reason: this runs every frame and a fresh allocation per frame is
 // a fresh garbage collection.
-func lutToTyped() js.Value {
-	if jsLUTUint8.IsUndefined() {
-		jsLUTUint8 = js.Global().Get("Uint8Array").New(audioColorLUTSize * 4)
-		jsLUTFloat = js.Global().Get("Float32Array").New(jsLUTUint8.Get("buffer"), 0, audioColorLUTSize)
+func (a *audioColor) lutToTyped() js.Value {
+	if a.lutU8.IsUndefined() {
+		a.lutU8 = js.Global().Get("Uint8Array").New(audioColorLUTSize * 4)
+		a.lutF32 = js.Global().Get("Float32Array").New(a.lutU8.Get("buffer"), 0, audioColorLUTSize)
 	}
-	buf := (*[audioColorLUTSize * 4]byte)(unsafe.Pointer(&audioColorLUT)) //nolint:gosec // reinterpreting the float table as its backing bytes to cross into JS without a second copy
-	js.CopyBytesToJS(jsLUTUint8, (*buf)[:])
-	return jsLUTFloat
+	buf := (*[audioColorLUTSize * 4]byte)(unsafe.Pointer(&a.lut)) //nolint:gosec // reinterpreting the float table as its backing bytes to cross into JS without a second copy
+	js.CopyBytesToJS(a.lutU8, (*buf)[:])
+	return a.lutF32
 }
 
 // shortTimeCentroids fills out with the spectral centroid of successive
@@ -102,7 +121,7 @@ func lutToTyped() js.Value {
 // Silence returns 0.5 rather than 0. A centroid is undefined with no energy
 // to weigh, and 0 is not a neutral answer — it is the bottom of the color
 // ramp, so a quiet passage was being painted as if it were pure bass.
-func shortTimeCentroids(w []float32, sampleRate int, out []float32) {
+func (a *audioColor) shortTimeCentroids(w []float32, sampleRate int, out []float32) {
 	if len(out) == 0 {
 		return
 	}
@@ -122,11 +141,11 @@ func shortTimeCentroids(w []float32, sampleRate int, out []float32) {
 			out[i] = out[max(i-1, 0)]
 			continue
 		}
-		n := copy(audioColorScratch[:], w[start:])
+		n := copy(a.scratch[:], w[start:])
 		for j := n; j < audioColorFFT; j++ {
-			audioColorScratch[j] = 0
+			a.scratch[j] = 0
 		}
-		mags := meters.ComputeFFTMags(audioColorScratch[:])
+		mags := meters.ComputeFFTMags(a.scratch[:])
 		if mags == nil {
 			out[i] = 0.5
 			continue
@@ -160,9 +179,6 @@ func shortTimeCentroids(w []float32, sampleRate int, out []float32) {
 // are all identical is a division by nothing, and the answer it wants is the
 // level itself, not the middle of the ramp.
 
-// audioColorLo/Hi are the adaptive bounds the table is mapped across.
-var audioColorLo, audioColorHi float32 = 0.5, 0.5
-
 // audioColorMinSpan is the narrowest range the stretch will map across.
 // Without a floor, a steady tone — whose every slot holds nearly the same
 // centroid — has its remaining hundredths of variation blown up to the whole
@@ -177,7 +193,7 @@ const audioColorMinSpan = 0.05
 const audioColorRelax = 0.02
 
 // stretchAudioColorLUT maps lut across its adaptive range, in place.
-func stretchAudioColorLUT(lut []float32) {
+func (a *audioColor) stretchAudioColorLUT(lut []float32) {
 	if len(lut) == 0 {
 		return
 	}
@@ -194,47 +210,47 @@ func stretchAudioColorLUT(lut []float32) {
 		// Held: the ends stay where they were, so the same color goes on
 		// meaning the same level. Everything outside the frozen span clamps,
 		// which is what a locked scale is supposed to do.
-		span := audioColorHi - audioColorLo
+		span := a.hi - a.lo
 		if span < audioColorMinSpan {
 			span = audioColorMinSpan
 		}
 		for i, v := range lut {
-			lut[i] = clampF((v-audioColorLo)/span, 0, 1)
+			lut[i] = clampF((v-a.lo)/span, 0, 1)
 		}
 		return
 	}
 	// Open at once to admit a new extreme; close slowly toward this frame's.
-	if lo < audioColorLo {
-		audioColorLo = lo
+	if lo < a.lo {
+		a.lo = lo
 	} else {
-		audioColorLo += (lo - audioColorLo) * audioColorRelax
+		a.lo += (lo - a.lo) * audioColorRelax
 	}
-	if hi > audioColorHi {
-		audioColorHi = hi
+	if hi > a.hi {
+		a.hi = hi
 	} else {
-		audioColorHi += (hi - audioColorHi) * audioColorRelax
+		a.hi += (hi - a.hi) * audioColorRelax
 	}
-	span := audioColorHi - audioColorLo
+	span := a.hi - a.lo
 	if span < audioColorMinSpan {
 		// Widen about the middle rather than from the bottom, so a narrow
 		// range sits where the sound actually is instead of being dragged
 		// down the ramp.
-		mid := (audioColorHi + audioColorLo) / 2
-		audioColorLo = mid - audioColorMinSpan/2
-		audioColorHi = mid + audioColorMinSpan/2
+		mid := (a.hi + a.lo) / 2
+		a.lo = mid - audioColorMinSpan/2
+		a.hi = mid + audioColorMinSpan/2
 		span = audioColorMinSpan
 	}
 	for i, v := range lut {
-		lut[i] = clampF((v-audioColorLo)/span, 0, 1)
+		lut[i] = clampF((v-a.lo)/span, 0, 1)
 	}
 }
 
 // fillAudioColorLUTFlat paints the whole table one value, which is what a
 // model whose trail is not a time axis wants: the figure tints as one.
-func fillAudioColorLUTFlat(v float32) {
+func (a *audioColor) fillAudioColorLUTFlat(v float32) {
 	v = clampF(v, 0, 1)
-	for i := range audioColorLUT {
-		audioColorLUT[i] = v
+	for i := range a.lut {
+		a.lut[i] = v
 	}
 }
 
@@ -252,22 +268,22 @@ func fillAudioColorLUTFlat(v float32) {
 // The ABSOLUTE sources are not stretched: each is already on a scale where
 // half way up means one fixed thing, and auto-ranging would take that away.
 // See the note at the top of audiocolorsrc_js.go.
-func updateAudioColorLUT(mode string) {
+func (a *audioColor) updateAudioColorLUT(mode string) {
 	switch gradientSource {
 	case gradientSourceAudio, gradientSourceLevel:
-		if w, sr := audioColorWindow(mode); w != nil {
+		if w, sr := a.window(mode); w != nil {
 			if gradientSource == gradientSourceLevel {
-				shortTimeLevels(w, audioColorLUT[:])
+				shortTimeLevels(w, a.lut[:])
 			} else {
-				shortTimeCentroids(w, sr, audioColorLUT[:])
+				a.shortTimeCentroids(w, sr, a.lut[:])
 			}
-			stretchAudioColorLUT(audioColorLUT[:])
+			a.stretchAudioColorLUT(a.lut[:])
 			return
 		}
 	default:
-		if fillColorLUT(gradientSource, mode, audioColorLUT[:]) {
+		if fillColorLUT(gradientSource, mode, a.lut[:]) {
 			if !gradientSourceIsAbsolute(gradientSource) {
-				stretchAudioColorLUT(audioColorLUT[:])
+				a.stretchAudioColorLUT(a.lut[:])
 			}
 			return
 		}
@@ -275,15 +291,15 @@ func updateAudioColorLUT(mode string) {
 		// a flat middle is the honest answer, not a color derived from
 		// something that was not measured.
 		if gradientSourceIsAbsolute(gradientSource) {
-			fillAudioColorLUTFlat(0.5)
+			a.fillAudioColorLUTFlat(0.5)
 			return
 		}
 	}
 	if gradientSource == gradientSourceLevel {
-		fillAudioColorLUTFlat(afFeat["amp"])
+		a.fillAudioColorLUTFlat(af.feat["amp"])
 		return
 	}
-	fillAudioColorLUTFlat(afFeat[audioColorFeature])
+	a.fillAudioColorLUTFlat(af.feat[audioColorFeature])
 }
 
 // audioColorWindow returns the audio the current mode's trail was drawn
@@ -300,47 +316,44 @@ func updateAudioColorLUT(mode string) {
 // land inside the ring. Sampling the window from base instead would color
 // the trail with audio from two delays earlier than the trail was drawn
 // from, which is a shift of exactly the thing the mode is about.
-func audioColorWindow(mode string) ([]float32, int) {
+func (a *audioColor) window(mode string) ([]float32, int) {
 	if mode == "stereo" {
-		return stereoColorWindow()
+		return a.stereoColorWindow()
 	}
 	if mode == "polar" {
-		return polarColorWindow()
+		return polar.colorWindow()
 	}
-	if mode != "takens" || takensRing == nil {
+	if mode != "takens" || emb.ring == nil {
 		return nil, 0
 	}
-	src := ensureAudioSource()
+	src := aud.ensureAudioSource()
 	sr := 24000
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := takens.TauSamples(takensTau, sr)
-	n, stride := takensWindow(takensWin, sr, steps)
+	tau := takens.TauSamples(emb.tau, sr)
+	n, stride := takensWindow(emb.win, sr, steps)
 	if n <= 0 {
 		return nil, 0
 	}
-	rn := len(takensRing)
+	rn := len(emb.ring)
 	span := (n-1)*stride + 2*tau
-	if rn == 0 || takensW < span+1 {
+	if rn == 0 || emb.w < span+1 {
 		return nil, 0 // not enough audio yet; the flat fill is the honest answer
 	}
 	// Its own buffer, not takensScratch: that one is the per-frame DRAIN
 	// buffer, and borrowing it here would overwrite samples on their way into
 	// the ring.
-	if cap(audioColorWin) < n {
-		audioColorWin = make([]float32, n)
+	if cap(a.win) < n {
+		a.win = make([]float32, n)
 	}
-	out := audioColorWin[:n]
-	base := takensW - 1 - span
+	out := a.win[:n]
+	base := emb.w - 1 - span
 	for k := 0; k < n; k++ {
-		out[k] = takensRing[(base+2*tau+k*stride)%rn]
+		out[k] = emb.ring[(base+2*tau+k*stride)%rn]
 	}
 	return out, sr
 }
-
-// audioColorWin is the reusable copy of the trail's source samples.
-var audioColorWin []float32
 
 // gradientSourceAudio is the uGradientSource value meaning "follow the sound".
 // Named because it is referenced from the render loop and the panel wiring, and
@@ -364,8 +377,8 @@ const gradientSourceAudio = 4
 // snapshot, which is where the plan's undelayed axes read from. The delayed
 // axes reach back from there, as Takens' do, and the color follows the trail
 // position rather than any one axis.
-func stereoColorWindow() ([]float32, int) {
-	src := ensureAudioSource()
+func (a *audioColor) stereoColorWindow() ([]float32, int) {
+	src := aud.ensureAudioSource()
 	sr := 24000
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
@@ -388,10 +401,10 @@ func stereoColorWindow() ([]float32, int) {
 	if len(stereo.l) < baseL+span+1 {
 		return nil, 0 // the snapshot for this window has not been taken yet
 	}
-	if cap(audioColorWin) < n {
-		audioColorWin = make([]float32, n)
+	if cap(a.win) < n {
+		a.win = make([]float32, n)
 	}
-	out := audioColorWin[:n]
+	out := a.win[:n]
 	for k := 0; k < n; k++ {
 		out[k] = stereo.l[baseL+tau+k*stride]
 	}
@@ -480,11 +493,11 @@ func shortTimeLevels(w []float32, out []float32) {
 //
 // Only the stereo mode has two channels to walk; everything else gets nil
 // and the caller falls back to a flat tint.
-func stereoColorWindowPair(mode string) ([]float32, []float32, int) {
+func (a *audioColor) stereoColorWindowPair(mode string) ([]float32, []float32, int) {
 	if mode != "stereo" {
 		return nil, nil, 0
 	}
-	src := ensureAudioSource()
+	src := aud.ensureAudioSource()
 	sr := 24000
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
@@ -505,18 +518,14 @@ func stereoColorWindowPair(mode string) ([]float32, []float32, int) {
 	if len(stereo.l) < baseL+span+1 || len(stereo.r) < baseR+span+1 {
 		return nil, nil, 0
 	}
-	if cap(audioColorWinL) < n {
-		audioColorWinL = make([]float32, n)
-		audioColorWinR = make([]float32, n)
+	if cap(a.winL) < n {
+		a.winL = make([]float32, n)
+		a.winR = make([]float32, n)
 	}
-	l, r := audioColorWinL[:n], audioColorWinR[:n]
+	l, r := a.winL[:n], a.winR[:n]
 	for k := 0; k < n; k++ {
 		l[k] = stereo.l[baseL+tau+k*stride]
 		r[k] = stereo.r[baseR+tau+k*stride]
 	}
 	return l, r, sr
 }
-
-// audioColorWinL / audioColorWinR are the pair walk's own buffers, for the
-// reason audioColorWin has one: the per-frame drain buffers are in use.
-var audioColorWinL, audioColorWinR []float32

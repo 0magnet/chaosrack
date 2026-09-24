@@ -193,8 +193,8 @@ func TestXYLagIsNeverZero(t *testing.T) {
 // the range is checked BEFORE the conversion, because a float-to-int
 // conversion whose value does not fit is implementation-defined in Go.)
 func TestXYSelectorsClampWhateverModulationDoes(t *testing.T) {
-	oldS, oldB, oldP := xySmoothF, xyBasisF, xyPersist
-	t.Cleanup(func() { xySmoothF, xyBasisF, xyPersist = oldS, oldB, oldP })
+	oldS, oldB, oldP := xy.smoothF, xy.basisF, xy.persist
+	t.Cleanup(func() { xy.smoothF, xy.basisF, xy.persist = oldS, oldB, oldP })
 
 	inf := float32(1)
 	for i := 0; i < 40; i++ {
@@ -203,16 +203,16 @@ func TestXYSelectorsClampWhateverModulationDoes(t *testing.T) {
 	nan := inf - inf
 
 	for _, v := range []float32{-1e9, -1, 0, 0.5, 1, 4, 16, 1e9, inf, -inf, nan} {
-		xySmoothF = v
-		if got := xySmoothSel(); got < 1 || got > 16 {
+		xy.smoothF = v
+		if got := xy.smoothSel(); got < 1 || got > 16 {
 			t.Errorf("xySmoothSel() = %d for %v", got, v)
 		}
-		xyPersist = v
-		if got := xyPersistK(); got < 0 || got > 0.98 {
+		xy.persist = v
+		if got := xy.persistK(); got < 0 || got > 0.98 {
 			t.Errorf("xyPersistK() = %v for %v", got, v)
 		}
-		xyBasisF = v
-		_ = xyIsMidSide() // a bool cannot be out of range; this is here to catch a panic
+		xy.basisF = v
+		_ = xy.isMidSide() // a bool cannot be out of range; this is here to catch a panic
 	}
 }
 
@@ -220,16 +220,16 @@ func TestXYSelectorsClampWhateverModulationDoes(t *testing.T) {
 // display fills in and stays filled — a trace that cannot be erased is not a
 // long persistence, it is a stuck picture with no way out but leaving the mode.
 func TestXYPersistAlwaysDecays(t *testing.T) {
-	old := xyPersist
-	t.Cleanup(func() { xyPersist = old })
+	old := xy.persist
+	t.Cleanup(func() { xy.persist = old })
 	for _, v := range []float32{0.98, 1, 2, 1e9} {
-		xyPersist = v
-		if got := xyPersistK(); got >= 1 {
+		xy.persist = v
+		if got := xy.persistK(); got >= 1 {
 			t.Errorf("a persist knob at %v gives a retention of %v, which never fades", v, got)
 		}
 	}
-	xyPersist = 0
-	if xyPersistK() != 0 {
+	xy.persist = 0
+	if xy.persistK() != 0 {
 		t.Error("persist at zero must mean a plain clear, as the mode always did")
 	}
 }

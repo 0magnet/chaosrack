@@ -287,7 +287,7 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 		inertia = 0 // only rounding can get here
 	}
 	mass := float32(n)
-	inertia *= max(0.05, turtleSpinF) // SPIN dials how readily it turns
+	inertia *= max(0.05, turtle.spinF) // SPIN dials how readily it turns
 	if inertia <= 0 {
 		inertia = 1
 	}
@@ -296,7 +296,7 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 	// makes no torque; the floor acts wherever the figure touches it, and that
 	// is what tips it over.
 	cxR, cyR, halfW, halfH := turtleRoom()
-	fx, fy := float32(0), -turtleGravF*mass
+	fx, fy := float32(0), -turtle.gravF*mass
 	var torque float32
 	// How far the body reaches, in each direction, from its center of mass. It
 	// costs nothing to note while the points are being walked anyway, and it is
@@ -331,12 +331,12 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 	// Sharing one total force is also the physically right invariant: a body
 	// resting on a plane is held up by its own weight in total, no matter how
 	// much of it happens to be in contact.
-	accel := absf(turtleGravF)
+	accel := absf(turtle.gravF)
 	if accel < 2 {
 		accel = 2 // something to push back with even in free fall
 	}
 	kTot := accel * mass / (0.01 * halfH)
-	dampTot := 2 * sqrtf(kTot*mass) * (1 - clamp01(turtleBounceF))
+	dampTot := 2 * sqrtf(kTot*mass) * (1 - clamp01(turtle.bounceF))
 	kPer, damp := kTot, dampTot
 	// Contact forces accumulate apart from gravity so they can be shared out
 	// once the count is known — this frame's count, not the last one's.
@@ -368,7 +368,7 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 		if d := ((cyR - halfH) - py) / g; d > 0 { // floor
 			n := kPer*d - damp*pvy
 			if n > 0 {
-				f := -turtleFricF * n * clampUnit(pvx*stickSlope)
+				f := -turtle.fricF * n * clampUnit(pvx*stickSlope)
 				cfx += f
 				cfy += n
 				ctorque += rx*n - ry*f
@@ -378,7 +378,7 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 		if d := (py - (cyR + halfH)) / g; d > 0 { // ceiling
 			n := kPer*d + damp*pvy
 			if n > 0 {
-				f := -turtleFricF * n * clampUnit(pvx*stickSlope)
+				f := -turtle.fricF * n * clampUnit(pvx*stickSlope)
 				cfx += f
 				cfy -= n
 				ctorque += -rx*n - ry*f
@@ -388,7 +388,7 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 		if d := ((cxR - halfW) - px) / g; d > 0 { // left
 			n := kPer*d - damp*pvx
 			if n > 0 {
-				f := -turtleFricF * n * clampUnit(pvy*stickSlope)
+				f := -turtle.fricF * n * clampUnit(pvy*stickSlope)
 				cfx += n
 				cfy += f
 				ctorque += rx*f - ry*n
@@ -398,7 +398,7 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 		if d := (px - (cxR + halfW)) / g; d > 0 { // right
 			n := kPer*d + damp*pvx
 			if n > 0 {
-				f := -turtleFricF * n * clampUnit(pvy*stickSlope)
+				f := -turtle.fricF * n * clampUnit(pvy*stickSlope)
 				cfx -= n
 				cfy += f
 				ctorque += rx*f + ry*n
@@ -463,7 +463,7 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 	// a point resting exactly on the floor plane but in front of it appears
 	// below the bottom of the screen. That is the part of the model that could
 	// go through the floor and the walls while the physics was satisfied.
-	bounce := clamp01(turtleBounceF)
+	bounce := clamp01(turtle.bounceF)
 	up, down, right, left := b.roomFix(pts, sc, lx, ly, cxR, cyR, halfW, halfH, turtleCamDist())
 	if up > 0 {
 		b.y += up

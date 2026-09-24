@@ -100,7 +100,7 @@ func recallSerializedState(snapshot string) {
 	// recall is refused whole rather than half-applied — and said out loud,
 	// because a slot that does nothing is indistinguishable from a broken one.
 	if gone, refused := recallRefusedMode(snapshot, knownMode); refused {
-		showAudioStatus("that patch was saved for \"" + gone +
+		aud.showAudioStatus("that patch was saved for \"" + gone +
 			"\", which this build does not have — nothing was changed")
 		return
 	}
@@ -114,10 +114,10 @@ func recallSerializedState(snapshot string) {
 	}
 	// Apply the snapshot STRING directly — the mode-change dispatch above
 	// resyncs the permalink, so location.hash can't be the carrier here.
-	applyStateFrom("#" + snapshot)
+	perma.applyStateFrom("#" + snapshot)
 	syncKnobs()
 	buildParamPanel(selectedMode)
-	syncPermalinkNow() // canonicalize the URL to the recalled state
+	perma.syncPermalinkNow() // canonicalize the URL to the recalled state
 }
 
 // buildPatchbayModule (re)creates the PATCHBAY module. Called from
@@ -181,7 +181,7 @@ func buildPatchbayModule(paramsSect js.Value) {
 		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 			bank := patchBank()
 			if patchStoArm {
-				bank[i] = serializeState()
+				bank[i] = perma.serializeState()
 				patchBankStore(bank)
 				patchStoArm = false
 				refreshSto()
@@ -262,7 +262,7 @@ func buildPatchbayModule(paramsSect js.Value) {
 						}
 					}
 					paramMods[d.id] = m
-					syncPermalinkNow()
+					perma.syncPermalinkNow()
 					buildParamPanel(selectedMode) // resync MOD knobs + this matrix
 					return nil
 				}))
@@ -281,7 +281,7 @@ func buildPatchbayModule(paramsSect js.Value) {
 					paramMods[d.id] = m
 					pin.Get("style").Set("opacity", strconv.FormatFloat(0.45+0.55*float64(m.level), 'f', 2, 64))
 					pin.Set("title", row.label+" → "+d.label+" — depth "+strconv.FormatFloat(float64(m.level), 'f', 2, 64))
-					syncPermalinkNow()
+					perma.syncPermalinkNow()
 					return nil
 				}))
 				grid.Call("appendChild", pin)

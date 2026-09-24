@@ -22,16 +22,18 @@ import (
 // this exists to find happens at.
 const timingPeriodMs = 500
 
-var (
-	timingStats  frameStats
-	timingBudget sectionBudget
-	timingNextMs float64
-	timingLastMs float64 // rAF timestamp of the previous frame
+// timingPanel is the Timing module's panel: its LEDs and its refresh clock.
+type timingPanel struct {
+	stats                        frameStats
+	budget                       sectionBudget
+	nextMs                       float64
+	lastMs                       float64 // rAF timestamp of the previous frame
+	fpsEl, frameEl, minEl, maxEl js.Value
+	lateEl, modelEl, metersEl    js.Value
+	scopeEl, restEl              js.Value
+}
 
-	timingFpsEl, timingFrameEl, timingMinEl, timingMaxEl js.Value
-	timingLateEl, timingModelEl, timingMetersEl          js.Value
-	timingScopeEl, timingRestEl                          js.Value
-)
+var tpanel timingPanel
 
 // timingMark is the start of a span. Separate from the accumulators so the
 // three spans can nest inside one frame without a stack.
@@ -52,12 +54,12 @@ func (m timingMark) ms() float32 {
 // check that would decide to skip them, and a frame meter that only starts
 // measuring once you look at it cannot answer "what was it doing before I
 // scrolled here", which is the question.
-func timingFrame(nowMs float64) {
-	if timingLastMs > 0 {
-		timingStats.add(float32(nowMs - timingLastMs))
-		timingBudget.Frames++
+func (t *timingPanel) frame(nowMs float64) {
+	if t.lastMs > 0 {
+		t.stats.add(float32(nowMs - t.lastMs))
+		t.budget.Frames++
 	}
-	timingLastMs = nowMs
+	t.lastMs = nowMs
 }
 
 // timingTick latches the readouts on their own clock.
@@ -76,63 +78,63 @@ func timingFrame(nowMs float64) {
 // honest but useless, since the question is always "what is it doing NOW".
 // So it keeps measuring and keeps latching, and is correct the instant it
 // comes into view.
-func timingTick(nowMs float64) {
-	if nowMs < timingNextMs {
+func (t *timingPanel) tick(nowMs float64) {
+	if nowMs < t.nextMs {
 		return
 	}
-	timingNextMs = nowMs + timingPeriodMs
-	showTiming()
-	timingStats.reset()
-	timingBudget.reset()
+	t.nextMs = nowMs + timingPeriodMs
+	t.showTiming()
+	t.stats.reset()
+	t.budget.reset()
 }
 
 // showTiming writes the readouts.
-func showTiming() {
-	if timingStats.n == 0 {
+func (t *timingPanel) showTiming() {
+	if t.stats.n == 0 {
 		for _, p := range []struct {
 			k string
 			e js.Value
 		}{
-			{"tm-fps", timingFpsEl}, {"tm-frame", timingFrameEl},
-			{"tm-min", timingMinEl}, {"tm-max", timingMaxEl},
-			{"tm-late", timingLateEl}, {"tm-model", timingModelEl},
-			{"tm-meters", timingMetersEl}, {"tm-scope", timingScopeEl},
-			{"tm-rest", timingRestEl},
+			{"tm-fps", t.fpsEl}, {"tm-frame", t.frameEl},
+			{"tm-min", t.minEl}, {"tm-max", t.maxEl},
+			{"tm-late", t.lateEl}, {"tm-model", t.modelEl},
+			{"tm-meters", t.metersEl}, {"tm-scope", t.scopeEl},
+			{"tm-rest", t.restEl},
 		} {
 			readouts.Set(p.k, p.e, "  --.-")
 		}
 		return
 	}
-	readouts.Set("tm-fps", timingFpsEl, led.Format(float64(timingStats.fps()), 3, 1, false))
-	readouts.Set("tm-frame", timingFrameEl, led.Format(float64(timingStats.avg()), 3, 1, false))
-	readouts.Set("tm-min", timingMinEl, led.Format(float64(timingStats.min), 3, 1, false))
-	readouts.Set("tm-max", timingMaxEl, led.Format(float64(timingStats.max), 3, 1, false))
-	readouts.Set("tm-late", timingLateEl, led.Format(float64(timingStats.latePct()), 3, 1, false))
+	readouts.Set("tm-fps", t.fpsEl, led.Format(float64(t.stats.fps()), 3, 1, false))
+	readouts.Set("tm-frame", t.frameEl, led.Format(float64(t.stats.avg()), 3, 1, false))
+	readouts.Set("tm-min", t.minEl, led.Format(float64(t.stats.min), 3, 1, false))
+	readouts.Set("tm-max", t.maxEl, led.Format(float64(t.stats.max), 3, 1, false))
+	readouts.Set("tm-late", t.lateEl, led.Format(float64(t.stats.latePct()), 3, 1, false))
 
-	model, meters, scope := timingBudget.perFrame()
-	readouts.Set("tm-model", timingModelEl, led.Format(float64(model), 2, 2, false))
-	readouts.Set("tm-meters", timingMetersEl, led.Format(float64(meters), 2, 2, false))
-	readouts.Set("tm-scope", timingScopeEl, led.Format(float64(scope), 2, 2, false))
+	model, meters, scope := t.budget.perFrame()
+	readouts.Set("tm-model", t.modelEl, led.Format(float64(model), 2, 2, false))
+	readouts.Set("tm-meters", t.metersEl, led.Format(float64(meters), 2, 2, false))
+	readouts.Set("tm-scope", t.scopeEl, led.Format(float64(scope), 2, 2, false))
 	// What is left is the browser's: style, layout, raster, compositing, and
 	// the wasm boundary. Shown because it is usually the largest share and
 	// there is no honesty in three numbers that quietly do not add up to the
 	// frame they came out of.
-	rest := timingStats.avg() - model - meters - scope
+	rest := t.stats.avg() - model - meters - scope
 	if rest < 0 {
 		rest = 0
 	}
-	readouts.Set("tm-rest", timingRestEl, led.Format(float64(rest), 2, 2, false))
+	readouts.Set("tm-rest", t.restEl, led.Format(float64(rest), 2, 2, false))
 }
 
 // wireTimingModule finds the readouts. Called once from Run.
-func wireTimingModule() {
-	timingFpsEl = dom.Doc.Call("getElementById", "tm-fps-led")
-	timingFrameEl = dom.Doc.Call("getElementById", "tm-frame-led")
-	timingMinEl = dom.Doc.Call("getElementById", "tm-min-led")
-	timingMaxEl = dom.Doc.Call("getElementById", "tm-max-led")
-	timingLateEl = dom.Doc.Call("getElementById", "tm-late-led")
-	timingModelEl = dom.Doc.Call("getElementById", "tm-model-led")
-	timingMetersEl = dom.Doc.Call("getElementById", "tm-meters-led")
-	timingScopeEl = dom.Doc.Call("getElementById", "tm-scope-led")
-	timingRestEl = dom.Doc.Call("getElementById", "tm-rest-led")
+func (t *timingPanel) wireTimingModule() {
+	t.fpsEl = dom.Doc.Call("getElementById", "tm-fps-led")
+	t.frameEl = dom.Doc.Call("getElementById", "tm-frame-led")
+	t.minEl = dom.Doc.Call("getElementById", "tm-min-led")
+	t.maxEl = dom.Doc.Call("getElementById", "tm-max-led")
+	t.lateEl = dom.Doc.Call("getElementById", "tm-late-led")
+	t.modelEl = dom.Doc.Call("getElementById", "tm-model-led")
+	t.metersEl = dom.Doc.Call("getElementById", "tm-meters-led")
+	t.scopeEl = dom.Doc.Call("getElementById", "tm-scope-led")
+	t.restEl = dom.Doc.Call("getElementById", "tm-rest-led")
 }

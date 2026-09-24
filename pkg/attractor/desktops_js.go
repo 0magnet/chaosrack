@@ -11,32 +11,38 @@ import (
 	"syscall/js"
 )
 
-// Four 3-D desktops, reproduced.
-//
-// "The only window manager with a 3-D scene" would have been a nice claim and
-// it is not true: people have been putting windows in three dimensions since
-// 2003, and the good ideas are theirs. These are reproductions of four of them,
-// over a desk whose wallpaper happens to be an attractor being integrated.
-//
-// WHAT MAKES THIS POSSIBLE IS CSS 3-D TRANSFORMS, and it is worth saying why
-// after the trouble taken elsewhere. A window cannot be drawn into the WebGL
-// scene, because a window is not only its pane: the title, the buttons and the
-// border are DOM, and DOM cannot be sampled into a texture. But DOM can be
-// TRANSFORMED. rotateY on an element is a real perspective projection performed
-// by the compositor, the element stays live, and the browser hit-tests it at
-// the place it appears — so a window tilted forty degrees is still a window you
-// can type into. That is the same trick Metisse played on X11 in 2004, by
-// redirecting windows to offscreen pixmaps and texturing them; here the browser
-// does the redirection and there is nothing to texture.
-//
-// So these are not pictures of the originals. The windows are real, the shells
-// in them are running, and the tilted ones still take the keyboard.
-var (
-	deskStyle    = deskFlat
-	deskTicking  bool
-	deskTickFunc js.Func
-	deskCubeYaw  float64 // degrees, the cube's rotation about Y
-)
+// desktops is the four 3-D desktops' shared state.
+type desktops struct {
+	// Four 3-D desktops, reproduced.
+	//
+	// "The only window manager with a 3-D scene" would have been a nice claim and
+	// it is not true: people have been putting windows in three dimensions since
+	// 2003, and the good ideas are theirs. These are reproductions of four of them,
+	// over a desk whose wallpaper happens to be an attractor being integrated.
+	//
+	// WHAT MAKES THIS POSSIBLE IS CSS 3-D TRANSFORMS, and it is worth saying why
+	// after the trouble taken elsewhere. A window cannot be drawn into the WebGL
+	// scene, because a window is not only its pane: the title, the buttons and the
+	// border are DOM, and DOM cannot be sampled into a texture. But DOM can be
+	// TRANSFORMED. rotateY on an element is a real perspective projection performed
+	// by the compositor, the element stays live, and the browser hit-tests it at
+	// the place it appears — so a window tilted forty degrees is still a window you
+	// can type into. That is the same trick Metisse played on X11 in 2004, by
+	// redirecting windows to offscreen pixmaps and texturing them; here the browser
+	// does the redirection and there is nothing to texture.
+	//
+	// So these are not pictures of the originals. The windows are real, the shells
+	// in them are running, and the tilted ones still take the keyboard.
+	style         string
+	ticking       bool
+	tickFunc      js.Func
+	cubeYaw       float64 // degrees, the cube's rotation about Y
+	gesturesWired bool
+}
+
+var desks = desktops{
+	style: deskFlat,
+}
 
 // buildDeskStyleSelect fills the selector from the tables above.
 //
@@ -44,7 +50,7 @@ var (
 // the same five things that no compiler checks against each other — the same
 // shape as the category tooltip that had quietly stopped mentioning Maps. One
 // list now, in Go, and the markup is an empty select.
-func buildDeskStyleSelect() {
+func (de *desktops) buildDeskStyleSelect() {
 	sel := dom.Doc.Call("getElementById", "desk-style")
 	if !sel.Truthy() {
 		return
@@ -59,7 +65,7 @@ func buildDeskStyleSelect() {
 		}
 		sel.Call("appendChild", o)
 	}
-	sel.Set("value", deskStyle)
+	sel.Set("value", de.style)
 	// A rotary with a name readout, like the phosphor selector, rather than the
 	// bare dropdown this used to be. Five named options is exactly the case
 	// that knob is for — too many for a label ring, too few to need a list —
@@ -85,11 +91,11 @@ func deskWindows() []js.Value {
 }
 
 // setDeskStyle switches desktops.
-func setDeskStyle(s string) {
+func (de *desktops) setDeskStyle(s string) {
 	if _, ok := deskStyleLabel[s]; !ok {
 		s = deskFlat
 	}
-	deskStyle = s
+	de.style = s
 	clearDeskTransforms()
 	teardownCube()
 
@@ -110,13 +116,13 @@ func setDeskStyle(s string) {
 	}
 
 	if s == deskCube {
-		buildCube()
+		de.buildCube()
 	}
 	if s == deskBump {
 		seedBump()
 	}
-	deskStyleTick() // one frame immediately, so switching is not a wait
-	setDeskTicking(s != deskFlat)
+	de.styleTick() // one frame immediately, so switching is not a wait
+	de.setDeskTicking(s != deskFlat)
 }
 
 // setDeskTicking starts or stops the per-frame loop.
@@ -125,25 +131,25 @@ func setDeskStyle(s string) {
 // arrangements — they are reapplied when something changes, not sixty times a
 // second — but they share the loop because a window can be opened, moved or
 // focused at any time and there is no event for "winbox restacked".
-func setDeskTicking(on bool) {
-	if on == deskTicking {
+func (de *desktops) setDeskTicking(on bool) {
+	if on == de.ticking {
 		return
 	}
-	deskTicking = on
+	de.ticking = on
 	if !on {
 		return
 	}
-	if !deskTickFunc.Truthy() {
-		deskTickFunc = dom.FuncOf(func(js.Value, []js.Value) interface{} {
-			if !deskTicking {
+	if !de.tickFunc.Truthy() {
+		de.tickFunc = dom.FuncOf(func(js.Value, []js.Value) interface{} {
+			if !de.ticking {
 				return nil
 			}
-			deskStyleTick()
-			js.Global().Call("requestAnimationFrame", deskTickFunc)
+			de.styleTick()
+			js.Global().Call("requestAnimationFrame", de.tickFunc)
 			return nil
 		})
 	}
-	js.Global().Call("requestAnimationFrame", deskTickFunc)
+	js.Global().Call("requestAnimationFrame", de.tickFunc)
 }
 
 func clearDeskTransforms() {
@@ -162,12 +168,12 @@ func clearDeskTransforms() {
 	}
 }
 
-func deskStyleTick() {
-	switch deskStyle {
+func (de *desktops) styleTick() {
+	switch de.style {
 	case deskGlass:
 		tickGlass()
 	case deskCube:
-		tickCube()
+		de.tickCube()
 	case deskMetisse:
 		tickMetisse()
 	case deskBump:
@@ -222,7 +228,7 @@ func isFlipped(w js.Value) bool { return w.Get("__lgFlipped").Truthy() }
 // single click on focus and the drag on moving.
 func flipDeskWindow(w js.Value) {
 	w.Set("__lgFlipped", !isFlipped(w))
-	deskStyleTick()
+	desks.styleTick()
 }
 
 func ensureBackFace(w js.Value) {
@@ -269,13 +275,13 @@ func removeBackFace(w js.Value) {
 // make winbox's coordinates meaningless and break dragging; each window is
 // placed on its face by transform alone.
 
-func buildCube()    { deskCubeYaw = 0 }
-func teardownCube() {}
+func (de *desktops) buildCube() { de.cubeYaw = 0 }
+func teardownCube()             {}
 
 // faceOf assigns a window to a workspace. Round-robin by open order, which is
 // what an unconfigured Compiz did with new windows too.
 
-func tickCube() {
+func (de *desktops) tickCube() {
 	wins := deskWindows()
 	if len(wins) == 0 {
 		return
@@ -305,11 +311,11 @@ func tickCube() {
 		// front face arrives magnified.
 		st.Set("transform", fmt.Sprintf(
 			"translateZ(%.0fpx) rotateY(%.2fdeg) translateZ(%.0fpx)",
-			-cubeRadius, deskCubeYaw+face, cubeRadius))
+			-cubeRadius, de.cubeYaw+face, cubeRadius))
 
 		// Faces past the edge dim rather than vanish, so a spin reads as one
 		// object turning instead of windows blinking out.
-		rel := math.Mod(math.Abs(deskCubeYaw+face), 360)
+		rel := math.Mod(math.Abs(de.cubeYaw+face), 360)
 		if rel > 180 {
 			rel = 360 - rel
 		}
@@ -339,9 +345,9 @@ func deskFloor() float64 {
 
 // spinCube turns the cube by d degrees. Bound to the arrow keys while the cube
 // desktop is on, which is what Compiz used (with ctrl+alt held).
-func spinCube(d float64) {
-	deskCubeYaw = math.Mod(deskCubeYaw+d, 360)
-	deskStyleTick()
+func (de *desktops) spinCube(d float64) {
+	de.cubeYaw = math.Mod(de.cubeYaw+d, 360)
+	de.styleTick()
 }
 
 // --- Metisse, 2004 ---
@@ -395,7 +401,7 @@ func metisseTurn(w js.Value, dx, dy float64) {
 	ry = clampDeg(ry+dx*0.4, 75)
 	w.Set("__mtRX", rx)
 	w.Set("__mtRY", ry)
-	deskStyleTick()
+	desks.styleTick()
 }
 
 // --- BumpTop, 2009 ---
@@ -537,18 +543,16 @@ func bumpSign(w js.Value) float64 {
 // already using, so each is qualified twice: by the desktop being on, and by
 // the style that owns it being selected.
 
-var deskGesturesWired bool
-
-func wireDeskGestures() {
-	if deskGesturesWired {
+func (de *desktops) wireDeskGestures() {
+	if de.gesturesWired {
 		return
 	}
-	deskGesturesWired = true
+	de.gesturesWired = true
 
 	// Looking Glass: turn a window over. A double click, because winbox has
 	// already spent the single one on focus and the drag on moving.
 	dom.Doc.Call("addEventListener", "dblclick", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
-		if deskStyle != deskGlass || len(a) == 0 {
+		if de.style != deskGlass || len(a) == 0 {
 			return nil
 		}
 		// The TITLE BAR only. Anywhere-in-the-window would mean a double
@@ -570,7 +574,7 @@ func wireDeskGestures() {
 	var turning js.Value
 	var lastX, lastY float64
 	dom.Doc.Call("addEventListener", "mousedown", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
-		if deskStyle != deskMetisse || len(a) == 0 || !a[0].Get("shiftKey").Truthy() {
+		if de.style != deskMetisse || len(a) == 0 || !a[0].Get("shiftKey").Truthy() {
 			return nil
 		}
 		w := closestWinbox(a[0].Get("target"))
@@ -601,7 +605,7 @@ func wireDeskGestures() {
 	// binding here is — a focused input, select or textarea keeps its arrows,
 	// which is what lets a terminal in one of these windows still work.
 	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
-		if deskStyle != deskCube || len(a) == 0 {
+		if de.style != deskCube || len(a) == 0 {
 			return nil
 		}
 		// A KNOB UNDER THE POINTER OWNS THE ARROWS. Both bindings are on the
@@ -625,9 +629,9 @@ func wireDeskGestures() {
 		}
 		switch e.Get("key").String() {
 		case "ArrowLeft":
-			spinCube(-90.0 / 12)
+			de.spinCube(-90.0 / 12)
 		case "ArrowRight":
-			spinCube(90.0 / 12)
+			de.spinCube(90.0 / 12)
 		default:
 			return nil
 		}

@@ -114,8 +114,8 @@ func Run() {
 	// appends the panel inline below the footer's own content (cart links
 	// stay clickable) — and boots docked there. The ▣ button returns to it
 	// after re-docking or floating.
-	hostFooter = existingFooter
-	standalonePanel = true
+	layout.hostFooter = existingFooter
+	layout.standalone = true
 	shell.Call("appendChild", panel)
 	// Parsed into a scratch element and moved across, NOT assigned to the
 	// shell's innerHTML: the panel is already built and wired by this point,
@@ -129,12 +129,12 @@ func Run() {
 		}
 	}
 	dom.Body.Call("appendChild", shell)
-	wireDockButtons()
-	initDockResize()
-	if hostFooter.Truthy() && !ForceStandalonePanel {
-		applyDock("footer")
+	layout.wireDockButtons()
+	layout.initDockResize()
+	if layout.hostFooter.Truthy() && !ForceStandalonePanel {
+		layout.applyDock("footer")
 	} else {
-		applyDock(readDockPref())
+		layout.applyDock(layout.readDockPref())
 	}
 	// Initial panel visibility: ?panel= query param wins over the Go var
 	// so a shareable URL can invite users to open (or close) the panel.
@@ -221,7 +221,7 @@ func Run() {
 			quantizeModuleWidths()
 			// positionDockControls is gone: the cluster is placed by CSS off the
 			// shell edge and needs no refitting.
-			positionResizeHandle()
+			layout.positionResizeHandle()
 		} else {
 			st.Set("display", "none")
 			cl.Call("remove", "panel-raised")
@@ -251,7 +251,7 @@ func Run() {
 			// Size moved to its own Style module so this stays compact.
 			sr.Set("title", "Step × — coarse step-size multiplier for every parameter knob")
 			fr.Set("title", "Fine × — fine-trim step as a fraction of one coarse step")
-			stepFine := stackKnobs(makeSelectorKnob(sr), makeSelectorKnob(fr))
+			stepFine := stackKnobs(selk.makeSelectorKnob(sr), selk.makeSelectorKnob(fr))
 			addSelectorLabels(stepFine, []string{".25", ".5", "1", "2", "5"}, sr)
 			addSelectorLabels(stepFine, []string{"1", ".1", ".01", ".001"}, fr)
 			holder.Call("appendChild", stepFine)
@@ -305,7 +305,7 @@ func Run() {
 					// Outer = knob style (labeled ring). Inner = LED color: a ring of
 					// colored dots (one per option in its own LED color), the selected
 					// one highlighted.
-					stStack := stackKnobs(makeSelectorKnob(st, styleKnobRot), makeSelectorKnob(lc))
+					stStack := stackKnobs(selk.makeSelectorKnob(st, styleKnobRot), selk.makeSelectorKnob(lc))
 					addSelectorLabelsRot(stStack, []string{"std", "flat", "vint", "chrm", "gold", "carb"}, st, styleKnobRot) // labels staggered off the LED dots; pointer offset to match
 					addSelectorDotLabels(stStack, dotCols, lc, 36)                                                           // ring just outside the style knob, inside its text labels
 					kh.Call("appendChild", stStack)
@@ -399,7 +399,7 @@ func Run() {
 		}))
 		applyKS := func() {
 			if v, err := strconv.ParseFloat(ks.Get("value").String(), 64); err == nil {
-				setKScale(v)
+				layout.setKScale(v)
 			}
 		}
 		ks.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -410,7 +410,7 @@ func Run() {
 		// otherwise honor the Size knob's default.
 		if s, ok := lsGet("wasmstuff-kscale"); ok {
 			if v, err := strconv.ParseFloat(s, 64); err == nil && v > 0 {
-				setKScale(v)
+				layout.setKScale(v)
 			} else {
 				applyKS()
 			}
@@ -458,7 +458,7 @@ func Run() {
 		adoptDescControl(ControlDesc{
 			ID: "desk-style", Label: "style", IsSelect: true, SelectDef: deskFlat,
 			ResetID:     "rst-desk-style",
-			SelectApply: setDeskStyle,
+			SelectApply: desks.setDeskStyle,
 		})
 	}
 	wireColorAndViewControls()
@@ -645,7 +645,7 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 	dom.Doc.Call("getElementById", "auto-rotate").Set("checked", true)
 	dom.Doc.Call("getElementById", "use-points").Set("checked", false)
 	dom.Doc.Call("getElementById", "show-info").Set("checked", false)
-	hideInfoWindow()
+	info.hideInfoWindow()
 	persistTrail = false
 	dom.Doc.Call("getElementById", "persist-trail").Set("checked", false)
 	// The source and map rings are registry-owned, so the loop above has already
@@ -818,7 +818,7 @@ func applyHostPageTweaks() {
 	// (&rot / &drag), in which case that must win so a shared still-view link is
 	// restored faithfully. Must run AFTER the rotation-controls-x/y/z elements
 	// are created and queried.
-	if !hashPinnedPose {
+	if !perma.hashPinnedPose {
 		// Flat scope modes (Pong, Fourier Text) boot face-on (their mode-entry
 		// sync normalized the pose) rather than in a random pose.
 		if !isFlatScope(selectedMode) {
@@ -826,13 +826,13 @@ func applyHostPageTweaks() {
 		}
 		// randomizeOrientation zeroed the rate sliders — put back any spin
 		// rates the permalink explicitly pinned (&rx/&ry/&rz).
-		for ax, v := range hashPinnedSpin {
+		for ax, v := range perma.hashPinnedSpin {
 			if sl := dom.Doc.Call("getElementById", "rotation-controls-"+ax); sl.Truthy() {
 				sl.Set("value", v)
 				sl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 			}
 		}
-		if len(hashPinnedSpin) > 0 {
+		if len(perma.hashPinnedSpin) > 0 {
 			syncKnobs()
 		}
 	} else {
@@ -856,7 +856,7 @@ func applyHostPageTweaks() {
 	// randomized pose/spin for an initial #spectrogram load (mode switches
 	// go through onModeChange, which already handles this).
 	if isTexturePlane(selectedMode) {
-		setSpectrogramCamera()
+		spect.setSpectrogramCamera()
 	}
 
 	// Nothing to re-apply here any more. This used to put auto-rotate's Y-rate
@@ -872,13 +872,13 @@ func registerOutputControls() {
 	// pair), plus output level. The MAP ring is wired in buildSonifyModule.
 	adoptDescControl(ControlDesc{ID: "sonify-freq", Label: "trace", Min: 0, Max: float64(genSemitones), Step: 1, Def: 24,
 		PermaKey: "sf", LEDID: "sonify-led", ResetID: "rst-sonify-freq",
-		Apply:       func(v float64) { sonifyHz = freqFromKnob(v) },
+		Apply:       func(v float64) { son.hz = freqFromKnob(v) },
 		SliderToVal: sonifyFreqFromSlider,
 		ValToSlider: sonifySliderFromFreq,
 		LEDMin:      genFreqLo, LEDMax: genFreqHi, LEDStep: 1})
 	adoptDescControl(ControlDesc{ID: "sonify-lvl", Label: "lvl", Min: 0, Max: 100, Step: 1, Def: 60,
 		PermaKey: "sv", LEDID: "sonify-lvl-led", ResetID: "rst-sonify-lvl",
-		Apply: func(v float64) { sonifyLevel = v / 100 }})
+		Apply: func(v float64) { son.level = v / 100 }})
 
 	// View spin rates: the last controls on the legacy wiring path. Reset
 	// also zeroes the axis ANGLE state and rebuilds the matrices (parity
@@ -955,10 +955,10 @@ func registerViewControls() {
 	// deliberate and is why neither clamps against the other.
 	adoptDescControl(ControlDesc{ID: "sweep-lo", Label: "from", Min: 0, Max: 1, Step: 0.01, Def: 0,
 		PermaKey: "wl", LEDID: "slider-value-swlo", ResetID: "rst-swlo",
-		Apply: func(v float64) { sweepLo = float32(v) }})
+		Apply: func(v float64) { grid.sweepLo = float32(v) }})
 	adoptDescControl(ControlDesc{ID: "sweep-hi", Label: "to", Min: 0, Max: 1, Step: 0.01, Def: 1,
 		PermaKey: "wh", LEDID: "slider-value-swhi", ResetID: "rst-swhi",
-		Apply: func(v float64) { sweepHi = float32(v) }})
+		Apply: func(v float64) { grid.sweepHi = float32(v) }})
 	adoptDescControl(ControlDesc{ID: "rainbow-freq", Label: "period", Min: 0.05, Max: 20, Step: 0.05, Def: 1,
 		PermaKey: "rf", LEDID: "slider-value-rfreq", ResetID: "rst-rfreq",
 		Apply: func(v float64) { gradientFreq = float32(v) }})
@@ -1016,12 +1016,12 @@ func registerViewControls() {
 func wireColorAndViewControls() {
 
 	// Event: twin-trajectory switch + λ readout.
-	wireTwinSwitch()
+	twin.wireTwinSwitch()
 	// Event: Poincaré-section switch.
-	wireSectSwitch()
-	wireViewGridDial()
-	wireViewLinkSwitches()
-	wireSweepDial()
+	sect.wireSectSwitch()
+	grid.wireViewGridDial()
+	grid.wireViewLinkSwitches()
+	grid.wireSweepDial()
 
 	// Event: persist trail checkbox
 	dom.Doc.Call("getElementById", "persist-trail").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -1035,9 +1035,9 @@ func wireColorAndViewControls() {
 	// taller than the screen scrolls, and one in the way can be moved.
 	dom.Doc.Call("getElementById", "show-info").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		if dom.Doc.Call("getElementById", "show-info").Get("checked").Bool() {
-			showInfoWindow()
+			info.showInfoWindow()
 		} else {
-			hideInfoWindow()
+			info.hideInfoWindow()
 		}
 		return nil
 	}))
@@ -1074,7 +1074,7 @@ func wireColorAndViewControls() {
 				gradientSource = n
 				// The focused view keeps it, so the two halves can be
 				// colored differently. See views_js.go.
-				noteGradientSource(n)
+				grid.noteGradientSource(n)
 			}
 			// The source decides whether the map ring and the swatches apply at
 			// all — OFF leaves nothing to map — so this has to refresh the dimming
@@ -1096,7 +1096,7 @@ func wireColorAndViewControls() {
 		SelectApply: func(v string) {
 			if n, err := strconv.Atoi(v); err == nil {
 				gradientColors = n
-				noteGradientColors(n)
+				grid.noteGradientColors(n)
 			}
 			updateGradientUI()
 		},
@@ -1136,7 +1136,7 @@ func wirePanelSwitches() {
 			if selectedMode != "custom" {
 				preCustomMode = selectedMode // remember where to return
 			}
-			seedCustomFromMode(preCustomMode)
+			custom.seedCustomFromMode(preCustomMode)
 			s.Set("value", "custom")
 		} else {
 			back := preCustomMode
@@ -1165,8 +1165,8 @@ func wirePanelSwitches() {
 	// already take any source. The mesh does not care what is on it.
 	if sk := dom.Doc.Call("getElementById", "skin-visual"); sk.Truthy() {
 		sk.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
-			skinSource = sk.Get("value").String()
-			skinDirty = true
+			skin.source = sk.Get("value").String()
+			skin.dirty = true
 			generateForMode(selectedMode)
 			buildParamPanel(selectedMode) // the Spectro module arrives and leaves with it
 			return nil
@@ -1257,7 +1257,7 @@ func wirePanelSwitches() {
 	// Event: Meters switch — show/hide the top-left audio feature meters.
 	dom.Doc.Call("getElementById", "show-meters").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		metersEnabled = dom.Doc.Call("getElementById", "show-meters").Get("checked").Bool()
-		updateMetersVisibility()
+		af.updateMetersVisibility()
 		return nil
 	}))
 
@@ -1265,7 +1265,7 @@ func wirePanelSwitches() {
 	// with no server or mic (so audio modulation / spectrogram / xy work on the
 	// static site). Toggle + waveform + sweep-rate.
 	dom.Doc.Call("getElementById", "fg-on").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		setFuncGen(dom.Doc.Call("getElementById", "fg-on").Get("checked").Bool())
+		aud.setFuncGen(dom.Doc.Call("getElementById", "fg-on").Get("checked").Bool())
 		return nil
 	}))
 	buildGeneratorModule()
@@ -1277,23 +1277,23 @@ func wirePanelSwitches() {
 	// Same reason, for the same elements: the visibility observer holds the
 	// ones it was given, and a rebuilt panel's are not those.
 	invalidateOnScreen()
-	wireDistortionModule()
-	wireLoudnessModule()
-	wireWowFlutterModule()
-	buildSonifyModule()
-	wireCounterModule()
-	wireTimingModule()
+	thd.wireDistortionModule()
+	lufs.wireLoudnessModule()
+	wow.wireWowFlutterModule()
+	son.buildModule()
+	counter.wireCounterModule()
+	tpanel.wireTimingModule()
 	wireMeterClocks()
 	// The analyzers move off this thread if the browser will have them; see
 	// metersclient_js.go. Nothing downstream depends on whether it worked.
-	startMetersWorker()
+	mc.startMetersWorker()
 	// The control surface, reachable from outside the page; see rackctl_js.go.
 	exposeRackControl()
-	wireAnalysisModule()
+	lyap.wireAnalysisModule()
 	buildEnvModule()
-	wireKeysModule()
-	wireTonematrixModule()
-	wireRhythmModule()
+	keys.wireKeysModule()
+	tm.wireTonematrixModule()
+	rhy.wireRhythmModule()
 	wirePresetModule()
 	buildDemoModules()
 
@@ -1327,16 +1327,16 @@ func wirePanelSwitches() {
 	// Event: ring-trail switch — beam model on/off (re-primes on enable).
 	if rs := dom.Doc.Call("getElementById", "ring-sw"); rs.Truthy() {
 		rs.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
-			ringOn = rs.Get("checked").Bool()
-			ringInvalidate()
+			ring.on = rs.Get("checked").Bool()
+			ring.invalidate()
 			return nil
 		}))
 	}
 
 	// Events: in-app recorder, jam mode, WebMIDI.
-	wireRecordSwitch()
+	rec.wireRecordSwitch()
 	wireRegionSwitch()
-	wireRecordModule()
+	recmod.wireRecordModule()
 	initDeskMonitor()
 	wireJamSwitch()
 	wireMIDISwitch()
@@ -1359,7 +1359,7 @@ func wirePanelSwitches() {
 	}
 
 	// Event: which of the four 3-D desktops the desk wears.
-	buildDeskStyleSelect()
+	desks.buildDeskStyleSelect()
 }
 
 // wireExtraNav puts the host page's own navigation into the Console, and
@@ -1417,11 +1417,11 @@ func initDrawState() {
 	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, gpu.vbuf)
 	glctx.GL.Call("bindBuffer", glctx.Types.ElementArrayBuffer, gpu.ibuf)
 	gpu.setupShaders()
-	setupTexShaders()
+	texp.setupTexShaders()
 	setupMatrices()
 	generateForMode(selectedMode)
 	if isTexturePlane(selectedMode) {
-		setSpectrogramCamera()
+		spect.setSpectrogramCamera()
 	} else {
 		view.autoFitCamera()
 	}
@@ -1446,9 +1446,9 @@ func wireViewGridStack() {
 	// The sweep dial: what varies across the grid. Its options are the
 	// current mode's own parameters, so building it is a function the
 	// mode change calls too rather than a block written out here.
-	setSweepTargets(selectedMode)
-	buildSweepDial()
-	buildRackScope() // the rack scope's own dials, independent of the model
+	grid.setSweepTargets(selectedMode)
+	grid.buildSweepDial()
+	rscope.buildRackScope() // the rack scope's own dials, independent of the model
 	if clk := dom.Doc.Call("getElementById", "color-lock"); clk.Truthy() {
 		if ch := dom.Doc.Call("getElementById", "colorlock-stack"); ch.Truthy() {
 			cstack := soloKnob(clk)
@@ -1467,7 +1467,7 @@ func wireViewGridStack() {
 // last left, in the order the restore requires.
 func buildRackAndRestore() {
 	// category rows' rotaries included.
-	initSelKnobDrag()
+	selk.initSelKnobDrag()
 	// The saved arrangement goes back BEFORE the switches are built: the rack
 	// builds each one checked or not from its own hidden set, so restoring
 	// afterward gives a switch that says a module is in while it is out.
@@ -1808,7 +1808,7 @@ func buildPanelKnobs() {
 
 	if sf := dom.Doc.Call("getElementById", "spect-fill"); sf.Truthy() {
 		sf.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
-			spectFill = sf.Get("checked").Bool()
+			spect.fill = sf.Get("checked").Bool()
 			return nil
 		}))
 	}
@@ -1820,7 +1820,7 @@ func buildPanelKnobs() {
 // in the order those two have to happen in.
 func capturePermalinkAndRestore() {
 	// state so the current view is always shareable.
-	capturePermaDefaults()
+	perma.capturePermaDefaults()
 	// Between the two on purpose. After capturePermaDefaults, or a module this
 	// browser has open would be recorded as that switch's pristine value and
 	// then left out of every link shared from this session. Before
@@ -1829,7 +1829,7 @@ func capturePermalinkAndRestore() {
 	restoreConsoleModuleSwitches()
 	applyStateFromHash()
 	wireConsoleModuleSwitchSaves()
-	startPermalinkSync()
+	perma.startPermalinkSync()
 
 	// Final tooltip pass now that every selector (gradient / model / style) is
 	// built — some are created after the first buildParamPanel's annotate.

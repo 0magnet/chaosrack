@@ -89,12 +89,12 @@ func updateInfoOverlay() {
 	// screen — whether it closes, drifts or screws away — which the static
 	// description cannot say.
 	if selectedMode == "turtle" {
-		if label := turtleShapeLabel(); label != "" {
+		if label := turtle.shapeLabel(); label != "" {
 			text += "\n\n" + label
 		}
 	}
 	overlay.Set("textContent", text)
-	updateInfoTitle() // a window left open while the model changes says which one it describes
+	info.updateInfoTitle() // a window left open while the model changes says which one it describes
 }
 
 // updatePhysVisibility shows the Physics switch only where there is something
@@ -163,13 +163,13 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 	// New mode means fresh geometry — force an upload on the next
 	// uploadBuffersIndexed for static modes, and a skin-mesh rebuild.
 	gpu.staticDirty = true
-	skinDirty = true
+	skin.dirty = true
 	// The Takens mode measures τ once when it first has audio to measure, and
 	// entering the mode is what "first" means. The source may also have been
 	// swapped while the mode was away, leaving a measurement of a signal that
 	// is no longer playing.
-	takensArmAutoMeasure()
-	wfallArmFit()
+	emb.armAutoMeasure()
+	wfall.armFit()
 	resetAttractorState()
 	// The panel rebuild and the four mode-dependent visibility passes, as
 	// one layout.
@@ -202,29 +202,29 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 	armGradientRange()
 	generateForMode(selectedMode)
 	if isTexturePlane(selectedMode) {
-		setSpectrogramCamera()
+		spect.setSpectrogramCamera()
 	} else {
-		restoreAutoRotateAfterSpectrogram()
+		spect.restoreAutoRotateAfterSpectrogram()
 		view.autoFitCamera()
 	}
 	// FVF audio-out follows the mode: resume if re-entering FVF with Listen
 	// on; stop when leaving so no stray audio plays under other models.
 	if selectedMode == "fvf" {
-		if fvfListen {
-			startFVFAudio()
+		if fvf.listen {
+			fvf.startFVFAudio()
 		}
 	} else {
-		stopFVFAudio()
+		fvf.stopFVFAudio()
 	}
 	// Model Out likewise: suspend in modes it can't sonify (geometry,
 	// spectrogram…) instead of streaming zeros ~23×/s, resume in trail modes.
-	sonifyModeSync()
+	son.modeSync()
 	// The model's own row shows it and every other row shows off, whatever
 	// moved the model — this knob, a permalink, a preset, the jam performer.
 	syncCategoryRotaries()
 	// No refreshGradient here. Armed above and taken by the first frame that
 	// actually uploads: scanning now would scan the previous model whenever this
 	// mode's generate has not drawn yet, which is every audio mode.
-	syncPermalinkNow() // reflect the new mode in the URL immediately
+	perma.syncPermalinkNow() // reflect the new mode in the URL immediately
 	return nil
 }

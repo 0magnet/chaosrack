@@ -101,7 +101,7 @@ func wirePresetModule() {
 	if b := dom.Doc.Call("getElementById", "preset-save"); b.Truthy() {
 		b.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 			name := presetNameField()
-			presetStoreWrite(presetStore().Put(name, serializeState()))
+			presetStoreWrite(presetStore().Put(name, perma.serializeState()))
 			// Put the name in the field as well as the list: an unnamed save
 			// used the model's name, and the panel should say which one it
 			// picked rather than leaving the box empty over a preset that now

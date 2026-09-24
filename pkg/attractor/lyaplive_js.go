@@ -43,16 +43,19 @@ const (
 	lyapLiveProbeInterpreted = 256
 )
 
-var (
-	lyapLiveState analysis.LiveLyapunov
-	lyapLiveA     [4]float64 // probe reference
-	lyapLiveB     [4]float64 // probe copy, held d0 away
-	lyapLiveMode  string     // the mode the pair belongs to; "" = unseeded
+// liveLyapunov is the live λ readout: its probe pair, and the mode it is
+// measuring.
+type liveLyapunov struct {
+	state analysis.LiveLyapunov
+	a     [4]float64 // probe reference
+	b     [4]float64 // probe copy, held d0 away
+	mode  string     // the mode the pair belongs to; "" = unseeded
+	el    js.Value   // the readout cell in the parameter grid
+	text  string     // last text written to it
+	trace string     // last text written to the Trace row's LED
+}
 
-	lyapLiveEl    js.Value // the readout cell in the parameter grid
-	lyapLiveText  string   // last text written to it
-	lyapLiveTrace string   // last text written to the Trace row's LED
-)
+var lyapLive liveLyapunov
 
 // lyapLiveSystem answers whether a mode has a continuous flow to measure, and
 // hands back the system if so.
@@ -83,19 +86,19 @@ func lyapLiveSystem(mode string) (dynamics.FlowSys4, bool) {
 // an average across a knob edit would report a system that is no longer
 // running, and would keep reporting it for as long as the old samples
 // outweighed the new ones.
-func lyapLiveInvalidate() { lyapLiveMode = "" }
+func (l *liveLyapunov) invalidate() { l.mode = "" }
 
-func lyapLiveSeed(mode string, sys dynamics.FlowSys4) {
+func (l *liveLyapunov) seed(mode string, sys dynamics.FlowSys4) {
 	ic := dynamics.InitCondFor(mode)
 	// w0, the on-attractor seed, not sys.W(), which is wherever the renderer
 	// has got to. LyapunovForFlow4 makes the same distinction for the same
 	// reason: a fresh trajectory started from the running w is started from a
 	// state that belongs to a different trajectory.
-	lyapLiveA = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W0}
-	lyapLiveB = lyapLiveA
-	lyapLiveB[0] += analysis.LiveD0
-	lyapLiveState.Reset()
-	lyapLiveMode = mode
+	l.a = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W0}
+	l.b = l.a
+	l.b[0] += analysis.LiveD0
+	l.state.Reset()
+	l.mode = mode
 }
 
 // lyapLiveTick advances the probe by one frame's slice and refreshes the
@@ -103,22 +106,22 @@ func lyapLiveSeed(mode string, sys dynamics.FlowSys4) {
 // every mode that has a trajectory at all — the modes it does not reach are
 // the spectrogram surfaces, the recurrence plot and the audio scopes, which
 // are exactly the modes with no exponent to measure.
-func lyapLiveTick(mode string) {
+func (l *liveLyapunov) tick(mode string) {
 	sys, ok := lyapLiveSystem(mode)
 	if !ok {
-		lyapLiveMode = ""
-		lyapLiveShow("")
+		l.mode = ""
+		l.show("")
 		return
 	}
-	if lyapLiveMode != mode {
-		lyapLiveSeed(mode, sys)
+	if l.mode != mode {
+		l.seed(mode, sys)
 	}
 	// The dt the app is ACTUALLY running: the mode's own knob times the Speed
 	// scale. Both belong in it — see pkg/analysis on why the exponent depends
 	// on dt rather than merely being reached sooner or later because of it.
 	dt := sys.Dt() * float64(speedScale)
 	if dt <= 0 {
-		lyapLiveShow(lyapLiveReadout())
+		l.show(l.readout())
 		return
 	}
 	// The same integrator the mode's own render loop uses, chosen the same way
@@ -131,29 +134,29 @@ func lyapLiveTick(mode string) {
 		n = lyapLiveProbeInterpreted
 	}
 	for i := 0; i < n; i++ {
-		step(&lyapLiveA)
-		step(&lyapLiveB)
-		if twinDiverged(lyapLiveA) || twinDiverged(lyapLiveB) {
+		step(&l.a)
+		step(&l.b)
+		if twinDiverged(l.a) || twinDiverged(l.b) {
 			// Reseed AND restart the average. What has been accumulated
 			// belongs to a trajectory that left the attractor, and an
 			// over-modulated system should read "no answer yet" rather than
 			// keep quoting the last one it managed to blow up from.
-			lyapLiveSeed(mode, sys)
+			l.seed(mode, sys)
 			break
 		}
 		var d2 float64
 		for k := 0; k < 4; k++ {
-			e := lyapLiveB[k] - lyapLiveA[k]
+			e := l.b[k] - l.a[k]
 			d2 += e * e
 		}
-		sc, renormed := lyapLiveState.Advance(dt, math.Sqrt(d2))
+		sc, renormed := l.state.Advance(dt, math.Sqrt(d2))
 		if renormed {
 			for k := 0; k < 4; k++ {
-				lyapLiveB[k] = lyapLiveA[k] + (lyapLiveB[k]-lyapLiveA[k])*sc
+				l.b[k] = l.a[k] + (l.b[k]-l.a[k])*sc
 			}
 		}
 	}
-	lyapLiveShow(lyapLiveReadout())
+	l.show(l.readout())
 }
 
 // lyapLiveReadout is the value text, WITHOUT a λ on the front — the panel cell
@@ -166,8 +169,8 @@ func lyapLiveTick(mode string) {
 // its fourth decimal, this one averages over a window three hundred times
 // shorter and can stand behind its second — which is what analysis.LiveMinTime is
 // calibrated to. Printing four here would be printing two digits of noise.
-func lyapLiveReadout() string {
-	lam, ok := lyapLiveState.Lambda()
+func (l *liveLyapunov) readout() string {
+	lam, ok := l.state.Lambda()
 	if !ok {
 		// Not "+0.00". Below the threshold the average is mostly the approach
 		// onto the attractor, and a small number there reads as "periodic" —
@@ -188,11 +191,11 @@ func lyapLiveReadout() string {
 // changed — the exponent drifts in the third decimal every frame, the DOM does
 // not need to hear about that, and a cell that re-renders sixty times a second
 // is unreadable anyway. It is the rule showStereoReadout keeps.
-func lyapLiveShow(s string) {
-	if s != lyapLiveText {
-		lyapLiveText = s
-		if lyapLiveEl.Truthy() {
-			lyapLiveEl.Set("textContent", s)
+func (l *liveLyapunov) show(s string) {
+	if s != l.text {
+		l.text = s
+		if l.el.Truthy() {
+			l.el.Set("textContent", s)
 		}
 	}
 	// The Trace row's LED belongs to the Twin switch and says nothing while
@@ -202,13 +205,13 @@ func lyapLiveShow(s string) {
 	// that is always right. It carries the λ itself, having no label beside
 	// it to say what the number is.
 	t := ""
-	if twinOn && s != "" {
+	if twin.on && s != "" {
 		t = "λ" + s
 	}
-	if t != lyapLiveTrace {
-		lyapLiveTrace = t
-		if twinLambdaEl.Truthy() {
-			twinLambdaEl.Set("textContent", t)
+	if t != l.trace {
+		l.trace = t
+		if twin.lambdaEl.Truthy() {
+			twin.lambdaEl.Set("textContent", t)
 		}
 	}
 }
@@ -217,7 +220,7 @@ func lyapLiveShow(s string) {
 // the grid and not #params, for the reason appendStereoReadout and
 // appendTakensEstimate are: #params stacks below the height-bounded grid and
 // gets clipped by the module's fixed height.
-func appendLyapunovReadout(grid js.Value) {
+func (l *liveLyapunov) appendLyapunovReadout(grid js.Value) {
 	card := dom.Doc.Call("createElement", "div")
 	card.Set("className", "punit")
 
@@ -226,9 +229,9 @@ func appendLyapunovReadout(grid js.Value) {
 	lbl.Set("textContent", "λ")
 	card.Call("appendChild", lbl)
 
-	lyapLiveEl = dom.Doc.Call("createElement", "span")
-	lyapLiveEl.Set("className", "led counter-led")
-	lyapLiveEl.Set("title", "Largest Lyapunov exponent, measured live from a pair of trajectories started "+
+	l.el = dom.Doc.Call("createElement", "span")
+	l.el.Set("className", "led counter-led")
+	l.el.Set("title", "Largest Lyapunov exponent, measured live from a pair of trajectories started "+
 		"a hair apart: how fast two nearby states of THIS system, at these coefficients, separate. "+
 		"Positive is chaos — prediction has a horizon of roughly 1/λ — and the bigger it is the shorter "+
 		"that horizon. About zero is a limit cycle or a torus. Negative is settling to a fixed point. "+
@@ -241,9 +244,9 @@ func appendLyapunovReadout(grid js.Value) {
 	// rebuilt on every mode change and every module toggle, and the
 	// write-on-change guard would otherwise skip the fresh cell as unchanged
 	// and leave it empty until the value happened to move.
-	lyapLiveText = ""
-	lyapLiveEl.Set("textContent", lyapLiveReadout())
-	card.Call("appendChild", lyapLiveEl)
+	l.text = ""
+	l.el.Set("textContent", l.readout())
+	card.Call("appendChild", l.el)
 
 	grid.Call("appendChild", card)
 }
