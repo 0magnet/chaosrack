@@ -3,7 +3,7 @@
 package attractor
 
 // Building the three containers: the frame, the units in it, and the
-// openings the plug-in modules go in. rackunit.go says which module lands
+// openings the plug-in modules go in. pkg/racksurface says which module lands
 // in which unit; this puts them there.
 //
 // The frame is .rack. A unit is .runit, which carries its ears and rails
@@ -21,6 +21,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/racksurface"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -284,7 +285,7 @@ func relayoutUnits() {
 	for _, it := range items {
 		slots = append(slots, it.Slots)
 	}
-	units := packBySection(items, unitCapacitySlots(), bayMonitorSlots)
+	units := packBySection(items, racksurface.UnitCapacity(), bayMonitorSlots)
 
 	// Make the frame hold exactly that many subrack units, before any
 	// instrument unit. Reused rather than rebuilt: recreating them every
@@ -328,7 +329,7 @@ func relayoutUnits() {
 		}
 		// A rack does not have a ragged gap at the end of a row; it has
 		// blank panels, cut to the same widths.
-		for b := unitBlankSlots(slots, idx, unitCapacitySlots()); b > 0; b-- {
+		for b := racksurface.BlankSlots(slots, idx, racksurface.UnitCapacity()); b > 0; b-- {
 			open.Call("appendChild", unitBlank())
 		}
 	}
@@ -584,7 +585,7 @@ func unitEarWidthPx() float64 {
 // module along and not to this row.
 func unitOpeningWidthPx() float64 {
 	pitch := (moduleSlot + moduleGap) * panelScale
-	return float64(unitCapacitySlots())*pitch - moduleGap*panelScale
+	return float64(racksurface.UnitCapacity())*pitch - moduleGap*panelScale
 }
 
 // fitFrameToWidth draws the whole rack smaller when the window is narrower

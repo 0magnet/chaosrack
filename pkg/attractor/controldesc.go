@@ -13,7 +13,7 @@ import "github.com/0magnet/chaosrack/pkg/controlspec"
 // What the DOM half does with it (controldesc_js.go) is one way of drawing it:
 // a hidden range input, an LED, a knob, a reset button. A terminal is another,
 // and the rack's layout is already renderable that way — see rackascii.go, and
-// racksection.go, rackunit.go and pkg/rackspec, which have always been pure.
+// racksection.go, pkg/racksurface and pkg/rackspec, which have always been pure.
 // The controls were the last piece still welded to one front end.
 
 // ControlDesc is the single, declarative description of one panel control.
