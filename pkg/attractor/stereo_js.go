@@ -707,7 +707,7 @@ func (s *stereoInst) generate() {
 		// mode's √3 cube-corner extent is the right bound unchanged.
 		s.fitGain = s.gain
 		view.fitOverride = takensFitExtent(s.gain)
-		autoFitCamera()
+		view.autoFitCamera()
 	}
 }
 

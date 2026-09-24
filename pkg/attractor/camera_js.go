@@ -4,23 +4,72 @@ package attractor
 
 import "github.com/go-gl/mathgl/mgl32"
 
-// ── Camera / view state ──────────────────────────────────────────────────────
+// ── Camera ───────────────────────────────────────────────────────────────────
 
-var (
-	rotationX, rotationY, rotationZ    float32
-	rotationX1, rotationY1, rotationZ1 float32
-	movMatrix                          mgl32.Mat4
-	tmark                              float32
+// camera is where a view is watched from and how the model is turned in it.
+type camera struct {
+	// initDist and defaultDist are the fitted camera distance: what the view
+	// opens at, and what the zoom control returns to.
+	initDist, defaultDist float32
 
-	// Absolute orientation angles (radians) — the source of truth for the
-	// model's pose. The "digital-potentiometer" rotation knobs set these
-	// directly (position); the X/Y/Z rate sliders and auto-rotate advance
-	// them over time. movMatrix is rebuilt from them every frame (see
-	// rebuildModelMatrix), so a held angle stays put and a spinning one is
-	// just the angle marching. Mirrors Glen's 3D projective unit, whose
-	// front-panel pots set absolute X/Y angles shown on 7-seg displays.
+	// angleX, angleY and angleZ are the absolute orientation in radians —
+	// the source of truth for the model's pose. The "digital-potentiometer"
+	// rotation knobs set them directly; the X/Y/Z rate sliders and
+	// auto-rotate advance them over time. modelMat is rebuilt from them every
+	// frame (see view.rebuildModelMatrix), so a held angle stays put and a
+	// spinning one is just the angle marching. Mirrors Glen's 3D projective
+	// unit, whose front-panel pots set absolute X/Y angles shown on 7-seg
+	// displays.
 	angleX, angleY, angleZ float32
-)
+
+	// panX and panY shift the whole scene laterally on screen — the
+	// oscilloscope X/Y position controls. Offsetting eye and center together
+	// keeps the view direction fixed, so the object slides by (panX, panY)
+	// regardless of its rotation.
+	panX, panY float32
+
+	modelMat mgl32.Mat4 // ball.orient · the euler pose; see rebuildModelMatrix
+	viewMat  mgl32.Mat4 // the look-at; the textured program is fed it too
+
+	ball trackball
+	ctl  cameraControls
+}
+
+// trackball is the mouse/touch drag orientation. It is composed OUTSIDE the
+// euler pose, so a drag stays screen-aligned whatever the knob and spin
+// angles are; folding it into the angles coupled badly with tilt.
+type trackball struct {
+	orient mgl32.Mat4
+
+	// The drag session: the canvas center and radius, whether the grab began
+	// near the periphery (z-roll rather than x/y-tilt), and where the pointer
+	// was last.
+	cx, cy, r    float64
+	zMode        bool
+	lastTheta    float64
+	lastX, lastY float32
+}
+
+// cameraControls are the panel's camera controls as last read. The DOM is
+// read only on each control's input event (user interaction, or the
+// synthetic dispatch from wheel-on-input); renderLoop reads these instead of
+// calling parseFloat every frame.
+type cameraControls struct {
+	zoom                float32
+	panX, panY          float32
+	spinX, spinY, spinZ float32
+	autoRotate          bool
+}
+
+// newCamera returns a camera at the distance a view opens at, turning.
+func newCamera() camera {
+	return camera{
+		initDist:    100,
+		defaultDist: 100,
+		ball:        trackball{orient: mgl32.Ident4()},
+		ctl:         cameraControls{autoRotate: true},
+	}
+}
 
 // ── Color state ──────────────────────────────────────────────────────────────
 
@@ -37,20 +86,6 @@ var (
 // number input inside the params div. Set in Run(); called from
 // buildParamPanel after it rebuilds the panel's children.
 var rebindParamWheel func()
-
-// Cached slider values. Read once at startup, then refreshed from
-// the DOM only on the slider's input event (which fires on user
-// interaction OR our synthetic dispatch from wheel-on-input). The
-// renderLoop reads these instead of calling parseFloat per frame —
-// saves ~16 JS roundtrips/frame across the 4 fixed sliders.
-var (
-	cachedZoom float32
-	cachedPanX float32
-	cachedPanY float32
-	cachedRotX float32
-	cachedRotY float32
-	cachedRotZ float32
-)
 
 // ExtraNavHTML lets the host page inject a small HTML snippet into
 // the controls panel (typically a link to a fullscreen-only variant
@@ -92,7 +127,6 @@ var (
 	paused          bool    = false
 	stopped         bool    = false
 	pausedCount     int     = 0
-	autoRotate      bool    = true
 	usePoints       bool    = false
 	persistTrail    bool    = false
 	gradientSource  int     = 2 // gradient parameter source: 0=X,1=Y,2=Z,3=trail
@@ -105,8 +139,6 @@ var (
 	// uploadVerticesOnly just draws the most-recent frac·count points.
 	trailModFrac float32 = 1
 	dragging     bool    = false
-	dragLastX    float32
-	dragLastY    float32
 )
 
 // ── Selection ────────────────────────────────────────────────────────────────
@@ -133,10 +165,7 @@ var preCustomMode string
 // which is a panel decision rather than a rendering one. The state moving
 // here is what makes that decision implementable; it does not make it.
 type viewState struct {
-	// initDist and defaultDist are the fitted camera distance: what the view
-	// opens at, and what the zoom control returns to.
-	initDist    float32
-	defaultDist float32
+	camera
 
 	// fitExtent is how far the model reaches from its center, as measured
 	// the last time the camera was fitted to it. Zero until then. The depth
@@ -152,7 +181,7 @@ type viewState struct {
 
 // newViewState returns a view at the distances the camera opens at.
 func newViewState() *viewState {
-	return &viewState{initDist: 100, defaultDist: 100}
+	return &viewState{camera: newCamera()}
 }
 
 // view is the single on-screen view. A second one is another of these.

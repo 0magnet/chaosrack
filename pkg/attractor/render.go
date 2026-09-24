@@ -13,52 +13,37 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
-// dragMatrix is the camera-relative trackball orientation from mouse/touch
-// drag, composed OUTSIDE the euler pose so drag stays screen-aligned
-// regardless of the knob/spin angles (folding drag into the euler angles
-// coupled badly with tilt). movMatrix = dragMatrix · euler.
-var dragMatrix = mgl32.Ident4()
-
-// Drag session state (canvas center + radius, and whether the grab began
-// near the periphery → z-roll instead of x/y-tilt).
-var (
-	dragCX, dragCY float64
-	dragR          float64
-	dragZMode      bool
-	dragLastTheta  float64
-)
-
-// rebuildModelMatrix reconstructs movMatrix as the camera-relative drag
+// rebuildModelMatrix reconstructs view.modelMat as the camera-relative drag
 // orientation composed with the absolute X/Y/Z euler pose (X→Y→Z order,
 // matching randomizeOrientation). Called every frame and after any direct
 // change (knob, drag, permalink restore).
-func rebuildModelMatrix() {
-	euler := mgl32.HomogRotate3DX(angleX)
-	euler = euler.Mul4(mgl32.HomogRotate3DY(angleY))
-	euler = euler.Mul4(mgl32.HomogRotate3DZ(angleZ))
-	movMatrix = dragMatrix.Mul4(euler)
+func (c *camera) rebuildModelMatrix() {
+	euler := mgl32.HomogRotate3DX(c.angleX)
+	euler = euler.Mul4(mgl32.HomogRotate3DY(c.angleY))
+	euler = euler.Mul4(mgl32.HomogRotate3DZ(c.angleZ))
+	c.modelMat = c.ball.orient.Mul4(euler)
 }
 
 // dragQuatString serializes the trackball-drag orientation as "x,y,z,w" for
 // the permalink (empty when there's no drag). The euler knob angles are saved
 // separately (&rot); this captures the mouse/touch-dragged part so a link or
 // refresh restores the exact pose.
-func dragQuatString() string {
-	if dragMatrix == mgl32.Ident4() {
+func (c *camera) dragQuatString() string {
+	if c.ball.orient == mgl32.Ident4() {
 		return ""
 	}
-	q := mgl32.Mat4ToQuat(dragMatrix)
+	q := mgl32.Mat4ToQuat(c.ball.orient)
 	return permaFmt(q.V[0]) + "," + permaFmt(q.V[1]) + "," + permaFmt(q.V[2]) + "," + permaFmt(q.W)
 }
 
 // setDragQuat restores the trackball orientation from a serialized quaternion.
-func setDragQuat(x, y, z, w float32) {
+func (c *camera) setDragQuat(x, y, z, w float32) {
 	q := mgl32.Quat{W: w, V: mgl32.Vec3{x, y, z}}
 	if q.Len() == 0 {
 		return
 	}
-	dragMatrix = q.Normalize().Mat4()
-	rebuildModelMatrix()
+	c.ball.orient = q.Normalize().Mat4()
+	c.rebuildModelMatrix()
 }
 
 // beginDrag starts a trackball drag at screen (cx,cy): it records the
@@ -67,18 +52,18 @@ func beginDrag(cx, cy float64) {
 	if glctx.Canvas.Truthy() {
 		r := glctx.Canvas.Call("getBoundingClientRect")
 		w, h := r.Get("width").Float(), r.Get("height").Float()
-		dragCX = r.Get("left").Float() + w/2
-		dragCY = r.Get("top").Float() + h/2
-		dragR = math.Min(w, h) / 2
+		view.ball.cx = r.Get("left").Float() + w/2
+		view.ball.cy = r.Get("top").Float() + h/2
+		view.ball.r = math.Min(w, h) / 2
 	}
-	dx, dy := cx-dragCX, cy-dragCY
-	dragZMode = dragR > 0 && math.Hypot(dx, dy) > 0.65*dragR
-	dragLastTheta = math.Atan2(dy, dx)
-	dragLastX, dragLastY = float32(cx), float32(cy)
+	dx, dy := cx-view.ball.cx, cy-view.ball.cy
+	view.ball.zMode = view.ball.r > 0 && math.Hypot(dx, dy) > 0.65*view.ball.r
+	view.ball.lastTheta = math.Atan2(dy, dx)
+	view.ball.lastX, view.ball.lastY = float32(cx), float32(cy)
 	// A rim twist on a figure that has weight spins the FIGURE, not the camera.
 	// The gesture is the one that was already there; with mass in the room there
 	// is a better thing to aim it at.
-	if dragZMode {
+	if view.ball.zMode {
 		turtleSpinBegin()
 	} else {
 		turtleTiltBegin()
@@ -88,30 +73,30 @@ func beginDrag(cx, cy float64) {
 // dragMove applies a trackball step: near the rim it rolls about the
 // camera Z axis (angle swept around center); otherwise it tilts about the
 // camera Y (horizontal) and X (vertical) axes. Camera-relative, so it's
-// pre-multiplied onto dragMatrix.
+// pre-multiplied onto view.ball.orient.
 func dragMove(cx, cy float64) {
 	// Spinning the figure rather than rolling the view: same swept angle, aimed
 	// at the body.
 	if turtleSpinDrag {
-		th := math.Atan2(cy-dragCY, cx-dragCX)
-		d := th - dragLastTheta
+		th := math.Atan2(cy-view.ball.cy, cx-view.ball.cx)
+		d := th - view.ball.lastTheta
 		for d > math.Pi {
 			d -= 2 * math.Pi
 		}
 		for d < -math.Pi {
 			d += 2 * math.Pi
 		}
-		dragLastTheta = th
+		view.ball.lastTheta = th
 		turtleSpinBy(-float32(d))
 		return
 	}
 	// Tilting the figure in three dimensions rather than the camera: same screen
 	// axes a trackball uses, aimed at the object.
 	if turtleTiltDrag {
-		dax := float32((cy - float64(dragLastY)) * 0.01)
-		day := float32((cx - float64(dragLastX)) * 0.01)
+		dax := float32((cy - float64(view.ball.lastY)) * 0.01)
+		day := float32((cx - float64(view.ball.lastX)) * 0.01)
 		turtleTiltMove(dax, day)
-		dragLastX, dragLastY = float32(cx), float32(cy)
+		view.ball.lastX, view.ball.lastY = float32(cx), float32(cy)
 		return
 	}
 	// Camera-RELATIVE trackball that also keeps the X/Y/Z knobs in sync: build the
@@ -122,27 +107,27 @@ func dragMove(cx, cy float64) {
 	// display. (The old code added the drag straight into the euler angles, which
 	// rotate about fixed WORLD axes and so inverted once the model was flipped.)
 	var inc mgl32.Mat4
-	if dragZMode {
-		th := math.Atan2(cy-dragCY, cx-dragCX)
-		d := th - dragLastTheta
+	if view.ball.zMode {
+		th := math.Atan2(cy-view.ball.cy, cx-view.ball.cx)
+		d := th - view.ball.lastTheta
 		for d > math.Pi {
 			d -= 2 * math.Pi
 		}
 		for d < -math.Pi {
 			d += 2 * math.Pi
 		}
-		dragLastTheta = th
+		view.ball.lastTheta = th
 		inc = mgl32.HomogRotate3DZ(-float32(d)) // roll about the screen normal
 	} else {
-		dax := float32((cy - float64(dragLastY)) * 0.01) // vertical drag → pitch about camera X
-		day := float32((cx - float64(dragLastX)) * 0.01) // horizontal drag → yaw about camera Y
+		dax := float32((cy - float64(view.ball.lastY)) * 0.01) // vertical drag → pitch about camera X
+		day := float32((cx - float64(view.ball.lastX)) * 0.01) // horizontal drag → yaw about camera Y
 		inc = mgl32.HomogRotate3DX(dax).Mul4(mgl32.HomogRotate3DY(day))
 	}
-	x, y, z := decomposeXYZ(inc.Mul4(movMatrix)) // apply in the camera frame, re-extract euler
-	angleX, angleY, angleZ = wrapTwoPi(x), wrapTwoPi(y), wrapTwoPi(z)
-	dragMatrix = mgl32.Ident4() // pose now fully in the euler angles
-	dragLastX, dragLastY = float32(cx), float32(cy)
-	rebuildModelMatrix()
+	x, y, z := decomposeXYZ(inc.Mul4(view.modelMat)) // apply in the camera frame, re-extract euler
+	view.angleX, view.angleY, view.angleZ = wrapTwoPi(x), wrapTwoPi(y), wrapTwoPi(z)
+	view.ball.orient = mgl32.Ident4() // pose now fully in the euler angles
+	view.ball.lastX, view.ball.lastY = float32(cx), float32(cy)
+	view.rebuildModelMatrix()
 	updateRotKnobs()
 }
 
@@ -160,25 +145,25 @@ var (
 func setSpinAxis(axis int, v float32) {
 	switch axis {
 	case 0:
-		cachedRotX = v
+		view.ctl.spinX = v
 	case 1:
-		cachedRotY = v
+		view.ctl.spinY = v
 	case 2:
-		cachedRotZ = v
+		view.ctl.spinZ = v
 	}
 }
 
 func addAngleAxis(axis int, d float32) {
 	switch axis {
 	case 0:
-		angleX = wrapTwoPi(angleX + d)
+		view.angleX = wrapTwoPi(view.angleX + d)
 	case 1:
-		angleY = wrapTwoPi(angleY + d)
+		view.angleY = wrapTwoPi(view.angleY + d)
 	case 2:
-		angleZ = wrapTwoPi(angleZ + d)
+		view.angleZ = wrapTwoPi(view.angleZ + d)
 	}
-	rebuildModelMatrix()
-	updateModelMatrix()
+	view.rebuildModelMatrix()
+	view.updateModelMatrix()
 	updateRotKnobs()
 }
 
@@ -190,7 +175,7 @@ func updateRotKnobs() {
 	if !knobsReady {
 		return
 	}
-	angs := [3]float32{angleX, angleY, angleZ}
+	angs := [3]float32{view.angleX, view.angleY, view.angleZ}
 	for i := 0; i < 3; i++ {
 		deg := int(angs[i]*57.2957795+0.5) % 360
 		if deg == lastKnobDeg[i] {
@@ -474,32 +459,26 @@ func setupMatrices() {
 	glctx.GL.Call("useProgram", gpu.program)
 	glctx.GL.Call("uniformMatrix4fv", glctx.GL.Call("getUniformLocation", gpu.program, "Pmatrix"), false, mat4ToTyped(&gpu.proj))
 
-	movMatrix = mgl32.Ident4()
-	updateViewMatrix()
-	updateModelMatrix()
+	view.modelMat = mgl32.Ident4()
+	view.updateViewMatrix()
+	view.updateModelMatrix()
 }
 
 // updateViewMatrix recomputes the camera and uploads it to the attractor
 // program. texProgram receives it separately (useTexProgram reads the
-// pkg-level viewMatrix), so we force the attractor program active here to
+// camera's viewMat), so we force the attractor program active here to
 // keep the upload correct even if a textured draw left texProgram bound.
-// panX/panY shift the whole scene laterally on screen — the oscilloscope
-// X/Y position controls. Offsetting eye and center together keeps the view
-// direction fixed, so the object slides by (panX,panY) regardless of its
-// rotation.
-var panX, panY float32
-
-func updateViewMatrix() {
-	cameraPosition := mgl32.Vec3{-panX, -panY, view.defaultDist}
-	center := mgl32.Vec3{-panX, -panY, 0.0}
-	viewMatrix = mgl32.LookAtV(cameraPosition, center, mgl32.Vec3{0.0, 1.0, 0.0})
+func (c *camera) updateViewMatrix() {
+	cameraPosition := mgl32.Vec3{-c.panX, -c.panY, c.defaultDist}
+	center := mgl32.Vec3{-c.panX, -c.panY, 0.0}
+	c.viewMat = mgl32.LookAtV(cameraPosition, center, mgl32.Vec3{0.0, 1.0, 0.0})
 	glctx.GL.Call("useProgram", gpu.program)
-	glctx.GL.Call("uniformMatrix4fv", gpu.u.view, false, mat4ToTyped(&viewMatrix))
+	glctx.GL.Call("uniformMatrix4fv", gpu.u.view, false, mat4ToTyped(&c.viewMat))
 }
 
-func updateModelMatrix() {
+func (c *camera) updateModelMatrix() {
 	glctx.GL.Call("useProgram", gpu.program)
-	glctx.GL.Call("uniformMatrix4fv", gpu.u.model, false, mat4ToTyped(&movMatrix))
+	glctx.GL.Call("uniformMatrix4fv", gpu.u.model, false, mat4ToTyped(&c.modelMat))
 }
 
 // autoFitCamera fits the camera to what was last uploaded.
@@ -509,7 +488,7 @@ func updateModelMatrix() {
 // whose visible window is only a small arc of a much larger structure
 // (hyper-Rössler), fitting the instantaneous arc left the camera blind for
 // most of the orbit. It is consumed and cleared here.
-func autoFitCamera() {
+func (vs *viewState) autoFitCamera() {
 	if len(gpu.verts) < 3 {
 		return
 	}
@@ -523,20 +502,20 @@ func autoFitCamera() {
 			maxAbs = v
 		}
 	}
-	if view.fitOverride > 0 {
-		maxAbs = view.fitOverride
-		view.fitOverride = 0
+	if vs.fitOverride > 0 {
+		maxAbs = vs.fitOverride
+		vs.fitOverride = 0
 	}
 	// Kept because the depth partition needs to know how deep the model is:
 	// the plane sweeps from just beyond its far side to just in front of its
 	// near one, and that span is this number. See split_js.go.
-	view.fitExtent = maxAbs
+	vs.fitExtent = maxAbs
 	dist := fitDistFor(maxAbs)
-	view.initDist = dist
-	view.defaultDist = dist
+	vs.initDist = dist
+	vs.defaultDist = dist
 	cameraControl.Set("value", "0")
 	sliderZoom.Set("textContent", "0")
-	updateViewMatrix()
+	vs.updateViewMatrix()
 }
 
 // fitDistFor converts a content extent into a camera distance that shows
@@ -718,6 +697,10 @@ func generateForMode(mode string) {
 	sectTick(mode) // Poincaré overlay draws above the finished trail
 }
 
+// tmark is the previous frame's timestamp, which renderLoop measures the
+// frame from.
+var tmark float32
+
 func renderLoop(this js.Value, args []js.Value) interface{} {
 	// The rack scope is its own instrument on its own canvas: it draws
 	// every frame regardless of what the model is doing, and before the
@@ -860,16 +843,16 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 		}
 		// Still allow camera interaction while paused (zoom read
 		// from the Go-side cache instead of parseFloat per frame).
-		zoomVal := cachedZoom
+		zoomVal := view.ctl.zoom
 		newDist := view.initDist - zoomVal
 		if newDist != view.defaultDist {
 			view.defaultDist = newDist
-			updateViewMatrix()
+			view.updateViewMatrix()
 		}
-		// Still allow drag while paused (dragMatrix is updated by the
+		// Still allow drag while paused (view.ball.orient is updated by the
 		// pointer handlers; rebuild+upload so it shows).
-		rebuildModelMatrix()
-		updateModelMatrix()
+		view.rebuildModelMatrix()
+		view.updateModelMatrix()
 		js.Global().Call("requestAnimationFrame", renderFrame)
 		return nil
 	}
@@ -927,13 +910,11 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	beamDrawn := gpu.lastDrawn // what was drawn, which is not always all of `steps`
 	steps = realSteps
 
-	// Slider values come from cachedZoom/RotX/Y/Z, kept in sync by
+	// Slider values come from view.ctl.zoom/RotX/Y/Z, kept in sync by
 	// input listeners in Run(). Eliminates 4 parseFloat round-trips
 	// + 4 textContent writes per frame.
-	zoomVal := cachedZoom
-	rotationX = cachedRotX
-	rotationY = cachedRotY
-	rotationZ = cachedRotZ
+	zoomVal := view.ctl.zoom
+	rotationX, rotationY, rotationZ := view.ctl.spinX, view.ctl.spinY, view.ctl.spinZ
 	// Auto-rotate is added HERE rather than being written into the Y rate
 	// slider. Baking it into the slider made the switch and the rate two
 	// representations of one thing that every code path had to keep in step,
@@ -944,7 +925,7 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	// or added one that was already there (the rate crept +0.1 per reload).
 	// As a separate term there is nothing to keep in sync: the slider holds
 	// only what the user asked for, and the switch means what it says.
-	if autoRotate {
+	if view.ctl.autoRotate {
 		rotationY += autoRotYDelta
 	}
 
@@ -964,11 +945,11 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	}
 	psY := halfH * 2 / 8
 	psX := psY * aspect
-	npx, npy := cachedPanX*psX, cachedPanY*psY
-	if newDist != view.defaultDist || npx != panX || npy != panY {
+	npx, npy := view.ctl.panX*psX, view.ctl.panY*psY
+	if newDist != view.defaultDist || npx != view.panX || npy != view.panY {
 		view.defaultDist = newDist
-		panX, panY = npx, npy
-		updateViewMatrix()
+		view.panX, view.panY = npx, npy
+		view.updateViewMatrix()
 	}
 	// Advance the absolute angles by the per-axis spin rate (the X/Y/Z
 	// rate sliders), scaled by how long the frame actually took so the
@@ -977,25 +958,22 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	// refresh rate a different speed.
 	fs := frameScale(tdiff)
 	if rotationX != 0 {
-		rotationX1 = rotationX / 20 * fs
-		angleX += rotationX1
+		view.angleX += rotationX / 20 * fs
 	}
 	if rotationY != 0 {
-		rotationY1 = rotationY / 20 * fs
-		angleY += rotationY1
+		view.angleY += rotationY / 20 * fs
 	}
 	if rotationZ != 0 {
-		rotationZ1 = rotationZ / 20 * fs
-		angleZ += rotationZ1
+		view.angleZ += rotationZ / 20 * fs
 	}
 
-	angleX = wrapTwoPi(angleX)
-	angleY = wrapTwoPi(angleY)
-	angleZ = wrapTwoPi(angleZ)
-	rebuildModelMatrix()
+	view.angleX = wrapTwoPi(view.angleX)
+	view.angleY = wrapTwoPi(view.angleY)
+	view.angleZ = wrapTwoPi(view.angleZ)
+	view.rebuildModelMatrix()
 	updateRotKnobs()
 
-	updateModelMatrix()
+	view.updateModelMatrix()
 	restoreAudioModulation(viewSaved) // put zoom/pan/spin base values back
 	pausedCount = beamDrawn           // paused CRT keeps showing just the beam
 

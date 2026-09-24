@@ -599,7 +599,7 @@ func wfallDraw() {
 		// how every model here is framed and the zoom is how to fill the width.
 		wfallFitted = true
 		view.fitOverride = span
-		autoFitCamera()
+		view.autoFitCamera()
 	}
 }
 

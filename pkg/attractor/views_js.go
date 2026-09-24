@@ -205,7 +205,7 @@ func wireViewGridDial() {
 		// The camera was fitted to a full-canvas viewport; a cell of a grid
 		// wants a different distance, and the fit is what knows how to pick
 		// one.
-		autoFitCamera()
+		view.autoFitCamera()
 	}
 	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		apply()

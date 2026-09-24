@@ -328,7 +328,7 @@ func buildSpectColumn(mags []float64) []byte {
 func setSpectrogramCamera() {
 	view.initDist = 4.5
 	view.defaultDist = 4.5
-	cachedZoom = 0
+	view.ctl.zoom = 0
 	if cameraControl.Truthy() {
 		cameraControl.Set("value", "0")
 	}
@@ -336,19 +336,19 @@ func setSpectrogramCamera() {
 		sliderZoom.Set("textContent", "0")
 	}
 
-	angleX, angleY, angleZ = 0, 0, 0
-	rebuildModelMatrix()
+	view.angleX, view.angleY, view.angleZ = 0, 0, 0
+	view.rebuildModelMatrix()
 	zeroRotationSliders()
 	updateRotKnobs()
 
 	if !specAutoRotateSaved {
-		specSavedAutoRotate = autoRotate
+		specSavedAutoRotate = view.ctl.autoRotate
 		specAutoRotateSaved = true
 	}
 	clearAutoRotateFlag() // Y spin already zeroed above
 
-	updateViewMatrix()
-	updateModelMatrix()
+	view.updateViewMatrix()
+	view.updateModelMatrix()
 }
 
 // restoreAutoRotateAfterSpectrogram puts auto-rotate back to whatever it

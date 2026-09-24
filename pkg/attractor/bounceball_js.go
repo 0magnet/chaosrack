@@ -201,7 +201,7 @@ func syncBounceExtras(mode string) {
 		dist := fitDistFor(view.fitOverride)
 		view.initDist = dist
 		view.defaultDist = dist
-		updateViewMatrix()
+		view.updateViewMatrix()
 		return
 	}
 	bounceActive = false
