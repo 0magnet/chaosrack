@@ -1,3 +1,5 @@
+// Package equation parses and evaluates the attractor equations a user writes
+// in Custom mode.
 package equation
 
 // A tiny, safe arithmetic-expression engine for the user-editable attractor

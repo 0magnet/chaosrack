@@ -1,3 +1,5 @@
+// Package recurrence computes recurrence plots of a trajectory and their
+// quantification (RQA).
 package recurrence
 
 import (

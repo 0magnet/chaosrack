@@ -1,3 +1,5 @@
+// Package rhythm holds the rhythm section's patterns and the clock arithmetic
+// that plays them.
 package rhythm
 
 // The rhythm section, as the home organs had one.
