@@ -159,3 +159,37 @@ func MapFor(key string) (MapSys, bool) {
 	}
 	return MapSys{}, false
 }
+
+// MapPoints iterates a built-in map with no browser and returns n iterates,
+// split evenly across the map's orbits the way the render loop splits its
+// point budget. It returns nil for a key that is not a built-in map.
+//
+// The transient and the escape guard are the render loop's own: an orbit that
+// escapes restarts from its seed rather than contributing NaNs.
+func MapPoints(key string, n int) [][3]float64 {
+	m, ok := mapSystems[key]
+	if !ok {
+		return nil
+	}
+	orbits := m.Count()
+	per := n / orbits
+	if per < 1 {
+		per = 1
+	}
+	var o Orbits
+	o.Ensure(key, m)
+	out := make([][3]float64, 0, per*orbits)
+	for i := 0; i < orbits; i++ {
+		p := o.At(i)
+		for k := 0; k < per; k++ {
+			nx, ny, nz := m.Step(p[0], p[1], p[2])
+			if !Bounded(nx, ny, nz) {
+				p = m.Start(i, orbits)
+				nx, ny, nz = p[0], p[1], p[2]
+			}
+			p = [3]float64{nx, ny, nz}
+			out = append(out, p)
+		}
+	}
+	return out
+}
