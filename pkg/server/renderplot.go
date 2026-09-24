@@ -18,6 +18,7 @@ import (
 	"github.com/0magnet/chaosrack/pkg/attractor"
 	"github.com/0magnet/chaosrack/pkg/meters"
 	"github.com/0magnet/chaosrack/pkg/recurrence"
+	"github.com/0magnet/chaosrack/pkg/spectcol"
 )
 
 // The audio analyzers, as pictures.
@@ -213,13 +214,13 @@ func plotSpectrogram(x []float32, total int) (*image.RGBA, error) {
 	if len(x) < size {
 		return nil, fmt.Errorf("spectrogram needs at least %d samples", size)
 	}
-	rows := attractor.SpectrogramRows(size)
+	rows := spectcol.Rows(size)
 	cols := (len(x)-size)/step + 1
 	src := image.NewRGBA(image.Rect(0, 0, cols, rows))
 	frame := make([]float32, size)
 	for i := 0; i < cols; i++ {
 		copy(frame, x[i*step:i*step+size])
-		col := attractor.SpectrogramColumn(attractor.SpectrogramMags(frame), rows)
+		col := spectcol.Column(spectcol.Mags(frame), rows)
 		for y := 0; y < rows && len(col) >= rows*4; y++ {
 			src.SetRGBA(i, rows-1-y, color.RGBA{col[y*4], col[y*4+1], col[y*4+2], 255})
 		}

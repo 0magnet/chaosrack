@@ -1,7 +1,7 @@
-package attractor
+package spectcol
 
-// The spectrogram's column mapping, kept out of the wasm-only file so that it
-// can be run on a machine as well as in a browser.
+// The spectrogram's column mapping, kept out of the wasm-only renderer so
+// that it can be run on a machine as well as in a browser.
 //
 // The point of it being here is comparison. audioprism — the C++ original this
 // all descends from — will render a WAV straight to a PNG, deterministically,
@@ -22,16 +22,16 @@ import (
 	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
-// SpectrogramMaxRows caps how tall a column may be.
+// MaxRows caps how tall a column may be.
 //
 // A column carries one row per frequency bin, so an 8192-point transform wants
 // 4096 of them, and the scrolling texture is 2048 columns wide — 32 MB of
 // texture for a picture that no display has the pixels to show. Past this the
 // rows are mapped by frequency onto fewer of them, which is a resampling and is
 // said plainly rather than left to be discovered as a GPU allocation failure.
-const SpectrogramMaxRows = 2048
+const MaxRows = 2048
 
-// SpectrogramRows is how many frequency rows a column carries for a given
+// Rows is how many frequency rows a column carries for a given
 // transform size. It is size/2 — every bin the transform produces and nothing
 // invented — so the bin→row map below is 1:1 at any sample rate and no
 // resampling happens, up to the cap above.
@@ -39,10 +39,10 @@ const SpectrogramMaxRows = 2048
 // audioprism's own core UI carries twice this for the same bins (its map works
 // out to bin = y/2, so each is stored twice); this is that picture without the
 // duplication.
-func SpectrogramRows(dftSize int) int {
+func Rows(dftSize int) int {
 	rows := dftSize / 2
-	if rows > SpectrogramMaxRows {
-		rows = SpectrogramMaxRows
+	if rows > MaxRows {
+		rows = MaxRows
 	}
 	if rows < 1 {
 		rows = 1
@@ -50,7 +50,7 @@ func SpectrogramRows(dftSize int) int {
 	return rows
 }
 
-// SpectrogramColumn maps one frame's FFT magnitudes to a column of RGBA bytes,
+// Column maps one frame's FFT magnitudes to a column of RGBA bytes,
 // bottom row = 0 Hz, top row = Nyquist, colored by audioprism's own scale.
 //
 // The color is sg.MagnitudeToPixel, which applies the configured magnitude
@@ -59,12 +59,12 @@ func SpectrogramRows(dftSize int) int {
 // magnitudes and not in how they were painted. That is what `uitool spec`
 // wants: a reference rendering to compare against, painted the reference way.
 //
-// The browser wants something else, and takes SpectrogramColumnWith below.
-func SpectrogramColumn(mags []float64, rows int) []byte {
-	return SpectrogramColumnWith(mags, rows, sg.MagnitudeToPixel)
+// The browser wants something else, and takes ColumnWith below.
+func Column(mags []float64, rows int) []byte {
+	return ColumnWith(mags, rows, sg.MagnitudeToPixel)
 }
 
-// SpectrogramColumnWith is the same mapping through a color function of the
+// ColumnWith is the same mapping through a color function of the
 // caller's choosing, taking a raw magnitude and returning its pixel.
 //
 // Passed in rather than read from a setting because this file is UNTAGGED and
@@ -74,7 +74,7 @@ func SpectrogramColumn(mags []float64, rows int) []byte {
 // which lives behind a js build tag along with the swatches it mixes, so it
 // cannot be reached from here — and should not be, because the reference
 // rendering must not move when somebody turns a knob.
-func SpectrogramColumnWith(mags []float64, rows int, pixel func(float64) color.Color) []byte {
+func ColumnWith(mags []float64, rows int, pixel func(float64) color.Color) []byte {
 	if len(mags) < 2 || rows < 1 || pixel == nil {
 		return nil
 	}
@@ -98,7 +98,7 @@ func SpectrogramColumnWith(mags []float64, rows int, pixel func(float64) color.C
 	return col
 }
 
-// SpectrogramMags is the magnitude spectrum of one frame, windowed with
+// Mags is the magnitude spectrum of one frame, windowed with
 // whichever window function the settings currently name and transformed the way
 // the live pipeline does it — exported so an offline renderer runs the same
 // arithmetic rather than a lookalike.
@@ -107,6 +107,6 @@ func SpectrogramColumnWith(mags []float64, rows int, pixel func(float64) color.C
 // because that is where the control writes it, and a renderer that took it
 // separately could be asked for one window while the picture was painted with
 // another.
-func SpectrogramMags(frame []float32) []float64 {
+func Mags(frame []float32) []float64 {
 	return meters.ComputeFFTMagsWindow(frame, sg.S.WindowFunc())
 }
