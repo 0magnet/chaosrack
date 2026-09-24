@@ -7,6 +7,7 @@ import (
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/led"
 )
 
 // The Transfer mode — magnitude, phase and coherence between two channels.
@@ -310,7 +311,7 @@ var (
 func showTransferDelay() {
 	s := "-- ms"
 	if ms, ok := TransferDelayMS(xfRes, float64(xfCohF)/10); ok {
-		s = formatLED(ms, 2, 2, true) + "ms"
+		s = led.Format(ms, 2, 2, true) + "ms"
 	}
 	if s == xfDelayTx {
 		return

@@ -3,7 +3,7 @@ package attractor
 // Quantized audio modulation for the COUNT parameters — latitude lines,
 // subdivisions, window lengths, embedding delays, dial positions.
 //
-// Deliberately UNTAGGED, for the same reason ledformat.go is: nothing here
+// Deliberately UNTAGGED, for the same reason pkg/led is: nothing here
 // touches the DOM or GL, and every question it answers ("which whole number is
 // the sound asking for", "is that a real move or a boundary wobble") is a table
 // test. The js/wasm layer above it (audiomod_js.go) only supplies the paramDef

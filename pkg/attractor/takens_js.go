@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/led"
 	"strconv"
 	"syscall/js"
 )
@@ -426,7 +427,7 @@ func takensMeasText() string {
 	if takensMeas.Tau < 1 {
 		return "τ-- m-"
 	}
-	s := "τ" + formatLED(float64(tauMS(takensTau)), 1, 1, false)
+	s := "τ" + led.Format(float64(tauMS(takensTau)), 1, 1, false)
 	if takensMeas.OK {
 		return s + "m" + strconv.Itoa(takensMeas.Dim)
 	}

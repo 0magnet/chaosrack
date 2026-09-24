@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"syscall/js"
 
+	"github.com/0magnet/chaosrack/pkg/led"
 	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
@@ -627,7 +628,7 @@ var (
 func showWaterfallRT() {
 	s := "--- s"
 	if wfallSrcF < 0.5 && wfallRTOK {
-		s = formatLED(wfallRT60, 1, 2, false) + " s"
+		s = led.Format(wfallRT60, 1, 2, false) + " s"
 	}
 	if s == wfallRTTx {
 		return

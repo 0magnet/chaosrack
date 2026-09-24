@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/led"
 	"strconv"
 	"syscall/js"
 )
@@ -77,7 +78,7 @@ func counterTick() {
 	if counterSamples >= int(gate*float64(src.SampleRate())) {
 		// Latch: cycles over the ACTUAL window (sample-exact, not wall time).
 		hz := float64(counterCycles) / (float64(counterSamples) / float64(src.SampleRate()))
-		setLEDText("counter-hz", counterLEDEl, formatLED(hz, 5, 1, false))
+		readouts.Set("counter-hz", counterLEDEl, led.Format(hz, 5, 1, false))
 		counterCycles, counterSamples = 0, 0
 		// The gate lamp toggles at each latch — the classic heartbeat.
 		counterGateOn = !counterGateOn
@@ -109,7 +110,7 @@ func wireCounterModule() {
 	tstack.Call("appendChild", makeKnob(trig, js.Undefined(), true, false, true))
 	// The LED, its typed entry, the wheel nudge and the reset all come from the
 	// descriptor. LEDStep 10 keeps it reading whole percent, which is what it
-	// read before: ledDecimals works from step × fineRatio, so a step of 1 asks
+	// read before: led.Decimals works from step × fineRatio, so a step of 1 asks
 	// for a decimal this value never has.
 	adoptDescControl(ControlDesc{
 		ID: "counter-trig", Label: "trig", Min: 0, Max: 30, Step: 1, Def: 4,

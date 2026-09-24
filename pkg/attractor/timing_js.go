@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/led"
 	"syscall/js"
 	"time"
 )
@@ -98,20 +99,20 @@ func showTiming() {
 			{"tm-meters", timingMetersEl}, {"tm-scope", timingScopeEl},
 			{"tm-rest", timingRestEl},
 		} {
-			setLEDText(p.k, p.e, "  --.-")
+			readouts.Set(p.k, p.e, "  --.-")
 		}
 		return
 	}
-	setLEDText("tm-fps", timingFpsEl, formatLED(float64(timingStats.fps()), 3, 1, false))
-	setLEDText("tm-frame", timingFrameEl, formatLED(float64(timingStats.avg()), 3, 1, false))
-	setLEDText("tm-min", timingMinEl, formatLED(float64(timingStats.min), 3, 1, false))
-	setLEDText("tm-max", timingMaxEl, formatLED(float64(timingStats.max), 3, 1, false))
-	setLEDText("tm-late", timingLateEl, formatLED(float64(timingStats.latePct()), 3, 1, false))
+	readouts.Set("tm-fps", timingFpsEl, led.Format(float64(timingStats.fps()), 3, 1, false))
+	readouts.Set("tm-frame", timingFrameEl, led.Format(float64(timingStats.avg()), 3, 1, false))
+	readouts.Set("tm-min", timingMinEl, led.Format(float64(timingStats.min), 3, 1, false))
+	readouts.Set("tm-max", timingMaxEl, led.Format(float64(timingStats.max), 3, 1, false))
+	readouts.Set("tm-late", timingLateEl, led.Format(float64(timingStats.latePct()), 3, 1, false))
 
 	model, meters, scope := timingBudget.perFrame()
-	setLEDText("tm-model", timingModelEl, formatLED(float64(model), 2, 2, false))
-	setLEDText("tm-meters", timingMetersEl, formatLED(float64(meters), 2, 2, false))
-	setLEDText("tm-scope", timingScopeEl, formatLED(float64(scope), 2, 2, false))
+	readouts.Set("tm-model", timingModelEl, led.Format(float64(model), 2, 2, false))
+	readouts.Set("tm-meters", timingMetersEl, led.Format(float64(meters), 2, 2, false))
+	readouts.Set("tm-scope", timingScopeEl, led.Format(float64(scope), 2, 2, false))
 	// What is left is the browser's: style, layout, raster, compositing, and
 	// the wasm boundary. Shown because it is usually the largest share and
 	// there is no honesty in three numbers that quietly do not add up to the
@@ -120,7 +121,7 @@ func showTiming() {
 	if rest < 0 {
 		rest = 0
 	}
-	setLEDText("tm-rest", timingRestEl, formatLED(float64(rest), 2, 2, false))
+	readouts.Set("tm-rest", timingRestEl, led.Format(float64(rest), 2, 2, false))
 }
 
 // wireTimingModule finds the readouts. Called once from Run.

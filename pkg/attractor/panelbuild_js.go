@@ -9,19 +9,21 @@ import (
 
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
+	"github.com/0magnet/chaosrack/pkg/led"
 	"github.com/0magnet/chaosrack/pkg/racklayout"
 )
 
 // ── UI helpers ───────────────────────────────────────────────────────────────
 
+// readouts puts the meters' and controls' text on their LEDs, skipping
+// writes that would not change them. Rebuilding the panel forgets it.
+var readouts led.Readouts
+
 // sizeLEDField fixes a numeric input's width to the widest value it can show
 // (sign + max integer digits + dot + dec) and right-aligns it, so it never
 // resizes and unsigned/positive values reserve the sign column as a blank.
 func sizeLEDField(el js.Value, min, max float64, dec int, signed bool) {
-	chars := intDigits(max)
-	if d := intDigits(min); d > chars {
-		chars = d
-	}
+	chars := led.IntDigits(min, max)
 	if dec > 0 {
 		chars += 1 + dec // decimal point + fraction
 	}
@@ -77,9 +79,9 @@ func wheelNudge(readout, slider js.Value, step, mn, mx float64) {
 // whatever happens to be playing does. See the fine-trim decision below,
 // which reads the mode's class.
 func buildParamUnit(mode string, p paramDef) js.Value {
-	dec := ledDecimals(float64(p.Step))
+	dec := led.Decimals(float64(p.Step), fineRatio)
 	signed := p.Min < 0
-	intDig := ledIntDigits(float64(p.Min), float64(p.Max))
+	intDig := led.IntDigits(float64(p.Min), float64(p.Max))
 	stepStr := strconv.FormatFloat(float64(p.Step), 'g', -1, 32)
 	minStr := strconv.FormatFloat(float64(p.Min), 'g', -1, 32)
 	maxStr := strconv.FormatFloat(float64(p.Max), 'g', -1, 32)
@@ -240,7 +242,7 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 	// but its parameters are counts in exactly the geometry sense: a modulus, a
 	// multiplier, a term limit and a set of named settings have no fractional
 	// part to trim.
-	fine := decimalsForStep(p.Step) > 0 ||
+	fine := led.StepDecimals(p.Step) > 0 ||
 		(modeInfo[mode].Class != ClassGeometry && mode != "turtle")
 	if sel.Truthy() {
 		ring := paramRingLabels[p.ID]

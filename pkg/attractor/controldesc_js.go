@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/led"
 	"strconv"
 	"syscall/js"
 )
@@ -26,8 +27,8 @@ var builtControls []*Control
 //
 //nolint:unused // the CREATE path of the registry — dormant until modules are built from descriptors
 func buildDescControl(d ControlDesc) (*Control, js.Value) {
-	dec := ledDecimals(d.Step)
-	intDig := ledIntDigits(d.Min, d.Max)
+	dec := led.Decimals(d.Step, fineRatio)
+	intDig := led.IntDigits(d.Min, d.Max)
 
 	slider := dom.Doc.Call("createElement", "input")
 	slider.Set("type", "range")
@@ -103,8 +104,8 @@ func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will
 	if d.LEDMax != 0 {
 		ledMin, ledMax = d.LEDMin, d.LEDMax
 	}
-	dec := ledDecimals(ledStep)
-	intDig := ledIntDigits(ledMin, ledMax)
+	dec := led.Decimals(ledStep, fineRatio)
+	intDig := led.IntDigits(ledMin, ledMax)
 
 	ctl := &Control{
 		module: "", kind: kindGeneric, slider: slider, def: float32(d.Def),

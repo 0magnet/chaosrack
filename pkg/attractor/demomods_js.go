@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/led"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -59,18 +60,18 @@ func buildDemoModules() {
 	}
 	// Launcher: the drop-height pot (initial condition) + the Drop button
 	// that releases from it.
-	if h, led, stack := dom.Doc.Call("getElementById", "bounce-height"),
+	if h, ledEl, stack := dom.Doc.Call("getElementById", "bounce-height"),
 		dom.Doc.Call("getElementById", "bounce-height-led"),
 		dom.Doc.Call("getElementById", "bounce-hstack"); h.Truthy() && stack.Truthy() {
-		led.Set("value", formatLED(fgFloat(h), 1, 2, false))
-		sizeLEDField(led, 0.2, 1, 2, false)
+		ledEl.Set("value", led.Format(fgFloat(h), 1, 2, false))
+		sizeLEDField(ledEl, 0.2, 1, 2, false)
 		stack.Call("appendChild", makeKnob(h, js.Undefined(), true, false, true))
 		h.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-			led.Set("value", formatLED(fgFloat(h), 1, 2, false))
+			ledEl.Set("value", led.Format(fgFloat(h), 1, 2, false))
 			return nil
 		}))
-		led.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-			if v, err := strconv.ParseFloat(led.Get("value").String(), 64); err == nil {
+		ledEl.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+			if v, err := strconv.ParseFloat(ledEl.Get("value").String(), 64); err == nil {
 				h.Set("value", strconv.FormatFloat(v, 'f', 2, 64))
 				h.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 			}

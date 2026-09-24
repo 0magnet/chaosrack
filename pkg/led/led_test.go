@@ -1,17 +1,14 @@
-package attractor
+package led
 
 import (
-	"strings"
 	"testing"
 )
 
-// ledDecimals regression table — includes the two shipped bugs its own
+// Decimals regression table — includes the two shipped bugs its own
 // comment records: float32 round-off inflating the count (0.1 fine-step on a
 // 0.1 coarse step must be 2 places, not 10) and the absolute-tolerance bug
 // that made tiny steps (Aizawa's dt) show 0 places.
 func TestLEDDecimals(t *testing.T) {
-	defer func(f float64) { fineRatio = f }(fineRatio)
-	fineRatio = 0.1
 	cases := []struct {
 		step float64
 		want int
@@ -25,13 +22,13 @@ func TestLEDDecimals(t *testing.T) {
 		{0, 0},
 	}
 	for _, c := range cases {
-		if got := ledDecimals(c.step); got != c.want {
-			t.Errorf("ledDecimals(%v) with fine 0.1 = %d, want %d", c.step, got, c.want)
+		if got := Decimals(c.step, 0.1); got != c.want {
+			t.Errorf("Decimals(%v, 0.1) = %d, want %d", c.step, got, c.want)
 		}
 	}
 }
 
-// formatLED fixed-width contract: zero-padded integer part, fixed decimals,
+// Format fixed-width contract: zero-padded integer part, fixed decimals,
 // sign slot when signed — the LED-clipping class of bug ("only goes to 2048"
 // was a 5-digit value in a 4-digit habit).
 func TestFormatLEDWidth(t *testing.T) {
@@ -52,8 +49,8 @@ func TestFormatLEDWidth(t *testing.T) {
 		{20000, 6, 0, false, "020000"},
 	}
 	for _, c := range cases {
-		if got := formatLED(c.v, c.intDig, c.dec, c.signed); got != c.want {
-			t.Errorf("formatLED(%v,%d,%d,%v) = %q, want %q", c.v, c.intDig, c.dec, c.signed, got, c.want)
+		if got := Format(c.v, c.intDig, c.dec, c.signed); got != c.want {
+			t.Errorf("Format(%v,%d,%d,%v) = %q, want %q", c.v, c.intDig, c.dec, c.signed, got, c.want)
 		}
 	}
 }
@@ -71,22 +68,8 @@ func TestLEDIntDigits(t *testing.T) {
 		{0, 0, 1}, // floor of one digit
 	}
 	for _, c := range cases {
-		if got := ledIntDigits(c.min, c.max); got != c.want {
-			t.Errorf("ledIntDigits(%v,%v) = %d, want %d", c.min, c.max, got, c.want)
+		if got := IntDigits(c.min, c.max); got != c.want {
+			t.Errorf("IntDigits(%v,%v) = %d, want %d", c.min, c.max, got, c.want)
 		}
-	}
-}
-
-// formatParamValue trims trailing zeros so coarse values read cleanly but
-// keeps fine-knob precision visible.
-func TestFormatParamValue(t *testing.T) {
-	if got := formatParamValue(28, 0); got != "28" {
-		t.Errorf("formatParamValue(28,0) = %q, want 28", got)
-	}
-	if got := formatParamValue(2.07, 2); got != "2.07" {
-		t.Errorf("formatParamValue(2.07,2) = %q", got)
-	}
-	if got := formatParamValue(28.00000, 2); strings.Contains(got, ".00000") {
-		t.Errorf("formatParamValue must trim trailing zeros, got %q", got)
 	}
 }
