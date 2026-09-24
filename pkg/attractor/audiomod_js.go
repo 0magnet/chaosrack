@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/colormap"
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/led"
 	"strconv"
@@ -300,8 +301,8 @@ func applyViewModulation() []savedParam {
 			// exactly the failure the reflection exists to avoid, the sweep
 			// jamming against a limit for the loud half of the music while
 			// every fragment holds one color. The wrap is invisible because the
-			// two periods are the same 2 by construction (palettemod_js.go).
-			*vt.ptr = wrapPaletteShift(base + m.level*f*(vt.max-vt.min))
+			// two periods are the same 2 by construction (pkg/colormap).
+			*vt.ptr = colormap.WrapShift(base + m.level*f*(vt.max-vt.min))
 		} else {
 			*vt.ptr = clampF(base+m.level*f*(vt.max-vt.min), vt.min, vt.max)
 		}

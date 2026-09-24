@@ -4,6 +4,7 @@ package attractor
 
 import (
 	_ "embed"
+	"github.com/0magnet/chaosrack/pkg/colormap"
 	"github.com/0magnet/chaosrack/pkg/colorspace"
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
@@ -85,8 +86,8 @@ func updateGradientUI() {
 	// knob when the colormaps gained a shift to slide along it. The shift itself
 	// stays a colormap control: the hue sweep's offset is uGradientPhase, which
 	// already exists and already animates.
-	dim("grp-rainbow", gradientColors != 4 && gradientColors < paletteFirst)
-	dim("grp-pshift", gradientColors < paletteFirst)
+	dim("grp-rainbow", gradientColors != 4 && gradientColors < colormap.First)
+	dim("grp-pshift", gradientColors < colormap.First)
 	// The two rings, dimmed when the model on screen cannot use them.
 	//
 	// Both rules now fall out of what the knobs MEAN rather than being special

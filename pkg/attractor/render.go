@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/colormap"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
@@ -333,7 +334,7 @@ var fragShaderCode = `
 			// a routed shift spends most of its travel pinned at an end with
 			// every fragment the same color. Turning back at each end keeps the
 			// color field continuous and the sweep alive at any depth. See
-			// palettemod_js.go; foldPalette01 there is this same expression,
+			// pkg/colormap; Fold there is this same expression,
 			// and its test is what holds the two together.
 			pt = abs(pt - 2.0 * floor(pt * 0.5 + 0.5));
 			color = texture2D(uPalette, vec2(pt, 0.5)).rgb;
@@ -633,7 +634,7 @@ func generateForMode(mode string) {
 		// actually selected — the upload is skipped on the palettes that do not
 		// sample it, and a failed build falls back to the two-color mix rather
 		// than sampling a texture that is not there.
-		if !ensurePaletteTexture(gradientColors) && gradientColorsUniform() >= paletteFirst {
+		if !ensurePaletteTexture(gradientColors) && gradientColorsUniform() >= colormap.First {
 			glctx.GL.Call("uniform1i", uGradientColorsLoc, 2)
 		}
 		updateDashFromPointCount(lastDrawnCount)
@@ -643,7 +644,7 @@ func generateForMode(mode string) {
 		// The colormap window's other half. Uploaded beside the period it pairs
 		// with rather than under a "is this a colormap" test: the branch that
 		// reads it is in the shader already, and a second copy of that
-		// condition here is a second thing to keep in step with paletteFirst.
+		// condition here is a second thing to keep in step with colormap.First.
 		// Read AFTER applyViewModulation (which runs before generateForMode
 		// gets here), so a shift routed from audio lands on this frame rather
 		// than the next one — the same ordering the rainbow period depends on.

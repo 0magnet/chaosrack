@@ -3,7 +3,7 @@
 package attractor
 
 import (
-	"image/color"
+	"github.com/0magnet/chaosrack/pkg/colormap"
 	"testing"
 )
 
@@ -12,62 +12,8 @@ import (
 // thing on both knobs; if one list grows and the other does not, the knobs
 // silently disagree and the colors stop being comparable between the displays.
 func TestPaletteListMatchesTheSpectrogramsList(t *testing.T) {
-	if len(paletteFns) != len(spectColNames) {
-		t.Fatalf("%d trace colormaps against %d spectrogram ones: %v", len(paletteFns), len(spectColNames), spectColNames)
-	}
-}
-
-// paletteIndex is what the shader branch and the texture build both key off,
-// so its boundaries have to be exact: one below the first map must not resolve,
-// and one past the last must not either.
-func TestPaletteIndexBoundaries(t *testing.T) {
-	for _, gc := range []int{0, 1, 2, 3, 4} {
-		if _, ok := paletteIndex(gc); ok {
-			t.Errorf("uGradientColors %d resolved to a colormap; 1..4 are the mix palettes", gc)
-		}
-	}
-	for i := range paletteFns {
-		gc := paletteFirst + i
-		got, ok := paletteIndex(gc)
-		if !ok || got != i {
-			t.Errorf("uGradientColors %d gave (%d,%v), want (%d,true)", gc, got, ok, i)
-		}
-	}
-	if _, ok := paletteIndex(paletteFirst + len(paletteFns)); ok {
-		t.Error("one past the last colormap resolved; the texture build would index out of range")
-	}
-}
-
-// Every colormap has to actually vary across its range. A constant one is not
-// a colormap, and it fails silently — the figure just comes out one color,
-// which looks like the gradient being broken rather than the palette.
-func TestEveryColormapVariesAcrossItsRange(t *testing.T) {
-	for i, fn := range paletteFns {
-		lo, hi := fn(0), fn(1)
-		lr, lg, lb, _ := lo.RGBA()
-		hr, hg, hb, _ := hi.RGBA()
-		if lr == hr && lg == hg && lb == hb {
-			t.Errorf("colormap %d (%s) gives the same color at 0 and 1", i, spectColNames[i])
-		}
-	}
-}
-
-// Out-of-range input must clamp. Not every colormap in the library does it
-// for itself — ValueToPixelGrayscale is uint8(255.0*value) with no guard, so
-// 2.0 converts to a uint8 that is darker than the color at 1.0 rather than
-// equal to it — so the wrapper this file builds the texture through has to.
-func TestPaletteColorAtClampsAtTheEnds(t *testing.T) {
-	for i := range paletteFns {
-		ur, ug, ub, _ := paletteColorAt(i, -1).RGBA()
-		lr, lg, lb, _ := paletteColorAt(i, 0).RGBA()
-		or, og, ob, _ := paletteColorAt(i, 2).RGBA()
-		hr, hg, hb, _ := paletteColorAt(i, 1).RGBA()
-		if ur != lr || ug != lg || ub != lb {
-			t.Errorf("colormap %d (%s) at -1 is not its color at 0", i, spectColNames[i])
-		}
-		if or != hr || og != hg || ob != hb {
-			t.Errorf("colormap %d (%s) at 2 is not its color at 1", i, spectColNames[i])
-		}
+	if colormap.Len() != len(spectColNames) {
+		t.Fatalf("%d trace colormaps against %d spectrogram ones: %v", colormap.Len(), len(spectColNames), spectColNames)
 	}
 }
 
@@ -134,29 +80,4 @@ func TestPointCountDegenerateInputsStaySolid(t *testing.T) {
 		}
 	}
 	pointCount = 0
-}
-
-// The hue position of the map ring sweeps the spectrum on the spectrogram as
-// it does on the trace. It painted the spectrogram solid red while the trace
-// was a rainbow: this took its hue from a 0..1 value and handed it to an HSV
-// conversion that counted in degrees, so every value landed in the first
-// sixtieth of the red sector.
-func TestTheHueMapSweepsTheSpectrumOnTheSpectrogram(t *testing.T) {
-	defer func(c int, f float32) { gradientColors, gradientFreq = c, f }(gradientColors, gradientFreq)
-	gradientColors, gradientFreq = 4, 1
-	for _, c := range []struct {
-		v       float64
-		r, g, b uint8
-	}{
-		{0, 255, 0, 0},
-		{1.0 / 3, 0, 255, 0},
-		{0.5, 0, 255, 255},
-		{2.0 / 3, 0, 0, 255},
-	} {
-		got := color.RGBAModel.Convert(mapColorAt(c.v)).(color.RGBA)
-		near := func(a, b uint8) bool { return int(a)+2 >= int(b) && int(b)+2 >= int(a) }
-		if !near(got.R, c.r) || !near(got.G, c.g) || !near(got.B, c.b) {
-			t.Errorf("mapColorAt(%.3f) = %d,%d,%d, want %d,%d,%d", c.v, got.R, got.G, got.B, c.r, c.g, c.b)
-		}
-	}
 }
