@@ -318,7 +318,7 @@ func TestPolarMapSelClampsWhateverModulationDoes(t *testing.T) {
 	}
 }
 
-// The color source has to know about this mode. audioColorWindow returns a
+// The color source has to know about this mode. acolor.window returns a
 // per-position window only for modes whose vertices carry aTrailT = m/(nv−1),
 // and this one's do; a mode that fills the attribute that way and is NOT listed
 // falls through to a flat fill, which with the gradient following the sound can

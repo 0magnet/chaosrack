@@ -215,7 +215,7 @@ var onScreen = screenObserver{
 	vis: map[string]bool{},
 }
 
-// onScreenObserver is the observer, or a zero Value where there is none.
+// observer is the observer, or a zero Value where there is none.
 func (s *screenObserver) observer() js.Value {
 	if s.tried {
 		return s.obs
@@ -270,7 +270,7 @@ func (s *screenObserver) moduleOnScreen(id string) bool {
 	return vis
 }
 
-// measureOnScreen is the real answer, read out of layout. The fallback path,
+// measure is the real answer, read out of layout. The fallback path,
 // and the seed for a target the observer has not reported on yet.
 func (s *screenObserver) measure(id string) bool {
 	if c, ok := s.at[id]; ok && frameNowMs-c.at < onScreenEveryMs && c.at != 0 {
@@ -293,7 +293,7 @@ func (s *screenObserver) measure(id string) bool {
 		r.Get("right").Float() > 0 && r.Get("left").Float() < w
 }
 
-// invalidateOnScreen forgets every cached answer AND every target, for a
+// invalidate forgets every cached answer AND every target, for a
 // panel that has been rebuilt: the elements the observer holds are then
 // detached, and watching them would report on markup nobody can see.
 func (s *screenObserver) invalidate() {

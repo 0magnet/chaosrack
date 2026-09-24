@@ -162,7 +162,7 @@ func turtleHit(clientX, clientY float64, stride int) (step int, depth float32, o
 	return t.dropped + found, bestDepth, true
 }
 
-// turtleGrabBegin takes hold, if the press was on the figure. It reports
+// grabBegin takes hold, if the press was on the figure. It reports
 // whether it did, so the caller knows not to start turning the view.
 func (t *turtleGrab) grabBegin(clientX, clientY float64) bool {
 	if !turtleGrabbable() {
@@ -180,7 +180,7 @@ func (t *turtleGrab) grabBegin(clientX, clientY float64) bool {
 	return true
 }
 
-// turtleGrabMove aims the hand at wherever the cursor has got to, on the plane
+// grabMove aims the hand at wherever the cursor has got to, on the plane
 // the figure was picked at — so dragging moves it across the screen rather than
 // pushing it away from or toward the eye.
 func (t *turtleGrab) grabMove(clientX, clientY float64) {
@@ -208,7 +208,7 @@ func (t *turtleGrab) grabEnd() {
 	setCanvasCursor("")
 }
 
-// turtleGrabHover is the affordance: over the figure the cursor becomes a hand,
+// grabHover is the affordance: over the figure the cursor becomes a hand,
 // so the two things a drag can do are visible before committing to one.
 func (t *turtleGrab) grabHover(clientX, clientY float64) {
 	if t.grabState.held || dragging {
@@ -284,7 +284,7 @@ func (b *turtleBody) grabForce(t *turtleWalk, pts []pisano.Pt3, mass float32) (f
 	return fx, fy, rx*fy - ry*fx
 }
 
-// turtleTiltBegin claims a middle drag for the figure.
+// tiltBegin claims a middle drag for the figure.
 func (t *turtleGrab) tiltBegin() bool {
 	if !turtleGrabbable() || turtle.state == nil {
 		return false
@@ -294,7 +294,7 @@ func (t *turtleGrab) tiltBegin() bool {
 	return true
 }
 
-// turtleTiltMove turns the figure about the screen axes.
+// tiltMove turns the figure about the screen axes.
 func (t *turtleGrab) tiltMove(dax, day float32) {
 	if !t.tiltDrag || turtle.state == nil {
 		return
@@ -310,7 +310,7 @@ func (t *turtleGrab) tiltEnd() {
 	setCanvasCursor("")
 }
 
-// turtleSpinBegin claims a rim drag for the figure, if there is a figure with
+// spinBegin claims a rim drag for the figure, if there is a figure with
 // weight to claim it. Reports whether it did.
 func (t *turtleGrab) spinBegin() bool {
 	if !turtleGrabbable() || turtle.state == nil {
@@ -322,7 +322,7 @@ func (t *turtleGrab) spinBegin() bool {
 	return true
 }
 
-// turtleSpinBy turns the held figure by d radians and gives it the matching
+// spinBy turns the held figure by d radians and gives it the matching
 // angular velocity, so releasing mid-twist lets go of a spinning object rather
 // than a stopped one.
 //

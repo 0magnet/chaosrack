@@ -33,7 +33,7 @@ type freqCounter struct {
 
 var counter freqCounter
 
-// counterTick runs every frame from the render loop. It drains the shared
+// tick runs every frame from the render loop. It drains the shared
 // source into the cycle counter and latches the readout each time the gate
 // window's worth of samples has been counted.
 func (f *freqCounter) tick() {

@@ -160,7 +160,7 @@ func (l *lyapunovProbe) syncAnalysisModule(mode string) {
 	}
 }
 
-// lyapInvalidate is the parameter-edit path: the exponent belongs to the
+// invalidate is the parameter-edit path: the exponent belongs to the
 // coefficients that produced it, so an edited knob makes it stale. Debounced
 // generously — a knob drag fires this continuously.
 func (l *lyapunovProbe) invalidate() {

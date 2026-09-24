@@ -89,7 +89,7 @@ func tmMidiFor(row int) int {
 
 // buildTMGrid (re)renders the pad grid for the current step count and root:
 // column-major spans so the playhead is one class toggle per step. Pads keep
-// their pattern state across rebuilds (it lives in tmPat, not the DOM).
+// their pattern state across rebuilds (it lives in tm.pat, not the DOM).
 func (to *tonematrix) buildTMGrid() {
 	grid := dom.Doc.Call("getElementById", "tm-grid")
 	if !grid.Truthy() {
@@ -211,7 +211,7 @@ func (to *tonematrix) setPad(c, r int, on bool) {
 	}
 }
 
-// tmSetPH moves the playhead highlight to col (-1 = off).
+// setPH moves the playhead highlight to col (-1 = off).
 func (to *tonematrix) setPH(col int) {
 	if to.phCol == col {
 		return
@@ -227,9 +227,9 @@ func (to *tonematrix) setPH(col int) {
 
 // ── Voice engine ─────────────────────────────────────────────────────────
 
-// tmEnsureGraph acquires the shared context (call from a user gesture so
+// ensureGraph acquires the shared context (call from a user gesture so
 // the autoplay policy lets it start) and lazily builds master gain → panner.
-// The context it acquired is tmCtx, which stays unset if the acquire failed.
+// The context it acquired is tm.ctx, which stays unset if the acquire failed.
 func (to *tonematrix) ensureGraph() {
 	ctx := acquireAudioCtx("tmx")
 	if !ctx.Truthy() {
@@ -245,7 +245,7 @@ func (to *tonematrix) ensureGraph() {
 	to.updateRouting()
 }
 
-// tmUpdateRouting pushes the out ring + level knob into the master chain.
+// updateRouting pushes the out ring + level knob into the master chain.
 func (to *tonematrix) updateRouting() {
 	if !to.master.Truthy() {
 		return
@@ -274,7 +274,7 @@ func tmStepDur() float64 {
 	return 60 / bpm / 4
 }
 
-// tmScheduleCol sounds every lit pad in the column at ctx time t: a short
+// scheduleCol sounds every lit pad in the column at ctx time t: a short
 // ping (fast attack, exponential decay) per pad, fire-and-forget nodes.
 func (to *tonematrix) scheduleCol(c int, t float64) {
 	w, _ := strconv.Atoi(dom.Doc.Call("getElementById", "tm-wave").Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
@@ -315,7 +315,7 @@ func (to *tonematrix) scheduleCol(c int, t float64) {
 	}
 }
 
-// tmTick runs every frame from the render loop: schedule columns a small
+// tick runs every frame from the render loop: schedule columns a small
 // lookahead ahead of the audio clock, and advance the playhead as each
 // scheduled column's time arrives. A long gap (hidden tab froze rAF)
 // resynchronizes instead of racing to catch up.

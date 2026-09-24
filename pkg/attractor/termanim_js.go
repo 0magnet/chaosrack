@@ -64,7 +64,7 @@ var anim = termAnim{
 // texture that says nothing about where it came from.
 const animDefault = "matrix"
 
-// ensureTermAnim mounts the demo named by animPick, replacing whatever was
+// ensureTermAnim mounts the demo named by anim.pick, replacing whatever was
 // running. It returns false when there is nothing to draw.
 func (t *termAnim) ensureTermAnim() bool {
 	if t.session != nil && t.running == t.pick {

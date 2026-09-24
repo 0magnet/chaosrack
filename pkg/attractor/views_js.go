@@ -120,7 +120,7 @@ func gridEdges(total, n int) ([][2]int, bool) {
 // The projection has to be per view: a half-width viewport is half the
 // aspect ratio, and reusing the full-canvas matrix draws a figure stretched
 // to twice its width inside it. gpu.proj is a package variable that
-// texProgram also reads, so it is restored by the caller running the full
+// texp.program also reads, so it is restored by the caller running the full
 // rect last.
 func setViewport(r [4]int) {
 	glctx.GL.Call("viewport", r[0], r[1], r[2], r[3])
@@ -196,7 +196,7 @@ func (vi *viewGrid) wireViewGridDial() {
 			vi.focused = 0
 		}
 		// The focus dial has one position per cell, so it is rebuilt
-		// with the grid — before refocus, which reads viewFocus.
+		// with the grid — before refocus, which reads grid.focused.
 		vi.buildFocusDial()
 		refocus()
 		// After the rebuild, or the marking goes onto rows that are
@@ -482,7 +482,7 @@ var viewCountNames = []string{
 
 var viewCountRing = []string{"1", "2", "4", "9", "16"}
 
-// viewN is how many cells are drawn.
+// n is how many cells are drawn.
 func (vi *viewGrid) n() int {
 	i := clampSel(vi.countF, len(viewCounts)-1)
 	return viewCounts[i]

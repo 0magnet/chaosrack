@@ -152,7 +152,7 @@ func (me *metersClient) sendMetersConfig(sr int) {
 	me.w.Call("postMessage", m)
 }
 
-// metersWorkerArrays are the buffers the blocks cross in, grown rather than
+// workerArrays are the buffers the blocks cross in, grown rather than
 // reallocated: a fresh pair per block is two finalized js.Values a block.
 func (me *metersClient) workerArrays(n int) bool {
 	if me.wCap >= n && me.wl.Truthy() {
@@ -168,7 +168,7 @@ func (me *metersClient) workerArrays(n int) bool {
 	return true
 }
 
-// metersWorkerTick drains the tap and hands the audio over. Returns false if
+// workerTick drains the tap and hands the audio over. Returns false if
 // the worker is not carrying the analyzers, so the caller runs its own.
 func (me *metersClient) workerTick() bool {
 	if !me.wReady || !me.w.Truthy() {

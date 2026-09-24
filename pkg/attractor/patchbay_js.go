@@ -9,7 +9,7 @@ package attractor
 // sources (stereo / left / right energy), columns are every routable
 // destination of the current mode (its float parameters plus the view/motion
 // targets). A pin toggles the route (default depth 0.4); the mouse wheel on a
-// lit pin adjusts depth. It reads and writes the SAME paramMods map as the
+// lit pin adjusts depth. It reads and writes the SAME pmod.params map as the
 // per-parameter MOD knobs — two views of one routing state, so edits in
 // either stay consistent (the panel rebuilds on pin edits).
 //

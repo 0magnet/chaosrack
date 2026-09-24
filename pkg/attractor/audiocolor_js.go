@@ -89,7 +89,7 @@ var acolor = audioColor{
 var (
 
 	// audioColorFeature names the global feature used to fill the table flat
-	// when the trail is not a time axis. Any key afFeat carries works;
+	// when the trail is not a time axis. Any key af.feat carries works;
 	// centroid is the default because it is the one that means "brightness"
 	// and so maps to color without needing to be explained.
 	audioColorFeature = "centroid"
@@ -302,7 +302,7 @@ func (a *audioColor) updateAudioColorLUT(mode string) {
 	a.fillAudioColorLUTFlat(af.feat[audioColorFeature])
 }
 
-// audioColorWindow returns the audio the current mode's trail was drawn
+// window returns the audio the current mode's trail was drawn
 // from, in trail order, or nil when the trail is not a time axis.
 //
 // Takens is the case this exists for: its vertices carry aTrailT = m/(nv-1),
@@ -341,7 +341,7 @@ func (a *audioColor) window(mode string) ([]float32, int) {
 	if rn == 0 || emb.w < span+1 {
 		return nil, 0 // not enough audio yet; the flat fill is the honest answer
 	}
-	// Its own buffer, not takensScratch: that one is the per-frame DRAIN
+	// Its own buffer, not emb.scratch: that one is the per-frame DRAIN
 	// buffer, and borrowing it here would overwrite samples on their way into
 	// the ring.
 	if cap(a.win) < n {
@@ -360,7 +360,7 @@ func (a *audioColor) window(mode string) ([]float32, int) {
 // a bare 4 in two files is how those two drift apart.
 const gradientSourceAudio = 4
 
-// stereoColorWindow is audioColorWindow for the Stereo Embedding.
+// stereoColorWindow is acolor.window for the Stereo Embedding.
 //
 // It qualifies for the same reason Takens does: its vertices carry
 // aTrailT = m/(nv−1), a straight ramp across the displayed window, so slot k of

@@ -192,7 +192,7 @@ func (ph *phosphorState) crtLook() bool {
 	return isScopeMode(run.selectedMode) || ph.crtMode
 }
 
-// phosphorActive: a phosphor is selected AND we're drawing a CRT/scope look.
+// active: a phosphor is selected AND we're drawing a CRT/scope look.
 func (ph *phosphorState) active() bool {
 	return ph.index > 0 && ph.index < len(phosphors) && ph.crtLook()
 }

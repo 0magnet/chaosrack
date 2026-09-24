@@ -17,11 +17,11 @@ import (
 // for later.
 //
 // The skinned model is a filled, UV-mapped triangle mesh drawn through
-// texProgram, so it rotates/zooms/auto-rotates via the normal render path.
+// texp.program, so it rotates/zooms/auto-rotates via the normal render path.
 
 // skinSurface is the surface the spectrogram skin is painted on.
 type skinSurface struct {
-	// skinSource is WHICH picture is painted on the surface: "" for none, or
+	// skin.source is WHICH picture is painted on the surface: "" for none, or
 	// "spectrogram", "terminal" or "desk".
 	//
 	// It was a switch, and a switch could only mean the spectrogram. But the skin
@@ -58,7 +58,7 @@ func (s *skinSurface) renderSkinnedMode(mode string, nowMs float64) {
 	texp.drawTexturedMesh(s.vBuf, s.iBuf, s.idxCount, tex, offset)
 }
 
-// skinTexture is the picture to paint and how far it has scrolled.
+// texture is the picture to paint and how far it has scrolled.
 //
 // THE OFFSET IS THE SPECTROGRAM'S ALONE. Its texture is a ring buffer written
 // one column at a time, so the seam has to be walked round as it fills;

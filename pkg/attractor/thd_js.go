@@ -58,7 +58,7 @@ type distortion struct {
 	periodMs                        float64
 	cursor                          int
 	win                             meters.SlidingWindow // the newest thdWindow samples
-	buf                             []float32            // thdWin laid out in order, for the analyzer
+	buf                             []float32            // thd.win laid out in order, for the analyzer
 	nextMs                          float64
 	res                             meters.DistortionResult
 	led, thdnLED, sinadLED, enobLED js.Value
@@ -73,7 +73,7 @@ var thd = distortion{
 	harmF:    10,
 }
 
-// thdTick accumulates audio and runs the measurement when its period is up.
+// tick accumulates audio and runs the measurement when its period is up.
 // Called once a frame from the render loop, and returns immediately on all but
 // a few of those calls.
 func (d *distortion) tick(nowMs float64) {

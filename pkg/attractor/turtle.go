@@ -653,7 +653,7 @@ func (t *turtleWalk) camera() int {
 	return camLock
 }
 
-// turtleCycle is pisano's --cycle: step to the next modulus every so often. It
+// cycle is pisano's --cycle: step to the next modulus every so often. It
 // drives the knob rather than the variable, so the panel readout, the permalink
 // and the restart all follow from the one place they normally would.
 func (tu *turtleMode) cycle() {
@@ -704,7 +704,7 @@ func clampIndex(i, n int) int {
 	return i
 }
 
-// turtleShapeLabel is what the Info overlay adds for this mode: which figure is
+// shapeLabel is what the Info overlay adds for this mode: which figure is
 // being walked and what it does when the walk is repeated forever — decided
 // from one pass, without walking it — then how far the walk has actually got.
 func (tu *turtleMode) shapeLabel() string {

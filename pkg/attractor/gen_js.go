@@ -387,7 +387,7 @@ func buildGeneratorModule() {
 	}
 }
 
-// genAudioSync starts the Web Audio graph if any oscillator is routed to a
+// audioSync starts the Web Audio graph if any oscillator is routed to a
 // channel (not "off"), stops it if none are, and otherwise just refreshes the
 // running nodes.
 func (g *generator) audioSync() {
@@ -421,7 +421,7 @@ func fgFloat(el js.Value) float64 {
 type generator struct {
 	ctx      js.Value
 	osc      [3]js.Value
-	kind     [3]string // "osc" or "noise" — which node type genOsc[i] holds
+	kind     [3]string // "osc" or "noise" — which node type gen.osc[i] holds
 	gain     [3]js.Value
 	pan      [3]js.Value
 	envGain  js.Value // Envelope module's master shaper (pans → env → out)
@@ -431,7 +431,7 @@ type generator struct {
 
 var gen generator
 
-// genNoiseBuffer builds (once) the shift-register noise loop the noise wave
+// noiseBuffer builds (once) the shift-register noise loop the noise wave
 // plays through an AudioBufferSourceNode — the same 15-bit LFSR the FuncGen
 // analysis path steps, so what you hear is what the scope sees. The freq
 // knob maps to playbackRate, sweeping the noise from rumble to hiss.
@@ -456,7 +456,7 @@ func (g *generator) noiseBuffer(ctx js.Value) js.Value {
 	return buf
 }
 
-// genEnsureNode makes genOsc[i] the right node type for the waveform —
+// ensureNode makes gen.osc[i] the right node type for the waveform —
 // OscillatorNode for the periodic waves, a looped AudioBufferSourceNode of
 // LFSR noise for wave 4 — replacing the node when the kind changes.
 func (g *generator) ensureNode(i int, noise bool) {
@@ -484,7 +484,7 @@ func (g *generator) ensureNode(i int, noise bool) {
 	g.osc[i], g.kind[i] = node, want
 }
 
-// genAudioStart builds the Web Audio graph (one OscillatorNode per generator →
+// audioStart builds the Web Audio graph (one OscillatorNode per generator →
 // gain → stereo panner → speakers) and starts it, mirroring the FuncGen params.
 func (g *generator) audioStart() {
 	if g.running {
@@ -538,7 +538,7 @@ func (g *generator) audioStop() {
 	releaseAudioCtx("gen")
 }
 
-// genAudioUpdate pushes oscillator i's waveform / frequency / channel routing to
+// audioUpdate pushes oscillator i's waveform / frequency / channel routing to
 // its Web Audio nodes.
 func (g *generator) audioUpdate(i int) {
 	if !g.running || !g.osc[i].Truthy() {

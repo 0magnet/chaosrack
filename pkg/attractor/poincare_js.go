@@ -84,7 +84,7 @@ type poincareSection struct {
 	// model), so ±1 on a thin axis would put the plane well outside the
 	// attractor and the last part of the knob's travel would do nothing. The
 	// reach here is measured PER AXIS from the trajectory itself, during the
-	// same warm-up that skips the run-in — see sectSeed.
+	// same warm-up that skips the run-in — see sect.seed.
 	posF float32
 
 	// Direction. crossRising is the default and poincare.go says at length
@@ -150,13 +150,13 @@ const sectCap = 8192
 // outlier is a point that appears to contradict the map.
 const sectTransient = 4000
 
-// sectInvalidate throws the accumulated section away. Called from
-// reseedAttractorState, so any parameter edit — which changes the system, and
+// invalidate throws the accumulated section away. Called from
+// sim.reseed, so any parameter edit — which changes the system, and
 // therefore changes where its trajectory crosses anything — starts a fresh
 // one rather than mixing two systems' crossings in one scatter.
 func (p *poincareSection) invalidate() { p.sig = "" }
 
-// sectSignature is what the accumulated points belong to. Following bifSig
+// signature is what the accumulated points belong to. Following bif.sig
 // rather than wiring a listener onto every control: the knobs reach these
 // variables by half a dozen routes (the dial, the LED field, a permalink, Reset
 // All, a patch recall, MIDI), and a signature compared once a frame cannot miss
@@ -167,7 +167,7 @@ func (p *poincareSection) signature(mode string) string {
 		"|" + strconv.Itoa(p.direction())
 }
 
-// sectDirection is the direction knob as one of poincare.go's constants.
+// direction is the direction knob as one of poincare.go's constants.
 func (p *poincareSection) direction() int {
 	d := int(p.dirF + 0.5)
 	if d < 0 || d > analysis.CrossEither {
@@ -176,7 +176,7 @@ func (p *poincareSection) direction() int {
 	return d
 }
 
-// sectAxis is the axis knob as an index, and sectNormal the unit normal it
+// axis is the axis knob as an index, and sectNormal the unit normal it
 // names. Positive, always: "which way through the plane counts" is the
 // direction knob's job, and having two controls that can both reverse it makes
 // two settings mean the same thing and neither of them mean anything.
@@ -227,12 +227,12 @@ func sectField(sys dynamics.FlowSys4, s [4]float64, dt float64) [3]float64 {
 	return [3]float64{dx * dt, dy * dt, dz * dt}
 }
 
-// sectSeed restarts the private integrator, measures where the attractor
+// seed restarts the private integrator, measures where the attractor
 // actually reaches along the section axis, and builds the plane from the pos
 // knob against that reach.
 //
 // The measurement is why this is not free and why it is cached behind
-// sectSignature. It is also why the pos knob means something: without it the
+// sect.signature. It is also why the pos knob means something: without it the
 // only thing available is view.fitExtent, which is the camera fit of whatever
 // model was last DRAWN — on the Poincaré model that is not the source system
 // at all, so the plane would be positioned against the size of a dodecahedron
@@ -275,7 +275,7 @@ func (p *poincareSection) seed(mode string, sys dynamics.FlowSys4, dt float64) {
 	p.fit = false
 }
 
-// sectAdvance integrates n steps, recording every crossing.
+// advance integrates n steps, recording every crossing.
 func (p *poincareSection) advance(mode string, sys dynamics.FlowSys4, dt float64, n int) {
 	adv := sectAdvancer(mode, sys, dt)
 	dir := p.direction()
@@ -323,7 +323,7 @@ func sectBudget(sys dynamics.FlowSys4) int {
 	return 4096
 }
 
-// sectRun brings the accumulated section up to date for a system: reseed if
+// run brings the accumulated section up to date for a system: reseed if
 // anything that defines it has changed, then integrate a frame's worth.
 // Reports false when there is nothing to draw yet.
 func (p *poincareSection) run(mode string) bool {
@@ -343,7 +343,7 @@ func (p *poincareSection) run(mode string) bool {
 	return p.log.Len() >= 2
 }
 
-// sectBuf returns the vertex scratch, grown on demand and bounded by the
+// buf returns the vertex scratch, grown on demand and bounded by the
 // vertex budget the trail knob set. vertBuf is sized from the trail length, so
 // a short trail is a small buffer and the section has to fit inside it.
 func (p *poincareSection) buf(n int) []float32 {
@@ -359,7 +359,7 @@ func (p *poincareSection) buf(n int) []float32 {
 	return p.draw[:n*4]
 }
 
-// sectFillNewest writes the newest hits that fit into v, oldest of them first,
+// fillNewest writes the newest hits that fit into v, oldest of them first,
 // with the gradient parameter running 0..1 over them so age reads the way it
 // does on the trail. get pulls the coordinates out of a hit — which is the
 // only difference between drawing the section in place and drawing it flat.
@@ -386,7 +386,7 @@ func sectHitFlat(h analysis.PoincareHit) (float32, float32, float32) { return h.
 
 // ── The overlay (Trace > Sect) ───────────────────────────────────────────
 
-// sectTick advances the private integrator and draws the crossings in place,
+// tick advances the private integrator and draws the crossings in place,
 // over the finished trail. Called at the end of every attractor-path frame —
 // scan, ring and twin alike — because it is an overlay and not a replacement.
 func (p *poincareSection) tick(mode string) {
@@ -487,7 +487,7 @@ func (p *poincareSection) generatePoincare() {
 	}
 }
 
-// sectDrawReturnMap plots each crossing's first in-plane coordinate against
+// drawReturnMap plots each crossing's first in-plane coordinate against
 // the NEXT crossing's — the first-return map, and the reason to build a
 // section at all.
 //

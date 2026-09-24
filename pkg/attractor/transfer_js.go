@@ -23,7 +23,7 @@ import (
 // REFERENCE is what went out and MEASUREMENT what came back. The usual rig is
 // the signal generator into one input of the interface and a microphone into
 // the other, or a loopback of the send against the return. The two are read
-// through ONE tap cursor (tapReadStereo) so they arrive sample-aligned, which
+// through ONE tap cursor (tap.readStereo) so they arrive sample-aligned, which
 // matters more here than anywhere else in the app: a one-sample slip between
 // the channels IS a delay, and this display's whole subject is delay.
 //
@@ -89,7 +89,7 @@ func init() {
 	}
 }
 
-// xfShowSel is the layout knob as an index, clamped — stereoAxisSel's argument,
+// showSel is the layout knob as an index, clamped — stereoAxisSel's argument,
 // and its trap.
 func (t *transferMode) showSel() int {
 	v := t.showF
@@ -102,7 +102,7 @@ func (t *transferMode) showSel() int {
 	return int(v + 0.5)
 }
 
-// xfFraction is the band-width knob as a 1/b, clamped.
+// fraction is the band-width knob as a 1/b, clamped.
 func (t *transferMode) fraction() int {
 	v := t.fracF
 	if !(v > 0) {
@@ -121,7 +121,7 @@ func generateTransfer() {
 	xf.drawTransfer()
 }
 
-// xfAnalyze accumulates windows into the average.
+// analyze accumulates windows into the average.
 func (t *transferMode) analyze(nowMs float64) {
 	if t.bufL == nil {
 		t.bufL = make([]float32, xfFFT)

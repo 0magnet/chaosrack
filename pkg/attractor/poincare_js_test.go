@@ -22,7 +22,7 @@ import (
 // section, it is just a section of something else.
 //
 // None of this touches GL or the DOM, which is the whole reason the drawing
-// was kept out of sectSeed and sectAdvance.
+// was kept out of sect.seed and sect.advance.
 
 // sectTestSetup puts the section knobs in a known state and restores them, so
 // these tests cannot leak into each other or into the rest of the js suite.

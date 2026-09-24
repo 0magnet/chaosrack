@@ -69,7 +69,7 @@ type waterLens struct {
 	// the same units the physics uses so a knob position means one thing.
 	amount    float32 // how hard the lens bends, in texels at unit slope
 	speed     float32 // wave speed, clamped to the CFL limit in Step
-	damp      float32 // per-mille retained per step; see waterDamping
+	damp      float32 // per-mille retained per step; see water.damping
 	spread    float32 // per-cent viscous smoothing
 	edge      float32 // per-cent of each wave the walls send back
 	drive     float32 // audio drive: how hard the sound pushes the surface
@@ -98,7 +98,7 @@ var (
 	waterH = 192
 )
 
-// waterDamping converts the knob to the retained fraction. The useful range is
+// damping converts the knob to the retained fraction. The useful range is
 // narrow and near the top — 0.99 rings for seconds, 0.9 dies before a wave
 // crosses the tank — so the knob is per-mille rather than a 0..1 dial nobody
 // could place.

@@ -79,10 +79,10 @@ var bifDriveParams = []paramDef{
 
 func (b *bifurcation) invalidate() { b.sig = "" }
 
-// bifParams returns the sweepable parameter list of the source mode.
+// params returns the sweepable parameter list of the source mode.
 func (b *bifurcation) params() []paramDef { return attractorParams[b.lastFlowMode] }
 
-// bifParam picks the swept parameter: the selector's choice, or the first
+// param picks the swept parameter: the selector's choice, or the first
 // non-dt parameter (dt sweeps are integrator artifacts, not bifurcations).
 func (b *bifurcation) param() (paramDef, int, bool) {
 	ps := b.params()
@@ -222,7 +222,7 @@ const bifCursorBand = 1
 // bifEnvelope is the audio envelope driving the cursor, and whether there is
 // one to read.
 //
-// afFeat["amp"] is the existing mono envelope: the RMS of the current window,
+// af.feat["amp"] is the existing mono envelope: the RMS of the current window,
 // adaptively normalized and smoothed with a fast attack and a slow release. It
 // is deliberately reused rather than measured again here — a second envelope
 // with its own normalizer would drift away from the one every other
@@ -239,7 +239,7 @@ func bifEnvelope() (float32, bool) {
 	return clamp01(af.feat["amp"]), true
 }
 
-// bifCursorValue is where the audio currently puts the swept parameter.
+// cursorValue is where the audio currently puts the swept parameter.
 func (b *bifurcation) cursorValue(p paramDef) (float32, bool) {
 	if !b.driveAudio {
 		return 0, false
@@ -251,7 +251,7 @@ func (b *bifurcation) cursorValue(p paramDef) (float32, bool) {
 	return bifAudioValue(env, b.depth, *p.Value, p.Min, p.Max), true
 }
 
-// bifDrawCursor lights the diagram's own points at the cursor's parameter and
+// drawCursor lights the diagram's own points at the cursor's parameter and
 // draws a rule through them, in gold via the monochrome override.
 //
 // span is the diagram's current y range, passed in rather than recomputed so
@@ -307,7 +307,7 @@ func (b *bifurcation) drawCursor(p paramDef, span float64) {
 	glctx.GL.Call("uniform3f", gpu.u.baseColor, style.baseColor[0], style.baseColor[1], style.baseColor[2])
 }
 
-// bifCursorReadout is the LED text: the parameter value the cursor is at, or
+// cursorReadout is the LED text: the parameter value the cursor is at, or
 // why there is no cursor. Naming the reason matters here — "audio" selected
 // with Audio mod off looks exactly like a broken feature otherwise.
 func (b *bifurcation) cursorReadout(p paramDef, v float32, ok bool) string {
@@ -320,7 +320,7 @@ func (b *bifurcation) cursorReadout(p paramDef, v float32, ok bool) string {
 	return p.Label + " " + strconv.FormatFloat(float64(v), 'f', 2, 32)
 }
 
-// bifShowCursor writes the readout, and only when it changes — the value moves
+// showCursor writes the readout, and only when it changes — the value moves
 // with every beat and the DOM does not need sixty writes a second of it. The
 // rule showStereoReadout keeps, for the same reason.
 func (b *bifurcation) showCursor(s string) {

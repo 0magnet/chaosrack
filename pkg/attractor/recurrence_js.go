@@ -300,7 +300,7 @@ func (r *recurrencePlot) initRecurrencePlot() {
 	r.ready = true
 }
 
-// rpEmbedDim is the m knob clamped to what the buffers hold, and 1 for the
+// embedDim is the m knob clamped to what the buffers hold, and 1 for the
 // raw-audio position — which IS m = 1, and shares the code path for it.
 func (r *recurrencePlot) embedDim() int {
 	if int(r.src) != rpSrcEmbed {
@@ -364,14 +364,14 @@ func (r *recurrencePlot) generateRecurrence() {
 	// because the series is static and cached. Measured on the fresh frames
 	// only, the chart would advance in bursts on a knob turn and stand still
 	// in between, which is a chart of edits rather than of the system.
-	// Recomputation is still gated: rpMatDirty says whether there is anything
+	// Recomputation is still gated: rp.matDirty says whether there is anything
 	// new to scan, so a frozen picture costs the readout nothing and the
 	// series records the value it still holds.
 	r.maybeMeasure()
 	texp.drawTexturedSquare(r.texture)
 }
 
-// rpFillFromAudio drains the live audio into the ring and fills rpMat from the
+// fillFromAudio drains the live audio into the ring and fills rp.mat from the
 // newest window — as raw samples (m = 1) or as delay vectors. Reports whether
 // the matrix was rebuilt; when there is not yet enough audio the previous frame
 // stays on the texture rather than flickering to black.
@@ -426,7 +426,7 @@ func (r *recurrencePlot) fillFromAudio() bool {
 	}
 	// span + lookback, not span: with the delays included, requiring only span
 	// would index behind the start of the ring on the first frames after a
-	// resize. avail ≤ rpW, so this also guarantees base − lookback ≥ 0 and the
+	// resize. avail ≤ rp.w, so this also guarantees base − lookback ≥ 0 and the
 	// modulo below never sees a negative.
 	if avail < span+lookback {
 		return false
@@ -466,7 +466,7 @@ func (r *recurrencePlot) fillFromAudio() bool {
 
 // ── The trajectory source ────────────────────────────────────────────────
 
-// rpTrajChanged reports whether the source system, its parameters or the WIN
+// trajChanged reports whether the source system, its parameters or the WIN
 // knob differ from what the cached trajectory was integrated from, recording
 // the current values as it goes.
 //
@@ -491,7 +491,7 @@ func (r *recurrencePlot) trajChanged() bool {
 	return changed
 }
 
-// rpFillFromTrajectory draws the most recent flow mode's own trajectory,
+// fillFromTrajectory draws the most recent flow mode's own trajectory,
 // re-integrating it only when the system it belongs to has changed AND has then
 // held still. Reports whether the matrix was rebuilt this frame.
 func (r *recurrencePlot) fillFromTrajectory() bool {
@@ -550,7 +550,7 @@ func (r *recurrencePlot) fillFromTrajectory() bool {
 // The same tick drives the strip chart in the cell beside it — the history of
 // these three numbers, which is the thing RQA is actually for (pkg/recurrence).
 
-// rpMaybeMeasure recomputes the scalars from the matrix, at most every
+// maybeMeasure recomputes the scalars from the matrix, at most every
 // recurrence.RQASamplePeriodMs, and only while the readout is actually on the panel —
 // there is no reason to scan 64 KB for a number nothing is displaying. The
 // scan is skipped again when the matrix has not moved since the last one,

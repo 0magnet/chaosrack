@@ -274,7 +274,7 @@ func drawTerminalBackground() {
 	if !ok {
 		return // no terminal: draw nothing rather than a black square
 	}
-	// The same trick the spectrogram background uses: spectFill maps the
+	// The same trick the spectrogram background uses: spect.fill maps the
 	// plane straight to clip space, so it fills the canvas face-on regardless
 	// of the pose. A background always fills; the Fill switch governs the MODE.
 	savedFill := spect.fill

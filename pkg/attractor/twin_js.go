@@ -23,7 +23,7 @@ package attractor
 // almost entirely the approach onto the attractor.
 //
 // What stays here is the Trace row's LED, which annotates the two trajectories
-// on screen with the rate at which they are coming apart. lyapLiveShow writes
+// on screen with the rate at which they are coming apart. lyapLive.show writes
 // it.
 
 import (
@@ -79,7 +79,7 @@ func (t *twinTrail) seed(mode string, sys dynamics.FlowSys4) {
 	t.seeded = mode
 }
 
-// twinTick draws both trajectories. Returns false when the normal scan
+// tick draws both trajectories. Returns false when the normal scan
 // generator should run instead (twin off / no flow).
 //
 // It is also where the live λ probe is advanced, which is not where such a

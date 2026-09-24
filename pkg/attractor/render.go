@@ -173,7 +173,7 @@ func addAngleAxis(axis int, d float32) {
 	rotKnobs.update()
 }
 
-// updateRotKnobs rotates each knob's pointer and refreshes its LED readout
+// update rotates each knob's pointer and refreshes its LED readout
 // to match the live angle. Cheap: it only touches the DOM for an axis
 // whose integer degree changed since the last frame, so a held pose costs
 // nothing and a spin is ~2 writes/frame per moving axis.
@@ -455,7 +455,7 @@ func (r *renderer) setupShaders() {
 }
 
 func setupMatrices() {
-	// gpu.proj is a pkg var (textured_js.go) so texProgram can reuse it.
+	// gpu.proj is a pkg var (textured_js.go) so texp.program can reuse it.
 	// Far plane must clear the auto-fit camera distance (maxExtent·3, capped at
 	// 300) PLUS the model's own extent (~maxExtent) PLUS the zoom-out range —
 	// otherwise the back of a large attractor pokes past the far plane and gets
@@ -471,9 +471,9 @@ func setupMatrices() {
 }
 
 // updateViewMatrix recomputes the camera and uploads it to the attractor
-// program. texProgram receives it separately (useTexProgram reads the
+// program. texp.program receives it separately (useTexProgram reads the
 // camera's viewMat), so we force the attractor program active here to
-// keep the upload correct even if a textured draw left texProgram bound.
+// keep the upload correct even if a textured draw left texp.program bound.
 func (c *camera) updateViewMatrix() {
 	cameraPosition := mgl32.Vec3{-c.panX, -c.panY, c.defaultDist}
 	center := mgl32.Vec3{-c.panX, -c.panY, 0.0}
@@ -555,7 +555,7 @@ func fitDistFor(ext float32) float32 {
 
 func generateForMode(mode string) {
 	// Spectrogram is a textured plane drawn through the shared 3D pipeline
-	// (texProgram); update its texture and draw it, then bail out of the
+	// (texp.program); update its texture and draw it, then bail out of the
 	// attractor path.
 	if isSpectroSurface(mode) {
 		spect.renderSpectrogramMode(frameNowMs)
@@ -601,7 +601,7 @@ func generateForMode(mode string) {
 		aud.deactivateAudioMode()
 	}
 	// Ensure the attractor program is bound — a prior spectrogram frame
-	// leaves texProgram active, and the uniform/draw calls below apply to
+	// leaves texp.program active, and the uniform/draw calls below apply to
 	// whatever program is current.
 	if !gpu.program.IsUndefined() {
 		glctx.GL.Call("useProgram", gpu.program)
@@ -755,7 +755,7 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	// mappings read these to modulate the attractors.
 	af.updateAudioFeatures()
 	counter.tick() // frequency-counter gate (no-op unless the module is on)
-	// The three window analyzers, here or elsewhere. metersWorkerTick hands
+	// The three window analyzers, here or elsewhere. mc.workerTick hands
 	// the audio to the worker and reports that it owns them; when there is no
 	// worker it reports false and they run on this thread exactly as before.
 	// See metersclient_js.go.

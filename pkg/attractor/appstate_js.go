@@ -58,7 +58,7 @@ func resetAttractorState() {
 	}
 }
 
-// reseedAttractorState restores the integrator state to the mode's initial
+// reseed restores the integrator state to the mode's initial
 // condition WITHOUT any warmup — safe to call from the per-step divergence
 // guard, where the current parameters may make every trajectory blow up.
 func (s *simulation) reseed() {
@@ -76,7 +76,7 @@ func (s *simulation) reseed() {
 	mapInvalidate()   // a map orbit is only meaningful for the params that made it
 	lyap.invalidate() // and so is its Lyapunov exponent
 	// The live exponent restarts for the same reason, and it needs saying
-	// separately: lyapInvalidate re-runs the Analysis module's on-demand
+	// separately: lyap.invalidate re-runs the Analysis module's on-demand
 	// measurement, which is a different accumulation with a different clock.
 	lyapLive.invalidate()
 	// Hyper-Rössler's hidden 4th state; start it on-attractor for that mode,

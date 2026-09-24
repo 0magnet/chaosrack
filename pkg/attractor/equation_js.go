@@ -61,7 +61,7 @@ func (c *customEquation) eqLabel(i int) string {
 	return [4]string{"dx/dt", "dy/dt", "dz/dt", "dw/dt"}[i]
 }
 
-// customFlavorW reports whether the 4th state is in play: iterate is 3-D, so
+// flavorW reports whether the 4th state is in play: iterate is 3-D, so
 // the w equation is not compiled there even when the toggle is left on (which
 // keeps a typed dw/dt safe across a flavor round-trip).
 func (c *customEquation) flavorW() bool { return c.useW && !c.iterate }
@@ -76,7 +76,7 @@ func init() {
 }
 
 // parseCustom (re)compiles the equation strings, refreshes the parameter list
-// (keeping existing values), and records any parse error in customErr.
+// (keeping existing values), and records any parse error in custom.err.
 func (c *customEquation) parseCustom() {
 	// Deferred, so that the error returns below re-publish too: they used to
 	// return without touching the registry, which left the PREVIOUS system
