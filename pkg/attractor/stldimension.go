@@ -6,6 +6,7 @@ import (
 
 	"github.com/0magnet/chaosrack/pkg/meshstl"
 	"github.com/0magnet/chaosrack/pkg/rackspec"
+	"github.com/0magnet/chaosrack/pkg/segfont"
 )
 
 // Dimensioned rack models: the same panels and frames, carrying their own
@@ -17,11 +18,10 @@ import (
 // panel says 35.06 wide, 128.5 tall, 162 deep, in the millimeters everything
 // here is drawn in.
 //
-// The text is the app's own 16-segment stroke font from scopetext.go — the
-// one the Fourier Text mode draws its banner with. It lives untagged and is
-// already a set of line segments, which is exactly what an annotation needs;
-// meshstl has no font of its own and no opinion about units, so this file is
-// where the two meet.
+// The text is the app's own 16-segment stroke font, pkg/segfont — the one the
+// Fourier Text mode draws its banner with. It is already a set of line
+// segments, which is exactly what an annotation needs; meshstl has no font of
+// its own and no opinion about units, so this file is where the two meet.
 
 // dimTextStrokes turns a string into unit-square segments for meshstl. The
 // cell is 2 wide by 3 tall in the font, normalized here to a cap height of 1,
@@ -38,7 +38,7 @@ func dimTextStrokes(s string) [][2]meshstl.V3 {
 			x += cellW + spacing
 			continue
 		}
-		bits, ok := segFont[r]
+		glyph, ok := segfont.Segments(r)
 		if !ok {
 			// A rune the font cannot draw is skipped rather than drawn as a
 			// wrong glyph — a dimension that reads 3S.06 is worse than one
@@ -46,11 +46,7 @@ func dimTextStrokes(s string) [][2]meshstl.V3 {
 			x += cellW + spacing
 			continue
 		}
-		for i := 0; i < 16; i++ {
-			if bits&(1<<uint(i)) == 0 {
-				continue
-			}
-			e := segEnds[i]
+		for _, e := range glyph {
 			out = append(out, [2]meshstl.V3{
 				{x + e[0]/3, e[1] / 3, 0},
 				{x + e[2]/3, e[3] / 3, 0},
