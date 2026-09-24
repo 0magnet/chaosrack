@@ -270,7 +270,7 @@ func generatePolar() {
 		// not merely safe.
 		polarFitGain = polarGain
 		view.fitOverride = polarFitExtent(polarGain)
-		autoFitCamera()
+		view.autoFitCamera()
 	}
 }
 

@@ -476,7 +476,7 @@ func generatePoincare() {
 	// accumulates reads as the structure itself moving.
 	if !sectFit && sectLog.Len() > 256 {
 		sectFit = true
-		autoFitCamera()
+		view.autoFitCamera()
 	}
 }
 

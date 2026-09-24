@@ -94,7 +94,7 @@ func deskQuadHit(cx, cy float64) (px, py float64, ok bool) {
 	ndcX := float32(2*(cx-box.Get("left").Float())/vw - 1)
 	ndcY := float32(1 - 2*(cy-box.Get("top").Float())/vh)
 
-	inv := gpu.proj.Mul4(viewMatrix).Mul4(movMatrix).Inv()
+	inv := gpu.proj.Mul4(view.viewMat).Mul4(view.modelMat).Inv()
 	near := perspDivide(inv.Mul4x1(mgl32.Vec4{ndcX, ndcY, -1, 1}))
 	far := perspDivide(inv.Mul4x1(mgl32.Vec4{ndcX, ndcY, 1, 1}))
 	dir := far.Sub(near)

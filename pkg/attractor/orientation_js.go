@@ -23,7 +23,7 @@ const autoRotYDelta = 0.1
 // most visibly through the permalink, which serializes ar and ry as
 // independent fields.
 func setAutoRotate(on bool) {
-	autoRotate = on
+	view.ctl.autoRotate = on
 	if el := dom.Doc.Call("getElementById", "auto-rotate"); el.Truthy() {
 		el.Set("checked", on)
 	}
@@ -38,13 +38,13 @@ func clearAutoRotateFlag() { setAutoRotate(false) }
 // selWindow is the little label window on the attractor selector knob.
 
 func normalizeOrientation() {
-	angleX, angleY, angleZ = 0, 0, 0
-	dragMatrix = mgl32.Ident4()
+	view.angleX, view.angleY, view.angleZ = 0, 0, 0
+	view.ball.orient = mgl32.Ident4()
 	zeroRotationSliders()
 	clearAutoRotateFlag()
-	rebuildModelMatrix()
+	view.rebuildModelMatrix()
 	updateRotKnobs()
-	updateModelMatrix()
+	view.updateModelMatrix()
 }
 
 // randomizeOrientation gives the model a fresh random starting pose
@@ -61,10 +61,10 @@ func randomizeOrientation() {
 	mathJS := js.Global().Get("Math")
 	randSym := func() float32 { return float32(mathJS.Call("random").Float()*2 - 1) }
 
-	angleX = wrapTwoPi(randSym() * float32(math.Pi))
-	angleY = wrapTwoPi(randSym() * float32(math.Pi))
-	angleZ = wrapTwoPi(randSym() * float32(math.Pi))
-	rebuildModelMatrix()
+	view.angleX = wrapTwoPi(randSym() * float32(math.Pi))
+	view.angleY = wrapTwoPi(randSym() * float32(math.Pi))
+	view.angleZ = wrapTwoPi(randSym() * float32(math.Pi))
+	view.rebuildModelMatrix()
 
 	// Ensure the spin-rate sliders (and their cache) are zeroed.
 	zeroRotationSliders()

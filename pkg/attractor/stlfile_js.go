@@ -197,7 +197,7 @@ func buildSTLFileModule() {
 		if selectedMode == "stlfile" {
 			gpu.staticDirty = true
 			generateForMode("stlfile")
-			autoFitCamera()
+			view.autoFitCamera()
 		}
 		input.Set("value", "")
 		return nil
@@ -287,7 +287,7 @@ func buildSTLBuiltInPicker() {
 		if selectedMode == "stlfile" {
 			gpu.staticDirty = true
 			generateForMode("stlfile")
-			autoFitCamera()
+			view.autoFitCamera()
 		}
 		return nil
 	}))

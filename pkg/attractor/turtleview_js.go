@@ -94,19 +94,19 @@ func applyTurtleView(t *turtleWalk) {
 	from = from.Normalize()
 
 	// The whole orientation goes in the drag matrix, and the knob angles are
-	// zeroed, because the model matrix is dragMatrix·Rx·Ry·Rz — putting it in
+	// zeroed, because the model matrix is view.ball.orient·Rx·Ry·Rz — putting it in
 	// the outermost term means the answer does not have to be decomposed into
 	// three Euler angles that then have to compose back to it.
 	// The pose has to survive the frame after it is set.
 	if !turtleViewApplied.spinSaved {
-		turtleViewApplied.spinWas = autoRotate
+		turtleViewApplied.spinWas = view.ctl.autoRotate
 		turtleViewApplied.spinSaved = true
 	}
 	clearAutoRotateFlag()
 
-	dragMatrix = mgl32.QuatBetweenVectors(from, turtleViews[idx].to).Mat4()
-	angleX, angleY, angleZ = 0, 0, 0
-	rebuildModelMatrix()
+	view.ball.orient = mgl32.QuatBetweenVectors(from, turtleViews[idx].to).Mat4()
+	view.angleX, view.angleY, view.angleZ = 0, 0, 0
+	view.rebuildModelMatrix()
 	zeroRotationSliders()
 	updateRotKnobs()
 

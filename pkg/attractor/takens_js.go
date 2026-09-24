@@ -223,7 +223,7 @@ func generateTakens() {
 		// moves, because GAIN is what the bound is made of.
 		takensFitGain = takensGain
 		view.fitOverride = takensFitExtent(takensGain)
-		autoFitCamera()
+		view.autoFitCamera()
 	}
 }
 

@@ -205,7 +205,7 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 		setSpectrogramCamera()
 	} else {
 		restoreAutoRotateAfterSpectrogram()
-		autoFitCamera()
+		view.autoFitCamera()
 	}
 	// FVF audio-out follows the mode: resume if re-entering FVF with Listen
 	// on; stop when leaving so no stray audio plays under other models.

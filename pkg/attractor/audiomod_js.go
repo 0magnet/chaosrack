@@ -235,12 +235,12 @@ type viewModTarget struct {
 }
 
 var viewModTargets = []viewModTarget{
-	{"view-zoom", "zoom", &cachedZoom, -95, 95, "camera-zoom"},
-	{"view-panx", "pan X", &cachedPanX, -8, 8, "pan-x"},
-	{"view-pany", "pan Y", &cachedPanY, -8, 8, "pan-y"},
-	{"view-spinx", "spin X", &cachedRotX, -1, 1, "rotation-controls-x"},
-	{"view-spiny", "spin Y", &cachedRotY, -1, 1, "rotation-controls-y"},
-	{"view-spinz", "spin Z", &cachedRotZ, -1, 1, "rotation-controls-z"},
+	{"view-zoom", "zoom", &view.ctl.zoom, -95, 95, "camera-zoom"},
+	{"view-panx", "pan X", &view.ctl.panX, -8, 8, "pan-x"},
+	{"view-pany", "pan Y", &view.ctl.panY, -8, 8, "pan-y"},
+	{"view-spinx", "spin X", &view.ctl.spinX, -1, 1, "rotation-controls-x"},
+	{"view-spiny", "spin Y", &view.ctl.spinY, -1, 1, "rotation-controls-y"},
+	{"view-spinz", "spin Z", &view.ctl.spinZ, -1, 1, "rotation-controls-z"},
 	{"view-rfreq", "period", &gradientFreq, 0.05, 20, "rainbow-freq"},
 	{"view-trail", "trail", &trailModFrac, 0.02, 1, "trail-slider"},
 	// APPENDED, not slotted in beside the period it belongs with. midi_js.go
