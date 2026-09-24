@@ -2,7 +2,11 @@
 
 package attractor
 
-import "math"
+import (
+	"math"
+
+	"github.com/0magnet/chaosrack/pkg/takens"
+)
 
 // Polar embedding — the Takens delay vector drawn in a SPHERE instead of a cube.
 //
@@ -104,7 +108,7 @@ func init() {
 		// delay embedding with the delay wrapped onto an angle, so a τ that
 		// differed between them would be two names for one quantity — and the
 		// recurrence plot and takens-smooth above already share this way.
-		{"takens-tau", "τ", &takensTau, takensTauDef, 1, takensTauMax, 1},
+		{"takens-tau", "τ", &takensTau, takens.TauDef, 1, takens.TauMax, 1},
 		{"polar-win", "win", &polarWin, 85, 5, 500, 5},
 		{"polar-gain", "gain", &polarGain, 10, 0.5, 50, 0.5},
 		{"takens-smooth", "smth", &takensSmoothF, 4, 1, 16, 1},
@@ -159,7 +163,7 @@ func generatePolar() {
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := tauSamples(takensTau, sr)
+	tau := takens.TauSamples(takensTau, sr)
 	n, stride := takensWindow(polarWin, sr, steps)
 	span := (n-1)*stride + 2*tau
 	if need := span + 1; len(polarRing) < need {
@@ -298,7 +302,7 @@ func polarColorWindow() ([]float32, int) {
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := tauSamples(takensTau, sr)
+	tau := takens.TauSamples(takensTau, sr)
 	n, stride := takensWindow(polarWin, sr, steps)
 	if n <= 0 {
 		return nil, 0

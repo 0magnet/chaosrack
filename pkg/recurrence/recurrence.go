@@ -1,8 +1,10 @@
 package recurrence
 
-import "github.com/0magnet/chaosrack/pkg/dynamics"
+import (
+	"math"
 
-import "math"
+	"github.com/0magnet/chaosrack/pkg/dynamics"
+)
 
 // Recurrence plots and the RQA scalars read off them — the picture of when a
 // system returns to where it has already been (J.-P. Eckmann, S. O. Kamphorst
@@ -16,7 +18,7 @@ import "math"
 // UNTAGGED, so the properties that make the picture legible are pinned by
 // native tests rather than by looking at it — a periodic signal's plot must be
 // invariant under shifting both indices by its period, and the matrix and the
-// rate computed from it must agree. This file was split out of embedding.go,
+// rate computed from it must agree. This file was split out of pkg/takens,
 // which is about ESTIMATING a delay embedding (τ by mutual information, m by
 // false nearest neighbors); a recurrence plot CONSUMES an embedding, and with
 // the vector form, the two normalizers and RQA it is three times the code the

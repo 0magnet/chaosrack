@@ -1,10 +1,10 @@
 package attractor
 
-import "github.com/0magnet/chaosrack/pkg/dynamics"
-
 import (
 	"image"
 	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 )
 
 // Every model that can be drawn without a browser must draw SOMETHING.

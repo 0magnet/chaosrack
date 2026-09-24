@@ -2,8 +2,6 @@
 
 package attractor
 
-import "github.com/0magnet/chaosrack/pkg/dom"
-
 // Float mode: the panel as a real window, from github.com/0magnet/winbox-go.
 //
 // This replaces about a hundred and thirty lines of hand-rolled window — a
@@ -24,7 +22,11 @@ import "github.com/0magnet/chaosrack/pkg/dom"
 // the dock cluster travel with it — the cluster is how you get back out to a
 // docked edge, so it has to come along.
 
-import winbox "github.com/0magnet/winbox-go"
+import (
+	winbox "github.com/0magnet/winbox-go"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+)
 
 var panelWindow *winbox.WinBox
 

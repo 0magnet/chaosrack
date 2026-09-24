@@ -1,12 +1,16 @@
 package attractor
 
-import "math"
+import (
+	"math"
+
+	"github.com/0magnet/chaosrack/pkg/takens"
+)
 
 // The audio embeddings, built from a recorded signal instead of a live tap.
 //
 // takens_js.go, polar_js.go, stereo_js.go and xy_js.go read the page's audio
 // tap every frame and draw the newest window. The window, the delay, the
-// Catmull-Rom beam and the polar map are the arithmetic in takenswin.go and
+// Catmull-Rom beam and the polar map are the arithmetic in pkg/takens and
 // polarmap.go; what is here is the same walk over a plain slice, so that
 // `chaosrack render` can draw an embedding of audio it recorded itself. Each
 // mode is drawn at the page's default settings.
@@ -28,7 +32,7 @@ func IsAudioModel(key string) bool {
 type AudioOptions struct {
 	SampleRate int
 	// Tau is the delay in samples at 48 kHz, as the τ knob counts it
-	// (see tauSamples); 0 is the knob's default.
+	// (see takens.TauSamples); 0 is the knob's default.
 	Tau float32
 	// WindowMS is the display window; 0 is the mode's default.
 	WindowMS float32
@@ -43,7 +47,7 @@ const xyWindowDef = 43
 // window ending before that many samples have been recorded draws nothing.
 func AudioWindow(key string, o AudioOptions) int {
 	o = o.withDefaults(key)
-	tau := tauSamples(o.Tau, o.SampleRate)
+	tau := takens.TauSamples(o.Tau, o.SampleRate)
 	n, stride := takensWindow(o.WindowMS, o.SampleRate, o.Budget)
 	switch key {
 	case "stereo":
@@ -59,7 +63,7 @@ func (o AudioOptions) withDefaults(key string) AudioOptions {
 		o.SampleRate = 48000
 	}
 	if o.Tau <= 0 {
-		o.Tau = takensTauDef
+		o.Tau = takens.TauDef
 	}
 	if o.WindowMS <= 0 {
 		o.WindowMS = 85
@@ -86,7 +90,7 @@ func AudioFigure(key string, l, r []float32, end int, o AudioOptions) (Figure, b
 	if end < need {
 		return Figure{}, false
 	}
-	tau := tauSamples(o.Tau, o.SampleRate)
+	tau := takens.TauSamples(o.Tau, o.SampleRate)
 	n, stride := takensWindow(o.WindowMS, o.SampleRate, o.Budget)
 	base := end - need
 
@@ -172,13 +176,13 @@ func MeasureTau(l, r []float32, sr int) (float32, bool) {
 	for i := range x {
 		x[i] = float64(l[i]+r[i]) * 0.5
 	}
-	e := EstimateEmbedding(x, tauSamples(takensTauMax, sr), 8)
+	e := takens.EstimateEmbedding(x, takens.TauSamples(takens.TauMax, sr), 8)
 	if e.Tau < 1 {
 		return 0, false
 	}
 	ref := float32(e.Tau)
-	if sr > 0 && sr != tauRefRate {
-		ref = float32(e.Tau) * float32(tauRefRate) / float32(sr)
+	if sr > 0 && sr != takens.RefRate {
+		ref = float32(e.Tau) * float32(takens.RefRate) / float32(sr)
 	}
 	return float32(int(ref + 0.5)), true
 }
