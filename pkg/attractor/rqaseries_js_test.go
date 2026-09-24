@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/recurrence"
 )
 
 // The half of the strip chart that only exists in the js build context: the
@@ -17,16 +19,16 @@ import (
 // them apart is silent either way: a longer ring is history that never reaches
 // the chart, a shorter one leaves columns that can never be filled.
 func TestTheRingIsExactlyTheChartsWidth(t *testing.T) {
-	if RQASeriesLen != rqaChartCols {
-		t.Errorf("the ring holds %d slots for a %d-column chart", RQASeriesLen, rqaChartCols)
+	if recurrence.RQASeriesLen != rqaChartCols {
+		t.Errorf("the ring holds %d slots for a %d-column chart", recurrence.RQASeriesLen, rqaChartCols)
 	}
-	if rqaChartH != rqaPaneH*int(RQATraceCount) {
-		t.Errorf("the canvas is %d px tall for %d panes of %d", rqaChartH, int(RQATraceCount), rqaPaneH)
+	if rqaChartH != rqaPaneH*int(recurrence.RQATraceCount) {
+		t.Errorf("the canvas is %d px tall for %d panes of %d", rqaChartH, int(recurrence.RQATraceCount), rqaPaneH)
 	}
 	// Every trace needs a color; a missing one is the empty string, which the
 	// canvas ignores, and the trace would be drawn in whatever the pane before
 	// it was using.
-	for tr := RQATrace(0); tr < RQATraceCount; tr++ {
+	for tr := recurrence.RQATrace(0); tr < recurrence.RQATraceCount; tr++ {
 		if rqaTraceColor[tr] == "" {
 			t.Errorf("%v has no color", tr)
 		}
@@ -36,7 +38,7 @@ func TestTheRingIsExactlyTheChartsWidth(t *testing.T) {
 // Every pane must map its whole range inside its own band of the canvas, or one
 // trace draws over another and the chart reads as a single tangled plot.
 func TestEachPaneStaysInsideItsOwnBandOfTheCanvas(t *testing.T) {
-	for tr := RQATrace(0); tr < RQATraceCount; tr++ {
+	for tr := recurrence.RQATrace(0); tr < recurrence.RQATraceCount; tr++ {
 		top := int(tr) * rqaPaneH
 		for _, f := range []float64{0, 0.5, 1} {
 			y := rqaPaneY(top, f)
@@ -68,20 +70,20 @@ func TestThePathBreaksAcrossAGapRatherThanBridgingIt(t *testing.T) {
 	saved := rqaSnap
 	defer func() { rqaSnap = saved }()
 
-	rqaSnap = make([]RQASample, rqaChartCols)
+	rqaSnap = make([]recurrence.RQASample, rqaChartCols)
 	for i := range rqaSnap {
-		rqaSnap[i] = RQASample{RR: 0.04, DET: 0.9, LAM: 0.5, OK: true}
+		rqaSnap[i] = recurrence.RQASample{RR: 0.04, DET: 0.9, LAM: 0.5, OK: true}
 	}
-	full := rqaTracePath(RQATraceDET, 0)
+	full := rqaTracePath(recurrence.RQATraceDET, 0)
 	if strings.Count(full, "M") != 1 {
 		t.Errorf("an unbroken series drew %d subpaths, want 1", strings.Count(full, "M"))
 	}
 
 	// Punch a hole in the middle.
 	for i := 100; i < 110; i++ {
-		rqaSnap[i] = RQASample{}
+		rqaSnap[i] = recurrence.RQASample{}
 	}
-	broken := rqaTracePath(RQATraceDET, 0)
+	broken := rqaTracePath(recurrence.RQATraceDET, 0)
 	if got := strings.Count(broken, "M"); got != 2 {
 		t.Errorf("a series with one hole drew %d subpaths, want 2", got)
 	}
@@ -92,9 +94,9 @@ func TestThePathBreaksAcrossAGapRatherThanBridgingIt(t *testing.T) {
 	// An all-gap window is nothing at all rather than a path with no points in
 	// it, which Path2D would accept and stroke as a stray mark at the origin.
 	for i := range rqaSnap {
-		rqaSnap[i] = RQASample{}
+		rqaSnap[i] = recurrence.RQASample{}
 	}
-	if d := rqaTracePath(RQATraceRR, 0); d != "" {
+	if d := rqaTracePath(recurrence.RQATraceRR, 0); d != "" {
 		t.Errorf("an empty series drew %q", d)
 	}
 }
@@ -106,9 +108,9 @@ func TestAnIsolatedReadingIsStillDrawn(t *testing.T) {
 	saved := rqaSnap
 	defer func() { rqaSnap = saved }()
 
-	rqaSnap = make([]RQASample, rqaChartCols)
-	rqaSnap[7] = RQASample{RR: 0.04, DET: 0.9, LAM: 0.5, OK: true}
-	d := rqaTracePath(RQATraceLAM, 0)
+	rqaSnap = make([]recurrence.RQASample, rqaChartCols)
+	rqaSnap[7] = recurrence.RQASample{RR: 0.04, DET: 0.9, LAM: 0.5, OK: true}
+	d := rqaTracePath(recurrence.RQATraceLAM, 0)
 	if !strings.Contains(d, "M") || !strings.Contains(d, "L") {
 		t.Errorf("a single reading drew %q; it needs a segment to have a cap to draw", d)
 	}
@@ -121,10 +123,10 @@ func TestTheNewestColumnIsAtTheRightEdge(t *testing.T) {
 	saved := rqaSnap
 	defer func() { rqaSnap = saved }()
 
-	rqaSnap = make([]RQASample, rqaChartCols)
-	rqaSnap[0] = RQASample{DET: 0.1, OK: true}
-	rqaSnap[rqaChartCols-1] = RQASample{DET: 0.9, OK: true}
-	d := rqaTracePath(RQATraceDET, 0)
+	rqaSnap = make([]recurrence.RQASample, rqaChartCols)
+	rqaSnap[0] = recurrence.RQASample{DET: 0.1, OK: true}
+	rqaSnap[rqaChartCols-1] = recurrence.RQASample{DET: 0.9, OK: true}
+	d := rqaTracePath(recurrence.RQATraceDET, 0)
 	if !strings.HasPrefix(d, "M0.5 ") {
 		t.Errorf("the oldest column starts at %.20q, want the middle of pixel 0", d)
 	}

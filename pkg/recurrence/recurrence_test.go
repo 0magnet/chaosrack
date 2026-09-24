@@ -1,4 +1,4 @@
-package attractor
+package recurrence
 
 import "github.com/0magnet/chaosrack/pkg/dynamics"
 
@@ -25,7 +25,7 @@ import (
 func TestRecurrenceMatrixIsSymmetricAboutALitDiagonal(t *testing.T) {
 	x := sineWithNoise(64, 17, 0.05, 4)
 	m := make([]byte, len(x)*len(x))
-	RecurrenceMatrix(x, 0.1, m)
+	Matrix(x, 0.1, m)
 	n := len(x)
 	for i := 0; i < n; i++ {
 		if m[i*n+i] != 255 {
@@ -50,7 +50,7 @@ func TestAPeriodicSignalGivesAPeriodicPlot(t *testing.T) {
 		x[i] = math.Sin(2 * math.Pi * float64(i) / period)
 	}
 	m := make([]byte, n*n)
-	RecurrenceMatrix(x, 0.05, m)
+	Matrix(x, 0.05, m)
 	for i := 0; i+period < n; i++ {
 		for j := 0; j+period < n; j++ {
 			if m[i*n+j] != m[(i+period)*n+j+period] {
@@ -74,16 +74,16 @@ func TestRecurrenceRateGrowsWithEpsilon(t *testing.T) {
 	x := sineWithNoise(200, 23, 0.05, 9)
 	prev := -1.0
 	for _, eps := range []float64{0, 0.01, 0.05, 0.2, 0.5, 4} {
-		r := RecurrenceRate(x, eps)
+		r := Rate(x, eps)
 		if r < prev {
 			t.Errorf("ε=%v lit %.3f of the plot, less than the %.3f before it", eps, r, prev)
 		}
 		prev = r
 	}
-	if r, want := RecurrenceRate(x, 0), 1/float64(len(x)); math.Abs(r-want) > 1e-12 {
+	if r, want := Rate(x, 0), 1/float64(len(x)); math.Abs(r-want) > 1e-12 {
 		t.Errorf("ε=0 lit %.4f of the plot, want just the diagonal (%.4f)", r, want)
 	}
-	if r := RecurrenceRate(x, 4); r != 1 {
+	if r := Rate(x, 4); r != 1 {
 		t.Errorf("an ε wider than the signal lit %.4f, want the whole square", r)
 	}
 }
@@ -95,7 +95,7 @@ func TestRecurrenceRateMatchesTheMatrix(t *testing.T) {
 	n := len(x)
 	m := make([]byte, n*n)
 	const eps = 0.15
-	RecurrenceMatrix(x, eps, m)
+	Matrix(x, eps, m)
 	lit := 0
 	for _, v := range m {
 		if v != 0 {
@@ -104,14 +104,14 @@ func TestRecurrenceRateMatchesTheMatrix(t *testing.T) {
 	}
 	// The matrix lights its own diagonal unconditionally; |x_i − x_i| = 0 is
 	// not < 0 only when ε is 0, and ε is positive here.
-	if got, want := float64(lit)/float64(n*n), RecurrenceRate(x, eps); math.Abs(got-want) > 1e-9 {
+	if got, want := float64(lit)/float64(n*n), Rate(x, eps); math.Abs(got-want) > 1e-9 {
 		t.Errorf("matrix lit %.4f, rate says %.4f", got, want)
 	}
 }
 
 // ── The vector form ──────────────────────────────────────────────────────
 
-// RecurrenceMatrix is now a one-dimensional call into RecurrenceMatrixVec, so
+// Matrix is now a one-dimensional call into MatrixVec, so
 // the scalar picture the audio source has always drawn has to be bit-identical
 // to what the general routine produces — including at ε = 0, where the squared
 // comparison the general routine uses could have differed from the |·| one it
@@ -122,8 +122,8 @@ func TestTheVectorFormReproducesTheScalarPictureExactly(t *testing.T) {
 	for _, eps := range []float64{0, 0.01, 0.15, 3} {
 		a := make([]byte, n*n)
 		b := make([]byte, n*n)
-		RecurrenceMatrix(x, eps, a)
-		RecurrenceMatrixVec(x, 1, eps, b)
+		Matrix(x, eps, a)
+		MatrixVec(x, 1, eps, b)
 		for i := range a {
 			if a[i] != b[i] {
 				t.Fatalf("ε=%v: cell %d is %d scalar, %d vector", eps, i, a[i], b[i])
@@ -143,11 +143,11 @@ func TestVectorRecurrenceIsEuclideanAndNotPerCoordinate(t *testing.T) {
 	// per-coordinate test, 1.2728 apart in fact.
 	pts := []float64{0, 0, 0.9, 0.9}
 	m := make([]byte, 4)
-	RecurrenceMatrixVec(pts, 2, 1.0, m)
+	MatrixVec(pts, 2, 1.0, m)
 	if m[1] != 0 {
 		t.Error("ε=1.0 lit a pair 1.27 apart: the distance is being taken per coordinate, not as a norm")
 	}
-	RecurrenceMatrixVec(pts, 2, 1.3, m)
+	MatrixVec(pts, 2, 1.3, m)
 	if m[1] != 255 {
 		t.Error("ε=1.3 left a pair 1.27 apart dark")
 	}
@@ -159,10 +159,10 @@ func TestDiameterIsTheWidestPair(t *testing.T) {
 	// A right triangle with legs 3 and 4: the hypotenuse, 5, is the diameter,
 	// and no single axis spans more than 4.
 	pts := []float64{0, 0, 3, 0, 0, 4}
-	if got := RecurrenceDiameter(pts, 2); math.Abs(got-5) > 1e-12 {
+	if got := Diameter(pts, 2); math.Abs(got-5) > 1e-12 {
 		t.Errorf("diameter %v, want 5", got)
 	}
-	if got := RecurrenceDiameter([]float64{1, 2, 3}, 3); got != 0 {
+	if got := Diameter([]float64{1, 2, 3}, 3); got != 0 {
 		t.Errorf("a single point has diameter %v, want 0", got)
 	}
 }
@@ -184,7 +184,7 @@ func delayEmbed(x []float64, dim, tau int) []float64 {
 	return out
 }
 
-// THE CLAIM RecurrenceVectorScale EXISTS TO MAKE. Raising the embedding
+// THE CLAIM VectorScale EXISTS TO MAKE. Raising the embedding
 // dimension must not change how dense the plot is by itself — otherwise the
 // user turns the m knob, sees the picture thin out, and reads a change of
 // setting as a change in the audio.
@@ -209,7 +209,7 @@ func TestVectorScaleHoldsDensityAcrossEmbeddingDimensions(t *testing.T) {
 		v := delayEmbed(x, dim, 10)
 		n := len(v) / dim
 		m := make([]byte, n*n)
-		RecurrenceMatrixVec(v, dim, frac*RecurrenceVectorScale(dim), m)
+		MatrixVec(v, dim, frac*VectorScale(dim), m)
 		return RQA(m, n).RR
 	}
 	lo, hi := math.Inf(1), 0.0
@@ -230,7 +230,7 @@ func TestVectorScaleHoldsDensityAcrossEmbeddingDimensions(t *testing.T) {
 
 // ── RQA ──────────────────────────────────────────────────────────────────
 
-// RR is the same quantity RecurrenceRate computes, read off the matrix instead
+// RR is the same quantity Rate computes, read off the matrix instead
 // of off the series. Two routes to one number, and the readout would be a lie
 // if they disagreed.
 func TestRQARateAgreesWithRecurrenceRate(t *testing.T) {
@@ -238,9 +238,9 @@ func TestRQARateAgreesWithRecurrenceRate(t *testing.T) {
 	n := len(x)
 	m := make([]byte, n*n)
 	const eps = 0.2
-	RecurrenceMatrix(x, eps, m)
-	if got, want := RQA(m, n).RR, RecurrenceRate(x, eps); math.Abs(got-want) > 1e-12 {
-		t.Errorf("RQA says RR=%.6f, RecurrenceRate says %.6f", got, want)
+	Matrix(x, eps, m)
+	if got, want := RQA(m, n).RR, Rate(x, eps); math.Abs(got-want) > 1e-12 {
+		t.Errorf("RQA says RR=%.6f, Rate says %.6f", got, want)
 	}
 }
 
@@ -280,14 +280,14 @@ func TestDeterminismSeparatesAnOrbitFromNoise(t *testing.T) {
 		lo, hi := 1e-6, 100.0
 		for k := 0; k < 50; k++ {
 			mid := (lo + hi) / 2
-			RecurrenceMatrixVec(v, dim, mid, m)
+			MatrixVec(v, dim, mid, m)
 			if RQA(m, pts).RR < 0.05 {
 				lo = mid
 			} else {
 				hi = mid
 			}
 		}
-		RecurrenceMatrixVec(v, dim, hi, m)
+		MatrixVec(v, dim, hi, m)
 		r := RQA(m, pts)
 		return r.DET, r.RR
 	}
@@ -365,7 +365,7 @@ func TestABareDiagonalHasNoDeterminismToReport(t *testing.T) {
 // unwritten and a long one would read past it.
 func TestTrajectorySeriesIsExactlyTheLengthAsked(t *testing.T) {
 	for _, mode := range dynamics.Keys() {
-		span := RecurrenceSpan(mode, 10, 256)
+		span := Span(mode, 10, 256)
 		if span <= 0 {
 			t.Errorf("%s: no span at all", mode)
 			continue
@@ -396,7 +396,7 @@ func TestSpanNeverBuysMoreStepsThanTheBudget(t *testing.T) {
 			continue
 		}
 		dt := sys.Dt()
-		span := RecurrenceSpan(mode, 1e9, 256)
+		span := Span(mode, 1e9, 256)
 		if steps := (recTrajTransient + span) / dt; steps > recTrajStepBudget+1 {
 			t.Errorf("%s: an unbounded request bought %.0f steps, over the %d budget",
 				mode, steps, recTrajStepBudget)
@@ -413,14 +413,14 @@ func TestSpanIsRaisedUntilItCanFillTheColumns(t *testing.T) {
 	const n = 256
 	for _, mode := range dynamics.Keys() {
 		sys, _ := dynamics.FlowFor4(mode)
-		span := RecurrenceSpan(mode, 10, n)
+		span := Span(mode, 10, n)
 		if steps := span / sys.Dt(); steps < n {
 			t.Errorf("%s: a span of %v buys %.0f steps for a %d-column plot", mode, span, steps, n)
 		}
 		// A request that is already long enough must come back untouched, or
 		// the floor is quietly rewriting every span rather than the short ones.
 		if want := 200.0; want/sys.Dt() >= n {
-			if got := RecurrenceSpan(mode, want, n); got != want &&
+			if got := Span(mode, want, n); got != want &&
 				got != float64(recTrajStepBudget)*sys.Dt()-recTrajTransient {
 				t.Errorf("%s: a %v-unit span came back as %v", mode, want, got)
 			}
@@ -443,17 +443,17 @@ func TestTheDefaultEpsilonIsReadableOnEveryRegisteredSystem(t *testing.T) {
 	worstLo, worstHi := "", ""
 	lo, hi := 1.0, 0.0
 	for _, mode := range dynamics.Keys() {
-		s := TrajectorySeries(mode, n, RecurrenceSpan(mode, 10, n))
+		s := TrajectorySeries(mode, n, Span(mode, 10, n))
 		if s == nil {
 			t.Errorf("%s: no trajectory", mode)
 			continue
 		}
-		d := RecurrenceDiameter(s, 3)
+		d := Diameter(s, 3)
 		if d <= 0 {
 			t.Errorf("%s: zero diameter", mode)
 			continue
 		}
-		RecurrenceMatrixVec(s, 3, frac*d, m)
+		MatrixVec(s, 3, frac*d, m)
 		r := RQA(m, n)
 		t.Logf("%-14s diam=%8.2f RR=%.4f DET=%.3f LAM=%.3f", mode, d, r.RR, r.DET, r.LAM)
 		if r.RR < lo {

@@ -1,4 +1,4 @@
-package attractor
+package recurrence
 
 import "github.com/0magnet/chaosrack/pkg/dynamics"
 
@@ -42,7 +42,7 @@ import "math"
 //
 //   - For a signal with a KNOWN BOUND, use the bound. Audio samples are bounded
 //     to ±1, so a delay vector of m of them lives in a cube of side 2, and
-//     RecurrenceVectorScale returns √m — that cube's half-diagonal — so ε as a
+//     VectorScale returns √m — that cube's half-diagonal — so ε as a
 //     fraction of full scale means the same thing at every m. Nothing about the
 //     current audio enters it, which is the point.
 //
@@ -58,16 +58,16 @@ import "math"
 // is not: both scales are constants of the thing being plotted, and neither is
 // a function of what happens to be arriving this frame.
 
-// RecurrenceMatrix fills dst, an n×n row-major byte image, with 255 where
+// Matrix fills dst, an n×n row-major byte image, with 255 where
 // |x_i − x_j| < eps and 0 elsewhere. dst must hold len(x)² bytes.
 //
-// The scalar case of RecurrenceMatrixVec, kept under its own name because it is
+// The scalar case of MatrixVec, kept under its own name because it is
 // what the raw-audio path calls and what most of the tests are written against.
-func RecurrenceMatrix(x []float64, eps float64, dst []byte) {
-	RecurrenceMatrixVec(x, 1, eps, dst)
+func Matrix(x []float64, eps float64, dst []byte) {
+	MatrixVec(x, 1, eps, dst)
 }
 
-// RecurrenceMatrixVec is the same picture for a PHASE-SPACE trajectory: x holds
+// MatrixVec is the same picture for a PHASE-SPACE trajectory: x holds
 // n points of dim coordinates each, laid out flat (point i is x[i*dim:]), and a
 // cell is lit when the Euclidean distance between the two points is under eps.
 // dst must hold n² bytes, where n = len(x)/dim.
@@ -78,7 +78,7 @@ func RecurrenceMatrix(x []float64, eps float64, dst []byte) {
 // calls to math.Sqrt from a matrix the audio source rebuilds every frame, and
 // the comparison is exactly equivalent for eps ≥ 0 (a negative eps is clamped
 // to zero, where both forms light only the diagonal).
-func RecurrenceMatrixVec(x []float64, dim int, eps float64, dst []byte) {
+func MatrixVec(x []float64, dim int, eps float64, dst []byte) {
 	if dim < 1 {
 		return
 	}
@@ -111,7 +111,7 @@ func RecurrenceMatrixVec(x []float64, dim int, eps float64, dst []byte) {
 	}
 }
 
-// RecurrenceRate is the fraction of the matrix that is lit — the density of
+// Rate is the fraction of the matrix that is lit — the density of
 // the plot, and the number to turn ε by. Around 1–5% is the usual working
 // range: below it the structure is too sparse to read, above it the plot
 // saturates into a white square.
@@ -119,7 +119,7 @@ func RecurrenceMatrixVec(x []float64, dim int, eps float64, dst []byte) {
 // The scalar reference implementation, computed straight from the series
 // rather than from a matrix, so the matrix can be checked against something
 // that does not share its indexing.
-func RecurrenceRate(x []float64, eps float64) float64 {
+func Rate(x []float64, eps float64) float64 {
 	n := len(x)
 	if n == 0 {
 		return 0
@@ -128,7 +128,7 @@ func RecurrenceRate(x []float64, eps float64) float64 {
 	for i := 0; i < n; i++ {
 		for j := 0; j < n; j++ {
 			// i == j is lit by convention rather than by the test, exactly as
-			// RecurrenceMatrix draws it: a point recurs with itself, and the
+			// Matrix draws it: a point recurs with itself, and the
 			// two functions describing the same picture must not disagree
 			// about the one line every reader measures everything against.
 			if i == j || math.Abs(x[i]-x[j]) < eps {
@@ -139,7 +139,7 @@ func RecurrenceRate(x []float64, eps float64) float64 {
 	return float64(lit) / float64(n*n)
 }
 
-// RecurrenceVectorScale is the fixed normalizer for a delay vector built from
+// VectorScale is the fixed normalizer for a delay vector built from
 // samples with a known bound of ±1: the half-diagonal of the cube those vectors
 // live in, √m. It exists so ε means "this fraction of full scale" at every
 // embedding dimension — without it, raising m from 1 to 8 thins the plot by
@@ -149,14 +149,14 @@ func RecurrenceRate(x []float64, eps float64) float64 {
 // Nothing about the current signal is measured here, which is the requirement
 // rather than an approximation: see the file comment on why the normalizer must
 // hold still.
-func RecurrenceVectorScale(dim int) float64 {
+func VectorScale(dim int) float64 {
 	if dim < 1 {
 		return 1
 	}
 	return math.Sqrt(float64(dim))
 }
 
-// RecurrenceDiameter is the largest distance between any two of the points —
+// Diameter is the largest distance between any two of the points —
 // the attractor's width, and the normalizer ε is a fraction of for a
 // trajectory, which has no full scale of its own.
 //
@@ -170,7 +170,7 @@ func RecurrenceVectorScale(dim int) float64 {
 // O(n²·dim), the same cost as the matrix itself, so it is only ever computed
 // where the matrix is — on a trajectory that has just been re-integrated, never
 // per frame.
-func RecurrenceDiameter(x []float64, dim int) float64 {
+func Diameter(x []float64, dim int) float64 {
 	if dim < 1 {
 		return 0
 	}
@@ -233,7 +233,7 @@ type RQAResult struct {
 const RQALMin = 2
 
 // RQA computes the three scalars from an n×n matrix already filled by
-// RecurrenceMatrixVec (lit cells non-zero).
+// MatrixVec (lit cells non-zero).
 //
 // THE MAIN DIAGONAL IS EXCLUDED FROM THE DIAGONAL STATISTIC, and that is not a
 // detail. Every point recurs with itself, so the line of identity is n cells
@@ -341,7 +341,7 @@ const recTrajTransient = 20
 // result is cached until the system changes again.
 const recTrajStepBudget = 300000
 
-// RecurrenceSpan clamps a requested span, in the system's own time units, to
+// Span clamps a requested span, in the system's own time units, to
 // the range that produces an n-point plot on that system without costing more
 // than recTrajStepBudget. Returns 0 for a mode with no registered flow.
 //
@@ -360,7 +360,7 @@ const recTrajStepBudget = 300000
 // doing anything past a point that differs per model with no indication why.
 // The plot then covers a different span from the one asked for, which is
 // visible in the picture — more or fewer diagonals — rather than silent.
-func RecurrenceSpan(mode string, want float64, n int) float64 {
+func Span(mode string, want float64, n int) float64 {
 	sys, ok := dynamics.FlowFor4(mode)
 	if !ok {
 		return 0
@@ -383,7 +383,7 @@ func RecurrenceSpan(mode string, want float64, n int) float64 {
 
 // TrajectorySeries integrates a registered flow and returns exactly n points of
 // its (x,y,z) path, flat, spanning span time units past the transient — the
-// form RecurrenceMatrixVec takes. Returns nil for a mode with no vector field,
+// form MatrixVec takes. Returns nil for a mode with no vector field,
 // or for a run that diverged before it had n points.
 //
 // THINNED BY SELECTION, NOT BY AVERAGING, and the audio path next door does the
