@@ -1,4 +1,4 @@
-package attractor
+package acoustics
 
 import (
 	"math"
@@ -19,7 +19,7 @@ func TestThirdOctaveCentresAreTheStandardOnes(t *testing.T) {
 		6300, 8000, 10000, 12500, 16000, 20000}
 	if len(bands) != len(want) {
 		t.Fatalf("%d third-octave bands between %.0f and %.0f Hz, want %d",
-			len(bands), rtaLo, rtaHi, len(want))
+			len(bands), RTALo, RTAHi, len(want))
 	}
 	for i, w := range want {
 		// Within 2%, which is the gap between the exact center and the
@@ -33,7 +33,7 @@ func TestThirdOctaveCentresAreTheStandardOnes(t *testing.T) {
 // One thousand hertz is a band center at every fraction, because the whole
 // series is defined about it.
 func TestEveryFractionIsCentredOnAKilohertz(t *testing.T) {
-	for _, b := range rtaFractions {
+	for _, b := range RTAFractions {
 		bands := RTABands(b)
 		found := false
 		for _, band := range bands {
@@ -52,7 +52,7 @@ func TestEveryFractionIsCentredOnAKilohertz(t *testing.T) {
 // whatever falls between, and both show up as a level that depends on the band
 // width — the one thing this display exists to remove.
 func TestBandsPartitionWithoutGapsOrOverlap(t *testing.T) {
-	for _, b := range rtaFractions {
+	for _, b := range RTAFractions {
 		bands := RTABands(b)
 		for i := 1; i < len(bands); i++ {
 			prev, cur := bands[i-1], bands[i]
@@ -68,7 +68,7 @@ func TestBandsPartitionWithoutGapsOrOverlap(t *testing.T) {
 // third-octave band the cube root of two. If the widths are wrong the centers
 // being right does not save it.
 func TestBandWidthsAreTheFractionTheyClaim(t *testing.T) {
-	for _, b := range rtaFractions {
+	for _, b := range RTAFractions {
 		want := math.Pow(10, 0.3/float64(b)) // the base-ten system's 1/b octave ratio
 		for _, band := range RTABands(b) {
 			if rel := math.Abs(band.Hi/band.Lo-want) / want; rel > 1e-9 {
@@ -82,8 +82,8 @@ func TestBandWidthsAreTheFractionTheyClaim(t *testing.T) {
 func rtaOf(x []float32, sr, b int) ([]RTABand, []float64) {
 	bands := RTABands(b)
 	levels := make([]float64, len(bands))
-	mags := meters.ComputeFFTMagsKind(x, rtaWindowKind)
-	RTALevels(mags, len(x), sr, bands, rtaWindowKind, levels)
+	mags := meters.ComputeFFTMagsKind(x, RTAWindowKind)
+	RTALevels(mags, len(x), sr, bands, RTAWindowKind, levels)
 	return bands, levels
 }
 
@@ -137,7 +137,7 @@ func rtaAveraged(sig audiosrc.TestSignal, windows, n, sr, b int) ([]RTABand, []f
 	buf := make([]float32, n)
 	for w := 0; w < windows; w++ {
 		src.FillMono(buf)
-		RTALevels(meters.ComputeFFTMagsKind(buf, rtaWindowKind), n, sr, bands, rtaWindowKind, one)
+		RTALevels(meters.ComputeFFTMagsKind(buf, RTAWindowKind), n, sr, bands, RTAWindowKind, one)
 		for i, db := range one {
 			acc[i] += math.Pow(10, db/10) // average the power, not the decibels
 		}
@@ -157,7 +157,7 @@ func rtaAveraged(sig audiosrc.TestSignal, windows, n, sr, b int) ([]RTABand, []f
 // The stimulus comes from the Test module's own generator rather than from a
 // filter written here, so this checks the two features against each other.
 func TestPinkNoiseReadsFlat(t *testing.T) {
-	for _, b := range rtaFractions {
+	for _, b := range RTAFractions {
 		bands, levels := rtaAveraged(audiosrc.TestPink, 16, 1<<14, 48000, b)
 		// From 100 Hz to 10 kHz: below that a band can be narrower than a bin
 		// on this window, and the very top runs into Nyquist.
@@ -191,7 +191,7 @@ func TestAToneReadsItsOwnLevelAtEveryBandWidth(t *testing.T) {
 	const amp = 0.5
 	want := 20 * math.Log10(amp)
 	x := distTone(1<<14, 1000.7, amp)
-	for _, b := range rtaFractions {
+	for _, b := range RTAFractions {
 		bands, levels := rtaOf(x, dtSR, b)
 		peak := math.Inf(-1)
 		for i := range bands {
@@ -207,8 +207,8 @@ func TestAToneReadsItsOwnLevelAtEveryBandWidth(t *testing.T) {
 func TestSilenceReadsTheFloor(t *testing.T) {
 	bands, levels := rtaOf(make([]float32, 1<<14), dtSR, 3)
 	for i := range bands {
-		if levels[i] != rtaFloorDB {
-			t.Errorf("band %d of silence reads %.2f dB, want the floor %.0f", i, levels[i], rtaFloorDB)
+		if levels[i] != RTAFloorDB {
+			t.Errorf("band %d of silence reads %.2f dB, want the floor %.0f", i, levels[i], RTAFloorDB)
 		}
 	}
 }
@@ -243,7 +243,7 @@ func TestPeakHoldTakesMaximaAtOnceAndDecays(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		RTAPeakHold(peaks, []float64{-200}, 1)
 	}
-	if peaks[0] != rtaFloorDB {
+	if peaks[0] != RTAFloorDB {
 		t.Errorf("the hold decayed to %.1f rather than stopping at the floor", peaks[0])
 	}
 }
@@ -251,8 +251,8 @@ func TestPeakHoldTakesMaximaAtOnceAndDecays(t *testing.T) {
 // The knob's labels have to match its positions, or the dial names a band width
 // it does not measure.
 func TestRTAFractionTablesLineUp(t *testing.T) {
-	if len(rtaFractions) != len(rtaFractionNames) || len(rtaFractions) != len(rtaFractionRing) {
+	if len(RTAFractions) != len(RTAFractionNames) || len(RTAFractions) != len(RTAFractionRing) {
 		t.Errorf("%d fractions, %d names, %d ring labels",
-			len(rtaFractions), len(rtaFractionNames), len(rtaFractionRing))
+			len(RTAFractions), len(RTAFractionNames), len(RTAFractionRing))
 	}
 }

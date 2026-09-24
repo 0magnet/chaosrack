@@ -1,4 +1,4 @@
-package attractor
+package acoustics
 
 import (
 	"math"
@@ -46,18 +46,18 @@ import (
 // test can hand it signals whose relationship is known exactly: a gain, a
 // delay, and two independent noises.
 
-// xfWindowKind is the window the transfer measurement runs through. Hann rather
+// TransferWindowKind is the window the transfer measurement runs through. Hann rather
 // than the low-leakage windows the other analyzers use: this one averages the
 // CROSS-spectrum over many windows, which suppresses leakage by itself wherever
 // the phase does not line up, and Hann's narrower main lobe keeps the response
 // curve's resolution — a wide lobe smears a notch into a dip.
-const xfWindowKind = meters.WinHann
+const TransferWindowKind = meters.WinHann
 
-// transferMinAvg is the fewest windows a result is given for. Below about eight
+// TransferMinAvg is the fewest windows a result is given for. Below about eight
 // the coherence is still biased high — its expected value on pure noise is
 // 1/count — and a measurement that reports 0.25 for two unrelated signals
 // invites believing a response that is not there.
-const transferMinAvg = 8
+const TransferMinAvg = 8
 
 // TransferResult is one measurement, band by band.
 type TransferResult struct {
@@ -105,6 +105,9 @@ type TransferAccum struct {
 // changes — a different channel, a different window length — because an average
 // over two different systems describes neither.
 func (a *TransferAccum) Reset() { a.count = 0; a.clear() }
+
+// Count is how many windows the running average holds.
+func (a *TransferAccum) Count() int { return a.count }
 
 func (a *TransferAccum) clear() {
 	for i := range a.sxx {
@@ -167,7 +170,7 @@ func (a *TransferAccum) Add(ref, meas []float32, wk meters.WinKind) bool {
 // was actually in it, which is what "the response at this band" means.
 func (a *TransferAccum) Result(sampleRate, frac int) TransferResult {
 	var r TransferResult
-	if a.count < transferMinAvg || a.n == 0 || sampleRate <= 0 {
+	if a.count < TransferMinAvg || a.n == 0 || sampleRate <= 0 {
 		r.Averages = a.count
 		return r
 	}

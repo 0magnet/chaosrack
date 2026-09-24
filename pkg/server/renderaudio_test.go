@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/0magnet/chaosrack/pkg/acoustics"
 	"github.com/0magnet/chaosrack/pkg/attractor"
 	"github.com/0magnet/chaosrack/pkg/audiosrc"
 )
@@ -88,7 +89,7 @@ func TestAudioModelsWrite(t *testing.T) {
 // transfer function between them is unity gain at 180 degrees.
 func TestTransferOfOutOfPolarity(t *testing.T) {
 	l, r := testSignalLR(t, "oop", 2)
-	var acc attractor.TransferAccum
+	var acc acoustics.TransferAccum
 	for at := 0; at+xferFFT <= len(l); at += xferFFT / 2 {
 		acc.Add(l[at:at+xferFFT], r[at:at+xferFFT], 0)
 	}

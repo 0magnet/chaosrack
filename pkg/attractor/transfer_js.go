@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/acoustics"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"syscall/js"
 
@@ -12,7 +13,7 @@ import (
 
 // The Transfer mode — magnitude, phase and coherence between two channels.
 //
-// The measurement is in transfer.go, untagged and checked against a known gain,
+// The measurement is in pkg/acoustics and checked against a known gain,
 // a known delay and two independent noises. This is the picture: three curves
 // stacked on one screen over a logarithmic frequency axis, drawn with the xy
 // scope's program as the RTA is.
@@ -46,12 +47,12 @@ var (
 	xfBufR   []float32
 	xfFill   int
 	xfNextMs float64
-	xfAccum  TransferAccum
-	xfRes    TransferResult
+	xfAccum  acoustics.TransferAccum
+	xfRes    acoustics.TransferResult
 
 	// The knobs.
 	xfSwapF  float32      // 0 = left is the reference, 1 = right
-	xfFracF  float32 = 2  // index into rtaFractions; 2 is 1/6 octave
+	xfFracF  float32 = 2  // index into acoustics.RTAFractions; 2 is 1/6 octave
 	xfAvgF   float32 = 24 // windows in the average
 	xfRangeF float32 = 40 // dB either side of 0 on the magnitude curve
 	xfCohF   float32 = 5  // minimum coherence, in tenths
@@ -68,8 +69,8 @@ func init() {
 	registerGenerate("xfer", generateTransfer)
 	attractorParams["xfer"] = []paramDef{
 		{"xf-swap", "ref", &xfSwapF, 0, 0, 1, 1},
-		{"xf-frac", "band", &xfFracF, 2, 0, float32(len(rtaFractions) - 1), 1},
-		{"xf-avg", "avg", &xfAvgF, 24, float32(transferMinAvg), 128, 1},
+		{"xf-frac", "band", &xfFracF, 2, 0, float32(len(acoustics.RTAFractions) - 1), 1},
+		{"xf-avg", "avg", &xfAvgF, 24, float32(acoustics.TransferMinAvg), 128, 1},
 		{"xf-range", "rnge", &xfRangeF, 40, 6, 60, 2},
 		{"xf-coh", "coh", &xfCohF, 5, 0, 10, 1},
 		{"xf-show", "show", &xfShowF, 0, 0, float32(len(xfShowNames) - 1), 1},
@@ -93,13 +94,13 @@ func xfShowSel() int {
 func xfFraction() int {
 	v := xfFracF
 	if !(v > 0) {
-		return rtaFractions[0]
+		return acoustics.RTAFractions[0]
 	}
-	last := len(rtaFractions) - 1
+	last := len(acoustics.RTAFractions) - 1
 	if v > float32(last) {
-		return rtaFractions[last]
+		return acoustics.RTAFractions[last]
 	}
-	return rtaFractions[int(v+0.5)]
+	return acoustics.RTAFractions[int(v+0.5)]
 }
 
 // generateTransfer is the mode's frame.
@@ -145,11 +146,11 @@ func xfAnalyze(nowMs float64) {
 	if xfSwapF > 0.5 {
 		ref, meas = xfBufR, xfBufL
 	}
-	xfAccum.Add(ref, meas, xfWindowKind)
+	xfAccum.Add(ref, meas, acoustics.TransferWindowKind)
 	// A rolling average: once it is full, start again rather than letting the
 	// window stretch to the whole session. A system-tuning measurement has to
 	// follow a knob being turned, and an average that never forgets cannot.
-	if xfAccum.count >= int(xfAvgF) {
+	if xfAccum.Count() >= int(xfAvgF) {
 		xfRes = xfAccum.Result(takensSourceRate(), xfFraction())
 		xfAccum.Reset()
 	} else if r := xfAccum.Result(takensSourceRate(), xfFraction()); r.OK {
@@ -310,7 +311,7 @@ var (
 // line.
 func showTransferDelay() {
 	s := "-- ms"
-	if ms, ok := TransferDelayMS(xfRes, float64(xfCohF)/10); ok {
+	if ms, ok := acoustics.TransferDelayMS(xfRes, float64(xfCohF)/10); ok {
 		s = led.Format(ms, 2, 2, true) + "ms"
 	}
 	if s == xfDelayTx {

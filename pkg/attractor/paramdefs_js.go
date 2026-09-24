@@ -5,6 +5,7 @@ package attractor
 import (
 	_ "embed"
 
+	"github.com/0magnet/chaosrack/pkg/acoustics"
 	"github.com/0magnet/chaosrack/pkg/analysis"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 )
@@ -81,8 +82,8 @@ var paramLabels = map[string][]string{
 	"polar-chan":  tapChanNames,
 	"rta-chan":    tapChanNames,
 	// The RTA's band width, next to the fractions it indexes.
-	"rta-frac": rtaFractionNames,
-	"xf-frac":  rtaFractionNames,
+	"rta-frac": acoustics.RTAFractionNames,
+	"xf-frac":  acoustics.RTAFractionNames,
 	// Which of the three curves the transfer display draws.
 	"xf-show": xfShowNames,
 	// Which channel is the reference — what went out — and which is what came
@@ -128,8 +129,8 @@ var paramRingLabels = map[string][]string{
 	"takens-chan": tapChanRing,
 	"polar-chan":  tapChanRing,
 	"rta-chan":    tapChanRing,
-	"rta-frac":    rtaFractionRing,
-	"xf-frac":     rtaFractionRing,
+	"rta-frac":    acoustics.RTAFractionRing,
+	"xf-frac":     acoustics.RTAFractionRing,
 	"xf-show":     xfShowRing,
 	"xf-swap":     {"L", "R"},
 	"wfall-swap":  {"L", "R"},

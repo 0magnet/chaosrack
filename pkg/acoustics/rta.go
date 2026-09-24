@@ -1,4 +1,4 @@
-package attractor
+package acoustics
 
 import (
 	"math"
@@ -31,27 +31,27 @@ import (
 // 1k, 2k, 4k, 8k, 16k row is the base-ten one rounded, and an analyzer whose
 // bands sit somewhere else cannot be compared with anybody's measurement.
 
-// rtaWindowKind is the window the analysis runs through. Blackman-Harris for the
+// RTAWindowKind is the window the analysis runs through. Blackman-Harris for the
 // distortion analyzer's reason: a band's level is only as clean as the leakage
 // from the loud band beside it, and on a room measurement the bands beside each
 // other differ by tens of decibels.
-const rtaWindowKind = meters.WinBlackmanHarris
+const RTAWindowKind = meters.WinBlackmanHarris
 
-// rtaFractions are the band widths offered, as the b in "1/b octave".
+// RTAFractions are the band widths offered, as the b in "1/b octave".
 //
 // 1/1 is the ten-band display on a hi-fi graphic equalizer, 1/3 is what room
 // measurement and every acoustics standard uses, and the two finer settings are
 // for finding a single narrow resonance — a 1/12-octave band is about 6% wide,
 // which is roughly the ear's own resolution in the midrange.
-var rtaFractions = []int{1, 3, 6, 12}
+var RTAFractions = []int{1, 3, 6, 12}
 
-// rtaFractionNames and rtaFractionRing label the knob.
+// RTAFractionNames and RTAFractionRing label the knob.
 var (
-	rtaFractionNames = []string{"1/1 octave", "1/3 octave", "1/6 octave", "1/12 octave"}
-	rtaFractionRing  = []string{"1/1", "1/3", "1/6", "1/12"}
+	RTAFractionNames = []string{"1/1 octave", "1/3 octave", "1/6 octave", "1/12 octave"}
+	RTAFractionRing  = []string{"1/1", "1/3", "1/6", "1/12"}
 )
 
-// rtaLo and rtaHi bound the analysis. 20 Hz to 20 kHz is the audible band, and
+// RTALo and RTAHi bound the analysis. 20 Hz to 20 kHz is the audible band, and
 // bands whose center falls outside it are not built: a display that draws a
 // band nobody can hear is spending width on it.
 //
@@ -63,8 +63,8 @@ var (
 // thirty-one. One percent admits that rounding and nothing else: the next band
 // out is 12% away at third-octave and 6% away at 1/12.
 const (
-	rtaLo      = 20.0
-	rtaHi      = 20000.0
+	RTALo      = 20.0
+	RTAHi      = 20000.0
 	rtaEdgeTol = 1.01
 )
 
@@ -99,7 +99,7 @@ func RTABands(b int) []RTABand {
 	// cover the band from either end whatever the fraction.
 	for n := -20 * b; n <= 20*b; n++ {
 		c := 1000 * math.Pow(10, 0.3*float64(n)/float64(b))
-		if c < rtaLo/rtaEdgeTol || c > rtaHi*rtaEdgeTol {
+		if c < RTALo/rtaEdgeTol || c > RTAHi*rtaEdgeTol {
 			continue
 		}
 		out = append(out, RTABand{Center: c, Lo: c / half, Hi: c * half})
@@ -156,7 +156,7 @@ func RTALevels(mags []float64, n, sampleRate int, bands []RTABand, winK meters.W
 			}
 		}
 		if p <= 0 || count == 0 {
-			levels[i] = rtaFloorDB
+			levels[i] = RTAFloorDB
 			continue
 		}
 		// BAND POWER, not density: the sum over the band as it stands, with no
@@ -176,15 +176,15 @@ func RTALevels(mags []float64, n, sampleRate int, bands []RTABand, winK meters.W
 		// caught it.
 		v := p * norm
 		levels[i] = 10 * math.Log10(v)
-		if levels[i] < rtaFloorDB {
-			levels[i] = rtaFloorDB
+		if levels[i] < RTAFloorDB {
+			levels[i] = RTAFloorDB
 		}
 	}
 }
 
-// rtaFloorDB is the bottom of the scale: a band with nothing in it reads here
+// RTAFloorDB is the bottom of the scale: a band with nothing in it reads here
 // rather than at negative infinity, which is not a bar height.
-const rtaFloorDB = -120.0
+const RTAFloorDB = -120.0
 
 // RTASmooth mixes a new set of levels into a held set, as a meter's ballistics
 // do. fast is the rise coefficient and slow the fall.
@@ -221,8 +221,8 @@ func RTAPeakHold(peaks, levels []float64, decayDB float64) {
 		}
 		if levels[i] > peaks[i] {
 			peaks[i] = levels[i]
-		} else if peaks[i] -= decayDB; peaks[i] < rtaFloorDB {
-			peaks[i] = rtaFloorDB
+		} else if peaks[i] -= decayDB; peaks[i] < RTAFloorDB {
+			peaks[i] = RTAFloorDB
 		}
 	}
 }

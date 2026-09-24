@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/acoustics"
 	"github.com/0magnet/chaosrack/pkg/meters"
 
 	"github.com/0magnet/chaosrack/pkg/glctx"
@@ -10,7 +11,7 @@ import (
 
 // The RTA mode — fractional-octave bands drawn as a bar display.
 //
-// The band arithmetic is in rta.go, untagged and checked against the Test
+// The band arithmetic is in pkg/acoustics and checked against the Test
 // module's own pink noise. This is the picture: how the bars are drawn, how
 // often the analysis runs, and the knobs.
 //
@@ -45,14 +46,14 @@ var (
 	rtaBuf    []float32
 	rtaFill   int
 	rtaNextMs float64
-	rtaBands  []RTABand
+	rtaBands  []acoustics.RTABand
 	rtaLevels []float64 // this analysis
 	rtaHeld   []float64 // after the meter ballistics
 	rtaPeaks  []float64
 	rtaLastB  int
 
 	// The knobs.
-	rtaFracF  float32 = 1  // index into rtaFractions; 1 is third-octave
+	rtaFracF  float32 = 1  // index into acoustics.RTAFractions; 1 is third-octave
 	rtaChanF  float32      // which signal
 	rtaRangeF float32 = 70 // dB shown from the top of the scale down
 	rtaTopF   float32      // dBFS at the top of the display
@@ -63,7 +64,7 @@ var (
 func init() {
 	registerGenerate("rta", generateRTA)
 	attractorParams["rta"] = []paramDef{
-		{"rta-frac", "band", &rtaFracF, 1, 0, float32(len(rtaFractions) - 1), 1},
+		{"rta-frac", "band", &rtaFracF, 1, 0, float32(len(acoustics.RTAFractions) - 1), 1},
 		{"rta-chan", "src", &rtaChanF, 0, 0, float32(len(tapChanNames) - 1), 1},
 		{"rta-top", "top", &rtaTopF, 0, -60, 20, 1},
 		{"rta-range", "rnge", &rtaRangeF, 70, 20, 120, 5},
@@ -78,13 +79,13 @@ func init() {
 func rtaFraction() int {
 	v := rtaFracF
 	if !(v > 0) { // false for NaN
-		return rtaFractions[0]
+		return acoustics.RTAFractions[0]
 	}
-	last := len(rtaFractions) - 1
+	last := len(acoustics.RTAFractions) - 1
 	if v > float32(last) {
-		return rtaFractions[last]
+		return acoustics.RTAFractions[last]
 	}
-	return rtaFractions[int(v+0.5)]
+	return acoustics.RTAFractions[int(v+0.5)]
 }
 
 // rtaAnalyze drains the tap and runs the FFT when its period is up.
@@ -92,13 +93,13 @@ func rtaAnalyze(nowMs float64) {
 	b := rtaFraction()
 	if b != rtaLastB || rtaBands == nil {
 		rtaLastB = b
-		rtaBands = RTABands(b)
+		rtaBands = acoustics.RTABands(b)
 		rtaLevels = make([]float64, len(rtaBands))
 		rtaHeld = make([]float64, len(rtaBands))
 		rtaPeaks = make([]float64, len(rtaBands))
 		for i := range rtaHeld {
-			rtaHeld[i] = rtaFloorDB
-			rtaPeaks[i] = rtaFloorDB
+			rtaHeld[i] = acoustics.RTAFloorDB
+			rtaPeaks[i] = acoustics.RTAFloorDB
 		}
 	}
 	if rtaBuf == nil {
@@ -129,8 +130,8 @@ func rtaAnalyze(nowMs float64) {
 		return
 	}
 	rtaNextMs = nowMs + rtaPeriodMs
-	RTALevels(meters.ComputeFFTMagsKind(rtaBuf, rtaWindowKind), rtaFFT, takensSourceRate(),
-		rtaBands, rtaWindowKind, rtaLevels)
+	acoustics.RTALevels(meters.ComputeFFTMagsKind(rtaBuf, acoustics.RTAWindowKind), rtaFFT, takensSourceRate(),
+		rtaBands, acoustics.RTAWindowKind, rtaLevels)
 }
 
 // rtaAdvance applies the meter ballistics, once a frame.
@@ -154,10 +155,10 @@ func rtaAdvance() {
 		rise = 1 / (1 + a*0.5)
 		fall = 1 / (1 + a*3)
 	}
-	RTASmooth(rtaHeld, rtaLevels, rise, fall)
+	acoustics.RTASmooth(rtaHeld, rtaLevels, rise, fall)
 	if rtaHoldF > 0 {
 		// The knob is dB per second; the decay is per frame.
-		RTAPeakHold(rtaPeaks, rtaHeld, float64(rtaHoldF)/60)
+		acoustics.RTAPeakHold(rtaPeaks, rtaHeld, float64(rtaHoldF)/60)
 	} else {
 		copy(rtaPeaks, rtaHeld)
 	}
@@ -220,7 +221,7 @@ func drawRTA() {
 	// bands are already equal RATIOS, so equal widths is what puts a logarithmic
 	// frequency axis on the display. That is the whole visual point of a
 	// fractional-octave analyzer over a spectrogram's linear bins.
-	bottom := rtaY(rtaFloorDB)
+	bottom := rtaY(acoustics.RTAFloorDB)
 	v := 0
 	for i := range rtaBands {
 		x := float32(-0.9 + 1.8*(float64(i)+0.5)/float64(n))
@@ -234,7 +235,7 @@ func drawRTA() {
 		// bar lit from its top, which is what the level is.
 		foot := c
 		if colored {
-			foot = rtaBarColor(pal, rtaFloorDB)
+			foot = rtaBarColor(pal, acoustics.RTAFloorDB)
 		}
 		vcPut(v, x, bottom, foot)
 		vcPut(v+1, x, rtaY(rtaHeld[i]), c)
