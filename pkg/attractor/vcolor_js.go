@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/colormap"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"syscall/js"
 )
@@ -155,11 +156,11 @@ func vcDone() { glctx.GL.Call("disableVertexAttribArray", vcACol) }
 // swatch-mixing ones instead, ok is false and the caller keeps its single
 // color — a two-swatch gradient is not a scalar map and pretending otherwise
 // would put arbitrary colors on a measurement.
-func analyzerPalette() (int, bool) { return paletteIndex(gradientColors) }
+func analyzerPalette() (int, bool) { return colormap.Index(gradientColors) }
 
 // analyzerColorAt samples that colormap at a 0..1 value, as three floats.
 func analyzerColorAt(idx int, v float64) [3]float32 {
-	c := paletteColorAt(idx, v)
+	c := colormap.At(idx, v)
 	r, g, b, _ := c.RGBA()
 	return [3]float32{float32(r) / 65535, float32(g) / 65535, float32(b) / 65535}
 }
