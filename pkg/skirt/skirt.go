@@ -1,3 +1,4 @@
+// Package skirt sizes the ring of labels drawn around a knob.
 package skirt
 
 import "math"

@@ -1,3 +1,5 @@
+// Package racklayout is a rack's arrangement as something that can be
+// written down and restored: which modules are in it and in what order.
 package racklayout
 
 // The rack layout, as a thing that can be written down.

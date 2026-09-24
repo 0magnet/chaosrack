@@ -1,3 +1,4 @@
+// Package gentile fits the signal generators onto module panels.
 package gentile
 
 import "sort"
