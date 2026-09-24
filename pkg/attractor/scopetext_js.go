@@ -2,10 +2,13 @@
 
 package attractor
 
-import "github.com/0magnet/chaosrack/pkg/dom"
+import (
+	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/scope"
+)
 
 // Mode wiring for Fourier Text (the harmonic character generator lives in
-// scopetext.go). The beam sweeps the reconstructed curve continuously like
+// pkg/scope/text.go). The beam sweeps the reconstructed curve continuously like
 // the Lissajous mode: the drawn window is exactly one period, so the whole
 // banner is always on screen and the gradient head visibly retraces it.
 
@@ -30,10 +33,10 @@ func generateScopeText() {
 		h = 1
 	}
 	if scopeTextDrawn == nil || scopeTextKeyS != scopeTextStr || scopeTextKeyH != h {
-		glyphs := scopeTextGlyphStrokes(scopeTextStr)
+		glyphs := scope.TextGlyphStrokes(scopeTextStr)
 		scopeTextDrawn = scopeTextDrawn[:0]
 		for _, g := range glyphs {
-			c := scopeTextSynth(g, h, scopeTextRes)
+			c := scope.TextSynth(g, h, scopeTextRes)
 			if c == nil {
 				continue
 			}
@@ -41,7 +44,7 @@ func generateScopeText() {
 			// z-axis keying a hardware character generator would apply. The
 			// glyph-to-glyph hand-off is likewise never drawn (separate
 			// strokes), so no beam appears anywhere it shouldn't.
-			scopeTextDrawn = append(scopeTextDrawn, scopeTextSplitCurve(c, scopeTextJumpFractions(g))...)
+			scopeTextDrawn = append(scopeTextDrawn, scope.TextSplitCurve(c, scope.TextJumpFractions(g))...)
 		}
 		scopeTextKeyS, scopeTextKeyH = scopeTextStr, h
 	}

@@ -1,4 +1,4 @@
-package attractor
+package scope
 
 import (
 	"math"
@@ -19,7 +19,7 @@ import (
 // actually put that many seconds in a division is a knob with a lie
 // silkscreened next to it.
 
-// scopeSteps125 is the sequence a real range switch steps through: 1, 2, 5,
+// steps125 is the sequence a real range switch steps through: 1, 2, 5,
 // 10, 20, 50, and so on, in both directions from 1.
 //
 // Not a smooth knob. A scope's VOLTS/DIV and TIME/DIV are detented switches
@@ -29,7 +29,7 @@ import (
 // and make the graticule useless.
 //
 // lo and hi bound the range inclusively; the result is ascending.
-func scopeSteps125(lo, hi float64) []float64 {
+func steps125(lo, hi float64) []float64 {
 	if !(lo > 0) || !(hi >= lo) {
 		return nil
 	}
@@ -63,20 +63,20 @@ func snap125(v float64) float64 {
 // sweep is limited by the sample rate, the slowest by how long anyone will
 // watch one screen fill.
 const (
-	scopeSecPerDivMin = 10e-6 // 10 µs/div
-	scopeSecPerDivMax = 0.5   // 500 ms/div
-	scopeVoltsDivMin  = 0.002 // full scale is ±1, so 2 mV/div is 500 screens
-	scopeVoltsDivMax  = 1.0   // 1.0/div puts full scale in one division
+	secPerDivMin = 10e-6 // 10 µs/div
+	secPerDivMax = 0.5   // 500 ms/div
+	voltsDivMin  = 0.002 // full scale is ±1, so 2 mV/div is 500 screens
+	voltsDivMax  = 1.0   // 1.0/div puts full scale in one division
 )
 
-// scopeTimebases and scopeVoltsDivs are the detents on the two range
+// Timebases and VoltsDivs are the detents on the two range
 // switches, built once from the sequence rather than typed out.
 var (
-	scopeTimebases = scopeSteps125(scopeSecPerDivMin, scopeSecPerDivMax)
-	scopeVoltsDivs = scopeSteps125(scopeVoltsDivMin, scopeVoltsDivMax)
+	Timebases = steps125(secPerDivMin, secPerDivMax)
+	VoltsDivs = steps125(voltsDivMin, voltsDivMax)
 )
 
-// scopeSweepSamples is how many samples the beam crosses the whole screen in
+// SweepSamples is how many samples the beam crosses the whole screen in
 // at this timebase: ten divisions of secPerDiv at sr samples a second.
 //
 // At least two, because a screen with one sample on it is a dot and the line
@@ -84,18 +84,18 @@ var (
 // faster than the converter can feed, which is a real thing to do — it is
 // what the fastest detent means on a scope whose sample rate is low — and it
 // should show a coarse trace rather than nothing.
-func scopeSweepSamples(secPerDiv float64, sr int) int {
+func SweepSamples(secPerDiv float64, sr int) int {
 	if sr <= 0 || !(secPerDiv > 0) {
 		return 2
 	}
-	n := int(secPerDiv * float64(gratDivX) * float64(sr))
+	n := int(secPerDiv * float64(DivX) * float64(sr))
 	if n < 2 {
 		return 2
 	}
 	return n
 }
 
-// scopeYDiv converts one sample to its height on the screen, in divisions
+// YDiv converts one sample to its height on the screen, in divisions
 // above center, at this VOLTS/DIV and vertical POSITION.
 //
 // NOT clamped. A scope does not fold a signal back onto the screen when it
@@ -103,14 +103,14 @@ func scopeSweepSamples(secPerDiv float64, sr int) int {
 // you are overdriving the input and need a coarser range. Clipping here
 // would hide exactly the fault the knob exists to find. The caller clips to
 // the tube, which is what the glass does.
-func scopeYDiv(sample float32, voltsPerDiv, posDiv float64) float64 {
+func YDiv(sample float32, voltsPerDiv, posDiv float64) float64 {
 	if !(voltsPerDiv > 0) {
 		return posDiv
 	}
 	return float64(sample)/voltsPerDiv + posDiv
 }
 
-// scopeTriggerIndex finds the sample where the trace should start: the first
+// TriggerIndex finds the sample where the trace should start: the first
 // crossing of level in the chosen direction, searching forward from the
 // start of the buffer.
 //
@@ -124,7 +124,7 @@ func scopeYDiv(sample float32, voltsPerDiv, posDiv float64) float64 {
 // The crossing is looked for BETWEEN samples, on the sign change, rather
 // than on "is this sample past the level": a sample exactly at the level is
 // not an edge, and a run of them is not a run of edges.
-func scopeTriggerIndex(s []float32, level float32, rising bool, limit int) int {
+func TriggerIndex(s []float32, level float32, rising bool, limit int) int {
 	if limit > len(s) {
 		limit = len(s)
 	}
@@ -140,9 +140,9 @@ func scopeTriggerIndex(s []float32, level float32, rising bool, limit int) int {
 	return -1
 }
 
-// scopeNearestStep returns the index of the detent closest to v, for
+// NearestStep returns the index of the detent closest to v, for
 // restoring a knob from a saved value onto a switch that has moved.
-func scopeNearestStep(steps []float64, v float64) int {
+func NearestStep(steps []float64, v float64) int {
 	if len(steps) == 0 {
 		return 0
 	}
@@ -159,9 +159,9 @@ func scopeNearestStep(steps []float64, v float64) int {
 	return best
 }
 
-// scopeFormatTime renders a timebase the way it is silkscreened: a whole
+// FormatTime renders a timebase the way it is silkscreened: a whole
 // number and a unit, never an exponent.
-func scopeFormatTime(sec float64) string {
+func FormatTime(sec float64) string {
 	switch {
 	case sec >= 1:
 		return trimNum(sec) + " s"
@@ -172,12 +172,12 @@ func scopeFormatTime(sec float64) string {
 	}
 }
 
-// scopeFormatVolts renders a VOLTS/DIV the same way. The signal is a
+// FormatVolts renders a VOLTS/DIV the same way. The signal is a
 // normalized sample and not a voltage, so the unit is full scale — "FS" —
 // which is the honest label: this is a level, and calling it volts when
 // nothing was calibrated against a volt would be the lie the comment at the
 // top of this file is about.
-func scopeFormatVolts(v float64) string {
+func FormatVolts(v float64) string {
 	if v >= 1 {
 		return trimNum(v) + " FS"
 	}

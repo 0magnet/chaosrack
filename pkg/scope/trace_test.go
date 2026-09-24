@@ -1,4 +1,4 @@
-package attractor
+package scope
 
 import (
 	"math"
@@ -6,14 +6,14 @@ import (
 )
 
 func TestScopeTraceColsIsOnePerPixel(t *testing.T) {
-	if got := scopeTraceCols(480); got != 480 {
+	if got := TraceCols(480); got != 480 {
 		t.Fatalf("a 480 px tube got %d columns, want 480", got)
 	}
 	// A tube that has not been laid out yet must still leave something to
 	// join a line between.
 	for _, w := range []float64{0, 1, -5} {
-		if got := scopeTraceCols(w); got < 2 {
-			t.Fatalf("scopeTraceCols(%v) = %d, want at least 2", w, got)
+		if got := TraceCols(w); got < 2 {
+			t.Fatalf("TraceCols(%v) = %d, want at least 2", w, got)
 		}
 	}
 }
@@ -28,7 +28,7 @@ func TestEnvelopeKeepsTheSignalsExtremes(t *testing.T) {
 		src[i] = float32(math.Sin(float64(i) * 0.9)) // ~7 samples a cycle
 	}
 	dst := make([]float32, 2*480)
-	cols := scopeTraceEnvelope(dst, src, 480)
+	cols := TraceEnvelope(dst, src, 480)
 	if cols != 480 {
 		t.Fatalf("filled %d columns, want 480", cols)
 	}
@@ -68,7 +68,7 @@ func TestEnvelopeCoversEverySampleExactlyOnce(t *testing.T) {
 		src[i] = float32(i)
 	}
 	dst := make([]float32, 2*97)
-	cols := scopeTraceEnvelope(dst, src, 97)
+	cols := TraceEnvelope(dst, src, 97)
 	if cols != 97 {
 		t.Fatalf("cols=%d want 97", cols)
 	}
@@ -89,7 +89,7 @@ func TestEnvelopeCoversEverySampleExactlyOnce(t *testing.T) {
 func TestEnvelopeHandlesFewerSamplesThanColumns(t *testing.T) {
 	src := []float32{1, 2, 3}
 	dst := make([]float32, 2*480)
-	if got := scopeTraceEnvelope(dst, src, 480); got != 3 {
+	if got := TraceEnvelope(dst, src, 480); got != 3 {
 		t.Fatalf("3 samples into 480 columns filled %d, want 3 — never an empty column", got)
 	}
 }
@@ -97,17 +97,17 @@ func TestEnvelopeHandlesFewerSamplesThanColumns(t *testing.T) {
 func TestEnvelopeRefusesToOverrunItsBuffer(t *testing.T) {
 	src := make([]float32, 5000)
 	dst := make([]float32, 10) // room for five columns
-	if got := scopeTraceEnvelope(dst, src, 480); got != 5 {
+	if got := TraceEnvelope(dst, src, 480); got != 5 {
 		t.Fatalf("filled %d columns into a 5-column buffer, want 5", got)
 	}
 }
 
 func TestEnvelopeIsEmptyWithNothingToDraw(t *testing.T) {
 	dst := make([]float32, 64)
-	if got := scopeTraceEnvelope(dst, nil, 100); got != 0 {
+	if got := TraceEnvelope(dst, nil, 100); got != 0 {
 		t.Fatalf("no samples gave %d columns, want 0", got)
 	}
-	if got := scopeTraceEnvelope(nil, []float32{1, 2}, 100); got != 0 {
+	if got := TraceEnvelope(nil, []float32{1, 2}, 100); got != 0 {
 		t.Fatalf("no buffer gave %d columns, want 0", got)
 	}
 }

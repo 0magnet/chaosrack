@@ -1,4 +1,4 @@
-package attractor
+package scope
 
 import (
 	"math"
@@ -9,7 +9,7 @@ import (
 // round number. If the sequence drifts, the graticule stops being countable
 // and the whole reason for a detented switch is gone.
 func TestTheRangeSwitchesStepOneTwoFive(t *testing.T) {
-	got := scopeSteps125(0.01, 10)
+	got := steps125(0.01, 10)
 	want := []float64{0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10}
 	if len(got) != len(want) {
 		t.Fatalf("got %v, want %v", got, want)
@@ -31,8 +31,8 @@ func TestTheRangeSwitchesAreOrderedAndBounded(t *testing.T) {
 		steps  []float64
 		lo, hi float64
 	}{
-		{"TIME/DIV", scopeTimebases, scopeSecPerDivMin, scopeSecPerDivMax},
-		{"VOLTS/DIV", scopeVoltsDivs, scopeVoltsDivMin, scopeVoltsDivMax},
+		{"TIME/DIV", Timebases, secPerDivMin, secPerDivMax},
+		{"VOLTS/DIV", VoltsDivs, voltsDivMin, voltsDivMax},
 	} {
 		if len(tc.steps) < 3 {
 			t.Errorf("%s has %d detents, which is not a range switch", tc.name, len(tc.steps))
@@ -61,8 +61,8 @@ func TestTheRangeSwitchesAreOrderedAndBounded(t *testing.T) {
 func TestTheTimebaseMeansSecondsPerDivision(t *testing.T) {
 	const sr = 48000
 	for _, sec := range []float64{1e-3, 5e-3, 0.1} {
-		n := scopeSweepSamples(sec, sr)
-		gotSec := float64(n) / sr / float64(gratDivX)
+		n := SweepSamples(sec, sr)
+		gotSec := float64(n) / sr / float64(DivX)
 		if math.Abs(gotSec-sec)/sec > 0.001 {
 			t.Errorf("%v s/div swept %d samples = %v s/div", sec, n, gotSec)
 		}
@@ -71,10 +71,10 @@ func TestTheTimebaseMeansSecondsPerDivision(t *testing.T) {
 
 // A sweep faster than the converter can feed still has to draw something.
 func TestAnImpossiblyFastSweepStillHasALineToDraw(t *testing.T) {
-	if got := scopeSweepSamples(1e-9, 48000); got < 2 {
+	if got := SweepSamples(1e-9, 48000); got < 2 {
 		t.Errorf("got %d samples, want at least the 2 a line needs", got)
 	}
-	if got := scopeSweepSamples(1e-3, 0); got < 2 {
+	if got := SweepSamples(1e-3, 0); got < 2 {
 		t.Errorf("no sample rate: got %d, want at least 2", got)
 	}
 }
@@ -84,18 +84,18 @@ func TestAnImpossiblyFastSweepStillHasALineToDraw(t *testing.T) {
 // hide the one fault the knob exists to find.
 func TestVoltsPerDivisionDeflectsAndDoesNotClip(t *testing.T) {
 	// At 0.5/div, a full-scale sample is two divisions up.
-	if got := scopeYDiv(1.0, 0.5, 0); math.Abs(got-2) > 1e-9 {
+	if got := YDiv(1.0, 0.5, 0); math.Abs(got-2) > 1e-9 {
 		t.Errorf("full scale at 0.5/div is %v divisions, want 2", got)
 	}
 	// At 0.1/div it is ten — off an eight-division screen, and that is right.
-	if got := scopeYDiv(1.0, 0.1, 0); math.Abs(got-10) > 1e-9 {
+	if got := YDiv(1.0, 0.1, 0); math.Abs(got-10) > 1e-9 {
 		t.Errorf("full scale at 0.1/div is %v divisions, want 10 (off screen)", got)
 	}
-	if got := scopeYDiv(1.0, 0.1, 0); got <= float64(gratHalfH) {
+	if got := YDiv(1.0, 0.1, 0); got <= float64(HalfH) {
 		t.Error("an overdriven trace was clipped onto the screen")
 	}
 	// POSITION slides the whole trace without changing its size.
-	a, b := scopeYDiv(0.25, 0.5, 0), scopeYDiv(0.25, 0.5, 1.5)
+	a, b := YDiv(0.25, 0.5, 0), YDiv(0.25, 0.5, 1.5)
 	if math.Abs((b-a)-1.5) > 1e-9 {
 		t.Errorf("POSITION moved the trace by %v divisions, want 1.5", b-a)
 	}
@@ -107,21 +107,21 @@ func TestVoltsPerDivisionDeflectsAndDoesNotClip(t *testing.T) {
 func TestTheTriggerFiresOnTheEdgeAndNotTheLevel(t *testing.T) {
 	// A square-ish wave: low, low, high, high, low, low, high...
 	s := []float32{-1, -1, 1, 1, -1, -1, 1, 1}
-	i := scopeTriggerIndex(s, 0, true, len(s))
+	i := TriggerIndex(s, 0, true, len(s))
 	if i != 2 {
 		t.Errorf("rising edge found at %d, want 2", i)
 	}
-	if j := scopeTriggerIndex(s, 0, false, len(s)); j != 4 {
+	if j := TriggerIndex(s, 0, false, len(s)); j != 4 {
 		t.Errorf("falling edge found at %d, want 4", j)
 	}
 	// A signal entirely above the level has no rising crossing at all.
 	high := []float32{0.5, 0.6, 0.7, 0.8}
-	if k := scopeTriggerIndex(high, 0, true, len(high)); k != -1 {
+	if k := TriggerIndex(high, 0, true, len(high)); k != -1 {
 		t.Errorf("a signal already above the level triggered at %d, want no crossing", k)
 	}
 	// Nor does a flat run exactly ON the level.
 	flat := []float32{0, 0, 0, 0}
-	if k := scopeTriggerIndex(flat, 0, true, len(flat)); k != -1 {
+	if k := TriggerIndex(flat, 0, true, len(flat)); k != -1 {
 		t.Errorf("a flat run at the level triggered at %d, want no crossing", k)
 	}
 }
@@ -130,7 +130,7 @@ func TestTheTriggerFiresOnTheEdgeAndNotTheLevel(t *testing.T) {
 // caller free-runs. A scope with no free-running sweep looks broken every
 // time the trigger is misadjusted.
 func TestSilenceReportsNoCrossingRatherThanAFalseOne(t *testing.T) {
-	if got := scopeTriggerIndex(make([]float32, 512), 0.1, true, 512); got != -1 {
+	if got := TriggerIndex(make([]float32, 512), 0.1, true, 512); got != -1 {
 		t.Errorf("silence triggered at %d, want -1", got)
 	}
 }
@@ -145,12 +145,12 @@ func TestARestoredKnobLandsOnTheNearestDetent(t *testing.T) {
 	}{
 		{0.01, 0}, {0.012, 0}, {0.018, 1}, {0.02, 1}, {0.9, 6}, {100, 6}, {0.0001, 0},
 	} {
-		if got := scopeNearestStep(steps, tc.v); got != tc.want {
+		if got := NearestStep(steps, tc.v); got != tc.want {
 			t.Errorf("%v landed on detent %d (%v), want %d (%v)",
 				tc.v, got, steps[got], tc.want, steps[tc.want])
 		}
 	}
-	if got := scopeNearestStep(nil, 1); got != 0 {
+	if got := NearestStep(nil, 1); got != 0 {
 		t.Errorf("an empty switch returned %d, want 0", got)
 	}
 }
@@ -159,27 +159,27 @@ func TestARestoredKnobLandsOnTheNearestDetent(t *testing.T) {
 // zero, and always the unit the number is in.
 func TestTheKnobLegendsReadLikeAFrontPanel(t *testing.T) {
 	for _, tc := range []struct{ in, want string }{
-		{scopeFormatTime(10e-6), "10 µs"},
-		{scopeFormatTime(500e-6), "500 µs"},
-		{scopeFormatTime(1e-3), "1 ms"},
-		{scopeFormatTime(20e-3), "20 ms"},
-		{scopeFormatTime(0.5), "500 ms"},
-		{scopeFormatVolts(0.002), "2 mFS"},
-		{scopeFormatVolts(0.05), "50 mFS"},
-		{scopeFormatVolts(1), "1 FS"},
+		{FormatTime(10e-6), "10 µs"},
+		{FormatTime(500e-6), "500 µs"},
+		{FormatTime(1e-3), "1 ms"},
+		{FormatTime(20e-3), "20 ms"},
+		{FormatTime(0.5), "500 ms"},
+		{FormatVolts(0.002), "2 mFS"},
+		{FormatVolts(0.05), "50 mFS"},
+		{FormatVolts(1), "1 FS"},
 	} {
 		if tc.in != tc.want {
 			t.Errorf("legend is %q, want %q", tc.in, tc.want)
 		}
 	}
 	// And every detent on both switches has a legend fit to print.
-	for _, s := range scopeTimebases {
-		if got := scopeFormatTime(s); got == "" || len(got) > 8 {
+	for _, s := range Timebases {
+		if got := FormatTime(s); got == "" || len(got) > 8 {
 			t.Errorf("%v prints as %q, which does not fit a panel", s, got)
 		}
 	}
-	for _, s := range scopeVoltsDivs {
-		if got := scopeFormatVolts(s); got == "" || len(got) > 9 {
+	for _, s := range VoltsDivs {
+		if got := FormatVolts(s); got == "" || len(got) > 9 {
 			t.Errorf("%v prints as %q, which does not fit a panel", s, got)
 		}
 	}

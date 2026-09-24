@@ -1,4 +1,4 @@
-package attractor
+package scope
 
 import (
 	"math"
@@ -30,20 +30,20 @@ import (
 // is what makes the trace read as one continuous brightness, which is also how
 // a real scope behaves: the beam moves at a rate, not at a number of samples.
 
-// clockPt is a point on the beam's path, in the display's own [-1,1] square.
-type clockPt struct{ x, y float64 }
+// ClockPt is a point on the beam's path, in the display's own [-1,1] square.
+type ClockPt struct{ X, Y float64 }
 
-// clockPolyline builds the whole tour for a given instant.
+// ClockPolyline builds the whole tour for a given instant.
 //
 // Angles run clockwise from twelve o'clock, which is π/2 in the maths and the
 // reason for the minus: a clock is one of the few things that is drawn the
 // other way round from a unit circle, and getting it wrong is a clock that runs
 // backwards while looking almost right.
-func clockPolyline(now time.Time) []clockPt {
-	var p []clockPt
-	at := func(frac, r float64) clockPt {
+func ClockPolyline(now time.Time) []ClockPt {
+	var p []ClockPt
+	at := func(frac, r float64) ClockPt {
 		a := math.Pi/2 - 2*math.Pi*frac
-		return clockPt{r * math.Cos(a), r * math.Sin(a)}
+		return ClockPt{r * math.Cos(a), r * math.Sin(a)}
 	}
 
 	// Fractional throughout: the hour hand creeps with the minutes and the
@@ -115,8 +115,8 @@ func clockPolyline(now time.Time) []clockPt {
 	// The second hand reaches the rim, as it does on a real dial — and here that
 	// is load-bearing rather than decorative: a shorter one would leave a gap
 	// between the rim and the tip that the beam would have to cross.
-	p = append(p, clockPt{0, 0})
-	p = append(p, at(minute/60, 0.76), clockPt{0, 0})
+	p = append(p, ClockPt{0, 0})
+	p = append(p, at(minute/60, 0.76), ClockPt{0, 0})
 	p = append(p, at(hour/12, 0.5))
 	return p
 }
