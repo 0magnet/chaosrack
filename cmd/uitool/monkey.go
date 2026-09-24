@@ -38,7 +38,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/0magnet/chaosrack/internal/cdp"
+	"github.com/0magnet/cdp"
 )
 
 var (
@@ -216,7 +216,7 @@ func runMonkey() {
 
 		snap := c.EvalJSON(snapJS)
 		var bad []string
-		if c.Frozen {
+		if c.Frozen() {
 			bad = append(bad, "FROZEN (CDP eval timed out → JS main thread blocked)")
 		}
 		if n := toInt(snap["nErr"]); n > baseErr {
@@ -237,7 +237,7 @@ func runMonkey() {
 		// zoomed off-screen, so "nothing in the center" is not an invariant here.)
 		// recoverability: every few steps make sure ▤ brings the panel back —
 		// both un-hidden AND stacked above the Front canvas (not visually buried).
-		if step%8 == 7 && !c.Frozen {
+		if step%8 == 7 && !c.Frozen() {
 			rec := c.EvalJSON(recoverJS)
 			if shown, _ := rec["shown"].(bool); !shown {
 				bad = append(bad, "UNRECOVERABLE (panel not shown after ▤)")
@@ -255,7 +255,7 @@ func runMonkey() {
 		}
 		if len(bad) > 0 {
 			viols = append(viols, violation{Step: step, Action: act, Mode: str(snap["mode"]), Detail: bad})
-			if *stopOn || c.Frozen {
+			if *stopOn || c.Frozen() {
 				break
 			}
 		}

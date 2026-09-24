@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/0magnet/chaosrack/internal/cdp"
+	"github.com/0magnet/cdp"
 )
 
 // Auditing the panel stylesheet.

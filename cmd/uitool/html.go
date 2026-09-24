@@ -42,7 +42,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/0magnet/chaosrack/internal/cdp"
+	"github.com/0magnet/cdp"
 	"golang.org/x/net/html"
 )
 

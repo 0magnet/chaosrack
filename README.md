@@ -3478,7 +3478,7 @@ switchable here and can be tuned by ear.
 ## Testing & tooling
 
 The UI is tested against a real browser over the Chrome DevTools Protocol
-(`internal/cdp`, no dependencies). One dev binary, `cmd/uitool`, bundles the
+([`github.com/0magnet/cdp`](https://github.com/0magnet/cdp)). One dev binary, `cmd/uitool`, bundles the
 harnesses:
 
 | subcommand | what it does |
@@ -3525,8 +3525,7 @@ make pages     # regenerate the self-contained index.html / tinygo/index.html
 Layout: `cmd/wasm` (the WebAssembly attractor app) · `cmd/chaosrack` &
 repo-root `main.go` (the web server) · `cmd/audiows` (PulseAudio→WebSocket
 audio server) · `cmd/uitool` (CDP test & capture harnesses) · `assets`
-(embedded wasm/js/template) · `pkg/server` · `pkg/attractor` · `pkg/audiosrc`
-· `internal/cdp`.
+(embedded wasm/js/template) · `pkg/server` · `pkg/attractor` · `pkg/audiosrc`.
 
 ## Related / prior art
 
@@ -3568,10 +3567,10 @@ gocloc --not-match-d='(vendor|node_modules|\.git)' .
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-Go                             459           6863          27394          64920
+Go                             478           7011          27597          66227
 HTML                            82            630            318          10438
-JSON                             4              0              0           4103
 Markdown                         2            832              7           2915
+JSON                             1              0              0           2189
 JavaScript                       3            118             95            951
 CSS                              1             75            859            720
 Makefile                         1             31             52            230
@@ -3581,6 +3580,6 @@ XML                              1              0              0             81
 BASH                             1              8             25             79
 Plain Text                       2              1              0              4
 -------------------------------------------------------------------------------
-TOTAL                          560           8577          28824          84625
+TOTAL                          576           8725          29027          84018
 -------------------------------------------------------------------------------
 ```

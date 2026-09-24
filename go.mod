@@ -5,6 +5,7 @@ go 1.26.5
 require (
 	github.com/0magnet/audioprism-go v0.0.0-20260923100834-d4f750669db1
 	github.com/0magnet/calvin v0.0.0-20260915170035-09af7075474e
+	github.com/0magnet/cdp v0.0.0-20260924200007-30a85ea3de08
 	github.com/0magnet/desk v0.0.0-20260923150657-2a7f55804f01
 	github.com/0magnet/desk/panes v0.0.0-20260923150657-2a7f55804f01
 	github.com/0magnet/pisano v0.0.0-20260923102342-ec397908300f
@@ -55,6 +56,7 @@ require (
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
+	github.com/coder/websocket v1.8.15 // indirect
 	github.com/creack/pty v1.1.24 // indirect
 	github.com/dlclark/regexp2/v2 v2.8.0 // indirect
 	github.com/dunglas/httpsfv v1.1.2 // indirect
