@@ -1,4 +1,4 @@
-package attractor
+package scope
 
 import (
 	"math"
@@ -37,9 +37,9 @@ func TestHandsPointWhereTheHourSays(t *testing.T) {
 	}
 	for _, c := range cases {
 		// The minute hand is the second-to-last stroke of the tour.
-		p := clockPolyline(clockAt(c.h, c.m, 0))
+		p := ClockPolyline(clockAt(c.h, c.m, 0))
 		tip := p[len(p)-3]
-		gotX, gotY := tip.x/minuteHand, tip.y/minuteHand
+		gotX, gotY := tip.X/minuteHand, tip.Y/minuteHand
 		if math.Abs(gotX-c.wantX) > 1e-9 || math.Abs(gotY-c.wantY) > 1e-9 {
 			t.Errorf("at :%02d the minute hand points (%.3f,%.3f), want %s (%.0f,%.0f) — "+
 				"a sign flip here draws a clock that runs backwards and still looks like a clock",
@@ -65,21 +65,21 @@ func TestEverySegmentIsDialOrHand(t *testing.T) {
 	// mark cuts either side of itself when it lands between samples.
 	const rimStep = 2 * math.Pi * 0.95 / 144
 	for _, tm := range []time.Time{clockAt(0, 0, 0), clockAt(10, 9, 8), clockAt(23, 59, 59), clockAt(6, 30, 30)} {
-		p := clockPolyline(tm)
+		p := ClockPolyline(tm)
 		for i := 1; i < len(p); i++ {
 			a, b := p[i-1], p[i]
-			if math.Hypot(b.x-a.x, b.y-a.y) <= rimStep*1.5 {
+			if math.Hypot(b.X-a.X, b.Y-a.Y) <= rimStep*1.5 {
 				continue // a step along the rim
 			}
 			// Radial: the two ends share a spoke. Cross product of the two
 			// position vectors is zero when they are collinear through the
 			// origin, which is what "same spoke" means.
-			if math.Abs(a.x*b.y-a.y*b.x) < 1e-9 {
+			if math.Abs(a.X*b.Y-a.Y*b.X) < 1e-9 {
 				continue
 			}
 			t.Errorf("at %s, segment %d of %d runs from (%.3f,%.3f) to (%.3f,%.3f): "+
 				"too long for the rim and not radial, so it is a stray line drawn across the face",
-				tm.Format("15:04:05"), i, len(p), a.x, a.y, b.x, b.y)
+				tm.Format("15:04:05"), i, len(p), a.X, a.Y, b.X, b.Y)
 			break
 		}
 	}
@@ -90,22 +90,22 @@ func TestEverySegmentIsDialOrHand(t *testing.T) {
 // the rim's start back to twelve, this says so.
 func TestRimClosesOnTheSecondHand(t *testing.T) {
 	for _, s := range []int{0, 7, 15, 38, 59} {
-		p := clockPolyline(clockAt(4, 20, s))
+		p := ClockPolyline(clockAt(4, 20, s))
 		// The tour is: rim … rim-close, center, minute tip, center, hour tip.
 		closePt := p[len(p)-5]
 		center := p[len(p)-4]
-		if math.Hypot(center.x, center.y) > 1e-12 {
+		if math.Hypot(center.X, center.Y) > 1e-12 {
 			t.Fatalf("the point after the rim is (%.3f,%.3f), not the center — the tour's "+
 				"shape changed and this test no longer measures what it claims",
-				center.x, center.y)
+				center.X, center.Y)
 		}
 		frac := float64(s) / 60
 		wantX := 0.95 * math.Cos(math.Pi/2-2*math.Pi*frac)
 		wantY := 0.95 * math.Sin(math.Pi/2-2*math.Pi*frac)
-		if math.Abs(closePt.x-wantX) > 1e-9 || math.Abs(closePt.y-wantY) > 1e-9 {
+		if math.Abs(closePt.X-wantX) > 1e-9 || math.Abs(closePt.Y-wantY) > 1e-9 {
 			t.Errorf("at :%02d the rim closes at (%.3f,%.3f), want the second hand's tip "+
 				"(%.3f,%.3f) — closing anywhere else draws a spare radial line to the center",
-				s, closePt.x, closePt.y, wantX, wantY)
+				s, closePt.X, closePt.Y, wantX, wantY)
 		}
 	}
 }
@@ -116,10 +116,10 @@ func TestRimClosesOnTheSecondHand(t *testing.T) {
 // drops or duplicates one rather than misplacing it visibly — an eleven-hour
 // dial is not something the eye counts.
 func TestTwelveTicksAtTheRightDepths(t *testing.T) {
-	p := clockPolyline(clockAt(1, 23, 45))
+	p := ClockPolyline(clockAt(1, 23, 45))
 	quarters, hours := 0, 0
 	for _, pt := range p {
-		switch r := math.Hypot(pt.x, pt.y); {
+		switch r := math.Hypot(pt.X, pt.Y); {
 		case math.Abs(r-0.74) < 1e-9:
 			quarters++
 		case math.Abs(r-0.84) < 1e-9:
@@ -137,16 +137,16 @@ func TestTwelveTicksAtTheRightDepths(t *testing.T) {
 // The hour hand creeps rather than jumping, or the clock looks stopped for
 // fifty-nine minutes out of every sixty.
 func TestTheHourHandCreeps(t *testing.T) {
-	a := clockPolyline(clockAt(4, 0, 0))
-	b := clockPolyline(clockAt(4, 30, 0))
+	a := ClockPolyline(clockAt(4, 0, 0))
+	b := ClockPolyline(clockAt(4, 30, 0))
 	ha, hb := a[len(a)-1], b[len(b)-1]
-	if math.Hypot(hb.x-ha.x, hb.y-ha.y) < 1e-6 {
+	if math.Hypot(hb.X-ha.X, hb.Y-ha.Y) < 1e-6 {
 		t.Error("the hour hand is in the same place at 4:00 and 4:30 — it is stepping " +
 			"on the hour instead of creeping with the minutes")
 	}
 	// Half an hour is half of one hour mark: 15 degrees.
-	angA := math.Atan2(ha.y, ha.x)
-	angB := math.Atan2(hb.y, hb.x)
+	angA := math.Atan2(ha.Y, ha.X)
+	angB := math.Atan2(hb.Y, hb.X)
 	moved := math.Mod(angA-angB+2*math.Pi, 2*math.Pi) // clockwise is decreasing
 	if want := 15 * math.Pi / 180; math.Abs(moved-want) > 1e-9 {
 		t.Errorf("the hour hand moved %.3f° in half an hour, want 15°", moved*180/math.Pi)

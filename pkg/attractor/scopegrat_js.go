@@ -5,12 +5,13 @@ package attractor
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
+	"github.com/0magnet/chaosrack/pkg/scope"
 	"syscall/js"
 
 	"github.com/go-gl/mathgl/mgl32"
 )
 
-// Drawing the scope graticule. The geometry is in scopegrat.go; this is only
+// Drawing the scope graticule. The geometry is in pkg/scope; this is only
 // the part that has to know about GL.
 //
 // Three draw calls rather than one, because the three weights are the point:
@@ -23,10 +24,10 @@ import (
 // graticule gray. The center axes sit above the division lines and the ticks
 // well below them — on a real face the ticks are hairlines you find when you
 // look for them and ignore otherwise.
-var gratShade = map[gratWeight]float32{
-	gratWeightAxis: 1.45,
-	gratWeightDiv:  1.0,
-	gratWeightTick: 0.6,
+var gratShade = map[scope.Weight]float32{
+	scope.WeightAxis: 1.45,
+	scope.WeightDiv:  1.0,
+	scope.WeightTick: 0.6,
 }
 
 // gratBase is the graticule gray the shades multiply, matched to the stereo
@@ -60,15 +61,15 @@ func drawScopeGraticule(halfH float32) {
 	glctx.GL.Call("uniformMatrix4fv", uMmatrixLoc, false, mat4ToTyped(&identMatrix))
 	defer updateModelMatrix()
 
-	perDiv := halfH / float32(gratHalfH)
-	lines := scopeGraticule()
+	perDiv := halfH / float32(scope.HalfH)
+	lines := scope.Graticule()
 	if cap(scopeGratBuf) < len(lines)*8 {
 		scopeGratBuf = make([]float32, 0, len(lines)*8)
 	}
 
 	// One pass per weight, in the order they stack: ticks first so the
 	// heavier lines land on top of them where they cross.
-	for _, w := range []gratWeight{gratWeightTick, gratWeightDiv, gratWeightAxis} {
+	for _, w := range []scope.Weight{scope.WeightTick, scope.WeightDiv, scope.WeightAxis} {
 		v := scopeGratBuf[:0]
 		for _, l := range lines {
 			if l.W != w {
