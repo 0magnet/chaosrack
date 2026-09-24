@@ -2,7 +2,10 @@
 
 package attractor
 
-import "testing"
+import (
+	"image/color"
+	"testing"
+)
 
 // The trace palettes and the spectrogram's must stay the same six, in the same
 // order. The whole value of reusing them is that "the third one" means the same
@@ -131,4 +134,29 @@ func TestPointCountDegenerateInputsStaySolid(t *testing.T) {
 		}
 	}
 	pointCount = 0
+}
+
+// The hue position of the map ring sweeps the spectrum on the spectrogram as
+// it does on the trace. It painted the spectrogram solid red while the trace
+// was a rainbow: this took its hue from a 0..1 value and handed it to an HSV
+// conversion that counted in degrees, so every value landed in the first
+// sixtieth of the red sector.
+func TestTheHueMapSweepsTheSpectrumOnTheSpectrogram(t *testing.T) {
+	defer func(c int, f float32) { gradientColors, gradientFreq = c, f }(gradientColors, gradientFreq)
+	gradientColors, gradientFreq = 4, 1
+	for _, c := range []struct {
+		v       float64
+		r, g, b uint8
+	}{
+		{0, 255, 0, 0},
+		{1.0 / 3, 0, 255, 0},
+		{0.5, 0, 255, 255},
+		{2.0 / 3, 0, 0, 255},
+	} {
+		got := color.RGBAModel.Convert(mapColorAt(c.v)).(color.RGBA)
+		near := func(a, b uint8) bool { return int(a)+2 >= int(b) && int(b)+2 >= int(a) }
+		if !near(got.R, c.r) || !near(got.G, c.g) || !near(got.B, c.b) {
+			t.Errorf("mapColorAt(%.3f) = %d,%d,%d, want %d,%d,%d", c.v, got.R, got.G, got.B, c.r, c.g, c.b)
+		}
+	}
 }

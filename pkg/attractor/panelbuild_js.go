@@ -780,16 +780,6 @@ func buildEQCard(id, label string, sym bool) js.Value {
 	return card
 }
 
-func hexToRGB(hex string) (float32, float32, float32) {
-	if len(hex) < 7 {
-		return 1, 1, 1
-	}
-	r, _ := strconv.ParseInt(hex[1:3], 16, 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-	g, _ := strconv.ParseInt(hex[3:5], 16, 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-	b, _ := strconv.ParseInt(hex[5:7], 16, 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-	return float32(r) / 255.0, float32(g) / 255.0, float32(b) / 255.0
-}
-
 // buildTwoWaySwitch renders a two-option setting as a switch with the current
 // option named beside it.
 //

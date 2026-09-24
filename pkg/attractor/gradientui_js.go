@@ -4,6 +4,7 @@ package attractor
 
 import (
 	_ "embed"
+	"github.com/0magnet/chaosrack/pkg/colorspace"
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"syscall/js"
@@ -121,9 +122,9 @@ func onColorChange(this js.Value, args []js.Value) interface{} {
 	baseHex := dom.Doc.Call("getElementById", "color-base").Get("value").String()
 	midHex := dom.Doc.Call("getElementById", "color-mid").Get("value").String()
 	topHex := dom.Doc.Call("getElementById", "color-top").Get("value").String()
-	baseColor[0], baseColor[1], baseColor[2] = hexToRGB(baseHex)
-	midColor[0], midColor[1], midColor[2] = hexToRGB(midHex)
-	topColor[0], topColor[1], topColor[2] = hexToRGB(topHex)
+	baseColor = colorspace.ParseHex(baseHex)
+	midColor = colorspace.ParseHex(midHex)
+	topColor = colorspace.ParseHex(topHex)
 	glctx.GL.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
 	glctx.GL.Call("uniform3f", uMidColorLoc, midColor[0], midColor[1], midColor[2])
 	glctx.GL.Call("uniform3f", uTopColorLoc, topColor[0], topColor[1], topColor[2])

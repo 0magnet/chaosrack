@@ -3,9 +3,9 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/colorspace"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"image/color"
-	"math"
 	"syscall/js"
 
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
@@ -283,8 +283,8 @@ func mapColorAt(v float64) color.Color {
 		}
 		return mix(midColor, topColor, (v-0.5)*2)
 	case 4:
-		r, g, b := hsv2rgb(math.Mod(v*float64(gradientFreq), 1), 1, 1)
-		return color.RGBA{R: uint8(255 * r), G: uint8(255 * g), B: uint8(255 * b), A: 255} //nolint:gosec
+		c := colorspace.FromHSV(float32(v)*gradientFreq, 1, 1)
+		return color.RGBA{R: uint8(255 * c[0]), G: uint8(255 * c[1]), B: uint8(255 * c[2]), A: 255} //nolint:gosec
 	default: // 2-color, and anything unexpected
 		return mix(baseColor, topColor, v)
 	}
