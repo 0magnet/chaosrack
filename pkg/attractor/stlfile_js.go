@@ -38,10 +38,10 @@ func generateSTLFile() {
 	if len(stlFileVerts) == 0 {
 		// Nothing loaded yet — show the plain cube as a stand-in so the
 		// screen isn't blank while the Load button waits.
-		uploadBuffersIndexed(verticesCube[:72], indicesCube[:36], glctx.Types.Line)
+		gpu.uploadBuffersIndexed(verticesCube[:72], indicesCube[:36], glctx.Types.Line)
 		return
 	}
-	uploadBuffersIndexed(stlFileVerts, stlFileIdx, glctx.Types.Line)
+	gpu.uploadBuffersIndexed(stlFileVerts, stlFileIdx, glctx.Types.Line)
 }
 
 // setSTLFileModel parses STL bytes into the mode's wireframe buffers:
@@ -195,7 +195,7 @@ func buildSTLFileModule() {
 		}
 		stlFileSetLED(short, "Loaded STL — "+detail)
 		if selectedMode == "stlfile" {
-			staticGeomDirty = true
+			gpu.staticDirty = true
 			generateForMode("stlfile")
 			autoFitCamera()
 		}
@@ -285,7 +285,7 @@ func buildSTLBuiltInPicker() {
 		}
 		stlFileSetLED(short, "Built-in — "+detail+". "+m.Description)
 		if selectedMode == "stlfile" {
-			staticGeomDirty = true
+			gpu.staticDirty = true
 			generateForMode("stlfile")
 			autoFitCamera()
 		}

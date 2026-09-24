@@ -28,5 +28,5 @@ func generateClassic(mode string) {
 		j := i * 4
 		vertices[j], vertices[j+1], vertices[j+2], vertices[j+3] = x, y, z, float32(i)*invN
 	}
-	uploadVerticesOnly(vertices, attractorDrawMode, steps)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
 }

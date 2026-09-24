@@ -25,7 +25,7 @@ var polyOpF float32
 // polyBuilt is what is currently on the GPU, as seed*100+op, so a turn of
 // the operator knob rebuilds and nothing else does.
 //
-// Tracked here rather than through staticGeomDirty because this mesh
+// Tracked here rather than through gpu.staticDirty because this mesh
 // depends on a parameter that the generic invalidation does not know about,
 // and a wireframe that ignores its own knob is worse than one that rebuilds
 // a little too often.
@@ -34,7 +34,7 @@ var polyBuilt = -1
 // generateSeed draws seed s with the operator knob applied.
 func generateSeed(s int) {
 	want := s*100 + int(polyOpF)
-	if polyBuilt == want && staticGeomCached(glctx.Types.Line) {
+	if polyBuilt == want && gpu.staticGeomCached(glctx.Types.Line) {
 		return
 	}
 	polyBuilt = want
@@ -49,7 +49,7 @@ func generateSeed(s int) {
 	for _, e := range edges {
 		idx = append(idx, uint16(e[0]), uint16(e[1])) //nolint:gosec // a generated solid is far below 65535 vertices; the largest here is bD at 120
 	}
-	uploadBuffersIndexed(verts, idx, glctx.Types.Line)
+	gpu.uploadBuffersIndexed(verts, idx, glctx.Types.Line)
 }
 
 // polyOpNames is the operator knob's positions, for the labeled rotary.

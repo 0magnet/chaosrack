@@ -46,7 +46,7 @@ func turtleGrabbable() bool { return selectedMode == "turtle" && physOn() }
 
 // mvpNow is the matrix the shader is drawing with, which is the one a cursor
 // has to be compared against.
-func mvpNow() mgl32.Mat4 { return projMatrix.Mul4(viewMatrix).Mul4(movMatrix) }
+func mvpNow() mgl32.Mat4 { return gpu.proj.Mul4(viewMatrix).Mul4(movMatrix) }
 
 // canvasPoint turns a client position into a position on the canvas, in the
 // canvas's own pixels.

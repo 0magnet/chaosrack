@@ -10,10 +10,10 @@ import "testing"
 
 func withGradientRangeState(t *testing.T) {
 	t.Helper()
-	sr, av, pend, seq, up := shadersReady, attractorVertices, gradientRangePending, gradientRangeSeq, vertexUploadSeq
+	sr, av, pend, seq, up := gpu.ready, gpu.verts, gradientRangePending, gradientRangeSeq, gpu.uploadSeq
 	t.Cleanup(func() {
-		shadersReady, attractorVertices = sr, av
-		gradientRangePending, gradientRangeSeq, vertexUploadSeq = pend, seq, up
+		gpu.ready, gpu.verts = sr, av
+		gradientRangePending, gradientRangeSeq, gpu.uploadSeq = pend, seq, up
 	})
 }
 
@@ -28,9 +28,9 @@ func withGradientRangeState(t *testing.T) {
 // somebody else's.
 func TestGradientRangeWaitsForTheModeToDraw(t *testing.T) {
 	withGradientRangeState(t)
-	shadersReady = true
-	attractorVertices = make([]float32, 8) // the PREVIOUS mode's, still there
-	vertexUploadSeq = 7
+	gpu.ready = true
+	gpu.verts = make([]float32, 8) // the PREVIOUS mode's, still there
+	gpu.uploadSeq = 7
 
 	armGradientRange()
 	if !gradientRangePending {
@@ -46,7 +46,7 @@ func TestGradientRangeWaitsForTheModeToDraw(t *testing.T) {
 		}
 	}
 	// The mode finally draws.
-	vertexUploadSeq++
+	gpu.uploadSeq++
 	if !gradientRangeDue() {
 		t.Error("the refresh was still refused after the mode uploaded its own geometry")
 	}
@@ -57,11 +57,11 @@ func TestGradientRangeWaitsForTheModeToDraw(t *testing.T) {
 // is not per-frame work.
 func TestGradientRangeIsOwedOnceOnly(t *testing.T) {
 	withGradientRangeState(t)
-	shadersReady = false // so refreshGradient returns before touching WebGL
-	attractorVertices = make([]float32, 8)
-	vertexUploadSeq = 1
+	gpu.ready = false // so refreshGradient returns before touching WebGL
+	gpu.verts = make([]float32, 8)
+	gpu.uploadSeq = 1
 	armGradientRange()
-	vertexUploadSeq++
+	gpu.uploadSeq++
 	if !gradientRangeDue() {
 		t.Fatal("not due after an upload")
 	}

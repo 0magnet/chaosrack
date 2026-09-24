@@ -162,7 +162,7 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 	}
 	// New mode means fresh geometry — force an upload on the next
 	// uploadBuffersIndexed for static modes, and a skin-mesh rebuild.
-	staticGeomDirty = true
+	gpu.staticDirty = true
 	skinDirty = true
 	// The Takens mode measures τ once when it first has audio to measure, and
 	// entering the mode is what "first" means. The source may also have been

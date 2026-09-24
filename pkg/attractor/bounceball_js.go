@@ -134,7 +134,7 @@ func generateBounceBall() {
 		vertices[j+2] = 0
 		vertices[j+3] = float32(i) * invN
 	}
-	uploadVerticesOnly(vertices, attractorDrawMode, steps)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
 }
 
 // bounceBeep: one short sine blip on the shared context. The acquire only

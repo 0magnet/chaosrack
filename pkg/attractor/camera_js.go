@@ -52,13 +52,6 @@ var (
 	cachedRotZ float32
 )
 
-// staticGeomDirty is set true when a non-attractor mode's geometry
-// needs re-upload to the GPU (mode change or param change). Cleared
-// inside uploadBuffersIndexed after the first upload. Per-frame
-// calls then skip the SliceToTypedArray + bufferData work and go
-// straight to drawElements with the still-bound buffers.
-var staticGeomDirty = true
-
 // ExtraNavHTML lets the host page inject a small HTML snippet into
 // the controls panel (typically a link to a fullscreen-only variant
 // of the page). Set BEFORE calling Run(). Empty string = no slot

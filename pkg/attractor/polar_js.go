@@ -199,7 +199,7 @@ func generatePolar() {
 	nv := takensVerts(n)
 	if avail < span+1 {
 		polarFitGain = 0 // camera was fitted to silence — refit on real data
-		uploadVerticesOnly(vertBuf[:nv*4], attractorDrawMode, nv)
+		gpu.uploadVerticesOnly(vertBuf[:nv*4], gpu.drawMode, nv)
 		return
 	}
 	rn := len(polarRing)
@@ -261,7 +261,7 @@ func generatePolar() {
 		// The trail ramp, which is also what audioColorWindow's table indexes.
 		vertices[j+3] = float32(m) * invN
 	}
-	uploadVerticesOnly(vertices, attractorDrawMode, nv)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, nv)
 	if polarFitGain != polarGain && !paramIsModulated("polar-gain") {
 		// Fitted to the fixed scale's worst case rather than to this window's
 		// extent, and only when GAIN moves that case — see generateTakens for

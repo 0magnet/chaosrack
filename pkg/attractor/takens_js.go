@@ -166,7 +166,7 @@ func generateTakens() {
 	nv := takensVerts(n)
 	if avail < span+1 {
 		takensFitGain = 0 // camera was fitted to silence — refit on real data
-		uploadVerticesOnly(vertBuf[:nv*4], attractorDrawMode, nv)
+		gpu.uploadVerticesOnly(vertBuf[:nv*4], gpu.drawMode, nv)
 		return
 	}
 	// A different SRC is a different signal, so the τ measured from the last
@@ -211,7 +211,7 @@ func generateTakens() {
 		}
 		vertices[j+3] = float32(m) * invN
 	}
-	uploadVerticesOnly(vertices, attractorDrawMode, nv)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, nv)
 	if takensFitGain != takensGain && !paramIsModulated("takens-gain") {
 		// The mode-entry auto-fit saw silence (a dot), so fit when the first
 		// full window of real audio arrives — and fit to the FIXED scale's

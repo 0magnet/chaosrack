@@ -519,7 +519,7 @@ func wfallMeasure(sr int) {
 func wfallDraw() {
 	n := len(wfallSurface)
 	if n == 0 || len(wfallFreqs) < 2 {
-		uploadVerticesOnly(vertBuf[:0], glctx.Types.Lines, 0)
+		gpu.uploadVerticesOnly(vertBuf[:0], glctx.Types.Lines, 0)
 		return
 	}
 	bins := len(wfallFreqs)
@@ -530,7 +530,7 @@ func wfallDraw() {
 		// slices is a better answer than drawing a corrupt surface.
 		n = len(vertBuf) / 4 / ((bins - 1) * 2)
 		if n < 1 {
-			uploadVerticesOnly(vertBuf[:0], glctx.Types.Lines, 0)
+			gpu.uploadVerticesOnly(vertBuf[:0], glctx.Types.Lines, 0)
 			return
 		}
 		need = n * (bins - 1) * 2
@@ -569,7 +569,7 @@ func wfallDraw() {
 			put(b, s)
 		}
 	}
-	uploadVerticesOnly(v, glctx.Types.Lines, need)
+	gpu.uploadVerticesOnly(v, glctx.Types.Lines, need)
 	// The surface's bounds are exact rather than measured: x is the frequency
 	// axis end to end, y is the whole of TOP..TOP-RNGE because the level is
 	// clamped into it, and z is the depth DPTH asked for. Setting them is what
@@ -583,7 +583,7 @@ func wfallDraw() {
 	// having and is the default. X repeats the frequency axis. AUDIO is the one
 	// to avoid: its table is a short-time centroid along the trail and only
 	// takens, stereo and polar fill it, so on this mode it is one flat tint.
-	setGradientRange(-float32(span), float32(span),
+	gpu.setGradientRange(-float32(span), float32(span),
 		-float32(span/2), float32(span/2),
 		-float32(depth/2), float32(depth/2))
 	if !wfallFitted {

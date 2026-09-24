@@ -386,7 +386,7 @@ var vertShaderCode = `
 	}
 `
 
-func setupShaders() {
+func (r *renderer) setupShaders() {
 	vertShader := glctx.GL.Call("createShader", glctx.Types.VertexShader)
 	glctx.GL.Call("shaderSource", vertShader, vertShaderCode)
 	glctx.GL.Call("compileShader", vertShader)
@@ -395,84 +395,84 @@ func setupShaders() {
 	glctx.GL.Call("shaderSource", fragShader, fragShaderCode)
 	glctx.GL.Call("compileShader", fragShader)
 
-	glctx.GL.Call("attachShader", shaderProgram, vertShader)
-	glctx.GL.Call("attachShader", shaderProgram, fragShader)
-	glctx.GL.Call("linkProgram", shaderProgram)
+	glctx.GL.Call("attachShader", r.program, vertShader)
+	glctx.GL.Call("attachShader", r.program, fragShader)
+	glctx.GL.Call("linkProgram", r.program)
 
-	positionLoc = glctx.GL.Call("getAttribLocation", shaderProgram, "position")
-	aTrailTLoc = glctx.GL.Call("getAttribLocation", shaderProgram, "aTrailT")
-	aDwellLoc = glctx.GL.Call("getAttribLocation", shaderProgram, "aDwell")
+	r.aPosition = glctx.GL.Call("getAttribLocation", r.program, "position")
+	r.aTrailT = glctx.GL.Call("getAttribLocation", r.program, "aTrailT")
+	r.aDwell = glctx.GL.Call("getAttribLocation", r.program, "aDwell")
 	// Geometry / indexed paths leave the dwell attribute array disabled and
 	// use this constant instead (uniform brightness).
-	glctx.GL.Call("vertexAttrib1f", aDwellLoc, 1.0)
-	glctx.GL.Call("useProgram", shaderProgram)
+	glctx.GL.Call("vertexAttrib1f", r.aDwell, 1.0)
+	glctx.GL.Call("useProgram", r.program)
 
 	// Set stride-4 attribute pointers (16 bytes per vertex: x,y,z,t)
-	glctx.GL.Call("vertexAttribPointer", positionLoc, 3, glctx.Types.Float, false, 16, 0)
-	glctx.GL.Call("enableVertexAttribArray", positionLoc)
-	glctx.GL.Call("vertexAttribPointer", aTrailTLoc, 1, glctx.Types.Float, false, 16, 12)
-	glctx.GL.Call("enableVertexAttribArray", aTrailTLoc)
+	glctx.GL.Call("vertexAttribPointer", r.aPosition, 3, glctx.Types.Float, false, 16, 0)
+	glctx.GL.Call("enableVertexAttribArray", r.aPosition)
+	glctx.GL.Call("vertexAttribPointer", r.aTrailT, 1, glctx.Types.Float, false, 16, 12)
+	glctx.GL.Call("enableVertexAttribArray", r.aTrailT)
 
-	uBaseColorLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uBaseColor")
-	uTopColorLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uTopColor")
-	uMidColorLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uMidColor")
-	uMinZLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uMinZ")
-	uMaxZLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uMaxZ")
-	uMinXLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uMinX")
-	uMaxXLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uMaxX")
-	uMinYLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uMinY")
-	uMaxYLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uMaxY")
-	uGradientSourceLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uGradientSource")
-	uAudioLUTLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uAudioLUT")
-	uPaletteLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uPalette")
-	uDashDutyLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uDashDuty")
-	uDashCountLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uDashCount")
+	r.u.baseColor = glctx.GL.Call("getUniformLocation", r.program, "uBaseColor")
+	r.u.topColor = glctx.GL.Call("getUniformLocation", r.program, "uTopColor")
+	r.u.midColor = glctx.GL.Call("getUniformLocation", r.program, "uMidColor")
+	r.u.minZ = glctx.GL.Call("getUniformLocation", r.program, "uMinZ")
+	r.u.maxZ = glctx.GL.Call("getUniformLocation", r.program, "uMaxZ")
+	r.u.minX = glctx.GL.Call("getUniformLocation", r.program, "uMinX")
+	r.u.maxX = glctx.GL.Call("getUniformLocation", r.program, "uMaxX")
+	r.u.minY = glctx.GL.Call("getUniformLocation", r.program, "uMinY")
+	r.u.maxY = glctx.GL.Call("getUniformLocation", r.program, "uMaxY")
+	r.u.gradientSource = glctx.GL.Call("getUniformLocation", r.program, "uGradientSource")
+	r.u.audioLUT = glctx.GL.Call("getUniformLocation", r.program, "uAudioLUT")
+	r.u.palette = glctx.GL.Call("getUniformLocation", r.program, "uPalette")
+	r.u.dashDuty = glctx.GL.Call("getUniformLocation", r.program, "uDashDuty")
+	r.u.dashCount = glctx.GL.Call("getUniformLocation", r.program, "uDashCount")
 	// The colormap lives on its own texture unit; tell the sampler which.
-	glctx.GL.Call("uniform1i", uPaletteLoc, paletteUnit)
-	uGradientColorsLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uGradientColors")
-	uGradientFreqLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uGradientFreq")
-	uGradientPhaseLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uGradientPhase")
-	uPaletteShiftLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uPaletteShift")
-	uGradientReverseLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uGradientReverse")
-	uPointSizeLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uPointSize")
-	uMmatrixLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "Mmatrix")
-	uVmatrixLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "Vmatrix")
-	uTrailHeadLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uTrailHead")
-	glctx.GL.Call("uniform1f", uTrailHeadLoc, 0)
-	uSplitZLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uSplitZ")
-	uSplitSideLoc = glctx.GL.Call("getUniformLocation", shaderProgram, "uSplitSide")
+	glctx.GL.Call("uniform1i", r.u.palette, paletteUnit)
+	r.u.gradientColors = glctx.GL.Call("getUniformLocation", r.program, "uGradientColors")
+	r.u.gradientFreq = glctx.GL.Call("getUniformLocation", r.program, "uGradientFreq")
+	r.u.gradientPhase = glctx.GL.Call("getUniformLocation", r.program, "uGradientPhase")
+	r.u.paletteShift = glctx.GL.Call("getUniformLocation", r.program, "uPaletteShift")
+	r.u.gradientReverse = glctx.GL.Call("getUniformLocation", r.program, "uGradientReverse")
+	r.u.pointSize = glctx.GL.Call("getUniformLocation", r.program, "uPointSize")
+	r.u.model = glctx.GL.Call("getUniformLocation", r.program, "Mmatrix")
+	r.u.view = glctx.GL.Call("getUniformLocation", r.program, "Vmatrix")
+	r.u.trailHead = glctx.GL.Call("getUniformLocation", r.program, "uTrailHead")
+	glctx.GL.Call("uniform1f", r.u.trailHead, 0)
+	r.u.splitZ = glctx.GL.Call("getUniformLocation", r.program, "uSplitZ")
+	r.u.splitSide = glctx.GL.Call("getUniformLocation", r.program, "uSplitSide")
 	setSplitPlane(splitNone, 0)
-	glctx.GL.Call("uniform1f", uPointSizeLoc, 2.0)
-	glctx.GL.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
-	glctx.GL.Call("uniform3f", uTopColorLoc, topColor[0], topColor[1], topColor[2])
-	glctx.GL.Call("uniform3f", uMidColorLoc, midColor[0], midColor[1], midColor[2])
-	glctx.GL.Call("uniform1f", uMinZLoc, float64(-1))
-	glctx.GL.Call("uniform1f", uMaxZLoc, float64(1))
-	glctx.GL.Call("uniform1f", uMinXLoc, float64(-1))
-	glctx.GL.Call("uniform1f", uMaxXLoc, float64(1))
-	glctx.GL.Call("uniform1f", uMinYLoc, float64(-1))
-	glctx.GL.Call("uniform1f", uMaxYLoc, float64(1))
-	glctx.GL.Call("uniform1i", uGradientSourceLoc, 2) // Z
-	glctx.GL.Call("uniform1i", uGradientColorsLoc, 2) // two-color
-	glctx.GL.Call("uniform1i", uGradientReverseLoc, 0)
-	shadersReady = true
+	glctx.GL.Call("uniform1f", r.u.pointSize, 2.0)
+	glctx.GL.Call("uniform3f", r.u.baseColor, baseColor[0], baseColor[1], baseColor[2])
+	glctx.GL.Call("uniform3f", r.u.topColor, topColor[0], topColor[1], topColor[2])
+	glctx.GL.Call("uniform3f", r.u.midColor, midColor[0], midColor[1], midColor[2])
+	glctx.GL.Call("uniform1f", r.u.minZ, float64(-1))
+	glctx.GL.Call("uniform1f", r.u.maxZ, float64(1))
+	glctx.GL.Call("uniform1f", r.u.minX, float64(-1))
+	glctx.GL.Call("uniform1f", r.u.maxX, float64(1))
+	glctx.GL.Call("uniform1f", r.u.minY, float64(-1))
+	glctx.GL.Call("uniform1f", r.u.maxY, float64(1))
+	glctx.GL.Call("uniform1i", r.u.gradientSource, 2) // Z
+	glctx.GL.Call("uniform1i", r.u.gradientColors, 2) // two-color
+	glctx.GL.Call("uniform1i", r.u.gradientReverse, 0)
+	r.ready = true
 
 	glctx.GL.Call("clearColor", 0, 0, 0, 0)
 	glctx.GL.Call("clearDepth", 1.0)
-	glctx.GL.Call("viewport", 0, 0, width, height)
+	glctx.GL.Call("viewport", 0, 0, r.width, r.height)
 	glctx.GL.Call("depthFunc", glctx.Types.LEqual)
 }
 
 func setupMatrices() {
-	// projMatrix is a pkg var (textured_js.go) so texProgram can reuse it.
+	// gpu.proj is a pkg var (textured_js.go) so texProgram can reuse it.
 	// Far plane must clear the auto-fit camera distance (maxExtent·3, capped at
 	// 300) PLUS the model's own extent (~maxExtent) PLUS the zoom-out range —
 	// otherwise the back of a large attractor pokes past the far plane and gets
 	// clipped ("cutting through the black background"). 1500 covers the worst
 	// case with margin.
-	projMatrix = mgl32.Perspective(mgl32.DegToRad(45.0), float32(width)/float32(height), 1, 1500.0)
-	glctx.GL.Call("useProgram", shaderProgram)
-	glctx.GL.Call("uniformMatrix4fv", glctx.GL.Call("getUniformLocation", shaderProgram, "Pmatrix"), false, mat4ToTyped(&projMatrix))
+	gpu.proj = mgl32.Perspective(mgl32.DegToRad(45.0), float32(gpu.width)/float32(gpu.height), 1, 1500.0)
+	glctx.GL.Call("useProgram", gpu.program)
+	glctx.GL.Call("uniformMatrix4fv", glctx.GL.Call("getUniformLocation", gpu.program, "Pmatrix"), false, mat4ToTyped(&gpu.proj))
 
 	movMatrix = mgl32.Ident4()
 	updateViewMatrix()
@@ -493,13 +493,13 @@ func updateViewMatrix() {
 	cameraPosition := mgl32.Vec3{-panX, -panY, view.defaultDist}
 	center := mgl32.Vec3{-panX, -panY, 0.0}
 	viewMatrix = mgl32.LookAtV(cameraPosition, center, mgl32.Vec3{0.0, 1.0, 0.0})
-	glctx.GL.Call("useProgram", shaderProgram)
-	glctx.GL.Call("uniformMatrix4fv", uVmatrixLoc, false, mat4ToTyped(&viewMatrix))
+	glctx.GL.Call("useProgram", gpu.program)
+	glctx.GL.Call("uniformMatrix4fv", gpu.u.view, false, mat4ToTyped(&viewMatrix))
 }
 
 func updateModelMatrix() {
-	glctx.GL.Call("useProgram", shaderProgram)
-	glctx.GL.Call("uniformMatrix4fv", uMmatrixLoc, false, mat4ToTyped(&movMatrix))
+	glctx.GL.Call("useProgram", gpu.program)
+	glctx.GL.Call("uniformMatrix4fv", gpu.u.model, false, mat4ToTyped(&movMatrix))
 }
 
 // autoFitCamera fits the camera to what was last uploaded.
@@ -510,12 +510,12 @@ func updateModelMatrix() {
 // (hyper-Rössler), fitting the instantaneous arc left the camera blind for
 // most of the orbit. It is consumed and cleared here.
 func autoFitCamera() {
-	if len(attractorVertices) < 3 {
+	if len(gpu.verts) < 3 {
 		return
 	}
 	maxAbs := float32(0)
-	for i := 0; i < len(attractorVertices); i++ {
-		v := attractorVertices[i]
+	for i := 0; i < len(gpu.verts); i++ {
+		v := gpu.verts[i]
 		if v < 0 {
 			v = -v
 		}
@@ -618,29 +618,29 @@ func generateForMode(mode string) {
 	// Ensure the attractor program is bound — a prior spectrogram frame
 	// leaves texProgram active, and the uniform/draw calls below apply to
 	// whatever program is current.
-	if !shaderProgram.IsUndefined() {
-		glctx.GL.Call("useProgram", shaderProgram)
+	if !gpu.program.IsUndefined() {
+		glctx.GL.Call("useProgram", gpu.program)
 	}
-	if shadersReady {
-		glctx.GL.Call("uniform1i", uGradientSourceLoc, gradientSource)
+	if gpu.ready {
+		glctx.GL.Call("uniform1i", gpu.u.gradientSource, gradientSource)
 		// Only when it is being used: the fill runs a short FFT per table slot,
 		// which is not work to do for a figure colored by Z.
 		if gradientSourceIsAudio(gradientSource) {
 			updateAudioColorLUT(selectedMode)
-			glctx.GL.Call("uniform1fv", uAudioLUTLoc, lutToTyped())
+			glctx.GL.Call("uniform1fv", gpu.u.audioLUT, lutToTyped())
 		}
-		glctx.GL.Call("uniform1i", uGradientColorsLoc, gradientColorsUniform())
+		glctx.GL.Call("uniform1i", gpu.u.gradientColors, gradientColorsUniform())
 		// Uploaded before the draw that reads it, and only when a colormap is
 		// actually selected — the upload is skipped on the palettes that do not
 		// sample it, and a failed build falls back to the two-color mix rather
 		// than sampling a texture that is not there.
 		if !ensurePaletteTexture(gradientColors) && gradientColorsUniform() >= colormap.First {
-			glctx.GL.Call("uniform1i", uGradientColorsLoc, 2)
+			glctx.GL.Call("uniform1i", gpu.u.gradientColors, 2)
 		}
-		updateDashFromPointCount(lastDrawnCount)
-		glctx.GL.Call("uniform1f", uDashDutyLoc, dashDuty)
-		glctx.GL.Call("uniform1f", uDashCountLoc, dashCount)
-		glctx.GL.Call("uniform1f", uGradientFreqLoc, gradientFreq)
+		updateDashFromPointCount(gpu.lastDrawn)
+		glctx.GL.Call("uniform1f", gpu.u.dashDuty, dashDuty)
+		glctx.GL.Call("uniform1f", gpu.u.dashCount, dashCount)
+		glctx.GL.Call("uniform1f", gpu.u.gradientFreq, gradientFreq)
 		// The colormap window's other half. Uploaded beside the period it pairs
 		// with rather than under a "is this a colormap" test: the branch that
 		// reads it is in the shader already, and a second copy of that
@@ -648,7 +648,7 @@ func generateForMode(mode string) {
 		// Read AFTER applyViewModulation (which runs before generateForMode
 		// gets here), so a shift routed from audio lands on this frame rather
 		// than the next one — the same ordering the rainbow period depends on.
-		glctx.GL.Call("uniform1f", uPaletteShiftLoc, gradientShift)
+		glctx.GL.Call("uniform1f", gpu.u.paletteShift, gradientShift)
 		// Animate the rainbow: advance the hue offset each frame so the
 		// spectrum flows. At a low period only a slice is visible at once,
 		// and it cycles gradually through all colors over time rather than
@@ -674,11 +674,11 @@ func generateForMode(mode string) {
 				gradientPhase -= 1
 			}
 		}
-		glctx.GL.Call("uniform1f", uGradientPhaseLoc, gradientPhase)
+		glctx.GL.Call("uniform1f", gpu.u.gradientPhase, gradientPhase)
 		if gradientReverse {
-			glctx.GL.Call("uniform1i", uGradientReverseLoc, 1)
+			glctx.GL.Call("uniform1i", gpu.u.gradientReverse, 1)
 		} else {
-			glctx.GL.Call("uniform1i", uGradientReverseLoc, 0)
+			glctx.GL.Call("uniform1i", gpu.u.gradientReverse, 0)
 		}
 		// Scope phosphor: override the gradient with the phosphor's mono color.
 		if phosphorActive() {
@@ -840,7 +840,7 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 		// The backdrop bound its own program / buffers; force geometry models
 		// to re-upload their static vertex+index buffers next draw.
 		if !isAttractorMode(selectedMode) {
-			staticGeomDirty = true
+			gpu.staticDirty = true
 		}
 	}
 
@@ -924,7 +924,7 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 		drawWaterLens()
 	}
 
-	beamDrawn := lastDrawnCount // what was drawn, which is not always all of `steps`
+	beamDrawn := gpu.lastDrawn // what was drawn, which is not always all of `steps`
 	steps = realSteps
 
 	// Slider values come from cachedZoom/RotX/Y/Z, kept in sync by
@@ -959,8 +959,8 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	// the model at the same screen fraction.
 	halfH := newDist * 0.41421 // tan(22.5°), half the 45° vertical FOV
 	aspect := float32(1.6)
-	if height > 0 {
-		aspect = float32(width) / float32(height)
+	if gpu.height > 0 {
+		aspect = float32(gpu.width) / float32(gpu.height)
 	}
 	psY := halfH * 2 / 8
 	psX := psY * aspect

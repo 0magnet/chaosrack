@@ -80,7 +80,7 @@ func integrate3D(dt float64, deriv func(x, y, z float64) (float64, float64, floa
 		vertices[j], vertices[j+1], vertices[j+2], vertices[j+3] = float32(x64), float32(y64), float32(z64), float32(i)*invN
 	}
 	x, y, z = float32(x64), float32(y64), float32(z64)
-	uploadVerticesOnly(vertices, attractorDrawMode, steps)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
 }
 
 func generateSprottCase(idx int) {
@@ -184,5 +184,5 @@ func generateHyperRossler() {
 		j := i * 4
 		vertices[j], vertices[j+1], vertices[j+2], vertices[j+3] = x*dynamics.HyperScale, y*dynamics.HyperScale, z*dynamics.HyperScale, float32(i)*invN
 	}
-	uploadVerticesOnly(vertices, attractorDrawMode, steps)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
 }

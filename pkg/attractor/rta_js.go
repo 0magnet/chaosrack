@@ -271,7 +271,7 @@ func drawRTA() {
 	// The bars, widened the way the scope's trace is: WebGL cannot be relied on
 	// for lineWidth, so each is drawn several times at sub-pixel offsets.
 	vcUpload(v)
-	dx := float32(1.0) / float32(width)
+	dx := float32(1.0) / float32(gpu.width)
 	for k := -2; k <= 2; k++ {
 		vcSpan(glctx.Types.Lines, 0, barVerts, 0.5, float32(k)*dx, 0)
 	}

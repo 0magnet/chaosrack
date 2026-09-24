@@ -152,11 +152,11 @@ func ringPrimeAfterScan(mode string) {
 // ringUploadAndDraw pushes the newly written slots to the GPU (wrap-aware)
 // and draws the trail as two strips split at the head.
 func ringUploadAndDraw(start, n int) {
-	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, attractorVertexBuffer)
-	glctx.GL.Call("vertexAttribPointer", positionLoc, 3, glctx.Types.Float, false, 16, 0)
-	glctx.GL.Call("enableVertexAttribArray", positionLoc)
-	glctx.GL.Call("vertexAttribPointer", aTrailTLoc, 1, glctx.Types.Float, false, 16, 12)
-	glctx.GL.Call("enableVertexAttribArray", aTrailTLoc)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, gpu.vbuf)
+	glctx.GL.Call("vertexAttribPointer", gpu.aPosition, 3, glctx.Types.Float, false, 16, 0)
+	glctx.GL.Call("enableVertexAttribArray", gpu.aPosition)
+	glctx.GL.Call("vertexAttribPointer", gpu.aTrailT, 1, glctx.Types.Float, false, 16, 12)
+	glctx.GL.Call("enableVertexAttribArray", gpu.aTrailT)
 
 	upload := func(from, count int) {
 		if count <= 0 {
@@ -178,14 +178,14 @@ func ringUploadAndDraw(start, n int) {
 	// is close enough between primes; exact per-segment mean would flicker).
 	ringUpdateDwell(start, n)
 
-	glctx.GL.Call("uniform1f", uTrailHeadLoc, float64(ringHead)/float64(steps-1))
+	glctx.GL.Call("uniform1f", gpu.u.trailHead, float64(ringHead)/float64(steps-1))
 	// Older stretch: head..end, newer stretch: 0..head. The split prevents a
 	// newest→oldest flyback line across the model.
 	if steps-ringHead >= 2 {
-		glctx.GL.Call("drawArrays", attractorDrawMode, ringHead, steps-ringHead)
+		glctx.GL.Call("drawArrays", gpu.drawMode, ringHead, steps-ringHead)
 	}
 	if ringHead >= 2 {
-		glctx.GL.Call("drawArrays", attractorDrawMode, 0, ringHead)
+		glctx.GL.Call("drawArrays", gpu.drawMode, 0, ringHead)
 	}
 }
 
@@ -210,7 +210,7 @@ func jsSegView(nFloats int) js.Value {
 // ringUpdateDwell refreshes the beam-dwell attribute for the slots the beam
 // just rewrote, using the mean already established by the priming scan.
 func ringUpdateDwell(start, n int) {
-	if len(dwellBuf) != steps || dwellGL.IsUndefined() {
+	if len(gpu.dwell.buf) != steps || gpu.dwell.gl.IsUndefined() {
 		return
 	}
 	var total float32
@@ -232,7 +232,7 @@ func ringUpdateDwell(start, n int) {
 		} else if w < 0.25 {
 			w = 0.25
 		}
-		dwellBuf[i] = w
+		gpu.dwell.buf[i] = w
 	}
 	for k := 0; k < n; k++ {
 		upd((start + k) % steps)
@@ -243,10 +243,10 @@ func ringUpdateDwell(start, n int) {
 			ringDwellMean = 1e-6
 		}
 	}
-	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, dwellGL)
-	js.CopyBytesToJS(jsDwellU8, sliceToByteSlice(dwellBuf))
-	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, jsDwellF32, glctx.Types.DynamicDraw)
-	glctx.GL.Call("vertexAttribPointer", aDwellLoc, 1, glctx.Types.Float, false, 0, 0)
-	glctx.GL.Call("enableVertexAttribArray", aDwellLoc)
-	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, attractorVertexBuffer)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, gpu.dwell.gl)
+	js.CopyBytesToJS(gpu.dwell.u8, sliceToByteSlice(gpu.dwell.buf))
+	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, gpu.dwell.f32, glctx.Types.DynamicDraw)
+	glctx.GL.Call("vertexAttribPointer", gpu.aDwell, 1, glctx.Types.Float, false, 0, 0)
+	glctx.GL.Call("enableVertexAttribArray", gpu.aDwell)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, gpu.vbuf)
 }

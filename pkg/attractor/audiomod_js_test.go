@@ -125,7 +125,7 @@ func TestModulatingACountNeverDriftsTheSlider(t *testing.T) {
 }
 
 // The rebuild cost, which is the real hazard in letting audio reach a line
-// count: a static model only rebuilds its mesh when staticGeomDirty is set, and
+// count: a static model only rebuilds its mesh when gpu.staticDirty is set, and
 // setting it every frame is what staticGeomCached's comment records as 45% of
 // all allocation and a 66-100ms collector pause every 400ms. Quantizing means
 // most frames produce the same integer, and a frame that produces the same
@@ -135,33 +135,33 @@ func TestGeometryRebuildsOnlyWhenTheCountActuallyChanges(t *testing.T) {
 	defer routeMono(t, id)()
 
 	// First frame: the count moves off its base, so the mesh is stale.
-	staticGeomDirty = false
+	gpu.staticDirty = false
 	restoreAudioModulation(applyAudioModulation(mode))
-	if !staticGeomDirty {
+	if !gpu.staticDirty {
 		t.Fatal("the frame that first modulated the count left the mesh unmarked")
 	}
 	// Every frame after it, with the signal held constant, lands on the same
 	// integer and must leave the flag alone.
 	for i := 0; i < 120; i++ {
-		staticGeomDirty = false
+		gpu.staticDirty = false
 		restoreAudioModulation(applyAudioModulation(mode))
-		if staticGeomDirty {
+		if gpu.staticDirty {
 			t.Fatalf("frame %d rebuilt the mesh for an unchanged count", i)
 		}
 	}
 	// Switching the route off is itself a change: the mesh on the GPU is the
 	// modulated one and nothing else will mark it stale.
-	staticGeomDirty = false
+	gpu.staticDirty = false
 	audioMod = false
 	restoreAudioModulation(applyAudioModulation(mode))
-	if !staticGeomDirty {
+	if !gpu.staticDirty {
 		t.Error("switching modulation off left the modulated mesh on the GPU unmarked")
 	}
 }
 
 // An attractor regenerates its trail every frame and never consults the flag,
 // so nothing in the count path may set it there — a mode that does not use
-// staticGeomDirty setting it would make the NEXT static mode upload on a frame
+// gpu.staticDirty setting it would make the NEXT static mode upload on a frame
 // it did not need to.
 func TestAttractorModesDoNotTouchTheGeometryFlag(t *testing.T) {
 	const mode, id = "stereo", "stereo-tau"
@@ -170,9 +170,9 @@ func TestAttractorModesDoNotTouchTheGeometryFlag(t *testing.T) {
 	}
 	if isAttractorMode(mode) {
 		defer routeMono(t, id)()
-		staticGeomDirty = false
+		gpu.staticDirty = false
 		restoreAudioModulation(applyAudioModulation(mode))
-		if staticGeomDirty {
+		if gpu.staticDirty {
 			t.Errorf("modulating %s in attractor mode %q dirtied the static geometry", id, mode)
 		}
 	}

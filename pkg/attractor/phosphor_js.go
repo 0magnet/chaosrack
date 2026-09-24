@@ -192,8 +192,8 @@ func phosphorActive() bool {
 // color. Called after the gradient uniforms are set in generateForMode.
 func applyPhosphorColor() {
 	p := phosphors[phosphorIdx]
-	glctx.GL.Call("uniform1i", uGradientColorsLoc, 1) // monochrome
-	glctx.GL.Call("uniform3f", uBaseColorLoc, p.tr, p.tg, p.tb)
+	glctx.GL.Call("uniform1i", gpu.u.gradientColors, 1) // monochrome
+	glctx.GL.Call("uniform3f", gpu.u.baseColor, p.tr, p.tg, p.tb)
 }
 
 var (

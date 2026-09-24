@@ -122,8 +122,8 @@ func turtleCamDist() float32 {
 func turtleRoom() (cx, cy, halfW, halfH float32) {
 	halfH = turtleCamDist() * 0.41421 // tan(22.5°), half the 45° vertical FOV
 	aspect := float32(1.6)
-	if height > 0 {
-		aspect = float32(width) / float32(height)
+	if gpu.height > 0 {
+		aspect = float32(gpu.width) / float32(gpu.height)
 	}
 	if halfH <= 0 {
 		halfH = box / 2

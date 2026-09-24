@@ -35,11 +35,11 @@ const (
 // which is what makes a knob that slides the model "through" the panel behave
 // the way a hand would expect.
 func setSplitPlane(side int, z float32) {
-	if !glctx.GL.Truthy() || uSplitSideLoc.IsUndefined() || uSplitSideLoc.IsNull() {
+	if !glctx.GL.Truthy() || gpu.u.splitSide.IsUndefined() || gpu.u.splitSide.IsNull() {
 		return
 	}
-	glctx.GL.Call("uniform1i", uSplitSideLoc, side)
-	glctx.GL.Call("uniform1f", uSplitZLoc, float64(z))
+	glctx.GL.Call("uniform1i", gpu.u.splitSide, side)
+	glctx.GL.Call("uniform1f", gpu.u.splitZ, float64(z))
 }
 
 // splitFrac is the Fore knob: -1 puts the whole model behind the rack, +1 puts
@@ -88,7 +88,7 @@ func splitDrawing() bool {
 // draw against the buffer already on the card. Static geometry advances
 // nothing: running its generator a second time produces the same vertices in
 // the same place, and uploadBuffersIndexed skips the upload entirely once
-// staticGeomDirty is clear, so the cost is the vertex build and not a round
+// gpu.staticDirty is clear, so the cost is the vertex build and not a round
 // trip to the card.
 //
 // This used to be excluded, on the stated grounds that "a second pass would
@@ -162,7 +162,7 @@ func drawSplitPasses(mode string) {
 
 	setSplitPlane(splitNear, z)
 	generateForMode(mode)
-	drawn := lastDrawnCount
+	drawn := gpu.lastDrawn
 	copyNearPassToFront()
 
 	setSplitPlane(splitFar, z)

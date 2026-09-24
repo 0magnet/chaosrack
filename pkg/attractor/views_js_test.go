@@ -11,17 +11,17 @@ import (
 // exactly — a rounding error here is a column of pixels one view clears and
 // the other never draws into.
 func TestViewRectsTileTheCanvas(t *testing.T) {
-	savedW, savedH, savedSplit := width, height, viewCountF
-	defer func() { width, height, viewCountF = savedW, savedH, savedSplit }()
+	savedW, savedH, savedSplit := gpu.width, gpu.height, viewCountF
+	defer func() { gpu.width, gpu.height, viewCountF = savedW, savedH, savedSplit }()
 
-	width, height = 1281, 720 // odd, so the halves cannot be equal
+	gpu.width, gpu.height = 1281, 720 // odd, so the halves cannot be equal
 
 	viewCountF = 0 // one cell
 	one := viewRects()
 	if len(one) != 1 {
 		t.Fatalf("unsplit gave %d rects", len(one))
 	}
-	if one[0] != [4]int{0, 0, width, height} {
+	if one[0] != [4]int{0, 0, gpu.width, gpu.height} {
 		t.Errorf("unsplit rect = %v, want the whole canvas", one[0])
 	}
 
@@ -34,11 +34,11 @@ func TestViewRectsTileTheCanvas(t *testing.T) {
 	if l[0] != 0 || l[1] != 0 || r[1] != 0 {
 		t.Errorf("rects are not flush with the canvas: %v %v", l, r)
 	}
-	if l[3] != height || r[3] != height {
+	if l[3] != gpu.height || r[3] != gpu.height {
 		t.Errorf("a view is not full height: %v %v", l, r)
 	}
-	if got := r[0] + r[2]; got != width {
-		t.Errorf("the right view ends at %d, want the canvas edge %d", got, width)
+	if got := r[0] + r[2]; got != gpu.width {
+		t.Errorf("the right view ends at %d, want the canvas edge %d", got, gpu.width)
 	}
 	if gap := r[0] - (l[0] + l[2]); gap != viewGap {
 		t.Errorf("gutter is %d, want %d", gap, viewGap)
@@ -53,12 +53,12 @@ func TestViewRectsTileTheCanvas(t *testing.T) {
 // A canvas too narrow to split must still give usable rects rather than a
 // zero or negative width, which GL rejects.
 func TestViewRectsSurviveATinyCanvas(t *testing.T) {
-	savedW, savedH, savedSplit := width, height, viewCountF
-	defer func() { width, height, viewCountF = savedW, savedH, savedSplit }()
+	savedW, savedH, savedSplit := gpu.width, gpu.height, viewCountF
+	defer func() { gpu.width, gpu.height, viewCountF = savedW, savedH, savedSplit }()
 
 	viewCountF = 1 // two cells
 	for _, w := range []int{0, 1, 2, 3, 4} {
-		width, height = w, 100
+		gpu.width, gpu.height = w, 100
 		for i, r := range viewRects() {
 			if r[2] < 1 || r[3] < 1 {
 				t.Errorf("width %d: rect %d is %v, which GL will reject", w, i, r)
@@ -192,9 +192,9 @@ func TestGradientSelectsWriteToTheFocusedView(t *testing.T) {
 // The grid tiles without leaving a cell off the edge, at every size the
 // dial offers.
 func TestGridTilesAtEverySize(t *testing.T) {
-	savedW, savedH, savedN := width, height, viewCountF
-	defer func() { width, height, viewCountF = savedW, savedH, savedN }()
-	width, height = 1281, 721 // odd both ways
+	savedW, savedH, savedN := gpu.width, gpu.height, viewCountF
+	defer func() { gpu.width, gpu.height, viewCountF = savedW, savedH, savedN }()
+	gpu.width, gpu.height = 1281, 721 // odd both ways
 
 	for idx, want := range viewCounts {
 		viewCountF = float32(idx)
@@ -216,9 +216,9 @@ func TestGridTilesAtEverySize(t *testing.T) {
 			if r[2] < 1 || r[3] < 1 {
 				t.Errorf("size %d cell %d is %v, which GL will reject", want, i, r)
 			}
-			if r[0] < 0 || r[1] < 0 || r[0]+r[2] > width || r[1]+r[3] > height {
+			if r[0] < 0 || r[1] < 0 || r[0]+r[2] > gpu.width || r[1]+r[3] > gpu.height {
 				t.Errorf("size %d cell %d is %v, outside the canvas %dx%d",
-					want, i, r, width, height)
+					want, i, r, gpu.width, gpu.height)
 			}
 		}
 	}

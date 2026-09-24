@@ -244,10 +244,10 @@ func activateAudioMode() {
 // pointers active on aPos).
 func deactivateAudioMode() {
 	audioModeActive = false
-	if !shaderProgram.IsUndefined() {
-		glctx.GL.Call("useProgram", shaderProgram)
+	if !gpu.program.IsUndefined() {
+		glctx.GL.Call("useProgram", gpu.program)
 	}
-	staticGeomDirty = true
+	gpu.staticDirty = true
 	if audioOverlay.Truthy() {
 		audioOverlay.Get("style").Set("display", "none")
 	}
