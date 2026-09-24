@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/skirt"
 	"math"
 	"strconv"
 	"strings"
@@ -57,7 +58,7 @@ func knobAngleForValue(v, min, max float64) float64 {
 	if t > 1 {
 		t = 1
 	}
-	return -knobSweepDeg/2 + knobSweepDeg*t
+	return -skirt.SweepDeg/2 + skirt.SweepDeg*t
 }
 
 // initKnobDrag wires the one-time document listeners that turn the active
@@ -85,7 +86,7 @@ func initKnobDrag() {
 		if kb.fine {
 			scale = coarseRatio * fineRatio
 		}
-		v += (d / (knobSweepDeg * math.Pi / 180)) * (kb.max - kb.min) * scale
+		v += (d / (skirt.SweepDeg * math.Pi / 180)) * (kb.max - kb.min) * scale
 		if v < kb.min {
 			v = kb.min
 		}
@@ -231,7 +232,7 @@ func makeSelectorKnob(sel js.Value, rot ...float64) js.Value {
 		idx := sel.Get("selectedIndex").Int()
 		ang := ptrRot
 		if n > 1 {
-			ang = -knobSweepDeg/2 + knobSweepDeg*float64(idx)/float64(n-1) + ptrRot
+			ang = -skirt.SweepDeg/2 + skirt.SweepDeg*float64(idx)/float64(n-1) + ptrRot
 		}
 		ptr.Get("style").Set("transform", "translate(-50%,-100%) rotate("+strconv.FormatFloat(ang, 'f', 1, 64)+"deg)")
 	}
@@ -443,7 +444,7 @@ func addValueDial(wrap js.Value, min, max float64) {
 	const nTicks = 20 // 21 marks across the sweep; every 5th is a major
 	for i := 0; i <= nTicks; i++ {
 		t := float64(i) / float64(nTicks)
-		deg := -knobSweepDeg/2 + knobSweepDeg*t
+		deg := -skirt.SweepDeg/2 + skirt.SweepDeg*t
 		major := i%5 == 0
 		l, tp := dialLabelPos(deg, 41)
 		tk := dom.Doc.Call("createElement", "span")
@@ -465,7 +466,7 @@ func addValueDial(wrap js.Value, min, max float64) {
 	// hovering the "20" at the end of the palette-period scale explained what
 	// palette period means, and so did hovering the "0.05" at the other end.
 	for i, t := range []float64{0, 1} {
-		deg := -knobSweepDeg/2 + knobSweepDeg*t
+		deg := -skirt.SweepDeg/2 + skirt.SweepDeg*t
 		l, tp := dialLabelPos(deg, 48)
 		lab := dom.Doc.Call("createElement", "span")
 		lab.Set("className", "knob-dial-lab")
@@ -512,7 +513,7 @@ func addSelectorDotLabels(stack js.Value, colors []string, sel js.Value, offset 
 	for i, col := range colors {
 		deg := 0.0
 		if n > 1 {
-			deg = -knobSweepDeg/2 + knobSweepDeg*float64(i)/float64(n-1)
+			deg = -skirt.SweepDeg/2 + skirt.SweepDeg*float64(i)/float64(n-1)
 		}
 		l, t := dialLabelPos(deg, off)
 		dot := dom.Doc.Call("createElement", "span")
@@ -725,7 +726,7 @@ func dialPosTitle(el, sel js.Value, i int) {
 // addSelectorLabels engraves a rotary switch's positions on a skirt around
 // its knob.
 //
-// It no longer takes a radius. The radius is derived — see skirt.go — from
+// It no longer takes a radius. The radius is derived — see pkg/skirt — from
 // the grip the skirt has to clear and the size of the labels themselves,
 // because the twenty-six numbers this used to be given were chosen by eye
 // and 201 of the 261 labels they produced sat on top of their own grip.
@@ -763,7 +764,7 @@ func addSelectorLabelsRot(stack js.Value, labels []string, sel js.Value, rot flo
 		lab.Set("className", "knob-dial-lab")
 		lab.Set("textContent", txt)
 		lab.Call("setAttribute", "data-deg",
-			strconv.FormatFloat(skirtAngles(len(labels), knobSweepDeg)[i]+rot, 'f', 2, 64))
+			strconv.FormatFloat(skirt.Angles(len(labels), skirt.SweepDeg)[i]+rot, 'f', 2, 64))
 		dialPosTitle(lab, sel, i)
 		labEls[i] = lab
 		if sel.Truthy() {
@@ -884,7 +885,7 @@ func gripRadiusPx(stack js.Value) float64 {
 func layoutOneSkirt(dial js.Value, clear, gap float64, onGrip bool) float64 {
 	els := dial.Call("querySelectorAll", ".knob-dial-lab")
 	n := els.Get("length").Int()
-	labs := make([]skirtLabel, 0, n)
+	labs := make([]skirt.Label, 0, n)
 	kept := make([]js.Value, 0, n)
 	for i := 0; i < n; i++ {
 		el := els.Index(i)
@@ -899,7 +900,7 @@ func layoutOneSkirt(dial js.Value, clear, gap float64, onGrip bool) float64 {
 			// unmeasurable label still gets a place on the ring.
 			w, h = estLabelBoxPx(el.Get("textContent").String())
 		}
-		labs = append(labs, skirtLabel{W: w, H: h, Deg: deg})
+		labs = append(labs, skirt.Label{W: w, H: h, Deg: deg})
 		kept = append(kept, el)
 	}
 	if len(labs) == 0 {
@@ -908,15 +909,15 @@ func layoutOneSkirt(dial js.Value, clear, gap float64, onGrip bool) float64 {
 
 	// Fit the ring to the cell before placing it. A skirt sized only by its
 	// legends can reach past the control cell and into the next control's
-	// space — Model Out's off/CAM/XY/XZ/YZ ring did, by 25px. skirtFit takes
+	// space — Model Out's off/CAM/XY/XZ/YZ ring did, by 25px. skirt.Fit takes
 	// the room out of the grip first and the legend only after that; see the
-	// note in skirt.go for why that order.
+	// note in pkg/skirt for why that order.
 	// A ring outside another one has no grip to take room from, so its floor
 	// is the radius it already has and the legend carries the whole
 	// reduction.
 	minGrip := clear
 	if onGrip {
-		minGrip = clear * skirtMinGripFrac
+		minGrip = clear * skirt.MinGripFrac
 	}
 	// Less the gap, because the box drawn below is 2*(out+gap): fitting to
 	// the bare room left every ring exactly one gap wider than the space it
@@ -925,9 +926,9 @@ func layoutOneSkirt(dial js.Value, clear, gap float64, onGrip bool) float64 {
 	if room > 0 {
 		room -= gap
 	}
-	useGrip, scale := skirtFit(clear, minGrip, gap, room, labs)
+	useGrip, scale := skirt.Fit(clear, minGrip, gap, room, labs)
 	if scale < 1 {
-		labs = skirtScaleLabels(labs, scale)
+		labs = skirt.ScaleLabels(labs, scale)
 		for _, el := range kept {
 			el.Get("style").Set("font-size", pxStr(skirtLabelBasePx*panelScale*scale))
 		}
@@ -937,8 +938,8 @@ func layoutOneSkirt(dial js.Value, clear, gap float64, onGrip bool) float64 {
 	}
 	clear = useGrip
 
-	r := skirtRadius(clear, gap, labs)
-	out := skirtOuter(r, labs)
+	r := skirt.Radius(clear, gap, labs)
+	out := skirt.Outer(r, labs)
 
 	// The box has to contain the labels, or the element that exists to hold
 	// them is the thing clipping them.
@@ -986,7 +987,7 @@ func estLabelBoxPx(text string) (w, h float64) {
 // of them.
 //
 // Zero when there is no cell to measure or it has not been laid out. That is
-// "unconstrained" rather than "no room": skirtFit reads it that way, and the
+// "unconstrained" rather than "no room": skirt.Fit reads it that way, and the
 // alternative is shrinking every knob on a panel nobody has shown yet.
 func skirtRoomPx(dial js.Value) float64 {
 	cell := dial.Call("closest", ".pcell")

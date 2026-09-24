@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/skirt"
 	"math"
 	"strconv"
 	"strings"
@@ -30,7 +31,7 @@ func addOctaveDial(wrap js.Value) {
 	nOct := int(math.Log2(genFreqHi / genFreqLo)) // whole octaves in range
 	for n := 0; n <= nOct; n++ {
 		f := genFreqLo * math.Pow(2, float64(n))
-		deg := -knobSweepDeg/2 + knobSweepDeg*knobFromFreq(f)/genSemitones
+		deg := -skirt.SweepDeg/2 + skirt.SweepDeg*knobFromFreq(f)/genSemitones
 		l, tp := dialLabelPos(deg, 41)
 		tk := dom.Doc.Call("createElement", "span")
 		cls := "vdial-tick"
@@ -51,7 +52,7 @@ func addOctaveDial(wrap js.Value) {
 		f float64
 		s string
 	}{{genFreqLo, "A0"}, {genFreqHi, "A10"}} {
-		deg := -knobSweepDeg/2 + knobSweepDeg*knobFromFreq(e.f)/genSemitones
+		deg := -skirt.SweepDeg/2 + skirt.SweepDeg*knobFromFreq(e.f)/genSemitones
 		l, tp := dialLabelPos(deg, 48)
 		lab := dom.Doc.Call("createElement", "span")
 		lab.Set("className", "knob-dial-lab")
@@ -238,7 +239,7 @@ func addSelectorWaveDial(stack, sel js.Value, off float64) {
 	dial.Call("appendChild", circle)
 	els := make([]js.Value, n)
 	for i := 0; i < n; i++ {
-		deg := -knobSweepDeg/2 + knobSweepDeg*float64(i)/float64(n-1)
+		deg := -skirt.SweepDeg/2 + skirt.SweepDeg*float64(i)/float64(n-1)
 		l, t := dialLabelPos(deg, off)
 		ic := dom.Doc.Call("createElement", "span")
 		ic.Set("className", "knob-dial-wave clickable")

@@ -5,6 +5,7 @@ package attractor
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
+	"github.com/0magnet/chaosrack/pkg/skirt"
 	"math"
 	"strconv"
 	"syscall/js"
@@ -48,7 +49,7 @@ func addPhosphorTraces(stack, sel js.Value) {
 	const off = 43.0
 	for i := 1; i < n; i++ {
 		p := phosphors[i]
-		deg := -knobSweepDeg/2 + knobSweepDeg*float64(i)/float64(n-1)
+		deg := -skirt.SweepDeg/2 + skirt.SweepDeg*float64(i)/float64(n-1)
 		rad := deg * math.Pi / 180
 		l, t := dialLabelPos(deg, off)
 		col := phColorCSS(p.tr, p.tg, p.tb)

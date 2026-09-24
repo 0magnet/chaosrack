@@ -481,14 +481,14 @@ func slotsWidthPx(n int) float64 {
 //
 // A module's width is quantized from its content, and its content is a grid
 // of 29 mm columns. A legend ring is not: it is sized from the legends
-// engraved on it (see skirt.go), and a rotary with long enough ones needs a
+// engraved on it (see pkg/skirt), and a rotary with long enough ones needs a
 // ring wider than the column its knob sits in. The ring is absolutely
 // positioned, so it adds nothing to max-content — the panel is milled to the
 // column, and the ring draws past its edge and is clipped away by .sect's
 // overflow:hidden. Model Out's source ring is 150 px across on a 140 px
 // panel: five pixels of the legend were simply not there.
 //
-// A panel is at least as wide as the widest part bolted to it. skirtFit
+// A panel is at least as wide as the widest part bolted to it. skirt.Fit
 // tries the two cheaper answers first — a smaller grip, then smaller
 // lettering — and Model Out's off/CAM/XY/XZ/YZ ring is the one that spends
 // both and still overhangs. Past that the honest remedy is a bigger panel,
