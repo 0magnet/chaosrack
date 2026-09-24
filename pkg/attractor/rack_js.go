@@ -20,6 +20,7 @@ import (
 
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/racklayout"
+	"github.com/0magnet/chaosrack/pkg/racksurface"
 
 	"github.com/0magnet/rack-go"
 )
@@ -562,7 +563,7 @@ func moduleEdgePx(m js.Value) float64 {
 // a second slot.
 func slotsForWidthPx(w float64) int {
 	n := 1
-	for slotsWidthPx(n) < w && n < unitCapacitySlots() {
+	for slotsWidthPx(n) < w && n < racksurface.UnitCapacity() {
 		n++
 	}
 	return n

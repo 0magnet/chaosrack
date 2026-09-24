@@ -8,7 +8,7 @@
 // original.
 //
 // That is the whole reason the model was untagged one piece at a time:
-// racksection.go and rackunit.go have always been pure, pkg/rackspec has
+// racksection.go and pkg/racksurface have always been pure, pkg/rackspec has
 // always been its own package, and controldesc.go became pure when the
 // builders were split out of it. What is left in //go:build js is drawing, and
 // drawing is what a front end IS.
