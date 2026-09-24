@@ -15,11 +15,11 @@ github.com/0magnet/audioprism-go/pkg/wsaudio
 ## explicit; go 1.26.0
 github.com/0magnet/calvin
 github.com/0magnet/calvin/clihelp
-# github.com/0magnet/desk v0.0.0-20260923150416-f34edc52f2ef
+# github.com/0magnet/desk v0.0.0-20260923150657-2a7f55804f01
 ## explicit; go 1.26
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.0-20260923150416-f34edc52f2ef
+# github.com/0magnet/desk/panes v0.0.0-20260923150657-2a7f55804f01
 ## explicit; go 1.26.0
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -46,7 +46,7 @@ github.com/0magnet/img2txt-go/caca
 # github.com/0magnet/lolcat-go v0.0.0-20260915170035-670d5873f4bb
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20260923100638-358b99037f97
+# github.com/0magnet/pisano v0.0.0-20260923102342-ec397908300f
 ## explicit; go 1.26.0
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc
@@ -109,7 +109,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20260923101027-829fc879b4df
+# github.com/0magnet/tuiwasm v0.0.0-20260924101441-aa75cd80d501
 ## explicit; go 1.26.5
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -129,7 +129,7 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20260907193324-47ff3c83f69d
 ## explicit; go 1.26.0
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.0-20260923150652-0d1c84b4c3fc
+# github.com/0magnet/websh v0.0.0-20260924101249-532bfb67c68a
 ## explicit; go 1.26.0
 github.com/0magnet/websh/shell
 github.com/0magnet/websh/web
