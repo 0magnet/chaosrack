@@ -607,7 +607,6 @@ func installErrorNet() {
 func onResetAll(this js.Value, args []js.Value) interface{} {
 	// Reset camera
 	view.defaultDist = view.initDist
-	rotationX1, rotationY1, rotationZ1 = 0, 0, 0
 
 	// Static geometry may need re-upload (params reset to defaults).
 	gpu.staticDirty = true
@@ -617,7 +616,7 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 
 	// Registry-owned controls (zoom, pan X/Y, rainbow period, …): each resets
 	// itself — value, LED format, and any reset hook — so Reset All can never
-	// silently miss one again. (Rotation sliders + movMatrix are re-randomized
+	// silently miss one again. (Rotation sliders + view.modelMat are re-randomized
 	// below so the model never lands on the same view twice.)
 	for _, c := range builtControls {
 		if c.skipResetAll {
@@ -642,7 +641,7 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 	}
 	usePoints = false
 	gpu.drawMode = glctx.Types.LineStrip
-	dragMatrix = mgl32.Ident4() // clear trackball drag orientation
+	view.ball.orient = mgl32.Ident4() // clear trackball drag orientation
 	dom.Doc.Call("getElementById", "auto-rotate").Set("checked", true)
 	dom.Doc.Call("getElementById", "use-points").Set("checked", false)
 	dom.Doc.Call("getElementById", "show-info").Set("checked", false)
@@ -731,14 +730,14 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 		normalizeOrientation()
 	} else {
 		randomizeOrientation()
-		autoRotate = false
+		view.ctl.autoRotate = false
 		setAutoRotate(true)
 	}
 
 	// Reset view
 	generateForMode(selectedMode)
-	updateViewMatrix()
-	updateModelMatrix()
+	view.updateViewMatrix()
+	view.updateModelMatrix()
 
 	return nil
 }
@@ -886,31 +885,31 @@ func registerOutputControls() {
 	// with the old bespoke rst-rx/ry/rz handlers).
 	adoptDescControl(ControlDesc{ID: "rotation-controls-x", Label: "X rate", Min: -1, Max: 1, Step: 0.1, Def: 0,
 		Signed: true, PermaKey: "rx", LEDID: "slider-value-x", ResetID: "rst-rx",
-		Apply: func(v float64) { cachedRotX = float32(v) },
+		Apply: func(v float64) { view.ctl.spinX = float32(v) },
 		ResetExtra: func() {
-			rotationX, rotationX1, angleX = 0, 0, 0
-			rebuildModelMatrix()
-			updateModelMatrix()
+			view.angleX = 0
+			view.rebuildModelMatrix()
+			view.updateModelMatrix()
 			updateRotKnobs()
 			syncKnobs()
 		}})
 	adoptDescControl(ControlDesc{ID: "rotation-controls-y", Label: "Y rate", Min: -1, Max: 1, Step: 0.1, Def: 0,
 		Signed: true, PermaKey: "ry", LEDID: "slider-value-y", ResetID: "rst-ry",
-		Apply: func(v float64) { cachedRotY = float32(v) },
+		Apply: func(v float64) { view.ctl.spinY = float32(v) },
 		ResetExtra: func() {
-			rotationY, rotationY1, angleY = 0, 0, 0
+			view.angleY = 0
 			clearAutoRotateFlag() // Y spin (incl. auto) just zeroed
-			rebuildModelMatrix()
-			updateModelMatrix()
+			view.rebuildModelMatrix()
+			view.updateModelMatrix()
 			updateRotKnobs()
 		}})
 	adoptDescControl(ControlDesc{ID: "rotation-controls-z", Label: "Z rate", Min: -1, Max: 1, Step: 0.1, Def: 0,
 		Signed: true, PermaKey: "rz", LEDID: "slider-value-z", ResetID: "rst-rz",
-		Apply: func(v float64) { cachedRotZ = float32(v) },
+		Apply: func(v float64) { view.ctl.spinZ = float32(v) },
 		ResetExtra: func() {
-			rotationZ, rotationZ1, angleZ = 0, 0, 0
-			rebuildModelMatrix()
-			updateModelMatrix()
+			view.angleZ = 0
+			view.rebuildModelMatrix()
+			view.updateModelMatrix()
 			updateRotKnobs()
 		}})
 
@@ -929,10 +928,10 @@ func registerViewControls() {
 	// is usable. The knob's inner disc trims finer still.
 	adoptDescControl(ControlDesc{ID: "camera-zoom", Label: "Zoom", Min: -95, Max: 95, Step: 0.25, Def: 0,
 		Signed: true, PermaKey: "z", LEDID: "slider-value-zoom", ResetID: "rst-zoom",
-		Apply: func(v float64) { cachedZoom = float32(v) },
+		Apply: func(v float64) { view.ctl.zoom = float32(v) },
 		ResetExtra: func() {
 			view.defaultDist = view.initDist
-			updateViewMatrix()
+			view.updateViewMatrix()
 			syncKnobs()
 		}})
 	// Fore: where the model sits relative to the rack. The ends are the old
@@ -946,10 +945,10 @@ func registerViewControls() {
 		}})
 	adoptDescControl(ControlDesc{ID: "pan-x", Label: "X", Min: -8, Max: 8, Step: 1, Def: 0,
 		Signed: true, PermaKey: "px", LEDID: "slider-value-panx", ResetID: "rst-panx",
-		Apply: func(v float64) { cachedPanX = float32(v) }})
+		Apply: func(v float64) { view.ctl.panX = float32(v) }})
 	adoptDescControl(ControlDesc{ID: "pan-y", Label: "Y", Min: -8, Max: 8, Step: 1, Def: 0,
 		Signed: true, PermaKey: "py", LEDID: "slider-value-pany", ResetID: "rst-pany",
-		Apply: func(v float64) { cachedPanY = float32(v) }})
+		Apply: func(v float64) { view.ctl.panY = float32(v) }})
 	// The sweep's own ends, as a fraction of whatever parameter it is
 	// pointed at — which is what lets one pair of knobs bound a sweep of
 	// any target. to below from runs the contact sheet backwards, which is
@@ -1373,7 +1372,7 @@ func wireExtraNav() {
 
 	// Wire input listeners for the fixed sliders so the cached vars
 	// + visible text output stay in sync with user interaction. The
-	// renderLoop reads cachedZoom/RotX/Y/Z instead of polling
+	// renderLoop reads view.ctl.zoom/RotX/Y/Z instead of polling
 	// parseFloat per frame.
 
 	// (Speed / Line / Trail LED treatment is owned by their ControlDesc
@@ -1424,7 +1423,7 @@ func initDrawState() {
 	if isTexturePlane(selectedMode) {
 		setSpectrogramCamera()
 	} else {
-		autoFitCamera()
+		view.autoFitCamera()
 	}
 	refreshGradient()
 

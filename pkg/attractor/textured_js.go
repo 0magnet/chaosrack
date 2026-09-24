@@ -46,10 +46,6 @@ const texFragShaderSrc = `
 `
 
 var (
-	// Matrices are cached here (pkg-level) so texProgram can be fed the
-	// same values the attractor program uses. movMatrix already lives in
-	// main.go; these two are populated by setupMatrices/updateViewMatrix.
-	viewMatrix mgl32.Mat4
 
 	// frameNowMs is the current frame's rAF timestamp, published by
 	// renderLoop so generateForMode-driven modes (spectrogram) can pace
@@ -170,8 +166,8 @@ func mat4ToTyped(m *mgl32.Mat4) js.Value {
 func useTexProgram() {
 	glctx.GL.Call("useProgram", texProgram)
 	glctx.GL.Call("uniformMatrix4fv", texPmatLoc, false, mat4ToTyped(&gpu.proj))
-	glctx.GL.Call("uniformMatrix4fv", texVmatLoc, false, mat4ToTyped(&viewMatrix))
-	glctx.GL.Call("uniformMatrix4fv", texMmatLoc, false, mat4ToTyped(&movMatrix))
+	glctx.GL.Call("uniformMatrix4fv", texVmatLoc, false, mat4ToTyped(&view.viewMat))
+	glctx.GL.Call("uniformMatrix4fv", texMmatLoc, false, mat4ToTyped(&view.modelMat))
 }
 
 // drawTexturedPlane draws the unit plane with the given texture and scroll

@@ -59,7 +59,7 @@ func drawScopeGraticule(halfH float32) {
 	// the pose, and the next thing drawn has to see it.
 	glctx.GL.Call("useProgram", gpu.program)
 	glctx.GL.Call("uniformMatrix4fv", gpu.u.model, false, mat4ToTyped(&identMatrix))
-	defer updateModelMatrix()
+	defer view.updateModelMatrix()
 
 	perDiv := halfH / float32(scope.HalfH)
 	lines := scope.Graticule()

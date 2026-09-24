@@ -90,13 +90,13 @@ func sonifySample(x, y, z float32) (float64, float64) {
 	case "yz":
 		return float64(y), float64(z)
 	default: // cam — camera-relative: screen x → L, screen y → R
-		v := movMatrix.Mul4x1(mgl32.Vec4{x, y, z, 1})
+		v := view.modelMat.Mul4x1(mgl32.Vec4{x, y, z, 1})
 		return float64(v[0]), float64(v[1])
 	}
 }
 
 // sonifyProcess is the stereo ScriptProcessor callback (runs in Go on the
-// main thread, so reading vertBuf/movMatrix needs no synchronization).
+// main thread, so reading vertBuf/view.modelMat needs no synchronization).
 func sonifyProcess(_ js.Value, args []js.Value) interface{} {
 	if !sonifyActive {
 		return nil

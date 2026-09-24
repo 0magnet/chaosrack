@@ -103,7 +103,7 @@ func (b *turtleBody) turtleTiltBy(dax, day float32) {
 // bottom of the screen, and the figure appeared to move rather than simply get
 // bigger — which is not what a zoom does to a thing sitting on a floor.
 func turtleCamDist() float32 {
-	d := view.initDist - cachedZoom
+	d := view.initDist - view.ctl.zoom
 	if d < 0.1 {
 		d = 0.1
 	}
@@ -130,7 +130,7 @@ func turtleRoom() (cx, cy, halfW, halfH float32) {
 	}
 	// Panning moves the camera, so it moves the room with it — the floor stays
 	// the bottom of the picture rather than sliding off it.
-	return -panX, -panY, halfH * aspect, halfH
+	return -view.panX, -view.panY, halfH * aspect, halfH
 }
 
 // stickSlope is how quickly friction reaches full strength as a contact

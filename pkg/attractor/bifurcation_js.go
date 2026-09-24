@@ -185,7 +185,7 @@ func generateBifurcation() {
 	bifDrawCursor(p, span)
 	if !bifFitDone && bifNextCol >= bifCols/4 {
 		bifFitDone = true
-		autoFitCamera()
+		view.autoFitCamera()
 	}
 }
 

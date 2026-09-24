@@ -154,7 +154,7 @@ func hyperRosslerWarmup() {
 	dist := fitDistFor(view.fitOverride)
 	view.initDist = dist
 	view.defaultDist = dist
-	updateViewMatrix()
+	view.updateViewMatrix()
 }
 
 // hyperPrimed guards the first frame after a hash boot: a page loaded

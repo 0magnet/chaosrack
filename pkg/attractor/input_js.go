@@ -262,7 +262,7 @@ func applyZoomDelta(delta float32) {
 		zoomVal = 95
 	}
 	cameraControl.Set("value", strconv.FormatFloat(float64(zoomVal), 'f', 0, 64))
-	cachedZoom = zoomVal // render loop reads the cache, not the DOM
+	view.ctl.zoom = zoomVal // render loop reads the cache, not the DOM
 	cameraControl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 }
 

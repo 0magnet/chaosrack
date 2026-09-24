@@ -229,16 +229,16 @@ func serializeState() string {
 	// Orientation — the absolute X/Y/Z angles in degrees, only when the
 	// model is held still (no spin, no auto-rotate) so the hash isn't
 	// churning every frame. Restored into the same angles on load.
-	if !autoRotate && cachedRotX == 0 && cachedRotY == 0 && cachedRotZ == 0 {
-		if angleX != 0 || angleY != 0 || angleZ != 0 {
+	if !view.ctl.autoRotate && view.ctl.spinX == 0 && view.ctl.spinY == 0 && view.ctl.spinZ == 0 {
+		if view.angleX != 0 || view.angleY != 0 || view.angleZ != 0 {
 			b.WriteString("&rot=")
-			b.WriteString(permaFmt(angleX*57.2957795) + "," + permaFmt(angleY*57.2957795) + "," + permaFmt(angleZ*57.2957795))
+			b.WriteString(permaFmt(view.angleX*57.2957795) + "," + permaFmt(view.angleY*57.2957795) + "," + permaFmt(view.angleZ*57.2957795))
 		}
 	}
 
 	// Trackball-drag orientation (independent of the euler pose above, and
 	// stable unless the user drags, so it doesn't churn the hash).
-	if d := dragQuatString(); d != "" {
+	if d := view.dragQuatString(); d != "" {
 		b.WriteString("&drag=")
 		b.WriteString(d)
 	}
@@ -504,9 +504,9 @@ func applyRot(val string) {
 		}
 		a[i] = float32(v) * 0.0174532925 // deg → rad
 	}
-	angleX, angleY, angleZ = a[0], a[1], a[2]
-	rebuildModelMatrix()
-	updateModelMatrix()
+	view.angleX, view.angleY, view.angleZ = a[0], a[1], a[2]
+	view.rebuildModelMatrix()
+	view.updateModelMatrix()
 	updateRotKnobs()
 }
 
@@ -645,7 +645,7 @@ func applyStateFrom(h string) {
 				v, _ := strconv.ParseFloat(q[i], 32) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 				f[i] = float32(v)
 			}
-			setDragQuat(f[0], f[1], f[2], f[3])
+			view.setDragQuat(f[0], f[1], f[2], f[3])
 		}
 	}
 	// Record whether the link pinned an explicit pose, so Run() only applies the
