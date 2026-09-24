@@ -8,7 +8,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -79,17 +78,36 @@ func init() {
 var modelsCmd = &cobra.Command{
 	Use:   "models",
 	Short: "list the models that can be drawn without a browser",
-	Long: `List the models that render can draw.
+	Long: `List the models that render can draw, with their labels and catalog groups.
 
-This is a subset of the rack's catalog: the models defined by a vector field
-or map, which can be computed without a browser. Audio displays and
-page-based models such as the terminal, the desk and the STL viewer are not
-included, because they need a browser.`,
+These are the models that can be computed without a browser: the flows, the
+discrete maps, the Lissajous figure, the polyhedra, and the sphere, torus,
+globe and magnetosphere wireframes. Models driven by live audio, and
+page-based models such as the terminal, the desk and the STL viewer, are not
+included because they need a browser.`,
 	RunE: func(_ *cobra.Command, _ []string) error {
-		for _, k := range dynamics.Keys() {
-			fmt.Println(k)
+		labels := map[string][2]string{}
+		for _, g := range attractor.Catalog() {
+			for _, m := range g.Models {
+				if _, dup := labels[m.Key]; !dup {
+					labels[m.Key] = [2]string{m.Label, g.Label}
+				}
+			}
 		}
-		return nil
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+		if _, err := fmt.Fprintln(w, "MODEL\tLABEL\tGROUP"); err != nil {
+			return err
+		}
+		for _, k := range drawableKeys() {
+			l := labels[k]
+			if l[0] == "" {
+				l = [2]string{k, "Attractors"}
+			}
+			if _, err := fmt.Fprintf(w, "%s\t%s\t%s\n", k, l[0], l[1]); err != nil {
+				return err
+			}
+		}
+		return w.Flush()
 	},
 }
 
@@ -111,6 +129,13 @@ instead of writing a file.
   chaosrack render --model halvorsen -o h.svg --angle 0.3,1.2,0
   chaosrack render --model lorenz -o lorenz.gif --frames 120 --turn 0,6.283,0
   chaosrack render --model lorenz --set lorenz-r=40 -o rho40.png
+  chaosrack render --model clifford -o clifford.png
+  chaosrack render --model icosahedron -o ico.gif --frames 60 --turn 0,6.283,0
+
+Flows and curves are drawn as a line, maps as points, and polyhedra and other
+geometry as wireframes. Maps are drawn face-on and colored by y unless
+--angle or --gradient is given. In an animation a map's points accumulate
+frame by frame.
 
 Use chaosrack models to list the available models. Use --params to list the
 controls that --set can change, with their ranges. Values outside a control's
@@ -119,7 +144,7 @@ range are rejected rather than clamped.
 --check draws every model and reports any that produce nothing: a trajectory
 that diverges, or one that stays at a single point. It exits with an error if
 any fail.`,
-	RunE: func(_ *cobra.Command, _ []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		if renderParams {
 			return listParams()
 		}
@@ -127,34 +152,45 @@ any fail.`,
 			return err
 		}
 		if renderCheck {
-			return checkEveryFlow()
+			return checkEveryModel()
 		}
 		if renderModel == "" {
 			return fmt.Errorf("--model is required (chaosrack models lists them, --check tests them all)")
 		}
-		if !dynamics.HasFlow(renderModel) {
-			return fmt.Errorf("no model named %q; chaosrack models lists the %d that can be drawn headless",
-				renderModel, len(dynamics.Keys()))
+		fig, err := figureFor(renderModel)
+		if err != nil {
+			return err
 		}
-		pts := trajectoryFor(renderModel)
+		// A map's iterates lie in the z=0 plane, so the default oblique view
+		// squashes them and a z gradient paints them one color. Face-on and
+		// colored by y is how they read, unless the flags say otherwise.
+		if fig.Kind == attractor.FigurePoints {
+			if !cmd.Flags().Changed("angle") {
+				renderSpin = []float64{0, 0, 0}
+			}
+			if !cmd.Flags().Changed("gradient") {
+				renderGrad = "y"
+			}
+		}
+		pts := fig.Points
 		if len(pts) == 0 {
 			return fmt.Errorf("%s: integrated to nothing — the trajectory diverged", renderModel)
 		}
 		dx, dy, dz := attractor.Extent(pts)
 		if math.Max(dx, math.Max(dy, dz)) == 0 {
-			return fmt.Errorf("%s: the trajectory has no extent — it is a fixed point, not an attractor", renderModel)
+			return fmt.Errorf("%s: the figure has no extent — it is a single point", renderModel)
 		}
 		if renderFrames > 0 {
 			if renderOut == "" {
 				return fmt.Errorf("--frames needs -o: an animation has nowhere to go")
 			}
-			return writeAnimation(renderOut, pts)
+			return writeFigureAnimation(renderOut, fig)
 		}
 		if renderOut == "" {
 			fmt.Printf("%s: %d points, extent %.3f x %.3f x %.3f\n", renderModel, len(pts), dx, dy, dz)
 			return nil
 		}
-		return writeModel(renderOut, pts)
+		return writeFigure(renderOut, fig)
 	},
 }
 
@@ -245,28 +281,28 @@ func drawOptions() attractor.DrawOptions {
 	}
 }
 
-// checkEveryFlow integrates every model and reports the dead ones.
+// checkEveryModel builds every model render can draw and reports the dead
+// ones.
 //
 // The check this package could not make before: a Lyapunov exponent needs a
 // registered deriv, and a model whose flow is computed some other way is
-// skipped rather than failed. Extent needs only the trajectory.
-func checkEveryFlow() error {
-	keys := dynamics.Keys()
-	sort.Strings(keys)
+// skipped rather than failed. Extent needs only the points.
+func checkEveryModel() error {
+	keys := drawableKeys()
 	var dead []string
 	for _, k := range keys {
-		pts := trajectoryFor(k)
-		if len(pts) == 0 {
+		fig, err := figureFor(k)
+		if err != nil || len(fig.Points) == 0 {
 			dead = append(dead, k+" (diverged)")
 			continue
 		}
-		dx, dy, dz := attractor.Extent(pts)
+		dx, dy, dz := attractor.Extent(fig.Points)
 		span := math.Max(dx, math.Max(dy, dz))
-		if span == 0 {
+		if span == 0 || math.IsNaN(span) || math.IsInf(span, 0) {
 			dead = append(dead, k+" (a fixed point)")
 			continue
 		}
-		fmt.Printf("%-16s %6d points   %8.3f x %8.3f x %8.3f\n", k, len(pts), dx, dy, dz)
+		fmt.Printf("%-16s %6d points   %8.3f x %8.3f x %8.3f\n", k, len(fig.Points), dx, dy, dz)
 	}
 	if len(dead) > 0 {
 		return fmt.Errorf("%d of %d models draw nothing: %s", len(dead), len(keys), strings.Join(dead, ", "))
