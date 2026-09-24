@@ -161,7 +161,7 @@ func (t *turtleWalk) physScale() float32 { return t.scale * turtleRoomFit }
 // for a while, which stopped being tenable the moment it could pull upward:
 // zero then means "no pull", not "no physics", and floating in a box is
 // somewhere you might want to be.
-func physOn() bool { return turtlePhysOn && selectedMode == "turtle" }
+func physOn() bool { return turtlePhysOn && run.selectedMode == "turtle" }
 
 // turtlePhysOn is the Physics switch on the Motion panel.
 var turtlePhysOn bool
@@ -261,7 +261,7 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 
 	// The step, needed here rather than at the integration below because the
 	// material's speed is wanted while the contact forces are being worked out.
-	dt := 0.016 * float32(speedSteps) * speedScale
+	dt := 0.016 * float32(sim.speedSteps) * sim.speedScale
 	if dt > 0.05 {
 		dt = 0.05 // a slow frame must not launch it
 	}

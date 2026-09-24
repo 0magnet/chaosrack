@@ -107,16 +107,16 @@ func (t *twinTrail) tick(mode string) bool {
 		budget = frameBudgetInterpreted
 	}
 	// Two visible trajectories + the λ probe pair share the frame budget.
-	sub := effSubSteps(speedSteps, steps, budget/2)
-	dt := sys.Dt() * float64(speedScale)
+	sub := effSubSteps(sim.speedSteps, sim.steps, budget/2)
+	dt := sys.Dt() * float64(sim.speedScale)
 	scale := sys.Scale
-	invN := float32(1) / float32(steps-1)
+	invN := float32(1) / float32(sim.steps-1)
 
-	if len(t.buf) < steps*4 {
-		t.buf = make([]float32, cap(vertBuf))
+	if len(t.buf) < sim.steps*4 {
+		t.buf = make([]float32, cap(sim.vertBuf))
 	}
 	trace := func(s *[4]float64, out []float32) {
-		for i := 0; i < steps; i++ {
+		for i := 0; i < sim.steps; i++ {
 			for k := 0; k < sub; k++ {
 				twinStep(sys, s, dt)
 				if twinDiverged(*s) {
@@ -131,22 +131,22 @@ func (t *twinTrail) tick(mode string) bool {
 			out[j+3] = float32(i) * invN
 		}
 	}
-	vertices := vertBuf[:steps*4]
+	vertices := sim.vertBuf[:sim.steps*4]
 	trace(&t.a, vertices)
-	trace(&t.b, t.buf[:steps*4])
+	trace(&t.b, t.buf[:sim.steps*4])
 
 	// Keep the app-wide integrator state following trajectory A so the
 	// permalink, Model Out SCAN and a later twin-off continue seamlessly.
-	x, y, z = float32(t.a[0]), float32(t.a[1]), float32(t.a[2])
-	x64, y64, z64 = t.a[0], t.a[1], t.a[2]
+	sim.x, sim.y, sim.z = float32(t.a[0]), float32(t.a[1]), float32(t.a[2])
+	sim.x64, sim.y64, sim.z64 = t.a[0], t.a[1], t.a[2]
 	sys.SetW(t.a[3])
 
 	// Draw A with the normal gradient, then B in a fixed contrast color via
 	// the monochrome override (restored right after).
-	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, sim.steps)
 	glctx.GL.Call("uniform1i", gpu.u.gradientColors, 1)
 	glctx.GL.Call("uniform3f", gpu.u.baseColor, 0.15, 1.0, 0.45)
-	gpu.uploadVerticesOnly(t.buf[:steps*4], gpu.drawMode, steps)
+	gpu.uploadVerticesOnly(t.buf[:sim.steps*4], gpu.drawMode, sim.steps)
 	glctx.GL.Call("uniform1i", gpu.u.gradientColors, gradientColorsUniform())
 
 	return true

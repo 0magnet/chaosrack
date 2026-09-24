@@ -24,7 +24,7 @@ import (
 // draw. phase (0..1) rotates the gradient parameter along the total drawn
 // length, so the trail gradient sweeps the figure like a live beam.
 func beamLines(strokes [][]float64, phase float64) int {
-	maxV := steps // vertex budget: vertBuf holds steps×4 floats
+	maxV := sim.steps // vertex budget: vertBuf holds steps×4 floats
 	if maxV < 16 {
 		return 0
 	}
@@ -86,14 +86,14 @@ func beamLines(strokes [][]float64, phase float64) int {
 			t0 := math.Mod((arc+segLen*f0)/total+phase, 1)
 			t1 := math.Mod((arc+segLen*f1)/total+phase, 1)
 			o := v * 4
-			vertBuf[o] = float32(x1 + (x2-x1)*f0)
-			vertBuf[o+1] = float32(y1 + (y2-y1)*f0)
-			vertBuf[o+2] = 0
-			vertBuf[o+3] = float32(t0)
-			vertBuf[o+4] = float32(x1 + (x2-x1)*f1)
-			vertBuf[o+5] = float32(y1 + (y2-y1)*f1)
-			vertBuf[o+6] = 0
-			vertBuf[o+7] = float32(t1)
+			sim.vertBuf[o] = float32(x1 + (x2-x1)*f0)
+			sim.vertBuf[o+1] = float32(y1 + (y2-y1)*f0)
+			sim.vertBuf[o+2] = 0
+			sim.vertBuf[o+3] = float32(t0)
+			sim.vertBuf[o+4] = float32(x1 + (x2-x1)*f1)
+			sim.vertBuf[o+5] = float32(y1 + (y2-y1)*f1)
+			sim.vertBuf[o+6] = 0
+			sim.vertBuf[o+7] = float32(t1)
 			v += 2
 		}
 		arc += segLen
@@ -104,7 +104,7 @@ func beamLines(strokes [][]float64, phase float64) int {
 // beamDrawMode: blanked-beam modes draw segment pairs — or points when the
 // Points switch asks for dots.
 func beamDrawMode() js.Value {
-	if usePoints {
+	if style.usePoints {
 		return glctx.Types.Points
 	}
 	return glctx.Types.Lines

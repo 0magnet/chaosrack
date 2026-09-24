@@ -173,7 +173,7 @@ func (p *polarMode) generatePolar() {
 		sr = src.SampleRate()
 	}
 	tau := takens.TauSamples(emb.tau, sr)
-	n, stride := takensWindow(p.win, sr, steps)
+	n, stride := takensWindow(p.win, sr, sim.steps)
 	span := (n-1)*stride + 2*tau
 	if need := span + 1; len(p.ring) < need {
 		p.ring = make([]float32, need+need/2)
@@ -208,7 +208,7 @@ func (p *polarMode) generatePolar() {
 	nv := takensVerts(n)
 	if avail < span+1 {
 		p.fitGain = 0 // camera was fitted to silence — refit on real data
-		gpu.uploadVerticesOnly(vertBuf[:nv*4], gpu.drawMode, nv)
+		gpu.uploadVerticesOnly(sim.vertBuf[:nv*4], gpu.drawMode, nv)
 		return
 	}
 	rn := len(p.ring)
@@ -228,7 +228,7 @@ func (p *polarMode) generatePolar() {
 		return p.ring[(base+2*tau+k*stride+off)%rn]
 	}
 	invN := float32(1) / float32(nv-1)
-	vertices := vertBuf[:nv*4]
+	vertices := sim.vertBuf[:nv*4]
 	var v [3]float32
 	sm := takensSmooth()
 	for m := 0; m < nv; m++ {
@@ -271,7 +271,7 @@ func (p *polarMode) generatePolar() {
 		vertices[j+3] = float32(m) * invN
 	}
 	gpu.uploadVerticesOnly(vertices, gpu.drawMode, nv)
-	if p.fitGain != p.gain && !paramIsModulated("polar-gain") {
+	if p.fitGain != p.gain && !pmod.paramIsModulated("polar-gain") {
 		// Fitted to the fixed scale's worst case rather than to this window's
 		// extent, and only when GAIN moves that case — see generateTakens for
 		// why fitting the instantaneous figure put loud passages off the
@@ -312,7 +312,7 @@ func (p *polarMode) colorWindow() ([]float32, int) {
 		sr = src.SampleRate()
 	}
 	tau := takens.TauSamples(emb.tau, sr)
-	n, stride := takensWindow(p.win, sr, steps)
+	n, stride := takensWindow(p.win, sr, sim.steps)
 	if n <= 0 {
 		return nil, 0
 	}

@@ -173,7 +173,7 @@ func (r *renderer) sizeCanvasToViewport() bool {
 	// so it is sized here rather than anywhere else — one place decides how big
 	// a frame is, and a copy between two canvases of different sizes would be a
 	// scale nobody asked for.
-	sizeFrontCanvas()
+	near.size()
 	return true
 }
 

@@ -194,29 +194,38 @@ func wireScreenPower() {
 // the time it takes to scroll and notice.
 const onScreenEveryMs = 250
 
-// onScreenAt remembers the last answer per element id, for the fallback.
-var onScreenAt = map[string]struct {
-	at  float64
-	vis bool
-}{}
+// screenObserver is the IntersectionObserver that says which module screens
+// are visible.
+type screenObserver struct {
+	// at remembers the last answer per element id, for the fallback.
+	at map[string]struct {
+		at  float64
+		vis bool
+	}
+	obs   js.Value        // the IntersectionObserver, if this browser has one
+	tried bool            // constructed once, successfully or not
+	vis   map[string]bool // what the observer last reported, by id
+}
 
-var (
-	onScreenObs   js.Value            // the IntersectionObserver, if this browser has one
-	onScreenTried bool                // constructed once, successfully or not
-	onScreenVis   = map[string]bool{} // what the observer last reported, by id
-)
+var onScreen = screenObserver{
+	at: map[string]struct {
+		at  float64
+		vis bool
+	}{},
+	vis: map[string]bool{},
+}
 
 // onScreenObserver is the observer, or a zero Value where there is none.
-func onScreenObserver() js.Value {
-	if onScreenTried {
-		return onScreenObs
+func (s *screenObserver) observer() js.Value {
+	if s.tried {
+		return s.obs
 	}
-	onScreenTried = true
+	s.tried = true
 	ctor := js.Global().Get("IntersectionObserver")
 	if !ctor.Truthy() {
 		return js.Value{}
 	}
-	onScreenObs = ctor.New(dom.FuncOf(func(_ js.Value, args []js.Value) interface{} {
+	s.obs = ctor.New(dom.FuncOf(func(_ js.Value, args []js.Value) interface{} {
 		if len(args) == 0 {
 			return nil
 		}
@@ -224,12 +233,12 @@ func onScreenObserver() js.Value {
 		for i := 0; i < entries.Length(); i++ {
 			e := entries.Index(i)
 			if id := e.Get("target").Get("id").String(); id != "" {
-				onScreenVis[id] = e.Get("isIntersecting").Bool()
+				s.vis[id] = e.Get("isIntersecting").Bool()
 			}
 		}
 		return nil
 	}))
-	return onScreenObs
+	return s.obs
 }
 
 // moduleOnScreen reports whether the element with this id is both in the
@@ -237,24 +246,24 @@ func onScreenObserver() js.Value {
 //
 // A missing element is NOT on screen, which is the safe answer: a module that
 // has not been built yet has nothing to draw and no readout to write.
-func moduleOnScreen(id string) bool {
-	if vis, ok := onScreenVis[id]; ok {
+func (s *screenObserver) moduleOnScreen(id string) bool {
+	if vis, ok := s.vis[id]; ok {
 		return vis // the observer is watching this one; no DOM work at all
 	}
-	vis := measureOnScreen(id)
-	if obs := onScreenObserver(); obs.Truthy() {
+	vis := s.measure(id)
+	if obs := s.observer(); obs.Truthy() {
 		if el := dom.Doc.Call("getElementById", id); el.Truthy() {
 			obs.Call("observe", el)
 			// Seeded with the measurement so this frame has an answer; the
 			// observer overwrites it with its own as soon as it reports.
-			onScreenVis[id] = vis
+			s.vis[id] = vis
 			return vis
 		}
 		// No element to observe yet — the panel has not been built. Fall
 		// through to the throttle so this is not measured every frame until
 		// it appears.
 	}
-	onScreenAt[id] = struct {
+	s.at[id] = struct {
 		at  float64
 		vis bool
 	}{frameNowMs, vis}
@@ -263,8 +272,8 @@ func moduleOnScreen(id string) bool {
 
 // measureOnScreen is the real answer, read out of layout. The fallback path,
 // and the seed for a target the observer has not reported on yet.
-func measureOnScreen(id string) bool {
-	if c, ok := onScreenAt[id]; ok && frameNowMs-c.at < onScreenEveryMs && c.at != 0 {
+func (s *screenObserver) measure(id string) bool {
+	if c, ok := s.at[id]; ok && frameNowMs-c.at < onScreenEveryMs && c.at != 0 {
 		return c.vis
 	}
 	el := dom.Doc.Call("getElementById", id)
@@ -287,15 +296,15 @@ func measureOnScreen(id string) bool {
 // invalidateOnScreen forgets every cached answer AND every target, for a
 // panel that has been rebuilt: the elements the observer holds are then
 // detached, and watching them would report on markup nobody can see.
-func invalidateOnScreen() {
-	if onScreenObs.Truthy() {
-		onScreenObs.Call("disconnect")
+func (s *screenObserver) invalidate() {
+	if s.obs.Truthy() {
+		s.obs.Call("disconnect")
 	}
-	for k := range onScreenVis {
-		delete(onScreenVis, k)
+	for k := range s.vis {
+		delete(s.vis, k)
 	}
-	for k := range onScreenAt {
-		delete(onScreenAt, k)
+	for k := range s.at {
+		delete(s.at, k)
 	}
 }
 
@@ -304,8 +313,8 @@ func invalidateOnScreen() {
 // answers away would re-measure every module on every scroll event — the one
 // thing worse than the poll this replaced.
 func scrollChangedWhatIsOnScreen() {
-	if onScreenObserver().Truthy() {
+	if onScreen.observer().Truthy() {
 		return
 	}
-	invalidateOnScreen()
+	onScreen.invalidate()
 }

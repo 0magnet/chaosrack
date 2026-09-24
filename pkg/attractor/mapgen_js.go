@@ -46,7 +46,7 @@ func generateMap(mode string) {
 	orbits := m.Count()
 	mapOrbits.Ensure(mode, m)
 
-	n := steps
+	n := sim.steps
 	if n < 2 {
 		n = 2
 	}
@@ -58,7 +58,7 @@ func generateMap(mode string) {
 	}
 	total := per * orbits
 
-	vertices := vertBuf[:total*4]
+	vertices := sim.vertBuf[:total*4]
 	invN := float32(1) / float32(total-1)
 	idx := 0
 	for o := 0; o < orbits; o++ {

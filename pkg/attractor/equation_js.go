@@ -226,7 +226,7 @@ func (c *customEquation) registerCustomFlow() {
 func (c *customEquation) generateCustom() {
 	if c.err != "" || c.expr[0] == nil {
 		// Nothing valid to run — leave the last frame on screen.
-		gpu.uploadVerticesOnly(vertBuf[:steps*4], mapDrawMode(dynamics.CustomKey), steps)
+		gpu.uploadVerticesOnly(sim.vertBuf[:sim.steps*4], mapDrawMode(dynamics.CustomKey), sim.steps)
 		return
 	}
 	if c.iterate {
@@ -248,14 +248,14 @@ func (c *customEquation) generateCustom() {
 		}
 		pv[i] = s
 	}
-	dt := float64(c.dt) * float64(speedScale)
+	dt := float64(c.dt) * float64(sim.speedScale)
 	stack := c.stack
-	vertices := vertBuf[:steps*4]
-	invN := float32(1) / float32(steps-1)
-	sub := effSubSteps(speedSteps, steps, frameBudgetInterpreted)
-	for i := 0; i < steps; i++ {
+	vertices := sim.vertBuf[:sim.steps*4]
+	invN := float32(1) / float32(sim.steps-1)
+	sub := effSubSteps(sim.speedSteps, sim.steps, frameBudgetInterpreted)
+	for i := 0; i < sim.steps; i++ {
 		for s := 0; s < sub; s++ {
-			vars := [5]float64{float64(x), float64(y), float64(z), float64(c.w), c.t}
+			vars := [5]float64{float64(sim.x), float64(sim.y), float64(sim.z), float64(c.w), c.t}
 			dx := c.expr[0].Eval(vars, pv[0], stack)
 			dy := 0.0
 			if c.expr[1] != nil {
@@ -265,19 +265,19 @@ func (c *customEquation) generateCustom() {
 			if c.expr[2] != nil {
 				dz = c.expr[2].Eval(vars, pv[2], stack)
 			}
-			x += float32(dt * dx)
-			y += float32(dt * dy)
-			z += float32(dt * dz)
+			sim.x += float32(dt * dx)
+			sim.y += float32(dt * dy)
+			sim.z += float32(dt * dz)
 			if c.useW && c.expr[3] != nil {
 				c.w += float32(dt * c.expr[3].Eval(vars, pv[3], stack))
 			}
 			c.t += dt
-			checkDiverged()
+			sim.checkDiverged()
 		}
 		j := i * 4
-		vertices[j], vertices[j+1], vertices[j+2], vertices[j+3] = x, y, z, float32(i)*invN
+		vertices[j], vertices[j+1], vertices[j+2], vertices[j+3] = sim.x, sim.y, sim.z, float32(i)*invN
 	}
-	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, sim.steps)
 }
 
 // ── Custom-mode control panel ─────────────────────────────────────────────
@@ -425,7 +425,7 @@ func (c *customEquation) buildCustomPanel(paramsDiv js.Value) {
 	grid := dom.Doc.Call("createElement", "div")
 	grid.Set("className", "punit-grid")
 	for _, d := range defs {
-		grid.Call("appendChild", buildParamUnit(selectedMode, d))
+		grid.Call("appendChild", buildParamUnit(run.selectedMode, d))
 	}
 	paramsDiv.Call("appendChild", grid)
 }

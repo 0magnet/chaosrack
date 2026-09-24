@@ -263,19 +263,19 @@ func (tu *turtleMode) generateTurtle() {
 	// which for an attractor is the whole orbit but here would fight the camera
 	// below for control of where the figure sits. The walk is placed exactly, so
 	// hold that and offer no offset of our own.
-	centerOffset = [3]float32{}
-	centerReady = true
+	sim.centerOffset = [3]float32{}
+	sim.centerReady = true
 
 	// A held figure stops walking. The march is the walk extruding new points
 	// at the head, so a figure that keeps being made while you are holding it
 	// keeps trying to march out of your hand — you are pulling one way and the
 	// floor is driving it the other, and neither of you is winning. Picking a
 	// thing up should stop it going anywhere.
-	if !paused && !grab.grabState.held && !grab.spinDrag && !grab.tiltDrag {
+	if !run.paused && !grab.grabState.held && !grab.spinDrag && !grab.tiltDrag {
 		// Below one step a frame the rate has to be carried between frames, or
 		// truncation would round the whole Speed knob's lower half down to zero
 		// and the walk would stand still.
-		t.pending += turtleStepsPerFrame * float64(speedSteps) * float64(speedScale)
+		t.pending += turtleStepsPerFrame * float64(sim.speedSteps) * float64(sim.speedScale)
 		whole := int(t.pending)
 		t.pending -= float64(whole)
 		t.advance(whole)
@@ -287,7 +287,7 @@ func (tu *turtleMode) generateTurtle() {
 		}
 	}
 	if len(t.pts) < 2 {
-		gpu.uploadVerticesOnly(vertBuf[:0], gpu.drawMode, 0)
+		gpu.uploadVerticesOnly(sim.vertBuf[:0], gpu.drawMode, 0)
 		return
 	}
 
@@ -297,7 +297,7 @@ func (tu *turtleMode) generateTurtle() {
 	// above it. Drawing all of it made the figure grow by that eighth and snap
 	// back a couple of times a second, which is a wobble with nothing in the
 	// walk behind it.
-	n := min(len(t.pts), min(steps, t.trailLen()))
+	n := min(len(t.pts), min(sim.steps, t.trailLen()))
 	base := len(t.pts) - n // the newest n points: the head is always on screen
 
 	// Worked out before aiming, because where to look depends on how much is
@@ -310,15 +310,15 @@ func (tu *turtleMode) generateTurtle() {
 		// when nothing is pushing the figure around; once something is, where it
 		// has got to is the answer, and a camera holding it in the middle would
 		// be hiding exactly what there is to watch.
-		if !paused {
+		if !run.paused {
 			t.body.step(t, t.pts[base:])
 		}
 		for i := 0; i < n; i++ {
 			x, y, z := t.body.place(t, t.pts[base+i])
 			d := i * 4
-			vertBuf[d], vertBuf[d+1], vertBuf[d+2], vertBuf[d+3] = x, y, z, t.tint[base+i]
+			sim.vertBuf[d], sim.vertBuf[d+1], sim.vertBuf[d+2], sim.vertBuf[d+3] = x, y, z, t.tint[base+i]
 		}
-		gpu.uploadVerticesOnly(vertBuf[:n*4], gpu.drawMode, n)
+		gpu.uploadVerticesOnly(sim.vertBuf[:n*4], gpu.drawMode, n)
 		return
 	}
 	t.body.placed = false // dropped again next time, from wherever it is standing
@@ -327,12 +327,12 @@ func (tu *turtleMode) generateTurtle() {
 		p := t.pts[base+i]
 		d := i * 4
 		// pisano's Y grows downward, matching a terminal; here up is up.
-		vertBuf[d] = (float32(p.X) - t.cx) * t.scale
-		vertBuf[d+1] = -(float32(p.Y) - t.cy) * t.scale
-		vertBuf[d+2] = (float32(p.Z) - t.cz) * t.scale
-		vertBuf[d+3] = t.tint[base+i]
+		sim.vertBuf[d] = (float32(p.X) - t.cx) * t.scale
+		sim.vertBuf[d+1] = -(float32(p.Y) - t.cy) * t.scale
+		sim.vertBuf[d+2] = (float32(p.Z) - t.cz) * t.scale
+		sim.vertBuf[d+3] = t.tint[base+i]
 	}
-	gpu.uploadVerticesOnly(vertBuf[:n*4], gpu.drawMode, n)
+	gpu.uploadVerticesOnly(sim.vertBuf[:n*4], gpu.drawMode, n)
 }
 
 // newTurtleWalk works out the arithmetic and starts the turtle walking. It
@@ -454,12 +454,12 @@ func (t *turtleWalk) trailLen() int {
 		// shape on screen in different colors, and the figure would read as a
 		// fixed patchwork rather than as something being drawn again. An open
 		// path has no circuit, so it keeps what there is room for.
-		n = steps
+		n = sim.steps
 		if t.closed {
 			n = t.span + 1
 		}
 	}
-	return max(2, min(n, steps))
+	return max(2, min(n, sim.steps))
 }
 
 // advance walks n terms and drops whatever has aged out of the trail.
@@ -658,7 +658,7 @@ func (t *turtleWalk) camera() int {
 // and the restart all follow from the one place they normally would.
 func (tu *turtleMode) cycle() {
 	secs := float64(tu.cycleF)
-	if secs <= 0 || paused {
+	if secs <= 0 || run.paused {
 		tu.cycleAt = 0
 		return
 	}

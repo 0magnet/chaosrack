@@ -28,11 +28,11 @@ func generateScopeClock() {
 		return
 	}
 
-	vertices := vertBuf[:steps*4]
-	invN := float32(1) / float32(steps-1)
+	vertices := sim.vertBuf[:sim.steps*4]
+	invN := float32(1) / float32(sim.steps-1)
 	seg := 1
-	for i := 0; i < steps; i++ {
-		want := total * float64(i) / float64(steps-1)
+	for i := 0; i < sim.steps; i++ {
+		want := total * float64(i) / float64(sim.steps-1)
 		for seg < len(cum)-1 && cum[seg] < want {
 			seg++
 		}
@@ -48,7 +48,7 @@ func generateScopeClock() {
 		vertices[j+2] = 0 // a scope screen is flat; the pipeline is 3-D anyway
 		vertices[j+3] = float32(i) * invN
 	}
-	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, sim.steps)
 }
 
 func init() {

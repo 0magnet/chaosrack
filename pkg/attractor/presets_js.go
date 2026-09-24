@@ -80,12 +80,12 @@ func refreshPresetList(selected string) {
 func presetNameField() string {
 	el := dom.Doc.Call("getElementById", "preset-name")
 	if !el.Truthy() {
-		return selectedMode
+		return run.selectedMode
 	}
 	if n := preset.CleanName(el.Get("value").String()); n != "" {
 		return n
 	}
-	return selectedMode
+	return run.selectedMode
 }
 
 func wirePresetModule() {

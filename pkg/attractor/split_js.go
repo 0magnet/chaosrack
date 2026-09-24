@@ -75,7 +75,7 @@ func splitActive() bool {
 // to a torus left the attractor's near half hanging over the panel, frozen,
 // while the torus turned behind it.
 func splitDrawing() bool {
-	return splitActive() && (isAttractorMode(selectedMode) || splitRegenerates(selectedMode))
+	return splitActive() && (isAttractorMode(run.selectedMode) || splitRegenerates(run.selectedMode))
 }
 
 // splitRegenerates names the modes whose second pass RUNS THE GENERATOR AGAIN
@@ -163,7 +163,7 @@ func drawSplitPasses(mode string) {
 	setSplitPlane(splitNear, z)
 	generateForMode(mode)
 	drawn := gpu.lastDrawn
-	copyNearPassToFront()
+	near.copyNearPassToFront()
 
 	setSplitPlane(splitFar, z)
 	glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
@@ -191,13 +191,13 @@ func drawSplitPasses(mode string) {
 func syncSplitCanvas() {
 	markPersistSuspended(splitDrawing())
 	if splitDrawing() {
-		if ensureFrontCanvas() {
-			showFrontCanvas(true)
+		if near.ensure() {
+			near.show(true)
 		}
 		raiseMainCanvas(false)
 		return
 	}
-	showFrontCanvas(false)
+	near.show(false)
 	raiseMainCanvas(splitAllInFront())
 }
 

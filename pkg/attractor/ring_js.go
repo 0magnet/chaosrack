@@ -77,7 +77,7 @@ func (r *ringTrail) tick(mode string) bool {
 	if !ok {
 		return false
 	}
-	sig := mode + "|" + strconv.Itoa(steps)
+	sig := mode + "|" + strconv.Itoa(sim.steps)
 	if r.sig != sig {
 		return false // let the scan generator prime this frame; see below
 	}
@@ -88,18 +88,18 @@ func (r *ringTrail) tick(mode string) bool {
 	// The sub-steps get the same anti-freeze budget as the scan generators
 	// (interpreted equation systems are ~10× the per-step cost).
 	n := ringPointsPerFrame
-	if n > steps {
-		n = steps
+	if n > sim.steps {
+		n = sim.steps
 	}
 	budget := frameBudgetCompiled
 	if sys.Interpreted {
 		budget = frameBudgetInterpreted
 	}
-	sub := effSubSteps(speedSteps, n, budget)
-	dt := sys.Dt() * float64(speedScale)
+	sub := effSubSteps(sim.speedSteps, n, budget)
+	dt := sys.Dt() * float64(sim.speedScale)
 	const lim = 1e4
 	start := r.head
-	invN := float32(1) / float32(steps-1)
+	invN := float32(1) / float32(sim.steps-1)
 	scale := sys.Scale
 	for i := 0; i < n; i++ {
 		for s := 0; s < sub; s++ {
@@ -115,19 +115,19 @@ func (r *ringTrail) tick(mode string) bool {
 			}
 		}
 		j := r.head * 4
-		vertBuf[j] = float32(r.x)*scale - r.center[0]
-		vertBuf[j+1] = float32(r.y)*scale - r.center[1]
-		vertBuf[j+2] = float32(r.z)*scale - r.center[2]
-		vertBuf[j+3] = float32(r.head) * invN
+		sim.vertBuf[j] = float32(r.x)*scale - r.center[0]
+		sim.vertBuf[j+1] = float32(r.y)*scale - r.center[1]
+		sim.vertBuf[j+2] = float32(r.z)*scale - r.center[2]
+		sim.vertBuf[j+3] = float32(r.head) * invN
 		r.head++
-		if r.head == steps {
+		if r.head == sim.steps {
 			r.head = 0
 		}
 	}
 	// Keep the render-state globals in sync so drag/permalink/sonify (SCAN)
 	// and a later switch back to scan mode continue from the beam.
-	x, y, z = float32(r.x), float32(r.y), float32(r.z)
-	x64, y64, z64 = r.x, r.y, r.z
+	sim.x, sim.y, sim.z = float32(r.x), float32(r.y), float32(r.z)
+	sim.x64, sim.y64, sim.z64 = r.x, r.y, r.z
 	sys.SetW(r.w)
 
 	r.uploadAndDraw(start, n)
@@ -145,16 +145,16 @@ func (r *ringTrail) primeAfterScan(mode string) {
 	if !ok {
 		return
 	}
-	sig := mode + "|" + strconv.Itoa(steps)
+	sig := mode + "|" + strconv.Itoa(sim.steps)
 	if r.sig == sig {
 		return
 	}
 	r.sig = sig
 	r.head = 0
-	r.center = centerOffset
-	r.x, r.y, r.z = x64, y64, z64
+	r.center = sim.centerOffset
+	r.x, r.y, r.z = sim.x64, sim.y64, sim.z64
 	if r.x == 0 && r.y == 0 && r.z == 0 {
-		r.x, r.y, r.z = float64(x), float64(y), float64(z)
+		r.x, r.y, r.z = float64(sim.x), float64(sim.y), float64(sim.z)
 	}
 	r.w = sys.W() // continue the hidden state, not restart it
 }
@@ -172,27 +172,27 @@ func (r *ringTrail) uploadAndDraw(start, n int) {
 		if count <= 0 {
 			return
 		}
-		seg := vertBuf[from*4 : (from+count)*4]
+		seg := sim.vertBuf[from*4 : (from+count)*4]
 		js.CopyBytesToJS(r.jsSegUint8(len(seg)*4), sliceToByteSlice(seg))
 		glctx.GL.Call("bufferSubData", glctx.Types.ArrayBuffer, from*16, r.jsSegView(len(seg)))
 	}
-	if start+n <= steps {
+	if start+n <= sim.steps {
 		upload(start, n)
 	} else {
-		upload(start, steps-start)
-		upload(0, (start+n)-steps)
+		upload(start, sim.steps-start)
+		upload(0, (start+n)-sim.steps)
 	}
-	runtime.KeepAlive(vertBuf)
+	runtime.KeepAlive(sim.vertBuf)
 
 	// Dwell for the freshly written slots (mean from the last full-scan pass
 	// is close enough between primes; exact per-segment mean would flicker).
 	r.updateDwell(start, n)
 
-	glctx.GL.Call("uniform1f", gpu.u.trailHead, float64(r.head)/float64(steps-1))
+	glctx.GL.Call("uniform1f", gpu.u.trailHead, float64(r.head)/float64(sim.steps-1))
 	// Older stretch: head..end, newer stretch: 0..head. The split prevents a
 	// newest→oldest flyback line across the model.
-	if steps-r.head >= 2 {
-		glctx.GL.Call("drawArrays", gpu.drawMode, r.head, steps-r.head)
+	if sim.steps-r.head >= 2 {
+		glctx.GL.Call("drawArrays", gpu.drawMode, r.head, sim.steps-r.head)
 	}
 	if r.head >= 2 {
 		glctx.GL.Call("drawArrays", gpu.drawMode, 0, r.head)
@@ -214,19 +214,19 @@ func (r *ringTrail) jsSegView(nFloats int) js.Value {
 // ringUpdateDwell refreshes the beam-dwell attribute for the slots the beam
 // just rewrote, using the mean already established by the priming scan.
 func (r *ringTrail) updateDwell(start, n int) {
-	if len(gpu.dwell.buf) != steps || gpu.dwell.gl.IsUndefined() {
+	if len(gpu.dwell.buf) != sim.steps || gpu.dwell.gl.IsUndefined() {
 		return
 	}
 	var total float32
 	cnt := 0
 	upd := func(i int) {
-		if i <= 0 || i >= steps {
+		if i <= 0 || i >= sim.steps {
 			return
 		}
 		a, b := (i-1)*4, i*4
-		dx := vertBuf[b] - vertBuf[a]
-		dy := vertBuf[b+1] - vertBuf[a+1]
-		dz := vertBuf[b+2] - vertBuf[a+2]
+		dx := sim.vertBuf[b] - sim.vertBuf[a]
+		dy := sim.vertBuf[b+1] - sim.vertBuf[a+1]
+		dz := sim.vertBuf[b+2] - sim.vertBuf[a+2]
 		d := float32(math.Sqrt(float64(dx*dx + dy*dy + dz*dz)))
 		total += d
 		cnt++
@@ -239,7 +239,7 @@ func (r *ringTrail) updateDwell(start, n int) {
 		gpu.dwell.buf[i] = w
 	}
 	for k := 0; k < n; k++ {
-		upd((start + k) % steps)
+		upd((start + k) % sim.steps)
 	}
 	if cnt > 0 { // slow-track the mean so long ring sessions stay calibrated
 		r.dwellMean += (total/float32(cnt) - r.dwellMean) * 0.02

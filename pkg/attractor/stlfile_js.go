@@ -194,7 +194,7 @@ func buildSTLFileModule() {
 			detail += " (decimated to fit the 16-bit index pipeline)"
 		}
 		stlFileSetLED(short, "Loaded STL — "+detail)
-		if selectedMode == "stlfile" {
+		if run.selectedMode == "stlfile" {
 			gpu.staticDirty = true
 			generateForMode("stlfile")
 			view.autoFitCamera()
@@ -284,7 +284,7 @@ func buildSTLBuiltInPicker() {
 			detail += " (decimated to fit the 16-bit index pipeline)"
 		}
 		stlFileSetLED(short, "Built-in — "+detail+". "+m.Description)
-		if selectedMode == "stlfile" {
+		if run.selectedMode == "stlfile" {
 			gpu.staticDirty = true
 			generateForMode("stlfile")
 			view.autoFitCamera()

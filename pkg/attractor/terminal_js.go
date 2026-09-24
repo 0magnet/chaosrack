@@ -176,7 +176,7 @@ func (te *terminal) wireTerminalFocus() {
 // screen as one on a quad, and typing into it did nothing because this only
 // asked the first two questions.
 func terminalOnScreen() bool {
-	return selectedMode == "terminal" || bgVisual == "terminal" || skin.source == "terminal"
+	return run.selectedMode == "terminal" || bgVisual == "terminal" || skin.source == "terminal"
 }
 
 func (te *terminal) terminalTextarea() js.Value {

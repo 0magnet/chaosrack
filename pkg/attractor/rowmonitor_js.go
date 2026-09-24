@@ -72,7 +72,7 @@ func drawRowMonitors() {
 	if !dom.Doc.Truthy() {
 		return
 	}
-	live := bayOf(selectedMode)
+	live := bayOf(run.selectedMode)
 	for _, b := range rackBays {
 		cv := dom.Doc.Call("getElementById", bayMonitorID(b.Label, b.N))
 		if !cv.Truthy() {
@@ -83,7 +83,7 @@ func drawRowMonitors() {
 		if p == nil {
 			continue
 		}
-		driving := !stopped && live != nil && live.Label == b.Label && live.N == b.N
+		driving := !run.stopped && live != nil && live.Label == b.Label && live.N == b.N
 		// A standby screen is not off — it is powered and showing nothing,
 		// which is one paint and then silence until it is driving again. The
 		// whole rack powered down puts every screen here.
@@ -131,9 +131,9 @@ func drawRowMonitor(cv js.Value) {
 		k = ky
 	}
 	dw, dh := sw*k, sh*k
-	ctx.Call("drawImage", captureCanvas(canvas),
+	ctx.Call("drawImage", near.captureCanvas(canvas),
 		0, 0, sw, sh, (pw-dw)/2, (ph-dh)/2, dw, dh)
-	rowMonID(ctx, ph, modeLabel(selectedMode))
+	rowMonID(ctx, ph, modeLabel(run.selectedMode))
 }
 
 // rowMonStandby paints the dark face of a screen that is not driving, with

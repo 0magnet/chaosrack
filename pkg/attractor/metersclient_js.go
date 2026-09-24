@@ -113,13 +113,13 @@ func (me *metersClient) onMetersMessage(data js.Value) {
 // the far side needs to know about the panel.
 func metersWorkerWant() uint8 {
 	var w uint8
-	if moduleOnScreen("lufs-module") {
+	if onScreen.moduleOnScreen("lufs-module") {
 		w |= metersproto.WantLufs
 	}
-	if moduleOnScreen("thd-module") {
+	if onScreen.moduleOnScreen("thd-module") {
 		w |= metersproto.WantThd
 	}
-	if moduleOnScreen("wf-module") {
+	if onScreen.moduleOnScreen("wf-module") {
 		w |= metersproto.WantWf
 	}
 	return w

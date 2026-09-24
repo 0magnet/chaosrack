@@ -63,17 +63,17 @@ func (f *fourierText) generateScopeText() {
 		}
 		f.keyS, f.keyH = f.str, h
 	}
-	if len(f.drawn) == 0 || steps < 2 {
+	if len(f.drawn) == 0 || sim.steps < 2 {
 		return
 	}
 	// One full period ≈ 3 s at speed 1, scaled like the integrators; the
 	// phase sweeps the gradient along the banner.
-	f.t += float64(speedScale) * float64(speedSteps) / 180
+	f.t += float64(sim.speedScale) * float64(sim.speedSteps) / 180
 	for f.t >= 1 {
 		f.t--
 	}
 	if v := beamLines(f.drawn, f.t); v > 0 {
-		gpu.uploadVerticesOnly(vertBuf[:v*4], beamDrawMode(), v)
+		gpu.uploadVerticesOnly(sim.vertBuf[:v*4], beamDrawMode(), v)
 	}
 }
 

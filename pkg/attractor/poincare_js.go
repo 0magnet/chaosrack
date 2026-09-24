@@ -331,7 +331,7 @@ func (p *poincareSection) run(mode string) bool {
 	if !ok {
 		return false
 	}
-	dt := sys.Dt() * float64(speedScale)
+	dt := sys.Dt() * float64(sim.speedScale)
 	if dt <= 0 {
 		return false
 	}
@@ -347,7 +347,7 @@ func (p *poincareSection) run(mode string) bool {
 // vertex budget the trail knob set. vertBuf is sized from the trail length, so
 // a short trail is a small buffer and the section has to fit inside it.
 func (p *poincareSection) buf(n int) []float32 {
-	if max := cap(vertBuf) / 4; n > max {
+	if max := cap(sim.vertBuf) / 4; n > max {
 		n = max
 	}
 	if n < 0 {
@@ -413,15 +413,15 @@ func (p *poincareSection) tick(mode string) {
 	glctx.GL.Call("uniform1i", gpu.u.gradientColors, 1)
 	glctx.GL.Call("uniform3f", gpu.u.baseColor, 1.0, 0.8, 0.15)
 	gpu.uploadVerticesOnly(v, glctx.Types.Points, n)
-	if phosphorActive() {
+	if phos.active() {
 		// The phosphor owns both of those uniforms while it is on, and
 		// renderFrame set them from it earlier this frame. Handing them to the
 		// palette here would be handing them to the wrong owner.
-		applyPhosphorColor()
+		phos.applyPhosphorColor()
 		return
 	}
 	glctx.GL.Call("uniform1i", gpu.u.gradientColors, gradientColorsUniform())
-	glctx.GL.Call("uniform3f", gpu.u.baseColor, baseColor[0], baseColor[1], baseColor[2])
+	glctx.GL.Call("uniform3f", gpu.u.baseColor, style.baseColor[0], style.baseColor[1], style.baseColor[2])
 }
 
 // wireSectSwitch hooks up the Trace > Sect checkbox. It rebuilds the panel,
@@ -431,7 +431,7 @@ func (p *poincareSection) wireSectSwitch() {
 	wireSwitch("sect-sw", func(on bool) {
 		p.on = on
 		p.invalidate()
-		buildParamPanel(selectedMode)
+		buildParamPanel(run.selectedMode)
 	})
 }
 
@@ -456,7 +456,7 @@ const sectMapGuides = 64
 // generatePoincare draws the section as its own model.
 func (p *poincareSection) generatePoincare() {
 	if !p.run(bif.lastFlowMode) {
-		gpu.uploadVerticesOnly(vertBuf[:0], glctx.Types.Points, 0)
+		gpu.uploadVerticesOnly(sim.vertBuf[:0], glctx.Types.Points, 0)
 		return
 	}
 	switch int(p.viewF + 0.5) {
@@ -519,7 +519,7 @@ func (p *poincareSection) generatePoincare() {
 func (p *poincareSection) drawReturnMap() {
 	total := p.log.Len()
 	if total < 2 {
-		gpu.uploadVerticesOnly(vertBuf[:0], glctx.Types.Points, 0)
+		gpu.uploadVerticesOnly(sim.vertBuf[:0], glctx.Types.Points, 0)
 		return
 	}
 	v := p.buf(total - 1 + sectMapGuides)
@@ -552,7 +552,7 @@ func (p *poincareSection) drawReturnMap() {
 		n++
 	}
 	if n == 0 {
-		gpu.uploadVerticesOnly(vertBuf[:0], glctx.Types.Points, 0)
+		gpu.uploadVerticesOnly(sim.vertBuf[:0], glctx.Types.Points, 0)
 		return
 	}
 	// The y=x guide, spanning the range the data spans.

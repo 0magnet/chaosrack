@@ -20,13 +20,13 @@ import (
 // power came back to the Rack group where the frame's other controls are.
 func setPowerState(on bool) {
 	if on {
-		if stopped {
-			stopped = false
+		if run.stopped {
+			run.stopped = false
 			js.Global().Call("requestAnimationFrame", renderFrame)
 		}
 		return
 	}
-	stopped = true
+	run.stopped = true
 	glctx.GL.Call("clearColor", 0, 0, 0, 0)
 	glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
 	glctx.GL.Call("clear", glctx.Types.DepthBufferBit)
@@ -81,14 +81,14 @@ func updateInfoOverlay() {
 	if showInfo.IsNull() || showInfo.IsUndefined() || !showInfo.Get("checked").Bool() {
 		return
 	}
-	text, ok := attractorDescriptions[selectedMode]
+	text, ok := attractorDescriptions[run.selectedMode]
 	if !ok {
-		text = selectedMode
+		text = run.selectedMode
 	}
 	// The turtle path knows something specific about the figure currently on
 	// screen — whether it closes, drifts or screws away — which the static
 	// description cannot say.
-	if selectedMode == "turtle" {
+	if run.selectedMode == "turtle" {
 		if label := turtle.shapeLabel(); label != "" {
 			text += "\n\n" + label
 		}
@@ -102,7 +102,7 @@ func updateInfoOverlay() {
 // Physics module appears and disappears with the switch.
 func updatePhysVisibility() {
 	if w := dom.Doc.Call("getElementById", "phys-sw-wrap"); w.Truthy() {
-		if selectedMode == "turtle" {
+		if run.selectedMode == "turtle" {
 			w.Get("style").Set("display", "")
 		} else {
 			w.Get("style").Set("display", "none")
@@ -127,7 +127,7 @@ func updateTrailVisibility() {
 	if !el.Truthy() {
 		return
 	}
-	if isAttractorMode(selectedMode) {
+	if isAttractorMode(run.selectedMode) {
 		el.Get("style").Set("display", "")
 	} else {
 		el.Get("style").Set("display", "none")
@@ -141,13 +141,13 @@ func updateTrailVisibility() {
 func onModeChange(this js.Value, args []js.Value) interface{} {
 	sel := dom.Doc.Call("getElementById", "mode-select")
 	if sel.Truthy() {
-		selectedMode = sel.Get("value").String()
+		run.selectedMode = sel.Get("value").String()
 	}
 	// Which row is the instrument, before anything rebuilds: the readouts
 	// that belong to the running model are filed into its category's row,
 	// and buildParamPanel below re-measures and re-packs the rack. Set after
 	// that, they are packed into the row the PREVIOUS model was in.
-	setActiveCategory(selectedMode)
+	setActiveCategory(run.selectedMode)
 	// Whether the model is drawn in two halves depends on the mode as well as
 	// the knob, so the canvases have to be reconsidered here — not only when
 	// the knob moves.
@@ -158,7 +158,7 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 	resetModelMod()
 	// Keep the "Edit eqn" switch in sync with whether we're in Custom mode.
 	if sw := dom.Doc.Call("getElementById", "edit-eq-sw"); sw.Truthy() {
-		sw.Set("checked", selectedMode == "custom")
+		sw.Set("checked", run.selectedMode == "custom")
 	}
 	// New mode means fresh geometry — force an upload on the next
 	// uploadBuffersIndexed for static modes, and a skin-mesh rebuild.
@@ -186,8 +186,8 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 	// down among the audio calls. It is the same kind of thing as the three
 	// above it — which controls this model has any use for — and depends on
 	// nothing that happens in between.
-	withDeferredLayout(selectedMode, func() {
-		buildParamPanel(selectedMode)
+	owed.withDeferredLayout(run.selectedMode, func() {
+		buildParamPanel(run.selectedMode)
 		updateInfoOverlay()
 		updateTrailVisibility()
 		updatePhysVisibility()
@@ -200,8 +200,8 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 	// Armed BEFORE that generate: an audio mode may not upload anything on it,
 	// and the refresh has to wait for the upload rather than for the call.
 	armGradientRange()
-	generateForMode(selectedMode)
-	if isTexturePlane(selectedMode) {
+	generateForMode(run.selectedMode)
+	if isTexturePlane(run.selectedMode) {
 		spect.setSpectrogramCamera()
 	} else {
 		spect.restoreAutoRotateAfterSpectrogram()
@@ -209,7 +209,7 @@ func onModeChange(this js.Value, args []js.Value) interface{} {
 	}
 	// FVF audio-out follows the mode: resume if re-entering FVF with Listen
 	// on; stop when leaving so no stray audio plays under other models.
-	if selectedMode == "fvf" {
+	if run.selectedMode == "fvf" {
 		if fvf.listen {
 			fvf.startFVFAudio()
 		}

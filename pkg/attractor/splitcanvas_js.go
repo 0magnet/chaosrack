@@ -24,10 +24,28 @@ import (
 // twice into the ONE context and the near half is copied out with drawImage,
 // which costs a frame copy and no context at all.
 
-var (
-	frontCanvas js.Value // 2-D canvas stacked above the panel
-	frontCtx    js.Value
-)
+// nearCanvas is the canvas on the near side of the panel and the capture
+// canvas that feeds it.
+type nearCanvas struct {
+	front    js.Value // 2-D canvas stacked above the panel
+	frontCtx js.Value
+
+	// captureCanvas is what anything recording the picture should read from.
+	//
+	// While the model is split there is no single canvas holding it: the far half
+	// is on the GL canvas and the near half is on the 2-D one above the panel. A
+	// capture that took either alone would take part of the model and call it the
+	// picture — measured, a still taken mid-knob had 235 lit pixels where the whole
+	// thing had 659, so two thirds of the model went missing from the file while
+	// the screen looked right.
+	//
+	// Unsplit, this hands back the very canvas it was given, so the ordinary path
+	// keeps capturing the canvas directly with no copy at all.
+	capture    js.Value
+	captureCtx js.Value
+}
+
+var near nearCanvas
 
 // ensureFrontCanvas builds the near-side canvas on first use.
 //
@@ -36,34 +54,34 @@ var (
 // any of the model was in front of it. Drag-to-rotate is bound to the document
 // and so keeps working through it, which is the same reason the Front switch
 // could raise the main canvas without breaking the panel.
-func ensureFrontCanvas() bool {
-	if frontCanvas.Truthy() {
+func (n *nearCanvas) ensure() bool {
+	if n.front.Truthy() {
 		return true
 	}
 	if !dom.Doc.Truthy() {
 		return false
 	}
-	frontCanvas = dom.Doc.Call("createElement", "canvas")
-	frontCanvas.Set("id", "gocanvas-front")
-	frontCanvas.Get("style").Set("cssText",
+	n.front = dom.Doc.Call("createElement", "canvas")
+	n.front.Set("id", "gocanvas-front")
+	n.front.Get("style").Set("cssText",
 		"position:fixed;left:0;top:0;pointer-events:none;z-index:var(--z-canvas-front);")
-	dom.Body.Call("appendChild", frontCanvas)
-	frontCtx = frontCanvas.Call("getContext", "2d")
-	sizeFrontCanvas()
-	return frontCtx.Truthy()
+	dom.Body.Call("appendChild", n.front)
+	n.frontCtx = n.front.Call("getContext", "2d")
+	n.size()
+	return n.frontCtx.Truthy()
 }
 
 // sizeFrontCanvas matches the near canvas to the main one, in both the backing
 // store and the CSS box, so a copy between them is one-to-one and needs no
 // scaling. Called from the same place the main canvas is sized.
-func sizeFrontCanvas() {
-	if !frontCanvas.Truthy() || !glctx.Canvas.Truthy() {
+func (n *nearCanvas) size() {
+	if !n.front.Truthy() || !glctx.Canvas.Truthy() {
 		return
 	}
-	frontCanvas.Set("width", gpu.width)
-	frontCanvas.Set("height", gpu.height)
+	n.front.Set("width", gpu.width)
+	n.front.Set("height", gpu.height)
 	st := glctx.Canvas.Get("style")
-	fs := frontCanvas.Get("style")
+	fs := n.front.Get("style")
 	fs.Set("width", st.Get("width"))
 	fs.Set("height", st.Get("height"))
 }
@@ -72,21 +90,21 @@ func sizeFrontCanvas() {
 // An empty transparent canvas over the whole page costs a composite every frame
 // for nothing, and this is the common case: the knob spends most of its life at
 // one end or the other.
-func showFrontCanvas(on bool) {
-	if !frontCanvas.Truthy() {
+func (n *nearCanvas) show(on bool) {
+	if !n.front.Truthy() {
 		return
 	}
 	if on {
-		frontCanvas.Get("style").Set("display", "")
+		n.front.Get("style").Set("display", "")
 		return
 	}
 	// Cleared as well as hidden. A hidden canvas keeps its pixels, so showing
 	// it again would flash whatever was last drawn on it -- a half of a model
 	// that may not even be the current one.
-	if frontCtx.Truthy() {
-		frontCtx.Call("clearRect", 0, 0, gpu.width, gpu.height)
+	if n.frontCtx.Truthy() {
+		n.frontCtx.Call("clearRect", 0, 0, gpu.width, gpu.height)
 	}
-	frontCanvas.Get("style").Set("display", "none")
+	n.front.Get("style").Set("display", "none")
 }
 
 // copyNearPassToFront lifts what the GL canvas currently holds onto the near
@@ -98,66 +116,50 @@ func showFrontCanvas(on bool) {
 //
 // The GL context is created with preserveDrawingBuffer, so reading the canvas
 // after drawing is defined rather than a race with the compositor.
-func copyNearPassToFront() {
-	if !frontCtx.Truthy() {
+func (n *nearCanvas) copyNearPassToFront() {
+	if !n.frontCtx.Truthy() {
 		return
 	}
-	frontCtx.Call("clearRect", 0, 0, gpu.width, gpu.height)
-	frontCtx.Call("drawImage", glctx.Canvas, 0, 0)
+	n.frontCtx.Call("clearRect", 0, 0, gpu.width, gpu.height)
+	n.frontCtx.Call("drawImage", glctx.Canvas, 0, 0)
 }
 
 // frontCanvasPx reports the CSS size the near canvas is showing at, for tests
 // that want to prove it tracks the main one.
-func frontCanvasPx() string {
-	if !frontCanvas.Truthy() {
+func (n *nearCanvas) frontCanvasPx() string {
+	if !n.front.Truthy() {
 		return ""
 	}
-	return frontCanvas.Get("style").Get("width").String() + "x" +
-		frontCanvas.Get("style").Get("height").String() +
+	return n.front.Get("style").Get("width").String() + "x" +
+		n.front.Get("style").Get("height").String() +
 		" @" + strconv.Itoa(gpu.width) + "x" + strconv.Itoa(gpu.height)
 }
 
-// captureCanvas is what anything recording the picture should read from.
-//
-// While the model is split there is no single canvas holding it: the far half
-// is on the GL canvas and the near half is on the 2-D one above the panel. A
-// capture that took either alone would take part of the model and call it the
-// picture — measured, a still taken mid-knob had 235 lit pixels where the whole
-// thing had 659, so two thirds of the model went missing from the file while
-// the screen looked right.
-//
-// Unsplit, this hands back the very canvas it was given, so the ordinary path
-// keeps capturing the canvas directly with no copy at all.
-var (
-	capCanvas js.Value
-	capCtx    js.Value
-)
-
-func captureCanvas(main js.Value) js.Value {
-	if !splitDrawing() || !frontCanvas.Truthy() || !main.Truthy() {
+func (n *nearCanvas) captureCanvas(main js.Value) js.Value {
+	if !splitDrawing() || !n.front.Truthy() || !main.Truthy() {
 		return main
 	}
-	if !capCanvas.Truthy() {
-		capCanvas = dom.Doc.Call("createElement", "canvas")
-		capCtx = capCanvas.Call("getContext", "2d")
+	if !n.capture.Truthy() {
+		n.capture = dom.Doc.Call("createElement", "canvas")
+		n.captureCtx = n.capture.Call("getContext", "2d")
 	}
-	if !capCtx.Truthy() {
+	if !n.captureCtx.Truthy() {
 		return main
 	}
 	w, h := main.Get("width").Int(), main.Get("height").Int()
-	if capCanvas.Get("width").Int() != w {
-		capCanvas.Set("width", w)
+	if n.capture.Get("width").Int() != w {
+		n.capture.Set("width", w)
 	}
-	if capCanvas.Get("height").Int() != h {
-		capCanvas.Set("height", h)
+	if n.capture.Get("height").Int() != h {
+		n.capture.Set("height", h)
 	}
 	// Cleared, then far half, then near half — the same order the screen
 	// composites them in, so what is recorded is what was on screen rather than
 	// a picture with the halves the wrong way round.
-	capCtx.Call("clearRect", 0, 0, w, h)
-	capCtx.Call("drawImage", main, 0, 0)
-	capCtx.Call("drawImage", frontCanvas, 0, 0)
-	return capCanvas
+	n.captureCtx.Call("clearRect", 0, 0, w, h)
+	n.captureCtx.Call("drawImage", main, 0, 0)
+	n.captureCtx.Call("drawImage", n.front, 0, 0)
+	return n.capture
 }
 
 // modelCanvas is the canvas the model is drawn on.

@@ -128,17 +128,23 @@ func dragMove(cx, cy float64) {
 	view.ball.orient = mgl32.Ident4() // pose now fully in the euler angles
 	view.ball.lastX, view.ball.lastY = float32(cx), float32(cy)
 	view.rebuildModelMatrix()
-	updateRotKnobs()
+	rotKnobs.update()
 }
 
 // ── Rotation knob DOM (digital-pot style) ────────────────────────────────────
 
-var (
-	knobPtr     [3]js.Value // pointer element per axis (X,Y,Z)
-	knobLED     [3]js.Value // degree readout per axis
-	knobsReady  bool
-	lastKnobDeg = [3]int{-1, -1, -1}
-)
+// rotationKnobs is the three digital-pot rotation knobs: their pointers and
+// degree readouts.
+type rotationKnobs struct {
+	ptr     [3]js.Value // pointer element per axis (X,Y,Z)
+	led     [3]js.Value // degree readout per axis
+	ready   bool
+	lastDeg [3]int
+}
+
+var rotKnobs = rotationKnobs{
+	lastDeg: [3]int{-1, -1, -1},
+}
 
 // setSpinAxis / addAngleAxis let the knob pointer handlers in main.go poke
 // the rotation state without exporting the vars.
@@ -164,33 +170,33 @@ func addAngleAxis(axis int, d float32) {
 	}
 	view.rebuildModelMatrix()
 	view.updateModelMatrix()
-	updateRotKnobs()
+	rotKnobs.update()
 }
 
 // updateRotKnobs rotates each knob's pointer and refreshes its LED readout
 // to match the live angle. Cheap: it only touches the DOM for an axis
 // whose integer degree changed since the last frame, so a held pose costs
 // nothing and a spin is ~2 writes/frame per moving axis.
-func updateRotKnobs() {
-	if !knobsReady {
+func (r *rotationKnobs) update() {
+	if !r.ready {
 		return
 	}
 	angs := [3]float32{view.angleX, view.angleY, view.angleZ}
 	for i := 0; i < 3; i++ {
 		deg := int(angs[i]*57.2957795+0.5) % 360
-		if deg == lastKnobDeg[i] {
+		if deg == r.lastDeg[i] {
 			continue
 		}
-		lastKnobDeg[i] = deg
-		if knobPtr[i].Truthy() {
-			knobPtr[i].Get("style").Set("transform", "translate(-50%,-100%) rotate("+strconv.Itoa(deg)+"deg)")
+		r.lastDeg[i] = deg
+		if r.ptr[i].Truthy() {
+			r.ptr[i].Get("style").Set("transform", "translate(-50%,-100%) rotate("+strconv.Itoa(deg)+"deg)")
 		}
-		if knobLED[i].Truthy() {
+		if r.led[i].Truthy() {
 			s := strconv.Itoa(deg)
 			for len(s) < 3 {
 				s = "0" + s
 			}
-			knobLED[i].Set("textContent", s+"°")
+			r.led[i].Set("textContent", s+"°")
 		}
 	}
 }
@@ -428,9 +434,9 @@ func (r *renderer) setupShaders() {
 	r.u.splitSide = glctx.GL.Call("getUniformLocation", r.program, "uSplitSide")
 	setSplitPlane(splitNone, 0)
 	glctx.GL.Call("uniform1f", r.u.pointSize, 2.0)
-	glctx.GL.Call("uniform3f", r.u.baseColor, baseColor[0], baseColor[1], baseColor[2])
-	glctx.GL.Call("uniform3f", r.u.topColor, topColor[0], topColor[1], topColor[2])
-	glctx.GL.Call("uniform3f", r.u.midColor, midColor[0], midColor[1], midColor[2])
+	glctx.GL.Call("uniform3f", r.u.baseColor, style.baseColor[0], style.baseColor[1], style.baseColor[2])
+	glctx.GL.Call("uniform3f", r.u.topColor, style.topColor[0], style.topColor[1], style.topColor[2])
+	glctx.GL.Call("uniform3f", r.u.midColor, style.midColor[0], style.midColor[1], style.midColor[2])
 	glctx.GL.Call("uniform1f", r.u.minZ, float64(-1))
 	glctx.GL.Call("uniform1f", r.u.maxZ, float64(1))
 	glctx.GL.Call("uniform1f", r.u.minX, float64(-1))
@@ -513,8 +519,8 @@ func (vs *viewState) autoFitCamera() {
 	dist := fitDistFor(maxAbs)
 	vs.initDist = dist
 	vs.defaultDist = dist
-	cameraControl.Set("value", "0")
-	sliderZoom.Set("textContent", "0")
+	camPanel.cameraControl.Set("value", "0")
+	camPanel.sliderZoom.Set("textContent", "0")
 	vs.updateViewMatrix()
 }
 
@@ -601,11 +607,11 @@ func generateForMode(mode string) {
 		glctx.GL.Call("useProgram", gpu.program)
 	}
 	if gpu.ready {
-		glctx.GL.Call("uniform1i", gpu.u.gradientSource, gradientSource)
+		glctx.GL.Call("uniform1i", gpu.u.gradientSource, style.gradientSource)
 		// Only when it is being used: the fill runs a short FFT per table slot,
 		// which is not work to do for a figure colored by Z.
-		if gradientSourceIsAudio(gradientSource) {
-			acolor.updateAudioColorLUT(selectedMode)
+		if gradientSourceIsAudio(style.gradientSource) {
+			acolor.updateAudioColorLUT(run.selectedMode)
 			glctx.GL.Call("uniform1fv", gpu.u.audioLUT, acolor.lutToTyped())
 		}
 		glctx.GL.Call("uniform1i", gpu.u.gradientColors, gradientColorsUniform())
@@ -613,13 +619,13 @@ func generateForMode(mode string) {
 		// actually selected — the upload is skipped on the palettes that do not
 		// sample it, and a failed build falls back to the two-color mix rather
 		// than sampling a texture that is not there.
-		if !pal.ensurePaletteTexture(gradientColors) && gradientColorsUniform() >= colormap.First {
+		if !pal.ensurePaletteTexture(style.gradientColors) && gradientColorsUniform() >= colormap.First {
 			glctx.GL.Call("uniform1i", gpu.u.gradientColors, 2)
 		}
 		updateDashFromPointCount(gpu.lastDrawn)
 		glctx.GL.Call("uniform1f", gpu.u.dashDuty, dashDuty)
 		glctx.GL.Call("uniform1f", gpu.u.dashCount, dashCount)
-		glctx.GL.Call("uniform1f", gpu.u.gradientFreq, gradientFreq)
+		glctx.GL.Call("uniform1f", gpu.u.gradientFreq, style.gradientFreq)
 		// The colormap window's other half. Uploaded beside the period it pairs
 		// with rather than under a "is this a colormap" test: the branch that
 		// reads it is in the shader already, and a second copy of that
@@ -647,21 +653,21 @@ func generateForMode(mode string) {
 		// while the spectrum only sometimes moves, the drift is what the eye
 		// picks up. It reads as "the rainbow is cycling", which is precisely
 		// the reading that hides the feature.
-		if !(selectedMode == "turtle" && gradientSource == 3) && !gradientSourceIsAudio(gradientSource) {
-			gradientPhase += 0.003
-			if gradientPhase >= 1 {
-				gradientPhase -= 1
+		if !(run.selectedMode == "turtle" && style.gradientSource == 3) && !gradientSourceIsAudio(style.gradientSource) {
+			style.gradientPhase += 0.003
+			if style.gradientPhase >= 1 {
+				style.gradientPhase -= 1
 			}
 		}
-		glctx.GL.Call("uniform1f", gpu.u.gradientPhase, gradientPhase)
-		if gradientReverse {
+		glctx.GL.Call("uniform1f", gpu.u.gradientPhase, style.gradientPhase)
+		if style.gradientReverse {
 			glctx.GL.Call("uniform1i", gpu.u.gradientReverse, 1)
 		} else {
 			glctx.GL.Call("uniform1i", gpu.u.gradientReverse, 0)
 		}
 		// Scope phosphor: override the gradient with the phosphor's mono color.
-		if phosphorActive() {
-			applyPhosphorColor()
+		if phos.active() {
+			phos.applyPhosphorColor()
 		}
 	}
 	// Audio-reactive: modulate ODE params (dt, primary chaos param) for
@@ -710,7 +716,7 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	rscope.drawRackScope()
 	tpanel.budget.Scope += scopeMark.ms()
 	// Stop button: clear once, do not reschedule. Loop dies here.
-	if stopped {
+	if run.stopped {
 		glctx.GL.Call("clearColor", 0, 0, 0, 0)
 		glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
 		glctx.GL.Call("clear", glctx.Types.DepthBufferBit)
@@ -763,11 +769,11 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	rhy.tick()   // Rhythm section clock (no-op unless the module runs)
 	tpanel.budget.Meters += metersMark.ms()
 
-	if isAudioMode(selectedMode) {
+	if isAudioMode(run.selectedMode) {
 		if !aud.modeActive {
 			aud.activateAudioMode()
 		}
-		renderAudioFrame(selectedMode)
+		renderAudioFrame(run.selectedMode)
 		js.Global().Call("requestAnimationFrame", renderFrame)
 		return nil
 	}
@@ -780,29 +786,29 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	tmark = now
 
 	// Debug frame timing
-	if debugEnabled && lastFrameStart > 0 {
-		frameMs := now - lastFrameStart
-		frameCount++
-		frameTotalMs += frameMs
-		if frameMs < frameMinMs {
-			frameMinMs = frameMs
+	if debugEnabled && fstats.lastStart > 0 {
+		frameMs := now - fstats.lastStart
+		fstats.count++
+		fstats.totalMs += frameMs
+		if frameMs < fstats.minMs {
+			fstats.minMs = frameMs
 		}
-		if frameMs > frameMaxMs {
-			frameMaxMs = frameMs
+		if frameMs > fstats.maxMs {
+			fstats.maxMs = frameMs
 		}
 	}
-	lastFrameStart = now
+	fstats.lastStart = now
 
 	glctx.GL.Call("enable", glctx.Types.DepthTest)
 	bgOn := bgVisualActive()
-	if phosphorActive() {
+	if phos.active() {
 		// Phosphor persistence: don't clear the color buffer — fade it toward
 		// black by the phosphor's decay so old trace lingers as an afterglow.
 		// Clear depth only so the new trace still draws on top.
 		glctx.GL.Call("clear", glctx.Types.DepthBufferBit)
-		drawPhosphorFade()
+		phos.drawPhosphorFade()
 		glctx.GL.Call("enable", glctx.Types.DepthTest)
-	} else if !persistTrail || bgOn {
+	} else if !style.persistTrail || bgOn {
 		// A background visualizer repaints the whole backdrop each frame, so
 		// the color buffer must be cleared first even if Persist is on (a
 		// persisted trail can't coexist with a live scrolling backdrop).
@@ -822,12 +828,12 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 		glctx.GL.Call("clear", glctx.Types.DepthBufferBit)
 		// The backdrop bound its own program / buffers; force geometry models
 		// to re-upload their static vertex+index buffers next draw.
-		if !isAttractorMode(selectedMode) {
+		if !isAttractorMode(run.selectedMode) {
 			gpu.staticDirty = true
 		}
 	}
 
-	if paused {
+	if run.paused {
 		// Redraw current geometry without advancing trail / auto-rotate.
 		// Attractors use drawArrays with the line-strip buffer
 		// (pausedCount = last frame's step count). Polyhedra +
@@ -836,10 +842,10 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 		// alone would not consult the index buffer and the canvas
 		// goes blank. Both paths skip the integrator step so the
 		// visual snapshot is preserved.
-		if isAttractorMode(selectedMode) {
-			glctx.GL.Call("drawArrays", mapDrawMode(selectedMode), 0, pausedCount)
+		if isAttractorMode(run.selectedMode) {
+			glctx.GL.Call("drawArrays", mapDrawMode(run.selectedMode), 0, run.pausedCount)
 		} else {
-			generateForMode(selectedMode)
+			generateForMode(run.selectedMode)
 		}
 		// Still allow camera interaction while paused (zoom read
 		// from the Go-side cache instead of parseFloat per frame).
@@ -863,7 +869,7 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	// run BEFORE generateForMode, which reads gradientFreq into the shader and
 	// draws — otherwise the rainbow-period mod lands a frame too late (i.e.
 	// never takes visible effect).
-	viewSaved := applyViewModulation()
+	viewSaved := pmod.applyViewModulation()
 
 	// CRT (phosphor) mode draws a real scope trace: instead of redrawing the
 	// whole curve every frame, draw only a short advancing beam and let the
@@ -872,9 +878,9 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	// the geometric point count — so the Trail control is dimmed in this mode.
 	// Implemented by shrinking `steps` (which the generators use for both the
 	// integrate-count and the draw-count) just around generateForMode.
-	realSteps := steps
-	if crtBeam() && crtBeamLen < steps {
-		steps = crtBeamLen
+	realSteps := sim.steps
+	if crtBeam() && crtBeamLen < sim.steps {
+		sim.steps = crtBeamLen
 	}
 	// With the Fore knob at either end this is one pass, exactly as it always
 	// was. In between, the model is drawn twice — near half onto the canvas
@@ -888,10 +894,10 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 		// The Fore knob owns the passes when it is in play: near and far
 		// of one scene are what it exists to draw, and stacking a
 		// side-by-side split inside that is two splits arguing.
-		drawSplitPasses(selectedMode)
+		drawSplitPasses(run.selectedMode)
 	default:
 		// One view or two, side by side. See views_js.go.
-		drawViewPasses(selectedMode)
+		drawViewPasses(run.selectedMode)
 	}
 	tpanel.budget.Model += modelMark.ms()
 	// The gradient extents, if the mode change could not take them: an audio
@@ -908,7 +914,7 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	}
 
 	beamDrawn := gpu.lastDrawn // what was drawn, which is not always all of `steps`
-	steps = realSteps
+	sim.steps = realSteps
 
 	// Slider values come from view.ctl.zoom/RotX/Y/Z, kept in sync by
 	// input listeners in Run(). Eliminates 4 parseFloat round-trips
@@ -971,11 +977,11 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	view.angleY = wrapTwoPi(view.angleY)
 	view.angleZ = wrapTwoPi(view.angleZ)
 	view.rebuildModelMatrix()
-	updateRotKnobs()
+	rotKnobs.update()
 
 	view.updateModelMatrix()
 	restoreAudioModulation(viewSaved) // put zoom/pan/spin base values back
-	pausedCount = beamDrawn           // paused CRT keeps showing just the beam
+	run.pausedCount = beamDrawn       // paused CRT keeps showing just the beam
 
 	js.Global().Call("requestAnimationFrame", renderFrame)
 	return nil

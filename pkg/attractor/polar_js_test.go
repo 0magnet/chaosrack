@@ -346,7 +346,7 @@ func TestPolarIsInTheAudioColorSources(t *testing.T) {
 
 	// A ring with a full window in it: the mode must be recognized, and the
 	// window must be the ring's newest samples rather than an empty slice.
-	n, stride := takensWindow(polar.win, 24000, steps)
+	n, stride := takensWindow(polar.win, 24000, sim.steps)
 	span := (n-1)*stride + 2*int(emb.tau)
 	polar.ring = make([]float32, span+1)
 	for i := range polar.ring {

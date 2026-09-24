@@ -54,7 +54,7 @@ func midiHandle(this js.Value, args []js.Value) interface{} {
 			vt := viewModTargets[d1-21]
 			midiSetSlider(vt.anchor, vt.min, vt.max, v)
 		case d1 >= 1:
-			params := attractorParams[selectedMode]
+			params := attractorParams[run.selectedMode]
 			idx := 0
 			for _, pd := range params {
 				if led.StepDecimals(pd.Step) == 0 {
@@ -76,7 +76,7 @@ func midiHandle(this js.Value, args []js.Value) interface{} {
 			return nil
 		}
 		next := keys[d1%len(keys)]
-		if next != selectedMode {
+		if next != run.selectedMode {
 			if sel := dom.Doc.Call("getElementById", "mode-select"); sel.Truthy() {
 				sel.Set("value", next)
 				sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))

@@ -469,23 +469,23 @@ func Run() {
 	// Initial mode — read from URL hash if present. The hash may carry
 	// permalink state after the mode ("#aizawa&p.a=1.19&..."); take only
 	// the leading mode token here (the rest is applied post-setup).
-	selectedMode = "globe"
+	run.selectedMode = "globe"
 	hash := js.Global().Get("location").Get("hash").String()
 	if len(hash) > 1 {
 		hashMode := hashModeToken()
 		// Validate against the mode registry. (The old params-map + hardcoded
 		// list pair silently rejected several real modes, e.g. sphere and fvf.)
 		if knownMode(hashMode) {
-			selectedMode = hashMode
+			run.selectedMode = hashMode
 		}
 	}
 	// Select the matching dropdown option
 	sel := dom.Doc.Call("getElementById", "mode-select")
 	if !sel.IsNull() && !sel.IsUndefined() {
-		sel.Set("value", selectedMode)
+		sel.Set("value", run.selectedMode)
 	}
 	bootMark("params")
-	buildParamPanel(selectedMode)
+	buildParamPanel(run.selectedMode)
 	updateTrailVisibility()
 
 	// One-time drag listeners for every selector knob in the panel, the
@@ -495,9 +495,9 @@ func Run() {
 	requantizeAfterFonts()
 
 	// Initialize persistent JS typed arrays for zero-alloc frame uploads
-	gpu.vertU8 = js.Global().Get("Uint8Array").New(steps * 4 * 4)
+	gpu.vertU8 = js.Global().Get("Uint8Array").New(sim.steps * 4 * 4)
 	buf := gpu.vertU8.Get("buffer")
-	gpu.vertF32 = js.Global().Get("Float32Array").New(buf, 0, steps*4)
+	gpu.vertF32 = js.Global().Get("Float32Array").New(buf, 0, sim.steps*4)
 	initDrawState()
 	debugVal := js.Global().Get("__WASM_DEBUG__")
 	if !debugVal.IsUndefined() && debugVal.Bool() {
@@ -515,12 +515,12 @@ func Run() {
 		PermaKey: "tr", LEDID: "slider-value-trail", ResetID: "rst-trail",
 		Apply: func(v float64) {
 			newSteps := int(v)
-			if newSteps != steps {
-				steps = newSteps
-				vertBuf = make([]float32, steps*4)
-				gpu.vertU8 = js.Global().Get("Uint8Array").New(steps * 4 * 4)
+			if newSteps != sim.steps {
+				sim.steps = newSteps
+				sim.vertBuf = make([]float32, sim.steps*4)
+				gpu.vertU8 = js.Global().Get("Uint8Array").New(sim.steps * 4 * 4)
 				buf := gpu.vertU8.Get("buffer")
-				gpu.vertF32 = js.Global().Get("Float32Array").New(buf, 0, steps*4)
+				gpu.vertF32 = js.Global().Get("Float32Array").New(buf, 0, sim.steps*4)
 				resetAttractorState()
 				refreshGradient()
 			}
@@ -528,7 +528,7 @@ func Run() {
 		ResetExtra: func() {
 			// Resetting the trail also drops persist mode (matches the old
 			// bespoke reset: a persisted trail makes the new length invisible).
-			persistTrail = false
+			style.persistTrail = false
 			dom.Doc.Call("getElementById", "persist-trail").Set("checked", false)
 		}})
 	registerOutputControls()
@@ -564,24 +564,24 @@ func postDebugStats() {
 
 	avgMs := float32(0)
 	fps := float32(0)
-	if frameCount > 0 {
-		avgMs = frameTotalMs / float32(frameCount)
+	if fstats.count > 0 {
+		avgMs = fstats.totalMs / float32(fstats.count)
 		fps = 1000.0 / avgMs
 	}
 
 	payload := fmt.Sprintf(
 		`{"mode":"%s","paused":%t,"fps":%.1f,"frame_avg_ms":%.2f,"frame_min_ms":%.2f,"frame_max_ms":%.2f,"frame_count":%d,"speed_steps":%d,"speed_scale":%.4f,"trail_steps":%d,"heap_alloc_mb":%.2f,"heap_sys_mb":%.2f,"heap_objects":%d,"gc_runs":%d,"goroutines":%d}`,
-		selectedMode, paused, fps, avgMs, frameMinMs, frameMaxMs, frameCount,
-		speedSteps, speedScale, steps,
+		run.selectedMode, run.paused, fps, avgMs, fstats.minMs, fstats.maxMs, fstats.count,
+		sim.speedSteps, sim.speedScale, sim.steps,
 		float64(ms.HeapAlloc)/1048576, float64(ms.HeapSys)/1048576,
 		ms.HeapObjects, gcRunsCount(&ms), runtime.NumGoroutine(),
 	)
 
 	// Reset frame stats for next interval
-	frameCount = 0
-	frameTotalMs = 0
-	frameMinMs = 999
-	frameMaxMs = 0
+	fstats.count = 0
+	fstats.totalMs = 0
+	fstats.minMs = 999
+	fstats.maxMs = 0
 
 	// Post via fetch
 	headers := js.Global().Get("Headers").New()
@@ -631,44 +631,44 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 			*p.Value = p.Def
 		}
 	}
-	buildParamPanel(selectedMode)
+	buildParamPanel(run.selectedMode)
 
 	// Reset auto-rotate, draw mode. (Speed / line width / trail — values,
 	// LEDs, buffer realloc, persist drop — are registry-owned above.)
-	paused = false
+	run.paused = false
 	if ps := dom.Doc.Call("getElementById", "pause-sw"); ps.Truthy() {
 		ps.Set("checked", false)
 	}
-	usePoints = false
+	style.usePoints = false
 	gpu.drawMode = glctx.Types.LineStrip
 	view.ball.orient = mgl32.Ident4() // clear trackball drag orientation
 	dom.Doc.Call("getElementById", "auto-rotate").Set("checked", true)
 	dom.Doc.Call("getElementById", "use-points").Set("checked", false)
 	dom.Doc.Call("getElementById", "show-info").Set("checked", false)
 	info.hideInfoWindow()
-	persistTrail = false
+	style.persistTrail = false
 	dom.Doc.Call("getElementById", "persist-trail").Set("checked", false)
 	// The source and map rings are registry-owned, so the loop above has already
 	// put them back — including gradientSource / gradientColors and the dimming,
 	// because resetting a Control dispatches the change its own handler listens
 	// for. Only the Reverse switch, which is a checkbox and not a Control, is
 	// still this function's to set.
-	gradientReverse = false
+	style.gradientReverse = false
 	dom.Doc.Call("getElementById", "gradient-reverse").Set("checked", false)
 	updateGradientUI()
 
 	// Reset colors
-	baseColor = [3]float32{1.0, 0.0, 0.0}
-	midColor = [3]float32{0.0, 1.0, 0.0}
-	topColor = [3]float32{0.0, 0.0, 1.0}
-	bgColor = [3]float32{0, 0, 0}
+	style.baseColor = [3]float32{1.0, 0.0, 0.0}
+	style.midColor = [3]float32{0.0, 1.0, 0.0}
+	style.topColor = [3]float32{0.0, 0.0, 1.0}
+	style.bgColor = [3]float32{0, 0, 0}
 	dom.Doc.Call("getElementById", "color-base").Set("value", "#ff0000")
 	dom.Doc.Call("getElementById", "color-mid").Set("value", "#00ff00")
 	dom.Doc.Call("getElementById", "color-top").Set("value", "#0000ff")
 	dom.Doc.Call("getElementById", "color-bg").Set("value", "#000000")
-	glctx.GL.Call("uniform3f", gpu.u.baseColor, baseColor[0], baseColor[1], baseColor[2])
-	glctx.GL.Call("uniform3f", gpu.u.midColor, midColor[0], midColor[1], midColor[2])
-	glctx.GL.Call("uniform3f", gpu.u.topColor, topColor[0], topColor[1], topColor[2])
+	glctx.GL.Call("uniform3f", gpu.u.baseColor, style.baseColor[0], style.baseColor[1], style.baseColor[2])
+	glctx.GL.Call("uniform3f", gpu.u.midColor, style.midColor[0], style.midColor[1], style.midColor[2])
+	glctx.GL.Call("uniform3f", gpu.u.topColor, style.topColor[0], style.topColor[1], style.topColor[2])
 	// Alpha=0: don't paint over the host page's bg (SVG logo etc).
 	glctx.GL.Call("clearColor", 0, 0, 0, 0)
 
@@ -726,7 +726,7 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 	// fresh viewing angle. randomizeOrientation zeroes the spin rates;
 	// re-enable the gentle auto-spin afterward (so its Y-rate shows).
 	// Flat scope modes stay face-on and still — screens, not models.
-	if isFlatScope(selectedMode) {
+	if isFlatScope(run.selectedMode) {
 		normalizeOrientation()
 	} else {
 		randomizeOrientation()
@@ -735,7 +735,7 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 	}
 
 	// Reset view
-	generateForMode(selectedMode)
+	generateForMode(run.selectedMode)
 	view.updateViewMatrix()
 	view.updateModelMatrix()
 
@@ -821,7 +821,7 @@ func applyHostPageTweaks() {
 	if !perma.hashPinnedPose {
 		// Flat scope modes (Pong, Fourier Text) boot face-on (their mode-entry
 		// sync normalized the pose) rather than in a random pose.
-		if !isFlatScope(selectedMode) {
+		if !isFlatScope(run.selectedMode) {
 			randomizeOrientation()
 		}
 		// randomizeOrientation zeroed the rate sliders — put back any spin
@@ -855,7 +855,7 @@ func applyHostPageTweaks() {
 	// The spectrogram wants a static, face-on default instead — undo the
 	// randomized pose/spin for an initial #spectrogram load (mode switches
 	// go through onModeChange, which already handles this).
-	if isTexturePlane(selectedMode) {
+	if isTexturePlane(run.selectedMode) {
 		spect.setSpectrogramCamera()
 	}
 
@@ -890,7 +890,7 @@ func registerOutputControls() {
 			view.angleX = 0
 			view.rebuildModelMatrix()
 			view.updateModelMatrix()
-			updateRotKnobs()
+			rotKnobs.update()
 			syncKnobs()
 		}})
 	adoptDescControl(ControlDesc{ID: "rotation-controls-y", Label: "Y rate", Min: -1, Max: 1, Step: 0.1, Def: 0,
@@ -901,7 +901,7 @@ func registerOutputControls() {
 			clearAutoRotateFlag() // Y spin (incl. auto) just zeroed
 			view.rebuildModelMatrix()
 			view.updateModelMatrix()
-			updateRotKnobs()
+			rotKnobs.update()
 		}})
 	adoptDescControl(ControlDesc{ID: "rotation-controls-z", Label: "Z rate", Min: -1, Max: 1, Step: 0.1, Def: 0,
 		Signed: true, PermaKey: "rz", LEDID: "slider-value-z", ResetID: "rst-rz",
@@ -910,7 +910,7 @@ func registerOutputControls() {
 			view.angleZ = 0
 			view.rebuildModelMatrix()
 			view.updateModelMatrix()
-			updateRotKnobs()
+			rotKnobs.update()
 		}})
 
 	// Prime every registry control once: run its Apply from the DOM's current
@@ -961,7 +961,7 @@ func registerViewControls() {
 		Apply: func(v float64) { grid.sweepHi = float32(v) }})
 	adoptDescControl(ControlDesc{ID: "rainbow-freq", Label: "period", Min: 0.05, Max: 20, Step: 0.05, Def: 1,
 		PermaKey: "rf", LEDID: "slider-value-rfreq", ResetID: "rst-rfreq",
-		Apply: func(v float64) { gradientFreq = float32(v) }})
+		Apply: func(v float64) { style.gradientFreq = float32(v) }})
 	// The colormap window's position, paired with the period above. Def 0 is
 	// the coordinate the colormaps already sampled, so a shared link opens on
 	// the picture it was made from until this is turned. See palettemod_js.go
@@ -975,7 +975,7 @@ func registerViewControls() {
 	// pair below is the SSOT both directions.
 	adoptDescControl(ControlDesc{ID: "speed-slider", Label: "Speed", Min: -2, Max: 2, Step: 0.1, Def: 0,
 		PermaKey: "sp", LEDID: "slider-value-speed", ResetID: "rst-speed",
-		Apply:       applySpeedLog,
+		Apply:       sim.applySpeedLog,
 		SliderToVal: speedDisplayVal,
 		ValToSlider: func(v float64) float64 {
 			if v <= 0 {
@@ -1025,7 +1025,7 @@ func wireColorAndViewControls() {
 
 	// Event: persist trail checkbox
 	dom.Doc.Call("getElementById", "persist-trail").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		persistTrail = dom.Doc.Call("getElementById", "persist-trail").Get("checked").Bool()
+		style.persistTrail = dom.Doc.Call("getElementById", "persist-trail").Get("checked").Bool()
 		return nil
 	}))
 
@@ -1048,12 +1048,12 @@ func wireColorAndViewControls() {
 	// drawn, it doesn't paint over the host.
 	dom.Doc.Call("getElementById", "color-bg").Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		hex := dom.Doc.Call("getElementById", "color-bg").Get("value").String()
-		bgColor = colorspace.ParseHex(hex)
-		glctx.GL.Call("clearColor", bgColor[0], bgColor[1], bgColor[2], 0)
+		style.bgColor = colorspace.ParseHex(hex)
+		glctx.GL.Call("clearColor", style.bgColor[0], style.bgColor[1], style.bgColor[2], 0)
 		return nil
 	}))
 	dom.Doc.Call("getElementById", "rst-color-bg").Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		bgColor = [3]float32{0, 0, 0}
+		style.bgColor = [3]float32{0, 0, 0}
 		dom.Doc.Call("getElementById", "color-bg").Set("value", "#000000")
 		glctx.GL.Call("clearColor", 0, 0, 0, 0)
 		return nil
@@ -1071,7 +1071,7 @@ func wireColorAndViewControls() {
 		ResetID: "rst-gradient-source",
 		SelectApply: func(v string) {
 			if n, err := strconv.Atoi(v); err == nil {
-				gradientSource = n
+				style.gradientSource = n
 				// The focused view keeps it, so the two halves can be
 				// colored differently. See views_js.go.
 				grid.noteGradientSource(n)
@@ -1095,20 +1095,20 @@ func wireColorAndViewControls() {
 		ResetID: "rst-gradient-colors",
 		SelectApply: func(v string) {
 			if n, err := strconv.Atoi(v); err == nil {
-				gradientColors = n
+				style.gradientColors = n
 				grid.noteGradientColors(n)
 			}
 			updateGradientUI()
 		},
 	})
 	dom.Doc.Call("getElementById", "gradient-reverse").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		gradientReverse = dom.Doc.Call("getElementById", "gradient-reverse").Get("checked").Bool()
+		style.gradientReverse = dom.Doc.Call("getElementById", "gradient-reverse").Get("checked").Bool()
 		return nil
 	}))
 
 	// Event: pause button
 	dom.Doc.Call("getElementById", "pause-sw").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		paused = dom.Doc.Call("getElementById", "pause-sw").Get("checked").Bool()
+		run.paused = dom.Doc.Call("getElementById", "pause-sw").Get("checked").Bool()
 		return nil
 	}))
 
@@ -1133,13 +1133,13 @@ func wirePanelSwitches() {
 		sw := dom.Doc.Call("getElementById", "edit-eq-sw")
 		s := dom.Doc.Call("getElementById", "mode-select")
 		if sw.Get("checked").Bool() {
-			if selectedMode != "custom" {
-				preCustomMode = selectedMode // remember where to return
+			if run.selectedMode != "custom" {
+				run.preCustomMode = run.selectedMode // remember where to return
 			}
-			custom.seedCustomFromMode(preCustomMode)
+			custom.seedCustomFromMode(run.preCustomMode)
 			s.Set("value", "custom")
 		} else {
-			back := preCustomMode
+			back := run.preCustomMode
 			if back == "" || back == "custom" {
 				back = "lorenz"
 			}
@@ -1167,8 +1167,8 @@ func wirePanelSwitches() {
 		sk.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 			skin.source = sk.Get("value").String()
 			skin.dirty = true
-			generateForMode(selectedMode)
-			buildParamPanel(selectedMode) // the Spectro module arrives and leaves with it
+			generateForMode(run.selectedMode)
+			buildParamPanel(run.selectedMode) // the Spectro module arrives and leaves with it
 			return nil
 		}))
 		if holder := dom.Doc.Call("getElementById", "skin-stack"); holder.Truthy() {
@@ -1195,8 +1195,8 @@ func wirePanelSwitches() {
 	if bv := dom.Doc.Call("getElementById", "bg-visual"); bv.Truthy() {
 		bv.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			setBackgroundVisual(bv.Get("value").String())
-			syncDeskExtras(selectedMode)  // the desk's own module follows it here
-			buildParamPanel(selectedMode) // so does the spectrogram's
+			syncDeskExtras(run.selectedMode)  // the desk's own module follows it here
+			buildParamPanel(run.selectedMode) // so does the spectrogram's
 			return nil
 		}))
 		if holder := dom.Doc.Call("getElementById", "bg-stack"); holder.Truthy() {
@@ -1221,14 +1221,14 @@ func wirePanelSwitches() {
 		}
 		ph.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			if v, err := strconv.Atoi(ph.Get("value").String()); err == nil {
-				phosphorIdx = v
+				phos.index = v
 			}
 			// Selecting a phosphor IS how you enter CRT mode now: the trace is
 			// drawn monochrome on that phosphor, so the gradient source + palette
 			// colors are overridden (and dimmed).
-			crtMode = phosphorIdx > 0
-			updateCRTOverlay()
-			updateCRTDim()
+			phos.crtMode = phos.index > 0
+			phos.updateCRTOverlay()
+			phos.updateCRTDim()
 			return nil
 		}))
 		ph.Set("title", "Phosphor — CRT trace color + afterglow for scope modes (P31 crisp green … P7 blue→green … P33 long amber)")
@@ -1273,10 +1273,10 @@ func wirePanelSwitches() {
 	// The readouts remember what they are showing (see led.Readouts), and
 	// these calls hand them fresh elements, so the memory has to go with the
 	// old ones or a new LED stays blank until its reading happens to move.
-	readouts.Forget()
+	owed.readouts.Forget()
 	// Same reason, for the same elements: the visibility observer holds the
 	// ones it was given, and a rebuilt panel's are not those.
-	invalidateOnScreen()
+	onScreen.invalidate()
 	thd.wireDistortionModule()
 	lufs.wireLoudnessModule()
 	wow.wireWowFlutterModule()
@@ -1312,8 +1312,8 @@ func wirePanelSwitches() {
 
 	// Event: points/line toggle
 	dom.Doc.Call("getElementById", "use-points").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		usePoints = dom.Doc.Call("getElementById", "use-points").Get("checked").Bool()
-		if usePoints {
+		style.usePoints = dom.Doc.Call("getElementById", "use-points").Get("checked").Bool()
+		if style.usePoints {
 			gpu.drawMode = glctx.Types.Points
 		} else {
 			gpu.drawMode = glctx.Types.LineStrip
@@ -1345,7 +1345,7 @@ func wirePanelSwitches() {
 	if dc := dom.Doc.Call("getElementById", "desk-contain"); dc.Truthy() {
 		dc.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) interface{} {
 			setDeskContain(dc.Get("checked").Bool())
-			syncDeskExtras(selectedMode) // the desk's settings arrive and leave with it
+			syncDeskExtras(run.selectedMode) // the desk's settings arrive and leave with it
 			return nil
 		}))
 	}
@@ -1419,8 +1419,8 @@ func initDrawState() {
 	gpu.setupShaders()
 	texp.setupTexShaders()
 	setupMatrices()
-	generateForMode(selectedMode)
-	if isTexturePlane(selectedMode) {
+	generateForMode(run.selectedMode)
+	if isTexturePlane(run.selectedMode) {
 		spect.setSpectrogramCamera()
 	} else {
 		view.autoFitCamera()
@@ -1446,7 +1446,7 @@ func wireViewGridStack() {
 	// The sweep dial: what varies across the grid. Its options are the
 	// current mode's own parameters, so building it is a function the
 	// mode change calls too rather than a block written out here.
-	grid.setSweepTargets(selectedMode)
+	grid.setSweepTargets(run.selectedMode)
 	grid.buildSweepDial()
 	rscope.buildRackScope() // the rack scope's own dials, independent of the model
 	if clk := dom.Doc.Call("getElementById", "color-lock"); clk.Truthy() {
@@ -1566,21 +1566,21 @@ func wireColorControls() {
 
 	// Event: per-control reset buttons for colors
 	dom.Doc.Call("getElementById", "rst-color-base").Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		baseColor = [3]float32{1.0, 0.0, 0.0}
+		style.baseColor = [3]float32{1.0, 0.0, 0.0}
 		dom.Doc.Call("getElementById", "color-base").Set("value", "#ff0000")
-		glctx.GL.Call("uniform3f", gpu.u.baseColor, baseColor[0], baseColor[1], baseColor[2])
+		glctx.GL.Call("uniform3f", gpu.u.baseColor, style.baseColor[0], style.baseColor[1], style.baseColor[2])
 		return nil
 	}))
 	dom.Doc.Call("getElementById", "rst-color-mid").Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		midColor = [3]float32{0.0, 1.0, 0.0}
+		style.midColor = [3]float32{0.0, 1.0, 0.0}
 		dom.Doc.Call("getElementById", "color-mid").Set("value", "#00ff00")
-		glctx.GL.Call("uniform3f", gpu.u.midColor, midColor[0], midColor[1], midColor[2])
+		glctx.GL.Call("uniform3f", gpu.u.midColor, style.midColor[0], style.midColor[1], style.midColor[2])
 		return nil
 	}))
 	dom.Doc.Call("getElementById", "rst-color-top").Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		topColor = [3]float32{0.0, 0.0, 1.0}
+		style.topColor = [3]float32{0.0, 0.0, 1.0}
 		dom.Doc.Call("getElementById", "color-top").Set("value", "#0000ff")
-		glctx.GL.Call("uniform3f", gpu.u.topColor, topColor[0], topColor[1], topColor[2])
+		glctx.GL.Call("uniform3f", gpu.u.topColor, style.topColor[0], style.topColor[1], style.topColor[2])
 		return nil
 	}))
 
@@ -1605,13 +1605,13 @@ func wireColorControls() {
 // a scope.
 func buildPanelKnobs() {
 	// pots set absolute X/Y angles on 7-seg displays.
-	knobPtr[0] = dom.Doc.Call("getElementById", "knobptr-x")
-	knobPtr[1] = dom.Doc.Call("getElementById", "knobptr-y")
-	knobPtr[2] = dom.Doc.Call("getElementById", "knobptr-z")
-	knobLED[0] = dom.Doc.Call("getElementById", "led-x")
-	knobLED[1] = dom.Doc.Call("getElementById", "led-y")
-	knobLED[2] = dom.Doc.Call("getElementById", "led-z")
-	knobsReady = true
+	rotKnobs.ptr[0] = dom.Doc.Call("getElementById", "knobptr-x")
+	rotKnobs.ptr[1] = dom.Doc.Call("getElementById", "knobptr-y")
+	rotKnobs.ptr[2] = dom.Doc.Call("getElementById", "knobptr-z")
+	rotKnobs.led[0] = dom.Doc.Call("getElementById", "led-x")
+	rotKnobs.led[1] = dom.Doc.Call("getElementById", "led-y")
+	rotKnobs.led[2] = dom.Doc.Call("getElementById", "led-z")
+	rotKnobs.ready = true
 	// Shared drag state (only one knob turns at a time). Document-level
 	// move/up listeners (below) let the drag continue when the cursor
 	// leaves the small knob, without setPointerCapture (a JS throw there
@@ -1659,9 +1659,9 @@ func buildPanelKnobs() {
 			return nil
 		}))
 	}
-	attachKnob("knob-x", 0, rotationControlsX, sliderX)
-	attachKnob("knob-y", 1, rotationControlsY, sliderY)
-	attachKnob("knob-z", 2, rotationControlsZ, sliderZ)
+	attachKnob("knob-x", 0, camPanel.rotationControlsX, camPanel.sliderX)
+	attachKnob("knob-y", 1, camPanel.rotationControlsY, camPanel.sliderY)
+	attachKnob("knob-z", 2, camPanel.rotationControlsZ, camPanel.sliderZ)
 	onPointerMove(func(e js.Value) {
 		if knobAxis < 0 {
 			return
@@ -1683,7 +1683,7 @@ func buildPanelKnobs() {
 	})
 	dom.Doc.Call("addEventListener", "pointerup", knobRelease)
 	dom.Doc.Call("addEventListener", "pointercancel", knobRelease)
-	updateRotKnobs()
+	rotKnobs.update()
 	initPointerMove() // the one shared pointermove listener the drags share
 	initKnobDrag()    // document listeners for the bounded param/camera knobs
 
@@ -1850,7 +1850,7 @@ func commitBuiltControls() {
 	// to have happened before the next control is committed. Measured on this
 	// rack: twenty-three quantizes and three panel rebuilds, six seconds of a
 	// thirteen-second boot. One of each at the end is the same answer.
-	withDeferredLayout(selectedMode, func() {
+	owed.withDeferredLayout(run.selectedMode, func() {
 		for _, c := range builtControls {
 			// Whichever element holds this control's value, and the event that
 			// commits it. A selector-backed Control has no slider at all, and Call
@@ -2000,14 +2000,14 @@ func cacheElementRefs() {
 
 	// Get control element references
 	rtc = dom.Doc.Call("getElementById", "runtime")
-	cameraControl = dom.Doc.Call("getElementById", "camera-zoom")
-	rotationControlsX = dom.Doc.Call("getElementById", "rotation-controls-x")
-	rotationControlsY = dom.Doc.Call("getElementById", "rotation-controls-y")
-	rotationControlsZ = dom.Doc.Call("getElementById", "rotation-controls-z")
-	sliderZoom = dom.Doc.Call("getElementById", "slider-value-zoom")
-	sliderX = dom.Doc.Call("getElementById", "slider-value-x")
-	sliderY = dom.Doc.Call("getElementById", "slider-value-y")
-	sliderZ = dom.Doc.Call("getElementById", "slider-value-z")
+	camPanel.cameraControl = dom.Doc.Call("getElementById", "camera-zoom")
+	camPanel.rotationControlsX = dom.Doc.Call("getElementById", "rotation-controls-x")
+	camPanel.rotationControlsY = dom.Doc.Call("getElementById", "rotation-controls-y")
+	camPanel.rotationControlsZ = dom.Doc.Call("getElementById", "rotation-controls-z")
+	camPanel.sliderZoom = dom.Doc.Call("getElementById", "slider-value-zoom")
+	camPanel.sliderX = dom.Doc.Call("getElementById", "slider-value-x")
+	camPanel.sliderY = dom.Doc.Call("getElementById", "slider-value-y")
+	camPanel.sliderZ = dom.Doc.Call("getElementById", "slider-value-z")
 
 	// ── Rotation knobs (digital-pot style, one per axis) ──────────────
 	// Turning a knob sets that axis's absolute angle (position) and zeroes

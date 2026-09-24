@@ -169,7 +169,7 @@ func (b *bifurcation) generateBifurcation() {
 	// correctly placed as later ones widen the range.
 	n := len(b.colOf)
 	if n < 2 || b.max <= b.min {
-		gpu.uploadVerticesOnly(vertBuf[:0], glctx.Types.Points, 0)
+		gpu.uploadVerticesOnly(sim.vertBuf[:0], glctx.Types.Points, 0)
 		// The readout still tells the truth about the cursor here. There is
 		// nothing to point AT for the first frames of a sweep, but "mod off"
 		// with Audio mod on would be a lie about the audio rather than a
@@ -178,11 +178,11 @@ func (b *bifurcation) generateBifurcation() {
 		b.showCursor(b.cursorReadout(p, cv, cok))
 		return
 	}
-	if cap(vertBuf) < n*4 {
-		n = cap(vertBuf) / 4
+	if cap(sim.vertBuf) < n*4 {
+		n = cap(sim.vertBuf) / 4
 	}
 	span := b.max - b.min
-	vertices := vertBuf[:n*4]
+	vertices := sim.vertBuf[:n*4]
 	for i := 0; i < n; i++ {
 		fx := float32(b.colOf[i]) / float32(bifCols-1)
 		fy := float32((b.valOf[i] - b.min) / span)
@@ -296,15 +296,15 @@ func (b *bifurcation) drawCursor(p paramDef, span float64) {
 	glctx.GL.Call("uniform1i", gpu.u.gradientColors, 1)
 	glctx.GL.Call("uniform3f", gpu.u.baseColor, 1.0, 0.8, 0.15)
 	gpu.uploadVerticesOnly(buf, glctx.Types.Points, len(buf)/4)
-	if phosphorActive() {
+	if phos.active() {
 		// The phosphor owns both uniforms while it is on and renderFrame set
 		// them from it earlier this frame; handing them to the palette here
 		// would be handing them to the wrong owner.
-		applyPhosphorColor()
+		phos.applyPhosphorColor()
 		return
 	}
 	glctx.GL.Call("uniform1i", gpu.u.gradientColors, gradientColorsUniform())
-	glctx.GL.Call("uniform3f", gpu.u.baseColor, baseColor[0], baseColor[1], baseColor[2])
+	glctx.GL.Call("uniform3f", gpu.u.baseColor, style.baseColor[0], style.baseColor[1], style.baseColor[2])
 }
 
 // bifCursorReadout is the LED text: the parameter value the cursor is at, or
@@ -402,7 +402,7 @@ func (b *bifurcation) buildBifPanel(paramsDiv js.Value) {
 		// Rebuild: the depth knob comes and goes with the choice, the way the
 		// Section module comes and goes with the Sect switch. A knob that is
 		// visible while it does nothing is worse than one that is not there.
-		buildParamPanel(selectedMode)
+		buildParamPanel(run.selectedMode)
 		return nil
 	}))
 	dgrp := dom.Doc.Call("createElement", "span")
@@ -443,7 +443,7 @@ func (b *bifurcation) buildBifPanel(paramsDiv js.Value) {
 			"The window slides inward at the ends of the range rather than clipping, so the quiet and loud "+
 			"parts of the music always map somewhere different.")
 		for _, pd := range bifDriveParams {
-			g.Call("appendChild", buildParamUnit(selectedMode, pd))
+			g.Call("appendChild", buildParamUnit(run.selectedMode, pd))
 		}
 		paramsDiv.Call("appendChild", g)
 	}

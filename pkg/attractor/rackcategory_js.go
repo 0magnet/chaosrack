@@ -639,7 +639,7 @@ func onBayRotary(label string, bay int) {
 	bayModel[bayID(label, bay)] = mode
 	setPowerState(true)
 	setPowerSwitch(true)
-	if mode == selectedMode {
+	if mode == run.selectedMode {
 		syncCategoryRotaries()
 		return
 	}
@@ -671,10 +671,10 @@ func syncCategoryRotaries() {
 	}
 	catRotarySyncing = true
 	defer func() { catRotarySyncing = false }()
-	setActiveCategory(selectedMode)
-	live := bayOf(selectedMode)
-	if live != nil && selectedMode != "" && !stopped {
-		bayModel[bayID(live.Label, live.N)] = selectedMode
+	setActiveCategory(run.selectedMode)
+	live := bayOf(run.selectedMode)
+	if live != nil && run.selectedMode != "" && !run.stopped {
+		bayModel[bayID(live.Label, live.N)] = run.selectedMode
 	}
 	for _, b := range rackBays {
 		sel := dom.Doc.Call("getElementById", baySelectID(b.Label, b.N))
@@ -684,8 +684,8 @@ func syncCategoryRotaries() {
 		// Powered down, every selector reads off: no bay is driving,
 		// because nothing is being drawn.
 		want := ""
-		if live != nil && b.Label == live.Label && b.N == live.N && !stopped {
-			want = selectedMode
+		if live != nil && b.Label == live.Label && b.N == live.N && !run.stopped {
+			want = run.selectedMode
 		}
 		if sel.Get("value").String() == want {
 			continue
@@ -738,7 +738,7 @@ func lightLiveParamCells() {
 		// Nothing is lit while the rack is powered down, which is the same
 		// answer the rotaries give: no model is running, so no front panel
 		// on the rack is the one in the signal path.
-		live := !stopped && c.Call("getAttribute", "data-mode").String() == selectedMode
+		live := !run.stopped && c.Call("getAttribute", "data-mode").String() == run.selectedMode
 		c.Get("classList").Call("toggle", "live", live)
 	}
 }

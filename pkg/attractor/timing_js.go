@@ -101,20 +101,20 @@ func (t *timingPanel) showTiming() {
 			{"tm-meters", t.metersEl}, {"tm-scope", t.scopeEl},
 			{"tm-rest", t.restEl},
 		} {
-			readouts.Set(p.k, p.e, "  --.-")
+			owed.readouts.Set(p.k, p.e, "  --.-")
 		}
 		return
 	}
-	readouts.Set("tm-fps", t.fpsEl, led.Format(float64(t.stats.fps()), 3, 1, false))
-	readouts.Set("tm-frame", t.frameEl, led.Format(float64(t.stats.avg()), 3, 1, false))
-	readouts.Set("tm-min", t.minEl, led.Format(float64(t.stats.min), 3, 1, false))
-	readouts.Set("tm-max", t.maxEl, led.Format(float64(t.stats.max), 3, 1, false))
-	readouts.Set("tm-late", t.lateEl, led.Format(float64(t.stats.latePct()), 3, 1, false))
+	owed.readouts.Set("tm-fps", t.fpsEl, led.Format(float64(t.stats.fps()), 3, 1, false))
+	owed.readouts.Set("tm-frame", t.frameEl, led.Format(float64(t.stats.avg()), 3, 1, false))
+	owed.readouts.Set("tm-min", t.minEl, led.Format(float64(t.stats.min), 3, 1, false))
+	owed.readouts.Set("tm-max", t.maxEl, led.Format(float64(t.stats.max), 3, 1, false))
+	owed.readouts.Set("tm-late", t.lateEl, led.Format(float64(t.stats.latePct()), 3, 1, false))
 
 	model, meters, scope := t.budget.perFrame()
-	readouts.Set("tm-model", t.modelEl, led.Format(float64(model), 2, 2, false))
-	readouts.Set("tm-meters", t.metersEl, led.Format(float64(meters), 2, 2, false))
-	readouts.Set("tm-scope", t.scopeEl, led.Format(float64(scope), 2, 2, false))
+	owed.readouts.Set("tm-model", t.modelEl, led.Format(float64(model), 2, 2, false))
+	owed.readouts.Set("tm-meters", t.metersEl, led.Format(float64(meters), 2, 2, false))
+	owed.readouts.Set("tm-scope", t.scopeEl, led.Format(float64(scope), 2, 2, false))
 	// What is left is the browser's: style, layout, raster, compositing, and
 	// the wasm boundary. Shown because it is usually the largest share and
 	// there is no honesty in three numbers that quietly do not add up to the
@@ -123,7 +123,7 @@ func (t *timingPanel) showTiming() {
 	if rest < 0 {
 		rest = 0
 	}
-	readouts.Set("tm-rest", t.restEl, led.Format(float64(rest), 2, 2, false))
+	owed.readouts.Set("tm-rest", t.restEl, led.Format(float64(rest), 2, 2, false))
 }
 
 // wireTimingModule finds the readouts. Called once from Run.

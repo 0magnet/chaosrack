@@ -30,35 +30,35 @@ const (
 // EQ strip means.
 func routeMono(t *testing.T, id string) func() {
 	t.Helper()
-	prevMods, hadMod := paramMods[id]
+	prevMods, hadMod := pmod.params[id]
 	prevBand := af.band["mono"]
 	prevOn := audioMod
-	prevHold, hadHold := modHold[id]
+	prevHold, hadHold := pmod.hold[id]
 
 	band := make([]float32, numEQBands)
 	for i := range band {
 		band[i] = testModEnergy
 	}
 	af.band["mono"] = band
-	paramMods[id] = paramMod{channel: "mono", level: testModLevel}
+	pmod.params[id] = paramMod{channel: "mono", level: testModLevel}
 	audioMod = true
-	delete(modHold, id)
-	modAppliedPrev = modAppliedPrev[:0]
+	delete(pmod.hold, id)
+	pmod.appliedPrev = pmod.appliedPrev[:0]
 
 	return func() {
 		audioMod = prevOn
 		af.band["mono"] = prevBand
 		if hadMod {
-			paramMods[id] = prevMods
+			pmod.params[id] = prevMods
 		} else {
-			delete(paramMods, id)
+			delete(pmod.params, id)
 		}
 		if hadHold {
-			modHold[id] = prevHold
+			pmod.hold[id] = prevHold
 		} else {
-			delete(modHold, id)
+			delete(pmod.hold, id)
 		}
-		modAppliedPrev = modAppliedPrev[:0]
+		pmod.appliedPrev = pmod.appliedPrev[:0]
 	}
 }
 

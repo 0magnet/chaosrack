@@ -167,7 +167,7 @@ func (g *gifRecorder) startGIFRecording() {
 		// background the model is drawn against on the page.
 		recScratchCtx.Set("fillStyle", "#000000")
 		recScratchCtx.Call("fillRect", 0, 0, dw, dh)
-		recScratchCtx.Call("drawImage", captureCanvas(canvas), sx, sy, sw, sh, 0, 0, dw, dh)
+		recScratchCtx.Call("drawImage", near.captureCanvas(canvas), sx, sy, sw, sh, 0, 0, dw, dh)
 		img := recScratchCtx.Call("getImageData", 0, 0, dw, dh)
 		data := img.Get("data")
 		n := data.Get("length").Int()

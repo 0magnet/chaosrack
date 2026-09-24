@@ -15,9 +15,38 @@ import (
 
 // ── UI helpers ───────────────────────────────────────────────────────────────
 
-// readouts puts the meters' and controls' text on their LEDs, skipping
-// writes that would not change them. Rebuilding the panel forgets it.
-var readouts led.Readouts
+// layoutDebts is the layout work deferred to the next frame.
+type layoutDebts struct {
+	// readouts puts the meters' and controls' text on their LEDs, skipping
+	// writes that would not change them. Rebuilding the panel forgets it.
+	readouts led.Readouts
+
+	// Deferring the two things a control handler does that cost the whole rack.
+	//
+	// commitBuiltControls fires each control.s own event once, so that every
+	// control applies its value the way it would if you had touched it. Sixty-
+	// eight controls, and several of their handlers rebuild the parameter panel
+	// or re-quantize the rack — a rebuild is a second of work now, and a
+	// quantize stretches all seventy-eight modules to 3000px and measures them
+	// back, which is a full layout of ten thousand nodes. Measured, the sweep
+	// ran twenty-three quantizes and three panel rebuilds and took six seconds
+	// of a thirteen-second boot.
+	//
+	// commitBuiltControls fires each control's own event once so that every
+	// control applies its value the way it would if you had touched it. Several
+	// of those handlers rebuild the parameter panel, and a rebuild is now a
+	// second of work: the Behind and On selectors between them spent four and a
+	// half seconds of a thirteen-second boot rebuilding a panel that nothing had
+	// changed, twice. The sweep does not need the panel rebuilt between two
+	// controls — it needs it right once at the end — so the requests are
+	// collected and paid for once.
+	// None of that is wrong between two controls — it is only wrong to do it
+	// sixty-eight times when the rack is read once at the end. So the requests
+	// are collected and paid for once.
+	deferred, paramPanel, quantize, skirts bool
+}
+
+var owed layoutDebts
 
 // sizeLEDField fixes a numeric input's width to the widest value it can show
 // (sign + max integer digits + dot + dec) and right-aligns it, so it never
@@ -299,30 +328,6 @@ func buildModCard(id, label string, sym bool) js.Value {
 	return card
 }
 
-// Deferring the two things a control handler does that cost the whole rack.
-//
-// commitBuiltControls fires each control.s own event once, so that every
-// control applies its value the way it would if you had touched it. Sixty-
-// eight controls, and several of their handlers rebuild the parameter panel
-// or re-quantize the rack — a rebuild is a second of work now, and a
-// quantize stretches all seventy-eight modules to 3000px and measures them
-// back, which is a full layout of ten thousand nodes. Measured, the sweep
-// ran twenty-three quantizes and three panel rebuilds and took six seconds
-// of a thirteen-second boot.
-//
-// commitBuiltControls fires each control's own event once so that every
-// control applies its value the way it would if you had touched it. Several
-// of those handlers rebuild the parameter panel, and a rebuild is now a
-// second of work: the Behind and On selectors between them spent four and a
-// half seconds of a thirteen-second boot rebuilding a panel that nothing had
-// changed, twice. The sweep does not need the panel rebuilt between two
-// controls — it needs it right once at the end — so the requests are
-// collected and paid for once.
-// None of that is wrong between two controls — it is only wrong to do it
-// sixty-eight times when the rack is read once at the end. So the requests
-// are collected and paid for once.
-var deferLayout, paramPanelOwed, quantizeOwed, skirtsOwed bool
-
 // withDeferredLayout runs f with panel rebuilds and rack quantizes
 // collected, then does each once if anything asked for it.
 //
@@ -338,33 +343,33 @@ var deferLayout, paramPanelOwed, quantizeOwed, skirtsOwed bool
 // reached from a sweep that already has, and an inner scope that reset the
 // flags on its way out would hand the rest of the outer scope's work back to
 // the unbatched path.
-func withDeferredLayout(mode string, f func()) {
-	if deferLayout {
+func (l *layoutDebts) withDeferredLayout(mode string, f func()) {
+	if l.deferred {
 		f()
 		return
 	}
-	deferLayout, paramPanelOwed, quantizeOwed, skirtsOwed = true, false, false, false
+	l.deferred, l.paramPanel, l.quantize, l.skirts = true, false, false, false
 	f()
 	// At most twice. A rebuild that asks for another rebuild is a loop
 	// rather than a request; the second pass is for the one honest case,
 	// a builder that only learns it needs the panel again from something
 	// the first build put on it.
-	for n := 0; paramPanelOwed && n < 2; n++ {
-		paramPanelOwed = false
+	for n := 0; l.paramPanel && n < 2; n++ {
+		l.paramPanel = false
 		buildParamPanelNow(mode)
 	}
-	deferLayout = false
-	if quantizeOwed {
+	l.deferred = false
+	if l.quantize {
 		// Which ends in a skirt pass of its own, so the owed one is paid.
 		quantizeModuleWidths()
-	} else if skirtsOwed {
+	} else if l.skirts {
 		layoutSkirts()
 	}
 }
 
 func buildParamPanel(mode string) {
-	if deferLayout {
-		paramPanelOwed = true
+	if owed.deferred {
+		owed.paramPanel = true
 		return
 	}
 	buildParamPanelNow(mode)
@@ -415,7 +420,7 @@ func buildParamPanelNow(mode string) {
 	lyap.syncAnalysisModule(mode)
 	clearTurtlePhysModule()
 	clearSectionModule()
-	updateCRTOverlay()
+	phos.updateCRTOverlay()
 
 	// The Equation module only exists in Custom mode (buildCustomPanel makes it).
 	if mode != "custom" {
@@ -690,7 +695,7 @@ func buildTurtlePhysModule(mode string, paramsDiv js.Value) {
 	g := dom.Doc.Call("createElement", "div")
 	g.Set("className", "punit-grid")
 	for _, p := range turtlePhysParams {
-		g.Call("appendChild", buildParamUnit(selectedMode, p))
+		g.Call("appendChild", buildParamUnit(run.selectedMode, p))
 	}
 	mod.Call("appendChild", g)
 	if primary := paramsDiv.Call("closest", ".sect"); primary.Truthy() {
@@ -739,7 +744,7 @@ func buildSectionModule(mode string, paramsDiv js.Value) {
 	g := dom.Doc.Call("createElement", "div")
 	g.Set("className", "punit-grid")
 	for _, p := range sectPlaneParams {
-		g.Call("appendChild", buildParamUnit(selectedMode, p))
+		g.Call("appendChild", buildParamUnit(run.selectedMode, p))
 	}
 	mod.Call("appendChild", g)
 	if primary := paramsDiv.Call("closest", ".sect"); primary.Truthy() {

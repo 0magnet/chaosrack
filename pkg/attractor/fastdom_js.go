@@ -579,11 +579,18 @@ type tipStamp struct {
 	Attr  string // "title", or the attribute a readout memoizes into
 }
 
-var (
-	tipQueue    []tipStamp
-	tipBatching bool
-	tipCell     int
-)
+// tipBatch is tooltip stamping batched into one pass.
+type tipBatch struct {
+	queue    []tipStamp
+	batching bool
+	cell     int
+
+	// reads is the panel as the last read pass found it, indexed the same way
+	// the stamps are. Empty when there was no read pass.
+	reads []cellRead
+}
+
+var tips tipBatch
 
 // queueStamp collects a tooltip write instead of performing it. Reports
 // whether it did; false means the caller writes it itself.
@@ -594,22 +601,22 @@ var (
 // js.Value with a finalizer attached. Measured, two thirds of the pass was
 // runtime.addspecial. Collected and sent once, it is a single crossing.
 func queueStamp(sel, title string, nth int) bool {
-	return queueAttr(sel, "title", title, nth)
+	return tips.queueAttr(sel, "title", title, nth)
 }
 
 // queueAttr is queueStamp for an attribute other than the tooltip.
-func queueAttr(sel, attr, value string, nth int) bool {
-	if !tipBatching {
+func (t *tipBatch) queueAttr(sel, attr, value string, nth int) bool {
+	if !t.batching {
 		return false
 	}
-	tipQueue = append(tipQueue, tipStamp{Cell: tipCell, Sel: sel, Title: value, Nth: nth, Attr: attr})
+	t.queue = append(t.queue, tipStamp{Cell: t.cell, Sel: sel, Title: value, Nth: nth, Attr: attr})
 	return true
 }
 
 // flushStamps applies every queued tooltip in one crossing.
-func flushStamps() {
-	q := tipQueue
-	tipQueue, tipBatching = tipQueue[:0], false
+func (t *tipBatch) flushStamps() {
+	q := t.queue
+	t.queue, t.batching = t.queue[:0], false
 	if len(q) == 0 {
 		return
 	}
@@ -672,22 +679,18 @@ type cellRead struct {
 	Nums  []bool    `json:"nums"` // .numin, true where it is a step field
 }
 
-// tipReads is the panel as the last read pass found it, indexed the same way
-// the stamps are. Empty when there was no read pass.
-var tipReads []cellRead
-
 // readPanelCells measures the whole panel's cells in one crossing.
-func readPanelCells(h js.Value) bool {
+func (t *tipBatch) readPanelCells(h js.Value) bool {
 	raw := h.Call("tipRead").String()
-	tipReads = tipReads[:0]
-	return json.Unmarshal([]byte(raw), &tipReads) == nil
+	t.reads = t.reads[:0]
+	return json.Unmarshal([]byte(raw), &t.reads) == nil
 }
 
 // cellFacts is what the read pass found for this control, or nil when there
 // was none and the caller should ask the DOM itself.
 func (c *Control) cellFacts() *cellRead {
-	if !tipBatching || c.tipIdx < 0 || c.tipIdx >= len(tipReads) {
+	if !tips.batching || c.tipIdx < 0 || c.tipIdx >= len(tips.reads) {
 		return nil
 	}
-	return &tipReads[c.tipIdx]
+	return &tips.reads[c.tipIdx]
 }

@@ -114,13 +114,22 @@ var phosphors = []phosphorSpec{
 	{"P33 amber", 1.00, 0.50, 0.10, 0.985, 0.985, 0.985, "P33 — radar amber: the longest persistence of the set"},
 }
 
-var phosphorIdx int // 0 = off
+// phosphorState is the CRT phosphor emulation: the phosphor chosen, its fade
+// quad and the overlay.
+type phosphorState struct {
+	index int // 0 = off
 
-// crtMode: the selected phosphor paints ANY model (attractors too) as though
-// traced on that phosphor tube — its color + afterglow, plus scanline/vignette.
-// It's driven by the Phosphor knob: picking a phosphor turns it on, "— none —"
-// turns it off. (There is no separate CRT gradient source anymore.)
-var crtMode bool
+	// crtMode: the selected phosphor paints ANY model (attractors too) as though
+	// traced on that phosphor tube — its color + afterglow, plus scanline/vignette.
+	// It's driven by the Phosphor knob: picking a phosphor turns it on, "— none —"
+	// turns it off. (There is no separate CRT gradient source anymore.)
+	crtMode    bool
+	quadBuf    js.Value
+	quadReady  bool
+	crtOverlay js.Value
+}
+
+var phos phosphorState
 
 // crtBeamLen is how many trajectory points the CRT beam draws per frame; the
 // phosphor persistence (afterglow) turns that short advancing segment into the
@@ -146,7 +155,7 @@ var crtBeamLen = 600
 // hides it, because successive frames decimate at different offsets and pile up
 // into something that looks complete.
 func crtBeam() bool {
-	return phosphorActive() && isAttractorMode(selectedMode) && !isAudioEmbedding(selectedMode)
+	return phos.active() && isAttractorMode(run.selectedMode) && !isAudioEmbedding(run.selectedMode)
 }
 
 // isAudioEmbedding names the modes whose trail is a window of the live audio
@@ -160,13 +169,13 @@ func isAudioEmbedding(mode string) bool {
 // updateCRTDim dims the Controls a selected phosphor overrides (their color /
 // trail is taken over by the phosphor). Which controls those are is a property
 // of each Control (crtOverride), so this just iterates the model.
-func updateCRTDim() {
+func (ph *phosphorState) updateCRTDim() {
 	if len(panelModules) == 0 {
 		buildControlModel()
 	}
 	for _, m := range panelModules {
 		for _, c := range m.ctrls {
-			c.applyCRTDim(crtMode)
+			c.applyCRTDim(ph.crtMode)
 		}
 	}
 }
@@ -179,41 +188,35 @@ func isScopeMode(mode string) bool {
 
 // crtLook reports whether the phosphor-tube look should be applied: either a
 // native scope trace, or any model with the CRT source selected.
-func crtLook() bool {
-	return isScopeMode(selectedMode) || crtMode
+func (ph *phosphorState) crtLook() bool {
+	return isScopeMode(run.selectedMode) || ph.crtMode
 }
 
 // phosphorActive: a phosphor is selected AND we're drawing a CRT/scope look.
-func phosphorActive() bool {
-	return phosphorIdx > 0 && phosphorIdx < len(phosphors) && crtLook()
+func (ph *phosphorState) active() bool {
+	return ph.index > 0 && ph.index < len(phosphors) && ph.crtLook()
 }
 
 // applyPhosphorColor overrides the gradient with the selected phosphor's mono
 // color. Called after the gradient uniforms are set in generateForMode.
-func applyPhosphorColor() {
-	p := phosphors[phosphorIdx]
+func (ph *phosphorState) applyPhosphorColor() {
+	p := phosphors[ph.index]
 	glctx.GL.Call("uniform1i", gpu.u.gradientColors, 1) // monochrome
 	glctx.GL.Call("uniform3f", gpu.u.baseColor, p.tr, p.tg, p.tb)
 }
 
-var (
-	phosphorQuadBuf   js.Value
-	phosphorQuadReady bool
-	crtOverlay        js.Value
-)
-
 // updateCRTOverlay shows the scanline+vignette CRT overlay for scope modes and
 // hides it otherwise. Called on every mode change (from buildParamPanel).
-func updateCRTOverlay() {
-	if !crtOverlay.Truthy() {
-		crtOverlay = dom.Doc.Call("createElement", "div")
-		crtOverlay.Set("id", "crt-overlay")
-		dom.Body.Call("appendChild", crtOverlay)
+func (ph *phosphorState) updateCRTOverlay() {
+	if !ph.crtOverlay.Truthy() {
+		ph.crtOverlay = dom.Doc.Call("createElement", "div")
+		ph.crtOverlay.Set("id", "crt-overlay")
+		dom.Body.Call("appendChild", ph.crtOverlay)
 	}
-	if crtLook() {
-		crtOverlay.Get("classList").Call("add", "on")
+	if ph.crtLook() {
+		ph.crtOverlay.Get("classList").Call("add", "on")
 	} else {
-		crtOverlay.Get("classList").Call("remove", "on")
+		ph.crtOverlay.Get("classList").Call("remove", "on")
 	}
 }
 
@@ -225,19 +228,19 @@ func updateCRTOverlay() {
 // the xy scope's solid-color program with a fullscreen quad; the multiply is
 // done with blendFunc(ZERO, SRC_COLOR). Leaves depth-test disabled; the caller
 // re-enables it.
-func drawPhosphorFade() {
+func (ph *phosphorState) drawPhosphorFade() {
 	if !xy.ready {
 		xy.initXY()
 	}
-	if !phosphorQuadReady {
+	if !ph.quadReady {
 		verts := []float32{-1, -1, 1, -1, -1, 1, 1, 1}
-		phosphorQuadBuf = glctx.GL.Call("createBuffer")
-		glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, phosphorQuadBuf)
+		ph.quadBuf = glctx.GL.Call("createBuffer")
+		glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, ph.quadBuf)
 		glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, SliceToTypedArray(verts), glctx.Types.StaticDraw)
-		phosphorQuadReady = true
+		ph.quadReady = true
 	}
-	p := phosphors[phosphorIdx]
-	drawFadeQuad(float32(p.kr), float32(p.kg), float32(p.kb))
+	p := phosphors[ph.index]
+	ph.drawFadeQuad(float32(p.kr), float32(p.kg), float32(p.kb))
 }
 
 // drawFadeQuad multiplies the whole frame by a per-channel retention, which is
@@ -248,23 +251,23 @@ func drawPhosphorFade() {
 //
 // The caller is left with depth-testing DISABLED, as drawPhosphorFade's callers
 // always were.
-func drawFadeQuad(kr, kg, kb float32) {
+func (ph *phosphorState) drawFadeQuad(kr, kg, kb float32) {
 	if !xy.ready {
 		xy.initXY()
 	}
-	if !phosphorQuadReady {
+	if !ph.quadReady {
 		verts := []float32{-1, -1, 1, -1, -1, 1, 1, 1}
-		phosphorQuadBuf = glctx.GL.Call("createBuffer")
-		glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, phosphorQuadBuf)
+		ph.quadBuf = glctx.GL.Call("createBuffer")
+		glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, ph.quadBuf)
 		glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, SliceToTypedArray(verts), glctx.Types.StaticDraw)
-		phosphorQuadReady = true
+		ph.quadReady = true
 	}
 	glctx.GL.Call("disable", glctx.Types.DepthTest)
 	glctx.GL.Call("enable", glctx.GL.Get("BLEND"))
 	// dst_rgb = dst_rgb * src_rgb → multiply the frame by the retention color.
 	glctx.GL.Call("blendFunc", glctx.GL.Get("ZERO"), glctx.GL.Get("SRC_COLOR"))
 	glctx.GL.Call("useProgram", xy.program)
-	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, phosphorQuadBuf)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, ph.quadBuf)
 	glctx.GL.Call("enableVertexAttribArray", xy.aPos)
 	glctx.GL.Call("vertexAttribPointer", xy.aPos, 2, glctx.Types.Float, false, 0, 0)
 	glctx.GL.Call("uniform3f", xy.uColor, kr, kg, kb) // per-channel retention
