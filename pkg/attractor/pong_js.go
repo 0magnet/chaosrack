@@ -198,11 +198,11 @@ func (p *pongGame) generatePong() {
 		strokes = append(strokes, []float64{0, y, 0, y - 0.06})
 	}
 	// Score marks: detached ticks hanging under the top edge.
-	for i := 0; i < p.scoreL; i++ {
+	for i := range p.scoreL {
 		x := -(0.18 + 0.11*float64(i))
 		strokes = append(strokes, []float64{x, pongH - 0.03, x, pongH - 0.11})
 	}
-	for i := 0; i < p.scoreR; i++ {
+	for i := range p.scoreR {
 		x := 0.18 + 0.11*float64(i)
 		strokes = append(strokes, []float64{x, pongH - 0.03, x, pongH - 0.11})
 	}

@@ -11,7 +11,7 @@ import (
 // the moment this was added, and nobody would connect the change to a knob
 // they never touched.
 func TestPaletteWindowDefaultsToTheOldCoordinate(t *testing.T) {
-	for i := 0; i <= 256; i++ {
+	for i := range 257 {
 		v := float32(i) / 256
 		if got := Coord(v, 1, 0); math.Abs(float64(got-v)) > 1e-6 {
 			t.Fatalf("Coord(%v, 1, 0) = %v; span 1 shift 0 must be the identity", v, got)
@@ -26,7 +26,7 @@ func TestPaletteWindowDefaultsToTheOldCoordinate(t *testing.T) {
 func TestPaletteCoordStaysOnTheMap(t *testing.T) {
 	for _, span := range []float32{0.05, 0.2, 1, 4, 20} {
 		for _, shift := range []float32{-1, -0.37, 0, 0.37, 1, 7.5, -7.5} {
-			for i := 0; i <= 32; i++ {
+			for i := range 33 {
 				v := float32(i) / 32
 				got := Coord(v, span, shift)
 				if got < 0 || got > 1 {
@@ -61,7 +61,7 @@ func TestPaletteCoordHasNoSeam(t *testing.T) {
 // either jump colors or stall.
 func TestTheFoldRepeatsOverTheKnobRange(t *testing.T) {
 	for _, span := range []float32{0.2, 1, 3} {
-		for i := 0; i <= 16; i++ {
+		for i := range 17 {
 			v := float32(i) / 16
 			for _, shift := range []float32{-0.9, -0.25, 0, 0.25, 0.9} {
 				a := Coord(v, span, shift)
@@ -80,7 +80,7 @@ func TestTheFoldRepeatsOverTheKnobRange(t *testing.T) {
 // comes back exactly REVERSED — a different, fully usable picture — rather
 // than the flat single color a clamp against the colormap would have given.
 func TestTheEndsOfTheKnobAreTheReversedMap(t *testing.T) {
-	for i := 0; i <= 32; i++ {
+	for i := range 33 {
 		v := float32(i) / 32
 		for _, shift := range []float32{-1, 1} {
 			got := Coord(v, 1, shift)
@@ -127,7 +127,7 @@ func TestANarrowWindowSlidesWithoutResizing(t *testing.T) {
 	const span = 0.2
 	for _, shift := range []float32{0, 0.15, 0.3, 0.45, 0.6} {
 		lo, hi := float32(1), float32(0)
-		for i := 0; i <= 64; i++ {
+		for i := range 65 {
 			c := Coord(float32(i)/64, span, shift)
 			if c < lo {
 				lo = c

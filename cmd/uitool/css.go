@@ -169,7 +169,7 @@ func runCSS() {
 	if v, ok := c.Eval(`(()=>{const s=document.getElementById('mode-select');return s?s.options.length:0;})()`).(float64); ok {
 		n = int(v)
 	}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		c.Eval(fmt.Sprintf(`(()=>{const s=document.getElementById('mode-select');if(s&&s.options[%d]){s.selectedIndex=%d;s.dispatchEvent(new Event('change',{bubbles:true}));}})()`, i, i))
 		time.Sleep(90 * time.Millisecond)
 		if i%7 == 0 {

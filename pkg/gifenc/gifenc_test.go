@@ -232,7 +232,7 @@ func TestEncodeRGBAWithFramesOfDifferentSizes(t *testing.T) {
 func BenchmarkEncodeRGBA(b *testing.B) {
 	frames := []*image.RGBA{gradient(128, 128), gradient(128, 128), gradient(128, 128)}
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		var buf bytes.Buffer
 		if err := EncodeRGBA(&buf, frames, 0); err != nil {
 			b.Fatal(err)

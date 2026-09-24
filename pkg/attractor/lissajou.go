@@ -40,7 +40,7 @@ func (l *lissajousBeam) generateLissajou() {
 	l.phase += 0.004 * sim.speedScale
 	ph := float64(l.phase)
 	a, b, c := float64(l.a), float64(l.b), float64(l.c)
-	for i := 0; i < sim.steps; i++ {
+	for i := range sim.steps {
 		t := l.t - float64(sim.steps-1-i)*delta
 		j := i * 4
 		vertices[j] = float32(math.Sin(a*t + ph))

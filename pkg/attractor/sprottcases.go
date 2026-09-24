@@ -63,7 +63,7 @@ func integrate3D(dt float64, deriv func(x, y, z float64) (float64, float64, floa
 	}
 	const lim = 1e4
 	sub := effSubSteps(sim.speedSteps, sim.steps, frameBudgetCompiled)
-	for i := 0; i < sim.steps; i++ {
+	for i := range sim.steps {
 		for range sub {
 			k1x, k1y, k1z := deriv(sim.x64, sim.y64, sim.z64)
 			k2x, k2y, k2z := deriv(sim.x64+d/2*k1x, sim.y64+d/2*k1y, sim.z64+d/2*k1z)
@@ -174,7 +174,7 @@ func generateHyperRossler() {
 	vertices := sim.vertBuf[:sim.steps*4]
 	invN := float32(1) / float32(sim.steps-1)
 	sub := effSubSteps(sim.speedSteps, sim.steps, frameBudgetCompiled)
-	for i := 0; i < sim.steps; i++ {
+	for i := range sim.steps {
 		dt := float64(dynamics.HyperDT * sim.speedScale)
 		for range sub {
 			dx, dy, dz, dw := dynamics.HyperDeriv(float64(sim.x), float64(sim.y), float64(sim.z), float64(dynamics.HyperW))

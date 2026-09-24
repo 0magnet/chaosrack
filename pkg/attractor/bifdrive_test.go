@@ -120,7 +120,7 @@ func TestBifColumnForStaysInRange(t *testing.T) {
 // the readout and the highlight would disagree with what is being heard.
 func TestBifAudioValueIsMonotonic(t *testing.T) {
 	prev := float32(math.Inf(-1))
-	for i := 0; i <= 100; i++ {
+	for i := range 101 {
 		v := bifAudioValue(float32(i)/100, 0.4, 20, 0, 60)
 		if v < prev {
 			t.Fatalf("env %v gave %v, below the previous %v", float32(i)/100, v, prev)

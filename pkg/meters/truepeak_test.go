@@ -97,7 +97,7 @@ func benchSignal(amp float64) []float32 {
 func BenchmarkTruePeakFullScale(b *testing.B) {
 	x := benchSignal(1.0)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = TruePeak(x)
 	}
 }
@@ -105,7 +105,7 @@ func BenchmarkTruePeakFullScale(b *testing.B) {
 func BenchmarkTruePeakQuiet(b *testing.B) {
 	x := benchSignal(0.05)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = TruePeak(x)
 	}
 }
@@ -113,7 +113,7 @@ func BenchmarkTruePeakQuiet(b *testing.B) {
 func BenchmarkTruePeakSilence(b *testing.B) {
 	x := make([]float32, 4096)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = TruePeak(x)
 	}
 }
@@ -121,7 +121,7 @@ func BenchmarkTruePeakSilence(b *testing.B) {
 func BenchmarkTruePeakFullPassFullScale(b *testing.B) {
 	x := benchSignal(1.0)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = truePeakFull(x)
 	}
 }
@@ -129,7 +129,7 @@ func BenchmarkTruePeakFullPassFullScale(b *testing.B) {
 func BenchmarkTruePeakFullPassQuiet(b *testing.B) {
 	x := benchSignal(0.05)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = truePeakFull(x)
 	}
 }

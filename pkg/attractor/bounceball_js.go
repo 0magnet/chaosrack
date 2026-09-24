@@ -106,7 +106,7 @@ func (b *bouncingBall) generateBounceBall() {
 	}
 	n := max(sim.speedSteps, 1)
 	dt := 0.016 * float64(sim.speedScale)
-	for s := 0; s < n; s++ {
+	for range n {
 		b.step(dt)
 		b.ring[b.head*2] = b.x
 		b.ring[b.head*2+1] = b.y
@@ -126,7 +126,7 @@ func (b *bouncingBall) generateBounceBall() {
 	}
 	vertices := sim.vertBuf[:sim.steps*4]
 	invN := float32(1) / float32(sim.steps-1)
-	for i := 0; i < sim.steps; i++ {
+	for i := range sim.steps {
 		// Oldest sample first; before the ring fills, backfill with the oldest
 		// we have so the strip stays degenerate rather than garbage.
 		age := sim.steps - 1 - i
@@ -193,7 +193,7 @@ func (b *bouncingBall) syncBounceExtras(mode string) {
 		// fit measures true arcs, never a near-empty ring.
 		b.warm = true
 		b.ring = make([]float64, sim.steps*2)
-		for i := 0; i < sim.steps; i++ {
+		for i := range sim.steps {
 			b.step(0.016)
 			b.ring[i*2] = b.x
 			b.ring[i*2+1] = b.y

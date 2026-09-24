@@ -64,7 +64,7 @@ func TraceEnvelope(dst, src []float32, cols int) int {
 	if cols > n {
 		cols = n
 	}
-	for c := 0; c < cols; c++ {
+	for c := range cols {
 		lo := c * n / cols
 		hi := min((c+1)*n/cols, n)
 		if hi <= lo {

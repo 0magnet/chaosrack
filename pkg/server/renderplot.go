@@ -241,7 +241,7 @@ func plotSpectrogram(x []float32, total int) (*image.RGBA, error) {
 		c.textRight(c.x0-6, y+4, fmt.Sprintf("%gk", float64(f)/1000), plotText)
 	}
 	secs := float64(total) / renderSampleRate
-	for i := 0; i <= 4; i++ {
+	for i := range 5 {
 		c.textCenter(c.x0+i*w/4, c.y1+16, fmt.Sprintf("%.2gs", secs*float64(i)/4), plotText)
 	}
 	return c.img, nil

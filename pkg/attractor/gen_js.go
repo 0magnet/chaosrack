@@ -235,7 +235,7 @@ func addSelectorWaveDial(stack, sel js.Value, off float64) {
 	circle.Get("style").Set("height", dia)
 	dial.Call("appendChild", circle)
 	els := make([]js.Value, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		deg := -skirt.SweepDeg/2 + skirt.SweepDeg*float64(i)/float64(n-1)
 		l, t := dialLabelPos(deg, off)
 		ic := dom.Doc.Call("createElement", "span")
@@ -440,7 +440,7 @@ func (g *generator) noiseBuffer(ctx js.Value) js.Value {
 	buf := ctx.Call("createBuffer", 1, sr*2, sr)
 	data := buf.Call("getChannelData", 0)
 	lfsr := uint32(0x4001)
-	for i := 0; i < sr*2; i++ {
+	for i := range sr * 2 {
 		bit := (lfsr ^ (lfsr >> 1)) & 1
 		lfsr = (lfsr >> 1) | (bit << 14)
 		v := -1.0

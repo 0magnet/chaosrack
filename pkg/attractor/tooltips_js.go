@@ -118,7 +118,7 @@ func stampSelectorKnobs(f *cellRead, cell js.Value, mod, fallbackCtl string) {
 			return "", false
 		}
 	}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		ctl := fallbackCtl
 		if raw, ok := selTitle(i); ok {
 			// Only borrow the select's own name when it's a structured

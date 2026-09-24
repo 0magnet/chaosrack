@@ -183,7 +183,7 @@ func (b *bifurcation) generateBifurcation() {
 	}
 	span := b.max - b.min
 	vertices := sim.vertBuf[:n*4]
-	for i := 0; i < n; i++ {
+	for i := range n {
 		fx := float32(b.colOf[i]) / float32(bifCols-1)
 		fy := float32((b.valOf[i] - b.min) / span)
 		k := i * 4

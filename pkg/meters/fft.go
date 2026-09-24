@@ -218,12 +218,12 @@ func fftScratchFor(n int, wf WinKind) *fftScratch {
 	}
 	for i := range n {
 		r := 0
-		for b := 0; b < bits; b++ {
+		for b := range bits {
 			r = r<<1 | (i>>b)&1
 		}
 		s.rev[i] = r
 	}
-	for i := 0; i < n/2; i++ {
+	for i := range n / 2 {
 		ang := -2 * math.Pi * float64(i) / float64(n)
 		s.cosT[i] = math.Cos(ang)
 		s.sinT[i] = math.Sin(ang)

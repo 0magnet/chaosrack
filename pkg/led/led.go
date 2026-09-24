@@ -45,7 +45,7 @@ func Decimals(step, fine float64) int {
 	// not 10, and 1000*0.1 counts as 0. The tolerance is RELATIVE (with a small
 	// floor) so a tiny step like 1e-5 isn't mistaken for "0 places" — a fixed
 	// 1e-4 absolute tolerance made small-step params (e.g. Aizawa's dt) show 0.
-	for d := 0; d <= 8; d++ {
+	for d := range 9 {
 		scaled := fs * math.Pow(10, float64(d))
 		if math.Abs(scaled-math.Round(scaled)) <= 1e-6*math.Max(1, scaled) {
 			return d

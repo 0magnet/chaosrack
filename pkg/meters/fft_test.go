@@ -45,7 +45,7 @@ func BenchmarkComputeFFTMags(b *testing.B) {
 		input[i] = float32(math.Sin(float64(i) * 0.1))
 	}
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		ComputeFFTMags(input)
 	}
 }
@@ -56,7 +56,7 @@ func BenchmarkUpstreamComputeFFT(b *testing.B) {
 		input[i] = float32(math.Sin(float64(i) * 0.1))
 	}
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		sg.ComputeFFT(input)
 	}
 }

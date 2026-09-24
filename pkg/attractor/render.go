@@ -499,7 +499,7 @@ func (vs *viewState) autoFitCamera() {
 		return
 	}
 	maxAbs := float32(0)
-	for i := 0; i < len(gpu.verts); i++ {
+	for i := range len(gpu.verts) {
 		v := gpu.verts[i]
 		if v < 0 {
 			v = -v

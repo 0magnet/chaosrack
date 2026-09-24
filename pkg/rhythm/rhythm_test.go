@@ -156,7 +156,7 @@ func TestHitWrapsTheBar(t *testing.T) {
 	if !ok {
 		t.Fatal("march went missing")
 	}
-	for s := 0; s < p.Steps*3; s++ {
+	for s := range p.Steps * 3 {
 		if Hit(p, Bass, s) != Hit(p, Bass, s%p.Steps) {
 			t.Fatalf("step %d does not match step %d of the bar", s, s%p.Steps)
 		}
