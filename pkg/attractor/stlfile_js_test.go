@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/0magnet/chaosrack/pkg/meshstl"
+	"github.com/0magnet/chaosrack/pkg/stlmodels"
 )
 
 // setSTLFileTris is the path every model in the STL mode goes through — the
@@ -63,7 +64,7 @@ func TestSetSTLFileTrisRejectsAnEmptyMesh(t *testing.T) {
 // that matters is the one the 16-bit index pipeline needs: never more than
 // 65535 vertices, whatever comes in.
 func TestSetSTLFileTrisDecimatesToTheIndexBudget(t *testing.T) {
-	const n = stlFileMaxTris * 4
+	const n = stlmodels.MaxTris * 4
 	tris := make([][3]meshstl.V3, n)
 	for i := range tris {
 		f := float64(i)
@@ -72,15 +73,15 @@ func TestSetSTLFileTrisDecimatesToTheIndexBudget(t *testing.T) {
 	if err := setSTLFileTris(n, triFn(tris)); err != nil {
 		t.Fatal(err)
 	}
-	if stlFileTris > stlFileMaxTris {
-		t.Errorf("kept %d triangles, over the %d budget", stlFileTris, stlFileMaxTris)
+	if stlFileTris > stlmodels.MaxTris {
+		t.Errorf("kept %d triangles, over the %d budget", stlFileTris, stlmodels.MaxTris)
 	}
 	if verts := len(stlFileVerts) / 3; verts > 65535 {
 		t.Errorf("%d vertices — more than a uint16 index can reach", verts)
 	}
 	// Decimation should thin, not empty: a quarter of the budget would mean
 	// the stride arithmetic had run away.
-	if stlFileTris < stlFileMaxTris/2 {
+	if stlFileTris < stlmodels.MaxTris/2 {
 		t.Errorf("kept only %d of %d triangles", stlFileTris, n)
 	}
 	for _, i := range stlFileIdx {
@@ -100,7 +101,7 @@ func TestBuiltInsLoadThroughTheMeshPath(t *testing.T) {
 			t.Errorf("no built-in %q", name)
 			continue
 		}
-		if err := setSTLFileMesh(m.Build(STLViewerSeg)); err != nil {
+		if err := setSTLFileMesh(m.Build(stlmodels.ViewerSeg)); err != nil {
 			t.Errorf("%s: %v", name, err)
 			continue
 		}

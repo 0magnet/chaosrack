@@ -1,4 +1,4 @@
-package attractor
+package stlmodels
 
 import (
 	"testing"
@@ -10,7 +10,7 @@ import (
 // encoded as STL, and parsed back by the SAME loader the app's STL mode uses.
 // A model that only the generator can read is not a model the app can show.
 func TestEveryBuiltInLoadsInTheViewer(t *testing.T) {
-	models := STLModels()
+	models := All(nil)
 	if len(models) < 10 {
 		t.Fatalf("only %d built-ins", len(models))
 	}
@@ -38,7 +38,7 @@ func TestEveryBuiltInLoadsInTheViewer(t *testing.T) {
 // Names are file stems and picker keys; duplicates would silently overwrite.
 func TestBuiltInNamesAreUnique(t *testing.T) {
 	seen := map[string]bool{}
-	for _, m := range STLModels() {
+	for _, m := range All(nil) {
 		if seen[m.Name] {
 			t.Errorf("duplicate built-in name %q", m.Name)
 		}
@@ -50,7 +50,7 @@ func TestBuiltInNamesAreUnique(t *testing.T) {
 // 65535 vertices gets decimated — which is fine, but it should be a decision
 // rather than a surprise. This pins the size the attractors are generated at.
 func TestAttractorModelsFitTheIndexPipeline(t *testing.T) {
-	for _, m := range STLModels() {
+	for _, m := range All(nil) {
 		if m.Group != "Attractors" {
 			continue
 		}
