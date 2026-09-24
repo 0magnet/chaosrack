@@ -99,7 +99,7 @@ func generateGraphicArtist() {
 		vertices[j+2] = float32(z)
 		vertices[j+3] = float32(i) * invN
 	}
-	uploadVerticesOnly(vertices, attractorDrawMode, steps)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
 }
 
 // invN64 is 1/(steps-1) in float64 for the phase sweep.

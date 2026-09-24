@@ -277,7 +277,7 @@ func generateTurtle() {
 		}
 	}
 	if len(t.pts) < 2 {
-		uploadVerticesOnly(vertBuf[:0], attractorDrawMode, 0)
+		gpu.uploadVerticesOnly(vertBuf[:0], gpu.drawMode, 0)
 		return
 	}
 
@@ -308,7 +308,7 @@ func generateTurtle() {
 			d := i * 4
 			vertBuf[d], vertBuf[d+1], vertBuf[d+2], vertBuf[d+3] = x, y, z, t.tint[base+i]
 		}
-		uploadVerticesOnly(vertBuf[:n*4], attractorDrawMode, n)
+		gpu.uploadVerticesOnly(vertBuf[:n*4], gpu.drawMode, n)
 		return
 	}
 	t.body.placed = false // dropped again next time, from wherever it is standing
@@ -322,7 +322,7 @@ func generateTurtle() {
 		vertBuf[d+2] = (float32(p.Z) - t.cz) * t.scale
 		vertBuf[d+3] = t.tint[base+i]
 	}
-	uploadVerticesOnly(vertBuf[:n*4], attractorDrawMode, n)
+	gpu.uploadVerticesOnly(vertBuf[:n*4], gpu.drawMode, n)
 }
 
 // newTurtleWalk works out the arithmetic and starts the turtle walking. It

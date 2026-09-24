@@ -557,7 +557,7 @@ func (s *stereoInst) generate() {
 		// audio arrives, since the mode-entry fit saw whatever was here.
 		s.fitGain = 0
 		s.noteState(false, false, 0)
-		uploadVerticesOnly(vertices, attractorDrawMode, nv)
+		gpu.uploadVerticesOnly(vertices, gpu.drawMode, nv)
 		return
 	}
 	// The whole window, every frame. There is no accumulation to get wrong and
@@ -579,7 +579,7 @@ func (s *stereoInst) generate() {
 			// SINGLE has its frame. Re-upload it rather than recomputing:
 			// the point of a single shot is that what is on screen stops
 			// changing, including in the ways a redraw would change it.
-			uploadVerticesOnly(vertices, attractorDrawMode, nv)
+			gpu.uploadVerticesOnly(vertices, gpu.drawMode, nv)
 			return
 		}
 		// LOCK compares a whole window, so it needs the window behind every
@@ -615,7 +615,7 @@ func (s *stereoInst) generate() {
 			// NORMAL holds the last frame rather than showing an untriggered
 			// one, which is what makes a figure that DID hold stay up to be
 			// read. SINGLE waits the same way until it catches something.
-			uploadVerticesOnly(vertices, attractorDrawMode, nv)
+			gpu.uploadVerticesOnly(vertices, gpu.drawMode, nv)
 			return
 		}
 	}
@@ -687,7 +687,7 @@ func (s *stereoInst) generate() {
 		}
 		vertices[j+3] = w
 	}
-	uploadVerticesOnly(vertices, attractorDrawMode, nv)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, nv)
 	// The reference lines go up after the trace, as the Poincaré overlay
 	// does: a separate draw call over the finished figure.
 	s.drawGraticule()
@@ -1461,9 +1461,9 @@ func (s *stereoInst) drawGraticule() {
 	}
 	n := len(v) / 4
 
-	glctx.GL.Call("uniform1i", uGradientColorsLoc, 1)
-	glctx.GL.Call("uniform3f", uBaseColorLoc, 0.22, 0.26, 0.32)
-	uploadVerticesOnly(v, glctx.Types.Lines, n)
+	glctx.GL.Call("uniform1i", gpu.u.gradientColors, 1)
+	glctx.GL.Call("uniform3f", gpu.u.baseColor, 0.22, 0.26, 0.32)
+	gpu.uploadVerticesOnly(v, glctx.Types.Lines, n)
 	if phosphorActive() {
 		// The phosphor owns these two while it is on; handing them to the
 		// palette here would hand them to the wrong owner. sectTick says
@@ -1471,8 +1471,8 @@ func (s *stereoInst) drawGraticule() {
 		applyPhosphorColor()
 		return
 	}
-	glctx.GL.Call("uniform1i", uGradientColorsLoc, gradientColorsUniform())
-	glctx.GL.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
+	glctx.GL.Call("uniform1i", gpu.u.gradientColors, gradientColorsUniform())
+	glctx.GL.Call("uniform3f", gpu.u.baseColor, baseColor[0], baseColor[1], baseColor[2])
 }
 
 // field resolves a parameter id to the field it names ON THIS INSTANCE.

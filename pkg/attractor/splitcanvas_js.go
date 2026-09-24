@@ -60,8 +60,8 @@ func sizeFrontCanvas() {
 	if !frontCanvas.Truthy() || !glctx.Canvas.Truthy() {
 		return
 	}
-	frontCanvas.Set("width", width)
-	frontCanvas.Set("height", height)
+	frontCanvas.Set("width", gpu.width)
+	frontCanvas.Set("height", gpu.height)
 	st := glctx.Canvas.Get("style")
 	fs := frontCanvas.Get("style")
 	fs.Set("width", st.Get("width"))
@@ -84,7 +84,7 @@ func showFrontCanvas(on bool) {
 	// it again would flash whatever was last drawn on it -- a half of a model
 	// that may not even be the current one.
 	if frontCtx.Truthy() {
-		frontCtx.Call("clearRect", 0, 0, width, height)
+		frontCtx.Call("clearRect", 0, 0, gpu.width, gpu.height)
 	}
 	frontCanvas.Get("style").Set("display", "none")
 }
@@ -102,7 +102,7 @@ func copyNearPassToFront() {
 	if !frontCtx.Truthy() {
 		return
 	}
-	frontCtx.Call("clearRect", 0, 0, width, height)
+	frontCtx.Call("clearRect", 0, 0, gpu.width, gpu.height)
 	frontCtx.Call("drawImage", glctx.Canvas, 0, 0)
 }
 
@@ -114,7 +114,7 @@ func frontCanvasPx() string {
 	}
 	return frontCanvas.Get("style").Get("width").String() + "x" +
 		frontCanvas.Get("style").Get("height").String() +
-		" @" + strconv.Itoa(width) + "x" + strconv.Itoa(height)
+		" @" + strconv.Itoa(gpu.width) + "x" + strconv.Itoa(gpu.height)
 }
 
 // captureCanvas is what anything recording the picture should read from.

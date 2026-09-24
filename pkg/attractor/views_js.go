@@ -56,7 +56,7 @@ const viewGap = 2
 // A canvas too small to hold the grid gives ONE rect: GL rejects a zero or
 // negative viewport, and a sixteenth of nothing is not a view.
 func viewRects() [][4]int {
-	w, h := width, height
+	w, h := gpu.width, gpu.height
 	if w < 1 {
 		w = 1
 	}
@@ -119,7 +119,7 @@ func gridEdges(total, n int) ([][2]int, bool) {
 //
 // The projection has to be per view: a half-width viewport is half the
 // aspect ratio, and reusing the full-canvas matrix draws a figure stretched
-// to twice its width inside it. projMatrix is a package variable that
+// to twice its width inside it. gpu.proj is a package variable that
 // texProgram also reads, so it is restored by the caller running the full
 // rect last.
 func setViewport(r [4]int) {
@@ -128,10 +128,10 @@ func setViewport(r [4]int) {
 	if h < 1 {
 		h = 1
 	}
-	projMatrix = mgl32.Perspective(mgl32.DegToRad(45.0), float32(r[2])/float32(h), 1, 1500.0)
-	glctx.GL.Call("useProgram", shaderProgram)
+	gpu.proj = mgl32.Perspective(mgl32.DegToRad(45.0), float32(r[2])/float32(h), 1, 1500.0)
+	glctx.GL.Call("useProgram", gpu.program)
 	glctx.GL.Call("uniformMatrix4fv",
-		glctx.GL.Call("getUniformLocation", shaderProgram, "Pmatrix"), false, mat4ToTyped(&projMatrix))
+		glctx.GL.Call("getUniformLocation", gpu.program, "Pmatrix"), false, mat4ToTyped(&gpu.proj))
 }
 
 // drawViewPasses draws the mode once per view.
@@ -177,7 +177,7 @@ func drawViewPasses(mode string) {
 	// Back to the whole canvas, so everything drawn after these passes —
 	// the Poincaré overlay, the lens, the next frame's clear — sees the
 	// state it has always seen.
-	setViewport([4]int{0, 0, width, height})
+	setViewport([4]int{0, 0, gpu.width, gpu.height})
 }
 
 // wireViewGridDial hooks up the grid-size dial.
@@ -722,10 +722,10 @@ func applySweepAxis(mode, id string, frac float32) func() {
 	// grid of it has to pay for a rebuild per cell — which is what the
 	// operator asked for by pointing the sweep at a shape.
 	if modeInfo[mode].Class == ClassGeometry {
-		staticGeomDirty = true
+		gpu.staticDirty = true
 		return func() {
 			*f = prev
-			staticGeomDirty = true // and back to the knob's own shape
+			gpu.staticDirty = true // and back to the knob's own shape
 		}
 	}
 	return func() { *f = prev }

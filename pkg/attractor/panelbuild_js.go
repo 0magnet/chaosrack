@@ -180,7 +180,7 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 		if val, err := strconv.ParseFloat(slider.Get("value").String(), 64); err == nil {
 			*p.Value = float32(val)
 			showValue(val)
-			staticGeomDirty = true
+			gpu.staticDirty = true
 			resetAttractorState()
 			refreshGradient()
 		}
@@ -191,7 +191,7 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 			if val, err := strconv.ParseFloat(numInput.Get("value").String(), 64); err == nil {
 				*p.Value = float32(val)
 				slider.Set("value", strconv.FormatFloat(val, 'g', -1, 64))
-				staticGeomDirty = true
+				gpu.staticDirty = true
 				resetAttractorState()
 				refreshGradient()
 			}

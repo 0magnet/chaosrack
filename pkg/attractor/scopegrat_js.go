@@ -57,8 +57,8 @@ func drawScopeGraticule(halfH float32) {
 	// it. Drawn under an identity model matrix and put back afterwards, the
 	// way the color uniforms below are — the pose the operator set is still
 	// the pose, and the next thing drawn has to see it.
-	glctx.GL.Call("useProgram", shaderProgram)
-	glctx.GL.Call("uniformMatrix4fv", uMmatrixLoc, false, mat4ToTyped(&identMatrix))
+	glctx.GL.Call("useProgram", gpu.program)
+	glctx.GL.Call("uniformMatrix4fv", gpu.u.model, false, mat4ToTyped(&identMatrix))
 	defer updateModelMatrix()
 
 	perDiv := halfH / float32(scope.HalfH)
@@ -86,9 +86,9 @@ func drawScopeGraticule(halfH float32) {
 			continue
 		}
 		s := gratShade[w]
-		glctx.GL.Call("uniform1i", uGradientColorsLoc, 1)
-		glctx.GL.Call("uniform3f", uBaseColorLoc, gratBase[0]*s, gratBase[1]*s, gratBase[2]*s)
-		uploadVerticesOnly(v, glctx.Types.Lines, len(v)/4)
+		glctx.GL.Call("uniform1i", gpu.u.gradientColors, 1)
+		glctx.GL.Call("uniform3f", gpu.u.baseColor, gratBase[0]*s, gratBase[1]*s, gratBase[2]*s)
+		gpu.uploadVerticesOnly(v, glctx.Types.Lines, len(v)/4)
 	}
 
 	// Hand the uniforms back, exactly as drawGraticule does: the trail's own
@@ -99,8 +99,8 @@ func drawScopeGraticule(halfH float32) {
 		applyPhosphorColor()
 		return
 	}
-	glctx.GL.Call("uniform1i", uGradientColorsLoc, gradientColorsUniform())
-	glctx.GL.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
+	glctx.GL.Call("uniform1i", gpu.u.gradientColors, gradientColorsUniform())
+	glctx.GL.Call("uniform3f", gpu.u.baseColor, baseColor[0], baseColor[1], baseColor[2])
 }
 
 // scopeFaceOn reports whether the scope face should be drawn: the CRT look is

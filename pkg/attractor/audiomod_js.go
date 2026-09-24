@@ -133,7 +133,7 @@ func applyAudioModulation(mode string) []savedParam {
 	// parameter under a genuinely constant feature no longer rebuilds an
 	// identical mesh sixty times a second.
 	if modApplyChanged() && !isAttractorMode(mode) {
-		staticGeomDirty = true
+		gpu.staticDirty = true
 	}
 	return saved
 }

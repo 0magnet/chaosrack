@@ -317,7 +317,7 @@ func drawWaterLens() {
 
 	// The scene as it stands, into a texture.
 	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), waterSceneTex)
-	glctx.GL.Call("copyTexImage2D", glctx.GL.Get("TEXTURE_2D"), 0, glctx.GL.Get("RGBA"), 0, 0, width, height, 0)
+	glctx.GL.Call("copyTexImage2D", glctx.GL.Get("TEXTURE_2D"), 0, glctx.GL.Get("RGBA"), 0, 0, gpu.width, gpu.height, 0)
 
 	uploadWaterHeight()
 

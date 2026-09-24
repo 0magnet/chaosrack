@@ -58,7 +58,7 @@ func generateScopeText() {
 		scopeTextT--
 	}
 	if v := beamLines(scopeTextDrawn, scopeTextT); v > 0 {
-		uploadVerticesOnly(vertBuf[:v*4], beamDrawMode(), v)
+		gpu.uploadVerticesOnly(vertBuf[:v*4], beamDrawMode(), v)
 	}
 }
 

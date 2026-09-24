@@ -108,7 +108,7 @@ func TestOnlyModesThatRedrawAreSplit(t *testing.T) {
 	//
 	// This list used to be on the other side of this test, on the stated
 	// grounds that these modes rebuild their geometry as they draw. They do
-	// not: uploadBuffersIndexed re-uploads only while staticGeomDirty is set,
+	// not: uploadBuffersIndexed re-uploads only while gpu.staticDirty is set,
 	// and re-issues drawElements against the cached buffers otherwise. What the
 	// old rule actually cost was the feature — the knob did nothing whatever on
 	// a torus until it hit the very end of its travel.
