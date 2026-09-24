@@ -412,7 +412,7 @@ func (x *xyScope) drawXYScope(clear bool) {
 			// the self-clearing path — as a BACKDROP the scope draws onto a
 			// buffer somebody else owns and the model on top of it is redrawn
 			// whole every frame, so fading here would smear that instead.
-			drawFadeQuad(k, k, k)
+			phos.drawFadeQuad(k, k, k)
 			glctx.GL.Call("disable", glctx.Types.DepthTest)
 		} else {
 			// Transparent clear (alpha 0), like every other mode — so with "Front" on
@@ -432,8 +432,8 @@ func (x *xyScope) drawXYScope(clear bool) {
 	glctx.GL.Call("vertexAttribPointer", x.aPos, 2, glctx.Types.Float, false, 0, 0)
 
 	col := [3]float32{0.4, 1.0, 0.45}
-	if phosphorActive() { // scope mode → trace in the selected phosphor color
-		p := phosphors[phosphorIdx]
+	if phos.active() { // scope mode → trace in the selected phosphor color
+		p := phosphors[phos.index]
 		col = [3]float32{float32(p.tr), float32(p.tg), float32(p.tb)}
 	}
 	glctx.GL.Call("uniform3f", x.uColor, col[0], col[1], col[2])

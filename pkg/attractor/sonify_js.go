@@ -122,8 +122,8 @@ func (so *sonifier) process(_ js.Value, args []js.Value) interface{} {
 		so.zero = make([]float32, frames)
 	}
 
-	n := steps
-	if so.mapping == "off" || !isAttractorMode(selectedMode) || n < 2 || len(vertBuf) < n*4 {
+	n := sim.steps
+	if so.mapping == "off" || !isAttractorMode(run.selectedMode) || n < 2 || len(sim.vertBuf) < n*4 {
 		sonifyWrite(outL, so.zero[:frames])
 		sonifyWrite(outR, so.zero[:frames])
 		return nil
@@ -150,14 +150,14 @@ func (so *sonifier) process(_ js.Value, args []js.Value) interface{} {
 		l[i], r[i] = float32(vl), float32(vr)
 	}
 
-	sys, haveFlow := dynamics.FlowFor4(selectedMode)
+	sys, haveFlow := dynamics.FlowFor4(run.selectedMode)
 	if so.mode == "flow" && haveFlow {
 		// FLOW: audify the dynamics — integrate the mode's own vector field
 		// at audio rate. sonifyHz transposes: 440 (A4) = one integrator step
 		// per sample; each octave doubles the rate, so the knob moves the
 		// emergent pitch by exact musical intervals.
-		if so.flowMode != selectedMode {
-			ic := dynamics.InitCondFor(selectedMode)
+		if so.flowMode != run.selectedMode {
+			ic := dynamics.InitCondFor(run.selectedMode)
 			so.fx, so.fy, so.fz = float64(ic[0]), float64(ic[1]), float64(ic[2])
 			if so.fx == 0 && so.fy == 0 && so.fz == 0 {
 				so.fx, so.fy, so.fz = 0.1, 0, 0 // don't strand at a fixed point
@@ -165,7 +165,7 @@ func (so *sonifier) process(_ js.Value, args []js.Value) interface{} {
 			so.fw = sys.W()
 			so.px, so.py, so.pz = so.fx, so.fy, so.fz
 			so.acc = 0
-			so.flowMode = selectedMode
+			so.flowMode = run.selectedMode
 		}
 		dt := sys.Dt()
 		stepRate := so.hz / 440.0
@@ -181,7 +181,7 @@ func (so *sonifier) process(_ js.Value, args []js.Value) interface{} {
 				so.fz += dt * dz
 				so.fw += dt * dw
 				if !(so.fx > -lim && so.fx < lim && so.fy > -lim && so.fy < lim && so.fz > -lim && so.fz < lim && so.fw > -lim && so.fw < lim) {
-					ic := dynamics.InitCondFor(selectedMode)
+					ic := dynamics.InitCondFor(run.selectedMode)
 					so.fx, so.fy, so.fz = float64(ic[0]), float64(ic[1]), float64(ic[2])
 					if so.fx == 0 && so.fy == 0 && so.fz == 0 {
 						so.fx = 0.1
@@ -213,9 +213,9 @@ func (so *sonifier) process(_ js.Value, args []js.Value) interface{} {
 			t := float32(f - float64(j))
 			a, b := j*4, (j+1)*4
 			push(i,
-				vertBuf[a]*(1-t)+vertBuf[b]*t,
-				vertBuf[a+1]*(1-t)+vertBuf[b+1]*t,
-				vertBuf[a+2]*(1-t)+vertBuf[b+2]*t)
+				sim.vertBuf[a]*(1-t)+sim.vertBuf[b]*t,
+				sim.vertBuf[a+1]*(1-t)+sim.vertBuf[b+1]*t,
+				sim.vertBuf[a+2]*(1-t)+sim.vertBuf[b+2]*t)
 		}
 	}
 
@@ -278,7 +278,7 @@ func (so *sonifier) modeSync() {
 	if !so.active || !so.node.Truthy() {
 		return
 	}
-	if isAttractorMode(selectedMode) {
+	if isAttractorMode(run.selectedMode) {
 		so.node.Call("connect", so.ctx.Get("destination"))
 	} else {
 		so.node.Call("disconnect")

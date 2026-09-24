@@ -163,7 +163,7 @@ func parseModRoute(val string) (paramMod, bool) {
 
 func permaFmt(v float32) string { return strconv.FormatFloat(float64(v), 'g', 6, 32) }
 
-func paramKey(id string) string { return strings.TrimPrefix(id, selectedMode+"-") }
+func paramKey(id string) string { return strings.TrimPrefix(id, run.selectedMode+"-") }
 
 // hashModeToken returns the mode portion of the URL hash (the token before
 // the first '&'), or "" if there's no hash.
@@ -210,7 +210,7 @@ func (pe *permalinkState) capturePermaDefaults() {
 // current live state.
 func (pe *permalinkState) serializeState() string {
 	var b strings.Builder
-	b.WriteString(selectedMode)
+	b.WriteString(run.selectedMode)
 
 	// Registry-owned numeric controls that differ from their defaults.
 	for _, ctl := range builtControls {
@@ -253,7 +253,7 @@ func (pe *permalinkState) serializeState() string {
 	}
 
 	// Attractor parameters that differ from their default.
-	for _, p := range attractorParams[selectedMode] {
+	for _, p := range attractorParams[run.selectedMode] {
 		if *p.Value != p.Def {
 			b.WriteString("&p.")
 			b.WriteString(paramKey(p.ID))
@@ -263,7 +263,7 @@ func (pe *permalinkState) serializeState() string {
 	}
 
 	// Custom mode: the equations + their parameters.
-	if selectedMode == "custom" {
+	if run.selectedMode == "custom" {
 		custom.serializeCustom(&b)
 	}
 
@@ -285,8 +285,8 @@ func (pe *permalinkState) serializeState() string {
 	}
 
 	// Per-parameter audio-mod routing: channel~band0,band1,…~level.
-	for _, p := range attractorParams[selectedMode] {
-		if m := paramMods[p.ID]; m.channel != "" && m.level != 0 {
+	for _, p := range attractorParams[run.selectedMode] {
+		if m := pmod.params[p.ID]; m.channel != "" && m.level != 0 {
 			b.WriteString("&m." + paramKey(p.ID) + "=" + formatModRoute(m))
 		}
 	}
@@ -301,7 +301,7 @@ func (pe *permalinkState) serializeState() string {
 
 	// View-knob (camera/motion) modulation routing, keyed vm.<suffix>.
 	for _, vt := range viewModTargets {
-		if m := paramMods[vt.id]; m.channel != "" && m.level != 0 {
+		if m := pmod.params[vt.id]; m.channel != "" && m.level != 0 {
 			b.WriteString("&vm." + strings.TrimPrefix(vt.id, "view-") + "=" + formatModRoute(m))
 		}
 	}
@@ -500,7 +500,7 @@ func applyControl(key, val string) {
 }
 
 func applyParam(suffix, val string) {
-	el := dom.Doc.Call("getElementById", selectedMode+"-"+suffix)
+	el := dom.Doc.Call("getElementById", run.selectedMode+"-"+suffix)
 	if !el.Truthy() {
 		return
 	}
@@ -524,7 +524,7 @@ func applyRot(val string) {
 	view.angleX, view.angleY, view.angleZ = a[0], a[1], a[2]
 	view.rebuildModelMatrix()
 	view.updateModelMatrix()
-	updateRotKnobs()
+	rotKnobs.update()
 }
 
 // applyStateFromHash parses the URL hash and applies everything after the
@@ -616,11 +616,11 @@ func (pe *permalinkState) applyStateFrom(h string) {
 			applyParam(strings.TrimPrefix(key, "p."), val)
 		case strings.HasPrefix(key, "vm."):
 			if m, ok := parseModRoute(val); ok {
-				paramMods["view-"+strings.TrimPrefix(key, "vm.")] = m
+				pmod.params["view-"+strings.TrimPrefix(key, "vm.")] = m
 			}
 		case strings.HasPrefix(key, "m."):
 			if m, ok := parseModRoute(val); ok {
-				paramMods[selectedMode+"-"+strings.TrimPrefix(key, "m.")] = m
+				pmod.params[run.selectedMode+"-"+strings.TrimPrefix(key, "m.")] = m
 			}
 		default:
 			if key == "rx" || key == "ry" || key == "rz" {
@@ -649,7 +649,7 @@ func (pe *permalinkState) applyStateFrom(h string) {
 		// system between the flow and map registries, so it still has to happen.
 		custom.parseCustom()
 	}
-	if haveCustom && selectedMode == "custom" {
+	if haveCustom && run.selectedMode == "custom" {
 		buildParamPanel("custom") // reflect restored equations + params
 	}
 	if poseVal != "" {

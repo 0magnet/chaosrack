@@ -13,8 +13,8 @@ import (
 
 func withColorKnobs(t *testing.T) {
 	t.Helper()
-	s, c, m := gradientSource, gradientColors, selectedMode
-	t.Cleanup(func() { gradientSource, gradientColors, selectedMode = s, c, m })
+	s, c, m := style.gradientSource, style.gradientColors, run.selectedMode
+	t.Cleanup(func() { style.gradientSource, style.gradientColors, run.selectedMode = s, c, m })
 }
 
 // TestSourceOffOnlySilencesTheGeometry is the load-bearing asymmetry.
@@ -27,20 +27,20 @@ func withColorKnobs(t *testing.T) {
 // only the shader's uniform folds OFF in.
 func TestSourceOffOnlySilencesTheGeometry(t *testing.T) {
 	withColorKnobs(t)
-	gradientColors = 9 // viridis
+	style.gradientColors = 9 // viridis
 
-	gradientSource = 2 // Z
+	style.gradientSource = 2 // Z
 	if got := gradientColorsUniform(); got != 9 {
 		t.Errorf("source Z: uniform %d, want the map ring's 9", got)
 	}
-	gradientSource = GradientSourceOff
+	style.gradientSource = GradientSourceOff
 	if got := gradientColorsUniform(); got != 1 {
 		t.Errorf("source OFF: uniform %d, want the shader's monochrome 1", got)
 	}
 	// The map ring itself does not move, which is what the analyzers and the
 	// spectrogram read.
-	if gradientColors != 9 {
-		t.Errorf("source OFF moved the map ring to %d", gradientColors)
+	if style.gradientColors != 9 {
+		t.Errorf("source OFF moved the map ring to %d", style.gradientColors)
 	}
 	if _, ok := analyzerPalette(); !ok {
 		t.Error("the analyzers lost their colormap when the source was turned off")
@@ -76,13 +76,13 @@ func TestOnlyTheGeometryHasASourceToChoose(t *testing.T) {
 // not the position failing to map anything.
 func TestEveryMapPositionMapsSomething(t *testing.T) {
 	withColorKnobs(t)
-	gradientSource = 2
+	style.gradientSource = 2
 	rgb := func(v float64) [3]uint32 {
 		r, g, b, _ := mapColorAt(v).RGBA()
 		return [3]uint32{r, g, b}
 	}
 	for _, m := range []int{2, 3, 4, 5, 6, 7, 8, 9, 10} {
-		gradientColors = m
+		style.gradientColors = m
 		seen := map[[3]uint32]bool{}
 		for _, v := range []float64{0, 0.2, 0.4, 0.6, 0.8, 1} {
 			seen[rgb(v)] = true

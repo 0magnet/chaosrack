@@ -100,21 +100,21 @@ func (b *bouncingBall) step(dt float64) {
 // control like the flows) into a private position ring, then streams the
 // ring oldest→newest into the trail buffer.
 func (b *bouncingBall) generateBounceBall() {
-	if len(b.ring) != steps*2 {
-		b.ring = make([]float64, steps*2)
+	if len(b.ring) != sim.steps*2 {
+		b.ring = make([]float64, sim.steps*2)
 		b.head, b.fill = 0, 0
 	}
-	n := speedSteps
+	n := sim.speedSteps
 	if n < 1 {
 		n = 1
 	}
-	dt := 0.016 * float64(speedScale)
+	dt := 0.016 * float64(sim.speedScale)
 	for s := 0; s < n; s++ {
 		b.step(dt)
 		b.ring[b.head*2] = b.x
 		b.ring[b.head*2+1] = b.y
-		b.head = (b.head + 1) % steps
-		if b.fill < steps {
+		b.head = (b.head + 1) % sim.steps
+		if b.fill < sim.steps {
 			b.fill++
 		}
 	}
@@ -127,17 +127,17 @@ func (b *bouncingBall) generateBounceBall() {
 	if b.fill < 2 {
 		return
 	}
-	vertices := vertBuf[:steps*4]
-	invN := float32(1) / float32(steps-1)
-	for i := 0; i < steps; i++ {
+	vertices := sim.vertBuf[:sim.steps*4]
+	invN := float32(1) / float32(sim.steps-1)
+	for i := 0; i < sim.steps; i++ {
 		// Oldest sample first; before the ring fills, backfill with the oldest
 		// we have so the strip stays degenerate rather than garbage.
-		age := steps - 1 - i
+		age := sim.steps - 1 - i
 		idx := 0
 		if age < b.fill {
-			idx = (b.head - 1 - age + steps + steps) % steps
+			idx = (b.head - 1 - age + sim.steps + sim.steps) % sim.steps
 		} else {
-			idx = (b.head - b.fill + steps + steps) % steps
+			idx = (b.head - b.fill + sim.steps + sim.steps) % sim.steps
 		}
 		j := i * 4
 		vertices[j] = float32(b.ring[idx*2])
@@ -145,14 +145,14 @@ func (b *bouncingBall) generateBounceBall() {
 		vertices[j+2] = 0
 		vertices[j+3] = float32(i) * invN
 	}
-	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, sim.steps)
 }
 
 // bounceBeep: one short sine blip on the shared context. The acquire only
 // audibly resumes once some real user gesture has unlocked audio; until
 // then the demo just runs silent.
 func (b *bouncingBall) beep(freq float64, ms int) {
-	if b.warm || selectedMode != "bounceball" {
+	if b.warm || run.selectedMode != "bounceball" {
 		return
 	}
 	ctx := acquireAudioCtx("bounce")
@@ -195,14 +195,14 @@ func (b *bouncingBall) syncBounceExtras(mode string) {
 		// Warm the ring with a real trajectory (blips muted) so every camera
 		// fit measures true arcs, never a near-empty ring.
 		b.warm = true
-		b.ring = make([]float64, steps*2)
-		for i := 0; i < steps; i++ {
+		b.ring = make([]float64, sim.steps*2)
+		for i := 0; i < sim.steps; i++ {
 			b.step(0.016)
 			b.ring[i*2] = b.x
 			b.ring[i*2+1] = b.y
 		}
 		b.warm = false
-		b.head, b.fill = 0, steps
+		b.head, b.fill = 0, sim.steps
 		normalizeOrientation()
 		// The trail ring is nearly empty at entry, so any auto-fit would frame
 		// a speck. Hand the next fit the demo box's real extent AND set the

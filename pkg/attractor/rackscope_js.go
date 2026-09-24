@@ -454,8 +454,8 @@ func (ra *rackScope) vertical(l, r []float32) []float32 {
 // rack's own phosphor selection when one is set, so the scope in the rack
 // and the scope look on the model are the same tube.
 func scopeBeamColor() string {
-	if phosphorIdx > 0 && phosphorIdx < len(phosphors) {
-		p := phosphors[phosphorIdx]
+	if phos.index > 0 && phos.index < len(phosphors) {
+		p := phosphors[phos.index]
 		return phColorCSS(p.tr, p.tg, p.tb)
 	}
 	// P31, the Tektronix standard, when nothing else is chosen: this tube

@@ -42,7 +42,7 @@ func (f *freqCounter) tick() {
 	}
 	// Same reason as the other analyzers: it counts crossings every frame,
 	// and the drawer usually has it scrolled away. See moduleOnScreen.
-	if !moduleOnScreen("counter-module") {
+	if !onScreen.moduleOnScreen("counter-module") {
 		return
 	}
 	src := aud.ensureAudioSource()
@@ -81,7 +81,7 @@ func (f *freqCounter) tick() {
 	if f.samples >= int(gate*float64(src.SampleRate())) {
 		// Latch: cycles over the ACTUAL window (sample-exact, not wall time).
 		hz := float64(f.cycles) / (float64(f.samples) / float64(src.SampleRate()))
-		readouts.Set("counter-hz", f.ledEl, led.Format(hz, 5, 1, false))
+		owed.readouts.Set("counter-hz", f.ledEl, led.Format(hz, 5, 1, false))
 		f.cycles, f.samples = 0, 0
 		// The gate lamp toggles at each latch — the classic heartbeat.
 		f.gateOn = !f.gateOn

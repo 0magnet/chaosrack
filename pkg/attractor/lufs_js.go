@@ -60,7 +60,7 @@ func (l *loudness) tick(nowMs float64) {
 	// Not merely "not display:none" — actually on screen. See
 	// moduleOnScreen: this module's DSP and readouts are most of what the
 	// panel costs per frame, and the drawer usually has it scrolled away.
-	if !moduleOnScreen("lufs-module") {
+	if !onScreen.moduleOnScreen("lufs-module") {
 		return
 	}
 	sr := takensSourceRate()
@@ -104,18 +104,18 @@ func (l *loudness) tick(nowMs float64) {
 func (l *loudness) showLoudness() {
 	set := func(key string, el js.Value, v float64, ok bool) {
 		if !ok || v <= meters.LoudnessFloor {
-			readouts.Set(key, el, "  --.-")
+			owed.readouts.Set(key, el, "  --.-")
 			return
 		}
-		readouts.Set(key, el, led.Format(v, 3, 1, true))
+		owed.readouts.Set(key, el, led.Format(v, 3, 1, true))
 	}
 	set("lufs-m", l.mEl, l.res.Momentary, l.res.Momentary > meters.LoudnessFloor)
 	set("lufs-s", l.sEl, l.res.ShortTerm, l.res.ShortTerm > meters.LoudnessFloor)
 	set("lufs-i", l.iEl, l.res.Integrated, l.res.OK)
 	if l.res.OK {
-		readouts.Set("lufs-lra", l.lraEl, led.Format(l.res.LRA, 3, 1, false))
+		owed.readouts.Set("lufs-lra", l.lraEl, led.Format(l.res.LRA, 3, 1, false))
 	} else {
-		readouts.Set("lufs-lra", l.lraEl, "  --.-")
+		owed.readouts.Set("lufs-lra", l.lraEl, "  --.-")
 	}
 	set("lufs-tp", l.tpEl, l.res.TruePeak, l.res.TruePeak > meters.LoudnessFloor)
 	// Through lufsDistanceToTarget rather than subtracting here: it is the
@@ -123,9 +123,9 @@ func (l *loudness) showLoudness() {
 	// has not risen off the floor is not a distance from anything.
 	d := lufsDistanceToTarget(l.res.Integrated, float64(l.target))
 	if l.res.OK && !math.IsNaN(d) {
-		readouts.Set("lufs-d", l.dl, led.Format(d, 3, 1, true))
+		owed.readouts.Set("lufs-d", l.dl, led.Format(d, 3, 1, true))
 	} else {
-		readouts.Set("lufs-d", l.dl, "  --.-")
+		owed.readouts.Set("lufs-d", l.dl, "  --.-")
 	}
 }
 

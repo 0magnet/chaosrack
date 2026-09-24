@@ -160,7 +160,7 @@ func (v *vcolorPipe) done() { glctx.GL.Call("disableVertexAttribArray", v.aCol) 
 // swatch-mixing ones instead, ok is false and the caller keeps its single
 // color — a two-swatch gradient is not a scalar map and pretending otherwise
 // would put arbitrary colors on a measurement.
-func analyzerPalette() (int, bool) { return colormap.Index(gradientColors) }
+func analyzerPalette() (int, bool) { return colormap.Index(style.gradientColors) }
 
 // analyzerColorAt samples that colormap at a 0..1 value, as three floats.
 func analyzerColorAt(idx int, v float64) [3]float32 {
@@ -173,8 +173,8 @@ func analyzerColorAt(idx int, v float64) [3]float32 {
 // colormap is selected: the phosphor's, if one is, and the scope green
 // otherwise — which is what these displays did before they could be colored.
 func analyzerTraceColor() [3]float32 {
-	if phosphorActive() {
-		p := phosphors[phosphorIdx]
+	if phos.active() {
+		p := phosphors[phos.index]
 		return [3]float32{float32(p.tr), float32(p.tg), float32(p.tb)}
 	}
 	return [3]float32{0.4, 1.0, 0.45}

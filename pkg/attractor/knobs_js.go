@@ -820,8 +820,8 @@ func skirtGapPx() float64 { return 3.0 * layout.scale }
 // second ask costs nothing and the one pass that runs is the later, better
 // informed one.
 func layoutSkirts() {
-	if deferLayout {
-		skirtsOwed = true
+	if owed.deferred {
+		owed.skirts = true
 		return
 	}
 	layoutSkirtsNow()

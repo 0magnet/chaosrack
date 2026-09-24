@@ -142,7 +142,7 @@ func deskOnSwitchIsSet() bool { return deskContain }
 // one. Taking the keyboard when it is not visible would be a keyboard stolen by
 // something nobody can see.
 func deskOnScreen() bool {
-	return selectedMode == "desk" || bgVisual == "desk" || skin.source == "desk"
+	return run.selectedMode == "desk" || bgVisual == "desk" || skin.source == "desk"
 }
 
 // deskKeyboardTarget is what a keystroke should reach inside the composited

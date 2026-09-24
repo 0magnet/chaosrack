@@ -171,7 +171,7 @@ func (t *takensMode) generateTakens() {
 		sr = src.SampleRate()
 	}
 	tau := takens.TauSamples(t.tau, sr)
-	n, stride := takensWindow(t.win, sr, steps)
+	n, stride := takensWindow(t.win, sr, sim.steps)
 	span := (n-1)*stride + 2*tau
 	if need := span + 1; len(t.ring) < need {
 		t.ring = make([]float32, need+need/2)
@@ -204,7 +204,7 @@ func (t *takensMode) generateTakens() {
 	nv := takensVerts(n)
 	if avail < span+1 {
 		t.fitGain = 0 // camera was fitted to silence — refit on real data
-		gpu.uploadVerticesOnly(vertBuf[:nv*4], gpu.drawMode, nv)
+		gpu.uploadVerticesOnly(sim.vertBuf[:nv*4], gpu.drawMode, nv)
 		return
 	}
 	// A different SRC is a different signal, so the τ measured from the last
@@ -234,7 +234,7 @@ func (t *takensMode) generateTakens() {
 		return t.ring[(base+2*tau+k*stride+off)%rn]
 	}
 	invN := float32(1) / float32(nv-1)
-	vertices := vertBuf[:nv*4]
+	vertices := sim.vertBuf[:nv*4]
 	sm := takensSmooth()
 	for m := 0; m < nv; m++ {
 		i := m / sm
@@ -250,7 +250,7 @@ func (t *takensMode) generateTakens() {
 		vertices[j+3] = float32(m) * invN
 	}
 	gpu.uploadVerticesOnly(vertices, gpu.drawMode, nv)
-	if t.fitGain != t.gain && !paramIsModulated("takens-gain") {
+	if t.fitGain != t.gain && !pmod.paramIsModulated("takens-gain") {
 		// The mode-entry auto-fit saw silence (a dot), so fit when the first
 		// full window of real audio arrives — and fit to the FIXED scale's
 		// worst case, not to this window's extent. Fitting the instantaneous

@@ -67,7 +67,7 @@ func wireModelInput() {
 		if ta := modelKeyboardTarget(); ta.Truthy() && dom.Doc.Get("activeElement").Equal(ta) {
 			e.Call("preventDefault")
 		}
-		if selectedMode == "pong" {
+		if run.selectedMode == "pong" {
 			pongPointer = true
 			pong.pointerPaddle(e.Get("clientX").Float(), e.Get("clientY").Float())
 			return nil
@@ -152,7 +152,7 @@ func wireModelInput() {
 		}
 		e.Call("preventDefault")
 		touches := e.Get("touches")
-		if selectedMode == "pong" {
+		if run.selectedMode == "pong" {
 			// Every finger drives the paddle on its side — two players on
 			// one phone works.
 			for i := 0; i < touches.Get("length").Int(); i++ {
@@ -180,7 +180,7 @@ func wireModelInput() {
 	dom.Doc.Call("addEventListener", "touchmove", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		touches := e.Get("touches")
-		if selectedMode == "pong" && !isInteractiveDragTarget(e.Get("target")) {
+		if run.selectedMode == "pong" && !isInteractiveDragTarget(e.Get("target")) {
 			e.Call("preventDefault")
 			for i := 0; i < touches.Get("length").Int(); i++ {
 				t := touches.Index(i)
@@ -253,7 +253,7 @@ func wireModelInput() {
 // and pinch spread both funnel here), clamped to the slider range, firing
 // 'input' so the zoom knob pointer + numeric box track the gesture.
 func applyZoomDelta(delta float32) {
-	zoomVal := float32(js.Global().Get("parseFloat").Invoke(cameraControl.Get("value")).Float())
+	zoomVal := float32(js.Global().Get("parseFloat").Invoke(camPanel.cameraControl.Get("value")).Float())
 	zoomVal -= delta
 	if zoomVal < -95 {
 		zoomVal = -95
@@ -261,9 +261,9 @@ func applyZoomDelta(delta float32) {
 	if zoomVal > 95 {
 		zoomVal = 95
 	}
-	cameraControl.Set("value", strconv.FormatFloat(float64(zoomVal), 'f', 0, 64))
+	camPanel.cameraControl.Set("value", strconv.FormatFloat(float64(zoomVal), 'f', 0, 64))
 	view.ctl.zoom = zoomVal // render loop reads the cache, not the DOM
-	cameraControl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+	camPanel.cameraControl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 }
 
 // wireWheelBindings makes the wheel adjust controls (ranges, numerics,

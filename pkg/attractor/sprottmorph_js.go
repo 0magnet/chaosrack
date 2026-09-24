@@ -104,41 +104,41 @@ func (sp *sprottMorph) generateSprottMorph() {
 		sp.knobPrv = sp.sysKnob
 		sp.m = float64(sp.sysKnob)
 	}
-	n := speedSteps
+	n := sim.speedSteps
 	if n < 1 {
 		n = 1
 	}
-	sp.m += float64(sp.rate) / 60 / 60 * float64(n) * float64(speedScale)
+	sp.m += float64(sp.rate) / 60 / 60 * float64(n) * float64(sim.speedScale)
 	for sp.m >= float64(len(sp.systems)) {
 		sp.m -= float64(len(sp.systems))
 	}
 	c, dt, i, j, frac := dynamics.SprottMorphBlend(sp.systems, sp.m)
-	if len(sp.ring) != steps*3 {
-		sp.ring = make([]float64, steps*3)
+	if len(sp.ring) != sim.steps*3 {
+		sp.ring = make([]float64, sim.steps*3)
 		sp.head, sp.fill = 0, 0
 	}
 	for s := 0; s < n; s++ {
-		sp.step(&c, dt*float64(speedScale))
+		sp.step(&c, dt*float64(sim.speedScale))
 		sp.ring[sp.head*3] = sp.sx
 		sp.ring[sp.head*3+1] = sp.sy
 		sp.ring[sp.head*3+2] = sp.sz
-		sp.head = (sp.head + 1) % steps
-		if sp.fill < steps {
+		sp.head = (sp.head + 1) % sim.steps
+		if sp.fill < sim.steps {
 			sp.fill++
 		}
 	}
 	if sp.fill < 2 {
 		return
 	}
-	vertices := vertBuf[:steps*4]
-	invN := float32(1) / float32(steps-1)
-	for k := 0; k < steps; k++ {
-		age := steps - 1 - k
+	vertices := sim.vertBuf[:sim.steps*4]
+	invN := float32(1) / float32(sim.steps-1)
+	for k := 0; k < sim.steps; k++ {
+		age := sim.steps - 1 - k
 		idx := 0
 		if age < sp.fill {
-			idx = (sp.head - 1 - age + steps + steps) % steps
+			idx = (sp.head - 1 - age + sim.steps + sim.steps) % sim.steps
 		} else {
-			idx = (sp.head - sp.fill + steps + steps) % steps
+			idx = (sp.head - sp.fill + sim.steps + sim.steps) % sim.steps
 		}
 		v := k * 4
 		vertices[v] = float32(sp.ring[idx*3])
@@ -146,7 +146,7 @@ func (sp *sprottMorph) generateSprottMorph() {
 		vertices[v+2] = float32(sp.ring[idx*3+2])
 		vertices[v+3] = float32(k) * invN
 	}
-	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, sim.steps)
 	// PATCH readout: "D→E 42%" (throttled — DOM writes are not free).
 	sp.tick++
 	if sp.led.Truthy() && sp.tick%10 == 0 {
@@ -185,9 +185,9 @@ func (sp *sprottMorph) syncSprottMorphExtras(mode string) {
 		i := int(sp.m) % len(sp.systems)
 		ic := sp.systems[i].IC
 		sp.sx, sp.sy, sp.sz = float64(ic[0]), float64(ic[1]), float64(ic[2])
-		sp.ring = make([]float64, steps*3)
+		sp.ring = make([]float64, sim.steps*3)
 		ext := 0.0
-		for k := 0; k < steps; k++ {
+		for k := 0; k < sim.steps; k++ {
 			sp.step(&c, dt)
 			sp.ring[k*3] = sp.sx
 			sp.ring[k*3+1] = sp.sy
@@ -201,7 +201,7 @@ func (sp *sprottMorph) syncSprottMorphExtras(mode string) {
 				}
 			}
 		}
-		sp.head, sp.fill = 0, steps
+		sp.head, sp.fill = 0, sim.steps
 		// Frame the warmed structure directly (no fit-ordering dependence).
 		if ext < 0.5 {
 			ext = 0.5

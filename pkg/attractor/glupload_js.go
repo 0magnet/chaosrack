@@ -59,8 +59,8 @@ func (r *renderer) updateGradientRange(vertices []float32) {
 func (r *renderer) uploadVerticesOnly(vertices []float32, drawMode js.Value, count int) {
 	n := len(vertices) / 4
 	if n > 0 {
-		if !centerReady {
-			centerWarmup++
+		if !sim.centerReady {
+			sim.centerWarmup++
 			var cx, cy, cz float32
 			for i := 0; i < len(vertices); i += 4 {
 				cx += vertices[i]
@@ -68,15 +68,15 @@ func (r *renderer) uploadVerticesOnly(vertices []float32, drawMode js.Value, cou
 				cz += vertices[i+2]
 			}
 			inv := 1.0 / float32(n)
-			centerOffset = [3]float32{cx * inv, cy * inv, cz * inv}
-			if centerWarmup >= 30 {
-				centerReady = true
+			sim.centerOffset = [3]float32{cx * inv, cy * inv, cz * inv}
+			if sim.centerWarmup >= 30 {
+				sim.centerReady = true
 			}
 		}
 		for i := 0; i < len(vertices); i += 4 {
-			vertices[i] -= centerOffset[0]
-			vertices[i+1] -= centerOffset[1]
-			vertices[i+2] -= centerOffset[2]
+			vertices[i] -= sim.centerOffset[0]
+			vertices[i+1] -= sim.centerOffset[1]
+			vertices[i+2] -= sim.centerOffset[2]
 		}
 	}
 	r.verts = vertices
@@ -97,8 +97,8 @@ func (r *renderer) uploadVerticesOnly(vertices []float32, drawMode js.Value, cou
 	// (a shorter line-strip tail) — no buffer realloc. frac==1 draws it all.
 	first := 0
 	drawN := count
-	if trailModFrac < 0.999 && count > 2 {
-		drawN = int(float32(count) * trailModFrac)
+	if style.trailModFrac < 0.999 && count > 2 {
+		drawN = int(float32(count) * style.trailModFrac)
 		if drawN < 2 {
 			drawN = 2
 		}
@@ -316,10 +316,10 @@ func (r *renderer) setGradientRange(minX, maxX, minY, maxY, minZ, maxZ float32) 
 	if !r.ready {
 		return
 	}
-	glctx.GL.Call("uniform1f", r.u.minX, float64(minX-centerOffset[0]))
-	glctx.GL.Call("uniform1f", r.u.maxX, float64(maxX-centerOffset[0]))
-	glctx.GL.Call("uniform1f", r.u.minY, float64(minY-centerOffset[1]))
-	glctx.GL.Call("uniform1f", r.u.maxY, float64(maxY-centerOffset[1]))
-	glctx.GL.Call("uniform1f", r.u.minZ, float64(minZ-centerOffset[2]))
-	glctx.GL.Call("uniform1f", r.u.maxZ, float64(maxZ-centerOffset[2]))
+	glctx.GL.Call("uniform1f", r.u.minX, float64(minX-sim.centerOffset[0]))
+	glctx.GL.Call("uniform1f", r.u.maxX, float64(maxX-sim.centerOffset[0]))
+	glctx.GL.Call("uniform1f", r.u.minY, float64(minY-sim.centerOffset[1]))
+	glctx.GL.Call("uniform1f", r.u.maxY, float64(maxY-sim.centerOffset[1]))
+	glctx.GL.Call("uniform1f", r.u.minZ, float64(minZ-sim.centerOffset[2]))
+	glctx.GL.Call("uniform1f", r.u.maxZ, float64(maxZ-sim.centerOffset[2]))
 }

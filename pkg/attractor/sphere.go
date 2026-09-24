@@ -8,28 +8,73 @@ import (
 	"github.com/0magnet/chaosrack/pkg/glctx"
 )
 
-var (
-	sphereRadius  float32 = 1.0
-	sphereStacksF float32 = 30
-	sphereSlicesF float32 = 30
-	torusR        float32 = 1.5
-	torusr        float32 = 0.5
-	torusStacksF  float32 = 30
-	torusSlicesF  float32 = 30
-	// torusRollF is the POLOIDAL spin rate: the tube turning about the torus's
+// sphereShape is the sphere model's knobs.
+type sphereShape struct {
+	radius  float32
+	stacksF float32
+	slicesF float32
+}
+
+var sphere = sphereShape{
+	radius:  1.0,
+	stacksF: 30,
+	slicesF: 30,
+}
+
+// torusShape is the torus model: its knobs and the phase of its poloidal
+// roll.
+type torusShape struct {
+	major   float32
+	minor   float32
+	stacksF float32
+	slicesF float32
+
+	// rollF is the POLOIDAL spin rate: the tube turning about the torus's
 	// own core circle, the circle running through the middle of the tube body.
 	// Signed, and zero by default so the torus is still until asked.
-	torusRollF   float32 // poloidal rate; see generateTorus
-	torusRollPhi float32 // accumulated poloidal angle
-	globeLatF    float32 = 18
-	// globeSpiralF picks how the parallels are drawn: 0 rings, 1 one spiral.
-	globeSpiralF float32
-	// globeRevF winds that spiral the other way round; globeTwistF skews the
+	rollF   float32 // poloidal rate; see generateTorus
+	rollPhi float32 // accumulated poloidal angle
+}
+
+var torus = torusShape{
+	major:   1.5,
+	minor:   0.5,
+	stacksF: 30,
+	slicesF: 30,
+}
+
+// globeShape is the globe model: its knobs and the buffers its mesh is
+// refilled into.
+type globeShape struct {
+	latF float32
+
+	// spiralF picks how the parallels are drawn: 0 rings, 1 one spiral.
+	spiralF float32
+
+	// revF winds that spiral the other way round; twistF skews the
 	// meridians into helices, its SIGN choosing which way they lean.
-	globeRevF   float32
-	globeTwistF float32
-	globeLonF   float32 = 36
-)
+	revF   float32
+	twistF float32
+	lonF   float32
+
+	// generateGlobe runs once per frame, and until now built its mesh into two
+	// fresh slices every time. Profiling the TinyGo build in the browser put 72%
+	// of all allocation in this one function, and TinyGo's conservative collector
+	// then spent about 39% of the CPU scanning for the result — enough to blow the
+	// frame budget roughly one frame in six, which showed as a visible stutter.
+	//
+	// The mesh is the same size on every frame the knobs hold still, so the
+	// backing arrays are kept and refilled rather than reallocated. The contents
+	// are rewritten from scratch each time, so nothing downstream can tell the
+	// difference; only the collector can.
+	vertBuf []float32
+	idxBuf  []uint16
+}
+
+var globe = globeShape{
+	latF: 18,
+	lonF: 36,
+}
 
 func sphereVerticesIndices(radius float32, stacks, slices int, baseIdx uint16) ([]float32, []uint16) {
 	// Sized up front. These are called per frame, and a slice grown from nil
@@ -97,55 +142,40 @@ func generateSphere() {
 	if gpu.staticGeomCached(glctx.Types.Line) {
 		return
 	}
-	stacks := int(sphereStacksF)
-	slices := int(sphereSlicesF)
-	vertices, indices := sphereVerticesIndices(sphereRadius, stacks, slices, 0)
+	stacks := int(sphere.stacksF)
+	slices := int(sphere.slicesF)
+	vertices, indices := sphereVerticesIndices(sphere.radius, stacks, slices, 0)
 	gpu.uploadBuffersIndexed(vertices, indices, glctx.Types.Line)
 }
 
-func generateTorus() {
-	stacks := int(torusStacksF)
-	slices := int(torusSlicesF)
+func (t *torusShape) generate() {
+	stacks := int(t.stacksF)
+	slices := int(t.slicesF)
 	// The roll advances here rather than in the render loop because it is a
 	// property of the GEOMETRY, not of the pose: every other spin turns the
 	// model by a matrix and leaves its vertices alone, while this one moves the
 	// vertices and leaves the model facing where it was. That also means the
 	// mesh has to be rebuilt while it turns, which is why the dirty flag is set
 	// only when the rate is non-zero — a still torus stays a cached upload.
-	if torusRollF != 0 {
-		torusRollPhi += torusRollF / 20
+	if t.rollF != 0 {
+		t.rollPhi += t.rollF / 20
 		gpu.staticDirty = true
 	}
 	if gpu.staticGeomCached(glctx.Types.Line) {
 		return
 	}
-	vertices, indices := torusVerticesIndices(torusR, torusr, stacks, slices, 0, torusRollPhi)
+	vertices, indices := torusVerticesIndices(t.major, t.minor, stacks, slices, 0, t.rollPhi)
 	gpu.uploadBuffersIndexed(vertices, indices, glctx.Types.Line)
 }
 
-// generateGlobe runs once per frame, and until now built its mesh into two
-// fresh slices every time. Profiling the TinyGo build in the browser put 72%
-// of all allocation in this one function, and TinyGo's conservative collector
-// then spent about 39% of the CPU scanning for the result — enough to blow the
-// frame budget roughly one frame in six, which showed as a visible stutter.
-//
-// The mesh is the same size on every frame the knobs hold still, so the
-// backing arrays are kept and refilled rather than reallocated. The contents
-// are rewritten from scratch each time, so nothing downstream can tell the
-// difference; only the collector can.
-var (
-	globeVertBuf []float32
-	globeIdxBuf  []uint16
-)
-
-func generateGlobe() {
+func (g *globeShape) generate() {
 	if gpu.staticGeomCached(glctx.Types.Line) {
 		return
 	}
-	lat := int(globeLatF)
-	lon := int(globeLonF)
-	vertices := globeVertBuf[:0]
-	indices := globeIdxBuf[:0]
+	lat := int(g.latF)
+	lon := int(g.lonF)
+	vertices := g.vertBuf[:0]
+	indices := g.idxBuf[:0]
 	pts := 60 // points per circle
 
 	// The parallels, as rings or as ONE SPIRAL.
@@ -157,11 +187,11 @@ func generateGlobe() {
 	// hoops. A globe drawn that way is a ball of string rather than a cage, and
 	// the count knob reads as "how many times round" instead of "how many
 	// rings".
-	if globeSpiral() && lat > 0 {
+	if g.spiral() && lat > 0 {
 		steps := pts * lat
 		base := uint16(len(vertices) / 3) //nolint:gosec // bounded: pts*lat is far under uint16 at lat's cap
 		wind := 1.0
-		if globeRevF >= 0.5 {
+		if g.revF >= 0.5 {
 			wind = -1 // the same helix wound the other way round
 		}
 		for k := 0; k <= steps; k++ {
@@ -202,7 +232,7 @@ func generateGlobe() {
 	// answer to wanting the spiral to go the other way. This is the meridians'
 	// version of what the parallels get from par+dir, and the two compose: a
 	// spiral of parallels through a twisted cage is a ball of string.
-	twist := float64(globeTwistF)
+	twist := float64(g.twistF)
 	for j := 0; j < lon; j++ {
 		theta0 := float64(j) * 2.0 * math.Pi / float64(lon)
 		base := uint16(len(vertices) / 3) //nolint:gosec // a mesh index, bounded by the stack/slice counts a few lines up
@@ -219,7 +249,7 @@ func generateGlobe() {
 		}
 	}
 
-	globeVertBuf, globeIdxBuf = vertices, indices
+	g.vertBuf, g.idxBuf = vertices, indices
 	gpu.uploadBuffersIndexed(vertices, indices, glctx.Types.Line)
 }
 
@@ -270,4 +300,4 @@ func generateMagnetosphere() {
 
 // globeSpiral reports whether the parallels are drawn as a single pole-to-pole
 // spiral instead of as separate rings.
-func globeSpiral() bool { return globeSpiralF >= 0.5 }
+func (g *globeShape) spiral() bool { return g.spiralF >= 0.5 }

@@ -75,7 +75,7 @@ const (
 // pongStep advances one frame of game state, honoring the Speed control the
 // way the integrators do (sub-steps × dt scale).
 func (p *pongGame) step() {
-	k := float64(speedScale) * float64(speedSteps)
+	k := float64(sim.speedScale) * float64(sim.speedSteps)
 	ph := float64(p.paddleH) / 2
 
 	// Paddles: human while recently touched, machine otherwise.
@@ -221,7 +221,7 @@ func (p *pongGame) generatePong() {
 	}
 	p.strokes = strokes
 	if v := beamLines(strokes, 0); v > 0 {
-		gpu.uploadVerticesOnly(vertBuf[:v*4], beamDrawMode(), v)
+		gpu.uploadVerticesOnly(sim.vertBuf[:v*4], beamDrawMode(), v)
 	}
 }
 
@@ -285,7 +285,7 @@ func (p *pongGame) wireInput() {
 	}
 	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		e := a[0]
-		if selectedMode != "pong" {
+		if run.selectedMode != "pong" {
 			return nil
 		}
 		if t := e.Get("target"); t.Truthy() {
@@ -341,7 +341,7 @@ func (p *pongGame) pointerPaddle(cx, cy float64) {
 // 490 Hz) through the shared context. Silent until a real key grants the
 // context, and outside pong mode.
 func (p *pongGame) beep(freq float64, ms int) {
-	if !p.ctxHeld || selectedMode != "pong" {
+	if !p.ctxHeld || run.selectedMode != "pong" {
 		return
 	}
 	ctx := audioCtxRef()

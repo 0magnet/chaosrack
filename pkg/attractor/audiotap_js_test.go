@@ -153,22 +153,22 @@ func TestTapSwitchesUpstreamForFVF(t *testing.T) {
 	resetTap(t)
 	tap.upstream = tapFromSource
 
-	savedMode, savedActive := selectedMode, fvf.audioActive
-	defer func() { selectedMode, fvf.audioActive = savedMode, savedActive }()
+	savedMode, savedActive := run.selectedMode, fvf.audioActive
+	defer func() { run.selectedMode, fvf.audioActive = savedMode, savedActive }()
 
-	selectedMode, fvf.audioActive = "lorenz", false
+	run.selectedMode, fvf.audioActive = "lorenz", false
 	if got := tapPumpUpstream(); got != tapFromSource {
 		t.Fatalf("upstream = %v with FVF off, want tapFromSource", got)
 	}
 
 	// FVF selected but its audio engine not started: it is not draining the
 	// source yet, so the tap must stay on the source.
-	selectedMode, fvf.audioActive = "fvf", false
+	run.selectedMode, fvf.audioActive = "fvf", false
 	if got := tapPumpUpstream(); got != tapFromSource {
 		t.Fatalf("upstream = %v with the FVF engine stopped, want tapFromSource", got)
 	}
 
-	selectedMode, fvf.audioActive = "fvf", true
+	run.selectedMode, fvf.audioActive = "fvf", true
 	if got := tapPumpUpstream(); got != tapFromFVF {
 		t.Fatalf("upstream = %v with the FVF engine running, want tapFromFVF", got)
 	}

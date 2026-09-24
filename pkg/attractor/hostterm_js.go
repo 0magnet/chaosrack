@@ -80,7 +80,7 @@ func (h *hostTerminal) canvas() js.Value {
 }
 
 func hostTermOnScreen() bool {
-	return selectedMode == "hostterm" || bgVisual == "hostterm"
+	return run.selectedMode == "hostterm" || bgVisual == "hostterm"
 }
 
 func (h *hostTerminal) textarea() js.Value {

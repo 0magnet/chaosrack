@@ -77,10 +77,10 @@ func TestThePlaneCopesBeforeTheCameraHasBeenFitted(t *testing.T) {
 // frontCanvasPx is what a browser test reads to prove the near canvas tracks
 // the main one; with no canvas built it must answer rather than panic.
 func TestFrontCanvasSizeIsReadableBeforeItExists(t *testing.T) {
-	if frontCanvas.Truthy() {
+	if near.front.Truthy() {
 		t.Skip("a canvas already exists in this run")
 	}
-	if got := frontCanvasPx(); got != "" {
+	if got := near.frontCanvasPx(); got != "" {
 		t.Errorf("frontCanvasPx = %q with no canvas, want empty", got)
 	}
 }
@@ -90,17 +90,17 @@ func TestFrontCanvasSizeIsReadableBeforeItExists(t *testing.T) {
 // about ten minutes and the gap was a bug — an attractor's near half stayed
 // frozen over the panel after switching to a model that never repaints it.
 func TestOnlyModesThatRedrawAreSplit(t *testing.T) {
-	oldFrac, oldMode := splitFrac, selectedMode
-	t.Cleanup(func() { splitFrac, selectedMode = oldFrac, oldMode })
+	oldFrac, oldMode := splitFrac, run.selectedMode
+	t.Cleanup(func() { splitFrac, run.selectedMode = oldFrac, oldMode })
 
 	splitFrac = 0 // hard in the middle: the knob is asking for a split
 
 	// Attractors: one integration, and the far pass re-issues the draw.
-	selectedMode = "lorenz"
+	run.selectedMode = "lorenz"
 	if !splitDrawing() {
 		t.Error("an attractor mid-knob is not being split, so nothing reaches the near canvas")
 	}
-	if splitRegenerates(selectedMode) {
+	if splitRegenerates(run.selectedMode) {
 		t.Error("an attractor would be generated twice, which advances it twice and runs it at double speed")
 	}
 
@@ -113,7 +113,7 @@ func TestOnlyModesThatRedrawAreSplit(t *testing.T) {
 	// old rule actually cost was the feature — the knob did nothing whatever on
 	// a torus until it hit the very end of its travel.
 	for _, m := range []string{"torus", "dodecahedron", "globe", "magnetosphere"} {
-		selectedMode = m
+		run.selectedMode = m
 		if !splitDrawing() {
 			t.Errorf("%s does not split, so the knob does nothing until it reaches an end", m)
 		}
@@ -126,14 +126,14 @@ func TestOnlyModesThatRedrawAreSplit(t *testing.T) {
 	// the plane to cut, and generating one twice would upload its texture twice
 	// a frame for a half that cannot exist.
 	for _, m := range []string{"terminal", "desk", "spectrogram", "recurrence"} {
-		selectedMode = m
+		run.selectedMode = m
 		if splitDrawing() {
 			t.Errorf("%s is a flat picture and has no near half to draw", m)
 		}
 	}
 
 	// And the knob still governs: an attractor at the far end draws once.
-	selectedMode, splitFrac = "lorenz", -1
+	run.selectedMode, splitFrac = "lorenz", -1
 	if splitDrawing() {
 		t.Error("the far end of the knob still asks for two passes")
 	}

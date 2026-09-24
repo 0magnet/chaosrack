@@ -541,18 +541,18 @@ func (w *waterfall) measure(sr int) {
 func (w *waterfall) draw() {
 	n := len(w.surface)
 	if n == 0 || len(wfallFreqs) < 2 {
-		gpu.uploadVerticesOnly(vertBuf[:0], glctx.Types.Lines, 0)
+		gpu.uploadVerticesOnly(sim.vertBuf[:0], glctx.Types.Lines, 0)
 		return
 	}
 	bins := len(wfallFreqs)
 	need := n * (bins - 1) * 2
-	if need*4 > len(vertBuf) {
+	if need*4 > len(sim.vertBuf) {
 		// More than the trail budget allows. The budget is a knob, so this is
 		// a real possibility rather than a theoretical one, and drawing fewer
 		// slices is a better answer than drawing a corrupt surface.
-		n = len(vertBuf) / 4 / ((bins - 1) * 2)
+		n = len(sim.vertBuf) / 4 / ((bins - 1) * 2)
 		if n < 1 {
-			gpu.uploadVerticesOnly(vertBuf[:0], glctx.Types.Lines, 0)
+			gpu.uploadVerticesOnly(sim.vertBuf[:0], glctx.Types.Lines, 0)
 			return
 		}
 		need = n * (bins - 1) * 2
@@ -564,7 +564,7 @@ func (w *waterfall) draw() {
 	top := float64(w.topF)
 	const span = 9.0 // world units either side, matching the other modes' fit
 	depth := span * float64(w.depthF)
-	v := vertBuf[:need*4]
+	v := sim.vertBuf[:need*4]
 	o := 0
 	put := func(bin, slice int) {
 		x := span * (2*float64(bin)/float64(bins-1) - 1)

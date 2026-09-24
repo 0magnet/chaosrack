@@ -153,7 +153,7 @@ func drawViewPasses(mode string) {
 		// next frame — means the focused one.
 		stereo = grid.instanceFor(i)
 		c := grid.colorFor(i)
-		gradientSource, gradientColors = c.src, c.cols
+		style.gradientSource, style.gradientColors = c.src, c.cols
 		// And then the sweep, which is a SOURCE for one parameter rather
 		// than a value of it: applied for this cell and put straight back,
 		// so the knob still holds what the operator set.
@@ -172,7 +172,7 @@ func drawViewPasses(mode string) {
 	}
 	stereo = grid.focusedInst()
 	fc := grid.colorFor(grid.focusedColorIdx())
-	gradientSource, gradientColors = fc.src, fc.cols
+	style.gradientSource, style.gradientColors = fc.src, fc.cols
 	glctx.GL.Call("disable", glctx.GL.Get("SCISSOR_TEST"))
 	// Back to the whole canvas, so everything drawn after these passes —
 	// the Poincaré overlay, the lens, the next frame's clear — sees the
@@ -340,7 +340,7 @@ func (vi *viewGrid) focusedInst() *stereoInst {
 func refocus() {
 	stereo = grid.focusedInst()
 	grid.applyFocusedColor()
-	buildParamPanel(selectedMode)
+	buildParamPanel(run.selectedMode)
 }
 
 // wireViewLinkSwitches hooks up Link and the A/B focus switch.
@@ -426,7 +426,7 @@ func (vi *viewGrid) noteGradientColors(n int) { vi.colors[vi.focusedColorIdx()].
 // and updateGradientUI is what the handlers call anyway.
 func (vi *viewGrid) applyFocusedColor() {
 	c := vi.colors[vi.focusedColorIdx()]
-	gradientSource, gradientColors = c.src, c.cols
+	style.gradientSource, style.gradientColors = c.src, c.cols
 	setSelectQuiet("gradient-source", c.src)
 	setSelectQuiet("gradient-colors", c.cols)
 	updateGradientUI()
@@ -724,13 +724,13 @@ func (vi *viewGrid) applySweepAxis(mode, id string, frac float32) func() {
 
 	switch id {
 	case "#src":
-		prev := gradientSource
-		gradientSource = sweepColorSrcs[int(t*float32(len(sweepColorSrcs)-1)+0.5)]
-		return func() { gradientSource = prev }
+		prev := style.gradientSource
+		style.gradientSource = sweepColorSrcs[int(t*float32(len(sweepColorSrcs)-1)+0.5)]
+		return func() { style.gradientSource = prev }
 	case "#map":
-		prev := gradientColors
-		gradientColors = sweepColorMaps[int(t*float32(len(sweepColorMaps)-1)+0.5)]
-		return func() { gradientColors = prev }
+		prev := style.gradientColors
+		style.gradientColors = sweepColorMaps[int(t*float32(len(sweepColorMaps)-1)+0.5)]
+		return func() { style.gradientColors = prev }
 	}
 
 	// The instance field first, the mode table's pointer second. They are
@@ -786,7 +786,7 @@ func wireOneSweepDial(selID string, into *float32) {
 		// A swept parameter is no longer the knob's to set, and a knob that
 		// looks live while a sweep overrides it is the panel lying. The
 		// rebuild is what carries the swept marking onto the row.
-		buildParamPanel(selectedMode)
+		buildParamPanel(run.selectedMode)
 		syncSweepCells()
 		syncSweptMarks()
 		return nil
@@ -1087,7 +1087,7 @@ func syncLinkMarks() {
 	if !grid.perControlLinkLive() {
 		return
 	}
-	for _, pd := range attractorParams[selectedMode] {
+	for _, pd := range attractorParams[run.selectedMode] {
 		// Only controls this model keeps per view can be linked. A parameter
 		// with no per-instance field is already one copy for every cell, and
 		// a badge offering to link it would be a badge that does nothing.

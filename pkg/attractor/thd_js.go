@@ -80,7 +80,7 @@ func (d *distortion) tick(nowMs float64) {
 	// Not merely "not display:none" — actually on screen. See
 	// moduleOnScreen: this module's DSP and readouts are most of what the
 	// panel costs per frame, and the drawer usually has it scrolled away.
-	if !moduleOnScreen("thd-module") {
+	if !onScreen.moduleOnScreen("thd-module") {
 		return
 	}
 	d.win.Resize(thdWindow)
@@ -125,7 +125,7 @@ func (d *distortion) tick(nowMs float64) {
 // that is no longer playing is the most misleading thing the module could show.
 func (d *distortion) showDistortion() {
 	set := func(key string, el js.Value, s string) {
-		readouts.Set(key, el, s)
+		owed.readouts.Set(key, el, s)
 	}
 	if !d.res.OK {
 		set("thd-thd", d.led, "  --.---")

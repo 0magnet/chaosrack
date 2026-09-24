@@ -191,14 +191,14 @@ func annotateControlTooltips() {
 	// titles from that and the writes go back in one crossing. See
 	// readPanelCells.
 	h := fastDOM()
-	tipBatching = h.Truthy() && readPanelCells(h)
+	tips.batching = h.Truthy() && tips.readPanelCells(h)
 	for _, m := range panelModules {
 		for _, c := range m.ctrls {
-			tipCell = c.tipIdx
+			tips.cell = c.tipIdx
 			c.annotate()
 		}
 	}
-	flushStamps()
+	tips.flushStamps()
 }
 
 // annotate stamps this control's elements with the module/control/element
@@ -334,7 +334,7 @@ func stampLEDs(f *cellRead, cell js.Value, module, ctl, help string) {
 				// The description the markup gave this readout, written
 				// down before the stamp below overwrites the title it
 				// lives in.
-				queueAttr(sel, "data-help", desc, i)
+				tips.queueAttr(sel, "data-help", desc, i)
 			}
 			queueStamp(sel, withHelp(name+sep+"LED readout", desc), i)
 		}

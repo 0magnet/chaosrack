@@ -108,7 +108,7 @@ func applyTurtleView(t *turtleWalk) {
 	view.angleX, view.angleY, view.angleZ = 0, 0, 0
 	view.rebuildModelMatrix()
 	zeroRotationSliders()
-	updateRotKnobs()
+	rotKnobs.update()
 
 	turtleViewApplied.idx = idx
 	turtleViewApplied.key = t.key

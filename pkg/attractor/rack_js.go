@@ -152,8 +152,8 @@ func moduleNeverSwitched(key string) bool {
 
 // quantizeModuleWidths snaps every module to a whole number of slots.
 func quantizeModuleWidths() {
-	if deferLayout {
-		quantizeOwed = true
+	if owed.deferred {
+		owed.quantize = true
 		return
 	}
 	if ensureRack() == nil {

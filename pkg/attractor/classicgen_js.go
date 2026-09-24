@@ -15,18 +15,18 @@ func generateClassic(mode string) {
 	if !ok {
 		return
 	}
-	vertices := vertBuf[:steps*4]
-	invN := float32(1) / float32(steps-1)
-	sub := effSubSteps(speedSteps, steps, frameBudgetCompiled)
-	for i := 0; i < steps; i++ {
-		dt := *dtp * speedScale
+	vertices := sim.vertBuf[:sim.steps*4]
+	invN := float32(1) / float32(sim.steps-1)
+	sub := effSubSteps(sim.speedSteps, sim.steps, frameBudgetCompiled)
+	for i := 0; i < sim.steps; i++ {
+		dt := *dtp * sim.speedScale
 		for s := 0; s < sub; s++ {
-			dx, dy, dz := deriv(x, y, z)
-			x, y, z = x+dt*dx, y+dt*dy, z+dt*dz
-			checkDiverged()
+			dx, dy, dz := deriv(sim.x, sim.y, sim.z)
+			sim.x, sim.y, sim.z = sim.x+dt*dx, sim.y+dt*dy, sim.z+dt*dz
+			sim.checkDiverged()
 		}
 		j := i * 4
-		vertices[j], vertices[j+1], vertices[j+2], vertices[j+3] = x, y, z, float32(i)*invN
+		vertices[j], vertices[j+1], vertices[j+2], vertices[j+3] = sim.x, sim.y, sim.z, float32(i)*invN
 	}
-	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, sim.steps)
 }

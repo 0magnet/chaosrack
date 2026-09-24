@@ -73,12 +73,37 @@ func newCamera() camera {
 
 // ── Color state ──────────────────────────────────────────────────────────────
 
-var (
-	baseColor = [3]float32{1.0, 0.0, 0.0}
-	topColor  = [3]float32{0.0, 0.0, 1.0}
-	midColor  = [3]float32{0.0, 1.0, 0.0}
-	bgColor   = [3]float32{0.0, 0.0, 0.0}
-)
+// traceStyle is how the trace is drawn: its colors and gradient, points or a
+// line, and how much of the trail is shown.
+type traceStyle struct {
+	baseColor       [3]float32
+	topColor        [3]float32
+	midColor        [3]float32
+	bgColor         [3]float32
+	usePoints       bool
+	persistTrail    bool
+	gradientSource  int // gradient parameter source: 0=X,1=Y,2=Z,3=trail
+	gradientColors  int // palette: 1=mono,2=two-color,3=three-color,4=rainbow
+	gradientReverse bool
+	gradientFreq    float32 // rainbow gradient cycles over the range (period control)
+	gradientPhase   float32 // animated rainbow hue offset (flows through the spectrum)
+
+	// trailModFrac is the fraction of the trail drawn this frame (1 = full).
+	// Audio modulation shortens it live without touching the vertex buffer:
+	// uploadVerticesOnly just draws the most-recent frac·count points.
+	trailModFrac float32
+}
+
+var style = traceStyle{
+	baseColor:      [3]float32{1.0, 0.0, 0.0},
+	topColor:       [3]float32{0.0, 0.0, 1.0},
+	midColor:       [3]float32{0.0, 1.0, 0.0},
+	bgColor:        [3]float32{0.0, 0.0, 0.0},
+	gradientSource: 2,
+	gradientColors: 2,
+	gradientFreq:   1,
+	trailModFrac:   1,
+}
 
 // ── Interaction state ────────────────────────────────────────────────────────
 
@@ -123,31 +148,25 @@ var PanelStartHidden bool
 // too). Set BEFORE calling Run().
 var ForceStandalonePanel bool
 
+// runState is which model is running and whether it is.
+type runState struct {
+	paused       bool
+	stopped      bool
+	pausedCount  int
+	selectedMode string
+
+	// preCustomMode remembers the attractor to return to when the "Edit eqn" switch
+	// is toggled back off.
+	preCustomMode string
+}
+
+var run runState
+
 var (
-	paused          bool    = false
-	stopped         bool    = false
-	pausedCount     int     = 0
-	usePoints       bool    = false
-	persistTrail    bool    = false
-	gradientSource  int     = 2 // gradient parameter source: 0=X,1=Y,2=Z,3=trail
-	gradientColors  int     = 2 // palette: 1=mono,2=two-color,3=three-color,4=rainbow
-	gradientReverse bool    = false
-	gradientFreq    float32 = 1 // rainbow gradient cycles over the range (period control)
-	gradientPhase   float32 = 0 // animated rainbow hue offset (flows through the spectrum)
-	// trailModFrac is the fraction of the trail drawn this frame (1 = full).
-	// Audio modulation shortens it live without touching the vertex buffer:
-	// uploadVerticesOnly just draws the most-recent frac·count points.
-	trailModFrac float32 = 1
-	dragging     bool    = false
+	dragging bool = false
 )
 
 // ── Selection ────────────────────────────────────────────────────────────────
-
-var selectedMode string
-
-// preCustomMode remembers the attractor to return to when the "Edit eqn" switch
-// is toggled back off.
-var preCustomMode string
 
 // viewState is ONE view of a model: the camera fitted to it, how far the
 // model reaches, and the one-shot override a mode uses to say what the fit

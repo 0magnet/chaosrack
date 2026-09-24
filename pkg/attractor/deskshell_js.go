@@ -51,7 +51,7 @@ func setDeskContain(on bool) {
 		// turning it off has to mean the desk goes -- otherwise its windows stay
 		// floating over the canvas, which is the arrangement that was removed for
 		// belonging to neither the model nor the desktop.
-		if selectedMode != "desk" && bgVisual != "desk" {
+		if run.selectedMode != "desk" && bgVisual != "desk" {
 			setDeskOn(false)
 		}
 		return

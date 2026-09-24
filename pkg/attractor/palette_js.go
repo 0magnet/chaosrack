@@ -153,10 +153,10 @@ func updateDashFromPointCount(drawn int) {
 // directly and go on doing so, which is why gradientColors itself stays the map
 // and only this one call site folds OFF in.
 func gradientColorsUniform() int {
-	if gradientSource == GradientSourceOff {
+	if style.gradientSource == GradientSourceOff {
 		return 1
 	}
-	return gradientColors
+	return style.gradientColors
 }
 
 // modeUsesGradientSource reports whether the model on screen reads the SRC ring
@@ -180,8 +180,8 @@ func modeUsesGradientSource(mode string) bool {
 // the hue sweep's period.
 func mapColorAt(v float64) color.Color {
 	return colormap.Map{
-		Colors: gradientColors, Base: baseColor, Mid: midColor, Top: topColor,
-		Freq: gradientFreq,
+		Colors: style.gradientColors, Base: style.baseColor, Mid: style.midColor, Top: style.topColor,
+		Freq: style.gradientFreq,
 	}.At(v)
 }
 

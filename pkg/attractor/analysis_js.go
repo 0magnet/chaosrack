@@ -97,7 +97,7 @@ func (l *lyapunovProbe) scheduleLyapunov(delayMs int) {
 
 // runLyapunov measures the current mode and paints the result.
 func (l *lyapunovProbe) runLyapunov() {
-	mode := selectedMode
+	mode := run.selectedMode
 	l.lastMode = mode
 	r := analysis.LyapunovFor(mode)
 	if r.Verdict == "n/a" {

@@ -173,7 +173,7 @@ func (s *spectrogram) updateSpectrogramTexture(nowMs float64) {
 	// the fold it was written with.
 	applySpectChannel()
 	if src := aud.activeAudioSource(); src != nil && src.Ready() {
-		fvfOn := selectedMode == "fvf"
+		fvfOn := run.selectedMode == "fvf"
 		// When the FVF audio engine is running it is the single drainer of the
 		// source (and plays it out), and the tap switches its upstream to that
 		// engine's already-processed output so display matches sound. Reading
@@ -334,17 +334,17 @@ func (s *spectrogram) setSpectrogramCamera() {
 	view.initDist = 4.5
 	view.defaultDist = 4.5
 	view.ctl.zoom = 0
-	if cameraControl.Truthy() {
-		cameraControl.Set("value", "0")
+	if camPanel.cameraControl.Truthy() {
+		camPanel.cameraControl.Set("value", "0")
 	}
-	if sliderZoom.Truthy() {
-		sliderZoom.Set("textContent", "0")
+	if camPanel.sliderZoom.Truthy() {
+		camPanel.sliderZoom.Set("textContent", "0")
 	}
 
 	view.angleX, view.angleY, view.angleZ = 0, 0, 0
 	view.rebuildModelMatrix()
 	zeroRotationSliders()
-	updateRotKnobs()
+	rotKnobs.update()
 
 	if !s.autoRotateSaved {
 		s.savedAutoRotate = view.ctl.autoRotate

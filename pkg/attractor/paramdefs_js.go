@@ -217,23 +217,23 @@ var attractorParams = map[string][]paramDef{
 	"icosahedron":  {{"poly-op", "op", &polyOpF, 0, 0, 6, 1}},
 
 	"globe": {
-		{"globe-lat", "lat", &globeLatF, 18, 0, 90, 1},
-		{"globe-lon", "lon", &globeLonF, 36, 0, 180, 1},
-		{"globe-par", "par", &globeSpiralF, 0, 0, 1, 1},
-		{"globe-rev", "dir", &globeRevF, 0, 0, 1, 1},
-		{"globe-twist", "twist", &globeTwistF, 0, -8, 8, 0.25},
+		{"globe-lat", "lat", &globe.latF, 18, 0, 90, 1},
+		{"globe-lon", "lon", &globe.lonF, 36, 0, 180, 1},
+		{"globe-par", "par", &globe.spiralF, 0, 0, 1, 1},
+		{"globe-rev", "dir", &globe.revF, 0, 0, 1, 1},
+		{"globe-twist", "twist", &globe.twistF, 0, -8, 8, 0.25},
 	},
 	"sphere": {
-		{"sphere-r", "radius", &sphereRadius, 1.0, 0.1, 5, 0.1},
-		{"sphere-stacks", "lat", &sphereStacksF, 30, 4, 100, 1},
-		{"sphere-slices", "lon", &sphereSlicesF, 30, 4, 100, 1},
+		{"sphere-r", "radius", &sphere.radius, 1.0, 0.1, 5, 0.1},
+		{"sphere-stacks", "lat", &sphere.stacksF, 30, 4, 100, 1},
+		{"sphere-slices", "lon", &sphere.slicesF, 30, 4, 100, 1},
 	},
 	"torus": {
-		{"torus-R", "R", &torusR, 1.5, 0.1, 5, 0.1},
-		{"torus-r", "r", &torusr, 0.5, 0.1, 3, 0.1},
-		{"torus-stacks", "stacks", &torusStacksF, 30, 3, 100, 1},
-		{"torus-slices", "slices", &torusSlicesF, 30, 3, 100, 1},
-		{"torus-roll", "roll", &torusRollF, 0, -8, 8, 0.1},
+		{"torus-R", "R", &torus.major, 1.5, 0.1, 5, 0.1},
+		{"torus-r", "r", &torus.minor, 0.5, 0.1, 3, 0.1},
+		{"torus-stacks", "stacks", &torus.stacksF, 30, 3, 100, 1},
+		{"torus-slices", "slices", &torus.slicesF, 30, 3, 100, 1},
+		{"torus-roll", "roll", &torus.rollF, 0, -8, 8, 0.1},
 	},
 }
 
