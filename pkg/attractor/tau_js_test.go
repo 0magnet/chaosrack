@@ -2,17 +2,21 @@
 
 package attractor
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/takens"
+)
 
 // τ IS A DELAY, SO IT IS A TIME. The knob counts samples at a fixed reference
 // rate, and the delay in source samples is derived from the live rate — so one
 // knob position is the same duration on the 48 kHz microphone and on the 24 kHz
 // server feed, which is what it was not when the number was read as raw samples.
 func TestTauIsTheSameDurationOnEverySource(t *testing.T) {
-	for _, knob := range []float32{1, 32, takensTauDef, 200, takensTauMax} {
+	for _, knob := range []float32{1, 32, takens.TauDef, 200, takens.TauMax} {
 		want := float64(tauMS(knob))
 		for _, sr := range []int{24000, 44100, 48000, 96000} {
-			got := float64(tauSamples(knob, sr)) / float64(sr) * 1000
+			got := float64(takens.TauSamples(knob, sr)) / float64(sr) * 1000
 			// Rounding to a whole sample is the only error allowed, and it is
 			// widest at the lowest rate.
 			if tol := 1000.0 / float64(sr); got < want-tol || got > want+tol {
@@ -27,7 +31,7 @@ func TestTauIsTheSameDurationOnEverySource(t *testing.T) {
 // already written still means what it meant.
 func TestTauIsUnchangedAtTheReferenceRate(t *testing.T) {
 	for _, knob := range []float32{1, 32, 72, 512} {
-		if got := tauSamples(knob, tauRefRate); got != int(knob) {
+		if got := takens.TauSamples(knob, takens.RefRate); got != int(knob) {
 			t.Errorf("τ=%v at the reference rate became %d samples", knob, got)
 		}
 	}
@@ -50,8 +54,8 @@ func TestTauSamplesNeverReturnsSomethingUnusable(t *testing.T) {
 		{32, 0}, {32, -1}, {0.0001, 48000},
 	}
 	for _, c := range cases {
-		if got := tauSamples(c.tau, c.sr); got < 1 {
-			t.Errorf("tauSamples(%v, %d) = %d, want at least 1", c.tau, c.sr, got)
+		if got := takens.TauSamples(c.tau, c.sr); got < 1 {
+			t.Errorf("takens.TauSamples(%v, %d) = %d, want at least 1", c.tau, c.sr, got)
 		}
 	}
 }
@@ -59,7 +63,7 @@ func TestTauSamplesNeverReturnsSomethingUnusable(t *testing.T) {
 // A rate of zero means the source has not reported one yet, and the knob's own
 // number is the best guess available — not a collapse to the floor.
 func TestTauFallsBackToTheKnobWhenTheRateIsUnknown(t *testing.T) {
-	if got := tauSamples(72, 0); got != 72 {
+	if got := takens.TauSamples(72, 0); got != 72 {
 		t.Errorf("with no sample rate yet, τ=72 became %d; want the knob's own 72", got)
 	}
 }
@@ -68,12 +72,12 @@ func TestTauFallsBackToTheKnobWhenTheRateIsUnknown(t *testing.T) {
 // mode is judged on in its first second. It must not be back in the range where
 // the figure collapses toward the diagonal.
 func TestTauDefaultIsLongEnoughToBeAnEmbedding(t *testing.T) {
-	ms := tauMS(takensTauDef)
+	ms := tauMS(takens.TauDef)
 	if ms < 1.0 || ms > 3.0 {
 		t.Errorf("default τ is %.2f ms; outside 1–3 ms it is either a streak or folded", ms)
 	}
-	if takensTauDef > takensTauMax || takensTauDef < 1 {
-		t.Errorf("default τ %v is outside the knob's own range 1..%v", takensTauDef, takensTauMax)
+	if takens.TauDef > takens.TauMax || takens.TauDef < 1 {
+		t.Errorf("default τ %v is outside the knob's own range 1..%v", takens.TauDef, takens.TauMax)
 	}
 }
 
@@ -98,9 +102,9 @@ func TestEveryTauRowAgrees(t *testing.T) {
 		if !ok {
 			t.Fatalf("%s has no %s row", c.mode, c.id)
 		}
-		if p.Def != takensTauDef || p.Min != 1 || p.Max != takensTauMax || p.Step != 1 {
+		if p.Def != takens.TauDef || p.Min != 1 || p.Max != takens.TauMax || p.Step != 1 {
 			t.Errorf("%s/%s is %v..%v/%v def %v, want 1..%v/1 def %v",
-				c.mode, c.id, p.Min, p.Max, p.Step, p.Def, takensTauMax, takensTauDef)
+				c.mode, c.id, p.Min, p.Max, p.Step, p.Def, takens.TauMax, takens.TauDef)
 		}
 	}
 }
@@ -111,7 +115,7 @@ func TestEveryTauRowAgrees(t *testing.T) {
 // position into more real samples.
 func TestRecurrenceRingCoversTheFastestSource(t *testing.T) {
 	const fastest = 96000
-	if got := tauSamples(takensTauMax, fastest); got > rpMaxTauSamples {
+	if got := takens.TauSamples(takens.TauMax, fastest); got > rpMaxTauSamples {
 		t.Errorf("τ at the top of the knob is %d samples at %d Hz, past the %d the ring is sized for",
 			got, fastest, rpMaxTauSamples)
 	}
@@ -175,7 +179,7 @@ func TestAutoMeasureDefersToAChosenTau(t *testing.T) {
 	takensW = takensEstMax
 
 	// The default is nobody's choice, so it is due.
-	takensAutoDone, takensAutoSet, takensTau = false, 0, takensTauDef
+	takensAutoDone, takensAutoSet, takensTau = false, 0, takens.TauDef
 	if !takensAutoDue() {
 		t.Error("not due at the default τ")
 	}

@@ -1,11 +1,11 @@
-package attractor
-
-import "github.com/0magnet/chaosrack/pkg/dynamics"
+package takens
 
 import (
 	"math"
 	"math/rand"
 	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 )
 
 // The estimators are tested against signals whose answer is known from theory

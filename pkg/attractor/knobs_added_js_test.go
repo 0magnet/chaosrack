@@ -2,7 +2,9 @@
 
 package attractor
 
-import "testing"
+import (
+	"testing"
+)
 
 // nanF and infF build the values a modulator riding a feature that has gone to
 // zero or to infinity can deliver, without importing math into a test file that
@@ -109,7 +111,7 @@ func TestStereoAlignIsADuration(t *testing.T) {
 	}
 }
 
-// Zero has to stay zero. tauSamples floors at one sample because a zero DELAY
+// Zero has to stay zero. takens.TauSamples floors at one sample because a zero DELAY
 // collapses an embedding; a zero OFFSET is the normal setting and must not
 // quietly become a one-sample skew.
 func TestStereoAlignZeroIsZero(t *testing.T) {

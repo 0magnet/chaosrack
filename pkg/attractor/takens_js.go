@@ -5,6 +5,7 @@ package attractor
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/led"
+	"github.com/0magnet/chaosrack/pkg/takens"
 	"strconv"
 	"syscall/js"
 )
@@ -19,12 +20,12 @@ import (
 // rotate, zoom, persist, gradient, beam-dwell, even Model Out SCAN all work.
 //
 // The τ knob is a DELAY, and it is counted in samples at a fixed reference rate
-// so that one position is one duration on every source — see tauSamples for why
+// so that one position is one duration on every source — see takens.TauSamples for why
 // raw samples of the source stream were the wrong unit. Too small stretches the
 // figure along the diagonal, too large folds it, and the right value is a
 // property of the signal rather than something to guess: the first minimum of
 // its average mutual information, with the false-nearest-neighbor dimension
-// alongside it (see embedding.go). That is measured ONCE when the mode first
+// alongside it (see pkg/takens). That is measured ONCE when the mode first
 // has audio, again when the source changes, and on the MEAS button whenever
 // asked — but never over a τ somebody has set, and never per frame. The
 // section comment above takensMeasure is where that rule is argued.
@@ -61,9 +62,9 @@ import (
 // fitted once to that bound rather than to whatever happened to be playing.
 
 var (
-	takensTau     float32 = takensTauDef // delay τ, in reference samples (see tauSamples)
-	takensGain    float32 = 10           // world units a full-scale (±1) sample maps to
-	takensWin     float32 = 85           // display window, milliseconds
+	takensTau     float32 = takens.TauDef // delay τ, in reference samples (see takens.TauSamples)
+	takensGain    float32 = 10            // world units a full-scale (±1) sample maps to
+	takensWin     float32 = 85            // display window, milliseconds
 	takensRing    []float32
 	takensW       int // monotonic write cursor into takensRing
 	takensScratch []float32
@@ -109,7 +110,7 @@ func init() {
 	registerGenerate("takens", generateTakens)
 	attractorParams["takens"] = []paramDef{
 		{"takens-chan", "src", &takensChanF, 0, 0, float32(len(tapChanNames) - 1), 1},
-		{"takens-tau", "τ", &takensTau, takensTauDef, 1, takensTauMax, 1},
+		{"takens-tau", "τ", &takensTau, takens.TauDef, 1, takens.TauMax, 1},
 		{"takens-win", "win", &takensWin, 85, 5, 500, 5},
 		{"takens-gain", "gain", &takensGain, 10, 0.5, 50, 0.5},
 		{"takens-smooth", "smth", &takensSmoothF, 4, 1, 16, 1},
@@ -131,7 +132,7 @@ func generateTakens() {
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := tauSamples(takensTau, sr)
+	tau := takens.TauSamples(takensTau, sr)
 	n, stride := takensWindow(takensWin, sr, steps)
 	span := (n-1)*stride + 2*tau
 	if need := span + 1; len(takensRing) < need {
@@ -258,8 +259,8 @@ func generateTakens() {
 const takensEstMax = 4096
 
 var (
-	takensMeasEl js.Value        // the readout beside the button
-	takensMeas   EmbeddingResult // last measurement, for the readout
+	takensMeasEl js.Value               // the readout beside the button
+	takensMeas   takens.EmbeddingResult // last measurement, for the readout
 
 	// takensAutoDone is the one-shot guard. Set the first time the automatic
 	// measurement runs, and cleared only by takensArmAutoMeasure — which mode
@@ -336,7 +337,7 @@ func takensAutoDue() bool {
 	// Never over a τ somebody chose — see takensAutoSet. The knob is theirs
 	// from the moment they touch it, and a measurement that overrides it is not
 	// a convenience, it is a control fighting the person using it.
-	if takensTau != takensTauDef && takensTau != takensAutoSet {
+	if takensTau != takens.TauDef && takensTau != takensAutoSet {
 		return false
 	}
 	avail := takensW
@@ -387,7 +388,7 @@ func takensEstWindow() []float64 {
 func takensMeasure() {
 	x := takensEstWindow()
 	if x == nil {
-		takensMeas = EmbeddingResult{}
+		takensMeas = takens.EmbeddingResult{}
 		showTakensMeasurement("no audio")
 		return
 	}
@@ -397,7 +398,7 @@ func takensMeasure() {
 	// while the knob counts reference samples — so the reach is converted into
 	// the estimator's units on the way in and the answer back out again.
 	sr := takensSourceRate()
-	r := EstimateEmbedding(x, tauSamples(takensTauMax, sr), 8)
+	r := takens.EstimateEmbedding(x, takens.TauSamples(takens.TauMax, sr), 8)
 	takensMeas = r
 	if r.Tau < 1 {
 		// White noise has no first minimum — its mutual information is at the
@@ -447,8 +448,8 @@ func takensSourceRate() int {
 // converting to the knob's reference-rate unit on the way.
 func setTakensTauSamples(tauSrc, sr int) {
 	ref := float32(tauSrc)
-	if sr > 0 && sr != tauRefRate {
-		ref = float32(tauSrc) * float32(tauRefRate) / float32(sr)
+	if sr > 0 && sr != takens.RefRate {
+		ref = float32(tauSrc) * float32(takens.RefRate) / float32(sr)
 	}
 	setTakensTau(int(ref + 0.5))
 }
@@ -460,8 +461,8 @@ func setTakensTauSamples(tauSrc, sr int) {
 func setTakensTau(tau int) {
 	if tau < 1 {
 		tau = 1
-	} else if tau > int(takensTauMax) {
-		tau = int(takensTauMax)
+	} else if tau > int(takens.TauMax) {
+		tau = int(takens.TauMax)
 	}
 	takensTau = float32(tau)
 	el := dom.Doc.Call("getElementById", "takens-tau")
@@ -512,4 +513,4 @@ func appendTakensEstimate(grid js.Value) {
 
 // tauMS is a τ knob value as milliseconds, for readouts. It does not depend on
 // the source rate, which is the whole point of the reference unit.
-func tauMS(tauRef float32) float32 { return tauRef * 1000 / tauRefRate }
+func tauMS(tauRef float32) float32 { return tauRef * 1000 / takens.RefRate }

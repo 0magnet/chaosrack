@@ -1,11 +1,11 @@
 package recurrence
 
-import "github.com/0magnet/chaosrack/pkg/dynamics"
-
 import (
 	"math"
 	"math/rand"
 	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 )
 
 // The recurrence math, tested without a GL context — the reason it lives in an
@@ -17,8 +17,8 @@ import (
 // normalizers keep the plot's density where it can be read.
 //
 // (The first four moved here with the functions when the recurrence math came
-// out of embedding.go; the helpers sineWithNoise and lorenzSeries are still in
-// embedding_test.go, which is the same package.)
+// out of embedding.go, which is now pkg/takens; sineWithNoise has a copy in
+// signal_test.go.)
 
 // The two properties that make the plot readable at all: it is symmetric, and
 // its main diagonal is lit (every point recurs with itself).

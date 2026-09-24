@@ -6,6 +6,7 @@ import (
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"github.com/0magnet/chaosrack/pkg/recurrence"
+	"github.com/0magnet/chaosrack/pkg/takens"
 	"strconv"
 	"syscall/js"
 )
@@ -173,10 +174,10 @@ const (
 	// cursor, and resetting the cursor throws the buffered audio away: turning
 	// m from 1 to 8 would blank the plot eight times on the way. Sized for the
 	// worst case once, m and τ are free to move.
-	rpMaxTau = takensTauMax
+	rpMaxTau = takens.TauMax
 
 	// rpMaxTauSamples is rpMaxTau in SOURCE samples rather than in knob units.
-	// The knob counts samples at tauRefRate (see tauSamples in takens_js.go),
+	// The knob counts samples at takens.RefRate (see takens.TauSamples in takens_js.go),
 	// so a source running faster than the reference turns the same knob
 	// position into more real samples — twice as many on a 96 kHz device. The
 	// ring has to hold the deepest lookback any rate can produce, not the
@@ -230,7 +231,7 @@ func init() {
 		// note in the file comment. Def/Min/Max/Step must stay identical to the
 		// row in takens_js.go, or Reset All resets one knob to two different
 		// numbers depending on which of the two maps it walks last.
-		{"takens-tau", "τ", &takensTau, takensTauDef, 1, takensTauMax, 1},
+		{"takens-tau", "τ", &takensTau, takens.TauDef, 1, takens.TauMax, 1},
 	}
 }
 
@@ -347,12 +348,12 @@ func rpFillFromAudio() bool {
 	dim := rpEmbedDim()
 	// Converted from the knob's reference-rate unit to this source's samples —
 	// the same delay in TIME whatever the source runs at, which is the whole of
-	// tauSamples' argument in takens_js.go — and then clamped, because the ring
+	// takens.TauSamples' argument in takens_js.go — and then clamped, because the ring
 	// is sized from rpMaxLookback: a τ past that bound, from a hand-edited
 	// permalink or from a sample rate higher than the headroom allows for,
 	// would ask for history behind the start of the buffer, and the index
 	// arithmetic below would go negative rather than merely wrong.
-	tau := tauSamples(takensTau, sr)
+	tau := takens.TauSamples(takensTau, sr)
 	if tau > rpMaxTauSamples {
 		tau = rpMaxTauSamples
 	}

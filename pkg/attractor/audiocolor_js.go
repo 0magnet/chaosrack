@@ -10,6 +10,7 @@ import (
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/meters"
+	"github.com/0magnet/chaosrack/pkg/takens"
 )
 
 // Sound as a gradient source: the fifth thing the trace color can follow,
@@ -314,7 +315,7 @@ func audioColorWindow(mode string) ([]float32, int) {
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := tauSamples(takensTau, sr)
+	tau := takens.TauSamples(takensTau, sr)
 	n, stride := takensWindow(takensWin, sr, steps)
 	if n <= 0 {
 		return nil, 0
@@ -369,7 +370,7 @@ func stereoColorWindow() ([]float32, int) {
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := tauSamples(stereo.tau, sr)
+	tau := takens.TauSamples(stereo.tau, sr)
 	align := stereoAlignSamples(stereo.align, sr)
 	n, stride := stereoWindow(stereo.win, sr, steps, tau, align)
 	if n <= 0 {
@@ -488,7 +489,7 @@ func stereoColorWindowPair(mode string) ([]float32, []float32, int) {
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	tau := tauSamples(stereo.tau, sr)
+	tau := takens.TauSamples(stereo.tau, sr)
 	align := stereoAlignSamples(stereo.align, sr)
 	n, stride := stereoWindow(stereo.win, sr, steps, tau, align)
 	if n <= 0 {

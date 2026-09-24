@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/0magnet/chaosrack/pkg/led"
+	"github.com/0magnet/chaosrack/pkg/takens"
 )
 
 // The window arithmetic is what the picture is OF, and it is the same
@@ -179,7 +180,7 @@ func TestTakensMeasurementWindowIsInTimeOrder(t *testing.T) {
 	if last := float64(takensRing[(takensW-1)%len(takensRing)]); math.Abs(x[len(x)-1]-last) > 1e-9 {
 		t.Errorf("the window ends at %v, not at the newest sample %v", x[len(x)-1], last)
 	}
-	tau, _, ok := FirstMinimumTau(x, 200)
+	tau, _, ok := takens.FirstMinimumTau(x, 200)
 	if !ok {
 		t.Fatal("no delay measured from a pure tone")
 	}
@@ -226,8 +227,8 @@ func TestGeneratingAFrameDoesNotRetuneTau(t *testing.T) {
 	// own purity states: measuring twice cannot change anything.
 	x := takensEstWindow()
 	before := takensTau
-	EstimateEmbedding(x, 512, 8)
-	EstimateEmbedding(x, 512, 8)
+	takens.EstimateEmbedding(x, 512, 8)
+	takens.EstimateEmbedding(x, 512, 8)
 	if takensTau != before {
 		t.Errorf("measuring moved τ from %v to %v without anyone pressing the button", before, takensTau)
 	}
