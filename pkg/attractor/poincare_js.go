@@ -403,9 +403,9 @@ func sectTick(mode string) {
 	// Restoring gradientColors alone was enough to hide it from the two- and
 	// three-color schemes, where the start color is one end of a mix and reads
 	// as a palette choice rather than as a bug.
-	glctx.GL.Call("uniform1i", uGradientColorsLoc, 1)
-	glctx.GL.Call("uniform3f", uBaseColorLoc, 1.0, 0.8, 0.15)
-	uploadVerticesOnly(v, glctx.Types.Points, n)
+	glctx.GL.Call("uniform1i", gpu.u.gradientColors, 1)
+	glctx.GL.Call("uniform3f", gpu.u.baseColor, 1.0, 0.8, 0.15)
+	gpu.uploadVerticesOnly(v, glctx.Types.Points, n)
 	if phosphorActive() {
 		// The phosphor owns both of those uniforms while it is on, and
 		// renderFrame set them from it earlier this frame. Handing them to the
@@ -413,8 +413,8 @@ func sectTick(mode string) {
 		applyPhosphorColor()
 		return
 	}
-	glctx.GL.Call("uniform1i", uGradientColorsLoc, gradientColorsUniform())
-	glctx.GL.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
+	glctx.GL.Call("uniform1i", gpu.u.gradientColors, gradientColorsUniform())
+	glctx.GL.Call("uniform3f", gpu.u.baseColor, baseColor[0], baseColor[1], baseColor[2])
 }
 
 // wireSectSwitch hooks up the Trace > Sect checkbox. It rebuilds the panel,
@@ -449,7 +449,7 @@ const sectMapGuides = 64
 // generatePoincare draws the section as its own model.
 func generatePoincare() {
 	if !sectRun(lastFlowMode) {
-		uploadVerticesOnly(vertBuf[:0], glctx.Types.Points, 0)
+		gpu.uploadVerticesOnly(vertBuf[:0], glctx.Types.Points, 0)
 		return
 	}
 	switch int(sectViewF + 0.5) {
@@ -460,7 +460,7 @@ func generatePoincare() {
 		// the banding's spacing relative to the section's extent is the thing
 		// being looked at. The camera fits around it once instead.
 		v := sectBuf(sectLog.Len())
-		uploadVerticesOnly(v, glctx.Types.Points, sectFillNewest(v, sectHitFlat))
+		gpu.uploadVerticesOnly(v, glctx.Types.Points, sectFillNewest(v, sectHitFlat))
 	case sectViewMap:
 		sectDrawReturnMap()
 	default:
@@ -468,7 +468,7 @@ func generatePoincare() {
 		// absent — the section in the attractor's own coordinates, so the
 		// shape learned while watching the overlay is the shape here.
 		v := sectBuf(sectLog.Len())
-		uploadVerticesOnly(v, glctx.Types.Points, sectFillNewest(v, sectHitInPlace))
+		gpu.uploadVerticesOnly(v, glctx.Types.Points, sectFillNewest(v, sectHitInPlace))
 	}
 	// Fit once, and only once there is a section to fit to. Fitting every frame
 	// would rescale the picture as it fills, which is the mistake the Takens
@@ -512,7 +512,7 @@ func generatePoincare() {
 func sectDrawReturnMap() {
 	total := sectLog.Len()
 	if total < 2 {
-		uploadVerticesOnly(vertBuf[:0], glctx.Types.Points, 0)
+		gpu.uploadVerticesOnly(vertBuf[:0], glctx.Types.Points, 0)
 		return
 	}
 	v := sectBuf(total - 1 + sectMapGuides)
@@ -545,7 +545,7 @@ func sectDrawReturnMap() {
 		n++
 	}
 	if n == 0 {
-		uploadVerticesOnly(vertBuf[:0], glctx.Types.Points, 0)
+		gpu.uploadVerticesOnly(vertBuf[:0], glctx.Types.Points, 0)
 		return
 	}
 	// The y=x guide, spanning the range the data spans.
@@ -556,7 +556,7 @@ func sectDrawReturnMap() {
 		v[j+3] = 0
 		n++
 	}
-	uploadVerticesOnly(v[:n*4], glctx.Types.Points, n)
+	gpu.uploadVerticesOnly(v[:n*4], glctx.Types.Points, n)
 }
 
 func init() {

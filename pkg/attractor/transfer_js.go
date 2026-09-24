@@ -286,8 +286,8 @@ func drawTransfer() {
 	glctx.GL.Call("enable", glctx.GL.Get("BLEND"))
 	glctx.GL.Call("blendFunc", glctx.GL.Get("SRC_ALPHA"), glctx.GL.Get("ONE"))
 	vcUpload(v)
-	dx := float32(1.2) / float32(width)
-	dy := float32(1.2) / float32(height)
+	dx := float32(1.2) / float32(gpu.width)
+	dy := float32(1.2) / float32(gpu.height)
 	for _, h := range [][3]float32{{dx, 0, 0.35}, {-dx, 0, 0.35}, {0, dy, 0.35}, {0, -dy, 0.35}} {
 		vcSpan(glctx.Types.Lines, 0, v, h[2], h[0], h[1])
 	}

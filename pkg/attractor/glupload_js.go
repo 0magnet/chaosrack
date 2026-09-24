@@ -11,9 +11,9 @@ import (
 	"github.com/0magnet/chaosrack/pkg/glctx"
 )
 
-func updateGradientRange(vertices []float32) {
-	stride := gradientStride
-	if !shadersReady || len(vertices) < stride {
+func (r *renderer) updateGradientRange(vertices []float32) {
+	stride := r.stride
+	if !r.ready || len(vertices) < stride {
 		return
 	}
 	minX := float32(math.MaxFloat32)
@@ -45,25 +45,18 @@ func updateGradientRange(vertices []float32) {
 			maxZ = vertices[i+2]
 		}
 	}
-	glctx.GL.Call("uniform1f", uMinXLoc, float64(minX))
-	glctx.GL.Call("uniform1f", uMaxXLoc, float64(maxX))
-	glctx.GL.Call("uniform1f", uMinYLoc, float64(minY))
-	glctx.GL.Call("uniform1f", uMaxYLoc, float64(maxY))
-	glctx.GL.Call("uniform1f", uMinZLoc, float64(minZ))
-	glctx.GL.Call("uniform1f", uMaxZLoc, float64(maxZ))
+	glctx.GL.Call("uniform1f", r.u.minX, float64(minX))
+	glctx.GL.Call("uniform1f", r.u.maxX, float64(maxX))
+	glctx.GL.Call("uniform1f", r.u.minY, float64(minY))
+	glctx.GL.Call("uniform1f", r.u.maxY, float64(maxY))
+	glctx.GL.Call("uniform1f", r.u.minZ, float64(minZ))
+	glctx.GL.Call("uniform1f", r.u.maxZ, float64(maxZ))
 }
 
 // uploadVerticesOnly uploads vertex data and draws with drawArrays (no index buffer).
 // Subtracts a stable centerOffset (computed once on mode change) so rotations work naturally.
 // Uses persistent JS typed arrays for zero per-frame JS allocation.
-// lastDrawnCount is how many vertices the last drawArrays actually asked for.
-// Pausing redraws without regenerating, and most modes fill the whole trail
-// buffer so `steps` is the same number — but a mode that draws fewer (a turtle
-// path shorter than its trail, a scatter still filling up) would otherwise have
-// the paused frame draw whatever stale vertices were left beyond its own.
-var lastDrawnCount int
-
-func uploadVerticesOnly(vertices []float32, drawMode js.Value, count int) {
+func (r *renderer) uploadVerticesOnly(vertices []float32, drawMode js.Value, count int) {
 	n := len(vertices) / 4
 	if n > 0 {
 		if !centerReady {
@@ -86,20 +79,20 @@ func uploadVerticesOnly(vertices []float32, drawMode js.Value, count int) {
 			vertices[i+2] -= centerOffset[2]
 		}
 	}
-	attractorVertices = vertices
-	vertexUploadSeq++
-	gradientStride = 4
+	r.verts = vertices
+	r.uploadSeq++
+	r.stride = 4
 	// Set stride-4 attribute pointers for interleaved data
-	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, attractorVertexBuffer)
-	glctx.GL.Call("vertexAttribPointer", positionLoc, 3, glctx.Types.Float, false, 16, 0)
-	glctx.GL.Call("enableVertexAttribArray", positionLoc)
-	glctx.GL.Call("vertexAttribPointer", aTrailTLoc, 1, glctx.Types.Float, false, 16, 12)
-	glctx.GL.Call("enableVertexAttribArray", aTrailTLoc)
-	js.CopyBytesToJS(jsVertUint8, sliceToByteSlice(vertices))
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, r.vbuf)
+	glctx.GL.Call("vertexAttribPointer", r.aPosition, 3, glctx.Types.Float, false, 16, 0)
+	glctx.GL.Call("enableVertexAttribArray", r.aPosition)
+	glctx.GL.Call("vertexAttribPointer", r.aTrailT, 1, glctx.Types.Float, false, 16, 12)
+	glctx.GL.Call("enableVertexAttribArray", r.aTrailT)
+	js.CopyBytesToJS(r.vertU8, sliceToByteSlice(vertices))
 	runtime.KeepAlive(vertices)
-	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, jsVertFloat, glctx.Types.StaticDraw)
-	uploadDwell(vertices, n)
-	glctx.GL.Call("uniform1f", uTrailHeadLoc, 0) // scan frames are head-less (ring mode sets its own)
+	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, r.vertF32, glctx.Types.StaticDraw)
+	gpu.uploadDwell(vertices, n)
+	glctx.GL.Call("uniform1f", r.u.trailHead, 0) // scan frames are head-less (ring mode sets its own)
 	// Audio-modulated trail length: draw only the most-recent frac·count points
 	// (a shorter line-strip tail) — no buffer realloc. frac==1 draws it all.
 	first := 0
@@ -111,31 +104,21 @@ func uploadVerticesOnly(vertices []float32, drawMode js.Value, count int) {
 		}
 		first = count - drawN
 	}
-	lastDrawnCount = drawN
+	r.lastDrawn = drawN
 	glctx.GL.Call("drawArrays", drawMode, first, drawN)
 }
 
-// Beam-dwell exposure: per-vertex brightness ∝ how long the beam lingered
-// there — mean step distance over local step distance, soft-clamped, so the
-// trail reads like a real CRT trace (slow arcs glow, fast excursions ghost).
-var (
-	dwellBuf   []float32
-	dwellGL    js.Value
-	jsDwellU8  js.Value
-	jsDwellF32 js.Value
-)
-
-func uploadDwell(vertices []float32, n int) {
+func (r *renderer) uploadDwell(vertices []float32, n int) {
 	if n < 2 {
 		return
 	}
-	if len(dwellBuf) != n {
-		dwellBuf = make([]float32, n)
-		jsDwellU8 = js.Global().Get("Uint8Array").New(n * 4)
-		jsDwellF32 = js.Global().Get("Float32Array").New(jsDwellU8.Get("buffer"), 0, n)
+	if len(r.dwell.buf) != n {
+		r.dwell.buf = make([]float32, n)
+		r.dwell.u8 = js.Global().Get("Uint8Array").New(n * 4)
+		r.dwell.f32 = js.Global().Get("Float32Array").New(r.dwell.u8.Get("buffer"), 0, n)
 	}
-	if dwellGL.IsUndefined() {
-		dwellGL = glctx.GL.Call("createBuffer")
+	if r.dwell.gl.IsUndefined() {
+		r.dwell.gl = glctx.GL.Call("createBuffer")
 	}
 	// mean step distance (squared math avoided: one sqrt per point)
 	var total float32
@@ -145,61 +128,61 @@ func uploadDwell(vertices []float32, n int) {
 		dy := vertices[b+1] - vertices[a+1]
 		dz := vertices[b+2] - vertices[a+2]
 		d := float32(math.Sqrt(float64(dx*dx + dy*dy + dz*dz)))
-		dwellBuf[i] = d
+		r.dwell.buf[i] = d
 		total += d
 	}
 	mean := total / float32(n-1)
 	if mean <= 0 {
 		mean = 1e-6
 	}
-	dwellBuf[0] = 1
+	r.dwell.buf[0] = 1
 	for i := 1; i < n; i++ {
-		w := mean / (dwellBuf[i] + mean*0.15) // 1.0 at mean speed, ≤~6.7 when parked
+		w := mean / (r.dwell.buf[i] + mean*0.15) // 1.0 at mean speed, ≤~6.7 when parked
 		if w > 1.8 {
 			w = 1.8
 		} else if w < 0.25 {
 			w = 0.25
 		}
-		dwellBuf[i] = w
+		r.dwell.buf[i] = w
 	}
-	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, dwellGL)
-	js.CopyBytesToJS(jsDwellU8, sliceToByteSlice(dwellBuf))
-	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, jsDwellF32, glctx.Types.DynamicDraw)
-	glctx.GL.Call("vertexAttribPointer", aDwellLoc, 1, glctx.Types.Float, false, 0, 0)
-	glctx.GL.Call("enableVertexAttribArray", aDwellLoc)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, r.dwell.gl)
+	js.CopyBytesToJS(r.dwell.u8, sliceToByteSlice(r.dwell.buf))
+	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, r.dwell.f32, glctx.Types.DynamicDraw)
+	glctx.GL.Call("vertexAttribPointer", r.aDwell, 1, glctx.Types.Float, false, 0, 0)
+	glctx.GL.Call("enableVertexAttribArray", r.aDwell)
 	// leave ARRAY_BUFFER bound to the vertex buffer for any later subdata
-	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, attractorVertexBuffer)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, r.vbuf)
 }
 
 // uploadBuffersIndexed uploads and draws with drawElements.
 // Uses packed stride-0 (xyz only), disabling the trail attribute.
 //
 // Only does the full upload (bind, attribute setup, bufferData with
-// fresh SliceToTypedArray allocations) when staticGeomDirty is set
+// fresh SliceToTypedArray allocations) when gpu.staticDirty is set
 // — i.e. on mode change, param change, or Reset. For all other
 // frames we go straight to drawElements with the still-bound
 // buffers, eliminating the per-frame CPU cost of regenerating the
 // JS typed arrays and pushing identical data to the GPU.
-func uploadBuffersIndexed(vertices []float32, indices []uint16, drawMode js.Value) {
-	if staticGeomDirty {
-		attractorVertices = vertices
-		attractorIndices = indices
-		vertexUploadSeq++
-		gradientStride = 3
-		glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, attractorVertexBuffer)
+func (r *renderer) uploadBuffersIndexed(vertices []float32, indices []uint16, drawMode js.Value) {
+	if r.staticDirty {
+		r.verts = vertices
+		r.indices = indices
+		r.uploadSeq++
+		r.stride = 3
+		glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, r.vbuf)
 		// Switch to packed xyz stride for indexed geometry
-		glctx.GL.Call("vertexAttribPointer", positionLoc, 3, glctx.Types.Float, false, 0, 0)
-		glctx.GL.Call("enableVertexAttribArray", positionLoc)
-		glctx.GL.Call("disableVertexAttribArray", aTrailTLoc)
-		glctx.GL.Call("disableVertexAttribArray", aDwellLoc)
-		glctx.GL.Call("vertexAttrib1f", aDwellLoc, 1.0)
-		glctx.GL.Call("vertexAttrib1f", aTrailTLoc, 0.0)
-		glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, SliceToTypedArray(attractorVertices), glctx.Types.StaticDraw)
-		glctx.GL.Call("bindBuffer", glctx.Types.ElementArrayBuffer, attractorIndexBuffer)
-		glctx.GL.Call("bufferData", glctx.Types.ElementArrayBuffer, SliceToTypedArray(attractorIndices), glctx.Types.StaticDraw)
-		staticGeomDirty = false
+		glctx.GL.Call("vertexAttribPointer", r.aPosition, 3, glctx.Types.Float, false, 0, 0)
+		glctx.GL.Call("enableVertexAttribArray", r.aPosition)
+		glctx.GL.Call("disableVertexAttribArray", r.aTrailT)
+		glctx.GL.Call("disableVertexAttribArray", r.aDwell)
+		glctx.GL.Call("vertexAttrib1f", r.aDwell, 1.0)
+		glctx.GL.Call("vertexAttrib1f", r.aTrailT, 0.0)
+		glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, SliceToTypedArray(r.verts), glctx.Types.StaticDraw)
+		glctx.GL.Call("bindBuffer", glctx.Types.ElementArrayBuffer, r.ibuf)
+		glctx.GL.Call("bufferData", glctx.Types.ElementArrayBuffer, SliceToTypedArray(r.indices), glctx.Types.StaticDraw)
+		r.staticDirty = false
 	}
-	glctx.GL.Call("drawElements", drawMode, len(attractorIndices), glctx.Types.UnsignedShort, 0)
+	glctx.GL.Call("drawElements", drawMode, len(r.indices), glctx.Types.UnsignedShort, 0)
 }
 
 // staticGeomCached reports that the geometry already on the GPU is still what
@@ -207,7 +190,7 @@ func uploadBuffersIndexed(vertices []float32, indices []uint16, drawMode js.Valu
 //
 // The static models — the polyhedra, sphere, torus, globe, magnetosphere and a
 // loaded STL — are a fixed mesh built from knob values, and every control that
-// feeds one sets staticGeomDirty when it moves. uploadBuffersIndexed has always
+// feeds one sets gpu.staticDirty when it moves. uploadBuffersIndexed has always
 // known that, and skipped the upload while the flag was clear. What it could
 // not skip was the build: the generators handed it a freshly computed mesh on
 // every frame and it threw all of them away but the first.
@@ -221,11 +204,11 @@ func uploadBuffersIndexed(vertices []float32, indices []uint16, drawMode js.Valu
 // exactly the stutter that could be seen.
 //
 // So the generators now ask this first and return if the answer is yes.
-func staticGeomCached(drawMode js.Value) bool {
-	if staticGeomDirty {
+func (r *renderer) staticGeomCached(drawMode js.Value) bool {
+	if r.staticDirty {
 		return false
 	}
-	glctx.GL.Call("drawElements", drawMode, len(attractorIndices), glctx.Types.UnsignedShort, 0)
+	glctx.GL.Call("drawElements", drawMode, len(r.indices), glctx.Types.UnsignedShort, 0)
 	return true
 }
 
@@ -329,24 +312,14 @@ func SliceToTypedArray(s interface{}) js.Value {
 // subtracted because uploadVerticesOnly subtracts it from the vertices, so the
 // bounds have to move with them or they describe a figure that is no longer
 // where it was.
-func setGradientRange(minX, maxX, minY, maxY, minZ, maxZ float32) {
-	if !shadersReady {
+func (r *renderer) setGradientRange(minX, maxX, minY, maxY, minZ, maxZ float32) {
+	if !r.ready {
 		return
 	}
-	glctx.GL.Call("uniform1f", uMinXLoc, float64(minX-centerOffset[0]))
-	glctx.GL.Call("uniform1f", uMaxXLoc, float64(maxX-centerOffset[0]))
-	glctx.GL.Call("uniform1f", uMinYLoc, float64(minY-centerOffset[1]))
-	glctx.GL.Call("uniform1f", uMaxYLoc, float64(maxY-centerOffset[1]))
-	glctx.GL.Call("uniform1f", uMinZLoc, float64(minZ-centerOffset[2]))
-	glctx.GL.Call("uniform1f", uMaxZLoc, float64(maxZ-centerOffset[2]))
+	glctx.GL.Call("uniform1f", r.u.minX, float64(minX-centerOffset[0]))
+	glctx.GL.Call("uniform1f", r.u.maxX, float64(maxX-centerOffset[0]))
+	glctx.GL.Call("uniform1f", r.u.minY, float64(minY-centerOffset[1]))
+	glctx.GL.Call("uniform1f", r.u.maxY, float64(maxY-centerOffset[1]))
+	glctx.GL.Call("uniform1f", r.u.minZ, float64(minZ-centerOffset[2]))
+	glctx.GL.Call("uniform1f", r.u.maxZ, float64(maxZ-centerOffset[2]))
 }
-
-// vertexUploadSeq counts uploads into the attractor vertex buffer.
-//
-// The gradient's extents are the only reader, and what they need to know is
-// whether the buffer they are about to scan belongs to the mode now on screen
-// or to the one before it. A mode name cannot answer that — the mode has
-// changed and the buffer has not — and emptiness cannot either, because a mode
-// that draws nothing on its first frames leaves the previous model's vertices
-// in place rather than clearing them. An upload count answers it exactly.
-var vertexUploadSeq uint64

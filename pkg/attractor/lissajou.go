@@ -39,5 +39,5 @@ func generateLissajou() {
 		vertices[j+2] = float32(math.Sin(c*t + ph*0.5))
 		vertices[j+3] = float32(i) * invN
 	}
-	uploadVerticesOnly(vertices, attractorDrawMode, steps)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
 }

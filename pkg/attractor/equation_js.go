@@ -218,7 +218,7 @@ func registerCustomFlow() {
 func generateCustom() {
 	if customErr != "" || customExpr[0] == nil {
 		// Nothing valid to run — leave the last frame on screen.
-		uploadVerticesOnly(vertBuf[:steps*4], mapDrawMode(dynamics.CustomKey), steps)
+		gpu.uploadVerticesOnly(vertBuf[:steps*4], mapDrawMode(dynamics.CustomKey), steps)
 		return
 	}
 	if customIterate {
@@ -269,7 +269,7 @@ func generateCustom() {
 		j := i * 4
 		vertices[j], vertices[j+1], vertices[j+2], vertices[j+3] = x, y, z, float32(i)*invN
 	}
-	uploadVerticesOnly(vertices, attractorDrawMode, steps)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
 }
 
 // ── Custom-mode control panel ─────────────────────────────────────────────

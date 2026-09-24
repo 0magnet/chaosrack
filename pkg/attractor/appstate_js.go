@@ -5,7 +5,6 @@ package attractor
 import (
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"math"
-	"syscall/js"
 )
 
 // The attractor integrator state and its reset / divergence machinery — the
@@ -29,15 +28,6 @@ var (
 	centerOffset [3]float32
 	centerReady  bool
 	centerWarmup int
-)
-
-// attractorDrawMode is the GL draw mode (LineStrip or Points) — set after glTypes.New.
-var attractorDrawMode js.Value
-
-// Persistent JS typed arrays — allocated once, reused every frame to avoid GC pressure.
-var (
-	jsVertUint8 js.Value // Uint8Array for CopyBytesToJS
-	jsVertFloat js.Value // Float32Array view for bufferData
 )
 
 func resetAttractorState() {

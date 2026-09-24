@@ -49,7 +49,6 @@ var (
 	// Matrices are cached here (pkg-level) so texProgram can be fed the
 	// same values the attractor program uses. movMatrix already lives in
 	// main.go; these two are populated by setupMatrices/updateViewMatrix.
-	projMatrix mgl32.Mat4
 	viewMatrix mgl32.Mat4
 
 	// frameNowMs is the current frame's rAF timestamp, published by
@@ -146,7 +145,7 @@ func newTexQuad(hw, hh float32) js.Value {
 
 // Persistent 64-byte scratch for matrix uniform uploads — created once, so
 // per-frame matrix uploads allocate no JS objects (same pattern as the
-// jsVertUint8/jsVertFloat vertex scratch). WebGL copies uniform data during
+// gpu.vertU8/gpu.vertF32 vertex scratch). WebGL copies uniform data during
 // the uniformMatrix4fv call, so reusing one buffer across consecutive uploads
 // in a frame is safe.
 var (
@@ -170,7 +169,7 @@ func mat4ToTyped(m *mgl32.Mat4) js.Value {
 // matrices to it. Call before any textured draw.
 func useTexProgram() {
 	glctx.GL.Call("useProgram", texProgram)
-	glctx.GL.Call("uniformMatrix4fv", texPmatLoc, false, mat4ToTyped(&projMatrix))
+	glctx.GL.Call("uniformMatrix4fv", texPmatLoc, false, mat4ToTyped(&gpu.proj))
 	glctx.GL.Call("uniformMatrix4fv", texVmatLoc, false, mat4ToTyped(&viewMatrix))
 	glctx.GL.Call("uniformMatrix4fv", texMmatLoc, false, mat4ToTyped(&movMatrix))
 }

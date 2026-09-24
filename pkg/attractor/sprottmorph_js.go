@@ -138,7 +138,7 @@ func generateSprottMorph() {
 		vertices[v+2] = float32(morphRing[idx*3+2])
 		vertices[v+3] = float32(k) * invN
 	}
-	uploadVerticesOnly(vertices, attractorDrawMode, steps)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
 	// PATCH readout: "D→E 42%" (throttled — DOM writes are not free).
 	morphTick++
 	if morphLED.Truthy() && morphTick%10 == 0 {

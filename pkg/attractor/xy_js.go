@@ -103,13 +103,13 @@ const xyFragShaderSrc = `
 // already isotropic — they go through mgl32.Perspective, which takes the
 // aspect ratio — so this is the one display that had to be told.
 func xyDeflection() (sx, sy float32) {
-	if width <= 0 || height <= 0 {
+	if gpu.width <= 0 || gpu.height <= 0 {
 		return xyScale, xyScale
 	}
-	if width > height {
-		return xyScale * float32(height) / float32(width), xyScale
+	if gpu.width > gpu.height {
+		return xyScale * float32(gpu.height) / float32(gpu.width), xyScale
 	}
-	return xyScale, xyScale * float32(width) / float32(height)
+	return xyScale, xyScale * float32(gpu.width) / float32(gpu.height)
 }
 
 var (
@@ -279,7 +279,7 @@ func xyFitBuffers(win, smooth int) {
 		xyLine = make([]float32, need+need/2)
 		// Persistent upload scratch — the trace re-uploads every frame, and a
 		// fresh typed array per frame is steady GC pressure (same pattern as
-		// jsVertUint8/jsVertFloat).
+		// gpu.vertU8/gpu.vertF32).
 		xyJsUint8 = js.Global().Get("Uint8Array").New(len(xyLine) * 4)
 		xyJsFloat = js.Global().Get("Float32Array").New(xyJsUint8.Get("buffer"), 0, len(xyLine))
 	}
@@ -428,8 +428,8 @@ func drawXYScope(clear bool) {
 	// lineWidth reliably, so we fake width + AA with offset passes.
 	glctx.GL.Call("enable", glctx.GL.Get("BLEND"))
 	glctx.GL.Call("blendFunc", glctx.GL.Get("SRC_ALPHA"), glctx.GL.Get("ONE")) // additive glow
-	dx := float32(1.4) / float32(width)
-	dy := float32(1.4) / float32(height)
+	dx := float32(1.4) / float32(gpu.width)
+	dy := float32(1.4) / float32(gpu.height)
 	halo := [][3]float32{ // x-offset, y-offset, alpha
 		{dx, 0, 0.35}, {-dx, 0, 0.35}, {0, dy, 0.35}, {0, -dy, 0.35},
 		{dx, dy, 0.22}, {-dx, -dy, 0.22}, {dx, -dy, 0.22}, {-dx, dy, 0.22},

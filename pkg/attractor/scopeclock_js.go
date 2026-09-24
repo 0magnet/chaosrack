@@ -48,7 +48,7 @@ func generateScopeClock() {
 		vertices[j+2] = 0 // a scope screen is flat; the pipeline is 3-D anyway
 		vertices[j+3] = float32(i) * invN
 	}
-	uploadVerticesOnly(vertices, attractorDrawMode, steps)
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
 }
 
 func init() {

@@ -82,7 +82,7 @@ func generateMap(mode string) {
 		}
 		mapOrbits.Set(o, p)
 	}
-	uploadVerticesOnly(vertices, glctx.Types.Points, total)
+	gpu.uploadVerticesOnly(vertices, glctx.Types.Points, total)
 }
 
 // mapDrawMode is the draw mode for a model that may be a map: points for one
@@ -97,7 +97,7 @@ func mapDrawMode(mode string) js.Value {
 	if dynamics.IsMap(mode) || (mode == dynamics.CustomKey && customIterate) {
 		return glctx.Types.Points
 	}
-	return attractorDrawMode
+	return gpu.drawMode
 }
 
 // mapInvalidate forces a reseed — called when the parameters change, since a

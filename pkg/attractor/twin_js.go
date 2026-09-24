@@ -139,11 +139,11 @@ func twinTick(mode string) bool {
 
 	// Draw A with the normal gradient, then B in a fixed contrast color via
 	// the monochrome override (restored right after).
-	uploadVerticesOnly(vertices, attractorDrawMode, steps)
-	glctx.GL.Call("uniform1i", uGradientColorsLoc, 1)
-	glctx.GL.Call("uniform3f", uBaseColorLoc, 0.15, 1.0, 0.45)
-	uploadVerticesOnly(twinBuf[:steps*4], attractorDrawMode, steps)
-	glctx.GL.Call("uniform1i", uGradientColorsLoc, gradientColorsUniform())
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
+	glctx.GL.Call("uniform1i", gpu.u.gradientColors, 1)
+	glctx.GL.Call("uniform3f", gpu.u.baseColor, 0.15, 1.0, 0.45)
+	gpu.uploadVerticesOnly(twinBuf[:steps*4], gpu.drawMode, steps)
+	glctx.GL.Call("uniform1i", gpu.u.gradientColors, gradientColorsUniform())
 
 	return true
 }

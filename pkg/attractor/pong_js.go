@@ -207,7 +207,7 @@ func generatePong() {
 	}
 	pongStrokes = strokes
 	if v := beamLines(strokes, 0); v > 0 {
-		uploadVerticesOnly(vertBuf[:v*4], beamDrawMode(), v)
+		gpu.uploadVerticesOnly(vertBuf[:v*4], beamDrawMode(), v)
 	}
 }
 

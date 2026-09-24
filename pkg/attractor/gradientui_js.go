@@ -16,12 +16,12 @@ import (
 // refreshGradient rescans the drawn geometry for the gradient's normalizing
 // extents. Called when a knob moves, which changes the shape under the scan.
 func refreshGradient() {
-	if !shadersReady || len(attractorVertices) == 0 {
+	if !gpu.ready || len(gpu.verts) == 0 {
 		return
 	}
-	updateGradientRange(attractorVertices)
+	gpu.updateGradientRange(gpu.verts)
 	gradientRangePending = false
-	gradientRangeSeq = vertexUploadSeq
+	gradientRangeSeq = gpu.uploadSeq
 }
 
 // armGradientRange says the extents are owed, and records how many uploads had
@@ -48,13 +48,13 @@ func refreshGradient() {
 // exactly the question and neither emptiness nor a mode name answers it.
 func armGradientRange() {
 	gradientRangePending = true
-	gradientRangeSeq = vertexUploadSeq
+	gradientRangeSeq = gpu.uploadSeq
 }
 
 // gradientRangeDue reports whether an owed refresh can now be taken: something
 // has been uploaded since the mode changed, so the buffer is this mode's.
 func gradientRangeDue() bool {
-	return gradientRangePending && vertexUploadSeq != gradientRangeSeq
+	return gradientRangePending && gpu.uploadSeq != gradientRangeSeq
 }
 
 var (
@@ -126,9 +126,9 @@ func onColorChange(this js.Value, args []js.Value) interface{} {
 	baseColor = colorspace.ParseHex(baseHex)
 	midColor = colorspace.ParseHex(midHex)
 	topColor = colorspace.ParseHex(topHex)
-	glctx.GL.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
-	glctx.GL.Call("uniform3f", uMidColorLoc, midColor[0], midColor[1], midColor[2])
-	glctx.GL.Call("uniform3f", uTopColorLoc, topColor[0], topColor[1], topColor[2])
+	glctx.GL.Call("uniform3f", gpu.u.baseColor, baseColor[0], baseColor[1], baseColor[2])
+	glctx.GL.Call("uniform3f", gpu.u.midColor, midColor[0], midColor[1], midColor[2])
+	glctx.GL.Call("uniform3f", gpu.u.topColor, topColor[0], topColor[1], topColor[2])
 	return nil
 }
 

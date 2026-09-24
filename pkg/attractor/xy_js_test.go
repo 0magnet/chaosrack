@@ -11,9 +11,9 @@ import (
 // so a size used for one case cannot leak into a later test in the package.
 func setCanvas(t *testing.T, w, h int) {
 	t.Helper()
-	ow, oh := width, height
-	t.Cleanup(func() { width, height = ow, oh })
-	width, height = w, h
+	ow, oh := gpu.width, gpu.height
+	t.Cleanup(func() { gpu.width, gpu.height = ow, oh })
+	gpu.width, gpu.height = w, h
 }
 
 // The goniometer has to be SQUARE. The vertex shader writes gl_Position

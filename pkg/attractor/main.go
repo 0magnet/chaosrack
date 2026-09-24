@@ -45,7 +45,7 @@ func Run() {
 	// Lazy WebGL init — see initWebGL doc. Must run after the host
 	// DOM is ready (caller's responsibility); otherwise gocanvas
 	// won't exist yet and canvasEl.Call("getContext", ...) panics.
-	initWebGL()
+	gpu.initWebGL()
 	if dom.Body.IsUndefined() || dom.Body.IsNull() {
 		js.Global().Call("alert", "cannot get html body, exiting")
 		return
@@ -495,9 +495,9 @@ func Run() {
 	requantizeAfterFonts()
 
 	// Initialize persistent JS typed arrays for zero-alloc frame uploads
-	jsVertUint8 = js.Global().Get("Uint8Array").New(steps * 4 * 4)
-	buf := jsVertUint8.Get("buffer")
-	jsVertFloat = js.Global().Get("Float32Array").New(buf, 0, steps*4)
+	gpu.vertU8 = js.Global().Get("Uint8Array").New(steps * 4 * 4)
+	buf := gpu.vertU8.Get("buffer")
+	gpu.vertF32 = js.Global().Get("Float32Array").New(buf, 0, steps*4)
 	initDrawState()
 	debugVal := js.Global().Get("__WASM_DEBUG__")
 	if !debugVal.IsUndefined() && debugVal.Bool() {
@@ -518,9 +518,9 @@ func Run() {
 			if newSteps != steps {
 				steps = newSteps
 				vertBuf = make([]float32, steps*4)
-				jsVertUint8 = js.Global().Get("Uint8Array").New(steps * 4 * 4)
-				buf := jsVertUint8.Get("buffer")
-				jsVertFloat = js.Global().Get("Float32Array").New(buf, 0, steps*4)
+				gpu.vertU8 = js.Global().Get("Uint8Array").New(steps * 4 * 4)
+				buf := gpu.vertU8.Get("buffer")
+				gpu.vertF32 = js.Global().Get("Float32Array").New(buf, 0, steps*4)
 				resetAttractorState()
 				refreshGradient()
 			}
@@ -610,7 +610,7 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 	rotationX1, rotationY1, rotationZ1 = 0, 0, 0
 
 	// Static geometry may need re-upload (params reset to defaults).
-	staticGeomDirty = true
+	gpu.staticDirty = true
 
 	// Reset attractor position
 	resetAttractorState()
@@ -641,7 +641,7 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 		ps.Set("checked", false)
 	}
 	usePoints = false
-	attractorDrawMode = glctx.Types.LineStrip
+	gpu.drawMode = glctx.Types.LineStrip
 	dragMatrix = mgl32.Ident4() // clear trackball drag orientation
 	dom.Doc.Call("getElementById", "auto-rotate").Set("checked", true)
 	dom.Doc.Call("getElementById", "use-points").Set("checked", false)
@@ -667,9 +667,9 @@ func onResetAll(this js.Value, args []js.Value) interface{} {
 	dom.Doc.Call("getElementById", "color-mid").Set("value", "#00ff00")
 	dom.Doc.Call("getElementById", "color-top").Set("value", "#0000ff")
 	dom.Doc.Call("getElementById", "color-bg").Set("value", "#000000")
-	glctx.GL.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
-	glctx.GL.Call("uniform3f", uMidColorLoc, midColor[0], midColor[1], midColor[2])
-	glctx.GL.Call("uniform3f", uTopColorLoc, topColor[0], topColor[1], topColor[2])
+	glctx.GL.Call("uniform3f", gpu.u.baseColor, baseColor[0], baseColor[1], baseColor[2])
+	glctx.GL.Call("uniform3f", gpu.u.midColor, midColor[0], midColor[1], midColor[2])
+	glctx.GL.Call("uniform3f", gpu.u.topColor, topColor[0], topColor[1], topColor[2])
 	// Alpha=0: don't paint over the host page's bg (SVG logo etc).
 	glctx.GL.Call("clearColor", 0, 0, 0, 0)
 
@@ -765,8 +765,8 @@ func startBackgroundTasks() {
 	// viewport so the model doesn't get stretched when devtools opens
 	// or closes (or on phone orientation change).
 	js.Global().Call("addEventListener", "resize", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		if sizeCanvasToViewport() {
-			glctx.GL.Call("viewport", 0, 0, width, height)
+		if gpu.sizeCanvasToViewport() {
+			glctx.GL.Call("viewport", 0, 0, gpu.width, gpu.height)
 			setupMatrices()
 		}
 		return nil
@@ -1315,9 +1315,9 @@ func wirePanelSwitches() {
 	dom.Doc.Call("getElementById", "use-points").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		usePoints = dom.Doc.Call("getElementById", "use-points").Get("checked").Bool()
 		if usePoints {
-			attractorDrawMode = glctx.Types.Points
+			gpu.drawMode = glctx.Types.Points
 		} else {
-			attractorDrawMode = glctx.Types.LineStrip
+			gpu.drawMode = glctx.Types.LineStrip
 		}
 		return nil
 	}))
@@ -1413,11 +1413,11 @@ func wireExtraNav() {
 // will use.
 func initDrawState() {
 	// The enum table is built by glctx.Init, with the context it belongs to.
-	attractorDrawMode = glctx.Types.LineStrip
+	gpu.drawMode = glctx.Types.LineStrip
 	// Bind buffers before setting up attrib pointers in setupShaders
-	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, attractorVertexBuffer)
-	glctx.GL.Call("bindBuffer", glctx.Types.ElementArrayBuffer, attractorIndexBuffer)
-	setupShaders()
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, gpu.vbuf)
+	glctx.GL.Call("bindBuffer", glctx.Types.ElementArrayBuffer, gpu.ibuf)
+	gpu.setupShaders()
 	setupTexShaders()
 	setupMatrices()
 	generateForMode(selectedMode)
@@ -1569,19 +1569,19 @@ func wireColorControls() {
 	dom.Doc.Call("getElementById", "rst-color-base").Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		baseColor = [3]float32{1.0, 0.0, 0.0}
 		dom.Doc.Call("getElementById", "color-base").Set("value", "#ff0000")
-		glctx.GL.Call("uniform3f", uBaseColorLoc, baseColor[0], baseColor[1], baseColor[2])
+		glctx.GL.Call("uniform3f", gpu.u.baseColor, baseColor[0], baseColor[1], baseColor[2])
 		return nil
 	}))
 	dom.Doc.Call("getElementById", "rst-color-mid").Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		midColor = [3]float32{0.0, 1.0, 0.0}
 		dom.Doc.Call("getElementById", "color-mid").Set("value", "#00ff00")
-		glctx.GL.Call("uniform3f", uMidColorLoc, midColor[0], midColor[1], midColor[2])
+		glctx.GL.Call("uniform3f", gpu.u.midColor, midColor[0], midColor[1], midColor[2])
 		return nil
 	}))
 	dom.Doc.Call("getElementById", "rst-color-top").Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		topColor = [3]float32{0.0, 0.0, 1.0}
 		dom.Doc.Call("getElementById", "color-top").Set("value", "#0000ff")
-		glctx.GL.Call("uniform3f", uTopColorLoc, topColor[0], topColor[1], topColor[2])
+		glctx.GL.Call("uniform3f", gpu.u.topColor, topColor[0], topColor[1], topColor[2])
 		return nil
 	}))
 
