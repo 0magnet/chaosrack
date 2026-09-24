@@ -177,7 +177,7 @@ func syncUnitRacks() {
 // Read back rather than recomputed: rack-go owns the measurement, and a
 // second implementation of "how wide is this module" is a second answer.
 func moduleSlots(m js.Value) int {
-	pitch := (moduleSlot + moduleGap) * panelScale
+	pitch := (moduleSlot + moduleGap) * layout.scale
 	if pitch <= 0 {
 		return 1
 	}
@@ -185,7 +185,7 @@ func moduleSlots(m js.Value) int {
 	if w <= 0 {
 		return 1
 	}
-	n := int((w+moduleGap*panelScale)/pitch + 0.5)
+	n := int((w+moduleGap*layout.scale)/pitch + 0.5)
 	if n < 1 {
 		return 1
 	}
@@ -380,7 +380,7 @@ func clearUnitBlanks(f js.Value) {
 func unitBlank() js.Value {
 	b := dom.Doc.Call("createElement", "div")
 	b.Set("className", unitBlankCls)
-	b.Get("style").Set("width", strconv.FormatFloat(moduleSlot*panelScale, 'f', 2, 64)+"px")
+	b.Get("style").Set("width", strconv.FormatFloat(moduleSlot*layout.scale, 'f', 2, 64)+"px")
 	return b
 }
 
@@ -441,7 +441,7 @@ func newInstrumentUnit(panel js.Value) js.Value {
 // narrow for a rack scrolls a rack, the way a rack too big for a room is
 // still a rack.
 func unitFrameWidthPx() float64 {
-	return rackspec.PanelWidth19 * rackspec.PxPerMM * panelScale
+	return rackspec.PanelWidth19 * rackspec.PxPerMM * layout.scale
 }
 
 // ── the frame as a view: ears and rails on or off ───────────────────────
@@ -567,7 +567,7 @@ func wireScopeUnit() {
 // chosen, so the frame drawn on screen is the frame rackspec describes.
 func unitEarWidthPx() float64 {
 	ear := (rackspec.PanelWidth19 - rackspec.RowHP*rackspec.HP) / 2
-	return ear * rackspec.PxPerMM * panelScale
+	return ear * rackspec.PxPerMM * layout.scale
 }
 
 // unitOpeningWidthPx is how wide a unit's opening is: exactly the capacity
@@ -584,8 +584,8 @@ func unitEarWidthPx() float64 {
 // N slots span N pitches less the trailing seam, which belongs to the next
 // module along and not to this row.
 func unitOpeningWidthPx() float64 {
-	pitch := (moduleSlot + moduleGap) * panelScale
-	return float64(racksurface.UnitCapacity())*pitch - moduleGap*panelScale
+	pitch := (moduleSlot + moduleGap) * layout.scale
+	return float64(racksurface.UnitCapacity())*pitch - moduleGap*layout.scale
 }
 
 // fitFrameToWidth draws the whole rack smaller when the window is narrower

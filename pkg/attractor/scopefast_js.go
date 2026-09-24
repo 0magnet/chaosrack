@@ -37,45 +37,48 @@ const scopeFastSource = `(function () {
   };
 })()`
 
-var (
-	scopeFastHelper js.Value
-	scopeFastTried  bool
+// scopeBeam is the beam handed to JavaScript as numbers.
+type scopeBeam struct {
+	helper js.Value
+	tried  bool
 
 	// The shared buffer the points travel in, and the two views onto it:
 	// Go copies bytes through the Uint8Array, JS reads floats through the
 	// Float32Array. Grown rather than reallocated — a fresh pair per frame
 	// is two finalized js.Values per frame for no reason.
-	scopePtsF32 js.Value
-	scopePtsU8  js.Value
-	scopePtsCap int
-)
+	ptsF32 js.Value
+	ptsU8  js.Value
+	ptsCap int
+}
+
+var sfast scopeBeam
 
 // scopeFast is the JS helper, or a zero Value on a page that will not
 // evaluate it. Tried once; the recover is the point, because a
 // Content-Security-Policy that forbids eval reaches Go as a panic and the
 // caller still has its path-string route. See fastDOM, which does the same.
-func scopeFast() (v js.Value) {
-	if scopeFastTried {
-		return scopeFastHelper
+func (s *scopeBeam) fast() (v js.Value) {
+	if s.tried {
+		return s.helper
 	}
-	scopeFastTried = true
+	s.tried = true
 	defer func() {
 		if recover() != nil {
-			scopeFastHelper, v = js.Value{}, js.Value{}
+			s.helper, v = js.Value{}, js.Value{}
 		}
 	}()
-	scopeFastHelper = js.Global().Call("eval", scopeFastSource)
-	return scopeFastHelper
+	s.helper = js.Global().Call("eval", scopeFastSource)
+	return s.helper
 }
 
 // scopePtsArrays returns the Float32Array and Uint8Array views, big enough
 // for n floats, or false if this page cannot make them.
-func scopePtsArrays(n int) (f32, u8 js.Value, ok bool) {
+func (s *scopeBeam) ptsArrays(n int) (f32, u8 js.Value, ok bool) {
 	if n <= 0 {
 		return js.Value{}, js.Value{}, false
 	}
-	if scopePtsCap >= n && scopePtsF32.Truthy() {
-		return scopePtsF32, scopePtsU8, true
+	if s.ptsCap >= n && s.ptsF32.Truthy() {
+		return s.ptsF32, s.ptsU8, true
 	}
 	ab := js.Global().Get("ArrayBuffer")
 	f32c := js.Global().Get("Float32Array")
@@ -87,20 +90,20 @@ func scopePtsArrays(n int) (f32, u8 js.Value, ok bool) {
 	// detent on the way round.
 	cap := n + n/2
 	buf := ab.New(cap * 4)
-	scopePtsF32 = f32c.New(buf)
-	scopePtsU8 = u8c.New(buf)
-	scopePtsCap = cap
-	return scopePtsF32, scopePtsU8, true
+	s.ptsF32 = f32c.New(buf)
+	s.ptsU8 = u8c.New(buf)
+	s.ptsCap = cap
+	return s.ptsF32, s.ptsU8, true
 }
 
 // strokeScopePoints draws pts (x,y pairs) as one polyline. Reports whether
 // it ran; false means the caller owes the stroke by its own route.
 func strokeScopePoints(ctx js.Value, pts []float32) bool {
-	h := scopeFast()
+	h := sfast.fast()
 	if !h.Truthy() || !ctx.Truthy() || len(pts) < 4 {
 		return false
 	}
-	f32, u8, ok := scopePtsArrays(len(pts))
+	f32, u8, ok := sfast.ptsArrays(len(pts))
 	if !ok {
 		return false
 	}

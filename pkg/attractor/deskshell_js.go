@@ -66,8 +66,8 @@ func setDeskContain(on bool) {
 	// docked rack owns the bottom edge, which is where the desk's panel goes,
 	// and two bars fighting for one edge is the thing this arrangement exists
 	// to stop.
-	if dockEdge != "float" {
-		applyDock("float")
+	if layout.dockEdge != "float" {
+		layout.applyDock("float")
 	}
 	trackRackInDeskPanel()
 	rackHidesOnMinimize()
@@ -129,7 +129,7 @@ func trackRackInDeskPanel() {
 		},
 		// The button goes away if the rack is docked again, because then it is
 		// not a window and there is nothing for the button to raise.
-		Alive: func() bool { return panelWindow != nil && dockEdge == "float" },
+		Alive: func() bool { return panelWindow != nil && layout.dockEdge == "float" },
 	})
 }
 
@@ -188,7 +188,7 @@ func deskLayerVisible(on bool) {
 	} else {
 		deskEl.Get("style").Set("display", "none")
 	}
-	if panelWindow != nil && dockEdge == "float" {
+	if panelWindow != nil && layout.dockEdge == "float" {
 		if on {
 			panelWindow.Show()
 		} else {
@@ -213,8 +213,8 @@ func relaunchRack() {
 	if sh := dom.Doc.Call("getElementById", "panel-shell"); sh.Truthy() {
 		sh.Get("style").Set("display", "")
 	}
-	if dockEdge != "float" {
-		applyDock("float")
+	if layout.dockEdge != "float" {
+		layout.applyDock("float")
 		return // applyDock builds the window itself
 	}
 	floatPanelWindow()

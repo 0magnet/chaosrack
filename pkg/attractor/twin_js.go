@@ -35,14 +35,18 @@ import (
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 )
 
-var (
-	twinOn       bool
-	twinSeeded   string     // mode the visible pair was seeded for
-	twinA        [4]float64 // visible reference trajectory
-	twinB        [4]float64 // visible perturbed trajectory
-	twinBuf      []float32  // trajectory B's vertex scratch (vertBuf holds A)
-	twinLambdaEl js.Value   // the λ LED in the Trace row
-)
+// twinTrail is the Twin divergence trail: the two trajectories and the
+// readout.
+type twinTrail struct {
+	on       bool
+	seeded   string     // mode the visible pair was seeded for
+	a        [4]float64 // visible reference trajectory
+	b        [4]float64 // visible perturbed trajectory
+	buf      []float32  // trajectory B's vertex scratch (vertBuf holds A)
+	lambdaEl js.Value   // the λ LED in the Trace row
+}
+
+var twin twinTrail
 
 // twinD0 is the visible pair's initial separation, and it is deliberately the
 // probe's d0 rather than a second constant that happens to match: the picture
@@ -50,7 +54,7 @@ var (
 // the exponent is measured against.
 const twinD0 = analysis.LiveD0
 
-func twinInvalidate() { twinSeeded = "" }
+func (t *twinTrail) invalidate() { t.seeded = "" }
 
 // twinStep advances one state by a single Euler sub-step.
 func twinStep(sys dynamics.FlowSys4, s *[4]float64, dt float64) {
@@ -67,12 +71,12 @@ func twinDiverged(s [4]float64) bool {
 		s[2] > -lim && s[2] < lim && s[3] > -lim && s[3] < lim)
 }
 
-func twinSeed(mode string, sys dynamics.FlowSys4) {
+func (t *twinTrail) seed(mode string, sys dynamics.FlowSys4) {
 	ic := dynamics.InitCondFor(mode)
-	twinA = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W()}
-	twinB = twinA
-	twinB[0] += twinD0
-	twinSeeded = mode
+	t.a = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W()}
+	t.b = t.a
+	t.b[0] += twinD0
+	t.seeded = mode
 }
 
 // twinTick draws both trajectories. Returns false when the normal scan
@@ -86,17 +90,17 @@ func twinSeed(mode string, sys dynamics.FlowSys4) {
 // reach (the spectrogram surfaces, the recurrence plot, the audio scopes) are
 // exactly the modes with no exponent to measure. The call is first, above the
 // switch test, precisely so the measurement does not depend on the switch.
-func twinTick(mode string) bool {
-	lyapLiveTick(mode)
-	if !twinOn {
+func (t *twinTrail) tick(mode string) bool {
+	lyapLive.tick(mode)
+	if !t.on {
 		return false
 	}
 	sys, ok := dynamics.FlowFor4(mode)
 	if !ok {
 		return false
 	}
-	if twinSeeded != mode {
-		twinSeed(mode, sys)
+	if t.seeded != mode {
+		t.seed(mode, sys)
 	}
 	budget := frameBudgetCompiled
 	if sys.Interpreted {
@@ -108,8 +112,8 @@ func twinTick(mode string) bool {
 	scale := sys.Scale
 	invN := float32(1) / float32(steps-1)
 
-	if len(twinBuf) < steps*4 {
-		twinBuf = make([]float32, cap(vertBuf))
+	if len(t.buf) < steps*4 {
+		t.buf = make([]float32, cap(vertBuf))
 	}
 	trace := func(s *[4]float64, out []float32) {
 		for i := 0; i < steps; i++ {
@@ -128,36 +132,36 @@ func twinTick(mode string) bool {
 		}
 	}
 	vertices := vertBuf[:steps*4]
-	trace(&twinA, vertices)
-	trace(&twinB, twinBuf[:steps*4])
+	trace(&t.a, vertices)
+	trace(&t.b, t.buf[:steps*4])
 
 	// Keep the app-wide integrator state following trajectory A so the
 	// permalink, Model Out SCAN and a later twin-off continue seamlessly.
-	x, y, z = float32(twinA[0]), float32(twinA[1]), float32(twinA[2])
-	x64, y64, z64 = twinA[0], twinA[1], twinA[2]
-	sys.SetW(twinA[3])
+	x, y, z = float32(t.a[0]), float32(t.a[1]), float32(t.a[2])
+	x64, y64, z64 = t.a[0], t.a[1], t.a[2]
+	sys.SetW(t.a[3])
 
 	// Draw A with the normal gradient, then B in a fixed contrast color via
 	// the monochrome override (restored right after).
 	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
 	glctx.GL.Call("uniform1i", gpu.u.gradientColors, 1)
 	glctx.GL.Call("uniform3f", gpu.u.baseColor, 0.15, 1.0, 0.45)
-	gpu.uploadVerticesOnly(twinBuf[:steps*4], gpu.drawMode, steps)
+	gpu.uploadVerticesOnly(t.buf[:steps*4], gpu.drawMode, steps)
 	glctx.GL.Call("uniform1i", gpu.u.gradientColors, gradientColorsUniform())
 
 	return true
 }
 
 // wireTwinSwitch hooks up the Trace > Twin checkbox and the λ LED beside it.
-func wireTwinSwitch() {
-	twinLambdaEl = dom.Doc.Call("getElementById", "twin-lambda")
+func (t *twinTrail) wireTwinSwitch() {
+	t.lambdaEl = dom.Doc.Call("getElementById", "twin-lambda")
 	wireSwitch("twin-sw", func(on bool) {
-		twinOn = on
-		twinInvalidate()
+		t.on = on
+		t.invalidate()
 		// The switch does NOT restart the measurement — the exponent belongs
 		// to the system and the system has not changed. Only the LED's
 		// last-written text is cleared, so the next frame writes the current
 		// reading into it (or blanks it) instead of skipping it as unchanged.
-		lyapLiveTrace = "\x00"
+		lyapLive.trace = "\x00"
 	})
 }

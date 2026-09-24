@@ -64,9 +64,9 @@ func beginDrag(cx, cy float64) {
 	// The gesture is the one that was already there; with mass in the room there
 	// is a better thing to aim it at.
 	if view.ball.zMode {
-		turtleSpinBegin()
+		grab.spinBegin()
 	} else {
-		turtleTiltBegin()
+		grab.tiltBegin()
 	}
 }
 
@@ -77,7 +77,7 @@ func beginDrag(cx, cy float64) {
 func dragMove(cx, cy float64) {
 	// Spinning the figure rather than rolling the view: same swept angle, aimed
 	// at the body.
-	if turtleSpinDrag {
+	if grab.spinDrag {
 		th := math.Atan2(cy-view.ball.cy, cx-view.ball.cx)
 		d := th - view.ball.lastTheta
 		for d > math.Pi {
@@ -87,15 +87,15 @@ func dragMove(cx, cy float64) {
 			d += 2 * math.Pi
 		}
 		view.ball.lastTheta = th
-		turtleSpinBy(-float32(d))
+		grab.spinBy(-float32(d))
 		return
 	}
 	// Tilting the figure in three dimensions rather than the camera: same screen
 	// axes a trackball uses, aimed at the object.
-	if turtleTiltDrag {
+	if grab.tiltDrag {
 		dax := float32((cy - float64(view.ball.lastY)) * 0.01)
 		day := float32((cx - float64(view.ball.lastX)) * 0.01)
-		turtleTiltMove(dax, day)
+		grab.tiltMove(dax, day)
 		view.ball.lastX, view.ball.lastY = float32(cx), float32(cy)
 		return
 	}
@@ -457,7 +457,7 @@ func setupMatrices() {
 	// case with margin.
 	gpu.proj = mgl32.Perspective(mgl32.DegToRad(45.0), float32(gpu.width)/float32(gpu.height), 1, 1500.0)
 	glctx.GL.Call("useProgram", gpu.program)
-	glctx.GL.Call("uniformMatrix4fv", glctx.GL.Call("getUniformLocation", gpu.program, "Pmatrix"), false, mat4ToTyped(&gpu.proj))
+	glctx.GL.Call("uniformMatrix4fv", glctx.GL.Call("getUniformLocation", gpu.program, "Pmatrix"), false, texp.mat4ToTyped(&gpu.proj))
 
 	view.modelMat = mgl32.Ident4()
 	view.updateViewMatrix()
@@ -473,12 +473,12 @@ func (c *camera) updateViewMatrix() {
 	center := mgl32.Vec3{-c.panX, -c.panY, 0.0}
 	c.viewMat = mgl32.LookAtV(cameraPosition, center, mgl32.Vec3{0.0, 1.0, 0.0})
 	glctx.GL.Call("useProgram", gpu.program)
-	glctx.GL.Call("uniformMatrix4fv", gpu.u.view, false, mat4ToTyped(&c.viewMat))
+	glctx.GL.Call("uniformMatrix4fv", gpu.u.view, false, texp.mat4ToTyped(&c.viewMat))
 }
 
 func (c *camera) updateModelMatrix() {
 	glctx.GL.Call("useProgram", gpu.program)
-	glctx.GL.Call("uniformMatrix4fv", gpu.u.model, false, mat4ToTyped(&c.modelMat))
+	glctx.GL.Call("uniformMatrix4fv", gpu.u.model, false, texp.mat4ToTyped(&c.modelMat))
 }
 
 // autoFitCamera fits the camera to what was last uploaded.
@@ -537,7 +537,7 @@ func fitDistFor(ext float32) float32 {
 	// the tighter axis lost: at 3x3 the figure fills the cell, and at 2x1 —
 	// full-height cells that only lost width — the factor is 1 and nothing
 	// moves, which is what the A/B view has always done.
-	dist /= float32(gridFitFactor(viewN()))
+	dist /= float32(gridFitFactor(grid.n()))
 	if dist < 5 {
 		dist = 5
 	}
@@ -552,7 +552,7 @@ func generateForMode(mode string) {
 	// (texProgram); update its texture and draw it, then bail out of the
 	// attractor path.
 	if isSpectroSurface(mode) {
-		renderSpectrogramMode(frameNowMs)
+		spect.renderSpectrogramMode(frameNowMs)
 		return
 	}
 	// The recurrence plot is a texture on a plane too — its own square one
@@ -575,8 +575,8 @@ func generateForMode(mode string) {
 	}
 	// Spectrogram skin: paint the live texture onto a surface model
 	// instead of its wireframe, drawn through the same textured pipeline.
-	if spectroSkin() && isSkinnable(mode) {
-		renderSkinnedMode(mode, frameNowMs)
+	if skin.spectroSkin() && isSkinnable(mode) {
+		skin.renderSkinnedMode(mode, frameNowMs)
 		return
 	}
 	// xy scope draws on its own 2D program via renderAudioFrame; skip the
@@ -591,8 +591,8 @@ func generateForMode(mode string) {
 	// next render frame, because our caller (onModeChange) is about to
 	// issue drawArrays / drawElements and would draw with the wrong
 	// shader program bound.
-	if audioModeActive {
-		deactivateAudioMode()
+	if aud.modeActive {
+		aud.deactivateAudioMode()
 	}
 	// Ensure the attractor program is bound — a prior spectrogram frame
 	// leaves texProgram active, and the uniform/draw calls below apply to
@@ -605,15 +605,15 @@ func generateForMode(mode string) {
 		// Only when it is being used: the fill runs a short FFT per table slot,
 		// which is not work to do for a figure colored by Z.
 		if gradientSourceIsAudio(gradientSource) {
-			updateAudioColorLUT(selectedMode)
-			glctx.GL.Call("uniform1fv", gpu.u.audioLUT, lutToTyped())
+			acolor.updateAudioColorLUT(selectedMode)
+			glctx.GL.Call("uniform1fv", gpu.u.audioLUT, acolor.lutToTyped())
 		}
 		glctx.GL.Call("uniform1i", gpu.u.gradientColors, gradientColorsUniform())
 		// Uploaded before the draw that reads it, and only when a colormap is
 		// actually selected — the upload is skipped on the palettes that do not
 		// sample it, and a failed build falls back to the two-color mix rather
 		// than sampling a texture that is not there.
-		if !ensurePaletteTexture(gradientColors) && gradientColorsUniform() >= colormap.First {
+		if !pal.ensurePaletteTexture(gradientColors) && gradientColorsUniform() >= colormap.First {
 			glctx.GL.Call("uniform1i", gpu.u.gradientColors, 2)
 		}
 		updateDashFromPointCount(gpu.lastDrawn)
@@ -674,27 +674,27 @@ func generateForMode(mode string) {
 	// capture, so a mode that ever reached that loop could name ITSELF as its
 	// own source and section its own scatter.
 	if _, isFlow := dynamics.FlowFor4(mode); isFlow && mode != "bifurcation" && mode != "poincare" {
-		lastFlowMode = mode
+		bif.lastFlowMode = mode
 	}
 	// Twin-trajectory divergence (Trace > Twin): draws both copies itself.
-	if twinTick(mode) {
+	if twin.tick(mode) {
 		restoreAudioModulation(saved)
-		sectTick(mode)
+		sect.tick(mode)
 		return
 	}
 	// Ring-trail beam step (Trace > Ring): draws the frame itself when active
 	// and primed; otherwise the scan generator below runs (and primes it).
-	if ringTick(mode) {
+	if ring.tick(mode) {
 		restoreAudioModulation(saved)
-		sectTick(mode)
+		sect.tick(mode)
 		return
 	}
 	if fn := modeGenerate[mode]; fn != nil {
 		fn()
 	}
 	restoreAudioModulation(saved)
-	ringPrimeAfterScan(mode)
-	sectTick(mode) // Poincaré overlay draws above the finished trail
+	ring.primeAfterScan(mode)
+	sect.tick(mode) // Poincaré overlay draws above the finished trail
 }
 
 // tmark is the previous frame's timestamp, which renderLoop measures the
@@ -707,8 +707,8 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	// early exits below, because a scope that goes dark when the MODEL
 	// knob moves to a polyhedron is not an instrument in the rack.
 	scopeMark := timingStart()
-	drawRackScope()
-	timingBudget.Scope += scopeMark.ms()
+	rscope.drawRackScope()
+	tpanel.budget.Scope += scopeMark.ms()
 	// Stop button: clear once, do not reschedule. Loop dies here.
 	if stopped {
 		glctx.GL.Call("clearColor", 0, 0, 0, 0)
@@ -724,12 +724,12 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	// audio modes so neither pipeline sees the other's state.
 	if len(args) > 0 {
 		frameNowMs = args[0].Float() // rAF timestamp (ms), used by spectrogram scroll
-		timingFrame(frameNowMs)      // the rack's own frame meter; see timing.go
+		tpanel.frame(frameNowMs)     // the rack's own frame meter; see timing.go
 		// Latched here rather than at the end of the frame because renderLoop
 		// has four exits and a meter that misses the paused one would go blank
 		// exactly when someone stopped to read it. The window is thirty frames
 		// long, so latching before this frame's spans land costs nothing.
-		timingTick(frameNowMs)
+		tpanel.tick(frameNowMs)
 		jamTick(frameNowMs)
 	}
 
@@ -743,36 +743,36 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	// consumer below (the counter here, the backdrop and the model later) takes
 	// its own copy from the tap; draining the source twice would split it.
 	// This sits ahead of the audio-mode return below, which is a live frame too.
-	tapPump()
+	tap.pump()
 
 	// Refresh audio features (no-op unless audio-reactive is on); Phase 2
 	// mappings read these to modulate the attractors.
-	updateAudioFeatures()
-	counterTick() // frequency-counter gate (no-op unless the module is on)
+	af.updateAudioFeatures()
+	counter.tick() // frequency-counter gate (no-op unless the module is on)
 	// The three window analyzers, here or elsewhere. metersWorkerTick hands
 	// the audio to the worker and reports that it owns them; when there is no
 	// worker it reports false and they run on this thread exactly as before.
 	// See metersclient_js.go.
-	if !metersWorkerTick() {
-		thdTick(frameNowMs)  // distortion analysis (no-op unless the module is on screen)
-		lufsTick(frameNowMs) // loudness (no-op unless the module is on screen)
-		wfTick(frameNowMs)   // wow & flutter (no-op unless the module is on screen)
+	if !mc.workerTick() {
+		thd.tick(frameNowMs)  // distortion analysis (no-op unless the module is on screen)
+		lufs.tick(frameNowMs) // loudness (no-op unless the module is on screen)
+		wow.tick(frameNowMs)  // wow & flutter (no-op unless the module is on screen)
 	}
 	genEnvTick() // Envelope module shaper (no-op unless the gen audio runs)
-	tmTick()     // Tonematrix sequencer clock (no-op unless the module runs)
-	rhythmTick() // Rhythm section clock (no-op unless the module runs)
-	timingBudget.Meters += metersMark.ms()
+	tm.tick()    // Tonematrix sequencer clock (no-op unless the module runs)
+	rhy.tick()   // Rhythm section clock (no-op unless the module runs)
+	tpanel.budget.Meters += metersMark.ms()
 
 	if isAudioMode(selectedMode) {
-		if !audioModeActive {
-			activateAudioMode()
+		if !aud.modeActive {
+			aud.activateAudioMode()
 		}
 		renderAudioFrame(selectedMode)
 		js.Global().Call("requestAnimationFrame", renderFrame)
 		return nil
 	}
-	if audioModeActive {
-		deactivateAudioMode()
+	if aud.modeActive {
+		aud.deactivateAudioMode()
 	}
 
 	now := float32(args[0].Float())
@@ -893,7 +893,7 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 		// One view or two, side by side. See views_js.go.
 		drawViewPasses(selectedMode)
 	}
-	timingBudget.Model += modelMark.ms()
+	tpanel.budget.Model += modelMark.ms()
 	// The gradient extents, if the mode change could not take them: an audio
 	// mode has no geometry on its first frame, and this is the first frame that
 	// does. Costs one comparison per frame once it has been paid.
@@ -904,7 +904,7 @@ func renderLoop(this js.Value, args []js.Value) interface{} {
 	// surface, so everything drawn above — model, backdrop, overlays — is what
 	// it refracts. Before the model it would only distort an empty buffer.
 	if waterActive() {
-		drawWaterLens()
+		water.drawWaterLens()
 	}
 
 	beamDrawn := gpu.lastDrawn // what was drawn, which is not always all of `steps`

@@ -41,23 +41,35 @@ const (
 	xfPeriodMs = 120
 )
 
-var (
-	xfCursor = tapUnjoined
-	xfBufL   []float32
-	xfBufR   []float32
-	xfFill   int
-	xfNextMs float64
-	xfAccum  acoustics.TransferAccum
-	xfRes    acoustics.TransferResult
+// transferMode is the Transfer mode: the two channels' windows, the last
+// result, the delay readout and its knobs.
+type transferMode struct {
+	cursor int
+	bufL   []float32
+	bufR   []float32
+	fill   int
+	nextMs float64
+	accum  acoustics.TransferAccum
+	res    acoustics.TransferResult
 
 	// The knobs.
-	xfSwapF  float32      // 0 = left is the reference, 1 = right
-	xfFracF  float32 = 2  // index into acoustics.RTAFractions; 2 is 1/6 octave
-	xfAvgF   float32 = 24 // windows in the average
-	xfRangeF float32 = 40 // dB either side of 0 on the magnitude curve
-	xfCohF   float32 = 5  // minimum coherence, in tenths
-	xfShowF  float32      // which curves are drawn
-)
+	swapF   float32 // 0 = left is the reference, 1 = right
+	fracF   float32 // index into acoustics.RTAFractions; 2 is 1/6 octave
+	avgF    float32 // windows in the average
+	rangeF  float32 // dB either side of 0 on the magnitude curve
+	cohF    float32 // minimum coherence, in tenths
+	showF   float32 // which curves are drawn
+	delayEl js.Value
+	delayTx string
+}
+
+var xf = transferMode{
+	cursor: tapUnjoined,
+	fracF:  2,
+	avgF:   24,
+	rangeF: 40,
+	cohF:   5,
+}
 
 // xfShowNames are the display's layouts, and xfShowRing what fits on the dial.
 var (
@@ -68,19 +80,19 @@ var (
 func init() {
 	registerGenerate("xfer", generateTransfer)
 	attractorParams["xfer"] = []paramDef{
-		{"xf-swap", "ref", &xfSwapF, 0, 0, 1, 1},
-		{"xf-frac", "band", &xfFracF, 2, 0, float32(len(acoustics.RTAFractions) - 1), 1},
-		{"xf-avg", "avg", &xfAvgF, 24, float32(acoustics.TransferMinAvg), 128, 1},
-		{"xf-range", "rnge", &xfRangeF, 40, 6, 60, 2},
-		{"xf-coh", "coh", &xfCohF, 5, 0, 10, 1},
-		{"xf-show", "show", &xfShowF, 0, 0, float32(len(xfShowNames) - 1), 1},
+		{"xf-swap", "ref", &xf.swapF, 0, 0, 1, 1},
+		{"xf-frac", "band", &xf.fracF, 2, 0, float32(len(acoustics.RTAFractions) - 1), 1},
+		{"xf-avg", "avg", &xf.avgF, 24, float32(acoustics.TransferMinAvg), 128, 1},
+		{"xf-range", "rnge", &xf.rangeF, 40, 6, 60, 2},
+		{"xf-coh", "coh", &xf.cohF, 5, 0, 10, 1},
+		{"xf-show", "show", &xf.showF, 0, 0, float32(len(xfShowNames) - 1), 1},
 	}
 }
 
 // xfShowSel is the layout knob as an index, clamped — stereoAxisSel's argument,
 // and its trap.
-func xfShowSel() int {
-	v := xfShowF
+func (t *transferMode) showSel() int {
+	v := t.showF
 	if !(v > 0) {
 		return 0
 	}
@@ -91,8 +103,8 @@ func xfShowSel() int {
 }
 
 // xfFraction is the band-width knob as a 1/b, clamped.
-func xfFraction() int {
-	v := xfFracF
+func (t *transferMode) fraction() int {
+	v := t.fracF
 	if !(v > 0) {
 		return acoustics.RTAFractions[0]
 	}
@@ -105,56 +117,56 @@ func xfFraction() int {
 
 // generateTransfer is the mode's frame.
 func generateTransfer() {
-	xfAnalyze(frameNowMs)
-	drawTransfer()
+	xf.analyze(frameNowMs)
+	xf.drawTransfer()
 }
 
 // xfAnalyze accumulates windows into the average.
-func xfAnalyze(nowMs float64) {
-	if xfBufL == nil {
-		xfBufL = make([]float32, xfFFT)
-		xfBufR = make([]float32, xfFFT)
+func (t *transferMode) analyze(nowMs float64) {
+	if t.bufL == nil {
+		t.bufL = make([]float32, xfFFT)
+		t.bufR = make([]float32, xfFFT)
 	}
 	var sl, sr [4096]float32
 	for {
-		n := tapReadStereo(&xfCursor, sl[:], sr[:])
+		n := tap.readStereo(&t.cursor, sl[:], sr[:])
 		if n <= 0 {
 			break
 		}
 		if n >= xfFFT {
-			copy(xfBufL, sl[n-xfFFT:n])
-			copy(xfBufR, sr[n-xfFFT:n])
-			xfFill = xfFFT
+			copy(t.bufL, sl[n-xfFFT:n])
+			copy(t.bufR, sr[n-xfFFT:n])
+			t.fill = xfFFT
 		} else {
-			copy(xfBufL, xfBufL[n:])
-			copy(xfBufR, xfBufR[n:])
-			copy(xfBufL[xfFFT-n:], sl[:n])
-			copy(xfBufR[xfFFT-n:], sr[:n])
-			if xfFill += n; xfFill > xfFFT {
-				xfFill = xfFFT
+			copy(t.bufL, t.bufL[n:])
+			copy(t.bufR, t.bufR[n:])
+			copy(t.bufL[xfFFT-n:], sl[:n])
+			copy(t.bufR[xfFFT-n:], sr[:n])
+			if t.fill += n; t.fill > xfFFT {
+				t.fill = xfFFT
 			}
 		}
 		if n < len(sl) {
 			break
 		}
 	}
-	if xfFill < xfFFT || nowMs < xfNextMs {
+	if t.fill < xfFFT || nowMs < t.nextMs {
 		return
 	}
-	xfNextMs = nowMs + xfPeriodMs
-	ref, meas := xfBufL, xfBufR
-	if xfSwapF > 0.5 {
-		ref, meas = xfBufR, xfBufL
+	t.nextMs = nowMs + xfPeriodMs
+	ref, meas := t.bufL, t.bufR
+	if t.swapF > 0.5 {
+		ref, meas = t.bufR, t.bufL
 	}
-	xfAccum.Add(ref, meas, acoustics.TransferWindowKind)
+	t.accum.Add(ref, meas, acoustics.TransferWindowKind)
 	// A rolling average: once it is full, start again rather than letting the
 	// window stretch to the whole session. A system-tuning measurement has to
 	// follow a knob being turned, and an average that never forgets cannot.
-	if xfAccum.Count() >= int(xfAvgF) {
-		xfRes = xfAccum.Result(takensSourceRate(), xfFraction())
-		xfAccum.Reset()
-	} else if r := xfAccum.Result(takensSourceRate(), xfFraction()); r.OK {
-		xfRes = r
+	if t.accum.Count() >= int(t.avgF) {
+		t.res = t.accum.Result(takensSourceRate(), t.fraction())
+		t.accum.Reset()
+	} else if r := t.accum.Result(takensSourceRate(), t.fraction()); r.OK {
+		t.res = r
 	}
 }
 
@@ -171,20 +183,20 @@ func xfY(v, lo, hi, bandLo, bandHi float64) float32 {
 }
 
 // drawTransfer draws the curves.
-func drawTransfer() {
-	if !xyReady {
-		initXY()
+func (t *transferMode) drawTransfer() {
+	if !xy.ready {
+		xy.initXY()
 	}
-	n := len(xfRes.Bands)
-	if !xfRes.OK || n < 2 {
+	n := len(t.res.Bands)
+	if !t.res.OK || n < 2 {
 		glctx.GL.Call("disable", glctx.Types.DepthTest)
 		glctx.GL.Call("clearColor", 0, 0, 0, 0)
 		glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
 		return
 	}
-	show := xfShowSel()
-	minCoh := float64(xfCohF) / 10
-	rng := float64(xfRangeF)
+	show := t.showSel()
+	minCoh := float64(t.cohF) / 10
+	rng := float64(t.rangeF)
 
 	// The three curves' vertical lanes. All of them share the screen when
 	// "all" is selected, because the three are read TOGETHER: a dip in the
@@ -199,11 +211,11 @@ func drawTransfer() {
 	var lanes []lane
 	switch show {
 	case 1:
-		lanes = []lane{{-rng, rng, -0.85, 0.85, xfRes.MagDB, true}}
+		lanes = []lane{{-rng, rng, -0.85, 0.85, t.res.MagDB, true}}
 	case 2:
-		lanes = []lane{{-180, 180, -0.85, 0.85, xfRes.PhaseDeg, true}}
+		lanes = []lane{{-180, 180, -0.85, 0.85, t.res.PhaseDeg, true}}
 	case 3:
-		lanes = []lane{{0, 1, -0.85, 0.85, xfRes.Coherence, false}}
+		lanes = []lane{{0, 1, -0.85, 0.85, t.res.Coherence, false}}
 	default:
 		// MAGNITUDE on top, COHERENCE in a thin strip directly under it, PHASE
 		// at the bottom.
@@ -218,9 +230,9 @@ func drawTransfer() {
 		// above the panel. Phase is the one you go looking for, and hiding the
 		// panel or docking it elsewhere is how.
 		lanes = []lane{
-			{-rng, rng, 0.22, 0.88, xfRes.MagDB, true},
-			{0, 1, 0.02, 0.17, xfRes.Coherence, false},
-			{-180, 180, -0.88, -0.08, xfRes.PhaseDeg, true},
+			{-rng, rng, 0.22, 0.88, t.res.MagDB, true},
+			{0, 1, 0.02, 0.17, t.res.Coherence, false},
+			{-180, 180, -0.88, -0.08, t.res.PhaseDeg, true},
 		}
 	}
 
@@ -248,10 +260,10 @@ func drawTransfer() {
 		if !colored {
 			return flat
 		}
-		return analyzerColorAt(pal, xfRes.Coherence[i])
+		return analyzerColorAt(pal, t.res.Coherence[i])
 	}
 
-	vcFit(n * 3 * 2)
+	vc.fit(n * 3 * 2)
 	v := 0
 	xAt := func(i int) float32 { return float32(-0.92 + 1.84*float64(i)/float64(n-1)) }
 	for _, ln := range lanes {
@@ -260,15 +272,15 @@ func drawTransfer() {
 			// Joining across an untrustworthy band would draw a line through
 			// the one place the measurement said not to look.
 			if ln.gate {
-				if xfRes.Coherence[i-1] < minCoh || xfRes.Coherence[i] < minCoh {
+				if t.res.Coherence[i-1] < minCoh || t.res.Coherence[i] < minCoh {
 					continue
 				}
-				if xfRes.RefDB[i-1] < -40 || xfRes.RefDB[i] < -40 {
+				if t.res.RefDB[i-1] < -40 || t.res.RefDB[i] < -40 {
 					continue
 				}
 			}
-			vcPut(v, xAt(i-1), xfY(ln.vals[i-1], ln.lo, ln.hi, ln.bandLo, ln.bandHi), colourFor(i-1))
-			vcPut(v+1, xAt(i), xfY(ln.vals[i], ln.lo, ln.hi, ln.bandLo, ln.bandHi), colourFor(i))
+			vc.put(v, xAt(i-1), xfY(ln.vals[i-1], ln.lo, ln.hi, ln.bandLo, ln.bandHi), colourFor(i-1))
+			vc.put(v+1, xAt(i), xfY(ln.vals[i], ln.lo, ln.hi, ln.bandLo, ln.bandHi), colourFor(i))
 			v += 2
 		}
 	}
@@ -279,64 +291,59 @@ func drawTransfer() {
 		return
 	}
 
-	initVColor()
+	vc.initVColor()
 	glctx.GL.Call("disable", glctx.Types.DepthTest)
 	glctx.GL.Call("clearColor", 0, 0, 0, 0)
 	glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
 	glctx.GL.Call("enable", glctx.GL.Get("BLEND"))
 	glctx.GL.Call("blendFunc", glctx.GL.Get("SRC_ALPHA"), glctx.GL.Get("ONE"))
-	vcUpload(v)
+	vc.upload(v)
 	dx := float32(1.2) / float32(gpu.width)
 	dy := float32(1.2) / float32(gpu.height)
 	for _, h := range [][3]float32{{dx, 0, 0.35}, {-dx, 0, 0.35}, {0, dy, 0.35}, {0, -dy, 0.35}} {
-		vcSpan(glctx.Types.Lines, 0, v, h[2], h[0], h[1])
+		vc.span(glctx.Types.Lines, 0, v, h[2], h[0], h[1])
 	}
-	vcSpan(glctx.Types.Lines, 0, v, 1, 0, 0)
-	vcDone()
+	vc.span(glctx.Types.Lines, 0, v, 1, 0, 0)
+	vc.done()
 	glctx.GL.Call("disable", glctx.GL.Get("BLEND"))
 
-	showTransferDelay()
+	t.showTransferDelay()
 }
 
 // ── The delay readout ────────────────────────────────────────────────────
-
-var (
-	xfDelayEl js.Value
-	xfDelayTx string
-)
 
 // showTransferDelay writes the fitted bulk delay, which is the number a
 // system-tuning rig is actually reached for: the slope of the phase IS the
 // offset between the two channels, and that is what gets dialed into a delay
 // line.
-func showTransferDelay() {
+func (t *transferMode) showTransferDelay() {
 	s := "-- ms"
-	if ms, ok := acoustics.TransferDelayMS(xfRes, float64(xfCohF)/10); ok {
+	if ms, ok := acoustics.TransferDelayMS(t.res, float64(t.cohF)/10); ok {
 		s = led.Format(ms, 2, 2, true) + "ms"
 	}
-	if s == xfDelayTx {
+	if s == t.delayTx {
 		return
 	}
-	xfDelayTx = s
-	if xfDelayEl.Truthy() {
-		xfDelayEl.Set("textContent", s)
+	t.delayTx = s
+	if t.delayEl.Truthy() {
+		t.delayEl.Set("textContent", s)
 	}
 }
 
 // appendTransferReadout adds the delay cell to the mode's parameter grid.
-func appendTransferReadout(grid js.Value) {
+func (t *transferMode) appendTransferReadout(grid js.Value) {
 	card, top := newPunitCard("dly")
 
-	xfDelayEl = dom.Doc.Call("createElement", "span")
-	xfDelayEl.Set("className", "led counter-led")
-	xfDelayEl.Set("title", "Bulk delay between the two channels, fitted from the slope of the phase — "+
+	t.delayEl = dom.Doc.Call("createElement", "span")
+	t.delayEl.Set("className", "led counter-led")
+	t.delayEl.Set("title", "Bulk delay between the two channels, fitted from the slope of the phase — "+
 		"a pure delay is a phase that falls linearly with frequency, and the slope is the delay. "+
 		"This is the number a system-tuning rig is reached for: it is what gets dialed into a delay "+
 		"line to line a loudspeaker up with the rest of the system. Fitted only across bands the "+
 		"stimulus actually reached and whose coherence clears the COH knob, and on the UNWRAPPED "+
 		"phase — a real delay turns through 360° many times across the band, and a slope fitted to "+
 		"the wrapped curve is a slope fitted to a sawtooth.")
-	xfDelayTx = ""
-	top.Call("appendChild", xfDelayEl)
+	t.delayTx = ""
+	top.Call("appendChild", t.delayEl)
 	grid.Call("appendChild", card)
 }

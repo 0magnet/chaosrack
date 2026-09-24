@@ -29,11 +29,19 @@ import (
 // else was drawn that frame.
 const paletteUnit = 1
 
+// paletteTex is the colormap texture on the GPU.
+type paletteTex struct {
+	texture js.Value
+	built   int // index of the colormap currently in the texture
+	js      js.Value
+}
+
+var pal = paletteTex{
+	built: -1,
+}
+
 var (
-	paletteTexture js.Value
-	paletteBuilt   = -1 // index of the colormap currently in the texture
-	paletteBytes   = make([]byte, colormap.Texels*4)
-	paletteJS      js.Value
+	paletteBytes = make([]byte, colormap.Texels*4)
 )
 
 // ensurePaletteTexture uploads the colormap for the current palette, if it is
@@ -42,22 +50,22 @@ var (
 // Rebuilt on CHANGE rather than per frame: a colormap is a constant, 256
 // calls through the library plus an upload is not per-frame work, and doing
 // it every frame is how a static table turns into a stall.
-func ensurePaletteTexture(gradientColors int) bool {
+func (p *paletteTex) ensurePaletteTexture(gradientColors int) bool {
 	idx, ok := colormap.Index(gradientColors)
 	if !ok {
 		return false
 	}
-	if paletteTexture.IsUndefined() {
-		paletteTexture = glctx.GL.Call("createTexture")
-		paletteJS = js.Global().Get("Uint8Array").New(len(paletteBytes))
+	if p.texture.IsUndefined() {
+		p.texture = glctx.GL.Call("createTexture")
+		p.js = js.Global().Get("Uint8Array").New(len(paletteBytes))
 	}
-	if paletteBuilt != idx {
+	if p.built != idx {
 		colormap.Fill(paletteBytes, idx)
-		js.CopyBytesToJS(paletteJS, paletteBytes)
+		js.CopyBytesToJS(p.js, paletteBytes)
 		glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0").Int()+paletteUnit)
-		glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), paletteTexture)
+		glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), p.texture)
 		glctx.GL.Call("texImage2D", glctx.GL.Get("TEXTURE_2D"), 0, glctx.GL.Get("RGBA"),
-			colormap.Texels, 1, 0, glctx.GL.Get("RGBA"), glctx.GL.Get("UNSIGNED_BYTE"), paletteJS)
+			colormap.Texels, 1, 0, glctx.GL.Get("RGBA"), glctx.GL.Get("UNSIGNED_BYTE"), p.js)
 		// CLAMP_TO_EDGE and LINEAR: the ends of a colormap are the ends, so a
 		// value at 0 or 1 must take the first or last color rather than wrap
 		// to the other end of the ramp, and the interpolation between texels
@@ -66,7 +74,7 @@ func ensurePaletteTexture(gradientColors int) bool {
 		glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_MAG_FILTER"), glctx.GL.Get("LINEAR"))
 		glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_WRAP_S"), glctx.GL.Get("CLAMP_TO_EDGE"))
 		glctx.GL.Call("texParameteri", glctx.GL.Get("TEXTURE_2D"), glctx.GL.Get("TEXTURE_WRAP_T"), glctx.GL.Get("CLAMP_TO_EDGE"))
-		paletteBuilt = idx
+		p.built = idx
 		glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0"))
 		return true
 	}
@@ -74,7 +82,7 @@ func ensurePaletteTexture(gradientColors int) bool {
 	// texture on this unit, and a colormap that is only bound once is a
 	// colormap that works until something else touches the unit.
 	glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0").Int()+paletteUnit)
-	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), paletteTexture)
+	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), p.texture)
 	glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0"))
 	return true
 }

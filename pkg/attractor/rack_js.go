@@ -73,7 +73,7 @@ func newOpeningRack(container js.Value) *rack.Rack {
 		SwitchLabelClass: "grp",
 		SlotWidth:        moduleSlot,
 		Gap:              moduleGap,
-		Scale:            panelScale,
+		Scale:            layout.scale,
 		Pinned:           modulePinned,
 		// Every way the user can rearrange the rack ends at the same record.
 		// The rack fires these only for a real change — SetOrder and SetHidden,
@@ -474,7 +474,7 @@ func slotsWidthPx(n int) float64 {
 	if n < 1 {
 		n = 1
 	}
-	return float64(n)*moduleSlot*panelScale + float64(n-1)*moduleGap
+	return float64(n)*moduleSlot*layout.scale + float64(n-1)*moduleGap
 }
 
 // fitModulesToTheirParts widens a module that carries a control bigger than

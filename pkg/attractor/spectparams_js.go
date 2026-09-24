@@ -26,17 +26,27 @@ import (
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
 )
 
-// The knob values. Floats because every control in this panel is a float
-// behind a hidden slider, which is what makes reset, permalinks and audio
-// modulation work the same way for all of them.
-var (
-	spectDFTF   float32 = 4 // index into spectDFTSizes, not the size itself
-	spectOvlF   float32 = 50
-	spectWinF   float32
-	spectScaleF float32
-	spectMinF   float32
-	spectMaxF   float32 = 45
-)
+// spectControls is the spectrogram's controls.
+type spectControls struct {
+	// The knob values. Floats because every control in this panel is a float
+	// behind a hidden slider, which is what makes reset, permalinks and audio
+	// modulation work the same way for all of them.
+	dftf   float32 // index into spectDFTSizes, not the size itself
+	ovlF   float32
+	winF   float32
+	scaleF float32
+	minF   float32
+	maxF   float32
+
+	// chanF is the knob, an index into spectChanNames.
+	chanF float32
+}
+
+var spectCtl = spectControls{
+	dftf: 4,
+	ovlF: 50,
+	maxF: 45,
+}
 
 // spectDFTSizes is the original's range, 64 to 8192, every power of two. The
 // knob carries the index rather than the size so that its positions are evenly
@@ -85,13 +95,13 @@ func spectDFTNames() []string {
 // give up all its useful resolution to do so. Negative values are clamped away
 // in linear mode, where a magnitude cannot be one.
 var spectParams = []paramDef{
-	{"spect-dft", "dft", &spectDFTF, 4, 0, float32(len(spectDFTSizes) - 1), 1},
-	{"spect-ovl", "ovlp", &spectOvlF, 50, 5, 95, 5},
-	{"spect-win", "wfn", &spectWinF, 0, 0, float32(len(spectWinNames) - 1), 1},
-	{"spect-chan", "chan", &spectChanF, 0, 0, float32(len(spectChanNames) - 1), 1},
-	{"spect-scale", "scale", &spectScaleF, 0, 0, float32(len(spectScaleNames) - 1), 1},
-	{"spect-min", "min", &spectMinF, 0, -80, 80, 1},
-	{"spect-max", "max", &spectMaxF, 45, -80, 80, 1},
+	{"spect-dft", "dft", &spectCtl.dftf, 4, 0, float32(len(spectDFTSizes) - 1), 1},
+	{"spect-ovl", "ovlp", &spectCtl.ovlF, 50, 5, 95, 5},
+	{"spect-win", "wfn", &spectCtl.winF, 0, 0, float32(len(spectWinNames) - 1), 1},
+	{"spect-chan", "chan", &spectCtl.chanF, 0, 0, float32(len(spectChanNames) - 1), 1},
+	{"spect-scale", "scale", &spectCtl.scaleF, 0, 0, float32(len(spectScaleNames) - 1), 1},
+	{"spect-min", "min", &spectCtl.minF, 0, -80, 80, 1},
+	{"spect-max", "max", &spectCtl.maxF, 45, -80, 80, 1},
 }
 
 // pick reads a knob as an index into a list, since a knob can be dragged past
@@ -115,11 +125,11 @@ func pick(v float32, n int) int {
 // from a MIDI controller, from an audio modulator or from a permalink being
 // applied, and there is no single place all of those pass through; reading them
 // once a frame is a handful of comparisons and cannot get out of step.
-func applySpectSettings() {
-	sg.S.SetWindowByName(spectWinNames[pick(spectWinF, len(spectWinNames))])
-	sg.S.SetScaleByName(spectScaleNames[pick(spectScaleF, len(spectScaleNames))])
+func (s *spectControls) applySpectSettings() {
+	sg.S.SetWindowByName(spectWinNames[pick(s.winF, len(spectWinNames))])
+	sg.S.SetScaleByName(spectScaleNames[pick(s.scaleF, len(spectScaleNames))])
 
-	lo, hi := float64(spectMinF), float64(spectMaxF)
+	lo, hi := float64(s.minF), float64(s.maxF)
 	if sg.S.MagScale() == sg.ScaleLinear && lo < 0 {
 		lo = 0
 	}
@@ -134,11 +144,11 @@ func applySpectSettings() {
 	sg.S.SetMagMax(hi)
 	sg.S.SetMagMin(lo)
 
-	sg.S.SetOverlap(float64(spectOvlF) / 100.0)
+	sg.S.SetOverlap(float64(s.ovlF) / 100.0)
 
-	if size := spectDFTSizes[pick(spectDFTF, len(spectDFTSizes))]; size != sg.S.GetDFTSize() {
+	if size := spectDFTSizes[pick(s.dftf, len(spectDFTSizes))]; size != sg.S.GetDFTSize() {
 		sg.S.SetDFTSize(size)
-		resizeSpectrogram()
+		spect.resizeSpectrogram()
 	}
 }
 
@@ -154,12 +164,9 @@ func applySpectSettings() {
 // position shows the same picture.
 var spectChanNames = []string{"mix", "left", "right"}
 
-// spectChanF is the knob, an index into spectChanNames.
-var spectChanF float32
-
 // spectMonoMode turns the knob into the fold the source applies.
-func spectMonoMode() audiosrc.MonoMode {
-	switch pick(spectChanF, len(spectChanNames)) {
+func (s *spectControls) monoMode() audiosrc.MonoMode {
+	switch pick(s.chanF, len(spectChanNames)) {
 	case 1:
 		return audiosrc.MonoLeft
 	case 2:
@@ -175,8 +182,8 @@ func spectMonoMode() audiosrc.MonoMode {
 // that has to remember to.
 func applySpectChannel() {
 	type monoSetter interface{ SetMonoMode(audiosrc.MonoMode) }
-	if s, ok := ensureAudioSource().(monoSetter); ok {
-		s.SetMonoMode(spectMonoMode())
+	if s, ok := aud.ensureAudioSource().(monoSetter); ok {
+		s.SetMonoMode(spectCtl.monoMode())
 	}
 }
 

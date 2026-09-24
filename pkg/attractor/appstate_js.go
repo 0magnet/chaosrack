@@ -53,17 +53,17 @@ func reseedAttractorState() {
 		x, y, z = 0.1, 0.5, -0.6
 	}
 	x64, y64, z64 = float64(x), float64(y), float64(z)
-	integ3DMode = "" // force integrate3D to re-seed x64 from the IC
-	ringInvalidate() // ring trail re-primes from the fresh state
-	twinInvalidate() // twin pair re-seeds ε apart from the fresh state
-	sectInvalidate() // section scatter restarts from the fresh state
-	bifInvalidate()  // bifurcation re-sweeps (source params may have changed)
-	mapInvalidate()  // a map orbit is only meaningful for the params that made it
-	lyapInvalidate() // and so is its Lyapunov exponent
+	integ3DMode = ""  // force integrate3D to re-seed x64 from the IC
+	ring.invalidate() // ring trail re-primes from the fresh state
+	twin.invalidate() // twin pair re-seeds ε apart from the fresh state
+	sect.invalidate() // section scatter restarts from the fresh state
+	bif.invalidate()  // bifurcation re-sweeps (source params may have changed)
+	mapInvalidate()   // a map orbit is only meaningful for the params that made it
+	lyap.invalidate() // and so is its Lyapunov exponent
 	// The live exponent restarts for the same reason, and it needs saying
 	// separately: lyapInvalidate re-runs the Analysis module's on-demand
 	// measurement, which is a different accumulation with a different clock.
-	lyapLiveInvalidate()
+	lyapLive.invalidate()
 	// Hyper-Rössler's hidden 4th state; start it on-attractor for that mode,
 	// zero otherwise (harmless — only that mode reads it).
 	if selectedMode == "hyperrossler" {
@@ -71,8 +71,8 @@ func reseedAttractorState() {
 	} else {
 		dynamics.HyperW = 0
 	}
-	customW = 0
-	customT = 0
+	custom.w = 0
+	custom.t = 0
 	centerReady = false
 	centerWarmup = 0
 }

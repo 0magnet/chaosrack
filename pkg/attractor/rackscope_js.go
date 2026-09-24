@@ -26,9 +26,61 @@ import (
 // afterglow, and it is why the INTENSITY knob changes how long the trace
 // hangs around as well as how bright it is.
 
-// scopeFuncs is the panel's own js.Func arena: its dials are built once,
-// on a different schedule from the parameter panel's.
-var scopeFuncs []js.Func
+// rackScope is the rack scope's tube: its canvas, the trace and graticule it
+// draws, and the sample windows.
+type rackScope struct {
+	// funcs is the panel's own js.Func arena: its dials are built once,
+	// on a different schedule from the parameter panel's.
+	funcs []js.Func
+
+	// ui is the panel. Defaults are a scope you could hand to someone: a
+	// range that fits a normalized signal, a sweep slow enough to see a waveform
+	// on, auto trigger so silence still draws a baseline, and the beam on.
+	ui scopeState
+
+	// scopeCanvas and scopeCtx are the tube, looked up once.
+	canvas js.Value
+	ctx    js.Value
+
+	// sampL and sampR are the capture buffers, grown rather than
+	// reallocated: the slowest timebase is half a second a division, which is
+	// five seconds of audio across the screen.
+	sampL, sampR []float32
+	midBuf       []float32
+
+	// The face is drawn from three cached Path2D objects, one per line weight.
+	//
+	// It used to walk the graticule and issue a moveTo and a lineTo per line —
+	// about three hundred crossings of the Go/JS boundary every frame, on top of
+	// rebuilding the figure three times. syscall/js pays for each of those
+	// crossings, and together they cost the model a third of its frame rate and
+	// a visible hitch about once a second. A Path2D is built once and handed to
+	// stroke, so a frame is three calls instead of three hundred.
+	gratPaths [3]js.Value
+	gratW     float64
+	gratH     float64
+
+	// The sweep, as x,y pairs. Both reused between frames: they are rewritten
+	// sixty times a second and a fresh allocation each time is garbage the
+	// collector has to come back for.
+	tracePts []float32 // the points handed to the canvas
+	envBuf   []float32 // the column min/max pairs they are built from
+
+	// tracePath is the fallback's SVG path, kept for the same reason.
+	tracePath strings.Builder
+}
+
+var rscope = rackScope{
+	ui: scopeState{
+		voltsIdx: scope.NearestStep(scope.VoltsDivs, 0.5),
+		timeIdx:  scope.NearestStep(scope.Timebases, 2e-3),
+		rising:   true,
+		trigAuto: true,
+		intens:   0.6,
+		focus:    0.55,
+		beam:     true,
+	},
+}
 
 // scopeState is the front panel's settings — where every knob is.
 //
@@ -61,41 +113,18 @@ const (
 
 var scopeChanNames = []string{"CH 1", "CH 2", "MID", "X-Y"}
 
-// scopeUI is the panel. Defaults are a scope you could hand to someone: a
-// range that fits a normalized signal, a sweep slow enough to see a waveform
-// on, auto trigger so silence still draws a baseline, and the beam on.
-var scopeUI = scopeState{
-	voltsIdx: scope.NearestStep(scope.VoltsDivs, 0.5),
-	timeIdx:  scope.NearestStep(scope.Timebases, 2e-3),
-	rising:   true,
-	trigAuto: true,
-	intens:   0.6,
-	focus:    0.55,
-	beam:     true,
-}
-
-// scopeCanvas and scopeCtx are the tube, looked up once.
-var (
-	scopeCanvas js.Value
-	scopeCtx    js.Value
-	// scopeSampL and scopeSampR are the capture buffers, grown rather than
-	// reallocated: the slowest timebase is half a second a division, which is
-	// five seconds of audio across the screen.
-	scopeSampL, scopeSampR []float32
-)
-
-func scopeSecPerDiv() float64 {
+func (ra *rackScope) secPerDiv() float64 {
 	if len(scope.Timebases) == 0 {
 		return 1e-3
 	}
-	return scope.Timebases[clampIdx(scopeUI.timeIdx, len(scope.Timebases))]
+	return scope.Timebases[clampIdx(ra.ui.timeIdx, len(scope.Timebases))]
 }
 
-func scopeVoltsPerDiv() float64 {
+func (ra *rackScope) voltsPerDiv() float64 {
 	if len(scope.VoltsDivs) == 0 {
 		return 0.5
 	}
-	return scope.VoltsDivs[clampIdx(scopeUI.voltsIdx, len(scope.VoltsDivs))]
+	return scope.VoltsDivs[clampIdx(ra.ui.voltsIdx, len(scope.VoltsDivs))]
 }
 
 func clampIdx(i, n int) int {
@@ -113,26 +142,26 @@ func clampIdx(i, n int) int {
 
 // buildRackScope fills the panel's dials and wires them. Called once, after
 // the control panel exists.
-func buildRackScope() {
-	dom.RebuildInto(&scopeFuncs, func() {
+func (ra *rackScope) buildRackScope() {
+	dom.RebuildInto(&ra.funcs, func() {
 		// The two range switches, from the sequences themselves — a hand-typed
 		// option list is a second copy of the spec, and the one that goes stale.
-		buildScopeDial("scope-volts", scope.VoltsDivs, scope.FormatVolts, scopeUI.voltsIdx,
-			func(i int) { scopeUI.voltsIdx = i })
-		buildScopeDial("scope-time", scope.Timebases, scope.FormatTime, scopeUI.timeIdx,
-			func(i int) { scopeUI.timeIdx = i })
-		buildScopeNameDial("scope-chan", scopeChanNames, scopeUI.chanSel,
-			func(i int) { scopeUI.chanSel = i })
+		buildScopeDial("scope-volts", scope.VoltsDivs, scope.FormatVolts, ra.ui.voltsIdx,
+			func(i int) { ra.ui.voltsIdx = i })
+		buildScopeDial("scope-time", scope.Timebases, scope.FormatTime, ra.ui.timeIdx,
+			func(i int) { ra.ui.timeIdx = i })
+		buildScopeNameDial("scope-chan", scopeChanNames, ra.ui.chanSel,
+			func(i int) { ra.ui.chanSel = i })
 		buildScopeNameDial("scope-tmode", []string{"AUTO", "NORM"}, 0,
-			func(i int) { scopeUI.trigAuto = i == 0 })
+			func(i int) { ra.ui.trigAuto = i == 0 })
 
-		wireScopeRange("scope-vpos", func(v float64) { scopeUI.vpos = v })
-		wireScopeRange("scope-hpos", func(v float64) { scopeUI.hpos = v })
-		wireScopeRange("scope-trig", func(v float64) { scopeUI.trigLvl = v })
-		wireScopeRange("scope-intens", func(v float64) { scopeUI.intens = v })
-		wireScopeRange("scope-focus", func(v float64) { scopeUI.focus = v })
-		wireSwitch("scope-slope", func(on bool) { scopeUI.rising = on })
-		wireSwitch("scope-beam", func(on bool) { scopeUI.beam = on })
+		wireScopeRange("scope-vpos", func(v float64) { ra.ui.vpos = v })
+		wireScopeRange("scope-hpos", func(v float64) { ra.ui.hpos = v })
+		wireScopeRange("scope-trig", func(v float64) { ra.ui.trigLvl = v })
+		wireScopeRange("scope-intens", func(v float64) { ra.ui.intens = v })
+		wireScopeRange("scope-focus", func(v float64) { ra.ui.focus = v })
+		wireSwitch("scope-slope", func(on bool) { ra.ui.rising = on })
+		wireSwitch("scope-beam", func(on bool) { ra.ui.beam = on })
 	})
 }
 
@@ -234,29 +263,29 @@ func wireScopeRange(id string, set func(float64)) {
 // render loop, and a no-op when the module is not on screen — a rack scope
 // switched out of the rack must not cost a capture and a canvas paint per
 // frame for a tube nobody can see.
-func drawRackScope() {
+func (ra *rackScope) drawRackScope() {
 	// Powered by its own BEAM switch, like any scope. Off, the tube is
 	// painted dark ONCE and then costs nothing — no capture, no path, no
 	// layout read. The rack shows every module in a bay now, so "nobody
 	// can see it" has stopped being what turns this off.
-	if !scopeScreenPower.on(scopeCanvasEl()) {
-		if scopeScreenPower.needsBlank() && scopeBlankFace() {
+	if !scopeScreenPower.on(ra.canvasEl()) {
+		if scopeScreenPower.needsBlank() && ra.blankFace() {
 			scopeScreenPower.markBlanked()
 		}
 		return
 	}
-	if !scopeCtx.Truthy() {
-		scopeCanvas = dom.Doc.Call("getElementById", "scope-screen")
-		if !scopeCanvas.Truthy() {
+	if !ra.ctx.Truthy() {
+		ra.canvas = dom.Doc.Call("getElementById", "scope-screen")
+		if !ra.canvas.Truthy() {
 			return
 		}
-		scopeCtx = scopeCanvas.Call("getContext", "2d")
-		if !scopeCtx.Truthy() {
+		ra.ctx = ra.canvas.Call("getContext", "2d")
+		if !ra.ctx.Truthy() {
 			return
 		}
 	}
-	w := scopeCanvas.Get("width").Float()
-	h := scopeCanvas.Get("height").Float()
+	w := ra.canvas.Get("width").Float()
+	h := ra.canvas.Get("height").Float()
 	if !(w > 0 && h > 0) {
 		return
 	}
@@ -264,14 +293,14 @@ func drawRackScope() {
 	// The afterglow. Painting over rather than clearing is what a phosphor
 	// does, and the INTENSITY knob sets how fast it gives up: a bright beam
 	// on a long-persistence tube holds several sweeps at once.
-	fade := 0.12 + 0.5*(1-scopeUI.intens)
-	scopeCtx.Set("globalAlpha", fade)
-	scopeCtx.Set("fillStyle", "#05070a")
-	scopeCtx.Call("fillRect", 0, 0, w, h)
-	scopeCtx.Set("globalAlpha", 1.0)
+	fade := 0.12 + 0.5*(1-ra.ui.intens)
+	ra.ctx.Set("globalAlpha", fade)
+	ra.ctx.Set("fillStyle", "#05070a")
+	ra.ctx.Call("fillRect", 0, 0, w, h)
+	ra.ctx.Set("globalAlpha", 1.0)
 
-	drawScopeFaceGrat(w, h)
-	drawScopeTrace(w, h)
+	ra.drawScopeFaceGrat(w, h)
+	ra.drawScopeTrace(w, h)
 }
 
 // scopeVisible reports whether the tube is on screen at all: the module
@@ -283,8 +312,8 @@ func drawRackScope() {
 func snapHalf(v float64) float64 { return float64(int(v)) + 0.5 }
 
 // drawScopeTrace captures the live audio and sweeps it across the face.
-func drawScopeTrace(w, h float64) {
-	src := ensureAudioSource()
+func (ra *rackScope) drawScopeTrace(w, h float64) {
+	src := aud.ensureAudioSource()
 	if src == nil || !src.Ready() {
 		return
 	}
@@ -292,22 +321,22 @@ func drawScopeTrace(w, h float64) {
 	if sr <= 0 {
 		sr = 24000
 	}
-	span := scope.SweepSamples(scopeSecPerDiv(), sr)
+	span := scope.SweepSamples(ra.secPerDiv(), sr)
 	// A margin behind the window for the trigger to search in — one screen's
 	// worth, so an edge anywhere in the last two screens can be found.
 	need := span * 2
-	if len(scopeSampL) < need {
-		scopeSampL = make([]float32, need+need/2)
-		scopeSampR = make([]float32, len(scopeSampL))
+	if len(ra.sampL) < need {
+		ra.sampL = make([]float32, need+need/2)
+		ra.sampR = make([]float32, len(ra.sampL))
 	}
-	l, r := scopeSampL[:need], scopeSampR[:need]
+	l, r := ra.sampL[:need], ra.sampR[:need]
 	src.TimeDomainStereo(l, r)
 
-	vert := scopeVertical(l, r)
+	vert := ra.vertical(l, r)
 	start := span // the newest whole window, which is what a free run shows
-	if i := scope.TriggerIndex(vert, float32(scopeUI.trigLvl), scopeUI.rising, span); i >= 0 {
+	if i := scope.TriggerIndex(vert, float32(ra.ui.trigLvl), ra.ui.rising, span); i >= 0 {
 		start = i
-	} else if !scopeUI.trigAuto {
+	} else if !ra.ui.trigAuto {
 		// NORM: no edge, no sweep. The tube keeps whatever was on it and
 		// fades, which is exactly what a scope waiting for a trigger does.
 		return
@@ -322,25 +351,25 @@ func drawScopeTrace(w, h float64) {
 	px := w / float64(scope.DivX)
 	py := h / float64(scope.DivY)
 	cx, cy := w/2, h/2
-	vpd := scopeVoltsPerDiv()
+	vpd := ra.voltsPerDiv()
 
 	// The beam. shadowBlur is the halo a real spot has; FOCUS tightens both
 	// the line and the halo, which is what the knob does on the tube.
-	line := 1.0 + 2.2*(1-scopeUI.focus)
-	scopeCtx.Set("lineWidth", line)
-	scopeCtx.Set("lineJoin", "round")
-	scopeCtx.Set("lineCap", "round")
-	scopeCtx.Set("shadowBlur", 4+10*(1-scopeUI.focus))
-	scopeCtx.Set("shadowColor", "rgba(120,255,170,0.9)")
-	scopeCtx.Set("strokeStyle", scopeBeamColor())
+	line := 1.0 + 2.2*(1-ra.ui.focus)
+	ra.ctx.Set("lineWidth", line)
+	ra.ctx.Set("lineJoin", "round")
+	ra.ctx.Set("lineCap", "round")
+	ra.ctx.Set("shadowBlur", 4+10*(1-ra.ui.focus))
+	ra.ctx.Set("shadowColor", "rgba(120,255,170,0.9)")
+	ra.ctx.Set("strokeStyle", scopeBeamColor())
 	// Collected as x,y pairs and handed over in ONE crossing. A moveTo/lineTo
 	// per sample is a Go/JS boundary crossing per sample, which is what this
 	// used to avoid by building a path string instead — but the formatting
 	// cost more than the crossings did. See scopefast_js.go.
-	scopeTracePts = scopeTracePts[:0]
+	ra.tracePts = ra.tracePts[:0]
 
 	switch {
-	case scopeUI.chanSel == scopeChanXY:
+	case ra.ui.chanSel == scopeChanXY:
 		// X-Y: the horizontal comes off the other channel and the timebase is
 		// out of circuit entirely. This is the goniometer, made the way a
 		// scope makes one.
@@ -350,36 +379,36 @@ func drawScopeTrace(w, h float64) {
 		// it. A Lissajous pattern reduced to one vertical bar per column is a
 		// different figure.
 		for i := 0; i < span && start+i < len(l); i++ {
-			x := cx + scope.YDiv(l[start+i], vpd, scopeUI.hpos)*px
-			y := cy - scope.YDiv(r[start+i], vpd, scopeUI.vpos)*py
-			scopeTracePts = append(scopeTracePts, float32(x), float32(y))
+			x := cx + scope.YDiv(l[start+i], vpd, ra.ui.hpos)*px
+			y := cy - scope.YDiv(r[start+i], vpd, ra.ui.vpos)*py
+			ra.tracePts = append(ra.tracePts, float32(x), float32(y))
 		}
 	case span > 2*scope.TraceCols(w):
 		// More samples than the face has columns: draw the envelope, which is
 		// what the dense trace looks like anyway. See pkg/scope/trace.go.
 		cols := scope.TraceCols(w)
-		if len(scopeEnvBuf) < cols*2 {
-			scopeEnvBuf = make([]float32, cols*2)
+		if len(ra.envBuf) < cols*2 {
+			ra.envBuf = make([]float32, cols*2)
 		}
 		seg := vert[start:]
 		if span < len(seg) {
 			seg = seg[:span]
 		}
-		n := scope.TraceEnvelope(scopeEnvBuf, seg, cols)
+		n := scope.TraceEnvelope(ra.envBuf, seg, cols)
 		for c := 0; c < n; c++ {
 			frac := float64(c) / float64(n-1)
-			x := float32(cx + (frac-0.5+scopeUI.hpos/float64(scope.DivX))*w)
+			x := float32(cx + (frac-0.5+ra.ui.hpos/float64(scope.DivX))*w)
 			// The lowest sample in the column is the lowest point on the
 			// screen, the deflection being affine in the sample value.
-			lo := float32(cy - scope.YDiv(scopeEnvBuf[c*2], vpd, scopeUI.vpos)*py)
-			hi := float32(cy - scope.YDiv(scopeEnvBuf[c*2+1], vpd, scopeUI.vpos)*py)
+			lo := float32(cy - scope.YDiv(ra.envBuf[c*2], vpd, ra.ui.vpos)*py)
+			hi := float32(cy - scope.YDiv(ra.envBuf[c*2+1], vpd, ra.ui.vpos)*py)
 			// Alternate which end the column is entered from, so the join to
 			// the next one runs along the edge of the band rather than back
 			// across it. Same figure, half the diagonal.
 			if c%2 == 0 {
-				scopeTracePts = append(scopeTracePts, x, lo, x, hi)
+				ra.tracePts = append(ra.tracePts, x, lo, x, hi)
 			} else {
-				scopeTracePts = append(scopeTracePts, x, hi, x, lo)
+				ra.tracePts = append(ra.tracePts, x, hi, x, lo)
 			}
 		}
 	default:
@@ -387,31 +416,31 @@ func drawScopeTrace(w, h float64) {
 		// of the way across and y is the deflection.
 		for i := 0; i < span && start+i < len(vert); i++ {
 			frac := float64(i) / float64(span-1)
-			x := cx + (frac-0.5+scopeUI.hpos/float64(scope.DivX))*w
-			y := cy - scope.YDiv(vert[start+i], vpd, scopeUI.vpos)*py
-			scopeTracePts = append(scopeTracePts, float32(x), float32(y))
+			x := cx + (frac-0.5+ra.ui.hpos/float64(scope.DivX))*w
+			y := cy - scope.YDiv(vert[start+i], vpd, ra.ui.vpos)*py
+			ra.tracePts = append(ra.tracePts, float32(x), float32(y))
 		}
 	}
-	if !strokeScopePoints(scopeCtx, scopeTracePts) {
-		strokeScopePointsAsPath(scopeCtx, scopeTracePts)
+	if !strokeScopePoints(ra.ctx, ra.tracePts) {
+		ra.strokeScopePointsAsPath(ra.ctx, ra.tracePts)
 	}
-	scopeCtx.Set("shadowBlur", 0)
+	ra.ctx.Set("shadowBlur", 0)
 }
 
 // scopeVertical is the signal on the vertical axis, per the SOURCE switch.
 // X-Y has no single vertical — it uses both channels directly — so it reads
 // as CH 1 here and the caller takes the other branch.
-func scopeVertical(l, r []float32) []float32 {
-	switch scopeUI.chanSel {
+func (ra *rackScope) vertical(l, r []float32) []float32 {
+	switch ra.ui.chanSel {
 	case scopeChanR:
 		return r
 	case scopeChanMid:
 		// Summed into the left buffer's tail is not safe (the caller still
 		// wants l for X-Y), so mid gets its own.
-		if len(scopeMidBuf) < len(l) {
-			scopeMidBuf = make([]float32, len(l))
+		if len(ra.midBuf) < len(l) {
+			ra.midBuf = make([]float32, len(l))
 		}
-		m := scopeMidBuf[:len(l)]
+		m := ra.midBuf[:len(l)]
 		for i := range l {
 			m[i] = (l[i] + r[i]) * 0.5
 		}
@@ -420,8 +449,6 @@ func scopeVertical(l, r []float32) []float32 {
 		return l
 	}
 }
-
-var scopeMidBuf []float32
 
 // scopeBeamColor is the phosphor. P31 green by default, and it follows the
 // rack's own phosphor selection when one is set, so the scope in the rack
@@ -436,20 +463,6 @@ func scopeBeamColor() string {
 	p := phosphors[1]
 	return phColorCSS(p.tr, p.tg, p.tb)
 }
-
-// The face is drawn from three cached Path2D objects, one per line weight.
-//
-// It used to walk the graticule and issue a moveTo and a lineTo per line —
-// about three hundred crossings of the Go/JS boundary every frame, on top of
-// rebuilding the figure three times. syscall/js pays for each of those
-// crossings, and together they cost the model a third of its frame rate and
-// a visible hitch about once a second. A Path2D is built once and handed to
-// stroke, so a frame is three calls instead of three hundred.
-var (
-	scopeGratPaths [3]js.Value
-	scopeGratW     float64
-	scopeGratH     float64
-)
 
 // scopeGratWeights is the order the face is drawn in: ticks first, so the
 // heavier lines land on top of them where they cross.
@@ -469,7 +482,7 @@ var scopeGratStroke = [3]struct {
 }
 
 // buildScopeGratPaths rebuilds the three paths for a canvas of this size.
-func buildScopeGratPaths(w, h float64) {
+func (ra *rackScope) buildScopeGratPaths(w, h float64) {
 	p2d := js.Global().Get("Path2D")
 	if !p2d.Truthy() {
 		return
@@ -496,24 +509,24 @@ func buildScopeGratPaths(w, h float64) {
 			b.WriteString(" ")
 			appendNum(&b, snapHalf(cy-float64(l.Y1)*py))
 		}
-		scopeGratPaths[i] = p2d.New(b.String())
+		ra.gratPaths[i] = p2d.New(b.String())
 	}
-	scopeGratW, scopeGratH = w, h
+	ra.gratW, ra.gratH = w, h
 }
 
 // drawScopeFaceGrat strokes the face.
-func drawScopeFaceGrat(w, h float64) {
-	if scopeGratW != w || scopeGratH != h || !scopeGratPaths[0].Truthy() {
-		buildScopeGratPaths(w, h)
+func (ra *rackScope) drawScopeFaceGrat(w, h float64) {
+	if ra.gratW != w || ra.gratH != h || !ra.gratPaths[0].Truthy() {
+		ra.buildScopeGratPaths(w, h)
 	}
 	for i := range scopeGratWeights {
-		p := scopeGratPaths[i]
+		p := ra.gratPaths[i]
 		if !p.Truthy() {
 			continue
 		}
-		scopeCtx.Set("strokeStyle", scopeGratStroke[i].color)
-		scopeCtx.Set("lineWidth", scopeGratStroke[i].width)
-		scopeCtx.Call("stroke", p)
+		ra.ctx.Set("strokeStyle", scopeGratStroke[i].color)
+		ra.ctx.Set("lineWidth", scopeGratStroke[i].width)
+		ra.ctx.Call("stroke", p)
 	}
 }
 
@@ -523,23 +536,12 @@ func appendNum(b *strings.Builder, v float64) {
 	b.WriteString(strconv.FormatFloat(v, 'f', 1, 64))
 }
 
-// The sweep, as x,y pairs. Both reused between frames: they are rewritten
-// sixty times a second and a fresh allocation each time is garbage the
-// collector has to come back for.
-var (
-	scopeTracePts []float32 // the points handed to the canvas
-	scopeEnvBuf   []float32 // the column min/max pairs they are built from
-)
-
-// scopeTracePath is the fallback's SVG path, kept for the same reason.
-var scopeTracePath strings.Builder
-
 // strokeScopePointsAsPath is the route for a page that will not evaluate the
 // JS helper — a Content-Security-Policy that forbids eval. Slower, because
 // every coordinate is formatted to a decimal string and parsed back, which
 // is exactly what the fast path exists to stop doing; it is here so such a
 // page still has a working scope rather than a blank tube.
-func strokeScopePointsAsPath(ctx js.Value, pts []float32) {
+func (ra *rackScope) strokeScopePointsAsPath(ctx js.Value, pts []float32) {
 	if len(pts) < 4 || !ctx.Truthy() {
 		return
 	}
@@ -547,26 +549,26 @@ func strokeScopePointsAsPath(ctx js.Value, pts []float32) {
 	if !p2d.Truthy() {
 		return
 	}
-	scopeTracePath.Reset()
+	ra.tracePath.Reset()
 	for i := 0; i+1 < len(pts); i += 2 {
 		if i == 0 {
-			scopeTracePath.WriteString("M")
+			ra.tracePath.WriteString("M")
 		} else {
-			scopeTracePath.WriteString("L")
+			ra.tracePath.WriteString("L")
 		}
-		appendNum(&scopeTracePath, float64(pts[i]))
-		scopeTracePath.WriteString(" ")
-		appendNum(&scopeTracePath, float64(pts[i+1]))
+		appendNum(&ra.tracePath, float64(pts[i]))
+		ra.tracePath.WriteString(" ")
+		appendNum(&ra.tracePath, float64(pts[i+1]))
 	}
-	ctx.Call("stroke", p2d.New(scopeTracePath.String()))
+	ctx.Call("stroke", p2d.New(ra.tracePath.String()))
 }
 
 // scopeCanvasEl is the tube's canvas, looked up lazily.
-func scopeCanvasEl() js.Value {
-	if !scopeCanvas.Truthy() {
-		scopeCanvas = dom.Doc.Call("getElementById", "scope-screen")
+func (ra *rackScope) canvasEl() js.Value {
+	if !ra.canvas.Truthy() {
+		ra.canvas = dom.Doc.Call("getElementById", "scope-screen")
 	}
-	return scopeCanvas
+	return ra.canvas
 }
 
 // scopeBlankFace paints the dark tube once, for a scope whose beam is off.
@@ -576,14 +578,14 @@ func scopeCanvasEl() js.Value {
 // printed on the face and does not go anywhere when the beam does.
 // Returns false if there is nothing to paint on yet, so the caller knows
 // it still owes the blank.
-func scopeBlankFace() bool {
-	c := scopeCanvasEl()
+func (ra *rackScope) blankFace() bool {
+	c := ra.canvasEl()
 	if !c.Truthy() {
 		return false
 	}
-	if !scopeCtx.Truthy() {
-		scopeCtx = c.Call("getContext", "2d")
-		if !scopeCtx.Truthy() {
+	if !ra.ctx.Truthy() {
+		ra.ctx = c.Call("getContext", "2d")
+		if !ra.ctx.Truthy() {
 			return false
 		}
 	}
@@ -592,9 +594,9 @@ func scopeBlankFace() bool {
 	if !(w > 0 && h > 0) {
 		return false
 	}
-	scopeCtx.Set("globalAlpha", 1.0)
-	scopeCtx.Set("fillStyle", "#05070a")
-	scopeCtx.Call("fillRect", 0, 0, w, h)
-	drawScopeFaceGrat(w, h)
+	ra.ctx.Set("globalAlpha", 1.0)
+	ra.ctx.Set("fillStyle", "#05070a")
+	ra.ctx.Call("fillRect", 0, 0, w, h)
+	ra.drawScopeFaceGrat(w, h)
 	return true
 }

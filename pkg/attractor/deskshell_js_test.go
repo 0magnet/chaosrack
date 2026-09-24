@@ -39,16 +39,16 @@ func fakeDeskRoot(t *testing.T) (root, panel, menu js.Value) {
 // keepFloatGeom restores the package's float geometry after a test has moved it.
 func keepFloatGeom(t *testing.T) {
 	t.Helper()
-	x, y, w, h := floatX, floatY, floatW, floatH
-	t.Cleanup(func() { floatX, floatY, floatW, floatH = x, y, w, h })
+	x, y, w, h := layout.floatX, layout.floatY, layout.floatW, layout.floatH
+	t.Cleanup(func() { layout.floatX, layout.floatY, layout.floatW, layout.floatH = x, y, w, h })
 }
 
 func TestHealFloatGeomLeavesAnArrangedWindowAlone(t *testing.T) {
 	keepFloatGeom(t)
-	floatX, floatY, floatW, floatH = 300, 200, 500, 400
-	healFloatGeom()
-	if floatX != 300 || floatY != 200 || floatW != 500 || floatH != 400 {
-		t.Errorf("healed a perfectly good geometry to %v,%v %vx%v", floatX, floatY, floatW, floatH)
+	layout.floatX, layout.floatY, layout.floatW, layout.floatH = 300, 200, 500, 400
+	layout.healFloatGeom()
+	if layout.floatX != 300 || layout.floatY != 200 || layout.floatW != 500 || layout.floatH != 400 {
+		t.Errorf("healed a perfectly good geometry to %v,%v %vx%v", layout.floatX, layout.floatY, layout.floatW, layout.floatH)
 	}
 }
 
@@ -57,24 +57,24 @@ func TestHealFloatGeomLeavesAnArrangedWindowAlone(t *testing.T) {
 // which is why the width alone proves nothing and all four have to go back.
 func TestHealFloatGeomReplacesTheMinimizeSlotWholesale(t *testing.T) {
 	keepFloatGeom(t)
-	floatX, floatY, floatW, floatH = 24, 959, 251, 35
-	healFloatGeom()
-	if floatW != floatDefW || floatH != floatDefH {
-		t.Errorf("size healed to %vx%v, want the %vx%v defaults", floatW, floatH, floatDefW, floatDefH)
+	layout.floatX, layout.floatY, layout.floatW, layout.floatH = 24, 959, 251, 35
+	layout.healFloatGeom()
+	if layout.floatW != floatDefW || layout.floatH != floatDefH {
+		t.Errorf("size healed to %vx%v, want the %vx%v defaults", layout.floatW, layout.floatH, floatDefW, floatDefH)
 	}
 	// The position is the half that would otherwise survive: 959 is a legal
 	// place to put a window and an impossible place to put a 720-tall one.
-	if floatX != floatDefX || floatY != floatDefY {
-		t.Errorf("position healed to %v,%v, want %v,%v", floatX, floatY, floatDefX, floatDefY)
+	if layout.floatX != floatDefX || layout.floatY != floatDefY {
+		t.Errorf("position healed to %v,%v, want %v,%v", layout.floatX, layout.floatY, floatDefX, floatDefY)
 	}
 }
 
 func TestHealFloatGeomCatchesAnImpossibleHeightOnItsOwn(t *testing.T) {
 	keepFloatGeom(t)
-	floatW, floatH = 900, 20 // wide enough to pass a width-only check
-	healFloatGeom()
-	if floatH != floatDefH {
-		t.Errorf("height %v survived, want %v", floatH, floatDefH)
+	layout.floatW, layout.floatH = 900, 20 // wide enough to pass a width-only check
+	layout.healFloatGeom()
+	if layout.floatH != floatDefH {
+		t.Errorf("height %v survived, want %v", layout.floatH, floatDefH)
 	}
 }
 

@@ -125,65 +125,87 @@ const (
 	wfallSweepIdleMS = 1000.0
 )
 
-var (
-	wfallCursor  = tapUnjoined
-	wfallRefBuf  []float32 // the reference: what went out
-	wfallMeasBuf []float32 // the measurement: what came back
-	wfallFill    int
-	wfallSurface []acoustics.CSDSlice
-	wfallFreqs   = acoustics.LogFreqPoints(acoustics.RTALo, acoustics.RTAHi, wfallBins)
-	wfallRT60    float64
-	wfallRTOK    bool
-	wfallLastPos float64
-	wfallHaveIR  bool
+// waterfall is the Waterfall mode: the sweep it captures, the decay surface
+// computed from it, the live surface's own window and clock, and its knobs.
+type waterfall struct {
+	cursor  int
+	refBuf  []float32 // the reference: what went out
+	measBuf []float32 // the measurement: what came back
+	fill    int
+	surface []acoustics.CSDSlice
+	rt60    float64
+	rtOK    bool
+	lastPos float64
+	haveIR  bool
 
 	// The free-running fallback: when the sweep position was last seen to move,
 	// and when the next untriggered measurement is due.
-	wfallSweepSeen float64
-	wfallNextFree  float64
+	sweepSeen float64
+	nextFree  float64
 
 	// The live surface: its own tap cursor, its own window of audio, its own
 	// clock, and the source the surface currently holds so a switch does not
 	// leave half of one kind of slice behind half of the other.
-	wfallLiveCursor = tapUnjoined
-	wfallLiveBuf    []float32
-	wfallLiveFill   int
-	wfallLiveNext   float64
-	wfallSurfaceSrc float32 = -1
+	liveCursor int
+	liveBuf    []float32
+	liveFill   int
+	liveNext   float64
+	surfaceSrc float32
 
 	// The knobs.
-	wfallRangeF float32 = 40 // dB shown, below TOP
-	wfallTopF   float32      // dBFS at the top of the scale
-	wfallDepthF float32 = 1  // how far back the surface reaches, a scale
-	wfallSwapF  float32      // which channel is the reference
-	wfallSrcF   float32      // 0 = decay from a sweep, 1 = live spectra
-	wfallChanF  float32      // which channel the live surface analyses
-	wfallLinesF float32 = 16 // how many slices the surface has
-	wfallStepF  float32 = 5  // milliseconds between them
-	wfallFFTF   float32 = 1  // index into wfallFFTSizes
+	rangeF float32 // dB shown, below TOP
+	topF   float32 // dBFS at the top of the scale
+	depthF float32 // how far back the surface reaches, a scale
+	swapF  float32 // which channel is the reference
+	srcF   float32 // 0 = decay from a sweep, 1 = live spectra
+	chanF  float32 // which channel the live surface analyses
+	linesF float32 // how many slices the surface has
+	stepF  float32 // milliseconds between them
+	fftF   float32 // index into wfallFFTSizes
 
-	// wfallAutoSet is the triple the source switch last wrote, so a knob
+	// autoSet is the triple the source switch last wrote, so a knob
 	// somebody turned can be told from one this put there — takens_js.go's rule
 	// for its measured τ, and for the same reason.
-	wfallAutoSet = wfallDecayDefaults
+	autoSet wfallDefaults
 
-	// wfallUserSet remembers which of the three somebody has turned, so the
+	// userSet remembers which of the three somebody has turned, so the
 	// source switch never takes one back.
-	wfallUserSet struct{ lines, step, fft bool }
+	userSet struct{ lines, step, fft bool }
+
+	// fitted is the one-shot camera fit, as the audio embeddings have.
+	fitted bool
+	rtEl   js.Value
+	rtTx   string
+}
+
+var wfall = waterfall{
+	cursor:     tapUnjoined,
+	liveCursor: tapUnjoined,
+	surfaceSrc: -1,
+	rangeF:     40,
+	depthF:     1,
+	linesF:     16,
+	stepF:      5,
+	fftF:       1,
+	autoSet:    wfallDecayDefaults,
+}
+
+var (
+	wfallFreqs = acoustics.LogFreqPoints(acoustics.RTALo, acoustics.RTAHi, wfallBins)
 )
 
 func init() {
-	registerGenerate("waterfall", generateWaterfall)
+	registerGenerate("waterfall", wfall.generate)
 	attractorParams["waterfall"] = []paramDef{
-		{"wfall-src", "src", &wfallSrcF, 0, 0, 1, 1},
-		{"wfall-chan", "chan", &wfallChanF, 0, 0, float32(len(tapChanNames) - 1), 1},
-		{"wfall-lines", "line", &wfallLinesF, 16, 4, 64, 1},
-		{"wfall-step", "step", &wfallStepF, 5, 1, 100, 1},
-		{"wfall-fft", "fft", &wfallFFTF, 1, 0, float32(len(wfallFFTSizes) - 1), 1},
-		{"wfall-top", "top", &wfallTopF, 0, -60, 20, 1},
-		{"wfall-range", "rnge", &wfallRangeF, 40, 10, 80, 5},
-		{"wfall-depth", "dpth", &wfallDepthF, 1, 0.2, 3, 0.1},
-		{"wfall-swap", "ref", &wfallSwapF, 0, 0, 1, 1},
+		{"wfall-src", "src", &wfall.srcF, 0, 0, 1, 1},
+		{"wfall-chan", "chan", &wfall.chanF, 0, 0, float32(len(tapChanNames) - 1), 1},
+		{"wfall-lines", "line", &wfall.linesF, 16, 4, 64, 1},
+		{"wfall-step", "step", &wfall.stepF, 5, 1, 100, 1},
+		{"wfall-fft", "fft", &wfall.fftF, 1, 0, float32(len(wfallFFTSizes) - 1), 1},
+		{"wfall-top", "top", &wfall.topF, 0, -60, 20, 1},
+		{"wfall-range", "rnge", &wfall.rangeF, 40, 10, 80, 5},
+		{"wfall-depth", "dpth", &wfall.depthF, 1, 0.2, 3, 0.1},
+		{"wfall-swap", "ref", &wfall.swapF, 0, 0, 1, 1},
 	}
 }
 
@@ -195,8 +217,8 @@ func init() {
 // crash rather than a wrong picture.
 
 // wfallLines is how many slices the surface holds.
-func wfallLines() int {
-	n := int(wfallLinesF + 0.5)
+func (w *waterfall) lines() int {
+	n := int(w.linesF + 0.5)
 	if n < 4 {
 		n = 4
 	} else if n > 64 {
@@ -206,8 +228,8 @@ func wfallLines() int {
 }
 
 // wfallStepMS is how far apart in time they are.
-func wfallStepMS() float64 {
-	ms := float64(wfallStepF)
+func (w *waterfall) stepMS() float64 {
+	ms := float64(w.stepF)
 	if ms < 1 {
 		ms = 1
 	} else if ms > 100 {
@@ -217,8 +239,8 @@ func wfallStepMS() float64 {
 }
 
 // wfallFFTLen is the transform each slice is taken with.
-func wfallFFTLen() int {
-	i := int(wfallFFTF + 0.5)
+func (w *waterfall) fftLen() int {
+	i := int(w.fftF + 0.5)
 	if i < 0 {
 		i = 0
 	} else if i >= len(wfallFFTSizes) {
@@ -230,8 +252,8 @@ func wfallFFTLen() int {
 // wfallChan is the channel the live surface analyses. The decay surface does
 // not have one: it needs BOTH channels, and REF says which of the two is the
 // reference.
-func wfallChan() tapChan {
-	i := int(wfallChanF + 0.5)
+func (w *waterfall) channel() tapChan {
+	i := int(w.chanF + 0.5)
 	if i < 0 {
 		i = 0
 	} else if i >= len(tapChanNames) {
@@ -251,7 +273,7 @@ func wfallChan() tapChan {
 // runs off the end of the impulse response. Deferring to a turned knob is
 // takens_js.go's rule for its measured τ, and it is the same problem — a
 // control that silently takes the knob away is worse than no automation.
-func wfallApplyDefaults(d wfallDefaults) {
+func (w *waterfall) applyDefaults(d wfallDefaults) {
 	// A knob holding anything but what this last wrote was turned by hand, and
 	// from then on it is the user's for good.
 	//
@@ -261,25 +283,25 @@ func wfallApplyDefaults(d wfallDefaults) {
 	// switch, so a hand-set line count survived one switch and was reclaimed on
 	// the way back. A permalink falls out of the same rule — it arrives holding a
 	// value that differs from the default, so the first switch marks it chosen.
-	if wfallLinesF != wfallAutoSet.lines {
-		wfallUserSet.lines = true
+	if w.linesF != w.autoSet.lines {
+		w.userSet.lines = true
 	}
-	if wfallStepF != wfallAutoSet.step {
-		wfallUserSet.step = true
+	if w.stepF != w.autoSet.step {
+		w.userSet.step = true
 	}
-	if wfallFFTF != wfallAutoSet.fft {
-		wfallUserSet.fft = true
+	if w.fftF != w.autoSet.fft {
+		w.userSet.fft = true
 	}
-	if !wfallUserSet.lines {
-		setWfallKnob("wfall-lines", &wfallLinesF, d.lines)
+	if !w.userSet.lines {
+		setWfallKnob("wfall-lines", &w.linesF, d.lines)
 	}
-	if !wfallUserSet.step {
-		setWfallKnob("wfall-step", &wfallStepF, d.step)
+	if !w.userSet.step {
+		setWfallKnob("wfall-step", &w.stepF, d.step)
 	}
-	if !wfallUserSet.fft {
-		setWfallKnob("wfall-fft", &wfallFFTF, d.fft)
+	if !w.userSet.fft {
+		setWfallKnob("wfall-fft", &w.fftF, d.fft)
 	}
-	wfallAutoSet = wfallDefaults{lines: wfallLinesF, step: wfallStepF, fft: wfallFFTF}
+	w.autoSet = wfallDefaults{lines: w.linesF, step: w.stepF, fft: w.fftF}
 }
 
 // setWfallKnob writes a value into a knob, rather than only into the variable
@@ -297,30 +319,30 @@ func setWfallKnob(id string, ptr *float32, v float32) {
 }
 
 // generateWaterfall runs whichever surface SRC names, and draws it.
-func generateWaterfall() {
-	defer showWaterfallRT()
-	if wfallSrcF != wfallSurfaceSrc {
+func (w *waterfall) generate() {
+	defer w.showRT()
+	if w.srcF != w.surfaceSrc {
 		// The two surfaces are different lengths on different scales — a decay
 		// normalized to its own impulse, a live one in absolute dBFS — so the
 		// old one is dropped rather than grown or shrunk into the new one.
-		wfallSurface = nil
-		wfallHaveIR = false
-		wfallLiveFill = 0
-		wfallLiveNext = 0
-		wfallSurfaceSrc = wfallSrcF
-		if wfallSrcF > 0.5 {
-			wfallApplyDefaults(wfallLiveDefaults)
+		w.surface = nil
+		w.haveIR = false
+		w.liveFill = 0
+		w.liveNext = 0
+		w.surfaceSrc = w.srcF
+		if w.srcF > 0.5 {
+			w.applyDefaults(wfallLiveDefaults)
 		} else {
-			wfallApplyDefaults(wfallDecayDefaults)
+			w.applyDefaults(wfallDecayDefaults)
 		}
-		wfallArmFit()
+		w.armFit()
 	}
-	if wfallSrcF > 0.5 {
-		wfallLiveTick()
+	if w.srcF > 0.5 {
+		w.liveTick()
 	} else {
-		wfallCapture()
+		w.capture()
 	}
-	wfallDraw()
+	w.draw()
 }
 
 // wfallLiveTick pushes a spectrum of the newest audio onto the front of the
@@ -330,16 +352,16 @@ func generateWaterfall() {
 // the rest shift back — which is the direction the display already reads, and
 // means the live surface and the decay surface are drawn by the same code with
 // no idea which of them they are showing.
-func wfallLiveTick() {
+func (w *waterfall) liveTick() {
 	sr := takensSourceRate()
-	if len(wfallLiveBuf) != wfallFFTLen() {
-		wfallLiveBuf = make([]float32, wfallFFTLen())
-		wfallLiveFill = 0
+	if len(w.liveBuf) != w.fftLen() {
+		w.liveBuf = make([]float32, w.fftLen())
+		w.liveFill = 0
 		// The surface is spectra of a window that no longer exists, at a
 		// resolution that no longer matches. Dropped rather than kept: half a
 		// surface at one resolution against half at another is a picture of the
 		// knob being turned, not of the sound.
-		wfallSurface = nil
+		w.surface = nil
 	}
 	// Drain the tap into the window, keeping the newest wfallLiveFFT samples.
 	// Drained EVERY frame even though a slice is only pushed every 40 ms: the
@@ -348,57 +370,57 @@ func wfallLiveTick() {
 	// adjacent to itself.
 	var blk [4096]float32
 	for {
-		n := tapReadChan(&wfallLiveCursor, blk[:], wfallChan())
+		n := tap.readChan(&w.liveCursor, blk[:], w.channel())
 		if n <= 0 {
 			break
 		}
-		if n >= len(wfallLiveBuf) {
-			copy(wfallLiveBuf, blk[n-len(wfallLiveBuf):n])
-			wfallLiveFill = len(wfallLiveBuf)
+		if n >= len(w.liveBuf) {
+			copy(w.liveBuf, blk[n-len(w.liveBuf):n])
+			w.liveFill = len(w.liveBuf)
 		} else {
-			copy(wfallLiveBuf, wfallLiveBuf[n:])
-			copy(wfallLiveBuf[len(wfallLiveBuf)-n:], blk[:n])
-			if wfallLiveFill += n; wfallLiveFill > len(wfallLiveBuf) {
-				wfallLiveFill = len(wfallLiveBuf)
+			copy(w.liveBuf, w.liveBuf[n:])
+			copy(w.liveBuf[len(w.liveBuf)-n:], blk[:n])
+			if w.liveFill += n; w.liveFill > len(w.liveBuf) {
+				w.liveFill = len(w.liveBuf)
 			}
 		}
 		if n < len(blk) {
 			break
 		}
 	}
-	if wfallLiveFill < len(wfallLiveBuf) {
+	if w.liveFill < len(w.liveBuf) {
 		return
 	}
-	if frameNowMs < wfallLiveNext {
+	if frameNowMs < w.liveNext {
 		return
 	}
 	// Set forward from NOW rather than by adding the interval to the last due
 	// time: after a stall — a tab in the background, a mode just switched into —
 	// adding would fire a burst of slices to catch up, and the surface would
 	// show a tenth of a second stretched across its whole depth.
-	wfallLiveNext = frameNowMs + wfallStepMS()
+	w.liveNext = frameNowMs + w.stepMS()
 
-	lines := wfallLines()
-	if len(wfallSurface) < lines {
-		wfallSurface = append(wfallSurface, acoustics.CSDSlice{DB: make([]float64, len(wfallFreqs))})
-	} else if len(wfallSurface) > lines {
+	lines := w.lines()
+	if len(w.surface) < lines {
+		w.surface = append(w.surface, acoustics.CSDSlice{DB: make([]float64, len(wfallFreqs))})
+	} else if len(w.surface) > lines {
 		// LINE turned down: drop from the BACK, which is the oldest, so the
 		// front of the surface — what is playing now — never jumps.
-		wfallSurface = wfallSurface[:lines]
+		w.surface = w.surface[:lines]
 	}
 	// Rotate rather than reallocate: the oldest slice's buffer becomes the
 	// newest, so a surface of thirty-two spectra allocates thirty-two times and
 	// never again.
-	oldest := wfallSurface[len(wfallSurface)-1]
-	copy(wfallSurface[1:], wfallSurface[:len(wfallSurface)-1])
-	wfallSurface[0] = oldest
-	if !acoustics.SpectrumPoints(wfallLiveBuf, sr, wfallFreqs, wfallLiveWindow, wfallSurface[0].DB) {
+	oldest := w.surface[len(w.surface)-1]
+	copy(w.surface[1:], w.surface[:len(w.surface)-1])
+	w.surface[0] = oldest
+	if !acoustics.SpectrumPoints(w.liveBuf, sr, wfallFreqs, wfallLiveWindow, w.surface[0].DB) {
 		return
 	}
-	for i := range wfallSurface {
-		wfallSurface[i].TimeMS = float64(i) * wfallStepMS()
+	for i := range w.surface {
+		w.surface[i].TimeMS = float64(i) * w.stepMS()
 	}
-	wfallHaveIR = true
+	w.haveIR = true
 }
 
 // wfallCapture keeps the rolling stereo buffer and triggers a measurement each
@@ -408,61 +430,61 @@ func wfallLiveTick() {
 // taken across the wrap between one pass and the next is a measurement of two
 // different stimuli spliced together, and it is the generator that knows where
 // the pass is.
-func wfallCapture() {
+func (w *waterfall) capture() {
 	sr := takensSourceRate()
 	want := sr * wfallCaptureSec
-	if len(wfallRefBuf) != want {
-		wfallRefBuf = make([]float32, want)
-		wfallMeasBuf = make([]float32, want)
-		wfallFill = 0
+	if len(w.refBuf) != want {
+		w.refBuf = make([]float32, want)
+		w.measBuf = make([]float32, want)
+		w.fill = 0
 	}
 	var sl, srr [4096]float32
 	for {
-		n := tapReadStereo(&wfallCursor, sl[:], srr[:])
+		n := tap.readStereo(&w.cursor, sl[:], srr[:])
 		if n <= 0 {
 			break
 		}
 		ref, meas := sl[:n], srr[:n]
-		if wfallSwapF > 0.5 {
+		if w.swapF > 0.5 {
 			ref, meas = srr[:n], sl[:n]
 		}
 		if n >= want {
-			copy(wfallRefBuf, ref[n-want:])
-			copy(wfallMeasBuf, meas[n-want:])
-			wfallFill = want
+			copy(w.refBuf, ref[n-want:])
+			copy(w.measBuf, meas[n-want:])
+			w.fill = want
 		} else {
-			copy(wfallRefBuf, wfallRefBuf[n:])
-			copy(wfallMeasBuf, wfallMeasBuf[n:])
-			copy(wfallRefBuf[want-n:], ref)
-			copy(wfallMeasBuf[want-n:], meas)
-			if wfallFill += n; wfallFill > want {
-				wfallFill = want
+			copy(w.refBuf, w.refBuf[n:])
+			copy(w.measBuf, w.measBuf[n:])
+			copy(w.refBuf[want-n:], ref)
+			copy(w.measBuf[want-n:], meas)
+			if w.fill += n; w.fill > want {
+				w.fill = want
 			}
 		}
 		if n < len(sl) {
 			break
 		}
 	}
-	if wfallFill < want {
+	if w.fill < want {
 		return
 	}
 	// A pass has completed when the sweep's position wraps back to the start.
 	pos := 0.0
-	if useFuncGen && funcGen != nil {
-		pos = funcGen.SweepPosition()
+	if aud.useFuncGen && aud.funcGen != nil {
+		pos = aud.funcGen.SweepPosition()
 	}
-	wrapped := pos < wfallLastPos
-	if pos != wfallLastPos {
-		wfallSweepSeen = frameNowMs
+	wrapped := pos < w.lastPos
+	if pos != w.lastPos {
+		w.sweepSeen = frameNowMs
 	}
-	wfallLastPos = pos
+	w.lastPos = pos
 	if wrapped {
-		wfallMeasure(sr)
-		wfallNextFree = frameNowMs + wfallFreeMS
+		w.measure(sr)
+		w.nextFree = frameNowMs + wfallFreeMS
 		return
 	}
 	// Mid-pass of a sweep of ours: wait for the wrap, which is the exact trigger.
-	if frameNowMs-wfallSweepSeen < wfallSweepIdleMS {
+	if frameNowMs-w.sweepSeen < wfallSweepIdleMS {
 		return
 	}
 	// NO SWEEP OF OURS IS RUNNING, so there is no wrap to wait for and waiting
@@ -473,41 +495,41 @@ func wfallCapture() {
 	// surface it gives is one channel deconvolved against the other, which is
 	// meaningless but is at least visibly moving rather than pretending to be a
 	// measurement. SRC live is the mode for program material.
-	if wfallHaveIR && frameNowMs < wfallNextFree {
+	if w.haveIR && frameNowMs < w.nextFree {
 		return
 	}
-	wfallNextFree = frameNowMs + wfallFreeMS
-	wfallMeasure(sr)
+	w.nextFree = frameNowMs + wfallFreeMS
+	w.measure(sr)
 }
 
 // wfallMeasure deconvolves and builds the surface.
-func wfallMeasure(sr int) {
+func (w *waterfall) measure(sr int) {
 	// A power of two of the captured audio, taken from the end — the most
 	// recent whole pass.
 	n := 1
-	for n*2 <= len(wfallRefBuf) {
+	for n*2 <= len(w.refBuf) {
 		n *= 2
 	}
 	if n < 1<<15 {
 		return
 	}
-	ref := wfallRefBuf[len(wfallRefBuf)-n:]
-	meas := wfallMeasBuf[len(wfallMeasBuf)-n:]
+	ref := w.refBuf[len(w.refBuf)-n:]
+	meas := w.measBuf[len(w.measBuf)-n:]
 	ir := acoustics.ImpulseResponse(ref, meas, 1e-4)
 	if ir == nil {
 		return
 	}
-	wfallSurface = acoustics.CSD(ir, sr, wfallLines(), wfallStepMS(), wfallFFTLen(), wfallFreqs)
+	w.surface = acoustics.CSD(ir, sr, w.lines(), w.stepMS(), w.fftLen(), wfallFreqs)
 	// The reverberation time from the same impulse, which is the one number the
 	// surface does not show: the surface is 80 ms deep and a room's decay is
 	// measured over seconds.
 	peak, _ := acoustics.IRPeak(ir)
 	if peak < len(ir)-sr/4 {
-		wfallRT60, wfallRTOK = acoustics.ReverbTime(acoustics.SchroederDecay(ir[peak:]), sr, -5, -25)
+		w.rt60, w.rtOK = acoustics.ReverbTime(acoustics.SchroederDecay(ir[peak:]), sr, -5, -25)
 	} else {
-		wfallRTOK = false
+		w.rtOK = false
 	}
-	wfallHaveIR = len(wfallSurface) > 0
+	w.haveIR = len(w.surface) > 0
 }
 
 // wfallDraw builds the surface's vertices and hands them to the normal pipeline.
@@ -516,8 +538,8 @@ func wfallMeasure(sr int) {
 // strip would draw a diagonal from the end of each one back to the start of the
 // next — sixteen bright diagonals across a surface, which is the retrace a
 // scope shows and not something a measurement should.
-func wfallDraw() {
-	n := len(wfallSurface)
+func (w *waterfall) draw() {
+	n := len(w.surface)
 	if n == 0 || len(wfallFreqs) < 2 {
 		gpu.uploadVerticesOnly(vertBuf[:0], glctx.Types.Lines, 0)
 		return
@@ -535,18 +557,18 @@ func wfallDraw() {
 		}
 		need = n * (bins - 1) * 2
 	}
-	rng := float64(wfallRangeF)
+	rng := float64(w.rangeF)
 	if rng < 1 {
 		rng = 1
 	}
-	top := float64(wfallTopF)
+	top := float64(w.topF)
 	const span = 9.0 // world units either side, matching the other modes' fit
-	depth := span * float64(wfallDepthF)
+	depth := span * float64(w.depthF)
 	v := vertBuf[:need*4]
 	o := 0
 	put := func(bin, slice int) {
 		x := span * (2*float64(bin)/float64(bins-1) - 1)
-		db := wfallSurface[slice].DB[bin]
+		db := w.surface[slice].DB[bin]
 		t := (db - (top - rng)) / rng // 0 at the bottom of the range, 1 at the top
 		if t < 0 {
 			t = 0
@@ -586,7 +608,7 @@ func wfallDraw() {
 	gpu.setGradientRange(-float32(span), float32(span),
 		-float32(span/2), float32(span/2),
 		-float32(depth/2), float32(depth/2))
-	if !wfallFitted {
+	if !w.fitted {
 		// Fitted to the surface's OWN half-span, which is exactly what its
 		// largest coordinate reaches — autoFitCamera measures extent as
 		// max|coordinate| and the frequency axis is the widest of the three. The
@@ -597,22 +619,14 @@ func wfallDraw() {
 		// The surface still leaves room either side, because the camera frames a
 		// SPHERE of that radius and the window is wider than it is tall. That is
 		// how every model here is framed and the zoom is how to fill the width.
-		wfallFitted = true
+		w.fitted = true
 		view.fitOverride = span
 		view.autoFitCamera()
 	}
 }
 
-// wfallFitted is the one-shot camera fit, as the audio embeddings have.
-var wfallFitted bool
-
 // wfallArmFit re-arms it, for a mode change.
-func wfallArmFit() { wfallFitted = false }
-
-var (
-	wfallRTEl js.Value
-	wfallRTTx string
-)
+func (w *waterfall) armFit() { w.fitted = false }
 
 // showWaterfallRT writes the reverberation time beside the knobs.
 //
@@ -626,27 +640,27 @@ var (
 // and the last of a real decay is in the noise, so the standard measures the
 // straight part between them and multiplies up. Blank in the live surface,
 // which is spectra of a signal and has no impulse to decay from.
-func showWaterfallRT() {
+func (w *waterfall) showRT() {
 	s := "--- s"
-	if wfallSrcF < 0.5 && wfallRTOK {
-		s = led.Format(wfallRT60, 1, 2, false) + " s"
+	if w.srcF < 0.5 && w.rtOK {
+		s = led.Format(w.rt60, 1, 2, false) + " s"
 	}
-	if s == wfallRTTx {
+	if s == w.rtTx {
 		return
 	}
-	wfallRTTx = s
-	if wfallRTEl.Truthy() {
-		wfallRTEl.Set("textContent", s)
+	w.rtTx = s
+	if w.rtEl.Truthy() {
+		w.rtEl.Set("textContent", s)
 	}
 }
 
 // appendWaterfallReadout adds the RT60 cell to the mode's parameter grid.
-func appendWaterfallReadout(grid js.Value) {
+func (w *waterfall) appendReadout(grid js.Value) {
 	card, top := newPunitCard("rt60")
 
-	wfallRTEl = dom.Doc.Call("createElement", "span")
-	wfallRTEl.Set("className", "led counter-led")
-	wfallRTEl.Set("title", "Reverberation time of the room, in seconds — how long a sound takes to "+
+	w.rtEl = dom.Doc.Call("createElement", "span")
+	w.rtEl.Set("className", "led counter-led")
+	w.rtEl.Set("title", "Reverberation time of the room, in seconds — how long a sound takes to "+
 		"fall 60 dB after it stops. Taken from the same impulse response the surface is, by "+
 		"Schroeder backward integration: the decay curve is the energy REMAINING after each "+
 		"moment, which turns a noisy decay into a smooth one without averaging repeated "+
@@ -654,8 +668,8 @@ func appendWaterfallReadout(grid js.Value) {
 		"-25 dB, because the first few decibels are direct sound and the last of a real decay is "+
 		"in the noise floor. Blank on the live surface, which has no impulse to decay from, and "+
 		"blank until a sweep has been measured.")
-	wfallRTTx = ""
-	top.Call("appendChild", wfallRTEl)
+	w.rtTx = ""
+	top.Call("appendChild", w.rtEl)
 	grid.Call("appendChild", card)
 }
 

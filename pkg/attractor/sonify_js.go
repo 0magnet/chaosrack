@@ -38,40 +38,49 @@ import (
 // normalized (fast attack, slow release, like the spectrogram's level
 // independence). LVL is the output gain.
 
-var (
-	sonifyCtx    js.Value
-	sonifyNode   js.Value
-	sonifyFn     js.Func
-	sonifyActive bool
-
-	sonifyMap   = "off"  // off | cam | xy | xz | yz
-	sonifyMode  = "flow" // flow (audify the dynamics) | scan (trail as wavetable)
-	sonifyHz    = 110.0  // scan: trail traces/sec · flow: transposition (440 = ×1)
-	sonifyLevel = 0.6
-
-	sonifyPhase float64 // scan: fractional position along the trail, in cycles
+// sonifier is Model Out: the audio graph that makes the attractor heard, and
+// the running state of both ways of hearing it.
+type sonifier struct {
+	ctx     js.Value
+	node    js.Value
+	fn      js.Func
+	active  bool
+	mapping string  // off | cam | xy | xz | yz
+	mode    string  // flow (audify the dynamics) | scan (trail as wavetable)
+	hz      float64 // scan: trail traces/sec · flow: transposition (440 = ×1)
+	level   float64
+	phase   float64 // scan: fractional position along the trail, in cycles
 
 	// FLOW state: a private integrator of the SAME vector field the renderer
 	// draws (via dynamics.FlowFor4 — 4D equation modes included), stepped at audio
 	// rate. Pitch is emergent — the attractor's own orbital frequency — and
 	// the knob transposes it.
-	sonFlowMode         string  // mode the flow state was seeded for
-	sonFX, sonFY, sonFZ float64 // current state
-	sonFW               float64 // hidden 4th state (4D flows)
-	sonPX, sonPY, sonPZ float64 // previous state (for sub-step interp)
-	sonAcc              float64 // fractional steps owed
+	flowMode   string  // mode the flow state was seeded for
+	fx, fy, fz float64 // current state
+	fw         float64 // hidden 4th state (4D flows)
+	px, py, pz float64 // previous state (for sub-step interp)
+	acc        float64 // fractional steps owed
 
 	// Per-channel adaptive centering + span (slow EMA of the buffer's
 	// min/max) so any attractor lands at a comfortable, DC-free level.
-	sonCenL, sonCenR   float64
-	sonSpanL, sonSpanR = 1.0, 1.0
+	cenL, cenR   float64
+	spanL, spanR float64
 
 	// Preallocated per-callback scratch (the callback runs ~23×/s forever
 	// while playing — allocating there is steady-state GC pressure on the
 	// same thread as the render loop; see fvfDrainScratch for the pattern).
-	sonScrL, sonScrR []float32
-	sonZero          []float32
-)
+	scrL, scrR []float32
+	zero       []float32
+}
+
+var son = sonifier{
+	mapping: "off",
+	mode:    "flow",
+	hz:      110.0,
+	level:   0.6,
+	spanL:   1.0,
+	spanR:   1.0,
+}
 
 // sonifyWrite copies a []float32 into a WebAudio channel-data Float32Array
 // without allocating intermediate typed arrays.
@@ -81,8 +90,8 @@ func sonifyWrite(dst js.Value, src []float32) {
 }
 
 // sonifySample projects trail point (x,y,z) to a stereo pair per the MAP ring.
-func sonifySample(x, y, z float32) (float64, float64) {
-	switch sonifyMap {
+func (so *sonifier) sample(x, y, z float32) (float64, float64) {
+	switch so.mapping {
 	case "xy":
 		return float64(x), float64(y)
 	case "xz":
@@ -97,8 +106,8 @@ func sonifySample(x, y, z float32) (float64, float64) {
 
 // sonifyProcess is the stereo ScriptProcessor callback (runs in Go on the
 // main thread, so reading vertBuf/view.modelMat needs no synchronization).
-func sonifyProcess(_ js.Value, args []js.Value) interface{} {
-	if !sonifyActive {
+func (so *sonifier) process(_ js.Value, args []js.Value) interface{} {
+	if !so.active {
 		return nil
 	}
 	out := args[0].Get("outputBuffer")
@@ -107,25 +116,25 @@ func sonifyProcess(_ js.Value, args []js.Value) interface{} {
 	frames := out.Get("length").Int()
 	sr := out.Get("sampleRate").Float()
 
-	if len(sonScrL) < frames {
-		sonScrL = make([]float32, frames)
-		sonScrR = make([]float32, frames)
-		sonZero = make([]float32, frames)
+	if len(so.scrL) < frames {
+		so.scrL = make([]float32, frames)
+		so.scrR = make([]float32, frames)
+		so.zero = make([]float32, frames)
 	}
 
 	n := steps
-	if sonifyMap == "off" || !isAttractorMode(selectedMode) || n < 2 || len(vertBuf) < n*4 {
-		sonifyWrite(outL, sonZero[:frames])
-		sonifyWrite(outR, sonZero[:frames])
+	if so.mapping == "off" || !isAttractorMode(selectedMode) || n < 2 || len(vertBuf) < n*4 {
+		sonifyWrite(outL, so.zero[:frames])
+		sonifyWrite(outR, so.zero[:frames])
 		return nil
 	}
 
-	l := sonScrL[:frames]
-	r := sonScrR[:frames]
+	l := so.scrL[:frames]
+	r := so.scrR[:frames]
 	minL, maxL := 1e30, -1e30
 	minR, maxR := 1e30, -1e30
 	push := func(i int, x, y, z float32) {
-		vl, vr := sonifySample(x, y, z)
+		vl, vr := so.sample(x, y, z)
 		if vl < minL {
 			minL = vl
 		}
@@ -142,50 +151,50 @@ func sonifyProcess(_ js.Value, args []js.Value) interface{} {
 	}
 
 	sys, haveFlow := dynamics.FlowFor4(selectedMode)
-	if sonifyMode == "flow" && haveFlow {
+	if so.mode == "flow" && haveFlow {
 		// FLOW: audify the dynamics — integrate the mode's own vector field
 		// at audio rate. sonifyHz transposes: 440 (A4) = one integrator step
 		// per sample; each octave doubles the rate, so the knob moves the
 		// emergent pitch by exact musical intervals.
-		if sonFlowMode != selectedMode {
+		if so.flowMode != selectedMode {
 			ic := dynamics.InitCondFor(selectedMode)
-			sonFX, sonFY, sonFZ = float64(ic[0]), float64(ic[1]), float64(ic[2])
-			if sonFX == 0 && sonFY == 0 && sonFZ == 0 {
-				sonFX, sonFY, sonFZ = 0.1, 0, 0 // don't strand at a fixed point
+			so.fx, so.fy, so.fz = float64(ic[0]), float64(ic[1]), float64(ic[2])
+			if so.fx == 0 && so.fy == 0 && so.fz == 0 {
+				so.fx, so.fy, so.fz = 0.1, 0, 0 // don't strand at a fixed point
 			}
-			sonFW = sys.W()
-			sonPX, sonPY, sonPZ = sonFX, sonFY, sonFZ
-			sonAcc = 0
-			sonFlowMode = selectedMode
+			so.fw = sys.W()
+			so.px, so.py, so.pz = so.fx, so.fy, so.fz
+			so.acc = 0
+			so.flowMode = selectedMode
 		}
 		dt := sys.Dt()
-		stepRate := sonifyHz / 440.0
+		stepRate := so.hz / 440.0
 		const lim = 1e5
 		for i := 0; i < frames; i++ {
-			sonAcc += stepRate
-			for sonAcc >= 1 {
-				sonAcc--
-				sonPX, sonPY, sonPZ = sonFX, sonFY, sonFZ
-				dx, dy, dz, dw := sys.F(sonFX, sonFY, sonFZ, sonFW)
-				sonFX += dt * dx
-				sonFY += dt * dy
-				sonFZ += dt * dz
-				sonFW += dt * dw
-				if !(sonFX > -lim && sonFX < lim && sonFY > -lim && sonFY < lim && sonFZ > -lim && sonFZ < lim && sonFW > -lim && sonFW < lim) {
+			so.acc += stepRate
+			for so.acc >= 1 {
+				so.acc--
+				so.px, so.py, so.pz = so.fx, so.fy, so.fz
+				dx, dy, dz, dw := sys.F(so.fx, so.fy, so.fz, so.fw)
+				so.fx += dt * dx
+				so.fy += dt * dy
+				so.fz += dt * dz
+				so.fw += dt * dw
+				if !(so.fx > -lim && so.fx < lim && so.fy > -lim && so.fy < lim && so.fz > -lim && so.fz < lim && so.fw > -lim && so.fw < lim) {
 					ic := dynamics.InitCondFor(selectedMode)
-					sonFX, sonFY, sonFZ = float64(ic[0]), float64(ic[1]), float64(ic[2])
-					if sonFX == 0 && sonFY == 0 && sonFZ == 0 {
-						sonFX = 0.1
+					so.fx, so.fy, so.fz = float64(ic[0]), float64(ic[1]), float64(ic[2])
+					if so.fx == 0 && so.fy == 0 && so.fz == 0 {
+						so.fx = 0.1
 					}
-					sonFW = 0
-					sonPX, sonPY, sonPZ = sonFX, sonFY, sonFZ
+					so.fw = 0
+					so.px, so.py, so.pz = so.fx, so.fy, so.fz
 				}
 			}
-			t := sonAcc // 0..1 between prev and current state
+			t := so.acc // 0..1 between prev and current state
 			push(i,
-				float32(sonPX+(sonFX-sonPX)*t),
-				float32(sonPY+(sonFY-sonPY)*t),
-				float32(sonPZ+(sonFZ-sonPZ)*t))
+				float32(so.px+(so.fx-so.px)*t),
+				float32(so.py+(so.fy-so.py)*t),
+				float32(so.pz+(so.fz-so.pz)*t))
 		}
 	} else {
 		// SCAN: trail as wavetable — sweep the whole drawn trail sonifyHz
@@ -193,13 +202,13 @@ func sonifyProcess(_ js.Value, args []js.Value) interface{} {
 		// for trail modes without a registered vector field (parametric
 		// curves). Geometry modes never reach here (the
 		// isAttractorMode gate above): they don't write vertBuf.
-		inc := sonifyHz / sr
+		inc := so.hz / sr
 		for i := 0; i < frames; i++ {
-			sonifyPhase += inc
-			if sonifyPhase >= 1 {
-				sonifyPhase -= float64(int(sonifyPhase))
+			so.phase += inc
+			if so.phase >= 1 {
+				so.phase -= float64(int(so.phase))
 			}
-			f := sonifyPhase * float64(n-1)
+			f := so.phase * float64(n-1)
 			j := int(f)
 			t := float32(f - float64(j))
 			a, b := j*4, (j+1)*4
@@ -227,11 +236,11 @@ func sonifyProcess(_ js.Value, args []js.Value) interface{} {
 			*span = 1e-6
 		}
 	}
-	adapt(&sonCenL, &sonSpanL, minL, maxL)
-	adapt(&sonCenR, &sonSpanR, minR, maxR)
+	adapt(&so.cenL, &so.spanL, minL, maxL)
+	adapt(&so.cenR, &so.spanR, minR, maxR)
 
 	norm := func(buf []float32, cen, span float64) {
-		g := sonifyLevel / span
+		g := so.level / span
 		for i, v := range buf {
 			s := (float64(v) - cen) * g
 			if s > 1 {
@@ -242,8 +251,8 @@ func sonifyProcess(_ js.Value, args []js.Value) interface{} {
 			buf[i] = float32(s)
 		}
 	}
-	norm(l, sonCenL, sonSpanL)
-	norm(r, sonCenR, sonSpanR)
+	norm(l, so.cenL, so.spanL)
+	norm(r, so.cenR, so.spanR)
 	sonifyWrite(outL, l)
 	sonifyWrite(outR, r)
 	return nil
@@ -252,11 +261,11 @@ func sonifyProcess(_ js.Value, args []js.Value) interface{} {
 // sonifySync starts the audio graph when the MAP ring leaves "off", stops it
 // when it returns there — the ring is the power switch, like the generators'
 // channel ring (the click is also the user gesture WebAudio needs).
-func sonifySync() {
-	if sonifyMap != "off" {
-		startSonify()
+func (so *sonifier) sync() {
+	if so.mapping != "off" {
+		so.start()
 	} else {
-		stopSonify()
+		so.stop()
 	}
 }
 
@@ -265,44 +274,44 @@ func sonifySync() {
 // letting the callback stream zeros. A disconnected ScriptProcessor doesn't
 // fire; reconnecting to the same destination twice is a spec'd no-op, and it
 // can't suspend the SHARED context (that would silence FVF/gen/test tone).
-func sonifyModeSync() {
-	if !sonifyActive || !sonifyNode.Truthy() {
+func (so *sonifier) modeSync() {
+	if !so.active || !so.node.Truthy() {
 		return
 	}
 	if isAttractorMode(selectedMode) {
-		sonifyNode.Call("connect", sonifyCtx.Get("destination"))
+		so.node.Call("connect", so.ctx.Get("destination"))
 	} else {
-		sonifyNode.Call("disconnect")
+		so.node.Call("disconnect")
 	}
 }
 
-func startSonify() {
-	if sonifyActive {
+func (so *sonifier) start() {
+	if so.active {
 		acquireAudioCtx("sonify")
 		return
 	}
-	sonifyCtx = acquireAudioCtx("sonify")
-	if !sonifyCtx.Truthy() {
+	so.ctx = acquireAudioCtx("sonify")
+	if !so.ctx.Truthy() {
 		return
 	}
-	sonifyNode = sonifyCtx.Call("createScriptProcessor", 2048, 0, 2)
-	sonifyFn = dom.FuncOf(sonifyProcess)
-	sonifyNode.Set("onaudioprocess", sonifyFn)
-	sonifyNode.Call("connect", sonifyCtx.Get("destination"))
-	sonifyActive = true
+	so.node = so.ctx.Call("createScriptProcessor", 2048, 0, 2)
+	so.fn = dom.FuncOf(so.process)
+	so.node.Set("onaudioprocess", so.fn)
+	so.node.Call("connect", so.ctx.Get("destination"))
+	so.active = true
 }
 
-func stopSonify() {
-	if !sonifyActive {
+func (so *sonifier) stop() {
+	if !so.active {
 		return
 	}
-	if sonifyNode.Truthy() {
-		sonifyNode.Set("onaudioprocess", js.Null())
-		sonifyNode.Call("disconnect")
+	if so.node.Truthy() {
+		so.node.Set("onaudioprocess", js.Null())
+		so.node.Call("disconnect")
 	}
-	sonifyNode, sonifyCtx = js.Undefined(), js.Undefined()
-	sonifyFn.Release()
-	sonifyActive = false
+	so.node, so.ctx = js.Undefined(), js.Undefined()
+	so.fn.Release()
+	so.active = false
 	releaseAudioCtx("sonify")
 }
 
@@ -310,7 +319,7 @@ func stopSonify() {
 // with the generators' octave dial, a LVL knob, and a MAP selector ring whose
 // "off" position is the power switch. The trace/lvl sliders + LEDs are
 // registry-owned (adoptDescControl in Run); this only adds the knob layer.
-func buildSonifyModule() {
+func (so *sonifier) buildModule() {
 	freq := dom.Doc.Call("getElementById", "sonify-freq")
 	fstack := dom.Doc.Call("getElementById", "sonify-fstack")
 	lvl := dom.Doc.Call("getElementById", "sonify-lvl")
@@ -325,7 +334,7 @@ func buildSonifyModule() {
 	fstack.Call("appendChild", fknob)
 	lstack.Call("appendChild", makeKnob(lvl, js.Undefined(), true, false, true))
 	md := dom.Doc.Call("getElementById", "sonify-mode")
-	mstk := stackKnobs(makeSelectorKnob(mp), makeSelectorKnob(md))
+	mstk := stackKnobs(selk.makeSelectorKnob(mp), selk.makeSelectorKnob(md))
 	addSelectorLabels(mstk, []string{"off", "CAM", "XY", "XZ", "YZ"}, mp)
 	addSelectorLabels(mstk, []string{"FLOW", "SCAN"}, md)
 	mstack.Call("appendChild", mstk)
@@ -337,17 +346,17 @@ func buildSonifyModule() {
 		ID: "sonify-map", Label: "map", IsSelect: true, SelectDef: "off",
 		ResetID: "rst-sonify-map",
 		SelectApply: func(v string) {
-			sonifyMap = v
-			sonifySync()
+			so.mapping = v
+			so.sync()
 		},
 	})
 	adoptDescControl(ControlDesc{
 		ID: "sonify-mode", Label: "mode", IsSelect: true, SelectDef: "flow",
 		ResetID:     "rst-sonify-map",
-		SelectApply: func(v string) { sonifyMode = v },
+		SelectApply: func(v string) { so.mode = v },
 	})
-	sonifyMap = mp.Get("value").String()
-	sonifyMode = md.Get("value").String()
+	so.mapping = mp.Get("value").String()
+	so.mode = md.Get("value").String()
 }
 
 // sonifyFreqFromSlider maps the semitone slider (A0-anchored, like the

@@ -125,13 +125,19 @@ var rqaTraceColor = [recurrence.RQATraceCount]string{
 	recurrence.RQATraceLAM: "#ffd24a",
 }
 
-var (
-	rqaSeries recurrence.RQASeries
-	rqaSnap   = make([]recurrence.RQASample, rqaChartCols) // reused; Snapshot fills it whole
+// rqaChart is the RQA strip chart.
+type rqaChart struct {
+	series   recurrence.RQASeries
+	snap     []recurrence.RQASample // reused; Snapshot fills it whole
+	chartEl  js.Value
+	chartCtx js.Value
+	cfg      rqaConfig
+	cfgHave  bool
+}
 
-	rqaChartEl  js.Value
-	rqaChartCtx js.Value
-)
+var rqa = rqaChart{
+	snap: make([]recurrence.RQASample, rqaChartCols),
+}
 
 // rqaConfig is everything that decides WHAT is being measured, as one
 // comparable value. When it changes, the readings before and after are answers
@@ -149,11 +155,6 @@ type rqaConfig struct {
 	traj          int // bumped whenever the trajectory source re-integrates
 }
 
-var (
-	rqaCfg     rqaConfig
-	rqaCfgHave bool
-)
-
 // rqaConfigNow reads the current settings.
 //
 // m and τ are only included for the embed source, because they only mean
@@ -161,9 +162,9 @@ var (
 // turning τ while watching raw audio must not put a seam through a trace that
 // did not change.
 func rqaConfigNow() rqaConfig {
-	c := rqaConfig{src: rpSrc, win: rpWin, eps: rpEps, traj: rpTrajGen}
-	if int(rpSrc) == rpSrcEmbed {
-		c.dim, c.tau = float32(rpEmbedDim()), takensTau
+	c := rqaConfig{src: rp.src, win: rp.win, eps: rp.eps, traj: rp.trajGen}
+	if int(rp.src) == rpSrcEmbed {
+		c.dim, c.tau = float32(rp.embedDim()), emb.tau
 	}
 	return c
 }
@@ -171,17 +172,17 @@ func rqaConfigNow() rqaConfig {
 // rqaSample records one measurement and repaints. Called from rpMaybeMeasure,
 // on its tick, with whatever the readout is showing — including a result with
 // nothing lit, which Push stores as a gap rather than as three zeros.
-func rqaSample(nowMs float64, r recurrence.RQAResult) {
-	if cfg := rqaConfigNow(); cfg != rqaCfg {
+func (rq *rqaChart) sample(nowMs float64, r recurrence.RQAResult) {
+	if cfg := rqaConfigNow(); cfg != rq.cfg {
 		// Not on the first sample: there is no history for the seam to
 		// separate, and a chart that opens with a break in it reads as a fault.
-		if rqaCfgHave {
-			rqaSeries.Break(nowMs)
+		if rq.cfgHave {
+			rq.series.Break(nowMs)
 		}
-		rqaCfg, rqaCfgHave = cfg, true
+		rq.cfg, rq.cfgHave = cfg, true
 	}
-	rqaSeries.Push(nowMs, r)
-	rqaPaint()
+	rq.series.Push(nowMs, r)
+	rq.paint()
 }
 
 // rqaPaneY maps a 0..1 height within a pane to a canvas y.
@@ -202,12 +203,12 @@ func rqaPaneY(top int, f float64) float64 {
 // is NOT skipped with it — the ring keeps filling while the module is shut, so
 // opening it shows the history that was there rather than a hole the size of
 // however long it was closed.
-func rqaPaint() {
-	if !rqaChartCtx.Truthy() || !rqaChartEl.Get("offsetParent").Truthy() || resizing {
+func (rq *rqaChart) paint() {
+	if !rq.chartCtx.Truthy() || !rq.chartEl.Get("offsetParent").Truthy() || layout.resizing {
 		return
 	}
-	ctx := rqaChartCtx
-	n := rqaSeries.Snapshot(rqaSnap)
+	ctx := rq.chartCtx
+	n := rq.series.Snapshot(rq.snap)
 
 	ctx.Set("fillStyle", rqaColBg)
 	ctx.Call("fillRect", 0, 0, rqaChartCols, rqaChartH)
@@ -254,7 +255,7 @@ func rqaPaint() {
 			ctx.Call("fillRect", 0, top+rqaPaneH-1, rqaChartCols, 1)
 		}
 		if n > 0 {
-			if d := rqaTracePath(tr, top); d != "" {
+			if d := rq.tracePath(tr, top); d != "" {
 				ctx.Set("strokeStyle", rqaTraceColor[tr])
 				ctx.Call("stroke", js.Global().Get("Path2D").New(d))
 			}
@@ -271,10 +272,10 @@ func rqaPaint() {
 // note on the boundary at the top of this file. Coordinates get one decimal,
 // which is exact for the x (column + a half) and a tenth of a pixel on the y,
 // well under the resampling the CSS box does at any interface size but 1.
-func rqaTracePath(tr recurrence.RQATrace, top int) string {
+func (rq *rqaChart) tracePath(tr recurrence.RQATrace, top int) string {
 	var b strings.Builder
 	pen := false
-	for i, s := range rqaSnap {
+	for i, s := range rq.snap {
 		if !s.OK {
 			pen = false // a hole in the record is a hole in the line
 			continue
@@ -311,7 +312,7 @@ func rqaTracePath(tr recurrence.RQATrace, top int) string {
 // The module widens to hold it, which is what the Parameters module is built to
 // do (its content column-wraps within a fixed height; more content is more
 // columns, not a taller module).
-func appendRecurrenceSeries(grid js.Value) {
+func (rq *rqaChart) appendRecurrenceSeries(grid js.Value) {
 	card := dom.Doc.Call("createElement", "div")
 	card.Set("className", "punit")
 	// Inline, because #params .punit pins every cell to one --kcol by --krow.
@@ -333,10 +334,10 @@ func appendRecurrenceSeries(grid js.Value) {
 	lbl.Set("textContent", "trend")
 	card.Call("appendChild", lbl)
 
-	rqaChartEl = dom.Doc.Call("createElement", "canvas")
-	rqaChartEl.Set("width", rqaChartCols)
-	rqaChartEl.Set("height", rqaChartH)
-	rqaChartEl.Set("title", "Recurrence quantification over time — the last "+
+	rq.chartEl = dom.Doc.Call("createElement", "canvas")
+	rq.chartEl.Set("width", rqaChartCols)
+	rq.chartEl.Set("height", rqaChartH)
+	rq.chartEl.Set("title", "Recurrence quantification over time — the last "+
 		strconv.Itoa(recurrence.RQASeriesSpanMs/1000)+" seconds, newest at the right, one column per measurement "+
 		"(about six a second). Vertical rules every 10 s. "+
 		"THE THREE PANES DO NOT SHARE A SCALE and their heights are not comparable; what they share is "+
@@ -351,16 +352,16 @@ func appendRecurrenceSeries(grid js.Value) {
 	// Fixed backing store, CSS box sized by the grid: see rqaPaneH. min-height
 	// is zeroed because a flex item's default min-height:auto would refuse to
 	// shrink below the canvas's intrinsic height and overflow the module.
-	rqaChartEl.Get("style").Set("cssText",
+	rq.chartEl.Get("style").Set("cssText",
 		"display:block;width:100%;flex:1 1 auto;min-height:0;box-sizing:border-box;"+
 			"background:"+rqaColBg+";border:1px solid "+rqaColEdge+";border-radius:2px;")
-	card.Call("appendChild", rqaChartEl)
-	rqaChartCtx = rqaChartEl.Call("getContext", "2d")
+	card.Call("appendChild", rq.chartEl)
+	rq.chartCtx = rq.chartEl.Call("getContext", "2d")
 
 	grid.Call("appendChild", card)
 	// Seeded from the ring rather than left blank, for the reason the stereo
 	// readout is: the panel is rebuilt on every mode change and every module
 	// toggle, and a chart that came back empty over a series that has forty
 	// seconds in it would be reporting a stall that never happened.
-	rqaPaint()
+	rq.paint()
 }

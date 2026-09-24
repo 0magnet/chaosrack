@@ -154,12 +154,12 @@ func TestTheSharedTauKnobAgreesBetweenBothModes(t *testing.T) {
 // whose answer is known: a tone's mutual information first minimizes at a
 // quarter period.
 func TestTakensMeasurementWindowIsInTimeOrder(t *testing.T) {
-	savedRing, savedW := takensRing, takensW
-	defer func() { takensRing, takensW = savedRing, savedW }()
+	savedRing, savedW := emb.ring, emb.w
+	defer func() { emb.ring, emb.w = savedRing, savedW }()
 
 	const period = 40
-	takensRing = make([]float32, 5000)
-	takensW = 0
+	emb.ring = make([]float32, 5000)
+	emb.w = 0
 	// Write more than the ring holds, so the window has wrapped — the case
 	// that a naive copy from index 0 gets wrong.
 	rng := rand.New(rand.NewSource(17)) //nolint:gosec // a deterministic test signal, not a secret
@@ -168,16 +168,16 @@ func TestTakensMeasurementWindowIsInTimeOrder(t *testing.T) {
 		// tone at an exact integer period visits only 40 distinct sample
 		// values, and the histogram behind the estimate then has nothing to
 		// count but repeats.
-		takensRing[takensW%len(takensRing)] = float32(math.Sin(2*math.Pi*float64(i)/period) +
+		emb.ring[emb.w%len(emb.ring)] = float32(math.Sin(2*math.Pi*float64(i)/period) +
 			0.05*rng.NormFloat64())
-		takensW++
+		emb.w++
 	}
-	x := takensEstWindow()
+	x := emb.estWindow()
 	if len(x) != takensEstMax {
 		t.Fatalf("window is %d samples, want the %d cap", len(x), takensEstMax)
 	}
 	// The last sample of the window must be the last sample written.
-	if last := float64(takensRing[(takensW-1)%len(takensRing)]); math.Abs(x[len(x)-1]-last) > 1e-9 {
+	if last := float64(emb.ring[(emb.w-1)%len(emb.ring)]); math.Abs(x[len(x)-1]-last) > 1e-9 {
 		t.Errorf("the window ends at %v, not at the newest sample %v", x[len(x)-1], last)
 	}
 	tau, _, ok := takens.FirstMinimumTau(x, 200)
@@ -192,16 +192,16 @@ func TestTakensMeasurementWindowIsInTimeOrder(t *testing.T) {
 // Before any audio arrives there is nothing to measure, and the button has to
 // say so instead of measuring the silence.
 func TestTakensMeasurementRefusesAnEmptyRing(t *testing.T) {
-	savedRing, savedW := takensRing, takensW
-	defer func() { takensRing, takensW = savedRing, savedW }()
+	savedRing, savedW := emb.ring, emb.w
+	defer func() { emb.ring, emb.w = savedRing, savedW }()
 
-	takensRing = make([]float32, 3000)
-	takensW = 0
-	if x := takensEstWindow(); x != nil {
+	emb.ring = make([]float32, 3000)
+	emb.w = 0
+	if x := emb.estWindow(); x != nil {
 		t.Errorf("an empty ring produced a %d-sample window", len(x))
 	}
-	takensW = 100 // some audio, but not enough of it
-	if x := takensEstWindow(); x != nil {
+	emb.w = 100 // some audio, but not enough of it
+	if x := emb.estWindow(); x != nil {
 		t.Errorf("100 samples produced a %d-sample window", len(x))
 	}
 }
@@ -212,25 +212,25 @@ func TestTakensMeasurementRefusesAnEmptyRing(t *testing.T) {
 // a comment, because the failure mode is a knob that creeps rather than an
 // error anyone would see in a stack trace.
 func TestGeneratingAFrameDoesNotRetuneTau(t *testing.T) {
-	savedTau, savedRing, savedW := takensTau, takensRing, takensW
-	defer func() { takensTau, takensRing, takensW = savedTau, savedRing, savedW }()
+	savedTau, savedRing, savedW := emb.tau, emb.ring, emb.w
+	defer func() { emb.tau, emb.ring, emb.w = savedTau, savedRing, savedW }()
 
-	takensRing = make([]float32, 4096)
-	takensW = 0
+	emb.ring = make([]float32, 4096)
+	emb.w = 0
 	for i := 0; i < 20000; i++ {
-		takensRing[takensW%len(takensRing)] = float32(math.Sin(2 * math.Pi * float64(i) / 40))
-		takensW++
+		emb.ring[emb.w%len(emb.ring)] = float32(math.Sin(2 * math.Pi * float64(i) / 40))
+		emb.w++
 	}
-	takensTau = 32
+	emb.tau = 32
 	// generateTakens itself needs a GL context; what is being asserted is that
 	// the estimator is not on that path at all, which the measurement window's
 	// own purity states: measuring twice cannot change anything.
-	x := takensEstWindow()
-	before := takensTau
+	x := emb.estWindow()
+	before := emb.tau
 	takens.EstimateEmbedding(x, 512, 8)
 	takens.EstimateEmbedding(x, 512, 8)
-	if takensTau != before {
-		t.Errorf("measuring moved τ from %v to %v without anyone pressing the button", before, takensTau)
+	if emb.tau != before {
+		t.Errorf("measuring moved τ from %v to %v without anyone pressing the button", before, emb.tau)
 	}
 }
 
@@ -249,35 +249,35 @@ func TestGeneratingAFrameDoesNotRetuneTau(t *testing.T) {
 // is moving, exactly one integration happens after it stops, and the frames
 // after that do no work at all.
 func TestADragIntegratesNothingUntilTheKnobSettles(t *testing.T) {
-	savedMat, savedNow, savedMode := rpMat, frameNowMs, lastFlowMode
-	savedSrc, savedWin, savedEps := rpSrc, rpWin, rpEps
+	savedMat, savedNow, savedMode := rp.mat, frameNowMs, bif.lastFlowMode
+	savedSrc, savedWin, savedEps := rp.src, rp.win, rp.eps
 	ps := attractorParams["lorenz"]
 	savedVals := make([]float32, len(ps))
 	for i, p := range ps {
 		savedVals[i] = *p.Value
 	}
 	defer func() {
-		rpMat, frameNowMs, lastFlowMode = savedMat, savedNow, savedMode
-		rpSrc, rpWin, rpEps = savedSrc, savedWin, savedEps
+		rp.mat, frameNowMs, bif.lastFlowMode = savedMat, savedNow, savedMode
+		rp.src, rp.win, rp.eps = savedSrc, savedWin, savedEps
 		for i, p := range ps {
 			*p.Value = savedVals[i]
 		}
-		rpTrajSeries, rpTrajMode, rpTrajVals = nil, "", nil
-		rpTrajStale, rpTrajBuilt, rpTrajDiam = false, false, 0
+		rp.trajSeries, rp.trajMode, rp.trajVals = nil, "", nil
+		rp.trajStale, rp.trajBuilt, rp.trajDiam = false, false, 0
 	}()
 
-	rpMat = make([]byte, rpN*rpN)
-	rpTrajSeries, rpTrajMode, rpTrajVals = nil, "", nil
-	rpTrajStale, rpTrajBuilt, rpTrajDiam = false, false, 0
-	lastFlowMode, rpSrc, rpWin, rpEps = "lorenz", rpSrcTraj, 100, 0.05
+	rp.mat = make([]byte, rpN*rpN)
+	rp.trajSeries, rp.trajMode, rp.trajVals = nil, "", nil
+	rp.trajStale, rp.trajBuilt, rp.trajDiam = false, false, 0
+	bif.lastFlowMode, rp.src, rp.win, rp.eps = "lorenz", rpSrcTraj, 100, 0.05
 	frameNowMs = 1000
 
 	// The frame the mode is entered on notices it has nothing and asks for a
 	// trajectory; it must not integrate one on that same frame.
-	if rpFillFromTrajectory() {
+	if rp.fillFromTrajectory() {
 		t.Error("built a matrix on the frame it first noticed the system")
 	}
-	if rpTrajSeries != nil {
+	if rp.trajSeries != nil {
 		t.Fatal("integrated on the frame the change was noticed, before any settle")
 	}
 
@@ -294,47 +294,47 @@ func TestADragIntegratesNothingUntilTheKnobSettles(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		frameNowMs += 16
 		*sigma += 0.1
-		if rpFillFromTrajectory() {
+		if rp.fillFromTrajectory() {
 			t.Fatalf("frame %d of a drag rebuilt the matrix", i)
 		}
-		if rpTrajSeries != nil {
+		if rp.trajSeries != nil {
 			t.Fatalf("frame %d of a drag re-integrated the trajectory", i)
 		}
 	}
 
 	// Let go. Nothing happens until the settle window has passed...
 	frameNowMs += rpTrajSettleMs / 2
-	if rpFillFromTrajectory() || rpTrajSeries != nil {
+	if rp.fillFromTrajectory() || rp.trajSeries != nil {
 		t.Fatal("integrated before the settle window was up")
 	}
 	// ...and then exactly once.
 	frameNowMs += rpTrajSettleMs
-	if !rpFillFromTrajectory() {
+	if !rp.fillFromTrajectory() {
 		t.Fatal("never integrated after the knob settled")
 	}
-	if len(rpTrajSeries) != rpN*3 {
-		t.Fatalf("integrated %d floats, want %d points of 3 coordinates", len(rpTrajSeries), rpN)
+	if len(rp.trajSeries) != rpN*3 {
+		t.Fatalf("integrated %d floats, want %d points of 3 coordinates", len(rp.trajSeries), rpN)
 	}
-	if rpTrajDiam <= 0 {
-		t.Errorf("diameter is %v, so ε would normalize against nothing", rpTrajDiam)
+	if rp.trajDiam <= 0 {
+		t.Errorf("diameter is %v, so ε would normalize against nothing", rp.trajDiam)
 	}
 
 	// A still knob is a still picture: the following frames must do no work,
 	// because the series is static and the matrix on the texture is already it.
 	for i := 0; i < 5; i++ {
 		frameNowMs += 16
-		if rpFillFromTrajectory() {
+		if rp.fillFromTrajectory() {
 			t.Errorf("frame %d after settling rebuilt a matrix that had not changed", i)
 		}
 	}
 
 	// ε is the exception and gets no settle delay: it only refills the matrix,
 	// which is 0.3 ms, so it follows the knob immediately.
-	rpEps = 0.08
-	if !rpFillFromTrajectory() {
+	rp.eps = 0.08
+	if !rp.fillFromTrajectory() {
 		t.Error("ε moved and the matrix was not rebuilt")
 	}
-	if len(rpTrajSeries) != rpN*3 {
+	if len(rp.trajSeries) != rpN*3 {
 		t.Error("moving ε re-integrated the trajectory; only the threshold changed")
 	}
 }
@@ -343,17 +343,17 @@ func TestADragIntegratesNothingUntilTheKnobSettles(t *testing.T) {
 // that position IS m = 1 and shares its code path — and it is clamped to the
 // buffer's width, which is allocated once at rpMaxDim and never regrown.
 func TestTheEmbeddingDimensionIsClampedToTheBuffer(t *testing.T) {
-	savedSrc, savedDim := rpSrc, rpDim
-	defer func() { rpSrc, rpDim = savedSrc, savedDim }()
+	savedSrc, savedDim := rp.src, rp.dim
+	defer func() { rp.src, rp.dim = savedSrc, savedDim }()
 
-	rpSrc, rpDim = rpSrcAudio, 5
-	if got := rpEmbedDim(); got != 1 {
+	rp.src, rp.dim = rpSrcAudio, 5
+	if got := rp.embedDim(); got != 1 {
 		t.Errorf("raw audio reports m=%d, want 1", got)
 	}
-	rpSrc = rpSrcEmbed
+	rp.src = rpSrcEmbed
 	for _, c := range []struct{ set, want float32 }{{0, 1}, {1, 1}, {3, 3}, {rpMaxDim, rpMaxDim}, {99, rpMaxDim}} {
-		rpDim = c.set
-		if got := rpEmbedDim(); float32(got) != c.want {
+		rp.dim = c.set
+		if got := rp.embedDim(); float32(got) != c.want {
 			t.Errorf("m knob at %v reports %d, want %v — rpVec holds only rpMaxDim coordinates",
 				c.set, got, c.want)
 		}

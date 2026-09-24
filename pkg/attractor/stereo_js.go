@@ -507,7 +507,7 @@ func stereoWiden(l, r, width float32) (float32, float32) {
 // generateStereo snapshots both channels and draws the newest window as a
 // trail through the normal 3D pipeline.
 func (s *stereoInst) generate() {
-	src := ensureAudioSource()
+	src := aud.ensureAudioSource()
 	sr := 24000
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
@@ -837,10 +837,10 @@ func (s *stereoInst) noteState(monoSrc, ok bool, corr float32) {
 	// already shows once per change, auto-hides, and can be tapped away, and a
 	// message about the audio belongs where the messages about the audio go.
 	if monoSrc {
-		showAudioStatus("Mono source — both axes carry the same signal, so the figure lies on the diagonal. " +
+		aud.showAudioStatus("Mono source — both axes carry the same signal, so the figure lies on the diagonal. " +
 			"The MS positions draw it as a delay embedding instead.")
 	} else {
-		showAudioStatus("The two channels are identical — the figure is a diagonal line. " +
+		aud.showAudioStatus("The two channels are identical — the figure is a diagonal line. " +
 			"Nothing is wrong with the display; there is no stereo information in this source.")
 	}
 }

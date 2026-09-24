@@ -27,10 +27,10 @@ func TestShortTimeCentroidsRisesWithPitch(t *testing.T) {
 	const sr = 24000
 	out := make([]float32, 8)
 
-	shortTimeCentroids(tone(2048, 300, sr), sr, out)
+	acolor.shortTimeCentroids(tone(2048, 300, sr), sr, out)
 	low := out[len(out)/2]
 
-	shortTimeCentroids(tone(2048, 6000, sr), sr, out)
+	acolor.shortTimeCentroids(tone(2048, 6000, sr), sr, out)
 	high := out[len(out)/2]
 
 	if !(high > low) {
@@ -44,7 +44,7 @@ func TestShortTimeCentroidsRisesWithPitch(t *testing.T) {
 func TestShortTimeCentroidsFillsEverySlot(t *testing.T) {
 	const sr = 24000
 	out := make([]float32, audioColorLUTSize)
-	shortTimeCentroids(tone(4096, 1000, sr), sr, out)
+	acolor.shortTimeCentroids(tone(4096, 1000, sr), sr, out)
 	for i, v := range out {
 		if v <= 0 || v > 1 {
 			t.Errorf("slot %d = %v, want a usable 0..1 value", i, v)
@@ -57,7 +57,7 @@ func TestShortTimeCentroidsFillsEverySlot(t *testing.T) {
 // the bottom of the ramp. The neutral middle is the honest answer.
 func TestShortTimeCentroidsSilenceIsNeutral(t *testing.T) {
 	out := make([]float32, 4)
-	shortTimeCentroids(make([]float32, 1024), 24000, out)
+	acolor.shortTimeCentroids(make([]float32, 1024), 24000, out)
 	for i, v := range out {
 		if v != 0.5 {
 			t.Errorf("slot %d of silence = %v, want 0.5", i, v)
@@ -70,7 +70,7 @@ func TestShortTimeCentroidsSilenceIsNeutral(t *testing.T) {
 // and a half-filled table is a half-colored figure.
 func TestShortTimeCentroidsShortWindow(t *testing.T) {
 	out := make([]float32, audioColorLUTSize)
-	shortTimeCentroids(tone(64, 2000, 24000), 24000, out)
+	acolor.shortTimeCentroids(tone(64, 2000, 24000), 24000, out)
 	for i, v := range out {
 		if v <= 0 || v > 1 {
 			t.Errorf("slot %d = %v with a short window, want a usable value", i, v)
@@ -81,33 +81,33 @@ func TestShortTimeCentroidsShortWindow(t *testing.T) {
 // Degenerate inputs must not panic and must not leave the table at zero.
 func TestShortTimeCentroidsDegenerate(t *testing.T) {
 	out := make([]float32, 4)
-	shortTimeCentroids(nil, 24000, out)
+	acolor.shortTimeCentroids(nil, 24000, out)
 	for i, v := range out {
 		if v != 0.5 {
 			t.Errorf("slot %d of a nil window = %v, want 0.5", i, v)
 		}
 	}
-	shortTimeCentroids(tone(512, 1000, 24000), 0, out)
+	acolor.shortTimeCentroids(tone(512, 1000, 24000), 0, out)
 	for i, v := range out {
 		if v != 0.5 {
 			t.Errorf("slot %d at a zero sample rate = %v, want 0.5", i, v)
 		}
 	}
-	shortTimeCentroids(tone(512, 1000, 24000), 24000, nil) // must not panic
+	acolor.shortTimeCentroids(tone(512, 1000, 24000), 24000, nil) // must not panic
 }
 
 // The flat fill is what every non-audio model gets, so it has to clamp: the
 // features are adaptively normalized and can overshoot 1 on a transient, and
 // an out-of-range t reads off the end of the color ramp.
 func TestFillAudioColorLUTFlatClamps(t *testing.T) {
-	fillAudioColorLUTFlat(3)
-	for i, v := range audioColorLUT {
+	acolor.fillAudioColorLUTFlat(3)
+	for i, v := range acolor.lut {
 		if v != 1 {
 			t.Errorf("slot %d = %v after an over-range fill, want 1", i, v)
 		}
 	}
-	fillAudioColorLUTFlat(-2)
-	for i, v := range audioColorLUT {
+	acolor.fillAudioColorLUTFlat(-2)
+	for i, v := range acolor.lut {
 		if v != 0 {
 			t.Errorf("slot %d = %v after an under-range fill, want 0", i, v)
 		}
@@ -121,7 +121,7 @@ func TestLUTSizeMatchesTheShaderIndex(t *testing.T) {
 	if audioColorLUTSize != 32 {
 		t.Fatalf("audioColorLUTSize = %d; the vertex shader indexes with *31.0 and declares uAudioLUT[32]", audioColorLUTSize)
 	}
-	if got := len(audioColorLUT); got != audioColorLUTSize {
+	if got := len(acolor.lut); got != audioColorLUTSize {
 		t.Errorf("the table holds %d slots, want %d", got, audioColorLUTSize)
 	}
 }
@@ -130,7 +130,7 @@ func TestLUTSizeMatchesTheShaderIndex(t *testing.T) {
 // centroid table that all sits in the bottom fifth of the ramp has to come out
 // spanning it, or the trail is one shade of red no matter what is playing.
 func TestStretchUsesTheWholeRamp(t *testing.T) {
-	audioColorLo, audioColorHi = 0.5, 0.5
+	acolor.lo, acolor.hi = 0.5, 0.5
 	// Held audio, frame after frame. The bounds CONVERGE rather than snapping:
 	// a mapping that re-scaled itself on every frame would flicker, so the
 	// contract is that a steady signal reaches the full ramp within about a
@@ -138,7 +138,7 @@ func TestStretchUsesTheWholeRamp(t *testing.T) {
 	var lut []float32
 	for i := 0; i < 120; i++ {
 		lut = []float32{0.10, 0.12, 0.14, 0.16, 0.18, 0.20}
-		stretchAudioColorLUT(lut)
+		acolor.stretchAudioColorLUT(lut)
 	}
 	var lo, hi float32 = 1, 0
 	for _, v := range lut {
@@ -161,9 +161,9 @@ func TestStretchUsesTheWholeRamp(t *testing.T) {
 // on the span, its remaining hundredths get blown up to the whole ramp and a
 // pure sine strobes through the spectrum on arithmetic noise alone.
 func TestStretchDoesNotAmplifyAFlatTable(t *testing.T) {
-	audioColorLo, audioColorHi = 0.5, 0.5
+	acolor.lo, acolor.hi = 0.5, 0.5
 	lut := []float32{0.400, 0.401, 0.400, 0.399, 0.400}
-	stretchAudioColorLUT(lut)
+	acolor.stretchAudioColorLUT(lut)
 	var lo, hi float32 = 1, 0
 	for _, v := range lut {
 		if v < lo {
@@ -182,17 +182,17 @@ func TestStretchDoesNotAmplifyAFlatTable(t *testing.T) {
 // immediately — a color mapping that lags the sound is worse than one that
 // does not move — and the range must not snap shut when it passes.
 func TestStretchOpensFastAndClosesSlowly(t *testing.T) {
-	audioColorLo, audioColorHi = 0.4, 0.5
-	stretchAudioColorLUT([]float32{0.4, 0.9}) // a transient
-	if audioColorHi < 0.9 {
-		t.Errorf("the upper bound is %v after a 0.9 peak; it should have opened to admit it at once", audioColorHi)
+	acolor.lo, acolor.hi = 0.4, 0.5
+	acolor.stretchAudioColorLUT([]float32{0.4, 0.9}) // a transient
+	if acolor.hi < 0.9 {
+		t.Errorf("the upper bound is %v after a 0.9 peak; it should have opened to admit it at once", acolor.hi)
 	}
-	wide := audioColorHi
+	wide := acolor.hi
 	for i := 0; i < 5; i++ {
-		stretchAudioColorLUT([]float32{0.4, 0.5}) // the transient is over
+		acolor.stretchAudioColorLUT([]float32{0.4, 0.5}) // the transient is over
 	}
-	if audioColorHi < wide*0.8 {
-		t.Errorf("the upper bound fell from %v to %v in five frames; it should ease back, not snap", wide, audioColorHi)
+	if acolor.hi < wide*0.8 {
+		t.Errorf("the upper bound fell from %v to %v in five frames; it should ease back, not snap", wide, acolor.hi)
 	}
 }
 

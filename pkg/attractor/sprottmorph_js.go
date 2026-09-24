@@ -16,29 +16,37 @@ import (
 // parks the machine anywhere in the A…S cycle (fractional = between two
 // systems); the rate knob makes it step itself, in systems per minute.
 
-var (
-	morphSysKnob float32 = 3 // catalog position the sys knob requests (3 = D)
-	morphRate    float32 = 3 // self-programming speed, systems/minute
+// sprottMorph is the Sprott Morph mode: the path through coefficient space,
+// its trail, and its knobs.
+type sprottMorph struct {
+	sysKnob float32 // catalog position the sys knob requests (3 = D)
+	rate    float32 // self-programming speed, systems/minute
+	systems []dynamics.SprottMorphSys
+	m       float64 // live catalog position (knob + auto-advance)
+	knobPrv float32
+	sx      float64
+	sy      float64
+	sz      float64
+	ring    []float64
+	head    int
+	fill    int
+	active  bool
+	led     js.Value
+	tick    int
+}
 
-	morphSystems []dynamics.SprottMorphSys
-	morphM       float64 = 3 // live catalog position (knob + auto-advance)
-	morphKnobPrv float32 = 3
-	morphSX      float64
-	morphSY      float64
-	morphSZ      float64
-	morphRing    []float64
-	morphHead    int
-	morphFill    int
-	morphActive  bool
-	morphLED     js.Value
-	morphTick    int
-)
+var morph = sprottMorph{
+	sysKnob: 3,
+	rate:    3,
+	m:       3,
+	knobPrv: 3,
+}
 
 // morphStep advances the trajectory one Euler tick under the blended flow,
 // with a guard that reseeds onto the blend's home IC when the trajectory has
 // stopped being one — because it ran away, or because it is standing still.
-func morphStep(c *[30]float64, dt float64) {
-	dx, dy, dz := dynamics.EvalQuad(c, morphSX, morphSY, morphSZ)
+func (sp *sprottMorph) step(c *[30]float64, dt float64) {
+	dx, dy, dz := dynamics.EvalQuad(c, sp.sx, sp.sy, sp.sz)
 	// STANDING STILL IS AS DEAD AS DIVERGING, and only the second was caught.
 	//
 	// The state starts at the origin, which most of these systems have as an
@@ -54,72 +62,72 @@ func morphStep(c *[30]float64, dt float64) {
 	// jammed. Only a derivative that is identically zero means the integrator
 	// can never move again whatever the step size.
 	if dx == 0 && dy == 0 && dz == 0 {
-		morphReseed()
+		sp.reseed()
 		return
 	}
-	morphSX += dx * dt
-	morphSY += dy * dt
-	morphSZ += dz * dt
-	bad := morphSX != morphSX || morphSY != morphSY || morphSZ != morphSZ ||
-		morphSX < -60 || morphSX > 60 || morphSY < -60 || morphSY > 60 || morphSZ < -60 || morphSZ > 60
+	sp.sx += dx * dt
+	sp.sy += dy * dt
+	sp.sz += dz * dt
+	bad := sp.sx != sp.sx || sp.sy != sp.sy || sp.sz != sp.sz ||
+		sp.sx < -60 || sp.sx > 60 || sp.sy < -60 || sp.sy > 60 || sp.sz < -60 || sp.sz > 60
 	if bad {
-		morphReseed()
+		sp.reseed()
 	}
 }
 
 // morphReseed puts the state back on the blend's home initial condition, with
 // a little jitter so a reseed onto a fixed point does not land exactly on it
 // again.
-func morphReseed() {
-	if len(morphSystems) == 0 {
+func (sp *sprottMorph) reseed() {
+	if len(sp.systems) == 0 {
 		return
 	}
-	i := int(morphM) % len(morphSystems)
+	i := int(sp.m) % len(sp.systems)
 	if i < 0 {
 		i = 0
 	}
-	ic := morphSystems[i].IC
-	morphSX = float64(ic[0]) + 0.01*jamRand()
-	morphSY = float64(ic[1]) + 0.01*jamRand()
-	morphSZ = float64(ic[2]) + 0.01*jamRand()
+	ic := sp.systems[i].IC
+	sp.sx = float64(ic[0]) + 0.01*jamRand()
+	sp.sy = float64(ic[1]) + 0.01*jamRand()
+	sp.sz = float64(ic[2]) + 0.01*jamRand()
 }
 
 // generateSprottMorph integrates the blended flow into the trail ring and
 // keeps the PATCH readout current.
-func generateSprottMorph() {
-	if morphSystems == nil {
-		morphSystems = dynamics.SprottMorphSystems()
+func (sp *sprottMorph) generateSprottMorph() {
+	if sp.systems == nil {
+		sp.systems = dynamics.SprottMorphSystems()
 	}
 	// The sys knob seizes the position when the user moves it; otherwise the
 	// machine advances itself at the rate knob's systems-per-minute.
-	if morphKnobPrv != morphSysKnob {
-		morphKnobPrv = morphSysKnob
-		morphM = float64(morphSysKnob)
+	if sp.knobPrv != sp.sysKnob {
+		sp.knobPrv = sp.sysKnob
+		sp.m = float64(sp.sysKnob)
 	}
 	n := speedSteps
 	if n < 1 {
 		n = 1
 	}
-	morphM += float64(morphRate) / 60 / 60 * float64(n) * float64(speedScale)
-	for morphM >= float64(len(morphSystems)) {
-		morphM -= float64(len(morphSystems))
+	sp.m += float64(sp.rate) / 60 / 60 * float64(n) * float64(speedScale)
+	for sp.m >= float64(len(sp.systems)) {
+		sp.m -= float64(len(sp.systems))
 	}
-	c, dt, i, j, frac := dynamics.SprottMorphBlend(morphSystems, morphM)
-	if len(morphRing) != steps*3 {
-		morphRing = make([]float64, steps*3)
-		morphHead, morphFill = 0, 0
+	c, dt, i, j, frac := dynamics.SprottMorphBlend(sp.systems, sp.m)
+	if len(sp.ring) != steps*3 {
+		sp.ring = make([]float64, steps*3)
+		sp.head, sp.fill = 0, 0
 	}
 	for s := 0; s < n; s++ {
-		morphStep(&c, dt*float64(speedScale))
-		morphRing[morphHead*3] = morphSX
-		morphRing[morphHead*3+1] = morphSY
-		morphRing[morphHead*3+2] = morphSZ
-		morphHead = (morphHead + 1) % steps
-		if morphFill < steps {
-			morphFill++
+		sp.step(&c, dt*float64(speedScale))
+		sp.ring[sp.head*3] = sp.sx
+		sp.ring[sp.head*3+1] = sp.sy
+		sp.ring[sp.head*3+2] = sp.sz
+		sp.head = (sp.head + 1) % steps
+		if sp.fill < steps {
+			sp.fill++
 		}
 	}
-	if morphFill < 2 {
+	if sp.fill < 2 {
 		return
 	}
 	vertices := vertBuf[:steps*4]
@@ -127,34 +135,34 @@ func generateSprottMorph() {
 	for k := 0; k < steps; k++ {
 		age := steps - 1 - k
 		idx := 0
-		if age < morphFill {
-			idx = (morphHead - 1 - age + steps + steps) % steps
+		if age < sp.fill {
+			idx = (sp.head - 1 - age + steps + steps) % steps
 		} else {
-			idx = (morphHead - morphFill + steps + steps) % steps
+			idx = (sp.head - sp.fill + steps + steps) % steps
 		}
 		v := k * 4
-		vertices[v] = float32(morphRing[idx*3])
-		vertices[v+1] = float32(morphRing[idx*3+1])
-		vertices[v+2] = float32(morphRing[idx*3+2])
+		vertices[v] = float32(sp.ring[idx*3])
+		vertices[v+1] = float32(sp.ring[idx*3+1])
+		vertices[v+2] = float32(sp.ring[idx*3+2])
 		vertices[v+3] = float32(k) * invN
 	}
 	gpu.uploadVerticesOnly(vertices, gpu.drawMode, steps)
 	// PATCH readout: "D→E 42%" (throttled — DOM writes are not free).
-	morphTick++
-	if morphLED.Truthy() && morphTick%10 == 0 {
+	sp.tick++
+	if sp.led.Truthy() && sp.tick%10 == 0 {
 		// A dash, not an arrow — the DSEG LED font has no → glyph.
-		txt := morphSystems[i].Letter
+		txt := sp.systems[i].Letter
 		if frac >= 0.005 {
-			txt += "-" + morphSystems[j].Letter + " " + strconv.Itoa(int(frac*100+0.5)) + "%"
+			txt += "-" + sp.systems[j].Letter + " " + strconv.Itoa(int(frac*100+0.5)) + "%"
 		}
-		morphLED.Set("textContent", txt)
+		sp.led.Set("textContent", txt)
 	}
 }
 
 // syncSprottMorphExtras: entry warms the ring on the blend at the knob and
 // frames the camera from the warmed extent; while active, the Patch module
 // (static markup, big wired readout) is shown.
-func syncSprottMorphExtras(mode string) {
+func (sp *sprottMorph) syncSprottMorphExtras(mode string) {
 	if sect := dom.Doc.Call("getElementById", "smorph-module"); sect.Truthy() {
 		if mode == "sprottmorph" {
 			sect.Get("style").Set("display", "")
@@ -162,29 +170,29 @@ func syncSprottMorphExtras(mode string) {
 			sect.Get("style").Set("display", "none")
 		}
 	}
-	morphLED = dom.Doc.Call("getElementById", "smorph-led")
+	sp.led = dom.Doc.Call("getElementById", "smorph-led")
 	if mode != "sprottmorph" {
-		morphActive = false
+		sp.active = false
 		return
 	}
-	if !morphActive {
-		morphActive = true
-		if morphSystems == nil {
-			morphSystems = dynamics.SprottMorphSystems()
+	if !sp.active {
+		sp.active = true
+		if sp.systems == nil {
+			sp.systems = dynamics.SprottMorphSystems()
 		}
-		morphM = float64(morphSysKnob)
-		c, dt, _, _, _ := dynamics.SprottMorphBlend(morphSystems, morphM)
-		i := int(morphM) % len(morphSystems)
-		ic := morphSystems[i].IC
-		morphSX, morphSY, morphSZ = float64(ic[0]), float64(ic[1]), float64(ic[2])
-		morphRing = make([]float64, steps*3)
+		sp.m = float64(sp.sysKnob)
+		c, dt, _, _, _ := dynamics.SprottMorphBlend(sp.systems, sp.m)
+		i := int(sp.m) % len(sp.systems)
+		ic := sp.systems[i].IC
+		sp.sx, sp.sy, sp.sz = float64(ic[0]), float64(ic[1]), float64(ic[2])
+		sp.ring = make([]float64, steps*3)
 		ext := 0.0
 		for k := 0; k < steps; k++ {
-			morphStep(&c, dt)
-			morphRing[k*3] = morphSX
-			morphRing[k*3+1] = morphSY
-			morphRing[k*3+2] = morphSZ
-			for _, v := range []float64{morphSX, morphSY, morphSZ} {
+			sp.step(&c, dt)
+			sp.ring[k*3] = sp.sx
+			sp.ring[k*3+1] = sp.sy
+			sp.ring[k*3+2] = sp.sz
+			for _, v := range []float64{sp.sx, sp.sy, sp.sz} {
 				if v > ext {
 					ext = v
 				}
@@ -193,7 +201,7 @@ func syncSprottMorphExtras(mode string) {
 				}
 			}
 		}
-		morphHead, morphFill = 0, steps
+		sp.head, sp.fill = 0, steps
 		// Frame the warmed structure directly (no fit-ordering dependence).
 		if ext < 0.5 {
 			ext = 0.5

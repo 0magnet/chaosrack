@@ -35,34 +35,42 @@ import (
 // frames to look at.
 const recPreviewFPS = 10
 
-var (
-	recPreview    js.Value
-	recPreviewCtx js.Value
-	recTally      js.Value
-	recCounter    js.Value
-	recStartMs    float64
-)
+// recordModule is the Record module's monitor, tally and clock.
+type recordModule struct {
+	preview    js.Value
+	previewCtx js.Value
+	tally      js.Value
+	counter    js.Value
+	startMs    float64
+
+	// takeStartMs is when the current take began, kept separately from the
+	// preview's clock: that one is reset the moment recording stops, and the size
+	// of a GIF is not known until after it has been encoded, which is later still.
+	takeStartMs float64
+}
+
+var recmod recordModule
 
 // wireRecordModule builds the module's controls and starts the monitor. Safe to
 // call before the panel exists — it does nothing and can be called again.
-func wireRecordModule() {
-	recPreview = dom.Doc.Call("getElementById", "rec-preview")
-	if !recPreview.Truthy() {
+func (r *recordModule) wireRecordModule() {
+	r.preview = dom.Doc.Call("getElementById", "rec-preview")
+	if !r.preview.Truthy() {
 		return
 	}
-	recTally = dom.Doc.Call("getElementById", "rec-tally")
-	recCounter = dom.Doc.Call("getElementById", "rec-status")
-	recPreviewCtx = recPreview.Call("getContext", "2d")
+	r.tally = dom.Doc.Call("getElementById", "rec-tally")
+	r.counter = dom.Doc.Call("getElementById", "rec-status")
+	r.previewCtx = r.preview.Call("getContext", "2d")
 
 	wireRecTransport()
 	wireStillButton()
 
 	tick := dom.FuncOf(func(js.Value, []js.Value) interface{} {
-		drawRecPreview()
+		r.drawRecPreview()
 		return nil
 	})
 	js.Global().Call("setInterval", tick, 1000/recPreviewFPS)
-	drawRecPreview()
+	r.drawRecPreview()
 }
 
 // recSetSwitch flips a switch and tells the recorder, exactly as a click on it
@@ -106,11 +114,11 @@ func wireRecTransport() {
 // recActive reports whether either recorder is running — what the tally light,
 // the armed button and the clock are all about.
 func recActive() bool {
-	return gifRecording || (recOn && recorder.Truthy())
+	return gif.recording || (rec.on && rec.recorder.Truthy())
 }
 
-func drawRecPreview() {
-	if !recPreviewCtx.Truthy() {
+func (r *recordModule) drawRecPreview() {
+	if !r.previewCtx.Truthy() {
 		return
 	}
 	// Nothing to do if nobody can see it. offsetParent is null when the module
@@ -124,22 +132,22 @@ func drawRecPreview() {
 	// frame: the rack re-measures every module on each pointer move, and this
 	// forced a fresh snapshot in the middle of it. The picture is not
 	// interesting during a drag anyway.
-	if !recScreenPower.on(recPreview) {
+	if !recScreenPower.on(r.preview) {
 		if recScreenPower.needsBlank() {
-			recPreviewCtx.Set("fillStyle", "#05070a")
-			recPreviewCtx.Call("fillRect", 0, 0,
-				recPreview.Get("width").Float(), recPreview.Get("height").Float())
+			r.previewCtx.Set("fillStyle", "#05070a")
+			r.previewCtx.Call("fillRect", 0, 0,
+				r.preview.Get("width").Float(), r.preview.Get("height").Float())
 			recScreenPower.markBlanked()
 		}
 		return
 	}
-	pw := recPreview.Get("width").Float()
-	ph := recPreview.Get("height").Float()
+	pw := r.preview.Get("width").Float()
+	ph := r.preview.Get("height").Float()
 
 	// Cleared every frame: with a letterboxed picture the bars would otherwise
 	// keep whatever was there when the region's shape last changed.
-	recPreviewCtx.Set("fillStyle", "#05070a")
-	recPreviewCtx.Call("fillRect", 0, 0, pw, ph)
+	r.previewCtx.Set("fillStyle", "#05070a")
+	r.previewCtx.Call("fillRect", 0, 0, pw, ph)
 
 	canvas := modelCanvas()
 	if !canvas.Truthy() {
@@ -158,17 +166,17 @@ func drawRecPreview() {
 	}
 	dw, dh := sw*k, sh*k
 	dx, dy := (pw-dw)/2, (ph-dh)/2
-	recPreviewCtx.Call("drawImage", captureCanvas(canvas), sx, sy, sw, sh, dx, dy, dw, dh)
+	r.previewCtx.Call("drawImage", captureCanvas(canvas), sx, sy, sw, sh, dx, dy, dw, dh)
 
-	drawRecOSD(pw, ph, sw, sh)
+	r.drawRecOSD(pw, ph, sw, sh)
 }
 
 // drawRecOSD burns the take's own information into the picture: timecode at the
 // top left, the recording flag at the top right, the format and size along the
 // bottom.
-func drawRecOSD(pw, ph, sw, sh float64) {
+func (r *recordModule) drawRecOSD(pw, ph, sw, sh float64) {
 	live := recActive()
-	ctx := recPreviewCtx
+	ctx := r.previewCtx
 	ctx.Set("font", "9px 'B612 Mono', monospace")
 	ctx.Set("textBaseline", "top")
 
@@ -177,12 +185,12 @@ func drawRecOSD(pw, ph, sw, sh float64) {
 	tc := "00:00:00"
 	if live {
 		now := js.Global().Get("Date").Call("now").Float()
-		if recStartMs == 0 {
-			recStartMs = now
+		if r.startMs == 0 {
+			r.startMs = now
 		}
-		tc = timecode(int((now - recStartMs) / 1000))
+		tc = timecode(int((now - r.startMs) / 1000))
 	} else {
-		recStartMs = 0
+		r.startMs = 0
 	}
 	ctx.Set("fillStyle", "rgba(0,0,0,0.55)")
 	ctx.Call("fillRect", 0, 0, pw, 13)
@@ -193,7 +201,7 @@ func drawRecOSD(pw, ph, sw, sh float64) {
 	if live {
 		ctx.Set("fillStyle", "#ff3b3b")
 		label := "REC"
-		if gifRecording {
+		if gif.recording {
 			label = "REC GIF"
 		}
 		// Text only. The lamp on the bezel is the recording light; a second dot
@@ -213,23 +221,23 @@ func drawRecOSD(pw, ph, sw, sh float64) {
 	if recSwitchOn("rec-gif-sw") {
 		format = "GIF"
 		if live {
-			area += "  " + strconv.Itoa(len(gifFrames)) + "f"
+			area += "  " + strconv.Itoa(len(gif.frames)) + "f"
 		}
 	}
 	ctx.Set("fillStyle", "#7c93a8")
 	ctx.Call("fillText", format+"  "+area, 4, ph-11)
 
-	updateRecChrome(live, tc)
+	r.updateRecChrome(live, tc)
 }
 
 // updateRecChrome drives the parts outside the picture: the tally lamp, the
 // counter, and the record button's own lit state.
-func updateRecChrome(live bool, tc string) {
-	if recTally.Truthy() {
+func (r *recordModule) updateRecChrome(live bool, tc string) {
+	if r.tally.Truthy() {
 		if live {
-			recTally.Get("classList").Call("add", "live")
+			r.tally.Get("classList").Call("add", "live")
 		} else {
-			recTally.Get("classList").Call("remove", "live")
+			r.tally.Get("classList").Call("remove", "live")
 		}
 	}
 	if b := dom.Doc.Call("getElementById", "rec-btn"); b.Truthy() {
@@ -239,12 +247,12 @@ func updateRecChrome(live bool, tc string) {
 			b.Get("classList").Call("remove", "armed")
 		}
 	}
-	if recCounter.Truthy() {
-		recCounter.Set("textContent", tc)
+	if r.counter.Truthy() {
+		r.counter.Set("textContent", tc)
 		if live {
-			recCounter.Get("classList").Call("add", "live")
+			r.counter.Get("classList").Call("add", "live")
 		} else {
-			recCounter.Get("classList").Call("remove", "live")
+			r.counter.Get("classList").Call("remove", "live")
 		}
 	}
 	updateRecMeter(live)
@@ -269,11 +277,11 @@ func updateRecMeter(live bool) {
 	cl.Call("remove", "warn")
 	cl.Call("remove", "full")
 
-	if !live || !gifRecording {
+	if !live || !gif.recording {
 		fill.Get("style").Set("width", "0%")
 		return
 	}
-	frac := float64(len(gifFrames)) / float64(gifMaxFrames)
+	frac := float64(len(gif.frames)) / float64(gifMaxFrames)
 	if frac > 1 {
 		frac = 1
 	}
@@ -302,27 +310,22 @@ func pad2(n int) string {
 	return strconv.Itoa(n)
 }
 
-// recTakeStartMs is when the current take began, kept separately from the
-// preview's clock: that one is reset the moment recording stops, and the size
-// of a GIF is not known until after it has been encoded, which is later still.
-var recTakeStartMs float64
-
 // noteTakeStart marks the beginning of a take.
-func noteTakeStart() {
-	recTakeStartMs = js.Global().Get("Date").Call("now").Float()
+func (r *recordModule) noteTakeStart() {
+	r.takeStartMs = js.Global().Get("Date").Call("now").Float()
 }
 
 // logTake reports what the finished take came out as. A recorder that never
 // said what it had just written would be a strange one, and for a GIF this is
 // the only moment the size exists — it is encoded when the take ends.
-func logTake(ext string, bytes int) {
+func (r *recordModule) logTake(ext string, bytes int) {
 	el := dom.Doc.Call("getElementById", "rec-log")
 	if !el.Truthy() {
 		return
 	}
 	secs := 0
-	if recTakeStartMs > 0 {
-		secs = int((js.Global().Get("Date").Call("now").Float() - recTakeStartMs) / 1000)
+	if r.takeStartMs > 0 {
+		secs = int((js.Global().Get("Date").Call("now").Float() - r.takeStartMs) / 1000)
 	}
 	el.Set("textContent", upper(ext)+"  "+timecode(secs)+"  "+humanBytes(bytes))
 	el.Get("classList").Call("add", "fresh")
@@ -394,7 +397,7 @@ func takeStill() {
 	ctx := still.Call("getContext", "2d")
 	ctx.Call("drawImage", captureCanvas(canvas), sx, sy, sw, sh, 0, 0, sw, sh)
 
-	noteTakeStart() // so the still reports a duration of zero, not the last take's
+	recmod.noteTakeStart() // so the still reports a duration of zero, not the last take's
 	var cb js.Func
 	cb = js.FuncOf(func(_ js.Value, a []js.Value) interface{} {
 		defer cb.Release()

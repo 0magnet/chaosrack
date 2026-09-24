@@ -25,7 +25,7 @@ var (
 // gain along the attack/decay ramps (smoothed by setTargetAtTime so the
 // 60 Hz stepping never zippers).
 func genEnvTick() {
-	if !genRunning || !genEnvGain.Truthy() {
+	if !gen.running || !gen.envGain.Truthy() {
 		return
 	}
 	mode := "off"
@@ -38,8 +38,8 @@ func genEnvTick() {
 	if dt < 0 || dt > 0.25 { // first frame / tab was parked
 		dt = 0
 	}
-	g := genEnvGain.Get("gain")
-	ctxNow := genCtx.Get("currentTime").Float()
+	g := gen.envGain.Get("gain")
+	ctxNow := gen.ctx.Get("currentTime").Float()
 	if mode != "rpt" {
 		genEnvPhase = 0
 		g.Call("setTargetAtTime", 1, ctxNow, 0.02)

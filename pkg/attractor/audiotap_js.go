@@ -4,51 +4,56 @@ package attractor
 
 import "github.com/0magnet/chaosrack/pkg/audiosrc"
 
-// Audio fan-out. Source.Drain hands each sample to its caller EXACTLY ONCE —
-// that is the contract the overlapping STFT needs, and it is stated that way in
-// the interface. It also means two callers on one source do not each see the
-// stream: they split it.
-//
-// That is a real defect, not a theoretical one. The spectrogram backdrop and
-// the Takens embedding both used to call Drain, and the backdrop is painted
-// first (renderBackgroundVisual runs before the model is generated), so the
-// spectrogram — which drains until its accumulator is full, i.e. everything
-// available — took every sample and Takens got nothing. Its ring stopped
-// advancing, the window it draws stopped moving, and the attractor sat frozen
-// on screen while the backdrop scrolled happily behind it. Turning the backdrop
-// off unfroze it. The same collision exists for every other pair among the
-// frame-loop consumers (recurrence and the frequency counter drain too); the
-// spectrogram/Takens pair was merely the one with an obvious symptom.
-//
-// The fix is to drain ONCE per frame, here, and give every consumer its own
-// read cursor into what was drained. Each consumer then sees the whole stream,
-// which is what each of them was written to assume.
-//
-// This is the same shape as the existing fvfVis ring, which was added for the
-// same reason: when FVF is on it drains the source in the audio callback, so
-// the spectrogram reads fvfVis rather than draining a second time. That case
-// stays as it is — it is a different clock, not a frame-loop consumer.
-//
-// THE TAP CARRIES BOTH CHANNELS. It used to carry one — Source.Drain's, which
-// is the primary channel folded — and every consumer got the same mono stream
-// whether or not that was the signal it wanted. A consumer that wants the left
-// channel, or mid, or side cannot get there from a stream already folded, so
-// "which channel" was a question only the two modes that snapshot could answer
-// and the two that accumulate could not.
-//
-// So the tap drains stereo and keeps a ring per channel, and the fold is a
-// CONSUMER'S choice made on read (tapChan) rather than the source's made on
-// write. A mono source writes the same samples into both rings, which is what
-// Source.DrainStereo already promises, so nothing downstream has to special-case
-// it — asking for "side" of a mono source correctly gives silence.
-var (
-	tapRingL    []float32
-	tapRingR    []float32
-	tapW        int // monotonic count of samples ever written into the rings
-	tapScratch  []float32
-	tapScratchR []float32
-	tapSrc      audiosrc.Source // source the cursors below are relative to
-)
+// audioTap is the audio fan-out: the ring every consumer reads from and the
+// source that fills it.
+type audioTap struct {
+	// Audio fan-out. Source.Drain hands each sample to its caller EXACTLY ONCE —
+	// that is the contract the overlapping STFT needs, and it is stated that way in
+	// the interface. It also means two callers on one source do not each see the
+	// stream: they split it.
+	//
+	// That is a real defect, not a theoretical one. The spectrogram backdrop and
+	// the Takens embedding both used to call Drain, and the backdrop is painted
+	// first (renderBackgroundVisual runs before the model is generated), so the
+	// spectrogram — which drains until its accumulator is full, i.e. everything
+	// available — took every sample and Takens got nothing. Its ring stopped
+	// advancing, the window it draws stopped moving, and the attractor sat frozen
+	// on screen while the backdrop scrolled happily behind it. Turning the backdrop
+	// off unfroze it. The same collision exists for every other pair among the
+	// frame-loop consumers (recurrence and the frequency counter drain too); the
+	// spectrogram/Takens pair was merely the one with an obvious symptom.
+	//
+	// The fix is to drain ONCE per frame, here, and give every consumer its own
+	// read cursor into what was drained. Each consumer then sees the whole stream,
+	// which is what each of them was written to assume.
+	//
+	// This is the same shape as the existing fvfVis ring, which was added for the
+	// same reason: when FVF is on it drains the source in the audio callback, so
+	// the spectrogram reads fvfVis rather than draining a second time. That case
+	// stays as it is — it is a different clock, not a frame-loop consumer.
+	//
+	// THE TAP CARRIES BOTH CHANNELS. It used to carry one — Source.Drain's, which
+	// is the primary channel folded — and every consumer got the same mono stream
+	// whether or not that was the signal it wanted. A consumer that wants the left
+	// channel, or mid, or side cannot get there from a stream already folded, so
+	// "which channel" was a question only the two modes that snapshot could answer
+	// and the two that accumulate could not.
+	//
+	// So the tap drains stereo and keeps a ring per channel, and the fold is a
+	// CONSUMER'S choice made on read (tapChan) rather than the source's made on
+	// write. A mono source writes the same samples into both rings, which is what
+	// Source.DrainStereo already promises, so nothing downstream has to special-case
+	// it — asking for "side" of a mono source correctly gives silence.
+	ringL    []float32
+	ringR    []float32
+	w        int // monotonic count of samples ever written into the rings
+	scratch  []float32
+	scratchR []float32
+	src      audiosrc.Source // source the cursors below are relative to
+	upstream tapUpstreamKind
+}
+
+var tap audioTap
 
 // tapChan names the signal a consumer reads out of the tap. The first three
 // are a fold of one (L, R) pair; they are the Stereo Embedding's basis choices
@@ -137,8 +142,6 @@ const (
 	tapFromFVF                           // fvfVis, the FVF engine's processed output
 )
 
-var tapUpstream tapUpstreamKind
-
 // tapPumpUpstream reports where this frame's audio should come from.
 //
 // When the FVF audio engine is running it OWNS the source: it drains it in the
@@ -151,7 +154,7 @@ var tapUpstream tapUpstreamKind
 // was the ONLY display that worked while FVF was listening. Routing fvfVis
 // through the tap gives every consumer the same stream.
 func tapPumpUpstream() tapUpstreamKind {
-	if selectedMode == "fvf" && fvfAudioActive {
+	if selectedMode == "fvf" && fvf.audioActive {
 		return tapFromFVF
 	}
 	return tapFromSource
@@ -159,32 +162,32 @@ func tapPumpUpstream() tapUpstreamKind {
 
 // tapPump fills the tap once per frame. Call it before anything that reads
 // audio — the backdrop, the model, the counter — and exactly once.
-func tapPump() {
-	src := ensureAudioSource()
+func (a *audioTap) pump() {
+	src := aud.ensureAudioSource()
 	up := tapPumpUpstream()
-	if src != tapSrc || up != tapUpstream {
+	if src != a.src || up != a.upstream {
 		// Switching source (mic -> generator, say) or upstream (source -> FVF)
 		// invalidates every cursor, because they index a stream that no longer
 		// exists. Start clean and let tapRead fast-forward each consumer on its
 		// next call.
-		tapSrc, tapUpstream = src, up
-		tapW = 0
+		a.src, a.upstream = src, up
+		a.w = 0
 		// τ is a property of WHAT IS PLAYING, so a new source needs a new
 		// measurement: the one taken from the old stream describes a signal
 		// that is no longer there. This is the re-arm that matters, and it is
 		// here rather than beside the source switch itself because every way of
 		// changing the source — the backend selector, the generator switch, FVF
 		// taking the stream over — arrives at this comparison.
-		takensArmAutoMeasure()
+		emb.armAutoMeasure()
 	}
 	if src == nil || !src.Ready() {
 		return
 	}
-	if tapRingL == nil {
-		tapRingL = make([]float32, tapRingSize)
-		tapRingR = make([]float32, tapRingSize)
-		tapScratch = make([]float32, 4096)
-		tapScratchR = make([]float32, 4096)
+	if a.ringL == nil {
+		a.ringL = make([]float32, tapRingSize)
+		a.ringR = make([]float32, tapRingSize)
+		a.scratch = make([]float32, 4096)
+		a.scratchR = make([]float32, 4096)
 	}
 	for drained := 0; drained < tapDrainCap; {
 		var n int
@@ -193,21 +196,21 @@ func tapPump() {
 			// coming out of the speakers, and there is no second channel of it
 			// — so it goes into both rings. A consumer asking for "side" of it
 			// then gets silence, which is the true answer.
-			n = fvfVis.drain(tapScratch)
-			copy(tapScratchR[:n], tapScratch[:n])
+			n = fvf.vis.drain(a.scratch)
+			copy(a.scratchR[:n], a.scratch[:n])
 		} else {
-			n = src.DrainStereo(tapScratch, tapScratchR)
+			n = src.DrainStereo(a.scratch, a.scratchR)
 		}
 		if n <= 0 {
 			break
 		}
 		for i := 0; i < n; i++ {
-			tapRingL[tapW%len(tapRingL)] = tapScratch[i]
-			tapRingR[tapW%len(tapRingR)] = tapScratchR[i]
-			tapW++
+			a.ringL[a.w%len(a.ringL)] = a.scratch[i]
+			a.ringR[a.w%len(a.ringR)] = a.scratchR[i]
+			a.w++
 		}
 		drained += n
-		if n < len(tapScratch) {
+		if n < len(a.scratch) {
 			break
 		}
 	}
@@ -221,17 +224,17 @@ func tapPump() {
 // A zero cursor on a running tap means "new consumer": it starts at the current
 // write position rather than replaying the whole ring, so switching a model on
 // does not hand it a backlog it would have to discard anyway.
-func tapRead(cursor *int, dst []float32) int { return tapReadChan(cursor, dst, tapMix) }
+func tapRead(cursor *int, dst []float32) int { return tap.readChan(cursor, dst, tapMix) }
 
 // tapReadChan is tapRead with the fold chosen by the CONSUMER rather than by
 // the source. tapRead is the mix, which is what every reader got when the tap
 // was mono and what most of them still want.
-func tapReadChan(cursor *int, dst []float32, c tapChan) int {
-	if tapRingL == nil || len(dst) == 0 {
+func (a *audioTap) readChan(cursor *int, dst []float32, c tapChan) int {
+	if a.ringL == nil || len(dst) == 0 {
 		return 0
 	}
-	size := len(tapRingL)
-	if *cursor < 0 || *cursor > tapW {
+	size := len(a.ringL)
+	if *cursor < 0 || *cursor > a.w {
 		// Not yet joined (the -1 sentinel), or pointing past the write head
 		// because a source switch reset it. Either way, start here.
 		//
@@ -239,19 +242,19 @@ func tapReadChan(cursor *int, dst []float32, c tapChan) int {
 		// while the tap is still empty legitimately holds cursor 0, and testing
 		// for <= 0 made that indistinguishable from "new", so it re-joined on
 		// every call and never read a sample.
-		*cursor = tapW
+		*cursor = a.w
 		return 0
 	}
-	if tapW-*cursor > size {
-		*cursor = tapW - size
+	if a.w-*cursor > size {
+		*cursor = a.w - size
 	}
-	n := tapW - *cursor
+	n := a.w - *cursor
 	if n > len(dst) {
 		n = len(dst)
 	}
 	for i := 0; i < n; i++ {
 		j := (*cursor + i) % size
-		dst[i] = tapFold(c, tapRingL[j], tapRingR[j])
+		dst[i] = tapFold(c, a.ringL[j], a.ringR[j])
 	}
 	*cursor += n
 	return n
@@ -261,26 +264,26 @@ func tapReadChan(cursor *int, dst []float32, c tapChan) int {
 // the pair rather than a fold of it. One cursor still, so the two come back
 // sample-aligned — which is the whole point for anything measuring a
 // relationship between them.
-func tapReadStereo(cursor *int, l, r []float32) int {
-	if tapRingL == nil || len(l) == 0 || len(l) != len(r) {
+func (a *audioTap) readStereo(cursor *int, l, r []float32) int {
+	if a.ringL == nil || len(l) == 0 || len(l) != len(r) {
 		return 0
 	}
-	size := len(tapRingL)
-	if *cursor < 0 || *cursor > tapW {
-		*cursor = tapW
+	size := len(a.ringL)
+	if *cursor < 0 || *cursor > a.w {
+		*cursor = a.w
 		return 0
 	}
-	if tapW-*cursor > size {
-		*cursor = tapW - size
+	if a.w-*cursor > size {
+		*cursor = a.w - size
 	}
-	n := tapW - *cursor
+	n := a.w - *cursor
 	if n > len(l) {
 		n = len(l)
 	}
 	for i := 0; i < n; i++ {
 		j := (*cursor + i) % size
-		l[i] = tapRingL[j]
-		r[i] = tapRingR[j]
+		l[i] = a.ringL[j]
+		r[i] = a.ringR[j]
 	}
 	*cursor += n
 	return n
@@ -288,7 +291,7 @@ func tapReadStereo(cursor *int, l, r []float32) int {
 
 // tapReady reports whether the tap has a live source behind it, so callers can
 // keep the "no audio yet" branches they had around Drain.
-func tapReady() bool { return tapSrc != nil && tapSrc.Ready() }
+func (a *audioTap) ready() bool { return a.src != nil && a.src.Ready() }
 
 // Read cursors, one per frame-loop consumer. They live here rather than beside
 // each consumer so it is visible at a glance that the tap has exactly these

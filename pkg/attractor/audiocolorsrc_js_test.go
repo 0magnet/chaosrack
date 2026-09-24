@@ -144,22 +144,22 @@ func TestSourceClassification(t *testing.T) {
 // the window's own extremes move.
 func TestRangeLockFreezesTheScale(t *testing.T) {
 	saved := colorRangeLock
-	savedLo, savedHi := audioColorLo, audioColorHi
+	savedLo, savedHi := acolor.lo, acolor.hi
 	defer func() {
 		colorRangeLock = saved
-		audioColorLo, audioColorHi = savedLo, savedHi
+		acolor.lo, acolor.hi = savedLo, savedHi
 	}()
 
 	colorRangeLock = false
 	quiet := []float32{0, 0.1, 0.2}
-	stretchAudioColorLUT(quiet)
-	lo, hi := audioColorLo, audioColorHi
+	acolor.stretchAudioColorLUT(quiet)
+	lo, hi := acolor.lo, acolor.hi
 
 	colorRangeLock = true
 	loud := []float32{0, 5, 10}
-	stretchAudioColorLUT(loud)
-	if audioColorLo != lo || audioColorHi != hi {
-		t.Errorf("a locked range moved: %v..%v became %v..%v", lo, hi, audioColorLo, audioColorHi)
+	acolor.stretchAudioColorLUT(loud)
+	if acolor.lo != lo || acolor.hi != hi {
+		t.Errorf("a locked range moved: %v..%v became %v..%v", lo, hi, acolor.lo, acolor.hi)
 	}
 	// And it clamps rather than rescaling.
 	for i, v := range loud {

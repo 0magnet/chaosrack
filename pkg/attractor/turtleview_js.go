@@ -62,7 +62,7 @@ var turtleViewApplied struct {
 // view wants it. Called each frame; does nothing unless the view or the figure
 // has changed since it last acted.
 func applyTurtleView(t *turtleWalk) {
-	idx := clampIndex(int(turtleViewF), len(turtleViews))
+	idx := clampIndex(int(turtle.viewF), len(turtleViews))
 	if idx == viewFree {
 		// Leaving the mode does not restore the old pose. It was replaced, not
 		// hidden, and putting back a pose from before a different figure was on

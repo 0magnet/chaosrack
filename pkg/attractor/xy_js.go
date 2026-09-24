@@ -112,34 +112,50 @@ func xyDeflection() (sx, sy float32) {
 	return xyScale, xyScale * float32(gpu.width) / float32(gpu.height)
 }
 
-var (
-	xyProgram js.Value
-	xyBuf     js.Value
-	xyAPos    js.Value
-	xyUColor  js.Value
-	xyUAlpha  js.Value
-	xyUOffset js.Value
-	xyReady   bool
-	xyWindow  = 2048 // current window, in samples; derived from the WIN knob
-	xyBufL    []float32
-	xyBufR    []float32
-	xyLine    []float32 // interleaved x,y pairs for GL upload (smoothing per sample)
-	xyJsUint8 js.Value  // persistent upload scratch (byte view)
-	xyJsFloat js.Value  // persistent upload scratch (float32 view)
-	xyScale   float32   = 0.9
-)
+// xyScope is the XY scope mode: its program, the stereo window it draws, and
+// the correlation readout.
+type xyScope struct {
+	program js.Value
+	buf     js.Value
+	aPos    js.Value
+	uColor  js.Value
+	uAlpha  js.Value
+	uOffset js.Value
+	ready   bool
+	window  int // current window, in samples; derived from the WIN knob
+	bufL    []float32
+	bufR    []float32
+	line    []float32 // interleaved x,y pairs for GL upload (smoothing per sample)
+	jsUint8 js.Value  // persistent upload scratch (byte view)
+	jsFloat js.Value  // persistent upload scratch (float32 view)
 
-// The knobs. xyWinMS and xyLagMS are durations rather than sample counts for
-// takens.TauSamples' reason: a sample is not a fixed amount of time, and the same
-// setting would otherwise mean one thing on the 48 kHz microphone and another
-// on the 24 kHz server feed.
+	// The knobs. xyWinMS and xyLagMS are durations rather than sample counts for
+	// takens.TauSamples' reason: a sample is not a fixed amount of time, and the same
+	// setting would otherwise mean one thing on the 48 kHz microphone and another
+	// on the 24 kHz server feed.
+	basisF   float32  // 0 = L/R, 1 = mid/side
+	gain     float32  // multiplier on the deflection
+	winMS    float32  // time base, ms (2048 samples at 48 kHz: what it was)
+	persist  float32  // afterglow, 0 = clear every frame as before
+	lagMS    float32  // mono self-delay, ms (128 samples at 48 kHz)
+	smoothF  float32  // Catmull-Rom steps per sample interval
+	corrEl   js.Value // the correlation readout in the parameter grid
+	corrText string   // last text written to it (DOM write only on change)
+	monoSrc  bool
+	corrOK   bool
+	corr     float32
+}
+
+var xy = xyScope{
+	window:  2048,
+	gain:    1,
+	winMS:   43,
+	lagMS:   2.67,
+	smoothF: 4,
+}
+
 var (
-	xyBasisF  float32 = 0    // 0 = L/R, 1 = mid/side
-	xyGain    float32 = 1    // multiplier on the deflection
-	xyWinMS   float32 = 43   // time base, ms (2048 samples at 48 kHz: what it was)
-	xyPersist float32        // afterglow, 0 = clear every frame as before
-	xyLagMS   float32 = 2.67 // mono self-delay, ms (128 samples at 48 kHz)
-	xySmoothF float32 = 4    // Catmull-Rom steps per sample interval
+	xyScale float32 = 0.9
 )
 
 // xyBasisNames are the dial's positions by name, and xyBasisRing what fits
@@ -162,12 +178,12 @@ const xyWinMax = 250
 
 func init() {
 	attractorParams["xy"] = []paramDef{
-		{"xy-basis", "axes", &xyBasisF, 0, 0, float32(len(xyBasisNames) - 1), 1},
-		{"xy-gain", "gain", &xyGain, 1, 0.1, 8, 0.1},
-		{"xy-win", "win", &xyWinMS, 43, 2, xyWinMax, 1},
-		{"xy-persist", "glow", &xyPersist, 0, 0, 0.98, 0.02},
-		{"xy-lag", "lag", &xyLagMS, 2.67, 0.1, 25, 0.1},
-		{"xy-smooth", "smth", &xySmoothF, 4, 1, 16, 1},
+		{"xy-basis", "axes", &xy.basisF, 0, 0, float32(len(xyBasisNames) - 1), 1},
+		{"xy-gain", "gain", &xy.gain, 1, 0.1, 8, 0.1},
+		{"xy-win", "win", &xy.winMS, 43, 2, xyWinMax, 1},
+		{"xy-persist", "glow", &xy.persist, 0, 0, 0.98, 0.02},
+		{"xy-lag", "lag", &xy.lagMS, 2.67, 0.1, 25, 0.1},
+		{"xy-smooth", "smth", &xy.smoothF, 4, 1, 16, 1},
 	}
 }
 
@@ -177,8 +193,8 @@ func init() {
 // infinity can hand over an out-of-range float or a NaN. The range is checked
 // BEFORE the conversion, because a float-to-int conversion whose value does not
 // fit is implementation-defined in Go (this is stereoAxisSel's argument).
-func xySmoothSel() int {
-	v := xySmoothF
+func (x *xyScope) smoothSel() int {
+	v := x.smoothF
 	if !(v > 1) { // false for NaN too
 		return 1
 	}
@@ -189,7 +205,7 @@ func xySmoothSel() int {
 }
 
 // xyIsMidSide reports the basis knob's position, by the same clamp.
-func xyIsMidSide() bool { return xyBasisF > 0.5 }
+func (x *xyScope) isMidSide() bool { return x.basisF > 0.5 }
 
 // xyWindowSamples converts the WIN knob into a sample count, clamped to what
 // one snapshot may ask the source for. The clamp is on the DURATION, so the
@@ -229,8 +245,8 @@ func xyLagSamples(lagMS float32, sr int) int {
 	return n
 }
 
-func initXY() {
-	if xyReady {
+func (x *xyScope) initXY() {
+	if x.ready {
 		return
 	}
 	vs := glctx.GL.Call("createShader", glctx.Types.VertexShader)
@@ -240,19 +256,19 @@ func initXY() {
 	glctx.GL.Call("shaderSource", fs, xyFragShaderSrc)
 	glctx.GL.Call("compileShader", fs)
 
-	xyProgram = glctx.GL.Call("createProgram")
-	glctx.GL.Call("attachShader", xyProgram, vs)
-	glctx.GL.Call("attachShader", xyProgram, fs)
-	glctx.GL.Call("linkProgram", xyProgram)
+	x.program = glctx.GL.Call("createProgram")
+	glctx.GL.Call("attachShader", x.program, vs)
+	glctx.GL.Call("attachShader", x.program, fs)
+	glctx.GL.Call("linkProgram", x.program)
 
-	xyAPos = glctx.GL.Call("getAttribLocation", xyProgram, "aPos")
-	xyUColor = glctx.GL.Call("getUniformLocation", xyProgram, "uColor")
-	xyUAlpha = glctx.GL.Call("getUniformLocation", xyProgram, "uAlpha")
-	xyUOffset = glctx.GL.Call("getUniformLocation", xyProgram, "uOffset")
+	x.aPos = glctx.GL.Call("getAttribLocation", x.program, "aPos")
+	x.uColor = glctx.GL.Call("getUniformLocation", x.program, "uColor")
+	x.uAlpha = glctx.GL.Call("getUniformLocation", x.program, "uAlpha")
+	x.uOffset = glctx.GL.Call("getUniformLocation", x.program, "uOffset")
 
-	xyBuf = glctx.GL.Call("createBuffer")
-	xyReady = true
-	xyFitBuffers(xyWindow, xySmoothSel())
+	x.buf = glctx.GL.Call("createBuffer")
+	x.ready = true
+	x.fitBuffers(x.window, x.smoothSel())
 }
 
 // xyFitBuffers sizes the sample buffers, the line buffer and the upload scratch
@@ -266,59 +282,59 @@ func initXY() {
 // dragging the WIN dial does not reallocate on every pixel of the drag, and
 // they never shrink: the largest window a session has used is a fair guess at
 // what it will use again, and the buffer at the knob's ceiling is 1.5 MB.
-func xyFitBuffers(win, smooth int) {
+func (x *xyScope) fitBuffers(win, smooth int) {
 	if win < 2 {
 		win = 2
 	}
-	if len(xyBufL) < win {
+	if len(x.bufL) < win {
 		grown := win + win/2
-		xyBufL = make([]float32, grown)
-		xyBufR = make([]float32, grown)
+		x.bufL = make([]float32, grown)
+		x.bufR = make([]float32, grown)
 	}
-	if need := win * smooth * 2; len(xyLine) < need {
-		xyLine = make([]float32, need+need/2)
+	if need := win * smooth * 2; len(x.line) < need {
+		x.line = make([]float32, need+need/2)
 		// Persistent upload scratch — the trace re-uploads every frame, and a
 		// fresh typed array per frame is steady GC pressure (same pattern as
 		// gpu.vertU8/gpu.vertF32).
-		xyJsUint8 = js.Global().Get("Uint8Array").New(len(xyLine) * 4)
-		xyJsFloat = js.Global().Get("Float32Array").New(xyJsUint8.Get("buffer"), 0, len(xyLine))
+		x.jsUint8 = js.Global().Get("Uint8Array").New(len(x.line) * 4)
+		x.jsFloat = js.Global().Get("Float32Array").New(x.jsUint8.Get("buffer"), 0, len(x.line))
 	}
 }
 
 // renderXYFrame is the full-screen xy-scope MODE: clear the canvas, then draw.
-func renderXYFrame() { drawXYScope(true) }
+func renderXYFrame() { xy.drawXYScope(true) }
 
 // drawXYScope fills the sample window and draws the Lissajous line strip. When
 // clear is true (xy MODE) it clears the canvas first; when false (xy used as a
 // BACKGROUND behind an attractor) it draws onto whatever is already there, so
 // the caller controls clearing and the attractor can be layered on top.
-func drawXYScope(clear bool) {
-	if !xyReady {
-		initXY()
+func (x *xyScope) drawXYScope(clear bool) {
+	if !x.ready {
+		x.initXY()
 	}
-	src := ensureAudioSource()
+	src := aud.ensureAudioSource()
 	sr := 48000
 	if src != nil && src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	smooth := xySmoothSel()
-	xyWindow = xyWindowSamples(xyWinMS, sr)
-	xyFitBuffers(xyWindow, smooth)
-	drawn := xyWindow * smooth
+	smooth := x.smoothSel()
+	x.window = xyWindowSamples(x.winMS, sr)
+	x.fitBuffers(x.window, smooth)
+	drawn := x.window * smooth
 
 	if src != nil && src.Ready() {
-		l, r := xyBufL[:xyWindow], xyBufR[:xyWindow]
+		l, r := x.bufL[:x.window], x.bufR[:x.window]
 		src.TimeDomainStereo(l, r)
 		// If the source only has one channel, fall back to a lagged
 		// pseudo-stereo so the trace isn't a straight diagonal.
 		mono := src.Channels() < 2
 		if mono {
-			lag := xyLagSamples(xyLagMS, sr)
+			lag := xyLagSamples(x.lagMS, sr)
 			// Backwards, so a sample is read before the same index is written:
 			// forwards, the lagged copy would be built out of samples this loop
 			// had already replaced, which for a lag shorter than the window is
 			// a feedback comb rather than a delay.
-			for i := xyWindow - 1; i >= 0; i-- {
+			for i := x.window - 1; i >= 0; i-- {
 				if j := i - lag; j < 0 {
 					r[i] = 0
 				} else {
@@ -332,10 +348,10 @@ func drawXYScope(clear bool) {
 		// the rotation rather than the source. A mono source has nothing to
 		// correlate and says so instead.
 		if mono {
-			xyNoteState(true, false, 0)
+			x.noteState(true, false, 0)
 		} else {
 			corr, ok := stereoCorrelation(l, r)
-			xyNoteState(false, ok, corr)
+			x.noteState(false, ok, corr)
 		}
 		// Catmull-Rom upsample: `smooth` spline steps per sample segment, per
 		// axis, so the beam curves through the samples (analog slew) instead
@@ -344,8 +360,8 @@ func drawXYScope(clear bool) {
 			if i < 0 {
 				return 0
 			}
-			if i >= xyWindow {
-				return xyWindow - 1
+			if i >= x.window {
+				return x.window - 1
 			}
 			return i
 		}
@@ -354,7 +370,7 @@ func drawXYScope(clear bool) {
 		// give the same answer here — the rotation is linear and Catmull-Rom is
 		// a linear combination of its control points, so the two commute — but
 		// only while the basis stays linear, and doing it first costs nothing.
-		ms := xyIsMidSide()
+		ms := x.isMidSide()
 		ax := func(i int) (float32, float32) {
 			a, b := l[i], r[i]
 			if ms {
@@ -363,34 +379,34 @@ func drawXYScope(clear bool) {
 			return a, b
 		}
 		sx, sy := xyDeflection()
-		sx *= xyGain
-		sy *= xyGain
+		sx *= x.gain
+		sy *= x.gain
 		o := 0
-		for i := 0; i < xyWindow; i++ {
+		for i := 0; i < x.window; i++ {
 			l0, r0 := ax(clampIdx(i - 1))
 			l1, r1 := ax(i)
 			l2, r2 := ax(clampIdx(i + 1))
 			l3, r3 := ax(clampIdx(i + 2))
 			for s := 0; s < smooth; s++ {
 				t := float32(s) / float32(smooth)
-				xyLine[o] = catmullRom(l0, l1, l2, l3, t) * sx
-				xyLine[o+1] = catmullRom(r0, r1, r2, r3, t) * sy
+				x.line[o] = catmullRom(l0, l1, l2, l3, t) * sx
+				x.line[o+1] = catmullRom(r0, r1, r2, r3, t) * sy
 				o += 2
 			}
 		}
 	} else {
 		// Blank the line so we don't draw stale data.
 		for i := 0; i < drawn*2; i++ {
-			xyLine[i] = 0
+			x.line[i] = 0
 		}
-		xyNoteState(false, false, 0)
+		x.noteState(false, false, 0)
 	}
 
 	// Draw as a flat 2D trace (no depth), so as a background it never occludes
 	// or z-fights the attractor layered on top.
 	glctx.GL.Call("disable", glctx.Types.DepthTest)
 	if clear {
-		if k := xyPersistK(); k > 0 {
+		if k := x.persistK(); k > 0 {
 			// PERSIST: multiply the frame down instead of clearing it, so the
 			// trace decays over several frames the way a phosphor does. Only on
 			// the self-clearing path — as a BACKDROP the scope draws onto a
@@ -408,19 +424,19 @@ func drawXYScope(clear bool) {
 		}
 	}
 
-	glctx.GL.Call("useProgram", xyProgram)
-	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, xyBuf)
-	js.CopyBytesToJS(xyJsUint8, sliceToByteSlice(xyLine))
-	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, xyJsFloat, glctx.Types.DynamicDraw)
-	glctx.GL.Call("enableVertexAttribArray", xyAPos)
-	glctx.GL.Call("vertexAttribPointer", xyAPos, 2, glctx.Types.Float, false, 0, 0)
+	glctx.GL.Call("useProgram", x.program)
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, x.buf)
+	js.CopyBytesToJS(x.jsUint8, sliceToByteSlice(x.line))
+	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, x.jsFloat, glctx.Types.DynamicDraw)
+	glctx.GL.Call("enableVertexAttribArray", x.aPos)
+	glctx.GL.Call("vertexAttribPointer", x.aPos, 2, glctx.Types.Float, false, 0, 0)
 
 	col := [3]float32{0.4, 1.0, 0.45}
 	if phosphorActive() { // scope mode → trace in the selected phosphor color
 		p := phosphors[phosphorIdx]
 		col = [3]float32{float32(p.tr), float32(p.tg), float32(p.tb)}
 	}
-	glctx.GL.Call("uniform3f", xyUColor, col[0], col[1], col[2])
+	glctx.GL.Call("uniform3f", x.uColor, col[0], col[1], col[2])
 
 	// Additive multi-pass "beam": one bright center line plus dim sub-pixel-
 	// offset copies around it, so the 1px GL line reads as a thicker, soft-edged
@@ -435,13 +451,13 @@ func drawXYScope(clear bool) {
 		{dx, dy, 0.22}, {-dx, -dy, 0.22}, {dx, -dy, 0.22}, {-dx, dy, 0.22},
 	}
 	for _, h := range halo {
-		glctx.GL.Call("uniform2f", xyUOffset, h[0], h[1])
-		glctx.GL.Call("uniform1f", xyUAlpha, h[2])
+		glctx.GL.Call("uniform2f", x.uOffset, h[0], h[1])
+		glctx.GL.Call("uniform1f", x.uAlpha, h[2])
 		glctx.GL.Call("drawArrays", glctx.Types.LineStrip, 0, drawn)
 	}
 	// Bright center pass last so it sits on top of the halo.
-	glctx.GL.Call("uniform2f", xyUOffset, 0, 0)
-	glctx.GL.Call("uniform1f", xyUAlpha, 1.0)
+	glctx.GL.Call("uniform2f", x.uOffset, 0, 0)
+	glctx.GL.Call("uniform1f", x.uAlpha, 1.0)
 	glctx.GL.Call("drawArrays", glctx.Types.LineStrip, 0, drawn)
 	glctx.GL.Call("disable", glctx.GL.Get("BLEND"))
 }
@@ -457,8 +473,8 @@ func drawXYScope(clear bool) {
 // of it would be to leave the mode. 0.98 is about a 2.5-second decay at 60 Hz,
 // which is longer than the longest phosphor in the Style module (P33 at 0.985
 // there is a decay per frame of the same kind), and it still goes away.
-func xyPersistK() float32 {
-	v := xyPersist
+func (x *xyScope) persistK() float32 {
+	v := x.persist
 	if !(v > 0) { // false for NaN too
 		return 0
 	}
@@ -468,43 +484,34 @@ func xyPersistK() float32 {
 	return v
 }
 
-var (
-	xyCorrEl   js.Value // the correlation readout in the parameter grid
-	xyCorrText string   // last text written to it (DOM write only on change)
-
-	xyMonoSrc bool
-	xyCorrOK  bool
-	xyCorr    float32
-)
-
 // xyNoteState records this frame's measurement and updates the readout.
 // stereoReadout renders it, because it is the same reading of the same quantity
 // and two wordings of "mono" would be two things to keep in step.
-func xyNoteState(monoSrc, ok bool, corr float32) {
-	xyMonoSrc, xyCorrOK, xyCorr = monoSrc, ok, corr
+func (x *xyScope) noteState(monoSrc, ok bool, corr float32) {
+	x.monoSrc, x.corrOK, x.corr = monoSrc, ok, corr
 	s := stereoReadout(monoSrc, ok, corr)
-	if s == xyCorrText {
+	if s == x.corrText {
 		// The correlation moves continuously and the DOM does not need to hear
 		// about every frame of it — showStereoReadout's argument, and the same
 		// trap: a two-decimal readout re-rendered sixty times a second is
 		// unreadable even when it is correct.
 		return
 	}
-	xyCorrText = s
-	if xyCorrEl.Truthy() {
-		xyCorrEl.Set("textContent", s)
+	x.corrText = s
+	if x.corrEl.Truthy() {
+		x.corrEl.Set("textContent", s)
 	}
 }
 
 // appendXYReadout adds the CORR cell to the XY Scope's parameter grid. Into the
 // grid rather than #params, for appendStereoReadout's reason: #params stacks
 // below the height-bounded grid and gets clipped.
-func appendXYReadout(grid js.Value) {
+func (x *xyScope) appendXYReadout(grid js.Value) {
 	card, top := newPunitCard("corr")
 
-	xyCorrEl = dom.Doc.Call("createElement", "span")
-	xyCorrEl.Set("className", "led counter-led")
-	xyCorrEl.Set("title", "Correlation between the two channels over the displayed window, as a goniometer's "+
+	x.corrEl = dom.Doc.Call("createElement", "span")
+	x.corrEl.Set("className", "led counter-led")
+	x.corrEl.Set("title", "Correlation between the two channels over the displayed window, as a goniometer's "+
 		"correlation meter reads it: +1.00 means the channels are identical and the figure is the diagonal "+
 		"line, 0 means they are unrelated and the figure is a round cloud, −1.00 means one is the other's "+
 		"polarity inverted — and that is the content that disappears if the mix is summed to mono. "+
@@ -517,9 +524,9 @@ func appendXYReadout(grid js.Value) {
 	// reading "r --" over a live stereo source would be reporting a silence
 	// that is not there. xyCorrText is cleared so the next frame writes into
 	// the NEW element instead of skipping it as unchanged.
-	xyCorrText = ""
-	xyCorrEl.Set("textContent", stereoReadout(xyMonoSrc, xyCorrOK, xyCorr))
-	top.Call("appendChild", xyCorrEl)
+	x.corrText = ""
+	x.corrEl.Set("textContent", stereoReadout(x.monoSrc, x.corrOK, x.corr))
+	top.Call("appendChild", x.corrEl)
 
 	grid.Call("appendChild", card)
 }

@@ -18,20 +18,24 @@ import (
 // safe to have live when the user is in an attractor mode — no cost, no
 // CPU work, just an idle AudioContext.
 
-var (
-	audioSource      audiosrc.Source
-	audioSourceTried bool
-	audioModeActive  bool // last frame we rendered an audio mode
-	audioOverlay     js.Value
-	audioMsgLast     string  // last status text shown (so we don't re-show every frame)
-	audioHideFn      js.Func // cached auto-hide callback (never re-created)
+// audioModes is the plumbing the audio-driven modes share: the source, the
+// overlay, and the function generator standing in for one.
+type audioModes struct {
+	source      audiosrc.Source
+	sourceTried bool
+	modeActive  bool // last frame we rendered an audio mode
+	overlay     js.Value
+	msgLast     string  // last status text shown (so we don't re-show every frame)
+	hideFn      js.Func // cached auto-hide callback (never re-created)
 
 	// Function generator: a client-side signal source. When useFuncGen is on it
 	// overrides ws/mic, so audio-reactive features (attractor modulation), the
 	// spectrogram and the xy scope all work with no server and no mic.
 	funcGen    *audiosrc.FuncGen
 	useFuncGen bool
-)
+}
+
+var aud audioModes
 
 // ensureAudioSource returns the shared audio source, creating it on first
 // call. Safe to call every frame — the second and subsequent calls just
@@ -58,21 +62,21 @@ var (
 // forcing one transport or the other while debugging a fallback — "?audio=ws"
 // pins the WebSocket, "?audio=wt" asks for WebTransport against a server whose
 // page did not offer it.
-func ensureAudioSource() audiosrc.Source {
+func (au *audioModes) ensureAudioSource() audiosrc.Source {
 	// The function generator, when on, is the source — regardless of ws/mic.
-	if useFuncGen {
-		if funcGen == nil {
-			funcGen = audiosrc.NewFuncGen()
+	if au.useFuncGen {
+		if au.funcGen == nil {
+			au.funcGen = audiosrc.NewFuncGen()
 		}
-		return funcGen
+		return au.funcGen
 	}
-	if audioSource != nil {
-		return audioSource
+	if au.source != nil {
+		return au.source
 	}
-	if audioSourceTried {
+	if au.sourceTried {
 		return nil
 	}
-	audioSourceTried = true
+	au.sourceTried = true
 	ws := audiosrc.WSOptions{
 		URL:        queryParam("wsurl"),
 		SampleRate: wsSampleRate(),
@@ -83,11 +87,11 @@ func ensureAudioSource() audiosrc.Source {
 	}
 	switch audioBackendKind() {
 	case "ws", "websocket":
-		audioSource = audiosrc.NewWebSocket(ws)
+		au.source = audiosrc.NewWebSocket(ws)
 	case "wt", "webtransport":
 		// The same WSOptions go along as the fallback, so ?wsurl= and
 		// ?wsrate= keep working when WebTransport is declined.
-		audioSource = audiosrc.NewWebTransport(audiosrc.WTOptions{
+		au.source = audiosrc.NewWebTransport(audiosrc.WTOptions{
 			URL:        queryParam("wturl"),
 			CertHash:   queryParam("wthash"),
 			SampleRate: wsSampleRate(),
@@ -102,28 +106,28 @@ func ensureAudioSource() audiosrc.Source {
 		// The capture graph rides the shared context. The mic lease is held
 		// for the session — the source is kept alive across mode switches, so
 		// suspending its context out from under it would stall the rings.
-		audioSource = audiosrc.NewMic(audiosrc.MicOptions{
+		au.source = audiosrc.NewMic(audiosrc.MicOptions{
 			Stereo:  true,
 			Context: acquireAudioCtx("mic"),
 		})
 	}
-	return audioSource
+	return au.source
 }
 
 // fg returns the function generator, creating it on first use.
-func fg() *audiosrc.FuncGen {
-	if funcGen == nil {
-		funcGen = audiosrc.NewFuncGen()
+func (au *audioModes) fg() *audiosrc.FuncGen {
+	if au.funcGen == nil {
+		au.funcGen = audiosrc.NewFuncGen()
 	}
-	return funcGen
+	return au.funcGen
 }
 
 // setFuncGen switches the audio source to (or away from) the function
 // generator. Ensures features/spectrogram/xy read the FG immediately.
-func setFuncGen(on bool) {
-	useFuncGen = on
+func (au *audioModes) setFuncGen(on bool) {
+	au.useFuncGen = on
 	if on {
-		ensureAudioSource()
+		au.ensureAudioSource()
 	}
 }
 
@@ -136,14 +140,14 @@ func setFuncGen(on bool) {
 // the source properly, drew a Lissajous while the spectrogram and the FVF
 // display next to it stayed black. Unlike ensureAudioSource this creates
 // nothing: the render loop must not be what pops a microphone prompt.
-func activeAudioSource() audiosrc.Source {
-	if useFuncGen {
-		if funcGen == nil {
+func (au *audioModes) activeAudioSource() audiosrc.Source {
+	if au.useFuncGen {
+		if au.funcGen == nil {
 			return nil
 		}
-		return funcGen
+		return au.funcGen
 	}
-	return audioSource
+	return au.source
 }
 
 // audioBackendKind reads the ?audio= query param (empty when absent).
@@ -225,16 +229,16 @@ func renderAudioFrame(mode string) {
 	case "xfer":
 		generateTransfer()
 	}
-	maybeShowAudioStatus()
+	aud.maybeShowAudioStatus()
 }
 
 // activateAudioMode runs once when the mode dispatch transitions from an
 // attractor mode into an audio mode. It kicks off the audio source (mic
 // permission prompt, or WebSocket connect) but otherwise does nothing
 // heavy — the individual renderers do their own lazy shader/texture setup.
-func activateAudioMode() {
-	audioModeActive = true
-	ensureAudioSource()
+func (au *audioModes) activateAudioMode() {
+	au.modeActive = true
+	au.ensureAudioSource()
 }
 
 // deactivateAudioMode runs once when we transition back out of an audio
@@ -242,14 +246,14 @@ func activateAudioMode() {
 // program and marks static geometry dirty so the next indexed upload
 // re-sets attribute pointers (audio modes leave their own attribute
 // pointers active on aPos).
-func deactivateAudioMode() {
-	audioModeActive = false
+func (au *audioModes) deactivateAudioMode() {
+	au.modeActive = false
 	if !gpu.program.IsUndefined() {
 		glctx.GL.Call("useProgram", gpu.program)
 	}
 	gpu.staticDirty = true
-	if audioOverlay.Truthy() {
-		audioOverlay.Get("style").Set("display", "none")
+	if au.overlay.Truthy() {
+		au.overlay.Get("style").Set("display", "none")
 	}
 }
 
@@ -257,8 +261,8 @@ func deactivateAudioMode() {
 // isn't Ready yet (permission still pending, or denied). The overlay
 // lives at the top-center of the canvas. Hidden once the source starts
 // producing samples, or when we leave audio mode.
-func maybeShowAudioStatus() {
-	src := activeAudioSource()
+func (au *audioModes) maybeShowAudioStatus() {
+	src := au.activeAudioSource()
 	if src == nil {
 		return
 	}
@@ -271,37 +275,37 @@ func maybeShowAudioStatus() {
 		// like a page on the right one.
 		if n, ok := src.(audiosrc.Notifier); ok {
 			if notice := n.Notice(); notice != "" {
-				showAudioStatus(notice)
+				au.showAudioStatus(notice)
 				return
 			}
 		}
-		if audioOverlay.Truthy() {
-			audioOverlay.Get("style").Set("display", "none")
+		if au.overlay.Truthy() {
+			au.overlay.Get("style").Set("display", "none")
 		}
-		audioMsgLast = "" // source recovered; a future error will re-show
+		au.msgLast = "" // source recovered; a future error will re-show
 		return
 	}
 	msg := "Requesting microphone access…"
 	if err := src.Err(); err != nil {
 		msg = "Audio unavailable: " + err.Error()
 	}
-	showAudioStatus(msg)
+	au.showAudioStatus(msg)
 }
 
 // showAudioStatus puts one line in the overlay, creating it on first use.
-func showAudioStatus(msg string) {
+func (au *audioModes) showAudioStatus(msg string) {
 	// Only (re)show when the status text CHANGES — otherwise a persistent error
 	// (mic denied, ws down) would re-appear every frame and could never be
 	// dismissed. Once shown it auto-hides after a few seconds and can be tapped
 	// away; a genuinely new status shows again.
-	if msg == audioMsgLast {
+	if msg == au.msgLast {
 		return
 	}
-	audioMsgLast = msg
-	if !audioOverlay.Truthy() {
-		audioOverlay = dom.Doc.Call("createElement", "div")
-		audioOverlay.Set("id", "audio-status-overlay")
-		style := audioOverlay.Get("style")
+	au.msgLast = msg
+	if !au.overlay.Truthy() {
+		au.overlay = dom.Doc.Call("createElement", "div")
+		au.overlay.Set("id", "audio-status-overlay")
+		style := au.overlay.Get("style")
 		style.Set("position", "fixed")
 		style.Set("top", "20px")
 		style.Set("left", "50%")
@@ -316,24 +320,24 @@ func showAudioStatus(msg string) {
 		style.Set("z-index", "var(--z-status)")
 		style.Set("cursor", "pointer") // tap to dismiss
 		style.Set("pointer-events", "auto")
-		audioOverlay.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-			audioOverlay.Get("style").Set("display", "none")
+		au.overlay.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+			au.overlay.Get("style").Set("display", "none")
 			return nil
 		}))
-		dom.Body.Call("appendChild", audioOverlay)
+		dom.Body.Call("appendChild", au.overlay)
 	}
-	audioOverlay.Set("textContent", msg+"   ✕")
-	audioOverlay.Get("style").Set("display", "block")
+	au.overlay.Set("textContent", msg+"   ✕")
+	au.overlay.Get("style").Set("display", "block")
 	// Auto-hide after 5s so it never sticks; the source keeps trying
 	// regardless. One cached js.Func — a fresh FuncOf per status change never
 	// got released, which leaked a closure every message on a flaky source.
-	if audioHideFn.IsUndefined() {
-		audioHideFn = dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-			if audioOverlay.Truthy() {
-				audioOverlay.Get("style").Set("display", "none")
+	if au.hideFn.IsUndefined() {
+		au.hideFn = dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
+			if au.overlay.Truthy() {
+				au.overlay.Get("style").Set("display", "none")
 			}
 			return nil
 		})
 	}
-	js.Global().Call("setTimeout", audioHideFn, 5000)
+	js.Global().Call("setTimeout", au.hideFn, 5000)
 }

@@ -94,7 +94,7 @@ func generateMap(mode string) {
 // flavor is included by its flavor flag rather than by IsMap, so that a parse
 // error (which withdraws the map) still redraws the last cloud as a cloud.
 func mapDrawMode(mode string) js.Value {
-	if dynamics.IsMap(mode) || (mode == dynamics.CustomKey && customIterate) {
+	if dynamics.IsMap(mode) || (mode == dynamics.CustomKey && custom.iterate) {
 		return glctx.Types.Points
 	}
 	return gpu.drawMode

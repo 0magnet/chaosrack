@@ -157,7 +157,7 @@ func collectAudioModulation(mode string) []savedParam {
 		if !ok || m.channel == "" || m.level == 0 {
 			continue
 		}
-		f := eqModValue(m.channel, m.bands)
+		f := af.eqModValue(m.channel, m.bands)
 		base := *pd.Value
 		v := clampF(base+m.level*f*(pd.Max-pd.Min), pd.Min, pd.Max)
 		// A step with no decimals is a COUNT — lines, subdivisions, samples of
@@ -286,7 +286,7 @@ func applyViewModulation() []savedParam {
 		if !ok || m.channel == "" || m.level == 0 {
 			continue
 		}
-		f := eqModValue(m.channel, m.bands)
+		f := af.eqModValue(m.channel, m.bands)
 		base := *vt.ptr
 		saved = append(saved, savedParam{vt.ptr, base})
 		if vt.id == "view-trail" {
@@ -338,7 +338,7 @@ func buildModUnit(id, label string) js.Value {
 		m := paramMods[id]
 		m.channel = sel.Get("value").String()
 		paramMods[id] = m
-		syncPermalinkNow()
+		perma.syncPermalinkNow()
 		return nil
 	}))
 
@@ -382,7 +382,7 @@ func buildModUnit(id, label string) js.Value {
 		}
 		return nil
 	}))
-	chStack := stackKnobs(makeSelectorKnob(sel), makeKnob(lvl, lvlNum, true, false, false))
+	chStack := stackKnobs(selk.makeSelectorKnob(sel), makeKnob(lvl, lvlNum, true, false, false))
 	addSelectorLabels(chStack, []string{"off", "st", "L", "R"}, sel)
 
 	mod := dom.Doc.Call("createElement", "div")
@@ -474,7 +474,7 @@ func makeEQStrip(id string) js.Value {
 	stop := dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
 		if dragging {
 			dragging = false
-			syncPermalinkNow()
+			perma.syncPermalinkNow()
 		}
 		return nil
 	})

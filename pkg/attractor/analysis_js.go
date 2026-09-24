@@ -29,14 +29,17 @@ import (
 // parameter is edited, both of which change the answer, and does so on a
 // short delay so dragging a knob does not queue a run per pixel.
 
-var (
-	lyapLEDEl    js.Value
-	lyapVerdEl   js.Value
-	lyapOn       bool
-	lyapPending  bool   // a re-measure is scheduled
-	lyapLastMode string // what the displayed number belongs to
-	lyapTimer    js.Value
-)
+// lyapunovProbe is the Analysis module's on-demand Lyapunov measurement.
+type lyapunovProbe struct {
+	ledEl    js.Value
+	verdEl   js.Value
+	on       bool
+	pending  bool   // a re-measure is scheduled
+	lastMode string // what the displayed number belongs to
+	timer    js.Value
+}
+
+var lyap lyapunovProbe
 
 // analysisModuleVisible shows or hides the module.
 func analysisModuleVisible(on bool) {
@@ -49,21 +52,21 @@ func analysisModuleVisible(on bool) {
 	}
 }
 
-func wireAnalysisModule() {
-	lyapLEDEl = dom.Doc.Call("getElementById", "lyap-led")
-	lyapVerdEl = dom.Doc.Call("getElementById", "lyap-verdict")
+func (l *lyapunovProbe) wireAnalysisModule() {
+	l.ledEl = dom.Doc.Call("getElementById", "lyap-led")
+	l.verdEl = dom.Doc.Call("getElementById", "lyap-verdict")
 	// Always in the rack. The Console's module switches are gone, so there is
 	// no state in which this module is absent, and the flag that used to mean
 	// "switched in" is simply true. It is SET rather than the module's setter
 	// being called: the setter is the switch's behavior — it opens an audio
 	// graph and takes a context lease — and booting must not do that. What
 	// the module DOES is its own transport control.
-	lyapOn = true
+	l.on = true
 	analysisModuleVisible(true)
-	scheduleLyapunov(0)
+	l.scheduleLyapunov(0)
 	if btn := dom.Doc.Call("getElementById", "lyap-remeasure"); btn.Truthy() {
 		btn.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) interface{} {
-			scheduleLyapunov(0)
+			l.scheduleLyapunov(0)
 			return nil
 		}))
 	}
@@ -73,46 +76,46 @@ func wireAnalysisModule() {
 // timer so the click that asked for it can finish painting first: the run
 // blocks the single wasm thread, and a button that appears to hang while it
 // works looks broken even when it is only busy.
-func scheduleLyapunov(delayMs int) {
-	if !lyapOn {
+func (l *lyapunovProbe) scheduleLyapunov(delayMs int) {
+	if !l.on {
 		return
 	}
-	if lyapPending && lyapTimer.Truthy() {
-		js.Global().Call("clearTimeout", lyapTimer)
+	if l.pending && l.timer.Truthy() {
+		js.Global().Call("clearTimeout", l.timer)
 	}
-	lyapPending = true
-	showLyapunov("measuring…", "", false)
+	l.pending = true
+	l.showLyapunov("measuring…", "", false)
 	if delayMs < 30 {
 		delayMs = 30
 	}
-	lyapTimer = js.Global().Call("setTimeout", dom.FuncOf(func(js.Value, []js.Value) interface{} {
-		lyapPending = false
-		runLyapunov()
+	l.timer = js.Global().Call("setTimeout", dom.FuncOf(func(js.Value, []js.Value) interface{} {
+		l.pending = false
+		l.runLyapunov()
 		return nil
 	}), delayMs)
 }
 
 // runLyapunov measures the current mode and paints the result.
-func runLyapunov() {
+func (l *lyapunovProbe) runLyapunov() {
 	mode := selectedMode
-	lyapLastMode = mode
+	l.lastMode = mode
 	r := analysis.LyapunovFor(mode)
 	if r.Verdict == "n/a" {
 		// Not a dynamical system. Saying so is the honest readout; printing
 		// 0.0000 beside a dodecahedron would be a category error with a
 		// decimal point.
-		showLyapunov("  --.--", "no dynamics", false)
+		l.showLyapunov("  --.--", "no dynamics", false)
 		return
 	}
 	if !r.OK {
-		showLyapunov("  --.--", r.Verdict, false)
+		l.showLyapunov("  --.--", r.Verdict, false)
 		return
 	}
 	unit := "/t"
 	if r.PerStep {
 		unit = "/n" // per iterate: a map has no dt, so per-time is meaningless
 	}
-	showLyapunov(formatLyap(r.Lambda)+unit, r.Verdict, r.Verdict == "chaotic")
+	l.showLyapunov(formatLyap(r.Lambda)+unit, r.Verdict, r.Verdict == "chaotic")
 }
 
 // formatLyap renders the exponent at a fixed width so the readout does not
@@ -128,13 +131,13 @@ func formatLyap(v float64) string {
 	return s
 }
 
-func showLyapunov(val, verdict string, chaotic bool) {
-	if lyapLEDEl.Truthy() {
-		lyapLEDEl.Set("textContent", val)
+func (l *lyapunovProbe) showLyapunov(val, verdict string, chaotic bool) {
+	if l.ledEl.Truthy() {
+		l.ledEl.Set("textContent", val)
 	}
-	if lyapVerdEl.Truthy() {
-		lyapVerdEl.Set("textContent", verdict)
-		cl := lyapVerdEl.Get("classList")
+	if l.verdEl.Truthy() {
+		l.verdEl.Set("textContent", verdict)
+		cl := l.verdEl.Get("classList")
 		if cl.Truthy() {
 			if chaotic {
 				cl.Call("add", "lyap-chaotic")
@@ -148,20 +151,20 @@ func showLyapunov(val, verdict string, chaotic bool) {
 // syncAnalysisModule runs on every panel rebuild: a mode change or a
 // parameter edit both invalidate the displayed number, because both change
 // the system being measured.
-func syncAnalysisModule(mode string) {
-	if !lyapOn {
+func (l *lyapunovProbe) syncAnalysisModule(mode string) {
+	if !l.on {
 		return
 	}
-	if mode != lyapLastMode {
-		scheduleLyapunov(120)
+	if mode != l.lastMode {
+		l.scheduleLyapunov(120)
 	}
 }
 
 // lyapInvalidate is the parameter-edit path: the exponent belongs to the
 // coefficients that produced it, so an edited knob makes it stale. Debounced
 // generously — a knob drag fires this continuously.
-func lyapInvalidate() {
-	if lyapOn {
-		scheduleLyapunov(400)
+func (l *lyapunovProbe) invalidate() {
+	if l.on {
+		l.scheduleLyapunov(400)
 	}
 }

@@ -32,14 +32,18 @@ import (
 	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
-var (
-	regionOn      bool
-	regionLayer   js.Value // takes pointer events while selecting
-	regionOutline js.Value // shows the chosen area
-	regionDrag    bool
-	regionX0      float64
-	regionY0      float64
-)
+// regionPicker is choosing the part of the canvas to record, by dragging on
+// it.
+type regionPicker struct {
+	on      bool
+	layer   js.Value // takes pointer events while selecting
+	outline js.Value // shows the chosen area
+	drag    bool
+	x0      float64
+	y0      float64
+}
+
+var region regionPicker
 
 // wireRegionSwitch turns selection mode on and off.
 func wireRegionSwitch() {
@@ -49,17 +53,17 @@ func wireRegionSwitch() {
 	}
 	sw.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, _ []js.Value) interface{} {
 		if this.Get("checked").Bool() {
-			startRegionSelect()
+			region.startRegionSelect()
 		} else {
-			stopRegionSelect()
+			region.stopRegionSelect()
 		}
 		return nil
 	}))
 	// The outline is placed from the stored region, so it has to be re-placed
 	// whenever the canvas moves or changes size under it.
 	js.Global().Call("addEventListener", "resize", dom.FuncOf(func(js.Value, []js.Value) interface{} {
-		placeRegionOutline()
-		placeRegionLayer()
+		region.placeRegionOutline()
+		region.placeRegionLayer()
 		return nil
 	}))
 }
@@ -77,16 +81,16 @@ func canvasScale(canvas js.Value) (sx, sy float64, rect js.Value) {
 	return canvas.Get("width").Float() / w, canvas.Get("height").Float() / h, rect
 }
 
-func startRegionSelect() {
+func (re *regionPicker) startRegionSelect() {
 	canvas := modelCanvas()
 	if !canvas.Truthy() {
 		return
 	}
-	regionOn = true
-	ensureRegionLayer()
-	placeRegionLayer()
-	regionLayer.Get("style").Set("display", "block")
-	placeRegionOutline()
+	re.on = true
+	re.ensureRegionLayer()
+	re.placeRegionLayer()
+	re.layer.Get("style").Set("display", "block")
+	re.placeRegionOutline()
 }
 
 // stopRegionSelect ends region recording: the switch off means the whole
@@ -97,13 +101,13 @@ func startRegionSelect() {
 // (see disarmRegionLayer) while the switch stays on and the outline stays up.
 // Leaving the region set after the switch was turned off would mean a later
 // recording silently came out cropped to something no longer on screen.
-func stopRegionSelect() {
-	regionOn = false
-	regionDrag = false
-	disarmRegionLayer()
+func (re *regionPicker) stopRegionSelect() {
+	re.on = false
+	re.drag = false
+	re.disarmRegionLayer()
 	recRegion.x, recRegion.y, recRegion.w, recRegion.h = 0, 0, 0, 0
-	if regionOutline.Truthy() {
-		regionOutline.Get("style").Set("display", "none")
+	if re.outline.Truthy() {
+		re.outline.Get("style").Set("display", "none")
 	}
 }
 
@@ -111,36 +115,36 @@ func stopRegionSelect() {
 // back. Called as soon as a selection is made: holding the pointer hostage for
 // as long as the region is set would mean choosing between seeing the region
 // and moving the model.
-func disarmRegionLayer() {
-	if regionLayer.Truthy() {
-		regionLayer.Get("style").Set("display", "none")
+func (re *regionPicker) disarmRegionLayer() {
+	if re.layer.Truthy() {
+		re.layer.Get("style").Set("display", "none")
 	}
 }
 
 // ensureRegionLayer builds the capture layer and the outline once.
-func ensureRegionLayer() {
-	if !regionLayer.Truthy() {
-		regionLayer = dom.Doc.Call("createElement", "div")
-		regionLayer.Set("id", "rec-region-layer")
-		regionLayer.Get("style").Set("cssText",
+func (re *regionPicker) ensureRegionLayer() {
+	if !re.layer.Truthy() {
+		re.layer = dom.Doc.Call("createElement", "div")
+		re.layer.Set("id", "rec-region-layer")
+		re.layer.Get("style").Set("cssText",
 			"position:fixed;z-index:var(--z-grip);cursor:crosshair;display:none;"+
 				"touch-action:none;background:rgba(0,0,0,0.12);")
-		dom.Body.Call("appendChild", regionLayer)
-		wireRegionDrag()
+		dom.Body.Call("appendChild", re.layer)
+		re.wireRegionDrag()
 	}
-	if !regionOutline.Truthy() {
-		regionOutline = dom.Doc.Call("createElement", "div")
-		regionOutline.Set("id", "rec-region-outline")
-		regionOutline.Get("style").Set("cssText",
+	if !re.outline.Truthy() {
+		re.outline = dom.Doc.Call("createElement", "div")
+		re.outline.Set("id", "rec-region-outline")
+		re.outline.Get("style").Set("cssText",
 			"position:fixed;z-index:var(--z-grip);pointer-events:none;display:none;"+
 				"border:1px dashed #6cf;box-shadow:0 0 0 9999px rgba(0,0,0,0.35);")
-		dom.Body.Call("appendChild", regionOutline)
+		dom.Body.Call("appendChild", re.outline)
 	}
 }
 
 // placeRegionLayer lays the capture layer exactly over the canvas.
-func placeRegionLayer() {
-	if !regionLayer.Truthy() {
+func (re *regionPicker) placeRegionLayer() {
+	if !re.layer.Truthy() {
 		return
 	}
 	canvas := modelCanvas()
@@ -148,7 +152,7 @@ func placeRegionLayer() {
 		return
 	}
 	r := canvas.Call("getBoundingClientRect")
-	st := regionLayer.Get("style")
+	st := re.layer.Get("style")
 	st.Set("left", pxStr(r.Get("left").Float()))
 	st.Set("top", pxStr(r.Get("top").Float()))
 	st.Set("width", pxStr(r.Get("width").Float()))
@@ -157,12 +161,12 @@ func placeRegionLayer() {
 
 // placeRegionOutline draws the stored region, converting back from canvas
 // pixels to where it appears on screen.
-func placeRegionOutline() {
-	if !regionOutline.Truthy() {
+func (re *regionPicker) placeRegionOutline() {
+	if !re.outline.Truthy() {
 		return
 	}
 	if recRegion.w <= 1 || recRegion.h <= 1 {
-		regionOutline.Get("style").Set("display", "none")
+		re.outline.Get("style").Set("display", "none")
 		return
 	}
 	canvas := modelCanvas()
@@ -170,7 +174,7 @@ func placeRegionOutline() {
 		return
 	}
 	sx, sy, r := canvasScale(canvas)
-	st := regionOutline.Get("style")
+	st := re.outline.Get("style")
 	st.Set("display", "block")
 	st.Set("left", pxStr(r.Get("left").Float()+recRegion.x/sx))
 	st.Set("top", pxStr(r.Get("top").Float()+recRegion.y/sy))
@@ -178,41 +182,41 @@ func placeRegionOutline() {
 	st.Set("height", pxStr(recRegion.h/sy))
 }
 
-func wireRegionDrag() {
-	regionLayer.Call("addEventListener", "pointerdown", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
-		if len(a) == 0 || !regionOn {
+func (re *regionPicker) wireRegionDrag() {
+	re.layer.Call("addEventListener", "pointerdown", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+		if len(a) == 0 || !re.on {
 			return nil
 		}
 		e := a[0]
 		e.Call("preventDefault")
-		regionDrag = true
-		regionX0, regionY0 = e.Get("clientX").Float(), e.Get("clientY").Float()
+		re.drag = true
+		re.x0, re.y0 = e.Get("clientX").Float(), e.Get("clientY").Float()
 		// Captured on the layer so a drag that leaves the canvas still steers,
 		// and so the release is heard wherever it happens.
-		if regionLayer.Get("setPointerCapture").Type() == js.TypeFunction {
-			regionLayer.Call("setPointerCapture", e.Get("pointerId"))
+		if re.layer.Get("setPointerCapture").Type() == js.TypeFunction {
+			re.layer.Call("setPointerCapture", e.Get("pointerId"))
 		}
-		setRegionFrom(regionX0, regionY0, regionX0, regionY0)
+		setRegionFrom(re.x0, re.y0, re.x0, re.y0)
 		return nil
 	}))
-	regionLayer.Call("addEventListener", "pointermove", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
-		if !regionDrag || len(a) == 0 {
+	re.layer.Call("addEventListener", "pointermove", dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+		if !re.drag || len(a) == 0 {
 			return nil
 		}
 		e := a[0]
-		setRegionFrom(regionX0, regionY0, e.Get("clientX").Float(), e.Get("clientY").Float())
+		setRegionFrom(re.x0, re.y0, e.Get("clientX").Float(), e.Get("clientY").Float())
 		return nil
 	}))
 	for _, ev := range []string{"pointerup", "pointercancel"} {
-		regionLayer.Call("addEventListener", ev, dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
-			if !regionDrag {
+		re.layer.Call("addEventListener", ev, dom.FuncOf(func(_ js.Value, a []js.Value) interface{} {
+			if !re.drag {
 				return nil
 			}
-			regionDrag = false
-			if len(a) > 0 && regionLayer.Get("releasePointerCapture").Type() == js.TypeFunction {
+			re.drag = false
+			if len(a) > 0 && re.layer.Get("releasePointerCapture").Type() == js.TypeFunction {
 				id := a[0].Get("pointerId")
-				if regionLayer.Call("hasPointerCapture", id).Bool() {
-					regionLayer.Call("releasePointerCapture", id)
+				if re.layer.Call("hasPointerCapture", id).Bool() {
+					re.layer.Call("releasePointerCapture", id)
 				}
 			}
 			// A click with no drag means the whole canvas, and leaves the layer
@@ -220,14 +224,14 @@ func wireRegionDrag() {
 			// misclick disarms and the region has to be re-armed to try again.
 			if recRegion.w <= 4 || recRegion.h <= 4 {
 				recRegion.x, recRegion.y, recRegion.w, recRegion.h = 0, 0, 0, 0
-				placeRegionOutline()
+				re.placeRegionOutline()
 				return nil
 			}
 			// A real selection: show it and hand the pointer back to the canvas.
 			// Re-selecting is turning the switch off and on again, which also
 			// says plainly that the old region is gone.
-			placeRegionOutline()
-			disarmRegionLayer()
+			re.placeRegionOutline()
+			re.disarmRegionLayer()
 			return nil
 		}))
 	}
@@ -264,7 +268,7 @@ func setRegionFrom(x0, y0, x1, y1 float64) {
 
 	recRegion.x, recRegion.y = cx0, cy0
 	recRegion.w, recRegion.h = cx1-cx0, cy1-cy0
-	placeRegionOutline()
+	region.placeRegionOutline()
 }
 
 func clampPx(v, hi float64) float64 {

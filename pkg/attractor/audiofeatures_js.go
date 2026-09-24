@@ -23,32 +23,48 @@ import (
 // Feature names: amp,bass,mid,treble,centroid,beat (mono mix) and the
 // L-/R- prefixed per-channel variants (beat is mono only).
 
+// audioFeatures is the audio-feature analysis that modulates the attractors:
+// its windows, its spectra and the features it extracts.
+type audioFeatures struct {
+	windowL   []float32
+	windowR   []float32
+	magsL     []float64          // persistent copy of the left-channel magnitudes
+	prevMix   []float64          // previous mixed magnitudes, for onset flux
+	feat      map[string]float32 // smoothed feature values
+	peak      map[string]float32 // adaptive normalization peaks
+	overlay   js.Value
+	meterFill [6]js.Value
+	frameCnt  int
+
+	// band holds the current smoothed, adaptively-normalized band energies per
+	// channel ("mono","L","R"), each a []float32 of length numEQBands in 0..1.
+	band map[string][]float32
+
+	// monoScratch is reused by the per-frame mono band mix.
+	monoScratch []float32
+}
+
+var af = audioFeatures{
+	feat:        map[string]float32{},
+	peak:        map[string]float32{},
+	band:        map[string][]float32{},
+	monoScratch: make([]float32, numEQBands),
+}
+
 var (
 	audioMod bool
-
-	afWindowL []float32
-	afWindowR []float32
-	afMagsL   []float64 // persistent copy of the left-channel magnitudes
-	afPrevMix []float64 // previous mixed magnitudes, for onset flux
-
-	afFeat = map[string]float32{} // smoothed feature values
-	afPeak = map[string]float32{} // adaptive normalization peaks
-
-	afOverlay   js.Value
-	afMeterFill [6]js.Value
-	afFrameCnt  int
 )
 
 // afNormMap scales x by an adaptive per-key peak (instant rise, slow
 // decay) → a level-independent 0..1 value.
-func afNormMap(key string, x float32) float32 {
-	p := afPeak[key]
+func (a *audioFeatures) normMap(key string, x float32) float32 {
+	p := a.peak[key]
 	if x > p {
 		p = x
 	} else {
 		p *= 0.9995
 	}
-	afPeak[key] = p
+	a.peak[key] = p
 	if p < 1e-9 {
 		return 0
 	}
@@ -82,10 +98,6 @@ func clamp01(x float32) float32 {
 // source: the spectrum is split into this many log-spaced bands (low→high).
 const numEQBands = 8
 
-// afBand holds the current smoothed, adaptively-normalized band energies per
-// channel ("mono","L","R"), each a []float32 of length numEQBands in 0..1.
-var afBand = map[string][]float32{}
-
 // afEQKeys precomputes the adaptive-normalization map keys per channel/band so
 // the per-frame band update doesn't build 3×numEQBands strings every frame.
 var afEQKeys = func() map[string][]string {
@@ -99,9 +111,6 @@ var afEQKeys = func() map[string][]string {
 	}
 	return m
 }()
-
-// afMonoScratch is reused by the per-frame mono band mix.
-var afMonoScratch = make([]float32, numEQBands)
 
 // computeBands sums FFT magnitudes into numEQBands log-spaced frequency bands
 // (≈30 Hz → Nyquist).
@@ -131,7 +140,7 @@ func computeBands(mags []float64, sr int) []float32 {
 // eqModValue returns the graphic-EQ modulation signal (0..1) for a channel
 // and band-weight curve: the weight-normalized average of the channel's band
 // energies. Empty channel or all-zero weights → 0 (unrouted).
-func eqModValue(channel string, weights []float32) float32 {
+func (a *audioFeatures) eqModValue(channel string, weights []float32) float32 {
 	if channel == "" {
 		return 0
 	}
@@ -142,7 +151,7 @@ func eqModValue(channel string, weights []float32) float32 {
 	if isModelModSource(channel) {
 		return modelModValue(channel)
 	}
-	bands := afBand[channel]
+	bands := a.band[channel]
 	if len(bands) == 0 {
 		return 0
 	}
@@ -211,34 +220,34 @@ func rmsOf(w []float32) float32 {
 
 // updateAudioFeatures refreshes all features. Cheap (two FFTs/frame). No-op
 // unless Audio mod is on and the source is delivering samples.
-func updateAudioFeatures() {
+func (a *audioFeatures) updateAudioFeatures() {
 	if !audioMod {
 		return
 	}
-	src := ensureAudioSource()
+	src := aud.ensureAudioSource()
 	if src == nil || !src.Ready() {
 		return
 	}
-	if afWindowL == nil {
-		afWindowL = make([]float32, sg.FFTSize)
-		afWindowR = make([]float32, sg.FFTSize)
+	if a.windowL == nil {
+		a.windowL = make([]float32, sg.FFTSize)
+		a.windowR = make([]float32, sg.FFTSize)
 	}
-	src.TimeDomainStereo(afWindowL, afWindowR)
+	src.TimeDomainStereo(a.windowL, a.windowR)
 	sr := 24000
 	if src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
 
-	setNorm := func(name string, raw float32) { afFeat[name] = afSmooth(afFeat[name], afNormMap(name, raw)) }
-	setRaw := func(name string, val float32) { afFeat[name] = afSmooth(afFeat[name], clamp01(val)) }
+	setNorm := func(name string, raw float32) { a.feat[name] = afSmooth(a.feat[name], a.normMap(name, raw)) }
+	setRaw := func(name string, val float32) { a.feat[name] = afSmooth(a.feat[name], clamp01(val)) }
 
 	// The local FFT returns a shared scratch, and both channels stay live
 	// through the stereo-mix loop below — persist L into its own buffer.
-	if afMagsL == nil {
-		afMagsL = make([]float64, sg.FFTSize/2+1)
+	if a.magsL == nil {
+		a.magsL = make([]float64, sg.FFTSize/2+1)
 	}
-	magsL := afMagsL[:copy(afMagsL, meters.ComputeFFTMags(afWindowL))]
-	magsR := meters.ComputeFFTMags(afWindowR)
+	magsL := a.magsL[:copy(a.magsL, meters.ComputeFFTMags(a.windowL))]
+	magsR := meters.ComputeFFTMags(a.windowR)
 	bL, mL, tL, cL := bandEnergies(magsL, sr)
 	bR, mR, tR, cR := bandEnergies(magsR, sr)
 
@@ -246,23 +255,23 @@ func updateAudioFeatures() {
 	rawL := computeBands(magsL, sr)
 	rawR := computeBands(magsR, sr)
 	storeBands := func(ch string, raw []float32) {
-		cur := afBand[ch]
+		cur := a.band[ch]
 		if cur == nil {
 			cur = make([]float32, numEQBands)
-			afBand[ch] = cur
+			a.band[ch] = cur
 		}
 		keys := afEQKeys[ch]
 		for i := 0; i < numEQBands; i++ {
-			cur[i] = afSmooth(cur[i], afNormMap(keys[i], raw[i]))
+			cur[i] = afSmooth(cur[i], a.normMap(keys[i], raw[i]))
 		}
 	}
 	storeBands("L", rawL)
 	storeBands("R", rawR)
-	for i := range afMonoScratch {
-		afMonoScratch[i] = (rawL[i] + rawR[i]) / 2
+	for i := range a.monoScratch {
+		a.monoScratch[i] = (rawL[i] + rawR[i]) / 2
 	}
-	storeBands("mono", afMonoScratch)
-	rL, rR := rmsOf(afWindowL), rmsOf(afWindowR)
+	storeBands("mono", a.monoScratch)
+	rL, rR := rmsOf(a.windowL), rmsOf(a.windowR)
 
 	setNorm("L-amp", rL)
 	setNorm("R-amp", rR)
@@ -288,23 +297,23 @@ func updateAudioFeatures() {
 	if n > len(magsR) {
 		n = len(magsR)
 	}
-	if afPrevMix == nil {
-		afPrevMix = make([]float64, n)
+	if a.prevMix == nil {
+		a.prevMix = make([]float64, n)
 	}
 	for i := 0; i < n; i++ {
 		mix := (magsL[i] + magsR[i]) / 2
-		if d := mix - afPrevMix[i]; d > 0 {
+		if d := mix - a.prevMix[i]; d > 0 {
 			flux += d
 		}
-		afPrevMix[i] = mix
+		a.prevMix[i] = mix
 	}
-	if afNormMap("_flux", float32(flux)) > 0.55 && afFeat["beat"] < 0.35 {
-		afFeat["beat"] = 1
+	if a.normMap("_flux", float32(flux)) > 0.55 && a.feat["beat"] < 0.35 {
+		a.feat["beat"] = 1
 	} else {
-		afFeat["beat"] *= 0.86
+		a.feat["beat"] *= 0.86
 	}
 
-	updateAudioMeters()
+	a.updateAudioMeters()
 }
 
 // setAudioMod toggles the feature layer + per-parameter modulation. When
@@ -313,11 +322,11 @@ func updateAudioFeatures() {
 func setAudioMod(on bool) {
 	audioMod = on
 	if on {
-		ensureAudioSource()
+		aud.ensureAudioSource()
 	} else {
 		resetAttractorState()
 	}
-	updateMetersVisibility()
+	af.updateMetersVisibility()
 	// Show/hide the adjacent Modulation module (no param rebuild → the param
 	// knobs never move; a whole module just appears/disappears beside them).
 	if panel := dom.Doc.Call("getElementById", "controls-panel"); panel.Truthy() {
@@ -340,22 +349,22 @@ var metersEnabled = true
 
 // updateMetersVisibility shows the top-left feature meters iff Audio mod is on
 // and the Meters switch is enabled; otherwise hides them.
-func updateMetersVisibility() {
+func (a *audioFeatures) updateMetersVisibility() {
 	if audioMod && metersEnabled {
-		showAudioMeters()
-	} else if afOverlay.Truthy() {
-		afOverlay.Get("style").Set("display", "none")
+		a.showAudioMeters()
+	} else if a.overlay.Truthy() {
+		a.overlay.Get("style").Set("display", "none")
 	}
 }
 
 // showAudioMeters builds (once) a small top-left overlay of the mono
 // feature bars.
-func showAudioMeters() {
-	if !afOverlay.Truthy() {
+func (a *audioFeatures) showAudioMeters() {
+	if !a.overlay.Truthy() {
 		labels := [6]string{"amp", "bass", "mid", "treble", "cntr", "beat"}
-		afOverlay = dom.Doc.Call("createElement", "div")
-		afOverlay.Set("id", "audio-meters")
-		st := afOverlay.Get("style")
+		a.overlay = dom.Doc.Call("createElement", "div")
+		a.overlay.Set("id", "audio-meters")
+		st := a.overlay.Get("style")
 		st.Set("position", "fixed")
 		st.Set("top", "8px")
 		st.Set("left", "8px")
@@ -385,27 +394,27 @@ func showAudioMeters() {
 			track.Call("appendChild", fill)
 			row.Call("appendChild", name)
 			row.Call("appendChild", track)
-			afOverlay.Call("appendChild", row)
-			afMeterFill[i] = fill
+			a.overlay.Call("appendChild", row)
+			a.meterFill[i] = fill
 		}
-		dom.Body.Call("appendChild", afOverlay)
+		dom.Body.Call("appendChild", a.overlay)
 	}
-	afOverlay.Get("style").Set("display", "block")
-	positionAudioMeters() // keep clear of a left/top-docked control panel
+	a.overlay.Get("style").Set("display", "block")
+	layout.positionAudioMeters() // keep clear of a left/top-docked control panel
 }
 
-func updateAudioMeters() {
-	if !afOverlay.Truthy() {
+func (a *audioFeatures) updateAudioMeters() {
+	if !a.overlay.Truthy() {
 		return
 	}
-	afFrameCnt++
-	if afFrameCnt%6 != 0 {
+	a.frameCnt++
+	if a.frameCnt%6 != 0 {
 		return
 	}
 	names := [6]string{"amp", "bass", "mid", "treble", "centroid", "beat"}
 	for i, nm := range names {
-		if afMeterFill[i].Truthy() {
-			afMeterFill[i].Get("style").Set("width", strconv.FormatFloat(float64(afFeat[nm]*100), 'f', 0, 64)+"%")
+		if a.meterFill[i].Truthy() {
+			a.meterFill[i].Get("style").Set("width", strconv.FormatFloat(float64(a.feat[nm]*100), 'f', 0, 64)+"%")
 		}
 	}
 }

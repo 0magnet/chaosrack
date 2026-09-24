@@ -14,9 +14,9 @@ import (
 // Derived from rackspec rather than chosen, so the frame drawn on
 // screen and the one the spec describes cannot come apart.
 func TestTheFrameIsAWholeNineteenInchPanel(t *testing.T) {
-	saved := panelScale
-	t.Cleanup(func() { panelScale = saved })
-	panelScale = 1
+	saved := layout.scale
+	t.Cleanup(func() { layout.scale = saved })
+	layout.scale = 1
 
 	opening := rackspec.RowHP * rackspec.HP * rackspec.PxPerMM
 	got := unitFrameWidthPx()
@@ -30,7 +30,7 @@ func TestTheFrameIsAWholeNineteenInchPanel(t *testing.T) {
 	}
 	// And it scales with the interface, or the frame stops matching the
 	// modules in it the moment the Size ring moves.
-	panelScale = 2
+	layout.scale = 2
 	if d := unitFrameWidthPx() - 2*got; math.Abs(d) > 0.01 {
 		t.Errorf("at scale 2 the frame is %v, want twice %v", unitFrameWidthPx(), got)
 	}

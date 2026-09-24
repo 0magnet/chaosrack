@@ -522,7 +522,7 @@ func layoutSkirtsFast(h js.Value) bool {
 			}
 			room := 0.0
 			if d.CellW > 0 {
-				room = (d.CellW - d.Pad + skirtCellGapPx*panelScale) / 2
+				room = (d.CellW - d.Pad + skirtCellGapPx*layout.scale) / 2
 			}
 			if room > 0 {
 				room -= gap
@@ -530,7 +530,7 @@ func layoutSkirtsFast(h js.Value) bool {
 			useGrip, scale := skirt.Fit(clear, minGrip, gap, room, labs)
 			if scale < 1 {
 				labs = skirt.ScaleLabels(labs, scale)
-				dw.Font = pxStr(skirtLabelBasePx * panelScale * scale)
+				dw.Font = pxStr(skirtLabelBasePx * layout.scale * scale)
 			}
 			if useGrip < clear && useGrip > 0 {
 				dw.Box = "" // set below; the grip is the stack's, not the dial's

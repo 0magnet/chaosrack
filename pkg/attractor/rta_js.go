@@ -41,43 +41,53 @@ const (
 	rtaPeriodMs = 160
 )
 
-var (
-	rtaCursor = tapUnjoined
-	rtaBuf    []float32
-	rtaFill   int
-	rtaNextMs float64
-	rtaBands  []acoustics.RTABand
-	rtaLevels []float64 // this analysis
-	rtaHeld   []float64 // after the meter ballistics
-	rtaPeaks  []float64
-	rtaLastB  int
+// rtaMode is the RTA mode: the band levels and peaks, the window it reads,
+// and its knobs.
+type rtaMode struct {
+	cursor int
+	buf    []float32
+	fill   int
+	nextMs float64
+	bands  []acoustics.RTABand
+	levels []float64 // this analysis
+	held   []float64 // after the meter ballistics
+	peaks  []float64
+	lastB  int
 
 	// The knobs.
-	rtaFracF  float32 = 1  // index into acoustics.RTAFractions; 1 is third-octave
-	rtaChanF  float32      // which signal
-	rtaRangeF float32 = 70 // dB shown from the top of the scale down
-	rtaTopF   float32      // dBFS at the top of the display
-	rtaAvgF   float32 = 3  // averaging, 0 = none
-	rtaHoldF  float32 = 1  // peak hold: 0 off, else decay in dB/s
-)
+	fracF  float32 // index into acoustics.RTAFractions; 1 is third-octave
+	chanF  float32 // which signal
+	rangeF float32 // dB shown from the top of the scale down
+	topF   float32 // dBFS at the top of the display
+	avgF   float32 // averaging, 0 = none
+	holdF  float32 // peak hold: 0 off, else decay in dB/s
+}
+
+var rta = rtaMode{
+	cursor: tapUnjoined,
+	fracF:  1,
+	rangeF: 70,
+	avgF:   3,
+	holdF:  1,
+}
 
 func init() {
 	registerGenerate("rta", generateRTA)
 	attractorParams["rta"] = []paramDef{
-		{"rta-frac", "band", &rtaFracF, 1, 0, float32(len(acoustics.RTAFractions) - 1), 1},
-		{"rta-chan", "src", &rtaChanF, 0, 0, float32(len(tapChanNames) - 1), 1},
-		{"rta-top", "top", &rtaTopF, 0, -60, 20, 1},
-		{"rta-range", "rnge", &rtaRangeF, 70, 20, 120, 5},
-		{"rta-avg", "avg", &rtaAvgF, 3, 0, 10, 1},
-		{"rta-hold", "hold", &rtaHoldF, 1, 0, 40, 1},
+		{"rta-frac", "band", &rta.fracF, 1, 0, float32(len(acoustics.RTAFractions) - 1), 1},
+		{"rta-chan", "src", &rta.chanF, 0, 0, float32(len(tapChanNames) - 1), 1},
+		{"rta-top", "top", &rta.topF, 0, -60, 20, 1},
+		{"rta-range", "rnge", &rta.rangeF, 70, 20, 120, 5},
+		{"rta-avg", "avg", &rta.avgF, 3, 0, 10, 1},
+		{"rta-hold", "hold", &rta.holdF, 1, 0, 40, 1},
 	}
 }
 
 // rtaFraction is the band-width knob as a 1/b, clamped. Audio modulation can
 // drive any registered parameter, so the value arriving is not necessarily a
 // detent, and the range is checked before the conversion (stereoAxisSel's trap).
-func rtaFraction() int {
-	v := rtaFracF
+func (r *rtaMode) fraction() int {
+	v := r.fracF
 	if !(v > 0) { // false for NaN
 		return acoustics.RTAFractions[0]
 	}
@@ -89,93 +99,93 @@ func rtaFraction() int {
 }
 
 // rtaAnalyze drains the tap and runs the FFT when its period is up.
-func rtaAnalyze(nowMs float64) {
-	b := rtaFraction()
-	if b != rtaLastB || rtaBands == nil {
-		rtaLastB = b
-		rtaBands = acoustics.RTABands(b)
-		rtaLevels = make([]float64, len(rtaBands))
-		rtaHeld = make([]float64, len(rtaBands))
-		rtaPeaks = make([]float64, len(rtaBands))
-		for i := range rtaHeld {
-			rtaHeld[i] = acoustics.RTAFloorDB
-			rtaPeaks[i] = acoustics.RTAFloorDB
+func (r *rtaMode) analyze(nowMs float64) {
+	b := r.fraction()
+	if b != r.lastB || r.bands == nil {
+		r.lastB = b
+		r.bands = acoustics.RTABands(b)
+		r.levels = make([]float64, len(r.bands))
+		r.held = make([]float64, len(r.bands))
+		r.peaks = make([]float64, len(r.bands))
+		for i := range r.held {
+			r.held[i] = acoustics.RTAFloorDB
+			r.peaks[i] = acoustics.RTAFloorDB
 		}
 	}
-	if rtaBuf == nil {
-		rtaBuf = make([]float32, rtaFFT)
+	if r.buf == nil {
+		r.buf = make([]float32, rtaFFT)
 	}
 	var scratch [4096]float32
-	ch := tapChanSel(rtaChanF)
+	ch := tapChanSel(r.chanF)
 	for {
-		n := tapReadChan(&rtaCursor, scratch[:], ch)
+		n := tap.readChan(&r.cursor, scratch[:], ch)
 		if n <= 0 {
 			break
 		}
 		if n >= rtaFFT {
-			copy(rtaBuf, scratch[n-rtaFFT:n])
-			rtaFill = rtaFFT
+			copy(r.buf, scratch[n-rtaFFT:n])
+			r.fill = rtaFFT
 		} else {
-			copy(rtaBuf, rtaBuf[n:])
-			copy(rtaBuf[rtaFFT-n:], scratch[:n])
-			if rtaFill += n; rtaFill > rtaFFT {
-				rtaFill = rtaFFT
+			copy(r.buf, r.buf[n:])
+			copy(r.buf[rtaFFT-n:], scratch[:n])
+			if r.fill += n; r.fill > rtaFFT {
+				r.fill = rtaFFT
 			}
 		}
 		if n < len(scratch) {
 			break
 		}
 	}
-	if rtaFill < rtaFFT || nowMs < rtaNextMs {
+	if r.fill < rtaFFT || nowMs < r.nextMs {
 		return
 	}
-	rtaNextMs = nowMs + rtaPeriodMs
-	acoustics.RTALevels(meters.ComputeFFTMagsKind(rtaBuf, acoustics.RTAWindowKind), rtaFFT, takensSourceRate(),
-		rtaBands, acoustics.RTAWindowKind, rtaLevels)
+	r.nextMs = nowMs + rtaPeriodMs
+	acoustics.RTALevels(meters.ComputeFFTMagsKind(r.buf, acoustics.RTAWindowKind), rtaFFT, takensSourceRate(),
+		r.bands, acoustics.RTAWindowKind, r.levels)
 }
 
 // rtaAdvance applies the meter ballistics, once a frame.
 //
 // Per frame rather than per analysis, so the bars move smoothly between
 // measurements — which is what makes a 6 Hz analysis look like a 60 Hz display.
-func rtaAdvance() {
-	if rtaHeld == nil {
+func (r *rtaMode) advance() {
+	if r.held == nil {
 		return
 	}
 	// AVG 0 is no smoothing at all: the bars show each analysis as it lands,
 	// which is the setting for watching a transient rather than reading a room.
 	rise, fall := 1.0, 1.0
-	if rtaAvgF > 0 {
+	if r.avgF > 0 {
 		// The knob is "how much", so it has to become a coefficient that gets
 		// SMALLER as the knob goes up. Rise stays quicker than fall, which is
 		// every level meter ever built: a peak that is there and gone inside one
 		// window still has to move the display, and a display that fell as fast
 		// would flicker at the frame rate.
-		a := float64(rtaAvgF)
+		a := float64(r.avgF)
 		rise = 1 / (1 + a*0.5)
 		fall = 1 / (1 + a*3)
 	}
-	acoustics.RTASmooth(rtaHeld, rtaLevels, rise, fall)
-	if rtaHoldF > 0 {
+	acoustics.RTASmooth(r.held, r.levels, rise, fall)
+	if r.holdF > 0 {
 		// The knob is dB per second; the decay is per frame.
-		acoustics.RTAPeakHold(rtaPeaks, rtaHeld, float64(rtaHoldF)/60)
+		acoustics.RTAPeakHold(r.peaks, r.held, float64(r.holdF)/60)
 	} else {
-		copy(rtaPeaks, rtaHeld)
+		copy(r.peaks, r.held)
 	}
 }
 
 // generateRTA is the mode's frame: analyze, advance, draw.
 func generateRTA() {
-	rtaAnalyze(frameNowMs)
-	rtaAdvance()
-	drawRTA()
+	rta.analyze(frameNowMs)
+	rta.advance()
+	rta.drawRTA()
 }
 
 // rtaY maps a level in dB to a clip-space y, with the top of the scale at the
 // top of the screen and the bottom of the range at the bottom.
-func rtaY(db float64) float32 {
-	top := float64(rtaTopF)
-	rng := float64(rtaRangeF)
+func (r *rtaMode) y(db float64) float32 {
+	top := float64(r.topF)
+	rng := float64(r.rangeF)
 	if rng < 1 {
 		rng = 1
 	}
@@ -198,36 +208,36 @@ func rtaY(db float64) float32 {
 // point rather than a redundancy: a row of bars is scanned for its SHAPE and a
 // color ramp is scanned for its outliers, and one loud band among thirty is
 // far more obvious as a color than as a height.
-func rtaBarColor(idx int, db float64) [3]float32 {
-	top := float64(rtaTopF)
-	rng := float64(rtaRangeF)
+func (r *rtaMode) barColor(idx int, db float64) [3]float32 {
+	top := float64(r.topF)
+	rng := float64(r.rangeF)
 	if rng < 1 {
 		rng = 1
 	}
 	return analyzerColorAt(idx, (db-(top-rng))/rng)
 }
 
-func drawRTA() {
-	initVColor()
-	n := len(rtaBands)
+func (r *rtaMode) drawRTA() {
+	vc.initVColor()
+	n := len(r.bands)
 	if n == 0 {
 		return
 	}
 	pal, colored := analyzerPalette()
 	flat := analyzerTraceColor()
 	// Two vertices per bar, plus two per peak mark.
-	vcFit(n * 4)
+	vc.fit(n * 4)
 	// Bars are spaced evenly across the screen rather than by frequency: the
 	// bands are already equal RATIOS, so equal widths is what puts a logarithmic
 	// frequency axis on the display. That is the whole visual point of a
 	// fractional-octave analyzer over a spectrogram's linear bins.
-	bottom := rtaY(acoustics.RTAFloorDB)
+	bottom := r.y(acoustics.RTAFloorDB)
 	v := 0
-	for i := range rtaBands {
+	for i := range r.bands {
 		x := float32(-0.9 + 1.8*(float64(i)+0.5)/float64(n))
 		c := flat
 		if colored {
-			c = rtaBarColor(pal, rtaHeld[i])
+			c = r.barColor(pal, r.held[i])
 		}
 		// The FOOT of the bar is drawn at the floor's color rather than the
 		// level's, so a colored bar is a gradient up its own height instead of
@@ -235,10 +245,10 @@ func drawRTA() {
 		// bar lit from its top, which is what the level is.
 		foot := c
 		if colored {
-			foot = rtaBarColor(pal, acoustics.RTAFloorDB)
+			foot = r.barColor(pal, acoustics.RTAFloorDB)
 		}
-		vcPut(v, x, bottom, foot)
-		vcPut(v+1, x, rtaY(rtaHeld[i]), c)
+		vc.put(v, x, bottom, foot)
+		vc.put(v+1, x, r.y(r.held[i]), c)
 		v += 2
 	}
 	barVerts := v
@@ -249,15 +259,15 @@ func drawRTA() {
 	// and thirty-one of them become one continuous line across the display that
 	// reads as a curve rather than as a per-band maximum.
 	half := float32(0.63 / float64(n))
-	for i := range rtaBands {
-		y := rtaY(rtaPeaks[i])
+	for i := range r.bands {
+		y := r.y(r.peaks[i])
 		x := float32(-0.9 + 1.8*(float64(i)+0.5)/float64(n))
 		c := flat
 		if colored {
-			c = rtaBarColor(pal, rtaPeaks[i])
+			c = r.barColor(pal, r.peaks[i])
 		}
-		vcPut(v, x-half, y, c)
-		vcPut(v+1, x+half, y, c)
+		vc.put(v, x-half, y, c)
+		vc.put(v+1, x+half, y, c)
 		v += 2
 	}
 	peakVerts := v - barVerts
@@ -270,14 +280,14 @@ func drawRTA() {
 
 	// The bars, widened the way the scope's trace is: WebGL cannot be relied on
 	// for lineWidth, so each is drawn several times at sub-pixel offsets.
-	vcUpload(v)
+	vc.upload(v)
 	dx := float32(1.0) / float32(gpu.width)
 	for k := -2; k <= 2; k++ {
-		vcSpan(glctx.Types.Lines, 0, barVerts, 0.5, float32(k)*dx, 0)
+		vc.span(glctx.Types.Lines, 0, barVerts, 0.5, float32(k)*dx, 0)
 	}
 	// The peak marks once and brighter: they are a held maximum rather than a
 	// level, and widening them would make them read as bars of their own.
-	vcSpan(glctx.Types.Lines, barVerts, peakVerts, 0.9, 0, 0)
-	vcDone()
+	vc.span(glctx.Types.Lines, barVerts, peakVerts, 0.9, 0, 0)
+	vc.done()
 	glctx.GL.Call("disable", glctx.GL.Get("BLEND"))
 }
