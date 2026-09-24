@@ -25,6 +25,7 @@ import (
 	"gitlab.com/russoj88/stl/stl"
 
 	"github.com/0magnet/chaosrack/pkg/meshstl"
+	"github.com/0magnet/chaosrack/pkg/stlmodels"
 )
 
 var (
@@ -80,7 +81,7 @@ func setSTLFileTris(n int, at func(int) [3]meshstl.V3) error {
 	if n == 0 {
 		return errors.New("no triangles in file")
 	}
-	stride := (n + stlFileMaxTris - 1) / stlFileMaxTris
+	stride := (n + stlmodels.MaxTris - 1) / stlmodels.MaxTris
 
 	first := true
 	var minX, minY, minZ, maxX, maxY, maxZ float32
@@ -189,7 +190,7 @@ func buildSTLFileModule() {
 			short = string(r[:7])
 		}
 		detail := name + " — " + strconv.Itoa(stlFileTris) + " triangles"
-		if stlFileTris >= stlFileMaxTris {
+		if stlFileTris >= stlmodels.MaxTris {
 			detail += " (decimated to fit the 16-bit index pipeline)"
 		}
 		stlFileSetLED(short, "Loaded STL — "+detail)
@@ -268,9 +269,9 @@ func buildSTLBuiltInPicker() {
 		// work; say what is happening before starting rather than freezing
 		// the readout on the previous model's name.
 		stlFileSetLED("BUILD", "Generating "+m.Label+"…")
-		// Straight from the generator: see STLViewerSeg for the detail, and
+		// Straight from the generator: see stlmodels.ViewerSeg for the detail, and
 		// setSTLFileMesh for why there is no STL in between.
-		if err := setSTLFileMesh(m.Build(STLViewerSeg)); err != nil {
+		if err := setSTLFileMesh(m.Build(stlmodels.ViewerSeg)); err != nil {
 			stlFileSetLED("ERR", "Could not read "+m.Label+": "+err.Error())
 			return nil
 		}
@@ -279,7 +280,7 @@ func buildSTLBuiltInPicker() {
 			short = string(r[:7])
 		}
 		detail := m.Label + " — " + strconv.Itoa(stlFileTris) + " triangles"
-		if stlFileTris >= stlFileMaxTris {
+		if stlFileTris >= stlmodels.MaxTris {
 			detail += " (decimated to fit the 16-bit index pipeline)"
 		}
 		stlFileSetLED(short, "Built-in — "+detail+". "+m.Description)

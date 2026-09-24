@@ -185,14 +185,3 @@ func rowMonID(ctx js.Value, ph float64, name string) {
 	ctx.Set("fillStyle", "#8fe3b0")
 	ctx.Call("fillText", name, 5, ph-4)
 }
-
-// modeLabel is a model's display name, or its key when it has none.
-func modeLabel(mode string) string {
-	if mode == "" {
-		return ""
-	}
-	if info, ok := modeInfo[mode]; ok && info.Label != "" {
-		return info.Label
-	}
-	return mode
-}

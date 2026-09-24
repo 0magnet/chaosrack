@@ -147,6 +147,17 @@ var modeInfo = map[string]ModeInfo{
 	"desk":     {"Desk", ClassGeometry, false},
 }
 
+// modeLabel is a model's display name, or its key when it has none.
+func modeLabel(mode string) string {
+	if mode == "" {
+		return ""
+	}
+	if info, ok := modeInfo[mode]; ok && info.Label != "" {
+		return info.Label
+	}
+	return mode
+}
+
 // modeGroups is the mode <select>'s layout — ordered optgroups of ordered
 // keys. A key may appear in more than one group (xy is in Scope and Audio;
 // custom is in Attractors and Custom); the nested category/model selector
