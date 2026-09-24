@@ -3,7 +3,7 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/colorspace"
+	"github.com/0magnet/chaosrack/pkg/colormap"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"image/color"
 	"syscall/js"
@@ -11,28 +11,8 @@ import (
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
 )
 
-// The spectrogram's colormaps, available to the trace.
-//
-// The gradient had four palettes: one color, two, three, and a raw HSV
-// rainbow. The rainbow is the only one that spans a spectrum and it is the
-// worst of the four at it — HSV is perceptually uneven, so equal steps in the
-// gradient parameter are visibly unequal steps in color, with a wide flat
-// green and a narrow sharp cyan. A figure colored by frequency through it
-// reads as bands wherever the colormap happens to move fast, and those bands
-// are an artifact of the color space rather than anything in the sound.
-//
-// The spectrogram next door already solved this. heat, blue, grayscale,
-// turbo, viridis and magma are the same six the spectrogram knob offers, and
-// turbo and viridis in particular exist precisely because a hue ramp is a bad
-// way to show a scalar. Reusing them means a value that paints one color in
-// the spectrogram paints the SAME color on the trail — the two displays
-// become readable against each other rather than each having its own private
-// language.
-//
-// They are the library's own tables, sampled through its own ValueToPixel
-// functions, not a re-implementation. A second copy of turbo would be a
-// second set of colors to keep in step, and the first time upstream adjusted
-// one the two displays would quietly disagree.
+// The colormaps on the GPU: pkg/colormap decides the colors, and this uploads
+// them as the texture the fragment shader samples.
 //
 // WHY A TEXTURE, and not a uniform array of stops. GLSL ES 1.0 guarantees
 // only 16 fragment uniform VECTORS; this shader already declares more than
@@ -43,47 +23,6 @@ import (
 // and reproduces the colormap at full resolution instead of at whatever stop
 // count the uniform budget allowed.
 
-// paletteFirst is the uGradientColors value of the first colormap. 1..4 are
-// the original palettes (mono, two-color, three-color, rainbow), so the maps
-// start above them and the shader tells the two kinds apart by this one
-// comparison.
-const paletteFirst = 5
-
-// paletteFns are the colormaps, in spectColNames order, so a palette's
-// position on the trace knob matches its position on the spectrogram's.
-// Keeping them in one order is the whole point of reusing them: "the third
-// one" has to mean the same thing on both knobs.
-var paletteFns = []func(float64) color.Color{
-	sg.ValueToPixelHeat,
-	sg.ValueToPixelBlue,
-	sg.ValueToPixelGrayscale,
-	sg.ValueToPixelTurbo,
-	sg.ValueToPixelViridis,
-	sg.ValueToPixelMagma,
-}
-
-// paletteColorAt samples a colormap, clamping first.
-//
-// The clamp is here rather than assumed of the library: four of the six go
-// through its valueToPixelTable, which clamps, but ValueToPixelGrayscale is
-// uint8(255.0*value) with nothing in front of it, so an out-of-range value
-// converts to a uint8 that is not the color at either end — 2.0 comes back
-// darker than 1.0. Nothing here calls it out of range today; this is so that
-// staying in range is a property of this file rather than a thing to remember.
-func paletteColorAt(idx int, v float64) color.Color {
-	if v < 0 {
-		v = 0
-	} else if v > 1 {
-		v = 1
-	}
-	return paletteFns[idx](v)
-}
-
-// paletteTexels is the width of the colormap texture. 256 because that is the
-// size of the library's own tables — sampling more would invent detail that is
-// not in the colormap, and sampling less would throw some of it away.
-const paletteTexels = 256
-
 // paletteUnit is the texture unit the colormap is bound to. NOT unit 0:
 // textured_js.go binds the spectrogram, terminal and desk textures there, and
 // a colormap that shares a unit with them comes and goes depending on what
@@ -93,19 +32,9 @@ const paletteUnit = 1
 var (
 	paletteTexture js.Value
 	paletteBuilt   = -1 // index of the colormap currently in the texture
-	paletteBytes   = make([]byte, paletteTexels*4)
+	paletteBytes   = make([]byte, colormap.Texels*4)
 	paletteJS      js.Value
 )
-
-// paletteIndex maps a uGradientColors value to a colormap index, and reports
-// whether it names one at all.
-func paletteIndex(gradientColors int) (int, bool) {
-	i := gradientColors - paletteFirst
-	if i < 0 || i >= len(paletteFns) {
-		return 0, false
-	}
-	return i, true
-}
 
 // ensurePaletteTexture uploads the colormap for the current palette, if it is
 // not already the one in the texture.
@@ -114,7 +43,7 @@ func paletteIndex(gradientColors int) (int, bool) {
 // calls through the library plus an upload is not per-frame work, and doing
 // it every frame is how a static table turns into a stall.
 func ensurePaletteTexture(gradientColors int) bool {
-	idx, ok := paletteIndex(gradientColors)
+	idx, ok := colormap.Index(gradientColors)
 	if !ok {
 		return false
 	}
@@ -123,22 +52,12 @@ func ensurePaletteTexture(gradientColors int) bool {
 		paletteJS = js.Global().Get("Uint8Array").New(len(paletteBytes))
 	}
 	if paletteBuilt != idx {
-		for i := 0; i < paletteTexels; i++ {
-			c := paletteColorAt(idx, float64(i)/float64(paletteTexels-1))
-			// RGBA returns 16-bit premultiplied values; >>8 takes the high
-			// byte, so each is already 0..255 by construction — the colormap
-			// tables are opaque 8-bit entries widened on the way out.
-			r, g, b, _ := c.RGBA()
-			paletteBytes[i*4+0] = byte(r >> 8) //nolint:gosec
-			paletteBytes[i*4+1] = byte(g >> 8) //nolint:gosec
-			paletteBytes[i*4+2] = byte(b >> 8) //nolint:gosec
-			paletteBytes[i*4+3] = 255
-		}
+		colormap.Fill(paletteBytes, idx)
 		js.CopyBytesToJS(paletteJS, paletteBytes)
 		glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0").Int()+paletteUnit)
 		glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), paletteTexture)
 		glctx.GL.Call("texImage2D", glctx.GL.Get("TEXTURE_2D"), 0, glctx.GL.Get("RGBA"),
-			paletteTexels, 1, 0, glctx.GL.Get("RGBA"), glctx.GL.Get("UNSIGNED_BYTE"), paletteJS)
+			colormap.Texels, 1, 0, glctx.GL.Get("RGBA"), glctx.GL.Get("UNSIGNED_BYTE"), paletteJS)
 		// CLAMP_TO_EDGE and LINEAR: the ends of a colormap are the ends, so a
 		// value at 0 or 1 must take the first or last color rather than wrap
 		// to the other end of the ramp, and the interpolation between texels
@@ -248,59 +167,14 @@ func modeUsesGradientSource(mode string) bool {
 	return true
 }
 
-// mapColorAt is the MAP ring applied to a 0..1 value: the one function that
-// turns a value into a color anywhere in the rack.
-//
-// Every position is a genuine mapping, which is what the ring now holds:
-// 2 and 3 mix the Palette module's own swatches, 4 sweeps hue, and 5 and up are
-// the published colormaps. The mono position is gone from here — it was the
-// absence of a source, not a mapping, and it lives on the src ring as OFF.
-//
-// This is the CPU twin of the branch in the fragment shader, and the two have
-// to agree: the shader paints the trace and this paints the spectrogram, and
-// the whole point of one ring is that a value looks the same on both. The
-// window (period and shift) is deliberately NOT applied here — see
-// spectrogramPixel.
+// mapColorAt is the MAP ring applied to a 0..1 value, as the panel has it set:
+// colormap.Map.At over the ring's position, the Palette module's swatches and
+// the hue sweep's period.
 func mapColorAt(v float64) color.Color {
-	if v < 0 {
-		v = 0
-	} else if v > 1 {
-		v = 1
-	}
-	if idx, ok := paletteIndex(gradientColors); ok {
-		return paletteColorAt(idx, v)
-	}
-	mix := func(a, b [3]float32, t float64) color.Color {
-		f := func(x, y float32) uint8 {
-			return uint8(255 * mixClamp(float64(x)+(float64(y)-float64(x))*t)) //nolint:gosec
-		}
-		return color.RGBA{R: f(a[0], b[0]), G: f(a[1], b[1]), B: f(a[2], b[2]), A: 255}
-	}
-	switch gradientColors {
-	case 3:
-		if v < 0.5 {
-			return mix(baseColor, midColor, v*2)
-		}
-		return mix(midColor, topColor, (v-0.5)*2)
-	case 4:
-		c := colorspace.FromHSV(float32(v)*gradientFreq, 1, 1)
-		return color.RGBA{R: uint8(255 * c[0]), G: uint8(255 * c[1]), B: uint8(255 * c[2]), A: 255} //nolint:gosec
-	default: // 2-color, and anything unexpected
-		return mix(baseColor, topColor, v)
-	}
-}
-
-// mixClamp keeps a mixed channel inside 0..1. Named apart from clamp01, which
-// is the audio features' float32 one: the two want different types, and sharing
-// a name across them would cost a conversion at every call.
-func mixClamp(v float64) float64 {
-	if v < 0 {
-		return 0
-	}
-	if v > 1 {
-		return 1
-	}
-	return v
+	return colormap.Map{
+		Colors: gradientColors, Base: baseColor, Mid: midColor, Top: topColor,
+		Freq: gradientFreq,
+	}.At(v)
 }
 
 // spectrogramPixel is the color a raw magnitude paints on the spectrogram.

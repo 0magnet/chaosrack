@@ -1,6 +1,4 @@
-//go:build js && wasm
-
-package attractor
+package colormap
 
 import (
 	"math"
@@ -15,8 +13,8 @@ import (
 func TestPaletteWindowDefaultsToTheOldCoordinate(t *testing.T) {
 	for i := 0; i <= 256; i++ {
 		v := float32(i) / 256
-		if got := paletteCoord(v, 1, 0); math.Abs(float64(got-v)) > 1e-6 {
-			t.Fatalf("paletteCoord(%v, 1, 0) = %v; span 1 shift 0 must be the identity", v, got)
+		if got := Coord(v, 1, 0); math.Abs(float64(got-v)) > 1e-6 {
+			t.Fatalf("Coord(%v, 1, 0) = %v; span 1 shift 0 must be the identity", v, got)
 		}
 	}
 }
@@ -30,9 +28,9 @@ func TestPaletteCoordStaysOnTheMap(t *testing.T) {
 		for _, shift := range []float32{-1, -0.37, 0, 0.37, 1, 7.5, -7.5} {
 			for i := 0; i <= 32; i++ {
 				v := float32(i) / 32
-				got := paletteCoord(v, span, shift)
+				got := Coord(v, span, shift)
 				if got < 0 || got > 1 {
-					t.Fatalf("paletteCoord(%v, %v, %v) = %v, off the 0..1 map", v, span, shift, got)
+					t.Fatalf("Coord(%v, %v, %v) = %v, off the 0..1 map", v, span, shift, got)
 				}
 			}
 		}
@@ -47,9 +45,9 @@ func TestPaletteCoordStaysOnTheMap(t *testing.T) {
 // folds and holds the step down to what the window itself justifies.
 func TestPaletteCoordHasNoSeam(t *testing.T) {
 	const span, step = 1, 1.0 / 4096
-	prev := paletteCoord(0.5, span, -3)
+	prev := Coord(0.5, span, -3)
 	for x := -3.0; x <= 3.0; x += step {
-		got := paletteCoord(0.5, span, float32(x))
+		got := Coord(0.5, span, float32(x))
 		if d := math.Abs(float64(got - prev)); d > 4*step {
 			t.Fatalf("the coordinate jumped %v between shift %v and the step before it; a fold must not step", d, x)
 		}
@@ -66,9 +64,9 @@ func TestTheFoldRepeatsOverTheKnobRange(t *testing.T) {
 		for i := 0; i <= 16; i++ {
 			v := float32(i) / 16
 			for _, shift := range []float32{-0.9, -0.25, 0, 0.25, 0.9} {
-				a := paletteCoord(v, span, shift)
-				b := paletteCoord(v, span, shift+paletteFoldPeriod)
-				c := paletteCoord(v, span, shift-paletteFoldPeriod)
+				a := Coord(v, span, shift)
+				b := Coord(v, span, shift+FoldPeriod)
+				c := Coord(v, span, shift-FoldPeriod)
 				if math.Abs(float64(a-b)) > 1e-5 || math.Abs(float64(a-c)) > 1e-5 {
 					t.Fatalf("shift %v gave %v but %v/%v a period away; the range is not one period", shift, a, b, c)
 				}
@@ -85,9 +83,9 @@ func TestTheEndsOfTheKnobAreTheReversedMap(t *testing.T) {
 	for i := 0; i <= 32; i++ {
 		v := float32(i) / 32
 		for _, shift := range []float32{-1, 1} {
-			got := paletteCoord(v, 1, shift)
+			got := Coord(v, 1, shift)
 			if math.Abs(float64(got-(1-v))) > 1e-6 {
-				t.Errorf("paletteCoord(%v, 1, %v) = %v, want the reversed map %v", v, shift, got, 1-v)
+				t.Errorf("Coord(%v, 1, %v) = %v, want the reversed map %v", v, shift, got, 1-v)
 			}
 		}
 	}
@@ -96,14 +94,14 @@ func TestTheEndsOfTheKnobAreTheReversedMap(t *testing.T) {
 // The wrap is what applyViewModulation uses in place of its clamp, so it has
 // to bring back anything the modulation can hand it — level ±4 against a
 // range of 2 reaches ±8 before the base value is even counted.
-func TestWrapPaletteShiftBringsAnythingBack(t *testing.T) {
+func TestWrapShiftBringsAnythingBack(t *testing.T) {
 	for _, x := range []float32{-9, -8, -2.5, -1, -0.5, 0, 0.5, 1, 2.5, 8, 9} {
-		w := wrapPaletteShift(x)
+		w := WrapShift(x)
 		if w < -1 || w >= 1 {
-			t.Errorf("wrapPaletteShift(%v) = %v, outside [−1, 1)", x, w)
+			t.Errorf("WrapShift(%v) = %v, outside [−1, 1)", x, w)
 		}
-		if d := math.Mod(math.Abs(float64(x-w)), paletteFoldPeriod); d > 1e-5 && math.Abs(d-paletteFoldPeriod) > 1e-5 {
-			t.Errorf("wrapPaletteShift(%v) = %v moved it by %v, not a whole number of periods", x, w, x-w)
+		if d := math.Mod(math.Abs(float64(x-w)), FoldPeriod); d > 1e-5 && math.Abs(d-FoldPeriod) > 1e-5 {
+			t.Errorf("WrapShift(%v) = %v moved it by %v, not a whole number of periods", x, w, x-w)
 		}
 	}
 }
@@ -116,8 +114,8 @@ func TestWrapPaletteShiftBringsAnythingBack(t *testing.T) {
 func TestFoldMatchesTheShaderExpression(t *testing.T) {
 	glsl := func(pt float64) float64 { return math.Abs(pt - 2.0*math.Floor(pt*0.5+0.5)) }
 	for x := -6.0; x <= 6.0; x += 1.0 / 512 {
-		if got, want := float64(foldPalette01(float32(x))), glsl(x); math.Abs(got-want) > 1e-5 {
-			t.Fatalf("foldPalette01(%v) = %v, the shader's expression gives %v", x, got, want)
+		if got, want := float64(Fold(float32(x))), glsl(x); math.Abs(got-want) > 1e-5 {
+			t.Fatalf("Fold(%v) = %v, the shader's expression gives %v", x, got, want)
 		}
 	}
 }
@@ -130,7 +128,7 @@ func TestANarrowWindowSlidesWithoutResizing(t *testing.T) {
 	for _, shift := range []float32{0, 0.15, 0.3, 0.45, 0.6} {
 		lo, hi := float32(1), float32(0)
 		for i := 0; i <= 64; i++ {
-			c := paletteCoord(float32(i)/64, span, shift)
+			c := Coord(float32(i)/64, span, shift)
 			if c < lo {
 				lo = c
 			}

@@ -49,8 +49,8 @@ var (
 	// The last three are lookup tables from perceptually uniform maps, added
 	// upstream in audioprism-go. Appended rather than reordered: the knob
 	// position is persisted as an index.
-	// spectColNames is the colormap order the MAP ring and palette_js.go's
-	// paletteFns both follow. The spectrogram no longer has a knob of its own to
+	// spectColNames is the colormap order the MAP ring and pkg/colormap's
+	// maps both follow. The spectrogram no longer has a knob of its own to
 	// label with it — it reads the ring — but the order is still the contract
 	// between the library's tables and ours, so it is named here where the
 	// library is imported.
