@@ -5,6 +5,7 @@ package attractor
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
+	"github.com/0magnet/chaosrack/pkg/spectcol"
 	"syscall/js"
 
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
@@ -25,7 +26,7 @@ import (
 // Fixed texture size, independent of canvas: width = time columns, height =
 // frequency bins.
 //
-// Height is one row per bin — SpectrogramRows(DFTSize) — which makes the bin→row
+// Height is one row per bin — spectcol.Rows(DFTSize) — which makes the bin→row
 // mapping exactly 1:1 at any sample rate, so we keep the full FFT resolution
 // with no resampling. audioprism's own core UI carries 1024 rows for the same
 // 512 bins — its map works out to bin = y/2, so every bin is stored twice —
@@ -58,11 +59,11 @@ const (
 	spectMaxAccum = 1 << 15
 )
 
-// spectTexH follows the transform size — SpectrogramRows(DFTSize) — because the
+// spectTexH follows the transform size — spectcol.Rows(DFTSize) — because the
 // dft knob can change it while the mode is running. It is not a constant for
 // that reason and for no other; at the default 1024-point transform it is the
 // 512 it always was.
-var spectTexH = SpectrogramRows(sg.S.GetDFTSize())
+var spectTexH = spectcol.Rows(sg.S.GetDFTSize())
 
 var (
 	spectTexture  js.Value
@@ -139,7 +140,7 @@ func resizeSpectrogram() {
 	if spectTexture.Truthy() {
 		glctx.GL.Call("deleteTexture", spectTexture)
 	}
-	spectTexH = SpectrogramRows(sg.S.GetDFTSize())
+	spectTexH = spectcol.Rows(sg.S.GetDFTSize())
 	initSpectrogram()
 }
 
@@ -224,7 +225,7 @@ func updateSpectrogramTexture(nowMs float64) {
 			copy(spectOverlap, spectOverlap[step:])
 			copy(spectOverlap[size-step:], spectAccum[consumed:consumed+step])
 			consumed += step
-			if col := buildSpectColumn(SpectrogramMags(spectOverlap)); col != nil {
+			if col := buildSpectColumn(spectcol.Mags(spectOverlap)); col != nil {
 				spectColQueue = append(spectColQueue, col)
 			}
 		}
@@ -305,7 +306,7 @@ func uploadSpectColumn(col []byte) {
 
 // buildSpectColumn maps FFT magnitudes to one RGBA column (spectTexH*4 bytes),
 // full 0..Nyquist with 0 Hz at the bottom, matching audioprism-go. The mapping
-// itself is in spectcol.go, without a build tag, so that `uitool spec` can run
+// itself is in pkg/spectcol, without a build tag, so that `uitool spec` can run
 // the identical arithmetic on a machine and be diffed against the original's
 // own WAV→PNG render.
 func buildSpectColumn(mags []float64) []byte {
@@ -314,7 +315,7 @@ func buildSpectColumn(mags []float64) []byte {
 	// order, and two knobs that had to be kept in step by hand meant the
 	// spectrogram and the trace beside it could disagree about what a value
 	// looks like — which is the one thing sharing the library's tables was for.
-	return SpectrogramColumnWith(mags, spectTexH, spectrogramPixel)
+	return spectcol.ColumnWith(mags, spectTexH, spectrogramPixel)
 }
 
 // setSpectrogramCamera frames the plane at a sensible default distance,

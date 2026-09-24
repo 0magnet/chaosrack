@@ -48,7 +48,7 @@ import (
 
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
 
-	"github.com/0magnet/chaosrack/pkg/attractor"
+	"github.com/0magnet/chaosrack/pkg/spectcol"
 )
 
 var (
@@ -116,7 +116,7 @@ func runSpec() {
 	if step <= 0 {
 		step = size / 2
 	}
-	rows := attractor.SpectrogramRows(size)
+	rows := spectcol.Rows(size)
 	cols := 0
 	if len(samples) >= size {
 		cols = (len(samples)-size)/step + 1
@@ -130,7 +130,7 @@ func runSpec() {
 	frame := make([]float32, size)
 	for x := 0; x < cols; x++ {
 		copy(frame, samples[x*step:x*step+size])
-		col := attractor.SpectrogramColumn(attractor.SpectrogramMags(frame), rows)
+		col := spectcol.Column(spectcol.Mags(frame), rows)
 		if len(col) < rows*4 {
 			break
 		}
