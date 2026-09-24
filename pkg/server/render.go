@@ -79,12 +79,12 @@ func init() {
 var modelsCmd = &cobra.Command{
 	Use:   "models",
 	Short: "list the models that can be drawn without a browser",
-	Long: `List the flows.
+	Long: `List the models that render can draw.
 
-A subset of the catalog, and the honest answer to what works headless: the
-models that publish a vector field to the flow registry. The audio displays
-and the DOM-backed models — terminal, desk, the STL viewer — are not here,
-because without a browser they have no signal and no surface to read.`,
+This is a subset of the rack's catalog: the models defined by a vector field
+or map, which can be computed without a browser. Audio displays and
+page-based models such as the terminal, the desk and the STL viewer are not
+included, because they need a browser.`,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		for _, k := range dynamics.Keys() {
 			fmt.Println(k)
@@ -96,21 +96,29 @@ because without a browser they have no signal and no surface to read.`,
 var renderCmd = &cobra.Command{
 	Use:   "render",
 	Short: "draw a model to a PNG or SVG, without a browser",
-	Long: `Draw a model to a file.
+	Long: `Draw a model to an image file without a browser.
+
+The output format comes from the -o file extension:
+
+  .png   a still image with the same depth shading and colors as the page
+  .svg   a still image as a vector polyline, or an animation with --frames
+  .gif   an animation (requires --frames)
+
+Without -o, render prints the number of points and the size of the result
+instead of writing a file.
 
   chaosrack render --model lorenz -o lorenz.png
   chaosrack render --model halvorsen -o h.svg --angle 0.3,1.2,0
-  chaosrack render --check
+  chaosrack render --model lorenz -o lorenz.gif --frames 120 --turn 0,6.283,0
+  chaosrack render --model lorenz --set lorenz-r=40 -o rho40.png
 
-SVG is a polyline, which is what a trail actually is: it scales, it diffs, and
-it can be read. PNG goes through the same software renderer, so the depth
-shading and the gradient are the page's.
+Use chaosrack models to list the available models. Use --params to list the
+controls that --set can change, with their ranges. Values outside a control's
+range are rejected rather than clamped.
 
---check is the one that earns this command. It integrates every flow and
-reports any whose trajectory has no extent — a model that draws a point rather
-than an attractor. That is a failure the Lyapunov guard cannot catch for a
-model it cannot measure, and it is how a third of the Sprott catalog came to
-be static without a test noticing.`,
+--check draws every model and reports any that produce nothing: a trajectory
+that diverges, or one that stays at a single point. It exits with an error if
+any fail.`,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		if renderParams {
 			return listParams()
