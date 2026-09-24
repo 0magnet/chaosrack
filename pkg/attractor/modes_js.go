@@ -36,7 +36,7 @@ func init() {
 	registerGenerate("rabinovich", generateRabinovich)
 	registerGenerate("custom", generateCustom)
 	// The Platonic solids are generated from their faces now, with the
-	// Conway operator knob applied — the seed IS the model. See conway.go.
+	// Conway operator knob applied — the seed IS the model. See pkg/conway.
 	registerGenerate("tetrahedron", func() { generateSeed(0) })
 	registerGenerate("cube", func() { generateSeed(1) })
 	registerGenerate("octahedron", func() { generateSeed(2) })

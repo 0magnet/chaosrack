@@ -2,7 +2,11 @@
 
 package attractor
 
-import "github.com/0magnet/chaosrack/pkg/glctx"
+import (
+	"github.com/0magnet/chaosrack/pkg/glctx"
+
+	"github.com/0magnet/chaosrack/pkg/conway"
+)
 
 // Drawing a generated polyhedron.
 //
@@ -11,7 +15,7 @@ import "github.com/0magnet/chaosrack/pkg/glctx"
 // applied to it. Five models times seven operators reaches seventeen
 // distinct solids, including eleven of the thirteen Archimedeans and
 // several Catalan duals, from a row that had six fixed models and no knob
-// at all. See conway.go for the operators and what each one does.
+// at all. See pkg/conway for the operators and what each one does.
 
 // polyOpF is the operator knob, shared by the five seeds: it is the same
 // question on each of them, so it is the same control and keeps its
@@ -35,7 +39,7 @@ func generateSeed(s int) {
 	}
 	polyBuilt = want
 
-	p := conwaySolid(s, int(polyOpF))
+	p := conway.Build(s, int(polyOpF))
 	verts := make([]float32, 0, len(p.Verts)*3)
 	for _, v := range p.Verts {
 		verts = append(verts, float32(v.X), float32(v.Y), float32(v.Z))
@@ -50,8 +54,8 @@ func generateSeed(s int) {
 
 // polyOpNames is the operator knob's positions, for the labeled rotary.
 func polyOpNames() []string {
-	out := make([]string, len(polyOps))
-	for i, o := range polyOps {
+	out := make([]string, len(conway.Ops))
+	for i, o := range conway.Ops {
 		out[i] = o.Name
 	}
 	return out

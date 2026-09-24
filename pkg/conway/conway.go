@@ -1,4 +1,4 @@
-package attractor
+package conway
 
 import (
 	"math"
@@ -31,22 +31,22 @@ import (
 // This file is pure and has no browser in it: a polyhedron is arithmetic,
 // and Euler's formula is a test that does not need a screen.
 
-// polyVert is a point on the unit-ish sphere. Not normalized in general —
+// Vert is a point on the unit-ish sphere. Not normalized in general —
 // the operators keep whatever scale the seed had, and the renderer fits the
 // camera to the result.
-type polyVert struct{ X, Y, Z float64 }
+type Vert struct{ X, Y, Z float64 }
 
-// polyhedron is vertices plus faces, each face a loop of vertex indices
+// Solid is vertices plus faces, each face a loop of vertex indices
 // wound consistently. Edges are derived rather than stored, because an edge
 // list that disagrees with the faces is the bug this type exists to prevent.
-type polyhedron struct {
-	Verts []polyVert
+type Solid struct {
+	Verts []Vert
 	Faces [][]int
 }
 
 // Edges returns each undirected edge once, as an index pair, in a stable
 // order. This is what the wireframe is drawn from.
-func (p polyhedron) Edges() [][2]int {
+func (p Solid) Edges() [][2]int {
 	seen := map[[2]int]bool{}
 	var out [][2]int
 	for _, f := range p.Faces {
@@ -74,11 +74,11 @@ func (p polyhedron) Edges() [][2]int {
 // Euler is V - E + F, which is 2 for any polyhedron homeomorphic to a
 // sphere. Every operator here preserves it, so it is the one number that
 // says a result is a solid rather than a bag of triangles.
-func (p polyhedron) Euler() int { return len(p.Verts) - len(p.Edges()) + len(p.Faces) }
+func (p Solid) Euler() int { return len(p.Verts) - len(p.Edges()) + len(p.Faces) }
 
 // center is a face's centroid.
-func (p polyhedron) center(f []int) polyVert {
-	var c polyVert
+func (p Solid) center(f []int) Vert {
+	var c Vert
 	if len(f) == 0 {
 		return c
 	}
@@ -88,11 +88,11 @@ func (p polyhedron) center(f []int) polyVert {
 		c.Z += p.Verts[i].Z
 	}
 	n := float64(len(f))
-	return polyVert{c.X / n, c.Y / n, c.Z / n}
+	return Vert{c.X / n, c.Y / n, c.Z / n}
 }
 
-func lerp(a, b polyVert, t float64) polyVert {
-	return polyVert{a.X + (b.X-a.X)*t, a.Y + (b.Y-a.Y)*t, a.Z + (b.Z-a.Z)*t}
+func lerp(a, b Vert, t float64) Vert {
+	return Vert{a.X + (b.X-a.X)*t, a.Y + (b.Y-a.Y)*t, a.Z + (b.Z-a.Z)*t}
 }
 
 // normalize puts every vertex on the unit sphere. Conway operators do not
@@ -100,15 +100,15 @@ func lerp(a, b polyVert, t float64) polyVert {
 // combinatorics but not equal edge lengths — and projecting to the sphere is
 // what makes the wireframe look like the solid it names rather than like a
 // lumpy version of it.
-func (p polyhedron) normalize() polyhedron {
-	out := polyhedron{Verts: make([]polyVert, len(p.Verts)), Faces: p.Faces}
+func (p Solid) normalize() Solid {
+	out := Solid{Verts: make([]Vert, len(p.Verts)), Faces: p.Faces}
 	for i, v := range p.Verts {
 		d := math.Sqrt(v.X*v.X + v.Y*v.Y + v.Z*v.Z)
 		if d == 0 {
 			out.Verts[i] = v
 			continue
 		}
-		out.Verts[i] = polyVert{v.X / d, v.Y / d, v.Z / d}
+		out.Verts[i] = Vert{v.X / d, v.Y / d, v.Z / d}
 	}
 	return out
 }
@@ -136,8 +136,8 @@ func reversed(loop []int) []int {
 // The new face around an old vertex has to be WOUND, not just collected, or
 // it is a set of points and not a polygon. The winding comes from walking
 // the faces around the vertex through their shared edges.
-func (p polyhedron) dual() polyhedron {
-	out := polyhedron{Verts: make([]polyVert, len(p.Faces))}
+func (p Solid) dual() Solid {
+	out := Solid{Verts: make([]Vert, len(p.Faces))}
 	for i, f := range p.Faces {
 		out.Verts[i] = p.center(f)
 	}
@@ -198,11 +198,11 @@ func (p polyhedron) dual() polyhedron {
 
 // kis: a pyramid on every face. The new apex is the face centroid, pushed
 // out by h times the centroid's own length.
-func (p polyhedron) kis(h float64) polyhedron {
-	out := polyhedron{Verts: append([]polyVert(nil), p.Verts...)}
+func (p Solid) kis(h float64) Solid {
+	out := Solid{Verts: append([]Vert(nil), p.Verts...)}
 	for _, f := range p.Faces {
 		c := p.center(f)
-		apex := polyVert{c.X * (1 + h), c.Y * (1 + h), c.Z * (1 + h)}
+		apex := Vert{c.X * (1 + h), c.Y * (1 + h), c.Z * (1 + h)}
 		out.Verts = append(out.Verts, apex)
 		a := len(out.Verts) - 1
 		for i := range f {
@@ -215,8 +215,8 @@ func (p polyhedron) kis(h float64) polyhedron {
 // ambo: a vertex at every edge midpoint. Each original face becomes a
 // smaller face through its edge midpoints, and each original vertex becomes
 // a face through the midpoints of the edges meeting it.
-func (p polyhedron) ambo() polyhedron {
-	var out polyhedron
+func (p Solid) ambo() Solid {
+	var out Solid
 	mid := map[[2]int]int{}
 	id := func(a, b int) int {
 		k := [2]int{a, b}
@@ -296,11 +296,11 @@ func (p polyhedron) ambo() polyhedron {
 // Done directly rather than as dkd: the direct construction keeps the
 // original faces recognizable, and dkd through this code's kis would need a
 // height that happens to land on the right plane.
-func (p polyhedron) truncate(t float64) polyhedron {
+func (p Solid) truncate(t float64) Solid {
 	if t <= 0 || t >= 0.5 {
 		t = 1.0 / 3.0
 	}
-	var out polyhedron
+	var out Solid
 	// One new vertex per DIRECTED edge: the point t of the way from a to b.
 	cut := map[[2]int]int{}
 	id := func(a, b int) int {
@@ -374,26 +374,26 @@ func (p polyhedron) truncate(t float64) polyhedron {
 }
 
 // expand is ambo twice: faces pulled apart with squares in the gaps.
-func (p polyhedron) expand() polyhedron { return p.ambo().ambo() }
+func (p Solid) expand() Solid { return p.ambo().ambo() }
 
 // bevel is truncate of ambo.
-func (p polyhedron) bevel() polyhedron { return p.ambo().truncate(1.0 / 3.0) }
+func (p Solid) bevel() Solid { return p.ambo().truncate(1.0 / 3.0) }
 
 // ── the seeds ─────────────────────────────────────────────────────────────
 
 // The five Platonic solids, as faces wound consistently outward. These are
 // the only hand-written polyhedra; everything else is generated.
 
-func seedTetrahedron() polyhedron {
-	return polyhedron{
-		Verts: []polyVert{{1, 1, 1}, {1, -1, -1}, {-1, 1, -1}, {-1, -1, 1}},
+func seedTetrahedron() Solid {
+	return Solid{
+		Verts: []Vert{{1, 1, 1}, {1, -1, -1}, {-1, 1, -1}, {-1, -1, 1}},
 		Faces: [][]int{{0, 1, 2}, {0, 3, 1}, {0, 2, 3}, {1, 3, 2}},
 	}
 }
 
-func seedCube() polyhedron {
-	return polyhedron{
-		Verts: []polyVert{
+func seedCube() Solid {
+	return Solid{
+		Verts: []Vert{
 			{-1, -1, -1}, {1, -1, -1}, {1, 1, -1}, {-1, 1, -1},
 			{-1, -1, 1}, {1, -1, 1}, {1, 1, 1}, {-1, 1, 1},
 		},
@@ -405,9 +405,9 @@ func seedCube() polyhedron {
 	}
 }
 
-func seedOctahedron() polyhedron {
-	return polyhedron{
-		Verts: []polyVert{{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}},
+func seedOctahedron() Solid {
+	return Solid{
+		Verts: []Vert{{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}},
 		Faces: [][]int{
 			{0, 2, 4}, {2, 1, 4}, {1, 3, 4}, {3, 0, 4},
 			{2, 0, 5}, {1, 2, 5}, {3, 1, 5}, {0, 3, 5},
@@ -415,14 +415,14 @@ func seedOctahedron() polyhedron {
 	}
 }
 
-func seedIcosahedron() polyhedron {
+func seedIcosahedron() Solid {
 	g := (1 + math.Sqrt(5)) / 2
-	v := []polyVert{
+	v := []Vert{
 		{-1, g, 0}, {1, g, 0}, {-1, -g, 0}, {1, -g, 0},
 		{0, -1, g}, {0, 1, g}, {0, -1, -g}, {0, 1, -g},
 		{g, 0, -1}, {g, 0, 1}, {-g, 0, -1}, {-g, 0, 1},
 	}
-	return polyhedron{Verts: v, Faces: [][]int{
+	return Solid{Verts: v, Faces: [][]int{
 		{0, 11, 5}, {0, 5, 1}, {0, 1, 7}, {0, 7, 10}, {0, 10, 11},
 		{1, 5, 9}, {5, 11, 4}, {11, 10, 2}, {10, 7, 6}, {7, 1, 8},
 		{3, 9, 4}, {3, 4, 2}, {3, 2, 6}, {3, 6, 8}, {3, 8, 9},
@@ -432,13 +432,13 @@ func seedIcosahedron() polyhedron {
 
 // The dodecahedron is the icosahedron's dual, so it is derived rather than
 // written out — one fewer hand-typed vertex table to get wrong.
-func seedDodecahedron() polyhedron { return seedIcosahedron().normalize().dual() }
+func seedDodecahedron() Solid { return seedIcosahedron().normalize().dual() }
 
-// polySeeds are the seeds a generator row offers, in Conway's own letters.
-var polySeeds = []struct {
+// Seeds are the seeds a generator row offers, in Conway's own letters.
+var Seeds = []struct {
 	Letter string
 	Name   string
-	Make   func() polyhedron
+	Make   func() Solid
 }{
 	{"T", "tetrahedron", seedTetrahedron},
 	{"C", "cube", seedCube},
@@ -447,41 +447,41 @@ var polySeeds = []struct {
 	{"I", "icosahedron", seedIcosahedron},
 }
 
-// polyOps are the operators a generator row offers.
-var polyOps = []struct {
+// Ops are the operators a generator row offers.
+var Ops = []struct {
 	Letter string
 	Name   string
-	Apply  func(polyhedron) polyhedron
+	Apply  func(Solid) Solid
 }{
-	{"", "none", func(p polyhedron) polyhedron { return p }},
-	{"d", "dual", func(p polyhedron) polyhedron { return p.dual() }},
-	{"a", "ambo", func(p polyhedron) polyhedron { return p.ambo() }},
-	{"t", "truncate", func(p polyhedron) polyhedron { return p.truncate(1.0 / 3.0) }},
-	{"k", "kis", func(p polyhedron) polyhedron { return p.kis(0.25) }},
-	{"e", "expand", func(p polyhedron) polyhedron { return p.expand() }},
-	{"b", "bevel", func(p polyhedron) polyhedron { return p.bevel() }},
+	{"", "none", func(p Solid) Solid { return p }},
+	{"d", "dual", func(p Solid) Solid { return p.dual() }},
+	{"a", "ambo", func(p Solid) Solid { return p.ambo() }},
+	{"t", "truncate", func(p Solid) Solid { return p.truncate(1.0 / 3.0) }},
+	{"k", "kis", func(p Solid) Solid { return p.kis(0.25) }},
+	{"e", "expand", func(p Solid) Solid { return p.expand() }},
+	{"b", "bevel", func(p Solid) Solid { return p.bevel() }},
 }
 
-// conwaySolid builds seed index s with operator index o applied, projected
+// Build is seed index s with operator index o applied, projected
 // to the unit sphere so the wireframe reads as the solid it names.
-func conwaySolid(s, o int) polyhedron {
-	if s < 0 || s >= len(polySeeds) {
+func Build(s, o int) Solid {
+	if s < 0 || s >= len(Seeds) {
 		s = 1 // the cube, Conway's usual example
 	}
-	if o < 0 || o >= len(polyOps) {
+	if o < 0 || o >= len(Ops) {
 		o = 0
 	}
-	return polyOps[o].Apply(polySeeds[s].Make().normalize()).normalize()
+	return Ops[o].Apply(Seeds[s].Make().normalize()).normalize()
 }
 
-// conwayName is the notation for a seed and operator, read right to left:
+// Name is the notation for a seed and operator, read right to left:
 // tC is a truncated cube.
-func conwayName(s, o int) string {
-	if s < 0 || s >= len(polySeeds) {
+func Name(s, o int) string {
+	if s < 0 || s >= len(Seeds) {
 		s = 1
 	}
-	if o < 0 || o >= len(polyOps) {
+	if o < 0 || o >= len(Ops) {
 		o = 0
 	}
-	return polyOps[o].Letter + polySeeds[s].Letter
+	return Ops[o].Letter + Seeds[s].Letter
 }
