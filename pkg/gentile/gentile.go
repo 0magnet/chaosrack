@@ -1,4 +1,4 @@
-package attractor
+package gentile
 
 import "sort"
 
@@ -49,37 +49,37 @@ const maxGensPerModule = 3
 // more than it had to.
 const dpLimit = 14
 
-// genSpec is what the packer needs to know about a generator: which model it
+// Spec is what the packer needs to know about a generator: which model it
 // is, and how many constants of its own it has.
-type genSpec struct {
+type Spec struct {
 	Mode      string
 	Constants int
 }
 
-// genTile is one generator's run of control positions on a module panel.
+// Tile is one generator's run of control positions on a module panel.
 //
 // A run rather than a rectangle. A rectangle cannot hold five positions in a
 // three-row panel, and rounding five up to a six-cell rectangle puts the
 // hole back — which is what this is here to avoid. Reading order makes any
 // count contiguous, and most runs come out rectangular anyway: four in a
 // two-column module is the top two rows, two is a row.
-type genTile struct {
+type Tile struct {
 	Mode  string
 	Start int // first position, counting across the top row and down
 	N     int // how many positions
 }
 
-// genModule is one hardware unit's panel: how wide it is, and what is on it.
-type genModule struct {
+// Module is one hardware unit's panel: how wide it is, and what is on it.
+type Module struct {
 	Cols  int
-	Tiles []genTile
+	Tiles []Tile
 }
 
 // Cells is the panel's capacity in control positions.
-func (m genModule) Cells() int { return m.Cols * modRows }
+func (m Module) Cells() int { return m.Cols * modRows }
 
 // Used is how many of them carry a knob.
-func (m genModule) Used() int {
+func (m Module) Used() int {
 	n := 0
 	for _, t := range m.Tiles {
 		n += t.N
@@ -88,19 +88,19 @@ func (m genModule) Used() int {
 }
 
 // ColRow is where a position sits: across first, then down.
-func (m genModule) ColRow(pos int) (col, row int) {
+func (m Module) ColRow(pos int) (col, row int) {
 	if m.Cols < 1 {
 		return 0, 0
 	}
 	return pos % m.Cols, pos / m.Cols
 }
 
-// packGenerators lays generators onto module panels.
+// Pack lays generators onto module panels.
 //
 // maxCols bounds a module, because a module wider than a bay cannot be put
 // in one. A single generator that will not fit in a bay on its own gets a
 // panel of its own and overhangs it, which is visible and therefore right.
-func packGenerators(gens []genSpec, maxCols int) []genModule {
+func Pack(gens []Spec, maxCols int) []Module {
 	if maxCols < 1 {
 		maxCols = 1
 	}
@@ -124,7 +124,7 @@ func packGenerators(gens []genSpec, maxCols int) []genModule {
 	// grouping is free to reach past a neighbor to fill a panel.
 	sort.SliceStable(groups, func(a, b int) bool { return groups[a][0] < groups[b][0] })
 
-	out := make([]genModule, 0, len(groups))
+	out := make([]Module, 0, len(groups))
 	for _, g := range groups {
 		out = append(out, layOut(gens, g, maxCols))
 	}
@@ -132,7 +132,7 @@ func packGenerators(gens []genSpec, maxCols int) []genModule {
 }
 
 // layOut turns one group of generators into a panel.
-func layOut(gens []genSpec, group []int, maxCols int) genModule {
+func layOut(gens []Spec, group []int, maxCols int) Module {
 	sum := 0
 	for _, i := range group {
 		sum += gens[i].Constants
@@ -141,10 +141,10 @@ func layOut(gens []genSpec, group []int, maxCols int) genModule {
 	if cols > maxCols && len(group) > 1 {
 		cols = maxCols // only reachable if a caller hands us an oversized group
 	}
-	m := genModule{Cols: cols}
+	m := Module{Cols: cols}
 	pos := 0
 	for _, i := range group {
-		m.Tiles = append(m.Tiles, genTile{Mode: gens[i].Mode, Start: pos, N: gens[i].Constants})
+		m.Tiles = append(m.Tiles, Tile{Mode: gens[i].Mode, Start: pos, N: gens[i].Constants})
 		pos += gens[i].Constants
 	}
 	return m
@@ -156,7 +156,7 @@ func layOut(gens []genSpec, group []int, maxCols int) genModule {
 // It minimizes wasted positions first and the number of modules second: of
 // two groupings that leave the same amount of blank panel, the one with
 // fewer units is the one a rack would actually be built as.
-func fillColumns(gens []genSpec, idx []int, maxCols int) [][]int {
+func fillColumns(gens []Spec, idx []int, maxCols int) [][]int {
 	n := len(idx)
 	if n == 0 {
 		return nil
@@ -260,7 +260,7 @@ func fillColumns(gens []genSpec, idx []int, maxCols int) [][]int {
 // one or two. One and two make three; three ones make three; so do three
 // twos. That is every combination there is, so pairing the two piles and
 // then taking what is left in threes reaches the least possible waste.
-func byResidue(gens []genSpec, idx []int, maxCols int) [][]int {
+func byResidue(gens []Spec, idx []int, maxCols int) [][]int {
 	var ones, twos []int
 	for _, i := range idx {
 		if gens[i].Constants%modRows == 1 {
