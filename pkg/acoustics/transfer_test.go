@@ -1,4 +1,4 @@
-package attractor
+package acoustics
 
 import (
 	"math"
@@ -26,7 +26,7 @@ func xfRun(sig audiosrc.TestSignal, windows, n int, system func(ref, meas []floa
 	for w := 0; w < windows; w++ {
 		copy(ref, total[w*n+n:(w+1)*n+n])
 		system(ref, meas)
-		a.Add(ref, meas, xfWindowKind)
+		a.Add(ref, meas, TransferWindowKind)
 	}
 	return a.Result(xfSR, 6)
 }
@@ -116,7 +116,7 @@ func TestADelayIsRecoveredFromThePhaseSlope(t *testing.T) {
 			base := w*n + n
 			copy(ref, stream[base:base+n])
 			copy(meas, stream[base-samples:base-samples+n])
-			a.Add(ref, meas, xfWindowKind)
+			a.Add(ref, meas, TransferWindowKind)
 		}
 		r := a.Result(xfSR, 6)
 		if !r.OK {
@@ -145,7 +145,7 @@ func TestIndependentSignalsHaveNoCoherence(t *testing.T) {
 	rr := make([]float32, n)
 	for w := 0; w < windows; w++ {
 		left.Fill(l, rr) // the "wide" stimulus is two independent streams
-		a.Add(l, rr, xfWindowKind)
+		a.Add(l, rr, TransferWindowKind)
 	}
 	r := a.Result(xfSR, 6)
 	if !r.OK {
@@ -182,7 +182,7 @@ func TestOneWindowHasCoherenceOneAtEveryBin(t *testing.T) {
 	l := make([]float32, n)
 	rr := make([]float32, n)
 	src.Fill(l, rr) // two INDEPENDENT streams: no relationship at all
-	if !a.Add(l, rr, xfWindowKind) {
+	if !a.Add(l, rr, TransferWindowKind) {
 		t.Fatal("the window was refused")
 	}
 	for k := 10; k < len(a.sxx)-10; k += 37 {
@@ -201,12 +201,12 @@ func TestASingleWindowIsRefused(t *testing.T) {
 	var a TransferAccum
 	l := make([]float32, n)
 	rr := make([]float32, n)
-	for w := 0; w < transferMinAvg-1; w++ {
+	for w := 0; w < TransferMinAvg-1; w++ {
 		src.Fill(l, rr)
 		if r := a.Result(xfSR, 6); r.OK {
-			t.Fatalf("a result was given after %d windows, and %d are needed", w, transferMinAvg)
+			t.Fatalf("a result was given after %d windows, and %d are needed", w, TransferMinAvg)
 		}
-		a.Add(l, rr, xfWindowKind)
+		a.Add(l, rr, TransferWindowKind)
 	}
 }
 
@@ -220,7 +220,7 @@ func TestABandWithNoInputIsMarkedByTheReferenceLevel(t *testing.T) {
 	var a TransferAccum
 	ref := distTone(n, 1000, 0.5)
 	for w := 0; w < windows; w++ {
-		a.Add(ref, ref, xfWindowKind)
+		a.Add(ref, ref, TransferWindowKind)
 	}
 	r := a.Result(xfSR, 3)
 	if !r.OK {
@@ -254,8 +254,8 @@ func TestResetDropsTheAverage(t *testing.T) {
 	const n = 4096
 	var a TransferAccum
 	ref := distTone(n, 1000, 0.5)
-	for w := 0; w < transferMinAvg+4; w++ {
-		a.Add(ref, ref, xfWindowKind)
+	for w := 0; w < TransferMinAvg+4; w++ {
+		a.Add(ref, ref, TransferWindowKind)
 	}
 	if r := a.Result(xfSR, 3); !r.OK {
 		t.Fatal("no result before the reset")
@@ -269,13 +269,13 @@ func TestResetDropsTheAverage(t *testing.T) {
 // Rubbish in has to be refused rather than panicking or inventing a spectrum.
 func TestTransferRefusesBadWindows(t *testing.T) {
 	var a TransferAccum
-	if a.Add(make([]float32, 1000), make([]float32, 1000), xfWindowKind) {
+	if a.Add(make([]float32, 1000), make([]float32, 1000), TransferWindowKind) {
 		t.Error("a non-power-of-two window was accepted")
 	}
-	if a.Add(make([]float32, 4096), make([]float32, 2048), xfWindowKind) {
+	if a.Add(make([]float32, 4096), make([]float32, 2048), TransferWindowKind) {
 		t.Error("mismatched channel lengths were accepted")
 	}
-	if a.Add(nil, nil, xfWindowKind) {
+	if a.Add(nil, nil, TransferWindowKind) {
 		t.Error("an empty window was accepted")
 	}
 }

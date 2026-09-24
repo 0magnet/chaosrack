@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/acoustics"
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"strconv"
@@ -15,7 +16,7 @@ import (
 // The Waterfall mode — cumulative spectral decay, as a surface in the 3-D
 // pipeline.
 //
-// The analysis is in impulse.go, untagged and checked against a synthetic
+// The analysis is in pkg/acoustics and checked against a synthetic
 // resonance and a decay of known T60. This is the picture, and it is the one
 // display here that could only exist in this app: every other analyzer in the
 // rack draws its own flat panel, and this one is a genuine three-dimensional
@@ -129,8 +130,8 @@ var (
 	wfallRefBuf  []float32 // the reference: what went out
 	wfallMeasBuf []float32 // the measurement: what came back
 	wfallFill    int
-	wfallSurface []CSDSlice
-	wfallFreqs   = LogFreqPoints(rtaLo, rtaHi, wfallBins)
+	wfallSurface []acoustics.CSDSlice
+	wfallFreqs   = acoustics.LogFreqPoints(acoustics.RTALo, acoustics.RTAHi, wfallBins)
 	wfallRT60    float64
 	wfallRTOK    bool
 	wfallLastPos float64
@@ -379,7 +380,7 @@ func wfallLiveTick() {
 
 	lines := wfallLines()
 	if len(wfallSurface) < lines {
-		wfallSurface = append(wfallSurface, CSDSlice{DB: make([]float64, len(wfallFreqs))})
+		wfallSurface = append(wfallSurface, acoustics.CSDSlice{DB: make([]float64, len(wfallFreqs))})
 	} else if len(wfallSurface) > lines {
 		// LINE turned down: drop from the BACK, which is the oldest, so the
 		// front of the surface — what is playing now — never jumps.
@@ -391,7 +392,7 @@ func wfallLiveTick() {
 	oldest := wfallSurface[len(wfallSurface)-1]
 	copy(wfallSurface[1:], wfallSurface[:len(wfallSurface)-1])
 	wfallSurface[0] = oldest
-	if !SpectrumPoints(wfallLiveBuf, sr, wfallFreqs, wfallLiveWindow, wfallSurface[0].DB) {
+	if !acoustics.SpectrumPoints(wfallLiveBuf, sr, wfallFreqs, wfallLiveWindow, wfallSurface[0].DB) {
 		return
 	}
 	for i := range wfallSurface {
@@ -492,17 +493,17 @@ func wfallMeasure(sr int) {
 	}
 	ref := wfallRefBuf[len(wfallRefBuf)-n:]
 	meas := wfallMeasBuf[len(wfallMeasBuf)-n:]
-	ir := ImpulseResponse(ref, meas, 1e-4)
+	ir := acoustics.ImpulseResponse(ref, meas, 1e-4)
 	if ir == nil {
 		return
 	}
-	wfallSurface = CSD(ir, sr, wfallLines(), wfallStepMS(), wfallFFTLen(), wfallFreqs)
+	wfallSurface = acoustics.CSD(ir, sr, wfallLines(), wfallStepMS(), wfallFFTLen(), wfallFreqs)
 	// The reverberation time from the same impulse, which is the one number the
 	// surface does not show: the surface is 80 ms deep and a room's decay is
 	// measured over seconds.
-	peak, _ := IRPeak(ir)
+	peak, _ := acoustics.IRPeak(ir)
 	if peak < len(ir)-sr/4 {
-		wfallRT60, wfallRTOK = ReverbTime(SchroederDecay(ir[peak:]), sr, -5, -25)
+		wfallRT60, wfallRTOK = acoustics.ReverbTime(acoustics.SchroederDecay(ir[peak:]), sr, -5, -25)
 	} else {
 		wfallRTOK = false
 	}
