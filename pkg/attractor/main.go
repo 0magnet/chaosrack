@@ -1825,6 +1825,9 @@ func capturePermalinkAndRestore() {
 	// restoreConsoleModuleSwitches for the whole argument.
 	restoreConsoleModuleSwitches()
 	applyStateFromHash()
+	// A link that opens on the spectrogram without naming a map gets the
+	// spectrogram's own; one that names a map keeps it.
+	spect.followMode(run.selectedMode)
 	wireConsoleModuleSwitchSaves()
 	perma.startPermalinkSync()
 
