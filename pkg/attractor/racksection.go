@@ -113,6 +113,9 @@ var moduleSections = map[string]string{
 	// else; at the top it is the rack's own output monitor beside the Console,
 	// the first thing on the left edge where a rack is read from.
 	"record": secConsole,
+	// Saving and recalling the whole rack is the Console's job, and a
+	// one-slot module alone at the bottom of the rack was a bay for itself.
+	"presets": secConsole,
 
 	"test": secInput,
 
@@ -129,6 +132,10 @@ var moduleSections = map[string]string{
 
 	"envelope": secMod,
 	"patchbay": secMod,
+	// The drum machine is a clocked source like the envelope beside it, and
+	// the tail of the modulation bay is where its four slots fit; after the
+	// keyboard and the matrix it opened a bay of its own.
+	"rhythm": secMod,
 
 	// The model, and the per-mode front panels that are its own controls.
 	// secModel means "part of the instrument rather than of the rack", and
@@ -157,10 +164,8 @@ var moduleSections = map[string]string{
 	"gen z":     secOutput,
 	"keys":      secOutput,
 	"matrix":    secOutput,
-	"rhythm":    secOutput,
 	"model out": secOutput,
 
-	"presets":  secUtility,
 	"template": secUtility,
 }
 
