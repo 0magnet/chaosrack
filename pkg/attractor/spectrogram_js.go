@@ -3,10 +3,13 @@
 package attractor
 
 import (
+	"strconv"
+	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/colormap"
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"github.com/0magnet/chaosrack/pkg/spectcol"
-	"syscall/js"
 
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
 )
@@ -62,6 +65,11 @@ const (
 // spectrogram is the spectrogram texture provider: the scrolling texture, the
 // columns queued for it, and the analysis window.
 type spectrogram struct {
+	// autoMap is whether the MAP ring holds the colormap followMode put there,
+	// so leaving the mode can hand the ring back without taking a choice
+	// somebody made while it was up.
+	autoMap bool
+
 	// texH follows the transform size — spectcol.Rows(DFTSize) — because the
 	// dft knob can change it while the mode is running. It is not a constant for
 	// that reason and for no other; at the default 1024-point transform it is the
@@ -377,4 +385,38 @@ func zeroRotationSliders() {
 		el.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 	}
 	syncKnobs()
+}
+
+// spectrogramMap is the MAP position the spectrogram comes up on: heat, the
+// default of the spectrogram's own color knob before that knob became the
+// MAP ring. mapDefault is the ring's default, the two-color ramp.
+var spectrogramMap = strconv.Itoa(colormap.First)
+
+const mapDefault = "2"
+
+// followMode moves the MAP ring onto the spectrogram's colormap when a
+// spectrogram comes up and hands it back when it goes.
+//
+// When the spectrogram had its own color knob it opened on heat. Folding that
+// knob into the MAP ring left it opening on the ring's default, a two-color
+// ramp made for coloring a trace by a coordinate — the wrong language for a
+// magnitude, and not what anyone who knew the old spectrogram expects to see.
+//
+// It is emb.autoSet's rule: never over a choice. The ring is moved only from
+// its default, and moved back only if it still holds what this put there, so
+// a map chosen on the panel or carried in a link stays where it was put.
+func (s *spectrogram) followMode(mode string) {
+	cur := strconv.Itoa(style.gradientColors)
+	if isSpectroSurface(mode) {
+		if cur == mapDefault && (inPageRack{}).Set("gradient-colors", spectrogramMap) == nil {
+			s.autoMap = true
+		}
+		return
+	}
+	if s.autoMap {
+		s.autoMap = false
+		if cur == spectrogramMap {
+			_ = inPageRack{}.Set("gradient-colors", mapDefault)
+		}
+	}
 }
