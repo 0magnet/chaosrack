@@ -51,19 +51,19 @@ analog computers at [glensstuff.com](https://glensstuff.com).
   - [Attractors](#attractors)
   - [Custom](#custom)
   - [Maps](#maps)
+  - [Analysis](#analysis)
+  - [Geometry](#geometry)
+  - [Solids](#solids)
+  - [Sequences](#sequences)
   - [Scope](#scope)
   - [Embeddings](#embeddings)
-  - [Geometry](#geometry)
-  - [Sequences](#sequences)
   - [Audio](#audio)
-  - [Analysis](#analysis)
-  - [Solids](#solids)
 - [Which control does what, on which model](#which-control-does-what-on-which-model)
   - [The global controls](#the-global-controls)
   - [The audio-driven models](#the-audio-driven-models)
   - [Test signals](#test-signals)
   - [Distortion — THD, THD+N, SINAD, ENOB](#distortion--thd-thdn-sinad-enob)
-  - [RTA — octave bands](#rta--octave-bands-2)
+  - [RTA — octave bands](#rta--octave-bands-1)
   - [Transfer function — magnitude, phase, coherence](#transfer-function--magnitude-phase-coherence)
   - [Loudness — LUFS, loudness range, true peak](#loudness--lufs-loudness-range-true-peak)
   - [Wow & flutter — speed stability](#wow--flutter--speed-stability)
@@ -1130,6 +1130,182 @@ p' = p + K·sin θ
 
 `#standardmap` · discrete map
 
+### Analysis
+
+[Bifurcation](#bifurcation) · [Poincaré Section](#poincaré-section)
+
+#### Bifurcation
+
+| Bifurcation | turning |
+| --- | --- |
+| ![Bifurcation](docs/img/model/bifurcation.jpg) | ![Bifurcation turning](docs/img/model/bifurcation.gif) |
+
+Bifurcation Explorer — the fig-tree diagram, computed live. One parameter of the most recent flow mode sweeps its whole knob range across the x axis; each column integrates the system fresh at that value and plots the local maxima of z. Thin branches are periodic orbits, fan-outs are period-doubling cascades, filled bands are chaos — the route between them is the route to chaos. Pick the swept parameter in the Parameters module; visit an attractor and tune it to change the source system.
+
+`#bifurcation` · parametric
+
+#### Poincaré Section
+
+Poincaré Section — the continuous flow read as a discrete point set. The most recent flow mode is integrated privately and sampled only where it pierces a plane, going one way through it; what is left is the cross-section of the attractor, and the sheets that are invisible in the tangle are the whole picture here. AXIS and POS place the plane (POS is a fraction of the attractor's own reach along that axis, so 0 is through the middle whatever the system's size); DIR chooses which way through it counts. One way is the default, and it is not a preference: a bounded flow that goes up through a plane has to come back down through it, so keeping both superimposes two different sections and the return map stops being a function. VIEW picks the picture — PLANE draws the crossings where they physically are, FLAT lays the section out face on in the plane's own coordinates, and MAP is the FIRST-RETURN MAP: each crossing plotted against the next one. That last is where the route to chaos is legible — a periodic orbit is a handful of dots, a period-doubling is that set doubling, and a chaotic attractor is a single-humped curve, which is the logistic map's parabola surfacing inside a differential equation. The dotted 45° line is y = x, where the map's fixed points are. The crossing point is INTERPOLATED between the two samples that straddle the plane rather than snapped to the nearer of them — snapping smears the section by up to half a step of arc, which on these attractors is the same size as the gap between the sheets it is supposed to show. The same section is available as an overlay on the live attractor: Trace > Sect.
+
+`#poincare` · parametric
+
+### Geometry
+
+[Tetrahedron](#tetrahedron) · [Cube](#cube) · [Octahedron](#octahedron) · [Dodecahedron](#dodecahedron) · [Icosahedron](#icosahedron) · [Nested Cube](#nested-cube) · [Globe](#globe) · [Sphere](#sphere) · [Torus](#torus) · [Magnetosphere](#magnetosphere)
+
+#### Tetrahedron
+
+| Tetrahedron | turning |
+| --- | --- |
+| ![Tetrahedron](docs/img/model/tetrahedron.jpg) | ![Tetrahedron turning](docs/img/model/tetrahedron.gif) |
+
+Tetrahedron — The simplest Platonic solid, with 4 triangular faces, 6 edges, and 4 vertices. It is its own dual.
+
+`#tetrahedron` · geometry
+
+#### Cube
+
+| Cube | turning |
+| --- | --- |
+| ![Cube](docs/img/model/cube.jpg) | ![Cube turning](docs/img/model/cube.gif) |
+
+Cube (Hexahedron) — A Platonic solid with 6 square faces, 12 edges, and 8 vertices. Its dual is the octahedron.
+
+`#cube` · geometry
+
+#### Octahedron
+
+| Octahedron | turning |
+| --- | --- |
+| ![Octahedron](docs/img/model/octahedron.jpg) | ![Octahedron turning](docs/img/model/octahedron.gif) |
+
+Octahedron — A Platonic solid with 8 triangular faces, 12 edges, and 6 vertices. Its dual is the cube.
+
+`#octahedron` · geometry
+
+#### Dodecahedron
+
+| Dodecahedron | turning |
+| --- | --- |
+| ![Dodecahedron](docs/img/model/dodecahedron.jpg) | ![Dodecahedron turning](docs/img/model/dodecahedron.gif) |
+
+Dodecahedron — A Platonic solid with 12 pentagonal faces, 30 edges, and 20 vertices. Its dual is the icosahedron.
+
+`#dodecahedron` · geometry
+
+#### Icosahedron
+
+| Icosahedron | turning |
+| --- | --- |
+| ![Icosahedron](docs/img/model/icosahedron.jpg) | ![Icosahedron turning](docs/img/model/icosahedron.gif) |
+
+Icosahedron — A Platonic solid with 20 triangular faces, 30 edges, and 12 vertices. Its dual is the dodecahedron.
+
+`#icosahedron` · geometry
+
+#### Nested Cube
+
+| Nested Cube | turning |
+| --- | --- |
+| ![Nested Cube](docs/img/model/nestedcube.jpg) | ![Nested Cube turning](docs/img/model/nestedcube.gif) |
+
+Nested Cube — A cube within a cube, connected at the vertices, illustrating the relationship between inner and outer geometric structures.
+
+`#nestedcube` · geometry
+
+#### Globe
+
+| Globe | turning | parameters |
+| --- | --- | --- |
+| ![Globe](docs/img/model/globe.jpg) | ![Globe turning](docs/img/model/globe.gif) | ![Globe parameters](docs/img/model/globe-params.jpg) |
+
+Globe — A wireframe sphere showing lines of latitude and longitude, similar to the graticule on a geographic globe. Latitude lines are horizontal circles parallel to the equator, longitude lines are great circles passing through the poles.
+
+`#globe` · geometry
+
+#### Sphere
+
+| Sphere | turning | parameters |
+| --- | --- | --- |
+| ![Sphere](docs/img/model/sphere.jpg) | ![Sphere turning](docs/img/model/sphere.gif) | ![Sphere parameters](docs/img/model/sphere-params.jpg) |
+
+Sphere — A perfectly round three-dimensional surface where every point is equidistant from the center. Generated as a UV sphere with configurable latitude and longitude subdivisions.
+
+`#sphere` · geometry
+
+#### Torus
+
+| Torus | turning | parameters |
+| --- | --- | --- |
+| ![Torus](docs/img/model/torus.jpg) | ![Torus turning](docs/img/model/torus.gif) | ![Torus parameters](docs/img/model/torus-params.jpg) |
+
+Torus — A doughnut-shaped surface of revolution generated by revolving a circle (radius r) around an axis at distance R from the center of the circle.
+
+`#torus` · geometry
+
+#### Magnetosphere
+
+| Magnetosphere | turning |
+| --- | --- |
+| ![Magnetosphere](docs/img/model/magnetosphere.jpg) | ![Magnetosphere turning](docs/img/model/magnetosphere.gif) |
+
+Magnetosphere — A visualization of magnetic field lines surrounding a dipole, similar to Earth's magnetosphere that shields the planet from solar wind.
+
+`#magnetosphere` · geometry
+
+### Solids
+
+[STL File](#stl-file) · [Terminal](#terminal) · [Terminal Animation](#terminal-animation) · [Host Shell](#host-shell) · [Desk](#desk)
+
+#### STL File
+
+| STL File | turning |
+| --- | --- |
+| ![STL File](docs/img/model/stlfile.jpg) | ![STL File turning](docs/img/model/stlfile.gif) |
+
+STL File — Load a stereolithograph (.stl, binary or ASCII) from disk with the Loader module's Load button and it renders as a rotating wireframe. Very large files are decimated to fit the 16-bit index pipeline.
+
+`#stlfile` · geometry
+
+#### Terminal
+
+Terminal — a live terminal, drawn as a model. It is the same texture-on-a-plane path the spectrogram and the recurrence plot use, so it rotates, zooms and takes a gradient like any other model; what is on the texture is [xterm-go](https://github.com/0magnet/xterm-go), a Go port of xterm.js, rendering a real terminal grid with WebGL2. That last part is what makes this possible rather than merely desirable: a terminal drawn as DOM could not be sampled into a texture at all, and rasterizing DOM every frame is not a thing worth doing. xterm-go renders into a canvas, and a canvas is a texture source. Behind it runs [websh](https://github.com/0magnet/websh), a Bash interpreter compiled to wasm over an in-memory filesystem, so this is a session you can work in and not a picture of one: pipes, globs, redirection, `for` loops, all of it rotating with the model. **Double-click** the canvas to type into it and **Esc** to give the keyboard back — a double click because a single one is how you rotate the model, and the two must not be the same gesture. Focusing it silences the app's own key bindings automatically, since Pong, the Keys module and the hovered-knob arrows all already stand aside for a focused textarea, which is what a terminal captures keys on. It can also be the BACKDROP behind another model, the way the spectrogram can.
+
+`#terminal` · geometry
+
+#### Terminal Animation
+
+Terminal Animation — the same terminal-on-a-plane, with a drawing program on it instead of a shell. The catalog is [tuiwasm](https://github.com/0magnet/tuiwasm): twenty-one animations — fire, plasma, a matrix rain, an aquarium, a bonsai growing branch by branch, Langton's ant, falling sand — plus charts, tables and styled text. Pick one from the **animation** selector on this model's panel. The animations draw at half-block resolution: every cell is an upper or lower block glyph carrying its own foreground and background, which is two independently colored pixels per cell and roughly square ones, since a terminal cell is about twice as tall as it is wide. They run at the frame rate — the cells are written straight into xterm-go's buffer rather than encoded as escape sequences and parsed back, which is the difference between sixty frames a second and a wedged tab. Nothing is wired to the keyboard here, unlike the Terminal model: these draw, they do not read, and the animations quit on a keystroke. Like the terminal it can also be the BACKDROP behind another model.
+
+`#termanim` · geometry
+
+#### Host Shell
+
+Host Shell — a real shell on the machine serving this page, drawn as a model. The Terminal model beside it is [websh](https://github.com/0magnet/websh), a Bash interpreter compiled into the wasm over a filesystem that exists only in the browser; this one is a pty on the host, reached through the same agent the desk's host pane uses. It needs the server to have been started with **--shell**, which also forces a loopback bind — the server refuses that flag on a listener the network can reach rather than warning about it. Without the flag the terminal still opens and says so, because an empty rectangle with no explanation is the worse answer. **Double-click** the canvas to type into it and **Esc** to give the keyboard back, exactly as for the Terminal model. It reached the screen before this as a window inside the Desk; as a model it is the shell without the window manager around it.
+
+`#hostterm` · geometry
+
+#### Desk
+
+Desk — a window manager, drawn as a model. The same texture-on-a-plane path the spectrogram, the recurrence plot and the Terminal use, with a whole [desk](https://github.com/0magnet/desk) on it: winbox windows, a [websh](https://github.com/0magnet/websh) shell in each, a file manager, all of them running while you rotate them. It needed something from desk to be possible at all. A window is more than its pane — its title, buttons and border are DOM, and DOM cannot be sampled into a texture — so texturing the panes alone would give a desk of frameless rectangles. desk's WebGL compositor can now REDRAW the frames instead: each title bar is rasterized with Canvas2D, text and buttons and all, into the same canvas it draws the panes into, and that canvas is a complete picture of the desk. Nothing types into it while it is a model, and that is the arrangement rather than an omission for the MOUSE: a click on a rotated quad would have to be cast through it to a texture coordinate and synthesized back into a DOM event at a place nothing is. What you get instead are two gestures. **Ctrl-drag** reaches the desk, so ctrl-dragging a title bar moves a window while an ordinary drag still turns the model; the **Pass-thru** switch in the Desk module swaps the two if you would rather drag windows directly and hold ctrl to turn. And the KEYBOARD does reach it: **double-click** the canvas to type into the focused window and **Esc** to give the keyboard back, the same pair the Terminal and Host Shell models use. Aiming is the honest limitation — you are pointing at a projection, so a title bar is not where the pointer says it is. The **Desk** switch (Console → Window) puts the same windows on the page as ordinary DOM, which is the one to use for arranging them; rearrange there, then come back here to look at it. Flatten to work, rotate to admire. It can also be the BACKDROP behind another model, the way the spectrogram and the terminal can.
+
+`#desk` · geometry
+
+### Sequences
+
+[Turtle Path](#turtle-path)
+
+#### Turtle Path
+
+| Turtle Path | turning | in 2-D (mod 30, closed) | parameters |
+| --- | --- | --- | --- |
+| ![Turtle Path](docs/img/model/turtle.jpg) | ![Turtle Path turning](docs/img/model/turtle.gif) | ![Turtle Path — in 2-D (mod 30, closed)](docs/img/model/turtle-2d.jpg) | ![Turtle Path parameters](docs/img/model/turtle-params.jpg) |
+
+Turtle Path — Reduce an integer sequence modulo m and the remainders repeat; the length of the repeat is the Pisano period. Read each term as an instruction — odd turns left and steps forward, even turns right and steps forward, zero does neither — and the walk draws a figure. In three dimensions the parity of the NEXT term decides whether the turn is a yaw or a pitch, which is not arbitrary: the pair (F_n, F_n+1) mod m is the state of the recurrence, and the Pisano period is the period of that pair. One pass decides the rest, without walking further: the figure either closes, drifts in a straight line, or screws away along an axis. The walk never finishes and is never restarted — the turtle is held mid-stride and extended at the Speed knob's rate, forever, and TRAIL is how much stays behind it (whole, long, short, comet) as the oldest scrolls off the far end. CAM is where it is watched from. Only follow cares where the head is; every other setting places the figure by its DRIFT, the one direction it is going overall, known exactly from one pass of the period rather than guessed at from the last few frames — and for a screw it centers on the axis the classification locates, so the figure turns on the spot instead of swinging around it. fit then only decides how big it is drawn, lock holds that size too, and auto fits a closed figure and locks one that drifts. TINT is what a color means — step, pass, visits, heading, turn, term, age — and set COLORS SRC to trl to see it, or leave it on X/Y/Z to read position instead (a flat DIM 2 figure has no Z to follow). MUL multiplies the Fibonacci sequence, CAP limits the terms read for sequences that may not repeat, CYCLE steps to the next modulus every so many seconds, and MOD 0 draws the sequence unreduced. PHYS gives the figure weight: it becomes a rigid body in the plane of the screen — three degrees of freedom, the figure's own shape as its mass — inside a solid box the size of the frame, where GRAV (either way up), FRIC, BOUNCE and SPIN say how it behaves. Press on the figure and you can pick it up and throw it; press beside it and you are turning the view as usual. The walk keeps extruding while it lies there, new points arriving at the head and old ones dropping off the tail, so the figure slides through its own body and marches. PHYS off hands the placing back to CAM.
+
+`#turtle` · parametric
+
 ### Scope
 
 [Lissajous](#lissajous) · [Graphic Artist](#graphic-artist) · [Scope Pong](#scope-pong) · [Fourier Text](#fourier-text) · [Scope Clock](#scope-clock) · [Bouncing Ball](#bouncing-ball) · [XY Scope](#xy-scope)
@@ -1247,124 +1423,6 @@ Polar Embedding — the Takens delay vector drawn in a sphere instead of a cube.
 
 `#polar` · parametric
 
-### Geometry
-
-[Tetrahedron](#tetrahedron) · [Cube](#cube) · [Octahedron](#octahedron) · [Dodecahedron](#dodecahedron) · [Icosahedron](#icosahedron) · [Nested Cube](#nested-cube) · [Globe](#globe) · [Sphere](#sphere) · [Torus](#torus) · [Magnetosphere](#magnetosphere)
-
-#### Tetrahedron
-
-| Tetrahedron | turning |
-| --- | --- |
-| ![Tetrahedron](docs/img/model/tetrahedron.jpg) | ![Tetrahedron turning](docs/img/model/tetrahedron.gif) |
-
-Tetrahedron — The simplest Platonic solid, with 4 triangular faces, 6 edges, and 4 vertices. It is its own dual.
-
-`#tetrahedron` · geometry
-
-#### Cube
-
-| Cube | turning |
-| --- | --- |
-| ![Cube](docs/img/model/cube.jpg) | ![Cube turning](docs/img/model/cube.gif) |
-
-Cube (Hexahedron) — A Platonic solid with 6 square faces, 12 edges, and 8 vertices. Its dual is the octahedron.
-
-`#cube` · geometry
-
-#### Octahedron
-
-| Octahedron | turning |
-| --- | --- |
-| ![Octahedron](docs/img/model/octahedron.jpg) | ![Octahedron turning](docs/img/model/octahedron.gif) |
-
-Octahedron — A Platonic solid with 8 triangular faces, 12 edges, and 6 vertices. Its dual is the cube.
-
-`#octahedron` · geometry
-
-#### Dodecahedron
-
-| Dodecahedron | turning |
-| --- | --- |
-| ![Dodecahedron](docs/img/model/dodecahedron.jpg) | ![Dodecahedron turning](docs/img/model/dodecahedron.gif) |
-
-Dodecahedron — A Platonic solid with 12 pentagonal faces, 30 edges, and 20 vertices. Its dual is the icosahedron.
-
-`#dodecahedron` · geometry
-
-#### Icosahedron
-
-| Icosahedron | turning |
-| --- | --- |
-| ![Icosahedron](docs/img/model/icosahedron.jpg) | ![Icosahedron turning](docs/img/model/icosahedron.gif) |
-
-Icosahedron — A Platonic solid with 20 triangular faces, 30 edges, and 12 vertices. Its dual is the dodecahedron.
-
-`#icosahedron` · geometry
-
-#### Nested Cube
-
-| Nested Cube | turning |
-| --- | --- |
-| ![Nested Cube](docs/img/model/nestedcube.jpg) | ![Nested Cube turning](docs/img/model/nestedcube.gif) |
-
-Nested Cube — A cube within a cube, connected at the vertices, illustrating the relationship between inner and outer geometric structures.
-
-`#nestedcube` · geometry
-
-#### Globe
-
-| Globe | turning | parameters |
-| --- | --- | --- |
-| ![Globe](docs/img/model/globe.jpg) | ![Globe turning](docs/img/model/globe.gif) | ![Globe parameters](docs/img/model/globe-params.jpg) |
-
-Globe — A wireframe sphere showing lines of latitude and longitude, similar to the graticule on a geographic globe. Latitude lines are horizontal circles parallel to the equator, longitude lines are great circles passing through the poles.
-
-`#globe` · geometry
-
-#### Sphere
-
-| Sphere | turning | parameters |
-| --- | --- | --- |
-| ![Sphere](docs/img/model/sphere.jpg) | ![Sphere turning](docs/img/model/sphere.gif) | ![Sphere parameters](docs/img/model/sphere-params.jpg) |
-
-Sphere — A perfectly round three-dimensional surface where every point is equidistant from the center. Generated as a UV sphere with configurable latitude and longitude subdivisions.
-
-`#sphere` · geometry
-
-#### Torus
-
-| Torus | turning | parameters |
-| --- | --- | --- |
-| ![Torus](docs/img/model/torus.jpg) | ![Torus turning](docs/img/model/torus.gif) | ![Torus parameters](docs/img/model/torus-params.jpg) |
-
-Torus — A doughnut-shaped surface of revolution generated by revolving a circle (radius r) around an axis at distance R from the center of the circle.
-
-`#torus` · geometry
-
-#### Magnetosphere
-
-| Magnetosphere | turning |
-| --- | --- |
-| ![Magnetosphere](docs/img/model/magnetosphere.jpg) | ![Magnetosphere turning](docs/img/model/magnetosphere.gif) |
-
-Magnetosphere — A visualization of magnetic field lines surrounding a dipole, similar to Earth's magnetosphere that shields the planet from solar wind.
-
-`#magnetosphere` · geometry
-
-### Sequences
-
-[Turtle Path](#turtle-path)
-
-#### Turtle Path
-
-| Turtle Path | turning | in 2-D (mod 30, closed) | parameters |
-| --- | --- | --- | --- |
-| ![Turtle Path](docs/img/model/turtle.jpg) | ![Turtle Path turning](docs/img/model/turtle.gif) | ![Turtle Path — in 2-D (mod 30, closed)](docs/img/model/turtle-2d.jpg) | ![Turtle Path parameters](docs/img/model/turtle-params.jpg) |
-
-Turtle Path — Reduce an integer sequence modulo m and the remainders repeat; the length of the repeat is the Pisano period. Read each term as an instruction — odd turns left and steps forward, even turns right and steps forward, zero does neither — and the walk draws a figure. In three dimensions the parity of the NEXT term decides whether the turn is a yaw or a pitch, which is not arbitrary: the pair (F_n, F_n+1) mod m is the state of the recurrence, and the Pisano period is the period of that pair. One pass decides the rest, without walking further: the figure either closes, drifts in a straight line, or screws away along an axis. The walk never finishes and is never restarted — the turtle is held mid-stride and extended at the Speed knob's rate, forever, and TRAIL is how much stays behind it (whole, long, short, comet) as the oldest scrolls off the far end. CAM is where it is watched from. Only follow cares where the head is; every other setting places the figure by its DRIFT, the one direction it is going overall, known exactly from one pass of the period rather than guessed at from the last few frames — and for a screw it centers on the axis the classification locates, so the figure turns on the spot instead of swinging around it. fit then only decides how big it is drawn, lock holds that size too, and auto fits a closed figure and locks one that drifts. TINT is what a color means — step, pass, visits, heading, turn, term, age — and set COLORS SRC to trl to see it, or leave it on X/Y/Z to read position instead (a flat DIM 2 figure has no Z to follow). MUL multiplies the Fibonacci sequence, CAP limits the terms read for sequences that may not repeat, CYCLE steps to the next modulus every so many seconds, and MOD 0 draws the sequence unreduced. PHYS gives the figure weight: it becomes a rigid body in the plane of the screen — three degrees of freedom, the figure's own shape as its mass — inside a solid box the size of the frame, where GRAV (either way up), FRIC, BOUNCE and SPIN say how it behaves. Press on the figure and you can pick it up and throw it; press beside it and you are turning the view as usual. The walk keeps extruding while it lies there, new points arriving at the head and old ones dropping off the tail, so the figure slides through its own body and marches. PHYS off hands the placing back to CAM.
-
-`#turtle` · parametric
-
 ### Audio
 
 [Spectrogram](#spectrogram) · [XY Scope](#xy-scope) · [FVF Wobbulator](#fvf-wobbulator) · [Takens Embedding](#takens-embedding) · [Stereo Embedding](#stereo-embedding) · [Polar Embedding](#polar-embedding) · [Recurrence Plot](#recurrence-plot) · [RTA — Octave Bands](#rta--octave-bands) · [Transfer Function](#transfer-function) · [Waterfall — Spectral Decay](#waterfall--spectral-decay)
@@ -1432,80 +1490,6 @@ Transfer Function — what the thing between two channels did to the sound. Ever
 Waterfall — Cumulative Spectral Decay. The measurement a loudspeaker is characterized by, and the one display here that could only exist in this app: every other analyzer draws its own flat panel and this is a genuine 3-D surface, so it rides the same pipeline the attractors do and drags, rotates, zooms and takes the gradient like any other model. Frequency runs left to right, logarithmically, because hearing is organized in ratios; level runs up; and TIME runs into the screen. Each line is the spectrum of what is left of the impulse response from a moment onwards, so a flat loudspeaker's surface falls away evenly and a RESONANCE is a ridge running back into the screen at one frequency. That is what this is for: a frequency response cannot tell a resonance from a broad lift, because they are identical in magnitude and nothing alike in time. Feed it the log sweep from the Test module, with the sweep in one channel as the reference and what came back in the other. The impulse response is recovered by deconvolution and the surface rebuilt each time a sweep pass completes — so unlike every other audio mode the picture HOLDS STILL between passes, which is what makes it something to rotate and look at rather than something to freeze first. LINE is how many slices the surface has and STEP how far apart they are in milliseconds, so the two are how deep it reaches in TIME: sixteen at 5 ms is the 80 ms a loudspeaker's resonances live in, thirty-two at 40 ms the 1.3 seconds a bar of music takes. FFT is the transform each slice is taken through, and it is a genuine trade — 1k resolves time best and the bass worst, 8k the other way, and a window longer than STEP means consecutive slices see the same audio. TOP and RNGE place the level scale in dBFS as they do on the RTA. DPTH is how far back the surface reaches on screen, which is geometry rather than time. CHAN is the channel the live surface analyses; REF is which channel the decay surface calls the reference, because that one needs both. LINE, STEP and FFT follow the SRC switch to what each surface wants, and stop following once you turn one. Turn the Colors SOURCE ring to Y: it colors by LEVEL across exactly the decibels TOP and RNGE show, which is how every published CSD plot is colored. Z and trail color by age, X repeats the frequency axis, and AUDIO is one flat tint here. A sweep takes four seconds to cross the band, so the measurement needs a whole pass: a third of one is 20 Hz to 200 Hz and recovers an impulse five milliseconds wide. SRC PICKS WHICH SURFACE. DCAY is the decay above, which is a measurement and needs the sweep. LIVE is the other thing the word waterfall means: successive spectra of whatever is playing, stacked into the screen as they age, so the depth axis stops being time-since-the-impulse and becomes time-ago. Live is the one for music — a note is a ridge that rises at the front and travels back as it decays — and decay is the one for a measurement rig. RT60 is the room's reverberation time from the same impulse, by Schroeder backward integration as T20 between -5 and -25 dB: the one number the surface is far too shallow to show. Blank on the live surface and blank through a wire, neither of which has a decay to measure.
 
 `#waterfall` · parametric
-
-### Analysis
-
-[Bifurcation](#bifurcation) · [Poincaré Section](#poincaré-section) · [Recurrence Plot](#recurrence-plot) · [RTA — Octave Bands](#rta--octave-bands) · [Transfer Function](#transfer-function) · [Waterfall — Spectral Decay](#waterfall--spectral-decay)
-
-#### Bifurcation
-
-| Bifurcation | turning |
-| --- | --- |
-| ![Bifurcation](docs/img/model/bifurcation.jpg) | ![Bifurcation turning](docs/img/model/bifurcation.gif) |
-
-Bifurcation Explorer — the fig-tree diagram, computed live. One parameter of the most recent flow mode sweeps its whole knob range across the x axis; each column integrates the system fresh at that value and plots the local maxima of z. Thin branches are periodic orbits, fan-outs are period-doubling cascades, filled bands are chaos — the route between them is the route to chaos. Pick the swept parameter in the Parameters module; visit an attractor and tune it to change the source system.
-
-`#bifurcation` · parametric
-
-#### Poincaré Section
-
-Poincaré Section — the continuous flow read as a discrete point set. The most recent flow mode is integrated privately and sampled only where it pierces a plane, going one way through it; what is left is the cross-section of the attractor, and the sheets that are invisible in the tangle are the whole picture here. AXIS and POS place the plane (POS is a fraction of the attractor's own reach along that axis, so 0 is through the middle whatever the system's size); DIR chooses which way through it counts. One way is the default, and it is not a preference: a bounded flow that goes up through a plane has to come back down through it, so keeping both superimposes two different sections and the return map stops being a function. VIEW picks the picture — PLANE draws the crossings where they physically are, FLAT lays the section out face on in the plane's own coordinates, and MAP is the FIRST-RETURN MAP: each crossing plotted against the next one. That last is where the route to chaos is legible — a periodic orbit is a handful of dots, a period-doubling is that set doubling, and a chaotic attractor is a single-humped curve, which is the logistic map's parabola surfacing inside a differential equation. The dotted 45° line is y = x, where the map's fixed points are. The crossing point is INTERPOLATED between the two samples that straddle the plane rather than snapped to the nearer of them — snapping smears the section by up to half a step of arc, which on these attractors is the same size as the gap between the sheets it is supposed to show. The same section is available as an overlay on the live attractor: Trace > Sect.
-
-`#poincare` · parametric
-
-#### Recurrence Plot
-
-See [Recurrence Plot](#recurrence-plot) above.
-
-#### RTA — Octave Bands
-
-See [RTA — Octave Bands](#rta--octave-bands) above.
-
-#### Transfer Function
-
-See [Transfer Function](#transfer-function) above.
-
-#### Waterfall — Spectral Decay
-
-See [Waterfall — Spectral Decay](#waterfall--spectral-decay) above.
-
-### Solids
-
-[STL File](#stl-file) · [Terminal](#terminal) · [Terminal Animation](#terminal-animation) · [Host Shell](#host-shell) · [Desk](#desk)
-
-#### STL File
-
-| STL File | turning |
-| --- | --- |
-| ![STL File](docs/img/model/stlfile.jpg) | ![STL File turning](docs/img/model/stlfile.gif) |
-
-STL File — Load a stereolithograph (.stl, binary or ASCII) from disk with the Loader module's Load button and it renders as a rotating wireframe. Very large files are decimated to fit the 16-bit index pipeline.
-
-`#stlfile` · geometry
-
-#### Terminal
-
-Terminal — a live terminal, drawn as a model. It is the same texture-on-a-plane path the spectrogram and the recurrence plot use, so it rotates, zooms and takes a gradient like any other model; what is on the texture is [xterm-go](https://github.com/0magnet/xterm-go), a Go port of xterm.js, rendering a real terminal grid with WebGL2. That last part is what makes this possible rather than merely desirable: a terminal drawn as DOM could not be sampled into a texture at all, and rasterizing DOM every frame is not a thing worth doing. xterm-go renders into a canvas, and a canvas is a texture source. Behind it runs [websh](https://github.com/0magnet/websh), a Bash interpreter compiled to wasm over an in-memory filesystem, so this is a session you can work in and not a picture of one: pipes, globs, redirection, `for` loops, all of it rotating with the model. **Double-click** the canvas to type into it and **Esc** to give the keyboard back — a double click because a single one is how you rotate the model, and the two must not be the same gesture. Focusing it silences the app's own key bindings automatically, since Pong, the Keys module and the hovered-knob arrows all already stand aside for a focused textarea, which is what a terminal captures keys on. It can also be the BACKDROP behind another model, the way the spectrogram can.
-
-`#terminal` · geometry
-
-#### Terminal Animation
-
-Terminal Animation — the same terminal-on-a-plane, with a drawing program on it instead of a shell. The catalog is [tuiwasm](https://github.com/0magnet/tuiwasm): twenty-one animations — fire, plasma, a matrix rain, an aquarium, a bonsai growing branch by branch, Langton's ant, falling sand — plus charts, tables and styled text. Pick one from the **animation** selector on this model's panel. The animations draw at half-block resolution: every cell is an upper or lower block glyph carrying its own foreground and background, which is two independently colored pixels per cell and roughly square ones, since a terminal cell is about twice as tall as it is wide. They run at the frame rate — the cells are written straight into xterm-go's buffer rather than encoded as escape sequences and parsed back, which is the difference between sixty frames a second and a wedged tab. Nothing is wired to the keyboard here, unlike the Terminal model: these draw, they do not read, and the animations quit on a keystroke. Like the terminal it can also be the BACKDROP behind another model.
-
-`#termanim` · geometry
-
-#### Host Shell
-
-Host Shell — a real shell on the machine serving this page, drawn as a model. The Terminal model beside it is [websh](https://github.com/0magnet/websh), a Bash interpreter compiled into the wasm over a filesystem that exists only in the browser; this one is a pty on the host, reached through the same agent the desk's host pane uses. It needs the server to have been started with **--shell**, which also forces a loopback bind — the server refuses that flag on a listener the network can reach rather than warning about it. Without the flag the terminal still opens and says so, because an empty rectangle with no explanation is the worse answer. **Double-click** the canvas to type into it and **Esc** to give the keyboard back, exactly as for the Terminal model. It reached the screen before this as a window inside the Desk; as a model it is the shell without the window manager around it.
-
-`#hostterm` · geometry
-
-#### Desk
-
-Desk — a window manager, drawn as a model. The same texture-on-a-plane path the spectrogram, the recurrence plot and the Terminal use, with a whole [desk](https://github.com/0magnet/desk) on it: winbox windows, a [websh](https://github.com/0magnet/websh) shell in each, a file manager, all of them running while you rotate them. It needed something from desk to be possible at all. A window is more than its pane — its title, buttons and border are DOM, and DOM cannot be sampled into a texture — so texturing the panes alone would give a desk of frameless rectangles. desk's WebGL compositor can now REDRAW the frames instead: each title bar is rasterized with Canvas2D, text and buttons and all, into the same canvas it draws the panes into, and that canvas is a complete picture of the desk. Nothing types into it while it is a model, and that is the arrangement rather than an omission for the MOUSE: a click on a rotated quad would have to be cast through it to a texture coordinate and synthesized back into a DOM event at a place nothing is. What you get instead are two gestures. **Ctrl-drag** reaches the desk, so ctrl-dragging a title bar moves a window while an ordinary drag still turns the model; the **Pass-thru** switch in the Desk module swaps the two if you would rather drag windows directly and hold ctrl to turn. And the KEYBOARD does reach it: **double-click** the canvas to type into the focused window and **Esc** to give the keyboard back, the same pair the Terminal and Host Shell models use. Aiming is the honest limitation — you are pointing at a projection, so a title bar is not where the pointer says it is. The **Desk** switch (Console → Window) puts the same windows on the page as ordinary DOM, which is the one to use for arranging them; rearrange there, then come back here to look at it. Flatten to work, rotate to admire. It can also be the BACKDROP behind another model, the way the spectrogram and the terminal can.
-
-`#desk` · geometry
 
 <!-- END MODELS -->
 

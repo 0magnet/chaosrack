@@ -206,6 +206,34 @@ var modeGroups = []struct {
 	// repeat the mistake that hid the turtle.
 	{"Maps", []string{"henon", "ikeda", "clifford", "dejong", "mira",
 		"tinkerbell", "standardmap"}},
+	// The analyses of the dynamics themselves: the bifurcation plot of a map
+	// and the Poincaré section of a flow. They sit with the systems they
+	// analyze, above the scope. The live-signal displays (recurrence, RTA,
+	// transfer, waterfall) were listed here too, and a model belongs to the
+	// first category that lists it, so they are in Audio only now.
+	{"Analysis", []string{"bifurcation", "poincare"}},
+	// The polyhedra are in here rather than in a category of their own, for
+	// the reason the Sprott systems are in Attractors. Six solids share one
+	// control, the Conway operator, so a Polyhedra row was a monitor, a
+	// selector and one knob: a second head beside Geometry's in the same bay,
+	// which is a heading pretending to be an instrument. They are geometry —
+	// built, not integrated — and they share Geometry's monitor and selector.
+	{"Geometry", []string{"tetrahedron", "cube", "octahedron", "dodecahedron",
+		"icosahedron", "nestedcube",
+		"globe", "sphere", "torus", "magnetosphere"}},
+	// Nor is the STL mode a shape. It is a model browser: a loader for a file
+	// off disk plus a catalog of built-in solids — the rack, the geometry and
+	// every attractor swept as a tube — generated in the browser.
+	{"Solids", []string{"stlfile", "terminal", "termanim", "hostterm", "desk"}},
+	// The turtle is not geometry. It is an integer sequence read as
+	// turn-and-step — arithmetic that happens to draw — with its own camera,
+	// tinting, physics and closure classification. Filed next to "sphere" and
+	// "torus" it read as one more primitive, which is the wrong thing to tell
+	// someone about the most distinctive model in the app.
+	{"Sequences", []string{"turtle"}},
+	// The scope is the line between the rack's two halves (domainLine in
+	// racksection.go): everything above is drawn in three dimensions, and
+	// everything below is signal. The generators are the bay under it.
 	{"Scope", []string{"lissajou", "graphicartist", "pong", "scopetext", "scopeclock", "bounceball", "xy"}},
 	// The three embeddings are one subject, so they get one row.
 	//
@@ -227,31 +255,7 @@ var modeGroups = []struct {
 	// works (xy is in both), and an embedding of a live signal belongs in the
 	// audio row as much as the spectrogram does.
 	{"Embeddings", []string{"takens", "stereo", "polar"}},
-	// The polyhedra are in here rather than in a category of their own, for
-	// the reason the Sprott systems are in Attractors. Six solids share one
-	// control, the Conway operator, so a Polyhedra row was a monitor, a
-	// selector and one knob: a second head beside Geometry's in the same bay,
-	// which is a heading pretending to be an instrument. They are geometry —
-	// built, not integrated — and they share Geometry's monitor and selector.
-	{"Geometry", []string{"tetrahedron", "cube", "octahedron", "dodecahedron",
-		"icosahedron", "nestedcube",
-		"globe", "sphere", "torus", "magnetosphere"}},
-	// The turtle is not geometry. It is an integer sequence read as
-	// turn-and-step — arithmetic that happens to draw — with its own camera,
-	// tinting, physics and closure classification. Filed next to "sphere" and
-	// "torus" it read as one more primitive, which is the wrong thing to tell
-	// someone about the most distinctive model in the app.
-	{"Sequences", []string{"turtle"}},
 	{"Audio", []string{"spectrogram", "xy", "fvf", "takens", "stereo", "polar", "recurrence", "rta", "xfer", "waterfall"}},
-	{"Analysis", []string{"bifurcation", "poincare", "recurrence", "rta", "xfer", "waterfall"}},
-	// Nor is the STL mode a shape. It is a model browser: a loader for a file
-	// off disk plus a catalog of built-in solids — the rack, the geometry and
-	// every attractor swept as a tube — generated in the browser.
-	//
-	// Last, where the tail of the Audio overflow bay has room for its head
-	// and the Loader that appears beside it. After Sequences it opened a bay
-	// of its own for two slots whenever Geometry and Sequences filled theirs.
-	{"Solids", []string{"stlfile", "terminal", "termanim", "hostterm", "desk"}},
 }
 
 // defaultMode is the <select>'s initially-selected entry.
