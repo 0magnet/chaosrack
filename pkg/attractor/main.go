@@ -278,10 +278,21 @@ func Run() {
 			fr.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any { upd(); return nil }))
 			upd()
 		}
-		// Size knob lives in its own Style module (a lone labeled selector ring).
+		// Size (outer) with the rack style stacked as its inner ring: the
+		// frame's size and its metalwork on one shaft, the way the knob face
+		// and the LED color share one, rather than a fourth cell that would
+		// make the Style module two slots wide.
 		if sh := dom.Doc.Call("getElementById", "size-stack"); sh.Truthy() {
 			ks.Set("title", "Size — scales the whole control interface (S / M / L / XL)")
-			sh.Call("appendChild", singleSelectorKnob(ks, []string{"S", "M", "L", "XL"}))
+			if rs := dom.Doc.Call("getElementById", "bay-style"); rs.Truthy() {
+				stk := stackKnobs(selk.makeSelectorKnob(ks), selk.makeSelectorKnob(rs))
+				addSelectorLabels(stk, []string{"S", "M", "L", "XL"}, ks)
+				addSelectorLabels(stk, []string{"bare", "hndl", "scrw", "full"}, rs)
+				sh.Call("appendChild", stk)
+				wireRackStyle(rs)
+			} else {
+				sh.Call("appendChild", singleSelectorKnob(ks, []string{"S", "M", "L", "XL"}))
+			}
 			ks.Get("style").Set("display", "none")
 		}
 		// Knob-style selector (outer) with the LED-color selector stacked as its

@@ -114,13 +114,33 @@ func newSubrackUnit(open js.Value) js.Value {
 // unitEar is the frame either side of the opening, with the holes the unit
 // is bolted through. A 19-inch frame has (482.6 - 426.72)/2 of ear per
 // side, which is what the handles bolt to.
+//
+// Three holes and a handle, and the rack style decides which show: bare
+// ears have the three holes, and an ear with a handle trades the middle
+// hole for it, the handle's feet bolted between the other two.
 func unitEar() js.Value {
 	e := dom.Doc.Call("createElement", "div")
 	e.Set("className", unitEarCls)
-	for range 3 {
-		e.Call("appendChild", dom.Doc.Call("createElement", "i"))
-	}
+	e.Call("appendChild", dom.Doc.Call("createElement", "i"))
+	mid := dom.Doc.Call("createElement", "i")
+	mid.Set("className", "ear-mid")
+	e.Call("appendChild", mid)
+	e.Call("appendChild", rackHandle())
+	e.Call("appendChild", dom.Doc.Call("createElement", "i"))
 	return e
+}
+
+// rackHandle is the grab handle bolted to an ear: two feet and a grip, the
+// shape meshstl.RackHandle extrudes.
+func rackHandle() js.Value {
+	h := dom.Doc.Call("createElement", "span")
+	h.Set("className", "rack-handle")
+	for _, part := range []string{"rh-foot", "rh-grip", "rh-foot"} {
+		p := dom.Doc.Call("createElement", "span")
+		p.Set("className", part)
+		h.Call("appendChild", p)
+	}
+	return h
 }
 
 // unitOpenings is every subrack opening in the frame, in order.
@@ -471,6 +491,35 @@ func setRackBay(on bool) {
 	layoutRackHandles()
 }
 
+// rackStyle is what the metalwork carries when it is drawn: "bare",
+// "handles", "screws" or "full". The Rack bay switch says whether there is
+// a frame; this says what kind.
+var rackStyle = "full"
+
+// wireRackStyle binds the Size knob's inner ring to the frame, restoring
+// the stored style first.
+func wireRackStyle(sel js.Value) {
+	if v, ok := lsGet("wasmstuff-rackstyle"); ok {
+		sel.Set("value", v)
+		if sel.Get("selectedIndex").Int() < 0 {
+			sel.Set("value", rackStyle)
+		}
+	}
+	rackStyle = sel.Get("value").String()
+	sel.Get("style").Set("display", "none")
+	// SkipResetAll for the same reason as Size: it is how the rack looks,
+	// not a setting of the instrument, and Reset All leaves those alone.
+	adoptDescControl(ControlDesc{
+		ID: "bay-style", Label: "Rack", IsSelect: true, SelectDef: "full",
+		ResetID: "rst-knob-size", SkipResetAll: true,
+		SelectApply: func(v string) {
+			rackStyle = v
+			lsSet("wasmstuff-rackstyle", v)
+			layoutRackHandles()
+		},
+	})
+}
+
 // restoreRackBay puts the stored choice back at boot.
 func restoreRackBay() {
 	if v, ok := lsGet("wasmstuff-handles"); ok {
@@ -507,6 +556,8 @@ func layoutRackHandles() {
 	} else {
 		cl.Call("remove", "with-bay")
 	}
+	cl.Call("toggle", "rs-handles", rackStyle == "handles" || rackStyle == "full")
+	cl.Call("toggle", "rs-screws", rackStyle == "screws" || rackStyle == "full")
 	// A whole 19-inch panel, always — not as many slots as the window
 	// happens to fit. A window narrower than that gets the rack DRAWN
 	// smaller, not cropped: see fitFrameToWidth below.
