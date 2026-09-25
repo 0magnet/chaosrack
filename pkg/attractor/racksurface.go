@@ -38,7 +38,7 @@ func RackItemsFrom(keys, cats []string, slots, rows []int) []racksurface.Item {
 			Title:   keys[i],
 			Slots:   slots[i],
 			Section: drawSectionOf(keys[i], cats, i),
-			Lead:    bayScreenKeys[keys[i]],
+			Lead:    drawLead(keys[i], cats, i),
 		}
 		if i < len(rows) {
 			it.Rows = rows[i]

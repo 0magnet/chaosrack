@@ -187,7 +187,9 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 	steps := map[string]js.Value{}
 	var sharedCells []js.Value
 	var gens []gentile.Spec
+	var bare []string // models with no constants of their own
 	for _, mode := range own {
+		lone := -1 // the position of a switch still waiting for a partner
 		for _, p := range attractorParams[mode] {
 			if claimed[p.ID] {
 				continue
@@ -198,9 +200,18 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 				steps[mode] = buildCategoryStepCell(mode, p)
 			case shared[p.ID] > 1:
 				sharedCells = append(sharedCells, buildCategoryParamCell(mode, p))
+			case len(paramLabels[p.ID]) == 2 && lone >= 0:
+				cells[mode][lone] = pairSwitchCells(cells[mode][lone], buildCategoryParamCell(mode, p))
+				lone = -1
 			default:
+				if len(paramLabels[p.ID]) == 2 {
+					lone = len(cells[mode])
+				}
 				cells[mode] = append(cells[mode], buildCategoryParamCell(mode, p))
 			}
+		}
+		if len(cells[mode]) == 0 {
+			bare = append(bare, mode)
 		}
 		gens = append(gens, gentile.Spec{Mode: mode, Constants: len(cells[mode])})
 	}
@@ -211,37 +222,70 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 	// models, so it is wider. The packer is given the tighter figure, which
 	// leaves the later bays a column of slack rather than letting the first
 	// one overhang its rack.
-	headCols := catHeadCols + (len(sharedCells)+catCellsPerCol-1)/catCellsPerCol
+	// With no step anywhere in the category, the first shared parameter
+	// takes the step's position (see buildBayHead) and needs no column.
+	inHead := len(sharedCells)
+	if len(steps) == 0 && inHead > 0 {
+		inHead--
+	}
+	headCols := catHeadCols + (inHead+catCellsPerCol-1)/catCellsPerCol
 	mods := gentile.Pack(gens, catColsPerBay-headCols)
 
 	// Modules into bays: as many as fit beside a head.
-	var out []js.Value
-	bay, used := 0, 0
-	var pending []js.Value
-	var pendingModes []string
-	flush := func() {
-		if len(pending) == 0 && bay > 0 {
-			return
-		}
-		head := buildBayHead(label, bay, pendingModes, steps, sharedCells)
-		sharedCells = nil // the first bay of a category carries them
-		out = append(out, head)
-		out = append(out, pending...)
-		pending, pendingModes, used = nil, nil, 0
-		bay++
-		headCols = catHeadCols
+	type bayPlan struct {
+		mods  []gentile.Module
+		modes []string
 	}
+	plan := []bayPlan{{}}
+	used := 0
 	for _, m := range mods {
-		if used+m.Cols > catColsPerBay-headCols && len(pending) > 0 {
-			flush()
+		cur := &plan[len(plan)-1]
+		if used+m.Cols > catColsPerBay-headCols && len(cur.mods) > 0 {
+			plan = append(plan, bayPlan{})
+			cur, used, headCols = &plan[len(plan)-1], 0, catHeadCols
 		}
-		pending = append(pending, buildGenPanel(label, m, cells))
+		cur.mods = append(cur.mods, m)
 		for _, t := range m.Tiles {
-			pendingModes = append(pendingModes, t.Mode)
+			cur.modes = append(cur.modes, t.Mode)
 		}
 		used += m.Cols
 	}
-	flush()
+
+	// A model with no constants has no module to be packed on, but it is
+	// still one of the category's generators and has to be on a selector:
+	// the Sprott systems have a step and nothing else, and a polyhedron has
+	// nothing at all. Each goes in the bay of the model the catalog lists
+	// before it, so Sprott A sits with the morph that moves between them,
+	// and a category with no constants anywhere gets them all on its one bay.
+	bayOfMode := map[string]int{}
+	for i, b := range plan {
+		for _, m := range b.modes {
+			bayOfMode[m] = i
+		}
+	}
+	prev, after := 0, ""
+	for _, mode := range own {
+		if i, ok := bayOfMode[mode]; ok {
+			prev, after = i, mode
+			continue
+		}
+		if !slices.Contains(bare, mode) {
+			continue
+		}
+		b := &plan[prev]
+		at := slices.Index(b.modes, after) + 1 // 0 when nothing precedes it
+		b.modes = slices.Insert(b.modes, at, mode)
+		bayOfMode[mode], after = prev, mode
+	}
+
+	var out []js.Value
+	for bay, b := range plan {
+		out = append(out, buildBayHead(label, bay, b.modes, steps, sharedCells))
+		sharedCells = nil // the first bay of a category carries them
+		for _, m := range b.mods {
+			out = append(out, buildGenPanel(label, m, cells))
+		}
+	}
 	return out
 }
 
@@ -264,13 +308,23 @@ func buildGenPanel(label string, m gentile.Module, cells map[string][]js.Value) 
 		name := modeLabel(t.Mode)
 		names = append(names, categoryTag(name))
 		own := cells[t.Mode]
+		// The name goes on the first position that is a single control. A
+		// switch pair has a label at the left of each half, and the name set
+		// down that same edge ran through both of them.
+		tagAt := 0
+		for j := 0; j < t.N && j < len(own); j++ {
+			if !own[j].Get("classList").Call("contains", "swpair").Bool() {
+				tagAt = j
+				break
+			}
+		}
 		for j := 0; j < t.N && j < len(own); j++ {
 			pos := t.Start + j
 			col, row := m.ColRow(pos)
 			c := own[j]
 			c.Call("setAttribute", "data-mgroup", strconv.Itoa(i%3))
 			markGroupEdges(c, m, t, pos)
-			if j == 0 {
+			if j == tagAt {
 				c.Call("appendChild", genGroupTag(name))
 			}
 			at(c, grid, 1+row, 1, 1+col, 1)
@@ -348,14 +402,23 @@ func buildBayHead(label string, bay int, modes []string, steps map[string]js.Val
 	// shown — the one belonging to the model the bay is set to — so one
 	// position is what the panel needs, and a knob that re-ranges with the
 	// selector is what it has always been from the front.
+	stepped := false
 	for _, m := range modes {
 		if s, ok := steps[m]; ok {
 			at(s, grid, 1+catMonitorRows, 1, 2, 1)
+			stepped = true
 		}
 	}
 
 	// The category's own parameters — the ones more than one of its models
-	// declare — go in columns of their own, on the first bay only.
+	// declare — go in columns of their own, on the first bay only. A bay
+	// whose models have no step (a polyhedron is built, not integrated)
+	// has that position free, and the first of them takes it rather than
+	// opening a column beside an empty one.
+	if !stepped && len(extra) > 0 {
+		at(extra[0], grid, 1+catMonitorRows, 1, 2, 1)
+		extra = extra[1:]
+	}
 	for i, c := range extra {
 		at(c, grid, 1+i%catCellsPerCol, 1, 1+catHeadCols+i/catCellsPerCol, 1)
 	}
@@ -439,6 +502,21 @@ func buildCategoryParamCell(mode string, p paramDef) js.Value {
 	}
 	unit.Set("title", name+" — "+p.Label)
 	return unit
+}
+
+// pairSwitchCells mounts two of a model's switches in one control position.
+//
+// A switch is a toggle and a word, and a whole position built for a knob
+// leaves most of it blank: the globe's par and dir took two positions and
+// with them a fourth column on the Globe · Torus panel. Stacked, they take
+// one. Each half is still a cell of its own, so its label, reset, tooltip
+// and live marking are what they were; the pair is only where it sits.
+func pairSwitchCells(a, b js.Value) js.Value {
+	pair := dom.Doc.Call("createElement", "div")
+	pair.Set("className", "swpair")
+	pair.Call("appendChild", a)
+	pair.Call("appendChild", b)
+	return pair
 }
 
 // buildCategoryStepCell is a model's integration step, for the block that

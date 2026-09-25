@@ -108,8 +108,39 @@ func Pack(items []Item, capacity int, monitor map[string]int) [][]int {
 			cur, used, led = nil, 0, false
 		}
 	}
-	for i, it := range items {
+	// queue is the order items are placed in: the input order, except that
+	// a head may pull the tail of the bay it could not join in behind it.
+	queue := make([]int, len(items))
+	for i := range queue {
+		queue[i] = i
+	}
+	for q := 0; q < len(queue); q++ {
+		i := queue[q]
+		it := items[i]
 		w := max(it.Slots, 0)
+		// A head that cannot join an unled bay takes the end of that bay
+		// with it when the end is its own section. Colors and Palette sit
+		// before Record in DISPLAY; without this they were a row of their
+		// own, because a screen may not follow them, when the screen could
+		// simply go first and they after it. The bay still begins with a
+		// display, and nothing leaves its section.
+		if it.Lead && w > 0 && used > 0 && !led {
+			k := len(cur)
+			for k > 0 && items[cur[k-1]].Section == it.Section {
+				k--
+			}
+			if k < len(cur) {
+				carry := append([]int(nil), cur[k:]...)
+				for _, j := range carry {
+					used -= max(items[j].Slots, 0)
+				}
+				cur = cur[:k]
+				if len(cur) == 0 {
+					used = 0
+				}
+				queue = append(queue[:q+1], append(carry, queue[q+1:]...)...)
+			}
+		}
 		// Where a head may go, in two parts.
 		//
 		// It may not follow something that is not part of a head's run,

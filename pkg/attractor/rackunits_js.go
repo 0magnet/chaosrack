@@ -246,9 +246,17 @@ func relayoutUnits() {
 		// one is the single most expensive thing this package does per DOM
 		// read; a js.Value wrapping a NUMBER gets none. offsetParent hands
 		// back an element, offsetWidth a float, and display:none zeroes the
-		// width just as surely as it clears the offset parent. The string
+		// width just as surely as it clears the offset parent. The style
 		// read after it is only reached for a module that measured zero.
-		if m.Get("offsetWidth").Float() == 0 && m.Get("style").Get("display").String() == "none" {
+		//
+		// The COMPUTED display, not the inline one: the Mod and EQ modules
+		// are hidden by a class on the panel while audio mod is off, and
+		// read through style.display they were eight modules of one slot
+		// each, filling a row of nothing and pushing Presets onto its own.
+		// Zero width alone is not enough — a panel that is itself hidden
+		// measures every module at zero — so it is the module's own display.
+		if m.Get("offsetWidth").Float() == 0 &&
+			js.Global().Call("getComputedStyle", m).Get("display").String() == "none" {
 			w = 0
 		}
 		// A module sitting outside every opening has never been quantized:

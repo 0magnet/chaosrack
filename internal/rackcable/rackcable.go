@@ -165,19 +165,17 @@ func (r *Client) Rack() (string, error) {
 	return attractor.DrawRackFrom(keys, cats, slots, r.slotsPerRow(), monitors), nil
 }
 
-// slotsPerRow is how many slots a row holds, asked of the page because it
-// depends on the interface scale in use.
+// slotsPerRow is how many slots a row holds: the figure the page itself
+// packs with, which is the rack's width in modules at every scale.
+//
+// It used to be measured off the frame, whose width includes the rails, so
+// it came out at 14 where the page packs 12 and the drawing showed bays the
+// page did not have.
 func (r *Client) slotsPerRow() int {
 	if r.Capacity > 0 {
 		return r.Capacity
 	}
-	if v, ok := r.c.Eval(`(function(){
-	  var f=document.querySelector('.rack-frame');
-	  var scale=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--kscale'))||1;
-	  return f ? Math.max(1, Math.round(f.clientWidth/((140.24+2)*scale))) : 0})()`).(float64); ok && v > 0 {
-		return int(v)
-	}
-	return 12
+	return racksurface.UnitCapacity()
 }
 
 // Modules is what the frame holds, for a front end that lays the rack out
