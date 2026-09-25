@@ -285,8 +285,138 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 		for _, m := range b.mods {
 			out = append(out, buildGenPanel(label, m, cells))
 		}
+		for _, f := range modelFamilies {
+			if slices.ContainsFunc(b.modes, func(m string) bool { return familyOf(m) == f }) {
+				out = append(out, buildFamilyModule(label, f))
+			}
+		}
 	}
 	return out
+}
+
+// ── Families ────────────────────────────────────────────────────────────
+//
+// A family is a run of models that differ only in which member of a
+// catalog they are: J. C. Sprott's nineteen simple systems, A to S. On the
+// bay's MODEL knob they were nineteen positions of twenty-four, so reaching
+// Chen meant turning past all of them. Now they are ONE position, and a
+// lettered dial of their own picks which system that position plays.
+
+// modelFamily is one such run.
+type modelFamily struct {
+	Key     string
+	Label   string   // what the MODEL position reads
+	Members []string // the models, in dial order
+	Letters []string // the dial's ring, one per member
+
+	sel     js.Value   // the family's own dial
+	options []js.Value // the MODEL position that stands for it, per bay
+	chosen  string     // the member the dial is set to
+}
+
+// modelFamilies is every family; Sprott's is derived from the catalog so a
+// system added there joins the dial without being listed twice.
+var modelFamilies = func() []*modelFamily {
+	f := &modelFamily{Key: "sprott", Label: "Sprott A–S"}
+	for _, g := range modeGroups {
+		for _, m := range g.Keys {
+			if len(m) == len("sprotta") && strings.HasPrefix(m, "sprott") && !slices.Contains(f.Members, m) {
+				f.Members = append(f.Members, m)
+				f.Letters = append(f.Letters, strings.ToUpper(m[len("sprott"):]))
+			}
+		}
+	}
+	return []*modelFamily{f}
+}()
+
+// familyOf is the family a model belongs to, or nil.
+func familyOf(mode string) *modelFamily {
+	for _, f := range modelFamilies {
+		if slices.Contains(f.Members, mode) {
+			return f
+		}
+	}
+	return nil
+}
+
+// current is the member the family's MODEL position plays.
+func (f *modelFamily) current() string {
+	if f.chosen == "" && len(f.Members) > 0 {
+		f.chosen = f.Members[0]
+	}
+	return f.chosen
+}
+
+// choose points the family at a member: its dial and every MODEL position
+// that stands for it. It does not change what is running.
+func (f *modelFamily) choose(mode string) {
+	if !slices.Contains(f.Members, mode) {
+		return
+	}
+	f.chosen = mode
+	for _, o := range f.options {
+		o.Set("value", mode)
+	}
+	if f.sel.Truthy() && f.sel.Get("value").String() != mode {
+		f.sel.Set("value", mode)
+		f.sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+		f.sel.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+	}
+}
+
+// buildFamilyModule is the family's lettered dial, one slot beside the
+// generators of the bay it is in. Turning it while a member is running
+// switches to the member it lands on; otherwise it only sets which member
+// the MODEL position will play.
+func buildFamilyModule(label string, f *modelFamily) js.Value {
+	sel := dom.Doc.Call("createElement", "select")
+	sel.Set("id", "fam-"+f.Key)
+	sel.Set("title", f.Label+" — which system the MODEL knob's "+f.Label+" position plays")
+	sel.Get("style").Set("display", "none")
+	for i, m := range f.Members {
+		o := dom.Doc.Call("createElement", "option")
+		o.Set("value", m)
+		o.Set("textContent", f.Letters[i])
+		o.Set("title", modeLabel(m))
+		sel.Call("appendChild", o)
+	}
+	sel.Set("value", f.current())
+	f.sel = sel
+	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+		if catRotarySyncing {
+			return nil
+		}
+		m := sel.Get("value").String()
+		f.choose(m)
+		if familyOf(run.selectedMode) == f && m != run.selectedMode && !run.stopped {
+			if ms := dom.Doc.Call("getElementById", "mode-select"); ms.Truthy() {
+				ms.Set("value", m)
+				ms.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+			}
+		}
+		return nil
+	}))
+
+	cell := dom.Doc.Call("createElement", "div")
+	cell.Set("className", "punit")
+	cell.Set("title", f.Label+" — the system the MODEL knob's "+f.Label+" position plays")
+	top := dom.Doc.Call("createElement", "span")
+	top.Set("className", "punit-top")
+	lbl := dom.Doc.Call("createElement", "span")
+	lbl.Set("className", "u-lbl")
+	lbl.Set("textContent", "sys")
+	top.Call("appendChild", lbl)
+	cell.Call("appendChild", top)
+	cell.Call("appendChild", sel)
+	// Single letters, so the ring holds all nineteen: the fit rule's limit
+	// is for words, which is what collides round a dial.
+	cell.Call("appendChild", singleSelectorKnob(sel, f.Letters))
+
+	grid := dom.Doc.Call("createElement", "div")
+	grid.Set("className", "punit-grid catgrid")
+	at(cell, grid, 1, 1, 1, 1)
+	return wrapCategoryModule(label, "fam-"+f.Key+"-module", categoryTag(f.Label), grid,
+		f.Label+" — J. C. Sprott's nineteen simple chaotic flows (1994). The MODEL knob has one position for all of them; this dial picks which one it plays.")
 }
 
 // buildGenPanel is one hardware unit: up to three generators sharing one
@@ -663,7 +793,20 @@ func buildBayRotary(label string, bay int, modes []string) js.Value {
 		sel.Call("appendChild", o)
 	}
 	add("", categoryOffLabel)
+	seen := map[*modelFamily]bool{}
 	for _, m := range modes {
+		// A family is one position, whose value is whichever member its own
+		// dial is set to; see modelFamily.
+		if f := familyOf(m); f != nil {
+			if !seen[f] {
+				seen[f] = true
+				add(f.current(), f.Label)
+				o := sel.Get("lastChild")
+				o.Call("setAttribute", "data-family", f.Key)
+				f.options = append(f.options, o)
+			}
+			continue
+		}
 		add(m, modeLabel(m))
 	}
 
@@ -750,6 +893,11 @@ func syncCategoryRotaries() {
 	catRotarySyncing = true
 	defer func() { catRotarySyncing = false }()
 	setActiveCategory(run.selectedMode)
+	// A running family member points its family at itself first, so the
+	// MODEL position that stands for it has the value about to be set.
+	if f := familyOf(run.selectedMode); f != nil {
+		f.choose(run.selectedMode)
+	}
 	live := bayOf(run.selectedMode)
 	if live != nil && run.selectedMode != "" && !run.stopped {
 		bayModel[bayID(live.Label, live.N)] = run.selectedMode
