@@ -24,8 +24,6 @@ github.com/0magnet/pisano v0.0.0-20260923102342-ec397908300f h1:FkSSlU4KyAOkt0nR
 github.com/0magnet/pisano v0.0.0-20260923102342-ec397908300f/go.mod h1:qLzjig6EU4aliyG6giL0TZLIDo9JNDK5zNC3dV+K5WQ=
 github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc h1:6y75eIwQ0EswyiujMlGQxGHdaecl+qzYm17iRLn/Gy8=
 github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc/go.mod h1:tZ3EqtPbE2DQAzgP2iBdVgvPANj/EJBfGs/hAZRdBNo=
-github.com/0magnet/rack-go v0.0.0-20260922163944-6ac30b77a4fd h1:K5XdXlK+5uBMRSbfSYSnew43lu49ZCSDpmtjYXJFQGg=
-github.com/0magnet/rack-go v0.0.0-20260922163944-6ac30b77a4fd/go.mod h1:+Ujv92EHuD24yOz6wOagRmnQZ3Aw5nphM7STt16gnhs=
 github.com/0magnet/rack-go v0.0.0-20260925013804-1ec2acfde7de h1:mdsgvj32Zcf8crh+54CaJVCK6mTXchtAEQ5NaEwOrOU=
 github.com/0magnet/rack-go v0.0.0-20260925013804-1ec2acfde7de/go.mod h1:+Ujv92EHuD24yOz6wOagRmnQZ3Aw5nphM7STt16gnhs=
 github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a h1:xSuwvwPPsjc6tSMXk2BNuC+G3eGLgJ+/8EgPz/XoqxM=
@@ -34,12 +32,12 @@ github.com/0magnet/termanim v0.0.0-20260916100333-d501f348ee17 h1:haAs+7Tb5q91PJ
 github.com/0magnet/termanim v0.0.0-20260916100333-d501f348ee17/go.mod h1:MYXXCesDzLpSA5ULDgbrzOq+I5tIdSzfJiwa5s6qXYA=
 github.com/0magnet/toilet-go v0.0.0-20260916100348-f098e493c9ae h1:DNVg6QVUCN/p3GtE8J3Jq8rfXhPYUHbfIVUvr+/7KSg=
 github.com/0magnet/toilet-go v0.0.0-20260916100348-f098e493c9ae/go.mod h1:TnF45LsHpJY3O74LuimkYPfQzXKylLmp6oPNUeUJyss=
-github.com/0magnet/tuiwasm v0.0.0-20260924101441-aa75cd80d501 h1:gTKEF5SBomMMORterhYKsAuBRcIieSjCc+ALKXG9fVI=
-github.com/0magnet/tuiwasm v0.0.0-20260924101441-aa75cd80d501/go.mod h1:rYxbVUKsk5FdAcxPKuji/wM182joulHdLKRvqdFMNt4=
+github.com/0magnet/tuiwasm v0.0.0-20260925102039-8b0130e75c71 h1:l+UfkKucCDTGx3WPTgfmSmcRk4D9c9lMy8MCRnRMrkI=
+github.com/0magnet/tuiwasm v0.0.0-20260925102039-8b0130e75c71/go.mod h1:8Gs05U5gtrs9J0oP90ao5AimziSfJ6h92CrwNA8Yukk=
 github.com/0magnet/u-root v0.16.1-0.20260907193324-47ff3c83f69d h1:zLUW8axnE6LsLz1Kt5ne06nYw094U6qC68DClAgGrX8=
 github.com/0magnet/u-root v0.16.1-0.20260907193324-47ff3c83f69d/go.mod h1:YBQz88D4gXBLb9++oXsiZZjfbtRC0bp4c2pduFOyZts=
-github.com/0magnet/websh v0.0.0-20260924101249-532bfb67c68a h1:nihNmu3KH+sGrbjX4fAZJXGQ3/UKAx4ySkG5gy8dTss=
-github.com/0magnet/websh v0.0.0-20260924101249-532bfb67c68a/go.mod h1:BHkVBuUrZM8itlUgErK1Ui+bnR0MpXzJ+WPSRd972+8=
+github.com/0magnet/websh v0.0.0-20260924101532-76422c7ff9c3 h1:TT0V4GyEqBEYfX53XcosrROm2aiI/T47EUa6J+fHnvA=
+github.com/0magnet/websh v0.0.0-20260924101532-76422c7ff9c3/go.mod h1:BHkVBuUrZM8itlUgErK1Ui+bnR0MpXzJ+WPSRd972+8=
 github.com/0magnet/winbox-go v0.0.0-20260915183431-ca6572e4c323 h1:v9S+e+vX65JTsUoAvw/QBRaDuveNwV+fdW57qxj6yWI=
 github.com/0magnet/winbox-go v0.0.0-20260915183431-ca6572e4c323/go.mod h1:19+/rRQWd/tc9/8CFcUr6C+3AipeZmHyyda2tVombe4=
 github.com/0magnet/xterm-go v0.0.0-20260923132223-00c1a8e687cc h1:TGprWZha/nFbAiaBO7wnsXm4frNDIquWPlGVvHtQ8Wc=
@@ -74,8 +72,8 @@ github.com/charmbracelet/x/cellbuf v0.0.15 h1:ur3pZy0o6z/R7EylET877CBxaiE1Sp1GMx
 github.com/charmbracelet/x/cellbuf v0.0.15/go.mod h1:J1YVbR7MUuEGIFPCaaZ96KDl5NoS0DAWkskup+mOY+Q=
 github.com/charmbracelet/x/exp/golden v0.0.0-20250806222409-83e3a29d542f h1:pk6gmGpCE7F3FcjaOEKYriCvpmIN4+6OS/RD0vm4uIA=
 github.com/charmbracelet/x/exp/golden v0.0.0-20250806222409-83e3a29d542f/go.mod h1:IfZAMTHB6XkZSeXUqriemErjAWCCzT0LwjKFYCZyw0I=
-github.com/charmbracelet/x/exp/slice v0.0.0-20260920004010-53e2afe73ae5 h1:VE9hnLa26cT2N+5m7Rj5dLkiFcBU4p6If0IH5Kug1bA=
-github.com/charmbracelet/x/exp/slice v0.0.0-20260920004010-53e2afe73ae5/go.mod h1:vqEfX6xzqW1pKKZUUiFOKg0OQ7bCh54Q2vR/tserrRA=
+github.com/charmbracelet/x/exp/slice v0.1.0 h1:m46dwuDf3M5SFYMRhxYkLC6z9WnENGVKbcbJlp13/og=
+github.com/charmbracelet/x/exp/slice v0.1.0/go.mod h1:vqEfX6xzqW1pKKZUUiFOKg0OQ7bCh54Q2vR/tserrRA=
 github.com/charmbracelet/x/term v0.2.2 h1:xVRT/S2ZcKdhhOuSP4t5cLi5o+JxklsoEObBSgfgZRk=
 github.com/charmbracelet/x/term v0.2.2/go.mod h1:kF8CY5RddLWrsgVwpw4kAa6TESp6EB5y3uxGLeCqzAI=
 github.com/charmbracelet/x/termios v0.1.1 h1:o3Q2bT8eqzGnGPOYheoYS8eEleT5ZVNYNy8JawjaNZY=
