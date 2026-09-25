@@ -347,8 +347,8 @@ func (p *poincareSection) run(mode string) bool {
 // vertex budget the trail knob set. vertBuf is sized from the trail length, so
 // a short trail is a small buffer and the section has to fit inside it.
 func (p *poincareSection) buf(n int) []float32 {
-	if max := cap(sim.vertBuf) / 4; n > max {
-		n = max
+	if hi := cap(sim.vertBuf) / 4; n > hi {
+		n = hi
 	}
 	if n < 0 {
 		n = 0

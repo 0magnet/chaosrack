@@ -20,20 +20,20 @@ func TestEveryFlowTraces(t *testing.T) {
 			t.Errorf("%s: %d points, want a full trace", k, len(path))
 			continue
 		}
-		var min, max [3]float64
-		min, max = path[0], path[0]
+		var lo, hi [3]float64
+		lo, hi = path[0], path[0]
 		for _, p := range path {
 			for i := range 3 {
-				if p[i] < min[i] {
-					min[i] = p[i]
+				if p[i] < lo[i] {
+					lo[i] = p[i]
 				}
-				if p[i] > max[i] {
-					max[i] = p[i]
+				if p[i] > hi[i] {
+					hi[i] = p[i]
 				}
 			}
 		}
 		for i := range 3 {
-			if max[i]-min[i] <= 0 {
+			if hi[i]-lo[i] <= 0 {
 				t.Errorf("%s: axis %d has no extent — the figure is flat or a point", k, i)
 			}
 		}

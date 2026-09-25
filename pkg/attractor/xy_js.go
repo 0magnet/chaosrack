@@ -302,7 +302,7 @@ func renderXYFrame() { xy.drawXYScope(true) }
 // clear is true (xy MODE) it clears the canvas first; when false (xy used as a
 // BACKGROUND behind an attractor) it draws onto whatever is already there, so
 // the caller controls clearing and the attractor can be layered on top.
-func (x *xyScope) drawXYScope(clear bool) {
+func (x *xyScope) drawXYScope(clearFirst bool) {
 	if !x.ready {
 		x.initXY()
 	}
@@ -399,7 +399,7 @@ func (x *xyScope) drawXYScope(clear bool) {
 	// Draw as a flat 2D trace (no depth), so as a background it never occludes
 	// or z-fights the attractor layered on top.
 	glctx.GL.Call("disable", glctx.Types.DepthTest)
-	if clear {
+	if clearFirst {
 		if k := x.persistK(); k > 0 {
 			// PERSIST: multiply the frame down instead of clearing it, so the
 			// trace decays over several frames the way a phosphor does. Only on

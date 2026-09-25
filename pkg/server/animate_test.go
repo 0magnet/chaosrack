@@ -294,16 +294,16 @@ func TestTheTrailPaletteIsMonotonicAlongThePath(t *testing.T) {
 	g := rasterview.DefaultGradient()
 	g.Source = rasterview.SourceTrail
 	g.Colors = 4
-	min, max := [3]float32{0, 0, 0}, [3]float32{1, 1, 1}
+	lo, hi := [3]float32{0, 0, 0}, [3]float32{1, 1, 1}
 	// Same point, different ages: the color must follow the age.
-	a := g.ColorAt(0.5, 0.5, 0.5, min, max, 0)
-	b := g.ColorAt(0.5, 0.5, 0.5, min, max, 1)
+	a := g.ColorAt(0.5, 0.5, 0.5, lo, hi, 0)
+	b := g.ColorAt(0.5, 0.5, 0.5, lo, hi, 1)
 	if a == b {
 		t.Error("the trail palette gives one color for the ends of the path; it is not reading the age")
 	}
 	// A model axis must NOT follow the age.
 	g.Source = 2
-	if g.ColorAt(0.5, 0.5, 0.5, min, max, 0) != g.ColorAt(0.5, 0.5, 0.5, min, max, 1) {
+	if g.ColorAt(0.5, 0.5, 0.5, lo, hi, 0) != g.ColorAt(0.5, 0.5, 0.5, lo, hi, 1) {
 		t.Error("a model-axis palette changed with the age; the age leaked into the wrong source")
 	}
 }

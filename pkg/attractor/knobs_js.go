@@ -47,11 +47,11 @@ var fineRatio = 0.1
 // (the "Step ×" control), read live so changes take effect without a rebuild.
 var coarseRatio = 1.0
 
-func knobAngleForValue(v, min, max float64) float64 {
-	if max <= min {
+func knobAngleForValue(v, lo, hi float64) float64 {
+	if hi <= lo {
 		return 0
 	}
-	t := (v - min) / (max - min)
+	t := (v - lo) / (hi - lo)
 	if t < 0 {
 		t = 0
 	}
@@ -434,7 +434,7 @@ func fmtDialNum(v float64) string {
 // lower half, clear of the numeric LED that sits above the knob) and the tick
 // ring conveys the gradations between. Decorative (pointer-events:none),
 // behind the knob.
-func addValueDial(wrap js.Value, min, max float64) {
+func addValueDial(wrap js.Value, lo, hi float64) {
 	dial := dom.Doc.Call("createElement", "span")
 	dial.Set("className", "knob-dial value-dial")
 	// Discrete tick marks spanning ONLY the knob's 270° travel (−135°→+135°),
@@ -470,7 +470,7 @@ func addValueDial(wrap js.Value, min, max float64) {
 		l, tp := dialLabelPos(deg, 48)
 		lab := dom.Doc.Call("createElement", "span")
 		lab.Set("className", "knob-dial-lab")
-		v := fmtDialNum(min + (max-min)*t)
+		v := fmtDialNum(lo + (hi-lo)*t)
 		lab.Set("textContent", v)
 		if i == 0 {
 			lab.Set("title", v+" — the lowest this knob goes; turned fully counter-clockwise")
@@ -557,11 +557,11 @@ func addSelectorDotLabels(stack js.Value, colors []string, sel js.Value, offset 
 // adds the knob to syncKnobs (use for persistent, not rebuilt-per-panel,
 // knobs). Returns the wrapper element to insert into the panel.
 func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Value {
-	min, _ := strconv.ParseFloat(slider.Get("min").String(), 64)         //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-	max, _ := strconv.ParseFloat(slider.Get("max").String(), 64)         //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+	lo, _ := strconv.ParseFloat(slider.Get("min").String(), 64)          //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+	hi, _ := strconv.ParseFloat(slider.Get("max").String(), 64)          //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 	coarseStep, _ := strconv.ParseFloat(slider.Get("step").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 	if coarseStep <= 0 {
-		coarseStep = (max - min) / 100
+		coarseStep = (hi - lo) / 100
 	}
 	// Let the slider carry values far finer than one coarse step, so the fine
 	// knob/wheel can nudge sub-step at any fineRatio; the coarse control still
@@ -603,7 +603,7 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 
 	update := func() {
 		v, _ := strconv.ParseFloat(slider.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-		ang := knobAngleForValue(v, min, max)
+		ang := knobAngleForValue(v, lo, hi)
 		ptr.Get("style").Set("transform", "translate(-50%,-100%) rotate("+strconv.FormatFloat(ang, 'f', 1, 64)+"deg)")
 	}
 	update()
@@ -628,7 +628,7 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 			kb.cx = r.Get("left").Float() + r.Get("width").Float()/2
 			kb.cy = r.Get("top").Float() + r.Get("height").Float()/2
 			kb.prevAng = math.Atan2(e.Get("clientY").Float()-kb.cy, e.Get("clientX").Float()-kb.cx)
-			kb.slider, kb.min, kb.max, kb.fine, kb.active = slider, min, max, fineMode, true
+			kb.slider, kb.min, kb.max, kb.fine, kb.active = slider, lo, hi, fineMode, true
 			kb.knobEl = el
 			el.Get("classList").Call("add", "knob-grab")
 			return nil
@@ -658,11 +658,11 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 			} else {
 				v -= stepv
 			}
-			if v < min {
-				v = min
+			if v < lo {
+				v = lo
 			}
-			if v > max {
-				v = max
+			if v > hi {
+				v = hi
 			}
 			slider.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
 			slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
@@ -685,7 +685,7 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 		registerKnobHover(fine, nudge(true))
 	}
 	if valueDial {
-		addValueDial(wrap, min, max)
+		addValueDial(wrap, lo, hi)
 	}
 	return wrap
 }
@@ -847,15 +847,15 @@ func layoutSkirtsIn(stack js.Value) {
 	if !stack.Truthy() {
 		return
 	}
-	clear := gripRadiusPx(stack)
-	if clear <= 0 {
+	clearance := gripRadiusPx(stack)
+	if clearance <= 0 {
 		// Not laid out yet — a detached subtree, a module switched out, a
 		// panel not yet shown. ESTIMATE rather than bail: a skirt that is
 		// never laid out has no positions at all, and every one of its
 		// labels sits on the origin in a heap. A rough ring is wrong by a
 		// pixel or two; no ring is wrong by the width of the knob, and it
 		// was the larger half of what the audit found still broken.
-		clear = estGripRadiusPx()
+		clearance = estGripRadiusPx()
 	}
 	gap := skirtGapPx()
 	dials := stack.Call("querySelectorAll", ":scope > .knob-dial")
@@ -863,7 +863,7 @@ func layoutSkirtsIn(stack js.Value) {
 		// Only the first ring is sitting on the knob. For the ones outside
 		// it "clear" is the previous ring's outer edge, not a grip, so there
 		// is no grip for them to take room from — see layoutOneSkirt.
-		clear = layoutOneSkirt(dials.Index(i), clear, gap, i == 0)
+		clearance = layoutOneSkirt(dials.Index(i), clearance, gap, i == 0)
 	}
 }
 
@@ -871,18 +871,18 @@ func layoutSkirtsIn(stack js.Value) {
 // first skirt has to clear.
 func gripRadiusPx(stack js.Value) float64 {
 	els := stack.Call("querySelectorAll", ".knob, .knob-ring")
-	max := 0.0
+	hi := 0.0
 	for i := 0; i < els.Get("length").Int(); i++ {
-		if w := els.Index(i).Get("offsetWidth").Float(); w/2 > max {
-			max = w / 2
+		if w := els.Index(i).Get("offsetWidth").Float(); w/2 > hi {
+			hi = w / 2
 		}
 	}
-	return max
+	return hi
 }
 
 // layoutOneSkirt places one ring and returns how far out it reaches, for
 // the next ring to clear.
-func layoutOneSkirt(dial js.Value, clear, gap float64, onGrip bool) float64 {
+func layoutOneSkirt(dial js.Value, clearance, gap float64, onGrip bool) float64 {
 	els := dial.Call("querySelectorAll", ".knob-dial-lab")
 	n := els.Get("length").Int()
 	labs := make([]skirt.Label, 0, n)
@@ -904,7 +904,7 @@ func layoutOneSkirt(dial js.Value, clear, gap float64, onGrip bool) float64 {
 		kept = append(kept, el)
 	}
 	if len(labs) == 0 {
-		return clear
+		return clearance
 	}
 
 	// Fit the ring to the cell before placing it. A skirt sized only by its
@@ -915,9 +915,9 @@ func layoutOneSkirt(dial js.Value, clear, gap float64, onGrip bool) float64 {
 	// A ring outside another one has no grip to take room from, so its floor
 	// is the radius it already has and the legend carries the whole
 	// reduction.
-	minGrip := clear
+	minGrip := clearance
 	if onGrip {
-		minGrip = clear * skirt.MinGripFrac
+		minGrip = clearance * skirt.MinGripFrac
 	}
 	// Less the gap, because the box drawn below is 2*(out+gap): fitting to
 	// the bare room left every ring exactly one gap wider than the space it
@@ -926,19 +926,19 @@ func layoutOneSkirt(dial js.Value, clear, gap float64, onGrip bool) float64 {
 	if room > 0 {
 		room -= gap
 	}
-	useGrip, scale := skirt.Fit(clear, minGrip, gap, room, labs)
+	useGrip, scale := skirt.Fit(clearance, minGrip, gap, room, labs)
 	if scale < 1 {
 		labs = skirt.ScaleLabels(labs, scale)
 		for _, el := range kept {
 			el.Get("style").Set("font-size", pxStr(skirtLabelBasePx*layout.scale*scale))
 		}
 	}
-	if useGrip < clear {
-		shrinkGrip(dial, useGrip/clear)
+	if useGrip < clearance {
+		shrinkGrip(dial, useGrip/clearance)
 	}
-	clear = useGrip
+	clearance = useGrip
 
-	r := skirt.Radius(clear, gap, labs)
+	r := skirt.Radius(clearance, gap, labs)
 	out := skirt.Outer(r, labs)
 
 	// The box has to contain the labels, or the element that exists to hold
@@ -1023,11 +1023,11 @@ func shrinkGrip(dial js.Value, f float64) {
 	}
 	knobs := stack.Call("querySelectorAll", ":scope > .knob, :scope > .knob-ring")
 	var biggest js.Value
-	max := 0.0
+	hi := 0.0
 	for i := 0; i < knobs.Get("length").Int(); i++ {
 		k := knobs.Index(i)
-		if w := k.Get("offsetWidth").Float(); w > max {
-			max, biggest = w, k
+		if w := k.Get("offsetWidth").Float(); w > hi {
+			hi, biggest = w, k
 		}
 	}
 	if !biggest.Truthy() {

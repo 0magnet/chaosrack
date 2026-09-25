@@ -88,38 +88,38 @@ func (m Mesh) Scale(s float64) Mesh {
 }
 
 // Bounds returns the axis-aligned bounding box.
-func (m Mesh) Bounds() (min, max V3) {
+func (m Mesh) Bounds() (lo, hi V3) {
 	if len(m.Tris) == 0 {
 		return V3{}, V3{}
 	}
-	min, max = m.Tris[0].A, m.Tris[0].A
+	lo, hi = m.Tris[0].A, m.Tris[0].A
 	for _, t := range m.Tris {
 		for _, v := range [3]V3{t.A, t.B, t.C} {
 			for i := range 3 {
-				if v[i] < min[i] {
-					min[i] = v[i]
+				if v[i] < lo[i] {
+					lo[i] = v[i]
 				}
-				if v[i] > max[i] {
-					max[i] = v[i]
+				if v[i] > hi[i] {
+					hi[i] = v[i]
 				}
 			}
 		}
 	}
-	return min, max
+	return lo, hi
 }
 
 // Size is the bounding box's extent.
 func (m Mesh) Size() V3 {
-	min, max := m.Bounds()
-	return max.Sub(min)
+	lo, hi := m.Bounds()
+	return hi.Sub(lo)
 }
 
 // CenterXY recenters the mesh on the origin in X and Y, leaving Z alone —
 // the app's viewer frames a model on its origin, and a panel modeled from a
 // corner would sit off to one side.
 func (m Mesh) CenterXY() Mesh {
-	min, max := m.Bounds()
-	return m.Translate(V3{-(min[0] + max[0]) / 2, -(min[1] + max[1]) / 2, 0})
+	lo, hi := m.Bounds()
+	return m.Translate(V3{-(lo[0] + hi[0]) / 2, -(lo[1] + hi[1]) / 2, 0})
 }
 
 // FitTo scales the mesh so its largest dimension is size, and centers it.
@@ -131,8 +131,8 @@ func (m Mesh) FitTo(size float64) Mesh {
 	if biggest <= 0 {
 		return m
 	}
-	min, max := m.Bounds()
-	center := V3{(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2}
+	lo, hi := m.Bounds()
+	center := V3{(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2}
 	return m.Translate(center.Mul(-1)).Scale(size / biggest)
 }
 

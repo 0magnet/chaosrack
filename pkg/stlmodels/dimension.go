@@ -68,8 +68,8 @@ func dimLabel(mm float64) string {
 // dimensioned wraps a mesh with width/height/depth annotations read off its
 // own bounding box, so the numbers cannot disagree with the model.
 func dimensioned(m meshstl.Mesh, size float64) meshstl.Mesh {
-	min, max := m.Bounds()
-	span := max.Sub(min)
+	lo, hi := m.Bounds()
+	span := hi.Sub(lo)
 	if size <= 0 {
 		size = 6
 	}
@@ -79,7 +79,7 @@ func dimensioned(m meshstl.Mesh, size float64) meshstl.Mesh {
 		dimTextStrokes(dimLabel(span[2])),
 	}
 	out := meshstl.Mesh{Tris: append([]meshstl.Tri(nil), m.Tris...)}
-	out.Append(meshstl.BoxDimensions(min, max, labels, size, meshstl.RodRadius))
+	out.Append(meshstl.BoxDimensions(lo, hi, labels, size, meshstl.RodRadius))
 	return out
 }
 
@@ -90,17 +90,17 @@ func dimensionedModule(hp, seg int) meshstl.Mesh {
 	m := demoPanel(hp, seg)
 	out := dimensioned(m, 6)
 
-	min, max := m.Bounds()
+	lo, hi := m.Bounds()
 	// "7HP" against the top edge, and "3U" beside the panel — the two facts a
 	// bare measurement does not tell you, because they are what the numbers
 	// MEAN. 35.06 mm is only interesting once you know it is 7 HP.
 	out.Append(meshstl.Strokes(
 		dimTextStrokes(fmt.Sprintf("%dHP", hp)),
-		meshstl.V3{min[0], max[1] + 4, max[2]},
+		meshstl.V3{lo[0], hi[1] + 4, hi[2]},
 		meshstl.V3{1, 0, 0}, meshstl.V3{0, 1, 0}, 6, meshstl.RodRadius))
 	out.Append(meshstl.Strokes(
 		dimTextStrokes("3U"),
-		meshstl.V3{max[0] + 4, min[1], max[2]},
+		meshstl.V3{hi[0] + 4, lo[1], hi[2]},
 		meshstl.V3{1, 0, 0}, meshstl.V3{0, 1, 0}, 6, meshstl.RodRadius))
 	return out
 }
@@ -109,30 +109,30 @@ func dimensionedModule(hp, seg int) meshstl.Mesh {
 // the 19-inch panel width, the 84 HP row inside it, and the 3U opening.
 func dimensionedRack(seg int) meshstl.Mesh {
 	m := filledRack(seg)
-	min, max := m.Bounds()
+	lo, hi := m.Bounds()
 	inset := (rackspec.PanelWidth19 - rackspec.RowWidth()) / 2
 
 	out := meshstl.Mesh{Tris: append([]meshstl.Tri(nil), m.Tris...)}
 	const size = 10
 	// The full 19 inches, below everything.
 	out.Append(meshstl.Dimension(
-		meshstl.V3{min[0], min[1], max[2]}, meshstl.V3{max[0], min[1], max[2]},
+		meshstl.V3{lo[0], lo[1], hi[2]}, meshstl.V3{hi[0], lo[1], hi[2]},
 		meshstl.V3{0, -1, 0}, 34, dimTextStrokes(dimLabel(rackspec.PanelWidth19)), size, meshstl.RodRadius))
 	// The 84 HP row inside it, closer in — the distinction between the two is
 	// the whole reason a 19-inch rack holds 84 HP and not 95.
 	out.Append(meshstl.Dimension(
-		meshstl.V3{min[0] + inset, min[1], max[2]}, meshstl.V3{max[0] - inset, min[1], max[2]},
+		meshstl.V3{lo[0] + inset, lo[1], hi[2]}, meshstl.V3{hi[0] - inset, lo[1], hi[2]},
 		meshstl.V3{0, -1, 0}, 14,
 		dimTextStrokes(fmt.Sprintf("%dHP", rackspec.RowHP)), size, meshstl.RodRadius))
 	// The 3U panel height, up the left.
 	out.Append(meshstl.Dimension(
-		meshstl.V3{min[0], min[1] + meshstl.RailHeight, max[2]},
-		meshstl.V3{min[0], min[1] + meshstl.RailHeight + rackspec.PanelHeight3U, max[2]},
+		meshstl.V3{lo[0], lo[1] + meshstl.RailHeight, hi[2]},
+		meshstl.V3{lo[0], lo[1] + meshstl.RailHeight + rackspec.PanelHeight3U, hi[2]},
 		meshstl.V3{-1, 0, 0}, 14,
 		dimTextStrokes(dimLabel(rackspec.PanelHeight3U)), size, meshstl.RodRadius))
 	// The depth, along the side.
 	out.Append(meshstl.Dimension(
-		meshstl.V3{max[0], min[1], max[2]}, meshstl.V3{max[0], min[1], min[2]},
-		meshstl.V3{0, -1, 0}, 14, dimTextStrokes(dimLabel(max[2]-min[2])), size, meshstl.RodRadius))
+		meshstl.V3{hi[0], lo[1], hi[2]}, meshstl.V3{hi[0], lo[1], lo[2]},
+		meshstl.V3{0, -1, 0}, 14, dimTextStrokes(dimLabel(hi[2]-lo[2])), size, meshstl.RodRadius))
 	return out
 }

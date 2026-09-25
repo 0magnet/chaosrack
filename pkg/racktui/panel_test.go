@@ -54,9 +54,9 @@ func (f *fakeRack) Set(id, value string) error {
 	return nil
 }
 
-func dial(id string, min, max, step, def float64, val string) Control {
+func dial(id string, lo, hi, step, def float64, val string) Control {
 	return Control{
-		ControlInfo: controlspec.ControlInfo{ID: id, Label: id, Min: min, Max: max, Step: step, Def: def},
+		ControlInfo: controlspec.ControlInfo{ID: id, Label: id, Min: lo, Max: hi, Step: step, Def: def},
 		Value:       val,
 	}
 }

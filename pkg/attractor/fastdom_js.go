@@ -488,9 +488,9 @@ func layoutSkirtsFast(h js.Value) bool {
 		// panel not yet shown. Estimate rather than bail: a ring that is
 		// never laid out has no positions at all and its legends sit on the
 		// origin in a heap.
-		clear := s.Grip
-		if clear <= 0 {
-			clear = estGripRadiusPx()
+		clearance := s.Grip
+		if clearance <= 0 {
+			clearance = estGripRadiusPx()
 		}
 		w := skirtStackWrite{BI: s.Big, Ring: s.IsRing, Dials: make([]skirtDialWrite, 0, len(s.Dials))}
 		for di, d := range s.Dials {
@@ -516,9 +516,9 @@ func layoutSkirtsFast(h js.Value) bool {
 			// A ring outside another one has no grip to take room from, so
 			// its floor is the radius it already has and the legend carries
 			// the whole reduction.
-			minGrip := clear
+			minGrip := clearance
 			if di == 0 {
-				minGrip = clear * skirt.MinGripFrac
+				minGrip = clearance * skirt.MinGripFrac
 			}
 			room := 0.0
 			if d.CellW > 0 {
@@ -527,17 +527,17 @@ func layoutSkirtsFast(h js.Value) bool {
 			if room > 0 {
 				room -= gap
 			}
-			useGrip, scale := skirt.Fit(clear, minGrip, gap, room, labs)
+			useGrip, scale := skirt.Fit(clearance, minGrip, gap, room, labs)
 			if scale < 1 {
 				labs = skirt.ScaleLabels(labs, scale)
 				dw.Font = pxStr(skirtLabelBasePx * layout.scale * scale)
 			}
-			if useGrip < clear && useGrip > 0 {
+			if useGrip < clearance && useGrip > 0 {
 				dw.Box = "" // set below; the grip is the stack's, not the dial's
-				w.Grip = strconv.FormatFloat(useGrip/clear, 'f', 3, 64)
+				w.Grip = strconv.FormatFloat(useGrip/clearance, 'f', 3, 64)
 			}
-			clear = useGrip
-			r := skirt.Radius(clear, gap, labs)
+			clearance = useGrip
+			r := skirt.Radius(clearance, gap, labs)
 			o := skirt.Outer(r, labs)
 			// The box has to contain the labels, or the element that exists
 			// to hold them is the thing clipping them.
@@ -551,7 +551,7 @@ func layoutSkirtsFast(h js.Value) bool {
 				dw.Pos = append(dw.Pos, [2]string{pxStr(x), pxStr(y)})
 			}
 			w.Dials = append(w.Dials, dw)
-			clear = o
+			clearance = o
 		}
 		out = append(out, w)
 	}

@@ -200,5 +200,5 @@ func spectMagnitude(v float64) float64 {
 // spectMagMin and spectMagMax are the window the normalization runs over — the
 // MIN and MAX knobs, read back through the library so there is one copy of
 // them rather than two that can drift.
-func spectMagMin() float64 { min, _ := sg.S.MagWindow(); return min }
-func spectMagMax() float64 { _, max := sg.S.MagWindow(); return max }
+func spectMagMin() float64 { lo, _ := sg.S.MagWindow(); return lo }
+func spectMagMax() float64 { _, hi := sg.S.MagWindow(); return hi }

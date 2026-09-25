@@ -126,13 +126,13 @@ func TestRenderRefusesNonsense(t *testing.T) {
 // the knob itself — and asking for fewer than two must draw none.
 func TestDetentsAreOptional(t *testing.T) {
 	none, _ := KnobCells(16, 0.5, 0, Dark)
-	some, _ := KnobCells(16, 0.5, 7, Dark)
-	if len(none) != len(some) {
+	cells, _ := KnobCells(16, 0.5, 7, Dark)
+	if len(none) != len(cells) {
 		t.Fatal("detents changed the size of the knob")
 	}
 	diff := 0
 	for i := range none {
-		if none[i] != some[i] {
+		if none[i] != cells[i] {
 			diff++
 		}
 	}

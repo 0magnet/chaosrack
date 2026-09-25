@@ -233,18 +233,18 @@ func flowTube(mode string, seg int) meshstl.Mesh {
 }
 
 func pathBounds(p []meshstl.V3) meshstl.V3 {
-	min, max := p[0], p[0]
+	lo, hi := p[0], p[0]
 	for _, v := range p {
 		for i := range 3 {
-			if v[i] < min[i] {
-				min[i] = v[i]
+			if v[i] < lo[i] {
+				lo[i] = v[i]
 			}
-			if v[i] > max[i] {
-				max[i] = v[i]
+			if v[i] > hi[i] {
+				hi[i] = v[i]
 			}
 		}
 	}
-	return max.Sub(min)
+	return hi.Sub(lo)
 }
 
 // demoPanel is a module with a plausible set of controls on it: a column of

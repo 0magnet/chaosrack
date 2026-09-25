@@ -34,9 +34,9 @@ func svgOf(pts [][3]float64) string {
 	r, mx, my := svgFit(pts, [][3]float64{a})
 
 	g := gradientFor()
-	min, max := rasterview.ModelBounds(attractor.Vertices(pts))
+	lo, hi := rasterview.ModelBounds(attractor.Vertices(pts))
 	var defs, body strings.Builder
-	writeColoredTrail(&defs, &body, "g0", pts, a, r, mx, my, g, min, max, 0, len(pts))
+	writeColoredTrail(&defs, &body, "g0", pts, a, r, mx, my, g, lo, hi, 0, len(pts))
 
 	var b strings.Builder
 	fmt.Fprintf(&b, `<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">`,
@@ -140,7 +140,7 @@ func writePoints(b *strings.Builder, pts [][3]float64, a [3]float64, r, midX, mi
 // most of a megabyte for a still and the color still changes every second or
 // third segment. svgAxisGradient does the job properly for every view that
 // admits it; this covers the ones that do not.
-func writeTrail(b *strings.Builder, pts [][3]float64, a [3]float64, r, midX, midY float64, g rasterview.Gradient, min, max [3]float32, ageOff, ageTotal int) {
+func writeTrail(b *strings.Builder, pts [][3]float64, a [3]float64, r, midX, midY float64, g rasterview.Gradient, lo, hi [3]float32, ageOff, ageTotal int) {
 	if len(pts) < 2 {
 		return
 	}
@@ -165,7 +165,7 @@ func writeTrail(b *strings.Builder, pts [][3]float64, a [3]float64, r, midX, mid
 		if ageTotal > 1 {
 			age = float32(ageOff+i) / float32(ageTotal-1)
 		}
-		c := g.ColorAt(float32(p[0]), float32(p[1]), float32(p[2]), min, max, age)
+		c := g.ColorAt(float32(p[0]), float32(p[1]), float32(p[2]), lo, hi, age)
 		hex := quantHex(c)
 		x, y := project(p, a)
 		pt := fmt.Sprintf("%.2f,%.2f", cx+(x-midX)*r, cy-(y-midY)*r)
@@ -260,7 +260,7 @@ func quantHex(c [3]float32) string {
 // the axis projects to a point, every color lands on top of every other, and no
 // screen-space gradient can express it — the information went into depth, which
 // a flat picture does not have. writeTrail's run-length path handles those.
-func svgAxisGradient(b *strings.Builder, id string, a [3]float64, r, midX, midY float64, g rasterview.Gradient, min, max [3]float32) bool {
+func svgAxisGradient(b *strings.Builder, id string, a [3]float64, r, midX, midY float64, g rasterview.Gradient, minV, maxV [3]float32) bool {
 	if g.Source == rasterview.SourceTrail {
 		// Along the trail is not a direction on screen. The path wanders; a
 		// linear gradient is a straight ramp across the picture, and the two
@@ -274,7 +274,7 @@ func svgAxisGradient(b *strings.Builder, id string, a [3]float64, r, midX, midY 
 	cx, cy := float64(renderW)/2, float64(renderH)/2
 	// The endpoints of the gradient: where the low and high ends of the source
 	// axis land, carried along the axis's own projected direction.
-	lo, hi := float64(min[min3Index(g.Source)]), float64(max[min3Index(g.Source)])
+	lo, hi := float64(minV[min3Index(g.Source)]), float64(maxV[min3Index(g.Source)])
 	x1, y1 := cx+(ex*lo-midX)*r, cy-(ey*lo-midY)*r
 	x2, y2 := cx+(ex*hi-midX)*r, cy-(ey*hi-midY)*r
 	if math.Hypot(x2-x1, y2-y1) < 1 {
@@ -290,7 +290,7 @@ func svgAxisGradient(b *strings.Builder, id string, a [3]float64, r, midX, midY 
 		t := float64(i) / stops
 		var p [3]float64
 		p[min3Index(g.Source)] = lo + (hi-lo)*t
-		c := g.ColorAt(float32(p[0]), float32(p[1]), float32(p[2]), min, max, float32(t))
+		c := g.ColorAt(float32(p[0]), float32(p[1]), float32(p[2]), minV, maxV, float32(t))
 		fmt.Fprintf(b, `<stop offset="%.4g" stop-color="%s"/>`, t, quantHex(c))
 	}
 	b.WriteString(`</linearGradient>`)
@@ -308,16 +308,16 @@ func min3Index(source int) int {
 
 // writeColoredTrail emits the trail into body, preferring one polyline stroked
 // with a gradient in defs and falling back to per-color runs.
-func writeColoredTrail(defs, body *strings.Builder, id string, pts [][3]float64, a [3]float64, r, mx, my float64, g rasterview.Gradient, min, max [3]float32, ageOff, ageTotal int) {
+func writeColoredTrail(defs, body *strings.Builder, id string, pts [][3]float64, a [3]float64, r, mx, my float64, g rasterview.Gradient, lo, hi [3]float32, ageOff, ageTotal int) {
 	if len(pts) < 2 {
 		return
 	}
-	if svgAxisGradient(defs, id, a, r, mx, my, g, min, max) {
+	if svgAxisGradient(defs, id, a, r, mx, my, g, lo, hi) {
 		body.WriteString(svgStroke)
 		fmt.Fprintf(body, ` stroke="url(#%s)" points="`, id)
 		writePoints(body, pts, a, r, mx, my)
 		body.WriteString(`"/>`)
 		return
 	}
-	writeTrail(body, pts, a, r, mx, my, g, min, max, ageOff, ageTotal)
+	writeTrail(body, pts, a, r, mx, my, g, lo, hi, ageOff, ageTotal)
 }
