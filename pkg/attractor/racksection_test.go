@@ -31,7 +31,7 @@ func TestASectionWiderThanABayContinuesIntoTheNext(t *testing.T) {
 func TestSectionedPackingLosesNothingAndKeepsTheOrder(t *testing.T) {
 	items := []packItem{
 		{Slots: 1, Section: secConsole}, {Slots: 5, Section: secModel}, {Slots: 2, Section: secModel}, {Slots: 0, Section: secModel},
-		{Slots: 2, Section: secDisplay}, {Slots: 1, Section: secDisplay}, {Slots: 20, Section: secDisplay}, {Slots: 1, Section: secOutput},
+		{Slots: 2, Section: secDisplay}, {Slots: 1, Section: secDisplay}, {Slots: 20, Section: secDisplay}, {Slots: 1, Section: secUtility},
 	}
 	var flat []int
 	for _, u := range packBySection(items, 12, nil) {
@@ -103,61 +103,57 @@ func TestAnUnplacedModuleGoesToTheEnd(t *testing.T) {
 	}
 }
 
-// The signal order is the reading order: in, measured, routed, generated,
-// displayed, out. If this list is rearranged the rack stops telling you
-// which way the signal goes.
-func TestTheBaysAreStackedInSignalOrder(t *testing.T) {
-	// The fixed sections keep their order, with the model rows spliced in
-	// where the models go — so a category row is never above the input bay
-	// or below the output one.
+// The rack reads top to bottom as two domains with the scope between them:
+// the console, the visual model rows and how they are drawn, the Scope row,
+// the generators, the auditory rows and what measures and routes them. If
+// this is rearranged, the line between the two stops being a line.
+func TestTheBaysAreStackedAcrossTheDomainLine(t *testing.T) {
 	var fixed []string
 	for _, s := range sectionOrder {
 		if !isCategorySection(s) {
 			fixed = append(fixed, s)
 		}
 	}
-	want := []string{secConsole, secInput, secAnalyze, secMod, secModel, secDisplay, secOutput, secUtility}
-	if len(fixed) != len(want) {
-		t.Fatalf("got %d fixed sections, want %d: %v", len(fixed), len(want), fixed)
+	want := []string{secConsole, secModel, secDisplay, secGen, secAnalyze, secMod, secUtility}
+	if !slices.Equal(fixed, want) {
+		t.Fatalf("fixed bays are %v, want %v", fixed, want)
 	}
-	for i := range want {
-		if fixed[i] != want[i] {
-			t.Errorf("fixed bay %d is %q, want %q", i, fixed[i], want[i])
-		}
+	line := sectionRank(categorySection(domainLine))
+	if line >= len(sectionOrder) {
+		t.Fatalf("no %s row", domainLine)
+	}
+	if sectionRank(secDisplay) != line-1 || sectionRank(secGen) != line+1 {
+		t.Errorf("the %s row is not between DISPLAY and GENERATORS: %v", domainLine, sectionOrder)
 	}
 }
 
-// The model rows sit together, in the selector's own order, between the
-// modulation bay and the models' own section.
-func TestTheModelRowsAreSplicedInSelectorOrder(t *testing.T) {
-	var cats []string
-	first, lastIdx := -1, -1
-	for i, s := range sectionOrder {
-		if !isCategorySection(s) {
-			continue
-		}
-		if first < 0 {
-			first = i
-		}
-		lastIdx = i
-		cats = append(cats, s)
-	}
-	if len(cats) != len(modeGroups) {
-		t.Fatalf("%d model rows for %d categories", len(cats), len(modeGroups))
-	}
-	if lastIdx-first != len(cats)-1 {
-		t.Errorf("the model rows are not contiguous: first %d last %d for %d rows", first, lastIdx, len(cats))
-	}
-	for i, c := range modelCategories() {
-		if cats[i] != categorySection(c) {
-			t.Errorf("model row %d is %q, want %q", i, cats[i], categorySection(c))
+// Every category has a row, in the selector's own order, each on its side
+// of the line: a visual row above DISPLAY, an auditory one below the
+// generators.
+func TestTheModelRowsFollowTheSelectorOrder(t *testing.T) {
+	var got []string
+	for _, s := range sectionOrder {
+		if isCategorySection(s) {
+			got = append(got, s)
 		}
 	}
-	if sectionRank(secMod) > first {
-		t.Error("a model row sits above the modulation bay")
+	var want []string
+	for _, c := range modelCategories() {
+		want = append(want, categorySection(c))
 	}
-	if sectionRank(secDisplay) < lastIdx {
-		t.Error("a model row sits below the display bay")
+	if !slices.Equal(got, want) {
+		t.Fatalf("model rows %v, want %v", got, want)
+	}
+	cats := modelCategories()
+	line := slices.Index(cats, domainLine)
+	for i, c := range cats {
+		r := sectionRank(categorySection(c))
+		switch {
+		case i < line && r > sectionRank(secDisplay):
+			t.Errorf("visual row %s sits below DISPLAY", c)
+		case i > line && r < sectionRank(secGen):
+			t.Errorf("auditory row %s sits above the generators", c)
+		}
 	}
 }
 
@@ -253,7 +249,7 @@ func TestTheModelRowIsNeverSplitAcrossBays(t *testing.T) {
 // empty one must not open a bay, a break, or a label.
 func TestEmptyCategorySectionsCostNothing(t *testing.T) {
 	plain := []packItem{
-		{Slots: 3, Section: secMod}, {Slots: 3, Section: secDisplay}, {Slots: 3, Section: secOutput},
+		{Slots: 3, Section: secMod}, {Slots: 3, Section: secDisplay}, {Slots: 3, Section: secUtility},
 	}
 	base := packBySection(plain, 12, nil)
 	if len(base) != 1 {
@@ -360,9 +356,9 @@ func TestASmallerBayGivesMoreBays(t *testing.T) {
 // 84 HP row is what a real one looks like.
 func TestABayCarriesSeveralSections(t *testing.T) {
 	items := []packItem{
-		{Slots: 1, Section: secInput},
+		{Slots: 1, Section: secGen},
 		{Slots: 2, Section: secAnalyze}, {Slots: 2, Section: secAnalyze},
-		{Slots: 1, Section: secOutput},
+		{Slots: 1, Section: secUtility},
 	}
 	units := packBySection(items, 12, nil)
 	if len(units) != 1 {
@@ -373,7 +369,7 @@ func TestABayCarriesSeveralSections(t *testing.T) {
 		t.Fatalf("got %d runs in the bay, want 3: %+v", len(runs), runs)
 	}
 	for i, want := range []sectionRun{
-		{Section: secInput, From: 0, Count: 1}, {Section: secAnalyze, From: 1, Count: 2}, {Section: secOutput, From: 3, Count: 1},
+		{Section: secGen, From: 0, Count: 1}, {Section: secAnalyze, From: 1, Count: 2}, {Section: secUtility, From: 3, Count: 1},
 	} {
 		if runs[i] != want {
 			t.Errorf("run %d is %+v, want %+v", i, runs[i], want)
@@ -385,7 +381,7 @@ func TestABayCarriesSeveralSections(t *testing.T) {
 // missing from part of the row.
 func TestTheRunsCoverTheWholeBay(t *testing.T) {
 	items := []packItem{
-		{Slots: 1, Section: secInput}, {Slots: 1, Section: secAnalyze}, {Slots: 1, Section: secAnalyze}, {Slots: 1, Section: secMod}, {Slots: 1, Section: secOutput},
+		{Slots: 1, Section: secGen}, {Slots: 1, Section: secAnalyze}, {Slots: 1, Section: secAnalyze}, {Slots: 1, Section: secMod}, {Slots: 1, Section: secUtility},
 	}
 	units := packBySection(items, 12, nil)
 	for _, idx := range units {
@@ -447,7 +443,7 @@ func TestTheModelsPanelsFollowTheModel(t *testing.T) {
 		t.Errorf("with no active category Parameters went to %q, want %q", got, secModel)
 	}
 	// And nothing else moves with them.
-	if got := moduleSection("patchbay"); got != secMod {
+	if got := moduleSection("patchbay"); got != secConsole {
 		t.Errorf("the patchbay followed the model to %q; it is rack wiring, not a model panel", got)
 	}
 }
@@ -517,7 +513,7 @@ func TestABayHoldingAHeadOpensWithOne(t *testing.T) {
 			items = append(items, packItem{Slots: 1 + n%3, Section: sec})
 		}
 	}
-	items = append(items, packItem{Slots: 3, Section: secOutput})
+	items = append(items, packItem{Slots: 3, Section: secUtility})
 	for _, u := range packBySection(items, 12, nil) {
 		held := false
 		for _, i := range u {

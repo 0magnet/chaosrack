@@ -100,6 +100,6 @@ var catTooltips = map[string]string{
 	"Sequences":  "Sequences — the Turtle Path: an integer sequence read as turn-and-step",
 	"Solids":     "Solids — the STL viewer: a file from disk, a terminal, or the whole desk as an object",
 	"Audio":      "Audio — displays of the live signal: spectrogram, goniometer, the FVF wobbulator and the delay embeddings",
-	"Analysis":   "Analysis — measurements drawn as pictures: the bifurcation plot, Poincaré sections, recurrence, RTA, transfer and waterfall",
+	"Analysis":   "Analysis — the dynamics themselves, drawn as pictures: the bifurcation plot of a map and the Poincaré section of a flow",
 	"Custom":     "Custom — type your own differential equations",
 }
