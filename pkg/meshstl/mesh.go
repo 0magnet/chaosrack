@@ -20,12 +20,22 @@ import (
 // V3 is a point or a vector, in millimeters.
 type V3 [3]float64
 
-func (v V3) Add(o V3) V3      { return V3{v[0] + o[0], v[1] + o[1], v[2] + o[2]} }
-func (v V3) Sub(o V3) V3      { return V3{v[0] - o[0], v[1] - o[1], v[2] - o[2]} }
-func (v V3) Mul(s float64) V3 { return V3{v[0] * s, v[1] * s, v[2] * s} }
-func (v V3) Dot(o V3) float64 { return v[0]*o[0] + v[1]*o[1] + v[2]*o[2] }
-func (v V3) Len() float64     { return math.Sqrt(v.Dot(v)) }
+// Add is v + o.
+func (v V3) Add(o V3) V3 { return V3{v[0] + o[0], v[1] + o[1], v[2] + o[2]} }
 
+// Sub is v − o.
+func (v V3) Sub(o V3) V3 { return V3{v[0] - o[0], v[1] - o[1], v[2] - o[2]} }
+
+// Mul is v scaled by s.
+func (v V3) Mul(s float64) V3 { return V3{v[0] * s, v[1] * s, v[2] * s} }
+
+// Dot is the dot product of v and o.
+func (v V3) Dot(o V3) float64 { return v[0]*o[0] + v[1]*o[1] + v[2]*o[2] }
+
+// Len is the length of v.
+func (v V3) Len() float64 { return math.Sqrt(v.Dot(v)) }
+
+// Cross is the cross product v × o.
 func (v V3) Cross(o V3) V3 {
 	return V3{v[1]*o[2] - v[2]*o[1], v[2]*o[0] - v[0]*o[2], v[0]*o[1] - v[1]*o[0]}
 }
@@ -79,6 +89,7 @@ func (m Mesh) Translate(d V3) Mesh {
 	return out
 }
 
+// Scale returns a copy of m with every vertex scaled by s about the origin.
 func (m Mesh) Scale(s float64) Mesh {
 	out := Mesh{Tris: make([]Tri, len(m.Tris))}
 	for i, t := range m.Tris {

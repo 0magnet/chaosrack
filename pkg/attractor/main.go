@@ -3,16 +3,16 @@
 package attractor
 
 import (
-	_ "embed"
 	"fmt"
-	"github.com/0magnet/chaosrack/pkg/colorspace"
-	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
 	"runtime"
 	"strconv"
 	"syscall/js"
 	"time"
+
+	"github.com/0magnet/chaosrack/pkg/colorspace"
+	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 
 	"github.com/0magnet/rack-go"
 	"github.com/go-gl/mathgl/mgl32"
@@ -567,7 +567,7 @@ func postDebugStats() {
 	}
 
 	payload := fmt.Sprintf(
-		`{"mode":"%s","paused":%t,"fps":%.1f,"frame_avg_ms":%.2f,"frame_min_ms":%.2f,"frame_max_ms":%.2f,"frame_count":%d,"speed_steps":%d,"speed_scale":%.4f,"trail_steps":%d,"heap_alloc_mb":%.2f,"heap_sys_mb":%.2f,"heap_objects":%d,"gc_runs":%d,"goroutines":%d}`,
+		`{"mode":%q,"paused":%t,"fps":%.1f,"frame_avg_ms":%.2f,"frame_min_ms":%.2f,"frame_max_ms":%.2f,"frame_count":%d,"speed_steps":%d,"speed_scale":%.4f,"trail_steps":%d,"heap_alloc_mb":%.2f,"heap_sys_mb":%.2f,"heap_objects":%d,"gc_runs":%d,"goroutines":%d}`,
 		run.selectedMode, run.paused, fps, avgMs, fstats.minMs, fstats.maxMs, fstats.count,
 		sim.speedSteps, sim.speedScale, sim.steps,
 		float64(ms.HeapAlloc)/1048576, float64(ms.HeapSys)/1048576,

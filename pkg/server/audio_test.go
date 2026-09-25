@@ -26,7 +26,7 @@ func TestOnlyThisMachineCanSwitchTheRouting(t *testing.T) {
 		{"", false},        // no address to vouch for
 		{"garbage", false}, // unparsable is not loopback
 	} {
-		r := httptest.NewRequest(http.MethodPost, "/audio/wobbulate", nil)
+		r := httptest.NewRequest(http.MethodPost, "/audio/wobbulate", http.NoBody)
 		r.RemoteAddr = c.remote
 		if got := fromThisMachine(r); got != c.want {
 			t.Errorf("fromThisMachine(%q) = %v, want %v", c.remote, got, c.want)
@@ -48,7 +48,7 @@ func TestCrossSiteRequestsAreRefused(t *testing.T) {
 		{"http://evil.example", "127.0.0.1:8080", false},
 		{"http://127.0.0.1:9999", "127.0.0.1:8080", false},
 	} {
-		r := httptest.NewRequest(http.MethodPost, "/audio/wobbulate", nil)
+		r := httptest.NewRequest(http.MethodPost, "/audio/wobbulate", http.NoBody)
 		r.Host = c.host
 		if c.origin != "" {
 			r.Header.Set("Origin", c.origin)
@@ -111,7 +111,7 @@ func TestWobbulateStatusIsReadable(t *testing.T) {
 	r := gin.New()
 	mountWobbulateCtl(r)
 
-	req := httptest.NewRequest(http.MethodGet, "/audio/wobbulate", nil)
+	req := httptest.NewRequest(http.MethodGet, "/audio/wobbulate", http.NoBody)
 	req.RemoteAddr = "192.168.1.24:5000"
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)

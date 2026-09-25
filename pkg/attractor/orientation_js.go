@@ -3,10 +3,10 @@
 package attractor
 
 import (
-	_ "embed"
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
 
 	"github.com/go-gl/mathgl/mgl32"
 )

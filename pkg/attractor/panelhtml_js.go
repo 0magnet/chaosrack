@@ -3,7 +3,7 @@
 package attractor
 
 import (
-	_ "embed"
+	_ "embed" // for the //go:embed directives below
 )
 
 // ── Controls panel HTML ──────────────────────────────────────────────────────

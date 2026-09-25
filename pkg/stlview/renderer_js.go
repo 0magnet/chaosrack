@@ -2,6 +2,7 @@
 // uploads, per-frame draw). Shader source strings live here too since
 // they are tightly coupled to the renderer's attribute/uniform
 // expectations.
+
 package stlview
 
 import (
@@ -136,11 +137,11 @@ func NewRenderer(gl js.Value, config InitialConfig) (r Renderer, err js.Value) {
 }
 
 // SetModel sets a new model
-func (r *Renderer) SetModel(Colors []float32, Vertices []float32, Indices []uint32) {
-	r.numIndices = len(Indices)
-	r.UpdateColorBuffer(Colors)
-	r.UpdateVerticesBuffer(Vertices)
-	r.UpdateIndicesBuffer(Indices)
+func (r *Renderer) SetModel(colors []float32, vertices []float32, indices []uint32) {
+	r.numIndices = len(indices)
+	r.UpdateColorBuffer(colors)
+	r.UpdateVerticesBuffer(vertices)
+	r.UpdateIndicesBuffer(indices)
 	r.EnableObject()
 }
 
@@ -285,9 +286,9 @@ func (r *Renderer) Render(_ js.Value, args []js.Value) any { // nolint
 	now := float32(args[0].Float())
 	tdiff := now - r.tmark
 	r.tmark = now
-	r.rX = r.rX + r.sX*float32(tdiff)/500
-	r.rY = r.rY + r.sY*float32(tdiff)/500
-	r.rZ = r.rZ + r.sZ*float32(tdiff)/500
+	r.rX += r.sX * float32(tdiff) / 500
+	r.rY += r.sY * float32(tdiff) / 500
+	r.rZ += r.sZ * float32(tdiff) / 500
 
 	r.movMatrix = mgl32.HomogRotate3DX(r.rX)
 	r.movMatrix = r.movMatrix.Mul4(mgl32.HomogRotate3DY(r.rY))

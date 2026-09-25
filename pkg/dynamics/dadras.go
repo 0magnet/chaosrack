@@ -1,6 +1,14 @@
 package dynamics
 
-var DadrasDT, DadrasP, DadrasQ, DadrasR, DadrasS, DadrasE float32 = 0.005, 3.0, 2.7, 1.7, 2.0, 9.0
+// The integration step and parameters of the Dadras system.
+var (
+	DadrasDT float32 = 0.005
+	DadrasP  float32 = 3.0
+	DadrasQ  float32 = 2.7
+	DadrasR  float32 = 1.7
+	DadrasS  float32 = 2.0
+	DadrasE  float32 = 9.0
+)
 
 // dadrasDeriv is the vector field — single definition shared with flowreg.
 func dadrasDeriv(x, y, z float32) (float32, float32, float32) {

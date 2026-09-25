@@ -69,7 +69,7 @@ func stampAll(scope js.Value, sel, title string) {
 		return
 	}
 	list := scope.Call("querySelectorAll", sel)
-	for i := 0; i < list.Get("length").Int(); i++ {
+	for i := range list.Get("length").Int() {
 		list.Index(i).Set("title", title)
 	}
 }
@@ -123,8 +123,8 @@ func stampSelectorKnobs(f *cellRead, cell js.Value, mod, fallbackCtl string) {
 		if raw, ok := selTitle(i); ok {
 			// Only borrow the select's own name when it's a structured
 			// "Name — description" title; otherwise keep the cell's control name.
-			if t := strings.TrimSpace(raw); strings.Contains(t, " — ") {
-				ctl = mod + sep + t[:strings.Index(t, " — ")]
+			if name, _, ok := strings.Cut(strings.TrimSpace(raw), " — "); ok {
+				ctl = mod + sep + name
 			}
 		}
 		if !queueStamp(".knobsel", ctl+sep+"selector knob", i) && knobs.Truthy() {

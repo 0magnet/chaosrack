@@ -52,6 +52,7 @@ const (
 // rendered graticule look like a spreadsheet.
 type Weight int
 
+// The weights, heaviest first.
 const (
 	WeightDiv  Weight = iota // the division lines and the border
 	WeightAxis               // the two center axes

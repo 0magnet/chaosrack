@@ -109,7 +109,7 @@ func trackRackInDeskPanel() {
 	// the second Contain had a panel with no chaosrack button on it and a rack
 	// with no way back from a minimize.
 	tasks := deskEl.Call("querySelectorAll", ".dk-task")
-	for i := 0; i < tasks.Length(); i++ {
+	for i := range tasks.Length() {
 		if tasks.Index(i).Get("textContent").String() == rackTaskTitle {
 			return
 		}

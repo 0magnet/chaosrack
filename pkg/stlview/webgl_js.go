@@ -1,4 +1,5 @@
 // WebGL type bindings + slice-to-typed-array helpers.
+
 package stlview
 
 import (

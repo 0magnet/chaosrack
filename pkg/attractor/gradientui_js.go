@@ -3,12 +3,12 @@
 package attractor
 
 import (
-	_ "embed"
+	"syscall/js"
+
 	"github.com/0magnet/chaosrack/pkg/colormap"
 	"github.com/0magnet/chaosrack/pkg/colorspace"
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
-	"syscall/js"
 )
 
 // ── Event handlers ───────────────────────────────────────────────────────────

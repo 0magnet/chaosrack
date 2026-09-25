@@ -325,7 +325,7 @@ func soloKnob(sel js.Value) js.Value {
 // matched by the label text, so rotary-switch positions get unique tooltips.
 func setLabelTooltips(stack js.Value, tips map[string]string) {
 	labs := stack.Call("querySelectorAll", ".knob-dial-lab")
-	for i := 0; i < labs.Get("length").Int(); i++ {
+	for i := range labs.Get("length").Int() {
 		l := labs.Index(i)
 		if t, ok := tips[l.Get("textContent").String()]; ok {
 			l.Set("title", t)
@@ -831,7 +831,7 @@ func layoutSkirtsNow() {
 		return
 	}
 	stacks := dom.Doc.Call("querySelectorAll", ".has-dial")
-	for i := 0; i < stacks.Get("length").Int(); i++ {
+	for i := range stacks.Get("length").Int() {
 		layoutSkirtsIn(stacks.Index(i))
 	}
 }
@@ -859,7 +859,7 @@ func layoutSkirtsIn(stack js.Value) {
 	}
 	gap := skirtGapPx()
 	dials := stack.Call("querySelectorAll", ":scope > .knob-dial")
-	for i := 0; i < dials.Get("length").Int(); i++ {
+	for i := range dials.Get("length").Int() {
 		// Only the first ring is sitting on the knob. For the ones outside
 		// it "clear" is the previous ring's outer edge, not a grip, so there
 		// is no grip for them to take room from — see layoutOneSkirt.
@@ -872,7 +872,7 @@ func layoutSkirtsIn(stack js.Value) {
 func gripRadiusPx(stack js.Value) float64 {
 	els := stack.Call("querySelectorAll", ".knob, .knob-ring")
 	hi := 0.0
-	for i := 0; i < els.Get("length").Int(); i++ {
+	for i := range els.Get("length").Int() {
 		if w := els.Index(i).Get("offsetWidth").Float(); w/2 > hi {
 			hi = w / 2
 		}
@@ -1024,7 +1024,7 @@ func shrinkGrip(dial js.Value, f float64) {
 	knobs := stack.Call("querySelectorAll", ":scope > .knob, :scope > .knob-ring")
 	var biggest js.Value
 	hi := 0.0
-	for i := 0; i < knobs.Get("length").Int(); i++ {
+	for i := range knobs.Get("length").Int() {
 		k := knobs.Index(i)
 		if w := k.Get("offsetWidth").Float(); w > hi {
 			hi, biggest = w, k

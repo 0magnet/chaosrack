@@ -39,7 +39,7 @@ type LyapunovResult struct {
 	OK      bool    // false when the system could not be measured at all
 }
 
-// classify turns an exponent into the reading. The thresholds are not
+// Classify turns an exponent into the reading. The thresholds are not
 // arbitrary: the estimator's own noise floor on a periodic orbit is around
 // 1e-3 (a closed orbit's neighbors neither separate nor converge, and what is
 // left is round-off), so anything inside that band is "not measurably

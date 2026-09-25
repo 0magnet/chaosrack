@@ -656,7 +656,7 @@ func generateForMode(mode string) {
 		if !(run.selectedMode == "turtle" && style.gradientSource == 3) && !gradientSourceIsAudio(style.gradientSource) {
 			style.gradientPhase += 0.003
 			if style.gradientPhase >= 1 {
-				style.gradientPhase -= 1
+				style.gradientPhase--
 			}
 		}
 		glctx.GL.Call("uniform1f", gpu.u.gradientPhase, style.gradientPhase)

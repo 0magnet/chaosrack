@@ -29,6 +29,7 @@ import "strings"
 // Drain deliver.
 type MonoMode int
 
+// The ways to fold two channels into one.
 const (
 	// MonoMix is (L+R)/2 — everything that is playing, which is what a
 	// spectrogram of "this machine's audio" is expected to show.

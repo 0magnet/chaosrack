@@ -3,12 +3,12 @@
 package attractor
 
 import (
-	_ "embed"
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"strconv"
 	"strings"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
 
 	"github.com/0magnet/chaosrack/pkg/rackspec"
 )

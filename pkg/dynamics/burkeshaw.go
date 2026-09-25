@@ -1,6 +1,11 @@
 package dynamics
 
-var BurkeDT, BurkeS, BurkeV float32 = 0.005, 10.0, 4.272
+// The integration step and parameters of the Burke–Shaw system.
+var (
+	BurkeDT float32 = 0.005
+	BurkeS  float32 = 10.0
+	BurkeV  float32 = 4.272
+)
 
 // burkeShawDeriv is the vector field — single definition shared with flowreg.
 func burkeShawDeriv(x, y, z float32) (float32, float32, float32) {

@@ -54,18 +54,38 @@ func NewFuncGen() *FuncGen {
 	return f
 }
 
-func (f *FuncGen) SetWave(i, w int)          { f.osc[i].wave = w }
-func (f *FuncGen) SetFreq(i int, hz float64) { f.osc[i].freq = hz }
-func (f *FuncGen) SetAmp(i int, a float64)   { f.osc[i].amp = a }
-func (f *FuncGen) Wave(i int) int            { return f.osc[i].wave }
-func (f *FuncGen) Freq(i int) float64        { return f.osc[i].freq }
-func (f *FuncGen) Amp(i int) float64         { return f.osc[i].amp }
+// SetWave sets oscillator i's waveform.
+func (f *FuncGen) SetWave(i, w int) { f.osc[i].wave = w }
 
+// SetFreq sets oscillator i's frequency in Hz.
+func (f *FuncGen) SetFreq(i int, hz float64) { f.osc[i].freq = hz }
+
+// SetAmp sets oscillator i's amplitude.
+func (f *FuncGen) SetAmp(i int, a float64) { f.osc[i].amp = a }
+
+// Wave is oscillator i's waveform.
+func (f *FuncGen) Wave(i int) int { return f.osc[i].wave }
+
+// Freq is oscillator i's frequency in Hz.
+func (f *FuncGen) Freq(i int) float64 { return f.osc[i].freq }
+
+// Amp is oscillator i's amplitude.
+func (f *FuncGen) Amp(i int) float64 { return f.osc[i].amp }
+
+// SampleRate is the rate the generator synthesizes at.
 func (f *FuncGen) SampleRate() int { return f.sr }
-func (f *FuncGen) Channels() int   { return 2 }
-func (f *FuncGen) Ready() bool     { return true }
-func (f *FuncGen) Err() error      { return nil }
-func (f *FuncGen) Close()          {}
+
+// Channels is always two: X on the left, Y on the right.
+func (f *FuncGen) Channels() int { return 2 }
+
+// Ready is always true; a generator has nothing to wait for.
+func (f *FuncGen) Ready() bool { return true }
+
+// Err is always nil; a generator cannot fail.
+func (f *FuncGen) Err() error { return nil }
+
+// Close does nothing; a generator holds nothing to release.
+func (f *FuncGen) Close() {}
 
 func waveform(kind int, ph float64) float64 {
 	ph = math.Mod(ph, 2*math.Pi)
@@ -118,8 +138,8 @@ func (f *FuncGen) advance(i int) float64 {
 	return v
 }
 
-// TimeDomainStereo: X oscillator → left, Y oscillator → right (the xy scope's
-// two axes).
+// TimeDomainStereo fills l and r from the X and Y oscillators, the xy scope's
+// two axes.
 func (f *FuncGen) TimeDomainStereo(l, r []float32) { f.fillStereo(l, r) }
 
 // fillStereo is the two-channel synthesis both TimeDomainStereo and DrainStereo
@@ -163,6 +183,7 @@ func (f *FuncGen) fillMono(dst []float32) {
 	}
 }
 
+// TimeDomain fills dst with the three oscillators mixed to mono.
 func (f *FuncGen) TimeDomain(dst []float32) []float32 {
 	f.fillMono(dst)
 	return dst

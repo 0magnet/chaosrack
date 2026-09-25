@@ -1,6 +1,10 @@
 package dynamics
 
-var HalvorsenDT, HalvorsenA float32 = 0.003, 1.4
+// The integration step and parameters of the Halvorsen attractor.
+var (
+	HalvorsenDT float32 = 0.003
+	HalvorsenA  float32 = 1.4
+)
 
 // halvorsenDeriv is the vector field — single definition shared with flowreg.
 func halvorsenDeriv(x, y, z float32) (float32, float32, float32) {

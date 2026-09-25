@@ -15,7 +15,7 @@ package attractor
 // the one fuzzer FROZEN hit in hyperrossler). Budgets differ by engine cost:
 // compiled vector fields are ~10× cheaper per step than the interpreted
 // equation engine.
-func effSubSteps(requested, points, budget int) int { //nolint:unused // built but not wired up yet; kept deliberately
+func effSubSteps(requested, points, budget int) int { //nolint:unused // used only by the js build, which the native lint pass cannot see
 	if requested <= 1 || points <= 0 {
 		return requested
 	}

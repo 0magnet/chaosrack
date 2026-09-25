@@ -111,44 +111,47 @@ func MapKeys() []string {
 	return out
 }
 
-// ── parameters ───────────────────────────────────────────────────────────────
-
+// The discrete maps' parameters.
 var (
-	// Hénon (1976), the original "strange attractor from a simple map".
+	// HenonA and HenonB are Hénon's (1976) parameters, the original "strange
+	// attractor from a simple map".
 	HenonA float32 = 1.4
 	HenonB float32 = 0.3
 
-	// Ikeda (1979) — a model of light in a nonlinear optical cavity. 0.9, and
-	// NOT the 0.918 often quoted: with t = 0.4 − 6/(1+x²+y²) there is a
-	// periodic window across roughly 0.905..0.95 where the orbit settles onto a
-	// fixed point and the mode draws a single dot.
+	// IkedaU is the Ikeda map's (1979) parameter — a model of light in a
+	// nonlinear optical cavity. 0.9, and NOT the 0.918 often quoted: with
+	// t = 0.4 − 6/(1+x²+y²) there is a periodic window across roughly
+	// 0.905..0.95 where the orbit settles onto a fixed point and the mode draws
+	// a single dot.
 	IkedaU float32 = 0.9
 
-	// Clifford Pickover's trigonometric attractor.
+	// CliffordA through CliffordD are Clifford Pickover's trigonometric attractor.
 	CliffordA float32 = -1.4
 	CliffordB float32 = 1.6
 	CliffordC float32 = 1.0
 	CliffordD float32 = 0.7
 
-	// Peter de Jong's, the same idea with a different pairing.
+	// DejongA through DejongD are Peter de Jong's, the same idea with a different
+	// pairing.
 	DejongA float32 = 1.641
 	DejongB float32 = 1.902
 	DejongC float32 = 0.316
 	DejongD float32 = 1.525
 
-	// Gumowski–Mira, from CERN particle-beam studies (1980).
+	// MiraA, MiraB and MiraMu are Gumowski–Mira's, from CERN particle-beam studies
+	// (1980).
 	MiraA  float32 = 0.008
 	MiraB  float32 = 0.05
 	MiraMu float32 = -0.496
 
-	// Tinkerbell.
+	// TinkA through TinkD are the Tinkerbell map's.
 	TinkA float32 = 0.9
 	TinkB float32 = -0.6013
 	TinkC float32 = 2.0
 	TinkD float32 = 0.5
 
-	// Chirikov's standard map — the canonical area-preserving map. K is the
-	// kick strength; near 0.971635 the last invariant curve breaks and the
+	// StdK is the kick strength of Chirikov's standard map, the canonical
+	// area-preserving map; near 0.971635 the last invariant curve breaks and the
 	// chaotic sea connects.
 	StdK float32 = 0.971635
 )

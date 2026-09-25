@@ -109,7 +109,7 @@ func TestServerStreamsToARealQUICClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dialing %s: %v", info.URL, err)
 	}
-	if rsp.StatusCode != 200 {
+	if rsp.StatusCode != http.StatusOK {
 		t.Fatalf("CONNECT answered %d", rsp.StatusCode)
 	}
 	defer sess.CloseWithError(0, "") //nolint:errcheck // teardown

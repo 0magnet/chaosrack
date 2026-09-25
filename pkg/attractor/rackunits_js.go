@@ -131,7 +131,7 @@ func unitOpenings() []js.Value {
 	}
 	els := f.Call("querySelectorAll", "."+unitOpenCls)
 	out := make([]js.Value, 0, els.Get("length").Int())
-	for i := 0; i < els.Get("length").Int(); i++ {
+	for i := range els.Get("length").Int() {
 		out = append(out, els.Index(i))
 	}
 	return out
@@ -233,7 +233,7 @@ func relayoutUnits() {
 	var mods []js.Value
 	var slots []int
 	var items []packItem
-	for i := 0; i < els.Get("length").Int(); i++ {
+	for i := range els.Get("length").Int() {
 		m := els.Index(i)
 		// A module that is switched off takes no slots but keeps its
 		// PLACE: packed at width zero, so putting it back does not move
@@ -321,11 +321,9 @@ func relayoutUnits() {
 		open := opens[ui]
 		for _, mi := range idx {
 			m := mods[mi]
-			if !m.Get("parentNode").Equal(open) {
-				open.Call("appendChild", m)
-			} else {
-				open.Call("appendChild", m) // keep the order within the unit
-			}
+			// Appended even when it is already here: appending moves it to the end,
+			// which is what keeps the order within the unit.
+			open.Call("appendChild", m)
 		}
 		// A rack does not have a ragged gap at the end of a row; it has
 		// blank panels, cut to the same widths.
@@ -371,7 +369,7 @@ func relayoutUnits() {
 // clearUnitBlanks removes every blank panel in the frame.
 func clearUnitBlanks(f js.Value) {
 	els := f.Call("querySelectorAll", "."+unitBlankCls)
-	for i := 0; i < els.Get("length").Int(); i++ {
+	for i := range els.Get("length").Int() {
 		els.Index(i).Call("remove")
 	}
 }
@@ -698,7 +696,7 @@ type runLabel struct {
 // clearRunLabels takes away a bay's labels from the previous pass.
 func clearRunLabels(open js.Value) {
 	old := open.Call("querySelectorAll", ":scope > .runit-label")
-	for i := 0; i < old.Get("length").Int(); i++ {
+	for i := range old.Get("length").Int() {
 		old.Index(i).Call("remove")
 	}
 }
@@ -818,7 +816,7 @@ func groupBySection(items []packItem, mods []js.Value) ([]packItem, []js.Value) 
 // there, so switching one back on brings the bay back with it.
 func hideEmptyUnits(f js.Value) {
 	us := f.Call("querySelectorAll", ":scope > ."+unitClass)
-	for i := 0; i < us.Get("length").Int(); i++ {
+	for i := range us.Get("length").Int() {
 		u := us.Index(i)
 		open := u.Call("querySelector", ":scope > ."+unitOpenCls)
 		if !open.Truthy() {
@@ -826,7 +824,7 @@ func hideEmptyUnits(f js.Value) {
 		}
 		mods := open.Call("querySelectorAll", ":scope > .sect")
 		live := false
-		for j := 0; j < mods.Get("length").Int(); j++ {
+		for j := range mods.Get("length").Int() {
 			// The module's OWN display, not offsetParent: offsetParent is
 			// null for anything inside a hidden ancestor, so once a bay was
 			// hidden every module in it read as switched off and the bay

@@ -162,7 +162,7 @@ func sphereSkinMesh(radius float32, stacks, slices int) ([]float32, []uint16) {
 
 // torusSkinMesh returns interleaved pos+uv verts and triangle indices for a
 // torus. u = around the main ring (time, wraps), v = around the tube.
-func torusSkinMesh(R, r float32, stacks, slices int) ([]float32, []uint16) {
+func torusSkinMesh(major, minor float32, stacks, slices int) ([]float32, []uint16) {
 	verts := make([]float32, 0, (stacks+1)*(slices+1)*5)
 	for i := 0; i <= stacks; i++ {
 		theta := float64(i) * 2.0 * math.Pi / float64(stacks)
@@ -173,9 +173,9 @@ func torusSkinMesh(R, r float32, stacks, slices int) ([]float32, []uint16) {
 			// below deliberately does NOT take the roll: the texture stays put on
 			// the surface, and it is the surface that moves under it.
 			phi := float64(j)*2.0*math.Pi/float64(slices) + float64(torus.rollPhi)
-			x := (float64(R) + float64(r)*math.Cos(phi)) * math.Cos(theta)
-			y := (float64(R) + float64(r)*math.Cos(phi)) * math.Sin(theta)
-			z := float64(r) * math.Sin(phi)
+			x := (float64(major) + float64(minor)*math.Cos(phi)) * math.Cos(theta)
+			y := (float64(major) + float64(minor)*math.Cos(phi)) * math.Sin(theta)
+			z := float64(minor) * math.Sin(phi)
 			v := float32(j) / float32(slices)
 			verts = append(verts, float32(x), float32(y), float32(z), u, v)
 		}
@@ -243,7 +243,7 @@ func polySkinMesh(verts []float32) ([]float32, []uint16) {
 			if mx-mn > 0.5 {
 				for a := range us {
 					if us[a] < 0.5 {
-						us[a] += 1
+						us[a]++
 					}
 				}
 			}

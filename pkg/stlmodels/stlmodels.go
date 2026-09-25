@@ -284,7 +284,7 @@ func demoPanel(hp, seg int) meshstl.Mesh {
 func filledRack(seg int) meshstl.Mesh {
 	m := meshstl.Rack(1)
 	inset := (rackspec.PanelWidth19 - rackspec.RowWidth()) / 2
-	for i := 0; i < rackspec.SlotsPerRow(); i++ {
+	for i := range rackspec.SlotsPerRow() {
 		panel := demoPanel(rackspec.ModuleHP, seg)
 		m.Append(panel.Translate(meshstl.V3{
 			inset + float64(i)*rackspec.SlotPitch, meshstl.RailHeight, 0,

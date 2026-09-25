@@ -384,6 +384,20 @@ func buildGeneratorModule() {
 	}
 }
 
+// generator is the signal generator's audio graph.
+type generator struct {
+	ctx      js.Value
+	osc      [3]js.Value
+	kind     [3]string // "osc" or "noise" — which node type gen.osc[i] holds
+	gain     [3]js.Value
+	pan      [3]js.Value
+	envGain  js.Value // Envelope module's master shaper (pans → env → out)
+	noiseBuf js.Value // shared 2-s LFSR noise loop
+	running  bool
+}
+
+var gen generator
+
 // audioSync starts the Web Audio graph if any oscillator is routed to a
 // channel (not "off"), stops it if none are, and otherwise just refreshes the
 // running nodes.
@@ -413,20 +427,6 @@ func fgFloat(el js.Value) float64 {
 }
 
 // ── Web Audio output ──────────────────────────────────────────────────────
-
-// generator is the signal generator's audio graph.
-type generator struct {
-	ctx      js.Value
-	osc      [3]js.Value
-	kind     [3]string // "osc" or "noise" — which node type gen.osc[i] holds
-	gain     [3]js.Value
-	pan      [3]js.Value
-	envGain  js.Value // Envelope module's master shaper (pans → env → out)
-	noiseBuf js.Value // shared 2-s LFSR noise loop
-	running  bool
-}
-
-var gen generator
 
 // noiseBuffer builds (once) the shift-register noise loop the noise wave
 // plays through an AudioBufferSourceNode — the same 15-bit LFSR the FuncGen

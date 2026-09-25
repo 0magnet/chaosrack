@@ -236,6 +236,8 @@ func sliceToByteSlice(s any) []byte {
 	}
 }
 
+// SliceToTypedArray copies a numeric slice into a new JS typed array of the
+// matching element type, for handing to WebGL.
 func SliceToTypedArray(s any) js.Value {
 	switch s := s.(type) {
 	case []int8:

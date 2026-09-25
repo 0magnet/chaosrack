@@ -62,7 +62,7 @@ const (
 	CrossEither  = 2
 )
 
-// poincareDirNames are the panel's names for those values, in index order
+// PoincareDirNames are the panel's names for those values, in index order
 // because paramLabels reads a setting's position as its value. They live here
 // rather than on the tagged side so a direction cannot be added without a name
 // or renamed in only one of the two places; the host build has no consumer for
@@ -71,7 +71,7 @@ const (
 //nolint:unused // read from paramdefs_js.go, and the panel is js-only
 var PoincareDirNames = []string{"up", "down", "both"}
 
-// poincarePlane is an oriented plane in the SYSTEM'S OWN state space: the set
+// PoincarePlane is an oriented plane in the SYSTEM'S OWN state space: the set
 // of points p with n·p == d, with n a unit normal.
 //
 // State space, not view space, and that is the load-bearing decision in this
@@ -105,7 +105,7 @@ type PoincarePlane struct {
 	u, v [3]float64
 }
 
-// newPoincarePlane normalizes the normal and builds the in-plane basis. A zero
+// NewPoincarePlane normalizes the normal and builds the in-plane basis. A zero
 // or degenerate normal falls back to +z, which is the plane the section had
 // before it was given an orientation at all: the honest failure here is the
 // old behavior, not a plane with no direction.
@@ -162,14 +162,14 @@ func poincareBasis(n [3]float64) (u, v [3]float64) {
 	return u, v
 }
 
-// signed is the signed distance from p to the plane, positive on the side the
+// Signed is the signed distance from p to the plane, positive on the side the
 // normal points to. This is the scalar the whole file is about: a crossing is
 // a sign change in it, and the crossing point is its root.
 func (pl PoincarePlane) Signed(p [3]float64) float64 {
 	return pl.n[0]*p[0] + pl.n[1]*p[1] + pl.n[2]*p[2] - pl.d
 }
 
-// project gives a point's coordinates in the plane's own 2-D basis. Applied to
+// Project gives a point's coordinates in the plane's own 2-D basis. Applied to
 // a crossing this is the section itself; applied to anything off the plane it
 // is that point's shadow on it, which is not something this feature wants and
 // is why only crossings are ever passed in.
@@ -178,7 +178,7 @@ func (pl PoincarePlane) Project(p [3]float64) (s, t float64) {
 		p[0]*pl.v[0] + p[1]*pl.v[1] + p[2]*pl.v[2]
 }
 
-// poincareAccepts reports whether the signed distances at the two ends of a
+// PoincareAccepts reports whether the signed distances at the two ends of a
 // step are a crossing in the wanted direction.
 //
 // The comparison is HALF-OPEN — g0 < 0 <= g1 for a rising crossing — and that
@@ -303,7 +303,7 @@ func poincareClamp01(v float64) float64 {
 	return v
 }
 
-// poincareCross is the whole thing in one call: given the two ends of an
+// PoincareCross is the whole thing in one call: given the two ends of an
 // integration step and (optionally) the velocity at each, say whether the flow
 // crossed the plane in the wanted direction and where.
 //
@@ -325,7 +325,7 @@ func PoincareCross(pl PoincarePlane, a, b, va, vb [3]float64, dir int) (hit [3]f
 	return poincarePoint(a, b, va, vb, poincareFracHermite(g0, g1, m0, m1)), true
 }
 
-// poincareSnap is the implementation this file exists to be better than:
+// PoincareSnap is the implementation this file exists to be better than:
 // whichever endpoint is nearer the plane. It is not called by the app. It is
 // here so the test can measure the thing that was rejected instead of
 // asserting in a comment that it would have been worse — the claim at the top
@@ -339,7 +339,7 @@ func PoincareSnap(pl PoincarePlane, a, b [3]float64) [3]float64 {
 
 // ── The accumulated section ──────────────────────────────────────────────
 
-// poincareHit is one crossing: where it was in the system's coordinates, and
+// PoincareHit is one crossing: where it was in the system's coordinates, and
 // the same point in the plane's 2-D basis. Both are kept because the two views
 // need different ones — the in-place overlay draws P where the crossing
 // physically is, and the flat section and the return map read S and T.
@@ -360,7 +360,7 @@ type PoincareHit struct {
 	Gap bool
 }
 
-// poincareLog is the ring the crossings accumulate in — newest replace oldest,
+// PoincareLog is the ring the crossings accumulate in — newest replace oldest,
 // so the section keeps filling in forever without growing.
 //
 // Ordered oldest-first through at(), because the return map needs consecutive
@@ -374,6 +374,7 @@ type PoincareLog struct {
 	gap  bool
 }
 
+// Reset empties the log and sizes it to hold capacity hits.
 func (l *PoincareLog) Reset(capacity int) {
 	if cap(l.hits) < capacity {
 		l.hits = make([]PoincareHit, capacity)
@@ -385,9 +386,10 @@ func (l *PoincareLog) Reset(capacity int) {
 	l.gap = true
 }
 
-// breakChain says the next hit does not follow the previous one in time.
+// BreakChain says the next hit does not follow the previous one in time.
 func (l *PoincareLog) BreakChain() { l.gap = true }
 
+// Add records a hit, over the oldest once the ring is full.
 func (l *PoincareLog) Add(h PoincareHit) {
 	if len(l.hits) == 0 {
 		return
@@ -401,9 +403,10 @@ func (l *PoincareLog) Add(h PoincareHit) {
 	}
 }
 
+// Len is how many hits the log holds.
 func (l *PoincareLog) Len() int { return l.n }
 
-// at returns the i-th hit counting from the OLDEST still in the ring.
+// At returns the i-th hit counting from the OLDEST still in the ring.
 func (l *PoincareLog) At(i int) PoincareHit {
 	if i < 0 || i >= l.n {
 		return PoincareHit{}
