@@ -46,12 +46,12 @@ func clampF(x, lo, hi float32) float32 {
 // step <= 0 means "no grid" and passes the value through clamped, so a caller
 // that reaches here with a continuous parameter degrades to the float path
 // rather than dividing by zero.
-func snapToStep(v, min, max, step float32) float32 {
+func snapToStep(v, lo, hi, step float32) float32 {
 	if step <= 0 {
-		return clampF(v, min, max)
+		return clampF(v, lo, hi)
 	}
-	n := math.Round(float64(v-min) / float64(step))
-	return clampF(min+float32(n)*step, min, max)
+	n := math.Round(float64(v-lo) / float64(step))
+	return clampF(lo+float32(n)*step, lo, hi)
 }
 
 // modStepDeadband is how far PAST the halfway point a modulated value must
@@ -111,9 +111,9 @@ const modStepDeadband = 0.15
 // where the value belongs, which is the same tolerance the trigger grants
 // anyway, and the first sample outside that window resnaps it. Pruning would
 // buy exactness that no frame can observe.
-func quantizeHeld(v, held float32, hasHeld bool, min, max, step float32) float32 {
+func quantizeHeld(v, held float32, hasHeld bool, lo, hi, step float32) float32 {
 	if !hasHeld || step <= 0 {
-		return snapToStep(v, min, max, step)
+		return snapToStep(v, lo, hi, step)
 	}
 	d := v - held
 	if d < 0 {
@@ -122,5 +122,5 @@ func quantizeHeld(v, held float32, hasHeld bool, min, max, step float32) float32
 	if d <= (0.5+modStepDeadband)*step {
 		return held
 	}
-	return snapToStep(v, min, max, step)
+	return snapToStep(v, lo, hi, step)
 }

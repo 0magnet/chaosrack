@@ -254,7 +254,7 @@ func audioSVG(figs []attractor.Figure, all [][3]float64, views [][3]float64) str
 	}
 	r, mx, my := svgFit(shift(all), views)
 	g := gradientFor()
-	min, max := rasterview.ModelBounds(attractor.Vertices(shift(all)))
+	lo, hi := rasterview.ModelBounds(attractor.Vertices(shift(all)))
 	dur := float64(len(views)) / float64(renderFPS)
 
 	var defs, body strings.Builder
@@ -267,7 +267,7 @@ func audioSVG(figs []attractor.Figure, all [][3]float64, views [][3]float64) str
 		fmt.Fprintf(&body, `<g opacity="0"><animate attributeName="opacity" calcMode="discrete" dur="%gs" repeatCount="indefinite" values="%s"/>`,
 			dur, strings.Join(vals, ";"))
 		pts := shift(figs[i].Points)
-		writeColoredTrail(&defs, &body, fmt.Sprintf("g%d", i), pts, a, r, mx, my, g, min, max, 0, len(pts))
+		writeColoredTrail(&defs, &body, fmt.Sprintf("g%d", i), pts, a, r, mx, my, g, lo, hi, 0, len(pts))
 		body.WriteString(`</g>`)
 	}
 	var b strings.Builder

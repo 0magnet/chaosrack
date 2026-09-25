@@ -200,9 +200,9 @@ func TestAttractorModesDoNotTouchTheGeometryFlag(t *testing.T) {
 // frame, and that is what the deadband is for.
 func TestQuantizedCountsDoNotChatterOnASteadyTone(t *testing.T) {
 	const (
-		frames                 = 600 // ten seconds at 60 fps
-		min, max, step float32 = 4, 100, 1
-		base, level    float32 = 30, 0.05
+		frames               = 600 // ten seconds at 60 fps
+		lo, hi, step float32 = 4, 100, 1
+		base, level  float32 = 30, 0.05
 	)
 	// A FIXED seed: a measurement that changed run to run could not be compared
 	// against the numbers in the comment above, and nothing here is a secret.
@@ -215,10 +215,10 @@ func TestQuantizedCountsDoNotChatterOnASteadyTone(t *testing.T) {
 		// normalized band energy.
 		raw := clamp01(float32(0.5 + rng.NormFloat64()*0.03))
 		f = afSmooth(f, raw)
-		v := clampF(base+level*f*(max-min), min, max)
+		v := clampF(base+level*f*(hi-lo), lo, hi)
 
-		nearest = snapToStep(v, min, max, step)
-		held = quantizeHeld(v, held, i > 0, min, max, step)
+		nearest = snapToStep(v, lo, hi, step)
+		held = quantizeHeld(v, held, i > 0, lo, hi, step)
 		deadband = held
 
 		if i > 0 {
@@ -256,9 +256,9 @@ func TestQuantizedCountsDoNotChatterOnASteadyTone(t *testing.T) {
 // rounding would.
 func TestTheDeadbandKeepsModulationThatIsReallyThere(t *testing.T) {
 	const (
-		frames                 = 600
-		min, max, step float32 = 4, 100, 1
-		base, level    float32 = 30, 0.5
+		frames               = 600
+		lo, hi, step float32 = 4, 100, 1
+		base, level  float32 = 30, 0.5
 	)
 	// A FIXED seed: a measurement that changed run to run could not be compared
 	// against the numbers in the comment above, and nothing here is a secret.
@@ -271,10 +271,10 @@ func TestTheDeadbandKeepsModulationThatIsReallyThere(t *testing.T) {
 		t := float64(i) / 60
 		raw := clamp01(float32(0.5 + 0.45*math.Sin(2*math.Pi*2*t) + rng.NormFloat64()*0.03))
 		f = afSmooth(f, raw)
-		v := clampF(base+level*f*(max-min), min, max)
+		v := clampF(base+level*f*(hi-lo), lo, hi)
 
-		nearest := snapToStep(v, min, max, step)
-		held = quantizeHeld(v, held, i > 0, min, max, step)
+		nearest := snapToStep(v, lo, hi, step)
+		held = quantizeHeld(v, held, i > 0, lo, hi, step)
 		if i > 0 {
 			if nearest != prevNearest {
 				nearestChanges++

@@ -66,10 +66,10 @@ const bifCols = 360
 // sit pinned at the end for half the music and only move during the other
 // half. A shifted window keeps the whole envelope mapped onto the whole span,
 // which is what a depth control is for.
-func bifAudioSpan(depth, center, min, max float32) (lo, span float32) {
-	full := max - min
+func bifAudioSpan(depth, center, lower, upper float32) (lo, span float32) {
+	full := upper - lower
 	if full <= 0 {
-		return min, 0
+		return lower, 0
 	}
 	if depth < 0 {
 		depth = 0
@@ -78,11 +78,11 @@ func bifAudioSpan(depth, center, min, max float32) (lo, span float32) {
 	}
 	span = full * depth
 	lo = center - span/2
-	if lo < min {
-		lo = min
+	if lo < lower {
+		lo = lower
 	}
-	if lo+span > max {
-		lo = max - span
+	if lo+span > upper {
+		lo = upper - span
 	}
 	return lo, span
 }
@@ -91,8 +91,8 @@ func bifAudioSpan(depth, center, min, max float32) (lo, span float32) {
 // window. Silence is the low end and a full-scale envelope is the high end,
 // which is the direction that reads right: louder pushes the system further
 // along the axis, into the cascade rather than out of it.
-func bifAudioValue(env, depth, center, min, max float32) float32 {
-	lo, span := bifAudioSpan(depth, center, min, max)
+func bifAudioValue(env, depth, center, lower, upper float32) float32 {
+	lo, span := bifAudioSpan(depth, center, lower, upper)
 	if env < 0 {
 		env = 0
 	} else if env > 1 {
@@ -104,12 +104,12 @@ func bifAudioValue(env, depth, center, min, max float32) float32 {
 // bifFrac is a parameter value's position along the axis, 0..1 — the same
 // mapping the sweep uses to place its columns, so the cursor lands where the
 // column for that value was drawn and not half a column off it.
-func bifFrac(v, min, max float32) float32 {
-	full := max - min
+func bifFrac(v, lo, hi float32) float32 {
+	full := hi - lo
 	if full <= 0 {
 		return 0
 	}
-	f := (v - min) / full
+	f := (v - lo) / full
 	if f < 0 {
 		return 0
 	}
@@ -124,11 +124,11 @@ func bifFrac(v, min, max float32) float32 {
 // min + (max-min)·j/(cols-1), so the nearest column is the one whose points
 // were computed closest to this value, and truncating would bias the whole
 // cursor half a column low.
-func bifColumnFor(v, min, max float32, cols int) int {
+func bifColumnFor(v, lo, hi float32, cols int) int {
 	if cols < 2 {
 		return 0
 	}
-	j := int(bifFrac(v, min, max)*float32(cols-1) + 0.5)
+	j := int(bifFrac(v, lo, hi)*float32(cols-1) + 0.5)
 	if j < 0 {
 		return 0
 	}

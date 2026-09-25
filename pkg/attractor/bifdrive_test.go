@@ -93,12 +93,12 @@ func TestBifAudioDegenerateRange(t *testing.T) {
 // value, or it would highlight a slice of the attractor taken at a different
 // parameter than the one it is reporting.
 func TestBifColumnForMatchesTheSweep(t *testing.T) {
-	const min, max float32 = 0.1, 1.45
+	const lo, hi float32 = 0.1, 1.45
 	for _, j := range []int{0, 1, 17, bifCols / 2, bifCols - 2, bifCols - 1} {
 		// The value the sweep uses for column j, verbatim from
 		// generateBifurcation.
-		pv := min + (max-min)*float32(j)/float32(bifCols-1)
-		if got := bifColumnFor(pv, min, max, bifCols); got != j {
+		pv := lo + (hi-lo)*float32(j)/float32(bifCols-1)
+		if got := bifColumnFor(pv, lo, hi, bifCols); got != j {
 			t.Errorf("column %d sweeps to %v, which maps back to column %d", j, pv, got)
 		}
 	}

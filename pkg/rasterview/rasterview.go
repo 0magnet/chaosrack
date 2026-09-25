@@ -77,19 +77,19 @@ func (v View) Render(dst *image.RGBA, vertices []float32, indices []uint16, g Gr
 
 	// Model bounds: the shader's uMin/uMax gradient normalization, and
 	// the fit radius for projection.
-	var min, max [3]float32
+	var lo, hi [3]float32
 	for a := range 3 {
-		min[a], max[a] = vertices[a], vertices[a]
+		lo[a], hi[a] = vertices[a], vertices[a]
 	}
 	maxLen := 0.0
 	for i := range n {
 		x, y, z := vertices[i*3], vertices[i*3+1], vertices[i*3+2]
 		for a, val := range [3]float32{x, y, z} {
-			if val < min[a] {
-				min[a] = val
+			if val < lo[a] {
+				lo[a] = val
 			}
-			if val > max[a] {
-				max[a] = val
+			if val > hi[a] {
+				hi[a] = val
 			}
 		}
 		if l := math.Sqrt(float64(x*x + y*y + z*z)); l > maxLen {
@@ -136,7 +136,7 @@ func (v View) Render(dst *image.RGBA, vertices []float32, indices []uint16, g Gr
 		if n > 1 {
 			age = float32(i) / float32(n-1)
 		}
-		c := g.colorAt(vertices[i*3], vertices[i*3+1], vertices[i*3+2], min, max, age)
+		c := g.colorAt(vertices[i*3], vertices[i*3+1], vertices[i*3+2], lo, hi, age)
 		if z3 < 0 && v.BackDim > 0 {
 			dim := float32(1 - v.BackDim)
 			c[0] *= dim
@@ -179,7 +179,7 @@ func (v View) Render(dst *image.RGBA, vertices []float32, indices []uint16, g Gr
 
 // colorAt ports the fragment shader's coloring: t from the source axis
 // normalized over the model bounds, then the palette.
-func (g Gradient) colorAt(x, y, z float32, min, max [3]float32, age float32) [3]float32 {
+func (g Gradient) colorAt(x, y, z float32, minV, maxV [3]float32, age float32) [3]float32 {
 	var t float32
 	if g.Source == SourceTrail {
 		// Age along the trail: the parameter is handed in, because the answer
@@ -190,11 +190,11 @@ func (g Gradient) colorAt(x, y, z float32, min, max [3]float32, age float32) [3]
 		var val, lo, hi float32
 		switch g.Source {
 		case 0:
-			val, lo, hi = x, min[0], max[0]
+			val, lo, hi = x, minV[0], maxV[0]
 		case 1:
-			val, lo, hi = y, min[1], max[1]
+			val, lo, hi = y, minV[1], maxV[1]
 		default:
-			val, lo, hi = z, min[2], max[2]
+			val, lo, hi = z, minV[2], maxV[2]
 		}
 		span := hi - lo
 		if span < 0.001 {
@@ -245,31 +245,31 @@ func clamp01(v float32) float32 {
 // so it cannot go through Render, and without this it had a hardcoded stroke:
 // the same model exported twice came out rainbow as a PNG and flat cyan as an
 // SVG, from one --colors flag that only half the formats honored.
-func (g Gradient) ColorAt(x, y, z float32, min, max [3]float32, age float32) [3]float32 {
-	return g.colorAt(x, y, z, min, max, age)
+func (g Gradient) ColorAt(x, y, z float32, lo, hi [3]float32, age float32) [3]float32 {
+	return g.colorAt(x, y, z, lo, hi, age)
 }
 
 // ModelBounds is the per-axis extent Render normalizes the gradient over.
 // A caller coloring the same points itself has to use the same bounds, or the
 // two pictures put the palette in different places.
-func ModelBounds(vertices []float32) (min, max [3]float32) {
+func ModelBounds(vertices []float32) (lo, hi [3]float32) {
 	n := len(vertices) / 3
 	if n == 0 {
-		return min, max
+		return lo, hi
 	}
 	for a := range 3 {
-		min[a], max[a] = vertices[a], vertices[a]
+		lo[a], hi[a] = vertices[a], vertices[a]
 	}
 	for i := range n {
 		for a := range 3 {
 			v := vertices[i*3+a]
-			if v < min[a] {
-				min[a] = v
+			if v < lo[a] {
+				lo[a] = v
 			}
-			if v > max[a] {
-				max[a] = v
+			if v > hi[a] {
+				hi[a] = v
 			}
 		}
 	}
-	return min, max
+	return lo, hi
 }

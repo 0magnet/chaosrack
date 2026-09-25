@@ -3,10 +3,10 @@ package meshstl
 import "math"
 
 // Box is an axis-aligned box, wound outward.
-func Box(min, max V3) Mesh {
+func Box(lo, hi V3) Mesh {
 	var m Mesh
-	x0, y0, z0 := min[0], min[1], min[2]
-	x1, y1, z1 := max[0], max[1], max[2]
+	x0, y0, z0 := lo[0], lo[1], lo[2]
+	x1, y1, z1 := hi[0], hi[1], hi[2]
 	// Each face wound counter-clockwise seen from outside.
 	m.AddQuad(V3{x0, y0, z1}, V3{x1, y0, z1}, V3{x1, y1, z1}, V3{x0, y1, z1}) // +Z
 	m.AddQuad(V3{x1, y0, z0}, V3{x0, y0, z0}, V3{x0, y1, z0}, V3{x1, y1, z0}) // -Z

@@ -19,12 +19,12 @@ func effSubSteps(requested, points, budget int) int { //nolint:unused // built b
 	if requested <= 1 || points <= 0 {
 		return requested
 	}
-	max := budget / points
-	if max < 1 {
-		max = 1
+	hi := budget / points
+	if hi < 1 {
+		hi = 1
 	}
-	if requested > max {
-		return max
+	if requested > hi {
+		return hi
 	}
 	return requested
 }

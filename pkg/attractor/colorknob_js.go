@@ -102,11 +102,11 @@ func makeHueKnob(slider js.Value) js.Value {
 // native swatch (shown above, current color) stays the source of truth for
 // arbitrary colors; the knob is the analog way to dial one in.
 func buildColorKnob(colorInput js.Value) js.Value {
-	mkRange := func(max int, val float64) js.Value {
+	mkRange := func(hi int, val float64) js.Value {
 		r := dom.Doc.Call("createElement", "input")
 		r.Set("type", "range")
 		r.Set("min", "0")
-		r.Set("max", strconv.Itoa(max))
+		r.Set("max", strconv.Itoa(hi))
 		r.Set("step", "1")
 		r.Set("value", strconv.FormatFloat(val, 'f', 0, 64))
 		r.Set("style", "display:none")

@@ -51,8 +51,8 @@ var owed layoutDebts
 // sizeLEDField fixes a numeric input's width to the widest value it can show
 // (sign + max integer digits + dot + dec) and right-aligns it, so it never
 // resizes and unsigned/positive values reserve the sign column as a blank.
-func sizeLEDField(el js.Value, min, max float64, dec int, signed bool) {
-	chars := led.IntDigits(min, max)
+func sizeLEDField(el js.Value, lo, hi float64, dec int, signed bool) {
+	chars := led.IntDigits(lo, hi)
 	if dec > 0 {
 		chars += 1 + dec // decimal point + fraction
 	}

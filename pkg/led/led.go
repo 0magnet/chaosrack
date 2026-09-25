@@ -24,9 +24,9 @@ func Digits(v float64) int {
 
 // IntDigits is the number of integer digits the widest value in [min, max]
 // needs, at least 1.
-func IntDigits(min, max float64) int {
-	d := Digits(max)
-	if x := Digits(min); x > d {
+func IntDigits(lo, hi float64) int {
+	d := Digits(hi)
+	if x := Digits(lo); x > d {
 		d = x
 	}
 	return d

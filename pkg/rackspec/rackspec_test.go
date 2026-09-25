@@ -10,7 +10,7 @@ import (
 
 const mmPerInch = 25.4
 
-func close(t *testing.T, name string, got, want, tol float64) {
+func approx(t *testing.T, name string, got, want, tol float64) {
 	t.Helper()
 	if math.Abs(got-want) > tol {
 		t.Errorf("%s = %g, want %g (±%g)", name, got, want, tol)
@@ -20,13 +20,13 @@ func close(t *testing.T, name string, got, want, tol float64) {
 // The constants are conversions of imperial standards, and a conversion that
 // has drifted is the whole failure mode this package exists to prevent.
 func TestStandardsAreTheStandards(t *testing.T) {
-	close(t, "19 inch panel", PanelWidth19, 19*mmPerInch, 0.01)
-	close(t, "HP", HP, 0.2*mmPerInch, 0.001)
-	close(t, "U", U, 1.75*mmPerInch, 0.001)
-	close(t, "tact switch", TactSwitch, 6, 0.001)
-	close(t, "toggle bushing", ToggleBushing, 0.25*mmPerInch, 0.001)
-	close(t, "seven-segment digit", DigitHeight, 0.2*mmPerInch, 0.001)
-	close(t, "quarter-inch jack hole", JackHoleQuarterInch, 9.5, 0.001)
+	approx(t, "19 inch panel", PanelWidth19, 19*mmPerInch, 0.01)
+	approx(t, "HP", HP, 0.2*mmPerInch, 0.001)
+	approx(t, "U", U, 1.75*mmPerInch, 0.001)
+	approx(t, "tact switch", TactSwitch, 6, 0.001)
+	approx(t, "toggle bushing", ToggleBushing, 0.25*mmPerInch, 0.001)
+	approx(t, "seven-segment digit", DigitHeight, 0.2*mmPerInch, 0.001)
+	approx(t, "quarter-inch jack hole", JackHoleQuarterInch, 9.5, 0.001)
 }
 
 // The row has to fit the frame, with room left over for the frame.
@@ -57,14 +57,14 @@ func TestPanelClearsTheOpening(t *testing.T) {
 // N-slot module spans the N-1 seams inside it but not the one after it, so it
 // measures one seam short of N whole pitches.
 func TestSlotsTileToWholeHP(t *testing.T) {
-	close(t, "slot pitch in HP", SlotPitch/HP, ModuleHP, 1e-9)
+	approx(t, "slot pitch in HP", SlotPitch/HP, ModuleHP, 1e-9)
 	for n := 1; n <= 12; n++ {
 		width := float64(n)*SlotWidth + float64(n-1)*Seam
-		close(t, "width of "+strconv.Itoa(n)+" slots",
+		approx(t, "width of "+strconv.Itoa(n)+" slots",
 			width, float64(n)*SlotPitch-Seam, 1e-9)
 		// And the edge it leaves behind — where the next module starts — is
 		// on the whole-HP grid.
-		close(t, "right edge of "+strconv.Itoa(n)+" slots in HP",
+		approx(t, "right edge of "+strconv.Itoa(n)+" slots in HP",
 			(width+Seam)/HP, float64(n*ModuleHP), 1e-9)
 	}
 }
@@ -141,7 +141,7 @@ func TestStylesheetDeclaresTheSameScale(t *testing.T) {
 			t.Errorf("%s: %v", c.name, err)
 			continue
 		}
-		close(t, "panel.css "+c.name, got, c.want, 0.005)
+		approx(t, "panel.css "+c.name, got, c.want, 0.005)
 	}
 
 	// The pin grid is specified by its PITCH; the CSS can only state the gap,
@@ -155,7 +155,7 @@ func TestStylesheetDeclaresTheSameScale(t *testing.T) {
 	if err != nil {
 		t.Fatalf(".mxgrid gap: %v", err)
 	}
-	close(t, "pin pitch (head + gap)", PinHead+gap, PinPitch, 0.005)
+	approx(t, "pin pitch (head + gap)", PinHead+gap, PinPitch, 0.005)
 }
 
 // A division is the unit BOTH axes are read in, so it has to be square. A
@@ -203,8 +203,8 @@ func TestScopeFaceFitsA3UPanel(t *testing.T) {
 // so it tiles with the Eurocard slots, and that would be inventing a
 // Tektronix that never existed.
 func TestTheTekPlugInIsNotOnTheHPGrid(t *testing.T) {
-	close(t, "Tek plug-in width", TekPlugInWidth/mmPerInch, 3.75, 0.001)
-	close(t, "Tek plug-in height", TekPlugInHeight/mmPerInch, 5.5, 0.001)
+	approx(t, "Tek plug-in width", TekPlugInWidth/mmPerInch, 3.75, 0.001)
+	approx(t, "Tek plug-in height", TekPlugInHeight/mmPerInch, 5.5, 0.001)
 	hp := TekPlugInWidth / HP
 	if hp == float64(int(hp)) {
 		t.Errorf("the Tek plug-in came out at a whole %v HP — it is 18.75 and should stay so", hp)

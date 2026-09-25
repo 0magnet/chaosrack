@@ -24,8 +24,8 @@ import (
 // draw. phase (0..1) rotates the gradient parameter along the total drawn
 // length, so the trail gradient sweeps the figure like a live beam.
 func beamLines(strokes [][]float64, phase float64) int {
-	maxV := sim.steps // vertex budget: vertBuf holds steps×4 floats
-	if maxV < 16 {
+	budget := sim.steps // vertex budget: vertBuf holds steps×4 floats
+	if budget < 16 {
 		return 0
 	}
 	// Every chord emits at least one pair, so a dense drawing (a banner of
@@ -42,7 +42,7 @@ func beamLines(strokes [][]float64, phase float64) int {
 	if nSeg == 0 {
 		return 0
 	}
-	stride := max((nSeg*2+maxV-1)/maxV, 1)
+	stride := max((nSeg*2+budget-1)/budget, 1)
 	total := 0.0
 	nChords := 0
 	eachChord := func(fn func(s []float64, j, k int)) {
@@ -65,7 +65,7 @@ func beamLines(strokes [][]float64, phase float64) int {
 		return 0
 	}
 	sub := total // no subdivision unless there's room
-	if room := maxV/2 - nChords; room > 0 {
+	if room := budget/2 - nChords; room > 0 {
 		sub = total / float64(room)
 	}
 	v := 0
@@ -77,7 +77,7 @@ func beamLines(strokes [][]float64, phase float64) int {
 			return
 		}
 		n := int(segLen/sub) + 1
-		for q := 0; q < n && v+2 <= maxV; q++ {
+		for q := 0; q < n && v+2 <= budget; q++ {
 			f0 := float64(q) / float64(n)
 			f1 := float64(q+1) / float64(n)
 			t0 := math.Mod((arc+segLen*f0)/total+phase, 1)

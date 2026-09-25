@@ -88,11 +88,11 @@ func (s *scopeBeam) ptsArrays(n int) (f32, u8 js.Value, ok bool) {
 	}
 	// Headroom so turning the TIME/DIV knob does not reallocate on every
 	// detent on the way round.
-	cap := n + n/2
-	buf := ab.New(cap * 4)
+	capacity := n + n/2
+	buf := ab.New(capacity * 4)
 	s.ptsF32 = f32c.New(buf)
 	s.ptsU8 = u8c.New(buf)
-	s.ptsCap = cap
+	s.ptsCap = capacity
 	return s.ptsF32, s.ptsU8, true
 }
 

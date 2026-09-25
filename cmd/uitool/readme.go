@@ -432,11 +432,11 @@ func stripInlineMarkdown(s string) string {
 			break
 		}
 		open := strings.LastIndex(s[:i], "[")
-		close := strings.Index(s[i:], ")")
-		if open < 0 || close < 0 {
+		end := strings.Index(s[i:], ")")
+		if open < 0 || end < 0 {
 			break
 		}
-		s = s[:open] + s[open+1:i] + s[i+close+1:]
+		s = s[:open] + s[open+1:i] + s[i+end+1:]
 	}
 	return s
 }
