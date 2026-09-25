@@ -148,6 +148,9 @@ func onModeChange(this js.Value, args []js.Value) any {
 	// and buildParamPanel below re-measures and re-packs the rack. Set after
 	// that, they are packed into the row the PREVIOUS model was in.
 	setActiveCategory(run.selectedMode)
+	// Before the panel rebuild, so the MAP ring is drawn at the map the mode
+	// comes up on.
+	spect.followMode(run.selectedMode)
 	// Whether the model is drawn in two halves depends on the mode as well as
 	// the knob, so the canvases have to be reconsidered here — not only when
 	// the knob moves.

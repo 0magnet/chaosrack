@@ -238,14 +238,14 @@ var modeGroups = []struct {
 }
 
 // defaultMode is the <select>'s initially-selected entry.
-const defaultMode = "globe" //nolint:unused // built but not wired up yet; kept deliberately
+const defaultMode = "globe" //nolint:unused // only the js build draws, so the native one never calls it
 
 // knownMode reports whether a key names a registered mode (hash validation).
-func knownMode(key string) bool { _, ok := modeInfo[key]; return ok } //nolint:unused // built but not wired up yet; kept deliberately
+func knownMode(key string) bool { _, ok := modeInfo[key]; return ok } //nolint:unused // only the js build draws, so the native one never calls it
 
 // isAttractorMode: modes that integrate/trace into the trail buffer (and so
 // support trail-length, sonification SCAN, persist painting, …).
-func isAttractorMode(mode string) bool { //nolint:unused // built but not wired up yet; kept deliberately
+func isAttractorMode(mode string) bool { //nolint:unused // only the js build draws, so the native one never calls it
 	switch modeInfo[mode].Class {
 	case ClassFlow3D, ClassFlow4D, ClassParametric, ClassMap:
 		return true
@@ -254,23 +254,23 @@ func isAttractorMode(mode string) bool { //nolint:unused // built but not wired 
 }
 
 // isSkinnable: the spectrogram skin can be painted onto it.
-func isSkinnable(mode string) bool { return modeInfo[mode].Skin } //nolint:unused // built but not wired up yet; kept deliberately
+func isSkinnable(mode string) bool { return modeInfo[mode].Skin } //nolint:unused // only the js build draws, so the native one never calls it
 
 // isSpectroSurface: audio modes drawn as the textured spectrogram plane.
-func isSpectroSurface(mode string) bool { return mode == "spectrogram" || mode == "fvf" } //nolint:unused // built but not wired up yet; kept deliberately
+func isSpectroSurface(mode string) bool { return mode == "spectrogram" || mode == "fvf" } //nolint:unused // only the js build draws, so the native one never calls it
 
 // isTexturePlane: every mode that is a texture on a quad rather than geometry
 // — the spectrogram family and the recurrence plot. They share a camera: face
 // on, still, and framed to the quad, because a picture read as a picture is
 // unreadable edge-on and worse tumbling.
-func isTexturePlane(mode string) bool { //nolint:unused // built but not wired up yet; kept deliberately
+func isTexturePlane(mode string) bool { //nolint:unused // only the js build draws, so the native one never calls it
 	return isSpectroSurface(mode) || mode == "recurrence" || mode == "terminal" ||
 		mode == "termanim" || mode == "hostterm" || mode == "desk"
 }
 
 // isFlatScope: flat scope-screen modes (games, text banners, demos) that
 // must boot face-on and still instead of in a random pose.
-func isFlatScope(mode string) bool { //nolint:unused // built but not wired up yet; kept deliberately
+func isFlatScope(mode string) bool { //nolint:unused // only the js build draws, so the native one never calls it
 	// The maps are 2-D — the third coordinate is only there because the
 	// pipeline is 3-D — so they boot face-on for the same reason the scope
 	// screens do: edge-on, a plane figure is a line.
