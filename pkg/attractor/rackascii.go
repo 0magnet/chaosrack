@@ -138,7 +138,7 @@ func DrawRackFrom(keys, cats []string, slots []int, capacity int, monitors map[s
 		items = append(items, packItem{
 			Slots:   slots[i],
 			Section: drawSectionOf(keys[i], cats, i),
-			Lead:    bayScreenKeys[keys[i]],
+			Lead:    drawLead(keys[i], cats, i),
 		})
 	}
 	items, order := groupDrawBySection(items)
@@ -152,6 +152,29 @@ func DrawRackFrom(keys, cats []string, slots []int, capacity int, monitors map[s
 // bayScreenKeys is which modules carry a screen of their own, mirroring
 // bayScreens in the js half — the pure side needs it to draw the same bays.
 var bayScreenKeys = map[string]bool{"desk": true, "record": true}
+
+// drawLead is whether a measured module must open a bay, by the same rule
+// the page applies: it carries a screen, or it is a model row's head. A head
+// is a card whose name is its own category's, "Attractors" or "Attractors 2";
+// the Analysis meter shares a name with a category but is not a card, so it
+// is not taken for one.
+func drawLead(key string, cats []string, i int) bool {
+	if bayScreenKeys[key] {
+		return true
+	}
+	if i >= len(cats) || cats[i] == "" {
+		return false
+	}
+	rest, ok := strings.CutPrefix(key, strings.ToLower(cats[i]))
+	if !ok {
+		return false
+	}
+	if rest == "" {
+		return true
+	}
+	n, ok := strings.CutPrefix(rest, " ")
+	return ok && n != "" && strings.Trim(n, "0123456789") == ""
+}
 
 // groupDrawBySection makes each section contiguous, as the rack does before
 // packing, and reports where each item came from so the names follow it.

@@ -239,21 +239,6 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 		return nil
 	}))
 
-	stepInput := dom.Doc.Call("createElement", "input")
-	stepInput.Set("type", "number")
-	stepInput.Set("min", "0.0000001")
-	stepInput.Set("step", "any")
-	stepInput.Set("value", stepStr)
-	stepInput.Set("title", "Step size for "+p.Label+" — how much one knob step changes the value")
-	stepInput.Set("className", "numin u-step")
-	stepInput.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) any {
-		if val, err := strconv.ParseFloat(stepInput.Get("value").String(), 64); err == nil && val > 0 {
-			newStep := strconv.FormatFloat(val, 'g', -1, 64)
-			slider.Set("step", newStep)
-		}
-		return nil
-	}))
-
 	// Standard cell header: label pinned left, numeric LED centered over the knob,
 	// reset pinned right — all on one line above the knob (see .rst CSS).
 	top := dom.Doc.Call("createElement", "span")
@@ -309,8 +294,31 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 		unit.Call("appendChild", makeKnob(slider, numInput, fine, false, true))
 	}
 	unit.Call("appendChild", rst) // pinned top-right by CSS
-	unit.Call("appendChild", stepInput)
+	if len(labels) == 0 {
+		unit.Call("appendChild", buildStepField(slider, p.Label, stepStr))
+	}
 	return unit
+}
+
+// buildStepField is a quantity's step size: how far one detent of its knob
+// moves the value. A named setting has no such field — its positions are the
+// whole numbers 0..n-1, and the field only ever said "1" under it.
+func buildStepField(slider js.Value, label, stepStr string) js.Value {
+	stepInput := dom.Doc.Call("createElement", "input")
+	stepInput.Set("type", "number")
+	stepInput.Set("min", "0.0000001")
+	stepInput.Set("step", "any")
+	stepInput.Set("value", stepStr)
+	stepInput.Set("title", "Step size for "+label+" — how much one knob step changes the value")
+	stepInput.Set("className", "numin u-step")
+	stepInput.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) any {
+		if val, err := strconv.ParseFloat(stepInput.Get("value").String(), 64); err == nil && val > 0 {
+			newStep := strconv.FormatFloat(val, 'g', -1, 64)
+			slider.Set("step", newStep)
+		}
+		return nil
+	}))
+	return stepInput
 }
 
 // buildModCard builds one card for the Modulation module: the target's name
