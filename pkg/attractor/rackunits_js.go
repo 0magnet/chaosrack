@@ -130,6 +130,20 @@ func unitEar() js.Value {
 	return e
 }
 
+// numberBay stamps a bay's number on its left ear, above the top hole —
+// the same number `chaosrack rack` prints beside the bay, so the page and
+// the drawing can be read against each other.
+func numberBay(open js.Value, n int) {
+	ear := open.Get("parentNode").Get("firstElementChild")
+	if !ear.Truthy() || !ear.Get("classList").Call("contains", unitEarCls).Bool() {
+		return
+	}
+	s := strconv.Itoa(n)
+	if ear.Call("getAttribute", "data-bay").String() != s {
+		ear.Call("setAttribute", "data-bay", s)
+	}
+}
+
 // rackHandle is the grab handle bolted to an ear: two feet and a grip, the
 // shape meshstl.RackHandle extrudes.
 func rackHandle() js.Value {
@@ -347,6 +361,7 @@ func relayoutUnits() {
 	clearUnitBlanks(f)
 	for ui, idx := range units {
 		open := opens[ui]
+		numberBay(open, ui+1)
 		for _, mi := range idx {
 			m := mods[mi]
 			// Appended even when it is already here: appending moves it to the end,
