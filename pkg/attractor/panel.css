@@ -238,9 +238,9 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 #controls-panel.ks-carbon .knob,#controls-panel.ks-carbon .knobb{background:repeating-linear-gradient(45deg,#171717,#171717 2px,#232323 2px,#232323 4px)!important;border:1px solid #0a0a0a!important;box-shadow:0 1px 2px #000,inset 0 1px 1px #383838!important;}
 #controls-panel.ks-carbon .knob-ptr{background:#e0e0e0!important;box-shadow:0 0 3px #fff!important;}
 /* Vertical dividers between EVERY pair of control columns (works for 2, 3, … a
-   line sits in each column gap). The grid pitch is one cell (116·kscale) + the
-   6px column-gap; the line is drawn in the middle of each gap and repeats, so
-   extra columns automatically get their own dividers.
+   line sits in each column gap). The grid pitch is one module slot
+   (--kpitch); the pair of lines is drawn in the middle of each gap and
+   repeats, so extra columns automatically get their own dividers.
 
    On every control row, rather than on the ones a .two-col class had been put
    on. That class was applied by a "more than three controls, so it will probably
@@ -250,13 +250,13 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    wide with no line between them, while Palette beside them had one.
 
    No guess is needed. The gradient paints only where a column boundary is: its
-   first line falls at 124·kscale and a single-column row is 118·kscale wide, so
+   first line falls past --kcol and a single-column row is --kcol plus its border, so
    a row that did not wrap gets nothing, and a row that wraps later gets its
    divider without anyone having to remember to ask for one. Modules whose
    controls are too wide for a standard column — the Console, Record and the
    Patchbay — have no such row at all, so they are unaffected. */
 
-.punit-grid,.vmrow,.vmaxrow{background:repeating-linear-gradient(to right,transparent 0 calc(124px*var(--kscale,1) - 1px),#2a333c calc(124px*var(--kscale,1) - 1px) calc(124px*var(--kscale,1)),transparent calc(124px*var(--kscale,1)) calc(124px*var(--kscale,1) + 4px),#2a333c calc(124px*var(--kscale,1) + 4px) calc(124px*var(--kscale,1) + 5px),transparent calc(124px*var(--kscale,1) + 5px) calc(132px*var(--kscale,1) + 4px));}
+.punit-grid,.vmrow,.vmaxrow{background:repeating-linear-gradient(to right,transparent 0 calc(var(--kcol) + var(--kgap)/2 - 3px),#2a333c calc(var(--kcol) + var(--kgap)/2 - 3px) calc(var(--kcol) + var(--kgap)/2 - 2px),transparent calc(var(--kcol) + var(--kgap)/2 - 2px) calc(var(--kcol) + var(--kgap)/2 + 2px),#2a333c calc(var(--kcol) + var(--kgap)/2 + 2px) calc(var(--kcol) + var(--kgap)/2 + 3px),transparent calc(var(--kcol) + var(--kgap)/2 + 3px) var(--kpitch));}
 /* Framing lines down the outer edges of a module's control area — the same rule
    that separates columns from each other, now separating them from the edge. */
 .punit-grid,.vmrow,.vmaxrow{border-left:1px solid #2a333c;border-right:1px solid #2a333c;}
@@ -544,7 +544,14 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
      control sat 8px higher in one module than in another.
      pkg/rackspec holds both numbers and a test fails if this line and
      that package stop agreeing. */
-  --krow:calc(40*var(--mm)); --kcol:calc(29*var(--mm));}
+  --krow:calc(40*var(--mm)); --kcol:calc(29*var(--mm));
+  /* --kpitch: one module slot, 7 HP. A module is a whole number of slots,
+     so a column of controls that is exactly a slot apart puts the Nth knob
+     of every module on its slot's center line, and knobs line up down the
+     rack from bay to bay. The columns used to be --kcol plus a 20px gap, 136px
+     against a 142px slot, and every column past the first drifted six pixels
+     further off its slot. --kgap is what is left of the slot. */
+  --kpitch:calc(35.56*var(--mm)); --kgap:calc(var(--kpitch) - var(--kcol));}
 .modules{display:flex;flex-wrap:wrap;align-items:flex-start;gap:calc(0.5*var(--mm));}/* Rack-module sizing: UNIFORM HEIGHT, width in slot multiples (min --mod-w, and
    2×/3× as content needs). Content flows in columns filling the height, so a
    module with more controls widens rather than growing taller. */
@@ -645,7 +652,8 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    narrower grid, so a single row of them is wider than the module — laid out
    this way it grew from 142 mm to 177 mm instead of shrinking. */
 #keys-module .keysflex{flex-flow:column nowrap!important;gap:calc(1*var(--mm)) 0;}
-#keys-module .keysctl{align-self:center;grid-template-rows:var(--krow)!important;}
+#keys-module .keysctl{align-self:flex-start;grid-template-rows:var(--krow)!important;}
+#keys-module .keys-bed{align-self:center;}
 #keys-module .keys-bed{flex:1 1 auto;min-height:0;}
 .keys-bed{position:relative;flex:0 0 auto;align-self:flex-start;height:calc(150px*var(--kscale,1));margin:calc(10px*var(--kscale,1)) 4px 4px calc(8px*var(--kscale,1));}
 .keys-bed .pk-whites{display:flex;height:100%;width:100%;}
@@ -683,7 +691,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    to a single track is what makes auto-placement run across instead of down,
    and it is exactly what #keys-module does two rules above. */
 #rhythm-module .keysflex{flex-flow:column nowrap!important;gap:calc(1*var(--mm)) 0;}
-#rhythm-module .keysctl{align-self:center;grid-template-rows:var(--krow)!important;}
+#rhythm-module .keysctl{align-self:flex-start;grid-template-rows:var(--krow)!important;}
 /* 480px holds four tabs a row: wide enough that the bank sits under the control
    row rather than huddling at one end, narrow enough that ten tabs stay a block
    instead of a strip. */
@@ -1537,11 +1545,26 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
   grid-auto-columns:var(--kcol);
   justify-items:center;
   align-content:flex-start;
-  gap:2px calc(16px*var(--kscale,1) + 4px);
+  gap:0 var(--kgap); /* rows exactly --krow apart, columns exactly --kpitch */
   height:auto;width:auto;
 }
 /* The three differ only in how they sit in the space they are given. */
 .vmrow,.vmaxrow{justify-content:flex-start;}
+/* The flex rule for .sect>.row sets a 14px gap and outranks the one above;
+   a control row keeps the slot pitch all the same. */
+.sect>.row.vmrow,.sect>.row.vmaxrow{column-gap:var(--kgap);}
+/* The first column on the first slot's center, whatever the module holds.
+   Centering the grid in the module did that only when the grid had as many
+   columns as the module has slots: Keys has three knobs over a four-slot
+   keybed and Model Out one column in two slots, and both sat on a slot
+   boundary. A slot's cell is (35.06 - 29)/2 = 3.03 mm in from its edge; the
+   module's padding is 2 mm, and its border and the grid's are 1px each. */
+.sect>.punit-grid,.sect>.row.vmrow,.sect>.row.vmaxrow,.sect>.keysflex>.vmrow{align-self:flex-start;margin-left:calc(1.03*var(--mm) - 2px);}
+/* A keybed module's control row is one level down, so the row that holds
+   it starts at the module's left edge like every other control row. Not
+   stretched: the module is measured from its content, and a row as wide as
+   the module made the module wider every time it was measured. */
+.sect>.keysflex{align-self:flex-start;}
 .punit-grid{justify-content:center;align-items:start;}
 .vmrow{align-items:flex-start;}
 .vmaxrow{align-items:center;}
@@ -1556,7 +1579,10 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
    label reads across the cell, centered over the knob it names, and wraps
    rather than overflowing — the same exception .mlbl already makes for a
    header above a knob, plus the wrapping these need and that does not. */
-.modules .catcell>.punit-top{position:static;width:100%;}
+/* Pinned to the top of the cell like every other cell's label, not in the
+   flow above the knob: in the flow it pushed the knob off the cell's center,
+   and the knob sat off the row every other knob in the rack is on. */
+.modules .catcell>.punit-top{position:absolute;top:2px;left:0;right:0;width:auto;}
 .modules .catcell>.punit-top>.plabel{
   position:static!important;
   writing-mode:horizontal-tb;text-orientation:mixed;
@@ -1598,7 +1624,10 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 
 /* A category row's model selector: the knob, and the list under it. Column,
    because the list is as wide as the cell and the knob is not. */
-.catsel{display:inline-flex;flex-direction:column;align-items:center;gap:4px;}
+.catsel{display:inline-flex;flex-direction:column;align-items:center;gap:4px;position:relative;}
+/* The list hangs under the knob rather than sitting in the flow below it,
+   so the knob, not the knob and the list, is what the cell centers. */
+.catsel>.selwrap{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);}
 .catsel>.selwin,.catsel .selwrap>.selwin{
   width:calc(104px*var(--kscale,1));box-sizing:border-box;
   font-size:calc(10px*var(--kscale,1));padding:1px 3px;min-width:0;
@@ -1606,7 +1635,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* A step cell is labeled with its MODEL, which is words rather than a
    symbol, so the label reads across the cell like the category cells' do —
    the same exception .catcell makes and for the same reason. */
-.modules .punit.stepcell>.punit-top{position:static;width:100%;}
+.modules .punit.stepcell>.punit-top{position:absolute;top:2px;left:0;right:0;width:auto;}
 .modules .u-lbl.wordlbl{
   position:static!important;
   writing-mode:horizontal-tb;text-orientation:mixed;
