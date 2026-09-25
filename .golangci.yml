@@ -29,6 +29,13 @@ linters:
     - unconvert
     - unparam
     - unused
+    # Beyond skywire's set: the idioms this repo was brought up to, kept.
+    - copyloopvar
+    - errname
+    - gocritic
+    - intrange
+    - predeclared
+    - usestdlibvars
   settings:
     dupl:
       threshold: 100
@@ -57,9 +64,60 @@ linters:
       for-loops: false
     unparam:
       check-exported: false
+    gocritic:
+      enabled-tags: [diagnostic, style]
+      disabled-checks:
+        # Style opinions rather than idiom, or at odds with how this code is
+        # written on purpose (long if/else ladders over mode names, unnamed
+        # results on small helpers, large value receivers in hot math).
+        - commentFormatting
+        - commentedOutCode
+        - deferInLoop
+        - emptyStringTest
+        - hugeParam
+        - ifElseChain
+        - importShadow
+        - octalLiteral
+        - paramTypeCombine
+        - ptrToRefParam
+        - regexpSimplify
+        - singleCaseSwitch
+        - sloppyLen
+        - tooManyResultsChecker
+        - typeUnparen
+        - unlabelStmt
+        - unnamedResult
+        - whyNoLint
+        - yodaStyleExpr
     revive:
+      # A rules list runs ONLY the rules listed, so this is revive's default
+      # set written out. It used to list one rule, disabled, which ran none.
       rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: empty-block
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: exported
+        - name: increment-decrement
+        - name: indent-error-flow
         - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: superfluous-else
+        - name: time-naming
+        - name: unexported-return
+        - name: unreachable-code
+        - name: var-declaration
+        - name: var-naming
+        # Off: js.FuncOf fixes every callback's signature, so most of them
+        # cannot help having parameters they do not read.
+        - name: unused-parameter
           disabled: true
   exclusions:
     generated: lax
