@@ -66,10 +66,10 @@ func radialHalf(l Label) float64 {
 // A ring with one label has only the first, and a ring with none has
 // neither — both are answered by the clearance alone rather than by a
 // special case.
-func Radius(clear, gap float64, labs []Label) float64 {
-	r := clear + gap
+func Radius(clearance, gap float64, labs []Label) float64 {
+	r := clearance + gap
 	for _, l := range labs {
-		if v := clear + gap + radialHalf(l); v > r {
+		if v := clearance + gap + radialHalf(l); v > r {
 			r = v
 		}
 	}

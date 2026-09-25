@@ -388,17 +388,17 @@ func buildGeneratorModule() {
 // channel (not "off"), stops it if none are, and otherwise just refreshes the
 // running nodes.
 func (g *generator) audioSync() {
-	any := false
+	found := false
 	for _, osc := range genOscs {
 		id := osc.id
 		if o := dom.Doc.Call("getElementById", id+"-out"); o.Truthy() && o.Get("value").String() != "off" {
-			any = true
+			found = true
 		}
 	}
 	switch {
-	case any && !g.running:
+	case found && !g.running:
 		g.audioStart()
-	case !any && g.running:
+	case !found && g.running:
 		g.audioStop()
 	case g.running:
 		for i := range 3 {

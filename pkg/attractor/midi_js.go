@@ -25,12 +25,12 @@ var (
 	midiMsgFn  js.Func
 )
 
-func midiSetSlider(id string, min, max float32, v127 float64) {
+func midiSetSlider(id string, lo, hi float32, v127 float64) {
 	sl := dom.Doc.Call("getElementById", id)
 	if !sl.Truthy() {
 		return
 	}
-	val := float64(min) + v127/127*float64(max-min)
+	val := float64(lo) + v127/127*float64(hi-lo)
 	sl.Set("value", strconv.FormatFloat(val, 'g', 6, 64))
 	sl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 }

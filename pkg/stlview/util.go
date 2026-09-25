@@ -10,14 +10,14 @@ import (
 )
 
 func getMaxScalar(vertices []float32) float32 { //nolint:unused // built but not wired up yet; kept deliberately
-	var max float32
+	var hi float32
 	for baseIndex := 0; baseIndex < len(vertices); baseIndex += 3 {
 		testScale := scalar(vertices[baseIndex], vertices[baseIndex], vertices[baseIndex])
-		if testScale > max {
-			max = testScale
+		if testScale > hi {
+			hi = testScale
 		}
 	}
-	return max
+	return hi
 }
 
 func scalar(x float32, y float32, z float32) float32 { //nolint:unused // built but not wired up yet; kept deliberately
@@ -47,11 +47,11 @@ func cryptoRandFloat32() float32 { //nolint:unused // built but not wired up yet
 // stlview.NewSTL panicked outright on the empty gradient a negative count
 // produced. With max=5 the initial rejection chance is 1/256, so loading forty
 // models tripped it about one run in six.
-func cryptoRandIntn(max int) (int, error) {
-	if max <= 0 {
+func cryptoRandIntn(hi int) (int, error) {
+	if hi <= 0 {
 		return 0, errors.New("max must be a positive integer")
 	}
-	m := uint64(max)
+	m := uint64(hi)
 	// Reject the top partial bucket so every value is equally likely.
 	limit := ^uint64(0) - (^uint64(0)%m+1)%m
 	var b [8]byte

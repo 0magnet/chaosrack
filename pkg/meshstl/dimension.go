@@ -147,22 +147,22 @@ func textWidth(segs [][2]V3) float64 {
 //
 // labels supplies the strokes for each axis, already formatted by the caller
 // — this package has no font and no opinion about units.
-func BoxDimensions(min, max V3, labels [3][][2]V3, size, r float64) Mesh {
+func BoxDimensions(lo, hi V3, labels [3][][2]V3, size, r float64) Mesh {
 	var m Mesh
-	span := max.Sub(min)
+	span := hi.Sub(lo)
 	gap := math.Max(6, math.Max(span[0], span[1])*0.08)
 
 	// Width, measured along X, pushed down in Y.
 	m.Append(Dimension(
-		V3{min[0], min[1], max[2]}, V3{max[0], min[1], max[2]},
+		V3{lo[0], lo[1], hi[2]}, V3{hi[0], lo[1], hi[2]},
 		V3{0, -1, 0}, gap, labels[0], size, r))
 	// Height, measured along Y, pushed out in -X.
 	m.Append(Dimension(
-		V3{min[0], min[1], max[2]}, V3{min[0], max[1], max[2]},
+		V3{lo[0], lo[1], hi[2]}, V3{lo[0], hi[1], hi[2]},
 		V3{-1, 0, 0}, gap, labels[1], size, r))
 	// Depth, measured along Z, pushed down in Y at the far side.
 	m.Append(Dimension(
-		V3{max[0], min[1], max[2]}, V3{max[0], min[1], min[2]},
+		V3{hi[0], lo[1], hi[2]}, V3{hi[0], lo[1], lo[2]},
 		V3{0, -1, 0}, gap, labels[2], size, r))
 	return m
 }

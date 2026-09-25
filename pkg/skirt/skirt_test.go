@@ -374,12 +374,12 @@ func TestAWiderGapCostsTheGripMore(t *testing.T) {
 // had got smaller that does not exist.
 func TestARingWithNoGripUnderItKeepsItsClearance(t *testing.T) {
 	labs := ringOf(5, 26, 9)
-	clear := 40.0 // the inner ring's outer edge, not a knob
-	room := Outer(Radius(clear, 3, labs), labs) - 4
+	clearance := 40.0 // the inner ring's outer edge, not a knob
+	room := Outer(Radius(clearance, 3, labs), labs) - 4
 
-	g, s := Fit(clear, clear, 3, room, labs)
-	if g != clear {
-		t.Errorf("clearance moved from %.2f to %.2f with no grip to shrink", clear, g)
+	g, s := Fit(clearance, clearance, 3, room, labs)
+	if g != clearance {
+		t.Errorf("clearance moved from %.2f to %.2f with no grip to shrink", clearance, g)
 	}
 	if s >= 1 {
 		t.Errorf("the legend did not take the reduction: scale %.2f", s)

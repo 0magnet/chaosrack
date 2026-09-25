@@ -120,7 +120,7 @@ func svgFrames(f attractor.Figure, views [][3]float64) string {
 	pts := attractor.Centered(f.Points)
 	r, mx, my := svgFit(pts, views)
 	g := gradientFor()
-	min, max := rasterview.ModelBounds(attractor.Vertices(pts))
+	lo, hi := rasterview.ModelBounds(attractor.Vertices(pts))
 
 	var body strings.Builder
 	dur := float64(len(views)) / float64(renderFPS)
@@ -134,7 +134,7 @@ func svgFrames(f attractor.Figure, views [][3]float64) string {
 			fmt.Fprintf(&body, `<g opacity="0"><animate attributeName="opacity" calcMode="discrete" dur="%gs" repeatCount="indefinite" values="%s"/>`,
 				dur, strings.Join(vals, ";"))
 		}
-		writeSegments(&body, f, pts, figureReveal(f, i, len(views)), a, r, mx, my, g, min, max)
+		writeSegments(&body, f, pts, figureReveal(f, i, len(views)), a, r, mx, my, g, lo, hi)
 		if len(views) > 1 {
 			body.WriteString(`</g>`)
 		}
@@ -152,7 +152,7 @@ func svgFrames(f attractor.Figure, views [][3]float64) string {
 // writeSegments draws a figure's points (as dots) or edges (as lines), one
 // <path> per quantized color so the file stays a manageable size. An edge
 // takes the color at its midpoint.
-func writeSegments(b *strings.Builder, f attractor.Figure, pts [][3]float64, hi int, a [3]float64, r, mx, my float64, g rasterview.Gradient, min, max [3]float32) {
+func writeSegments(b *strings.Builder, f attractor.Figure, pts [][3]float64, hi int, a [3]float64, r, mx, my float64, g rasterview.Gradient, lo, maxV [3]float32) {
 	cx, cy := float64(renderW)/2, float64(renderH)/2
 	at := func(p [3]float64) (float64, float64) {
 		x, y := project(p, a)
@@ -163,7 +163,7 @@ func writeSegments(b *strings.Builder, f attractor.Figure, pts [][3]float64, hi 
 		if len(pts) > 1 {
 			age = float32(i) / float32(len(pts)-1)
 		}
-		return quantHex(g.ColorAt(float32(p[0]), float32(p[1]), float32(p[2]), min, max, age))
+		return quantHex(g.ColorAt(float32(p[0]), float32(p[1]), float32(p[2]), lo, maxV, age))
 	}
 	paths := map[string]*strings.Builder{}
 	add := func(hex, d string) {

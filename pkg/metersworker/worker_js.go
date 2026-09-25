@@ -150,12 +150,12 @@ func onAudio(data js.Value) {
 // latch produces whatever has come due, or nil if nothing has.
 func latch(sr int) *metersproto.Result {
 	var out metersproto.Result
-	any := false
+	found := false
 
 	if st.cfg.Want&metersproto.WantLufs != 0 && st.lufs != nil && st.clock >= st.lufsNext {
 		st.lufsNext = st.clock + st.cfg.LufsPeriod
 		res := st.lufs.Result()
-		out.Lufs, any = &res, true
+		out.Lufs, found = &res, true
 	}
 	if st.cfg.Want&metersproto.WantThd != 0 && st.thdWin.Full() && st.clock >= st.thdNext {
 		st.thdNext = st.clock + st.cfg.ThdPeriod
@@ -164,7 +164,7 @@ func latch(sr int) *metersproto.Result {
 		}
 		st.thdWin.Linear(st.thdBuf)
 		res := meters.AnalyzeDistortion(st.thdBuf, sr, st.cfg.ThdHarm)
-		out.Thd, any = &res, true
+		out.Thd, found = &res, true
 	}
 	if st.cfg.Want&metersproto.WantWf != 0 && st.clock >= st.wfNext {
 		if want := sr * st.cfg.WfWindow; want > 0 {
@@ -174,10 +174,10 @@ func latch(sr int) *metersproto.Result {
 			}
 			n := st.wfWin.Linear(st.wfBuf)
 			res := meters.AnalyzeWowFlutter(st.wfBuf[:n], sr, st.cfg.WfNominal)
-			out.Wf, any = &res, true
+			out.Wf, found = &res, true
 		}
 	}
-	if !any {
+	if !found {
 		return nil
 	}
 	return &out

@@ -143,7 +143,7 @@ func animatedSVG(pts [][3]float64, views [][3]float64) string {
 	pts = attractor.Centered(pts)
 	r, mx, my := svgFit(pts, views)
 	g := gradientFor()
-	min, max := rasterview.ModelBounds(attractor.Vertices(pts))
+	minV, maxV := rasterview.ModelBounds(attractor.Vertices(pts))
 	// One gradient serves every frame when the camera does not move, which is
 	// the default: the palette is fixed to the model's axes, so it only has to
 	// be re-derived when the view does.
@@ -181,7 +181,7 @@ func animatedSVG(pts [][3]float64, views [][3]float64) string {
 				into = &strings.Builder{}
 			}
 		}
-		writeColoredTrail(into, &body, id, pts[lo:hi], a, r, mx, my, g, min, max, lo, len(pts))
+		writeColoredTrail(into, &body, id, pts[lo:hi], a, r, mx, my, g, minV, maxV, lo, len(pts))
 		body.WriteString(`</g>`)
 	}
 

@@ -343,11 +343,11 @@ func TestDimensionStaysNearWhatItMeasures(t *testing.T) {
 	if len(m.Tris) == 0 {
 		t.Fatal("no geometry")
 	}
-	min, max := m.Bounds()
-	if min[0] < -10 || max[0] > 110 {
-		t.Errorf("x span %.1f..%.1f, well outside the 0..100 it measures", min[0], max[0])
+	lo, hi := m.Bounds()
+	if lo[0] < -10 || hi[0] > 110 {
+		t.Errorf("x span %.1f..%.1f, well outside the 0..100 it measures", lo[0], hi[0])
 	}
-	if max[1] > 1 || min[1] < -30 {
-		t.Errorf("y span %.1f..%.1f — the dimension should sit just below the part", min[1], max[1])
+	if hi[1] > 1 || lo[1] < -30 {
+		t.Errorf("y span %.1f..%.1f — the dimension should sit just below the part", lo[1], hi[1])
 	}
 }

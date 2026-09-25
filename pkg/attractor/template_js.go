@@ -57,11 +57,11 @@ func tplOv(text, note string, topPct float64) js.Value {
 
 // tplHiddenRange makes the standard hidden range input that backs a knob —
 // the panel never shows sliders; knobs drive them.
-func tplHiddenRange(min, max, step, val string) js.Value {
+func tplHiddenRange(lo, hi, step, val string) js.Value {
 	sl := tel("input", "")
 	sl.Set("type", "range")
-	sl.Set("min", min)
-	sl.Set("max", max)
+	sl.Set("min", lo)
+	sl.Set("max", hi)
 	sl.Set("step", step)
 	sl.Set("value", val)
 	sl.Get("style").Set("display", "none")
