@@ -305,6 +305,17 @@ func relayoutUnits() {
 		mods = append(mods, m)
 		slots = append(slots, w)
 		key := moduleKeyOf(m)
+		// A model's own panel is in the running model's row, and says so on the
+		// element as a category card does, so anything that reads the rack
+		// off the page (chaosrack rack, the terminal panel) files it in the
+		// same bay rather than guessing without knowing what is running.
+		if moduleSections[key] == secModel {
+			if activeCategory != "" {
+				m.Call("setAttribute", "data-cat", activeCategory)
+			} else {
+				m.Call("removeAttribute", "data-cat")
+			}
+		}
 		items = append(items, packItem{
 			Key:     key,
 			Slots:   w,
