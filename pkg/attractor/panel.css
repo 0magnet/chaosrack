@@ -1308,6 +1308,31 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
   border-radius:50%;background:#0a0c0e;
   box-shadow:inset 0 1px 2px rgba(0,0,0,0.9),0 1px 0 rgba(255,255,255,0.10);}
 
+/* THE RACK STYLE (Style ▸ Size, inner ring): what the metalwork carries.
+   Handles: a grab handle on each ear, bolted where the middle hole was —
+   two feet and a grip, the shape meshstl.RackHandle extrudes. */
+.rack-handle{display:none;}
+.rack-frame.with-bay.rs-handles .runit-ear>i.ear-mid{display:none;}
+.rack-frame.with-bay.rs-handles .rack-handle{display:flex;flex-direction:column;width:58%;height:64%;}
+.rack-handle .rh-foot{flex:0 0 calc(7px*var(--kscale,1));border-radius:2px;
+  background:linear-gradient(160deg,#6c757e,#3c454e 60%,#2b323a);
+  box-shadow:inset 0 1px 0 #8b959e,0 1px 2px #000;}
+.rack-handle .rh-grip{flex:1 1 auto;margin:calc(-1px*var(--kscale,1)) 24%;border-radius:3px;
+  background:linear-gradient(100deg,#7d868f,#454e57 55%,#2f363e);
+  box-shadow:inset 1px 0 0 #99a3ac,inset -1px 0 0 #1c2126,0 2px 4px #000;}
+/* Screws: every module held to the rails by two, top right and bottom left,
+   the diagonal pair a narrow panel carries. A slotted head, lit from above. */
+.rack-frame.with-bay.rs-screws .runit-open>.sect{position:relative;}
+.rack-frame.with-bay.rs-screws .runit-open>.sect::before,
+.rack-frame.with-bay.rs-screws .runit-open>.sect::after{content:"";position:absolute;z-index:4;pointer-events:none;
+  width:calc(7px*var(--kscale,1));height:calc(7px*var(--kscale,1));border-radius:50%;
+  background:linear-gradient(45deg,transparent 40%,#15191d 40% 60%,transparent 60%),
+    radial-gradient(circle at 40% 35%,#aab3bb,#66707a 45%,#343b42 80%);
+  box-shadow:0 0 0 1px rgba(0,0,0,0.65),0 1px 1px rgba(0,0,0,0.8);}
+.rack-frame.with-bay.rs-screws .runit-open>.sect::before{top:calc(4px*var(--kscale,1));right:calc(4px*var(--kscale,1));}
+.rack-frame.with-bay.rs-screws .runit-open>.sect::after{bottom:calc(4px*var(--kscale,1));left:calc(4px*var(--kscale,1));}
+.rack-frame.with-bay.rs-screws .runit-open>.sect>.sect-hdr{padding-right:calc(16px*var(--kscale,1));}
+
 /* The opening: where the plug-in modules go, on HP pitch. No wrapping —
    a unit holds what a unit holds, and the packing decides what that is. */
 .runit-open{flex:0 0 var(--open-w);display:flex;flex-wrap:nowrap;align-items:stretch;
