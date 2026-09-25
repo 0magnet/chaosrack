@@ -143,6 +143,12 @@ type Rack struct {
 	hidden map[string]bool
 	funcs  []js.Func
 
+	// onWindow are the listeners on the window. The window outlives the rack,
+	// so Release has to take these off before it frees their functions:
+	// released and left attached, every pointer event on the page afterwards
+	// calls one of them.
+	onWindow []windowListener
+
 	dragHeld    js.Value
 	dragMoving  bool
 	dragPointer js.Value
@@ -208,6 +214,10 @@ func (r *Rack) Root() js.Value { return r.root }
 // discarded while the page lives on; a rack that lasts as long as the page
 // does not need it.
 func (r *Rack) Release() {
+	for _, l := range r.onWindow {
+		window.Call("removeEventListener", l.event, l.fn)
+	}
+	r.onWindow = nil
 	for _, f := range r.funcs {
 		f.Release()
 	}
@@ -429,4 +439,17 @@ func normalizeKey(s string) string {
 		b[i] = c
 	}
 	return string(b)
+}
+
+// windowListener is one listener the rack has on the window.
+type windowListener struct {
+	event string
+	fn    js.Func
+}
+
+// listenWindow adds a listener to the window that Release will take off again.
+func (r *Rack) listenWindow(event string, fn func(this js.Value, args []js.Value) interface{}) {
+	f := r.track(fn)
+	r.onWindow = append(r.onWindow, windowListener{event, f})
+	window.Call("addEventListener", event, f)
 }
