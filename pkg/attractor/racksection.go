@@ -1,6 +1,7 @@
 package attractor
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/0magnet/chaosrack/pkg/racksurface"
@@ -22,47 +23,61 @@ import (
 // sections below are the blocks of docs/signal-flow.md, in the order the
 // signal travels through them, and a bay now holds one section.
 
-// The sections, in signal order. A unit holds one of them; a section too
-// wide for a unit continues into the next, and a new section always starts
-// a fresh one — a bay with two sections in it is the thing this fixes.
+// The sections. A unit holds as many as fit; a section too wide for a unit
+// continues into the next.
 const (
-	secConsole = "console" // the master section: model choice and global acts
-	secInput   = "input"   // what is being fed in, and the test generator
+	secConsole = "console" // the master section: model choice, global acts, capture
 	secAnalyze = "analyze" // the metering bay
-	secMod     = "mod"     // the CV matrix and its sources
+	secMod     = "mod"     // per-control modulation routing and its EQ
 	secModel   = "model"   // the instrument proper and its per-mode panels
-	secDisplay = "display" // deflection, color, the tube, capture
-	secOutput  = "output"  // the generators and the output bus
-	secUtility = "utility" // presets, template: about the rack, not in it
+	secDisplay = "display" // how the picture is drawn: pose, color, grid, style
+	secGen     = "gen"     // the signal sources: test signal, oscillators, keys, sequencers
+	secUtility = "utility" // template: about the rack, not in it
 )
 
-// fixedSectionOrder is the order of the bays that are not model rows: in
-// at the top, measured, routed, then the models, then displayed and out at
-// the bottom.
+// domainLine is the category row the rack's two halves meet at.
 //
-// secModel is where the per-category model rows are spliced in. It still
-// names a section of its own because the mode-owned panels that have not
-// been given to a category row yet land there.
-var fixedSectionOrder = []string{
-	secConsole, secInput, secAnalyze, secMod, secModel, secDisplay, secOutput, secUtility,
-}
+// Above it is the visual domain: models drawn in three dimensions, and the
+// controls for how they are drawn. Below it is the auditory one: the
+// signals, the generators that make them, the displays that read them and
+// the meters that measure them. The scope is the line because it is both —
+// a picture whose axes are two signals — and the generators go directly
+// under it, which is where the thing they are most often patched into is.
+const domainLine = "Scope"
 
-// sectionOrder is fixedSectionOrder with one row per model category spliced
-// in at the model position. Computed rather than written out, so a category
-// added to modeGroups gets its row with no second list to keep in step.
+// sectionOrder is every bay in the order the rack reads, top to bottom:
+//
+//	console
+//	the visual model rows, then their own panels, then DISPLAY
+//	the Scope row
+//	GENERATORS
+//	the auditory model rows, then METERING, MODULATION, UTILITY
+//
+// Computed rather than written out, so a category added to modeGroups gets
+// its row on its side of the line with no second list to keep in step.
 var sectionOrder = buildSectionOrder()
 
 func buildSectionOrder() []string {
-	out := make([]string, 0, len(fixedSectionOrder)+len(modeGroups))
-	for _, s := range fixedSectionOrder {
-		if s == secModel {
-			for _, c := range modelCategories() {
-				out = append(out, categorySection(c))
-			}
-		}
-		out = append(out, s)
+	cats := modelCategories()
+	line := slices.Index(cats, domainLine)
+	if line < 0 {
+		line = len(cats)
 	}
-	return out
+	out := []string{secConsole}
+	for _, c := range cats[:line] {
+		out = append(out, categorySection(c))
+	}
+	out = append(out, secModel, secDisplay)
+	rest := cats[line:]
+	if len(rest) > 0 {
+		out = append(out, categorySection(rest[0]))
+		rest = rest[1:]
+	}
+	out = append(out, secGen)
+	for _, c := range rest {
+		out = append(out, categorySection(c))
+	}
+	return append(out, secAnalyze, secMod, secUtility)
 }
 
 // sectionTitleOf is what is silkscreened on a bay, including the model
@@ -84,17 +99,15 @@ func sectionTitleOf(section string) string {
 // sectionTitle is what is silkscreened on the bay.
 var sectionTitle = map[string]string{
 	secConsole: "CONSOLE",
-	secInput:   "INPUT",
-	// METERING and not ANALYSIS: there is now an Analysis model CATEGORY with
-	// a row of its own — the recurrence, transfer and waterfall displays — and
-	// two bays silkscreened ANALYSIS meaning different things is worse than
-	// either name alone. This bay holds meters: loudness, distortion, wow and
-	// flutter, the counter, the Lyapunov readout.
+	// METERING and not ANALYSIS: there is an Analysis model CATEGORY with a
+	// row of its own, and two bays silkscreened ANALYSIS meaning different
+	// things is worse than either name alone. This bay holds meters:
+	// loudness, distortion, wow and flutter, the counter.
 	secAnalyze: "METERING",
 	secMod:     "MODULATION",
-	secModel:   "GENERATOR",
+	secModel:   "MODEL",
 	secDisplay: "DISPLAY",
-	secOutput:  "OUTPUT",
+	secGen:     "GENERATORS",
 	secUtility: "UTILITY",
 }
 
@@ -109,33 +122,28 @@ var sectionTitle = map[string]string{
 var moduleSections = map[string]string{
 	"console": secConsole,
 	// The capture monitor opens the rack. It carries a screen, so it leads a
-	// bay wherever it goes, and at the end of DISPLAY that bay held little
-	// else; at the top it is the rack's own output monitor beside the Console,
-	// the first thing on the left edge where a rack is read from.
+	// bay wherever it goes; at the top it is the rack's own output monitor
+	// beside the Console, the first thing on the left edge.
 	"record": secConsole,
-	// Saving and recalling the whole rack is the Console's job, and a
-	// one-slot module alone at the bottom of the rack was a bay for itself.
+	// Saving and recalling the whole rack is the Console's job.
 	"presets": secConsole,
+	// Timing and the Lyapunov readout measure the INSTRUMENT, not the
+	// signal: how fast the rack draws, and whether the running model is
+	// chaotic. Global facts, at the top where they are found without hunting.
+	"timing":   secConsole,
+	"analysis": secConsole,
+	// How the whole rack looks: interface size, knob faces, LED color, the
+	// rack's metalwork. About the instrument, not about the picture.
+	"style": secConsole,
 
-	"test": secInput,
-
-	"analysis": secAnalyze,
-	// Not secAnalyze: the metering bay measures the SIGNAL — loudness,
-	// distortion, speed stability, frequency. This one measures the
-	// INSTRUMENT, which is a global fact about the rack and belongs with the
-	// other global ones, at the top where it can be found without hunting.
-	"timing":        secConsole,
 	"loudness":      secAnalyze,
 	"distortion":    secAnalyze,
 	"wow & flutter": secAnalyze,
 	"counter":       secAnalyze,
 
-	"envelope": secMod,
-	"patchbay": secMod,
-	// The drum machine is a clocked source like the envelope beside it, and
-	// the tail of the modulation bay is where its four slots fit; after the
-	// keyboard and the matrix it opened a bay of its own.
-	"rhythm": secMod,
+	// The rack-wide patch panel: any audio feature to any knob, on either
+	// side of the line. Global like the Console it sits beside.
+	"patchbay": secConsole,
 
 	// The model, and the per-mode front panels that are its own controls.
 	// secModel means "part of the instrument rather than of the rack", and
@@ -155,17 +163,25 @@ var moduleSections = map[string]string{
 	"display":  secDisplay,
 	"colors":   secDisplay,
 	"palette":  secDisplay,
-	"style":    secDisplay,
 	"layers":   secDisplay,
 	"spectro":  secDisplay,
 	"desk":     secDisplay,
 
-	"gen x":     secOutput,
-	"gen y":     secOutput,
-	"gen z":     secOutput,
-	"keys":      secOutput,
-	"matrix":    secOutput,
-	"model out": secOutput,
+	// Everything that MAKES a signal, under the scope that draws one.
+	"test":      secGen,
+	"envelope":  secGen,
+	"gen x":     secGen,
+	"gen y":     secGen,
+	"gen z":     secGen,
+	"keys":      secGen,
+	"matrix":    secGen,
+	"rhythm":    secGen,
+	"model out": secGen,
+
+	// The per-control modulation routing and its EQ, shown while audio mod is
+	// on. They were in no section at all, and fell to UTILITY.
+	"mod": secMod,
+	"eq":  secMod,
 
 	"template": secUtility,
 }
