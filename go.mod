@@ -11,8 +11,8 @@ require (
 	github.com/0magnet/pisano v0.0.0-20260923102342-ec397908300f
 	github.com/0magnet/rack-go v0.0.0-20260925013804-1ec2acfde7de
 	github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a
-	github.com/0magnet/tuiwasm v0.0.0-20260924101441-aa75cd80d501
-	github.com/0magnet/websh v0.0.0-20260924101249-532bfb67c68a
+	github.com/0magnet/tuiwasm v0.0.0-20260925102039-8b0130e75c71
+	github.com/0magnet/websh v0.0.0-20260924101532-76422c7ff9c3
 	github.com/0magnet/winbox-go v0.0.0-20260915183431-ca6572e4c323
 	github.com/0magnet/xterm-go v0.0.0-20260923132223-00c1a8e687cc
 	github.com/gdamore/tcell/v3 v3.5.0
@@ -49,7 +49,7 @@ require (
 	github.com/charmbracelet/ultraviolet v0.0.0-20260922123528-4e49372c11f9 // indirect
 	github.com/charmbracelet/x/ansi v0.11.8 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.15 // indirect
-	github.com/charmbracelet/x/exp/slice v0.0.0-20260920004010-53e2afe73ae5 // indirect
+	github.com/charmbracelet/x/exp/slice v0.1.0 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
 	github.com/charmbracelet/x/termios v0.1.1 // indirect
 	github.com/charmbracelet/x/windows v0.2.2 // indirect
