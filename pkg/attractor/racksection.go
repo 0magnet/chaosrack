@@ -108,6 +108,11 @@ var sectionTitle = map[string]string{
 // landing in whatever bay it was declared next to.
 var moduleSections = map[string]string{
 	"console": secConsole,
+	// The capture monitor opens the rack. It carries a screen, so it leads a
+	// bay wherever it goes, and at the end of DISPLAY that bay held little
+	// else; at the top it is the rack's own output monitor beside the Console,
+	// the first thing on the left edge where a rack is read from.
+	"record": secConsole,
 
 	"test": secInput,
 
@@ -145,7 +150,6 @@ var moduleSections = map[string]string{
 	"style":    secDisplay,
 	"layers":   secDisplay,
 	"spectro":  secDisplay,
-	"record":   secDisplay,
 	"desk":     secDisplay,
 
 	"gen x":     secOutput,

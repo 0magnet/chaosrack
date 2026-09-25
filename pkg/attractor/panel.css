@@ -1004,14 +1004,17 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .rec-swrow:has(input:not(:checked)) .rec-legend:first-child,
 .rec-swrow:has(input:checked) .rec-legend:last-child { color: #cdd; }
 
-/* The module stacks: monitor across the top, controls under it on a two-column
- * grid. Beside the monitor the controls wasted the module's width and left the
- * bottom two thirds of it empty; under it they use the width the screen
- * already needs, and the grid is what makes the two switches line up — laid
- * out by their own flow they sat wherever their labels put them.
+/* The module stacks: the monitor across the top with its power switch under
+ * it, the way a model bay's screen has its own, and the controls under that on
+ * a two-column grid. The switch used to sit beside the monitor, which made the
+ * module three slots wide for one switch; under it the module is the screen's
+ * width. The controls were beside the monitor once too, and wasted the width
+ * while leaving the bottom two thirds of the module empty. The grid is what
+ * makes the two switches line up: laid out by their own flow they sat
+ * wherever their labels put them.
  */
 .recgrid { display: flex; flex-direction: column; gap: 9px; align-items: stretch; }
-.rec-screen-unit { display: flex; justify-content: center; }
+.rec-screen-unit { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .rec-controls {
   display: grid; grid-template-columns: 1fr 1fr;
   gap: 9px 12px; align-items: start; justify-items: center;
