@@ -104,11 +104,19 @@ func init() {
 
 func main() {
 	flag.Parse()
+	if err := run(); err != nil {
+		log.Fatalf("audiows: %v", err)
+	}
+}
 
+// run is the program. It is apart from main so that an error returns through
+// the deferred routing revert rather than exiting past it, which would leave
+// the system's default sink pointed at a null sink.
+func run() error {
 	if wobbulate {
 		sess, err := audioroute.Start(audioroute.Options{SinkName: nullSinkName, OutApps: outApps})
 		if err != nil {
-			log.Fatalf("audiows: -wobbulate setup failed: %v", err)
+			return fmt.Errorf("-wobbulate setup failed: %w", err)
 		}
 		cleanup := sess.Stop
 		// With the null sink as default, the thing to record is its monitor.
@@ -141,7 +149,7 @@ func main() {
 		CanonicalPath: "",
 	})
 	if err != nil {
-		log.Fatalf("rendering the page: %v", err)
+		return fmt.Errorf("rendering the page: %w", err)
 	}
 
 	serveIndex := func(c *gin.Context) {
@@ -193,9 +201,7 @@ func main() {
 	addr := fmt.Sprintf(":%d", webPort)
 	log.Printf("audiows: serving http://127.0.0.1:%d/ (audio via PulseAudio @ %d Hz)", webPort, sampleRate)
 	log.Printf("audiows: streaming binary float32 over ws://127.0.0.1:%d/ws", webPort)
-	if err := r.Run(addr); err != nil {
-		log.Fatal(err)
-	}
+	return r.Run(addr)
 }
 
 // wtCapture is the WebTransport half of the /ws handler: same capture, same
