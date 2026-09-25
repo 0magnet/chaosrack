@@ -205,7 +205,7 @@ func splitDescription(d string) (prose, equations string) {
 	if looksLikeEquations(tail) {
 		return head, tail
 	}
-	return strings.ReplaceAll(d, "\n\n", "\n\n"), ""
+	return d, ""
 }
 
 func looksLikeEquations(s string) bool {

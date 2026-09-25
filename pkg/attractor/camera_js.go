@@ -162,9 +162,7 @@ type runState struct {
 
 var run runState
 
-var (
-	dragging bool = false
-)
+var dragging bool
 
 // ── Selection ────────────────────────────────────────────────────────────────
 

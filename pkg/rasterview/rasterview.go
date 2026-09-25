@@ -15,9 +15,6 @@ import (
 	"github.com/0magnet/chaosrack/pkg/colorspace"
 )
 
-// Gradient is the coloring model of pkg/attractor's fragment shader: a
-// source axis the gradient parameter t follows, and a palette applied to
-// it. The zero value is invisible — start from DefaultGradient.
 // SourceTrail colors by position ALONG THE TRAIL rather than by a model
 // coordinate: the head of the trail is one end of the palette and the tail the
 // other.
@@ -28,6 +25,9 @@ import (
 // trajectory and needs a run per segment.
 const SourceTrail = 3
 
+// Gradient is the coloring model of pkg/attractor's fragment shader: a
+// source axis the gradient parameter t follows, and a palette applied to
+// it. The zero value is invisible — start from DefaultGradient.
 type Gradient struct {
 	Source  int // t follows: 0=X, 1=Y, 2=Z (model space), 3=along the trail
 	Colors  int // palette: 1=monochrome, 2=two-color, 3=three-color, 4=rainbow

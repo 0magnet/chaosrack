@@ -2,7 +2,11 @@ package dynamics
 
 import "math"
 
-var ThomasDT, ThomasB float32 = 0.05, 0.185
+// The integration step and parameters of Thomas' cyclically symmetric attractor.
+var (
+	ThomasDT float32 = 0.05
+	ThomasB  float32 = 0.185
+)
 
 // thomasDeriv is the vector field — single definition shared with flowreg.
 func thomasDeriv(x, y, z float32) (float32, float32, float32) {

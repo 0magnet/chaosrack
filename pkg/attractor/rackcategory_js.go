@@ -716,7 +716,7 @@ func syncStepCells() {
 		}
 	}
 	cells := dom.Doc.Call("querySelectorAll", ".stepcell[data-mode]")
-	for i := 0; i < cells.Get("length").Int(); i++ {
+	for i := range cells.Get("length").Int() {
 		c := cells.Index(i)
 		if want[c.Call("getAttribute", "data-mode").String()] {
 			c.Get("style").Set("display", "")
@@ -733,7 +733,7 @@ func syncStepCells() {
 // you can read every model's settings and not see which ones are live.
 func lightLiveParamCells() {
 	cells := dom.Doc.Call("querySelectorAll", ".punit[data-mode]")
-	for i := 0; i < cells.Get("length").Int(); i++ {
+	for i := range cells.Get("length").Int() {
 		c := cells.Index(i)
 		// Nothing is lit while the rack is powered down, which is the same
 		// answer the rotaries give: no model is running, so no front panel
@@ -814,7 +814,7 @@ func applyRowVisibility() {
 		sw := dom.Doc.Call("getElementById", rowSwitchID(label))
 		in := !sw.Truthy() || sw.Get("checked").Bool()
 		mods := dom.Doc.Call("querySelectorAll", "[data-cat]")
-		for i := 0; i < mods.Get("length").Int(); i++ {
+		for i := range mods.Get("length").Int() {
 			m := mods.Index(i)
 			if m.Call("getAttribute", "data-cat").String() != label {
 				continue

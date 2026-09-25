@@ -3,6 +3,7 @@
 package server
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -64,7 +65,7 @@ func TestWTCaptureReadsTheChannelQuery(t *testing.T) {
 		{"?ch=1", 1},
 		{"?ch=stereo", 1}, // not the value the WebSocket handler accepts either
 	} {
-		r := httptest.NewRequest("CONNECT", "/wt"+c.query, nil)
+		r := httptest.NewRequest(http.MethodConnect, "/wt"+c.query, http.NoBody)
 		got := wtCaptureOptions(r).Channels
 		if got == 0 {
 			got = 1 // left at zero means one; see audiocap.Options.withDefaults

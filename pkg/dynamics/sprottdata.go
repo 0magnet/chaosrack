@@ -22,6 +22,8 @@ type Case struct {
 	Deriv Deriv
 }
 
+// SprottCases are the Sprott systems B through S, each with its equations,
+// step and initial condition.
 var SprottCases = []Case{
 	{"sprottb", "Sprott B", "dx/dt = yz\ndy/dt = x − y\ndz/dt = 1 − xy", 0.01, [3]float32{0.1, 0.2, 0.3},
 		func(x, y, z float64) (float64, float64, float64) { return y * z, x - y, 1 - x*y }},
@@ -68,7 +70,7 @@ var SprottCases = []Case{
 // init() funcs run in file order (…cases.go before …data.go) while variable
 // initialization is dependency-ordered and always precedes every init().
 var (
-	SprottDTs = func() []float32 { //nolint:unused // built but not wired up yet; kept deliberately
+	SprottDTs = func() []float32 {
 		d := make([]float32, len(SprottCases))
 		for i := range SprottCases {
 			d[i] = SprottCases[i].DT

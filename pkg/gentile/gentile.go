@@ -1,7 +1,10 @@
 // Package gentile fits the signal generators onto module panels.
 package gentile
 
-import "sort"
+import (
+	"slices"
+	"sort"
+)
 
 // Fitting generators onto module panels.
 //
@@ -292,7 +295,7 @@ func byResidue(gens []Spec, idx []int, maxCols int) [][]int {
 		emit([]int{ones[0], twos[0]})
 		ones, twos = ones[1:], twos[1:]
 	}
-	rest := append(ones, twos...)
+	rest := slices.Concat(ones, twos)
 	for len(rest) >= maxGensPerModule {
 		emit(append([]int(nil), rest[:maxGensPerModule]...))
 		rest = rest[maxGensPerModule:]

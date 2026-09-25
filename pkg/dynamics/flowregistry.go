@@ -96,6 +96,8 @@ func flowFor(mode string) (flowSys, bool) {
 // Deriv4 is a 4-D vector field: (x,y,z,w) to its derivatives.
 type Deriv4 func(x, y, z, W float64) (dx, dy, dz, dw float64)
 
+// FlowSys4 is a registered four-dimensional flow: its vector field, its step,
+// and the hidden fourth state the renderer carries between frames.
 type FlowSys4 struct {
 	Dt   func() float64 // the mode's BASE dt (live: reads the param var)
 	F    Deriv4
@@ -112,7 +114,7 @@ type FlowSys4 struct {
 	W0 float64
 	// Interpreted marks equation-engine systems (AST evaluation, ~10× the
 	// per-step cost of a compiled deriv) so consumers pick the right budget.
-	Interpreted bool //nolint:unused // built but not wired up yet; kept deliberately
+	Interpreted bool
 	// Euler records that the mode's render loop steps forward Euler rather
 	// than RK4. The integrator is part of the system the app actually runs —
 	// measuring an Euler-stepped mode with RK4 (or the reverse) reports a
@@ -123,6 +125,8 @@ type FlowSys4 struct {
 
 var flowSystems4 = map[string]FlowSys4{}
 
+// RegisterFlow4 records a mode's four-dimensional flow, filling in the
+// defaults a system that has no hidden state leaves out.
 func RegisterFlow4(mode string, s FlowSys4) {
 	if s.Scale == 0 {
 		s.Scale = 1
@@ -175,6 +179,7 @@ var InitCond = map[string][3]float32{
 // (must match resetAttractorState's else branch).
 var defaultInitCond = [3]float32{0.1, 0.5, -0.6}
 
+// InitCondFor is the initial condition a mode starts from.
 func InitCondFor(mode string) [3]float32 {
 	if ic, ok := InitCond[mode]; ok {
 		return ic

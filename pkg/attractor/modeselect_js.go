@@ -3,11 +3,11 @@
 package attractor
 
 import (
-	_ "embed"
-	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/glctx"
 	"strconv"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 )
 
 // setPowerState stops or resumes the render loop. Off blanks the canvas but

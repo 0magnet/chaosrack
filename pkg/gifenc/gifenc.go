@@ -98,10 +98,10 @@ func AdaptivePalette(frames []*image.RGBA) color.Palette {
 func Palettize(src *image.RGBA, pal color.Palette, memo map[uint32]uint8) *image.Paletted {
 	b := src.Bounds()
 	out := image.NewPaletted(b, pal)
-	for y := 0; y < b.Dy(); y++ {
+	for y := range b.Dy() {
 		si := src.PixOffset(b.Min.X, b.Min.Y+y)
 		oi := out.PixOffset(b.Min.X, b.Min.Y+y)
-		for x := 0; x < b.Dx(); x++ {
+		for range b.Dx() {
 			r, g, bb := src.Pix[si], src.Pix[si+1], src.Pix[si+2]
 			key := uint32(r)<<16 | uint32(g)<<8 | uint32(bb)
 			idx, ok := memo[key]

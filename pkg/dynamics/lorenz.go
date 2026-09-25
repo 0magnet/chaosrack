@@ -1,6 +1,12 @@
 package dynamics
 
-var LorenzDT, LorenzS, LorenzR, LorenzB float32 = 0.005, 10.0, 28.0, 2.7
+// The integration step and parameters of the Lorenz system.
+var (
+	LorenzDT float32 = 0.005
+	LorenzS  float32 = 10.0
+	LorenzR  float32 = 28.0
+	LorenzB  float32 = 2.7
+)
 
 // lorenzDeriv is the vector field — defined once, used by the render loop
 // AND the flow registry (Model Out), so the equations can't drift apart.

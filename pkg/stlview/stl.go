@@ -1,6 +1,7 @@
 // STL parser + model type. Converts stereolithograph data into
 // renderer-ready vertex/color/index buffers with random rotation +
 // random per-triangle gradient.
+
 package stlview
 
 import (

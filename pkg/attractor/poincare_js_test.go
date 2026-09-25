@@ -64,7 +64,7 @@ func TestEveryAccumulatedCrossingLandsOnThePlane(t *testing.T) {
 		t.Fatalf("only %d crossings in 60000 steps; the section is not being fed", n)
 	}
 	worst := 0.0
-	for i := 0; i < sect.log.Len(); i++ {
+	for i := range sect.log.Len() {
 		h := sect.log.At(i)
 		d := math.Abs(sect.plane.Signed([3]float64{float64(h.P[0]), float64(h.P[1]), float64(h.P[2])}))
 		if d > worst {
@@ -98,7 +98,7 @@ func TestTheDirectionKnobDecidesWhichCrossingsAreKept(t *testing.T) {
 			t.Fatalf("%s: only %d crossings", c.name, n)
 		}
 		bad := 0
-		for i := 0; i < sect.log.Len(); i++ {
+		for i := range sect.log.Len() {
 			h := sect.log.At(i)
 			_, _, dz, _ := sys.F(float64(h.P[0]), float64(h.P[1]), float64(h.P[2]), 0)
 			if dz*c.want <= 0 {
@@ -125,7 +125,7 @@ func TestThePosKnobMovesTheSectionThroughTheAttractor(t *testing.T) {
 			t.Fatalf("pos %v: only %d crossings", pos, sect.log.Len())
 		}
 		sum := 0.0
-		for i := 0; i < sect.log.Len(); i++ {
+		for i := range sect.log.Len() {
 			sum += float64(sect.log.At(i).P[2])
 		}
 		return sum / float64(sect.log.Len())
@@ -147,7 +147,7 @@ func TestTheAxisKnobPicksThePlaneAndItsCoordinates(t *testing.T) {
 	if sect.log.Len() < 20 {
 		t.Fatalf("only %d crossings through an x plane", sect.log.Len())
 	}
-	for i := 0; i < sect.log.Len(); i++ {
+	for i := range sect.log.Len() {
 		h := sect.log.At(i)
 		if math.Abs(float64(h.S-h.P[1])) > 1e-4 || math.Abs(float64(h.T-h.P[2])) > 1e-4 {
 			t.Fatalf("crossing %d reads as (%v, %v) in the plane but sits at (%v, %v, %v); an "+

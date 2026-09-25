@@ -11,6 +11,7 @@ package attractor
 // ModeClass is the mode's broad behavior family.
 type ModeClass int
 
+// The mode classes.
 const (
 	ClassFlow3D     ModeClass = iota // 3-D ODE flow with a persistent trail
 	ClassFlow4D                      // 4-D flow (hidden state) — equation-engine or bespoke

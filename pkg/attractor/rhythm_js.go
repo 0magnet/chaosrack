@@ -152,7 +152,7 @@ func (r *rhythmSection) updateLamps(p rhythm.Pattern, now, dur float64) {
 		return
 	}
 	kids := lamps.Get("children")
-	for i := 0; i < kids.Get("length").Int(); i++ {
+	for i := range kids.Get("length").Int() {
 		kids.Index(i).Get("classList").Call("toggle", "lit", i == beat)
 	}
 }
@@ -250,7 +250,7 @@ func (r *rhythmSection) setRhythmPreset(name string) {
 	tabs := dom.Doc.Call("getElementById", "rhythm-tabs")
 	if tabs.Truthy() {
 		kids := tabs.Get("children")
-		for i := 0; i < kids.Get("length").Int(); i++ {
+		for i := range kids.Get("length").Int() {
 			el := kids.Index(i)
 			el.Get("classList").Call("toggle", "down", el.Call("getAttribute", "data-rp").String() == name)
 		}
@@ -287,7 +287,7 @@ func (r *rhythmSection) buildLamps() {
 		return
 	}
 	host.Set("innerHTML", "")
-	for i := 0; i < rhythm.BeatsPerBar(p); i++ {
+	for range rhythm.BeatsPerBar(p) {
 		d := dom.Doc.Call("createElement", "span")
 		d.Set("className", "rhythm-beat")
 		host.Call("appendChild", d)
@@ -304,7 +304,7 @@ func (r *rhythmSection) setRhythmRunning(on bool) {
 	}
 	if lamps := dom.Doc.Call("getElementById", "rhythm-beats"); lamps.Truthy() {
 		kids := lamps.Get("children")
-		for i := 0; i < kids.Get("length").Int(); i++ {
+		for i := range kids.Get("length").Int() {
 			kids.Index(i).Get("classList").Call("remove", "lit")
 		}
 	}

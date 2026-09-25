@@ -69,6 +69,8 @@ func Verts(n, smooth int) int { return (n-1)*smooth + 1 }
 // rate gets the property that matters — one position, one delay — while leaving
 // the id, the range, the step and every permalink already written alone, and
 // tauMS turns the number into milliseconds wherever one is shown.
+
+// RefRate is the sample rate the τ knob counts in.
 const RefRate = 48000
 
 // TauMax is the τ knob's ceiling, in reference samples, and it is one

@@ -57,8 +57,10 @@ func (o *Orbits) Invalidate() { o.seeded = "" }
 // N is how many orbits are live.
 func (o *Orbits) N() int { return len(o.p) }
 
-// At is where orbit i has got to, and Set is how the render loop hands it back.
-func (o *Orbits) At(i int) [3]float64     { return o.p[i] }
+// At is where orbit i has got to.
+func (o *Orbits) At(i int) [3]float64 { return o.p[i] }
+
+// Set is how the render loop hands orbit i back.
 func (o *Orbits) Set(i int, p [3]float64) { o.p[i] = p }
 
 func (o *Orbits) seed(mode string, m MapSys, n int) {

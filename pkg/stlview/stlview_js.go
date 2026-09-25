@@ -3,6 +3,7 @@
 // with the default sphere geometry, and starts the
 // requestAnimationFrame loop; LoadSTL swaps the sphere for a parsed
 // model from an async callback.
+
 package stlview
 
 import (
@@ -16,7 +17,7 @@ import (
 // concurrency is the renderFrame callback + the stopApplication
 // setTimeout, both safe by construction).
 var (
-	running                                                      = true //nolint:unused // built but not wired up yet; kept deliberately
+	running                                                      = true //nolint:unused // used only by the js build, which the native lint pass cannot see
 	done                                                         chan struct{}
 	stlFileName, originalHTML                                    string
 	rr                                                           Renderer
@@ -24,8 +25,8 @@ var (
 	currentZoom                                                  float32 = 3
 )
 
-// OnStop, if set, is invoked when the user clicks the Stop Rendering
-// button, after the slider controls are removed from the footer and
+// OnStop is called, when it is set, as the user clicks the Stop Rendering
+// button: after the slider controls are removed from the footer and
 // before the render loop shuts down. Use it to restore host-page UI.
 var OnStop func()
 
@@ -178,35 +179,35 @@ func niam() {
 	defer rr.Release()
 
 	x, y, z := rr.GetSpeed()
-	sX.Set("value", f32(x, 'f', -1, 64))
+	sX.Set("value", f32(x, -1))
 	if x > 0 {
-		sXV.Set(ih, "+"+f32(x, 'f', 2, 64))
+		sXV.Set(ih, "+"+f32(x, 2))
 	}
 	if x == 0 {
-		sXV.Set(ih, " "+f32(x, 'f', 2, 64))
+		sXV.Set(ih, " "+f32(x, 2))
 	}
 	if x < 0 {
-		sXV.Set(ih, f32(x, 'f', 2, 64))
+		sXV.Set(ih, f32(x, 2))
 	}
-	sY.Set("value", f32(y, 'f', -1, 64))
+	sY.Set("value", f32(y, -1))
 	if y > 0 {
-		sYV.Set(ih, "+"+f32(y, 'f', 2, 64))
+		sYV.Set(ih, "+"+f32(y, 2))
 	}
 	if y == 0 {
-		sYV.Set(ih, "0"+f32(y, 'f', 2, 64))
+		sYV.Set(ih, "0"+f32(y, 2))
 	}
 	if y < 0 {
-		sYV.Set(ih, f32(y, 'f', 2, 64))
+		sYV.Set(ih, f32(y, 2))
 	}
-	sZ.Set("value", f32(z, 'f', -1, 64))
+	sZ.Set("value", f32(z, -1))
 	if z > 0 {
-		sZV.Set(ih, "+"+f32(z, 'f', 2, 64))
+		sZV.Set(ih, "+"+f32(z, 2))
 	}
 	if z == 0 {
-		sZV.Set(ih, "0"+f32(z, 'f', 2, 64))
+		sZV.Set(ih, "0"+f32(z, 2))
 	}
 	if z < 0 {
-		sZV.Set(ih, f32(z, 'f', 2, 64))
+		sZV.Set(ih, f32(z, 2))
 	}
 
 	var renderFrame js.Func

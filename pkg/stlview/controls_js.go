@@ -2,6 +2,7 @@
 // Each handler reads its slider value, updates the renderer
 // rotation/zoom state, and refreshes the textual readout next to the
 // slider.
+
 package stlview
 
 import (
@@ -50,13 +51,13 @@ func sCX(this js.Value, _ []js.Value) any {
 	s, _ := strconv.ParseFloat(sSpeed, 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 	rr.SetX(float32(s))
 	if s > 0 {
-		sXV.Set(ih, "+"+f64(s, 'f', 2, 32))
+		sXV.Set(ih, "+"+f64(s))
 	}
 	if s == 0 {
-		sXV.Set(ih, "0"+f64(s, 'f', 2, 32))
+		sXV.Set(ih, "0"+f64(s))
 	}
 	if s < 0 {
-		sXV.Set(ih, f64(s, 'f', 2, 32))
+		sXV.Set(ih, f64(s))
 	}
 	return nil
 }
@@ -66,13 +67,13 @@ func sCY(this js.Value, _ []js.Value) any {
 	s, _ := strconv.ParseFloat(sS, 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 	rr.SetY(float32(s))
 	if s > 0 {
-		sYV.Set(ih, "+"+f64(s, 'f', 2, 32))
+		sYV.Set(ih, "+"+f64(s))
 	}
 	if s == 0 {
-		sYV.Set(ih, "0"+f64(s, 'f', 2, 32))
+		sYV.Set(ih, "0"+f64(s))
 	}
 	if s < 0 {
-		sYV.Set(ih, f64(s, 'f', 2, 32))
+		sYV.Set(ih, f64(s))
 	}
 	return nil
 }
@@ -82,13 +83,13 @@ func sCZ(this js.Value, _ []js.Value) any {
 	s, _ := strconv.ParseFloat(sS, 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 	rr.SetZ(float32(s))
 	if s > 0 {
-		sZV.Set(ih, "+"+f64(s, 'f', 2, 32))
+		sZV.Set(ih, "+"+f64(s))
 	}
 	if s == 0 {
-		sZV.Set(ih, "0"+f64(s, 'f', 2, 32))
+		sZV.Set(ih, "0"+f64(s))
 	}
 	if s < 0 {
-		sZV.Set(ih, f64(s, 'f', 2, 32))
+		sZV.Set(ih, f64(s))
 	}
 	return nil
 }
@@ -97,13 +98,13 @@ func sCZoom(this js.Value, _ []js.Value) any {
 	sS := this.Get("value").String()
 	s, _ := strconv.ParseFloat(sS, 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 	if s < 10 {
-		sZoomV.Set(ih, "000"+f64(s, 'f', 2, 32))
+		sZoomV.Set(ih, "000"+f64(s))
 	} else if s < 100 {
-		sZoomV.Set(ih, "00"+f64(s, 'f', 2, 32))
+		sZoomV.Set(ih, "00"+f64(s))
 	} else if s < 1000 {
-		sZoomV.Set(ih, "0"+f64(s, 'f', 2, 32))
+		sZoomV.Set(ih, "0"+f64(s))
 	} else {
-		sZoomV.Set(ih, f64(s, 'f', 2, 32))
+		sZoomV.Set(ih, f64(s))
 	}
 	currentZoom = float32(s)
 	rr.SetZoom(currentZoom)
