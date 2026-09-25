@@ -65,7 +65,7 @@ func (r *Rack) wireDrag() {
 		return nil
 	}))
 
-	window.Call("addEventListener", "pointermove", r.track(func(_ js.Value, args []js.Value) interface{} {
+	r.listenWindow("pointermove", func(_ js.Value, args []js.Value) interface{} {
 		if !r.dragMoving || len(args) == 0 {
 			return nil
 		}
@@ -123,13 +123,13 @@ func (r *Rack) wireDrag() {
 			break
 		}
 		return nil
-	}))
+	})
 
 	for _, ev := range []string{"pointerup", "pointercancel"} {
-		window.Call("addEventListener", ev, r.track(func(_ js.Value, _ []js.Value) interface{} {
+		r.listenWindow(ev, func(_ js.Value, _ []js.Value) interface{} {
 			r.endDrag()
 			return nil
-		}))
+		})
 	}
 }
 
