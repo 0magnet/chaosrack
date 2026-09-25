@@ -227,3 +227,32 @@ func sectionRuns(items []packItem, idx []int) []sectionRun { return racksurface.
 // doing it one section at a time is what keeps that from being one change
 // that moves every panel in the rack.
 var bayMonitorSlots = map[string]int{}
+
+// sectionOrderOf is the order the packer takes items in: section by section
+// in sectionOrder, and anything in no known section last.
+//
+// Within a section the running model's own panels (a module the table files
+// under secModel, such as Parameters or Loader) come after the category's
+// own modules. Document order put Custom's Parameters BEFORE the Custom
+// head, so the module packed into the bay before its head and the head
+// started a row of its own.
+func sectionOrderOf(items []packItem) []int {
+	order := make([]int, 0, len(items))
+	for _, s := range sectionOrder {
+		for _, panel := range []bool{false, true} {
+			for i, it := range items {
+				if it.Section == s && (moduleSections[it.Key] == secModel) == panel {
+					order = append(order, i)
+				}
+			}
+		}
+	}
+	// Anything whose section is not in the order at all still gets placed,
+	// at the end: losing a module is worse than putting it last.
+	for i, it := range items {
+		if sectionRank(it.Section) >= len(sectionOrder) {
+			order = append(order, i)
+		}
+	}
+	return order
+}

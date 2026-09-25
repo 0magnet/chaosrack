@@ -486,7 +486,7 @@ func TestALeadingHeadEndsTheBayBeforeIt(t *testing.T) {
 // break rule is "a bay begins with a head" rather than "a head begins a
 // bay": the second costs four rows of blank panel to say the same thing.
 func TestSmallRowsShareABayEachBehindItsOwnHead(t *testing.T) {
-	a := categorySection("Polyhedra")
+	a := categorySection("Sequences")
 	b := categorySection("Geometry")
 	items := []packItem{
 		{Slots: 3, Section: a, Lead: true},

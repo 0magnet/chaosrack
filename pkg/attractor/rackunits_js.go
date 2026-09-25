@@ -304,10 +304,12 @@ func relayoutUnits() {
 		}
 		mods = append(mods, m)
 		slots = append(slots, w)
+		key := moduleKeyOf(m)
 		items = append(items, packItem{
+			Key:     key,
 			Slots:   w,
 			Section: sectionOfModule(m),
-			Lead:    m.Call("getAttribute", bayHeadAttr).Truthy() || bayScreens[moduleKeyOf(m)],
+			Lead:    m.Call("getAttribute", bayHeadAttr).Truthy() || bayScreens[key],
 		})
 	}
 	if len(mods) == 0 {
@@ -860,25 +862,11 @@ func drawRunLabels(ls []runLabel) {
 // the rack. It also means an empty section produces no label at all,
 // rather than a name over a stretch of blank panel.
 func groupBySection(items []packItem, mods []js.Value) ([]packItem, []js.Value) {
-	outItems := make([]packItem, 0, len(items))
-	outMods := make([]js.Value, 0, len(mods))
-	for _, sec := range sectionOrder {
-		for i, it := range items {
-			if it.Section != sec {
-				continue
-			}
-			outItems = append(outItems, it)
-			outMods = append(outMods, mods[i])
-		}
-	}
-	// Anything whose section is not in the stack at all still has to be
-	// placed; losing a module is worse than putting it last.
-	for i, it := range items {
-		if sectionRank(it.Section) < len(sectionOrder) {
-			continue
-		}
-		outItems = append(outItems, it)
-		outMods = append(outMods, mods[i])
+	order := sectionOrderOf(items)
+	outItems := make([]packItem, len(order))
+	outMods := make([]js.Value, len(order))
+	for i, j := range order {
+		outItems[i], outMods[i] = items[j], mods[j]
 	}
 	return outItems, outMods
 }

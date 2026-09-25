@@ -136,6 +136,7 @@ func DrawRackFrom(keys, cats []string, slots []int, capacity int, monitors map[s
 	for i := range n {
 		mods = append(mods, rackModule{Key: keys[i], Slots: slots[i]})
 		items = append(items, packItem{
+			Key:     keys[i],
 			Slots:   slots[i],
 			Section: drawSectionOf(keys[i], cats, i),
 			Lead:    drawLead(keys[i], cats, i),
@@ -179,25 +180,7 @@ func drawLead(key string, cats []string, i int) bool {
 // groupDrawBySection makes each section contiguous, as the rack does before
 // packing, and reports where each item came from so the names follow it.
 func groupDrawBySection(items []packItem) ([]packItem, []int) {
-	order := make([]int, 0, len(items))
-	for _, s := range sectionOrder {
-		for i, it := range items {
-			if it.Section == s {
-				order = append(order, i)
-			}
-		}
-	}
-	// Anything whose section is not in the order at all still gets drawn,
-	// at the end, which is where an unplaced module belongs.
-	seen := make(map[int]bool, len(order))
-	for _, i := range order {
-		seen[i] = true
-	}
-	for i := range items {
-		if !seen[i] {
-			order = append(order, i)
-		}
-	}
+	order := sectionOrderOf(items)
 	out := make([]packItem, len(order))
 	for i, j := range order {
 		out[i] = items[j]

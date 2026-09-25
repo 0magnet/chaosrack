@@ -187,6 +187,19 @@ var modeGroups = []struct {
 		"sprottmorph", "sprotta", "sprottb", "sprottc", "sprottd",
 		"sprotte", "sprottf", "sprottg", "sprotth", "sprotti", "sprottj", "sprottk",
 		"sprottl", "sprottm", "sprottn", "sprotto", "sprottp", "sprottq", "sprottr", "sprotts"}},
+	// Custom is its own category and NOT also an entry in Attractors, where it
+	// used to be listed twice. It is a different kind of thing from the rest
+	// of that list: every other entry is a system someone published and this
+	// one is whichever system you type. As the last of fifteen named
+	// attractors it was also the least findable thing in the app, which is a
+	// poor place for the feature the README leads with.
+	//
+	// It sits right after them all the same, because what you type is a flow
+	// and this is where the flows are. It was the last row of all, which was
+	// the least findable place again, and its head sat alone at the end of a
+	// bay while its Parameters module fell into the bay before it. Beside the
+	// Attractors overflow the head and the module share a bay with room left.
+	{"Custom", []string{"custom"}},
 	// Discrete maps sit with the other dynamical systems rather than after the
 	// geometry: they are the same subject read one iterate at a time instead of
 	// one integration step at a time, and burying them past the polyhedra would
@@ -214,28 +227,31 @@ var modeGroups = []struct {
 	// works (xy is in both), and an embedding of a live signal belongs in the
 	// audio row as much as the spectrogram does.
 	{"Embeddings", []string{"takens", "stereo", "polar"}},
-	{"Polyhedra", []string{"tetrahedron", "cube", "octahedron", "dodecahedron",
-		"icosahedron", "nestedcube"}},
-	{"Geometry", []string{"globe", "sphere", "torus", "magnetosphere"}},
+	// The polyhedra are in here rather than in a category of their own, for
+	// the reason the Sprott systems are in Attractors. Six solids share one
+	// control, the Conway operator, so a Polyhedra row was a monitor, a
+	// selector and one knob: a second head beside Geometry's in the same bay,
+	// which is a heading pretending to be an instrument. They are geometry —
+	// built, not integrated — and they share Geometry's monitor and selector.
+	{"Geometry", []string{"tetrahedron", "cube", "octahedron", "dodecahedron",
+		"icosahedron", "nestedcube",
+		"globe", "sphere", "torus", "magnetosphere"}},
 	// The turtle is not geometry. It is an integer sequence read as
 	// turn-and-step — arithmetic that happens to draw — with its own camera,
 	// tinting, physics and closure classification. Filed next to "sphere" and
 	// "torus" it read as one more primitive, which is the wrong thing to tell
 	// someone about the most distinctive model in the app.
 	{"Sequences", []string{"turtle"}},
+	{"Audio", []string{"spectrogram", "xy", "fvf", "takens", "stereo", "polar", "recurrence", "rta", "xfer", "waterfall"}},
+	{"Analysis", []string{"bifurcation", "poincare", "recurrence", "rta", "xfer", "waterfall"}},
 	// Nor is the STL mode a shape. It is a model browser: a loader for a file
 	// off disk plus a catalog of built-in solids — the rack, the geometry and
 	// every attractor swept as a tube — generated in the browser.
+	//
+	// Last, where the tail of the Audio overflow bay has room for its head
+	// and the Loader that appears beside it. After Sequences it opened a bay
+	// of its own for two slots whenever Geometry and Sequences filled theirs.
 	{"Solids", []string{"stlfile", "terminal", "termanim", "hostterm", "desk"}},
-	{"Audio", []string{"spectrogram", "xy", "fvf", "takens", "stereo", "polar", "recurrence", "rta", "xfer", "waterfall"}},
-	{"Analysis", []string{"bifurcation", "poincare", "recurrence", "rta", "xfer", "waterfall"}},
-	// Custom is its own category and NOT also an entry in Attractors, where it
-	// used to be listed twice. It is a different kind of thing from the rest
-	// of that list: every other entry is a system someone published and this
-	// one is whichever system you type. As the last of fifteen named
-	// attractors it was also the least findable thing in the app, which is a
-	// poor place for the feature the README leads with.
-	{"Custom", []string{"custom"}},
 }
 
 // defaultMode is the <select>'s initially-selected entry.
