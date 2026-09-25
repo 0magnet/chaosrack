@@ -147,6 +147,7 @@ var moduleSections = map[string]string{
 	"launcher":   secModel,
 	"loader":     secModel,
 	"animation":  secModel,
+	"equation":   secModel,
 
 	"grid":     secDisplay,
 	"view":     secDisplay,
