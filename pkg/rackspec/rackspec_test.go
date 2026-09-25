@@ -294,3 +294,25 @@ func TestAPanelHoldsThreeRowsOfControls(t *testing.T) {
 		t.Errorf("%v mm of a 3U panel is unused — that is another row", spare)
 	}
 }
+
+// The control columns are one module slot apart, so a knob in the Nth
+// column of any module is on the Nth slot's center line and knobs line up
+// from bay to bay. The pitch is written in the stylesheet in millimeters;
+// this holds it to the slot.
+func TestStylesheetColumnsAreOneSlotApart(t *testing.T) {
+	css, err := os.ReadFile("../attractor/panel.css")
+	if err != nil {
+		t.Skip("panel.css not readable from here:", err)
+	}
+	m := regexp.MustCompile(`--kpitch:\s*calc\(([0-9.]+)\*var\(--mm\)\)`).FindSubmatch(css)
+	if m == nil {
+		t.Fatal("panel.css does not declare --kpitch")
+	}
+	got, err := strconv.ParseFloat(string(m[1]), 64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := ModuleHP * HP; math.Abs(got-want) > 1e-9 {
+		t.Errorf("panel.css spaces columns %g mm apart, a slot is %g mm", got, want)
+	}
+}
