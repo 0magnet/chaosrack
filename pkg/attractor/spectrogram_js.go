@@ -408,7 +408,7 @@ const mapDefault = "2"
 func (s *spectrogram) followMode(mode string) {
 	cur := strconv.Itoa(style.gradientColors)
 	if isSpectroSurface(mode) {
-		if cur == mapDefault && (inPageRack{}).Set("gradient-colors", spectrogramMap) == nil {
+		if cur == mapDefault && setMapRing(spectrogramMap) {
 			s.autoMap = true
 		}
 		return
@@ -416,7 +416,11 @@ func (s *spectrogram) followMode(mode string) {
 	if s.autoMap {
 		s.autoMap = false
 		if cur == spectrogramMap {
-			_ = inPageRack{}.Set("gradient-colors", mapDefault)
+			setMapRing(mapDefault)
 		}
 	}
 }
+
+// setMapRing turns the MAP ring the way the panel does, and reports whether
+// there was a ring to turn.
+func setMapRing(v string) bool { return inPageRack{}.Set("gradient-colors", v) == nil }

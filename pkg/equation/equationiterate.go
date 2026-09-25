@@ -23,7 +23,7 @@ import "github.com/0magnet/chaosrack/pkg/dynamics"
 // checks a typed Henon against the built-in one); the panel that drives it is
 // in equation_js.go.
 
-// iterateBlocker names what stops a compiled expression being run as a map, or
+// IterateBlocker names what stops a compiled expression being run as a map, or
 // returns "" if nothing does.
 //
 // Two things do, and both are rejected rather than quietly evaluated as zero,
@@ -48,7 +48,7 @@ func IterateBlocker(e *Expr) string {
 	return ""
 }
 
-// newIterateStep compiles the three expressions into the same mapStep shape
+// NewIterateStep compiles the three expressions into the same mapStep shape
 // the built-in maps register, so the typed system runs through the identical
 // render loop, transient and escape guard.
 //

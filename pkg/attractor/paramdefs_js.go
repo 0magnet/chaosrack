@@ -3,8 +3,6 @@
 package attractor
 
 import (
-	_ "embed"
-
 	"github.com/0magnet/chaosrack/pkg/acoustics"
 	"github.com/0magnet/chaosrack/pkg/analysis"
 	"github.com/0magnet/chaosrack/pkg/dynamics"

@@ -42,7 +42,7 @@ func (inPageRack) Controls() ([]racktui.Control, error) {
 			c.Value = controlValueOf(el)
 			if el.Get("tagName").String() == "SELECT" {
 				opts := el.Get("options")
-				for i := 0; i < opts.Get("length").Int(); i++ {
+				for i := range opts.Get("length").Int() {
 					c.Options = append(c.Options, opts.Index(i).Get("value").String())
 				}
 			}
@@ -57,16 +57,16 @@ func (inPageRack) Controls() ([]racktui.Control, error) {
 func (inPageRack) Set(id, value string) error {
 	el := dom.Doc.Call("getElementById", id)
 	if !el.Truthy() {
-		return errNoControl{id}
+		return noControlError{id}
 	}
 	setControlValue(el, value)
 	dispatchControlEvents(el)
 	return nil
 }
 
-type errNoControl struct{ id string }
+type noControlError struct{ id string }
 
-func (e errNoControl) Error() string { return "the rack has no control " + strconv.Quote(e.id) }
+func (e noControlError) Error() string { return "the rack has no control " + strconv.Quote(e.id) }
 
 // rackModulesNow reads the panel the way the drawing needs it: a name, a slot
 // count, and the category a model card belongs to.
@@ -76,7 +76,7 @@ func rackModulesNow() (keys, cats []string, slots []int) {
 		return nil, nil, nil
 	}
 	els := f.Call("querySelectorAll", ".sect")
-	for i := 0; i < els.Get("length").Int(); i++ {
+	for i := range els.Get("length").Int() {
 		m := els.Index(i)
 		if !m.Call("querySelector", ".sect-hdr").Truthy() {
 			continue

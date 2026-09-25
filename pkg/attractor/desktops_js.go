@@ -84,7 +84,7 @@ func deskWindows() []js.Value {
 	}
 	list := deskEl.Call("querySelectorAll", ".winbox")
 	out := make([]js.Value, 0, list.Get("length").Int())
-	for i := 0; i < list.Get("length").Int(); i++ {
+	for i := range list.Get("length").Int() {
 		out = append(out, list.Index(i))
 	}
 	return out

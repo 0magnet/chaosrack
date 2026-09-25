@@ -1,6 +1,13 @@
 package dynamics
 
-var ChuaDT, ChuaAlpha, ChuaBeta, ChuaM0, ChuaM1 float32 = 0.005, 15.6, 28.0, -1.143, -0.714
+// The integration step and parameters of Chua's circuit.
+var (
+	ChuaDT    float32 = 0.005
+	ChuaAlpha float32 = 15.6
+	ChuaBeta  float32 = 28.0
+	ChuaM0    float32 = -1.143
+	ChuaM1    float32 = -0.714
+)
 
 // chuaDeriv is the vector field — single definition shared with flowreg.
 // h(x) = m1*x + 0.5*(m0-m1)*(|x+1| - |x-1|) is the diode's piecewise slope.

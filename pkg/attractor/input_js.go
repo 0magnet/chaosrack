@@ -155,7 +155,7 @@ func wireModelInput() {
 		if run.selectedMode == "pong" {
 			// Every finger drives the paddle on its side — two players on
 			// one phone works.
-			for i := 0; i < touches.Get("length").Int(); i++ {
+			for i := range touches.Get("length").Int() {
 				t := touches.Index(i)
 				pong.pointerPaddle(t.Get("clientX").Float(), t.Get("clientY").Float())
 			}
@@ -182,7 +182,7 @@ func wireModelInput() {
 		touches := e.Get("touches")
 		if run.selectedMode == "pong" && !isInteractiveDragTarget(e.Get("target")) {
 			e.Call("preventDefault")
-			for i := 0; i < touches.Get("length").Int(); i++ {
+			for i := range touches.Get("length").Int() {
 				t := touches.Index(i)
 				pong.pointerPaddle(t.Get("clientX").Float(), t.Get("clientY").Float())
 			}
@@ -365,7 +365,7 @@ func wireWheelBindings() {
 			return
 		}
 		inputs := params.Call("querySelectorAll", "input[type=range], input[type=number]")
-		for i := 0; i < inputs.Length(); i++ {
+		for i := range inputs.Length() {
 			bindWheelEl(inputs.Index(i)) // by element — the number boxes have no id
 		}
 	}

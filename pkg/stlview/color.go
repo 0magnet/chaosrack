@@ -46,9 +46,9 @@ func NewRandomColor() Color {
 	r = float64(buf[0]) / 256
 	g = float64(buf[1]) / 256
 	b = float64(buf[2]) / 256
-	r = r * maxRGB
-	g = g * maxRGB
-	b = b * maxRGB
+	r *= maxRGB
+	g *= maxRGB
+	b *= maxRGB
 	return Color{float32(r), float32(g), float32(b)}
 }
 

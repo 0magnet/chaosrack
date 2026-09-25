@@ -25,6 +25,7 @@ import "math"
 // exactly as it always did.
 type TestSignal int
 
+// The test signals, off first.
 const (
 	TestOff TestSignal = iota
 	TestWhite
@@ -275,7 +276,7 @@ func (g *testGen) nextSweep(sr float64) float64 {
 	phase := 2 * math.Pi * sweepLo * sweepSeconds * (math.Exp(g.sweep*k) - 1) / k
 	g.sweep += 1 / (sweepSeconds * sr)
 	if g.sweep >= 1 {
-		g.sweep -= 1
+		g.sweep--
 	}
 	return math.Sin(phase)
 }
@@ -308,7 +309,7 @@ func (g *testGen) nextPolarity(sr float64) float64 {
 	p := g.pol
 	g.pol += polarityHz / sr
 	if g.pol >= 1 {
-		g.pol -= 1
+		g.pol--
 	}
 	if p < spike {
 		// A half-sine rather than a square edge: a step has energy above

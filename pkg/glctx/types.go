@@ -26,6 +26,7 @@ type GLTypes struct {
 	DynamicDraw        js.Value
 }
 
+// New reads the GL constants off a context.
 func (types *GLTypes) New(gl js.Value) {
 	types.StaticDraw = gl.Get("STATIC_DRAW")
 	types.ArrayBuffer = gl.Get("ARRAY_BUFFER")

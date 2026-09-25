@@ -3,7 +3,6 @@
 package attractor
 
 import (
-	_ "embed"
 	"strconv"
 	"syscall/js"
 
@@ -626,7 +625,7 @@ func buildModEQModules(params []paramDef) {
 	// still lands beside the module it modulates, in whatever bay that is.
 	findSect := func(hdr string) js.Value {
 		s := dom.Doc.Call("querySelectorAll", moduleSelector)
-		for i := 0; i < s.Get("length").Int(); i++ {
+		for i := range s.Get("length").Int() {
 			m := s.Index(i)
 			if h := m.Call("querySelector", ".sect-hdr"); h.Truthy() && h.Get("textContent").String() == hdr {
 				return m

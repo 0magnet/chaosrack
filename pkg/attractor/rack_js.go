@@ -445,7 +445,7 @@ func latchModuleWidths() {
 		return
 	}
 	els := f.Call("querySelectorAll", ".sect")
-	for i := 0; i < els.Get("length").Int(); i++ {
+	for i := range els.Get("length").Int() {
 		m := els.Index(i)
 		key := moduleKeyOf(m)
 		if key == "" || isHiddenModule(m) {
@@ -516,14 +516,14 @@ func fitModulesToTheirParts() bool {
 	}
 	changed := false
 	els := f.Call("querySelectorAll", ".sect")
-	for i := 0; i < els.Get("length").Int(); i++ {
+	for i := range els.Get("length").Int() {
 		m := els.Index(i)
 		if isHiddenModule(m) {
 			continue
 		}
 		widest := 0.0
 		ds := m.Call("querySelectorAll", ".knob-dial")
-		for j := 0; j < ds.Get("length").Int(); j++ {
+		for j := range ds.Get("length").Int() {
 			if w := ds.Index(j).Get("offsetWidth").Float(); w > widest {
 				widest = w
 			}

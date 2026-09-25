@@ -13,8 +13,16 @@ package dynamics
 
 // ── Lü (Jinhu Lü and Guanrong Chen, 2002) ─────────────────────────────────
 // The third member of the Lorenz–Chen–Lü family.
-var LuDT, LuA, LuB, LuC float32 = 0.005, 36, 3, 20
+//
+// The integration step and parameters of the Lü system.
+var (
+	LuDT float32 = 0.005
+	LuA  float32 = 36
+	LuB  float32 = 3
+	LuC  float32 = 20
+)
 
+// LuDeriv is the Lü vector field.
 func LuDeriv(x, y, z float64) (float64, float64, float64) {
 	a, b, c := float64(LuA), float64(LuB), float64(LuC)
 	return a * (y - x), c*y - x*z, x*y - b*z
@@ -23,8 +31,15 @@ func LuDeriv(x, y, z float64) (float64, float64, float64) {
 // ── Newton–Leipnik ────────────────────────────────────────────────────────
 // A rigid-body rotation model with linear feedback torque, carrying two
 // coexisting scroll-shaped attractors.
-var NlDT, NlA, NlB float32 = 0.005, 0.4, 0.175
+//
+// The integration step and parameters of the Newton–Leipnik system.
+var (
+	NlDT float32 = 0.005
+	NlA  float32 = 0.4
+	NlB  float32 = 0.175
+)
 
+// NlDeriv is the Newton–Leipnik vector field.
 func NlDeriv(x, y, z float64) (float64, float64, float64) {
 	a, b := float64(NlA), float64(NlB)
 	return -a*x + y + 10*y*z, -x - 0.4*y + 5*x*z, b*z - 5*x*y
@@ -33,8 +48,15 @@ func NlDeriv(x, y, z float64) (float64, float64, float64) {
 // ── Rabinovich–Fabrikant ──────────────────────────────────────────────────
 // Chaotic at α=1.1, γ=0.87 (the canonical set). Stiff, with a small basin,
 // which is why it runs in double precision: in single the trajectory escapes.
-var RabDT, RabAlpha, RabGamma float32 = 0.001, 1.1, 0.87
+//
+// The integration step and parameters of the Rabinovich–Fabrikant system.
+var (
+	RabDT    float32 = 0.001
+	RabAlpha float32 = 1.1
+	RabGamma float32 = 0.87
+)
 
+// RabDeriv is the Rabinovich–Fabrikant vector field.
 func RabDeriv(x, y, z float64) (float64, float64, float64) {
 	al, ga := float64(RabAlpha), float64(RabGamma)
 	return y*(z-1+x*x) + ga*x, x*(3*z+1-x*x) + ga*y, -2 * z * (al + x*y)

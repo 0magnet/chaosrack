@@ -228,17 +228,15 @@ func runLayout() {
 		}
 	}
 
-	{
-		fmt.Printf("panel %dx%d (scrollW %d, clientW %d)\n",
-			panel["w"], panel["h"], panel["scrollW"], panel["clientW"])
-		fmt.Println("modules:")
-		for _, b := range modules {
-			fmt.Printf("  %-14s %4dx%-4d\n", b.Name, b.W, b.H)
-		}
-		fmt.Printf("switch columns (narrowest %dpx):\n", minW(swsecs))
-		for _, b := range swsecs {
-			fmt.Printf("  %-14s %4dx%-4d  %2d switches\n", b.Name, b.W, b.H, b.Switches)
-		}
+	fmt.Printf("panel %dx%d (scrollW %d, clientW %d)\n",
+		panel["w"], panel["h"], panel["scrollW"], panel["clientW"])
+	fmt.Println("modules:")
+	for _, b := range modules {
+		fmt.Printf("  %-14s %4dx%-4d\n", b.Name, b.W, b.H)
+	}
+	fmt.Printf("switch columns (narrowest %dpx):\n", minW(swsecs))
+	for _, b := range swsecs {
+		fmt.Printf("  %-14s %4dx%-4d  %2d switches\n", b.Name, b.W, b.H, b.Switches)
 	}
 	if len(fails) > 0 {
 		fmt.Fprintln(os.Stderr, "\nlayout: FAILED")

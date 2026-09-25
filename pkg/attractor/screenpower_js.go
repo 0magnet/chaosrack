@@ -230,7 +230,7 @@ func (s *screenObserver) observer() js.Value {
 			return nil
 		}
 		entries := args[0]
-		for i := 0; i < entries.Length(); i++ {
+		for i := range entries.Length() {
 			e := entries.Index(i)
 			if id := e.Get("target").Get("id").String(); id != "" {
 				s.vis[id] = e.Get("isIntersecting").Bool()

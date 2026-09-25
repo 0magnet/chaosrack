@@ -68,16 +68,16 @@ func Sphere(radius float32, stacks, slices int, baseIdx uint16) ([]float32, []ui
 
 // Torus generates a torus wireframe: horizontal ring edges and vertical
 // edges between adjacent stacks.
-func Torus(R, r float32, stacks, slices int, baseIdx uint16) ([]float32, []uint16) {
+func Torus(major, minor float32, stacks, slices int, baseIdx uint16) ([]float32, []uint16) {
 	var vertices []float32
 	var indices []uint16
 	for i := 0; i <= stacks; i++ {
 		theta := float32(i) * 2.0 * math.Pi / float32(stacks)
 		for j := 0; j <= slices; j++ {
 			phi := float32(j) * 2.0 * math.Pi / float32(slices)
-			xv := (R + r*float32(math.Cos(float64(phi)))) * float32(math.Cos(float64(theta)))
-			yv := (R + r*float32(math.Cos(float64(phi)))) * float32(math.Sin(float64(theta)))
-			zv := r * float32(math.Sin(float64(phi)))
+			xv := (major + minor*float32(math.Cos(float64(phi)))) * float32(math.Cos(float64(theta)))
+			yv := (major + minor*float32(math.Cos(float64(phi)))) * float32(math.Sin(float64(theta)))
+			zv := minor * float32(math.Sin(float64(phi)))
 			vertices = append(vertices, xv, yv, zv)
 		}
 	}

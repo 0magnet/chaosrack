@@ -1,4 +1,5 @@
 // Small math + crypto-random helpers used across the package.
+
 package stlview
 
 import (
@@ -9,7 +10,7 @@ import (
 	"strconv"
 )
 
-func getMaxScalar(vertices []float32) float32 { //nolint:unused // built but not wired up yet; kept deliberately
+func getMaxScalar(vertices []float32) float32 { //nolint:unused // used only by the js build, which the native lint pass cannot see
 	var hi float32
 	for baseIndex := 0; baseIndex < len(vertices); baseIndex += 3 {
 		testScale := scalar(vertices[baseIndex], vertices[baseIndex], vertices[baseIndex])
@@ -20,12 +21,12 @@ func getMaxScalar(vertices []float32) float32 { //nolint:unused // built but not
 	return hi
 }
 
-func scalar(x float32, y float32, z float32) float32 { //nolint:unused // built but not wired up yet; kept deliberately
+func scalar(x float32, y float32, z float32) float32 { //nolint:unused // used only by the js build, which the native lint pass cannot see
 	xy := m.Sqrt(float64(x*x + y*y))
 	return float32(m.Sqrt(xy*xy + float64(z*z)))
 }
 
-func cryptoRandFloat32() float32 { //nolint:unused // built but not wired up yet; kept deliberately
+func cryptoRandFloat32() float32 { //nolint:unused // used only by the js build, which the native lint pass cannot see
 	b := make([]byte, 4)
 	_, err := rand.Read(b)
 	if err != nil {
@@ -69,10 +70,12 @@ func cryptoRandIntn(hi int) (int, error) {
 	}
 }
 
-func f32(f float32, g byte, prec, bitSize int) string { //nolint:unused,unparam // built but not wired up yet; kept deliberately
-	return strconv.FormatFloat(float64(f), g, prec, bitSize)
+// f32 formats f to prec decimals, or as few as it needs when prec is -1.
+func f32(f float32, prec int) string { //nolint:unused // used only by the js build, which the native lint pass cannot see
+	return strconv.FormatFloat(float64(f), 'f', prec, 64)
 }
 
-func f64(f float64, g byte, prec, bitSize int) string { //nolint:unused,unparam // built but not wired up yet; kept deliberately
-	return strconv.FormatFloat(f, g, prec, bitSize)
+// f64 formats f to two decimals, rounded as a float32.
+func f64(f float64) string { //nolint:unused // used only by the js build, which the native lint pass cannot see
+	return strconv.FormatFloat(f, 'f', 2, 32)
 }

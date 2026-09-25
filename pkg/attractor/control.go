@@ -127,14 +127,14 @@ func buildControlModel() {
 	panelModules = panelModules[:0]
 	tipN := 0
 	sects := dom.Doc.Call("querySelectorAll", ".modules .sect:not(.template-mod)")
-	for i := 0; i < sects.Get("length").Int(); i++ {
+	for i := range sects.Get("length").Int() {
 		sect := sects.Index(i)
 		m := &Module{sect: sect}
 		if h := sect.Call("querySelector", ".sect-hdr"); h.Truthy() {
 			m.name = titleWord(h.Get("textContent").String())
 		}
 		cells := sect.Call("querySelectorAll", ".pcell, .punit")
-		for j := 0; j < cells.Get("length").Int(); j++ {
+		for j := range cells.Get("length").Int() {
 			cell := cells.Index(j)
 			c := findBuiltControl(cell) // reuse a builder-made Control if this is a param cell
 			if c == nil {
@@ -283,7 +283,7 @@ func (c *Control) annotate() {
 			}
 		} else {
 			nums := c.cell.Call("querySelectorAll", ".numin")
-			for i := 0; i < nums.Get("length").Int(); i++ {
+			for i := range nums.Get("length").Int() {
 				n := nums.Index(i)
 				n.Set("title", ctl+sep+numRole(n.Get("classList").Call("contains", "u-step").Bool()))
 			}
@@ -341,7 +341,7 @@ func stampLEDs(f *cellRead, cell js.Value, module, ctl, help string) {
 		return
 	}
 	leds := cell.Call("querySelectorAll", sel)
-	for i := 0; i < leds.Get("length").Int(); i++ {
+	for i := range leds.Get("length").Int() {
 		l := leds.Index(i)
 		name := ctl
 		if own := ledOwnLabel(l); own != "" {

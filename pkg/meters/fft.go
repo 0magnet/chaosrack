@@ -36,6 +36,7 @@ type fftScratch struct {
 // leaks all over the spectrum where a Hann does not — so a spectrogram that
 // offers the choice has to actually apply it, and each choice needs its own
 // precomputed table.
+
 // ── The window set, and why it is larger than the spectrogram's ──────────
 //
 // The spectrogram offers audioprism's four (Hann, Hamming, Bartlett,
@@ -62,13 +63,14 @@ type fftScratch struct {
 //	slightly narrower lobe than Blackman-Harris, and a continuous first
 //	derivative, which makes it the better choice when the signal is not
 //	stationary across the window.
-//
+
 // WinKind is the local enum. The first four values are audioprism's four in
 // audioprism's order, so mapping is a conversion rather than a table — but it
 // is its own type on purpose, because the extra four are not settings the
 // spectrogram offers and must not appear on its dial.
 type WinKind int
 
+// The window functions. The first four are audioprism's, in its order.
 const (
 	WinHann WinKind = iota
 	WinHamming

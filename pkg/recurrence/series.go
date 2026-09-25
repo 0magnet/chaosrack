@@ -94,6 +94,7 @@ import "math"
 // still true of what it was, and there is a visible seam where the question
 // changed.
 
+// The bounds of the readable recurrence rates.
 const (
 	// RQASamplePeriodMs is both the rate limit on the RQA scan and the spacing
 	// of the series, because they are one tick — see the sampling-rate note

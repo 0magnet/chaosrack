@@ -170,7 +170,6 @@ func buildPatchbayModule(paramsSect js.Value) {
 	}))
 	bankRow.Call("appendChild", sto)
 	for i := range patchSlots {
-		i := i
 		b := dom.Doc.Call("createElement", "button")
 		b.Set("className", "pslot")
 		if bank[i] != "" {

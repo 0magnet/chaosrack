@@ -177,42 +177,6 @@ func drawViewPasses(mode string) {
 	setViewport([4]int{0, 0, gpu.width, gpu.height})
 }
 
-// wireViewGridDial hooks up the grid-size dial.
-func (vi *viewGrid) wireViewGridDial() {
-	sel := dom.Doc.Call("getElementById", "view-n")
-	if !sel.Truthy() {
-		return
-	}
-	apply := func() {
-		if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
-			vi.countF = float32(n)
-		}
-		// Focus can be past the end of a grid that just shrank, and the
-		// panel has to follow whichever instance is now in play.
-		if vi.focused >= vi.n() {
-			vi.focused = 0
-		}
-		// The focus dial has one position per cell, so it is rebuilt
-		// with the grid — before refocus, which reads grid.focused.
-		vi.buildFocusDial()
-		refocus()
-		// After the rebuild, or the marking goes onto rows that are
-		// about to be replaced.
-		syncSweptMarks()
-		// The camera was fitted to a full-canvas viewport; a cell of a grid
-		// wants a different distance, and the fit is what knows how to pick
-		// one.
-		view.autoFitCamera()
-	}
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
-		apply()
-		return nil
-	}))
-	apply()
-}
-
-// ── which view the knobs drive, and whether they drive both ─────────────
-
 // viewGrid is the grid of views of one model and the parameter sweep across
 // it.
 type viewGrid struct {
@@ -308,6 +272,42 @@ var grid = viewGrid{
 	sweepHi:    1,
 	paramLinks: map[string]bool{},
 }
+
+// wireViewGridDial hooks up the grid-size dial.
+func (vi *viewGrid) wireViewGridDial() {
+	sel := dom.Doc.Call("getElementById", "view-n")
+	if !sel.Truthy() {
+		return
+	}
+	apply := func() {
+		if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
+			vi.countF = float32(n)
+		}
+		// Focus can be past the end of a grid that just shrank, and the
+		// panel has to follow whichever instance is now in play.
+		if vi.focused >= vi.n() {
+			vi.focused = 0
+		}
+		// The focus dial has one position per cell, so it is rebuilt
+		// with the grid — before refocus, which reads grid.focused.
+		vi.buildFocusDial()
+		refocus()
+		// After the rebuild, or the marking goes onto rows that are
+		// about to be replaced.
+		syncSweptMarks()
+		// The camera was fitted to a full-canvas viewport; a cell of a grid
+		// wants a different distance, and the fit is what knows how to pick
+		// one.
+		view.autoFitCamera()
+	}
+	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
+		apply()
+		return nil
+	}))
+	apply()
+}
+
+// ── which view the knobs drive, and whether they drive both ─────────────
 
 // instanceFor returns the stereo instance a view draws.
 func (vi *viewGrid) instanceFor(i int) *stereoInst {
@@ -840,7 +840,7 @@ func syncSweptMarks() {
 	// longer belongs.
 	for _, sel := range []string{".swept", ".sweptmark"} {
 		old := dom.Doc.Call("querySelectorAll", sel)
-		for i := 0; i < old.Length(); i++ {
+		for i := range old.Length() {
 			el := old.Index(i)
 			if sel == ".swept" {
 				el.Get("classList").Call("remove", "swept")
@@ -1075,7 +1075,7 @@ const linkMarkSel = "linkmark"
 // in the panel's own arena and die with the DOM they are attached to.
 func syncLinkMarks() {
 	old := dom.Doc.Call("querySelectorAll", "."+linkMarkSel)
-	for i := 0; i < old.Length(); i++ {
+	for i := range old.Length() {
 		el := old.Index(i)
 		if p := el.Get("parentNode"); p.Truthy() {
 			p.Call("removeChild", el)

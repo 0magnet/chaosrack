@@ -110,7 +110,7 @@ func sphereVerticesIndices(radius float32, stacks, slices int, baseIdx uint16) (
 // CORE CIRCLE, the circle drawn through the middle of the tube body. Turning
 // phi is the motion a smoke ring makes: the surface rolls through itself and
 // the ring stays put.
-func torusVerticesIndices(R, r float32, stacks, slices int, baseIdx uint16, roll float32) ([]float32, []uint16) {
+func torusVerticesIndices(major, minor float32, stacks, slices int, baseIdx uint16, roll float32) ([]float32, []uint16) {
 	// Sized up front, as above.
 	vertices := make([]float32, 0, (stacks+1)*(slices+1)*3)
 	indices := make([]uint16, 0, stacks*slices*6)
@@ -118,9 +118,9 @@ func torusVerticesIndices(R, r float32, stacks, slices int, baseIdx uint16, roll
 		theta := float32(i) * 2.0 * math.Pi / float32(stacks)
 		for j := 0; j <= slices; j++ {
 			phi := float32(j)*2.0*math.Pi/float32(slices) + roll
-			xv := (R + r*float32(math.Cos(float64(phi)))) * float32(math.Cos(float64(theta)))
-			yv := (R + r*float32(math.Cos(float64(phi)))) * float32(math.Sin(float64(theta)))
-			zv := r * float32(math.Sin(float64(phi)))
+			xv := (major + minor*float32(math.Cos(float64(phi)))) * float32(math.Cos(float64(theta)))
+			yv := (major + minor*float32(math.Cos(float64(phi)))) * float32(math.Sin(float64(theta)))
+			zv := minor * float32(math.Sin(float64(phi)))
 			vertices = append(vertices, xv, yv, zv)
 		}
 	}

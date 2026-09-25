@@ -102,7 +102,7 @@ func UVSphere(c V3, r float64, stacks, slices int) Mesh {
 }
 
 // Torus is a doughnut in the XY plane: major radius R, tube radius r.
-func Torus(c V3, R, r float64, major, minor int) Mesh {
+func Torus(c V3, radius, tube float64, major, minor int) Mesh {
 	if major < 3 {
 		major = 3
 	}
@@ -113,9 +113,9 @@ func Torus(c V3, R, r float64, major, minor int) Mesh {
 		u := 2 * math.Pi * float64(i) / float64(major)
 		v := 2 * math.Pi * float64(j) / float64(minor)
 		return V3{
-			c[0] + (R+r*math.Cos(v))*math.Cos(u),
-			c[1] + (R+r*math.Cos(v))*math.Sin(u),
-			c[2] + r*math.Sin(v),
+			c[0] + (radius+tube*math.Cos(v))*math.Cos(u),
+			c[1] + (radius+tube*math.Cos(v))*math.Sin(u),
+			c[2] + tube*math.Sin(v),
 		}
 	}
 	var m Mesh

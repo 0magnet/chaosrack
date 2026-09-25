@@ -346,7 +346,7 @@ func RackWithHandles(rows int, handles bool) Mesh {
 			V3{inset, y + RailHeight, bpZ - rackspec.PCBThickness},
 			V3{w - inset, y + RailHeight + rackspec.PanelHeight3U, bpZ},
 		))
-		for i := 0; i < rackspec.SlotsPerRow(); i++ {
+		for i := range rackspec.SlotsPerRow() {
 			x := inset + float64(i)*rackspec.SlotPitch + rackspec.SlotPitch/2
 			m.Append(Box(
 				V3{x - 4, boardY0 + 6, bpZ},

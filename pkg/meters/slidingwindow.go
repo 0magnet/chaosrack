@@ -1,7 +1,7 @@
 package meters
 
-// A window over the newest samples, costing what ARRIVES rather than what it
-// holds.
+// SlidingWindow is a window over the newest samples, costing what ARRIVES
+// rather than what it holds.
 //
 // The analyzers each keep the most recent N samples and measure them on a
 // timer — THD over 16384 samples every 400ms, wow and flutter over ten
