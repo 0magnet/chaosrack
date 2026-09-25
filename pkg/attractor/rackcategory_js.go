@@ -750,18 +750,30 @@ func buildCategoryMonitor(label string, bay int) js.Value {
 	bez.Call("appendChild", cv)
 	unit.Call("appendChild", bez)
 
+	row := dom.Doc.Call("createElement", "span")
+	row.Set("className", "monsw")
+	row.Call("appendChild", headSwitch(bayMonSwitchID(label, bay), "Screen", ""))
+	row.Call("appendChild", headSwitch(rowSwitchIDN(label, bay), "Row", rowSwitchTip(label)))
+	unit.Call("appendChild", row)
+	return unit
+}
+
+// headSwitch is one labeled switch under a bay's monitor.
+func headSwitch(id, text, tip string) js.Value {
 	lab := dom.Doc.Call("createElement", "label")
 	lab.Set("className", "grp")
 	lab.Get("style").Set("cursor", "pointer")
+	if tip != "" {
+		lab.Set("title", tip)
+	}
 	sw := dom.Doc.Call("createElement", "input")
 	sw.Set("type", "checkbox")
 	sw.Set("className", "sw")
-	sw.Set("id", bayMonSwitchID(label, bay))
+	sw.Set("id", id)
 	sw.Set("checked", true)
 	lab.Call("appendChild", sw)
-	lab.Call("appendChild", dom.Doc.Call("createTextNode", " Screen"))
-	unit.Call("appendChild", lab)
-	return unit
+	lab.Call("appendChild", dom.Doc.Call("createTextNode", " "+text))
+	return lab
 }
 
 // buildBayRotary is the cell that picks which of this bay's generators plays.
@@ -983,8 +995,13 @@ func lightLiveParamCells() {
 // before the rows were filled. The models in a row that is out still play:
 // this is putting the front panel away, not unplugging the instrument.
 //
-// The switches are on the CONSOLE and not on the rows, because a switch
-// that goes away with the thing it hides cannot bring it back.
+// The switch is on each bay's head, beside its Screen switch, and putting a
+// row away takes out the category's modules but NOT its heads. A switch that
+// went away with the thing it hides could not bring it back, which is why
+// these used to be a list on the Console; the heads are the part that
+// stays, and they are also the part that costs almost nothing — the 213
+// cells are in the generator modules. With the heads in the rack, every
+// model is still one turn of a MODEL knob away while its knobs are out.
 
 // rowHiddenKey is where the put-away rows are remembered. Its own record
 // rather than the rack layout's: that one lists which switches are ON, so an
@@ -992,39 +1009,42 @@ func lightLiveParamCells() {
 // every row is in the rack.
 const rowHiddenKey = "wasmstuff-rackrows-out"
 
-// rowSwitchID is a category's row switch.
+// rowOut is which categories have their modules put away.
+var rowOut = map[string]bool{}
+
+// rowSwitchID is a category's row switch on its first bay's head, the id
+// the Console's switch had, so a control name or a script that used it
+// still finds one.
 func rowSwitchID(label string) string { return "row-" + categorySlug(label) + "-sw" }
 
-// buildRowSwitches fills the Console's Rows group, one switch per category.
-func buildRowSwitches() {
-	host := dom.Doc.Call("getElementById", "row-switches")
-	if !host.Truthy() {
-		return
+// rowSwitchIDN is the row switch on a category's bay n.
+func rowSwitchIDN(label string, n int) string {
+	if n == 0 {
+		return rowSwitchID(label)
 	}
-	out := readHiddenRows()
-	for _, label := range modelCategories() {
-		lab := dom.Doc.Call("createElement", "label")
-		lab.Set("className", "grp")
-		lab.Get("style").Set("cursor", "pointer")
-		what := catTooltips[label]
-		if what == "" {
-			what = label
-		}
-		lab.Set("title", what+"\n\nIn the rack, or put away. A row that is out costs nothing "+
-			"to keep — no layout, no paint, no measurement — which is what the switch is "+
-			"for: every model's knobs, always, is 213 controls and most of the panel's "+
-			"cost. The models in a row that is out still play; this puts the front panel "+
-			"away, not the instrument.")
-		sw := dom.Doc.Call("createElement", "input")
-		sw.Set("type", "checkbox")
-		sw.Set("className", "sw")
-		sw.Set("id", rowSwitchID(label))
-		sw.Set("checked", !out[label])
-		lab.Call("appendChild", sw)
-		lab.Call("appendChild", dom.Doc.Call("createTextNode", " "+categoryTag(label)))
-		host.Call("appendChild", lab)
+	return "row-" + categorySlug(label) + "-" + strconv.Itoa(n) + "-sw"
+}
 
+// rowSwitchTip is what a row switch says it does.
+func rowSwitchTip(label string) string {
+	return "Row — this category's modules in the rack, or put away. A row that is out " +
+		"costs nothing to keep: no layout, no paint, no measurement, and every model's " +
+		"knobs, always, is 213 controls and most of the panel's cost. The head stays, so " +
+		"its models are still on the MODEL knob, and they still play; this puts the front " +
+		"panels away, not the instrument."
+}
+
+// buildRowSwitches wires the row switch on every bay head.
+func buildRowSwitches() {
+	rowOut = readHiddenRows()
+	for _, b := range rackBays {
+		sw := dom.Doc.Call("getElementById", rowSwitchIDN(b.Label, b.N))
+		if !sw.Truthy() {
+			continue
+		}
+		label := b.Label
 		sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+			rowOut[label] = !sw.Get("checked").Bool()
 			applyRowVisibility()
 			saveHiddenRows()
 			quantizeModuleWidths() // the rack is a different size now
@@ -1034,22 +1054,24 @@ func buildRowSwitches() {
 	applyRowVisibility()
 }
 
-// applyRowVisibility puts each row in or out to match its switch.
+// applyRowVisibility puts each row's modules in or out, and sets every
+// head's switch to say which.
 func applyRowVisibility() {
-	for _, label := range modelCategories() {
-		sw := dom.Doc.Call("getElementById", rowSwitchID(label))
-		in := !sw.Truthy() || sw.Get("checked").Bool()
-		mods := dom.Doc.Call("querySelectorAll", "[data-cat]")
-		for i := range mods.Get("length").Int() {
-			m := mods.Index(i)
-			if m.Call("getAttribute", "data-cat").String() != label {
-				continue
-			}
-			if in {
-				m.Get("style").Set("display", "")
-			} else {
-				m.Get("style").Set("display", "none")
-			}
+	for _, b := range rackBays {
+		if sw := dom.Doc.Call("getElementById", rowSwitchIDN(b.Label, b.N)); sw.Truthy() {
+			sw.Set("checked", !rowOut[b.Label])
+		}
+	}
+	mods := dom.Doc.Call("querySelectorAll", "[data-cat]")
+	for i := range mods.Get("length").Int() {
+		m := mods.Index(i)
+		if m.Call("hasAttribute", bayHeadAttr).Bool() {
+			continue
+		}
+		if rowOut[m.Call("getAttribute", "data-cat").String()] {
+			m.Get("style").Set("display", "none")
+		} else {
+			m.Get("style").Set("display", "")
 		}
 	}
 }
