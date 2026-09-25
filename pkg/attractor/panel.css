@@ -1580,6 +1580,9 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
   gap:7px;padding-top:4px;
 }
 .modules .punit.monunit .grp{writing-mode:horizontal-tb;}
+/* Screen and Row side by side under the monitor: the screen's own power,
+   and whether the row's modules are in the rack. */
+.modules .punit.monunit .monsw{display:flex;gap:calc(10px*var(--kscale,1));justify-content:center;}
 
 /* WHICH KNOBS ARE LIVE. Every model's constants are on its category's row, all
    of them, which is 213 knobs in the rack and three of them doing something.
@@ -1600,9 +1603,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
   width:calc(104px*var(--kscale,1));box-sizing:border-box;
   font-size:calc(10px*var(--kscale,1));padding:1px 3px;min-width:0;
 }
-/* The Console's row switches: eleven of them, so a column like the other
-   switch groups rather than a line that would double the Console's width. */
-.rowsw{display:flex;flex-direction:column;align-items:flex-start;gap:1px;}
 /* A step cell is labeled with its MODEL, which is words rather than a
    symbol, so the label reads across the cell like the category cells' do —
    the same exception .catcell makes and for the same reason. */
