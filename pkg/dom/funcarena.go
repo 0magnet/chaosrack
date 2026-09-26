@@ -61,12 +61,13 @@ func FuncOf(fn func(this js.Value, args []js.Value) any) js.Func {
 // build is the whole body of a long function, and wrapping it in a closure to
 // satisfy this would indent two hundred lines to say nothing.
 func StartPanelBuild() (done func()) {
-	for _, f := range panelFuncs {
-		f.Release()
-	}
+	held := releaseAll(panelFuncs)
 	panelFuncs = panelFuncs[:0]
 	panelCollect = true
-	return func() { panelCollect = false }
+	return func() {
+		panelCollect = false
+		checkReleased(held)
+	}
 }
 
 // RebuildInto releases whatever the last call put in arena, then runs build
@@ -76,14 +77,13 @@ func StartPanelBuild() (done func()) {
 // BuildPanel's reason: nothing can dispatch an event to a freed func between
 // the two.
 func RebuildInto(arena *[]js.Func, build func()) {
-	for _, f := range *arena {
-		f.Release()
-	}
+	held := releaseAll(*arena)
 	*arena = (*arena)[:0]
 	prev := altArena
 	altArena = arena
 	defer func() { altArena = prev }()
 	build()
+	checkReleased(held)
 }
 
 // AltArena reports the arena currently collecting, for a test that needs to
