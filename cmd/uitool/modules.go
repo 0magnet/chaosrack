@@ -38,7 +38,7 @@ var (
 )
 
 func runModules() {
-	c, err := cdp.Dial(*cdpPort, *target)
+	c, err := dial()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "modules:", err)
 		os.Exit(1)
@@ -152,7 +152,7 @@ func waitForModule(c *cdp.Client, id string) {
 
 // featureSwitches reveal modules from outside the rack's own Modules column:
 // the modulation and EQ strips appear with Audio mod, and the Counter, Keys,
-// Matrix, Template and Patchbay have their own switches in the Console's
+// Matrix and Patchbay have their own switches in the Console's
 // other columns.
 //
 // Deliberately not here: Test tone, MIDI and Fullscreen, none of which reveal
@@ -160,7 +160,7 @@ func waitForModule(c *cdp.Client, id string) {
 // the Equation module, but by switching the app into Custom mode, which threw
 // away the mode-owned module every pass had just navigated to. The Equation
 // module is photographed in the "custom" pass instead, where it belongs.
-var featureSwitches = []string{"audio-mod", "tpl-on", "scope-on"}
+var featureSwitches = []string{"audio-mod"}
 
 // capturePass photographs every module visible in one mode that has not been
 // photographed already, and returns them in DOM order.
@@ -236,7 +236,7 @@ func shootRound(c *cdp.Client, mode string, only, have map[string]bool) []panelM
 // It used to walk the Console's Modules column, which was one generated
 // switch per module. There is no such column any more — every module is in
 // the rack — so what is left is the handful of switches that are not module
-// switches at all: the modulation bus, the Template legend, the scope unit.
+// switches at all: the modulation bus. The scope unit is always in the rack.
 func showEveryModule(c *cdp.Client) {
 	c.Eval(fmt.Sprintf(`(function(){
 	  %q.split(',').forEach(function(id){

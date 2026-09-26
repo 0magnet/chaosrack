@@ -145,27 +145,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 /* Lit key: the green→red tuning gradient is set inline (per detune); here just
    a bright neutral outline + glow so it pops whether it's reading green or red. */
 .gen-piano .pk-key.lit{border-color:#fff!important;box-shadow:0 0 7px rgba(255,255,255,.6),0 0 3px rgba(255,255,255,.85)!important;}
-/* Template legend module: native module chrome, but a dashed accent border so
-   it reads as the schema, legible (non-DSEG7) text in the readout slots, and
-   the same knob sizing as the Style/gen modules. */
-.template-mod{outline:1px dashed #3a6a8a;outline-offset:-3px;}
-.template-mod .sect-hdr{color:#8fd0ff;}
-/* readout uses the REAL LED style (red DSEG7, inherited from .led); just shrink
-   to fit the word in the cell. */
-.template-mod .rst{cursor:help;}
-/* overlay part-name pinned onto a round slot (knob / ring / inner / fine) */
-.template-mod .tpl-ov{position:absolute;left:50%;transform:translate(-50%,-50%);font-family:'B612 Mono',monospace;font-size:calc(7px*var(--kscale,1));line-height:1;color:#08140d;background:rgba(150,230,180,.85);border-radius:2px;padding:0 2px;pointer-events:none;z-index:6;white-space:nowrap;}
-/* template has two cells, so its grid is two rows (not the default three) —
-   keeps the grid-note directly below the cells instead of past an empty row. */
-/* The Template module carries a written legend under its grid, and three rows
-   of cells plus that legend come to 548 px in a 512 px panel — it had been
-   clipping the last lines of its own documentation in every mode. Two rows
-   flow the same cells into an extra column, which the rack quantizes to one
-   more slot: wider, but readable, which for the module whose entire job is to
-   explain the others is the right way round. */
-.template-mod .vmrow{grid-template-rows:repeat(2,var(--krow))!important;}
-.template-mod .tpl-note{font-family:'B612 Mono',monospace;font-size:calc(7.5px*var(--kscale,1));line-height:1.35;color:#7fa8c0;padding:calc(6px*var(--kscale,1));border-top:1px dashed #2a4a66;margin-top:calc(4px*var(--kscale,1));cursor:help;}
-.template-mod .tpl-note b{color:#bfe0ff;font-weight:normal;}/* Signal-generator inline controls in the Switches ▸ Audio section. *//* Dimmed when a control doesn't apply: a phosphor overrides the trace color
+/* Signal-generator inline controls in the Switches ▸ Audio section. *//* Dimmed when a control doesn't apply: a phosphor overrides the trace color
    (.crt-dim), the palette color-count makes a swatch inactive (.pal-dim), or
    the Fore knob is mid-range and the two-pass split has to clear between the
    halves, which is the one thing Persist needs not to happen (.split-dim). */
@@ -844,8 +824,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .consec{align-items:center;min-width:120px;}
 .consec .console-btns{padding-left:0;margin-top:10px;align-self:flex-start;display:flex;}
 .consec>.swsec-hdr{align-self:stretch;}
-/* Template v3: real cells, standard vmrow flow; only chrome + overlays differ */
-.template-mod .tpl-cell{position:relative;}
 
 /* Embed hardening: on a host page the panel chrome elements are direct
    children of body, where site-global element rules (e.g. magnetosphere.net's
@@ -1339,18 +1317,13 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .rack-handle .rh-grip{flex:1 1 auto;margin:calc(-1px*var(--kscale,1)) 24%;border-radius:3px;
   background:linear-gradient(100deg,#7d868f,#454e57 55%,#2f363e);
   box-shadow:inset 1px 0 0 #99a3ac,inset -1px 0 0 #1c2126,0 2px 4px #000;}
-/* Screws: every module held to the rails by two, top right and bottom left,
-   the diagonal pair a narrow panel carries. A slotted head, lit from above. */
-.rack-frame.with-bay.rs-screws .runit-open>.sect{position:relative;}
-.rack-frame.with-bay.rs-screws .runit-open>.sect::before,
-.rack-frame.with-bay.rs-screws .runit-open>.sect::after{content:"";position:absolute;z-index:4;pointer-events:none;
-  width:calc(7px*var(--kscale,1));height:calc(7px*var(--kscale,1));border-radius:50%;
+/* Screws: the bolts that hold the unit to the rack rails, through the holes
+   in its ears — a slotted head, lit from above, in each hole. Bare ears show
+   the empty holes. */
+.rack-frame.with-bay.rs-screws .runit-ear>i{
   background:linear-gradient(45deg,transparent 40%,#15191d 40% 60%,transparent 60%),
     radial-gradient(circle at 40% 35%,#aab3bb,#66707a 45%,#343b42 80%);
   box-shadow:0 0 0 1px rgba(0,0,0,0.65),0 1px 1px rgba(0,0,0,0.8);}
-.rack-frame.with-bay.rs-screws .runit-open>.sect::before{top:calc(4px*var(--kscale,1));right:calc(4px*var(--kscale,1));}
-.rack-frame.with-bay.rs-screws .runit-open>.sect::after{bottom:calc(4px*var(--kscale,1));left:calc(4px*var(--kscale,1));}
-.rack-frame.with-bay.rs-screws .runit-open>.sect>.sect-hdr{padding-right:calc(16px*var(--kscale,1));}
 
 /* The opening: where the plug-in modules go, on HP pitch. No wrapping —
    a unit holds what a unit holds, and the packing decides what that is. */

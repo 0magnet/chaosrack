@@ -49,11 +49,9 @@ analog computers at [glensstuff.com](https://glensstuff.com).
 - [What's inside](#whats-inside)
 - [Models](#models)
   - [Attractors](#attractors)
-  - [Custom](#custom)
   - [Maps](#maps)
-  - [Analysis](#analysis)
-  - [Geometry](#geometry)
   - [Solids](#solids)
+  - [Geometry](#geometry)
   - [Sequences](#sequences)
   - [Scope](#scope)
   - [Embeddings](#embeddings)
@@ -94,7 +92,7 @@ analog computers at [glensstuff.com](https://glensstuff.com).
   - [Mod](#mod)
   - [EQ](#eq)
   - [Patchbay](#patchbay)
-  - [Analysis](#analysis-1)
+  - [Analysis](#analysis)
   - [Presets](#presets)
   - [Counter](#counter)
   - [Keys](#keys)
@@ -463,7 +461,7 @@ such column. The prose is the same text the Info overlay shows.
 
 ### Attractors
 
-[Rossler](#rossler) · [Lorenz](#lorenz) · [Chua](#chua) · [Aizawa](#aizawa) · [Sprott](#sprott) · [Thomas](#thomas) · [Halvorsen](#halvorsen) · [Chen](#chen) · [Dadras](#dadras) · [Rabinovich-Fabrikant](#rabinovich-fabrikant) · [Burke-Shaw](#burke-shaw) · [Lü](#lü) · [Newton-Leipnik](#newton-leipnik) · [Hyper-Rössler (4D)](#hyper-rössler-4d) · [Sprott Morph](#sprott-morph) · [Sprott A](#sprott-a) · [Sprott B](#sprott-b) · [Sprott C](#sprott-c) · [Sprott D](#sprott-d) · [Sprott E](#sprott-e) · [Sprott F](#sprott-f) · [Sprott G](#sprott-g) · [Sprott H](#sprott-h) · [Sprott I](#sprott-i) · [Sprott J](#sprott-j) · [Sprott K](#sprott-k) · [Sprott L](#sprott-l) · [Sprott M](#sprott-m) · [Sprott N](#sprott-n) · [Sprott O](#sprott-o) · [Sprott P](#sprott-p) · [Sprott Q](#sprott-q) · [Sprott R](#sprott-r) · [Sprott S](#sprott-s)
+[Rossler](#rossler) · [Lorenz](#lorenz) · [Chua](#chua) · [Aizawa](#aizawa) · [Sprott](#sprott) · [Thomas](#thomas) · [Halvorsen](#halvorsen) · [Chen](#chen) · [Dadras](#dadras) · [Rabinovich-Fabrikant](#rabinovich-fabrikant) · [Burke-Shaw](#burke-shaw) · [Lü](#lü) · [Newton-Leipnik](#newton-leipnik) · [Hyper-Rössler (4D)](#hyper-rössler-4d) · [Sprott Morph](#sprott-morph) · [Sprott A](#sprott-a) · [Sprott B](#sprott-b) · [Sprott C](#sprott-c) · [Sprott D](#sprott-d) · [Sprott E](#sprott-e) · [Sprott F](#sprott-f) · [Sprott G](#sprott-g) · [Sprott H](#sprott-h) · [Sprott I](#sprott-i) · [Sprott J](#sprott-j) · [Sprott K](#sprott-k) · [Sprott L](#sprott-l) · [Sprott M](#sprott-m) · [Sprott N](#sprott-n) · [Sprott O](#sprott-o) · [Sprott P](#sprott-p) · [Sprott Q](#sprott-q) · [Sprott R](#sprott-r) · [Sprott S](#sprott-s) · [Custom equation](#custom-equation)
 
 #### Rossler
 
@@ -1005,10 +1003,6 @@ dz/dt = 1 + x
 
 `#sprotts` · 3-D flow
 
-### Custom
-
-[Custom equation](#custom-equation)
-
 #### Custom equation
 
 | Custom equation | turning | parameters |
@@ -1021,7 +1015,7 @@ Custom Equations — type your own system. The Equations module takes dx/dt, dy/
 
 ### Maps
 
-[Henon](#henon) · [Ikeda](#ikeda) · [Clifford](#clifford) · [Peter de Jong](#peter-de-jong) · [Gumowski-Mira](#gumowski-mira) · [Tinkerbell](#tinkerbell) · [Chirikov Standard Map](#chirikov-standard-map)
+[Henon](#henon) · [Ikeda](#ikeda) · [Clifford](#clifford) · [Peter de Jong](#peter-de-jong) · [Gumowski-Mira](#gumowski-mira) · [Tinkerbell](#tinkerbell) · [Chirikov Standard Map](#chirikov-standard-map) · [Bifurcation](#bifurcation) · [Poincaré Section](#poincaré-section)
 
 #### Henon
 
@@ -1130,10 +1124,6 @@ p' = p + K·sin θ
 
 `#standardmap` · discrete map
 
-### Analysis
-
-[Bifurcation](#bifurcation) · [Poincaré Section](#poincaré-section)
-
 #### Bifurcation
 
 | Bifurcation | turning |
@@ -1149,6 +1139,44 @@ Bifurcation Explorer — the fig-tree diagram, computed live. One parameter of t
 Poincaré Section — the continuous flow read as a discrete point set. The most recent flow mode is integrated privately and sampled only where it pierces a plane, going one way through it; what is left is the cross-section of the attractor, and the sheets that are invisible in the tangle are the whole picture here. AXIS and POS place the plane (POS is a fraction of the attractor's own reach along that axis, so 0 is through the middle whatever the system's size); DIR chooses which way through it counts. One way is the default, and it is not a preference: a bounded flow that goes up through a plane has to come back down through it, so keeping both superimposes two different sections and the return map stops being a function. VIEW picks the picture — PLANE draws the crossings where they physically are, FLAT lays the section out face on in the plane's own coordinates, and MAP is the FIRST-RETURN MAP: each crossing plotted against the next one. That last is where the route to chaos is legible — a periodic orbit is a handful of dots, a period-doubling is that set doubling, and a chaotic attractor is a single-humped curve, which is the logistic map's parabola surfacing inside a differential equation. The dotted 45° line is y = x, where the map's fixed points are. The crossing point is INTERPOLATED between the two samples that straddle the plane rather than snapped to the nearer of them — snapping smears the section by up to half a step of arc, which on these attractors is the same size as the gap between the sheets it is supposed to show. The same section is available as an overlay on the live attractor: Trace > Sect.
 
 `#poincare` · parametric
+
+### Solids
+
+[STL File](#stl-file) · [Terminal](#terminal) · [Terminal Animation](#terminal-animation) · [Host Shell](#host-shell) · [Desk](#desk)
+
+#### STL File
+
+| STL File | turning |
+| --- | --- |
+| ![STL File](docs/img/model/stlfile.jpg) | ![STL File turning](docs/img/model/stlfile.gif) |
+
+STL File — Load a stereolithograph (.stl, binary or ASCII) from disk with the Loader module's Load button and it renders as a rotating wireframe. Very large files are decimated to fit the 16-bit index pipeline.
+
+`#stlfile` · geometry
+
+#### Terminal
+
+Terminal — a live terminal, drawn as a model. It is the same texture-on-a-plane path the spectrogram and the recurrence plot use, so it rotates, zooms and takes a gradient like any other model; what is on the texture is [xterm-go](https://github.com/0magnet/xterm-go), a Go port of xterm.js, rendering a real terminal grid with WebGL2. That last part is what makes this possible rather than merely desirable: a terminal drawn as DOM could not be sampled into a texture at all, and rasterizing DOM every frame is not a thing worth doing. xterm-go renders into a canvas, and a canvas is a texture source. Behind it runs [websh](https://github.com/0magnet/websh), a Bash interpreter compiled to wasm over an in-memory filesystem, so this is a session you can work in and not a picture of one: pipes, globs, redirection, `for` loops, all of it rotating with the model. **Double-click** the canvas to type into it and **Esc** to give the keyboard back — a double click because a single one is how you rotate the model, and the two must not be the same gesture. Focusing it silences the app's own key bindings automatically, since Pong, the Keys module and the hovered-knob arrows all already stand aside for a focused textarea, which is what a terminal captures keys on. It can also be the BACKDROP behind another model, the way the spectrogram can.
+
+`#terminal` · geometry
+
+#### Terminal Animation
+
+Terminal Animation — the same terminal-on-a-plane, with a drawing program on it instead of a shell. The catalog is [tuiwasm](https://github.com/0magnet/tuiwasm): twenty-one animations — fire, plasma, a matrix rain, an aquarium, a bonsai growing branch by branch, Langton's ant, falling sand — plus charts, tables and styled text. Pick one from the **animation** selector on this model's panel. The animations draw at half-block resolution: every cell is an upper or lower block glyph carrying its own foreground and background, which is two independently colored pixels per cell and roughly square ones, since a terminal cell is about twice as tall as it is wide. They run at the frame rate — the cells are written straight into xterm-go's buffer rather than encoded as escape sequences and parsed back, which is the difference between sixty frames a second and a wedged tab. Nothing is wired to the keyboard here, unlike the Terminal model: these draw, they do not read, and the animations quit on a keystroke. Like the terminal it can also be the BACKDROP behind another model.
+
+`#termanim` · geometry
+
+#### Host Shell
+
+Host Shell — a real shell on the machine serving this page, drawn as a model. The Terminal model beside it is [websh](https://github.com/0magnet/websh), a Bash interpreter compiled into the wasm over a filesystem that exists only in the browser; this one is a pty on the host, reached through the same agent the desk's host pane uses. It needs the server to have been started with **--shell**, which also forces a loopback bind — the server refuses that flag on a listener the network can reach rather than warning about it. Without the flag the terminal still opens and says so, because an empty rectangle with no explanation is the worse answer. **Double-click** the canvas to type into it and **Esc** to give the keyboard back, exactly as for the Terminal model. It reached the screen before this as a window inside the Desk; as a model it is the shell without the window manager around it.
+
+`#hostterm` · geometry
+
+#### Desk
+
+Desk — a window manager, drawn as a model. The same texture-on-a-plane path the spectrogram, the recurrence plot and the Terminal use, with a whole [desk](https://github.com/0magnet/desk) on it: winbox windows, a [websh](https://github.com/0magnet/websh) shell in each, a file manager, all of them running while you rotate them. It needed something from desk to be possible at all. A window is more than its pane — its title, buttons and border are DOM, and DOM cannot be sampled into a texture — so texturing the panes alone would give a desk of frameless rectangles. desk's WebGL compositor can now REDRAW the frames instead: each title bar is rasterized with Canvas2D, text and buttons and all, into the same canvas it draws the panes into, and that canvas is a complete picture of the desk. Nothing types into it while it is a model, and that is the arrangement rather than an omission for the MOUSE: a click on a rotated quad would have to be cast through it to a texture coordinate and synthesized back into a DOM event at a place nothing is. What you get instead are two gestures. **Ctrl-drag** reaches the desk, so ctrl-dragging a title bar moves a window while an ordinary drag still turns the model; the **Pass-thru** switch in the Desk module swaps the two if you would rather drag windows directly and hold ctrl to turn. And the KEYBOARD does reach it: **double-click** the canvas to type into the focused window and **Esc** to give the keyboard back, the same pair the Terminal and Host Shell models use. Aiming is the honest limitation — you are pointing at a projection, so a title bar is not where the pointer says it is. The **Desk** switch (Console → Window) puts the same windows on the page as ordinary DOM, which is the one to use for arranging them; rearrange there, then come back here to look at it. Flatten to work, rotate to admire. It can also be the BACKDROP behind another model, the way the spectrogram and the terminal can.
+
+`#desk` · geometry
 
 ### Geometry
 
@@ -1253,44 +1281,6 @@ Torus — A doughnut-shaped surface of revolution generated by revolving a circl
 Magnetosphere — A visualization of magnetic field lines surrounding a dipole, similar to Earth's magnetosphere that shields the planet from solar wind.
 
 `#magnetosphere` · geometry
-
-### Solids
-
-[STL File](#stl-file) · [Terminal](#terminal) · [Terminal Animation](#terminal-animation) · [Host Shell](#host-shell) · [Desk](#desk)
-
-#### STL File
-
-| STL File | turning |
-| --- | --- |
-| ![STL File](docs/img/model/stlfile.jpg) | ![STL File turning](docs/img/model/stlfile.gif) |
-
-STL File — Load a stereolithograph (.stl, binary or ASCII) from disk with the Loader module's Load button and it renders as a rotating wireframe. Very large files are decimated to fit the 16-bit index pipeline.
-
-`#stlfile` · geometry
-
-#### Terminal
-
-Terminal — a live terminal, drawn as a model. It is the same texture-on-a-plane path the spectrogram and the recurrence plot use, so it rotates, zooms and takes a gradient like any other model; what is on the texture is [xterm-go](https://github.com/0magnet/xterm-go), a Go port of xterm.js, rendering a real terminal grid with WebGL2. That last part is what makes this possible rather than merely desirable: a terminal drawn as DOM could not be sampled into a texture at all, and rasterizing DOM every frame is not a thing worth doing. xterm-go renders into a canvas, and a canvas is a texture source. Behind it runs [websh](https://github.com/0magnet/websh), a Bash interpreter compiled to wasm over an in-memory filesystem, so this is a session you can work in and not a picture of one: pipes, globs, redirection, `for` loops, all of it rotating with the model. **Double-click** the canvas to type into it and **Esc** to give the keyboard back — a double click because a single one is how you rotate the model, and the two must not be the same gesture. Focusing it silences the app's own key bindings automatically, since Pong, the Keys module and the hovered-knob arrows all already stand aside for a focused textarea, which is what a terminal captures keys on. It can also be the BACKDROP behind another model, the way the spectrogram can.
-
-`#terminal` · geometry
-
-#### Terminal Animation
-
-Terminal Animation — the same terminal-on-a-plane, with a drawing program on it instead of a shell. The catalog is [tuiwasm](https://github.com/0magnet/tuiwasm): twenty-one animations — fire, plasma, a matrix rain, an aquarium, a bonsai growing branch by branch, Langton's ant, falling sand — plus charts, tables and styled text. Pick one from the **animation** selector on this model's panel. The animations draw at half-block resolution: every cell is an upper or lower block glyph carrying its own foreground and background, which is two independently colored pixels per cell and roughly square ones, since a terminal cell is about twice as tall as it is wide. They run at the frame rate — the cells are written straight into xterm-go's buffer rather than encoded as escape sequences and parsed back, which is the difference between sixty frames a second and a wedged tab. Nothing is wired to the keyboard here, unlike the Terminal model: these draw, they do not read, and the animations quit on a keystroke. Like the terminal it can also be the BACKDROP behind another model.
-
-`#termanim` · geometry
-
-#### Host Shell
-
-Host Shell — a real shell on the machine serving this page, drawn as a model. The Terminal model beside it is [websh](https://github.com/0magnet/websh), a Bash interpreter compiled into the wasm over a filesystem that exists only in the browser; this one is a pty on the host, reached through the same agent the desk's host pane uses. It needs the server to have been started with **--shell**, which also forces a loopback bind — the server refuses that flag on a listener the network can reach rather than warning about it. Without the flag the terminal still opens and says so, because an empty rectangle with no explanation is the worse answer. **Double-click** the canvas to type into it and **Esc** to give the keyboard back, exactly as for the Terminal model. It reached the screen before this as a window inside the Desk; as a model it is the shell without the window manager around it.
-
-`#hostterm` · geometry
-
-#### Desk
-
-Desk — a window manager, drawn as a model. The same texture-on-a-plane path the spectrogram, the recurrence plot and the Terminal use, with a whole [desk](https://github.com/0magnet/desk) on it: winbox windows, a [websh](https://github.com/0magnet/websh) shell in each, a file manager, all of them running while you rotate them. It needed something from desk to be possible at all. A window is more than its pane — its title, buttons and border are DOM, and DOM cannot be sampled into a texture — so texturing the panes alone would give a desk of frameless rectangles. desk's WebGL compositor can now REDRAW the frames instead: each title bar is rasterized with Canvas2D, text and buttons and all, into the same canvas it draws the panes into, and that canvas is a complete picture of the desk. Nothing types into it while it is a model, and that is the arrangement rather than an omission for the MOUSE: a click on a rotated quad would have to be cast through it to a texture coordinate and synthesized back into a DOM event at a place nothing is. What you get instead are two gestures. **Ctrl-drag** reaches the desk, so ctrl-dragging a title bar moves a window while an ordinary drag still turns the model; the **Pass-thru** switch in the Desk module swaps the two if you would rather drag windows directly and hold ctrl to turn. And the KEYBOARD does reach it: **double-click** the canvas to type into the focused window and **Esc** to give the keyboard back, the same pair the Terminal and Host Shell models use. Aiming is the honest limitation — you are pointing at a projection, so a title bar is not where the pointer says it is. The **Desk** switch (Console → Window) puts the same windows on the page as ordinary DOM, which is the one to use for arranging them; rearrange there, then come back here to look at it. Flatten to work, rotate to admire. It can also be the BACKDROP behind another model, the way the spectrogram and the terminal can.
-
-`#desk` · geometry
 
 ### Sequences
 

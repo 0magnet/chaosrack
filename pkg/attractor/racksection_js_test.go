@@ -38,10 +38,10 @@ func TestEveryBayNamesAModuleThatExists(t *testing.T) {
 		have[k] = true
 	}
 	// Built at runtime rather than declared in the markup, so the parser
-	// below cannot see them: the Patchbay, the Template legend, the two
+	// below cannot see them: the Patchbay, the two
 	// model selectors (buildCategoryModules), the Mod and EQ modules
 	// (buildModEQModules) and Custom's Equation editor (buildCustomPanel).
-	for _, k := range []string{"patchbay", "template", "models", "model", "mod", "eq", "equation"} {
+	for _, k := range []string{"patchbay", "models", "model", "mod", "eq", "equation"} {
 		have[k] = true
 	}
 	for k := range moduleSections {

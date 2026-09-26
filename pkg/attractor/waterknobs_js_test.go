@@ -5,6 +5,8 @@ package attractor
 import (
 	"syscall/js"
 	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
 // The waterfall's two surfaces want LINE, STEP and FFT an order of magnitude
@@ -86,4 +88,26 @@ func TestWaterfallKnobsClamp(t *testing.T) {
 			t.Errorf("CHAN %v gave channel %d", v, c)
 		}
 	}
+}
+
+// fakeDoc is a document with nothing in it but the elements the test names —
+// enough for the code that only ever calls getElementById. Node has no DOM at
+// all, and `doc` is a package variable, so substituting one is the whole of
+// what these tests need.
+func fakeDoc(byID map[string]js.Value) js.Value {
+	d := js.Global().Get("Object").New()
+	d.Set("getElementById", js.FuncOf(func(_ js.Value, args []js.Value) any {
+		if v, ok := byID[args[0].String()]; ok {
+			return v
+		}
+		return js.Null()
+	}))
+	return d
+}
+
+// withFakeDoc swaps the package's document for the duration of a test.
+func withFakeDoc(t *testing.T, byID map[string]js.Value) {
+	t.Helper()
+	prev := dom.Swap(fakeDoc(byID))
+	t.Cleanup(func() { dom.Swap(prev) })
 }

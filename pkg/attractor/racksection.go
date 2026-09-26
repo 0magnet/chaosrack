@@ -32,7 +32,7 @@ const (
 	secModel   = "model"   // the instrument proper and its per-mode panels
 	secDisplay = "display" // how the picture is drawn: pose, color, grid, style
 	secGen     = "gen"     // the signal sources: test signal, oscillators, keys, sequencers
-	secUtility = "utility" // template: about the rack, not in it
+	secUtility = "utility" // where a module nobody has placed lands, to be noticed
 )
 
 // domainLine is the category row the rack's two halves meet at.
@@ -47,8 +47,9 @@ const domainLine = "Scope"
 
 // sectionOrder is every bay in the order the rack reads, top to bottom:
 //
-//	console
-//	the visual model rows, then their own panels, then DISPLAY
+//	DISPLAY: the capture monitor and what places and colors the picture
+//	the console
+//	the visual model rows, then their own panels
 //	the Scope row
 //	GENERATORS
 //	the auditory model rows, then METERING, MODULATION, UTILITY
@@ -63,11 +64,11 @@ func buildSectionOrder() []string {
 	if line < 0 {
 		line = len(cats)
 	}
-	out := []string{secConsole}
+	out := []string{secDisplay, secConsole}
 	for _, c := range cats[:line] {
 		out = append(out, categorySection(c))
 	}
-	out = append(out, secModel, secDisplay)
+	out = append(out, secModel)
 	rest := cats[line:]
 	if len(rest) > 0 {
 		out = append(out, categorySection(rest[0]))
@@ -121,10 +122,10 @@ var sectionTitle = map[string]string{
 // landing in whatever bay it was declared next to.
 var moduleSections = map[string]string{
 	"console": secConsole,
-	// The capture monitor opens the rack. It carries a screen, so it leads a
-	// bay wherever it goes; at the top it is the rack's own output monitor
-	// beside the Console, the first thing on the left edge.
-	"record": secConsole,
+	// The capture monitor opens the rack, in the display bay: it carries a
+	// screen, so it leads a bay wherever it goes, and at the top of the left
+	// edge it is the first thing read. See moduleOrder.
+	"record": secDisplay,
 	// Saving and recalling the whole rack is the Console's job.
 	"presets": secConsole,
 	// Timing and the Lyapunov readout measure the INSTRUMENT, not the
@@ -157,15 +158,13 @@ var moduleSections = map[string]string{
 	"animation":  secModel,
 	"equation":   secModel,
 
-	"grid":     secDisplay,
-	"view":     secDisplay,
-	"position": secDisplay,
-	"display":  secDisplay,
-	"colors":   secDisplay,
-	"palette":  secDisplay,
-	"layers":   secDisplay,
-	"spectro":  secDisplay,
-	"desk":     secDisplay,
+	"grid":            secDisplay,
+	"view":            secDisplay,
+	"position":        secDisplay,
+	"display":         secDisplay,
+	"layers · colors": secDisplay,
+	"spectro":         secDisplay,
+	"desk":            secDisplay,
 
 	// Everything that MAKES a signal, under the scope that draws one.
 	"test":      secGen,
@@ -182,8 +181,6 @@ var moduleSections = map[string]string{
 	// on. They were in no section at all, and fell to UTILITY.
 	"mod": secMod,
 	"eq":  secMod,
-
-	"template": secUtility,
 }
 
 // moduleSection is the bay a module belongs in. A module nobody has placed
@@ -266,11 +263,15 @@ func sectionOrderOf(items []packItem) []int {
 	order := make([]int, 0, len(items))
 	for _, s := range sectionOrder {
 		for _, panel := range []bool{false, true} {
+			from := len(order)
 			for i, it := range items {
 				if it.Section == s && (moduleSections[it.Key] == secModel) == panel {
 					order = append(order, i)
 				}
 			}
+			slices.SortStableFunc(order[from:], func(a, b int) int {
+				return moduleRank(items[a].Key) - moduleRank(items[b].Key)
+			})
 		}
 	}
 	// Anything whose section is not in the order at all still gets placed,
@@ -281,4 +282,19 @@ func sectionOrderOf(items []packItem) []int {
 		}
 	}
 	return order
+}
+
+// moduleOrder is the order within a section where it matters more than the
+// order the modules were declared in. The display bay opens the rack: the
+// capture monitor, then what places the model on screen (its pose, its
+// position, how many views, how it is drawn), then how it is colored.
+// Anything not listed keeps its declared order, after these.
+var moduleOrder = []string{"record", "view", "position", "grid", "display", "layers · colors"}
+
+// moduleRank is a module's place in moduleOrder, or after all of it.
+func moduleRank(key string) int {
+	if i := slices.Index(moduleOrder, key); i >= 0 {
+		return i
+	}
+	return len(moduleOrder)
 }

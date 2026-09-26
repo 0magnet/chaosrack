@@ -461,8 +461,15 @@ func relayoutInstrumentUnits(f js.Value) {
 		if !u.Truthy() {
 			u = newInstrumentUnit(panel)
 		}
-		// Last, always: instrument units sit below the subracks until a
-		// unit order of their own is worth persisting.
+		// The scope sits on the line between the rack's halves: directly above
+		// the bay that holds the Scope row. Anything else, or a rack with no
+		// Scope row, goes below the subracks.
+		if at := unitHoldingSection(categorySection(domainLine)); iu.panelID == "scope-panel" && at.Truthy() {
+			if !u.Get("nextSibling").Equal(at) {
+				f.Call("insertBefore", u, at)
+			}
+			continue
+		}
 		f.Call("appendChild", u)
 	}
 }
@@ -608,11 +615,10 @@ func layoutRackHandles() {
 
 // setScopeUnit bolts the scope's unit into the frame or takes it out.
 //
-// Its own switch, not a module switch, because it is not a module: the
-// rack's Modules list is what is in the openings, and a unit is a peer of
-// an opening rather than a thing inside one. This is also why it is
-// independent of the MODEL knob — nothing about which model is on the main
-// canvas has any bearing on whether an instrument is in the rack.
+// It is always in now: the scope is the line between the rack's visual and
+// auditory halves, and an instrument that could be switched out of the rack
+// was a switch on the Console for something that belongs there. Kept as a
+// function because the screen's power cache has to hear about it.
 func setScopeUnit(on bool) {
 	p := dom.Doc.Call("getElementById", "scope-panel")
 	if !p.Truthy() {
@@ -628,20 +634,6 @@ func setScopeUnit(on bool) {
 		u.Get("style").Set("display", "none")
 	}
 	scopeScreenPower.invalidate() // the answer just changed; do not wait to notice
-}
-
-// wireScopeUnit hooks the Scope switch up and applies its stored state.
-func wireScopeUnit() {
-	sw := dom.Doc.Call("getElementById", "scope-on")
-	if !sw.Truthy() {
-		return
-	}
-	sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
-		setScopeUnit(sw.Get("checked").Bool())
-		saveRackLayout()
-		return nil
-	}))
-	setScopeUnit(sw.Get("checked").Bool())
 }
 
 // unitEarWidthPx is the frame either side of the opening, in pixels at the
@@ -931,4 +923,50 @@ func sectionOfModule(m js.Value) string {
 		}
 	}
 	return moduleSection(moduleKeyOf(m))
+}
+
+// unitHoldingSection is the subrack unit whose opening holds the first
+// module of a section, or undefined.
+func unitHoldingSection(section string) js.Value {
+	for _, open := range unitOpenings() {
+		mods := open.Get("children")
+		for i := range mods.Get("length").Int() {
+			m := mods.Index(i)
+			if m.Get("classList").Call("contains", "sect").Bool() && sectionOfModule(m) == section {
+				return open.Call("closest", "."+unitClass)
+			}
+		}
+	}
+	return js.Undefined()
+}
+
+// wireColorLockSwitch makes the Held switch drive the color-lock select.
+//
+// Range was a rotary with two positions, which the panel draws as a switch
+// everywhere else; as one it shares a cell with Fill and Invert, and that
+// is what fits Layers, Colors and Palette in four slots rather than five.
+// The select stays the value, so reset and the permalink drive it as they
+// always did, and the switch follows it.
+func wireColorLockSwitch() {
+	sel := dom.Doc.Call("getElementById", "color-lock")
+	sw := dom.Doc.Call("getElementById", "color-lock-sw")
+	if !sel.Truthy() || !sw.Truthy() {
+		return
+	}
+	sw.Set("checked", sel.Get("value").String() == "1")
+	sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+		v := "0"
+		if sw.Get("checked").Bool() {
+			v = "1"
+		}
+		if sel.Get("value").String() != v {
+			sel.Set("value", v)
+			sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+		}
+		return nil
+	}))
+	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+		sw.Set("checked", sel.Get("value").String() == "1")
+		return nil
+	}))
 }

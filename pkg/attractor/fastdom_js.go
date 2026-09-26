@@ -211,7 +211,7 @@ const fastSource = `(function () {
     // exactly as buildControlModel does it: each panel module in document
     // order, then its .pcell and .punit children.
     cells: function () {
-      var sects = doc.querySelectorAll(".modules .sect:not(.template-mod)");
+      var sects = doc.querySelectorAll(".modules .sect");
       var out = [], i, j;
       for (i = 0; i < sects.length; i++) {
         var cs = sects[i].querySelectorAll(".pcell, .punit");

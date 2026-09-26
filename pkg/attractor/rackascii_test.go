@@ -11,7 +11,7 @@ func demoRack() ([]rackModule, []packItem) {
 		slots   int
 		section string
 	}{
-		{"console", 6, secConsole}, {"presets", 4, secConsole}, {"template", 3, secConsole},
+		{"console", 6, secConsole}, {"presets", 4, secConsole},
 		{"test", 5, secGen},
 		{"loudness", 6, secAnalyze}, {"distortion", 6, secAnalyze},
 		{"wow & flutter", 6, secAnalyze}, {"counter", 3, secAnalyze}, {"timing", 5, secAnalyze},
