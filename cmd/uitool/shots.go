@@ -31,7 +31,7 @@ import (
 
 var (
 	shotDirOut = flag.String("dir", "docs/img", "output directory for gallery images")
-	shotModels = flag.String("models", "", "comma-separated model filter (default: all attractors)")
+	shotModels = flag.String("models", "", "comma-separated model filter (default: all attractors; for sweep, every model, and the list is walked in its own order)")
 	shotHero   = flag.Bool("hero", true, "capture the hero shot")
 	cellPx     = flag.Int("cell", 320, "contact-sheet cell size in px")
 )
@@ -52,7 +52,7 @@ var shotModelList = func() []string {
 }()
 
 func runShots() {
-	c, err := cdp.Dial(*cdpPort, *target)
+	c, err := dial()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "shots:", err)
 		os.Exit(1)

@@ -18,7 +18,10 @@
 // means it hits the same hit-testing / z-order / gesture paths a user does.
 //
 // It talks to whatever Chromium/Brave is running with --remote-debugging-port
-// (default 9222) and picks the tab whose URL contains -target.
+// (default 9222) and picks the tab whose URL contains -target — or, with
+// -headless, runs in a private headless browser that never takes the screen:
+//
+//	uitool monkey -headless -serve ./chaosrack -seed 7 -delay 0
 //
 // This is a crash/invariant fuzzer — it finds "the app broke", not "the app is
 // visually/semantically wrong". For the latter see cmd/uigolden.
@@ -37,8 +40,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-
-	"github.com/0magnet/cdp"
 )
 
 var (
@@ -116,10 +117,10 @@ type violation struct {
 }
 
 func runMonkey() {
-	c, err := cdp.Dial(*cdpPort, *target)
+	c, err := dial()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "monkey:", err)
-		os.Exit(1)
+		exit(1)
 	}
 	fmt.Printf("monkey: seed=%d steps=%d tab=%s\n", *seed, *steps, c.URL)
 	c.Eval(setupJS)
@@ -274,7 +275,7 @@ func runMonkey() {
 			fmt.Println("  screenshot:", p)
 		}
 		fmt.Printf("  replay: monkey -seed %d -steps %d\n", *seed, *steps)
-		os.Exit(1)
+		exit(1)
 	}
 }
 

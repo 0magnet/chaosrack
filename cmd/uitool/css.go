@@ -8,8 +8,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/0magnet/cdp"
 )
 
 // Auditing the panel stylesheet.
@@ -126,7 +124,7 @@ func runCSS() {
 	}
 
 	// ── What styles nothing. Needs the live panel.
-	c, err := cdp.Dial(*cdpPort, *target)
+	c, err := dial()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\n(no browser on :%d matching %q — skipping the dead-rule pass)\n", *cdpPort, *target)
 		return

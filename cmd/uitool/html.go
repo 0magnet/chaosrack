@@ -42,7 +42,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/0magnet/cdp"
 	"golang.org/x/net/html"
 )
 
@@ -57,7 +56,7 @@ var (
 var mojibakeMarks = []string{"�", "Â", "Ã¢", "Ã°"}
 
 func runHTML() {
-	c, err := cdp.Dial(*cdpPort, *target)
+	c, err := dial()
 	if err != nil {
 		fmt.Println("dial:", err)
 		os.Exit(1)
