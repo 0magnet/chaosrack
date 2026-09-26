@@ -125,8 +125,10 @@ func Pack(items []Item, capacity int, monitor map[string]int) [][]int {
 		// simply go first and they after it. The bay still begins with a
 		// display, and nothing leaves its section.
 		if it.Lead && w > 0 && used > 0 && !led {
+			// Never a head: a carried head would carry the one that carried
+			// it on its next turn, and the two would trade places for ever.
 			k := len(cur)
-			for k > 0 && items[cur[k-1]].Section == it.Section {
+			for k > 0 && items[cur[k-1]].Section == it.Section && !items[cur[k-1]].Lead {
 				k--
 			}
 			if k < len(cur) {
@@ -173,7 +175,13 @@ func Pack(items []Item, capacity int, monitor map[string]int) [][]int {
 		// whichever section opens the bay: a bay carries one screen at its
 		// left, and the sections that come to share the row behind it are
 		// plugged into that one rather than bringing their own.
-		open := len(cur) == 0
+		// Open until something with width is in it. Zero-width modules (switched
+		// out, hidden) are carried along but do not open a bay: counted as
+		// opening one, a head that came after them was never recorded as the
+		// bay's lead, and the page hung here on a bay that began with them. Nor
+		// do they charge their section's monitor: a switched-out module would
+		// then give the bay a screen, and a head could land after anything.
+		open := used == 0 && w > 0
 		mw := 0
 		if open {
 			mw = monitorFor(it.Section)
