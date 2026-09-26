@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs pages onefile site readme-check site-check
+.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs pages onefile site readme-check site-check sweep
 
 # The targets that matter are `format` and `check`, and they mean the same
 # thing here as in 0pcom/skywire, which is the reference for these repos.
@@ -210,6 +210,17 @@ wasm: ## Rebuild the embedded Go wasm (assets/gowasm/chaosrack.wasm)
 	@ls -l assets/gowasm/chaosrack.wasm
 	@# Recorded so a stale artifact fails a test instead of shipping quietly.
 	@go run ./cmd/wasmstamp > assets/gowasm/built-from.txt
+
+# The page, driven: every model and every switch in a private headless
+# browser, against a server of its own, with nothing on screen and fresh
+# storage. Fails on a page error, a freeze, a bay that overflows, or a
+# listener freed while still attached (see cmd/uitool/sweep.go). Built from
+# the current source first, since the server serves the embedded wasm.
+# SWEEP= passes flags on: SWEEP='-models custom,lorenz -switches=false'.
+sweep: wasm ## Walk every model and switch in a headless browser (nothing on screen)
+	@d=$$(mktemp -d); trap 'rm -rf $$d' EXIT; \
+		go build -o $$d/chaosrack . && go build -o $$d/uitool ./cmd/uitool && \
+		$$d/uitool sweep -headless -serve $$d/chaosrack $(SWEEP)
 
 tinywasm: ## Rebuild the embedded TinyGo wasm (assets/tinywasm/chaosrack-tiny.wasm)
 	@# Recorded here because it was recorded NOWHERE: not the Makefile, not a

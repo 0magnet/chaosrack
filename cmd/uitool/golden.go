@@ -70,7 +70,7 @@ var states = []state{
 }
 
 func runGolden() {
-	c, err := cdp.Dial(*cdpPort, *target)
+	c, err := dial()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "uigolden:", err)
 		os.Exit(1)

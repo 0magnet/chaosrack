@@ -48,7 +48,7 @@ var demoModes = []string{"lorenz", "rossler", "chua", "aizawa", "sprott", "thoma
 	"tetrahedron", "dodecahedron", "icosahedron", "nestedcube"}
 
 func runDemo() {
-	c, err := cdp.Dial(*cdpPort, *target)
+	c, err := dial()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "demo:", err)
 		os.Exit(1)

@@ -10,10 +10,12 @@
 //	uitool site   [flags]   per-model HTML pages + sitemap (see site.go)
 //	uitool demo   [flags]   chaos-monkey demo-reel recorder (see demo.go)
 //	uitool layout [flags]   control-panel geometry invariants (see layout.go)
+//	uitool sweep  [flags]   every model and switch in a fixed order, with invariants (see sweep.go)
 //	uitool spec   [flags]   WAV → spectrogram PNG, and PNG diff (see spec.go)
 //
-// Both talk to an already-open tab in a Chromium/Brave started with
-// --remote-debugging-port (default 9222).
+// They talk to an already-open tab in a Chromium/Brave started with
+// --remote-debugging-port (default 9222), or with -headless (and -serve) to a
+// private headless one of their own that nothing sees (see headless.go).
 package main
 
 import (
@@ -35,7 +37,13 @@ func main() {
 	if err := flag.CommandLine.Parse(os.Args[2:]); err != nil {
 		os.Exit(2)
 	}
+	if err := setUp(); err != nil {
+		fmt.Fprintln(os.Stderr, "uitool:", err)
+		exit(1)
+	}
 	switch sub {
+	case "sweep":
+		runSweep()
 	case "monkey":
 		runMonkey()
 	case "golden":
@@ -65,9 +73,10 @@ func main() {
 	default:
 		usage()
 	}
+	exit(0)
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: uitool <css|monkey|golden|shots|gifs|portraits|modules|readme|demo> [flags]   (uitool <sub> -h for flags)")
+	fmt.Fprintln(os.Stderr, "usage: uitool <css|monkey|sweep|golden|shots|gifs|portraits|modules|readme|demo> [flags]   (uitool <sub> -h for flags)")
 	os.Exit(2)
 }

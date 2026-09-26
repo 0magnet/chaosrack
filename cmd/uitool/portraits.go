@@ -66,7 +66,7 @@ func portraitVariations(idx int) []colorVariation {
 }
 
 func runPortraits() {
-	c, err := cdp.Dial(*cdpPort, *target)
+	c, err := dial()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "portraits:", err)
 		os.Exit(1)

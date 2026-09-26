@@ -34,7 +34,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/0magnet/cdp"
 	"github.com/0magnet/chaosrack/pkg/rackspec"
 )
 
@@ -106,7 +105,7 @@ type layoutBox struct {
 }
 
 func runLayout() {
-	c, err := cdp.Dial(*cdpPort, *target)
+	c, err := dial()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "layout: no tab —", err)
 		os.Exit(2)

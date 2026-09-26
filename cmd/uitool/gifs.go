@@ -46,7 +46,7 @@ const (
 )
 
 func runGifs() {
-	c, err := cdp.Dial(*cdpPort, *target)
+	c, err := dial()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "gifs:", err)
 		os.Exit(1)
