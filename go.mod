@@ -3,7 +3,7 @@ module github.com/0magnet/chaosrack
 go 1.26.5
 
 require (
-	github.com/0magnet/audioprism-go v0.0.0-20260923100834-d4f750669db1
+	github.com/0magnet/audioprism-go v0.0.0-20260926095956-da4ab12d3d69
 	github.com/0magnet/calvin v0.0.0-20260915170035-09af7075474e
 	github.com/0magnet/cdp v0.0.0-20260924200007-30a85ea3de08
 	github.com/0magnet/desk v0.0.0-20260923150657-2a7f55804f01
