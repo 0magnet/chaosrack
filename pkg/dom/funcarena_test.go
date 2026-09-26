@@ -63,3 +63,29 @@ func TestRebuildIntoLeavesThePanelArenaAlone(t *testing.T) {
 	}
 	RebuildInto(&arena, func() {}) // free the one above
 }
+
+// A listener hung on something the rebuild does NOT replace is freed while
+// still attached. The check names it at the next rebuild; one on something the
+// rebuild did replace, now off the page, is not a leak.
+func TestArenaCheckFindsAReleasedListenerStillAttached(t *testing.T) {
+	saved := arenaCheck
+	defer func() { arenaCheck = saved }()
+	arenaCheck = js.Global().Get("Function").New(arenaCheckJS).Invoke()
+
+	onPage := js.Global().Get("EventTarget").New()
+	onPage.Set("isConnected", true)
+	gone := js.Global().Get("EventTarget").New()
+	gone.Set("isConnected", false)
+
+	var arena []js.Func
+	RebuildInto(&arena, func() {
+		onPage.Call("addEventListener", "change", FuncOf(func(js.Value, []js.Value) any { return nil }))
+		gone.Call("addEventListener", "change", FuncOf(func(js.Value, []js.Value) any { return nil }))
+	})
+	leaks := js.Global().Get("__domArenaLeaks")
+	before := leaks.Length()
+	RebuildInto(&arena, func() {})
+	if n := leaks.Length() - before; n != 1 {
+		t.Fatalf("the check reported %d leaks, want 1", n)
+	}
+}

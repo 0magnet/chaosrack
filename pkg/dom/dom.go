@@ -40,6 +40,7 @@ var (
 func Init() {
 	Doc = js.Global().Get("document")
 	Body = Doc.Get("body")
+	enableArenaCheck()
 }
 
 // Swap replaces the document and returns the previous one, for a test that
