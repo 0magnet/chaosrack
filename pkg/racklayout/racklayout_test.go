@@ -11,9 +11,8 @@ import (
 // rack nobody had rearranged.
 func TestRackLayoutRoundTrips(t *testing.T) {
 	in := Layout{
-		Order:    []string{"console", "parameters", "gen x", "model out"},
-		Hidden:   []string{"record", "style"},
-		Switches: []string{"keys-on", "tm-on"},
+		Order:  []string{"console", "parameters", "gen x", "model out"},
+		Hidden: []string{"record", "style"},
 	}
 	got := Decode(in.Encode())
 	for _, c := range []struct {
@@ -22,7 +21,6 @@ func TestRackLayoutRoundTrips(t *testing.T) {
 	}{
 		{"order", got.Order, in.Order},
 		{"hidden", got.Hidden, in.Hidden},
-		{"switches", got.Switches, in.Switches},
 	} {
 		if strings.Join(c.got, "|") != strings.Join(c.want, "|") {
 			t.Errorf("%s came back %v, want %v", c.what, c.got, c.want)
@@ -34,11 +32,11 @@ func TestRackLayoutRoundTrips(t *testing.T) {
 // module called "".
 func TestRackLayoutEmpty(t *testing.T) {
 	got := Decode(Layout{}.Encode())
-	if len(got.Order)+len(got.Hidden)+len(got.Switches) != 0 {
+	if len(got.Order)+len(got.Hidden) != 0 {
 		t.Errorf("an empty layout round-tripped to %+v", got)
 	}
 	// And so does a record that was never written.
-	if got := Decode(""); len(got.Order)+len(got.Hidden)+len(got.Switches) != 0 {
+	if got := Decode(""); len(got.Order)+len(got.Hidden) != 0 {
 		t.Errorf("no record at all decoded to %+v", got)
 	}
 }
@@ -118,29 +116,11 @@ func TestMergeModuleOrder(t *testing.T) {
 	}
 }
 
-// The list of switches the record carries, checked for the two ways it can
-// silently go wrong: a duplicate (saved twice, restored twice) and the rack
-// bay creeping in. The bay is the frame the modules sit in, not a module, and
-// it has persisted under its own key through setRackBay since before this
-// record existed; listing it here would give it two owners.
-//
-// That these ids are also in the permalink's table is checked in
-// racklayout_js_test.go, where permaCtls is visible.
-func TestConsoleModuleSwitchesAreDistinctAndNotTheBay(t *testing.T) {
-	seen := map[string]bool{}
-	for _, id := range ConsoleModuleSwitches {
-		if id == "handles-on" {
-			t.Errorf("the rack bay is not a module; it persists through setRackBay")
-		}
-		if !strings.HasSuffix(id, "-on") {
-			t.Errorf("%q does not look like a module switch id", id)
-		}
-		if seen[id] {
-			t.Errorf("%q is listed twice, so it would be saved twice", id)
-		}
-		seen[id] = true
-	}
-	if len(seen) == 0 {
-		t.Error("no console module switches are persisted at all")
+// A record from before the Console lost its module switches still decodes:
+// the field it no longer writes is ignored, and the order survives.
+func TestRackLayoutIgnoresTheRetiredSwitchesField(t *testing.T) {
+	got := Decode("order=console,view;hidden=;switches=scope-on,tpl-on")
+	if strings.Join(got.Order, "|") != "console|view" {
+		t.Errorf("order came back %v", got.Order)
 	}
 }

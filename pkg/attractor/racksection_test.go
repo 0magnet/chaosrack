@@ -82,9 +82,10 @@ func TestEverySectionIsOrderedAndNamed(t *testing.T) {
 	// And every declared section is actually used, or it is a bay that will
 	// never appear and a name nobody will see. A model row is used by its
 	// own category module, which is generated rather than listed in
-	// moduleSections, so it is matched by name instead.
+	// moduleSections, so it is matched by name instead. UTILITY is where an
+	// unplaced module lands, so it is right for it to be empty.
 	for _, s := range sectionOrder {
-		if seen[s] || isCategorySection(s) {
+		if seen[s] || isCategorySection(s) || s == secUtility {
 			continue
 		}
 		t.Errorf("section %q is declared and ordered but holds no modules", s)
@@ -104,7 +105,7 @@ func TestAnUnplacedModuleGoesToTheEnd(t *testing.T) {
 }
 
 // The rack reads top to bottom as two domains with the scope between them:
-// the console, the visual model rows and how they are drawn, the Scope row,
+// the display bay and the console, the visual model rows, the Scope row,
 // the generators, the auditory rows and what measures and routes them. If
 // this is rearranged, the line between the two stops being a line.
 func TestTheBaysAreStackedAcrossTheDomainLine(t *testing.T) {
@@ -114,7 +115,7 @@ func TestTheBaysAreStackedAcrossTheDomainLine(t *testing.T) {
 			fixed = append(fixed, s)
 		}
 	}
-	want := []string{secConsole, secModel, secDisplay, secGen, secAnalyze, secMod, secUtility}
+	want := []string{secDisplay, secConsole, secModel, secGen, secAnalyze, secMod, secUtility}
 	if !slices.Equal(fixed, want) {
 		t.Fatalf("fixed bays are %v, want %v", fixed, want)
 	}
@@ -122,8 +123,8 @@ func TestTheBaysAreStackedAcrossTheDomainLine(t *testing.T) {
 	if line >= len(sectionOrder) {
 		t.Fatalf("no %s row", domainLine)
 	}
-	if sectionRank(secDisplay) != line-1 || sectionRank(secGen) != line+1 {
-		t.Errorf("the %s row is not between DISPLAY and GENERATORS: %v", domainLine, sectionOrder)
+	if sectionRank(secModel) != line-1 || sectionRank(secGen) != line+1 {
+		t.Errorf("the %s row is not between the visual panels and GENERATORS: %v", domainLine, sectionOrder)
 	}
 }
 
@@ -149,8 +150,8 @@ func TestTheModelRowsFollowTheSelectorOrder(t *testing.T) {
 	for i, c := range cats {
 		r := sectionRank(categorySection(c))
 		switch {
-		case i < line && r > sectionRank(secDisplay):
-			t.Errorf("visual row %s sits below DISPLAY", c)
+		case i < line && r > sectionRank(secModel):
+			t.Errorf("visual row %s sits below the model panels", c)
 		case i > line && r < sectionRank(secGen):
 			t.Errorf("auditory row %s sits above the generators", c)
 		}

@@ -126,7 +126,7 @@ var crtOverriddenIDs = map[string]bool{
 func buildControlModel() {
 	panelModules = panelModules[:0]
 	tipN := 0
-	sects := dom.Doc.Call("querySelectorAll", ".modules .sect:not(.template-mod)")
+	sects := dom.Doc.Call("querySelectorAll", ".modules .sect")
 	for i := range sects.Get("length").Int() {
 		sect := sects.Index(i)
 		m := &Module{sect: sect}

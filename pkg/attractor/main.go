@@ -695,7 +695,7 @@ func onResetAll(this js.Value, args []js.Value) any {
 	}{
 		{"spect-fill", false}, {"audio-mod", false},
 		{"fg-on", false}, {"spectro-skin", false},
-		{"tpl-on", false}, {"handles-on", false}, {"desk-pass", false}, {"desk-contain", false},
+		{"handles-on", false}, {"desk-pass", false}, {"desk-contain", false},
 		{"rhythm-run", false}, {"jam-sw", false}, {"show-meters", true},
 		{"ring-sw", false}, {"twin-sw", false}, {"sect-sw", false},
 		{"link-sw", true},
@@ -1305,18 +1305,12 @@ func wirePanelSwitches() {
 	wirePresetModule()
 	buildDemoModules()
 
-	// Template legend module + its Window-group toggle.
-	buildTemplateModule()
 	if sw := dom.Doc.Call("getElementById", "handles-on"); sw.Truthy() {
 		sw.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
 			setRackBay(sw.Get("checked").Bool())
 			return nil
 		}))
 	}
-	dom.Doc.Call("getElementById", "tpl-on").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
-		setTemplate(dom.Doc.Call("getElementById", "tpl-on").Get("checked").Bool())
-		return nil
-	}))
 
 	// Event: points/line toggle
 	dom.Doc.Call("getElementById", "use-points").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
@@ -1457,15 +1451,7 @@ func wireViewGridStack() {
 	grid.setSweepTargets(run.selectedMode)
 	grid.buildSweepDial()
 	rscope.buildRackScope() // the rack scope's own dials, independent of the model
-	if clk := dom.Doc.Call("getElementById", "color-lock"); clk.Truthy() {
-		if ch := dom.Doc.Call("getElementById", "colorlock-stack"); ch.Truthy() {
-			cstack := soloKnob(clk)
-			addSelectorLabels(cstack, []string{"auto", "held"}, clk).
-				Set("id", "color-lock-ring")
-			ch.Call("appendChild", cstack)
-			clk.Get("style").Set("display", "none")
-		}
-	}
+	wireColorLockSwitch()
 	updateGradientUI()
 	// And again when the fonts land: the widths are measured from text, and the
 }
@@ -1481,7 +1467,7 @@ func buildRackAndRestore() {
 	// afterward gives a switch that says a module is in while it is out.
 	restoreRackLayout()
 	restoreRackBay()
-	wireScopeUnit() // the scope is a unit, so it has its own switch, not a module switch
+	setScopeUnit(true) // the scope is a unit of the rack, always bolted in
 	// One row per model category, each with the rotary that selects within
 	// it. Before the first layout pass, so the rows are packed with
 	// everything else rather than appearing after it.
@@ -1829,17 +1815,10 @@ func buildPanelKnobs() {
 func capturePermalinkAndRestore() {
 	// state so the current view is always shareable.
 	perma.capturePermaDefaults()
-	// Between the two on purpose. After capturePermaDefaults, or a module this
-	// browser has open would be recorded as that switch's pristine value and
-	// then left out of every link shared from this session. Before
-	// applyStateFromHash, so a shared link beats a local preference — see
-	// restoreConsoleModuleSwitches for the whole argument.
-	restoreConsoleModuleSwitches()
 	applyStateFromHash()
 	// A link that opens on the spectrogram without naming a map gets the
 	// spectrogram's own; one that names a map keeps it.
 	spect.followMode(run.selectedMode)
-	wireConsoleModuleSwitchSaves()
 	perma.startPermalinkSync()
 
 	// Final tooltip pass now that every selector (gradient / model / style) is

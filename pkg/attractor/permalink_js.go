@@ -63,7 +63,6 @@ var permaCtls = []permaCtl{
 	{"sg", "scope-grat", true},
 	{"rm", "rec-mon-on", true},
 	{"dm", "desk-mon-on", true},
-	{"su", "scope-on", true},
 	{"vl", "link-sw", true},
 	{"vf", "focus-n", false},
 	{"po", "sect-sw", true},
@@ -73,7 +72,6 @@ var permaCtls = []permaCtl{
 	// what a module can hold rather than an instrument, and a rack does not
 	// permanently carry its own documentation. Every other module is simply
 	// always there.
-	{"tl", "tpl-on", true},
 	{"gr", "gradient-reverse", true},
 	{"sk", "skin-visual", false},
 	{"fl", "spect-fill", true},

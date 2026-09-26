@@ -186,32 +186,30 @@ var modeGroups = []struct {
 		"hyperrossler",
 		"sprottmorph", "sprotta", "sprottb", "sprottc", "sprottd",
 		"sprotte", "sprottf", "sprottg", "sprotth", "sprotti", "sprottj", "sprottk",
-		"sprottl", "sprottm", "sprottn", "sprotto", "sprottp", "sprottq", "sprottr", "sprotts"}},
-	// Custom is its own category and NOT also an entry in Attractors, where it
-	// used to be listed twice. It is a different kind of thing from the rest
-	// of that list: every other entry is a system someone published and this
-	// one is whichever system you type. As the last of fifteen named
-	// attractors it was also the least findable thing in the app, which is a
-	// poor place for the feature the README leads with.
-	//
-	// It sits right after them all the same, because what you type is a flow
-	// and this is where the flows are. It was the last row of all, which was
-	// the least findable place again, and its head sat alone at the end of a
-	// bay while its Parameters module fell into the bay before it. Beside the
-	// Attractors overflow the head and the module share a bay with room left.
-	{"Custom", []string{"custom"}},
+		"sprottl", "sprottm", "sprottn", "sprotto", "sprottp", "sprottq", "sprottr", "sprotts",
+		// The system you type, last: every other entry is a system someone
+		// published and this one is whichever you write, but it is a flow and
+		// this is where the flows are. It was a category of its own, whose
+		// head was a screen and a knob with one position on it; here it is
+		// one more position on the Attractors 2 knob, and its Equation and
+		// Parameters panels come up in that bay when it runs.
+		"custom"}},
 	// Discrete maps sit with the other dynamical systems rather than after the
 	// geometry: they are the same subject read one iterate at a time instead of
 	// one integration step at a time, and burying them past the polyhedra would
 	// repeat the mistake that hid the turtle.
+	//
+	// The bifurcation plot and the Poincaré section are here too. The first is
+	// a map's, and the second is how a flow is MADE a map — the first-return
+	// map on a plane it keeps crossing. They were an Analysis row of their
+	// own, and Maps and Analysis were thirteen slots between them, one more
+	// than a bay; under one head they share one.
 	{"Maps", []string{"henon", "ikeda", "clifford", "dejong", "mira",
-		"tinkerbell", "standardmap"}},
-	// The analyses of the dynamics themselves: the bifurcation plot of a map
-	// and the Poincaré section of a flow. They sit with the systems they
-	// analyze, above the scope. The live-signal displays (recurrence, RTA,
-	// transfer, waterfall) were listed here too, and a model belongs to the
-	// first category that lists it, so they are in Audio only now.
-	{"Analysis", []string{"bifurcation", "poincare"}},
+		"tinkerbell", "standardmap", "bifurcation", "poincare"}},
+	// Nor is the STL mode a shape. It is a model browser: a loader for a file
+	// off disk plus a catalog of built-in solids — the rack, the geometry and
+	// every attractor swept as a tube — generated in the browser.
+	{"Solids", []string{"stlfile", "terminal", "termanim", "hostterm", "desk"}},
 	// The polyhedra are in here rather than in a category of their own, for
 	// the reason the Sprott systems are in Attractors. Six solids share one
 	// control, the Conway operator, so a Polyhedra row was a monitor, a
@@ -221,10 +219,6 @@ var modeGroups = []struct {
 	{"Geometry", []string{"tetrahedron", "cube", "octahedron", "dodecahedron",
 		"icosahedron", "nestedcube",
 		"globe", "sphere", "torus", "magnetosphere"}},
-	// Nor is the STL mode a shape. It is a model browser: a loader for a file
-	// off disk plus a catalog of built-in solids — the rack, the geometry and
-	// every attractor swept as a tube — generated in the browser.
-	{"Solids", []string{"stlfile", "terminal", "termanim", "hostterm", "desk"}},
 	// The turtle is not geometry. It is an integer sequence read as
 	// turn-and-step — arithmetic that happens to draw — with its own camera,
 	// tinting, physics and closure classification. Filed next to "sphere" and

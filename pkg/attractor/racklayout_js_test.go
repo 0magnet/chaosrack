@@ -4,95 +4,10 @@ package attractor
 
 import (
 	"strings"
-	"syscall/js"
 	"testing"
 
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/preset"
-	"github.com/0magnet/chaosrack/pkg/racklayout"
 )
-
-// fakeDoc is a document with nothing in it but the elements the test names —
-// enough for the code that only ever calls getElementById. Node has no DOM at
-// all, and `doc` is a package variable, so substituting one is the whole of
-// what these tests need.
-func fakeDoc(byID map[string]js.Value) js.Value {
-	d := js.Global().Get("Object").New()
-	d.Set("getElementById", js.FuncOf(func(_ js.Value, args []js.Value) any {
-		if v, ok := byID[args[0].String()]; ok {
-			return v
-		}
-		return js.Null()
-	}))
-	return d
-}
-
-// fakeSwitch is a checkbox.
-func fakeSwitch(checked bool) js.Value {
-	el := js.Global().Get("Object").New()
-	el.Set("checked", checked)
-	return el
-}
-
-// withFakeDoc swaps the package's document for the duration of a test.
-func withFakeDoc(t *testing.T, byID map[string]js.Value) {
-	t.Helper()
-	prev := dom.Swap(fakeDoc(byID))
-	t.Cleanup(func() { dom.Swap(prev) })
-}
-
-// Which switches are on is read off the panel, in the list's order, and a
-// switch the page does not have is not an error — the panel is built from one
-// blob of markup but a host page may inject its own, and a missing element
-// must mean "no such module", not a crash and no saved layout at all.
-func TestOnConsoleModuleSwitchesReadsTheCheckedOnes(t *testing.T) {
-	withFakeDoc(t, map[string]js.Value{
-		"scope-on": fakeSwitch(true),
-		// tpl-on absent entirely.
-	})
-	got := strings.Join(onConsoleModuleSwitches(), ",")
-	if got != "scope-on" {
-		t.Errorf("on switches came back %q, want %q", got, "scope-on")
-	}
-}
-
-func TestOnConsoleModuleSwitchesNoneOn(t *testing.T) {
-	byID := map[string]js.Value{}
-	for _, id := range racklayout.ConsoleModuleSwitches {
-		byID[id] = fakeSwitch(false)
-	}
-	withFakeDoc(t, byID)
-	if got := onConsoleModuleSwitches(); len(got) != 0 {
-		t.Errorf("with every switch off, got %v", got)
-	}
-}
-
-// Every module switch the saved layout carries must also be in the permalink
-// table. They are the two ways of describing the same panel — one for this
-// browser, one for a link — and a module that is in only one of them is a
-// module that appears or vanishes depending on how the view was arrived at.
-func TestPersistedModuleSwitchesAreAlsoShareable(t *testing.T) {
-	inPerma := map[string]bool{}
-	for _, c := range permaCtls {
-		inPerma[c.id] = true
-	}
-	for _, id := range racklayout.ConsoleModuleSwitches {
-		if !inPerma[id] {
-			t.Errorf("%q is saved to localStorage but is in no permalink row, so a link cannot carry it", id)
-		}
-	}
-}
-
-// A switch in the table with no element behind it restores nothing and
-// serializes nothing, silently. The panel markup is a const in this package,
-// so the check costs a substring search.
-func TestPersistedModuleSwitchesExistInTheMarkup(t *testing.T) {
-	for _, id := range racklayout.ConsoleModuleSwitches {
-		if !strings.Contains(controlsBody, `id="`+id+`"`) {
-			t.Errorf("no element with id %q in the panel markup", id)
-		}
-	}
-}
 
 // The Presets module's own furniture, for the same reason: every id
 // presets_js.go looks up has to be in the markup that is supposed to provide
