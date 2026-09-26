@@ -446,6 +446,14 @@ func buildParamPanelNow(mode string) {
 	// only the ones that happen to have knobs.
 	buildSectionModule(mode, paramsDiv)
 
+	// The Mod and EQ modules go with the panel, so they are rebuilt on every
+	// path out of it, the two early returns included. Skipped there, the last
+	// model's modules stayed on the page — its cards, beside a model they do
+	// not drive — with every listener on them already freed by the arena.
+	if mode == "custom" || mode == "bifurcation" {
+		buildModEQModules(attractorParams[mode])
+	}
+
 	if mode == "custom" {
 		// Shown explicitly: these two build an editor into the module rather
 		// than knobs, and a mode before them may have left it hidden.
