@@ -349,16 +349,7 @@ func (vi *viewGrid) wireViewLinkSwitches() {
 			return nil
 		}))
 	}
-	if sel := dom.Doc.Call("getElementById", "focus-n"); sel.Truthy() {
-		sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
-			if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
-				vi.focused = n
-			}
-			refocus()
-			return nil
-		}))
-	}
-	vi.buildFocusDial()
+	vi.buildFocusDial() // wires the focus dial too, on the select it builds
 }
 
 // ── color per view ──────────────────────────────────────────────────────
@@ -762,20 +753,16 @@ func (vi *viewGrid) applySweepAxis(mode, id string, frac float32) func() {
 	return func() { *f = prev }
 }
 
-// wireSweepDial hooks up the sweep dial.
+// wireSweepDial brings the sweep marks up to date. The dials themselves are
+// wired where they are built; see buildOneSweepDial.
 func (vi *viewGrid) wireSweepDial() {
-	wireOneSweepDial("sweep-p", &vi.sweepParamF)
-	wireOneSweepDial("sweep2-p", &vi.sweep2ParamF)
 	syncSweepCells()
 	syncSweptMarks()
 }
 
-// wireOneSweepDial hooks one axis's select to the index it drives.
-func wireOneSweepDial(selID string, into *float32) {
-	sel := dom.Doc.Call("getElementById", selID)
-	if !sel.Truthy() {
-		return
-	}
+// wireOneSweepDial hooks one axis's select to the index it drives. Called
+// inside the dial's rebuild arena, on the select that rebuild made.
+func wireOneSweepDial(sel js.Value, into *float32) {
 	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
 			*into = float32(n)
@@ -897,18 +884,19 @@ func (vi *viewGrid) buildSweepDial() {
 	dom.RebuildInto(&vi.sweepDialFuncs, func() {
 		// Both axes, one arena: they are rebuilt together, by the same mode
 		// change, from the same target lists.
-		vi.buildOneSweepDial("sweep-p", vi.sweepParamF)
-		vi.buildOneSweepDial("sweep2-p", vi.sweep2ParamF)
+		vi.buildOneSweepDial("sweep-p", &vi.sweepParamF)
+		vi.buildOneSweepDial("sweep2-p", &vi.sweep2ParamF)
 	})
 }
 
-// buildOneSweepDial fills one axis's select and rings it.
-func (vi *viewGrid) buildOneSweepDial(selID string, at float32) {
-	sel := dom.Doc.Call("getElementById", selID)
+// buildOneSweepDial fills one axis's select, rings it and wires it.
+func (vi *viewGrid) buildOneSweepDial(selID string, into *float32) {
+	sel := freshSelect(selID)
 	holder := dom.Doc.Call("getElementById", selID+"-stack")
 	if !sel.Truthy() || !holder.Truthy() {
 		return
 	}
+	at := *into
 	sel.Set("innerHTML", "")
 	for i, name := range vi.sweepNames {
 		opt := dom.Doc.Call("createElement", "option")
@@ -924,6 +912,7 @@ func (vi *viewGrid) buildOneSweepDial(selID string, at float32) {
 	stack := soloKnob(sel)
 	addSelectorLabels(stack, vi.sweepRing, sel).Set("id", selID+"-ring")
 	holder.Call("appendChild", stack)
+	wireOneSweepDial(sel, into)
 }
 
 // syncSweepDialMode rebuilds the dial when the mode's parameters have
@@ -969,7 +958,7 @@ func focusLabels(n int) []string {
 func (vi *viewGrid) buildFocusDial() { dom.RebuildInto(&vi.focusDialFuncs, vi.buildFocusDialInto) }
 
 func (vi *viewGrid) buildFocusDialInto() {
-	sel := dom.Doc.Call("getElementById", "focus-n")
+	sel := freshSelect("focus-n")
 	holder := dom.Doc.Call("getElementById", "focus-n-stack")
 	if !sel.Truthy() || !holder.Truthy() {
 		return
@@ -1002,6 +991,13 @@ func (vi *viewGrid) buildFocusDialInto() {
 	stack := soloKnob(sel)
 	addSelectorLabels(stack, labels, sel).Set("id", "focus-n-ring")
 	holder.Call("appendChild", stack)
+	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+		if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
+			vi.focused = n
+		}
+		refocus()
+		return nil
+	}))
 }
 
 // ── per-control link ────────────────────────────────────────────────────
@@ -1172,4 +1168,23 @@ func (vi *viewGrid) setLinkedParamList(s string) {
 			vi.paramLinks[id] = true
 		}
 	}
+}
+
+// freshSelect swaps a select for a copy of itself with no listeners on it,
+// and returns the copy.
+//
+// For a dial rebuilt in its own arena. The knob and label ring it gets each
+// time listen on the SELECT, which outlives the rebuild; the arena releases
+// their functions and the select kept calling them — "call to released
+// function" on the next turn of the sweep or focus dial. A fresh select
+// takes nothing from the last build with it, and the rebuild attaches
+// everything the dial needs, value listener included, to this one.
+func freshSelect(id string) js.Value {
+	old := dom.Doc.Call("getElementById", id)
+	if !old.Truthy() {
+		return old
+	}
+	fresh := old.Call("cloneNode", false)
+	old.Call("replaceWith", fresh)
+	return fresh
 }
