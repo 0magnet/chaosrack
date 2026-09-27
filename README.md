@@ -3059,7 +3059,7 @@ starves a full-screen canvas badly enough to look like the wrong resolution.
 
 ## Gallery
 
-![Attract-mode reel — every model, rainbow gradient, Persist on, rotating](docs/img/gif/reel.gif)
+![Attract-mode reel — every model, rainbow gradient, Persist on, rotating](https://chaosrack.magnetosphere.net/docs/img/gif/reel.gif)
 
 ### Animated tour
 
@@ -3074,35 +3074,35 @@ with **Persist** on, so the accumulation paints the full figure.
 
 | Lorenz | Rössler |
 |---|---|
-| ![Lorenz](docs/img/gif/lorenz.gif) | ![Rössler](docs/img/gif/rossler.gif) |
+| ![Lorenz](https://chaosrack.magnetosphere.net/docs/img/gif/lorenz.gif) | ![Rössler](https://chaosrack.magnetosphere.net/docs/img/gif/rossler.gif) |
 
 | Chua | Aizawa |
 |---|---|
-| ![Chua](docs/img/gif/chua.gif) | ![Aizawa](docs/img/gif/aizawa.gif) |
+| ![Chua](https://chaosrack.magnetosphere.net/docs/img/gif/chua.gif) | ![Aizawa](https://chaosrack.magnetosphere.net/docs/img/gif/aizawa.gif) |
 
 | Sprott | Thomas |
 |---|---|
-| ![Sprott](docs/img/gif/sprott.gif) | ![Thomas](docs/img/gif/thomas.gif) |
+| ![Sprott](https://chaosrack.magnetosphere.net/docs/img/gif/sprott.gif) | ![Thomas](https://chaosrack.magnetosphere.net/docs/img/gif/thomas.gif) |
 
 | Halvorsen | Chen |
 |---|---|
-| ![Halvorsen](docs/img/gif/halvorsen.gif) | ![Chen](docs/img/gif/chen.gif) |
+| ![Halvorsen](https://chaosrack.magnetosphere.net/docs/img/gif/halvorsen.gif) | ![Chen](https://chaosrack.magnetosphere.net/docs/img/gif/chen.gif) |
 
 | Dadras | Rabinovich–Fabrikant |
 |---|---|
-| ![Dadras](docs/img/gif/dadras.gif) | ![Rabinovich–Fabrikant](docs/img/gif/rabinovich.gif) |
+| ![Dadras](https://chaosrack.magnetosphere.net/docs/img/gif/dadras.gif) | ![Rabinovich–Fabrikant](https://chaosrack.magnetosphere.net/docs/img/gif/rabinovich.gif) |
 
 | Burke–Shaw | Lü |
 |---|---|
-| ![Burke–Shaw](docs/img/gif/burkeshaw.gif) | ![Lü](docs/img/gif/lu.gif) |
+| ![Burke–Shaw](https://chaosrack.magnetosphere.net/docs/img/gif/burkeshaw.gif) | ![Lü](https://chaosrack.magnetosphere.net/docs/img/gif/lu.gif) |
 
 | Newton–Leipnik | Hyper-Rössler (4-D) |
 |---|---|
-| ![Newton–Leipnik](docs/img/gif/newtonleipnik.gif) | ![Hyper-Rössler (4-D)](docs/img/gif/hyperrossler.gif) |
+| ![Newton–Leipnik](https://chaosrack.magnetosphere.net/docs/img/gif/newtonleipnik.gif) | ![Hyper-Rössler (4-D)](https://chaosrack.magnetosphere.net/docs/img/gif/hyperrossler.gif) |
 
 | Lissajous | Graphic Artist |
 |---|---|
-| ![Lissajous](docs/img/gif/lissajou.gif) | ![Graphic Artist](docs/img/gif/graphicartist.gif) |
+| ![Lissajous](https://chaosrack.magnetosphere.net/docs/img/gif/lissajou.gif) | ![Graphic Artist](https://chaosrack.magnetosphere.net/docs/img/gif/graphicartist.gif) |
 
 ### The control surface
 
@@ -3126,7 +3126,7 @@ with a supervisor watching the screen and stepping in if the picture ever goes
 dark. These clips are cut from audio-reactive takes scored with a drum & bass
 mix (the audio drove every wiggle you see):
 
-![Cuts from chaos-monkey jam sessions — the music modulates the knobs](docs/img/gif/jam.gif)
+![Cuts from chaos-monkey jam sessions — the music modulates the knobs](https://chaosrack.magnetosphere.net/docs/img/gif/jam.gif)
 
 ### Contact sheets (stills)
 
