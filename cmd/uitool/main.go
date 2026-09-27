@@ -11,6 +11,7 @@
 //	uitool demo   [flags]   chaos-monkey demo-reel recorder (see demo.go)
 //	uitool layout [flags]   control-panel geometry invariants (see layout.go)
 //	uitool sweep  [flags]   every model and switch in a fixed order, with invariants (see sweep.go)
+//	uitool lint   [flags]   panel faults found by measurement, named by address (see lint.go)
 //	uitool spec   [flags]   WAV → spectrogram PNG, and PNG diff (see spec.go)
 //
 // They talk to an already-open tab in a Chromium/Brave started with
@@ -42,6 +43,8 @@ func main() {
 		exit(1)
 	}
 	switch sub {
+	case "lint":
+		runLint()
 	case "sweep":
 		runSweep()
 	case "monkey":
@@ -77,6 +80,6 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: uitool <css|monkey|sweep|golden|shots|gifs|portraits|modules|readme|demo> [flags]   (uitool <sub> -h for flags)")
+	fmt.Fprintln(os.Stderr, "usage: uitool <css|lint|monkey|sweep|golden|shots|gifs|portraits|modules|readme|demo> [flags]   (uitool <sub> -h for flags)")
 	os.Exit(2)
 }

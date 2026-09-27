@@ -19,7 +19,8 @@ package main
 // listener check: a leak is then an error on the page, which every harness
 // already fails on.
 //
-// Headless draws with SwiftShader, on the CPU. That is fine for what these
+// Headless draws with SwiftShader, on the CPU, at half pixel density to keep
+// that cheap. That is fine for what these
 // harnesses check — exceptions, freezes, leaks, layout — and wrong for judging
 // how anything looks.
 
@@ -86,6 +87,7 @@ func child(name string, args ...string) error {
 	if err := cmd.Start(); err != nil {
 		return err
 	}
+	yieldGroup(cmd)
 	atExit = append(atExit, func() {
 		killGroup(cmd)
 		_ = cmd.Wait() //nolint:errcheck // killed on purpose
@@ -147,6 +149,10 @@ func startBrowser() error {
 		"--remote-debugging-port="+strconv.Itoa(port),
 		"--user-data-dir="+profile,
 		"--window-size=1600,1000",
+		// Half the device pixels: the layout is the same in CSS pixels, which
+		// is all the harnesses measure, and SwiftShader draws a quarter of
+		// the canvas — a full-size one held five cores for a whole sweep.
+		"--force-device-scale-factor=0.5",
 		"--no-first-run", "--no-default-browser-check",
 		"--disable-background-networking",
 		"--mute-audio", "--autoplay-policy=no-user-gesture-required",
@@ -185,11 +191,17 @@ func startBrowser() error {
 	}
 }
 
-// dial attaches to the target tab. Headless, the page draws on the CPU, and on
-// a busy machine one frame can outlast cdp's ten-second default — which the
-// harnesses read as a frozen main thread. A minute still catches a real hang.
+// dial attaches to the target tab. Headless, the page draws on the CPU at the
+// lowest priority, and on a busy machine it can outlast cdp's ten seconds —
+// to attach, and then per call, which the harnesses read as a frozen main
+// thread. So attaching is retried, and calls get a minute; a real hang is
+// still caught, only later.
 func dial() (*cdp.Client, error) {
 	c, err := cdp.Dial(*cdpPort, *target)
+	for try := 0; err != nil && *headless && try < 5; try++ {
+		time.Sleep(2 * time.Second)
+		c, err = cdp.Dial(*cdpPort, *target)
+	}
 	if err == nil && *headless {
 		c.Timeout = time.Minute
 	}
