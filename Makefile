@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs pages onefile site readme-check site-check sweep
+.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs pages onefile site readme-check site-check sweep lint-panel
 
 # The targets that matter are `format` and `check`, and they mean the same
 # thing here as in 0pcom/skywire, which is the reference for these repos.
@@ -217,10 +217,16 @@ wasm: ## Rebuild the embedded Go wasm (assets/gowasm/chaosrack.wasm)
 # listener freed while still attached (see cmd/uitool/sweep.go). Built from
 # the current source first, since the server serves the embedded wasm.
 # SWEEP= passes flags on: SWEEP='-models custom,lorenz -switches=false'.
+# LINT= likewise for lint-panel: LINT='-models globe,lorenz'.
 sweep: wasm ## Walk every model and switch in a headless browser (nothing on screen)
 	@d=$$(mktemp -d); trap 'rm -rf $$d' EXIT; \
 		go build -o $$d/chaosrack . && go build -o $$d/uitool ./cmd/uitool && \
 		$$d/uitool sweep -headless -serve $$d/chaosrack $(SWEEP)
+
+lint-panel: wasm ## Measure the panel for faults (overflow, overlap, off-center, tooltips) on every model, headless
+	@d=$$(mktemp -d); trap 'rm -rf $$d' EXIT; \
+		go build -o $$d/chaosrack . && go build -o $$d/uitool ./cmd/uitool && \
+		$$d/uitool lint -headless -serve $$d/chaosrack $(LINT)
 
 tinywasm: ## Rebuild the embedded TinyGo wasm (assets/tinywasm/chaosrack-tiny.wasm)
 	@# Recorded here because it was recorded NOWHERE: not the Makefile, not a

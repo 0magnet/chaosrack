@@ -11,17 +11,20 @@
 //
 //  1. every model in #mode-select, in catalog order;
 //  2. on the first model of each category row, every switch on the panel,
-//     flipped and flipped back.
+//     flipped and flipped back, and every knob turned a detent each way.
 //
 // After each step it checks what the monkey checks — no new page error, a
 // panel that is still there, a main thread that still answers, no NaN in the
-// permalink or on an LED — and two things the monkey cannot:
+// permalink or on an LED — and three things the monkey cannot:
 //
 //   - a listener an arena released while it was still attached (pkg/dom's
 //     arena check, on whenever the page was opened with ?arenacheck, which
 //     -headless does). It is reported at the rebuild, whether or not anything
 //     is ever clicked;
-//   - a bay whose modules overflow it.
+//   - a bay whose modules overflow it;
+//   - a layout shift: a switch or a knob that moves, resizes, adds or
+//     removes anything on the panel (-shift). A control changes what the
+//     panel reads, never where anything is.
 //
 // A failure names the model and the control, which is the whole replay.
 //
@@ -35,6 +38,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -44,6 +48,8 @@ import (
 var (
 	sweepSwitches = flag.Bool("switches", true, "sweep: also flip every switch, on the first model of each category")
 	sweepSettle   = flag.Int("step-settle", 60, "sweep: ms to let the page settle after each step, beyond two frames")
+	sweepRender   = flag.Bool("render", false, "sweep: keep the render loop running; off by default, since the sweep checks controls and a headless browser draws on the CPU")
+	sweepShift    = flag.Bool("shift", true, "sweep: report any module that moves, resizes, or gains or loses a control when a switch is flipped or a knob turned")
 )
 
 // settleJS waits two frames: a rebuild scheduled by the step has run, and so
@@ -104,6 +110,7 @@ type sweeper struct {
 	baseErr  int
 	baseLeak int
 	fails    []string
+	shifts   []string // layout shifts: reported, not yet failures (see -shift)
 	steps    int
 }
 
@@ -121,6 +128,13 @@ func runSweep() {
 	fmt.Printf("sweep: %s\n", c.URL)
 	if base["nLeak"] == nil {
 		fmt.Println("  (arena check off: open the page with ?arenacheck, or use -headless)")
+	}
+	// The picture is not what the sweep checks, and headless it is drawn by
+	// SwiftShader on the CPU: a Lorenz trajectory every frame held two to
+	// five cores for the whole run. Power off stops the render loop and
+	// leaves every control working.
+	if !*sweepRender {
+		c.Eval(`(function(){var p=document.getElementById('power-sw');if(p&&p.checked){p.checked=false;p.dispatchEvent(new Event('change'));}})()`)
 	}
 	s.check("load", "")
 
@@ -142,7 +156,7 @@ func runSweep() {
 	fmt.Printf("  %d models in %s\n", len(models), time.Since(start).Round(time.Millisecond))
 
 	if *sweepSwitches && !c.Frozen() {
-		start, flips := time.Now(), 0
+		start, flips, turns := time.Now(), 0, 0
 		for _, m := range models {
 			if first, _ := m["first"].(bool); !first {
 				continue
@@ -156,20 +170,47 @@ func runSweep() {
 			}
 			for _, id := range ids {
 				for _, way := range []string{"on", "back"} {
+					before := s.layout()
 					if ok, _ := c.Eval(fmt.Sprintf(flipJS, id)).(bool); !ok {
 						break // a flip before it took this one off the panel
 					}
 					flips++
-					if !s.check(fmt.Sprintf("%s: flip %s %s", mode, id, way), mode) {
+					step := fmt.Sprintf("%s: flip %s %s", mode, id, way)
+					if !s.check(step, mode) {
 						goto done
 					}
+					s.shifted(step, before)
+				}
+			}
+			// Every knob on the panel, a detent each way: turning a knob
+			// may change a readout and nothing else.
+			n := toInt(c.Eval(knobCountJS))
+			for i := range n {
+				for _, dy := range []float64{-120, 120} {
+					at := c.EvalJSON(fmt.Sprintf(knobAtJS, i))
+					if at == nil || at["x"] == nil {
+						break
+					}
+					before := s.layout()
+					c.Wheel(toF(at["x"]), toF(at["y"]), dy)
+					turns++
+					step := fmt.Sprintf("%s: turn knob %d (%s) %+g", mode, i, str(at["t"]), dy)
+					if !s.check(step, mode) {
+						goto done
+					}
+					s.shifted(step, before)
 				}
 			}
 		}
 	done:
-		fmt.Printf("  %d switch flips in %s\n", flips, time.Since(start).Round(time.Millisecond))
+		fmt.Printf("  %d switch flips, %d knob turns in %s\n", flips, turns, time.Since(start).Round(time.Millisecond))
 	}
 
+	if len(s.shifts) > 0 {
+		// Warnings for now: the surface is still being revised, and the
+		// modules a switch reveals are being dealt with one at a time.
+		fmt.Printf("\nsweep: %d layout shift(s)\n", len(s.shifts))
+	}
 	fmt.Printf("\nsweep: %d failure(s) over %d steps\n", len(s.fails), s.steps)
 	for _, f := range s.fails {
 		fmt.Println("  !!", f)
@@ -234,3 +275,69 @@ func anyJSON(v any) any {
 }
 
 func toAnyList(v any) []any { l, _ := v.([]any); return l }
+
+// knobCountJS and knobAtJS find the panel's knobs by position in document
+// order — a knob has no id of its own — scrolling each into view to turn it.
+// Not the MODEL knobs: turning one is a model change, which the first phase
+// already makes for every model, and which is allowed to change the panel.
+const knobCountJS = `(function(){var p=document.getElementById('controls-panel');if(!p)return 0;
+  return [].filter.call(p.querySelectorAll('.knob:not(.knob-fine)'),function(k){return k.offsetParent&&!k.closest('.bankblank,.catcell');}).length;})()`
+
+const knobAtJS = `(function(i){var p=document.getElementById('controls-panel');
+  var ks=[].filter.call(p.querySelectorAll('.knob:not(.knob-fine)'),function(k){return k.offsetParent&&!k.closest('.bankblank,.catcell');});
+  var k=ks[i];if(!k)return '{}';k.scrollIntoView({block:'center'});var r=k.getBoundingClientRect();
+  var s=k.closest('.sect'),h=s&&s.querySelector('.sect-hdr');
+  return JSON.stringify({x:r.left+r.width/2,y:r.top+r.height/2,t:(h?h.textContent:'')+' '+(k.title||'').slice(0,40)});})(%d)`
+
+// layoutJS is every visible module's box, relative to the rack rather than
+// the viewport so scrolling does not read as movement, and how many knobs and
+// switches it shows.
+const layoutJS = `(function(){var p=document.getElementById('controls-panel'),out={};if(!p)return '{}';
+  var m=p.querySelector('.modules')||p,o=m.getBoundingClientRect();
+  [].forEach.call(p.querySelectorAll('.sect'),function(s){if(!s.offsetParent)return;
+    var r=s.getBoundingClientRect(),h=s.querySelector('.sect-hdr'),key=s.id||(h?h.textContent:'?');
+    var vis=function(q){return [].filter.call(s.querySelectorAll(q),function(e){return e.offsetParent;}).length;};
+    out[key]=[Math.round(r.left-o.left),Math.round(r.top-o.top),Math.round(r.width),Math.round(r.height),vis('.knob:not(.knob-fine)'),vis('.sw,input[type=checkbox]')];});
+  return JSON.stringify(out);})()`
+
+// layout is the rack's shape now, for shifted to compare against.
+func (s *sweeper) layout() map[string]any {
+	if !*sweepShift {
+		return nil
+	}
+	return s.c.EvalJSON(layoutJS)
+}
+
+// shifted reports what a step moved, resized, added or took away. A control
+// changes what it reads, not where anything is.
+func (s *sweeper) shifted(step string, before map[string]any) {
+	if before == nil {
+		return
+	}
+	after := s.c.EvalJSON(layoutJS)
+	var diffs []string
+	for k, b := range before {
+		a, ok := after[k]
+		switch {
+		case !ok:
+			diffs = append(diffs, k+" gone")
+		case fmt.Sprint(a) != fmt.Sprint(b):
+			diffs = append(diffs, fmt.Sprintf("%s %v→%v", k, b, a))
+		}
+	}
+	for k := range after {
+		if _, ok := before[k]; !ok {
+			diffs = append(diffs, k+" appeared")
+		}
+	}
+	if len(diffs) == 0 {
+		return
+	}
+	sort.Strings(diffs)
+	if len(diffs) > 4 {
+		diffs = append(diffs[:4], fmt.Sprintf("…and %d more", len(diffs)-4))
+	}
+	msg := step + ": [x y w h knobs switches] " + strings.Join(diffs, "; ")
+	s.shifts = append(s.shifts, msg)
+	fmt.Println("  ~~ SHIFT", msg)
+}

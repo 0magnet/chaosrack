@@ -156,10 +156,8 @@ func waitForModule(c *cdp.Client, id string) {
 // other columns.
 //
 // Deliberately not here: Test tone, MIDI and Fullscreen, none of which reveal
-// a module and the first of which makes a noise. Nor Edit eqn — it does reveal
-// the Equation module, but by switching the app into Custom mode, which threw
-// away the mode-owned module every pass had just navigated to. The Equation
-// module is photographed in the "custom" pass instead, where it belongs.
+// a module and the first of which makes a noise. The Equation module is
+// always on the running model's bay, so every pass photographs it.
 var featureSwitches = []string{"audio-mod"}
 
 // capturePass photographs every module visible in one mode that has not been
