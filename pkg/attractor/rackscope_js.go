@@ -166,13 +166,14 @@ func (ra *rackScope) buildRackScope() {
 }
 
 // buildScopeDial rings a detented range switch, labeled with the values it
-// actually selects.
+// actually selects: in full in the window, and round the skirt as numbers
+// with each band's unit once (scope.SkirtLabels).
 func buildScopeDial(id string, steps []float64, label func(float64) string, at int, set func(int)) {
 	names := make([]string, len(steps))
 	for i, s := range steps {
 		names[i] = label(s)
 	}
-	buildScopeNameDial(id, names, at, set)
+	buildScopeRing(id, names, scope.SkirtLabels(steps, label), at, set)
 }
 
 // buildScopeNameDial rings a switch whose positions are named rather than
@@ -180,22 +181,23 @@ func buildScopeDial(id string, steps []float64, label func(float64) string, at i
 // knob is the same object as every other knob in the rack — it turns the
 // same way, scrolls the same way, and is the same size.
 func buildScopeNameDial(id string, names []string, at int, set func(int)) {
+	buildScopeRing(id, names, names, at, set)
+}
+
+// buildScopeRing is buildScopeNameDial with the skirt printed apart from the
+// names: names are the options and the window, ring what is round the knob.
+func buildScopeRing(id string, names, ring []string, at int, set func(int)) {
 	sel := dom.Doc.Call("getElementById", id)
 	holder := dom.Doc.Call("getElementById", id+"-stack")
-	if !sel.Truthy() || !holder.Truthy() || len(names) == 0 {
+	if !sel.Truthy() || !holder.Truthy() || len(names) == 0 || len(ring) != len(names) {
 		return
 	}
 	sel.Set("innerHTML", "")
-	// One loop fills the options and the ring labels together. Two lists
-	// bound by index, written out separately, is the shape of every bug this
-	// panel has had.
-	ring := make([]string, len(names))
 	for i, n := range names {
 		opt := dom.Doc.Call("createElement", "option")
 		opt.Set("value", strconv.Itoa(i))
 		opt.Set("textContent", n)
 		sel.Call("appendChild", opt)
-		ring[i] = n
 	}
 	sel.Set("value", strconv.Itoa(clampIdx(at, len(names))))
 	sel.Get("style").Set("display", "none")
