@@ -20,7 +20,9 @@ func TestEveryCategoryRowHasABayAndATitle(t *testing.T) {
 	// A category with no row is a category whose models can only be reached
 	// by a permalink, because the rotary that offers them IS the row.
 	for _, g := range Catalog() {
-		sec := categorySection(g.Label)
+		// Its ROW: a category drawn in a merged row (see rackRows) has that
+		// row's bay and title, not one of its own.
+		sec := categorySection(rowOfCategory(g.Label))
 		if !isCategorySection(sec) {
 			t.Errorf("category %q produced %q, which is not a model row", g.Label, sec)
 			continue
@@ -58,16 +60,19 @@ func TestHeaderTooltipsAreDistinct(t *testing.T) {
 }
 
 func TestNoHeaderTooltipIsOrphaned(t *testing.T) {
-	// The other direction: a tooltip for a category that does not exist any
+	// The other direction: a tooltip for a category or row that does not exist any
 	// more is a description nobody can reach, while the live row it was
 	// renamed to falls back to its own name.
 	live := map[string]bool{}
 	for _, g := range Catalog() {
 		live[g.Label] = true
 	}
+	for _, r := range rackRows() {
+		live[r] = true
+	}
 	for cat := range catTooltips {
 		if !live[cat] {
-			t.Errorf("header tooltip for %q, which is not a category any more", cat)
+			t.Errorf("header tooltip for %q, which is not a category or a row any more", cat)
 		}
 	}
 }

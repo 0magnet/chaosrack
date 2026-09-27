@@ -250,3 +250,24 @@ func (l *liveLyapunov) appendLyapunovReadout(grid js.Value) {
 
 	grid.Call("appendChild", card)
 }
+
+// attachMonitorReadout writes λ onto a bank bay's monitor instead of into a
+// cell of the Parameters module. See buildCategoryMonitor.
+func (l *liveLyapunov) attachMonitorReadout(ro js.Value) {
+	ro.Set("textContent", "λ ")
+	l.el = dom.Doc.Call("createElement", "span")
+	l.el.Set("className", "monread-val")
+	l.text = ""
+	l.el.Set("textContent", l.readout())
+	ro.Call("appendChild", l.el)
+}
+
+// lyapMonitorFor is the monitor readout λ goes to for this model, if its
+// category is a bank; otherwise undefined, and it goes in the Parameters
+// module as before.
+func lyapMonitorFor(mode string) js.Value {
+	if cat := rowOf(mode); bankCategories[cat] {
+		return dom.Doc.Call("getElementById", bayMonitorID(cat, 0)+"-lyap")
+	}
+	return js.Undefined()
+}

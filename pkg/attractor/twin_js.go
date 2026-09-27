@@ -152,7 +152,7 @@ func (t *twinTrail) tick(mode string) bool {
 	return true
 }
 
-// wireTwinSwitch hooks up the Trace > Twin checkbox and the λ LED beside it.
+// wireTwinSwitch hooks up the Trace > Twin checkbox and the λ LED under it.
 func (t *twinTrail) wireTwinSwitch() {
 	t.lambdaEl = dom.Doc.Call("getElementById", "twin-lambda")
 	wireSwitch("twin-sw", func(on bool) {

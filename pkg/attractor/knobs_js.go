@@ -218,10 +218,11 @@ func (s *selectorKnob) makeSelectorKnob(sel js.Value, rot ...float64) js.Value {
 	// Name the knob from the select it drives (single source: set the title on
 	// the <select> once and every knob/label built from it inherits it), so each
 	// selector knob identifies its own control instead of a generic hint.
+	// With no title on the select, none on the knob either: the cell it sits
+	// in says what it is (the scope's VOLTS/DIV, say), and a generic "turn to
+	// change selection" on the knob hid that sentence under the hand.
 	if t := sel.Get("title").String(); t != "" {
 		knob.Set("title", t+" — turn to select")
-	} else {
-		knob.Set("title", "turn to change selection")
 	}
 	ptr := dom.Doc.Call("createElement", "i")
 	ptr.Set("className", "knob-ptr")

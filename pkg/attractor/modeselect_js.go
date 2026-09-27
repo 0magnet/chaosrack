@@ -159,10 +159,6 @@ func onModeChange(this js.Value, args []js.Value) any {
 	// running; carried across, it would drive the new model from the old
 	// one's last position. See modelmod.go.
 	resetModelMod()
-	// Keep the "Edit eqn" switch in sync with whether we're in Custom mode.
-	if sw := dom.Doc.Call("getElementById", "edit-eq-sw"); sw.Truthy() {
-		sw.Set("checked", run.selectedMode == "custom")
-	}
 	// New mode means fresh geometry — force an upload on the next
 	// uploadBuffersIndexed for static modes, and a skin-mesh rebuild.
 	gpu.staticDirty = true

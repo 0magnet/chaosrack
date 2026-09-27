@@ -420,6 +420,7 @@ func relayoutUnits() {
 	syncUnitRacks()
 	relayoutInstrumentUnits(f)
 	hideEmptyUnits(f)
+	scheduleDesignate()
 }
 
 // clearUnitBlanks removes every blank panel in the frame.

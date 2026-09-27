@@ -154,10 +154,6 @@ type runState struct {
 	stopped      bool
 	pausedCount  int
 	selectedMode string
-
-	// preCustomMode remembers the attractor to return to when the "Edit eqn" switch
-	// is toggled back off.
-	preCustomMode string
 }
 
 var run runState

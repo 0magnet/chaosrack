@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"math"
 	"strconv"
 	"syscall/js"
 
@@ -62,10 +63,17 @@ func sizeLEDField(el js.Value, lo, hi float64, dec int, signed bool) {
 	// box-model overhead. The inputs are border-box with ~3px padding + ~1px
 	// border per side (~8px total), so the added slack must cover that or the
 	// widest value clips (e.g. a 7-digit "20480.0"); 9px clears it with a hair to
-	// spare.
+	// spare. And a pixel a character: the readouts are letter-spaced 1px, which
+	// a ch does not include. Without it every integer readout was a few pixels
+	// short and cut its last digit ("0300" in 41px of the 46 it needs), which
+	// uitool lint found on fifteen controls at once.
 	st := el.Get("style")
-	st.Set("width", "calc("+strconv.Itoa(chars)+"ch + 9px)")
+	n := strconv.Itoa(chars)
+	st.Set("width", "calc("+n+"ch + "+n+"px + 9px)")
 	st.Set("textAlign", "right")
+	// Kept for a readout that has to match its neighbors: the bank sizes every
+	// readout to the widest any of its models needs (see bankReadoutWidth).
+	el.Call("setAttribute", "data-chars", strconv.Itoa(chars))
 }
 
 // wheelNudge makes scrolling over an LED readout step the paired (usually
@@ -301,8 +309,12 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 }
 
 // buildStepField is a quantity's step size: how far one detent of its knob
-// moves the value. A named setting has no such field — its positions are the
-// whole numbers 0..n-1, and the field only ever said "1" under it.
+// moves the value, and the small knob beside it that sets it. A named setting
+// has no such field — its positions are the whole numbers 0..n-1, and the
+// field only ever said "1" under it.
+//
+// Returned as a fragment of the two, both children of the cell, because the
+// field is positioned against the cell and so is its knob.
 func buildStepField(slider js.Value, label, stepStr string) js.Value {
 	stepInput := dom.Doc.Call("createElement", "input")
 	stepInput.Set("type", "number")
@@ -311,14 +323,96 @@ func buildStepField(slider js.Value, label, stepStr string) js.Value {
 	stepInput.Set("value", stepStr)
 	stepInput.Set("title", "Step size for "+label+" — how much one knob step changes the value")
 	stepInput.Set("className", "numin u-step")
+	knob := dom.Doc.Call("createElement", "span")
+	ptr := dom.Doc.Call("createElement", "i")
+	knob.Call("appendChild", ptr)
+	knob.Set("className", "stepknob")
+	knob.Call("setAttribute", "data-no-drag", "")
+	knob.Set("title", "Step size for "+label+" — turn for ten times finer or coarser")
+
+	// The step's travel: from the whole range in one step down to a
+	// ten-millionth of it, which is finer than a float32 parameter resolves.
+	// min and max are attributes, so strings: Float on one panics.
+	smin, _ := strconv.ParseFloat(slider.Get("min").String(), 64) //nolint:errcheck // a bad bound gives the default travel below
+	smax, _ := strconv.ParseFloat(slider.Get("max").String(), 64) //nolint:errcheck // likewise
+	span := smax - smin
+	lo, hi := span*1e-7, span
+	if !(span > 0) {
+		lo, hi = 1e-7, 1
+	}
+	show := func(v float64) {
+		t := (math.Log10(v) - math.Log10(lo)) / (math.Log10(hi) - math.Log10(lo))
+		t = math.Max(0, math.Min(1, t))
+		ptr.Get("style").Set("transform", "translate(-50%, -100%) rotate("+strconv.FormatFloat(-135+270*t, 'f', 1, 64)+"deg)")
+	}
+	set := func(v float64) {
+		v = math.Max(lo, math.Min(hi, v))
+		stepInput.Set("value", strconv.FormatFloat(v, 'g', 3, 64))
+		stepInput.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+	}
+	cur := func() float64 {
+		v, err := strconv.ParseFloat(stepInput.Get("value").String(), 64)
+		if err != nil || !(v > 0) {
+			return lo
+		}
+		return v
+	}
+	show(cur())
+
 	stepInput.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		if val, err := strconv.ParseFloat(stepInput.Get("value").String(), 64); err == nil && val > 0 {
 			newStep := strconv.FormatFloat(val, 'g', -1, 64)
 			slider.Set("step", newStep)
+			show(val)
 		}
 		return nil
 	}))
-	return stepInput
+	knob.Call("addEventListener", "wheel", dom.FuncOf(func(_ js.Value, a []js.Value) any {
+		e := a[0]
+		e.Call("preventDefault")
+		e.Call("stopPropagation")
+		if e.Get("deltaY").Float() < 0 {
+			set(cur() * 10)
+		} else {
+			set(cur() / 10)
+		}
+		return nil
+	}), map[string]any{"passive": false})
+	// Dragged: one decade per twelve pixels, up for coarser.
+	var startY float64
+	var dragging bool
+	knob.Call("addEventListener", "pointerdown", dom.FuncOf(func(_ js.Value, a []js.Value) any {
+		e := a[0]
+		e.Call("preventDefault")
+		e.Call("stopPropagation")
+		knob.Call("setPointerCapture", e.Get("pointerId"))
+		startY, dragging = e.Get("clientY").Float(), true
+		return nil
+	}))
+	knob.Call("addEventListener", "pointermove", dom.FuncOf(func(_ js.Value, a []js.Value) any {
+		if !dragging {
+			return nil
+		}
+		dy := startY - a[0].Get("clientY").Float()
+		if math.Abs(dy) >= 12 {
+			if dy > 0 {
+				set(cur() * 10)
+			} else {
+				set(cur() / 10)
+			}
+			startY = a[0].Get("clientY").Float()
+		}
+		return nil
+	}))
+	knob.Call("addEventListener", "pointerup", dom.FuncOf(func(js.Value, []js.Value) any {
+		dragging = false
+		return nil
+	}))
+
+	frag := dom.Doc.Call("createDocumentFragment")
+	frag.Call("appendChild", stepInput)
+	frag.Call("appendChild", knob)
+	return frag
 }
 
 // buildModCard builds one card for the Modulation module: the target's name
@@ -429,8 +523,14 @@ func buildParamPanelNow(mode string) {
 	clearSectionModule()
 	phos.updateCRTOverlay()
 
-	// The Equation module only exists in Custom mode (buildCustomPanel makes it).
-	if mode != "custom" {
+	// The Equation module: Custom's editor in Custom, the running model's
+	// own system in a bank bay (buildEquationView), and nothing elsewhere.
+	switch {
+	case mode == "custom":
+		// buildCustomPanel makes it, below.
+	case bankCategories[rowOf(mode)]:
+		custom.buildEquationView(mode, paramsDiv)
+	default:
 		if em := dom.Doc.Call("getElementById", "eqn-module"); em.Truthy() {
 			em.Get("parentNode").Call("removeChild", em)
 		}
@@ -547,6 +647,13 @@ func buildParamPanelNow(mode string) {
 		xy.appendXYReadout(grid)
 	}
 
+	// Every monitor readout goes blank first: the model it measured may
+	// not be the one running now, and a number left on a screen is a claim.
+	if ros := dom.Doc.Call("querySelectorAll", ".monread"); ros.Truthy() {
+		for i := range ros.Get("length").Int() {
+			ros.Index(i).Set("textContent", "")
+		}
+	}
 	if _, isFlow := lyapLiveSystem(mode); isFlow {
 		// The live Lyapunov exponent, same placement and same reason. Only on
 		// the continuous flows, and lyapLiveSystem is what draws that line —
@@ -555,7 +662,11 @@ func buildParamPanelNow(mode string) {
 		// exponent is per iterate and a polyhedron has none; both belong to
 		// the Analysis module, which can say so in words, rather than to a
 		// cell in this grid that could only print a number or a dash.
-		lyapLive.appendLyapunovReadout(grid)
+		if ro := lyapMonitorFor(mode); ro.Truthy() {
+			lyapLive.attachMonitorReadout(ro)
+		} else {
+			lyapLive.appendLyapunovReadout(grid)
+		}
 	}
 
 	if mode == "fvf" {

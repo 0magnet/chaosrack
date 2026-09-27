@@ -682,7 +682,7 @@ func onResetAll(this js.Value, args []js.Value) any {
 
 	// Reset the remaining effect switches to their defaults — dispatch 'change'
 	// so each effect's own handler applies it (single source of truth). Layout
-	// prefs (dock edge, interface size) and mode toggles (Edit eqn, Fullscreen)
+	// prefs (dock edge, interface size) and the Fullscreen toggle
 	// are intentionally left alone.
 	//
 	// So is "preset-on", for the same reason and one more: recalling a preset
@@ -1132,28 +1132,6 @@ func wirePanelSwitches() {
 	// (identity) pose and stop any slider-driven spin.
 	dom.Doc.Call("getElementById", "normalize-btn").Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		normalizeOrientation()
-		return nil
-	}))
-
-	// Event: Edit eqn — load the current attractor's equations into the
-	// editable Custom mode (if we have parseable forms for it) and switch.
-	dom.Doc.Call("getElementById", "edit-eq-sw").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
-		sw := dom.Doc.Call("getElementById", "edit-eq-sw")
-		s := dom.Doc.Call("getElementById", "mode-select")
-		if sw.Get("checked").Bool() {
-			if run.selectedMode != "custom" {
-				run.preCustomMode = run.selectedMode // remember where to return
-			}
-			custom.seedCustomFromMode(run.preCustomMode)
-			s.Set("value", "custom")
-		} else {
-			back := run.preCustomMode
-			if back == "" || back == "custom" {
-				back = "lorenz"
-			}
-			s.Set("value", back)
-		}
-		s.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 		return nil
 	}))
 

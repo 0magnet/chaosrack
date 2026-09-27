@@ -248,6 +248,130 @@ var attractorParams = map[string][]paramDef{
 // entry keeps the plain hierarchy tooltip, which is fine for a knob whose
 // label is already a word.
 var paramHelp = map[string]string{
+	// ── the Visual row's own models ─────────────────────────────────────
+	//
+	// The integrated systems' constants are not here: their help is written
+	// from their equations (constanthelp.go).
+	"globe-lat": "latitude lines — how many parallels circle the globe, or, with " +
+		"par on spiral, how many times the one spiral winds round on its way " +
+		"from pole to pole.",
+	"globe-lon": "longitude lines — how many meridians run from pole to pole.",
+	"globe-par": "parallels — how the lines of latitude are drawn: as separate " +
+		"rings, or as one continuous spiral from pole to pole.",
+	"globe-rev": "direction — which way the spiral of parallels winds. Only acts " +
+		"with par on spiral; the rings have no direction.",
+	"globe-twist": "twist — turns each meridian as it descends, so the lines of " +
+		"longitude become helices. Zero is the ordinary globe; the sign is which " +
+		"way they lean.",
+	"sphere-r":      "radius — the size of the sphere.",
+	"sphere-stacks": "latitude bands — how many slices the sphere is cut into from pole to pole.",
+	"sphere-slices": "longitude segments — how many wedges the sphere is cut into around its axis.",
+	"torus-R": "major radius — from the center of the hole to the middle of " +
+		"the tube.",
+	"torus-r":      "minor radius — the thickness of the tube.",
+	"torus-stacks": "rings — how many segments run around the torus's big circle.",
+	"torus-slices": "sides — how many segments run around the tube.",
+	"torus-roll": "roll — how fast the tube turns about its own core circle, " +
+		"signed; zero holds it still.",
+	"lissajou-a": "a — the X frequency. With a, b and c whole numbers the " +
+		"curve closes on itself, and their ratio is its shape.",
+	"lissajou-b": "b — the Y frequency.",
+	"lissajou-c": "c — the Z frequency, which gives the figure its depth.",
+	"ga-la": "level A — how much of the master oscillator A reaches the " +
+		"vertical deflection.",
+	"ga-lb": "level B — the depth of the B envelope that modulates the ±45° " +
+		"carrier on both axes; what gives the figure its apparent volume.",
+	"ga-ld": "level D — how much of oscillator D reaches the horizontal deflection.",
+	"ga-hb": "harmonic B — B's frequency as a whole multiple of the master A.",
+	"ga-hc": "harmonic C — the carrier's multiple of A. Higher hatches the " +
+		"wireframe more densely.",
+	"ga-hd": "harmonic D — D's multiple of A. At 1 it sets the base rectangle " +
+		"against A.",
+	"stext-harm": "harmonics — how many Fourier harmonics of each glyph's beam " +
+		"path are kept. Few and the letters melt into loops; many and they " +
+		"sharpen.",
+	"smorph-sys": "system — where in the Sprott A…S catalog the machine sits. " +
+		"A fraction is part way between two systems.",
+	"smorph-rate": "rate — how fast the machine steps itself through the " +
+		"catalog, in systems per minute; zero holds it where sys puts it.",
+	"bounce-grav":  "gravity — how hard the ball is pulled down.",
+	"bounce-rest":  "bounce — how much of its energy the ball keeps at each bounce.",
+	"bounce-drift": "drift — the ball's horizontal speed.",
+	"pong-speed":   "speed — how fast the ball travels.",
+	"pong-paddle":  "paddle — the paddles' height.",
+	"pong-skill":   "skill — how well the machine player tracks the ball.",
+	"poly-op": "operator — the Conway operator applied to the seed solid " +
+		"(dual, truncate, kis and so on).",
+	"turtle-mod": "modulus — each term of the sequence is reduced modulo this " +
+		"before it turns the turtle; 0 walks the sequence unreduced.",
+	"turtle-seq": "sequence — which integer sequence drives the walk.",
+	"turtle-mul": "multiplier — multiplies the Fibonacci sequence by this.",
+	"turtle-cap": "cap — how many terms are walked; 0 lets the modulus choose " +
+		"(one full period).",
+	"turtle-dim":  "dimensions — whether the walk turns in a plane (2) or in space (3).",
+	"turtle-tint": "tint — what the path's color follows.",
+	"turtle-trail": "trail — how much of the walk stays drawn: all of it, " +
+		"a long or short tail, or a comet.",
+	"turtle-cam": "camera — auto fits a figure that closes and locks one that " +
+		"drifts; fit scales it into the box; lock cancels the drift; follow " +
+		"keeps the head in the middle.",
+	"turtle-view": "view — which way to face the figure's axis.",
+	"turtle-cycle": "cycle — seconds between steps to the next modulus; 0 " +
+		"stays on one.",
+	"turtle-grav": "gravity — pull in world units per second squared; below " +
+		"zero lifts.",
+	"turtle-fric":   "friction — how much the figure is slowed where it touches.",
+	"turtle-bounce": "bounce — how much of its speed the figure keeps off a wall.",
+	"turtle-spin":   "spin — how hard the figure is to turn.",
+
+	// ── xy scope ────────────────────────────────────────────────────────
+	"xy-gain": "gain — how far a sample deflects the beam; turn it up for a " +
+		"quiet source, down for one that runs off the edge.",
+	"xy-win": "window — how much recent audio is on screen, in milliseconds: " +
+		"the length of the trace, not its shape.",
+	"xy-persist": "glow — phosphor afterglow: how long an old trace fades " +
+		"rather than being cleared each frame. 0 clears every frame.",
+	"xy-lag": "lag — on a mono source, the second axis is the same signal this " +
+		"many milliseconds later, so the figure opens out from the diagonal a " +
+		"mono pair would draw.",
+	"xy-smooth": "smooth — drawn points per sample: the beam is curved through " +
+		"the samples instead of joined by straight chords. Higher is smoother " +
+		"and costs vertices.",
+
+	// ── spectrogram ─────────────────────────────────────────────────────
+	"spect-dft":  "DFT size — points per transform: larger resolves frequency finer and time coarser.",
+	"spect-ovl":  "overlap — how much each transform overlaps the one before, in percent: more is a smoother scroll for more work.",
+	"spect-win":  "window function — the taper each block is shaped by before its transform: Hann is the usual; rectangular is sharpest and leaks the most.",
+	"spect-chan": "channel — which signal is analyzed: the mix of both, or the left or right alone.",
+	"spect-min":  "floor — the level, in dB, that maps to the bottom of the color scale; anything quieter is drawn black.",
+	"spect-max":  "ceiling — the level, in dB, that maps to the top of the color scale; anything louder is drawn at full.",
+
+	// ── FVF wobbulator ──────────────────────────────────────────────────
+	"fvf-gain":   "gain — the voltage-to-frequency slope: output pitch = gain × input pitch + offset.",
+	"fvf-offset": "offset — hertz added to every output pitch: a transposition, and a floor.",
+	"fvf-fmin":   "lowest frequency — the carrier never goes below this (a V/F converter cannot reach 0 Hz).",
+	"fvf-fmax":   "highest frequency — the carrier's ceiling.",
+	"fvf-duty":   "duty — the width of each output pulse, as a fraction of its period: the brightness of the tone.",
+	"fvf-mix":    "mix — dry to processed: 0 is the input alone, 1 the converter's output alone.",
+	"fvf-glide":  "glide — how smoothly the pitch follows: low is snappy and glitchy, which is the faithful behavior; high glides.",
+
+	// ── recurrence plot ─────────────────────────────────────────────────
+	"rec-src": "source — what is plotted: the raw audio, a delay embedding of it, " +
+		"or the running attractor's own trajectory.",
+	"rec-win": "window — how much history the square covers, in milliseconds " +
+		"(for the trajectory, in the system's own time).",
+	"rec-eps": "ε — the recurrence threshold, as a fraction of the source's scale: " +
+		"two moments closer than this are marked as a recurrence.",
+	"rec-dim": "m — the embedding dimension: how many delayed copies make up each " +
+		"point on the embed source.",
+
+	// ── transfer function ───────────────────────────────────────────────
+	"xf-frac":  "band — the smoothing, as a fraction of an octave: 1/1 is broad, 1/12 is fine.",
+	"xf-avg":   "average — how many windows are averaged: more is steadier and slower to follow a change.",
+	"xf-range": "range — dB either side of 0 on the magnitude curve: the vertical scale.",
+	"xf-coh":   "coherence — the minimum coherence, in tenths, below which a band is not trusted and is drawn faded.",
+	"xf-show":  "show — which curves are drawn: magnitude, phase and coherence together, or one of them alone.",
+
 	// ── the delay embedding, shared across modes ───────────────────────
 	//
 	// takens-tau is ONE knob read by Takens, Polar and the recurrence plot,
@@ -359,7 +483,12 @@ var paramHelp = map[string]string{
 }
 
 // helpFor returns the sentence for a parameter id, or "".
-func helpFor(id string) string { return paramHelp[id] }
+func helpFor(id string) string {
+	if h, ok := paramHelp[id]; ok {
+		return h
+	}
+	return systemConstantHelp[id]
+}
 
 // The systems' own constants come from pkg/dynamics rather than being listed
 // again here.

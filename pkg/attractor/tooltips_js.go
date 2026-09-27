@@ -95,7 +95,10 @@ func cellCtl(f *cellRead, cell js.Value, mod string) string {
 // stampSelectorKnobs names each selector knob in a cell from its own select
 // (paired by DOM order), so a concentric dual-knob cell names its rings
 // distinctly (e.g. Colors / Gradient source vs Colors / Number of colors).
-func stampSelectorKnobs(f *cellRead, cell js.Value, mod, fallbackCtl string) {
+// A cell with one selector knob is one parameter, and its knob carries that
+// parameter's sentence the way a plain knob does; with two, the sentence
+// could be either ring's, so neither gets it.
+func stampSelectorKnobs(f *cellRead, cell js.Value, mod, fallbackCtl, help string) {
 	n := 0
 	var knobs js.Value
 	var selTitle func(int) (string, bool)
@@ -119,16 +122,31 @@ func stampSelectorKnobs(f *cellRead, cell js.Value, mod, fallbackCtl string) {
 		}
 	}
 	for i := range n {
-		ctl := fallbackCtl
+		ctl, desc := fallbackCtl, ""
 		if raw, ok := selTitle(i); ok {
 			// Only borrow the select's own name when it's a structured
 			// "Name — description" title; otherwise keep the cell's control name.
-			if name, _, ok := strings.Cut(strings.TrimSpace(raw), " — "); ok {
-				ctl = mod + sep + name
+			// The description comes too: it is the one place a selector says
+			// what it is for, and the knob is what a hand rests on. Its address
+			// is not borrowed — the knob gets its own (designators_js.go).
+			t := stripAddress(strings.TrimSpace(raw))
+			if name, d, ok := strings.Cut(t, " — "); ok {
+				ctl, desc = mod+sep+name, d
+			} else if n == 1 && strings.Contains(t, " ") {
+				// A plain sentence ("How often the distortion measurement is
+				// made…") is the description of the one knob there is.
+				desc = t
 			}
 		}
-		if !queueStamp(".knobsel", ctl+sep+"selector knob", i) && knobs.Truthy() {
-			knobs.Index(i).Set("title", ctl+sep+"selector knob")
+		tip := ctl + sep + "selector knob"
+		switch {
+		case desc != "":
+			tip = withHelp(tip, desc)
+		case n == 1:
+			tip = withHelp(tip, help)
+		}
+		if !queueStamp(".knobsel", tip, i) && knobs.Truthy() {
+			knobs.Index(i).Set("title", tip)
 		}
 	}
 }
