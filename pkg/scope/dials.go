@@ -3,6 +3,7 @@ package scope
 import (
 	"math"
 	"strconv"
+	"strings"
 )
 
 // The rack-mount oscilloscope: the part of it that is arithmetic.
@@ -188,4 +189,28 @@ func FormatVolts(v float64) string {
 // front panel says 20 ms, not 2.0000e-02.
 func trimNum(v float64) string {
 	return strconv.FormatFloat(math.Round(v*1000)/1000, 'f', -1, 64)
+}
+
+// SkirtLabels is what is printed round a range switch: each position's
+// number without its unit. The unit is the band's, and a scope prints it
+// once per band on the skirt rather than beside every detent; the window
+// under the knob (FormatTime, FormatVolts) says the whole value. Printed
+// in full at every detent, the labels ran into each other, into the knob
+// beside the switch and past the panel's edge.
+//
+// A position whose unit differs from the one before it is printed with the
+// unit, so where each band starts is still on the skirt: "10 µs" … "500",
+// then "1 ms" … "500".
+func SkirtLabels(steps []float64, format func(float64) string) []string {
+	out := make([]string, len(steps))
+	prev := ""
+	for i, s := range steps {
+		num, unit, _ := strings.Cut(format(s), " ")
+		out[i] = num
+		if unit != prev {
+			out[i] = num + " " + unit
+		}
+		prev = unit
+	}
+	return out
 }

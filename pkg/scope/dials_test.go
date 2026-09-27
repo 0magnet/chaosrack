@@ -184,3 +184,15 @@ func TestTheKnobLegendsReadLikeAFrontPanel(t *testing.T) {
 		}
 	}
 }
+
+// The skirt names a band's unit once, where the band starts.
+func TestSkirtLabelsNameEachBandOnce(t *testing.T) {
+	got := SkirtLabels([]float64{200e-6, 500e-6, 1e-3, 2e-3}, FormatTime)
+	want := []string{"200 µs", "500", "1 ms", "2"}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("SkirtLabels = %q, want %q", got, want)
+			break
+		}
+	}
+}
