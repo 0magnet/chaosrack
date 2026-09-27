@@ -329,7 +329,7 @@ func (b *bifurcation) showCursor(s string) {
 	}
 	b.curText = s
 	if b.curEl.Truthy() {
-		b.curEl.Set("textContent", s)
+		setDotText(b.curEl, s)
 	}
 }
 
@@ -411,9 +411,10 @@ func (b *bifurcation) buildBifPanel(paramsDiv js.Value) {
 	col.Call("appendChild", dgrp)
 
 	// The cursor's own readout, beside the control that creates it. It also
-	// says why there is no cursor when there is not.
-	b.curEl = dom.Doc.Call("createElement", "span")
-	b.curEl.Set("className", "led counter-led")
+	// says why there is no cursor when there is not, in words, so it is a
+	// character display: seven segments spelled "sweep" as best they could.
+	b.curEl = dotDisplayN("sweep", false, 8)
+	b.curEl.Get("classList").Call("add", "dmdval")
 	b.curEl.Set("title", "Where the audio envelope currently puts the swept parameter — the cursor's "+
 		"position on the diagram's x axis. \"sweep\" means the audio drive is off; \"mod off\" means it "+
 		"is selected but Audio mod is not on, so there is no envelope to follow.")
@@ -421,7 +422,6 @@ func (b *bifurcation) buildBifPanel(paramsDiv js.Value) {
 	// rebuilt on every mode change and this guard would otherwise skip the
 	// fresh cell as unchanged and leave it blank.
 	b.curText = ""
-	b.curEl.Set("textContent", "sweep")
 	col.Call("appendChild", b.curEl)
 
 	paramsDiv.Call("appendChild", col)

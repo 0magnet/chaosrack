@@ -510,3 +510,74 @@ func jsEncodeURI(s string) string {
 func jsDecodeURI(s string) string {
 	return js.Global().Call("decodeURIComponent", s).String()
 }
+
+// ── The Equation module in a bank bay ─────────────────────────────────────
+
+// buildEquationView is the Equation module for a built-in model in a bank
+// bay: the same editor Custom has, holding the running model's equations.
+//
+// It is always there, and always four lines — dw/dt stays, empty, on a 3-D
+// system — so turning the MODEL knob changes what the lines say and not the
+// size of the panel. Editing a line is how a built-in becomes your own: the
+// editor is seeded from the model, the edit is applied, and the rack switches
+// to Custom running it.
+func (c *customEquation) buildEquationView(mode string, paramsDiv js.Value) {
+	if old := dom.Doc.Call("getElementById", "eqn-module"); old.Truthy() {
+		old.Get("parentNode").Call("removeChild", old)
+	}
+	paramsSect := paramsDiv.Call("closest", ".sect")
+	if !paramsSect.Truthy() {
+		return
+	}
+	be, known := builtinEquations[mode]
+	col := dom.Doc.Call("createElement", "span")
+	col.Set("className", "pcell")
+	col.Set("style", "gap:2px;")
+	for i, v := range []string{"x", "y", "z", "w"} {
+		row := dom.Doc.Call("createElement", "span")
+		row.Set("className", "grp")
+		lbl := dom.Doc.Call("createElement", "span")
+		lbl.Set("textContent", "d"+v+"/dt =")
+		lbl.Set("style", "color:#8cf;min-width:44px;")
+		inp := dom.Doc.Call("createElement", "input")
+		inp.Set("type", "text")
+		inp.Set("spellcheck", false)
+		inp.Set("className", "eqview")
+		if known {
+			inp.Set("value", be.eq[i])
+		}
+		if !known || (i == 3 && !be.useW) {
+			inp.Set("disabled", true)
+		} else {
+			n := i
+			inp.Set("title", "d"+v+"/dt for "+modeLabel(mode)+". Edit it to make your own: the rack switches to Custom, seeded with this system and your change.")
+			inp.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+				c.seedCustomFromMode(mode)
+				c.eq[n] = inp.Get("value").String()
+				c.parseCustom()
+				if ms := dom.Doc.Call("getElementById", "mode-select"); ms.Truthy() {
+					ms.Set("value", "custom")
+					ms.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+				}
+				return nil
+			}))
+		}
+		row.Call("appendChild", lbl)
+		row.Call("appendChild", inp)
+		col.Call("appendChild", row)
+	}
+
+	eqMod := dom.Doc.Call("createElement", "div")
+	eqMod.Set("className", "sect eqnmodule")
+	eqMod.Set("id", "eqn-module")
+	hdr := dom.Doc.Call("createElement", "div")
+	hdr.Set("className", "sect-hdr")
+	hdr.Set("textContent", "Equation")
+	hdr.Set("title", "Equation — the running model's system, one derivative per state variable. Edit a line to make it your own (Custom).")
+	eqMod.Call("appendChild", hdr)
+	body := dom.Doc.Call("createElement", "div")
+	body.Set("className", "row")
+	body.Call("appendChild", col)
+	eqMod.Call("appendChild", body)
+	paramsSect.Get("parentNode").Call("insertBefore", eqMod, paramsSect)
+}

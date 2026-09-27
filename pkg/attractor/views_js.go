@@ -560,7 +560,7 @@ func (vi *viewGrid) setSweepTargets(mode string) bool {
 		ids = append(ids, pd.ID)
 		ring = append(ring, pd.Label)
 		n := pd.Label
-		if h := paramHelp[pd.ID]; h != "" {
+		if h := helpFor(pd.ID); h != "" {
 			n += " — " + h
 		} else {
 			n += " — across its range"

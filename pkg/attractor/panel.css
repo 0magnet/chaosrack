@@ -423,7 +423,8 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .punit .u-val{margin:0;}
 /* Step-size field is just a .numin — appearance comes from .numin (DSEG7 LED),
    this only sets its width/alignment. No separate gray styling. */
-.punit .u-step{width:58px;min-width:58px;max-width:58px;text-align:center;}
+/* Wide enough for a four-decimal step ("0.0001", Custom's dt), which 58px cut. */
+.punit .u-step{width:62px;min-width:62px;max-width:62px;text-align:center;}
 .punit-mod{display:flex;flex-direction:column;align-items:center;gap:1px;margin-top:3px;}
 .punit-mod .u-modlbl{font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:9px;letter-spacing:1px;color:#5f7a90;}
 /* Level readout is a normal .numin (DSEG7 LED via --led-col); this only sizes it. */
@@ -1223,7 +1224,10 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
   letter-spacing:0.18em;color:#9aa3ab;}
 .scope-knob{display:flex;flex-direction:column;align-items:center;gap:calc(2px*var(--kscale,1));}
 .scope-lbl{font-family:'Chakra Petch',sans-serif;font-size:calc(6.5px*var(--kscale,1));
-  letter-spacing:0.12em;color:#8d959c;white-space:nowrap;}
+  letter-spacing:0.12em;color:#8d959c;white-space:nowrap;
+  /* Clear of the skirt under it: a range switch's top detent label came
+     up to meet the heading (0.8px into TIME/DIV). */
+  margin-bottom:calc(3px*var(--kscale,1));}
 .scope-sw{display:flex;flex-direction:column;align-items:center;gap:calc(3px*var(--kscale,1));
   cursor:pointer;align-self:center;}
 .scope-sw span{font-family:'Chakra Petch',sans-serif;font-size:calc(6.5px*var(--kscale,1));
@@ -1605,15 +1609,9 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
   width:calc(104px*var(--kscale,1));box-sizing:border-box;
   font-size:calc(10px*var(--kscale,1));padding:1px 3px;min-width:0;
 }
-/* A step cell is labeled with its MODEL, which is words rather than a
-   symbol, so the label reads across the cell like the category cells' do —
-   the same exception .catcell makes and for the same reason. */
+/* A step cell's top strip spans the cell, like the category cells': its legend
+   is a display in a bank bay and "dt" elsewhere, beside its readout. */
 .modules .punit.stepcell>.punit-top{position:absolute;top:2px;left:0;right:0;width:auto;}
-.modules .u-lbl.wordlbl{
-  position:static!important;
-  writing-mode:horizontal-tb;text-orientation:mixed;
-  white-space:normal;text-align:center;width:100%;line-height:1.1;
-}
 /* A readout's own label, for the cells that carry two: momentary beside
    short-term, SINAD beside ENOB, wow beside flutter. Inline and small — it
    names the number next to it, where .plabel names the whole cell from its
@@ -1624,6 +1622,8 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
   color:#7e8f9e;margin-right:3px;white-space:nowrap;
   writing-mode:horizontal-tb;text-orientation:mixed;
 }
+/* A Greek symbol keeps its case: uppercased, the twin trace's λ read as Λ. */
+.modules .swline>.ledlbl{text-transform:none;}
 /* A parameter cell's concentric stack is compact too, but ONLY its ring: the
    plain knob in a cell keeps the rack's uniform body. Setting the tokens on
    .punit itself shrank every single knob in every parameter cell from 76 to
@@ -1700,3 +1700,107 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised)!important;}
 .catgrid .swpair>.punit{height:50%;width:100%;flex:1 1 0;}
 .catgrid .swpair>.punit+.punit{border-top:1px dashed #2a333c;}
 .catgrid .swpair .twoway{padding:calc(12px*var(--kscale,1)) 0 0;}
+
+/* THE KNOB BANK's character displays: an HD44780-style module over each
+   knob, every dot drawn and the lit ones in the rack's LED color. The
+   printed legend they replace stays in the markup (tooltips and tests read
+   it) but not on the panel. */
+.dmdwin{--dmd-pitch:calc(2px*var(--kscale,1));}
+.dmdcell .dmdlbl{display:none;}
+.punit.dmdcell>.punit-top{justify-content:center;padding:0;}
+.dmdwin{display:inline-flex;padding:calc(2px*var(--kscale,1));background:var(--led-bg,#170000);border:1px solid var(--led-bd,#3a0000);border-radius:2px;box-shadow:inset 0 0 3px rgba(0,0,0,0.85);}
+/* Seven dots tall at the display pitch, as wide as its characters (the
+   viewBox): a display outside a bank, which sizes its own, is its text. */
+.dmd{display:block;height:calc(7*var(--dmd-pitch));width:auto;}
+.dmd .dmd-on{fill:var(--led-col,#ff3b30);filter:drop-shadow(0 0 0.6px var(--led-glow,#ff2a20));}
+.dmd .dmd-off{fill:var(--led-col,#ff3b30);opacity:0.07;}
+/* A programmable knob has no printed scale: its range changes with what it
+   is programmed to, and the readout says the number. The ticks stay. */
+.dmdcell .value-dial .knob-dial-lab{display:none;}
+/* An unassigned position: the same part, answering nothing. Its parts,
+   not the position, so hovering it still says what it is (syncBankCells). */
+.bankblank *{pointer-events:none;}
+/* The measurement on a bank bay's screen: λ in the corner, in the screen's
+   own caption green, the way a scope prints what it measured on the trace. */
+.monread{position:absolute;right:calc(8px*var(--kscale,1));bottom:calc(7px*var(--kscale,1));line-height:1;font-family:'Share Tech Mono',monospace;font-size:calc(10px*var(--kscale,1));color:#7fe0a0;text-shadow:0 0 3px rgba(127,224,160,0.6);pointer-events:none;}
+/* The step-size knob: a small detented shaft beside the step readout, ten
+   times finer or coarser per detent. Beside the field rather than under it,
+   so a cell is no taller for having one. */
+.stepknob{display:inline-block;position:relative;vertical-align:middle;width:calc(15px*var(--kscale,1));height:calc(15px*var(--kscale,1));border-radius:50%;background:radial-gradient(circle at 38% 32%,#7a828a,#3a4148 55%,#1c2126);box-shadow:0 1px 2px rgba(0,0,0,0.8),inset 0 0 0 1px rgba(0,0,0,0.6);cursor:ns-resize;touch-action:none;}
+.stepknob>i{position:absolute;left:50%;top:50%;width:calc(1.5px*var(--kscale,1));height:42%;background:#e6e9ec;border-radius:1px;transform-origin:50% 100%;transform:translate(-50%,-100%) rotate(-135deg);}
+.punit-grid .punit>.stepknob{position:absolute;bottom:calc(3px*var(--kscale,1));left:calc(50% + 35px*var(--kscale,1));}
+/* λ on a monitor: fixed-width digits, so the readout does not change width
+   as the number does. */
+.monread-val{font-variant-numeric:tabular-nums;}
+/* The Equation module's lines, the running model's system. */
+.eqview{width:180px;background:#0a1420;color:#cde;border:1px solid #345;font-family:monospace;font-size:12px;padding:2px 4px;}
+.eqview:disabled{opacity:0.45;}
+/* An unassigned bank position has nothing to reset. */
+.catbank .bankblank .rst,.cathead .bankblank .rst{visibility:hidden;}
+/* A bank selector's printed ring of option names: not on the panel, because
+   the options change with the model; its second display reads the setting. */
+.dmdcell .knobstack>.knob-dial:not(.value-dial){display:none;}
+.punit-top>.dmdval{flex:none;}
+/* A programmed cell's top strip is the legend display and the readout, and
+   nothing else, at fixed widths: 4 + 56 + 50 + 4 of the cell's 116. Fixed
+   so a readout never changes width with its number or with the parameter
+   the MODEL knob puts there — which moved the displays beside them — and so
+   the display fits whatever it says: the dots get smaller, not the display
+   wider. The reset goes to the empty corner beside the step readout. */
+.dmdcell .dmdwin{padding:1px;}
+.dmdcell .dmd{width:calc(52px*var(--kscale,1));height:auto;}
+.punit.dmdcell>.punit-top>.u-val{width:calc(50px*var(--kscale,1));min-width:0;max-width:none;flex:none;box-sizing:border-box;}
+/* Parts of the bank's one part that have nothing to do for this parameter:
+   there, and turning nothing. A switch's own toggle is not on the panel —
+   its knob turns it (uniformBankCell). */
+.swhidden{display:none;}
+.stepknob.stepnone{pointer-events:none;}
+.knob-fine.finenone{pointer-events:none;}
+/* A setting's display is the readout, the same width as a number's. */
+.punit.dmdcell>.punit-top>.dmdval .dmd{width:calc(46px*var(--kscale,1));}
+.dmdcell .twoway{display:none;}
+/* One strip height, one readout box: a setting's display is as tall as a
+   number's LED, so the legend sits at the same height over every knob. */
+.punit.dmdcell>.punit-top{height:22px;align-items:center;}
+.punit.dmdcell>.punit-top>.dmdval{height:22px;box-sizing:border-box;align-items:center;justify-content:center;}
+/* The legend display stands down the cell's left edge, where the printed
+   label stood, so the readout has the top of the cell to itself, centered
+   over the knob; the knob and its dial are a little smaller to leave the
+   edge clear. (Superseded below: the bank's columns are whole slots.) */
+.dmdcell .dmdwin.dmdv{position:absolute;left:calc(3px*var(--kscale,1));top:calc(1px*var(--kscale,1));}
+.dmdcell .dmdv .dmd{width:calc(9px*var(--kscale,1));}
+
+/* THE BANK'S COLUMNS ARE THE RACK'S SLOTS.
+   Everywhere else a control column is a 116px cell, and the slot pitch is
+   made up by a gap after it and a margin before the first; the column rules
+   are painted mid-gap, and the outermost frame line is the grid's own border,
+   at the first cell's edge. So the first column's legend met its line and the
+   next ones stood 15px off theirs, and the margin, tuned by hand, put every
+   knob a pixel or two left of its slot's center line.
+   Here the geometry is the slot's. The grid has no frame line of its own and
+   is anchored so a cell's center IS its slot's center (half a gap in from the
+   module's outer edge, less the module's border and padding), the rules fall
+   on the slot boundaries, and what a cell holds is placed from its center or
+   from its rule. The cells stay 116px, because a module is sized by what it
+   holds and a slot-wide cell would be measured a slot too wide. */
+.sect>.punit-grid.catbank,.sect>.punit-grid.cathead{
+  border-left:0;border-right:0;
+  margin-left:calc(var(--kgap)/2 - 2*var(--mm) - 1px);
+}
+/* The legend stands against its rule, half a gap out of the cell. */
+.catbank .dmdcell .dmdwin.dmdv,.cathead .dmdcell .dmdwin.dmdv{left:calc(6px*var(--kscale,1) - var(--kgap)/2);}
+/* Every readout in the bank, value and step, is one width: the widest value
+   any of its models shows (bankReadoutWidth sets --bank-led). */
+.catbank .punit.dmdcell>.punit-top>.u-val,.cathead .punit.dmdcell>.punit-top>.u-val,.catbank .punit.dmdcell>.punit-top>.dmdval,.cathead .punit.dmdcell>.punit-top>.dmdval,.catbank .punit.dmdcell>.u-step,.cathead .punit.dmdcell>.u-step{width:max(58px,var(--bank-led,58px));min-width:0;max-width:none;}
+/* The reset is the readout's: beside it, not down by the step. */
+.punit-grid.catbank .punit.dmdcell>.rst,.punit-grid.cathead .punit.dmdcell>.rst{top:calc(5px*var(--kscale,1));bottom:auto;left:calc(50% + max(58px,var(--bank-led,58px))/2 + 3px);right:auto;}
+/* The step knob is the step readout's, beside it as the reset is beside the
+   value: placed from the readout's width, so a wider readout does not run
+   over it. */
+.punit-grid.catbank .punit.dmdcell>.stepknob,.punit-grid.cathead .punit.dmdcell>.stepknob{left:calc(50% + max(58px,var(--bank-led,58px))/2 + 3px);}
+/* Two concentric knobs whose outer ring is read on the LED above it (Step×,
+   and the keybed's key count): a second printed scale does not fit a slot.
+   It ran past both edges of the cell and its top label sat under that LED,
+   which already says the setting. The ring keeps its ticks; the inner knob
+   keeps its labels. The other two-ring knobs fit and keep both. */
+#stepfine-stack .knobstack>.knob-dial:nth-child(2) .knob-dial-lab,#keys-rstack .knobstack>.knob-dial:nth-child(2) .knob-dial-lab{display:none;}

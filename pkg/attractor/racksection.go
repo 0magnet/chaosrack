@@ -59,7 +59,7 @@ const domainLine = "Scope"
 var sectionOrder = buildSectionOrder()
 
 func buildSectionOrder() []string {
-	cats := modelCategories()
+	cats := rackRows()
 	line := slices.Index(cats, domainLine)
 	if line < 0 {
 		line = len(cats)
@@ -88,7 +88,7 @@ func sectionTitleOf(section string) string {
 		return t
 	}
 	if isCategorySection(section) {
-		for _, c := range modelCategories() {
+		for _, c := range rackRows() {
 			if categorySection(c) == section {
 				return strings.ToUpper(c)
 			}
@@ -201,7 +201,7 @@ func moduleSection(key string) string {
 	// A category row names itself: its module's header IS the category, so
 	// there is nothing to write in the table above and nothing that can
 	// disagree with modeGroups.
-	for _, c := range modelCategories() {
+	for _, c := range rackRows() {
 		if strings.EqualFold(c, key) {
 			return categorySection(c)
 		}

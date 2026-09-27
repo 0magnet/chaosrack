@@ -128,7 +128,8 @@ func TestTheBaysAreStackedAcrossTheDomainLine(t *testing.T) {
 	}
 }
 
-// Every category has a row, in the selector's own order, each on its side
+// Every row — a category, or a group of them drawn together — is in the
+// stack in the selector's own order, each on its side
 // of the line: a visual row above DISPLAY, an auditory one below the
 // generators.
 func TestTheModelRowsFollowTheSelectorOrder(t *testing.T) {
@@ -139,13 +140,13 @@ func TestTheModelRowsFollowTheSelectorOrder(t *testing.T) {
 		}
 	}
 	var want []string
-	for _, c := range modelCategories() {
+	for _, c := range rackRows() {
 		want = append(want, categorySection(c))
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("model rows %v, want %v", got, want)
 	}
-	cats := modelCategories()
+	cats := rackRows()
 	line := slices.Index(cats, domainLine)
 	for i, c := range cats {
 		r := sectionRank(categorySection(c))
@@ -259,7 +260,7 @@ func TestEmptyCategorySectionsCostNothing(t *testing.T) {
 	// The same rack with every category section declared but unfilled packs
 	// identically — there is nothing to declare, since an empty section
 	// contributes no items at all.
-	for _, c := range modelCategories() {
+	for _, c := range rackRows() {
 		if sectionRank(categorySection(c)) >= len(sectionOrder) {
 			t.Errorf("category %q has no place in the stack", c)
 		}

@@ -127,14 +127,15 @@ func categoryOf(mode string) string {
 // The other ten rows stay rotaries, and rotaries share a bay. See
 // packBySection for that half.
 
-// activeCategory is the category of the model currently driving the rack.
+// activeCategory is the ROW of the model currently driving the rack (see
+// rackRows): its category, or the group that category is drawn in.
 // Empty before the first model is chosen, which is the only time the model's
 // panels have no row to go in.
 var activeCategory string
 
 // setActiveCategory records which row is the instrument. Called wherever the
 // model changes, from whatever moved it.
-func setActiveCategory(mode string) { activeCategory = categoryOf(mode) }
+func setActiveCategory(mode string) { activeCategory = rowOf(mode) }
 
 // modelRowSection is the bay the running model's own panels belong in.
 //
@@ -168,4 +169,80 @@ func categoryTag(label string) string {
 		label = strings.TrimSpace(label[:i])
 	}
 	return label
+}
+
+// ── Rows ─────────────────────────────────────────────────────────────────
+//
+// A rack row used to be a category. It is a GROUP of categories now, where a
+// group has been merged: the visual models — attractors, maps, solids,
+// geometry, sequences — share one bay, one monitor and one bank of
+// programmable controls (see rackbank_js.go), and the MODEL knob gains an
+// outer ring that picks the category. A bank only needs as many controls as
+// the biggest model it serves, so a model added to a bay costs nothing on the
+// panel unless it is the new biggest.
+//
+// The categories themselves are unchanged — the catalog, the README and the
+// model selector still list them — this only says which of them are drawn as
+// one row.
+
+// rowGroup is categories drawn as one row, under a name of its own.
+type rowGroup struct {
+	Label string
+	Cats  []string
+}
+
+// rackRowGroups are the merged rows. A category in none of them is a row of
+// its own.
+var rackRowGroups = []rowGroup{
+	{Label: "Visual", Cats: []string{"Attractors", "Maps", "Solids", "Geometry", "Sequences"}},
+}
+
+// rowOfCategory is the row a category is drawn in.
+func rowOfCategory(cat string) string {
+	for _, g := range rackRowGroups {
+		if slices.Contains(g.Cats, cat) {
+			return g.Label
+		}
+	}
+	return cat
+}
+
+// rowOf is the row a model is drawn in, or "" for a model no category lists.
+func rowOf(mode string) string {
+	if c := categoryOf(mode); c != "" {
+		return rowOfCategory(c)
+	}
+	return ""
+}
+
+// rowCategories is the categories a row draws, in catalog order.
+//
+//nolint:unused // called from rackcategory_js.go, which the native lint pass cannot see
+func rowCategories(row string) []string {
+	for _, g := range rackRowGroups {
+		if g.Label == row {
+			var out []string
+			for _, c := range modelCategories() {
+				if slices.Contains(g.Cats, c) {
+					out = append(out, c)
+				}
+			}
+			return out
+		}
+	}
+	return []string{row}
+}
+
+// rackRows is every row, top to bottom: the categories in catalog order,
+// each group standing where its first category would.
+func rackRows() []string {
+	var out []string
+	seen := map[string]bool{}
+	for _, c := range modelCategories() {
+		if r := rowOfCategory(c); !seen[r] {
+			seen[r] = true
+			out = append(out, r)
+		}
+	}
+	return out
 }

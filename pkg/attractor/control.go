@@ -136,13 +136,25 @@ func buildControlModel() {
 		cells := sect.Call("querySelectorAll", ".pcell, .punit")
 		for j := range cells.Get("length").Int() {
 			cell := cells.Index(j)
+			idx := tipN
+			tipN++ // the read pass counts every cell, this one included
+			// An unassigned bank position controls nothing, and naming it
+			// would name it after the part it was copied from.
+			if cell.Get("classList").Call("contains", "bankblank").Bool() {
+				continue
+			}
 			c := findBuiltControl(cell) // reuse a builder-made Control if this is a param cell
 			if c == nil {
 				c = &Control{module: m.name, cell: cell, kind: classifyControl(cell)}
 			}
 			c.module = m.name
-			c.tipIdx = tipN
-			tipN++
+			// A bank's module serves every model of its row, so a position
+			// is named for the model it is programmed for: "Globe / par",
+			// not "Visual · constants / par".
+			if mode := cell.Call("getAttribute", "data-bank"); mode.Truthy() && mode.String() != "" {
+				c.module = modeLabel(mode.String())
+			}
+			c.tipIdx = idx
 			if id := cell.Get("id").String(); id != "" && crtOverriddenIDs[id] {
 				c.crtOverride = true
 			}
@@ -199,6 +211,7 @@ func annotateControlTooltips() {
 		}
 	}
 	tips.flushStamps()
+	scheduleDesignate() // the stamps just replaced the addressed tooltips
 }
 
 // annotate stamps this control's elements with the module/control/element
@@ -218,7 +231,7 @@ func (c *Control) annotate() {
 		rate := c.module + sep + axis + " spin rate (ω)"
 		stampAll(c.cell, ".toprow .plabel", angle+sep+"label")
 		stampAll(c.cell, ".toprow .led", angle+sep+"LED readout")
-		stampAll(c.cell, ".knob:not(.knob-fine)", angle+sep+"knob")
+		stampAll(c.cell, ".knob:not(.knob-fine)", withHelp(angle+sep+"knob", "the model's rotation about its "+axis+" axis; the knob inside it sets how fast it keeps turning (ω)"))
 		stampAll(c.cell, ".knob-fine", angle+sep+"fine-trim knob")
 		// knobifyFixed nests the spin-rate knob inside the angle stack as
 		// .knobwrap.knob-inner > .knob; name it for the rate so the two knobs
@@ -241,8 +254,8 @@ func (c *Control) annotate() {
 		stampAll(c.cell, "input[type=color]", ctl+sep+"color swatch")
 		stampAll(c.cell, ".pal-hex", ctl+sep+"hex readout")
 		stampAll(c.cell, ".rst", ctl+sep+"reset")
-		stampAll(c.cell, ".hueknob", ctl+sep+"hue knob (outer)")
-		stampAll(c.cell, ".colorknob .knob:not(.hueknob)", ctl+sep+"level knob (inner)")
+		stampAll(c.cell, ".hueknob", withHelp(ctl+sep+"hue knob (outer)", "the color's hue, round the color wheel; the knob inside it is its level"))
+		stampAll(c.cell, ".colorknob .knob:not(.hueknob)", withHelp(ctl+sep+"level knob (inner)", "how bright the color is; the ring around it picks the hue"))
 
 	default: // kindGeneric
 		// The step/fine dual cell holds TWO stacked controls; naming both
@@ -260,11 +273,37 @@ func (c *Control) annotate() {
 			stampAll(c.cell, "#step-led", stepC+sep+"LED readout")
 			stampAll(c.cell, ".sf-ftr .plabel", fineC+sep+"label")
 			stampAll(c.cell, "#fine-led", fineC+sep+"LED readout")
-			stampSelectorKnobs(f, c.cell, c.module, c.module+sep+"step / fine")
+			stampSelectorKnobs(f, c.cell, c.module, c.module+sep+"step / fine", "")
 			return
 		}
 		ctl := cellCtl(f, c.cell, c.module)
 		help := cellHelp(f, c.cell)
+		// No sentence of its own for the parameter: the one the markup wrote
+		// on its value readout ("Envelope attack time in milliseconds — …"),
+		// which the stamp below replaces with "value field", so it is kept in
+		// data-help the first time it is seen. It said what the knob does and
+		// only the readout carried it.
+		if help == "" && f != nil && f.VH != "" {
+			help = f.VH
+			if f.VHNew {
+				tips.queueAttr(".numin:not(.u-step)", "data-help", f.VH, 0)
+			}
+		}
+		// Then the sentence the markup put on the hidden slider (the
+		// Scoreboard's paddle pots say what they are there), kept in data-help
+		// before the slider's own stamp replaces it; last, the cell's own
+		// "Name — what it does" (the Grid and Sweep cells say so on the cell,
+		// and the knob's bare stamp covered it).
+		if help == "" && f != nil {
+			if _, d, ok := strings.Cut(f.RT, " — "); ok {
+				help = d
+				if f.RTNew {
+					tips.queueAttr("input[type=range]", "data-help", f.RT, 0)
+				}
+			} else if _, d, ok := strings.Cut(f.CT, " — "); ok {
+				help = d
+			}
+		}
 		stampAll(c.cell, ".plabel:not(.ledcolor-lbl), .u-lbl", withHelp(ctl+sep+"label", help))
 		stampLEDs(f, c.cell, c.module, ctl, help)
 		stampAll(c.cell, "input[type=range]", ctl+sep+"slider")
@@ -296,7 +335,7 @@ func (c *Control) annotate() {
 			hasKnobSel = c.cell.Call("querySelector", ".knobsel").Truthy()
 		}
 		if hasKnobSel {
-			stampSelectorKnobs(f, c.cell, c.module, ctl)
+			stampSelectorKnobs(f, c.cell, c.module, ctl, help)
 		}
 	}
 }

@@ -257,6 +257,32 @@ const fastSource = `(function () {
         for (j = 0; j < nums.length; j++) {
           rec.nums.push(!!(nums[j].classList && nums[j].classList.contains("u-step")));
         }
+        // The value readout's own description, where the markup wrote one:
+        // remembered in data-help, or still in its title before the stamp
+        // replaces it (vhn says it is new and has to be remembered).
+        rec.vh = ""; rec.vhn = false;
+        // The hidden slider's own sentence, where the markup gave it one.
+        e = c.querySelector("input[type=range]");
+        rec.rt = ""; rec.rtn = false;
+        if (e) {
+          rec.rt = e.getAttribute("data-help") || "";
+          if (!rec.rt) {
+            var rtt = (e.getAttribute("title") || "").replace(/^(?:[0-9S]+\.\d+\.\d+[a-z]? · )+/, "").trim();
+            if (rtt && rtt.indexOf(" / slider") < 0) { rec.rt = rtt; rec.rtn = true; }
+          }
+        }
+        // And the cell's own "Name — what it does", where it has one.
+        rec.ct = (c.getAttribute("title") || "").replace(/^(?:[0-9S]+\.\d+\.\d+[a-z]? · )+/, "").trim();
+        var vn = c.querySelector(".numin:not(.u-step)");
+        if (vn) {
+          rec.vh = vn.getAttribute("data-help") || "";
+          if (!rec.vh) {
+            var vt = (vn.getAttribute("title") || "").replace(/^(?:[0-9S]+\.\d+\.\d+[a-z]? · )+/, "").trim();
+            if (vt && vt.indexOf(" / value field") < 0 && vt.indexOf(" / step-size field") < 0) {
+              rec.vh = vt; rec.vhn = true;
+            }
+          }
+        }
         out.push(rec);
       }
       return JSON.stringify(out);
@@ -279,6 +305,130 @@ const fastSource = `(function () {
         for (j = 0; j < els.length; j++) { set(els[j], attr, f[2]); n++; }
       }
       return n;
+    },
+    // designate gives every control on the rack an address, bay.row.slot:
+    // the bay's number (the one on its ear), the row of controls counted
+    // down from the top of the module it is in, and the slot its center is
+    // in, counted 1 to 12 across the bay. Two controls in one row of one
+    // slot are told apart by a letter, left to right. See designate in
+    // designators_js.go.
+    //
+    // A control is the box around one actuator — a knob, a switch, a
+    // button, a selector — and what goes with it: the outermost cell that
+    // holds it where the panel has one, or else the label it is in. Its
+    // readouts, legend and reset are inside it and share its address.
+    //
+    // Every tooltip inside a control is prefixed with the address, and a
+    // control with none gets the address alone. The address is only in the
+    // tooltips: printed on the panel it was clutter over every control.
+    //
+    // Reads first, for the whole rack, then writes.
+    designate: function (frame, pitch) {
+      var ACT = ".knob:not(.knob-fine), input.sw, button:not(.rst), select, .pslot";
+      var CELL = ".punit, .pcell, .knobstack, .selwrap, .swline, .scope-knob, .scope-sw, .rec-swrow";
+      var PREFIX = /^(?:[0-9S]+\.\d+\.\d+[a-z]? · )+/;
+      var LETTERS = "abcdefghijklmnopqrstuvwxyz";
+      var i, j, k, q;
+      function shown(e) { return e.getClientRects().length > 0; }
+      function actuators(box) {
+        var a = box.querySelectorAll(ACT), out = [];
+        for (var n = 0; n < a.length; n++) if (shown(a[n])) out.push(a[n]);
+        return out;
+      }
+      var found = [], units = [];
+      // What is addressed: every numbered bay, by its modules; and an
+      // instrument's front panel (the scope), which is in no bay and is one
+      // panel rather than modules, as bay S.
+      var opens = frame.querySelectorAll(".runit-open");
+      for (i = 0; i < opens.length; i++) {
+        var open = opens[i], ear = open.parentNode && open.parentNode.firstElementChild;
+        var bay = ear && ear.getAttribute && ear.getAttribute("data-bay");
+        if (!bay) continue;
+        var mods = [], kids = open.children;
+        for (j = 0; j < kids.length; j++) {
+          if (kids[j].classList.contains("sect") && kids[j].offsetWidth > 0) mods.push(kids[j]);
+        }
+        units.push({bay: bay, mods: mods});
+      }
+      var panels = frame.querySelectorAll(".runit-instr .runit-panel");
+      for (i = 0; i < panels.length; i++) {
+        if (panels[i].offsetWidth > 0) {
+          units.push({bay: panels.length > 1 ? "S" + (i + 1) : "S", mods: [panels[i]]});
+        }
+      }
+      for (i = 0; i < units.length; i++) {
+        var u = units[i], bay = u.bay, mods = u.mods;
+        if (!mods.length) continue;
+        // A bay opens with its head in its first slot, so slot 1 starts
+        // where the first module does.
+        var x0 = mods[0].getBoundingClientRect().left;
+        for (j = 0; j < mods.length; j++) {
+          var m = mods[j], acts = actuators(m), seen = new Set(), cells = [];
+          for (k = 0; k < acts.length; k++) {
+            var c = null, p = acts[k];
+            while (p && p !== m) {
+              if (p.matches(CELL)) c = p;
+              p = p.parentElement;
+            }
+            // No cell: the label it is in (a switch and its word), or itself.
+            // Not the largest box holding it alone, which for a switch under
+            // a screen was the whole monitor.
+            if (!c) {
+              c = acts[k].closest("label");
+              if (!c || !m.contains(c) || actuators(c).length !== 1) c = acts[k];
+            }
+            if (seen.has(c)) continue;
+            seen.add(c);
+            var r = c.getBoundingClientRect();
+            if (r.width > 0 && r.height > 0) cells.push({el: c, r: r});
+          }
+          // Rows: down the module, a control starting below the upper half
+          // of the row so far (of the shorter of the two) starts the next.
+          cells.sort(function (a, b) { return a.r.top - b.r.top || a.r.left - b.r.left; });
+          var row = 0, top = -1e9, h = 0, groups = {};
+          for (k = 0; k < cells.length; k++) {
+            var e = cells[k];
+            if (e.r.top >= top + Math.min(h, e.r.height) / 2) { row++; top = e.r.top; h = e.r.height; }
+            e.row = row;
+            e.slot = Math.floor((e.r.left + e.r.width / 2 - x0) / pitch) + 1;
+            var key = row + "." + e.slot;
+            (groups[key] = groups[key] || []).push(e);
+          }
+          for (var g in groups) {
+            var gs = groups[g];
+            if (gs.length < 2) continue;
+            gs.sort(function (a, b) { return a.r.left - b.r.left || a.r.top - b.r.top; });
+            for (q = 0; q < gs.length; q++) gs[q].suf = LETTERS.charAt(q);
+          }
+          for (k = 0; k < cells.length; k++) {
+            cells[k].loc = bay + "." + cells[k].row + "." + cells[k].slot + (cells[k].suf || "");
+            found.push(cells[k]);
+          }
+        }
+      }
+      for (i = 0; i < found.length; i++) {
+        var f = found[i], el = f.el, loc = f.loc;
+        el.setAttribute("data-loc", loc);
+        var ts = el.querySelectorAll("[title]");
+        for (j = 0; j < ts.length; j++) {
+          // Only what can be hovered. A hidden select's title is where
+          // other code reads a control's NAME from (a selector knob is
+          // titled from its select), and an address in it would end up in
+          // the middle of that tooltip.
+          if (!shown(ts[j])) continue;
+          ts[j].setAttribute("title", loc + " · " + ts[j].getAttribute("title").replace(PREFIX, ""));
+        }
+        // A control with no tooltip of its own gets its address as one,
+        // remembered as ours so the next pass replaces rather than prefixes.
+        var own = el.getAttribute("title");
+        if (own === null || own === "" || own === el.getAttribute("data-loctitle")) {
+          el.setAttribute("title", loc);
+          el.setAttribute("data-loctitle", loc);
+        } else {
+          el.setAttribute("title", loc + " · " + own.replace(PREFIX, ""));
+        }
+      }
+      return found.length;
     }
   };
 })()`
@@ -677,6 +827,11 @@ type cellRead struct {
 	Sels  []string  `json:"sel"`  // each select's title, for naming its knob
 	NKnob int       `json:"nk"`   // how many selector knobs
 	Nums  []bool    `json:"nums"` // .numin, true where it is a step field
+	VH    string    `json:"vh"`   // the value readout's own description, if the markup wrote one
+	VHNew bool      `json:"vhn"`  // …found in its title, and not yet kept in data-help
+	CT    string    `json:"ct"`   // the cell's own title, without its address
+	RT    string    `json:"rt"`   // the hidden slider's authored title, if it has one
+	RTNew bool      `json:"rtn"`  // …found in its title, and not yet kept in data-help
 }
 
 // readPanelCells measures the whole panel's cells in one crossing.
