@@ -115,7 +115,12 @@ const fastSource = `(function () {
           if (l < minL) minL = l;
           if (right > maxR) maxR = right;
         }
-        widths.push(found ? maxR - minL : 0);
+        // In CSS pixels, which is what the width is set in: a bounding rect
+        // is taken after transforms, so under a scaled rack the span is
+        // divided by the module's own drawn scale. See drawnScale.
+        var ow = live[i].offsetWidth, dw = live[i].getBoundingClientRect().width;
+        var s = ow > 0 && dw > 0 ? dw / ow : 1;
+        widths.push(found ? (maxR - minL) / s : 0);
       }
       for (i = 0; i < live.length; i++) {
         if (widths[i] < 0) continue; // no content row; leave it at 3000px, as before

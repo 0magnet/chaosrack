@@ -368,7 +368,24 @@ func (r *Rack) contentSpan(module js.Value) float64 {
 	if !found {
 		return 0
 	}
-	return maxR - minL
+	return (maxR - minL) / drawnScale(module)
+}
+
+// drawnScale is how much the page has scaled a module on screen: its drawn
+// width over its layout width. The span is measured in screen pixels (a
+// bounding rect is taken after transforms) and the width is set in CSS
+// pixels, so under a scaled rack the two differ by this much — at 0.81 every
+// module measured a fifth short and was set a slot too narrow, and its last
+// column was cut off. 1 when it cannot be told.
+func drawnScale(module js.Value) float64 {
+	ow, rect := module.Get("offsetWidth"), module.Call("getBoundingClientRect")
+	if ow.Type() != js.TypeNumber || rect.Get("width").Type() != js.TypeNumber {
+		return 1
+	}
+	if o, d := ow.Float(), rect.Get("width").Float(); o > 0 && d > 0 {
+		return d / o
+	}
+	return 1
 }
 
 // Scale is the current rack scale.

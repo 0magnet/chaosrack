@@ -109,8 +109,11 @@ func getFilteredCodeSetIfNeeded(ctx *RuntimeContext, codeSet *OpcodeSet) (*Opcod
 	if cacheCodeSet != nil {
 		return cacheCodeSet, nil
 	}
-	// the fields of the code are already in their order: the compiler doesn't order them again.
-	queryCodeSet, err := newCompiler(false).codeToOpcodeSet(codeSet.Type, codeSet.Code.Filter(query))
+	// the fields of the code are already in their order: the compiler orders only the fields of the recursive
+	// structs it compiles when it links them, as the code was compiled.
+	compiler := newCompiler(ctx.Option.Flag&OptimizeFieldOrderOption != 0)
+	compiler.isFiltered = true
+	queryCodeSet, err := compiler.codeToOpcodeSet(codeSet.Type, codeSet.Code.Filter(query))
 	if err != nil {
 		return nil, err
 	}
@@ -125,12 +128,32 @@ type Compiler struct {
 	// embeddingChain is the types of the structs whose fields are written to the JSON object being compiled:
 	// the struct of the object and the structs embedded in it, down to the one being compiled.
 	embeddingChain []uintptr
+	// structFieldCounts is, for a struct which has been compiled as a value of its own ( not embedded ), how
+	// many fields its code has, with the fields of the structs in it: see sharedStructFieldCount.
+	structFieldCounts map[uintptr]int
+	// fieldCount is how many fields have been compiled.
+	fieldCount int
+	// nextIsEmbedded is whether the struct compiled next is an embedded struct, whose fields are written to
+	// the JSON object of the struct which embeds it.
+	nextIsEmbedded bool
+	// isFiltered is whether the code being compiled to opcodes is filtered by a field query: then the opcodes
+	// which a struct has in one place are not the ones of the struct in another.
+	isFiltered bool
 }
+
+// sharedStructFieldCount is how many fields the code of a struct has, with the fields of the structs in it,
+// above which the struct is encoded, where it is again a value in the same type, by a jump to one code of it
+// as a recursive struct is, instead of by a copy of its code. A type whose structs refer to each other in
+// many places would otherwise have a code of a size exponential to their depth, which takes the memory and
+// the time of compiling it ( the structs of an API with many resources expanded into each other ). A smaller
+// struct is copied, which saves the jump for each value.
+const sharedStructFieldCount = 128
 
 func newCompiler(optimizeFieldOrder bool) *Compiler {
 	return &Compiler{
 		structTypeToCode:   map[uintptr]*StructCode{},
 		optimizeFieldOrder: optimizeFieldOrder,
+		structFieldCounts:  map[uintptr]int{},
 	}
 }
 
@@ -549,11 +572,24 @@ func (c *Compiler) mapKeyCode(typ reflect.Type) (Code, error) {
 		// which has MarshalText ( see appendInterfaceMapKey ).
 		return &MarshalTextCode{typ: typ, isInterfaceMapKey: true}, nil
 	case c.implementsMarshalText(typ):
-		return c.marshalTextCode(typ)
+		code, err := c.marshalTextCode(typ)
+		if err != nil {
+			return nil, err
+		}
+		code.isMapKey = true
+		return code, nil
 	}
 	switch typ.Kind() {
 	case reflect.Ptr:
-		return c.ptrCode(typ)
+		code, err := c.ptrCode(typ)
+		if err != nil {
+			return nil, err
+		}
+		if text, ok := code.value.(*MarshalTextCode); ok {
+			// a pointer to a value whose MarshalText has a value receiver
+			text.isMapKey = true
+		}
+		return code, nil
 	case reflect.String:
 		return c.stringCode(typ, false)
 	case reflect.Int:
@@ -603,7 +639,23 @@ func (c *Compiler) mapValueCode(typ reflect.Type) (Code, error) {
 }
 
 func (c *Compiler) structCode(typ reflect.Type, isPtr bool) (*StructCode, error) {
+	embedded := c.nextIsEmbedded
+	c.nextIsEmbedded = false
+	return c.compileStruct(typ, isPtr, embedded, !embedded)
+}
+
+// compileStruct returns the code of the struct. embedded is whether it is an embedded struct. mayShare is
+// whether the struct may be encoded by a jump to one code of it, if it is large and has been compiled before
+// ( see sharedStructFieldCount ): an embedded struct is not, because its fields are the ones of the struct
+// which embeds it, which may hide some of them.
+func (c *Compiler) compileStruct(typ reflect.Type, isPtr, embedded, mayShare bool) (*StructCode, error) {
 	typeptr := uintptr(runtime.TypePtr(typ))
+	if count, compiled := c.structFieldCounts[typeptr]; mayShare && compiled && count > sharedStructFieldCount {
+		if _, onPath := c.structTypeToCode[typeptr]; !onPath {
+			// the code which is jumped to is compiled when the recursive codes are linked.
+			return &StructCode{typ: typ, isPtr: isPtr, isIndirect: runtime.IfaceIndir(typ), isRecursive: true}, nil
+		}
+	}
 	if code, exists := c.structTypeToCode[typeptr]; exists {
 		derefCode := *code
 		derefCode.isRecursive = true
@@ -620,13 +672,14 @@ func (c *Compiler) structCode(typ reflect.Type, isPtr bool) (*StructCode, error)
 	indirect := runtime.IfaceIndir(typ)
 	code := &StructCode{typ: typ, isPtr: isPtr, isIndirect: indirect}
 	c.structTypeToCode[typeptr] = code
+	firstField := c.fieldCount
 
 	fieldNum := typ.NumField()
 	tags := c.typeToStructTags(typ)
 	fields := []*StructFieldCode{}
 	for i, tag := range tags {
-		if tag.IsOmitEmpty && tag.Field.Type.Kind() == reflect.Array && tag.Field.Type.Len() == 0 {
-			// an array of no elements is always empty, as in encoding/json.
+		if (tag.IsOmitEmpty || tag.IsOmitZero) && tag.Field.Type.Kind() == reflect.Array && tag.Field.Type.Len() == 0 {
+			// an array of no elements is always empty and zero, as in encoding/json.
 			continue
 		}
 		isOnlyOneFirstField := i == 0 && fieldNum == 1
@@ -675,6 +728,10 @@ func (c *Compiler) structCode(typ reflect.Type, isPtr bool) (*StructCode, error)
 		code.enableIndirect()
 	}
 	delete(c.structTypeToCode, typeptr)
+	c.fieldCount += len(code.fields)
+	if !embedded {
+		c.structFieldCounts[typeptr] = c.fieldCount - firstField
+	}
 	return code, nil
 }
 
@@ -753,12 +810,13 @@ func (c *Compiler) structFieldCode(structCode *StructCode, tag *runtime.StructTa
 		c.embeddingChain = nil
 		defer func() { c.embeddingChain = embeddingChain }()
 	}
-	if fieldCode.isAnonymous && tag.IsOmitEmpty {
+	if fieldCode.isAnonymous && (tag.IsOmitEmpty || tag.IsOmitZero) {
 		// The fields of an embedded struct are written as the fields of the struct which embeds it, so there is
-		// nothing for omitempty of the embedded struct itself to omit, as in encoding/json. The opcode for
-		// omitempty would write the key of the embedded struct.
+		// nothing for omitempty or omitzero of the embedded struct itself to omit, as in encoding/json. The
+		// opcode for them would write the key of the embedded struct.
 		inlined := *tag
 		inlined.IsOmitEmpty = false
+		inlined.IsOmitZero = false
 		fieldCode.tag = &inlined
 	}
 	switch {
@@ -803,7 +861,9 @@ func (c *Compiler) structFieldCode(structCode *StructCode, tag *runtime.StructTa
 		fieldCode.isAddrForMarshaler = true
 		fieldCode.isNilCheck = c.isNilCheckForAddrMarshaler(tag)
 	default:
+		c.nextIsEmbedded = fieldCode.isAnonymous
 		code, err := c.typeToCodeWithPtr(fieldType, isPtr)
+		c.nextIsEmbedded = false
 		if err != nil {
 			return nil, err
 		}
@@ -1077,6 +1137,7 @@ func (c *Compiler) linkRecursiveCode(ctx *compileContext) error {
 	type recursiveTarget struct {
 		typeptr  uintptr
 		embedded bool
+		query    *FieldQuery
 	}
 	recursiveCodes := map[recursiveTarget]*CompiledCode{}
 	// maxFrameLength is the length of the longest frame which a recursive code is jumped from.
@@ -1084,21 +1145,26 @@ func (c *Compiler) linkRecursiveCode(ctx *compileContext) error {
 	// the recursive codes may increase while they are linked, so the length is evaluated every time.
 	for i := 0; i < len(*ctx.recursiveCodes); i++ {
 		recursive := (*ctx.recursiveCodes)[i]
-		target := recursiveTarget{typeptr: uintptr(recursive.Type), embedded: recursive.Jmp.Embedded}
+		target := recursiveTarget{typeptr: uintptr(recursive.Type), embedded: recursive.Jmp.Embedded, query: recursive.FieldQuery}
 		typeptr := target.typeptr
 		if recursiveCode, ok := recursiveCodes[target]; ok {
 			*recursive.Jmp = *recursiveCode
 			continue
 		}
 		codes, exists := ctx.structTypeToCodes[typeptr]
-		if target.embedded || !exists {
+		if target.embedded || !exists || c.isFiltered {
 			// structTypeToCodes has the opcodes of the struct itself, with the braces and the check of nil.
 			// - A recursive struct which is embedded jumps to the opcodes only of the fields.
 			// - A struct which has been compiled only as an embedded struct is not in structTypeToCodes.
-			// In both cases the opcodes to jump to are compiled here.
-			structCode, err := c.structCode(runtime.TypeOfPtr(recursive.Type), false)
+			// - The opcodes of a struct filtered by a field query are filtered by the query of their place,
+			//   and the struct is filtered by the query of the code which jumps to it.
+			// In these cases the opcodes to jump to are compiled here.
+			structCode, err := c.compileStruct(runtime.TypeOfPtr(recursive.Type), false, target.embedded, false)
 			if err != nil {
 				return err
+			}
+			if target.query != nil {
+				structCode = structCode.Filter(target.query).(*StructCode)
 			}
 			structCode.enableIndirect()
 			if target.embedded {
