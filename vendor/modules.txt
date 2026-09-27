@@ -18,11 +18,11 @@ github.com/0magnet/calvin/clihelp
 # github.com/0magnet/cdp v0.0.0-20260924200007-30a85ea3de08
 ## explicit; go 1.26.0
 github.com/0magnet/cdp
-# github.com/0magnet/desk v0.0.0-20260923150657-2a7f55804f01
+# github.com/0magnet/desk v0.0.0-20260927163817-533c8cb313fe
 ## explicit; go 1.26
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.0-20260923150657-2a7f55804f01
+# github.com/0magnet/desk/panes v0.0.0-20260927163817-533c8cb313fe
 ## explicit; go 1.26.0
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -56,7 +56,7 @@ github.com/0magnet/pisano/pkg/pisano
 ## explicit; go 1.26.0
 github.com/0magnet/proxima5
 github.com/0magnet/proxima5/internal/views
-# github.com/0magnet/rack-go v0.0.0-20260925013804-1ec2acfde7de
+# github.com/0magnet/rack-go v0.0.0-20260927161804-86645e2170c6
 ## explicit; go 1.21
 github.com/0magnet/rack-go
 # github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a
@@ -106,7 +106,7 @@ github.com/0magnet/termanim/snow
 github.com/0magnet/termanim/starfield
 github.com/0magnet/termanim/tunnel
 github.com/0magnet/termanim/wolfram
-# github.com/0magnet/toilet-go v0.0.0-20260916100348-f098e493c9ae
+# github.com/0magnet/toilet-go v0.0.0-20260916100348-fb9402875c45
 ## explicit; go 1.26.0
 github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
@@ -351,7 +351,7 @@ github.com/go-playground/universal-translator
 # github.com/go-playground/validator/v10 v10.30.5
 ## explicit; go 1.26.0
 github.com/go-playground/validator/v10
-# github.com/goccy/go-json v0.11.0
+# github.com/goccy/go-json v0.11.1
 ## explicit; go 1.21
 github.com/goccy/go-json
 github.com/goccy/go-json/internal/decoder

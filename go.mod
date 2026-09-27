@@ -6,10 +6,10 @@ require (
 	github.com/0magnet/audioprism-go v0.0.0-20260927104105-51e59f36b5c3
 	github.com/0magnet/calvin v0.0.0-20260915170035-09af7075474e
 	github.com/0magnet/cdp v0.0.0-20260924200007-30a85ea3de08
-	github.com/0magnet/desk v0.0.0-20260923150657-2a7f55804f01
-	github.com/0magnet/desk/panes v0.0.0-20260923150657-2a7f55804f01
+	github.com/0magnet/desk v0.0.0-20260927163817-533c8cb313fe
+	github.com/0magnet/desk/panes v0.0.0-20260927163817-533c8cb313fe
 	github.com/0magnet/pisano v0.0.0-20260923102342-ec397908300f
-	github.com/0magnet/rack-go v0.0.0-20260925013804-1ec2acfde7de
+	github.com/0magnet/rack-go v0.0.0-20260927161804-86645e2170c6
 	github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a
 	github.com/0magnet/tuiwasm v0.0.0-20260925102039-8b0130e75c71
 	github.com/0magnet/websh v0.0.0-20260924101532-76422c7ff9c3
@@ -36,7 +36,7 @@ require (
 	github.com/0magnet/lolcat-go v0.0.0-20260915170035-670d5873f4bb // indirect
 	github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc // indirect
 	github.com/0magnet/termanim v0.0.0-20260916100333-d501f348ee17 // indirect
-	github.com/0magnet/toilet-go v0.0.0-20260916100348-f098e493c9ae // indirect
+	github.com/0magnet/toilet-go v0.0.0-20260916100348-fb9402875c45 // indirect
 	github.com/0magnet/u-root v0.16.1-0.20260907193324-47ff3c83f69d // indirect
 	github.com/alecthomas/chroma/v2 v2.27.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
@@ -68,7 +68,7 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.2 // indirect
 	github.com/go-playground/validator/v10 v10.30.5 // indirect
-	github.com/goccy/go-json v0.11.0 // indirect
+	github.com/goccy/go-json v0.11.1 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/guptarohit/asciigraph v0.10.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
