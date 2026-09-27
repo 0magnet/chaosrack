@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs pages onefile site readme-check site-check sweep lint-panel
+.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs pages onefile site readme-check site-check sweep lint-panel publish-gifs
 
 # The targets that matter are `format` and `check`, and they mean the same
 # thing here as in 0pcom/skywire, which is the reference for these repos.
@@ -222,6 +222,18 @@ sweep: wasm ## Walk every model and switch in a headless browser (nothing on scr
 	@d=$$(mktemp -d); trap 'rm -rf $$d' EXIT; \
 		go build -o $$d/chaosrack . && go build -o $$d/uitool ./cmd/uitool && \
 		$$d/uitool sweep -headless -serve $$d/chaosrack $(SWEEP)
+
+publish-gifs: ## Put docs/img/gif on the media branch and redeploy Pages (after `uitool gifs`)
+	@# The gallery is not on main (see .gitignore). media is ONE commit,
+	@# replaced each time rather than added to, so remaking the GIFs never
+	@# grows the repository; Pages adds them to the site (pages.yml).
+	@ls docs/img/gif/*.gif >/dev/null 2>&1 || { echo "no GIFs in docs/img/gif: run uitool gifs first"; exit 1; }
+	@idx=$$(mktemp -u); trap 'rm -f $$idx' EXIT; \
+		GIT_INDEX_FILE=$$idx git add -f docs/img/gif/*.gif && \
+		tree=$$(GIT_INDEX_FILE=$$idx git write-tree) && \
+		commit=$$(git commit-tree $$tree -m "media: the animated gallery") && \
+		git push -f origin $$commit:refs/heads/media && \
+		gh workflow run pages.yml --ref main
 
 lint-panel: wasm ## Measure the panel for faults (overflow, overlap, off-center, tooltips) on every model, headless
 	@d=$$(mktemp -d); trap 'rm -rf $$d' EXIT; \

@@ -22,3 +22,9 @@
 # cmd/wasmmeters, if it is ever built without -o. The worker binary belongs
 # in assets/metersworker, where `make metersworker` puts it.
 /wasmmeters
+
+# The animated gallery. `make gifs` writes it here and `make publish-gifs`
+# puts it on the media branch, which Pages deploys beside the site: 96 MB of
+# GIFs rode along in every clone, and every regeneration added another copy
+# to the history. Removed from history 2026-09-27.
+/docs/img/gif/

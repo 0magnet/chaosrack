@@ -1,0 +1,53 @@
+name: pages
+# The site is main's tree, served as it stands (.nojekyll), with the animated
+# gallery added from the media branch. The GIFs are not on main: 96 MB of them
+# rode along in every clone and every regeneration added another copy to the
+# history. media holds one commit, replaced when the gallery is remade (make
+# publish-gifs), so it never grows.
+on:
+  # After ci, not on the push itself: ci's tinygo job commits the refreshed
+  # wasm, and the site serves the wasm, so the deploy has to see that commit.
+  # The refresh is [skip ci] and so starts no second run of either.
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  # make publish-gifs, and anyone by hand. Not a push to media: the Pages
+  # environment deploys from the default branch only.
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      # main as it is now, which includes the refresh commit ci just pushed.
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/checkout@v5
+        with:
+          ref: media
+          path: _media
+      - name: add the gallery
+        run: |
+          mkdir -p docs/img/gif
+          cp _media/docs/img/gif/*.gif docs/img/gif/
+          rm -rf _media
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deploy
+        uses: actions/deploy-pages@v4

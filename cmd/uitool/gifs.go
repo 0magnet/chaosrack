@@ -6,7 +6,7 @@
 // fills the figure. A master reel (reel.gif) sequences every model's
 // rainbow-persist segment.
 //
-//	uitool gifs                  # writes docs/img/gif/*.gif (16 models + reel)
+//	uitool gifs                  # writes docs/img/gif/*.gif (16 models + reel); make publish-gifs puts them on Pages
 //	uitool gifs -gif-models lorenz,thomas
 package main
 
