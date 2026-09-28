@@ -7,7 +7,7 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.0-20260927104105-51e59f36b5c3
+# github.com/0magnet/audioprism-go v0.0.0-20260928115047-f2941f18d6df
 ## explicit; go 1.26.2
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
@@ -46,10 +46,10 @@ github.com/0magnet/go-dsp/window
 # github.com/0magnet/img2txt-go v0.0.0-20260915170035-ea9710543da0
 ## explicit; go 1.26.0
 github.com/0magnet/img2txt-go/caca
-# github.com/0magnet/lolcat-go v0.0.0-20260915170035-670d5873f4bb
+# github.com/0magnet/lolcat-go v0.0.0-20260915170035-9435f1eb43a8
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20260923102342-ec397908300f
+# github.com/0magnet/pisano v0.0.0-20260928114809-9de72a8c7b5b
 ## explicit; go 1.26.0
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc
@@ -112,7 +112,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20260925102039-8b0130e75c71
+# github.com/0magnet/tuiwasm v0.0.0-20260928115216-9904dd3ab95b
 ## explicit; go 1.26.5
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -214,7 +214,7 @@ github.com/charmbracelet/colorprofile
 # github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 ## explicit; go 1.18
 github.com/charmbracelet/lipgloss
-# github.com/charmbracelet/ultraviolet v0.0.0-20260922123528-4e49372c11f9
+# github.com/charmbracelet/ultraviolet v0.0.0-20260928045949-bbf040aedf25
 ## explicit; go 1.26.0
 github.com/charmbracelet/ultraviolet
 # github.com/charmbracelet/x/ansi v0.11.8
@@ -341,7 +341,7 @@ github.com/gin-gonic/gin/render
 # github.com/go-gl/mathgl v1.2.0
 ## explicit; go 1.11
 github.com/go-gl/mathgl/mgl32
-# github.com/go-playground/locales v0.14.1
+# github.com/go-playground/locales v0.14.2
 ## explicit; go 1.17
 github.com/go-playground/locales
 github.com/go-playground/locales/currency

@@ -3,15 +3,15 @@ module github.com/0magnet/chaosrack
 go 1.26.5
 
 require (
-	github.com/0magnet/audioprism-go v0.0.0-20260927104105-51e59f36b5c3
+	github.com/0magnet/audioprism-go v0.0.0-20260928115047-f2941f18d6df
 	github.com/0magnet/calvin v0.0.0-20260915170035-09af7075474e
 	github.com/0magnet/cdp v0.0.0-20260924200007-30a85ea3de08
 	github.com/0magnet/desk v0.0.0-20260927163817-533c8cb313fe
 	github.com/0magnet/desk/panes v0.0.0-20260927163817-533c8cb313fe
-	github.com/0magnet/pisano v0.0.0-20260923102342-ec397908300f
+	github.com/0magnet/pisano v0.0.0-20260928114809-9de72a8c7b5b
 	github.com/0magnet/rack-go v0.0.0-20260927161804-86645e2170c6
 	github.com/0magnet/sh/v3 v3.13.2-0.20260908180147-cd87da5aad6a
-	github.com/0magnet/tuiwasm v0.0.0-20260925102039-8b0130e75c71
+	github.com/0magnet/tuiwasm v0.0.0-20260928115216-9904dd3ab95b
 	github.com/0magnet/websh v0.0.0-20260924101532-76422c7ff9c3
 	github.com/0magnet/winbox-go v0.0.0-20260915183431-ca6572e4c323
 	github.com/0magnet/xterm-go v0.0.0-20260923132223-00c1a8e687cc
@@ -33,7 +33,7 @@ require (
 	github.com/0magnet/glamour v1.0.1-0.20260908180111-5cbc46ca466e // indirect
 	github.com/0magnet/go-dsp v0.0.0-20260915170035-5d82286bf5d1 // indirect
 	github.com/0magnet/img2txt-go v0.0.0-20260915170035-ea9710543da0 // indirect
-	github.com/0magnet/lolcat-go v0.0.0-20260915170035-670d5873f4bb // indirect
+	github.com/0magnet/lolcat-go v0.0.0-20260915170035-9435f1eb43a8 // indirect
 	github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc // indirect
 	github.com/0magnet/termanim v0.0.0-20260916100333-d501f348ee17 // indirect
 	github.com/0magnet/toilet-go v0.0.0-20260916100348-fb9402875c45 // indirect
@@ -46,7 +46,7 @@ require (
 	github.com/bytedance/sonic/loader v0.5.2 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20260922123528-4e49372c11f9 // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20260928045949-bbf040aedf25 // indirect
 	github.com/charmbracelet/x/ansi v0.11.8 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.15 // indirect
 	github.com/charmbracelet/x/exp/slice v0.1.0 // indirect
@@ -65,7 +65,7 @@ require (
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/gdamore/tcell/v2 v2.13.10 // indirect
 	github.com/gin-contrib/sse v1.1.2 // indirect
-	github.com/go-playground/locales v0.14.1 // indirect
+	github.com/go-playground/locales v0.14.2 // indirect
 	github.com/go-playground/universal-translator v0.18.2 // indirect
 	github.com/go-playground/validator/v10 v10.30.5 // indirect
 	github.com/goccy/go-json v0.11.1 // indirect
