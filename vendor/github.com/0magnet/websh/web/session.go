@@ -413,6 +413,14 @@ func (s *Session) run() {
 			s.onExit()
 			return
 		}
+		// bash announces the background jobs that have ended before it draws
+		// a prompt, and nothing in the interpreter reports one unasked, so
+		// without this a job that finished is never mentioned. Not between
+		// the lines of an unfinished statement, where bash also stays quiet,
+		// and not with the line's own context, which was just canceled.
+		if !s.Shell.Pending() {
+			s.Shell.ReportJobs(context.Background())
+		}
 		s.WritePrompt()
 	}
 }
