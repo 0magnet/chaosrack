@@ -3,12 +3,12 @@ module github.com/0magnet/chaosrack
 go 1.26.5
 
 require (
-	github.com/0magnet/audioprism-go v0.0.0-20260928115047-f2941f18d6df
+	github.com/0magnet/audioprism-go v0.0.0-20260930111721-26e166f47f9f
 	github.com/0magnet/calvin v0.0.0-20260915170035-09af7075474e
 	github.com/0magnet/cdp v0.0.0-20260924200007-30a85ea3de08
 	github.com/0magnet/desk v0.0.0-20260927163817-533c8cb313fe
 	github.com/0magnet/desk/panes v0.0.0-20260927163817-533c8cb313fe
-	github.com/0magnet/pisano v0.0.0-20260929112633-5acbabd20fe6
+	github.com/0magnet/pisano v0.0.0-20260929114525-d3aa050ecc0f
 	github.com/0magnet/rack-go v0.0.0-20260927161804-86645e2170c6
 	github.com/0magnet/sh/v3 v3.13.2-0.20260928172341-4c52a7abff02
 	github.com/0magnet/tuiwasm v0.0.0-20260929113112-47955452a79c
@@ -68,7 +68,7 @@ require (
 	github.com/go-playground/locales v0.14.2 // indirect
 	github.com/go-playground/universal-translator v0.18.2 // indirect
 	github.com/go-playground/validator/v10 v10.30.5 // indirect
-	github.com/goccy/go-json v0.11.1 // indirect
+	github.com/goccy/go-json v0.11.2 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/guptarohit/asciigraph v0.10.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

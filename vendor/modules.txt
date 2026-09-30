@@ -7,7 +7,7 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.0-20260928115047-f2941f18d6df
+# github.com/0magnet/audioprism-go v0.0.0-20260930111721-26e166f47f9f
 ## explicit; go 1.26.2
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
@@ -49,7 +49,7 @@ github.com/0magnet/img2txt-go/caca
 # github.com/0magnet/lolcat-go v0.0.0-20260915170035-9435f1eb43a8
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20260929112633-5acbabd20fe6
+# github.com/0magnet/pisano v0.0.0-20260929114525-d3aa050ecc0f
 ## explicit; go 1.26.0
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc
@@ -351,8 +351,8 @@ github.com/go-playground/universal-translator
 # github.com/go-playground/validator/v10 v10.30.5
 ## explicit; go 1.26.0
 github.com/go-playground/validator/v10
-# github.com/goccy/go-json v0.11.1
-## explicit; go 1.21
+# github.com/goccy/go-json v0.11.2
+## explicit; go 1.23
 github.com/goccy/go-json
 github.com/goccy/go-json/internal/decoder
 github.com/goccy/go-json/internal/encoder
