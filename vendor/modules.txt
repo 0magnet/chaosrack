@@ -7,7 +7,7 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.0-20260930111721-26e166f47f9f
+# github.com/0magnet/audioprism-go v0.0.0-20261001114447-501d45cac9f4
 ## explicit; go 1.26.2
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
@@ -49,7 +49,7 @@ github.com/0magnet/img2txt-go/caca
 # github.com/0magnet/lolcat-go v0.0.0-20260915170035-9435f1eb43a8
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20260929114525-d3aa050ecc0f
+# github.com/0magnet/pisano v0.0.0-20261001114156-6ebb651b8cba
 ## explicit; go 1.26.0
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc
@@ -112,7 +112,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20260929113112-47955452a79c
+# github.com/0magnet/tuiwasm v0.0.0-20261001114651-62f6607b5c73
 ## explicit; go 1.26.5
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -132,14 +132,14 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20260907193324-47ff3c83f69d
 ## explicit; go 1.26.0
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.0-20260928172902-22c6f782792e
+# github.com/0magnet/websh v0.0.0-20261001114507-ccf76b5415bd
 ## explicit; go 1.26.0
 github.com/0magnet/websh/shell
 github.com/0magnet/websh/web
 # github.com/0magnet/winbox-go v0.0.0-20260915183431-ca6572e4c323
 ## explicit; go 1.24
 github.com/0magnet/winbox-go
-# github.com/0magnet/xterm-go v0.0.0-20260923132223-00c1a8e687cc
+# github.com/0magnet/xterm-go v0.0.0-20260930222525-d3033e9b370a
 ## explicit; go 1.24
 github.com/0magnet/xterm-go
 github.com/0magnet/xterm-go/vt
@@ -214,7 +214,7 @@ github.com/charmbracelet/colorprofile
 # github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 ## explicit; go 1.18
 github.com/charmbracelet/lipgloss
-# github.com/charmbracelet/ultraviolet v0.0.0-20260929091141-666ce5eec9fc
+# github.com/charmbracelet/ultraviolet v0.0.0-20260930135840-270558f35f71
 ## explicit; go 1.26.0
 github.com/charmbracelet/ultraviolet
 # github.com/charmbracelet/x/ansi v0.11.8
@@ -260,7 +260,7 @@ github.com/coder/websocket/internal/wsjs
 # github.com/creack/pty v1.1.24
 ## explicit; go 1.18
 github.com/creack/pty
-# github.com/dlclark/regexp2/v2 v2.8.0
+# github.com/dlclark/regexp2/v2 v2.8.1
 ## explicit; go 1.25
 github.com/dlclark/regexp2/v2
 github.com/dlclark/regexp2/v2/helpers
@@ -382,7 +382,7 @@ github.com/inconshreveable/mousetrap
 # github.com/itchyny/gojq v0.12.19
 ## explicit; go 1.24.0
 github.com/itchyny/gojq
-# github.com/itchyny/timefmt-go v0.1.8
+# github.com/itchyny/timefmt-go v0.1.9
 ## explicit; go 1.24
 github.com/itchyny/timefmt-go
 # github.com/jedib0t/go-pretty/v6 v6.8.3

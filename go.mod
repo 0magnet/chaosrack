@@ -3,18 +3,18 @@ module github.com/0magnet/chaosrack
 go 1.26.5
 
 require (
-	github.com/0magnet/audioprism-go v0.0.0-20260930111721-26e166f47f9f
+	github.com/0magnet/audioprism-go v0.0.0-20261001114447-501d45cac9f4
 	github.com/0magnet/calvin v0.0.0-20260915170035-09af7075474e
 	github.com/0magnet/cdp v0.0.0-20260924200007-30a85ea3de08
 	github.com/0magnet/desk v0.0.0-20260927163817-533c8cb313fe
 	github.com/0magnet/desk/panes v0.0.0-20260927163817-533c8cb313fe
-	github.com/0magnet/pisano v0.0.0-20260929114525-d3aa050ecc0f
+	github.com/0magnet/pisano v0.0.0-20261001114156-6ebb651b8cba
 	github.com/0magnet/rack-go v0.0.0-20260927161804-86645e2170c6
 	github.com/0magnet/sh/v3 v3.13.2-0.20260928172341-4c52a7abff02
-	github.com/0magnet/tuiwasm v0.0.0-20260929113112-47955452a79c
-	github.com/0magnet/websh v0.0.0-20260928172902-22c6f782792e
+	github.com/0magnet/tuiwasm v0.0.0-20261001114651-62f6607b5c73
+	github.com/0magnet/websh v0.0.0-20261001114507-ccf76b5415bd
 	github.com/0magnet/winbox-go v0.0.0-20260915183431-ca6572e4c323
-	github.com/0magnet/xterm-go v0.0.0-20260923132223-00c1a8e687cc
+	github.com/0magnet/xterm-go v0.0.0-20260930222525-d3033e9b370a
 	github.com/gdamore/tcell/v3 v3.5.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-gl/mathgl v1.2.0
@@ -46,7 +46,7 @@ require (
 	github.com/bytedance/sonic/loader v0.5.2 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20260929091141-666ce5eec9fc // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20260930135840-270558f35f71 // indirect
 	github.com/charmbracelet/x/ansi v0.11.8 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.15 // indirect
 	github.com/charmbracelet/x/exp/slice v0.1.0 // indirect
@@ -58,7 +58,7 @@ require (
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/coder/websocket v1.8.15 // indirect
 	github.com/creack/pty v1.1.24 // indirect
-	github.com/dlclark/regexp2/v2 v2.8.0 // indirect
+	github.com/dlclark/regexp2/v2 v2.8.1 // indirect
 	github.com/dunglas/httpsfv v1.1.2 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.15 // indirect
@@ -73,7 +73,7 @@ require (
 	github.com/guptarohit/asciigraph v0.10.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/itchyny/gojq v0.12.19 // indirect
-	github.com/itchyny/timefmt-go v0.1.8 // indirect
+	github.com/itchyny/timefmt-go v0.1.9 // indirect
 	github.com/jedib0t/go-pretty/v6 v6.8.3 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
