@@ -109,7 +109,7 @@ func buildBankRow(label string, own []string, cells map[string][]js.Value, steps
 		if len(members) == 0 {
 			continue
 		}
-		fc := buildFamilyCell(f)
+		fc := buildFamilyCell(f, true)
 		fc.Call("setAttribute", "data-bank-for", strings.Join(members, " "))
 		common = append(common, fc)
 	}
@@ -242,13 +242,24 @@ func bankCell(i int) (row, col int) {
 // model's equation (mountEquation).
 func eqSlotID(label string) string { return "eqslot-" + categorySlug(label) }
 
+// newPUnit is model mode's parameter p built as a P-unit is (buildParamUnitAs):
+// a selector without a card's knob, so nothing is built to be thrown away.
+// It is finished by bankPosition when the bank is laid out, not here: every
+// display in a bank is one size, the bank's longest legend (bankChars), and
+// that is known only once every cell in it is.
+func newPUnit(mode string, p paramDef) js.Value { return buildCategoryParamCellAs(mode, p, true) }
+
 // bankPosition makes c a P-unit, one of the bank's positions: the one part, its
 // legend display, and its three buttons.
 func bankPosition(c js.Value) {
+	if c.Get("classList").Call("contains", "pu").Bool() {
+		return // one already
+	}
 	uniformBankCell(c)
 	programLegends(c)
 	c.Call("appendChild", trioColumn(trioKeys[:]))
 	makeTurning(c)
+	c.Get("classList").Call("add", "pu")
 }
 
 // bankColumns is how many columns a bank has: the rest of its bay, after the
@@ -640,14 +651,11 @@ func syncBankCells() {
 func uniformBankCell(c js.Value) {
 	sel := c.Call("querySelector", "select")
 	cb := c.Call("querySelector", "input[type=checkbox]")
-	switch {
-	case sel.Truthy():
-		if st := c.Call("querySelector", ".knobstack"); st.Truthy() {
-			st.Call("remove")
-		}
-	case cb.Truthy():
-		sel = switchAsSelect(c, cb)
-		if sel.Truthy() {
+	// Built bare (newPUnit, buildFamilyCell, the markup's cells): a selector
+	// comes with no knob, and the one it gets is this one. A switch is a
+	// selector with two positions.
+	if !sel.Truthy() && cb.Truthy() {
+		if sel = switchAsSelect(c, cb); sel.Truthy() {
 			c.Call("appendChild", sel)
 		}
 	}

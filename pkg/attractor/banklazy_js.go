@@ -44,7 +44,7 @@ func bankPlaceholder(mode string, p paramDef) js.Value {
 		n = bankMaxChars
 	}
 	ph.Call("setAttribute", "data-chars", strconv.Itoa(n))
-	bankLazy[mode] = append(bankLazy[mode], bankLazyCell{ph, func() js.Value { return buildCategoryParamCell(mode, p) }})
+	bankLazy[mode] = append(bankLazy[mode], bankLazyCell{ph, func() js.Value { return newPUnit(mode, p) }})
 	return ph
 }
 

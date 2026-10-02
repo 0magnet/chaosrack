@@ -192,6 +192,11 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 	var hidden []js.Value // set from another position's buttons (bankHidden)
 	var gens []gentile.Spec
 	var bare []string // models with no constants of their own
+	// A bank's positions are P-units from the start; a card row's are cards.
+	cell := buildCategoryParamCell
+	if bankCategories[label] {
+		cell = newPUnit
+	}
 	for _, mode := range own {
 		lone := -1 // the position of a switch still waiting for a partner
 		for _, p := range attractorParams[mode] {
@@ -205,7 +210,7 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 			case strings.HasSuffix(p.ID, "-dt"):
 				steps[mode] = buildCategoryStepCell(mode, p)
 			case shared[p.ID] > 1:
-				sc := buildCategoryParamCell(mode, p)
+				sc := cell(mode, p)
 				// In a bank it is a shared cell, shown for the models that
 				// declare it and no others (see buildBankRow).
 				if bankCategories[label] {
@@ -224,7 +229,7 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 				if len(paramLabels[p.ID]) == 2 {
 					lone = len(cells[mode])
 				}
-				cells[mode] = append(cells[mode], buildCategoryParamCell(mode, p))
+				cells[mode] = append(cells[mode], cell(mode, p))
 			}
 		}
 		if len(cells[mode]) == 0 {
@@ -252,7 +257,7 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 		var mo []js.Value
 		if len(heard) > 0 {
 			for _, p := range modelOutParams {
-				c := buildCategoryParamCell(heard[0], p)
+				c := newPUnit(heard[0], p)
 				c.Call("setAttribute", "data-bank-for", strings.Join(heard, " "))
 				c.Set("title", helpFor(p.ID))
 				mo = append(mo, c)
@@ -420,14 +425,16 @@ func (f *modelFamily) choose(mode string) {
 func buildFamilyModule(label string, f *modelFamily) js.Value {
 	grid := dom.Doc.Call("createElement", "div")
 	grid.Set("className", "punit-grid catgrid")
-	at(buildFamilyCell(f), grid, 1, 1, 1, 1)
+	at(buildFamilyCell(f, false), grid, 1, 1, 1, 1)
 	return wrapCategoryModule(label, "fam-"+f.Key+"-module", categoryTag(f.Label), grid,
 		docf("fam-module", "family", f.Label))
 }
 
 // buildFamilyCell is the family's dial as one control position: a card row
-// mounts it as a module of its own, a bank as one of its selectors.
-func buildFamilyCell(f *modelFamily) js.Value {
+// mounts it as a module of its own, a bank as one of its selectors. For a
+// bank (pu) it is built without the printed knob, which the P-unit's own
+// replaces.
+func buildFamilyCell(f *modelFamily, pu bool) js.Value {
 	sel := buildFamilySelect(f)
 	cell := dom.Doc.Call("createElement", "div")
 	cell.Set("className", "punit")
@@ -440,9 +447,11 @@ func buildFamilyCell(f *modelFamily) js.Value {
 	top.Call("appendChild", lbl)
 	cell.Call("appendChild", top)
 	cell.Call("appendChild", sel)
-	// Single letters, so the ring holds all nineteen: the fit rule's limit
-	// is for words, which is what collides round a dial.
-	cell.Call("appendChild", singleSelectorKnob(sel, f.Letters))
+	if !pu {
+		// Single letters, so the ring holds all nineteen: the fit rule's limit
+		// is for words, which is what collides round a dial.
+		cell.Call("appendChild", singleSelectorKnob(sel, f.Letters))
+	}
 	return cell
 }
 
@@ -648,8 +657,14 @@ func wrapCategoryModule(label, id, title string, grid js.Value, tip string) js.V
 
 // belongs to so the row can light the ones that are running.
 func buildCategoryParamCell(mode string, p paramDef) js.Value {
+	return buildCategoryParamCellAs(mode, p, false)
+}
+
+// buildCategoryParamCellAs is buildCategoryParamCell, built for a P-unit
+// when pu is set (newPUnit).
+func buildCategoryParamCellAs(mode string, p paramDef, pu bool) js.Value {
 	before := len(paramControls)
-	unit := buildParamUnit(mode, p)
+	unit := buildParamUnitAs(mode, p, pu)
 	// The Controls the builder just made belong to the rack for good, not to
 	// the next panel rebuild, which clears paramControls.
 	if len(paramControls) > before {
