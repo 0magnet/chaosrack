@@ -42,11 +42,11 @@ func registerKnobHover(el js.Value, nudge func(up bool)) {
 	if !el.Truthy() {
 		return
 	}
-	el.Call("addEventListener", "pointerenter", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(el, "pointerenter", func(js.Value, []js.Value) any {
 		hoverNudge = nudge
 		return nil
-	}))
-	el.Call("addEventListener", "pointerleave", dom.FuncOf(func(js.Value, []js.Value) any {
+	})
+	dom.On(el, "pointerleave", func(js.Value, []js.Value) any {
 		// Only clear if this knob is still the live one. A pointerleave on the
 		// outer knob arrives when the pointer crosses onto the inner disc,
 		// which has already claimed the nudge — clearing unconditionally would
@@ -55,12 +55,12 @@ func registerKnobHover(el js.Value, nudge func(up bool)) {
 			hoverNudge = nil
 		}
 		return nil
-	}))
+	})
 }
 
 // wireKnobArrowKeys installs the one document-level key listener.
 func wireKnobArrowKeys() {
-	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(dom.Doc, "keydown", func(this js.Value, a []js.Value) any {
 		if hoverNudge == nil {
 			return nil
 		}
@@ -98,5 +98,5 @@ func wireKnobArrowKeys() {
 		e.Call("stopPropagation")
 		hoverNudge(up)
 		return nil
-	}))
+	})
 }

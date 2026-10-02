@@ -238,7 +238,7 @@ func (r *rhythmSection) wireRhythmModule() {
 		tab.Set("className", "rhythm-tab")
 		tab.Call("setAttribute", "data-rp", name)
 		tab.Set("textContent", name)
-		tab.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
+		dom.On(tab, "click", func(this js.Value, a []js.Value) any {
 			r.setRhythmPreset(name)
 			// Pressing a tab starts the loop, as it did on the organ: the
 			// tabs WERE the start control there. Run stays the way to stop it.
@@ -248,14 +248,14 @@ func (r *rhythmSection) wireRhythmModule() {
 			}
 			tm.ensureGraph() // a user gesture: unlock the audio for the loop
 			return nil
-		}))
+		})
 		tabs.Call("appendChild", tab)
 	}
 	// The select is what a permalink writes to; the tabs follow it.
 	sel.Set("value", r.preset)
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(sel, "change", func(this js.Value, a []js.Value) any {
 		r.setRhythmPreset(sel.Get("value").String())
 		return nil
-	}))
+	})
 	r.setRhythmPreset(r.preset)
 }

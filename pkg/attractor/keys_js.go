@@ -176,7 +176,7 @@ func (k *keyboard) buildKeysBed() {
 		k.keyEls[midi] = el
 		el.Call("setAttribute", "data-midi", strconv.Itoa(midi))
 
-		el.Call("addEventListener", "mousedown", dom.FuncOf(func(this js.Value, a []js.Value) any {
+		dom.On(el, "mousedown", func(this js.Value, a []js.Value) any {
 			e := a[0]
 			e.Call("preventDefault")
 			e.Call("stopPropagation")
@@ -184,16 +184,16 @@ func (k *keyboard) buildKeysBed() {
 			k.markDrag(e)
 			k.noteOn(midi)
 			return nil
-		}))
-		el.Call("addEventListener", "touchstart", dom.FuncOf(func(this js.Value, a []js.Value) any {
+		})
+		dom.On(el, "touchstart", func(this js.Value, a []js.Value) any {
 			a[0].Call("preventDefault")
 			k.touchNote = midi
 			k.markDrag(a[0].Get("touches").Index(0))
 			k.noteOn(midi)
 			return nil
-		}))
+		})
 		for _, ev := range []string{"touchend", "touchcancel"} {
-			el.Call("addEventListener", ev, dom.FuncOf(func(this js.Value, a []js.Value) any {
+			dom.On(el, ev, func(this js.Value, a []js.Value) any {
 				// The touch may have slid to another key (glissando below) —
 				// release whichever note the finger ended on, and the origin.
 				k.noteOff(midi)
@@ -202,7 +202,7 @@ func (k *keyboard) buildKeysBed() {
 				}
 				k.touchNote = -1
 				return nil
-			}))
+			})
 		}
 	}
 	bed.Call("appendChild", whites)
@@ -212,7 +212,7 @@ func (k *keyboard) buildKeysBed() {
 	// keys it crosses (glide). Mouse only while a drag is in progress with the
 	// button still down (buttons==0 heals a mouseup we never saw); touchmove
 	// keeps targeting the starting key, so the finger is tracked the same way.
-	bed.Call("addEventListener", "mousemove", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(bed, "mousemove", func(this js.Value, a []js.Value) any {
 		e := a[0]
 		if k.mouseNote < 0 {
 			return nil
@@ -224,8 +224,8 @@ func (k *keyboard) buildKeysBed() {
 		}
 		k.glide(e.Get("clientX").Float(), e.Get("clientY").Float(), &k.mouseNote)
 		return nil
-	}))
-	bed.Call("addEventListener", "touchmove", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	})
+	dom.On(bed, "touchmove", func(this js.Value, a []js.Value) any {
 		e := a[0]
 		e.Call("preventDefault")
 		if k.touchNote < 0 {
@@ -234,7 +234,7 @@ func (k *keyboard) buildKeysBed() {
 		t := e.Get("touches").Index(0)
 		k.glide(t.Get("clientX").Float(), t.Get("clientY").Float(), &k.touchNote)
 		return nil
-	}))
+	})
 }
 
 // ── Voice engine ─────────────────────────────────────────────────────────
@@ -424,7 +424,7 @@ func (k *keyboard) wireKeysModule() {
 
 	// Computer keyboard: two tracker rows anchored near the range's middle
 	// C. Only while the module is shown, never while typing in a field.
-	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(dom.Doc, "keydown", func(this js.Value, a []js.Value) any {
 		e := a[0]
 		if !k.on || e.Get("repeat").Bool() ||
 			e.Get("ctrlKey").Bool() || e.Get("metaKey").Bool() || e.Get("altKey").Bool() {
@@ -450,26 +450,26 @@ func (k *keyboard) wireKeysModule() {
 		e.Call("preventDefault")
 		k.noteOn(midi)
 		return nil
-	}))
-	dom.Doc.Call("addEventListener", "keyup", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	})
+	dom.On(dom.Doc, "keyup", func(this js.Value, a []js.Value) any {
 		if off, ok := kbOffset[strings.ToLower(a[0].Get("key").String())]; ok {
 			k.noteOff(k.anchor + off)
 		}
 		return nil
-	}))
+	})
 	// Release the mouse-drag note anywhere; silence everything on tab blur
 	// so no note can stick when focus leaves.
-	dom.Doc.Call("addEventListener", "mouseup", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(dom.Doc, "mouseup", func(this js.Value, a []js.Value) any {
 		if k.mouseNote >= 0 {
 			k.noteOff(k.mouseNote)
 			k.mouseNote = -1
 		}
 		return nil
-	}))
-	js.Global().Call("addEventListener", "blur", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	})
+	dom.On(js.Global(), "blur", func(this js.Value, a []js.Value) any {
 		k.allOff()
 		return nil
-	}))
+	})
 
 	k.buildKeysBed()
 }

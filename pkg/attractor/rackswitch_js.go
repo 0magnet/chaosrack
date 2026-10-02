@@ -185,9 +185,9 @@ func wireSwitch(id string, set func(bool)) {
 	if !el.Truthy() {
 		return
 	}
-	el.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(el, "change", func(js.Value, []js.Value) any {
 		set(el.Get("checked").Bool())
 		return nil
-	}))
+	})
 	set(el.Get("checked").Bool())
 }

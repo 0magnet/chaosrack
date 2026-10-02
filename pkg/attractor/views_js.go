@@ -317,10 +317,10 @@ func (vi *viewGrid) wireViewGridDial() {
 		// one.
 		view.autoFitCamera()
 	}
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
+	dom.On(sel, "change", func(this js.Value, args []js.Value) any {
 		apply()
 		return nil
-	}))
+	})
 	apply()
 }
 
@@ -360,11 +360,11 @@ func refocus() {
 // wireViewLinkSwitches hooks up Link and the A/B focus switch.
 func (vi *viewGrid) wireViewLinkSwitches() {
 	if sw := dom.Doc.Call("getElementById", "link-sw"); sw.Truthy() {
-		sw.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
+		dom.On(sw, "change", func(this js.Value, args []js.Value) any {
 			vi.link = sw.Get("checked").Bool()
 			refocus()
 			return nil
-		}))
+		})
 	}
 	vi.buildFocusDial() // wires the focus dial too, on the select it builds
 }
@@ -787,10 +787,11 @@ func (vi *viewGrid) wireSweepDial() {
 	syncSweptMarks()
 }
 
-// wireOneSweepDial hooks one axis's select to the index it drives. Called
-// inside the dial's rebuild arena, on the select that rebuild made.
+// wireOneSweepDial hooks one axis's select to the index it drives. The
+// select is the same one every rebuild refills, so the listener is keyed
+// and replaces the last build's (dom.OnAs).
 func wireOneSweepDial(sel js.Value, into *float32) {
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
+	dom.OnAs(sel, "change", "sweep", func(this js.Value, args []js.Value) any {
 		if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
 			*into = float32(n)
 		}
@@ -801,7 +802,7 @@ func wireOneSweepDial(sel js.Value, into *float32) {
 		syncSweepCells()
 		syncSweptMarks()
 		return nil
-	}))
+	})
 }
 
 // ── saying so on the knob ───────────────────────────────────────────────
@@ -910,7 +911,7 @@ func (vi *viewGrid) buildSweepDial() {
 
 // buildOneSweepDial fills one axis's select, rings it and wires it.
 func (vi *viewGrid) buildOneSweepDial(selID string, into *float32) {
-	sel := freshSelect(selID)
+	sel := dom.Doc.Call("getElementById", selID)
 	holder := dom.Doc.Call("getElementById", selID+"-stack")
 	if !sel.Truthy() || !holder.Truthy() {
 		return
@@ -983,7 +984,7 @@ func focusLabels(n int) []string {
 func (vi *viewGrid) buildFocusDial() { dom.RebuildInto(&vi.focusDialFuncs, vi.buildFocusDialInto) }
 
 func (vi *viewGrid) buildFocusDialInto() {
-	sel := freshSelect("focus-n")
+	sel := dom.Doc.Call("getElementById", "focus-n")
 	holder := dom.Doc.Call("getElementById", "focus-n-stack")
 	if !sel.Truthy() || !holder.Truthy() {
 		return
@@ -1009,13 +1010,13 @@ func (vi *viewGrid) buildFocusDialInto() {
 	// Its positions follow the grid, so the ring prints none of them
 	// (ledSelector): the display names the cell.
 	selectorReadout(holder, sel, labels)
-	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.OnAs(sel, "change", "focus", func(js.Value, []js.Value) any {
 		if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
 			vi.focused = n
 		}
 		refocus()
 		return nil
-	}))
+	})
 }
 
 // ── per-control link ────────────────────────────────────────────────────
@@ -1134,7 +1135,7 @@ func (vi *viewGrid) addLinkMark(cell js.Value, id string) {
 		m.Set("title", doc("grid-unlinked"))
 	}
 	cell.Get("classList").Call("add", "linkable")
-	m.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(m, "click", func(this js.Value, a []js.Value) any {
 		if len(a) > 0 {
 			a[0].Call("stopPropagation")
 			a[0].Call("preventDefault")
@@ -1153,7 +1154,7 @@ func (vi *viewGrid) addLinkMark(cell js.Value, id string) {
 		// bar following is a link that quietly restores something else.
 		perma.syncPermalinkNow()
 		return nil
-	}))
+	})
 	cell.Call("appendChild", m)
 }
 
@@ -1183,25 +1184,6 @@ func (vi *viewGrid) setLinkedParamList(s string) {
 			vi.paramLinks[id] = true
 		}
 	}
-}
-
-// freshSelect swaps a select for a copy of itself with no listeners on it,
-// and returns the copy.
-//
-// For a dial rebuilt in its own arena. The knob and label ring it gets each
-// time listen on the SELECT, which outlives the rebuild; the arena releases
-// their functions and the select kept calling them — "call to released
-// function" on the next turn of the sweep or focus dial. A fresh select
-// takes nothing from the last build with it, and the rebuild attaches
-// everything the dial needs, value listener included, to this one.
-func freshSelect(id string) js.Value {
-	old := dom.Doc.Call("getElementById", id)
-	if !old.Truthy() {
-		return old
-	}
-	fresh := old.Call("cloneNode", false)
-	old.Call("replaceWith", fresh)
-	return fresh
 }
 
 // redrawTrace draws again the trace the last cell drew, in this cell's

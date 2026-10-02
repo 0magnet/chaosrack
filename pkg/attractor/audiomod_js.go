@@ -380,19 +380,19 @@ func makeEQStrip(id string) js.Value {
 		render()
 	}
 	dragging := false
-	wrap.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(wrap, "pointerdown", func(this js.Value, a []js.Value) any {
 		a[0].Call("preventDefault")
 		a[0].Call("stopPropagation")
 		dragging = true
 		apply(a[0])
 		return nil
-	}))
-	wrap.Call("addEventListener", "pointermove", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	})
+	dom.On(wrap, "pointermove", func(this js.Value, a []js.Value) any {
 		if dragging {
 			apply(a[0])
 		}
 		return nil
-	}))
+	})
 	stop := dom.FuncOf(func(this js.Value, a []js.Value) any {
 		if dragging {
 			dragging = false

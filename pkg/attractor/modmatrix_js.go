@@ -178,10 +178,10 @@ func modMxGrid() js.Value {
 		row := i
 		lg := dotDisplayN("", false, dispFullChars)
 		lg.Get("classList").Call("add", "mxleg")
-		lg.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) any {
+		dom.On(lg, "click", func(js.Value, []js.Value) any {
 			modMxSelect(modMx.cols[row].id)
 			return nil
-		}))
+		})
 		grid.Call("appendChild", lg)
 		modMx.rows[i].legend = lg
 		for _, src := range modChannels {
@@ -194,7 +194,7 @@ func modMxGrid() js.Value {
 			grid.Call("appendChild", pin)
 			modMx.rows[i].pins = append(modMx.rows[i].pins, pin)
 			ch := src.name
-			pin.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) any {
+			dom.On(pin, "click", func(js.Value, []js.Value) any {
 				id := modMx.cols[row].id
 				if id == "" {
 					return nil
@@ -214,7 +214,7 @@ func modMxGrid() js.Value {
 				modMxSelect(id)
 				modMxLight(row)
 				return nil
-			}))
+			})
 			pin.Call("addEventListener", "wheel", dom.FuncOf(func(_ js.Value, a []js.Value) any {
 				e := a[0]
 				id := modMx.cols[row].id
@@ -275,7 +275,7 @@ func modMxEditRow() js.Value {
 	name.Get("classList").Call("add", "dmdval")
 	dtop.Call("appendChild", name)
 	ledPick(name, sel)
-	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(sel, "change", func(js.Value, []js.Value) any {
 		if i := sel.Get("selectedIndex").Int(); i >= 0 {
 			setDotText(name, sel.Get("options").Index(i).Get("textContent").String())
 		}
@@ -284,7 +284,7 @@ func modMxEditRow() js.Value {
 			modMxSelect(v)
 		}
 		return nil
-	}))
+	})
 	modMx.dest = sel
 
 	// DPTH: signed, ±4, as the old per-control knob was. The modulation is
@@ -309,7 +309,7 @@ func modMxEditRow() js.Value {
 	sizeLEDField(ro, -4, 4, 2, true)
 	pc.Call("appendChild", rng)
 	pc.Call("appendChild", makeKnob(rng, ro, true, false, true))
-	rng.Call("addEventListener", "input", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(rng, "input", func(js.Value, []js.Value) any {
 		v, err := strconv.ParseFloat(rng.Get("value").String(), 64)
 		if err != nil || modMx.sel == "" {
 			return nil
@@ -325,14 +325,14 @@ func modMxEditRow() js.Value {
 		syncAudioMod()
 		perma.syncPermalinkNow()
 		return nil
-	}))
-	ro.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+	})
+	dom.On(ro, "change", func(js.Value, []js.Value) any {
 		if v, err := led.Parse(ro.Get("value").String()); err == nil {
 			rng.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
 			dom.Fire(rng, "input")
 		}
 		return nil
-	}))
+	})
 	modMx.depth, modMx.depthRO = rng, ro
 
 	// EQ: the selected route's band curve.

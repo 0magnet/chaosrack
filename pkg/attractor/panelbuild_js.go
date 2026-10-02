@@ -83,7 +83,7 @@ func wheelNudge(readout, slider js.Value, step, mn, mx float64) {
 	if step == 0 {
 		step = 1
 	}
-	readout.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) any {
+	dom.On(readout, "wheel", func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
 		e.Call("stopPropagation")
@@ -102,7 +102,7 @@ func wheelNudge(readout, slider js.Value, step, mn, mx float64) {
 		slider.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
 		dom.Fire(slider, "input")
 		return nil
-	}))
+	})
 }
 
 // buildParamUnit builds one parameter "unit": the control (label · knob ·
@@ -186,14 +186,14 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 		// the round trip, since the label highlight listens for the same change
 		// event this handler is answering.
 		syncing := false
-		sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
+		dom.On(sel, "change", func(this js.Value, args []js.Value) any {
 			if syncing {
 				return nil
 			}
 			slider.Set("value", sel.Get("value").String())
 			dom.Fire(slider, "input")
 			return nil
-		}))
+		})
 		selSync = func(i int) {
 			syncing = true
 			sel.Set("value", strconv.Itoa(i))
@@ -214,7 +214,7 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 	}
 	showValue(float64(*p.Value))
 
-	slider.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) any {
+	dom.On(slider, "input", func(this js.Value, args []js.Value) any {
 		if val, err := strconv.ParseFloat(slider.Get("value").String(), 64); err == nil {
 			*p.Value = float32(val)
 			showValue(val)
@@ -226,9 +226,9 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 			refreshGradient()
 		}
 		return nil
-	}))
+	})
 	if len(labels) == 0 {
-		numInput.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) any {
+		dom.On(numInput, "input", func(this js.Value, args []js.Value) any {
 			if val, err := led.Parse(numInput.Get("value").String()); err == nil {
 				*p.Value = float32(val)
 				slider.Set("value", strconv.FormatFloat(val, 'g', -1, 64))
@@ -240,7 +240,7 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 				refreshGradient()
 			}
 			return nil
-		}))
+		})
 	}
 	// Scroll over the LED readout steps the value (drives the slider, which
 	// reformats the readout).
@@ -250,10 +250,10 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 	rst.Set("className", "rst")
 	rst.Set("title", docf("reset", "label", p.Label))
 	rst.Set("textContent", "↺")
-	rst.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) any {
+	dom.On(rst, "click", func(this js.Value, args []js.Value) any {
 		ctl.resetToDefault()
 		return nil
-	}))
+	})
 
 	// Standard cell header: label pinned left, numeric LED centered over the knob,
 	// reset pinned right — all on one line above the knob (see .rst CSS).
@@ -366,13 +366,13 @@ func buildStepField(slider js.Value, label, stepStr string) js.Value {
 	}
 	show(cur())
 
-	stepInput.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) any {
+	dom.On(stepInput, "input", func(this js.Value, args []js.Value) any {
 		if val, err := strconv.ParseFloat(stepInput.Get("value").String(), 64); err == nil && val > 0 {
 			cs.setStep(slider, val)
 			show(val)
 		}
 		return nil
-	}))
+	})
 	knob.Call("addEventListener", "wheel", dom.FuncOf(func(_ js.Value, a []js.Value) any {
 		e := a[0]
 		e.Call("preventDefault")
@@ -387,15 +387,15 @@ func buildStepField(slider js.Value, label, stepStr string) js.Value {
 	// Dragged: one decade per twelve pixels, up for coarser.
 	var startY float64
 	var dragging bool
-	knob.Call("addEventListener", "pointerdown", dom.FuncOf(func(_ js.Value, a []js.Value) any {
+	dom.On(knob, "pointerdown", func(_ js.Value, a []js.Value) any {
 		e := a[0]
 		e.Call("preventDefault")
 		e.Call("stopPropagation")
 		knob.Call("setPointerCapture", e.Get("pointerId"))
 		startY, dragging = e.Get("clientY").Float(), true
 		return nil
-	}))
-	knob.Call("addEventListener", "pointermove", dom.FuncOf(func(_ js.Value, a []js.Value) any {
+	})
+	dom.On(knob, "pointermove", func(_ js.Value, a []js.Value) any {
 		if !dragging {
 			return nil
 		}
@@ -409,22 +409,22 @@ func buildStepField(slider js.Value, label, stepStr string) js.Value {
 			startY = a[0].Get("clientY").Float()
 		}
 		return nil
-	}))
-	knob.Call("addEventListener", "pointerup", dom.FuncOf(func(js.Value, []js.Value) any {
+	})
+	dom.On(knob, "pointerup", func(js.Value, []js.Value) any {
 		dragging = false
 		return nil
-	}))
+	})
 
 	// The step's own reset, back to the step the parameter was built with.
 	rst := dom.Doc.Call("createElement", "button")
 	rst.Set("className", "rst steprst")
 	rst.Set("title", docf("reset-step", "label", label, "step", stepStr))
 	rst.Set("textContent", "↺")
-	rst.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(rst, "click", func(js.Value, []js.Value) any {
 		stepInput.Set("value", stepStr)
 		dom.Fire(stepInput, "input")
 		return nil
-	}))
+	})
 
 	frag := dom.Doc.Call("createDocumentFragment")
 	frag.Call("appendChild", stepInput)
@@ -858,7 +858,7 @@ func buildTwoWaySwitch(sel js.Value, labels []string, label string) js.Value {
 		// cannot answer because it does not change.
 		name.Set("title", labels[clampIndex(i, len(labels))]+" — click or scroll for "+labels[clampIndex(1-i, len(labels))])
 	}
-	box.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(box, "change", func(js.Value, []js.Value) any {
 		idx := 0
 		if box.Get("checked").Bool() {
 			idx = 1
@@ -866,7 +866,7 @@ func buildTwoWaySwitch(sel js.Value, labels []string, label string) js.Value {
 		sel.Set("selectedIndex", idx)
 		dom.Fire(sel, "change")
 		return nil
-	}))
+	})
 	// The wheel steps it, because every other control in the rack answers the
 	// wheel and these sit in the same grid as knobs that do. A two-position
 	// parameter is still a parameter; that it is drawn as a switch rather than a
@@ -875,7 +875,7 @@ func buildTwoWaySwitch(sel js.Value, labels []string, label string) js.Value {
 	//
 	// Up towards the earlier option, matching makeSelectorKnob, so the two agree
 	// about which way "up" is on a detented control.
-	wrap.Call("addEventListener", "wheel", dom.FuncOf(func(_ js.Value, args []js.Value) any {
+	dom.On(wrap, "wheel", func(_ js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
 		e.Call("stopPropagation")
@@ -889,13 +889,13 @@ func buildTwoWaySwitch(sel js.Value, labels []string, label string) js.Value {
 		sel.Set("selectedIndex", idx)
 		dom.Fire(sel, "change")
 		return nil
-	}))
+	})
 	// The select can move without the switch being touched, and then the switch
 	// has to catch up or it is lying about the state it controls.
-	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(sel, "change", func(js.Value, []js.Value) any {
 		show()
 		return nil
-	}))
+	})
 	show()
 
 	wrap.Call("appendChild", box)

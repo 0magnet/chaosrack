@@ -285,7 +285,7 @@ func (p *pongGame) wireInput() {
 		}
 		return true
 	}
-	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(dom.Doc, "keydown", func(this js.Value, a []js.Value) any {
 		e := a[0]
 		if run.selectedMode != "pong" {
 			return nil
@@ -303,11 +303,11 @@ func (p *pongGame) wireInput() {
 			}
 		}
 		return nil
-	}))
-	dom.Doc.Call("addEventListener", "keyup", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	})
+	dom.On(dom.Doc, "keyup", func(this js.Value, a []js.Value) any {
 		set(strings.ToLower(a[0].Get("key").String()), false)
 		return nil
-	}))
+	})
 }
 
 // pointerPaddle drives the paddle on the pointer's half of the screen

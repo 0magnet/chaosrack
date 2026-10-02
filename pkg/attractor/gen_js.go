@@ -113,7 +113,7 @@ func addPianoKeys(freq js.Value) js.Value {
 		}
 		el.Call("setAttribute", "data-pc", strconv.Itoa(pc))
 		el.Set("title", owner+" — set note "+name+" (in the octave currently shown)")
-		el.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
+		dom.On(el, "click", func(this js.Value, a []js.Value) any {
 			// Set this note in the octave currently shown on the keyboard (the C..B
 			// register the current note is in), snapping out any detune.
 			cur := math.Round(fgFloat(freq))           // current note, semitones above A0
@@ -129,7 +129,7 @@ func addPianoKeys(freq js.Value) js.Value {
 			freq.Set("value", strconv.FormatFloat(s, 'f', 0, 64))
 			dom.Fire(freq, "input")
 			return nil
-		}))
+		})
 		keyEls = append(keyEls, el)
 		return el
 	}
@@ -171,10 +171,10 @@ func addPianoKeys(freq js.Value) js.Value {
 		}
 	}
 	highlight()
-	freq.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(freq, "input", func(this js.Value, a []js.Value) any {
 		highlight()
 		return nil
-	}))
+	})
 	return wrap
 }
 
@@ -317,11 +317,11 @@ func addSelectorWaveDial(stack, sel js.Value, off float64) {
 		dialPosTitle(ic, sel, i)
 		els[i] = ic
 		idx := i
-		ic.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
+		dom.On(ic, "click", func(this js.Value, a []js.Value) any {
 			sel.Set("selectedIndex", idx)
 			dom.Fire(sel, "change")
 			return nil
-		}))
+		})
 		dial.Call("appendChild", ic)
 	}
 	hi := func() {
@@ -331,7 +331,7 @@ func addSelectorWaveDial(stack, sel js.Value, off float64) {
 			e.Get("classList").Call("toggle", "lab-active", j == ci)
 		}
 	}
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any { hi(); return nil }))
+	dom.On(sel, "change", func(this js.Value, a []js.Value) any { hi(); return nil })
 	hi()
 	stack.Call("insertBefore", dial, stack.Get("firstChild"))
 	stack.Get("classList").Call("add", "has-dial")

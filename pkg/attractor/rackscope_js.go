@@ -255,10 +255,10 @@ func (ra *rackScope) wireScopeBeam() {
 			loan.show("off", "0")
 		}
 	}
-	illum.Call("addEventListener", "input", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(illum, "input", func(js.Value, []js.Value) any {
 		apply()
 		return nil
-	}))
+	})
 	// The cell's one reset puts all three back, as a generator's level reset
 	// does its envelope.
 	adoptDescControl(ControlDesc{
@@ -415,13 +415,13 @@ func buildScopeRing(id string, names, ring []string, at, def int, set func(int))
 	addSelectorLabels(stack, ring, sel).Set("id", id+"-ring")
 	holder.Call("appendChild", stack)
 
-	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(sel, "change", func(js.Value, []js.Value) any {
 		if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
 			set(n)
 			setScopeReadout(id, names, n)
 		}
 		return nil
-	}))
+	})
 	setScopeReadout(id, names, clampIdx(at, len(names)))
 	adoptDescControl(ControlDesc{
 		ID: id, Label: scopeLabel(id), IsSelect: true,

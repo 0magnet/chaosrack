@@ -56,10 +56,10 @@ func (l *lyapunovProbe) wireAnalysisModule() {
 	l.on = true
 	l.scheduleLyapunov(0)
 	if btn := dom.Doc.Call("getElementById", "lyap-remeasure"); btn.Truthy() {
-		btn.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
+		dom.On(btn, "click", func(this js.Value, a []js.Value) any {
 			l.scheduleLyapunov(0)
 			return nil
-		}))
+		})
 	}
 }
 

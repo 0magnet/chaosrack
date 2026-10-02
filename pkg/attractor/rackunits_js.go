@@ -794,7 +794,7 @@ func wireColorLockSwitch() {
 		return
 	}
 	sw.Set("checked", sel.Get("value").String() == "1")
-	sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(sw, "change", func(js.Value, []js.Value) any {
 		v := "0"
 		if sw.Get("checked").Bool() {
 			v = "1"
@@ -804,9 +804,9 @@ func wireColorLockSwitch() {
 			dom.Fire(sel, "change")
 		}
 		return nil
-	}))
-	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+	})
+	dom.On(sel, "change", func(js.Value, []js.Value) any {
 		sw.Set("checked", sel.Get("value").String() == "1")
 		return nil
-	}))
+	})
 }

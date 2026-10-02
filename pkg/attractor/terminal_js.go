@@ -154,17 +154,17 @@ func (te *terminal) wireTerminalFocus() {
 	}
 	te.wired = true
 
-	glctx.Canvas.Call("addEventListener", "dblclick", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(glctx.Canvas, "dblclick", func(js.Value, []js.Value) any {
 		focusModelKeyboard()
 		return nil
-	}))
-	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(_ js.Value, a []js.Value) any {
+	})
+	dom.On(dom.Doc, "keydown", func(_ js.Value, a []js.Value) any {
 		if len(a) == 0 || a[0].Get("key").String() != "Escape" {
 			return nil
 		}
 		blurModelKeyboard()
 		return nil
-	}))
+	})
 }
 
 // terminalOnScreen reports whether the terminal is actually being drawn, as the
@@ -327,7 +327,7 @@ func (te *terminal) wireTerminalZoom() {
 		}
 		return nil
 	}), map[string]any{"passive": false})
-	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(_ js.Value, a []js.Value) any {
+	dom.On(dom.Doc, "keydown", func(_ js.Value, a []js.Value) any {
 		if len(a) == 0 || !a[0].Get("ctrlKey").Bool() || !terminalOnScreen() {
 			return nil
 		}
@@ -343,7 +343,7 @@ func (te *terminal) wireTerminalZoom() {
 		}
 		a[0].Call("preventDefault")
 		return nil
-	}))
+	})
 }
 
 // ctrlWheelIsTerminalZoom reports that this wheel event belongs to the

@@ -215,7 +215,7 @@ func (to *tonematrix) wirePads(body js.Value) {
 		}
 		to.ensureGraph() // user gesture: unlock audio for the loop
 	}
-	body.Call("addEventListener", "mousedown", dom.FuncOf(func(_ js.Value, a []js.Value) any {
+	dom.On(body, "mousedown", func(_ js.Value, a []js.Value) any {
 		c, r, ok := tmPadAt(a[0].Get("target"))
 		if !ok {
 			return nil
@@ -226,8 +226,8 @@ func (to *tonematrix) wirePads(body js.Value) {
 		}
 		press(c, r)
 		return nil
-	}))
-	body.Call("addEventListener", "mouseover", dom.FuncOf(func(_ js.Value, a []js.Value) any {
+	})
+	dom.On(body, "mouseover", func(_ js.Value, a []js.Value) any {
 		if to.paint < 0 {
 			return nil
 		}
@@ -241,7 +241,7 @@ func (to *tonematrix) wirePads(body js.Value) {
 		}
 		to.setPad(c, r, to.paint == 1)
 		return nil
-	}))
+	})
 	body.Call("addEventListener", "touchstart", dom.FuncOf(func(_ js.Value, a []js.Value) any {
 		c, r, ok := tmPadAt(a[0].Get("target"))
 		if !ok {
@@ -265,10 +265,10 @@ func (to *tonematrix) wirePads(body js.Value) {
 		return nil
 	}), map[string]any{"passive": false})
 	for _, ev := range []string{"touchend", "touchcancel"} {
-		body.Call("addEventListener", ev, dom.FuncOf(func(js.Value, []js.Value) any {
+		dom.On(body, ev, func(js.Value, []js.Value) any {
 			to.paint = -1
 			return nil
-		}))
+		})
 	}
 }
 
@@ -624,7 +624,7 @@ func (to *tonematrix) wireTonematrixModule() {
 	})
 
 	if run := dom.Doc.Call("getElementById", "tm-run"); run.Truthy() {
-		run.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
+		dom.On(run, "change", func(this js.Value, a []js.Value) any {
 			to.run = run.Get("checked").Bool()
 			to.next = 0 // restart cleanly rather than racing to catch up
 			to.due, to.ddue = to.due[:0], to.ddue[:0]
@@ -636,17 +636,17 @@ func (to *tonematrix) wireTonematrixModule() {
 				rhy.lightLamp(-1)
 			}
 			return nil
-		}))
+		})
 	}
 	if b := dom.Doc.Call("getElementById", "tm-clear"); b.Truthy() {
-		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
+		dom.On(b, "click", func(this js.Value, a []js.Value) any {
 			for c := range tmMaxSteps {
 				for r := range tmRows + tmLanes {
 					to.setPad(c, r, false) // a lane's steps number no more than the grid's
 				}
 			}
 			return nil
-		}))
+		})
 	}
 	// Always in the rack. The Console's module switches are gone, so there is
 	// no state in which this module is absent, and the flag that used to mean
@@ -656,10 +656,10 @@ func (to *tonematrix) wireTonematrixModule() {
 	// the module DOES is its own transport control.
 	to.on = true
 	// Release a pad paint-drag wherever the mouse comes up.
-	dom.Doc.Call("addEventListener", "mouseup", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(dom.Doc, "mouseup", func(this js.Value, a []js.Value) any {
 		to.paint = -1
 		return nil
-	}))
+	})
 
 	to.buildTMGrid()
 }

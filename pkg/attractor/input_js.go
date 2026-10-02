@@ -52,7 +52,7 @@ func wireModelInput() {
 	// rotation still works when the host page paints other elements
 	// (e.g. magnetosphere.net's SVG logo) above the canvas. The target
 	// filter above lets clicks on links/buttons/inputs through.
-	dom.Doc.Call("addEventListener", "mousedown", dom.FuncOf(func(this js.Value, args []js.Value) any {
+	dom.On(dom.Doc, "mousedown", func(this js.Value, args []js.Value) any {
 		e := args[0]
 		if isInteractiveDragTarget(e.Get("target")) {
 			return nil
@@ -92,8 +92,8 @@ func wireModelInput() {
 		dragging = true
 		beginDrag(e.Get("clientX").Float(), e.Get("clientY").Float())
 		return nil
-	}))
-	js.Global().Call("addEventListener", "mousemove", dom.FuncOf(func(this js.Value, args []js.Value) any {
+	})
+	dom.On(js.Global(), "mousemove", func(this js.Value, args []js.Value) any {
 		e := args[0]
 		if pongPointer {
 			if e.Get("buttons").Float() == 0 {
@@ -123,25 +123,25 @@ func wireModelInput() {
 		}
 		dragMove(e.Get("clientX").Float(), e.Get("clientY").Float())
 		return nil
-	}))
-	js.Global().Call("addEventListener", "mouseup", dom.FuncOf(func(this js.Value, args []js.Value) any {
+	})
+	dom.On(js.Global(), "mouseup", func(this js.Value, args []js.Value) any {
 		dragging = false
 		pongPointer = false
 		grab.grabEnd()
 		grab.spinEnd()
 		grab.tiltEnd()
 		return nil
-	}))
+	})
 	// While rotating, kill the browser's native behaviors that hijack the
 	// gesture on host pages: dragging an <img>/SVG (magnetosphere.net's logo
 	// lifts "in hand" and eats every event until release) and text selection.
 	for _, ev := range []string{"dragstart", "selectstart"} {
-		dom.Doc.Call("addEventListener", ev, dom.FuncOf(func(this js.Value, args []js.Value) any {
+		dom.On(dom.Doc, ev, func(this js.Value, args []js.Value) any {
 			if dragging {
 				args[0].Call("preventDefault")
 			}
 			return nil
-		}))
+		})
 	}
 
 	// Event: touch drag rotation + two-finger pinch zoom. Same doc-binding
@@ -156,7 +156,7 @@ func wireModelInput() {
 		dy := a.Get("clientY").Float() - b.Get("clientY").Float()
 		return dx*dx + dy*dy // squared is fine — only ratios of change matter
 	}
-	dom.Doc.Call("addEventListener", "touchstart", dom.FuncOf(func(this js.Value, args []js.Value) any {
+	dom.On(dom.Doc, "touchstart", func(this js.Value, args []js.Value) any {
 		e := args[0]
 		if isInteractiveDragTarget(e.Get("target")) {
 			return nil
@@ -187,8 +187,8 @@ func wireModelInput() {
 		dragging = true
 		beginDrag(t.Get("clientX").Float(), t.Get("clientY").Float())
 		return nil
-	}))
-	dom.Doc.Call("addEventListener", "touchmove", dom.FuncOf(func(this js.Value, args []js.Value) any {
+	})
+	dom.On(dom.Doc, "touchmove", func(this js.Value, args []js.Value) any {
 		e := args[0]
 		touches := e.Get("touches")
 		if run.selectedMode == "pong" && !isInteractiveDragTarget(e.Get("target")) {
@@ -226,8 +226,8 @@ func wireModelInput() {
 		t := touches.Index(0)
 		dragMove(t.Get("clientX").Float(), t.Get("clientY").Float())
 		return nil
-	}))
-	dom.Doc.Call("addEventListener", "touchend", dom.FuncOf(func(this js.Value, args []js.Value) any {
+	})
+	dom.On(dom.Doc, "touchend", func(this js.Value, args []js.Value) any {
 		if args[0].Get("touches").Get("length").Int() < 2 {
 			pinching = false
 		}
@@ -236,7 +236,7 @@ func wireModelInput() {
 		}
 		dragging = false
 		return nil
-	}))
+	})
 
 	// Event: scroll wheel zoom.
 	//
@@ -247,7 +247,7 @@ func wireModelInput() {
 	if wireHostWheel() {
 		return
 	}
-	glctx.Canvas.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) any {
+	dom.On(glctx.Canvas, "wheel", func(this js.Value, args []js.Value) any {
 		e := args[0]
 		if ctrlWheelIsTerminalZoom(e) {
 			return nil // the terminal on the quad is zooming its own cell
@@ -257,7 +257,7 @@ func wireModelInput() {
 		// small (~2–3) while still scaling gently on fine trackpads.
 		applyZoomDelta(float32(e.Get("deltaY").Float()) * 0.02)
 		return nil
-	}))
+	})
 }
 
 // applyZoomDelta nudges the camera-zoom control by -delta (wheel notches
@@ -288,7 +288,7 @@ func wireWheelBindings() {
 		if !el.Truthy() {
 			return
 		}
-		el.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) any {
+		dom.On(el, "wheel", func(this js.Value, args []js.Value) any {
 			e := args[0]
 			e.Call("preventDefault")
 			deltaY := e.Get("deltaY").Float()
@@ -317,7 +317,7 @@ func wireWheelBindings() {
 			el.Set("value", strconv.FormatFloat(cur, 'f', -1, 64))
 			dom.Fire(el, "input")
 			return nil
-		}))
+		})
 	}
 	bindWheelToInput := func(id string) {
 		bindWheelEl(dom.Doc.Call("getElementById", id))
@@ -339,7 +339,7 @@ func wireWheelBindings() {
 		if !el.Truthy() {
 			return
 		}
-		el.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) any {
+		dom.On(el, "wheel", func(this js.Value, args []js.Value) any {
 			e := args[0]
 			e.Call("preventDefault")
 			idx := el.Get("selectedIndex").Int()
@@ -358,7 +358,7 @@ func wireWheelBindings() {
 			el.Set("selectedIndex", idx)
 			dom.Fire(el, "change")
 			return nil
-		}))
+		})
 	}
 	bindWheelToSelect("gradient-source")
 	bindWheelToSelect("gradient-colors")

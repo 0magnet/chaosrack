@@ -149,7 +149,7 @@ func buildModelSwitches(row js.Value) {
 		sw.Set("id", modelSwitchID(i))
 		sw.Set("disabled", true)
 		n := i
-		sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+		dom.On(sw, "change", func(js.Value, []js.Value) any {
 			ss := modelSwitchesFor(editMode())
 			if n >= len(ss) {
 				sw.Set("checked", false)
@@ -171,7 +171,7 @@ func buildModelSwitches(row js.Value) {
 			s.set(sw.Get("checked").Bool())
 			syncModelParts(editMode())
 			return nil
-		}))
+		})
 		lab.Call("appendChild", sw)
 		row.Call("appendChild", lab)
 	}

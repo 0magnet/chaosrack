@@ -420,13 +420,13 @@ func (c *customEquation) buildCustomPanel(paramsDiv js.Value) {
 		}
 		inp.Set("title", what+" — expression in "+vars+"; any other letters become knobbed parameters (e / pi / tau are constants)")
 		// Commit on change (blur/Enter) to avoid rebuilding mid-keystroke.
-		inp.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
+		dom.On(inp, "change", func(this js.Value, a []js.Value) any {
 			c.eq[i] = inp.Get("value").String()
 			resetAttractorState()
 			buildParamPanel("custom") // reparse + refresh param knobs
 			perma.syncPermalinkNow()
 			return nil
-		}))
+		})
 		row.Call("appendChild", lbl)
 		row.Call("appendChild", inp)
 		return row
@@ -650,14 +650,14 @@ func (c *customEquation) buildEquationView(mode string, paramsDiv js.Value) {
 				inp.Set("title", doc("equation.readonly"))
 			} else {
 				inp.Set("title", doc("equation.solid"))
-				inp.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+				dom.On(inp, "change", func(js.Value, []js.Value) any {
 					c.seedCustomSurface(inp.Get("value").String())
 					if ms := dom.Doc.Call("getElementById", "mode-select"); ms.Truthy() {
 						ms.Set("value", "custom")
 						dom.Fire(ms, "change")
 					}
 					return nil
-				}))
+				})
 			}
 			row.Call("appendChild", lbl)
 			row.Call("appendChild", inp)
@@ -677,7 +677,7 @@ func (c *customEquation) buildEquationView(mode string, paramsDiv js.Value) {
 		} else {
 			n := i
 			inp.Set("title", docf("equation.line", "v", v, "mode", modeLabel(mode)))
-			inp.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+			dom.On(inp, "change", func(js.Value, []js.Value) any {
 				c.seedCustomFromMode(mode)
 				c.eq[n] = inp.Get("value").String()
 				c.parseCustom()
@@ -686,7 +686,7 @@ func (c *customEquation) buildEquationView(mode string, paramsDiv js.Value) {
 					dom.Fire(ms, "change")
 				}
 				return nil
-			}))
+			})
 		}
 		row.Call("appendChild", lbl)
 		row.Call("appendChild", inp)

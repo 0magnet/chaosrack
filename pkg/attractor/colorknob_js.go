@@ -40,7 +40,7 @@ func makeHueKnob(slider js.Value) js.Value {
 		ptr.Get("style").Set("transform", "translate(-50%,-100%) rotate("+strconv.FormatFloat(h, 'f', 1, 64)+"deg)")
 	}
 	update()
-	slider.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) any { update(); return nil }))
+	dom.On(slider, "input", func(this js.Value, a []js.Value) any { update(); return nil })
 
 	dragging := false
 	setFromEvent := func(e js.Value) {
@@ -55,7 +55,7 @@ func makeHueKnob(slider js.Value) js.Value {
 		slider.Set("value", strconv.FormatFloat(ang, 'f', 0, 64))
 		dom.Fire(slider, "input")
 	}
-	knob.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(knob, "pointerdown", func(this js.Value, a []js.Value) any {
 		e := a[0]
 		e.Call("preventDefault")
 		e.Call("stopPropagation")
@@ -63,17 +63,17 @@ func makeHueKnob(slider js.Value) js.Value {
 		knob.Call("setPointerCapture", e.Get("pointerId"))
 		setFromEvent(e)
 		return nil
-	}))
-	knob.Call("addEventListener", "pointermove", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	})
+	dom.On(knob, "pointermove", func(this js.Value, a []js.Value) any {
 		if dragging {
 			setFromEvent(a[0])
 		}
 		return nil
-	}))
+	})
 	rel := dom.FuncOf(func(this js.Value, a []js.Value) any { dragging = false; return nil })
 	knob.Call("addEventListener", "pointerup", rel)
 	knob.Call("addEventListener", "pointercancel", rel)
-	knob.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(knob, "wheel", func(this js.Value, a []js.Value) any {
 		e := a[0]
 		e.Call("preventDefault")
 		e.Call("stopPropagation")
@@ -90,7 +90,7 @@ func makeHueKnob(slider js.Value) js.Value {
 		slider.Set("value", strconv.FormatFloat(h, 'f', 0, 64))
 		dom.Fire(slider, "input")
 		return nil
-	}))
+	})
 	return knob
 }
 
@@ -158,7 +158,7 @@ func buildColorKnob(colorInput js.Value) js.Value {
 		setHueCol(h)
 	}
 	for _, rng := range []js.Value{hueR, levR} {
-		rng.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) any { apply(); return nil }))
+		dom.On(rng, "input", func(this js.Value, a []js.Value) any { apply(); return nil })
 	}
 	// External swatch pick → turn the knobs (and recolor the level dial) to match.
 	syncFromSwatch := dom.FuncOf(func(this js.Value, a []js.Value) any {

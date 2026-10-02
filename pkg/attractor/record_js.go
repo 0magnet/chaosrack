@@ -98,7 +98,7 @@ func (c *canvasRecorder) wireRecordSwitch() {
 	if !sw.Truthy() {
 		return
 	}
-	sw.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
+	dom.On(sw, "change", func(this js.Value, args []js.Value) any {
 		c.on = sw.Get("checked").Bool()
 		if c.on {
 			recmod.noteTakeStart()
@@ -116,7 +116,7 @@ func (c *canvasRecorder) wireRecordSwitch() {
 			gif.stopGIFRecording()
 		}
 		return nil
-	}))
+	})
 }
 
 // recWantsGIF reads the format switch. It is read when recording starts rather
