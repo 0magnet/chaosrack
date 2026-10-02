@@ -89,6 +89,7 @@ func buildBankRow(label string, own []string, cells map[string][]js.Value, steps
 		if s, ok := steps[mode]; ok {
 			programLegends(s)
 			makeTurning(s)
+			s.Get("classList").Call("add", "pu") // a P-unit with no buttons: a step has none
 			some = s
 		} else {
 			free = append(free, mode)
@@ -813,6 +814,7 @@ func bankCustomCells(defs []paramDef) bool {
 			uniformBankCell(c) // the bank's part, without the buttons a step has none of
 			programLegends(c)
 			makeTurning(c)
+			c.Get("classList").Call("add", "pu")
 		} else {
 			bankPosition(c)
 			row, col = bankCell(i)
