@@ -35,14 +35,12 @@ func makeTurning(c js.Value) {
 		return
 	}
 	id := slider.Get("id").String()
-	num := func(attr string) float64 {
-		f, _ := strconv.ParseFloat(slider.Get(attr).String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the fallback
-		return f
-	}
-	lo, hi, step := num("min"), num("max"), num("step")
-	if s, ok := turnSpecs[id]; ok {
-		lo, hi = s.lo, s.hi // made once already: the slider is the widened one
-	}
+	// The range as authored (controlspec_js.go): this widens the slider's
+	// own, and may be asked again of the same cell. The quantum, not the
+	// step, says whether it is a count: a knob that moves only in whole
+	// steps has no fine ring.
+	cs := specOf(slider)
+	lo, hi, step := cs.lo, cs.hi, cs.quantum()
 	label := ""
 	if l := c.Call("querySelector", ".u-lbl"); l.Truthy() {
 		label = l.Get("textContent").String()

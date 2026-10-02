@@ -16,9 +16,6 @@ import (
 	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
-// gridSweepStep is FROM and TO's step, as their markup and ControlDescs say.
-const gridSweepStep = "0.01"
-
 // buildGridBank makes the Grid's cells P-units. Called once the fixed knobs
 // are made (FROM and TO are knobifyFixed's) and before the dials are filled.
 func buildGridBank() {
@@ -36,9 +33,7 @@ func buildGridBank() {
 		if l := c.Call("querySelector", ".u-lbl"); l.Truthy() {
 			label = l.Get("textContent").String()
 		}
-		// The step the markup gives, not the slider's now: the fine ring has
-		// divided that.
-		c.Call("appendChild", buildStepField(sl, label, gridSweepStep))
+		c.Call("appendChild", buildStepField(sl, label, specOf(sl).stepText()))
 	}
 	cs := bank.Call("querySelectorAll", ":scope>.punit")
 	for i := range cs.Length() {
