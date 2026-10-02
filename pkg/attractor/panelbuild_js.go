@@ -114,7 +114,13 @@ func wheelNudge(readout, slider js.Value, step, mn, mx float64) {
 // so a cell has to be built the way ITS model wants rather than the way
 // whatever happens to be playing does. See the fine-trim decision below,
 // which reads the mode's class.
-func buildParamUnit(mode string, p paramDef) js.Value {
+func buildParamUnit(mode string, p paramDef) js.Value { return buildParamUnitAs(mode, p, false) }
+
+// buildParamUnitAs is buildParamUnit, or with pu the cell a P-unit is made
+// from (newPUnit): a selector without the knob a card gives it, since a
+// P-unit mounts its own (uniformBankCell) and building one to throw away
+// was the bank's first pass over every selector it held.
+func buildParamUnitAs(mode string, p paramDef, pu bool) js.Value {
 	dec := led.Decimals(float64(p.Step), fineRatio)
 	signed := p.Min < 0
 	intDig := led.IntDigits(float64(p.Min), float64(p.Max))
@@ -289,15 +295,18 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 		// The select stays the value, so the permalink, Reset All and a patch
 		// recall all still drive this through exactly the path they drove the
 		// dial through.
-		if len(labels) == 2 {
+		switch {
+		case pu:
+			// A P-unit's knob is mounted by the P-unit (uniformBankCell).
+		case len(labels) == 2:
 			unit.Call("appendChild", buildTwoWaySwitch(sel, labels, p.Label))
-		} else if !racklayout.RingLabelsFit(ring) {
+		case !racklayout.RingLabelsFit(ring):
 			// Too many options, or names too long to sit round a dial. This is
 			// what selectorKnobReadout exists for and says so -- the Phosphor,
 			// Backdrop, Skin and Desk-style knobs all take it. Twenty demo names
 			// ringed round a knob would be twenty overlapping words.
 			unit.Call("appendChild", selectorKnobReadout(sel))
-		} else {
+		default:
 			stack := singleSelectorKnob(sel, ring)
 			tips := map[string]string{}
 			for i, short := range ring {
