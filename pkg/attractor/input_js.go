@@ -292,8 +292,10 @@ func wireWheelBindings() {
 			e := args[0]
 			e.Call("preventDefault")
 			deltaY := e.Get("deltaY").Float()
-			step, _ := strconv.ParseFloat(el.Get("step").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-			if step == 0 {
+			// One step of the control (controlspec_js.go): a slider's own step
+			// attribute is its snapping, which a fine ring divides.
+			step := specOf(el).step
+			if !(step > 0) {
 				step = 1
 			}
 			cur, _ := strconv.ParseFloat(el.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not

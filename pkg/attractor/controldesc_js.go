@@ -36,6 +36,7 @@ func buildDescControl(d ControlDesc) (*Control, js.Value) {
 	slider.Set("min", strconv.FormatFloat(d.Min, 'g', -1, 64))
 	slider.Set("max", strconv.FormatFloat(d.Max, 'g', -1, 64))
 	slider.Set("step", strconv.FormatFloat(d.Step, 'g', -1, 64)) // before value so the thumb isn't snapped
+	setSpec(d.ID, d.Min, d.Max, d.Step)
 	slider.Set("value", strconv.FormatFloat(d.Def, 'g', -1, 64))
 	slider.Set("style", "display:none;")
 

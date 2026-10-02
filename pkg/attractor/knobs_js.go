@@ -606,19 +606,18 @@ func addSelectorDotLabels(stack js.Value, colors []string, sel js.Value, offset 
 // adds the knob to syncKnobs (use for persistent, not rebuilt-per-panel,
 // knobs). Returns the wrapper element to insert into the panel.
 func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Value {
-	lo, _ := strconv.ParseFloat(slider.Get("min").String(), 64)          //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-	hi, _ := strconv.ParseFloat(slider.Get("max").String(), 64)          //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-	coarseStep, _ := strconv.ParseFloat(slider.Get("step").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-	if coarseStep <= 0 {
-		coarseStep = (hi - lo) / 100
-	}
+	// Its range and step from its record (controlspec_js.go), never from the
+	// slider's attributes, which this and later builders rewrite.
+	cs := specOf(slider)
+	lo, hi := cs.lo, cs.hi
 	// Let the slider carry values far finer than one coarse step, so the fine
 	// knob/wheel can nudge a tenth of a step; the coarse control still
 	// moves by whole coarse steps. Knobs built WITHOUT a fine disc keep the
 	// authored step — integer-domain controls (lat/lon line counts, polygon
 	// subdivisions) must snap to whole values.
 	if withFine {
-		slider.Set("step", strconv.FormatFloat(coarseStep*0.001, 'g', -1, 64))
+		cs.fine = true
+		cs.setStep(slider, cs.step)
 	}
 
 	wrap := dom.Doc.Call("createElement", "span")
@@ -708,7 +707,7 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 			// In a bank it is an encoder (see kb). Asked at the grab, because
 			// the cell is made before the bank it is mounted in.
 			kb.encoder = knob.Call("closest", ".dmdcell").Truthy()
-			kb.step = coarseStep
+			kb.step = cs.step // the step trim's, now
 			kb.enc.Reset()
 			el.Get("classList").Call("add", "knob-grab")
 			return nil
@@ -726,9 +725,9 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 	// arrow keys, so the two inputs cannot drift apart.
 	nudge := func(fineMode bool) func(up bool) {
 		return func(up bool) {
-			stepv := coarseStep
+			stepv := cs.step
 			if fineMode {
-				stepv = coarseStep * fineRatio
+				stepv = cs.step * fineRatio
 			}
 			v, _ := strconv.ParseFloat(slider.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 			old := v

@@ -137,6 +137,8 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 	slider.Set("min", minStr)
 	slider.Set("max", maxStr)
 	slider.Set("step", stepStr) // set before value so the thumb isn't snapped
+	// Recorded as the decimals the slider is given, not float32 widened.
+	setSpec(p.ID, parseOr0(minStr), parseOr0(maxStr), parseOr0(stepStr))
 	slider.Set("value", strconv.FormatFloat(float64(*p.Value), 'g', -1, 32))
 	slider.Set("title", docf("param-slider", "label", p.Label, "min", minStr, "max", maxStr))
 	slider.Set("style", "display:none;")
@@ -339,9 +341,8 @@ func buildStepField(slider js.Value, label, stepStr string) js.Value {
 	// The step's travel: from the whole range in one step down to a
 	// ten-millionth of it, which is finer than a float32 parameter resolves.
 	// min and max are attributes, so strings: Float on one panics.
-	smin, _ := strconv.ParseFloat(slider.Get("min").String(), 64) //nolint:errcheck // a bad bound gives the default travel below
-	smax, _ := strconv.ParseFloat(slider.Get("max").String(), 64) //nolint:errcheck // likewise
-	span := smax - smin
+	cs := specOf(slider)
+	span := cs.hi - cs.lo
 	lo, hi := span*1e-7, span
 	if !(span > 0) {
 		lo, hi = 1e-7, 1
@@ -367,8 +368,7 @@ func buildStepField(slider js.Value, label, stepStr string) js.Value {
 
 	stepInput.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		if val, err := strconv.ParseFloat(stepInput.Get("value").String(), 64); err == nil && val > 0 {
-			newStep := strconv.FormatFloat(val, 'g', -1, 64)
-			slider.Set("step", newStep)
+			cs.setStep(slider, val)
 			show(val)
 		}
 		return nil
