@@ -168,7 +168,7 @@ const controlsBody = `
 <!-- Six P-units (rackbank_js.go), the part every position of a model bank is:
      built from this by buildGridBank. Each selector's knob is mounted in its
      .knobhold, which the dial's own rebuild refills. -->
-<div class="punit-grid catgrid catbank" id="grid-bank">
+<div class="punit-grid catgrid" id="grid-bank">
   <div class="punit" id="view-n-cell" data-param="view-n" data-doc="view-n-stack-cell" style="grid-row:1;grid-column:1"><span class="punit-top"><span class="plabel">grid</span></span><select id="view-n" style="display:none">
       <option value="0" selected data-doc="view-n=0">1</option>
       <option value="1" data-doc="view-n=1">2</option>

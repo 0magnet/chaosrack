@@ -1760,20 +1760,20 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
    are the shared ones (--kedge), a divider where two modules would meet. A
    position's legend stands against the rule on its left and its buttons
    against the rule on its right, 2px clear, both inside the rules. */
-.catbank .dmdcell .dmdwin.dmdv,.cathead .dmdcell .dmdwin.dmdv{left:calc(2px - var(--kgpad));}
+.dmdcell.pu .dmdwin.dmdv,.cathead .dmdcell .dmdwin.dmdv{left:calc(2px - var(--kgpad));}
 /* The reset is the readout's: beside it, not down by the step. */
-.punit-grid.catbank .punit.dmdcell>.rst,.punit-grid.cathead .punit.dmdcell>.rst{top:calc(5px*var(--kscale,1));bottom:auto;left:calc(50% + (var(--disp-full)*var(--kscale,1))/2 + 3px);right:auto;}
+.punit.dmdcell.pu>.rst,.punit-grid.cathead .punit.dmdcell>.rst{top:calc(5px*var(--kscale,1));bottom:auto;left:calc(50% + (var(--disp-full)*var(--kscale,1))/2 + 3px);right:auto;}
 /* The step knob and the step's reset flank the step readout, placed from its
    width so a wider readout does not run over them: the knob on the left, the
    reset on the right under the value's. */
-.punit-grid.catbank .punit.dmdcell>.stepknob,.punit-grid.cathead .punit.dmdcell>.stepknob{left:auto;right:calc(50% + (var(--disp-full)*var(--kscale,1))/2 + 3px);}
-.punit-grid.catbank .punit.dmdcell>.rst.steprst,.punit-grid.cathead .punit.dmdcell>.rst.steprst{top:auto;bottom:calc(4px*var(--kscale,1));}
+.punit.dmdcell.pu>.stepknob,.punit-grid.cathead .punit.dmdcell>.stepknob{left:auto;right:calc(50% + (var(--disp-full)*var(--kscale,1))/2 + 3px);}
+.punit.dmdcell.pu>.rst.steprst,.punit-grid.cathead .punit.dmdcell>.rst.steprst{top:auto;bottom:calc(4px*var(--kscale,1));}
 /* A bank position's three buttons (rackbuttons_js.go): a column against the
    position's right-hand rule, as its legend stands against the left one, each
    button under its printed + 0 −. Lit when on; dark, and inert, where the
    model gives the position no setting. Clear of the dial: the dial's ticks
    end inside the cell and this column starts past them. */
-.catbank .dmdcell>.trio{position:absolute;right:calc(2px - var(--kgpad));top:calc(46px*var(--kscale,1));display:flex;flex-direction:column;gap:calc(3px*var(--kscale,1));}
+.dmdcell.pu>.trio{position:absolute;right:calc(2px - var(--kgpad));top:calc(46px*var(--kscale,1));display:flex;flex-direction:column;gap:calc(3px*var(--kscale,1));}
 /* THE LED RING. A bank position is an encoder (pkg/encoder): it has no
    position of its own, so a pointer on its cap would show where the last
    model left it. Its dial's ticks are LEDs instead, dark until lit, in the LED

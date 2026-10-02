@@ -146,7 +146,7 @@ function posName(e) {
 function positions(model) {
   var root = document.getElementById('controls-panel') || document.body;
   [].forEach.call(root.querySelectorAll('.sect, .pcell, .punit, .swline'), function (e) {
-    if (e.closest('.catbank, .cathead, #params, #model-readouts, #parts-cat')) return;
+    if (e.closest('.catbank, .cathead, .pu, #params, #model-readouts, #parts-cat')) return;
     var n = posName(e);
     if (!n) return;
     var a = seenAt[n] || (seenAt[n] = { on: new Set() });
