@@ -107,11 +107,11 @@ func buildPatchBank() {
 			sto.Get("classList").Call("remove", "sto")
 		}
 	}
-	sto.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(sto, "click", func(this js.Value, a []js.Value) any {
 		patchStoArm = !patchStoArm
 		refreshSto()
 		return nil
-	}))
+	})
 	bankRow.Call("appendChild", sto)
 	for i := range patchSlots {
 		b := dom.Doc.Call("createElement", "button")
@@ -121,7 +121,7 @@ func buildPatchBank() {
 		}
 		b.Set("textContent", strconv.Itoa(i+1))
 		b.Set("title", docf("patch-slot", "n", strconv.Itoa(i+1)))
-		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
+		dom.On(b, "click", func(this js.Value, a []js.Value) any {
 			bank := patchBank()
 			if patchStoArm {
 				bank[i] = perma.serializeState()
@@ -133,7 +133,7 @@ func buildPatchBank() {
 			}
 			recallSerializedState(bank[i])
 			return nil
-		}))
+		})
 		bankRow.Call("appendChild", b)
 	}
 	cell := dom.Doc.Call("createElement", "span")

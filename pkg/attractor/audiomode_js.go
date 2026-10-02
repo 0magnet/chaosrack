@@ -316,10 +316,10 @@ func (au *audioModes) showAudioStatus(msg string) {
 		style.Set("z-index", "var(--z-status)")
 		style.Set("cursor", "pointer") // tap to dismiss
 		style.Set("pointer-events", "auto")
-		au.overlay.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
+		dom.On(au.overlay, "click", func(this js.Value, a []js.Value) any {
 			au.overlay.Get("style").Set("display", "none")
 			return nil
-		}))
+		})
 		dom.Body.Call("appendChild", au.overlay)
 	}
 	au.overlay.Set("textContent", msg+"   ✕")

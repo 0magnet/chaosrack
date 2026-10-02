@@ -65,11 +65,11 @@ func addPhosphorTraces(stack, sel js.Value) {
 		st.Set("background", "linear-gradient(to right,"+col+","+col+" "+strconv.FormatFloat(hold, 'f', 0, 64)+"%,transparent)")
 		st.Set("box-shadow", "0 0 5px "+col)
 		idx := i
-		s.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
+		dom.On(s, "click", func(this js.Value, a []js.Value) any {
 			sel.Set("selectedIndex", idx)
 			dom.Fire(sel, "change")
 			return nil
-		}))
+		})
 		dial.Call("appendChild", s)
 	}
 	stack.Call("insertBefore", dial, stack.Get("firstChild"))

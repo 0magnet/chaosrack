@@ -31,12 +31,12 @@ func pongPot(side string) js.Value {
 // pots, the Banner's text, the Launcher's Drop. Called once from Run.
 func buildDemoModules() {
 	if b := dom.Doc.Call("getElementById", "pong-restart"); b.Truthy() {
-		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
+		dom.On(b, "click", func(this js.Value, a []js.Value) any {
 			pong.scoreL, pong.scoreR = 0, 0
 			pong.serveBall(1)
 			pong.syncScoreboard()
 			return nil
-		}))
+		})
 	}
 	// Paddle pots: turning one seizes that paddle (same human window as the
 	// keys/touch); while the machine or keys drive the paddle, the pot spins
@@ -60,14 +60,14 @@ func buildDemoModules() {
 	}), true)
 	if in := dom.Doc.Call("getElementById", "stext-in"); in.Truthy() {
 		in.Set("value", ftext.str)
-		in.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) any {
+		dom.On(in, "input", func(this js.Value, a []js.Value) any {
 			ftext.str = strings.ToUpper(in.Get("value").String())
 			return nil
-		}))
+		})
 	}
 	buildSTLFileModule()
 	if b := dom.Doc.Call("getElementById", "bounce-drop"); b.Truthy() {
-		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
+		dom.On(b, "click", func(this js.Value, a []js.Value) any {
 			ball.x, ball.y = -1.2, bounceDropHeight()
 			ball.vy = 0
 			ball.vx = float64(ball.drift)
@@ -75,7 +75,7 @@ func buildDemoModules() {
 				ball.vx = -ball.vx
 			}
 			return nil
-		}))
+		})
 	}
 }
 

@@ -397,23 +397,23 @@ func (pa *panelLayout) initDockResize() {
 	if !pa.resizeHandle.Truthy() {
 		return
 	}
-	pa.resizeHandle.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(pa.resizeHandle, "pointerdown", func(this js.Value, a []js.Value) any {
 		a[0].Call("preventDefault")
 		pa.resizing = true
 		return nil
-	}))
+	})
 	// The "DOCK" label doubles as a resize grip (a bigger, obvious touch target
 	// than the thin bar). Dragging it resizes exactly like the bar.
 	if dl := dom.Doc.Call("querySelector", "#dock-controls .dock-lbl"); dl.Truthy() {
 		dl.Get("style").Set("cursor", "grab")
 		dl.Get("style").Set("touchAction", "none")
 		dl.Set("title", doc("dock-label"))
-		dl.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) any {
+		dom.On(dl, "pointerdown", func(this js.Value, a []js.Value) any {
 			a[0].Call("preventDefault")
 			a[0].Call("stopPropagation")
 			pa.resizing = true
 			return nil
-		}))
+		})
 	}
 	onPointerMove(func(e js.Value) {
 		if !pa.resizing {
@@ -445,7 +445,7 @@ func (pa *panelLayout) initDockResize() {
 		pa.dockSizeW = clampDock(pa.dockSizeW, grip, winW())
 		pa.applyDock(pa.dockEdge)
 	})
-	dom.Doc.Call("addEventListener", "pointerup", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(dom.Doc, "pointerup", func(this js.Value, a []js.Value) any {
 		if pa.resizing {
 			pa.resizing = false
 			// Settle exactly, now that the once-a-frame path is done with, and
@@ -454,7 +454,7 @@ func (pa *panelLayout) initDockResize() {
 			pa.positionResizeHandle()
 		}
 		return nil
-	}))
+	})
 	// Keep the bar on the panel's edge as its content height changes
 	// (audio-mod rows, section collapse, mode switches, window resize).
 	if ro := js.Global().Get("ResizeObserver"); ro.Truthy() {
@@ -466,24 +466,24 @@ func (pa *panelLayout) initDockResize() {
 			obs.Call("observe", p)
 		}
 	}
-	js.Global().Call("addEventListener", "resize", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(js.Global(), "resize", func(this js.Value, a []js.Value) any {
 		if pa.dockEdge == "float" {
 			reclampPanelWindow() // a saved position must not strand it off-screen
 		}
 		pa.positionResizeHandle()
 		quantizeModuleWidths()
 		return nil
-	}))
+	})
 }
 
 func (pa *panelLayout) wireDockButtons() {
 	for _, e := range []string{"top", "bottom", "left", "right", "float", "footer"} {
 		edge := e
 		if b := dom.Doc.Call("getElementById", "dock-"+e); b.Truthy() {
-			b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) any {
+			dom.On(b, "click", func(this js.Value, args []js.Value) any {
 				pa.applyDock(edge)
 				return nil
-			}))
+			})
 		}
 	}
 	// The footer dock target only exists on host pages that have a <footer>.

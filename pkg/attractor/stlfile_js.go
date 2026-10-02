@@ -201,18 +201,18 @@ func buildSTLFileModule() {
 		input.Set("value", "")
 		return nil
 	})
-	input.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(input, "change", func(this js.Value, a []js.Value) any {
 		files := input.Get("files")
 		if !files.Truthy() || files.Get("length").Int() == 0 {
 			return nil
 		}
 		files.Index(0).Call("arrayBuffer").Call("then", onParsed)
 		return nil
-	}))
-	btn.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	})
+	dom.On(btn, "click", func(this js.Value, a []js.Value) any {
 		input.Call("click")
 		return nil
-	}))
+	})
 }
 
 // buildSTLBuiltInPicker fills the Loader module's built-in list and wires it.
@@ -242,7 +242,7 @@ func buildSTLBuiltInPicker() {
 		group.Call("appendChild", opt)
 	}
 
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(sel, "change", func(this js.Value, a []js.Value) any {
 		name := sel.Get("value").String()
 		if name == "" {
 			return nil
@@ -277,5 +277,5 @@ func buildSTLBuiltInPicker() {
 			view.autoFitCamera()
 		}
 		return nil
-	}))
+	})
 }

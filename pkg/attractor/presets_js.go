@@ -99,7 +99,7 @@ func wirePresetModule() {
 	refreshPresetList("")
 
 	if b := dom.Doc.Call("getElementById", "preset-save"); b.Truthy() {
-		b.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) any {
+		dom.On(b, "click", func(js.Value, []js.Value) any {
 			name := presetNameField()
 			presetStoreWrite(presetStore().Put(name, perma.serializeState()))
 			// Put the name in the field as well as the list: an unnamed save
@@ -111,11 +111,11 @@ func wirePresetModule() {
 			}
 			refreshPresetList(name)
 			return nil
-		}))
+		})
 	}
 
 	if b := dom.Doc.Call("getElementById", "preset-recall"); b.Truthy() {
-		b.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) any {
+		dom.On(b, "click", func(js.Value, []js.Value) any {
 			sel := dom.Doc.Call("getElementById", "preset-list")
 			if !sel.Truthy() {
 				return nil
@@ -134,11 +134,11 @@ func wirePresetModule() {
 				el.Set("value", p.Name)
 			}
 			return nil
-		}))
+		})
 	}
 
 	if b := dom.Doc.Call("getElementById", "preset-del"); b.Truthy() {
-		b.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) any {
+		dom.On(b, "click", func(js.Value, []js.Value) any {
 			sel := dom.Doc.Call("getElementById", "preset-list")
 			if !sel.Truthy() {
 				return nil
@@ -146,18 +146,18 @@ func wirePresetModule() {
 			presetStoreWrite(presetStore().Delete(sel.Get("value").String()))
 			refreshPresetList("")
 			return nil
-		}))
+		})
 	}
 
 	// Picking from the list fills the name box, so Save over the same name is
 	// one click away and Delete is obviously about the thing that is named.
 	if sel := dom.Doc.Call("getElementById", "preset-list"); sel.Truthy() {
-		sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+		dom.On(sel, "change", func(js.Value, []js.Value) any {
 			if el := dom.Doc.Call("getElementById", "preset-name"); el.Truthy() {
 				el.Set("value", sel.Get("value").String())
 			}
 			return nil
-		}))
+		})
 	}
 
 	refreshPresetList("")

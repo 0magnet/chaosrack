@@ -346,7 +346,7 @@ func (b *bifurcation) showCursor(s string) {
 // moves nothing.
 func (b *bifurcation) wireBifCells() {
 	if sel := dom.Doc.Call("getElementById", "bif-sweep"); sel.Truthy() {
-		sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+		dom.On(sel, "change", func(js.Value, []js.Value) any {
 			if b.sweepFilling {
 				return nil
 			}
@@ -355,7 +355,7 @@ func (b *bifurcation) wireBifCells() {
 				b.invalidate()
 			}
 			return nil
-		}))
+		})
 	}
 	adoptDescControl(ControlDesc{
 		ID: "bif-drive", Label: "drive", IsSelect: true, SelectDef: "0", ResetID: "rst-bif-drive",

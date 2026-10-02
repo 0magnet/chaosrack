@@ -94,7 +94,7 @@ func attachSelMarquee(sel, picker js.Value) {
 		}
 		show()
 	}
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any { upd(); return nil }))
+	dom.On(sel, "change", func(this js.Value, a []js.Value) any { upd(); return nil })
 	js.Global().Call("setInterval", js.FuncOf(func(js.Value, []js.Value) any {
 		if len(loop) == 0 {
 			return nil

@@ -291,12 +291,14 @@ func (s *selectorKnob) makeSelectorKnob(sel js.Value) js.Value {
 		}
 		ptr.Get("style").Set("transform", "translate(-50%,-100%) rotate("+strconv.FormatFloat(ang, 'f', 1, 64)+"deg)")
 	}
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
+	// Keyed: a selector has one knob at a time, and one built to replace
+	// another (a bank remounting a family's dial) replaces its listener too.
+	dom.OnAs(sel, "change", "selknob", func(this js.Value, args []js.Value) any {
 		snap()
 		return nil
-	}))
+	})
 	snap()
-	knob.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, args []js.Value) any {
+	dom.On(knob, "pointerdown", func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
 		e.Call("stopPropagation")
@@ -308,7 +310,7 @@ func (s *selectorKnob) makeSelectorKnob(sel js.Value) js.Value {
 		s.acc = 0
 		s.active = true
 		return nil
-	}))
+	})
 	// One step of the selection, shared by the wheel and the arrow keys, for
 	// the same reason the value knobs share theirs.
 	step := func(up bool) {
@@ -320,13 +322,13 @@ func (s *selectorKnob) makeSelectorKnob(sel js.Value) js.Value {
 	}
 	// Scroll wheel over the knob steps the selection (like scrolling the
 	// select itself), firing change so the bound handler reacts.
-	knob.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, args []js.Value) any {
+	dom.On(knob, "wheel", func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
 		e.Call("stopPropagation")
 		step(e.Get("deltaY").Float() < 0)
 		return nil
-	}))
+	})
 	// Up steps the same way scrolling up does — towards the earlier option —
 	// so the two agree about which direction "up" is on a detented ring.
 	registerKnobHover(knob, step)
@@ -413,7 +415,7 @@ func selectorKnobReadout(sel js.Value) js.Value {
 		// anywhere else in the cell anyway.
 		dialPosTitle(readout, sel, idx)
 	}
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any { set(); return nil }))
+	dom.On(sel, "change", func(this js.Value, a []js.Value) any { set(); return nil })
 	set()
 	wrap.Call("appendChild", stack)
 	wrap.Call("appendChild", readout)
@@ -574,11 +576,11 @@ func addSelectorDotLabels(stack js.Value, colors []string, sel js.Value, offset 
 		dotEls[i] = dot
 		if sel.Truthy() {
 			idx := i
-			dot.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
+			dom.On(dot, "click", func(this js.Value, a []js.Value) any {
 				sel.Set("selectedIndex", idx)
 				dom.Fire(sel, "change")
 				return nil
-			}))
+			})
 		}
 		dial.Call("appendChild", dot)
 	}
@@ -593,7 +595,7 @@ func addSelectorDotLabels(stack js.Value, colors []string, sel js.Value, offset 
 				}
 			}
 		}
-		sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any { hi(); return nil }))
+		dom.On(sel, "change", func(this js.Value, a []js.Value) any { hi(); return nil })
 		hi()
 	}
 	stack.Call("insertBefore", dial, stack.Get("firstChild"))
@@ -840,11 +842,11 @@ func addSelectorLabels(stack js.Value, labels []string, sel js.Value) js.Value {
 		if sel.Truthy() {
 			lab.Get("classList").Call("add", "clickable")
 			idx := i
-			lab.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
+			dom.On(lab, "click", func(this js.Value, a []js.Value) any {
 				sel.Set("selectedIndex", idx)
 				dom.Fire(sel, "change")
 				return nil
-			}))
+			})
 		}
 		dial.Call("appendChild", lab)
 	}
@@ -859,7 +861,7 @@ func addSelectorLabels(stack js.Value, labels []string, sel js.Value) js.Value {
 				}
 			}
 		}
-		sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any { hi(); return nil }))
+		dom.On(sel, "change", func(this js.Value, a []js.Value) any { hi(); return nil })
 		hi()
 	}
 	stack.Call("insertBefore", dial, stack.Get("firstChild"))

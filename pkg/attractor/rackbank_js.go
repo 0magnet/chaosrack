@@ -388,10 +388,10 @@ func programLegends(c js.Value) {
 	val.Get("classList").Call("add", "dmdval")
 	top.Call("appendChild", val)
 	ledPick(val, sel)
-	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.OnAs(sel, "change", "display", func(js.Value, []js.Value) any {
 		setDotText(val, optText())
 		return nil
-	}))
+	})
 }
 
 // mirrorReadout puts a character display over a bank position's number
@@ -716,20 +716,20 @@ func switchAsSelect(c, cb js.Value) js.Value {
 	sel.Set("selectedIndex", at())
 	// Each side only answers a change that changes something, so the two
 	// do not chase each other.
-	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(sel, "change", func(js.Value, []js.Value) any {
 		if want := sel.Get("selectedIndex").Int() == 1; cb.Get("checked").Bool() != want {
 			cb.Set("checked", want)
 			dom.Fire(cb, "change")
 		}
 		return nil
-	}))
-	cb.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+	})
+	dom.On(cb, "change", func(js.Value, []js.Value) any {
 		if i := at(); sel.Get("selectedIndex").Int() != i {
 			sel.Set("selectedIndex", i)
 			dom.Fire(sel, "change")
 		}
 		return nil
-	}))
+	})
 	return sel
 }
 
@@ -851,10 +851,10 @@ func ledSelector(sel js.Value) js.Value {
 			lightRing(dial, d, d)
 		}
 		light()
-		sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+		dom.OnAs(sel, "change", "ledring", func(js.Value, []js.Value) any {
 			light()
 			return nil
-		}))
+		})
 	}
 	return wrap
 }
@@ -889,10 +889,10 @@ func selectorReadout(holder, sel js.Value, names []string) {
 	}
 	ledPickFor(win, sel)
 	setDotText(win, name())
-	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.OnAs(sel, "change", "display", func(js.Value, []js.Value) any {
 		setDotText(win, name())
 		return nil
-	}))
+	})
 }
 
 // bankTail puts tail, cells several models share that belong to no model

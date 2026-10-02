@@ -388,7 +388,7 @@ func (pe *permalinkState) startPermalinkSync() {
 	//
 	// No loop is possible: the app writes its own hash with replaceState, which
 	// does not fire this event, and the comparison below ignores it anyway.
-	js.Global().Call("addEventListener", "hashchange", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(js.Global(), "hashchange", func(js.Value, []js.Value) any {
 		migrateLocationHash() // a pasted #cube is the Polyhedron now
 		h := strings.TrimPrefix(js.Global().Get("location").Get("hash").String(), "#")
 		if h == "" || h == pe.lastPermaHash {
@@ -404,7 +404,7 @@ func (pe *permalinkState) startPermalinkSync() {
 		pe.frozen = true
 		js.Global().Get("location").Call("reload")
 		return nil
-	}))
+	})
 }
 
 // syncPermalinkNow updates the URL hash immediately if the state changed.

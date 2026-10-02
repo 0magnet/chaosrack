@@ -537,7 +537,7 @@ func (de *desktops) wireDeskGestures() {
 
 	// Looking Glass: turn a window over. A double click, because winbox has
 	// already spent the single one on focus and the drag on moving.
-	dom.Doc.Call("addEventListener", "dblclick", dom.FuncOf(func(_ js.Value, a []js.Value) any {
+	dom.On(dom.Doc, "dblclick", func(_ js.Value, a []js.Value) any {
 		if de.style != deskGlass || len(a) == 0 {
 			return nil
 		}
@@ -552,7 +552,7 @@ func (de *desktops) wireDeskGestures() {
 			flipDeskWindow(w)
 		}
 		return nil
-	}))
+	})
 
 	// Metisse: shift-drag a title bar to turn the window. Plain drag still
 	// moves it — taking that away to make room for a demo would be a bad
@@ -590,7 +590,7 @@ func (de *desktops) wireDeskGestures() {
 	// Compiz: the arrows spin the cube. Guarded the same way every other key
 	// binding here is — a focused input, select or textarea keeps its arrows,
 	// which is what lets a terminal in one of these windows still work.
-	dom.Doc.Call("addEventListener", "keydown", dom.FuncOf(func(_ js.Value, a []js.Value) any {
+	dom.On(dom.Doc, "keydown", func(_ js.Value, a []js.Value) any {
 		if de.style != deskCube || len(a) == 0 {
 			return nil
 		}
@@ -623,7 +623,7 @@ func (de *desktops) wireDeskGestures() {
 		}
 		e.Call("preventDefault")
 		return nil
-	}))
+	})
 }
 
 // inTitleBar reports whether an event happened on a window's title.

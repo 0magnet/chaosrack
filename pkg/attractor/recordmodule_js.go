@@ -97,16 +97,16 @@ func recSwitchOn(id string) bool {
 // will try — and Stop only ever stops.
 func wireRecTransport() {
 	if b := dom.Doc.Call("getElementById", "rec-btn"); b.Truthy() {
-		b.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) any {
+		dom.On(b, "click", func(js.Value, []js.Value) any {
 			recSetSwitch("rec-sw", !recSwitchOn("rec-sw"))
 			return nil
-		}))
+		})
 	}
 	if b := dom.Doc.Call("getElementById", "rec-stop-btn"); b.Truthy() {
-		b.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) any {
+		dom.On(b, "click", func(js.Value, []js.Value) any {
 			recSetSwitch("rec-sw", false)
 			return nil
-		}))
+		})
 	}
 }
 
@@ -372,10 +372,10 @@ func wireStillButton() {
 	if !btn.Truthy() {
 		return
 	}
-	btn.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(btn, "click", func(js.Value, []js.Value) any {
 		takeStill()
 		return nil
-	}))
+	})
 }
 
 func takeStill() {

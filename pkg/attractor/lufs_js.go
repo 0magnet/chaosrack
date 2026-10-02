@@ -155,7 +155,7 @@ func (l *loudness) wireLoudnessModule() {
 		},
 	})
 	if rst.Truthy() {
-		rst.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
+		dom.On(rst, "click", func(this js.Value, a []js.Value) any {
 			if l.meter != nil {
 				l.meter.Reset(l.meter.SampleRate())
 			}
@@ -165,7 +165,7 @@ func (l *loudness) wireLoudnessModule() {
 			}
 			l.showLoudness()
 			return nil
-		}))
+		})
 	}
 	l.showLoudness()
 }

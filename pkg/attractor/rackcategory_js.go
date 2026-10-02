@@ -894,10 +894,10 @@ func buildBayRotary(label string, bay int, modes []string) js.Value {
 		wrap.Call("appendChild", catSel)
 		lb, nb := label, bay
 		selOverflow[baySelectID(label, bay)] = func(dir int) { onBayModelOverflow(lb, nb, dir) }
-		catSel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+		dom.On(catSel, "change", func(js.Value, []js.Value) any {
 			onBayCategory(lb, nb)
 			return nil
-		}))
+		})
 	} else {
 		fillBayOptions(sel, modes, true)
 		stack = dom.Doc.Call("createElement", "span")
@@ -921,10 +921,10 @@ func buildBayRotary(label string, bay int, modes []string) js.Value {
 	attachSelMarquee(sel, picker)
 
 	lb, nb := label, bay
-	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(sel, "change", func(js.Value, []js.Value) any {
 		onBayRotary(lb, nb)
 		return nil
-	}))
+	})
 	return cell
 }
 
@@ -1265,7 +1265,7 @@ func buildFamilySelect(f *modelFamily) js.Value {
 	}
 	sel.Set("value", f.current())
 	f.sel = sel
-	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(sel, "change", func(js.Value, []js.Value) any {
 		if catRotarySyncing {
 			return nil
 		}
@@ -1278,7 +1278,7 @@ func buildFamilySelect(f *modelFamily) js.Value {
 			}
 		}
 		return nil
-	}))
+	})
 
 	return sel
 }
@@ -1323,15 +1323,15 @@ func bayPicker(label string, bay int, sel js.Value, cats, modes []string) js.Val
 	follow()
 	bayPickerFollow[p.Get("id").String()] = follow
 	if sel.Truthy() {
-		sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+		dom.On(sel, "change", func(js.Value, []js.Value) any {
 			follow()
 			return nil
-		}))
+		})
 	}
-	p.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(p, "change", func(js.Value, []js.Value) any {
 		onBayPick(label, bay, p.Get("value").String())
 		return nil
-	}))
+	})
 	return p
 }
 

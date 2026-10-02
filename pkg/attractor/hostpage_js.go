@@ -181,9 +181,9 @@ func initHostPage() {
 	// for navigation change the page's height without a resize, and hashchange
 	// is what those are.
 	for _, ev := range []string{"resize", "hashchange", "load"} {
-		js.Global().Call("addEventListener", ev, dom.FuncOf(func(js.Value, []js.Value) any {
+		dom.On(js.Global(), ev, func(js.Value, []js.Value) any {
 			applyCenterOn()
 			return nil
-		}))
+		})
 	}
 }

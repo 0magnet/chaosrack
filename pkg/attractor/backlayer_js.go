@@ -254,10 +254,10 @@ func wireBackLayer() {
 	if !sw.Truthy() {
 		return
 	}
-	sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(sw, "change", func(js.Value, []js.Value) any {
 		back.setEditing(sw.Get("checked").Bool())
 		return nil
-	}))
+	})
 	onBackdropChoice(bgVisual)
 }
 

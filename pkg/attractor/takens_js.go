@@ -484,10 +484,10 @@ func (t *takensMode) appendTakensEstimate(host js.Value) {
 	btn.Set("className", "rst")
 	btn.Set("textContent", "↻")
 	btn.Set("title", doc("takens-measure"))
-	btn.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
+	dom.On(btn, "click", func(this js.Value, a []js.Value) any {
 		t.measure()
 		return nil
-	}))
+	})
 	t.measEl.Get("parentNode").Call("appendChild", btn)
 }
 

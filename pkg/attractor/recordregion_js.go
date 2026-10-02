@@ -51,21 +51,21 @@ func wireRegionSwitch() {
 	if !sw.Truthy() {
 		return
 	}
-	sw.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, _ []js.Value) any {
+	dom.On(sw, "change", func(this js.Value, _ []js.Value) any {
 		if this.Get("checked").Bool() {
 			region.startRegionSelect()
 		} else {
 			region.stopRegionSelect()
 		}
 		return nil
-	}))
+	})
 	// The outline is placed from the stored region, so it has to be re-placed
 	// whenever the canvas moves or changes size under it.
-	js.Global().Call("addEventListener", "resize", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(js.Global(), "resize", func(js.Value, []js.Value) any {
 		region.placeRegionOutline()
 		region.placeRegionLayer()
 		return nil
-	}))
+	})
 }
 
 // canvasScale is how many canvas pixels there are per CSS pixel. It is not the
@@ -183,7 +183,7 @@ func (re *regionPicker) placeRegionOutline() {
 }
 
 func (re *regionPicker) wireRegionDrag() {
-	re.layer.Call("addEventListener", "pointerdown", dom.FuncOf(func(_ js.Value, a []js.Value) any {
+	dom.On(re.layer, "pointerdown", func(_ js.Value, a []js.Value) any {
 		if len(a) == 0 || !re.on {
 			return nil
 		}
@@ -198,17 +198,17 @@ func (re *regionPicker) wireRegionDrag() {
 		}
 		setRegionFrom(re.x0, re.y0, re.x0, re.y0)
 		return nil
-	}))
-	re.layer.Call("addEventListener", "pointermove", dom.FuncOf(func(_ js.Value, a []js.Value) any {
+	})
+	dom.On(re.layer, "pointermove", func(_ js.Value, a []js.Value) any {
 		if !re.drag || len(a) == 0 {
 			return nil
 		}
 		e := a[0]
 		setRegionFrom(re.x0, re.y0, e.Get("clientX").Float(), e.Get("clientY").Float())
 		return nil
-	}))
+	})
 	for _, ev := range []string{"pointerup", "pointercancel"} {
-		re.layer.Call("addEventListener", ev, dom.FuncOf(func(_ js.Value, a []js.Value) any {
+		dom.On(re.layer, ev, func(_ js.Value, a []js.Value) any {
 			if !re.drag {
 				return nil
 			}
@@ -233,7 +233,7 @@ func (re *regionPicker) wireRegionDrag() {
 			re.placeRegionOutline()
 			re.disarmRegionLayer()
 			return nil
-		}))
+		})
 	}
 }
 

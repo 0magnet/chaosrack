@@ -519,7 +519,7 @@ func mixGrid() js.Value {
 				continue
 			}
 			row, src := r, s
-			pin.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) any {
+			dom.On(pin, "click", func(js.Value, []js.Value) any {
 				g := float32(1)
 				if mixer.pin[row][src] != 0 {
 					g = 0
@@ -528,7 +528,7 @@ func mixGrid() js.Value {
 				mixSetPin(row, src, g)
 				mixShowSelected()
 				return nil
-			}))
+			})
 			pin.Call("addEventListener", "wheel", dom.FuncOf(func(_ js.Value, a []js.Value) any {
 				e := a[0]
 				e.Call("preventDefault")
@@ -630,7 +630,7 @@ func mixEditRow() js.Value {
 	sizeLEDField(ro, -1, 1, 2, true)
 	pc.Call("appendChild", rng)
 	pc.Call("appendChild", makeKnob(rng, ro, true, false, true))
-	rng.Call("addEventListener", "input", dom.FuncOf(func(js.Value, []js.Value) any {
+	dom.On(rng, "input", func(js.Value, []js.Value) any {
 		v, err := strconv.ParseFloat(rng.Get("value").String(), 64)
 		if err != nil || mixer.selSrc < 0 {
 			return nil
@@ -638,14 +638,14 @@ func mixEditRow() js.Value {
 		ro.Set("value", led.Format(v, 1, 2, true))
 		mixSetPin(mixer.selRow, mixer.selSrc, float32(v))
 		return nil
-	}))
-	ro.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+	})
+	dom.On(ro, "change", func(js.Value, []js.Value) any {
 		if v, err := led.Parse(ro.Get("value").String()); err == nil {
 			rng.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
 			dom.Fire(rng, "input")
 		}
 		return nil
-	}))
+	})
 	mixer.lvl, mixer.lvlRO = rng, ro
 	return row
 }

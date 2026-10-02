@@ -119,10 +119,10 @@ func wireScreenPower() {
 			continue
 		}
 		pp := p
-		sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+		dom.On(sw, "change", func(js.Value, []js.Value) any {
 			pp.invalidate()
 			return nil
-		}))
+		})
 	}
 
 	// Scrolling the drawer is the one thing that changes which modules are

@@ -36,7 +36,7 @@ var manualCascade float64
 
 // wireManualWindows answers the manual page's window buttons.
 func wireManualWindows(page js.Value) {
-	page.Call("addEventListener", "click", dom.FuncOf(func(_ js.Value, a []js.Value) any {
+	dom.On(page, "click", func(_ js.Value, a []js.Value) any {
 		t := a[0].Get("target")
 		if !t.Truthy() || !t.Get("closest").Truthy() {
 			return nil
@@ -60,7 +60,7 @@ func wireManualWindows(page js.Value) {
 			toggleModelWindow()
 		}
 		return nil
-	}))
+	})
 	manualPowerHook = func(on bool) {
 		if on != (modelWin.win != nil) {
 			toggleModelWindow()
