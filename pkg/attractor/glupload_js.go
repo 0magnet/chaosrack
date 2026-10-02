@@ -107,6 +107,7 @@ func (r *renderer) uploadVerticesOnly(vertices []float32, drawMode js.Value, cou
 		first = count - drawN
 	}
 	r.lastDrawn = drawN
+	r.lastTrace.mode, r.lastTrace.first, r.lastTrace.n, r.lastTrace.ok = drawMode, first, drawN, true
 	glctx.GL.Call("drawArrays", drawMode, first, drawN)
 }
 

@@ -143,6 +143,18 @@ func drawViewPasses(mode string) {
 		return
 	}
 	n := len(rects)
+	// One frame of the model, however many cells show it. Linked, every
+	// cell draws the one instance, and generating it again per cell ran the
+	// model on a step per cell: sixteen cells were sixteen successive
+	// stretches of its trajectory, at sixteen times the speed. So a model
+	// that integrates is advanced by the first cell only, and the others
+	// redraw what it drew, in their own colors (a sweep of csrc or cmap is
+	// the only kind such a model offers). Twin, Ring, the section and the
+	// CRT beam draw more than the one trace, and are drawn per cell as before.
+	replay := grid.link && isAttractorMode(mode) && !twin.on && !ring.on && !sect.on && !crtBeam()
+	gpu.lastTrace.ok = false
+	// And every cell at the frame's rainbow, which moves on once a frame.
+	phase := style.gradientPhase
 	glctx.GL.Call("enable", glctx.GL.Get("SCISSOR_TEST"))
 	for i, r := range rects {
 		// Each pass draws ITS cell's instance. Restored below, because
@@ -163,7 +175,12 @@ func drawViewPasses(mode string) {
 		restore := applySweep(mode, i, n)
 		glctx.GL.Call("scissor", r[0], r[1], r[2], r[3])
 		setViewport(r)
-		generateForMode(mode)
+		if replay && i > 0 && gpu.lastTrace.ok {
+			redrawTrace()
+		} else {
+			style.gradientPhase = phase
+			generateForMode(mode)
+		}
 		restore()
 		unlink()
 	}
@@ -1185,4 +1202,17 @@ func freshSelect(id string) js.Value {
 	fresh := old.Call("cloneNode", false)
 	old.Call("replaceWith", fresh)
 	return fresh
+}
+
+// redrawTrace draws again the trace the last cell drew, in this cell's
+// colors: the frame it showed, not a further step of the model.
+func redrawTrace() {
+	t := gpu.lastTrace
+	if !gpu.program.IsUndefined() {
+		glctx.GL.Call("useProgram", gpu.program)
+	}
+	if gpu.ready {
+		setTraceUniforms(false)
+	}
+	glctx.GL.Call("drawArrays", t.mode, t.first, t.n)
 }
