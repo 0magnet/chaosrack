@@ -64,6 +64,15 @@ type renderer struct {
 	// were left beyond its own.
 	lastDrawn int
 
+	// lastTrace is the last trace drawn from uploadVerticesOnly: what a Grid
+	// cell redraws when it shows the frame another cell just drew
+	// (drawViewPasses). ok is cleared before the cells are drawn.
+	lastTrace struct {
+		mode     js.Value
+		first, n int
+		ok       bool
+	}
+
 	// staticDirty is set when a non-attractor mode's geometry needs
 	// re-uploading (mode change or param change). uploadBuffersIndexed
 	// clears it after the upload; the frames after that skip the

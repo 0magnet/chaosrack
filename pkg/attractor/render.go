@@ -607,68 +607,7 @@ func generateForMode(mode string) {
 		glctx.GL.Call("useProgram", gpu.program)
 	}
 	if gpu.ready {
-		glctx.GL.Call("uniform1i", gpu.u.gradientSource, style.gradientSource)
-		// Only when it is being used: the fill runs a short FFT per table slot,
-		// which is not work to do for a figure colored by Z.
-		if gradientSourceIsAudio(style.gradientSource) {
-			acolor.updateAudioColorLUT(run.selectedMode)
-			glctx.GL.Call("uniform1fv", gpu.u.audioLUT, acolor.lutToTyped())
-		}
-		glctx.GL.Call("uniform1i", gpu.u.gradientColors, gradientColorsUniform())
-		// Uploaded before the draw that reads it, and only when a colormap is
-		// actually selected — the upload is skipped on the palettes that do not
-		// sample it, and a failed build falls back to the two-color mix rather
-		// than sampling a texture that is not there.
-		if !pal.ensurePaletteTexture(style.gradientColors) && gradientColorsUniform() >= colormap.First {
-			glctx.GL.Call("uniform1i", gpu.u.gradientColors, 2)
-		}
-		updateDashFromPointCount(gpu.lastDrawn)
-		glctx.GL.Call("uniform1f", gpu.u.dashDuty, dashDuty)
-		glctx.GL.Call("uniform1f", gpu.u.dashCount, dashCount)
-		glctx.GL.Call("uniform1f", gpu.u.gradientFreq, style.gradientFreq)
-		// The colormap window's other half. Uploaded beside the period it pairs
-		// with rather than under a "is this a colormap" test: the branch that
-		// reads it is in the shader already, and a second copy of that
-		// condition here is a second thing to keep in step with colormap.First.
-		// Read AFTER applyViewModulation (which runs before generateForMode
-		// gets here), so a shift routed from audio lands on this frame rather
-		// than the next one — the same ordering the rainbow period depends on.
-		glctx.GL.Call("uniform1f", gpu.u.paletteShift, gradientShift)
-		// Animate the rainbow: advance the hue offset each frame so the
-		// spectrum flows. At a low period only a slice is visible at once,
-		// and it cycles gradually through all colors over time rather than
-		// staying stuck on part of the spectrum.
-		//
-		// Not when the trail parameter is a turtle path's tint, though. That is
-		// a set of six colors standing for six things — which pass laid a step
-		// down, how many times it has been walked — rather than a spectrum to
-		// flow along, and rotating the hue makes every segment already on screen
-		// change color for no reason anything in the figure did.
-		// Nor when the color is following the SOUND. The same argument as the
-		// turtle case below, and it bites harder: the whole claim of the audio
-		// source is that a stretch of trail is this color BECAUSE of what was
-		// playing when it was drawn. A hue offset marching under it at a fixed
-		// rate makes every segment already on screen change color for a reason
-		// nothing in the sound did — and since the phase advances every frame
-		// while the spectrum only sometimes moves, the drift is what the eye
-		// picks up. It reads as "the rainbow is cycling", which is precisely
-		// the reading that hides the feature.
-		if !(run.selectedMode == "turtle" && style.gradientSource == 3) && !gradientSourceIsAudio(style.gradientSource) {
-			style.gradientPhase += 0.003
-			if style.gradientPhase >= 1 {
-				style.gradientPhase--
-			}
-		}
-		glctx.GL.Call("uniform1f", gpu.u.gradientPhase, style.gradientPhase)
-		if style.gradientReverse {
-			glctx.GL.Call("uniform1i", gpu.u.gradientReverse, 1)
-		} else {
-			glctx.GL.Call("uniform1i", gpu.u.gradientReverse, 0)
-		}
-		// Scope phosphor: override the gradient with the phosphor's mono color.
-		if phos.active() {
-			phos.applyPhosphorColor()
-		}
+		setTraceUniforms(true)
 	}
 	// Audio-reactive: modulate ODE params (dt, primary chaos param) for
 	// this integration step, and the colors / point size for this frame.
@@ -987,4 +926,74 @@ func renderLoop(this js.Value, args []js.Value) any {
 
 	js.Global().Call("requestAnimationFrame", renderFrame)
 	return nil
+}
+
+// setTraceUniforms sets the trace shader's colors for the frame: what the trail is
+// colored by, the palette, the dashes, the rainbow. advance moves the
+// rainbow on, which happens once a frame: a Grid cell that redraws the
+// frame another cell drew (drawViewPasses) sets its own colors and leaves
+// the rainbow where it is.
+func setTraceUniforms(advance bool) {
+	glctx.GL.Call("uniform1i", gpu.u.gradientSource, style.gradientSource)
+	// Only when it is being used: the fill runs a short FFT per table slot,
+	// which is not work to do for a figure colored by Z.
+	if gradientSourceIsAudio(style.gradientSource) {
+		acolor.updateAudioColorLUT(run.selectedMode)
+		glctx.GL.Call("uniform1fv", gpu.u.audioLUT, acolor.lutToTyped())
+	}
+	glctx.GL.Call("uniform1i", gpu.u.gradientColors, gradientColorsUniform())
+	// Uploaded before the draw that reads it, and only when a colormap is
+	// actually selected — the upload is skipped on the palettes that do not
+	// sample it, and a failed build falls back to the two-color mix rather
+	// than sampling a texture that is not there.
+	if !pal.ensurePaletteTexture(style.gradientColors) && gradientColorsUniform() >= colormap.First {
+		glctx.GL.Call("uniform1i", gpu.u.gradientColors, 2)
+	}
+	updateDashFromPointCount(gpu.lastDrawn)
+	glctx.GL.Call("uniform1f", gpu.u.dashDuty, dashDuty)
+	glctx.GL.Call("uniform1f", gpu.u.dashCount, dashCount)
+	glctx.GL.Call("uniform1f", gpu.u.gradientFreq, style.gradientFreq)
+	// The colormap window's other half. Uploaded beside the period it pairs
+	// with rather than under a "is this a colormap" test: the branch that
+	// reads it is in the shader already, and a second copy of that
+	// condition here is a second thing to keep in step with colormap.First.
+	// Read AFTER applyViewModulation (which runs before generateForMode
+	// gets here), so a shift routed from audio lands on this frame rather
+	// than the next one — the same ordering the rainbow period depends on.
+	glctx.GL.Call("uniform1f", gpu.u.paletteShift, gradientShift)
+	// Animate the rainbow: advance the hue offset each frame so the
+	// spectrum flows. At a low period only a slice is visible at once,
+	// and it cycles gradually through all colors over time rather than
+	// staying stuck on part of the spectrum.
+	//
+	// Not when the trail parameter is a turtle path's tint, though. That is
+	// a set of six colors standing for six things — which pass laid a step
+	// down, how many times it has been walked — rather than a spectrum to
+	// flow along, and rotating the hue makes every segment already on screen
+	// change color for no reason anything in the figure did.
+	// Nor when the color is following the SOUND. The same argument as the
+	// turtle case below, and it bites harder: the whole claim of the audio
+	// source is that a stretch of trail is this color BECAUSE of what was
+	// playing when it was drawn. A hue offset marching under it at a fixed
+	// rate makes every segment already on screen change color for a reason
+	// nothing in the sound did — and since the phase advances every frame
+	// while the spectrum only sometimes moves, the drift is what the eye
+	// picks up. It reads as "the rainbow is cycling", which is precisely
+	// the reading that hides the feature.
+	if advance && !(run.selectedMode == "turtle" && style.gradientSource == 3) && !gradientSourceIsAudio(style.gradientSource) {
+		style.gradientPhase += 0.003
+		if style.gradientPhase >= 1 {
+			style.gradientPhase--
+		}
+	}
+	glctx.GL.Call("uniform1f", gpu.u.gradientPhase, style.gradientPhase)
+	if style.gradientReverse {
+		glctx.GL.Call("uniform1i", gpu.u.gradientReverse, 1)
+	} else {
+		glctx.GL.Call("uniform1i", gpu.u.gradientReverse, 0)
+	}
+	// Scope phosphor: override the gradient with the phosphor's mono color.
+	if phos.active() {
+		phos.applyPhosphorColor()
+	}
 }
