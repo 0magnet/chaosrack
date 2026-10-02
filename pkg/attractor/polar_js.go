@@ -169,7 +169,7 @@ func polarFitExtent(gain float32) float32 { return gain }
 func (p *polarMode) generatePolar() {
 	src := aud.ensureAudioSource()
 	sr := 24000
-	if src != nil && src.SampleRate() > 0 {
+	if src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
 	tau := takens.TauSamples(emb.tau, sr)
@@ -305,7 +305,7 @@ func (p *polarMode) colorWindow() ([]float32, int) {
 	}
 	src := aud.ensureAudioSource()
 	sr := 24000
-	if src != nil && src.SampleRate() > 0 {
+	if src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
 	tau := takens.TauSamples(emb.tau, sr)

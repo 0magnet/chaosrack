@@ -13,8 +13,8 @@ func demoRack() ([]rackModule, []packItem) {
 	}{
 		{"console", 6, secConsole}, {"presets", 4, secConsole},
 		{"test", 5, secGen},
-		{"loudness", 6, secAnalyze}, {"distortion", 6, secAnalyze},
-		{"wow & flutter", 6, secAnalyze}, {"counter", 3, secAnalyze}, {"timing", 5, secAnalyze},
+		{"loudness", 6, secConsole}, {"distortion", 6, secConsole},
+		{"wow & flutter", 6, secConsole}, {"counter", 3, secConsole}, {"timing", 5, secConsole},
 		{"patchbay", 8, secMod}, {"envelope", 4, secMod},
 	}
 	var mods []rackModule
@@ -53,7 +53,7 @@ func TestTheDrawingIsTheLayoutAndNotADescriptionOfIt(t *testing.T) {
 func TestTheDrawingShowsTheChassisMonitor(t *testing.T) {
 	mods, items := demoRack()
 	const capacity = 20
-	monitors := map[string]int{secConsole: 4, secAnalyze: 4, secGen: 4, secMod: 4}
+	monitors := map[string]int{secConsole: 4, secGen: 4, secMod: 4}
 	units := packBySection(items, capacity, monitors)
 	got := drawRack(mods, items, units, capacity, monitors)
 	if !strings.Contains(got, "▚") {

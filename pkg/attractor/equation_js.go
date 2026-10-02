@@ -10,6 +10,8 @@ import (
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"github.com/0magnet/chaosrack/pkg/equation"
+	"github.com/0magnet/chaosrack/pkg/glctx"
+	"github.com/0magnet/chaosrack/pkg/implicit"
 )
 
 // Custom mode: user-editable attractor equations. The three (optionally four)
@@ -32,9 +34,21 @@ import (
 // customEquation is the Custom mode: the equations as typed, compiled and
 // running.
 type customEquation struct {
-	eq        [4]string
-	useW      bool
-	iterate   bool // flavor: false = flow (derivatives), true = discrete map
+	// modDefs are the constants the equations name, as parameters: what the
+	// Mod matrix routes to and the modulator drives (modParams).
+	modDefs []paramDef
+	eq      [4]string
+	useW    bool
+	iterate bool // flavor: false = flow (derivatives), true = discrete map
+	// surface is the third flavor: the first expression is F(x, y, z), and
+	// what is drawn is the surface F = 0, by its contours (pkg/implicit),
+	// across the cube extent wide either side of the center.
+	surface   bool
+	extent    float32
+	surfKey   string  // what the drawn surface was built from
+	surfDraft bool    // the drawing is the coarse one made while a knob moves
+	surfAt    float64 // when the surface last changed, ms
+	surfFit   float32 // the extent the camera was last fitted to; 0 until a surface is drawn
 	expr      [4]*equation.Expr
 	dt        float32
 	paramVal  map[string]*float32
@@ -48,6 +62,7 @@ type customEquation struct {
 var custom = customEquation{
 	eq:       [4]string{"sigma*(y - x)", "x*(rho - z) - y", "x*y - beta*z", "-w"},
 	dt:       0.005,
+	extent:   1.5,
 	paramVal: map[string]*float32{},
 }
 
@@ -55,6 +70,9 @@ var custom = customEquation{
 // not derivatives and must not be labeled as though they were: x' = 1 − ax² + y
 // is Henon, dx/dt = 1 − ax² + y is something else entirely.
 func (c *customEquation) eqLabel(i int) string {
+	if c.surface {
+		return "F"
+	}
 	if c.iterate {
 		return [4]string{"x'", "y'", "z'", "w'"}[i]
 	}
@@ -64,7 +82,7 @@ func (c *customEquation) eqLabel(i int) string {
 // flavorW reports whether the 4th state is in play: iterate is 3-D, so
 // the w equation is not compiled there even when the toggle is left on (which
 // keeps a typed dw/dt safe across a flavor round-trip).
-func (c *customEquation) flavorW() bool { return c.useW && !c.iterate }
+func (c *customEquation) flavorW() bool { return c.useW && !c.iterate && !c.surface }
 
 // Seed the default template's parameters (Lorenz) so Custom mode shows a real
 // attractor immediately, before any editing or seeding.
@@ -85,6 +103,7 @@ func (c *customEquation) parseCustom() {
 	// a flow. Withdrawing is as much the job as registering.
 	defer c.registerCustomSystem()
 	c.err = ""
+	c.surfFit = 0 // a surface compiled anew is framed anew (generateSurface)
 	seen := map[string]bool{}
 	var order []string
 	maxRPN := 1
@@ -92,6 +111,9 @@ func (c *customEquation) parseCustom() {
 		c.expr[i] = nil
 		if i == 3 && !c.flavorW() {
 			continue
+		}
+		if i > 0 && c.surface {
+			continue // a surface is one function; the other lines are kept, not compiled
 		}
 		e, err := equation.ParseExpr(c.eq[i])
 		if err != nil {
@@ -162,8 +184,8 @@ func (c *customEquation) paramPtrs(exprs []*equation.Expr) [][]*float32 {
 func (c *customEquation) registerCustomSystem() {
 	dynamics.Unregister4(dynamics.CustomKey)
 	dynamics.ClearCustomMap()
-	if c.err != "" || c.expr[0] == nil {
-		return
+	if c.err != "" || c.expr[0] == nil || c.surface {
+		return // a surface is drawn, not run: nothing to register
 	}
 	if c.iterate {
 		pp := c.paramPtrs(c.expr[:3])
@@ -224,6 +246,10 @@ func (c *customEquation) registerCustomFlow() {
 // the shared discrete-map loop, which is where the points draw mode, the
 // discarded transient and the escape-reseed already live.
 func (c *customEquation) generateCustom() {
+	if c.surface {
+		c.generateSurface()
+		return
+	}
 	if c.err != "" || c.expr[0] == nil {
 		// Nothing valid to run — leave the last frame on screen.
 		gpu.uploadVerticesOnly(sim.vertBuf[:sim.steps*4], mapDrawMode(dynamics.CustomKey), sim.steps)
@@ -280,6 +306,89 @@ func (c *customEquation) generateCustom() {
 	gpu.uploadVerticesOnly(vertices, gpu.drawMode, sim.steps)
 }
 
+// surfaceSlices and surfaceRes are how finely a surface is drawn: planes
+// across each axis, and grid cells along each plane. Enough to read a solid's
+// facets and a gyroid's weave (3 × 18 × 57² ≈ 175,000 evaluations). While a
+// knob is moving it is drawn at the draft figures, a fifth of the work, and
+// at these once it has been still for surfaceSettleMs: the way a scope or a
+// synth's display keeps up with a hand and then fills in.
+const (
+	surfaceSlices, surfaceRes = 18, 56
+	draftSlices, draftRes     = 10, 32
+	surfaceSettleMs           = 250
+)
+
+// generateSurface draws F(x,y,z) = 0 by its contours, rebuilding only when the
+// function, a parameter or the extent has changed since the last build, or
+// when a draft drawn while it was changing is due its full detail.
+func (c *customEquation) generateSurface() {
+	var key strings.Builder
+	key.WriteString(c.eq[0])
+	key.WriteString(strconv.FormatFloat(float64(c.extent), 'g', -1, 32))
+	var pv []float64
+	if c.expr[0] != nil {
+		for _, p := range c.expr[0].Params {
+			v := 0.0
+			if ptr := c.paramVal[p]; ptr != nil {
+				v = float64(*ptr)
+			}
+			pv = append(pv, v)
+			key.WriteString("|" + strconv.FormatFloat(v, 'g', -1, 64))
+		}
+	}
+	now := js.Global().Get("performance").Call("now").Float()
+	changed := key.String() != c.surfKey
+	due := c.surfDraft && now-c.surfAt > surfaceSettleMs
+	if !changed && !due && gpu.staticGeomCached(glctx.Types.Line) {
+		return
+	}
+	slices, res := surfaceSlices, surfaceRes
+	if changed {
+		c.surfKey, c.surfAt = key.String(), now
+		slices, res = draftSlices, draftRes
+	}
+	c.surfDraft = changed
+	var v []float32
+	if c.err == "" && c.expr[0] != nil {
+		e := c.expr[0]
+		stack := make([]float64, e.StackNeed()+2)
+		v = implicit.Contours(func(x, y, z float64) float64 {
+			return e.Eval([5]float64{x, y, z}, pv, stack)
+		}, float64(c.extent), slices, res)
+	}
+	idx := make([]uint16, len(v)/3)
+	for i := range idx {
+		idx[i] = uint16(i) //nolint:gosec // implicit.Contours stops short of 65535 vertices
+	}
+	gpu.staticDirty = true
+	gpu.uploadBuffersIndexed(v, idx, glctx.Types.Line)
+	// Framed and colored for the region drawn, which is known by construction:
+	// the flow flavor before it left the camera fitted to its trail (fifty
+	// times the size) and the gradient spread over that trail's bounds, so a
+	// surface switched back on came up as a speck in one color. The gradient
+	// range is given with the trail's center offset added back, because
+	// setGradientRange takes it off again and the surface is not offset.
+	e := c.extent
+	o := sim.centerOffset
+	gpu.setGradientRange(-e+o[0], e+o[0], -e+o[1], e+o[1], -e+o[2], e+o[2])
+	if c.surfFit != e {
+		c.surfFit = e
+		dist := fitDistFor(e * 1.8) // the region's corners reach √3 of its half-width
+		view.initDist, view.defaultDist = dist, dist
+		view.updateViewMatrix()
+	}
+}
+
+// seedCustomSurface loads F into the editor as a surface: what editing the
+// Polyhedron's equation does.
+func (c *customEquation) seedCustomSurface(f string) {
+	c.surface, c.iterate, c.useW = true, false, false
+	c.eq[0] = f
+	c.paramVal = map[string]*float32{}
+	c.t, c.w = 0, 0
+	c.parseCustom()
+}
+
 // ── Custom-mode control panel ─────────────────────────────────────────────
 
 // buildCustomPanel renders the equation editor into #params: three/four
@@ -304,8 +413,11 @@ func (c *customEquation) buildCustomPanel(paramsDiv js.Value) {
 		inp.Set("spellcheck", false)
 		inp.Set("style", "width:180px;background:#0a1420;color:#cde;border:1px solid #345;font-family:monospace;font-size:12px;padding:2px 4px;")
 		vars := "x, y, z" + map[bool]string{true: ", w", false: ""}[c.flavorW()] +
-			map[bool]string{true: "", false: ", t"}[c.iterate]
+			map[bool]string{true: "", false: ", t"}[c.iterate || c.surface]
 		what := map[bool]string{true: "the NEXT value of " + c.eqLabel(i)[:1], false: c.eqLabel(i)}[c.iterate]
+		if c.surface {
+			what = "F, the surface's function: the surface is where it is zero"
+		}
 		inp.Set("title", what+" — expression in "+vars+"; any other letters become knobbed parameters (e / pi / tau are constants)")
 		// Commit on change (blur/Enter) to avoid rebuilding mid-keystroke.
 		inp.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
@@ -320,66 +432,23 @@ func (c *customEquation) buildCustomPanel(paramsDiv js.Value) {
 		return row
 	}
 	eqCol.Call("appendChild", makeEqField(0))
-	eqCol.Call("appendChild", makeEqField(1))
-	eqCol.Call("appendChild", makeEqField(2))
+	if !c.surface { // a surface is one function: its other lines are kept, not shown
+		eqCol.Call("appendChild", makeEqField(1))
+		eqCol.Call("appendChild", makeEqField(2))
+	}
 	if c.flavorW() {
 		eqCol.Call("appendChild", makeEqField(3))
 	}
 
-	// Flavor + 4D toggles, then the error line.
-	ctlRow := dom.Doc.Call("createElement", "span")
-	ctlRow.Set("className", "grp")
-
-	// makeSwitch is the shared anatomy of both toggles: label · checkbox · text,
-	// committing through a reparse so the registry, the labels and the knobs all
-	// change together.
-	makeSwitch := func(text, title string, on bool, set func(bool)) js.Value {
-		lbl := dom.Doc.Call("createElement", "label")
-		lbl.Set("className", "grp")
-		lbl.Set("style", "cursor:pointer;color:#8cf;")
-		chk := dom.Doc.Call("createElement", "input")
-		chk.Set("type", "checkbox")
-		chk.Set("className", "sw")
-		chk.Set("title", title)
-		chk.Set("checked", on)
-		chk.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
-			set(chk.Get("checked").Bool())
-			// Reparse before the rebuild: the panel's mode-scoped syncs run
-			// ahead of buildCustomPanel, and IsMap("custom") has to be true by
-			// the time syncMapExtras asks — otherwise a switch to iterate poses
-			// the (plane) figure face-on one rebuild late.
-			c.parseCustom()
-			resetAttractorState()
-			buildParamPanel("custom")
-			perma.syncPermalinkNow()
-			return nil
-		}))
-		lbl.Call("appendChild", chk)
-		txt := dom.Doc.Call("createElement", "span")
-		txt.Set("textContent", " "+text)
-		lbl.Call("appendChild", txt)
-		return lbl
-	}
-
-	ctlRow.Call("appendChild", makeSwitch("iterate",
-		"iterate — read the expressions as a discrete MAP (x = f(x,y,z)) instead of as derivatives to integrate (x += dt·f). No dt, no path between iterates, so it draws as points. Type 1 - 1.4x^2 + y and 0.3x for Henon.",
-		c.iterate, func(v bool) { c.iterate = v }))
-	if !c.iterate {
-		// A map has no hidden 4th state here: the 3-D map machinery cannot carry
-		// one, and the Lyapunov estimator runs two copies of the step side by
-		// side, which a package-var w would have them share. The typed dw/dt is
-		// kept, just not compiled, so flipping back restores it.
-		ctlRow.Call("appendChild", makeSwitch("4D (w)",
-			"4D — add a fourth state variable w with its own dw/dt equation (hidden from the 3D plot, fed back through the others)",
-			c.useW, func(v bool) { c.useW = v }))
-	}
+	// The error line. The flavor and 4D switches are the Visual head's
+	// programmable switches while Custom runs (modelparts_js.go: customSwitches).
 	if c.err != "" {
 		errSpan := dom.Doc.Call("createElement", "span")
+		errSpan.Set("className", "grp")
 		errSpan.Set("textContent", "⚠ "+c.err)
-		errSpan.Set("style", "color:#f86;font-size:11px;margin-left:8px;")
-		ctlRow.Call("appendChild", errSpan)
+		errSpan.Set("style", "color:#f86;font-size:11px;")
+		eqCol.Call("appendChild", errSpan)
 	}
-	eqCol.Call("appendChild", ctlRow)
 
 	// The equation editor lives in its own "Equation" module, before Parameters
 	// (which holds the detected parameter knobs).
@@ -388,14 +457,17 @@ func (c *customEquation) buildCustomPanel(paramsDiv js.Value) {
 			old.Get("parentNode").Call("removeChild", old)
 		}
 		eqMod := dom.Doc.Call("createElement", "div")
-		eqMod.Set("className", "sect eqnmodule")
+		eqMod.Set("className", "sect")
 		eqMod.Set("id", "eqn-module")
 		hdr := dom.Doc.Call("createElement", "div")
 		hdr.Set("className", "sect-hdr")
 		hdr.Set("textContent", "Equation")
-		hdrTip := "Equation — the editable system: one derivative expression per state variable; commits on Enter/blur"
+		hdrTip := doc("equation")
 		if c.iterate {
-			hdrTip = "Equation — the editable system: one expression per state variable giving its NEXT value (a discrete map); commits on Enter/blur"
+			hdrTip = doc("equation.map")
+		}
+		if c.surface {
+			hdrTip = doc("equation.surface")
 		}
 		hdr.Set("title", hdrTip)
 		eqMod.Call("appendChild", hdr)
@@ -403,7 +475,7 @@ func (c *customEquation) buildCustomPanel(paramsDiv js.Value) {
 		body.Set("className", "row")
 		body.Call("appendChild", eqCol)
 		eqMod.Call("appendChild", body)
-		paramsSect.Get("parentNode").Call("insertBefore", eqMod, paramsSect)
+		mountEquation(eqMod, paramsSect)
 	}
 
 	// dt + detected parameter knobs, built with the SAME buildParamUnit
@@ -414,13 +486,27 @@ func (c *customEquation) buildCustomPanel(paramsDiv js.Value) {
 	// No dt knob in iterate flavor: a map has no timestep, and a knob that
 	// changes nothing is worse than a missing one.
 	var defs []paramDef
-	if !c.iterate {
+	switch {
+	case c.surface:
+		// How far the surface is drawn, either side of the center.
+		defs = append(defs, paramDef{"custom-extent", "size", &c.extent, 1.5, 0.2, 10, 0.1})
+	case !c.iterate:
 		defs = append(defs, paramDef{"custom-dt", "dt", &c.dt, 0.005, 0.0001, 0.05, 0.0001})
 	}
 	for _, name := range c.paramList {
 		if ptr := c.paramVal[name]; ptr != nil {
 			defs = append(defs, paramDef{"custom-" + name, name, ptr, 1, -10, 10, 0.01})
 		}
+	}
+	c.modDefs = defs
+	buildModMatrix(defs)
+	// In the row's bank, with every other model's constants (bankCustomCells),
+	// and the Parameters module put away if that leaves it with nothing.
+	if bankCustomCells(defs) {
+		if paramsDiv.Get("childElementCount").Int() == 0 {
+			showParamsModule(false)
+		}
+		return
 	}
 	grid := dom.Doc.Call("createElement", "div")
 	grid.Set("className", "punit-grid")
@@ -446,7 +532,7 @@ func (c *customEquation) seedCustomFromMode(mode string) {
 	// Every seed in the table is a FLOW (the guard in chaos_test.go checks each
 	// one against the mode's vector field), so seeding leaves the iterate
 	// flavor: read as a map, Lorenz's dx/dt is not Lorenz.
-	c.iterate = false
+	c.iterate, c.surface = false, false
 	c.paramVal = map[string]*float32{}
 	for name, val := range be.params {
 		v := val
@@ -465,6 +551,9 @@ func (c *customEquation) serializeCustom(b *strings.Builder) {
 	if c.iterate {
 		b.WriteString("&cit=1")
 	}
+	if c.surface {
+		b.WriteString("&csf=1&cex=" + permaFmt(c.extent))
+	}
 	b.WriteString("&eq=")
 	n := 3
 	if c.useW {
@@ -480,7 +569,7 @@ func (c *customEquation) serializeCustom(b *strings.Builder) {
 			b.WriteString("&cp." + name + "=" + permaFmt(*ptr))
 		}
 	}
-	if !c.iterate {
+	if !c.iterate && !c.surface {
 		b.WriteString("&cdt=" + permaFmt(c.dt))
 	}
 }
@@ -530,6 +619,14 @@ func (c *customEquation) buildEquationView(mode string, paramsDiv js.Value) {
 		return
 	}
 	be, known := builtinEquations[mode]
+	// The Polyhedron's lines are its symbol, its surface as F(x,y,z) = 0,
+	// its counts and what has been done to it (polyEquationLines), and they
+	// follow its knobs (refreshPolyEquation, by the ids below).
+	var polyLines [4][2]string
+	polyRun := false
+	if mode == "polyhedron" {
+		polyLines, polyRun = polyEquationLines()
+	}
 	col := dom.Doc.Call("createElement", "span")
 	col.Set("className", "pcell")
 	col.Set("style", "gap:2px;")
@@ -543,14 +640,43 @@ func (c *customEquation) buildEquationView(mode string, paramsDiv js.Value) {
 		inp.Set("type", "text")
 		inp.Set("spellcheck", false)
 		inp.Set("className", "eqview")
+		inp.Set("id", "eqv-"+strconv.Itoa(i))
+		inp.Call("setAttribute", "data-model", mode)
+		if mode == "polyhedron" {
+			lbl.Set("textContent", polyLines[i][0])
+			inp.Set("value", polyLines[i][1])
+			if i != 1 || !polyRun {
+				inp.Set("disabled", true)
+				inp.Set("title", doc("equation.readonly"))
+			} else {
+				inp.Set("title", doc("equation.solid"))
+				inp.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+					c.seedCustomSurface(inp.Get("value").String())
+					if ms := dom.Doc.Call("getElementById", "mode-select"); ms.Truthy() {
+						ms.Set("value", "custom")
+						ms.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+					}
+					return nil
+				}))
+			}
+			row.Call("appendChild", lbl)
+			row.Call("appendChild", inp)
+			col.Call("appendChild", row)
+			continue
+		}
 		if known {
 			inp.Set("value", be.eq[i])
 		}
 		if !known || (i == 3 && !be.useW) {
 			inp.Set("disabled", true)
+			if known {
+				inp.Set("title", docf("equation.no-w", "v", v, "mode", modeLabel(mode)))
+			} else {
+				inp.Set("title", docf("equation.not-system", "v", v, "mode", modeLabel(mode)))
+			}
 		} else {
 			n := i
-			inp.Set("title", "d"+v+"/dt for "+modeLabel(mode)+". Edit it to make your own: the rack switches to Custom, seeded with this system and your change.")
+			inp.Set("title", docf("equation.line", "v", v, "mode", modeLabel(mode)))
 			inp.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
 				c.seedCustomFromMode(mode)
 				c.eq[n] = inp.Get("value").String()
@@ -568,16 +694,37 @@ func (c *customEquation) buildEquationView(mode string, paramsDiv js.Value) {
 	}
 
 	eqMod := dom.Doc.Call("createElement", "div")
-	eqMod.Set("className", "sect eqnmodule")
+	eqMod.Set("className", "sect")
 	eqMod.Set("id", "eqn-module")
 	hdr := dom.Doc.Call("createElement", "div")
 	hdr.Set("className", "sect-hdr")
 	hdr.Set("textContent", "Equation")
-	hdr.Set("title", "Equation — the running model's system, one derivative per state variable. Edit a line to make it your own (Custom).")
+	hdr.Set("title", doc("equation.running"))
 	eqMod.Call("appendChild", hdr)
 	body := dom.Doc.Call("createElement", "div")
 	body.Set("className", "row")
 	body.Call("appendChild", col)
 	eqMod.Call("appendChild", body)
-	paramsSect.Get("parentNode").Call("insertBefore", eqMod, paramsSect)
+	mountEquation(eqMod, paramsSect)
+}
+
+// mountEquation puts the Equation panel where the running model's row keeps a
+// place for it, under the bay's monitor (buildBayHead), and anywhere else as
+// a module of its own before Parameters.
+//
+// Under the monitor it is part of the head rather than a module in the rack:
+// no .sect, so the rack does not pack it as one, and its header's tooltip
+// goes on the panel itself.
+func mountEquation(eqMod, paramsSect js.Value) {
+	slot := dom.Doc.Call("getElementById", eqSlotID(rowOf(run.selectedMode)))
+	if !slot.Truthy() {
+		paramsSect.Get("parentNode").Call("insertBefore", eqMod, paramsSect)
+		return
+	}
+	eqMod.Set("className", "eqnmounted")
+	if hdr := eqMod.Call("querySelector", ".sect-hdr"); hdr.Truthy() {
+		eqMod.Set("title", hdr.Get("title"))
+		hdr.Call("remove")
+	}
+	slot.Call("appendChild", eqMod)
 }

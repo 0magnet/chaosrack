@@ -3,7 +3,6 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"syscall/js"
 
@@ -214,31 +213,16 @@ func init() {
 	registerGenerate("desk", generateDeskModel)
 }
 
-// syncDeskExtras shows the Desk module whenever the desk is on screen, and puts
-// it away with it — the same shape as syncPongExtras and the four other
-// per-mode reveals buildParamPanel already calls.
+// The Desk module is in the rack whatever the model (panelhtml_js.go), like
+// every model's panel: the rack is the same instrument under every model.
 //
 // The desk earns a module because it has settings and three ways of being
 // present: as the MODEL, as the BACKDROP behind another model, and as the
 // ENVIRONMENT this app runs inside. Its style, its pass-through rule and
 // Contain used to sit in the Console's Window column, filed with Info and
-// Fullscreen — generic window furniture — where they were shown to everybody
-// whether or not there was a desk to apply them to, and where nothing tied
-// them to the thing they configure.
+// Fullscreen — generic window furniture — where nothing tied them to the
+// thing they configure.
 //
 // Desk itself stays in that column deliberately: the switch that summons the
 // environment is not a setting OF the desk, it is the thing that brings it
-// into being, and it has to be reachable when the module is not there.
-func syncDeskExtras(mode string) {
-	sect := dom.Doc.Call("getElementById", "desk-module")
-	if !sect.Truthy() {
-		return
-	}
-	on := mode == "desk" || bgVisual == "desk" || deskContain
-	if on {
-		sect.Get("style").Set("display", "")
-	} else {
-		sect.Get("style").Set("display", "none")
-	}
-	quantizeModuleWidths()
-}
+// into being.

@@ -92,13 +92,13 @@ func (c ModeClass) String() string {
 // four-character labels like SPRT and ANLY existed only because a dial ring
 // has room for four characters, and a row header has room for the name.
 var catTooltips = map[string]string{
-	"Visual":     "Visual — every model drawn in three dimensions, in one bay: attractors, maps, solids, geometry and sequences. The outer ring of the MODEL knob picks which kind, the inner ring which model, and the bank beside it is reprogrammed to that model's constants",
-	"Attractors": "Attractors — chaotic flows integrated in three dimensions: Lorenz, Rössler, Chua and the rest, then the nineteen simple systems of J. C. Sprott, 1994, a morph between them, and the system you type in yourself",
-	"Maps":       "Maps — discrete iterated systems (Hénon, Ikeda, the standard map…) rather than flows, the bifurcation plot of one, and the Poincaré section that turns a flow into one",
-	"Scope":      "Scope — what an oscilloscope draws: Lissajous figures, the Graphic Artist, and the audio displays",
-	"Embeddings": "Embeddings — a state space rebuilt from one signal by delaying it against itself: Takens against its own past, Stereo against the other channel, Polar with the delay wrapped onto an angle. All three are steered by the delay τ",
-	"Geometry":   "Geometry — built, not integrated: the Platonic solids under a Conway operator (17 of them, most of the Archimedeans and their duals), and the sphere, torus, globe and magnetosphere",
-	"Sequences":  "Sequences — the Turtle Path: an integer sequence read as turn-and-step",
-	"Solids":     "Solids — the STL viewer: a file from disk, a terminal, or the whole desk as an object",
-	"Audio":      "Audio — displays of the live signal: spectrogram, goniometer, the FVF wobbulator and the delay embeddings",
+	"Visual":     doc("cat.Visual"),
+	"Attractors": doc("cat.Attractors"),
+	"Maps":       doc("cat.Maps"),
+	"Scope":      doc("cat.Scope"),
+	"Embeddings": doc("cat.Embeddings"),
+	"Geometry":   doc("cat.Geometry"),
+	"Sequences":  doc("cat.Sequences"),
+	"Solids":     doc("cat.Solids"),
+	"Audio":      doc("cat.Audio"),
 }

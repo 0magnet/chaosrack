@@ -79,11 +79,11 @@ var (
 // channel knob's dial label carries as its tooltip. Three parallel slices, so a
 // channel cannot acquire a detent without a sentence explaining it.
 var tapChanDescs = []string{
-	"mix — the two channels summed: what a mono meter would read",
-	"left — the left channel alone",
-	"right — the right channel alone",
-	"mid — the sum, halved: what both channels agree on, and what a mono listener hears",
-	"side — the difference, halved: what the two channels disagree about, which is the stereo width itself",
+	doc("tap-chan=0"),
+	doc("tap-chan=1"),
+	doc("tap-chan=2"),
+	doc("tap-chan=3"),
+	doc("tap-chan=4"),
 }
 
 // tapFold reduces one (L, R) pair to the signal a channel names. mid carries
@@ -180,7 +180,7 @@ func (a *audioTap) pump() {
 		// taking the stream over — arrives at this comparison.
 		emb.armAutoMeasure()
 	}
-	if src == nil || !src.Ready() {
+	if !src.Ready() {
 		return
 	}
 	if a.ringL == nil {

@@ -25,6 +25,7 @@ type bouncingBall struct {
 	grav       float32 // gravity
 	rest       float32 // restitution (bounce energy keep)
 	drift      float32 // horizontal speed
+	height     float32 // drop height: where the next Drop releases the ball
 	x, y       float64
 	vx, vy     float64
 	ring       []float64
@@ -41,6 +42,7 @@ var ball = bouncingBall{
 	grav:       12,
 	rest:       0.88,
 	drift:      0.7,
+	height:     0.9,
 	x:          -1.2,
 	y:          0.9,
 	vx:         0.7,
@@ -118,7 +120,7 @@ func (b *bouncingBall) generateBounceBall() {
 	if b.kicks != b.shownKicks {
 		b.shownKicks = b.kicks
 		if led := dom.Doc.Call("getElementById", "bounce-kicks"); led.Truthy() {
-			led.Set("textContent", strconv.Itoa(b.kicks))
+			setDotText(led, strconv.Itoa(b.kicks))
 		}
 	}
 	if b.fill < 2 {
@@ -166,7 +168,8 @@ func (b *bouncingBall) beep(freq float64, ms int) {
 	g.Get("gain").Call("setValueAtTime", 0.1, now)
 	g.Get("gain").Call("linearRampToValueAtTime", 0, now+dur)
 	osc.Call("connect", g)
-	g.Call("connect", ctx.Get("destination"))
+	mixEnsure(ctx)
+	g.Call("connect", mixIn("fx")) // the Mixer's SOUNDS column
 	osc.Call("start")
 	osc.Call("stop", now+dur+0.01)
 }
@@ -174,13 +177,8 @@ func (b *bouncingBall) beep(freq float64, ms int) {
 // syncBounceExtras runs on every panel rebuild: entering re-drops the ball
 // face-on; leaving releases the blip lease.
 func (b *bouncingBall) syncBounceExtras(mode string) {
-	if sect := dom.Doc.Call("getElementById", "bounce-module"); sect.Truthy() {
-		if mode == "bounceball" {
-			sect.Get("style").Set("display", "")
-		} else {
-			sect.Get("style").Set("display", "none")
-		}
-	}
+	// The module is in the rack whatever the model (panelhtml_js.go): the rack
+	// is the same instrument under every model, so its panels do not come and go.
 	if mode == "bounceball" {
 		if b.active {
 			return

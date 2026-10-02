@@ -3,7 +3,6 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"github.com/0magnet/chaosrack/pkg/recurrence"
 	"github.com/0magnet/chaosrack/pkg/takens"
@@ -232,11 +231,11 @@ type recurrencePlot struct {
 	// read it back as "settled", and never integrated anything: a permanently
 	// blank square with no error anywhere.
 	trajStale   bool
-	trajStaleAt float64 // frameNowMs when the knobs last moved
-	trajEps     float32 // the ε the matrix on the texture was built with
-	trajBuilt   bool    // a matrix has been built from the current series
-	trajGen     int     // bumped on every re-integration; see rqaConfigNow
-	rqaEl       js.Value
+	trajStaleAt float64     // frameNowMs when the knobs last moved
+	trajEps     float32     // the ε the matrix on the texture was built with
+	trajBuilt   bool        // a matrix has been built from the current series
+	trajGen     int         // bumped on every re-integration; see rqaConfigNow
+	rqaEls      [3]js.Value // RR, DET and LAM on the readout line
 	rqa         recurrence.RQAResult
 	rqaNext     float64 // frameNowMs the next measurement is due
 
@@ -372,7 +371,7 @@ func (r *recurrencePlot) generateRecurrence() {
 func (r *recurrencePlot) fillFromAudio() bool {
 	src := aud.ensureAudioSource()
 	sr := 24000
-	if src != nil && src.SampleRate() > 0 {
+	if src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
 	dim := r.embedDim()
@@ -395,7 +394,7 @@ func (r *recurrencePlot) fillFromAudio() bool {
 		r.ring = make([]float32, need+need/2)
 		r.w = 0
 	}
-	if src != nil && src.Ready() {
+	if src.Ready() {
 		for drained := 0; drained < rpDrainCap; {
 			n := tapRead(&rpCursor, r.scratch)
 			if n <= 0 {
@@ -550,73 +549,47 @@ func (r *recurrencePlot) fillFromTrajectory() bool {
 // rather than nothing. That is what keeps the chart from splicing across the
 // stretches it was not looking.
 func (r *recurrencePlot) maybeMeasure() {
-	if !r.rqaEl.Truthy() || frameNowMs < r.rqaNext {
+	if !r.rqaEls[0].Truthy() || frameNowMs < r.rqaNext {
 		return
 	}
 	r.rqaNext = frameNowMs + recurrence.RQASamplePeriodMs
 	if r.matDirty {
 		r.matDirty = false
 		r.rqa = recurrence.RQA(r.mat, rpN)
-		r.rqaEl.Set("textContent", rpFormatRQA(r.rqa))
+		for i, s := range rpRQAFields(r.rqa) {
+			setDotText(r.rqaEls[i], s)
+		}
 	}
 	rqa.sample(frameNowMs, r.rqa)
 }
 
-// rpFormatRQA renders the three scalars as percentages at a FIXED WIDTH, for
-// the reason formatLyap gives about the Lyapunov readout: a number that changes
-// width makes the whole cell jump, and this one updates several times a second.
-// RR keeps a decimal because its useful range is the bottom few percent, where
-// whole numbers would read 2, 3, 2, 3 and say nothing.
-func rpFormatRQA(r recurrence.RQAResult) string {
+// rpRQAFields renders the three scalars as percentages, one for each of the
+// three half displays: RR with a decimal, because its useful range is the
+// bottom few percent where whole numbers would read 2, 3, 2, 3 and say
+// nothing, and DET and LAM whole. A plot with nothing lit has no readings.
+func rpRQAFields(r recurrence.RQAResult) [3]string {
 	if r.Lit == 0 {
-		return " --.- --- ---"
+		return [3]string{"--.-", "---", "---"}
 	}
-	pad := func(s string, w int) string {
-		for len(s) < w {
-			s = " " + s
-		}
-		return s
+	rr := strconv.FormatFloat(r.RR*100, 'f', 1, 64)
+	if r.RR*100 >= 99.95 {
+		rr = "100" // four characters is what the display holds
 	}
-	return pad(strconv.FormatFloat(r.RR*100, 'f', 1, 64), 5) + " " +
-		pad(strconv.Itoa(int(r.DET*100+0.5)), 3) + " " +
-		pad(strconv.Itoa(int(r.LAM*100+0.5)), 3)
+	return [3]string{rr, strconv.Itoa(int(r.DET*100 + 0.5)), strconv.Itoa(int(r.LAM*100 + 0.5))}
 }
 
-// appendRecurrenceRQA adds the RQA cell to the recurrence parameter grid, the
-// way appendTakensEstimate adds the Takens mode's MEAS cell — into the GRID
-// rather than below it, because the grid is the height-bounded column-wrap
-// container and anything appended after it is clipped.
-func (r *recurrencePlot) appendRecurrenceRQA(grid js.Value) {
-	card, top := newPunitCard("rqa")
+// rpRQATips are the three readouts' tooltips.
+var rpRQATips = [3]string{
+	doc("ro.rr"),
+	doc("ro.det"),
+	doc("ro.lam"),
+}
 
-	r.rqaEl = dom.Doc.Call("createElement", "span")
-	r.rqaEl.Set("className", "led counter-led")
-	r.rqaEl.Set("title", "Recurrence quantification, as percentages: RR · DET · LAM. "+
-		"RR is how much of the square is lit — the number to turn ε by, and 1–5% is the readable range. "+
-		"DET is the share of those points lying on diagonal lines, which is what separates a system from "+
-		"noise: an orbit reads near 100, white noise near 0. LAM is the share on vertical lines — states "+
-		"the system sat in rather than passed through, so high LAM against lower DET is intermittency. "+
-		"The line of identity is left out of DET: every point recurs with itself, and counting that in "+
-		"would give noise a confident score for nothing.")
-	r.rqaEl.Set("textContent", rpFormatRQA(r.rqa))
-	top.Call("appendChild", r.rqaEl)
-
-	// A source LABEL rather than a second knob. The trajectory source plots
-	// whichever flow was on screen last, and a plot of an unnamed system is not
-	// a measurement of anything — the same reason, and the same wording, as the
-	// bifurcation explorer's SWEEP label, which picks its system the same way.
-	row := dom.Doc.Call("createElement", "span")
-	row.Set("className", "grp")
-	note := dom.Doc.Call("createElement", "span")
-	note.Set("className", "plabel")
-	if int(r.src) == rpSrcTraj {
-		note.Set("textContent", modeInfo[bif.lastFlowMode].Label)
-		note.Set("title", "The system being plotted — the most recent flow mode. Switch to an attractor, tune it, then come back.")
-	} else {
-		note.Set("textContent", "audio in")
-		note.Set("title", "The live audio source feeds this plot; pick it in the Audio module.")
+// appendRecurrenceRQA puts RR, DET and LAM on the model's readout line
+// (liveReadoutHost), a half display each.
+func (r *recurrencePlot) appendRecurrenceRQA(host js.Value) {
+	f := rpRQAFields(r.rqa)
+	for i, l := range []string{"rr", "det", "lam"} {
+		r.rqaEls[i] = liveReadout(host, l, dispHalfChars, f[i], rpRQATips[i])
 	}
-	row.Call("appendChild", note)
-	card.Call("appendChild", row)
-	grid.Call("appendChild", card)
 }

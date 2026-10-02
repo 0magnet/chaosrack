@@ -33,6 +33,10 @@ type Item struct {
 	// Lead is a module that must START a bay: the head panel of a model
 	// row, which carries that row's monitor. See Pack.
 	Lead bool
+	// Break starts a new bay whatever room the one before has left: a
+	// section that opens a bay, an instrument that is a bay by itself. Unlike
+	// a Lead it never shares, and carries nothing with it.
+	Break bool
 
 	// Rows is how tall this module needs to be. Zero takes the metrics'
 	// default.
@@ -162,6 +166,9 @@ func Pack(items []Item, capacity int, monitor map[string]int) [][]int {
 		// bay boundary drawn for a module that is not in the rack is a blank
 		// row.
 		if it.Lead && w > 0 && used > 0 && (!led || used+LeadRun(items, i) > capacity) {
+			flush()
+		}
+		if it.Break && w > 0 && used > 0 {
 			flush()
 		}
 		if w > capacity {

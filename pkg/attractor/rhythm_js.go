@@ -3,39 +3,35 @@
 package attractor
 
 import (
+	"syscall/js"
+
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/rhythm"
-	"syscall/js"
 )
 
-// rhythmSection is the rhythm section's sound, clock and panel state.
+// rhythmSection is the rhythm section's sound and presets. The patterns are
+// in pkg/rhythm, where they can be read and checked on the host.
+//
+// It is the Matrix's drum lanes now, not a machine of its own. It had its own
+// tempo knob, its own Run and its own clock, beside a Matrix with all three —
+// two sequencers that could be set to the same BPM and still never lock, since
+// each placed its steps on the audio clock from a start of its own. The drums
+// are four lanes at the foot of the Matrix's grid, played by the Matrix's
+// clock (tonematrix_js.go); a preset tab loads a pattern into them, where it
+// can be edited, which the organ's tabs never allowed.
+//
+// THE DRUMS ARE SYNTHESIZED, not sampled, for the same reason the rest of the
+// audio here is: a sample is a file to ship and a decision nobody can see
+// inside. Each voice is two or three Web Audio nodes and its character is in
+// the envelope — a bass drum is a sine swept down fast, a snare is noise and a
+// tone together, a hat is that same noise with everything below 6 kHz taken
+// away and a decay measured in hundredths. That is roughly how the organs did
+// it too: a handful of transistors per voice, not a memory chip.
 type rhythmSection struct {
-	// The rhythm section's sound, clock and panel. The patterns themselves are in
-	// pkg/rhythm, where they can be read and checked on the host.
-	//
-	// THE DRUMS ARE SYNTHESIZED, not sampled, for the same reason the rest of the
-	// audio here is: a sample is a file to ship and a decision nobody can see
-	// inside. Each voice is two or three Web Audio nodes and its character is in
-	// the envelope — a bass drum is a sine swept down fast, a snare is noise and a
-	// tone together, a hat is that same noise with everything below 6 kHz taken
-	// away and a decay measured in hundredths. That is roughly how the organs did
-	// it too: a handful of transistors per voice, not a memory chip.
-	//
-	// SCHEDULED AHEAD OF THE AUDIO CLOCK, exactly as the tonematrix does and for
-	// the reason it gives: rAF is not a clock. Frames arrive when the compositor
-	// feels like it, so a drum triggered on the frame it falls due is early or late
-	// by however long that frame took, and the ear hears that as a limp. Each step
-	// is placed on the audio context's own timeline a lookahead in advance, which
-	// is the one clock in the page that rendering cannot drag around.
-	on      bool
-	running bool
-	preset  string
-	ctx     js.Value
-	master  js.Value
-	pan     js.Value
-	next    float64 // audio-clock time of the next step to be scheduled
-	step    int     // index of that step, counting up without wrapping
-	lampAt  int     // which beat lamp is currently lit
+	preset string
+	ctx    js.Value
+	master js.Value // the drums' level, into the Mixer's DRUMS
+	lampAt int      // which beat lamp is currently lit
 }
 
 var rhy = rhythmSection{
@@ -43,12 +39,8 @@ var rhy = rhythmSection{
 	lampAt: -1,
 }
 
-// rhythmLookahead is how far ahead steps are placed, in seconds — the same
-// figure the tonematrix uses, for the same reason: a few frames of headroom.
-const rhythmLookahead = 0.12
-
-// ensureGraph acquires the shared context and builds the output chain,
-// the gain-into-panner-into-destination shape every voice module here has.
+// ensureGraph acquires the shared context and builds the drums' output: a
+// gain, the level, into the Mixer's DRUMS column.
 func (r *rhythmSection) ensureGraph() {
 	ctx := acquireAudioCtx("rhythm")
 	if !ctx.Truthy() {
@@ -56,93 +48,27 @@ func (r *rhythmSection) ensureGraph() {
 	}
 	if !r.master.Truthy() {
 		r.master = ctx.Call("createGain")
-		r.pan = ctx.Call("createStereoPanner")
-		r.master.Call("connect", r.pan)
-		r.pan.Call("connect", ctx.Get("destination"))
+		mixEnsure(ctx)
+		r.master.Call("connect", mixIn("dr"))
 	}
 	r.ctx = ctx
 	r.updateRouting()
 }
 
-// updateRouting pushes the out ring and level knob into the master chain.
+// updateRouting pushes the drum level into the drums' gain; where they go
+// is the Mixer's.
 func (r *rhythmSection) updateRouting() {
 	if !r.master.Truthy() {
 		return
 	}
 	lvl := fgFloat(dom.Doc.Call("getElementById", "rhythm-lvl")) / 100
-	gain, pan := 0.0, 0.0
-	switch dom.Doc.Call("getElementById", "rhythm-out").Get("value").String() {
-	case "l":
-		gain, pan = lvl, -1
-	case "r":
-		gain, pan = lvl, 1
-	case "both":
-		gain, pan = lvl, 0
-	}
 	// Headroom: a samba puts four voices on some steps, and a bass drum alone
 	// already peaks at 0.9.
-	r.master.Get("gain").Set("value", gain*0.35)
-	r.pan.Get("pan").Set("value", pan)
+	r.master.Get("gain").Set("value", lvl*0.35)
 }
 
-func rhythmTempo() float64 {
-	bpm := fgFloat(dom.Doc.Call("getElementById", "rhythm-tempo"))
-	if bpm < 40 {
-		bpm = 100
-	}
-	return bpm
-}
-
-// tick runs every frame from the render loop and is a no-op unless the
-// section is running.
-func (r *rhythmSection) tick() {
-	if !r.on || !r.running || !r.ctx.Truthy() {
-		return
-	}
-	pat, ok := rhythm.ByName(r.preset)
-	if !ok {
-		return
-	}
-	dur := rhythm.StepSeconds(rhythmTempo(), pat)
-	if dur <= 0 {
-		return
-	}
-	now := r.ctx.Get("currentTime").Float()
-	// A long gap — a hidden tab, a stalled frame — resynchronizes instead of
-	// racing to catch up. A drum machine that plays sixty steps at once to make
-	// up lost time is worse than one that simply carries on from here.
-	if r.next == 0 || r.next < now-0.5 {
-		r.next = now + 0.05
-	}
-	for r.next < now+rhythmLookahead {
-		rhythmScheduleStep(pat, r.step, r.next)
-		r.step++
-		r.next += dur
-	}
-	r.updateLamps(pat, now, dur)
-}
-
-// updateLamps lights the beat the listener is HEARING, not the one being
-// scheduled.
-//
-// Those are a lookahead apart, and a lookahead is a tenth of a second — enough
-// that lamps driven off the scheduling counter run visibly ahead of the sound
-// and read as a machine that is out of time with itself. So the audible step is
-// worked back from the audio clock: rhy.step is the index of the step at
-// rhy.next, so however many step-durations rhy.next is in the future is how
-// far back the ear currently is.
-func (r *rhythmSection) updateLamps(p rhythm.Pattern, now, dur float64) {
-	beats := rhythm.BeatsPerBar(p)
-	perBeat := p.Steps / beats
-	if perBeat <= 0 {
-		return
-	}
-	ahead := int((r.next-now)/dur + 0.5)
-	heard := r.step - ahead
-	if heard < 0 {
-		return
-	}
-	beat := (heard / perBeat) % beats
+// lightLamp lights the lamp of the beat being heard.
+func (r *rhythmSection) lightLamp(beat int) {
 	if beat == r.lampAt {
 		return
 	}
@@ -154,15 +80,6 @@ func (r *rhythmSection) updateLamps(p rhythm.Pattern, now, dur float64) {
 	kids := lamps.Get("children")
 	for i := range kids.Get("length").Int() {
 		kids.Index(i).Get("classList").Call("toggle", "lit", i == beat)
-	}
-}
-
-// rhythmScheduleStep places whatever plays on this step onto the audio clock.
-func rhythmScheduleStep(p rhythm.Pattern, step int, t float64) {
-	for v := range rhythm.VoiceCount {
-		if rhythm.Hit(p, v, step) {
-			rhy.voice(v, t)
-		}
 	}
 }
 
@@ -240,10 +157,16 @@ func (r *rhythmSection) voice(v int, t float64) {
 	}
 }
 
-// setRhythmPreset picks a pattern and interlocks the tabs, as the row of tabs
-// on the organ did: pressing one popped the last one out.
+// setRhythmPreset loads a pattern into the Matrix's drum lanes and interlocks
+// the tabs, as the row of tabs on the organ did: pressing one popped the last
+// one out.
+//
+// The loop takes the pattern's length and meter with it: a waltz is a bar of
+// twelve in three, a shuffle twelve in four, and a Matrix left at sixteen
+// would play either with four steps of silence at the end of every bar.
 func (r *rhythmSection) setRhythmPreset(name string) {
-	if _, ok := rhythm.ByName(name); !ok {
+	p, ok := rhythm.ByName(name)
+	if !ok {
 		return
 	}
 	r.preset = name
@@ -258,21 +181,11 @@ func (r *rhythmSection) setRhythmPreset(name string) {
 	if sel := dom.Doc.Call("getElementById", "rhythm-preset"); sel.Truthy() {
 		sel.Set("value", name)
 	}
-	// The bar restarts on a change of pattern rather than continuing from
-	// whatever step the old one had reached: a bossa that begins halfway
-	// through its bar is not a bossa.
-	r.restart()
+	tm.loadDrums(p)
 	r.buildLamps()
 }
 
-// restart drops the schedule so the next tick begins a fresh bar.
-func (r *rhythmSection) restart() {
-	r.next = 0
-	r.step = 0
-	r.lampAt = -1
-}
-
-// buildLamps puts one lamp per beat of the current bar.
+// buildLamps puts one lamp per beat of the Matrix's bar.
 //
 // Three for a waltz and four for a march, because the count is the thing being
 // shown — a fixed four lamps under a waltz would be counting a bar the pattern
@@ -282,74 +195,33 @@ func (r *rhythmSection) buildLamps() {
 	if !host.Truthy() {
 		return
 	}
-	p, ok := rhythm.ByName(r.preset)
-	if !ok {
-		return
-	}
 	host.Set("innerHTML", "")
-	for range rhythm.BeatsPerBar(p) {
+	for range tm.beatsPerBar() {
 		d := dom.Doc.Call("createElement", "span")
 		d.Set("className", "rhythm-beat")
 		host.Call("appendChild", d)
 	}
+	r.lampAt = -1
 }
 
-// setRhythmRunning starts or stops the section.
-func (r *rhythmSection) setRhythmRunning(on bool) {
-	r.running = on
-	r.restart()
-	if on {
-		r.ensureGraph()
-		return
-	}
-	if lamps := dom.Doc.Call("getElementById", "rhythm-beats"); lamps.Truthy() {
-		kids := lamps.Get("children")
-		for i := range kids.Get("length").Int() {
-			kids.Index(i).Get("classList").Call("remove", "lit")
-		}
-	}
-}
-
-// wireRhythmModule builds the control cells and the tab bank. Called once from
-// Run, BEFORE the permalink is applied, so the hidden preset select already has
-// its options when a link tries to set one.
+// wireRhythmModule builds the drum level cell and the tab bank. Called once
+// from Run, BEFORE the permalink is applied, so the hidden preset select
+// already has its options when a link tries to set one.
 func (r *rhythmSection) wireRhythmModule() {
-	tempo := dom.Doc.Call("getElementById", "rhythm-tempo")
 	lvl := dom.Doc.Call("getElementById", "rhythm-lvl")
-	out := dom.Doc.Call("getElementById", "rhythm-out")
 	sel := dom.Doc.Call("getElementById", "rhythm-preset")
 	tabs := dom.Doc.Call("getElementById", "rhythm-tabs")
-	tstack := dom.Doc.Call("getElementById", "rhythm-tstack")
 	lstack := dom.Doc.Call("getElementById", "rhythm-lstack")
-	ostack := dom.Doc.Call("getElementById", "rhythm-ostack")
-	if !tempo.Truthy() || !tabs.Truthy() || !tstack.Truthy() {
+	if !lvl.Truthy() || !tabs.Truthy() || !lstack.Truthy() {
 		return
 	}
-
-	// Tempo cell: value knob, LED and reset from the descriptor. LEDStep 10
-	// keeps it at whole BPM.
-	tstack.Call("appendChild", makeKnob(tempo, js.Undefined(), true, false, true))
-	adoptDescControl(ControlDesc{
-		ID: "rhythm-tempo", Label: "tempo", Min: 40, Max: 240, Step: 1, Def: 100,
-		LEDID: "rhythm-tempo-led", ResetID: "rst-rhythm-tempo", LEDStep: 10,
-	})
 
 	// Level cell: value knob, LED and reset from the descriptor.
 	lstack.Call("appendChild", makeKnob(lvl, js.Undefined(), true, false, true))
 	adoptDescControl(ControlDesc{
-		ID: "rhythm-lvl", Label: "lvl", Min: 0, Max: 100, Step: 1, Def: 80,
+		ID: "rhythm-lvl", Label: "drums", Min: 0, Max: 100, Step: 1, Def: 80,
 		LEDID: "rhythm-lvl-led", ResetID: "rst-rhythm-lvl",
 		Apply: func(float64) { r.updateRouting() },
-	})
-
-	// Out cell: the same routing ring every voice module has.
-	ostk := selk.makeSelectorKnob(out)
-	addSelectorLabels(ostk, []string{"off", "L", "R", "L+R"}, out)
-	ostack.Call("appendChild", ostk)
-	// Another orphan: no reset, no Reset All, no permalink.
-	adoptDescControl(ControlDesc{
-		ID: "rhythm-out", Label: "out", IsSelect: true, SelectDef: "both", PermaKey: "ho",
-		ResetID: "rst-rhythm-out", SelectApply: func(string) { r.updateRouting() },
 	})
 
 	// The tab bank, and the hidden select that carries it in a link. Both are
@@ -368,12 +240,13 @@ func (r *rhythmSection) wireRhythmModule() {
 		tab.Set("textContent", name)
 		tab.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			r.setRhythmPreset(name)
-			// Pressing a tab starts the section, as it did on the organ: the
+			// Pressing a tab starts the loop, as it did on the organ: the
 			// tabs WERE the start control there. Run stays the way to stop it.
-			if run := dom.Doc.Call("getElementById", "rhythm-run"); run.Truthy() && !run.Get("checked").Bool() {
+			if run := dom.Doc.Call("getElementById", "tm-run"); run.Truthy() && !run.Get("checked").Bool() {
 				run.Set("checked", true)
 				run.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 			}
+			tm.ensureGraph() // a user gesture: unlock the audio for the loop
 			return nil
 		}))
 		tabs.Call("appendChild", tab)
@@ -384,19 +257,5 @@ func (r *rhythmSection) wireRhythmModule() {
 		r.setRhythmPreset(sel.Get("value").String())
 		return nil
 	}))
-
-	if run := dom.Doc.Call("getElementById", "rhythm-run"); run.Truthy() {
-		run.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
-			r.setRhythmRunning(run.Get("checked").Bool())
-			return nil
-		}))
-	}
-	// Always in the rack. The Console's module switches are gone, so there is
-	// no state in which this module is absent, and the flag that used to mean
-	// "switched in" is simply true. It is SET rather than the module's setter
-	// being called: the setter is the switch's behavior — it opens an audio
-	// graph and takes a context lease — and booting must not do that. What
-	// the module DOES is its own transport control.
-	r.on = true
 	r.setRhythmPreset(r.preset)
 }

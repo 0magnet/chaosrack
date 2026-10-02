@@ -15,7 +15,7 @@ import (
 // time is how its energy decays, and the waterfall is what it looks like when
 // the decay is taken one frequency at a time.
 //
-// It is measured with the log sweep the Test module generates, because a sweep
+// It is measured with the log sweep a generator plays (its swp wave), because a sweep
 // puts far more energy into a room than a click can without deafening anybody,
 // and because its harmonic distortion lands BEFORE the linear response in the
 // deconvolved result rather than smeared through it.

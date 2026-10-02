@@ -36,11 +36,11 @@ var deskStyleLabel = map[string]string{
 // names it and this says what it does. Beside the label table for the reason
 // that table is beside the order — one list of desktops, not three.
 var deskStyleDesc = map[string]string{
-	deskFlat:    "Flat — ordinary windows, lying in the plane of the screen",
-	deskGlass:   "Looking Glass (Sun, 2003) — windows lean back in a legible stack; double-click a title bar to turn one over and read its back",
-	deskCube:    "Cube (Compiz, 2006) — four workspaces on the faces of a cube; the arrow keys spin it",
-	deskMetisse: "Metisse (2004) — shift-drag a title bar to turn a window freely, and it stays live while turned",
-	deskBump:    "BumpTop (2009) — windows have weight and fall into a pile on top of the rack",
+	deskFlat:    doc("desk-style=flat"),
+	deskGlass:   doc("desk-style=glass"),
+	deskCube:    doc("desk-style=cube"),
+	deskMetisse: doc("desk-style=metisse"),
+	deskBump:    doc("desk-style=bump"),
 }
 
 // deskFaces is how many workspaces the cube has. Four, because it is a cube.

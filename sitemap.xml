@@ -36,6 +36,7 @@
   <url><loc>https://chaosrack.magnetosphere.net/models/sprottq.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/sprottr.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/sprotts.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://chaosrack.magnetosphere.net/models/custom.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/henon.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/ikeda.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/clifford.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
@@ -43,6 +44,19 @@
   <url><loc>https://chaosrack.magnetosphere.net/models/mira.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/tinkerbell.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/standardmap.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://chaosrack.magnetosphere.net/models/bifurcation.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://chaosrack.magnetosphere.net/models/poincare.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://chaosrack.magnetosphere.net/models/stlfile.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://chaosrack.magnetosphere.net/models/terminal.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://chaosrack.magnetosphere.net/models/termanim.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://chaosrack.magnetosphere.net/models/hostterm.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://chaosrack.magnetosphere.net/models/desk.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://chaosrack.magnetosphere.net/models/polyhedron.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://chaosrack.magnetosphere.net/models/nestedcube.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://chaosrack.magnetosphere.net/models/globe.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://chaosrack.magnetosphere.net/models/torus.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://chaosrack.magnetosphere.net/models/magnetosphere.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://chaosrack.magnetosphere.net/models/turtle.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/lissajou.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/graphicartist.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/pong.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
@@ -53,29 +67,10 @@
   <url><loc>https://chaosrack.magnetosphere.net/models/takens.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/stereo.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/polar.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/tetrahedron.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/cube.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/octahedron.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/dodecahedron.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/icosahedron.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/nestedcube.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/globe.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/sphere.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/torus.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/magnetosphere.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/turtle.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/stlfile.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/terminal.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/termanim.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/hostterm.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/desk.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/spectrogram.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/fvf.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/recurrence.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/rta.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/xfer.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://chaosrack.magnetosphere.net/models/waterfall.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/bifurcation.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/poincare.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://chaosrack.magnetosphere.net/models/custom.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
 </urlset>

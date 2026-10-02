@@ -5,9 +5,9 @@ package attractor
 import (
 	"github.com/0magnet/chaosrack/pkg/acoustics"
 	"github.com/0magnet/chaosrack/pkg/glctx"
+	"strings"
 	"syscall/js"
 
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/led"
 )
 
@@ -319,31 +319,20 @@ func (t *transferMode) drawTransfer() {
 func (t *transferMode) showTransferDelay() {
 	s := "-- ms"
 	if ms, ok := acoustics.TransferDelayMS(t.res, float64(t.cohF)/10); ok {
-		s = led.Format(ms, 2, 2, true) + "ms"
+		s = strings.Replace(led.Format(ms, 2, 2, true), led.Blank, "+", 1) + "ms" // a character display has a plus
 	}
 	if s == t.delayTx {
 		return
 	}
 	t.delayTx = s
 	if t.delayEl.Truthy() {
-		t.delayEl.Set("textContent", s)
+		setDotText(t.delayEl, s)
 	}
 }
 
-// appendTransferReadout adds the delay cell to the mode's parameter grid.
-func (t *transferMode) appendTransferReadout(grid js.Value) {
-	card, top := newPunitCard("dly")
-
-	t.delayEl = dom.Doc.Call("createElement", "span")
-	t.delayEl.Set("className", "led counter-led")
-	t.delayEl.Set("title", "Bulk delay between the two channels, fitted from the slope of the phase — "+
-		"a pure delay is a phase that falls linearly with frequency, and the slope is the delay. "+
-		"This is the number a system-tuning rig is reached for: it is what gets dialed into a delay "+
-		"line to line a loudspeaker up with the rest of the system. Fitted only across bands the "+
-		"stimulus actually reached and whose coherence clears the COH knob, and on the UNWRAPPED "+
-		"phase — a real delay turns through 360° many times across the band, and a slope fitted to "+
-		"the wrapped curve is a slope fitted to a sawtooth.")
+// appendTransferReadout adds the delay readout to the model's readout line
+// (liveReadoutHost).
+func (t *transferMode) appendTransferReadout(host js.Value) {
 	t.delayTx = ""
-	top.Call("appendChild", t.delayEl)
-	grid.Call("appendChild", card)
+	t.delayEl = liveReadout(host, "dly", dispFullChars, "-- ms", doc("ro.dly"))
 }

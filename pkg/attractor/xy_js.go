@@ -3,7 +3,6 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"syscall/js"
 
@@ -308,7 +307,7 @@ func (x *xyScope) drawXYScope(clearFirst bool) {
 	}
 	src := aud.ensureAudioSource()
 	sr := 48000
-	if src != nil && src.SampleRate() > 0 {
+	if src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
 	smooth := x.smoothSel()
@@ -316,7 +315,7 @@ func (x *xyScope) drawXYScope(clearFirst bool) {
 	x.fitBuffers(x.window, smooth)
 	drawn := x.window * smooth
 
-	if src != nil && src.Ready() {
+	if src.Ready() {
 		l, r := x.bufL[:x.window], x.bufR[:x.window]
 		src.TimeDomainStereo(l, r)
 		// If the source only has one channel, fall back to a lagged
@@ -430,6 +429,9 @@ func (x *xyScope) drawXYScope(clearFirst bool) {
 		p := phosphors[phos.index]
 		col = [3]float32{float32(p.tr), float32(p.tg), float32(p.tb)}
 	}
+	if c, ok := back.xyColor(); ok { // a backdrop in its own palette
+		col = c
+	}
 	glctx.GL.Call("uniform3f", x.uColor, col[0], col[1], col[2])
 
 	// Additive multi-pass "beam": one bright center line plus dim sub-pixel-
@@ -493,34 +495,19 @@ func (x *xyScope) noteState(monoSrc, ok bool, corr float32) {
 	}
 	x.corrText = s
 	if x.corrEl.Truthy() {
-		x.corrEl.Set("textContent", s)
+		setDotText(x.corrEl, s)
 	}
 }
 
-// appendXYReadout adds the CORR cell to the XY Scope's parameter grid. Into the
-// grid rather than #params, for stereoInst.appendReadout's reason: #params stacks
-// below the height-bounded grid and gets clipped.
-func (x *xyScope) appendXYReadout(grid js.Value) {
-	card, top := newPunitCard("corr")
-
-	x.corrEl = dom.Doc.Call("createElement", "span")
-	x.corrEl.Set("className", "led counter-led")
-	x.corrEl.Set("title", "Correlation between the two channels over the displayed window, as a goniometer's "+
-		"correlation meter reads it: +1.00 means the channels are identical and the figure is the diagonal "+
-		"line, 0 means they are unrelated and the figure is a round cloud, −1.00 means one is the other's "+
-		"polarity inverted — and that is the content that disappears if the mix is summed to mono. "+
-		"Measured on L and R whatever the axes knob is set to, because it is a property of the channels "+
-		"rather than of the way they are drawn. "+
-		"\"mono\" means the source has only one channel, so there is no stereo relationship to read. "+
-		"\"r --\" means silence, or one dead channel: nothing to correlate.")
+// appendXYReadout adds the CORR readout to the model's readout line
+// (liveReadoutHost).
+func (x *xyScope) appendXYReadout(host js.Value) {
 	// Seeded from the last measurement rather than from a placeholder: the
 	// panel is rebuilt on every module toggle, and a cell that came back
 	// reading "r --" over a live stereo source would be reporting a silence
 	// that is not there. xy.corrText is cleared so the next frame writes into
 	// the NEW element instead of skipping it as unchanged.
 	x.corrText = ""
-	x.corrEl.Set("textContent", stereoReadout(x.monoSrc, x.corrOK, x.corr))
-	top.Call("appendChild", x.corrEl)
-
-	grid.Call("appendChild", card)
+	x.corrEl = liveReadout(host, "corr", dispFullChars, stereoReadout(x.monoSrc, x.corrOK, x.corr),
+		doc("ro.corr"))
 }

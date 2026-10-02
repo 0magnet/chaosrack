@@ -81,7 +81,7 @@ func paramByID(t *testing.T, mode, id string) paramDef {
 // always "the value it already had" — and it has to land on a whole number,
 // because half a latitude line cannot be drawn.
 func TestCountParameterIsModulatedInWholeSteps(t *testing.T) {
-	const mode, id = "sphere", "sphere-stacks"
+	const mode, id = "globe", "globe-lat"
 	pd := paramByID(t, mode, id)
 	defer routeMono(t, id)()
 
@@ -111,7 +111,7 @@ func TestCountParameterIsModulatedInWholeSteps(t *testing.T) {
 // whenever the music plays. Run over many frames because one restore that works
 // proves nothing about the accumulation.
 func TestModulatingACountNeverDriftsTheSlider(t *testing.T) {
-	const mode, id = "sphere", "sphere-stacks"
+	const mode, id = "globe", "globe-lat"
 	pd := paramByID(t, mode, id)
 	defer routeMono(t, id)()
 
@@ -131,7 +131,7 @@ func TestModulatingACountNeverDriftsTheSlider(t *testing.T) {
 // most frames produce the same integer, and a frame that produces the same
 // integer must not ask for the mesh again.
 func TestGeometryRebuildsOnlyWhenTheCountActuallyChanges(t *testing.T) {
-	const mode, id = "sphere", "sphere-stacks"
+	const mode, id = "globe", "globe-lat"
 	defer routeMono(t, id)()
 
 	// First frame: the count moves off its base, so the mesh is stale.

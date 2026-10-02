@@ -25,10 +25,21 @@ func wireModelInput() {
 			return false
 		}
 		if closest := target.Get("closest"); closest.Type() == js.TypeFunction {
-			match := target.Call("closest", "a, button, input, label, select, textarea, #controls-panel, [data-no-drag]")
-			if match.Truthy() {
+			// A module's header is dragged to move the module.
+			if target.Call("closest", "a, button, input, label, select, textarea, [data-no-drag], .sect-hdr").Truthy() {
 				return true
 			}
+			// The rest of the rack is its surface, and with the model drawn in
+			// front of it (the Fore knob anywhere but its far end, and the
+			// panel not raised back over it) that surface is behind the
+			// model: pressing there is pressing on the model, and turns it.
+			// The front canvas lets every press through to the rack so the
+			// controls under it still work, which is why this has to be
+			// decided here rather than by what is on top.
+			if splitFrac > -1+splitEpsilon && !dom.Body.Get("classList").Call("contains", "panel-raised").Bool() {
+				return false
+			}
+			return target.Call("closest", "#controls-panel").Truthy()
 		}
 		return false
 	}

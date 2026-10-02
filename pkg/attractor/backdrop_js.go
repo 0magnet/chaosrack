@@ -53,7 +53,11 @@ func setBackgroundVisual(kind string) {
 // renderBackgroundVisual paints the selected backdrop onto the (already
 // cleared) color buffer with depth off. Leaves depth test disabled; the caller
 // re-enables it before drawing the attractor.
+//
+// In the backdrop's own palette (backlayer_js.go), which the spectrogram's
+// columns are written in and the other pictures are recolored by.
 func renderBackgroundVisual(nowMs float64) {
+	defer back.backIn()()
 	switch bgVisual {
 	case "xy":
 		xy.drawXYScope(false) // no self-clear — layer onto the current buffer

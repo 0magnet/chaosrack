@@ -28,9 +28,7 @@ var greekNames = map[string]string{
 var derivNames = [4]string{"dx/dt", "dy/dt", "dz/dt", "dw/dt"}
 
 // dtHelp is every integrated system's step, which means the same everywhere.
-const dtHelp = "dt — the integration time step: how far the system advances on each " +
-	"step. Smaller follows the flow more faithfully and moves along it more " +
-	"slowly; too large and the solver leaves the attractor or blows up."
+var dtHelp = doc("dt-help")
 
 // constantHelp is the tooltip sentence for one of a system's constants, or ""
 // when mode is not an integrated system or label is not one of its constants.

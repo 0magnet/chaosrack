@@ -112,7 +112,7 @@ func TestOnlyModesThatRedrawAreSplit(t *testing.T) {
 	// and re-issues drawElements against the cached buffers otherwise. What the
 	// old rule actually cost was the feature — the knob did nothing whatever on
 	// a torus until it hit the very end of its travel.
-	for _, m := range []string{"torus", "dodecahedron", "globe", "magnetosphere"} {
+	for _, m := range []string{"torus", "polyhedron", "globe", "magnetosphere"} {
 		run.selectedMode = m
 		if !splitDrawing() {
 			t.Errorf("%s does not split, so the knob does nothing until it reaches an end", m)

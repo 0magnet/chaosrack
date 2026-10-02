@@ -58,7 +58,8 @@ import (
 // knob. It used to snap back instead, and a detent you cannot reach is a
 // broken control whatever the argument for it.
 
-// categoryOffLabel is the rotary's first position.
+// categoryOffLabel is OFF: the category ring's position at the bottom, and the
+// first of the model selector's on a bay that has no category ring.
 const categoryOffLabel = "off"
 
 // The row's geometry, in grid columns. A bay is twelve columns, a column
@@ -188,6 +189,7 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 	cells := map[string][]js.Value{}
 	steps := map[string]js.Value{}
 	var sharedCells []js.Value
+	var hidden []js.Value // set from another position's buttons (bankHidden)
 	var gens []gentile.Spec
 	var bare []string // models with no constants of their own
 	for _, mode := range own {
@@ -198,6 +200,8 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 			}
 			claimed[p.ID] = true
 			switch {
+			case bankCategories[label] && bankHidden[p.ID]:
+				hidden = append(hidden, buildCategoryParamCell(mode, p))
 			case strings.HasSuffix(p.ID, "-dt"):
 				steps[mode] = buildCategoryStepCell(mode, p)
 			case shared[p.ID] > 1:
@@ -212,6 +216,10 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 			case len(paramLabels[p.ID]) == 2 && lone >= 0 && !bankCategories[label]:
 				cells[mode][lone] = pairSwitchCells(cells[mode][lone], buildCategoryParamCell(mode, p))
 				lone = -1
+			case bankCategories[label] && mode != own[0]:
+				// Built when the model is first shown (banklazy_js.go); the
+				// first model's are built now, for the bank's blanks to copy.
+				cells[mode] = append(cells[mode], bankPlaceholder(mode, p))
 			default:
 				if len(paramLabels[p.ID]) == 2 {
 					lone = len(cells[mode])
@@ -228,7 +236,29 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 	// A bank category is one bay: the head and a bank of programmable
 	// knobs, rather than a card per model. See buildBankModule.
 	if bankCategories[label] {
-		return buildBankRow(label, own, cells, steps, sharedCells)
+		// With each model's constants, the selectors its own panel used to
+		// carry (modelparts_js.go).
+		for _, mode := range own {
+			cells[mode] = append(cells[mode], modelSelectorCells(mode)...)
+		}
+		// And Model Out's knobs (sonify_js.go), at the top of the last column
+		// for every model with equations or a trail to play (bankTail).
+		var heard []string
+		for _, m := range own {
+			if isAttractorMode(m) {
+				heard = append(heard, m)
+			}
+		}
+		var mo []js.Value
+		if len(heard) > 0 {
+			for _, p := range modelOutParams {
+				c := buildCategoryParamCell(heard[0], p)
+				c.Call("setAttribute", "data-bank-for", strings.Join(heard, " "))
+				c.Set("title", helpFor(p.ID))
+				mo = append(mo, c)
+			}
+		}
+		return buildBankRow(label, own, cells, steps, sharedCells, hidden, mo)
 	}
 
 	// How wide this category's heads are. Every bay spends catHeadCols on
@@ -295,7 +325,7 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 
 	var out []js.Value
 	for bay, b := range plan {
-		out = append(out, buildBayHead(label, bay, b.modes, steps, sharedCells))
+		out = append(out, buildBayHead(label, bay, b.modes, steps, sharedCells, js.Value{}))
 		sharedCells = nil // the first bay of a category carries them
 		for _, m := range b.mods {
 			out = append(out, buildGenPanel(label, m, cells))
@@ -392,7 +422,7 @@ func buildFamilyModule(label string, f *modelFamily) js.Value {
 	grid.Set("className", "punit-grid catgrid")
 	at(buildFamilyCell(f), grid, 1, 1, 1, 1)
 	return wrapCategoryModule(label, "fam-"+f.Key+"-module", categoryTag(f.Label), grid,
-		f.Label+" — J. C. Sprott's nineteen simple chaotic flows (1994). The MODEL knob has one position for all of them; this dial picks which one it plays.")
+		docf("fam-module", "family", f.Label))
 }
 
 // buildFamilyCell is the family's dial as one control position: a card row
@@ -401,7 +431,7 @@ func buildFamilyCell(f *modelFamily) js.Value {
 	sel := buildFamilySelect(f)
 	cell := dom.Doc.Call("createElement", "div")
 	cell.Set("className", "punit")
-	cell.Set("title", f.Label+" — the system the MODEL knob's "+f.Label+" position plays")
+	cell.Set("title", docf("fam-cell", "family", f.Label))
 	top := dom.Doc.Call("createElement", "span")
 	top.Set("className", "punit-top")
 	lbl := dom.Doc.Call("createElement", "span")
@@ -458,12 +488,7 @@ func buildGenPanel(label string, m gentile.Module, cells map[string][]js.Value) 
 		}
 	}
 	return wrapCategoryModule(label, genModuleID(m), strings.Join(names, " · "), grid,
-		"One unit, "+strconv.Itoa(len(m.Tiles))+" generator(s): "+strings.Join(names, ", ")+
-			".\n\nA module is a hardware unit — the same inputs and outputs as any other, "+
-			"dedicated to what is printed on it. A unit per generator is honest about the "+
-			"models and wrong about the hardware, because most of them are a knob wide. A "+
-			"panel is three control rows deep, so generators share one when between them "+
-			"they fill it; one that fills its own columns keeps them.")
+		docf("gen-unit", "count", strconv.Itoa(len(m.Tiles)), "names", strings.Join(names, ", ")))
 }
 
 // markGroupEdges draws the outline: a border on every side of a position
@@ -519,11 +544,26 @@ func genGroupTag(name string) js.Value {
 // it. It was four columns for the same three controls, because the step had
 // a position reserved for every model in the bay while showing one: they are
 // stacked in ONE position now, which is what the panel always looked like.
-func buildBayHead(label string, bay int, modes []string, steps map[string]js.Value, extra []js.Value) js.Value {
+//
+// Given a bank's grid, the rotary and the step go to the head of the bank
+// instead, at the top of its first column and at its foot, and the row
+// under the monitor is the running model's equation (eqSlotID).
+func buildBayHead(label string, bay int, modes []string, steps map[string]js.Value, extra []js.Value, bank js.Value) js.Value {
 	grid := dom.Doc.Call("createElement", "div")
 	grid.Set("className", "punit-grid catgrid cathead")
 	at(buildCategoryMonitor(label, bay), grid, 1, catMonitorRows, 1, catHeadCols)
-	at(buildBayRotary(label, bay, modes), grid, 1+catMonitorRows, 1, 1, 1)
+	rotary, rotRow, rotCol := grid, 1+catMonitorRows, 1
+	stepRow, stepCol := 1+catMonitorRows, 2
+	if bank.Truthy() {
+		rotary, rotRow, rotCol = bank, bankRotaryRow, 1
+		stepRow, stepCol = bankStepRow, 1
+		slot := dom.Doc.Call("createElement", "div")
+		slot.Set("className", "eqslot")
+		slot.Set("id", eqSlotID(label))
+		mountModelReadouts(slot) // over the equation: modelparts_js.go
+		at(slot, grid, 1+catMonitorRows, 1, 1, catHeadCols)
+	}
+	at(buildBayRotary(label, bay, modes), rotary, rotRow, 1, rotCol, 1)
 
 	// Every step cell in the bay goes in the same position. Only one is ever
 	// shown — the one belonging to the model the bay is set to — so one
@@ -532,7 +572,7 @@ func buildBayHead(label string, bay int, modes []string, steps map[string]js.Val
 	stepped := false
 	for _, m := range modes {
 		if s, ok := steps[m]; ok {
-			at(s, grid, 1+catMonitorRows, 1, 2, 1)
+			at(s, rotary, stepRow, 1, stepCol, 1)
 			stepped = true
 		}
 	}
@@ -598,10 +638,7 @@ func wrapCategoryModule(label, id, title string, grid js.Value, tip string) js.V
 		if what == "" {
 			what = label
 		}
-		tip = what + "\n\nThe head of the row: the monitor, the knob that chooses which of " +
-			"this category's models is playing, its integration step, and anything that " +
-			"belongs to the category rather than to one model. Each model with constants " +
-			"of its own has a card of its own further along the row."
+		tip = docf("cat-head", "what", what)
 	}
 	h.Set("title", tip)
 	mod.Call("appendChild", h)
@@ -620,6 +657,8 @@ func buildCategoryParamCell(mode string, p paramDef) js.Value {
 		paramControls = paramControls[:before]
 	}
 	unit.Call("setAttribute", "data-mode", mode)
+	// Which parameter, for the buttons beside it (rackbuttons_js.go).
+	unit.Call("setAttribute", "data-param", p.ID)
 	// WHICH MODEL's constant this is. A row carries up to fifty-five cells
 	// and the label on one of them is a symbol: Chen's a and Lu's a are the
 	// same letter over two different knobs, and only the model tells them
@@ -737,13 +776,13 @@ func buildCategoryMonitor(label string, bay int) js.Value {
 	unit := dom.Doc.Call("createElement", "span")
 	unit.Set("className", "punit monunit")
 	unit.Call("setAttribute", "data-no-drag", "")
-	unit.Set("title", "Monitor — this bay's screen. It shows the model while this bay is the "+
-		"one driving the rack, and stands by when another is: only one model is drawn, so "+
-		"only one screen can carry a picture. The switch under it cuts the copy out of the "+
-		"drawing buffer that the picture costs.")
 
+	// The tooltip is the screen's and not the unit's: the screen is a part
+	// with an address of its own (designate), and the switches under it
+	// have theirs.
 	bez := dom.Doc.Call("createElement", "span")
 	bez.Set("className", "monbezel")
+	bez.Set("title", doc("bay-monitor"))
 	cv := dom.Doc.Call("createElement", "canvas")
 	cv.Set("id", bayMonitorID(label, bay))
 	cv.Set("width", catMonitorWidth)
@@ -762,26 +801,29 @@ func buildCategoryMonitor(label string, bay int) js.Value {
 
 	row := dom.Doc.Call("createElement", "span")
 	row.Set("className", "monsw")
-	row.Call("appendChild", headSwitch(bayMonSwitchID(label, bay), "Screen", ""))
+	row.Call("appendChild", screenSwitch(bayMonSwitchID(label, bay)))
+	if bankCategories[label] {
+		buildModelSwitches(row) // what each does is the model's: modelparts_js.go
+	}
 	unit.Call("appendChild", row)
 	return unit
 }
 
-// headSwitch is one labeled switch under a bay's monitor.
-func headSwitch(id, text, tip string) js.Value {
+// screenSwitch is the monitor's power switch: the same part as the model's
+// switches beside it, a dot-matrix legend over a switch, so the row under
+// the screen reads as one row of switches.
+func screenSwitch(id string) js.Value {
 	lab := dom.Doc.Call("createElement", "label")
-	lab.Set("className", "grp")
-	lab.Get("style").Set("cursor", "pointer")
-	if tip != "" {
-		lab.Set("title", tip)
-	}
+	lab.Set("className", "modsw")
+	lab.Call("setAttribute", "data-no-drag", "")
+	lab.Set("title", doc("bay-screen"))
+	lab.Call("appendChild", dotDisplayN("scrn", false, legendChars))
 	sw := dom.Doc.Call("createElement", "input")
 	sw.Set("type", "checkbox")
 	sw.Set("className", "sw")
 	sw.Set("id", id)
 	sw.Set("checked", true)
 	lab.Call("appendChild", sw)
-	lab.Call("appendChild", dom.Doc.Call("createTextNode", " "+text))
 	return lab
 }
 
@@ -792,8 +834,7 @@ func buildBayRotary(label string, bay int, modes []string) js.Value {
 	cell := dom.Doc.Call("createElement", "span")
 	cell.Set("className", "pcell axcol vmcell catcell")
 	cell.Call("setAttribute", "data-no-drag", "")
-	cell.Set("title", "Model — which of the generators in THIS bay is playing. Off means "+
-		"another bay is driving the rack; every bay keeps what it was set to either way.")
+	cell.Set("title", doc("bay-model-cell"))
 
 	top := dom.Doc.Call("createElement", "span")
 	top.Set("className", "punit-top")
@@ -806,7 +847,7 @@ func buildBayRotary(label string, bay int, modes []string) js.Value {
 	sel := dom.Doc.Call("createElement", "select")
 	sel.Set("id", baySelectID(label, bay))
 	sel.Set("className", "selwin")
-	sel.Set("title", "Model — pick one of this bay's generators, or turn the knob above it")
+	sel.Set("title", doc("bay-model"))
 
 	bay2 := dom.Doc.Call("createElement", "span")
 	bay2.Set("className", "grp vmbay")
@@ -826,9 +867,18 @@ func buildBayRotary(label string, bay int, modes []string) js.Value {
 		// legends are printed because the categories never change.
 		catSel := dom.Doc.Call("createElement", "select")
 		catSel.Set("id", bayCatSelectID(label, bay))
-		catSel.Set("title", "Category — which kind of model the inner ring chooses among")
+		catSel.Set("title", doc("bay-category"))
 		catSel.Get("style").Set("display", "none")
-		var tags []string
+		// OFF is the category ring's, at the bottom, and the ring is endless
+		// (selEndless): turned on past the last category it comes round to
+		// OFF and on to the first. OFF was the inner ring's first position,
+		// where it sat among the models as though it were one.
+		catSel.Call("setAttribute", "data-endless", "")
+		tags := []string{categoryOffLabel}
+		off := dom.Doc.Call("createElement", "option")
+		off.Set("value", "")
+		off.Set("textContent", categoryOffLabel)
+		catSel.Call("appendChild", off)
 		for _, c := range cats {
 			o := dom.Doc.Call("createElement", "option")
 			o.Set("value", c)
@@ -837,18 +887,19 @@ func buildBayRotary(label string, bay int, modes []string) js.Value {
 			tags = append(tags, categoryRingTag(c))
 		}
 		catSel.Set("value", cats[0])
-		fillBayOptions(sel, modesOfCategory(modes, cats[0]))
+		fillBayOptions(sel, modesOfCategory(modes, cats[0]), false)
 		stack = stackKnobs(selk.makeSelectorKnob(catSel), knob)
 		addSelectorLabels(stack, tags, catSel)
-		stack.Call("setAttribute", "title", "Outer ring: which category. Inner ring: which model in it.")
+		stack.Call("setAttribute", "title", doc("bay-rings"))
 		wrap.Call("appendChild", catSel)
 		lb, nb := label, bay
+		selOverflow[baySelectID(label, bay)] = func(dir int) { onBayModelOverflow(lb, nb, dir) }
 		catSel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
 			onBayCategory(lb, nb)
 			return nil
 		}))
 	} else {
-		fillBayOptions(sel, modes)
+		fillBayOptions(sel, modes, true)
 		stack = dom.Doc.Call("createElement", "span")
 		stack.Set("className", "knobstack")
 		stack.Call("setAttribute", "data-no-drag", "")
@@ -857,9 +908,17 @@ func buildBayRotary(label string, bay int, modes []string) js.Value {
 	}
 	wrap.Call("appendChild", stack)
 	wrap.Call("appendChild", sel)
+	// A merged bay's display opens every model in the bay, by category
+	// (bayPicker); the knob's own select, one category's worth, is hidden.
+	picker := sel
+	if cats := rowCategories(label); len(cats) > 1 {
+		picker = bayPicker(label, bay, sel, cats, modes)
+		sel.Get("style").Set("display", "none")
+		wrap.Call("appendChild", picker)
+	}
 	bay2.Call("appendChild", wrap)
 	cell.Call("appendChild", bay2)
-	attachSelMarquee(sel, "#7fe0a0")
+	attachSelMarquee(sel, picker)
 
 	lb, nb := label, bay
 	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
@@ -890,10 +949,11 @@ func modesOfCategory(modes []string, cat string) []string {
 	return out
 }
 
-// fillBayOptions puts a bay selector's positions in: OFF, then the models,
+// fillBayOptions puts a bay selector's positions in: OFF when withOff (a bay
+// with no category ring, which has nowhere else for it), then the models,
 // a family standing as one position whose value is the member its dial is
 // set to (see modelFamily).
-func fillBayOptions(sel js.Value, modes []string) {
+func fillBayOptions(sel js.Value, modes []string, withOff bool) {
 	sel.Set("innerHTML", "")
 	for _, f := range modelFamilies {
 		f.options = slices.DeleteFunc(f.options, func(o js.Value) bool { return !o.Get("parentNode").Truthy() })
@@ -905,7 +965,9 @@ func fillBayOptions(sel js.Value, modes []string) {
 		sel.Call("appendChild", o)
 		return o
 	}
-	add("", categoryOffLabel)
+	if withOff {
+		add("", categoryOffLabel)
+	}
 	seen := map[*modelFamily]bool{}
 	for _, m := range modes {
 		if f := familyOf(m); f != nil {
@@ -938,6 +1000,14 @@ func onBayCategory(label string, bay int) {
 		return
 	}
 	cat := catSel.Get("value").String()
+	if cat == "" {
+		// OFF, at the bottom of the ring, and it means off: the rack powers
+		// down, which is what OFF on the model selector has always meant.
+		setPowerState(false)
+		setPowerSwitch(false)
+		syncCategoryRotaries()
+		return
+	}
 	var modes []string
 	for _, r := range rackBays {
 		if r.Label == label && r.N == bay {
@@ -947,7 +1017,7 @@ func onBayCategory(label string, bay int) {
 	if len(modes) == 0 {
 		return
 	}
-	fillBayOptions(sel, modes)
+	fillBayOptions(sel, modes, false)
 	m := bayCatModel[bayID(label, bay)+"/"+cat]
 	if m == "" {
 		m = modes[0]
@@ -958,6 +1028,57 @@ func onBayCategory(label string, bay int) {
 	sel.Set("value", m)
 	sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 	sel.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+}
+
+// onBayModelOverflow is a merged bay's model ring turned past its last model
+// (dir +1) or before its first (-1): it goes on into the next category's first
+// model, or the previous one's last, as the category ring follows. Past the
+// last category, or back before the first, it comes to OFF, where the category
+// ring has it, and from OFF on to the first model of the first category or the
+// last of the last: the two rings walk one order.
+func onBayModelOverflow(label string, bay int, dir int) {
+	catSel := dom.Doc.Call("getElementById", bayCatSelectID(label, bay))
+	if !catSel.Truthy() {
+		return
+	}
+	var bayModes []string
+	for _, r := range rackBays {
+		if r.Label == label && r.N == bay {
+			bayModes = r.Modes
+		}
+	}
+	cats := rowCategories(label)
+	at := slices.Index(cats, catSel.Get("value").String())
+	if at < 0 && dir < 0 {
+		at = len(cats) // from OFF, backwards, to the last category
+	}
+	for range cats {
+		at += dir
+		if at < 0 || at >= len(cats) {
+			catSel.Set("value", "") // OFF (onBayCategory powers down)
+			catSel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+			catSel.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+			return
+		}
+		modes := modesOfCategory(bayModes, cats[at])
+		if len(modes) == 0 {
+			continue
+		}
+		m := modes[0]
+		if dir < 0 {
+			m = modes[len(modes)-1]
+		}
+		if f := familyOf(m); f != nil {
+			m = f.current()
+		}
+		// Where onBayCategory puts the model ring, as it would a category's
+		// remembered model.
+		bayCatModel[bayID(label, bay)+"/"+cats[at]] = m
+		catSel.Set("value", cats[at])
+		catSel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+		catSel.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		return
+	}
 }
 
 // setBayCategory turns a merged bay's category ring to cat without driving
@@ -971,7 +1092,7 @@ func setBayCategory(b bayRecord, cat string) {
 	catSel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 	catSel.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 	if sel := dom.Doc.Call("getElementById", baySelectID(b.Label, b.N)); sel.Truthy() {
-		fillBayOptions(sel, modesOfCategory(b.Modes, cat))
+		fillBayOptions(sel, modesOfCategory(b.Modes, cat), false)
 	}
 }
 
@@ -997,7 +1118,7 @@ func onBayRotary(label string, bay int) {
 	bayCatModel[bayID(label, bay)+"/"+categoryOf(mode)] = mode
 	setPowerState(true)
 	setPowerSwitch(true)
-	if mode == run.selectedMode {
+	if mode == editMode() {
 		syncCategoryRotaries()
 		return
 	}
@@ -1029,15 +1150,18 @@ func syncCategoryRotaries() {
 	}
 	catRotarySyncing = true
 	defer func() { catRotarySyncing = false }()
-	setActiveCategory(run.selectedMode)
+	// The model the panel is on: the running one, or the back layer's while
+	// that is being edited (backlayer_js.go).
+	m := editMode()
+	setActiveCategory(m)
 	// A running family member points its family at itself first, so the
 	// MODEL position that stands for it has the value about to be set.
-	if f := familyOf(run.selectedMode); f != nil {
-		f.choose(run.selectedMode)
+	if f := familyOf(m); f != nil {
+		f.choose(m)
 	}
-	live := bayOf(run.selectedMode)
-	if live != nil && run.selectedMode != "" && !run.stopped {
-		bayModel[bayID(live.Label, live.N)] = run.selectedMode
+	live := bayOf(m)
+	if live != nil && m != "" && !run.stopped {
+		bayModel[bayID(live.Label, live.N)] = m
 	}
 	for _, b := range rackBays {
 		sel := dom.Doc.Call("getElementById", baySelectID(b.Label, b.N))
@@ -1048,10 +1172,26 @@ func syncCategoryRotaries() {
 		// because nothing is being drawn.
 		want := ""
 		if live != nil && b.Label == live.Label && b.N == live.N && !run.stopped {
-			want = run.selectedMode
+			want = m
 			// A merged bay turns its category ring to the running model's
 			// category first, so the inner ring holds the model to show.
-			setBayCategory(b, categoryOf(run.selectedMode))
+			setBayCategory(b, categoryOf(m))
+		}
+		if want == "" {
+			// A merged bay says OFF on its category ring, where OFF is; its
+			// model ring, which has no OFF, points at nothing and reads off.
+			if catSel := dom.Doc.Call("getElementById", bayCatSelectID(b.Label, b.N)); catSel.Truthy() {
+				if catSel.Get("value").String() != "" {
+					catSel.Set("value", "")
+					catSel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+					catSel.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+				}
+				if sel.Get("selectedIndex").Int() >= 0 {
+					sel.Set("selectedIndex", -1)
+					sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+				}
+				continue
+			}
 		}
 		if sel.Get("value").String() == want {
 			continue
@@ -1065,6 +1205,11 @@ func syncCategoryRotaries() {
 		sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 		sel.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 	}
+	// The model lists follow too: a select already on its model above was
+	// skipped, and fired nothing for its list to follow.
+	for _, follow := range bayPickerFollow {
+		follow()
+	}
 	syncBankCells()
 	lightLiveParamCells()
 }
@@ -1075,115 +1220,16 @@ func syncCategoryRotaries() {
 // something. Without this the rows are a reference rather than an instrument:
 // you can read every model's settings and not see which ones are live.
 func lightLiveParamCells() {
-	cells := dom.Doc.Call("querySelectorAll", ".punit[data-mode]")
-	for i := range cells.Get("length").Int() {
-		c := cells.Index(i)
-		// Nothing is lit while the rack is powered down, which is the same
-		// answer the rotaries give: no model is running, so no front panel
-		// on the rack is the one in the signal path.
-		live := !run.stopped && c.Call("getAttribute", "data-mode").String() == run.selectedMode
-		c.Get("classList").Call("toggle", "live", live)
+	// Nothing is lit while the rack is powered down, which is the same answer
+	// the rotaries give: no model is running, so no front panel on the rack is
+	// the one in the signal path. A bank's shared cell is the running model's
+	// too if it is one of the models the cell serves. One pass in the page:
+	// from here it was a few calls a cell over every model's cells.
+	model := editMode()
+	if run.stopped {
+		model = ""
 	}
-}
-
-// ── Putting a whole row away ───────────────────────────────────────────────
-//
-// A row that is out is display:none on everything in it, which costs the
-// browser nothing to keep — no layout, no paint, no measurement. The models
-// in it still play: this is putting the front panel away, not unplugging the
-// instrument.
-//
-// The switches are on the Console, one per row, and a row goes out WHOLE —
-// monitor, head and all. They used to sit under each bay's monitor and take
-// out everything after it, which left a row of heads standing in a rack that
-// was supposed to be smaller, and put a rack-wide control on every row
-// rather than in the one module the rack-wide controls are in. With the
-// visual models in one bay there are few rows left to put away anyway.
-
-// rowHiddenKey is where the put-away rows are remembered. Its own record
-// rather than the rack layout's: that one lists which switches are ON, so an
-// empty record means everything off, and the right default here is that
-// every row is in the rack.
-const rowHiddenKey = "wasmstuff-rackrows-out"
-
-// rowOut is which rows are put away.
-var rowOut = map[string]bool{}
-
-// rowSwitchID is a row's switch on the Console.
-func rowSwitchID(label string) string { return "row-" + categorySlug(label) + "-sw" }
-
-// buildRowSwitches puts a switch per row in the Console's Rows section and
-// wires it.
-func buildRowSwitches() {
-	rowOut = readHiddenRows()
-	host := dom.Doc.Call("getElementById", "rows-sec")
-	if !host.Truthy() {
-		return
-	}
-	for _, label := range rackRows() {
-		if dom.Doc.Call("getElementById", rowSwitchID(label)).Truthy() {
-			continue // built already
-		}
-		lab := headSwitch(rowSwitchID(label), categoryTag(label), "Row — the "+label+" row in the rack, or put away")
-		host.Call("appendChild", lab)
-		sw := lab.Call("querySelector", "input")
-		row := label
-		sw.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
-			rowOut[row] = !sw.Get("checked").Bool()
-			applyRowVisibility()
-			saveHiddenRows()
-			quantizeModuleWidths() // the rack is a different size now
-			return nil
-		}))
-	}
-	applyRowVisibility()
-}
-
-// applyRowVisibility puts each row in or out, and sets its switch to say
-// which.
-func applyRowVisibility() {
-	for _, label := range rackRows() {
-		if sw := dom.Doc.Call("getElementById", rowSwitchID(label)); sw.Truthy() {
-			sw.Set("checked", !rowOut[label])
-		}
-	}
-	mods := dom.Doc.Call("querySelectorAll", "[data-cat]")
-	for i := range mods.Get("length").Int() {
-		m := mods.Index(i)
-		if rowOut[m.Call("getAttribute", "data-cat").String()] {
-			m.Get("style").Set("display", "none")
-		} else {
-			m.Get("style").Set("display", "")
-		}
-	}
-}
-
-// readHiddenRows is the set of categories that were put away.
-func readHiddenRows() map[string]bool {
-	out := map[string]bool{}
-	v, ok := lsGet(rowHiddenKey)
-	if !ok || v == "" {
-		return out
-	}
-	for s := range strings.SplitSeq(v, ",") {
-		if s != "" {
-			out[s] = true
-		}
-	}
-	return out
-}
-
-// saveHiddenRows records it, by label, so a category renamed comes back
-// rather than staying out under a name nothing matches.
-func saveHiddenRows() {
-	var out []string
-	for _, label := range rackRows() {
-		sw := dom.Doc.Call("getElementById", rowSwitchID(label))
-		if sw.Truthy() && !sw.Get("checked").Bool() {
-			out = append(out, label)
-		}
-	}
-	lsSet(rowHiddenKey, strings.Join(out, ","))
+	fastDOM().Call("lightLive", model)
 }
 
 // at places an element in a module's grid: a row, a starting column, and
@@ -1208,7 +1254,7 @@ func at(el, grid js.Value, row, rowSpan, col, colSpan int) {
 func buildFamilySelect(f *modelFamily) js.Value {
 	sel := dom.Doc.Call("createElement", "select")
 	sel.Set("id", "fam-"+f.Key)
-	sel.Set("title", f.Label+" — which system the MODEL knob's "+f.Label+" position plays")
+	sel.Set("title", docf("fam-select", "family", f.Label))
 	sel.Get("style").Set("display", "none")
 	for i, m := range f.Members {
 		o := dom.Doc.Call("createElement", "option")
@@ -1225,7 +1271,7 @@ func buildFamilySelect(f *modelFamily) js.Value {
 		}
 		m := sel.Get("value").String()
 		f.choose(m)
-		if familyOf(run.selectedMode) == f && m != run.selectedMode && !run.stopped {
+		if em := editMode(); familyOf(em) == f && m != em && !run.stopped {
 			if ms := dom.Doc.Call("getElementById", "mode-select"); ms.Truthy() {
 				ms.Set("value", m)
 				ms.Call("dispatchEvent", js.Global().Get("Event").New("change"))
@@ -1235,4 +1281,108 @@ func buildFamilySelect(f *modelFamily) js.Value {
 	}))
 
 	return sel
+}
+
+// bayPickerFollow is each model list's way of catching up with its knob.
+var bayPickerFollow = map[string]func(){}
+
+// bayPicker is the list a merged bay's model display opens: every model in
+// the bay under its category's name, the categories' names separators that
+// cannot be chosen, and beside each model how many of the bay's controls it
+// has (bankControls), so a model can be weighed before it is switched to.
+// Choosing one turns both rings to it, as the knob would; sel is the knob's
+// own select, which it follows.
+func bayPicker(label string, bay int, sel js.Value, cats, modes []string) js.Value {
+	p := dom.Doc.Call("createElement", "select")
+	p.Set("id", baySelectID(label, bay)+"-all")
+	p.Set("className", "selwin")
+	p.Set("title", doc("bay-model-all"))
+	// OFF first, as on the rings: the bay driving nothing.
+	off := dom.Doc.Call("createElement", "option")
+	off.Set("value", "")
+	off.Set("textContent", categoryOffLabel)
+	p.Call("appendChild", off)
+	for _, c := range cats {
+		g := dom.Doc.Call("createElement", "optgroup")
+		g.Set("label", c)
+		fillBayOptions(g, modesOfCategory(modes, c), false)
+		p.Call("appendChild", g)
+	}
+	// Follows the knob, whichever moved it; a family's entry follows the
+	// member it is on, and so does its count. syncCategoryRotaries calls it
+	// too, for the moves that fire nothing.
+	bayPickerCounts(p, false)
+	follow := func() {
+		bayPickerCounts(p, true)
+		if sel.Truthy() && sel.Get("selectedIndex").Int() >= 0 {
+			p.Set("value", sel.Get("value").String())
+		} else {
+			p.Set("value", "") // OFF
+		}
+	}
+	follow()
+	bayPickerFollow[p.Get("id").String()] = follow
+	if sel.Truthy() {
+		sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+			follow()
+			return nil
+		}))
+	}
+	p.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+		onBayPick(label, bay, p.Get("value").String())
+		return nil
+	}))
+	return p
+}
+
+// bayPickerCounts writes each model's control count after its name, the
+// names padded to one width so the counts stand in a column. A family's
+// entry is whichever member its dial is on, so its count can change; with
+// families, only theirs are rewritten.
+func bayPickerCounts(p js.Value, families bool) {
+	opts := p.Call("querySelectorAll", "optgroup option")
+	if !families {
+		// The first time: every name kept, and the width they pad to.
+		w := 0
+		for i := range opts.Length() {
+			o := opts.Index(i)
+			name := o.Get("textContent").String()
+			o.Call("setAttribute", "data-name", name)
+			w = max(w, len([]rune(name)))
+		}
+		p.Call("setAttribute", "data-w", strconv.Itoa(w))
+	} else {
+		opts = p.Call("querySelectorAll", "option[data-family]")
+	}
+	w, _ := strconv.Atoi(p.Call("getAttribute", "data-w").String()) //nolint:errcheck // written just above, from an int
+	for i := range opts.Length() {
+		o := opts.Index(i)
+		name := o.Call("getAttribute", "data-name").String()
+		pad := strings.Repeat(" ", w-len([]rune(name))+2)
+		o.Set("textContent", name+pad+strconv.Itoa(bankControls[o.Get("value").String()]))
+	}
+}
+
+// onBayPick turns a merged bay to model m from its list: the category ring
+// to m's category, which brings the model ring with it to m; or, for OFF,
+// the category ring to OFF, which powers the rack down.
+func onBayPick(label string, bay int, m string) {
+	sel := dom.Doc.Call("getElementById", baySelectID(label, bay))
+	catSel := dom.Doc.Call("getElementById", bayCatSelectID(label, bay))
+	if !sel.Truthy() || !catSel.Truthy() {
+		return
+	}
+	cat := ""
+	if m != "" {
+		cat = categoryOf(m)
+		bayCatModel[bayID(label, bay)+"/"+cat] = m
+	}
+	if catSel.Get("value").String() != cat {
+		catSel.Set("value", cat)
+		catSel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+		catSel.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		return
+	}
+	sel.Set("value", m)
+	sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 }

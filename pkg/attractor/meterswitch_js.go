@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"html"
 	"strconv"
 
 	"github.com/0magnet/chaosrack/pkg/meters"
@@ -77,7 +78,7 @@ func addMeterSwitch(moduleID, name, label, title, permaKey string, detents []met
 		`<span class="pcell axcol vmcell gen-cell">`+
 			`<span class="punit-top"><span class="plabel">`+label+`</span></span>`+
 			`<span class="grp vmbay"><span id="`+stackID+`"></span></span>`+
-			`<button class="rst" id="`+resetID+`" title="Reset `+label+`">&#8634;</button>`+
+			`<button class="rst" id="`+resetID+`" title="`+html.EscapeString(docf("reset", "label", label))+`">&#8634;</button>`+
 			`<select id="`+selID+`" title="`+title+`" style="display:none"></select></span>`)
 
 	sel := dom.Doc.Call("getElementById", selID)
@@ -112,28 +113,28 @@ func addMeterSwitch(moduleID, name, label, title, permaKey string, detents []met
 // how long: a meter is specified by its response, not by its period.
 var (
 	lufsRateDetents = []meterDetent{
-		{100, "10/s", "Ten readings a second — as fast as a readout can be followed"},
-		{200, "5/s", "Five a second: the default, and about the rate a needle settles at"},
-		{500, "2/s", "Twice a second — steadier to read, and a fifth of the writes"},
-		{1000, "1/s", "Once a second, for a number being watched rather than chased"},
+		{100, "10/s", doc("lufs-rate=100")},
+		{200, "5/s", doc("lufs-rate=200")},
+		{500, "2/s", doc("lufs-rate=500")},
+		{1000, "1/s", doc("lufs-rate=1000")},
 	}
 	thdRateDetents = []meterDetent{
-		{200, "5/s", "Five a second — the window is 341 ms, so this is as often as there is new audio to measure"},
-		{400, "2.5/s", "The default: a fresh window every time, and no audio measured twice"},
-		{1000, "1/s", "Once a second — the same reading, a fifth of the work"},
-		{2000, "0.5/s", "Every two seconds, for a distortion figure being logged rather than tuned"},
+		{200, "5/s", doc("thd-rate=200")},
+		{400, "2.5/s", doc("thd-rate=400")},
+		{1000, "1/s", doc("thd-rate=1000")},
+		{2000, "0.5/s", doc("thd-rate=2000")},
 	}
 	wfRateDetents = []meterDetent{
-		{250, "4/s", "Four a second — the most responsive, and the most expensive: this analysis walks the whole window each time"},
-		{500, "2/s", "The default"},
-		{1000, "1/s", "Once a second — halves the largest single lump of work in the rack"},
-		{2000, "0.5/s", "Every two seconds. A reading that settles over ten seconds does not need remaking faster than this."},
+		{250, "4/s", doc("wf-rate=250")},
+		{500, "2/s", doc("wf-rate=500")},
+		{1000, "1/s", doc("wf-rate=1000")},
+		{2000, "0.5/s", doc("wf-rate=2000")},
 	}
 	wfWindowDetents = []meterDetent{
-		{2, "2s", "Two seconds — flutter only. Too short to see wow at all, and the cheapest by five times."},
-		{5, "5s", "Five seconds — two cycles of the slowest wow, and half the work of ten"},
-		{10, "10s", "Ten seconds: the default, five cycles of the slowest wow"},
-		{20, "20s", "Twenty seconds — the steadiest reading and twice the work"},
+		{2, "2s", doc("wf-win=2")},
+		{5, "5s", doc("wf-win=5")},
+		{10, "10s", doc("wf-win=10")},
+		{20, "20s", doc("wf-win=20")},
 	}
 )
 
@@ -141,19 +142,19 @@ var (
 // the operator's to choose. Called once from Run, after the modules are wired.
 func wireMeterClocks() {
 	addMeterSwitch("lufs-module", "lufs-rate", "rate",
-		"How often the loudness readouts latch. This is a DISPLAY rate only — the meter integrates every sample that arrives whatever this says, because an integrated loudness with a block missing is a block missing from the answer. Slower is steadier to read and costs the panel less.",
+		doc("lufs-rate"),
 		"lr", lufsRateDetents, 200, func(v int) { lufs.periodMs = float64(v) })
 
 	addMeterSwitch("thd-module", "thd-rate", "rate",
-		"How often the distortion measurement is made and shown. The analysis window is 341 ms, so measuring faster than about three times a second measures the same audio twice; slower is the same reading for less work.",
+		doc("thd-rate"),
 		"tr", thdRateDetents, 400, func(v int) { thd.periodMs = float64(v) })
 
 	addMeterSwitch("wf-module", "wf-rate", "rate",
-		"How often the wow-and-flutter measurement is remade. This does not make the analysis cheaper — it makes it rarer. The same lump of work lands on one frame in sixty instead of one in thirty, so this is the control for how OFTEN the rack hesitates, not for how much.",
+		doc("wf-rate"),
 		"wr", wfRateDetents, 500, func(v int) { wow.periodMs = float64(v) })
 
 	addMeterSwitch("wf-module", "wf-win", "window",
-		"How much audio each wow-and-flutter reading is made over. This is the measurement: ten seconds holds five cycles of the slowest wow, and two seconds cannot see wow at all, only flutter. It is also the cost — the analysis walks the whole window — so unlike RATE, this is the control that makes the work itself smaller.",
+		doc("wf-win"),
 		"ww", wfWindowDetents, 10, func(v int) {
 			wow.windowSec = v
 			// The window it was measuring no longer describes what is being

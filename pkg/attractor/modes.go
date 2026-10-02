@@ -83,14 +83,9 @@ var modeInfo = map[string]ModeInfo{
 	"mira":          {"Gumowski-Mira", ClassMap, false},
 	"tinkerbell":    {"Tinkerbell", ClassMap, false},
 	"standardmap":   {"Chirikov Standard Map", ClassMap, false},
-	"tetrahedron":   {"Tetrahedron", ClassGeometry, true},
-	"cube":          {"Cube", ClassGeometry, true},
-	"octahedron":    {"Octahedron", ClassGeometry, true},
-	"dodecahedron":  {"Dodecahedron", ClassGeometry, true},
-	"icosahedron":   {"Icosahedron", ClassGeometry, true},
+	"polyhedron":    {"Polyhedron", ClassGeometry, true},
 	"nestedcube":    {"Nested Cube", ClassGeometry, true},
 	"globe":         {"Globe", ClassGeometry, true},
-	"sphere":        {"Sphere", ClassGeometry, true},
 	"torus":         {"Torus", ClassGeometry, true},
 	"magnetosphere": {"Magnetosphere", ClassGeometry, false},
 	"stlfile":       {"STL File", ClassGeometry, false},
@@ -210,18 +205,15 @@ var modeGroups = []struct {
 	// off disk plus a catalog of built-in solids — the rack, the geometry and
 	// every attractor swept as a tube — generated in the browser.
 	{"Solids", []string{"stlfile", "terminal", "termanim", "hostterm", "desk"}},
-	// The polyhedra are in here rather than in a category of their own, for
-	// the reason the Sprott systems are in Attractors. Six solids share one
-	// control, the Conway operator, so a Polyhedra row was a monitor, a
-	// selector and one knob: a second head beside Geometry's in the same bay,
-	// which is a heading pretending to be an instrument. They are geometry —
-	// built, not integrated — and they share Geometry's monitor and selector.
-	{"Geometry", []string{"tetrahedron", "cube", "octahedron", "dodecahedron",
-		"icosahedron", "nestedcube",
-		"globe", "sphere", "torus", "magnetosphere"}},
+	// The Polyhedron is geometry — built, not integrated — and shares
+	// Geometry's monitor and selector. It was five models (the Platonic
+	// solids, one knob each) and the Sphere a sixth; the solids are one model
+	// with knobs between them now (conway_js.go), and the Sphere was the
+	// Globe without its parallels.
+	{"Geometry", []string{"polyhedron", "nestedcube", "globe", "torus", "magnetosphere"}},
 	// The turtle is not geometry. It is an integer sequence read as
 	// turn-and-step — arithmetic that happens to draw — with its own camera,
-	// tinting, physics and closure classification. Filed next to "sphere" and
+	// tinting, physics and closure classification. Filed next to "globe" and
 	// "torus" it read as one more primitive, which is the wrong thing to tell
 	// someone about the most distinctive model in the app.
 	{"Sequences", []string{"turtle"}},
@@ -245,18 +237,20 @@ var modeGroups = []struct {
 	// under gets its own row — and it is the only way to GUARANTEE they share
 	// a bay, because a category row is what a bay is cut from.
 	//
-	// They stay in Audio as well. A mode in two categories is already how this
-	// works (xy is in both), and an embedding of a live signal belongs in the
-	// audio row as much as the spectrogram does.
+	// They were in Audio as well, and xy in Scope and Audio both, while the
+	// rows were cards. With every row a bank they are in one row each: a
+	// model's controls are built in the first row that has it, so a second
+	// row's bank showed blanks for it, and its bay played a model none of
+	// whose knobs were in front of it.
 	{"Embeddings", []string{"takens", "stereo", "polar"}},
-	{"Audio", []string{"spectrogram", "xy", "fvf", "takens", "stereo", "polar", "recurrence", "rta", "xfer", "waterfall"}},
+	{"Audio", []string{"spectrogram", "fvf", "recurrence", "rta", "xfer", "waterfall"}},
 }
 
 // defaultMode is the <select>'s initially-selected entry.
 const defaultMode = "globe" //nolint:unused // only the js build draws, so the native one never calls it
 
 // knownMode reports whether a key names a registered mode (hash validation).
-func knownMode(key string) bool { _, ok := modeInfo[key]; return ok } //nolint:unused // only the js build draws, so the native one never calls it
+func knownMode(key string) bool { _, ok := modeInfo[key]; return ok }
 
 // isAttractorMode: modes that integrate/trace into the trail buffer (and so
 // support trail-length, sonification SCAN, persist painting, …).

@@ -3,108 +3,133 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
+	"strconv"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/audiosrc"
+	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
-// The Envelope module — the Digital Complex Sound Generator's shaper,
-// applied to the signal generator's SPEAKER path (per-osc gains → pans →
-// envelope gain → destination). In RPT mode the envelope cycles
-// attack → decay continuously, a shaped tremolo over whatever Gen X/Y/Z
-// are routed out; paired with the noise waveform this is the classic
+// Each generator's envelope — the Complex Sound Generator's shaper, one per
+// oscillator and folded into its level cell rather than a module of its own:
+// ATTACK and DECAY are two rings round the LEVEL knob, and the env button
+// beside them repeats attack → decay continuously, a shaped tremolo; dark,
+// the level is steady. Paired with the noise waveform this is the classic
 // chuff-chuff / siren / steam-train territory the SN76477 was sold on.
-// Analysis paths (scope, spectrogram, features) stay unshaped so the
-// visuals don't pump with the tremolo.
+//
+// It shapes the generator wherever it goes, the rack's signal as well as the
+// speakers, as a capture of the speakers would: audiosrc.FuncGen steps it by
+// the sample and genEnvTick drives the speakers' gain by the audio clock,
+// both from audiosrc.EnvAt.
 
-var (
-	genEnvPhase float64 // seconds into the current attack+decay cycle
-	genEnvLast  float64 // frameNowMs at the previous tick
-)
-
-// genEnvTick runs every frame from the render loop and steers the shaper
-// gain along the attack/decay ramps (smoothed by setTargetAtTime so the
-// 60 Hz stepping never zippers).
+// genEnvTick runs every frame from the render loop and steers each heard
+// generator's envelope gain along its ramps (smoothed by setTargetAtTime so
+// the 60 Hz stepping never zippers).
 func genEnvTick() {
-	if !gen.running || !gen.envGain.Truthy() {
+	if !gen.running {
 		return
 	}
-	mode := "off"
-	if m := dom.Doc.Call("getElementById", "gen-env-mode"); m.Truthy() {
-		mode = m.Get("value").String()
+	now := gen.ctx.Get("currentTime").Float()
+	for i, o := range genOscs {
+		if !gen.env[i].Truthy() {
+			continue
+		}
+		v := 1.0
+		if on, atk, dcy := genEnvOf(o); on {
+			v = audiosrc.EnvAt(now, atk, dcy)
+		}
+		gen.env[i].Get("gain").Call("setTargetAtTime", v, now, 0.005)
 	}
-	now := frameNowMs
-	dt := (now - genEnvLast) / 1000
-	genEnvLast = now
-	if dt < 0 || dt > 0.25 { // first frame / tab was parked
-		dt = 0
-	}
-	g := gen.envGain.Get("gain")
-	ctxNow := gen.ctx.Get("currentTime").Float()
-	if mode != "rpt" {
-		genEnvPhase = 0
-		g.Call("setTargetAtTime", 1, ctxNow, 0.02)
-		return
-	}
-	atk := fgFloat(dom.Doc.Call("getElementById", "gen-env-atk")) / 1000
-	dcy := fgFloat(dom.Doc.Call("getElementById", "gen-env-dcy")) / 1000
-	if atk < 0.001 {
-		atk = 0.001
-	}
-	if dcy < 0.001 {
-		dcy = 0.001
-	}
-	genEnvPhase += dt
-	period := atk + dcy
-	for genEnvPhase >= period {
-		genEnvPhase -= period
-	}
-	v := 0.0
-	if genEnvPhase < atk {
-		v = genEnvPhase / atk
-	} else {
-		v = 1 - (genEnvPhase-atk)/dcy
-	}
-	g.Call("setTargetAtTime", v, ctxNow, 0.02)
 }
 
-// buildEnvModule wires the Envelope module's attack/decay knobs and mode
-// switch. Called once from Run.
-func buildEnvModule() {
-	atk := dom.Doc.Call("getElementById", "gen-env-atk")
-	dcy := dom.Doc.Call("getElementById", "gen-env-dcy")
-	mode := dom.Doc.Call("getElementById", "gen-env-mode")
-	astack := dom.Doc.Call("getElementById", "gen-env-astack")
-	dstack := dom.Doc.Call("getElementById", "gen-env-dstack")
-	mstack := dom.Doc.Call("getElementById", "gen-env-mstack")
-	if !atk.Truthy() || !astack.Truthy() {
-		return
+// genEnvOf reads a generator's envelope off its controls: whether it
+// repeats, and its attack and decay in seconds.
+func genEnvOf(o genOscSpec) (on bool, atk, dcy float64) {
+	if m := dom.Doc.Call("getElementById", o.id+"-env"); m.Truthy() {
+		on = m.Get("value").String() == "rpt"
 	}
-	// Both knobs go through the descriptor path: it owns the LED format, typed
-	// entry, wheel nudge and reset, which the local wire helper below used to
-	// duplicate for the two of them.
-	//
-	// LEDStep 10 rather than the Step of 1 is what keeps these reading whole
-	// milliseconds. led.Decimals works from step × fineRatio, so a step of 1
-	// asks for one decimal — right for a knob whose fine disc trims between
-	// steps, and noise on a value that is only ever a whole number of
-	// milliseconds. LEDStep is the field for saying so, and this preserves
-	// exactly what the module showed before.
+	atk = fgFloat(dom.Doc.Call("getElementById", o.id+"-atk")) / 1000
+	dcy = fgFloat(dom.Doc.Call("getElementById", o.id+"-dcy")) / 1000
+	return on, atk, dcy
+}
+
+// genEnvApply pushes a generator's envelope to the rack's signal.
+func genEnvApply(o genOscSpec) {
+	on, atk, dcy := genEnvOf(o)
+	aud.fg().SetEnv(o.idx, on, atk, dcy)
+}
+
+// genLevelStack is a generator's level cell: the LEVEL knob, and under it
+// the envelope's ATTACK and DECAY on mini knobs
+// (minis_js.go). They were rings round the level on one shaft, and three
+// rings on a knob a hand's width across could not be told apart.
+//
+// The cell has one display. It reads the level, and while ATTACK or DECAY
+// is being turned it reads that instead, its legend saying which.
+func genLevelStack(o genOscSpec, lvl js.Value) js.Value {
+	atk := dom.Doc.Call("getElementById", o.id+"-atk")
+	dcy := dom.Doc.Call("getElementById", o.id+"-dcy")
+	knob := makeKnob(lvl, js.Undefined(), true, false, true)
+	col := miniRow(miniKnob(atk, "A", false, true), miniKnob(dcy, "D", false, true))
+	if cell := lvl.Call("closest", ".pcell"); cell.Truthy() {
+		cell.Call("appendChild", col)
+	}
+	loan := lendReadout(col, dom.Doc.Call("getElementById", o.id+"-lvl-led"), func() {
+		// The level's own control rewrites its display.
+		lvl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+	})
+	ms := func(v float64) string { return strconv.FormatFloat(v, 'f', 0, 64) }
 	adoptDescControl(ControlDesc{
-		ID: "gen-env-atk", Label: "atk", Min: 1, Max: 2000, Step: 1, Def: 10,
-		LEDID: "gen-env-atk-led", ResetID: "rst-gen-env-atk", LEDStep: 10,
+		ID: o.id + "-atk", Label: "atk", Min: 1, Max: 2000, Step: 1, Def: 10,
+		PermaKey: o.key("a"),
+		ResetID:  "rst-" + o.id + "-lvl",
+		Apply: func(v float64) {
+			genEnvApply(o)
+			loan.show("atk", ms(v))
+		},
 	})
 	adoptDescControl(ControlDesc{
-		ID: "gen-env-dcy", Label: "dcy", Min: 1, Max: 5000, Step: 1, Def: 300,
-		LEDID: "gen-env-dcy-led", ResetID: "rst-gen-env-dcy", LEDStep: 10,
+		ID: o.id + "-dcy", Label: "dcy", Min: 1, Max: 5000, Step: 1, Def: 300,
+		PermaKey: o.key("d"),
+		ResetID:  "rst-" + o.id + "-lvl",
+		Apply: func(v float64) {
+			genEnvApply(o)
+			loan.show("dcy", ms(v))
+		},
 	})
-	astack.Call("appendChild", makeKnob(atk, js.Undefined(), true, false, true))
-	dstack.Call("appendChild", makeKnob(dcy, js.Undefined(), true, false, true))
-	mstack.Call("appendChild", singleSelectorKnob(mode, []string{"off", "rpt"}))
-	// The mode ring, like the two knobs beside it. genEnvTick reads the select
-	// every frame rather than a cached mode, so there is no SelectApply to
-	// write: putting the value back IS applying it.
 	adoptDescControl(ControlDesc{
-		ID: "gen-env-mode", Label: "mode", IsSelect: true, SelectDef: "off",
-		ResetID: "rst-gen-env-mode",
+		ID: o.id + "-env", Label: "env", IsSelect: true, SelectDef: "off",
+		PermaKey: o.key("e"),
+		ResetID:  "rst-" + o.id + "-lvl",
+		SelectApply: func(string) {
+			genEnvApply(o)
+			lightTrios(o.id + "-env")
+		},
 	})
+	genEnvApply(o)
+	return knob
+}
+
+// The env button, one column (trioColumn) like spk and solo.
+func init() {
+	for _, o := range genOscs {
+		env := o.id + "-env"
+		trioPrograms[env] = trioProgram{
+			keys: []string{"env"},
+			help: []string{"envelope: lit, Gen " + o.letter() + "'s level repeats attack then decay, a shaped tremolo; dark, it is steady"},
+			press: func(int) {
+				v := "rpt"
+				if s := dom.Doc.Call("getElementById", env); s.Truthy() && s.Get("value").String() == "rpt" {
+					v = "off"
+				}
+				setSelect(env, v)
+			},
+			lit: func() int {
+				if s := dom.Doc.Call("getElementById", env); s.Truthy() && s.Get("value").String() == "rpt" {
+					return 0
+				}
+				return -1
+			},
+		}
+	}
 }

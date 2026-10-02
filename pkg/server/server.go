@@ -158,6 +158,10 @@ browser. render and models draw models to image files without a browser.`,
 		}
 		r1.GET("/", dualPage)
 		r1.GET("/index.html", dualPage)
+		// The parts catalog is the rack itself, opened with a flag that has it
+		// catalog its own parts (pkg/attractor/parts_js.go).
+		r1.GET("/parts", func(c *gin.Context) { c.Redirect(http.StatusFound, "/?parts") })
+		manualRoutes(r1) // /manual: the rack writing its own manual (manual.go)
 		r1.GET("/wasm_exec.js", func(c *gin.Context) {
 			serveAsset(c, "application/javascript", gowasm.WasmExec)
 		})

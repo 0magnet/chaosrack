@@ -133,7 +133,7 @@ func modulePinned(key string) bool {
 }
 
 // moduleNeverSwitched names the modules that can have no switch whatever their
-// current display: the Console, because the switches live in it, and the three
+// current display: the Console, because the switches live in it, and the one
 // that a MODE shows and hides by a class on the panel. A switch contradicting
 // the mode is only a way to get stuck.
 func moduleNeverSwitched(key string) bool {
@@ -142,7 +142,7 @@ func moduleNeverSwitched(key string) bool {
 		return true
 	}
 	cl := m.Get("classList")
-	for _, c := range []string{"console", "modmodule", "eqmodule", "physmodule"} {
+	for _, c := range []string{"console", "physmodule"} {
 		if cl.Call("contains", c).Bool() {
 			return true
 		}
@@ -207,6 +207,8 @@ func quantizeModuleWidths() {
 		relayoutUnits()
 		layoutRackHandles()
 	}
+	// What a model change compares against (rackUnmoved).
+	lastRack.sig, lastRack.mode = fastDOM().Call("rackSig").String(), run.selectedMode
 }
 
 // applyModuleVisibility puts away what the switches say to put away, and leaves
@@ -506,54 +508,7 @@ func fitModulesToTheirParts() bool {
 	if !f.Truthy() {
 		return false
 	}
-	// Measured, decided and written in three phases where the page allows
-	// it — see fitModulesFast. The loop below alternates a read with a
-	// write per module, which is what made this expensive.
-	if h := fastDOM(); h.Truthy() {
-		if changed, ok := fitModulesFast(h, f); ok {
-			return changed
-		}
-	}
-	changed := false
-	els := f.Call("querySelectorAll", ".sect")
-	for i := range els.Get("length").Int() {
-		m := els.Index(i)
-		if isHiddenModule(m) {
-			continue
-		}
-		widest := 0.0
-		ds := m.Call("querySelectorAll", ".knob-dial")
-		for j := range ds.Get("length").Int() {
-			if w := ds.Index(j).Get("offsetWidth").Float(); w > widest {
-				widest = w
-			}
-		}
-		// One slot is the floor already — .sect carries min-width:--mod-w
-		// — so a module that fits says nothing, rather than saying the
-		// same thing twice in two places that can drift apart.
-		want := ""
-		if n := slotsForWidthPx(widest + moduleEdgePx(m)); widest > 0 && n > 1 {
-			want = pxStr(slotsWidthPx(n))
-		}
-		if m.Get("style").Get("minWidth").String() != want {
-			m.Get("style").Set("minWidth", want)
-			changed = true
-		}
-	}
-	return changed
-}
-
-// moduleEdgePx is what a ring may not reach past: the panel's own border.
-//
-// The PADDING is deliberately not counted. A legend ring is allowed to
-// reach a little way past the cell it is centered in — skirtCellGapPx, and
-// the note there says in as many words that the module's padding is what
-// absorbs it. Charging a ring for padding it is entitled to use milled the
-// Grid module two slots wide for a ring eight tenths of a pixel over.
-func moduleEdgePx(m js.Value) float64 {
-	cs := js.Global().Call("getComputedStyle", m)
-	return parsePx(cs.Get("borderLeftWidth").String()) +
-		parsePx(cs.Get("borderRightWidth").String())
+	return fitModuleParts(f)
 }
 
 // slotsForWidthPx is the narrowest panel that holds w. A whole number of

@@ -8,19 +8,6 @@ import (
 	"github.com/0magnet/chaosrack/pkg/glctx"
 )
 
-// sphereShape is the sphere model's knobs.
-type sphereShape struct {
-	radius  float32
-	stacksF float32
-	slicesF float32
-}
-
-var sphere = sphereShape{
-	radius:  1.0,
-	stacksF: 30,
-	slicesF: 30,
-}
-
 // torusShape is the torus model: its knobs and the phase of its poloidal
 // roll.
 type torusShape struct {
@@ -136,16 +123,6 @@ func torusVerticesIndices(major, minor float32, stacks, slices int, baseIdx uint
 		}
 	}
 	return vertices, indices
-}
-
-func generateSphere() {
-	if gpu.staticGeomCached(glctx.Types.Line) {
-		return
-	}
-	stacks := int(sphere.stacksF)
-	slices := int(sphere.slicesF)
-	vertices, indices := sphereVerticesIndices(sphere.radius, stacks, slices, 0)
-	gpu.uploadBuffersIndexed(vertices, indices, glctx.Types.Line)
 }
 
 func (t *torusShape) generate() {

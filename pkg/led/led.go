@@ -79,7 +79,8 @@ func StepDecimals(step float32) int {
 	return len(s) - dot - 1
 }
 
-// Format renders val for a readout: the sign in a FIXED leftmost slot (+/-)
+// Format renders val for a readout: the sign in a FIXED leftmost slot (Blank
+// or -)
 // and the integer part zero-padded to intDig, so neither digits nor sign
 // shift as the value changes, as on a real LED counter. dec fixes the
 // fraction width. intDig should come from IntDigits.
@@ -97,7 +98,19 @@ func Format(val float64, intDig, dec int, signed bool) string {
 		if val < 0 {
 			return "-" + s
 		}
-		return "+" + s
+		return Blank + s
 	}
 	return s
+}
+
+// Blank is the sign slot of a positive value: DSEG7's blank digit, as wide as
+// a digit with no segment lit. A seven-segment display has no plus, and the
+// font has none either; asked for one, the browser drew it from the fallback
+// face, whose line metrics are not DSEG7's, and the digits jumped a pixel
+// whenever the value crossed zero.
+const Blank = "!"
+
+// Parse reads a readout's text as a number, its Blank sign slot included.
+func Parse(s string) (float64, error) {
+	return strconv.ParseFloat(strings.TrimSpace(strings.Replace(s, Blank, "", 1)), 64)
 }

@@ -39,10 +39,10 @@ func TestFormatLEDWidth(t *testing.T) {
 		signed bool
 		want   string
 	}{
-		{5, 1, 1, true, "+5.0"},
+		{5, 1, 1, true, "!5.0"},
 		{-3, 1, 1, true, "-3.0"},
-		{20, 2, 1, true, "+20.0"},
-		{0, 2, 1, true, "+00.0"},
+		{20, 2, 1, true, "!20.0"},
+		{0, 2, 1, true, "!00.0"},
 		{20480, 5, 1, false, "20480.0"},
 		{110, 5, 1, false, "00110.0"},
 		{2.5, 2, 3, false, "02.500"},
@@ -70,6 +70,16 @@ func TestLEDIntDigits(t *testing.T) {
 	for _, c := range cases {
 		if got := IntDigits(c.min, c.max); got != c.want {
 			t.Errorf("IntDigits(%v,%v) = %d, want %d", c.min, c.max, got, c.want)
+		}
+	}
+}
+
+func TestAReadoutParsesBackToItsValue(t *testing.T) {
+	for _, v := range []float64{5, -5, 0, 20.5, -0.25} {
+		s := Format(v, 2, 2, true)
+		got, err := Parse(s)
+		if err != nil || got != v {
+			t.Errorf("Parse(Format(%v)) = %v, %v (from %q)", v, got, err, s)
 		}
 	}
 }

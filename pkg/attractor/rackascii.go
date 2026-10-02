@@ -94,10 +94,19 @@ func panelCell(name string, slots int) string {
 	return "│" + string(r) + strings.Repeat(" ", w-len(r))
 }
 
-// bayLabel names the sections a bay carries, in order.
+// bayLabel names the sections a bay carries, in order: those with something
+// showing, as the page labels them (planRunLabels). A section whose modules
+// are all switched out packs at zero width and is not in the bay to look at.
 func bayLabel(items []packItem, idx []int) string {
 	var names []string
 	for _, r := range sectionRuns(items, idx) {
+		slots := 0
+		for n := r.From; n < r.From+r.Count && n < len(idx); n++ {
+			slots += items[idx[n]].Slots
+		}
+		if slots == 0 {
+			continue
+		}
 		t := sectionTitleOf(r.Section)
 		if t == "" {
 			t = strings.ToUpper(r.Section)
@@ -152,7 +161,7 @@ func DrawRackFrom(keys, cats []string, slots []int, capacity int, monitors map[s
 
 // bayScreenKeys is which modules carry a screen of their own, mirroring
 // bayScreens in the js half — the pure side needs it to draw the same bays.
-var bayScreenKeys = map[string]bool{"desk": true, "record": true}
+var bayScreenKeys = map[string]bool{"record": true, "scope 1": true}
 
 // drawLead is whether a measured module must open a bay, by the same rule
 // the page applies: it carries a screen, or it is a model row's head. A head

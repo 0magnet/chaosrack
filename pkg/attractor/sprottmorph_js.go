@@ -144,26 +144,21 @@ func (sp *sprottMorph) generateSprottMorph() {
 	// PATCH readout: "D→E 42%" (throttled — DOM writes are not free).
 	sp.tick++
 	if sp.led.Truthy() && sp.tick%10 == 0 {
-		// A dash, not an arrow — the DSEG LED font has no → glyph.
+		// A dash, not an arrow: the character display has no → glyph.
 		txt := sp.systems[i].Letter
 		if frac >= 0.005 {
 			txt += "-" + sp.systems[j].Letter + " " + strconv.Itoa(int(frac*100+0.5)) + "%"
 		}
-		sp.led.Set("textContent", txt)
+		setDotText(sp.led, txt)
 	}
 }
 
 // syncSprottMorphExtras: entry warms the ring on the blend at the knob and
-// frames the camera from the warmed extent; while active, the Patch module
-// (static markup, big wired readout) is shown.
+// frames the camera from the warmed extent. The Patch module (static markup,
+// big wired readout) is in the rack whatever the model.
 func (sp *sprottMorph) syncSprottMorphExtras(mode string) {
-	if sect := dom.Doc.Call("getElementById", "smorph-module"); sect.Truthy() {
-		if mode == "sprottmorph" {
-			sect.Get("style").Set("display", "")
-		} else {
-			sect.Get("style").Set("display", "none")
-		}
-	}
+	// The module is in the rack whatever the model (panelhtml_js.go): the rack
+	// is the same instrument under every model, so its panels do not come and go.
 	sp.led = dom.Doc.Call("getElementById", "smorph-led")
 	if mode != "sprottmorph" {
 		sp.active = false

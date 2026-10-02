@@ -10,18 +10,18 @@ import (
 	"syscall/js"
 )
 
-// The RQA strip chart: RR, DET and LAM over the last recurrence.RQASeriesSpanMs, scrolling
-// beside the recurrence plot. The ring and the scales are in pkg/recurrence,
-// untagged; this file is the cell it lives in and the pixels.
+// The RQA strip chart: RR, DET and LAM over the last recurrence.RQASeriesSpanMs,
+// scrolling beside the recurrence plot. The ring and the scales are in
+// pkg/recurrence, untagged; this file is the pixels.
 //
 // ── WHERE IT LIVES, AND THE THREE PLACES IT DOES NOT ─────────────────────
 //
-// In the recurrence mode's own parameter grid, next to the RQA readout, added
-// by the same panel build and for the same reason that readout gives: these
-// numbers describe THIS PLOT AT THIS ε rather than the system, so they belong
-// under the knob that moves them. The chart is the readout's history and the
-// readout is the chart's present value; separating them would put a number and
-// its own past in two different modules.
+// On the Visual head's screen, while recurrence is running and the head's
+// TREND switch is on (rqaTrendOn). That screen is the model's monitor, and for
+// recurrence the model is already on the main canvas, so the glass beside the
+// RR, DET and LAM readouts is free to carry their history: a number and its
+// own past, side by side. It was a cell three rows tall in a Parameters
+// module that no other model had, which is what put an extra bay on the rack.
 //
 // The alternatives, and why each is wrong rather than merely not chosen:
 //
@@ -46,10 +46,9 @@ import (
 //     the whole rack, while these three move when ε moves. Filed there they
 //     would read as facts about the attractor.
 //
-// So: a panel cell, built the way appendTakensEstimate and appendRecurrenceRQA
-// build theirs, holding a 2-D canvas drawn at the sampling tick — the desk
-// monitor's and the record preview's arrangement, down to the offsetParent
-// guard that keeps it from painting into a module nobody has open.
+// So: a 2-D canvas off the page, drawn at the sampling tick while the screen
+// is showing it, and copied onto the screen by the monitor's own paint
+// (drawRowMonitor), the way the monitor copies the model.
 //
 // ── WHAT IT COSTS ────────────────────────────────────────────────────────
 //
@@ -86,16 +85,14 @@ const (
 	// other way round — history that is never drawn is not history.
 	rqaChartCols = recurrence.RQASeriesLen
 
-	// rqaPaneH is one trace's pane, in backing-store pixels. --krow is 38 mm =
-	// 152 px at interface scale 1, so at that scale the backing store and the
-	// CSS box are 1:1 down the whole chart and nothing is resampled. Other
-	// interface sizes scale the box and let the browser resample, which is what
-	// the desk monitor does with its own fixed backing store: a line chart
-	// upscaled twofold is a two-pixel line, which is not a defect.
-	rqaPaneH = 152
+	// rqaPaneH is one trace's pane, in backing-store pixels: a third of the
+	// head screen's height, so the chart's backing store is the screen's own
+	// size down the whole chart and the monitor copies it without resampling
+	// the traces (across, it is one column a sample, a little wider than the
+	// screen, and squeezed).
+	rqaPaneH = catMonitorHigh / int(recurrence.RQATraceCount)
 
-	// rqaChartH is the whole canvas: one pane per trace, stacked, so the cell
-	// is exactly the three grid rows tall that it spans.
+	// rqaChartH is the whole canvas: one pane per trace, stacked.
 	rqaChartH = rqaPaneH * int(recurrence.RQATraceCount)
 
 	// rqaTimeTickMs is the spacing of the faint vertical rules. Ten seconds is
@@ -196,17 +193,17 @@ func rqaPaneY(top int, f float64) float64 {
 
 // paint redraws the whole chart from the ring.
 //
-// Skipped when nothing can see it: offsetParent is null while the Parameters
-// module is hidden, and the rack re-measures every module on each pointer move
-// during a panel resize, which is how a drag comes to cost the model a frame.
-// The desk monitor is guarded the same way for the same two reasons. Sampling
-// is NOT skipped with it — the ring keeps filling while the module is shut, so
-// opening it shows the history that was there rather than a hole the size of
-// however long it was closed.
+// Skipped when nothing can see it: when the head screen is not showing it
+// (rqaTrendShown), and during a panel resize, when the rack re-measures every
+// module on each pointer move and a drag would come to cost the model a
+// frame. Sampling is NOT skipped with it: the ring keeps filling while the
+// chart is off the screen, so turning it back on shows the history that was
+// there rather than a hole the size of however long it was away.
 func (rq *rqaChart) paint() {
-	if !rq.chartCtx.Truthy() || !rq.chartEl.Get("offsetParent").Truthy() || layout.resizing {
+	if !rqaTrendShown() || layout.resizing {
 		return
 	}
+	rq.ensureCanvas()
 	ctx := rq.chartCtx
 	n := rq.series.Snapshot(rq.snap)
 
@@ -297,71 +294,43 @@ func (rq *rqaChart) tracePath(tr recurrence.RQATrace, top int) string {
 	return b.String()
 }
 
-// appendRecurrenceSeries adds the strip chart to the recurrence parameter grid,
-// into the GRID rather than below it for the reason appendRecurrenceRQA gives:
-// the grid is the height-bounded column-wrap container and anything appended
-// after it is clipped.
-//
-// It spans a whole column group — all three rows, two columns wide — rather
-// than sitting in one cell like the knobs. A strip chart's information is in
-// its width: one 116 px cell would be 18 seconds of history, against 41 in two,
-// and 41 is the span a transition and enough context to read it against fit
-// inside. Taking all three rows is also what makes the placement safe, because
-// a full-height item cannot be interleaved with the knob cells by the grid's
-// column auto-flow — it takes its own column group and the knobs keep theirs.
-// The module widens to hold it, which is what the Parameters module is built to
-// do (its content column-wraps within a fixed height; more content is more
-// columns, not a taller module).
-func (rq *rqaChart) appendRecurrenceSeries(grid js.Value) {
-	card := dom.Doc.Call("createElement", "div")
-	card.Set("className", "punit")
-	// Inline, because #params .punit pins every cell to one --kcol by --krow.
-	// justify-content is reset to the top so the chart takes the whole card
-	// rather than being centered with slack above and below.
-	//
-	// The left padding is the label's room. Every primary label in the rack is
-	// pinned to its cell's top-left corner and out of flow — that is the one
-	// rule the panel keeps across every module — so a chart that filled the card
-	// edge to edge would have the label sitting on top of it. Insetting the
-	// content is how the cell keeps both: the label where every other label is,
-	// and the chart unobscured.
-	card.Get("style").Set("cssText",
-		"grid-row:1/-1;grid-column:span 2;width:100%;height:100%;justify-content:flex-start;"+
-			"gap:2px;padding-left:16px;box-sizing:border-box;")
+// rqaTrendOn is the head's TREND switch for recurrence: the screen shows the
+// chart, or the model as it does for every other one. On from the start,
+// because the chart is what RQA is read by.
+var rqaTrendOn = true
 
-	lbl := dom.Doc.Call("createElement", "span")
-	lbl.Set("className", symClass("u-lbl", false))
-	lbl.Set("textContent", "trend")
-	card.Call("appendChild", lbl)
+// rqaTrendShown is whether the head screen is showing the chart now.
+func rqaTrendShown() bool { return rqaTrendOn && run.selectedMode == "recurrence" }
 
+// ensureCanvas makes the chart's canvas the first time it is drawn. It is
+// never on the page: the monitor copies it onto the screen.
+func (rq *rqaChart) ensureCanvas() {
+	if rq.chartCtx.Truthy() {
+		return
+	}
 	rq.chartEl = dom.Doc.Call("createElement", "canvas")
 	rq.chartEl.Set("width", rqaChartCols)
 	rq.chartEl.Set("height", rqaChartH)
-	rq.chartEl.Set("title", "Recurrence quantification over time — the last "+
-		strconv.Itoa(recurrence.RQASeriesSpanMs/1000)+" seconds, newest at the right, one column per measurement "+
-		"(about six a second). Vertical rules every 10 s. "+
-		"THE THREE PANES DO NOT SHARE A SCALE and their heights are not comparable; what they share is "+
-		"the time axis, which is the only one they have in common. "+
-		"RR is the density, drawn as its square root because RR is a lit fraction of a SQUARE and the "+
-		"root of an area is the fraction of the side — the shaded band is the 1–5% the plot is readable "+
-		"in, so turn ε until the trace sits in it. "+
-		"DET and LAM are drawn as themselves, 0 at the bottom and 1 at the top: DET climbing is structure "+
-		"appearing, DET falling off is noise or a change of regime. "+
-		"A break in a trace is never a value — it is a stretch with no measurement behind it, either "+
-		"because the tab was not being drawn or because a knob changed what was being measured.")
-	// Fixed backing store, CSS box sized by the grid: see rqaPaneH. min-height
-	// is zeroed because a flex item's default min-height:auto would refuse to
-	// shrink below the canvas's intrinsic height and overflow the module.
-	rq.chartEl.Get("style").Set("cssText",
-		"display:block;width:100%;flex:1 1 auto;min-height:0;box-sizing:border-box;"+
-			"background:"+rqaColBg+";border:1px solid "+rqaColEdge+";border-radius:2px;")
-	card.Call("appendChild", rq.chartEl)
 	rq.chartCtx = rq.chartEl.Call("getContext", "2d")
-
-	grid.Call("appendChild", card)
-	// Seeded from the ring rather than left blank, for the reason the stereo
-	// readout is: the panel is rebuilt on every mode change and every module
-	// toggle, and a chart that came back empty over a series that has forty
-	// seconds in it would be reporting a stall that never happened.
-	rq.paint()
 }
+
+// drawOnMonitor puts the chart on a head screen of pw by ph, filling it: a
+// strip chart has no shape to keep, unlike a model, and its information is
+// in its width.
+func (rq *rqaChart) drawOnMonitor(ctx js.Value, pw, ph float64) {
+	rq.ensureCanvas()
+	ctx.Call("drawImage", rq.chartEl, 0, 0, rqaChartCols, rqaChartH, 0, 0, pw, ph)
+}
+
+// rqaSource is what the plot is of, for the screen's caption: a plot of an
+// unnamed system is not a measurement of anything. The trajectory source
+// plots whichever flow was on screen last, the bifurcation explorer's rule.
+func rqaSource() string {
+	if int(rp.src) == rpSrcTraj {
+		return modeInfo[bif.lastFlowMode].Label
+	}
+	return "audio in"
+}
+
+// rqaTrendTip is the TREND switch's tooltip, which is also the chart's key.
+var rqaTrendTip = docf("sw.recurrence.trnd", "seconds", strconv.Itoa(recurrence.RQASeriesSpanMs/1000))

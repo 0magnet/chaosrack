@@ -57,7 +57,9 @@ func constValue(name string) (float64, bool) {
 func isFunc(name string) bool {
 	switch name {
 	case "sin", "cos", "tan", "asin", "acos", "atan", "exp", "log", "ln",
-		"sqrt", "abs", "sign", "sinh", "cosh", "tanh", "floor":
+		"sqrt", "abs", "sign", "sinh", "cosh", "tanh", "floor",
+		// Any number of arguments: max(abs(x), abs(y), abs(z)) is a cube.
+		"max", "min":
 		return true
 	}
 	return false
@@ -73,14 +75,16 @@ const (
 	tkFunc
 	tkLParen
 	tkRParen
+	tkComma
 )
 
 type token struct {
 	kind int
 	num  float64
-	vi   int    // var slot (tkVar)
+	vi   int    // var slot (tkVar); place in Params (tkParam) or funcTable (tkFunc), set at parse
 	name string // param/func name
 	op   byte   // operator char (tkOp/tkUnary)
+	n    int    // arguments a function takes here (tkFunc); 1 unless max/min were given more
 }
 
 // Expr is a compiled expression: RPN plus the free parameter names it uses.
@@ -199,6 +203,10 @@ func tokenize(s string) ([]token, error) {
 			out = append(out, token{kind: tkRParen})
 			prevValueLike = true
 			i++
+		case c == ',':
+			out = append(out, token{kind: tkComma})
+			prevValueLike = false
+			i++
 		case c == '+' || c == '-' || c == '*' || c == '/' || c == '^':
 			if (c == '-' || c == '+') && !prevValueLike {
 				// unary sign
@@ -226,6 +234,7 @@ func ParseExpr(s string) (*Expr, error) {
 	}
 	var output []token
 	var ops []token
+	var args []int // arguments so far of each open parenthesis
 	paramSet := map[string]bool{}
 	var params []string
 
@@ -246,8 +255,18 @@ func ParseExpr(s string) (*Expr, error) {
 				params = append(params, tk.name)
 			}
 			output = append(output, tk)
-		case tkFunc, tkLParen:
+		case tkFunc:
 			ops = append(ops, tk)
+		case tkLParen:
+			ops = append(ops, tk)
+			args = append(args, 1)
+		case tkComma:
+			// Another argument of the innermost call: finish the one before.
+			popWhile(func(o token) bool { return o.kind != tkLParen })
+			if len(args) == 0 {
+				return nil, errors.New("a comma outside a function's parentheses")
+			}
+			args[len(args)-1]++
 		case tkUnary:
 			// unary binds tighter than binary; keep on stack (right-assoc)
 			ops = append(ops, tk)
@@ -273,9 +292,21 @@ func ParseExpr(s string) (*Expr, error) {
 				return nil, errors.New("mismatched parentheses")
 			}
 			ops = ops[:len(ops)-1] // discard '('
+			n := 1
+			if len(args) > 0 {
+				n = args[len(args)-1]
+				args = args[:len(args)-1]
+			}
 			if len(ops) > 0 && ops[len(ops)-1].kind == tkFunc {
-				output = append(output, ops[len(ops)-1])
+				fn := ops[len(ops)-1]
+				if n > 1 && fn.name != "max" && fn.name != "min" {
+					return nil, errors.New(fn.name + " takes one argument")
+				}
+				fn.n = n
+				output = append(output, fn)
 				ops = ops[:len(ops)-1]
+			} else if n > 1 {
+				return nil, errors.New("a comma outside a function's parentheses")
 			}
 		}
 	}
@@ -286,6 +317,22 @@ func ParseExpr(s string) (*Expr, error) {
 		}
 		output = append(output, top)
 		ops = ops[:len(ops)-1]
+	}
+	// Resolved here, once, rather than on every evaluation: a parameter to
+	// its place in Params, a function to its entry in funcTable. Eval used to
+	// find both by comparing names, which on a surface drawn from 175,000
+	// evaluations was most of the time a knob turn took.
+	for i, tk := range output {
+		switch tk.kind {
+		case tkParam:
+			for j, p := range params {
+				if p == tk.name {
+					output[i].vi = j
+				}
+			}
+		case tkFunc:
+			output[i].vi = funcIndex[tk.name]
+		}
 	}
 	e := &Expr{rpn: output, Params: params}
 	// validate it evaluates (arity) with a dry run
@@ -302,10 +349,15 @@ func (e *Expr) evalCheck() (int, error) {
 		switch tk.kind {
 		case tkNum, tkVar, tkParam:
 			sp++
-		case tkUnary, tkFunc:
+		case tkUnary:
 			if sp < 1 {
 				return 0, errors.New("malformed expression")
 			}
+		case tkFunc:
+			if sp < max(tk.n, 1) {
+				return 0, errors.New("malformed expression")
+			}
+			sp -= max(tk.n, 1) - 1
 		case tkOp:
 			if sp < 2 {
 				return 0, errors.New("malformed expression")
@@ -337,11 +389,8 @@ func (e *Expr) Eval(vars [5]float64, paramVals []float64, stack []float64) float
 			sp++
 		case tkParam:
 			v := 0.0
-			for i, p := range e.Params {
-				if p == tk.name {
-					v = paramVals[i]
-					break
-				}
+			if tk.vi < len(paramVals) { // its place in Params, resolved at parse
+				v = paramVals[tk.vi]
 			}
 			stack[sp] = v
 			sp++
@@ -350,7 +399,19 @@ func (e *Expr) Eval(vars [5]float64, paramVals []float64, stack []float64) float
 				stack[sp-1] = -stack[sp-1]
 			}
 		case tkFunc:
-			stack[sp-1] = applyFunc(tk.name, stack[sp-1])
+			if tk.n > 1 { // max or min over its arguments
+				first := sp - tk.n
+				v := stack[first]
+				for _, a := range stack[first+1 : sp] {
+					if (tk.name == "max") == (a > v) {
+						v = a
+					}
+				}
+				sp = first + 1
+				stack[first] = v
+				continue
+			}
+			stack[sp-1] = funcTable[tk.vi](stack[sp-1])
 		case tkOp:
 			b := stack[sp-1]
 			a := stack[sp-2]
@@ -396,45 +457,28 @@ func applyOp(op byte, a, b float64) float64 {
 	return 0
 }
 
-func applyFunc(name string, a float64) float64 {
-	switch name {
-	case "sin":
-		return math.Sin(a)
-	case "cos":
-		return math.Cos(a)
-	case "tan":
-		return math.Tan(a)
-	case "asin":
-		return math.Asin(a)
-	case "acos":
-		return math.Acos(a)
-	case "atan":
-		return math.Atan(a)
-	case "exp":
-		return math.Exp(a)
-	case "log", "ln":
-		return math.Log(a)
-	case "sqrt":
-		return math.Sqrt(a)
-	case "abs":
-		return math.Abs(a)
-	case "sign":
-		if a > 0 {
+// funcTable is every one-argument function, by the index a parsed token
+// carries (funcIndex); max and min with one argument are that argument.
+var funcTable = []func(float64) float64{
+	math.Sin, math.Cos, math.Tan, math.Asin, math.Acos, math.Atan,
+	math.Exp, math.Log, math.Sqrt, math.Abs,
+	func(a float64) float64 {
+		switch {
+		case a > 0:
 			return 1
-		} else if a < 0 {
+		case a < 0:
 			return -1
 		}
 		return 0
-	case "sinh":
-		return math.Sinh(a)
-	case "cosh":
-		return math.Cosh(a)
-	case "tanh":
-		return math.Tanh(a)
-	case "floor":
-		return math.Floor(a)
-	}
-	return a
+	},
+	math.Sinh, math.Cosh, math.Tanh, math.Floor,
+	func(a float64) float64 { return a },
+}
+
+var funcIndex = map[string]int{
+	"sin": 0, "cos": 1, "tan": 2, "asin": 3, "acos": 4, "atan": 5,
+	"exp": 6, "log": 7, "ln": 7, "sqrt": 8, "abs": 9, "sign": 10,
+	"sinh": 11, "cosh": 12, "tanh": 13, "floor": 14, "max": 15, "min": 15,
 }
 
 func isAlpha(c byte) bool {

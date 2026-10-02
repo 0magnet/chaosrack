@@ -66,15 +66,8 @@ func (de *desktops) buildDeskStyleSelect() {
 		sel.Call("appendChild", o)
 	}
 	sel.Set("value", de.style)
-	// A rotary with a name readout, like the phosphor selector, rather than the
-	// bare dropdown this used to be. Five named options is exactly the case
-	// that knob is for — too many for a label ring, too few to need a list —
-	// and a dropdown in a rack panel reads as a browser widget somebody forgot
-	// to finish. The select stays as the state and the knob is a view of it.
-	if holder := dom.Doc.Call("getElementById", "desk-style-stack"); holder.Truthy() &&
-		!holder.Get("firstChild").Truthy() {
-		holder.Call("appendChild", selectorKnobReadout(sel))
-	}
+	// Its knob is the Visual bank's (modelparts_js.go): the select stays the
+	// state, and the display over the knob names the style.
 }
 
 // deskWindows returns the live windows, in the DOM order winbox keeps them.
@@ -240,14 +233,7 @@ func ensureBackFace(w js.Value) {
 		title = t.Get("textContent").String()
 	}
 	back := dom.Doc.Call("createElement", "div")
-	back.Set("className", "lg-back")
-	// z-index above the window's own chrome: without it the title bar shows
-	// through the back panel, mirrored, which reads as a rendering fault
-	// rather than as the back of something.
-	back.Set("style", "position:absolute;inset:0;z-index:9;transform:rotateY(180deg);"+
-		"backface-visibility:hidden;background:#141821;color:#9fb4c8;"+
-		"border:1px solid #2a3340;box-sizing:border-box;padding:14px 16px;"+
-		"font:12px/1.7 'B612 Mono',ui-monospace,monospace;pointer-events:none;")
+	back.Set("className", "lg-back") // panel.css: the back face, above the chrome
 	back.Set("innerHTML", "<b style=\"color:#c9d6e2\">"+title+"</b><br><br>"+
 		"the back of a window.<br><br>"+
 		"<span style=\"color:#6b7f92\">Sun's Project Looking Glass, 2003 — a window was an "+

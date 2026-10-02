@@ -53,14 +53,14 @@ func init() {
 	renderCmd.Flags().Float64Var(&renderWindow, "window", 0, "milliseconds of signal in each picture (0 = the page's default: 85, or 43 for xy)")
 }
 
-// signalNames are the short names --signal takes, the test-signal dial's own
-// ring labels.
+// signalNames are the short names --signal takes, the stimulus library's
+// own (audiosrc.TestSignalShort).
 func signalNames() []string {
-	return audiosrc.TestSignalRing[1:]
+	return audiosrc.TestSignalShort[1:]
 }
 
 func testSignal(name string) (audiosrc.TestSignal, error) {
-	for i, n := range audiosrc.TestSignalRing {
+	for i, n := range audiosrc.TestSignalShort {
 		if i > 0 && (strings.EqualFold(n, name) || strings.EqualFold(audiosrc.TestSignalNames[i], name)) {
 			return audiosrc.TestSignal(i), nil
 		}

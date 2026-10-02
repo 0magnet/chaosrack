@@ -713,7 +713,7 @@ func renderLoop(this js.Value, args []js.Value) any {
 	// early exits below, because a scope that goes dark when the MODEL
 	// knob moves to a polyhedron is not an instrument in the rack.
 	scopeMark := timingStart()
-	rscope.drawRackScope()
+	drawRackScopes()
 	tpanel.budget.Scope += scopeMark.ms()
 	// Stop button: clear once, do not reschedule. Loop dies here.
 	if run.stopped {
@@ -766,7 +766,6 @@ func renderLoop(this js.Value, args []js.Value) any {
 	}
 	genEnvTick() // Envelope module shaper (no-op unless the gen audio runs)
 	tm.tick()    // Tonematrix sequencer clock (no-op unless the module runs)
-	rhy.tick()   // Rhythm section clock (no-op unless the module runs)
 	tpanel.budget.Meters += metersMark.ms()
 
 	if isAudioMode(run.selectedMode) {
@@ -832,6 +831,9 @@ func renderLoop(this js.Value, args []js.Value) any {
 			gpu.staticDirty = true
 		}
 	}
+	// The model draws in its own colors while the Colors module is showing
+	// the backdrop's (backlayer_js.go).
+	defer back.frontIn()()
 
 	if run.paused {
 		// Redraw current geometry without advancing trail / auto-rotate.

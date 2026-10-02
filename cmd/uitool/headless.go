@@ -100,7 +100,10 @@ func startServer(bin string) error {
 	if err != nil {
 		return err
 	}
-	if err := child(bin, "--port", strconv.Itoa(port)); err != nil {
+	// With --audio, as it is run: the audio routes and the pages that use
+	// them (the wobbulator's routing switch) are only there with it, so a
+	// harness without it was testing a rack nobody uses.
+	if err := child(bin, "--audio", "--port", strconv.Itoa(port)); err != nil {
 		return fmt.Errorf("-serve: %w", err)
 	}
 	addr := "127.0.0.1:" + strconv.Itoa(port)

@@ -5,6 +5,7 @@ package attractor
 import (
 	"math"
 	"strconv"
+	"strings"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/analysis"
@@ -34,35 +35,25 @@ type lyapunovProbe struct {
 	ledEl    js.Value
 	verdEl   js.Value
 	on       bool
-	pending  bool   // a re-measure is scheduled
-	lastMode string // what the displayed number belongs to
+	pending  bool                               // a re-measure is scheduled
+	lastMode string                             // what the displayed number belongs to
+	cache    map[string]analysis.LyapunovResult // by model and parameter values (measure)
 	timer    js.Value
 }
 
 var lyap lyapunovProbe
 
-// analysisModuleVisible shows or hides the module.
-func analysisModuleVisible(on bool) {
-	if sect := dom.Doc.Call("getElementById", "analysis-module"); sect.Truthy() {
-		if on {
-			sect.Get("style").Set("display", "")
-		} else {
-			sect.Get("style").Set("display", "none")
-		}
-	}
-}
-
+// wireAnalysisModule wires the Lyapunov readout. It was a module of its own
+// and is a readout on the Visual head now, over the equation, with the model
+// it measures (modelparts_js.go).
 func (l *lyapunovProbe) wireAnalysisModule() {
 	l.ledEl = dom.Doc.Call("getElementById", "lyap-led")
 	l.verdEl = dom.Doc.Call("getElementById", "lyap-verdict")
-	// Always in the rack. The Console's module switches are gone, so there is
-	// no state in which this module is absent, and the flag that used to mean
-	// "switched in" is simply true. It is SET rather than the module's setter
-	// being called: the setter is the switch's behavior — it opens an audio
-	// graph and takes a context lease — and booting must not do that. What
-	// the module DOES is its own transport control.
+	// Always on: there is no state in which the readout is absent. It is SET
+	// rather than a setter being called: the setter was the old switch's
+	// behavior — it opened an audio graph and took a context lease — and
+	// booting must not do that.
 	l.on = true
-	analysisModuleVisible(true)
 	l.scheduleLyapunov(0)
 	if btn := dom.Doc.Call("getElementById", "lyap-remeasure"); btn.Truthy() {
 		btn.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
@@ -99,16 +90,16 @@ func (l *lyapunovProbe) scheduleLyapunov(delayMs int) {
 func (l *lyapunovProbe) runLyapunov() {
 	mode := run.selectedMode
 	l.lastMode = mode
-	r := analysis.LyapunovFor(mode)
+	r := l.measure(mode)
 	if r.Verdict == "n/a" {
 		// Not a dynamical system. Saying so is the honest readout; printing
 		// 0.0000 beside a dodecahedron would be a category error with a
 		// decimal point.
-		l.showLyapunov("  --.--", "no dynamics", false)
+		l.showLyapunov("--.--", "n/a", false)
 		return
 	}
 	if !r.OK {
-		l.showLyapunov("  --.--", r.Verdict, false)
+		l.showLyapunov("--.--", r.Verdict, false)
 		return
 	}
 	unit := "/t"
@@ -118,13 +109,17 @@ func (l *lyapunovProbe) runLyapunov() {
 	l.showLyapunov(formatLyap(r.Lambda)+unit, r.Verdict, r.Verdict == "chaotic")
 }
 
-// formatLyap renders the exponent at a fixed width so the readout does not
-// jitter as the value changes sign or crosses a decade.
+// formatLyap renders the exponent signed, to three decimals, or two past ten,
+// so with its unit ("/t", "/n") it fills a full display and no more.
 func formatLyap(v float64) string {
 	if math.IsNaN(v) || math.IsInf(v, 0) {
-		return "  --.--"
+		return "--.--"
 	}
-	s := strconv.FormatFloat(v, 'f', 4, 64)
+	dec := 3
+	if math.Abs(v) >= 10 {
+		dec = 2
+	}
+	s := strconv.FormatFloat(v, 'f', dec, 64)
 	if v >= 0 {
 		s = "+" + s
 	}
@@ -133,10 +128,10 @@ func formatLyap(v float64) string {
 
 func (l *lyapunovProbe) showLyapunov(val, verdict string, chaotic bool) {
 	if l.ledEl.Truthy() {
-		l.ledEl.Set("textContent", val)
+		setDotText(l.ledEl, val)
 	}
 	if l.verdEl.Truthy() {
-		l.verdEl.Set("textContent", verdict)
+		setDotText(l.verdEl, verdictText(verdict))
 		cl := l.verdEl.Get("classList")
 		if cl.Truthy() {
 			if chaotic {
@@ -167,4 +162,39 @@ func (l *lyapunovProbe) invalidate() {
 	if l.on {
 		l.scheduleLyapunov(400)
 	}
+}
+
+// measure is the exponent of mode at its parameters' present values. The
+// answer depends on nothing else, so it is kept: going back to a model whose
+// knobs have not moved costs no integration at all, where it was a run of a
+// few hundred thousand steps on every model change.
+func (l *lyapunovProbe) measure(mode string) analysis.LyapunovResult {
+	// Not the two whose system is more than their knobs: Custom's is the
+	// equations typed into it, and the morph reprograms itself as it runs.
+	if mode == "custom" || mode == "sprottmorph" {
+		return analysis.LyapunovFor(mode)
+	}
+	var key strings.Builder
+	key.WriteString(mode)
+	for _, p := range attractorParams[mode] {
+		key.WriteString("|" + strconv.FormatFloat(float64(*p.Value), 'g', -1, 32))
+	}
+	if r, ok := l.cache[key.String()]; ok {
+		return r
+	}
+	r := analysis.LyapunovFor(mode)
+	if l.cache == nil {
+		l.cache = map[string]analysis.LyapunovResult{}
+	}
+	l.cache[key.String()] = r
+	return r
+}
+
+// verdictText is a verdict as its display shows it: eight characters, so
+// "converging" says what the exponent says of it, that the orbit is settling.
+func verdictText(v string) string {
+	if v == "converging" {
+		return "settling"
+	}
+	return v
 }

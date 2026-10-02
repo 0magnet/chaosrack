@@ -407,7 +407,7 @@ func (pa *panelLayout) initDockResize() {
 	if dl := dom.Doc.Call("querySelector", "#dock-controls .dock-lbl"); dl.Truthy() {
 		dl.Get("style").Set("cursor", "grab")
 		dl.Get("style").Set("touchAction", "none")
-		dl.Set("title", "DOCK — drag this label to resize the panel; the arrow buttons choose the dock edge or floating mode")
+		dl.Set("title", doc("dock-label"))
 		dl.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			a[0].Call("preventDefault")
 			a[0].Call("stopPropagation")

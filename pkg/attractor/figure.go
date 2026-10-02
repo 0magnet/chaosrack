@@ -47,17 +47,12 @@ func StaticFigure(key string, points int) (Figure, bool) {
 	if pts := dynamics.MapPoints(key, points); pts != nil {
 		return Figure{Kind: FigurePoints, Points: pts}, true
 	}
-	for i, s := range conway.Seeds {
-		if s.Name == key {
-			return polyFigure(conway.Build(i, 0)), true
-		}
-	}
 	switch key {
+	case "polyhedron":
+		// At its defaults, {3,3}: the tetrahedron. See conway_js.go.
+		return polyFigure(conway.Regular(3, 3)), true
 	case "nestedcube":
 		return linesFigure(geom.Lines{Vertices: verticesCube, Indices: indicesCube}), true
-	case "sphere":
-		v, i := geom.Sphere(1, 30, 30, 0)
-		return linesFigure(geom.Lines{Vertices: v, Indices: i}), true
 	case "torus":
 		v, i := geom.Torus(1.5, 0.5, 30, 30, 0)
 		return linesFigure(geom.Lines{Vertices: v, Indices: i}), true

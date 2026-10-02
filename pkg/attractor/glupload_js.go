@@ -82,6 +82,11 @@ func (r *renderer) uploadVerticesOnly(vertices []float32, drawMode js.Value, cou
 	r.verts = vertices
 	r.uploadSeq++
 	r.stride = 4
+	// The buffer no longer holds a static mesh: the next static draw has to
+	// upload its own again. Without this, Custom switched from surface to flow
+	// and back redrew "the cached surface" out of a buffer the trail had since
+	// overwritten, and nothing came back.
+	r.staticDirty = true
 	// Set stride-4 attribute pointers for interleaved data
 	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, r.vbuf)
 	glctx.GL.Call("vertexAttribPointer", r.aPosition, 3, glctx.Types.Float, false, 16, 0)

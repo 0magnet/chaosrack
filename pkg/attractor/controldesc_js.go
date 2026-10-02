@@ -64,7 +64,7 @@ func buildDescControl(d ControlDesc) (*Control, js.Value) {
 		return nil
 	}))
 	led.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) any {
-		if v, err := strconv.ParseFloat(led.Get("value").String(), 64); err == nil {
+		if v, err := parseReadout(led.Get("value").String()); err == nil {
 			slider.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
 			apply(v)
 		}
@@ -153,7 +153,7 @@ func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will
 		// Typed entry commits on Enter/blur ("change", not "input", so the
 		// slider handler's formatted write-back doesn't fight typing).
 		led.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
-			if v, err := strconv.ParseFloat(led.Get("value").String(), 64); err == nil {
+			if v, err := parseReadout(led.Get("value").String()); err == nil {
 				if d.ValToSlider != nil {
 					v = d.ValToSlider(v)
 				}

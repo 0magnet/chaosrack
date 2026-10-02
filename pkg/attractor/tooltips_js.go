@@ -2,10 +2,7 @@
 
 package attractor
 
-import (
-	"strings"
-	"syscall/js"
-)
+import "strings"
 
 // Role-aware control tooltips — SINGLE SOURCE for what every element's tooltip
 // says. Each element reads "<Module> <control> — <role>", so hovering a LABEL
@@ -18,7 +15,7 @@ import (
 // swatches).
 
 // titleWord upper-cases the first letter and lower-cases the rest of a module
-// header ("POSITION" -> "Position").
+// header ("VIEW" -> "View").
 func titleWord(s string) string {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -63,31 +60,16 @@ func labelIsSym(label string) bool {
 // sep joins the hierarchy levels: Module / Control / element.
 const sep = " / "
 
-// stampAll sets the same full title on every element matching sel within scope.
-func stampAll(scope js.Value, sel, title string) {
-	if queueStamp(sel, title, -1) {
-		return
-	}
-	list := scope.Call("querySelectorAll", sel)
-	for i := range list.Get("length").Int() {
-		list.Index(i).Set("title", title)
-	}
-}
+// stampAll sets the same full title on every element matching sel in the
+// control's cell.
+func stampAll(sel, title string) { queueStamp(sel, title, -1) }
 
 // cellCtl returns "Module / <primary label>" — the control level for a cell.
 //
-// f is what the read pass found, where there was one; see fastdom_js.go.
-func cellCtl(f *cellRead, cell js.Value, mod string) string {
-	if f != nil {
-		if t := strings.TrimSpace(f.Label); t != "" {
-			return mod + sep + t
-		}
-		return mod
-	}
-	if l := cell.Call("querySelector", ".plabel, .u-lbl"); l.Truthy() {
-		if t := strings.TrimSpace(l.Get("textContent").String()); t != "" {
-			return mod + sep + t
-		}
+// f is what the read pass found; see fastdom_js.go.
+func cellCtl(f *cellRead, mod string) string {
+	if t := strings.TrimSpace(f.Label); t != "" {
+		return mod + sep + t
 	}
 	return mod
 }
@@ -98,38 +80,17 @@ func cellCtl(f *cellRead, cell js.Value, mod string) string {
 // A cell with one selector knob is one parameter, and its knob carries that
 // parameter's sentence the way a plain knob does; with two, the sentence
 // could be either ring's, so neither gets it.
-func stampSelectorKnobs(f *cellRead, cell js.Value, mod, fallbackCtl, help string) {
-	n := 0
-	var knobs js.Value
-	var selTitle func(int) (string, bool)
-	if f != nil {
-		n = f.NKnob
-		selTitle = func(i int) (string, bool) {
-			if i < len(f.Sels) {
-				return f.Sels[i], true
-			}
-			return "", false
-		}
-	} else {
-		knobs = cell.Call("querySelectorAll", ".knobsel")
-		sels := cell.Call("querySelectorAll", "select")
-		n = knobs.Get("length").Int()
-		selTitle = func(i int) (string, bool) {
-			if i < sels.Get("length").Int() {
-				return sels.Index(i).Get("title").String(), true
-			}
-			return "", false
-		}
-	}
+func stampSelectorKnobs(f *cellRead, mod, fallbackCtl, help string) {
+	n := f.NKnob
 	for i := range n {
 		ctl, desc := fallbackCtl, ""
-		if raw, ok := selTitle(i); ok {
+		if i < len(f.Sels) {
 			// Only borrow the select's own name when it's a structured
 			// "Name — description" title; otherwise keep the cell's control name.
 			// The description comes too: it is the one place a selector says
 			// what it is for, and the knob is what a hand rests on. Its address
 			// is not borrowed — the knob gets its own (designators_js.go).
-			t := stripAddress(strings.TrimSpace(raw))
+			t := stripAddress(strings.TrimSpace(f.Sels[i]))
 			if name, d, ok := strings.Cut(t, " — "); ok {
 				ctl, desc = mod+sep+name, d
 			} else if n == 1 && strings.Contains(t, " ") {
@@ -145,23 +106,8 @@ func stampSelectorKnobs(f *cellRead, cell js.Value, mod, fallbackCtl, help strin
 		case n == 1:
 			tip = withHelp(tip, help)
 		}
-		if !queueStamp(".knobsel", tip, i) && knobs.Truthy() {
-			knobs.Index(i).Set("title", tip)
-		}
+		queueStamp(".knobsel", tip, i)
 	}
-}
-
-// cellHelp is the paramHelp sentence for a cell, found from the hidden
-// slider that carries the parameter id, or "" when the knob has no entry.
-func cellHelp(f *cellRead, cell js.Value) string {
-	if f != nil {
-		return helpFor(f.RID)
-	}
-	s := cell.Call("querySelector", "input[type=range]")
-	if !s.Truthy() {
-		return ""
-	}
-	return helpFor(s.Get("id").String())
 }
 
 // withHelp appends the sentence to a tooltip. Used on the label, the knob

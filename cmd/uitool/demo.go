@@ -44,8 +44,8 @@ var (
 var demoModes = []string{"lorenz", "rossler", "chua", "aizawa", "sprott", "thomas",
 	"halvorsen", "chen", "dadras", "rabinovich", "burkeshaw", "lu", "newtonleipnik",
 	"hyperrossler", "sprottb", "sprottf", "sprottl", "sprottp", "lissajou", "graphicartist",
-	"spectrogram", "xy", "fvf", "cube", "torus", "sphere", "globe", "magnetosphere",
-	"tetrahedron", "dodecahedron", "icosahedron", "nestedcube"}
+	"spectrogram", "xy", "fvf", "polyhedron", "torus", "globe", "magnetosphere",
+	"nestedcube"}
 
 func runDemo() {
 	c, err := dial()
@@ -64,21 +64,22 @@ func runDemo() {
 	// A test signal on for the whole run so the spectrogram / xy / FVF modes
 	// and the audio backdrops have live content even on a silent feed.
 	//
-	// The Test module's own sweep, which is generated inside the page and
-	// reaches the analysis chain directly. The switch this replaced played a
-	// tone out of the speakers and got it back only if the server happened to
-	// be capturing the machine's monitor mix, so the demo had live content on
-	// one kind of host and silence on another.
-	c.Eval(`(function(){var s=document.getElementById('testsig-sel');if(s){s.value='3';s.dispatchEvent(new Event('change',{bubbles:true}));}})()`)
-	// WebAudio kickstart with a REAL click (the autoplay gesture): engage
-	// Model Out on the CAM ring so the attractor is HEARD — the soundtrack
-	// tracks the visuals. Must happen before the panel is hidden.
+	// A generator's sweep (Gen 3 on both sides of the rack's signal in place
+	// of the capture, soloed so it is the whole of it, and on no speaker), made
+	// inside the page and reaching the analysis chain directly. The switch
+	// this replaced played a tone out of the speakers and got it back only if
+	// the server happened to be capturing the machine's monitor mix, so the
+	// demo had live content on one kind of host and silence on another.
+	c.Eval(`(function(){function set(id,v){var s=document.getElementById(id);if(s){s.value=v;s.dispatchEvent(new Event("change",{bubbles:true}));}}set("gen-z-wave","7");window.rackmix&&rackmix("rl.cl:0,rl.g3,rr.cr:0,rr.g3");set("gen-solo","z");})()`)
+	// WebAudio kickstart with a REAL click (the autoplay gesture): Model Out's
+	// x on the left speaker, and the click pins its y to the right, so the
+	// attractor is HEARD — the soundtrack tracks the visuals. Must happen
+	// before the panel is hidden.
+	c.Eval(`window.rackmix&&rackmix("sl.mx,rl.cl:0,rl.g3,rr.cr:0,rr.g3")`)
 	if pos := c.EvalJSON(`(function(){
-	  var m=document.getElementById('sonify-module'); if(!m) return '{}';
-	  m.scrollIntoView({inline:'end'});
-	  var labs=[].slice.call(m.querySelectorAll('.knob-dial-lab')).filter(function(e){return e.textContent==='CAM';});
-	  if(!labs.length) return '{}';
-	  var r=labs[0].getBoundingClientRect();
+	  var p=document.querySelector('[data-pin="sr.my"]'); if(!p) return '{}';
+	  p.scrollIntoView({block:'center'});
+	  var r=p.getBoundingClientRect();
 	  return JSON.stringify({x:Math.round(r.left+r.width/2), y:Math.round(r.top+r.height/2)});
 	})()`); pos["x"] != nil {
 		x, _ := pos["x"].(float64)
@@ -193,16 +194,17 @@ func runDemo() {
 			}
 		case r < 0.94:
 			id := []string{"persist-trail", "ring-sw", "use-points", "gradient-reverse",
-				"bg-spectro", "bg-xy", "spectro-skin", "audio-mod"}[rng.Intn(8)]
+				"bg-spectro", "bg-xy", "spectro-skin"}[rng.Intn(7)]
 			act = "toggle " + id
 			toggle(id)
-		default: // sonification: retune / remap Model Out so the soundtrack moves
+		default: // Model Out: a new speed, or another of its outputs on a speaker, so the soundtrack moves
 			if rng.Intn(2) == 0 {
-				act = "sonify-freq"
-				setSlider("sonify-freq", float64(12+rng.Intn(60)))
+				act = "mo-spd"
+				setSlider("mo-spd", float64(rng.Intn(49)-36))
 			} else {
-				act = "sonify-map"
-				setSel("sonify-map", []string{"cam", "xy", "xz", "yz"}[rng.Intn(4)])
+				l, r := []string{"mx", "my", "mz"}[rng.Intn(3)], []string{"mx", "my", "mz"}[rng.Intn(3)]
+				act = "speakers " + l + "/" + r
+				c.Eval(`window.rackmix&&rackmix("sl.` + l + `,sr.` + r + `,rl.cl:0,rl.g3,rr.cr:0,rr.g3")`)
 			}
 		}
 		fmt.Printf("  %3d %s\n", step, act)
@@ -340,20 +342,20 @@ func runPerformance(c *cdp.Client) {
 			} else {
 				setSel("gradient-colors", fmt.Sprint(randGradMap(rng)))
 			}
-		case 3: // audio-mod routing monkey — split personalities: attractor
-			// PARAM targets (symbol-labeled cards) get whisper-level
-			// modulation (they're trivially overdriven), while VIEW targets
-			// (zoom/pan/spin — word-labeled) get enough level that the model
-			// visibly moves to the music.
+		case 3: // audio-mod routing monkey, on the Mod matrix's pins — split
+			// personalities: the model's PARAMETER columns get whisper-level
+			// depth (they're trivially overdriven), while the VIEW columns
+			// (zoom/pan/spin, data-view) get enough that the model visibly
+			// moves to the music.
 			switch rng.Intn(4) {
-			case 0: // route something to a random (non-off) channel
-				c.Eval(fmt.Sprintf(`(function(){var s=[].slice.call(document.querySelectorAll('.punit-mod select'));if(!s.length)return;var e=s[%d%%s.length],o=e.options;e.selectedIndex=1+%d%%(o.length-1);e.dispatchEvent(new Event('change',{bubbles:true}));})()`, rng.Intn(1<<30), rng.Intn(1<<30)))
-			case 1: // un-route one (keeps the wired set small)
-				c.Eval(fmt.Sprintf(`(function(){var s=[].slice.call(document.querySelectorAll('.punit-mod select'));if(!s.length)return;var e=s[%d%%s.length];e.selectedIndex=0;e.dispatchEvent(new Event('change',{bubbles:true}));})()`, rng.Intn(1<<30)))
-			case 2: // param level: WHISPER (50.5–52.5%% of ±4 ⇒ |lvl| ≤ ~0.2)
-				c.Eval(fmt.Sprintf(`(function(){var s=[].slice.call(document.querySelectorAll('.punit-mod')).filter(function(m){var l=m.querySelector('.u-modlbl');return l&&l.classList.contains('sym');});if(!s.length)return;var e=s[%d%%s.length].querySelector('input[type=range]');if(!e)return;var mn=parseFloat(e.min),mx=parseFloat(e.max);e.value=String(mn+(mx-mn)*%g);e.dispatchEvent(new Event('input',{bubbles:true}));})()`, rng.Intn(1<<30), 0.505+rng.Float64()*0.02))
-			default: // view level: DANCE (56–68%%) — zoom/pan/spin move to the music
-				c.Eval(fmt.Sprintf(`(function(){var s=[].slice.call(document.querySelectorAll('.punit-mod')).filter(function(m){var l=m.querySelector('.u-modlbl');return l&&!l.classList.contains('sym');});if(!s.length)return;var e=s[%d%%s.length].querySelector('input[type=range]');if(!e)return;var mn=parseFloat(e.min),mx=parseFloat(e.max);e.value=String(mn+(mx-mn)*%g);e.dispatchEvent(new Event('input',{bubbles:true}));})()`, rng.Intn(1<<30), 0.56+rng.Float64()*0.12))
+			case 0: // route something: press an unlit pin
+				c.Eval(fmt.Sprintf(modMxJS+`var p=MX.pins(":not(.on)");if(p.length)p[%d%%p.length].click();})()`, rng.Intn(1<<30)))
+			case 1: // un-route one (keeps the wired set small): press a lit pin
+				c.Eval(fmt.Sprintf(modMxJS+`var p=MX.pins(".on");if(p.length)p[%d%%p.length].click();})()`, rng.Intn(1<<30)))
+			case 2: // parameter depth: WHISPER (50.5–52.5%% of ±4 ⇒ |depth| ≤ ~0.2)
+				c.Eval(fmt.Sprintf(modMxJS+`var p=MX.pins(".on:not([data-view])");if(p.length)MX.depth(p[%d%%p.length].dataset.col,%g);})()`, rng.Intn(1<<30), 0.505+rng.Float64()*0.02))
+			default: // view depth: DANCE (56–68%%) — zoom/pan/spin move to the music
+				c.Eval(fmt.Sprintf(modMxJS+`var p=MX.pins(".on[data-view]");if(p.length)MX.depth(p[%d%%p.length].dataset.col,%g);})()`, rng.Intn(1<<30), 0.56+rng.Float64()*0.12))
 			}
 		default: // motion & texture monkey (no speaker-output switches)
 			switch rng.Intn(10) {
@@ -392,22 +394,15 @@ func runPerformance(c *cdp.Client) {
 			}
 		}
 		step++
-		// Twice per performance: hard-route the POSITION mod group (X/Y/zoom)
-		// at dance level so the model demonstrably moves to the music.
+		// Twice per performance: hard-route the position columns (pan X, pan Y,
+		// zoom) at dance level so the model demonstrably moves to the music.
 		if elapsed := time.Since(start); (posRouted == 0 && elapsed > 40*time.Second) || (posRouted == 1 && elapsed > 150*time.Second) {
 			posRouted++
-			c.Eval(`(function(){
-			  var secs=[].slice.call(document.querySelectorAll('.modules > .sect'));
-			  var pos=secs.filter(function(s){var h=s.querySelector('.sect-hdr');return h&&h.textContent.trim()==='Position';})[0];
-			  if(!pos)return; var mm=pos.nextElementSibling;
-			  while(mm&&!(mm.classList&&mm.classList.contains('modmodule')))mm=mm.nextElementSibling;
-			  if(!mm)return;
-			  [].forEach.call(mm.querySelectorAll('.punit-mod'),function(card,i){
-			    var sel=card.querySelector('select'), lv=card.querySelector('input[type=range]');
-			    if(sel&&sel.options.length>1){sel.selectedIndex=1+(i%(sel.options.length-1));sel.dispatchEvent(new Event('change',{bubbles:true}));}
-			    if(lv){var mn=parseFloat(lv.min),mx=parseFloat(lv.max);lv.value=String(mn+(mx-mn)*0.63);lv.dispatchEvent(new Event('input',{bubbles:true}));}
-			  });
-			})()`)
+			c.Eval(modMxJS + `["view-panx","view-pany","view-zoom"].forEach(function(col,i){
+			  var p=document.querySelector('#mod-matrix .mxpin[data-col="'+col+'"][data-src="'+["mono","L","R"][i%3]+'"]');
+			  if(p&&!p.classList.contains("on"))p.click();
+			  MX.depth(col,0.63);
+			});})()`)
 			fmt.Println("  position group routed to audio")
 		}
 		// Supervisor: closed-loop screen feedback every ~5s — the monkeys must
@@ -428,7 +423,8 @@ func runPerformance(c *cdp.Client) {
 				case bright < 0.0006 || bb.Dx() < b.Dx()/14:
 					verdict = "RECOVER"
 					c.Eval(`(function(){
-					  [].forEach.call(document.querySelectorAll('.punit-mod input[type=range]'),function(e){e.value=String((parseFloat(e.min)+parseFloat(e.max))/2);e.dispatchEvent(new Event('input',{bubbles:true}));});
+					  var d=document.getElementById('modmx-depth');
+					  [].forEach.call(document.querySelectorAll('#mod-matrix .mxpin.on'),function(p){var l=document.querySelector('#mod-matrix .mxleg[data-col="'+p.dataset.col+'"]');if(l)l.click();if(d){d.value='0';d.dispatchEvent(new Event('input',{bubbles:true}));}});
 					  [].forEach.call(document.querySelectorAll('#params input[type=range]'),function(e){e.value=e.defaultValue;e.dispatchEvent(new Event('input',{bubbles:true}));});
 					  ['pan-x','pan-y','camera-zoom'].forEach(function(id){var e=document.getElementById(id);if(e){e.value='0';e.dispatchEvent(new Event('input',{bubbles:true}));}});
 					})()`)
@@ -470,3 +466,14 @@ func randGradMap(rng *rand.Rand) int {
 	// is taken out of it.
 	return 2 + rng.Intn(3)
 }
+
+// modMxJS opens a page-side function with MX, the demo's hands on the Mod
+// matrix: its pins (those that route something, narrowed by a selector), and
+// a column's depth set to a fraction of the DPTH knob's travel — by selecting
+// the column, as a hand would, and turning the knob. Callers close it with
+// "})()".
+const modMxJS = `(function(){var MX={` +
+	`pins:function(s){return [].slice.call(document.querySelectorAll('#mod-matrix .mxpin[data-col]'+(s||'')));},` +
+	`depth:function(col,f){var l=document.querySelector('#mod-matrix .mxleg[data-col="'+col+'"]');if(l)l.click();` +
+	`var e=document.getElementById('modmx-depth');if(!e)return;var mn=parseFloat(e.min),mx=parseFloat(e.max);` +
+	`e.value=String(mn+(mx-mn)*f);e.dispatchEvent(new Event('input',{bubbles:true}));}};`

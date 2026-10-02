@@ -240,7 +240,6 @@ func markPersistSuspended(on bool) {
 		persistTitle = lbl.Call("getAttribute", "title").String()
 		persistTitleRead = true
 	}
-	lbl.Get("classList").Call("toggle", "split-dim", on)
 	if on {
 		lbl.Call("setAttribute", "title",
 			"Suspended while Fore is mid-range: the model is drawn twice, once for "+

@@ -381,23 +381,20 @@ func TestPolarityPulseHasNoNetOffset(t *testing.T) {
 
 // ── The tables ───────────────────────────────────────────────────────────
 
-// A dial whose ring does not match its options is discarded whole by the panel
-// builder, which then falls back to the full names and draws the knob over the
-// top of them.
+// A name or description missing, or one standing for the wrong signal, is a
+// stimulus reported as another.
 func TestSignalTablesLineUp(t *testing.T) {
 	if len(TestSignalNames) != TestSignalCount {
 		t.Errorf("%d names for %d signals", len(TestSignalNames), TestSignalCount)
 	}
-	if len(TestSignalRing) != TestSignalCount {
-		t.Errorf("%d ring labels for %d signals", len(TestSignalRing), TestSignalCount)
+	if len(TestSignalShort) != TestSignalCount {
+		t.Errorf("%d short names for %d signals", len(TestSignalShort), TestSignalCount)
 	}
 	if len(TestSignalDescs) != TestSignalCount {
 		t.Errorf("%d descriptions for %d signals", len(TestSignalDescs), TestSignalCount)
 	}
-	// Each dial position gets its OWN tooltip. Two positions sharing one
-	// description is the failure this is here to catch: a label with nothing of
-	// its own to say falls through to the knob's tooltip, and eleven positions
-	// that all explain the knob explain none of themselves.
+	// Each signal says what it is FOR in its own words: two sharing one
+	// description is two that explain nothing of themselves.
 	seen := map[string]int{}
 	for i, d := range TestSignalDescs {
 		if d == "" {
@@ -407,11 +404,6 @@ func TestSignalTablesLineUp(t *testing.T) {
 			t.Errorf("signals %d and %d share the description %q", j, i, d)
 		}
 		seen[d] = i
-	}
-	for i, s := range TestSignalRing {
-		if len(s) > 5 {
-			t.Errorf("ring label %d %q is %d runes; five is what fits around the dial", i, s, len(s))
-		}
 	}
 }
 

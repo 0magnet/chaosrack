@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/audiosrc"
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/skirt"
 	"math"
@@ -177,10 +178,11 @@ func addPianoKeys(freq js.Value) js.Value {
 	return wrap
 }
 
-// The Generator module: three independent oscillators (X / Y / Z), each a
-// concentric knob (outer ring = waveform, inner = frequency) with a Hz LED and
-// a speaker-channel dropdown. It drives the shared FuncGen (scope / features)
-// and, when "Listen" is on, a parallel Web Audio graph for the speakers.
+// The Generator modules: four independent oscillators, Gen 1 to 4, each a
+// frequency knob with a Hz LED, a level with its envelope, and a waveform
+// knob with buttons 1 to 4 for the channels it is patched to, and inv. Each
+// drives the shared FuncGen, which the bus patches into the rack's signal, and
+// a parallel Web Audio graph for the speakers.
 
 // genOscSpec is one oscillator of the signal generator: which DOM ids belong to it,
 // which slot of the function generator it drives, and where its two knobs sit
@@ -194,38 +196,103 @@ func addPianoKeys(freq js.Value) js.Value {
 // is now the only copy, and Reset All restores through the control rather than
 // by writing remembered numbers back into the DOM.
 type genOscSpec struct {
-	id   string  // DOM id prefix: "gen-x" → gen-x-freq, gen-x-lvl, gen-x-out…
+	id   string  // DOM id prefix: "gen-x" → gen-x-freq, gen-x-lvl, gen-x-wave…
 	idx  int     // slot in the function generator
 	freq float64 // default frequency knob position, in semitones above A0
 	lvl  float64 // default level, 0..100
+	wave string  // where its waveform knob starts: "0", a sine, or "off"
 }
 
-// genOscs are the three, in panel order.
+// genOscs are the oscillators, by their index in the function generator
+// (genOscs[i].idx == i: the audio graph looks them up by index).
 var genOscs = []genOscSpec{
-	{id: "gen-x", idx: 0, freq: 34, lvl: 80},
-	{id: "gen-y", idx: 1, freq: 41, lvl: 80},
-	{id: "gen-z", idx: 2, freq: 29, lvl: 80},
+	// Playing from the start and patched nowhere, so each scope beside one
+	// shows it, and nothing reaches the channels until somebody patches it.
+	{id: "gen-x", idx: 0, freq: 34, lvl: 80, wave: "0"},
+	{id: "gen-y", idx: 1, freq: 41, lvl: 80, wave: "0"},
+	{id: "gen-z", idx: 2, freq: 29, lvl: 80, wave: "0"},
+	// V starts silent (audiosrc.NewFuncGen says why), on B3: with X, Y and
+	// Z, a G-major chord.
+	{id: "gen-v", idx: 3, freq: 38, lvl: 0, wave: "off"},
 }
 
-// waveSVG holds a tiny glyph per waveform (index matches the wave <select>:
-// 0 sine, 1 triangle, 2 square, 3 saw, 4 shift-register noise), stroked in
-// currentColor so CSS can dim the ring and light the active one.
+// key is the link key of the generator's part named p: g1f is Gen 1's
+// frequency.
+func (o genOscSpec) key(p string) string { return "g" + o.letter() + p }
+
+// letter is the oscillator's name on the panel, "1" for gen-x: the generators
+// are Gen 1 to 4, by their index, and keep their old letters in their ids.
+func (o genOscSpec) letter() string { return strconv.Itoa(o.idx + 1) }
+
+// genWaveOff is which generators have their waveform knob at OFF: playing
+// nothing, which a scope probing one of them shows (rackScope.feed).
+var genWaveOff [audiosrc.OscCount]bool
+
+// genWaves are the waveform ring's positions, index = audiosrc.Wave*: the
+// short name on the readout and what each is. The four stimuli's say what
+// the library says they are for (audiosrc.TestSignalDescs).
+var genWaves = func() []struct{ name, help string } {
+	w := []struct{ name, help string }{
+		{"sine", doc("gen-wave=sine")},
+		{"tri", doc("gen-wave=tri")},
+		{"sqr", doc("gen-wave=sqr")},
+		{"saw", doc("gen-wave=saw")},
+		{"noise", doc("gen-wave=noise")},
+		{"white", ""}, {"pink", ""}, {"swp", ""}, {"pulse", ""},
+	}
+	for i := range w {
+		if sig, ok := audiosrc.WaveStim(i); ok {
+			w[i].help = audiosrc.TestSignalDescs[sig] + ". The freq knob does not change it"
+		}
+	}
+	return w
+}()
+
+// fillSelect gives a hidden select its options.
+func fillSelect(sel js.Value, def string, vals, texts, titles []string) {
+	for i, v := range vals {
+		opt := dom.Doc.Call("createElement", "option")
+		opt.Set("value", v)
+		opt.Set("textContent", texts[i])
+		opt.Set("title", titles[i])
+		if v == def {
+			opt.Set("selected", true)
+		}
+		sel.Call("appendChild", opt)
+	}
+	sel.Set("value", def)
+}
+
+// waveSVG holds a tiny glyph per waveform (index = audiosrc.Wave*: sine,
+// triangle, square, saw, shift-register noise, then the stimuli white, pink,
+// sweep and pulse), stroked in currentColor so CSS can dim the ring and light
+// the active one.
 var waveSVG = []string{
 	`<svg viewBox="0 0 24 12"><path d="M1,6 C3.2,1 5.8,1 8,6 C10.2,11 12.8,11 15,6 C17.2,1 19.8,1 22,6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
 	`<svg viewBox="0 0 24 12"><path d="M2,10 L7,2 L12,10 L17,2 L22,10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
 	`<svg viewBox="0 0 24 12"><path d="M2,10 L2,3 L8.5,3 L8.5,10 L15,10 L15,3 L21.5,3 L21.5,10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
 	`<svg viewBox="0 0 24 12"><path d="M2,10 L8,3 L8,10 L14,3 L14,10 L20,3 L20,10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
 	`<svg viewBox="0 0 24 12"><path d="M1,7 L3,7 L3,3 L5,3 L5,9 L8,9 L8,4 L10,4 L10,2 L13,2 L13,8 L15,8 L15,5 L18,5 L18,10 L20,10 L20,6 L23,6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>`,
+	// white: dense and even
+	`<svg viewBox="0 0 24 12"><path d="M1,6 L2,3 L3,9 L4,2 L5,8 L6,4 L7,10 L8,3 L9,7 L10,1 L11,9 L12,5 L13,11 L14,2 L15,8 L16,4 L17,9 L18,3 L19,7 L20,2 L21,10 L22,5 L23,6" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>`,
+	// pink: the same, its highs rolled off
+	`<svg viewBox="0 0 24 12"><path d="M1,7 C3,2 4,10 6,5 S9,2 11,7 S14,10 16,6 S19,1 21,5 S22,8 23,6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
+	// sweep: a sine rising in pitch
+	`<svg viewBox="0 0 24 12"><path d="M1,6 C2.5,0 5,0 7,6 C8.5,12 10,12 11,6 C12,1 13,1 14,6 C14.8,11 15.6,11 16.3,6 C16.9,2 17.5,2 18,6 C18.4,10 18.9,10 19.3,6 C19.7,3 20.1,3 20.4,6 C20.7,9 21,9 21.3,6 C21.6,4 21.9,4 22.2,6" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`,
+	// pulse: a spike one way, a long shallow recovery the other
+	`<svg viewBox="0 0 24 12"><path d="M1,8 L4,8 L5,1 L6,8 Q9,11 12,8 L13,8 L14,1 L15,8 Q18,11 21,8 L23,8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>`,
 }
 
-// addSelectorWaveDial adds an inner ring of waveform glyphs around a selector
-// stack (one per option, at the knob's detent angles), lighting the active one
-// and clickable to select — a graphic counterpart to addSelectorLabels for the
-// waveform inner knob.
+// addSelectorWaveDial adds a ring of waveform glyphs around a selector stack
+// (one per option, at the knob's detent angles, all the way round for an
+// endless one), lighting the active one and clickable to select — a graphic
+// counterpart to addSelectorLabels for a waveform knob.
 func addSelectorWaveDial(stack, sel js.Value, off float64) {
 	// One glyph per OPTION (not per known waveform) — a select offering only
-	// the periodic waves must not grow a phantom noise detent.
-	n := min(sel.Get("options").Get("length").Int(), len(waveSVG))
+	// the periodic waves must not grow a phantom noise detent. An option that
+	// is not a waveform (OFF) is its name in type.
+	opts := sel.Get("options")
+	n := min(opts.Get("length").Int(), len(waveSVG)+1)
 	dial := dom.Doc.Call("createElement", "span")
 	dial.Set("className", "knob-dial")
 	circle := dom.Doc.Call("createElement", "span")
@@ -236,11 +303,15 @@ func addSelectorWaveDial(stack, sel js.Value, off float64) {
 	dial.Call("appendChild", circle)
 	els := make([]js.Value, n)
 	for i := range n {
-		deg := -skirt.SweepDeg/2 + skirt.SweepDeg*float64(i)/float64(n-1)
-		l, t := dialLabelPos(deg, off)
+		l, t := dialLabelPos(labelDeg(sel, i, n), off)
 		ic := dom.Doc.Call("createElement", "span")
-		ic.Set("className", "knob-dial-wave clickable")
-		ic.Set("innerHTML", waveSVG[i])
+		if w, err := strconv.Atoi(opts.Index(i).Get("value").String()); err == nil && w >= 0 && w < len(waveSVG) {
+			ic.Set("className", "knob-dial-wave clickable")
+			ic.Set("innerHTML", waveSVG[w])
+		} else {
+			ic.Set("className", "knob-dial-lab clickable")
+			ic.Set("textContent", opts.Index(i).Get("text").String())
+		}
 		ic.Get("style").Set("left", l)
 		ic.Get("style").Set("top", t)
 		dialPosTitle(ic, sel, i)
@@ -257,6 +328,7 @@ func addSelectorWaveDial(stack, sel js.Value, off float64) {
 		ci := sel.Get("selectedIndex").Int()
 		for j, e := range els {
 			e.Get("classList").Call("toggle", "wave-active", j == ci)
+			e.Get("classList").Call("toggle", "lab-active", j == ci)
 		}
 	}
 	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any { hi(); return nil }))
@@ -279,12 +351,10 @@ func waveTypeName(w int) string {
 	}
 }
 
-// buildGeneratorModule wires the three per-oscillator modules. Each fills its
+// buildGeneratorModule wires the per-oscillator modules. Each fills its
 // 1-unit module with three cells: a frequency knob (log, equal turn per octave)
-// with a Hz LED, a level knob with a % LED, and a dual concentric knob whose
-// outer ring selects the speaker channel and whose inner knob selects the
-// waveform (shown in the cell's readout). The channel ring's "off" position
-// mutes that oscillator (no separate Listen).
+// with a Hz LED, a level knob with a % LED, and the waveform knob with the
+// channel buttons and inv under it and solo, to hear only it, beside it.
 func buildGeneratorModule() {
 	for _, osc := range genOscs {
 		id, idx := osc.id, osc.idx
@@ -292,7 +362,6 @@ func buildGeneratorModule() {
 		wave := dom.Doc.Call("getElementById", id+"-wave")
 		fstack := dom.Doc.Call("getElementById", id+"-fstack")
 		lvl := dom.Doc.Call("getElementById", id+"-lvl")
-		out := dom.Doc.Call("getElementById", id+"-out")
 		lstack := dom.Doc.Call("getElementById", id+"-lstack")
 		ostack := dom.Doc.Call("getElementById", id+"-ostack")
 		if !freq.Truthy() || !fstack.Truthy() {
@@ -313,17 +382,47 @@ func buildGeneratorModule() {
 		// One-octave piano strip under the knob, lighting the current note.
 		fstack.Get("parentNode").Get("parentNode").Call("appendChild", addPianoKeys(freq))
 
-		// Level cell: single level knob with a 0..100 value dial; the LED is the
-		// descriptor's, in the same zero-padded, fixed-decimal style as the rest.
-		lstack.Call("appendChild", makeKnob(lvl, js.Undefined(), true, false, true))
+		// Level cell: the level, its envelope's ATTACK and DECAY minis under it
+		// (genLevelStack), and between the two the env button that repeats it.
+		lstack.Call("appendChild", genLevelStack(osc, lvl))
+		lcell := lstack.Get("parentNode").Get("parentNode")
+		lcell.Get("classList").Call("add", "gen-lvl-cell")
+		ecol := trioColumn(trioPrograms[id+"-env"].legends())
+		ecol.Call("setAttribute", "data-param", id+"-env")
+		if row := lcell.Call("querySelector", ".minirow"); row.Truthy() {
+			row.Call("insertBefore", ecol, row.Get("lastChild"))
+		}
 
-		// Out cell: dual concentric knob — outer ring = speaker channel (labeled),
-		// inner = waveform. Two dial rings: the sink labels (outer) and a ring of
-		// waveform glyphs (inner) that lights the selected wave.
-		ostk := stackKnobs(selk.makeSelectorKnob(out), selk.makeSelectorKnob(wave))
-		addSelectorLabels(ostk, []string{"off", "L", "R", "L+R"}, out)
-		addSelectorWaveDial(ostk, wave, 38)
+		// Out cell: the waveform on one knob, OFF at the bottom and the
+		// waves round the ring as glyphs, and beside it solo. Where the
+		// generator goes is the Mixer's.
+		wv, wt := []string{"off"}, []string{"off"}
+		wh := []string{"OFF — Gen " + osc.letter() + " plays nothing"}
+		for i, w := range genWaves {
+			wv, wt, wh = append(wv, strconv.Itoa(i)), append(wt, w.name), append(wh, w.help)
+		}
+		fillSelect(wave, osc.wave, wv, wt, wh)
+		ostk := soloKnob(wave)
+		addSelectorWaveDial(ostk, wave, 44)
 		ostack.Call("appendChild", ostk)
+		cell := ostack.Get("parentNode").Get("parentNode")
+		col := trioColumn(trioPrograms[id+"-solo"].legends())
+		col.Call("setAttribute", "data-param", id+"-solo")
+		cell.Call("appendChild", col)
+		// Turning a generator's knob while the Mixer has it nowhere pins it
+		// (mixAutoPin). In the capture phase, because a knob stops its own
+		// pointer and wheel events from going any further up than itself.
+		if m := dom.Doc.Call("getElementById", id+"-module"); m.Truthy() {
+			for _, ev := range []string{"pointerdown", "wheel"} {
+				m.Call("addEventListener", ev, dom.FuncOf(func(_ js.Value, a []js.Value) any {
+					if a[0].Get("target").Call("closest", genTouchParts).Truthy() &&
+						!genWaveOff[idx] && aud.fg().Amp(idx) > 0 && mixAutoPin(idx) {
+						aud.showAudioStatus(docf("gen-autopin", "gen", osc.letter()))
+					}
+					return nil
+				}), map[string]any{"passive": true, "capture": true})
+			}
+		}
 
 		// The two value knobs go through the descriptor path, which is what
 		// gives them their LED formatting, typed entry, wheel nudge, reset and
@@ -339,6 +438,7 @@ func buildGeneratorModule() {
 		adoptDescControl(ControlDesc{
 			ID: id + "-freq", Label: "freq", Min: 0, Max: float64(genSemitones), Step: 1, Def: osc.freq,
 			LEDID: id + "-led", ResetID: "rst-" + id + "-freq",
+			PermaKey: osc.key("f"),
 			Apply: func(v float64) {
 				aud.fg().SetFreq(idx, freqFromKnob(v))
 				gen.audioUpdate(idx)
@@ -350,64 +450,119 @@ func buildGeneratorModule() {
 		adoptDescControl(ControlDesc{
 			ID: id + "-lvl", Label: "lvl", Min: 0, Max: 100, Step: 1, Def: osc.lvl,
 			LEDID: id + "-lvl-led", ResetID: "rst-" + id + "-lvl",
+			PermaKey: osc.key("l"),
 			Apply: func(v float64) {
 				aud.fg().SetAmp(idx, v/100)
 				gen.audioUpdate(idx)
 			},
 		})
-		// The two rings go through the descriptor path for the same reason the
-		// two knobs above it do. They were the last part of an oscillator with
-		// no way back: the freq and level knobs had reset buttons, the routing
-		// and the waveform sharing the cell beside them had none, and Reset All
-		// reached them only because it named them by hand.
-		//
-		// Channel ring: off mutes; any other value plays. Starts/stops the audio
-		// graph as needed (no separate Listen toggle).
+		// The waveform knob goes through the descriptor path for the same
+		// reason the two knobs above do. It has no reset of its own: OFF is
+		// a position on its ring, at the bottom, and Reset All still puts it
+		// back.
 		adoptDescControl(ControlDesc{
-			ID: id + "-out", Label: "out", IsSelect: true, SelectDef: "off",
-			ResetID:     "rst-" + id + "-out",
-			SelectApply: func(string) { gen.audioSync() },
-		})
-		adoptDescControl(ControlDesc{
-			ID: id + "-wave", Label: "wave", IsSelect: true, SelectDef: "0",
-			ResetID: "rst-" + id + "-out",
+			ID: id + "-wave", Label: "wave", IsSelect: true, SelectDef: osc.wave,
+			PermaKey: osc.key("w"),
 			SelectApply: func(v string) {
+				genWaveOff[idx] = v == "off"
+				aud.fg().SetOn(idx, v != "off")
 				if w, err := strconv.Atoi(v); err == nil {
 					aud.fg().SetWave(idx, w)
-					gen.audioUpdate(idx)
 				}
+				gen.audioSync()
 			},
 		})
-		// Push HTML defaults into the FuncGen.
+		// Push the markup's defaults into the generator.
 		aud.fg().SetFreq(idx, freqFromKnob(fgFloat(freq)))
 		aud.fg().SetAmp(idx, fgFloat(lvl)/100)
 	}
+	adoptDescControl(ControlDesc{
+		ID: "gen-solo", Label: "solo", IsSelect: true, SelectDef: "",
+		PermaKey: "gso",
+		SelectApply: func(v string) {
+			solo := -1
+			for _, o := range genOscs {
+				if o.id == "gen-"+v {
+					solo = o.idx
+				}
+			}
+			aud.fg().SetSolo(solo)
+			gen.audioSync()
+			for _, o := range genOscs {
+				lightTrios(o.id + "-solo")
+			}
+		},
+	})
+	syncTrios()
 }
 
-// generator is the signal generator's audio graph.
+// genHeard reports whether generator i reaches the speakers: pinned to one
+// on the Mixer, switched on, and not silenced by another's solo.
+func genHeard(i int) bool {
+	if genWaveOff[i] || !aud.fg().Audible(i) {
+		return false
+	}
+	return mixOnSpeakers(mixSrcIndex("g" + strconv.Itoa(i+1)))
+}
+
+// setSelect sets a hidden select the way its knob or button would.
+func setSelect(id, v string) {
+	if s := dom.Doc.Call("getElementById", id); s.Truthy() {
+		s.Set("value", v)
+		s.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+	}
+}
+
+// The solo button, a column of its own (trioColumn).
+func init() {
+	for _, o := range genOscs {
+		letter := o.id[len("gen-"):] // the solo select's value
+		trioPrograms[o.id+"-solo"] = trioProgram{
+			keys: []string{"solo"},
+			help: []string{docf("gen-solo-btn", "gen", o.letter())},
+			press: func(int) {
+				v := letter
+				if s := dom.Doc.Call("getElementById", "gen-solo"); s.Truthy() && s.Get("value").String() == letter {
+					v = ""
+				}
+				setSelect("gen-solo", v)
+			},
+			lit: func() int {
+				if s := dom.Doc.Call("getElementById", "gen-solo"); s.Truthy() && s.Get("value").String() == letter {
+					return 0
+				}
+				return -1
+			},
+		}
+	}
+}
+
+// genTouchParts are the parts of a generator that a hand turns or presses.
+const genTouchParts = ".knob, .knobstack, .gen-piano, .numin, .knob-dial-wave, .knob-dial-lab"
+
+// generator is the signal generator's audio graph: the speakers' copy of the
+// generators. The rack's own signal is audiosrc.Bus's; this plays the same
+// parameters out loud, each generator into its column of the Mixer, which
+// puts it on the speakers its pins say.
 type generator struct {
 	ctx      js.Value
-	osc      [3]js.Value
-	kind     [3]string // "osc" or "noise" — which node type gen.osc[i] holds
-	gain     [3]js.Value
-	pan      [3]js.Value
-	envGain  js.Value // Envelope module's master shaper (pans → env → out)
-	noiseBuf js.Value // shared 2-s LFSR noise loop
+	osc      [audiosrc.OscCount]js.Value
+	kind     [audiosrc.OscCount]int // nodeKind of gen.osc[i], -1 for none
+	gain     [audiosrc.OscCount]js.Value
+	env      [audiosrc.OscCount]js.Value // each one's envelope (genEnvTick), level → env → the Mixer
+	noiseBuf js.Value                    // shared 2-s LFSR noise loop
+	stimBufs map[int]js.Value            // one loop per stimulus wave, made on first use
 	running  bool
 }
 
 var gen generator
 
-// audioSync starts the Web Audio graph if any oscillator is routed to a
-// channel (not "off"), stops it if none are, and otherwise just refreshes the
-// running nodes.
+// audioSync starts the Web Audio graph if any oscillator is heard (genHeard),
+// stops it if none is, and otherwise just refreshes the running nodes.
 func (g *generator) audioSync() {
 	found := false
-	for _, osc := range genOscs {
-		id := osc.id
-		if o := dom.Doc.Call("getElementById", id+"-out"); o.Truthy() && o.Get("value").String() != "off" {
-			found = true
-		}
+	for i := range genOscs {
+		found = found || genHeard(i)
 	}
 	switch {
 	case found && !g.running:
@@ -415,7 +570,7 @@ func (g *generator) audioSync() {
 	case !found && g.running:
 		g.audioStop()
 	case g.running:
-		for i := range 3 {
+		for i := range audiosrc.OscCount {
 			g.audioUpdate(i)
 		}
 	}
@@ -453,15 +608,33 @@ func (g *generator) noiseBuffer(ctx js.Value) js.Value {
 	return buf
 }
 
-// ensureNode makes gen.osc[i] the right node type for the waveform —
-// OscillatorNode for the periodic waves, a looped AudioBufferSourceNode of
-// LFSR noise for wave 4 — replacing the node when the kind changes.
-func (g *generator) ensureNode(i int, noise bool) {
-	want := "osc"
-	if noise {
-		want = "noise"
+// stimBuffer builds (once per wave) a loop of a stimulus wave, synthesized by
+// the same library the rack's signal plays it from (audiosrc.StimLoop), so
+// the speakers and the scope have the one definition of pink noise.
+func (g *generator) stimBuffer(ctx js.Value, w int) js.Value {
+	if b, ok := g.stimBufs[w]; ok {
+		return b
 	}
-	if g.kind[i] == want && g.osc[i].Truthy() {
+	sr := int(ctx.Get("sampleRate").Float())
+	pts := audiosrc.StimLoop(w, sr)
+	buf := ctx.Call("createBuffer", 1, len(pts), sr)
+	f32 := js.Global().Get("Float32Array").New(len(pts))
+	js.CopyBytesToJS(js.Global().Get("Uint8Array").New(f32.Get("buffer")), sliceToByteSlice(pts))
+	buf.Call("copyToChannel", f32, 0)
+	if g.stimBufs == nil {
+		g.stimBufs = map[int]js.Value{}
+	}
+	g.stimBufs[w] = buf
+	return buf
+}
+
+// ensureNode makes gen.osc[i] the right node for wave w — an OscillatorNode
+// for the periodic waves, a looped AudioBufferSourceNode of LFSR noise or of
+// a stimulus for the others — replacing the node when it was made for
+// another kind.
+func (g *generator) ensureNode(i, w int) {
+	k := nodeKind(w)
+	if g.kind[i] == k && g.osc[i].Truthy() {
 		return
 	}
 	if g.osc[i].Truthy() {
@@ -469,44 +642,57 @@ func (g *generator) ensureNode(i int, noise bool) {
 		g.osc[i].Call("disconnect")
 	}
 	var node js.Value
-	if noise {
+	_, stim := audiosrc.WaveStim(w)
+	switch {
+	case w == audiosrc.WaveLFSR:
 		node = g.ctx.Call("createBufferSource")
 		node.Set("buffer", g.noiseBuffer(g.ctx))
 		node.Set("loop", true)
-	} else {
+	case stim:
+		node = g.ctx.Call("createBufferSource")
+		node.Set("buffer", g.stimBuffer(g.ctx, w))
+		node.Set("loop", true)
+	default:
 		node = g.ctx.Call("createOscillator")
 	}
 	node.Call("connect", g.gain[i])
 	node.Call("start")
-	g.osc[i], g.kind[i] = node, want
+	g.osc[i], g.kind[i] = node, k
 }
 
-// audioStart builds the Web Audio graph (one OscillatorNode per generator →
-// gain → stereo panner → speakers) and starts it, mirroring the FuncGen params.
+// nodeKind is which node a wave plays through: the periodic waves share an
+// OscillatorNode, told its type; every other wave has a loop of its own.
+func nodeKind(w int) int {
+	if w < audiosrc.WaveLFSR {
+		return audiosrc.WaveSine
+	}
+	return w
+}
+
+// audioStart builds the Web Audio graph (one node per generator → level →
+// the Envelope → its column of the Mixer) and starts it, mirroring the
+// generators' params.
 func (g *generator) audioStart() {
 	if g.running {
 		return
 	}
 	// We're inside a user-gesture handler, so the acquire's resume is allowed
 	// under the browser autoplay policy.
-	g.ctx = acquireAudioCtx("gen")
+	g.ctx = mixAcquire()
 	if !g.ctx.Truthy() {
 		return
 	}
-	// Pans feed the Envelope module's shaper gain, then the speakers.
-	g.envGain = g.ctx.Call("createGain")
-	g.envGain.Call("connect", g.ctx.Get("destination"))
-	for i := range 3 {
+	for i := range audiosrc.OscCount {
 		gain := g.ctx.Call("createGain")
-		pan := g.ctx.Call("createStereoPanner")
-		gain.Call("connect", pan)
-		pan.Call("connect", g.envGain)
-		g.gain[i], g.pan[i] = gain, pan
-		g.kind[i] = ""
-		g.ensureNode(i, aud.fg().Wave(i) == 4)
+		env := g.ctx.Call("createGain") // its envelope (genEnvTick)
+		gain.Call("connect", env)
+		env.Call("connect", mixIn("g"+strconv.Itoa(i+1)))
+		g.gain[i], g.env[i] = gain, env
+		g.kind[i] = -1
+		g.ensureNode(i, aud.fg().Wave(i))
 	}
 	g.running = true
-	for i := range 3 {
+	for i := range audiosrc.OscCount {
 		g.audioUpdate(i)
 	}
 }
@@ -515,57 +701,48 @@ func (g *generator) audioStop() {
 	if !g.running {
 		return
 	}
-	for i := range 3 {
+	for i := range audiosrc.OscCount {
 		if g.osc[i].Truthy() {
 			g.osc[i].Call("stop")
 			g.osc[i].Call("disconnect")
 		}
-		if g.pan[i].Truthy() {
-			g.pan[i].Call("disconnect")
+		for _, n := range []js.Value{g.gain[i], g.env[i]} {
+			if n.Truthy() {
+				n.Call("disconnect")
+			}
 		}
-		g.osc[i], g.gain[i], g.pan[i] = js.Undefined(), js.Undefined(), js.Undefined()
-		g.kind[i] = ""
-	}
-	if g.envGain.Truthy() {
-		g.envGain.Call("disconnect")
-		g.envGain = js.Undefined()
+		g.osc[i], g.gain[i], g.env[i] = js.Undefined(), js.Undefined(), js.Undefined()
+		g.kind[i] = -1
 	}
 	g.ctx = js.Undefined()
 	g.running = false
-	releaseAudioCtx("gen")
+	mixRelease()
 }
 
-// audioUpdate pushes oscillator i's waveform / frequency / channel routing to
-// its Web Audio nodes.
+// audioUpdate pushes oscillator i's waveform, frequency and level to its
+// Web Audio nodes.
 func (g *generator) audioUpdate(i int) {
 	if !g.running || !g.osc[i].Truthy() {
 		return
 	}
-	noise := aud.fg().Wave(i) == 4
-	g.ensureNode(i, noise)
-	if noise {
+	w := aud.fg().Wave(i)
+	g.ensureNode(i, w)
+	_, stim := audiosrc.WaveStim(w)
+	switch {
+	case w == audiosrc.WaveLFSR:
 		// The LFSR loop's clock tracks the freq knob via playback rate, the
 		// same 32× mapping the analysis path uses.
 		rate := aud.fg().Freq(i) * 32 / g.ctx.Get("sampleRate").Float()
 		g.osc[i].Get("playbackRate").Set("value", rate)
-	} else {
-		g.osc[i].Set("type", waveTypeName(aud.fg().Wave(i)))
+	case stim:
+		// A stimulus plays at its own rate.
+	default:
+		g.osc[i].Set("type", waveTypeName(w))
 		g.osc[i].Get("frequency").Set("value", aud.fg().Freq(i))
 	}
-	// Channel routing from the dropdown: off / L / R / both.
-	route := "off"
-	if o := dom.Doc.Call("getElementById", genOscs[i].id+"-out"); o.Truthy() {
-		route = o.Get("value").String()
+	level := 0.0
+	if genHeard(i) {
+		level = aud.fg().Amp(i) * 0.3 // headroom
 	}
-	gain, pan := 0.0, 0.0
-	switch route {
-	case "l":
-		gain, pan = aud.fg().Amp(i), -1
-	case "r":
-		gain, pan = aud.fg().Amp(i), 1
-	case "both":
-		gain, pan = aud.fg().Amp(i), 0
-	}
-	g.gain[i].Get("gain").Set("value", gain*0.3) // headroom
-	g.pan[i].Get("pan").Set("value", pan)
+	g.gain[i].Get("gain").Set("value", level)
 }

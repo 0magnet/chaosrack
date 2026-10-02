@@ -325,7 +325,7 @@ func (a *audioColor) window(mode string) ([]float32, int) {
 	}
 	src := aud.ensureAudioSource()
 	sr := 24000
-	if src != nil && src.SampleRate() > 0 {
+	if src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
 	tau := takens.TauSamples(emb.tau, sr)
@@ -377,7 +377,7 @@ const gradientSourceAudio = 4
 func (a *audioColor) stereoColorWindow() ([]float32, int) {
 	src := aud.ensureAudioSource()
 	sr := 24000
-	if src != nil && src.SampleRate() > 0 {
+	if src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
 	tau := takens.TauSamples(stereo.tau, sr)
@@ -487,7 +487,7 @@ func (a *audioColor) stereoColorWindowPair(mode string) ([]float32, []float32, i
 	}
 	src := aud.ensureAudioSource()
 	sr := 24000
-	if src != nil && src.SampleRate() > 0 {
+	if src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
 	tau := takens.TauSamples(stereo.tau, sr)

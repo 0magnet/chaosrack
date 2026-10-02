@@ -46,7 +46,7 @@ func (f *freqCounter) tick() {
 		return
 	}
 	src := aud.ensureAudioSource()
-	if src == nil || !src.Ready() || src.SampleRate() <= 0 {
+	if !src.Ready() || src.SampleRate() <= 0 {
 		return
 	}
 	if f.buf == nil {

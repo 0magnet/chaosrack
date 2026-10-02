@@ -3,7 +3,6 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"github.com/0magnet/chaosrack/pkg/takens"
 	"math"
@@ -143,10 +142,10 @@ var stereoPlans = [...]stereoPlan{
 // axis makes them a delay embedding of the pair, which is a different
 // figure answering a different question, so they are not called one.
 var stereoAxisNames = []string{
-	"L/R delay embedding — L, R, L(t−τ)",
-	"L/R goniometer — L, R, time sweep",
-	"mid/side delay embedding — M, S, M(t−τ)",
-	"mid/side goniometer — M, S, time sweep",
+	doc("p.stereo-axes=0"),
+	doc("p.stereo-axes=1"),
+	doc("p.stereo-axes=2"),
+	doc("p.stereo-axes=3"),
 }
 
 // stereoAxisRing is what fits AROUND the dial: five runes per position, and for
@@ -509,7 +508,7 @@ func stereoWiden(l, r, width float32) (float32, float32) {
 func (s *stereoInst) generate() {
 	src := aud.ensureAudioSource()
 	sr := 24000
-	if src != nil && src.SampleRate() > 0 {
+	if src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
 	tau := takens.TauSamples(s.tau, sr)
@@ -551,7 +550,7 @@ func (s *stereoInst) generate() {
 	}
 	nv := takensVerts(n)
 	vertices := sim.vertBuf[:nv*4]
-	if src == nil || !src.Ready() {
+	if !src.Ready() {
 		// Re-upload the previous frame rather than a cleared buffer, so the
 		// model does not flicker while the source spins up — and refit when
 		// audio arrives, since the mode-entry fit saw whatever was here.
@@ -779,7 +778,8 @@ func stereoCorrelation(l, r []float32) (float32, bool) {
 	return float32(c), true
 }
 
-// stereoReadout is the LED text for a measured state. Six characters at most,
+// stereoReadout is the readout text for a measured state: six characters at
+// most, the size of its display (appendReadout).
 // matching the Takens mode's "τ32 m4" — the cell is a third of a module wide.
 func stereoReadout(monoSrc, ok bool, corr float32) string {
 	if monoSrc {
@@ -856,34 +856,26 @@ func (s *stereoInst) showReadout(text string) {
 	}
 	s.readText = text
 	if s.readEl.Truthy() {
-		s.readEl.Set("textContent", text)
+		setDotText(s.readEl, text)
 	}
 }
 
-// appendReadout adds the correlation cell to the Stereo parameter grid.
-// Into the grid, not #params, for the reason appendTakensEstimate is: #params
-// stacks below the height-bounded grid and gets clipped.
-func (s *stereoInst) appendReadout(grid js.Value) {
-	card, top := newPunitCard("corr")
-
-	s.readEl = dom.Doc.Call("createElement", "span")
-	s.readEl.Set("className", "led counter-led")
-	s.readEl.Set("title", "Correlation between the two channels over the display window, as a goniometer's "+
-		"correlation meter reads it: +1.00 means the channels are identical and the figure is the diagonal "+
-		"line, 0 means they are unrelated and the figure is a round cloud, −1.00 means one is the other's "+
-		"polarity inverted (and the difference disappears if the mix is summed to mono). "+
-		"\"mono\" means the source has only one channel, so there is no stereo relationship to draw. "+
-		"\"r --\" means silence, or one dead channel: nothing to correlate.")
+// appendReadout adds the correlation readout to the model's readout line
+// (liveReadoutHost).
+func (s *stereoInst) appendReadout(host js.Value) {
 	// Seeded from the last measurement, not from a placeholder: the panel is
 	// rebuilt on every mode change and every module toggle, and a cell that
 	// came back reading "r --" over a live stereo source would be reporting
 	// silence that is not there. s.readText is cleared so the next frame
 	// writes into the NEW element rather than skipping it as unchanged.
 	s.readText = ""
-	s.readEl.Set("textContent", stereoReadout(s.monoSrc, s.corrOK, s.corr))
-	top.Call("appendChild", s.readEl)
-
-	grid.Call("appendChild", card)
+	s.readEl = liveReadout(host, "corr", dispFullChars, stereoReadout(s.monoSrc, s.corrOK, s.corr),
+		"Correlation between the two channels over the display window, as a goniometer's "+
+			"correlation meter reads it: +1.00 means the channels are identical and the figure is the diagonal "+
+			"line, 0 means they are unrelated and the figure is a round cloud, −1.00 means one is the other's "+
+			"polarity inverted (and the difference disappears if the mix is summed to mono). "+
+			"\"mono\" means the source has only one channel, so there is no stereo relationship to draw. "+
+			"\"r --\" means silence, or one dead channel: nothing to correlate.")
 }
 
 // ── TRIGGER ─────────────────────────────────────────────────────────────
@@ -912,10 +904,10 @@ func (s *stereoInst) appendReadout(grid js.Value) {
 
 // stereoTrigNames are the dial's positions.
 var stereoTrigNames = []string{
-	"off — the window ends at the newest sample and the figure slides",
-	"rising — start where the signal crosses the level going up",
-	"falling — start where it crosses going down",
-	"lock — match the shape of the last frame, with no level or edge involved",
+	doc("p.stereo-trig=0"),
+	doc("p.stereo-trig=1"),
+	doc("p.stereo-trig=2"),
+	doc("p.stereo-trig=3"),
 }
 
 // stereoTrigRing is what fits around the dial.
@@ -1095,9 +1087,9 @@ const (
 )
 
 var trigSrcNames = []string{
-	"mid — the sum of the pair, which is what both axes are built from",
-	"left — lock to the left channel alone",
-	"right — lock to the right channel alone",
+	doc("p.stereo-tsrc=0"),
+	doc("p.stereo-tsrc=1"),
+	doc("p.stereo-tsrc=2"),
 }
 
 var trigSrcRing = []string{"mid", "L", "R"}
@@ -1109,9 +1101,9 @@ const (
 )
 
 var trigCplNames = []string{
-	"DC — the whole signal reaches the trigger",
-	"LF reject — high-passed, so bass and offset stop dragging the crossing",
-	"HF reject — low-passed, so hiss and cymbals stop triggering on themselves",
+	doc("p.stereo-tcpl=0"),
+	doc("p.stereo-tcpl=1"),
+	doc("p.stereo-tcpl=2"),
 }
 
 var trigCplRing = []string{"DC", "LFr", "HFr"}
@@ -1186,9 +1178,9 @@ const (
 )
 
 var trigRunNames = []string{
-	"auto — draw anyway when nothing triggers, so the display never goes blank",
-	"normal — hold the last triggered frame until the next trigger",
-	"single — catch the next trigger and freeze; move this knob to re-arm",
+	doc("p.stereo-trun=0"),
+	doc("p.stereo-trun=1"),
+	doc("p.stereo-trun=2"),
 }
 
 var trigRunRing = []string{"auto", "norm", "sgl"}
@@ -1406,9 +1398,9 @@ const (
 )
 
 var gratNames = []string{
-	"off — no reference lines",
-	"axes — the two coordinate axes only",
-	"full — axes, diagonals and the unit box",
+	doc("p.stereo-grat=0"),
+	doc("p.stereo-grat=1"),
+	doc("p.stereo-grat=2"),
 }
 
 var gratRing = []string{"off", "ax", "full"}

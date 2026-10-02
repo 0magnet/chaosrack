@@ -26,11 +26,13 @@ package attractor
 import (
 	"math"
 	"strconv"
+	"strings"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/analysis"
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
+	"github.com/0magnet/chaosrack/pkg/led"
 )
 
 // How many probe sub-steps a frame pays for. The interpreted (equation-engine)
@@ -206,7 +208,8 @@ func (l *liveLyapunov) show(s string) {
 	// it to say what the number is.
 	t := ""
 	if twin.on && s != "" {
-		t = "λ" + s
+		// Seven segments: the positive sign is the blank slot (led.Blank).
+		t = "λ" + strings.Replace(s, "+", led.Blank, 1)
 	}
 	if t != l.trace {
 		l.trace = t
@@ -230,16 +233,8 @@ func (l *liveLyapunov) appendLyapunovReadout(grid js.Value) {
 	card.Call("appendChild", lbl)
 
 	l.el = dom.Doc.Call("createElement", "span")
-	l.el.Set("className", "led counter-led")
-	l.el.Set("title", "Largest Lyapunov exponent, measured live from a pair of trajectories started "+
-		"a hair apart: how fast two nearby states of THIS system, at these coefficients, separate. "+
-		"Positive is chaos — prediction has a horizon of roughly 1/λ — and the bigger it is the shorter "+
-		"that horizon. About zero is a limit cycle or a torus. Negative is settling to a fixed point. "+
-		"Per unit of MODEL time, not per second: it does not change when the browser is busy, and it "+
-		"does change with dt and with Speed, because the thing being integrated changes with them. "+
-		"\"λ --\" means not enough model time has been averaged yet for the number to mean anything; "+
-		"it clears itself after a second or so. Analysis → lyap is the same quantity measured at "+
-		"length on demand, to four decimals.")
+	l.el.Set("className", "led")
+	l.el.Set("title", doc("ro.lyap"))
 	// Cleared so the next frame writes into the NEW element: the panel is
 	// rebuilt on every mode change and every module toggle, and the
 	// write-on-change guard would otherwise skip the fresh cell as unchanged

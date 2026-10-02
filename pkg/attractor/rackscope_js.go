@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/audiosrc"
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/scope"
 	"strconv"
@@ -26,9 +27,13 @@ import (
 // afterglow, and it is why the INTENSITY knob changes how long the trace
 // hangs around as well as how bright it is.
 
-// rackScope is the rack scope's tube: its canvas, the trace and graticule it
-// draws, and the sample windows.
+// rackScope is one of the rack's scopes: its canvas, the trace and graticule
+// it draws, and the sample windows.
 type rackScope struct {
+	// p is its id prefix (scopePrefix), and n which scope it is, from 0.
+	p string
+	n int
+
 	// funcs is the panel's own js.Func arena: its dials are built once,
 	// on a different schedule from the parameter panel's.
 	funcs []js.Func
@@ -38,7 +43,10 @@ type rackScope struct {
 	// on, auto trigger so silence still draws a baseline, and the beam on.
 	ui scopeState
 
-	// rscope.canvas and rscope.ctx are the tube, looked up once.
+	// power is the tube's switch, SCALE ILLUM's OFF detent.
+	power screenPower
+
+	// canvas and ctx are the tube, looked up once.
 	canvas js.Value
 	ctx    js.Value
 
@@ -65,22 +73,41 @@ type rackScope struct {
 	// collector has to come back for.
 	tracePts []float32 // the points handed to the canvas
 	envBuf   []float32 // the column min/max pairs they are built from
-
-	// tracePath is the fallback's SVG path, kept for the same reason.
-	tracePath strings.Builder
 }
 
-var rscope = rackScope{
-	ui: scopeState{
-		voltsIdx: scope.NearestStep(scope.VoltsDivs, 0.5),
-		timeIdx:  scope.NearestStep(scope.Timebases, 2e-3),
-		rising:   true,
-		trigAuto: true,
-		intens:   0.6,
-		focus:    0.55,
-		beam:     true,
-	},
-}
+// id is the scope's own id for a part the first scope's markup calls
+// "scope-"+part.
+func (ra *rackScope) id(part string) string { return ra.p + "-" + part }
+
+// The VOLTS/DIV and TIME/DIV switches' positions at power-on, and where their
+// resets put them.
+var (
+	scopeVoltsDef = scope.NearestStep(scope.VoltsDivs, 0.5)
+	scopeTimeDef  = scope.NearestStep(scope.Timebases, 2e-3)
+)
+
+// rscopes are the rack's scopes, in order.
+var rscopes = func() (s [rackScopeCount]*rackScope) {
+	for n := range s {
+		ra := &rackScope{
+			p: scopePrefix(n), n: n,
+			ui: scopeState{
+				voltsIdx: scopeVoltsDef,
+				timeIdx:  scopeTimeDef,
+				rising:   true,
+				trigAuto: true,
+				power:    true,
+				illum:    0.5,
+				intens:   0.6,
+				focus:    scope.FocusBest,
+				in:       scopeInDefaults[n],
+			},
+		}
+		ra.power = screenPower{powered: func() bool { return ra.ui.power }}
+		s[n] = ra
+	}
+	return s
+}()
 
 // scopeState is the front panel's settings — where every knob is.
 //
@@ -95,10 +122,12 @@ type scopeState struct {
 	trigLvl  float64 // TRIGGER LEVEL, in full scale
 	rising   bool    // SLOPE
 	trigAuto bool    // MODE: auto sweeps when nothing crosses, norm waits
+	power    bool    // SCALE ILLUM out of its OFF detent: the scope is on
+	illum    float64 // SCALE ILLUM: how brightly the graticule is lit, 0–1
 	intens   float64 // INTENSITY: beam brightness and afterglow
 	focus    float64 // FOCUS: spot tightness
-	beam     bool    // BEAM: the tube is on
 	chanSel  int     // SOURCE: which signal is on the vertical
+	in       [2]int  // INPUT 1 and 2: what each channel is fed from (scopeInNames)
 }
 
 // The SOURCE positions. X-Y is last because it is the one that stops being a
@@ -140,53 +169,232 @@ func clampIdx(i, n int) int {
 	return i
 }
 
-// buildRackScope fills the panel's dials and wires them. Called once, after
-// the control panel exists.
+// buildRackScopes fills every scope's dials and wires them. Called once,
+// after the control panel exists.
+func buildRackScopes() {
+	for _, ra := range rscopes {
+		ra.buildRackScope()
+	}
+}
+
+// buildRackScope fills the scope's dials and wires them.
 func (ra *rackScope) buildRackScope() {
 	dom.RebuildInto(&ra.funcs, func() {
-		// The two range switches, from the sequences themselves — a hand-typed
+		// The range switches, from the sequences themselves — a hand-typed
 		// option list is a second copy of the spec, and the one that goes stale.
-		buildScopeDial("scope-volts", scope.VoltsDivs, scope.FormatVolts, ra.ui.voltsIdx,
+		buildScopeDial(ra.id("volts"), scope.VoltsDivs, scope.FormatVolts, ra.ui.voltsIdx, scopeVoltsDef,
 			func(i int) { ra.ui.voltsIdx = i })
-		buildScopeDial("scope-time", scope.Timebases, scope.FormatTime, ra.ui.timeIdx,
+		buildScopeDial(ra.id("time"), scope.Timebases, scope.FormatTime, ra.ui.timeIdx, scopeTimeDef,
 			func(i int) { ra.ui.timeIdx = i })
-		buildScopeNameDial("scope-chan", scopeChanNames, ra.ui.chanSel,
-			func(i int) { ra.ui.chanSel = i })
-		buildScopeNameDial("scope-tmode", []string{"AUTO", "NORM"}, 0,
-			func(i int) { ra.ui.trigAuto = i == 0 })
 
-		wireScopeRange("scope-vpos", func(v float64) { ra.ui.vpos = v })
-		wireScopeRange("scope-hpos", func(v float64) { ra.ui.hpos = v })
-		wireScopeRange("scope-trig", func(v float64) { ra.ui.trigLvl = v })
-		wireScopeRange("scope-intens", func(v float64) { ra.ui.intens = v })
-		wireScopeRange("scope-focus", func(v float64) { ra.ui.focus = v })
-		wireSwitch("scope-slope", func(on bool) { ra.ui.rising = on })
-		wireSwitch("scope-beam", func(on bool) { ra.ui.beam = on })
+		wireScopeRange(ra.id("vpos"), func(v float64) { ra.ui.vpos = v })
+		wireScopeRange(ra.id("hpos"), func(v float64) { ra.ui.hpos = v })
+		wireScopeRange(ra.id("trig"), func(v float64) { ra.ui.trigLvl = v })
+		ra.wireScopeBeam()
+		ra.wireScopeInputs()
+
+		// SLOPE and MODE are two-way settings, so they are buttons on the
+		// trigger LEVEL's cell rather than a switch or a knob of their own:
+		// the trigger's three settings in one place. Each column is its
+		// parameter's position (trioOf), so two share a cell. SOURCE is four
+		// buttons beside the tube, which is what it chooses the picture for,
+		// between the H and V trimmers.
+		cols := []struct{ id, in string }{
+			{ra.id("slope"), "#" + ra.id("trig-cell")},
+			{ra.id("tmode"), "#" + ra.id("trig-cell")},
+			{ra.id("chan"), "#" + ra.id("chan-slot")},
+		}
+		for _, c := range cols {
+			if in := dom.Doc.Call("querySelector", c.in); in.Truthy() {
+				col := trioColumn(trioPrograms[c.id].legends())
+				col.Call("setAttribute", "data-param", c.id)
+				in.Call("appendChild", col)
+			}
+		}
+		syncTrios()
 	})
 }
+
+// wireScopeBeam is the first cell under the tube: INTENSITY, and under it on
+// mini knobs SCALE ILLUM, a switch-pot whose OFF is the scope's power, and
+// FOCUS. The three were one shaft, and could not be told apart.
+func (ra *rackScope) wireScopeBeam() {
+	illum := dom.Doc.Call("getElementById", ra.id("illum"))
+	intens := dom.Doc.Call("getElementById", ra.id("intens"))
+	focus := dom.Doc.Call("getElementById", ra.id("focus"))
+	holder := dom.Doc.Call("getElementById", ra.id("intens-stack"))
+	if !illum.Truthy() || !intens.Truthy() || !focus.Truthy() || !holder.Truthy() {
+		return
+	}
+	lo, _ := strconv.ParseFloat(illum.Get("min").String(), 64) //nolint:errcheck // the markup's own number
+	sp := switchPot{off: lo}
+	switchPots[ra.id("illum")] = sp
+	holder.Set("innerHTML", "")
+	holder.Call("appendChild", makeKnob(intens, js.Undefined(), false, true, true))
+	col := miniRow(miniKnob(illum, "I", true, true), miniKnob(focus, "F", true, true))
+	if cell := holder.Call("closest", ".pcell"); cell.Truthy() {
+		cell.Call("appendChild", col)
+	}
+	led := dom.Doc.Call("getElementById", ra.id("intens-led"))
+	loan := lendReadout(col, led, func() {
+		intens.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+	})
+	two := func(v float64) string { return strconv.FormatFloat(v, 'f', 2, 64) }
+	apply := func() {
+		v, _ := strconv.ParseFloat(illum.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute
+		v = sp.snap(v)
+		power := !sp.isOff(v)
+		ra.ui.illum = max(v, 0)
+		if power != ra.ui.power {
+			ra.ui.power = power
+			ra.power.invalidate()
+		}
+		if power {
+			loan.show("illum", two(v))
+		} else {
+			loan.show("off", "0")
+		}
+	}
+	illum.Call("addEventListener", "input", dom.FuncOf(func(js.Value, []js.Value) any {
+		apply()
+		return nil
+	}))
+	// The cell's one reset puts all three back, as a generator's level reset
+	// does its envelope.
+	adoptDescControl(ControlDesc{
+		ID: ra.id("focus"), Label: "focus", Min: 0, Max: 1, Step: 0.01, Def: scope.FocusBest,
+		ResetID: "rst-" + ra.id("intens"),
+		Apply: func(v float64) {
+			ra.ui.focus = v
+			loan.show("focus", two(v))
+		},
+	})
+	adoptDescControl(ControlDesc{
+		ID: ra.id("illum"), Label: "illum", Min: lo, Max: 1, Step: 0.01, Def: 0.5,
+		ResetID: "rst-" + ra.id("intens"),
+	})
+	ra.ui.focus, _ = strconv.ParseFloat(focus.Get("value").String(), 64) //nolint:errcheck // the markup's own number
+	apply()
+	adoptDescControl(ControlDesc{
+		ID: ra.id("intens"), Label: "intens", Min: 0, Max: 1, Step: 0.01, Def: 0.6,
+		LEDStep: 0.1, LEDID: ra.id("intens-led"), ResetID: "rst-" + ra.id("intens"),
+		Apply: func(v float64) { ra.ui.intens = v },
+	})
+	ra.ui.intens, _ = strconv.ParseFloat(intens.Get("value").String(), 64) //nolint:errcheck // the markup's own number
+}
+
+// The SLOPE, MODE and SOURCE buttons, every scope's.
+func init() {
+	for _, ra := range rscopes {
+		ra.registerTrios()
+	}
+}
+
+func (ra *rackScope) registerTrios() {
+	trioPrograms[ra.id("slope")] = trioProgram{
+		keys: []string{"+", "−"},
+		help: []string{
+			"slope: the sweep starts on the signal rising through the trigger level",
+			"slope: the sweep starts on the signal falling through the trigger level",
+		},
+		press: func(i int) { ra.ui.rising = i == 0 },
+		lit: func() int {
+			if ra.ui.rising {
+				return 0
+			}
+			return 1
+		},
+	}
+	trioPrograms[ra.id("chan")] = trioProgram{
+		keys: scopeChanNames,
+		help: []string{
+			"the beam draws channel 1, what input 1 feeds it",
+			"the beam draws channel 2, what input 2 feeds it",
+			"the beam draws the two channels summed",
+			"the beam draws channel 1 against channel 2 instead of against time, which is a goniometer",
+		},
+		press: func(i int) { ra.ui.chanSel = i },
+		lit:   func() int { return ra.ui.chanSel },
+	}
+	trioPrograms[ra.id("tmode")] = trioProgram{
+		keys: []string{"auto", "norm"},
+		help: []string{
+			"sweep mode: sweeps anyway when nothing crosses the level, so silence shows a baseline",
+			"sweep mode: sweeps only on a trigger, and holds the last trace otherwise",
+		},
+		press: func(i int) { ra.ui.trigAuto = i == 0 },
+		lit: func() int {
+			if ra.ui.trigAuto {
+				return 0
+			}
+			return 1
+		},
+	}
+}
+
+// wireScopeInputs is the two INPUT mini knobs under VOLTS: a detent per
+// source, ticks round them to count by, and the source each is on named on
+// the face, where the eye already is (drawInputNames). Not on the cell's
+// display as the beam's minis are: its tall lent legend runs into the VOLTS
+// ring's labels, which the beam's knob does not have. The cell's reset puts them back with VOLTS, as the
+// beam's puts its minis back with INTENSITY.
+func (ra *rackScope) wireScopeInputs() {
+	volts := dom.Doc.Call("getElementById", ra.id("volts"))
+	cell := volts.Call("closest", ".pcell")
+	if !volts.Truthy() || !cell.Truthy() {
+		return
+	}
+	tips := make([]string, scopeInCount)
+	for i, name := range scopeInNames {
+		tips[i] = strconv.Itoa(i) + " " + name + ": " + scopeInHelp(i)
+	}
+	var knobs, els []js.Value
+	for ch := range 2 {
+		el := dom.Doc.Call("getElementById", ra.id("in"+strconv.Itoa(ch+1)))
+		if !el.Truthy() {
+			return
+		}
+		el.Set("max", scopeInCount-1)
+		el.Set("value", scopeInDefaults[ra.n][ch])
+		el.Set("title", el.Get("title").String()+"\n\n"+strings.Join(tips, "\n"))
+		els = append(els, el)
+		knobs = append(knobs, miniKnob(el, strconv.Itoa(ch+1), true, true))
+	}
+	cell.Call("appendChild", miniRow(knobs...))
+	for ch, el := range els {
+		def := float64(scopeInDefaults[ra.n][ch])
+		adoptDescControl(ControlDesc{
+			ID: el.Get("id").String(), Label: "in " + strconv.Itoa(ch+1),
+			Min: 0, Max: scopeInCount - 1, Step: 1, Def: def,
+			ResetID: "rst-" + ra.id("volts"), PermaKey: scopeInKey(ra.n, ch),
+			Apply: func(v float64) {
+				ra.ui.in[ch] = clampIdx(int(v+0.5), scopeInCount)
+			},
+		})
+	}
+}
+
+// scopeLabel is a scope control's name without its scope: "volts" for
+// scope3-volts.
+func scopeLabel(id string) string { return id[strings.IndexByte(id, '-')+1:] }
 
 // buildScopeDial rings a detented range switch, labeled with the values it
 // actually selects: in full in the window, and round the skirt as numbers
 // with each band's unit once (scope.SkirtLabels).
-func buildScopeDial(id string, steps []float64, label func(float64) string, at int, set func(int)) {
+func buildScopeDial(id string, steps []float64, label func(float64) string, at, def int, set func(int)) {
 	names := make([]string, len(steps))
 	for i, s := range steps {
 		names[i] = label(s)
 	}
-	buildScopeRing(id, names, scope.SkirtLabels(steps, label), at, set)
+	buildScopeRing(id, names, scope.SkirtLabels(steps, label), at, def, set)
 }
 
-// buildScopeNameDial rings a switch whose positions are named rather than
-// numbered. Both dials go through soloKnob and addSelectorLabels, so a scope
-// knob is the same object as every other knob in the rack — it turns the
-// same way, scrolls the same way, and is the same size.
-func buildScopeNameDial(id string, names []string, at int, set func(int)) {
-	buildScopeRing(id, names, names, at, set)
-}
-
-// buildScopeRing is buildScopeNameDial with the skirt printed apart from the
-// names: names are the options and the window, ring what is round the knob.
-func buildScopeRing(id string, names, ring []string, at int, set func(int)) {
+// buildScopeRing rings a detented switch over its select: names are the
+// options and the window, ring what is printed round the knob. It goes
+// through soloKnob and addSelectorLabels, so a scope knob is the same object
+// as every other knob in the rack — it turns the same way, scrolls the same
+// way, and is the same size.
+func buildScopeRing(id string, names, ring []string, at, def int, set func(int)) {
 	sel := dom.Doc.Call("getElementById", id)
 	holder := dom.Doc.Call("getElementById", id+"-stack")
 	if !sel.Truthy() || !holder.Truthy() || len(names) == 0 || len(ring) != len(names) {
@@ -215,69 +423,127 @@ func buildScopeRing(id string, names, ring []string, at int, set func(int)) {
 		return nil
 	}))
 	setScopeReadout(id, names, clampIdx(at, len(names)))
+	adoptDescControl(ControlDesc{
+		ID: id, Label: scopeLabel(id), IsSelect: true,
+		SelectDef: strconv.Itoa(clampIdx(def, len(names))), ResetID: "rst-" + id,
+	})
 }
 
 // setScopeReadout puts the switch's current position in the window under
 // the knob. A range switch prints every position around its skirt, which
 // says what it COULD be set to; the window says what it IS, and on an
 // instrument being read at a glance that is the one that matters.
+//
+// The window is a character display, the part every other worded readout on
+// the rack is: the markup leaves a place for it, and the first call puts
+// the display there.
 func setScopeReadout(id string, names []string, i int) {
 	el := dom.Doc.Call("getElementById", id+"-read")
 	if !el.Truthy() || len(names) == 0 {
 		return
 	}
-	el.Set("textContent", names[clampIdx(i, len(names))])
+	if !el.Get("classList").Call("contains", "dmdwin").Bool() {
+		d := dotDisplayN("", false, scopeWindowChars)
+		d.Set("id", id+"-read")
+		el.Call("replaceWith", d)
+		el = d
+	}
+	setDotText(el, names[clampIdx(i, len(names))])
 }
+
+// scopeWindowChars is a scope window's size: a full display, which holds its
+// longest setting, "500 mFS".
+const scopeWindowChars = dispFullChars
 
 // wireScopeRange turns a slider into a knob and reports its value.
 //
-// The knob goes in the stack span the markup leaves for it rather than
-// beside the hidden slider, because these controls are laid out in
-// labeled columns on a faceplate and not in the parameter grid's cells.
-// makeKnob is the same one every other knob in the rack is made by, so a
-// scope knob drags, scrolls and looks exactly like the rest.
+// The knob goes in the stack span the markup leaves for it, in the cell a
+// knob has in every module, and the cell is the generators' in every part:
+// makeKnob with its tick ring, and the descriptor's readout, typed entry,
+// wheel and reset, from the range the markup gives the slider.
 func wireScopeRange(id string, set func(float64)) {
 	el := dom.Doc.Call("getElementById", id)
 	holder := dom.Doc.Call("getElementById", id+"-stack")
 	if !el.Truthy() {
 		return
 	}
-	el.Get("style").Set("display", "none")
 	if holder.Truthy() {
 		holder.Set("innerHTML", "")
-		holder.Call("appendChild", makeKnob(el, js.Undefined(), true, true, false))
-	}
-	read := func() {
-		if v, err := strconv.ParseFloat(el.Get("value").String(), 64); err == nil {
-			set(v)
+		if mini := holder.Call("closest", ".scope-mini"); mini.Truthy() {
+			// A trimmer beside the tube: no scale, no fine ring, and no
+			// display — where the trace is shows it.
+			k := miniKnob(el, mini.Call("getAttribute", "data-cap").String(), true, false)
+			k.Call("querySelector", ".knob").Set("title", mini.Get("title").String())
+			holder.Call("appendChild", k)
+		} else {
+			holder.Call("appendChild", makeKnob(el, js.Undefined(), true, true, true))
 		}
 	}
-	el.Call("addEventListener", "input", dom.FuncOf(func(js.Value, []js.Value) any {
-		read()
-		return nil
-	}))
-	read()
+	attr := func(a string) float64 {
+		v, _ := strconv.ParseFloat(el.Call("getAttribute", a).String(), 64) //nolint:errcheck // the markup's own numbers; zero if one is ever missing
+		return v
+	}
+	adoptDescControl(ControlDesc{
+		ID: id, Label: scopeLabel(id),
+		Min: attr("min"), Max: attr("max"), Step: attr("step"), Def: attr("value"),
+		Signed: attr("min") < 0,
+		// Two places: the finest of these knobs moves in hundredths.
+		LEDStep: 0.1,
+		LEDID:   id + "-led", ResetID: "rst-" + id,
+		Apply: set,
+	})
+	set(attr("value"))
 }
 
 // ── the tube ────────────────────────────────────────────────────────────
 
-// drawRackScope paints one frame of the scope's screen. Called from the
-// render loop, and a no-op when the module is not on screen — a rack scope
-// switched out of the rack must not cost a capture and a canvas paint per
-// frame for a tube nobody can see.
+// scopeBus is this frame's window on the rack's signal and the capture,
+// taken once for all four scopes (audiosrc.Bus.Window): two scopes on one
+// source draw the same signal, and reading it does not move the rack's
+// signal on.
+var scopeBus struct {
+	win   audiosrc.BusWindow
+	sr    int          // the rate the scopes sweep at
+	model [3][]float32 // the model's outputs, for a scope probing one
+}
+
+// drawRackScopes paints a frame of every scope. Called from the render loop.
+func drawRackScopes() {
+	b := aud.ensureAudioSource().(*audiosrc.Bus)
+	scopeBus.sr = b.SampleRate()
+	need := 0
+	for _, ra := range rscopes {
+		if !ra.ui.power {
+			continue
+		}
+		for _, in := range ra.ui.in {
+			if in <= scopeInCapR {
+				need = max(need, 2*scope.SweepSamples(ra.secPerDiv(), scopeBus.sr))
+			}
+		}
+	}
+	if need > 0 {
+		scopeBus.win = b.Window(need)
+	}
+	for _, ra := range rscopes {
+		ra.drawRackScope()
+	}
+}
+
+// drawRackScope paints one frame of the scope's screen.
 func (ra *rackScope) drawRackScope() {
-	// Powered by its own BEAM switch, like any scope. Off, the tube is
-	// painted dark ONCE and then costs nothing — no capture, no path, no
+	// Powered by the OFF detent of its SCALE ILLUM knob. Off, the
+	// tube is painted dark ONCE and then costs nothing — no capture, no path, no
 	// layout read. The rack shows every module in a bay now, so "nobody
 	// can see it" has stopped being what turns this off.
-	if !scopeScreenPower.on(ra.canvasEl()) {
-		if scopeScreenPower.needsBlank() && ra.blankFace() {
-			scopeScreenPower.markBlanked()
+	if !ra.power.on(ra.canvasEl()) {
+		if ra.power.needsBlank() && ra.blankFace() {
+			ra.power.markBlanked()
 		}
 		return
 	}
 	if !ra.ctx.Truthy() {
-		ra.canvas = dom.Doc.Call("getElementById", "scope-screen")
+		ra.canvas = dom.Doc.Call("getElementById", ra.id("screen"))
 		if !ra.canvas.Truthy() {
 			return
 		}
@@ -301,28 +567,31 @@ func (ra *rackScope) drawRackScope() {
 	ra.ctx.Call("fillRect", 0, 0, w, h)
 	ra.ctx.Set("globalAlpha", 1.0)
 
-	ra.drawScopeFaceGrat(w, h)
+	ra.drawScopeFaceGrat(w, h, ra.ui.illum)
 	ra.drawScopeTrace(w, h)
+	ra.drawInputNames(h)
 }
 
-// scopeVisible reports whether the tube is on screen at all: the module
-// exists and the rack has not switched it out.
-
-// drawScopeFaceGrat draws the etched face — the same figure the model's
-// graticule uses, so the two are one instrument.
+// drawInputNames prints what the two channels are fed from at the top left
+// of the face, the way a scope with on-screen readouts prints its settings:
+// in the beam's color, and over the afterglow, so it holds still while the
+// trace fades under it.
+func (ra *rackScope) drawInputNames(h float64) {
+	px := h / 13
+	ra.ctx.Set("font", strconv.FormatFloat(px, 'f', 0, 64)+"px ui-monospace, monospace")
+	ra.ctx.Set("textBaseline", "top")
+	ra.ctx.Set("fillStyle", scopeBeamColor())
+	ra.ctx.Set("globalAlpha", 0.35+0.5*ra.ui.intens)
+	txt := "1 " + scopeInNames[ra.ui.in[0]] + "   2 " + scopeInNames[ra.ui.in[1]]
+	ra.ctx.Call("fillText", txt, px*0.6, px*0.5)
+	ra.ctx.Set("globalAlpha", 1.0)
+}
 
 func snapHalf(v float64) float64 { return float64(int(v)) + 0.5 }
 
-// drawScopeTrace captures the live audio and sweeps it across the face.
+// drawScopeTrace takes the two inputs and sweeps them across the face.
 func (ra *rackScope) drawScopeTrace(w, h float64) {
-	src := aud.ensureAudioSource()
-	if src == nil || !src.Ready() {
-		return
-	}
-	sr := src.SampleRate()
-	if sr <= 0 {
-		sr = 24000
-	}
+	sr := scopeBus.sr
 	span := scope.SweepSamples(ra.secPerDiv(), sr)
 	// A margin behind the window for the trigger to search in — one screen's
 	// worth, so an edge anywhere in the last two screens can be found.
@@ -332,7 +601,9 @@ func (ra *rackScope) drawScopeTrace(w, h float64) {
 		ra.sampR = make([]float32, len(ra.sampL))
 	}
 	l, r := ra.sampL[:need], ra.sampR[:need]
-	src.TimeDomainStereo(l, r)
+	if !ra.feed(ra.ui.in[0], l) || !ra.feed(ra.ui.in[1], r) {
+		return
+	}
 
 	vert := ra.vertical(l, r)
 	start := span // the newest whole window, which is what a free run shows
@@ -356,12 +627,18 @@ func (ra *rackScope) drawScopeTrace(w, h float64) {
 	vpd := ra.voltsPerDiv()
 
 	// The beam. shadowBlur is the halo a real spot has; FOCUS tightens both
-	// the line and the halo, which is what the knob does on the tube.
-	line := 1.0 + 2.2*(1-ra.ui.focus)
+	// the line and the halo, sharpest part-way round its travel and spreading
+	// either side of it, as a tube's does (scope.Defocus).
+	blur := scope.Defocus(ra.ui.focus)
+	line := 1.0 + 2.2*blur
 	ra.ctx.Set("lineWidth", line)
 	ra.ctx.Set("lineJoin", "round")
 	ra.ctx.Set("lineCap", "round")
-	ra.ctx.Set("shadowBlur", 4+10*(1-ra.ui.focus))
+	// INTENSITY is how bright the beam is, spot and halo alike: a dim trace
+	// at the bottom of the knob, full at the top. It used to set only how long
+	// the afterglow held, which barely changed the trace itself.
+	ra.ctx.Set("globalAlpha", 0.12+0.88*ra.ui.intens)
+	ra.ctx.Set("shadowBlur", (4+10*blur)*(0.25+0.75*ra.ui.intens))
 	ra.ctx.Set("shadowColor", "rgba(120,255,170,0.9)")
 	ra.ctx.Set("strokeStyle", scopeBeamColor())
 	// Collected as x,y pairs and handed over in ONE crossing. A moveTo/lineTo
@@ -423,10 +700,9 @@ func (ra *rackScope) drawScopeTrace(w, h float64) {
 			ra.tracePts = append(ra.tracePts, float32(x), float32(y))
 		}
 	}
-	if !strokeScopePoints(ra.ctx, ra.tracePts) {
-		ra.strokeScopePointsAsPath(ra.ctx, ra.tracePts)
-	}
+	strokeScopePoints(ra.ctx, ra.tracePts)
 	ra.ctx.Set("shadowBlur", 0)
+	ra.ctx.Set("globalAlpha", 1.0)
 }
 
 // vertical is the signal on the vertical axis, per the SOURCE switch.
@@ -452,6 +728,29 @@ func (ra *rackScope) vertical(l, r []float32) []float32 {
 	}
 }
 
+// feed fills dst with what input in carries, the newest sample last.
+func (ra *rackScope) feed(in int, dst []float32) bool {
+	switch {
+	case in <= scopeInCapR:
+		w := [...][]float32{scopeBus.win.L, scopeBus.win.R, scopeBus.win.CapL, scopeBus.win.CapR}[in]
+		if len(w) < len(dst) {
+			return false
+		}
+		copy(dst, w[len(w)-len(dst):])
+	case in >= scopeInGen1 && in < scopeInGen1+audiosrc.OscCount:
+		// A probe on the generator's own output: nothing while its knob
+		// is at OFF, whatever it was last playing.
+		aud.fg().RenderOsc(in-scopeInGen1, dst)
+	default:
+		// A probe on Model Out's output, as on a generator's: the scopes'
+		// copy of the model, the same window every scope on it draws.
+		w := &scopeBus.model
+		busModel(w, len(dst), false)
+		copy(dst, w[in-scopeInModelX])
+	}
+	return true
+}
+
 // scopeBeamColor is the phosphor. P31 green by default, and it follows the
 // rack's own phosphor selection when one is set, so the scope in the rack
 // and the scope look on the model are the same tube.
@@ -474,14 +773,22 @@ var scopeGratWeights = [3]scope.Weight{scope.WeightTick, scope.WeightDiv, scope.
 // uniform grid — the center axes are cut heavier than the division lines and
 // the ticks are hairlines — and drawing them alike is what makes a rendered
 // one look like a spreadsheet.
+//
+// These are the face fully lit. SCALE ILLUM dims all three together, and its
+// default, halfway, is the face as it was before the knob existed.
 var scopeGratStroke = [3]struct {
 	color string
 	width float64
 }{
-	{"rgba(120,155,185,0.20)", 1.0},
-	{"rgba(120,155,185,0.30)", 1.0},
-	{"rgba(150,190,220,0.55)", 1.2},
+	{"rgba(120,155,185,0.40)", 1.0},
+	{"rgba(120,155,185,0.60)", 1.0},
+	{"rgba(150,190,220,1.00)", 1.2},
 }
+
+// scopeGratUnlit is how the face shows with the scope off: the lines are
+// cut into the glass, and they are still there, faintly, with no light
+// behind them.
+const scopeGratUnlit = 0.25
 
 // buildScopeGratPaths rebuilds the three paths for a canvas of this size.
 func (ra *rackScope) buildScopeGratPaths(w, h float64) {
@@ -516,11 +823,13 @@ func (ra *rackScope) buildScopeGratPaths(w, h float64) {
 	ra.gratW, ra.gratH = w, h
 }
 
-// drawScopeFaceGrat strokes the face.
-func (ra *rackScope) drawScopeFaceGrat(w, h float64) {
+// drawScopeFaceGrat strokes the face — the same figure the model's graticule
+// uses, so the two are one instrument — lit to lit, 0 to 1.
+func (ra *rackScope) drawScopeFaceGrat(w, h, lit float64) {
 	if ra.gratW != w || ra.gratH != h || !ra.gratPaths[0].Truthy() {
 		ra.buildScopeGratPaths(w, h)
 	}
+	ra.ctx.Set("globalAlpha", lit)
 	for i := range scopeGratWeights {
 		p := ra.gratPaths[i]
 		if !p.Truthy() {
@@ -530,6 +839,7 @@ func (ra *rackScope) drawScopeFaceGrat(w, h float64) {
 		ra.ctx.Set("lineWidth", scopeGratStroke[i].width)
 		ra.ctx.Call("stroke", p)
 	}
+	ra.ctx.Set("globalAlpha", 1.0)
 }
 
 // appendNum writes a coordinate with one decimal, which is as fine as a
@@ -538,37 +848,10 @@ func appendNum(b *strings.Builder, v float64) {
 	b.WriteString(strconv.FormatFloat(v, 'f', 1, 64))
 }
 
-// strokeScopePointsAsPath is the route for a page that will not evaluate the
-// JS helper — a Content-Security-Policy that forbids eval. Slower, because
-// every coordinate is formatted to a decimal string and parsed back, which
-// is exactly what the fast path exists to stop doing; it is here so such a
-// page still has a working scope rather than a blank tube.
-func (ra *rackScope) strokeScopePointsAsPath(ctx js.Value, pts []float32) {
-	if len(pts) < 4 || !ctx.Truthy() {
-		return
-	}
-	p2d := js.Global().Get("Path2D")
-	if !p2d.Truthy() {
-		return
-	}
-	ra.tracePath.Reset()
-	for i := 0; i+1 < len(pts); i += 2 {
-		if i == 0 {
-			ra.tracePath.WriteString("M")
-		} else {
-			ra.tracePath.WriteString("L")
-		}
-		appendNum(&ra.tracePath, float64(pts[i]))
-		ra.tracePath.WriteString(" ")
-		appendNum(&ra.tracePath, float64(pts[i+1]))
-	}
-	ctx.Call("stroke", p2d.New(ra.tracePath.String()))
-}
-
 // canvasEl is the tube's canvas, looked up lazily.
 func (ra *rackScope) canvasEl() js.Value {
 	if !ra.canvas.Truthy() {
-		ra.canvas = dom.Doc.Call("getElementById", "scope-screen")
+		ra.canvas = dom.Doc.Call("getElementById", ra.id("screen"))
 	}
 	return ra.canvas
 }
@@ -599,6 +882,6 @@ func (ra *rackScope) blankFace() bool {
 	ra.ctx.Set("globalAlpha", 1.0)
 	ra.ctx.Set("fillStyle", "#05070a")
 	ra.ctx.Call("fillRect", 0, 0, w, h)
-	ra.drawScopeFaceGrat(w, h)
+	ra.drawScopeFaceGrat(w, h, scopeGratUnlit)
 	return true
 }

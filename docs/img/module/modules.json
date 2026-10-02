@@ -629,48 +629,6 @@
             "title": "4k — the highest this knob goes; turned fully clockwise"
           }
         ]
-      },
-      {
-        "label": "step",
-        "title": "Outer ring = Step× (coarse step), inner ring = Fine× (fraction of a step)",
-        "positions": [
-          {
-            "label": "1",
-            "title": "1 — the fine disc steps as far as the coarse ring does"
-          },
-          {
-            "label": ".1",
-            "title": "0.1 — the fine disc steps a tenth of a coarse step"
-          },
-          {
-            "label": ".01",
-            "title": "0.01 — the fine disc steps a hundredth of a coarse step"
-          },
-          {
-            "label": ".001",
-            "title": "0.001 — the fine disc steps a thousandth of a coarse step"
-          },
-          {
-            "label": ".25",
-            "title": "0.25x — a quarter of each knob's normal coarse step"
-          },
-          {
-            "label": ".5",
-            "title": "0.5x — half of each knob's normal coarse step"
-          },
-          {
-            "label": "1",
-            "title": "1x — each knob's normal coarse step"
-          },
-          {
-            "label": "2",
-            "title": "2x — twice each knob's normal coarse step"
-          },
-          {
-            "label": "5",
-            "title": "5x — five times each knob's normal coarse step"
-          }
-        ]
       }
     ]
   },
@@ -804,7 +762,7 @@
   {
     "id": "gen-x",
     "label": "Gen X",
-    "title": "Oscillator X — the xy scope's horizontal axis. freq knob (log, equal turn per octave), level knob, and a dual knob: outer ring = speaker channel, inner = waveform.",
+    "title": "Oscillator X — on channel 1 to start with, the xy scope's horizontal axis. freq knob (log, equal turn per octave), the level knob inside its envelope's ATTACK and DECAY rings with an env button to repeat it, and a dual knob: outer ring = the channel it is on, inner = waveform; beside it, lit buttons to hear it (spk) and to hear only it (solo).",
     "image": "docs/img/module/gen-x.jpg",
     "mode": "lorenz",
     "controls": [
@@ -883,7 +841,7 @@
   {
     "id": "gen-y",
     "label": "Gen Y",
-    "title": "Oscillator Y — the xy scope's vertical axis. freq knob (log), level knob, and a dual knob: outer ring = speaker channel, inner = waveform.",
+    "title": "Oscillator Y — on channel 2 to start with, the xy scope's vertical axis. freq knob (log), the level knob inside its envelope's ATTACK and DECAY rings with an env button to repeat it, and a dual knob: outer ring = the channel it is on, inner = waveform; beside it, lit buttons to hear it (spk) and to hear only it (solo).",
     "image": "docs/img/module/gen-y.jpg",
     "mode": "lorenz",
     "controls": [
@@ -962,7 +920,7 @@
   {
     "id": "gen-z",
     "label": "Gen Z",
-    "title": "Oscillator Z — a third generator (audio / modulation). freq knob (log), level knob, and a dual knob: outer ring = speaker channel, inner = waveform.",
+    "title": "Oscillator Z — a third generator (audio / modulation). freq knob (log), the level knob inside its envelope's ATTACK and DECAY rings with an env button to repeat it, and a dual knob: outer ring = the channel it is on, inner = waveform; beside it, lit buttons to hear it (spk) and to hear only it (solo).",
     "image": "docs/img/module/gen-z.jpg",
     "mode": "lorenz",
     "controls": [
@@ -1033,130 +991,6 @@
           {
             "label": "L+R",
             "title": "L+R — Gen Z plays both channels"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "gen-env",
-    "label": "Envelope",
-    "title": "Envelope — the Complex Sound Generator's shaper for the signal generator's speaker output: in RPT mode it cycles attack → decay continuously, a shaped tremolo over whatever Gen X/Y/Z are routed to the speakers. OFF passes the generators through untouched. Analysis paths (scope, spectrogram, meters) stay unshaped.",
-    "image": "docs/img/module/gen-env.jpg",
-    "mode": "lorenz",
-    "controls": [
-      {
-        "label": "atk",
-        "title": "Envelope / atk / label",
-        "positions": [
-          {
-            "label": "1",
-            "title": "1 — the lowest this knob goes; turned fully counter-clockwise"
-          },
-          {
-            "label": "2k",
-            "title": "2k — the highest this knob goes; turned fully clockwise"
-          }
-        ]
-      },
-      {
-        "label": "dcy",
-        "title": "Envelope / dcy / label",
-        "positions": [
-          {
-            "label": "1",
-            "title": "1 — the lowest this knob goes; turned fully counter-clockwise"
-          },
-          {
-            "label": "5k",
-            "title": "5k — the highest this knob goes; turned fully clockwise"
-          }
-        ]
-      },
-      {
-        "label": "mode",
-        "title": "Envelope / mode / label",
-        "positions": [
-          {
-            "label": "off",
-            "title": "off — the generators pass through the envelope untouched"
-          },
-          {
-            "label": "rpt",
-            "title": "rpt — attack then decay, over and over: a shaped tremolo"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "testsig",
-    "label": "Test",
-    "title": "Test — the stimulus library: the signals a test record carries, synthesized. Pink noise for a spectrum or a room, a logarithmic sweep for an impulse response, 1 kHz as a level and distortion reference, 3150 Hz for wow and flutter, left-only and right-only to find out which speaker is which, a polarity pulse whose direction is visible, and three noises whose channels are identical, independent or inverted — correlation +1, 0 and −1 to check a phase display against. It replaces the X/Y/Z oscillators while it is on; they keep their settings and come back when it is off. Needs Signal gen switched on in the Console.",
-    "image": "docs/img/module/testsig.jpg",
-    "mode": "lorenz",
-    "controls": [
-      {
-        "label": "sig",
-        "title": "Test / sig / label",
-        "positions": [
-          {
-            "label": "off",
-            "title": "off — the X/Y/Z oscillators play again, exactly as they were left"
-          },
-          {
-            "label": "whit",
-            "title": "white noise — equal power per hertz; reads as a rising tilt on an RTA"
-          },
-          {
-            "label": "pink",
-            "title": "pink noise — equal power per octave; the stimulus an RTA reads FLAT, and what a room is measured with"
-          },
-          {
-            "label": "swp",
-            "title": "log sweep, 20 Hz to 20 kHz in four seconds — the stimulus an impulse response is derived from"
-          },
-          {
-            "label": "1k",
-            "title": "1 kHz reference tone — the level and distortion reference every meter is calibrated against"
-          },
-          {
-            "label": "3150",
-            "title": "3150 Hz — the tone the wow-and-flutter standards specify, and what the W\u0026F meter needs"
-          },
-          {
-            "label": "L",
-            "title": "left channel only — silence on the right; checks channel identity and leakage"
-          },
-          {
-            "label": "R",
-            "title": "right channel only — silence on the left; checks channel identity and leakage"
-          },
-          {
-            "label": "pol",
-            "title": "polarity pulse — a one-sided click; shows which way round a speaker is wired"
-          },
-          {
-            "label": "wide",
-            "title": "uncorrelated noise — independent noise per channel: correlation 0, the widest image there is"
-          },
-          {
-            "label": "oop",
-            "title": "out-of-polarity noise — the same noise inverted on one channel: correlation -1, and mono-incompatible"
-          }
-        ]
-      },
-      {
-        "label": "lvl",
-        "title": "Test / lvl / label",
-        "positions": [
-          {
-            "label": "0",
-            "title": "0 — the lowest this knob goes; turned fully counter-clockwise"
-          },
-          {
-            "label": "100",
-            "title": "100 — the highest this knob goes; turned fully clockwise"
           }
         ]
       }
@@ -1236,7 +1070,7 @@
   {
     "id": "thd",
     "label": "Distortion",
-    "title": "Distortion — THD, THD+N, SINAD and ENOB of the live audio, measured against whichever tone is in it. Feed it the Test module's 1 kHz reference through whatever you want measured and read how much of what comes back is not that tone. THD is the harmonics alone, which is the number a specification quotes; THD+N is everything that is not the fundamental, which is the honest one and always the larger; SINAD is the same ratio in decibels, the way a converter is specified; ENOB runs the ideal-converter relation backwards and says how many bits would sound this clean. The gap between THD and THD+N is how much of the rubbish is hiss rather than distortion. The instrument's own floor is about 0.0015% THD+N (96.5 dB SINAD, 17.3 effective bits), measured on a synthesized pure tone — that is the Blackman-Harris window's leakage past the notch, and nothing quieter than it can be read.",
+    "title": "Distortion — THD, THD+N, SINAD and ENOB of the live audio, measured against whichever tone is in it. Feed it a generator's sine at 1 kHz (type 1000 into its Hz readout) through whatever you want measured and read how much of what comes back is not that tone. THD is the harmonics alone, which is the number a specification quotes; THD+N is everything that is not the fundamental, which is the honest one and always the larger; SINAD is the same ratio in decibels, the way a converter is specified; ENOB runs the ideal-converter relation backwards and says how many bits would sound this clean. The gap between THD and THD+N is how much of the rubbish is hiss rather than distortion. The instrument's own floor is about 0.0015% THD+N (96.5 dB SINAD, 17.3 effective bits), measured on a synthesized pure tone — that is the Blackman-Harris window's leakage past the notch, and nothing quieter than it can be read.",
     "image": "docs/img/module/thd.jpg",
     "mode": "lorenz",
     "controls": [
@@ -1322,7 +1156,7 @@
   {
     "id": "wf",
     "label": "Wow \u0026 Flutter",
-    "title": "Wow \u0026 Flutter — speed stability, measured off a 3150 Hz test tone. Every other analyzer here asks about amplitude; this asks whether the TIME AXIS is steady, which is what a turntable, a tape deck or a cassette is judged by. Play the Test module's 3150 Hz tone through the deck, capture the result, and read it here: SPEED is the mean frequency error as a percentage (a constant error is a pitch shift, a different fault from a wobble), WOW the slow 0.5–6 Hz modulation that once-per-revolution faults produce, FLUTTER the fast 6–100 Hz kind from capstans and idlers, and W\u0026F the DIN-weighted quasi-peak that a specification quotes — the deviation through a filter peaked at 4 Hz, where the ear is most sensitive to pitch movement. 3150 Hz is the figure every test record carries (DIN 45507, IEC 60386). With no deck in the loop at all it reads 0.000% on the generator itself, which is the check that the instrument is not inventing the number.",
+    "title": "Wow \u0026 Flutter — speed stability, measured off a 3150 Hz test tone. Every other analyzer here asks about amplitude; this asks whether the TIME AXIS is steady, which is what a turntable, a tape deck or a cassette is judged by. Play a generator's sine at 3150 Hz through the deck, capture the result, and read it here: SPEED is the mean frequency error as a percentage (a constant error is a pitch shift, a different fault from a wobble), WOW the slow 0.5–6 Hz modulation that once-per-revolution faults produce, FLUTTER the fast 6–100 Hz kind from capstans and idlers, and W\u0026F the DIN-weighted quasi-peak that a specification quotes — the deviation through a filter peaked at 4 Hz, where the ear is most sensitive to pitch movement. 3150 Hz is the figure every test record carries (DIN 45507, IEC 60386). With no deck in the loop at all it reads 0.000% on the generator itself, which is the check that the instrument is not inventing the number.",
     "image": "docs/img/module/wf.jpg",
     "mode": "lorenz",
     "controls": [

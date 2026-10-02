@@ -17,9 +17,12 @@
 //	             which never spells out what an abbreviated label means
 //	TIP-ADDRESS  an address in the middle of a tooltip, borrowed from another
 //	NONUNIFORM   one part of a bank at two sizes
+//	DISPLAY-CUT  a character display given more text than it has characters
 //	CLIPPED      a part reaching past a box that cuts off what overflows it
+//	SLACK        a module a whole slot or more wider than what is on it
+//	EMPTY        a module on the rack with nothing visible on it
 //
-// Each finding names the control by its address, bay.row.slot, the same one
+// Each finding names the control by its address, bay.module.position, the same one
 // its tooltip starts with (see pkg/attractor/designators_js.go), so a finding
 // and a sentence about the panel point at the same thing. A finding is printed
 // once, at the first model it appears on, with how many models it is on.
@@ -40,7 +43,7 @@ import (
 // lintJS measures the panel as it stands and returns its findings.
 const lintJS = `(function(){
   var out=[], p=document.getElementById('controls-panel'); if(!p) return '[]';
-  var PREFIX=/^(?:[0-9S]+\.\d+\.\d+[a-z]? · )+/, LOC=/^[0-9S]+\.\d+\.\d+[a-z]?$/;
+  var PREFIX=/^(?:[0-9S]+\.\d+(?:\.\d+(?:\.[a-z])?)? · )+/, LOC=/^[0-9S]+\.\d+\.\d+(?:\.[a-z])?$/;
   function vis(e){
     if(!e.getClientRects().length) return false;
     if(e.checkVisibility && !e.checkVisibility({visibilityProperty:true,opacityProperty:true})) return false;
@@ -70,7 +73,7 @@ const lintJS = `(function(){
   // OVERLAP: the visible parts of every control in a module, pairwise. A
   // knob is its circle, everything else its box; a part inside another is
   // one thing, not two.
-  var PARTS='.dmdwin,.u-val,.u-step,.dmdval,.led,.numin,.rst,.stepknob,.vdial-tick,.knob-dial-lab,.knob:not(.knob-fine),.plabel,.u-lbl,input.sw,.twoway-name,.pslot,.scope-lbl,.scope-read';
+  var PARTS='.dmdwin,.u-val,.u-step,.dmdval,.led,.numin,.rst,.stepknob,.vdial-tick,.knob-dial-lab,.knob:not(.knob-fine),.plabel,.u-lbl,input.sw,.twoway-name,.pslot,.trio-btn';
   var byMod=new Map();
   cells.forEach(function(c){
     var m=c.closest('.sect')||c.closest('.runit-panel'); if(!m) return;
@@ -141,6 +144,15 @@ const lintJS = `(function(){
     });
   });
 
+  // DISPLAY-CUT: a character display given more than it has characters for.
+  cells.forEach(function(c){
+    [].forEach.call(c.querySelectorAll(".dmdwin[data-chars]"),function(w){
+      if(!vis(w)) return;
+      var svg=w.querySelector("svg"), t=svg?(svg.getAttribute("aria-label")||""):"", n=+w.getAttribute("data-chars");
+      if([].slice.call(t).length>n) add(c.dataset.loc,"DISPLAY-CUT","\""+t+"\" on "+n+" characters");
+    });
+  });
+
   // SEG-LETTERS: seven segments cannot spell.
   cells.forEach(function(c){
     [].forEach.call(c.querySelectorAll('input.numin,.led'),function(e){
@@ -154,9 +166,14 @@ const lintJS = `(function(){
 
   // TIP: what a hover over the control's actuator shows.
   var ACT='.knob:not(.knob-fine),input.sw,button:not(.rst),select,.pslot';
+  // A cell with no actuator is a readout (designate addresses those too):
+  // what a hover shows there is the readout's.
+  var RO='.led,input[type=text]';
   cells.forEach(function(c){
-    var a=[].filter.call(c.querySelectorAll(ACT),vis)[0]||c, t='';
-    for(var e=a;e&&!t;e=e.parentElement) t=e.getAttribute&&e.getAttribute('title')||'';
+    var a=[].filter.call(c.querySelectorAll(ACT),vis)[0]||[].filter.call(c.querySelectorAll(RO),vis)[0]||c, t='';
+    // Not the module's own: every module carries its address and summary
+    // now, which would pass any control inside it.
+    for(var e=a;e&&!t&&!(e.classList&&e.classList.contains('sect'));e=e.parentElement) t=e.getAttribute&&e.getAttribute('title')||'';
     t=t.replace(PREFIX,'').trim();
     if(!t||LOC.test(t)) { add(c.dataset.loc,'TIP-MISSING',name(a)); return; }
     // Terse is the bare stamp, "Module / label / part", with nothing after
@@ -176,6 +193,29 @@ const lintJS = `(function(){
       [].forEach.call(b.querySelectorAll(q[0]),function(e){ if(!vis(e)) return; var r=e.getBoundingClientRect(); sizes[Math.round(r.width)+'x'+Math.round(r.height)]=1; });
       var ks=Object.keys(sizes); if(ks.length>1) add(loc,'NONUNIFORM',q[1]+' sizes '+ks.join(', '));
     });
+  });
+
+  // SLACK and EMPTY: a module against what is on it. Every check above looks
+  // at controls, so a 22-slot module holding one knob passed all of them.
+  // What is on a module is the span of its visible leaves (a knob, a display
+  // and a button count whole); quantizing leaves under a slot of slack, so a
+  // whole empty slot is a fault. The narrowest module is one slot.
+  var mods=[].filter.call(p.querySelectorAll('.sect'),vis), slot=Infinity;
+  mods.forEach(function(m){ slot=Math.min(slot,m.getBoundingClientRect().width); });
+  var WHOLE=/^(CANVAS|svg|INPUT|BUTTON|SELECT|TEXTAREA)$/;
+  mods.forEach(function(m){
+    var mr=m.getBoundingClientRect(), L=Infinity, R=-Infinity, n=0;
+    [].forEach.call(m.querySelectorAll('*'),function(e){
+      if(e.closest('.sect-hdr')) return;
+      if(e.children.length&&!WHOLE.test(e.tagName)&&!e.matches('.knob,.led,.dmdwin')) return;
+      if(e.parentElement&&e.parentElement.closest('svg,.knob,.dmdwin,button')) return;
+      if(!vis(e)) return;
+      var r=e.getBoundingClientRect(); n++; L=Math.min(L,r.left); R=Math.max(R,r.right);
+    });
+    var h=m.querySelector('.sect-hdr'), c=m.querySelector('[data-loc]');
+    var loc=c?c.dataset.loc:'-', hd=h?h.textContent.trim():(m.id||'');
+    if(!n){ out.push({l:loc,k:'EMPTY',m:'nothing visible on '+Math.round(mr.width)+'px',h:hd}); return; }
+    if(mr.width-(R-L)>slot) out.push({l:loc,k:'SLACK',m:Math.round(mr.width)+'px wide, holds '+Math.round(R-L)+'px',h:hd});
   });
   return JSON.stringify(out);
 })()`

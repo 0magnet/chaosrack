@@ -1,6 +1,9 @@
 package attractor
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // The rack is not always the whole page. On magnetosphere.net it is the
 // backdrop of a store whose sections are plain anchors, and it used to
@@ -30,13 +33,42 @@ func TestIsAppHashTellsAPermalinkFromAnAnchor(t *testing.T) {
 		{"", false, "no fragment at all"},
 		{"#", false, "an empty fragment"},
 
-		// The boundary. A bare mode token with no parameters is not a
-		// permalink either: applyStateFrom reads nothing from it, so writing
-		// over it would discard a fragment for no gain.
-		{"#lorenz", false, "a bare word, whoever meant it"},
+		// The boundary. A bare model name is the rack's own link to a model at
+		// its defaults, which it writes itself; a bare word that is no model is
+		// somebody else's.
+		{"#lorenz", true, "a model at its defaults, as the rack writes it"},
+		{"#waterfall", true, "the same for an audio model"},
+		{"#lorenzo", false, "a word that is no model"},
 	} {
 		if got := isAppHash(c.hash); got != c.want {
 			t.Errorf("isAppHash(%q) = %v, want %v — %s", c.hash, got, c.want, c.why)
+		}
+	}
+}
+
+// A link to a model that was folded into another opens that model, set to be
+// it, and keeps everything else it carried.
+func TestALinkToAFoldedModelOpensWhatItIsNow(t *testing.T) {
+	for in, want := range map[string]string{
+		"#cube":                     "#polyhedron&p.p=4&p.q=3",
+		"#icosahedron&rot=1,2,3":    "#polyhedron&p.p=3&p.q=5&rot=1,2,3",
+		"#dodecahedron&p.poly-op=2": "#polyhedron&p.p=5&p.q=3&p.op=2",
+		"#sphere&p.slices=24&p.stacks=9&p.r=2&ar=0": "#globe&p.lat=0&p.lon=24&ar=0",
+		"#lorenz&p.s=10": "#lorenz&p.s=10",
+		"#about":         "#about",
+		"":               "",
+	} {
+		if got := migrateHash(in); got != want {
+			t.Errorf("migrateHash(%q) = %q, want %q", in, got, want)
+		}
+	}
+	// Every folded model lands on a model that exists.
+	for from, to := range foldedModes {
+		if m, _, _ := strings.Cut(to, "&"); !knownMode(m) {
+			t.Errorf("%s folds into %q, which is not a model", from, m)
+		}
+		if knownMode(from) {
+			t.Errorf("%s is folded but still a model of its own", from)
 		}
 	}
 }

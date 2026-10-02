@@ -3,7 +3,6 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/scope"
 )
 
@@ -74,17 +73,12 @@ func (f *fourierText) generateScopeText() {
 	}
 }
 
-// syncScopeTextExtras shows the Banner module while Fourier Text is the
+// syncScopeTextExtras tracks whether Fourier Text is the
 // active model, and normalizes the pose on entry — a banner reads face-on.
 // (The text field itself is static markup wired in buildDemoModules.)
 func (f *fourierText) syncScopeTextExtras(mode string) {
-	if sect := dom.Doc.Call("getElementById", "stext-module"); sect.Truthy() {
-		if mode == "scopetext" {
-			sect.Get("style").Set("display", "")
-		} else {
-			sect.Get("style").Set("display", "none")
-		}
-	}
+	// The module is in the rack whatever the model (panelhtml_js.go): the rack
+	// is the same instrument under every model, so its panels do not come and go.
 	if mode != "scopetext" {
 		f.active = false
 		return

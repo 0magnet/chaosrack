@@ -73,7 +73,7 @@ func TestLyapunovUnitsAreLabeled(t *testing.T) {
 // A polyhedron has no Lyapunov exponent. Printing 0.0000 next to a cube would
 // be a category error dressed up as a measurement.
 func TestLyapunovDeclinesNonDynamicalModes(t *testing.T) {
-	for _, mode := range []string{"cube", "globe", "torus", "spectrogram", "stlfile"} {
+	for _, mode := range []string{"polyhedron", "globe", "torus", "spectrogram", "stlfile"} {
 		r := LyapunovFor(mode)
 		if r.Verdict != "n/a" {
 			t.Errorf("%s: verdict %q, want n/a — it is not a dynamical system", mode, r.Verdict)
