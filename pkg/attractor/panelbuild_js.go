@@ -100,7 +100,7 @@ func wheelNudge(readout, slider js.Value, step, mn, mx float64) {
 			v = mx
 		}
 		slider.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
-		slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		dom.Fire(slider, "input")
 		return nil
 	}))
 }
@@ -189,13 +189,13 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 				return nil
 			}
 			slider.Set("value", sel.Get("value").String())
-			slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+			dom.Fire(slider, "input")
 			return nil
 		}))
 		selSync = func(i int) {
 			syncing = true
 			sel.Set("value", strconv.Itoa(i))
-			sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+			dom.Fire(sel, "change")
 			syncing = false
 		}
 	} else {
@@ -354,7 +354,7 @@ func buildStepField(slider js.Value, label, stepStr string) js.Value {
 	set := func(v float64) {
 		v = math.Max(lo, math.Min(hi, v))
 		stepInput.Set("value", strconv.FormatFloat(v, 'g', 3, 64))
-		stepInput.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		dom.Fire(stepInput, "input")
 	}
 	cur := func() float64 {
 		v, err := strconv.ParseFloat(stepInput.Get("value").String(), 64)
@@ -422,7 +422,7 @@ func buildStepField(slider js.Value, label, stepStr string) js.Value {
 	rst.Set("textContent", "↺")
 	rst.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) any {
 		stepInput.Set("value", stepStr)
-		stepInput.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		dom.Fire(stepInput, "input")
 		return nil
 	}))
 
@@ -864,7 +864,7 @@ func buildTwoWaySwitch(sel js.Value, labels []string, label string) js.Value {
 			idx = 1
 		}
 		sel.Set("selectedIndex", idx)
-		sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+		dom.Fire(sel, "change")
 		return nil
 	}))
 	// The wheel steps it, because every other control in the rack answers the
@@ -887,7 +887,7 @@ func buildTwoWaySwitch(sel js.Value, labels []string, label string) js.Value {
 			return nil
 		}
 		sel.Set("selectedIndex", idx)
-		sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+		dom.Fire(sel, "change")
 		return nil
 	}))
 	// The select can move without the switch being touched, and then the switch

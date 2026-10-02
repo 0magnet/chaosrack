@@ -388,7 +388,7 @@ func (b *bifurcation) syncSweepCell() {
 	sel.Set("value", strconv.Itoa(cur))
 	// Its ring and its display follow the change event; this handler skips
 	// it, because nothing about the sweep has changed.
-	sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+	dom.Fire(sel, "change")
 	b.sweepFilling = false
 	if cell := sel.Call("closest", ".punit"); cell.Truthy() {
 		cell.Set("title", docf("bif-sweep-cell.live", "mode", modeInfo[b.lastFlowMode].Label))

@@ -315,7 +315,7 @@ func setWfallKnob(id string, ptr *float32, v float32) {
 		return
 	}
 	el.Set("value", strconv.FormatFloat(float64(v), 'f', -1, 32))
-	el.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+	dom.Fire(el, "input")
 }
 
 // generate runs whichever surface SRC names, and draws it.

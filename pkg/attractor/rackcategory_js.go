@@ -408,8 +408,8 @@ func (f *modelFamily) choose(mode string) {
 	}
 	if f.sel.Truthy() && f.sel.Get("value").String() != mode {
 		f.sel.Set("value", mode)
-		f.sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
-		f.sel.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		dom.Fire(f.sel, "change")
+		dom.Fire(f.sel, "input")
 	}
 }
 
@@ -1026,8 +1026,8 @@ func onBayCategory(label string, bay int) {
 		}
 	}
 	sel.Set("value", m)
-	sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
-	sel.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+	dom.Fire(sel, "change")
+	dom.Fire(sel, "input")
 }
 
 // onBayModelOverflow is a merged bay's model ring turned past its last model
@@ -1056,8 +1056,8 @@ func onBayModelOverflow(label string, bay int, dir int) {
 		at += dir
 		if at < 0 || at >= len(cats) {
 			catSel.Set("value", "") // OFF (onBayCategory powers down)
-			catSel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
-			catSel.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+			dom.Fire(catSel, "change")
+			dom.Fire(catSel, "input")
 			return
 		}
 		modes := modesOfCategory(bayModes, cats[at])
@@ -1075,8 +1075,8 @@ func onBayModelOverflow(label string, bay int, dir int) {
 		// remembered model.
 		bayCatModel[bayID(label, bay)+"/"+cats[at]] = m
 		catSel.Set("value", cats[at])
-		catSel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
-		catSel.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		dom.Fire(catSel, "change")
+		dom.Fire(catSel, "input")
 		return
 	}
 }
@@ -1089,8 +1089,8 @@ func setBayCategory(b bayRecord, cat string) {
 		return
 	}
 	catSel.Set("value", cat)
-	catSel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
-	catSel.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+	dom.Fire(catSel, "change")
+	dom.Fire(catSel, "input")
 	if sel := dom.Doc.Call("getElementById", baySelectID(b.Label, b.N)); sel.Truthy() {
 		fillBayOptions(sel, modesOfCategory(b.Modes, cat), false)
 	}
@@ -1127,7 +1127,7 @@ func onBayRotary(label string, bay int) {
 		return
 	}
 	ms.Set("value", mode)
-	ms.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+	dom.Fire(ms, "change")
 }
 
 // setPowerSwitch moves the Console's Power switch without firing it, so the
@@ -1183,12 +1183,12 @@ func syncCategoryRotaries() {
 			if catSel := dom.Doc.Call("getElementById", bayCatSelectID(b.Label, b.N)); catSel.Truthy() {
 				if catSel.Get("value").String() != "" {
 					catSel.Set("value", "")
-					catSel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
-					catSel.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+					dom.Fire(catSel, "change")
+					dom.Fire(catSel, "input")
 				}
 				if sel.Get("selectedIndex").Int() >= 0 {
 					sel.Set("selectedIndex", -1)
-					sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+					dom.Fire(sel, "change")
 				}
 				continue
 			}
@@ -1202,8 +1202,8 @@ func syncCategoryRotaries() {
 		// reads out the model it used to be on. Dispatching 'change' is safe
 		// because catRotarySyncing is what stops the interlock answering its
 		// own writes.
-		sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
-		sel.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		dom.Fire(sel, "change")
+		dom.Fire(sel, "input")
 	}
 	// The model lists follow too: a select already on its model above was
 	// skipped, and fired nothing for its list to follow.
@@ -1274,7 +1274,7 @@ func buildFamilySelect(f *modelFamily) js.Value {
 		if em := editMode(); familyOf(em) == f && m != em && !run.stopped {
 			if ms := dom.Doc.Call("getElementById", "mode-select"); ms.Truthy() {
 				ms.Set("value", m)
-				ms.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+				dom.Fire(ms, "change")
 			}
 		}
 		return nil
@@ -1379,10 +1379,10 @@ func onBayPick(label string, bay int, m string) {
 	}
 	if catSel.Get("value").String() != cat {
 		catSel.Set("value", cat)
-		catSel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
-		catSel.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		dom.Fire(catSel, "change")
+		dom.Fire(catSel, "input")
 		return
 	}
 	sel.Set("value", m)
-	sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+	dom.Fire(sel, "change")
 }

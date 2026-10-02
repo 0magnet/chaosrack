@@ -47,7 +47,7 @@ func setParamSlider(id string, v float64) {
 		return
 	}
 	s.Set("value", strconv.FormatFloat(v, 'f', -1, 64))
-	s.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+	dom.Fire(s, "input")
 }
 
 // trioPrograms are keyed by the parameter of the knob the buttons stand

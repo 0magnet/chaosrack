@@ -65,13 +65,13 @@ func (p layerPalette) show() {
 	for id, c := range map[string][3]float32{"color-base": p.base, "color-mid": p.mid, "color-top": p.top} {
 		if el := dom.Doc.Call("getElementById", id); el.Truthy() {
 			el.Set("value", colorspace.Hex(c))
-			el.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+			dom.Fire(el, "input")
 		}
 	}
 	for id, v := range map[string]float32{"rainbow-freq": p.freq, "palette-shift": p.shift} {
 		if el := dom.Doc.Call("getElementById", id); el.Truthy() {
 			el.Set("value", strconv.FormatFloat(float64(v), 'g', -1, 32))
-			el.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+			dom.Fire(el, "input")
 		}
 	}
 	p.install() // whatever a handler did not write
@@ -222,7 +222,7 @@ func chooseBackdrop(mode string) {
 	if flatBackdrop(mode) && mode != bgVisual {
 		if bv := dom.Doc.Call("getElementById", "bg-visual"); bv.Truthy() {
 			bv.Set("value", mode)
-			bv.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+			dom.Fire(bv, "change")
 		}
 	}
 	if ms := dom.Doc.Call("getElementById", "mode-select"); ms.Truthy() {

@@ -67,7 +67,7 @@ func addPhosphorTraces(stack, sel js.Value) {
 		idx := i
 		s.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			sel.Set("selectedIndex", idx)
-			sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+			dom.Fire(sel, "change")
 			return nil
 		}))
 		dial.Call("appendChild", s)

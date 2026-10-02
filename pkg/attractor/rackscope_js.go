@@ -237,7 +237,7 @@ func (ra *rackScope) wireScopeBeam() {
 	}
 	led := dom.Doc.Call("getElementById", ra.id("intens-led"))
 	loan := lendReadout(col, led, func() {
-		intens.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		dom.Fire(intens, "input")
 	})
 	two := func(v float64) string { return strconv.FormatFloat(v, 'f', 2, 64) }
 	apply := func() {

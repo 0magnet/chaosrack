@@ -382,7 +382,7 @@ func zeroRotationSliders() {
 		}
 		el.Set("value", "0")
 		// the registry's input listener updates the cache + LED format
-		el.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		dom.Fire(el, "input")
 	}
 	syncKnobs()
 }

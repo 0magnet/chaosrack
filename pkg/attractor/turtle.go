@@ -41,7 +41,6 @@ package attractor
 import (
 	"fmt"
 	"github.com/0magnet/chaosrack/pkg/dom"
-	"syscall/js"
 
 	"github.com/0magnet/pisano/pkg/pisano"
 )
@@ -679,7 +678,7 @@ func (tu *turtleMode) cycle() {
 		next = 1
 	}
 	knob.Set("value", next)
-	knob.Call("dispatchEvent", js.Global().Get("Event").New("input", map[string]any{"bubbles": true}))
+	dom.Fire(knob, "input")
 }
 
 // turtleModMax is the MOD knob's top, kept beside the knob definition it has to

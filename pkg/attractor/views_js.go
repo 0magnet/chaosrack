@@ -440,7 +440,7 @@ func setSelectQuiet(id string, v int) {
 	el.Set("value", strconv.Itoa(v))
 	// The ring is a set of labels over a hidden select; it reads the value
 	// on an input event, which is not the change event the handler wants.
-	el.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+	dom.Fire(el, "input")
 }
 
 // ── the grid, and the sweep that makes it controllable ──────────────────

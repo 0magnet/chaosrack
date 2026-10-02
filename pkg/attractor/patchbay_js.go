@@ -73,7 +73,7 @@ func recallSerializedState(snapshot string) {
 	if knownMode(mode) && mode != run.selectedMode {
 		if sel := dom.Doc.Call("getElementById", "mode-select"); sel.Truthy() {
 			sel.Set("value", mode)
-			sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+			dom.Fire(sel, "change")
 		}
 	}
 	// Apply the snapshot STRING directly — the mode-change dispatch above

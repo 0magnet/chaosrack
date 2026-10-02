@@ -99,7 +99,7 @@ func modelSwitchesFor(mode string) []modelSwitch {
 			set: func(v bool) {
 				if cb := dom.Doc.Call("getElementById", "desk-pass"); cb.Truthy() {
 					cb.Set("checked", v)
-					cb.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+					dom.Fire(cb, "change")
 				}
 			}}}
 	case "pong":

@@ -13,8 +13,6 @@ package attractor
 // its P-unit's .knobhold (selectorReadout).
 
 import (
-	"syscall/js"
-
 	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
@@ -69,7 +67,7 @@ func stepSelect(id string, d int) {
 		return
 	}
 	sel.Set("selectedIndex", i)
-	sel.Call("dispatchEvent", js.Global().Get("Event").New("change", map[string]any{"bubbles": true}))
+	dom.Fire(sel, "change")
 }
 
 // selectAt is the position select id is at.
@@ -115,7 +113,7 @@ func init() {
 			link := i == 1
 			if sw.Get("checked").Bool() != link {
 				sw.Set("checked", link)
-				sw.Call("dispatchEvent", js.Global().Get("Event").New("change", map[string]any{"bubbles": true}))
+				dom.Fire(sw, "change")
 			}
 			if !link {
 				stepSelect("focus-n", []int{1, 0, -1}[i])

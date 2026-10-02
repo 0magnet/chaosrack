@@ -127,7 +127,7 @@ func addPianoKeys(freq js.Value) js.Value {
 				s -= 12
 			}
 			freq.Set("value", strconv.FormatFloat(s, 'f', 0, 64))
-			freq.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+			dom.Fire(freq, "input")
 			return nil
 		}))
 		keyEls = append(keyEls, el)
@@ -319,7 +319,7 @@ func addSelectorWaveDial(stack, sel js.Value, off float64) {
 		idx := i
 		ic.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			sel.Set("selectedIndex", idx)
-			sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+			dom.Fire(sel, "change")
 			return nil
 		}))
 		dial.Call("appendChild", ic)
@@ -509,7 +509,7 @@ func genHeard(i int) bool {
 func setSelect(id, v string) {
 	if s := dom.Doc.Call("getElementById", id); s.Truthy() {
 		s.Set("value", v)
-		s.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+		dom.Fire(s, "change")
 	}
 }
 

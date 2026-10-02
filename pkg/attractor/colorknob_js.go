@@ -53,7 +53,7 @@ func makeHueKnob(slider js.Value) js.Value {
 		}
 		ang = math.Mod(ang, 360)
 		slider.Set("value", strconv.FormatFloat(ang, 'f', 0, 64))
-		slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		dom.Fire(slider, "input")
 	}
 	knob.Call("addEventListener", "pointerdown", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		e := a[0]
@@ -88,7 +88,7 @@ func makeHueKnob(slider js.Value) js.Value {
 		}
 		h = math.Mod(h, 360)
 		slider.Set("value", strconv.FormatFloat(h, 'f', 0, 64))
-		slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		dom.Fire(slider, "input")
 		return nil
 	}))
 	return knob
@@ -153,7 +153,7 @@ func buildColorKnob(colorInput js.Value) js.Value {
 		s, v := levelToSV(l)
 		colorSyncing = true
 		colorInput.Set("value", knobHex(h, s, v))
-		colorInput.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		dom.Fire(colorInput, "input")
 		colorSyncing = false
 		setHueCol(h)
 	}
@@ -169,8 +169,8 @@ func buildColorKnob(colorInput js.Value) js.Value {
 		colorSyncing = true
 		hueR.Set("value", strconv.FormatFloat(h, 'f', 0, 64))
 		levR.Set("value", strconv.FormatFloat(svToLevel(s, v), 'f', 0, 64))
-		hueR.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-		levR.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		dom.Fire(hueR, "input")
+		dom.Fire(levR, "input")
 		colorSyncing = false
 		setHueCol(h)
 		return nil

@@ -84,8 +84,7 @@ func recSetSwitch(id string, on bool) {
 		return
 	}
 	sw.Set("checked", on)
-	ev := js.Global().Get("Event").New("change", map[string]any{"bubbles": true})
-	sw.Call("dispatchEvent", ev)
+	dom.Fire(sw, "change")
 }
 
 func recSwitchOn(id string) bool {
