@@ -8,11 +8,11 @@ require (
 	github.com/0magnet/cdp v0.0.0-20260924200007-30a85ea3de08
 	github.com/0magnet/desk v0.0.0-20260927163817-533c8cb313fe
 	github.com/0magnet/desk/panes v0.0.0-20260927163817-533c8cb313fe
-	github.com/0magnet/pisano v0.0.0-20261001114156-6ebb651b8cba
+	github.com/0magnet/pisano v0.0.0-20261002111113-d522aadf9a61
 	github.com/0magnet/rack-go v0.0.0-20260927161804-86645e2170c6
 	github.com/0magnet/sh/v3 v3.13.2-0.20260928172341-4c52a7abff02
-	github.com/0magnet/tuiwasm v0.0.0-20261001114651-62f6607b5c73
-	github.com/0magnet/websh v0.0.0-20261001114507-ccf76b5415bd
+	github.com/0magnet/tuiwasm v0.0.0-20261002111521-0fe677aea7dd
+	github.com/0magnet/websh v0.0.0-20261001114753-0401a7704ac9
 	github.com/0magnet/winbox-go v0.0.0-20260915183431-ca6572e4c323
 	github.com/0magnet/xterm-go v0.0.0-20260930222525-d3033e9b370a
 	github.com/gdamore/tcell/v3 v3.5.0
@@ -46,7 +46,7 @@ require (
 	github.com/bytedance/sonic/loader v0.5.2 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20260930135840-270558f35f71 // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20261001125412-878653296cfd // indirect
 	github.com/charmbracelet/x/ansi v0.11.8 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.15 // indirect
 	github.com/charmbracelet/x/exp/slice v0.1.0 // indirect
