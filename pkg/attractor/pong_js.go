@@ -30,6 +30,8 @@ type pongGame struct {
 	ballSpeed float32
 	paddleH   float32 // paddle full height
 	aiSkill   float32
+	potL      float32 // the paddle pots, as the bank knobs read (motorized: see syncScoreboard)
+	potR      float32
 	bx, by    float64 // ball position
 	vx, vy    float64 // ball direction (unit-ish)
 	padL      float64
@@ -236,7 +238,7 @@ func (p *pongGame) syncScoreboard() {
 		for _, s := range []struct {
 			sl  js.Value
 			pad float64
-		}{{pongPadSlL, p.padL}, {pongPadSlR, p.padR}} {
+		}{{pongPot("l"), p.padL}, {pongPot("r"), p.padR}} {
 			if !s.sl.Truthy() || (kb.active && kb.slider.Equal(s.sl)) {
 				continue
 			}
@@ -250,10 +252,10 @@ func (p *pongGame) syncScoreboard() {
 	}
 	p.shownL, p.shownR = p.scoreL, p.scoreR
 	if l := dom.Doc.Call("getElementById", "pong-score-l"); l.Truthy() {
-		l.Set("textContent", strconv.Itoa(p.scoreL))
+		setDotText(l, strconv.Itoa(p.scoreL))
 	}
 	if r := dom.Doc.Call("getElementById", "pong-score-r"); r.Truthy() {
-		r.Set("textContent", strconv.Itoa(p.scoreR))
+		setDotText(r, strconv.Itoa(p.scoreR))
 	}
 }
 
@@ -357,7 +359,8 @@ func (p *pongGame) beep(freq float64, ms int) {
 	g.Get("gain").Call("setValueAtTime", 0.08, now)
 	g.Get("gain").Call("linearRampToValueAtTime", 0, now+dur)
 	osc.Call("connect", g)
-	g.Call("connect", ctx.Get("destination"))
+	mixEnsure(ctx)
+	g.Call("connect", mixIn("fx")) // the Mixer's SOUNDS column
 	osc.Call("start")
 	osc.Call("stop", now+dur+0.01)
 }
@@ -367,13 +370,8 @@ func (p *pongGame) beep(freq float64, ms int) {
 // the camera with the spin stopped — it's a scope game, not a model;
 // leaving drops the beep lease and any held keys.
 func (p *pongGame) syncPongExtras(mode string) {
-	if sect := dom.Doc.Call("getElementById", "pong-module"); sect.Truthy() {
-		if mode == "pong" {
-			sect.Get("style").Set("display", "")
-		} else {
-			sect.Get("style").Set("display", "none")
-		}
-	}
+	// The module is in the rack whatever the model (panelhtml_js.go): the rack
+	// is the same instrument under every model, so its panels do not come and go.
 	if mode == "pong" {
 		if p.active {
 			return

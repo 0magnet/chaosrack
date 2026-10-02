@@ -7,7 +7,6 @@ import (
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/led"
 	"strconv"
-	"strings"
 	"syscall/js"
 )
 
@@ -81,19 +80,24 @@ func (p *paramModulation) paramIsModulated(id string) bool {
 	return ok && m.channel != "" && m.level != 0
 }
 
-// modChannels is the channel selector offered per parameter.
-var modChannels = []struct{ label, name, desc string }{
-	{"— off —", "", "off — this parameter is not modulated by audio"},
-	{"stereo", "mono", "stereo — both channels summed drive this parameter"},
-	{"left", "L", "left — the left channel alone drives this parameter"},
-	{"right", "R", "right — the right channel alone drives this parameter"},
+// modChannels are the modulation sources, the Mod matrix's columns: the key
+// its column is marked with, the name a route stores (paramMod.channel), and
+// the group it is in. What each is, is the manual's (routing.md,
+// mod-src=key). A route with no source is off, and has no column.
+var modChannels = []struct{ key, name, group string }{
+	{"st", "mono", "rack"},
+	{"L", "L", "rack"},
+	{"R", "R", "rack"},
+	// The Mixer's two sends to modulation, which nothing else reads.
+	{"A", modSrcSendA, "send"},
+	{"B", modSrcSendB, "send"},
 	// The model itself, closing the loop: the attractor's own current
 	// output driving its own constants. A different system from the one
 	// named on the dial, and deliberately so — see modelmod.go.
-	{"model x", modSrcModelX, "model x — the attractor's own current x drives this parameter, so the system feeds back into itself. Small depths drift the shape; large ones make a different system, which is the point. Smoothed, because a loop that answers within a frame of its own output is an oscillator at the frame rate."},
-	{"model y", modSrcModelY, "model y — as model x, on the y coordinate"},
-	{"model z", modSrcModelZ, "model z — as model x, on the z coordinate. The classic one to try: a Lorenz whose rho follows its own z."},
-	{"model r", modSrcModelR, "model r — the attractor's distance from the origin drives this parameter: a source that does not care which way the orbit went, only how far out it is"},
+	{"x", modSrcModelX, "head"},
+	{"y", modSrcModelY, "head"},
+	{"z", modSrcModelZ, "head"},
+	{"r", modSrcModelR, "head"},
 }
 
 type savedParam struct {
@@ -153,8 +157,8 @@ func (p *paramModulation) collectAudioModulation(mode string) []savedParam {
 	if !audioMod {
 		return nil
 	}
-	params, ok := attractorParams[mode]
-	if !ok {
+	params := modParams(mode)
+	if len(params) == 0 {
 		return nil
 	}
 	var saved []savedParam
@@ -316,94 +320,6 @@ func (p *paramModulation) applyViewModulation() []savedParam {
 	return saved
 }
 
-// buildModUnit builds the compact "MOD / LVL" half of a parameter unit: the
-// concentric channel(ring)+level(inner) knob with its rotary-switch labels and
-// the level numeric, stacked vertically. Always present in a unit (so toggling
-// Audio mod never reflows the panel — it just dims); state lives in
-// pmod.params[id]. The channel <select> + level <range> stay hidden in the DOM,
-// driven by the knob.
-func buildModUnit(id, label string) js.Value {
-	cur := pmod.params[id]
-	sel := dom.Doc.Call("createElement", "select")
-	sel.Set("title", "Audio channel driving "+label)
-	sel.Set("style", "display:none;")
-	for _, s := range modChannels {
-		opt := dom.Doc.Call("createElement", "option")
-		opt.Set("value", s.name)
-		opt.Set("textContent", s.label)
-		// The parameter's own name goes in, so a panel of fourteen mod cards
-		// is fourteen different sentences rather than one repeated fourteen
-		// times — each detent says what IT does to THIS parameter.
-		opt.Set("title", strings.Replace(s.desc, "this parameter", label, 1))
-		if s.name == cur.channel {
-			opt.Set("selected", true)
-		}
-		sel.Call("appendChild", opt)
-	}
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
-		m := pmod.params[id]
-		m.channel = sel.Get("value").String()
-		pmod.params[id] = m
-		perma.syncPermalinkNow()
-		return nil
-	}))
-
-	// Level range ±4 (not ±1): the modulation offset is level·f·(paramMax−min),
-	// and the audio value f averages well below 1 for real music, so ±1 could
-	// only overdrive on rare peaks. ±4 gives enough gain to clearly (over)drive
-	// a parameter — dt into chaos — around level ~1.5, with headroom to spare.
-	lvl := dom.Doc.Call("createElement", "input")
-	lvl.Set("type", "range")
-	lvl.Set("min", "-4")
-	lvl.Set("max", "4")
-	lvl.Set("step", "0.01")
-	lvl.Set("title", "Audio-mod depth control for "+label+" — how strongly the selected channel drives it (hidden range behind the inner knob)")
-	lvl.Set("value", strconv.FormatFloat(float64(cur.level), 'g', -1, 32))
-	lvl.Set("style", "display:none;")
-	lvlNum := dom.Doc.Call("createElement", "input")
-	lvlNum.Set("type", "text")
-	lvlNum.Set("inputmode", "decimal")
-	// No min/max/step: see buildParamUnit. They do nothing on a text input.
-	lvlNum.Set("value", led.Format(float64(cur.level), 1, 2, true))
-	lvlNum.Set("title", "Mod depth for "+label+" (± inverts, 0 = off; ~1.5+ overdrives)")
-	lvlNum.Set("className", "numin u-modval")
-	lvl.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) any {
-		if v, err := strconv.ParseFloat(lvl.Get("value").String(), 32); err == nil {
-			if v > -0.005 && v < 0.005 {
-				v = 0
-			}
-			m := pmod.params[id]
-			m.level = float32(v)
-			pmod.params[id] = m
-			lvlNum.Set("value", led.Format(v, 1, 2, true))
-		}
-		return nil
-	}))
-	lvlNum.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) any {
-		if v, err := strconv.ParseFloat(lvlNum.Get("value").String(), 32); err == nil {
-			m := pmod.params[id]
-			m.level = float32(v)
-			pmod.params[id] = m
-			lvl.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
-		}
-		return nil
-	}))
-	chStack := stackKnobs(selk.makeSelectorKnob(sel), makeKnob(lvl, lvlNum, true, false, false))
-	addSelectorLabels(chStack, []string{"off", "st", "L", "R"}, sel)
-
-	mod := dom.Doc.Call("createElement", "div")
-	mod.Set("className", "punit-mod")
-	lbl := dom.Doc.Call("createElement", "span")
-	lbl.Set("className", "u-modlbl")
-	lbl.Set("textContent", "MOD / LVL")
-	mod.Call("appendChild", lbl)
-	mod.Call("appendChild", chStack)
-	mod.Call("appendChild", sel) // hidden, driven by the ring
-	mod.Call("appendChild", lvl) // hidden, driven by the inner knob
-	mod.Call("appendChild", lvlNum)
-	return mod
-}
-
 // makeEQStrip builds the graphic-EQ band-picker for parameter id: numEQBands
 // draggable columns (low→high) whose heights are the band weights in
 // pmod.params[id].bands. Drag across to paint the curve.
@@ -416,7 +332,7 @@ func makeEQStrip(id string) js.Value {
 	wrap := dom.Doc.Call("createElement", "div")
 	wrap.Set("className", "eqstrip")
 	wrap.Call("setAttribute", "data-no-drag", "")
-	wrap.Set("title", "EQ for "+id+" — drag to pick which frequency bands (low→high) drive the "+id+" parameter")
+	wrap.Set("title", docf("mod-eq.strip", "control", id))
 
 	fills := make([]js.Value, numEQBands)
 	for i := range numEQBands {
@@ -487,4 +403,32 @@ func makeEQStrip(id string) js.Value {
 	wrap.Call("addEventListener", "pointerup", stop)
 	wrap.Call("addEventListener", "pointerleave", stop)
 	return wrap
+}
+
+// modParams is the parameters modulation can route on mode: its own, or for
+// Custom, the constants its equations name (customEquation.modDefs). Custom's
+// are not in attractorParams, whose readers would put them in a link a second
+// time beside Custom's own keys.
+func modParams(mode string) []paramDef {
+	if mode == "custom" {
+		return custom.modDefs
+	}
+	return attractorParams[mode]
+}
+
+// The routes' names for the Mixer's sends to modulation, MOD A and MOD B.
+const (
+	modSrcSendA = "modA"
+	modSrcSendB = "modB"
+)
+
+// modReadsSends reports whether any route reads MOD A or B: the only reason
+// to analyze them.
+func modReadsSends() bool {
+	for _, m := range pmod.params {
+		if m.level != 0 && (m.channel == modSrcSendA || m.channel == modSrcSendB) {
+			return true
+		}
+	}
+	return false
 }

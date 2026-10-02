@@ -167,7 +167,7 @@ func takensFitExtent(gain float32) float32 { return gain * takensCubeDiag }
 func (t *takensMode) generateTakens() {
 	src := aud.ensureAudioSource()
 	sr := 24000
-	if src != nil && src.SampleRate() > 0 {
+	if src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
 	tau := takens.TauSamples(t.tau, sr)
@@ -419,8 +419,8 @@ func (t *takensMode) measure() {
 // sample-count wording and the readout changed units whenever a module was
 // toggled.
 //
-// Six characters is what the cell holds — a third of a module wide — so one
-// decimal and no space: "τ1.5m3" where it used to say "τ73 m3".
+// Seven characters is what its display holds, so one decimal and no space:
+// "τ1.5m3", or "τ1.5m>3" when the dimension never settled.
 func (t *takensMode) measText() string {
 	if t.meas.Tau < 1 {
 		return "τ-- m-"
@@ -435,7 +435,7 @@ func (t *takensMode) measText() string {
 // takensSourceRate is the live source's sample rate, or the fallback every
 // other function here uses when it has not reported one yet.
 func takensSourceRate() int {
-	if src := aud.ensureAudioSource(); src != nil && src.SampleRate() > 0 {
+	if src := aud.ensureAudioSource(); src.SampleRate() > 0 {
 		return src.SampleRate()
 	}
 	return 24000
@@ -472,40 +472,23 @@ func (t *takensMode) setTakensTau(tau int) {
 
 func (t *takensMode) showTakensMeasurement(s string) {
 	if t.measEl.Truthy() {
-		t.measEl.Set("textContent", s)
+		setDotText(t.measEl, s)
 	}
 }
 
-// appendTakensEstimate adds the MEAS cell — the button and its readout — to
-// the Takens parameter grid.
-func (t *takensMode) appendTakensEstimate(grid js.Value) {
-	card := dom.Doc.Call("createElement", "div")
-	card.Set("className", "punit")
-
-	lbl := dom.Doc.Call("createElement", "span")
-	lbl.Set("className", symClass("u-lbl", false))
-	lbl.Set("textContent", "meas")
-	card.Call("appendChild", lbl)
-
-	t.measEl = dom.Doc.Call("createElement", "span")
-	t.measEl.Set("className", "led counter-led")
-	t.measEl.Set("title", "Measured embedding, in milliseconds: τ is the first minimum of the signal's average mutual information, written into the τ knob; m is the false-nearest-neighbor dimension. m greater than 3 means the trail on screen is a projection of a higher-dimensional reconstruction. This runs by itself once the mode has enough audio, and again when the source changes — but never over a τ you have set yourself. The button measures again on demand.")
-	t.measEl.Set("textContent", t.measText())
-	card.Call("appendChild", t.measEl)
-
-	row := dom.Doc.Call("createElement", "span")
-	row.Set("className", "grp")
+// appendTakensEstimate adds the MEAS readout and its button to the model's
+// readout line (liveReadoutHost), in the order the Lyapunov readout has them.
+func (t *takensMode) appendTakensEstimate(host js.Value) {
+	t.measEl = liveReadout(host, "meas", dispFullChars, t.measText(), doc("ro.meas"))
 	btn := dom.Doc.Call("createElement", "button")
 	btn.Set("className", "rst")
 	btn.Set("textContent", "↻")
-	btn.Set("title", "Measure the embedding from the audio in the buffer and set τ from it. Once, on demand — this mode deliberately does not re-tune itself per frame, because a knob that moves with the music makes the figure move with it too.")
+	btn.Set("title", doc("takens-measure"))
 	btn.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 		t.measure()
 		return nil
 	}))
-	row.Call("appendChild", btn)
-	card.Call("appendChild", row)
-	grid.Call("appendChild", card)
+	t.measEl.Get("parentNode").Call("appendChild", btn)
 }
 
 // tauMS is a τ knob value as milliseconds, for readouts. It does not depend on

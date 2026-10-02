@@ -322,27 +322,19 @@ var needsAudio = func() map[string]bool {
 // the spectrogram, the scope and the delay embedding are all a black frame —
 // truthful, and useless as documentation.
 //
-// The built-in signal generator is the source that needs neither the server
-// nor the microphone. Its per-oscillator OUT ring has an "off" position that
-// mutes that oscillator, and with all three off no Web Audio graph reaches the
-// speakers at all — the analysis paths (scope, spectrogram, meters) are fed
-// from the generator's samples directly. So this fills the display without
-// playing anything.
+// The built-in signal generators are the source that needs neither the server
+// nor the microphone. Pinned to the rack's signal on the Mixer in place of
+// the capture, they feed the analysis paths (scope, spectrogram, meters)
+// directly; pinned to no speaker, nothing is heard. So this fills the
+// display without playing anything.
 func feedSilentAudio(c *cdp.Client) {
-	c.Eval(`(function(){
-	  ['gen-x-out','gen-y-out','gen-z-out'].forEach(function(id){
-	    var s=document.getElementById(id);
-	    if(s && s.value!=='0'){ s.value='0'; s.dispatchEvent(new Event('change',{bubbles:true})); }
-	  });
-	  var fg=document.getElementById('fg-on');
-	  if(fg && !fg.checked){ fg.checked=true; fg.dispatchEvent(new Event('change',{bubbles:true})); }
-	})()`)
+	c.Eval(`window.rackmix&&rackmix("rl.cl:0,rl.g1,rr.cr:0,rr.g2")`)
 	// The browser's autoplay policy keeps the AudioContext suspended until a
 	// real user gesture, and a suspended context delivers no samples — which
 	// is why enabling the generator alone still photographed a black plane.
 	// CDP-dispatched input is trusted, so one click unlocks it. The click
 	// lands on the canvas, where a press and release at the same point is a
-	// zero-degree rotate, and the OUT rings above are already off, so nothing
+	// zero-degree rotate, and the speakers above are already off, so nothing
 	// reaches the speakers.
 	c.Click(120, 120)
 	// The spectrogram scrolls one column at a time; give it long enough to
@@ -438,11 +430,10 @@ func waitForFill(c *cdp.Client, mode string) {
 	fmt.Printf(" [%s: still filling after %s]", mode, *portFill)
 }
 
-// silenceAudio puts the generator back, so a capture run does not leave the
-// tab producing a signal.
+// silenceAudio puts the Mixer back as the rack starts, so a capture run does
+// not leave the tab producing a signal.
 func silenceAudio(c *cdp.Client) {
-	c.Eval(`(function(){var fg=document.getElementById('fg-on');
-	  if(fg && fg.checked){ fg.checked=false; fg.dispatchEvent(new Event('change',{bubbles:true})); }})()`)
+	c.Eval(`window.rackmix&&rackmix("")`)
 }
 
 // hideChrome / showChrome leave the canvas and hide every other child of the

@@ -25,7 +25,7 @@ import (
 //
 // Up and Right increase, Down and Left decrease, matching a native range
 // input. The step is the SAME step the wheel uses, read from the same closure,
-// so the two can never drift apart — including the live "Fine ×" ratio when
+// so the two can never drift apart — including the tenth-of-a-step fine nudge when
 // the pointer is over a nested knob's inner disc.
 
 // hoverNudge is the knob currently under the pointer, or nil. It is a function

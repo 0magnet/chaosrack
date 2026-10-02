@@ -180,7 +180,7 @@ func (s *spectrogram) updateSpectrogramTexture(nowMs float64) {
 	// the fold happens as frames arrive, so what is already in the ring keeps
 	// the fold it was written with.
 	applySpectChannel()
-	if src := aud.activeAudioSource(); src != nil && src.Ready() {
+	if src := aud.activeAudioSource(); src.Ready() {
 		fvfOn := run.selectedMode == "fvf"
 		// When the FVF audio engine is running it is the single drainer of the
 		// source (and plays it out), and the tap switches its upstream to that
@@ -262,7 +262,7 @@ func (s *spectrogram) flushSpectColumns(nowMs float64) {
 	}
 
 	sampleRate := 24000
-	if src := aud.activeAudioSource(); src != nil && src.SampleRate() > 0 {
+	if src := aud.activeAudioSource(); src.SampleRate() > 0 {
 		sampleRate = src.SampleRate()
 	}
 	step := max(sg.S.StepSize(), 1)

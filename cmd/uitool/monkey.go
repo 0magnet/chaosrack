@@ -106,7 +106,7 @@ const recoverJS = `(function(){
   return JSON.stringify({shown:getComputedStyle(p).display!=='none', above:z(p)>=z(cc), pz:z(p), cz:z(cc), front:!!front});
 })()`
 
-var modes = []string{"rossler", "lorenz", "aizawa", "thomas", "chua", "cube", "torus", "magnetosphere", "lissajou", "graphicartist", "spectrogram", "xy", "fvf", "custom", "sprotta"}
+var modes = []string{"rossler", "lorenz", "aizawa", "thomas", "chua", "polyhedron", "torus", "magnetosphere", "lissajou", "graphicartist", "spectrogram", "xy", "fvf", "custom", "sprotta"}
 var docks = []string{"bottom", "top", "left", "right", "float"}
 
 type violation struct {

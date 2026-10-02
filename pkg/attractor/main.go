@@ -99,7 +99,7 @@ func Run() {
 	css.Set("id", "chaosrack-panel-css")
 	css.Set("textContent", panelCSS)
 	dom.Doc.Get("head").Call("appendChild", css)
-	panel.Set("innerHTML", controlsBody)
+	panel.Set("innerHTML", withRackScopes(withDocs(controlsBody)))
 	buildModeSelect(panel) // the mode <select> derives from the mode registry
 	footers := dom.Doc.Call("getElementsByTagName", "footer")
 	var existingFooter js.Value
@@ -123,7 +123,7 @@ func Run() {
 	// every listener and every knob dropped.
 	{
 		tmp := dom.Doc.Call("createElement", "div")
-		tmp.Set("innerHTML", shellFurniture)
+		tmp.Set("innerHTML", withDocs(shellFurniture))
 		for tmp.Get("firstChild").Truthy() {
 			shell.Call("appendChild", tmp.Get("firstChild"))
 		}
@@ -163,7 +163,7 @@ func Run() {
 	panelToggle := dom.Doc.Call("createElement", "button")
 	panelToggle.Set("id", "panel-toggle")
 	panelToggle.Set("textContent", "▤")
-	panelToggle.Set("title", "Show / hide controls (brings them back if the model's 'Front' overlay is hiding them)")
+	panelToggle.Set("title", doc("panel-toggle"))
 	panelToggle.Set("style", "position:fixed;bottom:6px;left:6px;z-index:var(--z-toggle);background:#222;color:#ccc;border:1px solid #555;border-radius:3px;font-family:'B612 Mono',monospace;font-size:14px;cursor:pointer;padding:2px 8px;opacity:0.55;")
 	panelToggle.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		p := dom.Doc.Call("getElementById", "controls-panel")
@@ -237,92 +237,15 @@ func Run() {
 	}))
 	dom.Body.Call("appendChild", panelToggle)
 
-	// "Size / Step × / Fine ×" — one 3-layer concentric knob: the outermost
-	// ring is Size (scales every knob via --kscale), the middle ring is Step×
-	// (scales every param knob's coarse step), the inner knob is Fine× (the
-	// inner disc's fraction of a coarse step). Step×/Fine× are read live by the
-	// param knobs.
-	sr := dom.Doc.Call("getElementById", "step-ratio")
-	fr := dom.Doc.Call("getElementById", "fine-ratio")
-	ks := dom.Doc.Call("getElementById", "knob-size")
-	if sr.Truthy() && fr.Truthy() && ks.Truthy() {
-		if holder := dom.Doc.Call("getElementById", "stepfine-stack"); holder.Truthy() {
-			// Two concentric clickable label rings: Step× (outer) · Fine× (inner).
-			// Size moved to its own Style module so this stays compact.
-			sr.Set("title", "Step × — coarse step-size multiplier for every parameter knob")
-			fr.Set("title", "Fine × — fine-trim step as a fraction of one coarse step")
-			stepFine := stackKnobs(selk.makeSelectorKnob(sr), selk.makeSelectorKnob(fr))
-			addSelectorLabels(stepFine, []string{".25", ".5", "1", "2", "5"}, sr)
-			addSelectorLabels(stepFine, []string{"1", ".1", ".01", ".001"}, fr)
-			holder.Call("appendChild", stepFine)
-			sr.Get("style").Set("display", "none")
-			fr.Get("style").Set("display", "none")
-			// Separate LED readouts for Step× and Fine× (mirror the label rings).
-			// Fixed decimals so the readouts are constant width (zero-padded) and
-			// never resize as the ratios change.
-			sled := dom.Doc.Call("getElementById", "step-led")
-			fled := dom.Doc.Call("getElementById", "fine-led")
-			fmtF := func(s string, dec int) string {
-				v, _ := strconv.ParseFloat(s, 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-				return strconv.FormatFloat(v, 'f', dec, 64)
-			}
-			upd := func() {
-				if sled.Truthy() {
-					sled.Set("textContent", fmtF(sr.Get("value").String(), 2)) // 0.25 … 5.00
-				}
-				if fled.Truthy() {
-					fled.Set("textContent", fmtF(fr.Get("value").String(), 3)) // 1.000 … 0.001
-				}
-			}
-			sr.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any { upd(); return nil }))
-			fr.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any { upd(); return nil }))
-			upd()
-		}
-		// Size (outer) with the rack style stacked as its inner ring: the
-		// frame's size and its metalwork on one shaft, the way the knob face
-		// and the LED color share one, rather than a fourth cell that would
-		// make the Style module two slots wide.
-		if sh := dom.Doc.Call("getElementById", "size-stack"); sh.Truthy() {
-			ks.Set("title", "Size — scales the whole control interface (S / M / L / XL)")
-			if rs := dom.Doc.Call("getElementById", "bay-style"); rs.Truthy() {
-				stk := stackKnobs(selk.makeSelectorKnob(ks), selk.makeSelectorKnob(rs))
-				addSelectorLabels(stk, []string{"S", "M", "L", "XL"}, ks)
-				addSelectorLabels(stk, []string{"bare", "hndl", "scrw", "full"}, rs)
-				sh.Call("appendChild", stk)
-				wireRackStyle(rs)
-			} else {
-				sh.Call("appendChild", singleSelectorKnob(ks, []string{"S", "M", "L", "XL"}))
-			}
-			ks.Get("style").Set("display", "none")
-		}
-		// Knob-style selector (outer) with the LED-color selector stacked as its
-		// inner ring — appearance + readout color on one shaft, saving a cell.
+	// The Style module's knobs: the knob face, the LED color and the
+	// phosphor. The interface size has no knob of its own: dragging the
+	// panel's edge scales it continuously (layout.setKScale), which a
+	// four-step ring only repeated, and the rack's metalwork is the one style.
+	{
+		// The knob face, on a lone labeled ring.
 		if st := dom.Doc.Call("getElementById", "knob-style"); st.Truthy() {
-			lc := dom.Doc.Call("getElementById", "led-color")
-			st.Set("title", "Knob style — knob face appearance (std / flat / vint / chrome / gold / carbon)")
 			if kh := dom.Doc.Call("getElementById", "knobstyle-stack"); kh.Truthy() {
-				if lc.Truthy() {
-					lc.Set("title", "LED color — readout color for every numeric LED readout")
-					// Populate the LED-color options from the single ordered source.
-					var dotCols []string
-					for _, d := range ledColorDefs {
-						o := dom.Doc.Call("createElement", "option")
-						o.Set("value", d.name)
-						o.Set("textContent", d.name)
-						o.Set("title", d.desc)
-						lc.Call("appendChild", o)
-						dotCols = append(dotCols, d.col)
-					}
-					// Outer = knob style (labeled ring). Inner = LED color: a ring of
-					// colored dots (one per option in its own LED color), the selected
-					// one highlighted.
-					stStack := stackKnobs(selk.makeSelectorKnob(st, styleKnobRot), selk.makeSelectorKnob(lc))
-					addSelectorLabelsRot(stStack, []string{"std", "flat", "vint", "chrm", "gold", "carb"}, st, styleKnobRot) // labels staggered off the LED dots; pointer offset to match
-					addSelectorDotLabels(stStack, dotCols, lc, 36)                                                           // ring just outside the style knob, inside its text labels
-					kh.Call("appendChild", stStack)
-				} else {
-					kh.Call("appendChild", singleSelectorKnob(st, []string{"std", "flat", "vint", "chrm", "gold", "carb"}))
-				}
+				kh.Call("appendChild", singleSelectorKnob(st, []string{"std", "flat", "vint", "chrm", "gold", "carb"}))
 			}
 			applyStyle := func() {
 				cl := dom.Doc.Call("getElementById", "controls-panel").Get("classList")
@@ -337,215 +260,172 @@ func Run() {
 			}))
 			applyStyle()
 			st.Get("style").Set("display", "none")
-			// Style and LED color share the one reset their shared cell holds.
-			// No PermaKey: neither is carried by a link today, and adding two
-			// new hash keys is a separate decision from giving the cell a reset.
+			// No PermaKey: neither the face nor the LED color is carried by a
+			// link today, and adding hash keys is a separate decision.
 			adoptDescControl(ControlDesc{
 				ID: "knob-style", Label: "Knob", IsSelect: true, SelectDef: "std", ResetID: "rst-knob-style",
 			})
-			// LED readout color presets → CSS vars on the panel.
-			if lc.Truthy() {
-				ledCols := map[string][4]string{}
-				for _, d := range ledColorDefs {
-					ledCols[d.name] = [4]string{d.col, d.glow, d.bg, d.bd}
-				}
-				applyLED := func() {
-					c := ledCols[lc.Get("value").String()]
-					s := dom.Doc.Call("getElementById", "controls-panel").Get("style")
-					s.Call("setProperty", "--led-col", c[0])
-					s.Call("setProperty", "--led-glow", c[1])
-					s.Call("setProperty", "--led-bg", c[2])
-					s.Call("setProperty", "--led-bd", c[3])
-				}
-				// Readout below the knob: an "LED" label to the left of a color-name
-				// display (shown in the current LED color), like a labeled readout.
-				var ledRO js.Value
-				if kh := dom.Doc.Call("getElementById", "knobstyle-stack"); kh.Truthy() {
-					row := dom.Doc.Call("createElement", "span")
-					row.Set("className", "ledcolor-row")
-					lab := dom.Doc.Call("createElement", "span")
-					lab.Set("className", "plabel ledcolor-lbl")
-					lab.Set("textContent", "LED")
-					lab.Set("title", "LED — the readout shows the selected LED color's name (inner knob)")
-					ledRO = dom.Doc.Call("createElement", "span")
-					ledRO.Set("className", "selk-readout ledcolor-ro")
-					row.Call("appendChild", lab)
-					row.Call("appendChild", ledRO)
-					kh.Get("parentNode").Call("appendChild", row)
-				}
-				updLEDRO := func() {
-					if ledRO.Truthy() {
-						idx := max(lc.Get("selectedIndex").Int(), 0)
-						ledRO.Set("textContent", lc.Get("options").Index(idx).Get("text").String())
-						dialPosTitle(ledRO, lc, idx)
-					}
-				}
-				lc.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any { applyLED(); updLEDRO(); return nil }))
-				applyLED()
-				updLEDRO()
-				lc.Get("style").Set("display", "none")
-				// The default is the first entry of the one ordered table the
-				// options were built from, rather than a color name written out
-				// again here — the list is allowed to be reordered.
-				adoptDescControl(ControlDesc{
-					ID: "led-color", Label: "LED", IsSelect: true, SelectDef: ledColorDefs[0].name,
-					ResetID: "rst-knob-style",
-				})
-			}
 		}
-		sr.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
-			if v, err := strconv.ParseFloat(sr.Get("value").String(), 64); err == nil && v > 0 {
-				coarseRatio = v
+		// The LED color, in a cell of its own: a ring of colored dots, one per
+		// option in its own color, and the color's name on a character display
+		// under the knob, the way Phosphor names its setting.
+		if lc := dom.Doc.Call("getElementById", "led-color"); lc.Truthy() {
+			// Populate the LED-color options from the single ordered source.
+			var dotCols []string
+			ledCols := map[string][4]string{}
+			for _, d := range ledColorDefs {
+				o := dom.Doc.Call("createElement", "option")
+				o.Set("value", d.name)
+				o.Set("textContent", d.name)
+				o.Set("title", d.desc)
+				lc.Call("appendChild", o)
+				dotCols = append(dotCols, d.col)
+				ledCols[d.name] = [4]string{d.col, d.glow, d.bg, d.bd}
 			}
-			return nil
-		}))
-		fr.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
-			if v, err := strconv.ParseFloat(fr.Get("value").String(), 64); err == nil && v > 0 {
-				fineRatio = v
+			if lh := dom.Doc.Call("getElementById", "ledcolor-stack"); lh.Truthy() {
+				ro := selectorKnobReadout(lc)
+				addSelectorDotLabels(ro.Call("querySelector", ".knobstack"), dotCols, lc, 44)
+				lh.Call("appendChild", ro)
 			}
-			return nil
-		}))
-		applyKS := func() {
-			if v, err := strconv.ParseFloat(ks.Get("value").String(), 64); err == nil {
-				layout.setKScale(v)
+			// On the page, not the panel: the windows outside it (the Info
+			// window's addresses) read in the LED color too.
+			applyLED := func() {
+				c := ledCols[lc.Get("value").String()]
+				s := dom.Doc.Get("documentElement").Get("style")
+				s.Call("setProperty", "--led-col", c[0])
+				s.Call("setProperty", "--led-glow", c[1])
+				s.Call("setProperty", "--led-bg", c[2])
+				s.Call("setProperty", "--led-bd", c[3])
 			}
+			lc.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any { applyLED(); repaintTurning(); return nil }))
+			applyLED()
+			lc.Get("style").Set("display", "none")
+			// The default is the first entry of the one ordered table the
+			// options were built from, rather than a color name written out
+			// again here — the list is allowed to be reordered.
+			adoptDescControl(ControlDesc{
+				ID: "led-color", Label: "LED", IsSelect: true, SelectDef: ledColorDefs[0].name,
+				ResetID: "rst-led-color",
+			})
 		}
-		ks.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
-			applyKS()
-			return nil
-		}))
-		// Restore a saved (continuous) interface scale from a prior resize-drag;
-		// otherwise honor the Size knob's default.
+		// Restore a saved (continuous) interface scale from a prior
+		// resize-drag; otherwise the standard size.
+		kscale := 1.0
 		if s, ok := lsGet("wasmstuff-kscale"); ok {
 			if v, err := strconv.ParseFloat(s, 64); err == nil && v > 0 {
-				layout.setKScale(v)
-			} else {
-				applyKS()
+				kscale = v
 			}
-		} else {
-			applyKS()
 		}
-
-		// The three rings come home to the registry. Their effects stay wired
-		// above — the descriptor adds what they never had, which is a way back:
-		// a reset button on each cell, and, for Step and Fine, a place in the
-		// Reset All sweep that no longer has to name them by hand.
-		//
-		// Step and Fine share the one reset button their shared cell holds, the
-		// way Keys' range and base do: two descriptors naming the same ResetID
-		// each add a listener to it, so one click puts the pair back.
-		//
-		// No PermaKey on any of the three: all three are already carried by the
-		// permaCtls table, and a key in both places would write the hash twice.
-		adoptDescControl(ControlDesc{
-			ID: "step-ratio", Label: "step", IsSelect: true, SelectDef: "1", ResetID: "rst-stepfine",
-		})
-		adoptDescControl(ControlDesc{
-			ID: "fine-ratio", Label: "fine", IsSelect: true, SelectDef: "0.1", ResetID: "rst-stepfine",
-		})
-		// SkipResetAll: Size is a display preference, like the dock edge, and
-		// Reset All leaves those alone on purpose. Its own button still works.
-		adoptDescControl(ControlDesc{
-			ID: "knob-size", Label: "Size", IsSelect: true, SelectDef: "1",
-			ResetID: "rst-knob-size", SkipResetAll: true,
-		})
+		layout.setKScale(kscale)
 	}
 	bootMark("knobs-done")
-	wireModeAndResetInputs()
-	if dst := dom.Doc.Call("getElementById", "desk-style"); dst.Truthy() {
-		// The same treatment the Console's selects get, for the same reason.
-		// This one arrived as a bare <select> and was the only control in the
-		// whole panel a browser drew for itself: light grey, Arial, a native
-		// arrow — every other select, switch, readout and button is styled, so
-		// it read as a piece of somebody else's form dropped into the rack.
-		// The marquee is not decoration either; "Looking Glass" does not fit.
-		attachSelMarquee(dst, "#c9a0ff")
-		// Through the registry, which is what gives the cell its reset button.
-		// deskFlat is the default the package variable already holds, so the
-		// reset target is that one constant rather than a second copy of it.
-		adoptDescControl(ControlDesc{
-			ID: "desk-style", Label: "style", IsSelect: true, SelectDef: deskFlat,
-			ResetID:     "rst-desk-style",
-			SelectApply: desks.setDeskStyle,
-		})
-	}
-	wireColorAndViewControls()
-	// Event: physics switch — the weight is a switch on the Motion panel, not a
-	wirePhysSwitch()
-	// canvas, which is what the GPU costs, but keeps the control panel — so
-	wireFullscreenSwitch()
-	// Initial mode — read from URL hash if present. The hash may carry
-	// permalink state after the mode ("#aizawa&p.a=1.19&..."); take only
-	// the leading mode token here (the rest is applied post-setup).
-	run.selectedMode = "globe"
-	hash := js.Global().Get("location").Get("hash").String()
-	if len(hash) > 1 {
-		hashMode := hashModeToken()
-		// Validate against the mode registry. (The old params-map + hardcoded
-		// list pair silently rejected several real modes, e.g. sphere and fvf.)
-		if knownMode(hashMode) {
-			run.selectedMode = hashMode
+	// From here to the permalink, every handler that would re-quantize the
+	// rack or rebuild the panel asks once and is answered once, at the end:
+	// each quantize writes the rack and reads it back, which is a full layout
+	// of the page, and the boot asked for sixteen of them in a row. With no
+	// mode, because the hash has not been read yet: the flush uses the one
+	// the boot ends on.
+	owed.withDeferredLayout("", func() {
+		wireModeAndResetInputs()
+		if dst := dom.Doc.Call("getElementById", "desk-style"); dst.Truthy() {
+			// A position in the Visual bank (modelparts_js.go), where the display
+			// over its knob names the style. Through the registry, which is what
+			// gives the cell its reset button.
+			// deskFlat is the default the package variable already holds, so the
+			// reset target is that one constant rather than a second copy of it.
+			adoptDescControl(ControlDesc{
+				ID: "desk-style", Label: "style", IsSelect: true, SelectDef: deskFlat,
+				ResetID:     "rst-desk-style",
+				SelectApply: desks.setDeskStyle,
+			})
 		}
-	}
-	// Select the matching dropdown option
-	sel := dom.Doc.Call("getElementById", "mode-select")
-	if !sel.IsNull() && !sel.IsUndefined() {
-		sel.Set("value", run.selectedMode)
-	}
-	bootMark("params")
-	buildParamPanel(run.selectedMode)
-	updateTrailVisibility()
-
-	// One-time drag listeners for every selector knob in the panel, the
-	wireGradientKnobs()
-	// first pass can run before the panel's own font has been applied.
-	bootMark("quantize")
-	requantizeAfterFonts()
-
-	// Initialize persistent JS typed arrays for zero-alloc frame uploads
-	gpu.vertU8 = js.Global().Get("Uint8Array").New(sim.steps * 4 * 4)
-	buf := gpu.vertU8.Get("buffer")
-	gpu.vertF32 = js.Global().Get("Float32Array").New(buf, 0, sim.steps*4)
-	initDrawState()
-	debugVal := js.Global().Get("__WASM_DEBUG__")
-	if !debugVal.IsUndefined() && debugVal.Bool() {
-		debugEnabled = true
-	}
-
-	// Registry-owned fixed controls (registry refactor). One ControlDesc per
-	// control owns the LED format, slider→state plumbing, typed entry,
-	// wheel-step, reset button, AND Reset All (via the builtControls loop in
-	// onResetAll) — previously each of those was a separate wiring site and
-	// Reset All silently missed pan-x/pan-y/period. Registered BEFORE the
-	// permalink restore below so a restored hash value drives Apply like any
-	registerViewControls()
-	adoptDescControl(ControlDesc{ID: "trail-slider", Label: "Trail", Min: 1000, Max: 500000, Step: 1000, Def: 20000,
-		PermaKey: "tr", LEDID: "slider-value-trail", ResetID: "rst-trail",
-		Apply: func(v float64) {
-			newSteps := int(v)
-			if newSteps != sim.steps {
-				sim.steps = newSteps
-				sim.vertBuf = make([]float32, sim.steps*4)
-				gpu.vertU8 = js.Global().Get("Uint8Array").New(sim.steps * 4 * 4)
-				buf := gpu.vertU8.Get("buffer")
-				gpu.vertF32 = js.Global().Get("Float32Array").New(buf, 0, sim.steps*4)
-				resetAttractorState()
-				refreshGradient()
+		// Bifurcation's and the wobbulator's bank positions, from the same holder.
+		bif.wireBifCells()
+		fvf.wireFVFCells()
+		syncFVFRoute()
+		wireColorAndViewControls()
+		// Event: physics switch — the weight is a switch on the Motion panel, not a
+		wirePhysSwitch()
+		// canvas, which is what the GPU costs, but keeps the control panel — so
+		wireFullscreenSwitch()
+		// Initial mode — read from URL hash if present. The hash may carry
+		// permalink state after the mode ("#aizawa&p.a=1.19&..."); take only
+		// the leading mode token here (the rest is applied post-setup).
+		run.selectedMode = "globe"
+		// A link to a model folded into another (#cube, #sphere) is rewritten as
+		// what it is now, before the hash is read by anything.
+		migrateLocationHash()
+		hash := js.Global().Get("location").Get("hash").String()
+		if len(hash) > 1 {
+			hashMode := hashModeToken()
+			// Validate against the mode registry. (The old params-map + hardcoded
+			// list pair silently rejected several real modes, e.g. sphere and fvf.)
+			if knownMode(hashMode) {
+				run.selectedMode = hashMode
 			}
-		},
-		ResetExtra: func() {
-			// Resetting the trail also drops persist mode (matches the old
-			// bespoke reset: a persisted trail makes the new length invisible).
-			style.persistTrail = false
-			dom.Doc.Call("getElementById", "persist-trail").Set("checked", false)
-		}})
-	registerOutputControls()
-	// value so engine state matches the panel by construction (the old code
-	bootMark("commit")
-	commitBuiltControls()
-	// encoded in the URL hash, then keep the hash in sync with the live
-	bootMark("permalink")
-	capturePermalinkAndRestore()
+		}
+		// Select the matching dropdown option
+		sel := dom.Doc.Call("getElementById", "mode-select")
+		if !sel.IsNull() && !sel.IsUndefined() {
+			sel.Set("value", run.selectedMode)
+		}
+		bootMark("params")
+		// Built now, though the boot is deferring layout: the rest of the boot is
+		// wired against it.
+		buildParamPanelNow(run.selectedMode)
+		updateTrailVisibility()
+
+		// One-time drag listeners for every selector knob in the panel, the
+		wireGradientKnobs()
+		// first pass can run before the panel's own font has been applied.
+		bootMark("quantize")
+		requantizeAfterFonts()
+
+		// Initialize persistent JS typed arrays for zero-alloc frame uploads
+		gpu.vertU8 = js.Global().Get("Uint8Array").New(sim.steps * 4 * 4)
+		buf := gpu.vertU8.Get("buffer")
+		gpu.vertF32 = js.Global().Get("Float32Array").New(buf, 0, sim.steps*4)
+		initDrawState()
+		debugVal := js.Global().Get("__WASM_DEBUG__")
+		if !debugVal.IsUndefined() && debugVal.Bool() {
+			debugEnabled = true
+		}
+
+		// Registry-owned fixed controls (registry refactor). One ControlDesc per
+		// control owns the LED format, slider→state plumbing, typed entry,
+		// wheel-step, reset button, AND Reset All (via the builtControls loop in
+		// onResetAll) — previously each of those was a separate wiring site and
+		// Reset All silently missed pan-x/pan-y/period. Registered BEFORE the
+		// permalink restore below so a restored hash value drives Apply like any
+		registerViewControls()
+		adoptDescControl(ControlDesc{ID: "trail-slider", Label: "Trail", Min: 1000, Max: 500000, Step: 1000, Def: 20000,
+			PermaKey: "tr", LEDID: "slider-value-trail", ResetID: "rst-trail",
+			Apply: func(v float64) {
+				newSteps := int(v)
+				if newSteps != sim.steps {
+					sim.steps = newSteps
+					sim.vertBuf = make([]float32, sim.steps*4)
+					gpu.vertU8 = js.Global().Get("Uint8Array").New(sim.steps * 4 * 4)
+					buf := gpu.vertU8.Get("buffer")
+					gpu.vertF32 = js.Global().Get("Float32Array").New(buf, 0, sim.steps*4)
+					resetAttractorState()
+					refreshGradient()
+				}
+			},
+			ResetExtra: func() {
+				// Resetting the trail also drops persist mode (matches the old
+				// bespoke reset: a persisted trail makes the new length invisible).
+				style.persistTrail = false
+				dom.Doc.Call("getElementById", "persist-trail").Set("checked", false)
+			}})
+		registerOutputControls()
+		// value so engine state matches the panel by construction (the old code
+		bootMark("commit")
+		commitBuiltControls()
+		// encoded in the URL hash, then keep the hash in sync with the live
+		bootMark("permalink")
+		capturePermalinkAndRestore()
+	})
 	done := make(chan struct{})
 	renderFrame = dom.FuncOf(renderLoop)
 	js.Global().Call("requestAnimationFrame", renderFrame)
@@ -622,6 +502,15 @@ func onResetAll(this js.Value, args []js.Value) any {
 	// Reset attractor position
 	resetAttractorState()
 
+	// Every modulation route, with no switch to silence them any more: a
+	// recall goes through here, and a recalled patch must not keep the routes
+	// it replaced.
+	clear(pmod.params)
+	syncAudioMod()
+	// And the Mixer, for the same reason: a recalled patch's pins replace
+	// the ones before, they do not add to them.
+	mixReset()
+
 	// Registry-owned controls (zoom, pan X/Y, rainbow period, …): each resets
 	// itself — value, LED format, and any reset hook — so Reset All can never
 	// silently miss one again. (Rotation sliders + view.modelMat are re-randomized
@@ -693,10 +582,10 @@ func onResetAll(this js.Value, args []js.Value) any {
 		id  string
 		def bool
 	}{
-		{"spect-fill", false}, {"audio-mod", false},
-		{"fg-on", false}, {"spectro-skin", false},
+		{"spect-fill", false},
+		{"spectro-skin", false},
 		{"handles-on", false}, {"desk-pass", false}, {"desk-contain", false},
-		{"rhythm-run", false}, {"jam-sw", false}, {"show-meters", true},
+		{"jam-sw", false}, {"show-meters", true},
 		{"ring-sw", false}, {"twin-sw", false}, {"sect-sw", false},
 		{"link-sw", true},
 		{"scope-grat", true}, // the graticule is what makes the trace measurable
@@ -719,7 +608,7 @@ func onResetAll(this js.Value, args []js.Value) any {
 	// Every selector in the panel is a registry Control now, so the loop at the
 	// top of this function has already put them all back — the backdrop, the
 	// skin, the phosphor and LED color, Step and Fine, the Model Out rings, the
-	// three oscillators' routing and waveform, the envelope mode.
+	// oscillators' routing and waveform, the envelope mode.
 	//
 	// What stood here was a resetSel closure and fourteen calls to it: a second,
 	// hand-maintained list of every selector and its default, beside the one the
@@ -875,19 +764,6 @@ func applyHostPageTweaks() {
 // path, which is what gives each of them its LED formatting, typed entry,
 // wheel nudge, reset and the Control that Reset All drives.
 func registerOutputControls() {
-	// Model Out (sonification): trace-rate knob on the generators' concert-
-	// pitch semitone scale (the LED shows Hz both directions via the mapping
-	// pair), plus output level. The MAP ring is wired in son.buildModule.
-	adoptDescControl(ControlDesc{ID: "sonify-freq", Label: "trace", Min: 0, Max: float64(genSemitones), Step: 1, Def: 24,
-		PermaKey: "sf", LEDID: "sonify-led", ResetID: "rst-sonify-freq",
-		Apply:       func(v float64) { son.hz = freqFromKnob(v) },
-		SliderToVal: sonifyFreqFromSlider,
-		ValToSlider: sonifySliderFromFreq,
-		LEDMin:      genFreqLo, LEDMax: genFreqHi, LEDStep: 1})
-	adoptDescControl(ControlDesc{ID: "sonify-lvl", Label: "lvl", Min: 0, Max: 100, Step: 1, Def: 60,
-		PermaKey: "sv", LEDID: "sonify-lvl-led", ResetID: "rst-sonify-lvl",
-		Apply: func(v float64) { son.level = v / 100 }})
-
 	// View spin rates: the last controls on the legacy wiring path. Reset
 	// also zeroes the axis ANGLE state and rebuilds the matrices (parity
 	// with the old bespoke rst-rx/ry/rz handlers).
@@ -924,6 +800,26 @@ func registerOutputControls() {
 	// Prime every registry control once: run its Apply from the DOM's current
 }
 
+// The position knobs turn once round (oneTurn) and read in degrees, like the
+// angle knobs beside them: half a turn either way is the end of the range.
+// The range itself is unchanged, so a permalink's px, py and z mean what they
+// always meant; only the readout speaks degrees.
+
+// degreesOf maps a slider in ±half to the ±180° its knob has turned,
+// rounded to a millionth: the slider's fine step does not divide its range
+// exactly, so the browser parks a centered knob at -8e-15, which read "-0".
+func degreesOf(half float64) func(float64) float64 {
+	return func(s float64) float64 { return math.Round(s*180/half*1e6) / 1e6 }
+}
+
+// fromDegrees is degreesOf backwards, for a typed readout.
+func fromDegrees(half float64) func(float64) float64 {
+	return func(d float64) float64 { return d * half / 180 }
+}
+
+// panStep is one wheel notch of a position knob: 5° of its turn.
+const panStep = 8.0 / 36
+
 // registerViewControls declares the camera and view cells the same way:
 // zoom, the pans, the spins, and the trail.
 func registerViewControls() {
@@ -936,6 +832,7 @@ func registerViewControls() {
 	// is usable. The knob's inner disc trims finer still.
 	adoptDescControl(ControlDesc{ID: "camera-zoom", Label: "Zoom", Min: -95, Max: 95, Step: 0.25, Def: 0,
 		Signed: true, PermaKey: "z", LEDID: "slider-value-zoom", ResetID: "rst-zoom",
+		SliderToVal: degreesOf(95), ValToSlider: fromDegrees(95), LEDMin: -180, LEDMax: 180, LEDStep: 1,
 		Apply: func(v float64) { view.ctl.zoom = float32(v) },
 		ResetExtra: func() {
 			view.defaultDist = view.initDist
@@ -946,16 +843,18 @@ func registerViewControls() {
 	// Front switch — all behind, all in front — and everything between is a
 	// plane cutting the model, which is what the switch could never express.
 	adoptDescControl(ControlDesc{ID: "model-fore", Label: "fore", Min: -1, Max: 1, Step: 0.05, Def: -1,
-		Signed: true, PermaKey: "fo", LEDID: "slider-value-fore", ResetID: "rst-fore",
+		Signed: true, PermaKey: "fo", LEDID: "slider-value-fore", ResetID: "rst-zoom",
 		Apply: func(v float64) {
 			splitFrac = float32(v)
 			syncSplitCanvas()
 		}})
-	adoptDescControl(ControlDesc{ID: "pan-x", Label: "X", Min: -8, Max: 8, Step: 1, Def: 0,
+	adoptDescControl(ControlDesc{ID: "pan-x", Label: "X", Min: -8, Max: 8, Step: panStep, Def: 0,
 		Signed: true, PermaKey: "px", LEDID: "slider-value-panx", ResetID: "rst-panx",
+		SliderToVal: degreesOf(8), ValToSlider: fromDegrees(8), LEDMin: -180, LEDMax: 180, LEDStep: 1,
 		Apply: func(v float64) { view.ctl.panX = float32(v) }})
-	adoptDescControl(ControlDesc{ID: "pan-y", Label: "Y", Min: -8, Max: 8, Step: 1, Def: 0,
+	adoptDescControl(ControlDesc{ID: "pan-y", Label: "Y", Min: -8, Max: 8, Step: panStep, Def: 0,
 		Signed: true, PermaKey: "py", LEDID: "slider-value-pany", ResetID: "rst-pany",
+		SliderToVal: degreesOf(8), ValToSlider: fromDegrees(8), LEDMin: -180, LEDMax: 180, LEDStep: 1,
 		Apply: func(v float64) { view.ctl.panY = float32(v) }})
 	// The sweep's own ends, as a fraction of whatever parameter it is
 	// pointed at — which is what lets one pair of knobs bound a sweep of
@@ -1029,6 +928,7 @@ func wireColorAndViewControls() {
 	sect.wireSectSwitch()
 	grid.wireViewGridDial()
 	grid.wireViewLinkSwitches()
+	wireBackLayer() // the Back switch: the panel on the model behind (backlayer_js.go)
 	grid.wireSweepDial()
 
 	// Event: persist trail checkbox
@@ -1162,7 +1062,7 @@ func wirePanelSwitches() {
 		}
 		// No PermaKey: "sk" already carries it in permaCtls.
 		adoptDescControl(ControlDesc{
-			ID: "skin-visual", Label: "On", IsSelect: true, SelectDef: "", ResetID: "rst-skin-visual",
+			ID: "skin-visual", Label: "skin", IsSelect: true, SelectDef: "", ResetID: "rst-skin-visual",
 		})
 	}
 	// Event: Backdrop — ONE selector, because the state is one-of-N.
@@ -1181,8 +1081,8 @@ func wirePanelSwitches() {
 	if bv := dom.Doc.Call("getElementById", "bg-visual"); bv.Truthy() {
 		bv.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
 			setBackgroundVisual(bv.Get("value").String())
-			syncDeskExtras(run.selectedMode)  // the desk's own module follows it here
-			buildParamPanel(run.selectedMode) // so does the spectrogram's
+			onBackdropChoice(bgVisual)
+			buildParamPanel(run.selectedMode) // the spectrogram's module follows it here
 			return nil
 		}))
 		if holder := dom.Doc.Call("getElementById", "bg-stack"); holder.Truthy() {
@@ -1217,7 +1117,6 @@ func wirePanelSwitches() {
 			phos.updateCRTDim()
 			return nil
 		}))
-		ph.Set("title", "Phosphor — CRT trace color + afterglow for scope modes (P31 crisp green … P7 blue→green … P33 long amber)")
 		// Index 0 is the "off" phosphor, which is what a reset means here: out
 		// of CRT mode. The options are built from the phosphors table just above,
 		// so the default is that table's first entry by construction.
@@ -1232,13 +1131,11 @@ func wirePanelSwitches() {
 		}
 	}
 
-	// Event: audio-mod checkbox — enable per-parameter audio modulation.
-	// The per-parameter routing controls appear under each attractor
-	// parameter (built by buildParamPanel) while this is checked.
-	dom.Doc.Call("getElementById", "audio-mod").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
-		setAudioMod(dom.Doc.Call("getElementById", "audio-mod").Get("checked").Bool())
-		return nil
-	}))
+	// Modulation runs when something needs it (syncAudioMod): a server feed
+	// from the start, otherwise the first route.
+	syncAudioMod()
+	// The Info window's manual follows the bay last worked at, from the start.
+	watchInfoBay()
 
 	// Event: Meters switch — show/hide the top-left audio feature meters.
 	dom.Doc.Call("getElementById", "show-meters").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
@@ -1247,15 +1144,9 @@ func wirePanelSwitches() {
 		return nil
 	}))
 
-	// Event: function/signal generator — a client-side audio source that works
-	// with no server or mic (so audio modulation / spectrogram / xy work on the
-	// static site). Toggle + waveform + sweep-rate.
-	dom.Doc.Call("getElementById", "fg-on").Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
-		aud.setFuncGen(dom.Doc.Call("getElementById", "fg-on").Get("checked").Bool())
-		return nil
-	}))
+	// The Mixer, then the generators it takes.
+	buildMixer()
 	buildGeneratorModule()
-	buildTestSignalModule()
 	// The readouts remember what they are showing (see led.Readouts), and
 	// these calls hand them fresh elements, so the memory has to go with the
 	// old ones or a new LED stays blank until its reading happens to move.
@@ -1266,17 +1157,19 @@ func wirePanelSwitches() {
 	thd.wireDistortionModule()
 	lufs.wireLoudnessModule()
 	wow.wireWowFlutterModule()
-	son.buildModule()
 	counter.wireCounterModule()
 	tpanel.wireTimingModule()
 	wireMeterClocks()
+	fillReadoutColumns() // spare positions to the foot of each readout column
+	dotReadoutLabels()   // the meters' readout names, on character displays
 	// The analyzers move off this thread if the browser will have them; see
 	// metersclient_js.go. Nothing downstream depends on whether it worked.
 	mc.startMetersWorker()
 	// The control surface, reachable from outside the page; see rackctl_js.go.
 	exposeRackControl()
+	enablePartsCatalog() // /parts: every distinct part, once; see parts_js.go
+	enableManualMode()   // /manual: the rack writing its own manual; see manualmode_js.go
 	lyap.wireAnalysisModule()
-	buildEnvModule()
 	keys.wireKeysModule()
 	tm.wireTonematrixModule()
 	rhy.wireRhythmModule()
@@ -1317,7 +1210,6 @@ func wirePanelSwitches() {
 	rec.wireRecordSwitch()
 	wireRegionSwitch()
 	recmod.wireRecordModule()
-	initDeskMonitor()
 	wireJamSwitch()
 	wireMIDISwitch()
 
@@ -1325,7 +1217,6 @@ func wirePanelSwitches() {
 	if dc := dom.Doc.Call("getElementById", "desk-contain"); dc.Truthy() {
 		dc.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
 			setDeskContain(dc.Get("checked").Bool())
-			syncDeskExtras(run.selectedMode) // the desk's settings arrive and leave with it
 			return nil
 		}))
 	}
@@ -1410,25 +1301,16 @@ func initDrawState() {
 	// Check if debug mode is enabled via JS global
 }
 
-// wireViewGridStack builds the view-count selector knob and its stack.
+// wireViewGridStack builds the Grid module and fills its dials.
 func wireViewGridStack() {
-	// The range lock, built the same way and for the same reason: two
-	// positions, so the ring is two labels and the hidden select goes away.
-	// The grid dial, built like the src and map rings beside it.
-	if gsel := dom.Doc.Call("getElementById", "view-n"); gsel.Truthy() {
-		if gh := dom.Doc.Call("getElementById", "view-n-stack"); gh.Truthy() {
-			gstack := soloKnob(gsel)
-			addSelectorLabels(gstack, viewCountRing, gsel).Set("id", "view-n-ring")
-			gh.Call("appendChild", gstack)
-			gsel.Get("style").Set("display", "none")
-		}
-	}
+	// The Grid's P-units, before its dials are filled (gridbank_js.go).
+	buildGridBank()
 	// The sweep dial: what varies across the grid. Its options are the
 	// current mode's own parameters, so building it is a function the
 	// mode change calls too rather than a block written out here.
 	grid.setSweepTargets(run.selectedMode)
 	grid.buildSweepDial()
-	rscope.buildRackScope() // the rack scope's own dials, independent of the model
+	buildRackScopes() // the rack scopes' own dials, independent of the model
 	wireColorLockSwitch()
 	updateGradientUI()
 	// And again when the fonts land: the widths are measured from text, and the
@@ -1445,13 +1327,11 @@ func buildRackAndRestore() {
 	// afterward gives a switch that says a module is in while it is out.
 	restoreRackLayout()
 	restoreRackBay()
-	setScopeUnit(true) // the scope is a unit of the rack, always bolted in
 	// One row per model category, each with the rotary that selects within
 	// it. Before the first layout pass, so the rows are packed with
 	// everything else rather than appearing after it.
 	buildCategoryModules()
-	wireRowMonitors()  // each row's screen, after the rows that hold them exist
-	buildRowSwitches() // and the Console switches that put a whole row away
+	wireRowMonitors() // each row's screen, after the rows that hold them exist
 	// And measure the rack once it exists. The category rows are built here,
 	// after the boot pass that sized every other module, and a module whose
 	// width was never measured against its real content keeps whatever the
@@ -1464,7 +1344,7 @@ func buildRackAndRestore() {
 		quantizeModuleWidths()
 		quantizeModuleWidths()
 	})
-	wireScreenPower() // BEAM and the two Monitor switches: a screen you are not watching costs nothing
+	wireScreenPower() // the scope's intensity and the Monitor switches: a screen you are not watching costs nothing
 	wireModuleDrag()
 	// Source and map: two knobs in two cells, each with its own ring and its own
 	// label.
@@ -1685,11 +1565,8 @@ func buildPanelKnobs() {
 	}
 	// Value knobs get a numeric scale dial; the rotation-rate knobs don't (they
 	// nest as the inner disc of the View angle knobs, which already carry a
-	// degree dial — a second scale would collide).
-	knobifyFixed("camera-zoom", "slider-value-zoom", true)
-	knobifyFixed("model-fore", "slider-value-fore", true)
-	knobifyFixed("pan-x", "slider-value-panx", true)
-	knobifyFixed("pan-y", "slider-value-pany", true)
+	// degree dial — a second scale would collide). Position and zoom are built
+	// below, beside the angle knobs and in their image (stackPos).
 	knobifyFixed("speed-slider", "slider-value-speed", true)
 	knobifyFixed("line-width", "slider-value-line", true)
 	knobifyFixed("dash-duty", "slider-value-dash", true)
@@ -1704,11 +1581,9 @@ func buildPanelKnobs() {
 
 	// Stack each axis's angle knob (outer ring) around its spin-rate knob
 	// (inner), oscilloscope-style, with an analog degree dial around the ring.
-	// Beside it, a digital readout column: the degrees LED, then the spin-rate
-	// numeric directly below it, then reset. The cell label becomes "<axis> / Rate".
-	// Each axis is a NARROW vertical strip: label ("X / Rate") · degrees LED ·
-	// angle knob (in a square, with the reset tucked in its lower-right corner)
-	// · spin-rate numeric. This sets the minimum module slot width.
+	// Each axis is a NARROW vertical strip: label, degrees LED and reset on
+	// one line · the angle knob · ω and the spin-rate numeric. This sets the
+	// minimum module slot width.
 	stackAxis := func(axisLbl, angleID, ledID, rateNumID, rateRstID string, rateKnob js.Value) {
 		ak := dom.Doc.Call("getElementById", angleID)
 		if !ak.Truthy() || !rateKnob.Truthy() {
@@ -1727,14 +1602,9 @@ func buildPanelKnobs() {
 		stack := stackKnobs(ak, rateKnob)
 		addAngleDial(stack)
 
-		// square wrapper so the reset can sit in the knob's corner
 		knobBox := dom.Doc.Call("createElement", "span")
 		knobBox.Set("className", "axknob-box")
 		knobBox.Call("appendChild", stack)
-		if rst.Truthy() {
-			rst.Get("classList").Call("add", "axknob-rst")
-			knobBox.Call("appendChild", rst)
-		}
 
 		col := dom.Doc.Call("createElement", "span")
 		col.Set("className", "grp axstack")
@@ -1749,6 +1619,10 @@ func buildPanelKnobs() {
 		}
 		if led.Truthy() {
 			topRow.Call("appendChild", led)
+		}
+		// The reset ends the readout's line, as it does in every other cell.
+		if rst.Truthy() {
+			topRow.Call("appendChild", rst)
 		}
 		col.Call("appendChild", topRow)
 		col.Call("appendChild", knobBox)
@@ -1778,6 +1652,69 @@ func buildPanelKnobs() {
 	stackAxis("Y", "knob-y", "led-y", "slider-value-y", "rst-ry", rky)
 	stackAxis("Z", "knob-z", "led-z", "slider-value-z", "rst-rz", rkz)
 
+	// Each axis's position stands beside its angle, in the same shape: label,
+	// readout and reset on the top line, the knob in a degree dial, and a
+	// second readout under it. Position turns once round (oneTurn), so the
+	// dial is the angle knobs' own; zoom carries Fore nested on top, the way
+	// the angle carries ω, and X and Y have nothing underneath.
+	stackPos := func(sliderID, numID, innerID, innerNumID, innerLbl string) {
+		sl := dom.Doc.Call("getElementById", sliderID)
+		if !sl.Truthy() {
+			return
+		}
+		cell := sl.Call("closest", ".pcell")
+		num := dom.Doc.Call("getElementById", numID)
+		sl.Get("style").Set("display", "none")
+		// The fine disc is the knob's center, which an inner knob covers.
+		nested := innerID != ""
+		kn := makeKnob(sl, num, !nested, true, false).Call("querySelector", ".knob")
+		var stack js.Value
+		if nested {
+			isl := dom.Doc.Call("getElementById", innerID)
+			isl.Get("style").Set("display", "none")
+			stack = stackKnobs(kn, makeKnob(isl, dom.Doc.Call("getElementById", innerNumID), true, true, false))
+		} else {
+			stack = dom.Doc.Call("createElement", "span")
+			stack.Set("className", "knobstack")
+			stack.Call("setAttribute", "data-no-drag", "")
+			kn.Get("classList").Call("add", "knob-ring")
+			stack.Call("appendChild", kn)
+		}
+		addAngleDial(stack)
+		knobBox := dom.Doc.Call("createElement", "span")
+		knobBox.Set("className", "axknob-box")
+		knobBox.Call("appendChild", stack)
+
+		col := dom.Doc.Call("createElement", "span")
+		col.Set("className", "grp axstack")
+		topRow := dom.Doc.Call("createElement", "span")
+		topRow.Set("className", "grp axrow toprow")
+		for _, sel := range []string{".plabel", ".numin", ".rst"} {
+			if e := cell.Call("querySelector", sel); e.Truthy() {
+				topRow.Call("appendChild", e)
+			}
+		}
+		botRow := dom.Doc.Call("createElement", "span")
+		botRow.Set("className", "grp axrow botrow")
+		if nested {
+			lbl := dom.Doc.Call("createElement", "span")
+			lbl.Set("className", "plabel")
+			lbl.Set("textContent", innerLbl)
+			botRow.Call("appendChild", lbl)
+			botRow.Call("appendChild", dom.Doc.Call("getElementById", innerNumID))
+		}
+		if top := cell.Call("querySelector", ".punit-top"); top.Truthy() {
+			cell.Call("removeChild", top)
+		}
+		col.Call("appendChild", topRow)
+		col.Call("appendChild", knobBox)
+		col.Call("appendChild", botRow)
+		cell.Call("appendChild", col)
+	}
+	stackPos("pan-x", "slider-value-panx", "", "", "")
+	stackPos("pan-y", "slider-value-pany", "", "", "")
+	stackPos("camera-zoom", "slider-value-zoom", "model-fore", "slider-value-fore", "fore")
+
 	if sf := dom.Doc.Call("getElementById", "spect-fill"); sf.Truthy() {
 		sf.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, args []js.Value) any {
 			spect.fill = sf.Get("checked").Bool()
@@ -1794,6 +1731,9 @@ func capturePermalinkAndRestore() {
 	// state so the current view is always shareable.
 	perma.capturePermaDefaults()
 	applyStateFromHash()
+	// The link sets selectors without the change a hand would make, so the
+	// buttons beside them are lit for what it set (gridbank_js.go).
+	syncTriosIn(dom.Doc, "#grid-bank .trio")
 	// A link that opens on the spectrogram without naming a map gets the
 	// spectrogram's own; one that names a map keeps it.
 	spect.followMode(run.selectedMode)

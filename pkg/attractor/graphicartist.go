@@ -2,11 +2,7 @@
 
 package attractor
 
-import (
-	"github.com/0magnet/chaosrack/pkg/dom"
-	"math"
-	"syscall/js"
-)
+import "math"
 
 // graphicArtist is the Graphic Artist's four oscillators.
 type graphicArtist struct {
@@ -118,58 +114,4 @@ func invN64() float64 {
 		return 0
 	}
 	return 1 / float64(sim.steps-1)
-}
-
-// syncGAWaveSwitches shows the WAVEFORM A/B/C/D toggles (triangle ↔ square) in
-// the Switches module while Graphic Artist is the active model, and removes
-// them otherwise — the article's S1–S4 switches that break the figure into its
-// 16 waveform "families".
-func (g *graphicArtist) syncGAWaveSwitches(mode string) {
-	if ex := dom.Doc.Call("getElementById", "ga-waves"); ex.Truthy() {
-		ex.Get("parentNode").Call("removeChild", ex)
-	}
-	if mode != "graphicartist" {
-		return
-	}
-	swrow := dom.Doc.Call("querySelector", ".swrow")
-	if !swrow.Truthy() {
-		return
-	}
-	wrap := dom.Doc.Call("createElement", "div")
-	wrap.Set("id", "ga-waves")
-	wrap.Set("className", "ga-waves grp")
-	hdr := dom.Doc.Call("createElement", "div")
-	hdr.Set("className", "ga-waves-hdr")
-	hdr.Set("textContent", "WAVEFORM △/⊓")
-	wrap.Call("appendChild", hdr)
-	defs := []struct {
-		lbl string
-		ptr *float32
-	}{{"A", &g.waveA}, {"B", &g.waveB}, {"C", &g.waveC}, {"D", &g.waveD}}
-	for _, d := range defs {
-		ptr := d.ptr
-		lab := dom.Doc.Call("createElement", "label")
-		lab.Set("className", "grp ga-wave")
-		lab.Set("title", "Oscillator "+d.lbl+" waveform: off = triangle (smooth), on = square (breaks the figure up)")
-		cb := dom.Doc.Call("createElement", "input")
-		cb.Set("type", "checkbox")
-		cb.Set("className", "sw")
-		if *ptr >= 0.5 {
-			cb.Set("checked", true)
-		}
-		cb.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
-			if cb.Get("checked").Bool() {
-				*ptr = 1
-			} else {
-				*ptr = 0
-			}
-			return nil
-		}))
-		txt := dom.Doc.Call("createElement", "span")
-		txt.Set("textContent", " "+d.lbl)
-		lab.Call("appendChild", cb)
-		lab.Call("appendChild", txt)
-		wrap.Call("appendChild", lab)
-	}
-	swrow.Call("appendChild", wrap)
 }

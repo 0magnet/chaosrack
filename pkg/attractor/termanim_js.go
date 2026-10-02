@@ -163,24 +163,14 @@ func (t *termAnim) termAnimTexture() (js.Value, bool) {
 	return t.texture, true
 }
 
-// syncTermAnimExtras shows this model's panel section when it is the model, or
-// is what the backdrop is drawing, and fills the selector the first time.
+// syncTermAnimExtras fills this model's selector the first time. The module
+// itself is in the rack whatever the model (panelhtml_js.go).
 //
 // The list is built from tuiwasm's registry rather than written into the panel
 // HTML, so it cannot drift from what is actually registered — the same reason
 // the STL module builds its catalog at runtime.
-func syncTermAnimExtras(mode string) {
-	sect := dom.Doc.Call("getElementById", "termanim-module")
-	if !sect.Truthy() {
-		return
-	}
-	if mode == "termanim" || bgVisual == "termanim" {
-		sect.Get("style").Set("display", "")
-	} else {
-		sect.Get("style").Set("display", "none")
-	}
+func syncTermAnimExtras(string) {
 	anim.fillTermAnimPicker()
-	quantizeModuleWidths()
 }
 
 func (t *termAnim) fillTermAnimPicker() {

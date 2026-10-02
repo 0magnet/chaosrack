@@ -48,9 +48,7 @@ func TestPresetModuleMarkupHasItsControls(t *testing.T) {
 // by rule.
 func TestOnlyModelOwnedModulesShipHidden(t *testing.T) {
 	modelOwned := map[string]bool{
-		"desk-module": true, "spectro-module": true, "pong-module": true,
-		"stext-module": true, "smorph-module": true, "bounce-module": true,
-		"stlfile-module": true, "termanim-module": true,
+		"spectro-module": true, // the spectrogram as a layer rather than the model
 	}
 	rest := controlsBody
 	for {

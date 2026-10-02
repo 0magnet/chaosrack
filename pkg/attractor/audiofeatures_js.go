@@ -9,6 +9,7 @@ import (
 	"syscall/js"
 
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
+	"github.com/0magnet/chaosrack/pkg/audiosrc"
 	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
@@ -29,6 +30,7 @@ type audioFeatures struct {
 	windowL   []float32
 	windowR   []float32
 	magsL     []float64          // persistent copy of the left-channel magnitudes
+	magsA     []float64          // the same for MOD A, while MOD B's are computed
 	prevMix   []float64          // previous mixed magnitudes, for onset flux
 	feat      map[string]float32 // smoothed feature values
 	peak      map[string]float32 // adaptive normalization peaks
@@ -102,7 +104,7 @@ const numEQBands = 8
 // the per-frame band update doesn't build 3×numEQBands strings every frame.
 var afEQKeys = func() map[string][]string {
 	m := map[string][]string{}
-	for _, ch := range []string{"mono", "L", "R"} {
+	for _, ch := range []string{"mono", "L", "R", modSrcSendA, modSrcSendB} {
 		ks := make([]string, numEQBands)
 		for i := range ks {
 			ks[i] = "eq:" + ch + ":" + strconv.Itoa(i)
@@ -225,7 +227,7 @@ func (a *audioFeatures) updateAudioFeatures() {
 		return
 	}
 	src := aud.ensureAudioSource()
-	if src == nil || !src.Ready() {
+	if !src.Ready() {
 		return
 	}
 	if a.windowL == nil {
@@ -271,6 +273,18 @@ func (a *audioFeatures) updateAudioFeatures() {
 		a.monoScratch[i] = (rawL[i] + rawR[i]) / 2
 	}
 	storeBands("mono", a.monoScratch)
+	// The sends to modulation, MOD A and B, when a route reads one: a
+	// window of each, mixed at the Mixer's gains, and its bands, as the
+	// rack's two sides have theirs.
+	if bus, ok := src.(*audiosrc.Bus); ok && bus.ModOn() && modReadsSends() {
+		wa, wb := bus.ModWindow(sg.FFTSize)
+		if a.magsA == nil {
+			a.magsA = make([]float64, sg.FFTSize/2+1)
+		}
+		magsA := a.magsA[:copy(a.magsA, meters.ComputeFFTMags(wa))]
+		storeBands(modSrcSendA, computeBands(magsA, sr))
+		storeBands(modSrcSendB, computeBands(meters.ComputeFFTMags(wb), sr))
+	}
 	rL, rR := rmsOf(a.windowL), rmsOf(a.windowR)
 
 	setNorm("L-amp", rL)
@@ -313,9 +327,42 @@ func (a *audioFeatures) updateAudioFeatures() {
 	a.updateAudioMeters()
 }
 
-// setAudioMod toggles the feature layer + per-parameter modulation. When
-// off it also snaps the attractor state back to safety (see the reset in
-// the else branch) so an over-modulated attractor recovers.
+// syncAudioMod runs the feature layer and the modulator when there is a
+// reason to: a route in the Mod matrix, the bifurcation's audio drive, or a
+// feed the server streams, which asks nothing of the visitor. There is no
+// switch for it any more. A plain visit with none of those does not open the
+// microphone at load; the first route does.
+func syncAudioMod() {
+	on := anyModRoute() || bif.driveAudio || audioStreamed()
+	if on != audioMod {
+		setAudioMod(on)
+	}
+}
+
+// anyModRoute reports whether any control is routed.
+func anyModRoute() bool {
+	for _, m := range pmod.params {
+		if m.channel != "" && m.level != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// audioStreamed reports whether the audio is a feed from the server, which
+// opens without asking, rather than the microphone, which asks.
+func audioStreamed() bool {
+	switch audioBackendKind() {
+	case "ws", "websocket", "wt", "webtransport":
+		return true
+	}
+	return false
+}
+
+// setAudioMod starts or stops the feature layer + per-parameter modulation
+// (syncAudioMod decides which). Stopping also snaps the attractor state back
+// to safety (see the reset in the else branch) so an over-modulated
+// attractor recovers.
 func setAudioMod(on bool) {
 	audioMod = on
 	if on {
@@ -324,20 +371,6 @@ func setAudioMod(on bool) {
 		resetAttractorState()
 	}
 	af.updateMetersVisibility()
-	// Show/hide the adjacent Modulation module (no param rebuild → the param
-	// knobs never move; a whole module just appears/disappears beside them).
-	if panel := dom.Doc.Call("getElementById", "controls-panel"); panel.Truthy() {
-		cl := panel.Get("classList")
-		if on {
-			cl.Call("add", "am-on")
-			cl.Call("remove", "am-off")
-		} else {
-			cl.Call("add", "am-off")
-			cl.Call("remove", "am-on")
-		}
-	}
-	updateViewModRows()
-	quantizeModuleWidths()
 }
 
 // metersEnabled is the "Meters" switch state (independent of Audio mod). The

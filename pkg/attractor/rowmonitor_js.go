@@ -113,6 +113,15 @@ func drawRowMonitor(cv js.Value) {
 	ctx.Set("fillStyle", rowMonDark)
 	ctx.Call("fillRect", 0, 0, pw, ph)
 
+	// Recurrence's model is on the main canvas already; with the head's TREND
+	// switch on, this screen carries the history of RR, DET and LAM instead,
+	// captioned with what the plot is of (rqaseries_js.go).
+	if rqaTrendShown() {
+		rqa.drawOnMonitor(ctx, pw, ph)
+		rowMonID(ctx, ph, "RQA · "+rqaSource())
+		return
+	}
+
 	canvas := modelCanvas()
 	if !canvas.Truthy() {
 		return

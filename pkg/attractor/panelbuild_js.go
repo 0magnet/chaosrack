@@ -44,13 +44,21 @@ type layoutDebts struct {
 	// sixty-eight times when the rack is read once at the end. So the requests
 	// are collected and paid for once.
 	deferred, paramPanel, quantize, skirts bool
+
+	// modelChange marks the scope as a model change (onModeChange), the one
+	// kind of request that may find the rack already right: see rackUnmoved.
+	modelChange bool
 }
 
 var owed layoutDebts
 
-// sizeLEDField fixes a numeric input's width to the widest value it can show
-// (sign + max integer digits + dot + dec) and right-aligns it, so it never
-// resizes and unsigned/positive values reserve the sign column as a blank.
+// parseReadout reads a typed-in readout's value, its blank sign slot included
+// (led.Blank). By this name where a variable called led is in scope.
+var parseReadout = led.Parse
+
+// sizeLEDField sizes a numeric readout for the widest value it can show
+// (sign + max integer digits + dot + dec), full or half, and right-aligns it,
+// so unsigned and positive values reserve the sign column as a blank.
 func sizeLEDField(el js.Value, lo, hi float64, dec int, signed bool) {
 	chars := led.IntDigits(lo, hi)
 	if dec > 0 {
@@ -59,21 +67,13 @@ func sizeLEDField(el js.Value, lo, hi float64, dec int, signed bool) {
 	if signed {
 		chars++ // sign column
 	}
-	// DSEG7 is fixed-width, so size in ch (glyph widths) plus the field's own
-	// box-model overhead. The inputs are border-box with ~3px padding + ~1px
-	// border per side (~8px total), so the added slack must cover that or the
-	// widest value clips (e.g. a 7-digit "20480.0"); 9px clears it with a hair to
-	// spare. And a pixel a character: the readouts are letter-spaced 1px, which
-	// a ch does not include. Without it every integer readout was a few pixels
-	// short and cut its last digit ("0300" in 41px of the 46 it needs), which
-	// uitool lint found on fifteen controls at once.
-	st := el.Get("style")
-	n := strconv.Itoa(chars)
-	st.Set("width", "calc("+n+"ch + "+n+"px + 9px)")
-	st.Set("textAlign", "right")
-	// Kept for a readout that has to match its neighbors: the bank sizes every
-	// readout to the widest any of its models needs (see bankReadoutWidth).
+	// Not sized to its digits: a readout is a full display or a half one
+	// (panel.css --disp-full, --disp-half), so two knobs side by side carry
+	// the same part whatever their ranges. A full one holds seven digits, a
+	// half one three.
+	el.Get("style").Set("textAlign", "right")
 	el.Call("setAttribute", "data-chars", strconv.Itoa(chars))
+	el.Get("classList").Call("toggle", "disp-half", chars <= 3)
 }
 
 // wheelNudge makes scrolling over an LED readout step the paired (usually
@@ -138,7 +138,7 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 	slider.Set("max", maxStr)
 	slider.Set("step", stepStr) // set before value so the thumb isn't snapped
 	slider.Set("value", strconv.FormatFloat(float64(*p.Value), 'g', -1, 32))
-	slider.Set("title", p.Label+" — attractor parameter (range "+minStr+" … "+maxStr+")")
+	slider.Set("title", docf("param-slider", "label", p.Label, "min", minStr, "max", maxStr))
 	slider.Set("style", "display:none;")
 
 	// The cell is owned by a Control that holds the value source (slider), its
@@ -216,6 +216,9 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 		if val, err := strconv.ParseFloat(slider.Get("value").String(), 64); err == nil {
 			*p.Value = float32(val)
 			showValue(val)
+			if quietParams[p.ID] {
+				return nil // a pot the model turns itself: nothing to rebuild
+			}
 			gpu.staticDirty = true
 			resetAttractorState()
 			refreshGradient()
@@ -224,9 +227,12 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 	}))
 	if len(labels) == 0 {
 		numInput.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, args []js.Value) any {
-			if val, err := strconv.ParseFloat(numInput.Get("value").String(), 64); err == nil {
+			if val, err := led.Parse(numInput.Get("value").String()); err == nil {
 				*p.Value = float32(val)
 				slider.Set("value", strconv.FormatFloat(val, 'g', -1, 64))
+				if quietParams[p.ID] {
+					return nil // a pot the model turns itself, or a sound: nothing to rebuild
+				}
 				gpu.staticDirty = true
 				resetAttractorState()
 				refreshGradient()
@@ -240,7 +246,7 @@ func buildParamUnit(mode string, p paramDef) js.Value {
 
 	rst := dom.Doc.Call("createElement", "button")
 	rst.Set("className", "rst")
-	rst.Set("title", "Reset "+p.Label)
+	rst.Set("title", docf("reset", "label", p.Label))
 	rst.Set("textContent", "↺")
 	rst.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, args []js.Value) any {
 		ctl.resetToDefault()
@@ -321,14 +327,14 @@ func buildStepField(slider js.Value, label, stepStr string) js.Value {
 	stepInput.Set("min", "0.0000001")
 	stepInput.Set("step", "any")
 	stepInput.Set("value", stepStr)
-	stepInput.Set("title", "Step size for "+label+" — how much one knob step changes the value")
+	stepInput.Set("title", docf("param-step", "label", label))
 	stepInput.Set("className", "numin u-step")
 	knob := dom.Doc.Call("createElement", "span")
 	ptr := dom.Doc.Call("createElement", "i")
 	knob.Call("appendChild", ptr)
 	knob.Set("className", "stepknob")
 	knob.Call("setAttribute", "data-no-drag", "")
-	knob.Set("title", "Step size for "+label+" — turn for ten times finer or coarser")
+	knob.Set("title", docf("param-step-knob", "label", label))
 
 	// The step's travel: from the whole range in one step down to a
 	// ten-millionth of it, which is finer than a float32 parameter resolves.
@@ -409,24 +415,22 @@ func buildStepField(slider js.Value, label, stepStr string) js.Value {
 		return nil
 	}))
 
+	// The step's own reset, back to the step the parameter was built with.
+	rst := dom.Doc.Call("createElement", "button")
+	rst.Set("className", "rst steprst")
+	rst.Set("title", docf("reset-step", "label", label, "step", stepStr))
+	rst.Set("textContent", "↺")
+	rst.Call("addEventListener", "click", dom.FuncOf(func(js.Value, []js.Value) any {
+		stepInput.Set("value", stepStr)
+		stepInput.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		return nil
+	}))
+
 	frag := dom.Doc.Call("createDocumentFragment")
 	frag.Call("appendChild", stepInput)
 	frag.Call("appendChild", knob)
+	frag.Call("appendChild", rst)
 	return frag
-}
-
-// buildModCard builds one card for the Modulation module: the target's name
-// above its MOD/LVL control (channel + level). All modulation controls live in
-// the dedicated Modulation module, never mixed into other modules.
-func buildModCard(id, label string, sym bool) js.Value {
-	card := dom.Doc.Call("createElement", "div")
-	card.Set("className", "punit")
-	lbl := dom.Doc.Call("createElement", "span")
-	lbl.Set("className", symClass("u-lbl", sym))
-	lbl.Set("textContent", label)
-	card.Call("appendChild", lbl)
-	card.Call("appendChild", buildModUnit(id, label))
-	return card
 }
 
 // withDeferredLayout runs f with panel rebuilds and rack quantizes
@@ -440,6 +444,8 @@ func buildModCard(id, label string, sym bool) js.Value {
 // Measured on a mode change before this: five full passes over the rack,
 // 2435ms of a 2903ms switch, all five computing the same answer.
 //
+// An empty mode is the one f leaves the rack on.
+//
 // A nested call is the outer one's business. A handler that defers is often
 // reached from a sweep that already has, and an inner scope that reset the
 // flags on its way out would hand the rest of the outer scope's work back to
@@ -451,6 +457,9 @@ func (l *layoutDebts) withDeferredLayout(mode string, f func()) {
 	}
 	l.deferred, l.paramPanel, l.quantize, l.skirts = true, false, false, false
 	f()
+	if mode == "" {
+		mode = run.selectedMode // the mode f left it on
+	}
 	// At most twice. A rebuild that asks for another rebuild is a loop
 	// rather than a request; the second pass is for the one honest case,
 	// a builder that only learns it needs the panel again from something
@@ -462,10 +471,37 @@ func (l *layoutDebts) withDeferredLayout(mode string, f func()) {
 	l.deferred = false
 	if l.quantize {
 		// Which ends in a skirt pass of its own, so the owed one is paid.
-		quantizeModuleWidths()
+		if l.modelChange && rackUnmoved(mode) {
+			layoutSkirts()
+		} else {
+			quantizeModuleWidths()
+		}
 	} else if l.skirts {
 		layoutSkirts()
 	}
+	l.modelChange = false
+}
+
+// The rack as the last full pass left it (quantizeModuleWidths): each shown
+// module's name and width in order, and the model it was measured under.
+var lastRack struct{ sig, mode string }
+
+// rackUnmoved reports whether a model change has left the rack as the last
+// full pass measured it, so the pass can be skipped. The rack is one
+// instrument whatever the model — every module is on it for every model and
+// none changes size with it — and walking all seventy-one models with the
+// pass measuring before and after found it changing nothing: stretching every
+// module to 3000px and reading it back, twice, only to put each where it was.
+//
+// Not when something a model change rebuilds can change size with the model:
+// the Section and Physics modules, and Custom's editor. (The Mod module is
+// one size for every model.) And not when the shown modules or their widths
+// differ from the last pass's, which is the check that the rest holds.
+func rackUnmoved(mode string) bool {
+	if sect.on || physOn() || mode == "custom" || lastRack.mode == "custom" || lastRack.sig == "" {
+		return false
+	}
+	return fastDOM().Call("rackSig").String() == lastRack.sig
 }
 
 func buildParamPanel(mode string) {
@@ -484,36 +520,36 @@ func buildParamPanelNow(mode string) {
 	// The sweep is over THIS model's parameters; a mode change makes the
 	// dial's list wrong before anything else in the panel is rebuilt.
 	syncSweepDialMode(mode)
+	// A new model is a new rack, not the old one with a knob turned: every
+	// module's width starts again from what is on it. The latch is there so a
+	// KNOB does not move the rack (latchModuleWidths), and a model change
+	// moves it anyway. Latched across models, the widths only ever added up:
+	// one model's twenty-odd leftovers held Parameters at 22 slots under every
+	// model after it, and a Console three slots wide on one model and a
+	// Patchbay two wide on another pushed the Patchbay into a bay of its own
+	// on any model visited after both.
+	clear(moduleWidthHighWater)
 	// Free the previous build's listener closures, then collect this build's
 	// — the wipe below kills their DOM in the same synchronous pass.
 	defer dom.StartPanelBuild()()
 
 	paramsDiv := dom.Doc.Call("getElementById", "params")
 	paramsDiv.Set("innerHTML", "")
+	// Custom's bank cells were built with its panel, and their listeners go
+	// with it (bankCustomCells); another model's build takes them out.
+	if mode != "custom" {
+		clearCustomBankCells()
+	}
 	paramsDiv.Set("className", "row")
 	paramControls = paramControls[:0] // rebuilt below by buildParamUnit
-	// The panel's am-on/am-off class shows/hides the adjacent Modulation module.
-	if panel := dom.Doc.Call("getElementById", "controls-panel"); panel.Truthy() {
-		cl := panel.Get("classList")
-		if audioMod {
-			cl.Call("add", "am-on")
-			cl.Call("remove", "am-off")
-		} else {
-			cl.Call("add", "am-off")
-			cl.Call("remove", "am-on")
-		}
-	}
 
 	// Mode-scoped scope extras (run before any early return so they clean up on
 	// every mode change): GA waveform switches + the CRT overlay.
-	ga.syncGAWaveSwitches(mode)
 	pong.syncPongExtras(mode)
 	ftext.syncScopeTextExtras(mode)
 	ball.syncBounceExtras(mode)
 	morph.syncSprottMorphExtras(mode)
-	syncSTLFileExtras(mode)
 	syncMapExtras(mode)
-	syncDeskExtras(mode)
 	syncTermAnimExtras(mode)
 	syncLayersModule(mode)
 	syncSpectroModule(mode)
@@ -524,7 +560,10 @@ func buildParamPanelNow(mode string) {
 	phos.updateCRTOverlay()
 
 	// The Equation module: Custom's editor in Custom, the running model's
-	// own system in a bank bay (buildEquationView), and nothing elsewhere.
+	// own system in a bank bay (buildEquationView).
+	// Every row is a bank, so the module is always there — a model with no
+	// equations shows it disabled rather than taking it away, which would
+	// slide every module after it in the bay on each change of model.
 	switch {
 	case mode == "custom":
 		// buildCustomPanel makes it, below.
@@ -536,9 +575,8 @@ func buildParamPanelNow(mode string) {
 		}
 	}
 
-	// Patchbay rebuilds with the panel so its matrix columns track the mode
-	// (and so pin edits resync the MOD knobs by rebuilding everything).
-	buildPatchbayModule(paramsDiv.Call("closest", ".sect"))
+	// The patch memories in Presets.
+	buildPatchBank()
 
 	// The Section module, when the Poincaré overlay is switched on. Before the
 	// mode branches below, because those return early for the modes with no
@@ -546,14 +584,10 @@ func buildParamPanelNow(mode string) {
 	// only the ones that happen to have knobs.
 	buildSectionModule(mode, paramsDiv)
 
-	// The Mod and EQ modules go with the panel, so they are rebuilt on every
-	// path out of it, the two early returns included. Skipped there, the last
+	// The Mod module goes with the panel, so they are rebuilt on every
+	// path out of it, the early return included. Skipped there, the last
 	// model's modules stayed on the page — its cards, beside a model they do
 	// not drive — with every listener on them already freed by the arena.
-	if mode == "custom" || mode == "bifurcation" {
-		buildModEQModules(attractorParams[mode])
-	}
-
 	if mode == "custom" {
 		// Shown explicitly: these two build an editor into the module rather
 		// than knobs, and a mode before them may have left it hidden.
@@ -563,13 +597,6 @@ func buildParamPanelNow(mode string) {
 			rebindParamWheel()
 		}
 		quantizeModuleWidths() // Equation + Parameters modules
-		return
-	}
-
-	if mode == "bifurcation" {
-		showParamsModule(true)
-		bif.buildBifPanel(paramsDiv)
-		quantizeModuleWidths()
 		return
 	}
 
@@ -588,14 +615,13 @@ func buildParamPanelNow(mode string) {
 	// the same id, and the MIDI map, the permalink and Reset All each address
 	// a parameter by that id.
 	//
-	// What is left in this module is what genuinely belongs to the RUNNING
-	// model and cannot be built ahead of time: the readouts that measure it
-	// (the Lyapunov exponent, RQA, correlation, the fitted delay), the
-	// selectors a mode adds to its own panel, and the Custom and Bifurcation
-	// panels, which are editors rather than knob grids. The grid below is
-	// their container; if nothing goes into it the module is hidden, because a
-	// module with a header and a void under it reads as broken rather than as
-	// empty.
+	// What is left for this module is the Custom editor, and a readout of the
+	// running model's where its row has no readout line (liveReadoutHost). The
+	// readouts, the selectors and the switches a model used to add here are on
+	// the readout line, in the bank and on the head's switches. The grid below
+	// is the fallback container; if nothing goes into it the module is hidden,
+	// because a module with a header and a void under it reads as broken rather
+	// than as empty.
 	params := attractorParams[mode]
 	grid := dom.Doc.Call("createElement", "div")
 	grid.Set("className", "punit-grid")
@@ -607,44 +633,53 @@ func buildParamPanelNow(mode string) {
 	applyModuleVisibility() // a rebuild puts back what the switches took away
 
 	if mode == "takens" {
-		// Into the grid for the same reason the FVF selectors are: #params
-		// stacks below the height-bounded grid and gets clipped.
-		emb.appendTakensEstimate(grid)
+		// A measurement, so on the line over the equation (liveReadoutHost)
+		// rather than a Parameters module of its own; the grid where the
+		// row has no such line, because #params stacks below the
+		// height-bounded grid and gets clipped.
+		emb.appendTakensEstimate(liveReadoutHost(mode, grid))
 	}
 
 	if mode == "recurrence" {
-		// Same placement, same reason. The RQA cell is also what publishes the
-		// readout element, so the per-frame scan knows whether anything is
-		// displaying its result — a panel rebuild replaces the element, and
-		// this is where the new one is handed over.
-		rp.appendRecurrenceRQA(grid)
-		// ...and the history of those same three numbers, in the cell after
-		// them, which is the reading RQA is actually for. Last, because it
-		// spans a whole column group of the grid and everything appended after
-		// a full-height item flows into the columns past it.
-		rqa.appendRecurrenceSeries(grid)
+		// RR, DET and LAM on the line over the equation, like takens'. The
+		// readouts are also what tells the per-frame scan anything is
+		// displaying its result: a rebuild replaces them, and this is where the
+		// new ones are handed over. Their history is on the head's screen
+		// (rqaseries_js.go).
+		rp.appendRecurrenceRQA(liveReadoutHost(mode, grid))
+	}
+
+	if mode == "bifurcation" {
+		// Where the audio drive puts the swept parameter, on the same line.
+		bif.appendCursorReadout(liveReadoutHost(mode, grid))
+		bif.syncSweepCell()
+		bif.syncDepthCell()
+	}
+
+	if mode == "fvf" {
+		syncFVFRoute() // the machine may have been rewired while it was away
 	}
 
 	if mode == "stereo" {
-		// The correlation readout, into the grid for the same reason.
-		stereo.appendReadout(grid)
+		// The correlation readout, on the line over the equation like takens'.
+		stereo.appendReadout(liveReadoutHost(mode, grid))
 	}
 
 	if mode == "xfer" {
-		// The fitted bulk delay, into the grid for stereoInst.appendReadout's reason.
-		xf.appendTransferReadout(grid)
+		// The fitted bulk delay, on the line over the equation like takens'.
+		xf.appendTransferReadout(liveReadoutHost(mode, grid))
 	}
 
 	if mode == "waterfall" {
 		// The reverberation time, which the surface is far too shallow to show.
-		wfall.appendReadout(grid)
+		wfall.appendReadout(liveReadoutHost(mode, grid))
 	}
 
 	if mode == "xy" {
 		// The goniometer's own correlation meter — the number every hardware
 		// one carries beside the tube, and the one the figure cannot give you,
 		// because a thin ellipse and a line are the same picture at a glance.
-		xy.appendXYReadout(grid)
+		xy.appendXYReadout(liveReadoutHost(mode, grid))
 	}
 
 	// Every monitor readout goes blank first: the model it measured may
@@ -669,18 +704,8 @@ func buildParamPanelNow(mode string) {
 		}
 	}
 
-	if mode == "fvf" {
-		// Into the GRID, not #params: the grid is the height-bounded
-		// column-wrap container, so extra cells flow into a new column and the
-		// width quantizer widens the module. Appended to #params they stacked
-		// BELOW the grid and were clipped by the module's fixed height.
-		fvf.appendFVFSelectors(grid) // wave + modulator selector knobs + FX/Listen
-	}
-
-	// Audio-modulation controls live in per-group MOD + EQ modules, each pair
-	// inserted right after the primary module it modulates and shown only while
-	// Audio mod is on (CSS: .am-off hides .modmodule/.eqmodule).
-	buildModEQModules(params)
+	// The Mod module, always shown.
+	buildModMatrix(params)
 	if rebindParamWheel != nil {
 		rebindParamWheel()
 	}
@@ -689,116 +714,6 @@ func buildParamPanelNow(mode string) {
 	syncSweptMarks()          // a rebuilt row has lost its swept marking
 	syncLinkMarks()           // and its per-control link badges
 	layoutSkirts()            // skirts are measured, so they are sized once the rows exist
-}
-
-// modTarget is one modulatable control (its pmod.params key + display label).
-type modTarget struct {
-	id, label string
-	sym       bool // label is a math parameter symbol (kept lowercase), not a word
-}
-
-// buildModEQModules (re)builds, for each primary module that has modulatable
-// controls, an adjacent MOD module (channel/level knobs) and EQ module (graphic-
-// EQ band painters), aligned row-for-row with the primary. Params come from the
-// current mode; the view/camera/color targets are fixed. Only shown when Audio
-// mod is on.
-func buildModEQModules(params []paramDef) {
-	old := dom.Doc.Call("querySelectorAll", ".modmodule, .eqmodule")
-	for i := old.Get("length").Int() - 1; i >= 0; i-- {
-		n := old.Index(i)
-		n.Get("parentNode").Call("removeChild", n)
-	}
-	// One card per parameter, integer ones included — the third copy of the
-	// rule applyAudioModulation and matrixDests keep, and the copy the user
-	// actually touches. Offering the pin in the Patchbay while withholding the
-	// MOD/LVL knob would make routing a line count a thing only reachable from
-	// one of the two surfaces that exist for it.
-	//
-	// Row-for-row alignment is the other half. These cards are laid into a grid
-	// beside the primary module's, which has a cell for EVERY parameter; while
-	// the integer ones were skipped here, a mode with a count in the middle of
-	// its parameter list (turtle, the geometry models) had every card below it
-	// sitting one row off the control it belongs to.
-	pTargets := make([]modTarget, 0, len(params))
-	for _, p := range params {
-		pTargets = append(pTargets, modTarget{p.ID, p.Label, labelIsSym(p.Label)})
-	}
-	groups := []struct {
-		hdr     string
-		targets []modTarget
-	}{
-		{"Parameters", pTargets},
-		// In the Colors module's own order (period, shift, trail) so each card
-		// sits beside the knob it drives — NOT in viewModTargets order, which
-		// is fixed by the MIDI CC map and has the shift appended at the end.
-		{"Layers · Colors", []modTarget{{"view-rfreq", "period", false}, {"view-pshift", "shift", false}, {"view-trail", "trail", false}}},
-		{"View", []modTarget{{"view-spinx", "spin X", false}, {"view-spiny", "spin Y", false}, {"view-spinz", "spin Z", false}}},
-		// Order must match the Position control panel (X, Y, Zoom) so each MOD/EQ
-		// row lines up with the control it drives ("Pan" dropped — implied by the
-		// Position group).
-		{"Position", []modTarget{{"view-panx", "X", false}, {"view-pany", "Y", false}, {"view-zoom", "zoom", false}}},
-	}
-	// A DESCENDANT selector, not a child one, and the difference silently cost
-	// the whole feature.
-	//
-	// Modules used to be direct children of .modules. Bay packing wraps them —
-	// .modules > .runit > .runit-open > .sect — so `.modules > .sect` matched
-	// NOTHING, every group below took its `continue`, and audio-mod built no
-	// MOD or EQ modules at all. Nothing failed loudly: the checkbox still
-	// flipped the panel's am-on class and the CSS that hides .modmodule still
-	// worked, so there was simply never anything there to hide.
-	//
-	// The insert below goes through the primary's own parentNode, so the pair
-	// still lands beside the module it modulates, in whatever bay that is.
-	findSect := func(hdr string) js.Value {
-		s := dom.Doc.Call("querySelectorAll", moduleSelector)
-		for i := range s.Get("length").Int() {
-			m := s.Index(i)
-			if h := m.Call("querySelector", ".sect-hdr"); h.Truthy() && h.Get("textContent").String() == hdr {
-				return m
-			}
-		}
-		return js.Undefined()
-	}
-	makeMod := func(cls, title, tip string, cards []js.Value) js.Value {
-		mod := dom.Doc.Call("createElement", "div")
-		mod.Set("className", "sect "+cls)
-		h := dom.Doc.Call("createElement", "div")
-		h.Set("className", "sect-hdr")
-		h.Set("textContent", title)
-		h.Set("title", tip)
-		mod.Call("appendChild", h)
-		g := dom.Doc.Call("createElement", "div")
-		g.Set("className", "punit-grid")
-		for _, c := range cards {
-			g.Call("appendChild", c)
-		}
-		mod.Call("appendChild", g)
-		return mod
-	}
-	for _, grp := range groups {
-		if len(grp.targets) == 0 {
-			continue
-		}
-		primary := findSect(grp.hdr)
-		if !primary.Truthy() {
-			continue
-		}
-		var modCards, eqCards []js.Value
-		for _, t := range grp.targets {
-			modCards = append(modCards, buildModCard(t.id, t.label, t.sym))
-			eqCards = append(eqCards, buildEQCard(t.id, t.label, t.sym))
-		}
-		// Short, single-line headers so the module content starts at the same Y
-		// as its primary (a wrapped 2-line header would push the knobs down).
-		modMod := makeMod("modmodule", "Mod",
-			"Modulation routing for the "+grp.hdr+" module — a channel + depth card per control", modCards)
-		eqMod := makeMod("eqmodule", "EQ",
-			"Graphic-EQ band weights for the "+grp.hdr+" module's modulation — paint which frequency bands drive each control", eqCards)
-		parent := primary.Get("parentNode")
-		parent.Call("insertBefore", modMod, primary.Get("nextSibling"))
-		parent.Call("insertBefore", eqMod, modMod.Get("nextSibling"))
-	}
 }
 
 // buildTurtlePhysModule gives the weight controls a module of their own, which
@@ -816,7 +731,7 @@ func buildTurtlePhysModule(mode string, paramsDiv js.Value) {
 	h := dom.Doc.Call("createElement", "div")
 	h.Set("className", "sect-hdr")
 	h.Set("textContent", "Physics")
-	h.Set("title", "The figure as a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture. GRAV pulls either way up; FRIC is how much the surfaces bite; BOUNCE is how much of the speed a wall gives back; SPIN is how readily it turns.")
+	h.Set("title", doc("phys-module"))
 	mod.Call("appendChild", h)
 	g := dom.Doc.Call("createElement", "div")
 	g.Set("className", "punit-grid")
@@ -859,13 +774,7 @@ func buildSectionModule(mode string, paramsDiv js.Value) {
 	h := dom.Doc.Call("createElement", "div")
 	h.Set("className", "sect-hdr")
 	h.Set("textContent", "Section")
-	h.Set("title", "Where the Poincaré section's plane sits, and which way through it counts. "+
-		"AXIS and POS place it — POS as a fraction of the attractor's own reach along that axis, "+
-		"so 0 is through the middle whatever the system's size. DIR one way is the default: a "+
-		"bounded flow that goes up through a plane must come back down through it, so counting "+
-		"both superimposes two different sections. The crossings draw in gold where they "+
-		"physically are; Analysis → Poincaré Section is the same section as a picture of its "+
-		"own, with the return map.")
+	h.Set("title", doc("sect-module"))
 	mod.Call("appendChild", h)
 	g := dom.Doc.Call("createElement", "div")
 	g.Set("className", "punit-grid")
@@ -897,18 +806,6 @@ func clearTurtlePhysModule() {
 		n := old.Index(i)
 		n.Get("parentNode").Call("removeChild", n)
 	}
-}
-
-// buildEQCard is one graphic-EQ band-painter card for the EQ module.
-func buildEQCard(id, label string, sym bool) js.Value {
-	card := dom.Doc.Call("createElement", "div")
-	card.Set("className", "punit")
-	lbl := dom.Doc.Call("createElement", "span")
-	lbl.Set("className", symClass("u-lbl", sym))
-	lbl.Set("textContent", label)
-	card.Call("appendChild", lbl)
-	card.Call("appendChild", makeEQStrip(id))
-	return card
 }
 
 // buildTwoWaySwitch renders a two-option setting as a switch with the current

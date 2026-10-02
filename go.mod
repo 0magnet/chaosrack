@@ -22,6 +22,7 @@ require (
 	github.com/quic-go/quic-go v0.63.0
 	github.com/quic-go/webtransport-go v0.13.0
 	github.com/spf13/cobra v1.10.2
+	github.com/yuin/goldmark v1.8.6
 	gitlab.com/russoj88/stl v1.0.2
 	golang.org/x/image v0.46.0
 	golang.org/x/net v0.59.0
@@ -92,7 +93,6 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.2 // indirect
 	github.com/xo/terminfo v1.2.0 // indirect
-	github.com/yuin/goldmark v1.8.6 // indirect
 	github.com/yuin/goldmark-emoji v1.0.6 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.9.1 // indirect
 	golang.org/x/arch v0.31.0 // indirect

@@ -469,10 +469,7 @@ func (w *waterfall) capture() {
 		return
 	}
 	// A pass has completed when the sweep's position wraps back to the start.
-	pos := 0.0
-	if aud.useFuncGen && aud.funcGen != nil {
-		pos = aud.funcGen.SweepPosition()
-	}
+	pos := aud.rackBus().SweepPosition()
 	wrapped := pos < w.lastPos
 	if pos != w.lastPos {
 		w.sweepSeen = frameNowMs
@@ -650,34 +647,22 @@ func (w *waterfall) showRT() {
 	}
 	w.rtTx = s
 	if w.rtEl.Truthy() {
-		w.rtEl.Set("textContent", s)
+		setDotText(w.rtEl, s)
 	}
 }
 
-// appendReadout adds the RT60 cell to the mode's parameter grid.
-func (w *waterfall) appendReadout(grid js.Value) {
-	card, top := newPunitCard("rt60")
-
-	w.rtEl = dom.Doc.Call("createElement", "span")
-	w.rtEl.Set("className", "led counter-led")
-	w.rtEl.Set("title", "Reverberation time of the room, in seconds — how long a sound takes to "+
-		"fall 60 dB after it stops. Taken from the same impulse response the surface is, by "+
-		"Schroeder backward integration: the decay curve is the energy REMAINING after each "+
-		"moment, which turns a noisy decay into a smooth one without averaging repeated "+
-		"measurements. Measured as T20 and extrapolated — the straight part between -5 dB and "+
-		"-25 dB, because the first few decibels are direct sound and the last of a real decay is "+
-		"in the noise floor. Blank on the live surface, which has no impulse to decay from, and "+
-		"blank until a sweep has been measured.")
+// appendReadout adds the RT60 readout to the model's readout line
+// (liveReadoutHost).
+func (w *waterfall) appendReadout(host js.Value) {
 	w.rtTx = ""
-	top.Call("appendChild", w.rtEl)
-	grid.Call("appendChild", card)
+	w.rtEl = liveReadout(host, "rt60", dispFullChars, "--- s", doc("ro.rt60"))
 }
 
 // wfallFFTLabels is the FFT knob's per-position tooltip: the size and what it
 // buys, because the number alone does not say which way the trade runs.
 var wfallFFTLabels = []string{
-	"1024 — 21 ms window, 47 Hz bins: the sharpest in time and the blindest in the bass",
-	"2048 — 43 ms window, 23 Hz bins: the decay surface's default",
-	"4096 — 85 ms window, 12 Hz bins: the live surface's default",
-	"8192 — 171 ms window, 5.9 Hz bins: separates low notes, smears anything quick",
+	doc("p.wfall-fft=0"),
+	doc("p.wfall-fft=1"),
+	doc("p.wfall-fft=2"),
+	doc("p.wfall-fft=3"),
 }

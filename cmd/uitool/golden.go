@@ -60,7 +60,7 @@ var states = []state{
 	{name: "aizawa", hash: "#aizawa&ar=0&rot=25,40,0"},
 	{name: "thomas", hash: "#thomas&ar=0&rot=25,40,0"},
 	{name: "rossler", hash: "#rossler&ar=0&rot=25,40,0"},
-	{name: "cube", hash: "#cube&ar=0&rot=25,40,0"},
+	{name: "cube", hash: "#polyhedron&p.p=4&p.q=3&ar=0&rot=25,40,0"},
 	{name: "torus", hash: "#torus&ar=0&rot=25,40,0"},
 	{name: "magnetosphere", hash: "#magnetosphere&ar=0&rot=25,40,0"},
 	{name: "lissajou", hash: "#lissajou&ar=0&rot=25,40,0"},

@@ -37,11 +37,19 @@ const texFragShaderSrc = `
 	varying vec2 vUV;
 	uniform sampler2D uSampler;
 	uniform float uOffset;
+	uniform sampler2D uLUT;
+	uniform float uLUTOn;
 	void main(void) {
 		// uOffset scrolls the time axis so the newest column sits at the
 		// right edge (u=1); wrap keeps the ring-buffer texture seamless.
 		float u = mod(vUV.x + uOffset, 1.0);
-		gl_FragColor = texture2D(uSampler, vec2(u, vUV.y));
+		vec4 c = texture2D(uSampler, vec2(u, vUV.y));
+		// A backdrop in a palette of its own: its brightness, through the map.
+		if (uLUTOn > 0.5) {
+			float l = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+			c = vec4(texture2D(uLUT, vec2(l, 0.5)).rgb, c.a);
+		}
+		gl_FragColor = c;
 	}
 `
 
@@ -54,6 +62,8 @@ type texturedPipe struct {
 	uvLoc       js.Value
 	uSamplerLoc js.Value
 	uOffsetLoc  js.Value
+	uLUTLoc     js.Value
+	uLUTOnLoc   js.Value
 	pmatLoc     js.Value
 	vmatLoc     js.Value
 	mmatLoc     js.Value
@@ -123,6 +133,8 @@ func (t *texturedPipe) setupTexShaders() {
 	t.uvLoc = glctx.GL.Call("getAttribLocation", t.program, "aUV")
 	t.uSamplerLoc = glctx.GL.Call("getUniformLocation", t.program, "uSampler")
 	t.uOffsetLoc = glctx.GL.Call("getUniformLocation", t.program, "uOffset")
+	t.uLUTLoc = glctx.GL.Call("getUniformLocation", t.program, "uLUT")
+	t.uLUTOnLoc = glctx.GL.Call("getUniformLocation", t.program, "uLUTOn")
 	t.pmatLoc = glctx.GL.Call("getUniformLocation", t.program, "Pmatrix")
 	t.vmatLoc = glctx.GL.Call("getUniformLocation", t.program, "Vmatrix")
 	t.mmatLoc = glctx.GL.Call("getUniformLocation", t.program, "Mmatrix")
@@ -274,6 +286,7 @@ func (t *texturedPipe) drawTexQuad(buf, texture js.Value, offset float32) {
 	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), texture)
 	glctx.GL.Call("uniform1i", t.uSamplerLoc, 0)
 	glctx.GL.Call("uniform1f", t.uOffsetLoc, float64(offset))
+	t.setLUT()
 
 	glctx.GL.Call("drawArrays", glctx.GL.Get("TRIANGLE_STRIP"), 0, 4)
 }
@@ -299,6 +312,18 @@ func (t *texturedPipe) drawTexturedMesh(vertBuf, idxBuf js.Value, idxCount int, 
 	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), texture)
 	glctx.GL.Call("uniform1i", t.uSamplerLoc, 0)
 	glctx.GL.Call("uniform1f", t.uOffsetLoc, float64(offset))
+	t.setLUT()
 
 	glctx.GL.Call("drawElements", glctx.GL.Get("TRIANGLES"), idxCount, glctx.Types.UnsignedShort, 0)
+}
+
+// setLUT tells the shader whether this draw is a backdrop recolored by its
+// own palette, and binds that palette if it is (backlayer_js.go).
+func (t *texturedPipe) setLUT() {
+	if !back.bindLUT() {
+		glctx.GL.Call("uniform1f", t.uLUTOnLoc, 0)
+		return
+	}
+	glctx.GL.Call("uniform1f", t.uLUTOnLoc, 1)
+	glctx.GL.Call("uniform1i", t.uLUTLoc, backLUTUnit)
 }

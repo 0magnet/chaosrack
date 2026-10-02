@@ -75,3 +75,31 @@ func TestExprErrors(t *testing.T) {
 		}
 	}
 }
+
+// max and min take any number of arguments, so a solid can be written the way
+// it is thought of: a cube is max(abs(x), abs(y), abs(z)) = 1.
+func TestMaxAndMinTakeAnyNumberOfArguments(t *testing.T) {
+	for s, want := range map[string]float64{
+		"max(abs(x), abs(y), abs(z))": 3,
+		"min(x, y, z)":                -2,
+		"max(x, min(y, z), 0.5)":      1,
+		"max(x)":                      1,
+		"2*max(x, y) + 1":             3,
+		"max(x + y, x - y) - 1":       2,
+	} {
+		e, err := ParseExpr(s)
+		if err != nil {
+			t.Errorf("%s: %v", s, err)
+			continue
+		}
+		stack := make([]float64, e.StackNeed()+2)
+		if got := e.Eval([5]float64{1, -2, 3}, nil, stack); got != want {
+			t.Errorf("%s = %v, want %v", s, got, want)
+		}
+	}
+	for _, s := range []string{"sin(x, y)", "x, y", "(x, y)"} {
+		if _, err := ParseExpr(s); err == nil {
+			t.Errorf("%s parsed; a comma belongs only in max or min", s)
+		}
+	}
+}

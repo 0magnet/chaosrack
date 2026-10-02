@@ -7,21 +7,26 @@ import (
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/rackspec"
+	"github.com/0magnet/chaosrack/pkg/racksurface"
 )
 
-// Designators: every control on the rack has an address, bay.row.slot.
+// Designators: every control on the rack has an address,
+// bay.module.position.
 //
 //   - bay is the number on the bay's left ear;
-//   - row counts the rows of controls down the module the control is in;
-//   - slot is where the control's center is, 1 to 12 across the bay.
+//   - module is the module's place in the bay, 1 from the left;
+//   - position is the cell of the module's grid the control stands in, a
+//     slot across and a row down, numbered down each column and then across
+//     whether or not the cells before it hold anything — the bay's three
+//     rows are 1 to 3 in the first column, 4 to 6 in the second.
 //
-// So 3.2.4 is the second row down, in the fourth slot of bay 3, and two
-// controls sharing a row and a slot are 3.2.4a and 3.2.4b, left to right.
-// The slot is the bay's rather than the module's so that an address does
-// not depend on where one module ends and the next begins; the row is the
-// module's because rows are what a module's own layout makes, and counting
-// them across a bay of differently laid-out modules would be counting
-// something nobody can see.
+// So 3.2.4 is the top of the second column of bay 3's second module, and
+// 3.2 the module itself. An address is a place, as a part number on a
+// drawing is: a module laid out differently keeps its positions, and an
+// empty one keeps its number. Two or more controls in one position — a knob
+// and the readout over it, a column of switches — are lettered, top to
+// bottom and then left to right: 3.2.4.a, 3.2.4.b.
 //
 // The point is to name a control in a sentence. It is in every tooltip, and
 // uitool reads it back (data-loc), so an address in a message is a control
@@ -58,7 +63,7 @@ func scheduleDesignate() {
 }
 
 // addressPrefix is what designate puts in front of a tooltip.
-var addressPrefix = regexp.MustCompile(`^(?:[0-9S]+\.\d+\.\d+[a-z]? · )+`)
+var addressPrefix = regexp.MustCompile(`^(?:[0-9S]+\.\d+(?:\.\d+(?:\.[a-z])?)? · )+`)
 
 // stripAddress is a tooltip without the address designate gave it, for code
 // that builds one tooltip out of another element's.
@@ -70,5 +75,15 @@ func designate() {
 	if !h.Truthy() || !f.Truthy() {
 		return
 	}
-	h.Call("designate", f, (moduleSlot+moduleGap)*layout.scale)
+	h.Call("designate", f, (moduleSlot+moduleGap)*layout.scale,
+		racksurface.UnitCapacity(), moduleGap/(moduleSlot+moduleGap), rackspec.RowsPerPanel())
+	// The manual lists controls by address, so an open one is rewritten
+	// with the addresses as they now are.
+	if manualShown {
+		manualRefresh()
+	}
+	if infoShown() {
+		infoManualKey = ""
+		updateInfoOverlay()
+	}
 }

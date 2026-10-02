@@ -136,6 +136,10 @@ var gpu = renderer{stride: 4, staticDirty: true}
 // instead of a soft 1× upscale. Reports whether a valid size was applied.
 // width/height globals are backing-store pixels (aspect and NDC math are
 // ratio-based, so both stay correct).
+// canvasBox, when set, is the box the canvas is drawn in instead of the
+// viewport: a window of its own, on the manual page.
+var canvasBox func() (w, h int)
+
 func (r *renderer) sizeCanvasToViewport() bool {
 	// The VIEWPORT, not the body.
 	//
@@ -148,6 +152,9 @@ func (r *renderer) sizeCanvasToViewport() bool {
 	// picture that is only ever a window tall.
 	cssW := dom.Doc.Get("documentElement").Get("clientWidth").Int()
 	cssH := dom.Doc.Get("documentElement").Get("clientHeight").Int()
+	if canvasBox != nil { // the canvas is in a window (manualwin_js.go)
+		cssW, cssH = canvasBox()
+	}
 	if cssW <= 0 || cssH <= 0 {
 		// A document with no layout yet; the body is the older fallback.
 		cssW = dom.Doc.Get("body").Get("clientWidth").Int()

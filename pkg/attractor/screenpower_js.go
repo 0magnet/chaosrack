@@ -20,8 +20,9 @@ import (
 // The rack does not hide modules any more; a bay shows everything in it.
 // So "nobody can see it" has stopped being the thing that turns these off,
 // and each screen needs a power switch of its own — which is what a piece
-// of equipment with a tube in it has anyway. A scope has a BEAM switch and
-// a monitor has a power button; neither is hidden in a menu.
+// of equipment with a tube in it has anyway. A scope has an OFF at the
+// bottom of its INTENSITY and a monitor has a power button; neither is
+// hidden in a menu.
 //
 // The check is throttled for the reason scopeVisible's is: reading
 // offsetParent makes the browser settle style and layout before it can
@@ -38,6 +39,10 @@ type screenPower struct {
 	// switchID is the module's own on/off switch. Empty means the screen
 	// has no switch and is governed only by whether it is on screen.
 	switchID string
+
+	// powered, if set, is the power control when it is not a switch: the
+	// scope's is the bottom of its INTENSITY knob.
+	powered func() bool
 
 	checkAt float64 // when the answer below was last measured
 	live    bool    // powered, and on screen
@@ -65,6 +70,9 @@ func (p *screenPower) on(el js.Value) bool {
 // measure is the real answer.
 func (p *screenPower) measure(el js.Value) bool {
 	if !el.Truthy() {
+		return false
+	}
+	if p.powered != nil && !p.powered() {
 		return false
 	}
 	if p.switchID != "" {
@@ -99,15 +107,13 @@ func (p *screenPower) invalidate() { p.checkAt = 0 }
 
 // The screens.
 var (
-	scopeScreenPower = screenPower{switchID: "scope-beam"}
-	recScreenPower   = screenPower{switchID: "rec-mon-on"}
-	deskScreenPower  = screenPower{switchID: "desk-mon-on"}
+	recScreenPower = screenPower{switchID: "rec-mon-on"}
 )
 
 // wireScreenPower hooks each screen's switch up so flipping it is noticed
 // at once rather than at the next check.
 func wireScreenPower() {
-	for _, p := range []*screenPower{&scopeScreenPower, &recScreenPower, &deskScreenPower} {
+	for _, p := range []*screenPower{&recScreenPower} {
 		sw := dom.Doc.Call("getElementById", p.switchID)
 		if !sw.Truthy() {
 			continue

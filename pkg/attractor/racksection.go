@@ -20,65 +20,62 @@ import (
 // chaosrack had neither. Modules sat in whatever order they were declared
 // in and packed into units by width alone, so a bay held whatever happened
 // to fit — an analyzer beside an oscillator beside the palette. The
-// sections below are the blocks of docs/signal-flow.md, in the order the
+// sections below are the blocks of manual/routing.md, in the order the
 // signal travels through them, and a bay now holds one section.
 
 // The sections. A unit holds as many as fit; a section too wide for a unit
 // continues into the next.
 const (
 	secConsole = "console" // the master section: model choice, global acts, capture
-	secAnalyze = "analyze" // the metering bay
-	secMod     = "mod"     // per-control modulation routing and its EQ
+	secMod     = "mod"     // routing: the Mixer, and the modulation matrix and its EQ
 	secModel   = "model"   // the instrument proper and its per-mode panels
 	secDisplay = "display" // how the picture is drawn: pose, color, grid, style
-	secGen     = "gen"     // the signal sources: test signal, oscillators, keys, sequencers
+	secGen     = "gen"     // the signal sources: oscillators, keys, sequencers
 	secUtility = "utility" // where a module nobody has placed lands, to be noticed
 )
 
-// domainLine is the category row the rack's two halves meet at.
-//
-// Above it is the visual domain: models drawn in three dimensions, and the
-// controls for how they are drawn. Below it is the auditory one: the
-// signals, the generators that make them, the displays that read them and
-// the meters that measure them. The scope is the line because it is both —
-// a picture whose axes are two signals — and the generators go directly
-// under it, which is where the thing they are most often patched into is.
-const domainLine = "Scope"
+// The rack opens with the instrument: the model rows, with the running
+// model's own panels after them, then the controls for how a model is drawn
+// and the console. Below them is the auditory half, the generators that make
+// signals, the sequencers that play them and the meters that measure them,
+// headed by the scope, because it is both: a picture whose axes are two
+// signals. Its tube and knobs come first in the GENERATORS bay, then the
+// oscillators, which is where the thing the generators are most often
+// patched into is.
 
-// sectionOrder is every bay in the order the rack reads, top to bottom:
+// bayOpeningSections start a bay of their own rather than filling the end of
+// the one before. GENERATORS, so the scope has a line to sit on and the
+// oscillators are not packed into the model row's spare slots.
 //
+// METERING was one too, and is empty now: its four meters filled seven slots
+// of a twelve-slot bay, while the Console and Generators bays each had five
+// spare, so the meters went to those two and the rack lost a bay.
+var bayOpeningSections = map[string]bool{secGen: true}
+
+// bayLeadModules each start a bay: an instrument wide enough to be one, the
+// keyboard's synthesizer, the keyboard and the tone matrix, rather than two
+// things half-way along a row of generators.
+var bayLeadModules = map[string]bool{"synth": true, "keys": true, "matrix": true}
+
+// sectionOrder is every bay in the order the rack reads, top to bottom, until
+// somebody moves one by its screws (bayorder.go):
+//
+//	the model rows, then the running model's own panels: the instrument first
 //	DISPLAY: the capture monitor and what places and colors the picture
 //	the console
-//	the visual model rows, then their own panels
-//	the Scope row
-//	GENERATORS
-//	the auditory model rows, then METERING, MODULATION, UTILITY
+//	GENERATORS (the scope's bay, with two of the meters), then ROUTING,
+//	UTILITY
 //
 // Computed rather than written out, so a category added to modeGroups gets
-// its row on its side of the line with no second list to keep in step.
+// its row with no second list to keep in step.
 var sectionOrder = buildSectionOrder()
 
 func buildSectionOrder() []string {
-	cats := rackRows()
-	line := slices.Index(cats, domainLine)
-	if line < 0 {
-		line = len(cats)
-	}
-	out := []string{secDisplay, secConsole}
-	for _, c := range cats[:line] {
+	var out []string
+	for _, c := range rackRows() {
 		out = append(out, categorySection(c))
 	}
-	out = append(out, secModel)
-	rest := cats[line:]
-	if len(rest) > 0 {
-		out = append(out, categorySection(rest[0]))
-		rest = rest[1:]
-	}
-	out = append(out, secGen)
-	for _, c := range rest {
-		out = append(out, categorySection(c))
-	}
-	return append(out, secAnalyze, secMod, secUtility)
+	return append(out, secModel, secDisplay, secConsole, secGen, secMod, secUtility)
 }
 
 // sectionTitleOf is what is silkscreened on a bay, including the model
@@ -100,12 +97,7 @@ func sectionTitleOf(section string) string {
 // sectionTitle is what is silkscreened on the bay.
 var sectionTitle = map[string]string{
 	secConsole: "CONSOLE",
-	// METERING and not ANALYSIS: there is an Analysis model CATEGORY with a
-	// row of its own, and two bays silkscreened ANALYSIS meaning different
-	// things is worse than either name alone. This bay holds meters:
-	// loudness, distortion, wow and flutter, the counter.
-	secAnalyze: "METERING",
-	secMod:     "MODULATION",
+	secMod:     "ROUTING",
 	secModel:   "MODEL",
 	secDisplay: "DISPLAY",
 	secGen:     "GENERATORS",
@@ -117,70 +109,74 @@ var sectionTitle = map[string]string{
 //
 // A table rather than a class on each element because the grouping is a
 // statement about the INSTRUMENT, not about the markup: it is the same
-// grouping docs/signal-flow.md draws, and the two should be read together.
+// grouping manual/routing.md draws, and the two should be read together.
 // A module missing from here is caught by a test rather than quietly
 // landing in whatever bay it was declared next to.
 var moduleSections = map[string]string{
 	"console": secConsole,
-	// The capture monitor opens the rack, in the display bay: it carries a
-	// screen, so it leads a bay wherever it goes, and at the top of the left
-	// edge it is the first thing read. See moduleOrder.
+	// The capture monitor leads the display bay: it carries a
+	// screen, so it leads a bay wherever it goes, and at the left of that bay
+	// it is the first thing read there. See moduleOrder.
 	"record": secDisplay,
 	// Saving and recalling the whole rack is the Console's job.
 	"presets": secConsole,
-	// Timing and the Lyapunov readout measure the INSTRUMENT, not the
-	// signal: how fast the rack draws, and whether the running model is
-	// chaotic. Global facts, at the top where they are found without hunting.
-	"timing":   secConsole,
-	"analysis": secConsole,
+	// Timing measures the INSTRUMENT, not the signal: how fast the rack
+	// draws. (The Lyapunov readout, which said whether the running model is
+	// chaotic, is on the Visual head now, with the model.) A global fact, at
+	// the top where it is found without hunting.
+	"timing": secConsole,
 	// How the whole rack looks: interface size, knob faces, LED color, the
 	// rack's metalwork. About the instrument, not about the picture.
 	"style": secConsole,
 
-	"loudness":      secAnalyze,
-	"distortion":    secAnalyze,
-	"wow & flutter": secAnalyze,
-	"counter":       secAnalyze,
+	// The meters, together in the Console bay: the scope bay above the
+	// generators is its tube, its knobs and the oscillators now, and the
+	// meters that shared a bay with the test signals moved here, where the
+	// Console and Timing already were (moduleOrder).
+	"counter":       secConsole,
+	"distortion":    secConsole,
+	"loudness":      secConsole,
+	"wow & flutter": secConsole,
 
 	// The rack-wide patch panel: any audio feature to any knob, on either
 	// side of the line. Global like the Console it sits beside.
-	"patchbay": secConsole,
 
-	// The model, and the per-mode front panels that are its own controls.
+	// The model's own controls (the demo models' panels are in its bank now).
 	// secModel means "part of the instrument rather than of the rack", and
 	// moduleSection turns that into the running model's category row.
 	"parameters": secModel,
-	"patch":      secModel,
-	"scoreboard": secModel,
-	"banner":     secModel,
-	"launcher":   secModel,
-	"loader":     secModel,
-	"animation":  secModel,
 	"equation":   secModel,
 
 	"grid":            secDisplay,
 	"view":            secDisplay,
-	"position":        secDisplay,
 	"display":         secDisplay,
 	"layers · colors": secDisplay,
 	"spectro":         secDisplay,
-	"desk":            secDisplay,
 
 	// Everything that MAKES a signal, under the scope that draws one.
-	"test":      secGen,
-	"envelope":  secGen,
-	"gen x":     secGen,
-	"gen y":     secGen,
-	"gen z":     secGen,
-	"keys":      secGen,
-	"matrix":    secGen,
-	"rhythm":    secGen,
-	"model out": secGen,
+	"scope 1": secGen,
+	"scope 2": secGen,
+	"scope 3": secGen,
+	"scope 4": secGen,
+	"gen 1":   secGen,
+	"gen 2":   secGen,
+	"gen 3":   secGen,
+	"gen 4":   secGen,
+	// The keyboard's synthesizer, a bay of its own above it (synth_js.go).
+	"synth":        secGen,
+	"string":       secGen,
+	"fm":           secGen,
+	"wave · noise": secGen,
+	"filter":       secGen,
+	"amp":          secGen,
+	"keys":         secGen,
+	"matrix":       secGen,
 
-	// The per-control modulation routing and its EQ, shown while audio mod is
-	// on. They were in no section at all, and fell to UTILITY.
-	"mod": secMod,
-	"eq":  secMod,
+	// The routing bay: the Mixer, where every sound goes, and the Mod matrix,
+	// where the rack's signal goes to the controls. Side by side, because
+	// the one makes the signal the other reads.
+	"mixer": secMod,
+	"mod":   secMod,
 }
 
 // moduleSection is the bay a module belongs in. A module nobody has placed
@@ -237,7 +233,26 @@ type sectionRun = racksurface.Run
 func unitSection(items []packItem, idx []int) string { return racksurface.SectionOf(items, idx) }
 
 func packBySection(items []packItem, capacity int, monitor map[string]int) [][]int {
-	return racksurface.Pack(items, capacity, monitor)
+	return racksurface.Pack(markBayLeads(items), capacity, monitor)
+}
+
+// markBayLeads is the items with this rack's own breaks marked: the first
+// module with any width in each of bayOpeningSections, and every one of
+// bayLeadModules. Here rather than where the items are read off the page, so
+// the page and every drawing of the rack (rackascii.go) pack the same bays.
+func markBayLeads(items []packItem) []packItem {
+	out := slices.Clone(items)
+	opened := map[string]bool{}
+	for i, it := range out {
+		if bayLeadModules[it.Key] {
+			out[i].Break = true
+		}
+		if bayOpeningSections[it.Section] && !opened[it.Section] && it.Slots > 0 {
+			opened[it.Section] = true
+			out[i].Break = true
+		}
+	}
+	return out
 }
 
 func sectionRuns(items []packItem, idx []int) []sectionRun { return racksurface.Runs(items, idx) }
@@ -288,8 +303,23 @@ func sectionOrderOf(items []packItem) []int {
 // order the modules were declared in. The display bay opens the rack: the
 // capture monitor, then what places the model on screen (its pose, its
 // position, how many views, how it is drawn), then how it is colored.
+//
+// The Console bay reads left to right from the rack itself (Console, Style,
+// Presets) to the meters, with Timing, the rack's own meter, last. (Model
+// Out, the model as sound, is in the model's own bank now: modelOutParams.)
+//
+// The scope bays are each scope beside the generator it starts on, and
+// they are listed so they come before Keys and the Matrix, which open bays
+// of their own.
+//
 // Anything not listed keeps its declared order, after these.
-var moduleOrder = []string{"record", "view", "position", "grid", "display", "layers · colors"}
+var moduleOrder = []string{
+	"record", "view", "grid", "display", "layers · colors",
+	"console", "style", "presets", "counter", "distortion", "loudness", "wow & flutter", "timing",
+	"scope 1", "gen 1", "scope 2", "gen 2", "scope 3", "gen 3", "scope 4", "gen 4",
+	"synth", "string", "fm", "wave · noise", "filter", "amp",
+	"mixer", "mod",
+}
 
 // moduleRank is a module's place in moduleOrder, or after all of it.
 func moduleRank(key string) int {

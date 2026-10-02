@@ -2,22 +2,14 @@
 
 package attractor
 
-// The PATCHBAY module (Window > Patchbay): the analog-computer patching
-// surface, in two halves.
+// The patch memories: 8 numbered snapshots of the whole rack, on the Presets
+// module. STO arms store mode: STO then a slot saves the CURRENT full state
+// (the permalink serialization); a plain click recalls a slot by resetting to
+// defaults and re-applying its snapshot (the URL hash updates too, so a
+// recalled patch is immediately shareable). Persisted in localStorage.
 //
-// Pin matrix — an EMS-Synthi-style routing grid: rows are the modulation
-// sources (stereo / left / right energy), columns are every routable
-// destination of the current mode (its float parameters plus the view/motion
-// targets). A pin toggles the route (default depth 0.4); the mouse wheel on a
-// lit pin adjusts depth. It reads and writes the SAME pmod.params map as the
-// per-parameter MOD knobs — two views of one routing state, so edits in
-// either stay consistent (the panel rebuilds on pin edits).
-//
-// Program bank — 8 patch-memory slots. STO arms store mode: STO then a slot
-// saves the CURRENT full state (the permalink serialization); a plain click
-// recalls a slot by resetting to defaults and re-applying its snapshot (the
-// URL hash updates too, so a recalled patch is immediately shareable).
-// Persisted in localStorage.
+// They were the Patchbay's, beside its pin matrix. The matrix is the Mod
+// module's now (modmatrix_js.go), and the Patchbay went with it.
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
@@ -26,38 +18,10 @@ import (
 	"syscall/js"
 )
 
-var (
-	// Always built: the Patchbay is a module, and the Console's module
-	// switches are gone.
-	patchOn     = true
-	patchStoArm bool
-)
+var patchStoArm bool
 
 const patchSlots = 8
 const patchStoreKey = "wasmstuff-patchbank"
-
-type matrixDest struct {
-	id, label string
-}
-
-// matrixDests lists the current mode's routable destinations.
-//
-// EVERY parameter of the mode, unfiltered. The integer ones used to be dropped
-// here to match applyAudioModulation, which dropped them too; now that it
-// modulates them on their own grid, dropping them here would hide a pin for a
-// route the modulator would honor. What matters is that this list and
-// applyAudioModulation's loop agree — a destination that one of them skips is a
-// pin that does nothing, whichever way round the disagreement runs.
-func matrixDests(mode string) []matrixDest {
-	var out []matrixDest
-	for _, pd := range attractorParams[mode] {
-		out = append(out, matrixDest{pd.ID, pd.Label})
-	}
-	for _, vt := range viewModTargets {
-		out = append(out, matrixDest{vt.id, vt.label})
-	}
-	return out
-}
 
 // patchBank returns the stored snapshots (always patchSlots entries).
 func patchBank() []string {
@@ -120,42 +84,22 @@ func recallSerializedState(snapshot string) {
 	perma.syncPermalinkNow() // canonicalize the URL to the recalled state
 }
 
-// buildPatchbayModule (re)creates the PATCHBAY module. Called from
-// buildParamPanel so the matrix columns track the current mode.
-func buildPatchbayModule(paramsSect js.Value) {
-	if old := dom.Doc.Call("getElementById", "patch-module"); old.Truthy() {
-		old.Get("parentNode").Call("removeChild", old)
-	}
-	if !patchOn || !paramsSect.Truthy() {
+// buildPatchBank (re)builds the patch memories' cell on the Presets module.
+func buildPatchBank() {
+	presets := dom.Doc.Call("querySelector", "#preset-module > .row")
+	if !presets.Truthy() {
 		return
 	}
-	mod := dom.Doc.Call("createElement", "div")
-	mod.Set("className", "sect")
-	mod.Set("id", "patch-module")
-	hdr := dom.Doc.Call("createElement", "div")
-	hdr.Set("className", "sect-hdr")
-	hdr.Set("textContent", "Patchbay")
-	hdr.Set("title", "Patchbay — pin-matrix audio routing (sources × destinations) and the 8-slot patch memory bank")
-	mod.Call("appendChild", hdr)
-	body := dom.Doc.Call("createElement", "div")
-	body.Set("className", "row")
-
-	// ── Program bank ──
-	//
-	// Two columns, not a line of nine. STO and eight slots side by side is
-	// 270px of button, and it was the bank — not the matrix — that made this
-	// module two slots wide: the matrix had already been changed to share
-	// whatever width it was given rather than ask for its own.
-	//
-	// A rack panel is tall and narrow, so the memories go down it the way the
-	// numbered buttons on a synth's program bank do.
+	if old := dom.Doc.Call("getElementById", "patch-bank-cell"); old.Truthy() {
+		old.Call("remove")
+	}
 	bankRow := dom.Doc.Call("createElement", "div")
 	bankRow.Set("className", "pbank")
 	bank := patchBank()
 	sto := dom.Doc.Call("createElement", "button")
 	sto.Set("className", "pslot")
 	sto.Set("textContent", "STO")
-	sto.Set("title", "Store mode — press STO, then a slot, to save the current patch there. Plain slot click recalls.")
+	sto.Set("title", doc("patch-sto"))
 	refreshSto := func() {
 		if patchStoArm {
 			sto.Get("classList").Call("add", "sto")
@@ -176,7 +120,7 @@ func buildPatchbayModule(paramsSect js.Value) {
 			b.Get("classList").Call("add", "full")
 		}
 		b.Set("textContent", strconv.Itoa(i+1))
-		b.Set("title", "Patch memory "+strconv.Itoa(i+1)+" — click to recall; STO first to store the current patch")
+		b.Set("title", docf("patch-slot", "n", strconv.Itoa(i+1)))
 		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			bank := patchBank()
 			if patchStoArm {
@@ -192,101 +136,10 @@ func buildPatchbayModule(paramsSect js.Value) {
 		}))
 		bankRow.Call("appendChild", b)
 	}
-	body.Call("appendChild", bankRow)
-
-	// ── Pin matrix ──
-	dests := matrixDests(run.selectedMode)
-	if len(dests) > 0 {
-		rows := []struct{ label, ch string }{{"ST", "mono"}, {"L", "L"}, {"R", "R"}}
-		grid := dom.Doc.Call("createElement", "div")
-		grid.Set("className", "mxgrid")
-		// The row labels take what they need; the destinations SHARE what is
-		// left. Sized with auto they sized the module instead of being sized
-		// by it — and because the destination list changes with the model,
-		// the Patchbay's width changed with it too, which is how it came to
-		// be quantized to two slots while asking for 277px of them. A pin is
-		// a fixed 3.5mm and is centered in its column, so a narrow column
-		// bleeds it symmetrically into the gutter rather than clipping it.
-		// TRANSPOSED: the destinations go DOWN and the three sources across.
-		//
-		// This is what stops the module's width depending on the model. With
-		// destinations as columns the matrix was as wide as the mode had
-		// parameters — and it had to be told to share the width it was given
-		// so it did not drag the panel wider, which in turn squeezed the pins
-		// into whatever was left. Down the side there are only ever three
-		// columns, so the width is fixed and the pins keep their 3.5mm however
-		// many destinations a model has; a long list costs height, which a
-		// rack panel has and width is what it has not.
-		//
-		// It also reads better. The destination names are words — "spin X",
-		// "period" — and as column heads they had to be rotated on their side
-		// (.mxcol is writing-mode:vertical-rl). As row labels they are level
-		// and legible, and ST/L/R are short enough to head a column upright.
-		grid.Get("style").Set("gridTemplateColumns",
-			"auto repeat("+strconv.Itoa(len(rows))+",auto)")
-		grid.Call("appendChild", dom.Doc.Call("createElement", "span")) // corner
-		for _, row := range rows {
-			cl := dom.Doc.Call("createElement", "span")
-			cl.Set("className", "mxlbl")
-			cl.Set("textContent", row.label)
-			cl.Set("title", "Source: "+row.label+" channel energy (loudest band unless EQ bands are painted on the MOD knob)")
-			grid.Call("appendChild", cl)
-		}
-		for _, d := range dests {
-			rl := dom.Doc.Call("createElement", "span")
-			rl.Set("className", "mxdst")
-			rl.Set("textContent", d.label)
-			rl.Set("title", "Destination: "+d.label)
-			grid.Call("appendChild", rl)
-			for _, row := range rows {
-				pin := dom.Doc.Call("createElement", "span")
-				pin.Set("className", "mxpin")
-				m := pmod.params[d.id]
-				on := m.channel == row.ch && m.level != 0
-				if on {
-					pin.Get("classList").Call("add", "on")
-					pin.Get("style").Set("opacity", strconv.FormatFloat(0.45+0.55*float64(m.level), 'f', 2, 64))
-				}
-				pin.Set("title", row.label+" → "+d.label+" — click to toggle, wheel to set depth (needs Audio mod on)")
-				pin.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
-					m := pmod.params[d.id]
-					if m.channel == row.ch && m.level != 0 {
-						m.channel = ""
-					} else {
-						m.channel = row.ch
-						if m.level == 0 {
-							m.level = 0.4
-						}
-					}
-					pmod.params[d.id] = m
-					perma.syncPermalinkNow()
-					buildParamPanel(run.selectedMode) // resync MOD knobs + this matrix
-					return nil
-				}))
-				pin.Call("addEventListener", "wheel", dom.FuncOf(func(this js.Value, a []js.Value) any {
-					e := a[0]
-					e.Call("preventDefault")
-					m := pmod.params[d.id]
-					if m.channel != row.ch {
-						return nil
-					}
-					dl := float32(0.05)
-					if e.Get("deltaY").Float() > 0 {
-						dl = -dl
-					}
-					m.level = clampF(m.level+dl, 0, 1)
-					pmod.params[d.id] = m
-					pin.Get("style").Set("opacity", strconv.FormatFloat(0.45+0.55*float64(m.level), 'f', 2, 64))
-					pin.Set("title", row.label+" → "+d.label+" — depth "+strconv.FormatFloat(float64(m.level), 'f', 2, 64))
-					perma.syncPermalinkNow()
-					return nil
-				}))
-				grid.Call("appendChild", pin)
-			}
-		}
-		body.Call("appendChild", grid)
-	}
-
-	mod.Call("appendChild", body)
-	paramsSect.Get("parentNode").Call("insertBefore", mod, paramsSect.Get("nextSibling"))
+	cell := dom.Doc.Call("createElement", "span")
+	cell.Set("className", "pcell axcol vmcell gen-cell")
+	cell.Set("id", "patch-bank-cell")
+	cell.Set("title", doc("patch-bank-cell"))
+	cell.Call("appendChild", bankRow)
+	presets.Call("appendChild", cell)
 }

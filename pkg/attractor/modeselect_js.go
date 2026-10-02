@@ -3,7 +3,6 @@
 package attractor
 
 import (
-	"strconv"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/dom"
@@ -19,58 +18,107 @@ import (
 // model called OFF — and when that knob went to the rows, the rack's own
 // power came back to the Rack group where the frame's other controls are.
 func setPowerState(on bool) {
+	defer func() {
+		if manualPowerHook != nil && !modelWin.moving {
+			manualPowerHook(on) // on the manual page, the model's window
+		}
+		if sw := dom.Doc.Call("getElementById", "power-sw"); sw.Truthy() && sw.Get("checked").Bool() != on {
+			sw.Set("checked", on)
+		}
+	}()
 	if on {
 		if run.stopped {
 			run.stopped = false
 			js.Global().Call("requestAnimationFrame", renderFrame)
 		}
+		updateInfoOverlay() // Info is the model again, not the manual
 		return
 	}
 	run.stopped = true
 	glctx.GL.Call("clearColor", 0, 0, 0, 0)
 	glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
 	glctx.GL.Call("clear", glctx.Types.DepthBufferBit)
+	updateInfoOverlay() // and the manual, now there is no model to describe
 }
 
-// attachSelMarquee caps a Console <select> to one unit and overlays a marquee
-// readout of the current option: the native text is hidden (see CSS), a
-// click-through overlay shows the name, and long names that overflow scroll
-// back and forth so they stay readable.
-func attachSelMarquee(sel js.Value, colorHex string) {
-	parent := sel.Get("parentNode")
+// attachSelMarquee puts a character display over a <select>, reading its
+// current option: the model name under a bay's MODEL knob. The select stays
+// under it, click-through, so a click still opens the list. A name longer than
+// the display scrolls through it a character at a time, the way a character
+// module scrolls, after a pause on its start.
+//
+// Counted in characters, not measured: the overlay it replaces read its text's
+// width on every change, which was a forced layout in the middle of a model
+// change.
+//
+// picker is the list the click opens, if it is not sel itself: a merged
+// bay's MODEL knob turns a select of one category's models, and its display
+// opens one of every model in the bay (bayPicker).
+func attachSelMarquee(sel, picker js.Value) {
+	parent := picker.Get("parentNode")
 	if !parent.Truthy() {
 		return
 	}
 	wrap := dom.Doc.Call("createElement", "span")
 	wrap.Set("className", "selwrap")
-	parent.Call("insertBefore", wrap, sel)
-	wrap.Call("appendChild", sel)
-	marq := dom.Doc.Call("createElement", "span")
-	marq.Set("className", "selmarq")
-	if colorHex != "" {
-		marq.Get("style").Set("color", colorHex)
+	parent.Call("insertBefore", wrap, picker)
+	wrap.Call("appendChild", picker)
+	win := dotDisplayN("", false, dispFullChars)
+	win.Get("classList").Call("add", "selmarq")
+	wrap.Call("appendChild", win)
+	var loop []rune
+	pos, hold := 0, 0
+	show := func() {
+		if len(loop) == 0 {
+			return
+		}
+		out := make([]rune, dispFullChars)
+		for i := range out {
+			out[i] = loop[(pos+i)%len(loop)]
+		}
+		setDotText(win, string(out))
 	}
-	inner := dom.Doc.Call("createElement", "span")
-	marq.Call("appendChild", inner)
-	wrap.Call("appendChild", marq)
 	upd := func() {
-		idx := sel.Get("selectedIndex").Int()
 		txt := ""
-		if idx >= 0 {
-			txt = sel.Get("options").Index(idx).Get("text").String()
-		}
-		inner.Set("textContent", txt)
-		over := inner.Get("offsetWidth").Int() - marq.Get("clientWidth").Int()
-		if over > 4 {
-			marq.Get("style").Call("setProperty", "--marq-shift", "-"+strconv.Itoa(over+6)+"px")
-			marq.Get("classList").Call("add", "scroll")
+		if idx := sel.Get("selectedIndex").Int(); idx >= 0 {
+			txt = displayText(sel.Get("options").Index(idx).Get("text").String())
 		} else {
-			marq.Get("classList").Call("remove", "scroll")
+			txt = categoryOffLabel // on no position: the bay is off
 		}
+		loop, pos, hold = []rune(txt), 0, marqueeHold
+		if len(loop) > dispFullChars {
+			loop = append(loop, []rune("   ")...)
+		} else {
+			loop = nil
+			setDotText(win, txt)
+		}
+		show()
 	}
 	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any { upd(); return nil }))
+	js.Global().Call("setInterval", js.FuncOf(func(js.Value, []js.Value) any {
+		if len(loop) == 0 {
+			return nil
+		}
+		if hold > 0 {
+			hold--
+			return nil
+		}
+		pos = (pos + 1) % len(loop)
+		if pos == 0 {
+			hold = marqueeHold
+		}
+		show()
+		return nil
+	}), marqueeStepMs)
 	upd()
 }
+
+// A scrolling name moves a character every marqueeStepMs, and rests
+// marqueeHold steps at its start.
+const (
+	marqueeStepMs = 300
+	marqueeHold   = 6
+)
 
 func updateInfoOverlay() {
 	overlay := dom.Doc.Call("getElementById", "info-overlay")
@@ -93,21 +141,30 @@ func updateInfoOverlay() {
 			text += "\n\n" + label
 		}
 	}
-	overlay.Set("textContent", text)
-	info.updateInfoTitle() // a window left open while the model changes says which one it describes
+	writeInfo(overlay, text) // and the manual for the bay being worked at (infomanual_js.go)
+	info.updateInfoTitle()   // a window left open while the model changes says which one it describes
 }
 
-// updatePhysVisibility shows the Physics switch only where there is something
-// to weigh, and keeps the panel's ph-on/ph-off class in step with it so the
-// Physics module appears and disappears with the switch.
-func updatePhysVisibility() {
-	if w := dom.Doc.Call("getElementById", "phys-sw-wrap"); w.Truthy() {
-		if run.selectedMode == "turtle" {
-			w.Get("style").Set("display", "")
-		} else {
-			w.Get("style").Set("display", "none")
-		}
+// setCellBlank keeps a control on the panel whether or not it does anything
+// at the moment. A cell with nothing to do for this model, or at these
+// settings, stays bright and in reach: its readouts go blank and its knobs
+// still turn, so the setting is there waiting when it matters again. It is
+// not taken away, and not darkened: a panel whose controls come and go with
+// what it is showing moves everything after them, and the rack is one
+// instrument whatever the model.
+func setCellBlank(el js.Value, blank bool) {
+	if !el.Truthy() {
+		return
 	}
+	el.Get("style").Set("display", "")
+	el.Get("classList").Call("toggle", "cell-blank", blank)
+}
+
+// updatePhysVisibility makes the Physics switch live only where there is
+// something to weigh (turtle), and keeps the panel's ph-on/ph-off class in
+// step with it so the Physics module appears and disappears with the switch.
+func updatePhysVisibility() {
+	setCellBlank(dom.Doc.Call("getElementById", "phys-sw-wrap"), run.selectedMode != "turtle")
 	if panel := dom.Doc.Call("getElementById", "controls-panel"); panel.Truthy() {
 		cl := panel.Get("classList")
 		if physOn() {
@@ -120,18 +177,10 @@ func updatePhysVisibility() {
 	}
 }
 
-// updateTrailVisibility shows/hides the Trail slider + Persist
-// checkbox depending on whether the current mode renders a trail.
+// updateTrailVisibility blanks the Trail readout on the models that draw no
+// trail; the knob stays bright and turnable (setCellBlank).
 func updateTrailVisibility() {
-	el := dom.Doc.Call("getElementById", "trail-controls")
-	if !el.Truthy() {
-		return
-	}
-	if isAttractorMode(run.selectedMode) {
-		el.Get("style").Set("display", "")
-	} else {
-		el.Get("style").Set("display", "none")
-	}
+	setCellBlank(dom.Doc.Call("getElementById", "trail-controls"), !isAttractorMode(run.selectedMode))
 }
 
 // normalizeOrientation resets the current model to the default identity
@@ -140,52 +189,64 @@ func updateTrailVisibility() {
 
 func onModeChange(this js.Value, args []js.Value) any {
 	sel := dom.Doc.Call("getElementById", "mode-select")
+	// While the panel is on the backdrop, choosing a model chooses what is
+	// behind (backlayer_js.go); the running one is left as it is.
+	if back.editing && sel.Truthy() {
+		chooseBackdrop(sel.Get("value").String())
+		return nil
+	}
 	if sel.Truthy() {
 		run.selectedMode = sel.Get("value").String()
 	}
-	// Which row is the instrument, before anything rebuilds: the readouts
-	// that belong to the running model are filed into its category's row,
-	// and buildParamPanel below re-measures and re-packs the rack. Set after
-	// that, they are packed into the row the PREVIOUS model was in.
-	setActiveCategory(run.selectedMode)
-	// Before the panel rebuild, so the MAP ring is drawn at the map the mode
-	// comes up on.
-	spect.followMode(run.selectedMode)
-	// Whether the model is drawn in two halves depends on the mode as well as
-	// the knob, so the canvases have to be reconsidered here — not only when
-	// the knob moves.
-	syncSplitCanvas()
-	// A modulation loop's memory is of the system that is no longer
-	// running; carried across, it would drive the new model from the old
-	// one's last position. See modelmod.go.
-	resetModelMod()
-	// New mode means fresh geometry — force an upload on the next
-	// uploadBuffersIndexed for static modes, and a skin-mesh rebuild.
-	gpu.staticDirty = true
-	skin.dirty = true
-	// The Takens mode measures τ once when it first has audio to measure, and
-	// entering the mode is what "first" means. The source may also have been
-	// swapped while the mode was away, leaving a measurement of a signal that
-	// is no longer playing.
-	emb.armAutoMeasure()
-	wfall.armFit()
-	resetAttractorState()
-	// The panel rebuild and the four mode-dependent visibility passes, as
-	// one layout.
-	//
-	// Every one of these asks the rack to re-measure itself, and each ask
-	// was answered in full: five passes stretching all seventy-odd modules
-	// out, reading them back, re-packing every bay and re-sizing every
-	// skirt. Measured, that was 2435ms of a 2903ms model change — against
-	// 10ms to integrate the attractor. The rack cannot be read between two
-	// of these calls, so it does not need to be settled between them; it
-	// needs to be settled once, here, before the camera is fitted to it.
-	//
-	// updateGradientUI belongs in this group and used to sit forty lines
-	// down among the audio calls. It is the same kind of thing as the three
-	// above it — which controls this model has any use for — and depends on
-	// nothing that happens in between.
+	// The whole change as one layout (withDeferredLayout, below): the rack is
+	// not read between any two of these, and several of them ask for it to be
+	// re-measured. Following the mode's colormap alone (spect.followMode) asked
+	// before the batch began, and paid a full pass on every change to the
+	// spectrogram.
+	owed.modelChange = true
 	owed.withDeferredLayout(run.selectedMode, func() {
+		// Which row is the instrument, before anything rebuilds: the readouts
+		// that belong to the running model are filed into its category's row,
+		// and buildParamPanel below re-measures and re-packs the rack. Set after
+		// that, they are packed into the row the PREVIOUS model was in.
+		setActiveCategory(run.selectedMode)
+		// Before the panel rebuild, so the MAP ring is drawn at the map the mode
+		// comes up on.
+		spect.followMode(run.selectedMode)
+		// Whether the model is drawn in two halves depends on the mode as well as
+		// the knob, so the canvases have to be reconsidered here — not only when
+		// the knob moves.
+		syncSplitCanvas()
+		// A modulation loop's memory is of the system that is no longer
+		// running; carried across, it would drive the new model from the old
+		// one's last position. See modelmod.go.
+		resetModelMod()
+		// New mode means fresh geometry — force an upload on the next
+		// uploadBuffersIndexed for static modes, and a skin-mesh rebuild.
+		gpu.staticDirty = true
+		skin.dirty = true
+		// The Takens mode measures τ once when it first has audio to measure, and
+		// entering the mode is what "first" means. The source may also have been
+		// swapped while the mode was away, leaving a measurement of a signal that
+		// is no longer playing.
+		emb.armAutoMeasure()
+		wfall.armFit()
+		resetAttractorState()
+		// The panel rebuild and the four mode-dependent visibility passes, as
+		// one layout.
+		//
+		// Every one of these asks the rack to re-measure itself, and each ask
+		// was answered in full: five passes stretching all seventy-odd modules
+		// out, reading them back, re-packing every bay and re-sizing every
+		// skirt. Measured, that was 2435ms of a 2903ms model change — against
+		// 10ms to integrate the attractor. The rack cannot be read between two
+		// of these calls, so it does not need to be settled between them; it
+		// needs to be settled once, here, before the camera is fitted to it.
+		//
+		// updateGradientUI belongs in this group and used to sit forty lines
+		// down among the audio calls. It is the same kind of thing as the three
+		// above it — which controls this model has any use for — and depends on
+		// nothing that happens in between.
 		buildParamPanel(run.selectedMode)
 		updateInfoOverlay()
 		updateTrailVisibility()
@@ -217,7 +278,7 @@ func onModeChange(this js.Value, args []js.Value) any {
 	}
 	// Model Out likewise: suspend in modes it can't sonify (geometry,
 	// spectrogram…) instead of streaming zeros ~23×/s, resume in trail modes.
-	son.modeSync()
+	son.sync()
 	// The model's own row shows it and every other row shows off, whatever
 	// moved the model — this knob, a permalink, a preset, the jam performer.
 	syncCategoryRotaries()

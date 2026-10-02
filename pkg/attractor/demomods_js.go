@@ -3,23 +3,32 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/led"
-	"strconv"
 	"strings"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
 var (
-	pongKnobGuard bool     // set while the game writes the pots back
-	pongPadSlL    js.Value // the Scoreboard paddle pots (motorized)
-	pongPadSlR    js.Value
+	pongKnobGuard bool                    // set while the game writes the pots back
+	pongPots      = map[string]js.Value{} // the paddle pots, once found
 )
 
-// buildDemoModules wires the mode-scoped demo modules' controls (static
-// markup in panelhtml_js.go, shown/hidden by each mode's sync hook):
-// Scoreboard's Restart, Banner's text field, Launcher's Drop. Called once
-// from Run.
+// pongPot is one of Pong's paddle pots: the bank knob pong-pad-l or -r. Looked
+// up the first time it is needed, because the bank builds it after this is
+// wired, and kept: the game writes it twenty times a second.
+func pongPot(side string) js.Value {
+	if p := pongPots[side]; p.Truthy() {
+		return p
+	}
+	p := dom.Doc.Call("getElementById", "pong-pad-"+side)
+	pongPots[side] = p
+	return p
+}
+
+// buildDemoModules wires the demo models' own parts (the holder in
+// panelhtml_js.go, placed by modelparts_js.go): Pong's Restart and paddle
+// pots, the Banner's text, the Launcher's Drop. Called once from Run.
 func buildDemoModules() {
 	if b := dom.Doc.Call("getElementById", "pong-restart"); b.Truthy() {
 		b.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
@@ -32,49 +41,27 @@ func buildDemoModules() {
 	// Paddle pots: turning one seizes that paddle (same human window as the
 	// keys/touch); while the machine or keys drive the paddle, the pot spins
 	// to track it — pong.syncScoreboard writes it back with the guard up.
-	wirePad := func(slID, stackID string, pad *float64, human *int) js.Value {
-		sl := dom.Doc.Call("getElementById", slID)
-		stack := dom.Doc.Call("getElementById", stackID)
-		if !sl.Truthy() || !stack.Truthy() {
-			return js.Undefined()
-		}
-		stack.Call("appendChild", makeKnob(sl, js.Undefined(), false, false, true))
-		sl.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) any {
-			if pongKnobGuard {
-				return nil
-			}
-			*pad = fgFloat(sl) * pongH
-			*human = 600
+	// On the document, since the pots are bank knobs built after this.
+	dom.Doc.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) any {
+		if pongKnobGuard || len(a) == 0 {
 			return nil
-		}))
-		return sl
-	}
-	pongPadSlL = wirePad("pong-pad-l", "pong-lstack", &pong.padL, &pong.humanL)
-	pongPadSlR = wirePad("pong-pad-r", "pong-rstack", &pong.padR, &pong.humanR)
+		}
+		t := a[0].Get("target")
+		if !t.Truthy() {
+			return nil
+		}
+		switch t.Get("id").String() {
+		case "pong-pad-l":
+			pong.padL, pong.humanL = fgFloat(t)*pongH, 600
+		case "pong-pad-r":
+			pong.padR, pong.humanR = fgFloat(t)*pongH, 600
+		}
+		return nil
+	}), true)
 	if in := dom.Doc.Call("getElementById", "stext-in"); in.Truthy() {
 		in.Set("value", ftext.str)
 		in.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) any {
 			ftext.str = strings.ToUpper(in.Get("value").String())
-			return nil
-		}))
-	}
-	// Launcher: the drop-height pot (initial condition) + the Drop button
-	// that releases from it.
-	if h, ledEl, stack := dom.Doc.Call("getElementById", "bounce-height"),
-		dom.Doc.Call("getElementById", "bounce-height-led"),
-		dom.Doc.Call("getElementById", "bounce-hstack"); h.Truthy() && stack.Truthy() {
-		ledEl.Set("value", led.Format(fgFloat(h), 1, 2, false))
-		sizeLEDField(ledEl, 0.2, 1, 2, false)
-		stack.Call("appendChild", makeKnob(h, js.Undefined(), true, false, true))
-		h.Call("addEventListener", "input", dom.FuncOf(func(this js.Value, a []js.Value) any {
-			ledEl.Set("value", led.Format(fgFloat(h), 1, 2, false))
-			return nil
-		}))
-		ledEl.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
-			if v, err := strconv.ParseFloat(ledEl.Get("value").String(), 64); err == nil {
-				h.Set("value", strconv.FormatFloat(v, 'f', 2, 64))
-				h.Call("dispatchEvent", js.Global().Get("Event").New("input"))
-			}
 			return nil
 		}))
 	}
@@ -92,12 +79,10 @@ func buildDemoModules() {
 	}
 }
 
-// bounceDropHeight reads the Launcher's height pot (court y for a release).
+// bounceDropHeight is the height knob's setting: court y for a release.
 func bounceDropHeight() float64 {
-	if h := dom.Doc.Call("getElementById", "bounce-height"); h.Truthy() {
-		if v := fgFloat(h); v > 0 {
-			return v
-		}
+	if ball.height > 0 {
+		return float64(ball.height)
 	}
 	return 0.9
 }

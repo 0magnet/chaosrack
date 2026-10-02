@@ -39,59 +39,16 @@ const fastSource = `(function () {
     if (attr === "title") { el.title = v; return; }
     el.setAttribute(attr, v);
   }
-  var RUNSUFFIX = " — one of the sections this bay carries. " +
-    "See docs/signal-flow.md: the bays run in signal order, and a " +
-    "control sits in the same row as the thing it affects.";
   return {
-    // bayLabels silkscreens each section's name over the modules it covers.
-    //
-    // Clear every bay, then measure every bay, then draw — the three are
-    // separated because measuring is a read and drawing is a write, and
-    // interleaving them made the browser re-lay the page out once per bay.
-    //
-    // A run is given as an offset and a count into its bay's own modules,
-    // which is the order they were just appended in, so no element has to
-    // be handed across from Go to name it.
-    bayLabels: function (frame, openCls, moduleCls, specJSON) {
-      var spec = JSON.parse(specJSON);
-      var opens = frame.querySelectorAll("." + openCls);
-      var old = frame.querySelectorAll("." + openCls + " > .runit-label");
-      var i, j;
-      for (i = 0; i < old.length; i++) old[i].remove();
-      var plans = [];
-      for (i = 0; i < spec.length && i < opens.length; i++) {
-        var open = opens[i], kids = open.children, mods = [];
-        for (j = 0; j < kids.length; j++) {
-          if (kids[j].classList && kids[j].classList.contains(moduleCls)) mods.push(kids[j]);
-        }
-        var runs = spec[i];
-        for (j = 0; j < runs.length; j++) {
-          var run = runs[j], a = null, z = null;
-          for (var n = run.f; n < run.f + run.c && n < mods.length; n++) {
-            // Zero width is what a module switched out looks like: it packs
-            // at no width and keeps its place, and has no position to
-            // measure a label against.
-            if (mods[n].offsetWidth <= 0) continue;
-            if (!a) a = mods[n];
-            z = mods[n];
-          }
-          if (!a || !z) continue;
-          var left = a.offsetLeft, width = z.offsetLeft + z.offsetWidth - left;
-          if (width <= 0) continue;
-          plans.push([open, run.s, run.t, left, width]);
-        }
-      }
-      for (i = 0; i < plans.length; i++) {
-        var p = plans[i], el = doc.createElement("div");
-        el.className = "runit-label";
-        el.dataset.section = p[1];
-        el.textContent = p[2];
-        el.title = p[2] + RUNSUFFIX;
-        el.style.left = Math.round(p[3]) + "px";
-        el.style.width = Math.round(p[4]) + "px";
-        p[0].appendChild(el);
-      }
-      return plans.length;
+    // scopeStroke walks n floats of the buffer as x,y pairs, the scope's
+    // sweep: beginPath through stroke stays on this side, so the whole sweep
+    // is one crossing. See scopefast_js.go.
+    scopeStroke: function (ctx, pts, n) {
+      if (n < 4) return;
+      ctx.beginPath();
+      ctx.moveTo(pts[0], pts[1]);
+      for (var i = 2; i < n; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
+      ctx.stroke();
     },
     // moduleParts measures what is bolted to each module: the widest legend
     // ring on it, the panel border it may not reach past, and the minimum
@@ -109,6 +66,10 @@ const fastSource = `(function () {
           if (w > widest) widest = w;
         }
         var cs = win.getComputedStyle(m);
+        // The border and not the padding: a ring may reach a little past
+        // its cell (skirtCellGapPx), and the padding is what absorbs that.
+        // Charged for it, Grid was milled two slots wide for a ring eight
+        // tenths of a pixel over.
         var edge = (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.borderRightWidth) || 0);
         out.push([widest, edge, m.style.minWidth || ""]);
       }
@@ -122,18 +83,208 @@ const fastSource = `(function () {
         ms[i].style.minWidth = vals[i];
       }
     },
-    // skirtRead measures every legend ring on the panel: the grip each one
+    // rackSig is the rack's shape: each shown module's name and width, in
+    // order (rackUnmoved).
+    rackSig: function () {
+      var ms = doc.querySelectorAll("#controls-panel .sect"), out = [];
+      for (var i = 0; i < ms.length; i++) {
+        var w = ms[i].offsetWidth;
+        if (!w) continue;
+        var h = ms[i].querySelector(".sect-hdr");
+        out.push((h ? h.textContent : ms[i].id) + ":" + w);
+      }
+      return out.join(",");
+    },
+    // The rack's bays, as it shows them: its units in order, bay 1 first
+    // (the number on each one's left ear).
+    bays: function () {
+      return [].filter.call(doc.querySelectorAll("#controls-panel .runit"), function (u) { return u.offsetParent; });
+    },
+    // bayOf is the bay el is in, counting from 1, or 0 for none.
+    bayOf: function (el) {
+      var u = el && el.closest ? el.closest(".runit") : null;
+      return u ? this.bays().indexOf(u) + 1 : 0;
+    },
+    // mostVisibleBay is the bay with the most of itself in the window, or 0.
+    mostVisibleBay: function () {
+      var us = this.bays(), best = 0, area = 0, vh = window.innerHeight, vw = window.innerWidth;
+      for (var i = 0; i < us.length; i++) {
+        var r = us[i].getBoundingClientRect();
+        var a = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0)) * Math.max(0, Math.min(r.right, vw) - Math.max(r.left, 0));
+        if (a > area) { area = a; best = i + 1; }
+      }
+      return best;
+    },
+    // bayShown is how much of bay n is in the window, 0 to 1.
+    bayShown: function (n) {
+      var u = this.bays()[n - 1];
+      if (!u) return 0;
+      var r = u.getBoundingClientRect(), vh = window.innerHeight;
+      return r.height ? Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0)) / r.height : 0;
+    },
+    // bayManual is bay n's manual, as JSON: each module shown on it, its
+    // header's name and explanation, and each of its addressed cells with
+    // what its tooltip says, in address order: down each column, then across.
+    // Each comes with the keys the manual may have it under (docs.go): the
+    // data-doc it was built with, then the ids in it, nearest first.
+    bayManual: function (n) {
+      var u = this.bays()[n - 1];
+      if (!u) return "[]";
+      var out = [], ms = u.querySelectorAll(".sect");
+      for (var i = 0; i < ms.length; i++) {
+        if (ms[i].offsetParent) out.push(this.moduleInfo(ms[i]));
+      }
+      return JSON.stringify(out);
+    },
+    // moduleManual is one module's part of the manual, as JSON, wherever the
+    // module is: in the rack, on the manual page or in a window.
+    moduleManual: function (m) { return JSON.stringify(this.moduleInfo(m)); },
+    // moduleInfo is module m as the manual reads it.
+    moduleInfo: function (m) {
+      var num = function (loc) { var p = loc.split("."); return (parseInt(p[2], 10) || 0) * 32 + (p[3] ? p[3].charCodeAt(0) - 96 : 0); };
+      var inner = function (c, loc) {
+        var sels = [".knob[title]", "select[title]", "input[title]", "button[title]", ".led[title]", "[title]"];
+        for (var i = 0; i < sels.length; i++) {
+          var es = c.querySelectorAll(sels[i]);
+          for (var j = 0; j < es.length; j++) {
+            var s = es[j].getAttribute("title") || "";
+            if (s.indexOf(loc + " · ") === 0) s = s.slice(loc.length + 3);
+            s = s.replace(/^(?:[^/\n]{1,40} \/ )+/, ""); // a knob's "Display / speed / knob / " path
+            if (s && s !== loc) return s;
+          }
+        }
+        return "";
+      };
+      var keys = function (el) {
+        var ks = [], add = function (k) { if (k && ks.indexOf(k) < 0) ks.push(k); };
+        add(el.getAttribute("data-doc"));
+        add(el.id);
+        var ds = el.querySelectorAll("[data-doc],[id]");
+        for (var i = 0; i < ds.length && ks.length < 8; i++) {
+          add(ds[i].getAttribute("data-doc"));
+          add(ds[i].id);
+        }
+        return ks;
+      };
+      var h = m.querySelector(".sect-hdr"), cells = [], seen = {};
+      var cs = m.querySelectorAll("[data-loc]");
+      for (var j = 0; j < cs.length; j++) {
+        var c = cs[j], loc = c.getAttribute("data-loc");
+        if (seen[loc] || !c.getClientRects().length) continue;
+        seen[loc] = 1;
+        var t = c.getAttribute("title") || "";
+        if (t.indexOf(loc + " · ") === 0) t = t.slice(loc.length + 3);
+        // A cell with no tooltip of its own (its title is its address) is
+        // described by what is in it: its knob or selector first.
+        if (!t || t === loc) t = inner(c, loc);
+        if (t) cells.push({l: loc, t: t, k: keys(c)});
+      }
+      cells.sort(function (a, b) { return num(a.l) - num(b.l); });
+      var r = m.getAttribute("data-mloc") || "";
+      var tip = h ? (h.getAttribute("title") || "") : "";
+      if (r && tip.indexOf(r + " · ") === 0) tip = tip.slice(r.length + 3);
+      var mk = [];
+      if (h && h.getAttribute("data-doc")) mk.push(h.getAttribute("data-doc"));
+      if (m.id) mk.push(m.id, m.id.replace(/-module$/, ""));
+      return {h: h ? h.textContent : "", t: tip, r: r, c: cells, k: mk};
+    },
+    // lightLive marks the cells of model live, and every other model's not:
+    // its own, and the shared ones whose list names it. With model empty
+    // (the rack powered down) nothing is live.
+    lightLive: function (model) {
+      var cs = doc.querySelectorAll(".punit[data-mode]");
+      for (var i = 0; i < cs.length; i++) {
+        var c = cs[i], live = false;
+        if (model) {
+          live = c.getAttribute("data-mode") === model;
+          var f = c.getAttribute("data-bank-for");
+          if (!live && f) live = (" " + f + " ").indexOf(" " + model + " ") >= 0;
+        }
+        c.classList.toggle("live", live);
+      }
+    },
+    // bankShow shows, in each of parts (a bank bay's head and bank), the
+    // cells of model and hides the rest: its step cell and its positions, and
+    // the shared and unassigned positions whose list names it. unassigned is
+    // the hover of an unassigned position that is showing. syncBankCells did
+    // this from Go, a few calls a cell over two hundred and fifty of them,
+    // and it was a fifth of a model change.
+    bankShow: function (parts, model, unassigned) {
+      for (var p = 0; p < parts.length; p++) {
+        var part = parts[p], i, c, on;
+        var qs = [[".stepcell[data-mode]", "data-mode"], [".bankcell[data-bank]", "data-bank"]];
+        for (var q = 0; q < qs.length; q++) {
+          var cs = part.querySelectorAll(qs[q][0]);
+          for (i = 0; i < cs.length; i++) {
+            c = cs[i];
+            c.style.display = c.getAttribute(qs[q][1]) === model ? "" : "none";
+          }
+        }
+        var bs = part.querySelectorAll("[data-bank-for]");
+        for (i = 0; i < bs.length; i++) {
+          c = bs[i];
+          on = (" " + c.getAttribute("data-bank-for") + " ").indexOf(" " + model + " ") >= 0;
+          c.style.display = on ? "" : "none";
+          if (on && c.classList.contains("bankblank")) c.title = unassigned;
+        }
+      }
+    },
+    // skirtStacks are the knob stacks with legend rings under root: one
+    // stack, the stacks inside an element, or with no root the whole page.
+    // The read and the write are handed the same root, so they agree on
+    // which stack an entry is.
+    skirtStacks: function (root) {
+      if (!root) return doc.querySelectorAll(".has-dial");
+      if (root.classList && root.classList.contains("has-dial")) return [root];
+      return root.querySelectorAll(".has-dial");
+    },
+    // skirtRead measures every legend ring under root: the grip each one
     // sits on, the cell it has to stay inside, and the box of every legend
-    // engraved on it. Two hundred and fifty stacks and near seven hundred
-    // legends, which from Go was a quarter of a model change.
+    // engraved on it. On the whole panel that is two hundred and fifty
+    // stacks and near seven hundred legends, which from Go was a quarter of
+    // a model change.
     //
     // It decides nothing. skirt.Fit and the radii stay in Go, where they are
     // tested; this hands them their inputs and skirtWrite takes the answers.
-    skirtRead: function () {
-      var stacks = doc.querySelectorAll(".has-dial");
-      var win = globalThis.window || globalThis, out = [], i, j, k, w;
+    // skirtSig is what a stack's fit depends on: the sizes of its knobs, the
+    // width of the cell it stands in, and its legends and their angles. The
+    // same inputs fit the same way, so a stack whose signature is the one it
+    // was last fitted with is left as it is (skirtRead).
+    skirtSig: function (st) {
+      // The fonts too: a legend measured in the fallback face before the web
+      // font arrived is the wrong width, and the fit has to be done again.
+      var f = doc.fonts, s = (f ? f.status + f.size : "") + "|", i, ks = st.querySelectorAll(".knob, .knob-ring");
+      for (i = 0; i < ks.length; i++) s += ks[i].offsetWidth + ",";
+      var cell = st.closest(".pcell");
+      s += "|" + (cell ? cell.clientWidth : 0) + "|";
+      var ls = st.querySelectorAll(".knob-dial-lab");
+      for (i = 0; i < ls.length; i++) s += ls[i].getAttribute("data-deg") + ":" + ls[i].textContent + ";";
+      return s;
+    },
+    skirtRead: function (root) {
+      var stacks = this.skirtStacks(root), sigs = [], i, j, k, w;
+      // Which stacks need fitting at all, from their inputs alone: a model
+      // change rebuilds a few rings, and fitting all two hundred and fifty
+      // again was a sixth of it.
+      for (i = 0; i < stacks.length; i++) {
+        var sg = this.skirtSig(stacks[i]);
+        sigs.push(stacks[i].__skirtSig === sg ? null : sg);
+      }
+      // Legends are measured at the stylesheet's size, not at whatever the
+      // last fit shrank them to: measured shrunk, the next fit came out
+      // different, and a ring alternated between two sizes a pixel apart on
+      // every panel rebuild, so every model change moved it. Cleared first,
+      // all of them, so the reads below cost one layout.
+      for (i = 0; i < stacks.length; i++) {
+        if (sigs[i] === null) continue;
+        var old = stacks[i].querySelectorAll(".knob-dial-lab");
+        for (j = 0; j < old.length; j++) if (old[j].style.fontSize) old[j].style.fontSize = "";
+      }
+      var win = globalThis.window || globalThis, out = [];
       for (i = 0; i < stacks.length; i++) {
         var st = stacks[i];
+        if (sigs[i] === null) { out.push({k: true}); continue; }
+        st.__skirtPending = sigs[i];
         // The grip is the largest knob anywhere in the stack, which is what
         // the first ring has to clear.
         var ks = st.querySelectorAll(".knob, .knob-ring"), grip = 0;
@@ -168,14 +319,19 @@ const fastSource = `(function () {
       return JSON.stringify(out);
     },
     // skirtWrite applies what Go decided, and reads nothing.
-    skirtWrite: function (payloadJSON) {
-      var stacks = doc.querySelectorAll(".has-dial"), P = JSON.parse(payloadJSON);
+    skirtWrite: function (root, payloadJSON) {
+      var stacks = this.skirtStacks(root), P = JSON.parse(payloadJSON);
       for (var i = 0; i < P.length && i < stacks.length; i++) {
         var st = stacks[i], ent = P[i];
+        if (ent.keep) continue;
+        // Fitted: what it was fitted with is its signature now (skirtSig).
+        st.__skirtSig = st.__skirtPending;
         if (ent.grip && ent.bi >= 0) {
           var dk = st.querySelectorAll(":scope > .knob, :scope > .knob-ring");
           if (ent.bi < dk.length) {
             var s = "scale(" + ent.grip + ")";
+            // A ring is centered with translate(-50%,-50%); a bare scale over
+            // that is a knob half its width down and to the right.
             if (ent.ring) s = "translate(-50%,-50%) " + s;
             dk[ent.bi].style.transform = s;
             dk[ent.bi].style.transformOrigin = "center center";
@@ -227,10 +383,22 @@ const fastSource = `(function () {
     // a classList test from Go, a few per cell over some three hundred
     // cells, and a js.Value holding an element or a string carries a
     // finalizer while one holding a number does not.
-    tipRead: function () {
+    tipRead: function (mark) {
       var cells = this.cells(), out = [], i, j;
       for (i = 0; i < cells.length; i++) {
         var c = cells[i], e;
+        // Stamped already, and nothing in it rebuilt since: a model change
+        // replaces a few cells' parts, and restamping all six hundred was a
+        // third of it. A part without a title is a part the stamp has not
+        // reached (a knob rebuilt inside a cell that stayed). Only a model
+        // change's pass marks and skips (mark): some cells get their help
+        // after the passes of the boot, and a later full pass is what fixes
+        // them.
+        if (mark && c.__tipDone && !c.querySelector(".knob:not([title]), .led:not([title]), .numin:not([title]), button:not([title])")) {
+          out.push({done: true});
+          continue;
+        }
+        if (mark) c.__tipDone = true;
         var rec = {id: c.id || "", ax: false, pal: false, lbl: "", axl: "",
                    rid: "", leds: [], sel: [], nk: 0, nums: []};
         if (c.classList) {
@@ -247,7 +415,8 @@ const fastSource = `(function () {
         for (j = 0; j < leds.length; j++) {
           var l = leds[j], own = "";
           var prev = l.previousElementSibling;
-          if (prev && prev.classList && prev.classList.contains("ledlbl")) own = prev.textContent;
+          // A label display says its name in aria-label: its text is dots.
+          if (prev && prev.classList && prev.classList.contains("ledlbl")) own = prev.getAttribute("aria-label") || prev.textContent;
           rec.leds.push([own, l.getAttribute("data-help") || "", l.title || ""]);
         }
         var sels = c.querySelectorAll("select");
@@ -306,12 +475,26 @@ const fastSource = `(function () {
       }
       return n;
     },
-    // designate gives every control on the rack an address, bay.row.slot:
-    // the bay's number (the one on its ear), the row of controls counted
-    // down from the top of the module it is in, and the slot its center is
-    // in, counted 1 to 12 across the bay. Two controls in one row of one
-    // slot are told apart by a letter, left to right. See designate in
-    // designators_js.go.
+    // designate gives every control on the rack an address,
+    // bay.module.position: the bay's number (the one on its ear), the
+    // module's place in the bay, 1 from the left, and the position in the
+    // module the control stands in. A position is a cell of the module's
+    // grid — a slot across, a row down — numbered down each column and then
+    // across, whether or not the positions before it hold anything: 1 to 3
+    // are the first column's three rows, 4 the top of the second. So an
+    // address says where on the module a control is, as a part number on a
+    // drawing does. Two or more controls in one position are lettered, top
+    // to bottom and then left to right: 3.2.4.a, 3.2.4.b.
+    //
+    // The columns and rows are the bay's slots and rows, measured: a control
+    // is in the slot and the row it covers at least half of, or half of
+    // itself, whichever is less, so a knob a little off its slot's center is
+    // still in one slot. A part covering several
+    // positions — a monitor's screen, the scope's tube, a pin matrix, the
+    // keybed — is counted by the first of them, ahead of the controls that
+    // sit on it.
+    //
+    // A module's own address is bay.module.
     //
     // A control is the box around one actuator — a knob, a switch, a
     // button, a selector — and what goes with it: the outermost cell that
@@ -323,22 +506,45 @@ const fastSource = `(function () {
     // tooltips: printed on the panel it was clutter over every control.
     //
     // Reads first, for the whole rack, then writes.
-    designate: function (frame, pitch) {
-      var ACT = ".knob:not(.knob-fine), input.sw, button:not(.rst), select, .pslot";
-      var CELL = ".punit, .pcell, .knobstack, .selwrap, .swline, .scope-knob, .scope-sw, .rec-swrow";
-      var PREFIX = /^(?:[0-9S]+\.\d+\.\d+[a-z]? · )+/;
+    //
+    // A bay's slot pitch is measured from the bay: its open width is cap
+    // slots less one seam, and gapRatio is the seam's share of a pitch. The
+    // pitch computed from the layout's scale (pitch0, kept for a bay that
+    // cannot be measured) ran a few percent wide at some zooms, and a
+    // module ending in slot 12 was addressed as ending in 11.
+    designate: function (frame, pitch0, cap, gapRatio, rows) {
+      var pitch = pitch0;
+      // A readout is a control too, for addressing: a module of nothing but
+      // readouts (Timing) was a module with no addresses at all.
+      var ACT = ".knob:not(.knob-fine), input.sw, button:not(.rst), select, .pslot, .led, input[type=text]";
+      var CELL = ".punit, .pcell, .knobstack, .selwrap, .swline, .rec-swrow";
+      // Displays that are parts of their own, addressed as themselves.
+      var PART = ".monbezel, .scope-tube, .mxgrid, .keys-bed";
+      // A row of switches inside a bigger cell (Screen and the model's
+      // switches under a monitor): each is a control of its own, not the
+      // monitor's cell.
+      var OWNROW = ".monsw";
+      var PREFIX = /^(?:[0-9S]+\.\d+(?:\.\d+(?:\.[a-z])?)? · )+/;
       var LETTERS = "abcdefghijklmnopqrstuvwxyz";
-      var i, j, k, q;
+      var i, j, k;
       function shown(e) { return e.getClientRects().length > 0; }
       function actuators(box) {
         var a = box.querySelectorAll(ACT), out = [];
         for (var n = 0; n < a.length; n++) if (shown(a[n])) out.push(a[n]);
         return out;
       }
-      var found = [], units = [];
-      // What is addressed: every numbered bay, by its modules; and an
-      // instrument's front panel (the scope), which is in no bay and is one
-      // panel rather than modules, as bay S.
+      // span is the first position, 1-based, that a..b covers on a scale of
+      // n positions of size step starting at o.
+      function span(a, b, o, step, n) {
+        var need = Math.min(step, b - a) / 2;
+        for (var p = 1; p <= n; p++) {
+          var ov = Math.min(b, o + p * step) - Math.max(a, o + (p - 1) * step);
+          if (ov >= need) return p;
+        }
+        return Math.min(n, Math.max(1, Math.floor(((a + b) / 2 - o) / step) + 1));
+      }
+      var found = [], units = [], modWrites = [], basePitch = 0;
+      // What is addressed: every numbered bay, by its modules.
       var opens = frame.querySelectorAll(".runit-open");
       for (i = 0; i < opens.length; i++) {
         var open = opens[i], ear = open.parentNode && open.parentNode.firstElementChild;
@@ -348,25 +554,44 @@ const fastSource = `(function () {
         for (j = 0; j < kids.length; j++) {
           if (kids[j].classList.contains("sect") && kids[j].offsetWidth > 0) mods.push(kids[j]);
         }
-        units.push({bay: bay, mods: mods});
+        var ow = open.getBoundingClientRect().width;
+        units.push({bay: bay, mods: mods, pitch: ow / (cap - gapRatio)});
+        // The slot pitch at the rack's own size, for a module drawn elsewhere.
+        if (!basePitch && open.offsetWidth) basePitch = ow / (cap - gapRatio) / (ow / open.offsetWidth);
       }
-      var panels = frame.querySelectorAll(".runit-instr .runit-panel");
-      for (i = 0; i < panels.length; i++) {
-        if (panels[i].offsetWidth > 0) {
-          units.push({bay: panels.length > 1 ? "S" + (i + 1) : "S", mods: [panels[i]]});
-        }
+      // A module taken out of the rack (the manual page, manuallive_js.go) is
+      // addressed where it is, as a bay of one: its slots at its own zoom, and
+      // the address it was given in the rack.
+      var moved = doc.querySelectorAll(".mlive-ctx[data-mloc]");
+      for (i = 0; i < moved.length; i++) {
+        var mm0 = moved[i].querySelector(".sect");
+        if (!mm0 || !mm0.getClientRects().length || !mm0.offsetWidth) continue;
+        var zz = mm0.getBoundingClientRect().width / mm0.offsetWidth, ml = moved[i].getAttribute("data-mloc");
+        units.push({bay: ml.split(".")[0], mods: [mm0], pitch: (basePitch || pitch0) * zz, loc: ml});
       }
       for (i = 0; i < units.length; i++) {
         var u = units[i], bay = u.bay, mods = u.mods;
         if (!mods.length) continue;
+        pitch = u.pitch > 0 ? u.pitch : pitch0;
         // A bay opens with its head in its first slot, so slot 1 starts
         // where the first module does.
         var x0 = mods[0].getBoundingClientRect().left;
+        // Rows are the bay's, under the module headers: the first module's
+        // header bottom to its foot, in rows of equal height.
+        var m0 = mods[0].getBoundingClientRect(), h0 = mods[0].querySelector(":scope > .sect-hdr");
+        var y0 = h0 ? h0.getBoundingClientRect().bottom : m0.top;
+        var rowH = (m0.bottom - y0) / rows;
         for (j = 0; j < mods.length; j++) {
           var m = mods[j], acts = actuators(m), seen = new Set(), cells = [];
+          var mloc = u.loc || (bay + "." + (j + 1));
+          // The module's own address, on its tooltip and its header's, so
+          // hovering anywhere on it that is not a control says where it is.
+          // Written with the controls', after every read: a write between two
+          // reads made the browser restyle the page for the second.
+          if (m.classList.contains("sect")) modWrites.push({ m: m, loc: mloc });
           for (k = 0; k < acts.length; k++) {
             var c = null, p = acts[k];
-            while (p && p !== m) {
+            while (p && p !== m && !p.matches(OWNROW)) {
               if (p.matches(CELL)) c = p;
               p = p.parentElement;
             }
@@ -377,34 +602,59 @@ const fastSource = `(function () {
               c = acts[k].closest("label");
               if (!c || !m.contains(c) || actuators(c).length !== 1) c = acts[k];
             }
+            // A readout in a column of readouts is a control of its own: a
+            // cell of readouts with no knob (Timing, Distortion, Loudness)
+            // would otherwise give every readout in it one address.
+            if (c !== acts[k] && acts[k].matches(".led") && !c.querySelector(".knob") && c.querySelectorAll(".led").length > 1) c = acts[k];
             if (seen.has(c)) continue;
             seen.add(c);
             var r = c.getBoundingClientRect();
             if (r.width > 0 && r.height > 0) cells.push({el: c, r: r});
           }
-          // Rows: down the module, a control starting below the upper half
-          // of the row so far (of the shorter of the two) starts the next.
-          cells.sort(function (a, b) { return a.r.top - b.r.top || a.r.left - b.r.left; });
-          var row = 0, top = -1e9, h = 0, groups = {};
+          var parts = m.querySelectorAll(PART);
+          for (k = 0; k < parts.length; k++) {
+            if (!shown(parts[k]) || seen.has(parts[k])) continue;
+            seen.add(parts[k]);
+            // First, so the controls on a part (a readout on a screen) are
+            // addressed after it and keep their own addresses.
+            cells.unshift({el: parts[k], r: parts[k].getBoundingClientRect(), part: true});
+          }
           for (k = 0; k < cells.length; k++) {
             var e = cells[k];
-            if (e.r.top >= top + Math.min(h, e.r.height) / 2) { row++; top = e.r.top; h = e.r.height; }
-            e.row = row;
-            e.slot = Math.floor((e.r.left + e.r.width / 2 - x0) / pitch) + 1;
-            var key = row + "." + e.slot;
-            (groups[key] = groups[key] || []).push(e);
+            e.row = span(e.r.top, e.r.bottom, y0, rowH, rows);
+            e.col = span(e.r.left, e.r.right, x0, pitch, cap);
           }
-          for (var g in groups) {
-            var gs = groups[g];
-            if (gs.length < 2) continue;
-            gs.sort(function (a, b) { return a.r.left - b.r.left || a.r.top - b.r.top; });
-            for (q = 0; q < gs.length; q++) gs[q].suf = LETTERS.charAt(q);
+          // Down each column, then across. In one slot and row, a part
+          // before what sits on it, then top to bottom, and a row of switches
+          // (tops within a few pixels of one another) left to right.
+          cells.sort(function (a, b) {
+            return a.col - b.col || a.row - b.row || (b.part ? 1 : 0) - (a.part ? 1 : 0) ||
+              (Math.abs(a.r.top - b.r.top) > 4 ? a.r.top - b.r.top : a.r.left - b.r.left);
+          });
+          // The position: the cell of the module's grid it is in, counted down
+          // each column and then across, whether or not the positions before
+          // it hold anything. Two or more in one position are lettered.
+          var mr0 = m.getBoundingClientRect();
+          var col0 = span(mr0.left, mr0.left + Math.min(pitch, mr0.width), x0, pitch, cap);
+          var at = {};
+          for (k = 0; k < cells.length; k++) {
+            var pos = Math.max(0, cells[k].col - col0) * rows + cells[k].row;
+            cells[k].pos = pos;
+            (at[pos] = at[pos] || []).push(cells[k]);
           }
           for (k = 0; k < cells.length; k++) {
-            cells[k].loc = bay + "." + cells[k].row + "." + cells[k].slot + (cells[k].suf || "");
+            var same = at[cells[k].pos];
+            cells[k].loc = mloc + "." + cells[k].pos + (same.length > 1 ? "." + LETTERS.charAt(same.indexOf(cells[k])) : "");
             found.push(cells[k]);
           }
         }
+      }
+      for (i = 0; i < modWrites.length; i++) {
+        var mw = modWrites[i], mm = mw.m, hdr = mm.querySelector(":scope > .sect-hdr");
+        var tip = ((hdr && hdr.getAttribute("title")) || mm.getAttribute("title") || (hdr && hdr.textContent) || "").replace(PREFIX, "");
+        mm.setAttribute("data-mloc", mw.loc);
+        mm.setAttribute("title", mw.loc + " · " + tip);
+        if (hdr) hdr.setAttribute("title", mw.loc + " · " + tip);
       }
       for (i = 0; i < found.length; i++) {
         var f = found[i], el = f.el, loc = f.loc;
@@ -433,66 +683,19 @@ const fastSource = `(function () {
   };
 })()`
 
-var (
-	fastHelper js.Value
-	fastTried  bool
-)
+var fastHelper js.Value
 
-// fastDOM is the JS helper, or a zero Value if this page will not evaluate it.
+// fastDOM is the JS helper, evaluated the first time it is asked for.
 //
-// Tried once. A page served with a Content-Security-Policy that forbids eval
-// makes the call throw, which reaches Go as a panic; the recover is the whole
-// point, because every caller keeps its Go path and the panel still works,
-// only slower.
-func fastDOM() (v js.Value) {
-	if fastTried {
-		return fastHelper
+// There is no Go path beside it. Each pass here used to keep one for a page
+// served with a Content-Security-Policy that forbids eval, and no page this
+// rack is served from sets one: the fallbacks were a second copy of every
+// pass, run by nothing.
+func fastDOM() js.Value {
+	if !fastHelper.Truthy() {
+		fastHelper = js.Global().Call("eval", fastSource)
 	}
-	fastTried = true
-	defer func() {
-		if recover() != nil {
-			fastHelper, v = js.Value{}, js.Value{}
-		}
-	}()
-	fastHelper = js.Global().Call("eval", fastSource)
 	return fastHelper
-}
-
-// bayLabelRun is one section's stretch inside a bay, as the JS pass wants it:
-// where it starts among that bay's own modules, how many it covers, and what
-// is silkscreened over them.
-type bayLabelRun struct {
-	S string `json:"s"` // section key, for the color
-	T string `json:"t"` // the title
-	F int    `json:"f"` // first module, within the bay
-	C int    `json:"c"` // how many
-}
-
-// layoutBayLabels draws every bay's labels in one crossing. Reports whether
-// it ran; false means the caller should use its own pass.
-func layoutBayLabels(frame js.Value, units [][]int, items []packItem) bool {
-	h := fastDOM()
-	if !h.Truthy() || !frame.Truthy() {
-		return false
-	}
-	spec := make([][]bayLabelRun, 0, len(units))
-	for _, idx := range units {
-		runs := make([]bayLabelRun, 0, 4)
-		for _, r := range sectionRuns(items, idx) {
-			title := sectionTitleOf(r.Section)
-			if title == "" || r.Count < 1 {
-				continue
-			}
-			runs = append(runs, bayLabelRun{S: r.Section, T: title, F: r.From, C: r.Count})
-		}
-		spec = append(spec, runs)
-	}
-	b, err := json.Marshal(spec)
-	if err != nil {
-		return false
-	}
-	h.Call("bayLabels", frame, unitOpenCls, "sect", string(b))
-	return true
 }
 
 // modulePart is one module as the measuring pass found it: the widest legend
@@ -505,25 +708,30 @@ type modulePart struct {
 	Min    string
 }
 
-// fitModulesFast is fitModulesToTheirParts with the reads and the writes
-// separated by the decision, instead of alternating with it.
+// fitModuleParts sets every module in f to the slots its widest part needs,
+// with the reads and the writes separated by the decision instead of
+// alternating with it.
 //
 // Reading a module's dials and then setting its minimum, module by module,
 // made the browser recompute style and layout for the whole rack between
 // every pair — measured, 113 forced layouts in one model change, 282ms of
 // layout and 295ms of style against 694ms of script. Everything is measured
 // first, Go decides, and the answers go back in one write pass.
-func fitModulesFast(h js.Value, f js.Value) (changed bool, ok bool) {
+func fitModuleParts(f js.Value) (changed bool) {
+	h := fastDOM()
 	raw := h.Call("moduleParts", f, "sect").String()
 	var parts []*modulePart
 	if err := json.Unmarshal([]byte(raw), &parts); err != nil {
-		return false, false
+		return false
 	}
 	vals := make([]*string, len(parts))
 	for i, p := range parts {
 		if p == nil {
 			continue
 		}
+		// One slot is the floor already — .sect carries min-width:--mod-w —
+		// so a module that fits says nothing, rather than saying the same
+		// thing twice in two places that can drift apart.
 		want := ""
 		if n := slotsForWidthPx(p.Widest + p.Edge); p.Widest > 0 && n > 1 {
 			want = pxStr(slotsWidthPx(n))
@@ -536,10 +744,10 @@ func fitModulesFast(h js.Value, f js.Value) (changed bool, ok bool) {
 	}
 	b, err := json.Marshal(vals)
 	if err != nil {
-		return false, false
+		return false
 	}
 	h.Call("setMinWidths", f, "sect", string(b))
-	return changed, true
+	return changed
 }
 
 // UnmarshalJSON reads the three-element array the JS pass sends.
@@ -601,6 +809,7 @@ type skirtStackRead struct {
 	Big    int             `json:"b"`
 	IsRing bool            `json:"r"`
 	Dials  []skirtDialRead `json:"d"`
+	Keep   bool            `json:"k"` // fitted already with these inputs (skirtSig)
 }
 
 type skirtDialWrite struct {
@@ -616,24 +825,35 @@ type skirtStackWrite struct {
 	BI    int              `json:"bi"`
 	Ring  bool             `json:"ring,omitempty"`
 	Dials []skirtDialWrite `json:"d"`
+	Keep  bool             `json:"keep,omitempty"`
 }
 
-// layoutSkirtsFast is layoutSkirts with the measuring and the applying moved
-// to JavaScript and the fitting left here.
+// layoutSkirtsIn sizes the skirts on every knob under root — one stack, the
+// stacks in an element, or with root undefined the whole page — nesting each
+// stack's rings outward.
 //
-// The arithmetic below is layoutSkirtsIn and layoutOneSkirt unchanged — the
-// same clear-and-gap chain outward through a concentric stack, the same
-// skirt.Fit, the same estimates when a label cannot be measured yet. What has
-// gone is the two hundred and fifty round trips per pass.
-func layoutSkirtsFast(h js.Value) bool {
-	raw := h.Call("skirtRead").String()
+// Outward in DOM order, because a concentric control carries concentric
+// skirts: the inner knob's positions are engraved inside the outer knob's,
+// and each ring has to clear not just the grip but everything already
+// placed around it.
+//
+// The measuring and the applying are JavaScript (skirtRead, skirtWrite) and
+// the fitting is here, where skirt.Fit is tested: from Go the measuring was
+// two hundred and fifty round trips a pass.
+func layoutSkirtsIn(root js.Value) {
+	h := fastDOM()
+	raw := h.Call("skirtRead", root).String()
 	var stacks []skirtStackRead
 	if err := json.Unmarshal([]byte(raw), &stacks); err != nil {
-		return false
+		return
 	}
 	gap := skirtGapPx()
 	out := make([]skirtStackWrite, 0, len(stacks))
 	for _, s := range stacks {
+		if s.Keep {
+			out = append(out, skirtStackWrite{Keep: true})
+			continue
+		}
 		// Not laid out yet — a detached subtree, a module switched out, a
 		// panel not yet shown. Estimate rather than bail: a ring that is
 		// never laid out has no positions at all and its legends sit on the
@@ -707,10 +927,9 @@ func layoutSkirtsFast(h js.Value) bool {
 	}
 	b, err := json.Marshal(out)
 	if err != nil {
-		return false
+		return
 	}
-	h.Call("skirtWrite", string(b))
-	return true
+	h.Call("skirtWrite", root, string(b))
 }
 
 // ── Tooltips ──────────────────────────────────────────────────────────────
@@ -731,49 +950,40 @@ type tipStamp struct {
 
 // tipBatch is tooltip stamping batched into one pass.
 type tipBatch struct {
-	queue    []tipStamp
-	batching bool
-	cell     int
+	queue []tipStamp
+	cell  int
 
 	// reads is the panel as the last read pass found it, indexed the same way
-	// the stamps are. Empty when there was no read pass.
+	// the stamps are.
 	reads []cellRead
 }
 
 var tips tipBatch
 
-// queueStamp collects a tooltip write instead of performing it. Reports
-// whether it did; false means the caller writes it itself.
+// queueStamp collects a tooltip write, for flushStamps to make.
 //
 // The whole annotate pass is a few thousand of these — ten or so per control
 // over some three hundred controls — and each one from Go was a
 // querySelectorAll whose NodeList and every element in it arrived as a
 // js.Value with a finalizer attached. Measured, two thirds of the pass was
 // runtime.addspecial. Collected and sent once, it is a single crossing.
-func queueStamp(sel, title string, nth int) bool {
-	return tips.queueAttr(sel, "title", title, nth)
+func queueStamp(sel, title string, nth int) {
+	tips.queueAttr(sel, "title", title, nth)
 }
 
 // queueAttr is queueStamp for an attribute other than the tooltip.
-func (t *tipBatch) queueAttr(sel, attr, value string, nth int) bool {
-	if !t.batching {
-		return false
-	}
+func (t *tipBatch) queueAttr(sel, attr, value string, nth int) {
 	t.queue = append(t.queue, tipStamp{Cell: t.cell, Sel: sel, Title: value, Nth: nth, Attr: attr})
-	return true
 }
 
 // flushStamps applies every queued tooltip in one crossing.
 func (t *tipBatch) flushStamps() {
 	q := t.queue
-	t.queue, t.batching = t.queue[:0], false
+	t.queue = t.queue[:0]
 	if len(q) == 0 {
 		return
 	}
 	h := fastDOM()
-	if !h.Truthy() {
-		return
-	}
 	// A flat delimited string rather than JSON. There are a few thousand of
 	// these and every one carries a sentence; encoding each as its own JSON
 	// array cost more in Go than the writes it was saving.
@@ -817,6 +1027,7 @@ func (l *ledRead) UnmarshalJSON(b []byte) error {
 // cellRead is everything the annotate pass needs to know about one control
 // cell, read once for the whole panel instead of a few queries per cell.
 type cellRead struct {
+	Done  bool      `json:"done"` // stamped already, and unchanged since (tipRead)
 	ID    string    `json:"id"`
 	AxRot bool      `json:"ax"`
 	Pal   bool      `json:"pal"`
@@ -835,17 +1046,19 @@ type cellRead struct {
 }
 
 // readPanelCells measures the whole panel's cells in one crossing.
-func (t *tipBatch) readPanelCells(h js.Value) bool {
-	raw := h.Call("tipRead").String()
+func (t *tipBatch) readPanelCells(h js.Value) {
 	t.reads = t.reads[:0]
-	return json.Unmarshal([]byte(raw), &t.reads) == nil
+	if err := json.Unmarshal([]byte(h.Call("tipRead", owed.modelChange).String()), &t.reads); err != nil {
+		t.reads = t.reads[:0]
+	}
 }
 
-// cellFacts is what the read pass found for this control, or nil when there
-// was none and the caller should ask the DOM itself.
+// cellFacts is what the read pass found for this control's cell. The pass
+// enumerates the cells exactly as buildControlModel does, so every control
+// has an entry; an empty one stands in only if the read itself failed.
 func (c *Control) cellFacts() *cellRead {
-	if !tips.batching || c.tipIdx < 0 || c.tipIdx >= len(tips.reads) {
-		return nil
+	if c.tipIdx < 0 || c.tipIdx >= len(tips.reads) {
+		return &cellRead{}
 	}
 	return &tips.reads[c.tipIdx]
 }

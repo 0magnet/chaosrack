@@ -43,10 +43,12 @@ type wobbulator struct {
 	bypass bool    // true = pass raw input through (FX switch off)
 	proc   *fvfProcessor
 
-	// routeSw is the checkbox itself, kept so the server's answer can move it.
-	// The routing is not this page's state to remember: another tab, the --wobbulate
-	// flag, or the operator's own pactl can all have changed it.
-	routeSw      js.Value
+	// routed is where the machine's audio routing stands, as the server last
+	// said; routeNote is why the last attempt to change it failed, if it did.
+	// The routing is not this page's state to remember: another tab, the
+	// --wobbulate flag, or the operator's own pactl can all have changed it.
+	routed       bool
+	routeNote    string
 	listen       bool
 	audioCtx     js.Value
 	audioNode    js.Value
@@ -94,7 +96,7 @@ type fvfProcessor struct {
 
 func (w *wobbulator) ensureFVFProc() {
 	sr := 24000.0
-	if src := aud.activeAudioSource(); src != nil && src.SampleRate() > 0 {
+	if src := aud.activeAudioSource(); src.SampleRate() > 0 {
 		sr = float64(src.SampleRate())
 	}
 	if w.proc == nil || w.proc.sampleRate != sr {
@@ -185,103 +187,44 @@ func (p *fvfProcessor) Process(x float32) float32 {
 	return float32(out)
 }
 
-// appendFVFSelectors adds the FVF-specific cells to the Parameters grid,
-// using the SAME anatomy as every other module: standard .punit cards with an
-// u-lbl on top, a labeled selector-ring knob (singleSelectorKnob) over a
-// hidden <select> for wave/mod, and labeled switch cards for FX / Listen.
-func (w *wobbulator) appendFVFSelectors(grid js.Value) {
-	mkSelCard := func(label, tip string, opts, ringLabels []string, cur int, onChange func(int)) js.Value {
-		card := dom.Doc.Call("createElement", "div")
-		card.Set("className", "punit")
-		lbl := dom.Doc.Call("createElement", "span")
-		lbl.Set("className", symClass("u-lbl", false))
-		lbl.Set("textContent", label)
-		card.Call("appendChild", lbl)
-		sel := dom.Doc.Call("createElement", "select")
-		sel.Set("title", tip)
-		sel.Set("style", "display:none;")
-		for i, o := range opts {
-			opt := dom.Doc.Call("createElement", "option")
-			opt.Set("value", strconv.Itoa(i))
-			opt.Set("textContent", o)
-			if i == cur {
-				opt.Set("selected", true)
+// wireFVFCells wires WAVE and MOD, the two FVF positions in the Visual bank
+// (the cells in the #model-parts holder, marked data-bank-of). The FX, Listen
+// and Route switches are the head's programmable switches (fvfSwitches).
+func (w *wobbulator) wireFVFCells() {
+	adoptDescControl(ControlDesc{
+		ID: "fvf-wave", Label: "wave", IsSelect: true, SelectDef: "1", ResetID: "rst-fvf-wave",
+		SelectApply: func(v string) {
+			if n, err := strconv.Atoi(v); err == nil {
+				w.wave = n
 			}
-			sel.Call("appendChild", opt)
-		}
-		sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
-			if v, err := strconv.Atoi(sel.Get("value").String()); err == nil {
-				onChange(v)
+		},
+	})
+	adoptDescControl(ControlDesc{
+		ID: "fvf-mod", Label: "mod", IsSelect: true, SelectDef: "0", ResetID: "rst-fvf-mod",
+		SelectApply: func(v string) {
+			if n, err := strconv.Atoi(v); err == nil {
+				w.mod = n
 			}
-			return nil
-		}))
-		card.Call("appendChild", sel)
-		grp := dom.Doc.Call("createElement", "span")
-		grp.Set("className", "grp")
-		// Two positions is a switch here for the same reason it is in a
-		// parameter cell (buildParamUnit): a rotary that can only sit at one end
-		// or the other costs a drag to do what a click does. These cards are
-		// built by hand rather than through buildParamUnit, so the rule has to
-		// be applied here too — found by sweeping every model for two-option
-		// selects still wearing a knob, which turned up exactly this one.
-		if len(opts) == 2 {
-			grp.Call("appendChild", buildTwoWaySwitch(sel, opts, label))
-		} else {
-			grp.Call("appendChild", singleSelectorKnob(sel, ringLabels))
-		}
-		card.Call("appendChild", grp)
-		return card
-	}
-	grid.Call("appendChild", mkSelCard("wave",
-		"Wave — carrier waveform (square / pulse / sub-octave ÷2)",
-		[]string{"square", "pulse", "sub ÷2"}, []string{"sqr", "pls", "sub"},
-		w.wave, func(v int) { w.wave = v }))
-	grid.Call("appendChild", mkSelCard("mod",
-		"Mod — modulator topology (ring = four-quadrant, AM = balanced)",
-		[]string{"ring", "AM"}, []string{"ring", "AM"},
-		w.mod, func(v int) { w.mod = v }))
+		},
+	})
+}
 
-	mkSwCard := func(label, tip string, checked bool, onChange func(bool)) js.Value {
-		card := dom.Doc.Call("createElement", "div")
-		card.Set("className", "punit")
-		lbl := dom.Doc.Call("createElement", "span")
-		lbl.Set("className", symClass("u-lbl", false))
-		lbl.Set("textContent", label)
-		card.Call("appendChild", lbl)
-		row := dom.Doc.Call("createElement", "label")
-		row.Set("className", "grp")
-		row.Get("style").Set("cursor", "pointer")
-		row.Get("style").Set("justifyContent", "center")
-		chk := dom.Doc.Call("createElement", "input")
-		chk.Set("type", "checkbox")
-		chk.Set("className", "sw")
-		chk.Set("checked", checked)
-		chk.Set("title", tip)
-		chk.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
-			onChange(chk.Get("checked").Bool())
-			return nil
-		}))
-		row.Call("appendChild", chk)
-		card.Call("appendChild", row)
-		return card
-	}
-	grid.Call("appendChild", mkSwCard("FX",
-		"FX — on: wobbulated (processed) audio; off: the raw incoming audio straight through (instant A/B, independent of the MIX knob; affects both sound and spectrogram)",
-		!w.bypass, func(on bool) { w.bypass = !on }))
-	grid.Call("appendChild", mkSwCard("listen",
-		"Listen — play the wobbulated audio out the speakers (mic: use headphones; music: see the null-sink setup)",
-		w.listen, func(on bool) { w.setFVFListen(on) }))
-
-	// The routing switch, offered only by a server that can actually do it
-	// (chaosrack --audio on a machine with pactl). It is unlike every other
-	// switch on this panel: FX and Listen change what the page does, this one
-	// changes how the MACHINE is wired, which is why it asks the server what is
-	// true instead of starting from a default of its own.
-	if js.Global().Get("__crWobbulate").Truthy() {
-		card := mkSwCard("route", fvfRouteTip, false, func(on bool) { setFVFRoute(on) })
-		grid.Call("appendChild", card)
-		w.routeSw = card.Call("querySelector", "input.sw")
-		syncFVFRoute()
+// fvfSwitches is what the head's switches do for the wobbulator.
+func (w *wobbulator) fvfSwitches() []modelSwitch {
+	return []modelSwitch{
+		{legend: "fx", tip: doc("sw.fvf.fx"),
+			on: func() bool { return !w.bypass }, set: func(v bool) { w.bypass = !v }},
+		{legend: "lstn", tip: doc("sw.fvf.lstn"),
+			on: func() bool { return w.listen }, set: w.setFVFListen},
+		// Live only on a server that can do it (chaosrack --audio on a machine
+		// with pactl). It is unlike the other two: they change what the page
+		// does, this one changes how the MACHINE is wired, which is why it
+		// asks the server what is true instead of starting from a default of
+		// its own.
+		{legend: "rout", tip: fvfRouteTip + w.routeNote,
+			on:   func() bool { return w.routed },
+			set:  setFVFRoute,
+			live: func() bool { return js.Global().Get("__crWobbulate").Truthy() }},
 	}
 }
 
@@ -298,10 +241,7 @@ func (w *wobbulator) appendFVFSelectors(grid js.Value) {
 
 const fvfRouteURL = "/audio/wobbulate"
 
-const fvfRouteTip = "Route — send ALL system audio through a temporary null sink on the server's machine, " +
-	"so the wobbulated result can be played out the speakers without being captured and wobbulated again. " +
-	"Turn it on, play something in any app, then turn on Listen. Off restores the previous default sink; " +
-	"so does stopping the server. Only a page on the same machine can switch it."
+var fvfRouteTip = doc("sw.fvf.rout")
 
 // setFVFRoute asks the server to install or remove the routing.
 func setFVFRoute(on bool) {
@@ -321,9 +261,12 @@ func setFVFRoute(on bool) {
 	fetchJSONOnce(fvfRouteURL, opts, func(ok bool, b js.Value) { fvf.applyFVFRoute(ok, b, on) })
 }
 
-// syncFVFRoute puts the switch where the machine actually is, at panel-build
-// time.
+// syncFVFRoute puts the switch where the machine actually is, at boot and as
+// the wobbulator comes up.
 func syncFVFRoute() {
+	if !js.Global().Get("__crWobbulate").Truthy() {
+		return // a server that cannot route has no switch to set
+	}
 	fetchJSONOnce(fvfRouteURL, js.Undefined(), func(ok bool, b js.Value) { fvf.applyFVFRoute(ok, b, false) })
 }
 
@@ -334,20 +277,17 @@ func syncFVFRoute() {
 // that was never installed, and the symptom of believing that is silence with
 // no explanation -- the exact failure this whole feature exists to avoid.
 func (w *wobbulator) applyFVFRoute(ok bool, body js.Value, wanted bool) {
-	if !w.routeSw.Truthy() {
-		return
-	}
+	defer syncModelParts(run.selectedMode) // the switch shows what came back
 	if ok && body.Truthy() {
-		w.routeSw.Set("checked", body.Get("on").Bool())
-		w.routeSw.Set("title", fvfRouteTip)
+		w.routed, w.routeNote = body.Get("on").Bool(), ""
 		return
 	}
-	w.routeSw.Set("checked", !wanted)
+	w.routed = !wanted
 	msg := "no answer from the server"
 	if body.Truthy() && body.Get("error").Truthy() {
 		msg = body.Get("error").String()
 	}
-	w.routeSw.Set("title", fvfRouteTip+"\n\nlast attempt failed: "+msg)
+	w.routeNote = "\n\nlast attempt failed: " + msg
 	js.Global().Get("console").Call("warn", "[chaosrack] audio routing: "+msg)
 }
 
@@ -451,9 +391,6 @@ func (w *wobbulator) setFVFListen(on bool) {
 
 func (w *wobbulator) startFVFAudio() {
 	src := aud.ensureAudioSource()
-	if src == nil {
-		return
-	}
 	sr := 24000
 	if src.SampleRate() > 0 {
 		sr = src.SampleRate()
@@ -476,7 +413,8 @@ func (w *wobbulator) startFVFAudio() {
 	w.audioNode = w.audioCtx.Call("createScriptProcessor", bufSize, 1, 1)
 	w.audioFn = dom.FuncOf(w.audioProcess)
 	w.audioNode.Set("onaudioprocess", w.audioFn)
-	w.audioNode.Call("connect", w.audioCtx.Get("destination"))
+	mixEnsure(w.audioCtx)
+	w.audioNode.Call("connect", mixIn("fx")) // the Mixer's SOUNDS column
 	w.audioActive = true
 }
 
@@ -510,7 +448,7 @@ func (w *wobbulator) audioProcess(_ js.Value, args []js.Value) any {
 	// How many source-rate samples this context-rate block spans. The source
 	// rate can settle late (ws connect after Listen), so track it live.
 	srcRate := 24000.0
-	if src := aud.activeAudioSource(); src != nil && src.SampleRate() > 0 {
+	if src := aud.activeAudioSource(); src.SampleRate() > 0 {
 		srcRate = float64(src.SampleRate())
 	}
 	w.audioProc.sampleRate = srcRate
@@ -520,7 +458,7 @@ func (w *wobbulator) audioProcess(_ js.Value, args []js.Value) any {
 	w.srcAcc -= float64(m)
 
 	got := 0
-	if src := aud.activeAudioSource(); src != nil && src.Ready() {
+	if src := aud.activeAudioSource(); src.Ready() {
 		got = src.Drain(w.drainScratch[:m])
 	}
 	for i := range m {

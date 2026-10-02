@@ -69,19 +69,17 @@ func TestThePanelStylesheetIsWellFormed(t *testing.T) {
 }
 
 // !important is how a stylesheet stops being readable: once one rule needs
-// it, every rule that has to win against that one needs it too. A third of
-// this file carries it, which is the state this ratchet exists to stop
-// getting worse.
-func TestImportantDoesNotSpread(t *testing.T) {
-	const budget = 118 // lower this as the file improves; never raise it casually
-	got := strings.Count(readPanelCSS(t), "!important")
-	if got > budget {
-		t.Errorf("%d !important declarations, budget %d.\n"+
-			"Adding one usually means a rule above is claiming something it should not.\n"+
-			"Check what you are overriding before raising this number.", got, budget)
-	}
-	if got < budget-10 {
-		t.Errorf("only %d !important left (budget %d) — lower the budget in this test to lock the improvement in", got, budget)
+// it, every rule that has to win against that one needs it too. The file
+// carried 122 of them, each winning a fight with a rule that should not have
+// been there; with those rules gone, none is needed, and none may come back.
+// A declaration that has to win is written where the cascade gives it the
+// win: a selector that says which element it is for, or the rule it is
+// fighting deleted.
+func TestNoImportant(t *testing.T) {
+	if got := strings.Count(readPanelCSS(t), "!important"); got > 0 {
+		t.Errorf("%d !important declarations. Find the rule this one is beating and fix that "+
+			"instead: delete it if it never wins, or give the winner a selector that says which "+
+			"element it is for.", got)
 	}
 }
 
@@ -89,11 +87,10 @@ func TestImportantDoesNotSpread(t *testing.T) {
 // change stops being predictable: which one wins depends on source order,
 // and neither mentions the other.
 func TestAPropertyIsNotSetTwiceForOneSelector(t *testing.T) {
-	const budget = 32 // as above: a ratchet, not a target
 
 	props := map[string]map[string]int{}
 	for _, r := range panelRules(t) {
-		for s := range strings.SplitSeq(r.sel, ",") {
+		for _, s := range selectorList(r.sel) {
 			if s = strings.TrimSpace(s); s == "" {
 				continue
 			}
@@ -116,12 +113,9 @@ func TestAPropertyIsNotSetTwiceForOneSelector(t *testing.T) {
 		}
 	}
 	sort.Strings(dup)
-	if len(dup) > budget {
-		t.Errorf("%d properties set more than once for one selector, budget %d:\n  %s",
-			len(dup), budget, strings.Join(dup[:min(12, len(dup))], "\n  "))
-	}
-	if len(dup) < budget-5 {
-		t.Errorf("only %d duplicates left (budget %d) — lower the budget to lock it in", len(dup), budget)
+	if len(dup) > 0 {
+		t.Errorf("%d properties set more than once for one selector — the later one wins, so "+
+			"delete the earlier, or merge the two rules:\n  %s", len(dup), strings.Join(dup, "\n  "))
 	}
 }
 
@@ -142,7 +136,7 @@ func TestNoFlexOnlyPropertyOnAGridContainer(t *testing.T) {
 	sets := map[string][]string{}  // selector -> inert properties set on it
 
 	for _, r := range panelRules(t) {
-		for s := range strings.SplitSeq(r.sel, ",") {
+		for _, s := range selectorList(r.sel) {
 			if s = strings.TrimSpace(s); s == "" {
 				continue
 			}
@@ -174,4 +168,25 @@ func TestNoFlexOnlyPropertyOnAGridContainer(t *testing.T) {
 		t.Errorf("flex-only properties on a grid container — they do nothing and they mislead:\n  %s",
 			strings.Join(bad, "\n  "))
 	}
+}
+
+// selectorList splits a rule's selector list at its top-level commas: the
+// ones inside :is() or :not() belong to one selector.
+func selectorList(sel string) []string {
+	var out []string
+	depth, start := 0, 0
+	for i, c := range sel {
+		switch c {
+		case '(':
+			depth++
+		case ')':
+			depth--
+		case ',':
+			if depth == 0 {
+				out = append(out, sel[start:i])
+				start = i + 1
+			}
+		}
+	}
+	return append(out, sel[start:])
 }

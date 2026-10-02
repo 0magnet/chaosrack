@@ -63,9 +63,9 @@ func runModules() {
 	have := map[string]bool{}
 	// The general pass, then one pass per mode that brings its own module —
 	// the Pong controls only exist while Pong is the model.
-	out = append(out, capturePass(c, "lorenz", "", only, have, true)...)
+	out = append(out, capturePass(c, "lorenz", "", only, have)...)
 	for _, mo := range modeOwnedModules {
-		out = append(out, capturePass(c, mo.mode, mo.id, only, have, false)...)
+		out = append(out, capturePass(c, mo.mode, mo.id, only, have)...)
 	}
 
 	data, err := json.MarshalIndent(out, "", "  ")
@@ -91,7 +91,6 @@ func writeLayouts(c *cdp.Client) {
 	c.Eval(`location.hash='#lorenz'`)
 	c.Reload(4 * time.Second)
 	waitForPanel(c)
-	showEveryModule(c)
 	lays := measureLayouts(c)
 	if len(lays) == 0 {
 		return
@@ -117,19 +116,15 @@ func writeLayouts(c *cdp.Client) {
 }
 
 // modeOwnedModules are the models whose controls only exist while that model
-// is selected — the Pong module is not put away when you leave Pong, it is
-// gone. Each is visited so its module can be photographed.
+// is selected — the Equation panel is not put away when you leave Custom, it
+// is gone. Each is visited so its module can be photographed. (The demo
+// models' panels are bank positions and readouts now: modelparts_js.go.)
 //
 // The element id is listed with the mode so the pass can wait for THAT
 // module rather than for the panel in general. Waiting for the panel is not
 // enough: a mode-owned module is added a beat after the rest, and a fixed
 // sleep caught a different four of them each run.
 var modeOwnedModules = []struct{ mode, id string }{
-	{"pong", "pong-module"},
-	{"scopetext", "stext-module"},
-	{"sprottmorph", "smorph-module"},
-	{"bounceball", "bounce-module"},
-	{"stlfile", "stlfile-module"},
 	{"custom", "eqn-module"},
 }
 
@@ -150,19 +145,9 @@ func waitForModule(c *cdp.Client, id string) {
 	fmt.Fprintf(os.Stderr, "modules: %s never appeared (app is on %s)\n", id, mode)
 }
 
-// featureSwitches reveal modules from outside the rack's own Modules column:
-// the modulation and EQ strips appear with Audio mod, and the Counter, Keys,
-// Matrix and Patchbay have their own switches in the Console's
-// other columns.
-//
-// Deliberately not here: Test tone, MIDI and Fullscreen, none of which reveal
-// a module and the first of which makes a noise. The Equation module is
-// always on the running model's bay, so every pass photographs it.
-var featureSwitches = []string{"audio-mod"}
-
 // capturePass photographs every module visible in one mode that has not been
 // photographed already, and returns them in DOM order.
-func capturePass(c *cdp.Client, mode, wantID string, only, have map[string]bool, flip bool) []panelModule {
+func capturePass(c *cdp.Client, mode, wantID string, only, have map[string]bool) []panelModule {
 	// A FRESH URL, NOT A NEW FRAGMENT ON THIS ONE.
 	//
 	// Setting location.hash and then reloading does not work here, and the way
@@ -189,16 +174,10 @@ func capturePass(c *cdp.Client, mode, wantID string, only, have map[string]bool,
 	waitForPanel(c)
 	waitForModule(c, wantID)
 
-	// The mode's own modules FIRST, before any switch is touched. One of the
-	// feature switches takes the app out of the mode it was just put into, and
-	// with the switches flipped first the Pong scoreboard was never on screen
-	// during its own pass — every pass listed it with a zero-sized box.
-	out := shootRound(c, mode, only, have)
-	if flip {
-		showEveryModule(c)
-		out = append(out, shootRound(c, mode, only, have)...)
-	}
-	return out
+	// Every module is in the rack whatever is switched on: the last switch
+	// that revealed any, Audio mod's, is gone, and so is the second round
+	// that flipped it.
+	return shootRound(c, mode, only, have)
 }
 
 // shootRound photographs whatever is on screen and not yet collected.
@@ -227,22 +206,6 @@ func shootRound(c *cdp.Client, mode string, only, have map[string]bool) []panelM
 		fmt.Printf("  %-18s %s\n", m.ID, m.Label)
 	}
 	return out
-}
-
-// showEveryModule turns on the few switches that still reveal something.
-//
-// It used to walk the Console's Modules column, which was one generated
-// switch per module. There is no such column any more — every module is in
-// the rack — so what is left is the handful of switches that are not module
-// switches at all: the modulation bus. The scope unit is always in the rack.
-func showEveryModule(c *cdp.Client) {
-	c.Eval(fmt.Sprintf(`(function(){
-	  %q.split(',').forEach(function(id){
-	    var sw = document.getElementById(id);
-	    if (sw && !sw.checked) { sw.checked = true; sw.dispatchEvent(new Event('change',{bubbles:true})); }
-	  });
-	})()`, strings.Join(featureSwitches, ",")))
-	time.Sleep(1500 * time.Millisecond)
 }
 
 // listModules reads every module's identity out of the live DOM and stamps

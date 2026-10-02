@@ -264,9 +264,9 @@ var grid = viewGrid{
 	colors:   newViewColors(),
 	sweepIDs: []string{"", "#src", "#map"},
 	sweepNames: []string{
-		"none — every cell the same",
-		"color source — a different reading of the same figure per cell",
-		"color map — the same reading in a different palette per cell",
+		doc("grid-sweep=none"),
+		doc("grid-sweep=src"),
+		doc("grid-sweep=map"),
 	},
 	sweepRing:  []string{"—", "csrc", "cmap"},
 	sweepHi:    1,
@@ -401,10 +401,20 @@ func (vi *viewGrid) focusedColorIdx() int {
 // noteGradientSource records a change the gradient select just made, so the
 // focused view keeps it. Called from the select's own handler, after the
 // global it drives has been set.
-func (vi *viewGrid) noteGradientSource(n int) { vi.colors[vi.focusedColorIdx()].src = n }
+func (vi *viewGrid) noteGradientSource(n int) {
+	if back.editing {
+		return // the back layer's coloring is the globals while it is edited (backlayer_js.go)
+	}
+	vi.colors[vi.focusedColorIdx()].src = n
+}
 
 // noteGradientColors is the same for the map.
-func (vi *viewGrid) noteGradientColors(n int) { vi.colors[vi.focusedColorIdx()].cols = n }
+func (vi *viewGrid) noteGradientColors(n int) {
+	if back.editing {
+		return
+	}
+	vi.colors[vi.focusedColorIdx()].cols = n
+}
 
 // applyFocusedColor puts the focused view's coloring back into the globals
 // and onto the two selects, so the panel reads what the focused view draws.
@@ -570,8 +580,8 @@ func (vi *viewGrid) setSweepTargets(mode string) bool {
 	ids = append(ids, "#src", "#map")
 	ring = append(ring, "csrc", "cmap")
 	names = append(names,
-		"color source — a different reading of the same figure per cell",
-		"color map — the same reading in a different palette per cell")
+		doc("grid-sweep=src"),
+		doc("grid-sweep=map"))
 
 	if vi.sweepDialMode == mode && len(ids) == len(vi.sweepIDs) {
 		same := true
@@ -858,25 +868,17 @@ func markSwept(id, arrow, dir string) {
 	m := dom.Doc.Call("createElement", "span")
 	m.Set("className", "sweptmark")
 	m.Set("textContent", arrow)
-	m.Set("title", "Swept "+dir+" — this parameter's value comes from where each "+
-		"cell sits in the grid, not from this knob. The from and to knobs beside "+
-		"the Sweep dials say which part of its range the cells cover.")
+	m.Set("title", docf("grid-swept", "dir", dir))
 	cell.Call("appendChild", m)
 }
 
-// syncSweepCells shows the sweep's range knobs only while a sweep is set.
-// Two knobs bounding a sweep that is not running are two knobs that do
-// nothing, and the console has enough to read already.
+// syncSweepCells blanks the sweep's range readouts while no sweep is set.
+// The knobs stay, bright and turnable, so the Grid module does not change
+// shape as the sweep is set and cleared (setCellBlank).
 func syncSweepCells() {
 	on := grid.sweepTarget() != "" || grid.sweepTarget2() != ""
 	for _, id := range []string{"sweep-lo-cell", "sweep-hi-cell"} {
-		if el := dom.Doc.Call("getElementById", id); el.Truthy() {
-			if on {
-				el.Get("style").Set("display", "")
-			} else {
-				el.Get("style").Set("display", "none")
-			}
-		}
+		setCellBlank(dom.Doc.Call("getElementById", id), !on)
 	}
 }
 
@@ -908,10 +910,16 @@ func (vi *viewGrid) buildOneSweepDial(selID string, into *float32) {
 	sel.Set("value", strconv.Itoa(clampSel(at, len(vi.sweepIDs)-1)))
 	sel.Get("style").Set("display", "none")
 
-	holder.Set("innerHTML", "")
-	stack := soloKnob(sel)
-	addSelectorLabels(stack, vi.sweepRing, sel).Set("id", selID+"-ring")
-	holder.Call("appendChild", stack)
+	// The options are this model's parameters, so the ring prints none of
+	// them (ledSelector): the display names the one it is on.
+	names := make([]string, len(vi.sweepRing))
+	for i, r := range vi.sweepRing {
+		if r == "—" {
+			r = "none"
+		}
+		names[i] = r
+	}
+	selectorReadout(holder, sel, names)
 	wireOneSweepDial(sel, into)
 }
 
@@ -949,7 +957,7 @@ func focusLabels(n int) []string {
 }
 
 // buildFocusDial gives the focus select one position per cell of the
-// CURRENT grid, and hides it when there is only one cell to focus.
+// CURRENT grid, and is dark when there is only one cell to focus.
 //
 // A two-position A/B switch was right when Views drew the model twice. A
 // sixteen-cell sheet with a switch that can only reach two of them is a
@@ -964,13 +972,7 @@ func (vi *viewGrid) buildFocusDialInto() {
 		return
 	}
 	n := vi.n()
-	if cell := dom.Doc.Call("getElementById", "focus-n-cell"); cell.Truthy() {
-		if n > 1 {
-			cell.Get("style").Set("display", "")
-		} else {
-			cell.Get("style").Set("display", "none")
-		}
-	}
+	setCellBlank(dom.Doc.Call("getElementById", "focus-n-cell"), n <= 1)
 	labels := focusLabels(n)
 	sel.Set("innerHTML", "")
 	for i, l := range labels {
@@ -987,10 +989,9 @@ func (vi *viewGrid) buildFocusDialInto() {
 	sel.Set("value", strconv.Itoa(vi.focused))
 	sel.Get("style").Set("display", "none")
 
-	holder.Set("innerHTML", "")
-	stack := soloKnob(sel)
-	addSelectorLabels(stack, labels, sel).Set("id", "focus-n-ring")
-	holder.Call("appendChild", stack)
+	// Its positions follow the grid, so the ring prints none of them
+	// (ledSelector): the display names the cell.
+	selectorReadout(holder, sel, labels)
 	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
 		if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
 			vi.focused = n
@@ -1110,13 +1111,10 @@ func (vi *viewGrid) addLinkMark(cell js.Value, id string) {
 	m.Set("className", cls)
 	if on {
 		m.Set("textContent", "⚭") // a closed link
-		m.Set("title", "Linked — every cell uses view A's setting of this control, "+
-			"even though the views are unlinked. Click to give each cell its own again.")
+		m.Set("title", doc("grid-linked"))
 	} else {
 		m.Set("textContent", "⚮") // a broken one
-		m.Set("title", "Unlinked — each cell has its own setting of this control. "+
-			"Click to pin every cell to view A's, so this one knob drives them all "+
-			"while the rest stay independent.")
+		m.Set("title", doc("grid-unlinked"))
 	}
 	cell.Get("classList").Call("add", "linkable")
 	m.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {

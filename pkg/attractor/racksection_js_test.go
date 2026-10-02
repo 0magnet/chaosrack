@@ -24,7 +24,7 @@ func TestEveryDeclaredModuleHasABay(t *testing.T) {
 	}
 	for _, k := range keys {
 		if _, ok := moduleSections[k]; !ok {
-			t.Errorf("module %q has no bay; add it to moduleSections (see docs/signal-flow.md)", k)
+			t.Errorf("module %q has no bay; add it to moduleSections (see manual/routing.md)", k)
 		}
 	}
 }
@@ -38,11 +38,15 @@ func TestEveryBayNamesAModuleThatExists(t *testing.T) {
 		have[k] = true
 	}
 	// Built at runtime rather than declared in the markup, so the parser
-	// below cannot see them: the Patchbay, the two
-	// model selectors (buildCategoryModules), the Mod and EQ modules
-	// (buildModEQModules) and Custom's Equation editor (buildCustomPanel).
-	for _, k := range []string{"patchbay", "models", "model", "mod", "eq", "equation"} {
+	// below cannot see them: the two model selectors (buildCategoryModules),
+	// the Mod module (buildModMatrix), Custom's Equation editor
+	// (buildCustomPanel), the Synth bay's modules (synthModules), and the
+	// Mixer (mixModule).
+	for _, k := range []string{"models", "model", "mod", "equation", "mixer"} {
 		have[k] = true
+	}
+	for _, m := range synthModules {
+		have[strings.ToLower(m.title)] = true
 	}
 	for k := range moduleSections {
 		if !have[k] {
@@ -51,13 +55,14 @@ func TestEveryBayNamesAModuleThatExists(t *testing.T) {
 	}
 }
 
-// declaredModuleKeys is every module header in controlsBody, lowercased —
+// declaredModuleKeys is every module header in the panel (controlsBody, its
+// scope copied for the others), lowercased —
 // the same key rack-go derives from the header text.
 func declaredModuleKeys(t *testing.T) []string {
 	t.Helper()
 	re := regexp.MustCompile(`<div class="sect-hdr"[^>]*>([^<]*)</div>`)
 	var out []string
-	for _, m := range re.FindAllStringSubmatch(controlsBody, -1) {
+	for _, m := range re.FindAllStringSubmatch(withRackScopes(controlsBody), -1) {
 		k := strings.ToLower(strings.TrimSpace(html.UnescapeString(m[1])))
 		if k != "" {
 			out = append(out, k)
@@ -75,31 +80,31 @@ func declaredModuleKeys(t *testing.T) []string {
 // should move it in the rack only on purpose. So: a list, and this, which
 // fails if the markup and the list stop agreeing.
 func TestEveryModuleWithAScreenLeadsABay(t *testing.T) {
-	// The scope panel is a boundary too: it is an instrument unit bolted
-	// into a rack unit of its own rather than a module, so its tube is not
-	// the Console's screen even though it sits inside the Console's span of
-	// the markup.
-	start := regexp.MustCompile(`<div class="(sect[" ]|scope-panel")`)
+	// Every module starts at a .sect (the scope was once an instrument panel
+	// outside them, and its tube was not the Console's screen; it is two
+	// modules now, and the first carries its own header and canvas).
+	start := regexp.MustCompile(`<div class="sect[" ]`)
 	hdr := regexp.MustCompile(`<div class="sect-hdr"[^>]*>([^<]*)</div>`)
-	at := start.FindAllStringIndex(controlsBody, -1)
+	markup := withRackScopes(controlsBody)
+	at := start.FindAllStringIndex(markup, -1)
 	if len(at) < 20 {
 		t.Fatalf("only found %d modules in the markup — the parser has stopped matching", len(at))
 	}
 	var withScreen []string
 	for i, m := range at {
-		end := len(controlsBody)
+		end := len(markup)
 		if i+1 < len(at) {
 			end = at[i+1][0]
 		}
-		body := controlsBody[m[0]:end]
+		body := markup[m[0]:end]
 		h := hdr.FindStringSubmatch(body)
 		if h == nil || !strings.Contains(body, "<canvas") {
 			continue
 		}
 		k := strings.ToLower(strings.TrimSpace(html.UnescapeString(h[1])))
 		withScreen = append(withScreen, k)
-		if !bayScreens[k] {
-			t.Errorf("module %q has a screen in it but does not lead a bay; add it to bayScreens", k)
+		if _, ok := bayScreens[k]; !ok {
+			t.Errorf("module %q has a screen in it but is not in bayScreens: add it, leading a bay or not", k)
 		}
 	}
 	for k := range bayScreens {

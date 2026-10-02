@@ -3,9 +3,9 @@
 package attractor
 
 import (
+	"github.com/0magnet/chaosrack/pkg/conway"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
-	"sort"
 	"syscall/js"
 )
 
@@ -95,20 +95,12 @@ func (s *skinSurface) buildSkinMesh(mode string) {
 		verts, idx = torusSkinMesh(torus.major, torus.minor, int(torus.stacksF), int(torus.slicesF))
 	case "globe":
 		verts, idx = sphereSkinMesh(1.0, int(globe.latF)*2, int(globe.lonF))
-	case "cube":
-		verts, idx = cubeSkinMesh(verticesCube[:72], indicesCube[:36])
 	case "nestedcube":
 		verts, idx = cubeSkinMesh(verticesCube, indicesCube)
-	case "tetrahedron":
-		verts, idx = polySkinMesh(tetrahedronVertices())
-	case "octahedron":
-		verts, idx = polySkinMesh(octahedronVertices())
-	case "dodecahedron":
-		verts, idx = polySkinMesh(dodecahedronVertices())
-	case "icosahedron":
-		verts, idx = polySkinMesh(icosahedronVertices())
-	default: // sphere
-		verts, idx = sphereSkinMesh(sphere.radius, int(sphere.stacksF), int(sphere.slicesF))
+	case "polyhedron":
+		verts, idx = polyhedronSkinMesh()
+	default: // a round surface, for a mode with no skin of its own
+		verts, idx = sphereSkinMesh(1.0, 30, 30)
 	}
 	if s.vBuf.IsUndefined() {
 		s.vBuf = glctx.GL.Call("createBuffer")
@@ -208,19 +200,45 @@ func cubeSkinMesh(cubeVerts []float32, _ []uint16) ([]float32, []uint16) {
 	return out, idx
 }
 
-// polySkinMesh wraps the spectrogram onto a convex polyhedron given only its
-// vertices. Faces are recovered as convex-hull supporting planes, then each
-// face is fan-triangulated. UVs use a spherical projection (u = longitude /
-// time, v = latitude / frequency) matching the sphere skin, with a per-
-// triangle seam fix so faces spanning the u-wrap don't smear. Vertices are
-// duplicated per triangle (non-indexed soup) to keep UVs independent.
-func polySkinMesh(verts []float32) ([]float32, []uint16) {
-	faces := convexFaces(verts)
+// polyhedronSkinMesh wraps the spectrogram onto the Polyhedron model: its own
+// faces, which morph and kis can make anything but convex, so they are taken
+// from the solid rather than recovered from a hull. A tiling is flat, and is
+// mapped flat.
+func polyhedronSkinMesh() ([]float32, []uint16) {
+	s, solid := polySolid()
+	verts := make([]float32, 0, len(s.Verts)*3)
+	for _, v := range s.Verts {
+		verts = append(verts, float32(v.X), float32(v.Y), float32(v.Z))
+	}
+	faces := s.Faces
+	if !solid && len(faces) > 0 && conway.CurvatureOf(int(poly.pF+0.5), int(poly.qF+0.5)) == conway.Hyperbolic {
+		faces = faces[:len(faces)-1] // the disk's rim is drawn, not a face
+	}
+	return faceSkinMesh(verts, faces, !solid)
+}
+
+// faceSkinMesh wraps the spectrogram onto a polyhedron given its faces, each
+// fan-triangulated. UVs use a spherical projection (u = longitude / time,
+// v = latitude / frequency) matching the sphere skin, with a per-triangle
+// seam fix so faces spanning the u-wrap don't smear — or, planar, the x and y
+// of a flat figure. Vertices are duplicated per triangle (non-indexed soup)
+// to keep UVs independent.
+func faceSkinMesh(verts []float32, faces [][]int, planar bool) ([]float32, []uint16) {
 	out := make([]float32, 0, 256)
 	var idx []uint16
 	emit := func(vi int, u, v float32) {
 		out = append(out, verts[vi*3], verts[vi*3+1], verts[vi*3+2], u, v)
-		idx = append(idx, uint16(len(idx))) //nolint:gosec // a mesh index, bounded by the stack/slice counts a few lines up
+		idx = append(idx, uint16(len(idx))) //nolint:gosec // a mesh index, bounded by pkg/conway's patch cap
+	}
+	if planar {
+		for _, face := range faces {
+			for t := 1; t < len(face)-1; t++ {
+				for _, vi := range [3]int{face[0], face[t], face[t+1]} {
+					emit(vi, (verts[vi*3]+1)/2, (verts[vi*3+1]+1)/2)
+				}
+			}
+		}
+		return out, idx
 	}
 	for _, face := range faces {
 		for t := 1; t < len(face)-1; t++ {
@@ -267,94 +285,4 @@ func sphericalUV(x, y, z float32) (float32, float32) {
 	v := 1 - float32(phi/math.Pi)
 	u := float32(math.Atan2(float64(y), float64(x))/(2*math.Pi)) + 0.5
 	return u, v
-}
-
-// convexFaces recovers the faces of a convex polyhedron (centered near the
-// origin) from its vertices alone. For every vertex triple it forms the
-// candidate plane, keeps it only if all vertices lie on one side (a
-// supporting hull plane), dedupes coplanar triples, then collects and
-// angularly orders every vertex on that plane. Returns each face as an
-// ordered vertex-index ring. O(n^4) but n is tiny (<=20).
-func convexFaces(verts []float32) [][]int {
-	n := len(verts) / 3
-	px := func(i int) (float32, float32, float32) { return verts[i*3], verts[i*3+1], verts[i*3+2] }
-	const eps = 1e-4
-	var faces [][]int
-	seen := map[[4]int]bool{}
-	for i := range n {
-		for j := i + 1; j < n; j++ {
-			for k := j + 1; k < n; k++ {
-				ax, ay, az := px(i)
-				bx, by, bz := px(j)
-				cx, cy, cz := px(k)
-				ux, uy, uz := bx-ax, by-ay, bz-az
-				wx, wy, wz := cx-ax, cy-ay, cz-az
-				nx := uy*wz - uz*wy
-				ny := uz*wx - ux*wz
-				nz := ux*wy - uy*wx
-				ln := float32(math.Sqrt(float64(nx*nx + ny*ny + nz*nz)))
-				if ln < eps {
-					continue
-				}
-				nx, ny, nz = nx/ln, ny/ln, nz/ln
-				d := nx*ax + ny*ay + nz*az
-				if d < 0 { // orient outward (origin is inside)
-					nx, ny, nz, d = -nx, -ny, -nz, -d
-				}
-				supporting := true
-				for m := range n {
-					mx, my, mz := px(m)
-					if nx*mx+ny*my+nz*mz > d+eps {
-						supporting = false
-						break
-					}
-				}
-				if !supporting {
-					continue
-				}
-				key := [4]int{int(nx * 1000), int(ny * 1000), int(nz * 1000), int(d * 1000)}
-				if seen[key] {
-					continue
-				}
-				seen[key] = true
-				var face []int
-				for m := range n {
-					mx, my, mz := px(m)
-					if float32(math.Abs(float64(nx*mx+ny*my+nz*mz-d))) < eps {
-						face = append(face, m)
-					}
-				}
-				if len(face) >= 3 {
-					orderFaceRing(verts, face, nx, ny, nz)
-					faces = append(faces, face)
-				}
-			}
-		}
-	}
-	return faces
-}
-
-// orderFaceRing sorts a face's vertex indices into a consistent ring around
-// their centroid, using an in-plane basis derived from the face normal.
-func orderFaceRing(verts []float32, face []int, nx, ny, nz float32) {
-	var cx, cy, cz float32
-	for _, vi := range face {
-		cx += verts[vi*3]
-		cy += verts[vi*3+1]
-		cz += verts[vi*3+2]
-	}
-	inv := 1.0 / float32(len(face))
-	cx, cy, cz = cx*inv, cy*inv, cz*inv
-	// in-plane basis: e1 from centroid to first vertex, e2 = n x e1
-	e1x, e1y, e1z := verts[face[0]*3]-cx, verts[face[0]*3+1]-cy, verts[face[0]*3+2]-cz
-	l := float32(math.Sqrt(float64(e1x*e1x + e1y*e1y + e1z*e1z)))
-	if l > 0 {
-		e1x, e1y, e1z = e1x/l, e1y/l, e1z/l
-	}
-	e2x, e2y, e2z := ny*e1z-nz*e1y, nz*e1x-nx*e1z, nx*e1y-ny*e1x
-	angle := func(vi int) float64 {
-		dx, dy, dz := verts[vi*3]-cx, verts[vi*3+1]-cy, verts[vi*3+2]-cz
-		return math.Atan2(float64(dx*e2x+dy*e2y+dz*e2z), float64(dx*e1x+dy*e1y+dz*e1z))
-	}
-	sort.Slice(face, func(a, b int) bool { return angle(face[a]) < angle(face[b]) })
 }

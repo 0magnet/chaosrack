@@ -34,17 +34,10 @@ func init() {
 	registerGenerate("newtonleipnik", generateNewtonLeipnik)
 	registerGenerate("rabinovich", generateRabinovich)
 	registerGenerate("custom", custom.generateCustom)
-	// The Platonic solids are generated from their faces now, with the
-	// Conway operator knob applied — the seed IS the model. See pkg/conway.
-	registerGenerate("tetrahedron", func() { generateSeed(0) })
-	registerGenerate("cube", func() { generateSeed(1) })
-	registerGenerate("octahedron", func() { generateSeed(2) })
-	registerGenerate("dodecahedron", func() { generateSeed(3) })
-	registerGenerate("icosahedron", func() { generateSeed(4) })
+	registerGenerate("polyhedron", generatePolyhedron)
 	registerGenerate("nestedcube", generateNestedCube)
 	registerGenerate("turtle", turtle.generateTurtle)
 	registerGenerate("globe", globe.generate)
-	registerGenerate("sphere", generateSphere)
 	registerGenerate("torus", torus.generate)
 	registerGenerate("magnetosphere", generateMagnetosphere)
 	registerGenerate("stlfile", generateSTLFile)

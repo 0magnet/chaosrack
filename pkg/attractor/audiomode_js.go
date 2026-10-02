@@ -28,11 +28,11 @@ type audioModes struct {
 	msgLast     string  // last status text shown (so we don't re-show every frame)
 	hideFn      js.Func // cached auto-hide callback (never re-created)
 
-	// Function generator: a client-side signal source. When useFuncGen is on it
-	// overrides ws/mic, so audio-reactive features (attractor modulation), the
-	// spectrogram and the xy scope all work with no server and no mic.
-	funcGen    *audiosrc.FuncGen
-	useFuncGen bool
+	// The generators, and the bus that patches them, the capture and the model
+	// to the rack's four channels (bus_js.go): the bus is the source every
+	// analysis reads, its pair of channels the rack's signal.
+	funcGen *audiosrc.FuncGen
+	bus     *audiosrc.Bus
 }
 
 var aud audioModes
@@ -63,13 +63,16 @@ var aud audioModes
 // pins the WebSocket, "?audio=wt" asks for WebTransport against a server whose
 // page did not offer it.
 func (au *audioModes) ensureAudioSource() audiosrc.Source {
-	// The function generator, when on, is the source — regardless of ws/mic.
-	if au.useFuncGen {
-		if au.funcGen == nil {
-			au.funcGen = audiosrc.NewFuncGen()
-		}
-		return au.funcGen
+	b := au.rackBus()
+	if mixCarriesCapture() {
+		au.ensureCapture()
 	}
+	return b
+}
+
+// ensureCapture is the capture, made on first call: the feed the server
+// offers, or the microphone.
+func (au *audioModes) ensureCapture() audiosrc.Source {
 	if au.source != nil {
 		return au.source
 	}
@@ -122,33 +125,29 @@ func (au *audioModes) fg() *audiosrc.FuncGen {
 	return au.funcGen
 }
 
-// setFuncGen switches the audio source to (or away from) the function
-// generator. Ensures features/spectrogram/xy read the FG immediately.
-func (au *audioModes) setFuncGen(on bool) {
-	au.useFuncGen = on
-	if on {
-		au.ensureAudioSource()
+// rackBus is the bus, made on first use with the Mixer's pins as they are.
+// Its capture is only ever one already made: reading the bus does not make
+// one, so the render loop is never what pops a microphone prompt
+// (ensureAudioSource is what does).
+func (au *audioModes) rackBus() *audiosrc.Bus {
+	if au.bus == nil {
+		au.bus = audiosrc.NewBus(au.fg())
+		mixToBus(au.bus)
+		au.bus.Capture = func() audiosrc.Source { return au.source }
+		au.bus.Model = busModel
 	}
+	return au.bus
 }
 
 // activeAudioSource is the source actually feeding the analysis paths: the
-// function generator while it is on, otherwise whatever backend was created.
+// bus, whose pair is the rack's signal.
 //
-// It exists because ensureAudioSource returns the generator without ever
-// storing it in aud.source, so code that read that variable directly saw
-// nothing when the generator was the source — the xy scope, which asks for
-// the source properly, drew a Lissajous while the spectrogram and the FVF
-// display next to it stayed black. Unlike ensureAudioSource this creates
-// nothing: the render loop must not be what pops a microphone prompt.
-func (au *audioModes) activeAudioSource() audiosrc.Source {
-	if au.useFuncGen {
-		if au.funcGen == nil {
-			return nil
-		}
-		return au.funcGen
-	}
-	return au.source
-}
+// It exists because code that read aud.source directly — the capture — saw
+// nothing when the generators were the signal: the xy scope drew a Lissajous
+// while the spectrogram and the FVF display next to it stayed black. Unlike
+// ensureAudioSource this creates nothing: the render loop must not be what
+// pops a microphone prompt.
+func (au *audioModes) activeAudioSource() audiosrc.Source { return au.rackBus() }
 
 // audioBackendKind reads the ?audio= query param (empty when absent).
 // audioBackendKind picks where audio comes from: the WebSocket feed, the
@@ -263,9 +262,6 @@ func (au *audioModes) deactivateAudioMode() {
 // producing samples, or when we leave audio mode.
 func (au *audioModes) maybeShowAudioStatus() {
 	src := au.activeAudioSource()
-	if src == nil {
-		return
-	}
 	if src.Ready() && src.Err() == nil {
 		// A working source may still have something to say. The
 		// WebTransport source falls back to a WebSocket by itself when
@@ -273,7 +269,7 @@ func (au *audioModes) maybeShowAudioStatus() {
 		// no Err — so without this it would be reported by nothing at
 		// all, and a page silently on the wrong transport looks exactly
 		// like a page on the right one.
-		if n, ok := src.(audiosrc.Notifier); ok {
+		if n, ok := au.source.(audiosrc.Notifier); ok { // the capture's, which the bus carries
 			if notice := n.Notice(); notice != "" {
 				au.showAudioStatus(notice)
 				return

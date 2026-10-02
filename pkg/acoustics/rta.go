@@ -20,7 +20,7 @@ import (
 // wider in Hz as they go up, so equal power per octave is what reads FLAT. A
 // flat-reading RTA on pink noise is the definition of a flat system, and the
 // two facts have to be true together or neither is worth anything (see
-// rta_test.go, which checks exactly that against the Test module's pink noise).
+// rta_test.go, which checks exactly that against the stimulus library's pink noise).
 //
 // ── THE BAND CENTERS ARE THE STANDARD ONES ───────────────────────────────
 //

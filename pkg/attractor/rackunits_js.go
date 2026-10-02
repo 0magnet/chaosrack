@@ -12,12 +12,6 @@ package attractor
 // one for the panel, because rack-go enumerates its container's direct
 // children and an opening is a real container now rather than a rectangle
 // drawn behind some of them.
-//
-// An INSTRUMENT unit has a .runit-panel instead: one piece of front panel
-// with its own controls, bolted to the rails like any other unit. The
-// scope is the first of those. A unit with BOTH — an instrument that takes
-// plug-ins, which is what a Tek 7000 or an HP 180 is — needs nothing new
-// here: give it a .runit-open as well and it gets an opening.
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
@@ -37,7 +31,6 @@ const (
 	rackFrameSel = ".rack-frame"
 	unitClass    = "runit"
 	unitOpenCls  = "runit-open"
-	unitPanelCls = "runit-panel"
 	unitEarCls   = "runit-ear"
 	unitBlankCls = "runit-blank"
 )
@@ -56,15 +49,6 @@ var unitRacks []*rack.Rack
 // not about the unit it happens to be packed into — and packing moves
 // modules between units whenever a width changes.
 var unitHidden = map[string]bool{}
-
-// instrumentUnits are the units that are a front panel rather than an
-// opening, by the id of the panel element they wrap. They are appended
-// after the subracks, which is a v1 simplification: a real frame lets you
-// bolt a unit anywhere in the stack, and that wants a unit order of its own
-// to persist.
-var instrumentUnits = []struct{ panelID, title string }{
-	{"scope-panel", "Scope"},
-}
 
 // rackFrame is the 19-inch frame: the element the units are bolted into.
 func rackFrame() js.Value { return dom.Doc.Call("querySelector", rackFrameSel) }
@@ -234,14 +218,20 @@ const bayHeadAttr = "data-bayhead"
 // bayScreens are the modules OUTSIDE the model rows that carry a screen,
 // and so lead a bay for the same reason a model row's head does.
 //
-// Two of them, and a test keeps the list honest: every module in the rack
-// with a canvas in it is either a row head or named here. It is a list and
-// not a query because the packer runs on slot counts before anything has
-// been laid out, and because a module acquiring a canvas should be a
-// decision about where it goes rather than a silent relayout.
+// Two of them lead (the desk's monitor went with the Desk module): the
+// capture preview, and the first scope, which the other three follow in its
+// bay, each beside its generator — named here too, as screens that do not
+// lead. A test keeps the list honest: every module in the rack with a canvas
+// in it is either a row head or named here. It is a list and not a query because the
+// packer runs on slot counts before anything has been laid out, and because
+// a module acquiring a canvas should be a decision about where it goes
+// rather than a silent relayout.
 var bayScreens = map[string]bool{
-	"desk":   true, // the desk monitor
-	"record": true, // the capture preview
+	"record":  true, // the capture preview
+	"scope 1": true, // the tube, at the head of the generators
+	"scope 2": false,
+	"scope 3": false,
+	"scope 4": false,
 }
 
 // relayoutUnits is the whole of the new level: measure, pack, and put each
@@ -341,6 +331,10 @@ func relayoutUnits() {
 		slots = append(slots, it.Slots)
 	}
 	units := packBySection(items, racksurface.UnitCapacity(), bayMonitorSlots)
+	// In the order the screws left them (rackbayorder_js.go), which is the
+	// factory order until a bay has been moved.
+	units = arrangeUnits(items, units)
+	wireBayScrews(f)
 
 	// Make the frame hold exactly that many subrack units, before any
 	// instrument unit. Reused rather than rebuilt: recreating them every
@@ -387,40 +381,30 @@ func relayoutUnits() {
 			open.Call("appendChild", unitBlank())
 		}
 	}
-	// Labels in a SECOND pass, after every module has been re-parented.
-	// Their positions are measured off the modules they name, and while
-	// the first pass is still running the bays it has not reached yet
-	// hold last layout's modules — so a label measured then is placed
-	// against a layout that is about to change. Measured: every label
-	// in the rack offset by exactly the span of the runs before it, and
-	// two of them computing a non-positive width and being dropped.
-	// And in three phases of their own: take the old ones away, measure
-	// every bay, then draw. Measuring is a read of the modules and drawing
-	// is a write, so a loop that finished one bay before starting the next
-	// forced the browser to re-lay out the whole rack sixteen times. See
-	// drawRunLabels.
-	// In JavaScript where the page allows it: a read and a write on every
-	// module in the rack is exactly the shape that costs more in the
-	// crossing than in the work. See fastdom_js.go. The Go pass below is
-	// the same thing and stays for a page that will not evaluate it.
-	if !layoutBayLabels(f, units, items) {
-		for ui := range units {
-			if ui < len(opens) {
-				clearRunLabels(opens[ui])
-			}
-		}
-		var labels []runLabel
-		for ui, idx := range units {
-			if ui < len(opens) {
-				labels = append(labels, planRunLabels(opens[ui], sectionRuns(items, idx), mods, idx)...)
-			}
-		}
-		drawRunLabels(labels)
-	}
 	syncUnitRacks()
-	relayoutInstrumentUnits(f)
 	hideEmptyUnits(f)
+	numberUnits(f)
 	scheduleDesignate()
+}
+
+// numberUnits numbers every unit in the frame that is showing, top to bottom,
+// an instrument's as well as a subrack's: the scope is a bay of the rack
+// like any other, and its controls are addressed by its number.
+func numberUnits(f js.Value) {
+	n := 0
+	for u := f.Get("firstElementChild"); u.Truthy(); u = u.Get("nextElementSibling") {
+		if !u.Get("classList").Call("contains", unitClass).Bool() || u.Get("style").Get("display").String() == "none" {
+			continue
+		}
+		n++
+		ear := u.Get("firstElementChild")
+		if !ear.Truthy() || !ear.Get("classList").Call("contains", unitEarCls).Bool() {
+			continue
+		}
+		if s := strconv.Itoa(n); ear.Call("getAttribute", "data-bay").String() != s {
+			ear.Call("setAttribute", "data-bay", s)
+		}
+	}
 }
 
 // clearUnitBlanks removes every blank panel in the frame.
@@ -437,61 +421,6 @@ func unitBlank() js.Value {
 	b.Set("className", unitBlankCls)
 	b.Get("style").Set("width", strconv.FormatFloat(moduleSlot*layout.scale, 'f', 2, 64)+"px")
 	return b
-}
-
-// relayoutInstrumentUnits keeps each instrument's panel in a unit of its
-// own at the bottom of the frame.
-//
-// The panel element itself is declared in the markup and only MOVED here,
-// so the scope's face stays one piece of HTML that can be styled and tested
-// without knowing it is in a rack.
-func relayoutInstrumentUnits(f js.Value) {
-	for _, iu := range instrumentUnits {
-		panel := dom.Doc.Call("getElementById", iu.panelID)
-		if !panel.Truthy() {
-			continue
-		}
-		// Found by the PANEL WRAPPER, not by any unit: until it has been
-		// re-homed the panel is still sitting in a subrack opening, and
-		// closest(.runit) there finds the SUBRACK — which would re-append
-		// that whole unit and leave the instrument in an opening for ever.
-		u := js.Value{}
-		if w := panel.Call("closest", "."+unitPanelCls); w.Truthy() {
-			u = w.Call("closest", "."+unitClass)
-		}
-		if !u.Truthy() {
-			u = newInstrumentUnit(panel)
-		}
-		// The scope sits on the line between the rack's halves: directly above
-		// the bay that holds the Scope row. Anything else, or a rack with no
-		// Scope row, goes below the subracks.
-		if at := unitHoldingSection(categorySection(domainLine)); iu.panelID == "scope-panel" && at.Truthy() {
-			if !u.Get("nextSibling").Equal(at) {
-				f.Call("insertBefore", u, at)
-			}
-			continue
-		}
-		f.Call("appendChild", u)
-	}
-}
-
-// newInstrumentUnit bolts one front panel into a unit of its own: ears
-// either side, and the panel where a subrack has its opening.
-//
-// A unit that is BOTH — an instrument that takes plug-ins, which is what
-// a Tek 7000 or an HP 180 is — needs nothing new: give it a .runit-open
-// beside the panel and it has an opening, and the packing above will
-// fill it like any other.
-func newInstrumentUnit(panel js.Value) js.Value {
-	u := dom.Doc.Call("createElement", "div")
-	u.Set("className", unitClass+" runit-instr")
-	u.Call("appendChild", unitEar())
-	w := dom.Doc.Call("createElement", "div")
-	w.Set("className", unitPanelCls)
-	w.Call("appendChild", panel)
-	u.Call("appendChild", w)
-	u.Call("appendChild", unitEar())
-	return u
 }
 
 // unitFrameWidthPx is how wide the frame is: a whole 19-inch panel at the
@@ -525,35 +454,6 @@ func setRackBay(on bool) {
 	}
 	lsSet("wasmstuff-handles", v)
 	layoutRackHandles()
-}
-
-// rackStyle is what the metalwork carries when it is drawn: "bare",
-// "handles", "screws" or "full". The Rack bay switch says whether there is
-// a frame; this says what kind.
-var rackStyle = "full"
-
-// wireRackStyle binds the Size knob's inner ring to the frame, restoring
-// the stored style first.
-func wireRackStyle(sel js.Value) {
-	if v, ok := lsGet("wasmstuff-rackstyle"); ok {
-		sel.Set("value", v)
-		if sel.Get("selectedIndex").Int() < 0 {
-			sel.Set("value", rackStyle)
-		}
-	}
-	rackStyle = sel.Get("value").String()
-	sel.Get("style").Set("display", "none")
-	// SkipResetAll for the same reason as Size: it is how the rack looks,
-	// not a setting of the instrument, and Reset All leaves those alone.
-	adoptDescControl(ControlDesc{
-		ID: "bay-style", Label: "Rack", IsSelect: true, SelectDef: "full",
-		ResetID: "rst-knob-size", SkipResetAll: true,
-		SelectApply: func(v string) {
-			rackStyle = v
-			lsSet("wasmstuff-rackstyle", v)
-			layoutRackHandles()
-		},
-	})
 }
 
 // restoreRackBay puts the stored choice back at boot.
@@ -592,8 +492,9 @@ func layoutRackHandles() {
 	} else {
 		cl.Call("remove", "with-bay")
 	}
-	cl.Call("toggle", "rs-handles", rackStyle == "handles" || rackStyle == "full")
-	cl.Call("toggle", "rs-screws", rackStyle == "screws" || rackStyle == "full")
+	// The metalwork is the one style: grab handles on the ears, and the ears
+	// bolted to the rails.
+	cl.Call("add", "rs-handles", "rs-screws")
 	// A whole 19-inch panel, always — not as many slots as the window
 	// happens to fit. A window narrower than that gets the rack DRAWN
 	// smaller, not cropped: see fitFrameToWidth below.
@@ -609,32 +510,7 @@ func layoutRackHandles() {
 		ear = 0
 	}
 	st.Call("setProperty", "--ear-w", strconv.FormatFloat(ear, 'f', 2, 64)+"px")
-	st.Set("marginLeft", "auto")
-	st.Set("marginRight", "auto")
-	fitFrameToWidth(f)
-}
-
-// setScopeUnit bolts the scope's unit into the frame or takes it out.
-//
-// It is always in now: the scope is the line between the rack's visual and
-// auditory halves, and an instrument that could be switched out of the rack
-// was a switch on the Console for something that belongs there. Kept as a
-// function because the screen's power cache has to hear about it.
-func setScopeUnit(on bool) {
-	p := dom.Doc.Call("getElementById", "scope-panel")
-	if !p.Truthy() {
-		return
-	}
-	u := p.Call("closest", "."+unitClass)
-	if !u.Truthy() {
-		u = p
-	}
-	if on {
-		u.Get("style").Set("display", "")
-	} else {
-		u.Get("style").Set("display", "none")
-	}
-	scopeScreenPower.invalidate() // the answer just changed; do not wait to notice
+	fitFrameToWidth(f) // and its margins: centered, or taken back when scaled
 }
 
 // unitEarWidthPx is the frame either side of the opening, in pixels at the
@@ -686,13 +562,18 @@ func unitOpeningWidthPx() float64 {
 // in the middle, the way it does on a bench.
 func fitFrameToWidth(f js.Value) {
 	st := f.Get("style")
-	st.Set("transform", "")
-	st.Set("transformOrigin", "")
-	st.Set("marginBottom", "")
-
 	avail := frameAvailWidthPx(f)
 	want := unitFrameWidthPx()
 	if avail <= 0 || want <= 0 || avail >= want {
+		if frameFit.sig != "-" {
+			// Its own size, in the middle, the way it sits on a bench.
+			st.Set("transform", "")
+			st.Set("transformOrigin", "")
+			st.Set("marginBottom", "")
+			st.Set("marginLeft", "auto")
+			st.Set("marginRight", "auto")
+			frameFit.sig = "-"
+		}
 		return
 	}
 	k := avail / want
@@ -701,6 +582,11 @@ func fitFrameToWidth(f js.Value) {
 	if k < 0.6 {
 		k = 0.6
 	}
+	sig := strconv.FormatFloat(k, 'f', 4, 64) + "|" + strconv.FormatFloat(want, 'f', 2, 64)
+	if sig == frameFit.sig {
+		return // as it is already: writing it again would only lay it out again
+	}
+	frameFit.sig = sig
 	// Origin at the left, and the space the frame no longer fills taken
 	// back with negative margins.
 	//
@@ -712,31 +598,110 @@ func fitFrameToWidth(f js.Value) {
 	// rack does not fit, and then it fills the width anyway.
 	st.Set("transformOrigin", "top left")
 	st.Set("transform", "scale("+strconv.FormatFloat(k, 'f', 4, 64)+")")
-	// A transform does not change the space the element takes in the flow,
-	// so a scaled rack would leave the height it was NOT drawn at as a gap
-	// underneath. Take it back.
 	st.Set("marginLeft", "0")
 	st.Set("marginRight", strconv.FormatFloat(-want*(1-k), 'f', 2, 64)+"px")
-	if h := f.Get("offsetHeight").Float(); h > 0 {
-		st.Set("marginBottom", strconv.FormatFloat(-h*(1-k), 'f', 2, 64)+"px")
-	}
+	// A transform does not change the space the element takes in the flow,
+	// so a scaled rack would leave the height it was NOT drawn at as a gap
+	// underneath. Taken back by frameHeightWatch, from the height the
+	// browser lays it out at: reading the height here made it lay the whole
+	// panel out on the spot, every fit, and that was most of the rack's start.
+	frameFit.k = k
+	frameHeightWatch(f)
+	frameBottom(f)
 }
 
-// frameAvailWidthPx is how much width the frame's container actually offers.
+// frameHeightWatch watches frame f's height, which the browser reports after
+// laying it out, and keeps its bottom margin taking back what the scale took
+// off. Once per frame element: a rebuild that makes a new one watches that.
+func frameHeightWatch(f js.Value) {
+	if f.Equal(frameFit.frame) {
+		return
+	}
+	ro := js.Global().Get("ResizeObserver")
+	if !ro.Truthy() {
+		return
+	}
+	if frameFit.hwatch.Truthy() {
+		frameFit.hwatch.Call("disconnect")
+	}
+	frameFit.frame = f
+	frameFit.hwatch = ro.New(js.FuncOf(func(_ js.Value, a []js.Value) any {
+		if es := a[0]; es.Length() > 0 {
+			if bs := es.Index(0).Get("borderBoxSize"); bs.Truthy() && bs.Length() > 0 {
+				frameFit.h = bs.Index(0).Get("blockSize").Float()
+			} else {
+				frameFit.h = es.Index(0).Get("contentRect").Get("height").Float()
+			}
+			frameBottom(frameFit.frame)
+		}
+		return nil
+	}))
+	frameFit.hwatch.Call("observe", f)
+}
+
+// frameBottom sets frame f's bottom margin from its last reported height
+// and the scale it is drawn at.
+func frameBottom(f js.Value) {
+	if frameFit.h <= 0 || frameFit.sig == "-" {
+		return
+	}
+	f.Get("style").Set("marginBottom", strconv.FormatFloat(-frameFit.h*(1-frameFit.k), 'f', 2, 64)+"px")
+}
+
+// frameFit is what fitFrameToWidth last did, and the width the frame's
+// container offers, kept by a ResizeObserver.
+var frameFit struct {
+	sig      string   // the scale, width and height it last fitted; "-" unscaled, "" not yet
+	avail    float64  // the container's content width
+	observed js.Value // the container being watched
+	watch    js.Value // the ResizeObserver
+	k        float64  // the scale it is drawn at
+	h        float64  // its height, as last laid out
+	frame    js.Value // the frame whose height is watched
+	hwatch   js.Value // that ResizeObserver
+}
+
+// frameAvailWidthPx is how much width the frame's container actually offers:
+// its content width, watched rather than read. Reading it made the browser
+// lay the whole panel out first, every time the rack was fitted — the
+// container's width never depends on what is in the rack, so the answer was
+// the same each time and the layout was the cost.
 func frameAvailWidthPx(f js.Value) float64 {
 	p := f.Get("parentElement")
 	if !p.Truthy() {
 		return 0
 	}
-	avail := p.Get("clientWidth").Float()
-	cs := js.Global().Call("getComputedStyle", p)
-	for _, side := range []string{"paddingLeft", "paddingRight"} {
-		if v, err := strconv.ParseFloat(
-			strings.TrimSuffix(cs.Get(side).String(), "px"), 64); err == nil {
-			avail -= v
+	if !p.Equal(frameFit.observed) {
+		frameFit.observed = p
+		frameFit.avail = p.Get("clientWidth").Float()
+		cs := js.Global().Call("getComputedStyle", p)
+		for _, side := range []string{"paddingLeft", "paddingRight"} {
+			if v, err := strconv.ParseFloat(strings.TrimSuffix(cs.Get(side).String(), "px"), 64); err == nil {
+				frameFit.avail -= v
+			}
+		}
+		if ro := js.Global().Get("ResizeObserver"); ro.Truthy() {
+			if frameFit.watch.Truthy() {
+				frameFit.watch.Call("disconnect")
+			}
+			frameFit.watch = ro.New(js.FuncOf(func(_ js.Value, a []js.Value) any {
+				es := a[0]
+				if es.Length() == 0 {
+					return nil
+				}
+				w := es.Index(0).Get("contentRect").Get("width").Float()
+				if w > 0 && w != frameFit.avail {
+					frameFit.avail = w
+					if fr := frameFit.observed.Call("querySelector", ".rack-frame"); fr.Truthy() {
+						fitFrameToWidth(fr)
+					}
+				}
+				return nil
+			}))
+			frameFit.watch.Call("observe", p)
 		}
 	}
-	return avail
+	return frameFit.avail
 }
 
 // moduleKeyOf is a module's key: its header text, lowercased, which is what
@@ -749,122 +714,11 @@ func moduleKeyOf(m js.Value) string {
 	return strings.ToLower(strings.TrimSpace(h.Get("textContent").String()))
 }
 
-// Silkscreening each section's name over the modules it covers: measured in
-// planRunLabels, drawn in drawRunLabels, and split in two for the reason
-// given there.
-//
-// Per run and not per bay, because a bay carries several sections now: one
-// label on a row holding three groups would be two-thirds wrong. This is
-// Woodson & Conover's way of identifying a group inside a row rather than
-// by giving it a row of its own — "adequate spacing of display or control
-// groups... marked outlines around each group... area color patterning"
-// (§2-133). The label is the name, the tinted rule under it is the
-// outline, and the section color is the patterning.
-//
-// Positioned over the run's own modules, measured after they have been
-// placed, so a label sits above what it names whatever the widths are.
-
-// runLabel is one bay label, measured but not yet drawn.
-type runLabel struct {
-	open    js.Value
-	section string
-	title   string
-	left    float64
-	width   float64
-}
-
-// clearRunLabels takes away a bay's labels from the previous pass.
-func clearRunLabels(open js.Value) {
-	old := open.Call("querySelectorAll", ":scope > .runit-label")
-	for i := range old.Get("length").Int() {
-		old.Index(i).Call("remove")
-	}
-}
-
-// planRunLabels measures where a bay's labels go, and draws nothing.
-//
-// Reading and writing are split across the whole rack — see drawRunLabels —
-// so this touches no element it does not measure.
-func planRunLabels(open js.Value, runs []sectionRun, mods []js.Value, idx []int) []runLabel {
-	var out []runLabel
-	for _, r := range runs {
-		title := sectionTitleOf(r.Section)
-		if title == "" || r.Count < 1 {
-			continue
-		}
-		// The FIRST AND LAST VISIBLE module of the run, not the first and
-		// last of it. A run carries the modules that are switched out too
-		// — they pack at zero width and keep their place — and those have
-		// no position at all, so a run ending in one measured a negative
-		// width and was silently dropped. GENERATOR and UTILITY lost their
-		// labels that way, both being sections whose tail is mode-specific
-		// modules that are usually off.
-		a, b := js.Value{}, js.Value{}
-		for n := r.From; n < r.From+r.Count && n < len(idx); n++ {
-			m := mods[idx[n]]
-			// Zero width is what a switched-out module looks like, and
-			// reading a number rather than the element offsetParent hands
-			// back saves a finalizer per module — see the note in
-			// relayoutUnits.
-			if !m.Truthy() || m.Get("offsetWidth").Float() == 0 {
-				continue
-			}
-			if !a.Truthy() {
-				a = m
-			}
-			b = m
-		}
-		if !a.Truthy() || !b.Truthy() {
-			continue // every module in this run is switched out
-		}
-		left := a.Get("offsetLeft").Float()
-		width := b.Get("offsetLeft").Float() + b.Get("offsetWidth").Float() - left
-		if width <= 0 {
-			continue
-		}
-		out = append(out, runLabel{open: open, section: r.Section, title: title, left: left, width: width})
-	}
-	return out
-}
-
-// drawRunLabels puts every bay's labels in, having measured them all first.
-//
-// One pass over the rack rather than one per bay, and that is the whole
-// reason the function is separate from the measuring.
-//
-// A label is measured off the modules it names — offsetLeft, offsetWidth,
-// offsetParent — and appending one is a write that dirties the layout, so a
-// loop that labeled each bay in turn made the browser re-lay out the whole
-// ten-thousand-element rack before every bay after the first. Sixteen bays,
-// sixteen forced layouts, and labelRuns came to 83% of a relayout and about
-// a fifth of the entire model change.
-//
-// The labels are position:absolute, so nothing here moves a module and
-// deferring the writes changes no geometry — only how many times the
-// browser is asked to compute it.
-func drawRunLabels(ls []runLabel) {
-	for _, l := range ls {
-		el := dom.Doc.Call("createElement", "div")
-		el.Set("className", "runit-label")
-		el.Get("dataset").Set("section", l.section)
-		el.Set("textContent", l.title)
-		el.Set("title", l.title+" — one of the sections this bay carries. "+
-			"See docs/signal-flow.md: the bays run in signal order, and a "+
-			"control sits in the same row as the thing it affects.")
-		st := el.Get("style")
-		st.Set("left", pxStr(l.left))
-		st.Set("width", pxStr(l.width))
-		l.open.Call("appendChild", el)
-	}
-}
-
 // groupBySection reorders the modules so each section's are contiguous,
 // keeping their relative order inside it.
 //
-// This is what makes a label reliable: a section appears in exactly one
-// run, so there is never a second label with the same name further down
-// the rack. It also means an empty section produces no label at all,
-// rather than a name over a stretch of blank panel.
+// A section appears in exactly one run, so its modules are one stretch of
+// the rack and not scattered down it.
 func groupBySection(items []packItem, mods []js.Value) ([]packItem, []js.Value) {
 	order := sectionOrderOf(items)
 	outItems := make([]packItem, len(order))
@@ -924,21 +778,6 @@ func sectionOfModule(m js.Value) string {
 		}
 	}
 	return moduleSection(moduleKeyOf(m))
-}
-
-// unitHoldingSection is the subrack unit whose opening holds the first
-// module of a section, or undefined.
-func unitHoldingSection(section string) js.Value {
-	for _, open := range unitOpenings() {
-		mods := open.Get("children")
-		for i := range mods.Get("length").Int() {
-			m := mods.Index(i)
-			if m.Get("classList").Call("contains", "sect").Bool() && sectionOfModule(m) == section {
-				return open.Call("closest", "."+unitClass)
-			}
-		}
-	}
-	return js.Undefined()
 }
 
 // wireColorLockSwitch makes the Held switch drive the color-lock select.

@@ -46,6 +46,7 @@ var info = infoPane{
 
 const (
 	infoMinW  = 260.0
+	infoZ     = 16 // one above --z-hud
 	infoMinH  = 140.0
 	infoLSKey = "wasmstuff-infogeom"
 )
@@ -169,6 +170,9 @@ func (in *infoPane) showInfoWindow() {
 		Height:    winbox.Px(in.h),
 		MinWidth:  winbox.Px(infoMinW),
 		MinHeight: winbox.Px(infoMinH),
+		// Above the HUD (--z-hud, 15 in panel.css): the audio meters in the
+		// corner share the old caption's level, and drew over the title bar.
+		Index: infoZ,
 		// Minimized and maximized geometry is winbox's, not the person's — the
 		// floating panel learned this the hard way, coming back from a minimize
 		// as a bare title bar because the parking slot's size had been saved.
@@ -211,13 +215,19 @@ func (in *infoPane) hideInfoWindow() {
 	}
 }
 
-// infoTitle names the model the text is about, so a window left open while the
-// model changes says which one it is describing.
+// infoTitle names the bay the manual is about, and the model on it when it is
+// the model's bay, so a window left open while either changes says which.
 func infoTitle() string {
+	label := "model info"
 	if m, ok := modeInfo[run.selectedMode]; ok && m.Label != "" {
-		return m.Label
+		label = m.Label
 	}
-	return "model info"
+	// A model on screen is what the window describes; switched off, it is
+	// the manual for a bay.
+	if !infoRackOff() || infoBay == 0 {
+		return label
+	}
+	return "Bay " + strconv.Itoa(infoBay) + " — manual"
 }
 
 func (in *infoPane) updateInfoTitle() {

@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"math"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -28,8 +29,6 @@ type permaCtl struct {
 	check bool
 }
 
-// Ordered so "am" (audio-mod) is applied last — after params and mod
-// routing are in place — so its panel rebuild reflects them.
 // Numeric registry-owned controls (zoom, pans, spin rates, speed, trail,
 // line, rainbow, sonify rate/level, …) are NOT listed here: they serialize
 // and restore straight from builtControls via their ControlDesc.PermaKey —
@@ -41,13 +40,8 @@ var permaCtls = []permaCtl{
 	// the model arrived without one. It is a select now, which is a kind this
 	// table can express, so it is in.
 	{"bd", "bg-visual", false},
-	{"sm", "sonify-map", false},
-	{"sn", "sonify-mode", false},
 	{"gs", "gradient-source", false},
 	{"gc", "gradient-colors", false},
-	{"sr", "step-ratio", false},
-	{"fn", "fine-ratio", false},
-	{"ks", "knob-size", false},
 	{"cb", "color-base", false},
 	{"cm", "color-mid", false},
 	{"ct", "color-top", false},
@@ -62,7 +56,6 @@ var permaCtls = []permaCtl{
 	{"w2", "sweep2-p", false},
 	{"sg", "scope-grat", true},
 	{"rm", "rec-mon-on", true},
-	{"dm", "desk-mon-on", true},
 	{"vl", "link-sw", true},
 	{"vf", "focus-n", false},
 	{"po", "sect-sw", true},
@@ -76,7 +69,6 @@ var permaCtls = []permaCtl{
 	{"sk", "skin-visual", false},
 	{"fl", "spect-fill", true},
 	{"in", "show-info", true},
-	{"am", "audio-mod", true},
 }
 
 // permalinkState is the permalink's bookkeeping: what was last written, the
@@ -227,12 +219,33 @@ func (pe *permalinkState) serializeState() string {
 			continue
 		}
 		v := ctl.slider.Get("value").String()
+		if back.editing { // the panel is showing the backdrop's colors, not the model's
+			if fv, ok := back.frontValue(ctl.slider.Get("id").String()); ok {
+				v = fv
+			}
+		}
+		// Within float32's precision, which is what the default is held in:
+		// 1.15 as a float32 is 1.1499999762, and against the slider's "1.15" a
+		// tighter tolerance put every fractional default in every link.
 		if f, err := strconv.ParseFloat(v, 64); err == nil {
-			if d := f - float64(ctl.def); d > -1e-9 && d < 1e-9 {
+			if d := math.Abs(f - float64(ctl.def)); d <= 1e-6*max(1, math.Abs(f)) {
 				continue
 			}
 		}
 		b.WriteString("&" + ctl.permaKey + "=" + v)
+	}
+
+	// The Mixer's pins, those that differ from the rack as it starts.
+	if v := mixLinkValue(); v != "" {
+		b.WriteString("&" + mixLinkKey + "=" + v)
+	}
+
+	// Model Out's two knobs: bank positions built at run time, so not in
+	// the markup table.
+	for i, p := range modelOutParams {
+		if *p.Value != p.Def {
+			b.WriteString("&" + modelOutKeys[i] + "=" + permaFmt(*p.Value))
+		}
 	}
 
 	// Residual table-driven controls that differ from their captured defaults.
@@ -242,6 +255,9 @@ func (pe *permalinkState) serializeState() string {
 			continue
 		}
 		v := ctlValue(c, el)
+		if fv, ok := back.frontValue(c.id); ok {
+			v = fv
+		}
 		if v != pe.defaults[c.key] {
 			b.WriteString("&")
 			b.WriteString(c.key)
@@ -252,7 +268,7 @@ func (pe *permalinkState) serializeState() string {
 
 	// Attractor parameters that differ from their default.
 	for _, p := range attractorParams[run.selectedMode] {
-		if *p.Value != p.Def {
+		if *p.Value != p.Def && !quietParams[p.ID] {
 			b.WriteString("&p.")
 			b.WriteString(paramKey(p.ID))
 			b.WriteString("=")
@@ -283,7 +299,7 @@ func (pe *permalinkState) serializeState() string {
 	}
 
 	// Per-parameter audio-mod routing: channel~band0,band1,…~level.
-	for _, p := range attractorParams[run.selectedMode] {
+	for _, p := range modParams(run.selectedMode) {
 		if m := pmod.params[p.ID]; m.channel != "" && m.level != 0 {
 			b.WriteString("&m." + paramKey(p.ID) + "=" + formatModRoute(m))
 		}
@@ -302,6 +318,10 @@ func (pe *permalinkState) serializeState() string {
 		if m := pmod.params[vt.id]; m.channel != "" && m.level != 0 {
 			b.WriteString("&vm." + strings.TrimPrefix(vt.id, "view-") + "=" + formatModRoute(m))
 		}
+	}
+	// The backdrop's own palette (backlayer_js.go), when it has been set.
+	if s := back.permaString(); s != "" {
+		b.WriteString("&bk=" + s)
 	}
 	return b.String()
 }
@@ -369,6 +389,7 @@ func (pe *permalinkState) startPermalinkSync() {
 	// No loop is possible: the app writes its own hash with replaceState, which
 	// does not fire this event, and the comparison below ignores it anyway.
 	js.Global().Call("addEventListener", "hashchange", dom.FuncOf(func(js.Value, []js.Value) any {
+		migrateLocationHash() // a pasted #cube is the Polyhedron now
 		h := strings.TrimPrefix(js.Global().Get("location").Get("hash").String(), "#")
 		if h == "" || h == pe.lastPermaHash {
 			return nil
@@ -440,6 +461,13 @@ func eventFor(c permaCtl, el js.Value) string {
 }
 
 func applyControl(key, val string) {
+	if key == mixLinkKey {
+		applyMixLink(val)
+		return
+	}
+	if applyModelOutKey(key, val) {
+		return
+	}
 	// Auto-rotate is adopted, not toggled. Its switch and the Y rate are
 	// serialized as separate fields but are not independent: ry already
 	// contains the auto contribution when the link was captured with the
@@ -526,9 +554,8 @@ func applyRot(val string) {
 }
 
 // applyStateFromHash parses the URL hash and applies everything after the
-// mode token. Params first, then the mod routing map, then controls (with
-// audio-mod last so its panel rebuild reflects the params + routing), then
-// the held pose.
+// mode token. Params first, then the mod routing map, then controls (and
+// modulation started if a route needs it), then the held pose.
 func applyStateFromHash() {
 	perma.applyStateFrom(js.Global().Get("location").Get("hash").String())
 }
@@ -545,7 +572,7 @@ func (pe *permalinkState) applyStateFrom(h string) {
 		return
 	}
 
-	var poseVal, amVal, eqVal, dragVal string
+	var poseVal, eqVal, dragVal string
 	haveCustom, haveFlavor := false, false
 	for _, part := range parts[1:] {
 		kv := strings.SplitN(part, "=", 2)
@@ -593,23 +620,17 @@ func (pe *permalinkState) applyStateFrom(h string) {
 			// panel rebuild at the end picks up the badges.
 			grid.setLinkedParamList(val)
 		case key == "am":
-			amVal = val
+			// The Audio mod switch, which is gone: modulation runs when a
+			// route needs it (syncAudioMod, below). Old links still carry it.
+		case key == "bk":
+			back.applyPerma(val)
 		case key == "eq":
 			eqVal = val
 			haveCustom = true
-		case key == "cit":
-			// The Custom mode's flavor: iterate (a discrete map) rather than
-			// flow. It decides what the equations MEAN, so it has to be in
-			// place before they are compiled below.
-			custom.iterate = val == "1"
-			haveCustom, haveFlavor = true, true
-		case key == "cdt":
-			if v, err := strconv.ParseFloat(val, 32); err == nil {
-				custom.dt = float32(v)
-			}
-		case strings.HasPrefix(key, "cp."):
-			custom.applyCustomParam(strings.TrimPrefix(key, "cp."), val)
-			haveCustom = true
+		case isCustomLinkKey(key):
+			isCustom, isFlavor := custom.applyLinkKey(key, val)
+			haveCustom = haveCustom || isCustom
+			haveFlavor = haveFlavor || isFlavor
 		case strings.HasPrefix(key, "p."):
 			applyParam(strings.TrimPrefix(key, "p."), val)
 		case strings.HasPrefix(key, "vm."):
@@ -629,16 +650,15 @@ func (pe *permalinkState) applyStateFrom(h string) {
 			applyControl(key, val)
 		}
 	}
-	if amVal != "" {
-		applyControl("am", amVal) // triggers setAudioMod → panel rebuild
-	}
+	// The routes are in; modulation runs if any of them needs it.
+	syncAudioMod()
 	if eqVal != "" {
 		// A link that carries equations but no flavor is a FLOW link: cit is
 		// omitted at its default like every other control, so its absence has
 		// to CLEAR the flavor. Leaving whatever the editor was last set to
 		// would reinterpret somebody else's derivatives as a map.
 		if !haveFlavor {
-			custom.iterate = false
+			custom.iterate, custom.surface = false, false
 		}
 		custom.applyCustomEq(eqVal)
 	} else if haveFlavor {
@@ -668,4 +688,61 @@ func (pe *permalinkState) applyStateFrom(h string) {
 	// still-view link is faithfully restored (save→restore fidelity).
 	pe.hashPinnedPose = poseVal != "" || dragVal != ""
 	syncKnobs() // move fixed-knob pointers to the restored values
+}
+
+// migrateLocationHash rewrites a link to a folded model (see migrateHash) in
+// the address bar itself, before anything reads it. replaceState, so it is
+// the same history entry and fires no hashchange.
+func migrateLocationHash() {
+	h := js.Global().Get("location").Get("hash").String()
+	if m := migrateHash(h); m != h {
+		js.Global().Get("history").Call("replaceState", js.Null(), "", m)
+	}
+}
+
+// isCustomLinkKey is whether a link key is the Custom model's own: its
+// flavor, its surface's extent, its dt and its parameters (the equations
+// themselves are eq, applied last, after the flavor that says what they
+// mean).
+func isCustomLinkKey(key string) bool {
+	switch key {
+	case "cit", "csf", "cex", "cdt":
+		return true
+	}
+	return strings.HasPrefix(key, "cp.")
+}
+
+// applyLinkKey applies one of the Custom model's link keys, and reports
+// whether it is Custom state the panel must be rebuilt for, and whether it
+// is the flavor, which decides what the equations mean and so has to be in
+// place before they are compiled.
+func (c *customEquation) applyLinkKey(key, val string) (isCustom, isFlavor bool) {
+	switch key {
+	case "cit":
+		// Iterate: a discrete map rather than a flow.
+		c.iterate = val == "1"
+		if c.iterate {
+			c.surface = false // one flavor at a time
+		}
+		return true, true
+	case "csf":
+		// A surface, F(x,y,z) = 0: the first equation is the function.
+		c.surface = val == "1"
+		if c.surface {
+			c.iterate = false
+		}
+		return true, true
+	case "cex":
+		if v, err := strconv.ParseFloat(val, 32); err == nil && v > 0 {
+			c.extent = float32(v)
+		}
+		return false, false
+	case "cdt":
+		if v, err := strconv.ParseFloat(val, 32); err == nil {
+			c.dt = float32(v)
+		}
+		return false, false
+	}
+	c.applyCustomParam(strings.TrimPrefix(key, "cp."), val)
+	return true, false
 }

@@ -104,34 +104,31 @@ func TestAnUnplacedModuleGoesToTheEnd(t *testing.T) {
 	}
 }
 
-// The rack reads top to bottom as two domains with the scope between them:
-// the display bay and the console, the visual model rows, the Scope row,
-// the generators, the auditory rows and what measures and routes them. If
-// this is rearranged, the line between the two stops being a line.
-func TestTheBaysAreStackedAcrossTheDomainLine(t *testing.T) {
+// The rack reads top to bottom from the instrument out: the model rows and
+// the running model's panels first, then how the picture is drawn (DISPLAY)
+// and the console, then the generators (the scope's bay) and what routes
+// them. This is the factory order; the screws move bays from it
+// (bayorder.go), and a bay nobody moved keeps its place here.
+func TestTheBaysAreStackedFromTheInstrumentOut(t *testing.T) {
 	var fixed []string
 	for _, s := range sectionOrder {
 		if !isCategorySection(s) {
 			fixed = append(fixed, s)
 		}
 	}
-	want := []string{secDisplay, secConsole, secModel, secGen, secAnalyze, secMod, secUtility}
+	want := []string{secModel, secDisplay, secConsole, secGen, secMod, secUtility}
 	if !slices.Equal(fixed, want) {
 		t.Fatalf("fixed bays are %v, want %v", fixed, want)
 	}
-	line := sectionRank(categorySection(domainLine))
-	if line >= len(sectionOrder) {
-		t.Fatalf("no %s row", domainLine)
-	}
-	if sectionRank(secModel) != line-1 || sectionRank(secGen) != line+1 {
-		t.Errorf("the %s row is not between the visual panels and GENERATORS: %v", domainLine, sectionOrder)
+	for _, s := range sectionOrder[:sectionRank(secModel)] {
+		if !isCategorySection(s) {
+			t.Errorf("%q comes before the model rows, which open the rack: %v", s, sectionOrder)
+		}
 	}
 }
 
-// Every row — a category, or a group of them drawn together — is in the
-// stack in the selector's own order, each on its side
-// of the line: a visual row above DISPLAY, an auditory one below the
-// generators.
+// Every row is in the stack in the selector's own order, above the running
+// model's panels.
 func TestTheModelRowsFollowTheSelectorOrder(t *testing.T) {
 	var got []string
 	for _, s := range sectionOrder {
@@ -146,16 +143,34 @@ func TestTheModelRowsFollowTheSelectorOrder(t *testing.T) {
 	if !slices.Equal(got, want) {
 		t.Fatalf("model rows %v, want %v", got, want)
 	}
-	cats := rackRows()
-	line := slices.Index(cats, domainLine)
-	for i, c := range cats {
-		r := sectionRank(categorySection(c))
-		switch {
-		case i < line && r > sectionRank(secModel):
-			t.Errorf("visual row %s sits below the model panels", c)
-		case i > line && r < sectionRank(secGen):
-			t.Errorf("auditory row %s sits above the generators", c)
+	for _, c := range rackRows() {
+		if sectionRank(categorySection(c)) > sectionRank(secModel) {
+			t.Errorf("model row %s sits below the model panels", c)
 		}
+	}
+}
+
+// GENERATORS opens a bay of its own, and so do the keyboard and the tone
+// matrix, however much room the bay before them has left. The meters in
+// GENERATORS do not: they share the oscillators' bay.
+func TestTheseStartBaysOfTheirOwn(t *testing.T) {
+	items := []packItem{
+		{Key: "a", Slots: 2, Section: secModel},
+		{Key: "gen x", Slots: 1, Section: secGen}, {Key: "loudness", Slots: 2, Section: secGen},
+		{Key: "keys", Slots: 4, Section: secGen},
+		{Key: "matrix", Slots: 4, Section: secGen}, {Key: "rhythm", Slots: 1, Section: secGen},
+	}
+	var got [][]string
+	for _, u := range packBySection(items, 12, nil) {
+		var keys []string
+		for _, i := range u {
+			keys = append(keys, items[i].Key)
+		}
+		got = append(got, keys)
+	}
+	want := [][]string{{"a"}, {"gen x", "loudness"}, {"keys"}, {"matrix", "rhythm"}}
+	if !slices.EqualFunc(got, want, slices.Equal) {
+		t.Errorf("bays %v, want %v", got, want)
 	}
 }
 
@@ -358,8 +373,8 @@ func TestASmallerBayGivesMoreBays(t *testing.T) {
 // 84 HP row is what a real one looks like.
 func TestABayCarriesSeveralSections(t *testing.T) {
 	items := []packItem{
-		{Slots: 1, Section: secGen},
-		{Slots: 2, Section: secAnalyze}, {Slots: 2, Section: secAnalyze},
+		{Slots: 1, Section: secConsole},
+		{Slots: 2, Section: secMod}, {Slots: 2, Section: secMod},
 		{Slots: 1, Section: secUtility},
 	}
 	units := packBySection(items, 12, nil)
@@ -371,7 +386,7 @@ func TestABayCarriesSeveralSections(t *testing.T) {
 		t.Fatalf("got %d runs in the bay, want 3: %+v", len(runs), runs)
 	}
 	for i, want := range []sectionRun{
-		{Section: secGen, From: 0, Count: 1}, {Section: secAnalyze, From: 1, Count: 2}, {Section: secUtility, From: 3, Count: 1},
+		{Section: secConsole, From: 0, Count: 1}, {Section: secMod, From: 1, Count: 2}, {Section: secUtility, From: 3, Count: 1},
 	} {
 		if runs[i] != want {
 			t.Errorf("run %d is %+v, want %+v", i, runs[i], want)
@@ -383,7 +398,7 @@ func TestABayCarriesSeveralSections(t *testing.T) {
 // missing from part of the row.
 func TestTheRunsCoverTheWholeBay(t *testing.T) {
 	items := []packItem{
-		{Slots: 1, Section: secGen}, {Slots: 1, Section: secAnalyze}, {Slots: 1, Section: secAnalyze}, {Slots: 1, Section: secMod}, {Slots: 1, Section: secUtility},
+		{Slots: 1, Section: secGen}, {Slots: 1, Section: secConsole}, {Slots: 1, Section: secConsole}, {Slots: 1, Section: secMod}, {Slots: 1, Section: secUtility},
 	}
 	units := packBySection(items, 12, nil)
 	for _, idx := range units {
@@ -432,7 +447,7 @@ func TestTheModelsPanelsFollowTheModel(t *testing.T) {
 		t.Fatal("lorenz is in no category, so the rows cannot hold anything")
 	}
 	want := categorySection(activeCategory)
-	for _, key := range []string{"parameters", "patch", "banner", "animation"} {
+	for _, key := range []string{"parameters", "equation"} {
 		if got := moduleSection(key); got != want {
 			t.Errorf("%q is in %q, want the running model's row %q", key, got, want)
 		}
@@ -445,8 +460,8 @@ func TestTheModelsPanelsFollowTheModel(t *testing.T) {
 		t.Errorf("with no active category Parameters went to %q, want %q", got, secModel)
 	}
 	// And nothing else moves with them.
-	if got := moduleSection("patchbay"); got != secConsole {
-		t.Errorf("the patchbay followed the model to %q; it is rack wiring, not a model panel", got)
+	if got := moduleSection("presets"); got != secConsole {
+		t.Errorf("the presets followed the model to %q; they are the rack's, not a model panel's", got)
 	}
 }
 
@@ -507,7 +522,7 @@ func TestABayHoldingAHeadOpensWithOne(t *testing.T) {
 		t.Skip("not enough categories to arrange")
 	}
 	var items []packItem
-	items = append(items, packItem{Slots: 4, Section: secAnalyze})
+	items = append(items, packItem{Slots: 4, Section: secConsole})
 	for i, c := range cats {
 		sec := categorySection(c)
 		items = append(items, packItem{Slots: 2, Section: sec, Lead: true})

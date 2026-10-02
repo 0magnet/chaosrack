@@ -30,7 +30,7 @@ func makeHueKnob(slider js.Value) js.Value {
 	knob := dom.Doc.Call("createElement", "span")
 	knob.Set("className", "knob knobb hueknob")
 	knob.Call("setAttribute", "data-no-drag", "")
-	knob.Set("title", "Hue — turn all the way around the spectrum")
+	knob.Set("title", doc("hue-knob"))
 	ptr := dom.Doc.Call("createElement", "i")
 	ptr.Set("className", "knob-ptr")
 	knob.Call("appendChild", ptr)
@@ -123,12 +123,12 @@ func buildColorKnob(colorInput js.Value) js.Value {
 	if name == "" {
 		name = "Color"
 	}
-	levR.Set("title", name+" — Level (black → color → white)")
+	levR.Set("title", docf("color-knob.level", "name", name))
 	hueKnob := makeHueKnob(hueR) // full-360° rainbow rotary
-	hueKnob.Set("title", name+" — Hue: turn all the way around the spectrum")
+	hueKnob.Set("title", docf("color-knob.hue", "name", name))
 	levKnob := makeKnob(levR, js.Undefined(), false, false, false)
 	stack := stackKnobs(hueKnob, levKnob)
-	stack.Set("title", name+" knob — outer ring = Hue (rainbow scale), inner ring = Level (black → color → white)")
+	stack.Set("title", docf("color-knob", "name", name))
 
 	// Gradient dials behind the knobs (drawn as conic rings, no tick marks).
 	addColorDial := func(cls string) js.Value {

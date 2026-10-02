@@ -41,8 +41,7 @@ const (
 	testSignalCount
 )
 
-// TestSignalNames are the positions of the selector, in knob order, and
-// TestSignalRing what fits around such a dial.
+// TestSignalNames are the stimuli's names, in order.
 //
 // Ordered by what they are FOR rather than alphabetically: the two noises that
 // feed a spectrum analyzer, the sweep that feeds an impulse response, the two
@@ -83,13 +82,13 @@ var TestSignalDescs = []string{
 	"out-of-polarity noise — the same noise inverted on one channel: correlation -1, and mono-incompatible",
 }
 
-// TestSignalRing is five runes at most per position: for a named setting the
-// ring IS the readout, because seven segments cannot spell a word.
-var TestSignalRing = []string{
+// TestSignalShort are the stimuli's short names, what `render --signal`
+// takes (pkg/server).
+var TestSignalShort = []string{
 	"off", "whit", "pink", "swp", "1k", "3150", "L", "R", "pol", "wide", "oop",
 }
 
-// TestSignalCount is how many positions the selector has.
+// TestSignalCount is how many stimuli there are, off included.
 const TestSignalCount = int(testSignalCount)
 
 // sweepSeconds is one pass of the log sweep, low to high, before it restarts.
@@ -135,6 +134,22 @@ type testGen struct {
 
 func newTestGen() *testGen {
 	return &testGen{level: 0.5, rngL: 0x12345678, rngR: 0x9E3779B9}
+}
+
+// stimMono is the next sample of a one-channel stimulus, at full scale: the
+// four a generator plays as its wave (WaveStim).
+func (g *testGen) stimMono(sig TestSignal, sr float64) float64 {
+	switch sig {
+	case TestWhite:
+		return g.whiteL()
+	case TestPink:
+		return g.pinkL.next(g.whiteL())
+	case TestSweep:
+		return g.nextSweep(sr)
+	case TestPolarity:
+		return g.nextPolarity(sr)
+	}
+	return 0
 }
 
 // next returns one stereo sample of the current stimulus.

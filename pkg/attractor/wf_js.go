@@ -144,12 +144,7 @@ func (w *wowFlutter) wireWowFlutterModule() {
 	adoptDescControl(ControlDesc{
 		ID: "wf-nom", Label: "nom", Min: 0, Max: 20000, Step: 10, Def: 3150,
 		LEDID: "wf-nom-led", ResetID: "rst-wf-nom",
-		Apply: func(v float64) {
-			w.nominal = float32(v)
-			if lbl := dom.Doc.Call("getElementById", "wf-nom-lbl"); lbl.Truthy() {
-				lbl.Set("textContent", led.Format(v, 5, 1, false))
-			}
-		},
+		Apply: func(v float64) { w.nominal = float32(v) },
 	})
 	w.showWowFlutter()
 }

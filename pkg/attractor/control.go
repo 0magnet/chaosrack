@@ -12,7 +12,7 @@ import (
 
 // A hierarchy of types for the control panel. The panel is, conceptually:
 //
-//	Module (a .sect: "Position", "View", "Palette"…)
+//	Module (a .sect: "View", "Grid", "Display"…)
 //	  └─ Control (a knob cell: "Zoom", "X spin rate", "start color"…)
 //	       └─ elements (label, LED readout, knob, slider, reset, swatch…)
 //
@@ -37,7 +37,7 @@ const (
 
 // Control is one labeled control cell within a Module.
 type Control struct {
-	module      string      // owning module name ("Position")
+	module      string      // owning module name ("View")
 	kind        controlKind // element layout
 	cell        js.Value    // the .pcell / .punit element
 	crtOverride bool        // dimmed while a phosphor (CRT mode) overrides it
@@ -150,7 +150,7 @@ func buildControlModel() {
 			c.module = m.name
 			// A bank's module serves every model of its row, so a position
 			// is named for the model it is programmed for: "Globe / par",
-			// not "Visual · constants / par".
+			// not "Visual · Model / par".
 			if mode := cell.Call("getAttribute", "data-bank"); mode.Truthy() && mode.String() != "" {
 				c.module = modeLabel(mode.String())
 			}
@@ -202,10 +202,12 @@ func annotateControlTooltips() {
 	// The whole panel read once, then every control works out its own
 	// titles from that and the writes go back in one crossing. See
 	// readPanelCells.
-	h := fastDOM()
-	tips.batching = h.Truthy() && tips.readPanelCells(h)
+	tips.readPanelCells(fastDOM())
 	for _, m := range panelModules {
 		for _, c := range m.ctrls {
+			if c.tipIdx >= 0 && c.tipIdx < len(tips.reads) && tips.reads[c.tipIdx].Done {
+				continue // stamped already, and unchanged since
+			}
 			tips.cell = c.tipIdx
 			c.annotate()
 		}
@@ -217,73 +219,49 @@ func annotateControlTooltips() {
 // annotate stamps this control's elements with the module/control/element
 // hierarchy, per its kind.
 func (c *Control) annotate() {
-	// What the read pass found for this cell, or nil when there was none.
-	f := c.cellFacts()
+	f := c.cellFacts() // what the read pass found for this cell
 	switch c.kind {
 	case kindRotation:
-		axis := ""
-		if f != nil {
-			axis = strings.TrimSpace(f.Axis)
-		} else if l := c.cell.Call("querySelector", ".toprow .plabel"); l.Truthy() {
-			axis = strings.TrimSpace(l.Get("textContent").String())
-		}
+		axis := strings.TrimSpace(f.Axis)
 		angle := c.module + sep + axis + " angle"
 		rate := c.module + sep + axis + " spin rate (ω)"
-		stampAll(c.cell, ".toprow .plabel", angle+sep+"label")
-		stampAll(c.cell, ".toprow .led", angle+sep+"LED readout")
-		stampAll(c.cell, ".knob:not(.knob-fine)", withHelp(angle+sep+"knob", "the model's rotation about its "+axis+" axis; the knob inside it sets how fast it keeps turning (ω)"))
-		stampAll(c.cell, ".knob-fine", angle+sep+"fine-trim knob")
+		stampAll(".toprow .plabel", angle+sep+"label")
+		stampAll(".toprow .led", angle+sep+"LED readout")
+		stampAll(".knob:not(.knob-fine)", withHelp(angle+sep+"knob", "the model's rotation about its "+axis+" axis; the knob inside it sets how fast it keeps turning (ω)"))
+		stampAll(".knob-fine", angle+sep+"fine-trim knob")
 		// knobifyFixed nests the spin-rate knob inside the angle stack as
 		// .knobwrap.knob-inner > .knob; name it for the rate so the two knobs
 		// never share a title.
-		stampAll(c.cell, ".knobwrap.knob-inner .knob:not(.knob-fine)", rate+sep+"knob (nested inner disc)")
+		stampAll(".knobwrap.knob-inner .knob:not(.knob-fine)", rate+sep+"knob (nested inner disc)")
 		// The rate sub-row has its own knob + fine disc (knobifyFixed) — name
 		// them for the rate, not the angle, so the two knobs stay distinct.
-		stampAll(c.cell, ".axsub .knob:not(.knob-fine)", rate+sep+"knob")
-		stampAll(c.cell, ".axsub .knob-fine", rate+sep+"fine-trim knob")
-		stampAll(c.cell, ".botrow .plabel", rate+sep+"ω label") // carries the ω glyph
-		stampAll(c.cell, ".botrow .numin", rate+sep+"value field")
-		stampAll(c.cell, ".axsub .axlbl", rate+sep+"label")
-		stampAll(c.cell, ".axsub .numin", rate+sep+"value field")
-		stampAll(c.cell, "input[type=range]", rate+sep+"slider")
-		stampAll(c.cell, ".rst", c.module+sep+axis+sep+"reset (angle + spin)")
+		stampAll(".axsub .knob:not(.knob-fine)", rate+sep+"knob")
+		stampAll(".axsub .knob-fine", rate+sep+"fine-trim knob")
+		stampAll(".botrow .plabel", rate+sep+"ω label") // carries the ω glyph
+		stampAll(".botrow .numin", rate+sep+"value field")
+		stampAll(".axsub .axlbl", rate+sep+"label")
+		stampAll(".axsub .numin", rate+sep+"value field")
+		stampAll("input[type=range]", rate+sep+"slider")
+		stampAll(".rst", c.module+sep+axis+sep+"reset (angle + spin)")
 
 	case kindPalette:
-		ctl := cellCtl(f, c.cell, c.module) + " color"
-		stampAll(c.cell, ".plabel", ctl+sep+"label")
-		stampAll(c.cell, "input[type=color]", ctl+sep+"color swatch")
-		stampAll(c.cell, ".pal-hex", ctl+sep+"hex readout")
-		stampAll(c.cell, ".rst", ctl+sep+"reset")
-		stampAll(c.cell, ".hueknob", withHelp(ctl+sep+"hue knob (outer)", "the color's hue, round the color wheel; the knob inside it is its level"))
-		stampAll(c.cell, ".colorknob .knob:not(.hueknob)", withHelp(ctl+sep+"level knob (inner)", "how bright the color is; the ring around it picks the hue"))
+		ctl := cellCtl(f, c.module) + " color"
+		stampAll(".plabel", ctl+sep+"label")
+		stampAll("input[type=color]", ctl+sep+"color swatch")
+		stampAll(".pal-hex", ctl+sep+"hex readout")
+		stampAll(".rst", ctl+sep+"reset")
+		stampAll(".hueknob", withHelp(ctl+sep+"hue knob (outer)", "the color's hue, round the color wheel; the knob inside it is its level"))
+		stampAll(".colorknob .knob:not(.hueknob)", withHelp(ctl+sep+"level knob (inner)", "how bright the color is; the ring around it picks the hue"))
 
 	default: // kindGeneric
-		// The step/fine dual cell holds TWO stacked controls; naming both
-		// rows from the first label made every element's tooltip collide.
-		cellID := ""
-		if f != nil {
-			cellID = f.ID
-		} else {
-			cellID = c.cell.Get("id").String()
-		}
-		if cellID == "stepfine-grp" {
-			stepC := c.module + sep + "step ×"
-			fineC := c.module + sep + "fine ×"
-			stampAll(c.cell, ".sf-hdr .plabel", stepC+sep+"label")
-			stampAll(c.cell, "#step-led", stepC+sep+"LED readout")
-			stampAll(c.cell, ".sf-ftr .plabel", fineC+sep+"label")
-			stampAll(c.cell, "#fine-led", fineC+sep+"LED readout")
-			stampSelectorKnobs(f, c.cell, c.module, c.module+sep+"step / fine", "")
-			return
-		}
-		ctl := cellCtl(f, c.cell, c.module)
-		help := cellHelp(f, c.cell)
+		ctl := cellCtl(f, c.module)
+		help := helpFor(f.RID)
 		// No sentence of its own for the parameter: the one the markup wrote
 		// on its value readout ("Envelope attack time in milliseconds — …"),
 		// which the stamp below replaces with "value field", so it is kept in
 		// data-help the first time it is seen. It said what the knob does and
 		// only the readout carried it.
-		if help == "" && f != nil && f.VH != "" {
+		if help == "" && f.VH != "" {
 			help = f.VH
 			if f.VHNew {
 				tips.queueAttr(".numin:not(.u-step)", "data-help", f.VH, 0)
@@ -294,7 +272,7 @@ func (c *Control) annotate() {
 		// before the slider's own stamp replaces it; last, the cell's own
 		// "Name — what it does" (the Grid and Sweep cells say so on the cell,
 		// and the knob's bare stamp covered it).
-		if help == "" && f != nil {
+		if help == "" {
 			if _, d, ok := strings.Cut(f.RT, " — "); ok {
 				help = d
 				if f.RTNew {
@@ -304,38 +282,25 @@ func (c *Control) annotate() {
 				help = d
 			}
 		}
-		stampAll(c.cell, ".plabel:not(.ledcolor-lbl), .u-lbl", withHelp(ctl+sep+"label", help))
-		stampLEDs(f, c.cell, c.module, ctl, help)
-		stampAll(c.cell, "input[type=range]", ctl+sep+"slider")
-		stampAll(c.cell, ".rst", ctl+sep+"reset")
-		stampAll(c.cell, ".eqstrip", ctl+sep+"audio EQ (drag to pick frequency bands)")
-		stampAll(c.cell, ".knob-fine", ctl+sep+"fine-trim knob")
-		numRole := func(step bool) string {
+		stampAll(".plabel:not(.ledcolor-lbl), .u-lbl", withHelp(ctl+sep+"label", help))
+		stampLEDs(f, c.module, ctl, help)
+		stampAll("input[type=range]", ctl+sep+"slider")
+		stampAll(".rst:not(.steprst)", ctl+sep+"reset")
+		stampAll(".eqstrip", ctl+sep+"audio EQ (drag to pick frequency bands)")
+		stampAll(".knob-fine", ctl+sep+"fine-trim knob")
+		// A value field says what its knob does too: a readout is hovered as
+		// often as the knob under it, and on a cell of its own (Loudness's
+		// target) it is the only thing there to hover.
+		for i, step := range f.Nums {
+			tip := withHelp(ctl+sep+"value field", help)
 			if step {
-				return "step-size field"
+				tip = ctl + sep + "step-size field"
 			}
-			return "value field"
+			queueStamp(".numin", tip, i)
 		}
-		if f != nil {
-			for i, step := range f.Nums {
-				queueStamp(".numin", ctl+sep+numRole(step), i)
-			}
-		} else {
-			nums := c.cell.Call("querySelectorAll", ".numin")
-			for i := range nums.Get("length").Int() {
-				n := nums.Index(i)
-				n.Set("title", ctl+sep+numRole(n.Get("classList").Call("contains", "u-step").Bool()))
-			}
-		}
-		stampAll(c.cell, ".knob:not(.knobsel):not(.knob-fine)", withHelp(ctl+sep+"knob", help))
-		hasKnobSel := false
-		if f != nil {
-			hasKnobSel = f.NKnob > 0
-		} else {
-			hasKnobSel = c.cell.Call("querySelector", ".knobsel").Truthy()
-		}
-		if hasKnobSel {
-			stampSelectorKnobs(f, c.cell, c.module, ctl, help)
+		stampAll(".knob:not(.knobsel):not(.knob-fine)", withHelp(ctl+sep+"knob", help))
+		if f.NKnob > 0 {
+			stampSelectorKnobs(f, c.module, ctl, help)
 		}
 	}
 }
@@ -360,33 +325,20 @@ func (c *Control) applyCRTDim(crt bool) {
 // the markup gave it is kept rather than replaced. Those descriptions are the
 // only place the panel says what ENOB is, or which window "S" averages over,
 // and the stamp was destroying every one of them.
-func stampLEDs(f *cellRead, cell js.Value, module, ctl, help string) {
+func stampLEDs(f *cellRead, module, ctl, help string) {
 	const sel = ".led:not(.pal-hex)"
-	if f != nil {
-		for i, l := range f.LEDs {
-			name := ctl
-			if own := strings.TrimSpace(l.Own); own != "" {
-				name = module + sep + own
-			}
-			desc, keep := ledDescriptionFrom(l.Help, l.Title, help)
-			if keep {
-				// The description the markup gave this readout, written
-				// down before the stamp below overwrites the title it
-				// lives in.
-				tips.queueAttr(sel, "data-help", desc, i)
-			}
-			queueStamp(sel, withHelp(name+sep+"LED readout", desc), i)
-		}
-		return
-	}
-	leds := cell.Call("querySelectorAll", sel)
-	for i := range leds.Get("length").Int() {
-		l := leds.Index(i)
+	for i, l := range f.LEDs {
 		name := ctl
-		if own := ledOwnLabel(l); own != "" {
+		if own := strings.TrimSpace(l.Own); own != "" {
 			name = module + sep + own
 		}
-		l.Set("title", withHelp(name+sep+"LED readout", ledDescription(l, help)))
+		desc, keep := ledDescriptionFrom(l.Help, l.Title, help)
+		if keep {
+			// The description the markup gave this readout, written down
+			// before the stamp below overwrites the title it lives in.
+			tips.queueAttr(sel, "data-help", desc, i)
+		}
+		queueStamp(sel, withHelp(name+sep+"LED readout", desc), i)
 	}
 }
 
@@ -404,31 +356,4 @@ func ledDescriptionFrom(dataHelp, title, fallback string) (string, bool) {
 		return fallback, false // nothing authored, or already stamped by an earlier pass
 	}
 	return t, true
-}
-
-// ledOwnLabel is the readout's own label, where it has one.
-func ledOwnLabel(led js.Value) string {
-	prev := led.Get("previousElementSibling")
-	if prev.Truthy() && prev.Get("classList").Call("contains", "ledlbl").Bool() {
-		return strings.TrimSpace(prev.Get("textContent").String())
-	}
-	return ""
-}
-
-// ledDescription is what the markup said this readout means.
-//
-// Captured on the first stamp, because the stamp is what overwrites it, and
-// annotate runs again on every panel rebuild.
-func ledDescription(led js.Value, fallback string) string {
-	if d := led.Call("getAttribute", "data-help"); d.Truthy() {
-		if s := d.String(); s != "" {
-			return s
-		}
-	}
-	t := strings.TrimSpace(led.Get("title").String())
-	if t == "" || strings.Contains(t, sep+"LED readout") {
-		return fallback // nothing authored, or already stamped by an earlier pass
-	}
-	led.Call("setAttribute", "data-help", t)
-	return t
 }

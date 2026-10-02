@@ -80,7 +80,7 @@ func goClasses(t *testing.T) map[string]bool {
 // source as a whole token. That is generous, and deliberately: a false
 // "this is dead" would get a live rule deleted.
 func TestEveryStyledClassIsEmitted(t *testing.T) {
-	const budget = 2
+	const budget = 0
 	src := strings.Join(panelGoSources(t), "\n")
 	var orphan []string
 	for c := range cssClasses(t) {
@@ -106,7 +106,7 @@ func TestEveryStyledClassIsEmitted(t *testing.T) {
 // TestEveryEmittedClassIsStyled is the other direction: a class Go sets that
 // no rule matches. Usually a typo, occasionally a hook something queries.
 func TestEveryEmittedClassIsStyled(t *testing.T) {
-	const budget = 8
+	const budget = 0
 	styled := cssClasses(t)
 	var unstyled []string
 	for c := range goClasses(t) {
@@ -130,6 +130,23 @@ func TestEveryEmittedClassIsStyled(t *testing.T) {
 func classAllowed(c string) bool {
 	switch c {
 	case "rack-frame", "rack-mod", "rack-mod-hdr", "rack-grid":
+		return true
+	// A selector knob, which the tooltip stamp and the read pass look up
+	// (tooltips_js.go, fastdom_js.go); it is styled as the knob it is.
+	case "knobsel":
+		return true
+	// Found, not styled: the readout line's place for a model's measured
+	// readouts, which the panel build takes away (liveReadoutHost), and the
+	// markup's displays on it, which mountModelReadouts gives their dots.
+	case "mro-live", "mrodmd":
+		return true
+	// Found, not styled: a color knob's hue ring, which the tooltip pass
+	// looks up to tell it from the level knob inside it (control.go), and
+	// the Section module, which the panel build finds to take away.
+	case "hueknob", "sectmodule":
+		return true
+	// Made, not written out: the dock edge, "dk-"+edge (layout_js.go).
+	case "dk-top", "dk-bottom", "dk-left", "dk-right":
 		return true
 	}
 	return false

@@ -53,6 +53,10 @@ type bifurcation struct {
 	curEl      js.Value // the cursor readout in the panel
 	curText    string   // last text written to it
 
+	// sweepFilling is set while SWEEP's options are refilled, so the change
+	// event that refill sends its displays is not taken for a new choice.
+	sweepFilling bool
+
 	// depth is the fraction of the swept parameter's full range the envelope is
 	// mapped across. A third by default rather than the whole axis: at full depth
 	// a quiet passage parks the cursor at one end and a loud one throws it to the
@@ -71,10 +75,12 @@ var bif = bifurcation{
 	depth:        0.33,
 }
 
-// bifDriveParams is the depth knob, built by the same buildParamUnit every
-// other knob in the rack goes through so it reads and behaves as one.
-var bifDriveParams = []paramDef{
-	{"bif-depth", "depth", &bif.depth, 0.33, 0, 1, 0.01},
+// DEPTH is bifurcation's one parameter: a knob in the Visual bank like any
+// model's constant, which is what a parameter gets.
+func init() {
+	attractorParams["bifurcation"] = []paramDef{
+		{"bif-depth", "depth", &bif.depth, 0.33, 0, 1, 0.01},
+	}
 }
 
 func (b *bifurcation) invalidate() { b.sig = "" }
@@ -333,120 +339,80 @@ func (b *bifurcation) showCursor(s string) {
 	}
 }
 
-// buildBifPanel fills the Parameters module for bifurcation mode: the source
-// system, the swept-parameter selector, and progress.
-func (b *bifurcation) buildBifPanel(paramsDiv js.Value) {
-	col := dom.Doc.Call("createElement", "span")
-	col.Set("className", "pcell")
+// wireBifCells wires SWEEP and DRIVE, bifurcation's two positions in the
+// Visual bank (the cells in the #model-parts holder, marked data-bank-of).
+// DEPTH is a parameter of the model (the init below), so the bank builds its
+// knob as it does any other; it is dark while DRIVE is on sweep, where it
+// moves nothing.
+func (b *bifurcation) wireBifCells() {
+	if sel := dom.Doc.Call("getElementById", "bif-sweep"); sel.Truthy() {
+		sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
+			if b.sweepFilling {
+				return nil
+			}
+			if v, err := strconv.Atoi(sel.Get("value").String()); err == nil {
+				b.paramIdx = v
+				b.invalidate()
+			}
+			return nil
+		}))
+	}
+	adoptDescControl(ControlDesc{
+		ID: "bif-drive", Label: "drive", IsSelect: true, SelectDef: "0", ResetID: "rst-bif-drive",
+		SelectApply: func(v string) {
+			b.driveAudio = v == "1"
+			syncAudioMod()
+			b.syncDepthCell()
+		},
+	})
+	b.syncDepthCell()
+}
 
-	src := dom.Doc.Call("createElement", "span")
-	src.Set("className", "plabel")
-	src.Set("textContent", "SWEEP "+modeInfo[b.lastFlowMode].Label)
-	src.Set("title", "The system being swept — the most recent flow mode. Switch to an attractor, tune it, then come back.")
-	col.Call("appendChild", src)
-
-	sel := dom.Doc.Call("createElement", "select")
-	sel.Set("title", "Swept parameter — the x axis of the diagram; each column integrates the system fresh at that value and plots the maxima of z")
-	sel.Set("style", "background:#222;color:#ccc;border:1px solid #555;font-family:monospace;font-size:12px;padding:2px 4px;")
+// syncSweepCell fills SWEEP with the parameters of the system being swept —
+// the most recent flow mode, which is why its options are not fixed and its
+// ring prints none of them (ledSelector). Called as the mode comes up.
+func (b *bifurcation) syncSweepCell() {
+	sel := dom.Doc.Call("getElementById", "bif-sweep")
+	if !sel.Truthy() {
+		return
+	}
 	_, cur, _ := b.param()
+	b.sweepFilling = true
+	sel.Set("innerHTML", "")
 	for i, pd := range b.params() {
 		opt := dom.Doc.Call("createElement", "option")
 		opt.Set("value", strconv.Itoa(i))
 		opt.Set("textContent", pd.Label)
-		if i == cur {
-			opt.Set("selected", true)
-		}
 		sel.Call("appendChild", opt)
 	}
-	sel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
-		if v, err := strconv.Atoi(sel.Get("value").String()); err == nil {
-			b.paramIdx = v
-			b.invalidate()
-		}
-		return nil
-	}))
-	grp := dom.Doc.Call("createElement", "span")
-	grp.Set("className", "grp")
-	grp.Call("appendChild", sel)
-	col.Call("appendChild", grp)
-
-	// DRIVE, in the same cell and built the same way as the selector above it:
-	// the two are the same kind of control — which parameter, and what moves
-	// it — and giving one a select and the other a switch would have said they
-	// were different kinds of thing.
-	drv := dom.Doc.Call("createElement", "span")
-	drv.Set("className", "plabel")
-	drv.Set("textContent", "DRIVE")
-	drv.Set("title", "What puts the system at a parameter value. \"sweep\" is the diagram alone, "+
-		"computed left to right. \"audio\" keeps the same diagram and points a cursor at it from the "+
-		"live audio envelope, so the branch structure under the music is lit up as it plays. The "+
-		"diagram itself does not move: its x axis means something only because the parameter runs "+
-		"monotonically along it, and a diagram whose x jumps around with the loudness would not be a "+
-		"bifurcation diagram any more. Needs Audio mod on, which is what computes the envelope.")
-	col.Call("appendChild", drv)
-
-	dsel := dom.Doc.Call("createElement", "select")
-	dsel.Set("title", "sweep: the diagram alone. audio: the envelope moves a cursor along it.")
-	dsel.Set("style", "background:#222;color:#ccc;border:1px solid #555;font-family:monospace;font-size:12px;padding:2px 4px;")
-	for i, name := range []string{"sweep", "audio"} {
-		opt := dom.Doc.Call("createElement", "option")
-		opt.Set("value", strconv.Itoa(i))
-		opt.Set("textContent", name)
-		if (i == 1) == b.driveAudio {
-			opt.Set("selected", true)
-		}
-		dsel.Call("appendChild", opt)
+	sel.Set("value", strconv.Itoa(cur))
+	// Its ring and its display follow the change event; this handler skips
+	// it, because nothing about the sweep has changed.
+	sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+	b.sweepFilling = false
+	if cell := sel.Call("closest", ".punit"); cell.Truthy() {
+		cell.Set("title", docf("bif-sweep-cell.live", "mode", modeInfo[b.lastFlowMode].Label))
 	}
-	dsel.Call("addEventListener", "change", dom.FuncOf(func(this js.Value, a []js.Value) any {
-		b.driveAudio = dsel.Get("value").String() == "1"
-		// Rebuild: the depth knob comes and goes with the choice, the way the
-		// Section module comes and goes with the Sect switch. A knob that is
-		// visible while it does nothing is worse than one that is not there.
-		buildParamPanel(run.selectedMode)
-		return nil
-	}))
-	dgrp := dom.Doc.Call("createElement", "span")
-	dgrp.Set("className", "grp")
-	dgrp.Call("appendChild", dsel)
-	col.Call("appendChild", dgrp)
+}
 
-	// The cursor's own readout, beside the control that creates it. It also
-	// says why there is no cursor when there is not, in words, so it is a
-	// character display: seven segments spelled "sweep" as best they could.
-	b.curEl = dotDisplayN("sweep", false, 8)
-	b.curEl.Get("classList").Call("add", "dmdval")
-	b.curEl.Set("title", "Where the audio envelope currently puts the swept parameter — the cursor's "+
-		"position on the diagram's x axis. \"sweep\" means the audio drive is off; \"mod off\" means it "+
-		"is selected but Audio mod is not on, so there is no envelope to follow.")
+// syncDepthCell blanks DEPTH's readout while the audio drive is off.
+func (b *bifurcation) syncDepthCell() {
+	cs := dom.Doc.Call("querySelectorAll", `[data-param="bif-depth"]`)
+	for i := range cs.Length() {
+		setCellBlank(cs.Index(i), !b.driveAudio)
+	}
+}
+
+// appendCursorReadout puts where the audio drive has the swept parameter on
+// the model's readout line (liveReadoutHost). It also says why there is no
+// cursor when there is not, in words, so it is a character display.
+func (b *bifurcation) appendCursorReadout(host js.Value) {
 	// Cleared so the next frame writes into the NEW element: the panel is
 	// rebuilt on every mode change and this guard would otherwise skip the
 	// fresh cell as unchanged and leave it blank.
 	b.curText = ""
-	col.Call("appendChild", b.curEl)
-
-	paramsDiv.Call("appendChild", col)
-
-	// DEPTH, only while the audio drive is on. A real knob rather than a
-	// number field so it matches every other quantity in the rack, and in a
-	// grid of its own because that is the container buildParamUnit's cells
-	// expect.
-	if b.driveAudio {
-		g := dom.Doc.Call("createElement", "div")
-		g.Set("className", "punit-grid")
-		// The knob's own explanation goes on the grid, the way the Section
-		// module's goes on its header: a paramDef carries no description
-		// field, and the cell buildParamUnit returns has no room for one.
-		g.Set("title", "DEPTH — how much of the swept parameter's range the audio moves the cursor "+
-			"across, centered on wherever that parameter's own knob is set. At 1 the envelope covers the "+
-			"whole axis, which mostly reads as a level meter lying on its side; a third is enough to cross "+
-			"a bifurcation without every drum hit crossing all of them. At 0 the cursor stays on the knob. "+
-			"The window slides inward at the ends of the range rather than clipping, so the quiet and loud "+
-			"parts of the music always map somewhere different.")
-		for _, pd := range bifDriveParams {
-			g.Call("appendChild", buildParamUnit(run.selectedMode, pd))
-		}
-		paramsDiv.Call("appendChild", g)
-	}
+	b.curEl = liveReadout(host, "cur", dispFullChars, "sweep",
+		doc("ro.cur"))
 }
 
 func init() {

@@ -194,7 +194,12 @@ type rowGroup struct {
 // rackRowGroups are the merged rows. A category in none of them is a row of
 // its own.
 var rackRowGroups = []rowGroup{
-	{Label: "Visual", Cats: []string{"Attractors", "Maps", "Solids", "Geometry", "Sequences"}},
+	// Every model, in one row: one MODEL knob whose outer ring picks the kind
+	// and one bank it reprograms. It was two, Visual and Signal, each a head
+	// with its own monitor and a bank of its own, and only one of the two was
+	// ever running; one bank the size of the biggest model serves them all,
+	// the same knobs turned to whichever model is playing.
+	{Label: "Visual", Cats: []string{"Attractors", "Maps", "Solids", "Geometry", "Sequences", "Scope", "Embeddings", "Audio"}},
 }
 
 // rowOfCategory is the row a category is drawn in.

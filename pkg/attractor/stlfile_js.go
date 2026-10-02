@@ -147,7 +147,7 @@ func setSTLFileTris(n int, at func(int) [3]meshstl.V3) error {
 // stlFileSetLED writes the Loader readout (and its hover detail).
 func stlFileSetLED(text, title string) {
 	if led := dom.Doc.Call("getElementById", "stlfile-led"); led.Truthy() {
-		led.Set("textContent", text)
+		setDotText(led, text)
 		if title != "" {
 			led.Set("title", title)
 		}
@@ -182,12 +182,11 @@ func buildSTLFileModule() {
 			stlFileSetLED("ERR", "Could not read "+name+": "+err.Error())
 			return nil
 		}
-		// LED readout: base name only, uppercased (DSEG has no lowercase
-		// worth reading), capped to what the cell fits — the tooltip keeps
-		// the full name.
-		short := strings.ToUpper(strings.TrimSuffix(strings.ToLower(name), ".stl"))
-		if r := []rune(short); len(r) > 7 {
-			short = string(r[:7])
+		// The readout: the base name, cut to what the display holds — the
+		// tooltip keeps the full name.
+		short := strings.TrimSuffix(strings.TrimSuffix(name, ".stl"), ".STL")
+		if r := []rune(short); len(r) > dispFullChars {
+			short = string(r[:dispFullChars])
 		}
 		detail := name + " — " + strconv.Itoa(stlFileTris) + " triangles"
 		if stlFileTris >= stlmodels.MaxTris {
@@ -214,18 +213,6 @@ func buildSTLFileModule() {
 		input.Call("click")
 		return nil
 	}))
-}
-
-// syncSTLFileExtras shows the Loader module while STL File is the active
-// model (the panel-rebuild hook, like the other mode-scoped modules).
-func syncSTLFileExtras(mode string) {
-	if sect := dom.Doc.Call("getElementById", "stlfile-module"); sect.Truthy() {
-		if mode == "stlfile" {
-			sect.Get("style").Set("display", "")
-		} else {
-			sect.Get("style").Set("display", "none")
-		}
-	}
 }
 
 // buildSTLBuiltInPicker fills the Loader module's built-in list and wires it.
@@ -275,9 +262,9 @@ func buildSTLBuiltInPicker() {
 			stlFileSetLED("ERR", "Could not read "+m.Label+": "+err.Error())
 			return nil
 		}
-		short := strings.ToUpper(name)
-		if r := []rune(short); len(r) > 7 {
-			short = string(r[:7])
+		short := name
+		if r := []rune(short); len(r) > dispFullChars {
+			short = string(r[:dispFullChars])
 		}
 		detail := m.Label + " — " + strconv.Itoa(stlFileTris) + " triangles"
 		if stlFileTris >= stlmodels.MaxTris {

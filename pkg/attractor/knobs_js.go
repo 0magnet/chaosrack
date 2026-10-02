@@ -4,10 +4,10 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/encoder"
 	"github.com/0magnet/chaosrack/pkg/skirt"
 	"math"
 	"strconv"
-	"strings"
 	"syscall/js"
 )
 
@@ -32,22 +32,45 @@ var kb struct {
 	min      float64
 	max      float64
 	fine     bool
+	sweep    float64 // degrees the knob turns across its range (knobSweep)
 	cx, cy   float64
 	prevAng  float64
 	active   bool
 	dragInit bool
+
+	// A bank position is an encoder, not a potentiometer: turning it is
+	// detents, each one step of whatever it is programmed to, accelerated
+	// by how fast they come (pkg/encoder). Every other knob maps its sweep
+	// onto its range, as a pot does.
+	encoder bool
+	enc     encoder.Encoder
+	step    float64 // the coarse step one detent moves an encoder knob
 }
 
-// fineRatio: the fine knob's step and drag sensitivity as a fraction of the
-// coarse step (0.1 = fine moves in tenths of a coarse step). Adjustable at
-// runtime via the "Fine ×" control; read live by drag and wheel.
-var fineRatio = 0.1
+// fineRatio is the fine disc's step and drag sensitivity as a fraction of
+// the knob's coarse step: fine moves in tenths. It used to be a rack-wide
+// setting (Display's Fine ×, with a Step × beside it that scaled every coarse
+// step); a bank position has a step of its own, which that fought with.
+const fineRatio = 0.1
 
-// coarseRatio scales the coarse step / drag sensitivity of every param knob
-// (the "Step ×" control), read live so changes take effect without a rebuild.
-var coarseRatio = 1.0
+// switchPots are the knobs that are switch-pots (switchpot.go), by slider id.
+var switchPots = map[string]switchPot{}
 
-func knobAngleForValue(v, lo, hi float64) float64 {
+// oneTurn are the knobs that sweep a whole turn rather than the standard
+// 270°: the View module's position knobs, which sit beside the angle knobs
+// and wear the same degree dial. One turn, not endless: the middle is the
+// default, and either end is half a turn away, at the bottom.
+var oneTurn = map[string]bool{"pan-x": true, "pan-y": true, "camera-zoom": true}
+
+// knobSweep is how many degrees the knob for slider id turns across its range.
+func knobSweep(id string) float64 {
+	if oneTurn[id] {
+		return 360
+	}
+	return skirt.SweepDeg
+}
+
+func knobAngleForValue(v, lo, hi, sweep float64) float64 {
 	if hi <= lo {
 		return 0
 	}
@@ -58,7 +81,7 @@ func knobAngleForValue(v, lo, hi float64) float64 {
 	if t > 1 {
 		t = 1
 	}
-	return -skirt.SweepDeg/2 + skirt.SweepDeg*t
+	return -sweep/2 + sweep*t
 }
 
 // initKnobDrag wires the one-time document listeners that turn the active
@@ -82,21 +105,38 @@ func initKnobDrag() {
 		}
 		kb.prevAng = cur
 		v, _ := strconv.ParseFloat(kb.slider.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-		scale := coarseRatio
+		scale := 1.0
 		if kb.fine {
-			scale = coarseRatio * fineRatio
+			scale = fineRatio
 		}
-		v += (d / (skirt.SweepDeg * math.Pi / 180)) * (kb.max - kb.min) * scale
-		if v < kb.min {
-			v = kb.min
+		if kb.encoder {
+			n := kb.enc.Turn(d, js.Global().Get("performance").Call("now").Float())
+			if n == 0 {
+				return
+			}
+			v += float64(n) * kb.step * scale
+		} else {
+			v += (d / (kb.sweep * math.Pi / 180)) * (kb.max - kb.min) * scale
 		}
-		if v > kb.max {
-			v = kb.max
+		// An encoder with laps goes where its laps go (turns.go); anything
+		// else stops at the ends of its range.
+		if spec, endless := turnSpecs[kb.slider.Get("id").String()]; endless && kb.encoder {
+			v = spec.clamp(v)
+		} else {
+			v = math.Max(kb.min, math.Min(kb.max, v))
 		}
 		kb.slider.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
 		kb.slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
 	})
 	release := dom.FuncOf(func(this js.Value, args []js.Value) any {
+		// A switch-pot let go in the gap comes to rest where its pointer
+		// already shows it: in the detent or at the bottom of the range.
+		if kb.active && kb.slider.Truthy() {
+			if sp, ok := switchPots[kb.slider.Get("id").String()]; ok {
+				v, _ := strconv.ParseFloat(kb.slider.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+				kb.slider.Set("value", strconv.FormatFloat(sp.snap(v), 'g', -1, 64))
+			}
+		}
 		kb.active = false
 		if kb.knobEl.Truthy() {
 			kb.knobEl.Get("classList").Call("remove", "knob-grab")
@@ -128,25 +168,17 @@ type selectorKnob struct {
 	sel, knob         js.Value
 	cx, cy, prev, acc float64
 	dragInit          bool
+	// parked: the drag landed on no position (a merged bay's model ring at
+	// OFF) and turns nothing more until it is let go.
+	parked bool
 }
 
 var selk selectorKnob
 
 func (s *selectorKnob) step(dir int) {
-	if !s.sel.Truthy() {
-		return
+	if s.sel.Truthy() {
+		selStep(s.sel, dir, true)
 	}
-	n := s.sel.Get("options").Get("length").Int()
-	if n == 0 {
-		return
-	}
-	idx := s.sel.Get("selectedIndex").Int() + dir
-	for idx < 0 {
-		idx += n
-	}
-	idx %= n
-	s.sel.Set("selectedIndex", idx)
-	s.sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
 }
 
 // initSelKnobDrag wires the one-time document move/up listeners that turn the
@@ -158,7 +190,7 @@ func (s *selectorKnob) initSelKnobDrag() {
 	}
 	s.dragInit = true
 	onPointerMove(func(e js.Value) {
-		if !s.active {
+		if !s.active || s.parked {
 			return
 		}
 		r := s.knob.Call("getBoundingClientRect")
@@ -187,15 +219,31 @@ func (s *selectorKnob) initSelKnobDrag() {
 				detent = 360.0 / float64(n)
 			}
 		}
+		// No position — a merged bay's model ring at OFF, between its last
+		// model and its first — is a stop: a drag that lands on it stays there
+		// until it is let go, as a switch-pot's OFF holds the hand, so OFF can
+		// be reached by turning and not only passed through.
+		land := func() bool {
+			if s.sel.Get("selectedIndex").Int() < 0 {
+				s.parked, s.acc = true, 0
+			}
+			return s.parked
+		}
 		for s.acc += dDeg; s.acc >= detent; s.acc -= detent {
 			s.step(1)
+			if land() {
+				return
+			}
 		}
 		for ; s.acc <= -detent; s.acc += detent {
 			s.step(-1)
+			if land() {
+				return
+			}
 		}
 	})
 	rel := dom.FuncOf(func(this js.Value, args []js.Value) any {
-		s.active = false
+		s.active, s.parked = false, false
 		return nil
 	})
 	dom.Doc.Call("addEventListener", "pointerup", rel)
@@ -204,14 +252,7 @@ func (s *selectorKnob) initSelKnobDrag() {
 
 // makeSelectorKnob builds a rotary-encoder knob that steps sel's options,
 // like the model selector. Returns the knob element to place before sel.
-// makeSelectorKnob builds a rotary selector over sel. An optional rot (degrees)
-// offsets the pointer so it lines up with labels that were rotated by the same
-// amount (e.g. the knob-style ring, staggered off the LED-color dots).
-func (s *selectorKnob) makeSelectorKnob(sel js.Value, rot ...float64) js.Value {
-	ptrRot := 0.0
-	if len(rot) > 0 {
-		ptrRot = rot[0]
-	}
+func (s *selectorKnob) makeSelectorKnob(sel js.Value) js.Value {
 	knob := dom.Doc.Call("createElement", "span")
 	knob.Set("className", "knob knobsel")
 	knob.Call("setAttribute", "data-no-drag", "")
@@ -228,15 +269,25 @@ func (s *selectorKnob) makeSelectorKnob(sel js.Value, rot ...float64) js.Value {
 	ptr.Set("className", "knob-ptr")
 	knob.Call("appendChild", ptr)
 	// The pointer snaps to the selected option's slot (270° spread over the
-	// options) — it only ever points at a valid position, never in between.
+	// options) — it only ever points at a position, never in between, or with
+	// none selected at the bottom, where OFF is.
 	// Driven off the select's 'change', so drag detents, the wheel, the
 	// dropdown, and permalink restores all move it.
 	snap := func() {
 		n := sel.Get("options").Get("length").Int()
 		idx := sel.Get("selectedIndex").Int()
-		ang := ptrRot
-		if n > 1 {
-			ang = -skirt.SweepDeg/2 + skirt.SweepDeg*float64(idx)/float64(n-1) + ptrRot
+		ang := 0.0
+		switch {
+		case idx < 0:
+			// On no position: a merged bay's model ring with the bay off. It
+			// points at the bottom, the gap between its last position and its
+			// first, which is where OFF is on the category ring round it: the two
+			// rings say OFF together.
+			ang = 180
+		case selEndless(sel) && n > 0:
+			ang = endlessDeg(idx, n)
+		case n > 1:
+			ang = -skirt.SweepDeg/2 + skirt.SweepDeg*float64(idx)/float64(n-1)
 		}
 		ptr.Get("style").Set("transform", "translate(-50%,-100%) rotate("+strconv.FormatFloat(ang, 'f', 1, 64)+"deg)")
 	}
@@ -261,21 +312,11 @@ func (s *selectorKnob) makeSelectorKnob(sel js.Value, rot ...float64) js.Value {
 	// One step of the selection, shared by the wheel and the arrow keys, for
 	// the same reason the value knobs share theirs.
 	step := func(up bool) {
-		idx := sel.Get("selectedIndex").Int()
-		n := sel.Get("options").Get("length").Int()
+		dir := 1
 		if up {
-			idx--
-		} else {
-			idx++
+			dir = -1
 		}
-		if idx < 0 {
-			idx = 0
-		}
-		if idx >= n {
-			idx = n - 1
-		}
-		sel.Set("selectedIndex", idx)
-		sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+		selStep(sel, dir, false)
 	}
 	// Scroll wheel over the knob steps the selection (like scrolling the
 	// select itself), firing change so the bound handler reacts.
@@ -348,7 +389,7 @@ func singleSelectorKnob(sel js.Value, labels []string) js.Value {
 	return stack
 }
 
-// selectorKnobReadout builds a lone rotary-switch knob with a live text readout
+// selectorKnobReadout builds a lone rotary-switch knob with a character display
 // of the current option beneath it, for selectors that have too many options or
 // too-long labels for a ring of labels around the dial (e.g. Phosphor). Returns
 // a wrapper element to place in the panel.
@@ -361,11 +402,11 @@ func selectorKnobReadout(sel js.Value) js.Value {
 	knob := selk.makeSelectorKnob(sel)
 	knob.Get("classList").Call("add", "knob-ring")
 	stack.Call("appendChild", knob)
-	readout := dom.Doc.Call("createElement", "span")
-	readout.Set("className", "selk-readout")
+	readout := dotDisplayN("", false, optionChars(sel))
+	readout.Get("classList").Call("add", "selk-readout")
 	set := func() {
 		idx := max(sel.Get("selectedIndex").Int(), 0)
-		readout.Set("textContent", sel.Get("options").Index(idx).Get("text").String())
+		setDotText(readout, displayText(sel.Get("options").Index(idx).Get("text").String()))
 		// The readout describes what it is CURRENTLY showing. Without a title of
 		// its own it showed the cell's, which is a paragraph about the knob —
 		// the same paragraph whatever the readout said, and available from
@@ -389,10 +430,16 @@ func dialLabelPos(deg, offPct float64) (string, string) {
 	return strconv.FormatFloat(x, 'f', 1, 64) + "%", strconv.FormatFloat(y, 'f', 1, 64) + "%"
 }
 
+// angleDialLabelOff is where addAngleDial's numbers sit, in dialLabelPos
+// percent: outside the ticks, which hug the knob (.axknob-box, panel.css).
+const angleDialLabelOff = 45
+
 // addAngleDial draws an analog degree dial around a stack's outer ring: tick
 // marks every 30° with 0/90/180/270 labels, like a clock but in degrees.
 // Decorative (pointer-events:none) and behind the knob, so only the part
-// outside the ring shows.
+// outside the ring shows. The numbers stand outside the ticks and face the
+// knob, foot inward, which is what lets the side ones fit the cell: on end,
+// "270" is one line of type wide.
 func addAngleDial(stack js.Value) {
 	dial := dom.Doc.Call("createElement", "span")
 	dial.Set("className", "knob-dial")
@@ -400,16 +447,17 @@ func addAngleDial(stack js.Value) {
 	ticks.Set("className", "angle-dial-ticks")
 	dial.Call("appendChild", ticks)
 	for _, d := range []int{0, 90, 180, 270} {
-		l, t := dialLabelPos(float64(d), 44)
+		l, t := dialLabelPos(float64(d), angleDialLabelOff)
 		lab := dom.Doc.Call("createElement", "span")
 		lab.Set("className", "knob-dial-lab")
 		lab.Set("textContent", strconv.Itoa(d))
 		// The dial is decorative, but the label still needs a title: without one
 		// it shows the CELL's tooltip, so all four degree marks explained the
 		// axis rather than the quarter turn each of them marks.
-		lab.Set("title", strconv.Itoa(d)+"° — a quarter-turn mark on the angle scale")
+		lab.Set("title", docf("knob-quarter", "deg", strconv.Itoa(d)))
 		lab.Get("style").Set("left", l)
 		lab.Get("style").Set("top", t)
+		lab.Get("style").Set("transform", "translate(-50%,-50%) rotate("+strconv.Itoa(d)+"deg)")
 		dial.Call("appendChild", lab)
 	}
 	stack.Call("insertBefore", dial, stack.Get("firstChild"))
@@ -442,7 +490,7 @@ func addValueDial(wrap js.Value, lo, hi float64) {
 	// not the full circle — so the scale matches how far the knob actually
 	// turns. A major (longer) tick every quarter aligns with where the min/max
 	// numbers sit; minor ticks fill in between.
-	const nTicks = 20 // 21 marks across the sweep; every 5th is a major
+	const nTicks = dialTicks - 1 // 21 marks across the sweep; every 5th is a major
 	for i := 0; i <= nTicks; i++ {
 		t := float64(i) / float64(nTicks)
 		deg := -skirt.SweepDeg/2 + skirt.SweepDeg*t
@@ -474,9 +522,9 @@ func addValueDial(wrap js.Value, lo, hi float64) {
 		v := fmtDialNum(lo + (hi-lo)*t)
 		lab.Set("textContent", v)
 		if i == 0 {
-			lab.Set("title", v+" — the lowest this knob goes; turned fully counter-clockwise")
+			lab.Set("title", docf("knob-min", "v", v))
 		} else {
-			lab.Set("title", v+" — the highest this knob goes; turned fully clockwise")
+			lab.Set("title", docf("knob-max", "v", v))
 		}
 		lab.Get("style").Set("left", l)
 		lab.Get("style").Set("top", tp)
@@ -565,7 +613,7 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 		coarseStep = (hi - lo) / 100
 	}
 	// Let the slider carry values far finer than one coarse step, so the fine
-	// knob/wheel can nudge sub-step at any fineRatio; the coarse control still
+	// knob/wheel can nudge a tenth of a step; the coarse control still
 	// moves by whole coarse steps. Knobs built WITHOUT a fine disc keep the
 	// authored step — integer-domain controls (lat/lon line counts, polygon
 	// subdivisions) must snap to whole values.
@@ -595,17 +643,42 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 		// Fine-trim disc: name it from the control it trims (the slider title) so
 		// it isn't a generic "fine" on every knob.
 		if t := slider.Get("title").String(); t != "" {
-			fine.Set("title", "Fine trim — "+t)
+			fine.Set("title", docf("knob-fine", "control", t))
 		} else {
-			fine.Set("title", "fine trim")
+			fine.Set("title", doc("knob-fine.plain"))
 		}
 		knob.Call("appendChild", fine)
 	}
 
+	var dial js.Value // the value dial, once there is one: its ticks are an LED ring
+	id := slider.Get("id").String()
+	sweep := knobSweep(id)
 	update := func() {
 		v, _ := strconv.ParseFloat(slider.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-		ang := knobAngleForValue(v, lo, hi)
+		// An endless knob (turns_js.go) points round its lap and lights a
+		// full ring; one with stops sweeps 270° across its range.
+		spec, endless := turnSpecs[id]
+		// A switch-pot's pointer is in its detent or in its range, never
+		// in the gap between them (switchpot.go).
+		if sp, ok := switchPots[id]; ok {
+			v = sp.snap(v)
+		}
+		ang := knobAngleForValue(v, lo, hi, sweep)
+		if endless {
+			ang = spec.angle(v)
+		}
 		ptr.Get("style").Set("transform", "translate(-50%,-100%) rotate("+strconv.FormatFloat(ang, 'f', 1, 64)+"deg)")
+		if dial.Truthy() {
+			if endless {
+				paintRing(dial, spec, v)
+			} else {
+				from, to := ringLit(v, lo, hi, dialTicks)
+				lightRing(dial, from, to)
+			}
+		}
+	}
+	if id != "" {
+		knobRefresh[id] = update
 	}
 	update()
 	upd := dom.FuncOf(func(this js.Value, args []js.Value) any {
@@ -630,7 +703,13 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 			kb.cy = r.Get("top").Float() + r.Get("height").Float()/2
 			kb.prevAng = math.Atan2(e.Get("clientY").Float()-kb.cy, e.Get("clientX").Float()-kb.cx)
 			kb.slider, kb.min, kb.max, kb.fine, kb.active = slider, lo, hi, fineMode, true
+			kb.sweep = sweep
 			kb.knobEl = el
+			// In a bank it is an encoder (see kb). Asked at the grab, because
+			// the cell is made before the bank it is mounted in.
+			kb.encoder = knob.Call("closest", ".dmdcell").Truthy()
+			kb.step = coarseStep
+			kb.enc.Reset()
 			el.Get("classList").Call("add", "knob-grab")
 			return nil
 		})
@@ -642,28 +721,28 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 
 	// Scroll wheel over a knob nudges its value: coarse step on the main
 	// knob, fine step on the inner disc.
-	// fine=false → step by one coarse step; fine=true → coarseStep·fineRatio
-	// (read live, so the "Fine ×" control takes effect without a rebuild).
+	// fine=false → step by one coarse step; fine=true → a tenth of one.
 	// One definition of "one step of this knob", shared by the wheel and the
-	// arrow keys. Keeping it in a single closure is the point: the two inputs
-	// cannot drift apart, and both pick up the live fine ratio.
+	// arrow keys, so the two inputs cannot drift apart.
 	nudge := func(fineMode bool) func(up bool) {
 		return func(up bool) {
-			stepv := coarseStep * coarseRatio
+			stepv := coarseStep
 			if fineMode {
-				stepv = coarseStep * coarseRatio * fineRatio
+				stepv = coarseStep * fineRatio
 			}
 			v, _ := strconv.ParseFloat(slider.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+			old := v
 			if up {
 				v += stepv
 			} else {
 				v -= stepv
 			}
-			if v < lo {
-				v = lo
-			}
-			if v > hi {
-				v = hi
+			if spec, endless := turnSpecs[id]; endless {
+				v = spec.clamp(v)
+			} else if sp, ok := switchPots[id]; ok {
+				v = math.Max(lo, math.Min(hi, sp.step(old, v)))
+			} else {
+				v = math.Max(lo, math.Min(hi, v))
 			}
 			slider.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
 			slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
@@ -687,6 +766,8 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 	}
 	if valueDial {
 		addValueDial(wrap, lo, hi)
+		dial = wrap.Call("querySelector", ".value-dial")
+		update()
 	}
 	return wrap
 }
@@ -738,17 +819,6 @@ func dialPosTitle(el, sel js.Value, i int) {
 // the dial is on screen. Returns the ring, so a caller with two on one knob
 // can still tell them apart.
 func addSelectorLabels(stack js.Value, labels []string, sel js.Value) js.Value {
-	return addSelectorLabelsRot(stack, labels, sel, 0)
-}
-
-// addSelectorLabelsRot is the same with the whole ring turned by rot
-// degrees.
-//
-// A rotation is NOT derivable the way the radius is: it exists to
-// stagger one ring off another's markings — the style labels off the
-// LED-color dots at the same detents — which is a fact about the other
-// ring, not about this one's geometry.
-func addSelectorLabelsRot(stack js.Value, labels []string, sel js.Value, rot float64) js.Value {
 	dial := dom.Doc.Call("createElement", "span")
 	dial.Set("className", "knob-dial")
 	// A thin guide circle at this ring's radius; the labels (opaque
@@ -765,7 +835,7 @@ func addSelectorLabelsRot(stack js.Value, labels []string, sel js.Value, rot flo
 		lab.Set("className", "knob-dial-lab")
 		lab.Set("textContent", txt)
 		lab.Call("setAttribute", "data-deg",
-			strconv.FormatFloat(skirt.Angles(len(labels), skirt.SweepDeg)[i]+rot, 'f', 2, 64))
+			strconv.FormatFloat(labelDeg(sel, i, len(labels)), 'f', 2, 64))
 		dialPosTitle(lab, sel, i)
 		labEls[i] = lab
 		if sel.Truthy() {
@@ -825,143 +895,7 @@ func layoutSkirts() {
 	layoutSkirtsNow()
 }
 
-func layoutSkirtsNow() {
-	// Measured and applied in JavaScript where the page allows it, with the
-	// fitting still done here. See layoutSkirtsFast.
-	if h := fastDOM(); h.Truthy() && layoutSkirtsFast(h) {
-		return
-	}
-	stacks := dom.Doc.Call("querySelectorAll", ".has-dial")
-	for i := range stacks.Get("length").Int() {
-		layoutSkirtsIn(stacks.Index(i))
-	}
-}
-
-// layoutSkirtsIn sizes the skirts on one knob, nesting them outward.
-//
-// Outward in DOM order, because a concentric control carries concentric
-// skirts: the inner knob's positions are engraved inside the outer knob's,
-// and each ring has to clear not just the grip but everything already
-// placed around it. That is what the 43-and-31 pairs at the old call sites
-// were doing by hand.
-func layoutSkirtsIn(stack js.Value) {
-	if !stack.Truthy() {
-		return
-	}
-	clearance := gripRadiusPx(stack)
-	if clearance <= 0 {
-		// Not laid out yet — a detached subtree, a module switched out, a
-		// panel not yet shown. ESTIMATE rather than bail: a skirt that is
-		// never laid out has no positions at all, and every one of its
-		// labels sits on the origin in a heap. A rough ring is wrong by a
-		// pixel or two; no ring is wrong by the width of the knob, and it
-		// was the larger half of what the audit found still broken.
-		clearance = estGripRadiusPx()
-	}
-	gap := skirtGapPx()
-	dials := stack.Call("querySelectorAll", ":scope > .knob-dial")
-	for i := range dials.Get("length").Int() {
-		// Only the first ring is sitting on the knob. For the ones outside
-		// it "clear" is the previous ring's outer edge, not a grip, so there
-		// is no grip for them to take room from — see layoutOneSkirt.
-		clearance = layoutOneSkirt(dials.Index(i), clearance, gap, i == 0)
-	}
-}
-
-// gripRadiusPx is the radius of the largest knob on this stack — what the
-// first skirt has to clear.
-func gripRadiusPx(stack js.Value) float64 {
-	els := stack.Call("querySelectorAll", ".knob, .knob-ring")
-	hi := 0.0
-	for i := range els.Get("length").Int() {
-		if w := els.Index(i).Get("offsetWidth").Float(); w/2 > hi {
-			hi = w / 2
-		}
-	}
-	return hi
-}
-
-// layoutOneSkirt places one ring and returns how far out it reaches, for
-// the next ring to clear.
-func layoutOneSkirt(dial js.Value, clearance, gap float64, onGrip bool) float64 {
-	els := dial.Call("querySelectorAll", ".knob-dial-lab")
-	n := els.Get("length").Int()
-	labs := make([]skirt.Label, 0, n)
-	kept := make([]js.Value, 0, n)
-	for i := range n {
-		el := els.Index(i)
-		deg, err := strconv.ParseFloat(el.Call("getAttribute", "data-deg").String(), 64)
-		if err != nil {
-			continue // not one of ours (the angle dial's tick labels)
-		}
-		w := el.Get("offsetWidth").Float()
-		h := el.Get("offsetHeight").Float()
-		if w <= 0 || h <= 0 {
-			// Same reason as the grip above: estimated from the text, so an
-			// unmeasurable label still gets a place on the ring.
-			w, h = estLabelBoxPx(el.Get("textContent").String())
-		}
-		labs = append(labs, skirt.Label{W: w, H: h, Deg: deg})
-		kept = append(kept, el)
-	}
-	if len(labs) == 0 {
-		return clearance
-	}
-
-	// Fit the ring to the cell before placing it. A skirt sized only by its
-	// legends can reach past the control cell and into the next control's
-	// space — Model Out's off/CAM/XY/XZ/YZ ring did, by 25px. skirt.Fit takes
-	// the room out of the grip first and the legend only after that; see the
-	// note in pkg/skirt for why that order.
-	// A ring outside another one has no grip to take room from, so its floor
-	// is the radius it already has and the legend carries the whole
-	// reduction.
-	minGrip := clearance
-	if onGrip {
-		minGrip = clearance * skirt.MinGripFrac
-	}
-	// Less the gap, because the box drawn below is 2*(out+gap): fitting to
-	// the bare room left every ring exactly one gap wider than the space it
-	// was fitted into, which is the 6px Model Out had left over.
-	room := skirtRoomPx(dial)
-	if room > 0 {
-		room -= gap
-	}
-	useGrip, scale := skirt.Fit(clearance, minGrip, gap, room, labs)
-	if scale < 1 {
-		labs = skirt.ScaleLabels(labs, scale)
-		for _, el := range kept {
-			el.Get("style").Set("font-size", pxStr(skirtLabelBasePx*layout.scale*scale))
-		}
-	}
-	if useGrip < clearance {
-		shrinkGrip(dial, useGrip/clearance)
-	}
-	clearance = useGrip
-
-	r := skirt.Radius(clearance, gap, labs)
-	out := skirt.Outer(r, labs)
-
-	// The box has to contain the labels, or the element that exists to hold
-	// them is the thing clipping them.
-	box := 2 * (out + gap)
-	st := dial.Get("style")
-	st.Set("width", pxStr(box))
-	st.Set("height", pxStr(box))
-	for i, el := range kept {
-		x := box/2 + r*math.Sin(labs[i].Deg*math.Pi/180)
-		y := box/2 - r*math.Cos(labs[i].Deg*math.Pi/180)
-		es := el.Get("style")
-		es.Set("left", pxStr(x))
-		es.Set("top", pxStr(y))
-	}
-	if c := dial.Call("querySelector", ".knob-ring-circle"); c.Truthy() {
-		cs := c.Get("style")
-		cs.Set("width", pxStr(2*r))
-		cs.Set("height", pxStr(2*r))
-	}
-	return out
-}
+func layoutSkirtsNow() { layoutSkirtsIn(js.Undefined()) }
 
 // The estimates a skirt falls back to when nothing can be measured yet.
 //
@@ -979,81 +913,6 @@ func estLabelBoxPx(text string) (w, h float64) {
 	return float64(n) * perChar * layout.scale, px * layout.scale
 }
 
-// skirtRoomPx is how far this ring may reach from its center before it is in
-// the next control's space: half the control cell it sits in, plus half the
-// gap between cells, which is the ring's own share of the space between two
-// of them.
-//
-// Zero when there is no cell to measure or it has not been laid out. That is
-// "unconstrained" rather than "no room": skirt.Fit reads it that way, and the
-// alternative is shrinking every knob on a panel nobody has shown yet.
-func skirtRoomPx(dial js.Value) float64 {
-	cell := dial.Call("closest", ".pcell")
-	if !cell.Truthy() {
-		return 0
-	}
-	w := cell.Get("clientWidth").Float()
-	if w <= 0 {
-		return 0
-	}
-	cs := js.Global().Call("getComputedStyle", cell)
-	pad := parsePx(cs.Get("paddingLeft").String()) + parsePx(cs.Get("paddingRight").String())
-	return (w - pad + skirtCellGapPx*layout.scale) / 2
-}
-
-// shrinkGrip scales the knob this ring sits on, so the room the ring needed
-// comes out of the grip. Scaling rather than resizing keeps the pointer, the
-// shading and the guide circle in proportion with no second set of numbers to
-// keep in step.
-//
-// Only the LARGEST knob on the stack, because that is the one gripRadiusPx
-// measured and therefore the one the radius was computed against. Scaling
-// every knob in a concentric stack moved the inner one for no reason.
-//
-// The centering translate has to be carried. A .knob-ring is placed with
-// left/top 50% and transform:translate(-50%,-50%); writing a bare scale()
-// over that is not a smaller knob, it is a knob half its own width down and
-// to the right — which is exactly what it looked like.
-func shrinkGrip(dial js.Value, f float64) {
-	if f <= 0 || f >= 1 {
-		return
-	}
-	stack := dial.Get("parentElement")
-	if !stack.Truthy() {
-		return
-	}
-	knobs := stack.Call("querySelectorAll", ":scope > .knob, :scope > .knob-ring")
-	var biggest js.Value
-	hi := 0.0
-	for i := range knobs.Get("length").Int() {
-		k := knobs.Index(i)
-		if w := k.Get("offsetWidth").Float(); w > hi {
-			hi, biggest = w, k
-		}
-	}
-	if !biggest.Truthy() {
-		return
-	}
-	s := "scale(" + strconv.FormatFloat(f, 'f', 3, 64) + ")"
-	if biggest.Get("classList").Call("contains", "knob-ring").Bool() {
-		s = "translate(-50%,-50%) " + s
-	}
-	st := biggest.Get("style")
-	st.Set("transform", s)
-	st.Set("transformOrigin", "center center")
-}
-
-// parsePx reads a computed length like "7px". Anything unparseable is zero,
-// which is the right answer for "auto" and for an empty string.
-func parsePx(v string) float64 {
-	v = strings.TrimSuffix(strings.TrimSpace(v), "px")
-	f, err := strconv.ParseFloat(v, 64)
-	if err != nil {
-		return 0
-	}
-	return f
-}
-
 // The constants the two helpers above read against the stylesheet.
 const (
 	// skirtLabelBasePx is .knob-dial-lab's font-size at scale 1.
@@ -1069,3 +928,78 @@ const (
 	// legends (CAM, .5) clear of everything.
 	skirtCellGapPx = 8.0
 )
+
+// optionChars is the display a selector's readout needs: half, when every
+// option's name fits four characters, and full otherwise.
+func optionChars(sel js.Value) int {
+	opts := sel.Get("options")
+	for i := range opts.Length() {
+		if len([]rune(displayText(opts.Index(i).Get("text").String()))) > dispHalfChars {
+			return dispFullChars
+		}
+	}
+	return dispHalfChars
+}
+
+// An ENDLESS selector (data-endless on its select) has its positions all the
+// way round the knob, the first at the bottom where a stopped knob's gap is,
+// and turns through its last position back to its first: the bay's category
+// ring, whose OFF is at the bottom between the last category and the first.
+func selEndless(sel js.Value) bool {
+	return sel.Truthy() && sel.Call("hasAttribute", "data-endless").Bool()
+}
+
+// endlessDeg is position i of n on an endless selector, clockwise from the
+// top: the first at the bottom, the rest evenly round from there.
+func endlessDeg(i, n int) float64 {
+	d := math.Mod(180+360*float64(i)/float64(n), 360)
+	if d > 180 {
+		d -= 360
+	}
+	return d
+}
+
+// selOverflow is what a selector does when it is turned past either end,
+// by its select's id, in place of stopping or wrapping: the bay's model ring
+// goes on into the next category (onBayModelOverflow). dir is +1 past the
+// last position, -1 before the first.
+var selOverflow = map[string]func(dir int){}
+
+// selStep turns sel one position by dir: into its overflow if it has one,
+// round if it is endless, and otherwise wrapping when wrap is set (a drag)
+// or stopping at the end (the wheel and the keys).
+func selStep(sel js.Value, dir int, wrap bool) {
+	n := sel.Get("options").Get("length").Int()
+	if n == 0 {
+		return
+	}
+	at := sel.Get("selectedIndex").Int()
+	idx := at + dir
+	// On no position (the bay's model ring while the bay is OFF) is past
+	// both ends at once: where it goes from there is its overflow's to say.
+	if idx < 0 || idx >= n || at < 0 {
+		if f := selOverflow[sel.Get("id").String()]; f != nil {
+			f(dir)
+			return
+		}
+		switch {
+		case wrap || selEndless(sel):
+			idx = ((idx % n) + n) % n
+		case idx < 0:
+			idx = 0
+		default:
+			idx = n - 1
+		}
+	}
+	sel.Set("selectedIndex", idx)
+	sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+}
+
+// labelDeg is where legend i of n goes round a selector's ring: over the
+// knob's sweep, or all the way round for an endless one.
+func labelDeg(sel js.Value, i, n int) float64 {
+	if selEndless(sel) {
+		return endlessDeg(i, n)
+	}
+	return skirt.Angles(n, skirt.SweepDeg)[i]
+}

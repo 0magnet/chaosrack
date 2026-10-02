@@ -33,7 +33,7 @@ func TestFigureWriters(t *testing.T) {
 	renderW, renderH, renderFrames = 64, 64, 3
 	t.Cleanup(func() { renderW, renderH, renderFrames = old[0], old[1], old[2] })
 	dir := t.TempDir()
-	for _, k := range []string{"henon", "cube", "globe", "lissajou"} {
+	for _, k := range []string{"henon", "polyhedron", "globe", "lissajou"} {
 		f, err := figureFor(k)
 		if err != nil {
 			t.Fatal(err)
@@ -59,7 +59,7 @@ func TestMapRevealGrows(t *testing.T) {
 	if a, b := figureReveal(f, 0, 4), figureReveal(f, 3, 4); a >= b || b != len(f.Points) {
 		t.Errorf("reveal %d then %d of %d", a, b, len(f.Points))
 	}
-	w, err := figureFor("cube")
+	w, err := figureFor("polyhedron")
 	if err != nil {
 		t.Fatal(err)
 	}
