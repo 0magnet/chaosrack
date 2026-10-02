@@ -334,7 +334,7 @@ func applyModelOutKey(key, val string) bool {
 		}
 		if el := dom.Doc.Call("getElementById", modelOutParams[i].ID); el.Truthy() {
 			el.Set("value", val)
-			el.Call("dispatchEvent", permaEvent("input"))
+			dom.Fire(el, "input")
 		}
 		return true
 	}

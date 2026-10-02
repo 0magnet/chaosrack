@@ -801,7 +801,7 @@ func wireColorLockSwitch() {
 		}
 		if sel.Get("value").String() != v {
 			sel.Set("value", v)
-			sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+			dom.Fire(sel, "change")
 		}
 		return nil
 	}))

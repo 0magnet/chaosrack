@@ -602,7 +602,7 @@ func onResetAll(this js.Value, args []js.Value) any {
 	for _, s := range swDefaults {
 		if sw := dom.Doc.Call("getElementById", s.id); sw.Truthy() && sw.Get("checked").Bool() != s.def {
 			sw.Set("checked", s.def)
-			sw.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+			dom.Fire(sw, "change")
 		}
 	}
 	// Every selector in the panel is a registry Control now, so the loop at the
@@ -726,7 +726,7 @@ func applyHostPageTweaks() {
 		for ax, v := range perma.hashPinnedSpin {
 			if sl := dom.Doc.Call("getElementById", "rotation-controls-"+ax); sl.Truthy() {
 				sl.Set("value", v)
-				sl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+				dom.Fire(sl, "input")
 			}
 		}
 		if len(perma.hashPinnedSpin) > 0 {
@@ -745,7 +745,7 @@ func applyHostPageTweaks() {
 		for _, ax := range []string{"x", "y", "z"} {
 			if sl := dom.Doc.Call("getElementById", "rotation-controls-"+ax); sl.Truthy() && sl.Get("value").String() != "0" {
 				sl.Set("value", "0")
-				sl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+				dom.Fire(sl, "input")
 			}
 		}
 	}
@@ -1731,9 +1731,6 @@ func capturePermalinkAndRestore() {
 	// state so the current view is always shareable.
 	perma.capturePermaDefaults()
 	applyStateFromHash()
-	// The link sets selectors without the change a hand would make, so the
-	// buttons beside them are lit for what it set (gridbank_js.go).
-	syncTriosIn(dom.Doc, "#grid-bank .trio")
 	// A link that opens on the spectrogram without naming a map gets the
 	// spectrogram's own; one that names a map keeps it.
 	spect.followMode(run.selectedMode)
@@ -1766,9 +1763,9 @@ func commitBuiltControls() {
 			// the whole runtime down the first time a selector reached this loop.
 			switch {
 			case c.sel.Truthy():
-				c.sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+				dom.Fire(c.sel, "change")
 			case c.slider.Truthy():
-				c.slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+				dom.Fire(c.slider, "input")
 			}
 		}
 	})

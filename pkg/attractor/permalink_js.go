@@ -447,8 +447,6 @@ func writeHash(h string) {
 	js.Global().Get("history").Call("replaceState", js.Null(), "", h)
 }
 
-func permaEvent(name string) js.Value { return js.Global().Get("Event").New(name) }
-
 // eventFor picks the event a restored control reacts to, derived from the
 // ELEMENT (selects and checkboxes fire "change"; range/color inputs fire
 // "input") — it used to be a hardcoded key list that silently broke restore
@@ -488,12 +486,12 @@ func applyControl(key, val string) {
 		}
 		if ctl.sel.Truthy() {
 			ctl.sel.Set("value", val)
-			ctl.sel.Call("dispatchEvent", permaEvent("change"))
+			dom.Fire(ctl.sel, "change")
 			return
 		}
 		if ctl.slider.Truthy() {
 			ctl.slider.Set("value", val)
-			ctl.slider.Call("dispatchEvent", permaEvent("input"))
+			dom.Fire(ctl.slider, "input")
 			return
 		}
 	}
@@ -520,7 +518,7 @@ func applyControl(key, val string) {
 		} else {
 			el.Set("value", val)
 		}
-		el.Call("dispatchEvent", permaEvent(eventFor(c, el)))
+		dom.Fire(el, eventFor(c, el))
 		return
 	}
 }
@@ -531,7 +529,7 @@ func applyParam(suffix, val string) {
 		return
 	}
 	el.Set("value", val)
-	el.Call("dispatchEvent", permaEvent("input"))
+	dom.Fire(el, "input")
 }
 
 func applyRot(val string) {

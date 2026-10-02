@@ -229,7 +229,7 @@ func modMxGrid() js.Value {
 				}
 				v, _ := strconv.ParseFloat(modMx.depth.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
 				modMx.depth.Set("value", strconv.FormatFloat(v+step, 'g', -1, 64))
-				modMx.depth.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+				dom.Fire(modMx.depth, "input")
 				return nil
 			}), map[string]any{"passive": false})
 		}
@@ -329,7 +329,7 @@ func modMxEditRow() js.Value {
 	ro.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
 		if v, err := led.Parse(ro.Get("value").String()); err == nil {
 			rng.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
-			rng.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+			dom.Fire(rng, "input")
 		}
 		return nil
 	}))
@@ -404,7 +404,7 @@ func modMxRetarget(params []paramDef) {
 	// The list was rewritten under DEST, so its knob and name catch up even
 	// when the selection did not move.
 	modMx.dest.Set("value", modMx.sel)
-	modMx.dest.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+	dom.Fire(modMx.dest, "change")
 	for i := range modMx.rows {
 		modMxLight(i)
 	}
@@ -445,7 +445,7 @@ func modMxSelect(id string) {
 	}
 	if modMx.dest.Truthy() && modMx.dest.Get("value").String() != id {
 		modMx.dest.Set("value", id)
-		modMx.dest.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+		dom.Fire(modMx.dest, "change")
 	}
 	if modMx.depth.Truthy() {
 		v := float64(pmod.params[id].level)

@@ -642,7 +642,7 @@ func mixEditRow() js.Value {
 	ro.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
 		if v, err := led.Parse(ro.Get("value").String()); err == nil {
 			rng.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
-			rng.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+			dom.Fire(rng, "input")
 		}
 		return nil
 	}))

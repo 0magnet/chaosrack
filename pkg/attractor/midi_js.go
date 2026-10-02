@@ -32,7 +32,7 @@ func midiSetSlider(id string, lo, hi float32, v127 float64) {
 	}
 	val := float64(lo) + v127/127*float64(hi-lo)
 	sl.Set("value", strconv.FormatFloat(val, 'g', 6, 64))
-	sl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+	dom.Fire(sl, "input")
 }
 
 func midiHandle(this js.Value, args []js.Value) any {
@@ -79,7 +79,7 @@ func midiHandle(this js.Value, args []js.Value) any {
 		if next != run.selectedMode {
 			if sel := dom.Doc.Call("getElementById", "mode-select"); sel.Truthy() {
 				sel.Set("value", next)
-				sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+				dom.Fire(sel, "change")
 			}
 		}
 	}

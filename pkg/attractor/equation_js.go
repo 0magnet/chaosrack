@@ -654,7 +654,7 @@ func (c *customEquation) buildEquationView(mode string, paramsDiv js.Value) {
 					c.seedCustomSurface(inp.Get("value").String())
 					if ms := dom.Doc.Call("getElementById", "mode-select"); ms.Truthy() {
 						ms.Set("value", "custom")
-						ms.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+						dom.Fire(ms, "change")
 					}
 					return nil
 				}))
@@ -683,7 +683,7 @@ func (c *customEquation) buildEquationView(mode string, paramsDiv js.Value) {
 				c.parseCustom()
 				if ms := dom.Doc.Call("getElementById", "mode-select"); ms.Truthy() {
 					ms.Set("value", "custom")
-					ms.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+					dom.Fire(ms, "change")
 				}
 				return nil
 			}))

@@ -467,7 +467,7 @@ func (t *takensMode) setTakensTau(tau int) {
 		return
 	}
 	el.Set("value", strconv.Itoa(tau))
-	el.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+	dom.Fire(el, "input")
 }
 
 func (t *takensMode) showTakensMeasurement(s string) {

@@ -126,7 +126,7 @@ func initKnobDrag() {
 			v = math.Max(kb.min, math.Min(kb.max, v))
 		}
 		kb.slider.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
-		kb.slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		dom.Fire(kb.slider, "input")
 	})
 	release := dom.FuncOf(func(this js.Value, args []js.Value) any {
 		// A switch-pot let go in the gap comes to rest where its pointer
@@ -576,7 +576,7 @@ func addSelectorDotLabels(stack js.Value, colors []string, sel js.Value, offset 
 			idx := i
 			dot.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 				sel.Set("selectedIndex", idx)
-				sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+				dom.Fire(sel, "change")
 				return nil
 			}))
 		}
@@ -745,7 +745,7 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 				v = math.Max(lo, math.Min(hi, v))
 			}
 			slider.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
-			slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+			dom.Fire(slider, "input")
 		}
 	}
 	wheel := func(fineMode bool) js.Func {
@@ -843,7 +843,7 @@ func addSelectorLabels(stack js.Value, labels []string, sel js.Value) js.Value {
 			idx := i
 			lab.Call("addEventListener", "click", dom.FuncOf(func(this js.Value, a []js.Value) any {
 				sel.Set("selectedIndex", idx)
-				sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+				dom.Fire(sel, "change")
 				return nil
 			}))
 		}
@@ -992,7 +992,7 @@ func selStep(sel js.Value, dir int, wrap bool) {
 		}
 	}
 	sel.Set("selectedIndex", idx)
-	sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+	dom.Fire(sel, "change")
 }
 
 // labelDeg is where legend i of n goes round a selector's ring: over the

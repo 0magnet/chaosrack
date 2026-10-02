@@ -719,14 +719,14 @@ func switchAsSelect(c, cb js.Value) js.Value {
 	sel.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
 		if want := sel.Get("selectedIndex").Int() == 1; cb.Get("checked").Bool() != want {
 			cb.Set("checked", want)
-			cb.Call("dispatchEvent", js.Global().Get("Event").New("change", map[string]any{"bubbles": true}))
+			dom.Fire(cb, "change")
 		}
 		return nil
 	}))
 	cb.Call("addEventListener", "change", dom.FuncOf(func(js.Value, []js.Value) any {
 		if i := at(); sel.Get("selectedIndex").Int() != i {
 			sel.Set("selectedIndex", i)
-			sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+			dom.Fire(sel, "change")
 		}
 		return nil
 	}))
@@ -980,7 +980,7 @@ func ledPickWire() {
 	doc.Call("addEventListener", "change", js.FuncOf(func(_ js.Value, a []js.Value) any {
 		if pick, s := sel(a[0]); s.Truthy() {
 			s.Set("value", pick.Get("value"))
-			s.Call("dispatchEvent", js.Global().Get("Event").New("change", map[string]any{"bubbles": true}))
+			dom.Fire(s, "change")
 		}
 		return nil
 	}))

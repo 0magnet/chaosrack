@@ -244,7 +244,7 @@ func (r *rhythmSection) wireRhythmModule() {
 			// tabs WERE the start control there. Run stays the way to stop it.
 			if run := dom.Doc.Call("getElementById", "tm-run"); run.Truthy() && !run.Get("checked").Bool() {
 				run.Set("checked", true)
-				run.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+				dom.Fire(run, "change")
 			}
 			tm.ensureGraph() // a user gesture: unlock the audio for the loop
 			return nil

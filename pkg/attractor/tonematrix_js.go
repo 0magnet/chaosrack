@@ -394,7 +394,7 @@ func (to *tonematrix) loadDrums(p rhythm.Pattern) {
 	if sel := dom.Doc.Call("getElementById", "tm-steps"); sel.Truthy() {
 		if n := tmLoopFor(tmStepCount(), to.beats); strconv.Itoa(n) != sel.Get("value").String() {
 			sel.Set("value", strconv.Itoa(n))
-			sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+			dom.Fire(sel, "change")
 		}
 	}
 	to.markLoop()

@@ -158,7 +158,7 @@ func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will
 					v = d.ValToSlider(v)
 				}
 				slider.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
-				slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+				dom.Fire(slider, "input")
 			}
 			return nil
 		}))

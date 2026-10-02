@@ -83,7 +83,7 @@ func (c *Control) formatValue(v float64) string {
 func (c *Control) resetToDefault() {
 	if c.sel.Truthy() {
 		c.sel.Set("value", c.selDef)
-		c.sel.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+		dom.Fire(c.sel, "change")
 		if c.resetHook != nil {
 			c.resetHook()
 		}
@@ -93,7 +93,7 @@ func (c *Control) resetToDefault() {
 		return
 	}
 	c.slider.Set("value", strconv.FormatFloat(float64(c.def), 'g', -1, 32))
-	c.slider.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+	dom.Fire(c.slider, "input")
 	if c.resetHook != nil {
 		c.resetHook()
 	}

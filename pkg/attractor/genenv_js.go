@@ -76,7 +76,7 @@ func genLevelStack(o genOscSpec, lvl js.Value) js.Value {
 	}
 	loan := lendReadout(col, dom.Doc.Call("getElementById", o.id+"-lvl-led"), func() {
 		// The level's own control rewrites its display.
-		lvl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+		dom.Fire(lvl, "input")
 	})
 	ms := func(v float64) string { return strconv.FormatFloat(v, 'f', 0, 64) }
 	adoptDescControl(ControlDesc{

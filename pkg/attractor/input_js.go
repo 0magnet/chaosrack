@@ -274,7 +274,7 @@ func applyZoomDelta(delta float32) {
 	}
 	camPanel.cameraControl.Set("value", strconv.FormatFloat(float64(zoomVal), 'f', 0, 64))
 	view.ctl.zoom = zoomVal // render loop reads the cache, not the DOM
-	camPanel.cameraControl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+	dom.Fire(camPanel.cameraControl, "input")
 }
 
 // wireWheelBindings makes the wheel adjust controls (ranges, numerics,
@@ -313,10 +313,7 @@ func wireWheelBindings() {
 				}
 			}
 			el.Set("value", strconv.FormatFloat(cur, 'f', -1, 64))
-			evtInit := js.Global().Get("Object").New()
-			evtInit.Set("bubbles", true)
-			evt := js.Global().Get("Event").New("input", evtInit)
-			el.Call("dispatchEvent", evt)
+			dom.Fire(el, "input")
 			return nil
 		}))
 	}
@@ -357,10 +354,7 @@ func wireWheelBindings() {
 				idx = n - 1
 			}
 			el.Set("selectedIndex", idx)
-			evtInit := js.Global().Get("Object").New()
-			evtInit.Set("bubbles", true)
-			evt := js.Global().Get("Event").New("change", evtInit)
-			el.Call("dispatchEvent", evt)
+			dom.Fire(el, "change")
 			return nil
 		}))
 	}

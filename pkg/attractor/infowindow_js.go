@@ -198,7 +198,7 @@ func (in *infoPane) showInfoWindow() {
 			w.Hide()
 			if sw := dom.Doc.Call("getElementById", "show-info"); sw.Truthy() && sw.Get("checked").Bool() {
 				sw.Set("checked", false)
-				sw.Call("dispatchEvent", js.Global().Get("Event").New("change"))
+				dom.Fire(sw, "change")
 			}
 			return true
 		},

@@ -243,7 +243,7 @@ func (p *pongGame) syncScoreboard() {
 				continue
 			}
 			s.sl.Set("value", strconv.FormatFloat(s.pad/pongH, 'f', 2, 64))
-			s.sl.Call("dispatchEvent", js.Global().Get("Event").New("input"))
+			dom.Fire(s.sl, "input")
 		}
 		pongKnobGuard = false
 	}
