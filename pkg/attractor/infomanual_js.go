@@ -165,12 +165,10 @@ func bayManualHTML(n int, figures bool) string {
 			b.WriteString(moduleManualHTML(m, figures))
 			continue
 		}
-		// The module itself, moved here (manuallive_js.go), a button to take
-		// it out into a window, and what it says, in a part of its own that
-		// is written again when the module changes (manualRefresh).
+		// What it says, in a part of its own that is written again when the
+		// module changes (manualRefresh). The module itself is in its bay's
+		// strip above (manuallive_js.go).
 		r := html.EscapeString(m.Range)
-		b.WriteString(`<button class="mpop" data-pop-mloc="` + r + `" title="` + html.EscapeString(doc("manual-pop")) + `">⧉ window</button>`)
-		b.WriteString(`<div class="mlive" data-mloc="` + r + `"><div class="mlive-note">` + html.EscapeString(doc("manual-away")) + ` <button class="mback" data-back-mloc="` + r + `">bring it back</button></div></div>`)
 		b.WriteString(`<div class="mtext" data-mloc="` + r + `">` + moduleManualHTML(m, figures) + `</div>`)
 	}
 	return b.String()

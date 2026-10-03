@@ -1896,15 +1896,16 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
 #rack-manual dd{margin:0}
 #rack-manual dd>p{margin:0 0 6px}
 #rack-manual li{margin:2px 0}
-/* Its modules (manuallive_js.go): the rack's own, moved here and zoomed to the
-   column, with an address tag on each control that takes no pointer; a button
-   to take one, or a whole bay, out into a window (manualwin_js.go); and each
-   bay's map. */
-#rack-manual .mlive{position:relative;margin:10px 0 16px;max-width:100%}
+/* Its bays (manuallive_js.go): the rack's own modules, moved here side by side
+   as they stand and zoomed together to the column, with an address tag on each
+   control that takes no pointer; and a button to take the bay out into a
+   window (manualwin_js.go), which leaves a note in its place. */
+#rack-manual .mbay{display:flex;align-items:flex-start;gap:2px;margin:10px 0 18px;max-width:100%;overflow:hidden}
+#rack-manual .mlive{position:relative;flex:none}
 #rack-manual .mlive-stage{display:inline-block;max-width:100%}
-#rack-manual .mlive.away .mlive-stage,#rack-manual .mlive.away .mlive-over{display:none}
-#rack-manual .mlive-note{display:none;padding:10px 12px;border:1px dashed var(--rule);border-radius:4px;color:var(--mute)}
-#rack-manual .mlive.away .mlive-note{display:block}
+#rack-manual .mlive.away{display:none}
+#rack-manual .mbay-note{display:none;padding:10px 12px;border:1px dashed var(--rule);border-radius:4px;color:var(--mute)}
+#rack-manual .mbay.away>.mbay-note{display:block}
 #rack-manual .mtext>:first-child{margin-top:0}
 #rack-manual .mlive-over{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
 #rack-manual .mlive-tag{fill:#0b0e11d8;stroke:#ff6b5e66;stroke-width:1}
@@ -1916,12 +1917,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
 #rack-manual :is(.mpop,.mback,.mmodel):hover{border-color:var(--acc);color:var(--acc)}
 #rack-manual h2 .mpop{margin-left:8px;font-weight:normal}
 #rack-manual .mmodel{display:block;width:100%;margin:0 0 12px;text-align:left}
-#rack-manual .mbaymap{margin:8px 0 14px;max-width:100%}
-#rack-manual .mbaymap-mod{fill:#1b2027;stroke:#3a4652;stroke-width:1}
-#rack-manual a:hover>.mbaymap-mod{fill:#23303d;stroke:var(--acc)}
-#rack-manual .mbaymap-loc{fill:var(--loc);font:600 12px ui-monospace,Menlo,Consolas,monospace}
-#rack-manual .mbaymap-name{fill:var(--fg);font:12px system-ui,sans-serif}
-/* The manual's windows: a module, a bay or the model, over the page. */
+/* The manual's windows: a bay or the model, over the page. */
 .manual-window .mwin-body{position:absolute;inset:0;overflow:auto;padding:6px;background:#0e1114;box-sizing:border-box}
 .manual-window .mwin-bay{display:flex;align-items:flex-start;gap:0}
 .manual-window .mwin-model{padding:0;overflow:hidden;background:#000}

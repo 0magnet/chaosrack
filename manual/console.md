@@ -394,14 +394,11 @@ Show / hide controls (brings them back if the model's 'Front' overlay is hiding 
 The rack's own manual, at /manual: every bay, every module as it stands in the
 rack and working, and every control by address.
 
-<!-- key: manual-pop -->
-Take this module out into a window of its own, to keep in view while you read on; closing the window puts it back here
-
 <!-- key: manual-pop-bay -->
-Take every module of this bay out into one window, side by side as they stand in the rack; closing it puts them back
+Take this bay out into a window of its own, to keep in view while you read on; closing it puts the bay back here
 
 <!-- key: manual-away -->
-This module is in a window.
+This bay is in a window.
 
 <!-- key: manual-model -->
 The model, in a window of its own: opening it switches the rack on, and closing it switches the rack off, as the Console's Power switch does

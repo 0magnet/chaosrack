@@ -54,8 +54,8 @@ func enableManualMode() {
 		live := manualLive()
 		live.Call("measure")
 		page.Set("innerHTML", manualPageHTML())
+		live.Call("strips", page)
 		live.Call("place", page)
-		live.Call("maps", page)
 		live.Call("link", page)
 		manualShown = true
 		manualRefresh() // signs each module as written
@@ -138,7 +138,7 @@ func manualPageHTML() string {
 		id := "bay-" + strconv.Itoa(n)
 		t := bayTitle(n)
 		nav.WriteString(`<a href="#` + id + `">` + html.EscapeString(t) + `</a>`)
-		body.WriteString(`<section id="` + id + `"><h2>` + html.EscapeString(t) + ` <button class="mpop" data-pop-bay="` + strconv.Itoa(n) + `" title="` + html.EscapeString(doc("manual-pop-bay")) + `">⧉ window</button></h2><div class="mbaymap" data-bay="` + strconv.Itoa(n) + `"></div>` + bayManualHTML(n, true) + `</section>`)
+		body.WriteString(`<section id="` + id + `"><h2>` + html.EscapeString(t) + ` <button class="mpop" data-pop-bay="` + strconv.Itoa(n) + `" title="` + html.EscapeString(doc("manual-pop-bay")) + `">⧉ window</button></h2><div class="mbay" data-bay="` + strconv.Itoa(n) + `"><div class="mbay-note">` + html.EscapeString(doc("manual-away")) + ` <button class="mback" data-back-bay="` + strconv.Itoa(n) + `">bring it back</button></div></div>` + bayManualHTML(n, true) + `</section>`)
 	}
 
 	nav.WriteString(`<div class="grp">Models</div>`)

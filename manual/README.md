@@ -11,13 +11,13 @@ one is and what each of its constants does.
 
 ## Using this page
 
-The modules on this page are the rack's own, and they work: turn a knob here
-and the rack answers. **⧉ window** beside a module takes it out into a window,
-beside a bay's heading takes the whole bay; arrange them where you want them
-and they stay put while the text scrolls under them. Closing a window puts
-what it held back. **⧉ the model**, at the top of the side bar, puts the
-model itself in a window and switches the rack on, as the Console's Power
-switch does; closing it switches the rack off.
+Each bay on this page is the rack's own, drawn whole, and it works: turn a
+knob here and the rack answers. **⧉ window** beside a bay's heading takes the
+bay out into a window, which you can make as large as you like; arrange the
+windows where you want them and they stay put while the text scrolls under
+them. Closing a window puts what it held back. **⧉ the model**, at the top of
+the side bar, puts the model itself in a window and switches the rack on, as
+the Console's Power switch does; closing it switches the rack off.
 
 Each control on a module here carries its address on a small tag, and
 holding the pointer over an entry lights the tag of the control it is about.
