@@ -3,11 +3,11 @@
 package attractor
 
 // The Display module, built from P-units (buildPUnitModule): LINE, POINTS
-// and TRAIL, how the trace is drawn, and TWIN, what is drawn over it. The
-// switches that were columns of their own beside them are these P-units'
-// buttons now. Each is still the checkbox it was, hidden in the module, so
-// the permalink, Reset All and the code that reads it are unchanged; the
-// buttons set it, and light from it.
+// and TRAIL, how the trace is drawn, and on LINE's buttons what is drawn
+// over it. The switches that were columns of their own beside them are
+// these P-units' buttons now. Each is still the checkbox it was, hidden in
+// the module, so the permalink, Reset All and the code that reads it are
+// unchanged; the buttons set it, and light from it.
 
 import "github.com/0magnet/chaosrack/pkg/dom"
 
@@ -72,19 +72,19 @@ func init() {
 		},
 		drive: []string{"persist-trail", "ring-sw"},
 	}
-	// TWIN: three overlays, each a switch of its own: the twin trajectory,
-	// the Poincaré section, the graticule.
-	twinSw := []string{"twin-sw", "sect-sw", "scope-grat"}
-	trioPrograms["twin-eps"] = trioProgram{
-		keys: []string{"T", "S", "G"},
-		help: []string{doc("trio.twin-eps=0"), doc("trio.twin-eps=1"), doc("trio.twin-eps=2")},
+	// LINE: what is drawn over the trace, each a switch of its own: S the
+	// Poincaré section, G the graticule behind a scope trace.
+	over := []string{"sect-sw", "scope-grat"}
+	trioPrograms["line-width"] = trioProgram{
+		keys: []string{"S", "G", ""},
+		help: []string{doc("trio.line-width=0"), doc("trio.line-width=1")},
 		press: func(i int) {
-			setSwitch(twinSw[i], !checkedOn(twinSw[i]))
+			if i < len(over) {
+				setSwitch(over[i], !checkedOn(over[i]))
+			}
 		},
-		lits: func() []bool {
-			return []bool{checkedOn(twinSw[0]), checkedOn(twinSw[1]), checkedOn(twinSw[2])}
-		},
-		drive: twinSw,
+		lits:  func() []bool { return []bool{checkedOn(over[0]), checkedOn(over[1]), false} },
+		drive: over,
 	}
 }
 

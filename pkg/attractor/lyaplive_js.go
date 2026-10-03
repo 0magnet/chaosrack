@@ -135,7 +135,7 @@ func (l *liveLyapunov) tick(mode string) {
 	for range n {
 		step(&l.a)
 		step(&l.b)
-		if twinDiverged(l.a) || twinDiverged(l.b) {
+		if flowDiverged(l.a) || flowDiverged(l.b) {
 			// Reseed AND restart the average. What has been accumulated
 			// belongs to a trajectory that left the attractor, and an
 			// over-modulated system should read "no answer yet" rather than
@@ -160,8 +160,7 @@ func (l *liveLyapunov) tick(mode string) {
 
 // readout is the value text, WITHOUT a λ on the front — the panel cell
 // has a λ label of its own and read "λλ+0.96" the first time this was put in
-// front of a browser. The Trace row's LED has no label, so lyapLive.show puts
-// the symbol back for that one.
+// front of a browser.
 //
 // Two decimals, not the Analysis module's four. They are different readouts:
 // that one runs a few hundred thousand steps on demand and can stand behind
@@ -186,7 +185,7 @@ func (l *liveLyapunov) readout() string {
 	return s
 }
 
-// show writes the text to both places it appears, and only when it has
+// show writes the text to the model bank's λ cell, and only when it has
 // changed — the exponent drifts in the third decimal every frame, the DOM does
 // not need to hear about that, and a cell that re-renders sixty times a second
 // is unreadable anyway. It is the rule stereoInst.showReadout keeps.
@@ -197,13 +196,6 @@ func (l *liveLyapunov) show(s string) {
 			l.el.Set("textContent", s)
 		}
 	}
-	// The TWIN P-unit's display (Display) reads λ while Twin is on: it
-	// annotates the two trajectories on screen with the rate at which they
-	// are coming apart. Off, or for a moment after its knob is turned, it
-	// reads the knob's ε, as an instrument's display shows a setting while
-	// it is being set. The model's own readout (above) is the one that is
-	// always there.
-	twin.showReading(s)
 }
 
 // appendLyapunovReadout adds the λ cell to a flow mode's parameter grid. Into

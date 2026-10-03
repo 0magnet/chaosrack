@@ -583,7 +583,7 @@ func onResetAll(this js.Value, args []js.Value) any {
 		{"spectro-skin", false},
 		{"handles-on", false}, {"desk-pass", false}, {"desk-contain", false},
 		{"jam-sw", false}, {"show-meters", true},
-		{"ring-sw", false}, {"twin-sw", false}, {"sect-sw", false},
+		{"ring-sw", false}, {"grid-ovl", false}, {"sect-sw", false},
 		{"link-sw", true},
 		{"scope-grat", true}, // the graticule is what makes the trace measurable
 		// Back to recording the full canvas. This one is here because of what
@@ -863,14 +863,6 @@ func registerViewControls() {
 	adoptDescControl(ControlDesc{ID: "sweep-hi", Label: "to", Min: 0, Max: 1, Step: 0.01, Def: 1,
 		PermaKey: "wh", LEDID: "slider-value-swhi", ResetID: "rst-swhi",
 		Apply: func(v float64) { grid.sweepHi = float32(v) }})
-	// Twin's ε, as a power of ten: how far apart the two trajectories start.
-	adoptDescControl(ControlDesc{ID: "twin-eps", Label: "twin", Min: -9, Max: -1, Step: 0.1, Def: -4,
-		Signed: true, PermaKey: "te", LEDID: "slider-value-teps", ResetID: "rst-teps",
-		Apply: func(v float64) {
-			twin.eps = math.Pow(10, v)
-			twin.turned = frameNowMs
-			twin.invalidate()
-		}})
 	adoptDescControl(ControlDesc{ID: "rainbow-freq", Label: "period", Min: 0.05, Max: 20, Step: 0.05, Def: 1,
 		PermaKey: "rf", LEDID: "slider-value-rfreq", ResetID: "rst-rfreq",
 		Apply: func(v float64) { style.gradientFreq = float32(v) }})
@@ -923,12 +915,9 @@ func registerViewControls() {
 }
 
 // wireColorAndViewControls wires the gradient and color cells, and the view
-// switches that are not descriptor-owned — the twin canvas, the Poincare
+// switches that are not descriptor-owned — the Poincaré
 // section, the sweep and grid dials, and the link switches.
 func wireColorAndViewControls() {
-
-	// Event: twin-trajectory switch + λ readout.
-	twin.wireTwinSwitch()
 	// Event: Poincaré-section switch.
 	sect.wireSectSwitch()
 	grid.wireViewGridDial()
@@ -1575,7 +1564,6 @@ func buildPanelKnobs() {
 	knobifyFixed("rainbow-freq", "slider-value-rfreq", true)
 	knobifyFixed("sweep-lo", "slider-value-swlo", true)
 	knobifyFixed("sweep-hi", "slider-value-swhi", true)
-	knobifyFixed("twin-eps", "slider-value-teps", true)
 	knobifyFixed("palette-shift", "slider-value-pshift", true)
 	rkx := knobifyFixed("rotation-controls-x", "slider-value-x", false)
 	rky := knobifyFixed("rotation-controls-y", "slider-value-y", false)

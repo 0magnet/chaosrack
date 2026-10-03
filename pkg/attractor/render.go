@@ -621,8 +621,8 @@ func generateForMode(mode string) {
 	if _, isFlow := dynamics.FlowFor4(mode); isFlow && mode != "bifurcation" && mode != "poincare" {
 		bif.lastFlowMode = mode
 	}
-	// Twin-trajectory divergence (Trace > Twin): draws both copies itself.
-	if twin.tick(mode) {
+	// The Grid's start sweep: draws this cell's own trajectory itself.
+	if starts.tick(mode) {
 		restoreAudioModulation(saved)
 		sect.tick(mode)
 		return
@@ -948,6 +948,12 @@ func setTraceUniforms(advance bool) {
 	// than sampling a texture that is not there.
 	if !pal.ensurePaletteTexture(style.gradientColors) && gradientColorsUniform() >= colormap.First {
 		glctx.GL.Call("uniform1i", gpu.u.gradientColors, 2)
+	}
+	// An overlaid grid cell after the first is drawn in one color of its
+	// own, so the cells can be told apart (overlayTint).
+	if passTint != nil {
+		glctx.GL.Call("uniform1i", gpu.u.gradientColors, 1)
+		glctx.GL.Call("uniform3f", gpu.u.baseColor, passTint[0], passTint[1], passTint[2])
 	}
 	updateDashFromPointCount(gpu.lastDrawn)
 	glctx.GL.Call("uniform1f", gpu.u.dashDuty, dashDuty)

@@ -68,13 +68,13 @@ func (s *simulation) reseed() {
 		s.x, s.y, s.z = 0.1, 0.5, -0.6
 	}
 	s.x64, s.y64, s.z64 = float64(s.x), float64(s.y), float64(s.z)
-	integ3DMode = ""  // force integrate3D to re-seed x64 from the IC
-	ring.invalidate() // ring trail re-primes from the fresh state
-	twin.invalidate() // twin pair re-seeds ε apart from the fresh state
-	sect.invalidate() // section scatter restarts from the fresh state
-	bif.invalidate()  // bifurcation re-sweeps (source params may have changed)
-	mapInvalidate()   // a map orbit is only meaningful for the params that made it
-	lyap.invalidate() // and so is its Lyapunov exponent
+	integ3DMode = ""    // force integrate3D to re-seed x64 from the IC
+	ring.invalidate()   // ring trail re-primes from the fresh state
+	starts.invalidate() // a start sweep re-seeds from the fresh state
+	sect.invalidate()   // section scatter restarts from the fresh state
+	bif.invalidate()    // bifurcation re-sweeps (source params may have changed)
+	mapInvalidate()     // a map orbit is only meaningful for the params that made it
+	lyap.invalidate()   // and so is its Lyapunov exponent
 	// The live exponent restarts for the same reason, and it needs saying
 	// separately: lyap.invalidate re-runs the Analysis module's on-demand
 	// measurement, which is a different accumulation with a different clock.

@@ -173,7 +173,7 @@ const controlsBody = `
       <option value="2" data-doc="view-n=2">4</option>
       <option value="3" data-doc="view-n=3">9</option>
       <option value="4" data-doc="view-n=4">16</option>
-    </select><span class="knobhold" id="view-n-stack"></span></div>
+    </select><span class="knobhold" id="view-n-stack"></span><input type="checkbox" id="grid-ovl" hidden data-doc="grid-ovl"></div>
   <div class="punit" id="sweep-p-cell" data-param="sweep-p" data-doc="sweep-p-stack-cell" style="grid-row:2;grid-column:1"><span class="punit-top"><span class="plabel">sweep</span></span><select id="sweep-p" style="display:none">
       <!-- Filled by buildSweepDial: the targets are the CURRENT model's own parameters, so this list changes with the mode. -->
       <option value="0" selected data-doc="sweep-p=0">—</option>
@@ -198,9 +198,8 @@ const controlsBody = `
   <div class="punit" id="line-cell" data-param="line-width" data-stops data-doc="line-cell" style="grid-row:1;grid-column:1"><span class="punit-top"><span class="u-lbl">line</span><input type="text" inputmode="decimal" id="slider-value-line" class="numin u-val" data-doc="slider-value-line" value="1"></span><input type="range" id="line-width" min="1" max="10" value="1" step="1" data-doc="line-width"><button class="rst" id="rst-line" data-doc="rst-line">↺</button></div>
   <div class="punit" id="points-cell" data-param="dash-duty" data-stops data-doc="points-cell" style="grid-row:2;grid-column:1"><span class="punit-top"><span class="u-lbl">points</span><input type="text" inputmode="decimal" id="slider-value-dash" class="numin u-val" data-doc="slider-value-dash" value="0"></span><input type="range" id="dash-duty" min="0" max="4000" value="0" step="10" data-doc="dash-duty"><button class="rst" id="rst-dash" data-doc="rst-dash">↺</button></div>
   <div class="punit" id="trail-controls" data-param="trail-slider" data-stops data-doc="trail-controls" style="grid-row:3;grid-column:1"><span class="punit-top"><span class="u-lbl">trail</span><input type="text" inputmode="decimal" id="slider-value-trail" class="numin u-val" data-doc="slider-value-trail" value="20000"></span><input type="range" id="trail-slider" min="1000" max="500000" value="20000" step="1000" data-doc="trail-slider"><button class="rst" id="rst-trail" data-doc="rst-trail">↺</button></div>
-  <div class="punit" id="twin-cell" data-param="twin-eps" data-stops data-doc="twin-cell" style="grid-row:1;grid-column:2"><span class="punit-top"><span class="u-lbl">twin</span><input type="text" inputmode="decimal" id="slider-value-teps" class="numin u-val" data-doc="slider-value-teps" value="-4.0"></span><input type="range" id="twin-eps" min="-9" max="-1" value="-4" step="0.1" data-doc="twin-eps"><button class="rst" id="rst-teps" data-doc="rst-teps">↺</button></div>
 </div>
-<span hidden><input type="checkbox" class="sw" id="use-points" data-doc="use-points"><input type="checkbox" class="sw" id="persist-trail" data-doc="persist-trail-cell"><input type="checkbox" class="sw" id="ring-sw" data-doc="ring-sw-cell"><input type="checkbox" class="sw" id="twin-sw" data-doc="twin-sw"><input type="checkbox" class="sw" id="sect-sw" data-doc="sect-sw-cell"><input type="checkbox" class="sw" id="scope-grat" checked data-doc="scope-grat-cell"></span>
+<span hidden><input type="checkbox" class="sw" id="use-points" data-doc="use-points"><input type="checkbox" class="sw" id="persist-trail" data-doc="persist-trail-cell"><input type="checkbox" class="sw" id="ring-sw" data-doc="ring-sw-cell"><input type="checkbox" class="sw" id="sect-sw" data-doc="sect-sw-cell"><input type="checkbox" class="sw" id="scope-grat" checked data-doc="scope-grat-cell"></span>
 </div>
 <div class="sect"><div class="sect-hdr" data-doc="style">Style</div>
 <div class="row vmrow">
