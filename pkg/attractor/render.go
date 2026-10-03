@@ -621,6 +621,18 @@ func generateForMode(mode string) {
 	if _, isFlow := dynamics.FlowFor4(mode); isFlow && mode != "bifurcation" && mode != "poincare" {
 		bif.lastFlowMode = mode
 	}
+	// A flow or a map just switched to: centered before it is first drawn,
+	// not while it is on screen (warmCenter). Not the figures, which may
+	// draw by other means or sound as they move, and are centered on their
+	// first frame well enough.
+	if !sim.centerReady && sim.centerWarmup == 0 && viewPass <= 0 {
+		switch modeInfo[mode].Class {
+		case ClassFlow3D, ClassFlow4D, ClassMap:
+			if fn := modeGenerate[mode]; fn != nil {
+				warmCenter(fn)
+			}
+		}
+	}
 	// The Grid's start sweep: draws this cell's own trajectory itself.
 	if starts.tick(mode) {
 		restoreAudioModulation(saved)

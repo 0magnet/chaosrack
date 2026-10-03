@@ -3,7 +3,9 @@
 package attractor
 
 import (
+	"encoding/json"
 	"strconv"
+	"strings"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/conway"
@@ -198,16 +200,6 @@ func trioColumn(keys []string) js.Value {
 	return col
 }
 
-// trioOf is the program for the position a button is in, if it has one.
-func trioOf(el js.Value) (trioProgram, bool) {
-	c := el.Call("closest", "[data-param]")
-	if !c.Truthy() {
-		return trioProgram{}, false
-	}
-	p, ok := trioPrograms[c.Call("getAttribute", "data-param").String()]
-	return p, ok
-}
-
 // lightTrios relights the buttons of one parameter's positions, and nothing
 // else: a press is answered by its own column, not by a pass over the rack.
 func lightTrios(param string) {
@@ -238,36 +230,48 @@ func syncTriosIn(root js.Value, sel string) {
 	if !dom.Doc.Truthy() {
 		return
 	}
-	cols := root.Call("querySelectorAll", sel)
-	for i := range cols.Length() {
-		col := cols.Index(i)
-		p, ok := trioOf(col)
-		var on []bool
-		keys := trioKeys[:]
-		if ok {
-			on, keys = p.lighting(), p.legends()
+	// Decided here once per parameter, read and applied in JavaScript once
+	// per call (fastDOM trioParams, trioApply): button by button from Go it
+	// was six calls across a button, over every column on the rack.
+	h := fastDOM()
+	type entry struct {
+		Live bool      `json:"live"`
+		On   []bool    `json:"on"`
+		Dead []bool    `json:"dead"`
+		Keys []string  `json:"keys"`
+		Tips []*string `json:"tips"` // nil leaves a tooltip as it is
+	}
+	payload := map[string]entry{}
+	for _, param := range strings.Split(h.Call("trioParams", root, sel).String(), "\n") {
+		if _, done := payload[param]; done {
+			continue
 		}
-		col.Get("classList").Call("toggle", "trio-live", ok)
-		btns := col.Call("querySelectorAll", ".trio-btn")
-		for j := range btns.Length() {
-			b := btns.Index(j)
-			b.Get("classList").Call("toggle", "trio-on", j < len(on) && on[j])
-			b.Get("classList").Call("toggle", "trio-dead", ok && !p.assigned(j))
-			// The legend is programmed too: a position's buttons say what they
-			// do where it has legends of its own.
-			if lamp := b.Call("querySelector", ".trio-lamp"); lamp.Truthy() && j < len(keys) && lamp.Get("textContent").String() != keys[j] {
-				lamp.Set("textContent", keys[j])
-			}
-			if j >= len(keys) || (ok && j >= len(p.help)) {
+		p, ok := trioPrograms[param]
+		e := entry{Live: ok, Keys: trioKeys[:], On: []bool{}}
+		if ok {
+			e.On, e.Keys = p.lighting(), p.legends()
+		}
+		for j, k := range e.Keys {
+			e.Dead = append(e.Dead, ok && !p.assigned(j))
+			// The legend is programmed too: a position's buttons say what
+			// they do where it has legends of its own.
+			if ok && j >= len(p.help) {
+				e.Tips = append(e.Tips, nil)
 				continue
 			}
-			tip := keys[j] + " — unassigned for this model"
+			tip := k + " — unassigned for this model"
 			if ok {
-				tip = keys[j] + " — " + p.help[j]
+				tip = k + " — " + p.help[j]
 			}
-			b.Set("title", tip)
+			e.Tips = append(e.Tips, &tip)
 		}
+		payload[param] = e
 	}
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	h.Call("trioApply", root, sel, string(b))
 }
 
 // wireTrios hangs one listener on the document for every trio there is or

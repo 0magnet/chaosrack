@@ -6,6 +6,7 @@ import (
 	"math"
 	"runtime"
 	"syscall/js"
+	"time"
 	"unsafe"
 
 	"github.com/0magnet/chaosrack/pkg/glctx"
@@ -53,12 +54,76 @@ func (r *renderer) updateGradientRange(vertices []float32) {
 	glctx.GL.Call("uniform1f", r.u.maxZ, float64(maxZ))
 }
 
+// centerWarm is warmCenter's run ahead: whether a frame being generated is
+// one of its, and the sum and count of the vertices they made.
+var centerWarm struct {
+	on  bool
+	sum [3]float64
+	n   int
+}
+
+// centerWarmFrames and centerWarmBudget bound warmCenter: the frames the
+// center is the mean of, and the time it may take to make them.
+const (
+	centerWarmFrames = 30
+	centerWarmBudget = 30 * time.Millisecond
+)
+
+// warmCenter finds where a model that has just appeared is centered before
+// its first frame is drawn, by running its generator ahead for up to
+// centerWarmFrames frames, measuring and drawing none of them.
+//
+// It used to be found while the model was on screen: for the first thirty
+// frames the center was each frame's own trail's mean, and a trail is a
+// different stretch of the attractor every frame, so the figure shook from
+// side to side until the center was frozen — at one frame's mean, which is
+// not the attractor's. Run ahead, the center is the mean of all of those
+// frames at once, and the figure is still from its first frame. The model
+// is that much further along its trajectory, past its transient, which it
+// would have spent those frames on anyway. Bounded in time, so a slow model
+// (the equation engine) does not stall the switch: it takes what it made.
+func warmCenter(gen func()) {
+	centerWarm.on, centerWarm.sum, centerWarm.n = true, [3]float64{}, 0
+	start := time.Now()
+	for k := 0; k < centerWarmFrames && (k < 2 || time.Since(start) < centerWarmBudget); k++ {
+		gen()
+		// A model that finds its own center (the hyperchaotic Sprott cases,
+		// the turtle) has: its answer stands.
+		if sim.centerReady {
+			centerWarm.on = false
+			return
+		}
+	}
+	centerWarm.on = false
+	if centerWarm.n > 0 {
+		inv := 1 / float64(centerWarm.n)
+		sim.centerOffset = [3]float32{float32(centerWarm.sum[0] * inv), float32(centerWarm.sum[1] * inv), float32(centerWarm.sum[2] * inv)}
+		sim.centerReady = true
+		return
+	}
+	// Nothing came through uploadVerticesOnly: centered the old way, and
+	// not run ahead again.
+	sim.centerWarmup = 1
+}
+
 // uploadVerticesOnly uploads vertex data and draws with drawArrays (no index buffer).
 // Subtracts a stable centerOffset (computed once on mode change) so rotations work naturally.
 // Uses persistent JS typed arrays for zero per-frame JS allocation.
 func (r *renderer) uploadVerticesOnly(vertices []float32, drawMode js.Value, count int) {
 	n := len(vertices) / 4
+	// A frame of warmCenter's: measured, not drawn.
+	if centerWarm.on {
+		for i := 0; i < len(vertices); i += 4 {
+			centerWarm.sum[0] += float64(vertices[i])
+			centerWarm.sum[1] += float64(vertices[i+1])
+			centerWarm.sum[2] += float64(vertices[i+2])
+		}
+		centerWarm.n += n
+		return
+	}
 	if n > 0 {
+		// A model warmCenter could not run ahead: centered on each frame's
+		// trail until it settles, as before.
 		if !sim.centerReady {
 			sim.centerWarmup++
 			var cx, cy, cz float32

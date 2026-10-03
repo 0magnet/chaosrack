@@ -196,7 +196,7 @@ func (ra *rackScope) buildRackScope() {
 		// SLOPE and MODE are two-way settings, so they are buttons on the
 		// trigger LEVEL's cell rather than a switch or a knob of their own:
 		// the trigger's three settings in one place. Each column is its
-		// parameter's position (trioOf), so two share a cell. SOURCE is four
+		// parameter's position (trioParams), so two share a cell. SOURCE is four
 		// buttons beside the tube, which is what it chooses the picture for,
 		// between the H and V trimmers.
 		cols := []struct{ id, in string }{

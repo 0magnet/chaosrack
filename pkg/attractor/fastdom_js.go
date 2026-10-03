@@ -229,6 +229,39 @@ const fastSource = `(function () {
         }
       }
     },
+    // trioParams names the parameter of each column of buttons under root
+    // that sel matches, "" for a column outside any position, joined by
+    // newlines. trioApply then gives them what Go decided (syncTriosIn).
+    trioParams: function (root, sel) {
+      var cols = root.querySelectorAll(sel), out = [];
+      for (var i = 0; i < cols.length; i++) {
+        var c = cols[i].closest("[data-param]");
+        out.push(c ? c.getAttribute("data-param") : "");
+      }
+      return out.join("\n");
+    },
+    // trioApply lights, labels and explains the columns trioParams named,
+    // in the same order: P maps a parameter (or "" for none) to its live
+    // flag, and per button whether it is on, dead, its legend and its
+    // tooltip (null leaves the tooltip as it is).
+    trioApply: function (root, sel, payloadJSON) {
+      var cols = root.querySelectorAll(sel), P = JSON.parse(payloadJSON);
+      for (var i = 0; i < cols.length; i++) {
+        var c = cols[i].closest("[data-param]");
+        var e = P[c ? c.getAttribute("data-param") : ""] || P[""];
+        if (!e) continue;
+        cols[i].classList.toggle("trio-live", e.live);
+        var bs = cols[i].querySelectorAll(".trio-btn");
+        for (var j = 0; j < bs.length; j++) {
+          var b = bs[j];
+          b.classList.toggle("trio-on", !!(e.on && e.on[j]));
+          b.classList.toggle("trio-dead", !!(e.dead && e.dead[j]));
+          var lamp = b.querySelector(".trio-lamp");
+          if (lamp && j < e.keys.length && lamp.textContent !== e.keys[j]) lamp.textContent = e.keys[j];
+          if (e.tips && e.tips[j] != null) b.title = e.tips[j];
+        }
+      }
+    },
     // skirtStacks are the knob stacks with legend rings under root: one
     // stack, the stacks inside an element, or with no root the whole page.
     // The read and the write are handed the same root, so they agree on

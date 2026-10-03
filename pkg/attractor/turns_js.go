@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"strconv"
+	"sync"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/dom"
@@ -68,28 +69,20 @@ func makeTurning(c js.Value) {
 	}
 }
 
+// fullRingTicks is an endless knob's ring of LEDs, a major one at each
+// quarter: the same for every such knob, so written once (ringTicks).
+var fullRingTicks = sync.OnceValue(func() string {
+	return ringTicks(ringLEDs, func(i int) float64 { return 360 * float64(i) / ringLEDs },
+		func(i int) bool { return i%(ringLEDs/4) == 0 })
+})
+
 // fullRing redraws a value dial as an endless knob's: one LED per detent
 // all the way round, since the knob has no ends. The first LED, at the top,
 // is where every lap starts, and the color the ring lights in is which lap
 // (paintRing; panel.css, "LAPS").
 func fullRing(dial js.Value, spec turnSpec) {
-	dial.Set("innerHTML", "")
+	dial.Set("innerHTML", fullRingTicks())
 	dial.Get("classList").Call("add", "full-ring")
-	for i := range ringLEDs {
-		deg := 360 * float64(i) / ringLEDs
-		l, tp := dialLabelPos(deg, 41)
-		tk := dom.Doc.Call("createElement", "span")
-		cls := "vdial-tick"
-		if i%(ringLEDs/4) == 0 {
-			cls += " major"
-		}
-		tk.Set("className", cls)
-		st := tk.Get("style")
-		st.Set("left", l)
-		st.Set("top", tp)
-		st.Set("transform", "translate(-50%,-50%) rotate("+strconv.FormatFloat(deg, 'f', 1, 64)+"deg)")
-		dial.Call("appendChild", tk)
-	}
 	what := map[turnKind]string{
 		turnLinear: "one turn is " + fmtDialNum(spec.lo) + " to " + fmtDialNum(spec.hi) + ", and each turn past it another range's worth",
 		turnLog:    "one turn is " + fmtDialNum(spec.lo) + " to " + fmtDialNum(spec.hi) + ", and each turn past it ten times the one before",
