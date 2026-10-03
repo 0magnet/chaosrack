@@ -2,13 +2,15 @@
 
 package attractor
 
-// The manual's windows: a module, a whole bay or the model, taken out of the
-// manual page into a window of its own (winbox-go), to keep in view while the
-// text about it is scrolled through. Windows stay where they are put; the
-// manual scrolls under them. Closing one puts what it held back where it was.
+// The manual's windows: a bay or the model, taken out of the manual page into
+// a window of its own (winbox-go), to keep in view while the text about it is
+// scrolled through. Windows stay where they are put; the manual scrolls under
+// them. Closing one puts what it held back where it was.
 //
-// A module in a window is the same module the manual held (manuallive_js.go),
-// moved, not copied; its place in the manual says so and offers it back. The
+// A bay, not a module: a control is worked beside the ones next to it in its
+// bay, and a module on its own put some of those out of reach. A bay in a
+// window is the same modules the page held (manuallive_js.go), moved, not
+// copied; its place on the page says so and offers it back. The
 // model's window holds the rack's own canvas, sized to the window, and is the
 // rack switched on: opening it powers the rack up, closing it powers it down,
 // and the Console's Power switch, in the manual, opens and closes it.
@@ -26,8 +28,8 @@ import (
 // manualWinZ is above the manual page (#rack-manual) and below nothing else.
 const manualWinZ = 100010
 
-// manualWins are the windows open, by what they hold: "m:8.1" a module,
-// "b:8" a bay.
+// manualWins are the windows open, by what they hold: "b:8" a bay, "model"
+// the model.
 var manualWins = map[string]*winbox.WinBox{}
 
 // manualCascade staggers windows as they open, so one does not land exactly
@@ -41,20 +43,15 @@ func wireManualWindows(page js.Value) {
 		if !t.Truthy() || !t.Get("closest").Truthy() {
 			return nil
 		}
-		switch b := t.Call("closest", "[data-pop-mloc],[data-pop-bay],[data-back-mloc],.mmodel"); {
+		switch b := t.Call("closest", "[data-pop-bay],[data-back-bay],.mmodel"); {
 		case !b.Truthy():
-		case b.Call("hasAttribute", "data-pop-mloc").Bool():
-			popManualModule(b.Call("getAttribute", "data-pop-mloc").String())
 		case b.Call("hasAttribute", "data-pop-bay").Bool():
 			if n, err := strconv.Atoi(b.Call("getAttribute", "data-pop-bay").String()); err == nil {
 				popManualBay(n)
 			}
-		case b.Call("hasAttribute", "data-back-mloc").Bool():
-			loc := b.Call("getAttribute", "data-back-mloc").String()
-			for k, w := range manualWins {
-				if k == "m:"+loc || (strings.HasPrefix(k, "b:") && strings.HasPrefix(loc, k[2:]+".")) {
-					w.Close(true)
-				}
+		case b.Call("hasAttribute", "data-back-bay").Bool():
+			if w, ok := manualWins["b:"+b.Call("getAttribute", "data-back-bay").String()]; ok {
+				w.Close(true)
 			}
 		default:
 			toggleModelWindow()
@@ -107,35 +104,6 @@ func manualOpen(key, title string, body js.Value, w, h float64, resized func(*wi
 	return win
 }
 
-// popManualModule takes module loc out of the manual into a window.
-func popManualModule(loc string) {
-	if w, ok := manualWins["m:"+loc]; ok {
-		w.Show().Focus()
-		return
-	}
-	live := manualLive()
-	wrap := live.Call("wrapper", loc)
-	if !wrap.Truthy() {
-		return
-	}
-	nw := live.Call("naturalWidth", loc).Float()
-	body := dom.Doc.Call("createElement", "div")
-	body.Set("className", "mwin-body")
-	body.Call("appendChild", wrap)
-	live.Call("away", loc)
-	width := min(nw+20, winW()*0.6)
-	title := loc + " " + manualModuleName(wrap)
-	fit := func(win *winbox.WinBox) {
-		live.Call("fit", loc, body.Get("clientWidth").Float()-12)
-	}
-	win := manualOpen("m:"+loc, title, body, width, 200, fit, func() { live.Call("home", loc) })
-	fit(win)
-	// As tall as the module is drawn at that width.
-	if h := wrap.Call("getBoundingClientRect").Get("height").Float(); h > 0 {
-		win.Resize(winbox.Px(width), winbox.Px(h+48))
-	}
-}
-
 // popManualBay takes every module of bay n out of the manual into one window,
 // side by side as they stand in the rack.
 func popManualBay(n int) {
@@ -152,9 +120,6 @@ func popManualBay(n int) {
 	total := 0.0
 	for i := range holds.Length() {
 		loc := holds.Index(i).Call("getAttribute", "data-mloc").String()
-		if _, inOwn := manualWins["m:"+loc]; inOwn {
-			continue // already in a window of its own
-		}
 		wrap := live.Call("wrapper", loc)
 		if !wrap.Truthy() {
 			continue
@@ -183,14 +148,6 @@ func popManualBay(n int) {
 	if h := body.Get("scrollHeight").Float(); h > 0 {
 		win.Resize(winbox.Px(width), winbox.Px(h+48))
 	}
-}
-
-// manualModuleName is the name on a wrapped module's header.
-func manualModuleName(wrap js.Value) string {
-	if h := wrap.Call("querySelector", ".sect-hdr"); h.Truthy() {
-		return strings.TrimSpace(h.Get("textContent").String())
-	}
-	return ""
 }
 
 // bayTitleFromManual is bay n's heading on the manual page.

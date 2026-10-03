@@ -47,7 +47,6 @@ function svg(tag, attrs) {
   for (var k in attrs) e.setAttribute(k, attrs[k]);
   return e;
 }
-function anchor(loc) { return 'c-' + loc.replace(/\./g, '-'); }
 // The wrapper's classes: the panel's, and the one the stylesheet reads as
 // the panel's.
 function ctxClass() { return 'cp-ctx mlive-ctx ' + panel.className; }
@@ -142,32 +141,48 @@ return {
     this.refit();
   },
 
-  // home puts module loc back in its place in the manual.
+  // home puts module loc back in its bay on the page.
   home: function (loc) {
     var h = doc.querySelector('.mlive[data-mloc="' + loc + '"]'), w = wraps[loc];
     if (!h || !w) return;
     h.querySelector('.mlive-stage').appendChild(w);
     h.classList.remove('away');
-    this.refit(h);
+    var strip = h.closest('.mbay');
+    if (strip) strip.classList.remove('away');
+    this.refit(strip || h);
   },
 
-  // away marks module loc's place as empty: the module is in a window.
+  // away marks module loc's place as empty, and its bay's when the whole
+  // bay is out: it is in a window.
   away: function (loc) {
     var h = doc.querySelector('.mlive[data-mloc="' + loc + '"]');
-    if (h) h.classList.add('away');
+    if (!h) return;
+    h.classList.add('away');
+    var strip = h.closest('.mbay');
+    if (strip && !strip.querySelector('.mlive:not(.away)')) strip.classList.add('away');
   },
 
-  // refit fits the modules in the manual to its column (or only hold), and
-  // redraws their addresses.
+  // refit fits each bay on the page (or only the one given) to the column,
+  // its modules side by side at one scale, and redraws their addresses.
   refit: function (only) {
     var self = this;
-    (only ? [only] : holds).forEach(function (h) {
-      if (h.classList.contains('away')) return;
-      var loc = h.getAttribute('data-mloc');
-      self.fit(loc, h.clientWidth);
-      self.callouts(h);
+    var strips = only ? [only.closest ? (only.closest('.mbay') || only) : only] : [].slice.call(doc.querySelectorAll('#rack-manual .mbay'));
+    strips.forEach(function (s) {
+      if (!s.classList || s.classList.contains('away')) return;
+      var hs = [].filter.call(s.querySelectorAll('.mlive[data-mloc]'), function (h) { return !h.classList.contains('away'); });
+      var total = 0;
+      hs.forEach(function (h) { total += self.naturalWidth(h.getAttribute('data-mloc')); });
+      if (!total) return;
+      var k = Math.min(1, (s.clientWidth - 2 * (hs.length - 1)) / total);
+      hs.forEach(function (h) {
+        var loc = h.getAttribute('data-mloc'), w = self.naturalWidth(loc) * k;
+        h.style.width = w + 'px';
+        self.fit(loc, w);
+      });
+      hs.forEach(function (h) { self.callouts(h); });
     });
   },
+
 
   // callouts draws module loc's addresses over it, in hold: a tag at each
   // control's top left, moved down past any tag already there.
@@ -203,26 +218,19 @@ return {
     h.appendChild(o);
   },
 
-  // maps draws each bay's map in root: its modules where they stand in it,
-  // each named and addressed, and a link to where the manual has it.
-  maps: function (root) {
-    [].forEach.call(root.querySelectorAll('.mbaymap[data-bay]'), function (f) {
-      var b = bays[+f.getAttribute('data-bay')];
+  // strips gives each bay on the page (.mbay) a place for each of its
+  // modules, left to right as they stand in the rack, for place to fill: the
+  // bay itself, drawn whole.
+  strips: function (root) {
+    [].forEach.call(root.querySelectorAll('.mbay[data-bay]'), function (s) {
+      var b = bays[+s.getAttribute('data-bay')];
       if (!b) return;
-      var W = f.clientWidth || 860, s = W / b.w, H = Math.max(40, b.h * s);
-      var o = svg('svg', { width: W, height: H, class: 'mbaymap-svg' });
-      b.mods.forEach(function (m) {
-        var a = svg('a', { href: '#' + anchor(m.loc) });
-        a.appendChild(svg('rect', { x: m.x * s + 1, y: m.y * s + 1, width: Math.max(2, m.w * s - 2), height: Math.max(2, m.h * s - 2), rx: 3, class: 'mbaymap-mod' }));
-        var t = svg('text', { x: m.x * s + 6, y: m.y * s + 16, class: 'mbaymap-loc' });
-        t.textContent = m.loc;
-        a.appendChild(t);
-        var n = svg('text', { x: m.x * s + 6, y: m.y * s + 31, class: 'mbaymap-name' });
-        n.textContent = m.name;
-        a.appendChild(n);
-        o.appendChild(a);
+      b.mods.slice().sort(function (p, q) { return p.x - q.x; }).forEach(function (m) {
+        var h = doc.createElement('div');
+        h.className = 'mlive';
+        h.setAttribute('data-mloc', m.loc);
+        s.appendChild(h);
       });
-      f.appendChild(o);
     });
   },
 
