@@ -11,22 +11,20 @@ import (
 	"github.com/0magnet/chaosrack/pkg/racksurface"
 )
 
-// Designators: every control on the rack has an address,
-// bay.module.position.
+// Designators: every control on the rack has an address, bay.column.row.
 //
 //   - bay is the number on the bay's left ear;
-//   - module is the module's place in the bay, 1 from the left;
-//   - position is the cell of the module's grid the control stands in, a
-//     slot across and a row down, numbered down each column and then across
-//     whether or not the cells before it hold anything — the bay's three
-//     rows are 1 to 3 in the first column, 4 to 6 in the second.
+//   - column is the slot of the bay the control stands in, counted from the
+//     bay's left: a bay is twelve of the narrowest module wide, so 1 to 12;
+//   - row is the bay's row of controls it is in, 1 to 3.
 //
-// So 3.2.4 is the top of the second column of bay 3's second module, and
-// 3.2 the module itself. An address is a place, as a part number on a
-// drawing is: a module laid out differently keeps its positions, and an
-// empty one keeps its number. Two or more controls in one position — a knob
-// and the readout over it, a column of switches — are lettered, top to
-// bottom and then left to right: 3.2.4.a, 3.2.4.b.
+// So the control to the right of 1.3.1 is 1.4.1, whatever module either is
+// in, and a module is addressed by its first column (the Visual monitor is
+// two slots, 1.1, so the bank beside it is 1.3). An address is a place, as a
+// grid reference on a drawing is: an empty cell keeps its number. Two or
+// more controls in one cell — a knob and the readout over it, a column of
+// switches — are lettered, top to bottom and then left to right: 3.2.1.a,
+// 3.2.1.b.
 //
 // The point is to name a control in a sentence. It is in every tooltip, and
 // uitool reads it back (data-loc), so an address in a message is a control

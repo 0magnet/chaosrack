@@ -141,7 +141,7 @@ const fastSource = `(function () {
     moduleManual: function (m) { return JSON.stringify(this.moduleInfo(m)); },
     // moduleInfo is module m as the manual reads it.
     moduleInfo: function (m) {
-      var num = function (loc) { var p = loc.split("."); return (parseInt(p[2], 10) || 0) * 32 + (p[3] ? p[3].charCodeAt(0) - 96 : 0); };
+      var num = function (loc) { var p = loc.split("."); return ((parseInt(p[1], 10) || 0) * 8 + (parseInt(p[2], 10) || 0)) * 32 + (p[3] ? p[3].charCodeAt(0) - 96 : 0); };
       var inner = function (c, loc) {
         var sels = [".knob[title]", "select[title]", "input[title]", "button[title]", ".led[title]", "[title]"];
         for (var i = 0; i < sels.length; i++) {
@@ -583,7 +583,13 @@ const fastSource = `(function () {
         var rowH = (m0.bottom - y0) / rows;
         for (j = 0; j < mods.length; j++) {
           var m = mods[j], acts = actuators(m), seen = new Set(), cells = [];
-          var mloc = u.loc || (bay + "." + (j + 1));
+          // A module is addressed by the first column of the bay it stands in.
+          // One drawn away from the rack (the manual) keeps the address it has
+          // there, and its controls the columns they have there.
+          var mr0 = m.getBoundingClientRect();
+          var col0 = span(mr0.left, mr0.left + Math.min(pitch, mr0.width), x0, pitch, cap);
+          var mloc = u.loc || (bay + "." + col0);
+          var shift = u.loc ? (parseInt(u.loc.split(".")[1], 10) || 1) - col0 : 0;
           // The module's own address, on its tooltip and its header's, so
           // hovering anywhere on it that is not a control says where it is.
           // Written with the controls', after every read: a write between two
@@ -631,20 +637,18 @@ const fastSource = `(function () {
             return a.col - b.col || a.row - b.row || (b.part ? 1 : 0) - (a.part ? 1 : 0) ||
               (Math.abs(a.r.top - b.r.top) > 4 ? a.r.top - b.r.top : a.r.left - b.r.left);
           });
-          // The position: the cell of the module's grid it is in, counted down
-          // each column and then across, whether or not the positions before
-          // it hold anything. Two or more in one position are lettered.
-          var mr0 = m.getBoundingClientRect();
-          var col0 = span(mr0.left, mr0.left + Math.min(pitch, mr0.width), x0, pitch, cap);
+          // The address: the bay's column the control stands in, a slot across
+          // from the bay's left, and its row, 1 to 3. Two or more in one cell
+          // are lettered.
           var at = {};
           for (k = 0; k < cells.length; k++) {
-            var pos = Math.max(0, cells[k].col - col0) * rows + cells[k].row;
+            var pos = (cells[k].col + shift) + "." + cells[k].row;
             cells[k].pos = pos;
             (at[pos] = at[pos] || []).push(cells[k]);
           }
           for (k = 0; k < cells.length; k++) {
             var same = at[cells[k].pos];
-            cells[k].loc = mloc + "." + cells[k].pos + (same.length > 1 ? "." + LETTERS.charAt(same.indexOf(cells[k])) : "");
+            cells[k].loc = bay + "." + cells[k].pos + (same.length > 1 ? "." + LETTERS.charAt(same.indexOf(cells[k])) : "");
             found.push(cells[k]);
           }
         }
