@@ -263,6 +263,22 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 				mo = append(mo, c)
 			}
 		}
+		// And Speed, the clock of the models that have one, under them (1.12.3):
+		// dark for the rest, which it does nothing to.
+		if sc := dom.Doc.Call("getElementById", "speed-cell"); sc.Truthy() && len(mo) > 0 {
+			var timed []string
+			for _, m := range own {
+				if runsOnSpeed(m) {
+					timed = append(timed, m)
+				}
+			}
+			if len(timed) > 0 {
+				sc.Call("setAttribute", "data-bank-for", strings.Join(timed, " "))
+				withStepField(sc)
+				sc.Call("remove") // out of the holder: the bank places a shared cell that has no place yet
+				mo = append(mo, sc)
+			}
+		}
 		return buildBankRow(label, own, cells, steps, sharedCells, hidden, mo)
 	}
 

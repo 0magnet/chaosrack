@@ -577,6 +577,20 @@ Model Out SPD — how fast the model runs as a signal: integrator steps per samp
 <!-- key: p.mo-lvl -->
 Model Out LVL — the level of the model's x, y and z, as the Mixer takes them (0–100).
 
+### SPEED
+
+<!-- key: speed-cell -->
+SPEED — the model's time base, at 1.12.3 below Model Out. For a flow it sets integration sub-steps per drawn vertex above ×1, and scales dt below ×1; for an animated model (Lissajous, turtle, pong, morph) it sets the playback rate. Dark for models with no time base of their own (geometry, maps, analysis displays).
+
+<!-- key: slider-value-speed -->
+Speed value, ×0.01 to ×100 — type or scroll
+
+<!-- key: speed-slider -->
+Speed — model time-base multiplier (logarithmic, ×0.01 to ×100)
+
+<!-- key: rst-speed -->
+Reset speed (×1)
+
 ### Stereo AXES positions
 
 - <!-- key: p.stereo-axes=0 --> L/R delay embedding — L, R, L(t−τ)

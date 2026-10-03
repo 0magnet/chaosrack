@@ -309,3 +309,20 @@ func ModeKeys(classes ...ModeClass) []string {
 	}
 	return out
 }
+
+// runsOnSpeed reports whether the Speed control does anything to mode: a
+// flow integrates Speed's sub-steps (or its dt scaled below ×1), and an
+// animation plays at Speed's rate. Geometry, maps and the analysis displays
+// have no clock of their own for it to set, and their bank shows Speed's
+// position dark (rackcategory_js.go).
+func runsOnSpeed(mode string) bool { //nolint:unused // only the js build has a bank
+	switch modeInfo[mode].Class {
+	case ClassFlow3D, ClassFlow4D:
+		return true
+	}
+	switch mode {
+	case "lissajou", "pong", "scopetext", "bounceball", "sprottmorph", "graphicartist", "turtle", "custom":
+		return true
+	}
+	return false
+}

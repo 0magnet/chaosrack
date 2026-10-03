@@ -13,37 +13,50 @@ package attractor
 // its P-unit's .knobhold (selectorReadout).
 
 import (
+	"syscall/js"
+
 	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
 // buildGridBank makes the Grid's cells P-units. Called once the fixed knobs
 // are made (FROM and TO are knobifyFixed's) and before the dials are filled.
 func buildGridBank() {
-	bank := dom.Doc.Call("getElementById", "grid-bank")
-	if !bank.Truthy() {
-		return
-	}
-	for _, id := range []string{"sweep-lo", "sweep-hi"} {
-		sl := dom.Doc.Call("getElementById", id)
-		if !sl.Truthy() {
-			continue
-		}
-		c := sl.Call("closest", ".punit")
-		label := ""
-		if l := c.Call("querySelector", ".u-lbl"); l.Truthy() {
-			label = l.Get("textContent").String()
-		}
-		c.Call("appendChild", buildStepField(sl, label, specOf(sl).stepText()))
-	}
-	cs := bank.Call("querySelectorAll", ":scope>.punit")
-	for i := range cs.Length() {
-		bankPosition(cs.Index(i))
-	}
+	buildPUnitModule("grid-bank")
 	// The one dial nothing rebuilds: mounted here, as the others are by
 	// their own builds.
 	if sel, h := dom.Doc.Call("getElementById", "view-n"), dom.Doc.Call("getElementById", "view-n-stack"); sel.Truthy() && h.Truthy() {
 		selectorReadout(h, sel, viewCountRing)
 	}
+}
+
+// buildPUnitModule makes every cell of the P-unit grid with id id, written
+// in the markup as a label and its control, a P-unit: a number gets the step
+// readout and its knob, then each is finished as a bank's position is.
+func buildPUnitModule(id string) {
+	grid := dom.Doc.Call("getElementById", id)
+	if !grid.Truthy() {
+		return
+	}
+	cs := grid.Call("querySelectorAll", ":scope>.punit")
+	for i := range cs.Length() {
+		c := cs.Index(i)
+		withStepField(c)
+		bankPosition(c)
+	}
+}
+
+// withStepField gives a markup cell with a numeric control its step readout
+// and knob, if it has none: what buildParamUnit gives a parameter's.
+func withStepField(c js.Value) {
+	sl := c.Call("querySelector", "input[type=range][id]")
+	if !sl.Truthy() || c.Call("querySelector", ".u-step").Truthy() || c.Call("querySelector", "select").Truthy() {
+		return
+	}
+	label := ""
+	if l := c.Call("querySelector", ".u-lbl"); l.Truthy() {
+		label = l.Get("textContent").String()
+	}
+	c.Call("appendChild", buildStepField(sl, label, specOf(sl).stepText()))
 }
 
 // stepSelect moves the select id by d positions, or to position 0 when d is

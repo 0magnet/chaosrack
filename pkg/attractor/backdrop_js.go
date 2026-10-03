@@ -117,8 +117,7 @@ func syncLayersModule(mode string) {
 		}
 		w.Get("classList").Call("toggle", "layer-dim", !applies)
 	}
-	dimIn("skin-visual", ".pcell", isSkinnable(mode))
-	dimIn("spect-fill", "label", isSpectroSurface(mode))
+	dimIn("skin-visual", ".punit", isSkinnable(mode))
 }
 
 // syncSpectroModule builds the spectrogram's own controls when it is a LAYER.

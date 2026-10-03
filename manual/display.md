@@ -169,28 +169,16 @@ Palette shift — where the colormap window starts
 <!-- key: rst-pshift -->
 Reset palette shift
 
-### Trail length
+### P-unit buttons in Layers · Colors
 
-<!-- key: trail-controls -->
-Trail length — how many recent points stay lit
+The module's switches are buttons on the P-units they concern.
 
-### Trail length value (points)
+- <!-- key: trio.bg-visual=0 --> F (BEHIND): fill — spectrogram or FVF backdrop full screen, face-on. Applies only to those two backdrops.
+- <!-- key: trio.bg-visual=1 --> B (BEHIND): back — the Colors module edits the backdrop's colors instead of the model's. Applies only to a flat backdrop.
+- <!-- key: trio.gradient-colors=0 --> I (MAP): invert — reverse the palette direction (start and end swapped)
+- <!-- key: trio.gradient-source=0 --> H (SRC): held — the color range stops refitting to the source
 
-<!-- key: slider-value-trail -->
-Trail length value (points) — type or scroll
-
-### Trail length
-
-<!-- key: trail-slider -->
-Trail length — how many recent points stay lit
-
-<!-- key: rst-trail -->
-Reset trail length
-
-### Fill, Invert and Held
-
-<!-- key: layers-sw -->
-Fill, Invert and Held — the three settings of the picture that are on or off.
+### Fill
 
 <!-- key: spect-fill-cell -->
 Fill the screen with the spectrogram / FVF display (face-on) instead of the rotatable plane
@@ -523,90 +511,110 @@ Link — every cell of the grid on one set of knobs: turn one and every view fol
 ## Display
 
 <!-- key: display -->
-Display — animation speed, line width, points and how the trace is drawn
+Display — trace rendering: line width, point decimation, trail length and mode, and the overlays drawn on the trace (twin trajectory, Poincaré section, graticule). Four P-units; the switches are on their buttons.
 
-### Speed value ×0.01–×100
+### LINE
 
-<!-- key: slider-value-speed -->
-Speed value ×0.01–×100 — type or scroll
-
-### Speed
-
-<!-- key: speed-slider -->
-Speed — animation rate (sub-steps / dt scale)
-
-<!-- key: rst-speed -->
-Reset speed
-
-### Line width value
+<!-- key: line-cell -->
+LINE — trace line width, 1 to 10 pixels.
 
 <!-- key: slider-value-line -->
 Line width value — type or scroll
 
-### Line width
-
 <!-- key: line-width -->
-Line width — trace thickness
+Line width — trace thickness in pixels
 
 <!-- key: rst-line -->
 Reset line width
 
-### Point count
+### POINTS
+
+<!-- key: points-cell -->
+POINTS — point decimation. At 0 the trace is a solid line. Any other setting draws the trace as that many points, evenly spaced along it; a setting at or above the trail's vertex count is equivalent to a solid line. Useful where the figure folds over itself and a solid line obscures its structure.
 
 <!-- key: slider-value-dash -->
 Point count — type or scroll; 0 is the solid line
 
-### Points
-
 <!-- key: dash-duty -->
-Points — how many points the line breaks into. 0 (and anything past the trail's own vertex count) draws it solid, exactly as it always has; lower it and the line becomes that many points, further apart as the number falls. Each point is one vertex wide, so the continuity at the top is not a separate setting — it is what happens when there is a point for every vertex. Useful on a figure that folds over itself, where points read and a solid line becomes a thicket.
+Point count — the number of points the trace is drawn as; 0 draws it solid
 
 <!-- key: rst-dash -->
-Reset points (0 = the solid line)
+Reset point count (0, solid line)
 
-### Trace
+### POINTS buttons
 
-<!-- key: trace -->
-Trace — how the trajectory itself is drawn. In Display rather than the Console because the knobs it is read against — speed, line width — are the two cells beside it.
+- <!-- key: trio.dash-duty=0 --> dots: draw every vertex as a point
+- <!-- key: trio.dash-duty=1 --> line: solid line (dots off, point count 0)
+
+### Dots
 
 <!-- key: use-points -->
-Draw the trajectory as discrete points instead of a connected line
+Dots — draw every vertex of the trace as a point instead of a connected line
+
+### TRAIL
+
+<!-- key: trail-controls -->
+TRAIL — trail length, in vertices, and trail mode. The buttons select the mode: persist, scan or ring.
+
+<!-- key: slider-value-trail -->
+Trail length value (vertices) — type or scroll
+
+<!-- key: trail-slider -->
+Trail length — number of most recent vertices drawn
+
+<!-- key: rst-trail -->
+Reset trail length
+
+### TRAIL buttons
+
+- <!-- key: trio.trail-slider=0 --> persist: the frame is not cleared; the trace accumulates until the mode is changed
+- <!-- key: trio.trail-slider=1 --> scan: the whole trail is recomputed and redrawn each frame (default)
+- <!-- key: trio.trail-slider=2 --> ring: only the trail head is integrated each frame and the trail is its history, so parameter changes take effect from the head onward
+
+### Persist
 
 <!-- key: persist-trail-cell -->
-Keep the entire trail on screen (never clear old points) — accumulates the full attractor
+Persist — the frame is not cleared; the trace accumulates. TRAIL's + button.
 
-### Ring trail
+### Ring
 
 <!-- key: ring-sw-cell -->
-Ring trail — scope-style beam: only the advancing head integrates each frame (the trail is its history), so knob/audio changes bend the path from the head forward instead of reshaping the whole curve, and long trails cost almost nothing. Off = classic scan (whole curve recomputed and reshaped every frame).
+Ring — beam mode: only the advancing head is integrated each frame and the trail is its history. Parameter and audio changes bend the path from the head forward instead of reshaping the whole curve, and long trails cost little. TRAIL's − button.
 
-### Overlay
+### TWIN
 
-<!-- key: overlay -->
-Overlay — what else is drawn on the face besides the trajectory: a second copy of the flow, the section it pierces, and the ruled graticule a reading is taken against.
+<!-- key: twin-cell -->
+TWIN — trace overlays. The knob sets the twin trajectory's initial separation ε, as a power of ten (−4 is ε = 10⁻⁴). The display shows λ, the live largest-Lyapunov-exponent estimate, while Twin is on, and ε for a moment after the knob is turned. Buttons: T twin trajectory, S Poincaré section, G graticule; each is an independent switch.
+
+<!-- key: slider-value-teps -->
+Twin separation, log₁₀ ε — type or scroll
+
+<!-- key: twin-eps -->
+Twin separation — initial distance between the two trajectories, as log₁₀ ε. A larger ε separates sooner; λ is unaffected, being measured by its own probe pair.
+
+<!-- key: rst-teps -->
+Reset twin separation (10⁻⁴, the λ probe's own)
+
+### TWIN buttons
+
+- <!-- key: trio.twin-eps=0 --> T: twin trajectory, a second copy of the flow started ε away (green)
+- <!-- key: trio.twin-eps=1 --> S: Poincaré section overlay
+- <!-- key: trio.twin-eps=2 --> G: graticule behind a scope trace
 
 ### Twin trajectories
 
 <!-- key: twin-sw -->
-Twin trajectories — a second copy of the flow starts ε apart (green) and the two visibly separate at the attractor's own Lyapunov rate; the λ readout is a live largest-Lyapunov-exponent estimate (positive = chaotic). Both copies use the same integrator, so what separates them is the dynamics.
+Twin trajectories — a second copy of the flow, started ε apart (green); the two separate at the attractor's own Lyapunov rate. Both use the same integrator, so their separation is due to the dynamics alone.
 
 ### Poincaré section
 
 <!-- key: sect-sw-cell -->
-Poincaré section — sample the trajectory only where it pierces a plane, going one way through it, and draw the accumulated intersections in gold: the flow's sheets collapse into the section's fractal scatter. The crossing is interpolated between the two samples that straddle the plane rather than snapped to the nearer one, which would smear the section by up to half a step of arc. Reveals the Section module, where the plane is placed and its direction chosen. Analysis → Poincaré Section is the same section as a picture of its own, with the first-return map.
+Poincaré section — samples the trajectory where it crosses a plane in one direction and draws the accumulated intersections in gold. Each crossing is interpolated between the two samples that straddle the plane. Enabling it reveals the Section module, which sets the plane and direction. Analysis → Poincaré Section shows the same section as a separate display, with the first-return map.
 
 ### Graticule
 
 <!-- key: scope-grat-cell -->
-Graticule — the ruled face behind a scope trace: eight divisions by ten, the two center axes cut heavier, minor ticks every fifth of a division so a reading can be interpolated, and the 0%/10%/90%/100% marks a risetime is measured between. It is what makes a trace a MEASUREMENT rather than a picture of one, so it is on by default — turn it off for a clean screen. It only has anything to draw where the CRT look does: the scope models, or any model with the CRT color source.
-
-<!-- key: twin-lambda-cell -->
-The twin trajectories' λ: a live largest-Lyapunov-exponent estimate, positive meaning chaos (the e-folding rate of the separation per time unit). Reads while Twin is on. On a line of its own, not after the word Twin, where a reading ran past the module's edge.
-
-### Live largest Lyapunov exponent estimate
-
-<!-- key: twin-lambda -->
-Live largest Lyapunov exponent estimate — positive means chaos (e-folding rate of the separation per time unit)
+Graticule — the scale behind a scope trace: 8 × 10 divisions, heavier center axes, minor ticks at fifths of a division, and the 0/10/90/100 % rise-time markers. On by default. Drawn only for the scope models and for any model using the CRT color source.
 
 ### Grid SWEEP positions
 
