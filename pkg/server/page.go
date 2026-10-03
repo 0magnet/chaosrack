@@ -105,7 +105,10 @@ func renderTemplate(d htmlTemplateData) ([]byte, error) {
 		return nil, fmt.Errorf("parsing the page template: %w", err)
 	}
 	var out bytes.Buffer
-	if err := tmpl.Execute(&out, map[string]any{"Page": d}); err != nil {
+	// The boot preview is the same script on every page, so it is not one of
+	// PageOptions' fields for a caller to forget.
+	boot := htmpl.JS(assets.BootPreviewJS) //nolint:gosec // assets/bootpreview.js, compiled into this binary by go:embed — not request data
+	if err := tmpl.Execute(&out, map[string]any{"Page": d, "Boot": boot}); err != nil {
 		return nil, fmt.Errorf("executing the page template: %w", err)
 	}
 	return out.Bytes(), nil

@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"html"
 	"slices"
 	"strconv"
 	"strings"
@@ -456,7 +457,7 @@ func setDotText(win js.Value, text string) {
 		win.Set("textContent", "")
 		win.Get("classList").Call("add", "dmdwin")
 		win.Get("classList").Call("toggle", "disp-half", !vertical && n <= dispHalfChars)
-		win.Call("appendChild", dotSVG(text, vertical, n))
+		win.Call("insertAdjacentHTML", "beforeend", dotSVG(text, vertical, n))
 		return
 	}
 	lit, dark := dotPaths(text, vertical, n)
@@ -490,40 +491,34 @@ func dotDisplay(text string, vertical bool) js.Value {
 // a readout that has words to say as well as numbers.
 func dotDisplayN(text string, vertical bool, n int) js.Value {
 	win := dom.Doc.Call("createElement", "span")
-	win.Set("className", "dmdwin")
+	cls := "dmdwin"
 	if vertical {
-		win.Get("classList").Call("add", "dmdv")
+		cls += " dmdv"
 	}
+	if !vertical && n <= dispHalfChars {
+		cls += " disp-half"
+	}
+	win.Set("className", cls)
 	// No title of its own: hovering the display shows its cell's, which
 	// says what the legend abbreviates. Its own would only repeat the legend.
 	win.Call("setAttribute", "data-chars", strconv.Itoa(n))
-	if !vertical && n <= dispHalfChars {
-		win.Get("classList").Call("add", "disp-half")
-	}
-	win.Call("appendChild", dotSVG(text, vertical, n))
+	win.Set("innerHTML", dotSVG(text, vertical, n))
 	return win
 }
 
-// dotSVG is a display's dots: every one drawn, dark, and the lit ones over
-// them.
-func dotSVG(text string, vertical bool, n int) js.Value {
-	const ns = "http://www.w3.org/2000/svg"
-	svg := dom.Doc.Call("createElementNS", ns, "svg")
-	svg.Call("setAttribute", "class", "dmd")
+// dotSVG is the markup of a display's dots: every one drawn, dark, and the
+// lit ones over them. Markup, set in one go: built element by element from
+// Go it was a dozen calls across to JavaScript a display, and the rack has
+// three hundred displays.
+func dotSVG(text string, vertical bool, n int) string {
 	w, h := dotmatrix.Width(n), dotmatrix.Rows
 	if vertical {
 		w, h = dotmatrix.Cols, dotmatrix.Height(n)
 	}
-	svg.Call("setAttribute", "viewBox", "0 0 "+strconv.Itoa(w)+" "+strconv.Itoa(h))
-	svg.Call("setAttribute", "aria-label", text)
 	lit, dark := dotPaths(text, vertical, n)
-	for _, p := range [][2]string{{"dmd-off", dark}, {"dmd-on", lit}} {
-		path := dom.Doc.Call("createElementNS", ns, "path")
-		path.Call("setAttribute", "class", p[0])
-		path.Call("setAttribute", "d", p[1])
-		svg.Call("appendChild", path)
-	}
-	return svg
+	return `<svg class="dmd" viewBox="0 0 ` + strconv.Itoa(w) + " " + strconv.Itoa(h) +
+		`" aria-label="` + html.EscapeString(text) + `"><path class="dmd-off" d="` + dark +
+		`"></path><path class="dmd-on" d="` + lit + `"></path></svg>`
 }
 
 // unassignedControl is a position with nothing to do for this model: a copy
@@ -536,7 +531,7 @@ func unassignedControl(model js.Value) js.Value {
 	c.Get("classList").Call("remove", "bankcell", "live")
 	c.Get("classList").Call("add", "bankblank")
 	// data-param too: a copy is no parameter's position, and its buttons
-	// must not answer for the one it was copied from (see trioOf).
+	// must not answer for the one it was copied from (see trioParams in fastdom_js.go).
 	for _, a := range []string{"id", "data-mode", "data-bank", "data-bank-for", "data-param", "title"} {
 		c.Call("removeAttribute", a)
 	}

@@ -3,12 +3,17 @@
 package attractor
 
 import (
+	"fmt"
+	"html"
+	"math"
+	"strconv"
+	"strings"
+	"sync"
+	"syscall/js"
+
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/encoder"
 	"github.com/0magnet/chaosrack/pkg/skirt"
-	"math"
-	"strconv"
-	"syscall/js"
 )
 
 // Bounded control knobs for the parameter/camera sliders — the tactile
@@ -475,6 +480,35 @@ func fmtDialNum(v float64) string {
 	return strconv.FormatFloat(v, 'g', 3, 64)
 }
 
+// valueRingTicks is the markup of a value dial's marks: 21 across the
+// knob's sweep, every fifth a major. Every value dial has the same marks, so
+// they are written once and set as one string; built element by element from
+// Go they were seven calls across to JavaScript each, and most of the time
+// it took to make a knob.
+var valueRingTicks = sync.OnceValue(func() string {
+	const nTicks = dialTicks - 1
+	return ringTicks(nTicks+1, func(i int) float64 {
+		return -skirt.SweepDeg/2 + skirt.SweepDeg*float64(i)/float64(nTicks)
+	}, func(i int) bool { return i%5 == 0 })
+})
+
+// ringTicks is the markup of n LEDs round a dial, LED i at deg(i) and
+// longer where major(i).
+func ringTicks(n int, deg func(int) float64, major func(int) bool) string {
+	var b strings.Builder
+	for i := range n {
+		d := deg(i)
+		l, tp := dialLabelPos(d, 41)
+		cls := "vdial-tick"
+		if major(i) {
+			cls += " major"
+		}
+		fmt.Fprintf(&b, `<span class="%s" style="left:%s;top:%s;transform:translate(-50%%,-50%%) rotate(%sdeg)"></span>`,
+			cls, l, tp, strconv.FormatFloat(d, 'f', 1, 64))
+	}
+	return b.String()
+}
+
 // addValueDial draws an analog tick ring + numeric scale around a value knob
 // (the .knobwrap from makeKnob), so a bare numeric knob shows its range at a
 // glance like lab gear. The knob sweeps 270° (min at −135°/lower-left → max at
@@ -489,24 +523,9 @@ func addValueDial(wrap js.Value, lo, hi float64) {
 	// not the full circle — so the scale matches how far the knob actually
 	// turns. A major (longer) tick every quarter aligns with where the min/max
 	// numbers sit; minor ticks fill in between.
-	const nTicks = dialTicks - 1 // 21 marks across the sweep; every 5th is a major
-	for i := 0; i <= nTicks; i++ {
-		t := float64(i) / float64(nTicks)
-		deg := -skirt.SweepDeg/2 + skirt.SweepDeg*t
-		major := i%5 == 0
-		l, tp := dialLabelPos(deg, 41)
-		tk := dom.Doc.Call("createElement", "span")
-		cls := "vdial-tick"
-		if major {
-			cls += " major"
-		}
-		tk.Set("className", cls)
-		st := tk.Get("style")
-		st.Set("left", l)
-		st.Set("top", tp)
-		st.Set("transform", "translate(-50%,-50%) rotate("+strconv.FormatFloat(deg, 'f', 1, 64)+"deg)")
-		dial.Call("appendChild", tk)
-	}
+	// Written as one string (valueRingTicks), with the labels below.
+	var b strings.Builder
+	b.WriteString(valueRingTicks())
 	// Numbers at the two sweep ends (major ticks), both in the lower half so they
 	// stay clear of the numeric LED above the knob.
 	// Each end says which end it is. Without a title of its own a label shows
@@ -516,19 +535,15 @@ func addValueDial(wrap js.Value, lo, hi float64) {
 	for i, t := range []float64{0, 1} {
 		deg := -skirt.SweepDeg/2 + skirt.SweepDeg*t
 		l, tp := dialLabelPos(deg, 48)
-		lab := dom.Doc.Call("createElement", "span")
-		lab.Set("className", "knob-dial-lab")
 		v := fmtDialNum(lo + (hi-lo)*t)
-		lab.Set("textContent", v)
-		if i == 0 {
-			lab.Set("title", docf("knob-min", "v", v))
-		} else {
-			lab.Set("title", docf("knob-max", "v", v))
+		title := docf("knob-min", "v", v)
+		if i == 1 {
+			title = docf("knob-max", "v", v)
 		}
-		lab.Get("style").Set("left", l)
-		lab.Get("style").Set("top", tp)
-		dial.Call("appendChild", lab)
+		fmt.Fprintf(&b, `<span class="knob-dial-lab" title="%s" style="left:%s;top:%s">%s</span>`,
+			html.EscapeString(title), l, tp, html.EscapeString(v))
 	}
+	dial.Set("innerHTML", b.String())
 	wrap.Call("insertBefore", dial, wrap.Get("firstChild"))
 	wrap.Get("classList").Call("add", "has-dial")
 }

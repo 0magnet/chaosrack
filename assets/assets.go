@@ -16,3 +16,9 @@ import _ "embed"
 //
 //go:embed index.tmpl.html
 var IndexTemplate string
+
+// BootPreviewJS draws something to watch while the rack loads (see the file);
+// the template runs it first thing in the body.
+//
+//go:embed bootpreview.js
+var BootPreviewJS string

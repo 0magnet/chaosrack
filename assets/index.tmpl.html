@@ -82,6 +82,7 @@ window.__crWT = {
 {{if .Page.WobbulateCtl}}<script>window.__crWobbulate=1;</script>{{end}}
 </head>
 <body style="margin: 0; padding: 0; width: 100%; height: 100%; background-color: black; color: white;">
+<script>{{.Boot}}</script>
 <!-- Crawlable description (the live UI is drawn on a WebGL canvas by WebAssembly). -->
 <div style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">
 <h1>chaosrack — an analog computer in the browser</h1>
@@ -231,7 +232,7 @@ __whenDOMReady(() => __ready.then((result) => {
   console.log("[WASM-STUFF] " + __which + " WASM instantiated, starting...");
   return run();
 }).then((r) => console.log("[WASM-STUFF] " + __which + " WASM finished:", r),
-        (f) => console.error("[WASM-STUFF] " + __which + " WASM failed:", f)));
+        (f) => { console.error("[WASM-STUFF] " + __which + " WASM failed:", f); if (window.__crBootDone) window.__crBootDone(); }));
 async function run() {
   await go.run(inst);
   inst = await WebAssembly.instantiate(mod, go.importObject);
@@ -296,6 +297,7 @@ __whenDOMReady(() => __ready.then((result) => {
   console.log("[WASM-STUFF] {{.Page.Title}} WASM finished: ", result)
 }, (failure) => {
   console.error("[WASM-STUFF] {{.Page.Title}} WASM failed: ", failure)
+  if (window.__crBootDone) window.__crBootDone();
 }));
 async function run() {
   await go.run(inst);
