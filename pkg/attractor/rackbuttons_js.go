@@ -32,11 +32,12 @@ var trioKeys = [3]string{"+", "0", "−"}
 // three beside every position, or a control's own few (the scope's SLOPE and
 // MODE beside its TRIG and TIME knobs).
 type trioProgram struct {
-	keys  []string    // the printed legends, top to bottom; trioKeys when nil
-	help  []string    // what each button does, for its tooltip
-	press func(i int) // i indexes the legends
-	lit   func() int  // which button is on, or -1
-	drive []string    // the hidden controls it sets, so a change to them relights it
+	keys  []string      // the printed legends, top to bottom; trioKeys when nil
+	help  []string      // what each button does, for its tooltip
+	press func(i int)   // i indexes the legends
+	lit   func() int    // which button is on, or -1
+	lits  func() []bool // which buttons are on, for buttons that are switches of their own (lit then unused)
+	drive []string      // the hidden controls it sets, so a change to them relights it
 }
 
 // setParamSlider sets a parameter through its own control, the way the knob
@@ -197,12 +198,12 @@ func lightTrios(param string) {
 	if !ok {
 		return
 	}
-	on := p.lit()
+	on := p.lighting()
 	btns := dom.Doc.Call("querySelectorAll", `[data-param="`+param+`"] .trio-btn`)
 	for j := range btns.Length() {
 		b := btns.Index(j)
 		i, _ := strconv.Atoi(b.Call("getAttribute", "data-trio").String()) //nolint:errcheck // set from an int by trioColumn
-		b.Get("classList").Call("toggle", "trio-on", i == on)
+		b.Get("classList").Call("toggle", "trio-on", i < len(on) && on[i])
 	}
 }
 
@@ -224,15 +225,21 @@ func syncTriosIn(root js.Value, sel string) {
 	for i := range cols.Length() {
 		col := cols.Index(i)
 		p, ok := trioOf(col)
-		on, keys := -1, trioKeys[:]
+		var on []bool
+		keys := trioKeys[:]
 		if ok {
-			on, keys = p.lit(), p.legends()
+			on, keys = p.lighting(), p.legends()
 		}
 		col.Get("classList").Call("toggle", "trio-live", ok)
 		btns := col.Call("querySelectorAll", ".trio-btn")
 		for j := range btns.Length() {
 			b := btns.Index(j)
-			b.Get("classList").Call("toggle", "trio-on", j == on)
+			b.Get("classList").Call("toggle", "trio-on", j < len(on) && on[j])
+			// The legend is programmed too: a position's buttons say what they
+			// do where it has legends of its own.
+			if lamp := b.Call("querySelector", ".trio-lamp"); lamp.Truthy() && j < len(keys) && lamp.Get("textContent").String() != keys[j] {
+				lamp.Set("textContent", keys[j])
+			}
 			if j >= len(keys) || (ok && j >= len(p.help)) {
 				continue
 			}
@@ -322,4 +329,17 @@ func (p trioProgram) legends() []string {
 		return p.keys
 	}
 	return trioKeys[:]
+}
+
+// lighting is which of the program's buttons are on: the one lit names, or
+// each that lits says, for buttons that are switches of their own.
+func (p trioProgram) lighting() []bool {
+	if p.lits != nil {
+		return p.lits()
+	}
+	on := make([]bool, len(p.legends()))
+	if i := p.lit(); i >= 0 && i < len(on) {
+		on[i] = true
+	}
+	return on
 }
