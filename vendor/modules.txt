@@ -49,7 +49,7 @@ github.com/0magnet/img2txt-go/caca
 # github.com/0magnet/lolcat-go v0.0.0-20260915170035-9435f1eb43a8
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20261002111113-d522aadf9a61
+# github.com/0magnet/pisano v0.0.0-20261002112805-b0b1f0c34ef5
 ## explicit; go 1.26.0
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc
@@ -112,7 +112,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20261002111521-0fe677aea7dd
+# github.com/0magnet/tuiwasm v0.0.0-20261003103235-56065d5dda64
 ## explicit; go 1.26.5
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -260,7 +260,7 @@ github.com/coder/websocket/internal/wsjs
 # github.com/creack/pty v1.1.24
 ## explicit; go 1.18
 github.com/creack/pty
-# github.com/dlclark/regexp2/v2 v2.8.1
+# github.com/dlclark/regexp2/v2 v2.8.2
 ## explicit; go 1.25
 github.com/dlclark/regexp2/v2
 github.com/dlclark/regexp2/v2/helpers
