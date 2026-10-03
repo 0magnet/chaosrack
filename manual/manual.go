@@ -24,7 +24,6 @@
 package manual
 
 import (
-	"bytes"
 	"embed"
 	"html"
 	"io/fs"
@@ -32,8 +31,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-
-	"github.com/yuin/goldmark"
 )
 
 //go:embed *.md
@@ -253,15 +250,6 @@ func Files() []string {
 	return n
 }
 
-// Render is markdown as HTML. Raw HTML in it is left out.
-func Render(md string) string {
-	var b bytes.Buffer
-	if err := goldmark.Convert([]byte(md), &b); err != nil {
-		return "<p>" + html.EscapeString(md) + "</p>"
-	}
-	return b.String()
-}
-
 var (
 	tagBreak = strings.NewReplacer(
 		"<br>\n", "\n", "<br />\n", "\n", "<br>", "\n", "<br />", "\n",
@@ -280,7 +268,12 @@ func PlainText(md string) string {
 	if s, ok := plainFast(md); ok {
 		return s
 	}
-	s := tagBreak.Replace(Render(md))
+	return plainOf(Render(md))
+}
+
+// plainOf is rendered HTML as the text PlainText gives.
+func plainOf(h string) string {
+	s := tagBreak.Replace(h)
 	s = html.UnescapeString(tags.ReplaceAllString(s, ""))
 	s = blanks.ReplaceAllString(s, "\n\n")
 	s = listGap.ReplaceAllString(s, "\n• ")
