@@ -29,6 +29,12 @@ func wireModelInput() {
 			if target.Call("closest", "a, button, input, label, select, textarea, [data-no-drag], .sect-hdr").Truthy() {
 				return true
 			}
+			// The manual is a page to read: a press on it selects its text, and
+			// one in a window of its modules works them. Only the model's own
+			// window turns the model.
+			if target.Call("closest", "#rack-manual, .mwin-body:not(.mwin-model)").Truthy() {
+				return true
+			}
 			// The rest of the rack is its surface, and with the model drawn in
 			// front of it (the Fore knob anywhere but its far end, and the
 			// panel not raised back over it) that surface is behind the
