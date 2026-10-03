@@ -208,7 +208,7 @@ func sectNormal() [3]float64 {
 func sectAdvancer(mode string, sys dynamics.FlowSys4, dt float64) func(s *[4]float64) {
 	classic := dynamics.IsClassic(mode)
 	if classic || sys.Euler {
-		return func(s *[4]float64) { twinStep(sys, s, dt) }
+		return func(s *[4]float64) { flowStep(sys, s, dt) }
 	}
 	return func(s *[4]float64) { *s = dynamics.RK4x4(sys.F, dt, *s) }
 }
@@ -246,7 +246,7 @@ func (p *poincareSection) seed(mode string, sys dynamics.FlowSys4, dt float64) {
 	measured := false
 	for i := range sectTransient {
 		adv(&p.state)
-		if twinDiverged(p.state) {
+		if flowDiverged(p.state) {
 			p.state = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W0}
 			lo, hi, measured = 0, 0, false
 			continue
@@ -284,7 +284,7 @@ func (p *poincareSection) advance(mode string, sys dynamics.FlowSys4, dt float64
 	for range n {
 		prev := p.state
 		adv(&p.state)
-		if twinDiverged(p.state) {
+		if flowDiverged(p.state) {
 			// A reseeded trajectory's first crossing does not follow the last
 			// one in time, and the return map must not join them.
 			p.state = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W0}

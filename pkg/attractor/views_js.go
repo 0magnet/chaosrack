@@ -69,6 +69,15 @@ func viewRects() [][4]int {
 	if n <= 1 {
 		return full
 	}
+	// Overlaid, every cell is the whole canvas: the cells are drawn one over
+	// another rather than side by side.
+	if grid.overlay {
+		out := make([][4]int, n)
+		for i := range out {
+			out[i] = full[0]
+		}
+		return out
+	}
 	cols, rows := viewGridShape(n)
 	xs, okX := gridEdges(w, cols)
 	ys, okY := gridEdges(h, rows)
@@ -149,9 +158,9 @@ func drawViewPasses(mode string) {
 	// stretches of its trajectory, at sixteen times the speed. So a model
 	// that integrates is advanced by the first cell only, and the others
 	// redraw what it drew, in their own colors (a sweep of csrc or cmap is
-	// the only kind such a model offers). Twin, Ring, the section and the
-	// CRT beam draw more than the one trace, and are drawn per cell as before.
-	replay := grid.link && isAttractorMode(mode) && !twin.on && !ring.on && !sect.on && !crtBeam()
+	// the only kind such a model offers). A start sweep, Ring, the section
+	// and the CRT beam draw more than the one trace, and are drawn per cell.
+	replay := grid.link && isAttractorMode(mode) && !startSweepOn(mode) && !ring.on && !sect.on && !crtBeam()
 	gpu.lastTrace.ok = false
 	// And every cell at the frame's rainbow, which moves on once a frame.
 	phase := style.gradientPhase
@@ -173,6 +182,8 @@ func drawViewPasses(mode string) {
 		// answer to "where does this cell's value come from".
 		unlink := grid.applyLinks(mode, i)
 		restore := applySweep(mode, i, n)
+		viewPass = i
+		passTint = overlayTint(i)
 		glctx.GL.Call("scissor", r[0], r[1], r[2], r[3])
 		setViewport(r)
 		if replay && i > 0 && gpu.lastTrace.ok {
@@ -184,6 +195,8 @@ func drawViewPasses(mode string) {
 		restore()
 		unlink()
 	}
+	viewPass, passTint = -1, nil
+	glctx.GL.Call("uniform3f", gpu.u.baseColor, style.baseColor[0], style.baseColor[1], style.baseColor[2])
 	stereo = grid.focusedInst()
 	fc := grid.colorFor(grid.focusedColorIdx())
 	style.gradientSource, style.gradientColors = fc.src, fc.cols
@@ -192,6 +205,53 @@ func drawViewPasses(mode string) {
 	// the Poincaré overlay, the lens, the next frame's clear — sees the
 	// state it has always seen.
 	setViewport([4]int{0, 0, gpu.width, gpu.height})
+}
+
+var (
+	// viewPass is the cell drawViewPasses is drawing, or -1 outside it.
+	viewPass = -1
+	// passTint is the one color the cell being drawn is drawn in, or nil
+	// for its own coloring (setTraceUniforms).
+	passTint *[3]float32
+)
+
+// overlayTint is the color cell i is drawn in, overlaid: the first in its
+// own coloring and each after it in a hue of its own, so cells drawn over
+// one another can be told apart. The second is the green Twin's copy was.
+// Not where the cells' coloring is what is swept: that is what tells them
+// apart already.
+func overlayTint(i int) *[3]float32 {
+	if !grid.overlay || i == 0 {
+		return nil
+	}
+	for _, id := range []string{grid.sweepTarget(), grid.sweepTarget2()} {
+		if id == "#src" || id == "#map" {
+			return nil
+		}
+	}
+	h := math.Mod(0.39+float64(i-1)*0.618034, 1)
+	r, g, b := hsvToRGB(h, 0.85, 1)
+	return &[3]float32{float32(r), float32(g), float32(b)}
+}
+
+// hsvToRGB converts a color with h, s and v in 0..1.
+func hsvToRGB(h, s, v float64) (r, g, b float64) {
+	i := math.Floor(h * 6)
+	f := h*6 - i
+	p, q, t := v*(1-s), v*(1-f*s), v*(1-(1-f)*s)
+	switch int(i) % 6 {
+	case 0:
+		return v, t, p
+	case 1:
+		return q, v, p
+	case 2:
+		return p, v, t
+	case 3:
+		return p, q, v
+	case 4:
+		return t, p, v
+	}
+	return v, p, q
 }
 
 // viewGrid is the grid of views of one model and the parameter sweep across
@@ -206,6 +266,11 @@ type viewGrid struct {
 	// wants them separate, and comparing two COLORINGS or two camera angles of
 	// one setting wants them together, and both are things to want.
 	link bool
+
+	// overlay draws the cells one over another on the whole canvas instead
+	// of side by side (the Grid's O button). A start sweep of two, overlaid,
+	// is the model and a copy started ε away, coming apart on top of it.
+	overlay bool
 
 	// focused is which view the panel drives while they are unlinked.
 	focused int
@@ -225,11 +290,12 @@ type viewGrid struct {
 	// polyhedron is drawn.
 	//
 	// The first entry is always "nothing varies", which is the default and
-	// makes a grid N copies. The last two begin with a hash and are not
+	// makes a grid N copies. Two after the parameters begin with a hash, not
 	// parameters at all but the coloring, which has no id in any mode's table
 	// because it is not a knob of a model. They are the Warhol case — the same
 	// figure, a different reading of it in every cell — and they are the
-	// reason the sweep is not restricted to numbers.
+	// reason the sweep is not restricted to numbers. A flow has one more,
+	// "#start": where each cell's trajectory begins (startsweep_js.go).
 	sweepIDs   []string
 	sweepNames []string
 	sweepRing  []string
@@ -366,6 +432,8 @@ func (vi *viewGrid) wireViewLinkSwitches() {
 			return nil
 		})
 	}
+	// Overlay: the cells drawn one over another (the Grid's O button).
+	wireSwitch("grid-ovl", func(on bool) { vi.overlay = on })
 	vi.buildFocusDial() // wires the focus dial too, on the select it builds
 }
 
@@ -599,6 +667,13 @@ func (vi *viewGrid) setSweepTargets(mode string) bool {
 	names = append(names,
 		doc("grid-sweep=src"),
 		doc("grid-sweep=map"))
+	// A flow's sweep is of where it starts (startsweep_js.go). Last, so the
+	// positions a permalink holds for the two above do not move.
+	if startSweepable(mode) {
+		ids = append(ids, "#start")
+		ring = append(ring, "start")
+		names = append(names, doc("grid-sweep=start"))
+	}
 
 	if vi.sweepDialMode == mode && len(ids) == len(vi.sweepIDs) {
 		same := true
@@ -746,6 +821,10 @@ func (vi *viewGrid) applySweepAxis(mode, id string, frac float32) func() {
 		prev := style.gradientColors
 		style.gradientColors = sweepColorMaps[int(t*float32(len(sweepColorMaps)-1)+0.5)]
 		return func() { style.gradientColors = prev }
+	case "#start":
+		// Not a value to set: each cell's trajectory reads where it starts
+		// (startEps) as it is drawn.
+		return func() {}
 	}
 
 	// The instance field first, the mode table's pointer second. They are

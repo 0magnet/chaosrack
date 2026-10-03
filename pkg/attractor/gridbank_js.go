@@ -105,7 +105,24 @@ func gridTrio(id, key string) trioProgram {
 }
 
 func init() {
-	trioPrograms["view-n"] = gridTrio("view-n", "trio.view-n")
+	// GRID: T tiles the cells side by side, O overlays them, one over
+	// another on the whole screen. One at a time.
+	trioPrograms["view-n"] = trioProgram{
+		keys: []string{"T", "O", ""},
+		help: []string{doc("trio.view-n=0"), doc("trio.view-n=1")},
+		press: func(i int) {
+			if i < 2 {
+				setSwitch("grid-ovl", i == 1)
+			}
+		},
+		lit: func() int {
+			if checkedOn("grid-ovl") {
+				return 1
+			}
+			return 0
+		},
+		drive: []string{"grid-ovl"},
+	}
 	trioPrograms["sweep-p"] = gridTrio("sweep-p", "trio.sweep-p")
 	trioPrograms["sweep2-p"] = gridTrio("sweep2-p", "trio.sweep-p")
 	// Focus's 0 is Link: every cell on one set of knobs, which is what

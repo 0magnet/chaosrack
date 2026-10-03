@@ -432,14 +432,18 @@ Grid — how many views of the model are drawn, as a square (2 is side by side).
 
 ### Grid buttons
 
-- <!-- key: trio.view-n=0 --> more views — the next grid up, 2 after 1, 4 after 2
-- <!-- key: trio.view-n=1 --> one view — back to the single picture
-- <!-- key: trio.view-n=2 --> fewer views — the next grid down
+- <!-- key: trio.view-n=0 --> T: tile — the cells side by side, each in its own part of the screen (lit while tiled)
+- <!-- key: trio.view-n=1 --> O: overlay — every cell drawn over the whole screen, one on top of another; each cell after the first in a color of its own, unless the sweep is of the coloring
+
+### Overlay
+
+<!-- key: grid-ovl -->
+Overlay — the grid's cells drawn one over another on the whole screen instead of side by side. Cells after the first are drawn each in a single color of its own (the second green, then further hues) so they can be told apart, except under a csrc or cmap sweep, where the coloring is what differs. With a start sweep of two cells this is the twin-trajectory display: the model and a copy started ε away, separating at the attractor's own rate. The O button on GRID.
 
 ### Sweep
 
 <!-- key: sweep-p-stack-cell -->
-Sweep — which parameter varies across the grid, and the from and to knobs beside this one say over how much of its range. This is what makes a grid of sixteen usable: rather than sixteen panels to fill in, one dial says what differs and the cells draw that parameter's space, like a contact sheet. The list is the CURRENT model's own parameters, so it changes with the mode; a model that integrates its trajectory offers only the colorings, because one pass of it continues where the last left off and a swept grid would smear one trajectory across the cells rather than show one per cell. csrc and cmap sweep the COLORING instead of a number — the same figure read nine different ways, or in nine palettes — which is the case a grid is most worth having for.
+Sweep — which parameter varies across the grid, and the from and to knobs beside this one say over how much of its range. This is what makes a grid of sixteen usable: rather than sixteen panels to fill in, one dial says what differs and the cells draw that parameter's space, like a contact sheet. The list is the CURRENT model's own parameters, so it changes with the mode; a model that integrates its trajectory offers no parameter sweep, because the cells share one integrator and a swept grid would smear one trajectory across them. A flow offers start instead: each cell integrates its own trajectory, started ε from the model's own. csrc and cmap sweep the COLORING instead of a number — the same figure read nine different ways, or in nine palettes — which is the case a grid is most worth having for.
 
 - <!-- key: sweep-p=0 --> none — every cell the same
 
@@ -461,7 +465,7 @@ Sweep down — a SECOND parameter, varying down the grid while the first varies 
 ### Sweep from
 
 <!-- key: sweep-lo-cell -->
-Sweep from — where in the swept parameter's own range the first cell sits, as a fraction: 0 is the parameter's minimum. Turn both this and to inward and the contact sheet covers a slice of the range in detail rather than all of it coarsely, which is how a sweep is used once you know roughly where the interesting part is.
+Sweep from — where in the swept parameter's own range the first cell sits, as a fraction: 0 is the parameter's minimum. Turn both this and to inward and the contact sheet covers a slice of the range in detail rather than all of it coarsely, which is how a sweep is used once you know roughly where the interesting part is. For a start sweep the fraction sets ε: 0 is ε = 0, the model's own trajectory, and above 0 the scale is logarithmic, 10⁻⁹ to 10⁻¹.
 
 ### Sweep start value
 
@@ -511,12 +515,12 @@ Link — every cell of the grid on one set of knobs: turn one and every view fol
 ## Display
 
 <!-- key: display -->
-Display — trace rendering: line width, point decimation, trail length and mode, and the overlays drawn on the trace (twin trajectory, Poincaré section, graticule). Four P-units; the switches are on their buttons.
+Display — trace rendering: line width, point decimation, trail length and mode, and the overlays drawn on the trace (Poincaré section, graticule). Three P-units; the switches are on their buttons. The twin trajectory is now the Grid's start sweep with Overlay on.
 
 ### LINE
 
 <!-- key: line-cell -->
-LINE — trace line width, 1 to 10 pixels.
+LINE — trace line width, 1 to 10 pixels. Buttons: S Poincaré section, G graticule; each is an independent switch.
 
 <!-- key: slider-value-line -->
 Line width value — type or scroll
@@ -526,6 +530,11 @@ Line width — trace thickness in pixels
 
 <!-- key: rst-line -->
 Reset line width
+
+### LINE buttons
+
+- <!-- key: trio.line-width=0 --> S: Poincaré section overlay
+- <!-- key: trio.line-width=1 --> G: graticule behind a scope trace
 
 ### POINTS
 
@@ -581,31 +590,6 @@ Persist — the frame is not cleared; the trace accumulates. TRAIL's + button.
 <!-- key: ring-sw-cell -->
 Ring — beam mode: only the advancing head is integrated each frame and the trail is its history. Parameter and audio changes bend the path from the head forward instead of reshaping the whole curve, and long trails cost little. TRAIL's − button.
 
-### TWIN
-
-<!-- key: twin-cell -->
-TWIN — trace overlays. The knob sets the twin trajectory's initial separation ε, as a power of ten (−4 is ε = 10⁻⁴). The display shows λ, the live largest-Lyapunov-exponent estimate, while Twin is on, and ε for a moment after the knob is turned. Buttons: T twin trajectory, S Poincaré section, G graticule; each is an independent switch.
-
-<!-- key: slider-value-teps -->
-Twin separation, log₁₀ ε — type or scroll
-
-<!-- key: twin-eps -->
-Twin separation — initial distance between the two trajectories, as log₁₀ ε. A larger ε separates sooner; λ is unaffected, being measured by its own probe pair.
-
-<!-- key: rst-teps -->
-Reset twin separation (10⁻⁴, the λ probe's own)
-
-### TWIN buttons
-
-- <!-- key: trio.twin-eps=0 --> T: twin trajectory, a second copy of the flow started ε away (green)
-- <!-- key: trio.twin-eps=1 --> S: Poincaré section overlay
-- <!-- key: trio.twin-eps=2 --> G: graticule behind a scope trace
-
-### Twin trajectories
-
-<!-- key: twin-sw -->
-Twin trajectories — a second copy of the flow, started ε apart (green); the two separate at the attractor's own Lyapunov rate. Both use the same integrator, so their separation is due to the dynamics alone.
-
 ### Poincaré section
 
 <!-- key: sect-sw-cell -->
@@ -621,6 +605,7 @@ Graticule — the scale behind a scope trace: 8 × 10 divisions, heavier center 
 - <!-- key: grid-sweep=none --> none — every cell the same
 - <!-- key: grid-sweep=src --> color source — a different reading of the same figure per cell
 - <!-- key: grid-sweep=map --> color map — the same reading in a different palette per cell
+- <!-- key: grid-sweep=start --> start — each cell a trajectory of its own, started ε from the model's (from and to set ε); flows only
 
 ### Swept mark
 

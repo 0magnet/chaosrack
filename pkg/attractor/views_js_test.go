@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"slices"
 	"strings"
 	"testing"
 )
@@ -350,13 +351,24 @@ func TestSweepTablesLineUpForEveryMode(t *testing.T) {
 		if grid.sweepIDs[0] != "" {
 			t.Errorf("%s: the first target is %q, want none", mode, grid.sweepIDs[0])
 		}
-		last := grid.sweepIDs[len(grid.sweepIDs)-2:]
+		// The colorings after the parameters, and then a flow's start:
+		// a permalink holds a position, so they must not move.
+		end := len(grid.sweepIDs)
+		if startSweepable(mode) {
+			if grid.sweepIDs[end-1] != "#start" {
+				t.Errorf("%s: a flow's last target is %q, want #start", mode, grid.sweepIDs[end-1])
+			}
+			end--
+		} else if slices.Contains(grid.sweepIDs, "#start") {
+			t.Errorf("%s is not a flow, but offers a start sweep", mode)
+		}
+		last := grid.sweepIDs[end-2 : end]
 		if last[0] != "#src" || last[1] != "#map" {
-			t.Errorf("%s: the colorings are not the last two targets: %v", mode, last)
+			t.Errorf("%s: the colorings do not follow the parameters: %v", mode, last)
 		}
 		// Every numeric target must name a real parameter with a real
 		// range, or the sweep silently does nothing.
-		for _, id := range grid.sweepIDs[1 : len(grid.sweepIDs)-2] {
+		for _, id := range grid.sweepIDs[1 : end-2] {
 			lo, hi, ok := paramRange(mode, id)
 			if !ok {
 				t.Errorf("%s: target %s is in no parameter table", mode, id)
@@ -381,7 +393,13 @@ func TestNumericSweepsOnlyWhereTheyAreTrue(t *testing.T) {
 	numeric := func(mode string) int {
 		grid.sweepDialMode = ""
 		grid.setSweepTargets(mode)
-		return len(grid.sweepIDs) - 3 // none, #src, #map
+		n := 0
+		for _, id := range grid.sweepIDs {
+			if id != "" && !strings.HasPrefix(id, "#") {
+				n++
+			}
+		}
+		return n
 	}
 	for mode, info := range modeInfo {
 		n := numeric(mode)

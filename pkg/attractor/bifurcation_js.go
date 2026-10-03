@@ -141,16 +141,16 @@ func (b *bifurcation) generateBifurcation() {
 		s := [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W()}
 		const transient = 1500
 		for range transient {
-			twinStep(sys, &s, dt)
-			if twinDiverged(s) {
+			flowStep(sys, &s, dt)
+			if flowDiverged(s) {
 				break
 			}
 		}
 		z2, z1 := s[2], s[2]
 		got := 0
 		for i := 0; i < 6000 && got < bifPerCol; i++ {
-			twinStep(sys, &s, dt)
-			if twinDiverged(s) {
+			flowStep(sys, &s, dt)
+			if flowDiverged(s) {
 				break
 			}
 			z0 := s[2]
