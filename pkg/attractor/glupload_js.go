@@ -66,7 +66,7 @@ var centerWarm struct {
 // center is the mean of, and the time it may take to make them.
 const (
 	centerWarmFrames = 30
-	centerWarmBudget = 30 * time.Millisecond
+	centerWarmBudget = 12 * time.Millisecond
 )
 
 // warmCenter finds where a model that has just appeared is centered before

@@ -70,7 +70,12 @@ func (r *recordModule) wireRecordModule() {
 		return nil
 	})
 	js.Global().Call("setInterval", tick, 1000/recPreviewFPS)
-	r.drawRecPreview()
+	// Drawn now only outside a deferred layout (the boot): its power check
+	// measures the panel, which mid-build is a full layout, and the first
+	// tick draws it a fraction of a second later anyway.
+	if !owed.deferred {
+		r.drawRecPreview()
+	}
 }
 
 // wireRecTransport makes the two buttons work. Record toggles, so pressing it

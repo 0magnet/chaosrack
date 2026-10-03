@@ -56,5 +56,12 @@ func restoreRackLayout() {
 	// rack permanently, on this load and every later one, with no control
 	// anywhere that could undo it. The order is still worth restoring; what
 	// was put away is not.
-	rackSetHidden(nil)
+	// Only where something is put away: SetHidden ends in a quantize, a
+	// full layout, and on a rack with nothing hidden it would change nothing.
+	for _, u := range unitRacks {
+		if len(u.HiddenKeys()) > 0 {
+			rackSetHidden(nil)
+			break
+		}
+	}
 }

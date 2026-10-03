@@ -542,6 +542,14 @@ func (ra *rackScope) drawRackScope() {
 		}
 		return
 	}
+	// Powered, but scrolled out of sight: the switch is still what turns
+	// it off, and this only skips drawing nobody can see. Four scopes drawn
+	// every frame regardless were as much of a frame as the model. Asked
+	// of the observer the meters use (onScreen), so it costs no layout;
+	// back in view, the tube carries on from the live signal.
+	if !onScreen.moduleOnScreen(ra.id("screen")) {
+		return
+	}
 	if !ra.ctx.Truthy() {
 		ra.canvas = dom.Doc.Call("getElementById", ra.id("screen"))
 		if !ra.canvas.Truthy() {
