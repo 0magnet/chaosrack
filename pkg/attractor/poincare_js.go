@@ -24,7 +24,7 @@ import (
 //
 // TWO PLACES SHOW IT, and they answer different questions.
 //
-//   - Trace > Sect, on any flow mode: the crossings drawn in gold WHERE THEY
+//   - LINE S (Display), on any flow mode: the crossings drawn in gold WHERE THEY
 //     PHYSICALLY ARE, on top of the running attractor. This answers "what is
 //     the section OF" — you watch the trail thread through a scatter that is
 //     its own record. It is an overlay, so it never replaces the flow.
@@ -92,7 +92,7 @@ type poincareSection struct {
 	// stops the return map being a function.
 	dirF  float32
 	viewF float32
-	on    bool   // the Trace > Sect switch
+	on    bool   // the LINE S (Display) switch
 	sig   string // system + plane the accumulated crossings belong to
 	state [4]float64
 	plane analysis.PoincarePlane
@@ -384,11 +384,11 @@ func sectHitInPlace(h analysis.PoincareHit) (float32, float32, float32) {
 }
 func sectHitFlat(h analysis.PoincareHit) (float32, float32, float32) { return h.S, h.T, 0 }
 
-// ── The overlay (Trace > Sect) ───────────────────────────────────────────
+// ── The overlay (LINE S (Display)) ───────────────────────────────────────────
 
 // tick advances the private integrator and draws the crossings in place,
 // over the finished trail. Called at the end of every attractor-path frame —
-// scan, ring and twin alike — because it is an overlay and not a replacement.
+// scan, ring and start sweep alike — because it is an overlay and not a replacement.
 func (p *poincareSection) tick(mode string) {
 	if !p.on || mode == "poincare" {
 		return
@@ -413,18 +413,10 @@ func (p *poincareSection) tick(mode string) {
 	glctx.GL.Call("uniform1i", gpu.u.gradientColors, 1)
 	glctx.GL.Call("uniform3f", gpu.u.baseColor, 1.0, 0.8, 0.15)
 	gpu.uploadVerticesOnly(v, glctx.Types.Points, n)
-	if phos.active() {
-		// The phosphor owns both of those uniforms while it is on, and
-		// renderFrame set them from it earlier this frame. Handing them to the
-		// palette here would be handing them to the wrong owner.
-		phos.applyPhosphorColor()
-		return
-	}
-	glctx.GL.Call("uniform1i", gpu.u.gradientColors, gradientColorsUniform())
-	glctx.GL.Call("uniform3f", gpu.u.baseColor, style.baseColor[0], style.baseColor[1], style.baseColor[2])
+	restoreTraceColor()
 }
 
-// wireSectSwitch hooks up the Trace > Sect checkbox. It rebuilds the panel,
+// wireSectSwitch hooks up the LINE S (Display) checkbox. It rebuilds the panel,
 // because the Section module comes and goes with it — the same thing the
 // Patchbay switch does.
 func (p *poincareSection) wireSectSwitch() {

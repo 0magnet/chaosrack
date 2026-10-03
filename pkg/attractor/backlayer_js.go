@@ -242,11 +242,8 @@ func onBackdropChoice(kind string) {
 		syncCategoryRotaries()
 		syncBankCells()
 	}
-	if sw := dom.Doc.Call("getElementById", "edit-back"); sw.Truthy() {
-		if l := sw.Call("closest", "label"); l.Truthy() {
-			l.Get("classList").Call("toggle", "layer-dim", !flatBackdrop(kind))
-		}
-	}
+	// Back is BEHIND's B button: the button dims.
+	dimTrioButton("bg-visual", 1, !flatBackdrop(kind))
 }
 
 // wireBackLayer hooks up the Back switch.

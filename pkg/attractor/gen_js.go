@@ -577,8 +577,7 @@ func (g *generator) audioSync() {
 }
 
 func fgFloat(el js.Value) float64 {
-	v, _ := strconv.ParseFloat(el.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-	return v
+	return parseOr0(el.Get("value").String())
 }
 
 // ── Web Audio output ──────────────────────────────────────────────────────

@@ -627,7 +627,7 @@ func generateForMode(mode string) {
 		sect.tick(mode)
 		return
 	}
-	// Ring-trail beam step (Trace > Ring): draws the frame itself when active
+	// Ring-trail beam step (TRAIL − (Display)): draws the frame itself when active
 	// and primed; otherwise the scan generator below runs (and primes it).
 	if ring.tick(mode) {
 		restoreAudioModulation(saved)
@@ -949,12 +949,6 @@ func setTraceUniforms(advance bool) {
 	if !pal.ensurePaletteTexture(style.gradientColors) && gradientColorsUniform() >= colormap.First {
 		glctx.GL.Call("uniform1i", gpu.u.gradientColors, 2)
 	}
-	// An overlaid grid cell after the first is drawn in one color of its
-	// own, so the cells can be told apart (overlayTint).
-	if passTint != nil {
-		glctx.GL.Call("uniform1i", gpu.u.gradientColors, 1)
-		glctx.GL.Call("uniform3f", gpu.u.baseColor, passTint[0], passTint[1], passTint[2])
-	}
 	updateDashFromPointCount(gpu.lastDrawn)
 	glctx.GL.Call("uniform1f", gpu.u.dashDuty, dashDuty)
 	glctx.GL.Call("uniform1f", gpu.u.dashCount, dashCount)
@@ -1002,4 +996,26 @@ func setTraceUniforms(advance bool) {
 	if phos.active() {
 		phos.applyPhosphorColor()
 	}
+	// An overlaid grid cell after the first is drawn in one color of its
+	// own, so the cells can be told apart (overlayTint): after the
+	// phosphor, or under it every cell would be its one color.
+	if passTint != nil {
+		glctx.GL.Call("uniform1i", gpu.u.gradientColors, 1)
+		glctx.GL.Call("uniform3f", gpu.u.baseColor, passTint[0], passTint[1], passTint[2])
+	}
+}
+
+// restoreTraceColor hands the trace's two color uniforms back to their
+// owner after something has drawn in a color of its own. renderFrame
+// re-uploads the gradient every frame but NOT uBaseColor, which is written
+// only when a color knob moves, so an override left set would tint the
+// trail until something touched the palette. While the phosphor is on it
+// owns both, and renderFrame set them from it earlier this frame.
+func restoreTraceColor() {
+	if phos.active() {
+		phos.applyPhosphorColor()
+		return
+	}
+	glctx.GL.Call("uniform1i", gpu.u.gradientColors, gradientColorsUniform())
+	glctx.GL.Call("uniform3f", gpu.u.baseColor, style.baseColor[0], style.baseColor[1], style.baseColor[2])
 }

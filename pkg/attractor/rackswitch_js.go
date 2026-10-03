@@ -191,3 +191,20 @@ func wireSwitch(id string, set func(bool)) {
 	})
 	set(el.Get("checked").Bool())
 }
+
+// setSwitch sets checkbox id as a hand would, firing its change, so the
+// switch's own handler applies it and anything lit from it relights.
+func setSwitch(id string, on bool) {
+	sw := dom.Doc.Call("getElementById", id)
+	if !sw.Truthy() || sw.Get("checked").Bool() == on {
+		return
+	}
+	sw.Set("checked", on)
+	dom.Fire(sw, "change")
+}
+
+// checkedOn reports whether checkbox id is checked.
+func checkedOn(id string) bool {
+	sw := dom.Doc.Call("getElementById", id)
+	return sw.Truthy() && sw.Get("checked").Bool()
+}

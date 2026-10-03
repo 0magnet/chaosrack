@@ -43,6 +43,9 @@ func buildPUnitModule(id string) {
 		withStepField(c)
 		bankPosition(c)
 	}
+	// Their buttons: wired, and lit and labeled from their programs.
+	wireTrios()
+	syncTriosIn(grid, ".trio")
 }
 
 // withStepField gives a markup cell with a numeric control its step readout
@@ -131,21 +134,13 @@ func init() {
 	trioPrograms["focus-n"] = trioProgram{
 		help: []string{doc("trio.focus-n=0"), doc("trio.focus-n=1"), doc("trio.focus-n=2")},
 		press: func(i int) {
-			sw := dom.Doc.Call("getElementById", "link-sw")
-			if !sw.Truthy() {
-				return
-			}
-			link := i == 1
-			if sw.Get("checked").Bool() != link {
-				sw.Set("checked", link)
-				dom.Fire(sw, "change")
-			}
-			if !link {
+			setSwitch("link-sw", i == 1)
+			if i != 1 {
 				stepSelect("focus-n", []int{1, 0, -1}[i])
 			}
 		},
 		lit: func() int {
-			if sw := dom.Doc.Call("getElementById", "link-sw"); sw.Truthy() && sw.Get("checked").Bool() {
+			if checkedOn("link-sw") {
 				return 1
 			}
 			return -1

@@ -293,10 +293,7 @@ func (s *selectorKnob) makeSelectorKnob(sel js.Value) js.Value {
 	}
 	// Keyed: a selector has one knob at a time, and one built to replace
 	// another (a bank remounting a family's dial) replaces its listener too.
-	dom.OnAs(sel, "change", "selknob", func(this js.Value, args []js.Value) any {
-		snap()
-		return nil
-	})
+	onShown(sel, "selknob", snap)
 	snap()
 	dom.On(knob, "pointerdown", func(this js.Value, args []js.Value) any {
 		e := args[0]

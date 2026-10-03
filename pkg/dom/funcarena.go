@@ -63,9 +63,14 @@ func FuncOf(fn func(this js.Value, args []js.Value) any) js.Func {
 func StartPanelBuild() (done func()) {
 	held := releaseAll(panelFuncs)
 	panelFuncs = panelFuncs[:0]
+	old := panelIDs
+	panelIDs = nil
 	panelCollect = true
 	return func() {
 		panelCollect = false
+		// The last build's On listeners, now that this one has replaced
+		// what it built (on.go).
+		panelIDs = append(panelIDs, sweep(old)...)
 		checkReleased(held)
 	}
 }
@@ -79,10 +84,13 @@ func StartPanelBuild() (done func()) {
 func RebuildInto(arena *[]js.Func, build func()) {
 	held := releaseAll(*arena)
 	*arena = (*arena)[:0]
+	old := altIDs[arena]
+	delete(altIDs, arena)
 	prev := altArena
 	altArena = arena
 	defer func() { altArena = prev }()
 	build()
+	altIDs[arena] = append(altIDs[arena], sweep(old)...)
 	checkReleased(held)
 }
 

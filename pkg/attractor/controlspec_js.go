@@ -58,10 +58,7 @@ func specOf(slider js.Value) *ctlSpec {
 	if s, ok := ctlSpecs[id]; ok {
 		return s
 	}
-	num := func(attr string) float64 {
-		f, _ := strconv.ParseFloat(slider.Get(attr).String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the fallback
-		return f
-	}
+	num := func(attr string) float64 { return parseOr0(slider.Get(attr).String()) }
 	s := &ctlSpec{lo: num("min"), hi: num("max"), step: num("step")}
 	if s.step <= 0 {
 		s.step = (s.hi - s.lo) / 100

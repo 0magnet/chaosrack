@@ -27,7 +27,7 @@ var arenaCheck js.Value
 const arenaCheckJS = `
 var seen = new WeakMap(), P = EventTarget.prototype, add = P.addEventListener, rm = P.removeEventListener;
 P.addEventListener = function (type, fn, opt) {
-  if (typeof fn === 'function') {
+  if (typeof fn === 'function' && !fn.__goShared) {
     var l = seen.get(fn);
     if (!l) { l = []; seen.set(fn, l); }
     l.push([this, type]);

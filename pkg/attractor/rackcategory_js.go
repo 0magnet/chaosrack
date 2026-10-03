@@ -205,7 +205,7 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 			}
 			claimed[p.ID] = true
 			switch {
-			case bankCategories[label] && bankHidden[p.ID]:
+			case bankCategories[label] && bankHidden(p.ID):
 				hidden = append(hidden, buildCategoryParamCell(mode, p))
 			case strings.HasSuffix(p.ID, "-dt"):
 				steps[mode] = buildCategoryStepCell(mode, p)

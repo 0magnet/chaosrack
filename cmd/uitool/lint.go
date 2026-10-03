@@ -22,7 +22,7 @@
 //	SLACK        a module a whole slot or more wider than what is on it
 //	EMPTY        a module on the rack with nothing visible on it
 //
-// Each finding names the control by its address, bay.module.position, the same one
+// Each finding names the control by its address, bay.column.row, the same one
 // its tooltip starts with (see pkg/attractor/designators_js.go), so a finding
 // and a sentence about the panel point at the same thing. A finding is printed
 // once, at the first model it appears on, with how many models it is on.

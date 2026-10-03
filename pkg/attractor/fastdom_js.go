@@ -476,25 +476,23 @@ const fastSource = `(function () {
       return n;
     },
     // designate gives every control on the rack an address,
-    // bay.module.position: the bay's number (the one on its ear), the
-    // module's place in the bay, 1 from the left, and the position in the
-    // module the control stands in. A position is a cell of the module's
-    // grid — a slot across, a row down — numbered down each column and then
-    // across, whether or not the positions before it hold anything: 1 to 3
-    // are the first column's three rows, 4 the top of the second. So an
-    // address says where on the module a control is, as a part number on a
-    // drawing does. Two or more controls in one position are lettered, top
-    // to bottom and then left to right: 3.2.4.a, 3.2.4.b.
+    // bay.column.row: the bay's number (the one on its ear), the slot the
+    // control stands in, 1 to 12 from the bay's left edge (one slot being
+    // the narrowest module), and the row, 1 to 3 from the top. So an address
+    // says where in the bay a control is, as a part number on a drawing
+    // does, and a module that moves keeps its controls' rows. Two or more
+    // controls in one cell are lettered, top to bottom and then left to
+    // right: 3.2.1.a, 3.2.1.b.
     //
     // The columns and rows are the bay's slots and rows, measured: a control
     // is in the slot and the row it covers at least half of, or half of
     // itself, whichever is less, so a knob a little off its slot's center is
     // still in one slot. A part covering several
-    // positions — a monitor's screen, the scope's tube, a pin matrix, the
-    // keybed — is counted by the first of them, ahead of the controls that
-    // sit on it.
+    // cells — a monitor's screen, the scope's tube, a pin matrix, the
+    // keybed — takes its top-left cell, ahead of the controls that sit on
+    // it.
     //
-    // A module's own address is bay.module.
+    // A module's own address is bay.column, its first column.
     //
     // A control is the box around one actuator — a knob, a switch, a
     // button, a selector — and what goes with it: the outermost cell that

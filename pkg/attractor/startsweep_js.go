@@ -80,29 +80,17 @@ func startEps(i, n int) float64 {
 	return math.Pow(10, startEpsLo+(startEpsHi-startEpsLo)*float64(t))
 }
 
-// flowStep advances one state by a single Euler sub-step.
-func flowStep(sys dynamics.FlowSys4, s *[4]float64, dt float64) {
-	dx, dy, dz, dw := sys.F(s[0], s[1], s[2], s[3])
-	s[0] += dt * dx
-	s[1] += dt * dy
-	s[2] += dt * dz
-	s[3] += dt * dw
-}
-
-func flowDiverged(s [4]float64) bool {
-	const lim = 1e4
-	return !(s[0] > -lim && s[0] < lim && s[1] > -lim && s[1] < lim &&
-		s[2] > -lim && s[2] < lim && s[3] > -lim && s[3] < lim)
-}
-
 // seed starts every cell's trajectory together from the model's initial
 // condition, moved ε along x: started together, so what the cells show
 // apart is the dynamics and not when each began.
-func (s *startSweep) seed(mode string, sys dynamics.FlowSys4, eps []float64) {
+func (s *startSweep) seed(mode string, sys dynamics.FlowSys4, n int) {
 	ic := dynamics.InitCondFor(mode)
-	s.eps = append(s.eps[:0], eps...)
+	s.eps = s.eps[:0]
+	for c := range n {
+		s.eps = append(s.eps, startEps(c, n))
+	}
 	s.states = s.states[:0]
-	for _, e := range eps {
+	for _, e := range s.eps {
 		s.states = append(s.states, [4]float64{float64(ic[0]) + e, float64(ic[1]), float64(ic[2]), sys.W()})
 	}
 	s.seeded = mode
@@ -122,14 +110,8 @@ func (s *startSweep) tick(mode string) bool {
 	sys, _ := dynamics.FlowFor4(mode)
 	n := grid.n()
 	i := max(viewPass, 0)
-	if i == 0 {
-		eps := make([]float64, n)
-		for c := range n {
-			eps[c] = startEps(c, n)
-		}
-		if s.seeded != mode || !sameEps(eps, s.eps) {
-			s.seed(mode, sys, eps)
-		}
+	if i == 0 && (s.seeded != mode || !s.epsCurrent(n)) {
+		s.seed(mode, sys, n)
 	}
 	if i >= len(s.states) {
 		return false
@@ -138,7 +120,8 @@ func (s *startSweep) tick(mode string) bool {
 	if sys.Interpreted {
 		budget = frameBudgetInterpreted
 	}
-	// Every cell's trajectory and the λ probe pair share the frame budget.
+	// The cells' trajectories share the frame budget, as Twin's two did;
+	// the λ probe has a budget of its own.
 	sub := effSubSteps(sim.speedSteps, sim.steps, budget/max(n, 2))
 	dt := sys.Dt() * float64(sim.speedScale)
 	scale := sys.Scale
@@ -178,13 +161,14 @@ func (s *startSweep) tick(mode string) bool {
 	return true
 }
 
-// sameEps reports whether two cells' ε lists are the same.
-func sameEps(a, b []float64) bool {
-	if len(a) != len(b) {
+// epsCurrent reports whether the trajectories were seeded for n cells at
+// the ε each would start at now: no FROM, TO or grid change since.
+func (s *startSweep) epsCurrent(n int) bool {
+	if len(s.eps) != n {
 		return false
 	}
-	for i := range a {
-		if a[i] != b[i] {
+	for c, e := range s.eps {
+		if e != startEps(c, n) {
 			return false
 		}
 	}

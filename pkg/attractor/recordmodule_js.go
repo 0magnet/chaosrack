@@ -73,38 +73,19 @@ func (r *recordModule) wireRecordModule() {
 	r.drawRecPreview()
 }
 
-// recSetSwitch flips a switch and tells the recorder, exactly as a click on it
-// would. Used by the transport buttons, which drive the hidden record switch.
-func recSetSwitch(id string, on bool) {
-	sw := dom.Doc.Call("getElementById", id)
-	if !sw.Truthy() {
-		return
-	}
-	if sw.Get("checked").Bool() == on {
-		return
-	}
-	sw.Set("checked", on)
-	dom.Fire(sw, "change")
-}
-
-func recSwitchOn(id string) bool {
-	sw := dom.Doc.Call("getElementById", id)
-	return sw.Truthy() && sw.Get("checked").Bool()
-}
-
 // wireRecTransport makes the two buttons work. Record toggles, so pressing it
 // again stops — which is what a single-button recorder does and what anyone
 // will try — and Stop only ever stops.
 func wireRecTransport() {
 	if b := dom.Doc.Call("getElementById", "rec-btn"); b.Truthy() {
 		dom.On(b, "click", func(js.Value, []js.Value) any {
-			recSetSwitch("rec-sw", !recSwitchOn("rec-sw"))
+			setSwitch("rec-sw", !checkedOn("rec-sw"))
 			return nil
 		})
 	}
 	if b := dom.Doc.Call("getElementById", "rec-stop-btn"); b.Truthy() {
 		dom.On(b, "click", func(js.Value, []js.Value) any {
-			recSetSwitch("rec-sw", false)
+			setSwitch("rec-sw", false)
 			return nil
 		})
 	}
@@ -217,7 +198,7 @@ func (r *recordModule) drawRecOSD(pw, ph, sw, sh float64) {
 		area += "  REGION"
 	}
 	format := "WEBM"
-	if recSwitchOn("rec-gif-sw") {
+	if checkedOn("rec-gif-sw") {
 		format = "GIF"
 		if live {
 			area += "  " + strconv.Itoa(len(gif.frames)) + "f"

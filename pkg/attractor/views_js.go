@@ -26,6 +26,7 @@ package attractor
 // it comes from. They should end up sharing this path.
 
 import (
+	"github.com/0magnet/chaosrack/pkg/colorspace"
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
@@ -159,13 +160,21 @@ func drawViewPasses(mode string) {
 	// that integrates is advanced by the first cell only, and the others
 	// redraw what it drew, in their own colors (a sweep of csrc or cmap is
 	// the only kind such a model offers). A start sweep, Ring, the section
-	// and the CRT beam draw more than the one trace, and are drawn per cell.
-	replay := grid.link && isAttractorMode(mode) && !startSweepOn(mode) && !ring.on && !sect.on && !crtBeam()
+	// and the CRT beam draw more than the one trace, and are drawn per cell;
+	// so are the audio embeddings, which do not integrate and may be swept,
+	// and a scope face, which is drawn before the trace and not replayed.
+	replay := grid.link && isAttractorMode(mode) && !isAudioEmbedding(mode) &&
+		!startSweepOn(mode) && !ring.on && !sect.on && !crtBeam() && !scopeFaceOn()
 	gpu.lastTrace.ok = false
 	// And every cell at the frame's rainbow, which moves on once a frame.
 	phase := style.gradientPhase
 	glctx.GL.Call("enable", glctx.GL.Get("SCISSOR_TEST"))
 	for i, r := range rects {
+		// Overlaid, replayed cells are the one trace drawn again where it
+		// already is: the first is the whole picture.
+		if replay && grid.overlay && i > 0 {
+			break
+		}
 		// Each pass draws ITS cell's instance. Restored below, because
 		// everything outside the passes — the readout, the panel, the
 		// next frame — means the focused one.
@@ -195,8 +204,8 @@ func drawViewPasses(mode string) {
 		restore()
 		unlink()
 	}
+	tinted := passTint != nil
 	viewPass, passTint = -1, nil
-	glctx.GL.Call("uniform3f", gpu.u.baseColor, style.baseColor[0], style.baseColor[1], style.baseColor[2])
 	stereo = grid.focusedInst()
 	fc := grid.colorFor(grid.focusedColorIdx())
 	style.gradientSource, style.gradientColors = fc.src, fc.cols
@@ -205,6 +214,11 @@ func drawViewPasses(mode string) {
 	// the Poincaré overlay, the lens, the next frame's clear — sees the
 	// state it has always seen.
 	setViewport([4]int{0, 0, gpu.width, gpu.height})
+	// After it, which binds the trace's program: the last pass may have
+	// left a textured mode's bound.
+	if tinted {
+		restoreTraceColor()
+	}
 }
 
 var (
@@ -215,13 +229,21 @@ var (
 	passTint *[3]float32
 )
 
+// overlayTints are the colors overlaid cells after the first are drawn in:
+// golden-ratio steps of hue from green, the color Twin's copy was.
+var overlayTints = func() (t [viewMax][3]float32) {
+	for i := range t {
+		t[i] = colorspace.FromHSV(0.39+float32(i)*0.618034, 0.85, 1)
+	}
+	return t
+}()
+
 // overlayTint is the color cell i is drawn in, overlaid: the first in its
 // own coloring and each after it in a hue of its own, so cells drawn over
-// one another can be told apart. The second is the green Twin's copy was.
-// Not where the cells' coloring is what is swept: that is what tells them
-// apart already.
+// one another can be told apart. Not where the cells' coloring is what is
+// swept: that is what tells them apart already.
 func overlayTint(i int) *[3]float32 {
-	if !grid.overlay || i == 0 {
+	if !grid.overlay || i <= 0 || i > len(overlayTints) {
 		return nil
 	}
 	for _, id := range []string{grid.sweepTarget(), grid.sweepTarget2()} {
@@ -229,29 +251,7 @@ func overlayTint(i int) *[3]float32 {
 			return nil
 		}
 	}
-	h := math.Mod(0.39+float64(i-1)*0.618034, 1)
-	r, g, b := hsvToRGB(h, 0.85, 1)
-	return &[3]float32{float32(r), float32(g), float32(b)}
-}
-
-// hsvToRGB converts a color with h, s and v in 0..1.
-func hsvToRGB(h, s, v float64) (r, g, b float64) {
-	i := math.Floor(h * 6)
-	f := h*6 - i
-	p, q, t := v*(1-s), v*(1-f*s), v*(1-(1-f)*s)
-	switch int(i) % 6 {
-	case 0:
-		return v, t, p
-	case 1:
-		return q, v, p
-	case 2:
-		return p, v, t
-	case 3:
-		return p, q, v
-	case 4:
-		return t, p, v
-	}
-	return v, p, q
+	return &overlayTints[i-1]
 }
 
 // viewGrid is the grid of views of one model and the parameter sweep across
@@ -433,7 +433,12 @@ func (vi *viewGrid) wireViewLinkSwitches() {
 		})
 	}
 	// Overlay: the cells drawn one over another (the Grid's O button).
-	wireSwitch("grid-ovl", func(on bool) { vi.overlay = on })
+	wireSwitch("grid-ovl", func(on bool) {
+		vi.overlay = on
+		// Overlaid, a cell is the whole canvas: refitted, as a change of
+		// grid size is (gridFitFactor).
+		view.autoFitCamera()
+	})
 	vi.buildFocusDial() // wires the focus dial too, on the select it builds
 }
 
@@ -523,8 +528,8 @@ func setSelectQuiet(id string, v int) {
 		return
 	}
 	el.Set("value", strconv.Itoa(v))
-	// The ring is a set of labels over a hidden select; it reads the value
-	// on an input event, which is not the change event the handler wants.
+	// What shows the value refreshes on input too (onShown), which is not
+	// the change event the handler wants.
 	dom.Fire(el, "input")
 }
 
@@ -596,7 +601,11 @@ func viewGridShape(n int) (cols, rows int) {
 // exactly what the TIGHTER axis lost and no more: any larger and the
 // other axis runs off the cell. At 2x1 that is 1 — the cells are still
 // full height, so nothing moves and the A/B view looks as it always has.
+// Overlaid, every cell is the whole canvas, and the factor is 1.
 func gridFitFactor(n int) int {
+	if grid.overlay {
+		return 1
+	}
 	cols, rows := viewGridShape(n)
 	if rows < cols {
 		return rows
@@ -874,6 +883,9 @@ func wireOneSweepDial(sel js.Value, into *float32) {
 		if n, err := strconv.Atoi(sel.Get("value").String()); err == nil {
 			*into = float32(n)
 		}
+		// A start sweep begins again from the start whenever it is chosen,
+		// rather than resuming trajectories left running when it was not.
+		starts.invalidate()
 		// A swept parameter is no longer the knob's to set, and a knob that
 		// looks live while a sweep overrides it is the panel lying. The
 		// rebuild is what carries the swept marking onto the row.
