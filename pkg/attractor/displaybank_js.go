@@ -9,28 +9,11 @@ package attractor
 // the module, so the permalink, Reset All and the code that reads it are
 // unchanged; the buttons set it, and light from it.
 
-import "github.com/0magnet/chaosrack/pkg/dom"
-
-// setSwitch sets checkbox id as a hand would, firing its change.
-func setSwitch(id string, on bool) {
-	sw := dom.Doc.Call("getElementById", id)
-	if !sw.Truthy() || sw.Get("checked").Bool() == on {
-		return
-	}
-	sw.Set("checked", on)
-	dom.Fire(sw, "change")
-}
-
-// checkedOn reports whether checkbox id is checked.
-func checkedOn(id string) bool {
-	sw := dom.Doc.Call("getElementById", id)
-	return sw.Truthy() && sw.Get("checked").Bool()
-}
-
 func init() {
 	// POINTS: + draws every vertex as a dot; 0 is the solid line, no dots
 	// and no breaks. The knob between breaks the line into that many points.
 	trioPrograms["dash-duty"] = trioProgram{
+		keys: []string{"+", "0", ""},
 		help: []string{doc("trio.dash-duty=0"), doc("trio.dash-duty=1")},
 		press: func(i int) {
 			switch i {
@@ -88,21 +71,12 @@ func init() {
 	}
 }
 
-// paramSliderValue is the value of slider id, or -1 where there is none.
-func paramSliderValue(id string) float64 {
-	s := dom.Doc.Call("getElementById", id)
-	if !s.Truthy() {
-		return -1
-	}
-	return parseOr0(s.Get("value").String())
-}
-
 // Layers · Colors (buildPUnitModule "layers-bank"): BEHIND, SKIN, SRC, MAP,
 // PERIOD and SHIFT are P-units beside the four color knobs, and the
 // switches that were a column of their own are their buttons. Each is a
 // switch of its own, lit independently.
 func init() {
-	toggle := func(id string) func(int) { return func(int) { setSwitch(id, !checkedOn(id)) } }
+	toggle := func(id string) { setSwitch(id, !checkedOn(id)) }
 	// BEHIND: F fills the screen with a spectrogram or FVF backdrop, face
 	// on; B points the Colors module at the backdrop's colors instead of the
 	// model's. Both are about what is behind, so they are its buttons.
@@ -112,9 +86,9 @@ func init() {
 		press: func(i int) {
 			switch i {
 			case 0:
-				toggle("spect-fill")(i)
+				toggle("spect-fill")
 			case 1:
-				toggle("edit-back")(i)
+				toggle("edit-back")
 			}
 		},
 		lits:  func() []bool { return []bool{checkedOn("spect-fill"), checkedOn("edit-back"), false} },
@@ -124,7 +98,7 @@ func init() {
 	trioPrograms["gradient-colors"] = trioProgram{
 		keys:  []string{"I", "", ""},
 		help:  []string{doc("trio.gradient-colors=0")},
-		press: func(i int) { toggle("gradient-reverse")(i) },
+		press: func(int) { toggle("gradient-reverse") },
 		lits:  func() []bool { return []bool{checkedOn("gradient-reverse"), false, false} },
 		drive: []string{"gradient-reverse"},
 	}
@@ -133,7 +107,7 @@ func init() {
 	trioPrograms["gradient-source"] = trioProgram{
 		keys:  []string{"H", "", ""},
 		help:  []string{doc("trio.gradient-source=0")},
-		press: func(i int) { toggle("color-lock-sw")(i) },
+		press: func(int) { toggle("color-lock-sw") },
 		lits:  func() []bool { return []bool{checkedOn("color-lock-sw"), false, false} },
 		drive: []string{"color-lock-sw", "color-lock"},
 	}

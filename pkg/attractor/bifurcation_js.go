@@ -302,15 +302,7 @@ func (b *bifurcation) drawCursor(p paramDef, span float64) {
 	glctx.GL.Call("uniform1i", gpu.u.gradientColors, 1)
 	glctx.GL.Call("uniform3f", gpu.u.baseColor, 1.0, 0.8, 0.15)
 	gpu.uploadVerticesOnly(buf, glctx.Types.Points, len(buf)/4)
-	if phos.active() {
-		// The phosphor owns both uniforms while it is on and renderFrame set
-		// them from it earlier this frame; handing them to the palette here
-		// would be handing them to the wrong owner.
-		phos.applyPhosphorColor()
-		return
-	}
-	glctx.GL.Call("uniform1i", gpu.u.gradientColors, gradientColorsUniform())
-	glctx.GL.Call("uniform3f", gpu.u.baseColor, style.baseColor[0], style.baseColor[1], style.baseColor[2])
+	restoreTraceColor()
 }
 
 // cursorReadout is the LED text: the parameter value the cursor is at, or

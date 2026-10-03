@@ -104,8 +104,7 @@ func drawSpectrogramBackground(nowMs float64) {
 // apart from a feature that was broken — the same complaint the Persist switch
 // had against the Fore knob, answered the same way and with the same class.
 func syncLayersModule(mode string) {
-	// The switch dims by its label; the skin selector is a cell with a knob in
-	// it, so it dims by the cell. Same class, same sentence, different wrapper.
+	// The skin selector is a P-unit, so it dims by the cell.
 	dimIn := func(id, wrapper string, applies bool) {
 		el := dom.Doc.Call("getElementById", id)
 		if !el.Truthy() {
@@ -118,6 +117,8 @@ func syncLayersModule(mode string) {
 		w.Get("classList").Call("toggle", "layer-dim", !applies)
 	}
 	dimIn("skin-visual", ".punit", isSkinnable(mode))
+	// Fill is BEHIND's F button now: the button dims.
+	dimTrioButton("bg-visual", 0, !isSpectroSurface(mode))
 }
 
 // syncSpectroModule builds the spectrogram's own controls when it is a LAYER.

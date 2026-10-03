@@ -5,8 +5,8 @@ package attractor
 // The live λ readout: a dedicated probe pair, advanced a slice at a time out
 // of the render loop, feeding the accumulator in pkg/analysis.
 //
-// The measurement was already on screen as a PICTURE — Trace > Twin draws two
-// copies of the flow ε apart and lets you watch them come apart — and a
+// The measurement is on screen as a PICTURE too — the Grid's start sweep
+// draws copies of the flow ε apart and lets you watch them come apart — and a
 // picture of divergence is not a rate. What this adds is the number, and the
 // number is what distinguishes an attractor from a closed loop that merely
 // looks complicated at 60 frames a second.
@@ -18,10 +18,10 @@ package attractor
 // fixed schedule so it never leaves the linear regime, where the log of the
 // separation is a rate rather than a report of the attractor's diameter.
 //
-// It also runs whether or not the Twin switch is on. λ is a property of the
-// system, not of a drawing choice, and hanging the measurement off the switch
-// meant the panel could only tell you how chaotic the model was while you were
-// also asking it to draw two of them.
+// It runs whether or not a start sweep is drawn. λ is a property of the
+// system, not of a drawing choice, and hanging the measurement off one would
+// mean the panel could only tell you how chaotic the model was while you were
+// also asking it to draw several of them.
 
 import (
 	"math"
@@ -34,7 +34,7 @@ import (
 )
 
 // How many probe sub-steps a frame pays for. The interpreted (equation-engine)
-// systems get fewer for the reason twin.tick splits its budget the same way: an
+// systems get fewer for the reason startSweep.tick splits its budget so: an
 // AST walk is about ten times a compiled derivative, and the probe must not be
 // what makes Custom mode stutter. The consequence is only that the readout
 // settles later on those systems, never that it settles somewhere else.
@@ -101,7 +101,7 @@ func (l *liveLyapunov) seed(mode string, sys dynamics.FlowSys4) {
 }
 
 // tick advances the probe by one frame's slice and refreshes the
-// readout. Called from twin.tick, which generateForMode reaches every frame for
+// readout. Called from startSweep.tick, which generateForMode reaches every frame for
 // every mode that has a trajectory at all — the modes it does not reach are
 // the spectrogram surfaces, the recurrence plot and the audio scopes, which
 // are exactly the modes with no exponent to measure.

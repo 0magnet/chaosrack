@@ -140,9 +140,11 @@ func popManualBay(n int) {
 	}
 	width := min(total+24, winW()-40)
 	win := manualOpen(key, bayTitleFromManual(n), body, width, 240, fit, func() {
-		for _, loc := range locs {
-			live.Call("home", loc)
+		back := make([]any, len(locs))
+		for i, loc := range locs {
+			back[i] = loc
 		}
+		live.Call("homeAll", back)
 	})
 	fit(win)
 	if h := body.Get("scrollHeight").Float(); h > 0 {

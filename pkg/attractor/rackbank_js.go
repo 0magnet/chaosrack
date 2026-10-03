@@ -404,10 +404,7 @@ func programLegends(c js.Value) {
 	val.Get("classList").Call("add", "dmdval")
 	top.Call("appendChild", val)
 	ledPick(val, sel)
-	dom.OnAs(sel, "change", "display", func(js.Value, []js.Value) any {
-		setDotText(val, optText())
-		return nil
-	})
+	onShown(sel, "display", func() { setDotText(val, optText()) })
 }
 
 // mirrorReadout puts a character display over a bank position's number
@@ -865,10 +862,7 @@ func ledSelector(sel js.Value) js.Value {
 			lightRing(dial, d, d)
 		}
 		light()
-		dom.OnAs(sel, "change", "ledring", func(js.Value, []js.Value) any {
-			light()
-			return nil
-		})
+		onShown(sel, "ledring", light)
 	}
 	return wrap
 }
@@ -903,10 +897,7 @@ func selectorReadout(holder, sel js.Value, names []string) {
 	}
 	ledPickFor(win, sel)
 	setDotText(win, name())
-	dom.OnAs(sel, "change", "display", func(js.Value, []js.Value) any {
-		setDotText(win, name())
-		return nil
-	})
+	onShown(sel, "display", func() { setDotText(win, name()) })
 }
 
 // bankTail puts tail, cells several models share that belong to no model
@@ -1019,4 +1010,16 @@ func ledPickTitle(pick, sel js.Value) {
 	} else {
 		pick.Call("removeAttribute", "title")
 	}
+}
+
+// onShown calls refresh, under key (dom.OnAs), whenever select sel's value
+// is to be shown anew: on its change, and on the bare input setSelectQuiet
+// sends where the change's own handler must not run.
+func onShown(sel js.Value, key string, refresh func()) {
+	h := func(js.Value, []js.Value) any {
+		refresh()
+		return nil
+	}
+	dom.OnAs(sel, "change", key, h)
+	dom.OnAs(sel, "input", key, h)
 }

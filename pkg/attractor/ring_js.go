@@ -11,7 +11,7 @@ import (
 	"syscall/js"
 )
 
-// Ring-trail mode (the Trace > Ring switch): instead of re-integrating the
+// Ring-trail mode (the TRAIL − (Display) switch): instead of re-integrating the
 // ENTIRE trail every frame (scan mode — whole-curve response to knob/audio
 // changes, but up to steps×speedSteps ODE steps per frame), the trail lives
 // in a persistent ring buffer and only the advancing BEAM writes new points —
@@ -40,7 +40,7 @@ import (
 
 const ringPointsPerFrame = 120 // beam advance per frame at speed 1
 
-// ringTrail is the ring trail: the circular vertex buffer the Trace > Ring
+// ringTrail is the ring trail: the circular vertex buffer the TRAIL − (Display)
 // switch draws from.
 type ringTrail struct {
 	on        bool

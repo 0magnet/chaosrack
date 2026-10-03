@@ -51,6 +51,15 @@ func setParamSlider(id string, v float64) {
 	dom.Fire(s, "input")
 }
 
+// paramSliderValue is the value of slider id, or -1 where there is none.
+func paramSliderValue(id string) float64 {
+	s := dom.Doc.Call("getElementById", id)
+	if !s.Truthy() {
+		return -1
+	}
+	return parseOr0(s.Get("value").String())
+}
+
 // trioPrograms are keyed by the parameter of the knob the buttons stand
 // beside.
 var trioPrograms = map[string]trioProgram{
@@ -149,18 +158,26 @@ func init() {
 	}
 }
 
-// bankHidden are parameters another position's buttons set. They keep their
-// control, hidden, so they are still one control each to everything that
-// reads controls, but they are not a position of their own.
-var bankHidden = func() map[string]bool {
-	out := map[string]bool{}
-	for _, p := range trioPrograms {
-		for _, id := range p.drive {
-			out[id] = true
+// bankHidden reports whether id is a parameter another position's buttons
+// set. It keeps its control, hidden, so it is still one control to
+// everything that reads controls, but it is not a position of its own.
+// Built on first use, as trioDriven is: the programs added in init
+// functions are not in the table when package variables are initialized.
+func bankHidden(id string) bool {
+	if bankHiddenIDs == nil {
+		bankHiddenIDs = map[string]bool{}
+		for param, p := range trioPrograms {
+			for _, d := range p.drive {
+				if d != param {
+					bankHiddenIDs[d] = true
+				}
+			}
 		}
 	}
-	return out
-}()
+	return bankHiddenIDs[id]
+}
+
+var bankHiddenIDs map[string]bool
 
 // trioColumn is the part: a column of lit buttons, one per legend. The
 // legend is on the button, and is what lights: a label over each button
@@ -235,6 +252,7 @@ func syncTriosIn(root js.Value, sel string) {
 		for j := range btns.Length() {
 			b := btns.Index(j)
 			b.Get("classList").Call("toggle", "trio-on", j < len(on) && on[j])
+			b.Get("classList").Call("toggle", "trio-dead", ok && !p.assigned(j))
 			// The legend is programmed too: a position's buttons say what they
 			// do where it has legends of its own.
 			if lamp := b.Call("querySelector", ".trio-lamp"); lamp.Truthy() && j < len(keys) && lamp.Get("textContent").String() != keys[j] {
@@ -277,7 +295,7 @@ func wireTrios() {
 		if !ok {
 			return nil
 		}
-		if i, err := strconv.Atoi(b.Call("getAttribute", "data-trio").String()); err == nil {
+		if i, err := strconv.Atoi(b.Call("getAttribute", "data-trio").String()); err == nil && p.assigned(i) {
 			p.press(i)
 		}
 		lightTrios(param)
@@ -324,6 +342,13 @@ func trioDriven() map[string][]string {
 }
 
 // legends are the program's printed keys: its own, or the bank's + 0 −.
+// assigned reports whether button i does anything: it has a tooltip to say
+// what, and a legend to say it with. The rest are inert.
+func (p trioProgram) assigned(i int) bool {
+	l := p.legends()
+	return i >= 0 && i < len(p.help) && i < len(l) && l[i] != ""
+}
+
 func (p trioProgram) legends() []string {
 	if p.keys != nil {
 		return p.keys
@@ -342,4 +367,14 @@ func (p trioProgram) lighting() []bool {
 		on[i] = true
 	}
 	return on
+}
+
+// dimTrioButton dims button i of param's buttons where what it switches does
+// not apply to what is on screen, as a switch's label used to dim. It still
+// works: a dim button is a hint, not a lock.
+func dimTrioButton(param string, i int, dim bool) {
+	b := dom.Doc.Call("querySelector", `[data-param="`+param+`"] .trio-btn[data-trio="`+strconv.Itoa(i)+`"]`)
+	if b.Truthy() {
+		b.Get("classList").Call("toggle", "trio-dim", dim)
+	}
 }

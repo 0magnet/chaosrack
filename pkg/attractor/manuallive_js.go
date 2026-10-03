@@ -5,8 +5,8 @@ package attractor
 import "syscall/js"
 
 // The manual's modules (manualmode_js.go): the rack's own, working, moved
-// out of the rack into the manual where each is described, and from there
-// into a window of their own and back. Not pictures of them: a knob turned
+// out of the rack into the manual's strip for their bay, and with the whole
+// bay into a window of its own and back. Not pictures of them: a knob turned
 // in the manual is the knob, and the model and the meters answer it.
 //
 // A module is dressed by the stylesheet partly through what it stands in —
@@ -38,7 +38,7 @@ func manualLive() js.Value {
 }
 
 const manualLiveJS = `
-var doc = document, LETTERS = 'abcdefghijklmnopqrstuvwxyz';
+var doc = document;
 var bays = [], mods = {}, wraps = {}, holds = [];
 var panel = doc.getElementById('controls-panel');
 function rel(r, b) { return { x: r.left - b.left, y: r.top - b.top, w: r.width, h: r.height }; }
@@ -141,15 +141,20 @@ return {
     this.refit();
   },
 
-  // home puts module loc back in its bay on the page.
-  home: function (loc) {
-    var h = doc.querySelector('.mlive[data-mloc="' + loc + '"]'), w = wraps[loc];
-    if (!h || !w) return;
-    h.querySelector('.mlive-stage').appendChild(w);
-    h.classList.remove('away');
-    var strip = h.closest('.mbay');
-    if (strip) strip.classList.remove('away');
-    this.refit(strip || h);
+  // homeAll puts modules locs back in their bays on the page, and fits each
+  // bay once: a bay's window closing returns all of its modules at once.
+  homeAll: function (locs) {
+    var strips = [];
+    for (var i = 0; i < locs.length; i++) {
+      var h = doc.querySelector('.mlive[data-mloc="' + locs[i] + '"]'), w = wraps[locs[i]];
+      if (!h || !w) continue;
+      h.querySelector('.mlive-stage').appendChild(w);
+      h.classList.remove('away');
+      var s = h.closest('.mbay') || h;
+      s.classList.remove('away');
+      if (strips.indexOf(s) < 0) strips.push(s);
+    }
+    for (var j = 0; j < strips.length; j++) this.refit(strips[j]);
   },
 
   // away marks module loc's place as empty, and its bay's when the whole
@@ -179,18 +184,29 @@ return {
         h.style.width = w + 'px';
         self.fit(loc, w);
       });
-      hs.forEach(function (h) { self.callouts(h); });
+      var os = hs.map(function (h) { return self.overlay(h); });
+      hs.forEach(function (h, i) { self.draw(h, os[i]); });
     });
   },
 
 
-  // callouts draws module loc's addresses over it, in hold: a tag at each
-  // control's top left, moved down past any tag already there.
-  callouts: function (h) {
+  // callouts draws hold h's addresses over its module.
+  callouts: function (h) { this.draw(h, this.overlay(h)); },
+
+  // draw puts overlay o (or none) over hold h, in place of the last.
+  draw: function (h, o) {
     var old = h.querySelector('.mlive-over');
     if (old) old.remove();
+    if (o) h.appendChild(o);
+  },
+
+  // overlay is hold h's addresses, measured and drawn but not yet over it:
+  // a tag at each control's top left, moved down past any tag already
+  // there. Apart from draw, so a bay measures every module before it
+  // changes any (refit): one layout, not one per module.
+  overlay: function (h) {
     var w = wraps[h.getAttribute('data-mloc')];
-    if (!w || h.classList.contains('away')) return;
+    if (!w || h.classList.contains('away')) return null;
     var hr = h.getBoundingClientRect(), o = svg('svg', { class: 'mlive-over', width: hr.width, height: hr.height });
     var taken = [], seen = {};
     var cs = [].filter.call(w.querySelectorAll('[data-loc]'), function (c) {
@@ -215,7 +231,7 @@ return {
       g.appendChild(t);
       o.appendChild(g);
     });
-    h.appendChild(o);
+    return o;
   },
 
   // strips gives each bay on the page (.mbay) a place for each of its

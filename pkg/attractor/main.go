@@ -523,12 +523,20 @@ func onResetAll(this js.Value, args []js.Value) any {
 	for _, params := range attractorParams {
 		for _, p := range params {
 			*p.Value = p.Def
+			// And on its control, which a bank keeps from model to model
+			// rather than rebuilding from the value: set as a permalink
+			// sets one (applyParam), so its displays follow.
+			v := strconv.FormatFloat(float64(p.Def), 'f', -1, 32)
+			if el := dom.Doc.Call("getElementById", p.ID); el.Truthy() && el.Get("value").String() != v {
+				el.Set("value", v)
+				dom.Fire(el, "input")
+			}
 		}
 	}
 	buildParamPanel(run.selectedMode)
 
 	// Reset auto-rotate, draw mode. (Speed / line width / trail — values,
-	// LEDs, buffer realloc, persist drop — are registry-owned above.)
+	// LEDs, buffer realloc — are registry-owned above.)
 	run.paused = false
 	if ps := dom.Doc.Call("getElementById", "pause-sw"); ps.Truthy() {
 		ps.Set("checked", false)
@@ -537,18 +545,15 @@ func onResetAll(this js.Value, args []js.Value) any {
 	gpu.drawMode = glctx.Types.LineStrip
 	view.ball.orient = mgl32.Ident4() // clear trackball drag orientation
 	dom.Doc.Call("getElementById", "auto-rotate").Set("checked", true)
-	dom.Doc.Call("getElementById", "use-points").Set("checked", false)
 	dom.Doc.Call("getElementById", "show-info").Set("checked", false)
 	info.hideInfoWindow()
 	style.persistTrail = false
-	dom.Doc.Call("getElementById", "persist-trail").Set("checked", false)
 	// The source and map rings are registry-owned, so the loop above has already
 	// put them back — including gradientSource / gradientColors and the dimming,
 	// because resetting a Control dispatches the change its own handler listens
 	// for. Only the Reverse switch, which is a checkbox and not a Control, is
-	// still this function's to set.
+	// still this function's to set, and swDefaults below turns it off.
 	style.gradientReverse = false
-	dom.Doc.Call("getElementById", "gradient-reverse").Set("checked", false)
 	updateGradientUI()
 
 	// Reset colors
@@ -584,6 +589,9 @@ func onResetAll(this js.Value, args []js.Value) any {
 		{"handles-on", false}, {"desk-pass", false}, {"desk-contain", false},
 		{"jam-sw", false}, {"show-meters", true},
 		{"ring-sw", false}, {"grid-ovl", false}, {"sect-sw", false},
+		// Through their change, as a press would: their P-unit buttons light
+		// from it (POINTS +, TRAIL +, MAP I).
+		{"use-points", false}, {"persist-trail", false}, {"gradient-reverse", false},
 		{"link-sw", true},
 		{"scope-grat", true}, // the graticule is what makes the trace measurable
 		// Back to recording the full canvas. This one is here because of what

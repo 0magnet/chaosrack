@@ -68,10 +68,10 @@ func makeTurning(c js.Value) {
 	}
 }
 
-// fullRing redraws a value dial as an endless knob's: one LED per detent all
-// knob has no ends. The first LED, at the top, is where every lap starts;
-// the color the ring lights in is which lap (paintRing).
-// and its color is which lap (panel.css, "LAPS").
+// fullRing redraws a value dial as an endless knob's: one LED per detent
+// all the way round, since the knob has no ends. The first LED, at the top,
+// is where every lap starts, and the color the ring lights in is which lap
+// (paintRing; panel.css, "LAPS").
 func fullRing(dial js.Value, spec turnSpec) {
 	dial.Set("innerHTML", "")
 	dial.Get("classList").Call("add", "full-ring")

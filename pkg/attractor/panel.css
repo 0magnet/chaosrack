@@ -688,8 +688,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
   color:#7e8f9e;margin-right:3px;white-space:nowrap;
   writing-mode:horizontal-tb;text-orientation:mixed;
 }
-/* A Greek symbol keeps its case: uppercased, the twin trace's λ read as Λ. */
-.modules .swline>.ledlbl{text-transform:none;}
 /* THE KNOB BANK's character displays: an HD44780-style module over each
    knob, every dot drawn and the lit ones in the rack's LED color. The
    printed legend they replace stays in the markup (tooltips and tests read
@@ -770,7 +768,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
  * three oscillators — so tokens set there shrink every plain knob in those
  * modules from 76 to 57. The geometry snapshot caught exactly that.
  */
-#gradient-stack .knobstack,#map-stack .knobstack,
 #knobstyle-stack .knobstack,#ledcolor-stack .knobstack,#phosphor-stack .knobstack,
 .gen-osc .knobstack,.catbank .gen-cell .knobstack{
   --ko:calc(14*var(--mm)); --ki:calc(7*var(--mm));
@@ -863,7 +860,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
    numeric LED on purpose, because the highlighted ring label IS the readout. An
    unreadable ring means no way at all to tell which option is selected.
    56px is the size the other ringed dials already use for exactly this reason
-   (#gradient-stack, #knobstyle-stack above, each with the comment
+   (#knobstyle-stack above, with the comment
    "clear of the knob within the tight module") — the parameter cells were the
    ones that never got the rule. At radius 28 the ring's innermost label edge
    clears by five pixels. */
@@ -923,7 +920,8 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
 .trio-btn:active{transform:translateY(1px);}
 .trio-lamp{display:block;font-family:'Chakra Petch',sans-serif;font-style:normal;font-weight:700;font-size:calc(6px*var(--kscale,1));letter-spacing:-0.3px;line-height:1;white-space:nowrap;color:#8d959c;}
 .trio-btn.trio-on .trio-lamp{color:var(--led-col,#ff3b30);text-shadow:0 0 4px var(--led-glow,#ff2a20);}
-.trio:not(.trio-live) .trio-btn{cursor:default;opacity:0.55;}
+.trio:not(.trio-live) .trio-btn,.trio-btn.trio-dead{cursor:default;opacity:0.55;}
+.trio-btn.trio-dim{opacity:0.55;}
 
 
 /* ═══ 10. Console ═══════════════════════════════════════════════════════════ */
@@ -1025,10 +1023,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
 
 /* ═══ 12. Layers · Colors ═══════════════════════════════════════════════════ */
 #gradient-source,#gradient-colors{background:#222;color:#ccc;border:1px solid #555;font-family:'B612 Mono',monospace;font-size:12px;padding:2px 4px;}
-/* src/colors knob: two concentric label rings (source outer, palette inner).
-   Bodies come from the uniform geometry above; here we size only the label ring. */
-#gradient-stack .knobstack.has-dial{margin:calc(20px*var(--kscale,1));}
-#gradient-stack .knob-dial-lab,#map-stack .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
 .pal-cell .cswatch{display:inline-flex;align-items:center;gap:3px;}
 /* Pull the swatch's reset out of the centered group (absolute top-right, like
    every other cell) so the color swatch itself centers over the knob. */
@@ -1825,14 +1819,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
   background:#0a0f18;color:#9ab;border:1px solid #345;border-radius:2px;
   font-family:'B612 Mono',monospace;font-size:9px;padding:1px 2px;cursor:pointer;}
 .stl-builtin:hover{border-color:#8ac;}
-
-/* A CONTROL MUST NOT MOVE ITSELF WHEN YOU USE IT.
-   Twin's switch carries the live λ readout beside its label. Empty, the span
-   is zero wide; the moment Twin comes on it fills with a number, the label
-   grows, and the switch slides out from under the pointer that just clicked
-   it -- measured at 7px. Reserving the width means the readout appears in
-   space that was already there. */
-.led#twin-lambda{flex:none;}
 
 /* The Info window's body — the model description, set to be read.
 
