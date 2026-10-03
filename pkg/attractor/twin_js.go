@@ -43,16 +43,28 @@ type twinTrail struct {
 	a        [4]float64 // visible reference trajectory
 	b        [4]float64 // visible perturbed trajectory
 	buf      []float32  // trajectory B's vertex scratch (vertBuf holds A)
-	lambdaEl js.Value   // the λ LED in the Trace row
+	lambdaEl js.Value   // the TWIN P-unit's display, which reads λ while Twin is on
+	eps      float64    // the visible pair's initial separation (the TWIN knob); 0 is twinD0
+	turned   float64    // when the TWIN knob was last turned, ms: its display reads ε for a moment
+	shown    string     // what the TWIN display was last given
 }
 
 var twin twinTrail
 
-// twinD0 is the visible pair's initial separation, and it is deliberately the
-// probe's d0 rather than a second constant that happens to match: the picture
-// and the number are of the same thing, so the ε the eye watches grow is the ε
-// the exponent is measured against.
+// twinD0 is the visible pair's initial separation until the TWIN knob sets
+// another: the probe's d0, so by default the ε the eye watches grow is the ε
+// the exponent is measured against. λ does not depend on it (it is a rate,
+// measured by its own probe pair, lyaplive_js.go); a larger ε only brings the
+// pair apart sooner, and a smaller one later.
 const twinD0 = analysis.LiveD0
+
+// d0 is the visible pair's initial separation.
+func (t *twinTrail) d0() float64 {
+	if t.eps > 0 {
+		return t.eps
+	}
+	return twinD0
+}
 
 func (t *twinTrail) invalidate() { t.seeded = "" }
 
@@ -75,7 +87,7 @@ func (t *twinTrail) seed(mode string, sys dynamics.FlowSys4) {
 	ic := dynamics.InitCondFor(mode)
 	t.a = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W()}
 	t.b = t.a
-	t.b[0] += twinD0
+	t.b[0] += t.d0()
 	t.seeded = mode
 }
 
@@ -152,16 +164,40 @@ func (t *twinTrail) tick(mode string) bool {
 	return true
 }
 
-// wireTwinSwitch hooks up the Trace > Twin checkbox and the λ LED under it.
+// wireTwinSwitch hooks up Twin, a button of the TWIN P-unit (Display).
 func (t *twinTrail) wireTwinSwitch() {
-	t.lambdaEl = dom.Doc.Call("getElementById", "twin-lambda")
 	wireSwitch("twin-sw", func(on bool) {
 		t.on = on
 		t.invalidate()
 		// The switch does NOT restart the measurement — the exponent belongs
-		// to the system and the system has not changed. Only the LED's
-		// last-written text is cleared, so the next frame writes the current
-		// reading into it (or blanks it) instead of skipping it as unchanged.
-		lyapLive.trace = "\x00"
+		// to the system and the system has not changed. The display changes
+		// over to it, or back to ε.
+		t.showReading(lyapLive.text)
 	})
+}
+
+// twinShowFor is how long, in ms, the TWIN display reads ε after its knob
+// is turned.
+const twinShowFor = 1500
+
+// showReading puts λ (s, the live estimate) on the TWIN P-unit's display
+// while Twin is on and its knob has not just been turned, and the knob's ε
+// otherwise.
+func (t *twinTrail) showReading(s string) {
+	if !t.lambdaEl.Truthy() {
+		t.lambdaEl = dom.Doc.Call("querySelector", "#twin-cell .dmdval")
+		if !t.lambdaEl.Truthy() {
+			return
+		}
+	}
+	text := ""
+	if t.on && s != "" && frameNowMs-t.turned > twinShowFor {
+		text = "λ" + s
+	} else if in := dom.Doc.Call("getElementById", "slider-value-teps"); in.Truthy() {
+		text = readoutText(in.Get("value").String())
+	}
+	if text != t.shown {
+		t.shown = text
+		setDotText(t.lambdaEl, text)
+	}
 }

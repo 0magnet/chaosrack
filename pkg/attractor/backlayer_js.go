@@ -193,6 +193,7 @@ func (b *backLayer) setEditing(on bool) {
 	if sw := dom.Doc.Call("getElementById", "edit-back"); sw.Truthy() {
 		sw.Set("checked", on)
 	}
+	lightTrios("bg-visual") // BEHIND's B, set without a change to relight it
 	if on == b.editing {
 		return
 	}

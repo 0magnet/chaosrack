@@ -863,6 +863,14 @@ func registerViewControls() {
 	adoptDescControl(ControlDesc{ID: "sweep-hi", Label: "to", Min: 0, Max: 1, Step: 0.01, Def: 1,
 		PermaKey: "wh", LEDID: "slider-value-swhi", ResetID: "rst-swhi",
 		Apply: func(v float64) { grid.sweepHi = float32(v) }})
+	// Twin's ε, as a power of ten: how far apart the two trajectories start.
+	adoptDescControl(ControlDesc{ID: "twin-eps", Label: "twin", Min: -9, Max: -1, Step: 0.1, Def: -4,
+		Signed: true, PermaKey: "te", LEDID: "slider-value-teps", ResetID: "rst-teps",
+		Apply: func(v float64) {
+			twin.eps = math.Pow(10, v)
+			twin.turned = frameNowMs
+			twin.invalidate()
+		}})
 	adoptDescControl(ControlDesc{ID: "rainbow-freq", Label: "period", Min: 0.05, Max: 20, Step: 0.05, Def: 1,
 		PermaKey: "rf", LEDID: "slider-value-rfreq", ResetID: "rst-rfreq",
 		Apply: func(v float64) { style.gradientFreq = float32(v) }})
@@ -1054,9 +1062,6 @@ func wirePanelSwitches() {
 			buildParamPanel(run.selectedMode) // the Spectro module arrives and leaves with it
 			return nil
 		})
-		if holder := dom.Doc.Call("getElementById", "skin-stack"); holder.Truthy() {
-			holder.Call("appendChild", selectorKnobReadout(sk))
-		}
 		// No PermaKey: "sk" already carries it in permaCtls.
 		adoptDescControl(ControlDesc{
 			ID: "skin-visual", Label: "skin", IsSelect: true, SelectDef: "", ResetID: "rst-skin-visual",
@@ -1082,9 +1087,6 @@ func wirePanelSwitches() {
 			buildParamPanel(run.selectedMode) // the spectrogram's module follows it here
 			return nil
 		})
-		if holder := dom.Doc.Call("getElementById", "bg-stack"); holder.Truthy() {
-			holder.Call("appendChild", selectorKnobReadout(bv))
-		}
 		// No PermaKey: "bd" already carries it in permaCtls.
 		adoptDescControl(ControlDesc{
 			ID: "bg-visual", Label: "Behind", IsSelect: true, SelectDef: "", ResetID: "rst-bg-visual",
@@ -1302,6 +1304,8 @@ func initDrawState() {
 func wireViewGridStack() {
 	// The Grid's P-units, before its dials are filled (gridbank_js.go).
 	buildGridBank()
+	buildPUnitModule("display-bank")
+	buildPUnitModule("layers-bank")
 	// The sweep dial: what varies across the grid. Its options are the
 	// current mode's own parameters, so building it is a function the
 	// mode change calls too rather than a block written out here.
@@ -1571,6 +1575,7 @@ func buildPanelKnobs() {
 	knobifyFixed("rainbow-freq", "slider-value-rfreq", true)
 	knobifyFixed("sweep-lo", "slider-value-swlo", true)
 	knobifyFixed("sweep-hi", "slider-value-swhi", true)
+	knobifyFixed("twin-eps", "slider-value-teps", true)
 	knobifyFixed("palette-shift", "slider-value-pshift", true)
 	rkx := knobifyFixed("rotation-controls-x", "slider-value-x", false)
 	rky := knobifyFixed("rotation-controls-y", "slider-value-y", false)
@@ -1776,51 +1781,6 @@ func wireGradientKnobs() {
 	bootMark("rack-start")
 	buildRackAndRestore()
 	bootMark("rack-done")
-	gsrc := dom.Doc.Call("getElementById", "gradient-source")
-	gcol := dom.Doc.Call("getElementById", "gradient-colors")
-	if gsrc.Truthy() && gcol.Truthy() {
-		if sh := dom.Doc.Call("getElementById", "gradient-stack"); sh.Truthy() {
-			sstack := soloKnob(gsrc)
-			// OFF first, because it is the absence of a source rather than one more
-			// of them. Its option value is 5 while the five that follow keep 0..4,
-			// so a permalink written before this still names the same source: the
-			// ring binds a label to an option by INDEX and the link by VALUE, and
-			// those are free to disagree.
-			//
-			// ONE LABEL PER OPTION, IN OPTION ORDER. Binding by index is what
-			// makes that a requirement rather than a nicety: seven audio sources
-			// were added to the select and this list was left at six, so the dial
-			// went on offering the original six and the new ones could not be
-			// reached from the knob at all — only from a permalink. The order
-			// here is the order in panelhtml_js.go, not numeric by value.
-			addSelectorLabels(sstack, gradSrcRingLabels, gsrc).
-				Set("id", "grad-src-ring")
-			sh.Call("appendChild", sstack)
-			gsrc.Get("style").Set("display", "none")
-		}
-		if mh := dom.Doc.Call("getElementById", "map-stack"); mh.Truthy() {
-			mstack := soloKnob(gcol)
-			// No "1" here any more: mono was never a map, it was the absence of a
-			// source, and it lives on the src ring as OFF. Every position left is
-			// a genuine mapping of a value to a color.
-			//
-			// NINE labels for nine options, and the count is load-bearing: a ring
-			// that does not match its select is discarded whole and the dial falls
-			// back to full names, which is how the spectrogram's old color dial
-			// came to read "graysca…e" and "…idis" under the knob when turbo,
-			// viridis and magma were added to a three-label ring. Add a map here
-			// and add its label in the same commit.
-			// 45 rather than the src ring's 43: "hue" is the one three-character
-			// label and it lands where its width points straight at the knob, so at
-			// the src ring's radius it touched the dial while every 2-character
-			// label beside it cleared. Two more percent is as far as it can go —
-			// past that the outermost labels clip the cell.
-			addSelectorLabels(mstack, []string{"2", "3", "hue", "ht", "bl", "gy", "tb", "vr", "mg"}, gcol).
-				Set("id", "grad-map-ring")
-			mh.Call("appendChild", mstack)
-			gcol.Get("style").Set("display", "none")
-		}
-	}
 	wireViewGridStack()
 }
 

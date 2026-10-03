@@ -385,7 +385,11 @@ func programLegends(c js.Value) {
 	// round a dial (paramRingLabels) fits a six-character display too, where
 	// the option's full name was cut off mid-word ("left is reference" read
 	// "left i") or carried a character the display has no dots for.
-	ring := paramRingLabels[c.Call("getAttribute", "data-param").String()]
+	param := c.Call("getAttribute", "data-param").String()
+	ring := settingNames[param]
+	if ring == nil {
+		ring = paramRingLabels[param]
+	}
 	optText := func() string {
 		if i := sel.Get("selectedIndex").Int(); i >= 0 && i < len(ring) {
 			return ring[i]

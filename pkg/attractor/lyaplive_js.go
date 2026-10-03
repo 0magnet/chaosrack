@@ -26,13 +26,11 @@ package attractor
 import (
 	"math"
 	"strconv"
-	"strings"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/analysis"
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
-	"github.com/0magnet/chaosrack/pkg/led"
 )
 
 // How many probe sub-steps a frame pays for. The interpreted (equation-engine)
@@ -54,7 +52,6 @@ type liveLyapunov struct {
 	mode  string     // the mode the pair belongs to; "" = unseeded
 	el    js.Value   // the readout cell in the parameter grid
 	text  string     // last text written to it
-	trace string     // last text written to the Trace row's LED
 }
 
 var lyapLive liveLyapunov
@@ -200,23 +197,13 @@ func (l *liveLyapunov) show(s string) {
 			l.el.Set("textContent", s)
 		}
 	}
-	// The Trace row's LED belongs to the Twin switch and says nothing while
-	// the switch is off: it annotates the two trajectories on screen with the
-	// rate at which they are coming apart, and with no trajectories drawn
-	// there is nothing there for it to annotate. The panel cell is the one
-	// that is always right. It carries the λ itself, having no label beside
-	// it to say what the number is.
-	t := ""
-	if twin.on && s != "" {
-		// Seven segments: the positive sign is the blank slot (led.Blank).
-		t = "λ" + strings.Replace(s, "+", led.Blank, 1)
-	}
-	if t != l.trace {
-		l.trace = t
-		if twin.lambdaEl.Truthy() {
-			twin.lambdaEl.Set("textContent", t)
-		}
-	}
+	// The TWIN P-unit's display (Display) reads λ while Twin is on: it
+	// annotates the two trajectories on screen with the rate at which they
+	// are coming apart. Off, or for a moment after its knob is turned, it
+	// reads the knob's ε, as an instrument's display shows a setting while
+	// it is being set. The model's own readout (above) is the one that is
+	// always there.
+	twin.showReading(s)
 }
 
 // appendLyapunovReadout adds the λ cell to a flow mode's parameter grid. Into
