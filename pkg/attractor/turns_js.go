@@ -27,6 +27,12 @@ var knobRefresh = map[string]func(){}
 // and only an encoder can turn round and round. The same parameter on a knob
 // with stops keeps its stops.
 func makeTurning(c js.Value) {
+	// A knob whose ends mean something keeps them, P-unit or not: the
+	// Grid's FROM and TO are where in a range a sweep starts and stops, and
+	// past 1 or below 0 is no place in it.
+	if c.Call("hasAttribute", "data-stops").Bool() {
+		return
+	}
 	if c.Call("querySelector", "select").Truthy() || c.Call("querySelector", "input[type=checkbox]").Truthy() {
 		return // a setting: its detents are its values
 	}
