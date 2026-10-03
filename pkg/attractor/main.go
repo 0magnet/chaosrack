@@ -412,12 +412,9 @@ func Run() {
 					refreshGradient()
 				}
 			},
-			ResetExtra: func() {
-				// Resetting the trail also drops persist mode (matches the old
-				// bespoke reset: a persisted trail makes the new length invisible).
-				style.persistTrail = false
-				dom.Doc.Call("getElementById", "persist-trail").Set("checked", false)
-			}})
+			// Persist is a switch of its own: resetting the trail's length
+			// leaves it as it is.
+		})
 		registerOutputControls()
 		// value so engine state matches the panel by construction (the old code
 		bootMark("commit")
