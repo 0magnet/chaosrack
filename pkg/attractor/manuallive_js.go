@@ -186,7 +186,7 @@ return {
     }).map(function (c) { return { loc: c.getAttribute('data-loc'), r: rel(c.getBoundingClientRect(), hr) }; });
     cs.sort(function (a, b) { return a.r.y - b.r.y || a.r.x - b.r.x; });
     cs.forEach(function (c) {
-      var short = c.loc.split('.').slice(2).join('.');
+      var short = c.loc.split('.').slice(1).join('.');
       var x = Math.max(1, c.r.x), y = Math.max(10, c.r.y + 1), tw = 6.2 * short.length + 4;
       for (var i = 0; i < taken.length; i++) {
         var t = taken[i];

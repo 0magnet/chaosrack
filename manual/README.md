@@ -24,22 +24,23 @@ holding the pointer over an entry lights the tag of the control it is about.
 
 ## Addresses
 
-Every control has an address, **bay.module.position**. It begins the
-control's tooltip, and it is how the bays below list them:
+Every control has an address, **bay.column.row**. It begins the control's
+tooltip, and it is how the bays below list them:
 
 - **bay** is the number on the bay's left ear;
-- **module** is the module's place in the bay, 1 from the left;
-- **position** is where on the module the control stands: a cell of the
-  module's grid, a slot across and a row down, numbered down each column
-  and then across — 1 to 3 are the first column's three rows, 4 is the top
-  of the second — whether or not the cells before it hold anything.
+- **column** is how far across the bay the control stands, in slots: a bay
+  holds twelve modules of the narrowest width side by side, and each of
+  those widths is a column, 1 at the left to 12 at the right;
+- **row** is which of the bay's three rows of controls it is in, 1 at the
+  top to 3 at the bottom.
 
-So 3.2.4 is the top of the second column of bay 3's second module, and 3.2 is
-the module itself. Two or more controls in one position — a knob and the
-readout over it, a column of switches — are lettered, top to bottom and then
-left to right: 3.2.4.a, 3.2.4.b. A part that covers several positions — a
-monitor's screen, a scope's tube, a pin matrix, the keybed — takes the
-number of the first.
+So 1.3.1 is the top of the third column of bay 1, and the next control to its
+right is 1.4.1. A module is addressed by its first column: the Visual bay's
+monitor is two slots wide, so it is 1.1 and the bank beside it starts at 1.3.
+Two or more controls in one cell — a knob and the readout over it, a column of
+switches — are lettered, top to bottom and then left to right: 3.2.1.a,
+3.2.1.b. A part that covers several cells — a monitor's screen, a scope's
+tube, a pin matrix, the keybed — takes the address of its top left one.
 Modules move between bays as the rack is packed into a window, so an address
 is where a control is now: it is read off the rack each time this page is
 written, never stored.
