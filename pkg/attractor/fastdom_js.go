@@ -229,6 +229,49 @@ const fastSource = `(function () {
         }
       }
     },
+    // mxRetarget relabels the Mod matrix's rows as Go decided
+    // (modMxRetarget): each entry is a row's index, its legend's dots
+    // (markup), its tooltip and the control it targets ("" for none), and
+    // its pins' tooltips. The rows are the matrix's legends in order, and
+    // each has n pins after it.
+    mxRetarget: function (n, payloadJSON) {
+      var legs = doc.querySelectorAll("#mod-matrix .mxleg"), pins = doc.querySelectorAll("#mod-matrix .mxpin");
+      var P = JSON.parse(payloadJSON);
+      for (var k = 0; k < P.length; k++) {
+        var r = P[k], leg = legs[r.i];
+        if (!leg) continue;
+        leg.innerHTML = r.svg;
+        leg.title = r.title;
+        if (r.col) leg.setAttribute("data-col", r.col); else leg.removeAttribute("data-col");
+        for (var j = 0; j < n; j++) {
+          var p = pins[r.i * n + j];
+          if (!p) continue;
+          p.classList.toggle("mxpin-none", !r.col);
+          if (!r.col) { p.removeAttribute("title"); p.removeAttribute("data-col"); continue; }
+          p.title = r.pins[j];
+          p.setAttribute("data-col", r.col);
+        }
+      }
+    },
+    // controlCells is every control cell of every module, in the order
+    // readPanelCells counts them, for buildControlModel: the cells, and one
+    // row per module ("S" and its header) and per cell ("C", its flags --
+    // b blank, r rotation, p palette -- its id and its data-bank), as JSON.
+    controlCells: function () {
+      var sects = doc.querySelectorAll(".modules .sect"), cells = [], lines = [];
+      for (var i = 0; i < sects.length; i++) {
+        var h = sects[i].querySelector(".sect-hdr");
+        lines.push(["S", h ? h.textContent : ""]);
+        var cs = sects[i].querySelectorAll(".pcell, .punit");
+        for (var j = 0; j < cs.length; j++) {
+          var c = cs[j], cl = c.classList;
+          cells.push(c);
+          lines.push(["C", (cl.contains("bankblank") ? "b" : "") + (cl.contains("axrot") ? "r" : "") +
+            (cl.contains("pal-cell") ? "p" : ""), c.id, c.getAttribute("data-bank") || ""]);
+        }
+      }
+      return { cells: cells, info: JSON.stringify(lines) };
+    },
     // trioParams names the parameter of each column of buttons under root
     // that sel matches, "" for a column outside any position, joined by
     // newlines. trioApply then gives them what Go decided (syncTriosIn).

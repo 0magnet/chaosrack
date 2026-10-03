@@ -878,7 +878,14 @@ func addSelectorLabels(stack js.Value, labels []string, sel js.Value) js.Value {
 	}
 	stack.Call("insertBefore", dial, stack.Get("firstChild"))
 	stack.Get("classList").Call("add", "has-dial")
-	layoutSkirtsIn(stack)
+	// Inside a deferred layout (the boot, a panel build) its ring is sized
+	// with every other one at the end: measured here, each of twenty
+	// selectors forced a layout of everything built so far.
+	if owed.deferred {
+		owed.skirts = true
+	} else {
+		layoutSkirtsIn(stack)
+	}
 	return dial
 }
 

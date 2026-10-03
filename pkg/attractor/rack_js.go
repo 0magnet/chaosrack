@@ -209,6 +209,18 @@ func quantizeModuleWidths() {
 	}
 	// What a model change compares against (rackUnmoved).
 	lastRack.sig, lastRack.mode = fastDOM().Call("rackSig").String(), run.selectedMode
+	// Whether every face was in when it measured (requantizeAfterFonts).
+	quantizedInFonts = fontsLoaded()
+}
+
+// quantizedInFonts is whether the last quantize measured with every font
+// it uses loaded.
+var quantizedInFonts bool
+
+// fontsLoaded reports whether the document has no font still loading.
+func fontsLoaded() bool {
+	f := dom.Doc.Get("fonts")
+	return f.Truthy() && f.Get("status").String() == "loaded"
 }
 
 // applyModuleVisibility puts away what the switches say to put away, and leaves
@@ -310,6 +322,13 @@ func requantizeAfterFonts() {
 	fn = js.FuncOf(func(js.Value, []js.Value) any {
 		fn.Release()
 		afterTwoFrames(func() {
+			// Measured in the right face already: every font was in when
+			// the last quantize ran, so this one would mill every panel
+			// again to the same widths -- most of a second, after the rack
+			// is on screen.
+			if quantizedInFonts {
+				return
+			}
 			// Forget what the panels measured in the wrong font.
 			//
 			// latchModuleWidths stops a module ever getting NARROWER, which is
@@ -401,7 +420,20 @@ func rackSetOrder(order []string) {
 		first.Root().Call("appendChild", m)
 	}
 	syncUnitRacks()
-	first.SetOrder(racklayout.MergeModuleOrder(order, first.Order()))
+	// SetOrder's moves, without the quantize it ends with when a deferred
+	// layout is going to do one (quantizeModuleWidths): measuring the rack
+	// halfway through the boot forced a full layout of a panel still being
+	// built, only for the boot's own quantize to measure it again.
+	if !owed.deferred {
+		first.SetOrder(racklayout.MergeModuleOrder(order, first.Order()))
+		return
+	}
+	for _, key := range racklayout.MergeModuleOrder(order, first.Order()) {
+		if m := first.Module(key); m.Truthy() {
+			first.Root().Call("appendChild", m)
+		}
+	}
+	quantizeModuleWidths()
 }
 
 // rackSetHidden restores the put-away set. Each opening is given the whole

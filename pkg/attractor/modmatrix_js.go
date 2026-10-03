@@ -26,12 +26,14 @@ package attractor
 // the m./vm. keys a link carries them in, are unchanged.
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/led"
+	"encoding/json"
 	"html"
 	"strconv"
 	"strings"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/led"
 )
 
 // modMxViewCols are the view's routable controls, in the panel's order:
@@ -75,6 +77,10 @@ type modMxRow struct {
 	legend js.Value
 	pins   []js.Value
 	named  bool // its name has been written at least once
+	// lit is what each pin was last lit as ("" dark, else its opacity),
+	// so modMxLight touches only the pins that change: lit from scratch
+	// it was four crossings a pin, a thousand on every model change.
+	lit []string
 }
 
 // modMx is the module's live parts.
@@ -348,6 +354,17 @@ func modMxEditRow() js.Value {
 // selection, which stays where it was while its row still routes something
 // on this model.
 func modMxRetarget(params []paramDef) {
+	// Decided here, applied in one crossing (fastDOM mxRetarget): row by
+	// row and pin by pin from Go it was a thousand crossings on every
+	// model change.
+	type rowWrite struct {
+		I     int      `json:"i"`
+		SVG   string   `json:"svg"`
+		Title string   `json:"title"`
+		Col   string   `json:"col"`
+		Pins  []string `json:"pins"`
+	}
+	var writes []rowWrite
 	for i := range modMx.cols {
 		c := modMxCol{}
 		switch {
@@ -362,24 +379,18 @@ func modMxRetarget(params []paramDef) {
 		}
 		modMx.cols[i] = c
 		modMx.rows[i].named = true
-		r := modMx.rows[i]
-		setDotText(r.legend, displayText(c.label))
-		if c.id == "" {
-			r.legend.Set("title", doc("mod-row.none"))
-			r.legend.Call("removeAttribute", "data-col")
-		} else {
-			r.legend.Set("title", docf("mod-row", "control", c.label))
-			r.legend.Call("setAttribute", "data-col", c.id)
-		}
-		for j, pin := range r.pins {
-			pin.Get("classList").Call("toggle", "mxpin-none", c.id == "")
-			if c.id == "" {
-				pin.Call("removeAttribute", "title")
-				pin.Call("removeAttribute", "data-col")
-				continue
+		w := rowWrite{I: i, SVG: dotSVG(displayText(c.label), false, dispFullChars), Col: c.id, Title: doc("mod-row.none")}
+		if c.id != "" {
+			w.Title = docf("mod-row", "control", c.label)
+			for j := range modMx.rows[i].pins {
+				w.Pins = append(w.Pins, docf("mod-pin", "src", modChannels[j].key, "control", c.label))
 			}
-			pin.Set("title", docf("mod-pin", "src", modChannels[j].key, "control", c.label))
-			pin.Call("setAttribute", "data-col", c.id)
+		}
+		writes = append(writes, w)
+	}
+	if len(writes) > 0 {
+		if b, err := json.Marshal(writes); err == nil {
+			fastDOM().Call("mxRetarget", len(modChannels), string(b))
 		}
 	}
 	modMxDest()
@@ -471,9 +482,15 @@ func modMxLight(i int) {
 	}
 	id := modMx.cols[i].id
 	m := pmod.params[id]
-	for j, pin := range modMx.rows[i].pins {
+	r := &modMx.rows[i]
+	if len(r.lit) != len(r.pins) {
+		r.lit = make([]string, len(r.pins))
+		for j := range r.lit {
+			r.lit[j] = "?" // never lit: written the first time
+		}
+	}
+	for j, pin := range r.pins {
 		on := id != "" && m.level != 0 && m.channel == modChannels[j].name
-		pin.Get("classList").Call("toggle", "on", on)
 		op := ""
 		if on {
 			d := float64(m.level)
@@ -482,6 +499,11 @@ func modMxLight(i int) {
 			}
 			op = strconv.FormatFloat(min(1, 0.45+0.55*d), 'f', 2, 64)
 		}
+		if r.lit[j] == op {
+			continue
+		}
+		r.lit[j] = op
+		pin.Get("classList").Call("toggle", "on", on)
 		pin.Get("style").Set("opacity", op)
 	}
 }

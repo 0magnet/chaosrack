@@ -36,11 +36,12 @@ import (
 // that. One crossing (see fastdom_js.go), at most once a frame.
 
 var designateState struct {
-	pending bool
-	fn      js.Func
+	pending  bool
+	fn       js.Func
+	idleOpts js.Value // {timeout: designateWithinMs}, made once
 }
 
-// scheduleDesignate readdresses the rack on the next frame. Called by
+// scheduleDesignate readdresses the rack once the page is idle. Called by
 // anything that moves controls, shows or hides them, or rewrites their
 // tooltips; several calls in one frame are one pass.
 func scheduleDesignate() {
@@ -57,8 +58,23 @@ func scheduleDesignate() {
 			return nil
 		})
 	}
+	// When the page is idle, and within half a second: the pass measures
+	// every control on the rack, a sixth of a second, and on the next frame
+	// it was that frame -- the first one a new model or a fresh rack draws.
+	// Addresses are for reading, and nothing reads them that fast.
+	if ric := js.Global().Get("requestIdleCallback"); ric.Type() == js.TypeFunction {
+		if designateState.idleOpts.IsUndefined() {
+			designateState.idleOpts = js.ValueOf(map[string]any{"timeout": designateWithinMs})
+		}
+		js.Global().Call("requestIdleCallback", designateState.fn, designateState.idleOpts)
+		return
+	}
 	js.Global().Call("requestAnimationFrame", designateState.fn)
 }
+
+// designateWithinMs is how long the address pass may wait for an idle
+// moment.
+const designateWithinMs = 500
 
 // addressPrefix is what designate puts in front of a tooltip.
 var addressPrefix = regexp.MustCompile(`^(?:[0-9S]+\.\d+(?:\.\d+(?:\.[a-z])?)? · )+`)

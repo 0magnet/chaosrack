@@ -3,11 +3,13 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/led"
+	"encoding/json"
 	"strconv"
 	"strings"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/led"
 )
 
 // A hierarchy of types for the control panel. The panel is, conceptually:
@@ -102,7 +104,6 @@ func (c *Control) resetToDefault() {
 // Module is one .sect section holding an ordered set of Controls.
 type Module struct {
 	name  string
-	sect  js.Value
 	ctrls []*Control
 }
 
@@ -125,42 +126,58 @@ var crtOverriddenIDs = map[string]bool{
 // buildControlModel (re)derives the Module/Control registry from the panel DOM.
 func buildControlModel() {
 	panelModules = panelModules[:0]
+	// Every module's name and every cell's classes, id and bank in one
+	// crossing (fastDOM controlCells): read cell by cell from Go it was
+	// seven crossings a cell, over every cell on the rack.
+	r := fastDOM().Call("controlCells")
+	cells := r.Get("cells")
+	var m *Module
 	tipN := 0
-	sects := dom.Doc.Call("querySelectorAll", ".modules .sect")
-	for i := range sects.Get("length").Int() {
-		sect := sects.Index(i)
-		m := &Module{sect: sect}
-		if h := sect.Call("querySelector", ".sect-hdr"); h.Truthy() {
-			m.name = titleWord(h.Get("textContent").String())
+	var rows [][]string
+	if err := json.Unmarshal([]byte(r.Get("info").String()), &rows); err != nil {
+		return
+	}
+	for _, f := range rows {
+		if len(f) > 1 && f[0] == "S" {
+			m = &Module{name: titleWord(f[1])}
+			panelModules = append(panelModules, m)
+			continue
 		}
-		cells := sect.Call("querySelectorAll", ".pcell, .punit")
-		for j := range cells.Get("length").Int() {
-			cell := cells.Index(j)
-			idx := tipN
-			tipN++ // the read pass counts every cell, this one included
-			// An unassigned bank position controls nothing, and naming it
-			// would name it after the part it was copied from.
-			if cell.Get("classList").Call("contains", "bankblank").Bool() {
-				continue
-			}
-			c := findBuiltControl(cell) // reuse a builder-made Control if this is a param cell
-			if c == nil {
-				c = &Control{module: m.name, cell: cell, kind: classifyControl(cell)}
-			}
-			c.module = m.name
-			// A bank's module serves every model of its row, so a position
-			// is named for the model it is programmed for: "Globe / par",
-			// not "Visual · Model / par".
-			if mode := cell.Call("getAttribute", "data-bank"); mode.Truthy() && mode.String() != "" {
-				c.module = modeLabel(mode.String())
-			}
-			c.tipIdx = idx
-			if id := cell.Get("id").String(); id != "" && crtOverriddenIDs[id] {
-				c.crtOverride = true
-			}
-			m.ctrls = append(m.ctrls, c)
+		if m == nil || len(f) < 4 {
+			continue
 		}
-		panelModules = append(panelModules, m)
+		idx := tipN
+		tipN++ // the read pass counts every cell, this one included
+		flags, id, bank := f[1], f[2], f[3]
+		// An unassigned bank position controls nothing, and naming it
+		// would name it after the part it was copied from.
+		if strings.Contains(flags, "b") {
+			continue
+		}
+		cell := cells.Index(idx)
+		c := findBuiltControl(cell) // reuse a builder-made Control if this is a param cell
+		if c == nil {
+			kind := kindGeneric
+			switch {
+			case strings.Contains(flags, "r"):
+				kind = kindRotation
+			case strings.Contains(flags, "p"):
+				kind = kindPalette
+			}
+			c = &Control{cell: cell, kind: kind}
+		}
+		c.module = m.name
+		// A bank's module serves every model of its row, so a position
+		// is named for the model it is programmed for: "Globe / par",
+		// not "Visual · Model / par".
+		if bank != "" {
+			c.module = modeLabel(bank)
+		}
+		c.tipIdx = idx
+		if id != "" && crtOverriddenIDs[id] {
+			c.crtOverride = true
+		}
+		m.ctrls = append(m.ctrls, c)
 	}
 }
 
@@ -181,18 +198,6 @@ func findBuiltControl(cell js.Value) *Control {
 		}
 	}
 	return nil
-}
-
-func classifyControl(cell js.Value) controlKind {
-	cl := cell.Get("classList")
-	switch {
-	case cl.Call("contains", "axrot").Bool():
-		return kindRotation
-	case cl.Call("contains", "pal-cell").Bool():
-		return kindPalette
-	default:
-		return kindGeneric
-	}
 }
 
 // annotateControlTooltips rebuilds the model and lets every Control tooltip
