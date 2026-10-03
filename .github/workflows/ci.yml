@@ -105,4 +105,15 @@ jobs:
           # fingerprint is taken from the sources, and this changes only the
           # artifact built from them.
           git commit -m "assets: refresh the embedded wasm builds [skip ci]"
-          git push
+          # Refused when main has moved on while this ran (a TinyGo build
+          # takes minutes, and a second push lands in them): that commit's
+          # own run builds its artifacts, so these are not needed, and a
+          # red run here said a build had failed when none had.
+          if ! git push; then
+            git fetch -q origin main
+            if [ "$(git rev-parse origin/main)" != "$GITHUB_SHA" ]; then
+              echo "main has moved past $GITHUB_SHA; its own run refreshes the artifacts"
+              exit 0
+            fi
+            exit 1
+          fi
