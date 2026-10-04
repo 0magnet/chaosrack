@@ -47,7 +47,9 @@ func Decimals(step, fine float64) int {
 	// 1e-4 absolute tolerance made small-step params (e.g. Aizawa's dt) show 0.
 	for d := range 9 {
 		scaled := fs * math.Pow(10, float64(d))
-		if math.Abs(scaled-math.Round(scaled)) <= 1e-6*math.Max(1, scaled) {
+		// And at least one digit: a step below the tolerance's floor rounds
+		// "cleanly" to zero places, which is no places at all.
+		if r := math.Round(scaled); r != 0 && math.Abs(scaled-r) <= 1e-6*math.Max(1, scaled) {
 			return d
 		}
 	}

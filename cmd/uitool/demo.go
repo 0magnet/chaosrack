@@ -43,6 +43,7 @@ var (
 // geometry (incl. skinnable solids), and the audio modes.
 var demoModes = []string{"lorenz", "rossler", "chua", "aizawa", "sprott", "thomas",
 	"halvorsen", "chen", "dadras", "rabinovich", "burkeshaw", "lu", "newtonleipnik",
+	"arneodo", "chenlee", "dequanli", "threescroll", "wangsun", "lorenzmod2", "simone",
 	"hyperrossler", "sprottb", "sprottf", "sprottl", "sprottp", "lissajou", "graphicartist",
 	"spectrogram", "xy", "fvf", "polyhedron", "torus", "globe", "magnetosphere",
 	"nestedcube"}

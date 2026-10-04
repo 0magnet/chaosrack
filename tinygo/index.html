@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>chaosrack — A Go/WASM Analog Computer</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZmYzYjZiIi8+PHN0b3Agb2Zmc2V0PSIwLjUiIHN0b3AtY29sb3I9IiNiMDYwZmYiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzNWI4ZmYiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxMyIgZmlsbD0iIzBhMGMxMiIvPjxwYXRoIGQ9Ik0yMy40NCwyNy44MCBMMjQuNzIsMzEuNzcgTDI0Ljc2LDM0Ljg3IEwyMy42NywzNi41MyBMMjEuNjAsMzUuOTYgTDE4Ljg2LDMyLjMxIEwxNi41MywyNi4xMCBMMTYuMjksMjEuMDggTDE4LjYwLDIwLjg5IEwyMS44MiwyNC40NCBMMjQuMjIsMjguOTQgTDI1LjI2LDMyLjk5IEwyNS4wMywzNi4wMSBMMjMuNjgsMzcuNDUgTDIxLjMwLDM2LjQwIEwxOC4yOSwzMS44OSBMMTUuOTUsMjQuODQgTDE2LjE2LDE5Ljk2IEwxOS4wNiwyMC43MyBMMjIuNTUsMjQuOTkgTDI0LjkxLDI5LjgwIEwyNS44MSwzMy45NyBMMjUuNDMsMzcuMDUgTDIzLjkyLDM4LjQ4IEwyMS4zMywzNy4yNSBMMTguMDIsMzIuMTkgTDE1LjQ2LDI0LjI1IEwxNS44MywxOS4wMCBMMTkuMTcsMjAuMjIgTDIzLjAwLDI1LjAzIEwyNS41MCwzMC4xOCBMMjYuNDMsMzQuNjAgTDI2LjA3LDM3LjkzIEwyNC41OCwzOS42OSBMMjEuOTMsMzguODYgTDE4LjM0LDMzLjkyIEwxNS4xNiwyNS4wOCBMMTUuMDQsMTguMjYgTDE4LjU2LDE4LjkzIEwyMi45MywyNC4xMCBMMjUuOTAsMjkuNzIgTDI3LjE0LDM0LjU2IEwyNy4wNSwzOC4zOSBMMjUuODcsNDAuOTAgTDIzLjUxLDQxLjI5IEwxOS45MCwzNy45MiBMMTUuNzYsMjkuMjUgTDEzLjgyLDE5LjEwIEwxNi40OCwxNi41MCBMMjEuNTksMjEuMjkgTDI1LjY4LDI3LjYwIEwyNy43OCwzMy4xNiBMMjguMzUsMzcuNzQgTDI3Ljg1LDQxLjMyIEwyNi4zNyw0My42MCBMMjMuNjgsNDMuNjUgTDE5LjUwLDM5LjM1IEwxNC42OCwyOC41MyBMMTIuNzgsMTYuNTUgTDE2LjYyLDE1LjA0IEwyMi43NSwyMS40MiBMMjcuMTcsMjguMzYgTDI5LjM1LDM0LjE2IEwzMC4wOCwzOC45NSBMMzAuMDIsNDIuOTAgTDI5LjM3LDQ2LjA4IEwyOC4wMiw0OC4zMiBMMjUuNTUsNDguOTQgTDIxLjI4LDQ1LjgyIEwxNS4xOSwzNC42OSBMMTAuNzIsMTYuODQgTDEzLjkxLDEwLjU3IEwyMi4wMCwxOC4wNSBMMjguMjksMjYuMzkgTDMxLjU5LDMyLjc0IEwzMy4yMiwzNy43MSBMMzQuMzcsNDEuNjMgTDM1LjgxLDQ0LjQzIEwzOC4xMiw0NS41NCBMNDEuODcsNDMuMzAgTDQ3LjA2LDM0LjYwIEw1MS4xNiwyMC4xNiBMNDkuNDUsMTIuOTQgTDQyLjk3LDE3LjkwIEwzNy4xNywyNS41OCBMMzMuOTUsMzIuMDMgTDMyLjU1LDM3LjI4IEwzMi4wNCw0MS42NCBMMzEuOTAsNDUuMjkgTDMxLjkwLDQ4LjM1IEwzMS45OSw1MC45MSBMMzIuMTksNTMuMDUgTDMyLjU4LDU0LjgyIEwzMy4zNSw1Ni4yMSBMMzQuODYsNTcuMDAgTDM3Ljg1LDU2LjI0IEw0My40NSw1MC40NCBMNTEuNzAsMzEuODggTDU1LjY4LDcuNDAgTDQ3LjU2LDguMzEgTDM2Ljc0LDE5Ljk2IEwzMC4yNiwyNy42MSBMMjcuMDQsMzIuMzEgTDI1LjAwLDM1LjE0IEwyMi45MSwzNS45NSBMMjAuMzUsMzQuMDggTDE3LjcxLDI5LjIzIEwxNi4zMiwyMy40MSBMMTcuMzYsMjAuNzggTDIwLjE5LDIyLjY0IEwyMi45OSwyNi43MCBMMjQuNjQsMzAuODkgTDI0Ljk5LDM0LjM0IEwyNC4xOSwzNi41MCBMMjIuMzMsMzYuNjcgTDE5LjY1LDMzLjg3IEwxNi45NiwyNy45NyBMMTUuOTUsMjEuOTAgTDE3LjcwLDIwLjIyIEwyMC45OSwyMy4xNCBMMjMuODAsMjcuNjkgTDI1LjI1LDMyLjAzIEwyNS4zNywzNS40NyBMMjQuMzQsMzcuNTIgTDIyLjIyLDM3LjM4IEwxOS4yNCwzMy45NCBMMTYuMzgsMjcuMTIgTDE1LjYwLDIwLjcwIEwxNy45MSwxOS42OSBMMjEuNTgsMjMuMzggTDI0LjQ3LDI4LjM0IEwyNS44NSwzMi44NyBMMjUuODcsMzYuNDMgTDI0LjczLDM4LjU4IEwyMi40OCwzOC40OCBMMTkuMjQsMzQuODIgTDE2LjAzLDI3LjIzIEwxNS4wOSwxOS45MSBMMTcuNjgsMTguODMgTDIxLjc4LDIzLjAwIEwyNC45NSwyOC4zOSBMMjYuNDcsMzMuMjMgTDI2LjU5LDM3LjA5IEwyNS41NSwzOS42NSBMMjMuMzYsNDAuMTQgTDIwLjAxLDM3LjExIEwxNi4yMiwyOS4zNSBMMTQuMzUsMjAuMTYgTDE2LjU4LDE3LjM2IEwyMS4xOCwyMS40MyBMMjUuMDMsMjcuMzIgTDI3LjA2LDMyLjY4IEwyNy41NiwzNy4wOCBMMjYuOTEsNDAuMzggTDI1LjE5LDQyLjExIEwyMi4yMCw0MS4xMSBMMTguMDEsMzUuMjggTDE0LjE3LDI0LjM4IEwxNC4xNCwxNi4xNSBMMTguNjMsMTcuNjcgTDIzLjg0LDIzLjk3IEwyNy4xOCwzMC4yMSBMMjguNjEsMzUuNDUgTDI4Ljc3LDM5LjczIEwyOC4wMiw0My4wMyBMMjYuMzIsNDQuOTkgTDIzLjMxLDQ0LjUwIEwxOC43MSwzOS4wMyBMMTMuNzAsMjYuNDYgTDEyLjU0LDE0LjU0IEwxNy41MSwxNS4xMCBMMjMuOTcsMjIuNDEgTDI4LjIyLDI5LjQxIEwzMC4yMywzNS4xMSBMMzAuOTgsMzkuODIgTDMxLjE0LDQzLjc1IEwzMC45OSw0Ny4wNCBMMzAuNTgsNDkuNzUgTDI5Ljc3LDUxLjkwIEwyOC4yMyw1My4yNyBMMjUuMzMsNTIuOTQgTDIwLjEzLDQ3Ljg0IEwxMi43NywzMS44NCBMOC45OCwxMC41MCBMMTUuNDcsOS40MSBMMjUuMTcsMTkuODAgTDMxLjM3LDI3Ljg0IEwzNC40OCwzMy4zMiBMMzYuMzYsMzcuMTggTDM4LjI4LDM5LjM3IEw0MC45NCwzOS4xMCBMNDQuNDgsMzQuOTMgTDQ3Ljg4LDI2LjU0IEw0OC42MywxOC45MSBMNDUuNTcsMTguNDQgTDQxLjE1LDIzLjIyIEwzNy45MiwyOC44OCBMMzYuNDMsMzMuODUgTDM2LjM1LDM3LjgzIEwzNy4zNyw0MC41NiBMMzkuNTQsNDEuMzIgTDQyLjk4LDM4LjYyIEw0Ny4xMywzMC43MSBMNDkuNTcsMjAuMzAgTDQ3LjU1LDE2LjM1IEw0Mi41NywyMC40NiBMMzguMjUsMjYuNzQgTDM1LjkwLDMyLjQyIEwzNS4xNiwzNy4xMiBMMzUuNTQsNDAuODMgTDM2LjkwLDQzLjI4IEwzOS40NCw0My42NiBMNDMuNDQsMzkuOTkgTDQ4LjI2LDI5LjkyIEw1MC42NywxNy41OCBMNDcuNDIsMTQuNzUgTDQxLjM1LDIwLjY2IEwzNi43MCwyNy42NyBMMzQuMzMsMzMuNTcgTDMzLjUwLDM4LjQ0IEwzMy41Miw0Mi40NyBMMzQuMTcsNDUuNjkgTDM1LjUzLDQ3Ljk1IEwzOC4wNCw0OC41NCBMNDIuMzIsNDUuMzIgTDQ4LjM1LDM0LjEyIEw1Mi42MCwxNi42OCBMNDkuMzAsMTAuOTEgTDQxLjM1LDE4LjM0IEwzNS4yMSwyNi41NyBMMzIuMDEsMzIuODkgTDMwLjQ0LDM3Ljg3IEwyOS4zNiw0MS44NCBMMjguMDUsNDQuNzcgTDI1LjkzLDQ2LjIwIEwyMi40MCw0NC42OCBMMTcuMjQsMzcuMDcgTDEyLjQyLDIyLjM4IEwxMy4wMSwxMi41OCBMMTkuMzcsMTYuMzkgTDI1LjczLDI0LjMyIEwyOS40NSwzMS4wNyBMMzEuMTUsMzYuNTAgTDMxLjg4LDQwLjk5IEwzMi4yOCw0NC43MyBMMzIuNzEsNDcuODMgTDMzLjQwLDUwLjMzIEwzNC42Niw1Mi4xNCBMMzcuMDEsNTIuNjYgTDQxLjMwLDQ5LjgxIEw0OC4wMywzOC4zOCBMNTMuOTUsMTYuOTEgTDUxLjAwLDcuNzIgTDQxLjQ4LDE2LjQwIEwzNC4wNSwyNS41MCBMMzAuMTcsMzEuNzkgTDI4LjEwLDM2LjMxIEwyNi4zNywzOS4zNSBMMjQuMTAsNDAuNDQgTDIwLjg0LDM4LjI5IEwxNi45MCwzMS4zNiBMMTQuMzMsMjEuNjMgTDE1Ljc0LDE3LjAyIEwyMC4yNSwyMC4yMSBMMjQuNDksMjYuMTMgTDI2LjkyLDMxLjcxIEwyNy43MSwzNi4zNiBMMjcuMzEsMzkuOTYgTDI1Ljg2LDQyLjE5IEwyMy4yMCw0Mi4xMCBMMTkuMjEsMzcuNzEgTDE0Ljg4LDI3LjU2IEwxMy40OCwxNy4yMCBMMTcuMTMsMTYuMjQgTDIyLjY3LDIyLjExIEwyNi42NSwyOC42NSBMMjguNTcsMzQuMjEgTDI5LjA2LDM4LjgwIEwyOC42Miw0Mi40NSBMMjcuMzIsNDUuMDEgTDI0LjkwLDQ1Ljc1IEwyMC45MCw0Mi43NSBMMTUuNTYsMzIuODEgTDExLjk5LDE4LjE1IEwxNC43MiwxMi45MiBMMjEuNTEsMTguOTcgTDI3LjAwLDI2LjYxIEwyOS45MiwzMi44NyBMMzEuMTcsMzcuOTggTDMxLjY1LDQyLjIyIEwzMS44Nyw0NS43OCBMMzIuMDQsNDguNzUgTDMyLjI5LDUxLjI0IEwzMi43Myw1My4yOSBMMzMuNTgsNTQuODggTDM1LjIzLDU1Ljc2IEwzOC40Myw1NC44MiBMNDQuMjUsNDguMjQgTDUyLjI0LDI4Ljg3IEw1NC45NSw3LjAwIEw0Ni40MCw5Ljk0IEwzNi4yOCwyMS4wNCBMMzAuMzgsMjguNDMgTDI3LjQyLDMzLjE5IEwyNS40NSwzNi4xOCBMMjMuMzEsMzcuMTcgTDIwLjU1LDM1LjMwIEwxNy41NCwyOS45MyBMMTUuNzgsMjMuMDcgTDE2Ljg0LDE5Ljc2IEwyMC4wOCwyMS44MiBMMjMuMzAsMjYuMzggTDI1LjIyLDMxLjAyIEwyNS43MSwzNC44NyBMMjUuMDAsMzcuNTAgTDIzLjE4LDM4LjI0IEwyMC4zMywzNS45NiBMMTcuMDksMjkuODEgTDE1LjI4LDIyLjE1IEwxNi43MCwxOC45MSBMMjAuNDAsMjEuNjIgTDIzLjg2LDI2LjY2IEwyNS44MywzMS41OCBMMjYuMzEsMzUuNjQgTDI1LjU4LDM4LjQ5IEwyMy43MywzOS41MCBMMjAuNzQsMzcuNDQgTDE3LjEyLDMxLjAzIEwxNC43NywyMi4xOSBMMTYuMDMsMTcuODcgTDIwLjExLDIwLjYxIEwyNC4wNiwyNi4xMSBMMjYuMzYsMzEuNDQgTDI3LjA4LDM1Ljg5IEwyNi41NywzOS4yNCBMMjQuOTYsNDEuMDIgTDIyLjEzLDQwLjE0IEwxOC4yMCwzNC43NyBMMTQuNjQsMjQuODIgTDE0LjUwLDE3LjEzIEwxOC41MiwxOC4xNSBMMjMuMzgsMjMuOTQgTDI2LjU4LDI5LjkzIEwyNy45NSwzNS4wMyBMMjguMDAsMzkuMTUgTDI3LjA0LDQyLjE0IEwyNC45OSw0My40MyBMMjEuNTgsNDEuNTcgTDE2Ljk0LDM0LjA3IEwxMy4yNCwyMS42NyBMMTQuMzcsMTQuNjggTDE5Ljg2LDE4LjI3IEwyNS4xNywyNS4yNSBMMjguMjUsMzEuNTEgTDI5LjUwLDM2LjcwIEwyOS42Nyw0MC45NyBMMjkuMTEsNDQuNDAgTDI3Ljc5LDQ2LjgzIEwyNS4zNyw0Ny41OCBMMjEuMjYsNDQuNjcgTDE1LjUwLDM0LjI4IEwxMS4yOSwxNy44MCBMMTQuMDcsMTEuNTAgTDIxLjU2LDE4LjE4IEwyNy42MCwyNi4yOSBMMzAuODEsMzIuNjggTDMyLjMxLDM3Ljc4IEwzMy4xOSw0MS45NCBMMzQuMTIsNDUuMjQgTDM1LjU4LDQ3LjU1IEwzOC4xMSw0OC4xNiBMNDIuMzcsNDQuOTQgTDQ4LjMyLDMzLjg1IEw1Mi40NSwxNi44MCBMNDkuMTksMTEuMTkgTDQxLjM5LDE4LjQ2IEwzNS4zNiwyNi42MiBMMzIuMjAsMzIuOTQgTDMwLjY4LDM3Ljk0IEwyOS42OCw0MS45NyBMMjguNTAsNDUuMDMgTDI2LjYwLDQ2LjgwIEwyMy4zOCw0Ni4wNiBMMTguMzksMzkuODcgTDEyLjkzLDI1LjY1IEwxMi4wMSwxMi44NSBMMTcuODYsMTQuNTUgTDI0Ljg2LDIyLjY2IEwyOS4yMywyOS44MSBMMzEuMzIsMzUuNDggTDMyLjI5LDQwLjExIEwzMi45Myw0My45MyBMMzMuNzIsNDcuMDEgTDM1LjAzLDQ5LjIzIEwzNy4zNyw1MC4wMiBMNDEuNDgsNDcuNDMgTDQ3LjY2LDM3LjAyIEw1Mi45MiwxOC4yMiBMNTAuNTIsOS41NyBMNDIuMTQsMTYuODAgTDM1LjI1LDI1LjU0IEwzMS41NywzMi4wNSBMMjkuNzIsMzcuMDMgTDI4LjM4LDQwLjg0IEwyNi43MCw0My4zNCBMMjQuMDUsNDMuNzIgTDE5Ljk5LDQwLjAyIEwxNS4xNCwyOS44NiBMMTIuNzQsMTcuNDYgTDE2LjA0LDE0LjcxIEwyMi4xNSwyMC42OSBMMjYuODAsMjcuNzEgTDI5LjE3LDMzLjYxIEwzMC4wMSwzOC40OSBMMzAuMDAsNDIuNTIgTDI5LjM4LDQ1Ljc2IEwyOC4wOCw0OC4wNyBMMjUuNjcsNDguODEgTDIxLjUxLDQ1Ljk2IEwxNS41MCwzNS4zNSBMMTAuODUsMTcuNjUgTDEzLjYyLDEwLjU1IEwyMS41OSwxNy42NiBMMjguMDAsMjYuMDUgTDMxLjQwLDMyLjQ5IEwzMy4wNiwzNy41MyBMMzQuMTksNDEuNTIgTDM1LjU0LDQ0LjQ0IEwzNy43MSw0NS44MSBMNDEuMjgsNDQuMTIgTDQ2LjQyLDM2LjI5IEw1MC45OSwyMS44MiBMNTAuMTEsMTIuODEgTDQzLjc5LDE2Ljg3IEwzNy42NCwyNC42NyBMMzQuMDksMzEuMzIgTDMyLjQ5LDM2LjcwIEwzMS44Niw0MS4xNiBMMzEuNjAsNDQuODggTDMxLjQxLDQ4LjAwIEwzMS4xNyw1MC42MSBMMzAuNzQsNTIuNzYgTDI5Ljk0LDU0LjQ2IEwyOC4zOCw1NS40NiBMMjUuMzYsNTQuODAgTDE5LjgzLDQ5LjAzIEwxMS45MywzMS4wOSBMOC4zMiw4LjI2IEwxNi4wNCw5LjA2IEwyNi4zMywyMC4yMCBMMzIuNTcsMjcuOTQgTDM1LjY5LDMyLjkzIEwzNy42OCwzNi4xNSBMMzkuNzcsMzcuNDMgTDQyLjQ5LDM1Ljk2IEw0NS42MCwzMC44OSBMNDcuNjksMjMuNzQgTDQ2Ljk5LDE5LjY0IEw0My44MSwyMS4yMSBMNDAuNDAsMjUuNzQgTDM4LjI2LDMwLjUzIEwzNy41NywzNC41OCBMMzguMTIsMzcuNDcgTDM5LjgwLDM4LjYwIEw0Mi41NiwzNi44NyBMNDUuOTEsMzEuMTkgTDQ4LjIwLDIzLjEzIEw0Ny4zMSwxOC43MCBMNDMuNjgsMjAuNzQgTDM5Ljk1LDI1Ljc4IEwzNy42NywzMC44OSBMMzYuOTMsMzUuMjAgTDM3LjQ1LDM4LjM3IEwzOS4wOSwzOS44OCBMNDEuOTAsMzguNjIgTDQ1LjU5LDMzLjA0IEw0OC41NywyMy45MSBMNDguMTgsMTcuODEgTDQ0LjMyLDE5LjM3IEw0MC4wMCwyNC44MSBMMzcuMjQsMzAuNDAgTDM2LjE3LDM1LjE1IEwzNi4zOSwzOC44NyBMMzcuNjksNDEuMjIgTDQwLjE4LDQxLjM1IEw0My45MywzNy40OCBMNDguMDYsMjguMjYgTDQ5LjY2LDE4LjMxIEw0Ni41NSwxNi42MSBMNDEuMzQsMjEuODQgTDM3LjQwLDI4LjE3IEwzNS40NSwzMy42NyBMMzQuOTgsMzguMTkgTDM1LjU0LDQxLjcxIEwzNy4wNiw0My45MyBMMzkuODIsNDMuODkgTDQ0LjA5LDM5LjM3IEw0OC45NywyOC4xOCBMNTAuNzUsMTYuMTEgTDQ2LjY4LDE0Ljk4IEw0MC40NSwyMS41OSBMMzYuMDQsMjguNTcgTDMzLjg5LDM0LjM1IEwzMy4xNSwzOS4xMyBMMzMuMTYsNDMuMTAgTDMzLjcwLDQ2LjMyIEwzNC44NCw0OC43MiBMMzYuOTcsNDkuODIgTDQwLjc1LDQ3Ljk3IEw0Ni42MywzOS4xMyBMNTIuNDAsMjEuMDkgTDUxLjQwLDkuNzAgTDQzLjQ3LDE1LjQyIEwzNi4xNiwyNC4zOCBMMzIuMDksMzEuMjAgTDMwLjA4LDM2LjQwIEwyOC43Niw0MC40MyBMMjcuMjMsNDMuMjUgTDI0Ljg1LDQ0LjI0IEwyMS4xMCw0MS43MSBMMTYuMTcsMzIuOTcgTDEyLjY5LDE5LjczIEwxNC43MywxMy45OCBMMjAuODAsMTguODkgTDI2LjA3LDI2LjE1IEwyOC45NiwzMi4zNyBMMzAuMTIsMzcuNDkgTDMwLjM0LDQxLjczIEwyOS45OCw0NS4yMiBMMjkuMDgsNDcuOTQgTDI3LjM1LDQ5LjYwIEwyNC4yNCw0OS4xMCBMMTkuMDYsNDMuMjkgTDEyLjY3LDI3Ljg5IEwxMC42NCwxMS40OCBMMTYuOTQsMTIuMzcgTDI1LjEwLDIxLjQ4IEwzMC4yMywyOS4wNSBMMzIuNzgsMzQuNzQgTDM0LjIxLDM5LjE3IEwzNS41Nyw0Mi40NiBMMzcuNTcsNDQuMjMgTDQwLjc4LDQzLjI4IEw0NS40MywzNy4wNiBMNDkuOTcsMjQuNDUgTDUwLjIwLDE0LjQ5IEw0NC45OSwxNi4zOCBMMzkuMDAsMjMuNTYgTDM1LjI1LDMwLjI0IEwzMy41NiwzNS43MyBMMzMuMDUsNDAuMjggTDMzLjIwLDQ0LjA1IEwzMy44NCw0Ny4wOSBMMzUuMTUsNDkuMjYgTDM3LjU1LDQ5Ljk0IEw0MS43Nyw0Ny4wNyBMNDguMDEsMzYuMTQgTDUzLjAyLDE3LjMyIEw1MC4xNCw5LjcyIEw0MS43MSwxNy4zMSBMMzUuMDEsMjUuOTMgTDMxLjQ3LDMyLjM1IEwyOS42OCwzNy4yOCBMMjguMzUsNDEuMDQgTDI2LjY0LDQzLjQ3IEwyMy45NSw0My43NiBMMTkuODQsMzkuODYgTDE0Ljk3LDI5LjQ1IEwxMi43MiwxNy4xMiBMMTYuMjEsMTQuNzYgTDIyLjM2LDIwLjkxIEwyNi45NSwyNy45MiBMMjkuMjYsMzMuODAgTDMwLjA4LDM4LjY1IEwzMC4wNiw0Mi42NiBMMjkuNDYsNDUuODkgTDI4LjE5LDQ4LjIyIEwyNS44Myw0OS4wNCBMMjEuNzQsNDYuMzkgTDE1LjczLDM2LjA4IEwxMC44NCwxOC4yMSBMMTMuMzEsMTAuMzIgTDIxLjMyLDE3LjI0IEwyNy45MCwyNS43NSBMMzEuNDIsMzIuMjUgTDMzLjE0LDM3LjMyIEwzNC4zMSw0MS4zMSBMMzUuNzEsNDQuMjAgTDM3Ljk1LDQ1LjQ2IEw0MS41OSw0My41MiBMNDYuNzEsMzUuMzQgTDUxLjAwLDIxLjA2IEw0OS43MywxMy4wMyBMNDMuNDEsMTcuNDUgTDM3LjQ5LDI1LjEzIEwzNC4xMywzMS42NiBMMzIuNjYsMzYuOTcgTDMyLjEzLDQxLjM4IEwzMi4wMCw0NS4wNyBMMzIuMDYsNDguMTYgTDMyLjI1LDUwLjc0IEwzMi42Myw1Mi44OCBMMzMuMzgsNTQuNTcgTDM0Ljg0LDU1LjY0IEwzNy42OCw1NS4yMCBMNDIuOTUsNTAuMTcgTDUwLjgxLDMzLjQ5IEw1NS4zNSw5LjUyIEw0OC40Niw4LjAwIEwzNy44NywxOS4yNCBMMzEuMjAsMjcuMzIgTDI3Ljg3LDMyLjQ3IEwyNS44MywzNS43OSBMMjMuNzcsMzcuMjEgTDIxLjEzLDM1Ljk2IEwxOC4wOCwzMS4yMiBMMTUuOTEsMjQuMjUgTDE2LjM5LDE5LjkwIEwxOS40MCwyMS4xMSBMMjIuNzgsMjUuNDUgTDI0Ljk5LDMwLjE5IEwyNS43NCwzNC4yNCBMMjUuMjUsMzcuMTYgTDIzLjY0LDM4LjM0IEwyMC45NiwzNi43NSBMMTcuNjgsMzEuMzEgTDE1LjM5LDIzLjQ3IEwxNi4xNCwxOC45NiBMMTkuNjIsMjAuNzUgTDIzLjMwLDI1LjYzIEwyNS41OSwzMC42OCBMMjYuMzUsMzQuOTUgTDI1Ljg1LDM4LjA5IEwyNC4yMywzOS41NiBMMjEuNDUsMzguMjYgTDE3Ljg0LDMyLjc0IEwxNC45OSwyMy44OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ1cmwoI2cpIiBzdHJva2Utd2lkdGg9IjEuMTUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC45NSIvPjwvc3ZnPg==">
-<meta name="description" content="An analog computer in the browser: 66 models in five kinds — continuous flows (Lorenz, Rossler, Chua, all twenty Sprott cases), discrete maps, parametric figures, geometry and solids — plus live audio as a spectrogram, XY scope and delay embedding, a Bash shell you can rotate while it runs, and a rigid-body floor. Go compiled to WebAssembly, rendered with WebGL, driven from an analog control surface.">
+<meta name="description" content="An analog computer in the browser: 73 models in five kinds — continuous flows (Lorenz, Rossler, Chua, all twenty Sprott cases), discrete maps, parametric figures, geometry and solids — plus live audio as a spectrogram, XY scope and delay embedding, a Bash shell you can rotate while it runs, and a rigid-body floor. Go compiled to WebAssembly, rendered with WebGL, driven from an analog control surface.">
 <meta name="keywords" content="strange attractor, chaotic attractor, 3D attractor visualizer, chaos theory, dynamical systems, differential equations, ODE, phase portrait, WebAssembly, WASM, WebGL, Go, TinyGo, Lorenz attractor, Rossler attractor, hyperchaos, hyper-Rossler, Chua circuit, Aizawa, Sprott attractors, Sprott system, Thomas attractor, Halvorsen, Chen attractor, Dadras, Rabinovich-Fabrikant, Burke-Shaw, Lissajous, custom equation, editable equation, audio reactive, oscilloscope, analog computer, attractor generator">
 <meta name="author" content="0magnet">
 <meta property="og:title" content="chaosrack — A Go/WASM Analog Computer">
-<meta property="og:description" content="An analog computer in the browser: 66 models in five kinds — continuous flows (Lorenz, Rossler, Chua, all twenty Sprott cases), discrete maps, parametric figures, geometry and solids — plus live audio as a spectrogram, XY scope and delay embedding, a Bash shell you can rotate while it runs, and a rigid-body floor. Go compiled to WebAssembly, rendered with WebGL, driven from an analog control surface.">
+<meta property="og:description" content="An analog computer in the browser: 73 models in five kinds — continuous flows (Lorenz, Rossler, Chua, all twenty Sprott cases), discrete maps, parametric figures, geometry and solids — plus live audio as a spectrogram, XY scope and delay embedding, a Bash shell you can rotate while it runs, and a rigid-body floor. Go compiled to WebAssembly, rendered with WebGL, driven from an analog control surface.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="magnetosphere">
 <meta property="og:url" content="https://chaosrack.magnetosphere.net/">
@@ -18,10 +18,10 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://chaosrack.magnetosphere.net/docs/img/hero.jpg">
 <meta name="twitter:title" content="chaosrack — A Go/WASM Analog Computer">
-<meta name="twitter:description" content="An analog computer in the browser: 66 models in five kinds — continuous flows (Lorenz, Rossler, Chua, all twenty Sprott cases), discrete maps, parametric figures, geometry and solids — plus live audio as a spectrogram, XY scope and delay embedding, a Bash shell you can rotate while it runs, and a rigid-body floor. Go compiled to WebAssembly, rendered with WebGL, driven from an analog control surface.">
+<meta name="twitter:description" content="An analog computer in the browser: 73 models in five kinds — continuous flows (Lorenz, Rossler, Chua, all twenty Sprott cases), discrete maps, parametric figures, geometry and solids — plus live audio as a spectrogram, XY scope and delay embedding, a Bash shell you can rotate while it runs, and a rigid-body floor. Go compiled to WebAssembly, rendered with WebGL, driven from an analog control surface.">
 <link rel="canonical" href="https://chaosrack.magnetosphere.net/">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"chaosrack — A Go/WASM Analog Computer","url":"https://chaosrack.magnetosphere.net/","applicationCategory":"EducationalApplication","image":"https://chaosrack.magnetosphere.net/docs/img/hero.jpg","sameAs":"https://github.com/0magnet/chaosrack","isAccessibleForFree":true,"operatingSystem":"Any (modern web browser)","browserRequirements":"Requires WebGL and WebAssembly","description":"An analog computer in the browser: 66 models in five kinds — continuous flows, discrete maps, parametric figures, geometry and solids, and a sequence walk with a rigid-body floor — plus live audio as a spectrogram, XY scope and delay embedding, and a Bash shell you can rotate while it runs. Go compiled to WebAssembly, rendered with WebGL, driven from an analog control surface.","author":{"@type":"Person","name":"0magnet"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"chaosrack — A Go/WASM Analog Computer","url":"https://chaosrack.magnetosphere.net/","applicationCategory":"EducationalApplication","image":"https://chaosrack.magnetosphere.net/docs/img/hero.jpg","sameAs":"https://github.com/0magnet/chaosrack","isAccessibleForFree":true,"operatingSystem":"Any (modern web browser)","browserRequirements":"Requires WebGL and WebAssembly","description":"An analog computer in the browser: 73 models in five kinds — continuous flows, discrete maps, parametric figures, geometry and solids, and a sequence walk with a rigid-body floor — plus live audio as a spectrogram, XY scope and delay embedding, and a Bash shell you can rotate while it runs. Go compiled to WebAssembly, rendered with WebGL, driven from an analog control surface.","author":{"@type":"Person","name":"0magnet"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
 </script>
 <style>
 body, html {
@@ -62,6 +62,302 @@ window.__crWT = {
 
 </head>
 <body style="margin: 0; padding: 0; width: 100%; height: 100%; background-color: black; color: white;">
+<script>/* The boot preview: something to watch while the rack loads.
+
+   The page takes seconds to come up, nearly all of it the Go program building
+   the panel, and until now those seconds were a black screen. This draws the
+   rack's own kind of picture in the meantime -- a strange attractor, a map or
+   a figure, one at a time in a random order, each held for a few seconds --
+   in plain JavaScript, so it is running before the WebAssembly has even
+   arrived. Only models that need no audio: there is no sound yet.
+
+   Two places, as the pointer decides. Over the page, the pointer becomes the
+   preview: a CSS cursor image, which the browser moves with the mouse even
+   while the main thread is busy. Anywhere else, the preview is drawn in the
+   middle of the page instead. That one is drawn by a worker on an
+   OffscreenCanvas, because the Go program holds the main thread for long
+   stretches while it builds, and a picture drawn from the main thread would
+   stand still exactly when it is wanted. The cursor's picture can only change
+   when the main thread is free, so between those moments it holds still --
+   still a picture of the model, and still following the hand.
+
+   Both draw the same model at the same moment without talking: the order is
+   shuffled from one seed and the model is chosen by the clock.
+
+   The Go program calls __crBootDone when the rack is up; the preview fades
+   out after the first frames have been drawn, and is gone. */
+(function () {
+  'use strict';
+  if (window.__crBootDone) return;
+
+  // models is shared with the worker by its source text, so it may use
+  // nothing from outside itself.
+  function models() {
+    function flow(name, f, p0, dt, steps) {
+      return { name: name, kind: 'flow', f: f, p0: p0, dt: dt, steps: steps || 4 };
+    }
+    function map2(name, g, p0) {
+      return { name: name, kind: 'map', g: g, p0: p0 };
+    }
+    return [
+      flow('Lorenz', function (x, y, z) { return [10 * (y - x), x * (28 - z) - y, x * y - 8 / 3 * z]; }, [0.1, 0, 0], 0.005),
+      flow('Rössler', function (x, y, z) { return [-y - z, x + 0.2 * y, 0.2 + z * (x - 5.7)]; }, [0.1, 0, 0], 0.012),
+      flow('Aizawa', function (x, y, z) {
+        return [(z - 0.7) * x - 3.5 * y, 3.5 * x + (z - 0.7) * y,
+          0.6 + 0.95 * z - z * z * z / 3 - (x * x + y * y) * (1 + 0.25 * z) + 0.1 * z * x * x * x];
+      }, [0.1, 0, 0], 0.01),
+      flow('Thomas', function (x, y, z) {
+        var b = 0.208186;
+        return [Math.sin(y) - b * x, Math.sin(z) - b * y, Math.sin(x) - b * z];
+      }, [0.1, 0, 0], 0.06),
+      flow('Halvorsen', function (x, y, z) {
+        var a = 1.89;
+        return [-a * x - 4 * y - 4 * z - y * y, -a * y - 4 * z - 4 * x - z * z, -a * z - 4 * x - 4 * y - x * x];
+      }, [-1.48, -1.51, 2.04], 0.005),
+      flow('Chen', function (x, y, z) { return [35 * (y - x), (28 - 35) * x - x * z + 28 * y, x * y - 3 * z]; }, [-10, 0, 37], 0.002, 12),
+      flow('Dadras', function (x, y, z) { return [y - 3 * x + 2.7 * y * z, 1.7 * y - x * z + z, 2 * x * y - 9 * z]; }, [1, 1, 0], 0.006),
+      flow('Sprott B', function (x, y, z) { return [y * z, x - y, 1 - x * y]; }, [0.1, 0, 0], 0.02),
+      flow('Lissajous', null, null, 0),
+      map2('Clifford', function (x, y) { return [Math.sin(-1.4 * y) + Math.cos(-1.4 * x), Math.sin(1.6 * x) + 0.7 * Math.cos(1.6 * y)]; }, [0.1, 0.1]),
+      map2('de Jong', function (x, y) { return [Math.sin(1.4 * y) - Math.cos(-2.3 * x), Math.sin(2.4 * x) - Math.cos(-2.1 * y)]; }, [0.1, 0.1])
+    ];
+  }
+
+  // preview draws the models on a canvas. It is shared with the worker by its
+  // source text too. seed and t0 make every copy pick the same model at the
+  // same time; trail is how many points a flow's trail keeps.
+  function preview(ctx, seed, t0, trail, caption) {
+    var ms = models(), HOLD = 3600, FADE = 450;
+    // The order: ms shuffled by a small seeded generator.
+    var order = ms.map(function (_, i) { return i; }), s = seed >>> 0;
+    function rnd() { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }
+    for (var i = order.length - 1; i > 0; i--) { var j = Math.floor(rnd() * (i + 1)), t = order[i]; order[i] = order[j]; order[j] = t; }
+
+    var cur = -1, m = null, pts = [], state = null, box = null, born = 0;
+
+    // fit runs a model on past its transient and measures it, so each is
+    // drawn to fill the canvas whatever its own scale.
+    function start(k, now) {
+      cur = k; m = ms[order[k % order.length]]; pts = []; born = now;
+      if (m.kind === 'map') {
+        state = m.p0.slice();
+        for (var i = 0; i < 100; i++) state = m.g(state[0], state[1]);
+        box = measure(function () { state = m.g(state[0], state[1]); return [state[0], state[1], 0]; }, 4000);
+      } else if (m.f) {
+        state = m.p0.slice();
+        for (var n = 0; n < 3000; n++) step();
+        box = measure(function () { step(); return state; }, 6000);
+        // The trail whole from the start, not grown a few points a frame.
+        for (var q = 0; q < trail; q++) { step(); pts.push(state[0], state[1], state[2]); }
+      } else {
+        state = [0]; box = { c: [0, 0, 0], r: 1.05 };
+      }
+    }
+    function step() {
+      // Midpoint (RK2): stable enough at these steps, and cheap.
+      var x = state[0], y = state[1], z = state[2], h = m.dt;
+      var k = m.f(x, y, z);
+      var k2 = m.f(x + k[0] * h / 2, y + k[1] * h / 2, z + k[2] * h / 2);
+      state = [x + k2[0] * h, y + k2[1] * h, z + k2[2] * h];
+      if (!isFinite(state[0]) || Math.abs(state[0]) > 1e4) state = m.p0.slice();
+    }
+    function measure(next, n) {
+      var lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
+      for (var i = 0; i < n; i++) {
+        var p = next();
+        for (var a = 0; a < 3; a++) { if (p[a] < lo[a]) lo[a] = p[a]; if (p[a] > hi[a]) hi[a] = p[a]; }
+      }
+      var c = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2];
+      var r = Math.max(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]) / 2 || 1;
+      return { c: c, r: r * 1.15 };
+    }
+
+    // done names the model under it, where there is room for a caption:
+    // drawn with it, so the name is the picture's whichever thread draws.
+    function done(w, h) {
+      if (caption) {
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.font = Math.round(h / 40) + 'px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#567';
+        // Spaced out with hair spaces, as the panel's own legends are.
+        ctx.fillText(('LOADING · ' + m.name).toUpperCase().split('').join(' '), w / 2, h - h / 60);
+      }
+      return m.name;
+    }
+
+    // frame draws the picture at time now (ms) on a w by h canvas.
+    return function frame(now, w, h) {
+      var k = Math.floor((now - t0) / HOLD);
+      if (k !== cur) start(k, now);
+      var age = now - born, life = HOLD - (now - t0 - k * HOLD);
+      var alpha = Math.min(1, age / FADE, life / FADE);
+      var size = Math.min(w, h), sc = size / 2 / box.r, cx = w / 2, cy = h / 2;
+      ctx.clearRect(0, 0, w, h);
+      ctx.globalAlpha = Math.max(0, alpha);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.lineWidth = Math.max(1.2, size / 170);
+      ctx.lineJoin = 'round';
+
+      if (m.kind === 'map') {
+        // A map has no path between iterates: points, gathering.
+        var per = trail > 600 ? 600 : 120, cap = trail > 600 ? 20000 : 2500;
+        for (var i = 0; i < per && pts.length < cap; i++) { state = m.g(state[0], state[1]); pts.push(state[0], state[1]); }
+        var d = Math.max(1, size / 300);
+        for (var p = 0; p < pts.length; p += 2) {
+          var u = p / pts.length;
+          ctx.fillStyle = 'hsla(' + (200 + 140 * u) + ',100%,70%,' + (trail > 600 ? 0.7 : 0.95) + ')';
+          ctx.fillRect(cx + (pts[p] - box.c[0]) * sc, cy - (pts[p + 1] - box.c[1]) * sc, d, d);
+        }
+        return done(w, h);
+      }
+
+      // A flow, or the figure: a trail, turning slowly about the vertical.
+      if (m.f) {
+        for (var n = 0; n < m.steps; n++) { step(); pts.push(state[0], state[1], state[2]); }
+        if (pts.length > trail * 3) pts.splice(0, pts.length - trail * 3);
+      } else {
+        // Lissajous: a 3:2:5 figure whose phase drifts, drawn whole.
+        pts = [];
+        var ph = (now - born) / 2000;
+        for (var q = 0; q <= trail; q++) {
+          var t = q / trail * Math.PI * 2;
+          pts.push(Math.sin(3 * t + ph), Math.sin(2 * t), Math.sin(5 * t + ph / 2));
+        }
+      }
+      var th = (now - t0) / 5000, co = Math.cos(th), si = Math.sin(th);
+      var tilt = 0.35, ct = Math.cos(tilt), st = Math.sin(tilt);
+      var nPts = pts.length / 3, seg = Math.max(1, Math.ceil(nPts / 48));
+      for (var a = 0; a + 1 < nPts; a += seg) {
+        ctx.beginPath();
+        for (var b = a; b <= Math.min(a + seg, nPts - 1); b++) {
+          var X = pts[b * 3] - box.c[0], Y = pts[b * 3 + 1] - box.c[1], Z = pts[b * 3 + 2] - box.c[2];
+          // Turn about z (the flows' long axis stands up), then tilt.
+          var x1 = X * co - Y * si, y1 = X * si + Y * co;
+          var sx = cx + x1 * sc, sy = cy - (Z * ct - y1 * st) * sc;
+          if (b === a) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+        }
+        var v = a / nPts;
+        ctx.strokeStyle = 'hsla(' + (340 - 150 * v) + ',100%,' + (58 + 17 * v) + '%,' + (0.6 + 0.4 * v) + ')';
+        ctx.stroke();
+      }
+      return done(w, h);
+    };
+  }
+
+  var seed = (Math.random() * 4294967296) >>> 0, t0 = performance.now();
+  var root = document.documentElement;
+
+  // The layer: the whole window, over everything, so the pointer is the
+  // preview wherever it is on the page. The page under it is not usable yet.
+  var layer = document.createElement('div');
+  layer.id = 'cr-boot';
+  layer.setAttribute('aria-label', 'Loading');
+  layer.style.cssText = 'position:fixed;inset:0;z-index:2147483646;cursor:progress;transition:opacity .35s;';
+  var stage = document.createElement('div');
+  stage.style.cssText = 'position:absolute;left:50%;top:50%;width:min(60vmin,520px);height:min(60vmin,520px);transform:translate(-50%,-50%);transition:opacity .3s;pointer-events:none;';
+  var big = document.createElement('canvas');
+  big.style.cssText = 'width:100%;height:100%;display:block;';
+  stage.appendChild(big);
+  layer.appendChild(stage);
+  (document.body || root).appendChild(layer);
+
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+  var px = Math.round(Math.min(Math.min(innerWidth, innerHeight) * 0.6, 520) * dpr);
+  big.width = big.height = px;
+
+  // The page's preview: in a worker where there is one, so it keeps moving
+  // while the main thread builds the rack; here otherwise.
+  var worker = null, bigFrame = null;
+  if (big.transferControlToOffscreen && window.Worker && window.Blob) {
+    try {
+      var src = models.toString() + '\n' + preview.toString() + '\n' +
+        'var draw = null, on = true;\n' +
+        'onmessage = function (e) {\n' +
+        '  var d = e.data;\n' +
+        '  if (d.canvas) {\n' +
+        '    var c = d.canvas, x = c.getContext("2d");\n' +
+        '    draw = preview(x, d.seed, d.t0 - performance.timeOrigin + d.origin, 3000, true);\n' +
+        '    var tick = function () { if (on) draw(performance.now(), c.width, c.height); requestAnimationFrame(tick); };\n' +
+        '    requestAnimationFrame(tick);\n' +
+        '  }\n' +
+        '  if (d.on !== undefined) on = d.on;\n' +
+        '};\n';
+      var off = big.transferControlToOffscreen();
+      worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+      // The worker's clock starts at its own timeOrigin: t0 and the page's
+      // origin go with the canvas so both clocks name the same moment.
+      worker.postMessage({ canvas: off, seed: seed, t0: t0, origin: performance.timeOrigin }, [off]);
+    } catch (e) {
+      worker = null;
+    }
+  }
+  if (!worker) bigFrame = preview(big.getContext('2d'), seed, t0, 3000, true);
+
+  // The cursor: the same picture, small, made into a cursor image a few times
+  // a second whenever the main thread has a moment.
+  var CUR = 64, small = document.createElement('canvas');
+  small.width = small.height = CUR;
+  var smallFrame = preview(small.getContext('2d'), seed, t0, 420), lastCur = 0;
+
+  // Over the page the pointer is the preview, and the middle of the page is
+  // left clear; off it, the middle shows it.
+  var over = false;
+  function setOver(v) {
+    if (v === over) return;
+    over = v;
+    stage.style.opacity = v ? '0' : '1';
+    if (worker) worker.postMessage({ on: !v });
+  }
+  layer.addEventListener('pointermove', function () { setOver(true); });
+  layer.addEventListener('pointerenter', function () { setOver(true); });
+  document.addEventListener('pointerleave', function () { setOver(false); });
+  document.addEventListener('mouseout', function (e) { if (!e.relatedTarget) setOver(false); });
+
+  var running = true;
+  function tick(now) {
+    if (!running) return;
+    if (bigFrame && !over) bigFrame(now, big.width, big.height);
+    // Only while it is the cursor, and encoded off this thread (toBlob): a
+    // PNG a few times a second from here was a sixth of a second of the
+    // main thread over a boot, taken from the rack it is waiting for.
+    if (over && !encoding && now - lastCur > 90 && small.toBlob) {
+      lastCur = now;
+      smallFrame(now, CUR, CUR);
+      encoding = true;
+      small.toBlob(function (b) {
+        encoding = false;
+        if (!b || !running) return;
+        var url = URL.createObjectURL(b);
+        layer.style.cursor = 'url(' + url + ') ' + CUR / 2 + ' ' + CUR / 2 + ', progress';
+        if (curURL) URL.revokeObjectURL(curURL);
+        curURL = url;
+      });
+    }
+    requestAnimationFrame(tick);
+  }
+  var encoding = false, curURL = null;
+  requestAnimationFrame(tick);
+
+  // __crBootDone is the rack saying it is up: the preview fades once the
+  // first frames are on the screen, and is gone.
+  window.__crBootDone = function () {
+    window.__crBootDone = function () {};
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        layer.style.opacity = '0';
+        layer.style.pointerEvents = 'none';
+        setTimeout(function () {
+          running = false;
+          if (worker) worker.terminate();
+          layer.remove();
+        }, 400);
+      });
+    });
+  };
+})();
+</script>
 
 <div style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">
 <h1>chaosrack — an analog computer in the browser</h1>
@@ -691,6 +987,7 @@ __whenDOMReady(() => __ready.then((result) => {
   console.log("[WASM-STUFF] TinyGo WASM finished: ", result)
 }, (failure) => {
   console.error("[WASM-STUFF] TinyGo WASM failed: ", failure)
+  if (window.__crBootDone) window.__crBootDone();
 }));
 async function run() {
   await go.run(inst);

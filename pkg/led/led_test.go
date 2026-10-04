@@ -13,12 +13,14 @@ func TestLEDDecimals(t *testing.T) {
 		step float64
 		want int
 	}{
-		{1, 1},      // fine 0.1
-		{0.1, 2},    // fine 0.01 — float32 round-off must not inflate
-		{0.05, 3},   // fine 0.005
-		{0.01, 3},   // fine 0.001
-		{0.0002, 5}, // Aizawa-dt class: tiny steps must NOT collapse to 0
-		{1000, 0},   // trail-sized steps: integer display
+		{1, 1},                         // fine 0.1
+		{0.1, 2},                       // fine 0.01 — float32 round-off must not inflate
+		{0.05, 3},                      // fine 0.005
+		{0.01, 3},                      // fine 0.001
+		{0.0002, 5},                    // Aizawa-dt class: tiny steps must NOT collapse to 0
+		{float64(float32(0.00001)), 6}, // Dequan Li dt: 1e-6, which passed the tolerance at 0 places
+		{0.000001, 7},
+		{1000, 0}, // trail-sized steps: integer display
 		{0, 0},
 	}
 	for _, c := range cases {
