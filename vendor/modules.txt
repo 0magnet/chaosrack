@@ -50,7 +50,7 @@ github.com/0magnet/img2txt-go/shape
 # github.com/0magnet/lolcat-go v0.0.0
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20261004112647-764f40cafdc3
+# github.com/0magnet/pisano v0.0.0-20261004202314-f7b45ed0918c
 ## explicit; go 1.26.0
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc
