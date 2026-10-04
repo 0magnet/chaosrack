@@ -293,7 +293,7 @@ func infoModelHTML(text string) string {
 		}
 		return out
 	}
-	return `<p>` + strings.ReplaceAll(html.EscapeString(text), "\n", "<br>") + `</p>`
+	return manual.Render(descriptionMarkdown(text))
 }
 
 // infoPart is the window's part with class cls, made the first time.

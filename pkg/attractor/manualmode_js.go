@@ -172,7 +172,7 @@ func manualModelHTML(m CatalogModel) string {
 	if d := manual.HTML("model." + m.Key); d != "" {
 		b.WriteString(d)
 	} else if m.Description != "" {
-		b.WriteString(`<p>` + strings.ReplaceAll(html.EscapeString(m.Description), "\n", "<br>") + `</p>`)
+		b.WriteString(manual.Render(descriptionMarkdown(m.Description)))
 	}
 	ps := attractorParams[m.Key]
 	if len(ps) == 0 {

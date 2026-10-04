@@ -843,6 +843,8 @@ dz/dt = 1 − y²
 
 Sprott B — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
+Five terms, two of them nonlinear (yz and xy). ∇·F = −1 everywhere, so a cloud of starting points loses volume at one steady rate, by a factor of e every unit of time. The equations are unchanged by (x, y, z) → (−x, −y, z), so the attractor is symmetric under a half turn about the z axis, or has a twin that is its half-turned copy.
+
 ```
 dx/dt = yz
 dy/dt = x − y
@@ -858,6 +860,8 @@ dz/dt = 1 − xy
 | ![Sprott C](docs/img/model/sprottc.jpg) | ![Sprott C turning](docs/img/model/sprottc.gif) | ![Sprott C parameters](docs/img/model/sprottc-params.jpg) |
 
 Sprott C — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
+
+Five terms, two of them nonlinear (yz and x²). ∇·F = −1 everywhere, so a cloud of starting points loses volume at one steady rate, by a factor of e every unit of time. The equations are unchanged by (x, y, z) → (−x, −y, z), so the attractor is symmetric under a half turn about the z axis, or has a twin that is its half-turned copy.
 
 ```
 dx/dt = yz
@@ -875,6 +879,8 @@ dz/dt = 1 − x²
 
 Sprott D — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
+Five terms, two of them nonlinear (y² and xz). ∇·F = x, which changes sign at x = 0: volume grows where x > 0 and shrinks where x < 0, so the flow is dissipative only on average along the attractor.
+
 ```
 dx/dt = −y
 dy/dt = x + z
@@ -890,6 +896,8 @@ dz/dt = xz + 3y²
 | ![Sprott E](docs/img/model/sprotte.jpg) | ![Sprott E turning](docs/img/model/sprotte.gif) | ![Sprott E parameters](docs/img/model/sprotte-params.jpg) |
 
 Sprott E — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
+
+Five terms, two of them nonlinear (yz and x²). ∇·F = −1 everywhere, so a cloud of starting points loses volume at one steady rate, by a factor of e every unit of time.
 
 ```
 dx/dt = yz
@@ -907,6 +915,8 @@ dz/dt = 1 − 4x
 
 Sprott F — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
+Six terms, one of them nonlinear (x²). ∇·F = −0.5 everywhere, so a cloud of starting points loses volume at one steady rate, by a factor of e every 2 time units.
+
 ```
 dx/dt = y + z
 dy/dt = −x + 0.5y
@@ -922,6 +932,8 @@ dz/dt = x² − z
 | ![Sprott G](docs/img/model/sprottg.jpg) | ![Sprott G turning](docs/img/model/sprottg.gif) | ![Sprott G parameters](docs/img/model/sprottg-params.jpg) |
 
 Sprott G — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
+
+Six terms, one of them nonlinear (xz). ∇·F = −0.6 everywhere, so a cloud of starting points loses volume at one steady rate, by a factor of e every 1.7 time units.
 
 ```
 dx/dt = 0.4x + z
@@ -939,6 +951,8 @@ dz/dt = −x + y
 
 Sprott H — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
+Six terms, one of them nonlinear (z²). ∇·F = −0.5 everywhere, so a cloud of starting points loses volume at one steady rate, by a factor of e every 2 time units.
+
 ```
 dx/dt = −y + z²
 dy/dt = x + 0.5y
@@ -954,6 +968,8 @@ dz/dt = x − z
 | ![Sprott I](docs/img/model/sprotti.jpg) | ![Sprott I turning](docs/img/model/sprotti.gif) | ![Sprott I parameters](docs/img/model/sprotti-params.jpg) |
 
 Sprott I — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
+
+Six terms, one of them nonlinear (y²). ∇·F = −1 everywhere, so a cloud of starting points loses volume at one steady rate, by a factor of e every unit of time.
 
 ```
 dx/dt = −0.2y
@@ -971,6 +987,8 @@ dz/dt = x + y² − z
 
 Sprott J — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
+Six terms, one of them nonlinear (y²). ∇·F = −2 everywhere, so a cloud of starting points loses volume at one steady rate, by a factor of e every 0.5 time units.
+
 ```
 dx/dt = 2z
 dy/dt = −2y + z
@@ -986,6 +1004,8 @@ dz/dt = −x + y + y²
 | ![Sprott K](docs/img/model/sprottk.jpg) | ![Sprott K turning](docs/img/model/sprottk.gif) | ![Sprott K parameters](docs/img/model/sprottk-params.jpg) |
 
 Sprott K — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
+
+Six terms, one of them nonlinear (xy). ∇·F = y − 0.7, which changes sign at y = 0.7: volume grows where y > 0.7 and shrinks where y < 0.7, so the flow is dissipative only on average along the attractor.
 
 ```
 dx/dt = xy − z
@@ -1003,6 +1023,8 @@ dz/dt = x + 0.3z
 
 Sprott L — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
+Six terms, one of them nonlinear (x²). ∇·F = −1 everywhere, so a cloud of starting points loses volume at one steady rate, by a factor of e every unit of time.
+
 ```
 dx/dt = y + 3.9z
 dy/dt = 0.9x² − y
@@ -1018,6 +1040,8 @@ dz/dt = 1 − x
 | ![Sprott M](docs/img/model/sprottm.jpg) | ![Sprott M turning](docs/img/model/sprottm.gif) | ![Sprott M parameters](docs/img/model/sprottm-params.jpg) |
 
 Sprott M — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
+
+Six terms, one of them nonlinear (x²). ∇·F = −1 everywhere, so a cloud of starting points loses volume at one steady rate, by a factor of e every unit of time.
 
 ```
 dx/dt = −z
@@ -1035,6 +1059,8 @@ dz/dt = 1.7 + 1.7x + y
 
 Sprott N — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
+Six terms, one of them nonlinear (z²). ∇·F = −2 everywhere, so a cloud of starting points loses volume at one steady rate, by a factor of e every 0.5 time units.
+
 ```
 dx/dt = −2y
 dy/dt = x + z²
@@ -1050,6 +1076,8 @@ dz/dt = 1 + y − 2z
 | ![Sprott O](docs/img/model/sprotto.jpg) | ![Sprott O turning](docs/img/model/sprotto.gif) | ![Sprott O parameters](docs/img/model/sprotto-params.jpg) |
 
 Sprott O — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
+
+Six terms, one of them nonlinear (xz). ∇·F = x, which changes sign at x = 0: volume grows where x > 0 and shrinks where x < 0, so the flow is dissipative only on average along the attractor.
 
 ```
 dx/dt = y
@@ -1067,6 +1095,8 @@ dz/dt = x + xz + 2.7y
 
 Sprott P — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
+Six terms, one of them nonlinear (y²). ∇·F = 2y, which changes sign at y = 0: volume grows where y > 0 and shrinks where y < 0, so the flow is dissipative only on average along the attractor.
+
 ```
 dx/dt = 2.7y + z
 dy/dt = −x + y²
@@ -1082,6 +1112,8 @@ dz/dt = x + y
 | ![Sprott Q](docs/img/model/sprottq.jpg) | ![Sprott Q turning](docs/img/model/sprottq.gif) | ![Sprott Q parameters](docs/img/model/sprottq-params.jpg) |
 
 Sprott Q — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
+
+Six terms, one of them nonlinear (y²). ∇·F = −0.5 everywhere, so a cloud of starting points loses volume at one steady rate, by a factor of e every 2 time units.
 
 ```
 dx/dt = −z
@@ -1099,6 +1131,8 @@ dz/dt = 3.1x + y² + 0.5z
 
 Sprott R — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
+Six terms, one of them nonlinear (xy). ∇·F = −1 everywhere, so a cloud of starting points loses volume at one steady rate, by a factor of e every unit of time.
+
 ```
 dx/dt = 0.9 − y
 dy/dt = 0.4 + z
@@ -1114,6 +1148,8 @@ dz/dt = xy − z
 | ![Sprott S](docs/img/model/sprotts.jpg) | ![Sprott S turning](docs/img/model/sprotts.gif) | ![Sprott S parameters](docs/img/model/sprotts-params.jpg) |
 
 Sprott S — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
+
+Six terms, one of them nonlinear (z²). ∇·F = −1 everywhere, so a cloud of starting points loses volume at one steady rate, by a factor of e every unit of time.
 
 ```
 dx/dt = −x − 4y

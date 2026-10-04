@@ -5,10 +5,9 @@ package dynamics
 // EXACT systems the app renders (the js half — panel registration and the
 // render loops — stays in sprottcases.go). See that file for citations.
 
-// Case is one member of the Sprott catalog. deriv returns the time
+// Case is one of Sprott's systems B to S. Deriv returns the time
 // derivatives at (x,y,z); the coefficients are baked in (Sprott's systems are
 // specific, not tunable families) while dt stays user-adjustable.
-// Case is one of Sprott's nineteen systems.
 //
 // The fields are exported because the catalog and the info overlay describe
 // these systems to the user: the label and the written-out equations are as
