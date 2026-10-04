@@ -161,3 +161,59 @@ func (c *Client) Drag(x1, y1, x2, y2 float64, n int) {
 func (c *Client) Wheel(x, y, dy float64) {
 	_, _ = c.Call("Input.dispatchMouseEvent", map[string]any{"type": "mouseWheel", "x": x, "y": y, "deltaX": 0, "deltaY": dy}) //nolint:errcheck // input is fire-and-forget; the page's reaction is the result
 }
+
+// Focus focuses the first element matching the CSS selector, scrolled into
+// view and with any text in it selected, so that Type replaces it. It reports
+// an element that does not exist rather than typing into whatever had focus.
+func (c *Client) Focus(ctx context.Context, selector string) error {
+	q, err := json.Marshal(selector)
+	if err != nil {
+		return err
+	}
+	v, err := c.Evaluate(ctx, `(()=>{const e=document.querySelector(`+string(q)+`);if(!e)return false;e.scrollIntoView({block:"center",behavior:"instant"});e.focus();if(e.select)e.select();return document.activeElement===e})()`)
+	if err != nil {
+		return err
+	}
+	if string(v) != "true" {
+		return fmt.Errorf("cdp: nothing focusable matches %s", selector)
+	}
+	return nil
+}
+
+// Type inserts text at the focus as trusted input, the way an IME commits
+// it. Frameworks that ignore a scripted .value= see it, but there are no key
+// events: a field that validates on keyup needs a Press after it.
+func (c *Client) Type(ctx context.Context, text string) error {
+	return c.Do(ctx, "Input.insertText", map[string]any{"text": text}, nil)
+}
+
+// keys are the named keys Press knows, with the codes a page reads from them.
+var keys = map[string]struct {
+	code string
+	vk   int
+	text string
+}{
+	"Enter":     {"Enter", 13, "\r"},
+	"Tab":       {"Tab", 9, ""},
+	"Backspace": {"Backspace", 8, ""},
+	"Escape":    {"Escape", 27, ""},
+	"ArrowDown": {"ArrowDown", 40, ""},
+	"ArrowUp":   {"ArrowUp", 38, ""},
+}
+
+// Press sends one named key — Enter, Tab, Backspace, Escape, ArrowDown or
+// ArrowUp — as a trusted keydown and keyup.
+func (c *Client) Press(ctx context.Context, key string) error {
+	k, ok := keys[key]
+	if !ok {
+		return fmt.Errorf("cdp: Press does not know the key %q", key)
+	}
+	down := map[string]any{"type": "keyDown", "key": key, "code": k.code, "windowsVirtualKeyCode": k.vk}
+	if k.text != "" {
+		down["text"] = k.text
+	}
+	if err := c.Do(ctx, "Input.dispatchKeyEvent", down, nil); err != nil {
+		return err
+	}
+	return c.Do(ctx, "Input.dispatchKeyEvent", map[string]any{"type": "keyUp", "key": key, "code": k.code, "windowsVirtualKeyCode": k.vk}, nil)
+}

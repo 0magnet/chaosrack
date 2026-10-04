@@ -17,6 +17,7 @@ defer c.Close()
 
 v, err := c.Evaluate(ctx, `document.title`)        // JSON; exceptions are errors
 c.Click(120, 40)                                     // trusted input
+c.Focus(ctx, `input[name="q"]`); c.Type(ctx, "1N4001"); c.Press(ctx, "Enter")
 png, err := c.ScreenshotPNG(ctx)                     // canvases included
 err = c.Do(ctx, "Emulation.setDeviceMetricsOverride", params, nil) // anything else
 ```
