@@ -135,6 +135,12 @@ either, and it is not derived from any third-party code. (Its sibling
 [winbox-go](https://github.com/0magnet/winbox-go) *is* Apache 2.0, because
 WinBox.js is.)
 
+## Related projects
+
+Another rack-style interface in the browser:
+
+- [NoodleRack](https://noodlerack.com) — a modular synthesizer in the browser with WebAssembly DSP; a reference for rack UX (closed source)
+
 ## Dependency Graph
 
 Made with [goda](https://github.com/loov/goda):

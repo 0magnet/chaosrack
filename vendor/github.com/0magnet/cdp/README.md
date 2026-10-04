@@ -55,6 +55,16 @@ of the test's own that it closes again:
 CDP_LIVE=127.0.0.1:9222 go test -run Live -v
 ```
 
+## Prototyping commands
+
+Chrome's DevTools Protocol Monitor has a [command editor](https://developer.chrome.com/blog/cdp-command-editor) with autocomplete and validation, useful for trying a command against a live page before adding it to the client.
+
+## Related projects
+
+Another Go tool built on the Chrome DevTools Protocol:
+
+- [Hubcap](https://tomyandell.dev/blog/introducing-hubcap) — a single Go binary that drives Chrome over CDP, emitting JSON
+
 ## Dependency Graph
 
 Made with [goda](https://github.com/loov/goda):

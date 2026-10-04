@@ -101,7 +101,7 @@ func (h *fsAgent) resolve(p string) (string, error) {
 	// it and be followed on the next open.
 	probe := abs
 	for {
-		if _, err := os.Lstat(probe); err == nil {
+		if _, err := os.Lstat(probe); err == nil { //nolint:gosec // probe is root joined with a cleaned path; this walk is the confinement
 			break
 		}
 		parent := filepath.Dir(probe)

@@ -128,6 +128,58 @@ func (f *Font) Width() int { return int(f.header.width) }
 // Height returns the font's standard glyph height.
 func (f *Font) Height() int { return int(f.header.height) }
 
+// BuiltinFont loads one of the fonts compiled into the binary. Only
+// "Monospace 9" is embedded.
+func BuiltinFont(name string) (*Font, error) {
+	if name != "Monospace 9" {
+		return nil, ErrBadFont
+	}
+	return LoadFont(mono9Data)
+}
+
+// glyphIndex finds the glyph for ch by searching the font's Unicode blocks.
+func (f *Font) glyphIndex(ch uint32) (uint32, bool) {
+	b := 0
+	for ; b < int(f.header.blocks); b++ {
+		if ch < f.blockList[b].start {
+			return 0, false
+		}
+		if ch < f.blockList[b].stop {
+			break
+		}
+	}
+	if b == int(f.header.blocks) {
+		return 0, false
+	}
+	gi := f.blockList[b].index + ch - f.blockList[b].start
+	if gi >= uint32(len(f.glyphList)) {
+		return 0, false
+	}
+	return gi, true
+}
+
+// Glyph returns the bitmap of r as one byte of coverage (0-255) per pixel,
+// row-major, w pixels wide and h high. ok is false when the font has no
+// glyph for r.
+func (f *Font) Glyph(r rune) (w, h int, pix []byte, ok bool) {
+	if r < 0 {
+		return 0, 0, nil, false
+	}
+	gi, ok := f.glyphIndex(uint32(r))
+	if !ok {
+		return 0, 0, nil, false
+	}
+	g := f.glyphList[gi]
+	w, h = int(g.width), int(g.height)
+	pix = make([]byte, w*h)
+	if f.header.bpp == 8 {
+		copy(pix, f.fontData[g.dataOffset:])
+	} else {
+		unpackGlyph(pix, f.fontData[g.dataOffset:], w*h, int(f.header.bpp))
+	}
+	return w, h, pix, true
+}
+
 // unpackGlyph expands packed glyph data to one byte per pixel.
 func unpackGlyph(dst, packed []byte, n int, bpp int) {
 	perByte := 8 / bpp
@@ -171,24 +223,9 @@ func (cv *Canvas) RenderCanvas(f *Font, buf []byte, width, height, pitch int) er
 			ch := uint32(cv.Chars[y*cv.Width+x])
 			attr := cv.Attrs[y*cv.Width+x]
 
-			// Find the Unicode block containing this glyph.
-			b := 0
-			for ; b < int(f.header.blocks); b++ {
-				if ch < f.blockList[b].start {
-					b = int(f.header.blocks)
-					break
-				}
-				if ch < f.blockList[b].stop {
-					break
-				}
-			}
-			if b == int(f.header.blocks) {
+			gi, ok := f.glyphIndex(ch)
+			if !ok {
 				continue // glyph not in font
-			}
-
-			gi := f.blockList[b].index + ch - f.blockList[b].start
-			if gi >= uint32(len(f.glyphList)) {
-				continue
 			}
 			g := f.glyphList[gi]
 
