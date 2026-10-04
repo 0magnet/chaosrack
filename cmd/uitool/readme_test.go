@@ -103,6 +103,10 @@ func TestSplitDescription(t *testing.T) {
 	if !contains(prose, "Second paragraph") {
 		t.Errorf("second paragraph was dropped: %q", prose)
 	}
+	prose, eq = splitDescription("First paragraph.\n\nSecond.\n\nx' = a·x")
+	if prose != "First paragraph.\n\nSecond." || eq != "x' = a·x" {
+		t.Errorf("equations after two paragraphs not split: prose=%q eq=%q", prose, eq)
+	}
 }
 
 func contains(hay, needle string) bool {
