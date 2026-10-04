@@ -3513,6 +3513,10 @@ and audio-reactive modulation):
   Lorenz Mod 2 and Simone come from its catalog. Its source is not
   published; the post's discussion is at
   [shashanktomar/blog-discussion](https://github.com/shashanktomar/blog-discussion/discussions/1)
+- [libpd-wasm](https://github.com/hyrfilm/libpd-wasm) — Pure Data running in an AudioWorklet (BSD)
+- [SuperSonic](https://sonic-pi.net/supersonic/demo.html) — SuperCollider's scsynth compiled to WebAssembly in an AudioWorklet
+- [The Analog Computer Museum's library](https://www.analogmuseum.org/english/library.html) — scanned manuals and handbooks of EAI, Telefunken, Dornier and other analog computers
+- [Reconfigurable Analog Computers](https://arxiv.org/abs/2510.25942) — an overview of digitally reconfigured analog computers as co-processors
 - [GitHub `strange-attractors` topic](https://github.com/topics/strange-attractors)
 
 
