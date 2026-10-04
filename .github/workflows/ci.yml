@@ -45,7 +45,7 @@ jobs:
         # rejects a download that was in fact correct. Pinning also means CI
         # stops running whatever happens to be on a branch today.
         env:
-          GOLANGCI_VERSION: v2.12.2
+          GOLANGCI_VERSION: v2.14.0
         run: |
           curl -sSfL "https://raw.githubusercontent.com/golangci/golangci-lint/${GOLANGCI_VERSION}/install.sh" |
             sh -s -- -b "$(go env GOPATH)/bin" "${GOLANGCI_VERSION}"
