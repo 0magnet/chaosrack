@@ -3,6 +3,8 @@
 package attractor
 
 import (
+	"sync"
+
 	"github.com/0magnet/chaosrack/pkg/acoustics"
 	"github.com/0magnet/chaosrack/pkg/analysis"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
@@ -265,8 +267,31 @@ func helpFor(id string) string {
 	if h := doc("p." + id); h != "" {
 		return h
 	}
-	return systemConstantHelp[id]
+	if h := systemConstantHelp[id]; h != "" {
+		return h
+	}
+	return frontEndConstantHelp()[id]
 }
+
+// frontEndConstantHelp is constantHelp for the constants whose rows are in
+// this package rather than pkg/dynamics — Lü, Newton-Leipnik, the Sprott
+// flows, the maps — quoted only where the label is found, since a mode's rows
+// can include controls that are not its constants. Built on first use: the
+// rows are added by the init functions of other files.
+var frontEndConstantHelp = sync.OnceValue(func() map[string]string {
+	out := map[string]string{}
+	for mode, ps := range attractorParams {
+		for _, p := range ps {
+			if _, ok := systemConstantHelp[p.ID]; ok {
+				continue
+			}
+			if h := quotedConstantHelp(mode, p.Label); h != "" {
+				out[p.ID] = h
+			}
+		}
+	}
+	return out
+})
 
 // The systems' own constants come from pkg/dynamics rather than being listed
 // again here.

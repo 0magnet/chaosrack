@@ -425,6 +425,116 @@ coherence — the minimum coherence, in tenths, below which a band is not truste
 <!-- key: p.xf-show -->
 show — which curves are drawn: magnitude, phase and coherence together, or one of them alone.
 
+### reference
+
+<!-- key: p.xf-swap -->
+ref — which channel is the reference, the signal sent into the system; the other is what came back out of it.
+
+### band
+
+<!-- key: p.rta-frac -->
+band — the width of each bar, as a fraction of an octave: 1/1 is a graphic equalizer's ten bands, 1/3 is what room measurement uses, and 1/6 and 1/12 find a single narrow resonance.
+
+### source
+
+<!-- key: p.rta-chan -->
+src — which channel is analyzed.
+
+### top
+
+<!-- key: p.rta-top -->
+top — the level at the top of the scale, in dBFS.
+
+### range
+
+<!-- key: p.rta-range -->
+rnge — how many decibels the scale shows below TOP.
+
+### average
+
+<!-- key: p.rta-avg -->
+avg — the meter's averaging: 0 shows each analysis as it lands, for watching a transient; higher is steadier, and the bars always rise faster than they fall.
+
+### hold
+
+<!-- key: p.rta-hold -->
+hold — how fast the held peaks fall, in dB per second; 0 holds nothing. Held peaks are what make the display readable on music, which excites part of the band at a time.
+
+### source
+
+<!-- key: p.wfall-src -->
+src — which surface is drawn: DCAY is the cumulative spectral decay of an impulse response, measured from a generator's log sweep; LIVE is successive spectra of whatever is playing, stacked into the screen as they age.
+
+### channel
+
+<!-- key: p.wfall-chan -->
+chan — which channel the live surface analyzes. The decay surface uses both channels, and REF says which is the reference.
+
+### lines
+
+<!-- key: p.wfall-lines -->
+line — how many slices the surface has. With STEP it sets how far back in time the surface reaches.
+
+### step
+
+<!-- key: p.wfall-step -->
+step — milliseconds between slices: sixteen lines at 5 ms is the 80 ms a loudspeaker's resonances live in, thirty-two at 40 ms is the length of a bar of music.
+
+### FFT
+
+<!-- key: p.wfall-fft -->
+fft — the transform each slice is taken with: shorter resolves time better and the bass worse. A window longer than STEP means neighboring slices see the same audio.
+
+### top
+
+<!-- key: p.wfall-top -->
+top — the level at the top of the scale, in dBFS.
+
+### range
+
+<!-- key: p.wfall-range -->
+rnge — how many decibels the scale shows below TOP.
+
+### depth
+
+<!-- key: p.wfall-depth -->
+dpth — how far back the surface reaches on screen. This is geometry, not time: LINE and STEP set the time.
+
+### reference
+
+<!-- key: p.wfall-swap -->
+ref — which channel carries the sweep, for the decay surface; the other is what came back.
+
+### axes
+
+<!-- key: p.xy-basis -->
+axes — LR plots left against right; MS turns the display 45° into mid and side, the broadcast orientation, where center content lies along one axis and difference content along the other.
+
+### scale
+
+<!-- key: p.spect-scale -->
+scale — the magnitude scale: logarithmic, in dB, or linear. FLOOR and CEILING are read in the same scale.
+
+### axis
+
+<!-- key: p.sect-axis -->
+axis — the axis the section plane is perpendicular to.
+
+### position
+
+<!-- key: p.sect-pos -->
+pos — where the plane sits along AXIS, as a fraction of the attractor's own reach: 0 is through the middle whatever the system's size.
+
+### direction
+
+<!-- key: p.sect-dir -->
+dir — which way through the plane counts as a crossing. One way is the default because a bounded flow that goes up through a plane must come back down, and keeping both superimposes two different sections.
+
+### view
+
+<!-- key: p.sect-view -->
+view — PLANE draws the crossings where they are in space, FLAT lays the section out face on, and MAP is the first-return map: each crossing plotted against the next.
+
 ### tau
 
 <!-- key: p.takens-tau -->

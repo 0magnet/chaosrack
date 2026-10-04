@@ -186,7 +186,8 @@ func manualModelHTML(m CatalogModel) string {
 		case manual.Has("p." + p.ID):
 			b.WriteString(manual.HTML("p." + p.ID))
 		case helpFor(p.ID) != "":
-			b.WriteString(`<p>` + html.EscapeString(helpFor(p.ID)) + `</p>`)
+			// A constant's help quotes its equations a line each.
+			b.WriteString(`<p>` + strings.ReplaceAll(html.EscapeString(helpFor(p.ID)), "\n", "<br>") + `</p>`)
 		default:
 			b.WriteString(`<p>` + html.EscapeString(p.Label) + `, ` + fmtDialNum(float64(p.Min)) + ` to ` + fmtDialNum(float64(p.Max)) + `</p>`)
 		}
