@@ -13,6 +13,19 @@ import (
 	"github.com/0magnet/xterm-go/vt"
 )
 
+// enterAltScreen and leaveAltScreen switch the terminal to its second
+// screen buffer and back. DECSET 1049 saves the cursor, switches, and
+// clears; resetting it switches back and restores the cursor, leaving
+// whatever was on the first screen exactly as it was.
+//
+// The same pair tcell's own terminal screen sends, for the same reason:
+// a full-screen program should not spend the scrollback of the shell
+// that started it, nor leave its last frame standing there afterwards.
+const (
+	enterAltScreen = "\x1b[?1049h"
+	leaveAltScreen = "\x1b[?1049l"
+)
+
 // term is everything a Screen needs of a terminal: somewhere to put a frame, a
 // size to tell tcell about, and the two callbacks it takes over while it runs.
 //
