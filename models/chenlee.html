@@ -3,23 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hyper-Rössler (4D) — 4-D flow, drawn live in the browser · chaosrack</title>
-<meta name="description" content="Rössler Hyperchaos (1979) — Otto Rössler&#39;s 4-dimensional extension of his attractor, with two positive Lyapunov exponents (hyperchaos).">
+<title>Chen-Lee — 3-D flow, drawn live in the browser · chaosrack</title>
+<meta name="description" content="Chen–Lee Attractor — Chen and Lee (2004): the Euler equations of a rigid body in rotation, with linear feedback added to each axis.">
 <meta name="author" content="0magnet">
-<link rel="canonical" href="https://chaosrack.magnetosphere.net/models/hyperrossler.html">
+<link rel="canonical" href="https://chaosrack.magnetosphere.net/models/chenlee.html">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="magnetosphere">
-<meta property="og:title" content="Hyper-Rössler (4D) — 4-D flow, drawn live in the browser · chaosrack">
-<meta property="og:description" content="Rössler Hyperchaos (1979) — Otto Rössler&#39;s 4-dimensional extension of his attractor, with two positive Lyapunov exponents (hyperchaos).">
-<meta property="og:url" content="https://chaosrack.magnetosphere.net/models/hyperrossler.html">
-<meta property="og:image" content="https://chaosrack.magnetosphere.net/docs/img/model/hyperrossler.jpg">
+<meta property="og:title" content="Chen-Lee — 3-D flow, drawn live in the browser · chaosrack">
+<meta property="og:description" content="Chen–Lee Attractor — Chen and Lee (2004): the Euler equations of a rigid body in rotation, with linear feedback added to each axis.">
+<meta property="og:url" content="https://chaosrack.magnetosphere.net/models/chenlee.html">
+<meta property="og:image" content="https://chaosrack.magnetosphere.net/docs/img/model/chenlee.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Hyper-Rössler (4D) — 4-D flow, drawn live in the browser · chaosrack">
-<meta name="twitter:description" content="Rössler Hyperchaos (1979) — Otto Rössler&#39;s 4-dimensional extension of his attractor, with two positive Lyapunov exponents (hyperchaos).">
-<meta name="twitter:image" content="https://chaosrack.magnetosphere.net/docs/img/model/hyperrossler.jpg">
+<meta name="twitter:title" content="Chen-Lee — 3-D flow, drawn live in the browser · chaosrack">
+<meta name="twitter:description" content="Chen–Lee Attractor — Chen and Lee (2004): the Euler equations of a rigid body in rotation, with linear feedback added to each axis.">
+<meta name="twitter:image" content="https://chaosrack.magnetosphere.net/docs/img/model/chenlee.jpg">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","name":"Hyper-Rössler (4D) — 4-D flow, drawn live in the browser · chaosrack","url":"https://chaosrack.magnetosphere.net/models/hyperrossler.html",
-"description":"Rössler Hyperchaos (1979) — Otto Rössler's 4-dimensional extension of his attractor, with two positive Lyapunov exponents (hyperchaos).","primaryImageOfPage":"https://chaosrack.magnetosphere.net/docs/img/model/hyperrossler.jpg",
+{"@context":"https://schema.org","@type":"WebPage","name":"Chen-Lee — 3-D flow, drawn live in the browser · chaosrack","url":"https://chaosrack.magnetosphere.net/models/chenlee.html",
+"description":"Chen–Lee Attractor — Chen and Lee (2004): the Euler equations of a rigid body in rotation, with linear feedback added to each axis.","primaryImageOfPage":"https://chaosrack.magnetosphere.net/docs/img/model/chenlee.jpg",
 "isPartOf":{"@type":"WebSite","name":"chaosrack","url":"https://chaosrack.magnetosphere.net/"}}
 </script>
 <style>
@@ -64,26 +64,25 @@ h2 { font-size:1.15rem; margin:2.4rem 0 .2rem; padding-bottom:.45rem; border-bot
 <body>
 <div class="wrap">
 <header><nav><a href="../">chaosrack</a> › <a href="./">models</a> › Attractors</nav></header>
-<h1>Hyper-Rössler (4D)</h1>
-<div class="class">4-D flow · <code>#hyperrossler</code></div>
+<h1>Chen-Lee</h1>
+<div class="class">3-D flow · <code>#chenlee</code></div>
 <div class="shots">
-<figure><img src="../docs/img/model/hyperrossler.jpg" alt="Hyper-Rössler (4D) drawn by chaosrack" loading="lazy"><figcaption>Hyper-Rössler (4D)</figcaption></figure>
-<figure><img src="../docs/img/model/hyperrossler.gif" alt="Hyper-Rössler (4D) turning through the palette" loading="lazy"><figcaption>turning</figcaption></figure>
-<figure><img src="../docs/img/model/hyperrossler-params.jpg" alt="The parameter knobs for Hyper-Rössler (4D)" loading="lazy"><figcaption>parameters</figcaption></figure>
+<figure><img src="../docs/img/model/chenlee.jpg" alt="Chen-Lee drawn by chaosrack" loading="lazy"><figcaption>Chen-Lee</figcaption></figure>
+<figure><img src="../docs/img/model/chenlee.gif" alt="Chen-Lee turning through the palette" loading="lazy"><figcaption>turning</figcaption></figure>
+<figure><img src="../docs/img/model/chenlee-params.jpg" alt="The parameter knobs for Chen-Lee" loading="lazy"><figcaption>parameters</figcaption></figure>
 </div>
-<p>Rössler Hyperchaos (1979) — Otto Rössler&#39;s 4-dimensional extension of his attractor, with two positive Lyapunov exponents (hyperchaos). A hidden fourth coordinate w feeds back into y; the plot is the (x,y,z) projection.</p>
+<p>Chen–Lee Attractor — Chen and Lee (2004): the Euler equations of a rigid body in rotation, with linear feedback added to each axis. A two-wing attractor whose wings stand on the z axis.</p>
 
-<pre>dx/dt = −y − z
-dy/dt = x &#43; ay &#43; w
-dz/dt = b &#43; xz
-dw/dt = −cz &#43; dw</pre>
-<a class="open" href="https://chaosrack.magnetosphere.net/#hyperrossler">Open Hyper-Rössler (4D) in chaosrack →</a>
+<pre>dx/dt = ax − yz
+dy/dt = by &#43; xz
+dz/dt = cz &#43; xy/d</pre>
+<a class="open" href="https://chaosrack.magnetosphere.net/#chenlee">Open Chen-Lee in chaosrack →</a>
 <p class="lead">It opens running, on the model selector, with its own knobs. Rotate it by dragging,
 zoom with the wheel, and turn the parameters to see what the figure does when the system changes.</p>
 <div class="pager">
-<span>← <a href="simone.html">Simone</a></span>
+<span>← <a href="arneodo.html">Arneodo</a></span>
 <span><a href="./">all models</a></span>
-<span><a href="sprottmorph.html">Sprott Morph</a> →</span>
+<span><a href="dequanli.html">Dequan Li</a> →</span>
 </div>
 </div>
 </body>

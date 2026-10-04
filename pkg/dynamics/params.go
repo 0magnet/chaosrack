@@ -97,6 +97,58 @@ var params = map[string][]Param{
 		{"burke-s", "S", &BurkeS, 10.0, 1, 20, 0.1},
 		{"burke-v", "V", &BurkeV, 4.272, 1, 10, 0.001},
 	},
+	"arneodo": {
+		{"arneodo-dt", "dt", &ArneodoDT, 0.005, 0.001, 0.02, 0.001},
+		{"arneodo-a", "a", &ArneodoA, -5.5, -10, 0, 0.1},
+		{"arneodo-b", "b", &ArneodoB, 3.5, 0.1, 10, 0.1},
+		{"arneodo-d", "d", &ArneodoD, -1.0, -5, 0, 0.1},
+	},
+	"chenlee": {
+		{"chenlee-dt", "dt", &ChenLeeDT, 0.002, 0.0005, 0.004, 0.0005},
+		{"chenlee-a", "a", &ChenLeeA, 5.0, 0.1, 10, 0.1},
+		{"chenlee-b", "b", &ChenLeeB, -10.0, -20, -0.1, 0.1},
+		{"chenlee-c", "c", &ChenLeeC, -0.38, -2, 0, 0.01},
+		{"chenlee-d", "d", &ChenLeeD, 3.0, 0.5, 10, 0.1},
+	},
+	"dequanli": {
+		{"dequan-dt", "dt", &DequanDT, 0.0001, 0.00002, 0.0002, 0.00001},
+		{"dequan-a", "a", &DequanA, 40.0, 10, 60, 0.1},
+		{"dequan-b", "b", &DequanB, 1.833, 0.1, 5, 0.001},
+		{"dequan-c", "c", &DequanC, 0.16, 0.01, 1, 0.01},
+		{"dequan-d", "d", &DequanD, 0.65, 0.1, 2, 0.01},
+		{"dequan-e", "e", &DequanE, 55.0, 10, 80, 0.1},
+		{"dequan-f", "f", &DequanF, 20.0, 5, 30, 0.1},
+	},
+	"threescroll": {
+		{"tscroll-dt", "dt", &ThreeScrollDT, 0.0008, 0.0001, 0.001, 0.0001},
+		{"tscroll-a", "a", &ThreeScrollA, 40.0, 10, 60, 0.1},
+		{"tscroll-b", "b", &ThreeScrollB, 0.833, 0.1, 3, 0.001},
+		{"tscroll-c", "c", &ThreeScrollC, 0.5, 0.01, 2, 0.01},
+		{"tscroll-d", "d", &ThreeScrollD, 0.65, 0.1, 2, 0.01},
+		{"tscroll-e", "e", &ThreeScrollE, 20.0, 5, 30, 0.1},
+	},
+	"wangsun": {
+		{"wangsun-dt", "dt", &WangSunDT, 0.01, 0.002, 0.03, 0.001},
+		{"wangsun-a", "a", &WangSunA, 0.2, -1, 1, 0.01},
+		{"wangsun-b", "b", &WangSunB, -0.03, -1, 1, 0.01},
+		{"wangsun-c", "c", &WangSunC, 0.3, -1, 1, 0.01},
+		{"wangsun-d", "d", &WangSunD, -0.4, -2, 1, 0.01},
+		{"wangsun-e", "e", &WangSunE, -1.5, -3, 0, 0.01},
+		{"wangsun-f", "f", &WangSunF, -1.5, -3, 0, 0.01},
+	},
+	"lorenzmod2": {
+		{"lmod2-dt", "dt", &LorenzMod2DT, 0.002, 0.0005, 0.005, 0.0005},
+		{"lmod2-a", "a", &LorenzMod2A, 0.9, 0.1, 3, 0.01},
+		{"lmod2-b", "b", &LorenzMod2B, 5.0, 0.5, 10, 0.1},
+		{"lmod2-c", "c", &LorenzMod2C, 9.9, 1, 20, 0.1},
+		{"lmod2-d", "d", &LorenzMod2D, 1.0, 0, 5, 0.1},
+	},
+	"simone": {
+		{"simone-dt", "dt", &SimoneDT, 0.005, 0.001, 0.02, 0.001},
+		{"simone-a", "a", &SimoneA, 5.51, 0.1, 6, 0.01},
+		{"simone-b", "b", &SimoneB, 2.49, 0.1, 6, 0.01},
+		{"simone-s", "s", &SimoneS, 2.0, 0.5, 5, 0.1},
+	},
 }
 
 // Params are the tunable constants of one mode, in panel order.

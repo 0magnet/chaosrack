@@ -223,6 +223,83 @@ dy/dt = −x − 0.4y + 5xz
 dz/dt = bz − 5xy
 ```
 
+### Arneodo Attractor
+
+<!-- key: model.arneodo -->
+Arneodo Attractor — Arneodo, Coullet and Tresser (1981): a third-order jerk equation, x‴ = −ax − bx′ − x″ + dx³, written as three first-order equations. A spiral attractor whose loops fold back on themselves through the cubic term.
+
+```text
+dx/dt = y
+dy/dt = z
+dz/dt = −ax − by − z + dx³
+```
+
+### Chen–Lee Attractor
+
+<!-- key: model.chenlee -->
+Chen–Lee Attractor — Chen and Lee (2004): the Euler equations of a rigid body in rotation, with linear feedback added to each axis. A two-wing attractor whose wings stand on the z axis.
+
+```text
+dx/dt = ax − yz
+dy/dt = by + xz
+dz/dt = cz + xy/d
+```
+
+### Dequan Li Attractor
+
+<!-- key: model.dequanli -->
+Dequan Li Attractor — Li (2008): a three-scroll attractor, the scrolls joined through the z axis. Stiff: its default step is small, and larger steps of dt make the trajectory leave the attractor.
+
+```text
+dx/dt = a(y − x) + cxz
+dy/dt = ex + fy − xz
+dz/dt = bz + xy − dx²
+```
+
+### Three-Scroll Attractor
+
+<!-- key: model.threescroll -->
+Three-Scroll Attractor — the three-scroll unified chaotic system (TSUCS): the Dequan Li system without the x term in dy/dt, which opens its three scrolls wider.
+
+```text
+dx/dt = a(y − x) + cxz
+dy/dt = ey − xz
+dz/dt = bz + xy − dx²
+```
+
+### Wang–Sun Attractor
+
+<!-- key: model.wangsun -->
+Wang–Sun Attractor — Wang and Sun (2010): a four-wing attractor, the trajectory passing between four lobes arranged around the z axis rather than the usual two.
+
+```text
+dx/dt = ax + cyz
+dy/dt = bx + dy − xz
+dz/dt = ez + fxy
+```
+
+### Lorenz Mod 2 Attractor
+
+<!-- key: model.lorenzmod2 -->
+Lorenz Mod 2 Attractor — the second modified Lorenz system: the quadratic terms of the Lorenz equations rearranged so that the two wings fold into a single rotating body.
+
+```text
+dx/dt = −ax + y² − z² + ac
+dy/dt = x(y − bz) + d
+dz/dt = −z + x(by + z)
+```
+
+### Simone Attractor
+
+<!-- key: model.simone -->
+Simone Attractor — a point drawn toward s·(sin(ay) + cos(bz), sin(az) + cos(bx), sin(ax) + cos(by)): the trigonometric map of the Simone attractor written as a flow, each coordinate driven by the other two. From Shashank Tomar's strange attractors. Chaotic for some (a, b) and periodic for others; b = 2.49 is chaotic.
+
+```text
+dx/dt = s(sin(ay) + cos(bz)) − x
+dy/dt = s(sin(az) + cos(bx)) − y
+dz/dt = s(sin(ax) + cos(by)) − z
+```
+
 ### Sprott A (Nosé–Hoover oscillator)
 
 <!-- key: model.sprotta -->

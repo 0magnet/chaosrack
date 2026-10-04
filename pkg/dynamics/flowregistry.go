@@ -166,13 +166,19 @@ func FlowFor4(mode string) (FlowSys4, bool) {
 // with the registry so the native chaos test starts from the SAME state the
 // app does.
 var InitCond = map[string][3]float32{
-	"chua":       {0.1, 0.0, 0.0},
-	"rabinovich": {-1.0, 0.0, 0.5},
-	"burkeshaw":  {0.6, 0.0, 0.0},
-	"chen":       {-3.0, 2.0, 20.0},
-	"sprott":     {0.63, 0.47, -0.54},
-	"thomas":     {1.0, 0.0, 0.0},
-	"halvorsen":  {-1.48, -1.51, 2.04},
+	"chua":        {0.1, 0.0, 0.0},
+	"rabinovich":  {-1.0, 0.0, 0.5},
+	"burkeshaw":   {0.6, 0.0, 0.0},
+	"chen":        {-3.0, 2.0, 20.0},
+	"sprott":      {0.63, 0.47, -0.54},
+	"thomas":      {1.0, 0.0, 0.0},
+	"halvorsen":   {-1.48, -1.51, 2.04},
+	"arneodo":     {0.1, 0, 0},
+	"chenlee":     {1, 1, 1},
+	"dequanli":    {0.349, 0, -0.16},
+	"threescroll": {-0.29, -0.25, -0.59},
+	"wangsun":     {0.5, 0.5, 0.5},
+	"lorenzmod2":  {-2.636, 1.841, 6.629}, // on the attractor: from (5,5,5) its transient is long
 }
 
 // defaultInitCond is the fallback for modes without an InitCond row
@@ -198,6 +204,13 @@ func init() {
 	registerFlow("chen", &ChenDT, chenDeriv)
 	registerFlow("dadras", &DadrasDT, dadrasDeriv)
 	registerFlow("burkeshaw", &BurkeDT, burkeShawDeriv)
+	registerFlow("arneodo", &ArneodoDT, arneodoDeriv)
+	registerFlow("chenlee", &ChenLeeDT, chenLeeDeriv)
+	registerFlow("dequanli", &DequanDT, dequanDeriv)
+	registerFlow("threescroll", &ThreeScrollDT, threeScrollDeriv)
+	registerFlow("wangsun", &WangSunDT, wangSunDeriv)
+	registerFlow("lorenzmod2", &LorenzMod2DT, lorenzMod2Deriv)
+	registerFlow("simone", &SimoneDT, simoneDeriv)
 }
 
 // Capture records the vector field the shared RK4 loop was last called with.

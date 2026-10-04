@@ -36,6 +36,7 @@ var (
 var gifModelList = []string{
 	"lorenz", "rossler", "chua", "aizawa", "sprott", "thomas", "halvorsen",
 	"chen", "dadras", "rabinovich", "burkeshaw", "lu", "newtonleipnik",
+	"arneodo", "chenlee", "dequanli", "threescroll", "wangsun", "lorenzmod2", "simone",
 	"hyperrossler", "lissajou", "graphicartist",
 }
 

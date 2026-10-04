@@ -497,12 +497,15 @@ func setColors(c *cdp.Client, gc, gs int) {
 // and most of the geometry — in which case there is nothing to photograph and
 // the README simply has no column for it.
 func captureParams(c *cdp.Client, mode string) bool {
-	// The Parameters module carries no id, so it is found by its header.
-	raw, _ := c.Eval(`(function(){
-	  var s = [].filter.call(document.querySelectorAll('.sect'), function(e){
-	    var h = e.querySelector('.sect-hdr');
-	    return h && h.textContent.trim() === 'Parameters';
-	  })[0];
+	// The model's parameters are positions of its bay's bank, programmed for
+	// it (data-bank), so the module photographed is the bank they are shown
+	// in. This looked for a module headed Parameters, and since the banks
+	// replaced that module no model had had a Parameters shot taken.
+	raw, _ := c.Eval(fmt.Sprintf(`(function(){
+	  var cells = [].filter.call(document.querySelectorAll('[data-bank=%q]'), function(e){
+	    return e.offsetParent !== null;
+	  });
+	  var s = cells.length ? cells[0].closest('.sect') : null;
 	  if (!s) return '';
 	  s.scrollIntoView({block:'center', inline:'center'});
 	  var r = s.getBoundingClientRect();
@@ -510,7 +513,7 @@ func captureParams(c *cdp.Client, mode string) bool {
 	  var knobs = s.querySelectorAll('.knob-ring, .knob-inner, input.numin, .led').length;
 	  return JSON.stringify({x:r.left, y:r.top, w:r.width, h:r.height,
 	    vw: window.innerWidth, knobs: knobs});
-	})()`).(string)
+	})()`, mode)).(string)
 	if raw == "" {
 		return false
 	}

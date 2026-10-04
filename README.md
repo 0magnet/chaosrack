@@ -7,7 +7,7 @@ seven-segment LED readouts, toggle switches, concentric selector dials.
 
 **[Live demo](https://chaosrack.magnetosphere.net/)** — the whole rack in a tab: pick a model, turn the knobs, rotate the scene.
 
-**66 models in five kinds**, and they are no longer mostly attractors.
+**73 models in five kinds**, and they are no longer mostly attractors.
 Continuous **flows** — Lorenz, Rössler, Chua and the rest of the classics,
 plus all twenty of J. C. Sprott's 1994 cases. Discrete **maps**, which have
 no dt and no path between iterates: Hénon, Ikeda, Clifford, de Jong,
@@ -469,7 +469,7 @@ such column. The prose is the same text the Info overlay shows.
 
 ### Attractors
 
-[Rossler](#rossler) · [Lorenz](#lorenz) · [Chua](#chua) · [Aizawa](#aizawa) · [Sprott](#sprott) · [Thomas](#thomas) · [Halvorsen](#halvorsen) · [Chen](#chen) · [Dadras](#dadras) · [Rabinovich-Fabrikant](#rabinovich-fabrikant) · [Burke-Shaw](#burke-shaw) · [Lü](#lü) · [Newton-Leipnik](#newton-leipnik) · [Hyper-Rössler (4D)](#hyper-rössler-4d) · [Sprott Morph](#sprott-morph) · [Sprott A](#sprott-a) · [Sprott B](#sprott-b) · [Sprott C](#sprott-c) · [Sprott D](#sprott-d) · [Sprott E](#sprott-e) · [Sprott F](#sprott-f) · [Sprott G](#sprott-g) · [Sprott H](#sprott-h) · [Sprott I](#sprott-i) · [Sprott J](#sprott-j) · [Sprott K](#sprott-k) · [Sprott L](#sprott-l) · [Sprott M](#sprott-m) · [Sprott N](#sprott-n) · [Sprott O](#sprott-o) · [Sprott P](#sprott-p) · [Sprott Q](#sprott-q) · [Sprott R](#sprott-r) · [Sprott S](#sprott-s) · [Custom equation](#custom-equation)
+[Rossler](#rossler) · [Lorenz](#lorenz) · [Chua](#chua) · [Aizawa](#aizawa) · [Sprott](#sprott) · [Thomas](#thomas) · [Halvorsen](#halvorsen) · [Chen](#chen) · [Dadras](#dadras) · [Rabinovich-Fabrikant](#rabinovich-fabrikant) · [Burke-Shaw](#burke-shaw) · [Lü](#lü) · [Newton-Leipnik](#newton-leipnik) · [Arneodo](#arneodo) · [Chen-Lee](#chen-lee) · [Dequan Li](#dequan-li) · [Three-Scroll](#three-scroll) · [Wang-Sun](#wang-sun) · [Lorenz Mod 2](#lorenz-mod-2) · [Simone](#simone) · [Hyper-Rössler (4D)](#hyper-rössler-4d) · [Sprott Morph](#sprott-morph) · [Sprott A](#sprott-a) · [Sprott B](#sprott-b) · [Sprott C](#sprott-c) · [Sprott D](#sprott-d) · [Sprott E](#sprott-e) · [Sprott F](#sprott-f) · [Sprott G](#sprott-g) · [Sprott H](#sprott-h) · [Sprott I](#sprott-i) · [Sprott J](#sprott-j) · [Sprott K](#sprott-k) · [Sprott L](#sprott-l) · [Sprott M](#sprott-m) · [Sprott N](#sprott-n) · [Sprott O](#sprott-o) · [Sprott P](#sprott-p) · [Sprott Q](#sprott-q) · [Sprott R](#sprott-r) · [Sprott S](#sprott-s) · [Custom equation](#custom-equation)
 
 #### Rossler
 
@@ -679,6 +679,118 @@ dz/dt = bz − 5xy
 ```
 
 `#newtonleipnik` · 3-D flow
+
+#### Arneodo
+
+| Arneodo | turning | parameters |
+| --- | --- | --- |
+| ![Arneodo](docs/img/model/arneodo.jpg) | ![Arneodo turning](docs/img/model/arneodo.gif) | ![Arneodo parameters](docs/img/model/arneodo-params.jpg) |
+
+Arneodo Attractor — Arneodo, Coullet and Tresser (1981): a third-order jerk equation, x‴ = −ax − bx′ − x″ + dx³, written as three first-order equations. A spiral attractor whose loops fold back on themselves through the cubic term.
+
+```
+dx/dt = y
+dy/dt = z
+dz/dt = −ax − by − z + dx³
+```
+
+`#arneodo` · 3-D flow
+
+#### Chen-Lee
+
+| Chen-Lee | turning | parameters |
+| --- | --- | --- |
+| ![Chen-Lee](docs/img/model/chenlee.jpg) | ![Chen-Lee turning](docs/img/model/chenlee.gif) | ![Chen-Lee parameters](docs/img/model/chenlee-params.jpg) |
+
+Chen–Lee Attractor — Chen and Lee (2004): the Euler equations of a rigid body in rotation, with linear feedback added to each axis. A two-wing attractor whose wings stand on the z axis.
+
+```
+dx/dt = ax − yz
+dy/dt = by + xz
+dz/dt = cz + xy/d
+```
+
+`#chenlee` · 3-D flow
+
+#### Dequan Li
+
+| Dequan Li | turning | parameters |
+| --- | --- | --- |
+| ![Dequan Li](docs/img/model/dequanli.jpg) | ![Dequan Li turning](docs/img/model/dequanli.gif) | ![Dequan Li parameters](docs/img/model/dequanli-params.jpg) |
+
+Dequan Li Attractor — Li (2008): a three-scroll attractor, the scrolls joined through the z axis. Stiff: its default step is small, and larger steps of dt make the trajectory leave the attractor.
+
+```
+dx/dt = a(y − x) + cxz
+dy/dt = ex + fy − xz
+dz/dt = bz + xy − dx²
+```
+
+`#dequanli` · 3-D flow
+
+#### Three-Scroll
+
+| Three-Scroll | turning | parameters |
+| --- | --- | --- |
+| ![Three-Scroll](docs/img/model/threescroll.jpg) | ![Three-Scroll turning](docs/img/model/threescroll.gif) | ![Three-Scroll parameters](docs/img/model/threescroll-params.jpg) |
+
+Three-Scroll Attractor — the three-scroll unified chaotic system (TSUCS): the Dequan Li system without the x term in dy/dt, which opens its three scrolls wider.
+
+```
+dx/dt = a(y − x) + cxz
+dy/dt = ey − xz
+dz/dt = bz + xy − dx²
+```
+
+`#threescroll` · 3-D flow
+
+#### Wang-Sun
+
+| Wang-Sun | turning | parameters |
+| --- | --- | --- |
+| ![Wang-Sun](docs/img/model/wangsun.jpg) | ![Wang-Sun turning](docs/img/model/wangsun.gif) | ![Wang-Sun parameters](docs/img/model/wangsun-params.jpg) |
+
+Wang–Sun Attractor — Wang and Sun (2010): a four-wing attractor, the trajectory passing between four lobes arranged around the z axis rather than the usual two.
+
+```
+dx/dt = ax + cyz
+dy/dt = bx + dy − xz
+dz/dt = ez + fxy
+```
+
+`#wangsun` · 3-D flow
+
+#### Lorenz Mod 2
+
+| Lorenz Mod 2 | turning | parameters |
+| --- | --- | --- |
+| ![Lorenz Mod 2](docs/img/model/lorenzmod2.jpg) | ![Lorenz Mod 2 turning](docs/img/model/lorenzmod2.gif) | ![Lorenz Mod 2 parameters](docs/img/model/lorenzmod2-params.jpg) |
+
+Lorenz Mod 2 Attractor — the second modified Lorenz system: the quadratic terms of the Lorenz equations rearranged so that the two wings fold into a single rotating body.
+
+```
+dx/dt = −ax + y² − z² + ac
+dy/dt = x(y − bz) + d
+dz/dt = −z + x(by + z)
+```
+
+`#lorenzmod2` · 3-D flow
+
+#### Simone
+
+| Simone | turning | parameters |
+| --- | --- | --- |
+| ![Simone](docs/img/model/simone.jpg) | ![Simone turning](docs/img/model/simone.gif) | ![Simone parameters](docs/img/model/simone-params.jpg) |
+
+Simone Attractor — a point drawn toward s·(sin(ay) + cos(bz), sin(az) + cos(bx), sin(ax) + cos(by)): the trigonometric map of the Simone attractor written as a flow, each coordinate driven by the other two. From Shashank Tomar's strange attractors. Chaotic for some (a, b) and periodic for others; b = 2.49 is chaotic.
+
+```
+dx/dt = s(sin(ay) + cos(bz)) − x
+dy/dt = s(sin(az) + cos(bx)) − y
+dz/dt = s(sin(ax) + cos(by)) − z
+```
+
+`#simone` · 3-D flow
 
 #### Hyper-Rössler (4D)
 
@@ -3395,6 +3507,12 @@ and audio-reactive modulation):
 - [Simulations4All — Lorenz with σ/ρ/β sliders](https://simulations4all.com/simulations/lorenz-attractor-3d)
 - [KinnyTools — audio-reactive Lorenz](https://www.kinnytools.com/lorenz-attractor.html)
 - [jujiplay — interactive Rössler](https://strange-attractors.jujiplay.com/rossler)
+- [Shashank Tomar — Strange Attractors](https://blog.shashanktomar.com/posts/strange-attractors):
+  fourteen systems as GPU particle systems (three.js, ping-pong rendering).
+  chaosrack's Arneodo, Chen–Lee, Dequan Li, Three-Scroll, Wang–Sun,
+  Lorenz Mod 2 and Simone come from its catalog. Its source is not
+  published; the post's discussion is at
+  [shashanktomar/blog-discussion](https://github.com/shashanktomar/blog-discussion/discussions/1)
 - [GitHub `strange-attractors` topic](https://github.com/topics/strange-attractors)
 
 

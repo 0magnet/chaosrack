@@ -3,23 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hyper-Rössler (4D) — 4-D flow, drawn live in the browser · chaosrack</title>
-<meta name="description" content="Rössler Hyperchaos (1979) — Otto Rössler&#39;s 4-dimensional extension of his attractor, with two positive Lyapunov exponents (hyperchaos).">
+<title>Arneodo — 3-D flow, drawn live in the browser · chaosrack</title>
+<meta name="description" content="Arneodo Attractor — Arneodo, Coullet and Tresser (1981): a third-order jerk equation, x‴ = −ax − bx′ − x″ &#43; dx³, written as three first-order equations.">
 <meta name="author" content="0magnet">
-<link rel="canonical" href="https://chaosrack.magnetosphere.net/models/hyperrossler.html">
+<link rel="canonical" href="https://chaosrack.magnetosphere.net/models/arneodo.html">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="magnetosphere">
-<meta property="og:title" content="Hyper-Rössler (4D) — 4-D flow, drawn live in the browser · chaosrack">
-<meta property="og:description" content="Rössler Hyperchaos (1979) — Otto Rössler&#39;s 4-dimensional extension of his attractor, with two positive Lyapunov exponents (hyperchaos).">
-<meta property="og:url" content="https://chaosrack.magnetosphere.net/models/hyperrossler.html">
-<meta property="og:image" content="https://chaosrack.magnetosphere.net/docs/img/model/hyperrossler.jpg">
+<meta property="og:title" content="Arneodo — 3-D flow, drawn live in the browser · chaosrack">
+<meta property="og:description" content="Arneodo Attractor — Arneodo, Coullet and Tresser (1981): a third-order jerk equation, x‴ = −ax − bx′ − x″ &#43; dx³, written as three first-order equations.">
+<meta property="og:url" content="https://chaosrack.magnetosphere.net/models/arneodo.html">
+<meta property="og:image" content="https://chaosrack.magnetosphere.net/docs/img/model/arneodo.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Hyper-Rössler (4D) — 4-D flow, drawn live in the browser · chaosrack">
-<meta name="twitter:description" content="Rössler Hyperchaos (1979) — Otto Rössler&#39;s 4-dimensional extension of his attractor, with two positive Lyapunov exponents (hyperchaos).">
-<meta name="twitter:image" content="https://chaosrack.magnetosphere.net/docs/img/model/hyperrossler.jpg">
+<meta name="twitter:title" content="Arneodo — 3-D flow, drawn live in the browser · chaosrack">
+<meta name="twitter:description" content="Arneodo Attractor — Arneodo, Coullet and Tresser (1981): a third-order jerk equation, x‴ = −ax − bx′ − x″ &#43; dx³, written as three first-order equations.">
+<meta name="twitter:image" content="https://chaosrack.magnetosphere.net/docs/img/model/arneodo.jpg">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","name":"Hyper-Rössler (4D) — 4-D flow, drawn live in the browser · chaosrack","url":"https://chaosrack.magnetosphere.net/models/hyperrossler.html",
-"description":"Rössler Hyperchaos (1979) — Otto Rössler's 4-dimensional extension of his attractor, with two positive Lyapunov exponents (hyperchaos).","primaryImageOfPage":"https://chaosrack.magnetosphere.net/docs/img/model/hyperrossler.jpg",
+{"@context":"https://schema.org","@type":"WebPage","name":"Arneodo — 3-D flow, drawn live in the browser · chaosrack","url":"https://chaosrack.magnetosphere.net/models/arneodo.html",
+"description":"Arneodo Attractor — Arneodo, Coullet and Tresser (1981): a third-order jerk equation, x‴ = −ax − bx′ − x″ + dx³, written as three first-order equations.","primaryImageOfPage":"https://chaosrack.magnetosphere.net/docs/img/model/arneodo.jpg",
 "isPartOf":{"@type":"WebSite","name":"chaosrack","url":"https://chaosrack.magnetosphere.net/"}}
 </script>
 <style>
@@ -64,26 +64,25 @@ h2 { font-size:1.15rem; margin:2.4rem 0 .2rem; padding-bottom:.45rem; border-bot
 <body>
 <div class="wrap">
 <header><nav><a href="../">chaosrack</a> › <a href="./">models</a> › Attractors</nav></header>
-<h1>Hyper-Rössler (4D)</h1>
-<div class="class">4-D flow · <code>#hyperrossler</code></div>
+<h1>Arneodo</h1>
+<div class="class">3-D flow · <code>#arneodo</code></div>
 <div class="shots">
-<figure><img src="../docs/img/model/hyperrossler.jpg" alt="Hyper-Rössler (4D) drawn by chaosrack" loading="lazy"><figcaption>Hyper-Rössler (4D)</figcaption></figure>
-<figure><img src="../docs/img/model/hyperrossler.gif" alt="Hyper-Rössler (4D) turning through the palette" loading="lazy"><figcaption>turning</figcaption></figure>
-<figure><img src="../docs/img/model/hyperrossler-params.jpg" alt="The parameter knobs for Hyper-Rössler (4D)" loading="lazy"><figcaption>parameters</figcaption></figure>
+<figure><img src="../docs/img/model/arneodo.jpg" alt="Arneodo drawn by chaosrack" loading="lazy"><figcaption>Arneodo</figcaption></figure>
+<figure><img src="../docs/img/model/arneodo.gif" alt="Arneodo turning through the palette" loading="lazy"><figcaption>turning</figcaption></figure>
+<figure><img src="../docs/img/model/arneodo-params.jpg" alt="The parameter knobs for Arneodo" loading="lazy"><figcaption>parameters</figcaption></figure>
 </div>
-<p>Rössler Hyperchaos (1979) — Otto Rössler&#39;s 4-dimensional extension of his attractor, with two positive Lyapunov exponents (hyperchaos). A hidden fourth coordinate w feeds back into y; the plot is the (x,y,z) projection.</p>
+<p>Arneodo Attractor — Arneodo, Coullet and Tresser (1981): a third-order jerk equation, x‴ = −ax − bx′ − x″ &#43; dx³, written as three first-order equations. A spiral attractor whose loops fold back on themselves through the cubic term.</p>
 
-<pre>dx/dt = −y − z
-dy/dt = x &#43; ay &#43; w
-dz/dt = b &#43; xz
-dw/dt = −cz &#43; dw</pre>
-<a class="open" href="https://chaosrack.magnetosphere.net/#hyperrossler">Open Hyper-Rössler (4D) in chaosrack →</a>
+<pre>dx/dt = y
+dy/dt = z
+dz/dt = −ax − by − z &#43; dx³</pre>
+<a class="open" href="https://chaosrack.magnetosphere.net/#arneodo">Open Arneodo in chaosrack →</a>
 <p class="lead">It opens running, on the model selector, with its own knobs. Rotate it by dragging,
 zoom with the wheel, and turn the parameters to see what the figure does when the system changes.</p>
 <div class="pager">
-<span>← <a href="simone.html">Simone</a></span>
+<span>← <a href="newtonleipnik.html">Newton-Leipnik</a></span>
 <span><a href="./">all models</a></span>
-<span><a href="sprottmorph.html">Sprott Morph</a> →</span>
+<span><a href="chenlee.html">Chen-Lee</a> →</span>
 </div>
 </div>
 </body>
