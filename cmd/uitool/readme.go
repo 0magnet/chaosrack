@@ -195,7 +195,9 @@ func modelEntry(m attractor.CatalogModel) string {
 // keep their line breaks — in a paragraph they would run together.
 func splitDescription(d string) (prose, equations string) {
 	d = strings.TrimSpace(d)
-	i := strings.Index(d, "\n\n")
+	// The last blank line: the prose before the equations may be more than
+	// one paragraph.
+	i := strings.LastIndex(d, "\n\n")
 	if i < 0 {
 		return d, ""
 	}
