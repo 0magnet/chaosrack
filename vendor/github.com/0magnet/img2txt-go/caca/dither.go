@@ -81,6 +81,7 @@ type Dither struct {
 	glyphs   []rune
 	glyphCnt int
 	invert   bool
+	shape    bool // pick glyphs by shape; see SetShape
 
 	// Ordered-dither state.
 	orderedTable []int32
@@ -485,6 +486,8 @@ func (cv *Canvas) DitherBitmap(x, y, w, h int, d *Dither, pixels []byte) {
 				continue
 			}
 
+			raw := rgba // before the dither offset; shape mode reuses the offset
+
 			if d.isFstein {
 				rgba[0] += uint32(remainR)
 				rgba[1] += uint32(remainG)
@@ -599,6 +602,18 @@ func (cv *Canvas) DitherBitmap(x, y, w, h int, d *Dither, pixels []byte) {
 				*fsAt(fsR, x+1) = 1 * errv[0] / 16
 				*fsAt(fsG, x+1) = 1 * errv[1] / 16
 				*fsAt(fsB, x+1) = 1 * errv[2] / 16
+			}
+
+			if d.shape {
+				outch, outfg, outbg = d.shapeGlyph(pixels,
+					float64(x-x1)*float64(w)/float64(deltax),
+					float64(y-y1)*float64(h)/float64(deltay),
+					float64(w)/float64(deltax), float64(h)/float64(deltay),
+					outfg, outbg, [3]float64{
+						float64(int32(rgba[0] - raw[0])),
+						float64(int32(rgba[1] - raw[1])),
+						float64(int32(rgba[2] - raw[2])),
+					})
 			}
 
 			if d.invert {
