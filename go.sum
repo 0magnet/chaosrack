@@ -18,8 +18,8 @@ github.com/0magnet/go-dsp v0.0.1-0.20261004020113-2eb2c6c97565 h1:gK/3fcWBXlhCSu
 github.com/0magnet/go-dsp v0.0.1-0.20261004020113-2eb2c6c97565/go.mod h1:ThqukkPy/kmN6c6cyboZYESC9qdJKfYgHTMVp0iW7T0=
 github.com/0magnet/img2txt-go v0.0.0 h1:k+3AFB5j1HhXDqcGsZMW+6/CDl8ezAmaD8D0MeOkrW4=
 github.com/0magnet/img2txt-go v0.0.0/go.mod h1:LpURwrbNPAy3CrbhLgVw4ROogaDCRmpu7ZKQwNt2v7Q=
-github.com/0magnet/lattice v0.0.0-20261005013730-0b7d24113496 h1:aKm7B8FU8ZC03rkTzE+/so1lpPV/k8TSx6cSs4nd2YY=
-github.com/0magnet/lattice v0.0.0-20261005013730-0b7d24113496/go.mod h1:9HRkpEOZVwE9VvoF5d4osvGLsj2v/J6blIBgrtlJPkQ=
+github.com/0magnet/lattice v0.0.0-20261005014755-d01aefeb92db h1:L8Q3dG1cIlZW+fPwe0O1C5ZjPrpT+AygTvRaALNBK+c=
+github.com/0magnet/lattice v0.0.0-20261005014755-d01aefeb92db/go.mod h1:BmY+uniDf1CEtqpVg3eEdQVYtV1eW6UfjM2HOW6DULY=
 github.com/0magnet/lolcat-go v0.0.0 h1:mtqgONjoVF3D2naY806IL1QX2V+0QD+U3RYQvAJ4+IE=
 github.com/0magnet/lolcat-go v0.0.0/go.mod h1:DbbClVrvQ558CvwGWU78xx0k03aEY/uS9qf5Wtw+n3o=
 github.com/0magnet/pisano v0.0.0-20261004202314-f7b45ed0918c h1:F4SwJR2RHeV9HhsKi+hGRETzWqULj/ZtHb+DOjyZ7iQ=

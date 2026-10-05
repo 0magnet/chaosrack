@@ -715,6 +715,13 @@ stacks — which families of sheets there are. Fewer families are fewer terminal
 - <!-- key: p.lattice-stacks=2 --> xz — the two upright families: seen from above or below, you look along their edges
 - <!-- key: p.lattice-stacks=3 --> z — the front sheets alone: a stack of terminals, seen best from the front or behind
 
+<!-- key: p.lattice-turn -->
+turn — what turning the view turns. The programs are told the way any program is told anything, on their input: each is sent a pose, the view's turn or its inverse, which lattice applies to the solid after its own spin.
+
+- <!-- key: p.lattice-turn=0 --> both — the stack and the solid in it turn together
+- <!-- key: p.lattice-turn=1 --> lattice — the stack turns and the solid holds still: its surface moves through the grid as the grid turns round it, every terminal redrawing as it goes
+- <!-- key: p.lattice-turn=2 --> solid — the stack stays square to the screen and the solid turns inside it
+
 ## Model Out
 
 The model as a sound: its own equations run at audio rate, so its x, y and z
