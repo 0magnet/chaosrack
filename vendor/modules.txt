@@ -15,10 +15,10 @@ github.com/0magnet/audioprism-go/pkg/wsaudio
 ## explicit; go 1.26.0
 github.com/0magnet/calvin
 github.com/0magnet/calvin/clihelp
-# github.com/0magnet/cdp v0.0.0-20261004165220-5af58d1d29cc
+# github.com/0magnet/cdp v0.0.0-20261004204826-811baa47398a
 ## explicit; go 1.26.0
 github.com/0magnet/cdp
-# github.com/0magnet/desk v0.0.1-0.20261004200012-7ac6a12489c1
+# github.com/0magnet/desk v0.0.2
 ## explicit; go 1.26
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
@@ -53,14 +53,14 @@ github.com/0magnet/lattice
 # github.com/0magnet/lolcat-go v0.0.0
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20261004202314-f7b45ed0918c
-## explicit; go 1.26.0
+# github.com/0magnet/pisano v0.0.0-20261004211513-5a805f600706
+## explicit; go 1.26.6
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc
 ## explicit; go 1.26.0
 github.com/0magnet/proxima5
 github.com/0magnet/proxima5/internal/views
-# github.com/0magnet/rack-go v0.0.0-20261004014129-c9b6fb23723c
+# github.com/0magnet/rack-go v0.0.0-20261004205201-f263c45bb646
 ## explicit; go 1.21
 github.com/0magnet/rack-go
 # github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
@@ -111,13 +111,13 @@ github.com/0magnet/termanim/snow
 github.com/0magnet/termanim/starfield
 github.com/0magnet/termanim/tunnel
 github.com/0magnet/termanim/wolfram
-# github.com/0magnet/toilet-go v0.0.0-20261004111052-d4676898059a
+# github.com/0magnet/toilet-go v0.0.0-20261004205238-af9b836e95f8
 ## explicit; go 1.26.0
 github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20261004200832-5545375fbfc9
+# github.com/0magnet/tuiwasm v0.0.0-20261005123008-4b575ccfae71
 ## explicit; go 1.26.7
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -137,7 +137,7 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754
 ## explicit; go 1.26.6
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.1-0.20261004200501-753c425a8b80
+# github.com/0magnet/websh v0.0.1-0.20261005122733-2d8844db30a0
 ## explicit; go 1.26.6
 github.com/0magnet/websh/shell
 github.com/0magnet/websh/shell/sed
@@ -266,7 +266,7 @@ github.com/coder/websocket/internal/wsjs
 # github.com/creack/pty v1.1.24
 ## explicit; go 1.18
 github.com/creack/pty
-# github.com/dlclark/regexp2/v2 v2.8.2
+# github.com/dlclark/regexp2/v2 v2.8.3
 ## explicit; go 1.25
 github.com/dlclark/regexp2/v2
 github.com/dlclark/regexp2/v2/helpers
