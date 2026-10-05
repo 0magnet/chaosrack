@@ -5,15 +5,15 @@ go 1.26.7
 require (
 	github.com/0magnet/audioprism-go v0.0.0
 	github.com/0magnet/calvin v0.0.0
-	github.com/0magnet/cdp v0.0.0-20261004165220-5af58d1d29cc
-	github.com/0magnet/desk v0.0.1-0.20261004200012-7ac6a12489c1
+	github.com/0magnet/cdp v0.0.0-20261004204826-811baa47398a
+	github.com/0magnet/desk v0.0.2
 	github.com/0magnet/desk/panes v0.0.1-0.20261004200012-7ac6a12489c1
 	github.com/0magnet/lattice v0.0.0-20261005015557-fba824203855
-	github.com/0magnet/pisano v0.0.0-20261004202314-f7b45ed0918c
-	github.com/0magnet/rack-go v0.0.0-20261004014129-c9b6fb23723c
+	github.com/0magnet/pisano v0.0.0-20261004211513-5a805f600706
+	github.com/0magnet/rack-go v0.0.0-20261004205201-f263c45bb646
 	github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
-	github.com/0magnet/tuiwasm v0.0.0-20261004200832-5545375fbfc9
-	github.com/0magnet/websh v0.0.1-0.20261004200501-753c425a8b80
+	github.com/0magnet/tuiwasm v0.0.0-20261005123008-4b575ccfae71
+	github.com/0magnet/websh v0.0.1-0.20261005122733-2d8844db30a0
 	github.com/0magnet/winbox-go v0.0.0
 	github.com/0magnet/xterm-go v0.0.1-0.20261004020305-36b45f096b30
 	github.com/gdamore/tcell/v3 v3.5.0
@@ -38,7 +38,7 @@ require (
 	github.com/0magnet/lolcat-go v0.0.0 // indirect
 	github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc // indirect
 	github.com/0magnet/termanim v0.0.1-0.20261004021059-29f9a64aa72a // indirect
-	github.com/0magnet/toilet-go v0.0.0-20261004111052-d4676898059a // indirect
+	github.com/0magnet/toilet-go v0.0.0-20261004205238-af9b836e95f8 // indirect
 	github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754 // indirect
 	github.com/alecthomas/chroma/v2 v2.27.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
@@ -60,7 +60,7 @@ require (
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/coder/websocket v1.8.15 // indirect
 	github.com/creack/pty v1.1.24 // indirect
-	github.com/dlclark/regexp2/v2 v2.8.2 // indirect
+	github.com/dlclark/regexp2/v2 v2.8.3 // indirect
 	github.com/dunglas/httpsfv v1.1.2 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.15 // indirect
