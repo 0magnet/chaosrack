@@ -231,6 +231,7 @@ func onModeChange(this js.Value, args []js.Value) any {
 		// is no longer playing.
 		emb.armAutoMeasure()
 		wfall.armFit()
+		lat.armFit()
 		resetAttractorState()
 		// The panel rebuild and the four mode-dependent visibility passes, as
 		// one layout.

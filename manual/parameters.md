@@ -670,6 +670,34 @@ gain — the scale the geometry is built at; the camera fit tracks it.
 <!-- key: p.polar-chan -->
 source — which channel of the live pair is reconstructed.
 
+## Lattice
+
+<!-- key: p.lattice-shape -->
+shape — the solid the terminals draw.
+
+- <!-- key: p.lattice-shape=0 --> cube — a cube's surface
+- <!-- key: p.lattice-shape=1 --> gyroid — the gyroid, a surface that divides space into two interwoven labyrinths, clipped to a ball
+- <!-- key: p.lattice-shape=2 --> octahedron — the regular octahedron
+- <!-- key: p.lattice-shape=3 --> sphere — a sphere
+- <!-- key: p.lattice-shape=4 --> torus — a ring
+
+<!-- key: p.lattice-style -->
+style — how each terminal writes the surface where it crosses its sheet.
+
+- <!-- key: p.lattice-style=0 --> lines — the line the surface makes across the sheet, ─ │ ╱ ╲, and · where it lies along the sheet instead
+- <!-- key: p.lattice-style=1 --> ascii — the same in - | / \ and .
+- <!-- key: p.lattice-style=2 --> shade — how squarely the surface crosses the sheet, .:-=+*# from lying in it to standing across it
+- <!-- key: p.lattice-style=3 --> solid — every voxel the surface passes through, filled
+
+<!-- key: p.lattice-n -->
+n — voxels along each axis, and so sheets in each family: 3n terminals of 2n columns by n rows. Finer is smoother and costs more terminals.
+
+<!-- key: p.lattice-spin -->
+spin — how fast the solid turns, in degrees a second, by the time of day: every terminal running lattice with the same spin shows it at the same angle.
+
+<!-- key: p.lattice-tilt -->
+tilt — how far the solid leans toward the viewer of the front sheets, in degrees.
+
 ## Model Out
 
 The model as a sound: its own equations run at audio rate, so its x, y and z
