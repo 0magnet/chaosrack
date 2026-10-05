@@ -18,6 +18,11 @@ import (
 type Program struct {
 	o  options
 	sc *screen
+
+	// The solid's angle when the screen was last drawn: a solid that has not
+	// moved draws the same screen, so it is not drawn again.
+	drawnYaw float64
+	drawn    bool
 }
 
 // options are the command line's.
@@ -112,7 +117,12 @@ func (p *Program) Frame(t time.Time) error {
 	if p.sc == nil {
 		return fmt.Errorf("lattice: Frame before Enter")
 	}
-	return p.sc.draw(p.o.frame(t))
+	yaw := p.o.yaw(t)
+	if p.drawn && yaw == p.drawnYaw {
+		return nil
+	}
+	p.drawnYaw, p.drawn = yaw, true
+	return p.sc.draw(p.o.frameAt(yaw))
 }
 
 // Leave gives the terminal back.
@@ -128,16 +138,26 @@ func (p *Program) Print(w io.Writer, t time.Time) error { return plain(w, p.o.fr
 
 // solid is the shape as it stands at t. The angle comes from the wall clock,
 // not from when this process started, so every sheet's process agrees on it.
-func (o options) solid(t time.Time) Shape {
+func (o options) solid(t time.Time) Shape { return o.solidAt(o.yaw(t)) }
+
+// yaw is the solid's turn at t, in radians.
+func (o options) yaw(t time.Time) float64 {
 	sec := float64(t.UnixNano()%int64(1e12)) / 1e9 // wraps every ~16 minutes, invisibly at any whole-degree spin
-	yaw := math.Mod(o.spin*sec, 360) * math.Pi / 180
+	return math.Mod(o.spin*sec, 360) * math.Pi / 180
+}
+
+// solidAt is the shape turned by yaw.
+func (o options) solidAt(yaw float64) Shape {
 	return Turned(Shapes[o.shape], yaw, o.pitch*math.Pi/180)
 }
 
 // frame is what this program draws at t: its sheet, or with -tile every
 // sheet of its axis.
-func (o options) frame(t time.Time) Frame {
-	s := o.solid(t)
+func (o options) frame(t time.Time) Frame { return o.frameAt(o.yaw(t)) }
+
+// frameAt is frame with the solid at yaw.
+func (o options) frameAt(yaw float64) Frame {
+	s := o.solidAt(yaw)
 	if !o.tile {
 		return Render(o.sheet, s, o.style, o.coloring)
 	}
