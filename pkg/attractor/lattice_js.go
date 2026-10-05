@@ -351,7 +351,7 @@ func (l *latticeModel) draw(n int, look lattice.Vec3, on [3]bool) {
 			continue
 		}
 		if s.built != *s.writes {
-			l.makeSheet(s, n, cuts, mid, su, sv)
+			l.makeSheet(s, n, mid, su, sv)
 		}
 		key.writes += *s.writes
 	}
@@ -430,7 +430,7 @@ func latticeCuts(n int) (cuts []float64, mid func(int) float64) {
 
 // makeSheet makes sheet s's pieces from its screen as it stands: each glyph,
 // and each explicit background color, in halves that lie in one pane each.
-func (l *latticeModel) makeSheet(s *latticeSheet, n int, cuts []float64, mid func(int) float64, su, sv float32) {
+func (l *latticeModel) makeSheet(s *latticeSheet, n int, mid func(int) float64, su, sv float32) {
 	s.built = *s.writes
 	s.verts, s.items = s.verts[:0], s.items[:0]
 	b := lattice.BasisOf(s.sh.Axis)
