@@ -71,6 +71,19 @@ type latticeModel struct {
 	keys2  []uint64
 	verts  []float32
 	last   latticeFrameKey // what the vertices on the GPU were made for
+
+	// The model chosen, drawn by the lattice (latticefigure_js.go): whether it
+	// is, the figure every program is shown, the scale it was put in the
+	// volume at, the upload and the time it was last made from, and the
+	// storage it is made in.
+	figOn    bool
+	fig      lattice.Figure
+	figExt   float32
+	figSeq   uint64
+	figAt    float64
+	figPts   []lattice.Vec3
+	figLens  []int
+	figLines [][]lattice.Vec3
 }
 
 // latticeSheet is one terminal and the program drawing in it.
@@ -125,42 +138,74 @@ const latticeAutoMin = 0.04
 
 func init() {
 	registerGenerate("lattice", lat.generate)
+	// The model's own knobs are its solid's. How the lattice draws — and
+	// whether it draws the model chosen, whatever that is — is the Lattice
+	// module's (wireLatticeModule).
 	attractorParams["lattice"] = []paramDef{
 		{"lattice-shape", "shp", &lat.shapeF, latticeSphere, 0, float32(len(lattice.ShapeNames()) - 1), 1},
-		{"lattice-style", "styl", &lat.styleF, 0, 0, float32(len(latticeStyles) - 1), 1},
-		{"lattice-n", "rows", &lat.nF, 12, 6, 24, 1},
 		{"lattice-spin", "spin", &lat.spinF, 20, -90, 90, 1},
 		{"lattice-tilt", "tilt", &lat.tiltF, 20, -90, 90, 1},
-		{"lattice-look", "look", &lat.lookF, 0, 0, float32(len(latticeLooks) - 1), 1},
-		{"lattice-opac", "opac", &lat.opacF, 10, 0, 100, 1},
-		{"lattice-stacks", "stck", &lat.stacksF, 0, 0, float32(len(latticeStacks) - 1), 1},
-		{"lattice-turn", "turn", &lat.turnF, 0, 0, float32(len(latticeTurns) - 1), 1},
 	}
 	paramLabels["lattice-shape"] = lattice.ShapeNames()
-	paramLabels["lattice-style"] = latticeStyles
-	paramLabels["lattice-look"] = latticeLooks
-	paramLabels["lattice-stacks"] = latticeStacks
-	paramLabels["lattice-turn"] = latticeTurns
-	// How the sheets are shown is not the programs' business: changing it
-	// must not restart the terminals.
-	quietParams["lattice-look"] = true
-	quietParams["lattice-opac"] = true
-	quietParams["lattice-stacks"] = true
-	quietParams["lattice-turn"] = true
+	// ROWS: L puts the model chosen in the lattice.
+	trioPrograms["lattice-n"] = trioProgram{
+		keys:  []string{"L", "", ""},
+		help:  []string{doc("trio.lattice-n=0")},
+		press: func(int) { setSwitch("lat-on", !checkedOn("lat-on")) },
+		lits:  func() []bool { return []bool{checkedOn("lat-on"), false, false} },
+		drive: []string{"lat-on"},
+	}
+}
+
+// wireLatticeModule wires the Lattice module's controls (built as P-units
+// with the Display's). How the sheets are shown is not the programs'
+// business: only ROWS and STYLE restart the terminals, through the
+// arguments they are started with.
+func wireLatticeModule() {
+	adoptDescControl(ControlDesc{ID: "lattice-n", Label: "rows", Min: 6, Max: 24, Step: 1, Def: 12,
+		PermaKey: "lr", LEDID: "slider-value-latrows", ResetID: "rst-lattice-n",
+		Apply: func(v float64) { lat.nF = float32(v) }})
+	adoptDescControl(ControlDesc{ID: "lattice-opac", Label: "opac", Min: 0, Max: 100, Step: 1, Def: 10,
+		PermaKey: "lo", LEDID: "slider-value-latopac", ResetID: "rst-lattice-opac",
+		Apply: func(v float64) { lat.opacF = float32(v) }})
+	for _, c := range []struct {
+		id, key string
+		f       *float32
+	}{
+		{"lattice-style", "ls", &lat.styleF},
+		{"lattice-look", "lk", &lat.lookF},
+		{"lattice-stacks", "lst", &lat.stacksF},
+		{"lattice-turn", "lt", &lat.turnF},
+	} {
+		adoptDescControl(ControlDesc{ID: c.id, Label: c.id, IsSelect: true, SelectDef: "0", PermaKey: c.key,
+			ResetID: "rst-" + c.id,
+			SelectApply: func(v string) {
+				if i, err := strconv.Atoi(v); err == nil {
+					*c.f = float32(i)
+				}
+			}})
+	}
+	wireSwitch("lat-on", func(on bool) {
+		lat.figOn = on
+		lat.armFit()
+		view.autoFitCamera()
+	})
 }
 
 // args are the command line each sheet's program is started with, and n the
 // rows of its terminal: no -n, because the terminal's size is the resolution.
-func (l *latticeModel) args() (n int, args []string) {
+func (l *latticeModel) args(fig bool) (n int, args []string) {
 	n = max(2, int(l.nF+0.5))
 	f := func(v float32) string { return strconv.FormatFloat(float64(v), 'f', -1, 32) }
-	return n, []string{
-		"-shape", lattice.ShapeNames()[pick(l.shapeF, len(lattice.ShapeNames()))],
-		"-style", latticeStyles[pick(l.styleF, len(latticeStyles))],
-		"-spin", f(l.spinF),
-		"-pitch", f(l.tiltF),
-		"-fps", strconv.Itoa(latticeFPS),
+	args = []string{"-style", latticeStyles[pick(l.styleF, len(latticeStyles))], "-fps", strconv.Itoa(latticeFPS)}
+	if fig {
+		// A model is turned by the view, not by the clock (TURN).
+		return n, append(args, "-spin", "0", "-pitch", "0")
 	}
+	return n, append(args,
+		"-shape", lattice.ShapeNames()[pick(l.shapeF, len(lattice.ShapeNames()))],
+		"-spin", f(l.spinF),
+		"-pitch", f(l.tiltF))
 }
 
 // latticeFPS is the programs' frame rate. A voxel picture changes in steps,
@@ -184,7 +229,7 @@ func (w vtWriter) Write(p []byte) (int, error) {
 
 // start gives every sheet a terminal and starts its program in it, the same
 // way it would be started from a shell.
-func (l *latticeModel) start(n int, args []string) {
+func (l *latticeModel) start(n int, args []string, fig bool) {
 	l.sheets = l.sheets[:0]
 	for _, a := range []lattice.Axis{lattice.X, lattice.Y, lattice.Z} {
 		for k := range n {
@@ -199,6 +244,9 @@ func (l *latticeModel) start(n int, args []string) {
 			// The program learns the resolution from its terminal, as it would
 			// from a window: as many voxels as rows, and as many sheets.
 			prog.Resize(2*n, n)
+			if fig {
+				prog.Show(&l.fig) // the host's figure, as -figure would read one from a file
+			}
 			writes := new(uint64)
 			if err := prog.Enter(vtWriter{term, writes}); err != nil {
 				continue
@@ -216,11 +264,19 @@ func (l *latticeModel) start(n int, args []string) {
 
 // generate is the model's frame: the programs draw when their interval is up,
 // and every sheet's screen is drawn as it stands.
-func (l *latticeModel) generate() {
-	n, args := l.args()
-	if sig := joinArgs(args); sig != l.sig {
+func (l *latticeModel) generate() { l.frame(false) }
+
+// frame is a frame of the lattice: of the Lattice's own solid, or of the
+// figure the model chosen drew (fig, latticeGenerate).
+func (l *latticeModel) frame(fig bool) {
+	n, args := l.args(fig)
+	sig := joinArgs(args)
+	if fig {
+		sig += "(figure)"
+	}
+	if sig != l.sig {
 		l.sig = sig
-		l.start(n, args)
+		l.start(n, args, fig)
 	}
 	l.turn()
 	m := l.stackMat
@@ -318,7 +374,7 @@ func joinArgs(a []string) string {
 const latticeExtent = 1.4
 
 // armFit makes the next frame frame the camera on the volume.
-func (l *latticeModel) armFit() { l.fitted = false }
+func (l *latticeModel) armFit() { l.fitted, l.figExt = false, 0 }
 
 // How the sheets are put together on screen: LOOK.
 //

@@ -662,3 +662,104 @@ fine trim
 
 <!-- key: knob-endless -->
 An endless knob: {what}. Each turn lights the ring in the next LED color, sweeping over the last.
+
+## Lattice
+
+<!-- key: lattice -->
+Lattice — any model drawn in depth by terminals. Each sheet of the stack is a real terminal running \[lattice\](https://github.com/0magnet/lattice), and each draws its own slice of the volume: with the Lattice model, its solid; with L lit on ROWS, the model chosen, whatever it is. The model's trail, mesh or dots are the figure every program is handed, and a voxel is lit where the figure passes through it, written as the way the figure runs across the sheet. The model keeps its own knobs in the bank, so it is played as ever; these six are how the lattice draws it. Pictures and terminals, which are flat already, are not drawn in it.
+
+### ROWS
+
+<!-- key: lattice-n-cell -->
+ROWS — each terminal's height in rows, which is its resolution: the programs read their terminal's size, as programs do, and draw that many voxels across. A family has as many sheets as a terminal has rows, so this is the volume's resolution in all three dimensions: more rows is a terminal zoomed out to smaller characters, and a finer volume. 3 × rows terminals of 2 × rows columns; finer costs more. Button: L draws the model chosen in the lattice.
+
+<!-- key: slider-value-latrows -->
+Rows — type or scroll
+
+<!-- key: lattice-n -->
+Rows — each terminal's height, and the volume's resolution
+
+<!-- key: rst-lattice-n -->
+Reset rows (12)
+
+### ROWS button
+
+- <!-- key: trio.lattice-n=0 --> L: the model chosen, drawn by the lattice instead of on its own
+
+<!-- key: lat-on -->
+L — the model chosen, drawn by the lattice
+
+### STYLE
+
+<!-- key: lattice-style-cell -->
+STYLE — how each terminal writes what crosses its sheet.
+
+<!-- key: lattice-style -->
+Style — how each terminal writes what crosses its sheet
+
+- <!-- key: lattice-style=0 --> lines — the line a surface makes across the sheet, or the way a figure runs across it, ─ │ ╱ ╲, and · where it lies along the sheet or runs through it
+- <!-- key: lattice-style=1 --> ascii — the same in - | / \ and .
+- <!-- key: lattice-style=2 --> shade — how squarely it crosses the sheet, .:-=+*# from lying in it to standing across it
+- <!-- key: lattice-style=3 --> solid — every voxel it passes through, filled
+
+<!-- key: rst-lattice-style -->
+Reset style (lines)
+
+### LOOK
+
+<!-- key: lattice-look-cell -->
+LOOK — how the sheets are put together on screen.
+
+<!-- key: lattice-look -->
+Look — how the sheets are put together on screen
+
+- <!-- key: lattice-look=0 --> glass — as a desktop composites translucent terminal windows: each sheet's default background at OPAC, its text and any background color a program sets opaque, every piece laid over what is behind it, back to front
+- <!-- key: lattice-look=1 --> light — a volumetric display rather than terminals: no backgrounds, each character added to what is behind it as light, and each family of sheets faded as it turns edge on
+
+<!-- key: rst-lattice-look -->
+Reset look (glass)
+
+### OPAC
+
+<!-- key: lattice-opac-cell -->
+OPAC — every terminal's background opacity, in percent: the setting a translucent terminal emulator has (kitty's background_opacity, alacritty's window.opacity), never something a program asks for. It applies to the default background, which is black; text stays opaque. At 0 only the text is there; higher, each sheet darkens what is behind it, so the far side is dimmer than the near.
+
+<!-- key: slider-value-latopac -->
+Opacity — type or scroll, in percent
+
+<!-- key: lattice-opac -->
+Opacity — every terminal's background, in percent
+
+<!-- key: rst-lattice-opac -->
+Reset opacity (10%)
+
+### STACKS
+
+<!-- key: lattice-stacks-cell -->
+STACKS — which families of sheets there are. Fewer families are fewer terminals and less to draw: a family that is not shown does not run its programs either.
+
+<!-- key: lattice-stacks -->
+Stacks — which families of sheets there are
+
+- <!-- key: lattice-stacks=0 --> xyz — all three, so the volume has depth from every side
+- <!-- key: lattice-stacks=1 --> auto — all three while they face you, a family dropped as it turns within about 12° of edge on, where it shows next to nothing; the family facing you most is always kept
+- <!-- key: lattice-stacks=2 --> xz — the two upright families: seen from above or below, you look along their edges
+- <!-- key: lattice-stacks=3 --> z — the front sheets alone: a stack of terminals, seen best from the front or behind
+
+<!-- key: rst-lattice-stacks -->
+Reset stacks (xyz)
+
+### TURN
+
+<!-- key: lattice-turn-cell -->
+TURN — what turning the view turns. The programs are told the way any program is told anything, on their input: each is sent a pose, the view's turn or its inverse, which lattice applies to what it draws.
+
+<!-- key: lattice-turn -->
+Turn — what turning the view turns
+
+- <!-- key: lattice-turn=0 --> both — the stack and what is in it turn together
+- <!-- key: lattice-turn=1 --> lattice — the stack turns and what is in it holds still: it moves through the grid as the grid turns round it, every terminal redrawing as it goes
+- <!-- key: lattice-turn=2 --> solid — the stack stays square to the screen and what is in it turns inside
+
+<!-- key: rst-lattice-turn -->
+Reset turn (both)

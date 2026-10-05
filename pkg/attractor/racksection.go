@@ -153,6 +153,7 @@ var moduleSections = map[string]string{
 	"display":         secDisplay,
 	"layers · colors": secDisplay,
 	"spectro":         secDisplay,
+	"lattice":         secDisplay,
 
 	// Everything that MAKES a signal, under the scope that draws one.
 	"scope 1": secGen,
@@ -315,7 +316,7 @@ func sectionOrderOf(items []packItem) []int {
 //
 // Anything not listed keeps its declared order, after these.
 var moduleOrder = []string{
-	"record", "view", "grid", "display", "layers · colors",
+	"record", "view", "grid", "display", "layers · colors", "lattice",
 	"console", "style", "presets", "counter", "distortion", "loudness", "wow & flutter", "features", "timing",
 	"scope 1", "gen 1", "scope 2", "gen 2", "scope 3", "gen 3", "scope 4", "gen 4",
 	"synth", "string", "fm", "wave · noise", "filter", "amp",

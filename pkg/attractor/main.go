@@ -924,6 +924,8 @@ func registerViewControls() {
 	adoptDescControl(ControlDesc{ID: "dash-duty", Label: "Points", Min: 0, Max: 4000, Step: 10, Def: 0,
 		PermaKey: "pts", LEDID: "slider-value-dash", ResetID: "rst-dash",
 		Apply: func(v float64) { pointCount = float32(v) }})
+	// The Lattice module, beside the Display (lattice_js.go).
+	wireLatticeModule()
 }
 
 // wireColorAndViewControls wires the gradient and color cells, and the view
@@ -1300,6 +1302,7 @@ func wireViewGridStack() {
 	// The Grid's P-units, before its dials are filled (gridbank_js.go).
 	buildGridBank()
 	buildPUnitModule("display-bank")
+	buildPUnitModule("lattice-bank")
 	buildPUnitModule("layers-bank")
 	// The sweep dial: what varies across the grid. Its options are the
 	// current mode's own parameters, so building it is a function the

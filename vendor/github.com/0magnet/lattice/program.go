@@ -28,8 +28,9 @@ type Program struct {
 
 	// How the solid stood when the screen was last drawn: a solid that has
 	// not moved draws the same screen, so it is not drawn again.
-	drawnAs turn
-	drawn   bool
+	drawnAs  turn
+	drawnGen uint64 // the figure's generation, when there is one
+	drawn    bool
 }
 
 // options are the command line's.
@@ -42,7 +43,8 @@ type options struct {
 	spin, pitch float64 // degrees a second, degrees
 	fps         float64
 	once, tile  bool
-	cols        int // the terminal's width, for -tile
+	fig         *Figure // what is drawn instead of a solid, if anything
+	cols        int     // the terminal's width, for -tile
 
 	// fixedN is -n: the resolution, or 0 for the terminal's own (Resize).
 	// slice is -slice, or -1 for the middle of whatever the resolution is.
@@ -58,6 +60,7 @@ func NewProgram(args []string, stderr io.Writer) (*Program, error) {
 	axis := fs.String("axis", "z", "the sheet's axis: x, y or z")
 	slice := fs.Int("slice", -1, "the sheet's slice, 0 to n-1 (default the middle)")
 	shape := fs.String("shape", "sphere", "the solid: "+strings.Join(ShapeNames(), ", "))
+	figure := fs.String("figure", "", "draw the lines and points in this file instead of a solid: x y z a line, a blank line between polylines")
 	style := fs.String("style", "lines", "how the surface is written: lines, ascii, shade or solid")
 	mono := fs.Bool("mono", false, "one color, not colored by position")
 	noColor := fs.Bool("no-color", os.Getenv("NO_COLOR") != "", "no color escapes at all")
@@ -99,6 +102,19 @@ func NewProgram(args []string, stderr io.Writer) (*Program, error) {
 	if !(o.fps > 0) {
 		return nil, fmt.Errorf("-fps %v: want more than 0", o.fps)
 	}
+	if *figure != "" {
+		f, err := os.Open(*figure)
+		if err != nil {
+			return nil, err
+		}
+		lines, err := ReadFigure(f)
+		_ = f.Close() //nolint:errcheck // read-only
+		if err != nil {
+			return nil, fmt.Errorf("-figure %s: %w", *figure, err)
+		}
+		o.fig = new(Figure)
+		o.fig.Set(lines)
+	}
 	return &Program{o: o, pose: Identity}, nil
 }
 
@@ -137,6 +153,15 @@ func envCols() int {
 	return 160
 }
 
+// Show has the program draw figure f instead of its solid, as -figure does
+// from a file: the host's way of handing every program of a stack the same
+// figure, voxelized once. f may change (Figure.Set) between frames; the next
+// frame draws it. nil goes back to the solid.
+func (p *Program) Show(f *Figure) {
+	p.o.fig = f
+	p.drawn = false
+}
+
 // Sheet is the section this program draws.
 func (p *Program) Sheet() Sheet { return p.o.sheet }
 
@@ -158,10 +183,14 @@ func (p *Program) Frame(t time.Time) error {
 		return fmt.Errorf("lattice: Frame before Enter")
 	}
 	tu := turn{yaw: p.o.yaw(t) + p.keyYaw, pitch: p.o.pitch*math.Pi/180 + p.keyPitch, pose: p.pose}
-	if p.drawn && tu == p.drawnAs {
+	var gen uint64
+	if p.o.fig != nil {
+		gen = p.o.fig.generation()
+	}
+	if p.drawn && tu == p.drawnAs && gen == p.drawnGen {
 		return nil
 	}
-	p.drawnAs, p.drawn = tu, true
+	p.drawnAs, p.drawnGen, p.drawn = tu, gen, true
 	return p.sc.draw(p.o.frameAt(tu))
 }
 
@@ -208,15 +237,20 @@ func (o options) frame(t time.Time) Frame { return o.frameAt(o.turnAt(t)) }
 
 // frameAt is frame with the solid standing as tu says.
 func (o options) frameAt(tu turn) Frame {
-	s := o.solidAt(tu)
+	draw := func(sh Sheet) Frame {
+		if o.fig != nil {
+			return renderFigure(sh, o.fig, tu, o.style, o.coloring)
+		}
+		return Render(sh, o.solidAt(tu), o.style, o.coloring)
+	}
 	if !o.tile {
-		return Render(o.sheet, s, o.style, o.coloring)
+		return draw(o.sheet)
 	}
 	fs := make([]Frame, o.sheet.N)
 	for k := range fs {
 		sh := o.sheet
 		sh.Slice = k
-		fs[k] = Render(sh, s, o.style, o.coloring)
+		fs[k] = draw(sh)
 	}
 	return tiled(fs, o.sheet.Axis, o.cols)
 }
