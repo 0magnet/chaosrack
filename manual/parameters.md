@@ -681,46 +681,11 @@ shape — the solid the terminals draw.
 - <!-- key: p.lattice-shape=3 --> sphere — a sphere
 - <!-- key: p.lattice-shape=4 --> torus — a ring
 
-<!-- key: p.lattice-style -->
-style — how each terminal writes the surface where it crosses its sheet.
-
-- <!-- key: p.lattice-style=0 --> lines — the line the surface makes across the sheet, ─ │ ╱ ╲, and · where it lies along the sheet instead
-- <!-- key: p.lattice-style=1 --> ascii — the same in - | / \ and .
-- <!-- key: p.lattice-style=2 --> shade — how squarely the surface crosses the sheet, .:-=+*# from lying in it to standing across it
-- <!-- key: p.lattice-style=3 --> solid — every voxel the surface passes through, filled
-
-<!-- key: p.lattice-n -->
-rows — each terminal's height in rows, which is its resolution: the programs read their terminal's size, as programs do, and draw that many voxels across. A family has as many sheets as a terminal has rows, so this is the volume's resolution in all three dimensions: more rows is a terminal zoomed out to smaller characters, and a finer solid. 3 × rows terminals of 2 × rows columns; finer costs more.
-
 <!-- key: p.lattice-spin -->
 spin — how fast the solid turns, in degrees a second, by the time of day: every terminal running lattice with the same spin shows it at the same angle.
 
 <!-- key: p.lattice-tilt -->
 tilt — how far the solid leans toward the viewer of the front sheets, in degrees.
-
-<!-- key: p.lattice-look -->
-look — how the sheets are put together on screen.
-
-- <!-- key: p.lattice-look=0 --> glass — as a desktop composites translucent terminal windows: each sheet's default background at OPAC, its text and any background color a program sets opaque, every piece laid over what is behind it, back to front
-- <!-- key: p.lattice-look=1 --> light — a volumetric display rather than terminals: no backgrounds, each character added to what is behind it as light, and each family of sheets faded as it turns edge on
-
-<!-- key: p.lattice-opac -->
-opac — every terminal's background opacity, in percent: the setting a translucent terminal emulator has (kitty's background_opacity, alacritty's window.opacity), never something a program asks for. It applies to the default background, which is black; text stays opaque. At 0 only the text is there; higher, each sheet darkens what is behind it, so the far side of the solid is dimmer than the near.
-
-<!-- key: p.lattice-stacks -->
-stacks — which families of sheets there are. Fewer families are fewer terminals and less to draw: a family that is not shown does not run its programs either.
-
-- <!-- key: p.lattice-stacks=0 --> xyz — all three, so the solid has depth from every side
-- <!-- key: p.lattice-stacks=1 --> auto — all three while they face you, a family dropped as it turns within about 12° of edge on, where it shows next to nothing; the family facing you most is always kept
-- <!-- key: p.lattice-stacks=2 --> xz — the two upright families: seen from above or below, you look along their edges
-- <!-- key: p.lattice-stacks=3 --> z — the front sheets alone: a stack of terminals, seen best from the front or behind
-
-<!-- key: p.lattice-turn -->
-turn — what turning the view turns. The programs are told the way any program is told anything, on their input: each is sent a pose, the view's turn or its inverse, which lattice applies to the solid after its own spin.
-
-- <!-- key: p.lattice-turn=0 --> both — the stack and the solid in it turn together
-- <!-- key: p.lattice-turn=1 --> lattice — the stack turns and the solid holds still: its surface moves through the grid as the grid turns round it, every terminal redrawing as it goes
-- <!-- key: p.lattice-turn=2 --> solid — the stack stays square to the screen and the solid turns inside it
 
 ## Model Out
 

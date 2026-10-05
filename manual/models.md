@@ -586,3 +586,5 @@ Lattice — a solid drawn in depth by terminals. \[lattice\](https://github.com/
 The terminals are real: each is xterm-go's emulator, and each program writes into it the same escape sequences it writes into any terminal. Only the drawing is the rack's, every character on a clear sheet, because a cell at the default background is clear, as it is in a translucent terminal. Seen from behind, a sheet reads mirrored, as glass does.
 
 The solid is turned by the time of day, not by the rack: `lattice -axis z -slice 6` in a real terminal of 24 columns by 12 rows beside the page draws the same slice at the same moment, because a terminal's size is the resolution — zoom it out and it draws a finer one.
+
+The Lattice module (in the View bay) is how the sheets are drawn: their rows, style, look, opacity, which families there are and what the view turns. Its L draws any other model the same way, from that model's trail, mesh or dots.

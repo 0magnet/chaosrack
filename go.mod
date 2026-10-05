@@ -8,7 +8,7 @@ require (
 	github.com/0magnet/cdp v0.0.0-20261004204826-811baa47398a
 	github.com/0magnet/desk v0.0.2
 	github.com/0magnet/desk/panes v0.0.1-0.20261004200012-7ac6a12489c1
-	github.com/0magnet/lattice v0.0.0-20261005015557-fba824203855
+	github.com/0magnet/lattice v0.0.0-20261005194210-18b206cca15b
 	github.com/0magnet/pisano v0.0.0-20261004211513-5a805f600706
 	github.com/0magnet/rack-go v0.0.0-20261004205201-f263c45bb646
 	github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5

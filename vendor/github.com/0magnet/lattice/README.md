@@ -70,6 +70,11 @@ colored by where it is, so it is the same color in all three.
   crosses the sheet, `.:-=+*#`; `solid` fills every lit voxel.
 - `-spin` and `-pitch` turn and tilt the solid, in degrees a second and
   degrees. `-mono` is one green; `-no-color` (or `NO_COLOR`) none at all.
+- `-figure FILE` draws lines and points instead of a solid: a trajectory, a
+  wire-frame, a cloud of dots, written `x y z` a line with a blank line between
+  polylines, and scaled to fit. A voxel is lit where the figure passes through
+  it, and written as the way the figure runs across the sheet: `─ │ ╱ ╲`, or `·`
+  where it runs through the sheet instead; a lone point is `•`.
 
 Only the cells that changed are sent, so a mostly still, mostly empty sheet
 costs almost nothing to keep on screen.
@@ -90,6 +95,10 @@ for t := range frames {
 }
 p.Leave()
 ```
+
+A host with a figure that changes, a model that moves, hands every program the
+same `*lattice.Figure` with `p.Show(f)` and `f.Set(lines)` when it moves: the
+figure is voxelized once for all of them.
 
 `Sheet`, `BasisOf` and `Render` are the geometry underneath it, for a host
 that places the sheets in space.

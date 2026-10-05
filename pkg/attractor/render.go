@@ -495,9 +495,9 @@ func (c *camera) updateModelMatrix() {
 // (hyper-Rössler), fitting the instantaneous arc left the camera blind for
 // most of the orbit. It is consumed and cleared here.
 func (vs *viewState) autoFitCamera() {
-	// The Lattice draws through a program of its own and uploads nothing
-	// here: gpu.verts is whatever the last model left. Its volume is fixed.
-	if run.selectedMode == "lattice" {
+	// The Lattice draws through a program of its own, and so does a model
+	// drawn in it: what is on screen is the volume, which is fixed.
+	if run.selectedMode == "lattice" || latticeDraws(run.selectedMode) {
 		vs.fitOverride = latticeExtent
 	} else if len(gpu.verts) < 3 {
 		return
@@ -651,7 +651,11 @@ func generateForMode(mode string) {
 		return
 	}
 	if fn := modeGenerate[mode]; fn != nil {
-		beamGenerate(mode, fn)
+		if latticeDraws(mode) {
+			latticeGenerate(fn)
+		} else {
+			beamGenerate(mode, fn)
+		}
 	}
 	restoreAudioModulation(saved)
 	ring.primeAfterScan(mode)
