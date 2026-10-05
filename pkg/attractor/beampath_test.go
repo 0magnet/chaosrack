@@ -71,3 +71,22 @@ func TestBeamFromStrip(t *testing.T) {
 		t.Errorf("closed strip lit %v", closed.lit)
 	}
 }
+
+func TestBeamHzFitsItsDisplay(t *testing.T) {
+	for _, c := range []struct {
+		hz   float64
+		want string
+	}{
+		{0, "--"}, {math.NaN(), "--"}, {math.Inf(1), "--"}, {-3, "--"},
+		{0.5, "0.500"}, {9.9994, "9.999"}, {55, "55.00"}, {440, "440.0"},
+		{1234.4, "1234"}, {9999999, "9999999"}, {1e8, ">9999999"},
+	} {
+		got := beamHzText(c.hz)
+		if got != c.want {
+			t.Errorf("beamHzText(%v) = %q, want %q", c.hz, got, c.want)
+		}
+		if len(got) > dispFullChars {
+			t.Errorf("beamHzText(%v) = %q: longer than a full display", c.hz, got)
+		}
+	}
+}

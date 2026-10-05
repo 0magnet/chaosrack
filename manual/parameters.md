@@ -737,7 +737,7 @@ solid always sounds this way; a figure does while B is on.
 ### SPD
 
 <!-- key: p.mo-spd -->
-Model Out SPD — how fast the model runs as a signal, in semitones: every 12 up is twice as fast, an octave higher. For a system of equations, integrator steps per sample, 0 being one step a sample; the pitch is the system's own. For a beam, its speed round the figure, so the pitch is that speed over the figure's length.
+Model Out SPD — how fast the model runs as a signal, in semitones: every 12 up is twice as fast, an octave higher. For a system of equations, integrator steps per sample, 0 being one step a sample; the pitch is the system's own. For a beam, its speed round the figure, so the pitch is that speed over the figure's length, which the HZ readout over the equation shows.
 
 - <!-- key: trio.mo-spd=0 --> B: beam — the display is a vector display: one beam runs round the figure at SPD's speed, measured on the clock and not in frames, and each frame draws only what it covered; the phosphor holds the rest. Fast enough to go round within a frame it draws the whole figure, as with B off. Model Out plays the same beam.
 - <!-- key: trio.mo-spd=1 --> C: camera — the beam is measured and heard as the camera sees the figure (x and y on the screen, z its depth) rather than in the model's own coordinates. Turning the view then changes the sound, and a scope fed X and Y draws the picture on the screen.
@@ -965,6 +965,11 @@ dt — the integration time step: how far the system advances on each step. Smal
 
 <!-- key: ro.lyap -->
 Largest Lyapunov exponent, measured live from a pair of trajectories started a hair apart: how fast two nearby states of THIS system, at these coefficients, separate. Positive is chaos — prediction has a horizon of roughly 1/λ — and the bigger it is the shorter that horizon. About zero is a limit cycle or a torus. Negative is settling to a fixed point. Per unit of MODEL time, not per second: it does not change when the browser is busy, and it does change with dt and with Speed, because the thing being integrated changes with them. "λ --" means not enough model time has been averaged yet for the number to mean anything; it clears itself after a second or so. Analysis → lyap is the same quantity measured at length on demand, to three decimals.
+
+#### hz (beam circuit)
+
+<!-- key: ro.hz -->
+The beam's circuit frequency, in Hz: how many times a second it goes round the figure, which is SPD's speed over the figure's length and the pitch Model Out plays it at. Measured in whichever coordinates C picks, so with C on, turning the view changes it. A longer figure goes round fewer times at the same speed: this is how much the figure itself has to say about the pitch. It reads while the beam draws (B) or is heard — a solid is always heard by its beam — and "--" otherwise.
 
 #### r (XY correlation)
 
