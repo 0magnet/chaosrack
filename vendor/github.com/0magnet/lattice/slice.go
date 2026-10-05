@@ -54,23 +54,76 @@ const (
 // Lit reports whether the surface of s passes through the voxel centered at
 // p, n to a side: whether the distance changes sign between its corners.
 // Decided per voxel and not per sheet, so the three sheets through a voxel
-// agree about it.
+// agree about it — exactly, because a corner's coordinates come from its
+// index alone (edge), the same arithmetic whichever sheet asks.
 func Lit(s Shape, p Vec3, n int) bool {
-	h := 1 / float64(n) // half a voxel
+	var i [3]int
+	for a := range 3 {
+		i[a] = max(0, min(n-1, int(math.Floor((p[a]+1)/2*float64(n)))))
+	}
 	lo, hi := math.Inf(1), math.Inf(-1)
-	for i := range 8 {
-		c := Vec3{p[0] + h*sign(i&1), p[1] + h*sign(i&2), p[2] + h*sign(i&4)}
-		d := s(c)
+	for c := range 8 {
+		d := s(Vec3{edge(i[0]+c&1, n), edge(i[1]+c>>1&1, n), edge(i[2]+c>>2&1, n)})
 		lo, hi = math.Min(lo, d), math.Max(hi, d)
 	}
 	return lo <= 0 && hi >= 0
 }
 
-func sign(bit int) float64 {
-	if bit != 0 {
-		return 1
+// edge is the coordinate of the i-th of the n+1 planes between voxels.
+func edge(i, n int) float64 { return -1 + 2*float64(i)/float64(n) }
+
+// slab is a sheet's voxel corners, the distance at each evaluated once: a
+// voxel's eight corners are shared with its neighbors', so finding every lit
+// voxel of a sheet corner by corner would evaluate each corner up to eight
+// times over.
+type slab struct {
+	n, k   int // the sheet's size, and its slice: its corners are at k and k+1 along the normal
+	na     int // the normal's axis
+	o1, o2 int // the other two, in order
+	d      []float64
+}
+
+// newSlab evaluates s at every corner of sheet sh.
+func newSlab(s Shape, sh Sheet) *slab {
+	na := [...]int{X: 0, Y: 1, Z: 2}[sh.Axis]
+	o := [3][2]int{{1, 2}, {0, 2}, {0, 1}}[na]
+	m := sh.N + 1
+	sl := &slab{n: sh.N, k: sh.Slice, na: na, o1: o[0], o2: o[1], d: make([]float64, 2*m*m)}
+	for l := range 2 {
+		for a := range m {
+			for b := range m {
+				var c [3]int
+				c[na], c[sl.o1], c[sl.o2] = sh.Slice+l, a, b
+				sl.d[(l*m+a)*m+b] = s(Vec3{edge(c[0], sh.N), edge(c[1], sh.N), edge(c[2], sh.N)})
+			}
+		}
 	}
-	return -1
+	return sl
+}
+
+// lit is Lit for the voxel at world indices i, from the slab's corners.
+func (sl *slab) lit(i [3]int) bool {
+	m := sl.n + 1
+	lo, hi := math.Inf(1), math.Inf(-1)
+	for c := range 8 {
+		j := [3]int{i[0] + c&1, i[1] + c>>1&1, i[2] + c>>2&1}
+		d := sl.d[((j[sl.na]-sl.k)*m+j[sl.o1])*m+j[sl.o2]]
+		lo, hi = math.Min(lo, d), math.Max(hi, d)
+	}
+	return lo <= 0 && hi >= 0
+}
+
+// index is the voxel at column u, row v of sheet sh, as indices along x, y
+// and z: the inverse of Voxel's placing, in whole voxels.
+func (sh Sheet) index(u, v int) [3]int {
+	n := sh.N
+	switch sh.Axis {
+	case X:
+		return [3]int{sh.Slice, n - 1 - v, n - 1 - u}
+	case Y:
+		return [3]int{u, sh.Slice, v}
+	}
+	return [3]int{u, n - 1 - v, sh.Slice}
 }
 
 // Render draws sheet sh of shape s.
@@ -78,12 +131,13 @@ func Render(sh Sheet, s Shape, st Style, co Coloring) Frame {
 	f := Frame{Cols: sh.Cols(), Rows: sh.Rows()}
 	f.Cells = make([]Cell, f.Cols*f.Rows)
 	b := BasisOf(sh.Axis)
+	sl := newSlab(s, sh)
 	for v := range sh.N {
 		for u := range sh.N {
-			p := sh.Voxel(u, v)
-			if !Lit(s, p, sh.N) {
+			if !sl.lit(sh.index(u, v)) {
 				continue
 			}
+			p := sh.Voxel(u, v)
 			ch := glyph(gradient(s, p, 0.5/float64(sh.N)), b, st)
 			r, g, bl := color(p, co)
 			c := Cell{Ch: ch, R: r, G: g, B: bl}

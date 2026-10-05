@@ -495,7 +495,11 @@ func (c *camera) updateModelMatrix() {
 // (hyper-Rössler), fitting the instantaneous arc left the camera blind for
 // most of the orbit. It is consumed and cleared here.
 func (vs *viewState) autoFitCamera() {
-	if len(gpu.verts) < 3 {
+	// The Lattice draws through a program of its own and uploads nothing
+	// here: gpu.verts is whatever the last model left. Its volume is fixed.
+	if run.selectedMode == "lattice" {
+		vs.fitOverride = latticeExtent
+	} else if len(gpu.verts) < 3 {
 		return
 	}
 	maxAbs := float32(0)

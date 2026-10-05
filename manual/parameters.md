@@ -698,6 +698,15 @@ spin — how fast the solid turns, in degrees a second, by the time of day: ever
 <!-- key: p.lattice-tilt -->
 tilt — how far the solid leans toward the viewer of the front sheets, in degrees.
 
+<!-- key: p.lattice-look -->
+look — how the sheets are put together on screen.
+
+- <!-- key: p.lattice-look=0 --> glass — as a desktop composites translucent terminal windows: each sheet's default background at OPAC, its text and any background color a program sets opaque, every piece laid over what is behind it, back to front
+- <!-- key: p.lattice-look=1 --> light — a volumetric display rather than terminals: no backgrounds, each character added to what is behind it as light, and each family of sheets faded as it turns edge on
+
+<!-- key: p.lattice-opac -->
+opac — every terminal's background opacity, in percent: the setting a translucent terminal emulator has (kitty's background_opacity, alacritty's window.opacity), never something a program asks for. It applies to the default background, which is black; text stays opaque. At 0 only the text is there; higher, each sheet darkens what is behind it, so the far side of the solid is dimmer than the near.
+
 ## Model Out
 
 The model as a sound: its own equations run at audio rate, so its x, y and z
