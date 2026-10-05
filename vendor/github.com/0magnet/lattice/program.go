@@ -1,6 +1,7 @@
 package lattice
 
 import (
+	"cmp"
 	"flag"
 	"fmt"
 	"io"
@@ -42,6 +43,10 @@ type options struct {
 	fps         float64
 	once, tile  bool
 	cols        int // the terminal's width, for -tile
+
+	// fixedN is -n: the resolution, or 0 for the terminal's own (Resize).
+	// slice is -slice, or -1 for the middle of whatever the resolution is.
+	fixedN, slice int
 }
 
 // NewProgram parses a command line (without the program name). Usage and
@@ -49,7 +54,7 @@ type options struct {
 func NewProgram(args []string, stderr io.Writer) (*Program, error) {
 	fs := flag.NewFlagSet("lattice", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	n := fs.Int("n", 16, "voxels along each axis")
+	n := fs.Int("n", 0, "voxels along each axis (default the terminal's rows, or half its columns if fewer)")
 	axis := fs.String("axis", "z", "the sheet's axis: x, y or z")
 	slice := fs.Int("slice", -1, "the sheet's slice, 0 to n-1 (default the middle)")
 	shape := fs.String("shape", "sphere", "the solid: "+strings.Join(ShapeNames(), ", "))
@@ -66,20 +71,22 @@ func NewProgram(args []string, stderr io.Writer) (*Program, error) {
 		return nil, err
 	}
 	o := options{shape: *shape, color: !*noColor, spin: *spin, pitch: *pitch, fps: *fps, once: *once, tile: *tile, cols: *cols}
-	if *n < 2 || *n > 256 {
+	if *n != 0 && (*n < 2 || *n > 256) {
 		return nil, fmt.Errorf("-n %d: want 2 to 256", *n)
+	}
+	if *n == 0 && *tile {
+		*n = 16 // every slice side by side cannot also be the terminal's size
 	}
 	a, ok := ParseAxis(*axis)
 	if !ok {
 		return nil, fmt.Errorf("-axis %q: want x, y or z", *axis)
 	}
-	if *slice < 0 {
-		*slice = *n / 2
-	}
-	if *slice >= *n {
+	if *n != 0 && *slice >= *n {
 		return nil, fmt.Errorf("-slice %d: want 0 to %d", *slice, *n-1)
 	}
-	o.sheet = Sheet{Axis: a, Slice: *slice, N: *n}
+	o.fixedN, o.slice = *n, max(*slice, -1)
+	o.sheet = Sheet{Axis: a}
+	o.setN(cmp.Or(*n, 16)) // until the terminal says how big it is
 	if _, ok := Shapes[*shape]; !ok {
 		return nil, fmt.Errorf("-shape %q: want one of %s", *shape, strings.Join(ShapeNames(), ", "))
 	}
@@ -93,6 +100,33 @@ func NewProgram(args []string, stderr io.Writer) (*Program, error) {
 		return nil, fmt.Errorf("-fps %v: want more than 0", o.fps)
 	}
 	return &Program{o: o, pose: Identity}, nil
+}
+
+// setN sets the resolution, and the slice within it.
+func (o *options) setN(n int) {
+	o.sheet.N = n
+	o.sheet.Slice = n / 2
+	if o.slice >= 0 {
+		o.sheet.Slice = min(o.slice, n-1)
+	}
+}
+
+// Resize tells the program its terminal's size, in columns and rows, as a
+// terminal tells its program when its window changes. Without -n the size is
+// the resolution: as many voxels across as the terminal has rows (or half
+// its columns, a voxel being two characters wide, if that is fewer), and so
+// as many sheets in every family of a stack. A terminal zoomed out to more,
+// smaller characters is a finer volume in all three dimensions.
+func (p *Program) Resize(cols, rows int) {
+	p.o.cols = cols
+	if p.o.fixedN != 0 {
+		return
+	}
+	n := max(2, min(256, rows, cols/2))
+	if n != p.o.sheet.N {
+		p.o.setN(n)
+		p.drawn = false
+	}
 }
 
 // envCols is the terminal's width as the shell reports it, or 160.

@@ -128,7 +128,7 @@ func init() {
 	attractorParams["lattice"] = []paramDef{
 		{"lattice-shape", "shp", &lat.shapeF, latticeSphere, 0, float32(len(lattice.ShapeNames()) - 1), 1},
 		{"lattice-style", "styl", &lat.styleF, 0, 0, float32(len(latticeStyles) - 1), 1},
-		{"lattice-n", "n", &lat.nF, 12, 6, 24, 1},
+		{"lattice-n", "rows", &lat.nF, 12, 6, 24, 1},
 		{"lattice-spin", "spin", &lat.spinF, 20, -90, 90, 1},
 		{"lattice-tilt", "tilt", &lat.tiltF, 20, -90, 90, 1},
 		{"lattice-look", "look", &lat.lookF, 0, 0, float32(len(latticeLooks) - 1), 1},
@@ -149,12 +149,12 @@ func init() {
 	quietParams["lattice-turn"] = true
 }
 
-// args are the command line each sheet's program is started with.
+// args are the command line each sheet's program is started with, and n the
+// rows of its terminal: no -n, because the terminal's size is the resolution.
 func (l *latticeModel) args() (n int, args []string) {
 	n = max(2, int(l.nF+0.5))
 	f := func(v float32) string { return strconv.FormatFloat(float64(v), 'f', -1, 32) }
 	return n, []string{
-		"-n", strconv.Itoa(n),
 		"-shape", lattice.ShapeNames()[pick(l.shapeF, len(lattice.ShapeNames()))],
 		"-style", latticeStyles[pick(l.styleF, len(latticeStyles))],
 		"-spin", f(l.spinF),
@@ -196,6 +196,9 @@ func (l *latticeModel) start(n int, args []string) {
 			if err != nil {
 				continue // the knobs' ranges keep this from happening
 			}
+			// The program learns the resolution from its terminal, as it would
+			// from a window: as many voxels as rows, and as many sheets.
+			prog.Resize(2*n, n)
 			writes := new(uint64)
 			if err := prog.Enter(vtWriter{term, writes}); err != nil {
 				continue
