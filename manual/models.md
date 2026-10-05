@@ -577,3 +577,12 @@ It needed something from desk to be possible at all. A window is more than its p
 Nothing types into it while it is a model, and that is the arrangement rather than an omission for the MOUSE: a click on a rotated quad would have to be cast through it to a texture coordinate and synthesized back into a DOM event at a place nothing is. What you get instead are two gestures. \*\*Ctrl-drag\*\* reaches the desk, so ctrl-dragging a title bar moves a window while an ordinary drag still turns the model; the \*\*Pass-thru\*\* switch in the Desk module swaps the two if you would rather drag windows directly and hold ctrl to turn. And the KEYBOARD does reach it: \*\*double-click\*\* the canvas to type into the focused window and \*\*Esc\*\* to give the keyboard back, the same pair the Terminal and Host Shell models use.
 
 Aiming is the honest limitation — you are pointing at a projection, so a title bar is not where the pointer says it is. The \*\*Desk\*\* switch (Console → Window) puts the same windows on the page as ordinary DOM, which is the one to use for arranging them; rearrange there, then come back here to look at it. Flatten to work, rotate to admire. It can also be the BACKDROP behind another model, the way the spectrogram and the terminal can.
+
+## Lattice
+
+<!-- key: model.lattice -->
+Lattice — a solid drawn in depth by terminals. \[lattice\](https://github.com/0magnet/lattice) is an ordinary terminal program that draws one cross-section of a turning solid in characters. Here 3N copies of it run, each in a terminal of its own, and the terminals are stacked as transparent sheets: N across each axis, three families each perpendicular to the other two. Whichever way the stack is turned, one family faces you and the other two are edge on, so the solid has depth from every side, and each family is brightened as it comes face on and dimmed as it goes edge on, so the solid stays as bright as it turns.
+
+The terminals are real: each is xterm-go's emulator, and each program writes into it the same escape sequences it writes into any terminal. Only the drawing is the rack's, every character on a clear sheet, because a cell at the default background is clear, as it is in a translucent terminal. Seen from behind, a sheet reads mirrored, as glass does.
+
+The solid is turned by the time of day, not by the rack: `lattice -axis z -slice 6 -n 12` in a real terminal beside the page draws the same slice at the same moment.

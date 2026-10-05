@@ -148,6 +148,9 @@ var modeInfo = map[string]ModeInfo{
 	"termanim": {"Terminal Animation", ClassGeometry, false},
 	"hostterm": {"Host Shell", ClassGeometry, false},
 	"desk":     {"Desk", ClassGeometry, false},
+	// Not a picture on a plane but terminals in depth: 0magnet/lattice drawn
+	// across 3N transparent sheets (lattice_js.go). Geometry, so it turns.
+	"lattice": {"Lattice", ClassGeometry, false},
 }
 
 // modeLabel is a model's display name, or its key when it has none.
@@ -212,7 +215,7 @@ var modeGroups = []struct {
 	// Nor is the STL mode a shape. It is a model browser: a loader for a file
 	// off disk plus a catalog of built-in solids — the rack, the geometry and
 	// every attractor swept as a tube — generated in the browser.
-	{"Solids", []string{"stlfile", "terminal", "termanim", "hostterm", "desk"}},
+	{"Solids", []string{"stlfile", "terminal", "termanim", "hostterm", "desk", "lattice"}},
 	// The Polyhedron is geometry — built, not integrated — and shares
 	// Geometry's monitor and selector. It was five models (the Platonic
 	// solids, one knob each) and the Sphere a sixth; the solids are one model

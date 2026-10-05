@@ -3,23 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Polyhedron — geometry, drawn live in the browser · chaosrack</title>
-<meta name="description" content="Polyhedron — The regular solids and tilings, by Schläfli symbol {p,q}: faces of p sides, q of them at every corner.">
+<title>Lattice — geometry, drawn live in the browser · chaosrack</title>
+<meta name="description" content="Lattice — a solid drawn in depth by terminals. [lattice](https://github.com/0magnet/lattice) is an ordinary terminal program that draws one cross-section of a turning solid in…">
 <meta name="author" content="0magnet">
-<link rel="canonical" href="https://chaosrack.magnetosphere.net/models/polyhedron.html">
+<link rel="canonical" href="https://chaosrack.magnetosphere.net/models/lattice.html">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="magnetosphere">
-<meta property="og:title" content="Polyhedron — geometry, drawn live in the browser · chaosrack">
-<meta property="og:description" content="Polyhedron — The regular solids and tilings, by Schläfli symbol {p,q}: faces of p sides, q of them at every corner.">
-<meta property="og:url" content="https://chaosrack.magnetosphere.net/models/polyhedron.html">
-<meta property="og:image" content="https://chaosrack.magnetosphere.net/docs/img/model/polyhedron.jpg">
+<meta property="og:title" content="Lattice — geometry, drawn live in the browser · chaosrack">
+<meta property="og:description" content="Lattice — a solid drawn in depth by terminals. [lattice](https://github.com/0magnet/lattice) is an ordinary terminal program that draws one cross-section of a turning solid in…">
+<meta property="og:url" content="https://chaosrack.magnetosphere.net/models/lattice.html">
+<meta property="og:image" content="https://chaosrack.magnetosphere.net/docs/img/hero.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Polyhedron — geometry, drawn live in the browser · chaosrack">
-<meta name="twitter:description" content="Polyhedron — The regular solids and tilings, by Schläfli symbol {p,q}: faces of p sides, q of them at every corner.">
-<meta name="twitter:image" content="https://chaosrack.magnetosphere.net/docs/img/model/polyhedron.jpg">
+<meta name="twitter:title" content="Lattice — geometry, drawn live in the browser · chaosrack">
+<meta name="twitter:description" content="Lattice — a solid drawn in depth by terminals. [lattice](https://github.com/0magnet/lattice) is an ordinary terminal program that draws one cross-section of a turning solid in…">
+<meta name="twitter:image" content="https://chaosrack.magnetosphere.net/docs/img/hero.jpg">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","name":"Polyhedron — geometry, drawn live in the browser · chaosrack","url":"https://chaosrack.magnetosphere.net/models/polyhedron.html",
-"description":"Polyhedron — The regular solids and tilings, by Schläfli symbol {p,q}: faces of p sides, q of them at every corner.","primaryImageOfPage":"https://chaosrack.magnetosphere.net/docs/img/model/polyhedron.jpg",
+{"@context":"https://schema.org","@type":"WebPage","name":"Lattice — geometry, drawn live in the browser · chaosrack","url":"https://chaosrack.magnetosphere.net/models/lattice.html",
+"description":"Lattice — a solid drawn in depth by terminals. [lattice](https://github.com/0magnet/lattice) is an ordinary terminal program that draws one cross-section of a turning solid in…","primaryImageOfPage":"https://chaosrack.magnetosphere.net/docs/img/hero.jpg",
 "isPartOf":{"@type":"WebSite","name":"chaosrack","url":"https://chaosrack.magnetosphere.net/"}}
 </script>
 <style>
@@ -63,24 +63,22 @@ h2 { font-size:1.15rem; margin:2.4rem 0 .2rem; padding-bottom:.45rem; border-bot
 </head>
 <body>
 <div class="wrap">
-<header><nav><a href="../">chaosrack</a> › <a href="./">models</a> › Geometry</nav></header>
-<h1>Polyhedron</h1>
-<div class="class">geometry · <code>#polyhedron</code></div>
-<div class="shots">
-<figure><img src="../docs/img/model/polyhedron.jpg" alt="Polyhedron drawn by chaosrack" loading="lazy"><figcaption>Polyhedron</figcaption></figure>
-<figure><img src="../docs/img/model/polyhedron.gif" alt="Polyhedron turning through the palette" loading="lazy"><figcaption>turning</figcaption></figure>
+<header><nav><a href="../">chaosrack</a> › <a href="./">models</a> › Solids</nav></header>
+<h1>Lattice</h1>
+<div class="class">geometry · <code>#lattice</code></div>
 
-</div>
-<p>Polyhedron — The regular solids and tilings, by Schläfli symbol {p,q}: faces of p sides, q of them at every corner. {3,3} is the tetrahedron, {4,3} the cube, {3,4} the octahedron, {5,3} the dodecahedron, {3,5} the icosahedron; where the corners make a full turn the faces tile the plane, and past it they tile the hyperbolic plane, drawn in Poincaré&#39;s disk. On a solid, morph cuts the corners through the rectified solid to the dual, op applies a Conway operator and kis raises a pyramid on every face.</p>
+<p>Lattice — a solid drawn in depth by terminals. [lattice](https://github.com/0magnet/lattice) is an ordinary terminal program that draws one cross-section of a turning solid in characters. Here 3N copies of it run, each in a terminal of its own, and the terminals are stacked as transparent sheets: N across each axis, three families each perpendicular to the other two. Whichever way the stack is turned, one family faces you and the other two are edge on, so the solid has depth from every side, and each family is brightened as it comes face on and dimmed as it goes edge on, so the solid stays as bright as it turns.</p>
+<p>The terminals are real: each is xterm-go&#39;s emulator, and each program writes into it the same escape sequences it writes into any terminal. Only the drawing is the rack&#39;s, every character on a clear sheet, because a cell at the default background is clear, as it is in a translucent terminal. Seen from behind, a sheet reads mirrored, as glass does.</p>
+<p>The solid is turned by the time of day, not by the rack: lattice -axis z -slice 6 -n 12 in a real terminal beside the page draws the same slice at the same moment.</p>
 
 
-<a class="open" href="https://chaosrack.magnetosphere.net/#polyhedron">Open Polyhedron in chaosrack →</a>
+<a class="open" href="https://chaosrack.magnetosphere.net/#lattice">Open Lattice in chaosrack →</a>
 <p class="lead">It opens running, on the model selector, with its own knobs. Rotate it by dragging,
 zoom with the wheel, and turn the parameters to see what the figure does when the system changes.</p>
 <div class="pager">
-<span>← <a href="lattice.html">Lattice</a></span>
+<span>← <a href="desk.html">Desk</a></span>
 <span><a href="./">all models</a></span>
-<span><a href="nestedcube.html">Nested Cube</a> →</span>
+<span><a href="polyhedron.html">Polyhedron</a> →</span>
 </div>
 </div>
 </body>
