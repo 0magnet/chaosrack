@@ -41,25 +41,30 @@ import (
 // latticeModel is the Lattice: its knobs, its sheets and how they are drawn.
 type latticeModel struct {
 	shapeF, styleF, nF, spinF, tiltF float32
-	lookF, opacF                     float32
+	lookF, opacF, stacksF            float32
 
 	sheets []latticeSheet
 	sig    string // the knobs the sheets were started with
 	fitted bool
+	rr     int // the program a frame starts with, round robin
 
-	atlas       glyphAtlas
-	pipe        glyphPipe
-	verts       []float32
-	pieceVerts  []float32
-	pieces      []latticePiece
-	sorted      []latticePiece
-	keys        []uint64
-	keys2       []uint64
+	atlas glyphAtlas
+	pipe  glyphPipe
+
+	// The background panes, made once per n (makePanes).
 	paneVerts   []float32
 	paneCenters [][3]float32
+	paneAxis    []lattice.Axis
 	paneN       int
 	paneSheets  int
-	rr          int // the program a frame starts with, round robin
+
+	// A frame: its pieces, sorted, and the vertices made from them.
+	pieces []latticePiece
+	sorted []latticePiece
+	keys   []uint64
+	keys2  []uint64
+	verts  []float32
+	last   latticeFrameKey // what the vertices on the GPU were made for
 }
 
 // latticeSheet is one terminal and the program drawing in it.
@@ -68,6 +73,23 @@ type latticeSheet struct {
 	term *vt.Terminal
 	sh   lattice.Sheet
 	next float64 // when this program next draws
+
+	// writes counts what the program has written to the terminal, and built
+	// is the count the cached pieces below were made at: the program sends
+	// nothing when its screen has not changed, so an unchanged count is an
+	// unchanged screen, and its pieces are made again only when it moves.
+	writes *uint64
+	built  uint64
+	verts  []float32
+	items  []latticeItem
+}
+
+// latticeItem is one cached piece of a sheet: six vertices at off in the
+// sheet's verts, the center of the pane it lies in, and its layer.
+type latticeItem struct {
+	center [3]float32
+	layer  int
+	off    int
 }
 
 var lat = latticeModel{shapeF: latticeSphere, nF: 12, spinF: 20, tiltF: 20, opacF: 10}
@@ -77,6 +99,15 @@ var latticeSphere = float32(max(0, slices.Index(lattice.ShapeNames(), "sphere"))
 
 // latticeStyles are the styles in the order the knob turns through them.
 var latticeStyles = []string{"lines", "ascii", "shade", "solid"}
+
+// latticeStacks are STACKS's positions: which families of sheets there are.
+// AUTO keeps the three while they face the viewer and drops one as it turns
+// edge on, where it shows next to nothing — its programs stop as well.
+var latticeStacks = []string{"xyz", "auto", "xz", "z"}
+
+// latticeAutoMin is how squarely, as the cosine squared, a family must face
+// the viewer for AUTO to keep it: 0.04 is within about 12° of edge on.
+const latticeAutoMin = 0.04
 
 func init() {
 	registerGenerate("lattice", lat.generate)
@@ -88,14 +119,17 @@ func init() {
 		{"lattice-tilt", "tilt", &lat.tiltF, 20, -90, 90, 1},
 		{"lattice-look", "look", &lat.lookF, 0, 0, float32(len(latticeLooks) - 1), 1},
 		{"lattice-opac", "opac", &lat.opacF, 10, 0, 100, 1},
+		{"lattice-stacks", "stck", &lat.stacksF, 0, 0, float32(len(latticeStacks) - 1), 1},
 	}
 	paramLabels["lattice-shape"] = lattice.ShapeNames()
 	paramLabels["lattice-style"] = latticeStyles
 	paramLabels["lattice-look"] = latticeLooks
-	// How the sheets are composited is not the program's business: changing
-	// it must not restart the terminals.
+	paramLabels["lattice-stacks"] = latticeStacks
+	// How the sheets are shown is not the programs' business: changing it
+	// must not restart the terminals.
 	quietParams["lattice-look"] = true
 	quietParams["lattice-opac"] = true
+	quietParams["lattice-stacks"] = true
 }
 
 // args are the command line each sheet's program is started with.
@@ -116,11 +150,18 @@ func (l *latticeModel) args() (n int, args []string) {
 // so more than this draws the same screen again.
 const latticeFPS = 15
 
-// vtWriter is a terminal's input, as the program sees its terminal.
-type vtWriter struct{ t *vt.Terminal }
+// vtWriter is a terminal's input, as the program sees its terminal, counting
+// what passes through it.
+type vtWriter struct {
+	t      *vt.Terminal
+	writes *uint64
+}
 
 func (w vtWriter) Write(p []byte) (int, error) {
-	w.t.Write(p)
+	if len(p) > 0 {
+		w.t.Write(p)
+		*w.writes++
+	}
 	return len(p), nil
 }
 
@@ -138,16 +179,18 @@ func (l *latticeModel) start(n int, args []string) {
 			if err != nil {
 				continue // the knobs' ranges keep this from happening
 			}
-			if err := prog.Enter(vtWriter{term}); err != nil {
+			writes := new(uint64)
+			if err := prog.Enter(vtWriter{term, writes}); err != nil {
 				continue
 			}
-			l.sheets = append(l.sheets, latticeSheet{prog: prog, term: term, sh: prog.Sheet()})
+			l.sheets = append(l.sheets, latticeSheet{prog: prog, term: term, sh: prog.Sheet(), writes: writes, built: ^uint64(0)})
 			_ = prog.Frame(time.Now()) //nolint:errcheck // a first picture, before the staggering starts; vtWriter cannot fail
 		}
 	}
 	for i := range l.sheets {
 		l.sheets[i].next = frameNowMs + 1000.0/latticeFPS*float64(i)/float64(len(l.sheets))
 	}
+	l.last = latticeFrameKey{}
 }
 
 // generate is the model's frame: the programs draw when their interval is up,
@@ -158,20 +201,23 @@ func (l *latticeModel) generate() {
 		l.sig = sig
 		l.start(n, args)
 	}
+	m := view.modelMat
+	look := lattice.Vec3{float64(m[2]), float64(m[6]), float64(m[10])} // toward the viewer, in the model's frame
+	on := l.families(look)
 	// Each program draws on its own interval, and the intervals are staggered
 	// across the sheets, so a frame carries a share of them rather than every
 	// fourth frame carrying all: separate terminals, as they would be.
 	// And within a budget of time a frame, round robin from where the last
 	// frame stopped: on a busy machine the programs fall behind, as programs
 	// in terminals do, rather than every one of them running every frame and
-	// taking the rack down with them.
+	// taking the rack down with them. A family that is not shown does not run.
 	interval := 1000.0 / latticeFPS
 	now := time.Now()
 	deadline := now.Add(6 * time.Millisecond)
 	for k := range len(l.sheets) {
 		i := (l.rr + k) % len(l.sheets)
 		s := &l.sheets[i]
-		if frameNowMs < s.next {
+		if !on[s.sh.Axis] || frameNowMs < s.next {
 			continue
 		}
 		if time.Now().After(deadline) {
@@ -190,7 +236,28 @@ func (l *latticeModel) generate() {
 		view.initDist, view.defaultDist = dist, dist
 		view.updateViewMatrix()
 	}
-	l.draw(n)
+	l.draw(n, look, on)
+}
+
+// families are the families STACKS shows, seen along look.
+func (l *latticeModel) families(look lattice.Vec3) (on [3]bool) {
+	switch latticeStacks[pick(l.stacksF, len(latticeStacks))] {
+	case "xyz":
+		return [3]bool{true, true, true}
+	case "xz":
+		return [3]bool{lattice.X: true, lattice.Z: true}
+	case "z":
+		return [3]bool{lattice.Z: true}
+	}
+	best := 0
+	for a := range 3 {
+		on[a] = look[a]*look[a] >= latticeAutoMin
+		if look[a]*look[a] > look[best]*look[best] {
+			best = a
+		}
+	}
+	on[best] = true // whatever the angle, one family faces the viewer most
+	return on
 }
 
 func joinArgs(a []string) string {
@@ -223,7 +290,8 @@ func (l *latticeModel) armFit() { l.fitted = false }
 // LIGHT is not a terminal at all but a volumetric display: no backgrounds,
 // every glyph added to what is behind it like light, and each family faded by
 // the square of the cosine to the view (which over the three families sums to
-// one) so a voxel, drawn in three sheets, is as bright from any side.
+// one) so a voxel, drawn in three sheets, is as bright from any side. The
+// fade is the alpha, which additive blending makes the brightness.
 //
 // GLASS HAS TO BE SORTED BY THE PIECE. Windows on a desktop are stacked, but
 // these cut through each other, so no order of whole sheets is right from any
@@ -233,17 +301,23 @@ func (l *latticeModel) armFit() { l.fitted = false }
 // centers, characters at voxel centers and edges. Each piece is sorted by its
 // PANE's depth, then by layer — background, an explicit background color, the
 // glyph — so a glyph is never put behind its own window's background.
+//
+// NOTHING IS DONE TWICE. A sheet's pieces are made when its screen changes;
+// a frame computes only each piece's depth, sorts, and copies; and a frame
+// whose view, settings and screens are all as they were is the last one drawn
+// again, without even an upload.
 
 // latticeLooks are LOOK's positions.
 var latticeLooks = []string{"glass", "light"}
 
-// latticePiece is one flat piece of a sheet, ready to draw: six vertices at
-// off in pieceVerts, its pane's nearness to the viewer, and its layer.
+// latticePiece is one flat piece in a frame: six vertices at off, in the
+// panes (sheet -1) or in a sheet's cache, its pane's nearness to the viewer,
+// and its layer.
 type latticePiece struct {
 	near  float32
 	layer int
+	sheet int
 	off   int
-	pane  bool // off is into paneVerts, not pieceVerts
 }
 
 // The layers on one pane, back to front.
@@ -253,86 +327,72 @@ const (
 	layerGlyph
 )
 
-// draw puts every sheet in the scene.
-func (l *latticeModel) draw(n int) {
-	m := view.modelMat
-	look := lattice.Vec3{float64(m[2]), float64(m[6]), float64(m[10])} // toward the viewer, in the model's frame
+// latticeFrameKey is everything a frame's vertices depend on.
+type latticeFrameKey struct {
+	look   lattice.Vec3
+	light  bool
+	opac   float32
+	on     [3]bool
+	writes uint64
+	ok     bool
+}
+
+// draw puts every shown sheet in the scene.
+func (l *latticeModel) draw(n int, look lattice.Vec3, on [3]bool) {
 	light := pick(l.lookF, len(latticeLooks)) == 1
 	opac := float32(max(0, min(l.opacF, 100))) / 100
-	l.pieceVerts, l.pieces = l.pieceVerts[:0], l.pieces[:0]
-
-	// Where the other two families cross a sheet, in its own coordinates:
-	// the volume's edge, every voxel center, the other edge.
-	cuts := make([]float64, 0, n+2)
-	cuts = append(cuts, -1)
-	for k := range n {
-		cuts = append(cuts, cellCenter(k, n))
-	}
-	cuts = append(cuts, 1)
-	mid := func(i int) float64 { return (cuts[i] + cuts[i+1]) / 2 }
-	hw, hh := 1/float64(2*n), 1/float64(n) // half a character, across and up
+	cuts, mid := latticeCuts(n)
 	su, sv := l.atlas.solid()
 
-	// The backgrounds: the same panes every frame for a given n, so made once
-	// and only put in order here. At n = 24 they are 45,000 pieces, and making
-	// them every frame was half of it.
+	key := latticeFrameKey{look: look, light: light, opac: opac, on: on, ok: true}
+	for i := range l.sheets {
+		s := &l.sheets[i]
+		if !on[s.sh.Axis] {
+			continue
+		}
+		if s.built != *s.writes {
+			l.makeSheet(s, n, cuts, mid, su, sv)
+		}
+		key.writes += *s.writes
+	}
+	l.atlas.upload()
+	if key == l.last {
+		l.pipe.redraw(l.atlas.tex, light)
+		return
+	}
+	l.last = key
+
+	near := func(c [3]float32) float32 {
+		return float32(float64(c[0])*look[0] + float64(c[1])*look[1] + float64(c[2])*look[2])
+	}
+	l.pieces = l.pieces[:0]
 	if !light && opac > 0 {
 		if l.paneN != n || l.paneSheets != len(l.sheets) {
 			l.makePanes(n, cuts, mid, su, sv)
 		}
 		for j, c := range l.paneCenters {
-			near := float32(float64(c[0])*look[0] + float64(c[1])*look[1] + float64(c[2])*look[2])
-			l.pieces = append(l.pieces, latticePiece{near: near, layer: layerBackground, off: j * 6 * glyphStride, pane: true})
+			if on[l.paneAxis[j]] {
+				l.pieces = append(l.pieces, latticePiece{near: near(c), layer: layerBackground, sheet: -1, off: j * 6 * glyphStride})
+			}
 		}
 	}
-
-	for _, s := range l.sheets {
-		b := lattice.BasisOf(s.sh.Axis)
-		w := float32(1)
+	var weight [3]float32 // the alpha each family's glyphs are drawn at
+	for a := range 3 {
+		weight[a] = 1
 		if light {
-			c := look.Dot(b.Normal)
-			if w = float32(c * c); w < 0.01 {
-				continue
-			}
+			weight[a] = float32(look[a] * look[a])
 		}
-		plane := b.Normal.Scale(cellCenter(s.sh.Slice, n))
-		near := func(pu, pv int) float32 {
-			return float32(plane.Add(b.Right.Scale(mid(pu))).Add(b.Up.Scale(mid(pv))).Dot(look))
+	}
+	for i := range l.sheets {
+		s := &l.sheets[i]
+		if !on[s.sh.Axis] || (light && weight[s.sh.Axis] < 0.01) {
+			continue
 		}
-		buf := s.term.Buffer()
-		for r := range n {
-			if buf.YDisp+r >= buf.Lines.Length() {
-				break
+		for _, it := range s.items {
+			if light && it.layer == layerCellBackground {
+				continue // light has no backgrounds of any kind
 			}
-			line := buf.Lines.Get(buf.YDisp + r)
-			if line == nil {
-				continue
-			}
-			vc := 1 - (float64(r)+0.5)/float64(n)*2
-			k := n - 1 - r // the row's voxel, counted up from the bottom
-			for col := range 2 * n {
-				uc := (float64(col)+0.5)/float64(2*n)*2 - 1
-				pu := col/2 + col%2 // the pane a character is in, across
-				// An explicit background color is opaque, on glass.
-				if bg := line.GetBg(col); !light && bg&vt.AttrCMMask != 0 {
-					r0, g0, b0 := vtColor(bg)
-					l.piece(near(pu, k+1), layerCellBackground, plane, b, uc-hw, uc+hw, vc, vc+hh, su, sv, su, sv, r0, g0, b0)
-					l.piece(near(pu, k), layerCellBackground, plane, b, uc-hw, uc+hw, vc-hh, vc, su, sv, su, sv, r0, g0, b0)
-				}
-				cp := line.GetCodePoint(col)
-				if cp <= ' ' || cp > unicode.MaxRune {
-					continue
-				}
-				u0, v0, u1, v1, ok := l.atlas.slot(rune(cp)) //nolint:gosec // bounded by unicode.MaxRune just above
-				if !ok {
-					continue
-				}
-				cr, cg, cb := vtColor(line.GetFg(col))
-				vm := (v0 + v1) / 2
-				// The top and bottom halves, each in its own pane.
-				l.piece(near(pu, k+1), layerGlyph, plane, b, uc-hw, uc+hw, vc, vc+hh, u0, v0, u1, vm, cr*w, cg*w, cb*w)
-				l.piece(near(pu, k), layerGlyph, plane, b, uc-hw, uc+hw, vc-hh, vc, u0, vm, u1, v1, cr*w, cg*w, cb*w)
-			}
+			l.pieces = append(l.pieces, latticePiece{near: near(it.center), layer: it.layer, sheet: i, off: it.off})
 		}
 	}
 
@@ -342,40 +402,123 @@ func (l *latticeModel) draw(n int) {
 	}
 	l.verts = l.verts[:0]
 	for _, p := range l.pieces {
-		if !p.pane {
-			l.verts = append(l.verts, l.pieceVerts[p.off:p.off+6*glyphStride]...)
-			continue
+		src, alpha := l.paneVerts, opac
+		if p.sheet >= 0 {
+			src, alpha = l.sheets[p.sheet].verts, weight[l.sheets[p.sheet].sh.Axis]
 		}
 		at := len(l.verts)
-		l.verts = append(l.verts, l.paneVerts[p.off:p.off+6*glyphStride]...)
+		l.verts = append(l.verts, src[p.off:p.off+6*glyphStride]...)
 		for k := range 6 {
-			l.verts[at+k*glyphStride+8] = opac
+			l.verts[at+k*glyphStride+8] = alpha
 		}
 	}
-	l.atlas.upload()
 	l.pipe.draw(l.verts, l.atlas.tex, light)
+}
+
+// latticeCuts are where the other two families cross a sheet of n, in its own
+// coordinates — the volume's edge, every voxel center, the other edge — and
+// mid(i) the middle of the pane between cuts i and i+1.
+func latticeCuts(n int) (cuts []float64, mid func(int) float64) {
+	cuts = make([]float64, 0, n+2)
+	cuts = append(cuts, -1)
+	for k := range n {
+		cuts = append(cuts, cellCenter(k, n))
+	}
+	cuts = append(cuts, 1)
+	return cuts, func(i int) float64 { return (cuts[i] + cuts[i+1]) / 2 }
+}
+
+// makeSheet makes sheet s's pieces from its screen as it stands: each glyph,
+// and each explicit background color, in halves that lie in one pane each.
+func (l *latticeModel) makeSheet(s *latticeSheet, n int, cuts []float64, mid func(int) float64, su, sv float32) {
+	s.built = *s.writes
+	s.verts, s.items = s.verts[:0], s.items[:0]
+	b := lattice.BasisOf(s.sh.Axis)
+	plane := b.Normal.Scale(cellCenter(s.sh.Slice, n))
+	center := func(pu, pv int) [3]float32 {
+		c := plane.Add(b.Right.Scale(mid(pu))).Add(b.Up.Scale(mid(pv)))
+		return [3]float32{float32(c[0]), float32(c[1]), float32(c[2])}
+	}
+	add := func(c [3]float32, layer int, u0, u1, v0, v1 float64, s0, t0, s1, t1, r, g, bl float32) {
+		s.items = append(s.items, latticeItem{center: c, layer: layer, off: len(s.verts)})
+		s.verts = appendQuad(s.verts, plane, b, u0, u1, v0, v1, s0, t0, s1, t1, r, g, bl)
+	}
+	hw, hh := 1/float64(2*n), 1/float64(n) // half a character, across and up
+	buf := s.term.Buffer()
+	for r := range n {
+		if buf.YDisp+r >= buf.Lines.Length() {
+			break
+		}
+		line := buf.Lines.Get(buf.YDisp + r)
+		if line == nil {
+			continue
+		}
+		vc := 1 - (float64(r)+0.5)/float64(n)*2
+		k := n - 1 - r // the row's voxel, counted up from the bottom
+		for col := range 2 * n {
+			uc := (float64(col)+0.5)/float64(2*n)*2 - 1
+			pu := col/2 + col%2 // the pane a character is in, across
+			if bg := line.GetBg(col); bg&vt.AttrCMMask != 0 {
+				r0, g0, b0 := vtColor(bg)
+				add(center(pu, k+1), layerCellBackground, uc-hw, uc+hw, vc, vc+hh, su, sv, su, sv, r0, g0, b0)
+				add(center(pu, k), layerCellBackground, uc-hw, uc+hw, vc-hh, vc, su, sv, su, sv, r0, g0, b0)
+			}
+			cp := line.GetCodePoint(col)
+			if cp <= ' ' || cp > unicode.MaxRune {
+				continue
+			}
+			u0, v0, u1, v1, ok := l.atlas.slot(rune(cp)) //nolint:gosec // bounded by unicode.MaxRune just above
+			if !ok {
+				continue
+			}
+			cr, cg, cb := vtColor(line.GetFg(col))
+			vm := (v0 + v1) / 2
+			// The top and bottom halves, each in its own pane.
+			add(center(pu, k+1), layerGlyph, uc-hw, uc+hw, vc, vc+hh, u0, v0, u1, vm, cr, cg, cb)
+			add(center(pu, k), layerGlyph, uc-hw, uc+hw, vc-hh, vc, u0, vm, u1, v1, cr, cg, cb)
+		}
+	}
 }
 
 // makePanes makes every sheet's background panes, and their centers, for
 // draw to put in order: the panes are cut along the lines where the other
 // families cross, so no pane crosses another sheet.
 func (l *latticeModel) makePanes(n int, cuts []float64, mid func(int) float64, su, sv float32) {
-	l.pieceVerts, l.pieces = l.pieceVerts[:0], l.pieces[:0]
-	l.paneCenters = l.paneCenters[:0]
+	l.paneVerts, l.paneCenters, l.paneAxis = l.paneVerts[:0], l.paneCenters[:0], l.paneAxis[:0]
 	for _, s := range l.sheets {
 		b := lattice.BasisOf(s.sh.Axis)
 		plane := b.Normal.Scale(cellCenter(s.sh.Slice, n))
 		for pv := range n + 1 {
 			for pu := range n + 1 {
-				l.piece(0, layerBackground, plane, b, cuts[pu], cuts[pu+1], cuts[pv], cuts[pv+1], su, sv, su, sv, 0, 0, 0)
+				l.paneVerts = appendQuad(l.paneVerts, plane, b, cuts[pu], cuts[pu+1], cuts[pv], cuts[pv+1], su, sv, su, sv, 0, 0, 0)
 				c := plane.Add(b.Right.Scale(mid(pu))).Add(b.Up.Scale(mid(pv)))
 				l.paneCenters = append(l.paneCenters, [3]float32{float32(c[0]), float32(c[1]), float32(c[2])})
+				l.paneAxis = append(l.paneAxis, s.sh.Axis)
 			}
 		}
 	}
-	l.paneVerts = append(l.paneVerts[:0], l.pieceVerts...)
-	l.pieceVerts, l.pieces = l.pieceVerts[:0], l.pieces[:0]
 	l.paneN, l.paneSheets = n, len(l.sheets)
+}
+
+// appendQuad appends the rectangle u0..u1 by v0..v1 of the sheet whose plane
+// passes through plane, textured from s0,t0 (its top left) to s1,t1, in one
+// color. Its alpha is set as it is drawn.
+func appendQuad(dst []float32, plane lattice.Vec3, b lattice.Basis, u0, u1, v0, v1 float64, s0, t0, s1, t1, r, g, bl float32) []float32 {
+	at := func(u, v float64) [3]float32 {
+		p := plane.Add(b.Right.Scale(u)).Add(b.Up.Scale(v))
+		return [3]float32{float32(p[0]), float32(p[1]), float32(p[2])}
+	}
+	tl, tr, bot, br := at(u0, v1), at(u1, v1), at(u0, v0), at(u1, v0)
+	put := func(p [3]float32, s, t float32) {
+		dst = append(dst, p[0], p[1], p[2], s, t, r, g, bl, 1)
+	}
+	put(tl, s0, t0)
+	put(bot, s0, t1)
+	put(tr, s1, t0)
+	put(tr, s1, t0)
+	put(bot, s0, t1)
+	put(br, s1, t1)
+	return dst
 }
 
 // sortPieces puts the pieces in order back to front: by depth, then by
@@ -431,27 +574,6 @@ func (l *latticeModel) sortPieces() {
 // cellCenter is the coordinate of the middle of slice i of n, as the program
 // places it.
 func cellCenter(i, n int) float64 { return (float64(i)+0.5)/float64(n)*2 - 1 }
-
-// piece adds the rectangle u0..u1 by v0..v1 of the sheet whose plane passes
-// through plane, textured from s0,t0 (its top left) to s1,t1, in one opaque
-// color.
-func (l *latticeModel) piece(near float32, layer int, plane lattice.Vec3, b lattice.Basis, u0, u1, v0, v1 float64, s0, t0, s1, t1, r, g, bl float32) {
-	at := func(u, v float64) [3]float32 {
-		p := plane.Add(b.Right.Scale(u)).Add(b.Up.Scale(v))
-		return [3]float32{float32(p[0]), float32(p[1]), float32(p[2])}
-	}
-	tl, tr, bot, br := at(u0, v1), at(u1, v1), at(u0, v0), at(u1, v0)
-	l.pieces = append(l.pieces, latticePiece{near: near, layer: layer, off: len(l.pieceVerts)})
-	put := func(p [3]float32, s, t float32) {
-		l.pieceVerts = append(l.pieceVerts, p[0], p[1], p[2], s, t, r, g, bl, 1) // opaque; a background pane's alpha is set as it is drawn
-	}
-	put(tl, s0, t0)
-	put(bot, s0, t1)
-	put(tr, s1, t0)
-	put(tr, s1, t0)
-	put(bot, s0, t1)
-	put(br, s1, t1)
-}
 
 // vtColor is a cell's foreground as the terminal holds it: truecolor, one of
 // the 256-color palette, or the default, a pale gray.
@@ -607,6 +729,7 @@ type glyphPipe struct {
 	// n = 24 a frame is megabytes.
 	u8, f32 js.Value
 	cap     int
+	n       int // the vertices last uploaded
 }
 
 func (p *glyphPipe) init() {
@@ -639,12 +762,28 @@ const glyphStride = 9
 // draw draws the quads in v over what is on screen: as light, added to it,
 // or as glass, over it.
 func (p *glyphPipe) draw(v []float32, tex js.Value, light bool) {
-	n := len(v) / glyphStride
-	if n == 0 || tex.IsUndefined() {
-		return
-	}
 	if !p.ready {
 		p.init()
+	}
+	p.n = len(v) / glyphStride
+	if p.n > 0 {
+		glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, p.buf)
+		if len(v) > p.cap {
+			p.cap = len(v) + len(v)/2
+			p.u8 = js.Global().Get("Uint8Array").New(p.cap * 4)
+			p.f32 = js.Global().Get("Float32Array").New(p.u8.Get("buffer"), 0, p.cap)
+		}
+		js.CopyBytesToJS(p.u8, sliceToByteSlice(v))
+		glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, p.f32.Call("subarray", 0, len(v)), glctx.Types.DynamicDraw)
+	}
+	p.redraw(tex, light)
+}
+
+// redraw draws what was last uploaded again, through the camera as it is now.
+func (p *glyphPipe) redraw(tex js.Value, light bool) {
+	n := p.n
+	if !p.ready || n == 0 || tex.IsUndefined() {
+		return
 	}
 	gl := glctx.GL
 	gl.Call("useProgram", p.program)
@@ -655,13 +794,6 @@ func (p *glyphPipe) draw(v []float32, tex js.Value, light bool) {
 	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), tex)
 	gl.Call("uniform1i", p.sample, 0)
 	gl.Call("bindBuffer", glctx.Types.ArrayBuffer, p.buf)
-	if len(v) > p.cap {
-		p.cap = len(v) + len(v)/2
-		p.u8 = js.Global().Get("Uint8Array").New(p.cap * 4)
-		p.f32 = js.Global().Get("Float32Array").New(p.u8.Get("buffer"), 0, p.cap)
-	}
-	js.CopyBytesToJS(p.u8, sliceToByteSlice(v))
-	gl.Call("bufferData", glctx.Types.ArrayBuffer, p.f32.Call("subarray", 0, len(v)), glctx.Types.DynamicDraw)
 	for _, a := range []struct {
 		loc       js.Value
 		size, off int

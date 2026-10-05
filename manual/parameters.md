@@ -707,6 +707,14 @@ look — how the sheets are put together on screen.
 <!-- key: p.lattice-opac -->
 opac — every terminal's background opacity, in percent: the setting a translucent terminal emulator has (kitty's background_opacity, alacritty's window.opacity), never something a program asks for. It applies to the default background, which is black; text stays opaque. At 0 only the text is there; higher, each sheet darkens what is behind it, so the far side of the solid is dimmer than the near.
 
+<!-- key: p.lattice-stacks -->
+stacks — which families of sheets there are. Fewer families are fewer terminals and less to draw: a family that is not shown does not run its programs either.
+
+- <!-- key: p.lattice-stacks=0 --> xyz — all three, so the solid has depth from every side
+- <!-- key: p.lattice-stacks=1 --> auto — all three while they face you, a family dropped as it turns within about 12° of edge on, where it shows next to nothing; the family facing you most is always kept
+- <!-- key: p.lattice-stacks=2 --> xz — the two upright families: seen from above or below, you look along their edges
+- <!-- key: p.lattice-stacks=3 --> z — the front sheets alone: a stack of terminals, seen best from the front or behind
+
 ## Model Out
 
 The model as a sound: its own equations run at audio rate, so its x, y and z
