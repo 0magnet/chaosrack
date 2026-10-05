@@ -30,8 +30,9 @@ import (
 //
 // A model with a trail but no vector field (a parametric curve) is played
 // by scanning its drawn trail, once round at 440 traces a second at SPD 0 —
-// its shape is its waveform. Geometry models (polyhedra, the torus…) write no
-// trail and have no equations to run: silence.
+// its shape is its waveform. A solid (polyhedra, the globe, the torus…) has no
+// equations and no trail, and is played by the beam (beammode_js.go): its
+// position going round the figure at SPD's speed. So is a figure while B is on.
 //
 // Each signal is centered and scaled to its own swing (fast attack, slow
 // release), because an attractor's coordinates are arbitrary in offset and
@@ -68,6 +69,7 @@ type modelVoice struct {
 	px, py, pz     float64    // the state a step ago, to interpolate between
 	acc            float64    // fractional steps owed
 	phase          float64    // scan: where along the trail, 0..1
+	bw             beamWalker // the beam: where on the figure (beammode_js.go)
 	cen, span      [3]float64 // each output's center and half-swing
 	scr            [3][]float32
 	renderedAt, rn float64 // the frame and length a window was last made for
@@ -82,6 +84,10 @@ func (v *modelVoice) render(out *[3][]float32, n int, sr float64) {
 		out[c] = out[c][:n]
 	}
 	mode := run.selectedMode
+	if beamSounds(mode) {
+		v.beamOut(out, n, sr)
+		return
+	}
 	if !isAttractorMode(mode) {
 		for c := range out {
 			clear(out[c])
@@ -162,6 +168,26 @@ func (v *modelVoice) scan(out *[3][]float32, n int, sr float64) bool {
 	return true
 }
 
+// beamOut plays the beam: where it is, sample by sample, going round the
+// figure at SPD's speed, so the period is the circuit and a longer figure
+// is a lower note. On a fixed scale at LVL and not ranged per channel as the
+// equations are: X against Y has to keep the figure's proportions, or a
+// scope fed the two would draw a different shape.
+func (v *modelVoice) beamOut(out *[3][]float32, n int, sr float64) {
+	f := beamFrameNow()
+	p := &beam.path
+	total := p.length(f)
+	step := beamSpeed() / sr
+	g := float64(modelOut.level) / 100
+	for i := range n {
+		v.bw.advance(p, f, step, total, nil)
+		at := v.bw.at(p, f)
+		for c := range out {
+			out[c][i] = float32(math.Max(-1, math.Min(1, at[c]*g)))
+		}
+	}
+}
+
 // normalize centers each output on its swing and scales it to LVL, the
 // swing tracked fast when it grows and slowly when it shrinks, so a
 // suddenly larger orbit does not clip and a quiet one is not pumped.
@@ -230,7 +256,7 @@ var modelOutKeysMix = [3]string{"mx", "my", "mz"}
 // modelIsHeard reports whether any of the model's outputs reaches a speaker:
 // pinned to one on the Mixer, on a model that has a signal.
 func modelIsHeard() bool {
-	if !isAttractorMode(run.selectedMode) {
+	if !hasModelOut(run.selectedMode) {
 		return false
 	}
 	for _, k := range modelOutKeysMix {

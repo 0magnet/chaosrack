@@ -144,6 +144,15 @@ func (r *renderer) uploadVerticesOnly(vertices []float32, drawMode js.Value, cou
 			vertices[i+2] -= sim.centerOffset[2]
 		}
 	}
+	// The beam draws this frame (beammode_js.go): the figure is recorded for it,
+	// and not drawn whole.
+	if beam.capturing {
+		r.verts = vertices
+		r.uploadSeq++
+		r.stride = 4
+		r.lastTrace.mode, r.lastTrace.first, r.lastTrace.n, r.lastTrace.ok = drawMode, 0, count, count > 1
+		return
+	}
 	r.verts = vertices
 	r.uploadSeq++
 	r.stride = 4
@@ -232,6 +241,13 @@ func (r *renderer) uploadDwell(vertices []float32, n int) {
 // buffers, eliminating the per-frame CPU cost of regenerating the
 // JS typed arrays and pushing identical data to the GPU.
 func (r *renderer) uploadBuffersIndexed(vertices []float32, indices []uint16, drawMode js.Value) {
+	if beam.capturing { // recorded for the beam, as uploadVerticesOnly does
+		r.verts, r.indices = vertices, indices
+		r.uploadSeq++
+		r.stride = 3
+		r.staticDirty = true
+		return
+	}
 	if r.staticDirty {
 		r.verts = vertices
 		r.indices = indices
@@ -273,7 +289,7 @@ func (r *renderer) uploadBuffersIndexed(vertices []float32, indices []uint16, dr
 //
 // So the generators now ask this first and return if the answer is yes.
 func (r *renderer) staticGeomCached(drawMode js.Value) bool {
-	if r.staticDirty {
+	if r.staticDirty || beam.capturing {
 		return false
 	}
 	glctx.GL.Call("drawElements", drawMode, len(r.indices), glctx.Types.UnsignedShort, 0)

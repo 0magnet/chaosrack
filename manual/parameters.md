@@ -677,10 +677,24 @@ are three signals the Mixer can put on the speakers and the rack's signal.
 These two sit at the top of the bank's last column for every model that has a
 sound.
 
+A solid or a drawn figure has no equations to run. What it has is a path, and
+its sound is a beam going round it, as on an XY display: the period is the time
+round the circuit, so at the same speed a longer figure is a lower note. A
+solid always sounds this way; a figure does while B is on.
+
 ### SPD
 
 <!-- key: p.mo-spd -->
-Model Out SPD — how fast the model runs as a signal: integrator steps per sample, in semitones. 0 is one step a sample; every 12 up is twice as fast, an octave higher. The pitch is the system's own.
+Model Out SPD — how fast the model runs as a signal, in semitones: every 12 up is twice as fast, an octave higher. For a system of equations, integrator steps per sample, 0 being one step a sample; the pitch is the system's own. For a beam, its speed round the figure, so the pitch is that speed over the figure's length.
+
+- <!-- key: trio.mo-spd=0 --> B: beam — the display is a vector display: one beam runs round the figure at SPD's speed, measured on the clock and not in frames, and each frame draws only what it covered; the phosphor holds the rest. Fast enough to go round within a frame it draws the whole figure, as with B off. Model Out plays the same beam.
+- <!-- key: trio.mo-spd=1 --> C: camera — the beam is measured and heard as the camera sees the figure (x and y on the screen, z its depth) rather than in the model's own coordinates. Turning the view then changes the sound, and a scope fed X and Y draws the picture on the screen.
+
+<!-- key: mo-beam -->
+Beam — the display as a vector display, Model Out's B button.
+
+<!-- key: mo-cam -->
+Camera — the beam in the camera's coordinates, Model Out's C button.
 
 ### LVL
 

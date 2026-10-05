@@ -250,7 +250,7 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 		// for every model with equations or a trail to play (bankTail).
 		var heard []string
 		for _, m := range own {
-			if isAttractorMode(m) {
+			if hasModelOut(m) {
 				heard = append(heard, m)
 			}
 		}
