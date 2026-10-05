@@ -932,6 +932,7 @@ func registerViewControls() {
 func wireColorAndViewControls() {
 	// Event: Poincaré-section switch.
 	sect.wireSectSwitch()
+	wireBeamSwitches()
 	grid.wireViewGridDial()
 	grid.wireViewLinkSwitches()
 	wireBackLayer() // the Back switch: the panel on the model behind (backlayer_js.go)

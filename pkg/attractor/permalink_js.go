@@ -59,6 +59,8 @@ var permaCtls = []permaCtl{
 	{"vl", "link-sw", true},
 	{"vf", "focus-n", false},
 	{"po", "sect-sw", true},
+	{"mb", "mo-beam", true},
+	{"mc", "mo-cam", true},
 	{"rp", "rhythm-preset", false},
 	// The Template legend is the one module a link still has to carry, because
 	// it is the one module that still has a switch: it is a labeled legend of

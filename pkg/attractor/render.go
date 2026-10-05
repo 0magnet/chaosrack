@@ -647,7 +647,7 @@ func generateForMode(mode string) {
 		return
 	}
 	if fn := modeGenerate[mode]; fn != nil {
-		fn()
+		beamGenerate(mode, fn)
 	}
 	restoreAudioModulation(saved)
 	ring.primeAfterScan(mode)
