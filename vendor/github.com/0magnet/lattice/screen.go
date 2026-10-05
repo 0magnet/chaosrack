@@ -4,6 +4,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // screen writes frames to a terminal, sending only the cells that changed
@@ -11,7 +12,7 @@ import (
 // of them is many terminals' worth of output.
 type screen struct {
 	out   io.Writer
-	w     strings.Builder
+	buf   []byte // a frame's escapes, kept from frame to frame
 	prev  Frame
 	color bool
 }
@@ -45,29 +46,35 @@ func (s *screen) draw(f Frame) error {
 				continue
 			}
 			if r != cr || c != cc {
-				s.w.WriteString("\x1b[" + strconv.Itoa(r+1) + ";" + strconv.Itoa(c+1) + "H")
+				s.buf = append(strconv.AppendInt(append(strconv.AppendInt(append(s.buf, "\x1b["...), int64(r+1), 10), ';'), int64(c+1), 10), 'H')
 			}
 			if cell.Ch == 0 {
-				s.w.WriteByte(' ')
+				s.buf = append(s.buf, ' ')
 			} else {
 				if s.color && (!haveColor || cell.R != last.R || cell.G != last.G || cell.B != last.B) {
-					s.w.WriteString(sgr(cell))
+					s.buf = appendSGR(s.buf, cell)
 					last, haveColor = cell, true
 				}
-				s.w.WriteRune(cell.Ch)
+				s.buf = utf8.AppendRune(s.buf, cell.Ch)
 			}
 			cr, cc = r, c+1
 		}
 	}
 	s.prev = f
-	_, err := io.WriteString(s.out, s.w.String())
-	s.w.Reset()
+	_, err := s.out.Write(s.buf)
+	s.buf = s.buf[:0]
 	return err
 }
 
 // sgr is the escape that sets a cell's color.
-func sgr(c Cell) string {
-	return "\x1b[38;2;" + strconv.Itoa(int(c.R)) + ";" + strconv.Itoa(int(c.G)) + ";" + strconv.Itoa(int(c.B)) + "m"
+func sgr(c Cell) string { return string(appendSGR(nil, c)) }
+
+// appendSGR is sgr, appended to b.
+func appendSGR(b []byte, c Cell) []byte {
+	b = strconv.AppendInt(append(b, "\x1b[38;2;"...), int64(c.R), 10)
+	b = strconv.AppendInt(append(b, ';'), int64(c.G), 10)
+	b = strconv.AppendInt(append(b, ';'), int64(c.B), 10)
+	return append(b, 'm')
 }
 
 // plain writes f as lines of text, colored or not, for -once.
