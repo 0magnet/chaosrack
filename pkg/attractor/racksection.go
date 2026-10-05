@@ -137,6 +137,7 @@ var moduleSections = map[string]string{
 	"distortion":    secConsole,
 	"loudness":      secConsole,
 	"wow & flutter": secConsole,
+	"features":      secConsole,
 
 	// The rack-wide patch panel: any audio feature to any knob, on either
 	// side of the line. Global like the Console it sits beside.
@@ -315,7 +316,7 @@ func sectionOrderOf(items []packItem) []int {
 // Anything not listed keeps its declared order, after these.
 var moduleOrder = []string{
 	"record", "view", "grid", "display", "layers · colors",
-	"console", "style", "presets", "counter", "distortion", "loudness", "wow & flutter", "timing",
+	"console", "style", "presets", "counter", "distortion", "loudness", "wow & flutter", "features", "timing",
 	"scope 1", "gen 1", "scope 2", "gen 2", "scope 3", "gen 3", "scope 4", "gen 4",
 	"synth", "string", "fm", "wave · noise", "filter", "amp",
 	"mixer", "mod",

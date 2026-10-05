@@ -261,12 +261,8 @@ func runPerformance(c *cdp.Client) {
 	c.Eval(`Object.keys(localStorage).filter(function(k){return k.indexOf('wasmstuff-')===0;}).forEach(function(k){localStorage.removeItem(k);})`)
 	c.Eval(`location.hash='#lorenz&rot=20,0,0'`)
 	c.Reload(3 * time.Second)
-	// Audio-mod ON (visual: routes the incoming feed into the knobs) — but
-	// keep the top-left feature METERS hidden: this is a performance, not a
-	// mixing console.
-	c.Eval(`(function(){var m=document.getElementById('show-meters');if(m&&m.checked){m.checked=false;m.dispatchEvent(new Event('change',{bubbles:true}));}
-	  var e=document.getElementById('audio-mod');if(e&&!e.checked){e.checked=true;e.dispatchEvent(new Event('change',{bubbles:true}));}
-	  var am=document.getElementById('audio-meters');if(am)am.style.display='none';})()`)
+	// Audio-mod ON (visual: routes the incoming feed into the knobs).
+	c.Eval(`(function(){var e=document.getElementById('audio-mod');if(e&&!e.checked){e.checked=true;e.dispatchEvent(new Event('change',{bubbles:true}));}})()`)
 	c.Eval(`(function(){var p=document.getElementById('controls-panel');if(p)p.style.display='none';
 	  ['runtime'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
 	  [].forEach.call(document.querySelectorAll('button[title^="Show / hide controls"],a'),function(e){e.style.display='none';});})()`)

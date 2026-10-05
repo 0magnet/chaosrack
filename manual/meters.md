@@ -119,14 +119,6 @@ How far the integrated reading is from the target, in LU. Positive is too loud.
 <!-- key: rst-lufs-target -->
 Reset the loudness target
 
-### Meters
-
-<!-- key: meters-cell -->
-Meters — the top-left audio feature strip (amp / bass / mid / treble / cntr / beat). It is a meter, so its switch is in the metering bay rather than on the Console.
-
-<!-- key: show-meters -->
-Show / hide the top-left audio feature meters (amp / bass / mid / treble / cntr / beat) while Mod is on
-
 ## Wow & Flutter
 
 <!-- key: wf -->
@@ -230,3 +222,26 @@ How much audio each wow-and-flutter reading is made over. This is the measuremen
 - <!-- key: wf-win=5 --> Five seconds — two cycles of the slowest wow, and half the work of ten
 - <!-- key: wf-win=10 --> Ten seconds: the default, five cycles of the slowest wow
 - <!-- key: wf-win=20 --> Twenty seconds — the steadiest reading and twice the work
+
+## Features
+
+<!-- key: feat -->
+Features — what the Mod matrix's audio routes read, as a meter bridge: six LED bar graphs, one for each feature of the incoming audio's mono mix, the same numbers a route modulates a knob by. Each ladder is twenty segments, green to 70%, amber to 90% and red above. The levels are relative, not absolute: each feature is scaled by its own recent peak (instant rise, slow fall), so a quiet passage still fills the ladders and a loud one does not pin them. Dark while modulation is off — nothing routed and no feed from the server — since then nothing is measured. They were a strip over the top-left of the picture with a switch to hide it; as a module they are on the rack beside the other meters, and off the picture.
+
+<!-- key: feat-amp -->
+AMP — the level: the RMS of the window, scaled by its recent peak.
+
+<!-- key: feat-bass -->
+BASS — the energy below 250 Hz, scaled by its recent peak.
+
+<!-- key: feat-mid -->
+MID — the energy from 250 Hz to 2 kHz, scaled by its recent peak.
+
+<!-- key: feat-treble -->
+TREB — treble: the energy above 2 kHz, scaled by its recent peak.
+
+<!-- key: feat-centroid -->
+CNTR — the spectral centroid, the spectrum's center of mass, as a fraction of the Nyquist frequency: the brightness of the sound. Not scaled by a peak: a dull sound reads low however loud it is.
+
+<!-- key: feat-beat -->
+BEAT — onsets: the ladder fills when the spectrum jumps (spectral flux past 55% of its recent peak) and falls away between them, so on a steady rhythm it flashes on the beat.

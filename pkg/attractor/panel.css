@@ -902,7 +902,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
  * and "left" on an absolutely positioned child resolves against its
  * containing block's PADDING box, so padding the cell slid the legend right
  * by exactly as much as it made room — and the switch text still sat on it. */
-.pcell.swcell{align-items:stretch;gap:calc(2px*var(--kscale,1));}
 .swline{display:flex;align-items:center;gap:calc(3px*var(--kscale,1));cursor:pointer;
   margin-left:calc(13px*var(--kscale,1));
   font-size:calc(10px*var(--kscale,1));line-height:1.1;white-space:nowrap;}
@@ -1356,6 +1355,28 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
 .vmrow.meterrow>.pcell.readcol>.vmbay{gap:calc(2px*var(--kscale,1));}
 /* A spare is dark: no reading, and a dimmer bezel than a live one. */
 .modules .led.spare,.modules .dmdwin.spare{opacity:.55;}
+
+/* The LED ladder: a bar-graph meter, a column of 20 segments, green to 70%,
+   amber to 90% and red above, as a console's meter bridge has them. The
+   unlit segments show faintly through the window, as real ones do. --lit is
+   how many are lit (featladder.go); the lit layer is clipped to it, so a
+   reading is one property and the segments are the stylesheet's. The
+   segment pitch is 5%, one twentieth: featSegs has to agree. Features
+   (feat-module) is a column of six, the module's whole height. */
+/* The whole module: the row is a flex column here and a grid of half rows
+   elsewhere, so both are said. Not a .readcol: that tops itself up with
+   spare readouts. */
+.sect>.vmrow.meterrow>.pcell.featcell{grid-row:1/-1;flex:1;align-self:stretch;height:auto;min-height:0;align-items:stretch;}
+.ladders{display:flex;justify-content:center;gap:calc(5px*var(--kscale,1));flex:1;padding:calc(4px*var(--kscale,1)) 0;box-sizing:border-box;}
+.ladder{display:flex;flex-direction:column;align-items:center;gap:calc(4px*var(--kscale,1));height:100%;}
+.lad-bar{--lit:0;position:relative;flex:1;width:calc(12px*var(--kscale,1));background:#05080b;border:1px solid #020304;border-radius:2px;box-shadow:inset 0 1px 3px #000;}
+.lad-bar::before,.lad-bar::after{content:"";position:absolute;inset:2px;
+  background:linear-gradient(to top,#37d457 0 70%,#f0b429 70% 90%,#ff3b2f 90%);
+  -webkit-mask:repeating-linear-gradient(to top,#000 0 calc(5% - 2px),transparent calc(5% - 2px) 5%);
+  mask:repeating-linear-gradient(to top,#000 0 calc(5% - 2px),transparent calc(5% - 2px) 5%);}
+.lad-bar::before{opacity:.12;}
+.lad-bar::after{clip-path:inset(calc((20 - var(--lit)) * 5%) 0 0 0);}
+.lad-lbl{writing-mode:vertical-rl;text-orientation:upright;letter-spacing:-1px;font:calc(8px*var(--kscale,1))/1 monospace;color:#9fb3c8;text-transform:uppercase;}
 
 /* The meters' readout names are character displays (readoutlabels_js.go),
    each the same window as the LED it names: the LED's height, bezel and side
