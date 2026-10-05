@@ -47,7 +47,7 @@ github.com/0magnet/go-dsp/window
 ## explicit; go 1.26.0
 github.com/0magnet/img2txt-go/caca
 github.com/0magnet/img2txt-go/shape
-# github.com/0magnet/lattice v0.0.0-20261005013730-0b7d24113496
+# github.com/0magnet/lattice v0.0.0-20261005014755-d01aefeb92db
 ## explicit; go 1.26.4
 github.com/0magnet/lattice
 # github.com/0magnet/lolcat-go v0.0.0

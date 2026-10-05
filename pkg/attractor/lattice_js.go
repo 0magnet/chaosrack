@@ -15,6 +15,7 @@ import (
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"github.com/0magnet/lattice"
 	"github.com/0magnet/xterm-go/vt"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 // The Lattice: a solid drawn in depth by terminals.
@@ -41,12 +42,17 @@ import (
 // latticeModel is the Lattice: its knobs, its sheets and how they are drawn.
 type latticeModel struct {
 	shapeF, styleF, nF, spinF, tiltF float32
-	lookF, opacF, stacksF            float32
+	lookF, opacF, stacksF, turnF     float32
 
 	sheets []latticeSheet
 	sig    string // the knobs the sheets were started with
 	fitted bool
 	rr     int // the program a frame starts with, round robin
+
+	// TURN: the matrix the stack is drawn with, and the pose last sent to
+	// the programs.
+	stackMat mgl32.Mat4
+	sentPose lattice.Quat
 
 	atlas glyphAtlas
 	pipe  glyphPipe
@@ -105,6 +111,14 @@ var latticeStyles = []string{"lines", "ascii", "shade", "solid"}
 // edge on, where it shows next to nothing — its programs stop as well.
 var latticeStacks = []string{"xyz", "auto", "xz", "z"}
 
+// latticeTurns are TURN's positions: what turning the view turns. BOTH turns
+// the stack and the solid in it together. LATTICE turns the stack and holds
+// the solid still, so its surface moves through the grid as the grid turns
+// round it. SOLID holds the stack still and turns the solid inside it. The
+// programs are told as any program is told anything, on their input: a
+// pose (lattice.PoseSequence), the view's turn or its inverse.
+var latticeTurns = []string{"both", "lattice", "solid"}
+
 // latticeAutoMin is how squarely, as the cosine squared, a family must face
 // the viewer for AUTO to keep it: 0.04 is within about 12° of edge on.
 const latticeAutoMin = 0.04
@@ -120,16 +134,19 @@ func init() {
 		{"lattice-look", "look", &lat.lookF, 0, 0, float32(len(latticeLooks) - 1), 1},
 		{"lattice-opac", "opac", &lat.opacF, 10, 0, 100, 1},
 		{"lattice-stacks", "stck", &lat.stacksF, 0, 0, float32(len(latticeStacks) - 1), 1},
+		{"lattice-turn", "turn", &lat.turnF, 0, 0, float32(len(latticeTurns) - 1), 1},
 	}
 	paramLabels["lattice-shape"] = lattice.ShapeNames()
 	paramLabels["lattice-style"] = latticeStyles
 	paramLabels["lattice-look"] = latticeLooks
 	paramLabels["lattice-stacks"] = latticeStacks
+	paramLabels["lattice-turn"] = latticeTurns
 	// How the sheets are shown is not the programs' business: changing it
 	// must not restart the terminals.
 	quietParams["lattice-look"] = true
 	quietParams["lattice-opac"] = true
 	quietParams["lattice-stacks"] = true
+	quietParams["lattice-turn"] = true
 }
 
 // args are the command line each sheet's program is started with.
@@ -191,6 +208,7 @@ func (l *latticeModel) start(n int, args []string) {
 		l.sheets[i].next = frameNowMs + 1000.0/latticeFPS*float64(i)/float64(len(l.sheets))
 	}
 	l.last = latticeFrameKey{}
+	l.sentPose = lattice.Quat{} // new programs: tell them again
 }
 
 // generate is the model's frame: the programs draw when their interval is up,
@@ -201,8 +219,9 @@ func (l *latticeModel) generate() {
 		l.sig = sig
 		l.start(n, args)
 	}
-	m := view.modelMat
-	look := lattice.Vec3{float64(m[2]), float64(m[6]), float64(m[10])} // toward the viewer, in the model's frame
+	l.turn()
+	m := l.stackMat
+	look := lattice.Vec3{float64(m[2]), float64(m[6]), float64(m[10])} // toward the viewer, in the stack's frame
 	on := l.families(look)
 	// Each program draws on its own interval, and the intervals are staggered
 	// across the sheets, so a frame carries a share of them rather than every
@@ -237,6 +256,29 @@ func (l *latticeModel) generate() {
 		view.updateViewMatrix()
 	}
 	l.draw(n, look, on)
+}
+
+// turn sets what the view turns (TURN): the matrix the stack is drawn with,
+// and the pose every program is sent when it changes.
+func (l *latticeModel) turn() {
+	q := mgl32.Mat4ToQuat(view.modelMat)
+	vq := lattice.Quat{float64(q.W), float64(q.V[0]), float64(q.V[1]), float64(q.V[2])} // the view's turn
+	l.stackMat, l.pipe.model = view.modelMat, &l.stackMat
+	pose := lattice.Identity
+	switch latticeTurns[pick(l.turnF, len(latticeTurns))] {
+	case "lattice": // the solid turned back by as much as the stack: still, in the room
+		pose = lattice.Quat{vq[0], -vq[1], -vq[2], -vq[3]}
+	case "solid": // the stack square to the screen, the view's turn the solid's
+		pose, l.stackMat = vq, mgl32.Ident4()
+	}
+	if pose == l.sentPose {
+		return
+	}
+	l.sentPose = pose
+	seq := []byte(lattice.PoseSequence(pose))
+	for _, s := range l.sheets {
+		s.prog.Input(seq)
+	}
 }
 
 // families are the families STACKS shows, seen along look.
@@ -729,7 +771,8 @@ type glyphPipe struct {
 	// n = 24 a frame is megabytes.
 	u8, f32 js.Value
 	cap     int
-	n       int // the vertices last uploaded
+	n       int         // the vertices last uploaded
+	model   *mgl32.Mat4 // the matrix the quads are placed by: the view's, unless TURN holds the stack still
 }
 
 func (p *glyphPipe) init() {
@@ -789,7 +832,11 @@ func (p *glyphPipe) redraw(tex js.Value, light bool) {
 	gl.Call("useProgram", p.program)
 	gl.Call("uniformMatrix4fv", p.pmat, false, texp.mat4ToTyped(&gpu.proj))
 	gl.Call("uniformMatrix4fv", p.vmat, false, texp.mat4ToTyped(&view.viewMat))
-	gl.Call("uniformMatrix4fv", p.mmat, false, texp.mat4ToTyped(&view.modelMat))
+	model := &view.modelMat
+	if p.model != nil {
+		model = p.model
+	}
+	gl.Call("uniformMatrix4fv", p.mmat, false, texp.mat4ToTyped(model))
 	gl.Call("activeTexture", gl.Get("TEXTURE0"))
 	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), tex)
 	gl.Call("uniform1i", p.sample, 0)

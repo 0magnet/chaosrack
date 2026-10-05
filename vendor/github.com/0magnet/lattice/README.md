@@ -89,6 +89,25 @@ p.Leave()
 `Sheet`, `BasisOf` and `Render` are the geometry underneath it, for a host
 that places the sheets in space.
 
+## Keys, and a pose
+
+The arrow keys turn the solid five degrees a press, ← and → about the vertical,
+↑ and ↓ toward and away from you; `r` puts it back, `q` quits. Every sheet has
+to be told, and tmux's `synchronize-panes` is exactly that: one keypress in
+every pane.
+
+A host that turns the stack itself can send each program a pose instead, on
+its input, as an operating system command a terminal ignores:
+
+```
+ESC ] lattice ; pose ; w ; x ; y ; z BEL
+```
+
+a unit quaternion applied to the solid after its own turning (`PoseSequence`
+writes one). The inverse of the stack's turn holds the solid still while the
+stack turns; the turn itself turns the solid with the view while the stack
+stands still. A program that has not been moved draws nothing new.
+
 ## Across many terminals
 
 Every sheet of every axis, each in a tmux window of its own:
@@ -123,12 +142,12 @@ gocloc --not-match-d='(vendor|node_modules|\.git)' .
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-Go                               8             85            152            803
-Markdown                         1             29              0            105
+Go                              10            115            204           1079
+Markdown                         1             34              0            119
 YAML                             1              0              7             98
 Makefile                         1             19             34             89
 Bourne Shell                     1              8             16             30
 -------------------------------------------------------------------------------
-TOTAL                           12            141            209           1125
+TOTAL                           14            176            261           1415
 -------------------------------------------------------------------------------
 ```
