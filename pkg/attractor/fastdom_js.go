@@ -593,7 +593,7 @@ const fastSource = `(function () {
       var ACT = ".knob:not(.knob-fine), input.sw, button:not(.rst), select, .pslot, .led, input[type=text]";
       var CELL = ".punit, .pcell, .knobstack, .selwrap, .swline, .rec-swrow";
       // Displays that are parts of their own, addressed as themselves.
-      var PART = ".monbezel, .scope-tube, .mxgrid, .keys-bed";
+      var PART = ".monbezel, .scope-tube, .mxgrid, .keys-bed, .ladder";
       // A row of switches inside a bigger cell (Screen and the model's
       // switches under a monitor): each is a control of its own, not the
       // monitor's cell.

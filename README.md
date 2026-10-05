@@ -2338,7 +2338,6 @@ another slot. This reference is captured from the running rack by
 - **Audio mod** — Enable audio-reactive modulation — reveals the MOD + EQ modules for routing audio features to each control
 - **Test tone** — Play a sweeping test tone (captured back via the server) to exercise the audio modulation
 - **MIDI** — WebMIDI — hardware control: CC 1..N drive the current mode's parameter knobs in order, CC 21..28 the view targets (zoom, pans, spins, rainbow, trail), and any note hops to that note's attractor.
-- **Meters** — Show / hide the top-left audio feature meters (amp / bass / mid / treble / cntr / beat) while Audio mod is on
 - **Signal gen** — Signal generator — a built-in client-side audio source (three X/Y/Z oscillators). Drives audio modulation, the spectrogram and the xy scope with no server or microphone, and can play over the speakers. Controls are in the Generator module.
 - **Info** — Overlay a short description of the current attractor / model on the view
 - **Fullscreen** — Toggle browser fullscreen — the canvas fills the display; the panel stays available

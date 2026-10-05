@@ -361,31 +361,6 @@ func (pa *panelLayout) positionResizeHandle() {
 	} else {
 		pa.resizeHandle.Get("style").Set("display", "")
 	}
-	pa.positionAudioMeters()
-}
-
-// positionAudioMeters keeps the top-left audio-feature meter overlay clear of
-// the control panel: it shifts right of a left sidebar or below a top strip,
-// and returns to the corner for bottom/right docks or when the panel is hidden.
-func (pa *panelLayout) positionAudioMeters() {
-	if !af.overlay.Truthy() {
-		return
-	}
-	top, left := 8.0, 8.0
-	if pa.standalone {
-		if p := dom.Doc.Call("getElementById", "controls-panel"); p.Truthy() && p.Get("style").Get("display").String() != "none" {
-			r := p.Call("getBoundingClientRect")
-			switch pa.dockEdge {
-			case "left":
-				left = r.Get("right").Float() + 48 // clear the vertical dock-controls tab
-			case "top":
-				top = r.Get("bottom").Float() + 8
-			}
-		}
-	}
-	st := af.overlay.Get("style")
-	st.Set("top", strconv.FormatFloat(top, 'f', 0, 64)+"px")
-	st.Set("left", strconv.FormatFloat(left, 'f', 0, 64)+"px")
 }
 
 // initDockResize creates the resize bar and its drag handlers (document-level

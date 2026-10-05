@@ -591,7 +591,7 @@ func onResetAll(this js.Value, args []js.Value) any {
 		{"spect-fill", false},
 		{"spectro-skin", false},
 		{"handles-on", false}, {"desk-pass", false}, {"desk-contain", false},
-		{"jam-sw", false}, {"show-meters", true},
+		{"jam-sw", false},
 		{"ring-sw", false}, {"grid-ovl", false}, {"sect-sw", false},
 		// Through their change, as a press would: their P-unit buttons light
 		// from it (POINTS +, TRAIL +, MAP I).
@@ -1137,13 +1137,6 @@ func wirePanelSwitches() {
 	syncAudioMod()
 	// The Info window's manual follows the bay last worked at, from the start.
 	watchInfoBay()
-
-	// Event: Meters switch — show/hide the top-left audio feature meters.
-	dom.On(dom.Doc.Call("getElementById", "show-meters"), "change", func(this js.Value, args []js.Value) any {
-		metersEnabled = dom.Doc.Call("getElementById", "show-meters").Get("checked").Bool()
-		af.updateMetersVisibility()
-		return nil
-	})
 
 	// The Mixer, then the generators it takes.
 	buildMixer()

@@ -27,16 +27,17 @@ import (
 // audioFeatures is the audio-feature analysis that modulates the attractors:
 // its windows, its spectra and the features it extracts.
 type audioFeatures struct {
-	windowL   []float32
-	windowR   []float32
-	magsL     []float64          // persistent copy of the left-channel magnitudes
-	magsA     []float64          // the same for MOD A, while MOD B's are computed
-	prevMix   []float64          // previous mixed magnitudes, for onset flux
-	feat      map[string]float32 // smoothed feature values
-	peak      map[string]float32 // adaptive normalization peaks
-	overlay   js.Value
-	meterFill [6]js.Value
-	frameCnt  int
+	windowL []float32
+	windowR []float32
+	magsL   []float64          // persistent copy of the left-channel magnitudes
+	magsA   []float64          // the same for MOD A, while MOD B's are computed
+	prevMix []float64          // previous mixed magnitudes, for onset flux
+	feat    map[string]float32 // smoothed feature values
+	peak    map[string]float32 // adaptive normalization peaks
+
+	// The Features module's ladders, and how many segments each has lit.
+	ladder    [len(featNames)]js.Value
+	ladderLit [len(featNames)]int
 
 	// band holds the current smoothed, adaptively-normalized band energies per
 	// channel ("mono","L","R"), each a []float32 of length numEQBands in 0..1.
@@ -370,81 +371,54 @@ func setAudioMod(on bool) {
 	} else {
 		resetAttractorState()
 	}
-	af.updateMetersVisibility()
-}
-
-// metersEnabled is the "Meters" switch state (independent of Audio mod). The
-// overlay shows only when Audio mod is on AND this is enabled.
-var metersEnabled = true
-
-// updateMetersVisibility shows the top-left feature meters iff Audio mod is on
-// and the Meters switch is enabled; otherwise hides them.
-func (a *audioFeatures) updateMetersVisibility() {
-	if audioMod && metersEnabled {
-		a.showAudioMeters()
-	} else if a.overlay.Truthy() {
-		a.overlay.Get("style").Set("display", "none")
+	if !on {
+		af.darkLadders() // nothing measured: no reading left standing
 	}
 }
 
-// showAudioMeters builds (once) a small top-left overlay of the mono
-// feature bars.
-func (a *audioFeatures) showAudioMeters() {
-	if !a.overlay.Truthy() {
-		labels := [6]string{"amp", "bass", "mid", "treble", "cntr", "beat"}
-		a.overlay = dom.Doc.Call("createElement", "div")
-		a.overlay.Set("id", "audio-meters")
-		st := a.overlay.Get("style")
-		st.Set("position", "fixed")
-		st.Set("top", "8px")
-		st.Set("left", "8px")
-		st.Set("padding", "6px 8px")
-		st.Set("background", "rgba(0,0,0,0.6)")
-		st.Set("font-family", "monospace")
-		st.Set("font-size", "10px")
-		st.Set("color", "#ccc")
-		st.Set("z-index", "var(--z-hud)") // HUD level (with info overlay); below a recovered panel — see z-scale
-		st.Set("pointer-events", "none")
-		for i, lab := range labels {
-			row := dom.Doc.Call("createElement", "div")
-			row.Get("style").Set("display", "flex")
-			row.Get("style").Set("alignItems", "center")
-			row.Get("style").Set("margin", "1px 0")
-			name := dom.Doc.Call("createElement", "span")
-			name.Set("textContent", lab)
-			name.Get("style").Set("width", "34px")
-			track := dom.Doc.Call("createElement", "div")
-			track.Get("style").Set("width", "80px")
-			track.Get("style").Set("height", "6px")
-			track.Get("style").Set("background", "#333")
-			fill := dom.Doc.Call("createElement", "div")
-			fill.Get("style").Set("height", "6px")
-			fill.Get("style").Set("width", "0%")
-			fill.Get("style").Set("background", "#4caf50")
-			track.Call("appendChild", fill)
-			row.Call("appendChild", name)
-			row.Call("appendChild", track)
-			a.overlay.Call("appendChild", row)
-			a.meterFill[i] = fill
-		}
-		dom.Body.Call("appendChild", a.overlay)
-	}
-	a.overlay.Get("style").Set("display", "block")
-	layout.positionAudioMeters() // keep clear of a left/top-docked control panel
-}
+// The Features module (feat-module): the six features as LED bar graphs, a
+// ladder each, as a console's meter bridge shows its channels. A ladder's
+// lit height is one style property, --lit, the number of segments lit
+// (featladder.go); the stylesheet draws the segments and their colors from
+// it, so a reading costs one write, and none when it lights the segments it
+// already lit.
 
+// featNames are the features the Features module shows, in the order of its
+// ladders: the mono mix of each.
+var featNames = [6]string{"amp", "bass", "mid", "treble", "centroid", "beat"}
+
+// updateAudioMeters lights the ladders from this frame's features, while the
+// module is on screen.
 func (a *audioFeatures) updateAudioMeters() {
-	if !a.overlay.Truthy() {
+	if !onScreen.moduleOnScreen("feat-module") {
 		return
 	}
-	a.frameCnt++
-	if a.frameCnt%6 != 0 {
+	for i, nm := range featNames {
+		a.setLadder(i, featLit(a.feat[nm]))
+	}
+}
+
+// darkLadders puts every ladder out.
+func (a *audioFeatures) darkLadders() {
+	for i := range featNames {
+		a.setLadder(i, 0)
+	}
+}
+
+// setLadder lights n segments of ladder i. The element is looked up again
+// only when a write is due and the one held has left the page.
+func (a *audioFeatures) setLadder(i, n int) {
+	el := a.ladder[i]
+	if n == a.ladderLit[i] && el.Truthy() {
 		return
 	}
-	names := [6]string{"amp", "bass", "mid", "treble", "centroid", "beat"}
-	for i, nm := range names {
-		if a.meterFill[i].Truthy() {
-			a.meterFill[i].Get("style").Set("width", strconv.FormatFloat(float64(a.feat[nm]*100), 'f', 0, 64)+"%")
+	if !el.Truthy() || !el.Get("isConnected").Bool() {
+		el = dom.Doc.Call("getElementById", "feat-bar-"+strconv.Itoa(i))
+		if !el.Truthy() {
+			return
 		}
+		a.ladder[i] = el
 	}
+	a.ladderLit[i] = n
+	el.Get("style").Call("setProperty", "--lit", strconv.Itoa(n))
 }

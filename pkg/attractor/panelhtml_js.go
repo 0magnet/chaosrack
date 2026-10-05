@@ -272,9 +272,6 @@ const controlsBody = `
   <span class="pcell axcol vmcell gen-cell"><span class="grp vmbay"><span class="ledlbl">I</span><span class="led" id="lufs-i-led" data-doc="lufs-i-led">  --.-</span><span class="ledlbl">LRA</span><span class="led" id="lufs-lra-led" data-doc="lufs-lra-led">  --.-</span></span></span>
   <span class="pcell axcol vmcell gen-cell"><span class="grp vmbay"><span class="ledlbl">TP</span><span class="led" id="lufs-tp-led" data-doc="lufs-tp-led">  --.-</span><button class="rst" id="lufs-reset" data-doc="lufs-reset">↺</button></span></span>
   <span class="pcell axcol vmcell gen-cell"><input type="range" id="lufs-target" min="-40" max="0" step="1" value="-23" style="display:none"><span class="grp vmbay"><span class="ledlbl">tgt</span><input type="number" class="numin" id="lufs-target-led" data-doc="lufs-target-led" min="-40" max="0" step="1" value="-23"><span class="ledlbl">&#916;</span><span class="led" id="lufs-delta-led" data-doc="lufs-delta-led">  --.-</span></span><button class="rst" id="rst-lufs-target" data-doc="rst-lufs-target">↺</button></span>
-  <span class="pcell axcol swcell" data-doc="meters-cell">
-    <label class="swline" style="cursor:pointer;" data-doc="show-meters"><input type="checkbox" class="sw" id="show-meters" checked> Meters</label>
-  </span>
 </div></div>
 <div class="sect gen-osc" id="wf-module"><div class="sect-hdr" data-doc="wf">Wow &amp; Flutter</div>
 <div class="row vmrow meterrow">
@@ -290,6 +287,17 @@ const controlsBody = `
   <span class="pcell axcol vmcell gen-cell"><span class="grp vmbay"><span class="ledlbl">late</span><span class="led" id="tm-late-led" data-doc="tm-late-led">  --.-</span><span class="ledlbl">rest</span><span class="led" id="tm-rest-led" data-doc="tm-rest-led">  --.-</span></span></span>
   <span class="pcell axcol vmcell gen-cell"><span class="grp vmbay"><span class="ledlbl">model</span><span class="led" id="tm-model-led" data-doc="tm-model-led">  --.-</span><span class="ledlbl">meters</span><span class="led" id="tm-meters-led" data-doc="tm-meters-led">  --.-</span></span></span>
   <span class="pcell axcol vmcell gen-cell"><span class="grp vmbay"><span class="ledlbl">scope</span><span class="led" id="tm-scope-led" data-doc="tm-scope-led">  --.-</span></span></span>
+</div></div>
+<div class="sect gen-osc" id="feat-module"><div class="sect-hdr" data-doc="feat">Features</div>
+<div class="row vmrow meterrow">
+  <span class="pcell axcol vmcell gen-cell featcell"><span class="ladders">
+    <span class="ladder" data-doc="feat-amp"><span class="lad-bar" id="feat-bar-0"></span><span class="lad-lbl">amp</span></span>
+    <span class="ladder" data-doc="feat-bass"><span class="lad-bar" id="feat-bar-1"></span><span class="lad-lbl">bass</span></span>
+    <span class="ladder" data-doc="feat-mid"><span class="lad-bar" id="feat-bar-2"></span><span class="lad-lbl">mid</span></span>
+    <span class="ladder" data-doc="feat-treble"><span class="lad-bar" id="feat-bar-3"></span><span class="lad-lbl">treb</span></span>
+    <span class="ladder" data-doc="feat-centroid"><span class="lad-bar" id="feat-bar-4"></span><span class="lad-lbl">cntr</span></span>
+    <span class="ladder" data-doc="feat-beat"><span class="lad-bar" id="feat-bar-5"></span><span class="lad-lbl">beat</span></span>
+  </span></span>
 </div></div>
 <div class="sect gen-osc keys-sect" id="keys-module"><div class="sect-hdr" data-doc="keys">Keys</div>
 <div class="row keysflex">
