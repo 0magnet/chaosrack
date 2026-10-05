@@ -41,9 +41,14 @@ The middle front sheet of the sphere:
 
 ## Sheets
 
-A sheet is `-n` voxels square (16 by default), a voxel two characters wide
-so that it is square in a terminal: `2n` columns by `n` rows. `-slice` counts
-from the far side toward the viewer the family faces.
+A sheet is as many voxels square as its terminal has rows (or half its
+columns, if that is fewer), a voxel being two characters wide so that it is
+square: `2n` columns by `n` rows. The same n is the number of sheets in every
+family, so the terminal's resolution is the volume's, in all three dimensions:
+zoom a terminal out to more, smaller characters and the program, told of the
+new size as programs are, draws a finer slice of a finer volume. `-n` pins it
+instead. `-slice` counts from the far side toward the viewer the family faces,
+and is the middle by default.
 
 | axis | seen from | right | up |
 |---|---|---|---|
@@ -142,12 +147,12 @@ gocloc --not-match-d='(vendor|node_modules|\.git)' .
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-Go                              10            115            204           1079
-Markdown                         1             34              0            119
+Go                              12            125            221           1156
+Markdown                         1             34              0            124
 YAML                             1              0              7             98
 Makefile                         1             19             34             89
 Bourne Shell                     1              8             16             30
 -------------------------------------------------------------------------------
-TOTAL                           14            176            261           1415
+TOTAL                           16            186            278           1497
 -------------------------------------------------------------------------------
 ```

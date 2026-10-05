@@ -690,7 +690,7 @@ style — how each terminal writes the surface where it crosses its sheet.
 - <!-- key: p.lattice-style=3 --> solid — every voxel the surface passes through, filled
 
 <!-- key: p.lattice-n -->
-n — voxels along each axis, and so sheets in each family: 3n terminals of 2n columns by n rows. Finer is smoother and costs more terminals.
+rows — each terminal's height in rows, which is its resolution: the programs read their terminal's size, as programs do, and draw that many voxels across. A family has as many sheets as a terminal has rows, so this is the volume's resolution in all three dimensions: more rows is a terminal zoomed out to smaller characters, and a finer solid. 3 × rows terminals of 2 × rows columns; finer costs more.
 
 <!-- key: p.lattice-spin -->
 spin — how fast the solid turns, in degrees a second, by the time of day: every terminal running lattice with the same spin shows it at the same angle.
