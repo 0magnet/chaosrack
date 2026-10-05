@@ -1574,6 +1574,8 @@ func buildPanelKnobs() {
 	knobifyFixed("sweep-lo", "slider-value-swlo", true)
 	knobifyFixed("sweep-hi", "slider-value-swhi", true)
 	knobifyFixed("palette-shift", "slider-value-pshift", true)
+	knobifyFixed("lattice-n", "slider-value-latrows", true)
+	knobifyFixed("lattice-opac", "slider-value-latopac", true)
 	rkx := knobifyFixed("rotation-controls-x", "slider-value-x", false)
 	rky := knobifyFixed("rotation-controls-y", "slider-value-y", false)
 	rkz := knobifyFixed("rotation-controls-z", "slider-value-z", false)
