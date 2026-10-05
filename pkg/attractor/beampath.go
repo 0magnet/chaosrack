@@ -1,6 +1,9 @@
 package attractor
 
-import "math"
+import (
+	"math"
+	"strconv"
+)
 
 // The beam: a drawing as an XY display traces it.
 //
@@ -179,4 +182,23 @@ func (w *beamWalker) at(p *beamPath, f beamFrame) [3]float64 {
 	a, b := f(p.pts[w.seg]), f(p.pts[(w.seg+1)%n])
 	t := w.frac
 	return [3]float64{a[0] + (b[0]-a[0])*t, a[1] + (b[1]-a[1])*t, a[2] + (b[2]-a[2])*t}
+}
+
+// beamHzText is a circuit frequency as its readout (a full display, eight
+// characters) shows it: four significant figures up to 9999, whole hertz
+// above, and "--" when there is no circuit to measure.
+func beamHzText(hz float64) string {
+	switch {
+	case !(hz > 0) || math.IsInf(hz, 0):
+		return "--"
+	case hz < 10:
+		return strconv.FormatFloat(hz, 'f', 3, 64)
+	case hz < 100:
+		return strconv.FormatFloat(hz, 'f', 2, 64)
+	case hz < 1000:
+		return strconv.FormatFloat(hz, 'f', 1, 64)
+	case hz < 1e7:
+		return strconv.FormatFloat(hz, 'f', 0, 64)
+	}
+	return ">9999999"
 }

@@ -691,6 +691,12 @@ func buildParamPanelNow(mode string) {
 		xy.appendXYReadout(liveReadoutHost(mode, grid))
 	}
 
+	if hasBeam(mode) {
+		// The beam's circuit frequency: SPD's speed over this figure's
+		// length, which is the pitch Model Out plays it at.
+		beam.appendReadout(liveReadoutHost(mode, grid))
+	}
+
 	// Every monitor readout goes blank first: the model it measured may
 	// not be the one running now, and a number left on a screen is a claim.
 	if ros := dom.Doc.Call("querySelectorAll", ".monread"); ros.Truthy() {

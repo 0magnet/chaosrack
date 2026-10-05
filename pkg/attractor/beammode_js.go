@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"math"
+	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"github.com/go-gl/mathgl/mgl32"
@@ -31,6 +32,11 @@ type beamState struct {
 	lastMs float64
 	frame  float64 // the frame the display's beam last advanced in
 	buf    []float32
+
+	// The circuit's frequency, on the readout line over the equation.
+	hzEl   js.Value
+	hzText string
+	hzAt   float64 // when it was last measured
 }
 
 var beam beamState
@@ -105,6 +111,7 @@ func beamGenerate(mode string, fn func()) {
 		fn()
 		if hasBeam(mode) {
 			beam.capture(mode)
+			beam.readout(mode)
 		}
 		return
 	}
@@ -113,6 +120,38 @@ func beamGenerate(mode string, fn func()) {
 	beam.capturing = false
 	beam.capture(mode)
 	beam.draw()
+	beam.readout(mode)
+}
+
+// beamHzEveryMs is how often the circuit's frequency is measured for its
+// readout: a number to be read, not followed.
+const beamHzEveryMs = 250
+
+// appendReadout puts the circuit's frequency on mode's readout line
+// (liveReadoutHost), built fresh with each panel.
+func (b *beamState) appendReadout(host js.Value) {
+	b.hzText, b.hzAt = "", 0
+	b.hzEl = liveReadout(host, "hz", dispFullChars, beamHzText(0), doc("ro.hz"))
+}
+
+// readout measures the circuit — the beam's speed over the figure's length,
+// how many times a second it goes round, and the pitch Model Out plays it
+// at — while the beam draws or is heard, and blanks it otherwise.
+func (b *beamState) readout(mode string) {
+	if !b.hzEl.Truthy() || (b.hzAt != 0 && frameNowMs-b.hzAt < beamHzEveryMs) {
+		return
+	}
+	b.hzAt = frameNowMs
+	hz := 0.0
+	if beamDraws(mode) || beamSounds(mode) {
+		if total := b.path.length(beamFrameNow()); total > 0 {
+			hz = beamSpeed() / total
+		}
+	}
+	if s := beamHzText(hz); s != b.hzText {
+		b.hzText = s
+		setDotText(b.hzEl, s)
+	}
 }
 
 // draw advances the display's beam by the time since the last frame and
