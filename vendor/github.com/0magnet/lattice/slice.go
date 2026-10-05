@@ -1,6 +1,9 @@
 package lattice
 
-import "math"
+import (
+	"math"
+	"sync"
+)
 
 // Cell is one character of a sheet: a glyph and its color, or nothing (Ch
 // 0), which a terminal shows as its background and a stack of sheets shows
@@ -88,7 +91,7 @@ func newSlab(s Shape, sh Sheet) *slab {
 	na := [...]int{X: 0, Y: 1, Z: 2}[sh.Axis]
 	o := [3][2]int{{1, 2}, {0, 2}, {0, 1}}[na]
 	m := sh.N + 1
-	sl := &slab{n: sh.N, k: sh.Slice, na: na, o1: o[0], o2: o[1], d: make([]float64, 2*m*m)}
+	sl := &slab{n: sh.N, k: sh.Slice, na: na, o1: o[0], o2: o[1], d: slabBuf(2 * m * m)}
 	for l := range 2 {
 		for a := range m {
 			for b := range m {
@@ -127,9 +130,13 @@ func (sh Sheet) index(u, v int) [3]int {
 }
 
 // Render draws sheet sh of shape s.
-func Render(sh Sheet, s Shape, st Style, co Coloring) Frame {
-	f := Frame{Cols: sh.Cols(), Rows: sh.Rows()}
-	f.Cells = make([]Cell, f.Cols*f.Rows)
+func Render(sh Sheet, s Shape, st Style, co Coloring) Frame { return render(sh, s, st, co, nil) }
+
+// render is Render into cells, if they are the right size and can be
+// reused: a program drawing frame after frame draws into the one its screen
+// has just finished comparing against, rather than making a new one.
+func render(sh Sheet, s Shape, st Style, co Coloring, cells []Cell) Frame {
+	f := blank(sh, cells)
 	b := BasisOf(sh.Axis)
 	sl := newSlab(s, sh)
 	for v := range sh.N {
@@ -144,6 +151,19 @@ func Render(sh Sheet, s Shape, st Style, co Coloring) Frame {
 			f.Cells[v*f.Cols+2*u] = c
 			f.Cells[v*f.Cols+2*u+1] = c
 		}
+	}
+	slabFree(sl.d)
+	return f
+}
+
+// blank is an empty frame for sheet sh, in cells if they fit.
+func blank(sh Sheet, cells []Cell) Frame {
+	f := Frame{Cols: sh.Cols(), Rows: sh.Rows()}
+	if len(cells) == f.Cols*f.Rows {
+		clear(cells)
+		f.Cells = cells
+	} else {
+		f.Cells = make([]Cell, f.Cols*f.Rows)
 	}
 	return f
 }
@@ -196,3 +216,19 @@ func color(p Vec3, co Coloring) (r, g, b uint8) {
 	c := func(x float64) uint8 { return uint8(math.Round(80 + 175*(x+1)/2)) }
 	return c(p[0]), c(p[1]), c(p[2])
 }
+
+// slabs keeps slabs' corner buffers from frame to frame: a program draws its
+// sheet many times a second, and under TinyGo every buffer made and dropped
+// is collector time.
+var slabs sync.Pool
+
+// slabBuf is a buffer of n distances, reused if one is free.
+func slabBuf(n int) []float64 {
+	if p, ok := slabs.Get().(*[]float64); ok && cap(*p) >= n {
+		return (*p)[:n]
+	}
+	return make([]float64, n)
+}
+
+// slabFree gives d back for the next slab.
+func slabFree(d []float64) { slabs.Put(&d) }

@@ -31,6 +31,7 @@ type Program struct {
 	drawnAs  turn
 	drawnGen uint64 // the figure's generation, when there is one
 	drawn    bool
+	spare    []Cell // a frame's cells, free to draw the next into
 }
 
 // options are the command line's.
@@ -191,7 +192,9 @@ func (p *Program) Frame(t time.Time) error {
 		return nil
 	}
 	p.drawnAs, p.drawnGen, p.drawn = tu, gen, true
-	return p.sc.draw(p.o.frameAt(tu))
+	fr := p.o.frameAt(tu, p.spare)
+	p.spare = p.sc.prev.Cells // the screen keeps fr; the one it lets go is drawn into next
+	return p.sc.draw(fr)
 }
 
 // Leave gives the terminal back.
@@ -233,24 +236,24 @@ func (o options) solidAt(tu turn) Shape {
 
 // frame is what this program draws at t: its sheet, or with -tile every
 // sheet of its axis.
-func (o options) frame(t time.Time) Frame { return o.frameAt(o.turnAt(t)) }
+func (o options) frame(t time.Time) Frame { return o.frameAt(o.turnAt(t), nil) }
 
 // frameAt is frame with the solid standing as tu says.
-func (o options) frameAt(tu turn) Frame {
-	draw := func(sh Sheet) Frame {
+func (o options) frameAt(tu turn, cells []Cell) Frame {
+	draw := func(sh Sheet, cells []Cell) Frame {
 		if o.fig != nil {
-			return renderFigure(sh, o.fig, tu, o.style, o.coloring)
+			return renderFigure(sh, o.fig, tu, o.style, o.coloring, cells)
 		}
-		return Render(sh, o.solidAt(tu), o.style, o.coloring)
+		return render(sh, o.solidAt(tu), o.style, o.coloring, cells)
 	}
 	if !o.tile {
-		return draw(o.sheet)
+		return draw(o.sheet, cells)
 	}
 	fs := make([]Frame, o.sheet.N)
 	for k := range fs {
 		sh := o.sheet
 		sh.Slice = k
-		fs[k] = draw(sh)
+		fs[k] = draw(sh, nil)
 	}
 	return tiled(fs, o.sheet.Axis, o.cols)
 }

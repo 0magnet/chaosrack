@@ -46,8 +46,9 @@ func (f *Figure) Set(lines [][]Vec3) {
 // generation counts the Sets, so a program knows when its picture is stale.
 func (f *Figure) generation() uint64 {
 	f.mu.Lock()
-	defer f.mu.Unlock()
-	return f.gen
+	g := f.gen
+	f.mu.Unlock()
+	return g
 }
 
 // figGrid is a figure in voxels: whether each is lit, and the direction the
@@ -63,7 +64,13 @@ func (g *figGrid) at(i [3]int) int { return (i[0]*g.n+i[1])*g.n + i[2] }
 // voxels is the figure turned as tu says, in voxels n to a side.
 func (f *Figure) voxels(n int, tu turn) *figGrid {
 	f.mu.Lock()
-	defer f.mu.Unlock()
+	g := f.voxelize(n, tu)
+	f.mu.Unlock() // not deferred: TinyGo wraps a deferring function in a panic catch that cost as much as this
+	return g
+}
+
+// voxelize is voxels, with f locked.
+func (f *Figure) voxelize(n int, tu turn) *figGrid {
 	if f.grid != nil && f.gridGen == f.gen && f.gridN == n && f.gridAs == tu {
 		return f.grid
 	}
@@ -127,9 +134,8 @@ func (f *Figure) voxels(n int, tu turn) *figGrid {
 }
 
 // renderFigure draws sheet sh of figure f, turned as tu says.
-func renderFigure(sh Sheet, f *Figure, tu turn, st Style, co Coloring) Frame {
-	fr := Frame{Cols: sh.Cols(), Rows: sh.Rows()}
-	fr.Cells = make([]Cell, fr.Cols*fr.Rows)
+func renderFigure(sh Sheet, f *Figure, tu turn, st Style, co Coloring, cells []Cell) Frame {
+	fr := blank(sh, cells)
 	g := f.voxels(sh.N, tu)
 	b := BasisOf(sh.Axis)
 	for v := range sh.N {
