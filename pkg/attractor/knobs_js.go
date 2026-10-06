@@ -75,6 +75,14 @@ func knobSweep(id string) float64 {
 	return skirt.SweepDeg
 }
 
+// turnPtr points a knob's pointer deg degrees clockwise from straight up.
+// It sets --a and nothing else: the pointer is painted at that angle
+// (.knob-ptr in panel.css), so a turn costs a repaint and not, as a transform
+// did, a re-layerization of the whole page.
+func turnPtr(ptr js.Value, deg float64) {
+	ptr.Get("style").Call("setProperty", "--a", strconv.FormatFloat(deg, 'f', 1, 64)+"deg")
+}
+
 func knobAngleForValue(v, lo, hi, sweep float64) float64 {
 	if hi <= lo {
 		return 0
@@ -294,7 +302,7 @@ func (s *selectorKnob) makeSelectorKnob(sel js.Value) js.Value {
 		case n > 1:
 			ang = -skirt.SweepDeg/2 + skirt.SweepDeg*float64(idx)/float64(n-1)
 		}
-		ptr.Get("style").Set("transform", "translate(-50%,-100%) rotate("+strconv.FormatFloat(ang, 'f', 1, 64)+"deg)")
+		turnPtr(ptr, ang)
 	}
 	// Keyed: a selector has one knob at a time, and one built to replace
 	// another (a bank remounting a family's dial) replaces its listener too.
@@ -680,7 +688,7 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 		if endless {
 			ang = spec.angle(v)
 		}
-		ptr.Get("style").Set("transform", "translate(-50%,-100%) rotate("+strconv.FormatFloat(ang, 'f', 1, 64)+"deg)")
+		turnPtr(ptr, ang)
 		if dial.Truthy() {
 			if endless {
 				paintRing(dial, spec, v)

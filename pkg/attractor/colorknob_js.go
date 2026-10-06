@@ -37,7 +37,7 @@ func makeHueKnob(slider js.Value) js.Value {
 
 	update := func() {
 		h, _ := strconv.ParseFloat(slider.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-		ptr.Get("style").Set("transform", "translate(-50%,-100%) rotate("+strconv.FormatFloat(h, 'f', 1, 64)+"deg)")
+		turnPtr(ptr, h)
 	}
 	update()
 	dom.On(slider, "input", func(this js.Value, a []js.Value) any { update(); return nil })

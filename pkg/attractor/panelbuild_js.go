@@ -359,7 +359,7 @@ func buildStepField(slider js.Value, label, stepStr string) js.Value {
 	show := func(v float64) {
 		t := (math.Log10(v) - math.Log10(lo)) / (math.Log10(hi) - math.Log10(lo))
 		t = math.Max(0, math.Min(1, t))
-		ptr.Get("style").Set("transform", "translate(-50%, -100%) rotate("+strconv.FormatFloat(-135+270*t, 'f', 1, 64)+"deg)")
+		turnPtr(ptr, -135+270*t)
 	}
 	set := func(v float64) {
 		v = math.Max(lo, math.Min(hi, v))

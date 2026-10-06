@@ -727,7 +727,14 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
    and so are blockified already. */
 .knob{display:block;position:relative;border-radius:50%;background:radial-gradient(circle at 35% 28%,#888,#3a3a3a 68%,#222);border:2px solid #111;box-shadow:0 1px 2px #000,inset 0 1px 1px #9a9a9a,inset 0 -2px 3px #000;cursor:grab;flex:0 0 auto;touch-action:none;}
 .knob:active{cursor:grabbing;}
-.knob-ptr{position:absolute;left:50%;top:50%;width:2px;height:calc(15px*var(--kscale,1));background:#f0f0f0;border-radius:1px;transform-origin:50% 100%;box-shadow:0 0 3px #fff;pointer-events:none;z-index:3;}
+/* The pointer never moves: it is a square over the knob's center, and the bar
+   is painted in it at --a by gradients (the bar and its glow, cut by a mask to
+   the half it points into and to its length). Turning it changes paint alone.
+   A transform did the same job and cost the page a whole re-layerization on
+   every turn — 30-50 ms with this panel's 12,000 elements, a skip in every
+   animation while a knob followed a spin or a modulation. Skins set the
+   colors (--pcol, --pglow) and the glow's reach (--pg); lengths set --plen. */
+.knob-ptr{--a:0deg;--plen:calc(15px*var(--kscale,1));--pw:2px;--pg:3px;--pcol:#f0f0f0;--pglow:#fff;position:absolute;left:50%;top:50%;width:calc(2*(var(--plen) + var(--pg)));height:calc(2*(var(--plen) + var(--pg)));transform:translate(-50%,-50%);background:linear-gradient(calc(var(--a) + 90deg),transparent calc(50% - var(--pw)/2 - var(--pg)),color-mix(in srgb,var(--pglow) 55%,transparent) calc(50% - var(--pw)/2),var(--pcol) calc(50% - var(--pw)/2) calc(50% + var(--pw)/2),color-mix(in srgb,var(--pglow) 55%,transparent) calc(50% + var(--pw)/2),transparent calc(50% + var(--pw)/2 + var(--pg)));--pmask:conic-gradient(from calc(var(--a) - 90deg),#000 0 180deg,transparent 0),radial-gradient(closest-side,#000 calc(100% - var(--pg)),transparent);-webkit-mask-image:var(--pmask);mask-image:var(--pmask);-webkit-mask-composite:source-in;mask-composite:intersect;pointer-events:none;z-index:3;}
 .knobwrap{display:inline-flex;align-items:center;vertical-align:middle;margin:0 2px;position:relative;}
 .knob-fine{position:absolute;left:50%;top:50%;width:calc(18px*var(--kscale,1));height:calc(18px*var(--kscale,1));transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 35% 30%,#9a9a9a,#484848 72%);border:1px solid #171717;cursor:grab;box-shadow:inset 0 1px 1px #b8b8b8,0 1px 1px #000;z-index:2;}
 .knob-fine:active{cursor:grabbing;}
@@ -738,7 +745,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
 .knobstack{position:relative;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;width:var(--ko);height:var(--ko);margin:0 2px;flex:0 0 auto;}
 .knob-ring{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:var(--ko);height:var(--ko);}
 /* the ring's indicator must reach past the inner knob into the annulus */
-.knob-ring>.knob-ptr{height:calc(30px*var(--kscale,1));}
+.knob-ring>.knob-ptr{--plen:calc(30px*var(--kscale,1));}
 /* clip a hair past the circle so square corners don't eat the neighboring
    ring's annulus, but the hover/grab glow ring still shows through. */
 .knob-inner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;z-index:5;clip-path:circle(calc(50% + 5px));justify-content:center;align-items:center;}
@@ -775,15 +782,15 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
 }
 .knobb{width:var(--ko);height:var(--ko);}                                          /* single value knob */
 .knobstack>.knob-ring{width:var(--ko);height:var(--ko);}        /* outer ring */
-.knobstack>.knob-ring>.knob-ptr{height:var(--kpo);}
+.knobstack>.knob-ring>.knob-ptr{--plen:var(--kpo);}
 .knob-inner{width:var(--ki);height:var(--ki);}                  /* double: inner body */
 .knob-inner .knobb{width:var(--ki);height:var(--ki);}
-.knob-inner>.knob-ptr,.knob-inner .knobb>.knob-ptr{height:var(--kpi);}
+.knob-inner>.knob-ptr,.knob-inner .knobb>.knob-ptr{--plen:var(--kpi);}
 .knob-inner.knobstack{width:var(--km);height:var(--km);}        /* triple: middle ring */
 .knob-inner.knobstack>.knob-ring{width:var(--km);height:var(--km);}
-.knob-inner.knobstack>.knob-ring>.knob-ptr{height:var(--kpm);}
+.knob-inner.knobstack>.knob-ring>.knob-ptr{--plen:var(--kpm);}
 .knob-inner.knobstack>.knob-inner{width:var(--ki);height:var(--ki);} /* triple: innermost body */
-.knob-inner.knobstack>.knob-inner>.knob-ptr{height:var(--kpi);}
+.knob-inner.knobstack>.knob-inner>.knob-ptr{--plen:var(--kpi);}
 /* analog dial (degree ticks / rotary-switch labels) around a stack's ring */
 .knob-dial{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(94px*var(--kscale,1));height:calc(94px*var(--kscale,1));pointer-events:none;z-index:0;}
 .knob-dial-lab{position:absolute;transform:translate(-50%,-50%);font-family:'B612 Mono',monospace;font-size:calc(8px*var(--kscale,1));line-height:1;color:#7fd0ff;opacity:.85;white-space:nowrap;}
@@ -821,7 +828,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
    .punit itself shrank every single knob in every parameter cell from 76 to
    57 — caught by the geometry snapshot, which is why that snapshot exists. */
 .punit .knobstack .knob-ring{width:calc(14*var(--mm));height:calc(14*var(--mm));}
-.punit .knobstack .knob-ring>.knob-ptr{height:calc(6*var(--mm));}
+.punit .knobstack .knob-ring>.knob-ptr{--plen:calc(6*var(--mm));}
 
 /* The step-size knob: a small detented shaft beside the step readout, ten
    times finer or coarser per detent. Beside the field rather than under it,
@@ -992,7 +999,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
 #knobstyle-stack .knobstack.has-dial,#ledcolor-stack .knobstack.has-dial{margin:calc(20px*var(--kscale,1));}
 #knobstyle-stack .knob-dial-lab{font-size:calc(8px*var(--kscale,1));}
 /* The LED knob's pointer glows in the color it has chosen. */
-#ledcolor-stack .knob-ring>.knob-ptr{background:var(--led-col,#ff3b30);box-shadow:0 0 5px var(--led-glow,#ff2a20);}
+#ledcolor-stack .knob-ring>.knob-ptr{--pcol:var(--led-col,#ff3b30);--pglow:var(--led-glow,#ff2a20);--pg:5px;}
 /* Phosphor and LED are the exception: the label centers on the knob (knoblbl is
    position:relative and, with the label out of flow, is sized to the knob). */
 #phosphor-cell .knoblbl>.plabel,#ledcolor-cell .knoblbl>.plabel{top:50%;transform:translateY(-50%);}
@@ -1003,15 +1010,15 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
 .selk-ro>.selk-readout{position:absolute;top:calc(100% + 3px);left:50%;transform:translateX(-50%);}
 /* ── Knob appearance styles (selected by the Knob-style knob). std = default. ── */
 :is(#controls-panel,.cp-ctx).ks-flat .knob,:is(#controls-panel,.cp-ctx).ks-flat .knobb{background:radial-gradient(circle at 50% 46%,#343434,#1d1d1d 74%,#141414);border:1px solid #4c4c4c;box-shadow:inset 0 1px 1px #565656,0 1px 2px #000;}
-:is(#controls-panel,.cp-ctx).ks-flat .knob-ptr{background:#7fe0a0;box-shadow:0 0 4px #2a9a5a;}
+:is(#controls-panel,.cp-ctx).ks-flat .knob-ptr{--pcol:#7fe0a0;--pglow:#2a9a5a;--pg:4px;}
 :is(#controls-panel,.cp-ctx).ks-vint .knob,:is(#controls-panel,.cp-ctx).ks-vint .knobb{background:radial-gradient(circle at 35% 24%,#cbb891,#7d6c4d 66%,#3f3323);border:2px solid #251c10;box-shadow:0 2px 3px #000,inset 0 1px 2px #ece0c4,inset 0 -3px 5px #29200f;}
-:is(#controls-panel,.cp-ctx).ks-vint .knob-ptr{background:#332614;box-shadow:0 0 2px #140d04;}
+:is(#controls-panel,.cp-ctx).ks-vint .knob-ptr{--pcol:#332614;--pglow:#140d04;--pg:2px;}
 :is(#controls-panel,.cp-ctx).ks-chrome .knob,:is(#controls-panel,.cp-ctx).ks-chrome .knobb{background:linear-gradient(145deg,#f4f4f4,#9fa3a8 42%,#e6e9ee 52%,#6c7075 100%);border:1px solid #3a3a3a;box-shadow:0 1px 3px #000,inset 0 1px 1px #fff,inset 0 -2px 3px #4a4a4a;}
-:is(#controls-panel,.cp-ctx).ks-chrome .knob-ptr{background:#1a1a1a;box-shadow:0 0 1px #000;}
+:is(#controls-panel,.cp-ctx).ks-chrome .knob-ptr{--pcol:#1a1a1a;--pglow:#000;--pg:1px;}
 :is(#controls-panel,.cp-ctx).ks-gold .knob,:is(#controls-panel,.cp-ctx).ks-gold .knobb{background:radial-gradient(circle at 35% 25%,#ffe9a8,#caa23c 58%,#7c5c14 100%);border:2px solid #5a4410;box-shadow:0 2px 3px #000,inset 0 1px 2px #fff2c8,inset 0 -3px 4px #3e2c08;}
-:is(#controls-panel,.cp-ctx).ks-gold .knob-ptr{background:#3a2c08;box-shadow:0 0 2px #1a1204;}
+:is(#controls-panel,.cp-ctx).ks-gold .knob-ptr{--pcol:#3a2c08;--pglow:#1a1204;--pg:2px;}
 :is(#controls-panel,.cp-ctx).ks-carbon .knob,:is(#controls-panel,.cp-ctx).ks-carbon .knobb{background:repeating-linear-gradient(45deg,#171717,#171717 2px,#232323 2px,#232323 4px);border:1px solid #0a0a0a;box-shadow:0 1px 2px #000,inset 0 1px 1px #383838;}
-:is(#controls-panel,.cp-ctx).ks-carbon .knob-ptr{background:#e0e0e0;box-shadow:0 0 3px #fff;}
+:is(#controls-panel,.cp-ctx).ks-carbon .knob-ptr{--pcol:#e0e0e0;--pglow:#fff;--pg:3px;}
 /* Color-swatch dial dots (LED-color knob): a filled dot per detent in that
    option's color; the selected one gets a bright ring. */
 .knob-dial-dot{position:absolute;transform:translate(-50%,-50%);width:calc(7px*var(--kscale,1));height:calc(7px*var(--kscale,1));border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,0.8);cursor:pointer;pointer-events:auto;z-index:6;}
@@ -1412,7 +1419,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
    legend on its cap. The legend sits at the pointer's pivot, so it turns
    with the knob; the pointer itself is only a tick at the rim. */
 .miniknob{--ko:calc(17px*var(--kscale,1));}
-.miniknob .knob-ptr{height:calc(8.5px*var(--kscale,1));width:calc(1.5px*var(--kscale,1));background:none;box-shadow:none;}
+.miniknob .knob-ptr{--plen:calc(8.5px*var(--kscale,1));height:var(--plen);width:calc(1.5px*var(--kscale,1));transform:translate(-50%,-100%) rotate(var(--a));transform-origin:50% 100%;background:none;-webkit-mask-image:none;mask-image:none;}
 .miniknob .knob-ptr::before{content:"";position:absolute;left:0;right:0;top:calc(1px*var(--kscale,1));height:calc(2.5px*var(--kscale,1));background:#f0f0f0;border-radius:1px;}
 .knob-cap{position:absolute;left:50%;top:100%;transform:translate(-50%,-50%);font-family:'Chakra Petch',sans-serif;font-style:normal;font-weight:700;font-size:calc(8px*var(--kscale,1));line-height:1;color:#e6e9ec;pointer-events:none;}
 /* A module's row is a flex column in the rack (.sect>.row), three cells to a
@@ -1477,7 +1484,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
    leaves at the foot, each in a scale of its own. */
 .minirow{position:absolute;left:50%;bottom:calc(1px*var(--kscale,1));transform:translateX(-50%);display:flex;gap:calc(10px*var(--kscale,1));z-index:5;}
 .minirow .miniknob{--ko:calc(21px*var(--kscale,1));}
-.minirow .miniknob .knob-ptr{height:calc(10.5px*var(--kscale,1));}
+.minirow .miniknob .knob-ptr{--plen:calc(10.5px*var(--kscale,1));}
 .minirow .miniknob .knob-cap{font-size:calc(9.5px*var(--kscale,1));}
 .minirow .miniknob.has-dial{margin:calc(5px*var(--kscale,1));}
 .minirow .miniknob>.value-dial{width:calc(33px*var(--kscale,1));height:calc(33px*var(--kscale,1));}
