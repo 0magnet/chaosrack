@@ -136,7 +136,8 @@ type wtSource struct {
 
 	wt     js.Value
 	reader js.Value
-	buf    []byte // scratch for one datagram; Reassembler.Push copies
+	queue  jsQueue // the datagrams read and not yet taken; see pump
+	buf    []byte  // scratch for one datagram; Reassembler.Push copies
 
 	// fallback is the WebSocket Source that takes over once we give up.
 	// Non-nil means every method below delegates and this source is
@@ -251,7 +252,7 @@ func (w *wtSource) dial(url, certHash string) {
 	})).Call("catch", onDialErr)
 }
 
-// startReading pumps the datagram reader. Each datagram goes to the
+// startReading starts the datagram reader. pump hands each datagram to the
 // Reassembler, which returns a complete audio chunk or nothing.
 func (w *wtSource) startReading() {
 	if w.closed || w.fallback != nil {
@@ -264,28 +265,23 @@ func (w *wtSource) startReading() {
 	}
 	w.reader = dgrams.Get("readable").Call("getReader")
 
-	onReadErr := js.FuncOf(func(_ js.Value, args []js.Value) any {
-		w.fallBackProbe(WTProbe{Supported: true, DialErr: jsError(args, "datagram stream ended")})
+	// Read in JS and queued there (jsqueue_js.go): a Go handler per datagram
+	// was a goroutine per datagram. Only the end of the stream calls into Go.
+	onEnd := js.FuncOf(func(_ js.Value, args []js.Value) any {
+		if !w.closed && w.fallback == nil {
+			w.fallBackProbe(WTProbe{Supported: true, DialErr: jsError(args, "datagram stream ended")})
+		}
 		return nil
 	})
-	// Declared before it is defined because it re-arms itself: read()
-	// resolves once per datagram, so the handler has to schedule the
-	// next read from inside itself.
-	var onChunk js.Func
-	onChunk = js.FuncOf(func(_ js.Value, args []js.Value) any {
-		if w.closed || w.fallback != nil {
-			return nil
-		}
-		if len(args) == 0 || args[0].Get("done").Bool() {
-			w.fallBackProbe(WTProbe{Supported: true, DialErr: errors.New("datagram stream ended")})
-			return nil
-		}
-		w.consume(args[0].Get("value"))
-		// Re-arm before returning: read() resolves once per datagram.
-		w.reader.Call("read").Call("then", onChunk).Call("catch", onReadErr)
-		return nil
-	})
-	w.reader.Call("read").Call("then", onChunk).Call("catch", onReadErr)
+	w.queue = newJSQueue("", 1024)
+	pumpStream(w.reader, w.queue, onEnd)
+}
+
+// pump takes the datagrams that have arrived. Every reader calls it first.
+func (w *wtSource) pump() {
+	if !w.closed {
+		w.queue.each(w.consume)
+	}
 }
 
 // consume copies one datagram into Go and feeds it to the reassembler.
@@ -365,6 +361,7 @@ func (w *wtSource) TimeDomain(dst []float32) []float32 {
 	if w.fallback != nil {
 		return w.fallback.TimeDomain(dst)
 	}
+	w.pump()
 	if !w.ready || len(dst) == 0 {
 		for i := range dst {
 			dst[i] = 0
@@ -383,6 +380,7 @@ func (w *wtSource) TimeDomainStereo(l, r []float32) {
 	if len(l) != len(r) {
 		panic("audiosrc: TimeDomainStereo requires len(l) == len(r)")
 	}
+	w.pump()
 	if !w.ready {
 		for i := range l {
 			l[i], r[i] = 0, 0
@@ -396,6 +394,7 @@ func (w *wtSource) Drain(dst []float32) int {
 	if w.fallback != nil {
 		return w.fallback.Drain(dst)
 	}
+	w.pump()
 	if !w.ready {
 		return 0
 	}
@@ -413,6 +412,7 @@ func (w *wtSource) Channels() int {
 	if w.fallback != nil {
 		return w.fallback.Channels()
 	}
+	w.pump()
 	if !w.ready {
 		return 0
 	}
@@ -436,6 +436,7 @@ func (w *wtSource) Ready() bool {
 	if w.fallback != nil {
 		return w.fallback.Ready()
 	}
+	w.pump()
 	return w.ready && !w.closed
 }
 
@@ -522,6 +523,7 @@ func (w *wtSource) DrainStereo(l, r []float32) int {
 	if w.fallback != nil {
 		return w.fallback.DrainStereo(l, r)
 	}
+	w.pump()
 	if !w.ready {
 		return 0
 	}
