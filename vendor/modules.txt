@@ -7,7 +7,7 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.0
+# github.com/0magnet/audioprism-go v0.0.1-0.20261006121033-61cf6317edc7
 ## explicit; go 1.26.2
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
@@ -15,7 +15,7 @@ github.com/0magnet/audioprism-go/pkg/wsaudio
 ## explicit; go 1.26.0
 github.com/0magnet/calvin
 github.com/0magnet/calvin/clihelp
-# github.com/0magnet/cdp v0.0.0-20261004204826-811baa47398a
+# github.com/0magnet/cdp v0.0.0-20261005193252-d3a14765cbd2
 ## explicit; go 1.26.0
 github.com/0magnet/cdp
 # github.com/0magnet/desk v0.0.2
