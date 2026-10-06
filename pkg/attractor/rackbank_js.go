@@ -565,7 +565,7 @@ func unassignedControl(model js.Value) js.Value {
 	// An unassigned position's ring is dark: there is no value to show.
 	strip(".value-dial", func(e js.Value) { e.Call("removeAttribute", "data-lit") })
 	strip(".knob-ptr", func(e js.Value) {
-		e.Get("style").Set("transform", "translate(-50%, -100%) rotate(-135deg)")
+		turnPtr(e, -135)
 	})
 	// Its resets stay on the panel, as on every position, and say why they
 	// do nothing.

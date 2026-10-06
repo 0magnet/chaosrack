@@ -189,7 +189,7 @@ func (r *rotationKnobs) update() {
 		}
 		r.lastDeg[i] = deg
 		if r.ptr[i].Truthy() {
-			r.ptr[i].Get("style").Set("transform", "translate(-50%,-100%) rotate("+strconv.Itoa(deg)+"deg)")
+			turnPtr(r.ptr[i], float64(deg))
 		}
 		if r.led[i].Truthy() {
 			s := strconv.Itoa(deg)
