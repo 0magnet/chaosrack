@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // ExceptionError is a JavaScript exception thrown by an evaluated expression,
@@ -193,16 +195,23 @@ var keys = map[string]struct {
 	vk   int
 	text string
 }{
-	"Enter":     {"Enter", 13, "\r"},
-	"Tab":       {"Tab", 9, ""},
-	"Backspace": {"Backspace", 8, ""},
-	"Escape":    {"Escape", 27, ""},
-	"ArrowDown": {"ArrowDown", 40, ""},
-	"ArrowUp":   {"ArrowUp", 38, ""},
+	"Enter":      {"Enter", 13, "\r"},
+	"Tab":        {"Tab", 9, ""},
+	"Backspace":  {"Backspace", 8, ""},
+	"Escape":     {"Escape", 27, ""},
+	"ArrowDown":  {"ArrowDown", 40, ""},
+	"ArrowUp":    {"ArrowUp", 38, ""},
+	"ArrowLeft":  {"ArrowLeft", 37, ""},
+	"ArrowRight": {"ArrowRight", 39, ""},
+	"Home":       {"Home", 36, ""},
+	"End":        {"End", 35, ""},
+	"PageUp":     {"PageUp", 33, ""},
+	"PageDown":   {"PageDown", 34, ""},
+	"Delete":     {"Delete", 46, ""},
 }
 
-// Press sends one named key — Enter, Tab, Backspace, Escape, ArrowDown or
-// ArrowUp — as a trusted keydown and keyup.
+// Press sends one named key — Enter, Tab, Backspace, Escape, Delete, an
+// arrow, Home, End, PageUp or PageDown — as a trusted keydown and keyup.
 func (c *Client) Press(ctx context.Context, key string) error {
 	k, ok := keys[key]
 	if !ok {
@@ -216,4 +225,59 @@ func (c *Client) Press(ctx context.Context, key string) error {
 		return err
 	}
 	return c.Do(ctx, "Input.dispatchKeyEvent", map[string]any{"type": "keyUp", "key": key, "code": k.code, "windowsVirtualKeyCode": k.vk}, nil)
+}
+
+// Keys types text one key at a time, each character a trusted keydown
+// (carrying the character), keypress and keyup, as a person typing sends
+// them. Use it where Type is not seen: a terminal such as xterm.js reads
+// keydown, not the text inserted into its hidden textarea. A name in braces
+// presses that key instead, as Press does: "/6l6{Enter}", "{Escape}".
+func (c *Client) Keys(ctx context.Context, text string) error {
+	for text != "" {
+		if strings.HasPrefix(text, "{") {
+			if name, rest, ok := strings.Cut(text[1:], "}"); ok {
+				if _, known := keys[name]; known {
+					if err := c.Press(ctx, name); err != nil {
+						return err
+					}
+					text = rest
+					continue
+				}
+			}
+		}
+		r, n := utf8.DecodeRuneInString(text)
+		text = text[n:]
+		ch := string(r)
+		ev := map[string]any{"type": "keyDown", "key": ch, "text": ch, "unmodifiedText": ch}
+		if code, vk := keyCode(r); code != "" {
+			ev["code"], ev["windowsVirtualKeyCode"] = code, vk
+		}
+		if err := c.Do(ctx, "Input.dispatchKeyEvent", ev, nil); err != nil {
+			return err
+		}
+		up := map[string]any{"type": "keyUp", "key": ch}
+		if code, vk := keyCode(r); code != "" {
+			up["code"], up["windowsVirtualKeyCode"] = code, vk
+		}
+		if err := c.Do(ctx, "Input.dispatchKeyEvent", up, nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// keyCode is the physical key a US keyboard types r with, for the letters,
+// digits and space; "" for the rest, which pages rarely ask.
+func keyCode(r rune) (string, int) {
+	switch {
+	case r >= 'a' && r <= 'z':
+		return "Key" + string(r-'a'+'A'), int(r - 'a' + 'A')
+	case r >= 'A' && r <= 'Z':
+		return "Key" + string(r), int(r)
+	case r >= '0' && r <= '9':
+		return "Digit" + string(r), int(r)
+	case r == ' ':
+		return "Space", 32
+	}
+	return "", 0
 }
