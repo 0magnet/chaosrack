@@ -130,7 +130,7 @@ type micSource struct {
 	processor js.Value // ScriptProcessorNode
 	onProcess js.Func
 	worklet   js.Value // AudioWorkletNode, when the browser took one
-	onMessage js.Func  // its port handler
+	batches   jsQueue  // its port's batches, until a reader takes them (jsqueue_js.go)
 
 	ringL *ring
 	ringR *ring // nil when mono
@@ -248,6 +248,7 @@ func (m *micSource) onError(_ js.Value, args []js.Value) any {
 }
 
 func (m *micSource) TimeDomain(dst []float32) []float32 {
+	m.pump()
 	if !m.ready || len(dst) == 0 {
 		for i := range dst {
 			dst[i] = 0
@@ -262,6 +263,7 @@ func (m *micSource) TimeDomainStereo(l, r []float32) {
 	if len(l) != len(r) {
 		panic("audiosrc: TimeDomainStereo requires len(l) == len(r)")
 	}
+	m.pump()
 	if !m.ready {
 		for i := range l {
 			l[i] = 0
@@ -278,6 +280,7 @@ func (m *micSource) TimeDomainStereo(l, r []float32) {
 }
 
 func (m *micSource) Drain(dst []float32) int {
+	m.pump()
 	if !m.ready {
 		return 0
 	}
@@ -314,9 +317,6 @@ func (m *micSource) Close() {
 	if m.onProcess.Truthy() {
 		m.onProcess.Release()
 	}
-	if m.onMessage.Truthy() {
-		m.onMessage.Release()
-	}
 }
 
 // stopTracks stops every audio track on a MediaStream so the browser mic
@@ -344,6 +344,7 @@ func (m *micSource) DrainStereo(l, r []float32) int {
 	if len(l) != len(r) {
 		panic("audiosrc: DrainStereo requires len(l) == len(r)")
 	}
+	m.pump()
 	if !m.ready {
 		return 0
 	}

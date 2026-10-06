@@ -62,7 +62,12 @@ func NewWebSocket(opts WSOptions) Source {
 		w.url = sameOriginWSURL()
 	}
 	w.url = withChannels(w.url, opts.Channels)
-	w.onMsg = js.FuncOf(w.handleMessage)
+	w.msgs = newJSQueue("data", 1024)
+	w.onRetry = js.FuncOf(func(js.Value, []js.Value) any {
+		w.reconnecting = false
+		w.connect()
+		return nil
+	})
 	w.onOpen = js.FuncOf(func(js.Value, []js.Value) any {
 		w.reconnecting = false
 		w.err = nil
@@ -103,16 +108,21 @@ type wsSource struct {
 	// and must therefore make the same sense of two channels.
 	rings *stereoRings
 
-	// The socket's four callbacks, made ONCE and reused for every socket this
-	// source opens. connect() used to build three of them per attempt, and
-	// connect() runs again two seconds after every close — so a server that is
-	// down had this allocating three callbacks every two seconds, for as long
-	// as the page stayed open, with nothing releasing any of them. Each one
-	// pins a Go closure and an entry in the syscall/js callback table.
-	onMsg  js.Func
-	onOpen js.Func
-	onDown js.Func
-	onErr  js.Func
+	// The socket's callbacks and the reconnect timer's, made ONCE and reused
+	// for every socket this source opens. connect() used to build three of
+	// them per attempt, and connect() runs again two seconds after every close
+	// — so a server that is down had this allocating callbacks every two
+	// seconds, for as long as the page stayed open, with nothing releasing any
+	// of them. Each one pins a Go closure and an entry in the syscall/js
+	// callback table.
+	onOpen  js.Func
+	onDown  js.Func
+	onErr   js.Func
+	onRetry js.Func
+
+	// msgs holds the messages until a reader takes them (jsqueue_js.go): a Go
+	// handler per message was a goroutine per message.
+	msgs jsQueue
 
 	reconnecting bool
 	ready        bool
@@ -138,7 +148,7 @@ func (w *wsSource) connect() {
 	// buffer. An ArrayBuffer is readable in the message handler itself.
 	ws.Set("binaryType", "arraybuffer")
 	ws.Call("addEventListener", "open", w.onOpen)
-	ws.Call("addEventListener", "message", w.onMsg)
+	ws.Call("addEventListener", "message", w.msgs.push())
 	ws.Call("addEventListener", "close", w.onDown)
 	ws.Call("addEventListener", "error", w.onErr)
 	w.ws = ws
@@ -149,22 +159,20 @@ func (w *wsSource) scheduleReconnect(delayMs int) {
 		return
 	}
 	w.reconnecting = true
-	js.Global().Call("setTimeout", js.FuncOf(func(js.Value, []js.Value) any {
-		w.reconnecting = false
-		w.connect()
-		return nil
-	}), delayMs)
+	js.Global().Call("setTimeout", w.onRetry, delayMs)
 }
 
-// handleMessage writes one decoded chunk into the ring.
-func (w *wsSource) handleMessage(_ js.Value, p []js.Value) any {
-	if len(p) == 0 {
-		return nil
+// pump writes the messages that have arrived into the ring. Every reader
+// calls it first.
+func (w *wsSource) pump() {
+	if w.closed {
+		return
 	}
-	if w.rings.write(decodeWSMessage(p[0].Get("data"))) {
-		w.ready = true
-	}
-	return nil
+	w.msgs.each(func(data js.Value) {
+		if w.rings.write(decodeWSMessage(data)) {
+			w.ready = true
+		}
+	})
 }
 
 // decodeWSMessage turns one WebSocket message into samples, accepting
@@ -198,6 +206,7 @@ func decodeWSMessage(data js.Value) []float32 {
 }
 
 func (w *wsSource) TimeDomain(dst []float32) []float32 {
+	w.pump()
 	if !w.ready || len(dst) == 0 {
 		for i := range dst {
 			dst[i] = 0
@@ -212,6 +221,7 @@ func (w *wsSource) TimeDomainStereo(l, r []float32) {
 	if len(l) != len(r) {
 		panic("audiosrc: TimeDomainStereo requires len(l) == len(r)")
 	}
+	w.pump()
 	if !w.ready {
 		for i := range l {
 			l[i], r[i] = 0, 0
@@ -222,6 +232,7 @@ func (w *wsSource) TimeDomainStereo(l, r []float32) {
 }
 
 func (w *wsSource) Drain(dst []float32) int {
+	w.pump()
 	if !w.ready {
 		return 0
 	}
@@ -230,6 +241,7 @@ func (w *wsSource) Drain(dst []float32) int {
 
 func (w *wsSource) SampleRate() int { return w.opts.SampleRate }
 func (w *wsSource) Channels() int {
+	w.pump()
 	if !w.ready {
 		return 0
 	}
@@ -242,8 +254,11 @@ func (w *wsSource) SetMonoMode(m MonoMode) { w.rings.setMono(m) }
 
 // MonoMode reports the current fold.
 func (w *wsSource) MonoMode() MonoMode { return w.rings.mono }
-func (w *wsSource) Ready() bool        { return w.ready && !w.closed }
-func (w *wsSource) Err() error         { return w.err }
+func (w *wsSource) Ready() bool {
+	w.pump()
+	return w.ready && !w.closed
+}
+func (w *wsSource) Err() error { return w.err }
 
 func (w *wsSource) Close() {
 	if w.closed {
@@ -256,8 +271,9 @@ func (w *wsSource) Close() {
 	// Released here and nowhere else: a callback that is freed while the socket
 	// can still deliver an event would be called after release, and calling a
 	// released js.Func panics — which in wasm takes the page, not the audio.
-	// closed is set above, so no reconnect can follow this.
-	for _, fn := range []js.Func{w.onMsg, w.onOpen, w.onDown, w.onErr} {
+	// closed is set above, so no reconnect can follow this. onRetry is kept: a
+	// reconnect timer set before Close may still fire, and finds closed set.
+	for _, fn := range []js.Func{w.onOpen, w.onDown, w.onErr} {
 		if !fn.Value.IsUndefined() {
 			fn.Release()
 		}
@@ -302,6 +318,7 @@ func (w *wsSource) DrainStereo(l, r []float32) int {
 	if len(l) != len(r) {
 		panic("audiosrc: DrainStereo requires len(l) == len(r)")
 	}
+	w.pump()
 	if !w.ready {
 		return 0
 	}

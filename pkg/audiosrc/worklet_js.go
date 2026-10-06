@@ -137,8 +137,11 @@ func (m *micSource) attachWorkletNode() bool {
 	if !node.Truthy() {
 		return false
 	}
-	m.onMessage = js.FuncOf(m.handleWorkletMessage)
-	node.Get("port").Set("onmessage", m.onMessage)
+	// Queued in JS, not handled in Go: a Go handler per batch was a goroutine
+	// per batch, some 190 a second (jsqueue_js.go). 256 batches is over a
+	// second of audio, more than any reader keeps.
+	m.batches = newJSQueue("data", 256)
+	node.Get("port").Set("onmessage", m.batches.push())
 	m.src.Call("connect", node)
 	// No connection to destination: a worklet with no outputs is pulled by
 	// the graph on its own, unlike a ScriptProcessorNode, so the capture
@@ -147,20 +150,21 @@ func (m *micSource) attachWorkletNode() bool {
 	return true
 }
 
-// handleWorkletMessage copies one posted batch into the rings.
-func (m *micSource) handleWorkletMessage(_ js.Value, args []js.Value) any {
-	if m.closed || len(args) == 0 {
-		return nil
+// pump copies the batches the worklet has posted into the rings. Every
+// reader calls it first. The ScriptProcessor path writes the rings itself.
+func (m *micSource) pump() {
+	if m.closed {
+		return
 	}
-	data := args[0].Get("data")
-	if !data.Truthy() {
-		return nil
-	}
-	m.pullTyped(data.Get("l"), m.ringL)
-	if m.ringR != nil {
-		m.pullTyped(data.Get("r"), m.ringR)
-	}
-	return nil
+	m.batches.each(func(data js.Value) {
+		if !data.Truthy() {
+			return
+		}
+		m.pullTyped(data.Get("l"), m.ringL)
+		if m.ringR != nil {
+			m.pullTyped(data.Get("r"), m.ringR)
+		}
+	})
 }
 
 // pullTyped moves one Float32Array into a ring, the way pullChannel does it
