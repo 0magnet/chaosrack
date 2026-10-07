@@ -197,7 +197,14 @@ func (g *Globe) Interact(el js.Value) {
 	on("pointerdown", func(e js.Value) {
 		down = true
 		lastX, lastY = e.Get("clientX").Float(), e.Get("clientY").Float()
-		el.Call("setPointerCapture", e.Get("pointerId"))
+		// So a drag that leaves the canvas still turns it. The browser throws
+		// for a pointer it does not know as down (a synthetic event, one
+		// already lifted); a panic here would take the whole program with it,
+		// and without the capture the drag still works inside the canvas.
+		func() {
+			defer func() { _ = recover() }() //nolint:errcheck // see above
+			el.Call("setPointerCapture", e.Get("pointerId"))
+		}()
 		el.Get("style").Set("cursor", "grabbing")
 	})
 	on("pointermove", func(e js.Value) {
