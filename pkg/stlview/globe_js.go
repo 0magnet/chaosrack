@@ -23,6 +23,11 @@ type Globe struct {
 	stopped   bool
 	zoom      float32
 	listeners []listener
+	// mesh is the lines the globe draws, in the space Pose describes: its
+	// sphere is built with a random tilt of its own, so drawing any other
+	// sphere at Pose comes out turned by that tilt.
+	meshV []float32
+	meshI []uint16
 }
 
 // NewGlobe starts the globe on canvas, at the canvas's own size, and keeps
@@ -51,6 +56,7 @@ func NewGlobe(canvas js.Value) (*Globe, error) {
 		return nil, errors.New("stlview: cannot load webgl")
 	}
 	g := &Globe{r: r, zoom: 3} // Run's starting zoom
+	g.meshV, g.meshI = lineMesh(config.Vertices, config.Indices)
 	g.r.SetZoom(g.zoom)
 	g.frame = js.FuncOf(func(this js.Value, args []js.Value) any {
 		if g.stopped {
@@ -120,6 +126,15 @@ func (g *Globe) Pose() (ax, ay, az float64) {
 	return ax, ay, az
 }
 
+// Mesh is the globe as it is drawn, for drawing it again in step with it:
+// vertices (xyz) and line endpoint pairs in the globe's own model space,
+// which Pose turns and Distance views. The page colors each point by its y,
+// red at -1 to blue at +1.
+func (g *Globe) Mesh() (vertices []float32, indices []uint16) { return g.meshV, g.meshI }
+
+// Distance is how far the camera is from the globe's center, in its radii.
+func (g *Globe) Distance() float64 { return float64(g.zoom) * math.Sqrt(3) }
+
 // Radius is the globe's apparent radius as a share of half the canvas's
 // height, at the camera's distance now.
 func (g *Globe) Radius() float64 {
@@ -174,4 +189,21 @@ type listener struct {
 	el   js.Value
 	name string
 	fn   js.Func
+}
+
+// lineMesh is what Render draws for a sphere: a line loop through every
+// vertex in order (drawArrays LINE_LOOP), then the index pairs (LINES).
+func lineMesh(v []float32, idx []uint32) ([]float32, []uint16) {
+	n := len(v) / 3
+	if n == 0 || n > 1<<16 {
+		return nil, nil
+	}
+	ind := make([]uint16, 0, 2*n+len(idx))
+	for k := range n {
+		ind = append(ind, uint16(k), uint16((k+1)%n)) //nolint:gosec // n is under 1<<16, checked above
+	}
+	for _, i := range idx {
+		ind = append(ind, uint16(i)) //nolint:gosec // an index into the same n vertices
+	}
+	return append([]float32(nil), v...), ind
 }
