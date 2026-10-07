@@ -94,6 +94,7 @@ type Renderer struct {
 	rY             float32
 	rZ             float32
 	movMatrix      mgl32.Mat4
+	turn           *mgl32.Mat4 // the person's own turning, ahead of the spin (Globe.Turn); nil for none
 	PositionMatrix js.Value
 	ViewMatrix     js.Value
 	ModelMatrix    js.Value
@@ -293,6 +294,9 @@ func (r *Renderer) Render(_ js.Value, args []js.Value) any { // nolint
 	r.movMatrix = mgl32.HomogRotate3DX(r.rX)
 	r.movMatrix = r.movMatrix.Mul4(mgl32.HomogRotate3DY(r.rY))
 	r.movMatrix = r.movMatrix.Mul4(mgl32.HomogRotate3DZ(r.rZ))
+	if r.turn != nil {
+		r.movMatrix = r.turn.Mul4(r.movMatrix)
+	}
 
 	modelMatrixBuffer := (*[16]float32)(u.Pointer(&r.movMatrix)) // nolint
 	typedModelMatrixBuffer := S2TA((*modelMatrixBuffer)[:])
