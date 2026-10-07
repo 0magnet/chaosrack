@@ -7,7 +7,7 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.1-0.20261006121033-61cf6317edc7
+# github.com/0magnet/audioprism-go v0.0.1-0.20261007115526-615ef3c32102
 ## explicit; go 1.26.2
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
@@ -117,7 +117,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20261005123008-4b575ccfae71
+# github.com/0magnet/tuiwasm v0.0.0-20261007022720-602f54dc47a0
 ## explicit; go 1.26.7
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -515,7 +515,7 @@ github.com/yuin/goldmark-emoji/definition
 # gitlab.com/russoj88/stl v1.0.2
 ## explicit; go 1.12
 gitlab.com/russoj88/stl/stl
-# go.mongodb.org/mongo-driver/v2 v2.9.1
+# go.mongodb.org/mongo-driver/v2 v2.9.2
 ## explicit; go 1.25.0
 go.mongodb.org/mongo-driver/v2/bson
 go.mongodb.org/mongo-driver/v2/internal/binaryutil

@@ -3,7 +3,7 @@ module github.com/0magnet/chaosrack
 go 1.26.7
 
 require (
-	github.com/0magnet/audioprism-go v0.0.1-0.20261006121033-61cf6317edc7
+	github.com/0magnet/audioprism-go v0.0.1-0.20261007115526-615ef3c32102
 	github.com/0magnet/calvin v0.0.0
 	github.com/0magnet/cdp v0.0.0-20261005193252-d3a14765cbd2
 	github.com/0magnet/desk v0.0.2
@@ -12,7 +12,7 @@ require (
 	github.com/0magnet/pisano v0.0.0-20261004211513-5a805f600706
 	github.com/0magnet/rack-go v0.0.0-20261004205201-f263c45bb646
 	github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
-	github.com/0magnet/tuiwasm v0.0.0-20261005123008-4b575ccfae71
+	github.com/0magnet/tuiwasm v0.0.0-20261007022720-602f54dc47a0
 	github.com/0magnet/websh v0.0.1-0.20261005122733-2d8844db30a0
 	github.com/0magnet/winbox-go v0.0.0
 	github.com/0magnet/xterm-go v0.0.1-0.20261004020305-36b45f096b30
@@ -95,7 +95,7 @@ require (
 	github.com/ugorji/go/codec v1.3.2 // indirect
 	github.com/xo/terminfo v1.2.0 // indirect
 	github.com/yuin/goldmark-emoji v1.0.6 // indirect
-	go.mongodb.org/mongo-driver/v2 v2.9.1 // indirect
+	go.mongodb.org/mongo-driver/v2 v2.9.2 // indirect
 	golang.org/x/arch v0.31.0 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect

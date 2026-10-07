@@ -721,6 +721,12 @@ func (s *Screen) Resize(int, int, int, int) {}
 // here, so there is nothing a partial redraw would save.
 func (s *Screen) LockRegion(x, y, width, height int, lock bool) {}
 
+// WriteRaw sends b to the terminal as it is, outside any frame: an escape
+// sequence a program writes for the terminal itself, such as one asking it
+// to show an image (websh's viewer, OSC 7337). On a tty, a program writes
+// these to Tty() instead.
+func (s *Screen) WriteRaw(b []byte) { s.term.Write(b) }
+
 // Tty reports that there is no tty behind this. There is a terminal, but not
 // one tcell could drive itself: the whole point of this screen is that the
 // emulator is in the same process and takes bytes through a Go call.
