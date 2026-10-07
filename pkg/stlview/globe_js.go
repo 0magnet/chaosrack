@@ -28,6 +28,10 @@ type Globe struct {
 	// sphere at Pose comes out turned by that tilt.
 	meshV []float32
 	meshI []uint16
+	// paused: no frames at all until Resume. unseen: frames turn it but draw
+	// nothing, for something else drawn in step (SetDrawn). resync: the next
+	// frame starts the clock again, so a pause is not a jump.
+	paused, unseen, resync bool
 }
 
 // NewGlobe starts the globe on canvas, at the canvas's own size, and keeps
@@ -62,7 +66,14 @@ func NewGlobe(canvas js.Value) (*Globe, error) {
 		if g.stopped {
 			return nil
 		}
-		g.r.Render(this, args)
+		now := float32(args[0].Float())
+		if g.resync {
+			g.r.tmark, g.resync = now, false
+		}
+		g.r.advance(now)
+		if !g.unseen {
+			g.r.draw()
+		}
 		g.raf = js.Global().Call("requestAnimationFrame", g.frame)
 		return nil
 	})
@@ -84,6 +95,32 @@ func (g *Globe) Stop() {
 	g.frame.Release()
 	g.r.Release()
 }
+
+// Pause stops the globe where it is: no frames, so no work on the CPU or
+// the GPU, and the last one stays on the canvas.
+func (g *Globe) Pause() {
+	if g.stopped || g.paused {
+		return
+	}
+	g.paused = true
+	js.Global().Call("cancelAnimationFrame", g.raf)
+}
+
+// Resume turns it again from where it stopped.
+func (g *Globe) Resume() {
+	if g.stopped || !g.paused {
+		return
+	}
+	g.paused, g.resync = false, true
+	g.raf = js.Global().Call("requestAnimationFrame", g.frame)
+}
+
+// Paused reports whether it is paused.
+func (g *Globe) Paused() bool { return g.paused }
+
+// SetDrawn says whether frames draw it. Not drawn, it still turns — its Pose
+// goes on — for something drawn in step with it, at no cost on the GPU.
+func (g *Globe) SetDrawn(on bool) { g.unseen = !on }
 
 // Turn rotates the globe as a hand on it would: dx about the screen's
 // vertical, dy about its horizontal, in radians, ahead of its own spin.

@@ -284,7 +284,13 @@ func (r *Renderer) UpdateIndicesBuffer(buffer []uint32) {
 
 // Render renders
 func (r *Renderer) Render(_ js.Value, args []js.Value) any { // nolint
-	now := float32(args[0].Float())
+	r.advance(float32(args[0].Float()))
+	r.draw()
+	return nil
+}
+
+// advance turns the model to where it is at now (a frame timestamp, ms).
+func (r *Renderer) advance(now float32) {
 	tdiff := now - r.tmark
 	r.tmark = now
 	r.rX += r.sX * float32(tdiff) / 500
@@ -297,7 +303,10 @@ func (r *Renderer) Render(_ js.Value, args []js.Value) any { // nolint
 	if r.turn != nil {
 		r.movMatrix = r.turn.Mul4(r.movMatrix)
 	}
+}
 
+// draw draws the model as it is turned now.
+func (r *Renderer) draw() {
 	modelMatrixBuffer := (*[16]float32)(u.Pointer(&r.movMatrix)) // nolint
 	typedModelMatrixBuffer := S2TA((*modelMatrixBuffer)[:])
 
@@ -312,8 +321,6 @@ func (r *Renderer) Render(_ js.Value, args []js.Value) any { // nolint
 		r.glContext.Call("drawArrays", r.glTypes.LineLoop, 0, r.numVertices/3)
 	}
 	r.glContext.Call("drawElements", usegltype, r.numIndices, r.glTypes.UnsignedInt, 0)
-
-	return nil
 }
 
 // SetZoom Sets the Zoom
