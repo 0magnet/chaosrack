@@ -18,8 +18,14 @@ type Terminal struct {
 	inputHandler   *InputHandler
 
 	// OnData receives data the terminal sends to the pty (user input,
-	// query responses).
+	// and query responses unless OnReply is set).
 	OnData func(data string)
+	// OnReply, when set, receives what the terminal sends of its own accord
+	// — replies to queries (DA, DSR, XTVERSION, CSI t, OSC 10/11) and
+	// reports such as focus — apart from what the person typed. An
+	// embedder that runs a shell needs the difference: a reply is for the
+	// program that asked, never for the line editor, and never echoed.
+	OnReply func(data string)
 	// OnBinary receives binary data for the pty (legacy mouse
 	// encoding).
 	OnBinary func(data string)
@@ -73,6 +79,13 @@ func NewTerminal(options *Options) *Terminal {
 	// forward events
 	t.coreService.OnData = func(data string) {
 		if t.OnData != nil {
+			t.OnData(data)
+		}
+	}
+	t.coreService.OnReply = func(data string) {
+		if t.OnReply != nil {
+			t.OnReply(data)
+		} else if t.OnData != nil {
 			t.OnData(data)
 		}
 	}

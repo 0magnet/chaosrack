@@ -41,6 +41,8 @@ type term interface {
 	SetOnResize(func(cols, rows int))
 	OnData() func(string)
 	SetOnData(func(string))
+	// id is the terminal itself, the same for every screen on it.
+	id() any
 }
 
 // xtermTerm adapts the real terminal, whose size and callbacks live on Core.
@@ -60,6 +62,7 @@ func (x *xtermTerm) OnResize() func(int, int)     { return x.t.Core.OnResize }
 func (x *xtermTerm) SetOnResize(f func(int, int)) { x.t.Core.OnResize = f }
 func (x *xtermTerm) OnData() func(string)         { return x.t.Core.OnData }
 func (x *xtermTerm) SetOnData(f func(string))     { x.t.Core.OnData = f }
+func (x *xtermTerm) id() any                      { return x.t }
 
 // ClaimMouse hands the pointer to the application, or gives it back. See
 // (*Screen).claimMouse.

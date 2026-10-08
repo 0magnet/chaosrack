@@ -299,6 +299,7 @@ func NewInputHandler(bufferService *BufferService, charsetService *CharsetServic
 	p.RegisterCsiHandler(FunctionID{Final: "r"}, h.SetScrollRegion)
 	p.RegisterCsiHandler(FunctionID{Final: "s"}, func(params *Params) bool { return h.SaveCursor() })
 	p.RegisterCsiHandler(FunctionID{Final: "t"}, h.WindowOptionsHandler)
+	p.RegisterCsiHandler(FunctionID{Prefix: ">", Final: "q"}, h.ReportVersion)
 	p.RegisterCsiHandler(FunctionID{Final: "u"}, func(params *Params) bool { return h.RestoreCursor() })
 	p.RegisterCsiHandler(FunctionID{Intermediates: "'", Final: "}"}, h.InsertColumns)
 	p.RegisterCsiHandler(FunctionID{Intermediates: "'", Final: "~"}, h.DeleteColumns)
@@ -1770,6 +1771,21 @@ func (h *InputHandler) SetScrollRegion(params *Params) bool {
 		h.activeBuffer.ScrollBottom = bottom - 1
 		h.setCursor(0, 0)
 	}
+	return true
+}
+
+// ReportVersion answers XTVERSION (CSI > q) with DCS > | name ST: which
+// terminal this is, for a program that adapts to it. Only the parameter 0
+// (or none) is defined.
+func (h *InputHandler) ReportVersion(params *Params) bool {
+	if paramAt(params, 0) != 0 {
+		return true
+	}
+	name := h.options.XTVersion
+	if name == "" {
+		name = "xterm-go"
+	}
+	h.coreService.TriggerDataEvent(c0ESC+"P>|"+name+c0ESC+"\\", false)
 	return true
 }
 
