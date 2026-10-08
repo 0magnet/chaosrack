@@ -3,9 +3,10 @@
 package web
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"strings"
+	"html"
 	"syscall/js"
 
 	"github.com/0magnet/websh/progressive"
@@ -32,9 +33,15 @@ const shipBoot = `<script>(()=>{let port=null,q=[],h=null;` +
 // shipping is what a command has shipped: finished widgets by name, and the
 // ones still arriving.
 type shipping struct {
-	done map[string]string
-	part map[string]*strings.Builder
+	done map[string]shippedWidget
+	part map[string]*bytes.Buffer
 	size int
+}
+
+// shippedWidget is one finished: a document, or a wasm module.
+type shippedWidget struct {
+	kind string
+	body []byte
 }
 
 // ship takes one chunk of widget name; the last one makes it placeable.
@@ -44,7 +51,7 @@ func (p *placements) ship(name, meta, chunk string) {
 		More bool   `json:"more"`
 	}
 	mb, err := base64.StdEncoding.DecodeString(meta)
-	if err != nil || json.Unmarshal(mb, &m) != nil || m.Kind != "html" || name == "" {
+	if err != nil || json.Unmarshal(mb, &m) != nil || (m.Kind != "html" && m.Kind != "wasm") || name == "" {
 		return
 	}
 	b, err := base64.StdEncoding.DecodeString(chunk)
@@ -53,7 +60,7 @@ func (p *placements) ship(name, meta, chunk string) {
 	}
 	sh := &p.shipped
 	if sh.done == nil {
-		sh.done, sh.part = map[string]string{}, map[string]*strings.Builder{}
+		sh.done, sh.part = map[string]shippedWidget{}, map[string]*bytes.Buffer{}
 	}
 	if sh.size+len(b) > shipLimit {
 		delete(sh.part, name)
@@ -62,12 +69,12 @@ func (p *placements) ship(name, meta, chunk string) {
 	sh.size += len(b)
 	part := sh.part[name]
 	if part == nil {
-		part = &strings.Builder{}
+		part = &bytes.Buffer{}
 		sh.part[name] = part
 	}
 	part.Write(b)
 	if !m.More {
-		sh.done[name] = part.String()
+		sh.done[name] = shippedWidget{kind: m.Kind, body: part.Bytes()}
 		delete(sh.part, name)
 	}
 }
@@ -79,7 +86,7 @@ func (p *placements) forgetShipped() { p.shipped = shipping{} }
 // document, and the other end of the line transferred in once it has loaded.
 // Clicks inside it stay inside it, so a shipped widget tells the program what
 // was done to it itself, by sending.
-func (p *placements) mountShipped(pl *placement, html string) {
+func (p *placements) mountShipped(pl *placement, w shippedWidget) {
 	ch := js.Global().Get("MessageChannel").New()
 	pl.port = ch.Get("port1")
 	if pl.d.Events {
@@ -99,15 +106,59 @@ func (p *placements) mountShipped(pl *placement, html string) {
 	f := js.Global().Get("document").Call("createElement", "iframe")
 	f.Call("setAttribute", "sandbox", "allow-scripts")
 	f.Get("style").Set("cssText", "position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent")
-	f.Set("srcdoc", shipBoot+html)
+	doc := string(w.body)
+	if w.kind == "wasm" {
+		doc = wasmDoc(w.body)
+	}
+	f.Set("srcdoc", shipBoot+doc)
 	var loaded js.Func
 	loaded = js.FuncOf(func(js.Value, []js.Value) any {
-		if w := f.Get("contentWindow"); w.Truthy() {
-			w.Call("postMessage", "websh-line", "*", js.ValueOf([]any{ch.Get("port2")}))
+		if cw := f.Get("contentWindow"); cw.Truthy() {
+			cw.Call("postMessage", "websh-line", "*", js.ValueOf([]any{ch.Get("port2")}))
+			if w.kind == "wasm" { // the module itself, handed over rather than copied
+				buf := js.Global().Get("Uint8Array").New(len(w.body))
+				js.CopyBytesToJS(buf, w.body)
+				msg := js.Global().Get("Object").New()
+				msg.Set("webshWasm", buf.Get("buffer"))
+				cw.Call("postMessage", msg, "*", js.ValueOf([]any{buf.Get("buffer")}))
+			}
 		}
 		loaded.Release()
 		return nil
 	})
 	f.Call("addEventListener", "load", loaded, map[string]any{"once": true})
 	pl.el.Call("append", f)
+}
+
+// wasmDoc is the document a shipped wasm module runs in: the loader of the
+// toolchain that built it (one built by TinyGo imports WASI, one built by
+// Go does not), and a runner that starts the module the host hands in. Its
+// Go has the page under it as any Go program in a browser does
+// (syscall/js, the document), and websh.send and websh.onmessage for its
+// line (Go: package widget/inside).
+func wasmDoc(module []byte) string {
+	loader := wasmExecURL(bytes.Contains(module, []byte("wasi_snapshot_preview1")))
+	return "<!doctype html><meta charset=\"utf-8\"><style>html,body{margin:0;height:100%;overflow:hidden}</style>" +
+		"<script src=\"" + html.EscapeString(loader) + "\"></script>" +
+		"<script>addEventListener(\"message\",async e=>{if(e.source!==parent||!e.data||!e.data.webshWasm)return;" +
+		"const go=new Go();const r=await WebAssembly.instantiate(e.data.webshWasm,go.importObject);go.run(r.instance)})</script>"
+}
+
+// wasmExecURL is where this page's loader for the toolchain is, as an
+// address the sandboxed document can fetch (an absolute one: it has no
+// address of its own to resolve against).
+func wasmExecURL(tinygo bool) string {
+	rel := "wasm_exec.js"
+	if a := js.Global().Get("proc"); a.Truthy() && a.Get("assets").Truthy() {
+		key := "wasmExecGo"
+		if tinygo {
+			key = "wasmExecTinyGo"
+		}
+		if v := a.Get("assets").Get(key); v.Type() == js.TypeString && v.String() != "" {
+			rel = v.String()
+		} else if !tinygo && a.Get("assets").Get("wasmExec").Type() == js.TypeString {
+			rel = a.Get("assets").Get("wasmExec").String()
+		}
+	}
+	return js.Global().Get("URL").New(rel, js.Global().Get("location").Get("href")).Get("href").String()
 }

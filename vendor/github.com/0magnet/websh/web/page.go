@@ -21,6 +21,10 @@ type pageState struct {
 	saved bool
 	title string
 	url   string
+	// icon is the favicon link's href before a program set one; iconSet
+	// says it did.
+	icon    string
+	iconSet bool
 	// The link the page was opened by: a command line, and where in it.
 	linkLine string
 	linkPath string
@@ -41,7 +45,55 @@ func (s *Session) pageRestore() {
 	}
 	js.Global().Get("document").Set("title", s.page.title)
 	js.Global().Get("history").Call("replaceState", js.Null(), "", s.page.url)
+	if s.page.iconSet {
+		if s.page.icon == "" {
+			iconLink().Call("remove")
+		} else {
+			iconLink().Set("href", s.page.icon)
+		}
+		s.page.iconSet = false
+	}
 	s.page.saved = false
+}
+
+// setIcon is OSC 7337 icon: the page's favicon while the program runs, from
+// the web or a data: picture.
+func (s *Session) setIcon(enc string) {
+	if !s.running || s.Shell.Source() == "remote" {
+		return
+	}
+	var m struct {
+		URL string `json:"url"`
+	}
+	b, err := base64.StdEncoding.DecodeString(enc)
+	if err != nil || json.Unmarshal(b, &m) != nil || len(m.URL) > 1<<20 {
+		return
+	}
+	u := strings.ToLower(m.URL)
+	if !strings.HasPrefix(u, "https://") && !strings.HasPrefix(u, "http://") && !strings.HasPrefix(u, "data:image/") {
+		return
+	}
+	s.pageSave()
+	l := iconLink()
+	if !s.page.iconSet {
+		s.page.iconSet, s.page.icon = true, l.Call("getAttribute", "href").String()
+		if l.Call("getAttribute", "href").IsNull() {
+			s.page.icon = ""
+		}
+	}
+	l.Set("href", m.URL)
+}
+
+// iconLink is the page's favicon link, made if it has none.
+func iconLink() js.Value {
+	doc := js.Global().Get("document")
+	l := doc.Call("querySelector", "link[rel~='icon']")
+	if !l.Truthy() {
+		l = doc.Call("createElement", "link")
+		l.Set("rel", "icon")
+		doc.Get("head").Call("append", l)
+	}
+	return l
 }
 
 // setTitle is OSC 0 and OSC 2: the page's title, while the program runs.
@@ -123,8 +175,11 @@ func (s *Session) download(data string) {
 		k, v, _ := strings.Cut(kv, "=")
 		args[k] = v
 	}
-	if args["inline"] == "1" {
-		return // a picture to show in place; not yet (PROTOCOL.md)
+	if args["inline"] == "1" { // a picture in the text (images.go)
+		if b, err := base64.StdEncoding.DecodeString(body); err == nil && len(b) <= imageLimit {
+			s.iterm2Inline(args, b)
+		}
+		return
 	}
 	nb, err := base64.StdEncoding.DecodeString(args["name"])
 	name := strings.Map(func(r rune) rune {
@@ -156,11 +211,16 @@ func (s *Session) download(data string) {
 	})
 }
 
-// clipboard is OSC 52: the program fills the clipboard. Reading it is
-// refused: what the person copied elsewhere is not a program's to see.
+// clipboard is OSC 52: the program fills the clipboard, or asks what is on
+// it. What the person copied elsewhere is theirs, so a program reads it only
+// when they say yes, each time; the browser may ask as well.
 func (s *Session) clipboard(data string) {
-	_, enc, ok := strings.Cut(data, ";")
-	if !ok || enc == "?" {
+	sel, enc, ok := strings.Cut(data, ";")
+	if !ok {
+		return
+	}
+	if enc == "?" {
+		s.clipboardRead(sel)
 		return
 	}
 	b, err := base64.StdEncoding.DecodeString(enc)
@@ -186,4 +246,33 @@ func once(f func(), use func(js.Value)) {
 		return nil
 	})
 	use(fn.Value)
+}
+
+// clipboardRead answers OSC 52's query, if the person allows it: the text
+// on the clipboard, as OSC 52 ; <selection> ; <base64>. A refusal is
+// answered with nothing, as a terminal that does not allow reading does.
+func (s *Session) clipboardRead(sel string) {
+	who := "The program in the terminal"
+	if s.Shell.Source() == "remote" {
+		who = "A program on another machine"
+	}
+	cb := js.Global().Get("navigator").Get("clipboard")
+	if !cb.Truthy() || !js.Global().Call("confirm", who+" asks to read your clipboard. Allow it this once?").Bool() {
+		return
+	}
+	cmd := s.cmds
+	var ok, fail js.Func
+	release := func() { ok.Release(); fail.Release() }
+	ok = js.FuncOf(func(_ js.Value, args []js.Value) any {
+		defer release()
+		if s.running && s.cmds == cmd {
+			s.Term.Core.Input("\x1b]52;"+sel+";"+base64.StdEncoding.EncodeToString([]byte(args[0].String()))+"\x1b\\", false)
+		}
+		return nil
+	})
+	fail = js.FuncOf(func(js.Value, []js.Value) any {
+		defer release()
+		return nil
+	})
+	cb.Call("readText").Call("then", ok, fail)
 }

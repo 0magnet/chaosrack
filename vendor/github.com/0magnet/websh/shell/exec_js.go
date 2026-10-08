@@ -54,6 +54,13 @@ func (s *Shell) execExternal(ctx context.Context, args []string) (int, bool) {
 	}
 	// argv[0] keys the compiled program, and the stamp tells this file from
 	// the next one written there.
+	// Only a wasm module is a program here; a text file on the PATH, or a
+	// path typed at the prompt, is not run (as bash will not run a file
+	// without its execute bit) but said to be what it is.
+	if !isWasm(s, bin) {
+		Printf(hc.Stderr, "%s: cannot execute: not a wasm program\n", args[0])
+		return 126, true
+	}
 	c.Stamp = fmt.Sprintf("%s:%d:%d", bin, fi.Size(), fi.ModTime().UnixNano())
 	if !proc.Cached(args[0], c.Stamp) {
 		if c.Program, err = readAll(s, bin); err != nil {
@@ -208,4 +215,16 @@ func envGet(env expand.Environ, name string) string {
 		return v.String()
 	}
 	return ""
+}
+
+// isWasm reports whether the file at name starts as a wasm module does.
+func isWasm(s *Shell, name string) bool {
+	f, err := s.FS.Open(name)
+	if err != nil {
+		return false
+	}
+	defer f.Close() //nolint:errcheck // read-only
+	head := make([]byte, 4)
+	n, err := io.ReadFull(f, head)
+	return err == nil && n == 4 && string(head) == "\x00asm"
 }

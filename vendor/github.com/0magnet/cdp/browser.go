@@ -118,3 +118,39 @@ func (b Browser) get(ctx context.Context, method, path string, out any) error {
 	}
 	return nil
 }
+
+// NewWindow opens rawURL (about:blank when empty) in a window of its own,
+// behind the others: the person at the browser keeps the window they are
+// in. A window behind others still renders on Linux, which tracks no
+// occlusion, so the page runs as if seen; attach to it with DialBackground.
+// A tool that opens a window for itself should CloseTab it when done.
+func (b Browser) NewWindow(ctx context.Context, rawURL string) (Target, error) {
+	if rawURL == "" {
+		rawURL = "about:blank"
+	}
+	v, err := b.Version(ctx)
+	if err != nil {
+		return Target{}, err
+	}
+	c, err := DialWS(ctx, v.WebSocketDebuggerURL)
+	if err != nil {
+		return Target{}, err
+	}
+	defer c.Close() //nolint:errcheck // done with the browser's socket either way
+	var out struct {
+		TargetID string `json:"targetId"`
+	}
+	if err := c.Do(ctx, "Target.createTarget", map[string]any{"url": rawURL, "newWindow": true, "background": true}, &out); err != nil {
+		return Target{}, err
+	}
+	ts, err := b.Targets(ctx)
+	if err != nil {
+		return Target{}, err
+	}
+	for _, t := range ts {
+		if t.ID == out.TargetID {
+			return t, nil
+		}
+	}
+	return Target{}, fmt.Errorf("cdp: the new window on %s is not listed", b.Addr)
+}
