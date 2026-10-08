@@ -25,6 +25,9 @@ type Options struct {
 	ReflowCursorLine bool
 	// TermName reported by DA sequences. Default: "xterm".
 	TermName string
+	// XTVersion is the name and version XTVERSION (CSI > q) reports, as
+	// "name(version)". Default: "xterm-go".
+	XTVersion string
 	// CursorStyle: "block", "underline" or "bar". Default: "block".
 	CursorStyle string
 	// ScrollOnUserInput snaps the viewport to the bottom on input.
@@ -68,6 +71,14 @@ type Options struct {
 	MirrorGlyph func(string) bool
 	// LetterSpacing in px. Default: 0.
 	LetterSpacing float64
+	// AllowTransparency lets the WebGL renderer draw glyphs for a theme
+	// background with alpha (#rrggbbaa, rgba()), so the default background
+	// can be translucent and show what is behind the terminal while text and
+	// explicitly colored backgrounds stay opaque. Without it glyphs are
+	// rasterized onto the opaque background and their antialiased edges keep
+	// a fringe of it. Set it before Open (or before EnableWebGL), as in
+	// xterm.js; enabling it can cost some performance. Default: false.
+	AllowTransparency bool
 	// Theme colors (CSS color strings; empty = defaults).
 	Theme Theme
 }
@@ -148,6 +159,7 @@ func NewOptions() *Options {
 		LineHeight:            1.0,
 		LetterSpacing:         0,
 		TermName:              "xterm",
+		XTVersion:             "xterm-go",
 		CursorStyle:           "block",
 		ScrollOnUserInput:     true,
 		ScrollSensitivity:     1,

@@ -68,6 +68,12 @@ func (s *Screen) bindInput(el js.Value) {
 	// terminal input, so it would arrive twice. Held rather than dropped, so
 	// Fini can put it back.
 	s.savedData = s.term.OnData()
+	if p, ok := pendingData[s.term.id()]; ok {
+		// The screen before this one ended so lately that the shell's
+		// handler is not back yet: that is the one to put back.
+		s.savedData = p
+		delete(pendingData, s.term.id())
+	}
 	s.term.SetOnData(func(string) {})
 }
 
@@ -166,8 +172,7 @@ func (s *Screen) detachKeys() {
 		s.keydown = js.Func{}
 	}
 	if s.savedData != nil {
-		s.term.SetOnData(s.savedData)
-		s.savedData = nil
+		s.restoreData()
 	}
 }
 
@@ -197,4 +202,34 @@ func isEditing(key string) bool {
 		return false
 	}
 	return true
+}
+
+// pendingData is, by terminal, the handler a finished screen is about to
+// put back (restoreData).
+var pendingData = map[any]func(string){}
+
+// restoreData puts the terminal's own input handler back once the event in
+// hand is over. A key's text reaches OnData by an event after its keydown,
+// so a program that ends on a key — q — had the handler back in time for
+// that key's text, and the q was typed at the prompt too. Put back when the
+// events of the key are done, it never sees it.
+func (s *Screen) restoreData() {
+	saved, t := s.savedData, s.term
+	s.savedData = nil
+	timeout := js.Global().Get("setTimeout")
+	if timeout.Type() != js.TypeFunction {
+		t.SetOnData(saved) // off a page: no events to wait out
+		return
+	}
+	pendingData[t.id()] = saved
+	var f js.Func
+	f = js.FuncOf(func(js.Value, []js.Value) any {
+		f.Release()
+		if p, ok := pendingData[t.id()]; ok {
+			delete(pendingData, t.id())
+			t.SetOnData(p)
+		}
+		return nil
+	})
+	timeout.Invoke(f, 0)
 }
