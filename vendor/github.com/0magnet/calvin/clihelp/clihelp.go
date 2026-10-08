@@ -164,7 +164,9 @@ func InitStyle(cmd *cobra.Command, usage bool) {
 func InitFlags(cmd *cobra.Command) {
 	var helpFlag bool
 	cmd.PersistentFlags().BoolVarP(&helpFlag, "help", "h", false, "show help menu")
-	_ = cmd.PersistentFlags().MarkHidden("help")
+	if err := cmd.PersistentFlags().MarkHidden("help"); err != nil {
+		panic(err) // the flag was defined on the line above
+	}
 
 	if BuildInfo() == nil {
 		return
@@ -185,11 +187,11 @@ func InitFlags(cmd *cobra.Command) {
 	cmd.RunE = func(c *cobra.Command, args []string) error {
 		switch {
 		case showAll:
-			fmt.Fprintln(c.OutOrStdout(), BuildInfo())
-			return nil
+			_, err := fmt.Fprintln(c.OutOrStdout(), BuildInfo())
+			return err
 		case showVer:
-			fmt.Fprintln(c.OutOrStdout(), Version())
-			return nil
+			_, err := fmt.Fprintln(c.OutOrStdout(), Version())
+			return err
 		}
 		switch {
 		case innerE != nil:

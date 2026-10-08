@@ -23,6 +23,11 @@ type Options struct {
 	WindowsMode bool
 	// ReflowCursorLine reflows the cursor line on resize. Default: false.
 	ReflowCursorLine bool
+	// Sixel enables sixel graphics (DCS q). It takes effect only where
+	// something draws the pictures — Terminal.OnSixel, which the browser
+	// layer sets — so a headless terminal does not claim it in DA1 however
+	// this is set. Default: true.
+	Sixel bool
 	// TermName reported by DA sequences. Default: "xterm".
 	TermName string
 	// XTVersion is the name and version XTVERSION (CSI > q) reports, as
@@ -164,5 +169,6 @@ func NewOptions() *Options {
 		ScrollOnUserInput:     true,
 		ScrollSensitivity:     1,
 		FastScrollSensitivity: 5,
+		Sixel:                 true,
 	}
 }

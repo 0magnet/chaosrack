@@ -36,6 +36,10 @@ type inItem struct {
 	reply bool // the terminal's own, for command cmd only
 	cmd   int
 	wake  bool // makes a waiting Read return with nothing
+	// interrupt ends a Read the command cmd is waiting in, as at the end
+	// of its input: Ctrl+C, which cancels the command, cannot reach one
+	// blocked in a read otherwise.
+	interrupt bool
 }
 
 // inQueueLimit is more than a person can type ahead.
@@ -78,12 +82,16 @@ func (q *inQueue) Read(p []byte) (int, error) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	for {
-		for len(q.items) > 0 && q.items[0].reply && q.items[0].cmd != q.cmd {
+		for len(q.items) > 0 && (q.items[0].reply || q.items[0].interrupt) && q.items[0].cmd != q.cmd {
 			q.size -= len(q.items[0].b)
 			q.items = q.items[1:]
 		}
 		if len(q.items) > 0 {
 			it := &q.items[0]
+			if it.interrupt {
+				q.items = q.items[1:]
+				return 0, io.EOF
+			}
 			if it.wake {
 				q.items = q.items[1:]
 				return 0, nil

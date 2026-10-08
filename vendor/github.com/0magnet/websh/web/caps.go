@@ -20,17 +20,27 @@ func (s *Session) caps(p *placements) *progressive.Caps {
 		c.Cell.H = screen.Get("clientHeight").Float() / float64(c.Rows)
 	}
 	c.DPR = js.Global().Get("devicePixelRatio").Float()
-	c.Features = []string{"place", "place.input", "event", "post", "ship", "download", "clipboard", "mirror"}
+	c.Features = []string{"place", "place.input", "event", "post", "ship", "download", "clipboard", "mirror", "notify", "sound", "drop", "image", "kitty-graphics"}
 	if c.Trust != "remote" {
-		c.Features = append(c.Features, "widget.offer", "font", "title", "page")
+		c.Features = append(c.Features, "widget.offer", "font", "title", "page", "icon")
 	}
 	c.Path = s.linkPath()
 	return c
 }
 
-// version is websh's module version in this binary: the main module's
-// when websh is the program, the dependency's when it is part of another.
+// Version is websh's version, stamped at link time
+// (-ldflags "-X github.com/0magnet/websh/web.Version=..."): build.sh does,
+// for the TinyGo build, whose released versions record no module information
+// for runtime/debug (tinygo-org/tinygo#5592 adds it, after 0.42).
+var Version string
+
+// version is websh's version in this binary: as stamped, else the main
+// module's when websh is the program, the dependency's when it is part of
+// another.
 func version() string {
+	if Version != "" {
+		return Version
+	}
 	bi, ok := debug.ReadBuildInfo()
 	if !ok {
 		return ""
@@ -44,4 +54,15 @@ func version() string {
 		}
 	}
 	return ""
+}
+
+// Caps is what this session offers the program running in it now: its
+// answer to the caps query. A program compiled into the page — which draws
+// on the terminal directly and does not read it, so cannot ask — is handed
+// it by the page (progressive.Set) before it runs.
+func (s *Session) Caps() *progressive.Caps {
+	if s.placements == nil {
+		return nil
+	}
+	return s.caps(s.placements)
 }

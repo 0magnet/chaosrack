@@ -58,6 +58,26 @@ func Getenv(name string) string {
 	return ""
 }
 
+// Args is os.Args for a program proc spawned, which works whichever
+// toolchain built it: TinyGo hands a js program no arguments (its os.Args is
+// a placeholder), so they are asked of proc, which knows the ones it was
+// given. Elsewhere it is os.Args.
+func Args() []string {
+	proc := js.Global().Get("proc")
+	if !proc.Truthy() || !proc.Get("argv").Truthy() {
+		return os.Args
+	}
+	argv := proc.Call("argv")
+	if !argv.Truthy() {
+		return os.Args
+	}
+	args := make([]string, argv.Length())
+	for i := range args {
+		args[i] = argv.Index(i).String()
+	}
+	return args
+}
+
 // Size is the terminal's size in cells.
 func (t *Terminal) Size() (cols, rows int) {
 	s := t.v.Call("size")

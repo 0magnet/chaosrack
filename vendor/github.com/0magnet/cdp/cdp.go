@@ -121,6 +121,18 @@ func DialWS(ctx context.Context, wsURL string) (*Client, error) {
 // and Page, and brings the tab to the front so that its timers and
 // requestAnimationFrame are not throttled.
 func Dial(port int, urlSubstr string) (*Client, error) {
+	return dial(port, urlSubstr, "Page.bringToFront")
+}
+
+// DialBackground is Dial without raising anything: the browser stays where
+// the person at it put it. The page is told it has the focus (focus
+// emulation), so focus, typing and focus-driven code behave as in front.
+// For a page that must also keep rendering, open it with NewWindow.
+func DialBackground(port int, urlSubstr string) (*Client, error) {
+	return dial(port, urlSubstr, "Emulation.setFocusEmulationEnabled")
+}
+
+func dial(port int, urlSubstr, last string) (*Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 	t, err := Local(port).Find(ctx, urlSubstr)
@@ -132,8 +144,12 @@ func Dial(port int, urlSubstr string) (*Client, error) {
 		return nil, err
 	}
 	c.URL = t.URL
-	for _, m := range []string{"Runtime.enable", "Page.enable", "Page.bringToFront"} {
-		if err := c.Do(ctx, m, nil, nil); err != nil {
+	for _, m := range []string{"Runtime.enable", "Page.enable", last} {
+		var params any
+		if m == "Emulation.setFocusEmulationEnabled" {
+			params = map[string]any{"enabled": true}
+		}
+		if err := c.Do(ctx, m, params, nil); err != nil {
 			_ = c.Close() //nolint:errcheck // the enable failure is the error worth reporting
 			return nil, fmt.Errorf("cdp: %s: %w", m, err)
 		}

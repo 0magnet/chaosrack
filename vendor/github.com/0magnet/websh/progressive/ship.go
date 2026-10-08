@@ -27,3 +27,20 @@ func Ship(name string, html []byte) []string {
 	}
 	return seqs
 }
+
+// ShipWasm is the sequences sending a widget as a wasm module, built by Go
+// or by TinyGo for js/wasm: the host runs it sandboxed as it runs a shipped
+// document, with the loader its toolchain needs, and it draws in the
+// document it is given (syscall/js) and talks over its line (package
+// widget/inside). A program that ships the same widget wherever it runs —
+// over ssh too — writes it once, in Go.
+func ShipWasm(name string, module []byte) []string {
+	var seqs []string
+	for len(module) > 0 || seqs == nil {
+		n := min(len(module), shipChunk)
+		meta := map[string]any{"kind": "wasm", "more": n < len(module)}
+		seqs = append(seqs, osc("ship;"+name+";"+b64json(meta)+";"+base64.StdEncoding.EncodeToString(module[:n])))
+		module = module[n:]
+	}
+	return seqs
+}

@@ -19,6 +19,7 @@ import (
 	"errors"
 	"io"
 	"slices"
+	"strings"
 	"sync/atomic"
 	"time"
 )
@@ -31,6 +32,17 @@ const da1 = "\x1b[c"
 
 // replyHead starts the host's answer.
 const replyHead = "\x1b]7337;caps;"
+
+// What a terminal that is not websh is asked, for what it can do beyond
+// cells: kitty's graphics protocol (a one-pixel query, as kitty's
+// documentation recommends; a terminal that has it answers OK), and its name
+// (XTVERSION). Sixel support comes with the DA1 reply (attribute 4).
+const (
+	kittyQuery = "\x1b_Gi=31,s=1,v=1,a=q,t=d,f=24;AAAA\x1b\\"
+	kittyReply = "\x1b_Gi=31;"
+	xtversion  = "\x1b[>q"
+	xtReply    = "\x1bP>|"
+)
 
 // Caps is what a host offers, as it says in its reply.
 type Caps struct {
@@ -98,7 +110,7 @@ var ErrNoAnswer = errors.New("progressive: the terminal did not answer")
 // anything else reads the terminal. A terminal that answers nothing is given
 // up on after timeout, with err ErrNoAnswer and in still good to use.
 func Probe(r io.Reader, w io.Writer, timeout time.Duration) (caps *Caps, in io.Reader, err error) {
-	if _, err := io.WriteString(w, Query+da1); err != nil {
+	if _, err := io.WriteString(w, Query+kittyQuery+xtversion+da1); err != nil {
 		return nil, r, err
 	}
 	a := &after{r: r, ch: make(chan chunk, 1)}
@@ -179,42 +191,92 @@ func (a *after) Read(p []byte) (int, error) {
 	return a.r.Read(p)
 }
 
-// scan looks through what has been read for the two replies. done is true
-// once the DA1 reply is in; caps is the caps reply if one came; rest is
-// everything that was neither.
+// scan looks through what has been read for the replies. done is true
+// once the DA1 reply — which every terminal sends, and sends last — is in;
+// caps is what the replies said; rest is everything that was none of them.
 func scan(buf []byte) (caps *Caps, rest []byte, done bool) {
 	rest = buf
-	if i := bytes.Index(rest, []byte(replyHead)); i >= 0 {
-		body := rest[i+len(replyHead):]
-		end, n := terminator(body)
-		if end < 0 {
-			return nil, buf, false // the reply is not all in yet
+	var websh *Caps
+	if body, r, ok, whole := cutString(rest, replyHead); ok {
+		if !whole {
+			return nil, buf, false
 		}
+		rest = r
 		var c Caps
-		if b, err := base64.StdEncoding.DecodeString(string(body[:end])); err == nil && json.Unmarshal(b, &c) == nil {
-			caps = &c
+		if b, err := base64.StdEncoding.DecodeString(body); err == nil && json.Unmarshal(b, &c) == nil {
+			websh = &c
 		}
-		rest = append(append([]byte{}, rest[:i]...), body[end+n:]...)
 	}
-	i := bytes.Index(rest, []byte("\x1b[?"))
-	for i >= 0 {
+	kitty := false
+	if body, r, ok, whole := cutString(rest, kittyReply); ok {
+		if !whole {
+			return nil, buf, false
+		}
+		rest, kitty = r, body == "OK"
+	}
+	name := ""
+	if body, r, ok, whole := cutString(rest, xtReply); ok {
+		if !whole {
+			return nil, buf, false
+		}
+		rest, name = r, body
+	}
+	attrs, r, found := cutDA1(rest)
+	if !found {
+		return nil, buf, false
+	}
+	rest = r
+	caps = websh
+	sixel := slices.Contains(attrs, "4")
+	if caps == nil && (kitty || sixel || name != "") {
+		caps = &Caps{Host: name, Trust: "local"} // a terminal, not a host: its own features only
+	}
+	if caps != nil {
+		if kitty && !caps.Has("kitty-graphics") {
+			caps.Features = append(caps.Features, "kitty-graphics")
+		}
+		if sixel && !caps.Has("sixel") {
+			caps.Features = append(caps.Features, "sixel")
+		}
+	}
+	return caps, rest, true
+}
+
+// cutString takes the string starting head (ended by ST or BEL) out of b.
+// ok is whether head is there; whole whether its end has arrived too.
+func cutString(b []byte, head string) (body string, rest []byte, ok, whole bool) {
+	i := bytes.Index(b, []byte(head))
+	if i < 0 {
+		return "", b, false, false
+	}
+	tail := b[i+len(head):]
+	end, n := terminator(tail)
+	if end < 0 {
+		return "", b, true, false
+	}
+	return string(tail[:end]), append(append([]byte{}, b[:i]...), tail[end+n:]...), true, true
+}
+
+// cutDA1 takes the DA1 reply (CSI ? attrs c) out of b, with its attributes.
+func cutDA1(b []byte) (attrs []string, rest []byte, found bool) {
+	for i := bytes.Index(b, []byte("\x1b[?")); i >= 0; {
 		j := i + 3
-		for j < len(rest) && (rest[j] >= '0' && rest[j] <= '9' || rest[j] == ';') {
+		for j < len(b) && (b[j] >= '0' && b[j] <= '9' || b[j] == ';') {
 			j++
 		}
-		if j == len(rest) {
-			return caps, rest, false // part of a reply
+		if j == len(b) {
+			return nil, b, false // part of a reply
 		}
-		if rest[j] == 'c' {
-			return caps, append(append([]byte{}, rest[:i]...), rest[j+1:]...), true
+		if b[j] == 'c' {
+			return strings.Split(string(b[i+3:j]), ";"), append(append([]byte{}, b[:i]...), b[j+1:]...), true
 		}
-		k := bytes.Index(rest[j:], []byte("\x1b[?"))
+		k := bytes.Index(b[j:], []byte("\x1b[?"))
 		if k < 0 {
 			break
 		}
 		i = j + k
 	}
-	return caps, rest, false
+	return nil, b, false
 }
 
 // terminator finds the end of an OSC string: ST (ESC \) or BEL.

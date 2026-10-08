@@ -145,7 +145,7 @@ func (p *placements) place(id string, d placeData) {
 		// The page's own widgets first, then those the program shipped,
 		// then those a program running here offered from its own process.
 		w := widget(d.Widget)
-		html, shipped := p.shipped.done[d.Widget]
+		sw, shipped := p.shipped.done[d.Widget]
 		var offered js.Value
 		if w == nil && !shipped {
 			m, ok := offer.Find(d.Widget)
@@ -164,7 +164,7 @@ func (p *placements) place(id string, d placeData) {
 		case w != nil:
 			pl.unmount = w(pl.el)
 		case shipped:
-			p.mountShipped(pl, html)
+			p.mountShipped(pl, sw)
 		default:
 			p.mountOffered(pl, offered)
 		}
