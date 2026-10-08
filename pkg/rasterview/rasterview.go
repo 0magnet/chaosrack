@@ -58,6 +58,11 @@ type View struct {
 	Dist                   float64 // camera distance in model units; 0 = orthographic
 	Scale                  float64 // model fills Scale of the half-frame; 0 = 0.85
 	BackDim                float64 // 0..1: dim the far hemisphere (WebGL draws it undimmed; a raster benefits from ~0.5)
+	// PixelAspect is a pixel's width over its height; 0 = 1 (square). A
+	// frame of half terminal cells stretched over a page is not square — a
+	// half cell of a 9×19.7 font is 0.91 as wide as it is tall — and drawn
+	// square it comes out that much wider than the same model in WebGL.
+	PixelAspect float64
 }
 
 // Render draws an indexed line list (xyz triples + endpoint pairs, as
@@ -105,7 +110,12 @@ func (v View) Render(dst *image.RGBA, vertices []float32, indices []uint16, g Gr
 		scale = 0.85
 	}
 	cx, cy := float64(pw)/2, float64(ph)/2
-	r := math.Min(cx, cy) * scale / maxLen
+	// r is in the height's pixels; a pixel's width is aspect of that.
+	aspect := v.PixelAspect
+	if aspect <= 0 {
+		aspect = 1
+	}
+	r := math.Min(cx*aspect, cy) * scale / maxLen
 
 	sinX, cosX := math.Sin(v.AngleX), math.Cos(v.AngleX)
 	sinY, cosY := math.Sin(v.AngleY), math.Cos(v.AngleY)
@@ -129,7 +139,7 @@ func (v View) Render(dst *image.RGBA, vertices []float32, indices []uint16, g Gr
 		if v.Dist > 0 {
 			persp = v.Dist / (v.Dist - z3)
 		}
-		px[i] = cx + x2*r*persp
+		px[i] = cx + x2*r*persp/aspect
 		py[i] = cy - y3*r*persp
 
 		age := float32(0)
