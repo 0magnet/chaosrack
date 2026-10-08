@@ -7,9 +7,9 @@ seven-segment LED readouts, toggle switches, concentric selector dials.
 
 **[Live demo](https://chaosrack.magnetosphere.net/)** — the whole rack in a tab: pick a model, turn the knobs, rotate the scene.
 
-**73 models in five kinds**, and they are no longer mostly attractors.
+**79 models in five kinds**, and they are no longer mostly attractors.
 Continuous **flows** — Lorenz, Rössler, Chua and the rest of the classics,
-plus all twenty of J. C. Sprott's 1994 cases. Discrete **maps**, which have
+plus all nineteen of J. C. Sprott's 1994 cases (A–S). Discrete **maps**, which have
 no dt and no path between iterates: Hénon, Ikeda, Clifford, de Jong,
 Gumowski–Mira, Tinkerbell, and Chirikov's area-preserving standard map.
 **Parametric** figures, and a **sequence walk** that draws arithmetic rather
@@ -142,7 +142,7 @@ There are two builds, and the difference is whether the binary is *in* the page.
 
 **The deployed pages fetch it.** `make pages` writes
 [index.html](index.html) · [go/index.html](go/index.html) ·
-[tinygo/index.html](tinygo/index.html), which are 57 KB, 39 KB and 39 KB and
+[tinygo/index.html](tinygo/index.html), which are 70 KB, 52 KB and 52 KB and
 ask for the `.wasm` in `assets/` as an ordinary resource — the copy already in
 this repository, so no binary is duplicated to publish it. That is better than
 inlining on every axis that matters to a page someone loads: only the runtime
@@ -3598,6 +3598,16 @@ harnesses:
 | `uitool portraits` | one still + one turning loop per model, walking the palette knob's four positions — the images in [Models](#models) |
 | `uitool modules` | one shot of every module in the rack, plus the manifest the README's [rack reference](#the-rack) is written from |
 | `uitool readme` | rewrites the contents, model and module sections of this file; `-check` fails instead of writing |
+| `uitool demo` | records chaos-monkey runs — including a performance mode with specialized monkey roles, audio-modulation routing, an on-screen countdown for cueing external audio, and a screen-liveness supervisor |
+| `uitool site` | writes `models/`, one page per model, and `sitemap.xml`; `-check` fails instead of writing (`make site`, `make site-check`) |
+| `uitool sweep` | visits every model and every switch in a fixed order with the monkey's invariants (`make sweep`) |
+| `uitool lint` | measures the panel for faults — overflow, overlap, off-center, tooltips — on every model, by address (`make lint-panel`) |
+| `uitool layout` | control-panel geometry invariants |
+| `uitool html` | checks the rendered panel DOM: it parses, no duplicate ids, every `for` resolves, no mojibake |
+| `uitool css` | audits `panel.css` for rules that style nothing and rules that fight each other |
+| `uitool spec` | renders a WAV to a spectrogram PNG through the app's pipeline, and diffs two PNGs |
+
+They attach to a tab already open in a Chromium/Brave started with `--remote-debugging-port` (9222), or, with `-headless` (and `-serve <chaosrack binary>`), run a private headless browser of their own that nothing sees.
 
 The js/wasm half of `pkg/attractor` — the DOM-facing code that only exists in
 a browser — is tested too, by `make test-wasm`, which runs the suite compiled
@@ -3606,8 +3616,6 @@ document, so the tests that need one install a fake: an element is an object
 with the handful of properties the code reads, and geometry is whatever the
 test says it is. That is enough for the layout arithmetic, which is where the
 bugs have been.
-| `uitool demo` | records chaos-monkey runs — including a performance mode with specialized monkey roles, audio-modulation routing, an on-screen countdown for cueing external audio, and a screen-liveness supervisor |
-
 Native tests cover the pure logic (LED formatting, concert-pitch math, pose
 decomposition, spline smoothing, the equation parser) plus the
 **chaos guard**: every registered flow's defaults must show a positive
@@ -3620,20 +3628,33 @@ wasm compile gate, both lint passes, and a pinned TinyGo build.
 
 ## Build
 
-The Makefile rebuilds both WebAssembly binaries (standard Go **and** TinyGo)
-and their matching `wasm_exec.js` runtimes into the `assets/` package, where
-they are `//go:embed`-ed by the server:
+The Makefile rebuilds the WebAssembly binaries (standard Go **and** TinyGo, plus
+the analyzers' worker) and their matching `wasm_exec.js` runtimes under
+`assets/`, where they are `//go:embed`-ed by the server:
 
 ```
-make wasms     # rebuild assets/chaosrack.wasm, assets/chaosrack-tiny.wasm + wasm_exec.js runtimes
-make build     # wasms + the native server binary
-make pages     # regenerate the self-contained index.html / tinygo/index.html
+make wasm          # assets/gowasm/chaosrack.wasm + wasm_exec.js
+make tinywasm      # assets/tinywasm/chaosrack-tiny.wasm + tinygo_wasm_exec.js (needs tinygo; slow)
+make metersworker  # assets/metersworker/meters.wasm, the analyzers' Web Worker
+make wasms         # all three
+make pages         # regenerate index.html, go/index.html, tinygo/index.html (they fetch the wasm)
+make onefile       # chaosrack-standalone.html, the one self-contained file
 ```
 
-Layout: `cmd/wasm` (the WebAssembly attractor app) · `cmd/chaosrack` &
-repo-root `main.go` (the web server) · `cmd/audiows` (PulseAudio→WebSocket
-audio server) · `cmd/uitool` (CDP test & capture harnesses) · `assets`
-(embedded wasm/js/template) · `pkg/server` · `pkg/attractor` · `pkg/audiosrc`.
+The native server has no make target: `go build .` (or `go run .`). The rest:
+`make check` (lint, vet, test, readme-check), `make test-wasm`, `make test-browser`,
+`make cover`, `make sweep`, `make lint-panel`, `make site`, `make docs`,
+`make publish-gifs`; `make help` lists them all.
+
+Layout: `cmd/` holds `chaosrack` (the web server; repo-root `main.go` is the same
+entry point), `wasm` (the WebAssembly app), `wasmmeters` (the analyzer worker),
+`wasmsplit-control`, `wasmsplit-monolith` and `wasmsplit-renderer` (the split-prototype
+builds), `wasmstamp` (the staleness stamp), `audiows` (PulseAudio→WebSocket audio
+server), `stlgen` (STL solids) and `uitool` (CDP test & capture harnesses).
+`assets` holds the embedded wasm/js/template. `pkg/` holds about 45 packages; the
+main ones are `attractor` (the app and its panel), `server`, `dynamics` (the
+models' math), `meters` and `metersworker`, `audiosrc`, `scope`, `rackspec`,
+`racklayout` and `racksurface` (the rack), `preset`, `equation` and `stlmodels`.
 
 ## Related / prior art
 
@@ -3685,19 +3706,19 @@ gocloc --not-match-d='(vendor|node_modules|\.git)' .
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-Go                             478           7011          27597          66227
-HTML                            82            630            318          10438
-Markdown                         2            832              7           2915
-JSON                             1              0              0           2189
-JavaScript                       3            118             95            951
-CSS                              1             75            859            720
-Makefile                         1             31             52            230
-YAML                             1              0             11             99
+Go                             591           8233          31090          77659
+HTML                            87            684            417          11504
+Markdown                        15           2291            706           4703
+JSON                             1              0              0           2019
+JavaScript                       4            133            148           1172
+CSS                              1             98           1038            808
+Makefile                         1             34             59            249
+YAML                             1              0             19            149
 Bourne Shell                     3             19             63             85
-XML                              1              0              0             81
+XML                              1              0              0             84
 BASH                             1              8             25             79
 Plain Text                       2              1              0              4
 -------------------------------------------------------------------------------
-TOTAL                          576           8725          29027          84018
+TOTAL                          708          11501          33565          98515
 -------------------------------------------------------------------------------
 ```
