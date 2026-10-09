@@ -46,10 +46,15 @@ import (
 // would change it; the page names the reason in its status overlay rather than
 // falling back silently.
 
-// wtSrv is the listener, nil when --audio-wt is off or could not bind. Written
-// once during mountAudio, before the HTTP server starts accepting, and read
-// from request handlers afterwards.
-var wtSrv *wtaudio.Server
+// wtSrv is the listener, nil when nothing asked for one or it could not bind.
+// Written once, before the HTTP server starts accepting, and read from request
+// handlers afterwards. wtAudio says the audio is on it: the listener is also
+// the rack link's (racklink.go), which needs it whether or not --audio is on.
+var (
+	wtSrv     *wtaudio.Server
+	wtAudio   bool
+	wtStarted bool
+)
 
 // mountWebTransport brings up the QUIC listener beside /ws and publishes what a
 // page needs to reach it.
@@ -60,10 +65,11 @@ var wtSrv *wtaudio.Server
 // the WebSocket feed that has always worked. Every failure below logs and
 // returns, leaving wtSrv nil, which makes audioFeed say "ws" and the page never
 // look for a WebTransport that is not there.
-func mountWebTransport(r *gin.Engine) {
-	if !audioWT {
-		return
+func mountWebTransport(r *gin.Engine, withAudio bool) *wtaudio.Server {
+	if wtStarted {
+		return wtSrv
 	}
+	wtStarted = true
 	port := audioWTPort
 	if port == 0 {
 		port = webPort
@@ -76,26 +82,25 @@ func mountWebTransport(r *gin.Engine) {
 	// only symptom would be a fallback notice on every load.
 	pc, err := net.ListenPacket("udp", fmt.Sprintf(":%d", port))
 	if err != nil {
-		log.Printf("chaosrack: WebTransport off: %v (the WebSocket feed at /ws is unaffected)", err)
-		return
+		log.Printf("chaosrack: WebTransport off: %v (the WebSockets are unaffected)", err)
+		return nil
 	}
-	srv, err := wtaudio.New(wtaudio.Config{
-		Addr:       pc.LocalAddr().String(),
-		Path:       audioWTPath,
-		SampleRate: audioRate,
-		Capture:    wtCapture,
-	})
+	cfg := wtaudio.Config{Addr: pc.LocalAddr().String(), Path: audioWTPath, SampleRate: audioRate}
+	if withAudio {
+		cfg.Capture = wtCapture
+	}
+	srv, err := wtaudio.New(cfg)
 	if err != nil {
-		log.Printf("chaosrack: WebTransport off: %v (the WebSocket feed at /ws is unaffected)", err)
+		log.Printf("chaosrack: WebTransport off: %v (the WebSockets are unaffected)", err)
 		_ = pc.Close() //nolint:errcheck // nothing has used it; the only thing to do with the error is what the line above already did
-		return
+		return nil
 	}
 	go func() {
 		if err := srv.Serve(pc); err != nil {
 			log.Printf("chaosrack: WebTransport listener stopped: %v (pages fall back to /ws)", err)
 		}
 	}()
-	wtSrv = srv
+	wtSrv, wtAudio = srv, withAudio
 
 	r.GET("/wt-info", func(c *gin.Context) {
 		// The hostname comes from the page's own Host header, so a browser on
@@ -106,10 +111,15 @@ func mountWebTransport(r *gin.Engine) {
 	})
 
 	cert := srv.Cert()
-	log.Printf("chaosrack: WebTransport on udp/%d%s — the page prefers it and falls back to /ws by itself", port, audioWTPath)
+	if withAudio {
+		log.Printf("chaosrack: WebTransport on udp/%d, audio at %s — the page prefers it and falls back to /ws by itself", port, audioWTPath)
+	} else {
+		log.Printf("chaosrack: WebTransport on udp/%d", port)
+	}
 	log.Printf("chaosrack:   certificate SHA-256 %s (generated this run, valid until %s)",
 		cert.Base64(), cert.NotAfter.Format(time.RFC3339))
 	log.Printf("chaosrack:   the page reads that from /wt-info; nothing has to be installed in a trust store")
+	return srv
 }
 
 // wtCapture is the /ws handler's capture, for a WebTransport session: the same

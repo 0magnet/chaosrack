@@ -18,6 +18,7 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"errors"
+	"io"
 	"math"
 	"net"
 	"net/http"
@@ -179,5 +180,59 @@ func TestUnpinnedClientIsRefused(t *testing.T) {
 	defer tr.Close() //nolint:errcheck // teardown
 	if _, _, err := tr.Dial(ctx, srv.Info("127.0.0.1:1").URL, nil); err == nil {
 		t.Error("a client that verified nothing was allowed to connect")
+	}
+}
+
+// With no capture the listener serves no audio, and the sessions Handle adds
+// work on it: a stream opened by the client is the handler's, both ways.
+func TestHandleServesSessionsBesideNoAudio(t *testing.T) {
+	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Skipf("cannot bind UDP here: %v", err)
+	}
+	srv, err := New(Config{Addr: pc.LocalAddr().String()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv.Handle("/echo", func(sess *webtransport.Session, _ *http.Request) {
+		str, err := sess.AcceptStream(sess.Context())
+		if err != nil {
+			return
+		}
+		buf := make([]byte, 5)
+		if _, err := str.Read(buf); err == nil {
+			_, _ = str.Write(buf) //nolint:errcheck // the test reads it or fails
+		}
+		<-sess.Context().Done()
+	})
+	go func() { _ = srv.Serve(pc) }() //nolint:errcheck // returns when Close is called below
+	defer srv.Close()                 //nolint:errcheck // teardown
+
+	tr := &webtransport.Transport{TLSClientConfig: &tls.Config{
+		InsecureSkipVerify: true, //nolint:gosec // a test against its own server
+		NextProtos:         []string{http3.NextProtoH3},
+	}}
+	defer tr.Close() //nolint:errcheck // teardown
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if rsp, _, err := tr.Dial(ctx, srv.URL("127.0.0.1", "/wt"), nil); err == nil && rsp.StatusCode == http.StatusOK {
+		t.Error("with no capture, the audio path opened a session")
+	}
+	_, sess, err := tr.Dial(ctx, srv.URL("127.0.0.1", "/echo"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer sess.CloseWithError(0, "") //nolint:errcheck // teardown
+	str, err := sess.OpenStreamSync(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := str.Write([]byte("hello")); err != nil {
+		t.Fatal(err)
+	}
+	got := make([]byte, 5)
+	if _, err := io.ReadFull(str, got); err != nil || string(got) != "hello" {
+		t.Fatalf("the handler answered %q, %v", got, err)
 	}
 }

@@ -127,7 +127,9 @@ func mountAudio(r *gin.Engine) {
 	})))
 	log.Printf("chaosrack: --audio on; the page it serves connects to /ws by itself")
 
-	mountWebTransport(r)
+	if audioWT {
+		mountWebTransport(r, true)
+	}
 
 	if wobbulateOn {
 		if err := setWobbulate(true); err != nil {
@@ -353,7 +355,7 @@ func audioFeed() string {
 	if !audioOn {
 		return ""
 	}
-	if wtSrv != nil {
+	if wtAudio {
 		return "wt"
 	}
 	return "ws"

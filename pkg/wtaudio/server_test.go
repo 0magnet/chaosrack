@@ -94,10 +94,7 @@ func TestCheckOriginAllowsTheSameHostOnAnotherPort(t *testing.T) {
 	}
 }
 
-func TestNewRequiresACapture(t *testing.T) {
-	if _, err := New(Config{Addr: ":8080"}); err == nil {
-		t.Error("a server with no audio source was accepted")
-	}
+func TestNewRefusesABadAddress(t *testing.T) {
 	if _, err := New(Config{Addr: "not-an-address", Capture: func(*http.Request, func([]float32) error) (func(), error) { return nil, nil }}); err == nil {
 		t.Error("an unparsable address was accepted")
 	}

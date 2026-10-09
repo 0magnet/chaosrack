@@ -74,4 +74,5 @@ func exposeRackControl() {
 	}))
 
 	js.Global().Set("rackctl", o)
+	startRackLink()
 }

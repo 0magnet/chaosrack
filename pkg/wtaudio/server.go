@@ -17,7 +17,6 @@
 package wtaudio
 
 import (
-	"errors"
 	"log"
 	"net"
 	"net/http"
@@ -82,6 +81,7 @@ type Server struct {
 	cert *Cert
 	wt   *webtransport.Server
 	port string
+	mux  *http.ServeMux
 
 	// Live sessions, so a caller can end them without ending the server.
 	// The WebSocket side of this feed already has to do that: audiocap
@@ -116,9 +116,6 @@ type Info struct {
 // so the certificate hash is available to the page-serving HTTP server
 // before the first request arrives.
 func New(cfg Config) (*Server, error) {
-	if cfg.Capture == nil {
-		return nil, errors.New("wtaudio: no Capture configured")
-	}
 	if cfg.Path == "" {
 		cfg.Path = "/wt"
 	}
@@ -157,7 +154,12 @@ func New(cfg Config) (*Server, error) {
 		// usable at all.
 		CheckOrigin: s.checkOrigin,
 	}
-	mux.HandleFunc(cfg.Path, s.handleSession)
+	s.mux = mux
+	// Without a capture there is no audio to serve, and the listener is up
+	// for the other sessions Handle adds (the rack's link, say).
+	if cfg.Capture != nil {
+		mux.HandleFunc(cfg.Path, s.handleSession)
+	}
 	return s, nil
 }
 
@@ -294,4 +296,38 @@ func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
 	} else {
 		s.cfg.Logf("wtaudio: session from %s ended", sess.RemoteAddr())
 	}
+}
+
+// Handle serves the WebTransport sessions opened at path with fn, on this
+// same listener and certificate. The session is closed when fn returns.
+//
+// One listener rather than one per use, because each is a UDP port to bind
+// and a certificate for the page to pin: audio and the rack's link share both.
+// The sessions are fn's to keep track of; CloseSessions ends only the audio's.
+func (s *Server) Handle(path string, fn func(sess *webtransport.Session, r *http.Request)) {
+	s.mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		sess, err := s.wt.Upgrade(w, r)
+		if err != nil {
+			s.cfg.Logf("wtaudio: upgrade at %s from %s failed: %v", path, r.RemoteAddr, err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		defer func() {
+			_ = sess.CloseWithError(0, "") //nolint:errcheck // teardown on the way out
+		}()
+		fn(sess, r)
+	})
+}
+
+// URL is where a session at path is opened, for a page served from
+// pageHost; see Info for why the host is the page's.
+func (s *Server) URL(pageHost, path string) string {
+	host, _, err := net.SplitHostPort(pageHost)
+	if err != nil {
+		host = pageHost
+	}
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	return "https://" + net.JoinHostPort(host, s.port) + path
 }
