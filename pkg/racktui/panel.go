@@ -9,6 +9,7 @@ import (
 	"github.com/gdamore/tcell/v3/color"
 
 	"github.com/0magnet/chaosrack/pkg/panelart"
+	"github.com/0magnet/chaosrack/pkg/rackpic"
 	"github.com/0magnet/chaosrack/pkg/racksurface"
 )
 
@@ -47,6 +48,12 @@ type panel struct {
 	// held is the mouse buttons down at the last event, so a press is told
 	// from a drag or a release.
 	held tcell.ButtonMask
+	// dragging is the scroll bar the button went down on: 'v', 'h' or 0.
+	dragging rune
+
+	// pic is the panel as the page draws it, for the page look; nil for the
+	// drawn looks, or when the Source cannot describe it.
+	pic *rackpic.Picture
 }
 
 var (
@@ -70,7 +77,7 @@ func RunOn(sc tcell.Screen, src Source) error {
 	defer close(done)
 	defer q.close()
 	sc.SetStyle(stNormal)
-	sc.EnableMouse(tcell.MouseButtonEvents)
+	sc.EnableMouse(tcell.MouseButtonEvents | tcell.MouseDragEvents)
 
 	// The dials are sampled into cells, so their shape depends on the shape
 	// of a cell. See CellShaper.
@@ -80,6 +87,7 @@ func RunOn(sc tcell.Screen, src Source) error {
 
 	p := &panel{src: src}
 	p.reload()
+	p.loadPicture()
 	go q.tick(done)
 	// v3 hands events over a channel and reports key RELEASES as well as
 	// presses — without the Pressed check every keystroke would move the
@@ -256,6 +264,7 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 		case 'r':
 			if p.filt == "" {
 				p.reload()
+				p.loadPicture()
 				p.msg = "reloaded"
 				return false
 			}
@@ -471,6 +480,10 @@ func (p *panel) drawRack(sc tcell.Screen, w, h int) {
 	// the vertical one.
 	vw, vh := maxi(w-1, 1), maxi(h-2, 1)
 	p.view.W, p.view.H = vw, vh
+	if p.pic != nil {
+		p.drawPage(sc, w, h)
+		return
+	}
 	p.view = p.view.Clamp(p.surf)
 
 	cur := p.cursor()
@@ -520,7 +533,7 @@ func (p *panel) cursor() ctlAt {
 // pan moves the window by a fraction of itself, which is what a scroll does:
 // a whole screen is disorienting and one cell is useless.
 func (p *panel) pan(dx, dy int) {
-	p.view = p.view.Pan(dx*maxi(p.view.W/2, 1), dy*maxi(p.view.H/2, 1), p.surf)
+	p.view = p.view.Pan(dx*maxi(p.view.W/2, 1), dy*maxi(p.view.H/2, 1), p.surface())
 	p.msg = ""
 }
 
