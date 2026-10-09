@@ -1,12 +1,12 @@
 package racktui
 
 import (
-	"fmt"
 	"image/color"
 	"math"
 
 	"github.com/gdamore/tcell/v3"
 
+	"github.com/0magnet/chaosrack/pkg/panelart"
 	"github.com/0magnet/chaosrack/pkg/rackpic"
 	"github.com/0magnet/chaosrack/pkg/racksurface"
 )
@@ -43,6 +43,11 @@ type Pictured interface {
 	// Act does kind ("click" or "wheel") at x, y of the picture of
 	// generation gen, as the pointer would on the page.
 	Act(gen int, x, y float64, kind string, delta float64) error
+	// Scene is the model's canvas as w x h pixels each shape times as
+	// tall as wide.
+	Scene(w, h int, shape float64) (*rackpic.Image, error)
+	// Canvases is the panel's canvases asked for, by item index.
+	Canvases(gen int, want []rackpic.CanvasWant) (map[int]*rackpic.Image, error)
 }
 
 // pageSurface is the size of the picture in cells.
@@ -250,11 +255,15 @@ func (c *canvas) sees(it *rackpic.Item) bool {
 }
 
 // drawPicture paints the window of the picture, the control the keys are on
-// outlined.
-func drawPicture(pt Painter, pic *rackpic.Picture, v racksurface.View, cursor string) {
+// outlined, and the canvases with the pixels in imgs (by item index).
+func drawPicture(pt Painter, pic *rackpic.Picture, v racksurface.View, cursor string, imgs map[int]*rackpic.Image) {
 	c := newCanvas(v)
-	for _, it := range pic.Items {
+	for i, it := range pic.Items {
 		if it == nil || !c.sees(it) {
+			continue
+		}
+		if m := imgs[i]; m != nil && it.Canvas != 0 {
+			c.image(it, m)
 			continue
 		}
 		if it.Pointer() {
@@ -341,8 +350,54 @@ func (p *panel) surface() racksurface.Surface {
 	return p.surf
 }
 
-// drawPage is drawRack for the page look.
+// The panel's window over the scene, as the page floats its controls in a
+// window over the model.
+const (
+	winHalf   = iota // the right half of the terminal, the scene beside it
+	winFull          // the whole terminal: the panel and nothing else
+	winHidden        // the scene alone
+)
+
+// winInk is the window's title bar, the page's.
+var winInk = color.RGBA{0, 102, 255, 255}
+
+// layoutWindow places the panel's window on a w x h terminal: the view's
+// size and where it is drawn. The last row is the status line.
+func (p *panel) layoutWindow(w, h int) {
+	body := maxi(h-1, 1)
+	switch p.winMode {
+	case winFull:
+		p.winX, p.winY = 0, 0
+		p.view.W, p.view.H = maxi(w-1, 1), maxi(body-1, 1)
+	case winHidden:
+		p.winX, p.winY = w, 0
+		p.view.W, p.view.H = 0, 0
+	default:
+		ww := maxi(w/2, 24)
+		p.winX, p.winY = maxi(w-ww, 0), 1
+		p.view.W, p.view.H = maxi(ww-1, 1), maxi(body-2, 1)
+	}
+}
+
+// drawPage is drawRack for the page look: the scene, and the panel's window
+// over it.
 func (p *panel) drawPage(sc tcell.Screen, w, h int) {
+	p.scrW, p.scrH = w, h
+	p.layoutWindow(w, h)
+	if p.winMode != winFull {
+		p.drawScene(sc, w, maxi(h-1, 1))
+	}
+	if p.winMode == winHidden {
+		return
+	}
+	if p.winMode == winHalf {
+		title := clip(" chaosrack controls", maxi(w-p.winX, 0))
+		st := styleOf(cellAt{Art: true, Top: [3]uint8{255, 255, 255}, Bottom: rgb3(winInk)})
+		for x := p.winX; x < w; x++ {
+			sc.SetContent(x, 0, ' ', nil, st)
+		}
+		puts(sc, p.winX, 0, title, st)
+	}
 	vw, vh := p.view.W, p.view.H
 	s := pageSurface(p.pic)
 	p.view = p.view.Clamp(s)
@@ -356,18 +411,91 @@ func (p *panel) drawPage(sc tcell.Screen, w, h int) {
 	if c, ok := p.at(); ok {
 		cursor = c.ID
 	}
-	drawPicture(screenPainter{sc: sc, w: vw, h: vh}, p.pic, p.view, cursor)
+	drawPicture(screenPainter{sc: sc, x0: p.winX, y0: p.winY, w: vw, h: vh}, p.pic, p.view, cursor, p.canv)
+	// The bars, along the window's right and bottom edges, on a ground of
+	// their own so the scene does not show through them.
+	for y := range vh + 1 {
+		sc.SetContent(p.winX+vw, p.winY+y, ' ', nil, stNormal)
+	}
+	for x := range vw {
+		sc.SetContent(p.winX+x, p.winY+vh, ' ', nil, stNormal)
+	}
 	if pos, n := racksurface.Bar(p.view.Y, vh, s.Rows, vh); n > 0 {
 		for i := range n {
-			sc.SetContent(w-1, pos+i, '█', nil, stFrame)
+			sc.SetContent(p.winX+vw, p.winY+pos+i, '█', nil, stFrame)
 		}
 	}
 	if pos, n := racksurface.Bar(p.view.X, vw, s.Cols, vw); n > 0 {
 		for i := range n {
-			sc.SetContent(pos+i, h-2, '▀', nil, stFrame)
+			sc.SetContent(p.winX+pos+i, p.winY+vh, '▀', nil, stFrame)
 		}
 	}
-	puts(sc, 0, h-2, clip(fmt.Sprintf("page %dx%d  at %d,%d", s.Cols, s.Rows, p.view.X, p.view.Y), maxi(w/2, 1)), stDim)
+}
+
+// drawScene paints the model's canvas across w x h cells, half a cell a
+// pixel, as it was last sampled.
+func (p *panel) drawScene(sc tcell.Screen, w, h int) {
+	m := p.scene
+	for y := range h {
+		for x := range w {
+			top, bot := m.At(x, 2*y), m.At(x, 2*y+1)
+			sc.SetContent(x, y, '▀', nil, styleOf(cellAt{Art: true, Top: rgb3(top), Bottom: rgb3(bot)}))
+		}
+	}
+}
+
+// refreshPixels samples the scene and the canvases the window shows, and
+// reports whether there were any to sample.
+func (p *panel) refreshPixels() bool {
+	src, ok := p.src.(Pictured)
+	if p.pic == nil || !ok || p.scrW == 0 {
+		return false
+	}
+	got := false
+	if p.winMode != winFull {
+		// A pixel is half a cell: its height over its width is half the
+		// cell's.
+		if m, err := src.Scene(p.scrW, 2*maxi(p.scrH-1, 1), panelart.CellAspect()/2); err == nil {
+			quantize(m, p.levels())
+			p.scene, got = m, true
+		}
+	}
+	if p.winMode != winHidden {
+		if want := canvasWants(p.pic, p.view); len(want) > 0 {
+			if imgs, err := src.Canvases(p.pic.Gen, want); err == nil {
+				for _, m := range imgs {
+					quantize(m, p.levels())
+				}
+				p.canv, got = imgs, true
+			}
+		}
+	}
+	return got
+}
+
+// canvasWants is the canvases the view shows, each at the size it is drawn.
+func canvasWants(pic *rackpic.Picture, v racksurface.View) []rackpic.CanvasWant {
+	c := &canvas{v: v}
+	var out []rackpic.CanvasWant
+	for i, it := range pic.Items {
+		if it == nil || it.Canvas == 0 || !c.sees(it) {
+			continue
+		}
+		x0, x1, y0, y1 := c.span(it.X, it.Y, it.W, it.H)
+		out = append(out, rackpic.CanvasWant{Index: i, W: x1 - x0 + 1, H: y1 - y0 + 1})
+	}
+	return out
+}
+
+// image paints a canvas's pixels over its box, sampled as the box is.
+func (c *canvas) image(it *rackpic.Item, m *rackpic.Image) {
+	x0, x1, y0, y1 := c.span(it.X, it.Y, it.W, it.H)
+	w, h := x1-x0+1, y1-y0+1
+	for py := max(y0, 0); py <= min(y1, c.ph-1); py++ {
+		for px := max(x0, 0); px <= min(x1, c.pw-1); px++ {
+			c.px[py*c.pw+px] = m.At((px-x0)*m.W/w, (py-y0)*m.H/h)
+		}
+	}
 }
 
 // mousePage is the mouse over the page look: the control under the pointer
@@ -432,4 +560,48 @@ func (c *canvas) ticks(it *rackpic.Item) {
 			}
 		}
 	}
+}
+
+// mouseWindow takes the mouse in the page look: the window's scroll bars and
+// the panel in it. The scene around the window does not take it yet.
+func (p *panel) mouseWindow(b tcell.ButtonMask, pressed bool, x, y int) {
+	if p.winMode == winHidden {
+		return
+	}
+	lx, ly := x-p.winX, y-p.winY
+	if p.scrollBar(b, pressed, lx, ly, p.view.W, p.view.H) {
+		return
+	}
+	if lx < 0 || ly < 0 || lx >= p.view.W || ly >= p.view.H {
+		return
+	}
+	p.mousePage(b, pressed, lx, ly)
+}
+
+// Quantizer is a Source whose terminal pays for every new color: xterm-go,
+// in a page, rasterizes a glyph for each new foreground and background pair
+// and uploads its whole atlas again. A scene shrunk to cells is a stream of
+// colors never seen before, so there it is drawn in a bounded palette of
+// Levels() steps a channel, and the atlas fills once and stops.
+type Quantizer interface {
+	Levels() int
+}
+
+// quantize puts an image's pixels on n steps a channel; n < 2 leaves it.
+func quantize(m *rackpic.Image, n int) {
+	if m == nil || n < 2 {
+		return
+	}
+	step := 255.0 / float64(n-1)
+	for i, v := range m.Px {
+		m.Px[i] = uint8(math.Round(math.Round(float64(v)/step) * step)) //nolint:gosec // within 0..255 by construction
+	}
+}
+
+// levels is how many steps a channel the Source asks for, 0 for any.
+func (p *panel) levels() int {
+	if q, ok := p.src.(Quantizer); ok {
+		return q.Levels()
+	}
+	return 0
 }

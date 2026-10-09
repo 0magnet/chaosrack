@@ -177,3 +177,18 @@ func (inPageRack) PictureChanges(gen int) (*rackpic.Patch, error) {
 func (inPageRack) Act(gen int, x, y float64, kind string, delta float64) error {
 	return rackpic.ParseAct(picCall(rackpic.ActCall(gen, x, y, kind, delta)))
 }
+
+func (inPageRack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
+	return rackpic.ParseImage(picCall(rackpic.SceneCall(w, h, shape)))
+}
+
+func (inPageRack) Canvases(gen int, want []rackpic.CanvasWant) (map[int]*rackpic.Image, error) {
+	c, err := rackpic.ParseCanvases(picCall(rackpic.CanvasesCall(gen, want)))
+	if err != nil {
+		return nil, err
+	}
+	return c.Imgs, nil
+}
+
+// Levels: this page's terminal is xterm-go (racktui.Quantizer).
+func (inPageRack) Levels() int { return 6 }

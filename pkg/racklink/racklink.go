@@ -53,6 +53,8 @@ const (
 	OpPicture  = "picture"
 	OpChanges  = "changes"
 	OpAct      = "act"
+	OpScene    = "scene"
+	OpCanvases = "canvases"
 )
 
 // Conn is a connection carrying whole messages.
