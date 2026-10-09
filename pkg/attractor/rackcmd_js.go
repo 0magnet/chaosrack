@@ -111,8 +111,12 @@ func runRackPanel(sess *web.Session, stdin io.Reader, stdout, stderr io.Writer) 
 		// OptAltScreen(false) because the alternate screen is a thing a
 		// terminal emulator switches to, and the shell's scrollback is what
 		// the user wants back when the panel quits.
+		// OptColors(1<<24) because xterm-go draws 24-bit color, and tcell, told
+		// "xterm-256color", otherwise matched every cell's color to the nearest of
+		// 256 in Lab space: a quarter of the page's time once the panel drew
+		// the scene.
 		return tcell.NewTerminfoScreenFromTty(t,
-			tcell.OptTerm("xterm-256color"), tcell.OptAltScreen(false))
+			tcell.OptTerm("xterm-256color"), tcell.OptAltScreen(false), tcell.OptColors(1<<24))
 	})
 	if err := racktui.Run(ctx, inPageRack{}); err != nil {
 		_, _ = fmt.Fprintln(stderr, "rack:", err) //nolint:errcheck // as above

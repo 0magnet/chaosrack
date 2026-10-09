@@ -54,6 +54,13 @@ type panel struct {
 	// pic is the panel as the page draws it, for the page look; nil for the
 	// drawn looks, or when the Source cannot describe it.
 	pic *rackpic.Picture
+	// The page look's pixels: the scene behind the window, and the panel's
+	// canvases by item index; and the window, which winMode places.
+	scene      *rackpic.Image
+	canv       map[int]*rackpic.Image
+	winMode    int
+	winX, winY int
+	scrW, scrH int
 }
 
 var (
@@ -116,6 +123,7 @@ func RunOn(sc tcell.Screen, src Source) error {
 			// A refresh that found nothing new draws nothing.
 			if _, ok := ev.Data().(refreshTick); ok {
 				dirty = p.refresh()
+				q.waiting.Store(false)
 			}
 		}
 	}
@@ -261,6 +269,14 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 		case '/':
 			p.filt = ""
 			p.refilter()
+		case 'p':
+			if p.filt == "" && p.pic != nil {
+				// The window: half, the whole terminal, or out of the way.
+				p.winMode = (p.winMode + 1) % 3
+				p.scene, p.canv = nil, nil
+				return false
+			}
+			p.typeFilter(r)
 		case 'r':
 			if p.filt == "" {
 				p.reload()
@@ -303,6 +319,7 @@ func (p *panel) move(n int) {
 // reset puts the control under the cursor back to its default, which the
 // registry knows without asking the rack.
 func (p *panel) reset() {
+	p.fresh()
 	c, ok := p.at()
 	if !ok {
 		return
@@ -316,6 +333,7 @@ func (p *panel) reset() {
 
 // nudge moves the control under the cursor one detent or one step.
 func (p *panel) nudge(dir int) {
+	p.fresh()
 	c, ok := p.at()
 	if !ok {
 		return

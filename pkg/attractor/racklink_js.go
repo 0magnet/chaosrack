@@ -21,6 +21,8 @@ func startRackLink() {
 		return
 	}
 	rackLinkStarted = true
+	// The picture script first: the link answers the picture's calls with it.
+	js.Global().Call("eval", rackpic.Script)
 	js.Global().Call("eval", racklink.PageScript)
 	link := js.Global().Get("__racklink")
 	if !link.Truthy() {
@@ -43,4 +45,12 @@ func (inPageRack) PictureJSON() string        { return picCall(rackpic.CallPictu
 func (inPageRack) ChangesJSON(gen int) string { return picCall(rackpic.ChangesCall(gen)) }
 func (inPageRack) ActJSON(gen int, x, y float64, kind string, delta float64) string {
 	return picCall(rackpic.ActCall(gen, x, y, kind, delta))
+}
+
+func (inPageRack) SceneJSON(w, h int, shape float64) string {
+	return picCall(rackpic.SceneCall(w, h, shape))
+}
+
+func (inPageRack) CanvasesJSON(gen int, want []rackpic.CanvasWant) string {
+	return picCall(rackpic.CanvasesCall(gen, want))
 }

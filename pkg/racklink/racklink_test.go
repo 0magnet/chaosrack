@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/0magnet/chaosrack/pkg/controlspec"
+	"github.com/0magnet/chaosrack/pkg/rackpic"
 	"github.com/0magnet/chaosrack/pkg/racksurface"
 	"github.com/0magnet/chaosrack/pkg/racktui"
 )
@@ -177,5 +178,30 @@ func TestALongLineArrivesWhole(t *testing.T) {
 	got, err := cb.Read()
 	if err != nil || string(got) != long {
 		t.Fatalf("read %d bytes, %v", len(got), err)
+	}
+}
+
+func (f *fakePage) SceneJSON(w, h int, shape float64) string {
+	return `{"w":1,"h":1,"px":"AQID"}`
+}
+
+func (f *fakePage) CanvasesJSON(gen int, want []rackpic.CanvasWant) string {
+	return `{"imgs":{"3":{"w":1,"h":1,"px":"BAUG"}}}`
+}
+
+// The scene and the canvases come over the link as pixels.
+func TestPicturesComeOverTheLink(t *testing.T) {
+	h := NewHub()
+	defer connectPage(h, &fakePage{})()
+	waitPages(t, h, 1)
+	cl := connectTerminal(h)
+	defer cl.Close() //nolint:errcheck // teardown
+	m, err := cl.Scene(1, 1, 1)
+	if err != nil || m.At(0, 0).R != 1 || m.At(0, 0).B != 3 {
+		t.Fatalf("scene %+v, %v", m, err)
+	}
+	cs, err := cl.Canvases(7, []rackpic.CanvasWant{{Index: 3, W: 1, H: 1}})
+	if err != nil || cs[3] == nil || cs[3].At(0, 0).G != 5 {
+		t.Fatalf("canvases %+v, %v", cs, err)
 	}
 }

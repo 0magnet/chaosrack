@@ -266,3 +266,25 @@ func (r *Client) Act(gen int, x, y float64, kind string, delta float64) error {
 	}
 	return rackpic.ParseAct(s)
 }
+
+// Scene is the model's canvas.
+func (r *Client) Scene(w, h int, shape float64) (*rackpic.Image, error) {
+	s, err := r.pic(rackpic.SceneCall(w, h, shape))
+	if err != nil {
+		return nil, err
+	}
+	return rackpic.ParseImage(s)
+}
+
+// Canvases is the panel's canvases asked for.
+func (r *Client) Canvases(gen int, want []rackpic.CanvasWant) (map[int]*rackpic.Image, error) {
+	s, err := r.pic(rackpic.CanvasesCall(gen, want))
+	if err != nil {
+		return nil, err
+	}
+	c, err := rackpic.ParseCanvases(s)
+	if err != nil {
+		return nil, err
+	}
+	return c.Imgs, nil
+}

@@ -195,6 +195,8 @@ type PageRack interface {
 	PictureJSON() string
 	ChangesJSON(gen int) string
 	ActJSON(gen int, x, y float64, kind string, delta float64) string
+	SceneJSON(w, h int, shape float64) string
+	CanvasesJSON(gen int, want []rackpic.CanvasWant) string
 }
 
 // Answer is the page's half of one call: the request in, the answer out.
@@ -244,6 +246,18 @@ func answer(rack PageRack, r Request) (json.RawMessage, error) {
 			return nil, err
 		}
 		return raw(rack.ActJSON(a.Gen, a.X, a.Y, a.Kind, a.Delta))
+	case OpScene:
+		var a sceneArgs
+		if err := json.Unmarshal(r.Args, &a); err != nil {
+			return nil, err
+		}
+		return raw(rack.SceneJSON(a.W, a.H, a.Shape))
+	case OpCanvases:
+		var a canvasesArgs
+		if err := json.Unmarshal(r.Args, &a); err != nil {
+			return nil, err
+		}
+		return raw(rack.CanvasesJSON(a.Gen, a.Want))
 	}
 	return nil, fmt.Errorf("racklink: no operation %q", r.Op)
 }
@@ -255,4 +269,39 @@ func raw(s string) (json.RawMessage, error) {
 		return nil, errors.New("racklink: the page's picture script answered something that is not JSON")
 	}
 	return json.RawMessage(s), nil
+}
+
+type sceneArgs struct {
+	W     int     `json:"w"`
+	H     int     `json:"h"`
+	Shape float64 `json:"shape"`
+}
+
+// Scene is the model's canvas.
+func (cl *Client) Scene(w, h int, shape float64) (*rackpic.Image, error) {
+	var m rackpic.Image
+	if err := cl.call(OpScene, sceneArgs{W: w, H: h, Shape: shape}, &m); err != nil {
+		return nil, err
+	}
+	if m.Err != "" {
+		return nil, errors.New(m.Err)
+	}
+	return &m, nil
+}
+
+type canvasesArgs struct {
+	Gen  int                  `json:"gen"`
+	Want []rackpic.CanvasWant `json:"want"`
+}
+
+// Canvases is the panel's canvases asked for.
+func (cl *Client) Canvases(gen int, want []rackpic.CanvasWant) (map[int]*rackpic.Image, error) {
+	var c rackpic.Canvases
+	if err := cl.call(OpCanvases, canvasesArgs{Gen: gen, Want: want}, &c); err != nil {
+		return nil, err
+	}
+	if c.Err != "" {
+		return nil, errors.New(c.Err)
+	}
+	return c.Imgs, nil
 }

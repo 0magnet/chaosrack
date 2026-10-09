@@ -83,6 +83,9 @@ type Item struct {
 	// rim to Inner of the radius.
 	Ticks [][3]float64 `json:"k,omitempty"`
 	Inner float64      `json:"ki,omitempty"`
+	// Canvas marks a canvas: its pixels are asked for separately
+	// (CanvasesCall), at the size the front end draws it.
+	Canvas int `json:"cv,omitempty"`
 	// Angle marks a knob's pointer, in degrees clockwise from straight up.
 	// The box is the knob's; Fill is the pointer's color, not a fill.
 	Angle *float64 `json:"a,omitempty"`
@@ -176,4 +179,78 @@ func (p *Picture) Apply(d *Patch) bool {
 // RGB is a 0xRRGGBB value as a color.
 func RGB(v int) color.RGBA {
 	return color.RGBA{uint8(v >> 16), uint8(v >> 8), uint8(v), 255} //nolint:gosec // the bytes of a 24-bit color, each masked by the conversion
+}
+
+// Image is pixels sampled from a canvas: W x H, RGB, row by row from the
+// top. JSON carries Px as base64, which is what the page writes.
+type Image struct {
+	W   int    `json:"w"`
+	H   int    `json:"h"`
+	Px  []byte `json:"px"`
+	Err string `json:"err,omitempty"`
+}
+
+// At is the pixel at x, y.
+func (m *Image) At(x, y int) color.RGBA {
+	if m == nil || x < 0 || y < 0 || x >= m.W || y >= m.H || (y*m.W+x)*3+2 >= len(m.Px) {
+		return color.RGBA{A: 255}
+	}
+	i := (y*m.W + x) * 3
+	return color.RGBA{m.Px[i], m.Px[i+1], m.Px[i+2], 255}
+}
+
+// SceneCall asks for the scene, the model's canvas behind everything, as
+// w x h pixels each shape times as tall as wide.
+func SceneCall(w, h int, shape float64) string {
+	return fmt.Sprintf("window.__rackpic.scene(%d, %d, %g)", w, h, shape)
+}
+
+// CanvasWant asks for item Index's canvas as W x H pixels.
+type CanvasWant struct{ Index, W, H int }
+
+// CanvasesCall asks for the canvases of the picture of generation gen.
+func CanvasesCall(gen int, want []CanvasWant) string {
+	var b strings.Builder
+	b.WriteString("[")
+	for i, w := range want {
+		if i > 0 {
+			b.WriteString(",")
+		}
+		fmt.Fprintf(&b, "[%d,%d,%d]", w.Index, w.W, w.H)
+	}
+	b.WriteString("]")
+	return fmt.Sprintf("window.__rackpic.canvases(%d, %s)", gen, b.String())
+}
+
+// ParseImage reads what SceneCall returned.
+func ParseImage(s string) (*Image, error) {
+	var m Image
+	if err := json.Unmarshal([]byte(s), &m); err != nil {
+		return nil, err
+	}
+	if m.Err != "" {
+		return nil, errors.New(m.Err)
+	}
+	if len(m.Px) < m.W*m.H*3 {
+		return nil, errors.New("rackpic: an image shorter than its size")
+	}
+	return &m, nil
+}
+
+// Canvases is what CanvasesCall returned: images by item index.
+type Canvases struct {
+	Imgs map[int]*Image `json:"imgs"`
+	Err  string         `json:"err,omitempty"`
+}
+
+// ParseCanvases reads what CanvasesCall returned.
+func ParseCanvases(s string) (*Canvases, error) {
+	var c Canvases
+	if err := json.Unmarshal([]byte(s), &c); err != nil {
+		return nil, err
+	}
+	if c.Err != "" {
+		return nil, errors.New(c.Err)
+	}
+	return &c, nil
 }

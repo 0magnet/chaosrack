@@ -22,7 +22,30 @@
     setTimeout(function () { waiting = false; connect(); }, RETRY);
   }
 
-  L.start = function (answer) {
+  // The picture's calls are answered here, by the picture script, and never
+  // cross into Go: their answers are JSON already and up to 400 kB, and a
+  // Go/wasm page copying, checking and re-encoding them took longer than
+  // drawing them up. The rest (modules, controls, set) are Go's.
+  function answerHere(line) {
+    var P = window.__rackpic;
+    if (!P) return null;
+    var r;
+    try { r = JSON.parse(line); } catch (e) { return null; }
+    var a = r.args || {}, out;
+    switch (r.op) {
+      case "picture": out = P.picture(); break;
+      case "changes": out = P.changes(a.gen); break;
+      case "act": out = P.act(a.gen, a.x, a.y, a.kind, a.delta); break;
+      case "scene": out = P.scene(a.w, a.h, a.shape); break;
+      case "canvases": out = P.canvases(a.gen, (a.want || []).map(function (w) { return [w.Index, w.W, w.H]; })); break;
+      default: return null;
+    }
+    return "{\"id\":" + r.id + ",\"ok\":" + out + "}";
+  }
+  function answer(line) { return answerHere(line) || L.goAnswer(line); }
+
+  L.start = function (goAnswer) {
+    L.goAnswer = goAnswer;
     L.answer = answer;
     connect();
   };

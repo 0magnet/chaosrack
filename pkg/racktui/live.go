@@ -2,6 +2,7 @@ package racktui
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gdamore/tcell/v3"
@@ -32,17 +33,24 @@ type poster struct {
 	sc     tcell.Screen
 	mu     sync.RWMutex
 	closed bool
+	// waiting is a tick posted and not yet taken. One at a time: a refresh
+	// slower than the tick would otherwise fill the queue with ticks, and a
+	// key pressed then waits behind every one of them.
+	waiting atomic.Bool
 }
 
-func (q *poster) post(ev tcell.Event) {
+// post reports whether the event went.
+func (q *poster) post(ev tcell.Event) bool {
 	q.mu.RLock()
 	defer q.mu.RUnlock()
 	if q.closed {
-		return
+		return false
 	}
 	select {
 	case q.sc.EventQ() <- ev:
+		return true
 	default: // the loop is behind; the next tick says the same thing
+		return false
 	}
 }
 
@@ -62,7 +70,9 @@ func (q *poster) tick(done <-chan struct{}) {
 		case <-done:
 			return
 		case <-t.C:
-			q.post(tcell.NewEventInterrupt(refreshTick{}))
+			if q.waiting.CompareAndSwap(false, true) && !q.post(tcell.NewEventInterrupt(refreshTick{})) {
+				q.waiting.Store(false)
+			}
 		}
 	}
 }
@@ -72,7 +82,31 @@ func (q *poster) tick(done <-chan struct{}) {
 // came or went means the rack itself changed (a module switched out, a
 // model's bank swapped), and that is a reload, layout and all.
 func (p *panel) refresh() bool {
-	picChanged := p.refreshPicture()
+	if p.pic != nil {
+		// The page look shows the values in the picture, so the list of
+		// them is read only when a key is about to use one (fresh). Read
+		// every tick it was the most of what the panel cost the page: 44 ms
+		// a read in a Go/wasm page, against 0.6 for the picture's changes.
+		changed := p.refreshPicture()
+		if p.refreshPixels() {
+			changed = true
+		}
+		return changed
+	}
+	return p.refreshValues()
+}
+
+// fresh brings the values up to date before a key uses one, in the page look,
+// where they are not kept up to date otherwise.
+func (p *panel) fresh() {
+	if p.pic != nil {
+		p.refreshValues()
+	}
+}
+
+// refreshValues reads the controls again and reports whether a value shown
+// changed.
+func (p *panel) refreshValues() bool {
 	fresh, err := p.src.Controls()
 	if err != nil {
 		if p.err != err.Error() {
@@ -118,7 +152,7 @@ func (p *panel) refresh() bool {
 	if changed && p.err != "" {
 		p.err = ""
 	}
-	return changed || picChanged
+	return changed
 }
 
 func sameStrings(a, b []string) bool {
@@ -150,15 +184,15 @@ func (p *panel) mouse(ev *tcell.EventMouse, w, h int) {
 		p.mouseList(b, pressed, y, h)
 		return
 	}
+	if p.pic != nil {
+		p.mouseWindow(b, pressed, x, y)
+		return
+	}
 	vw, vh := maxi(w-1, 1), maxi(h-2, 1)
 	if p.scrollBar(b, pressed, x, y, vw, vh) {
 		return
 	}
 	if x >= vw || y >= vh {
-		return
-	}
-	if p.pic != nil {
-		p.mousePage(b, pressed, x, y)
 		return
 	}
 	sx, sy := x+p.view.X, y+p.view.Y

@@ -149,6 +149,10 @@
       }
     }
 
+    // A canvas is a picture of its own: the item says where it is, and
+    // R.canvases samples it at the size a front end asks for.
+    if (e.tagName === "CANVAS") { it.cv = 1; any = true; }
+
     if (e.classList.contains("knob-ptr")) {
       var a = parseFloat(e.style.getPropertyValue("--a"));
       if (!isNaN(a)) { it.a = a; any = true; }
@@ -271,6 +275,60 @@
       if (t !== R.texts[i]) { R.texts[i] = t; items[i] = item(e, fr, k); n++; }
     }
     return JSON.stringify({ gen: R.gen, items: n ? items : undefined });
+  };
+
+  // ── canvases ──
+
+  // sample draws src (or the part sx, sy, sw, sh of it) into w x h pixels and
+  // returns them as RGB, base64, row by row from the top. The scene's GL
+  // context keeps its drawing buffer (glctx), so a WebGL canvas reads back.
+  var off = null;
+  function sample(src, sx, sy, sw, sh, w, h) {
+    w = Math.max(1, Math.min(2048, w | 0)); h = Math.max(1, Math.min(2048, h | 0));
+    if (!off) off = document.createElement("canvas");
+    if (off.width !== w) off.width = w;
+    if (off.height !== h) off.height = h;
+    // No willReadFrequently: that keeps the small canvas on the CPU, so the
+    // whole scene came back from the GPU to be shrunk there. Shrunk on the
+    // GPU, only the small result is read back.
+    var g = off.getContext("2d");
+    g.imageSmoothingEnabled = true;
+    g.imageSmoothingQuality = "high";
+    g.fillStyle = "#000";
+    g.fillRect(0, 0, w, h);
+    try { g.drawImage(src, sx, sy, sw, sh, 0, 0, w, h); } catch (e) { return null; }
+    var d = g.getImageData(0, 0, w, h).data, rgb = new Uint8Array(w * h * 3);
+    for (var i = 0, j = 0; i < d.length; i += 4) { rgb[j++] = d[i]; rgb[j++] = d[i + 1]; rgb[j++] = d[i + 2]; }
+    var s = "";
+    for (var k = 0; k < rgb.length; k += 0x8000) s += String.fromCharCode.apply(null, rgb.subarray(k, k + 0x8000));
+    return { w: w, h: h, px: btoa(s) };
+  }
+
+  // scene is the model's canvas, the page's whole background, as w x h
+  // pixels of the given shape (a pixel's height over its width): the middle
+  // of it, cropped to that shape, as a window of another shape shows it.
+  R.scene = function (w, h, shape) {
+    var c = document.getElementById("gocanvas");
+    if (!c || !c.width || !c.height) return JSON.stringify({ err: "the page has no scene" });
+    var want = (w / (h * (shape || 1))), have = c.width / c.height;
+    var sx = 0, sy = 0, sw = c.width, sh = c.height;
+    if (have > want) { sw = c.height * want; sx = (c.width - sw) / 2; }
+    else { sh = c.width / want; sy = (c.height - sh) / 2; }
+    return JSON.stringify(sample(c, sx, sy, sw, sh, w, h) || { err: "the scene could not be read" });
+  };
+
+  // canvases samples the canvases of the picture of generation gen that a
+  // front end asks for, [[index, w, h], ...], each whole into w x h.
+  R.canvases = function (gen, want) {
+    if (gen !== R.gen) return JSON.stringify({ err: "the panel changed" });
+    var out = {};
+    for (var i = 0; i < want.length; i++) {
+      var e = R.els[want[i][0]];
+      if (!e || e.tagName !== "CANVAS" || !e.width || !e.height) continue;
+      var img = sample(e, 0, 0, e.width, e.height, want[i][1], want[i][2]);
+      if (img) out[want[i][0]] = img;
+    }
+    return JSON.stringify({ imgs: out });
   };
 
   // act does to the page what the pointer did to the picture, on the
