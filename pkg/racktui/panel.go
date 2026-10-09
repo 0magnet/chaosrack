@@ -41,6 +41,9 @@ type panel struct {
 	mods  []moduleCtls
 	surf  racksurface.Surface
 	view  racksurface.View
+	// shown is the control the view was last moved to show. The view follows
+	// the cursor only when the cursor MOVES, so panning away from it sticks.
+	shown string
 }
 
 var (
@@ -121,17 +124,29 @@ func (p *panel) layout(mods []racksurface.Item, capacity int) {
 	if capacity < 1 {
 		capacity = 12
 	}
-	perModule := map[string]int{}
+	perModule := map[string][]Control{}
 	for _, c := range p.all {
-		perModule[fold(c.Module)]++
+		perModule[fold(c.Module)] = append(perModule[fold(c.Module)], c)
 	}
 	p.items = append(p.items[:0], mods...)
 	for i := range p.items {
-		p.items[i].Rows = ModuleRows(perModule[fold(p.items[i].Key)],
-			p.items[i].Slots, racksurface.DefaultMetrics.SlotCols)
+		ctls := perModule[fold(p.items[i].Key)]
+		p.items[i].Rows = ModuleRows(len(ctls), p.items[i].Slots, metrics().SlotCols)
+		if look == LookPUnit && hasLocs(ctls) {
+			p.items[i].Rows = placedRows()
+		}
 	}
-	p.surf = racksurface.Build(p.items, capacity, nil, racksurface.DefaultMetrics)
+	p.surf = racksurface.Build(p.items, capacity, nil, metrics())
 	p.mods = attach(p.items, p.all)
+	if look == LookPUnit {
+		// The cursor walks the rack as the page letters it, module by module
+		// and down each column, rather than in the order things were wired.
+		p.all = p.all[:0:0]
+		for i := range p.mods {
+			byAddress(p.mods[i].Ctls)
+			p.all = append(p.all, p.mods[i].Ctls...)
+		}
+	}
 }
 
 func (p *panel) refilter() {
@@ -436,8 +451,11 @@ func (p *panel) drawRack(sc tcell.Screen, w, h int) {
 	p.view = p.view.Clamp(p.surf)
 
 	cur := p.cursor()
-	if x, y, cw, ch, ok := ctlRect(p.surf, p.mods, cur); ok {
-		p.view = p.view.Reveal(x, y, cw, ch, p.surf)
+	if c, ok := p.at(); ok && c.ID != p.shown {
+		if x, y, cw, ch, ok := ctlRect(p.surf, p.mods, cur); ok {
+			p.view = p.view.Reveal(x, y, cw, ch, p.surf)
+		}
+		p.shown = c.ID
 	}
 	DrawSurface(screenPainter{sc: sc, w: vw, h: vh}, p.surf, p.view, p.mods, cur)
 
