@@ -82,6 +82,11 @@ what a rack of modules holding 3, 12, 6, 24 and 8 controls measures out to.
 | `Fixed` | Turns header-drag reordering off. |
 | `OnReorder`, `OnVisibility` | Report what the user changed, by module key, for persisting. |
 
+`SetScale(v)` changes `Scale` after construction, clamped to 0.6-2.2, and
+requantizes. `Modules()` returns the module elements in order. `Release()`
+drops the rack's window listeners and `js.Func`s; it is only needed if the rack
+is discarded while the page lives on.
+
 **Follow `--rack-scale` in your own CSS.** Content that ignores it does not
 shrink when the rack does, so it stops fitting the narrower slot and the
 quantizer — correctly — hands the module an extra slot, which reads as the scale
@@ -102,6 +107,8 @@ switch of its own.
 Reordering is by dragging a module's header into the gap you want it in. Because
 a rack reflows, there is nothing to place — a module dropped between two others
 simply becomes the module between them. `Order()` and `SetOrder()` persist it.
+`HiddenKeys()` and `SetHidden()` do the same for the hidden set; `SetHidden`
+keeps keys for modules not built yet.
 
 ## Styling
 
@@ -165,15 +172,18 @@ gocloc --not-match-d='(vendor|node_modules|\.git)' .
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-Go                               7            133            300            961
+Go                              10            156            434           1233
 JavaScript                       1             61             36            478
-Makefile                         1             21             52            107
-Markdown                         1             30              0            102
+HTML                             2             12              4            163
+Markdown                         1             44              0            142
+Makefile                         1             21             52            111
 YAML                             1              0              7             98
-HTML                             1              6              0             70
 Bourne Shell                     3             19             51             70
 CSS                              1              8             21             51
+JSON                             1              0              0              8
+XML                              1              0              0              4
+Plain Text                       1              1              0              3
 -------------------------------------------------------------------------------
-TOTAL                           16            278            467           1937
+TOTAL                           23            322            605           2361
 -------------------------------------------------------------------------------
 ```

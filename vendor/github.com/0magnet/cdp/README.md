@@ -22,7 +22,11 @@ png, err := c.ScreenshotPNG(ctx)                     // canvases included
 err = c.Do(ctx, "Emulation.setDeviceMetricsOverride", params, nil) // anything else
 ```
 
-Start the browser with `--remote-debugging-port=9222`.
+Start the browser with `--remote-debugging-port=9222`. `Dial` enables Runtime and
+Page and brings the tab to the front (`Page.bringToFront`) so its timers and
+`requestAnimationFrame` are not throttled. To leave the person's window alone,
+use `DialBackground`, which turns on focus emulation instead; pair it with
+`Browser.NewWindow` for a page that must keep rendering.
 
 ## What it is and is not
 
@@ -30,13 +34,21 @@ It is not chromedp. There is no browser launcher, no generated bindings and
 no action DSL. A `Client` sends a method name and a params value and hands
 back the result; the helpers cover what every tool ends up calling.
 
-- **`Browser`** is the HTTP endpoint: `Targets`, `Find`, `NewTab`,
-  `CloseTab`, `Version`. A tool that opens a tab for itself closes it again.
+- **`Browser`** is the HTTP endpoint (`Local(port)` makes one): `Targets`,
+  `Find`, `NewTab`, `NewWindow`, `CloseTab`, `Version`. `NewWindow` opens a page
+  in a window of its own, behind the others, so the person's window keeps the
+  focus. A tool that opens a tab or window for itself closes it again.
 - **`Client`** is one target's websocket. A reader goroutine matches each
   reply to the command that asked for it, so the client is safe for
   concurrent use and a command that times out does not take the connection
   down. `Frozen` reports that one did: an unanswered command almost always
   means the page's main thread is stuck.
+  `Dial`, `DialBackground` and `DialWS` (a bare `webSocketDebuggerUrl`, no
+  domains enabled) make one. Beyond `Evaluate`, `Do`, `Click`, `Focus`, `Type`,
+  `Press` and `ScreenshotPNG` it has `Navigate`, `Reload`, `Eval` and
+  `EvalJSON` (best-effort, nil on failure), `Call`, `Mouse`, `Drag`, `Wheel`,
+  `Keys`, `Screenshot` (an `image.Image`), and `Done` and `Err` for the
+  connection's end.
 - **`Events`** subscribes to everything the target emits once its domain is
   enabled (`Runtime.consoleAPICalled`, `Log.entryAdded`, ...). A full
   subscriber drops events rather than stalling replies.
@@ -88,12 +100,12 @@ gocloc --not-match-d='(vendor|node_modules|\.git)' .
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-Go                               7             99            143           1058
+Go                               7            110            171           1265
 YAML                             1              0              7             98
 Makefile                         1             19             34             89
-Markdown                         1             13              0             45
+Markdown                         1             25              0             86
 Bourne Shell                     1              8             16             30
 -------------------------------------------------------------------------------
-TOTAL                           11            139            200           1320
+TOTAL                           11            162            228           1568
 -------------------------------------------------------------------------------
 ```

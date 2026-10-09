@@ -92,7 +92,7 @@ func (s *Session) notify(title, body string) {
 	if title == "" && body == "" {
 		return
 	}
-	if s.Shell.Source() == "remote" {
+	if s.remote() {
 		if time.Since(s.notes.last) < notifyGap {
 			return
 		}

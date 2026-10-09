@@ -21,6 +21,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall/js"
 
 	"github.com/0magnet/afero"
@@ -226,6 +227,7 @@ func NewSession(el js.Value, opt Options) (*Session, error) {
 	// the page, the window never changes when the terminal's box does.
 	s.Term.AutoFit()
 	s.wireViewer(el)
+	s.wireRemoteEnds()
 	s.wireDrop(el)
 	if !opt.NoKeyBar && touchScreen() {
 		s.wireKeyBar(box)
@@ -241,7 +243,8 @@ func NewSession(el js.Value, opt Options) (*Session, error) {
 	}
 
 	s.in = newInQueue()
-	sh, err := shell.New(fsys, s.in, termWriter{s.Term}, termWriter{s.Term}, opt.Env...)
+	pty := func() bool { return s.Shell != nil && s.remote() }
+	sh, err := shell.New(fsys, s.in, &termWriter{term: s.Term, pty: pty}, &termWriter{term: s.Term, pty: pty}, opt.Env...)
 	if err != nil {
 		s.Term.Dispose()
 		return nil, fmt.Errorf("websh: %w", err)
@@ -286,7 +289,7 @@ func NewSession(el js.Value, opt Options) (*Session, error) {
 	sh.Exec = opt.Exec
 	sh.Size = func() (int, int) { return s.Term.Core.Cols(), s.Term.Core.Rows() }
 	sh.IsTerminal = func(w io.Writer) bool {
-		tw, ok := w.(termWriter)
+		tw, ok := w.(*termWriter)
 		return ok && tw.term == s.Term
 	}
 	// A pending Read returns with nothing.
@@ -363,6 +366,7 @@ func (s *Session) onData(data string) {
 		if s.rawInput {
 			// A full-screen applet owns the terminal: raw bytes, no echo,
 			// and Ctrl+C is passed through for it to handle itself.
+			s.interruptTyped(data)
 			s.writeStdin([]byte(data))
 			return
 		}
@@ -474,19 +478,8 @@ func (s *Session) run() {
 				s.Term.WriteString(s.host + ": " + strings.ReplaceAll(msg, "\n", "\r\n") + "\r\n")
 			}
 		}
-		// What the command laid over the cells goes with it.
-		if s.placements != nil {
-			s.placements.clear()
-			s.placements.forgetShipped()
-		}
-		s.fontRestore()
-		s.pageRestore()
-		s.mirrorClear()
-		s.soundsEnd()
-		s.dropListen = false
-		// A program that pushed kitty keyboard flags and did not pop them —
-		// crashed, say — does not leave the keys encoded for it.
-		s.Term.Core.InputHandler().ResetKittyKeyboard()
+		// What the command asked the host for goes with it.
+		s.programEnded()
 		s.page.linkLine = "" // a link opens its program once
 		if s.afterCommand != nil {
 			s.afterCommand()
@@ -527,11 +520,63 @@ func (s *Session) Close() {
 	}
 }
 
-type termWriter struct{ term *xterm.Terminal }
+// termWriter is the shell's stdout or stderr on the terminal.
+//
+// A write may end part way through a character, as a pty's reads do; the
+// rest comes with the next write, so the start is kept for it rather than
+// drawn as replacement characters, which take cells of their own and push the
+// rest of the row along. A cooked terminal's output processing turns a line
+// feed into a new line; a pty's bytes (ssh, mosh, a desktop host's) have had
+// that done on the far side, where a program may also move down a line without
+// going back to its start, so they are drawn as they are.
+type termWriter struct {
+	term interface{ WriteString(string) }
+	pty  func() bool // the output is a pty's
+	mu   sync.Mutex
+	tail []byte // the start of a character the next write ends
+}
 
-func (w termWriter) Write(p []byte) (int, error) {
-	w.term.WriteString(strings.ReplaceAll(string(p), "\n", "\r\n"))
+func (w *termWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	b := append(w.tail, p...)
+	w.tail = nil
+	if cut := partialRune(b); cut > 0 {
+		w.tail = append([]byte(nil), b[len(b)-cut:]...)
+		b = b[:len(b)-cut]
+	}
+	s := string(b)
+	if w.pty == nil || !w.pty() {
+		s = strings.ReplaceAll(s, "\n", "\r\n")
+	}
+	if s != "" {
+		w.term.WriteString(s)
+	}
 	return len(p), nil
+}
+
+// partialRune is how many bytes at the end of b begin a UTF-8 character that
+// is not all there yet.
+func partialRune(b []byte) int {
+	for i := 1; i <= 3 && i <= len(b); i++ {
+		c := b[len(b)-i]
+		if c < 0x80 {
+			return 0 // ASCII ends it: nothing is waiting
+		}
+		if c >= 0xC0 { // a lead byte, and how long its character is
+			need := 2
+			if c >= 0xF0 {
+				need = 4
+			} else if c >= 0xE0 {
+				need = 3
+			}
+			if need > i {
+				return i
+			}
+			return 0
+		}
+	}
+	return 0
 }
 
 // Builtins are the interpreter's own commands, which completion offers

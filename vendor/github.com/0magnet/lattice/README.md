@@ -15,6 +15,10 @@ the solid by the wall clock and draws only its own slice, so any number of
 them, in any terminals, stay in step with nothing between them.
 
 ```
+go install github.com/0magnet/lattice/cmd/lattice@latest
+```
+
+```
 lattice -axis z -slice 7          # one sheet
 lattice -axis y -tile             # every sheet of the y axis, side by side
 lattice -shape torus -once        # one frame, printed, and done
@@ -70,6 +74,7 @@ colored by where it is, so it is the same color in all three.
   crosses the sheet, `.:-=+*#`; `solid` fills every lit voxel.
 - `-spin` and `-pitch` turn and tilt the solid, in degrees a second and
   degrees. `-mono` is one green; `-no-color` (or `NO_COLOR`) none at all.
+- `-fps` is the frames a second, 20 by default, and must be above zero.
 - `-figure FILE` draws lines and points instead of a solid: a trajectory, a
   wire-frame, a cloud of dots, written `x y z` a line with a blank line between
   polylines, and scaled to fit. A voxel is lit where the figure passes through
@@ -156,12 +161,12 @@ gocloc --not-match-d='(vendor|node_modules|\.git)' .
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-Go                              12            125            221           1156
-Markdown                         1             34              0            124
+Go                              14            154            283           1539
+Markdown                         1             36              0            136
 YAML                             1              0              7             98
 Makefile                         1             19             34             89
 Bourne Shell                     1              8             16             30
 -------------------------------------------------------------------------------
-TOTAL                           16            186            278           1497
+TOTAL                           18            217            340           1892
 -------------------------------------------------------------------------------
 ```
