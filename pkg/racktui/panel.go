@@ -44,6 +44,9 @@ type panel struct {
 	// shown is the control the view was last moved to show. The view follows
 	// the cursor only when the cursor MOVES, so panning away from it sticks.
 	shown string
+	// held is the mouse buttons down at the last event, so a press is told
+	// from a drag or a release.
+	held tcell.ButtonMask
 }
 
 var (
@@ -60,8 +63,14 @@ func RunOn(sc tcell.Screen, src Source) error {
 	if err := sc.Init(); err != nil {
 		return err
 	}
+	// Posting stops before Fini closes the queue (live.go).
+	q := &poster{sc: sc}
+	done := make(chan struct{})
 	defer sc.Fini()
+	defer close(done)
+	defer q.close()
 	sc.SetStyle(stNormal)
+	sc.EnableMouse(tcell.MouseButtonEvents)
 
 	// The dials are sampled into cells, so their shape depends on the shape
 	// of a cell. See CellShaper.
@@ -71,20 +80,34 @@ func RunOn(sc tcell.Screen, src Source) error {
 
 	p := &panel{src: src}
 	p.reload()
+	go q.tick(done)
 	// v3 hands events over a channel and reports key RELEASES as well as
 	// presses — without the Pressed check every keystroke would move the
 	// cursor twice, which reads as a panel that has lost its detents.
+	dirty := true
 	for {
-		p.draw(sc)
+		if dirty {
+			p.draw(sc)
+		}
+		dirty = true
 		switch ev := (<-sc.EventQ()).(type) {
 		case *tcell.EventResize:
 			sc.Sync()
 		case *tcell.EventKey:
 			if !ev.Pressed() {
+				dirty = false
 				continue
 			}
 			if p.key(ev) {
 				return nil
+			}
+		case *tcell.EventMouse:
+			w, h := sc.Size()
+			p.mouse(ev, w, h)
+		case *tcell.EventInterrupt:
+			// A refresh that found nothing new draws nothing.
+			if _, ok := ev.Data().(refreshTick); ok {
+				dirty = p.refresh()
 			}
 		}
 	}
