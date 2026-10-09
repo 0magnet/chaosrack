@@ -83,10 +83,13 @@ func ctlRect(s racksurface.Surface, mods []moduleCtls, a ctlAt) (x, y, w, h int,
 	if !found {
 		return 0, 0, 0, 0, false
 	}
-	across := maxi((pan.W-panelPad*2-2)/(knobCols+1), 1)
-	block := ctlBlockRows()
+	if look == LookPUnit && hasLocs(mods[a.Module].Ctls) {
+		return placedRect(pan, mods[a.Module].Ctls, a.Index)
+	}
+	bw, bh, pad := block()
+	across := maxi((pan.W-pad*2-2+1)/bw, 1)
 	col, row := a.Index%across, a.Index/across
-	x = pan.X + 1 + panelPad + col*(knobCols+1)
-	y = pan.Y + 1 + panelPad + row*block
-	return x, y, knobCols, block, true
+	x = pan.X + 1 + pad + col*bw
+	y = pan.Y + 1 + pad + row*bh
+	return x, y, bw - 1, bh, true
 }

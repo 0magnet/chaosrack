@@ -32,6 +32,7 @@ var (
 	bayMon    int
 	rowSlots  int
 	ctlValues bool
+	tuiLook   string
 )
 
 func init() {
@@ -40,6 +41,7 @@ func init() {
 		c.Flags().StringVar(&attachTo, "attach", "", "substring of the tab's URL (default: this binary's own port)")
 	}
 	tuiCmd.Flags().IntVar(&bayMon, "monitor", 0, "draw the bays with a chassis monitor this many slots wide")
+	tuiCmd.Flags().StringVar(&tuiLook, "look", "dial", "how controls are drawn: dial, or punit (the page's P-unit)")
 	rackCmd.Flags().IntVar(&bayMon, "monitor", 0, "draw the bays again with a chassis monitor this many slots wide")
 	rackCmd.Flags().IntVar(&rowSlots, "slots", 0, "slots per row (0 = ask the page)")
 	ctlCmd.Flags().BoolVar(&ctlValues, "values", false, "read every control's current value too")
@@ -88,6 +90,11 @@ Requires a rack open in a browser started with remote debugging:
 By default it connects to the tab on this binary's --port. Use --attach to
 choose a different tab and --cdp to use a different debugging port.`,
 	RunE: func(cmd *cobra.Command, _ []string) error {
+		l, ok := racktui.ParseLook(tuiLook)
+		if !ok {
+			return fmt.Errorf("--look %q: want dial or punit", tuiLook)
+		}
+		racktui.SetLook(l)
 		return racktui.Run(cmd.Context(), dialRack())
 	},
 }

@@ -53,9 +53,10 @@ func ModuleRows(ctls, slots, slotCols int) int {
 	if ctls < 1 {
 		ctls = 1
 	}
+	_, rows, pad := block()
 	across := ctlsAcross(slots, slotCols)
 	down := (ctls + across - 1) / across
-	return panelPad*2 + 1 + down*ctlBlockRows() // +1 for the module's name
+	return pad*2 + 1 + down*rows // +1 for the module's name
 }
 
 // ctlsAcross is how many controls fit side by side in a module.
@@ -63,16 +64,17 @@ func ctlsAcross(slots, slotCols int) int {
 	if slots < 1 {
 		slots = 1
 	}
-	inner := slots*slotCols - panelPad*2 - 2 // less the border
-	n := max(inner/(knobCols+1), 1)
-	return n
+	cols, _, pad := block()
+	inner := slots*slotCols - pad*2 - 2 // less the border
+	// The last control needs no gap after it.
+	return max((inner+1)/cols, 1)
 }
 
 // cellAt is one painted cell of the surface: either a rune in a style, or a
 // half block carrying two colors.
 type cellAt struct {
 	Ch     rune
-	Art    bool // this cell came from panelart; Top/Bottom carry its colors
+	Art    bool // colors of its own: Top is the glyph's, Bottom the ground behind it
 	Top    [3]uint8
 	Bottom [3]uint8
 	Style  int // an index into the renderer's styles, for a text cell
@@ -162,13 +164,17 @@ func drawModule(p Painter, v racksurface.View, pan racksurface.Panel, mc moduleC
 		put(p, v, x0+2, y0, " "+clipStr(name, maxi(w-6, 1))+" ", styBayLabel)
 	}
 
-	across := maxi((w-panelPad*2-2)/(knobCols+1), 1)
-	block := ctlBlockRows()
+	if look == LookPUnit && hasLocs(mc.Ctls) {
+		drawPlaced(p, v, pan, mc, cur)
+		return
+	}
+	bw, bh, pad := block()
+	across := maxi((w-pad*2-2+1)/bw, 1)
 	for i, c := range mc.Ctls {
 		col, row := i%across, i/across
-		cx := x0 + 1 + panelPad + col*(knobCols+1)
-		cy := y0 + 1 + panelPad + row*block
-		if cy+block > y0+h {
+		cx := x0 + 1 + pad + col*bw
+		cy := y0 + 1 + pad + row*bh
+		if cy+bh > y0+h {
 			// Out of panel. Say so rather than drawing over the border: a
 			// module whose controls do not fit is a metric to fix, not a
 			// thing to hide.
@@ -176,6 +182,10 @@ func drawModule(p Painter, v racksurface.View, pan racksurface.Panel, mc moduleC
 			break
 		}
 		sel := cur.Module == pan.Item && cur.Index == i
+		if look == LookPUnit {
+			drawPUnit(p, v, cx, cy, c, sel, '◉')
+			continue
+		}
 		drawOneControl(p, v, cx, cy, c, sel)
 	}
 }

@@ -36,6 +36,13 @@ type Control struct {
 	controlspec.ControlInfo
 	Value   string
 	Options []string // a selector's detents, in order; nil for a dial
+	// Loc is the control's address on the page, bay.column.row with a
+	// letter when several share a cell (designators_js.go), or "" for one
+	// the page has not placed. Like Value, only the running rack knows it.
+	Loc string
+	// PUnit says the page builds this control as a P-unit; the rest are
+	// dials, switches and the odd special part.
+	PUnit bool
 }
 
 // Source is where the panel reads the rack and where its changes go.

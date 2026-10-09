@@ -60,7 +60,11 @@ const readValues = `(function(){
     if (el && el.tagName === 'SELECT') {
       opts = [].slice.call(el.options).map(function(o){ return o.value; });
     }
-    return {id: c.id, v: el ? String(el.value) : '', o: opts};
+    // A checkbox's .value is "on" whatever its state; the state is .checked.
+    var v = !el ? '' : el.type === 'checkbox' ? (el.checked ? '1' : '0') : String(el.value);
+    var at = el && el.closest('[data-loc]');
+    return {id: c.id, v: v, o: opts, l: at ? at.getAttribute('data-loc') : '',
+            pu: !!(el && el.closest('.pu'))};
   }));
 })()`
 
@@ -85,6 +89,8 @@ func (r *Client) Controls() ([]racktui.Control, error) {
 		ID string   `json:"id"`
 		V  string   `json:"v"`
 		O  []string `json:"o"`
+		L  string   `json:"l"`
+		PU bool     `json:"pu"`
 	}
 	if err := json.Unmarshal([]byte(vs), &vals); err != nil {
 		return nil, fmt.Errorf("reading the control values: %w", err)
@@ -97,7 +103,7 @@ func (r *Client) Controls() ([]racktui.Control, error) {
 	for _, in := range info {
 		c := racktui.Control{ControlInfo: in}
 		if i, ok := byID[in.ID]; ok {
-			c.Value, c.Options = vals[i].V, vals[i].O
+			c.Value, c.Options, c.Loc, c.PUnit = vals[i].V, vals[i].O, vals[i].L, vals[i].PU
 		}
 		out = append(out, c)
 	}

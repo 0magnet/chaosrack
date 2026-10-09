@@ -40,6 +40,10 @@ func (inPageRack) Controls() ([]racktui.Control, error) {
 		c := racktui.Control{ControlInfo: in}
 		if el := dom.Doc.Call("getElementById", in.ID); el.Truthy() {
 			c.Value = controlValueOf(el)
+			if at := el.Call("closest", "[data-loc]"); at.Truthy() {
+				c.Loc = at.Call("getAttribute", "data-loc").String()
+			}
+			c.PUnit = el.Call("closest", ".pu").Truthy()
 			if el.Get("tagName").String() == "SELECT" {
 				opts := el.Get("options")
 				for i := range opts.Get("length").Int() {
