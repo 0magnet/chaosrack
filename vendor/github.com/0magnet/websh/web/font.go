@@ -33,7 +33,7 @@ type fontState struct {
 
 // font takes one font chunk, or "reset".
 func (s *Session) font(arg string) {
-	if s.Shell.Source() == "remote" {
+	if s.remote() {
 		return
 	}
 	if arg == "reset" {

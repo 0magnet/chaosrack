@@ -13,7 +13,7 @@ import (
 // what it offers the program whose output is on the terminal now, by how far
 // it trusts that output, and the cell metrics a picture needs to fit cells.
 func (s *Session) caps(p *placements) *progressive.Caps {
-	c := &progressive.Caps{V: 1, Host: "websh", Version: version(), Trust: s.Shell.Source()}
+	c := &progressive.Caps{V: 1, Host: "websh", Version: version(), Trust: s.trust()}
 	c.Cols, c.Rows = s.Term.Core.Cols(), s.Term.Core.Rows()
 	if screen := p.root.Call("querySelector", ".xterm-screen"); screen.Truthy() && c.Cols > 0 && c.Rows > 0 {
 		c.Cell.W = screen.Get("clientWidth").Float() / float64(c.Cols)
@@ -23,6 +23,8 @@ func (s *Session) caps(p *placements) *progressive.Caps {
 	c.Features = []string{"place", "place.input", "event", "post", "ship", "download", "clipboard", "mirror", "notify", "sound", "drop", "image", "kitty-graphics"}
 	if c.Trust != "remote" {
 		c.Features = append(c.Features, "widget.offer", "font", "title", "page", "icon")
+	} else if s.Shell.Source() == "terminal" {
+		c.Features = append(c.Features, "title") // a desktop terminal's window takes it
 	}
 	c.Path = s.linkPath()
 	return c

@@ -59,7 +59,7 @@ func (s *Session) pageRestore() {
 // setIcon is OSC 7337 icon: the page's favicon while the program runs, from
 // the web or a data: picture.
 func (s *Session) setIcon(enc string) {
-	if !s.running || s.Shell.Source() == "remote" {
+	if !s.running || s.remote() {
 		return
 	}
 	var m struct {
@@ -98,6 +98,7 @@ func iconLink() js.Value {
 
 // setTitle is OSC 0 and OSC 2: the page's title, while the program runs.
 func (s *Session) setTitle(title string) {
+	// A terminal's output names its window, as on a desktop; a remote one does not.
 	if !s.running || s.Shell.Source() == "remote" {
 		return
 	}
@@ -110,7 +111,7 @@ func (s *Session) setTitle(title string) {
 // that is running and the program's path in it, in the fragment, which
 // every host — a static one too — hands back untouched.
 func (s *Session) setPage(enc string) {
-	if !s.running || s.Shell.Source() == "remote" {
+	if !s.running || s.remote() {
 		return
 	}
 	var m struct {
@@ -195,7 +196,7 @@ func (s *Session) download(data string) {
 	if err != nil {
 		return
 	}
-	if s.Shell.Source() == "remote" && !js.Global().Call("confirm", "A program on another machine offers a file: "+name+" ("+strconv.Itoa(len(b))+" bytes). Save it?").Bool() {
+	if s.remote() && !js.Global().Call("confirm", "A program on another machine offers a file: "+name+" ("+strconv.Itoa(len(b))+" bytes). Save it?").Bool() {
 		return
 	}
 	buf := js.Global().Get("Uint8Array").New(len(b))
@@ -227,7 +228,7 @@ func (s *Session) clipboard(data string) {
 	if err != nil {
 		return
 	}
-	if s.Shell.Source() == "remote" && !js.Global().Call("confirm", "A program on another machine wants to put "+strconv.Itoa(len(b))+" bytes on the clipboard. Allow it?").Bool() {
+	if s.remote() && !js.Global().Call("confirm", "A program on another machine wants to put "+strconv.Itoa(len(b))+" bytes on the clipboard. Allow it?").Bool() {
 		return
 	}
 	if cb := js.Global().Get("navigator").Get("clipboard"); cb.Truthy() {
@@ -253,7 +254,7 @@ func once(f func(), use func(js.Value)) {
 // answered with nothing, as a terminal that does not allow reading does.
 func (s *Session) clipboardRead(sel string) {
 	who := "The program in the terminal"
-	if s.Shell.Source() == "remote" {
+	if s.remote() {
 		who = "A program on another machine"
 	}
 	cb := js.Global().Get("navigator").Get("clipboard")
