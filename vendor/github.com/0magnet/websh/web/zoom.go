@@ -20,8 +20,9 @@ const (
 
 // zoomBinding is one registered listener, kept so it can be taken off again.
 type zoomBinding struct {
-	event string
-	fn    js.Func
+	event   string
+	fn      js.Func
+	capture bool
 }
 
 // wireZoom gives the terminal the gesture every terminal emulator has: ctrl
@@ -32,6 +33,12 @@ type zoomBinding struct {
 // change. Both have to take the gesture away from the browser first — ctrl-wheel
 // and ctrl-plus zoom the PAGE until something calls preventDefault, and the
 // wheel listener has to declare passive:false to be allowed to.
+//
+// The wheel is taken in the CAPTURE phase, before the terminal sees it. A
+// full-screen program that asked for mouse reports gets every wheel event the
+// terminal sees, and xterm-go stops one it has reported; listening on the way
+// back up, the zoom never ran while such a program had the screen, which is
+// exactly when zooming out for more cells is wanted.
 func (s *Session) wireZoom(el js.Value, def float64) {
 	s.zoomEl = el
 	zoom := func(by float64) { s.Term.SetFontSize(clampZoom(s.Term.FontSize() + by)) }
@@ -43,7 +50,7 @@ func (s *Session) wireZoom(el js.Value, def float64) {
 			zoom(zoomStep)
 		}
 		return true
-	}, map[string]any{"passive": false})
+	}, true)
 
 	s.bindZoom(el, "keydown", func(e js.Value) bool {
 		switch e.Get("key").String() {
@@ -57,24 +64,27 @@ func (s *Session) wireZoom(el js.Value, def float64) {
 			return false
 		}
 		return true
-	})
+	}, false)
 }
 
 // bindZoom registers one ctrl-modified listener. It handles the two things both
 // listeners share: an event without ctrl is not ours, and one that is ours must
 // not also reach the browser.
-func (s *Session) bindZoom(el js.Value, event string, take func(js.Value) bool, opts ...any) {
+func (s *Session) bindZoom(el js.Value, event string, take func(js.Value) bool, capture bool) {
 	fn := js.FuncOf(func(_ js.Value, a []js.Value) any {
 		if len(a) == 0 || !a[0].Get("ctrlKey").Bool() {
 			return nil
 		}
 		if take(a[0]) {
 			a[0].Call("preventDefault")
+			if capture {
+				a[0].Call("stopPropagation") // a zoom, not a wheel report too
+			}
 		}
 		return nil
 	})
-	s.zoomFns = append(s.zoomFns, zoomBinding{event: event, fn: fn})
-	el.Call("addEventListener", append([]any{event, fn}, opts...)...)
+	s.zoomFns = append(s.zoomFns, zoomBinding{event: event, fn: fn, capture: capture})
+	el.Call("addEventListener", event, fn, map[string]any{"passive": false, "capture": capture})
 }
 
 // releaseZoom unbinds the listeners and drops their Go side. Close calls it: a
@@ -85,7 +95,7 @@ func (s *Session) bindZoom(el js.Value, event string, take func(js.Value) bool, 
 func (s *Session) releaseZoom() {
 	for _, b := range s.zoomFns {
 		if s.zoomEl.Truthy() {
-			s.zoomEl.Call("removeEventListener", b.event, b.fn)
+			s.zoomEl.Call("removeEventListener", b.event, b.fn, map[string]any{"capture": b.capture})
 		}
 		b.fn.Release()
 	}

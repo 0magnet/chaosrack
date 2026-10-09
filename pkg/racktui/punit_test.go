@@ -8,10 +8,10 @@ import (
 	"github.com/0magnet/chaosrack/pkg/racksurface"
 )
 
-func withLook(t *testing.T, l Look) {
+func withPUnitLook(t *testing.T) {
 	t.Helper()
 	old := look
-	SetLook(l)
+	SetLook(LookPUnit)
 	t.Cleanup(func() { SetLook(old) })
 }
 
@@ -36,7 +36,7 @@ func TestAnAddressIsAColumnAndARow(t *testing.T) {
 // A control stands where the page has it: its column counted from the bay's
 // left, less the column the module starts at.
 func TestAPUnitStandsAtItsAddress(t *testing.T) {
-	withLook(t, LookPUnit)
+	withPUnitLook(t)
 	_, bh, _ := block()
 	pan := racksurface.Panel{X: 4 * puSlotCols, Y: 10, W: 3 * puSlotCols, Slot: 4}
 	cells, idx := placeModule(pan, []Control{at("a", "2.5.1"), at("b", "2.7.3")})
@@ -51,7 +51,7 @@ func TestAPUnitStandsAtItsAddress(t *testing.T) {
 // Controls sharing a cell are one programmable unit, and one the page has
 // not placed still gets a cell rather than vanishing.
 func TestASharedCellIsOneUnitAndNothingIsDropped(t *testing.T) {
-	withLook(t, LookPUnit)
+	withPUnitLook(t)
 	pan := racksurface.Panel{W: 2 * puSlotCols}
 	cells, idx := placeModule(pan, []Control{
 		at("atk", "5.1.2"), at("dcy", "5.1.2"), at("loose", ""),

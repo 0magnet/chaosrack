@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"io"
 	"sync"
@@ -54,6 +55,20 @@ func rackShellCommand(ctx context.Context, args []string) (int, bool) {
 	// hook now, and a panel that took raw mode on the wrong shell would leave
 	// the window it was typed in echoing while it drew on a terminal parked off
 	// screen that nobody is looking at.
+	// The same --look `chaosrack tui` takes, so the two panels can be set side
+	// by side drawn alike.
+	fs := flag.NewFlagSet("rack", flag.ContinueOnError)
+	fs.SetOutput(hc.Stderr)
+	name := fs.String("look", "dial", "how controls are drawn: dial, or punit (the page's P-unit)")
+	if err := fs.Parse(args[1:]); err != nil {
+		return 2, true
+	}
+	l, ok := racktui.ParseLook(*name)
+	if !ok {
+		_, _ = fmt.Fprintf(hc.Stderr, "rack: --look %q: want dial or punit\n", *name) //nolint:errcheck // a closed stderr is not a reason to do anything else
+		return 2, true
+	}
+	racktui.SetLook(l)
 	return runRackPanel(web.SessionForContext(ctx), hc.Stdin, hc.Stdout, hc.Stderr), true
 }
 
