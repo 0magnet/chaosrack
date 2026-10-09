@@ -59,13 +59,13 @@ func rackShellCommand(ctx context.Context, args []string) (int, bool) {
 	// by side drawn alike.
 	fs := flag.NewFlagSet("rack", flag.ContinueOnError)
 	fs.SetOutput(hc.Stderr)
-	name := fs.String("look", "dial", "how controls are drawn: dial, or punit (the page's P-unit)")
+	name := fs.String("look", "page", "how the panel is drawn: page (as the page draws it, at a fixed scale), dial, or punit")
 	if err := fs.Parse(args[1:]); err != nil {
 		return 2, true
 	}
 	l, ok := racktui.ParseLook(*name)
 	if !ok {
-		_, _ = fmt.Fprintf(hc.Stderr, "rack: --look %q: want dial or punit\n", *name) //nolint:errcheck // a closed stderr is not a reason to do anything else
+		_, _ = fmt.Fprintf(hc.Stderr, "rack: --look %q: want page, dial or punit\n", *name) //nolint:errcheck // a closed stderr is not a reason to do anything else
 		return 2, true
 	}
 	racktui.SetLook(l)

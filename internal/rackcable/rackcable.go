@@ -20,6 +20,7 @@ import (
 
 	"github.com/0magnet/cdp"
 	"github.com/0magnet/chaosrack/pkg/attractor"
+	"github.com/0magnet/chaosrack/pkg/rackpic"
 	"github.com/0magnet/chaosrack/pkg/racksurface"
 	"github.com/0magnet/chaosrack/pkg/racktui"
 )
@@ -224,4 +225,44 @@ func (r *Client) measure() (keys, cats []string, slots []int, err error) {
 		keys[i], slots[i], cats[i] = m.K, m.S, m.C
 	}
 	return keys, cats, slots, nil
+}
+
+// ── the picture ──────────────────────────────────────────────────────────
+
+// pic evaluates one call into pkg/rackpic's script, defining it first: the
+// script returns at once when it is already there, and sending it each time
+// is what keeps a page that was reloaded under the cable working.
+func (r *Client) pic(call string) (string, error) {
+	s, ok := r.c.Eval(rackpic.Script + ";" + call).(string)
+	if !ok {
+		return "", errors.New("the page did not answer for the picture")
+	}
+	return s, nil
+}
+
+// Picture is the panel as the page draws it.
+func (r *Client) Picture() (*rackpic.Picture, error) {
+	s, err := r.pic(rackpic.CallPicture)
+	if err != nil {
+		return nil, err
+	}
+	return rackpic.ParsePicture(s)
+}
+
+// PictureChanges is what changed since the picture of generation gen.
+func (r *Client) PictureChanges(gen int) (*rackpic.Patch, error) {
+	s, err := r.pic(rackpic.ChangesCall(gen))
+	if err != nil {
+		return nil, err
+	}
+	return rackpic.ParsePatch(s)
+}
+
+// Act does what the pointer did, on the page.
+func (r *Client) Act(gen int, x, y float64, kind string, delta float64) error {
+	s, err := r.pic(rackpic.ActCall(gen, x, y, kind, delta))
+	if err != nil {
+		return err
+	}
+	return rackpic.ParseAct(s)
 }

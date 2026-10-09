@@ -72,6 +72,7 @@ func (q *poster) tick(done <-chan struct{}) {
 // came or went means the rack itself changed (a module switched out, a
 // model's bank swapped), and that is a reload, layout and all.
 func (p *panel) refresh() bool {
+	picChanged := p.refreshPicture()
 	fresh, err := p.src.Controls()
 	if err != nil {
 		if p.err != err.Error() {
@@ -117,7 +118,7 @@ func (p *panel) refresh() bool {
 	if changed && p.err != "" {
 		p.err = ""
 	}
-	return changed
+	return changed || picChanged
 }
 
 func sameStrings(a, b []string) bool {
@@ -150,7 +151,14 @@ func (p *panel) mouse(ev *tcell.EventMouse, w, h int) {
 		return
 	}
 	vw, vh := maxi(w-1, 1), maxi(h-2, 1)
+	if p.scrollBar(b, pressed, x, y, vw, vh) {
+		return
+	}
 	if x >= vw || y >= vh {
+		return
+	}
+	if p.pic != nil {
+		p.mousePage(b, pressed, x, y)
 		return
 	}
 	sx, sy := x+p.view.X, y+p.view.Y
@@ -273,4 +281,48 @@ func indexOf(ss []string, s string) int {
 		}
 	}
 	return -1
+}
+
+// scrollBar works the scroll bars: a press on one moves the window there and
+// a drag that began on one follows the pointer, as a scroll bar does. It
+// reports whether the event was the bars'.
+//
+// The ends of the track are the ends of the rack, so the first and last row
+// of a bar reach them however short the bar is.
+func (p *panel) scrollBar(b tcell.ButtonMask, pressed bool, x, y, vw, vh int) bool {
+	if b&tcell.Button1 == 0 {
+		p.dragging = 0
+		return false
+	}
+	if pressed {
+		switch {
+		case x == vw && y < vh:
+			p.dragging = 'v'
+		case y == vh && x < vw:
+			p.dragging = 'h'
+		default:
+			p.dragging = 0
+			return false
+		}
+	}
+	s := p.surface()
+	switch p.dragging {
+	case 'v':
+		p.view.Y = along(y, vh, s.Rows-p.view.H)
+	case 'h':
+		p.view.X = along(x, vw, s.Cols-p.view.W)
+	default:
+		return false
+	}
+	p.view = p.view.Clamp(s)
+	return true
+}
+
+// along is how far into a range of span the pointer at pos of a track n long
+// stands, with the track's ends at the range's.
+func along(pos, n, span int) int {
+	if n <= 1 || span <= 0 {
+		return 0
+	}
+	return min(max(pos, 0), n-1) * span / (n - 1)
 }

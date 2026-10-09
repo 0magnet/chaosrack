@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"syscall/js"
 
+	"github.com/0magnet/chaosrack/pkg/rackpic"
 	"github.com/0magnet/chaosrack/pkg/racksurface"
 	"github.com/0magnet/chaosrack/pkg/racktui"
 )
@@ -152,4 +153,27 @@ func deskTerminalEl() js.Value {
 		return el
 	}
 	return js.Value{}
+}
+
+// The picture (pkg/rackpic): the same script the cable sends, evaluated here
+// in the page it describes.
+
+func picCall(call string) string {
+	v := js.Global().Call("eval", rackpic.Script+";"+call)
+	if v.Type() != js.TypeString {
+		return `{"err":"the picture script did not answer"}`
+	}
+	return v.String()
+}
+
+func (inPageRack) Picture() (*rackpic.Picture, error) {
+	return rackpic.ParsePicture(picCall(rackpic.CallPicture))
+}
+
+func (inPageRack) PictureChanges(gen int) (*rackpic.Patch, error) {
+	return rackpic.ParsePatch(picCall(rackpic.ChangesCall(gen)))
+}
+
+func (inPageRack) Act(gen int, x, y float64, kind string, delta float64) error {
+	return rackpic.ParseAct(picCall(rackpic.ActCall(gen, x, y, kind, delta)))
 }

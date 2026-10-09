@@ -39,20 +39,25 @@ const (
 	LookDial Look = iota
 	// LookPUnit is the page's P-unit.
 	LookPUnit
+	// LookPage is the panel as the page draws it, at a fixed scale
+	// (pagelook.go). It needs a Source that is Pictured.
+	LookPage
 )
 
 // ParseLook names a look for a flag.
 func ParseLook(s string) (Look, bool) {
 	switch strings.ToLower(s) {
-	case "dial", "":
+	case "page", "":
+		return LookPage, true
+	case "dial":
 		return LookDial, true
 	case "punit", "p-unit", "p":
 		return LookPUnit, true
 	}
-	return LookDial, false
+	return LookPage, false
 }
 
-var look = LookDial
+var look = LookPage
 
 // SetLook chooses how controls are drawn. It changes the size of a control,
 // so it changes the size of the rack: set it before the panel lays out.
