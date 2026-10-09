@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/0magnet/chaosrack/pkg/wtaudio"
 )
 
 // What the page is told decides which transport it reaches for before it has
@@ -19,31 +17,23 @@ import (
 // /wt-info fetch that 404s and a fallback notice, on every load, to arrive at
 // the transport it could have been given directly.
 func TestAudioFeedNamesTheTransportOnOffer(t *testing.T) {
-	savedOn, savedSrv := audioOn, wtSrv
-	defer func() { audioOn, wtSrv = savedOn, savedSrv }()
-
-	// A server with a listener; New binds nothing, so this costs a keypair.
-	srv, err := wtaudio.New(wtaudio.Config{
-		Addr:    ":8080",
-		Capture: wtCapture,
-		Logf:    func(string, ...any) {},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	savedOn, savedWT := audioOn, wtAudio
+	defer func() { audioOn, wtAudio = savedOn, savedWT }()
 
 	for _, c := range []struct {
 		name string
 		on   bool
-		wt   *wtaudio.Server
+		wt   bool // the audio is on the WebTransport listener
 		want string
 	}{
-		{"not capturing", false, nil, ""},
-		{"not capturing, listener somehow up", false, srv, ""},
-		{"capturing, WebTransport up", true, srv, "wt"},
-		{"capturing, no WebTransport", true, nil, "ws"},
+		{"not capturing", false, false, ""},
+		{"not capturing, listener somehow up", false, true, ""},
+		{"capturing, WebTransport up", true, true, "wt"},
+		// The listener can be up for the rack link with no audio on it
+		// (--audio-wt=false): the page must not look for audio there.
+		{"capturing, no audio over WebTransport", true, false, "ws"},
 	} {
-		audioOn, wtSrv = c.on, c.wt
+		audioOn, wtAudio = c.on, c.wt
 		if got := audioFeed(); got != c.want {
 			t.Errorf("%s: audioFeed() = %q, want %q", c.name, got, c.want)
 		}

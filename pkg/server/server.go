@@ -272,6 +272,7 @@ browser. render and models draw models to image files without a browser.`,
 		}
 		mountHostAgent(r1, ln)
 		mountAudio(r1)
+		mountRackLink(r1)
 
 		wg.Go(func() {
 			fmt.Printf("listening on http://127.0.0.1:%d using gin router\n", webPort)

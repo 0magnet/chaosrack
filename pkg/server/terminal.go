@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/0magnet/chaosrack/internal/rackcable"
+	"github.com/0magnet/chaosrack/pkg/racklink"
 	"github.com/0magnet/chaosrack/pkg/racktui"
 )
 
@@ -33,6 +34,8 @@ var (
 	rowSlots  int
 	ctlValues bool
 	tuiLook   string
+	tuiVia    string
+	tuiServer string
 )
 
 func init() {
@@ -41,6 +44,8 @@ func init() {
 		c.Flags().StringVar(&attachTo, "attach", "", "substring of the tab's URL (default: this binary's own port)")
 	}
 	tuiCmd.Flags().IntVar(&bayMon, "monitor", 0, "draw the bays with a chassis monitor this many slots wide")
+	tuiCmd.Flags().StringVar(&tuiVia, "via", racklink.ViaAuto, "how to reach the rack: auto (WebTransport, else a WebSocket), wt, ws, or cdp (a browser debugging port, as before)")
+	tuiCmd.Flags().StringVar(&tuiServer, "server", "", "the chaosrack server whose page to drive (default: this binary's own --port on 127.0.0.1)")
 	tuiCmd.Flags().StringVar(&tuiLook, "look", "page", "how the panel is drawn: page (as the page draws it, at a fixed scale), dial, or punit")
 	rackCmd.Flags().IntVar(&bayMon, "monitor", 0, "draw the bays again with a chassis monitor this many slots wide")
 	rackCmd.Flags().IntVar(&rowSlots, "slots", 0, "slots per row (0 = ask the page)")
@@ -81,21 +86,42 @@ control. Changes take effect in the browser immediately.
   r              reload the controls from the page
   q, esc         quit
 
-Requires a rack open in a browser started with remote debugging:
+Requires a rack open in a browser, on a page this server (or --server)
+served. The page offers the rack to its own server, and the panel reaches it
+there: over WebTransport when it can, otherwise a WebSocket (--via). No
+browser debugging port is needed.
 
   chaosrack &
-  chromium --remote-debugging-port=9222 http://127.0.0.1:8080/
+  xdg-open http://127.0.0.1:8080/
   chaosrack tui
 
-By default it connects to the tab on this binary's --port. Use --attach to
-choose a different tab and --cdp to use a different debugging port.`,
+With several pages open, the one opened last answers. --via cdp reaches the
+page over a browser's debugging port instead, as before: --attach chooses
+the tab and --cdp the port.`,
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		l, ok := racktui.ParseLook(tuiLook)
 		if !ok {
 			return fmt.Errorf("--look %q: want page, dial or punit", tuiLook)
 		}
 		racktui.SetLook(l)
-		return racktui.Run(cmd.Context(), dialRack())
+		if tuiVia == "cdp" {
+			return racktui.Run(cmd.Context(), dialRack())
+		}
+		switch tuiVia {
+		case racklink.ViaAuto, racklink.ViaWT, racklink.ViaWS:
+		default:
+			return fmt.Errorf("--via %q: want auto, wt, ws or cdp", tuiVia)
+		}
+		server := tuiServer
+		if server == "" {
+			server = fmt.Sprintf("http://127.0.0.1:%d", webPort)
+		}
+		c, err := racklink.Dial(cmd.Context(), server, tuiVia)
+		if err != nil {
+			return fmt.Errorf("reaching the rack at %s: %w", server, err)
+		}
+		defer c.Close() //nolint:errcheck // on the way out
+		return racktui.Run(cmd.Context(), c)
 	},
 }
 
