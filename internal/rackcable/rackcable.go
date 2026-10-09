@@ -141,9 +141,12 @@ const readRack = `(function(){
   document.querySelectorAll('.sect').forEach(function(m){
     var hdr = m.querySelector('.sect-hdr');
     if (!hdr) return;
+    // A module the page hides takes no slot there, so it takes none here:
+    // laid out anyway, Parameters made a bay of its own and every bay after
+    // it was numbered one more than the page's.
     var w = m.offsetWidth;
-    var n = w > 0 ? Math.max(1, Math.round((w + gap*scale)/pitch)) : 0;
-    if (w === 0 && m.style.display === 'none') n = 0;
+    if (w === 0) return;
+    var n = Math.max(1, Math.round((w + gap*scale)/pitch));
     out.push({k: hdr.textContent.trim().toLowerCase(), s: n,
               c: m.getAttribute('data-cat') || ''});
   });

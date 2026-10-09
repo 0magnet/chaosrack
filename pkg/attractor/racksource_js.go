@@ -82,7 +82,9 @@ func rackModulesNow() (keys, cats []string, slots []int) {
 	els := f.Call("querySelectorAll", ".sect")
 	for i := range els.Get("length").Int() {
 		m := els.Index(i)
-		if !m.Call("querySelector", ".sect-hdr").Truthy() {
+		// A hidden module takes no slot on the page, and must take none here
+		// (rackcable's readRack says why).
+		if !m.Call("querySelector", ".sect-hdr").Truthy() || m.Get("offsetWidth").Float() <= 0 {
 			continue
 		}
 		keys = append(keys, moduleKeyOf(m))
