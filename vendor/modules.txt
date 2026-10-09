@@ -25,7 +25,7 @@ github.com/0magnet/cdp
 ## explicit; go 1.26
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.1-0.20261004200012-7ac6a12489c1
+# github.com/0magnet/desk/panes v0.0.1-0.20261008155451-5bf2f04167ae
 ## explicit; go 1.26.6
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -56,7 +56,7 @@ github.com/0magnet/lattice
 # github.com/0magnet/lolcat-go v0.0.1-0.20261004205030-ebbe4df3258a
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20261009115959-3201e49d8242
+# github.com/0magnet/pisano v0.0.0-20261009121513-7ea15de20f20
 ## explicit; go 1.26.6
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc
@@ -140,7 +140,7 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754
 ## explicit; go 1.26.6
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.1-0.20261009120337-d2741378fd8b
+# github.com/0magnet/websh v0.0.1-0.20261009165359-830560458dba
 ## explicit; go 1.26.6
 github.com/0magnet/websh/progressive
 github.com/0magnet/websh/shell
@@ -530,14 +530,14 @@ go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore
 # golang.org/x/arch v0.32.0
 ## explicit; go 1.26.0
 golang.org/x/arch/x86/x86asm
-# golang.org/x/crypto v0.57.0
+# golang.org/x/crypto v0.58.0
 ## explicit; go 1.26.0
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/chacha20poly1305
 golang.org/x/crypto/internal/alias
 golang.org/x/crypto/internal/poly1305
 golang.org/x/crypto/sha3
-# golang.org/x/image v0.46.0
+# golang.org/x/image v0.47.0
 ## explicit; go 1.26.0
 golang.org/x/image/bmp
 golang.org/x/image/ccitt
@@ -551,7 +551,7 @@ golang.org/x/image/tiff/lzw
 golang.org/x/image/vp8
 golang.org/x/image/vp8l
 golang.org/x/image/webp
-# golang.org/x/net v0.60.0
+# golang.org/x/net v0.61.0
 ## explicit; go 1.26.0
 golang.org/x/net/bpf
 golang.org/x/net/html
@@ -577,10 +577,10 @@ golang.org/x/sys/cpu
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/term v0.46.0
+# golang.org/x/term v0.47.0
 ## explicit; go 1.26.0
 golang.org/x/term
-# golang.org/x/text v0.42.0
+# golang.org/x/text v0.43.0
 ## explicit; go 1.26.0
 golang.org/x/text/cases
 golang.org/x/text/encoding

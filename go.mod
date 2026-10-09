@@ -7,13 +7,13 @@ require (
 	github.com/0magnet/calvin v0.0.1-0.20261008155441-86637b449fe0
 	github.com/0magnet/cdp v0.0.0-20261008155159-1c0ee4e75307
 	github.com/0magnet/desk v0.0.3-0.20261008155451-5bf2f04167ae
-	github.com/0magnet/desk/panes v0.0.1-0.20261004200012-7ac6a12489c1
+	github.com/0magnet/desk/panes v0.0.1-0.20261008155451-5bf2f04167ae
 	github.com/0magnet/lattice v0.0.0-20261008155528-8d863e8c2dbd
-	github.com/0magnet/pisano v0.0.0-20261009115959-3201e49d8242
+	github.com/0magnet/pisano v0.0.0-20261009121513-7ea15de20f20
 	github.com/0magnet/rack-go v0.0.0-20261008155311-cfc9879cd3c8
 	github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
 	github.com/0magnet/tuiwasm v0.0.0-20261009120705-930a400795ad
-	github.com/0magnet/websh v0.0.1-0.20261009120337-d2741378fd8b
+	github.com/0magnet/websh v0.0.1-0.20261009165359-830560458dba
 	github.com/0magnet/winbox-go v0.0.1-0.20261008155453-e5e3ca2e9451
 	github.com/0magnet/xterm-go v0.0.1-0.20261008155303-2eb476815469
 	github.com/gdamore/tcell/v3 v3.5.0
@@ -25,8 +25,8 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/yuin/goldmark v1.8.6
 	gitlab.com/russoj88/stl v1.0.2
-	golang.org/x/image v0.46.0
-	golang.org/x/net v0.60.0
+	golang.org/x/image v0.47.0
+	golang.org/x/net v0.61.0
 )
 
 require (
@@ -98,10 +98,10 @@ require (
 	github.com/yuin/goldmark-emoji v1.0.6 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.9.2 // indirect
 	golang.org/x/arch v0.32.0 // indirect
-	golang.org/x/crypto v0.57.0 // indirect
+	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
-	golang.org/x/term v0.46.0 // indirect
-	golang.org/x/text v0.42.0 // indirect
+	golang.org/x/term v0.47.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )
