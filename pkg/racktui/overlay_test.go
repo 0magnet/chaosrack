@@ -84,3 +84,64 @@ func TestWSwitchesTheOverlay(t *testing.T) {
 		t.Errorf("without an overlay w filtered %q", q.filt)
 	}
 }
+
+// nativeRack is a rack whose parts go over the cells at their own size: its
+// window is 12 x 6 cells, title row included.
+type nativeRack struct {
+	overlayRack
+	hand func(WindowAct)
+}
+
+func (*nativeRack) WindowCells() (w, h int)      { return 12, 6 }
+func (r *nativeRack) OnWindow(f func(WindowAct)) { r.hand = f }
+
+// Over a native overlay the window floats at the page's size, where it was
+// put and kept on the terminal, with the model behind all of it; what is
+// done to its title bar moves it, fills the terminal with it, or hides it.
+func TestANativeWindowFloats(t *testing.T) {
+	p := scenePanel(&sceneRack{})
+	p.src = &nativeRack{}
+	p.overlay = true
+	p.floatX, p.floatY = 2, 2
+	whole := func() Rect { return Rect{0, 0, p.scrW, p.scrH} }
+	lay := func() *Layout {
+		p.layoutWindow(p.scrW, p.scrH)
+		return p.layoutNow()
+	}
+
+	l := lay()
+	if !l.Native || l.Scene != whole() || l.SceneShown != whole() {
+		t.Errorf("native %v: the scene is %+v, shown %+v, want the whole %+v", l.Native, l.Scene, l.SceneShown, whole())
+	}
+	if l.Window != (Rect{2, 2, 12, 6}) {
+		t.Errorf("the window is %+v, want 12x6 at 2,2", l.Window)
+	}
+	if p.winX != 2 || p.winY != 3 {
+		t.Errorf("the body starts at %d,%d, want under the title row at 2,3", p.winX, p.winY)
+	}
+
+	p.windowAct(WindowAct{Kind: "move", X: 99, Y: -4})
+	if l := lay(); l.Window != (Rect{p.scrW - 12, 0, 12, 6}) {
+		t.Errorf("moved off the terminal, the window is %+v; it should stay on it", l.Window)
+	}
+	p.windowAct(WindowAct{Kind: "full"})
+	if l := lay(); l.Window != whole() || l.Scene.W != 0 {
+		t.Errorf("full: the window is %+v and the scene %+v", l.Window, l.Scene)
+	}
+	p.windowAct(WindowAct{Kind: "full"})
+	p.windowAct(WindowAct{Kind: "hide"})
+	if l := lay(); l.Window.W != 0 || l.SceneShown != whole() {
+		t.Errorf("hidden: the window is %+v and the scene shown %+v", l.Window, l.SceneShown)
+	}
+	p.windowAct(WindowAct{Kind: "hide"})
+	if l := lay(); l.Window != (Rect{p.scrW - 12, 0, 12, 6}) {
+		t.Errorf("shown again, the window is %+v; it should be where it was left", l.Window)
+	}
+
+	// With the parts off, the window is the half one the cells always had.
+	p.overlay = false
+	p.layoutWindow(p.scrW, p.scrH)
+	if p.winY != 1 || p.view.W != maxi(p.scrW/2, 24)-1 {
+		t.Errorf("plain: the window starts at row %d, %d wide", p.winY, p.view.W)
+	}
+}

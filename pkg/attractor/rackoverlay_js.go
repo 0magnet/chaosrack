@@ -4,29 +4,34 @@ package attractor
 
 import (
 	"encoding/json"
+	"math"
 	"strings"
 	"syscall/js"
 
 	"github.com/0magnet/websh/progressive"
 	"github.com/0magnet/websh/web"
+	xterm "github.com/0magnet/xterm-go"
 
 	"github.com/0magnet/chaosrack/pkg/racktui"
 )
 
 // The progressive panel's page half (racktui/overlay.go): `rack`, typed in
 // the page's own terminal, lays the page's own parts over its cells as that
-// terminal's placements (OSC 7337 place) — the model's canvas over the scene,
-// and the real panel over the window, scaled so a cell is as wide as the
-// page look's 2.4 panel pixels, lying on its own picture of itself.
-// Zoom the terminal out and the cells shrink, and the panel with them, to the
-// page's own size at websh's smallest cell.
+// terminal's placements (OSC 7337 place) — the model's canvas behind
+// everything, and the real panel in a window floating over it, at the size
+// the page draws them. The cells say only where: how many a part covers
+// depends on how big a cell is, and the parts stay the page's size however
+// the terminal is zoomed. So the panel in a terminal is the page's interface,
+// at an ordinary cell size.
 //
-// The panel is the panel, not a copy: the frame is moved into the placement,
-// inside a wrapper standing in for #controls-panel (the class the stylesheet
-// reads as the panel, .cp-ctx, and the panel's own classes, as the manual's
-// live modules are), and back when the placement goes. Its knobs are worked
-// by hand there; the scene keeps the terminal's mouse, which turns the model
-// through the page look's own scene mouse.
+// The parts are the parts, not copies: the canvas and the frame are moved
+// into the placements, and back when they go. The frame goes inside a
+// wrapper standing in for #controls-panel (.cp-ctx, the class the stylesheet
+// reads as the panel, and the panel's own classes), under a title bar like
+// the page's window's, which moves the window by moving its cells. The
+// canvas's placement passes the mouse on to the page (Page), so the model
+// turns by the page's own hand, at the page's own coordinates; the panel's
+// keeps it.
 //
 // In JavaScript, as the manual's live modules are: moving and measuring DOM
 // is what Go/wasm does worst.
@@ -55,12 +60,47 @@ func rackOverlay() js.Value {
 	if !f.Truthy() {
 		f = js.Global().Get("Function").New(rackOverlayJS).Invoke()
 		js.Global().Set("__rackOverlay", f)
+		js.Global().Set("__rackWindowAct", js.FuncOf(func(_ js.Value, a []js.Value) any {
+			if windowHand != nil && len(a) == 3 {
+				windowHand(racktui.WindowAct{Kind: a[0].String(), X: a[1].Int(), Y: a[2].Int()})
+			}
+			return nil
+		}))
 	}
 	return f
 }
 
-// The panel turns the overlay on and off through it (racktui/overlay.go).
-var _ racktui.Overlay = inPageRack{}
+// windowHand is where the window's title bar sends what is done to it: the
+// panel running now, or nil.
+var windowHand func(racktui.WindowAct)
+
+// termRack is the rack as the panel in one terminal sees it: the page's own
+// rack, laid over that terminal's cells at the page's size.
+type termRack struct {
+	inPageRack
+	term *xterm.Terminal
+}
+
+var _ racktui.Native = termRack{}
+
+// WindowCells is the page's own window over the controls — its size as the
+// person last left it floating — in this terminal's cells.
+func (r termRack) WindowCells() (w, h int) {
+	if r.term == nil {
+		return 0, 0
+	}
+	cw, ch := r.term.CellSize()
+	if cw <= 0 || ch <= 0 {
+		return 0, 0
+	}
+	return int(math.Round(layout.floatW / cw)), int(math.Round(layout.floatH / ch))
+}
+
+// OnWindow sends what is done to the window's title bar to f.
+func (termRack) OnWindow(f func(racktui.WindowAct)) {
+	rackOverlay()
+	windowHand = f
+}
 
 // Overlay lays the scene and the panel over l, or takes them away.
 func (inPageRack) Overlay(l *racktui.Layout) string {
@@ -73,125 +113,156 @@ func (inPageRack) Overlay(l *racktui.Layout) string {
 		rackOverlay().Call("view", string(b))
 	}
 	var s strings.Builder
-	place := func(id string, r racktui.Rect, widget string, input bool) {
+	place := func(id string, r racktui.Rect, widget string, page bool) {
 		if r.W <= 0 || r.H <= 0 {
 			s.WriteString(progressive.Remove(id))
 			return
 		}
-		s.WriteString(progressive.Place(id, progressive.Placement{Row: r.Y, Col: r.X, W: r.W, H: r.H, Widget: widget, Input: input}))
+		s.WriteString(progressive.Place(id, progressive.Placement{Row: r.Y, Col: r.X, W: r.W, H: r.H, Widget: widget, Input: true, Page: page}))
 	}
-	place(overlaySceneID, l.SceneShown, overlaySceneWidget, false)
-	place(overlayPanelID, l.Window, overlayPanelWidget, true)
+	place(overlaySceneID, l.SceneShown, overlaySceneWidget, true)
+	place(overlayPanelID, l.Window, overlayPanelWidget, false)
 	return s.String()
 }
 
 const rackOverlayJS = `
-var doc = document, L = null, P = null;
+var doc = document, L = null, P = null, S = null, away = false;
 var panel = doc.getElementById('controls-panel');
 function ctxClass() { return 'cp-ctx ' + (panel ? panel.className : ''); }
-function kscale() {
-  return parseFloat(getComputedStyle(doc.documentElement).getPropertyValue('--kscale')) || 1;
-}
 if (panel) new MutationObserver(function () {
   if (P) P.wrap.className = ctxClass();
 }).observe(panel, { attributes: true, attributeFilter: ['class'] });
 
-// place scales and moves the panel so its pixel at the view's corner is at
-// the window's, and a cell is PxPerCol x PxPerRow of its pixels: the page
-// look's own picture of it, underneath, exactly.
-function place() {
-  if (!P || !L || !L.Window.W || !L.Window.H) return;
-  // One scale both ways, from the cells' width: a cell is not always the
-  // 2.4:5 the page look assumes (websh's shape changes a little with its
-  // zoom), and a knob drawn round matters more than its last row lining up
-  // with cells it covers anyway.
-  var k = kscale();
-  var s = P.el.clientWidth / L.Window.W / (L.PxPerCol * k);
-  var tx = -L.ViewX * L.PxPerCol * k - P.frame.offsetLeft;
-  var ty = -L.ViewY * L.PxPerRow * k - P.frame.offsetTop;
-  P.wrap.style.transform = 'scale(' + s + ') translate(' + tx + 'px,' + ty + 'px)';
+function act(kind, x, y) { if (window.__rackWindowAct) window.__rackWindowAct(kind, x | 0, y | 0); }
+
+// cell is one cell of the placement el in pixels, from the layout's cells.
+function cell(el, r) {
+  return [r && r.W ? el.clientWidth / r.W : 0, r && r.H ? el.clientHeight / r.H : 0];
 }
 
-// home puts the frame back where it was taken from.
-function home(p) {
-  if (p.frame.parentNode === p.parent) return;
-  var next = p.next && p.next.parentNode === p.parent ? p.next : null;
-  p.parent.insertBefore(p.frame, next);
+// fit makes the title bar one cell tall, as the terminal's title row is.
+function fit() {
+  if (!P || !L || !L.Window || !L.Window.H) return;
+  var h = cell(P.el, L.Window)[1];
+  if (h > 0) P.bar.style.height = h + 'px';
+}
+
+// home puts an element back where it was taken from.
+function home(it) {
+  if (it.node.parentNode === it.parent) return;
+  var next = it.next && it.next.parentNode === it.parent ? it.next : null;
+  it.parent.insertBefore(it.node, next);
+}
+function take(it) {
+  return { node: it, parent: it.parentNode, next: it.nextSibling };
 }
 
 return {
   // view is the layout the terminal's panel drew last, as JSON, or null.
-  view: function (j) { L = JSON.parse(j); place(); },
+  view: function (j) { L = JSON.parse(j); fit(); },
 
-  // hold gives the frame back to the page while the screen holding the
-  // overlay (inside screen) is not in front, and takes it again when it is:
-  // a panel moved into a hidden console would leave the page's own empty.
-  hold: function (screen, hidden) {
-    if (!P || !screen || !screen.contains(P.el)) return;
-    if (hidden) home(P);
-    else if (P.frame.parentNode !== P.wrap) { P.wrap.appendChild(P.frame); place(); }
+  // hold gives the parts back to the page while the screen holding the
+  // terminal is not in front, and takes them again when it is.
+  hold: function (hidden) {
+    away = hidden;
+    if (hidden) {
+      if (P) home(P.frame);
+      if (S) home(S.canvas);
+      return;
+    }
+    if (P && P.frame.node.parentNode !== P.wrap) P.wrap.appendChild(P.frame.node);
+    if (S && S.canvas.node.parentNode !== S.el) S.el.appendChild(S.canvas.node);
   },
 
-  // panel moves the rack's frame into el, and returns what moves it back.
+  // panel moves the rack's frame into el, under a title bar, and returns
+  // what moves it back.
   panel: function (el) {
     var frame = doc.querySelector('.rack-frame');
     if (!frame || P) return function () {};
+    el.style.zIndex = '1';
+    el.style.display = 'flex';
+    el.style.flexDirection = 'column';
+    el.style.background = panel ? getComputedStyle(panel).backgroundColor : '#000';
+    el.style.boxShadow = '0 4px 18px rgba(0,0,0,.55)';
+
+    var bar = doc.createElement('div');
+    bar.style.cssText = 'flex:none;display:flex;align-items:center;gap:6px;padding:0 6px 0 10px;' +
+      'background:#0066ff;color:#fff;font:13px/1 system-ui,sans-serif;cursor:move;user-select:none;white-space:nowrap;overflow:hidden';
+    var title = doc.createElement('span');
+    title.textContent = 'chaosrack controls';
+    title.style.flex = '1';
+    bar.appendChild(title);
+    [['–', 'hide', 'hide (the page\'s ▤ button brings it back)'], ['□', 'full', 'the whole terminal, or back']].forEach(function (b) {
+      var k = doc.createElement('span');
+      k.textContent = b[0]; k.title = b[2];
+      k.style.cssText = 'cursor:pointer;padding:0 5px;font-size:15px';
+      k.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+      k.addEventListener('click', function () { act(b[1], 0, 0); });
+      bar.appendChild(k);
+    });
+    var body = doc.createElement('div');
+    body.style.cssText = 'flex:1;min-height:0;overflow:auto;position:relative';
     var wrap = doc.createElement('div');
     wrap.className = ctxClass();
-    // Laid out at its own width, as it is in the panel, so moving it does
-    // not reflow it.
-    wrap.style.cssText = 'position:absolute;left:0;top:0;margin:0;padding:0;overflow:visible;' +
-      'transform-origin:0 0;background:transparent;width:' + frame.offsetWidth + 'px';
-    el.style.zIndex = '1';
-    el.style.background = panel ? getComputedStyle(panel).backgroundColor : '#000';
-    var p = P = { el: el, wrap: wrap, frame: frame, parent: frame.parentNode, next: frame.nextSibling };
+    // Laid out at its own width, as it is in the page's window, so moving it
+    // does not reflow it; the frame's own fit scales it as it does there.
+    wrap.style.cssText = 'margin:0;padding:0;background:transparent;width:max-content';
+    body.appendChild(wrap);
+    el.appendChild(bar);
+    el.appendChild(body);
+
+    // The title bar moves the window: the placement follows the pointer,
+    // and where it is let go the terminal puts the window, on whole cells.
+    bar.addEventListener('mousedown', function (e) {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      var x0 = e.clientX, y0 = e.clientY, l0 = el.offsetLeft, t0 = el.offsetTop;
+      function move(m) {
+        el.style.left = (l0 + m.clientX - x0) + 'px';
+        el.style.top = (t0 + m.clientY - y0) + 'px';
+      }
+      function up(m) {
+        doc.removeEventListener('mousemove', move);
+        doc.removeEventListener('mouseup', up);
+        var c = cell(el, L && L.Window);
+        if (c[0] > 0 && c[1] > 0) act('move', Math.round(el.offsetLeft / c[0]), Math.round(el.offsetTop / c[1]));
+      }
+      doc.addEventListener('mousemove', move);
+      doc.addEventListener('mouseup', up);
+    });
+    bar.addEventListener('dblclick', function () { act('full', 0, 0); });
+
+    var p = P = { el: el, bar: bar, wrap: wrap, frame: take(frame) };
     wrap.appendChild(frame);
-    el.appendChild(wrap);
-    var ro = new ResizeObserver(place);
+    if (away) home(p.frame);
+    fit();
+    var ro = new ResizeObserver(fit);
     ro.observe(el);
-    place();
     return function () {
       ro.disconnect();
-      home(p);
-      wrap.remove();
+      home(p.frame);
       if (P === p) P = null;
     };
   },
 
-  // scene draws the model's canvas into el every frame, cropped as the page
-  // look crops it — the middle of it, cut to the shape of the cells it is
-  // sampled across — and of that, the part el covers: the cells beside the
-  // window, whose own are left to the terminal.
+  // scene moves the model's canvas into el, behind the window: the model
+  // the page draws, where the page draws it, turned by the page's own hand.
   scene: function (el) {
-    var src = doc.getElementById('gocanvas'), c = doc.createElement('canvas');
-    c.style.cssText = 'position:absolute;inset:0;width:100%;height:100%';
+    var c = doc.getElementById('gocanvas');
+    if (!c || S) return function () {};
     el.style.zIndex = '0';
-    el.appendChild(c);
-    var g = c.getContext('2d'), raf = 0;
-    function frame() {
-      raf = requestAnimationFrame(frame);
-      if (!src || !src.width || !src.height) return;
-      var dpr = window.devicePixelRatio || 1;
-      var w = Math.max(1, Math.round(el.clientWidth * dpr)), h = Math.max(1, Math.round(el.clientHeight * dpr));
-      if (c.width !== w) c.width = w;
-      if (c.height !== h) c.height = h;
-      // The whole of what is sampled, in el's pixels: as wide as its cells
-      // over el's, as tall likewise.
-      var all = L && L.Scene.W && L.SceneShown.W ? L.Scene : null;
-      var fw = all ? w * all.W / L.SceneShown.W : w, fh = all ? h * all.H / L.SceneShown.H : h;
-      var ox = all ? (L.SceneShown.X - all.X) / all.W : 0, oy = all ? (L.SceneShown.Y - all.Y) / all.H : 0;
-      var want = fw / fh, have = src.width / src.height, sx = 0, sy = 0, sw = src.width, sh = src.height;
-      if (have > want) { sw = src.height * want; sx = (src.width - sw) / 2; }
-      else { sh = src.width / want; sy = (src.height - sh) / 2; }
-      // el's part of that.
-      sx += ox * sw; sy += oy * sh;
-      sw *= w / fw; sh *= h / fh;
-      g.fillStyle = '#000';
-      g.fillRect(0, 0, w, h);
-      g.drawImage(src, sx, sy, sw, sh, 0, 0, w, h);
-    }
-    frame();
-    return function () { cancelAnimationFrame(raf); c.remove(); };
+    // The canvas is clear where nothing is drawn; the cells under it are not
+    // the page's ground.
+    el.style.background = '#000';
+    var pos = c.style.position, left = c.style.left, top = c.style.top;
+    c.style.position = 'absolute'; c.style.left = '0'; c.style.top = '0';
+    var s = S = { el: el, canvas: take(c) };
+    if (!away) el.appendChild(c);
+    return function () {
+      home(s.canvas);
+      c.style.position = pos; c.style.left = left; c.style.top = top;
+      if (S === s) S = null;
+    };
   }
 };
 `

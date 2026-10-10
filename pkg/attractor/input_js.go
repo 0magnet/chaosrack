@@ -35,6 +35,14 @@ func wireModelInput() {
 			if target.Call("closest", "#rack-manual, .mwin-body:not(.mwin-model)").Truthy() {
 				return true
 			}
+			// A terminal's cells are the terminal's: a press there is the
+			// program's in it, and its own drag, not the model's. Except where
+			// the page's own element is laid over them and given the mouse
+			// (websh's page placements): the model's canvas, in the
+			// instrument's cells, turns the model.
+			if target.Call("closest", ".xterm").Truthy() && !target.Call("closest", "[data-websh-page]").Truthy() {
+				return true
+			}
 			// The rest of the rack is its surface, and with the model drawn in
 			// front of it (the Fore knob anywhere but its far end, and the
 			// panel not raised back over it) that surface is behind the

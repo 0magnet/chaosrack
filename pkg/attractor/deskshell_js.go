@@ -210,6 +210,16 @@ func deskContainHidesEverything() bool { return deskContain && deskEl.Truthy() }
 // edge in the meantime, and launching the rack from a menu should produce a
 // window either way.
 func relaunchRack() {
+	// With an instrument the rack is its program's: the launcher starts the
+	// program (it presents its own window), or, running, asks it to again.
+	if instrumentOn {
+		if instrumentRunning {
+			presentRack()
+		} else if instrumentPane != nil && instrumentPane.Session() != nil {
+			instrumentPane.Session().Submit("chaosrack")
+		}
+		return
+	}
 	if sh := dom.Doc.Call("getElementById", "panel-shell"); sh.Truthy() {
 		sh.Get("style").Set("display", "")
 	}

@@ -54,6 +54,22 @@ func (q *poster) post(ev tcell.Event) bool {
 	}
 }
 
+// postSoon posts ev, trying again for a moment while the loop is behind.
+func (q *poster) postSoon(ev tcell.Event) {
+	for range 50 {
+		if q.post(ev) {
+			return
+		}
+		q.mu.RLock()
+		closed := q.closed
+		q.mu.RUnlock()
+		if closed {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
 // close stops all posting; it is called before Fini.
 func (q *poster) close() {
 	q.mu.Lock()

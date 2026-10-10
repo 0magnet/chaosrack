@@ -60,7 +60,10 @@ type panel struct {
 	canv       map[int]*rackpic.Image
 	winMode    int
 	winX, winY int
-	scrW, scrH int
+	// floatX, floatY, floatW, floatH is the window floating over a Native
+	// overlay, its title row included (layoutFloat).
+	floatX, floatY, floatW, floatH int
+	scrW, scrH                     int
 	// turning is a drag on the scene, which keeps the mouse until let go;
 	// sceneQ sends what is done to the scene, and q posts back to the loop
 	// (nil when the panel runs on no screen).
@@ -102,8 +105,17 @@ func RunOn(sc tcell.Screen, src Source) error {
 		panelart.SetCellAspect(sh.CellAspect())
 	}
 
-	p := &panel{src: src, q: q, overlay: !plain}
+	// Where the page first floats its controls: near the top left.
+	p := &panel{src: src, q: q, overlay: !plain, floatX: 2, floatY: 2}
 	defer p.clearOverlay(sc) // before Fini, which is deferred first
+	if nv, ok := src.(Native); ok {
+		// What is done to the window in the page comes back as events, so
+		// it is done on this loop and nowhere else.
+		// Off the caller, which is the page's event handler, and tried again
+		// while the loop is behind: a move dropped is a window left behind.
+		nv.OnWindow(func(a WindowAct) { go q.postSoon(tcell.NewEventInterrupt(a)) })
+		defer nv.OnWindow(nil)
+	}
 	p.reload()
 	p.loadPicture()
 	go q.tick(done)
@@ -138,6 +150,8 @@ func RunOn(sc tcell.Screen, src Source) error {
 				q.waiting.Store(false)
 			case sceneErr:
 				p.err = string(d)
+			case WindowAct:
+				p.windowAct(d)
 			}
 		}
 	}
