@@ -5,6 +5,10 @@ screens — consoles, a desktop, the page itself — as a machine's virtual
 terminals switch between its text consoles and its graphical session.
 Ctrl+Alt+1…9 picks one.
 
+**Live:** [websh](https://websh.magnetosphere.net/) (four consoles, Ctrl+Alt+1…4) ·
+[desk](https://desk.magnetosphere.net/) (the desktop, then consoles 2 and 3) ·
+[chaosrack](https://github.com/0magnet/chaosrack) (instrument, console, desktop)
+
 ```go
 s := seat.New(seat.Options{})
 s.AddPage("instrument", nil)   // the page itself, under the seat

@@ -7,21 +7,21 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.1-0.20261009120257-e5d50daf583c
+# github.com/0magnet/audioprism-go v0.0.1-0.20261010111908-28b1953a7eda
 ## explicit; go 1.26.2
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
 # github.com/0magnet/bottle v0.0.1-0.20261008160757-8052b02bade6
 ## explicit; go 1.24
 github.com/0magnet/bottle/proc
-# github.com/0magnet/calvin v0.0.1-0.20261008155441-86637b449fe0
+# github.com/0magnet/calvin v0.0.1-0.20261010111553-d1d2be37be6a
 ## explicit; go 1.26.0
 github.com/0magnet/calvin
 github.com/0magnet/calvin/clihelp
 # github.com/0magnet/cdp v0.0.0-20261008155159-1c0ee4e75307
 ## explicit; go 1.26.0
 github.com/0magnet/cdp
-# github.com/0magnet/desk v0.0.3-0.20261008155451-5bf2f04167ae
+# github.com/0magnet/desk v0.0.3-0.20261010022904-a9f8e18be9d4
 ## explicit; go 1.26
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
@@ -46,17 +46,17 @@ github.com/0magnet/glamour/styles
 github.com/0magnet/go-dsp/dsputils
 github.com/0magnet/go-dsp/fft
 github.com/0magnet/go-dsp/window
-# github.com/0magnet/img2txt-go v0.0.1-0.20261008155316-9af9946b28d9
+# github.com/0magnet/img2txt-go v0.0.1-0.20261010111608-9ac2cd47b853
 ## explicit; go 1.26.0
 github.com/0magnet/img2txt-go/caca
 github.com/0magnet/img2txt-go/shape
-# github.com/0magnet/lattice v0.0.0-20261008155528-8d863e8c2dbd
+# github.com/0magnet/lattice v0.0.0-20261010111611-d9ca20999e37
 ## explicit; go 1.26.4
 github.com/0magnet/lattice
 # github.com/0magnet/lolcat-go v0.0.1-0.20261004205030-ebbe4df3258a
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20261009121513-7ea15de20f20
+# github.com/0magnet/pisano v0.0.0-20261010111635-29eee3f7b523
 ## explicit; go 1.26.6
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc
@@ -66,7 +66,7 @@ github.com/0magnet/proxima5/internal/views
 # github.com/0magnet/rack-go v0.0.0-20261008155311-cfc9879cd3c8
 ## explicit; go 1.21
 github.com/0magnet/rack-go
-# github.com/0magnet/seat v0.0.0-20261010020625-53f992704517
+# github.com/0magnet/seat v0.0.0-20261010023929-451dce08bf6a
 ## explicit; go 1.26
 github.com/0magnet/seat
 # github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
@@ -78,7 +78,7 @@ github.com/0magnet/sh/v3/internal/arithm
 github.com/0magnet/sh/v3/interp
 github.com/0magnet/sh/v3/pattern
 github.com/0magnet/sh/v3/syntax
-# github.com/0magnet/termanim v0.0.1-0.20261009120018-626c6ba22a81
+# github.com/0magnet/termanim v0.0.1-0.20261010111704-cb045978ae9c
 ## explicit; go 1.26.0
 github.com/0magnet/termanim/aquarium
 github.com/0magnet/termanim/atom
@@ -117,13 +117,13 @@ github.com/0magnet/termanim/snow
 github.com/0magnet/termanim/starfield
 github.com/0magnet/termanim/tunnel
 github.com/0magnet/termanim/wolfram
-# github.com/0magnet/toilet-go v0.0.0-20261008160704-7bc1bf346176
+# github.com/0magnet/toilet-go v0.0.0-20261010111710-2d81119b195a
 ## explicit; go 1.26.0
 github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20261009120705-930a400795ad
+# github.com/0magnet/tuiwasm v0.0.0-20261010112347-c02881c6011b
 ## explicit; go 1.26.7
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -143,7 +143,7 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754
 ## explicit; go 1.26.6
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.1-0.20261009214513-161316b65f0c
+# github.com/0magnet/websh v0.0.1-0.20261010111951-e146c2f6c7a0
 ## explicit; go 1.26.6
 github.com/0magnet/websh/progressive
 github.com/0magnet/websh/shell
