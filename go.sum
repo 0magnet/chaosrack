@@ -30,6 +30,8 @@ github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc h1:6y75eIwQ0Eswyi
 github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc/go.mod h1:tZ3EqtPbE2DQAzgP2iBdVgvPANj/EJBfGs/hAZRdBNo=
 github.com/0magnet/rack-go v0.0.0-20261008155311-cfc9879cd3c8 h1:gKkrCNaN9Zt3Pvykajkiq04hSctpz3s1vr8kI1VysEc=
 github.com/0magnet/rack-go v0.0.0-20261008155311-cfc9879cd3c8/go.mod h1:+Ujv92EHuD24yOz6wOagRmnQZ3Aw5nphM7STt16gnhs=
+github.com/0magnet/seat v0.0.0-20261010020625-53f992704517 h1:CoOJ5rifai+m2idf/Bxe6YHEQaooJ0UYmAbFLYyxfec=
+github.com/0magnet/seat v0.0.0-20261010020625-53f992704517/go.mod h1:2qiBD+X0CtKF8jH4bFzncggipDQlsIRzNbtWAYS/01Q=
 github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5 h1:phE5/F4rBgh+VE51tU7Y6ZusHkQnECwIBBZHQJf7S5M=
 github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5/go.mod h1:ngQcnC5AqtrdAe3n1WaXvxXU63Jex0A7zKpJ4xQMfmQ=
 github.com/0magnet/termanim v0.0.1-0.20261009120018-626c6ba22a81 h1:XhvOyNLHQUYZiekDiVQwV1LFD2+unuoLznVk6J2DZIk=

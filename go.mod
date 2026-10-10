@@ -11,6 +11,7 @@ require (
 	github.com/0magnet/lattice v0.0.0-20261008155528-8d863e8c2dbd
 	github.com/0magnet/pisano v0.0.0-20261009121513-7ea15de20f20
 	github.com/0magnet/rack-go v0.0.0-20261008155311-cfc9879cd3c8
+	github.com/0magnet/seat v0.0.0-20261010020625-53f992704517
 	github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
 	github.com/0magnet/tuiwasm v0.0.0-20261009120705-930a400795ad
 	github.com/0magnet/websh v0.0.1-0.20261009214513-161316b65f0c

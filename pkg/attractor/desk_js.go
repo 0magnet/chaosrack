@@ -135,7 +135,7 @@ func ensureDesk() {
 	// And if the page was served with --auth there is no token yet, so this
 	// also arranges to swap memory for the machine the moment one is typed
 	// into a terminal — see desk's panes/term. /bin stays synthetic either way.
-	term.UseHostFS()
+	useHostFS()
 
 	desk.Register(desk.App{
 		Name:   "term",

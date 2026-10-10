@@ -112,9 +112,25 @@ function place() {
   P.wrap.style.transform = 'scale(' + s + ') translate(' + tx + 'px,' + ty + 'px)';
 }
 
+// home puts the frame back where it was taken from.
+function home(p) {
+  if (p.frame.parentNode === p.parent) return;
+  var next = p.next && p.next.parentNode === p.parent ? p.next : null;
+  p.parent.insertBefore(p.frame, next);
+}
+
 return {
   // view is the layout the terminal's panel drew last, as JSON, or null.
   view: function (j) { L = JSON.parse(j); place(); },
+
+  // hold gives the frame back to the page while the screen holding the
+  // overlay (inside screen) is not in front, and takes it again when it is:
+  // a panel moved into a hidden console would leave the page's own empty.
+  hold: function (screen, hidden) {
+    if (!P || !screen || !screen.contains(P.el)) return;
+    if (hidden) home(P);
+    else if (P.frame.parentNode !== P.wrap) { P.wrap.appendChild(P.frame); place(); }
+  },
 
   // panel moves the rack's frame into el, and returns what moves it back.
   panel: function (el) {
@@ -136,8 +152,7 @@ return {
     place();
     return function () {
       ro.disconnect();
-      var next = p.next && p.next.parentNode === p.parent ? p.next : null;
-      p.parent.insertBefore(p.frame, next);
+      home(p);
       wrap.remove();
       if (P === p) P = null;
     };
