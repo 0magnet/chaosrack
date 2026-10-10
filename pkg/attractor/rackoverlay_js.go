@@ -70,9 +70,19 @@ func rackOverlay() js.Value {
 			return nil
 		}))
 		js.Global().Set("__rackWindowAct", js.FuncOf(func(_ js.Value, a []js.Value) any {
-			if windowHand != nil && len(a) == 3 {
-				windowHand(racktui.WindowAct{Kind: a[0].String(), X: a[1].Int(), Y: a[2].Int()})
+			if windowHand == nil || len(a) != 4 {
+				return nil
 			}
+			act := racktui.WindowAct{Kind: a[0].String(), X: a[1].Int(), Y: a[2].Int(), Edge: a[3].String()}
+			// Where the window is put is the page's own preference, as the
+			// page's DOCK buttons save it: the next load opens it there.
+			switch act.Kind {
+			case "dock":
+				lsSet("wasmstuff-dock", act.Edge)
+			case "move":
+				lsSet("wasmstuff-dock", "float")
+			}
+			windowHand(act)
 			return nil
 		}))
 	}
@@ -103,6 +113,32 @@ func (r termRack) WindowCells() (w, h int) {
 		return 0, 0
 	}
 	return int(math.Round(layout.floatW / cw)), int(math.Round(layout.floatH / ch))
+}
+
+// Dock is where the page docks its controls: the edge its DOCK buttons last
+// chose, the bottom when none has been.
+func (termRack) Dock() string {
+	if s, ok := lsGet("wasmstuff-dock"); ok {
+		return s
+	}
+	return "bottom"
+}
+
+// DockCells is the page's drawer against edge, as its resize bar last left
+// it, in this terminal's cells: across the top or the bottom it is a row
+// taller, for the title row.
+func (r termRack) DockCells(edge string) int {
+	if r.term == nil {
+		return 0
+	}
+	cw, ch := r.term.CellSize()
+	if cw <= 0 || ch <= 0 {
+		return 0
+	}
+	if edge == "top" || edge == "bottom" {
+		return int(math.Round(layout.dockSizeH/ch)) + 1
+	}
+	return int(math.Round(layout.dockSizeW / cw))
 }
 
 // OnWindow sends what is done to the window's title bar to f.
@@ -137,12 +173,17 @@ func (inPageRack) Overlay(l *racktui.Layout) string {
 const rackOverlayJS = `
 var doc = document, L = null, P = null, S = null, away = false;
 var panel = doc.getElementById('controls-panel');
-function ctxClass() { return 'cp-ctx ' + (panel ? panel.className : ''); }
+// ctxClass is the panel's classes, docked where the terminal's window is:
+// the stylesheet lays the modules out by the dk- edge.
+function ctxClass() {
+  var dk = 'dk-' + ((L && L.Dock) || 'float');
+  return 'cp-ctx ' + (panel ? panel.className : '').replace(/\bdk-\w+/g, '') + ' ' + dk;
+}
 if (panel) new MutationObserver(function () {
   if (P) P.wrap.className = ctxClass();
 }).observe(panel, { attributes: true, attributeFilter: ['class'] });
 
-function act(kind, x, y) { if (window.__rackWindowAct) window.__rackWindowAct(kind, x | 0, y | 0); }
+function act(kind, x, y, edge) { if (window.__rackWindowAct) window.__rackWindowAct(kind, x | 0, y | 0, edge || ''); }
 
 // refit has the frame fit its new parent, as it fits the page's window.
 function refit() { if (window.__rackRefit) window.__rackRefit(); }
@@ -170,9 +211,19 @@ function take(it) {
   return { node: it, parent: it.parentNode, next: it.nextSibling };
 }
 
+// docked shows where the window is docked: the panel's classes for that edge,
+// and its DOCK button lit, as the page's are.
+function docked() {
+  if (!P) return;
+  var cls = ctxClass();
+  if (P.wrap.className !== cls) { P.wrap.className = cls; refit(); }
+  var at = (L && L.Dock) || 'float';
+  P.docks.forEach(function (d) { d.k.style.background = d.edge === at ? 'rgba(255,255,255,.28)' : ''; });
+}
+
 return {
   // view is the layout the terminal's panel drew last, as JSON, or null.
-  view: function (j) { L = JSON.parse(j); fit(); },
+  view: function (j) { L = JSON.parse(j); fit(); docked(); },
 
   // hold gives the parts back to the page while the screen holding the
   // terminal is not in front, and takes them again when it is.
@@ -205,6 +256,23 @@ return {
     title.textContent = 'chaosrack controls';
     title.style.flex = '1';
     bar.appendChild(title);
+    // The page's DOCK buttons, which are the shell's and stay with it: here
+    // they dock the terminal's window, against the terminal's edges.
+    var docks = [];
+    var lbl = doc.createElement('span');
+    lbl.textContent = 'DOCK';
+    lbl.style.cssText = 'font-size:10px;letter-spacing:1px;opacity:.75;margin-right:2px';
+    bar.appendChild(lbl);
+    [['↑', 'top'], ['↓', 'bottom'], ['←', 'left'], ['→', 'right'], ['⧉', 'float']].forEach(function (b) {
+      var k = doc.createElement('span');
+      k.textContent = b[0];
+      k.title = b[1] === 'float' ? 'float: a window over the model' : 'dock to the ' + b[1];
+      k.style.cssText = 'cursor:pointer;padding:0 4px;border-radius:3px;font-size:13px';
+      k.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+      k.addEventListener('click', function () { act('dock', 0, 0, b[1]); });
+      bar.appendChild(k);
+      docks.push({ k: k, edge: b[1] });
+    });
     [['–', 'hide', 'hide (the page\'s ▤ button brings it back)'], ['□', 'full', 'the whole terminal, or back']].forEach(function (b) {
       var k = doc.createElement('span');
       k.textContent = b[0]; k.title = b[2];
@@ -231,13 +299,19 @@ return {
       if (e.button !== 0) return;
       e.preventDefault();
       var x0 = e.clientX, y0 = e.clientY, l0 = el.offsetLeft, t0 = el.offsetTop;
+      var moved = false;
       function move(m) {
+        if (m.buttons === 0) return; // no button held: not this drag
+        if (Math.abs(m.clientX - x0) + Math.abs(m.clientY - y0) > 3) moved = true;
+        if (!moved) return;
         el.style.left = (l0 + m.clientX - x0) + 'px';
         el.style.top = (t0 + m.clientY - y0) + 'px';
       }
       function up(m) {
         doc.removeEventListener('mousemove', move);
         doc.removeEventListener('mouseup', up);
+        // A click on the title is no move: docked, it would float it.
+        if (!moved) return;
         var c = cell(el, L && L.Window);
         if (c[0] > 0 && c[1] > 0) act('move', Math.round(el.offsetLeft / c[0]), Math.round(el.offsetTop / c[1]));
       }
@@ -246,11 +320,13 @@ return {
     });
     bar.addEventListener('dblclick', function () { act('full', 0, 0); });
 
-    var p = P = { el: el, bar: bar, wrap: wrap, frame: take(frame) };
+    var p = P = { el: el, bar: bar, wrap: wrap, docks: docks, frame: take(frame) };
     wrap.appendChild(frame);
     if (away) home(p.frame); else refit();
     fit();
-    var ro = new ResizeObserver(fit);
+    docked();
+    // A window docked or floated is a new width, which the frame fits.
+    var ro = new ResizeObserver(function () { fit(); refit(); });
     ro.observe(el);
     return function () {
       ro.disconnect();

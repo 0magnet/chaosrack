@@ -383,20 +383,55 @@ func (p *panel) layoutWindow(w, h int) {
 	}
 }
 
-// layoutFloat places the window as it floats over a Native overlay: the
-// page's own size in cells, where it was last put, kept on the terminal.
-// floatX, floatY is its title row's left end; the body starts a row below.
+// layoutFloat places the window over a Native overlay, as the page places
+// its controls: docked against an edge at the page's drawer size, or
+// floating at the page's own window size where it was last put, kept on the
+// terminal. floatX, floatY is the floating window's title row's left end;
+// winR is the window either way, and its body starts a row below its top.
 func (p *panel) layoutFloat(w, h int) {
-	ww, wh := p.src.(Native).WindowCells() //nolint:forcetypeassert // nativeNow checked
+	nv := p.src.(Native) //nolint:forcetypeassert // nativeNow checked
+	if p.dock != "" {
+		p.layoutDocked(nv, w, h)
+		return
+	}
+	ww, wh := nv.WindowCells()
 	if ww <= 0 || wh <= 0 {
 		ww, wh = maxi(w/3, 24), maxi(h-4, 4)
 	}
 	ww, wh = min(max(ww, 8), w), min(max(wh, 3), h)
-	p.floatW, p.floatH = ww, wh
 	p.floatX, p.floatY = min(max(p.floatX, 0), w-ww), min(max(p.floatY, 0), h-wh)
-	// Its last column and row are the bars, as the half window's are.
-	p.winX, p.winY = p.floatX, p.floatY+1
-	p.view.W, p.view.H = maxi(ww-1, 1), maxi(wh-2, 1)
+	p.placeWin(Rect{p.floatX, p.floatY, ww, wh})
+}
+
+// layoutDocked places the window against p.dock, across the whole edge.
+func (p *panel) layoutDocked(nv Native, w, h int) {
+	across := w
+	if p.dock == "top" || p.dock == "bottom" {
+		across = h
+	}
+	n := nv.DockCells(p.dock)
+	if n <= 0 {
+		n = across / 2
+	}
+	n = min(max(n, 3), across)
+	switch p.dock {
+	case "top":
+		p.placeWin(Rect{0, 0, w, n})
+	case "bottom":
+		p.placeWin(Rect{0, h - n, w, n})
+	case "left":
+		p.placeWin(Rect{0, 0, n, h})
+	default:
+		p.placeWin(Rect{w - n, 0, n, h})
+	}
+}
+
+// placeWin puts the window at r, its title row at the top. Its last column
+// and row are the bars, as the half window's are.
+func (p *panel) placeWin(r Rect) {
+	p.winR = r
+	p.winX, p.winY = r.X, r.Y+1
+	p.view.W, p.view.H = maxi(r.W-1, 1), maxi(r.H-2, 1)
 }
 
 // drawPage is drawRack for the page look: the scene, and the panel's window
@@ -413,7 +448,7 @@ func (p *panel) drawPage(sc tcell.Screen, w, h int) {
 	if p.winMode == winHalf {
 		x0, x1, y := p.winX, w, 0
 		if p.nativeNow() {
-			x0, x1, y = p.floatX, p.floatX+p.floatW, p.floatY
+			x0, x1, y = p.winR.X, p.winR.X+p.winR.W, p.winR.Y
 		}
 		title := clip(" chaosrack controls", maxi(x1-x0, 0))
 		st := styleOf(cellAt{Art: true, Top: [3]uint8{255, 255, 255}, Bottom: rgb3(winInk)})

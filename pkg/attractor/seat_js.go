@@ -57,8 +57,15 @@ func wireSeat() {
 	})
 	s.AddPage("desktop", func(front bool) {
 		desktopFront = front
+		// The desk floats the rack whatever the page docks it to, and saves
+		// that as it goes; the instrument's preference is the person's, and
+		// outlasts a visit to the desk.
+		pref, had := lsGet("wasmstuff-dock")
 		setDeskContain(front)
 		presentRack()
+		if had && instrumentOn {
+			lsSet("wasmstuff-dock", pref)
+		}
 		// The Desk switch shows which screen this is, however it was reached.
 		if dc := dom.Doc.Call("getElementById", "desk-contain"); dc.Truthy() {
 			dc.Set("checked", front)

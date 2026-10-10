@@ -60,10 +60,14 @@ type panel struct {
 	canv       map[int]*rackpic.Image
 	winMode    int
 	winX, winY int
-	// floatX, floatY, floatW, floatH is the window floating over a Native
-	// overlay, its title row included (layoutFloat).
-	floatX, floatY, floatW, floatH int
-	scrW, scrH                     int
+	// floatX, floatY is where the window floats over a Native overlay, its
+	// title row's left end (layoutFloat).
+	floatX, floatY int
+	// dock is the edge the window is docked against, or "" floating; winR is
+	// the window as laid out, docked or floating, its title row included.
+	dock       string
+	winR       Rect
+	scrW, scrH int
 	// turning is a drag on the scene, which keeps the mouse until let go;
 	// sceneQ sends what is done to the scene, and q posts back to the loop
 	// (nil when the panel runs on no screen).
@@ -115,6 +119,7 @@ func RunOn(sc tcell.Screen, src Source) error {
 		// while the loop is behind: a move dropped is a window left behind.
 		nv.OnWindow(func(a WindowAct) { go q.postSoon(tcell.NewEventInterrupt(a)) })
 		defer nv.OnWindow(nil)
+		p.dock = dockEdge(nv.Dock())
 	}
 	p.reload()
 	p.loadPicture()

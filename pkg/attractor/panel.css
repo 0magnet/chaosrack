@@ -146,8 +146,9 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
 .rack-frame > .runit::after{bottom:0;}
 
 /* The ears: (482.6 − 426.72)/2 ≈ 28 mm either side of the opening, carrying
-   the holes the unit is bolted to the rails through. */
-.runit-ear{flex:0 0 auto;width:var(--ear-w,15px);
+   the holes the unit is bolted to the rails through. They give up what the
+   unit's own border takes: the opening is its capacity, and does not. */
+.runit-ear{flex:0 1 auto;width:var(--ear-w,15px);box-sizing:border-box;
   display:flex;flex-direction:column;justify-content:space-around;align-items:center;
   padding:calc(5px*var(--kscale,1)) 0;
   background:linear-gradient(90deg,#41464c,#2a2e33);

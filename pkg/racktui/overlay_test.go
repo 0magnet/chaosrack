@@ -94,6 +94,10 @@ type nativeRack struct {
 
 func (*nativeRack) WindowCells() (w, h int)      { return 12, 6 }
 func (r *nativeRack) OnWindow(f func(WindowAct)) { r.hand = f }
+func (*nativeRack) Dock() string                 { return "" }
+
+// DockCells is 4 cells across any edge.
+func (*nativeRack) DockCells(string) int { return 4 }
 
 // Over a native overlay the window floats at the page's size, where it was
 // put and kept on the terminal, with the model behind all of it; what is
@@ -136,6 +140,29 @@ func TestANativeWindowFloats(t *testing.T) {
 	p.windowAct(WindowAct{Kind: "hide"})
 	if l := lay(); l.Window != (Rect{p.scrW - 12, 0, 12, 6}) {
 		t.Errorf("shown again, the window is %+v; it should be where it was left", l.Window)
+	}
+
+	// Docked, it lies along the whole edge at the page's drawer size, and
+	// moved by its title bar it floats again where it is let go.
+	for edge, want := range map[string]Rect{
+		"bottom": {0, p.scrH - 4, p.scrW, 4},
+		"top":    {0, 0, p.scrW, 4},
+		"left":   {0, 0, 4, p.scrH},
+		"right":  {p.scrW - 4, 0, 4, p.scrH},
+	} {
+		p.windowAct(WindowAct{Kind: "dock", Edge: edge})
+		if l := lay(); l.Window != want || l.Dock != edge || p.winY != want.Y+1 {
+			t.Errorf("docked %s: the window is %+v (dock %q, body at row %d), want %+v", edge, l.Window, l.Dock, p.winY, want)
+		}
+	}
+	p.windowAct(WindowAct{Kind: "dock", Edge: "float"})
+	if l := lay(); l.Window != (Rect{p.scrW - 12, 0, 12, 6}) || l.Dock != "" {
+		t.Errorf("floated again, the window is %+v (dock %q); it should be where it last floated", l.Window, l.Dock)
+	}
+	p.windowAct(WindowAct{Kind: "dock", Edge: "left"})
+	p.windowAct(WindowAct{Kind: "move", X: 3, Y: 1})
+	if l := lay(); l.Window != (Rect{3, 1, 12, 6}) || l.Dock != "" {
+		t.Errorf("moved off the left edge, the window is %+v (dock %q), want floating at 3,1", l.Window, l.Dock)
 	}
 
 	// With the parts off, the window is the half one the cells always had.
