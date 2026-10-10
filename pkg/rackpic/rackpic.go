@@ -205,6 +205,12 @@ func SceneCall(w, h int, shape float64) string {
 	return fmt.Sprintf("window.__rackpic.scene(%d, %d, %g)", w, h, shape)
 }
 
+// SceneActCall does kind ("down", "move", "up" or "wheel") at x, y of the
+// scene as SceneCall(w, h, shape) showed it; delta is the wheel's.
+func SceneActCall(w, h int, shape, x, y float64, kind string, delta float64) string {
+	return fmt.Sprintf("window.__rackpic.sceneAct(%d, %d, %g, %g, %g, %q, %g)", w, h, shape, x, y, kind, delta)
+}
+
 // CanvasWant asks for item Index's canvas as W x H pixels.
 type CanvasWant struct{ Index, W, H int }
 

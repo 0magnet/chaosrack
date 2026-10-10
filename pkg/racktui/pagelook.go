@@ -563,8 +563,11 @@ func (c *canvas) ticks(it *rackpic.Item) {
 }
 
 // mouseWindow takes the mouse in the page look: the window's scroll bars and
-// the panel in it. The scene around the window does not take it yet.
+// the panel in it; and the scene around it (scenemouse.go).
 func (p *panel) mouseWindow(b tcell.ButtonMask, pressed bool, x, y int) {
+	if p.mouseScene(b, pressed, x, y) {
+		return
+	}
 	if p.winMode == winHidden {
 		return
 	}

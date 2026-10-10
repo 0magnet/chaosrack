@@ -304,17 +304,56 @@
     return { w: w, h: h, px: btoa(s) };
   }
 
+  // crop is the part of the scene a w x h window of pixels shape times as
+  // tall as wide shows: the middle of it, cut to the window's shape.
+  function crop(c, w, h, shape) {
+    var want = (w / (h * (shape || 1))), have = c.width / c.height;
+    var sx = 0, sy = 0, sw = c.width, sh = c.height;
+    if (have > want) { sw = c.height * want; sx = (c.width - sw) / 2; }
+    else { sh = c.width / want; sy = (c.height - sh) / 2; }
+    return [sx, sy, sw, sh];
+  }
+
   // scene is the model's canvas, the page's whole background, as w x h
   // pixels of the given shape (a pixel's height over its width): the middle
   // of it, cropped to that shape, as a window of another shape shows it.
   R.scene = function (w, h, shape) {
     var c = document.getElementById("gocanvas");
     if (!c || !c.width || !c.height) return JSON.stringify({ err: "the page has no scene" });
-    var want = (w / (h * (shape || 1))), have = c.width / c.height;
-    var sx = 0, sy = 0, sw = c.width, sh = c.height;
-    if (have > want) { sw = c.height * want; sx = (c.width - sw) / 2; }
-    else { sh = c.width / want; sy = (c.height - sh) / 2; }
-    return JSON.stringify(sample(c, sx, sy, sw, sh, w, h) || { err: "the scene could not be read" });
+    var k = crop(c, w, h, shape);
+    return JSON.stringify(sample(c, k[0], k[1], k[2], k[3], w, h) || { err: "the scene could not be read" });
+  };
+
+  // sceneAct does to the model what the pointer did at x, y of the scene as
+  // scene(w, h, shape) last showed it: "down", "move" and "up" are a drag,
+  // which turns the model, and "wheel" zooms it — the page's own handlers,
+  // given the events a hand sends, at the same point of the canvas.
+  R.sceneAct = function (w, h, shape, x, y, kind, delta) {
+    var c = document.getElementById("gocanvas");
+    if (!c || !c.width || !c.height) return JSON.stringify({ err: "the page has no scene" });
+    var k = crop(c, w, h, shape), b = c.getBoundingClientRect();
+    var o = { bubbles: true, cancelable: true, composed: true, view: window, button: 0,
+      clientX: b.left + (k[0] + x / w * k[2]) * b.width / c.width,
+      clientY: b.top + (k[1] + y / h * k[3]) * b.height / c.height };
+    switch (kind) {
+      case "wheel":
+        o.deltaY = delta; o.deltaMode = 0;
+        c.dispatchEvent(new WheelEvent("wheel", o));
+        break;
+      case "down":
+        o.buttons = 1;
+        c.dispatchEvent(new MouseEvent("mousedown", o));
+        break;
+      case "move":
+        o.buttons = 1;
+        c.dispatchEvent(new MouseEvent("mousemove", o));
+        break;
+      case "up":
+        o.buttons = 0;
+        c.dispatchEvent(new MouseEvent("mouseup", o));
+        break;
+    }
+    return JSON.stringify({});
   };
 
   // canvases samples the canvases of the picture of generation gen that a

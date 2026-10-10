@@ -54,6 +54,7 @@ const (
 	OpChanges  = "changes"
 	OpAct      = "act"
 	OpScene    = "scene"
+	OpSceneAct = "sceneact"
 	OpCanvases = "canvases"
 )
 

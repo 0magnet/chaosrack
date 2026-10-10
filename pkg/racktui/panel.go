@@ -61,6 +61,12 @@ type panel struct {
 	winMode    int
 	winX, winY int
 	scrW, scrH int
+	// turning is a drag on the scene, which keeps the mouse until let go;
+	// sceneQ sends what is done to the scene, and q posts back to the loop
+	// (nil when the panel runs on no screen).
+	turning bool
+	sceneQ  sceneQueue
+	q       *poster
 }
 
 var (
@@ -92,7 +98,7 @@ func RunOn(sc tcell.Screen, src Source) error {
 		panelart.SetCellAspect(sh.CellAspect())
 	}
 
-	p := &panel{src: src}
+	p := &panel{src: src, q: q}
 	p.reload()
 	p.loadPicture()
 	go q.tick(done)
@@ -120,10 +126,13 @@ func RunOn(sc tcell.Screen, src Source) error {
 			w, h := sc.Size()
 			p.mouse(ev, w, h)
 		case *tcell.EventInterrupt:
-			// A refresh that found nothing new draws nothing.
-			if _, ok := ev.Data().(refreshTick); ok {
+			switch d := ev.Data().(type) {
+			case refreshTick:
+				// A refresh that found nothing new draws nothing.
 				dirty = p.refresh()
 				q.waiting.Store(false)
+			case sceneErr:
+				p.err = string(d)
 			}
 		}
 	}
