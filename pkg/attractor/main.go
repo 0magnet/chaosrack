@@ -1209,10 +1209,13 @@ func wirePanelSwitches() {
 	wireJamSwitch()
 	wireMIDISwitch()
 
+	// The page's screens: the instrument, a console, the desktop (seat_js.go).
+	wireSeat()
+
 	// Event: the desk as the environment, with this app inside it.
 	if dc := dom.Doc.Call("getElementById", "desk-contain"); dc.Truthy() {
 		dom.On(dc, "change", func(js.Value, []js.Value) any {
-			setDeskContain(dc.Get("checked").Bool())
+			showDesktop(dc.Get("checked").Bool())
 			return nil
 		})
 	}

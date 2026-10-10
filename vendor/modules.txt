@@ -66,6 +66,9 @@ github.com/0magnet/proxima5/internal/views
 # github.com/0magnet/rack-go v0.0.0-20261008155311-cfc9879cd3c8
 ## explicit; go 1.21
 github.com/0magnet/rack-go
+# github.com/0magnet/seat v0.0.0-20261010020625-53f992704517
+## explicit; go 1.26
+github.com/0magnet/seat
 # github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
 ## explicit; go 1.26.0
 github.com/0magnet/sh/v3/expand
