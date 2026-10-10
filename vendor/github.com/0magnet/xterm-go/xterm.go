@@ -649,12 +649,21 @@ func (t *Terminal) wireDomEvents() {
 		t.reportMouse(args[0], vt.MouseActionDown)
 		return nil
 	}))
+	// A release or a move something over the terminal has already handled
+	// (preventDefault) is not the terminal's: a widget laid over its cells
+	// lets them on to the document, where a drag of its own is listening.
 	t.element.Call("addEventListener", "mouseup", t.fn(func(_ js.Value, args []js.Value) any {
+		if args[0].Get("defaultPrevented").Bool() {
+			return nil
+		}
 		t.reportMouse(args[0], vt.MouseActionUp)
 		t.Focus()
 		return nil
 	}))
 	t.element.Call("addEventListener", "mousemove", t.fn(func(_ js.Value, args []js.Value) any {
+		if args[0].Get("defaultPrevented").Bool() {
+			return nil
+		}
 		if t.Core.MouseService().AreMouseEventsActive() {
 			t.reportMouse(args[0], vt.MouseActionMove)
 		}

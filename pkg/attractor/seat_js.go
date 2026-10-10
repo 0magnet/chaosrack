@@ -16,8 +16,8 @@ import (
 // its consoles and its desktop, with Ctrl+Alt and a digit:
 //
 //	1 instrument  the page as it is: the scene, and the rack docked or floating
-//	2 console     a shell filling the screen — `rack` is the panel, in cells,
-//	              with the page's own parts laid over them
+//	2 console     a shell filling the screen, opened with `rack` running: the
+//	              panel in cells, the page's own parts laid over them
 //	3 desktop     the desk over the scene, the rack a window on it (what the
 //	              Desk switch turns on, and still does)
 //
@@ -31,6 +31,7 @@ const consoleGreeting = "" +
 	"\x1b[1;35mchaosrack\x1b[0m — console\r\n" +
 	"\x1b[2mthe model is still running behind this screen\x1b[0m\r\n\r\n" +
 	"  \x1b[1mrack\x1b[0m — the control surface, as cells, with the page's own parts over them\r\n" +
+	"         (it opens here first; q quits it to this shell)\r\n" +
 	"  \x1b[2mctrl-wheel, or ctrl-+/-, resizes the cell · rack --plain for cells only\x1b[0m\r\n" +
 	"  \x1b[2mctrl+alt+1 instrument · ctrl+alt+2 console · ctrl+alt+3 desktop\x1b[0m\r\n\r\n"
 
@@ -78,7 +79,8 @@ type consoleScreen struct {
 func (c *consoleScreen) Mount(el js.Value) error {
 	useHostFS()
 	c.el = el
-	c.p = term.New(consoleGreeting, "chaosrack").Exec(rackShellCommand)
+	// Opened with the panel up, as the console is for: q gives the shell.
+	c.p = term.New(consoleGreeting, "chaosrack").Exec(rackShellCommand).Run("rack")
 	return c.p.Mount(el)
 }
 

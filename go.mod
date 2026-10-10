@@ -14,9 +14,9 @@ require (
 	github.com/0magnet/seat v0.0.0-20261010023929-451dce08bf6a
 	github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
 	github.com/0magnet/tuiwasm v0.0.0-20261010112347-c02881c6011b
-	github.com/0magnet/websh v0.0.1-0.20261010111951-e146c2f6c7a0
+	github.com/0magnet/websh v0.0.1-0.20261010140014-2a96dad36b4e
 	github.com/0magnet/winbox-go v0.0.1-0.20261008155453-e5e3ca2e9451
-	github.com/0magnet/xterm-go v0.0.1-0.20261008155303-2eb476815469
+	github.com/0magnet/xterm-go v0.0.1-0.20261010135400-513a76849bd5
 	github.com/gdamore/tcell/v3 v3.5.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-gl/mathgl v1.2.0

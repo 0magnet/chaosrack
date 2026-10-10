@@ -288,23 +288,31 @@ func (p *placements) clear() {
 }
 
 // takeInput gives pl the mouse over it. The terminal listens on elements
-// around the layer, so the events stop at pl: they would otherwise reach it
-// as well, as clicks and wheel turns for the program. A press keeps the
-// focus where it was, so the keys still go to the program.
+// around the layer, so what starts something — a press, a click, a wheel
+// turn, a touch — stops at pl: it would otherwise reach the program too. A
+// press keeps the focus where it was, so the keys still go to the program.
+//
+// Moves and releases go on, to the document and the window, where a widget's
+// drag (a knob, a slider) follows the pointer: stopped here, a drag begun on
+// pl would never move or end. A mouse's are marked handled (preventDefault),
+// which the terminal reads as not its own; touches whose start it never saw
+// it ignores already.
 func (p *placements) takeInput(pl *placement) {
 	pl.el.Get("style").Set("pointerEvents", "auto")
-	for _, name := range []string{"mousedown", "mouseup", "mousemove", "click", "dblclick", "contextmenu", "wheel", "touchstart", "touchmove", "touchend"} {
-		f := js.FuncOf(func(_ js.Value, args []js.Value) any {
-			e := args[0]
-			e.Call("stopPropagation")
-			if e.Get("type").String() == "mousedown" {
-				e.Call("preventDefault")
-			}
-			return nil
-		})
-		pl.el.Call("addEventListener", name, f)
-		pl.stops = append(pl.stops, f)
+	on := func(names []string, h func(e js.Value)) {
+		for _, name := range names {
+			f := js.FuncOf(func(_ js.Value, args []js.Value) any { h(args[0]); return nil })
+			pl.el.Call("addEventListener", name, f)
+			pl.stops = append(pl.stops, f)
+		}
 	}
+	on([]string{"mousedown", "click", "dblclick", "contextmenu", "wheel", "touchstart"}, func(e js.Value) {
+		e.Call("stopPropagation")
+		if e.Get("type").String() == "mousedown" {
+			e.Call("preventDefault")
+		}
+	})
+	on([]string{"mousemove", "mouseup"}, func(e js.Value) { e.Call("preventDefault") })
 }
 
 // post gives the widget in placement id a message from the program.
