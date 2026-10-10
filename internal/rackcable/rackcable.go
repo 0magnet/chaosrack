@@ -276,6 +276,18 @@ func (r *Client) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	return rackpic.ParseImage(s)
 }
 
+// The panel turns the model through it (racktui/scenemouse.go).
+var _ racktui.SceneActor = (*Client)(nil)
+
+// SceneAct does what the pointer did on the scene, on the page.
+func (r *Client) SceneAct(w, h int, shape, x, y float64, kind string, delta float64) error {
+	s, err := r.pic(rackpic.SceneActCall(w, h, shape, x, y, kind, delta))
+	if err != nil {
+		return err
+	}
+	return rackpic.ParseAct(s)
+}
+
 // Canvases is the panel's canvases asked for.
 func (r *Client) Canvases(gen int, want []rackpic.CanvasWant) (map[int]*rackpic.Image, error) {
 	s, err := r.pic(rackpic.CanvasesCall(gen, want))

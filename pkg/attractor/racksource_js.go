@@ -182,6 +182,13 @@ func (inPageRack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	return rackpic.ParseImage(picCall(rackpic.SceneCall(w, h, shape)))
 }
 
+// The panel turns the model through it (racktui/scenemouse.go).
+var _ racktui.SceneActor = inPageRack{}
+
+func (inPageRack) SceneAct(w, h int, shape, x, y float64, kind string, delta float64) error {
+	return rackpic.ParseAct(picCall(rackpic.SceneActCall(w, h, shape, x, y, kind, delta)))
+}
+
 func (inPageRack) Canvases(gen int, want []rackpic.CanvasWant) (map[int]*rackpic.Image, error) {
 	c, err := rackpic.ParseCanvases(picCall(rackpic.CanvasesCall(gen, want)))
 	if err != nil {

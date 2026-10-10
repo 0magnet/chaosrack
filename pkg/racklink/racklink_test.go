@@ -205,3 +205,25 @@ func TestPicturesComeOverTheLink(t *testing.T) {
 		t.Fatalf("canvases %+v, %v", cs, err)
 	}
 }
+
+func (f *fakePage) SceneActJSON(w, h int, shape, x, y float64, kind string, delta float64) string {
+	f.mu.Lock()
+	f.acts = append(f.acts, "scene "+kind)
+	f.mu.Unlock()
+	return `{}`
+}
+
+var _ racktui.SceneActor = (*Client)(nil)
+
+// What the mouse does to the scene reaches the page.
+func TestASceneActCrossesTheLink(t *testing.T) {
+	h := NewHub()
+	f := &fakePage{}
+	defer connectPage(h, f)()
+	waitPages(t, h, 1)
+	cl := connectTerminal(h)
+	defer cl.Close() //nolint:errcheck // teardown
+	if err := cl.SceneAct(10, 10, 1, 2, 3, "down", 0); err != nil || len(f.acts) != 1 || f.acts[0] != "scene down" {
+		t.Fatalf("scene act: %v, the page saw %v", err, f.acts)
+	}
+}

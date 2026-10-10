@@ -196,6 +196,7 @@ type PageRack interface {
 	ChangesJSON(gen int) string
 	ActJSON(gen int, x, y float64, kind string, delta float64) string
 	SceneJSON(w, h int, shape float64) string
+	SceneActJSON(w, h int, shape, x, y float64, kind string, delta float64) string
 	CanvasesJSON(gen int, want []rackpic.CanvasWant) string
 }
 
@@ -252,6 +253,12 @@ func answer(rack PageRack, r Request) (json.RawMessage, error) {
 			return nil, err
 		}
 		return raw(rack.SceneJSON(a.W, a.H, a.Shape))
+	case OpSceneAct:
+		var a sceneActArgs
+		if err := json.Unmarshal(r.Args, &a); err != nil {
+			return nil, err
+		}
+		return raw(rack.SceneActJSON(a.W, a.H, a.Shape, a.X, a.Y, a.Kind, a.Delta))
 	case OpCanvases:
 		var a canvasesArgs
 		if err := json.Unmarshal(r.Args, &a); err != nil {
@@ -304,4 +311,28 @@ func (cl *Client) Canvases(gen int, want []rackpic.CanvasWant) (map[int]*rackpic
 		return nil, errors.New(c.Err)
 	}
 	return c.Imgs, nil
+}
+
+type sceneActArgs struct {
+	W     int     `json:"w"`
+	H     int     `json:"h"`
+	Shape float64 `json:"shape"`
+	X     float64 `json:"x"`
+	Y     float64 `json:"y"`
+	Kind  string  `json:"kind"`
+	Delta float64 `json:"delta"`
+}
+
+// SceneAct does what the pointer did on the scene, on the page.
+func (cl *Client) SceneAct(w, h int, shape, x, y float64, kind string, delta float64) error {
+	var r struct {
+		Err string `json:"err"`
+	}
+	if err := cl.call(OpSceneAct, sceneActArgs{W: w, H: h, Shape: shape, X: x, Y: y, Kind: kind, Delta: delta}, &r); err != nil {
+		return err
+	}
+	if r.Err != "" {
+		return errors.New(r.Err)
+	}
+	return nil
 }

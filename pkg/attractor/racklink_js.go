@@ -51,6 +51,10 @@ func (inPageRack) SceneJSON(w, h int, shape float64) string {
 	return picCall(rackpic.SceneCall(w, h, shape))
 }
 
+func (inPageRack) SceneActJSON(w, h int, shape, x, y float64, kind string, delta float64) string {
+	return picCall(rackpic.SceneActCall(w, h, shape, x, y, kind, delta))
+}
+
 func (inPageRack) CanvasesJSON(gen int, want []rackpic.CanvasWant) string {
 	return picCall(rackpic.CanvasesCall(gen, want))
 }

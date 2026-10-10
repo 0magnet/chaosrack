@@ -37,6 +37,7 @@
       case "changes": out = P.changes(a.gen); break;
       case "act": out = P.act(a.gen, a.x, a.y, a.kind, a.delta); break;
       case "scene": out = P.scene(a.w, a.h, a.shape); break;
+      case "sceneact": out = P.sceneAct(a.w, a.h, a.shape, a.x, a.y, a.kind, a.delta); break;
       case "canvases": out = P.canvases(a.gen, (a.want || []).map(function (w) { return [w.Index, w.W, w.H]; })); break;
       default: return null;
     }
