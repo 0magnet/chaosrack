@@ -29,6 +29,12 @@ type Native interface {
 	// WindowCells is the panel's window at the page's own size, its title
 	// row included, in this terminal's cells: 0, 0 when it cannot say yet.
 	WindowCells() (w, h int)
+	// Dock is where the page last put its panel: "top", "bottom", "left" or
+	// "right" docks the window against that edge, anything else floats it.
+	Dock() string
+	// DockCells is the window docked against edge, across it, in cells: the
+	// page's own drawer size, its title row included. 0 when it cannot say.
+	DockCells(edge string) int
 	// OnWindow hands the page what moves the window: what is done to its
 	// title bar there comes back to the panel through f. nil lets go.
 	OnWindow(f func(WindowAct))
@@ -36,10 +42,12 @@ type Native interface {
 
 // WindowAct is something done to the window by hand, in the page.
 type WindowAct struct {
-	// Kind is "move" (its top left to X, Y), "full" (in and out of the whole
-	// terminal) or "hide" (out of the way and back).
+	// Kind is "move" (its top left to X, Y, floating), "dock" (against Edge,
+	// or floating where it last floated for any other Edge), "full" (in and
+	// out of the whole terminal) or "hide" (out of the way and back).
 	Kind string
 	X, Y int
+	Edge string
 }
 
 // Rect is a rectangle of cells.
@@ -60,6 +68,8 @@ type Layout struct {
 	// terminal, behind the window, and Window is the whole window, its title
 	// row included, in which the panel is the page's size and scrolls.
 	Native bool
+	// Dock is the edge the Native window is docked against, or "" floating.
+	Dock string
 }
 
 // plain turns the overlay off from the start (SetPlain).
@@ -87,7 +97,8 @@ func (p *panel) layoutNow() *Layout {
 		case winFull:
 			l.Window = Rect{0, 0, p.scrW, p.scrH}
 		case winHalf:
-			l.Window = Rect{p.floatX, p.floatY, p.floatW, p.floatH}
+			l.Window = p.winR
+			l.Dock = p.dock
 		}
 		return l
 	}
@@ -119,6 +130,10 @@ func (p *panel) windowAct(a WindowAct) {
 	switch a.Kind {
 	case "move":
 		p.floatX, p.floatY = a.X, a.Y
+		p.dock = ""
+		p.winMode = winHalf
+	case "dock":
+		p.dock = dockEdge(a.Edge)
 		p.winMode = winHalf
 	case "full":
 		if p.winMode == winFull {
@@ -161,4 +176,13 @@ func (p *panel) writeOverlay(sc tcell.Screen, seq string) {
 	if t, ok := sc.Tty(); ok && seq != "" {
 		_, _ = t.Write([]byte(seq)) //nolint:errcheck // a terminal that will not take it shows the cells, which is the point
 	}
+}
+
+// dockEdge is edge if a window docks against it, else "": floating.
+func dockEdge(edge string) string {
+	switch edge {
+	case "top", "bottom", "left", "right":
+		return edge
+	}
+	return ""
 }
