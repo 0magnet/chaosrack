@@ -9,6 +9,7 @@
   if (window.__rackpic) {
     if (window.__rackpic.v === V) return;
     if (window.__rackpic.obs) window.__rackpic.obs.disconnect();
+    if (window.__rackpic.later && window.__rackpic.later.worker) window.__rackpic.later.worker.terminate();
   }
 
   var R = {
@@ -314,13 +315,56 @@
     return [sx, sy, sw, sh];
   }
 
+  // The scene is read back off the page's thread. getImageData on a canvas
+  // WebGL draws waits for the GPU to finish the frame — 10 to 17 ms of the
+  // page's main thread a sample, four samples a second, for a front end
+  // that is only watching. The context is WebGL 1, so there is no pixel
+  // buffer to read into later; instead the browser shrinks a snapshot
+  // (createImageBitmap, under a millisecond here), a worker reads that back,
+  // and the scene answered is the last one the worker finished: a sample
+  // behind, which at four a second nobody sees. A first sample, a new size,
+  // or a browser without the means, is read here as before.
+  var LATER = [
+    "onmessage = function (e) {",
+    "  var b = e.data.bmp, w = b.width, h = b.height;",
+    "  var g = new OffscreenCanvas(w, h).getContext('2d', { willReadFrequently: true });",
+    "  g.fillStyle = '#000'; g.fillRect(0, 0, w, h); g.drawImage(b, 0, 0); b.close();",
+    "  var d = g.getImageData(0, 0, w, h).data, rgb = new Uint8Array(w * h * 3);",
+    "  for (var i = 0, j = 0; i < d.length; i += 4) { rgb[j++] = d[i]; rgb[j++] = d[i + 1]; rgb[j++] = d[i + 2]; }",
+    "  var s = '';",
+    "  for (var k = 0; k < rgb.length; k += 0x8000) s += String.fromCharCode.apply(null, rgb.subarray(k, k + 0x8000));",
+    "  postMessage({ key: e.data.key, json: JSON.stringify({ w: w, h: h, px: btoa(s) }) });",
+    "};"
+  ].join("\n");
+  var later = R.later = { worker: null, off: false, busy: false, key: "", json: "" };
+  function laterStart(c, k, w, h, key) {
+    if (later.off || later.busy) return;
+    try {
+      if (!later.worker) {
+        later.worker = new Worker(URL.createObjectURL(new Blob([LATER], { type: "text/javascript" })));
+        later.worker.onmessage = function (e) { later.busy = false; later.key = e.data.key; later.json = e.data.json; };
+        later.worker.onerror = function () { later.off = true; later.busy = false; };
+      }
+      later.busy = true;
+      createImageBitmap(c, k[0], k[1], k[2], k[3], { resizeWidth: w, resizeHeight: h, resizeQuality: "high" }).then(function (b) {
+        later.worker.postMessage({ bmp: b, key: key }, [b]);
+      }, function () { later.off = true; later.busy = false; });
+    } catch (e) {
+      later.off = true; later.busy = false;
+    }
+  }
+
   // scene is the model's canvas, the page's whole background, as w x h
   // pixels of the given shape (a pixel's height over its width): the middle
   // of it, cropped to that shape, as a window of another shape shows it.
   R.scene = function (w, h, shape) {
     var c = document.getElementById("gocanvas");
     if (!c || !c.width || !c.height) return JSON.stringify({ err: "the page has no scene" });
-    var k = crop(c, w, h, shape);
+    w = Math.max(1, Math.min(2048, w | 0)); h = Math.max(1, Math.min(2048, h | 0));
+    var k = crop(c, w, h, shape), key = [w, h, shape, c.width, c.height].join(" ");
+    var had = later.key === key ? later.json : "";
+    laterStart(c, k, w, h, key);
+    if (had) return had;
     return JSON.stringify(sample(c, k[0], k[1], k[2], k[3], w, h) || { err: "the scene could not be read" });
   };
 
