@@ -143,7 +143,7 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754
 ## explicit; go 1.26.6
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.1-0.20261010140014-2a96dad36b4e
+# github.com/0magnet/websh v0.0.1-0.20261010153338-8bfff6c8c2a7
 ## explicit; go 1.26.6
 github.com/0magnet/websh/progressive
 github.com/0magnet/websh/shell
@@ -153,7 +153,7 @@ github.com/0magnet/websh/widget
 # github.com/0magnet/winbox-go v0.0.1-0.20261008155453-e5e3ca2e9451
 ## explicit; go 1.24
 github.com/0magnet/winbox-go
-# github.com/0magnet/xterm-go v0.0.1-0.20261010135400-513a76849bd5
+# github.com/0magnet/xterm-go v0.0.1-0.20261010151358-9a8ac37a85ad
 ## explicit; go 1.24
 github.com/0magnet/xterm-go
 github.com/0magnet/xterm-go/vt

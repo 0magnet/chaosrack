@@ -373,10 +373,30 @@ func (p *panel) layoutWindow(w, h int) {
 		p.winX, p.winY = w, 0
 		p.view.W, p.view.H = 0, 0
 	default:
+		if p.nativeNow() {
+			p.layoutFloat(w, h)
+			return
+		}
 		ww := maxi(w/2, 24)
 		p.winX, p.winY = maxi(w-ww, 0), 1
 		p.view.W, p.view.H = maxi(ww-1, 1), maxi(body-2, 1)
 	}
+}
+
+// layoutFloat places the window as it floats over a Native overlay: the
+// page's own size in cells, where it was last put, kept on the terminal.
+// floatX, floatY is its title row's left end; the body starts a row below.
+func (p *panel) layoutFloat(w, h int) {
+	ww, wh := p.src.(Native).WindowCells() //nolint:forcetypeassert // nativeNow checked
+	if ww <= 0 || wh <= 0 {
+		ww, wh = maxi(w/3, 24), maxi(h-4, 4)
+	}
+	ww, wh = min(max(ww, 8), w), min(max(wh, 3), h)
+	p.floatW, p.floatH = ww, wh
+	p.floatX, p.floatY = min(max(p.floatX, 0), w-ww), min(max(p.floatY, 0), h-wh)
+	// Its last column and row are the bars, as the half window's are.
+	p.winX, p.winY = p.floatX, p.floatY+1
+	p.view.W, p.view.H = maxi(ww-1, 1), maxi(wh-2, 1)
 }
 
 // drawPage is drawRack for the page look: the scene, and the panel's window
@@ -391,12 +411,16 @@ func (p *panel) drawPage(sc tcell.Screen, w, h int) {
 		return
 	}
 	if p.winMode == winHalf {
-		title := clip(" chaosrack controls", maxi(w-p.winX, 0))
-		st := styleOf(cellAt{Art: true, Top: [3]uint8{255, 255, 255}, Bottom: rgb3(winInk)})
-		for x := p.winX; x < w; x++ {
-			sc.SetContent(x, 0, ' ', nil, st)
+		x0, x1, y := p.winX, w, 0
+		if p.nativeNow() {
+			x0, x1, y = p.floatX, p.floatX+p.floatW, p.floatY
 		}
-		puts(sc, p.winX, 0, title, st)
+		title := clip(" chaosrack controls", maxi(x1-x0, 0))
+		st := styleOf(cellAt{Art: true, Top: [3]uint8{255, 255, 255}, Bottom: rgb3(winInk)})
+		for x := x0; x < x1; x++ {
+			sc.SetContent(x, y, ' ', nil, st)
+		}
+		puts(sc, x0, y, title, st)
 	}
 	vw, vh := p.view.W, p.view.H
 	s := pageSurface(p.pic)
@@ -447,6 +471,11 @@ func (p *panel) drawScene(sc tcell.Screen, w, h int) {
 // refreshPixels samples the scene and the canvases the window shows, and
 // reports whether there were any to sample.
 func (p *panel) refreshPixels() bool {
+	// The parts cover these cells; reading the page back for them would
+	// cost the page a frame for pixels nobody sees.
+	if p.nativeNow() {
+		return false
+	}
 	src, ok := p.src.(Pictured)
 	if p.pic == nil || !ok || p.scrW == 0 {
 		return false

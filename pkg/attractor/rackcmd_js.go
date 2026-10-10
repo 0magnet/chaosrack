@@ -44,11 +44,36 @@ import (
 // stdout and reads the shell's own stdin — no second terminal, no globals, and
 // raw mode is the switch every full-screen applet in websh already uses.
 
-// rackShellCommand is the Exec hook websh offers every non-applet command.
+// rackShellCommand is the Exec hook websh offers every non-applet command:
+// `rack`, the panel, in any terminal on the page.
 func rackShellCommand(ctx context.Context, args []string) (int, bool) {
 	if len(args) == 0 || args[0] != "rack" {
 		return 0, false
 	}
+	return rackCommand(ctx, args, false), true
+}
+
+// instrumentCommand is the instrument's own terminal's hook (seat_js.go):
+// `chaosrack` there is the process the model is — it runs while the command
+// does, and stops when it does (Ctrl+C) — and `rack` is the panel, as
+// anywhere.
+func instrumentCommand(ctx context.Context, args []string) (int, bool) {
+	if len(args) == 0 {
+		return 0, false
+	}
+	switch args[0] {
+	case "chaosrack":
+		return rackCommand(ctx, args, true), true
+	case "rack":
+		return rackCommand(ctx, args, false), true
+	}
+	return 0, false
+}
+
+// rackCommand runs the panel on the terminal ctx's command was typed in.
+// owns is the model's lifetime: powered while the panel runs, and powered
+// down when it quits, panel and model being one program.
+func rackCommand(ctx context.Context, args []string, owns bool) int {
 	hc := interp.HandlerCtx(ctx)
 	// The session this was TYPED INTO, which is not always the one the rack
 	// built for its Terminal model: the desk's terminal windows carry this same
@@ -57,21 +82,25 @@ func rackShellCommand(ctx context.Context, args []string) (int, bool) {
 	// screen that nobody is looking at.
 	// The same --look `chaosrack tui` takes, so the two panels can be set side
 	// by side drawn alike.
-	fs := flag.NewFlagSet("rack", flag.ContinueOnError)
+	fs := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	fs.SetOutput(hc.Stderr)
 	name := fs.String("look", "page", "how the panel is drawn: page (as the page draws it, at a fixed scale), dial, or punit")
 	plainCells := fs.Bool("plain", false, "cells only: lay none of the page's own parts over them (w switches it while the panel runs)")
 	if err := fs.Parse(args[1:]); err != nil {
-		return 2, true
+		return 2
 	}
 	l, ok := racktui.ParseLook(*name)
 	if !ok {
-		_, _ = fmt.Fprintf(hc.Stderr, "rack: --look %q: want page, dial or punit\n", *name) //nolint:errcheck // a closed stderr is not a reason to do anything else
-		return 2, true
+		_, _ = fmt.Fprintf(hc.Stderr, "%s: --look %q: want page, dial or punit\n", args[0], *name) //nolint:errcheck // a closed stderr is not a reason to do anything else
+		return 2
 	}
 	racktui.SetLook(l)
 	racktui.SetPlain(*plainCells)
-	return runRackPanel(web.SessionForContext(ctx), hc.Stdin, hc.Stdout, hc.Stderr), true
+	if owns {
+		instrumentProgram(true)
+		defer instrumentProgram(false)
+	}
+	return runRackPanel(web.SessionForContext(ctx), hc.Stdin, hc.Stdout, hc.Stderr)
 }
 
 // runRackPanel draws the panel on the shell's own stdio until it is quit.
@@ -121,7 +150,7 @@ func runRackPanel(sess *web.Session, stdin io.Reader, stdout, stderr io.Writer) 
 		return tcell.NewTerminfoScreenFromTty(t,
 			tcell.OptTerm("xterm-256color"), tcell.OptColors(1<<24))
 	})
-	if err := racktui.Run(ctx, inPageRack{}); err != nil {
+	if err := racktui.Run(ctx, termRack{term: sess.Term}); err != nil {
 		_, _ = fmt.Fprintln(stderr, "rack:", err) //nolint:errcheck // as above
 		return 1
 	}
