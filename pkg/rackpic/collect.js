@@ -29,9 +29,29 @@
   window.__rackpic = R;
 
   function frameEl() { return document.querySelector(".rack-frame"); }
-  function kscale() {
+  // kscale is the screen's pixels per picture pixel: the interface scale,
+  // times any transform the frame is drawn under from OUTSIDE it — a terminal
+  // laying the real panel over its cells scales it so, and the picture must
+  // not change with it. The frame's own transform (frameFit's, fitting it to
+  // its window) is part of the picture: the page look's scale is the page as
+  // it is shown. layoutKey is the frame's size and both of its own scales.
+  function cssScale() {
     return parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--kscale")) || 1;
   }
+  function ownScale(f) {
+    var m = /^matrix\(([-\d.e]+)/.exec(getComputedStyle(f).transform || "");
+    return m ? parseFloat(m[1]) || 1 : 1;
+  }
+  function kscale(f) {
+    var k = cssScale();
+    f = f || R.frame || frameEl();
+    if (f && f.offsetWidth) {
+      var w = f.getBoundingClientRect().width;
+      if (w > 0) k *= w / (f.offsetWidth * ownScale(f));
+    }
+    return k;
+  }
+  function layoutKey(f) { return f.offsetWidth + "x" + f.offsetHeight + "@" + cssScale() + "/" + ownScale(f); }
 
   // A CSS color as 0xRRGGBB, or -1 for none (absent, or all but transparent).
   // A color with some transparency is mixed with black at its alpha: the panel
@@ -204,11 +224,11 @@
   R.picture = function () {
     var f = frameEl();
     if (!f) return JSON.stringify({ err: "the page has no rack panel" });
-    var fr = f.getBoundingClientRect(), k = kscale();
+    var fr = f.getBoundingClientRect(), k = kscale(f);
     R.gen++;
     R.els = []; R.rects = []; R.inputs = []; R.texts = []; R.at = new WeakMap();
     R.dirty.clear(); R.rescan.clear(); R.full = false;
-    R.frame = f; R.key = fr.width + "x" + fr.height + "@" + k;
+    R.frame = f; R.key = layoutKey(f);
     var items = [];
     var all = f.getElementsByTagName("*");
     for (var i = 0; i < all.length; i++) {
@@ -243,8 +263,8 @@
   R.changes = function (gen) {
     var f = frameEl();
     if (!f) return JSON.stringify({ err: "the page has no rack panel" });
-    var fr = f.getBoundingClientRect(), k = kscale();
-    if (R.full || gen !== R.gen || f !== R.frame || R.key !== fr.width + "x" + fr.height + "@" + k) {
+    var fr = f.getBoundingClientRect(), k = kscale(f);
+    if (R.full || gen !== R.gen || f !== R.frame || R.key !== layoutKey(f)) {
       return JSON.stringify({ full: JSON.parse(R.picture()) });
     }
     var touched = new Set(R.dirty);

@@ -67,6 +67,10 @@ type panel struct {
 	turning bool
 	sceneQ  sceneQueue
 	q       *poster
+	// overlay lays the page's parts over the cells, where the source and
+	// the terminal can (overlay.go); laidOut is what was last written for it.
+	overlay bool
+	laidOut string
 }
 
 var (
@@ -98,7 +102,8 @@ func RunOn(sc tcell.Screen, src Source) error {
 		panelart.SetCellAspect(sh.CellAspect())
 	}
 
-	p := &panel{src: src, q: q}
+	p := &panel{src: src, q: q, overlay: !plain}
+	defer p.clearOverlay(sc) // before Fini, which is deferred first
 	p.reload()
 	p.loadPicture()
 	go q.tick(done)
@@ -286,6 +291,18 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 				return false
 			}
 			p.typeFilter(r)
+		case 'w':
+			if _, ok := p.src.(Overlay); ok && p.filt == "" {
+				// The page's parts over the cells, or the cells alone: the
+				// two drawings of one panel, compared in place.
+				p.overlay = !p.overlay
+				p.msg = "web parts off: cells only"
+				if p.overlay {
+					p.msg = "web parts on"
+				}
+				return false
+			}
+			p.typeFilter(r)
 		case 'r':
 			if p.filt == "" {
 				p.reload()
@@ -445,6 +462,9 @@ func (p *panel) draw(sc tcell.Screen) {
 
 	// The status line: what just happened, or how to work it.
 	status := "↑↓ move   ←→ turn   0 reset   ctrl+↑↓←→ pan   tab rack/list   r reload   q quit"
+	if _, ok := p.src.(Overlay); ok {
+		status += "   w web"
+	}
 	st := stDim
 	switch {
 	case p.err != "":
@@ -456,6 +476,7 @@ func (p *panel) draw(sc tcell.Screen) {
 	}
 	puts(sc, 0, h-1, clip(status, w), st)
 	sc.Show()
+	p.syncOverlay(sc)
 }
 
 func rangeOf(c Control) string {
