@@ -12,6 +12,7 @@ import (
 	"github.com/0magnet/websh/web"
 	xterm "github.com/0magnet/xterm-go"
 
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/racktui"
 )
 
@@ -60,6 +61,14 @@ func rackOverlay() js.Value {
 	if !f.Truthy() {
 		f = js.Global().Get("Function").New(rackOverlayJS).Invoke()
 		js.Global().Set("__rackOverlay", f)
+		// The frame fits itself to its parent (fitFrameToWidth), which changes
+		// whenever the overlay moves it: into a terminal's window and home.
+		js.Global().Set("__rackRefit", js.FuncOf(func(js.Value, []js.Value) any {
+			if f := dom.Doc.Call("querySelector", ".rack-frame"); f.Truthy() {
+				fitFrameToWidth(f)
+			}
+			return nil
+		}))
 		js.Global().Set("__rackWindowAct", js.FuncOf(func(_ js.Value, a []js.Value) any {
 			if windowHand != nil && len(a) == 3 {
 				windowHand(racktui.WindowAct{Kind: a[0].String(), X: a[1].Int(), Y: a[2].Int()})
@@ -135,6 +144,9 @@ if (panel) new MutationObserver(function () {
 
 function act(kind, x, y) { if (window.__rackWindowAct) window.__rackWindowAct(kind, x | 0, y | 0); }
 
+// refit has the frame fit its new parent, as it fits the page's window.
+function refit() { if (window.__rackRefit) window.__rackRefit(); }
+
 // cell is one cell of the placement el in pixels, from the layout's cells.
 function cell(el, r) {
   return [r && r.W ? el.clientWidth / r.W : 0, r && r.H ? el.clientHeight / r.H : 0];
@@ -152,6 +164,7 @@ function home(it) {
   if (it.node.parentNode === it.parent) return;
   var next = it.next && it.next.parentNode === it.parent ? it.next : null;
   it.parent.insertBefore(it.node, next);
+  refit();
 }
 function take(it) {
   return { node: it, parent: it.parentNode, next: it.nextSibling };
@@ -170,7 +183,7 @@ return {
       if (S) home(S.canvas);
       return;
     }
-    if (P && P.frame.node.parentNode !== P.wrap) P.wrap.appendChild(P.frame.node);
+    if (P && P.frame.node.parentNode !== P.wrap) { P.wrap.appendChild(P.frame.node); refit(); }
     if (S && S.canvas.node.parentNode !== S.el) S.el.appendChild(S.canvas.node);
   },
 
@@ -204,9 +217,10 @@ return {
     body.style.cssText = 'flex:1;min-height:0;overflow:auto;position:relative';
     var wrap = doc.createElement('div');
     wrap.className = ctxClass();
-    // Laid out at its own width, as it is in the page's window, so moving it
-    // does not reflow it; the frame's own fit scales it as it does there.
-    wrap.style.cssText = 'margin:0;padding:0;background:transparent;width:max-content';
+    // As wide as the window, as #controls-panel is in the page's window: the
+    // frame fits itself to its parent's width (fitFrameToWidth), so it is
+    // scaled here as it is there, and fills the terminal when the window does.
+    wrap.style.cssText = 'margin:0;padding:0;background:transparent;width:100%;box-sizing:border-box';
     body.appendChild(wrap);
     el.appendChild(bar);
     el.appendChild(body);
@@ -234,7 +248,7 @@ return {
 
     var p = P = { el: el, bar: bar, wrap: wrap, frame: take(frame) };
     wrap.appendChild(frame);
-    if (away) home(p.frame);
+    if (away) home(p.frame); else refit();
     fit();
     var ro = new ResizeObserver(fit);
     ro.observe(el);

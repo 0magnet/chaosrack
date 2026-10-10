@@ -94,6 +94,13 @@ func floatPanelWindow() {
 		// it is a CHILD of it, and letting winbox remove the window would take
 		// the entire rack's DOM along with it.
 		OnClose: func(w *winbox.WinBox, _ bool) bool {
+			// Closed by this program rather than its close button
+			// (unfloatPanelWindow clears panelWindow first, for this): the
+			// caller says where the shell goes, and re-docking it here would
+			// put it on an edge nobody chose, and save that.
+			if panelWindow != w {
+				return false
+			}
 			panelWindow = nil
 			if deskContain {
 				w.Unmount(dom.Body)

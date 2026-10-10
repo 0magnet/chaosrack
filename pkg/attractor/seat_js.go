@@ -122,6 +122,15 @@ func presentRack() {
 		rackStore.Get("style").Set("cssText", "position:fixed;left:-300vw;top:0;pointer-events:none")
 		dom.Body.Call("appendChild", rackStore)
 	}
+	// As big as the page's floating window, which the frame fits itself to:
+	// stored anywhere wider it would scale up, and come out of the store a
+	// bigger panel than the page's.
+	st := rackStore.Get("style")
+	st.Set("width", strconv.FormatFloat(layout.floatW, 'f', 0, 64)+"px")
+	st.Set("height", strconv.FormatFloat(layout.floatH, 'f', 0, 64)+"px")
+	// And the shell filling it, whatever edge the page last docked it to: a
+	// docked shell is fixed across the whole viewport, store or no store.
+	shell.Get("style").Set("cssText", "position:relative;width:100%;height:100%")
 	rackStore.Call("appendChild", shell)
 }
 
