@@ -60,6 +60,7 @@ func rackShellCommand(ctx context.Context, args []string) (int, bool) {
 	fs := flag.NewFlagSet("rack", flag.ContinueOnError)
 	fs.SetOutput(hc.Stderr)
 	name := fs.String("look", "page", "how the panel is drawn: page (as the page draws it, at a fixed scale), dial, or punit")
+	plainCells := fs.Bool("plain", false, "cells only: lay none of the page's own parts over them (w switches it while the panel runs)")
 	if err := fs.Parse(args[1:]); err != nil {
 		return 2, true
 	}
@@ -69,6 +70,7 @@ func rackShellCommand(ctx context.Context, args []string) (int, bool) {
 		return 2, true
 	}
 	racktui.SetLook(l)
+	racktui.SetPlain(*plainCells)
 	return runRackPanel(web.SessionForContext(ctx), hc.Stdin, hc.Stdout, hc.Stderr), true
 }
 
