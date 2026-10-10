@@ -61,21 +61,26 @@ jobs:
 
   tinygo:
     runs-on: ubuntu-latest
-    # TinyGo's dev image (Go 1.27 + TinyGo at /tinygo), pinned by commit,
-    # rather than a release: every release up to 0.42.0 gives each goroutine
-    # a fresh 64 KB stack and never hands it back. In the browser every JS
-    # callback is a goroutine (~290 a second here: frames, audio datagrams),
-    # so the heap filled every ~0.7 s and each collection stopped the page for
-    # 120–150 ms — a skip in every animation, plain in a persist trail.
-    # tinygo-org/tinygo fb9b49d6 releases finished stacks; return to a
-    # release once one has it.
-    container: tinygo/tinygo-dev:sha-f6d269f74ab45bfa53a37c5708c6661ec33531ae
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v5
-      # The checkout belongs to the runner's user, not the container's.
-      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      # The 0magnet/tinygo toolchain (develop, rebuilt on every push there),
+      # not a release: it has the fixes this build depends on — finished
+      # goroutine stacks handed back (tinygo-org/tinygo fb9b49d6; before it
+      # every JS callback, ~290 a second here, took a fresh 64 KB stack and
+      # each collection stopped the page for 120–150 ms) — and builds this in
+      # a few minutes where the dev image took twenty: interp no longer prints
+      # IR for errors it discards, wasm links without optimizing twice, and
+      # Binaryen is 133.
+      - name: install TinyGo
+        run: |
+          curl -sSfL https://github.com/0magnet/tinygo/releases/download/develop/tinygo.linux-amd64.tar.gz | tar -xz -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/tinygo/bin" >> "$GITHUB_PATH"
+      - run: tinygo version
       # The TinyGo build has different stdlib coverage than big Go, so this is
       # the only automated check that the dual-toolchain support still holds —
       # and now it is also where the committed artifact comes from.
