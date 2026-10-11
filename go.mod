@@ -3,21 +3,21 @@ module github.com/0magnet/chaosrack
 go 1.26.7
 
 require (
-	github.com/0magnet/audioprism-go v0.0.1-0.20261010111908-28b1953a7eda
+	github.com/0magnet/audioprism-go v0.0.1-0.20261011113236-ef2f9cb4b58d
 	github.com/0magnet/calvin v0.0.1-0.20261010111553-d1d2be37be6a
 	github.com/0magnet/cdp v0.0.0-20261008155159-1c0ee4e75307
-	github.com/0magnet/desk v0.0.3-0.20261010022904-a9f8e18be9d4
+	github.com/0magnet/desk v0.0.3-0.20261011000720-9155986fa3a1
 	github.com/0magnet/desk/panes v0.0.1-0.20261008155451-5bf2f04167ae
 	github.com/0magnet/lattice v0.0.0-20261010111611-d9ca20999e37
-	github.com/0magnet/pisano v0.0.0-20261010111635-29eee3f7b523
+	github.com/0magnet/pisano v0.0.0-20261011000707-c64a4e34f749
 	github.com/0magnet/rack-go v0.0.0-20261008155311-cfc9879cd3c8
 	github.com/0magnet/seat v0.0.0-20261010023929-451dce08bf6a
 	github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
-	github.com/0magnet/tuiwasm v0.0.0-20261010112347-c02881c6011b
-	github.com/0magnet/websh v0.0.1-0.20261010153338-8bfff6c8c2a7
+	github.com/0magnet/tuiwasm v0.0.0-20261011113702-eb36567f5553
+	github.com/0magnet/websh v0.0.1-0.20261011113319-6ef04f5478b6
 	github.com/0magnet/winbox-go v0.0.1-0.20261008155453-e5e3ca2e9451
-	github.com/0magnet/xterm-go v0.0.1-0.20261010151358-9a8ac37a85ad
-	github.com/gdamore/tcell/v3 v3.5.0
+	github.com/0magnet/xterm-go v0.0.1-0.20261011000522-9adb4a350db6
+	github.com/gdamore/tcell/v3 v3.6.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-gl/mathgl v1.2.0
 	github.com/jfreymuth/pulse v0.1.3
@@ -33,13 +33,13 @@ require (
 require (
 	charm.land/lipgloss/v2 v2.0.6 // indirect
 	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992 // indirect
-	github.com/0magnet/bottle v0.0.1-0.20261008160757-8052b02bade6 // indirect
+	github.com/0magnet/bottle v0.0.1-0.20261010202827-a5ff39f4742b // indirect
 	github.com/0magnet/glamour v1.0.1-0.20261004193946-db176df590f5 // indirect
 	github.com/0magnet/go-dsp v0.0.1-0.20261004205004-01fc64b17317 // indirect
 	github.com/0magnet/img2txt-go v0.0.1-0.20261010111608-9ac2cd47b853 // indirect
 	github.com/0magnet/lolcat-go v0.0.1-0.20261004205030-ebbe4df3258a // indirect
 	github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc // indirect
-	github.com/0magnet/termanim v0.0.1-0.20261010111704-cb045978ae9c // indirect
+	github.com/0magnet/termanim v0.0.1-0.20261011113000-e10d331f8bc7 // indirect
 	github.com/0magnet/toilet-go v0.0.0-20261010111710-2d81119b195a // indirect
 	github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754 // indirect
 	github.com/alecthomas/chroma/v2 v2.27.0 // indirect
