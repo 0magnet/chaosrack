@@ -78,7 +78,7 @@ jobs:
       # Binaryen is 133.
       - name: install TinyGo
         run: |
-          curl -sSfL https://github.com/0magnet/tinygo/releases/download/develop/tinygo.linux-amd64.tar.gz | tar -xz -C "$RUNNER_TEMP"
+          curl -sSfL https://github.com/0magnet/tinygo/releases/download/toolchain/tinygo.linux-amd64.tar.gz | tar -xz -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/tinygo/bin" >> "$GITHUB_PATH"
       - run: tinygo version
       # The TinyGo build has different stdlib coverage than big Go, so this is
