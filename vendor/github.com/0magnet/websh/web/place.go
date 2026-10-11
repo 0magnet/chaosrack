@@ -240,7 +240,13 @@ func (p *placements) remove(id string) {
 		pl.port.Call("close")
 	}
 	pl.onMsg.Release()
+	// A placement taken away while it had the keys gives them back to the
+	// terminal: otherwise they go nowhere until the person clicks it.
+	focused := pl.el.Call("contains", js.Global().Get("document").Get("activeElement")).Truthy()
 	pl.el.Call("remove")
+	if focused {
+		p.s.Term.Focus()
+	}
 }
 
 // mountOffered fills pl with a widget a program offered. Its mount and
