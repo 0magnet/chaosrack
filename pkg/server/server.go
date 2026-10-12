@@ -2,8 +2,8 @@
 
 // Package server is the chaosrack web server: it serves the strange-attractor
 // visualizer as a self-contained page (wasm inlined as base64), for both the
-// standard Go and TinyGo builds, using the embedded assets package. Both the
-// repo-root entrypoint and cmd/chaosrack call Execute.
+// standard Go and TinyGo builds, using the embedded assets package. The command is
+// assembled and run by package commands.
 package server
 
 import (
@@ -20,7 +20,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/0magnet/calvin/clihelp"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 
@@ -63,13 +62,9 @@ func init() {
 	runCmd.Flags().BoolVar(&inlineWasm, "inline", false, "carry the wasm inside the HTML instead of fetching it (the single-file build; see `make onefile`)")
 }
 
-// Execute runs the root CLI command (the server).
-func Execute() {
-	clihelp.Init(runCmd, "chaosrack", true)
-	if err := runCmd.Execute(); err != nil {
-		log.Fatal("Failed to execute command: ", err)
-	}
-}
+// Command is the chaosrack root command (the server); package commands adds the
+// harness subcommands and runs it.
+func Command() *cobra.Command { return runCmd }
 
 var runCmd = &cobra.Command{
 	Use:   "chaosrack",
@@ -113,7 +108,9 @@ Optional flags give the page access to this machine:
 --bind. Add --auth on a shared machine, so the page has to ask for the token.
 
 The subcommands tui, ctl and rack control a rack that is already open in a
-browser. render and models draw models to image files without a browser.`,
+browser. render and models draw models to image files without a browser.
+stlgen writes the models as STL files, audiows is the audio WebSocket/WebTransport
+test harness, and uitool drives the page over CDP for tests and captures.`,
 	Run: func(_ *cobra.Command, _ []string) {
 		wg := new(sync.WaitGroup)
 		r1 := gin.New()

@@ -14,7 +14,7 @@
 // drawing is what a front end IS.
 //
 // Where the rack lives is a Source's business. Today the only one is a cable
-// to a running page (cmd/uitool), because the instrument is wasm and its
+// to a running page (chaosrack uitool), because the instrument is wasm and its
 // controls are wired by code that needs a browser. A Source backed by the rack
 // itself — the same tcell panel rendered inside the page, the way
 // magnetosphere's store runs both natively and on the desk — needs nothing

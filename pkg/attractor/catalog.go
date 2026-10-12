@@ -2,7 +2,7 @@ package attractor
 
 // The catalog is the mode registry read from outside the package: the same
 // ordered groups the mode-selector knob turns through, with each model's
-// label and description attached. cmd/uitool generates the README's model
+// label and description attached. chaosrack uitool generates the README's model
 // reference and captures its per-model images from this, so the documentation
 // and the control surface cannot disagree about what exists — adding a mode
 // to modeGroups puts it in the README, and a mode with no description fails

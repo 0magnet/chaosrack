@@ -136,7 +136,7 @@ func padRunes(s string, w int) string {
 // width is decided by its contents at the interface scale in use, which is a
 // question only a laid-out panel can answer.
 //
-// Exported for cmd/uitool, and for whatever renders the rack next: this is
+// Exported for chaosrack uitool, and for whatever renders the rack next: this is
 // the whole input a second front end needs.
 func DrawRackFrom(keys, cats []string, slots []int, capacity int, monitors map[string]int) string {
 	n := min(len(slots), len(keys))

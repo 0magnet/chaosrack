@@ -12,7 +12,7 @@
 // speakers, where nothing records it.
 //
 // It is a package because both servers want it and it is a fact about neither.
-// It was cmd/audiows's private business for as long as cmd/audiows was the only
+// It was chaosrack audiows's private business for as long as chaosrack audiows was the only
 // thing that captured audio; the root server's --audio ended that, and leaving
 // the routing behind would have meant the two halves of one feature could never
 // be in one process -- stop one server, start another, reload the tab.

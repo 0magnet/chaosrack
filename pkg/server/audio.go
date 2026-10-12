@@ -22,7 +22,7 @@ import (
 
 // The audio feed, served by the same process that serves the page.
 //
-// The capture used to live only in cmd/audiows, so hearing anything meant
+// The capture used to live only in chaosrack audiows, so hearing anything meant
 // running two servers and telling the page where the second one was
 // (?wsurl=ws://…). That is a workaround for where the code lived, not a
 // property of audio capture: one listener can serve the page, the host agent

@@ -34,7 +34,7 @@ type WSOptions struct {
 
 // NewWebSocket returns a Source that receives audio from a WebSocket
 // server streaming little-endian float32 samples in binary frames — the
-// wire format of cmd/audiows and of audioprism-go's /ws handler. Servers
+// wire format of chaosrack audiows and of audioprism-go's /ws handler. Servers
 // that have not been upgraded yet, which send the same bytes base64'd in
 // a text frame, are still read (see decodeWSMessage). The connection is
 // opened immediately and re-established automatically 2s after any drop.

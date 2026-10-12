@@ -6,13 +6,10 @@
 // drifting. One package that every command calls keeps them the same by
 // construction.
 //
-// The help is rendered directly rather than through cobra's template, and that
-// is not a stylistic choice. A template reaches its data by reflection, and
-// TinyGo does not implement enough of reflect to run one — it panics part way
-// through, taking the shell down with it. Repos here that ship a TinyGo build
-// (chaosrack, dict, pisano, tinygo-stuff, tuiwasm) would have had a --help that
-// killed the terminal. Writing the screen out means one renderer, the same
-// output on every host, and no reflection anywhere. See help.go.
+// The coloring is coloredcobra's, in one house palette. Under TinyGo, where
+// cobra's templates cannot run, coloredcobra installs its own template-free
+// renderer with the same colors, so the browser builds of chaosrack, dict,
+// pisano and tuiwasm keep a working --help.
 //
 // Everything it reports comes from runtime/debug.BuildInfo, which the Go
 // toolchain fills in on its own. Nothing here is injected with -ldflags: a
@@ -25,6 +22,7 @@ import (
 	"runtime/debug"
 	"strings"
 
+	cc "github.com/0magnet/coloredcobra"
 	"github.com/spf13/cobra"
 
 	"github.com/0magnet/calvin"
@@ -131,30 +129,36 @@ func BannerWith(name, text string) string {
 // An existing Long is kept as prose under the build lines rather than replaced.
 // A command that has explained itself should not lose that explanation to gain
 // a banner, and every one of these trees had prose worth keeping.
-//
-// usage controls whether the "Usage:" line appears above the command listing.
-func Init(cmd *cobra.Command, name string, usage bool) {
+func Init(cmd *cobra.Command, name string) {
 	if prose := strings.TrimSpace(cmd.Long); prose != "" {
 		cmd.Long = BannerWith(name, prose)
 	} else {
 		cmd.Long = Banner(name)
 	}
-	InitStyle(cmd, usage)
+	InitStyle(cmd)
 	InitFlags(cmd)
 }
 
-// InitStyle installs the renderer without touching Long or the flags. Use it
-// for a subcommand root that already inherits both.
+// InitStyle applies the house colors through coloredcobra without touching
+// Long or the flags. Use it for a subcommand root that already inherits both.
 //
-// cobra looks up HelpFunc and UsageFunc through the parent chain, so setting
-// them on the root covers every subcommand.
-func InitStyle(cmd *cobra.Command, usage bool) {
-	cmd.SetHelpFunc(func(c *cobra.Command, _ []string) {
-		writeHelp(c.OutOrStdout(), c, usage)
-	})
-	cmd.SetUsageFunc(func(c *cobra.Command) error {
-		writeUsage(c.OutOrStderr(), c, true)
-		return nil
+// cobra looks up the usage template (and, under TinyGo, coloredcobra's help
+// and usage funcs) through the parent chain, so styling the root covers every
+// subcommand.
+func InitStyle(cmd *cobra.Command) {
+	cc.Init(&cc.Config{
+		RootCmd:         cmd,
+		Headings:        cc.HiBlue + cc.Bold,
+		Commands:        cc.HiBlue + cc.Bold,
+		CmdShortDescr:   cc.HiBlue,
+		ExecName:        cc.HiBlue + cc.Bold,
+		Flags:           cc.HiBlue + cc.Bold,
+		FlagsDataType:   cc.HiBlue + cc.Bold,
+		FlagsDescr:      cc.HiBlue,
+		Aliases:         cc.HiBlue,
+		Example:         cc.HiBlue + cc.Italic,
+		NoExtraNewlines: true,
+		NoBottomNewline: true,
 	})
 }
 

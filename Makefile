@@ -190,7 +190,7 @@ site: ## Regenerate models/ — one readable page per model — and sitemap.xml
 	@# thing outside it that can name a model is a page that says so in text.
 	@# Same attractor.Catalog() the README and the selector knobs come from:
 	@# adding a mode adds a page, and `site-check` fails when it has not.
-	go run ./cmd/uitool site
+	go run . uitool site
 
 readme-check: ## Report whether README.md's generated regions are up to date
 	@# The models section is built from attractor.Catalog() and the same
@@ -199,10 +199,10 @@ readme-check: ## Report whether README.md's generated regions are up to date
 	@# them, so it had drifted: the app's descriptions had been rewritten and
 	@# trimmed underneath it, and the modules section listed 23 of the rack's
 	@# 35 modules. Both are the kind of drift nobody notices by reading.
-	go run ./cmd/uitool readme -check
+	go run . uitool readme --check
 
 site-check: ## Report whether models/ is up to date; change nothing
-	go run ./cmd/uitool site -site-check
+	go run . uitool site --site-check
 
 wasm: ## Rebuild the embedded Go wasm (assets/gowasm/chaosrack.wasm)
 	CGO_ENABLED=0 GOOS=js GOARCH=wasm ${OPTS} go build -o assets/gowasm/chaosrack.wasm ./cmd/wasm
@@ -214,20 +214,20 @@ wasm: ## Rebuild the embedded Go wasm (assets/gowasm/chaosrack.wasm)
 # The page, driven: every model and every switch in a private headless
 # browser, against a server of its own, with nothing on screen and fresh
 # storage. Fails on a page error, a freeze, a bay that overflows, or a
-# listener freed while still attached (see cmd/uitool/sweep.go). Built from
+# listener freed while still attached (see pkg/uitool/sweep.go). Built from
 # the current source first, since the server serves the embedded wasm.
-# SWEEP= passes flags on: SWEEP='-models custom,lorenz -switches=false'.
-# LINT= likewise for lint-panel: LINT='-models globe,lorenz'.
+# SWEEP= passes flags on: SWEEP='--models custom,lorenz --switches=false'.
+# LINT= likewise for lint-panel: LINT='--models globe,lorenz'.
 sweep: wasm ## Walk every model and switch in a headless browser (nothing on screen)
 	@d=$$(mktemp -d); trap 'rm -rf $$d' EXIT; \
-		go build -o $$d/chaosrack . && go build -o $$d/uitool ./cmd/uitool && \
-		$$d/uitool sweep -headless -serve $$d/chaosrack $(SWEEP)
+		go build -o $$d/chaosrack . && \
+		$$d/chaosrack uitool sweep --headless --serve $$d/chaosrack $(SWEEP)
 
-publish-gifs: ## Put docs/img/gif on the media branch and redeploy Pages (after `uitool gifs`)
+publish-gifs: ## Put docs/img/gif on the media branch and redeploy Pages (after `chaosrack uitool gifs`)
 	@# The gallery is not on main (see .gitignore). media is ONE commit,
 	@# replaced each time rather than added to, so remaking the GIFs never
 	@# grows the repository; Pages adds them to the site (pages.yml).
-	@ls docs/img/gif/*.gif >/dev/null 2>&1 || { echo "no GIFs in docs/img/gif: run uitool gifs first"; exit 1; }
+	@ls docs/img/gif/*.gif >/dev/null 2>&1 || { echo "no GIFs in docs/img/gif: run chaosrack uitool gifs first"; exit 1; }
 	@idx=$$(mktemp -u); trap 'rm -f $$idx' EXIT; \
 		GIT_INDEX_FILE=$$idx git add -f docs/img/gif/*.gif && \
 		tree=$$(GIT_INDEX_FILE=$$idx git write-tree) && \
@@ -237,8 +237,8 @@ publish-gifs: ## Put docs/img/gif on the media branch and redeploy Pages (after 
 
 lint-panel: wasm ## Measure the panel for faults (overflow, overlap, off-center, tooltips) on every model, headless
 	@d=$$(mktemp -d); trap 'rm -rf $$d' EXIT; \
-		go build -o $$d/chaosrack . && go build -o $$d/uitool ./cmd/uitool && \
-		$$d/uitool lint -headless -serve $$d/chaosrack $(LINT)
+		go build -o $$d/chaosrack . && \
+		$$d/chaosrack uitool lint --headless --serve $$d/chaosrack $(LINT)
 
 tinywasm: ## Rebuild the embedded TinyGo wasm (assets/tinywasm/chaosrack-tiny.wasm)
 	@# Recorded here because it was recorded NOWHERE: not the Makefile, not a

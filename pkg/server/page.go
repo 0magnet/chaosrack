@@ -14,7 +14,7 @@ import (
 // the page the same way.
 //
 // It exists because there were two: pkg/server had its own struct and
-// cmd/audiows had a copy of it, both feeding assets.IndexTemplate. When the
+// chaosrack audiows had a copy of it, both feeding assets.IndexTemplate. When the
 // inlined wasm changed from plain base64 to gzipped base64 the fields were
 // renamed here and the copy was left behind, so audiows started answering
 // every request with

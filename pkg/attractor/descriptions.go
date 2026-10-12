@@ -12,7 +12,7 @@ import (
 // The mode descriptions — the prose the info overlay shows and the README's
 // model reference is generated from. They are the manual's (models.md, each
 // as model.<mode>), and this is them by mode. Untagged, next to the mode
-// registry in modes.go, so the native tools can read them: cmd/uitool writes
+// registry in modes.go, so the native tools can read them: chaosrack uitool writes
 // the README from this map. Modes whose description is composed from data
 // (the Sprott catalog) register in the init below.
 var attractorDescriptions = func() map[string]string {

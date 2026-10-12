@@ -3,7 +3,7 @@
 // registered flow swept as a tube along its own trajectory.
 //
 // Not in meshstl, which builds meshes and knows nothing of the app: these are
-// the app's rack and the app's flows. The same list backs `cmd/stlgen` and the
+// the app's rack and the app's flows. The same list backs `chaosrack stlgen` and the
 // STL mode's model picker, so what is written to a file and what the app
 // offers cannot be different sets.
 package stlmodels

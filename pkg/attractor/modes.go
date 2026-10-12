@@ -6,7 +6,7 @@ package attractor
 // hash-mode validation list, the params/IC/description maps, and the uitool
 // tour lists). Now: one ModeInfo row + one modeGroups placement (+ a
 // registerGenerate call beside the mode's generator), and everything else
-// derives. Untagged so the native tests and cmd/uitool can read it too.
+// derives. Untagged so the native tests and chaosrack uitool can read it too.
 
 // ModeClass is the mode's broad behavior family.
 type ModeClass int
@@ -301,7 +301,7 @@ func isFlatScope(mode string) bool { //nolint:unused // only the js build draws,
 }
 
 // ModeKeys returns every registered key whose class is in the given set, in
-// stable modeGroups order without duplicates — exported for cmd/uitool's
+// stable modeGroups order without duplicates — exported for chaosrack uitool's
 // tour/gallery lists.
 func ModeKeys(classes ...ModeClass) []string {
 	want := map[ModeClass]bool{}

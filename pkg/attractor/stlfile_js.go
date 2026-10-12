@@ -218,7 +218,7 @@ func buildSTLFileModule() {
 // buildSTLBuiltInPicker fills the Loader module's built-in list and wires it.
 //
 // The models are generated here, in the browser, from pkg/attractor's own
-// STLModels — the same list cmd/stlgen writes to disk. Nothing is fetched and
+// STLModels — the same list chaosrack stlgen writes to disk. Nothing is fetched and
 // nothing is embedded: a hundred megabytes of STL would have to ship with the
 // app otherwise, and the generators are a few kilobytes of code.
 func buildSTLBuiltInPicker() {
