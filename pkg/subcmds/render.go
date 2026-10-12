@@ -1,12 +1,10 @@
-//go:build !js
-
-package server
+package subcmds
 
 import (
 	"fmt"
 	"image/png"
+	"io"
 	"math"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -15,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
+	"github.com/0magnet/chaosrack/pkg/cmdfs"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"github.com/0magnet/chaosrack/pkg/rasterview"
 )
@@ -55,7 +54,7 @@ var (
 	renderGrad   string
 )
 
-func init() {
+func renderFlags(renderCmd *cobra.Command) {
 	renderCmd.Flags().StringVar(&renderModel, "model", "", "which model to draw (chaosrack models lists them)")
 	renderCmd.Flags().StringVarP(&renderOut, "out", "o", "", "file to write; .png or .svg by extension")
 	renderCmd.Flags().IntVar(&renderW, "width", 1000, "image width in pixels")
@@ -74,10 +73,12 @@ func init() {
 	renderCmd.Flags().StringVar(&renderGrad, "gradient", "z", "what the palette follows: x, y, z, or trail (position along the path)")
 }
 
-var modelsCmd = &cobra.Command{
-	Use:   "models",
-	Short: "list the models that can be drawn without a browser",
-	Long: `List the models that render can draw, with their labels and catalog groups.
+// newModelsCmd is `chaosrack models`.
+func newModelsCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "models",
+		Short: "list the models that can be drawn without a browser",
+		Long: `List the models that render can draw, with their labels and catalog groups.
 
 These are the models that can be computed without a browser: the flows, the
 discrete maps, the Lissajous figure, the polyhedra, and the sphere, torus,
@@ -90,45 +91,48 @@ from this machine's audio, or draws them from a built-in test signal.
 
 Page-based models such as the terminal, the desk and the STL viewer are not
 listed, because they need a browser.`,
-	RunE: func(_ *cobra.Command, _ []string) error {
-		labels := map[string][2]string{}
-		for _, g := range attractor.Catalog() {
-			for _, m := range g.Models {
-				if _, dup := labels[m.Key]; !dup {
-					labels[m.Key] = [2]string{m.Label, g.Label}
+		RunE: func(_ *cobra.Command, _ []string) error {
+			labels := map[string][2]string{}
+			for _, g := range attractor.Catalog() {
+				for _, m := range g.Models {
+					if _, dup := labels[m.Key]; !dup {
+						labels[m.Key] = [2]string{m.Label, g.Label}
+					}
 				}
 			}
-		}
-		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		if _, err := fmt.Fprintln(w, "MODEL\tLABEL\tGROUP\tDRAWN FROM"); err != nil {
-			return err
-		}
-		row := func(k, from string) error {
-			l := labels[k]
-			if l[0] == "" {
-				l = [2]string{k, "Attractors"}
-			}
-			_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", k, l[0], l[1], from)
-			return err
-		}
-		for _, k := range drawableKeys() {
-			if err := row(k, ""); err != nil {
+			w := tabwriter.NewWriter(stdout, 0, 0, 2, ' ', 0)
+			if _, err := fmt.Fprintln(w, "MODEL\tLABEL\tGROUP\tDRAWN FROM"); err != nil {
 				return err
 			}
-		}
-		for _, k := range audioInputModels() {
-			if err := row(k, "--audio or --signal"); err != nil {
+			row := func(k, from string) error {
+				l := labels[k]
+				if l[0] == "" {
+					l = [2]string{k, "Attractors"}
+				}
+				_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", k, l[0], l[1], from)
 				return err
 			}
-		}
-		return w.Flush()
-	},
+			for _, k := range drawableKeys() {
+				if err := row(k, ""); err != nil {
+					return err
+				}
+			}
+			for _, k := range audioInputModels() {
+				if err := row(k, "--audio or --signal"); err != nil {
+					return err
+				}
+			}
+			return w.Flush()
+		},
+	}
 }
 
-var renderCmd = &cobra.Command{
-	Use:   "render",
-	Short: "draw a model to a PNG, SVG or GIF, without a browser",
-	Long: `Draw a model to an image file without a browser.
+// newRenderCmd is `chaosrack render`, its flags bound afresh.
+func newRenderCmd() *cobra.Command {
+	renderCmd := &cobra.Command{
+		Use:   "render",
+		Short: "draw a model to a PNG, SVG or GIF, without a browser",
+		Long: `Draw a model to an image file without a browser.
 
 The output format comes from the -o file extension:
 
@@ -185,57 +189,62 @@ built-in test signal instead, 2 seconds of it unless --audio says otherwise.
 --check draws every model that needs no signal and reports any that produce
 nothing: a trajectory that diverges, or one that stays at a single point. It
 exits with an error if any fail.`,
-	RunE: func(cmd *cobra.Command, _ []string) error {
-		if renderParams {
-			return listParams()
-		}
-		if err := applySets(); err != nil {
-			return err
-		}
-		if renderCheck {
-			return checkEveryModel()
-		}
-		if renderModel == "" {
-			return fmt.Errorf("--model is required (chaosrack models lists them, --check tests them all)")
-		}
-		if isAudioInput(renderModel) {
-			return renderAudio(cmd)
-		}
-		fig, err := figureFor(renderModel)
-		if err != nil {
-			return err
-		}
-		// A map's iterates lie in the z=0 plane, so the default oblique view
-		// squashes them and a z gradient paints them one color. Face-on and
-		// colored by y is how they read, unless the flags say otherwise.
-		if fig.Kind == attractor.FigurePoints {
-			if !cmd.Flags().Changed("angle") {
-				renderSpin = []float64{0, 0, 0}
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			if renderParams {
+				return listParams()
 			}
-			if !cmd.Flags().Changed("gradient") {
-				renderGrad = "y"
+			if err := applySets(); err != nil {
+				return err
 			}
-		}
-		pts := fig.Points
-		if len(pts) == 0 {
-			return fmt.Errorf("%s: integrated to nothing — the trajectory diverged", renderModel)
-		}
-		dx, dy, dz := attractor.Extent(pts)
-		if math.Max(dx, math.Max(dy, dz)) == 0 {
-			return fmt.Errorf("%s: the figure has no extent — it is a single point", renderModel)
-		}
-		if renderFrames > 0 {
+			if renderCheck {
+				return checkEveryModel()
+			}
+			if renderModel == "" {
+				return fmt.Errorf("--model is required (chaosrack models lists them, --check tests them all)")
+			}
+			if isAudioInput(renderModel) {
+				return renderAudio(cmd)
+			}
+			fig, err := figureFor(renderModel)
+			if err != nil {
+				return err
+			}
+			// A map's iterates lie in the z=0 plane, so the default oblique view
+			// squashes them and a z gradient paints them one color. Face-on and
+			// colored by y is how they read, unless the flags say otherwise.
+			if fig.Kind == attractor.FigurePoints {
+				if !cmd.Flags().Changed("angle") {
+					renderSpin = []float64{0, 0, 0}
+				}
+				if !cmd.Flags().Changed("gradient") {
+					renderGrad = "y"
+				}
+			}
+			pts := fig.Points
+			if len(pts) == 0 {
+				return fmt.Errorf("%s: integrated to nothing — the trajectory diverged", renderModel)
+			}
+			dx, dy, dz := attractor.Extent(pts)
+			if math.Max(dx, math.Max(dy, dz)) == 0 {
+				return fmt.Errorf("%s: the figure has no extent — it is a single point", renderModel)
+			}
+			if renderFrames > 0 {
+				if renderOut == "" {
+					return fmt.Errorf("--frames needs -o: an animation has nowhere to go")
+				}
+				return writeFigureAnimation(renderOut, fig)
+			}
 			if renderOut == "" {
-				return fmt.Errorf("--frames needs -o: an animation has nowhere to go")
+				outf("%s: %d points, extent %.3f x %.3f x %.3f\n", renderModel, len(pts), dx, dy, dz)
+				return nil
 			}
-			return writeFigureAnimation(renderOut, fig)
-		}
-		if renderOut == "" {
-			fmt.Printf("%s: %d points, extent %.3f x %.3f x %.3f\n", renderModel, len(pts), dx, dy, dz)
-			return nil
-		}
-		return writeFigure(renderOut, fig)
-	},
+			return writeFigure(renderOut, fig)
+		},
+	}
+	renderFlags(renderCmd)
+	audioFlags(renderCmd)
+	recordFlags(renderCmd)
+	return renderCmd
 }
 
 // trajectoryFor integrates one model at the flags' settings.
@@ -276,7 +285,7 @@ func trajectoryFor(model string) [][3]float64 {
 					advice += fmt.Sprintf(" (a run this long cannot be drawn whole: %d steps is past the %d the renderer can index)",
 						steps, 65536)
 				}
-				fmt.Fprintf(os.Stderr,
+				errf(
 					"chaosrack: %s over %g model-seconds is %d steps drawn with %d points — "+
 						"one point kept in %d, so the curve will be faceted.\n  %s.\n",
 					model, renderSecs, steps, o.MaxPoints, every, advice)
@@ -295,9 +304,9 @@ func writeModel(name string, pts [][3]float64) error {
 	case ".svg":
 		// 0600: gosec is right that a tool should not widen permissions on the
 		// user's behalf, and the umask gives them whatever they wanted anyway.
-		return os.WriteFile(name, []byte(svgOf(pts)), 0o600)
+		return cmdfs.WriteFile(runCtx, name, []byte(svgOf(pts)), 0o600)
 	case ".png", "":
-		f, err := os.Create(name) //nolint:gosec // the path is the user's own argument
+		f, err := cmdfs.Create(runCtx, name)
 		if err != nil {
 			return err
 		}
@@ -346,12 +355,12 @@ func checkEveryModel() error {
 			dead = append(dead, k+" (a fixed point)")
 			continue
 		}
-		fmt.Printf("%-16s %6d points   %8.3f x %8.3f x %8.3f\n", k, len(fig.Points), dx, dy, dz)
+		outf("%-16s %6d points   %8.3f x %8.3f x %8.3f\n", k, len(fig.Points), dx, dy, dz)
 	}
 	if len(dead) > 0 {
 		return fmt.Errorf("%d of %d models draw nothing: %s", len(dead), len(keys), strings.Join(dead, ", "))
 	}
-	fmt.Printf("\nall %d models draw something\n", len(keys))
+	outf("\nall %d models draw something\n", len(keys))
 	return nil
 }
 
@@ -399,6 +408,6 @@ func listParams() error {
 	if err := w.Flush(); err != nil {
 		return err
 	}
-	_, err := os.Stdout.WriteString(b.String())
+	_, err := io.WriteString(stdout, b.String())
 	return err
 }

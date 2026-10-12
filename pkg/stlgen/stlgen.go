@@ -18,9 +18,10 @@
 package stlgen
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"os"
+	"io"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -28,40 +29,58 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
+	"github.com/0magnet/chaosrack/pkg/cmdfs"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"github.com/0magnet/chaosrack/pkg/meshstl"
 	"github.com/0magnet/chaosrack/pkg/rackspec"
 )
 
-var (
-	outDir string
-	only   string
-	list   bool
-	seg    int
-)
-
 // Command is `chaosrack stlgen`.
 func Command() *cobra.Command {
+	var o options
 	cmd := &cobra.Command{
 		Use:   "stlgen",
 		Short: "write the rack and its models as STL files",
 		Args:  cobra.NoArgs,
-		Run:   func(_ *cobra.Command, _ []string) { run() },
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return run(cmd.Context(), cmd.OutOrStdout(), cmd.ErrOrStderr(), o)
+		},
 	}
 	f := cmd.Flags()
-	f.StringVar(&outDir, "dir", "docs/stl", "where to write the files")
-	f.StringVar(&only, "only", "", "comma-separated name filter")
-	f.BoolVar(&list, "list", false, "list what would be written and stop")
-	f.IntVar(&seg, "seg", 0, "segments per revolution (0 = each model's default)")
+	f.StringVar(&o.outDir, "dir", "docs/stl", "where to write the files")
+	f.StringVar(&o.only, "only", "", "comma-separated name filter")
+	f.BoolVar(&o.list, "list", false, "list what would be written and stop")
+	f.IntVar(&o.seg, "seg", 0, "segments per revolution (0 = each model's default)")
 	return cmd
 }
 
-func run() {
+type options struct {
+	outDir string
+	only   string
+	list   bool
+	seg    int
+}
 
+// writeSTL writes one mesh to path.
+func writeSTL(ctx context.Context, path string, mesh meshstl.Mesh, header string) error {
+	f, err := cmdfs.Create(ctx, path)
+	if err != nil {
+		return err
+	}
+	err = meshstl.WriteBinarySTL(f, mesh, header)
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	return err
+}
+
+func run(ctx context.Context, out, errOut io.Writer, o options) error {
+	outf := func(format string, a ...any) { fmt.Fprintf(out, format, a...) }    //nolint:errcheck // as fmt.Printf was: the files are what a run is for
+	errf := func(format string, a ...any) { fmt.Fprintf(errOut, format, a...) } //nolint:errcheck // as above
 	models := attractor.STLModels()
 	want := map[string]bool{}
-	if only != "" {
-		for k := range strings.SplitSeq(only, ",") {
+	if o.only != "" {
+		for k := range strings.SplitSeq(o.only, ",") {
 			want[strings.TrimSpace(k)] = true
 		}
 	}
@@ -72,17 +91,16 @@ func run() {
 	}
 	sort.Strings(names)
 
-	if list {
+	if o.list {
 		for _, m := range models {
-			fmt.Printf("%-16s %s\n", m.Name, m.Description)
+			outf("%-16s %s\n", m.Name, m.Description)
 		}
-		fmt.Printf("\n%d models\n", len(models))
-		return
+		outf("\n%d models\n", len(models))
+		return nil
 	}
 
-	if err := os.MkdirAll(outDir, 0o750); err != nil {
-		fmt.Fprintln(os.Stderr, "stlgen:", err)
-		os.Exit(1)
+	if err := cmdfs.MkdirAll(ctx, o.outDir, 0o750); err != nil {
+		return err
 	}
 
 	var written, skipped int
@@ -91,50 +109,42 @@ func run() {
 		if len(want) > 0 && !want[m.Name] {
 			continue
 		}
-		mesh := m.Build(seg)
+		mesh := m.Build(o.seg)
 		if len(mesh.Tris) == 0 {
-			fmt.Fprintf(os.Stderr, "  %-16s empty — skipped\n", m.Name)
+			errf("  %-16s empty — skipped\n", m.Name)
 			skipped++
 			continue
 		}
-		path := filepath.Join(outDir, m.Name+".stl")
-		f, err := os.Create(path) //nolint:gosec // a path this command was told to write
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "stlgen:", err)
-			os.Exit(1)
-		}
-		err = meshstl.WriteBinarySTL(f, mesh, m.Description)
-		cerr := f.Close()
-		if err == nil {
-			err = cerr
-		}
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "stlgen:", err)
-			os.Exit(1)
+		if err := writeSTL(ctx, filepath.Join(o.outDir, m.Name+".stl"), mesh, m.Description); err != nil {
+			return err
 		}
 		size := mesh.Size()
-		fmt.Printf("  %-16s %7d tris  %6.1f x %6.1f x %6.1f mm\n",
+		outf("  %-16s %7d tris  %6.1f x %6.1f x %6.1f mm\n",
 			m.Name+".stl", len(mesh.Tris), size[0], size[1], size[2])
 		written++
 		total += len(mesh.Tris)
 	}
 	if len(want) == 0 {
-		ef, et := writeExactPanels(outDir, seg)
+		ef, et, err := writeExactPanels(ctx, out, o.outDir, o.seg)
+		if err != nil {
+			return err
+		}
 		written += ef
 		total += et
 	}
-	fmt.Printf("stlgen: %d files, %d triangles → %s\n", written, total, outDir)
+	outf("stlgen: %d files, %d triangles → %s\n", written, total, o.outDir)
 	if skipped > 0 {
-		fmt.Printf("stlgen: %d skipped\n", skipped)
+		outf("stlgen: %d skipped\n", skipped)
 	}
 	// A reminder of what the rack numbers are, since this is the command that
 	// makes them physical.
-	fmt.Printf("stlgen: a slot is %d HP = %.2f mm wide and %.1f mm tall; %d fit an %d HP row\n",
+	outf("stlgen: a slot is %d HP = %.2f mm wide and %.1f mm tall; %d fit an %d HP row\n",
 		rackspec.ModuleHP, rackspec.SlotWidth, rackspec.PanelHeight3U,
 		rackspec.SlotsPerRow(), rackspec.RowHP)
 	if n := len(dynamics.Keys()); n > 0 {
-		fmt.Printf("stlgen: %d of them are integrated flows\n", n)
+		outf("stlgen: %d of them are integrated flows\n", n)
 	}
+	return nil
 }
 
 // writeExactPanels emits one STL per REAL module, from the layout `uitool
@@ -145,43 +155,32 @@ func run() {
 // selector where the Console's concentric model selector is, the Patchbay's
 // thirty-six pins on the pitch they are really on — because a model of
 // something that merely looks like the rack is not a model of the rack.
-func writeExactPanels(dir string, seg int) (files, tris int) {
-	data, err := os.ReadFile(filepath.Join(dir, "layout.json")) //nolint:gosec // a generated file at a path this command owns
+func writeExactPanels(ctx context.Context, out io.Writer, dir string, seg int) (files, tris int, err error) {
+	outf := func(format string, a ...any) { fmt.Fprintf(out, format, a...) } //nolint:errcheck // as fmt.Printf was
+	data, err := cmdfs.ReadFile(ctx, filepath.Join(dir, "layout.json"))
 	if err != nil {
-		fmt.Println("stlgen: no measured layout (run `uitool modules` against a tab); " +
+		outf("%s\n", "stlgen: no measured layout (run `chaosrack uitool modules` against a tab); "+
 			"the rack models are the generic ones")
-		return 0, 0
+		return 0, 0, nil
 	}
 	var lays []meshstl.PanelLayout
 	if err := json.Unmarshal(data, &lays); err != nil {
-		fmt.Fprintln(os.Stderr, "stlgen: reading the layout:", err)
-		return 0, 0
+		return 0, 0, fmt.Errorf("reading the layout: %w", err)
 	}
 	for _, l := range lays {
 		if l.HP < 1 {
 			continue
 		}
 		mesh := meshstl.ExactPanel(l, true, seg)
-		path := filepath.Join(dir, "panel-"+l.ID+".stl")
-		f, err := os.Create(path) //nolint:gosec // a path this command was told to write
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "stlgen:", err)
-			return files, tris
-		}
-		err = meshstl.WriteBinarySTL(f, mesh, l.Label+" — measured panel")
-		cerr := f.Close()
-		if err == nil {
-			err = cerr
-		}
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "stlgen:", err)
-			return files, tris
+		name := "panel-" + l.ID + ".stl"
+		if err := writeSTL(ctx, filepath.Join(dir, name), mesh, l.Label+" — measured panel"); err != nil {
+			return files, tris, err
 		}
 		size := mesh.Size()
-		fmt.Printf("  %-22s %7d tris  %6.1f x %6.1f x %6.1f mm  (%d HP, %d controls)\n",
-			"panel-"+l.ID+".stl", len(mesh.Tris), size[0], size[1], size[2], l.HP, len(l.Controls))
+		outf("  %-22s %7d tris  %6.1f x %6.1f x %6.1f mm  (%d HP, %d controls)\n",
+			name, len(mesh.Tris), size[0], size[1], size[2], l.HP, len(l.Controls))
 		files++
 		tris += len(mesh.Tris)
 	}
-	return files, tris
+	return files, tris, nil
 }

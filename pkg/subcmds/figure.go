@@ -1,18 +1,16 @@
-//go:build !js
-
-package server
+package subcmds
 
 import (
 	"fmt"
 	"image"
 	"image/png"
 	"math"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
+	"github.com/0magnet/chaosrack/pkg/cmdfs"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"github.com/0magnet/chaosrack/pkg/gifenc"
 	"github.com/0magnet/chaosrack/pkg/rasterview"
@@ -60,9 +58,9 @@ func writeFigure(name string, f attractor.Figure) error {
 	}
 	switch strings.ToLower(filepath.Ext(name)) {
 	case ".svg":
-		return os.WriteFile(name, []byte(svgFrames(f, frameViews(1))), 0o600)
+		return cmdfs.WriteFile(runCtx, name, []byte(svgFrames(f, frameViews(1))), 0o600)
 	case ".png", "":
-		file, err := os.Create(name) //nolint:gosec // the path is the user's own argument
+		file, err := cmdfs.Create(runCtx, name)
 		if err != nil {
 			return err
 		}
@@ -89,7 +87,7 @@ func writeFigureAnimation(name string, f attractor.Figure) error {
 			o.View.AngleX, o.View.AngleY, o.View.AngleZ = a[0], a[1], a[2]
 			frames = append(frames, attractor.DrawFigure(f, 0, figureReveal(f, i, len(views)), o))
 		}
-		file, err := os.Create(name) //nolint:gosec // the path is the user's own argument
+		file, err := cmdfs.Create(runCtx, name)
 		if err != nil {
 			return err
 		}
@@ -97,7 +95,7 @@ func writeFigureAnimation(name string, f attractor.Figure) error {
 		delay := max(int(math.Round(100/float64(renderFPS))), 1)
 		return gifenc.EncodeRGBA(file, frames, delay)
 	case ".svg":
-		return os.WriteFile(name, []byte(svgFrames(f, views)), 0o600)
+		return cmdfs.WriteFile(runCtx, name, []byte(svgFrames(f, views)), 0o600)
 	default:
 		return fmt.Errorf("%s: --frames writes .gif or .svg", filepath.Ext(name))
 	}

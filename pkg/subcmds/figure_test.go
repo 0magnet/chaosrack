@@ -1,6 +1,4 @@
-//go:build !js
-
-package server
+package subcmds
 
 import (
 	"math"

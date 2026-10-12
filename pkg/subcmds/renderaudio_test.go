@@ -1,6 +1,4 @@
-//go:build !js
-
-package server
+package subcmds
 
 import (
 	"math"
@@ -62,6 +60,7 @@ func TestStereoOfLeftOnlyIsFlatInR(t *testing.T) {
 }
 
 func TestAudioModelsWrite(t *testing.T) {
+	cmd := newRenderCmd() // binding its flags resets them, so before the overrides
 	old := [4]int{renderW, renderH, renderFrames, renderFPS}
 	renderW, renderH, renderFrames, renderFPS = 96, 64, 0, 4
 	oldSig, oldSecs, oldOut, oldModel := renderSignal, renderAudioSecs, renderOut, renderModel
@@ -78,7 +77,7 @@ func TestAudioModelsWrite(t *testing.T) {
 			if m == "waterfall" && ext == ".gif" {
 				renderFrames = 3 // one surface: only a turning camera animates it
 			}
-			if err := renderAudio(renderCmd); err != nil {
+			if err := renderAudio(cmd); err != nil {
 				t.Errorf("%s%s: %v", m, ext, err)
 			}
 		}
