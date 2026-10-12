@@ -18,16 +18,22 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/0magnet/cdp"
 	"github.com/0magnet/chaosrack/pkg/attractor"
 	"github.com/0magnet/chaosrack/pkg/rackpic"
 	"github.com/0magnet/chaosrack/pkg/racksurface"
 	"github.com/0magnet/chaosrack/pkg/racktui"
 )
 
+// Evaluator runs a JavaScript expression in the rack's page and gives back
+// its value as JSON decodes it: a string, bool, float64 or nil. Over CDP it
+// is a browser debugging port; in the page it is the page itself.
+type Evaluator interface {
+	Eval(expr string) any
+}
+
 // Client is a cable to one running rack.
 type Client struct {
-	c *cdp.Client
+	c Evaluator
 
 	// Monitor is how many slots to give each bay's chassis monitor when
 	// drawing, or zero to draw the rack as it is.
@@ -36,14 +42,10 @@ type Client struct {
 	Capacity int
 }
 
-// Dial finds the rack on a browser's remote-debugging port.
-func Dial(port int, target string) (*Client, error) {
-	c, err := cdp.Dial(port, target)
-	if err != nil {
-		return nil, err
-	}
-	cl := &Client{c: c}
-	if v, ok := c.Eval(`typeof rackctl`).(string); !ok || v != "object" {
+// Over is the rack in the page ev evaluates in.
+func Over(ev Evaluator) (*Client, error) {
+	cl := &Client{c: ev}
+	if v, ok := ev.Eval(`typeof rackctl`).(string); !ok || v != "object" {
 		return nil, errors.New("the page has no rackctl — is it running a build with the control registry?")
 	}
 	return cl, nil

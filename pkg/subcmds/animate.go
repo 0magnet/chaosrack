@@ -1,16 +1,14 @@
-//go:build !js
-
-package server
+package subcmds
 
 import (
 	"fmt"
 	"image"
 	"math"
-	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
+	"github.com/0magnet/chaosrack/pkg/cmdfs"
 	"github.com/0magnet/chaosrack/pkg/gifenc"
 	"github.com/0magnet/chaosrack/pkg/rasterview"
 )
@@ -95,7 +93,7 @@ func writeAnimation(name string, pts [][3]float64) error {
 	case ".svg":
 		// 0600 for the same reason the still path uses it: a tool should not
 		// widen permissions on the user's behalf.
-		return os.WriteFile(name, []byte(animatedSVG(pts, views)), 0o600)
+		return cmdfs.WriteFile(runCtx, name, []byte(animatedSVG(pts, views)), 0o600)
 	default:
 		return fmt.Errorf("%s: --frames writes .gif or .svg", filepath.Ext(name))
 	}
@@ -109,7 +107,7 @@ func writeGIF(name string, pts [][3]float64, views [][3]float64) error {
 		lo, hi := frameSpan(len(pts), i, len(views))
 		frames = append(frames, attractor.DrawSpan(pts, lo, hi, o))
 	}
-	f, err := os.Create(name) //nolint:gosec // the path is the user's own argument
+	f, err := cmdfs.Create(runCtx, name)
 	if err != nil {
 		return err
 	}

@@ -3655,8 +3655,9 @@ Layout: the repo root is the one program: `main.go` on a host, `main_js.go` as t
 page. `cmd/` holds `chaosrack` (the same entry point), `wasmmeters` (the analyzer worker),
 `wasmsplit-control`, `wasmsplit-monolith` and `wasmsplit-renderer` (the split-prototype
 builds), `wasmstamp` (the staleness stamp). `commands/` assembles the single `chaosrack` command: the panel at the root, with
-`serve` (the web server), `ctl`, `rack`, `render`, `models`, `audiows` (PulseAudio→WebSocket audio server), `stlgen` (STL solids) and `uitool` (CDP test & capture
-harnesses).
+`ctl`, `rack`, `render`, `models` (pkg/subcmds) and `stlgen` (STL solids), which run in the page's
+terminals too, plus the host-only `serve` (the web server), `audiows`
+(PulseAudio→WebSocket audio server) and `uitool` (CDP test & capture harnesses).
 `assets` holds the embedded wasm/js/template. `pkg/` holds about 45 packages; the
 main ones are `attractor` (the app and its panel), `server`, `dynamics` (the
 models' math), `meters` and `metersworker`, `audiosrc`, `scope`, `rackspec`,

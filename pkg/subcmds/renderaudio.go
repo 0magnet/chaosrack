@@ -1,22 +1,18 @@
-//go:build !js
-
-package server
+package subcmds
 
 import (
 	"fmt"
 	"image"
 	"image/png"
 	"math"
-	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
-	"github.com/0magnet/chaosrack/pkg/audiocap"
 	"github.com/0magnet/chaosrack/pkg/audiosrc"
+	"github.com/0magnet/chaosrack/pkg/cmdfs"
 	"github.com/0magnet/chaosrack/pkg/gifenc"
 	"github.com/0magnet/chaosrack/pkg/rasterview"
 )
@@ -32,7 +28,6 @@ import (
 
 var (
 	renderAudioSecs float64
-	renderAudioSrc  string
 	renderSignal    string
 	renderTau       float64
 	renderWindow    float64
@@ -44,9 +39,8 @@ var (
 // its label says.
 const renderSampleRate = 48000
 
-func init() {
-	renderCmd.Flags().Float64Var(&renderAudioSecs, "audio", 0, "for an audio model, record this many seconds of what is playing (or, with --signal, generate that much; default 2)")
-	renderCmd.Flags().StringVar(&renderAudioSrc, "audio-source", "monitor", "what --audio records: monitor (what is playing), default (the input), or a source ID")
+func audioFlags(renderCmd *cobra.Command) {
+	renderCmd.Flags().Float64Var(&renderAudioSecs, "audio", 0, audioUsage)
 	renderCmd.Flags().StringVar(&renderSignal, "signal", "", "for an audio model, draw a built-in test signal instead of recording: "+strings.Join(signalNames(), ", "))
 	renderCmd.Flags().Float64Var(&renderTau, "tau", 0, "embedding delay in samples at 48 kHz (0 = measured from the signal for takens and polar, as the page does; 72 otherwise)")
 	renderCmd.Flags().BoolVar(&renderImpulse, "impulse", false, "waterfall: draw the cumulative spectral decay of the impulse response from the left channel (reference) to the right (measurement), as the page does after a sweep")
@@ -94,47 +88,9 @@ func audioSignal() (l, r []float32, err error) {
 		return l, r, nil
 	}
 	if secs <= 0 {
-		return nil, nil, fmt.Errorf("%s is drawn from audio: --audio SECONDS records what is playing, --signal NAME uses a test signal", renderModel)
+		return nil, nil, fmt.Errorf("%s is drawn from audio: %s", renderModel, audioHint)
 	}
 	return record(secs)
-}
-
-// record captures secs seconds of stereo audio through PulseAudio/PipeWire.
-func record(secs float64) (l, r []float32, err error) {
-	want := int(secs * renderSampleRate)
-	l, r = make([]float32, 0, want), make([]float32, 0, want)
-	done := make(chan struct{})
-	full := false
-	fmt.Fprintf(os.Stderr, "chaosrack: recording %gs from %s\n", secs, renderAudioSrc)
-	stop, err := audiocap.Options{
-		SampleRate: renderSampleRate,
-		Channels:   2,
-		Source:     renderAudioSrc,
-	}.Start(func(p []float32) error {
-		if full {
-			return nil
-		}
-		for i := 0; i+1 < len(p) && len(l) < want; i += 2 {
-			l = append(l, p[i])
-			r = append(r, p[i+1])
-		}
-		if len(l) >= want {
-			full = true
-			close(done)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-	select {
-	case <-done:
-	case <-time.After(time.Duration(secs*float64(time.Second)) + 5*time.Second):
-		stop()
-		return nil, nil, fmt.Errorf("recording stalled after %d of %d samples", len(l), want)
-	}
-	stop()
-	return l, r, nil
 }
 
 // isAudioInput reports whether a model is drawn from a signal: an embedding,
@@ -156,7 +112,7 @@ func renderAudio(cmd *cobra.Command) error {
 		return err
 	}
 	if rms(l, r) < 1e-4 {
-		fmt.Fprintln(os.Stderr, "chaosrack: the signal is silent (is anything playing?)")
+		errln("chaosrack: the signal is silent (is anything playing?)")
 	}
 	if renderModel == "waterfall" {
 		fig, err := waterfallFigure(l, r)
@@ -184,7 +140,7 @@ func renderAudio(cmd *cobra.Command) error {
 	if o.Tau <= 0 && (renderModel == "takens" || renderModel == "polar") {
 		if tau, ok := attractor.MeasureTau(l, r, renderSampleRate); ok {
 			o.Tau = tau
-			fmt.Fprintf(os.Stderr, "chaosrack: measured τ = %g samples (%.2f ms)\n", tau, float64(tau)*1000/renderSampleRate)
+			errf("chaosrack: measured τ = %g samples (%.2f ms)\n", tau, float64(tau)*1000/renderSampleRate)
 		}
 	}
 	need := attractor.AudioWindow(renderModel, o)
@@ -201,7 +157,7 @@ func renderAudio(cmd *cobra.Command) error {
 		fig, _ := attractor.AudioFigure(renderModel, l, r, len(l), o)
 		if renderOut == "" {
 			dx, dy, dz := attractor.Extent(fig.Points)
-			fmt.Printf("%s: %d points, extent %.3f x %.3f x %.3f\n", renderModel, len(fig.Points), dx, dy, dz)
+			outf("%s: %d points, extent %.3f x %.3f x %.3f\n", renderModel, len(fig.Points), dx, dy, dz)
 			return nil
 		}
 		return writeFigure(renderOut, fig)
@@ -228,7 +184,7 @@ func renderAudio(cmd *cobra.Command) error {
 			d.Fit = all
 			imgs[i] = attractor.DrawFigure(figs[i], 0, len(figs[i].Points), d)
 		}
-		f, err := os.Create(renderOut) //nolint:gosec // the path is the user's own argument
+		f, err := cmdfs.Create(runCtx, renderOut)
 		if err != nil {
 			return err
 		}
@@ -236,7 +192,7 @@ func renderAudio(cmd *cobra.Command) error {
 		delay := max(int(math.Round(100/float64(renderFPS))), 1)
 		return gifenc.EncodeRGBA(f, imgs, delay)
 	case ".svg":
-		return os.WriteFile(renderOut, []byte(audioSVG(figs, all, views)), 0o600)
+		return cmdfs.WriteFile(runCtx, renderOut, []byte(audioSVG(figs, all, views)), 0o600)
 	default:
 		return fmt.Errorf("%s: --frames writes .gif or .svg", filepath.Ext(renderOut))
 	}
@@ -306,7 +262,7 @@ func renderPlot(cmd *cobra.Command, l, r []float32) error {
 		if err != nil {
 			return err
 		}
-		f, err := os.Create(renderOut) //nolint:gosec // the path is the user's own argument
+		f, err := cmdfs.Create(runCtx, renderOut)
 		if err != nil {
 			return err
 		}
@@ -338,7 +294,7 @@ func renderPlot(cmd *cobra.Command, l, r []float32) error {
 		}
 		imgs = append(imgs, img)
 	}
-	f, err := os.Create(renderOut) //nolint:gosec // the path is the user's own argument
+	f, err := cmdfs.Create(runCtx, renderOut)
 	if err != nil {
 		return err
 	}
