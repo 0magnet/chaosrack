@@ -167,7 +167,9 @@ $ calvin 'calvin -v 2.1 | wc -c
 Made with [goda](https://github.com/loov/goda):
 
 ```
-go run github.com/loov/goda@latest graph github.com/0magnet/calvin/... | dot -Tsvg -o docs/calvin-goda-graph.svg
+# GOOS=js: the import edges of a wasm program live in js/wasm-tagged
+# files and are invisible to a host-context run
+GOOS=js GOARCH=wasm go run github.com/loov/goda@latest graph github.com/0magnet/calvin/... | dot -Tsvg -o docs/calvin-goda-graph.svg
 ```
 
 ![Dependency Graph](docs/calvin-goda-graph.svg "github.com/0magnet/calvin Dependency Graph")
@@ -184,7 +186,7 @@ gocloc --not-match-d='(vendor|node_modules|\.git)' .
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-Go                              13            143            252           1033
+Go                              10            113            182            865
 JavaScript                       1             61             36            478
 Plain Text                       2             65              0            263
 Markdown                         1             41              0            159
@@ -195,6 +197,6 @@ Bourne Shell                     1              8             16             30
 JSON                             1              0              0              8
 XML                              1              0              0              4
 -------------------------------------------------------------------------------
-TOTAL                           23            345            369           2257
+TOTAL                           20            315            299           2089
 -------------------------------------------------------------------------------
 ```
