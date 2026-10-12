@@ -2,7 +2,7 @@
 // the server that served it, a terminal panel connects to the same server,
 // and the server passes the panel's calls to the page and the answers back.
 //
-// It is what `chaosrack tui` uses instead of a browser's debugging port. The
+// It is what chaosrack, the panel, uses instead of a browser's debugging port. The
 // cable (internal/rackcable) reached into the page over the Chrome DevTools
 // Protocol, which needs the browser started with --remote-debugging-port —
 // a flag nobody runs their everyday browser with, and a door into every tab

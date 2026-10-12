@@ -205,7 +205,7 @@ site-check: ## Report whether models/ is up to date; change nothing
 	go run . uitool site --site-check
 
 wasm: ## Rebuild the embedded Go wasm (assets/gowasm/chaosrack.wasm)
-	CGO_ENABLED=0 GOOS=js GOARCH=wasm ${OPTS} go build -o assets/gowasm/chaosrack.wasm ./cmd/wasm
+	CGO_ENABLED=0 GOOS=js GOARCH=wasm ${OPTS} go build -o assets/gowasm/chaosrack.wasm .
 	@cp "$$(go env GOROOT)/lib/wasm/wasm_exec.js" assets/gowasm/wasm_exec.js
 	@ls -l assets/gowasm/chaosrack.wasm
 	@# Recorded so a stale artifact fails a test instead of shipping quietly.
@@ -265,7 +265,7 @@ tinywasm: ## Rebuild the embedded TinyGo wasm (assets/tinywasm/chaosrack-tiny.wa
 	@# That happened, and the staleness test passed on it.
 	@stamp=$$(go run ./cmd/wasmstamp) && \
 		GOTOOLCHAIN=$$(sh scripts/tinygo-toolchain.sh) \
-			tinygo build -o assets/tinywasm/chaosrack-tiny.wasm -target wasm -no-debug -opt=2 ./cmd/wasm && \
+			tinygo build -o assets/tinywasm/chaosrack-tiny.wasm -target wasm -no-debug -opt=2 . && \
 		printf '%s\n' "$$stamp" > assets/tinywasm/built-from.txt
 	@cp "$$(tinygo env TINYGOROOT)/targets/wasm_exec.js" assets/tinywasm/tinygo_wasm_exec.js
 	@sh scripts/fix-sleepticks.sh assets/tinywasm/tinygo_wasm_exec.js
@@ -305,7 +305,7 @@ pages: ## Regenerate the deployed index.html / go/index.html / tinygo/index.html
 		echo "pages: something is already serving 127.0.0.1:$$port — stop it, or set PAGES_PORT" >&2; \
 		exit 1; \
 	fi; \
-	go run ./cmd/chaosrack -p $$port & srv=$$!; \
+	go run . serve -p $$port & srv=$$!; \
 	trap "kill $$srv 2>/dev/null" EXIT INT TERM; \
 	for i in $$(seq 1 300); do \
 		curl -sf -o /dev/null "http://127.0.0.1:$$port/" && break || sleep 1; \
@@ -332,7 +332,7 @@ onefile: ## Build the single self-contained HTML file (wasm carried inside it)
 		echo "onefile: something is already serving 127.0.0.1:$$port — stop it, or set PAGES_PORT" >&2; \
 		exit 1; \
 	fi; \
-	go run ./cmd/chaosrack -p $$port --inline & srv=$$!; \
+	go run . serve -p $$port --inline & srv=$$!; \
 	trap "kill $$srv 2>/dev/null" EXIT INT TERM; \
 	for i in $$(seq 1 300); do \
 		curl -sf -o /dev/null "http://127.0.0.1:$$port/" && break || sleep 1; \

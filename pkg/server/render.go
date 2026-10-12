@@ -72,7 +72,6 @@ func init() {
 	renderCmd.Flags().Float64SliceVar(&renderTurn, "turn", []float64{0, 0, 0}, "radians the camera also turns over the animation, x,y,z (default: still camera)")
 	renderCmd.Flags().IntVar(&renderTrail, "trail", 0, "points of trajectory visible at once (0 = a quarter of the run)")
 	renderCmd.Flags().StringVar(&renderGrad, "gradient", "z", "what the palette follows: x, y, z, or trail (position along the path)")
-	runCmd.AddCommand(renderCmd, modelsCmd)
 }
 
 var modelsCmd = &cobra.Command{

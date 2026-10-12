@@ -4,8 +4,7 @@ package attractor
 
 import (
 	"context"
-	"flag"
-	"fmt"
+	"errors"
 	"io"
 	"sync"
 
@@ -17,8 +16,8 @@ import (
 	"github.com/0magnet/chaosrack/pkg/racktui"
 )
 
-// `rack` — the control surface, typed at a prompt. Type rack and the panel
-// takes that terminal until you quit it; the prompt comes back after.
+// `chaosrack`, or `rack` — the control surface, typed at a prompt. Type it and
+// the panel takes that terminal until you quit it; the prompt comes back after.
 //
 // THE PANEL IS NOT A MODULE, and the distinction is the whole design. A module
 // sits in a bay and controls part of the instrument. This contains the
@@ -32,7 +31,7 @@ import (
 // rack is also a window on, and the two sit beside each other.
 //
 // It reaches the rack by calling it. pkg/racktui is the same package
-// `chaosrack tui` runs from a shell on the host; there it reaches the rack
+// `chaosrack` runs from a shell on the host; there it reaches the rack
 // over a cable (CDP, window.rackctl, a round trip per read) and here it is a
 // function call, because this IS the process the rack is in. One panel, two
 // ways to be attached to what it drives.
@@ -44,13 +43,21 @@ import (
 // stdout and reads the shell's own stdin — no second terminal, no globals, and
 // raw mode is the switch every full-screen applet in websh already uses.
 
+// Command is chaosrack, the command, as typed in the page's terminals. The js
+// main sets it to package commands' Shell: the same command the host binary
+// is, which this package cannot import without importing itself.
+var Command func(ctx context.Context, args []string) int
+
+// ownsKey marks a command run in the instrument's own terminal.
+type ownsKey struct{}
+
 // rackShellCommand is the Exec hook websh offers every non-applet command:
-// `rack`, the panel, in any terminal on the page.
+// the panel, in any terminal on the page. rack is its older name.
 func rackShellCommand(ctx context.Context, args []string) (int, bool) {
-	if len(args) == 0 || args[0] != "rack" {
+	if len(args) == 0 || (args[0] != "chaosrack" && args[0] != "rack") || Command == nil {
 		return 0, false
 	}
-	return rackCommand(ctx, args, false), true
+	return Command(ctx, args), true
 }
 
 // instrumentCommand is the instrument's own terminal's hook (seat_js.go):
@@ -58,56 +65,40 @@ func rackShellCommand(ctx context.Context, args []string) (int, bool) {
 // does, and stops when it does (Ctrl+C) — and `rack` is the panel, as
 // anywhere.
 func instrumentCommand(ctx context.Context, args []string) (int, bool) {
-	if len(args) == 0 {
+	if len(args) == 0 || Command == nil {
 		return 0, false
 	}
 	switch args[0] {
 	case "chaosrack":
-		return rackCommand(ctx, args, true), true
+		return Command(context.WithValue(ctx, ownsKey{}, true), args), true
 	case "rack":
-		return rackCommand(ctx, args, false), true
+		return Command(ctx, args), true
 	}
 	return 0, false
 }
 
-// rackCommand runs the panel on the terminal ctx's command was typed in.
-// owns is the model's lifetime: powered while the panel runs, and powered
-// down when it quits, panel and model being one program.
-func rackCommand(ctx context.Context, args []string, owns bool) int {
+// Panel runs the panel on the terminal ctx's command was typed in: chaosrack
+// with no subcommand, in the page. In the instrument's terminal it also owns
+// the model's lifetime: powered while the panel runs, and powered down when
+// it quits, panel and model being one program.
+func Panel(ctx context.Context) error {
 	hc := interp.HandlerCtx(ctx)
+	if owns, _ := ctx.Value(ownsKey{}).(bool); owns {
+		instrumentProgram(true)
+		defer instrumentProgram(false)
+	}
 	// The session this was TYPED INTO, which is not always the one the rack
 	// built for its Terminal model: the desk's terminal windows carry this same
 	// hook now, and a panel that took raw mode on the wrong shell would leave
 	// the window it was typed in echoing while it drew on a terminal parked off
 	// screen that nobody is looking at.
-	// The same --look `chaosrack tui` takes, so the two panels can be set side
-	// by side drawn alike.
-	fs := flag.NewFlagSet(args[0], flag.ContinueOnError)
-	fs.SetOutput(hc.Stderr)
-	name := fs.String("look", "page", "how the panel is drawn: page (as the page draws it, at a fixed scale), dial, or punit")
-	plainCells := fs.Bool("plain", false, "cells only: lay none of the page's own parts over them (w switches it while the panel runs)")
-	if err := fs.Parse(args[1:]); err != nil {
-		return 2
-	}
-	l, ok := racktui.ParseLook(*name)
-	if !ok {
-		_, _ = fmt.Fprintf(hc.Stderr, "%s: --look %q: want page, dial or punit\n", args[0], *name) //nolint:errcheck // a closed stderr is not a reason to do anything else
-		return 2
-	}
-	racktui.SetLook(l)
-	racktui.SetPlain(*plainCells)
-	if owns {
-		instrumentProgram(true)
-		defer instrumentProgram(false)
-	}
-	return runRackPanel(web.SessionForContext(ctx), hc.Stdin, hc.Stdout, hc.Stderr)
+	return runRackPanel(web.SessionForContext(ctx), hc.Stdin, hc.Stdout)
 }
 
 // runRackPanel draws the panel on the shell's own stdio until it is quit.
-func runRackPanel(sess *web.Session, stdin io.Reader, stdout, stderr io.Writer) int {
+func runRackPanel(sess *web.Session, stdin io.Reader, stdout io.Writer) error {
 	if sess == nil {
-		_, _ = fmt.Fprintln(stderr, "rack: no terminal") //nolint:errcheck // a closed stderr is not a reason to do anything else
-		return 1
+		return errors.New("no terminal")
 	}
 	// Raw input for as long as the panel has the terminal — no echo, no
 	// newline translation — which is what less and the line editor do here.
@@ -150,11 +141,7 @@ func runRackPanel(sess *web.Session, stdin io.Reader, stdout, stderr io.Writer) 
 		return tcell.NewTerminfoScreenFromTty(t,
 			tcell.OptTerm("xterm-256color"), tcell.OptColors(1<<24))
 	})
-	if err := racktui.Run(ctx, termRack{term: sess.Term}); err != nil {
-		_, _ = fmt.Fprintln(stderr, "rack:", err) //nolint:errcheck // as above
-		return 1
-	}
-	return 0
+	return racktui.Run(ctx, termRack{term: sess.Term})
 }
 
 // shellTty is tcell's terminal, which here is the shell's stdio.

@@ -16,11 +16,13 @@ package server
 // the tab you opened on it.
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/0magnet/chaosrack/internal/rackcable"
 	"github.com/0magnet/chaosrack/pkg/racklink"
@@ -33,24 +35,18 @@ var (
 	bayMon    int
 	rowSlots  int
 	ctlValues bool
-	tuiLook   string
 	tuiVia    string
 	tuiServer string
 )
 
 func init() {
-	for _, c := range []*cobra.Command{tuiCmd, ctlCmd, rackCmd} {
+	for _, c := range []*cobra.Command{ctlCmd, rackCmd} {
 		c.Flags().IntVar(&cdpPort, "cdp", 9222, "the browser's remote-debugging port")
 		c.Flags().StringVar(&attachTo, "attach", "", "substring of the tab's URL (default: this binary's own port)")
 	}
-	tuiCmd.Flags().IntVar(&bayMon, "monitor", 0, "draw the bays with a chassis monitor this many slots wide")
-	tuiCmd.Flags().StringVar(&tuiVia, "via", racklink.ViaAuto, "how to reach the rack: auto (WebTransport, else a WebSocket), wt, ws, or cdp (a browser debugging port, as before)")
-	tuiCmd.Flags().StringVar(&tuiServer, "server", "", "the chaosrack server whose page to drive (default: this binary's own --port on 127.0.0.1)")
-	tuiCmd.Flags().StringVar(&tuiLook, "look", "page", "how the panel is drawn: page (as the page draws it, at a fixed scale), dial, or punit")
 	rackCmd.Flags().IntVar(&bayMon, "monitor", 0, "draw the bays again with a chassis monitor this many slots wide")
 	rackCmd.Flags().IntVar(&rowSlots, "slots", 0, "slots per row (0 = ask the page)")
 	ctlCmd.Flags().BoolVar(&ctlValues, "values", false, "read every control's current value too")
-	runCmd.AddCommand(tuiCmd, ctlCmd, rackCmd)
 }
 
 // dialRack opens the cable, defaulting to a tab on this binary's own port.
@@ -69,60 +65,56 @@ func dialRack() *rackcable.Client {
 	return c
 }
 
-var tuiCmd = &cobra.Command{
-	Use:   "tui",
-	Short: "drive the rack from a terminal",
-	Long: `Control a running rack from a terminal.
+// PanelFlags puts the flags that say where the rack is on the panel's
+// command, which is chaosrack itself.
+func PanelFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&tuiVia, "via", racklink.ViaAuto, "how to reach the rack: auto (WebTransport, else a WebSocket), wt, ws, or cdp (a browser debugging port)")
+	fs.StringVar(&tuiServer, "server", "", "the chaosrack server whose page to drive (default: http://127.0.0.1:8080)")
+	fs.IntVar(&cdpPort, "cdp", 9222, "with --via cdp: the browser's remote-debugging port")
+	fs.StringVar(&attachTo, "attach", "", "with --via cdp: substring of the tab's URL (default: 127.0.0.1:8080)")
+	fs.IntVar(&bayMon, "monitor", 0, "draw the bays with a chassis monitor this many slots wide")
+}
 
-The top of the screen shows the rack's bays and the bottom lists every
-control. Changes take effect in the browser immediately.
+// PanelHelp is how the panel reaches the rack on a host, for its help.
+const PanelHelp = `On this machine the rack is a page in a browser, served by chaosrack serve.
+The page offers the rack to its own server and the panel reaches it there:
+over WebTransport when it can, otherwise a WebSocket (--via). No browser
+debugging port is needed.
 
-  up/down        select a control (PgUp/PgDn jump 10, Home/End go to the ends)
-  left/right     turn it one step, or move a switch one position
-  ctrl+arrows    scroll the view
-  0              reset the control to its default
-  tab            switch between the panel and list views
-  type           filter controls by name (backspace erases, / clears)
-  r              reload the controls from the page
-  q, esc         quit
-
-Requires a rack open in a browser, on a page this server (or --server)
-served. The page offers the rack to its own server, and the panel reaches it
-there: over WebTransport when it can, otherwise a WebSocket (--via). No
-browser debugging port is needed.
-
-  chaosrack &
+  chaosrack serve &
   xdg-open http://127.0.0.1:8080/
-  chaosrack tui
+  chaosrack
 
 With several pages open, the one opened last answers. --via cdp reaches the
-page over a browser's debugging port instead, as before: --attach chooses
-the tab and --cdp the port.`,
-	RunE: func(cmd *cobra.Command, _ []string) error {
-		l, ok := racktui.ParseLook(tuiLook)
-		if !ok {
-			return fmt.Errorf("--look %q: want page, dial or punit", tuiLook)
-		}
-		racktui.SetLook(l)
-		if tuiVia == "cdp" {
-			return racktui.Run(cmd.Context(), dialRack())
-		}
-		switch tuiVia {
-		case racklink.ViaAuto, racklink.ViaWT, racklink.ViaWS:
-		default:
-			return fmt.Errorf("--via %q: want auto, wt, ws or cdp", tuiVia)
-		}
-		server := tuiServer
-		if server == "" {
-			server = fmt.Sprintf("http://127.0.0.1:%d", webPort)
-		}
-		c, err := racklink.Dial(cmd.Context(), server, tuiVia)
-		if err != nil {
-			return fmt.Errorf("reaching the rack at %s: %w", server, err)
-		}
-		defer c.Close() //nolint:errcheck // on the way out
-		return racktui.Run(cmd.Context(), c)
-	},
+page over a browser's debugging port instead: --attach chooses the tab and
+--cdp the port.`
+
+// Panel runs the panel on this terminal, driving a rack in a browser.
+func Panel(ctx context.Context) error {
+	if tuiVia == "cdp" {
+		return racktui.Run(ctx, dialRack())
+	}
+	switch tuiVia {
+	case racklink.ViaAuto, racklink.ViaWT, racklink.ViaWS:
+	default:
+		return fmt.Errorf("--via %q: want auto, wt, ws or cdp", tuiVia)
+	}
+	server := tuiServer
+	if server == "" {
+		server = fmt.Sprintf("http://127.0.0.1:%d", webPort)
+	}
+	c, err := racklink.Dial(ctx, server, tuiVia)
+	if err != nil {
+		return fmt.Errorf("reaching the rack at %s: %w (is chaosrack serve running, with its page open?)", server, err)
+	}
+	defer c.Close() //nolint:errcheck // on the way out
+	return racktui.Run(ctx, c)
+}
+
+// Commands are chaosrack's host subcommands: serve, and the ones that drive
+// or draw the rack without being its panel.
+func Commands() []*cobra.Command {
+	return []*cobra.Command{runCmd, ctlCmd, rackCmd, renderCmd, modelsCmd}
 }
 
 var rackCmd = &cobra.Command{
@@ -138,8 +130,8 @@ one the page is currently using.
 --monitor N also prints the layout with an N-slot monitor at the start of
 each bay, for comparison.
 
-Like tui, this needs a rack open in a browser with remote debugging enabled
-(see chaosrack tui --help).`,
+Like the panel, this needs a rack open in a browser with remote debugging enabled
+(see chaosrack --help).`,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		c := dialRack()
 		mon := c.Monitor
@@ -179,8 +171,8 @@ an id prints that control's value. An argument of the form id=value sets it.
 Setting a control has the same effect as turning it in the page, and the
 page's permalink updates to match.
 
-Like tui, this needs a rack open in a browser with remote debugging enabled
-(see chaosrack tui --help).`,
+Like the panel, this needs a rack open in a browser with remote debugging enabled
+(see chaosrack --help).`,
 	RunE: func(_ *cobra.Command, args []string) error {
 		c := dialRack()
 		if len(args) == 0 {

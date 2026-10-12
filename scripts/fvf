@@ -64,7 +64,7 @@ clear_stale_sink() {
 start() {
   if running; then echo "FVF wobbulate is already ON (pid $(cat "$PIDFILE"))."; return; fi
   [ -x "$BIN" ] || { echo "building chaosrack…"; build; }
-  nohup "$BIN" --audio --wobbulate -p "$PORT" >"$LOGFILE" 2>&1 &
+  nohup "$BIN" serve --audio --wobbulate -p "$PORT" >"$LOGFILE" 2>&1 &
   echo $! >"$PIDFILE"
   disown || true
   sleep 1

@@ -37,7 +37,7 @@ type pkg struct {
 }
 
 func main() {
-	cmd := exec.Command("go", "list", "-deps", "-json", "./cmd/wasm")
+	cmd := exec.Command("go", "list", "-deps", "-json", ".")
 	cmd.Env = append(os.Environ(), "GOOS=js", "GOARCH=wasm", "CGO_ENABLED=0")
 	out, err := cmd.Output()
 	if err != nil {

@@ -21,7 +21,7 @@ github.com/0magnet/calvin/clihelp
 # github.com/0magnet/cdp v0.0.0-20261012011305-8702788579c4
 ## explicit; go 1.26.0
 github.com/0magnet/cdp
-# github.com/0magnet/coloredcobra v1.0.4-0.20261011230509-d5385cf44398
+# github.com/0magnet/coloredcobra v1.0.4-0.20261012213101-faa6bd8f94c5
 ## explicit; go 1.26.0
 github.com/0magnet/coloredcobra
 # github.com/0magnet/desk v0.0.3-0.20261012011444-d758282b4692
