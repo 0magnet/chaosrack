@@ -19,9 +19,9 @@ go install github.com/0magnet/lattice/cmd/lattice@latest
 ```
 
 ```
-lattice -axis z -slice 7          # one sheet
-lattice -axis y -tile             # every sheet of the y axis, side by side
-lattice -shape torus -once        # one frame, printed, and done
+lattice --axis z --slice 7          # one sheet
+lattice --axis y --tile             # every sheet of the y axis, side by side
+lattice --shape torus --once        # one frame, printed, and done
 ```
 
 The middle front sheet of the sphere:
@@ -132,7 +132,7 @@ stands still. A program that has not been moved draws nothing new.
 Every sheet of every axis, each in a tmux window of its own:
 
 ```
-for a in x y z; do for k in $(seq 0 15); do tmux new-window -d "lattice -axis $a -slice $k"; done; done
+for a in x y z; do for k in $(seq 0 15); do tmux new-window -d "lattice --axis $a --slice $k"; done; done
 ```
 
 Flat, that is 48 pictures of slices. The solid is only there when they are

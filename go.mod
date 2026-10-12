@@ -3,19 +3,19 @@ module github.com/0magnet/chaosrack
 go 1.26.7
 
 require (
-	github.com/0magnet/audioprism-go v0.0.1-0.20261011113236-ef2f9cb4b58d
-	github.com/0magnet/calvin v0.0.1-0.20261011230737-763f06d9d646
-	github.com/0magnet/cdp v0.0.0-20261008155159-1c0ee4e75307
-	github.com/0magnet/desk v0.0.3-0.20261011000720-9155986fa3a1
-	github.com/0magnet/desk/panes v0.0.1-0.20261008155451-5bf2f04167ae
-	github.com/0magnet/lattice v0.0.0-20261010111611-d9ca20999e37
-	github.com/0magnet/pisano v0.0.0-20261011000707-c64a4e34f749
+	github.com/0magnet/audioprism-go v0.0.1-0.20261012005952-17d8d111fc68
+	github.com/0magnet/calvin v0.0.1-0.20261011231802-9b916a31f7b1
+	github.com/0magnet/cdp v0.0.0-20261011231300-4bddc5b47439
+	github.com/0magnet/desk v0.0.3-0.20261012010524-59791fc58bd4
+	github.com/0magnet/desk/panes v0.0.1-0.20261012010524-59791fc58bd4
+	github.com/0magnet/lattice v0.0.0-20261012010342-6d65e0dcc7e2
+	github.com/0magnet/pisano v0.0.0-20261011233553-c0d9453c1829
 	github.com/0magnet/rack-go v0.0.0-20261008155311-cfc9879cd3c8
 	github.com/0magnet/seat v0.0.0-20261010023929-451dce08bf6a
 	github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
-	github.com/0magnet/tuiwasm v0.0.0-20261011113702-eb36567f5553
-	github.com/0magnet/websh v0.0.1-0.20261011113319-6ef04f5478b6
-	github.com/0magnet/winbox-go v0.0.1-0.20261008155453-e5e3ca2e9451
+	github.com/0magnet/tuiwasm v0.0.0-20261012010540-e5038dc2bc64
+	github.com/0magnet/websh v0.0.1-0.20261012010421-aa9f8595d2d0
+	github.com/0magnet/winbox-go v0.0.1-0.20261012010320-88f1679695ed
 	github.com/0magnet/xterm-go v0.0.1-0.20261011000522-9adb4a350db6
 	github.com/gdamore/tcell/v3 v3.6.0
 	github.com/gin-gonic/gin v1.12.0
@@ -40,8 +40,8 @@ require (
 	github.com/0magnet/img2txt-go v0.0.1-0.20261010111608-9ac2cd47b853 // indirect
 	github.com/0magnet/lolcat-go v0.0.1-0.20261004205030-ebbe4df3258a // indirect
 	github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc // indirect
-	github.com/0magnet/termanim v0.0.1-0.20261011113000-e10d331f8bc7 // indirect
-	github.com/0magnet/toilet-go v0.0.0-20261010111710-2d81119b195a // indirect
+	github.com/0magnet/termanim v0.0.1-0.20261012010327-5df33e35e7fd // indirect
+	github.com/0magnet/toilet-go v0.0.0-20261012010308-c808be6d9a33 // indirect
 	github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754 // indirect
 	github.com/alecthomas/chroma/v2 v2.27.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
