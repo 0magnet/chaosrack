@@ -16,7 +16,7 @@ import (
 )
 
 // The rack's link (pkg/racklink): a page this server served offers its rack
-// here, and `chaosrack tui` drives it from here, with no browser debugging
+// here, and `chaosrack` (the panel) drives it from here, with no browser debugging
 // port anywhere.
 //
 // Who may use it:
@@ -31,7 +31,7 @@ var (
 )
 
 func init() {
-	runCmd.Flags().BoolVar(&rackLinkOn, "rack-link", true, "let `chaosrack tui` reach the pages this server serves, over WebTransport or a WebSocket")
+	runCmd.Flags().BoolVar(&rackLinkOn, "rack-link", true, "let chaosrack, the panel, reach the pages this server serves, over WebTransport or a WebSocket")
 	runCmd.Flags().BoolVar(&rackLinkRemote, "rack-link-remote", false, "let terminals on other machines use the rack link (default: this machine only)")
 }
 
@@ -62,7 +62,7 @@ func mountRackLink(r *gin.Engine) {
 		wt.Handle(racklink.PathPage, wtLink(page, false))
 		wt.Handle(racklink.PathTerminal, wtLink(term, true))
 	}
-	log.Printf("chaosrack: rack link on %s (WebTransport %v, WebSocket); `chaosrack tui` uses it", racklink.PathInfo, wt != nil)
+	log.Printf("chaosrack: rack link on %s (WebTransport %v, WebSocket); the panel (chaosrack) uses it", racklink.PathInfo, wt != nil)
 }
 
 // wsLink is one end of the link on a WebSocket.

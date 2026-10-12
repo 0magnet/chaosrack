@@ -62,33 +62,10 @@ func init() {
 	runCmd.Flags().BoolVar(&inlineWasm, "inline", false, "carry the wasm inside the HTML instead of fetching it (the single-file build; see `make onefile`)")
 }
 
-// Command is the chaosrack root command (the server); package commands adds the
-// harness subcommands and runs it.
-func Command() *cobra.Command { return runCmd }
-
 var runCmd = &cobra.Command{
-	Use:   "chaosrack",
-	Short: "an analog computer in the browser",
-	Long: `chaosrack is an analog computer in the browser: a rack of instruments for
-dynamical systems, geometry and live signals, computed by a Go WebAssembly
-core and played from a panel of knobs, switches and LED readouts.
-
-What the rack can show:
-
-  flows        Lorenz, Rössler, Chua, the Sprott cases, or a system you type in
-  maps         Hénon, Ikeda, Clifford, de Jong, Tinkerbell, the standard map
-  geometry     parametric figures, polyhedra, sequence walks and solids,
-               with the rack's own panels exportable as printable STL
-  audio        spectrogram, XY scope, delay embeddings, and an analyzer suite:
-               distortion, RTA, transfer function, loudness, wow & flutter,
-               waterfall
-  ripple tank  a wave-equation water surface driven by drags or by sound
-  terminal     a real shell in the page, and a desk of windows to work in
-
-Audio can be routed into any parameter, any flow can be measured for chaos by its
-Lyapunov exponent, and a model's output can be played as sound.
-
-With no subcommand, chaosrack starts a web server for the rack. Open it at:
+	Use:   "serve",
+	Short: "serve the rack to a browser",
+	Long: `Serve the rack, as a page, to a browser. Open it at:
 
   /           the Go build, switchable to TinyGo with ?wasm=tinygo
   /go/        the Go build only
@@ -107,10 +84,8 @@ Optional flags give the page access to this machine:
 --shell and --fs listen on 127.0.0.1 unless you choose another address with
 --bind. Add --auth on a shared machine, so the page has to ask for the token.
 
-The subcommands tui, ctl and rack control a rack that is already open in a
-browser. render and models draw models to image files without a browser.
-stlgen writes the models as STL files, audiows is the audio WebSocket/WebTransport
-test harness, and uitool drives the page over CDP for tests and captures.`,
+The page offers its rack back to this server, which is where chaosrack (the
+panel), ctl and rack reach it.`,
 	Run: func(_ *cobra.Command, _ []string) {
 		wg := new(sync.WaitGroup)
 		r1 := gin.New()

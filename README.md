@@ -127,12 +127,16 @@ analog computers at [glensstuff.com](https://glensstuff.com).
 No build step — the WebAssembly is embedded in the server binary:
 
 ```
-go run github.com/0magnet/chaosrack@master
+go run github.com/0magnet/chaosrack@master serve
 ```
 
 Then open:
 * [127.0.0.1:8080/](http://127.0.0.1:8080/) — standard Go build
 * [127.0.0.1:8080/tinygo/](http://127.0.0.1:8080/tinygo/) — smaller TinyGo build
+
+With no subcommand, `chaosrack` is the rack's panel, in the terminal you run it
+from: beside an open page on a host, or typed in the page's own terminal, where
+the page is the same repo built for js/wasm.
 
 (The same entrypoint is also at `github.com/0magnet/chaosrack/cmd/chaosrack`.)
 
@@ -231,9 +235,9 @@ back out of it.
   with the model still running behind.
 - **Optionally, your actual machine.** Everything above runs in the tab and
   touches nothing. Two flags change that, and both are off:
-  `chaosrack --shell` puts a **host shell** app in the desk — xterm-go attached
+  `chaosrack serve --shell` puts a **host shell** app in the desk — xterm-go attached
   over a WebSocket to a pty running your `$SHELL`, resizing with the window
-  because a resize becomes a `TIOCSWINSZ` and so a `SIGWINCH`. `chaosrack --fs`
+  because a resize becomes a `TIOCSWINSZ` and so a `SIGWINCH`. `chaosrack serve --fs`
   is the one that does more than it looks like: websh's shell and the file
   manager both work against an `afero.Fs`, so a single host-backed
   implementation makes `ls`, `cat`, `grep`, globbing and redirection all land
@@ -2081,10 +2085,10 @@ the most valuable target on the machine, and any page you visit may try to
 reach localhost.
 
 ```
-chaosrack --shell                      # a real pty, in a desk window
-chaosrack --fs                         # real files, for the shell and the file manager
-chaosrack --fs --fs-root ~/projects    # ...confined to a subtree
-chaosrack -b 127.0.0.1 -p 8080         # --bind, if the default is not what you want
+chaosrack serve --shell                    # a real pty, in a desk window
+chaosrack serve --fs                       # real files, for the shell and the file manager
+chaosrack serve --fs --fs-root ~/projects  # ...confined to a subtree
+chaosrack serve -b 127.0.0.1 -p 8080       # --bind, if the default is not what you want
 ```
 
 - Nothing is served unless `--shell` or `--fs` is passed.
@@ -2114,7 +2118,7 @@ whatever header it likes. So another user can fetch the page, read the token,
 forge an `Origin`, and have a shell as you.
 
 ```
-chaosrack --shell --auth
+chaosrack serve --shell --auth
 ```
 
 The token is printed to the terminal that started the server and left out of
@@ -3382,7 +3386,7 @@ model), and the spectro/XY **backdrops** all need an audio source:
   page it is already serving:
 
   ```
-  go run github.com/0magnet/chaosrack@master --audio      # serve on :8080
+  go run github.com/0magnet/chaosrack@master serve --audio      # serve on :8080
   # open http://127.0.0.1:8080/ — no ?audio=ws needed
   ```
 
@@ -3459,7 +3463,7 @@ audioprism — it picks up whatever is playing (VLC, a browser tab, anything)
 with no per-app routing:
 
 ```
-go run github.com/0magnet/chaosrack@master --audio
+go run github.com/0magnet/chaosrack@master serve --audio
 # open http://127.0.0.1:8080/#fvf  → (with headphones) Listen
 ```
 
@@ -3482,7 +3486,7 @@ the panel is built and moves back if a request is refused.
 want it:
 
 ```
-go run github.com/0magnet/chaosrack@master --audio --wobbulate
+go run github.com/0magnet/chaosrack@master serve --audio --wobbulate
 ```
 
 Either way: a temporary null sink is inserted and made the default, so *every*
@@ -3512,7 +3516,7 @@ does `scripts/fvf off`. To tap a specific source instead, pass its name, e.g.
 **One-command toggle.** `scripts/fvf` drives the whole thing without a browser:
 
 ```
-scripts/fvf on      # chaosrack --audio --wobbulate in the background (FVF_PORT=8080)
+scripts/fvf on      # chaosrack serve --audio --wobbulate in the background (FVF_PORT=8080)
 scripts/fvf off     # stop it → normal audio restored, stale sinks swept
 scripts/fvf status  # and the machine's current default sink
 scripts/fvf         # toggle
@@ -3641,16 +3645,17 @@ make pages         # regenerate index.html, go/index.html, tinygo/index.html (th
 make onefile       # chaosrack-standalone.html, the one self-contained file
 ```
 
-The native server has no make target: `go build .` (or `go run .`). The rest:
+`go build .` builds the host binary and `GOOS=js GOARCH=wasm go build .` the page
+(`make wasm`). The rest:
 `make check` (lint, vet, test, readme-check), `make test-wasm`, `make test-browser`,
 `make cover`, `make sweep`, `make lint-panel`, `make site`, `make docs`,
 `make publish-gifs`; `make help` lists them all.
 
-Layout: `cmd/` holds `chaosrack` (the web server; repo-root `main.go` is the same
-entry point), `wasm` (the WebAssembly app), `wasmmeters` (the analyzer worker),
+Layout: the repo root is the one program: `main.go` on a host, `main_js.go` as the
+page. `cmd/` holds `chaosrack` (the same entry point), `wasmmeters` (the analyzer worker),
 `wasmsplit-control`, `wasmsplit-monolith` and `wasmsplit-renderer` (the split-prototype
-builds), `wasmstamp` (the staleness stamp). `commands/` assembles the single `chaosrack` command, whose subcommands include
-`audiows` (PulseAudio→WebSocket audio server), `stlgen` (STL solids) and `uitool` (CDP test & capture
+builds), `wasmstamp` (the staleness stamp). `commands/` assembles the single `chaosrack` command: the panel at the root, with
+`serve` (the web server), `ctl`, `rack`, `render`, `models`, `audiows` (PulseAudio→WebSocket audio server), `stlgen` (STL solids) and `uitool` (CDP test & capture
 harnesses).
 `assets` holds the embedded wasm/js/template. `pkg/` holds about 45 packages; the
 main ones are `attractor` (the app and its panel), `server`, `dynamics` (the
