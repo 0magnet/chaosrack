@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-// The page template is shared by pkg/server and cmd/audiows, and its fields
+// The page template is shared by pkg/server and chaosrack audiows, and its fields
 // are resolved at RENDER time — so a field renamed on one side compiles
 // perfectly and then answers every request with
 //

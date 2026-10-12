@@ -4,7 +4,7 @@ go 1.26.7
 
 require (
 	github.com/0magnet/audioprism-go v0.0.1-0.20261011113236-ef2f9cb4b58d
-	github.com/0magnet/calvin v0.0.1-0.20261010111553-d1d2be37be6a
+	github.com/0magnet/calvin v0.0.1-0.20261011230737-763f06d9d646
 	github.com/0magnet/cdp v0.0.0-20261008155159-1c0ee4e75307
 	github.com/0magnet/desk v0.0.3-0.20261011000720-9155986fa3a1
 	github.com/0magnet/desk/panes v0.0.1-0.20261008155451-5bf2f04167ae
@@ -34,6 +34,7 @@ require (
 	charm.land/lipgloss/v2 v2.0.6 // indirect
 	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992 // indirect
 	github.com/0magnet/bottle v0.0.1-0.20261010202827-a5ff39f4742b // indirect
+	github.com/0magnet/coloredcobra v1.0.4-0.20261011230509-d5385cf44398 // indirect
 	github.com/0magnet/glamour v1.0.1-0.20261004193946-db176df590f5 // indirect
 	github.com/0magnet/go-dsp v0.0.1-0.20261004205004-01fc64b17317 // indirect
 	github.com/0magnet/img2txt-go v0.0.1-0.20261010111608-9ac2cd47b853 // indirect
@@ -65,6 +66,7 @@ require (
 	github.com/dlclark/regexp2/v2 v2.8.4 // indirect
 	github.com/dunglas/httpsfv v1.1.2 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
+	github.com/fatih/color v1.19.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.15 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/gdamore/tcell/v2 v2.13.10 // indirect
@@ -83,6 +85,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
+	github.com/mattn/go-colorable v0.1.16 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mattn/go-runewidth v0.0.31 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect

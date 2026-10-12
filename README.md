@@ -3134,8 +3134,8 @@ The same dimensions drive a set of solid models — the rack as something you
 could hold, and every model as something you could print:
 
 ```
-go run ./cmd/stlgen           # writes docs/stl/*.stl
-go run ./cmd/stlgen -list     # what it would write
+go run . stlgen           # writes docs/stl/*.stl
+go run . stlgen --list     # what it would write
 ```
 
 - **The rack** — a 3U module in one, two and three slot widths: front panel,
@@ -3255,10 +3255,10 @@ with **Persist** on, so the accumulation paints the full figure.
 
 ### Chaos monkey jam sessions
 
-The repo ships a CDP-driven fuzzer (`uitool monkey`) that hammers the real UI
+The repo ships a CDP-driven fuzzer (`chaosrack uitool monkey`) that hammers the real UI
 with seeded random input while checking invariants (no JS errors, no NaN in
 any readout, the panel always recoverable, the app never frozen). Its show-biz
-sibling (`uitool demo`) puts specialized monkeys on stage: one tours the model
+sibling (`chaosrack uitool demo`) puts specialized monkeys on stage: one tours the model
 catalog, one plays the parameter knobs, one recolors, one wires **audio
 modulation** so the music drives the knobs, and one works motion and texture —
 with a supervisor watching the screen and stepping in if the picture ever goes
@@ -3355,7 +3355,7 @@ mono moved onto the source knob, where the absence of a value belongs.</summary>
 </details>
 
 Regenerate everything against a running tab:
-`go run ./cmd/uitool shots` (stills + hero) · `go run ./cmd/uitool gifs` (animations).
+`go run . uitool shots` (stills + hero) · `go run . uitool gifs` (animations).
 
 ## Audio
 
@@ -3586,26 +3586,26 @@ switchable here and can be tuned by ear.
 ## Testing & tooling
 
 The UI is tested against a real browser over the Chrome DevTools Protocol
-([`github.com/0magnet/cdp`](https://github.com/0magnet/cdp)). One dev binary, `cmd/uitool`, bundles the
+([`github.com/0magnet/cdp`](https://github.com/0magnet/cdp)). One dev subcommand, `chaosrack uitool`, bundles the
 harnesses:
 
 | subcommand | what it does |
 |---|---|
-| `uitool monkey` | seeded random-walk fuzzer with invariants: no JS errors, no NaN in any readout, the panel always recoverable, the main thread never frozen |
-| `uitool golden` | drives a fixed matrix of known states and checks render sanity, permalink round-trip idempotency, and golden images |
-| `uitool shots` | regenerates the README's hero + contact-sheet gallery |
-| `uitool gifs` | regenerates the animated gallery + attract-mode reel |
-| `uitool portraits` | one still + one turning loop per model, walking the palette knob's four positions — the images in [Models](#models) |
-| `uitool modules` | one shot of every module in the rack, plus the manifest the README's [rack reference](#the-rack) is written from |
-| `uitool readme` | rewrites the contents, model and module sections of this file; `-check` fails instead of writing |
-| `uitool demo` | records chaos-monkey runs — including a performance mode with specialized monkey roles, audio-modulation routing, an on-screen countdown for cueing external audio, and a screen-liveness supervisor |
-| `uitool site` | writes `models/`, one page per model, and `sitemap.xml`; `-check` fails instead of writing (`make site`, `make site-check`) |
-| `uitool sweep` | visits every model and every switch in a fixed order with the monkey's invariants (`make sweep`) |
-| `uitool lint` | measures the panel for faults — overflow, overlap, off-center, tooltips — on every model, by address (`make lint-panel`) |
-| `uitool layout` | control-panel geometry invariants |
-| `uitool html` | checks the rendered panel DOM: it parses, no duplicate ids, every `for` resolves, no mojibake |
-| `uitool css` | audits `panel.css` for rules that style nothing and rules that fight each other |
-| `uitool spec` | renders a WAV to a spectrogram PNG through the app's pipeline, and diffs two PNGs |
+| `chaosrack uitool monkey` | seeded random-walk fuzzer with invariants: no JS errors, no NaN in any readout, the panel always recoverable, the main thread never frozen |
+| `chaosrack uitool golden` | drives a fixed matrix of known states and checks render sanity, permalink round-trip idempotency, and golden images |
+| `chaosrack uitool shots` | regenerates the README's hero + contact-sheet gallery |
+| `chaosrack uitool gifs` | regenerates the animated gallery + attract-mode reel |
+| `chaosrack uitool portraits` | one still + one turning loop per model, walking the palette knob's four positions — the images in [Models](#models) |
+| `chaosrack uitool modules` | one shot of every module in the rack, plus the manifest the README's [rack reference](#the-rack) is written from |
+| `chaosrack uitool readme` | rewrites the contents, model and module sections of this file; `--check` fails instead of writing |
+| `chaosrack uitool demo` | records chaos-monkey runs — including a performance mode with specialized monkey roles, audio-modulation routing, an on-screen countdown for cueing external audio, and a screen-liveness supervisor |
+| `chaosrack uitool site` | writes `models/`, one page per model, and `sitemap.xml`; `--check` fails instead of writing (`make site`, `make site-check`) |
+| `chaosrack uitool sweep` | visits every model and every switch in a fixed order with the monkey's invariants (`make sweep`) |
+| `chaosrack uitool lint` | measures the panel for faults — overflow, overlap, off-center, tooltips — on every model, by address (`make lint-panel`) |
+| `chaosrack uitool layout` | control-panel geometry invariants |
+| `chaosrack uitool html` | checks the rendered panel DOM: it parses, no duplicate ids, every `for` resolves, no mojibake |
+| `chaosrack uitool css` | audits `panel.css` for rules that style nothing and rules that fight each other |
+| `chaosrack uitool spec` | renders a WAV to a spectrogram PNG through the app's pipeline, and diffs two PNGs |
 
 They attach to a tab already open in a Chromium/Brave started with `--remote-debugging-port` (9222), or, with `-headless` (and `-serve <chaosrack binary>`), run a private headless browser of their own that nothing sees.
 
@@ -3649,8 +3649,9 @@ The native server has no make target: `go build .` (or `go run .`). The rest:
 Layout: `cmd/` holds `chaosrack` (the web server; repo-root `main.go` is the same
 entry point), `wasm` (the WebAssembly app), `wasmmeters` (the analyzer worker),
 `wasmsplit-control`, `wasmsplit-monolith` and `wasmsplit-renderer` (the split-prototype
-builds), `wasmstamp` (the staleness stamp), `audiows` (PulseAudio→WebSocket audio
-server), `stlgen` (STL solids) and `uitool` (CDP test & capture harnesses).
+builds), `wasmstamp` (the staleness stamp). `commands/` assembles the single `chaosrack` command, whose subcommands include
+`audiows` (PulseAudio→WebSocket audio server), `stlgen` (STL solids) and `uitool` (CDP test & capture
+harnesses).
 `assets` holds the embedded wasm/js/template. `pkg/` holds about 45 packages; the
 main ones are `attractor` (the app and its panel), `server`, `dynamics` (the
 models' math), `meters` and `metersworker`, `audiosrc`, `scope`, `rackspec`,

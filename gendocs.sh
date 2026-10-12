@@ -56,8 +56,8 @@ mv README.gendocs README.md
 # and the contents has to be built LAST — it lists the headings the other two
 # produce, and the two sections above (which this script has just rewritten).
 # No browser needed: this reads the mode catalog, the module manifest and the
-# image files. Recapturing the images themselves is `uitool portraits` and
-# `uitool modules`, which do need a tab.
-go run ./cmd/uitool readme
+# image files. Recapturing the images themselves is `chaosrack uitool portraits` and
+# `chaosrack uitool modules`, which do need a tab.
+go run . uitool readme
 
 echo "gendocs: $svg, the code counts and the README's generated sections are up to date"

@@ -216,7 +216,7 @@ Reset mod (ring)
 ### Built-in solids
 
 <!-- key: stlfile-builtin-cell -->
-Built-in solids — the rack modules and the 19-inch frame at their real dimensions, the geometry as closed solids, and every attractor swept as a tube along its own trajectory. Generated in the browser; the same models are written as .stl files by cmd/stlgen.
+Built-in solids — the rack modules and the 19-inch frame at their real dimensions, the geometry as closed solids, and every attractor swept as a tube along its own trajectory. Generated in the browser; the same models are written as .stl files by `chaosrack stlgen`.
 
 ### Built-in solid
 

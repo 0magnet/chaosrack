@@ -45,7 +45,7 @@ var aud audioModes
 //
 // The backend is chosen from the ?audio= query param:
 //   - audio=ws (or websocket): stream from a WebSocket server (the
-//     audioprism-go-style /ws feed served by cmd/audiows). An optional
+//     audioprism-go-style /ws feed served by chaosrack audiows). An optional
 //     ?wsurl= overrides the endpoint; default is same-origin /ws.
 //   - audio=wt (or webtransport): the same audio over WebTransport
 //     datagrams, which pays off on a remote or lossy link because a lost
@@ -154,7 +154,7 @@ func (au *audioModes) activeAudioSource() audiosrc.Source { return au.rackBus() 
 // WebTransport one, or this machine's microphone.
 //
 // THE SERVER ANSWERS THIS unless the URL overrules it. A server started with
-// --audio (and cmd/audiows, which is nothing but that) writes window.__crAudio
+// --audio (and chaosrack audiows, which is nothing but that) writes window.__crAudio
 // into the page it serves, so a page that HAS a feed uses it without being
 // asked to. ?audio= is still honored first, because an explicit request is a
 // request — including "?audio=mic" to refuse a feed that is on offer.
@@ -183,7 +183,7 @@ func audioBackendKind() string {
 }
 
 // wsSampleRate is the rate the WS server records at. The wire format carries
-// no rate, so the consumer must be told; cmd/audiows defaults to 24000 — the
+// no rate, so the consumer must be told; chaosrack audiows defaults to 24000 — the
 // same rate audioprism-go records at (pulse.RecordSampleRate(24000)) and the
 // rate its spectrogram package (sg.SampleRate) is designed around, so the
 // scroll speed and frequency bins match the reference exactly. An optional

@@ -3,7 +3,7 @@ package attractor
 import "github.com/0magnet/chaosrack/pkg/stlmodels"
 
 // STLModels is the built-in solids, with each flow under the name the mode
-// picker gives it. cmd/stlgen writes these and the STL mode offers them.
+// picker gives it. chaosrack stlgen writes these and the STL mode offers them.
 func STLModels() []stlmodels.Model { return stlmodels.All(modeLabel) }
 
 // STLModelByName looks a built-in up by its key.

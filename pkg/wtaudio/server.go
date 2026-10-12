@@ -1,5 +1,5 @@
 // Package wtaudio serves live audio over WebTransport (HTTP/3 over QUIC)
-// as an OPTIONAL alternative to the WebSocket path in cmd/audiows. The
+// as an OPTIONAL alternative to the WebSocket path in chaosrack audiows. The
 // WebSocket remains the default and is untouched by anything here.
 //
 // The audio rides unreliable DATAGRAMS rather than a WebTransport stream.

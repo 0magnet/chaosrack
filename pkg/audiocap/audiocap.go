@@ -3,7 +3,7 @@
 // Package audiocap captures the machine's audio and hands it to a browser over
 // a WebSocket, in the wire format pkg/audiosrc decodes.
 //
-// It exists as a package rather than as part of cmd/audiows because BOTH
+// It exists as a package rather than as part of chaosrack audiows because BOTH
 // servers want it and neither should have to be the other. Running one process
 // for the page and a second for the audio is not a fact about audio capture, it
 // is what happens when the capture lives inside a main package: the only way to
