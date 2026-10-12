@@ -7,28 +7,28 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.1-0.20261011113236-ef2f9cb4b58d
+# github.com/0magnet/audioprism-go v0.0.1-0.20261012005952-17d8d111fc68
 ## explicit; go 1.26.2
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
 # github.com/0magnet/bottle v0.0.1-0.20261010202827-a5ff39f4742b
 ## explicit; go 1.24
 github.com/0magnet/bottle/proc
-# github.com/0magnet/calvin v0.0.1-0.20261011230737-763f06d9d646
+# github.com/0magnet/calvin v0.0.1-0.20261011231802-9b916a31f7b1
 ## explicit; go 1.26.0
 github.com/0magnet/calvin
 github.com/0magnet/calvin/clihelp
-# github.com/0magnet/cdp v0.0.0-20261008155159-1c0ee4e75307
+# github.com/0magnet/cdp v0.0.0-20261011231300-4bddc5b47439
 ## explicit; go 1.26.0
 github.com/0magnet/cdp
 # github.com/0magnet/coloredcobra v1.0.4-0.20261011230509-d5385cf44398
 ## explicit; go 1.26.0
 github.com/0magnet/coloredcobra
-# github.com/0magnet/desk v0.0.3-0.20261011000720-9155986fa3a1
-## explicit; go 1.26
+# github.com/0magnet/desk v0.0.3-0.20261012010524-59791fc58bd4
+## explicit; go 1.26.6
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.1-0.20261008155451-5bf2f04167ae
+# github.com/0magnet/desk/panes v0.0.1-0.20261012010524-59791fc58bd4
 ## explicit; go 1.26.6
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -53,13 +53,13 @@ github.com/0magnet/go-dsp/window
 ## explicit; go 1.26.0
 github.com/0magnet/img2txt-go/caca
 github.com/0magnet/img2txt-go/shape
-# github.com/0magnet/lattice v0.0.0-20261010111611-d9ca20999e37
+# github.com/0magnet/lattice v0.0.0-20261012010342-6d65e0dcc7e2
 ## explicit; go 1.26.4
 github.com/0magnet/lattice
 # github.com/0magnet/lolcat-go v0.0.1-0.20261004205030-ebbe4df3258a
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20261011000707-c64a4e34f749
+# github.com/0magnet/pisano v0.0.0-20261011233553-c0d9453c1829
 ## explicit; go 1.26.6
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc
@@ -81,7 +81,7 @@ github.com/0magnet/sh/v3/internal/arithm
 github.com/0magnet/sh/v3/interp
 github.com/0magnet/sh/v3/pattern
 github.com/0magnet/sh/v3/syntax
-# github.com/0magnet/termanim v0.0.1-0.20261011113000-e10d331f8bc7
+# github.com/0magnet/termanim v0.0.1-0.20261012010327-5df33e35e7fd
 ## explicit; go 1.26.0
 github.com/0magnet/termanim/aquarium
 github.com/0magnet/termanim/atom
@@ -120,13 +120,13 @@ github.com/0magnet/termanim/snow
 github.com/0magnet/termanim/starfield
 github.com/0magnet/termanim/tunnel
 github.com/0magnet/termanim/wolfram
-# github.com/0magnet/toilet-go v0.0.0-20261010111710-2d81119b195a
+# github.com/0magnet/toilet-go v0.0.0-20261012010308-c808be6d9a33
 ## explicit; go 1.26.0
 github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20261011113702-eb36567f5553
+# github.com/0magnet/tuiwasm v0.0.0-20261012010540-e5038dc2bc64
 ## explicit; go 1.26.7
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -146,15 +146,15 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754
 ## explicit; go 1.26.6
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.1-0.20261011113319-6ef04f5478b6
+# github.com/0magnet/websh v0.0.1-0.20261012010421-aa9f8595d2d0
 ## explicit; go 1.26.6
 github.com/0magnet/websh/progressive
 github.com/0magnet/websh/shell
 github.com/0magnet/websh/shell/sed
 github.com/0magnet/websh/web
 github.com/0magnet/websh/widget
-# github.com/0magnet/winbox-go v0.0.1-0.20261008155453-e5e3ca2e9451
-## explicit; go 1.24
+# github.com/0magnet/winbox-go v0.0.1-0.20261012010320-88f1679695ed
+## explicit; go 1.26.0
 github.com/0magnet/winbox-go
 # github.com/0magnet/xterm-go v0.0.1-0.20261011000522-9adb4a350db6
 ## explicit; go 1.24

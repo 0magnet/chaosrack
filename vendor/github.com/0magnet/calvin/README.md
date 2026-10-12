@@ -46,8 +46,8 @@ the demo shows both.
 
 ## Other packages
 
-- `serve/` is a static file server for the demo page (`-addr`, default
-  `:8797`; `-dir`, default `docs`), because a browser will not instantiate wasm
+- `calvin serve` is a static file server for the demo page (`--addr`, default
+  `:8797`; `--dir`, default `docs`), because a browser will not instantiate wasm
   from `file://`.
 - `web/` is the js/wasm demo: a text box over `AsciiFont` and `BlackboardBold`.
 - `clihelp/` is the help menu other 0magnet CLIs share: the program name in

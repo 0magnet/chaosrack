@@ -245,6 +245,14 @@ func (s *Screen) Init() error {
 	// string — so without this the first frame would draw over whatever the
 	// terminal happened to be showing. The alt buffer arrives blank, but a
 	// terminal too old to have one does not, and this costs a clear either way.
+	// The terminal is blank and so is every cell, but a CellBuffer that has just
+	// been sized reports every cell dirty (tcell v3.6 invalidates on Resize), so
+	// the first frame would redraw the whole screen. Mark them drawn.
+	for y := 0; y < s.rows; y++ {
+		for x := 0; x < s.cols; x++ {
+			s.cells.SetDirty(x, y, false)
+		}
+	}
 	s.buf = append(s.buf, clearScreenSeq(-1, -1)...)
 	s.haveStyle, s.penValid = false, false
 	s.flushLocked()
