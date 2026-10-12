@@ -12,10 +12,10 @@ github.com/0magnet/cdp v0.0.0-20261011231300-4bddc5b47439 h1:tfd7fGsj2Pa3o00uR8s
 github.com/0magnet/cdp v0.0.0-20261011231300-4bddc5b47439/go.mod h1:QYQ8SQI9F7yFHdJ679+r38LtA3AjZMagHxvakE+EcgE=
 github.com/0magnet/coloredcobra v1.0.4-0.20261011230509-d5385cf44398 h1:M3jwYEvNP5nFCKReDX7HCArUOEVqgO+yZgJ00qJGLvc=
 github.com/0magnet/coloredcobra v1.0.4-0.20261011230509-d5385cf44398/go.mod h1:XOyBWsYWPuG3gboQHaOve/ubY8HaTqCGjJ+791sF5cM=
-github.com/0magnet/desk v0.0.3-0.20261012010524-59791fc58bd4 h1:NZorG1DNK+e+BJCwEdpBuVgz8Uv2ch7DDsoUW7WXFhg=
-github.com/0magnet/desk v0.0.3-0.20261012010524-59791fc58bd4/go.mod h1:LJAucGewRovizkL9jEwD0AU6CxxiGyCrC6glL+pK/kc=
-github.com/0magnet/desk/panes v0.0.1-0.20261012010524-59791fc58bd4 h1:qXcj8IPHRSrziOJpNkR62Ooz1fUv4CpHW2MNUZhVo3g=
-github.com/0magnet/desk/panes v0.0.1-0.20261012010524-59791fc58bd4/go.mod h1:mqMzRsk5KSJi9EjdtHeQnZTqFLNuzoM5zpn3MSzyoY4=
+github.com/0magnet/desk v0.0.3-0.20261012010847-aa5ad030f30f h1:kNouC4BDX2MJszusmAwztT8Do6YFxnDpT9thy3QjYEY=
+github.com/0magnet/desk v0.0.3-0.20261012010847-aa5ad030f30f/go.mod h1:LJAucGewRovizkL9jEwD0AU6CxxiGyCrC6glL+pK/kc=
+github.com/0magnet/desk/panes v0.0.1-0.20261012010847-aa5ad030f30f h1:ycNokMlxN29opI28mwK4+cV7iGFi0+92Y/1cTAkyElw=
+github.com/0magnet/desk/panes v0.0.1-0.20261012010847-aa5ad030f30f/go.mod h1:mqMzRsk5KSJi9EjdtHeQnZTqFLNuzoM5zpn3MSzyoY4=
 github.com/0magnet/glamour v1.0.1-0.20261004193946-db176df590f5 h1:THiA0zoa+4TaVmUEzDdUX2hkRiNSR6OYwwXE5k1LwcA=
 github.com/0magnet/glamour v1.0.1-0.20261004193946-db176df590f5/go.mod h1:sQptvwbxHyRamiowc3QuNleMRWr3HlKepEKUOCcha6M=
 github.com/0magnet/go-dsp v0.0.1-0.20261004205004-01fc64b17317 h1:3sDt++bh6U6VlK07msaJz3I/ya8HuPtcfxRpG+FQJgw=
@@ -26,8 +26,8 @@ github.com/0magnet/lattice v0.0.0-20261012010342-6d65e0dcc7e2 h1:uf9B1l0HdUj6hxJ
 github.com/0magnet/lattice v0.0.0-20261012010342-6d65e0dcc7e2/go.mod h1:p/GYffXL6NeKeye6pd06T/r2YIuJTnnOdVOKvvni7Ik=
 github.com/0magnet/lolcat-go v0.0.1-0.20261004205030-ebbe4df3258a h1:7fPgWWYllLSv9rjb2kWLuzbhQKl80kc1BTFBJoT7+Io=
 github.com/0magnet/lolcat-go v0.0.1-0.20261004205030-ebbe4df3258a/go.mod h1:DbbClVrvQ558CvwGWU78xx0k03aEY/uS9qf5Wtw+n3o=
-github.com/0magnet/pisano v0.0.0-20261011233553-c0d9453c1829 h1:v92a5NUeaNxuAbU6POkFDY/zOUG3latzgsZKCTJCCcw=
-github.com/0magnet/pisano v0.0.0-20261011233553-c0d9453c1829/go.mod h1:TSNaeq/TAknj6MKcnoUDdfadpb2sdHTPU4AQhHsj1Zw=
+github.com/0magnet/pisano v0.0.0-20261012010810-bb3b0063ec91 h1:421kxjrUg8H+WmUtDxUgYrb4kWU6WlBKDwjSKZ25tSM=
+github.com/0magnet/pisano v0.0.0-20261012010810-bb3b0063ec91/go.mod h1:TSNaeq/TAknj6MKcnoUDdfadpb2sdHTPU4AQhHsj1Zw=
 github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc h1:6y75eIwQ0EswyiujMlGQxGHdaecl+qzYm17iRLn/Gy8=
 github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc/go.mod h1:tZ3EqtPbE2DQAzgP2iBdVgvPANj/EJBfGs/hAZRdBNo=
 github.com/0magnet/rack-go v0.0.0-20261008155311-cfc9879cd3c8 h1:gKkrCNaN9Zt3Pvykajkiq04hSctpz3s1vr8kI1VysEc=
@@ -40,8 +40,8 @@ github.com/0magnet/termanim v0.0.1-0.20261012010327-5df33e35e7fd h1:WSwlGbIbr4QZ
 github.com/0magnet/termanim v0.0.1-0.20261012010327-5df33e35e7fd/go.mod h1:Z+7bZHVNAd1IuHkT7DW0UCW7RAPn7f2jGYg2mKLYiB0=
 github.com/0magnet/toilet-go v0.0.0-20261012010308-c808be6d9a33 h1:5wT7K/P6/2HSy3FbrDGn5BuUjbEtadYANIzkfZ8UrlY=
 github.com/0magnet/toilet-go v0.0.0-20261012010308-c808be6d9a33/go.mod h1:R03WWpA0X3WrqgFvR8nv0JukzeJTuLn+Ero5DT12QG8=
-github.com/0magnet/tuiwasm v0.0.0-20261012010540-e5038dc2bc64 h1:GvrPQL1vLOrJ8KEOXZ1ncaBWQHRkYMbEZRDmai0uMp0=
-github.com/0magnet/tuiwasm v0.0.0-20261012010540-e5038dc2bc64/go.mod h1:N98b5h3DxujLUPTsPEHbjZizoKxNWezB4lIEYRaGRQo=
+github.com/0magnet/tuiwasm v0.0.0-20261012010912-796743b2982b h1:CXExAPaFWNIkaAjeWx9U0heDvChT3t0RSJeEsQvO4pM=
+github.com/0magnet/tuiwasm v0.0.0-20261012010912-796743b2982b/go.mod h1:DPZ/JTFzxVUkFEVEQvO6ziIhCHVAAC7nOg9Rj/opcuY=
 github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754 h1:wK2MncQOnEea7yqiOHvv3oD89sc+YC1dAw4zw1o48mQ=
 github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754/go.mod h1:9N1kqBjNdAUT/pfrWKyty4zS5ZQgG1OvsTmhdcpAWB0=
 github.com/0magnet/websh v0.0.1-0.20261012010421-aa9f8595d2d0 h1:/fPf/mgiOhHLEE8jIgUpXQD0sVY5A+NfwyXIlbu3nwo=
