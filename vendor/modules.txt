@@ -7,24 +7,24 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.1-0.20261012005952-17d8d111fc68
+# github.com/0magnet/audioprism-go v0.0.1-0.20261012132311-cd7d848dbbd3
 ## explicit; go 1.26.2
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
-# github.com/0magnet/bottle v0.0.1-0.20261010202827-a5ff39f4742b
+# github.com/0magnet/bottle v0.0.1-0.20261012024120-0f51d9f0e03a
 ## explicit; go 1.24
 github.com/0magnet/bottle/proc
-# github.com/0magnet/calvin v0.0.1-0.20261011231802-9b916a31f7b1
+# github.com/0magnet/calvin v0.0.1-0.20261012011430-3b61384c1b9e
 ## explicit; go 1.26.0
 github.com/0magnet/calvin
 github.com/0magnet/calvin/clihelp
-# github.com/0magnet/cdp v0.0.0-20261011231300-4bddc5b47439
+# github.com/0magnet/cdp v0.0.0-20261012011305-8702788579c4
 ## explicit; go 1.26.0
 github.com/0magnet/cdp
 # github.com/0magnet/coloredcobra v1.0.4-0.20261011230509-d5385cf44398
 ## explicit; go 1.26.0
 github.com/0magnet/coloredcobra
-# github.com/0magnet/desk v0.0.3-0.20261012010847-aa5ad030f30f
+# github.com/0magnet/desk v0.0.3-0.20261012011444-d758282b4692
 ## explicit; go 1.26.6
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
@@ -49,17 +49,17 @@ github.com/0magnet/glamour/styles
 github.com/0magnet/go-dsp/dsputils
 github.com/0magnet/go-dsp/fft
 github.com/0magnet/go-dsp/window
-# github.com/0magnet/img2txt-go v0.0.1-0.20261010111608-9ac2cd47b853
+# github.com/0magnet/img2txt-go v0.0.1-0.20261012011230-57c72dcd90ae
 ## explicit; go 1.26.0
 github.com/0magnet/img2txt-go/caca
 github.com/0magnet/img2txt-go/shape
-# github.com/0magnet/lattice v0.0.0-20261012010342-6d65e0dcc7e2
+# github.com/0magnet/lattice v0.0.0-20261012131828-a29f806db684
 ## explicit; go 1.26.4
 github.com/0magnet/lattice
-# github.com/0magnet/lolcat-go v0.0.1-0.20261004205030-ebbe4df3258a
+# github.com/0magnet/lolcat-go v0.0.1-0.20261012011232-f524706a866c
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20261012010810-bb3b0063ec91
+# github.com/0magnet/pisano v0.0.0-20261012132243-fd964d0e66c0
 ## explicit; go 1.26.6
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc
@@ -69,7 +69,7 @@ github.com/0magnet/proxima5/internal/views
 # github.com/0magnet/rack-go v0.0.0-20261008155311-cfc9879cd3c8
 ## explicit; go 1.21
 github.com/0magnet/rack-go
-# github.com/0magnet/seat v0.0.0-20261010023929-451dce08bf6a
+# github.com/0magnet/seat v0.0.0-20261012011244-01164e82b270
 ## explicit; go 1.26
 github.com/0magnet/seat
 # github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
@@ -81,7 +81,7 @@ github.com/0magnet/sh/v3/internal/arithm
 github.com/0magnet/sh/v3/interp
 github.com/0magnet/sh/v3/pattern
 github.com/0magnet/sh/v3/syntax
-# github.com/0magnet/termanim v0.0.1-0.20261012010327-5df33e35e7fd
+# github.com/0magnet/termanim v0.0.1-0.20261012131914-f74023465834
 ## explicit; go 1.26.0
 github.com/0magnet/termanim/aquarium
 github.com/0magnet/termanim/atom
@@ -120,13 +120,13 @@ github.com/0magnet/termanim/snow
 github.com/0magnet/termanim/starfield
 github.com/0magnet/termanim/tunnel
 github.com/0magnet/termanim/wolfram
-# github.com/0magnet/toilet-go v0.0.0-20261012010308-c808be6d9a33
+# github.com/0magnet/toilet-go v0.0.0-20261012011257-1db9912d0d89
 ## explicit; go 1.26.0
 github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20261012010912-796743b2982b
+# github.com/0magnet/tuiwasm v0.0.0-20261012132918-75779b8e2ed5
 ## explicit; go 1.26.7
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -146,14 +146,14 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754
 ## explicit; go 1.26.6
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.1-0.20261012010421-aa9f8595d2d0
+# github.com/0magnet/websh v0.0.1-0.20261012132423-845a7d2c77c9
 ## explicit; go 1.26.6
 github.com/0magnet/websh/progressive
 github.com/0magnet/websh/shell
 github.com/0magnet/websh/shell/sed
 github.com/0magnet/websh/web
 github.com/0magnet/websh/widget
-# github.com/0magnet/winbox-go v0.0.1-0.20261012010320-88f1679695ed
+# github.com/0magnet/winbox-go v0.0.1-0.20261012131923-a829715e530f
 ## explicit; go 1.26.0
 github.com/0magnet/winbox-go
 # github.com/0magnet/xterm-go v0.0.1-0.20261011000522-9adb4a350db6

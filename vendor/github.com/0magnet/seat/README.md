@@ -37,3 +37,37 @@ methods as a desk pane, so a pane is a screen as it is.
   AltGr layout Ctrl+Alt+7 types `{`, and that stays a character. The F keys
   are not used: on Linux the machine takes Ctrl+Alt+F1… for its own consoles
   before a page sees them.
+
+## Dependency Graph
+
+Made with [goda](https://github.com/loov/goda):
+
+```
+# GOOS=js: the import edges of a wasm program live in js/wasm-tagged
+# files and are invisible to a host-context run
+GOOS=js GOARCH=wasm go run github.com/loov/goda@latest graph github.com/0magnet/seat/... | dot -Tsvg -o docs/seat-goda-graph.svg
+```
+
+![Dependency Graph](docs/seat-goda-graph.svg "github.com/0magnet/seat Dependency Graph")
+
+## Lines of Code
+
+Made with [gocloc](https://github.com/hhatto/gocloc) (excludes `vendor/`, `node_modules/`, `.git/`):
+
+```
+gocloc --not-match-d='(vendor|node_modules|\.git)' .
+```
+
+```
+-------------------------------------------------------------------------------
+Language                     files          blank        comment           code
+-------------------------------------------------------------------------------
+Go                               4             35             81            363
+Makefile                         1             21             52            111
+YAML                             1              0              7             98
+Markdown                         1             12              0             60
+Bourne Shell                     1              8             17             31
+-------------------------------------------------------------------------------
+TOTAL                            8             76            157            663
+-------------------------------------------------------------------------------
+```
