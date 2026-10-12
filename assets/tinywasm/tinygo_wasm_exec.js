@@ -569,6 +569,20 @@
 				mem().setBigUint64(addr, v_ref, true);
 			}
 
+			// tryStore stores f's result and true at addr, or what f threw and false.
+			const tryStore = (addr, f) => {
+				let ok = 1;
+				let v;
+				try {
+					v = f();
+				} catch (err) {
+					v = err;
+					ok = 0;
+				}
+				storeValue(addr, v);
+				mem().setUint8(addr + 8, ok);
+			}
+
 			// writeStrings copies list, joined by NUL, into memory when it fits in n
 			// bytes, and returns its length so the caller can size a buffer.
 			const writeStrings = (list, buf, n) => {
@@ -765,6 +779,46 @@
 					// valueSetIndex(v ref, i int, x ref)
 					"syscall/js.valueSetIndex": (v_ref, i, x_ref) => {
 						Reflect.set(unboxValue(v_ref), i, unboxValue(x_ref));
+					},
+
+					// The checked accessors report a throw (a getter, a Proxy, a
+					// cross-origin object) to Go, which panics with a js.Error, rather
+					// than let it unwind through the wasm and strand the scheduler.
+
+					// func valueGet(v ref, p string) (ref, bool)
+					"syscall/js.valueTryGet": (ret_addr, v_ref, p_ptr, p_len) => {
+						ret_addr >>>= 0;
+						p_ptr >>>= 0;
+						p_len >>>= 0;
+						tryStore(ret_addr, () => Reflect.get(unboxValue(v_ref), loadString(p_ptr, p_len)));
+					},
+
+					// func valueSet(v ref, p string, x ref) (ref, bool)
+					"syscall/js.valueTrySet": (ret_addr, v_ref, p_ptr, p_len, x_ref) => {
+						ret_addr >>>= 0;
+						p_ptr >>>= 0;
+						p_len >>>= 0;
+						tryStore(ret_addr, () => { Reflect.set(unboxValue(v_ref), loadString(p_ptr, p_len), unboxValue(x_ref)); });
+					},
+
+					// func valueDelete(v ref, p string) (ref, bool)
+					"syscall/js.valueTryDelete": (ret_addr, v_ref, p_ptr, p_len) => {
+						ret_addr >>>= 0;
+						p_ptr >>>= 0;
+						p_len >>>= 0;
+						tryStore(ret_addr, () => { Reflect.deleteProperty(unboxValue(v_ref), loadString(p_ptr, p_len)); });
+					},
+
+					// func valueIndex(v ref, i int) (ref, bool)
+					"syscall/js.valueTryIndex": (ret_addr, v_ref, i) => {
+						ret_addr >>>= 0;
+						tryStore(ret_addr, () => Reflect.get(unboxValue(v_ref), i));
+					},
+
+					// func valueSetIndex(v ref, i int, x ref) (ref, bool)
+					"syscall/js.valueTrySetIndex": (ret_addr, v_ref, i, x_ref) => {
+						ret_addr >>>= 0;
+						tryStore(ret_addr, () => { Reflect.set(unboxValue(v_ref), i, unboxValue(x_ref)); });
 					},
 
 					// func valueCall(v ref, m string, args []ref) (ref, bool)
@@ -965,14 +1019,7 @@
 				this._scheduledWakeup = undefined;
 			}
 			this.exitCode = 0;
-			// syscall/js.handleEvent reads _pendingEvent and returns early only when
-			// it IsNull(). Leaving it `undefined` is not null, so handleEvent falls
-			// through to cb.Get("id") and panics with "call of Value.Get on
-			// undefined", which surfaces as RuntimeError: unreachable. Upstream Go's
-			// wasm_exec.js initializes this in its constructor; this line restores
-			// parity. Any resume() that runs without a pending event -- and resume()
-			// always spawns a handleEvent goroutine -- depends on it.
-			this._pendingEvent = null; // event awaiting dispatch by syscall/js.handleEvent
+			this._events = []; // events awaiting dispatch by syscall/js.handleEvent, oldest first
 			// os starts in $PWD. Unless the caller chose one, that is the jsfs
 			// working directory, which proc.js sets for each process it spawns.
 			if (this._jsfs && !("PWD" in (this.env || {}))) {
@@ -989,7 +1036,7 @@
 				try {
 					this._inst.exports._start();
 				} catch (e) {
-					if (e !== wasmExit) throw e;
+					if (e !== wasmExit) throw this._crash(e);
 				}
 
 				await exitPromise;
@@ -1006,7 +1053,7 @@
 			try {
 				this._inst.exports.go_scheduler();
 			} catch (e) {
-				if (e !== wasmExit) throw e;
+				if (e !== wasmExit) throw this._crash(e);
 			}
 		}
 
@@ -1017,10 +1064,44 @@
 			try {
 				this._inst.exports.resume();
 			} catch (e) {
-				if (e !== wasmExit) throw e;
+				if (e !== wasmExit) throw this._crash(e);
 			}
 			if (this.exited) {
 				this._resolveExitPromise();
+			}
+		}
+
+		// _crash ends the program after a trap, or a JS exception, unwound out
+		// of the instance, and returns e for the caller to rethrow. The unwind
+		// skipped the rest of the scheduler, so the next event must not enter
+		// the instance again.
+		_crash(e) {
+			if (!this.exited) {
+				this.exited = true;
+				this.exitCode = 2;
+				if (typeof this.exit === "function") {
+					this.exit(2);
+				}
+				if (this._resolveExitPromise) {
+					this._resolveExitPromise();
+				}
+			}
+			return e;
+		}
+
+		// syscall/js.handleEvent takes the event at the head of the queue and
+		// then clears it. Every resume() starts one handleEvent goroutine, but at
+		// the back of the run queue, so a goroutine that runs first can call into
+		// JS and queue another event before it.
+		get _pendingEvent() {
+			return this._events && this._events.length ? this._events[0] : null;
+		}
+
+		set _pendingEvent(event) {
+			if (event === null) {
+				this._events.shift();
+			} else {
+				this._events.push(event);
 			}
 		}
 
