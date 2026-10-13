@@ -16,11 +16,12 @@ package attractor
 // (pulse / square / ÷2 sub) → ring or AM modulation by the original audio.
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"strconv"
 	"syscall/js"
 	"unsafe"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
 const (

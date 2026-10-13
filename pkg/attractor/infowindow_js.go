@@ -3,12 +3,13 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"strings"
 	"syscall/js"
 
 	winbox "github.com/0magnet/winbox-go"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
 // infoPane is the Info text's window.

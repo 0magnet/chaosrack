@@ -12,10 +12,11 @@ package attractor
 // module's now (modmatrix_js.go), and the Patchbay went with it.
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"strings"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
 var patchStoArm bool

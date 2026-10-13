@@ -3,10 +3,11 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
 
 	"github.com/0magnet/desk/panes/hostterm"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
 // hostTerminal is the machine's own shell shown as a model.
