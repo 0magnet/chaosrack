@@ -519,6 +519,7 @@ func trimFloat(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) }
 // ── drawing ──────────────────────────────────────────────────────────────
 
 func (p *panel) draw(sc tcell.Screen) {
+	resynced(sc)
 	sc.Clear()
 	w, h := sc.Size()
 
@@ -687,3 +688,26 @@ func (p *panel) drawList(sc tcell.Screen, y, w, h int) {
 // ctrlHeld reports the control modifier, which is what separates panning the
 // window from moving the cursor.
 func ctrlHeld(ev *tcell.EventKey) bool { return ev.Modifiers()&tcell.ModCtrl != 0 }
+
+// resynced brings tcell's idea of the screen's size back to the terminal's.
+//
+// tcell takes each resize on a goroutine of its own, so a burst of them (a
+// font size changed step after step) can finish out of order and leave the
+// screen the size of one of the middle steps: the panel then drew its status
+// line part way down a terminal whose other rows kept whatever was last on
+// them. A Sync re-reads the size, which is what the Sync on every resize used
+// to hide; done only when the two disagree, an ordinary resize stays one
+// repaint, which tcell has already made.
+func resynced(sc tcell.Screen) {
+	t, ok := sc.Tty()
+	if !ok {
+		return
+	}
+	ws, err := t.WindowSize()
+	if err != nil {
+		return
+	}
+	if w, h := sc.Size(); ws.Width != w || ws.Height != h {
+		sc.Sync()
+	}
+}
