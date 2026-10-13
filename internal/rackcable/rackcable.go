@@ -124,11 +124,16 @@ func (r *Client) Get(id string) (string, error) {
 
 // Set moves one control, as a hand would.
 func (r *Client) Set(id, value string) error {
-	ok, _ := r.c.Eval(fmt.Sprintf(`rackctl.set(%s,%s)`, strconv.Quote(id), strconv.Quote(value))).(bool)
-	if !ok {
-		return fmt.Errorf("the rack has no control %q", id)
+	switch v := r.c.Eval(fmt.Sprintf(`rackctl.set(%s,%s)`, strconv.Quote(id), strconv.Quote(value))).(type) {
+	case bool:
+		if v {
+			return nil
+		}
+	case string:
+		// The control is there and cannot take this value; the page says why.
+		return fmt.Errorf("%s: %s", id, v)
 	}
-	return nil
+	return fmt.Errorf("the rack has no control %q", id)
 }
 
 // ── the bays ─────────────────────────────────────────────────────────────

@@ -13,6 +13,7 @@ import (
 	"github.com/gdamore/tcell/v3"
 	"github.com/gdamore/tcell/v3/tty"
 
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/racktui"
 )
 
@@ -141,7 +142,21 @@ func runRackPanel(sess *web.Session, stdin io.Reader, stdout io.Writer) error {
 		return tcell.NewTerminfoScreenFromTty(t,
 			tcell.OptTerm("xterm-256color"), tcell.OptColors(1<<24))
 	})
-	return racktui.Run(ctx, termRack{term: sess.Term})
+	release, ok := holdParts()
+	defer release()
+	// A panel with the page's parts and no instrument running is the program
+	// as much as the instrument's is: the model runs while it does, as the
+	// host's panel powers the rack (racktui.PowerOn), and goes back to how it
+	// was. Unpowered, its scene was a black, frozen canvas.
+	if sw := dom.Doc.Call("getElementById", "power-sw"); ok && !instrumentRunning && sw.Truthy() && !sw.Get("checked").Bool() {
+		setPowerState(true)
+		syncCategoryRotaries()
+		defer func() {
+			setPowerState(false)
+			syncCategoryRotaries()
+		}()
+	}
+	return racktui.Run(ctx, termRack{term: sess.Term, taken: !ok})
 }
 
 // shellTty is tcell's terminal, which here is the shell's stdio.

@@ -221,7 +221,9 @@ type ttyScreen struct {
 
 func (t *ttyScreen) Mount(el js.Value) error {
 	useHostFS()
-	t.p = term.New("", "chaosrack")
+	// Every terminal of the page has the program, as the instrument's and the
+	// desk's do: these said "chaosrack: command not found".
+	t.p = term.New("", "chaosrack").Exec(rackShellCommand)
 	return t.p.Mount(el)
 }
 

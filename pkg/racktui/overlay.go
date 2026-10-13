@@ -78,6 +78,26 @@ var plain bool
 // SetPlain draws cells only, whatever the terminal can lay over them.
 func SetPlain(b bool) { plain = b }
 
+// Plain reports whether the overlay is off from the start.
+func Plain() bool { return plain }
+
+// Sharer is a Native whose parts — the page's one canvas and one panel —
+// may be another panel's already: a second chaosrack in another of the
+// page's terminals. Such a panel draws in cells, and says so, rather than
+// laying windows over its cells with nothing in them.
+type Sharer interface {
+	PartsTaken() bool
+}
+
+// partsTaken reports whether src's parts are another panel's.
+func partsTaken(src Source) bool {
+	s, ok := src.(Sharer)
+	return ok && s.PartsTaken()
+}
+
+// partsTakenMsg is the status line of a panel drawing in cells for that reason.
+const partsTakenMsg = "another chaosrack has the page's parts: drawn in cells"
+
 // layoutNow is the page look's layout as last drawn, or nil when there is
 // nothing to lay anything over: the drawn looks, or the list.
 func (p *panel) layoutNow() *Layout {
@@ -155,7 +175,7 @@ func (p *panel) windowAct(a WindowAct) {
 // differs from what was written last.
 func (p *panel) syncOverlay(sc tcell.Screen) {
 	o, ok := p.src.(Overlay)
-	if !ok {
+	if !ok || p.shared {
 		return
 	}
 	p.writeOverlay(sc, o.Overlay(p.layoutNow()))
@@ -163,7 +183,7 @@ func (p *panel) syncOverlay(sc tcell.Screen) {
 
 // clearOverlay takes the parts away, before the screen is let go.
 func (p *panel) clearOverlay(sc tcell.Screen) {
-	if o, ok := p.src.(Overlay); ok {
+	if o, ok := p.src.(Overlay); ok && !p.shared {
 		p.writeOverlay(sc, o.Overlay(nil))
 	}
 }
