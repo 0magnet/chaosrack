@@ -37,12 +37,12 @@ var (
 )
 
 // subcommands names what Command accepts as its one argument.
-var subcommands = []string{"css", "lint", "monkey", "sweep", "golden", "layout", "spec", "shots", "gifs", "portraits", "site", "readme", "modules", "html", "demo"}
+var subcommands = []string{"css", "lint", "monkey", "sweep", "golden", "layout", "spec", "shots", "gifs", "portraits", "site", "readme", "modules", "html", "demo", "catalog"}
 
 // Command is `chaosrack uitool <sub> [flags]`.
 func Command() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:       "uitool <css|lint|monkey|sweep|golden|layout|spec|shots|gifs|portraits|site|readme|modules|html|demo>",
+		Use:       "uitool <css|lint|monkey|sweep|golden|layout|spec|shots|gifs|portraits|site|readme|modules|html|demo|catalog>",
 		Short:     "CDP-driven UI test, fuzz and capture harnesses",
 		Long:      "The CDP-driven UI test, fuzz and capture harnesses. Run `chaosrack uitool <sub> --help` for the flags (all subcommands share one set).",
 		Args:      cobra.ExactArgs(1),
@@ -91,8 +91,10 @@ func runSub(sub string) {
 		runCSS()
 	case "demo":
 		runDemo()
+	case "catalog":
+		runCatalog()
 	default:
-		fmt.Fprintln(os.Stderr, "usage: chaosrack uitool <css|lint|monkey|sweep|golden|layout|spec|shots|gifs|portraits|site|readme|modules|html|demo> [flags]")
+		fmt.Fprintln(os.Stderr, "usage: chaosrack uitool <css|lint|monkey|sweep|golden|layout|spec|shots|gifs|portraits|site|readme|modules|html|demo|catalog> [flags]")
 		os.Exit(2)
 	}
 	exit(0)

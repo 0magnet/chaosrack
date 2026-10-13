@@ -1363,6 +1363,10 @@ func bayPicker(label string, bay int, sel js.Value, cats, modes []string) js.Val
 		onBayPick(label, bay, p.Get("value").String())
 		return nil
 	})
+	// In the registry, as every other control is: it is the one that says
+	// what the bay plays, and without it neither ctl, a panel in a terminal
+	// nor the native rack's catalog could change the model.
+	registerControl(ControlDesc{ID: p.Get("id").String(), Label: "Model", IsSelect: true}, strings.ToLower(label))
 	return p
 }
 
