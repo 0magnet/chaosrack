@@ -1,0 +1,220 @@
+package rackhost
+
+import (
+	"errors"
+	"math"
+	"strconv"
+	"strings"
+	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/rackcatalog"
+	"github.com/0magnet/chaosrack/pkg/racktui"
+)
+
+func newRack(t *testing.T) *Rack {
+	t.Helper()
+	r, err := New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return r
+}
+
+// Every dial the picture shows has its pointer, and at the catalog's value
+// the pointer stands exactly where the page drew it.
+func TestEveryDialHasItsPointerWhereThePageDrewIt(t *testing.T) {
+	r := newRack(t)
+	cat, err := rackcatalog.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dials, found := 0, 0
+	for _, c := range r.ctls {
+		if c.IsSwitch || c.IsSelect || c.Max <= c.Min || isRotationKnob(c.ID) {
+			continue
+		}
+		if _, shown := cat.Picture.Ctls[c.ID]; !shown {
+			continue
+		}
+		dials++
+		p, ok := r.ptrs[c.ID]
+		if !ok {
+			// A dial the page draws with no pointer (a ring, a bar) has
+			// nothing to turn.
+			continue
+		}
+		found++
+		v, _ := strconv.ParseFloat(c.Value, 64) //nolint:errcheck // a dial's value
+		if got, want := p.angle(&c, v), *cat.Picture.Items[p.item].Angle; math.Abs(got-want) > 0.01 {
+			t.Errorf("%s = %s: pointer at %.1f°, the page drew it at %.1f°", c.ID, c.Value, got, want)
+		}
+	}
+	if dials == 0 || found*4 < dials*3 {
+		t.Fatalf("pointers found for %d of %d dials in the catalog's picture", found, dials)
+	}
+}
+
+// A value a control cannot take is refused and leaves it as it was.
+func TestSetRefusesWhatAControlCannotTake(t *testing.T) {
+	r := newRack(t)
+	var sel, dial, sw string
+	for _, c := range r.ctls {
+		switch {
+		case c.IsSelect && len(c.Options) > 1 && sel == "":
+			sel = c.ID
+		case c.IsSwitch && sw == "":
+			sw = c.ID
+		case !c.IsSelect && !c.IsSwitch && c.Max > c.Min && dial == "":
+			dial = c.ID
+		}
+	}
+	for _, bad := range []struct{ id, v string }{{sel, "banana"}, {dial, "abc"}, {sw, "maybe"}, {"no-such", "1"}} {
+		before := r.value(bad.id)
+		if err := r.Set(bad.id, bad.v); err == nil {
+			t.Errorf("%s=%s was taken", bad.id, bad.v)
+		}
+		if r.value(bad.id) != before {
+			t.Errorf("%s changed to %q on a refused value", bad.id, r.value(bad.id))
+		}
+	}
+	c := r.ctls[r.byID[dial]]
+	if err := r.Set(dial, strconv.FormatFloat(c.Max*10+100, 'f', -1, 64)); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.number(dial); got != c.Max {
+		t.Errorf("a value past the travel left %s at %g, want its top %g", dial, got, c.Max)
+	}
+}
+
+// Turning a dial turns its pointer, and the change is in the next patch.
+func TestTurningADialTurnsItsPointer(t *testing.T) {
+	r := newRack(t)
+	var id string
+	for k := range r.ptrs {
+		c := r.ctls[r.byID[k]]
+		if v, err := strconv.ParseFloat(c.Value, 64); err == nil && v < c.Max && !isRotationKnob(k) {
+			id = k
+			break
+		}
+	}
+	if id == "" {
+		t.Fatal("no dial below the top of its travel")
+	}
+	c := r.ctls[r.byID[id]]
+	p, _ := r.Picture() //nolint:errcheck // never fails
+	if err := r.Set(id, strconv.FormatFloat(c.Max, 'f', -1, 64)); err != nil {
+		t.Fatal(err)
+	}
+	d, _ := r.PictureChanges(p.Gen) //nolint:errcheck // never fails
+	ptr := r.ptrs[id]
+	it, ok := d.Items[ptr.item]
+	if !ok {
+		t.Fatalf("turning %s changed nothing in the picture", id)
+	}
+	if got := *it.Angle; got < ptr.at || got > 135 {
+		t.Errorf("%s at its top: pointer at %.1f°, want from %.1f° up to 135°", id, got, ptr.at)
+	}
+}
+
+// The scene draws the model it is set to, and nothing when the rack is off.
+func TestTheSceneDrawsTheModel(t *testing.T) {
+	r := newRack(t)
+	lit := func() int {
+		m, err := r.Scene(80, 40, 2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		n := 0
+		for i := 0; i+2 < len(m.Px); i += 3 {
+			if m.Px[i]|m.Px[i+1]|m.Px[i+2] != 0 {
+				n++
+			}
+		}
+		return n
+	}
+	if id := r.modelControl(); id != "" {
+		if err := r.Set(id, "lorenz"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if lit() == 0 {
+		t.Fatal("the scene is dark with a model set")
+	}
+	if err := r.Set("power-sw", "0"); err != nil {
+		t.Fatal(err)
+	}
+	if n := lit(); n != 0 {
+		t.Errorf("%d pixels lit with the rack off", n)
+	}
+}
+
+// A readout writes the catalog's value exactly as the page wrote it, and a
+// new value in the same hand.
+func TestReadoutsWriteValuesAsThePageDid(t *testing.T) {
+	r := newRack(t)
+	cat, err := rackcatalog.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.reads) < 20 {
+		t.Fatalf("only %d readouts found", len(r.reads))
+	}
+	for id, ro := range r.reads {
+		c := r.ctls[r.byID[id]]
+		want := cat.Picture.Items[ro.item].Text
+		if got := ro.show(&c); strings.TrimSpace(got) != strings.TrimSpace(want) && !c.IsSelect {
+			t.Errorf("%s = %s: readout %q, the page wrote %q", id, c.Value, got, want)
+		}
+	}
+	id := r.modelControl()
+	if id == "" {
+		t.Skip("no model selector in the catalog")
+	}
+	if err := r.Set(id, "lorenz"); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.pic.Items[r.reads[id].item].Text; got != "Lorenz" {
+		t.Errorf("the model's window says %q after choosing lorenz", got)
+	}
+}
+
+func TestParseReadout(t *testing.T) {
+	for _, tc := range []struct {
+		in   string
+		v    float64
+		back float64
+		out  string
+	}{
+		{" 000.0", 0, -12.5, "-012.5"},
+		{"-23", -23, 4, " 4"},
+		{"  +0.000", 0, -1.5, "  -1.500"},
+		{"130°", 130, 7, "007°"},
+		{"0.60", 0.6, 0.25, "0.25"},
+	} {
+		v, ro, ok := parseReadout(tc.in)
+		if !ok || v != tc.v {
+			t.Errorf("%q: %v %v", tc.in, v, ok)
+			continue
+		}
+		c := racktui.Control{Value: strconv.FormatFloat(tc.back, 'f', -1, 64)}
+		if got := ro.show(&c); got != tc.out {
+			t.Errorf("%q then %g: %q, want %q", tc.in, tc.back, got, tc.out)
+		}
+	}
+}
+
+// A model only a browser draws leaves the scene dark and says so.
+func TestABrowserOnlyModelSaysSo(t *testing.T) {
+	r := newRack(t)
+	id := r.modelControl()
+	if id == "" {
+		t.Skip("no model selector in the catalog")
+	}
+	if err := r.Set(id, "waterfall"); err != nil {
+		t.Fatal(err)
+	}
+	m, err := r.Scene(20, 10, 2)
+	if m == nil || !errors.Is(err, ErrBrowserOnly) {
+		t.Fatalf("waterfall: image %v, error %v", m != nil, err)
+	}
+}

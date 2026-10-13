@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs pages onefile site readme-check site-check sweep lint-panel publish-gifs
+.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs pages onefile site readme-check site-check sweep lint-panel publish-gifs catalog
 
 # The targets that matter are `format` and `check`, and they mean the same
 # thing here as in 0pcom/skywire, which is the reference for these repos.
@@ -279,6 +279,13 @@ metersworker: ## Rebuild the analyzers' worker wasm (assets/metersworker/meters.
 	@ls -l assets/metersworker/meters.wasm
 
 wasms: wasm tinywasm metersworker ## Rebuild every embedded wasm binary
+
+CATALOG_PAGE ?= http://127.0.0.2:8080
+catalog: ## Capture pkg/rackcatalog from a page: chaosrack serve, open $(CATALOG_PAGE)/ fresh, then run this
+	@# A fresh page, in an origin that has never run chaosrack (127.0.0.2 beside
+	@# the usual 127.0.0.1): what it opens with is every control's default in
+	@# the native rack, and an origin keeps its last session's settings.
+	go run . uitool catalog --catalog-server $(CATALOG_PAGE)
 
 pages: ## Regenerate the deployed index.html / go/index.html / tinygo/index.html
 	@# These FETCH the wasm from assets/, which is where it already is in this

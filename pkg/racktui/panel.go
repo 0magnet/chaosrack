@@ -93,6 +93,8 @@ type panel struct {
 	// the terminal can (overlay.go); laidOut is what was last written for it.
 	overlay bool
 	laidOut string
+	// sceneNote is why the scene is not drawn as it should be, while it is not.
+	sceneNote string
 	// shared is a panel that found its parts another's: it draws in cells
 	// and leaves the overlay, which is that other panel's, alone.
 	shared bool
@@ -546,6 +548,8 @@ func (p *panel) draw(sc tcell.Screen) {
 		status = "filter: " + p.filt + "   (" + strconv.Itoa(len(p.ctls)) + " of " + strconv.Itoa(len(p.all)) + ")   backspace to edit, / to clear"
 	case p.hover != "":
 		status = p.hoverLine()
+	case p.sceneNote != "":
+		status = "the scene: " + p.sceneNote
 	case p.msg != "":
 		status = p.msg
 	}

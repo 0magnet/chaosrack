@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/0magnet/chaosrack/internal/rackcable"
+	"github.com/0magnet/chaosrack/pkg/rackhost"
 	"github.com/0magnet/chaosrack/pkg/racklink"
 	"github.com/0magnet/chaosrack/pkg/racktui"
 	"github.com/0magnet/chaosrack/pkg/subcmds"
@@ -65,7 +66,7 @@ func RackDialer() subcmds.Dialer {
 // PanelFlags puts the flags that say where the rack is on the panel's
 // command, which is chaosrack itself.
 func PanelFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&tuiVia, "via", racklink.ViaAuto, "how to reach the rack: auto (WebTransport, else a WebSocket), wt, ws, or cdp (a browser debugging port)")
+	fs.StringVar(&tuiVia, "via", "", "drive a rack in a page instead of running one: auto (WebTransport, else a WebSocket), wt, ws, or cdp (a browser debugging port)")
 	fs.StringVar(&tuiServer, "server", "", "the chaosrack server whose page to drive (default: http://127.0.0.1:8080)")
 	fs.IntVar(&cdpPort, "cdp", 9222, "with --via cdp: the browser's remote-debugging port")
 	fs.StringVar(&attachTo, "attach", "", "with --via cdp: substring of the tab's URL (default: 127.0.0.1:8080)")
@@ -74,22 +75,40 @@ func PanelFlags(fs *pflag.FlagSet) {
 }
 
 // PanelHelp is how the panel reaches the rack on a host, for its help.
-const PanelHelp = `On this machine the rack is a page in a browser, served by chaosrack serve.
-The page offers the rack to its own server and the panel reaches it there:
-over WebTransport when it can, otherwise a WebSocket (--via). No browser
-debugging port is needed.
+const PanelHelp = `On this machine chaosrack runs the rack itself: the panel as the page draws
+it, its values held here, and the model drawn in the terminal. No browser is
+needed.
+
+To drive a rack running in a page instead, say how to reach it: --via auto
+(WebTransport, else a WebSocket, through the page's own server), wt, ws, or
+cdp (a browser's debugging port; --attach chooses the tab and --cdp the
+port). --server alone means auto, and --attach alone cdp.
 
   chaosrack serve &
   xdg-open http://127.0.0.1:8080/
-  chaosrack
+  chaosrack --via auto`
 
-With several pages open, the one opened last answers. --via cdp reaches the
-page over a browser's debugging port instead: --attach chooses the tab and
---cdp the port.`
+// remote reports whether the panel is to drive a page rather than run the
+// rack itself: any of the flags that say where a page is.
+func remote() bool { return tuiVia != "" || tuiServer != "" || attachTo != "" }
 
-// Panel runs the panel on this terminal, driving a rack in a browser.
+// Panel runs the panel on this terminal: the rack itself, or with --via, a
+// rack running in a page.
 func Panel(ctx context.Context) error {
 	servePprof()
+	if !remote() {
+		r, err := rackhost.New()
+		if err != nil {
+			return err
+		}
+		return racktui.Run(ctx, r)
+	}
+	if tuiVia == "" {
+		tuiVia = racklink.ViaAuto
+		if attachTo != "" && tuiServer == "" {
+			tuiVia = "cdp"
+		}
+	}
 	if tuiVia == "cdp" {
 		c, err := dialRack()
 		if err != nil {

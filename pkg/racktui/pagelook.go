@@ -612,9 +612,20 @@ func (p *panel) refreshPixels() bool {
 		// cell's.
 		w, h, shape := p.sceneSize()
 		sw, sh := sceneSample(w, h)
-		if m, err := src.Scene(sw, sh, shape); err == nil {
+		m, err := src.Scene(sw, sh, shape)
+		if m != nil {
 			quantize(m, p.levels())
 			p.scene, got = m, true
+		}
+		// Why the scene is not what it should be — a model only a browser
+		// draws, a page that stopped answering — goes on the status line
+		// while it lasts, rather than leaving a dark scene to explain itself.
+		note := ""
+		if err != nil {
+			note = err.Error()
+		}
+		if note != p.sceneNote {
+			p.sceneNote, got = note, true
 		}
 	}
 	if p.winMode != winHidden {
