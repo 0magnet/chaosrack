@@ -19,10 +19,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
+	"github.com/0magnet/chaosrack/pkg/geom"
 	"github.com/0magnet/chaosrack/pkg/rackcatalog"
 	"github.com/0magnet/chaosrack/pkg/rackpic"
 	"github.com/0magnet/chaosrack/pkg/racksurface"
@@ -44,6 +46,12 @@ type Rack struct {
 	changed map[int]int        // item index → the generation it last changed in
 
 	scene scene
+
+	// flow is each flow constant the rack can set, by id: the value the
+	// integrator reads (dynamics.Params). refigure says one has changed
+	// since the figure was built.
+	flow     map[string]dynamics.Param
+	refigure atomic.Bool
 }
 
 // New is a rack at the catalog's defaults.
@@ -69,6 +77,7 @@ func New() (*Rack, error) {
 	r.pic = &p
 	r.findPointers()
 	r.findReadouts()
+	r.addFlowParams()
 	r.scene.start()
 	return r, nil
 }
@@ -109,6 +118,15 @@ func (r *Rack) Set(id, value string) error {
 		return nil
 	}
 	c.Value = v
+	if c.Module == modelModule {
+		r.refigure.Store(true)
+	}
+	if p, ok := r.flow[id]; ok {
+		if f, err := strconv.ParseFloat(v, 32); err == nil {
+			*p.Value = float32(f)
+			r.refigure.Store(true)
+		}
+	}
 	r.turn(c)
 	return nil
 }
@@ -456,9 +474,9 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	if key == "" || !on {
 		return img, nil
 	}
-	if key != s.key {
+	if key != s.key || r.refigure.Swap(false) {
 		s.key = key
-		s.fig, s.err = figureFor(key)
+		s.fig, s.err = figureFor(key, r.knobs())
 	}
 	if s.err != nil {
 		// Dark, and why: the panel shows the reason on its status line.
@@ -492,16 +510,53 @@ func zoomScale(zoom float64) float64 {
 	return 0.85 * math.Pow(2, zoom/31.7)
 }
 
-// figureFor is a model's geometry, as `chaosrack render` builds it.
-func figureFor(key string) (attractor.Figure, error) {
+// figureFor is a model's geometry, as `chaosrack render` builds it, with the
+// model's own knobs where the rack carries them out (knob is a control's
+// value, 0 when the rack has none).
+func figureFor(key string, knob func(id string) float64) (attractor.Figure, error) {
 	if dynamics.HasFlow(key) {
 		return attractor.Figure{Kind: attractor.FigurePath, Points: dynamics.Trajectory(key, dynamics.DefaultTrajectory())}, nil
+	}
+	if key == "globe" {
+		// Its circles of latitude and its meridians, as the page's knobs
+		// count them: geom.Globe at the page's defaults is StaticFigure's.
+		lat, lon := int(knob("globe-lat")), int(knob("globe-lon"))
+		if lat > 0 && lon > 0 {
+			return linesOf(geom.Globe(lat, lon, 60)), nil
+		}
 	}
 	if f, ok := attractor.StaticFigure(key, 20000); ok {
 		return f, nil
 	}
 	return attractor.Figure{}, fmt.Errorf("%s %w", key, ErrBrowserOnly)
 }
+
+// linesOf is a wireframe as a figure.
+func linesOf(l geom.Lines) attractor.Figure {
+	f := attractor.Figure{Kind: attractor.FigureLines, Edges: l.Indices}
+	for i := 0; i+2 < len(l.Vertices); i += 3 {
+		f.Points = append(f.Points, [3]float64{float64(l.Vertices[i]), float64(l.Vertices[i+1]), float64(l.Vertices[i+2])})
+	}
+	return f
+}
+
+// knobs is the model bank's values now, for figureFor.
+func (r *Rack) knobs() func(id string) float64 {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	v := map[string]float64{}
+	for _, c := range r.ctls {
+		if c.Module == modelModule {
+			if f, err := strconv.ParseFloat(c.Value, 64); err == nil {
+				v[c.ID] = f
+			}
+		}
+	}
+	return func(id string) float64 { return v[id] }
+}
+
+// modelModule is the model bank's module: a change there redraws the model.
+const modelModule = "visual · model"
 
 // SceneAct turns the model with a drag and zooms it with the wheel, as the
 // page's own canvas does.
