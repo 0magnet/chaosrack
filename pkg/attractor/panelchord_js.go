@@ -3,9 +3,10 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"strings"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
 // The reveal chord: a key combination that brings the whole control surface on

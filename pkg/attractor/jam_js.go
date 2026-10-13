@@ -11,9 +11,10 @@ package attractor
 // switches are never touched.
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
 var (

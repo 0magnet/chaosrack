@@ -25,9 +25,10 @@ package attractor
 // that they belong to the take rather than to the furniture around it.
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"strconv"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
 // recPreviewFPS is how often the monitor redraws. Low on purpose: this is a
