@@ -241,7 +241,12 @@ func (s *Shell) Run(ctx context.Context, line string) (needMore bool, err error)
 	// about the exit — clears it at once. A caller that asked the runner
 	// afterwards was always told no, which is why `exit` could not be
 	// acted on from outside.
-	s.exited = s.Runner.Exited()
+	//
+	// A line ended by its context (Ctrl+C) looks to the runner like an exit
+	// too. It is not one, and resetting for it threw away the directory,
+	// every variable, the options and the background jobs on each Ctrl+C.
+	// The runner clears its exit state at the start of every Run anyway.
+	s.exited = s.Runner.Exited() && ctx.Err() == nil
 	if s.exited {
 		// plain `exit` in the top level shell: reset so the terminal
 		// session keeps working
