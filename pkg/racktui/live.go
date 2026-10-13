@@ -98,6 +98,15 @@ func (q *poster) tick(done <-chan struct{}) {
 // came or went means the rack itself changed (a module switched out, a
 // model's bank swapped), and that is a reload, layout and all.
 func (p *panel) refresh() bool {
+	// With the page's own parts laid over the cells, the picture and the
+	// pixels are drawn by nobody. Asking for the picture's changes anyway
+	// cost the page 25 ms a time, four times a second, and up to 340 ms
+	// once: the page measures every element of the rack to answer, and that
+	// is what kept the model from turning smoothly while the instrument ran.
+	// Plain cells (w) asks again, and the first answer catches up.
+	if p.nativeNow() {
+		return false
+	}
 	if p.pic != nil {
 		// The page look shows the values in the picture, so the list of
 		// them is read only when a key is about to use one (fresh). Read

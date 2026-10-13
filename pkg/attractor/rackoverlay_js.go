@@ -5,6 +5,7 @@ package attractor
 import (
 	"encoding/json"
 	"math"
+	"strconv"
 	"strings"
 	"syscall/js"
 
@@ -81,6 +82,22 @@ func rackOverlay() js.Value {
 				lsSet("wasmstuff-dock", act.Edge)
 			case "move":
 				lsSet("wasmstuff-dock", "float")
+			case "resize":
+				// The size the window was dragged to, in pixels, kept where the
+				// page keeps its own window's: the drawer's depth docked, the
+				// floating window's size floating. WindowCells and DockCells
+				// read them back when the panel lays the window out again.
+				switch act.Edge {
+				case "top", "bottom":
+					layout.dockSizeH = float64(act.Y)
+					lsSet("wasmstuff-dockH", strconv.Itoa(act.Y))
+				case "left", "right":
+					layout.dockSizeW = float64(act.X)
+					lsSet("wasmstuff-dockW", strconv.Itoa(act.X))
+				default:
+					layout.floatW, layout.floatH = float64(act.X), float64(act.Y)
+					layout.saveFloatGeom()
+				}
 			}
 			windowHand(act)
 			return nil
@@ -219,6 +236,14 @@ function docked() {
   if (P.wrap.className !== cls) { P.wrap.className = cls; refit(); }
   var at = (L && L.Dock) || 'float';
   P.docks.forEach(function (d) { d.k.style.background = d.edge === at ? 'rgba(255,255,255,.28)' : ''; });
+  // The grip on the side that sizes the window from where it is docked.
+  var g = P.grip.style, base = 'position:absolute;z-index:2;';
+  if (at === 'bottom') g.cssText = base + 'left:0;right:0;top:0;height:5px;cursor:ns-resize';
+  else if (at === 'top') g.cssText = base + 'left:0;right:0;bottom:0;height:5px;cursor:ns-resize';
+  else if (at === 'left') g.cssText = base + 'top:0;bottom:0;right:0;width:5px;cursor:ew-resize';
+  else if (at === 'right') g.cssText = base + 'top:0;bottom:0;left:0;width:5px;cursor:ew-resize';
+  else g.cssText = base + 'right:0;bottom:0;width:14px;height:14px;cursor:nwse-resize;' +
+    'background:linear-gradient(135deg,transparent 50%,rgba(255,255,255,.5) 50%)';
 }
 
 return {
@@ -320,7 +345,43 @@ return {
     });
     bar.addEventListener('dblclick', function () { act('full', 0, 0); });
 
-    var p = P = { el: el, bar: bar, wrap: wrap, docks: docks, frame: take(frame) };
+    // The grip sizes the window: its corner floating, docked its inner edge.
+    // Let go, the page keeps the size as its own window's, as its resize bar
+    // does (the next load opens it so), and the terminal lays the window out
+    // again on whole cells.
+    var grip = doc.createElement('div');
+    grip.title = 'drag to size the window';
+    grip.addEventListener('mousedown', function (e) {
+      if (e.button !== 0) return;
+      e.preventDefault(); e.stopPropagation();
+      var at = (L && L.Dock) || 'float';
+      var x0 = e.clientX, y0 = e.clientY, w0 = el.offsetWidth, h0 = el.offsetHeight;
+      function size(m) {
+        var dx = m.clientX - x0, dy = m.clientY - y0;
+        var w = at === 'right' ? w0 - dx : at === 'top' || at === 'bottom' ? w0 : w0 + dx;
+        var h = at === 'bottom' ? h0 - dy : at === 'left' || at === 'right' ? h0 : h0 + dy;
+        return [Math.max(160, w), Math.max(80, h)];
+      }
+      function move(m) {
+        if (m.buttons === 0) return;
+        var s = size(m);
+        el.style.width = s[0] + 'px'; el.style.height = s[1] + 'px';
+      }
+      function up(m) {
+        doc.removeEventListener('mousemove', move);
+        doc.removeEventListener('mouseup', up);
+        var s = size(m);
+        // Docked across the top or the bottom the page's drawer is the
+        // body alone; the title row is the terminal's.
+        if (at === 'top' || at === 'bottom') s[1] -= bar.offsetHeight;
+        act('resize', s[0], s[1], at);
+      }
+      doc.addEventListener('mousemove', move);
+      doc.addEventListener('mouseup', up);
+    });
+    el.appendChild(grip);
+
+    var p = P = { el: el, bar: bar, wrap: wrap, docks: docks, grip: grip, frame: take(frame) };
     wrap.appendChild(frame);
     if (away) home(p.frame); else refit();
     fit();
