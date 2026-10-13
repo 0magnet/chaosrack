@@ -15,7 +15,7 @@ require (
 	github.com/0magnet/seat v0.0.0-20261012011244-01164e82b270
 	github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
 	github.com/0magnet/tuiwasm v0.0.0-20261013200640-6c97eff70e22
-	github.com/0magnet/websh v0.0.1-0.20261013200419-2bbbf0eb075b
+	github.com/0magnet/websh v0.0.1-0.20261013212500-bd991093a21f
 	github.com/0magnet/winbox-go v0.0.1-0.20261013200318-576b1ad60c9a
 	github.com/0magnet/xterm-go v0.0.1-0.20261013204849-5482fb0fc886
 	github.com/gdamore/tcell/v3 v3.6.0
