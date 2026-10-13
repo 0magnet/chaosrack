@@ -41,17 +41,33 @@ func wireSeat() {
 	inst := mountInstrument()
 	s.AddPage("instrument", func(front bool) {
 		if inst.Truthy() {
-			vis := "hidden"
+			// Out of the way rather than hidden. visibility is inherited, so
+			// hiding the instrument restyled every element of the rack in it,
+			// and the next screen's focus() waited on that: 90 to 100 ms each
+			// way, half of every Ctrl+Alt switch. A transform restyles
+			// nothing; aria-hidden keeps it from screen readers as hidden did.
+			st := inst.Get("style")
 			if front {
-				vis = ""
+				st.Set("transform", "")
+				inst.Call("removeAttribute", "aria-hidden")
+			} else {
+				st.Set("transform", "translateX(-300vw)")
+				inst.Call("setAttribute", "aria-hidden", "true")
 			}
-			inst.Get("style").Set("visibility", vis)
-			// The parts go back to the page while another screen is in front.
-			rackOverlay().Call("hold", !front)
+			// The parts come back with the instrument. They leave only for the
+			// desktop, which shows them (below): a terminal screen does not,
+			// and moving the rack out and in again cost a whole layout of it
+			// each way, 200 to 400 ms of every Ctrl+Alt switch.
+			if front {
+				rackOverlay().Call("hold", false)
+			}
 		}
 	})
 	s.AddPage("desktop", func(front bool) {
 		desktopFront = front
+		if front && inst.Truthy() {
+			rackOverlay().Call("hold", true)
+		}
 		// The desk floats the rack whatever the page docks it to, and saves
 		// that as it goes; the instrument's preference is the person's, and
 		// outlasts a visit to the desk.
