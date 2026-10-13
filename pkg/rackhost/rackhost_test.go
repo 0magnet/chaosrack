@@ -218,3 +218,62 @@ func TestABrowserOnlyModelSaysSo(t *testing.T) {
 		t.Fatalf("waterfall: image %v, error %v", m != nil, err)
 	}
 }
+
+// A flow's constant is a control of the native rack, and setting it redraws
+// the model with it.
+func TestAFlowConstantRedrawsTheModel(t *testing.T) {
+	r := newRack(t)
+	id := r.modelControl()
+	if id == "" {
+		t.Skip("no model selector in the catalog")
+	}
+	if err := r.Set(id, "lorenz"); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := r.flow["lorenz-r"]; !ok {
+		t.Fatal("lorenz-r is not a control of the native rack")
+	}
+	frame := func() []byte {
+		m, err := r.Scene(60, 30, 2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return m.Px
+	}
+	if err := r.Set("auto-rotate", "0"); err != nil {
+		t.Fatal(err)
+	}
+	before := frame()
+	defer func(v string) { _ = r.Set("lorenz-r", v) }(r.value("lorenz-r")) //nolint:errcheck // restoring a package-wide constant
+	if err := r.Set("lorenz-r", "60"); err != nil {
+		t.Fatal(err)
+	}
+	if string(frame()) == string(before) {
+		t.Error("the model looks the same with ρ = 60")
+	}
+}
+
+// The globe is drawn with as many circles as its knobs count.
+func TestTheGlobeFollowsItsKnobs(t *testing.T) {
+	r := newRack(t)
+	id := r.modelControl()
+	if id == "" || r.value("globe-lat") == "" {
+		t.Skip("no globe knobs in the catalog")
+	}
+	if err := r.Set(id, "globe"); err != nil {
+		t.Fatal(err)
+	}
+	edges := func() int {
+		if _, err := r.Scene(40, 20, 2); err != nil {
+			t.Fatal(err)
+		}
+		return len(r.scene.fig.Edges)
+	}
+	at18 := edges()
+	if err := r.Set("globe-lat", "4"); err != nil {
+		t.Fatal(err)
+	}
+	if at4 := edges(); at4 >= at18 {
+		t.Errorf("4 circles of latitude drew %d edges, 18 drew %d", at4, at18)
+	}
+}

@@ -145,6 +145,13 @@ func buildParamUnitAs(mode string, p paramDef, pu bool) js.Value {
 	slider.Set("step", stepStr) // set before value so the thumb isn't snapped
 	// Recorded as the decimals the slider is given, not float32 widened.
 	setSpec(p.ID, parseOr0(minStr), parseOr0(maxStr), parseOr0(stepStr))
+	// In the registry, as the rack's other knobs are: a model's constants
+	// were the one family ctl, a panel in a terminal and the native rack's
+	// catalog could not see.
+	registerControl(ControlDesc{
+		ID: p.ID, Label: p.Label,
+		Min: parseOr0(minStr), Max: parseOr0(maxStr), Step: parseOr0(stepStr), Def: float64(p.Def),
+	}, "visual · model")
 	slider.Set("value", strconv.FormatFloat(float64(*p.Value), 'g', -1, 32))
 	slider.Set("title", docf("param-slider", "label", p.Label, "min", minStr, "max", maxStr))
 	slider.Set("style", "display:none;")
