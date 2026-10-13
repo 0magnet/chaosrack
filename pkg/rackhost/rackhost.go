@@ -44,6 +44,17 @@ type Rack struct {
 	ptrs    map[string]pointer // each dial's pointer, by control id
 	reads   map[string]readout // each control's display, by control id
 	changed map[int]int        // item index → the generation it last changed in
+	full    int                // the generation the picture was last rebuilt in
+
+	// The model bank. The picture's items are those outside the bank region
+	// (the first outside of them, in the catalog's order, never moved) and
+	// then the bank as the page draws it for the model chosen; inBank is the
+	// controls drawn in the region now, and calib what each was captured at.
+	outside    int
+	outsideBox map[string][4]float64
+	inBank     map[string]bool
+	calib      map[string]string
+	selector   string
 
 	scene scene
 
@@ -71,15 +82,99 @@ func New() (*Rack, error) {
 	for i, c := range r.ctls {
 		r.byID[c.ID] = i
 	}
+	r.addFlowParams()
+	r.calib = map[string]string{}
+	for _, c := range r.ctls {
+		r.calib[c.ID] = c.Value
+	}
+	r.selector = r.modelControl()
+
 	p := *cat.Picture
-	p.Items = append([]*rackpic.Item(nil), cat.Picture.Items...)
 	p.Gen = 1
 	r.pic = &p
-	r.findPointers()
-	r.findReadouts()
-	r.addFlowParams()
+	r.outsideBox = map[string][4]float64{}
+	if cat.Banks == nil {
+		// A catalog without banks: the one picture, whole.
+		p.Items = append([]*rackpic.Item(nil), cat.Picture.Items...)
+		r.outside = len(p.Items)
+		for id, b := range cat.Picture.Ctls {
+			r.outsideBox[id] = b
+		}
+	} else {
+		for _, it := range cat.Picture.Items {
+			if !rackcatalog.InRegion(it, cat.BankRegion) {
+				p.Items = append(p.Items, it)
+			}
+		}
+		r.outside = len(p.Items)
+		for id, b := range cat.Picture.Ctls {
+			if !inBox(b, cat.BankRegion) {
+				r.outsideBox[id] = b
+			}
+		}
+	}
+	p.Ctls = r.outsideBox
+	r.calibrate(0, r.outside, func(string) bool { return true }, nil)
+	r.useBank(r.value(r.selector))
 	r.scene.start()
 	return r, nil
+}
+
+// inBox reports whether a box's middle is in the region rg.
+func inBox(b, rg [4]float64) bool {
+	x, y := b[0]+b[2]/2, b[1]+b[3]/2
+	return x >= rg[0] && x <= rg[0]+rg[2] && y >= rg[1] && y <= rg[1]+rg[3]
+}
+
+// useBank draws the model bank as the page draws it for model: its items in
+// place of the last model's, its controls' boxes, and their pointers and
+// readouts calibrated to it and turned to this rack's values.
+func (r *Rack) useBank(model string) {
+	b := r.cat.Banks[model]
+	if b == nil {
+		return
+	}
+	for id := range r.inBank {
+		delete(r.ptrs, id)
+		delete(r.reads, id)
+	}
+	r.pic.Items = append(r.pic.Items[:r.outside:r.outside], b.Items...)
+	ctls := make(map[string][4]float64, len(r.outsideBox)+len(b.Ctls))
+	for id, box := range r.outsideBox {
+		ctls[id] = box
+	}
+	r.inBank = map[string]bool{}
+	for id, box := range b.Ctls {
+		ctls[id] = box
+		r.inBank[id] = true
+	}
+	r.pic.Ctls = ctls
+	// The bank was captured with each control at its default, and the
+	// selector on this model.
+	captured := func(c *racktui.Control) string {
+		if c.ID == r.selector {
+			return model
+		}
+		return r.calib[c.ID]
+	}
+	r.calibrate(r.outside, len(r.pic.Items), func(id string) bool { return r.inBank[id] }, captured)
+	for id := range r.inBank {
+		i, ok := r.byID[id]
+		if !ok {
+			continue
+		}
+		c := &r.ctls[i]
+		if id != r.selector && c.Value != captured(c) {
+			r.turn(c)
+		}
+	}
+	for i := range r.changed {
+		if i >= r.outside {
+			delete(r.changed, i)
+		}
+	}
+	r.pic.Gen++
+	r.full = r.pic.Gen
 }
 
 var (
@@ -126,6 +221,10 @@ func (r *Rack) Set(id, value string) error {
 			*p.Value = float32(f)
 			r.refigure.Store(true)
 		}
+	}
+	if id == r.selector {
+		r.useBank(v)
+		return nil
 	}
 	r.turn(c)
 	return nil
@@ -191,36 +290,59 @@ type pointer struct {
 	v0   float64 // the dial's value then
 }
 
-// findPointers finds each dial's pointer: of the picture items in the dial's
-// box that carry an angle, the one nearest the box's middle. A box is a
-// whole P-unit, which can hold a neighbor's knob or a second pointer as well.
-func (r *Rack) findPointers() {
-	for _, c := range r.ctls {
-		if c.IsSwitch || c.IsSelect || c.Max <= c.Min {
+// calibrate finds the pointers and readouts of the controls only picks among
+// the picture's items lo to hi, against the values captured gives (each
+// control's value now, when nil): what the page drew for those values is
+// where a new value is drawn from.
+func (r *Rack) calibrate(lo, hi int, only func(id string) bool, captured func(c *racktui.Control) string) {
+	if captured == nil {
+		captured = func(c *racktui.Control) string { return c.Value }
+	}
+	for i := range r.ctls {
+		c := &r.ctls[i]
+		if !only(c.ID) {
 			continue
 		}
 		box, ok := r.pic.Ctls[c.ID]
 		if !ok {
 			continue
 		}
-		v0, err := strconv.ParseFloat(c.Value, 64)
-		if err != nil {
-			continue
+		v := captured(c)
+		if p, ok := r.findPointer(c, v, box, lo, hi); ok {
+			r.ptrs[c.ID] = p
 		}
-		mx, my := box[0]+box[2]/2, box[1]+box[3]/2
-		best, dist := -1, math.Inf(1)
-		for i, it := range r.pic.Items {
-			if !it.Pointer() || !inside(it, box) {
-				continue
-			}
-			if d := math.Hypot(it.X+it.W/2-mx, it.Y+it.H/2-my); d < dist {
-				best, dist = i, d
-			}
-		}
-		if best >= 0 {
-			r.ptrs[c.ID] = pointer{item: best, at: *r.pic.Items[best].Angle, v0: v0}
+		if ro, ok := r.findReadout(c, v, box, lo, hi); ok {
+			r.reads[c.ID] = ro
 		}
 	}
+}
+
+// findPointer is a dial's pointer: of the items in the dial's box that carry
+// an angle, the one nearest the box's middle. A box is a whole P-unit, which
+// can hold a neighbor's knob or a second pointer as well.
+func (r *Rack) findPointer(c *racktui.Control, value string, box [4]float64, lo, hi int) (pointer, bool) {
+	if c.IsSwitch || c.IsSelect || c.Max <= c.Min {
+		return pointer{}, false
+	}
+	v0, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return pointer{}, false
+	}
+	mx, my := box[0]+box[2]/2, box[1]+box[3]/2
+	best, dist := -1, math.Inf(1)
+	for i := lo; i < hi; i++ {
+		it := r.pic.Items[i]
+		if !it.Pointer() || !inside(it, box) {
+			continue
+		}
+		if d := math.Hypot(it.X+it.W/2-mx, it.Y+it.H/2-my); d < dist {
+			best, dist = i, d
+		}
+	}
+	if best < 0 {
+		return pointer{}, false
+	}
+	return pointer{item: best, at: *r.pic.Items[best].Angle, v0: v0}, true
 }
 
 // inside reports whether an item's middle is in box (x, y, w, h).
@@ -314,6 +436,12 @@ func (r *Rack) Picture() (*rackpic.Picture, error) {
 func (r *Rack) PictureChanges(gen int) (*rackpic.Patch, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if gen < r.full {
+		// The picture was rebuilt since: a new model's bank. All of it.
+		p := *r.pic
+		p.Items = append([]*rackpic.Item(nil), r.pic.Items...)
+		return &rackpic.Patch{Gen: r.pic.Gen, Full: &p}, nil
+	}
 	d := &rackpic.Patch{Gen: r.pic.Gen}
 	for i, g := range r.changed {
 		if g > gen {

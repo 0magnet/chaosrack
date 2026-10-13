@@ -24,16 +24,12 @@ func newRack(t *testing.T) *Rack {
 // the pointer stands exactly where the page drew it.
 func TestEveryDialHasItsPointerWhereThePageDrewIt(t *testing.T) {
 	r := newRack(t)
-	cat, err := rackcatalog.Load()
-	if err != nil {
-		t.Fatal(err)
-	}
 	dials, found := 0, 0
 	for _, c := range r.ctls {
 		if c.IsSwitch || c.IsSelect || c.Max <= c.Min || isRotationKnob(c.ID) {
 			continue
 		}
-		if _, shown := cat.Picture.Ctls[c.ID]; !shown {
+		if _, shown := r.pic.Ctls[c.ID]; !shown {
 			continue
 		}
 		dials++
@@ -45,7 +41,7 @@ func TestEveryDialHasItsPointerWhereThePageDrewIt(t *testing.T) {
 		}
 		found++
 		v, _ := strconv.ParseFloat(c.Value, 64) //nolint:errcheck // a dial's value
-		if got, want := p.angle(&c, v), *cat.Picture.Items[p.item].Angle; math.Abs(got-want) > 0.01 {
+		if got, want := p.angle(&c, v), *r.pic.Items[p.item].Angle; math.Abs(got-want) > 0.01 {
 			t.Errorf("%s = %s: pointer at %.1f°, the page drew it at %.1f°", c.ID, c.Value, got, want)
 		}
 	}
@@ -152,16 +148,12 @@ func TestTheSceneDrawsTheModel(t *testing.T) {
 // new value in the same hand.
 func TestReadoutsWriteValuesAsThePageDid(t *testing.T) {
 	r := newRack(t)
-	cat, err := rackcatalog.Load()
-	if err != nil {
-		t.Fatal(err)
-	}
 	if len(r.reads) < 20 {
 		t.Fatalf("only %d readouts found", len(r.reads))
 	}
 	for id, ro := range r.reads {
 		c := r.ctls[r.byID[id]]
-		want := cat.Picture.Items[ro.item].Text
+		want := r.pic.Items[ro.item].Text
 		if got := ro.show(&c); strings.TrimSpace(got) != strings.TrimSpace(want) && !c.IsSelect {
 			t.Errorf("%s = %s: readout %q, the page wrote %q", id, c.Value, got, want)
 		}
@@ -275,5 +267,60 @@ func TestTheGlobeFollowsItsKnobs(t *testing.T) {
 	}
 	if at4 := edges(); at4 >= at18 {
 		t.Errorf("4 circles of latitude drew %d edges, 18 drew %d", at4, at18)
+	}
+}
+
+// Choosing a model draws the bank as the page draws it for that model: its
+// knobs in the picture, the page's own name for it in the selector's window,
+// and the whole picture again for a panel holding the last one. A knob turned
+// before keeps its value through the change and back.
+func TestChoosingAModelRedrawsTheBank(t *testing.T) {
+	r := newRack(t)
+	cat, err := rackcatalog.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cat.Banks == nil || r.selector == "" {
+		t.Skip("a catalog without banks")
+	}
+	if err := r.Set("globe-lat", "4"); err != nil {
+		t.Fatal(err)
+	}
+	p, _ := r.Picture() //nolint:errcheck // never fails
+	if err := r.Set(r.selector, "lorenz"); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := r.pic.Ctls["lorenz-r"]; !ok {
+		t.Error("lorenz's ρ is not in the picture with lorenz chosen")
+	}
+	if _, ok := r.pic.Ctls["globe-lat"]; ok {
+		t.Error("the globe's knobs are still in the picture with lorenz chosen")
+	}
+	// The bank's knobs carry no pointer the picture records; their readouts
+	// are what shows a value.
+	if _, ok := r.reads["lorenz-r"]; !ok {
+		t.Error("lorenz's ρ has no readout")
+	}
+	named := false
+	for _, it := range r.pic.Items[r.outside:] {
+		if it != nil && strings.Contains(strings.ToLower(it.Text), "lorenz") {
+			named = true
+		}
+	}
+	if !named {
+		t.Error("nothing in the bank names lorenz")
+	}
+	if d, _ := r.PictureChanges(p.Gen); d.Full == nil { //nolint:errcheck // never fails
+		t.Error("a panel with the globe's picture was not sent the whole of lorenz's")
+	}
+	if err := r.Set(r.selector, "globe"); err != nil {
+		t.Fatal(err)
+	}
+	ro, ok := r.reads["globe-lat"]
+	if !ok {
+		t.Fatal("the globe's latitude has no readout")
+	}
+	if got := strings.TrimSpace(r.pic.Items[ro.item].Text); !strings.HasPrefix(got, "4") && !strings.HasPrefix(got, "04") && !strings.HasPrefix(got, "004") {
+		t.Errorf("back on the globe, its latitude reads %q, want 4", got)
 	}
 }

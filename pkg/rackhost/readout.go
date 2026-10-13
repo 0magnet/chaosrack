@@ -111,42 +111,32 @@ func parseReadout(t string) (float64, readout, bool) {
 	return v, ro, true
 }
 
-// findReadouts finds each control's readout: the text in its box that shows
-// the catalog's value. Of several (a dial's scale has a 0 on it, and so does
-// its LED at zero), the longest, which is the LED's.
-func (r *Rack) findReadouts() {
-	for _, c := range r.ctls {
-		if c.IsSwitch {
-			continue
-		}
-		box, ok := r.pic.Ctls[c.ID]
-		if !ok {
-			continue
-		}
-		best, bestLen := readout{item: -1}, 0
-		for i, it := range r.pic.Items {
-			if it == nil || it.Text == "" || !inside(it, box) {
-				continue
-			}
-			if c.IsSelect {
-				if c.Value != "" && strings.EqualFold(strings.TrimSpace(it.Text), c.Value) && len(it.Text) > bestLen {
-					best, bestLen = readout{item: i}, len(it.Text)
-				}
-				continue
-			}
-			v, ro, ok := parseReadout(it.Text)
-			if !ok {
-				continue
-			}
-			want, err := strconv.ParseFloat(c.Value, 64)
-			if err != nil || math.Abs(v-want) > 0.5*math.Pow(10, -float64(ro.dec)) || len(it.Text) <= bestLen {
-				continue
-			}
-			ro.item = i
-			best, bestLen = ro, len(it.Text)
-		}
-		if best.item >= 0 {
-			r.reads[c.ID] = best
-		}
+// findReadout is a control's readout: of the text among items lo to hi in
+// its box, what shows value. Of several (a dial's scale has a 0 on it, and
+// so does its LED at zero), the longest, which is the LED's.
+func (r *Rack) findReadout(c *racktui.Control, value string, box [4]float64, lo, hi int) (readout, bool) {
+	if c.IsSwitch {
+		return readout{}, false
 	}
+	want, numErr := strconv.ParseFloat(value, 64)
+	best, bestLen := readout{item: -1}, 0
+	for i := lo; i < hi; i++ {
+		it := r.pic.Items[i]
+		if it == nil || it.Text == "" || !inside(it, box) || len(it.Text) <= bestLen {
+			continue
+		}
+		if c.IsSelect {
+			if value != "" && strings.EqualFold(strings.TrimSpace(it.Text), value) {
+				best, bestLen = readout{item: i}, len(it.Text)
+			}
+			continue
+		}
+		v, ro, ok := parseReadout(it.Text)
+		if !ok || numErr != nil || math.Abs(v-want) > 0.5*math.Pow(10, -float64(ro.dec)) {
+			continue
+		}
+		ro.item = i
+		best, bestLen = ro, len(it.Text)
+	}
+	return best, best.item >= 0
 }

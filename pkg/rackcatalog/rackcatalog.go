@@ -39,6 +39,28 @@ type Catalog struct {
 	Controls []racktui.Control `json:"controls"`
 	// Picture is the panel as the page draws it, with those values.
 	Picture *rackpic.Picture `json:"picture"`
+	// Banks is the model bank as the page draws it for each model, by the
+	// model selector's value. The bank is one grid of cells that a model
+	// reprograms — its legends, its knobs, its readouts — so the picture
+	// differs from model to model only inside BankRegion (x, y, w, h).
+	Banks      map[string]*Bank `json:"banks,omitempty"`
+	BankRegion [4]float64       `json:"bankRegion"`
+}
+
+// Bank is the picture's items inside the bank region for one model, and the
+// boxes of the controls drawn there.
+type Bank struct {
+	Items []*rackpic.Item       `json:"items"`
+	Ctls  map[string][4]float64 `json:"ctls"`
+}
+
+// InRegion reports whether an item's middle is in the region r.
+func InRegion(it *rackpic.Item, r [4]float64) bool {
+	if it == nil {
+		return false
+	}
+	x, y := it.X+it.W/2, it.Y+it.H/2
+	return x >= r[0] && x <= r[0]+r[2] && y >= r[1] && y <= r[1]+r[3]
 }
 
 var embedded = sync.OnceValues(func() (*Catalog, error) {
