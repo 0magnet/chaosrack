@@ -923,7 +923,10 @@ func renderLoop(this js.Value, args []js.Value) any {
 	// rate is per SECOND and not per frame. See frameScale: a fixed step
 	// per frame makes every dropped frame a visible hesitation and every
 	// refresh rate a different speed.
-	fs := frameScale(tdiff)
+	fs := float32(1)
+	if timebaseCorrect {
+		fs = frameScale(tdiff)
+	}
 	if rotationX != 0 {
 		view.angleX += rotationX / 20 * fs
 	}

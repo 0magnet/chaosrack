@@ -300,7 +300,7 @@ const controlsBody = `
   <span class="pcell axcol vmcell gen-cell"><span class="grp vmbay"><span class="ledlbl">min</span><span class="led" id="tm-min-led" data-doc="tm-min-led">  --.-</span><span class="ledlbl">max</span><span class="led" id="tm-max-led" data-doc="tm-max-led">  --.-</span></span></span>
   <span class="pcell axcol vmcell gen-cell"><span class="grp vmbay"><span class="ledlbl">late</span><span class="led" id="tm-late-led" data-doc="tm-late-led">  --.-</span><span class="ledlbl">rest</span><span class="led" id="tm-rest-led" data-doc="tm-rest-led">  --.-</span></span></span>
   <span class="pcell axcol vmcell gen-cell"><span class="grp vmbay"><span class="ledlbl">model</span><span class="led" id="tm-model-led" data-doc="tm-model-led">  --.-</span><span class="ledlbl">meters</span><span class="led" id="tm-meters-led" data-doc="tm-meters-led">  --.-</span></span></span>
-  <span class="pcell axcol vmcell gen-cell"><span class="grp vmbay"><span class="ledlbl">scope</span><span class="led" id="tm-scope-led" data-doc="tm-scope-led">  --.-</span></span></span>
+  <span class="pcell axcol vmcell gen-cell"><span class="grp vmbay"><span class="ledlbl">scope</span><span class="led" id="tm-scope-led" data-doc="tm-scope-led">  --.-</span></span><label class="grp" style="cursor:pointer;" data-doc="tbc-sw-cell"><input type="checkbox" class="sw" id="tbc-sw" checked> TBC</label></span>
 </div></div>
 <div class="sect gen-osc" id="feat-module"><div class="sect-hdr" data-doc="feat">Features</div>
 <div class="row vmrow meterrow">

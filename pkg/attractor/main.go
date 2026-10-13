@@ -1047,6 +1047,12 @@ func wirePanelSwitches() {
 	// Event: speed slider
 	// (Speed's input/reset wiring is owned by its ControlDesc registration.)
 
+	// Event: TBC, timebase correction (framescale.go).
+	dom.On(dom.Doc.Call("getElementById", "tbc-sw"), "change", func(this js.Value, args []js.Value) any {
+		timebaseCorrect = dom.Doc.Call("getElementById", "tbc-sw").Get("checked").Bool()
+		return nil
+	})
+
 	// Event: auto-rotate switch — fold the auto-spin into the Y rate knob.
 	dom.On(dom.Doc.Call("getElementById", "auto-rotate"), "change", func(this js.Value, args []js.Value) any {
 		setAutoRotate(dom.Doc.Call("getElementById", "auto-rotate").Get("checked").Bool())
