@@ -113,6 +113,9 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
   box-shadow: 0 2px 8px rgba(0,0,0,0.5);
 }
 #panel-shell.dk-bottom #dock-controls { right: 16px; bottom: 100%; margin-bottom: 2px; flex-direction: row; }/* Floating: over the title bar's right end, so the label stays visible. */
+/* In a window on the desk the desk places the rack, and the strip below the
+   shell only made the window scroll a little around the panel's own scroll. */
+.winbox #panel-shell #dock-controls { display: none; }
 
 
 /* ═══ 3. Rack frame ════════════════════════════════════════════════════════ */

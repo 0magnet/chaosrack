@@ -65,6 +65,15 @@ func wireSeat() {
 		if dc := dom.Doc.Call("getElementById", "desk-contain"); dc.Truthy() {
 			dc.Set("checked", front)
 		}
+		// The page's ▤ sits in the bottom left corner, which on the desk is
+		// the Applications button's: above the desk's panel while it shows.
+		if t := dom.Doc.Call("getElementById", "panel-toggle"); t.Truthy() {
+			bottom := "6px"
+			if bar := dom.Doc.Call("querySelector", ".dk-panel"); front && bar.Truthy() {
+				bottom = strconv.Itoa(bar.Get("offsetHeight").Int()+6) + "px"
+			}
+			t.Get("style").Set("bottom", bottom)
+		}
 	})
 	for n := 3; n <= 4; n++ {
 		s.Add("terminal "+strconv.Itoa(n), &ttyScreen{n: n})
