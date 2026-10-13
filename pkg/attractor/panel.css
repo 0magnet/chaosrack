@@ -1314,9 +1314,14 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
 .pbank>.pslot:first-child{grid-column:1 / -1;width:100%;}
 
 /* ═══ 16. Meters ════════════════════════════════════════════════════════════ */
-/* Counter module: the gate lamp under the frequency readout */
-.counter-gate{display:inline-block;width:calc(12px*var(--kscale,1));height:calc(12px*var(--kscale,1));border-radius:50%;background:var(--led-bg,#170000);border:1px solid var(--led-bd,#3a0000);transition:background .1s,box-shadow .1s;}
-.counter-gate.lit{background:var(--led-col,#ff3b30);box-shadow:0 0 8px var(--led-glow,#ff2a20),0 0 3px var(--led-glow,#ff2a20);}
+/* Counter module: the gate lamp under the frequency readout. Blinking lamps
+   light by OPACITY on a glow layer of their own: a background or shadow change
+   repaints a full-width raster tile of the bay (thousands of ops in the
+   Counter's), several times a second, and the model's canvas waits on it. */
+.counter-gate{display:inline-block;position:relative;width:calc(12px*var(--kscale,1));height:calc(12px*var(--kscale,1));border-radius:50%;background:var(--led-bg,#170000);border:1px solid var(--led-bd,#3a0000);}
+.counter-gate::after,.rhythm-beat::after{content:"";position:absolute;inset:-1px;border-radius:50%;background:var(--led-col,#ff3b30);opacity:0;will-change:opacity;}
+.counter-gate::after{box-shadow:0 0 8px var(--led-glow,#ff2a20),0 0 3px var(--led-glow,#ff2a20);}
+.counter-gate.lit::after,.rhythm-beat.lit::after{opacity:1;}
 /* The Lyapunov verdict beside its exponent, on a display of its own: the
    word changes with the model, so it is characters, not print. Green when
    the model is genuinely chaotic, legible at a glance without the number. */
@@ -1584,8 +1589,8 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
    switching to a three-beat pattern cannot narrow the cell and shuffle the
    rack sideways under the hand that just pressed the tab. */
 .rhythm-beats{display:inline-flex;gap:calc(4px*var(--kscale,1));align-items:center;justify-content:flex-start;margin-top:calc(4px*var(--kscale,1));min-width:calc(44px*var(--kscale,1));}
-.rhythm-beat{width:calc(8px*var(--kscale,1));height:calc(8px*var(--kscale,1));border-radius:50%;background:var(--led-bg,#170000);border:1px solid var(--led-bd,#3a0000);transition:background .06s,box-shadow .18s;}
-.rhythm-beat.lit{background:var(--led-col,#ff3b30);box-shadow:0 0 7px var(--led-glow,#ff2a20);}
+.rhythm-beat{position:relative;width:calc(8px*var(--kscale,1));height:calc(8px*var(--kscale,1));border-radius:50%;background:var(--led-bg,#170000);border:1px solid var(--led-bd,#3a0000);}
+.rhythm-beat::after{box-shadow:0 0 7px var(--led-glow,#ff2a20);}
 
 /* ═══ 20. Parameters and modulation ═════════════════════════════════════════ */
 /* The Mod module (modmatrix_js.go), shown only while Audio mod is on: the
