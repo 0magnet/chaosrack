@@ -186,10 +186,16 @@ func sameStrings(a, b []string) bool {
 // ── the mouse ────────────────────────────────────────────────────────────
 
 // mouse handles one mouse event: a click chooses the control under it (and,
-// on a P-unit, presses the button it lands on), and the wheel turns the
-// control under it, or scrolls the rack where there is none.
-func (p *panel) mouse(ev *tcell.EventMouse, w, h int) {
+// on a P-unit, presses the button it lands on), the wheel turns the control
+// under it, or scrolls the rack where there is none, and a move with nothing
+// held shows what it is over. It reports whether anything shown changed.
+func (p *panel) mouse(ev *tcell.EventMouse, w, h int) bool {
 	b := ev.Buttons()
+	const anyButton = tcell.Button1 | tcell.Button2 | tcell.Button3 | tcell.WheelUp | tcell.WheelDown | tcell.WheelLeft | tcell.WheelRight
+	if b&anyButton == 0 && p.held == 0 && !p.turning && p.winGrab == 0 && p.dragging == 0 {
+		x, y := ev.Position()
+		return p.hoverAt(x, y, w, h)
+	}
 	// Only a press counts. Terminals report a release, and a move with the
 	// button held, as events too; acting on each would click twice.
 	pressed := b&tcell.Button1 != 0 && p.held&tcell.Button1 == 0
@@ -198,18 +204,18 @@ func (p *panel) mouse(ev *tcell.EventMouse, w, h int) {
 
 	if p.list {
 		p.mouseList(b, pressed, y, h)
-		return
+		return true
 	}
 	if p.pic != nil {
 		p.mouseWindow(b, pressed, x, y)
-		return
+		return true
 	}
 	vw, vh := maxi(w-1, 1), maxi(h-2, 1)
 	if p.scrollBar(b, pressed, x, y, vw, vh) {
-		return
+		return true
 	}
 	if x >= vw || y >= vh {
-		return
+		return true
 	}
 	sx, sy := x+p.view.X, y+p.view.Y
 	hits := p.hitsAt(sx, sy)
@@ -222,7 +228,7 @@ func (p *panel) mouse(ev *tcell.EventMouse, w, h int) {
 		}
 		if len(hits) == 0 {
 			p.pan(0, -dir)
-			return
+			return true
 		}
 		p.choose(p.pick(hits))
 		p.nudge(dir)
@@ -232,7 +238,7 @@ func (p *panel) mouse(ev *tcell.EventMouse, w, h int) {
 		p.pan(1, 0)
 	case pressed:
 		if len(hits) == 0 {
-			return
+			return true
 		}
 		// A unit shared by several controls: a second click on it moves to
 		// the next one, as the page's legend button steps through them.
@@ -243,6 +249,7 @@ func (p *panel) mouse(ev *tcell.EventMouse, w, h int) {
 		p.choose(id)
 		p.press(sx, sy)
 	}
+	return true
 }
 
 // mouseList handles the mouse over the table.

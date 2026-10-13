@@ -21,7 +21,7 @@ func TestABoxIsItsSizeAtTheScale(t *testing.T) {
 		{X: 24, Y: 10, W: 24, H: 10, Fill: ptr(0xff0000)},
 	}}
 	b := cellBuf{}
-	drawPicture(b, pic, racksurface.View{W: 40, H: 10}, "", nil)
+	drawPicture(b, pic, racksurface.View{W: 40, H: 10}, "", "", nil)
 	red := 0
 	for _, c := range b {
 		if c.Top == [3]uint8{255, 0, 0} {
@@ -45,7 +45,7 @@ func TestWordsAreCharactersAndABoxOverThemHidesThem(t *testing.T) {
 		{X: 20, Y: 15, W: 40, H: 20, Fill: ptr(0x101010)},
 	}}
 	b := cellBuf{}
-	drawPicture(b, pic, racksurface.View{W: 40, H: 10}, "", nil)
+	drawPicture(b, pic, racksurface.View{W: 40, H: 10}, "", "", nil)
 	if c := b[[2]int{0, 1}]; c.Ch != 'h' || c.Top != [3]uint8{0, 255, 0} {
 		t.Errorf("the word's first cell is %+v", c)
 	}
@@ -60,7 +60,7 @@ func TestTheViewPansThePicture(t *testing.T) {
 		{X: 24, Y: 10, W: 2.4, H: 5, Fill: ptr(0xff0000)},
 	}}
 	b := cellBuf{}
-	drawPicture(b, pic, racksurface.View{X: 5, Y: 1, W: 20, H: 5}, "", nil)
+	drawPicture(b, pic, racksurface.View{X: 5, Y: 1, W: 20, H: 5}, "", "", nil)
 	if c := b[[2]int{5, 1}]; c.Top != [3]uint8{255, 0, 0} {
 		t.Errorf("the box at 10,2 seen from 5,1 is %+v", c)
 	}
@@ -74,7 +74,7 @@ func TestTheCursorIsOutlinedAndTheMouseFindsTheControl(t *testing.T) {
 		"btn":  {72, 20, 12, 10},
 	}}
 	b := cellBuf{}
-	drawPicture(b, pic, racksurface.View{W: 80, H: 20}, "cell", nil)
+	drawPicture(b, pic, racksurface.View{W: 80, H: 20}, "cell", "", nil)
 	ink := [3]uint8{cursorInk.R, cursorInk.G, cursorInk.B}
 	if c := b[[2]int{10, 5}]; c.Top != ink && c.Bottom != ink {
 		t.Errorf("the cursor's left edge is %+v", c)
@@ -97,7 +97,7 @@ func TestACanvasIsDrawnFromItsPixels(t *testing.T) {
 	}}
 	img := &rackpic.Image{W: 2, H: 1, Px: []byte{255, 0, 0, 0, 0, 255}}
 	b := cellBuf{}
-	drawPicture(b, pic, racksurface.View{W: 40, H: 10}, "", map[int]*rackpic.Image{0: img})
+	drawPicture(b, pic, racksurface.View{W: 40, H: 10}, "", "", map[int]*rackpic.Image{0: img})
 	if c := b[[2]int{10, 2}]; c.Top != [3]uint8{255, 0, 0} {
 		t.Errorf("the canvas's left is %+v, want the image's left pixel", c)
 	}

@@ -70,6 +70,7 @@ func PanelFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&cdpPort, "cdp", 9222, "with --via cdp: the browser's remote-debugging port")
 	fs.StringVar(&attachTo, "attach", "", "with --via cdp: substring of the tab's URL (default: 127.0.0.1:8080)")
 	fs.IntVar(&bayMon, "monitor", 0, "draw the bays with a chassis monitor this many slots wide")
+	fs.StringVar(&pprofAddr, "pprof", "", "serve Go's profiler at this address while the panel runs (e.g. 127.0.0.1:6061; go tool pprof http://ADDR/debug/pprof/profile)")
 }
 
 // PanelHelp is how the panel reaches the rack on a host, for its help.
@@ -88,11 +89,13 @@ page over a browser's debugging port instead: --attach chooses the tab and
 
 // Panel runs the panel on this terminal, driving a rack in a browser.
 func Panel(ctx context.Context) error {
+	servePprof()
 	if tuiVia == "cdp" {
 		c, err := dialRack()
 		if err != nil {
 			return err
 		}
+		defer racktui.PowerOn(c)()
 		return racktui.Run(ctx, c)
 	}
 	switch tuiVia {
@@ -109,6 +112,7 @@ func Panel(ctx context.Context) error {
 		return fmt.Errorf("reaching the rack at %s: %w (is chaosrack serve running, with its page open?)", server, err)
 	}
 	defer c.Close() //nolint:errcheck // on the way out
+	defer racktui.PowerOn(c)()
 	return racktui.Run(ctx, c)
 }
 
