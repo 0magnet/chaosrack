@@ -146,7 +146,7 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754
 ## explicit; go 1.26.6
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.1-0.20261013200419-2bbbf0eb075b
+# github.com/0magnet/websh v0.0.1-0.20261013212500-bd991093a21f
 ## explicit; go 1.26.6
 github.com/0magnet/websh/progressive
 github.com/0magnet/websh/shell
