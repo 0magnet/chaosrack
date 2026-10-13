@@ -180,6 +180,15 @@ func mountInstrument() js.Value {
 	// program's now: it works that window while the program runs, and with
 	// none running there is nothing for it to show.
 	if t := dom.Doc.Call("getElementById", "panel-toggle"); t.Truthy() {
+		// A press keeps the keyboard where it was, in the terminal: a focused
+		// button would take the keys, Ctrl+C with them, and the program could
+		// no longer be stopped.
+		t.Call("addEventListener", "mousedown", js.FuncOf(func(_ js.Value, a []js.Value) any {
+			if !desktopFront {
+				a[0].Call("preventDefault")
+			}
+			return nil
+		}), map[string]any{"capture": true})
 		t.Call("addEventListener", "click", js.FuncOf(func(_ js.Value, a []js.Value) any {
 			if desktopFront {
 				return nil // the desk's window, the page's own button as ever
