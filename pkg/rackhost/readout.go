@@ -29,7 +29,7 @@ type readout struct {
 // show is what the readout says for c's value now.
 func (ro readout) show(c *racktui.Control) string {
 	if c.IsSelect {
-		return optionName(c.Value)
+		return labelOf(c, c.Value)
 	}
 	v, err := strconv.ParseFloat(c.Value, 64)
 	if err != nil {
@@ -126,7 +126,7 @@ func (r *Rack) findReadout(c *racktui.Control, value string, box [4]float64, lo,
 			continue
 		}
 		if c.IsSelect {
-			if value != "" && strings.EqualFold(strings.TrimSpace(it.Text), value) {
+			if t := strings.TrimSpace(it.Text); value != "" && (strings.EqualFold(t, value) || strings.EqualFold(t, labelOf(c, value))) {
 				best, bestLen = readout{item: i}, len(it.Text)
 			}
 			continue
@@ -139,4 +139,15 @@ func (r *Rack) findReadout(c *racktui.Control, value string, box [4]float64, lo,
 		best, bestLen = ro, len(it.Text)
 	}
 	return best, best.item >= 0
+}
+
+// labelOf is how a selector's window names option v: the page's own name for
+// it where the catalog has one ("2-color" for "2"), else optionName.
+func labelOf(c *racktui.Control, v string) string {
+	for i, o := range c.Options {
+		if o == v && i < len(c.Labels) && c.Labels[i] != "" {
+			return c.Labels[i]
+		}
+	}
+	return optionName(v)
 }

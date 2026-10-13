@@ -59,14 +59,15 @@ func Over(ev Evaluator) (*Client, error) {
 const readValues = `(function(){
   return JSON.stringify(JSON.parse(rackctl.list()).map(function(c){
     var el = document.getElementById(c.id);
-    var opts = null;
+    var opts = null, names = null;
     if (el && el.tagName === 'SELECT') {
       opts = [].slice.call(el.options).map(function(o){ return o.value; });
+      names = [].slice.call(el.options).map(function(o){ return o.textContent.trim(); });
     }
     // A checkbox's .value is "on" whatever its state; the state is .checked.
     var v = !el ? '' : el.type === 'checkbox' ? (el.checked ? '1' : '0') : String(el.value);
     var at = el && el.closest('[data-loc]');
-    return {id: c.id, v: v, o: opts, l: at ? at.getAttribute('data-loc') : '',
+    return {id: c.id, v: v, o: opts, n: names, l: at ? at.getAttribute('data-loc') : '',
             pu: !!(el && el.closest('.pu'))};
   }));
 })()`
@@ -92,6 +93,7 @@ func (r *Client) Controls() ([]racktui.Control, error) {
 		ID string   `json:"id"`
 		V  string   `json:"v"`
 		O  []string `json:"o"`
+		N  []string `json:"n"`
 		L  string   `json:"l"`
 		PU bool     `json:"pu"`
 	}
@@ -106,7 +108,7 @@ func (r *Client) Controls() ([]racktui.Control, error) {
 	for _, in := range info {
 		c := racktui.Control{ControlInfo: in}
 		if i, ok := byID[in.ID]; ok {
-			c.Value, c.Options, c.Loc, c.PUnit = vals[i].V, vals[i].O, vals[i].L, vals[i].PU
+			c.Value, c.Options, c.Labels, c.Loc, c.PUnit = vals[i].V, vals[i].O, vals[i].N, vals[i].L, vals[i].PU
 		}
 		out = append(out, c)
 	}

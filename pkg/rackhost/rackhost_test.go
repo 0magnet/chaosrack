@@ -324,3 +324,43 @@ func TestChoosingAModelRedrawsTheBank(t *testing.T) {
 		t.Errorf("back on the globe, its latitude reads %q, want 4", got)
 	}
 }
+
+// Layers · Colors and Display act on the drawing: a colormap colors it
+// differently and Dots draws the points unjoined.
+func TestColorsAndDotsChangeTheDrawing(t *testing.T) {
+	r := newRack(t)
+	if r.selector == "" {
+		t.Skip("no model selector in the catalog")
+	}
+	for _, kv := range [][2]string{{r.selector, "lorenz"}, {"auto-rotate", "0"}} {
+		if err := r.Set(kv[0], kv[1]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	frame := func() string {
+		m, err := r.Scene(60, 30, 2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(m.Px)
+	}
+	base := frame()
+	for _, kv := range [][2]string{{"gradient-colors", "9"}, {"use-points", "1"}} {
+		before := frame()
+		if err := r.Set(kv[0], kv[1]); err != nil {
+			t.Fatal(err)
+		}
+		if frame() == before {
+			t.Errorf("%s = %s changed nothing in the drawing", kv[0], kv[1])
+		}
+	}
+	if frame() == base {
+		t.Error("the drawing is as it started")
+	}
+	// MAP names the colormap as the page does, not by its number.
+	if ro, ok := r.reads["gradient-colors"]; !ok {
+		t.Error("MAP has no readout")
+	} else if got := strings.TrimSpace(r.pic.Items[ro.item].Text); got != "viridis" {
+		t.Errorf("MAP reads %q, want viridis", got)
+	}
+}

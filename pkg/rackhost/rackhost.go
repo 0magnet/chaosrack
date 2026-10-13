@@ -576,6 +576,7 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	auto := r.value("auto-rotate") != "0"
 	rate := [3]float64{r.number("rotation-controls-x"), r.number("rotation-controls-y"), r.number("rotation-controls-z")}
 	zoom := r.number("camera-zoom")
+	look := r.look()
 	r.mu.Unlock()
 
 	s := &r.scene
@@ -618,12 +619,18 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 			BackDim:     0.5,
 			PixelAspect: 1 / shape,
 		},
+		Gradient: look.gradient,
 	}
-	n := len(s.fig.Points)
-	if s.fig.Kind == attractor.FigureLines {
-		n = len(s.fig.Edges)
+	fig := s.fig
+	if look.dots && fig.Kind == attractor.FigurePath {
+		// Display's Dots: the trajectory's points, unjoined.
+		fig.Kind = attractor.FigurePoints
 	}
-	m := attractor.DrawFigure(s.fig, 0, n, o)
+	n := len(fig.Points)
+	if fig.Kind == attractor.FigureLines {
+		n = len(fig.Edges)
+	}
+	m := attractor.DrawFigure(fig, 0, n, o)
 	for i := range w * h {
 		img.Px[3*i], img.Px[3*i+1], img.Px[3*i+2] = m.Pix[4*i], m.Pix[4*i+1], m.Pix[4*i+2]
 	}
