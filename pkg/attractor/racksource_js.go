@@ -5,6 +5,7 @@ package attractor
 import (
 	"errors"
 	"strconv"
+	"strings"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/dom"
@@ -50,6 +51,7 @@ func (inPageRack) Controls() ([]racktui.Control, error) {
 				opts := el.Get("options")
 				for i := range opts.Get("length").Int() {
 					c.Options = append(c.Options, opts.Index(i).Get("value").String())
+					c.Labels = append(c.Labels, strings.TrimSpace(opts.Index(i).Get("textContent").String()))
 				}
 			}
 		}

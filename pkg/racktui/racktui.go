@@ -36,6 +36,9 @@ type Control struct {
 	controlspec.ControlInfo
 	Value   string
 	Options []string // a selector's detents, in order; nil for a dial
+	// Labels names Options as the selector shows them ("2-color" for "2"),
+	// in the same order; nil where a page did not say.
+	Labels []string
 	// Loc is the control's address on the page, bay.column.row with a
 	// letter when several share a cell (designators_js.go), or "" for one
 	// the page has not placed. Like Value, only the running rack knows it.

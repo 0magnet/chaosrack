@@ -12,6 +12,7 @@ import (
 	"image/color"
 	"math"
 
+	"github.com/0magnet/chaosrack/pkg/colormap"
 	"github.com/0magnet/chaosrack/pkg/colorspace"
 )
 
@@ -30,7 +31,7 @@ const SourceTrail = 3
 // it. The zero value is invisible — start from DefaultGradient.
 type Gradient struct {
 	Source  int // t follows: 0=X, 1=Y, 2=Z (model space), 3=along the trail
-	Colors  int // palette: 1=monochrome, 2=two-color, 3=three-color, 4=rainbow
+	Colors  int // palette: 1=monochrome, 2=two-color, 3=three-color, 4=rainbow, 5 up the named colormaps (pkg/colormap)
 	Base    [3]float32
 	Mid     [3]float32
 	Top     [3]float32
@@ -225,9 +226,15 @@ func (g Gradient) colorAt(x, y, z float32, minV, maxV [3]float32, age float32) [
 		return mix(g.Mid, g.Top, (t-0.5)*2)
 	case 4:
 		return colorspace.FromHSV(t*g.Freq+g.Phase, 1, 1)
-	default:
-		return mix(g.Base, g.Top, t)
 	}
+	// The named colormaps the page's MAP offers past the first four: heat,
+	// blue, gray, turbo, viridis and magma, from the one table both the trace
+	// and the spectrogram draw with.
+	if idx, ok := colormap.Index(g.Colors); ok {
+		r, gg, b, _ := colormap.At(idx, float64(t)).RGBA()
+		return [3]float32{float32(r) / 0xffff, float32(gg) / 0xffff, float32(b) / 0xffff}
+	}
+	return mix(g.Base, g.Top, t)
 }
 
 func mix(a, b [3]float32, t float32) [3]float32 {
