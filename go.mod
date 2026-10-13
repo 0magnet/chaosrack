@@ -3,7 +3,8 @@ module github.com/0magnet/chaosrack
 go 1.26.7
 
 require (
-	github.com/0magnet/audioprism-go v0.0.1-0.20261012132311-cd7d848dbbd3
+	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992
+	github.com/0magnet/audioprism-go v0.0.1-0.20261013125049-779727d4f6b6
 	github.com/0magnet/calvin v0.0.1-0.20261012011430-3b61384c1b9e
 	github.com/0magnet/cdp v0.0.0-20261012011305-8702788579c4
 	github.com/0magnet/desk v0.0.3-0.20261012011444-d758282b4692
@@ -13,8 +14,8 @@ require (
 	github.com/0magnet/rack-go v0.0.0-20261008155311-cfc9879cd3c8
 	github.com/0magnet/seat v0.0.0-20261012011244-01164e82b270
 	github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
-	github.com/0magnet/tuiwasm v0.0.0-20261012132918-75779b8e2ed5
-	github.com/0magnet/websh v0.0.1-0.20261012132423-845a7d2c77c9
+	github.com/0magnet/tuiwasm v0.0.0-20261013125410-45c52b93f248
+	github.com/0magnet/websh v0.0.1-0.20261013125122-8351c1221bae
 	github.com/0magnet/winbox-go v0.0.1-0.20261012131923-a829715e530f
 	github.com/0magnet/xterm-go v0.0.1-0.20261011000522-9adb4a350db6
 	github.com/gdamore/tcell/v3 v3.6.0
@@ -33,8 +34,7 @@ require (
 
 require (
 	charm.land/lipgloss/v2 v2.0.6 // indirect
-	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992 // indirect
-	github.com/0magnet/bottle v0.0.1-0.20261012024120-0f51d9f0e03a // indirect
+	github.com/0magnet/bottle v0.0.1-0.20261012170135-a605c941016f // indirect
 	github.com/0magnet/coloredcobra v1.0.4-0.20261012213101-faa6bd8f94c5 // indirect
 	github.com/0magnet/glamour v1.0.1-0.20261004193946-db176df590f5 // indirect
 	github.com/0magnet/go-dsp v0.0.1-0.20261004205004-01fc64b17317 // indirect

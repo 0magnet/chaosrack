@@ -7,11 +7,11 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.1-0.20261012132311-cd7d848dbbd3
+# github.com/0magnet/audioprism-go v0.0.1-0.20261013125049-779727d4f6b6
 ## explicit; go 1.26.2
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
-# github.com/0magnet/bottle v0.0.1-0.20261012024120-0f51d9f0e03a
+# github.com/0magnet/bottle v0.0.1-0.20261012170135-a605c941016f
 ## explicit; go 1.24
 github.com/0magnet/bottle/proc
 # github.com/0magnet/calvin v0.0.1-0.20261012011430-3b61384c1b9e
@@ -126,7 +126,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20261012132918-75779b8e2ed5
+# github.com/0magnet/tuiwasm v0.0.0-20261013125410-45c52b93f248
 ## explicit; go 1.26.7
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -146,7 +146,7 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754
 ## explicit; go 1.26.6
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.1-0.20261012132423-845a7d2c77c9
+# github.com/0magnet/websh v0.0.1-0.20261013125122-8351c1221bae
 ## explicit; go 1.26.6
 github.com/0magnet/websh/progressive
 github.com/0magnet/websh/shell
