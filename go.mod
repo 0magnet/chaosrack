@@ -4,20 +4,20 @@ go 1.26.7
 
 require (
 	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992
-	github.com/0magnet/audioprism-go v0.0.1-0.20261013200359-cd6da65c0a4c
-	github.com/0magnet/calvin v0.0.1-0.20261013200157-9f68c20a964b
-	github.com/0magnet/cdp v0.0.0-20261012011305-8702788579c4
-	github.com/0magnet/desk v0.0.3-0.20261013213922-eb14de4ec283
-	github.com/0magnet/desk/panes v0.0.1-0.20261013213922-eb14de4ec283
-	github.com/0magnet/lattice v0.0.0-20261013200227-3c10c8d87123
-	github.com/0magnet/pisano v0.0.0-20261013214019-25e5692e0606
-	github.com/0magnet/rack-go v0.0.0-20261008155311-cfc9879cd3c8
-	github.com/0magnet/seat v0.0.0-20261012011244-01164e82b270
+	github.com/0magnet/audioprism-go v0.0.1-0.20261013224747-ec31c7141340
+	github.com/0magnet/calvin v0.0.1-0.20261013221715-da6581155df3
+	github.com/0magnet/cdp v0.0.0-20261013220930-98e232fae01d
+	github.com/0magnet/desk v0.0.3-0.20261013224924-704914fa689d
+	github.com/0magnet/desk/panes v0.0.1-0.20261013224924-704914fa689d
+	github.com/0magnet/lattice v0.0.0-20261013224541-88e9ab8a3922
+	github.com/0magnet/pisano v0.0.0-20261013225027-3045a05126d1
+	github.com/0magnet/rack-go v0.0.0-20261013221719-290136881c9a
+	github.com/0magnet/seat v0.0.0-20261013221028-e66b97ebca1a
 	github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
-	github.com/0magnet/tuiwasm v0.0.0-20261013214117-a8bc85c3bd6f
-	github.com/0magnet/websh v0.0.1-0.20261013213756-cfd96864be35
-	github.com/0magnet/winbox-go v0.0.1-0.20261013200318-576b1ad60c9a
-	github.com/0magnet/xterm-go v0.0.1-0.20261013223709-55942070b026
+	github.com/0magnet/tuiwasm v0.0.0-20261013225140-e766f4eead1a
+	github.com/0magnet/websh v0.0.1-0.20261013224812-80fb27c22dec
+	github.com/0magnet/winbox-go v0.0.1-0.20261013224642-cc4224c41a9c
+	github.com/0magnet/xterm-go v0.0.1-0.20261013223808-aa0a32cd702b
 	github.com/gdamore/tcell/v3 v3.6.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-gl/mathgl v1.2.0
@@ -34,15 +34,15 @@ require (
 
 require (
 	charm.land/lipgloss/v2 v2.0.6 // indirect
-	github.com/0magnet/bottle v0.0.1-0.20261012170135-a605c941016f // indirect
+	github.com/0magnet/bottle v0.0.1-0.20261013221653-12057b62ab20 // indirect
 	github.com/0magnet/coloredcobra v1.0.4-0.20261012213101-faa6bd8f94c5 // indirect
 	github.com/0magnet/glamour v1.0.1-0.20261004193946-db176df590f5 // indirect
-	github.com/0magnet/go-dsp v0.0.1-0.20261004205004-01fc64b17317 // indirect
-	github.com/0magnet/img2txt-go v0.0.1-0.20261012011230-57c72dcd90ae // indirect
-	github.com/0magnet/lolcat-go v0.0.1-0.20261012011232-f524706a866c // indirect
+	github.com/0magnet/go-dsp v0.0.1-0.20261013221717-1ec76fa9affb // indirect
+	github.com/0magnet/img2txt-go v0.0.1-0.20261013220954-ae0d760b7d2b // indirect
+	github.com/0magnet/lolcat-go v0.0.1-0.20261013220959-57aa27491489 // indirect
 	github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc // indirect
-	github.com/0magnet/termanim v0.0.1-0.20261013200302-631c4b48cbfc // indirect
-	github.com/0magnet/toilet-go v0.0.0-20261013200306-4b8de7ba95ba // indirect
+	github.com/0magnet/termanim v0.0.1-0.20261013224625-c801aece6dff // indirect
+	github.com/0magnet/toilet-go v0.0.0-20261013224629-4749634a6d85 // indirect
 	github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754 // indirect
 	github.com/alecthomas/chroma/v2 v2.27.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
