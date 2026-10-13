@@ -37,6 +37,23 @@ type poster struct {
 	// slower than the tick would otherwise fill the queue with ticks, and a
 	// key pressed then waits behind every one of them.
 	waiting atomic.Bool
+	// rest is how long to wait after a refresh before the next, in
+	// nanoseconds: a few times what the last one cost, the asking and the
+	// drawing, so a panel whose frames grew expensive (a zoomed-out terminal
+	// has hundreds of thousands of cells) takes a share of the page's thread
+	// and not all of it. Below refreshEvery it changes nothing.
+	rest atomic.Int64
+}
+
+// restFactor is how many times its own cost the panel rests after a
+// refresh: at most a quarter of the time goes on refreshing.
+const restFactor = 3
+
+// cost records what a refresh took, for the next to wait on.
+func (q *poster) cost(d time.Duration) {
+	if q != nil {
+		q.rest.Store(int64(restFactor * d))
+	}
 }
 
 // post reports whether the event went.
@@ -77,19 +94,31 @@ func (q *poster) close() {
 	q.mu.Unlock()
 }
 
-// tick posts a refresh every refreshEvery until done is closed.
+// tick posts a refresh every refreshEvery, or less often when refreshing has
+// grown expensive (rest), until done is closed.
 func (q *poster) tick(done <-chan struct{}) {
-	t := time.NewTicker(refreshEvery)
+	t := time.NewTimer(refreshEvery)
 	defer t.Stop()
 	for {
 		select {
 		case <-done:
 			return
 		case <-t.C:
-			if q.waiting.CompareAndSwap(false, true) && !q.post(tcell.NewEventInterrupt(refreshTick{})) {
-				q.waiting.Store(false)
+		}
+		if q.waiting.CompareAndSwap(false, true) && !q.post(tcell.NewEventInterrupt(refreshTick{})) {
+			q.waiting.Store(false)
+		}
+		// The rest starts once the refresh has been done and drawn, not when
+		// it was posted: otherwise a refresh slower than the tick is followed
+		// by the next at once, for as long as it stays that slow.
+		for q.waiting.Load() {
+			select {
+			case <-done:
+				return
+			case <-time.After(10 * time.Millisecond):
 			}
 		}
+		t.Reset(max(refreshEvery, time.Duration(q.rest.Load())))
 	}
 }
 

@@ -508,6 +508,12 @@ func (t *Terminal) wireDomEvents() {
 	// keyboard
 	t.textarea.Call("addEventListener", "keydown", t.fn(func(_ js.Value, args []js.Value) any {
 		ev := args[0]
+		// The browser's hard reload is the browser's: a terminal program has
+		// no use for Ctrl+Shift+R that Ctrl+R does not already cover, and a
+		// page that took it could not be reloaded from the keyboard at all.
+		if browserKey(ev) {
+			return nil
+		}
 		// copy and select-all first: they act on the selection rather than
 		// on the program, and must not be forwarded as input
 		if t.selectionKeydown(ev) {
@@ -1395,3 +1401,11 @@ func (t *Terminal) SetFont(family string, px float64) {
 
 // FontSize is the cell size the terminal is drawing at.
 func (t *Terminal) FontSize() float64 { return t.Core.Options.FontSize }
+
+// browserKey reports whether ev is a key the browser keeps: Ctrl+Shift+R (or
+// Cmd+Shift+R), the hard reload. It is left alone, neither sent to the program
+// nor prevented.
+func browserKey(ev js.Value) bool {
+	mod := ev.Get("ctrlKey").Bool() || ev.Get("metaKey").Bool()
+	return mod && ev.Get("shiftKey").Bool() && !ev.Get("altKey").Bool() && ev.Get("code").String() == "KeyR"
+}
