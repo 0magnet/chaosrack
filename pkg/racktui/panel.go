@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gdamore/tcell/v3"
 	"github.com/gdamore/tcell/v3/color"
@@ -139,18 +140,36 @@ func RunOn(sc tcell.Screen, src Source) error {
 	// v3 hands events over a channel and reports key RELEASES as well as
 	// presses — without the Pressed check every keystroke would move the
 	// cursor twice, which reads as a panel that has lost its detents.
+	//
+	// Everything already waiting is taken before the screen is drawn once
+	// for all of it: a mouse moved over a big screen sends a move for every
+	// cell it crosses, and a draw for each, each costing what the whole
+	// screen costs, fell further behind with every one.
+	//
+	// A refresh is done when the draw after it is: what it cost, the asking
+	// and the drawing together, sets how long the ticker rests (live.go).
 	dirty := true
+	var refreshing, drawn time.Time
 	for {
-		if dirty {
+		// Drawn at least every tenth of a second all the same, so a stream of
+		// events that never lets the queue empty still shows.
+		if dirty && (len(sc.EventQ()) == 0 || time.Since(drawn) > 100*time.Millisecond) {
 			p.draw(sc)
+			dirty, drawn = false, time.Now()
 		}
-		dirty = true
+		if !refreshing.IsZero() && !dirty {
+			q.cost(time.Since(refreshing))
+			q.waiting.Store(false)
+			refreshing = time.Time{}
+		}
+		changed := true
 		switch ev := (<-sc.EventQ()).(type) {
 		case *tcell.EventResize:
-			sc.Sync()
+			// Nothing more to do than draw: tcell has already repainted every
+			// cell for the new size. Syncing here painted them all again, and
+			// zoomed out each of those took seconds.
 		case *tcell.EventKey:
 			if !ev.Pressed() {
-				dirty = false
 				continue
 			}
 			if p.key(ev) {
@@ -158,19 +177,20 @@ func RunOn(sc tcell.Screen, src Source) error {
 			}
 		case *tcell.EventMouse:
 			w, h := sc.Size()
-			dirty = p.mouse(ev, w, h)
+			changed = p.mouse(ev, w, h)
 		case *tcell.EventInterrupt:
 			switch d := ev.Data().(type) {
 			case refreshTick:
 				// A refresh that found nothing new draws nothing.
-				dirty = p.refresh()
-				q.waiting.Store(false)
+				refreshing = time.Now()
+				changed = p.refresh()
 			case sceneErr:
 				p.err = string(d)
 			case WindowAct:
 				p.windowAct(d)
 			}
 		}
+		dirty = dirty || changed
 	}
 }
 
@@ -302,6 +322,13 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 			p.refilter()
 		}
 	case tcell.KeyRune:
+		// A letter with Ctrl, Alt or Meta held is somebody else's key — the
+		// browser's Ctrl+Shift+R, a window manager's — and not the letter.
+		// Taken as the letter, Ctrl+Shift+R re-read the whole rack (r), and
+		// held down it queued seconds of that.
+		if ev.Modifiers()&(tcell.ModCtrl|tcell.ModAlt|tcell.ModMeta) != 0 {
+			return false
+		}
 		r := firstRune(ev.Str())
 		switch r {
 		case 'q':

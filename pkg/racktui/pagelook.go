@@ -6,7 +6,6 @@ import (
 
 	"github.com/gdamore/tcell/v3"
 
-	"github.com/0magnet/chaosrack/pkg/panelart"
 	"github.com/0magnet/chaosrack/pkg/rackpic"
 	"github.com/0magnet/chaosrack/pkg/racksurface"
 )
@@ -530,15 +529,46 @@ func (p *panel) drawScene(sc tcell.Screen, w, h int) {
 	// was half the scene's cost at the default layout, and more zoomed out.
 	r := p.winR
 	under := p.winMode == winHalf && r.W > 0
+	// The scene may have been sampled smaller than the cells (sceneSample):
+	// each cell takes the pixel under its middle.
+	mw, mh := w, 2*h
+	if m != nil && m.W > 0 && m.H > 0 {
+		mw, mh = m.W, m.H
+	}
 	for y := range h {
+		yt, yb := 2*y*mh/(2*h), (2*y+1)*mh/(2*h)
 		for x := range w {
 			if under && x >= r.X && x < r.X+r.W && y >= r.Y && y < r.Y+r.H {
 				continue
 			}
-			top, bot := m.At(x, 2*y), m.At(x, 2*y+1)
-			sc.SetContent(x, y, '▀', nil, styleOf(cellAt{Art: true, Top: rgb3(top), Bottom: rgb3(bot)}))
+			mx := x * mw / w
+			top, bot := rgb3(m.At(mx, yt)), rgb3(m.At(mx, yb))
+			// A cell one color top and bottom is a space on that ground:
+			// the same picture, and the cheap way to set a cell. A half
+			// block is measured as a grapheme every time it is set, which
+			// was most of the cost of a zoomed-out scene.
+			ch := '▀'
+			if top == bot {
+				ch = ' '
+			}
+			sc.SetContent(x, y, ch, nil, styleOf(cellAt{Art: true, Top: top, Bottom: bot}))
 		}
 	}
+}
+
+// maxScenePixels bounds the scene sampled from the page. Zoomed out a
+// terminal has hundreds of thousands of half cells; reading back and
+// decoding one pixel for each grew without limit and stopped the page.
+const maxScenePixels = 160_000
+
+// sceneSample is the size to sample a w x h scene at: itself, or scaled
+// down evenly to maxScenePixels, so a pixel keeps its shape.
+func sceneSample(w, h int) (int, int) {
+	if w*h <= maxScenePixels {
+		return w, h
+	}
+	s := math.Sqrt(float64(maxScenePixels) / float64(w*h))
+	return maxi(int(float64(w)*s), 1), maxi(int(float64(h)*s), 1)
 }
 
 // refreshPixels samples the scene and the canvases the window shows, and
@@ -557,7 +587,9 @@ func (p *panel) refreshPixels() bool {
 	if p.winMode != winFull {
 		// A pixel is half a cell: its height over its width is half the
 		// cell's.
-		if m, err := src.Scene(p.scrW, 2*maxi(p.scrH-1, 1), panelart.CellAspect()/2); err == nil {
+		w, h, shape := p.sceneSize()
+		sw, sh := sceneSample(w, h)
+		if m, err := src.Scene(sw, sh, shape); err == nil {
 			quantize(m, p.levels())
 			p.scene, got = m, true
 		}
