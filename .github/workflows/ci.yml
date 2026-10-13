@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version: stable
       # Native tests cover the untagged pure logic (LED formatting, pitch
       # mapping, pose decomposition, splines, equation parser).
       - run: go test ./...
@@ -36,7 +36,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version: stable
       - name: install golangci-lint
         # The installer is taken at the same tag as the binary it installs.
         # Fetching it from master broke every run here: that script matches the
@@ -65,6 +65,15 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v5
+      # The Go builds — the page's wasm and the meters worker — with the
+      # newest Go, as every other job here; go.mod's line is the floor this
+      # module needs, not the toolchain to ship with.
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+      - run: make wasm metersworker
+      # TinyGo builds against the Go it supports, which the newest Go need not
+      # be on the day it is released: go.mod's.
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
@@ -96,7 +105,7 @@ jobs:
       # — and refreshing only one left the other's staleness test failing the
       # test job on exactly the runs this is meant to handle. The Go build
       # takes seconds next to TinyGo's minutes, so it is nearly free here.
-      - run: make wasms
+      - run: make tinywasm
       - name: commit the refreshed artifacts
         # Only on a push to main: a pull request build has nothing it may push
         # to, and one from a fork does not have the token either. A stale
