@@ -31,11 +31,6 @@ import (
 
 var pageSeat *seat.Seat
 
-const instrumentGreeting = "" +
-	"\x1b[1;35mchaosrack\x1b[0m — the instrument is this terminal's program\r\n" +
-	"\x1b[2mctrl+c stops it, model and panel; \x1b[0m\x1b[1mchaosrack\x1b[0m\x1b[2m starts it again (--plain: in cells alone)\x1b[0m\r\n" +
-	"\x1b[2mctrl+alt+1 instrument · ctrl+alt+2 desktop · ctrl+alt+3, 4 terminals\x1b[0m\r\n\r\n"
-
 // useHostFS gives every terminal the server's filesystem, once, whichever
 // asks first: the instrument, a terminal screen or the desk.
 var useHostFS = sync.OnceFunc(term.UseHostFS)
@@ -167,7 +162,7 @@ func mountInstrument() js.Value {
 	} else {
 		dom.Body.Call("appendChild", el)
 	}
-	p := term.New(instrumentGreeting, "chaosrack").Exec(instrumentCommand).Run("chaosrack")
+	p := term.New("", "chaosrack").Exec(instrumentCommand).Run("chaosrack")
 	if err := p.Mount(el); err != nil {
 		el.Call("remove")
 		js.Global().Get("console").Call("error", "chaosrack: the instrument's terminal: "+err.Error())
@@ -226,7 +221,7 @@ type ttyScreen struct {
 
 func (t *ttyScreen) Mount(el js.Value) error {
 	useHostFS()
-	t.p = term.New("\x1b[2mterminal "+strconv.Itoa(t.n)+" · ctrl+alt+1 for the instrument\x1b[0m\r\n\r\n", "chaosrack")
+	t.p = term.New("", "chaosrack")
 	return t.p.Mount(el)
 }
 
