@@ -56,9 +56,9 @@ func TestTheOverlayIsOnlyOverThePageLook(t *testing.T) {
 	if p.layoutNow() != nil {
 		t.Error("over the list something was laid out")
 	}
-	p.list, p.pic = false, nil
+	p.list, p.pic, p.paged = false, nil, false
 	if p.layoutNow() != nil {
-		t.Error("with no picture something was laid out")
+		t.Error("without the page look something was laid out")
 	}
 }
 

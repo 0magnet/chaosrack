@@ -25,7 +25,7 @@ func (s *sceneRack) SceneAct(w, h int, shape, x, y float64, kind string, delta f
 // scenePanel is a page-look panel on a 40 x 11 terminal, its window on the
 // right half.
 func scenePanel(s *sceneRack) *panel {
-	p := &panel{src: s, pic: &rackpic.Picture{W: 100, H: 100}}
+	p := &panel{src: s, pic: &rackpic.Picture{W: 100, H: 100}, paged: true}
 	p.scrW, p.scrH = 40, 11
 	p.layoutWindow(p.scrW, p.scrH)
 	return p

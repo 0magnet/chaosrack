@@ -48,8 +48,8 @@ github.com/0magnet/websh v0.0.1-0.20261013213756-cfd96864be35 h1:TC4yza1qeQXcH+r
 github.com/0magnet/websh v0.0.1-0.20261013213756-cfd96864be35/go.mod h1:N6qRAgD9BBKmztw7amI+b6pWr3vILQKUkpdwOK6K3eU=
 github.com/0magnet/winbox-go v0.0.1-0.20261013200318-576b1ad60c9a h1:YsCk4UWyxekhpNLv0q0WB0Pt+8BAfzWHls/8Rxs/QCw=
 github.com/0magnet/winbox-go v0.0.1-0.20261013200318-576b1ad60c9a/go.mod h1:lLTB2mqYBbGexn0NwjOZ1bVt9CCvsdYUrjweYfzfZvk=
-github.com/0magnet/xterm-go v0.0.1-0.20261013204947-f189c545bca6 h1:gArOajnxVPiq30eGkHsLjW9jz+jxKlfAJH7LZnY5t+c=
-github.com/0magnet/xterm-go v0.0.1-0.20261013204947-f189c545bca6/go.mod h1:W6c6ofSTsxXuQEr1rSZ3qmfOj5a3LGB3uLQBL0/TiKc=
+github.com/0magnet/xterm-go v0.0.1-0.20261013223709-55942070b026 h1:sv0f3rqvtTPbvMCo83X5WS4SflKNBRChMk+M4hRR3uc=
+github.com/0magnet/xterm-go v0.0.1-0.20261013223709-55942070b026/go.mod h1:W6c6ofSTsxXuQEr1rSZ3qmfOj5a3LGB3uLQBL0/TiKc=
 github.com/alecthomas/assert/v2 v2.11.0 h1:2Q9r3ki8+JYXvGsDyBXwH3LcJ+WK5D0gc5E8vS6K3D0=
 github.com/alecthomas/assert/v2 v2.11.0/go.mod h1:Bze95FyfUr7x34QZrjL+XP+0qgp/zg8yS+TtBj1WA3k=
 github.com/alecthomas/chroma/v2 v2.27.0 h1:FodwmyOBgJULFYmDqibcp9pvfDLWdtPRh9v/r5BXYZs=

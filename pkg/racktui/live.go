@@ -136,7 +136,7 @@ func (p *panel) refresh() bool {
 	if p.nativeNow() {
 		return false
 	}
-	if p.pic != nil {
+	if p.paged {
 		// The page look shows the values in the picture, so the list of
 		// them is read only when a key is about to use one (fresh). Read
 		// every tick it was the most of what the panel cost the page: 44 ms
@@ -153,7 +153,7 @@ func (p *panel) refresh() bool {
 // fresh brings the values up to date before a key uses one, in the page look,
 // where they are not kept up to date otherwise.
 func (p *panel) fresh() {
-	if p.pic != nil {
+	if p.paged {
 		p.refreshValues()
 	}
 }
@@ -244,7 +244,7 @@ func (p *panel) mouse(ev *tcell.EventMouse, w, h int) bool {
 		p.mouseList(b, pressed, y, h)
 		return true
 	}
-	if p.pic != nil {
+	if p.paged {
 		p.mouseWindow(b, pressed, x, y)
 		return true
 	}

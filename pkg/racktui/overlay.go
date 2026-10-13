@@ -101,7 +101,7 @@ const partsTakenMsg = "another chaosrack has the page's parts: drawn in cells"
 // layoutNow is the page look's layout as last drawn, or nil when there is
 // nothing to lay anything over: the drawn looks, or the list.
 func (p *panel) layoutNow() *Layout {
-	if p.pic == nil || p.list || !p.overlay || p.scrW == 0 {
+	if !p.paged || p.list || !p.overlay || p.scrW == 0 {
 		return nil
 	}
 	l := &Layout{ViewX: p.view.X, ViewY: p.view.Y, PxPerCol: pagePxPerCol, PxPerRow: pagePxPerRow}
@@ -138,7 +138,7 @@ func (p *panel) layoutNow() *Layout {
 // nativeNow reports whether the parts are laid over the cells at their own
 // size now: the page look, with the overlay on, from a Native source.
 func (p *panel) nativeNow() bool {
-	if p.pic == nil || p.list || !p.overlay {
+	if !p.paged || p.list || !p.overlay {
 		return false
 	}
 	_, ok := p.src.(Native)

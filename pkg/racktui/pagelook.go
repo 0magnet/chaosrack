@@ -317,28 +317,47 @@ func mix(a, b color.RGBA) color.RGBA {
 
 // ── the panel in the page look ───────────────────────────────────────────
 
-// loadPicture takes the whole picture, when the look is the page's and the
-// Source can give one. A Source that cannot leaves the panel on the drawn
-// look, and says why.
+// loadPicture starts the page look, when the look is the page's and the
+// Source can describe its panel, and takes the whole picture unless the
+// page's own parts are about to cover the cells it would be drawn in. Taking
+// it measures every element of the rack, about half a second of the page's
+// thread, and was most of what starting chaosrack cost the page.
 func (p *panel) loadPicture() {
 	p.pic = nil
-	src, ok := p.src.(Pictured)
-	if look != LookPage || !ok {
-		return
+	_, ok := p.src.(Pictured)
+	p.paged = look == LookPage && ok
+	if p.paged && !p.nativeNow() {
+		p.picture()
 	}
+}
+
+// picture is the page look's picture, taken the first time it is wanted. A
+// Source that cannot give one leaves the panel on the drawn look, and says
+// why.
+func (p *panel) picture() *rackpic.Picture {
+	if p.pic != nil || !p.paged {
+		return p.pic
+	}
+	src := p.src.(Pictured) //nolint:forcetypeassert // paged says it is
 	pic, err := src.Picture()
 	if err != nil {
 		p.err = "the page look: " + err.Error()
-		return
+		p.paged = false
+		return nil
 	}
 	p.pic = pic
+	return pic
 }
 
 // refreshPicture brings the picture up to date, and reports a change.
 func (p *panel) refreshPicture() bool {
 	src, ok := p.src.(Pictured)
-	if p.pic == nil || !ok {
+	if !ok {
 		return false
+	}
+	if p.pic == nil {
+		// Not taken yet: taking it is the update.
+		return p.picture() != nil
 	}
 	d, err := src.PictureChanges(p.pic.Gen)
 	if err != nil {
@@ -350,8 +369,8 @@ func (p *panel) refreshPicture() bool {
 
 // surface is what the view moves over: the picture, or the drawn rack.
 func (p *panel) surface() racksurface.Surface {
-	if p.pic != nil {
-		return pageSurface(p.pic)
+	if pic := p.picture(); pic != nil {
+		return pageSurface(pic)
 	}
 	return p.surf
 }
@@ -483,11 +502,15 @@ func (p *panel) drawPage(sc tcell.Screen, w, h int) {
 		}
 		puts(sc, x0, y, title, st)
 	}
+	pic := p.picture()
+	if pic == nil {
+		return
+	}
 	vw, vh := p.view.W, p.view.H
-	s := pageSurface(p.pic)
+	s := pageSurface(pic)
 	p.view = p.view.Clamp(s)
 	if c, ok := p.at(); ok && c.ID != p.shown {
-		if x, y, cw, ch, ok := ctlRectOfPage(p.pic, c.ID); ok {
+		if x, y, cw, ch, ok := ctlRectOfPage(pic, c.ID); ok {
 			p.view = p.view.Reveal(x, y, cw, ch, s)
 		}
 		p.shown = c.ID
@@ -496,7 +519,7 @@ func (p *panel) drawPage(sc tcell.Screen, w, h int) {
 	if c, ok := p.at(); ok {
 		cursor = c.ID
 	}
-	drawPicture(screenPainter{sc: sc, x0: p.winX, y0: p.winY, w: vw, h: vh}, p.pic, p.view, cursor, p.hover, p.canv)
+	drawPicture(screenPainter{sc: sc, x0: p.winX, y0: p.winY, w: vw, h: vh}, pic, p.view, cursor, p.hover, p.canv)
 	// The bars, along the window's right and bottom edges, on a ground of
 	// their own so the scene does not show through them.
 	for y := range vh + 1 {
@@ -580,7 +603,7 @@ func (p *panel) refreshPixels() bool {
 		return false
 	}
 	src, ok := p.src.(Pictured)
-	if p.pic == nil || !ok || p.scrW == 0 {
+	if !ok || p.scrW == 0 || p.picture() == nil {
 		return false
 	}
 	got := false
@@ -638,13 +661,14 @@ func (c *canvas) image(it *rackpic.Item, m *rackpic.Image) {
 // lights, by the page's own handlers.
 func (p *panel) mousePage(b tcell.ButtonMask, pressed bool, x, y int) {
 	src, ok := p.src.(Pictured)
-	if !ok {
+	pic := p.picture()
+	if !ok || pic == nil {
 		return
 	}
 	px, py := pageOfCell(p.view.X+x, p.view.Y+y)
-	id, onCtl := ctlAtPage(p.pic, px, py)
+	id, onCtl := ctlAtPage(pic, px, py)
 	act := func(kind string, delta float64) {
-		if err := src.Act(p.pic.Gen, px, py, kind, delta); err != nil {
+		if err := src.Act(pic.Gen, px, py, kind, delta); err != nil {
 			p.err = err.Error()
 		}
 	}

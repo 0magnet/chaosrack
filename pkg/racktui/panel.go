@@ -53,8 +53,12 @@ type panel struct {
 	dragging rune
 
 	// pic is the panel as the page draws it, for the page look; nil for the
-	// drawn looks, or when the Source cannot describe it.
+	// drawn looks, or when the Source cannot describe it. Read it through
+	// picture(): while the page's own parts are laid over the cells nothing
+	// draws it, and it is taken only when something does.
 	pic *rackpic.Picture
+	// paged is the page look, from a Source that can describe its panel.
+	paged bool
 	// The page look's pixels: the scene behind the window, and the panel's
 	// canvases by item index; and the window, which winMode places.
 	scene      *rackpic.Image
@@ -348,7 +352,7 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 			p.filt = ""
 			p.refilter()
 		case 'p':
-			if p.filt == "" && p.pic != nil {
+			if p.filt == "" && p.paged {
 				// The window: half, the whole terminal, or out of the way.
 				p.winMode = (p.winMode + 1) % 3
 				p.scene, p.canv = nil, nil
@@ -599,7 +603,7 @@ func (p *panel) drawRack(sc tcell.Screen, w, h int) {
 	// the vertical one.
 	vw, vh := maxi(w-1, 1), maxi(h-2, 1)
 	p.view.W, p.view.H = vw, vh
-	if p.pic != nil {
+	if p.paged {
 		p.drawPage(sc, w, h)
 		return
 	}
