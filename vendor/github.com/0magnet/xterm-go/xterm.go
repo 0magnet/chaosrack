@@ -116,6 +116,7 @@ type Terminal struct {
 	allDirty             bool
 	dirtyStart, dirtyEnd int
 	syncingScroll        bool
+	scrollAreaQueued     bool // updateScrollArea due at the next render
 	blinkVisible         bool
 	opened               bool
 
@@ -307,7 +308,12 @@ func (t *Terminal) wireCoreEvents() {
 			t.sel.drop()
 		}
 		t.allDirty = true
-		t.updateScrollArea()
+		// The scroll area follows at the next frame, once however many lines
+		// scrolled: setting scrollTop lays the page out then and there, and
+		// done here it was a layout of the whole page for every line of
+		// output — and for the alternate screen a program switches to as it
+		// starts, while that program is still changing the page.
+		t.scrollAreaQueued = true
 		t.scheduleRender(false)
 		if t.a11y != nil {
 			t.a11y.refresh(0, t.Core.Rows()-1)
@@ -888,6 +894,10 @@ func (t *Terminal) scheduleRender(all bool) {
 }
 
 func (t *Terminal) render() {
+	if t.scrollAreaQueued {
+		t.scrollAreaQueued = false
+		t.updateScrollArea()
+	}
 	rows := t.Core.Rows()
 	start, end := t.dirtyStart, t.dirtyEnd
 	if t.allDirty {

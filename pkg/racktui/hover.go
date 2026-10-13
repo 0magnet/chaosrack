@@ -20,7 +20,7 @@ func (p *panel) controlAt(x, y, w, h int) string {
 	if p.list {
 		return ""
 	}
-	if p.pic != nil {
+	if p.paged {
 		if p.winMode == winHidden {
 			return ""
 		}
@@ -29,7 +29,7 @@ func (p *panel) controlAt(x, y, w, h int) string {
 			return ""
 		}
 		px, py := pageOfCell(p.view.X+lx, p.view.Y+ly)
-		id, _ := ctlAtPage(p.pic, px, py)
+		id, _ := ctlAtPage(p.picture(), px, py)
 		return id
 	}
 	vw, vh := maxi(w-1, 1), maxi(h-2, 1)
