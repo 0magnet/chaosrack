@@ -3,10 +3,11 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
+	"errors"
 	"strconv"
 	"syscall/js"
 
+	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/rackpic"
 	"github.com/0magnet/chaosrack/pkg/racksurface"
 	"github.com/0magnet/chaosrack/pkg/racktui"
@@ -63,6 +64,9 @@ func (inPageRack) Set(id, value string) error {
 	el := dom.Doc.Call("getElementById", id)
 	if !el.Truthy() {
 		return noControlError{id}
+	}
+	if p := controlValueProblem(el, value); p != "" {
+		return errors.New(id + ": " + p)
 	}
 	setControlValue(el, value)
 	dispatchControlEvents(el)

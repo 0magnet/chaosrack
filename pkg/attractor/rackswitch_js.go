@@ -3,11 +3,12 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
+	"strconv"
 	"strings"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/controlspec"
+	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
 // The switches, which the registry did not have.
@@ -67,8 +68,15 @@ func switchLabel(el js.Value, id string) string {
 			return t
 		}
 	}
+	// A switch with nothing written beside it (the hidden ones other controls
+	// drive) is named by its tooltip's first clause, when that is short: the
+	// whole tooltip is a sentence or two, and `ctl` printed it as a label.
 	if t := el.Call("getAttribute", "title"); t.Truthy() {
-		if s := strings.TrimSpace(t.String()); s != "" {
+		s := strings.TrimSpace(t.String())
+		if i := strings.IndexAny(s, "—.;:("); i >= 0 {
+			s = strings.TrimSpace(s[:i])
+		}
+		if s != "" && len(s) <= 24 {
 			return s
 		}
 	}
@@ -114,6 +122,36 @@ func setControlValue(el js.Value, v string) {
 		return
 	}
 	el.Set("value", v)
+}
+
+// controlValueProblem says why v cannot be written to el, or "" when it can.
+// A select given a value it does not offer selects nothing — `ctl
+// led-color=banana` answered "led-color = banana" and left the LEDs with no
+// color — and a number input given text keeps nothing; both are refused, the
+// select with what it does offer. A number out of a range input's range is
+// fine: the input clamps it, as a hand at the end of the travel is.
+func controlValueProblem(el js.Value, v string) string {
+	switch strings.ToLower(el.Get("tagName").String()) {
+	case "select":
+		opts := el.Get("options")
+		var have []string
+		for i := range opts.Get("length").Int() {
+			o := opts.Index(i).Get("value").String()
+			if o == v {
+				return ""
+			}
+			have = append(have, o)
+		}
+		return strconv.Quote(v) + " is not one of: " + strings.Join(have, " ")
+	case "input":
+		switch el.Get("type").String() {
+		case "range", "number":
+			if _, err := strconv.ParseFloat(strings.TrimSpace(v), 64); err != nil {
+				return strconv.Quote(v) + " is not a number"
+			}
+		}
+	}
+	return ""
 }
 
 // switchOn reads a switch position written as text. Generous on purpose: a

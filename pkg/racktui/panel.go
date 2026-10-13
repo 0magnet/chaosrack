@@ -89,6 +89,9 @@ type panel struct {
 	// the terminal can (overlay.go); laidOut is what was last written for it.
 	overlay bool
 	laidOut string
+	// shared is a panel that found its parts another's: it draws in cells
+	// and leaves the overlay, which is that other panel's, alone.
+	shared bool
 }
 
 var (
@@ -124,8 +127,11 @@ func RunOn(sc tcell.Screen, src Source) error {
 
 	// Where the page first floats its controls: near the top left.
 	p := &panel{src: src, q: q, overlay: !plain, floatX: 2, floatY: 2}
+	if p.overlay && partsTaken(src) {
+		p.overlay, p.shared, p.msg = false, true, partsTakenMsg
+	}
 	defer p.clearOverlay(sc) // before Fini, which is deferred first
-	if nv, ok := src.(Native); ok {
+	if nv, ok := src.(Native); ok && !p.shared {
 		// What is done to the window in the page comes back as events, so
 		// it is done on this loop and nowhere else.
 		// Off the caller, which is the page's event handler, and tried again
@@ -350,6 +356,10 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 			}
 			p.typeFilter(r)
 		case 'w':
+			if p.shared && p.filt == "" {
+				p.msg = partsTakenMsg
+				return false
+			}
 			if _, ok := p.src.(Overlay); ok && p.filt == "" {
 				// The page's parts over the cells, or the cells alone: the
 				// two drawings of one panel, compared in place.

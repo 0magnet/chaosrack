@@ -7,6 +7,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall/js"
 
 	"github.com/0magnet/websh/progressive"
@@ -115,6 +116,38 @@ var windowHand func(racktui.WindowAct)
 type termRack struct {
 	inPageRack
 	term *xterm.Terminal
+	// taken is a panel started while another held the page's parts.
+	taken bool
+}
+
+// PartsTaken reports whether another panel had the page's parts when this
+// one started (racktui.Sharer).
+func (r termRack) PartsTaken() bool { return r.taken }
+
+// partsHeld counts the panels holding the page's parts: its one canvas and
+// its one panel can be laid over one terminal at a time.
+var (
+	partsMu   sync.Mutex
+	partsHeld int
+)
+
+// holdParts takes the page's parts for a panel, or reports that another has
+// them. A panel drawing in cells (--plain) takes nothing.
+func holdParts() (release func(), ok bool) {
+	if racktui.Plain() {
+		return func() {}, true
+	}
+	partsMu.Lock()
+	defer partsMu.Unlock()
+	if partsHeld > 0 {
+		return func() {}, false
+	}
+	partsHeld++
+	return func() {
+		partsMu.Lock()
+		partsHeld--
+		partsMu.Unlock()
+	}, true
 }
 
 var _ racktui.Native = termRack{}
@@ -189,6 +222,9 @@ func (inPageRack) Overlay(l *racktui.Layout) string {
 
 const rackOverlayJS = `
 var doc = document, L = null, P = null, S = null, away = false;
+// held reports whether el is laid over the instrument's terminal, whose
+// screen "away" is about.
+function held(el) { return !!(el && el.closest && el.closest('#instrument')); }
 var panel = doc.getElementById('controls-panel');
 // ctxClass is the panel's classes, docked where the terminal's window is:
 // the stylesheet lays the modules out by the dk- edge.
@@ -310,17 +346,21 @@ return {
   // view is the layout the terminal's panel drew last, as JSON, or null.
   view: function (j) { L = JSON.parse(j); fit(); docked(); },
 
-  // hold gives the parts back to the page while the screen holding the
-  // terminal is not in front, and takes them again when it is.
+  // hold gives the parts back to the page while the instrument's screen is
+  // not in front, and takes them again when it is. Only parts laid over the
+  // instrument's terminal: a panel run in another of the page's terminals
+  // keeps its parts whichever screen is in front — "away" was the
+  // instrument's, and that panel's window came up empty while it was.
   hold: function (hidden) {
     away = hidden;
+    var p = P && held(P.el), s = S && held(S.el);
     if (hidden) {
-      if (P) home(P.frame);
-      if (S) home(S.canvas);
+      if (p) home(P.frame);
+      if (s) home(S.canvas);
       return;
     }
-    if (P && P.frame.node.parentNode !== P.wrap) { P.wrap.appendChild(P.frame.node); refit(); }
-    if (S && S.canvas.node.parentNode !== S.el) S.el.appendChild(S.canvas.node);
+    if (p && P.frame.node.parentNode !== P.wrap) { P.wrap.appendChild(P.frame.node); refit(); }
+    if (s && S.canvas.node.parentNode !== S.el) S.el.appendChild(S.canvas.node);
   },
 
   // panel moves the rack's frame into el, under a title bar, and returns
@@ -427,7 +467,7 @@ return {
 
     var p = P = { el: el, bar: bar, wrap: wrap, docks: docks, grips: grips, frame: take(frame) };
     wrap.appendChild(frame);
-    if (away) home(p.frame); else refit();
+    if (away && held(el)) home(p.frame); else refit();
     fit();
     docked();
     // A window docked or floated is a new width, which the frame fits.
@@ -467,7 +507,7 @@ return {
     var pos = c.style.position, left = c.style.left, top = c.style.top;
     c.style.position = 'absolute'; c.style.left = '0'; c.style.top = '0';
     var s = S = { el: el, canvas: take(c) };
-    if (!away) el.appendChild(c);
+    if (!(away && held(el))) el.appendChild(c);
     return function () {
       home(s.canvas);
       c.style.position = pos; c.style.left = left; c.style.top = top;

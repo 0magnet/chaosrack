@@ -59,7 +59,9 @@ func exposeRackControl() {
 	// set(id, v) → drives the control the way a hand would: write the value
 	// and dispatch the events the panel listens for. Both, because a range
 	// input reports dragging as "input" and settling as "change", and
-	// different controls were wired to different ones.
+	// different controls were wired to different ones. A value the control
+	// cannot take is not written, and the answer is why (a string) rather
+	// than true.
 	o.Set("set", dom.FuncOf(func(_ js.Value, a []js.Value) any {
 		if len(a) < 2 {
 			return false
@@ -67,6 +69,9 @@ func exposeRackControl() {
 		el := dom.Doc.Call("getElementById", a[0].String())
 		if !el.Truthy() {
 			return false
+		}
+		if p := controlValueProblem(el, a[1].String()); p != "" {
+			return p
 		}
 		setControlValue(el, a[1].String())
 		dispatchControlEvents(el)
