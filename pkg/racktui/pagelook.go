@@ -461,6 +461,14 @@ func (p *panel) placeWin(r Rect) {
 func (p *panel) drawPage(sc tcell.Screen, w, h int) {
 	p.scrW, p.scrH = w, h
 	p.layoutWindow(w, h)
+	// The page's own canvas and panel are laid over these cells (overlay.go),
+	// so nothing drawn under them is seen. Drawing it anyway, every time the
+	// picture changed — four times a second, the angle readouts alone see to
+	// that — took 50 to 65 ms of the page's thread each time, and the model
+	// stuttered through every one.
+	if p.nativeNow() {
+		return
+	}
 	if p.winMode != winFull {
 		p.drawScene(sc, w, maxi(h-1, 1))
 	}

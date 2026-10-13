@@ -183,6 +183,9 @@ Milliseconds a frame the rack spent on its own audio: the tap, the loudness, dis
 <!-- key: tm-scope-led -->
 Milliseconds a frame spent building the scope's sweep and handing it to the canvas. Like MODEL this is the issuing cost, not the rasterizing one — a canvas stroke records a path and returns — so the tube's raster lands in REST.
 
+<!-- key: tbc-sw-cell -->
+TBC — timebase correction. On, the model turns at its rate per SECOND: each frame advances it by however long that frame took, so a late frame is a longer step and a faster display the same speed. Off, every frame advances it the same step, as the rack did before: a late frame is a pause, and a 144 Hz display spins it more than twice as fast as a 60 Hz one. On is the steady angular velocity; off is every frame advanced alike, which is what to compare frames by.
+
 ### Loudness RATE
 
 <!-- key: lufs-rate -->

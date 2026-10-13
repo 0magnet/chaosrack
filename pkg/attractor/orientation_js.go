@@ -70,3 +70,11 @@ func randomizeOrientation() {
 	zeroRotationSliders()
 	rotKnobs.update()
 }
+
+// timebaseCorrect is the Timing module's TBC switch: whether the pose is
+// advanced by frameScale, at a rate per second, or by the bare step per
+// frame. On by default. Off, a late frame is a slower frame and a faster
+// display a faster spin, as the rack behaved before the correction; which
+// is wanted depends on what is being watched — a steady angular velocity,
+// or every frame advanced alike.
+var timebaseCorrect = true
