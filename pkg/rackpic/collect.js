@@ -391,7 +391,9 @@
   // sceneAct does to the model what the pointer did at x, y of the scene as
   // scene(w, h, shape) last showed it: "down", "move" and "up" are a drag,
   // which turns the model, and "wheel" zooms it — the page's own handlers,
-  // given the events a hand sends, at the same point of the canvas.
+  // given the events a hand sends, at the same point of the canvas: pointer
+  // events and then mouse events, as a mouse makes both and the models
+  // listen for one or the other (the globe and the water, pointer events).
   R.sceneAct = function (w, h, shape, x, y, kind, delta) {
     var c = document.getElementById("gocanvas");
     if (!c || !c.width || !c.height) return JSON.stringify({ err: "the page has no scene" });
@@ -399,6 +401,8 @@
     var o = { bubbles: true, cancelable: true, composed: true, view: window, button: 0,
       clientX: b.left + (k[0] + x / w * k[2]) * b.width / c.width,
       clientY: b.top + (k[1] + y / h * k[3]) * b.height / c.height };
+    o.pointerId = 1; o.pointerType = "mouse"; o.isPrimary = true;
+    var both = function (p, m) { c.dispatchEvent(new PointerEvent(p, o)); c.dispatchEvent(new MouseEvent(m, o)); };
     switch (kind) {
       case "wheel":
         o.deltaY = delta; o.deltaMode = 0;
@@ -406,15 +410,15 @@
         break;
       case "down":
         o.buttons = 1;
-        c.dispatchEvent(new MouseEvent("mousedown", o));
+        both("pointerdown", "mousedown");
         break;
       case "move":
         o.buttons = 1;
-        c.dispatchEvent(new MouseEvent("mousemove", o));
+        both("pointermove", "mousemove");
         break;
       case "up":
         o.buttons = 0;
-        c.dispatchEvent(new MouseEvent("mouseup", o));
+        both("pointerup", "mouseup");
         break;
     }
     return JSON.stringify({});
@@ -434,17 +438,43 @@
     return JSON.stringify({ imgs: out });
   };
 
+  // hit is the element a hand at x, y of the picture would press: of those
+  // whose box holds the point, the innermost — the list is not in paint
+  // order (the rack frame comes after the switches inside it), so the last
+  // that holds the point was the frame, and a click on a switch went to it.
+  // Of two that hold the point and neither the other, the later is on top.
+  R.hit = function (x, y) {
+    var c = [];
+    for (var i = 0; i < R.els.length; i++) {
+      var b = R.rects[i];
+      if (b && x >= b[0] && x < b[0] + b[2] && y >= b[1] && y < b[1] + b[3] && R.frame.contains(R.els[i])) c.push(R.els[i]);
+    }
+    for (var j = c.length - 1; j >= 0; j--) {
+      var inner = true;
+      for (var m = 0; m < c.length; m++) if (m !== j && c[j] !== c[m] && c[j].contains(c[m])) { inner = false; break; }
+      if (inner) return c[j];
+    }
+    return null;
+  };
+
   // act does to the page what the pointer did to the picture, on the
   // deepest element under it: a click is the page's own click, a wheel its
   // own wheel. Nothing is simulated beyond the events a hand sends.
   R.act = function (gen, x, y, kind, delta) {
     if (gen !== R.gen) return JSON.stringify({ err: "the panel changed; try again" });
-    var e = null;
-    for (var i = R.els.length - 1; i >= 0; i--) {
-      var b = R.rects[i];
-      if (b && x >= b[0] && x < b[0] + b[2] && y >= b[1] && y < b[1] + b[3] && R.frame.contains(R.els[i])) { e = R.els[i]; break; }
-    }
+    var e = R.hit(x, y);
     if (!e) return JSON.stringify({});
+    // A select is a list the browser opens only for a real hand. The page's
+    // selectors step through theirs a detent at a time, so this does too: a
+    // click to the next option, the wheel a step either way.
+    var sel = e.tagName === "SELECT" ? e : (e.closest ? e.closest("select") : null);
+    if (sel && sel.options.length > 0) {
+      var n = sel.options.length, step = kind === "wheel" ? (delta > 0 ? -1 : 1) : 1;
+      sel.selectedIndex = ((sel.selectedIndex < 0 ? -1 : sel.selectedIndex) + step + n) % n;
+      sel.dispatchEvent(new Event("input", { bubbles: true }));
+      sel.dispatchEvent(new Event("change", { bubbles: true }));
+      return JSON.stringify({});
+    }
     var fr = R.frame.getBoundingClientRect(), k = kscale();
     var o = { bubbles: true, cancelable: true, composed: true, view: window,
       clientX: fr.left + x * k, clientY: fr.top + y * k, button: 0 };

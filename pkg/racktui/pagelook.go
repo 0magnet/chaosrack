@@ -101,6 +101,9 @@ var pointerInk = color.RGBA{230, 233, 236, 255}
 // thing, so it is a color the panel does not use.
 var cursorInk = color.RGBA{255, 200, 40, 255}
 
+// hoverInk outlines the control under the pointer.
+var hoverInk = color.RGBA{120, 190, 255, 255}
+
 // canvas is the window's worth of half-block pixels and the characters over
 // them.
 type canvas struct {
@@ -255,8 +258,9 @@ func (c *canvas) sees(it *rackpic.Item) bool {
 }
 
 // drawPicture paints the window of the picture, the control the keys are on
-// outlined, and the canvases with the pixels in imgs (by item index).
-func drawPicture(pt Painter, pic *rackpic.Picture, v racksurface.View, cursor string, imgs map[int]*rackpic.Image) {
+// outlined, the one the pointer is over outlined in another ink, and the
+// canvases with the pixels in imgs (by item index).
+func drawPicture(pt Painter, pic *rackpic.Picture, v racksurface.View, cursor, hover string, imgs map[int]*rackpic.Image) {
 	c := newCanvas(v)
 	for i, it := range pic.Items {
 		if it == nil || !c.sees(it) {
@@ -286,6 +290,9 @@ func drawPicture(pt Painter, pic *rackpic.Picture, v racksurface.View, cursor st
 		if it.Text != "" && it.Ink != nil {
 			c.text(it, rackpic.RGB(*it.Ink))
 		}
+	}
+	if r, ok := pic.Ctls[hover]; ok && hover != cursor {
+		c.outline(r[0]-1, r[1]-1, r[2]+2, r[3]+2, hoverInk)
 	}
 	if r, ok := pic.Ctls[cursor]; ok {
 		c.outline(r[0]-1, r[1]-1, r[2]+2, r[3]+2, cursorInk)
@@ -377,11 +384,26 @@ func (p *panel) layoutWindow(w, h int) {
 			p.layoutFloat(w, h)
 			return
 		}
-		ww := maxi(w/2, 24)
-		p.winX, p.winY = maxi(w-ww, 0), 1
-		p.view.W, p.view.H = maxi(ww-1, 1), maxi(body-2, 1)
+		p.layoutHost(w, body)
 	}
 }
+
+// layoutHost places the window on a host's terminal, where nothing else
+// does: at first over the right half, as it always was, and then wherever
+// its title and its corner are dragged (grabWindow), kept on the terminal.
+func (p *panel) layoutHost(w, body int) {
+	if p.hostW == 0 {
+		ww := maxi(w/2, 24)
+		p.floatX, p.floatY, p.hostW, p.hostH = maxi(w-ww, 0), 0, ww, body
+	}
+	ww, wh := min(max(p.hostW, minWinW), w), min(max(p.hostH, minWinH), body)
+	p.floatX = min(max(p.floatX, 0), maxi(w-ww, 0))
+	p.floatY = min(max(p.floatY, 0), maxi(body-wh, 0))
+	p.placeWin(Rect{p.floatX, p.floatY, ww, wh})
+}
+
+// The smallest window a corner drag leaves: a title and a few cells.
+const minWinW, minWinH = 12, 4
 
 // layoutFloat places the window over a Native overlay, as the page places
 // its controls: docked against an edge at the page's drawer size, or
@@ -446,10 +468,7 @@ func (p *panel) drawPage(sc tcell.Screen, w, h int) {
 		return
 	}
 	if p.winMode == winHalf {
-		x0, x1, y := p.winX, w, 0
-		if p.nativeNow() {
-			x0, x1, y = p.winR.X, p.winR.X+p.winR.W, p.winR.Y
-		}
+		x0, x1, y := p.winR.X, p.winR.X+p.winR.W, p.winR.Y
 		title := clip(" chaosrack controls", maxi(x1-x0, 0))
 		st := styleOf(cellAt{Art: true, Top: [3]uint8{255, 255, 255}, Bottom: rgb3(winInk)})
 		for x := x0; x < x1; x++ {
@@ -470,7 +489,7 @@ func (p *panel) drawPage(sc tcell.Screen, w, h int) {
 	if c, ok := p.at(); ok {
 		cursor = c.ID
 	}
-	drawPicture(screenPainter{sc: sc, x0: p.winX, y0: p.winY, w: vw, h: vh}, p.pic, p.view, cursor, p.canv)
+	drawPicture(screenPainter{sc: sc, x0: p.winX, y0: p.winY, w: vw, h: vh}, p.pic, p.view, cursor, p.hover, p.canv)
 	// The bars, along the window's right and bottom edges, on a ground of
 	// their own so the scene does not show through them.
 	for y := range vh + 1 {
@@ -489,14 +508,25 @@ func (p *panel) drawPage(sc tcell.Screen, w, h int) {
 			sc.SetContent(p.winX+pos+i, p.winY+vh, '▀', nil, stFrame)
 		}
 	}
+	// On a host the window is moved by its title and sized by this corner.
+	if p.hostSized() {
+		sc.SetContent(p.winX+vw, p.winY+vh, '◢', nil, stFrame)
+	}
 }
 
 // drawScene paints the model's canvas across w x h cells, half a cell a
 // pixel, as it was last sampled.
 func (p *panel) drawScene(sc tcell.Screen, w, h int) {
 	m := p.scene
+	// The cells under the window are drawn over by it: setting them first
+	// was half the scene's cost at the default layout, and more zoomed out.
+	r := p.winR
+	under := p.winMode == winHalf && r.W > 0
 	for y := range h {
 		for x := range w {
+			if under && x >= r.X && x < r.X+r.W && y >= r.Y && y < r.Y+r.H {
+				continue
+			}
 			top, bot := m.At(x, 2*y), m.At(x, 2*y+1)
 			sc.SetContent(x, y, '▀', nil, styleOf(cellAt{Art: true, Top: rgb3(top), Bottom: rgb3(bot)}))
 		}
@@ -629,6 +659,9 @@ func (c *canvas) ticks(it *rackpic.Item) {
 // mouseWindow takes the mouse in the page look: the window's scroll bars and
 // the panel in it; and the scene around it (scenemouse.go).
 func (p *panel) mouseWindow(b tcell.ButtonMask, pressed bool, x, y int) {
+	if p.grabWindow(b, pressed, x, y) {
+		return
+	}
 	if p.mouseScene(b, pressed, x, y) {
 		return
 	}
@@ -671,4 +704,44 @@ func (p *panel) levels() int {
 		return q.Levels()
 	}
 	return 0
+}
+
+// hostSized is whether the window is the host's own to move and size: it
+// floats on a terminal no page is laying it out on.
+func (p *panel) hostSized() bool { return p.winMode == winHalf && !p.nativeNow() }
+
+// grabWindow moves the window by its title and sizes it by its corner, on a
+// host, where the terminal is all there is to drag it in. It reports whether
+// it took the event: a press on the title or the corner, and everything after
+// it until the button is let go.
+func (p *panel) grabWindow(b tcell.ButtonMask, pressed bool, x, y int) bool {
+	if !p.hostSized() {
+		return false
+	}
+	r := p.winR
+	if p.winGrab != 0 {
+		if b&tcell.Button1 == 0 {
+			p.winGrab = 0
+			return true
+		}
+		switch p.winGrab {
+		case 'm':
+			p.floatX, p.floatY = x-p.grabDX, y-p.grabDY
+		case 'r':
+			p.hostW, p.hostH = maxi(x-r.X+1, minWinW), maxi(y-r.Y+1, minWinH)
+		}
+		return true
+	}
+	if !pressed {
+		return false
+	}
+	switch {
+	case x == r.X+r.W-1 && y == r.Y+r.H-1:
+		p.winGrab = 'r'
+	case y == r.Y && x >= r.X && x < r.X+r.W:
+		p.winGrab, p.grabDX, p.grabDY = 'm', x-r.X, y-r.Y
+	default:
+		return false
+	}
+	return true
 }

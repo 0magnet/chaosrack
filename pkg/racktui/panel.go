@@ -74,6 +74,16 @@ type panel struct {
 	turning bool
 	sceneQ  sceneQueue
 	q       *poster
+	// hover is the control under the pointer, outlined and named on the
+	// status line as the page's tooltips name it; "" over none.
+	hover string
+	// winGrab is a drag on the window's frame on a host: 'm' moving it by
+	// its title, 'r' sizing it by its corner, 0 none. grabDX, grabDY is
+	// where on the title the drag took hold; hostW, hostH is the window's
+	// size on a host (0 until it is first laid out).
+	winGrab        rune
+	grabDX, grabDY int
+	hostW, hostH   int
 	// overlay lays the page's parts over the cells, where the source and
 	// the terminal can (overlay.go); laidOut is what was last written for it.
 	overlay bool
@@ -101,7 +111,9 @@ func RunOn(sc tcell.Screen, src Source) error {
 	defer close(done)
 	defer q.close()
 	sc.SetStyle(stNormal)
-	sc.EnableMouse(tcell.MouseButtonEvents | tcell.MouseDragEvents)
+	// Motion too, with no button down: what the pointer is over is shown,
+	// as the page shows it.
+	sc.EnableMouse(tcell.MouseButtonEvents | tcell.MouseDragEvents | tcell.MouseMotionEvents)
 
 	// The dials are sampled into cells, so their shape depends on the shape
 	// of a cell. See CellShaper.
@@ -146,7 +158,7 @@ func RunOn(sc tcell.Screen, src Source) error {
 			}
 		case *tcell.EventMouse:
 			w, h := sc.Size()
-			p.mouse(ev, w, h)
+			dirty = p.mouse(ev, w, h)
 		case *tcell.EventInterrupt:
 			switch d := ev.Data().(type) {
 			case refreshTick:
@@ -490,6 +502,8 @@ func (p *panel) draw(sc tcell.Screen) {
 		status, st = "error: "+p.err, stErr
 	case p.filt != "":
 		status = "filter: " + p.filt + "   (" + strconv.Itoa(len(p.ctls)) + " of " + strconv.Itoa(len(p.all)) + ")   backspace to edit, / to clear"
+	case p.hover != "":
+		status = p.hoverLine()
 	case p.msg != "":
 		status = p.msg
 	}

@@ -35,7 +35,9 @@ func (p *panel) onScene(x, y int) bool {
 	if p.winMode == winFull || y >= maxi(p.scrH-1, 1) || x < 0 || y < 0 || x >= p.scrW {
 		return false
 	}
-	return p.winMode == winHidden || x < p.winX
+	// Everywhere the window is not, its title included: it can be anywhere.
+	r := p.winR
+	return p.winMode == winHidden || x < r.X || x >= r.X+r.W || y < r.Y || y >= r.Y+r.H
 }
 
 // sceneAct is one thing done to the scene.
