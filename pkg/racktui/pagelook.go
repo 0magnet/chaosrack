@@ -39,8 +39,9 @@ type Pictured interface {
 	Picture() (*rackpic.Picture, error)
 	// PictureChanges is what changed since the picture of generation gen.
 	PictureChanges(gen int) (*rackpic.Patch, error)
-	// Act does kind ("click" or "wheel") at x, y of the picture of
-	// generation gen, as the pointer would on the page.
+	// Act does kind at x, y of the picture of generation gen, as the
+	// pointer would on the page: "click" when the button goes down,
+	// "drag" as it moves held, "release" when it comes up, or "wheel".
 	Act(gen int, x, y float64, kind string, delta float64) error
 	// Scene is the model's canvas as w x h pixels each shape times as
 	// tall as wide.
@@ -704,6 +705,9 @@ func (p *panel) mousePage(b tcell.ButtonMask, pressed bool, x, y int) {
 			p.choose(id)
 		}
 		act("click", 0)
+		p.pageDown, p.pageGen = true, pic.Gen
+	case b&tcell.Button1 != 0 && p.pageDown:
+		act("drag", 0)
 	}
 }
 
@@ -734,6 +738,15 @@ func (c *canvas) ticks(it *rackpic.Item) {
 // mouseWindow takes the mouse in the page look: the window's scroll bars and
 // the panel in it; and the scene around it (scenemouse.go).
 func (p *panel) mouseWindow(b tcell.ButtonMask, pressed bool, x, y int) {
+	if p.pageDown && b&tcell.Button1 == 0 {
+		// Let go wherever it was let go, in the window or not.
+		p.pageDown = false
+		if src, ok := p.src.(Pictured); ok {
+			if err := src.Act(p.pageGen, 0, 0, "release", 0); err != nil {
+				p.err = err.Error()
+			}
+		}
+	}
 	if p.grabWindow(b, pressed, x, y) {
 		return
 	}

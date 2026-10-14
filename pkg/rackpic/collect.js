@@ -185,8 +185,10 @@
 
   // mark names the parts a rack without a page lights and presses itself,
   // which are not controls: the Matrix's pads, the rhythm tabs, the beat
-  // lamps and Clear (rackpic.Item.Mark).
+  // lamps, Clear and the keys (rackpic.Item.Mark).
   function mark(e) {
+    var m = e.getAttribute("data-midi");
+    if (m !== null) return "key " + m;
     var c = e.getAttribute("data-tmc");
     if (c !== null) return "pad " + c + " " + e.getAttribute("data-tmr");
     var p = e.getAttribute("data-rp");
@@ -476,6 +478,9 @@
   // deepest element under it: a click is the page's own click, a wheel its
   // own wheel. Nothing is simulated beyond the events a hand sends.
   R.act = function (gen, x, y, kind, delta) {
+    // A drag and a release are the native rack's keys; the page's own
+    // pointer handlers see a click whole.
+    if (kind !== "click" && kind !== "wheel") return JSON.stringify({});
     if (gen !== R.gen) return JSON.stringify({ err: "the panel changed; try again" });
     var e = R.hit(x, y);
     if (!e) return JSON.stringify({});
