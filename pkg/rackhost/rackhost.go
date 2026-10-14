@@ -84,6 +84,8 @@ type Rack struct {
 	analyzers analyzers
 	// legendItem is each programmable switch's legend display (modelsw.go).
 	legendItem map[string]int
+	// custom is Custom's system, compiled and registered (custom.go).
+	custom *attractor.CustomSystem
 }
 
 // New is a rack at the catalog's defaults.
@@ -103,6 +105,7 @@ func New() (*Rack, error) {
 		audioSource: "monitor",
 		stereo:      stereoView{scope: attractor.NewStereoScope()},
 		analyzers:   newAnalyzers(),
+		custom:      attractor.NewCustomSystem(),
 	}
 	for i, c := range r.ctls {
 		r.byID[c.ID] = i
@@ -143,6 +146,8 @@ func New() (*Rack, error) {
 	}
 	p.Ctls = r.outsideBox
 	r.calibrate(0, r.outside, func(string) bool { return true }, nil)
+	r.custom.Compile()
+	r.seedCustomKnobs()
 	r.findLegends()
 	r.useBank(r.model())
 	r.scene.start()
@@ -768,7 +773,13 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 		s.key, s.err = key, nil
 	case key != s.key || refigure:
 		s.key = key
-		s.fig, s.err = figureFor(key, r.knobs())
+		if key == "custom" {
+			r.mu.Lock()
+			s.fig, s.err = r.customFigure()
+			r.mu.Unlock()
+		} else {
+			s.fig, s.err = figureFor(key, r.knobs())
+		}
 	}
 	if s.err != nil {
 		// Dark, and why: the panel shows the reason on its status line.

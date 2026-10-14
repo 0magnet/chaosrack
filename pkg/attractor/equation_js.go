@@ -9,9 +9,7 @@ import (
 
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
-	"github.com/0magnet/chaosrack/pkg/equation"
 	"github.com/0magnet/chaosrack/pkg/glctx"
-	"github.com/0magnet/chaosrack/pkg/implicit"
 )
 
 // Custom mode: user-editable attractor equations. The three (optionally four)
@@ -34,211 +32,23 @@ import (
 // customEquation is the Custom mode: the equations as typed, compiled and
 // running.
 type customEquation struct {
+	CustomSystem // the equations, compiled and registered (customsystem.go)
 	// modDefs are the constants the equations name, as parameters: what the
 	// Mod matrix routes to and the modulator drives (modParams).
-	modDefs []paramDef
-	eq      [4]string
-	useW    bool
-	iterate bool // flavor: false = flow (derivatives), true = discrete map
-	// surface is the third flavor: the first expression is F(x, y, z), and
-	// what is drawn is the surface F = 0, by its contours (pkg/implicit),
-	// across the cube extent wide either side of the center.
-	surface   bool
-	extent    float32
+	modDefs   []paramDef
 	surfKey   string  // what the drawn surface was built from
 	surfDraft bool    // the drawing is the coarse one made while a knob moves
 	surfAt    float64 // when the surface last changed, ms
 	surfFit   float32 // the extent the camera was last fitted to; 0 until a surface is drawn
-	expr      [4]*equation.Expr
-	dt        float32
-	paramVal  map[string]*float32
-	paramList []string // union of params across the active expressions
-	err       string
-	stack     []float64 // reused eval scratch
-	t         float64   // running t for time-dependent systems
-	w         float32   // 4th state when useW
 }
 
-var custom = customEquation{
-	eq:       [4]string{"sigma*(y - x)", "x*(rho - z) - y", "x*y - beta*z", "-w"},
-	dt:       0.005,
-	extent:   1.5,
-	paramVal: map[string]*float32{},
-}
+var custom = customEquation{CustomSystem: *NewCustomSystem()}
 
-// eqLabel names row i of the editor in the current flavor. A map's rows are
-// not derivatives and must not be labeled as though they were: x' = 1 − ax² + y
-// is Henon, dx/dt = 1 − ax² + y is something else entirely.
-func (c *customEquation) eqLabel(i int) string {
-	if c.surface {
-		return "F"
-	}
-	if c.iterate {
-		return [4]string{"x'", "y'", "z'", "w'"}[i]
-	}
-	return [4]string{"dx/dt", "dy/dt", "dz/dt", "dw/dt"}[i]
-}
-
-// flavorW reports whether the 4th state is in play: iterate is 3-D, so
-// the w equation is not compiled there even when the toggle is left on (which
-// keeps a typed dw/dt safe across a flavor round-trip).
-func (c *customEquation) flavorW() bool { return c.useW && !c.iterate && !c.surface }
-
-// Seed the default template's parameters (Lorenz) so Custom mode shows a real
-// attractor immediately, before any editing or seeding.
-func init() {
-	for n, v := range map[string]float32{"sigma": 10, "rho": 28, "beta": 2.6667} {
-		vv := v
-		custom.paramVal[n] = &vv
-	}
-}
-
-// parseCustom (re)compiles the equation strings, refreshes the parameter list
-// (keeping existing values), and records any parse error in custom.err.
+// parseCustom is CustomSystem's, and a surface compiled anew is framed anew
+// (generateSurface).
 func (c *customEquation) parseCustom() {
-	// Deferred, so that the error returns below re-publish too: they used to
-	// return without touching the registry, which left the PREVIOUS system
-	// registered — Model Out FLOW would keep sonifying equations that were no
-	// longer on screen, and now a flavor switch would leave a map registered as
-	// a flow. Withdrawing is as much the job as registering.
-	defer c.registerCustomSystem()
-	c.err = ""
-	c.surfFit = 0 // a surface compiled anew is framed anew (generateSurface)
-	seen := map[string]bool{}
-	var order []string
-	maxRPN := 1
-	for i := range 4 {
-		c.expr[i] = nil
-		if i == 3 && !c.flavorW() {
-			continue
-		}
-		if i > 0 && c.surface {
-			continue // a surface is one function; the other lines are kept, not compiled
-		}
-		e, err := equation.ParseExpr(c.eq[i])
-		if err != nil {
-			c.err = c.eqLabel(i) + ": " + err.Error()
-			return
-		}
-		if c.iterate {
-			if why := equation.IterateBlocker(e); why != "" {
-				c.err = c.eqLabel(i) + ": " + why
-				return
-			}
-		}
-		c.expr[i] = e
-		if e.StackNeed() > maxRPN {
-			maxRPN = e.StackNeed()
-		}
-		for _, p := range e.Params {
-			if !seen[p] {
-				seen[p] = true
-				order = append(order, p)
-			}
-		}
-	}
-	for _, p := range order {
-		if _, ok := c.paramVal[p]; !ok {
-			v := float32(1)
-			c.paramVal[p] = &v
-		}
-	}
-	c.paramList = order
-	c.stack = make([]float64, maxRPN+2)
-}
-
-// paramPtrs binds one pointer slice per expression, aligned to that
-// expression's Params. Binding the pointers once and dereferencing per step is
-// what keeps knob edits live without a map lookup in the hot loop.
-func (c *customEquation) paramPtrs(exprs []*equation.Expr) [][]*float32 {
-	out := make([][]*float32, len(exprs))
-	for i, e := range exprs {
-		if e == nil {
-			continue
-		}
-		out[i] = make([]*float32, len(e.Params))
-		for k, p := range e.Params {
-			out[i][k] = c.paramVal[p]
-		}
-	}
-	return out
-}
-
-// registerCustomSystem publishes the compiled equations to the registry that
-// matches the FLAVOR — and, as much the point, withdraws them from the other.
-//
-// Flow flavor goes to dynamics.FlowSystems4, so Model Out FLOW and the ring beam
-// integrate the SAME system the renderer draws.
-//
-// Iterate flavor deliberately does NOT. Everything downstream of dynamics.FlowSystems4
-// does one thing with what it finds there: steps it with dt. For a map that
-// produces a different system — x' = 1 − 1.4x² + y read as a derivative at
-// dt = 0.005 is a slow crawl to a fixed point, not the fractal on the screen —
-// so Model Out FLOW would sonify a system nobody typed, the Poincare section
-// would hunt for crossings of a trajectory that does not exist (a map has no
-// path between iterates to cross anything), and the Lyapunov readout would
-// print a per-TIME exponent for a system with no time. Being absent from the
-// registry is a shape the consumers already handle: dynamics.FlowFor4 misses and they
-// fall back to scanning the drawn trail. The map registry takes it instead,
-// which is how IsMap/MapStep steer LyapunovFor to its per-iterate branch.
-func (c *customEquation) registerCustomSystem() {
-	dynamics.Unregister4(dynamics.CustomKey)
-	dynamics.ClearCustomMap()
-	if c.err != "" || c.expr[0] == nil || c.surface {
-		return // a surface is drawn, not run: nothing to register
-	}
-	if c.iterate {
-		pp := c.paramPtrs(c.expr[:3])
-		dynamics.SetCustomMap(equation.NewIterateStep(
-			[3]*equation.Expr{c.expr[0], c.expr[1], c.expr[2]},
-			[3][]*float32{pp[0], pp[1], pp[2]}))
-		return
-	}
-	c.registerCustomFlow()
-}
-
-// registerCustomFlow publishes the flow flavor. The closure keeps its own eval
-// scratch (everything runs on the one JS thread, but the audio callback must
-// not share generateCustom's stack mid-frame) and re-reads parameter values
-// each call so knob edits are live.
-func (c *customEquation) registerCustomFlow() {
-	exprs := c.expr
-	useW := c.flavorW()
-	stack := make([]float64, len(c.stack))
-	pv := [4][]float64{}
-	pp := c.paramPtrs(exprs[:])
-	for i := range 4 {
-		if exprs[i] != nil {
-			pv[i] = make([]float64, len(exprs[i].Params))
-		}
-	}
-	dynamics.RegisterFlow4(dynamics.CustomKey, dynamics.FlowSys4{
-		Dt:    func() float64 { return float64(c.dt) },
-		Euler: true, // generateCustom integrates with forward Euler
-		F: func(x, y, z, w float64) (float64, float64, float64, float64) {
-			vars := [5]float64{x, y, z, w, c.t}
-			eval := func(i int) float64 {
-				if exprs[i] == nil {
-					return 0
-				}
-				for k, ptr := range pp[i] {
-					if ptr != nil {
-						pv[i][k] = float64(*ptr)
-					}
-				}
-				return exprs[i].Eval(vars, pv[i], stack)
-			}
-			dx, dy, dz := eval(0), eval(1), eval(2)
-			dw := 0.0
-			if useW {
-				dw = eval(3)
-			}
-			return dx, dy, dz, dw
-		},
-		W:           func() float64 { return float64(c.w) },
-		SetW:        func(v float64) { c.w = float32(v) },
-		Interpreted: true,
-	})
+	c.surfFit = 0
+	c.CustomSystem.parseCustom()
 }
 
 // generateCustom runs whichever flavor is selected: forward Euler over the
@@ -322,40 +132,20 @@ const (
 // function, a parameter or the extent has changed since the last build, or
 // when a draft drawn while it was changing is due its full detail.
 func (c *customEquation) generateSurface() {
-	var key strings.Builder
-	key.WriteString(c.eq[0])
-	key.WriteString(strconv.FormatFloat(float64(c.extent), 'g', -1, 32))
-	var pv []float64
-	if c.expr[0] != nil {
-		for _, p := range c.expr[0].Params {
-			v := 0.0
-			if ptr := c.paramVal[p]; ptr != nil {
-				v = float64(*ptr)
-			}
-			pv = append(pv, v)
-			key.WriteString("|" + strconv.FormatFloat(v, 'g', -1, 64))
-		}
-	}
+	key, pv := c.SurfaceKey()
 	now := js.Global().Get("performance").Call("now").Float()
-	changed := key.String() != c.surfKey
+	changed := key != c.surfKey
 	due := c.surfDraft && now-c.surfAt > surfaceSettleMs
 	if !changed && !due && gpu.staticGeomCached(glctx.Types.Line) {
 		return
 	}
 	slices, res := surfaceSlices, surfaceRes
 	if changed {
-		c.surfKey, c.surfAt = key.String(), now
+		c.surfKey, c.surfAt = key, now
 		slices, res = draftSlices, draftRes
 	}
 	c.surfDraft = changed
-	var v []float32
-	if c.err == "" && c.expr[0] != nil {
-		e := c.expr[0]
-		stack := make([]float64, e.StackNeed()+2)
-		v = implicit.Contours(func(x, y, z float64) float64 {
-			return e.Eval([5]float64{x, y, z}, pv, stack)
-		}, float64(c.extent), slices, res)
-	}
+	v := c.SurfaceLines(pv, slices, res)
 	idx := make([]uint16, len(v)/3)
 	for i := range idx {
 		idx[i] = uint16(i) //nolint:gosec // implicit.Contours stops short of 65535 vertices
