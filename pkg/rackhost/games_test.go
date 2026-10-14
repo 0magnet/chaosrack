@@ -187,3 +187,28 @@ func peakOf(s []float32) float64 {
 	}
 	return p
 }
+
+// W held raises Pong's left paddle, and the side is a hand's; another model
+// takes no keys.
+func TestPongsPaddlesTakeKeys(t *testing.T) {
+	r, c := idleRack(t, "pong")
+	looks(t, r, c, 0.1)
+	r.sound.mu.Lock()
+	from := r.sound.games.pong.PadL
+	r.sound.mu.Unlock()
+	if !r.GameKey("w", true) {
+		t.Fatal("Pong did not take W")
+	}
+	looks(t, r, c, 0.3)
+	r.GameKey("w", false)
+	r.sound.mu.Lock()
+	to, human, armed := r.sound.games.pong.PadL, r.sound.games.pong.HumanL, r.sound.games.pongArmed
+	r.sound.mu.Unlock()
+	if to <= from || human == 0 || !armed {
+		t.Errorf("W held moved the left paddle from %.3f to %.3f, human %d, armed %v", from, to, human, armed)
+	}
+	set(t, r, r.selector, "globe")
+	if r.GameKey("up", true) {
+		t.Error("a globe took ↑")
+	}
+}
