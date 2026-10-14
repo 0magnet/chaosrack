@@ -27,6 +27,7 @@ type analyzers struct {
 	// matrix is not rebuilt.
 	recPic *image.RGBA
 	spect  spectroView
+	wfall  waterfallView
 	// autoMap is whether the MAP ring holds the heat the spectrogram put there
 	// (followMode).
 	autoMap bool
@@ -42,6 +43,7 @@ func newAnalyzers() analyzers {
 		xfer:     attractor.NewTransfer(),
 		rec:      attractor.NewRecurrence(),
 		spect:    spectroView{ctl: attractor.NewSpectroControls()},
+		wfall:    waterfallView{w: attractor.NewWaterfall()},
 		lastFlow: "lorenz",
 	}
 }
@@ -54,7 +56,14 @@ func isAnalyzer(key string) bool {
 
 // listens reports whether model key is drawn from the rack's signal.
 func listens(key string) bool {
-	return attractor.IsAudioModel(key) || isAnalyzer(key)
+	return attractor.IsAudioModel(key) || isAnalyzer(key) || key == "waterfall"
+}
+
+// drawnFromSound reports whether model key is a figure the rack's signal
+// makes, framed to its full scale: an audio model, or the waterfall's
+// surface.
+func drawnFromSound(key string) bool {
+	return attractor.IsAudioModel(key) || key == "waterfall"
 }
 
 // plotPass is lines drawn at one width.
@@ -188,6 +197,8 @@ func (r *Rack) hear(key string, on bool, w int) (h heard) {
 		if key == "xy" {
 			h.glow = r.number("xy-persist")
 		}
+	case key == "waterfall":
+		h.fig, h.fit = r.waterfallFigure(float64(r.sound.now().UnixNano()) / 1e6)
 	case key == "spectrogram" && on:
 		h.quad = r.spectrogram(float64(r.sound.now().UnixNano()) / 1e6)
 		h.fill = r.value("spect-fill") == "1"
@@ -395,4 +406,70 @@ func (r *Rack) followMode(model string) {
 			_ = r.set("gradient-colors", ringDefault) //nolint:errcheck // the ring takes its own default
 		}
 	}
+}
+
+// waterfallView is the native waterfall: its surface, and the signal it is
+// built from, as the page keeps them from its tap.
+type waterfallView struct {
+	w    *attractor.Waterfall
+	read int       // the bus sample read up to
+	live []float32 // the live surface's window: the newest LiveFFT of its channel
+	// ref and meas are the decay surface's capture, the newest
+	// WaterfallCaptureSec of the reference and the measurement.
+	ref, meas []float32
+}
+
+// waterfallFigure is the waterfall's surface now, at the panel's knobs, and
+// the sphere it is framed to: the page fits the camera to the surface's
+// half-span. Called with r.mu held.
+func (r *Rack) waterfallFigure(nowMs float64) (attractor.Figure, [][3]float64) {
+	wv := &r.analyzers.wfall
+	w := wv.w
+	for _, id := range attractor.WaterfallKnobs {
+		w.Set(id, float32(r.number(id)))
+	}
+	if w.Switched(func(id string, p *float32, v float32) {
+		// Turned on the panel too, so its knob shows what the surface uses.
+		*p = v
+		_ = r.set(id, strconv.FormatFloat(float64(v), 'f', -1, 32)) //nolint:errcheck // the knob's own default
+	}) {
+		wv.live, wv.ref, wv.meas = wv.live[:0], wv.ref[:0], wv.meas[:0]
+	}
+	l, rt, next := r.sound.since(wv.read)
+	wv.read = next
+	if w.Live() {
+		n := w.LiveFFT()
+		if len(wv.live) > n {
+			// FFT turned: the surface is spectra of a window that is gone.
+			wv.live = wv.live[:0]
+			w.DropSurface()
+		}
+		wv.live = newest(append(wv.live, w.Fold(l, rt)...), n)
+		if len(wv.live) == n {
+			w.PushLive(wv.live, sampleRate, nowMs)
+		}
+	} else {
+		if w.Swapped() {
+			l, rt = rt, l
+		}
+		want := sampleRate * attractor.WaterfallCaptureSec
+		wv.ref = newest(append(wv.ref, l...), want)
+		wv.meas = newest(append(wv.meas, rt...), want)
+		// No sweep of the rack's own to trigger on: it measures on the
+		// page's free-running clock, as the page does with an external sweep.
+		if len(wv.ref) == want && w.MeasureDue(0, nowMs) {
+			w.Measure(wv.ref, wv.meas, sampleRate)
+		}
+	}
+	s := attractor.WaterfallSpan
+	return w.Figure(), [][3]float64{{-s, 0, 0}, {s, 0, 0}}
+}
+
+// newest is the last n of x, moved to the front of its own array so it does
+// not grow without end.
+func newest(x []float32, n int) []float32 {
+	if over := len(x) - n; over > 0 {
+		x = append(x[:0], x[over:]...)
+	}
+	return x
 }
