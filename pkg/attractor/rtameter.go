@@ -113,14 +113,7 @@ func (r *RTA) useBands() {
 }
 
 // Fold is l and rt reduced to the signal the SRC knob picks.
-func (r *RTA) Fold(l, rt []float32) []float32 {
-	c := tapChanSel(r.chanF)
-	out := make([]float32, min(len(l), len(rt)))
-	for i := range out {
-		out[i] = tapFold(c, l[i], rt[i])
-	}
-	return out
-}
+func (r *RTA) Fold(l, rt []float32) []float32 { return FoldChan(r.chanF, l, rt) }
 
 // Due reports whether an analysis is due at nowMs, and if so starts the next
 // period.

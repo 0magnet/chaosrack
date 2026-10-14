@@ -203,6 +203,7 @@ func (r *Rack) useBank(model string) {
 			delete(r.changed, i)
 		}
 	}
+	r.findReadouts()
 	r.pic.Gen++
 	r.full = r.pic.Gen
 }
@@ -271,6 +272,9 @@ func (r *Rack) set(id, value string) error {
 	}
 	if id == r.selector {
 		r.followMode(v)
+		// Takens measures τ once on entry, as the page re-arms it on every
+		// mode change: the signal may have changed while it was away.
+		r.analyzers.tau.Arm()
 		r.useBank(v)
 		return nil
 	}

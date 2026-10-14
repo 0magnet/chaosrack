@@ -219,6 +219,9 @@ func (r *Rack) audioFigure(key string) (fig, grat attractor.Figure, fit [][3]flo
 	o.WindowMS = float32(r.number(key + "-win"))
 	switch key {
 	case "takens", "polar":
+		if key == "takens" {
+			r.measureTau()
+		}
 		o.Tau = float32(r.number("takens-tau"))
 		o.Chan = float32(r.number(key + "-chan"))
 		o.Smooth = float32(r.number("takens-smooth"))
@@ -231,6 +234,11 @@ func (r *Rack) audioFigure(key string) (fig, grat attractor.Figure, fit [][3]flo
 		o.MidSide = r.number("xy-basis") > 0.5
 	}
 	l, rt := r.sound.window(attractor.AudioWindow(key, o))
+	if key == "xy" {
+		// The channels' correlation, before the basis turns them: a property
+		// of the source, as the page measures it.
+		r.analyzers.ro.corr = attractor.StereoReadout(l, rt)
+	}
 	fig, ok := attractor.AudioFigure(key, l, rt, len(l), o)
 	if !ok {
 		fig = attractor.Figure{Kind: attractor.FigurePath}
@@ -267,6 +275,9 @@ func (r *Rack) stereoFigure() (fig, grat attractor.Figure, fit [][3]float64) {
 	fit = cube(r.number("stereo-gain"))
 	grat = st.scope.Graticule()
 	l, rt := r.sound.window(snap)
+	// The raw pair, as the page reports the source as it is, so ALIGN and
+	// WIDE can ask what-if questions without the number moving.
+	r.analyzers.ro.corr = attractor.StereoReadout(l, rt)
 	if len(l) < snap {
 		// Not yet a window of signal: dark, as the other models are.
 		st.fig = attractor.Figure{Kind: attractor.FigurePath}

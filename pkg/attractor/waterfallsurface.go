@@ -2,6 +2,7 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/acoustics"
+	"github.com/0magnet/chaosrack/pkg/led"
 	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
@@ -214,21 +215,6 @@ func (w *Waterfall) fftLen() int {
 // LiveFFT is how many of the newest samples a live slice is taken from.
 func (w *Waterfall) LiveFFT() int { return w.fftLen() }
 
-// channel is the channel the live surface analyses. The decay surface does
-// not have one: it needs BOTH channels, and REF says which of the two is the
-// reference.
-func (w *Waterfall) channel() tapChan {
-	i := int(w.chanF + 0.5)
-	if i < 0 {
-		i = 0
-	} else if i >= len(tapChanNames) {
-		i = len(tapChanNames) - 1
-	}
-	// Clamped to the name table just above, so the value is 0..4 — gosec sees
-	// only int → uint8 and cannot see the clamp.
-	return tapChan(i) //nolint:gosec // clamped to len(tapChanNames)-1 above
-}
-
 // Live reports whether SRC picks the live surface rather than the decay.
 func (w *Waterfall) Live() bool { return w.srcF > 0.5 }
 
@@ -236,14 +222,7 @@ func (w *Waterfall) Live() bool { return w.srcF > 0.5 }
 func (w *Waterfall) Swapped() bool { return w.swapF > 0.5 }
 
 // Fold is l and r reduced to the channel the live surface analyses.
-func (w *Waterfall) Fold(l, r []float32) []float32 {
-	c := w.channel()
-	out := make([]float32, min(len(l), len(r)))
-	for i := range out {
-		out[i] = tapFold(c, l[i], r[i])
-	}
-	return out
-}
+func (w *Waterfall) Fold(l, r []float32) []float32 { return FoldChan(w.chanF, l, r) }
 
 // useDefaults moves LINE, STEP and FFT to what the surface now selected
 // wants — but only the ones still holding a value nobody chose — through set,
@@ -424,6 +403,15 @@ func (w *Waterfall) Measure(ref, meas []float32, sr int) {
 		w.rtOK = false
 	}
 	w.haveIR = len(w.surface) > 0
+}
+
+// RT60Text is the reverberation-time readout, or dashes in the live surface,
+// which is spectra of a signal and has no impulse to decay from.
+func (w *Waterfall) RT60Text() string {
+	if rt, ok := w.RT60(); ok {
+		return led.Format(rt, 1, 2, false) + " s"
+	}
+	return "--- s"
 }
 
 // RT60 is the decay's reverberation time, when the decay surface has one.

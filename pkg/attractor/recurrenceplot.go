@@ -1,6 +1,8 @@
 package attractor
 
 import (
+	"strconv"
+
 	"github.com/0magnet/chaosrack/pkg/recurrence"
 	"github.com/0magnet/chaosrack/pkg/takens"
 )
@@ -342,4 +344,24 @@ func (r *Recurrence) FromTrajectory(flow string, vals []float32, nowMs float64) 
 	r.trajEps, r.trajBuilt = r.eps, true
 	recurrence.MatrixVec(r.trajSeries, 3, float64(r.eps)*r.trajDiam, r.mat)
 	return true
+}
+
+// rpRQAFields renders the three scalars as percentages, one for each of the
+// three half displays: RR with a decimal, because its useful range is the
+// bottom few percent where whole numbers would read 2, 3, 2, 3 and say
+// nothing, and DET and LAM whole. A plot with nothing lit has no readings.
+func rpRQAFields(r recurrence.RQAResult) [3]string {
+	if r.Lit == 0 {
+		return [3]string{"--.-", "---", "---"}
+	}
+	rr := strconv.FormatFloat(r.RR*100, 'f', 1, 64)
+	if r.RR*100 >= 99.95 {
+		rr = "100" // four characters is what the display holds
+	}
+	return [3]string{rr, strconv.Itoa(int(r.DET*100 + 0.5)), strconv.Itoa(int(r.LAM*100 + 0.5))}
+}
+
+// RQAText is the plot's RR, DET and LAM now, as the readouts show them.
+func (r *Recurrence) RQAText() [3]string {
+	return rpRQAFields(recurrence.RQA(r.Matrix(), rpN))
 }

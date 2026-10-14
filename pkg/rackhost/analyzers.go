@@ -28,6 +28,8 @@ type analyzers struct {
 	recPic *image.RGBA
 	spect  spectroView
 	wfall  waterfallView
+	tau    attractor.TauMeter
+	ro     readoutLine
 	// autoMap is whether the MAP ring holds the heat the spectrogram put there
 	// (followMode).
 	autoMap bool
@@ -188,6 +190,7 @@ type heard struct {
 // hear measures what model key draws from the rack's signal, in a frame w
 // wide, while the rack is on. Called with r.mu held.
 func (r *Rack) hear(key string, on bool, w int) (h heard) {
+	defer r.showReadouts(key, float64(r.sound.now().UnixNano())/1e6)
 	if dynamics.HasFlow(key) {
 		r.analyzers.lastFlow = key
 	}
@@ -244,6 +247,9 @@ func (r *Rack) recurrencePlot(nowMs float64) *rasterview.Quad {
 	if a.recPic == nil {
 		a.recPic = image.NewRGBA(image.Rect(0, 0, n, n))
 		fresh = true
+	}
+	if fresh {
+		a.ro.recDirty = true
 	}
 	if fresh {
 		// Row j of the matrix is the j-th oldest moment, and the page puts

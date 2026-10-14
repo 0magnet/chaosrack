@@ -5,10 +5,7 @@ package attractor
 import (
 	"github.com/0magnet/chaosrack/pkg/acoustics"
 	"github.com/0magnet/chaosrack/pkg/glctx"
-	"strings"
 	"syscall/js"
-
-	"github.com/0magnet/chaosrack/pkg/led"
 )
 
 // The Transfer mode — magnitude, phase and coherence between two channels.
@@ -143,10 +140,7 @@ func (t *transferMode) drawTransfer() {
 // offset between the two channels, and that is what gets dialed into a delay
 // line.
 func (t *transferMode) showTransferDelay() {
-	s := "-- ms"
-	if ms, ok := t.DelayMS(); ok {
-		s = strings.Replace(led.Format(ms, 2, 2, true), led.Blank, "+", 1) + "ms" // a character display has a plus
-	}
+	s := t.DelayText()
 	if s == t.delayTx {
 		return
 	}
