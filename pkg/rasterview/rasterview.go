@@ -112,42 +112,15 @@ func (v View) Render(dst *image.RGBA, vertices []float32, indices []uint16, g Gr
 		maxLen = 1
 	}
 
-	scale := v.Scale
-	if scale == 0 {
-		scale = 0.85
-	}
-	cx, cy := float64(pw)/2, float64(ph)/2
-	// r is in the height's pixels; a pixel's width is aspect of that.
-	aspect := v.PixelAspect
-	if aspect <= 0 {
-		aspect = 1
-	}
-	r := math.Min(cx*aspect, cy) * scale / maxLen
-
-	sinX, cosX := math.Sin(v.AngleX), math.Cos(v.AngleX)
-	sinY, cosY := math.Sin(v.AngleY), math.Cos(v.AngleY)
-	sinZ, cosZ := math.Sin(v.AngleZ), math.Cos(v.AngleZ)
+	p := v.projector(pw, ph, maxLen)
 
 	// Per-vertex screen position, depth, and color.
 	px := make([]float64, n)
 	py := make([]float64, n)
 	cr := make([][3]float32, n)
 	for i := range n {
-		x0 := float64(vertices[i*3])
-		y0 := float64(vertices[i*3+1])
-		z0 := float64(vertices[i*3+2])
-
-		// Rz, then Ry, then Rx — Rx·Ry·Rz applied to a column vector.
-		x1, y1 := x0*cosZ-y0*sinZ, x0*sinZ+y0*cosZ
-		x2, z2 := x1*cosY+z0*sinY, -x1*sinY+z0*cosY
-		y3, z3 := y1*cosX-z2*sinX, y1*sinX+z2*cosX
-
-		persp := 1.0
-		if v.Dist > 0 {
-			persp = v.Dist / (v.Dist - z3)
-		}
-		px[i] = cx + (x2*persp+v.PanX)*r/aspect
-		py[i] = cy - (y3*persp+v.PanY)*r
+		var z3 float64
+		px[i], py[i], z3 = p.at(float64(vertices[i*3]), float64(vertices[i*3+1]), float64(vertices[i*3+2]))
 
 		age := float32(0)
 		if n > 1 {

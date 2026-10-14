@@ -712,13 +712,19 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	now := time.Now()
 	dt := now.Sub(s.last).Seconds()
 	s.last = now
+	// A picture on a plane comes up face-on and holds still, as the page sets
+	// its textured planes up: a hand or the rate knobs still turn it.
+	plane := heard.posed != nil
+	if plane && key != s.key {
+		s.angle = [3]float64{}
+	}
 	// Paused, the model holds still and a hand still turns it, as the page's
 	// does.
 	if on && !s.turned && !paused {
 		for i := range s.angle {
 			s.angle[i] += rate[i] * dt
 		}
-		if auto && rate == ([3]float64{}) {
+		if auto && rate == ([3]float64{}) && !plane {
 			s.angle[1] += autoSpin * dt
 		}
 	}
@@ -737,7 +743,13 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 		// A flat analyzer, drawn over the whole scene as the page draws it
 		// over its canvas (analyzers.go).
 		s.key, s.err, s.shown = key, nil, nil
-		toPixels(img, drawPlot(heard.plot, w, h))
+		toPixels(img, heard.picture(rasterview.View{
+			AngleX: s.angle[0], AngleY: s.angle[1], AngleZ: s.angle[2],
+			Scale:       zoomScale(zoom),
+			PixelAspect: 1 / shape,
+			PanX:        look.pan[0],
+			PanY:        look.pan[1],
+		}, w, h))
 		return img, nil
 	}
 	game := isGame(key)

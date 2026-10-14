@@ -115,129 +115,33 @@ import (
 //     the failure this file must not have, so a drag recomputes nothing until
 //     the knob has been still for rpTrajSettleMs. The step budget in
 //     pkg/recurrence caps the 24 ms; the settle delay caps how often it is paid.
+//
+// The matrix and the knobs it is built at are Recurrence (recurrenceplot.go),
+// which a native rack draws too. The constants the notes above name — rpN,
+// the SRC positions, rpTrajWinDiv, rpTrajSettleMs and the lookback the ring
+// is sized for — are there with it.
 const (
-	// rpN is the matrix side, and the texture is rpN×rpN. 256 columns over
-	// the window is enough for the diagonals to be legible and costs 65536
-	// comparisons per frame, which is nothing next to a frame of audio.
-	rpN = 256
-
 	// rpDrainCap bounds the per-frame drain the same way the Takens mode
 	// does: the signal generator synthesizes on demand and always fills the
 	// buffer, so an uncapped drain-until-dry loop never terminates.
 	rpDrainCap = 16384
-
-	// rpMaxDim is the embedding dimension the point buffer is sized for — the
-	// m knob's maximum. Allocated once at the top rather than regrown when the
-	// knob moves: it is 16 KB, and a buffer that reallocates on a knob turn is
-	// a buffer that reallocates once per pixel of a drag.
-	rpMaxDim = 8
-
-	// The SRC knob's positions. Ordered so the default, 0, is what the mode
-	// drew before there was a knob — an existing permalink that omits it
-	// restores the picture it was made from.
-	rpSrcAudio = 0
-	rpSrcEmbed = 1
-	rpSrcTraj  = 2
-
-	// rpTrajWinDiv converts the WIN knob's number into the trajectory source's
-	// span in the system's own time units. The knob has one range to cover two
-	// units — 20..2000 ms of audio, and roughly 2..200 units of model time —
-	// and a factor of ten covers both, the way Model Out's RATE knob means Hz
-	// in FLOW and sweeps per second in SCAN.
-	//
-	// The factor is not arbitrary. It puts the default (100 → 10 time units) at
-	// about twenty points per Lorenz lobe circuit, which is the coarsest
-	// sampling at which the orbit is still drawn as a curve rather than as a
-	// scatter of unrelated points — and once consecutive points stop being
-	// neighbors, the plot stops being a plot of an orbit. That failure is
-	// visible in the readout rather than silent: DET collapses.
-	rpTrajWinDiv = 10
-
-	// rpTrajSettleMs is how long the source system's knobs must hold still
-	// before the trajectory is re-integrated. A drag fires a value change per
-	// pixel, and each one is a fresh integration of up to 300000 RK4 steps.
-	// 200 ms is under the time it takes to let go of a knob and look at the
-	// result, and long enough that nothing is recomputed mid-drag.
-	rpTrajSettleMs = 200
-
-	// The rate limit on the readout is recurrence.RQASamplePeriodMs, in pkg/recurrence —
-	// moved there when the strip chart was added, because the tick that
-	// rate-limits the scan and the tick that spaces the series are one tick and
-	// two names for it would be two things to keep in step. The reasoning for
-	// the number is with it.
-
-	// rpMaxTau is the τ knob's maximum, and rpMaxLookback the deepest history
-	// behind the plot window any (m, τ) can ask for. The ring is sized for
-	// THAT rather than for the current setting, at a cost of 3584 float32s —
-	// 14 KB — because a ring that grows when a knob moves also resets its write
-	// cursor, and resetting the cursor throws the buffered audio away: turning
-	// m from 1 to 8 would blank the plot eight times on the way. Sized for the
-	// worst case once, m and τ are free to move.
-	rpMaxTau = takens.TauMax
-
-	// rpMaxTauSamples is rpMaxTau in SOURCE samples rather than in knob units.
-	// The knob counts samples at takens.RefRate (see takens.TauSamples in takens_js.go),
-	// so a source running faster than the reference turns the same knob
-	// position into more real samples — twice as many on a 96 kHz device. The
-	// ring has to hold the deepest lookback any rate can produce, not the
-	// deepest the knob's number looks like, or the delay coordinates read
-	// behind the start of the buffer on exactly the hardware nobody tests on.
-	//
-	// 2x covers every rate a browser AudioContext reports in practice: 44.1 and
-	// 48 kHz overwhelmingly, 88.2 and 96 on the interfaces that offer them. The
-	// cost of the headroom is the ring, and the ring is 14 KB.
-	rpMaxTauSamples = 2 * rpMaxTau
-	rpMaxLookback   = (rpMaxDim - 1) * rpMaxTauSamples
 )
 
-// recurrencePlot is the Recurrence mode: the trajectory it plots, the matrix
-// and its texture, and the RQA readout.
+// recurrencePlot is the Recurrence mode: the plot, the ring of the tap it
+// reads, its texture, and the RQA readout.
 type recurrencePlot struct {
+	Recurrence
 	texture js.Value
 	u8      js.Value // reused Uint8Array, rpN*rpN bytes
 	ready   bool
 	ring    []float32
 	w       int // monotonic write cursor
 	scratch []float32
-	vec     []float64 // the rpN points of the current window, flat, m wide
-	mat     []byte    // rpN*rpN, one byte per cell
+	vals    []float32 // the last flow's parameter values, read each frame
 
-	// win is the span the square covers: milliseconds for the audio sources
-	// — how much history the plot is of — and, divided by rpTrajWinDiv, the
-	// trajectory source's span in the system's own time units. 100 ms is a few
-	// dozen periods of a musical pitch across the square, and at 48 kHz it
-	// decimates by 18, which leaves the fundamental range intact after the box
-	// filter below.
-	//
-	// eps is the recurrence threshold as a fraction of the source's scale
-	// (see the file comment on why that scale is never taken from the picture).
-	//
-	// src picks which state is plotted, and dim is the embedding dimension
-	// the embed source builds its delay vectors at.
-	win        float32
-	eps        float32
-	src        float32
-	dim        float32
-	trajSeries []float64 // rpN points of (x,y,z), flat
-	trajDiam   float64   // its diameter, the ε normalizer
-	trajMode   string    // the flow it belongs to
-	trajWin    float32   // and the WIN knob it was integrated at
-	trajVals   []float32 // and that flow's parameter values
-
-	// trajStale is a flag rather than a "trajStaleAt > 0" sentinel on the
-	// timestamp beside it, because frameNowMs is the raw rAF timestamp and zero
-	// is a value it can genuinely hold — it is zero until the first frame lands.
-	// With the sentinel, a mode entered on that frame recorded staleness as 0,
-	// read it back as "settled", and never integrated anything: a permanently
-	// blank square with no error anywhere.
-	trajStale   bool
-	trajStaleAt float64     // frameNowMs when the knobs last moved
-	trajEps     float32     // the ε the matrix on the texture was built with
-	trajBuilt   bool        // a matrix has been built from the current series
-	trajGen     int         // bumped on every re-integration; see rqaConfigNow
-	rqaEls      [3]js.Value // RR, DET and LAM on the readout line
-	rqa         recurrence.RQAResult
-	rqaNext     float64 // frameNowMs the next measurement is due
+	rqaEls  [3]js.Value // RR, DET and LAM on the readout line
+	rqa     recurrence.RQAResult
+	rqaNext float64 // frameNowMs the next measurement is due
 
 	// matDirty says the matrix has changed since the last scan. It is sticky
 	// rather than the caller's per-frame "fresh", because the two clocks do not
@@ -248,12 +152,7 @@ type recurrencePlot struct {
 	matDirty bool
 }
 
-var rp = recurrencePlot{
-	win: 100,
-	eps: 0.05,
-	src: rpSrcAudio,
-	dim: 3,
-}
+var rp = recurrencePlot{Recurrence: *NewRecurrence()}
 
 func init() {
 	registerGenerate("recurrence", rp.generateRecurrence)
@@ -287,44 +186,15 @@ func (r *recurrencePlot) initRecurrencePlot() {
 	// LUMINANCE rather than RGBA: a binary matrix needs one byte per cell, not
 	// four, and the shared textured shader reads the single channel into all
 	// three color channels for free.
-	r.mat = make([]byte, rpN*rpN)
+	r.alloc()
 	r.u8 = js.Global().Get("Uint8Array").New(rpN * rpN)
 	glctx.GL.Call("texImage2D",
 		glctx.GL.Get("TEXTURE_2D"), 0, glctx.GL.Get("LUMINANCE"),
 		rpN, rpN, 0,
 		glctx.GL.Get("LUMINANCE"), glctx.GL.Get("UNSIGNED_BYTE"), r.u8)
 
-	r.vec = make([]float64, rpN*rpMaxDim)
 	r.scratch = make([]float32, 8192)
 	r.ready = true
-}
-
-// embedDim is the m knob clamped to what the buffers hold, and 1 for the
-// raw-audio position — which IS m = 1, and shares the code path for it.
-func (r *recurrencePlot) embedDim() int {
-	if int(r.src) != rpSrcEmbed {
-		return 1
-	}
-	m := int(r.dim)
-	if m < 1 {
-		return 1
-	}
-	if m > rpMaxDim {
-		return rpMaxDim
-	}
-	return m
-}
-
-// rpWindow converts the WIN knob into a sample count and the stride that fits
-// it into rpN columns. Split out from the generator so it can be tested
-// without a GL context, as takensWindow is: it decides what the picture is OF.
-func rpWindow(winMS float32, sampleRate int) (span, stride int) {
-	if sampleRate <= 0 {
-		sampleRate = 24000
-	}
-	span = max(int(winMS/1000*float32(sampleRate)), rpN)
-	stride = max(span/rpN, 1)
-	return stride * rpN, stride
 }
 
 // generateRecurrence rebuilds the matrix from whichever source the SRC knob
@@ -364,32 +234,17 @@ func (r *recurrencePlot) generateRecurrence() {
 	texp.drawTexturedSquare(r.texture)
 }
 
-// fillFromAudio drains the live audio into the ring and fills rp.mat from the
-// newest window — as raw samples (m = 1) or as delay vectors. Reports whether
-// the matrix was rebuilt; when there is not yet enough audio the previous frame
-// stays on the texture rather than flickering to black.
+// fillFromAudio drains the live audio into the ring and fills the matrix from
+// the newest window. Reports whether the matrix was rebuilt; when there is not
+// yet enough audio the previous frame stays on the texture rather than
+// flickering to black.
 func (r *recurrencePlot) fillFromAudio() bool {
 	src := aud.ensureAudioSource()
 	sr := 24000
 	if src.SampleRate() > 0 {
 		sr = src.SampleRate()
 	}
-	dim := r.embedDim()
-	// Converted from the knob's reference-rate unit to this source's samples —
-	// the same delay in TIME whatever the source runs at, which is the whole of
-	// takens.TauSamples' argument in takens_js.go — and then clamped, because the ring
-	// is sized from rpMaxLookback: a τ past that bound, from a hand-edited
-	// permalink or from a sample rate higher than the headroom allows for,
-	// would ask for history behind the start of the buffer, and the index
-	// arithmetic below would go negative rather than merely wrong.
-	tau := min(takens.TauSamples(emb.tau, sr), rpMaxTauSamples)
-	span, stride := rpWindow(r.win, sr)
-	// The delay coordinates read BACKWARDS from the start of the plot window,
-	// in source samples — τ is a delay in the signal, not in decimated columns,
-	// which is what makes it the same τ the Takens mode measured. So the ring
-	// has to hold the window plus the deepest delay, and the window's own base
-	// index stays where it was.
-	lookback := (dim - 1) * tau
+	span, _ := rpWindow(r.win, sr)
 	if need := span + rpMaxLookback + 1; len(r.ring) < need {
 		r.ring = make([]float32, need+need/2)
 		r.w = 0
@@ -410,117 +265,24 @@ func (r *recurrencePlot) fillFromAudio() bool {
 			}
 		}
 	}
-	avail := min(r.w, len(r.ring))
-	// span + lookback, not span: with the delays included, requiring only span
-	// would index behind the start of the ring on the first frames after a
-	// resize. avail ≤ rp.w, so this also guarantees base − lookback ≥ 0 and the
-	// modulo below never sees a negative.
-	if avail < span+lookback {
-		return false
-	}
-
-	// Decimate the window to one point per column by AVERAGING each stride, not
-	// by taking one sample out of it. Taking one is what this did first, and
-	// the plot came out as speckle with a diagonal through it: a 500 ms window
-	// at 48 kHz is a stride of 93, which puts the decimated Nyquist at 258 Hz,
-	// and the signal generator's own default chord has a 294 Hz tone in it.
-	// What was being drawn was the recurrences of an aliased signal — real
-	// structure, belonging to a signal nobody was playing. A box average is the
-	// anti-alias filter the decimation needs; it costs the detail above the new
-	// Nyquist, which is detail the column count cannot represent either way.
-	//
-	// Each delay coordinate is averaged over its OWN stride at its own offset,
-	// so every coordinate of the vector has had the same filter applied. Taking
-	// the delayed coordinates as bare samples instead would embed a filtered
-	// signal against an unfiltered one, and the reconstruction would be of
-	// neither.
-	rn := len(r.ring)
-	base := r.w - span
-	inv := 1 / float64(stride)
-	for i := range rpN {
-		for c := range dim {
-			off := base + i*stride - c*tau
-			var sum float32
-			for k := range stride {
-				sum += r.ring[(off+k)%rn]
-			}
-			r.vec[i*dim+c] = float64(sum) * inv
-		}
-	}
-	recurrence.MatrixVec(r.vec[:rpN*dim], dim, float64(r.eps)*recurrence.VectorScale(dim), r.mat)
-	return true
+	return r.FromAudio(r.ring, r.w, sr, emb.tau)
 }
 
 // ── The trajectory source ────────────────────────────────────────────────
 
-// trajChanged reports whether the source system, its parameters or the WIN
-// knob differ from what the cached trajectory was integrated from, recording
-// the current values as it goes.
-//
-// Comparing the VALUES rather than subscribing to an invalidation hook is the
-// point: an edit that reaches a parameter by any route at all — a knob, a
-// permalink, a preset recall, Reset All, a patch memory, MIDI, audio modulation
-// — moves a float that this then sees. Nothing has to remember to tell it, and
-// nothing added later can forget to.
-func (r *recurrencePlot) trajChanged() bool {
-	ps := attractorParams[bif.lastFlowMode]
-	changed := bif.lastFlowMode != r.trajMode || r.win != r.trajWin || len(r.trajVals) != len(ps)
-	if changed {
-		r.trajVals = make([]float32, len(ps))
+// flowVals is the last flow mode's parameter values now.
+func (r *recurrencePlot) flowVals() []float32 {
+	r.vals = r.vals[:0]
+	for _, p := range attractorParams[bif.lastFlowMode] {
+		r.vals = append(r.vals, *p.Value)
 	}
-	for i, p := range ps {
-		if r.trajVals[i] != *p.Value {
-			r.trajVals[i] = *p.Value
-			changed = true
-		}
-	}
-	r.trajMode, r.trajWin = bif.lastFlowMode, r.win
-	return changed
+	return r.vals
 }
 
-// fillFromTrajectory draws the most recent flow mode's own trajectory,
-// re-integrating it only when the system it belongs to has changed AND has then
-// held still. Reports whether the matrix was rebuilt this frame.
+// fillFromTrajectory draws the most recent flow mode's own trajectory.
+// Reports whether the matrix was rebuilt this frame.
 func (r *recurrencePlot) fillFromTrajectory() bool {
-	if r.trajChanged() {
-		// Do not integrate yet. See rpTrajSettleMs: a drag changes a value per
-		// pixel, and Chen's trajectory is 24 ms of work.
-		r.trajStale, r.trajStaleAt = true, frameNowMs
-		return false
-	}
-	if r.trajStale {
-		if frameNowMs-r.trajStaleAt < rpTrajSettleMs {
-			return false
-		}
-		r.trajStale = false
-		span := recurrence.Span(bif.lastFlowMode, float64(r.win)/rpTrajWinDiv, rpN)
-		r.trajSeries = recurrence.TrajectorySeries(bif.lastFlowMode, rpN, span)
-		r.trajDiam = recurrence.Diameter(r.trajSeries, 3)
-		r.trajBuilt = false
-		// A different curve, so the RQA read off it is an answer about a
-		// different object and the strip chart takes a seam. Counted rather
-		// than flagged because rqaConfigNow compares values and has no way to
-		// clear a flag it did not set — a counter it can only ever observe
-		// changing needs no handshake.
-		r.trajGen++
-	}
-	if r.trajSeries == nil || r.trajDiam <= 0 {
-		// No vector field (the last mode was geometry or a map), or a run that
-		// diverged before it had rpN points. Leaving the previous picture up is
-		// the honest thing here: the panel names the system it belongs to, so
-		// what is on screen is still labeled correctly.
-		return false
-	}
-	// The series is static, so the matrix only has to be refilled when ε moves.
-	// Every other frame is a redraw of a texture that is already correct — and
-	// ε, unlike the source parameters, is cheap enough to follow immediately,
-	// so it gets no settle delay.
-	if r.trajBuilt && r.trajEps == r.eps {
-		return false
-	}
-	r.trajEps, r.trajBuilt = r.eps, true
-	recurrence.MatrixVec(r.trajSeries, 3, float64(r.eps)*r.trajDiam, r.mat)
-	return true
+	return r.FromTrajectory(bif.lastFlowMode, r.flowVals(), frameNowMs)
 }
 
 // ── The RQA readout ──────────────────────────────────────────────────────

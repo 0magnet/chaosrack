@@ -8,6 +8,8 @@ import (
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
 	"github.com/0magnet/chaosrack/pkg/colormap"
+	"github.com/0magnet/chaosrack/pkg/dynamics"
+	"github.com/0magnet/chaosrack/pkg/rasterview"
 )
 
 // The analyzers, drawn from the rack's signal as the page draws them from its
@@ -19,17 +21,29 @@ import (
 type analyzers struct {
 	rta  *attractor.RTA
 	xfer *attractor.Transfer
-	last time.Time
+	rec  *attractor.Recurrence
+	// recPic is the recurrence plot's matrix as a picture, kept up while the
+	// matrix is not rebuilt.
+	recPic *image.RGBA
+	// lastFlow is the flow the panel drew last, whose trajectory the
+	// recurrence plot's traj source plots, as the page's lastFlowMode.
+	lastFlow string
+	last     time.Time
 }
 
 func newAnalyzers() analyzers {
-	return analyzers{rta: attractor.NewRTA(), xfer: attractor.NewTransfer()}
+	return analyzers{
+		rta:      attractor.NewRTA(),
+		xfer:     attractor.NewTransfer(),
+		rec:      attractor.NewRecurrence(),
+		lastFlow: "lorenz",
+	}
 }
 
 // isAnalyzer reports whether the native rack draws model key as a flat
 // analyzer.
 func isAnalyzer(key string) bool {
-	return key == "rta" || key == "xfer"
+	return key == "rta" || key == "xfer" || key == "recurrence"
 }
 
 // listens reports whether model key is drawn from the rack's signal.
@@ -150,19 +164,108 @@ type heard struct {
 	fit       [][3]float64
 	glow      float64
 	plot      []plotPass
+	posed     *posed
 }
 
 // hear measures what model key draws from the rack's signal, in a frame w
 // wide, while the rack is on. Called with r.mu held.
 func (r *Rack) hear(key string, on bool, w int) (h heard) {
+	if dynamics.HasFlow(key) {
+		r.analyzers.lastFlow = key
+	}
 	switch {
 	case attractor.IsAudioModel(key):
 		h.fig, h.grat, h.fit = r.audioFigure(key)
 		if key == "xy" {
 			h.glow = r.number("xy-persist")
 		}
+	case key == "recurrence" && on:
+		h.posed = r.recurrencePlot(float64(r.sound.now().UnixNano()) / 1e6)
 	case isAnalyzer(key) && on:
 		h.plot = r.analyzerPlot(key, w)
 	}
 	return h
+}
+
+// posed is a picture on a flat quad in the model's space, turned and zoomed
+// with the scene as the page's textured models are.
+type posed struct {
+	pic        *image.RGBA
+	bl, br, tl [3]float64 // its bottom-left, bottom-right and top-left corners
+}
+
+// texHalf is the half height of the page's textured planes: the
+// recurrence plot's square is this either side of the middle.
+const texHalf = 1.5
+
+// recurrencePlot is the recurrence plot now, at the panel's knobs: of the
+// rack's signal, or of the last flow's trajectory. Called with r.mu held.
+func (r *Rack) recurrencePlot(nowMs float64) *posed {
+	a := &r.analyzers
+	m := a.rec
+	for _, id := range attractor.RecurrenceKnobs {
+		m.Set(id, float32(r.number(id)))
+	}
+	var fresh bool
+	if m.Trajectory() {
+		var vals []float32
+		for _, p := range dynamics.Params(a.lastFlow) {
+			if p.Value != nil {
+				vals = append(vals, *p.Value)
+			}
+		}
+		fresh = m.FromTrajectory(a.lastFlow, vals, nowMs)
+	} else {
+		tau := float32(r.number("takens-tau"))
+		l, rt := r.sound.window(m.AudioNeed(sampleRate, tau))
+		x := make([]float32, len(l))
+		for i := range x {
+			x[i] = (l[i] + rt[i]) * 0.5 // the page's tap: the mix
+		}
+		fresh = m.FromAudio(x, len(x), sampleRate, tau)
+	}
+	n := attractor.RecurrenceSide
+	if a.recPic == nil {
+		a.recPic = image.NewRGBA(image.Rect(0, 0, n, n))
+		fresh = true
+	}
+	if fresh {
+		// Row j of the matrix is the j-th oldest moment, and the page puts
+		// the first row at the bottom: time runs up and to the right.
+		mat := m.Matrix()
+		for j := range n {
+			for i := range n {
+				v := mat[j*n+i]
+				o := a.recPic.PixOffset(i, n-1-j)
+				a.recPic.Pix[o], a.recPic.Pix[o+1], a.recPic.Pix[o+2], a.recPic.Pix[o+3] = v, v, v, 255
+			}
+		}
+	}
+	return &posed{
+		pic: a.recPic,
+		bl:  [3]float64{-texHalf, -texHalf, 0},
+		br:  [3]float64{texHalf, -texHalf, 0},
+		tl:  [3]float64{-texHalf, texHalf, 0},
+	}
+}
+
+// drawPosed draws p over a frame of the scene's background, in view v.
+func drawPosed(p *posed, v rasterview.View, w, h int) *image.RGBA {
+	m := image.NewRGBA(image.Rect(0, 0, w, h))
+	draw.Draw(m, m.Bounds(), &image.Uniform{sceneBack}, image.Point{}, draw.Src)
+	reach := 0.0
+	for _, c := range [][3]float64{p.bl, p.br, p.tl} {
+		reach = math.Max(reach, math.Sqrt(c[0]*c[0]+c[1]*c[1]+c[2]*c[2]))
+	}
+	v.RenderQuad(m, p.bl, p.br, p.tl, reach, p.pic)
+	return m
+}
+
+// picture is an analyzer's frame, w by h: its picture posed in view v, or
+// its lines laid flat.
+func (h heard) picture(v rasterview.View, w, ht int) *image.RGBA {
+	if h.posed != nil {
+		return drawPosed(h.posed, v, w, ht)
+	}
+	return drawPlot(h.plot, w, ht)
 }
