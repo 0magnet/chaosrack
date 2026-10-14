@@ -108,42 +108,10 @@ func init() {
 		registerGenerate(k, func() { generateMap(k) })
 	}
 
-	// Knobs. Every map reseeds on a parameter edit (mapInvalidate through the
-	// panel's change path): an orbit is only meaningful for the parameters
-	// that produced it, and a half-changed cloud is a picture of neither.
-	attractorParams["henon"] = []paramDef{
-		{"henon-a", "a", &dynamics.HenonA, 1.4, 0.1, 1.45, 0.001},
-		{"henon-b", "b", &dynamics.HenonB, 0.3, 0.01, 0.4, 0.001},
-	}
-	attractorParams["ikeda"] = []paramDef{
-		{"ikeda-u", "u", &dynamics.IkedaU, 0.9, 0.5, 1.0, 0.001},
-	}
-	attractorParams["clifford"] = []paramDef{
-		{"clifford-a", "a", &dynamics.CliffordA, -1.4, -3, 3, 0.01},
-		{"clifford-b", "b", &dynamics.CliffordB, 1.6, -3, 3, 0.01},
-		{"clifford-c", "c", &dynamics.CliffordC, 1.0, -3, 3, 0.01},
-		{"clifford-d", "d", &dynamics.CliffordD, 0.7, -3, 3, 0.01},
-	}
-	attractorParams["dejong"] = []paramDef{
-		{"dejong-a", "a", &dynamics.DejongA, 1.641, -3, 3, 0.01},
-		{"dejong-b", "b", &dynamics.DejongB, 1.902, -3, 3, 0.01},
-		{"dejong-c", "c", &dynamics.DejongC, 0.316, -3, 3, 0.01},
-		{"dejong-d", "d", &dynamics.DejongD, 1.525, -3, 3, 0.01},
-	}
-	attractorParams["mira"] = []paramDef{
-		{"mira-mu", "μ", &dynamics.MiraMu, -0.496, -1, 1, 0.001},
-		{"mira-a", "a", &dynamics.MiraA, 0.008, 0, 0.1, 0.001},
-		{"mira-b", "b", &dynamics.MiraB, 0.05, 0, 1, 0.001},
-	}
-	attractorParams["tinkerbell"] = []paramDef{
-		{"tinkerbell-a", "a", &dynamics.TinkA, 0.9, -1, 1, 0.001},
-		{"tinkerbell-b", "b", &dynamics.TinkB, -0.6013, -1, 1, 0.001},
-		{"tinkerbell-c", "c", &dynamics.TinkC, 2.0, -3, 3, 0.01},
-		{"tinkerbell-d", "d", &dynamics.TinkD, 0.5, -1, 1, 0.001},
-	}
-	attractorParams["standardmap"] = []paramDef{
-		{"standardmap-k", "K", &dynamics.StdK, 0.971635, 0, 6, 0.001},
-	}
+	// The knobs are in pkg/dynamics (params.go). Every map reseeds on a
+	// parameter edit (mapInvalidate through the panel's change path): an
+	// orbit is only meaningful for the parameters that produced it, and a
+	// half-changed cloud is a picture of neither.
 }
 
 // syncMapExtras runs on every panel rebuild, beside the other mode-scoped

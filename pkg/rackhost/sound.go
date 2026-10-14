@@ -176,10 +176,10 @@ func (r *Rack) soundSet(id string) (more [][2]string) {
 		if s.on[i] && s.level[i] > 0 && s.spk[0][i] == 0 && s.spk[1][i] == 0 {
 			more = append(more, [2]string{pinID(i%2, i), "1"})
 		}
-	case id == r.selector || id == "mo-spd" || id == "mo-lvl":
+	case id == r.selector || isFamily(id) || id == "mo-spd" || id == "mo-lvl":
 		r.modelSet()
 		// Listen plays only while FVF, whose switch it is, is on show.
-		s.listen.shown = r.value(r.selector) == "fvf"
+		s.listen.shown = r.model() == "fvf"
 	default:
 		if side, src, ok := pinOf(id); ok {
 			s.spk[side][src] = r.number(id)
@@ -215,7 +215,7 @@ func (r *Rack) genSet(i int, part string) {
 // r.mu and the sound's lock held.
 func (r *Rack) modelSet() {
 	m := &r.sound.model
-	m.want = r.value(r.selector)
+	m.want = r.model()
 	m.speed = math.Pow(2, r.number("mo-spd")/12)
 	m.level = r.number("mo-lvl") / 100
 }

@@ -59,7 +59,7 @@ func (r *Rack) modelSwitchSet(id string) (more [][2]string) {
 		return nil
 	}
 	down := r.value(id) == "1"
-	sws := r.modelSwitches(r.value(r.selector))
+	sws := r.modelSwitches(r.model())
 	if n >= len(sws) {
 		// A switch the model does not use stays down.
 		if down {

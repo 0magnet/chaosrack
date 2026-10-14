@@ -190,7 +190,7 @@ type gameShown struct {
 // displays and turns Pong's pots after its paddles. Called with r.mu held,
 // each time the panel looks.
 func (r *Rack) playGames() {
-	model := r.value(r.selector)
+	model := r.model()
 	on := r.value("power-sw") != "0" && r.value("pause-sw") != "1"
 	trail := int(r.number("trail-slider"))
 	sub, scale := speedSteps(r.number("speed-slider"))
@@ -333,7 +333,7 @@ func (s *sound) hand() {
 // model takes no keys.
 func (r *Rack) GameKey(key string, down bool) bool {
 	r.mu.Lock()
-	pong := r.value(r.selector) == "pong"
+	pong := r.model() == "pong"
 	r.mu.Unlock()
 	if !pong {
 		return false

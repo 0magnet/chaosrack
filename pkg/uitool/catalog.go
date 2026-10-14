@@ -127,6 +127,12 @@ func captureBanks(c *racklink.Client, ctls []racktui.Control) (map[string]*rackc
 	if err != nil {
 		fail("catalog: controls: %v", err)
 	}
+	// The families' dials are built with their banks, so they are in this
+	// registry, after every bank has been up, and may not be in the first.
+	captureFamilies(c, after, sel, pics)
+	if err := c.Set(sel.ID, sel.Value); err != nil {
+		fail("catalog: back to %q: %v", sel.Value, err)
+	}
 	inBank := map[string]bool{}
 	for _, ct := range after {
 		if ct.Module == bankModule {
@@ -176,4 +182,38 @@ func captureBanks(c *racklink.Client, ctls []racktui.Control) (map[string]*rackc
 func inBox(b, r [4]float64) bool {
 	x, y := b[0]+b[2]/2, b[1]+b[3]/2
 	return x >= r[0] && x <= r[0]+r[2] && y >= r[1] && y <= r[1]+r[3]
+}
+
+// captureFamilies keeps the bank of every member of a model family (a
+// fam-* dial: Sprott's A–S), which the MODEL knob offers as one position: on
+// that position, each member the dial lands on is played and its bank put up.
+func captureFamilies(c *racklink.Client, ctls []racktui.Control, sel racktui.Control, pics map[string]*rackpic.Picture) {
+	for _, fam := range ctls {
+		if !fam.IsSelect || !strings.HasPrefix(fam.ID, "fam-") || len(fam.Options) == 0 {
+			continue
+		}
+		// The MODEL knob onto the family's position: it plays the first member.
+		if err := c.Set(sel.ID, fam.Options[0]); err != nil {
+			fail("catalog: choosing %q: %v", fam.Options[0], err)
+		}
+		for i, m := range fam.Options {
+			if _, have := pics[m]; have {
+				continue
+			}
+			if err := c.Set(fam.ID, m); err != nil {
+				fail("catalog: %s to %q: %v", fam.ID, m, err)
+			}
+			time.Sleep(bankSettle)
+			p, err := c.Picture()
+			if err != nil {
+				fail("catalog: the picture with %q: %v", m, err)
+			}
+			pics[m] = p
+			fmt.Printf("\rcatalog: %s %d of %d (%s)          ", fam.ID, i+1, len(fam.Options), m)
+		}
+		if err := c.Set(fam.ID, fam.Options[0]); err != nil {
+			fail("catalog: %s back to %q: %v", fam.ID, fam.Options[0], err)
+		}
+	}
+	fmt.Println()
 }

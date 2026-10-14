@@ -144,11 +144,11 @@ func New() (*Rack, error) {
 	p.Ctls = r.outsideBox
 	r.calibrate(0, r.outside, func(string) bool { return true }, nil)
 	r.findLegends()
-	r.useBank(r.value(r.selector))
+	r.useBank(r.model())
 	r.scene.start()
 	r.sound = newSound()
 	r.soundStart()
-	r.showModelSwitches(r.value(r.selector))
+	r.showModelSwitches(r.model())
 	r.findMatrix()
 	r.findKeys()
 	return r, nil
@@ -275,13 +275,14 @@ func (r *Rack) set(id, value string) error {
 		// scene writes it there, before its next step (flowValues).
 		r.refigure.Store(true)
 	}
-	if id == r.selector {
-		r.followMode(v)
+	if id == r.selector || isFamily(id) {
+		m := r.model()
+		r.followMode(m)
 		// Takens measures τ once on entry, as the page re-arms it on every
 		// mode change: the signal may have changed while it was away.
 		r.analyzers.tau.Arm()
-		r.useBank(v)
-		r.showModelSwitches(v)
+		r.useBank(m)
+		r.showModelSwitches(m)
 		return nil
 	}
 	r.turn(c)
@@ -686,8 +687,8 @@ var ErrBrowserOnly = errors.New("draws only in a browser")
 func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	r.mu.Lock()
 	key := "globe"
-	if id := r.modelControl(); id != "" {
-		key = r.value(id)
+	if r.selector != "" {
+		key = r.model()
 	}
 	on := r.value("power-sw") != "0"
 	auto := r.value("auto-rotate") != "0"
@@ -996,3 +997,19 @@ func fade(dst, shown *image.RGBA, k float64) {
 func isBack(p []uint8) bool {
 	return p[0] == sceneBack.R && p[1] == sceneBack.G && p[2] == sceneBack.B
 }
+
+// model is the model the rack plays: the MODEL knob's, or, on a family's
+// position (Sprott A–S), the member its lettered dial is on, as the page's
+// family position plays the member it stands for. Called with r.mu held.
+func (r *Rack) model() string {
+	m := r.value(r.selector)
+	for _, c := range r.ctls {
+		if isFamily(c.ID) && len(c.Options) > 0 && c.Options[0] == m {
+			return c.Value
+		}
+	}
+	return m
+}
+
+// isFamily reports whether id is a family's lettered dial.
+func isFamily(id string) bool { return strings.HasPrefix(id, "fam-") }

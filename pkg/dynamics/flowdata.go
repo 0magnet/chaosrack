@@ -78,8 +78,11 @@ func init() {
 	// The Sprott catalog integrates through the same shared loop, so its
 	// cases were invisible to the registry for the same reason. Their fields
 	// are already untagged in sprottdata.go; this is the registration.
+	// On the live dt, SprottDTs[i], which the knob turns: the case's own DT
+	// is only its default.
 	for i := range SprottCases {
 		c := &SprottCases[i]
-		registerFlow64(c.Key, &c.DT, c.Deriv)
+		registerFlow64(c.Key, &SprottDTs[i], c.Deriv)
+		params[c.Key] = []Param{{c.Key + "-dt", "dt", &SprottDTs[i], c.DT, 0.001, 0.05, 0.001}}
 	}
 }
