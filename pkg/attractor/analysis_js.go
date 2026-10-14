@@ -3,7 +3,6 @@
 package attractor
 
 import (
-	"math"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -91,39 +90,8 @@ func (l *lyapunovProbe) runLyapunov() {
 	mode := run.selectedMode
 	l.lastMode = mode
 	r := l.measure(mode)
-	if r.Verdict == "n/a" {
-		// Not a dynamical system. Saying so is the honest readout; printing
-		// 0.0000 beside a dodecahedron would be a category error with a
-		// decimal point.
-		l.showLyapunov("--.--", "n/a", false)
-		return
-	}
-	if !r.OK {
-		l.showLyapunov("--.--", r.Verdict, false)
-		return
-	}
-	unit := "/t"
-	if r.PerStep {
-		unit = "/n" // per iterate: a map has no dt, so per-time is meaningless
-	}
-	l.showLyapunov(formatLyap(r.Lambda)+unit, r.Verdict, r.Verdict == "chaotic")
-}
-
-// formatLyap renders the exponent signed, to three decimals, or two past ten,
-// so with its unit ("/t", "/n") it fills a full display and no more.
-func formatLyap(v float64) string {
-	if math.IsNaN(v) || math.IsInf(v, 0) {
-		return "--.--"
-	}
-	dec := 3
-	if math.Abs(v) >= 10 {
-		dec = 2
-	}
-	s := strconv.FormatFloat(v, 'f', dec, 64)
-	if v >= 0 {
-		s = "+" + s
-	}
-	return s
+	val, verdict := LyapunovTexts(r)
+	l.showLyapunov(val, verdict, r.OK && r.Verdict == "chaotic")
 }
 
 func (l *lyapunovProbe) showLyapunov(val, verdict string, chaotic bool) {
@@ -131,7 +99,7 @@ func (l *lyapunovProbe) showLyapunov(val, verdict string, chaotic bool) {
 		setDotText(l.ledEl, val)
 	}
 	if l.verdEl.Truthy() {
-		setDotText(l.verdEl, verdictText(verdict))
+		setDotText(l.verdEl, verdict)
 		cl := l.verdEl.Get("classList")
 		if cl.Truthy() {
 			if chaotic {
@@ -188,13 +156,4 @@ func (l *lyapunovProbe) measure(mode string) analysis.LyapunovResult {
 	}
 	l.cache[key.String()] = r
 	return r
-}
-
-// verdictText is a verdict as its display shows it: eight characters, so
-// "converging" says what the exponent says of it, that the orbit is settling.
-func verdictText(v string) string {
-	if v == "converging" {
-		return "settling"
-	}
-	return v
 }

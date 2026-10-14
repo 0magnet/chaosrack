@@ -69,3 +69,33 @@ func TestTheWaterfallShowsItsRT60(t *testing.T) {
 		t.Errorf("the live surface's RT60 reads %q", got)
 	}
 }
+
+// The Analysis readout measures the model on show: Lorenz is chaotic at about
+// +0.9 per unit of time, a globe is no dynamical system at all, and a turned
+// constant is measured again once it holds still.
+func TestTheLyapunovReadout(t *testing.T) {
+	r, c := idleRack(t, "lorenz")
+	watch(t, r, c, 0.3)
+	val, verdict := shows(t, r, "lyap-led"), shows(t, r, "lyap-verdict")
+	if !strings.HasPrefix(val, "+0.9") || !strings.HasSuffix(val, "/t") || verdict != "chaotic" {
+		t.Errorf("Lorenz reads %q %q, want about +0.9/t, chaotic", val, verdict)
+	}
+	// The constant is the integrator's, shared by every rack in the process:
+	// put back for the tests after this one.
+	rho := r.flow["lorenz-r"].Value
+	t.Cleanup(func(v float32) func() { return func() { *rho = v } }(*rho))
+	set(t, r, "lorenz-r", "20")
+	watch(t, r, c, 0.1)
+	if got := shows(t, r, "lyap-led"); got != "measuring…" {
+		t.Errorf("a knob just turned reads %q", got)
+	}
+	watch(t, r, c, 0.5)
+	if got := shows(t, r, "lyap-led"); got == val || got == "measuring…" {
+		t.Errorf("ρ 20 reads %q, as ρ 28 did", got)
+	}
+	set(t, r, r.selector, "globe")
+	watch(t, r, c, 0.3)
+	if got := shows(t, r, "lyap-verdict"); got != "n/a" {
+		t.Errorf("a globe's verdict is %q", got)
+	}
+}
