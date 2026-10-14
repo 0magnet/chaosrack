@@ -434,6 +434,7 @@ func buildMixer() {
 	}
 	dom.RebuildInto(&mixer.funcs, func() {
 		at.Get("parentNode").Call("insertBefore", mixModule(), at.Get("nextSibling"))
+		adoptMixPins()
 	})
 	// For the tools that drive the rack (uitool): the Mixer set from a link's
 	// value, "" for as it starts, and what it is now. For the life of the page.
@@ -518,6 +519,19 @@ func mixGrid() js.Value {
 				pin.Set("title", docf("mixer-pin.none", "src", mixSrcName(s), "row", mixRowName(r)))
 				continue
 			}
+			// The pin's gain as a control (adoptMixPins): a hidden range in
+			// the pin, which a front end without the page reads and sets
+			// like any knob, and whose box is the pin's (data-ctl-part).
+			in := dom.Doc.Call("createElement", "input")
+			in.Set("type", "range")
+			in.Set("id", mixPinID(r, s))
+			in.Set("min", "-1")
+			in.Set("max", "1")
+			in.Set("step", "0.05")
+			in.Set("value", strconv.FormatFloat(float64(mixer.pin[r][s]), 'g', -1, 32))
+			in.Set("style", "display:none;")
+			pin.Call("appendChild", in)
+			pin.Call("setAttribute", "data-ctl-part", "")
 			row, src := r, s
 			dom.On(pin, "click", func(js.Value, []js.Value) any {
 				g := float32(1)
@@ -546,6 +560,34 @@ func mixGrid() js.Value {
 	return grid
 }
 
+// mixPinID is the control id of the pin from source s to row r:
+// mix-sl-g1 is Gen 1 on the left speaker.
+func mixPinID(r, s int) string { return "mix-" + mixRowKeys[r] + "-" + mixSources[s].key }
+
+// adoptMixPins makes every pin a control, its gain from -1 to 1: so the
+// registry, `chaosrack ctl` and the native rack have the Mixer, which was
+// state only the page's own pins could reach.
+func adoptMixPins() {
+	def := mixDefaults()
+	for r := range mixRows {
+		for s := range mixSources {
+			if !mixAllowed(r, s) {
+				continue
+			}
+			row, src := r, s
+			adoptDescControl(ControlDesc{
+				ID: mixPinID(r, s), Label: mixRowShort[r] + " " + strings.ToLower(mixSrcName(s)),
+				Min: -1, Max: 1, Step: 0.05, Def: float64(def[r][s]), Signed: true,
+				Apply: func(v float64) {
+					if g := float32(v); g != mixer.pin[row][src] {
+						mixSetPin(row, src, g)
+					}
+				},
+			})
+		}
+	}
+}
+
 // mixSrcName is source s as the manual and a tooltip name it: CAP L, GEN 2,
 // MODEL X, KEYS.
 func mixSrcName(s int) string {
@@ -568,6 +610,10 @@ func mixLightRow(r int) {
 			continue
 		}
 		g := mixer.pin[r][s]
+		// The pin's control says its gain, however it was set.
+		if in := pin.Get("firstElementChild"); in.Truthy() {
+			in.Set("value", strconv.FormatFloat(float64(g), 'g', -1, 32))
+		}
 		cl := pin.Get("classList")
 		cl.Call("toggle", "on", g != 0)
 		cl.Call("toggle", "neg", g < 0)

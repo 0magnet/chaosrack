@@ -26,7 +26,7 @@ func TestEveryDialHasItsPointerWhereThePageDrewIt(t *testing.T) {
 	r := newRack(t)
 	dials, found := 0, 0
 	for _, c := range r.ctls {
-		if c.IsSwitch || c.IsSelect || c.Max <= c.Min || isRotationKnob(c.ID) {
+		if c.IsSwitch || c.IsSelect || c.Max <= c.Min || isRotationKnob(c.ID) || isPin(c.ID) { // a pin is a lamp
 			continue
 		}
 		if _, shown := r.pic.Ctls[c.ID]; !shown {
@@ -362,5 +362,27 @@ func TestColorsAndDotsChangeTheDrawing(t *testing.T) {
 		t.Error("MAP has no readout")
 	} else if got := strings.TrimSpace(r.pic.Items[ro.item].Text); got != "viridis" {
 		t.Errorf("MAP reads %q, want viridis", got)
+	}
+}
+
+// The picture is the panel once: the items outside the bank and the chosen
+// model's bank, and no copy of the catalog's under them, which would leave
+// one model's bank showing under the next and a lamp lit under a dark copy.
+func TestThePictureHoldsEachItemOnce(t *testing.T) {
+	r := newRack(t)
+	cat, err := rackcatalog.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cat.Banks == nil || r.selector == "" {
+		t.Skip("a catalog without banks")
+	}
+	for _, model := range []string{r.value(r.selector), "lorenz", "globe"} {
+		if err := r.Set(r.selector, model); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := len(r.pic.Items), r.outside+len(cat.Banks[model].Items); got != want {
+			t.Errorf("with %s the picture has %d items, want %d", model, got, want)
+		}
 	}
 }

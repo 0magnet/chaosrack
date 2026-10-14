@@ -46,6 +46,7 @@ type Rack struct {
 	pic     *rackpic.Picture
 	ptrs    map[string]pointer // each dial's pointer, by control id
 	reads   map[string]readout // each control's display, by control id
+	lamps   map[string]int     // each Mixer pin's lamp, by control id
 	changed map[int]int        // item index → the generation it last changed in
 	full    int                // the generation the picture was last rebuilt in
 
@@ -82,6 +83,7 @@ func New() (*Rack, error) {
 		byID:    map[string]int{},
 		ptrs:    map[string]pointer{},
 		reads:   map[string]readout{},
+		lamps:   map[string]int{},
 		changed: map[int]int{},
 	}
 	for i, c := range r.ctls {
@@ -106,6 +108,9 @@ func New() (*Rack, error) {
 			r.outsideBox[id] = b
 		}
 	} else {
+		// Only the items outside the bank: the copy of the picture still has
+		// the catalog's, which would stay under every later bank.
+		p.Items = nil
 		for _, it := range cat.Picture.Items {
 			if !rackcatalog.InRegion(it, cat.BankRegion) {
 				p.Items = append(p.Items, it)
@@ -206,7 +211,16 @@ func (r *Rack) Controls() ([]racktui.Control, error) {
 // switch 1 or 0, and a dial a number, held to its travel.
 func (r *Rack) Set(id, value string) error {
 	r.mu.Lock()
-	defer r.mu.Unlock()
+	err := r.set(id, value)
+	r.mu.Unlock()
+	// The speaker is told what to play with no lock held: a speaker that
+	// starts asks for samples (Fill) before it returns.
+	r.sound.tell()
+	return err
+}
+
+// set is Set with r.mu held.
+func (r *Rack) set(id, value string) error {
 	i, ok := r.byID[id]
 	if !ok {
 		return fmt.Errorf("the rack has no control %q", id)
@@ -220,7 +234,13 @@ func (r *Rack) Set(id, value string) error {
 		return nil
 	}
 	c.Value = v
-	r.soundSet(id)
+	for _, pin := range r.soundSet(id) {
+		// A generator turned while pinned nowhere: pin it, as a hand on the
+		// Mixer would, so its lamp lights too.
+		if err := r.set(pin, "1"); err != nil {
+			return err
+		}
+	}
 	if c.Module == modelModule {
 		r.refigure.Store(true)
 	}
@@ -321,6 +341,12 @@ func (r *Rack) calibrate(lo, hi int, only func(id string) bool, captured func(c 
 		if ro, ok := r.findReadout(c, v, box, lo, hi); ok {
 			r.reads[c.ID] = ro
 		}
+		if !isPin(c.ID) {
+			continue
+		}
+		if l, ok := r.findLamp(box, lo, hi); ok {
+			r.lamps[c.ID] = l
+		}
 	}
 }
 
@@ -383,6 +409,9 @@ func isRotationKnob(id string) bool {
 
 // turn shows a control's new value in the picture.
 func (r *Rack) turn(c *racktui.Control) {
+	if l, ok := r.lamps[c.ID]; ok {
+		r.light(l, c)
+	}
 	if ro, ok := r.reads[c.ID]; ok {
 		r.write(ro.item, ro.show(c))
 	}
@@ -474,6 +503,13 @@ func (r *Rack) Act(_ int, x, y float64, kind string, delta float64) error {
 	c := r.ctls[r.byID[id]]
 	r.mu.Unlock()
 	switch {
+	case isPin(id) && kind == "click":
+		// A Mixer pin, clicked, is pinned at full gain or unpinned, as the
+		// page's is; the wheel trims its gain.
+		if c.Value != "0" {
+			return r.Set(id, "0")
+		}
+		return r.Set(id, "1")
 	case c.IsSwitch && kind == "click":
 		if c.Value == "1" {
 			return r.Set(id, "0")
@@ -604,8 +640,13 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	s := &r.scene
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for p, v := range consts {
-		*p = v
+	if len(consts) > 0 {
+		// Model Out reads them too, on the speaker's goroutine.
+		r.sound.mu.Lock()
+		for p, v := range consts {
+			*p = v
+		}
+		r.sound.mu.Unlock()
 	}
 	now := time.Now()
 	dt := now.Sub(s.last).Seconds()
