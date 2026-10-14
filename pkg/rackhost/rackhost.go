@@ -86,6 +86,10 @@ type Rack struct {
 	legendItem map[string]int
 	// custom is Custom's system, compiled and registered (custom.go).
 	custom *attractor.CustomSystem
+	// stl is the STL File model's wireframe (stl.go).
+	stl stlView
+	// prompt is the text control the panel is to ask for (text.go).
+	prompt string
 }
 
 // New is a rack at the catalog's defaults.
@@ -148,6 +152,7 @@ func New() (*Rack, error) {
 	r.calibrate(0, r.outside, func(string) bool { return true }, nil)
 	r.custom.Compile()
 	r.seedCustomKnobs()
+	r.addTextControls()
 	r.findLegends()
 	r.useBank(r.model())
 	r.scene.start()
@@ -222,6 +227,7 @@ var (
 	_ racktui.Pictured = (*Rack)(nil)
 	_ racktui.Paced    = (*Rack)(nil)
 	_ racktui.GameKeys = (*Rack)(nil)
+	_ racktui.Prompter = (*Rack)(nil)
 )
 
 // Modules is the catalog's.
@@ -275,6 +281,11 @@ func (r *Rack) set(id, value string) error {
 	if c.Module == modelModule {
 		r.refigure.Store(true)
 	}
+	if c.IsText {
+		if err := r.textSet(id, v); err != nil {
+			return fmt.Errorf("%s: %w", id, err)
+		}
+	}
 	if _, ok := r.flow[id]; ok {
 		// The integrator reads the constant under the scene's lock, so the
 		// scene writes it there, before its next step (flowValues).
@@ -299,6 +310,9 @@ func (r *Rack) set(id, value string) error {
 
 // settle is value as control c holds it, or why it cannot be.
 func settle(c *racktui.Control, value string) (string, error) {
+	if c.IsText {
+		return value, nil // as it was typed
+	}
 	value = strings.TrimSpace(value)
 	switch {
 	case c.IsSwitch:
@@ -773,11 +787,16 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 		s.key, s.err = key, nil
 	case key != s.key || refigure:
 		s.key = key
-		if key == "custom" {
+		switch key {
+		case "custom":
 			r.mu.Lock()
 			s.fig, s.err = r.customFigure()
 			r.mu.Unlock()
-		} else {
+		case "stlfile":
+			r.mu.Lock()
+			s.fig, s.err = r.stlFigure()
+			r.mu.Unlock()
+		default:
 			s.fig, s.err = figureFor(key, r.knobs())
 		}
 	}

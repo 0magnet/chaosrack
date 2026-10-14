@@ -5,6 +5,8 @@ import (
 	"strconv"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
+	"github.com/0magnet/chaosrack/pkg/controlspec"
+	"github.com/0magnet/chaosrack/pkg/racktui"
 )
 
 // Custom, natively: the page's typed system (attractor.CustomSystem),
@@ -27,6 +29,9 @@ func (r *Rack) customKnobs() {
 	}
 	if v, ok := r.knobValue("custom-dt"); ok {
 		c.SetDt(float32(v))
+	}
+	if v, ok := r.knobValue("custom-extent"); ok {
+		c.SetExtent(float32(v))
 	}
 }
 
@@ -114,4 +119,15 @@ func (r *Rack) seedCustomKnobs() {
 		}
 	}
 	put("custom-dt", r.custom.Dt())
+	// The equations too, and the fourth, which the page builds only while 4d
+	// w is on, so the catalog may not have it.
+	for i := range 4 {
+		id := "custom-eq-" + strconv.Itoa(i)
+		r.addControl(racktui.Control{ControlInfo: controlspec.ControlInfo{
+			ID: id, Label: [4]string{"dx/dt", "dy/dt", "dz/dt", "dw/dt"}[i], IsText: true, Module: "equation",
+		}})
+		if j := r.byID[id]; r.ctls[j].Value == "" {
+			r.ctls[j].Value = r.custom.Equation(i)
+		}
+	}
 }

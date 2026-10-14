@@ -14,15 +14,11 @@ package attractor
 // of; here the mesh joins the full instrument instead.
 
 import (
-	"bytes"
-	"errors"
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"strconv"
 	"strings"
 	"syscall/js"
-
-	"gitlab.com/russoj88/stl/stl"
 
 	"github.com/0magnet/chaosrack/pkg/meshstl"
 	"github.com/0magnet/chaosrack/pkg/stlmodels"
@@ -44,103 +40,24 @@ func generateSTLFile() {
 	gpu.uploadBuffersIndexed(stlFileVerts, stlFileIdx, glctx.Types.Line)
 }
 
-// setSTLFileModel parses STL bytes into the mode's wireframe buffers:
-// bounding-box centered, normalized to half-extent 1.5 (the scale the
-// built-in geometry models live at, so camera fitting behaves the same),
-// decimated to the 16-bit index budget when oversized.
+// setSTLFileModel parses STL bytes into the mode's wireframe buffers
+// (STLFileWire).
 func setSTLFileModel(data []byte) error {
-	solid, err := stl.From(bytes.NewReader(data))
+	w, err := STLFileWire(data)
 	if err != nil {
 		return err
 	}
-	return setSTLFileTris(len(solid.Triangles), func(i int) [3]meshstl.V3 {
-		v := solid.Triangles[i].Vertices
-		return [3]meshstl.V3{
-			{float64(v[0].X), float64(v[0].Y), float64(v[0].Z)},
-			{float64(v[1].X), float64(v[1].Y), float64(v[1].Z)},
-			{float64(v[2].X), float64(v[2].Y), float64(v[2].Z)},
-		}
-	})
+	stlFileVerts, stlFileIdx, stlFileTris = w.Verts, w.Idx, w.Tris
+	return nil
 }
 
-// setSTLFileMesh takes a mesh straight from a generator, with no STL in
-// between. The built-in models used to be encoded to bytes and parsed back by
-// the same program that had just built them — a megabyte of round trip per
-// selection to arrive at the triangles it already had.
+// setSTLFileMesh takes a mesh straight from a generator (STLMeshWire).
 func setSTLFileMesh(m meshstl.Mesh) error {
-	return setSTLFileTris(len(m.Tris), func(i int) [3]meshstl.V3 {
-		t := m.Tris[i]
-		return [3]meshstl.V3{t.A, t.B, t.C}
-	})
-}
-
-// setSTLFileTris is the shared half: center on the bounding box, normalize to
-// the extent the built-in geometry lives at, decimate to the 16-bit index
-// budget, and emit triangle edges. at(i) returns one triangle.
-func setSTLFileTris(n int, at func(int) [3]meshstl.V3) error {
-	if n == 0 {
-		return errors.New("no triangles in file")
+	w, err := STLMeshWire(m)
+	if err != nil {
+		return err
 	}
-	stride := (n + stlmodels.MaxTris - 1) / stlmodels.MaxTris
-
-	first := true
-	var minX, minY, minZ, maxX, maxY, maxZ float32
-	for i := 0; i < n; i += stride {
-		for _, v := range at(i) {
-			x, y, z := float32(v[0]), float32(v[1]), float32(v[2])
-			if first {
-				minX, maxX, minY, maxY, minZ, maxZ = x, x, y, y, z, z
-				first = false
-				continue
-			}
-			if x < minX {
-				minX = x
-			}
-			if x > maxX {
-				maxX = x
-			}
-			if y < minY {
-				minY = y
-			}
-			if y > maxY {
-				maxY = y
-			}
-			if z < minZ {
-				minZ = z
-			}
-			if z > maxZ {
-				maxZ = z
-			}
-		}
-	}
-	cx, cy, cz := (minX+maxX)/2, (minY+maxY)/2, (minZ+maxZ)/2
-	half := (maxX - minX) / 2
-	if h := (maxY - minY) / 2; h > half {
-		half = h
-	}
-	if h := (maxZ - minZ) / 2; h > half {
-		half = h
-	}
-	scale := float32(1)
-	if half > 0 {
-		scale = 1.5 / half
-	}
-
-	verts := make([]float32, 0, (n/stride+1)*9)
-	idx := make([]uint16, 0, (n/stride+1)*6)
-	var vi uint16
-	for i := 0; i < n; i += stride {
-		for _, v := range at(i) {
-			verts = append(verts,
-				(float32(v[0])-cx)*scale,
-				(float32(v[1])-cy)*scale,
-				(float32(v[2])-cz)*scale)
-		}
-		idx = append(idx, vi, vi+1, vi+1, vi+2, vi+2, vi)
-		vi += 3
-	}
-	stlFileVerts, stlFileIdx = verts, idx
-	stlFileTris = len(idx) / 6
+	stlFileVerts, stlFileIdx, stlFileTris = w.Verts, w.Idx, w.Tris
 	return nil
 }
 
@@ -242,6 +159,10 @@ func buildSTLBuiltInPicker() {
 		group.Call("appendChild", opt)
 	}
 
+	// A control of the rack, so a rack without the page can pick a solid:
+	// "" is the file loaded, the rest the built-ins by name.
+	registerControl(ControlDesc{ID: "stlfile-builtin", Label: "solid", IsSelect: true, SelectDef: ""}, "visual · model")
+
 	dom.On(sel, "change", func(this js.Value, a []js.Value) any {
 		name := sel.Get("value").String()
 		if name == "" {
@@ -278,4 +199,14 @@ func buildSTLBuiltInPicker() {
 		}
 		return nil
 	})
+}
+
+// setSTLFileTris is stlWire into the mode's buffers.
+func setSTLFileTris(n int, at func(int) [3]meshstl.V3) error {
+	w, err := stlWire(n, at)
+	if err != nil {
+		return err
+	}
+	stlFileVerts, stlFileIdx, stlFileTris = w.Verts, w.Idx, w.Tris
+	return nil
 }

@@ -3,6 +3,7 @@ package rackhost
 import (
 	"math"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
@@ -76,6 +77,9 @@ func (r *Rack) scopeFigure(key string, running bool) (attractor.Figure, [][3]flo
 		}
 		return f, square(f.Points)
 	case "scopetext":
+		if v := r.value("stext-in"); v != "" {
+			sm.text.SetText(strings.ToUpper(v)) // the page's banner is capitals
+		}
 		sm.text.Set("stext-harm", float32(r.number("stext-harm")))
 		sm.text.Sweep(frames, sub, float32(scale))
 		f := attractor.Figure{Kind: attractor.FigureLines}
