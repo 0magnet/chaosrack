@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/draw"
 	"math"
+	"math/rand/v2"
 	"strconv"
 	"time"
 
@@ -28,6 +29,7 @@ type analyzers struct {
 	recPic *image.RGBA
 	spect  spectroView
 	wfall  waterfallView
+	morph  morphView
 	tau    attractor.TauMeter
 	ro     readoutLine
 	// autoMap is whether the MAP ring holds the heat the spectrogram put there
@@ -46,6 +48,7 @@ func newAnalyzers() analyzers {
 		rec:      attractor.NewRecurrence(),
 		spect:    spectroView{ctl: attractor.NewSpectroControls()},
 		wfall:    waterfallView{w: attractor.NewWaterfall()},
+		morph:    morphView{run: attractor.NewSprottMorph(rand.Float64)},
 		lastFlow: "lorenz",
 	}
 }
@@ -61,11 +64,11 @@ func listens(key string) bool {
 	return attractor.IsAudioModel(key) || isAnalyzer(key) || key == "waterfall"
 }
 
-// drawnFromSound reports whether model key is a figure the rack's signal
-// makes, framed to its full scale: an audio model, or the waterfall's
-// surface.
-func drawnFromSound(key string) bool {
-	return attractor.IsAudioModel(key) || key == "waterfall"
+// figureEachFrame reports whether model key is a figure made anew each
+// frame and framed to its full scale: an audio model and the waterfall's
+// surface, from the rack's signal, and the Sprott Morph, from its run.
+func figureEachFrame(key string) bool {
+	return attractor.IsAudioModel(key) || key == "waterfall" || key == "sprottmorph"
 }
 
 // plotPass is lines drawn at one width.
@@ -200,6 +203,8 @@ func (r *Rack) hear(key string, on bool, w int) (h heard) {
 		if key == "xy" {
 			h.glow = r.number("xy-persist")
 		}
+	case key == "sprottmorph":
+		h.fig, h.fit = r.morphFigure(on && r.value("pause-sw") != "1")
 	case key == "waterfall":
 		h.fig, h.fit = r.waterfallFigure(float64(r.sound.now().UnixNano()) / 1e6)
 	case (key == "spectrogram" || key == "fvf") && on:
@@ -489,4 +494,45 @@ func newest(x []float32, n int) []float32 {
 		x = append(x[:0], x[over:]...)
 	}
 	return x
+}
+
+// morphView is the native Sprott Morph: its run, its reach when entered, and
+// when it last stepped.
+type morphView struct {
+	run   *attractor.SprottMorph
+	steps int // the trail's length it was entered at
+	reach float64
+	last  time.Time
+	frac  float64
+}
+
+// morphFigure steps the Sprott Morph on to now, while running, and is its
+// trail and the sphere it was framed to when entered, as the page fits its
+// camera to the warmed trail. Called with r.mu held.
+func (r *Rack) morphFigure(running bool) (attractor.Figure, [][3]float64) {
+	mv := &r.analyzers.morph
+	for _, id := range attractor.SprottMorphKnobs {
+		mv.run.Set(id, float32(r.number(id)))
+	}
+	steps := max(int(r.number("trail-slider")), 2)
+	now := r.sound.now()
+	if !mv.run.Active() || steps != mv.steps {
+		mv.reach, mv.steps = mv.run.Enter(steps), steps
+		mv.last, mv.frac = now, 0
+	}
+	if running {
+		// The page steps its sub-steps a frame at 60 a second; the panel's
+		// frames come slower, so each look steps the frames it stood in for.
+		sub, scale := speedSteps(r.number("speed-slider"))
+		frames := min(now.Sub(mv.last).Seconds()*60, 60) + mv.frac
+		n := int(frames)
+		mv.frac = frames - float64(n)
+		if n > 0 {
+			mv.run.Advance(n*sub, float32(scale), steps)
+		}
+	}
+	mv.last = now
+	f := attractor.Figure{Kind: attractor.FigurePath, Points: make([][3]float64, steps)}
+	mv.run.Trail(steps, func(k int, x, y, z float64) { f.Points[k] = [3]float64{x, y, z} })
+	return f, [][3]float64{{-mv.reach, 0, 0}, {mv.reach, 0, 0}}
 }

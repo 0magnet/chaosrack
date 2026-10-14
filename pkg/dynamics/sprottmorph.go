@@ -81,18 +81,13 @@ func quadExtract(deriv func(x, y, z float64) (float64, float64, float64)) [3 * q
 	return out
 }
 
-// sprottADeriv is Sprott A (it lives outside the B–S catalog table).
-func sprottADeriv(x, y, z float64) (float64, float64, float64) {
-	return y, -x + y*z, 1 - y*y
-}
-
 // SprottMorphSystems builds the full A–S coefficient table from the
 // catalog's own equations.
 func SprottMorphSystems() []SprottMorphSys {
 	out := make([]SprottMorphSys, 0, 1+len(SprottCases))
 	out = append(out, SprottMorphSys{
 		Letter: "A",
-		Coefs:  quadExtract(sprottADeriv),
+		Coefs:  quadExtract(SprottADeriv),
 		DT:     0.01,
 		IC:     [3]float32{0.1, 0.2, 0.3},
 	})
