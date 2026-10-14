@@ -76,6 +76,9 @@ type Rack struct {
 	// audioSource is what the capture records: "monitor" (what is playing),
 	// "default" (the input), or a source's ID.
 	audioSource string
+	// stereo is the Stereo Embedding's scope, which keeps its trigger's
+	// memory from frame to frame (bus.go).
+	stereo stereoView
 }
 
 // New is a rack at the catalog's defaults.
@@ -93,6 +96,7 @@ func New() (*Rack, error) {
 		lamps:       map[string]int{},
 		changed:     map[int]int{},
 		audioSource: "monitor",
+		stereo:      stereoView{scope: attractor.NewStereoScope()},
 	}
 	for i, c := range r.ctls {
 		r.byID[c.ID] = i
@@ -683,10 +687,14 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	r.needCapture()
 	r.sound.busLook()
 	audio := attractor.IsAudioModel(key)
-	var audioFig attractor.Figure
+	var audioFig, audioGrat attractor.Figure
 	var audioFit [][3]float64
+	var glow float64
 	if audio {
-		audioFig, audioFit = r.audioFigure(key)
+		audioFig, audioGrat, audioFit = r.audioFigure(key)
+		if key == "xy" {
+			glow = r.number("xy-persist")
+		}
 	}
 	var consts map[*float32]float32
 	if refigure {
@@ -791,11 +799,24 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 		n = len(fig.Edges)
 	}
 	m := attractor.DrawFigure(fig, 0, n, o)
+	if len(audioGrat.Edges) > 0 {
+		// The Stereo Embedding's graticule, flat gray behind the trace.
+		og := o
+		og.Gradient = rasterview.Gradient{Colors: 1, Base: attractor.GraticuleColor}
+		og.View.BackDim = 0 // flat, as the page draws it
+		under(m, attractor.DrawFigure(audioGrat, 0, len(audioGrat.Edges), og))
+	}
+	if k := glowKeep(glow, dt); k > 0 && s.shown != nil && s.shown.Bounds() == m.Bounds() {
+		// The XY's GLOW: the last frame fades like a phosphor and the trace
+		// is drawn over it, as the page multiplies its frame down rather
+		// than clearing it.
+		fade(m, s.shown, k)
+	}
 	if persist && s.shown != nil && s.shown.Bounds() == m.Bounds() {
 		// Display's Persist: the old trails stay, and the new one is drawn
 		// over them, as the page leaves its color buffer uncleared.
 		for i := 0; i < len(m.Pix); i += 4 {
-			if m.Pix[i] == sceneBack.R && m.Pix[i+1] == sceneBack.G && m.Pix[i+2] == sceneBack.B {
+			if isBack(m.Pix[i : i+3]) {
 				copy(m.Pix[i:i+3], s.shown.Pix[i:i+3])
 			}
 		}
@@ -895,4 +916,38 @@ func (r *Rack) SceneAct(w, h int, _ float64, x, y float64, kind string, delta fl
 		return r.Set("camera-zoom", strconv.FormatFloat(z+step, 'f', -1, 64))
 	}
 	return nil
+}
+
+// glowKeep is how much of the last frame the XY's GLOW knob keeps after dt
+// seconds: the page keeps up to 0.98 of it a frame at 60 frames a second.
+func glowKeep(glow, dt float64) float64 {
+	if !(glow > 0) || !(dt > 0) {
+		return 0
+	}
+	return math.Pow(min(glow, 0.98), min(dt, 1)*60)
+}
+
+// under puts src's pixels where dst shows only the background.
+func under(dst, src *image.RGBA) {
+	for i := 0; i+3 < len(dst.Pix) && i+3 < len(src.Pix); i += 4 {
+		if isBack(dst.Pix[i:i+3]) && !isBack(src.Pix[i:i+3]) {
+			copy(dst.Pix[i:i+3], src.Pix[i:i+3])
+		}
+	}
+}
+
+// fade adds what was shown, k of the way up from the background, onto dst.
+func fade(dst, shown *image.RGBA, k float64) {
+	back := [3]uint8{sceneBack.R, sceneBack.G, sceneBack.B}
+	for i := 0; i+3 < len(dst.Pix); i += 4 {
+		for c := range 3 {
+			v := float64(dst.Pix[i+c]) + k*(float64(shown.Pix[i+c])-float64(back[c]))
+			dst.Pix[i+c] = uint8(min(max(v, 0), 255))
+		}
+	}
+}
+
+// isBack reports whether a pixel is the scene's background.
+func isBack(p []uint8) bool {
+	return p[0] == sceneBack.R && p[1] == sceneBack.G && p[2] == sceneBack.B
 }

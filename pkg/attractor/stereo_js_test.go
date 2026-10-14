@@ -4,6 +4,7 @@ package attractor
 
 import (
 	"math"
+	"slices"
 	"strings"
 	"testing"
 
@@ -26,7 +27,7 @@ func TestStereoWindowNeverOutrunsTheSnapshotRing(t *testing.T) {
 			for _, win := range []float32{5, 85, 250, stereoWinMax, 5000} {
 				for _, tau := range []int{1, 32, 512} {
 					for _, align := range []int{-stereoAlignMax, -7, 0, 7, stereoAlignMax} {
-						n, stride := stereoWindow(win, sr, budget, tau, align)
+						n, stride := stereoWindow(win, sr, budget, tau, align, takensSmooth())
 						if n < 2 || stride < 1 {
 							t.Errorf("sr=%d budget=%d win=%v tau=%d align=%d: n=%d stride=%d",
 								sr, budget, win, tau, align, n, stride)
@@ -59,7 +60,7 @@ func TestStereoWindowNeverOutrunsTheSnapshotRing(t *testing.T) {
 // stereoWinMax is the number to lower — not this test.
 func TestStereoWinMaxIsReachableAtEveryNormalRate(t *testing.T) {
 	for _, sr := range []int{22050, 24000, 44100, 48000} {
-		n, stride := stereoWindow(stereoWinMax, sr, 20000, 512, stereoAlignMax)
+		n, stride := stereoWindow(stereoWinMax, sr, 20000, 512, stereoAlignMax, takensSmooth())
 		want := float64(stereoWinMax) / 1000 * float64(sr)
 		if got := float64(n * stride); got < want*0.85 {
 			t.Errorf("sr=%d: the knob's maximum %v ms delivers %.0f samples, want ~%.0f — "+
@@ -1014,5 +1015,19 @@ func TestLockStillReachesBackWhenItMust(t *testing.T) {
 	}
 	if got != want {
 		t.Errorf("locked at %d, want %d — the bias swallowed a real match", got, want)
+	}
+}
+
+// StereoKnobs, which the native rack turns, are the page's Stereo knobs:
+// every one but the smoothing it shares with Takens.
+func TestStereoKnobsAreThePagesKnobs(t *testing.T) {
+	var ids []string
+	for _, pd := range attractorParams["stereo"] {
+		if pd.ID != "takens-smooth" {
+			ids = append(ids, pd.ID)
+		}
+	}
+	if !slices.Equal(ids, StereoKnobs) {
+		t.Errorf("the page's stereo knobs are %v; StereoKnobs %v", ids, StereoKnobs)
 	}
 }
