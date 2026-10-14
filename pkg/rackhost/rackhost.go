@@ -7,14 +7,17 @@
 // picture's knob pointers — and the model is drawn here too, from the same
 // figures and trajectories `chaosrack render` draws, with no GPU.
 //
-// What the page computes in DOM and Web Audio is not here yet: a control's
-// value is held and shown, but only the model, its rotation and its zoom act
-// on anything. The modules come over one at a time.
+// What the page computes in Web Audio is not here yet: a control's value
+// is held and shown, but only the model bay and the modules that draw it
+// (View, Display, Layers · Colors) act on anything. The modules come over
+// one at a time.
 package rackhost
 
 import (
 	"errors"
 	"fmt"
+	"image"
+	"image/color"
 	"math"
 	"strconv"
 	"strings"
@@ -216,11 +219,10 @@ func (r *Rack) Set(id, value string) error {
 	if c.Module == modelModule {
 		r.refigure.Store(true)
 	}
-	if p, ok := r.flow[id]; ok {
-		if f, err := strconv.ParseFloat(v, 32); err == nil {
-			*p.Value = float32(f)
-			r.refigure.Store(true)
-		}
+	if _, ok := r.flow[id]; ok {
+		// The integrator reads the constant under the scene's lock, so the
+		// scene writes it there, before its next step (flowValues).
+		r.refigure.Store(true)
 	}
 	if id == r.selector {
 		r.useBank(v)
@@ -539,12 +541,19 @@ type scene struct {
 	turned   bool // a drag has set the angle since the last frame
 	drag     [2]float64
 	dragging bool
+	// trail is the flow running live, and last the frame drawn, which
+	// Display's Persist draws over and Pause draws again.
+	trail trail
+	shown *image.RGBA
 }
 
 func (s *scene) start() {
 	s.angle = [3]float64{0.35, 0, 0}
 	s.last = time.Now()
 }
+
+// sceneBack is what the model is drawn on: the panel's own near-black.
+var sceneBack = color.RGBA{10, 13, 20, 255}
 
 // autoSpin is how fast the model turns about its upright axis with Auto-rot
 // on and every rate at zero, in radians a second: what the page does.
@@ -577,15 +586,28 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	rate := [3]float64{r.number("rotation-controls-x"), r.number("rotation-controls-y"), r.number("rotation-controls-z")}
 	zoom := r.number("camera-zoom")
 	look := r.look()
+	paused := r.value("pause-sw") == "1"
+	persist := r.value("persist-trail") == "1"
+	run, speed := int(r.number("trail-slider")), r.number("speed-slider")
+	refigure := r.refigure.Swap(false)
+	var consts map[*float32]float32
+	if refigure {
+		consts = r.flowValues()
+	}
 	r.mu.Unlock()
 
 	s := &r.scene
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	for p, v := range consts {
+		*p = v
+	}
 	now := time.Now()
 	dt := now.Sub(s.last).Seconds()
 	s.last = now
-	if on && !s.turned {
+	// Paused, the model holds still and a hand still turns it, as the page's
+	// does.
+	if on && !s.turned && !paused {
 		for i := range s.angle {
 			s.angle[i] += rate[i] * dt
 		}
@@ -601,14 +623,16 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 
 	img := &rackpic.Image{W: w, H: h, Px: make([]byte, 3*w*h)}
 	if key == "" || !on {
+		s.shown = nil
 		return img, nil
 	}
-	if key != s.key || r.refigure.Swap(false) {
+	if key != s.key || refigure {
 		s.key = key
 		s.fig, s.err = figureFor(key, r.knobs())
 	}
 	if s.err != nil {
 		// Dark, and why: the panel shows the reason on its status line.
+		s.shown = nil
 		return img, s.err
 	}
 	o := attractor.DrawOptions{
@@ -618,19 +642,41 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 			Scale:       zoomScale(zoom),
 			BackDim:     0.5,
 			PixelAspect: 1 / shape,
+			PanX:        look.pan[0],
+			PanY:        look.pan[1],
+			LineWidth:   lineWidth(look.line, w),
 		},
-		Gradient: look.gradient,
+		Gradient:   look.gradient,
+		Background: sceneBack,
 	}
 	fig := s.fig
-	if look.dots && fig.Kind == attractor.FigurePath {
-		// Display's Dots: the trajectory's points, unjoined.
-		fig.Kind = attractor.FigurePoints
+	if fig.Kind == attractor.FigurePath {
+		// A flow runs on, a fresh stretch of its trail each frame, framed by
+		// its whole trajectory so the camera holds still while it moves.
+		if (paused && s.trail.key == key && len(s.trail.pts) > 0) || (!paused && s.trail.advance(key, run, speed)) {
+			o.Fit = fig.Points
+			fig.Points = s.trail.pts
+		}
+		if look.dots {
+			// Display's Dots: the trajectory's points, unjoined.
+			fig.Kind = attractor.FigurePoints
+		}
 	}
 	n := len(fig.Points)
 	if fig.Kind == attractor.FigureLines {
 		n = len(fig.Edges)
 	}
 	m := attractor.DrawFigure(fig, 0, n, o)
+	if persist && s.shown != nil && s.shown.Bounds() == m.Bounds() {
+		// Display's Persist: the old trails stay, and the new one is drawn
+		// over them, as the page leaves its color buffer uncleared.
+		for i := 0; i < len(m.Pix); i += 4 {
+			if m.Pix[i] == sceneBack.R && m.Pix[i+1] == sceneBack.G && m.Pix[i+2] == sceneBack.B {
+				copy(m.Pix[i:i+3], s.shown.Pix[i:i+3])
+			}
+		}
+	}
+	s.shown = m
 	for i := range w * h {
 		img.Px[3*i], img.Px[3*i+1], img.Px[3*i+2] = m.Pix[4*i], m.Pix[4*i+1], m.Pix[4*i+2]
 	}

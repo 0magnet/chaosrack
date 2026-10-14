@@ -30,9 +30,12 @@ type panel struct {
 	cur  int
 	top  int    // first row drawn in the LIST view, for scrolling
 	filt string // substring filter
-	list bool   // show the table instead of the rack
-	msg  string // the last thing that happened
-	err  string
+	// typing is set by /: the next letter starts a filter even where it is
+	// also a command (p, q, r, w, 0), so a filter can begin with one.
+	typing bool
+	list   bool   // show the table instead of the rack
+	msg    string // the last thing that happened
+	err    string
 
 	// The rack, laid out once, and the window onto it.
 	//
@@ -289,6 +292,11 @@ func (p *panel) refilter() {
 func (p *panel) key(ev *tcell.EventKey) bool {
 	switch ev.Key() {
 	case tcell.KeyEscape, tcell.KeyCtrlC:
+		if p.typing && ev.Key() == tcell.KeyEscape {
+			// Escape takes back a / that has not been typed after yet.
+			p.typing = false
+			return false
+		}
 		return true
 	case tcell.KeyUp:
 		// Control pans the window instead of moving the cursor. The arrows
@@ -344,7 +352,7 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 		r := firstRune(ev.Str())
 		switch r {
 		case 'q':
-			if p.filt == "" {
+			if p.commands() {
 				return true
 			}
 			p.typeFilter(r)
@@ -352,9 +360,10 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 			p.list = !p.list
 		case '/':
 			p.filt = ""
+			p.typing = true
 			p.refilter()
 		case 'p':
-			if p.filt == "" && p.paged {
+			if p.commands() && p.paged {
 				// The window: half, the whole terminal, or out of the way.
 				p.winMode = (p.winMode + 1) % 3
 				p.scene, p.canv = nil, nil
@@ -362,11 +371,11 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 			}
 			p.typeFilter(r)
 		case 'w':
-			if p.shared && p.filt == "" {
+			if p.shared && p.commands() {
 				p.msg = partsTakenMsg
 				return false
 			}
-			if _, ok := p.src.(Overlay); ok && p.filt == "" {
+			if _, ok := p.src.(Overlay); ok && p.commands() {
 				// The page's parts over the cells, or the cells alone: the
 				// two drawings of one panel, compared in place.
 				p.overlay = !p.overlay
@@ -378,7 +387,7 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 			}
 			p.typeFilter(r)
 		case 'r':
-			if p.filt == "" {
+			if p.commands() {
 				p.reload()
 				p.loadPicture()
 				p.msg = "reloaded"
@@ -386,7 +395,7 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 			}
 			p.typeFilter(r)
 		case '0':
-			if p.filt == "" {
+			if p.commands() {
 				p.reset()
 				return false
 			}
@@ -398,7 +407,12 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 	return false
 }
 
+// commands reports whether a letter is a command rather than the start of a
+// filter: with no filter, and none begun with /.
+func (p *panel) commands() bool { return p.filt == "" && !p.typing }
+
 func (p *panel) typeFilter(r rune) {
+	p.typing = false
 	p.filt += string(r)
 	p.refilter()
 }
@@ -536,7 +550,10 @@ func (p *panel) draw(sc tcell.Screen) {
 	}
 
 	// The status line: what just happened, or how to work it.
-	status := "↑↓ move   ←→ turn   0 reset   ctrl+↑↓←→ pan   tab rack/list   r reload   q quit"
+	status := "↑↓ move   ←→ turn   / find   0 reset   ctrl+↑↓←→ pan   tab rack/list   r reload   q quit"
+	if p.paged {
+		status += "   p window"
+	}
 	if _, ok := p.src.(Overlay); ok {
 		status += "   w web"
 	}
@@ -544,6 +561,8 @@ func (p *panel) draw(sc tcell.Screen) {
 	switch {
 	case p.err != "":
 		status, st = "error: "+p.err, stErr
+	case p.typing:
+		status = "filter: _   type to find a control"
 	case p.filt != "":
 		status = "filter: " + p.filt + "   (" + strconv.Itoa(len(p.ctls)) + " of " + strconv.Itoa(len(p.all)) + ")   backspace to edit, / to clear"
 	case p.hover != "":
