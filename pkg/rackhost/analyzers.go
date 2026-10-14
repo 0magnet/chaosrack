@@ -73,7 +73,7 @@ func listens(key string) bool {
 // frame and framed to its full scale: an audio model and the waterfall's
 // surface, from the rack's signal, and the Sprott Morph, from its run.
 func figureEachFrame(key string) bool {
-	return attractor.IsAudioModel(key) || key == "waterfall" || key == "sprottmorph" || isScopeModel(key) || key == "bifurcation" || key == "poincare"
+	return attractor.IsAudioModel(key) || key == "waterfall" || key == "sprottmorph" || isScopeModel(key) || key == "bifurcation" || key == "poincare" || key == "lattice"
 }
 
 // plotPass is lines drawn at one width.
@@ -213,6 +213,8 @@ func (r *Rack) hear(key string, on bool, w int) (h heard) {
 		}
 	case isScopeModel(key):
 		h.fig, h.fit = r.scopeFigure(key, on && r.value("pause-sw") != "1")
+	case key == "lattice" && on:
+		h.fig, h.fit = r.latticeFigure()
 	case key == "poincare":
 		h.fig, h.fit = r.sectionFigure(on && r.value("pause-sw") != "1")
 	case key == "bifurcation":
