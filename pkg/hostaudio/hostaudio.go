@@ -7,6 +7,7 @@ package hostaudio
 
 import (
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/jfreymuth/pulse"
@@ -63,9 +64,19 @@ func (p *Player) Play() error {
 		}
 		p.client = c
 	}
-	s, err := p.client.NewPlayback(pulse.Float32Reader(p.reader()),
-		pulse.PlaybackStereo, pulse.PlaybackSampleRate(p.rate),
-		pulse.PlaybackLatency(latency), pulse.PlaybackMediaName("the rack"))
+	opts := []pulse.PlaybackOption{pulse.PlaybackStereo, pulse.PlaybackSampleRate(p.rate),
+		pulse.PlaybackLatency(latency), pulse.PlaybackMediaName("the rack")}
+	if name := os.Getenv("PULSE_SINK"); name != "" {
+		// The sink libpulse's clients play on when it is set, which this
+		// client does not read for itself. A name that is no sink is refused
+		// rather than played past: whoever set it did not want the default.
+		sink, err := p.client.SinkByID(name)
+		if err != nil {
+			return fmt.Errorf("PULSE_SINK %q: %w", name, err)
+		}
+		opts = append(opts, pulse.PlaybackSink(sink))
+	}
+	s, err := p.client.NewPlayback(pulse.Float32Reader(p.reader()), opts...)
 	if err != nil {
 		p.client.Close()
 		p.client = nil

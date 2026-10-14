@@ -1,10 +1,12 @@
 package rackhost
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/0magnet/chaosrack/pkg/audiosrc"
 )
@@ -75,6 +77,17 @@ type sound struct {
 	// touched is a hand having been on the rack, which lets the ball's
 	// blips be heard, as a gesture lets the page's audio start.
 	touched bool
+	// rack is the rack's signal (bus.go), capt the capture it mixes, and
+	// capL, capR a buffer's worth of it.
+	rack       rackBus
+	capt       capture
+	capL, capR []float32
+	// now is the clock; filled is when the speaker last asked for samples,
+	// made when the rack's signal was last made up to; idle is where a look
+	// makes it while the speakers are idle.
+	now          func() time.Time
+	filled, made time.Time
+	idle         [2][]float32
 	// told is whether the speaker was last told there is something to hear.
 	told bool
 }
@@ -86,7 +99,7 @@ func newSound() *sound {
 		// The level is applied here, where it can glide.
 		fg.SetAmp(i, 1)
 	}
-	s := &sound{fg: fg, mat: newMatrix(), keys: newKeyBank(), games: newGames()}
+	s := &sound{fg: fg, mat: newMatrix(), keys: newKeyBank(), games: newGames(), now: time.Now}
 	s.wireGames()
 	return s
 }
@@ -156,6 +169,8 @@ func (r *Rack) soundSet(id string) (more [][2]string) {
 	default:
 		if side, src, ok := pinOf(id); ok {
 			s.spk[side][src] = r.number(id)
+		} else {
+			r.rackPinSet(id)
 		}
 	}
 	return more
@@ -206,6 +221,11 @@ func (r *Rack) soundStart() {
 	for side := range spkRows {
 		for src := range mixKeys {
 			s.spk[side][src] = r.number(pinID(side, src))
+		}
+	}
+	for _, row := range rackRows {
+		for _, k := range append(mixKeys[:], capKeys[:]...) {
+			r.rackPinSet("mix-" + row + "-" + k)
 		}
 	}
 	r.modelSet()
@@ -305,6 +325,9 @@ func (r *Rack) SoundErr() error {
 	s := r.sound
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.err == nil && s.capt.err != nil {
+		return fmt.Errorf("the capture: %w", s.capt.err)
+	}
 	return s.err
 }
 
@@ -316,10 +339,32 @@ func (r *Rack) Fill(left, right []float32) {
 	s := r.sound
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.render(left, right)
+	s.filled = s.now()
+	s.made = s.filled
+}
+
+// uses reports whether column src is heard or in the rack's signal.
+func (s *sound) uses(src int) bool {
+	return s.pinned(src) || s.rack.gain[0][src] != 0 || s.rack.gain[1][src] != 0
+}
+
+// grown is b at n samples, made bigger if it must be.
+func grown(b []float32, n int) []float32 {
+	if cap(b) < n {
+		return make([]float32, n)
+	}
+	return b[:n]
+}
+
+// render makes the next len(left) samples of every source: the speakers'
+// mix into left and right, and the rack's signal into its ring. Called with
+// the sound's lock held.
+func (s *sound) render(left, right []float32) {
 	n := len(left)
 	modelOn := false
 	for c := range 3 {
-		modelOn = modelOn || s.pinned(srcModel+c)
+		modelOn = modelOn || s.uses(srcModel+c)
 	}
 	if modelOn {
 		s.model.render(&s.mo, n)
@@ -327,64 +372,59 @@ func (r *Rack) Fill(left, right []float32) {
 	matOn := s.mat.playing() || len(s.mat.voices) > 0
 	if matOn {
 		for b := range s.bus {
-			if cap(s.bus[b]) < n {
-				s.bus[b] = make([]float32, n)
-			}
-			s.bus[b] = s.bus[b][:n]
+			s.bus[b] = grown(s.bus[b], n)
 		}
 		s.mat.render(s.bus[busTM], s.bus[busDR], n)
 	}
 	keysOn := len(s.keys.voices) > 0
 	if keysOn {
-		if cap(s.ky) < n {
-			s.ky = make([]float32, n)
-		}
-		s.ky = s.ky[:n]
+		s.ky = grown(s.ky, n)
 		s.keys.render(s.ky, n)
 	}
 	fxOn := len(s.games.blips) > 0
 	if fxOn {
-		if cap(s.fx) < n {
-			s.fx = make([]float32, n)
-		}
-		s.fx = s.fx[:n]
+		s.fx = grown(s.fx, n)
 		s.games.render(s.fx, n)
+	}
+	busOn := s.rack.on()
+	s.capL, s.capR = grown(s.capL, n), grown(s.capR, n)
+	if busOn && s.rack.capOn() {
+		s.capt.take(s.capL, s.capR, n)
+	} else {
+		clear(s.capL)
+		clear(s.capR)
 	}
 	k := 1 - math.Exp(-1/(levelGlide*sampleRate))
 	for j := range n {
+		var v [nSources]float64
 		s.fg.Next(&s.vals)
-		var l, rt float64
-		for i, v := range s.vals {
+		for i, x := range s.vals {
 			s.gain[i] += (s.level[i] - s.gain[i]) * k
-			v *= s.gain[i]
-			l += v * s.spk[0][i]
-			rt += v * s.spk[1][i]
+			v[i] = x * s.gain[i]
 		}
 		if modelOn {
 			for c := range 3 {
-				v := float64(s.mo[c][j])
-				l += v * s.spk[0][srcModel+c]
-				rt += v * s.spk[1][srcModel+c]
+				v[srcModel+c] = float64(s.mo[c][j])
 			}
 		}
 		if matOn {
-			for b, src := range [2]int{srcTM, srcDR} {
-				v := float64(s.bus[b][j])
-				l += v * s.spk[0][src]
-				rt += v * s.spk[1][src]
-			}
+			v[srcTM], v[srcDR] = float64(s.bus[busTM][j]), float64(s.bus[busDR][j])
 		}
 		if keysOn {
-			v := float64(s.ky[j])
-			l += v * s.spk[0][srcKY]
-			rt += v * s.spk[1][srcKY]
+			v[srcKY] = float64(s.ky[j])
 		}
 		if fxOn {
-			v := float64(s.fx[j])
-			l += v * s.spk[0][srcFX]
-			rt += v * s.spk[1][srcFX]
+			v[srcFX] = float64(s.fx[j])
+		}
+		var l, rt float64
+		for i, x := range v {
+			l += x * s.spk[0][i]
+			rt += x * s.spk[1][i]
 		}
 		left[j], right[j] = float32(l), float32(rt)
+		if busOn {
+			s.rack.push(&v, s.capL[j], s.capR[j])
+		}
 	}
 }
 

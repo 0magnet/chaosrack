@@ -73,6 +73,7 @@ func PanelFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&attachTo, "attach", "", "with --via cdp: substring of the tab's URL (default: 127.0.0.1:8080)")
 	fs.IntVar(&bayMon, "monitor", 0, "draw the bays with a chassis monitor this many slots wide")
 	fs.StringVar(&pprofAddr, "pprof", "", "serve Go's profiler at this address while the panel runs (e.g. 127.0.0.1:6061; go tool pprof http://ADDR/debug/pprof/profile)")
+	fs.StringVar(&audioSource, "audio-source", "monitor", "what the rack's capture records, once the Mixer's CAP pins put it in an audio model: monitor (what is playing), default (the input), or a source ID")
 }
 
 // PanelHelp is how the panel reaches the rack on a host, for its help.
@@ -102,6 +103,7 @@ func Panel(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		r.SetAudioSource(audioSource)
 		// The rack is heard on this machine's speakers once a generator is
 		// switched on, and is silent again when the panel goes.
 		sp := hostaudio.New(r.Fill, r.SampleRate())
