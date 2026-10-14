@@ -88,8 +88,13 @@ type Rack struct {
 	custom *attractor.CustomSystem
 	// stl is the STL File model's wireframe (stl.go).
 	stl stlView
+	// lattice is the Lattice's stack of terminals (lattice.go).
+	lattice *attractor.LatticeStack
 	// prompt is the text control the panel is to ask for (text.go).
 	prompt string
+	// viewAngle is the scene's pose as last drawn, for what turns with the view
+	// (the Lattice's programs).
+	viewAngle [3]float64
 }
 
 // New is a rack at the catalog's defaults.
@@ -110,6 +115,7 @@ func New() (*Rack, error) {
 		stereo:      stereoView{scope: attractor.NewStereoScope()},
 		analyzers:   newAnalyzers(),
 		custom:      attractor.NewCustomSystem(),
+		lattice:     attractor.NewLatticeStack(),
 	}
 	for i, c := range r.ctls {
 		r.byID[c.ID] = i
@@ -506,6 +512,7 @@ func (r *Rack) point(item int, a float64) {
 
 // showAngles turns the rotation knobs' pointers to the model's angles.
 func (r *Rack) showAngles(angle [3]float64) {
+	r.viewAngle = angle
 	for i, id := range rotationKnobs {
 		if p, ok := r.ptrs[id]; ok {
 			r.point(p.item, math.Mod(angle[i]*180/math.Pi+360*8, 360))

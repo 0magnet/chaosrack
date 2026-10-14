@@ -213,3 +213,30 @@ func TestCustomDrawsItsSystem(t *testing.T) {
 		t.Errorf("surf drew kind %d with %d lines, iter %s", f.Kind, len(f.Edges)/2, r.value("model-sw-0"))
 	}
 }
+
+// The Lattice runs its programs in terminals natively: every lit cell of
+// their screens is a point in its own color, STACKS keeps the families it
+// names, and the shape knob is what they draw.
+func TestTheLatticeDrawsItsTerminals(t *testing.T) {
+	r, c := idleRack(t, "lattice")
+	figure := func() attractor.Figure {
+		watch(t, r, c, 0.3)
+		r.scene.mu.Lock()
+		defer r.scene.mu.Unlock()
+		f := r.scene.fig
+		f.Points = append([][3]float64(nil), f.Points...)
+		return f
+	}
+	all := figure()
+	if len(all.Points) < 100 || len(all.Colors) != len(all.Points) {
+		t.Fatalf("the lattice drew %d points, %d colored", len(all.Points), len(all.Colors))
+	}
+	set(t, r, "lattice-stacks", "3") // z alone
+	if z := figure(); len(z.Points) >= len(all.Points) {
+		t.Errorf("one family drew %d points, three %d", len(z.Points), len(all.Points))
+	}
+	set(t, r, "lattice-stacks", "0", "lattice-shape", "0")
+	if s := figure(); len(s.Points) == len(all.Points) && s.Points[0] == all.Points[0] {
+		t.Error("another shape drew the same lattice")
+	}
+}

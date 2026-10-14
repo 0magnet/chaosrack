@@ -87,6 +87,13 @@ func (v View) Render(dst *image.RGBA, vertices []float32, indices []uint16, g Gr
 // shader a fourth coordinate of its own (a Turtle's tint, a waterfall slice's
 // depth). Without one for every vertex, a vertex's place is its order.
 func (v View) RenderAges(dst *image.RGBA, vertices []float32, indices []uint16, g Gradient, ages []float32) {
+	v.RenderColors(dst, vertices, indices, g, ages, nil)
+}
+
+// RenderColors is RenderAges with each vertex's own color, for a picture
+// whose colors are its own rather than the gradient's: a terminal's cells.
+// Without one for every vertex, the gradient colors them.
+func (v View) RenderColors(dst *image.RGBA, vertices []float32, indices []uint16, g Gradient, ages []float32, colors [][3]float32) {
 	n := len(vertices) / 3
 	if n == 0 || dst == nil {
 		return
@@ -139,7 +146,12 @@ func (v View) RenderAges(dst *image.RGBA, vertices []float32, indices []uint16, 
 		case n > 1:
 			age = float32(i) / float32(n-1)
 		}
-		c := g.colorAt(vertices[i*3], vertices[i*3+1], vertices[i*3+2], lo, hi, age)
+		var c [3]float32
+		if len(colors) == n {
+			c = colors[i]
+		} else {
+			c = g.colorAt(vertices[i*3], vertices[i*3+1], vertices[i*3+2], lo, hi, age)
+		}
 		if z3 < 0 && v.BackDim > 0 {
 			dim := float32(1 - v.BackDim)
 			c[0] *= dim
