@@ -8,9 +8,10 @@
 // figures and trajectories `chaosrack render` draws, with no GPU.
 //
 // The sound is made here too and played on the host's speakers (sound.go):
-// the signal generators, Model Out, the Matrix with its drum lanes, and the
-// keys with the Synth bay, through the Mixer's speaker pins. The effects are
-// the page's still: their values are held and shown, and act on nothing yet.
+// the signal generators, Model Out, the Matrix with its drum lanes, the keys
+// with the Synth bay, and the scope games' blips (games.go), through the
+// Mixer's speaker pins. FVF, which processes live input, is the page's still:
+// the rack has no audio input yet.
 package rackhost
 
 import (
@@ -114,7 +115,7 @@ func New() (*Rack, error) {
 		// the catalog's, which would stay under every later bank.
 		p.Items = nil
 		for _, it := range cat.Picture.Items {
-			if !rackcatalog.InRegion(it, cat.BankRegion) {
+			if !rackcatalog.InBank(it, cat.BankRegion) {
 				p.Items = append(p.Items, it)
 			}
 		}
@@ -215,6 +216,7 @@ func (r *Rack) Controls() ([]racktui.Control, error) {
 // refused, as the page refuses it: a select takes one of its options, a
 // switch 1 or 0, and a dial a number, held to its travel.
 func (r *Rack) Set(id, value string) error {
+	r.sound.hand()
 	r.mu.Lock()
 	err := r.set(id, value)
 	r.mu.Unlock()
@@ -468,6 +470,7 @@ func (r *Rack) showAngles(angle [3]float64) {
 func (r *Rack) Picture() (*rackpic.Picture, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.playGames()
 	r.showMatrix()
 	r.showKeys()
 	p := *r.pic
@@ -482,6 +485,7 @@ func (r *Rack) PictureChanges(gen int) (*rackpic.Patch, error) {
 	defer r.sound.settle()
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.playGames()
 	r.showMatrix()
 	r.showKeys()
 	if gen < r.full {
@@ -508,6 +512,7 @@ func (r *Rack) PictureChanges(gen int) (*rackpic.Patch, error) {
 // keys, a click holds a key down, a drag plays the keys it crosses, and a
 // release lets go.
 func (r *Rack) Act(_ int, x, y float64, kind string, delta float64) error {
+	r.sound.hand()
 	r.mu.Lock()
 	if r.keysAct(x, y, kind) {
 		r.mu.Unlock()
@@ -667,6 +672,7 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	persist := r.value("persist-trail") == "1"
 	run, speed := int(r.number("trail-slider")), r.number("speed-slider")
 	refigure := r.refigure.Swap(false)
+	r.playGames()
 	var consts map[*float32]float32
 	if refigure {
 		consts = r.flowValues()
@@ -708,7 +714,16 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 		s.shown = nil
 		return img, nil
 	}
-	if key != s.key || refigure {
+	game := isGame(key)
+	var gameFit [][3]float64
+	switch {
+	case game:
+		// A scope game, drawn as it plays (games.go).
+		r.sound.mu.Lock()
+		s.fig, gameFit = r.sound.games.figure()
+		r.sound.mu.Unlock()
+		s.key, s.err = key, nil
+	case key != s.key || refigure:
 		s.key = key
 		s.fig, s.err = figureFor(key, r.knobs())
 	}
@@ -732,7 +747,11 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 		Background: sceneBack,
 	}
 	fig := s.fig
-	if fig.Kind == attractor.FigurePath {
+	if game {
+		// Face-on, its court framed, as the page sets a game up.
+		o.View.AngleX, o.View.AngleY, o.View.AngleZ = 0, 0, 0
+		o.Fit = gameFit
+	} else if fig.Kind == attractor.FigurePath {
 		// A flow runs on, a fresh stretch of its trail each frame, framed by
 		// its whole trajectory so the camera holds still while it moves.
 		if (paused && s.trail.key == key && len(s.trail.pts) > 0) || (!paused && s.trail.advance(key, run, speed)) {

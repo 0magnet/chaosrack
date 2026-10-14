@@ -185,10 +185,12 @@
 
   // mark names the parts a rack without a page lights and presses itself,
   // which are not controls: the Matrix's pads, the rhythm tabs, the beat
-  // lamps, Clear and the keys (rackpic.Item.Mark).
+  // lamps, Clear, the keys and the games' displays (rackpic.Item.Mark).
   function mark(e) {
     var m = e.getAttribute("data-midi");
     if (m !== null) return "key " + m;
+    if (e.classList.contains("mrodmd") && e.id) return "led " + e.id;
+    if (e.closest && e.closest(".mro")) return "mro";
     var c = e.getAttribute("data-tmc");
     if (c !== null) return "pad " + c + " " + e.getAttribute("data-tmr");
     var p = e.getAttribute("data-rp");

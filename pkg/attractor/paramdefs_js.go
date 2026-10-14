@@ -193,17 +193,17 @@ var attractorParams = map[string][]paramDef{
 	// Bouncing Ball: the analog-computer demo's panel pots, and the drop
 	// height its Drop switch releases from.
 	"bounceball": {
-		{"bounce-grav", "grav", &ball.grav, 12, 2, 30, 0.5},
-		{"bounce-rest", "bounce", &ball.rest, 0.88, 0.5, 0.99, 0.01},
-		{"bounce-drift", "drift", &ball.drift, 0.7, 0, 2, 0.05},
-		{"bounce-height", "height", &ball.height, 0.9, 0.2, 1, 0.05},
+		{"bounce-grav", "grav", &ball.Grav, 12, 2, 30, 0.5},
+		{"bounce-rest", "bounce", &ball.Rest, 0.88, 0.5, 0.99, 0.01},
+		{"bounce-drift", "drift", &ball.Drift, 0.7, 0, 2, 0.05},
+		{"bounce-height", "height", &ball.Height, 0.9, 0.2, 1, 0.05},
 	},
 	// Scope Pong: game feel — ball speed, paddle size, machine skill — and
 	// the two paddle pots (motorized: quietParams).
 	"pong": {
-		{"pong-speed", "speed", &pong.ballSpeed, 1, 0.2, 3, 0.05},
-		{"pong-paddle", "paddle", &pong.paddleH, 0.42, 0.1, 0.9, 0.01},
-		{"pong-skill", "skill", &pong.aiSkill, 0.7, 0, 1, 0.05},
+		{"pong-speed", "speed", &pong.BallSpeed, 1, 0.2, 3, 0.05},
+		{"pong-paddle", "paddle", &pong.PaddleH, 0.42, 0.1, 0.9, 0.01},
+		{"pong-skill", "skill", &pong.AISkill, 0.7, 0, 1, 0.05},
 		{"pong-pad-l", "left", &pong.potL, 0, -1, 1, 0.01},
 		{"pong-pad-r", "right", &pong.potR, 0, -1, 1, 0.01},
 	},

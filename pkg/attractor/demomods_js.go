@@ -32,8 +32,7 @@ func pongPot(side string) js.Value {
 func buildDemoModules() {
 	if b := dom.Doc.Call("getElementById", "pong-restart"); b.Truthy() {
 		dom.On(b, "click", func(this js.Value, a []js.Value) any {
-			pong.scoreL, pong.scoreR = 0, 0
-			pong.serveBall(1)
+			pong.Restart()
 			pong.syncScoreboard()
 			return nil
 		})
@@ -52,9 +51,9 @@ func buildDemoModules() {
 		}
 		switch t.Get("id").String() {
 		case "pong-pad-l":
-			pong.padL, pong.humanL = fgFloat(t)*pongH, 600
+			pong.Seize(true, fgFloat(t))
 		case "pong-pad-r":
-			pong.padR, pong.humanR = fgFloat(t)*pongH, 600
+			pong.Seize(false, fgFloat(t))
 		}
 		return nil
 	}), true)
@@ -68,21 +67,8 @@ func buildDemoModules() {
 	buildSTLFileModule()
 	if b := dom.Doc.Call("getElementById", "bounce-drop"); b.Truthy() {
 		dom.On(b, "click", func(this js.Value, a []js.Value) any {
-			ball.x, ball.y = -1.2, bounceDropHeight()
-			ball.vy = 0
-			ball.vx = float64(ball.drift)
-			if jamRand() < 0.5 {
-				ball.vx = -ball.vx
-			}
+			ball.Drop()
 			return nil
 		})
 	}
-}
-
-// bounceDropHeight is the height knob's setting: court y for a release.
-func bounceDropHeight() float64 {
-	if ball.height > 0 {
-		return float64(ball.height)
-	}
-	return 0.9
 }

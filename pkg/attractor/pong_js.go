@@ -5,7 +5,7 @@ package attractor
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
-	"math"
+	"github.com/0magnet/chaosrack/pkg/scopegames"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -27,155 +27,28 @@ import (
 // pongGame is Scope Pong: the ball, the paddles, the score, the keys and the
 // audio context it holds.
 type pongGame struct {
-	ballSpeed float32
-	paddleH   float32 // paddle full height
-	aiSkill   float32
-	potL      float32 // the paddle pots, as the bank knobs read (motorized: see syncScoreboard)
-	potR      float32
-	bx, by    float64 // ball position
-	vx, vy    float64 // ball direction (unit-ish)
-	padL      float64
-	padR      float64
-	scoreL    int
-	scoreR    int
-	serve     int // frames until serve (pause after a point)
-	humanL    int // frames of human control left on each side
-	humanR    int
-	keyW      bool
-	keyS      bool
-	keyUp     bool
-	keyDn     bool
-	wired     bool
-	ctxHeld   bool
-	strokes   [][]float64 // scratch stroke list for the blanked beam
-	shownL    int         // scores last latched onto the Scoreboard LEDs
-	shownR    int
-	syncTick  int
+	scopegames.Pong
+	potL    float32 // the paddle pots, as the bank knobs read (motorized: see syncScoreboard)
+	potR    float32
+	wired   bool
+	ctxHeld bool
+	strokes [][]float64 // scratch stroke list for the blanked beam
+	shownL  int         // scores last latched onto the Scoreboard LEDs
+	shownR  int
+	// syncTick throttles the pot writes.
+	syncTick int
 
 	// active tracks mode residency so entry setup runs once per entry, not
 	// on every panel rebuild (patchbay/template toggles rebuild the panel too).
 	active bool
 }
 
-var pong = pongGame{
-	ballSpeed: 1,
-	paddleH:   0.42,
-	aiSkill:   0.7,
-	vx:        0.6,
-	vy:        0.23,
-	shownL:    -1,
-	shownR:    -1,
-}
+var pong = pongGame{Pong: scopegames.NewPong(jamRand), shownL: -1, shownR: -1}
 
-const (
-	pongW    = 1.5  // court half-width
-	pongH    = 1.0  // court half-height
-	pongPadX = 1.38 // paddle |x|
-	pongBall = 0.05 // ball diamond radius
-)
+func init() { pong.Beep = pong.beep }
 
-// step advances one frame of game state, honoring the Speed control the
-// way the integrators do (sub-steps × dt scale).
-func (p *pongGame) step() {
-	k := float64(sim.speedScale) * float64(sim.speedSteps)
-	ph := float64(p.paddleH) / 2
-
-	// Paddles: human while recently touched, machine otherwise.
-	move := func(pad *float64, up, dn bool, human *int, aiming bool) {
-		if *human > 0 {
-			*human--
-			// Keys nudge; pointer control (pong.pointerPaddle) writes the pad
-			// position directly, so with no key held this just clamps.
-			d := 0.0
-			if up {
-				d += 0.032
-			}
-			if dn {
-				d -= 0.032
-			}
-			*pad += d * k
-		} else {
-			// Machine: chase the ball when it's incoming, drift home when not.
-			target := 0.0
-			if aiming {
-				target = p.by
-			}
-			maxSpd := (0.006 + 0.030*float64(p.aiSkill)) * k
-			d := target - *pad
-			if d > maxSpd {
-				d = maxSpd
-			}
-			if d < -maxSpd {
-				d = -maxSpd
-			}
-			*pad += d
-		}
-		if *pad > pongH-ph {
-			*pad = pongH - ph
-		}
-		if *pad < -(pongH - ph) {
-			*pad = -(pongH - ph)
-		}
-	}
-	move(&p.padL, p.keyW, p.keyS, &p.humanL, p.vx < 0)
-	move(&p.padR, p.keyUp, p.keyDn, &p.humanR, p.vx > 0)
-
-	if p.serve > 0 {
-		p.serve--
-		return
-	}
-
-	sp := 0.020 * float64(p.ballSpeed) * k
-	p.bx += p.vx * sp
-	p.by += p.vy * sp
-
-	// Wall bounce.
-	if p.by > pongH-pongBall && p.vy > 0 || p.by < -(pongH-pongBall) && p.vy < 0 {
-		p.vy = -p.vy
-		p.beep(226, 90)
-	}
-	// Paddle bounce: reflect at the paddle plane when the ball face covers it,
-	// with english from the hit offset and a little speed-up.
-	hit := func(pad float64) bool { return math.Abs(p.by-pad) <= ph+pongBall }
-	if p.bx > pongPadX-pongBall && p.vx > 0 && hit(p.padR) {
-		p.vx = -math.Abs(p.vx) * 1.04
-		p.vy += (p.by - p.padR) / ph * 0.35
-		p.beep(459, 90)
-	}
-	if p.bx < -(pongPadX-pongBall) && p.vx < 0 && hit(p.padL) {
-		p.vx = math.Abs(p.vx) * 1.04
-		p.vy += (p.by - p.padL) / ph * 0.35
-		p.beep(459, 90)
-	}
-	if v := math.Abs(p.vx); v > 1.6 { // keep returns playable
-		p.vx = p.vx / v * 1.6
-	}
-	if v := math.Abs(p.vy); v > 1.2 {
-		p.vy = p.vy / v * 1.2
-	}
-
-	// Point scored: tick the winner, serve toward the loser.
-	if p.bx > pongW+0.25 {
-		p.scoreL++
-		p.serveBall(-1)
-	}
-	if p.bx < -(pongW + 0.25) {
-		p.scoreR++
-		p.serveBall(1)
-	}
-	if p.scoreL > 9 || p.scoreR > 9 {
-		p.scoreL, p.scoreR = 0, 0
-	}
-}
-
-// serveBall re-centers the ball and aims it at dir (±1) after a pause.
-func (p *pongGame) serveBall(dir float64) {
-	p.bx, p.by = 0, 0
-	p.vx = dir * 0.6
-	p.vy = (jamRand() - 0.5) * 0.8
-	p.serve = 45
-	p.beep(490, 220)
-}
+// pongH is the court's half-height.
+const pongH = scopegames.PongH
 
 // ── Beam drawing ─────────────────────────────────────────────────────────
 
@@ -187,42 +60,11 @@ func (p *pongGame) generatePong() {
 	if !p.wired {
 		p.wireInput()
 	}
-	p.step()
+	p.Step(float64(sim.speedScale) * float64(sim.speedSteps))
 	p.syncScoreboard()
 
-	ph := float64(p.paddleH) / 2
-	strokes := p.strokes[:0]
-	// Court border (one closed polyline).
-	strokes = append(strokes, []float64{
-		-pongW, pongH, pongW, pongH, pongW, -pongH, -pongW, -pongH, -pongW, pongH})
-	// Net: real dashes down the middle, no zigzag workaround needed.
-	for y := pongH - 0.04; y > -pongH; y -= 0.12 {
-		strokes = append(strokes, []float64{0, y, 0, y - 0.06})
-	}
-	// Score marks: detached ticks hanging under the top edge.
-	for i := range p.scoreL {
-		x := -(0.18 + 0.11*float64(i))
-		strokes = append(strokes, []float64{x, pongH - 0.03, x, pongH - 0.11})
-	}
-	for i := range p.scoreR {
-		x := 0.18 + 0.11*float64(i)
-		strokes = append(strokes, []float64{x, pongH - 0.03, x, pongH - 0.11})
-	}
-	// Paddles: slim closed bars.
-	paddle := func(x, pad float64) []float64 {
-		const w = 0.016
-		return []float64{x - w, pad - ph, x - w, pad + ph, x + w, pad + ph, x + w, pad - ph, x - w, pad - ph}
-	}
-	strokes = append(strokes, paddle(-pongPadX, p.padL), paddle(pongPadX, p.padR))
-	// Ball diamond (blinks while serving).
-	if p.serve == 0 || p.serve%10 < 5 {
-		strokes = append(strokes, []float64{
-			p.bx - pongBall, p.by, p.bx, p.by + pongBall,
-			p.bx + pongBall, p.by, p.bx, p.by - pongBall,
-			p.bx - pongBall, p.by})
-	}
-	p.strokes = strokes
-	if v := beamLines(strokes, 0); v > 0 {
+	p.strokes = p.Strokes(p.strokes[:0])
+	if v := beamLines(p.strokes, 0); v > 0 {
 		gpu.uploadVerticesOnly(sim.vertBuf[:v*4], beamDrawMode(), v)
 	}
 }
@@ -238,7 +80,7 @@ func (p *pongGame) syncScoreboard() {
 		for _, s := range []struct {
 			sl  js.Value
 			pad float64
-		}{{pongPot("l"), p.padL}, {pongPot("r"), p.padR}} {
+		}{{pongPot("l"), p.PadL}, {pongPot("r"), p.PadR}} {
 			if !s.sl.Truthy() || (kb.active && kb.slider.Equal(s.sl)) {
 				continue
 			}
@@ -247,15 +89,15 @@ func (p *pongGame) syncScoreboard() {
 		}
 		pongKnobGuard = false
 	}
-	if p.scoreL == p.shownL && p.scoreR == p.shownR {
+	if p.ScoreL == p.shownL && p.ScoreR == p.shownR {
 		return
 	}
-	p.shownL, p.shownR = p.scoreL, p.scoreR
+	p.shownL, p.shownR = p.ScoreL, p.ScoreR
 	if l := dom.Doc.Call("getElementById", "pong-score-l"); l.Truthy() {
-		setDotText(l, strconv.Itoa(p.scoreL))
+		setDotText(l, strconv.Itoa(p.ScoreL))
 	}
 	if r := dom.Doc.Call("getElementById", "pong-score-r"); r.Truthy() {
-		setDotText(r, strconv.Itoa(p.scoreR))
+		setDotText(r, strconv.Itoa(p.ScoreR))
 	}
 }
 
@@ -269,17 +111,17 @@ func (p *pongGame) wireInput() {
 	set := func(key string, down bool) bool {
 		switch key {
 		case "w":
-			p.keyW = down
-			p.humanL = 600
+			p.KeyW = down
+			p.HumanL = scopegames.PongHuman
 		case "s":
-			p.keyS = down
-			p.humanL = 600
+			p.KeyS = down
+			p.HumanL = scopegames.PongHuman
 		case "arrowup":
-			p.keyUp = down
-			p.humanR = 600
+			p.KeyUp = down
+			p.HumanR = scopegames.PongHuman
 		case "arrowdown":
-			p.keyDn = down
-			p.humanR = 600
+			p.KeyDn = down
+			p.HumanR = scopegames.PongHuman
 		default:
 			return false
 		}
@@ -331,11 +173,11 @@ func (p *pongGame) pointerPaddle(cx, cy float64) {
 		y = -pongH
 	}
 	if cx < r.Get("left").Float()+r.Get("width").Float()/2 {
-		p.padL = y
-		p.humanL = 600
+		p.PadL = y
+		p.HumanL = scopegames.PongHuman
 	} else {
-		p.padR = y
-		p.humanR = 600
+		p.PadR = y
+		p.HumanR = scopegames.PongHuman
 	}
 }
 
@@ -356,7 +198,7 @@ func (p *pongGame) beep(freq float64, ms int) {
 	osc.Get("frequency").Set("value", freq)
 	now := ctx.Get("currentTime").Float()
 	dur := float64(ms) / 1000
-	g.Get("gain").Call("setValueAtTime", 0.08, now)
+	g.Get("gain").Call("setValueAtTime", scopegames.PongBlipGain, now)
 	g.Get("gain").Call("linearRampToValueAtTime", 0, now+dur)
 	osc.Call("connect", g)
 	mixEnsure(ctx)
@@ -377,15 +219,12 @@ func (p *pongGame) syncPongExtras(mode string) {
 			return
 		}
 		p.active = true
-		p.scoreL, p.scoreR = 0, 0
-		p.padL, p.padR = 0, 0
-		p.humanL, p.humanR = 0, 0
-		p.serveBall(1)
+		p.Enter()
 		normalizeOrientation()
 		return
 	}
 	p.active = false
-	p.keyW, p.keyS, p.keyUp, p.keyDn = false, false, false, false
+	p.KeyW, p.KeyS, p.KeyUp, p.KeyDn = false, false, false, false
 	if p.ctxHeld {
 		releaseAudioCtx("pong")
 		p.ctxHeld = false

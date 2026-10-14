@@ -156,7 +156,7 @@ func captureBanks(c *racklink.Client, ctls []racktui.Control) (map[string]*rackc
 	for model, p := range pics {
 		b := &rackcatalog.Bank{Ctls: map[string][4]float64{}}
 		for _, it := range p.Items {
-			if rackcatalog.InRegion(it, region) {
+			if rackcatalog.InBank(it, region) {
 				b.Items = append(b.Items, it)
 			}
 		}

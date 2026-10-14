@@ -27,14 +27,15 @@ type Speaker interface {
 var genIDs = [audiosrc.OscCount]string{"gen-x", "gen-y", "gen-z", "gen-v"}
 
 // The Mixer's columns the rack makes sound for: the four generators, the
-// model's x, y and z, the Matrix's pads and drums, and the Keys.
-var mixKeys = [...]string{"g1", "g2", "g3", "g4", "mx", "my", "mz", "tm", "dr", "ky"}
+// model's x, y and z, the Matrix's pads and drums, the Keys, and the games' blips (SOUNDS).
+var mixKeys = [...]string{"g1", "g2", "g3", "g4", "mx", "my", "mz", "tm", "dr", "ky", "fx"}
 
 const (
 	srcModel = audiosrc.OscCount // the first of the model's columns
 	srcTM    = srcModel + 3 + busTM
 	srcDR    = srcModel + 3 + busDR
 	srcKY    = srcDR + 1
+	srcFX    = srcKY + 1
 	nSources = len(mixKeys)
 )
 
@@ -69,6 +70,11 @@ type sound struct {
 	bus     [2][]float32 // the Matrix's pads and drums, a buffer's worth
 	keys    keyBank
 	ky      []float32 // the Keys, a buffer's worth
+	games   games
+	fx      []float32 // the games' blips, a buffer's worth
+	// touched is a hand having been on the rack, which lets the ball's
+	// blips be heard, as a gesture lets the page's audio start.
+	touched bool
 	// told is whether the speaker was last told there is something to hear.
 	told bool
 }
@@ -80,7 +86,9 @@ func newSound() *sound {
 		// The level is applied here, where it can glide.
 		fg.SetAmp(i, 1)
 	}
-	return &sound{fg: fg, mat: newMatrix(), keys: newKeyBank()}
+	s := &sound{fg: fg, mat: newMatrix(), keys: newKeyBank(), games: newGames()}
+	s.wireGames()
+	return s
 }
 
 // genOf is the generator a control belongs to and the part of it (freq,
@@ -128,6 +136,8 @@ func (r *Rack) soundSet(id string) (more [][2]string) {
 		}
 	case isKeysControl(id):
 		more = r.keysSet(id)
+	case isGameControl(id):
+		more = r.gameSet(id)
 	case id == "gen-solo":
 		solo := -1
 		for j, p := range genIDs {
@@ -210,6 +220,9 @@ func (r *Rack) soundStart() {
 		if isKeysControl(c.ID) && c.ID != "syn-preset" {
 			r.keysSet(c.ID)
 		}
+		if isGameControl(c.ID) && c.ID != "model-sw-0" && !strings.HasPrefix(c.ID, "pong-pad-") {
+			r.gameSet(c.ID)
+		}
 	}
 }
 
@@ -238,6 +251,9 @@ func (s *sound) heard() bool {
 		if pads && m.lvl > 0 && s.pinned(srcTM) || drums && m.dlvl > 0 && s.pinned(srcDR) {
 			return true
 		}
+	}
+	if s.games.heard(s.touched) && s.pinned(srcFX) {
+		return true
 	}
 	return len(s.keys.voices) > 0 && s.keys.lvl > 0 && s.pinned(srcKY)
 }
@@ -326,6 +342,14 @@ func (r *Rack) Fill(left, right []float32) {
 		s.ky = s.ky[:n]
 		s.keys.render(s.ky, n)
 	}
+	fxOn := len(s.games.blips) > 0
+	if fxOn {
+		if cap(s.fx) < n {
+			s.fx = make([]float32, n)
+		}
+		s.fx = s.fx[:n]
+		s.games.render(s.fx, n)
+	}
 	k := 1 - math.Exp(-1/(levelGlide*sampleRate))
 	for j := range n {
 		s.fg.Next(&s.vals)
@@ -354,6 +378,11 @@ func (r *Rack) Fill(left, right []float32) {
 			v := float64(s.ky[j])
 			l += v * s.spk[0][srcKY]
 			rt += v * s.spk[1][srcKY]
+		}
+		if fxOn {
+			v := float64(s.fx[j])
+			l += v * s.spk[0][srcFX]
+			rt += v * s.spk[1][srcFX]
 		}
 		left[j], right[j] = float32(l), float32(rt)
 	}
