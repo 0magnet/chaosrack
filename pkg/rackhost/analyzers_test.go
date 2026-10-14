@@ -196,3 +196,67 @@ func TestTheRecurrencePlotOfTheLastFlow(t *testing.T) {
 		t.Errorf("the plot of Lorenz's trajectory lights %.1f%% of its cells", 100*f)
 	}
 }
+
+// The spectrogram scrolls at the audio column rate, and its newest column is
+// brightest in the tone's bin.
+func TestTheSpectrogramOfATone(t *testing.T) {
+	r, c := toneRack(t, "spectrogram")
+	// Long enough to work off the backlog the first look took in.
+	watch(t, r, c, 4)
+	sp := &r.analyzers.spect
+	from := sp.col
+	watch(t, r, c, 1)
+	// A 1024-point transform at 50% overlap is a column every 512 samples.
+	if got := (sp.col - from + spectroTexW) % spectroTexW; got < 85 || got > 103 {
+		t.Errorf("a second scrolled %d columns, want about 94", got)
+	}
+	l, _ := r.sound.window(sampleRate / 2)
+	hz, _ := pitch(l)
+	newest := (sp.col - 1 + spectroTexW) % spectroTexW
+	rows := sp.pic.Rect.Dy()
+	best, bright := 0, -1
+	for y := range rows {
+		p := sp.pic.RGBAAt(newest, rows-1-y)
+		if v := int(p.R) + int(p.G) + int(p.B); v > bright {
+			best, bright = y, v
+		}
+	}
+	if bin := hz * 1024 / sampleRate; math.Abs(float64(best)-bin) > 1.5 {
+		t.Errorf("the newest column is brightest at bin %d; the %.0f Hz tone is bin %.1f", best, hz, bin)
+	}
+}
+
+// The MAP ring comes up on heat with the spectrogram and goes back when it
+// goes, but never over a map somebody chose.
+func TestTheSpectrogramTakesHeatOnlyFromTheDefault(t *testing.T) {
+	r, _ := idleRack(t, "globe")
+	set(t, r, r.selector, "spectrogram")
+	if got := r.value("gradient-colors"); got != "5" {
+		t.Errorf("the spectrogram came up on map %s, want heat (5)", got)
+	}
+	set(t, r, r.selector, "globe")
+	if got := r.value("gradient-colors"); got != "2" {
+		t.Errorf("leaving the spectrogram left map %s, want the default 2", got)
+	}
+	set(t, r, "gradient-colors", "4", r.selector, "spectrogram")
+	set(t, r, r.selector, "globe")
+	if got := r.value("gradient-colors"); got != "4" {
+		t.Errorf("the spectrogram moved a chosen map to %s", got)
+	}
+}
+
+// Fill lays the spectrogram over the whole frame.
+func TestTheSpectrogramFills(t *testing.T) {
+	r, c := toneRack(t, "spectrogram")
+	set(t, r, "spect-fill", "1")
+	watch(t, r, c, 0.5)
+	img, err := r.Scene(100, 50, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i+2 < len(img.Px); i += 3 {
+		if near(img.Px[i:i+3], [3]uint8{sceneBack.R, sceneBack.G, sceneBack.B}) {
+			t.Fatalf("pixel %d is the scene's background with Fill on", i/3)
+		}
+	}
+}

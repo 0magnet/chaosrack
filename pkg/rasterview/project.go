@@ -48,17 +48,31 @@ func (p projector) at(x0, y0, z0 float64) (sx, sy, z float64) {
 	return p.cx + (x2*persp+p.v.PanX)*p.r/p.aspect, p.cy - (y3*persp+p.v.PanY)*p.r, z3
 }
 
-// RenderQuad draws pic on a flat quad in model space, posed and framed as
-// Render poses and frames a model reaching maxLen from the origin: the quad's
-// corners land where Render would put them as vertices. bl, br and tl are its
-// bottom-left, bottom-right and top-left corners, and pic's bottom row lies
-// along bl–br. Each pixel takes the nearest of pic's, as the page samples a
+// Quad is a picture on a flat quad in model space.
+type Quad struct {
+	// BL, BR and TL are its bottom-left, bottom-right and top-left corners;
+	// the picture's bottom row lies along BL–BR.
+	BL, BR, TL [3]float64
+	Pic        *image.RGBA
+	// Shift scrolls the picture left by that fraction of its width, wrapping
+	// round: what was at Shift is at the quad's left edge, as the page's
+	// textured shader offsets a scrolling texture.
+	Shift float64
+}
+
+// RenderQuad draws q, posed and framed as Render poses and frames a model
+// reaching maxLen from the origin: the quad's corners land where Render would
+// put them as vertices. Each pixel takes the nearest of pic's, as the page samples a
 // texture of yes-or-no cells. A quad seen from behind is drawn mirrored, as
 // WebGL draws it with no culling.
 //
 // The quad is mapped as a parallelogram, which is exact for an orthographic
 // view (Dist 0, every native scene's) and close for a distant camera.
-func (v View) RenderQuad(dst *image.RGBA, bl, br, tl [3]float64, maxLen float64, pic *image.RGBA) {
+func (v View) RenderQuad(dst *image.RGBA, q Quad, maxLen float64) {
+	bl, br, tl, pic := q.BL, q.BR, q.TL, q.Pic
+	if pic == nil {
+		return
+	}
 	b := dst.Bounds()
 	pw, ph := b.Dx(), b.Dy()
 	tw, th := pic.Rect.Dx(), pic.Rect.Dy()
@@ -90,7 +104,9 @@ func (v View) RenderQuad(dst *image.RGBA, bl, br, tl [3]float64, maxLen float64,
 			if s < 0 || s >= 1 || t < 0 || t >= 1 {
 				continue
 			}
-			c := pic.RGBAAt(pic.Rect.Min.X+int(s*float64(tw)), pic.Rect.Min.Y+th-1-int(t*float64(th)))
+			u := s + q.Shift
+			u -= math.Floor(u)
+			c := pic.RGBAAt(pic.Rect.Min.X+min(int(u*float64(tw)), tw-1), pic.Rect.Min.Y+th-1-int(t*float64(th)))
 			dst.SetRGBA(b.Min.X+x, b.Min.Y+y, c)
 		}
 	}

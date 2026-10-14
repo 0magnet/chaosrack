@@ -37,6 +37,9 @@ type rackBus struct {
 	ring [2][]float32
 	at   int // where the next sample goes
 	n    int // how many samples the ring holds
+	// made counts every sample the bus has made, so a reader can take only
+	// what is new since it last read (since).
+	made int
 }
 
 // on reports whether anything is in the mix.
@@ -73,6 +76,14 @@ func (b *rackBus) push(v *[nSources]float64, cl, cr float32) {
 	}
 	b.at = (b.at + 1) % busRing
 	b.n = min(b.n+1, busRing)
+	b.made++
+}
+
+// since is the samples made after the first from of them, oldest first, or
+// the newest the ring still holds, and the count to read from next time.
+func (b *rackBus) since(from int) (l, r []float32, next int) {
+	l, r = b.window(max(b.made-from, 0))
+	return l, r, b.made
 }
 
 // window is the newest n samples of each side, oldest first, or as many as
@@ -284,6 +295,13 @@ func (s *sound) window(n int) (l, r []float32) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.rack.window(n)
+}
+
+// since is the rack's signal made since sample from (rackBus.since).
+func (s *sound) since(from int) (l, r []float32, next int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.rack.since(from)
 }
 
 // rackPinSet reads a pin of the Mixer's RACK rows into the rack's signal.

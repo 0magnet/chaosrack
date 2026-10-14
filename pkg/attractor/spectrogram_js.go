@@ -43,23 +43,6 @@ import (
 // other than the number.
 const (
 	spectTexW = 2048
-
-	spectMaxQueue     = 120 // fast-forward the scroll if we fall this far behind
-	spectQueueCatchup = 60
-
-	// spectQueueTarget is the depth the queue is drained toward. Not zero: the
-	// producer and the flush are on different clocks, so a column or two in
-	// hand is what keeps the scroll smooth rather than stuttering whenever one
-	// arrives a moment late.
-	spectQueueTarget = 2
-
-	// The most audio one update may pull in. A source backed by a generator
-	// rather than a buffer never reports "nothing left", so the drain needs a
-	// ceiling of its own or it runs until the heap does. 32768 samples is about
-	// 0.7 s at 44.1 kHz — far more than a frame can turn into visible columns,
-	// and small enough that the worst case is a fraction of a second of audio
-	// held, not gigabytes.
-	spectMaxAccum = 1 << 15
 )
 
 // spectrogram is the spectrogram texture provider: the scrolling texture, the
@@ -80,17 +63,11 @@ type spectrogram struct {
 	texCol   int
 	colUint8 js.Value // reused Uint8Array, spect.texH*4 bytes
 
-	// Overlapping-STFT state. accum buffers drained samples until a
-	// full StepSize hop is available; overlap is the sliding window.
-	overlap  []float32
-	accum    []float32
+	// feed is the overlapping STFT and the column pipeline: produced
+	// sample-locked (bursty), flushed to the texture at a steady wall-clock
+	// rate.
+	feed     SpectroFeed
 	drainBuf []float32
-
-	// Column pipeline: produced sample-locked (bursty) into the queue,
-	// flushed to the texture at a steady wall-clock rate.
-	colQueue [][]byte
-	lastMs   float64
-	colFrac  float64
 
 	// Auto-rotate is disabled for a legible face-on default and restored
 	// when leaving spectrogram mode, so other models keep their setting.
@@ -127,12 +104,8 @@ func (s *spectrogram) initSpectrogram() {
 	// The go-dsp FFT worker pool is pure overhead on single-threaded wasm.
 	sg.SetSingleThreaded()
 
-	s.overlap = make([]float32, sg.S.GetDFTSize())
-	s.accum = s.accum[:0]
+	s.feed.Reset(sg.S.GetDFTSize())
 	s.drainBuf = make([]float32, 8192)
-	s.colQueue = s.colQueue[:0]
-	s.lastMs = 0
-	s.colFrac = 0
 	s.texCol = 0
 	s.ready = true
 }
@@ -205,7 +178,7 @@ func (s *spectrogram) updateSpectrogramTexture(nowMs float64) {
 		// wall clock and fast-forwards anything past spectMaxQueue, so samples
 		// drained beyond about a frame's worth become columns that are thrown
 		// away as they arrive.
-		for len(s.accum) < spectMaxAccum {
+		for s.feed.Room() > 0 {
 			n := tapRead(&spectCursor, s.drainBuf)
 			// Under FVF the tap already carries processed samples, so only the
 			// not-listening case still has to run the filter here.
@@ -217,89 +190,30 @@ func (s *spectrogram) updateSpectrogramTexture(nowMs float64) {
 			if n == 0 {
 				break
 			}
-			s.accum = append(s.accum, s.drainBuf[:n]...)
+			s.feed.Add(s.drainBuf[:n])
 			if n < len(s.drainBuf) {
 				break
 			}
 		}
-		size, step := len(s.overlap), sg.S.StepSize()
-		if step < 1 {
-			step = 1
-		}
-		if step > size {
-			step = size
-		}
-		consumed := 0
-		for len(s.accum)-consumed >= step {
-			// Slide the window by one hop: keep the size-step samples the next
-			// window shares with this one, append the step that follows them.
-			// Those two counts are equal only at 50% overlap, which is why they
-			// are written out separately rather than both called "step".
-			copy(s.overlap, s.overlap[step:])
-			copy(s.overlap[size-step:], s.accum[consumed:consumed+step])
-			consumed += step
-			if col := s.buildSpectColumn(spectcol.Mags(s.overlap)); col != nil {
-				s.colQueue = append(s.colQueue, col)
-			}
-		}
-		s.accum = append(s.accum[:0], s.accum[consumed:]...)
+		// Through the MAP ring, like everything else in the rack. The
+		// spectrogram used to carry its own colormap knob naming the same six
+		// maps in the same order, and two knobs that had to be kept in step by
+		// hand meant the spectrogram and the trace beside it could disagree
+		// about what a value looks like — which is the one thing sharing the
+		// library's tables was for.
+		s.feed.Step(s.texH, spectrogramPixel)
 	}
 	s.flushSpectColumns(nowMs)
 }
 
 // flushSpectColumns pushes queued columns onto the texture at the audio
-// column rate (SampleRate/StepSize per second), paced by wall-clock time
-// rather than frame/burst timing. Backlog beyond spectMaxQueue is
-// fast-forwarded so we never fall permanently behind.
+// column rate (SpectroFeed.Flush).
 func (s *spectrogram) flushSpectColumns(nowMs float64) {
-	if s.lastMs == 0 {
-		s.lastMs = nowMs
-	}
-	elapsed := nowMs - s.lastMs
-	s.lastMs = nowMs
-	if elapsed < 0 {
-		elapsed = 0
-	}
-
 	sampleRate := 24000
 	if src := aud.activeAudioSource(); src.SampleRate() > 0 {
 		sampleRate = src.SampleRate()
 	}
-	step := max(sg.S.StepSize(), 1)
-	colsPerMs := float64(sampleRate) / float64(step) / 1000.0
-
-	s.colFrac += elapsed * colsPerMs
-	toFlush := int(s.colFrac)
-	s.colFrac -= float64(toFlush)
-
-	for i := 0; i < toFlush && len(s.colQueue) > 0; i++ {
-		s.uploadSpectColumn(s.colQueue[0])
-		s.colQueue = s.colQueue[1:]
-	}
-	// Work off a standing backlog. The pacing above flushes at exactly the rate
-	// columns are produced, so a queue — however it formed — is never worked
-	// off: it just becomes permanent delay between what is heard and what is
-	// drawn. Behind the Takens embedding this parked at seventeen columns, a
-	// third of a second, and stayed there.
-	//
-	// One extra column per call clears that in about as long as it represents,
-	// and one column is a single texel of scroll, so the correction is not
-	// visible as a jump. The fast-forward below still handles the large
-	// backlogs this is too gentle for.
-	if len(s.colQueue) > spectQueueTarget {
-		s.uploadSpectColumn(s.colQueue[0])
-		s.colQueue = s.colQueue[1:]
-	}
-	if len(s.colQueue) > spectMaxQueue {
-		drop := len(s.colQueue) - spectQueueCatchup
-		for i := range drop {
-			s.uploadSpectColumn(s.colQueue[i])
-		}
-		s.colQueue = s.colQueue[drop:]
-	}
-	if len(s.colQueue) == 0 {
-		s.colQueue = s.colQueue[:0]
-	}
+	s.feed.Flush(nowMs, sampleRate, s.uploadSpectColumn)
 }
 
 // uploadSpectColumn writes one prepared RGBA column at the current write
@@ -312,20 +226,6 @@ func (s *spectrogram) uploadSpectColumn(col []byte) {
 		s.texCol, 0, 1, s.texH,
 		glctx.GL.Get("RGBA"), glctx.GL.Get("UNSIGNED_BYTE"), s.colUint8)
 	s.texCol = (s.texCol + 1) % spectTexW
-}
-
-// buildSpectColumn maps FFT magnitudes to one RGBA column (spect.texH*4 bytes),
-// full 0..Nyquist with 0 Hz at the bottom, matching audioprism-go. The mapping
-// itself is in pkg/spectcol, without a build tag, so that `uitool spec` can run
-// the identical arithmetic on a machine and be diffed against the original's
-// own WAV→PNG render.
-func (s *spectrogram) buildSpectColumn(mags []float64) []byte {
-	// Through the MAP ring, like everything else in the rack. The spectrogram
-	// used to carry its own colormap knob naming the same six maps in the same
-	// order, and two knobs that had to be kept in step by hand meant the
-	// spectrogram and the trace beside it could disagree about what a value
-	// looks like — which is the one thing sharing the library's tables was for.
-	return spectcol.ColumnWith(mags, s.texH, spectrogramPixel)
 }
 
 // setSpectrogramCamera frames the plane at a sensible default distance,
