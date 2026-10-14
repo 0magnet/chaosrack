@@ -2,6 +2,7 @@ package rackhost
 
 import (
 	"math"
+	"strconv"
 	"time"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
@@ -13,9 +14,12 @@ import (
 
 // scopeModels are their running state.
 type scopeModels struct {
-	ga   *attractor.GraphicArtist
-	text *attractor.FourierText
-	last time.Time
+	ga     *attractor.GraphicArtist
+	text   *attractor.FourierText
+	turtle attractor.TurtleRun
+	// cycleAt is when CYCLE next steps the Turtle's modulus.
+	cycleAt time.Time
+	last    time.Time
 }
 
 func newScopeModels() scopeModels {
@@ -24,7 +28,7 @@ func newScopeModels() scopeModels {
 
 // isScopeModel reports whether model key is one of them.
 func isScopeModel(key string) bool {
-	return key == "graphicartist" || key == "scopeclock" || key == "scopetext"
+	return key == "graphicartist" || key == "scopeclock" || key == "scopetext" || key == "turtle"
 }
 
 // scopeFigure is scope model key now, stepped on to now while running, and
@@ -49,6 +53,22 @@ func (r *Rack) scopeFigure(key string, running bool) (attractor.Figure, [][3]flo
 		f := attractor.Figure{Kind: attractor.FigurePath, Points: make([][3]float64, steps)}
 		sm.ga.Trace(steps, func(i int, x, y, z float64) { f.Points[i] = [3]float64{x, y, z} })
 		return f, [][3]float64{{-1.5, 0, 0}, {1.5, 0, 0}}
+	case "turtle":
+		r.turtleCycle(now, running)
+		var k [8]float32
+		for i, id := range attractor.TurtleKnobs {
+			k[i] = float32(r.number(id))
+		}
+		f := attractor.Figure{Kind: attractor.FigurePath}
+		sm.turtle.Step(k, steps, frames, sub, float32(scale), running, func(x, y, z, tint float32) {
+			f.Points = append(f.Points, [3]float64{float64(x), float64(y), float64(z)})
+			f.Ages = append(f.Ages, tint) // the tinter's color, as the page's trail attribute
+		})
+		if r.value("use-points") == "1" {
+			f.Kind = attractor.FigurePoints
+		}
+		// The walk's own camera holds it still and sized to its box.
+		return f, [][3]float64{{-1.2, -1.2, -1.2}, {1.2, 1.2, 1.2}}
 	case "scopeclock":
 		f := attractor.Figure{Kind: attractor.FigurePath, Points: make([][3]float64, steps)}
 		if !attractor.ClockTrace(time.Now(), steps, func(i int, x, y float64) { f.Points[i] = [3]float64{x, y, 0} }) {
@@ -85,3 +105,31 @@ func square(pts [][3]float64) [][3]float64 {
 	}
 	return [][3]float64{{-e, -e, 0}, {e, e, 0}}
 }
+
+// turtleCycle is CYCLE: every so many seconds the Turtle steps to the next
+// modulus, turning the MOD knob as the page's does, so its readout follows.
+// Called with r.mu held.
+func (r *Rack) turtleCycle(now time.Time, running bool) {
+	sm := &r.analyzers.scope
+	secs := r.number("turtle-cycle")
+	if secs <= 0 || !running {
+		sm.cycleAt = time.Time{}
+		return
+	}
+	if sm.cycleAt.IsZero() {
+		sm.cycleAt = now.Add(time.Duration(secs * float64(time.Second)))
+		return
+	}
+	if now.Before(sm.cycleAt) {
+		return
+	}
+	sm.cycleAt = now.Add(time.Duration(secs * float64(time.Second)))
+	next := int(r.number("turtle-mod")) + 1
+	if next > turtleModMax {
+		next = 1
+	}
+	_ = r.set("turtle-mod", strconv.Itoa(next)) //nolint:errcheck // within the knob's travel
+}
+
+// turtleModMax is the Turtle's MOD knob's top, where CYCLE wraps.
+const turtleModMax = 300

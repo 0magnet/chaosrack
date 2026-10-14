@@ -478,13 +478,15 @@ func (w *Waterfall) Figure() Figure {
 	if n == 0 {
 		return f
 	}
-	w.eachSegment(n, func(x, y, z, _ float32) {
+	w.eachSegment(n, func(x, y, z, age float32) {
 		f.Edges = append(f.Edges, uint16(len(f.Points))) //nolint:gosec // 64 slices × 95 lines × 2 ends
 		f.Points = append(f.Points, [3]float64{float64(x), float64(y), float64(z)})
+		f.Ages = append(f.Ages, age) // a slice's depth, as the page's trail attribute
 	})
 	d := w.Depth() / 2
 	f.Points = append(f.Points,
 		[3]float64{-WaterfallSpan, -WaterfallSpan / 2, -d},
 		[3]float64{WaterfallSpan, WaterfallSpan / 2, d})
+	f.Ages = append(f.Ages, 0, 0)
 	return f
 }

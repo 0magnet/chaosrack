@@ -37,6 +37,9 @@ type Figure struct {
 	Kind   FigureKind
 	Points [][3]float64
 	Edges  []uint16 // endpoint pairs into Points, for FigureLines
+	// Ages is each point's place along the trail, 0..1, which a gradient
+	// sourced from the trail colors by; none, and it is the point's order.
+	Ages []float32
 }
 
 // StaticFigure builds a model that is not a flow. points is the point budget
@@ -114,7 +117,7 @@ func lissajous(n int) [][3]float64 {
 // first hi points are drawn, and for FigurePath points lo..hi, so an animation
 // can reveal a figure while the frame stays fitted to all of it.
 func DrawFigure(f Figure, lo, hi int, o DrawOptions) *image.RGBA {
-	if f.Kind == FigurePath {
+	if f.Kind == FigurePath && len(f.Ages) != len(f.Points) {
 		return DrawSpan(f.Points, lo, hi, o)
 	}
 	o = o.withDefaults()
@@ -125,7 +128,10 @@ func DrawFigure(f Figure, lo, hi int, o DrawOptions) *image.RGBA {
 	if f.Kind == FigurePoints {
 		idx = PointIndices(len(f.Points), hi)
 	}
-	view.Render(img, v, idx, o.Gradient)
+	if f.Kind == FigurePath {
+		idx = SpanIndices(len(f.Points), lo, hi)
+	}
+	view.RenderAges(img, v, idx, o.Gradient, f.Ages)
 	return img
 }
 

@@ -79,6 +79,14 @@ type View struct {
 // holds. The frame is not cleared: composite onto a backdrop by copying
 // it in first.
 func (v View) Render(dst *image.RGBA, vertices []float32, indices []uint16, g Gradient) {
+	v.RenderAges(dst, vertices, indices, g, nil)
+}
+
+// RenderAges is Render with each vertex's place along the trail given, the
+// parameter a trail-sourced gradient colors by: as a page model hands its
+// shader a fourth coordinate of its own (a Turtle's tint, a waterfall slice's
+// depth). Without one for every vertex, a vertex's place is its order.
+func (v View) RenderAges(dst *image.RGBA, vertices []float32, indices []uint16, g Gradient, ages []float32) {
 	n := len(vertices) / 3
 	if n == 0 || dst == nil {
 		return
@@ -125,7 +133,10 @@ func (v View) Render(dst *image.RGBA, vertices []float32, indices []uint16, g Gr
 		px[i], py[i], z3 = p.at(float64(vertices[i*3]), float64(vertices[i*3+1]), float64(vertices[i*3+2]))
 
 		age := float32(0)
-		if n > 1 {
+		switch {
+		case len(ages) == n:
+			age = ages[i]
+		case n > 1:
 			age = float32(i) / float32(n-1)
 		}
 		c := g.colorAt(vertices[i*3], vertices[i*3+1], vertices[i*3+2], lo, hi, age)

@@ -152,3 +152,28 @@ func TestTheBifurcationSweepsWhatSweepPicks(t *testing.T) {
 		t.Errorf("sweeping ρ drew %d points", len(pts))
 	}
 }
+
+// The Turtle walks natively: its figure is drawn with the tinter's colors,
+// and CYCLE steps the modulus on, turning the MOD knob.
+func TestTheTurtleWalks(t *testing.T) {
+	r, c := idleRack(t, "turtle")
+	watch(t, r, c, 0.5)
+	r.scene.mu.Lock()
+	n, ages := len(r.scene.fig.Points), append([]float32(nil), r.scene.fig.Ages...)
+	r.scene.mu.Unlock()
+	if n < 20 || len(ages) != n {
+		t.Fatalf("the Turtle drew %d points with %d tints", n, len(ages))
+	}
+	tints := map[float32]bool{}
+	for _, a := range ages {
+		tints[a] = true
+	}
+	if len(tints) < 2 {
+		t.Errorf("the walk is one tint: %v", ages[:3])
+	}
+	set(t, r, "turtle-cycle", "1")
+	watch(t, r, c, 2.2)
+	if got := r.value("turtle-mod"); got == "25" {
+		t.Error("CYCLE did not step the modulus")
+	}
+}
