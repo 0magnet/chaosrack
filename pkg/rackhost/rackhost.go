@@ -729,21 +729,7 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	s.last = now
 	// A picture on a plane comes up face-on and holds still, as the page sets
 	// its textured planes up: a hand or the rate knobs still turn it.
-	plane := heard.quad != nil
-	if plane && key != s.key {
-		s.angle = [3]float64{}
-	}
-	// Paused, the model holds still and a hand still turns it, as the page's
-	// does.
-	if on && !s.turned && !paused {
-		for i := range s.angle {
-			s.angle[i] += rate[i] * dt
-		}
-		if auto && rate == ([3]float64{}) && !plane {
-			s.angle[1] += autoSpin * dt
-		}
-	}
-	s.turned = false
+	s.pose(key, heard.quad != nil || attractor.IsFlatScope(key), on && !paused, auto, rate, dt)
 	angle := s.angle
 	r.mu.Lock()
 	r.showAngles(angle)
@@ -1016,3 +1002,22 @@ func (r *Rack) model() string {
 
 // isFamily reports whether id is a family's lettered dial.
 func isFamily(id string) bool { return strings.HasPrefix(id, "fam-") }
+
+// pose turns the model on by dt: by the rate knobs while it runs, and by
+// auto-rotate when they are still, unless it is flat, which comes up
+// face-on when it is chosen and holds still. Paused, it holds still and a
+// hand still turns it, as the page's does. Called with s.mu held.
+func (s *scene) pose(key string, flat, running, auto bool, rate [3]float64, dt float64) {
+	if flat && key != s.key {
+		s.angle = [3]float64{}
+	}
+	if running && !s.turned {
+		for i := range s.angle {
+			s.angle[i] += rate[i] * dt
+		}
+		if auto && rate == ([3]float64{}) && !flat {
+			s.angle[1] += autoSpin * dt
+		}
+	}
+	s.turned = false
+}

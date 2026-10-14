@@ -28,7 +28,7 @@ func init() {
 	registerGenerate("scopetext", ftext.generateScopeText)
 	registerGenerate("bounceball", ball.generateBounceBall)
 	registerGenerate("sprottmorph", morph.generateSprottMorph)
-	registerGenerate("graphicartist", ga.generateGraphicArtist)
+	registerGenerate("graphicartist", generateGraphicArtist)
 	registerGenerate("hyperrossler", generateHyperRossler)
 	registerGenerate("lu", generateLu)
 	registerGenerate("sprotta", generateSprottA)
