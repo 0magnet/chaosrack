@@ -66,6 +66,8 @@ type Rack struct {
 	// since the figure was built.
 	flow     map[string]dynamics.Param
 	refigure atomic.Bool
+
+	sound *sound
 }
 
 // New is a rack at the catalog's defaults.
@@ -120,6 +122,8 @@ func New() (*Rack, error) {
 	r.calibrate(0, r.outside, func(string) bool { return true }, nil)
 	r.useBank(r.value(r.selector))
 	r.scene.start()
+	r.sound = newSound()
+	r.soundStart()
 	return r, nil
 }
 
@@ -216,6 +220,7 @@ func (r *Rack) Set(id, value string) error {
 		return nil
 	}
 	c.Value = v
+	r.soundSet(id)
 	if c.Module == modelModule {
 		r.refigure.Store(true)
 	}

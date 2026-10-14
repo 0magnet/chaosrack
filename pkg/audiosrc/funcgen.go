@@ -1,5 +1,3 @@
-//go:build js && wasm
-
 package audiosrc
 
 import "math"
@@ -215,5 +213,19 @@ func (f *FuncGen) RenderOsc(i int, dst []float32) {
 	sr := float64(f.sr)
 	for k := range dst {
 		dst[k] = float32(s.step(sr))
+	}
+}
+
+// Next runs every oscillator forward one sample, as the bus does for the
+// rack's signal, and puts each one's value in out: 0 for one a solo
+// silences, which still keeps time.
+func (f *FuncGen) Next(out *[OscCount]float64) {
+	sr := float64(f.sr)
+	for i := range f.osc {
+		v := f.osc[i].step(sr)
+		if !f.Audible(i) {
+			v = 0
+		}
+		out[i] = v
 	}
 }

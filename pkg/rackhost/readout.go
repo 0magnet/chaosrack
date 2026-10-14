@@ -31,7 +31,7 @@ func (ro readout) show(c *racktui.Control) string {
 	if c.IsSelect {
 		return labelOf(c, c.Value)
 	}
-	v, err := strconv.ParseFloat(c.Value, 64)
+	v, err := strconv.ParseFloat(shown(c.ID, c.Value), 64)
 	if err != nil {
 		return c.Value
 	}
@@ -118,7 +118,7 @@ func (r *Rack) findReadout(c *racktui.Control, value string, box [4]float64, lo,
 	if c.IsSwitch {
 		return readout{}, false
 	}
-	want, numErr := strconv.ParseFloat(value, 64)
+	want, numErr := strconv.ParseFloat(shown(c.ID, value), 64)
 	best, bestLen := readout{item: -1}, 0
 	for i := lo; i < hi; i++ {
 		it := r.pic.Items[i]
@@ -139,6 +139,18 @@ func (r *Rack) findReadout(c *racktui.Control, value string, box [4]float64, lo,
 		best, bestLen = ro, len(it.Text)
 	}
 	return best, best.item >= 0
+}
+
+// shown is the number a control's display writes for value, where that is
+// not the value itself: a generator's frequency knob counts semitones and
+// its LED says hertz.
+func shown(id, value string) string {
+	if _, part := genOf(id); part == "freq" {
+		if v, err := strconv.ParseFloat(value, 64); err == nil {
+			return strconv.FormatFloat(freqFromKnob(v), 'f', -1, 64)
+		}
+	}
+	return value
 }
 
 // labelOf is how a selector's window names option v: the page's own name for
