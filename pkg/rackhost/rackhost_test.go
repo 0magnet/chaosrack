@@ -202,12 +202,12 @@ func TestABrowserOnlyModelSaysSo(t *testing.T) {
 	if id == "" {
 		t.Skip("no model selector in the catalog")
 	}
-	if err := r.Set(id, "waterfall"); err != nil {
+	if err := r.Set(id, "fvf"); err != nil {
 		t.Fatal(err)
 	}
 	m, err := r.Scene(20, 10, 2)
 	if m == nil || !errors.Is(err, ErrBrowserOnly) {
-		t.Fatalf("waterfall: image %v, error %v", m != nil, err)
+		t.Fatalf("fvf: image %v, error %v", m != nil, err)
 	}
 }
 

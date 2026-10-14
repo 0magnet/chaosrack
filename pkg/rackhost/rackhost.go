@@ -691,7 +691,7 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	r.playGames()
 	r.needCapture()
 	r.sound.busLook()
-	audio := attractor.IsAudioModel(key)
+	audio := drawnFromSound(key)
 	heard := r.hear(key, on, w)
 	var consts map[*float32]float32
 	if refigure {

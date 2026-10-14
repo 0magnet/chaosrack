@@ -260,3 +260,58 @@ func TestTheSpectrogramFills(t *testing.T) {
 		}
 	}
 }
+
+// The live waterfall turns the panel's knobs to its own defaults, and its
+// front line peaks at the tone.
+func TestTheLiveWaterfallOfATone(t *testing.T) {
+	r, c := toneRack(t, "waterfall")
+	set(t, r, "wfall-src", "1")
+	watch(t, r, c, 2)
+	if l, s, f := r.value("wfall-lines"), r.value("wfall-step"), r.value("wfall-fft"); l != "32" || s != "40" || f != "2" {
+		t.Errorf("the live surface left the knobs at %s lines, %s ms, FFT %s; want 32, 40, 2", l, s, f)
+	}
+	r.mu.Lock()
+	fig, _ := r.waterfallFigure(float64(c.t.UnixNano()) / 1e6)
+	r.mu.Unlock()
+	if got := len(fig.Edges) / 2; got != 32*95 {
+		t.Fatalf("the surface has %d lines, want 32 slices of 95", got)
+	}
+	// The front slice is the first 95 lines; its highest point is the tone.
+	top := fig.Points[0]
+	for _, p := range fig.Points[:2*95] {
+		if p[1] > top[1] {
+			top = p
+		}
+	}
+	l, _ := r.sound.window(sampleRate / 2)
+	hz, _ := pitch(l)
+	at := math.Pow(1000, (top[0]/9+1)/2) * 20 // the 20 Hz–20 kHz log axis
+	if at < hz/1.15 || at > hz*1.15 {
+		t.Errorf("the front line peaks at %.0f Hz; the tone is %.0f Hz", at, hz)
+	}
+}
+
+// The decay waterfall deconvolves CAP R against CAP L: noise and its echo a
+// millisecond late make a measured surface.
+func TestTheDecayWaterfallMeasures(t *testing.T) {
+	f := &fakeCapture{}
+	withCapture(t, f)
+	r, c := idleRack(t, "waterfall")
+	look(t, r)
+	rng := rand.New(rand.NewPCG(3, 4)) //nolint:gosec // a test's noise, the same every run
+	hist := make([]float32, 48)
+	for range 150 {
+		const n = sampleRate / 20
+		p := make([]float32, 2*n)
+		for i := range n {
+			x := float32(rng.Float64() - 0.5)
+			p[2*i], p[2*i+1] = x, hist[0]
+			hist = append(hist[1:], x)
+		}
+		_ = f.write(p) //nolint:errcheck // the fake capture's writer never fails
+		watch(t, r, c, 0.05)
+	}
+	if n := r.analyzers.wfall.w.Slices(); n != 16 {
+		t.Errorf("7.5 s of a measurement made %d slices, want 16", n)
+	}
+}
