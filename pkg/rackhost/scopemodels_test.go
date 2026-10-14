@@ -3,6 +3,8 @@ package rackhost
 import (
 	"math"
 	"testing"
+
+	"github.com/0magnet/chaosrack/pkg/attractor"
 )
 
 // shownFigure is the figure the scene drew last.
@@ -175,5 +177,39 @@ func TestTheTurtleWalks(t *testing.T) {
 	watch(t, r, c, 2.2)
 	if got := r.value("turtle-mod"); got == "25" {
 		t.Error("CYCLE did not step the modulus")
+	}
+}
+
+// Custom draws its typed system natively: the default template, its
+// constants as knobs, and the flavors its switches pick.
+func TestCustomDrawsItsSystem(t *testing.T) {
+	r, c := idleRack(t, "custom")
+	figure := func() attractor.Figure {
+		frame(t, r)
+		r.scene.mu.Lock()
+		defer r.scene.mu.Unlock()
+		if r.scene.err != nil {
+			t.Fatalf("custom: %v", r.scene.err)
+		}
+		f := r.scene.fig
+		f.Points = append([][3]float64(nil), f.Points...)
+		return f
+	}
+	watch(t, r, c, 0.1)
+	a := figure()
+	if a.Kind != attractor.FigurePath || len(a.Points) < 100 {
+		t.Fatalf("the template drew %d points as kind %d", len(a.Points), a.Kind)
+	}
+	set(t, r, "custom-rho", "15")
+	if b := figure(); b.Points[len(b.Points)/2] == a.Points[len(a.Points)/2] {
+		t.Error("ρ at 15 drew the same system")
+	}
+	set(t, r, "model-sw-0", "1") // iter
+	if f := figure(); f.Kind != attractor.FigurePoints {
+		t.Errorf("iter drew kind %d, not points", f.Kind)
+	}
+	set(t, r, "model-sw-1", "1") // surf
+	if f := figure(); f.Kind != attractor.FigureLines || len(f.Edges) < 100 || r.value("model-sw-0") != "0" {
+		t.Errorf("surf drew kind %d with %d lines, iter %s", f.Kind, len(f.Edges)/2, r.value("model-sw-0"))
 	}
 }

@@ -162,14 +162,15 @@ func MapFor(key string) (MapSys, bool) {
 	return MapSys{}, false
 }
 
-// MapPoints iterates a built-in map with no browser and returns n iterates,
-// split evenly across the map's orbits the way the render loop splits its
-// point budget. It returns nil for a key that is not a built-in map.
+// MapPoints iterates a map with no browser and returns n iterates, split
+// evenly across the map's orbits the way the render loop splits its point
+// budget. It returns nil for a key that is not a map: a built-in one, or the
+// typed one while Custom is in iterate flavor (MapFor).
 //
 // The transient and the escape guard are the render loop's own: an orbit that
 // escapes restarts from its seed rather than contributing NaNs.
 func MapPoints(key string, n int) [][3]float64 {
-	m, ok := mapSystems[key]
+	m, ok := MapFor(key)
 	if !ok {
 		return nil
 	}

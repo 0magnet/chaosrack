@@ -28,6 +28,8 @@ func (r *Rack) modelSwitches(model string) []modelSwitch {
 	s := r.sound
 	g := &s.games
 	switch model {
+	case "custom":
+		return r.customSwitches()
 	case "pong":
 		return []modelSwitch{{legend: "rset", press: g.pong.Restart}}
 	case "bounceball":
@@ -77,9 +79,17 @@ func (r *Rack) modelSwitchSet(id string) (more [][2]string) {
 		return more
 	}
 	sw.set(down)
-	if sw.on() != down {
-		// It would not go: it stands where it is.
-		more = append(more, [2]string{id, map[bool]string{true: "1", false: "0"}[sw.on()]})
+	// Every latching switch stands where its state does now: this one, if it
+	// would not go, and the others, which one switch can move (Custom's
+	// flavors are one at a time).
+	for i, o := range sws {
+		if o.on == nil {
+			continue
+		}
+		sid := "model-sw-" + strconv.Itoa(i)
+		if want := map[bool]string{true: "1", false: "0"}[o.on()]; r.value(sid) != want {
+			more = append(more, [2]string{sid, want})
+		}
 	}
 	return more
 }
