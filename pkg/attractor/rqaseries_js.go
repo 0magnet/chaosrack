@@ -142,7 +142,7 @@ var rqa = rqaChart{
 // pkg/recurrence.
 //
 // Compared by VALUE rather than hooked off the knobs, for the reason
-// rp.trajChanged gives about the trajectory cache: an edit that reaches a
+// Recurrence.trajChanged gives about the trajectory cache: an edit that reaches a
 // parameter by any route at all — knob, permalink, preset, Reset All, MIDI,
 // audio modulation — moves a float that this then sees, and nothing added later
 // can forget to announce itself.

@@ -133,3 +133,66 @@ func TestTheTransferFunctionMeasuresTheCapture(t *testing.T) {
 		t.Errorf("the delay reads %.3f ms (%v), want 1", ms, ok)
 	}
 }
+
+// litCells is the fraction of the recurrence plot's cells that are lit.
+func litCells(r *Rack) float64 {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	n := 0
+	for _, v := range r.analyzers.rec.Matrix() {
+		if v != 0 {
+			n++
+		}
+	}
+	return float64(n) / float64(len(r.analyzers.rec.Matrix()))
+}
+
+// The recurrence plot of a tone on the rack lights a readable share of its
+// square, white, held face-on however long auto-rotate has run.
+func TestTheRecurrencePlotOfATone(t *testing.T) {
+	r, c := toneRack(t, "recurrence")
+	watch(t, r, c, 2)
+	if f := litCells(r); f < 0.01 || f > 0.5 {
+		t.Errorf("the plot of a tone lights %.1f%% of its cells", 100*f)
+	}
+	img, err := r.Scene(120, 120, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	white, x0, x1 := 0, 120, 0
+	for y := range 120 {
+		for x := range 120 {
+			if near(img.Px[3*(y*120+x):], [3]uint8{255, 255, 255}) {
+				white++
+				x0, x1 = min(x0, x), max(x1, x)
+			}
+		}
+	}
+	if white < 100 {
+		t.Fatalf("the scene shows %d white pixels", white)
+	}
+	// Face-on, the square's lit cells reach from one side of it to the
+	// other, centered.
+	if x0+x1 < 110 || x0+x1 > 130 || x1-x0 < 40 {
+		t.Errorf("the lit cells run from x %d to %d: not a square facing the viewer", x0, x1)
+	}
+}
+
+// Its traj source plots the last flow the panel drew, once that flow's knobs
+// have held still.
+func TestTheRecurrencePlotOfTheLastFlow(t *testing.T) {
+	r, c := idleRack(t, "lorenz")
+	watch(t, r, c, 0.1)
+	set(t, r, r.selector, "recurrence", "rec-src", "2")
+	watch(t, r, c, 0.1)
+	if f := litCells(r); f != 0 {
+		t.Errorf("the trajectory was plotted before its knobs had held still: %.1f%% lit", 100*f)
+	}
+	watch(t, r, c, 0.5)
+	if r.analyzers.lastFlow != "lorenz" {
+		t.Errorf("the last flow is %q", r.analyzers.lastFlow)
+	}
+	if f := litCells(r); f < 0.01 || f > 0.5 {
+		t.Errorf("the plot of Lorenz's trajectory lights %.1f%% of its cells", 100*f)
+	}
+}
