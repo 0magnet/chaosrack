@@ -162,13 +162,6 @@ func (v *vcolorPipe) done() { glctx.GL.Call("disableVertexAttribArray", v.aCol) 
 // would put arbitrary colors on a measurement.
 func analyzerPalette() (int, bool) { return colormap.Index(style.gradientColors) }
 
-// analyzerColorAt samples that colormap at a 0..1 value, as three floats.
-func analyzerColorAt(idx int, v float64) [3]float32 {
-	c := colormap.At(idx, v)
-	r, g, b, _ := c.RGBA()
-	return [3]float32{float32(r) / 65535, float32(g) / 65535, float32(b) / 65535}
-}
-
 // analyzerTraceColor is the single color a flat analyzer draws in when no
 // colormap is selected: the phosphor's, if one is, and the scope green
 // otherwise — which is what these displays did before they could be colored.
@@ -177,5 +170,12 @@ func analyzerTraceColor() [3]float32 {
 		p := phosphors[phos.index]
 		return [3]float32{float32(p.tr), float32(p.tg), float32(p.tb)}
 	}
-	return [3]float32{0.4, 1.0, 0.45}
+	return ScopeGreen
+}
+
+// analyzerColors is how the flat analyzers color now: the Colors module's
+// colormap, or the trace color.
+func analyzerColors() AnalyzerColors {
+	pal, ok := analyzerPalette()
+	return AnalyzerColors{Map: pal, Mapped: ok, Flat: analyzerTraceColor()}
 }

@@ -79,6 +79,9 @@ type Rack struct {
 	// stereo is the Stereo Embedding's scope, which keeps its trigger's
 	// memory from frame to frame (bus.go).
 	stereo stereoView
+	// analyzers are the flat analyzers, which keep their meters and averages
+	// from frame to frame (analyzers.go).
+	analyzers analyzers
 }
 
 // New is a rack at the catalog's defaults.
@@ -97,6 +100,7 @@ func New() (*Rack, error) {
 		changed:     map[int]int{},
 		audioSource: "monitor",
 		stereo:      stereoView{scope: attractor.NewStereoScope()},
+		analyzers:   newAnalyzers(),
 	}
 	for i, c := range r.ctls {
 		r.byID[c.ID] = i
@@ -687,15 +691,7 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	r.needCapture()
 	r.sound.busLook()
 	audio := attractor.IsAudioModel(key)
-	var audioFig, audioGrat attractor.Figure
-	var audioFit [][3]float64
-	var glow float64
-	if audio {
-		audioFig, audioGrat, audioFit = r.audioFigure(key)
-		if key == "xy" {
-			glow = r.number("xy-persist")
-		}
-	}
+	heard := r.hear(key, on, w)
 	var consts map[*float32]float32
 	if refigure {
 		consts = r.flowValues()
@@ -737,6 +733,13 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 		s.shown = nil
 		return img, nil
 	}
+	if isAnalyzer(key) {
+		// A flat analyzer, drawn over the whole scene as the page draws it
+		// over its canvas (analyzers.go).
+		s.key, s.err, s.shown = key, nil, nil
+		toPixels(img, drawPlot(heard.plot, w, h))
+		return img, nil
+	}
 	game := isGame(key)
 	var gameFit [][3]float64
 	switch {
@@ -748,7 +751,7 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 		s.key, s.err = key, nil
 	case audio:
 		// An audio model, drawn from the rack's signal (bus.go).
-		s.fig, gameFit = audioFig, audioFit
+		s.fig, gameFit = heard.fig, heard.fit
 		s.key, s.err = key, nil
 	case key != s.key || refigure:
 		s.key = key
@@ -799,14 +802,14 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 		n = len(fig.Edges)
 	}
 	m := attractor.DrawFigure(fig, 0, n, o)
-	if len(audioGrat.Edges) > 0 {
+	if len(heard.grat.Edges) > 0 {
 		// The Stereo Embedding's graticule, flat gray behind the trace.
 		og := o
 		og.Gradient = rasterview.Gradient{Colors: 1, Base: attractor.GraticuleColor}
 		og.View.BackDim = 0 // flat, as the page draws it
-		under(m, attractor.DrawFigure(audioGrat, 0, len(audioGrat.Edges), og))
+		under(m, attractor.DrawFigure(heard.grat, 0, len(heard.grat.Edges), og))
 	}
-	if k := glowKeep(glow, dt); k > 0 && s.shown != nil && s.shown.Bounds() == m.Bounds() {
+	if k := glowKeep(heard.glow, dt); k > 0 && s.shown != nil && s.shown.Bounds() == m.Bounds() {
 		// The XY's GLOW: the last frame fades like a phosphor and the trace
 		// is drawn over it, as the page multiplies its frame down rather
 		// than clearing it.
@@ -822,10 +825,15 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 		}
 	}
 	s.shown = m
-	for i := range w * h {
+	toPixels(img, m)
+	return img, nil
+}
+
+// toPixels copies m into img, which is as big.
+func toPixels(img *rackpic.Image, m *image.RGBA) {
+	for i := range img.W * img.H {
 		img.Px[3*i], img.Px[3*i+1], img.Px[3*i+2] = m.Pix[4*i], m.Pix[4*i+1], m.Pix[4*i+2]
 	}
-	return img, nil
 }
 
 // zoomScale is the fraction of the frame the model fills at the View
