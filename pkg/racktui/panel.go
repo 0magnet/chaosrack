@@ -135,9 +135,7 @@ func RunOn(sc tcell.Screen, src Source) error {
 
 	// The dials are sampled into cells, so their shape depends on the shape
 	// of a cell. See CellShaper.
-	if sh, ok := src.(CellShaper); ok {
-		panelart.SetCellAspect(sh.CellAspect())
-	}
+	panelart.SetCellAspect(cellAspectOf(src))
 
 	// Where the page first floats its controls: near the top left.
 	p := &panel{src: src, q: q, overlay: !plain, floatX: 2, floatY: 2}
@@ -185,6 +183,9 @@ func RunOn(sc tcell.Screen, src Source) error {
 		changed := true
 		switch ev := (<-sc.EventQ()).(type) {
 		case *tcell.EventResize:
+			// A font turned larger or smaller is a new cell shape, which only
+			// the terminal knows.
+			panelart.SetCellAspect(cellAspectOf(src))
 			// Nothing more to do than draw: tcell has already repainted every
 			// cell for the new size. Syncing here painted them all again, and
 			// zoomed out each of those took seconds.
