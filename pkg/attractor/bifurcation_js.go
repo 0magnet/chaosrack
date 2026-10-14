@@ -21,28 +21,17 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"strconv"
 	"syscall/js"
 )
 
-// bifPerCol is how many maxima are kept per column. (bifCols, the sweep
-// resolution, lives in bifdrive.go with the cursor arithmetic that depends on
-// it.)
-const bifPerCol = 40
-
 // bifurcation is the bifurcation explorer: the sweep, the columns drawn so
 // far, and the readout.
 type bifurcation struct {
+	BifSweep            // the sweep and its columns (bifsweep.go)
 	lastFlowMode string // most recent mode with a registered flow
 	paramIdx     int    // index into attractorParams[lastFlowMode]; -1 = auto
-	sig          string // source|param sig the data was computed for
-	nextCol      int
-	colOf        []int32   // column index per stored point
-	valOf        []float64 // z-maximum per stored point
-	min          float64
-	max          float64
 	fitDone      bool
 
 	// DRIVE: false sweeps the parameter, true points a cursor at it from the
@@ -70,8 +59,6 @@ type bifurcation struct {
 var bif = bifurcation{
 	lastFlowMode: "lorenz",
 	paramIdx:     -1,
-	min:          1e30,
-	max:          -1e30,
 	depth:        0.33,
 }
 
@@ -107,74 +94,23 @@ func (b *bifurcation) param() (paramDef, int, bool) {
 }
 
 func (b *bifurcation) generateBifurcation() {
-	sys, ok := dynamics.FlowFor4(b.lastFlowMode)
-	if !ok {
-		return
-	}
 	p, pidx, ok := b.param()
 	if !ok {
 		return
 	}
-	sig := b.lastFlowMode + "|" + strconv.Itoa(pidx)
-	if b.sig != sig {
-		b.sig = sig
-		b.nextCol = 0
-		b.colOf = b.colOf[:0]
-		b.valOf = b.valOf[:0]
-		b.min, b.max = 1e30, -1e30
-		b.fitDone = false
+	if b.sig != b.lastFlowMode+"|"+strconv.Itoa(pidx) {
+		b.fitDone = false // a new diagram is framed anew
 	}
-
-	// Progressive sweep: a few columns per frame.
-	cols := 3
-	if sys.Interpreted {
-		cols = 1
+	if !b.Fill(b.lastFlowMode, pidx, p.Value, p.Min, p.Max, 3) {
+		return
 	}
-	dt := sys.Dt()
-	ic := dynamics.InitCondFor(b.lastFlowMode)
-	for c := 0; c < cols && b.nextCol < bifCols; c++ {
-		j := b.nextCol
-		b.nextCol++
-		pv := p.Min + (p.Max-p.Min)*float32(j)/float32(bifCols-1)
-		saved := *p.Value
-		*p.Value = pv
-		s := [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W()}
-		const transient = 1500
-		for range transient {
-			flowStep(sys, &s, dt)
-			if flowDiverged(s) {
-				break
-			}
-		}
-		z2, z1 := s[2], s[2]
-		got := 0
-		for i := 0; i < 6000 && got < bifPerCol; i++ {
-			flowStep(sys, &s, dt)
-			if flowDiverged(s) {
-				break
-			}
-			z0 := s[2]
-			if z1 > z2 && z1 >= z0 { // local maximum at z1
-				b.colOf = append(b.colOf, int32(j)) //nolint:gosec // a column index into the bifurcation image
-				b.valOf = append(b.valOf, z1)
-				if z1 < b.min {
-					b.min = z1
-				}
-				if z1 > b.max {
-					b.max = z1
-				}
-				got++
-			}
-			z2, z1 = z1, z0
-		}
-		*p.Value = saved
-	}
-
-	// Render the whole diagram from the raw (col, value) pairs each frame —
-	// the y normalization tracks the running min/max, so early columns stay
-	// correctly placed as later ones widen the range.
-	n := len(b.colOf)
-	if n < 2 || b.max <= b.min {
+	vertices := sim.vertBuf[:min(len(b.colOf), cap(sim.vertBuf)/4)*4]
+	n := b.Points(len(vertices)/4, func(i int, x, y, frac float32) {
+		k := i * 4
+		vertices[k], vertices[k+1], vertices[k+2] = x, y, 0
+		vertices[k+3] = frac // gradient follows the sweep
+	})
+	if n == 0 {
 		gpu.uploadVerticesOnly(sim.vertBuf[:0], glctx.Types.Points, 0)
 		// The readout still tells the truth about the cursor here. There is
 		// nothing to point AT for the first frames of a sweep, but "mod off"
@@ -184,23 +120,9 @@ func (b *bifurcation) generateBifurcation() {
 		b.showCursor(b.cursorReadout(p, cv, cok))
 		return
 	}
-	if cap(sim.vertBuf) < n*4 {
-		n = cap(sim.vertBuf) / 4
-	}
-	span := b.max - b.min
-	vertices := sim.vertBuf[:n*4]
-	for i := range n {
-		fx := float32(b.colOf[i]) / float32(bifCols-1)
-		fy := float32((b.valOf[i] - b.min) / span)
-		k := i * 4
-		vertices[k] = (fx*2 - 1) * 20
-		vertices[k+1] = (fy*2 - 1) * 12
-		vertices[k+2] = 0
-		vertices[k+3] = fx // gradient follows the sweep
-	}
-	gpu.uploadVerticesOnly(vertices, glctx.Types.Points, n)
-	b.drawCursor(p, span)
-	if !b.fitDone && b.nextCol >= bifCols/4 {
+	gpu.uploadVerticesOnly(vertices[:n*4], glctx.Types.Points, n)
+	b.drawCursor(p, b.max-b.min)
+	if !b.fitDone && b.Started() {
 		b.fitDone = true
 		view.autoFitCamera()
 	}
@@ -338,6 +260,9 @@ func (b *bifurcation) showCursor(s string) {
 // moves nothing.
 func (b *bifurcation) wireBifCells() {
 	if sel := dom.Doc.Call("getElementById", "bif-sweep"); sel.Truthy() {
+		// A control of the rack, so a rack without the page can choose what is
+		// swept: its options are the last flow's parameters, by index.
+		registerControl(ControlDesc{ID: "bif-sweep", Label: "sweep", IsSelect: true, SelectDef: "1"}, moduleOfControl("bif-sweep"))
 		dom.On(sel, "change", func(js.Value, []js.Value) any {
 			if b.sweepFilling {
 				return nil

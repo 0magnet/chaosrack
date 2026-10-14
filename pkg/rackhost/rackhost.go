@@ -815,6 +815,17 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 		n = len(fig.Edges)
 	}
 	m := attractor.DrawFigure(fig, 0, n, o)
+	if len(heard.overlay.Points) > 0 {
+		// LINE S: the section's crossings in gold where they are, over the
+		// trail, framed as the flow is.
+		ov := o
+		ov.Gradient = rasterview.Gradient{Colors: 1, Base: sectGold}
+		ov.View.BackDim = 0
+		if ov.Fit == nil {
+			ov.Fit = fig.Points
+		}
+		over(m, attractor.DrawFigure(heard.overlay, 0, len(heard.overlay.Points), ov))
+	}
 	if len(heard.grat.Edges) > 0 {
 		// The Stereo Embedding's graticule, flat gray behind the trace.
 		og := o
@@ -1020,4 +1031,13 @@ func (s *scene) pose(key string, flat, running, auto bool, rate [3]float64, dt f
 		}
 	}
 	s.turned = false
+}
+
+// over puts src's drawn pixels over dst's.
+func over(dst, src *image.RGBA) {
+	for i := 0; i+3 < len(dst.Pix) && i+3 < len(src.Pix); i += 4 {
+		if !isBack(src.Pix[i : i+3]) {
+			copy(dst.Pix[i:i+3], src.Pix[i:i+3])
+		}
+	}
 }

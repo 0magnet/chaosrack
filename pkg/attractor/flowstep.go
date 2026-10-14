@@ -1,5 +1,3 @@
-//go:build js && wasm
-
 package attractor
 
 // The generic flow stepper the Grid's start sweep, the Poincaré section, the

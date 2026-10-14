@@ -1,6 +1,7 @@
 package rackhost
 
 import (
+	"math"
 	"testing"
 )
 
@@ -63,5 +64,91 @@ func TestFourierTextDrawsItsBanner(t *testing.T) {
 	r.scene.mu.Unlock()
 	if again == first {
 		t.Error("4 harmonics drew the same glyphs as 24")
+	}
+}
+
+// The bifurcation explorer sweeps the last flow shown: its diagram grows as
+// it runs, across the swept parameter's range.
+func TestTheBifurcationDiagramGrows(t *testing.T) {
+	r, c := idleRack(t, "lorenz")
+	watch(t, r, c, 0.1)
+	set(t, r, r.selector, "bifurcation")
+	early := shownFigure(t, r, c, 0.2)
+	later := shownFigure(t, r, c, 2)
+	if len(later) <= len(early) || len(later) < 1000 {
+		t.Fatalf("the diagram has %d points after 0.2 s and %d after 2 s", len(early), len(later))
+	}
+	lo, hi := later[0][0], later[0][0]
+	for _, p := range later {
+		lo, hi = min(lo, p[0]), max(hi, p[0])
+	}
+	if hi-lo < 10 {
+		t.Errorf("the diagram spans %.1f..%.1f across: the sweep did not move", lo, hi)
+	}
+}
+
+// The Poincaré model is the last flow's crossings of its plane: in place,
+// all at the plane's z; face on, flat; as a return map, with its guide.
+func TestThePoincareSection(t *testing.T) {
+	r, c := idleRack(t, "lorenz")
+	watch(t, r, c, 0.1)
+	set(t, r, r.selector, "poincare")
+	pts := shownFigure(t, r, c, 1)
+	if len(pts) < 100 {
+		t.Fatalf("the section has %d crossings", len(pts))
+	}
+	for _, p := range pts {
+		if math.Abs(p[2]-pts[0][2]) > 1e-3 {
+			t.Fatalf("a crossing at z %.3f, another at %.3f: not one plane", p[2], pts[0][2])
+		}
+	}
+	set(t, r, "sect-view", "1")
+	for _, p := range shownFigure(t, r, c, 0.1) {
+		if p[2] != 0 {
+			t.Fatalf("face on, a crossing is off the plane: %v", p)
+		}
+	}
+	set(t, r, "sect-view", "2")
+	if m := shownFigure(t, r, c, 0.1); len(m) < 64 {
+		t.Errorf("the return map is %d points", len(m))
+	}
+}
+
+// LINE S draws the section over a running flow, in gold.
+func TestLineSOverlaysTheSection(t *testing.T) {
+	r, c := idleRack(t, "lorenz")
+	set(t, r, "sect-sw", "1")
+	watch(t, r, c, 1)
+	img, err := r.Scene(160, 100, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gold := 0
+	for i := 0; i+2 < len(img.Px); i += 3 {
+		if near(img.Px[i:i+3], [3]uint8{255, 204, 38}) {
+			gold++
+		}
+	}
+	if gold < 10 {
+		t.Errorf("LINE S drew %d gold pixels", gold)
+	}
+}
+
+// SWEEP is the last flow's parameters: the diagram sweeps the one it is on.
+func TestTheBifurcationSweepsWhatSweepPicks(t *testing.T) {
+	r, c := idleRack(t, "lorenz")
+	watch(t, r, c, 0.1)
+	set(t, r, r.selector, "bifurcation")
+	watch(t, r, c, 0.1)
+	r.mu.Lock()
+	sw := r.ctls[r.byID["bif-sweep"]]
+	r.mu.Unlock()
+	if len(sw.Labels) != 4 || sw.Labels[2] != "ρ" {
+		t.Fatalf("SWEEP offers %v on Lorenz", sw.Labels)
+	}
+	set(t, r, "bif-sweep", "2")
+	pts := shownFigure(t, r, c, 1)
+	if len(pts) < 100 {
+		t.Errorf("sweeping ρ drew %d points", len(pts))
 	}
 }
