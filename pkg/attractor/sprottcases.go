@@ -23,17 +23,6 @@ func init() {
 		c := dynamics.SprottCases[i]
 		idx := i
 		registerGenerate(c.Key, func() { generateSprottCase(idx) })
-		attractorParams[c.Key] = []paramDef{
-			{c.Key + "-dt", "dt", &dynamics.SprottDTs[i], c.DT, 0.001, 0.05, 0.001},
-		}
-	}
-
-	attractorParams["hyperrossler"] = []paramDef{
-		{"hyperrossler-dt", "dt", &dynamics.HyperDT, 0.001, 0.0002, 0.005, 0.0002},
-		{"hyperrossler-a", "a", &dynamics.HyperA, 0.25, 0.01, 0.5, 0.01},
-		{"hyperrossler-b", "b", &dynamics.HyperB, 3.0, 0.1, 6, 0.1},
-		{"hyperrossler-c", "c", &dynamics.HyperC, 0.5, 0.05, 2, 0.01},
-		{"hyperrossler-d", "d", &dynamics.HyperD, 0.05, 0.01, 0.5, 0.01},
 	}
 }
 

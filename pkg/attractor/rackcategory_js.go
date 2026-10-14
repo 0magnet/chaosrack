@@ -1296,6 +1296,10 @@ func buildFamilySelect(f *modelFamily) js.Value {
 	}
 	sel.Set("value", f.current())
 	f.sel = sel
+	// A control of the rack, as the MODEL knob is: without it neither ctl, a
+	// panel in a terminal nor the native rack could reach a member past the
+	// first. Its module is the bank's, where its cell is drawn.
+	registerControl(ControlDesc{ID: "fam-" + f.Key, Label: "sys", IsSelect: true, SelectDef: f.Members[0]}, "visual · model")
 	dom.On(sel, "change", func(js.Value, []js.Value) any {
 		if catRotarySyncing {
 			return nil

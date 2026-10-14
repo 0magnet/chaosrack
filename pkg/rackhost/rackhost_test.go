@@ -386,3 +386,72 @@ func TestThePictureHoldsEachItemOnce(t *testing.T) {
 		}
 	}
 }
+
+// Every flow's and map's constants are the native rack's to turn: a knob
+// moved redraws the model with it.
+func TestEveryConstantTurnsItsModel(t *testing.T) {
+	for _, k := range []struct{ model, id, to string }{
+		{"lu", "lu-a", "30"},
+		{"newtonleipnik", "nl-a", "0.3"},
+		{"hyperrossler", "hyperrossler-a", "0.2"},
+		{"henon", "henon-a", "1.2"},
+		{"clifford", "clifford-a", "-1"},
+		{"sprotta", "sprotta-dt", "0.02"},
+	} {
+		r, c := idleRack(t, k.model)
+		p, ok := r.flow[k.id]
+		_ = c
+		if !ok {
+			t.Errorf("%s is not a constant the native rack turns", k.id)
+			continue
+		}
+		looks(t, r, c, 0.1)
+		figure := func() [3]float64 {
+			frame(t, r)
+			r.scene.mu.Lock()
+			defer r.scene.mu.Unlock()
+			ps := r.scene.fig.Points
+			return ps[len(ps)/2]
+		}
+		before := figure()
+		orig := *p.Value
+		set(t, r, k.id, k.to)
+		after := figure()
+		*p.Value = orig // the integrator's, shared by every rack in the process
+		if before == after {
+			t.Errorf("%s at %s drew the same %s", k.id, k.to, k.model)
+		}
+	}
+}
+
+// The Sprott family's lettered dial plays the member it is on, with that
+// member's bank, from the MODEL knob's family position.
+func TestTheSprottDialPlaysItsMember(t *testing.T) {
+	r, c := idleRack(t, "sprotta")
+	set(t, r, "fam-sprott", "sprottc")
+	r.mu.Lock()
+	m, bank := r.model(), r.inBank["sprottc-dt"]
+	r.mu.Unlock()
+	if m != "sprottc" || !bank {
+		t.Fatalf("the dial on C plays %q, its dt in the bank %v", m, bank)
+	}
+	looks(t, r, c, 0.1)
+	if _, err := r.Scene(40, 20, 1); err != nil {
+		t.Fatalf("Sprott C: %v", err)
+	}
+	p := r.flow["sprottc-dt"]
+	orig := *p.Value
+	frame(t, r)
+	r.scene.mu.Lock()
+	before := r.scene.fig.Points[len(r.scene.fig.Points)/2]
+	r.scene.mu.Unlock()
+	set(t, r, "sprottc-dt", "0.03")
+	frame(t, r)
+	r.scene.mu.Lock()
+	after := r.scene.fig.Points[len(r.scene.fig.Points)/2]
+	r.scene.mu.Unlock()
+	*p.Value = orig
+	if before == after {
+		t.Error("Sprott C's dt did not change it")
+	}
+}

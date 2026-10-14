@@ -32,6 +32,65 @@ type Param struct {
 
 // params is the registry, keyed by mode.
 var params = map[string][]Param{
+	// The systems that integrate through the shared RK4 loop, and the maps:
+	// their rows were the front end's until a rack without a page had to
+	// turn them too.
+	"lu": {
+		{"lu-dt", "dt", &LuDT, 0.005, 0.001, 0.02, 0.001},
+		{"lu-a", "a", &LuA, 36, 1, 50, 0.1},
+		{"lu-b", "b", &LuB, 3, 0.1, 10, 0.1},
+		{"lu-c", "c", &LuC, 20, 1, 40, 0.1},
+	},
+	"newtonleipnik": {
+		{"nl-dt", "dt", &NlDT, 0.005, 0.001, 0.02, 0.001},
+		{"nl-a", "a", &NlA, 0.4, 0.1, 1, 0.01},
+		{"nl-b", "b", &NlB, 0.175, 0.01, 0.5, 0.01},
+	},
+	"hyperrossler": {
+		{"hyperrossler-dt", "dt", &HyperDT, 0.001, 0.0002, 0.005, 0.0002},
+		{"hyperrossler-a", "a", &HyperA, 0.25, 0.01, 0.5, 0.01},
+		{"hyperrossler-b", "b", &HyperB, 3.0, 0.1, 6, 0.1},
+		{"hyperrossler-c", "c", &HyperC, 0.5, 0.05, 2, 0.01},
+		{"hyperrossler-d", "d", &HyperD, 0.05, 0.01, 0.5, 0.01},
+	},
+	"sprotta": {
+		{"sprotta-dt", "dt", &SprottADT, 0.0005, 0.0001, 0.02, 0.0001},
+	},
+	// Every map reseeds on a parameter edit: an orbit is only meaningful for
+	// the parameters that produced it.
+	"henon": {
+		{"henon-a", "a", &HenonA, 1.4, 0.1, 1.45, 0.001},
+		{"henon-b", "b", &HenonB, 0.3, 0.01, 0.4, 0.001},
+	},
+	"ikeda": {
+		{"ikeda-u", "u", &IkedaU, 0.9, 0.5, 1.0, 0.001},
+	},
+	"clifford": {
+		{"clifford-a", "a", &CliffordA, -1.4, -3, 3, 0.01},
+		{"clifford-b", "b", &CliffordB, 1.6, -3, 3, 0.01},
+		{"clifford-c", "c", &CliffordC, 1.0, -3, 3, 0.01},
+		{"clifford-d", "d", &CliffordD, 0.7, -3, 3, 0.01},
+	},
+	"dejong": {
+		{"dejong-a", "a", &DejongA, 1.641, -3, 3, 0.01},
+		{"dejong-b", "b", &DejongB, 1.902, -3, 3, 0.01},
+		{"dejong-c", "c", &DejongC, 0.316, -3, 3, 0.01},
+		{"dejong-d", "d", &DejongD, 1.525, -3, 3, 0.01},
+	},
+	"mira": {
+		{"mira-mu", "μ", &MiraMu, -0.496, -1, 1, 0.001},
+		{"mira-a", "a", &MiraA, 0.008, 0, 0.1, 0.001},
+		{"mira-b", "b", &MiraB, 0.05, 0, 1, 0.001},
+	},
+	"tinkerbell": {
+		{"tinkerbell-a", "a", &TinkA, 0.9, -1, 1, 0.001},
+		{"tinkerbell-b", "b", &TinkB, -0.6013, -1, 1, 0.001},
+		{"tinkerbell-c", "c", &TinkC, 2.0, -3, 3, 0.01},
+		{"tinkerbell-d", "d", &TinkD, 0.5, -1, 1, 0.001},
+	},
+	"standardmap": {
+		{"standardmap-k", "K", &StdK, 0.971635, 0, 6, 0.001},
+	},
 	"lorenz": {
 		{"lorenz-dt", "dt", &LorenzDT, 0.005, 0.001, 0.05, 0.001},
 		{"lorenz-s", "σ", &LorenzS, 10.0, 1, 30, 0.1},

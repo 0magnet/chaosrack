@@ -7,19 +7,9 @@ import "github.com/0magnet/chaosrack/pkg/dynamics"
 // Sprott case A — the conservative Nosé–Hoover oscillator, completing the
 // A–S set (cases B–S live in sprottdata.go / sprottcases.go). Needs the
 // double-precision RK4 loop: single-precision Euler damps it into a clean
-// loop instead of filling its chaotic sea.
-
-var sprottADT float32 = 0.01
+// loop instead of filling its chaotic sea. Its field, step and knob are in
+// pkg/dynamics (sprotta.go), where a rack without a page integrates it too.
 
 func generateSprottA() {
-	integrate3D(float64(sprottADT), func(x, y, z float64) (float64, float64, float64) {
-		return y, -x + y*z, 1 - y*y
-	})
-}
-
-func init() {
-	attractorParams["sprotta"] = []paramDef{
-		{"sprotta-dt", "dt", &sprottADT, 0.0005, 0.0001, 0.02, 0.0001},
-	}
-	dynamics.InitCond["sprotta"] = [3]float32{0, 5, 0}
+	integrate3D(float64(dynamics.SprottADT), dynamics.SprottADeriv)
 }
