@@ -18,17 +18,18 @@ import (
 // analyzers are the native rack's analyzers and when they last looked.
 type analyzers struct {
 	rta  *attractor.RTA
+	xfer *attractor.Transfer
 	last time.Time
 }
 
 func newAnalyzers() analyzers {
-	return analyzers{rta: attractor.NewRTA()}
+	return analyzers{rta: attractor.NewRTA(), xfer: attractor.NewTransfer()}
 }
 
 // isAnalyzer reports whether the native rack draws model key as a flat
 // analyzer.
 func isAnalyzer(key string) bool {
-	return key == "rta"
+	return key == "rta" || key == "xfer"
 }
 
 // listens reports whether model key is drawn from the rack's signal.
@@ -73,6 +74,16 @@ func (r *Rack) analyzerPlot(key string, w int) []plotPass {
 			{v: clone(bars), width: max(1, int(math.Round(float64(w)/400)))},
 			{v: clone(marks), width: 1},
 		}
+	case "xfer":
+		m := a.xfer
+		for _, id := range attractor.TransferKnobs {
+			m.Set(id, float32(r.number(id)))
+		}
+		if l, rt := r.sound.window(attractor.XferFFT); len(l) == attractor.XferFFT && m.Due(nowMs) {
+			m.Analyze(l, rt, sampleRate)
+		}
+		// The page draws its curves about three of its pixels thick.
+		return []plotPass{{v: clone(m.Lines(r.analyzerColors())), width: max(1, int(math.Round(float64(w)/400)))}}
 	}
 	return nil
 }
