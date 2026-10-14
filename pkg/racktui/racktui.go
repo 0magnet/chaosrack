@@ -131,3 +131,15 @@ type CellShaper interface {
 	// "not known", and the default stands.
 	CellAspect() float64
 }
+
+// cellAspectOf is the shape of a cell, height over width: what the source
+// says, when it knows (a page host does), and otherwise what the terminal
+// reports, or 0 for the default guess.
+func cellAspectOf(src Source) float64 {
+	if sh, ok := src.(CellShaper); ok {
+		if a := sh.CellAspect(); a > 0 {
+			return a
+		}
+	}
+	return measuredCellAspect()
+}
