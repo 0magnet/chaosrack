@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/0magnet/chaosrack/pkg/attractor"
 	"github.com/0magnet/chaosrack/pkg/audiosrc"
 )
 
@@ -67,13 +68,20 @@ type sound struct {
 	speaker Speaker
 	err     error // why the speaker could not play
 	mat     matrix
-	vals    [audiosrc.OscCount]float64
-	mo      [3][]float32
-	bus     [2][]float32 // the Matrix's pads and drums, a buffer's worth
-	keys    keyBank
-	ky      []float32 // the Keys, a buffer's worth
-	games   games
-	fx      []float32 // the games' blips, a buffer's worth
+	// wob is the FVF wobbulator, and listen whether its Listen switch plays
+	// the capture through it into the FX column (modelsw.go).
+	wob    *attractor.Wobbulator
+	listen struct {
+		on, shown bool
+		proc      *attractor.FVFProcessor
+	}
+	vals  [audiosrc.OscCount]float64
+	mo    [3][]float32
+	bus   [2][]float32 // the Matrix's pads and drums, a buffer's worth
+	keys  keyBank
+	ky    []float32 // the Keys, a buffer's worth
+	games games
+	fx    []float32 // the games' blips, a buffer's worth
 	// touched is a hand having been on the rack, which lets the ball's
 	// blips be heard, as a gesture lets the page's audio start.
 	touched bool
@@ -99,7 +107,7 @@ func newSound() *sound {
 		// The level is applied here, where it can glide.
 		fg.SetAmp(i, 1)
 	}
-	s := &sound{fg: fg, mat: newMatrix(), keys: newKeyBank(), games: newGames(), now: time.Now}
+	s := &sound{fg: fg, mat: newMatrix(), keys: newKeyBank(), games: newGames(), wob: attractor.NewWobbulator(), now: time.Now}
 	s.wireGames()
 	return s
 }
@@ -150,7 +158,11 @@ func (r *Rack) soundSet(id string) (more [][2]string) {
 	case isKeysControl(id):
 		more = r.keysSet(id)
 	case isGameControl(id):
-		more = r.gameSet(id)
+		r.gameSet(id)
+	case strings.HasPrefix(id, "model-sw-"):
+		more = r.modelSwitchSet(id)
+	case strings.HasPrefix(id, "fvf-"):
+		s.wob.Set(id, float32(r.number(id)))
 	case id == "gen-solo":
 		solo := -1
 		for j, p := range genIDs {
@@ -166,6 +178,8 @@ func (r *Rack) soundSet(id string) (more [][2]string) {
 		}
 	case id == r.selector || id == "mo-spd" || id == "mo-lvl":
 		r.modelSet()
+		// Listen plays only while FVF, whose switch it is, is on show.
+		s.listen.shown = r.value(r.selector) == "fvf"
 	default:
 		if side, src, ok := pinOf(id); ok {
 			s.spk[side][src] = r.number(id)
@@ -275,6 +289,9 @@ func (s *sound) heard() bool {
 	if s.games.heard(s.touched) && s.pinned(srcFX) {
 		return true
 	}
+	if s.listening() && s.pinned(srcFX) {
+		return true
+	}
 	return len(s.keys.voices) > 0 && s.keys.lvl > 0 && s.pinned(srcKY)
 }
 
@@ -381,18 +398,22 @@ func (s *sound) render(left, right []float32) {
 		s.ky = grown(s.ky, n)
 		s.keys.render(s.ky, n)
 	}
-	fxOn := len(s.games.blips) > 0
-	if fxOn {
-		s.fx = grown(s.fx, n)
-		s.games.render(s.fx, n)
-	}
 	busOn := s.rack.on()
+	listening := s.listening()
 	s.capL, s.capR = grown(s.capL, n), grown(s.capR, n)
-	if busOn && s.rack.capOn() {
+	if busOn && s.rack.capOn() || listening {
 		s.capt.take(s.capL, s.capR, n)
 	} else {
 		clear(s.capL)
 		clear(s.capR)
+	}
+	fxOn := len(s.games.blips) > 0 || listening
+	if fxOn {
+		s.fx = grown(s.fx, n)
+		s.games.render(s.fx, n)
+		if listening {
+			s.listenInto(s.fx, n)
+		}
 	}
 	k := 1 - math.Exp(-1/(levelGlide*sampleRate))
 	for j := range n {

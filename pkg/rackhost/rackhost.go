@@ -82,6 +82,8 @@ type Rack struct {
 	// analyzers are the flat analyzers, which keep their meters and averages
 	// from frame to frame (analyzers.go).
 	analyzers analyzers
+	// legendItem is each programmable switch's legend display (modelsw.go).
+	legendItem map[string]int
 }
 
 // New is a rack at the catalog's defaults.
@@ -141,10 +143,12 @@ func New() (*Rack, error) {
 	}
 	p.Ctls = r.outsideBox
 	r.calibrate(0, r.outside, func(string) bool { return true }, nil)
+	r.findLegends()
 	r.useBank(r.value(r.selector))
 	r.scene.start()
 	r.sound = newSound()
 	r.soundStart()
+	r.showModelSwitches(r.value(r.selector))
 	r.findMatrix()
 	r.findKeys()
 	return r, nil
@@ -277,6 +281,7 @@ func (r *Rack) set(id, value string) error {
 		// mode change: the signal may have changed while it was away.
 		r.analyzers.tau.Arm()
 		r.useBank(v)
+		r.showModelSwitches(v)
 		return nil
 	}
 	r.turn(c)
