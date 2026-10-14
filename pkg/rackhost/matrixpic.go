@@ -320,7 +320,7 @@ func (r *Rack) paintLane(d int, v matrixView) {
 // markAt is the mark of the smallest marked part drawn at x, y, or "".
 func (r *Rack) markAt(x, y float64) string {
 	best, area := "", -1.0
-	for _, i := range r.mx.marked {
+	for _, i := range append(r.mx.marked[:len(r.mx.marked):len(r.mx.marked)], r.analyzers.ro.btns...) {
 		it := r.pic.Items[i]
 		if it == nil || x < it.X || x > it.X+it.W || y < it.Y || y > it.Y+it.H {
 			continue
@@ -383,6 +383,8 @@ func (r *Rack) press(mark string) bool {
 		s.mat.clear()
 		s.mu.Unlock()
 		return true
+	case "btn":
+		return len(f) > 1 && r.remeasure(f[1])
 	}
 	return false
 }

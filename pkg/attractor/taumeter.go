@@ -172,3 +172,21 @@ func (m *TauMeter) Text(tau float32) string {
 	}
 	return m.measText(tau)
 }
+
+// Measure is the ↻ button: it measures x, the newest TakensEstMax samples of
+// the channel at rate sr, whatever τ is set, and reports the τ to turn the
+// knob to. What it writes is a τ somebody asked for, so the one-shot will not
+// measure over it.
+func (m *TauMeter) Measure(x []float32, sr int) (float32, bool) {
+	if len(x) < 512 {
+		return 0, false
+	}
+	xs := make([]float64, len(x))
+	for i, v := range x {
+		xs[i] = float64(v)
+	}
+	if t, ok := m.estimate(xs, sr); ok {
+		return tauKnob(t, sr), true
+	}
+	return 0, false
+}

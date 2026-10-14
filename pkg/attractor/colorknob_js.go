@@ -179,10 +179,21 @@ func buildColorKnob(colorInput js.Value) js.Value {
 	colorInput.Call("addEventListener", "change", syncFromSwatch)
 	colorInput.Call("addEventListener", "input", syncFromSwatch)
 
+	// Each ring is a control of the rack, named from its swatch, and its own
+	// ring is where it is: a rack without the page (the native panel) finds
+	// and turns it by that box, the inner ring inside the outer.
+	id := colorInput.Get("id").String()
+	for _, p := range []struct {
+		r, knob js.Value
+		suffix  string
+	}{{hueR, hueKnob, "-hue"}, {levR, levKnob, "-lvl"}} {
+		p.r.Set("id", "ck-"+id+p.suffix)
+		p.knob.Call("setAttribute", "data-ctl-part", "")
+		p.knob.Call("appendChild", p.r)
+	}
+
 	wrap := dom.Doc.Call("createElement", "span")
 	wrap.Set("className", "colorknob")
-	wrap.Call("appendChild", hueR)
-	wrap.Call("appendChild", levR)
 	wrap.Call("appendChild", stack)
 	return wrap
 }
@@ -201,6 +212,9 @@ func attachColorKnobs() {
 			continue
 		}
 		holder.Call("appendChild", buildColorKnob(ci))
+		h, s, v := knobHSV(ci.Get("value").String())
+		registerControl(ControlDesc{ID: "ck-" + id + "-hue", Label: "hue", Min: 0, Max: 360, Step: 1, Def: math.Round(h)}, moduleOfControl("ck-"+id+"-hue"))
+		registerControl(ControlDesc{ID: "ck-" + id + "-lvl", Label: "lvl", Min: 0, Max: 100, Step: 1, Def: math.Round(svToLevel(s, v))}, moduleOfControl("ck-"+id+"-lvl"))
 		// LED readout of the HTML color (hex) below the knob, pinned to the cell
 		// bottom so it doesn't shift the knob's centering.
 		if cell := holder.Get("parentNode"); cell.Truthy() {

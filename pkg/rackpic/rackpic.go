@@ -93,7 +93,8 @@ type Item struct {
 	// which no control's box describes: "pad C R" is the Matrix's pad of
 	// step C and row R (rows past the pitches are the drum lanes), "tab P"
 	// the rhythm tab of preset P, "beat" a beat lamp, "clear" the Matrix's
-	// Clear.
+	// Clear, "led ID" a model readout's display, "mro" the rest of its
+	// readout line, and "btn ID" the ↻ beside a readout that measures again.
 	Mark string `json:"m,omitempty"`
 }
 
