@@ -24,6 +24,8 @@ import (
 // whatever the wrap happened to put beside it.
 
 type panel struct {
+	// gk is the keys a game holds down (gamekeys.go).
+	gk   gameKeys
 	src  Source
 	ctls []Control
 	all  []Control // before the filter
@@ -180,6 +182,7 @@ func RunOn(sc tcell.Screen, src Source) error {
 			q.waiting.Store(false)
 			refreshing = time.Time{}
 		}
+		p.letGoGameKeys(time.Now())
 		changed := true
 		switch ev := (<-sc.EventQ()).(type) {
 		case *tcell.EventResize:
@@ -190,6 +193,9 @@ func RunOn(sc tcell.Screen, src Source) error {
 			// cell for the new size. Syncing here painted them all again, and
 			// zoomed out each of those took seconds.
 		case *tcell.EventKey:
+			if p.gameKey(ev) {
+				break
+			}
 			if !ev.Pressed() {
 				continue
 			}

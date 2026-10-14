@@ -340,3 +340,36 @@ func (s *sound) hand() {
 	s.touched = true
 	s.mu.Unlock()
 }
+
+// GameKey plays Pong's paddles from the keyboard, as the page's W/S and ↑/↓
+// do: a key held moves its paddle, and the side becomes a hand's. Another
+// model takes no keys.
+func (r *Rack) GameKey(key string, down bool) bool {
+	r.mu.Lock()
+	pong := r.value(r.selector) == "pong"
+	r.mu.Unlock()
+	if !pong {
+		return false
+	}
+	s := r.sound
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	p := &s.games.pong
+	switch key {
+	case "w":
+		p.KeyW, p.HumanL = down, scopegames.PongHuman
+	case "s":
+		p.KeyS, p.HumanL = down, scopegames.PongHuman
+	case "up":
+		p.KeyUp, p.HumanR = down, scopegames.PongHuman
+	case "down":
+		p.KeyDn, p.HumanR = down, scopegames.PongHuman
+	default:
+		return false
+	}
+	if down {
+		// A hand on a paddle, as a pot turned is: Pong is heard from now.
+		s.games.pongArmed = true
+	}
+	return true
+}

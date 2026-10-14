@@ -212,6 +212,7 @@ var (
 	_ racktui.Source   = (*Rack)(nil)
 	_ racktui.Pictured = (*Rack)(nil)
 	_ racktui.Paced    = (*Rack)(nil)
+	_ racktui.GameKeys = (*Rack)(nil)
 )
 
 // Modules is the catalog's.
