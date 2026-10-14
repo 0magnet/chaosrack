@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/0magnet/chaosrack/internal/rackcable"
+	"github.com/0magnet/chaosrack/pkg/hostaudio"
 	"github.com/0magnet/chaosrack/pkg/rackhost"
 	"github.com/0magnet/chaosrack/pkg/racklink"
 	"github.com/0magnet/chaosrack/pkg/racktui"
@@ -101,6 +102,11 @@ func Panel(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+		// The rack is heard on this machine's speakers once a generator is
+		// switched on, and is silent again when the panel goes.
+		sp := hostaudio.New(r.Fill, r.SampleRate())
+		defer sp.Close()
+		r.SetSpeaker(sp)
 		return racktui.Run(ctx, r)
 	}
 	if tuiVia == "" {
