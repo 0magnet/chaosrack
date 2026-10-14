@@ -7,10 +7,11 @@
 // picture's knob pointers — and the model is drawn here too, from the same
 // figures and trajectories `chaosrack render` draws, with no GPU.
 //
-// What the page computes in Web Audio is not here yet: a control's value
-// is held and shown, but only the model bay and the modules that draw it
-// (View, Display, Layers · Colors) act on anything. The modules come over
-// one at a time.
+// The sound is made here too and played on the host's speakers (sound.go):
+// the signal generators, Model Out, and the Matrix with its drum lanes,
+// through the Mixer's speaker pins. The keys, the synth's modules and the
+// effects are the page's still: their values are held and shown, and act on
+// nothing yet. The modules come over one at a time.
 package rackhost
 
 import (
@@ -69,6 +70,7 @@ type Rack struct {
 	refigure atomic.Bool
 
 	sound *sound
+	mx    matrixPic // the Matrix's parts in the picture
 }
 
 // New is a rack at the catalog's defaults.
@@ -129,6 +131,7 @@ func New() (*Rack, error) {
 	r.scene.start()
 	r.sound = newSound()
 	r.soundStart()
+	r.findMatrix()
 	return r, nil
 }
 
@@ -192,6 +195,7 @@ func (r *Rack) useBank(model string) {
 var (
 	_ racktui.Source   = (*Rack)(nil)
 	_ racktui.Pictured = (*Rack)(nil)
+	_ racktui.Paced    = (*Rack)(nil)
 )
 
 // Modules is the catalog's.
@@ -234,10 +238,10 @@ func (r *Rack) set(id, value string) error {
 		return nil
 	}
 	c.Value = v
-	for _, pin := range r.soundSet(id) {
-		// A generator turned while pinned nowhere: pin it, as a hand on the
-		// Mixer would, so its lamp lights too.
-		if err := r.set(pin, "1"); err != nil {
+	for _, s := range r.soundSet(id) {
+		// A generator turned while pinned nowhere is pinned, as a hand on the
+		// Mixer would, so its lamp lights too; a preset moves the steps.
+		if err := r.set(s[0], s[1]); err != nil {
 			return err
 		}
 	}
@@ -463,6 +467,7 @@ func (r *Rack) showAngles(angle [3]float64) {
 func (r *Rack) Picture() (*rackpic.Picture, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.showMatrix()
 	p := *r.pic
 	p.Items = append([]*rackpic.Item(nil), r.pic.Items...)
 	return &p, nil
@@ -472,6 +477,7 @@ func (r *Rack) Picture() (*rackpic.Picture, error) {
 func (r *Rack) PictureChanges(gen int) (*rackpic.Patch, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.showMatrix()
 	if gen < r.full {
 		// The picture was rebuilt since: a new model's bank. All of it.
 		p := *r.pic
@@ -495,6 +501,14 @@ func (r *Rack) PictureChanges(gen int) (*rackpic.Patch, error) {
 // wheel turns a dial by its step or a selector by one detent.
 func (r *Rack) Act(_ int, x, y float64, kind string, delta float64) error {
 	r.mu.Lock()
+	if kind == "click" {
+		// The Matrix's pads, tabs and Clear, which are not controls.
+		if m := r.markAt(x, y); m != "" && r.press(m) {
+			r.mu.Unlock()
+			r.sound.tell()
+			return nil
+		}
+	}
 	id := r.controlAt(x, y)
 	if id == "" {
 		r.mu.Unlock()
@@ -534,6 +548,10 @@ func (r *Rack) Act(_ int, x, y float64, kind string, delta float64) error {
 	}
 	return nil
 }
+
+// RefreshEvery is how often a panel should ask this rack for its picture: it
+// answers in microseconds, and the Matrix's playhead moves every sixteenth.
+func (r *Rack) RefreshEvery() time.Duration { return 50 * time.Millisecond }
 
 // stepOption is the option step places from c's, wrapping around.
 func stepOption(c racktui.Control, step int) string {

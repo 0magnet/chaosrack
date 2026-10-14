@@ -11,9 +11,9 @@ import (
 
 // The rack's sound: the four signal generators, made here as the page's
 // rack signal makes them (audiosrc.FuncGen), Model Out, the model's own
-// equations run at audio rate, and the Mixer's speaker pins that put each on
-// the left or the right. What plays the samples is the host's (a Speaker);
-// the rack only makes them.
+// equations run at audio rate, the Matrix and its drums (matrix.go), and the
+// Mixer's speaker pins that put each on the left or the right. What plays
+// the samples is the host's (a Speaker); the rack only makes them.
 
 // Speaker is what plays the rack: told when there is something to hear, it
 // asks the rack for samples (Fill) at the rack's SampleRate.
@@ -26,12 +26,14 @@ type Speaker interface {
 // oscillators' order.
 var genIDs = [audiosrc.OscCount]string{"gen-x", "gen-y", "gen-z", "gen-v"}
 
-// The Mixer's columns the rack makes sound for: the four generators, then
-// the model's x, y and z.
-var mixKeys = [...]string{"g1", "g2", "g3", "g4", "mx", "my", "mz"}
+// The Mixer's columns the rack makes sound for: the four generators, the
+// model's x, y and z, and the Matrix's pads and drums.
+var mixKeys = [...]string{"g1", "g2", "g3", "g4", "mx", "my", "mz", "tm", "dr"}
 
 const (
 	srcModel = audiosrc.OscCount // the first of the model's columns
+	srcTM    = srcModel + 3 + busTM
+	srcDR    = srcModel + 3 + busDR
 	nSources = len(mixKeys)
 )
 
@@ -60,8 +62,10 @@ type sound struct {
 	model   modelVoice
 	speaker Speaker
 	err     error // why the speaker could not play
+	mat     matrix
 	vals    [audiosrc.OscCount]float64
 	mo      [3][]float32
+	bus     [2][]float32 // the Matrix's pads and drums, a buffer's worth
 }
 
 func newSound() *sound {
@@ -71,7 +75,7 @@ func newSound() *sound {
 		// The level is applied here, where it can glide.
 		fg.SetAmp(i, 1)
 	}
-	return &sound{fg: fg}
+	return &sound{fg: fg, mat: newMatrix()}
 }
 
 // genOf is the generator a control belongs to and the part of it (freq,
@@ -102,15 +106,21 @@ func pinOf(id string) (side, src int, ok bool) {
 func pinID(side, src int) string { return "mix-" + spkRows[side] + "-" + mixKeys[src] }
 
 // soundSet puts a control's new value into the sound, if the sound uses it,
-// and says which pins to set as well: a generator switched on and turned
-// while it is pinned nowhere is pinned, as the page's Mixer does it
-// (mixAutoPin), Gen 1 and 3 on the left and 2 and 4 on the right. Called
-// with r.mu held.
-func (r *Rack) soundSet(id string) (pin []string) {
+// and says which other controls to set as well, to what: a generator switched
+// on and turned while it is pinned nowhere is pinned, as the page's Mixer
+// does it (mixAutoPin), Gen 1 and 3 on the left and 2 and 4 on the right; a
+// rhythm preset moves the Matrix's steps. Called with r.mu held.
+func (r *Rack) soundSet(id string) (more [][2]string) {
 	s := r.sound
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	switch i, part := genOf(id); {
+	case isMatrixControl(id):
+		more = r.matrixSet(id)
+		if id == "tm-run" && s.mat.run {
+			// Run switched on is a hand on the Matrix, which starts it.
+			s.mat.armed = true
+		}
 	case id == "gen-solo":
 		solo := -1
 		for j, p := range genIDs {
@@ -122,7 +132,7 @@ func (r *Rack) soundSet(id string) (pin []string) {
 	case i >= 0:
 		r.genSet(i, part)
 		if s.on[i] && s.level[i] > 0 && s.spk[0][i] == 0 && s.spk[1][i] == 0 {
-			pin = append(pin, pinID(i%2, i))
+			more = append(more, [2]string{pinID(i%2, i), "1"})
 		}
 	case id == r.selector || id == "mo-spd" || id == "mo-lvl":
 		r.modelSet()
@@ -131,7 +141,7 @@ func (r *Rack) soundSet(id string) (pin []string) {
 			s.spk[side][src] = r.number(id)
 		}
 	}
-	return pin
+	return more
 }
 
 // genSet reads part of generator i off its control. Called with r.mu and
@@ -182,14 +192,20 @@ func (r *Rack) soundStart() {
 		}
 	}
 	r.modelSet()
+	// The Matrix as the catalog opened it, preset and all; the steps were
+	// captured already fitted to the preset.
+	for _, id := range []string{"tm-tempo", "tm-steps", "tm-root", "tm-lvl", "tm-wave", "tm-run", "rhythm-lvl", "rhythm-preset"} {
+		r.matrixSet(id)
+	}
 }
 
 // pinned reports whether column src is on either speaker.
 func (s *sound) pinned(src int) bool { return s.spk[0][src] != 0 || s.spk[1][src] != 0 }
 
 // heard reports whether anything reaches a speaker: a generator switched
-// on, let through by the solo and pinned to one, or a model with equations
-// to play whose output is pinned. Called with the sound's lock held.
+// on, let through by the solo and pinned to one, a model with equations to
+// play whose output is pinned, or a Matrix running with pads or drum steps
+// lit and pinned. Called with the sound's lock held.
 func (s *sound) heard() bool {
 	for i := range genIDs {
 		if s.on[i] && s.fg.Audible(i) && s.pinned(i) {
@@ -201,6 +217,12 @@ func (s *sound) heard() bool {
 			if s.pinned(srcModel + c) {
 				return true
 			}
+		}
+	}
+	if m := &s.mat; m.playing() {
+		pads, drums := m.lit()
+		if pads && m.lvl > 0 && s.pinned(srcTM) || drums && m.dlvl > 0 && s.pinned(srcDR) {
+			return true
 		}
 	}
 	return false
@@ -259,6 +281,16 @@ func (r *Rack) Fill(left, right []float32) {
 	if modelOn {
 		s.model.render(&s.mo, n)
 	}
+	matOn := s.mat.playing() || len(s.mat.voices) > 0
+	if matOn {
+		for b := range s.bus {
+			if cap(s.bus[b]) < n {
+				s.bus[b] = make([]float32, n)
+			}
+			s.bus[b] = s.bus[b][:n]
+		}
+		s.mat.render(s.bus[busTM], s.bus[busDR], n)
+	}
 	k := 1 - math.Exp(-1/(levelGlide*sampleRate))
 	for j := range n {
 		s.fg.Next(&s.vals)
@@ -274,6 +306,13 @@ func (r *Rack) Fill(left, right []float32) {
 				v := float64(s.mo[c][j])
 				l += v * s.spk[0][srcModel+c]
 				rt += v * s.spk[1][srcModel+c]
+			}
+		}
+		if matOn {
+			for b, src := range [2]int{srcTM, srcDR} {
+				v := float64(s.bus[b][j])
+				l += v * s.spk[0][src]
+				rt += v * s.spk[1][src]
 			}
 		}
 		left[j], right[j] = float32(l), float32(rt)

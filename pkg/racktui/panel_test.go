@@ -286,6 +286,14 @@ func TestSlashLetsAFilterBeginWithACommandLetter(t *testing.T) {
 	if p.key(tcell.NewEventKey(tcell.KeyEscape, "", tcell.ModNone)) || p.typing {
 		t.Fatal("escape after / quit, or left the filter begun")
 	}
+	// Escape out of a filter clears it, the cursor on what it found.
+	typed("/pause")
+	if p.key(tcell.NewEventKey(tcell.KeyEscape, "", tcell.ModNone)) {
+		t.Fatal("escape out of a filter quit the panel")
+	}
+	if p.filt != "" || len(p.ctls) != 2 || p.ctls[p.cur].ID != "pause-sw" {
+		t.Fatalf("escape left the filter %q, %d controls, the cursor on %s", p.filt, len(p.ctls), p.ctls[p.cur].ID)
+	}
 	if !typed("q") {
 		t.Fatal("q with no filter no longer quits")
 	}

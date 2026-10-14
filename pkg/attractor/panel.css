@@ -1552,7 +1552,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
 .tm-cell{width:100%;box-sizing:border-box;aspect-ratio:1;background:#10151a;border:1px solid #232b33;border-radius:2px;cursor:pointer;transition:background .12s,box-shadow .25s;}
 .tm-cell.on{background:linear-gradient(#2f9a5e,#0b3a20);border-color:#0b3a20;box-shadow:0 0 4px rgba(70,240,140,.35);}
 .tm-col.ph .tm-cell{background:#182028;border-color:#2e3944;}
-.tm-col.ph .tm-cell.on{background:linear-gradient(#c8ffe2,#5fd894);box-shadow:0 0 10px rgba(70,240,140,.8);}
+.tm-col.ph .tm-cell.on:not(.tm-drum){background:linear-gradient(#c8ffe2,#5fd894);box-shadow:0 0 10px rgba(70,240,140,.8);}
 /* The rhythm section, under the pitch rows (tonematrix_js.go): a gap, then the
    four drum lanes, each lit in a color of its own so the lanes read apart
    from the pitches and from each other. */

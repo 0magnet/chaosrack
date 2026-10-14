@@ -178,7 +178,22 @@
       var a = parseFloat(e.style.getPropertyValue("--a"));
       if (!isNaN(a)) { it.a = a; any = true; }
     }
+    var m = mark(e);
+    if (m) { it.m = m; any = true; }
     return any ? it : null;
+  }
+
+  // mark names the parts a rack without a page lights and presses itself,
+  // which are not controls: the Matrix's pads, the rhythm tabs, the beat
+  // lamps and Clear (rackpic.Item.Mark).
+  function mark(e) {
+    var c = e.getAttribute("data-tmc");
+    if (c !== null) return "pad " + c + " " + e.getAttribute("data-tmr");
+    var p = e.getAttribute("data-rp");
+    if (p !== null) return "tab " + p;
+    if (e.classList.contains("rhythm-beat")) return "beat";
+    if (e.id === "tm-clear") return "clear";
+    return "";
   }
 
   function hit(e, fr, k) {

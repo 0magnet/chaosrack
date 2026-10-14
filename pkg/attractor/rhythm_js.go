@@ -251,11 +251,14 @@ func (r *rhythmSection) wireRhythmModule() {
 		})
 		tabs.Call("appendChild", tab)
 	}
-	// The select is what a permalink writes to; the tabs follow it.
+	// The select is what a permalink writes to, and the control the rack's
+	// registry knows the presets by, so `chaosrack ctl` and the native rack
+	// can choose one; the tabs follow it. No PermaKey: "rp" already carries
+	// it in permaCtls.
 	sel.Set("value", r.preset)
-	dom.On(sel, "change", func(this js.Value, a []js.Value) any {
-		r.setRhythmPreset(sel.Get("value").String())
-		return nil
+	adoptDescControl(ControlDesc{
+		ID: "rhythm-preset", Label: "rhythm", IsSelect: true, SelectDef: rhythm.DefaultPreset,
+		SelectApply: r.setRhythmPreset,
 	})
 	r.setRhythmPreset(r.preset)
 }

@@ -118,7 +118,7 @@ func RunOn(sc tcell.Screen, src Source) error {
 		return err
 	}
 	// Posting stops before Fini closes the queue (live.go).
-	q := &poster{sc: sc}
+	q := &poster{sc: sc, every: paceOf(src)}
 	done := make(chan struct{})
 	defer sc.Fini()
 	defer close(done)
@@ -297,6 +297,13 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 			p.typing = false
 			return false
 		}
+		if p.filt != "" && ev.Key() == tcell.KeyEscape {
+			// And a filter, leaving the cursor on the control it found: it
+			// quit the whole rack, which is not what Escape out of a search
+			// means.
+			p.clearFilter()
+			return false
+		}
 		return true
 	case tcell.KeyUp:
 		// Control pans the window instead of moving the cursor. The arrows
@@ -410,6 +417,21 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 // commands reports whether a letter is a command rather than the start of a
 // filter: with no filter, and none begun with /.
 func (p *panel) commands() bool { return p.filt == "" && !p.typing }
+
+// clearFilter shows every control again, the cursor still on the one it was.
+func (p *panel) clearFilter() {
+	id := ""
+	if p.cur >= 0 && p.cur < len(p.ctls) {
+		id = p.ctls[p.cur].ID
+	}
+	p.filt = ""
+	p.refilter()
+	for i, c := range p.ctls {
+		if c.ID == id {
+			p.cur = i
+		}
+	}
+}
 
 func (p *panel) typeFilter(r rune) {
 	p.typing = false
@@ -564,7 +586,7 @@ func (p *panel) draw(sc tcell.Screen) {
 	case p.typing:
 		status = "filter: _   type to find a control"
 	case p.filt != "":
-		status = "filter: " + p.filt + "   (" + strconv.Itoa(len(p.ctls)) + " of " + strconv.Itoa(len(p.all)) + ")   backspace to edit, / to clear"
+		status = "filter: " + p.filt + "   (" + strconv.Itoa(len(p.ctls)) + " of " + strconv.Itoa(len(p.all)) + ")   backspace to edit, esc or / to clear"
 	case p.hover != "":
 		status = p.hoverLine()
 	case p.sceneNote != "":

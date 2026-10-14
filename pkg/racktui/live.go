@@ -25,12 +25,28 @@ import (
 // asking, which over the cable is a round trip, is not the panel's work.
 const refreshEvery = 250 * time.Millisecond
 
+// Paced is a rack that wants asking at a pace of its own: one held in this
+// process answers in microseconds, and its Matrix's playhead moves every
+// sixteenth, which refreshEvery would show a column in two.
+type Paced interface {
+	RefreshEvery() time.Duration
+}
+
+// paceOf is how often the panel asks src.
+func paceOf(src Source) time.Duration {
+	if p, ok := src.(Paced); ok && p.RefreshEvery() > 0 {
+		return p.RefreshEvery()
+	}
+	return refreshEvery
+}
+
 // refreshTick is the Data of the interrupt the ticker posts.
 type refreshTick struct{}
 
 // poster sends events to a screen until it is closed.
 type poster struct {
 	sc     tcell.Screen
+	every  time.Duration // how often to ask (paceOf)
 	mu     sync.RWMutex
 	closed bool
 	// waiting is a tick posted and not yet taken. One at a time: a refresh
@@ -94,10 +110,10 @@ func (q *poster) close() {
 	q.mu.Unlock()
 }
 
-// tick posts a refresh every refreshEvery, or less often when refreshing has
+// tick posts a refresh every q.every, or less often when refreshing has
 // grown expensive (rest), until done is closed.
 func (q *poster) tick(done <-chan struct{}) {
-	t := time.NewTimer(refreshEvery)
+	t := time.NewTimer(q.every)
 	defer t.Stop()
 	for {
 		select {
@@ -118,7 +134,7 @@ func (q *poster) tick(done <-chan struct{}) {
 			case <-time.After(10 * time.Millisecond):
 			}
 		}
-		t.Reset(max(refreshEvery, time.Duration(q.rest.Load())))
+		t.Reset(max(q.every, time.Duration(q.rest.Load())))
 	}
 }
 

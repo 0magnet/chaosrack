@@ -89,6 +89,12 @@ type Item struct {
 	// Angle marks a knob's pointer, in degrees clockwise from straight up.
 	// The box is the knob's; Fill is the pointer's color, not a fill.
 	Angle *float64 `json:"a,omitempty"`
+	// Mark names a part a rack without a page lights and presses itself,
+	// which no control's box describes: "pad C R" is the Matrix's pad of
+	// step C and row R (rows past the pitches are the drum lanes), "tab P"
+	// the rhythm tab of preset P, "beat" a beat lamp, "clear" the Matrix's
+	// Clear.
+	Mark string `json:"m,omitempty"`
 }
 
 // Pointer reports whether the item is a knob's pointer.

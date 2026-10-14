@@ -77,21 +77,13 @@ type tmDueCol struct {
 }
 
 const (
-	tmRows     = 16
+	tmRows     = rhythm.GridRows
 	tmLanes    = rhythm.VoiceCount // bass drum, snare, hi-hat, cymbal
-	tmMaxSteps = 64
-	tmPerBeat  = 4 // the grid's columns to the beat: sixteenths
-	tmBeats    = tmMaxSteps / tmPerBeat
+	tmMaxSteps = rhythm.GridSteps
+	tmPerBeat  = rhythm.GridPerBeat // the grid's columns to the beat: sixteenths
+	tmBeats    = rhythm.GridBeats
 	tmLookah   = 0.12 // scheduling horizon, s (a few frames of jitter headroom)
 )
-
-// tmLoopSteps are where the steps knob can end the loop, in its order: whole
-// beats, three to sixteen.
-var tmLoopSteps = []int{12, 16, 24, 32, 48, 64}
-
-// Major pentatonic — the tonematrix scale (5 notes per octave, no
-// semitone clashes, so every pattern is consonant).
-var tmPenta = [5]int{0, 2, 4, 7, 9}
 
 func tmStepCount() int {
 	n, _ := strconv.Atoi(dom.Doc.Call("getElementById", "tm-steps").Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
@@ -104,14 +96,13 @@ func tmStepCount() int {
 // tmRootMidi reads the root knob: midi C of the chosen octave.
 func tmRootMidi() int {
 	oct, _ := strconv.Atoi(dom.Doc.Call("getElementById", "tm-root").Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-	return 12 * (oct + 1)                                                                   // C1=24 … C4=60
+	return rhythm.RootMidi(oct)                                                             // C1=24 … C4=60
 }
 
 // tmMidiFor maps a grid row (0 = top) to its midi note: pentatonic degrees
 // stacked up from the root, highest note on the top row.
 func tmMidiFor(row int) int {
-	b := tmRows - 1 - row
-	return tmRootMidi() + 12*(b/5) + tmPenta[b%5]
+	return rhythm.NoteOf(tmRootMidi(), row)
 }
 
 // ── Grid ─────────────────────────────────────────────────────────────────
@@ -351,37 +342,12 @@ func (to *tonematrix) beatOf(c int) int {
 	return (c / tmPerBeat) % to.beatsPerBar()
 }
 
-// tmLoopFor is the loop length a preset of this many beats to the bar wants:
-// the current one if it holds whole bars, else the nearest that does.
-func tmLoopFor(steps, beats int) int {
-	if beats < 1 || (steps/tmPerBeat)%beats == 0 {
-		return steps
-	}
-	best := steps
-	for _, n := range tmLoopSteps {
-		if (n/tmPerBeat)%beats != 0 {
-			continue
-		}
-		if best == steps || abs(n-steps) < abs(best-steps) {
-			best = n
-		}
-	}
-	return best
-}
-
-func abs(n int) int {
-	if n < 0 {
-		return -n
-	}
-	return n
-}
-
 // loadDrums puts a rhythm preset into the drum lanes, its bar repeated
 // across all of them, in the subdivision it is written in; and moves the
 // loop to a whole number of its bars, from the top.
 func (to *tonematrix) loadDrums(p rhythm.Pattern) {
 	to.beats = rhythm.BeatsPerBar(p)
-	perBeat := max(1, p.Steps/to.beats)
+	perBeat := rhythm.LanePerBeat(p)
 	if perBeat != to.perBeat && tmBeats*perBeat <= tmMaxSteps {
 		to.perBeat = perBeat
 		to.buildTMGrid() // a triplet beat has three lane columns, not four
@@ -392,7 +358,7 @@ func (to *tonematrix) loadDrums(p rhythm.Pattern) {
 		}
 	}
 	if sel := dom.Doc.Call("getElementById", "tm-steps"); sel.Truthy() {
-		if n := tmLoopFor(tmStepCount(), to.beats); strconv.Itoa(n) != sel.Get("value").String() {
+		if n := rhythm.LoopFor(tmStepCount(), to.beats); strconv.Itoa(n) != sel.Get("value").String() {
 			sel.Set("value", strconv.Itoa(n))
 			dom.Fire(sel, "change")
 		}
@@ -471,13 +437,7 @@ func (to *tonematrix) stepDur() float64 {
 // ping (fast attack, exponential decay) per pad, fire-and-forget nodes.
 func (to *tonematrix) scheduleCol(c int, t float64) {
 	w, _ := strconv.Atoi(dom.Doc.Call("getElementById", "tm-wave").Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-	dur := to.stepDur() * 2
-	if dur < 0.2 {
-		dur = 0.2
-	}
-	if dur > 0.5 {
-		dur = 0.5
-	}
+	dur := rhythm.PingSeconds(to.stepDur())
 	for r := range tmRows {
 		if !to.pat[c][r] {
 			continue
