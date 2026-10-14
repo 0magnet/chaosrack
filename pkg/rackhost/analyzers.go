@@ -31,6 +31,8 @@ type analyzers struct {
 	wfall  waterfallView
 	morph  morphView
 	scope  scopeModels
+	bif    bifView
+	sect   sectView
 	tau    attractor.TauMeter
 	ro     readoutLine
 	// autoMap is whether the MAP ring holds the heat the spectrogram put there
@@ -51,6 +53,7 @@ func newAnalyzers() analyzers {
 		wfall:    waterfallView{w: attractor.NewWaterfall()},
 		morph:    morphView{run: attractor.NewSprottMorph(rand.Float64)},
 		scope:    newScopeModels(),
+		sect:     sectView{sect: attractor.NewPoincareSection()},
 		lastFlow: "lorenz",
 	}
 }
@@ -70,7 +73,7 @@ func listens(key string) bool {
 // frame and framed to its full scale: an audio model and the waterfall's
 // surface, from the rack's signal, and the Sprott Morph, from its run.
 func figureEachFrame(key string) bool {
-	return attractor.IsAudioModel(key) || key == "waterfall" || key == "sprottmorph" || isScopeModel(key)
+	return attractor.IsAudioModel(key) || key == "waterfall" || key == "sprottmorph" || isScopeModel(key) || key == "bifurcation" || key == "poincare"
 }
 
 // plotPass is lines drawn at one width.
@@ -186,7 +189,9 @@ type heard struct {
 	fit       [][3]float64
 	glow      float64
 	plot      []plotPass
-	quad      *rasterview.Quad
+	// overlay is LINE S's crossings, drawn in gold over a running flow.
+	overlay attractor.Figure
+	quad    *rasterview.Quad
 	// fill lays the quad flat over the whole frame instead, as the page's Fill
 	// switch lays the spectrogram's plane over its canvas.
 	fill bool
@@ -198,6 +203,7 @@ func (r *Rack) hear(key string, on bool, w int) (h heard) {
 	defer r.showReadouts(key, float64(r.sound.now().UnixNano())/1e6)
 	if dynamics.HasFlow(key) {
 		r.analyzers.lastFlow = key
+		h.overlay = r.sectionOverlay(key, on && r.value("pause-sw") != "1")
 	}
 	switch {
 	case attractor.IsAudioModel(key):
@@ -207,6 +213,10 @@ func (r *Rack) hear(key string, on bool, w int) (h heard) {
 		}
 	case isScopeModel(key):
 		h.fig, h.fit = r.scopeFigure(key, on && r.value("pause-sw") != "1")
+	case key == "poincare":
+		h.fig, h.fit = r.sectionFigure(on && r.value("pause-sw") != "1")
+	case key == "bifurcation":
+		h.fig, h.fit = r.bifFigure(on && r.value("pause-sw") != "1")
 	case key == "sprottmorph":
 		h.fig, h.fit = r.morphFigure(on && r.value("pause-sw") != "1")
 	case key == "waterfall":

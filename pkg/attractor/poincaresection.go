@@ -1,0 +1,413 @@
+package attractor
+
+import (
+	"strconv"
+
+	"github.com/0magnet/chaosrack/pkg/analysis"
+	"github.com/0magnet/chaosrack/pkg/dynamics"
+)
+
+// The Poincaré section's run, shared by the page (poincare_js.go, whose file
+// comment says what a section shows and where) and a native rack: the plane
+// the knobs put, a private trajectory integrated through it, the crossings
+// logged, and the points each view draws. The arithmetic of a crossing is in
+// pkg/analysis (poincare.go).
+
+// ── The plane, and where the knobs put it ────────────────────────────────
+
+// The section plane is axis-aligned. A fully free normal is two more knobs for
+// a gain that is mostly imaginary: the interesting sections of the published
+// systems are through a coordinate plane (Lorenz through z, Rössler through x
+// or y), a tilted plane's section is a sheared version of the same picture,
+// and an arbitrary normal makes the 2-D axes unnameable — "the section's first
+// in-plane coordinate" is not something to put on a panel. poincare.go carries
+// the general case anyway, because the general case is what the basis
+// construction has to be correct for; this is the part of it the panel offers.
+const (
+	sectAxisX = 0 //nolint:unused // named for the axis knob's positions; sectNormal indexes them
+	sectAxisY = 1 //nolint:unused // named for the axis knob's positions; sectNormal indexes them
+	sectAxisZ = 2
+)
+
+// The view the Poincaré MODEL draws. The overlay ignores this — see
+// sectViewParams below for why the knob is not offered there.
+const (
+	sectViewPlane = 0 // crossings in place, in 3-D, where they physically are
+	sectViewFlat  = 1 // the section face on, in the plane's own 2-D basis
+	sectViewMap   = 2 // the first-return map: crossing n+1 against crossing n
+)
+
+// PoincareSection is the section: the plane, the crossings found, and its
+// knobs.
+type PoincareSection struct {
+	// Default z, because that is the plane the section was hardcoded to before
+	// it had a knob, and because it is the classic section of the Lorenz
+	// system that opens the app's Attractors category.
+	axisF float32
+
+	// Where the plane sits along that axis, as a fraction of the attractor's
+	// own reach: 0 is through the middle, ±1 is at the extremes.
+	//
+	// A fraction rather than a coordinate, and this is borrowed deliberately
+	// from splitFrac in split_js.go, which says the same thing about the depth
+	// partition: a knob calibrated in world units would need re-learning for
+	// every system, since a Lorenz attractor and a Rössler attractor are
+	// different sizes. In fractions, the middle is always the middle.
+	//
+	// What is NOT borrowed is view.fitExtent, which splitFrac measures against.
+	// That is one scalar for all three axes (max|coordinate| over the whole
+	// model), so ±1 on a thin axis would put the plane well outside the
+	// attractor and the last part of the knob's travel would do nothing. The
+	// reach here is measured PER AXIS from the trajectory itself, during the
+	// same warm-up that skips the run-in — see sect.seed.
+	posF float32
+
+	// Direction. crossRising is the default and poincare.go says at length
+	// why: keeping both directions superimposes two different sections and
+	// stops the return map being a function.
+	dirF  float32
+	viewF float32
+	sig   string // system + plane the accumulated crossings belong to
+	state [4]float64
+	plane analysis.PoincarePlane
+	log   analysis.PoincareLog
+}
+
+// ── State ────────────────────────────────────────────────────────────────
+
+// sectCap is how many crossings are kept. Eight thousand is a few minutes of
+// Lorenz at the default speed and enough for the section's banding to be solid
+// rather than dotted; past that the ring recycles, so the picture keeps
+// refreshing instead of freezing into whatever the first pass happened to
+// find.
+const sectCap = 8192
+
+// sectTransient is how many steps the private integrator runs before anything
+// is recorded. The path from the initial condition ONTO the attractor crosses
+// the plane too, and those crossings are not part of the section — they are a
+// handful of outliers sitting outside the structure, and on a return map an
+// outlier is a point that appears to contradict the map.
+const sectTransient = 4000
+
+// signature is what the accumulated points belong to. Following bif.sig
+// rather than wiring a listener onto every control: the knobs reach these
+// variables by half a dozen routes (the dial, the LED field, a permalink, Reset
+// All, a patch recall, MIDI), and a signature compared once a frame cannot miss
+// one of them the way a listener bound to the dial would.
+func (p *PoincareSection) signature(mode string) string {
+	return mode + "|" + strconv.Itoa(p.axis()) +
+		"|" + strconv.FormatFloat(float64(p.posF), 'g', 6, 32) +
+		"|" + strconv.Itoa(p.direction())
+}
+
+// direction is the direction knob as one of poincare.go's constants.
+func (p *PoincareSection) direction() int {
+	d := int(p.dirF + 0.5)
+	if d < 0 || d > analysis.CrossEither {
+		return analysis.CrossRising
+	}
+	return d
+}
+
+// axis is the axis knob as an index, and normal the unit normal it
+// names. Positive, always: "which way through the plane counts" is the
+// direction knob's job, and having two controls that can both reverse it makes
+// two settings mean the same thing and neither of them mean anything.
+func (p *PoincareSection) axis() int {
+	a := int(p.axisF + 0.5)
+	if a < 0 || a > sectAxisZ {
+		return sectAxisZ
+	}
+	return a
+}
+
+func (p *PoincareSection) normal() [3]float64 {
+	var n [3]float64
+	n[p.axis()] = 1
+	return n
+}
+
+// sectAdvancer returns the one-step integrator for a system, and it is not one
+// scheme for all of them.
+//
+// The classics run a bespoke forward-Euler render loop; everything else goes
+// through the shared RK4 loop. A section is a statement about where THE
+// TRAJECTORY THE APP DRAWS crosses a plane, so integrating it with a different
+// scheme sections a different system — lyapunov.go learned the same lesson the
+// hard way and mislabeled a third of the Sprott catalog until it stopped
+// pretending one integrator fits all. The dynamics.ClassicSystems lookup is how that
+// file decides too; dynamics.FlowSys4.euler carries the same fact for the systems that
+// never had a float32 form.
+func sectAdvancer(mode string, sys dynamics.FlowSys4, dt float64) func(s *[4]float64) {
+	classic := dynamics.IsClassic(mode)
+	if classic || sys.Euler {
+		return func(s *[4]float64) { flowStep(sys, s, dt) }
+	}
+	return func(s *[4]float64) { *s = dynamics.RK4x4(sys.F, dt, *s) }
+}
+
+// sectField evaluates the vector field at a state, scaled by dt: the "velocity
+// per step" poincareCross wants for its cubic.
+//
+// Two of these are spent per CROSSING, not per step — a crossing happens about
+// once per orbit, so on the order of one percent of the integration cost even
+// for the interpreted equation engine, where a field evaluation is an AST
+// walk. That is why the section always takes the cubic rather than dropping to
+// the straight line on the expensive systems: the accuracy is worth three and
+// a half orders of magnitude and the cost does not show up.
+func sectField(sys dynamics.FlowSys4, s [4]float64, dt float64) [3]float64 {
+	dx, dy, dz, _ := sys.F(s[0], s[1], s[2], s[3])
+	return [3]float64{dx * dt, dy * dt, dz * dt}
+}
+
+// seed restarts the private integrator, measures where the attractor
+// actually reaches along the section axis, and builds the plane from the pos
+// knob against that reach.
+//
+// The measurement is why this is not free and why it is cached behind
+// sect.signature. It is also why the pos knob means something: without it the
+// only thing available is view.fitExtent, which is the camera fit of whatever
+// model was last DRAWN — on the Poincaré model that is not the source system
+// at all, so the plane would be positioned against the size of a dodecahedron
+// somebody looked at earlier.
+func (p *PoincareSection) seed(mode string, sys dynamics.FlowSys4, dt float64) {
+	ic := dynamics.InitCondFor(mode)
+	p.state = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W0}
+	adv := sectAdvancer(mode, sys, dt)
+	ax := p.axis()
+	lo, hi := 0.0, 0.0
+	measured := false
+	for i := range sectTransient {
+		adv(&p.state)
+		if flowDiverged(p.state) {
+			p.state = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W0}
+			lo, hi, measured = 0, 0, false
+			continue
+		}
+		// Measure over the second half only: the first half is still the
+		// run-in, and a run-in that starts far from the attractor widens the
+		// measured reach to include a path the section is not about.
+		if i < sectTransient/2 {
+			continue
+		}
+		v := p.state[ax]
+		if !measured {
+			lo, hi, measured = v, v, true
+			continue
+		}
+		if v < lo {
+			lo = v
+		}
+		if v > hi {
+			hi = v
+		}
+	}
+	mid, half := (lo+hi)/2, (hi-lo)/2
+	p.plane = analysis.NewPoincarePlane(p.normal(), mid+float64(p.posF)*half)
+	p.log.Reset(sectCap)
+}
+
+// advance integrates n steps, recording every crossing.
+func (p *PoincareSection) advance(mode string, sys dynamics.FlowSys4, dt float64, n int) {
+	adv := sectAdvancer(mode, sys, dt)
+	dir := p.direction()
+	ic := dynamics.InitCondFor(mode)
+	sc := sys.Scale
+	for range n {
+		prev := p.state
+		adv(&p.state)
+		if flowDiverged(p.state) {
+			// A reseeded trajectory's first crossing does not follow the last
+			// one in time, and the return map must not join them.
+			p.state = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), sys.W0}
+			p.log.BreakChain()
+			continue
+		}
+		a := [3]float64{prev[0], prev[1], prev[2]}
+		b := [3]float64{p.state[0], p.state[1], p.state[2]}
+		// The cheap test first: a sign change in the wanted direction, or
+		// nothing. Only a step that actually crosses pays for the two field
+		// evaluations below, which is what makes the cubic affordable.
+		if !analysis.PoincareAccepts(p.plane.Signed(a), p.plane.Signed(b), dir) {
+			continue
+		}
+		hit, ok := analysis.PoincareCross(p.plane, a, b,
+			sectField(sys, prev, dt), sectField(sys, p.state, dt), dir)
+		if !ok {
+			continue
+		}
+		s, t := p.plane.Project(hit)
+		p.log.Add(analysis.PoincareHit{
+			P: [3]float32{float32(hit[0]) * sc, float32(hit[1]) * sc, float32(hit[2]) * sc},
+			S: float32(s) * sc,
+			T: float32(t) * sc,
+		})
+	}
+}
+
+// sectBudget is how many steps a frame integrates. The interpreted engine is
+// roughly ten times the per-step cost of a compiled field, and gets a tenth of
+// the steps for it — the same split flowregistry.go's frame budgets make.
+func sectBudget(sys dynamics.FlowSys4) int {
+	if sys.Interpreted {
+		return 512
+	}
+	return 4096
+}
+
+// Run brings the accumulated section up to date for a system: reseed if
+// anything that defines it has changed, then integrate frames of the page's
+// worth at speed scale. Reports false when there is nothing to draw yet.
+func (p *PoincareSection) Run(mode string, scale float32, frames float64) bool {
+	sys, ok := dynamics.FlowFor4(mode)
+	if !ok {
+		return false
+	}
+	dt := sys.Dt() * float64(scale)
+	if dt <= 0 {
+		return false
+	}
+	if sig := p.signature(mode); p.sig != sig {
+		p.sig = sig
+		p.seed(mode, sys, dt)
+	}
+	p.advance(mode, sys, dt, int(float64(sectBudget(sys))*frames))
+	return p.log.Len() >= 2
+}
+
+// sectMapGuides is how many dots the return map's y=x diagonal is drawn with.
+//
+// The diagonal is not decoration. A first-return map's FIXED POINTS are where
+// it meets y=x — a period-1 orbit is one point on the diagonal, a period-2
+// orbit is a pair straddling it — and the whole reading of the picture is
+// against that line. Without it a return map is a parabola floating in space
+// with no way to tell which part of it matters.
+//
+// Drawn as sparse dots rather than as a line for one reason: the scatter is a
+// single POINTS draw against one buffer, and a line would be a second draw
+// call. uploadVerticesOnly subtracts a running center offset in place and warms
+// that offset from what it is handed, so calling it twice a frame would feed
+// the centering two different point sets and drift the whole picture. Sixty-
+// four dots read as a guide, which is what a guide should look like anyway.
+const sectMapGuides = 64
+
+// View is the view knob's position.
+func (p *PoincareSection) View() int { return int(p.viewF + 0.5) }
+
+// Points hands put the section as view draws it, at most room points, each
+// with its place along the record, which the gradient follows, and reports
+// how many: the newest crossings in place or face on, or the return map.
+func (p *PoincareSection) Points(view, room int, put func(x, y, z, age float32)) int {
+	if view == sectViewMap {
+		return p.returnMap(room, put)
+	}
+	n := min(p.log.Len(), room)
+	base := p.log.Len() - n
+	inv := float32(1)
+	if n > 1 {
+		inv = 1 / float32(n-1)
+	}
+	for i := range n {
+		h := p.log.At(base + i)
+		if view == sectViewFlat {
+			put(h.S, h.T, 0, float32(i)*inv)
+		} else {
+			put(h.P[0], h.P[1], h.P[2], float32(i)*inv)
+		}
+	}
+	return n
+}
+
+// returnMap plots each crossing's first in-plane coordinate against
+// the NEXT crossing's — the first-return map, and the reason to build a
+// section at all.
+//
+// A continuous flow's chaos is hard to see and its return map is not: a
+// periodic orbit is a finite set of dots, a period-doubling is that set
+// doubling, and a chaotic attractor is a curve — usually a single-humped one,
+// which is the logistic map's parabola turning up inside a differential
+// equation. That last is the whole content of the phrase "route to chaos", and
+// it is one projection away from the section already being computed.
+//
+// WHICH coordinate: S, the first in-plane axis, which for the three
+// axis-aligned planes is the obvious one (y for an x-plane, z for a y-plane, x
+// for a z-plane — see poincareBasis). This is a choice and it is not free. The
+// return map of a 2-D section is a map OF THE PLANE, and plotting one
+// coordinate of it against itself is a 1-D shadow that comes out as a clean
+// curve only when the section is nearly 1-D — which is exactly when a strange
+// attractor's section is thin, and is why the trick works at all on Lorenz and
+// Rössler. On a thick section the plot is a band rather than a curve. That is
+// not a failure of the plot; it is the plot saying the section is thick, and
+// the flat view next door is where to go and look at it.
+//
+// NOT normalized to fill the frame, and this matters more here than anywhere.
+// Both axes are the same quantity in the same units, so the diagonal is at 45°
+// and a point's distance from it is a real distance. Scaling the two axes
+// independently — which is what filling the frame means — tilts the diagonal
+// to some other angle and destroys the one reading the picture is for. The
+// bifurcation explorer does normalize, correctly, because ITS axes are a swept
+// parameter against a value and have no common scale.
+func (p *PoincareSection) returnMap(room int, put func(x, y, z, age float32)) int {
+	total := p.log.Len()
+	if total < 2 || room <= sectMapGuides {
+		return 0
+	}
+	n := 0
+	lo, hi := float32(0), float32(0)
+	for i := 1; i < total && n < room-sectMapGuides; i++ {
+		next := p.log.At(i)
+		if next.Gap {
+			// The predecessor is on a different trajectory: joining them plots
+			// a point that is about nothing, and one stray dot in open space
+			// on an otherwise clean parabola reads as structure.
+			continue
+		}
+		cur := p.log.At(i - 1)
+		put(cur.S, next.S, 0, float32(i)/float32(total))
+		if n == 0 {
+			lo, hi = cur.S, cur.S
+		}
+		for _, s := range [2]float32{cur.S, next.S} {
+			lo, hi = min(lo, s), max(hi, s)
+		}
+		n++
+	}
+	if n == 0 {
+		return 0
+	}
+	// The y=x guide, spanning the range the data spans.
+	for i := range sectMapGuides {
+		s := lo + (hi-lo)*float32(i)/float32(sectMapGuides-1)
+		put(s, s, 0, 0)
+		n++
+	}
+	return n
+}
+
+// PoincareKnobs are the section's knobs, by the page's ids.
+var PoincareKnobs = []string{"sect-axis", "sect-pos", "sect-dir", "sect-view"}
+
+// NewPoincareSection is the section at the page's defaults.
+func NewPoincareSection() *PoincareSection {
+	return &PoincareSection{axisF: sectAxisZ, dirF: analysis.CrossRising, viewF: sectViewPlane}
+}
+
+// Set turns knob id to v, reporting whether the section has it.
+func (p *PoincareSection) Set(id string, v float32) bool {
+	switch id {
+	case "sect-axis":
+		p.axisF = v
+	case "sect-pos":
+		p.posF = v
+	case "sect-dir":
+		p.dirF = v
+	case "sect-view":
+		p.viewF = v
+	default:
+		return false
+	}
+	return true
+}
+
+// Crossings is how many crossings the section holds.
+func (p *PoincareSection) Crossings() int { return p.log.Len() }
