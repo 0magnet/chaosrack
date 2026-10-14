@@ -1,6 +1,8 @@
 package rackhost
 
 import (
+	"math"
+	"math/rand/v2"
 	"testing"
 
 	"github.com/0magnet/chaosrack/pkg/acoustics"
@@ -83,5 +85,51 @@ func TestAnAnalyzerOpensTheCapture(t *testing.T) {
 	look(t, r)
 	if f.write == nil {
 		t.Error("choosing the RTA did not open the capture")
+	}
+}
+
+// The transfer function measures CAP R against CAP L: noise at half the
+// level and a millisecond late is a flat -6 dB and a 1 ms delay.
+func TestTheTransferFunctionMeasuresTheCapture(t *testing.T) {
+	f := &fakeCapture{}
+	withCapture(t, f)
+	r, c := idleRack(t, "xfer")
+	set(t, r, "xf-show", "1") // magnitude only
+	look(t, r)
+	rng := rand.New(rand.NewPCG(1, 2)) //nolint:gosec // a test's noise, the same every run
+	const delay = 48
+	hist := make([]float32, delay)
+	for range 60 {
+		const n = sampleRate / 20
+		p := make([]float32, 2*n)
+		for i := range n {
+			x := float32(rng.Float64() - 0.5)
+			p[2*i], p[2*i+1] = x, 0.5*hist[0]
+			hist = append(hist[1:], x)
+		}
+		_ = f.write(p) //nolint:errcheck // the fake capture's writer never fails
+		watch(t, r, c, 0.05)
+	}
+	r.mu.Lock()
+	lines := r.analyzerPlot("xfer", 400)[0].v
+	ms, ok := r.analyzers.xfer.DelayMS()
+	r.mu.Unlock()
+	if len(lines) < 20 {
+		t.Fatalf("the magnitude curve is %d segments", len(lines)/2)
+	}
+	// -6 dB on a ±40 dB lane from -0.85 to 0.85. Over the lower half of the
+	// bands: above it a band is wide enough that the delay turns its phase
+	// within it, and its average droops, as it does on the page.
+	want := -0.85 + 1.7*(40-6.02)/80
+	for _, v := range lines {
+		if v.X > 0 {
+			continue
+		}
+		if math.Abs(float64(v.Y)-want) > 0.02 {
+			t.Fatalf("the magnitude reaches %.3f; -6 dB is %.3f", v.Y, want)
+		}
+	}
+	if !ok || math.Abs(ms-1) > 0.05 {
+		t.Errorf("the delay reads %.3f ms (%v), want 1", ms, ok)
 	}
 }
