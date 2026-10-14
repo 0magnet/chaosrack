@@ -155,7 +155,7 @@ func (r *Rack) needCapture() {
 	// takes it, since the capture's writer takes only its own lock.
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	want := s.rack.capOn() && attractor.IsAudioModel(r.value(r.selector))
+	want := s.rack.capOn() && listens(r.value(r.selector))
 	c := &s.capt
 	switch {
 	case want && !c.running() && c.err == nil:
