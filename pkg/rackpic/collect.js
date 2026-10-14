@@ -250,7 +250,7 @@
     for (var i = 0; i < l.length; i++) {
       var id = l[i].id || l[i].ID, el = id && document.getElementById(id);
       if (!el) continue;
-      var part = el.closest("[data-loc]") || el;
+      var part = el.closest("[data-ctl-part]") || el.closest("[data-loc]") || el;
       var b = hit(part, fr, k);
       if (b) out[id] = b.map(round1);
     }

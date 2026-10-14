@@ -129,3 +129,66 @@ func TestTheEnvelopeShapesTheLevel(t *testing.T) {
 		t.Errorf("with a 100 ms envelope the level ranges %.2f to %.2f", lo, hi)
 	}
 }
+
+// A generator pinned by turning it is pinned on the Mixer, as a control,
+// and its pin's lamp lights.
+func TestAutoPinningLightsThePin(t *testing.T) {
+	r := newRack(t)
+	set(t, r, "gen-y-lvl", "70")
+	if got := r.value("mix-sr-g2"); got != "1" {
+		t.Fatalf("turning Gen 2 left its right-speaker pin at %q", got)
+	}
+	l, ok := r.lamps["mix-sr-g2"]
+	if !ok {
+		t.Fatal("the pin has no lamp")
+	}
+	if f := r.pic.Items[l].Fill; f == nil || *f != pinLit {
+		t.Errorf("the pin's lamp is %v, want lit %06x", f, pinLit)
+	}
+	// Clicking it unpins it, and Gen 2 falls silent.
+	b := r.pic.Ctls["mix-sr-g2"]
+	if err := r.Act(0, b[0]+b[2]/2, b[1]+b[3]/2, "click", 0); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.value("mix-sr-g2"); got != "0" {
+		t.Errorf("clicking the pin left it at %q", got)
+	}
+	if f := r.pic.Items[l].Fill; f == nil || *f != pinDark {
+		t.Errorf("the unpinned lamp is %v, want dark %06x", f, pinDark)
+	}
+	_, rt := listen(r)
+	if _, p := pitch(rt); p > 0.001 {
+		t.Errorf("unpinned, Gen 2 still peaks at %v", p)
+	}
+}
+
+// Model Out pinned to a speaker plays the model's equations at its level,
+// and a model with none plays nothing.
+func TestModelOutPlaysTheModel(t *testing.T) {
+	r := newRack(t)
+	if r.selector == "" {
+		t.Skip("no model selector in the catalog")
+	}
+	sp := &fakeSpeaker{r: r}
+	r.SetSpeaker(sp)
+	set(t, r, r.selector, "lorenz", "mix-sl-mx", "1")
+	if !sp.playing {
+		t.Fatal("pinning the model's x did not start the speaker")
+	}
+	l, rt := listen(r)
+	if _, p := pitch(l); p < 0.4 || p > 0.61 {
+		t.Errorf("lorenz's x peaks at %.2f on the left, want about LVL's 0.60", p)
+	}
+	if _, p := pitch(rt); p != 0 {
+		t.Errorf("the right peaks at %v with nothing pinned there", p)
+	}
+	set(t, r, "mo-lvl", "100")
+	l, _ = listen(r)
+	if _, p := pitch(l); p < 0.8 {
+		t.Errorf("at LVL 100 lorenz's x peaks at %.2f", p)
+	}
+	set(t, r, r.selector, "globe")
+	if sp.playing {
+		t.Error("the globe has no equations, and the speaker still plays")
+	}
+}
