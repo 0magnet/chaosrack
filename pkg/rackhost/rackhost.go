@@ -748,7 +748,7 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 		// A flat analyzer, drawn over the whole scene as the page draws it
 		// over its canvas (analyzers.go).
 		s.key, s.err, s.shown = key, nil, nil
-		toPixels(img, heard.picture(rasterview.View{
+		toPixels(img, look.bg, heard.picture(rasterview.View{
 			AngleX: s.angle[0], AngleY: s.angle[1], AngleZ: s.angle[2],
 			Scale:       zoomScale(zoom),
 			PixelAspect: 1 / shape,
@@ -842,14 +842,28 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 		}
 	}
 	s.shown = m
-	toPixels(img, m)
+	toPixels(img, look.bg, m)
 	return img, nil
 }
 
-// toPixels copies m into img, which is as big.
-func toPixels(img *rackpic.Image, m *image.RGBA) {
+// toPixels copies m into img, which is as big, with the Palette's bg tint
+// added to what shows only the background: the page clears its canvas to
+// that color at no opacity, so it tints what shows through and leaves what
+// is drawn alone.
+func toPixels(img *rackpic.Image, bg [3]float32, m *image.RGBA) {
+	var tint [3]uint8
+	for c := range tint {
+		tint[c] = uint8(min(max(bg[c], 0), 1) * 255)
+	}
 	for i := range img.W * img.H {
-		img.Px[3*i], img.Px[3*i+1], img.Px[3*i+2] = m.Pix[4*i], m.Pix[4*i+1], m.Pix[4*i+2]
+		p := m.Pix[4*i : 4*i+3]
+		if tint != ([3]uint8{}) && isBack(p) {
+			for c := range 3 {
+				img.Px[3*i+c] = p[c] + min(tint[c], 255-p[c]) // saturating
+			}
+			continue
+		}
+		img.Px[3*i], img.Px[3*i+1], img.Px[3*i+2] = p[0], p[1], p[2]
 	}
 }
 

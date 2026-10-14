@@ -380,13 +380,13 @@ func (r *Rack) spectrogram(nowMs float64) *rasterview.Quad {
 // texHalfW is the half width of the page's spectrogram plane.
 const texHalfW = 2.5
 
-// mapNow is the MAP ring as the panel has it set, with the page's swatches.
+// mapNow is the MAP ring as the panel has it set, with the Palette's swatches.
 // Called with r.mu held.
 func (r *Rack) mapNow() colormap.Map {
-	g := rasterview.DefaultGradient()
+	base, mid, top, _ := r.swatches()
 	return colormap.Map{
 		Colors: int(r.number("gradient-colors")),
-		Base:   g.Base, Mid: g.Mid, Top: g.Top,
+		Base:   base, Mid: mid, Top: top,
 		Freq: float32(r.number("rainbow-freq")),
 	}
 }

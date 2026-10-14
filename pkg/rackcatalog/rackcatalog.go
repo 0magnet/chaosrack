@@ -56,11 +56,11 @@ type Bank struct {
 }
 
 // InBank reports whether an item belongs to the model bank of region r: in
-// the region, or one of the model's own readouts (Mark "mro", or "led ID" for
-// its displays), which the page shows under the monitor for that model
-// alone.
+// the region, or one of the model's own readouts (Mark "mro", "led ID" for
+// its displays or "btn ID" for its ↻), which the page shows under the
+// monitor for that model alone.
 func InBank(it *rackpic.Item, r [4]float64) bool {
-	if it != nil && (it.Mark == "mro" || strings.HasPrefix(it.Mark, "led ")) {
+	if it != nil && (it.Mark == "mro" || strings.HasPrefix(it.Mark, "led ") || strings.HasPrefix(it.Mark, "btn ")) {
 		return true
 	}
 	return InRegion(it, r)

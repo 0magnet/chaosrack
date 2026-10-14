@@ -35,3 +35,10 @@ func svToLevel(s, v float64) float64 {
 	}
 	return 50 + (1-s)*50
 }
+
+// KnobColor is the color a color knob dials: hue in degrees, Level 0..100
+// from black through the pure hue to white.
+func KnobColor(hue, level float64) [3]float32 {
+	s, v := levelToSV(level)
+	return colorspace.FromHSV(float32(hue/360), float32(s), float32(v))
+}

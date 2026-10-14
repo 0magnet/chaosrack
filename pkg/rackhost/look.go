@@ -4,6 +4,7 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/0magnet/chaosrack/pkg/attractor"
 	"github.com/0magnet/chaosrack/pkg/rasterview"
 )
 
@@ -14,6 +15,7 @@ type sceneLook struct {
 	dots     bool
 	line     float64    // Display's Line, in the page's pixels
 	pan      [2]float64 // View's X and Y, in the model's units
+	bg       [3]float32 // the Palette's bg tint
 }
 
 // look reads the modules that say how the model is drawn. Called with r.mu
@@ -44,11 +46,14 @@ func (r *Rack) look() sceneLook {
 		g.Freq = float32(f)
 	}
 	g.Phase = float32(r.number("palette-shift"))
+	var bg [3]float32
+	g.Base, g.Mid, g.Top, bg = r.swatches()
 	return sceneLook{
 		gradient: g,
 		dots:     r.value("use-points") == "1",
 		line:     r.number("line-width"),
 		pan:      [2]float64{r.number("pan-x"), r.number("pan-y")},
+		bg:       bg,
 	}
 }
 
@@ -76,4 +81,27 @@ func (r *Rack) flowValues() map[*float32]float32 {
 		}
 	}
 	return out
+}
+
+// swatches are the Palette's colors as its color knobs dial them: the start,
+// middle and end a gradient mixes through, and the background's tint. A
+// knob the catalog does not have keeps the page's default. Called with r.mu
+// held.
+func (r *Rack) swatches() (base, mid, top, bg [3]float32) {
+	g := rasterview.DefaultGradient()
+	base, mid, top = g.Base, g.Mid, g.Top
+	for _, s := range []struct {
+		id  string
+		out *[3]float32
+	}{{"color-base", &base}, {"color-mid", &mid}, {"color-top", &top}, {"color-bg", &bg}} {
+		h, okH := r.byID["ck-"+s.id+"-hue"]
+		l, okL := r.byID["ck-"+s.id+"-lvl"]
+		if !okH || !okL {
+			continue
+		}
+		hue, _ := strconv.ParseFloat(r.ctls[h].Value, 64) //nolint:errcheck // a dial's value is a number
+		lvl, _ := strconv.ParseFloat(r.ctls[l].Value, 64) //nolint:errcheck // a dial's value is a number
+		*s.out = attractor.KnobColor(hue, lvl)
+	}
+	return base, mid, top, bg
 }

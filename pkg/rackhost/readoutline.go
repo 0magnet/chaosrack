@@ -19,6 +19,8 @@ import (
 type readoutLine struct {
 	// item is each display's picture item, by the label beside it.
 	item map[string]int
+	// btns are the line's ↻ buttons, which measure again.
+	btns []int
 	// corr is the scope's correlation readout this frame.
 	corr string
 	// rqa is the recurrence plot's RR, DET and LAM, measured on the page's
@@ -35,9 +37,14 @@ type readoutLine struct {
 func (r *Rack) findReadouts() {
 	ro := &r.analyzers.ro
 	ro.item = map[string]int{}
+	ro.btns = ro.btns[:0]
 	label := ""
 	for i := r.outside; i < len(r.pic.Items); i++ {
 		it := r.pic.Items[i]
+		if strings.HasPrefix(it.Mark, "btn ") {
+			ro.btns = append(ro.btns, i)
+			continue
+		}
 		switch it.Mark {
 		case "led lyap-led", "led lyap-verdict":
 			// The Analysis readout, on every bank: marked by its own id.
@@ -157,4 +164,26 @@ func (r *Rack) showLyapunov(key string, nowMs float64, put func(label, s string)
 	}
 	put("lyap-led", lp.val)
 	put("lyap-verdict", lp.verdict)
+}
+
+// remeasure is a ↻ on the readout line: Takens' measures τ again whatever is
+// set, and the Lyapunov readout measures the model again, as the page's do.
+// Called with r.mu held.
+func (r *Rack) remeasure(id string) bool {
+	a := &r.analyzers
+	switch id {
+	case "takens-remeasure":
+		ch := float32(r.number("takens-chan"))
+		l, rt := r.sound.window(attractor.TakensEstMax)
+		if t, ok := a.tau.Measure(attractor.FoldChan(ch, l, rt), sampleRate); ok {
+			_ = r.set("takens-tau", strconv.FormatFloat(float64(t), 'f', -1, 32)) //nolint:errcheck // within the knob's reach by construction
+		}
+		return true
+	case "lyap-remeasure":
+		lp := &a.ro.lyap
+		lp.have, lp.due = "", 0
+		lp.val, lp.verdict = "measuring…", ""
+		return true
+	}
+	return false
 }
