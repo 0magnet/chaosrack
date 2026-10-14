@@ -40,24 +40,45 @@ func noiseAt(n int, rate float64) float64 {
 	return float64(a) + (float64(b)-float64(a))*f
 }
 
-// highpass is a Web Audio biquad highpass at its default Q (1 dB): the
-// filter the page puts between the noise and a snare, a hat or a cymbal.
-type highpass struct {
+// biquad is a Web Audio biquad filter node, its coefficients as the spec's
+// cookbook gives them.
+type biquad struct {
 	b0, b1, b2, a1, a2 float64
 	x1, x2, y1, y2     float64
 }
 
-func newHighpass(hz float64) highpass {
+// newHighpass is a highpass at its default Q (1 dB): the filter the page
+// puts between the noise and a snare, a hat or a cymbal.
+func newHighpass(hz float64) biquad {
 	w := 2 * math.Pi * hz / sampleRate
 	cw, alpha := math.Cos(w), math.Sin(w)/(2*math.Pow(10, 1.0/20))
 	a0 := 1 + alpha
-	return highpass{
+	return biquad{
 		b0: (1 + cw) / 2 / a0, b1: -(1 + cw) / a0, b2: (1 + cw) / 2 / a0,
 		a1: -2 * cw / a0, a2: (1 - alpha) / a0,
 	}
 }
 
-func (h *highpass) next(x float64) float64 {
+// lowpass tunes h to a lowpass at hz, Q in decibels, as a node's frequency
+// moves under a sound: the coefficients change, what the filter holds stays.
+func (h *biquad) lowpass(hz, qdB float64) {
+	w := 2 * math.Pi * hz / sampleRate
+	cw, alpha := math.Cos(w), math.Sin(w)/(2*math.Pow(10, qdB/20))
+	a0 := 1 + alpha
+	h.b0, h.b1, h.b2 = (1-cw)/2/a0, (1-cw)/a0, (1-cw)/2/a0
+	h.a1, h.a2 = -2*cw/a0, (1-alpha)/a0
+}
+
+// newBandpass is a bandpass at hz, of quality q (a plain ratio, not
+// decibels, for this type).
+func newBandpass(hz, q float64) biquad {
+	w := 2 * math.Pi * hz / sampleRate
+	cw, alpha := math.Cos(w), math.Sin(w)/(2*q)
+	a0 := 1 + alpha
+	return biquad{b0: alpha / a0, b2: -alpha / a0, a1: -2 * cw / a0, a2: (1 - alpha) / a0}
+}
+
+func (h *biquad) next(x float64) float64 {
 	y := h.b0*x + h.b1*h.x1 + h.b2*h.x2 - h.a1*h.y1 - h.a2*h.y2
 	h.x2, h.x1, h.y2, h.y1 = h.x1, x, h.y1, y
 	return y
@@ -123,7 +144,7 @@ type voice struct {
 	hz   float64 // a ping's pitch
 	ring float64 // a ping's ring, seconds
 	ph   float64 // the oscillator's phase, 0..1
-	hp   highpass
+	hp   biquad
 }
 
 // ping is a pad's note: hz, in wave, ringing ring seconds.

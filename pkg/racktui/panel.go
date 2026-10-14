@@ -52,6 +52,11 @@ type panel struct {
 	// held is the mouse buttons down at the last event, so a press is told
 	// from a drag or a release.
 	held tcell.ButtonMask
+	// pageDown is the picture point the button went down on in the page look,
+	// while it is held there, so a drag and a release follow it: the keys
+	// play from the press until the release, wherever the pointer goes.
+	pageDown bool
+	pageGen  int
 	// dragging is the scroll bar the button went down on: 'v', 'h' or 0.
 	dragging rune
 

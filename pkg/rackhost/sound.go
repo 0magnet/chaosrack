@@ -11,8 +11,8 @@ import (
 
 // The rack's sound: the four signal generators, made here as the page's
 // rack signal makes them (audiosrc.FuncGen), Model Out, the model's own
-// equations run at audio rate, the Matrix and its drums (matrix.go), and the
-// Mixer's speaker pins that put each on the left or the right. What plays
+// equations run at audio rate, the Matrix and its drums (matrix.go), the Keys
+// (keys.go), and the Mixer's speaker pins that put each on the left or the right. What plays
 // the samples is the host's (a Speaker); the rack only makes them.
 
 // Speaker is what plays the rack: told when there is something to hear, it
@@ -27,13 +27,14 @@ type Speaker interface {
 var genIDs = [audiosrc.OscCount]string{"gen-x", "gen-y", "gen-z", "gen-v"}
 
 // The Mixer's columns the rack makes sound for: the four generators, the
-// model's x, y and z, and the Matrix's pads and drums.
-var mixKeys = [...]string{"g1", "g2", "g3", "g4", "mx", "my", "mz", "tm", "dr"}
+// model's x, y and z, the Matrix's pads and drums, and the Keys.
+var mixKeys = [...]string{"g1", "g2", "g3", "g4", "mx", "my", "mz", "tm", "dr", "ky"}
 
 const (
 	srcModel = audiosrc.OscCount // the first of the model's columns
 	srcTM    = srcModel + 3 + busTM
 	srcDR    = srcModel + 3 + busDR
+	srcKY    = srcDR + 1
 	nSources = len(mixKeys)
 )
 
@@ -66,6 +67,10 @@ type sound struct {
 	vals    [audiosrc.OscCount]float64
 	mo      [3][]float32
 	bus     [2][]float32 // the Matrix's pads and drums, a buffer's worth
+	keys    keyBank
+	ky      []float32 // the Keys, a buffer's worth
+	// told is whether the speaker was last told there is something to hear.
+	told bool
 }
 
 func newSound() *sound {
@@ -75,7 +80,7 @@ func newSound() *sound {
 		// The level is applied here, where it can glide.
 		fg.SetAmp(i, 1)
 	}
-	return &sound{fg: fg, mat: newMatrix()}
+	return &sound{fg: fg, mat: newMatrix(), keys: newKeyBank()}
 }
 
 // genOf is the generator a control belongs to and the part of it (freq,
@@ -121,6 +126,8 @@ func (r *Rack) soundSet(id string) (more [][2]string) {
 			// Run switched on is a hand on the Matrix, which starts it.
 			s.mat.armed = true
 		}
+	case isKeysControl(id):
+		more = r.keysSet(id)
 	case id == "gen-solo":
 		solo := -1
 		for j, p := range genIDs {
@@ -197,6 +204,13 @@ func (r *Rack) soundStart() {
 	for _, id := range []string{"tm-tempo", "tm-steps", "tm-root", "tm-lvl", "tm-wave", "tm-run", "rhythm-lvl", "rhythm-preset"} {
 		r.matrixSet(id)
 	}
+	// The Synth bay as the catalog opened it: the preset's knobs are set
+	// already, so the preset itself is not applied again.
+	for _, c := range r.ctls {
+		if isKeysControl(c.ID) && c.ID != "syn-preset" {
+			r.keysSet(c.ID)
+		}
+	}
 }
 
 // pinned reports whether column src is on either speaker.
@@ -204,8 +218,8 @@ func (s *sound) pinned(src int) bool { return s.spk[0][src] != 0 || s.spk[1][src
 
 // heard reports whether anything reaches a speaker: a generator switched
 // on, let through by the solo and pinned to one, a model with equations to
-// play whose output is pinned, or a Matrix running with pads or drum steps
-// lit and pinned. Called with the sound's lock held.
+// play whose output is pinned, a Matrix running with pads or drum steps
+// lit and pinned, or a key sounding, while the Keys are pinned. Called with the sound's lock held.
 func (s *sound) heard() bool {
 	for i := range genIDs {
 		if s.on[i] && s.fg.Audible(i) && s.pinned(i) {
@@ -225,7 +239,7 @@ func (s *sound) heard() bool {
 			return true
 		}
 	}
-	return false
+	return len(s.keys.voices) > 0 && s.keys.lvl > 0 && s.pinned(srcKY)
 }
 
 // tell tells the speaker whether there is anything to hear. It takes the
@@ -234,6 +248,7 @@ func (s *sound) heard() bool {
 func (s *sound) tell() {
 	s.mu.Lock()
 	sp, heard := s.speaker, s.heard()
+	s.told = heard
 	s.mu.Unlock()
 	if sp == nil {
 		return
@@ -246,6 +261,18 @@ func (s *sound) tell() {
 	s.mu.Lock()
 	s.err = err
 	s.mu.Unlock()
+}
+
+// settle tells the speaker again if what is heard has changed with no hand
+// on the rack: a key let go rings on after it, and stops by itself. Called
+// without the sound's lock, each time the panel looks.
+func (s *sound) settle() {
+	s.mu.Lock()
+	changed := s.speaker != nil && s.heard() != s.told
+	s.mu.Unlock()
+	if changed {
+		s.tell()
+	}
 }
 
 // SetSpeaker gives the rack something to play its sound on.
@@ -291,6 +318,14 @@ func (r *Rack) Fill(left, right []float32) {
 		}
 		s.mat.render(s.bus[busTM], s.bus[busDR], n)
 	}
+	keysOn := len(s.keys.voices) > 0
+	if keysOn {
+		if cap(s.ky) < n {
+			s.ky = make([]float32, n)
+		}
+		s.ky = s.ky[:n]
+		s.keys.render(s.ky, n)
+	}
 	k := 1 - math.Exp(-1/(levelGlide*sampleRate))
 	for j := range n {
 		s.fg.Next(&s.vals)
@@ -314,6 +349,11 @@ func (r *Rack) Fill(left, right []float32) {
 				l += v * s.spk[0][src]
 				rt += v * s.spk[1][src]
 			}
+		}
+		if keysOn {
+			v := float64(s.ky[j])
+			l += v * s.spk[0][srcKY]
+			rt += v * s.spk[1][srcKY]
 		}
 		left[j], right[j] = float32(l), float32(rt)
 	}

@@ -8,10 +8,9 @@
 // figures and trajectories `chaosrack render` draws, with no GPU.
 //
 // The sound is made here too and played on the host's speakers (sound.go):
-// the signal generators, Model Out, and the Matrix with its drum lanes,
-// through the Mixer's speaker pins. The keys, the synth's modules and the
-// effects are the page's still: their values are held and shown, and act on
-// nothing yet. The modules come over one at a time.
+// the signal generators, Model Out, the Matrix with its drum lanes, and the
+// keys with the Synth bay, through the Mixer's speaker pins. The effects are
+// the page's still: their values are held and shown, and act on nothing yet.
 package rackhost
 
 import (
@@ -71,6 +70,7 @@ type Rack struct {
 
 	sound *sound
 	mx    matrixPic // the Matrix's parts in the picture
+	keys  keysPic   // the keys in the picture, and the one the pointer holds
 }
 
 // New is a rack at the catalog's defaults.
@@ -132,6 +132,7 @@ func New() (*Rack, error) {
 	r.sound = newSound()
 	r.soundStart()
 	r.findMatrix()
+	r.findKeys()
 	return r, nil
 }
 
@@ -468,6 +469,7 @@ func (r *Rack) Picture() (*rackpic.Picture, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.showMatrix()
+	r.showKeys()
 	p := *r.pic
 	p.Items = append([]*rackpic.Item(nil), r.pic.Items...)
 	return &p, nil
@@ -475,9 +477,13 @@ func (r *Rack) Picture() (*rackpic.Picture, error) {
 
 // PictureChanges is what changed since the picture of generation gen.
 func (r *Rack) PictureChanges(gen int) (*rackpic.Patch, error) {
+	// After the lock is let go: a key let go stops ringing with no hand on
+	// the rack, and the speaker is told so here, as the panel looks.
+	defer r.sound.settle()
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.showMatrix()
+	r.showKeys()
 	if gen < r.full {
 		// The picture was rebuilt since: a new model's bank. All of it.
 		p := *r.pic
@@ -498,9 +504,21 @@ func (r *Rack) PictureChanges(gen int) (*rackpic.Patch, error) {
 
 // Act does what a click or a turn of the wheel at x, y of the picture does to
 // the control there: a click throws a switch or steps a selector, and the
-// wheel turns a dial by its step or a selector by one detent.
+// wheel turns a dial by its step or a selector by one detent. On the
+// keys, a click holds a key down, a drag plays the keys it crosses, and a
+// release lets go.
 func (r *Rack) Act(_ int, x, y float64, kind string, delta float64) error {
 	r.mu.Lock()
+	if r.keysAct(x, y, kind) {
+		r.mu.Unlock()
+		r.sound.tell()
+		return nil
+	}
+	if kind != "click" && kind != "wheel" {
+		// A drag or a release that was not on the keys.
+		r.mu.Unlock()
+		return nil
+	}
 	if kind == "click" {
 		// The Matrix's pads, tabs and Clear, which are not controls.
 		if m := r.markAt(x, y); m != "" && r.press(m) {
