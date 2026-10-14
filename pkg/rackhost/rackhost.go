@@ -281,6 +281,9 @@ func (r *Rack) set(id, value string) error {
 		// Takens measures τ once on entry, as the page re-arms it on every
 		// mode change: the signal may have changed while it was away.
 		r.analyzers.tau.Arm()
+		if m != "sprottmorph" {
+			r.analyzers.morph.run.Leave() // coming back enters it afresh, as the page does
+		}
 		r.useBank(m)
 		r.showModelSwitches(m)
 		return nil
@@ -702,7 +705,7 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	r.playGames()
 	r.needCapture()
 	r.sound.busLook()
-	audio := drawnFromSound(key)
+	audio := figureEachFrame(key)
 	heard := r.hear(key, on, w)
 	var consts map[*float32]float32
 	if refigure {

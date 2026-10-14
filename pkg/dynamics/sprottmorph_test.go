@@ -25,7 +25,7 @@ func TestQuadExtractReproducesCatalog(t *testing.T) {
 			}
 		}
 	}
-	check("Sprott A", sprottADeriv)
+	check("Sprott A", SprottADeriv)
 	for _, sc := range SprottCases {
 		check(sc.Name, sc.Deriv)
 	}

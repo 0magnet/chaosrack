@@ -46,12 +46,14 @@ func (r *Rack) findReadouts() {
 			continue
 		}
 		switch it.Mark {
-		case "led lyap-led", "led lyap-verdict":
-			// The Analysis readout, on every bank: marked by its own id.
-			ro.item[strings.TrimPrefix(it.Mark, "led ")] = i
-			continue
 		case "mro":
 		default:
+			if strings.HasPrefix(it.Mark, "led ") {
+				// A display with an id of its own: the Analysis readout's, on
+				// every bank, and a model's own, as the morph's.
+				ro.item[strings.TrimPrefix(it.Mark, "led ")] = i
+				label = "" // its label is its own
+			}
 			continue
 		}
 		if it.Fill == nil {
@@ -79,6 +81,8 @@ func (r *Rack) showReadouts(key string, nowMs float64) {
 	}
 	r.showLyapunov(key, nowMs, put)
 	switch key {
+	case "sprottmorph":
+		put("smorph-led", a.morph.run.Label())
 	case "stereo", "xy":
 		put("corr", ro.corr)
 	case "takens":

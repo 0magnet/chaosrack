@@ -3,6 +3,7 @@ package rackhost
 import (
 	"math"
 	"math/rand/v2"
+	"strings"
 	"testing"
 
 	"github.com/0magnet/chaosrack/pkg/acoustics"
@@ -316,5 +317,30 @@ func TestTheDecayWaterfallMeasures(t *testing.T) {
 	}
 	if n := r.analyzers.wfall.w.Slices(); n != 16 {
 		t.Errorf("7.5 s of a measurement made %d slices, want 16", n)
+	}
+}
+
+// The Sprott Morph runs natively: its trail moves, the PATCH readout names
+// the system it is wired as, and the rate knob carries it on to the next.
+func TestTheSprottMorphRuns(t *testing.T) {
+	r, c := idleRack(t, "sprottmorph")
+	set(t, r, "smorph-rate", "10")
+	watch(t, r, c, 0.2)
+	r.scene.mu.Lock()
+	before := r.scene.fig.Points[len(r.scene.fig.Points)-1]
+	r.scene.mu.Unlock()
+	watch(t, r, c, 0.2)
+	r.scene.mu.Lock()
+	after := r.scene.fig.Points[len(r.scene.fig.Points)-1]
+	r.scene.mu.Unlock()
+	if before == after {
+		t.Error("the morph's trail did not move")
+	}
+	if got := shows(t, r, "smorph-led"); !strings.HasPrefix(got, "D") {
+		t.Errorf("at sys 3 the PATCH readout reads %q, want D or D-E", got)
+	}
+	watch(t, r, c, 6) // 10 systems a minute: a second of it is more than one
+	if got := shows(t, r, "smorph-led"); strings.HasPrefix(got, "D ") || got == "D" {
+		t.Errorf("after 6 s at 10 a minute the morph still reads %q", got)
 	}
 }
