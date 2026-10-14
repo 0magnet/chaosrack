@@ -53,3 +53,13 @@ func tapChanSel(v float32) tapChan {
 
 // tapChanNames are the positions of any knob that selects one.
 var tapChanNames = []string{"mix", "left", "right", "mid", "side"}
+
+// FoldChan is l and r reduced to the signal a channel knob at v picks.
+func FoldChan(v float32, l, r []float32) []float32 {
+	c := tapChanSel(v)
+	out := make([]float32, min(len(l), len(r)))
+	for i := range out {
+		out[i] = tapFold(c, l[i], r[i])
+	}
+	return out
+}

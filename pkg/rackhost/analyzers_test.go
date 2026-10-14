@@ -132,6 +132,9 @@ func TestTheTransferFunctionMeasuresTheCapture(t *testing.T) {
 	if !ok || math.Abs(ms-1) > 0.05 {
 		t.Errorf("the delay reads %.3f ms (%v), want 1", ms, ok)
 	}
+	if got := shows(t, r, "dly"); got != "+01.00ms" {
+		t.Errorf("the delay display reads %q, want +01.00ms", got)
+	}
 }
 
 // litCells is the fraction of the recurrence plot's cells that are lit.

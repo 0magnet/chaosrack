@@ -1,6 +1,11 @@
 package attractor
 
-import "github.com/0magnet/chaosrack/pkg/acoustics"
+import (
+	"strings"
+
+	"github.com/0magnet/chaosrack/pkg/acoustics"
+	"github.com/0magnet/chaosrack/pkg/led"
+)
 
 // The transfer function's measurement and its picture, shared by the page
 // (transfer_js.go) and a native rack: the rolling average, the lanes, and the
@@ -127,6 +132,16 @@ func (t *Transfer) Analyze(l, r []float32, sr int) {
 	} else if res := t.accum.Result(sr, t.fraction()); res.OK {
 		t.res = res
 	}
+}
+
+// DelayText is the delay readout: milliseconds with a sign, as a
+// character display writes them, or dashes where the coherence will not let
+// the delay be read.
+func (t *Transfer) DelayText() string {
+	if ms, ok := t.DelayMS(); ok {
+		return strings.Replace(led.Format(ms, 2, 2, true), led.Blank, "+", 1) + "ms" // a character display has a plus
+	}
+	return "-- ms"
 }
 
 // DelayMS is the fitted bulk delay between the channels, where the coherence

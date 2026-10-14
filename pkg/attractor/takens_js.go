@@ -4,7 +4,6 @@ package attractor
 
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/led"
 	"github.com/0magnet/chaosrack/pkg/takens"
 	"strconv"
 	"syscall/js"
@@ -97,36 +96,10 @@ type takensMode struct {
 	// signal, which is what makes the view move in time with the music; the
 	// gain is a knob somebody turned, and a knob that moves the bound should
 	// move the frame with it.
-	fitGain float32
-	measEl  js.Value               // the readout beside the button
-	meas    takens.EmbeddingResult // last measurement, for the readout
+	fitGain  float32
+	measEl   js.Value // the readout beside the button
+	TauMeter          // the one-shot measurement of τ (taumeter.go)
 
-	// autoDone is the one-shot guard. Set the first time the automatic
-	// measurement runs, and cleared only by emb.armAutoMeasure — which mode
-	// entry and a change of audio source call, and nothing else does.
-	autoDone bool
-
-	// autoSet is the τ the automatic measurement last wrote, and it is
-	// what lets the measurement tell ITS OWN value from one somebody chose.
-	//
-	// Without it the automatic measurement is a control that takes the knob
-	// away: set τ by hand, switch to Lorenz to compare, come back, and the
-	// measurement has thrown the setting away and replaced it. A permalink is
-	// the same problem one step worse — a link that carries a τ carries it
-	// because whoever made the link meant that τ, and measuring over it
-	// discards the one thing the link was for.
-	//
-	// So the measurement only runs while τ is a value NOBODY CHOSE: the
-	// default, or whatever a previous automatic measurement put there. The
-	// permalink case falls out of this rather than needing its own rule, since
-	// a permalink records a parameter only when it differs from the default.
-	autoSet float32
-
-	// chanMeasured is the SRC the standing measurement was taken from, so
-	// that turning that knob re-arms the one-shot. It is deliberately NOT a
-	// pointer at the knob: the knob is a float a modulator can wobble, and what
-	// matters is the detent it lands on.
-	chanMeasured tapChan
 }
 
 var emb = takensMode{
@@ -208,10 +181,7 @@ func (t *takensMode) generateTakens() {
 	// one describes nothing about this one — the same argument the source swap
 	// makes, one level down. Re-arming rather than measuring, so the one-shot
 	// still has to see a full window before it fires.
-	if ch := tapChanSel(t.chanF); ch != t.chanMeasured {
-		t.chanMeasured = ch
-		t.armAutoMeasure()
-	}
+	t.rearmOnChan(t.chanF)
 	// Once, when the ring first holds enough to measure from — see the section
 	// comment below for why this is allowed to be reached from here at all, and
 	// why it does nothing on every frame but one.
@@ -288,11 +258,6 @@ func (t *takensMode) generateTakens() {
 // reaches exactly one function here — emb.autoMeasure — which is written to
 // do nothing on all but one of the frames it is called on.
 
-// takensEstMax caps the measurement window. The estimators are O(n²) in the
-// FNN search; 4096 samples (~170 ms at 24 kHz) is a run of a few milliseconds
-// and already far more data than the histograms need.
-const takensEstMax = 4096
-
 // autoMeasure runs the estimator ONCE, the first time the mode has enough
 // audio to measure from, and writes the answer into the τ knob.
 //
@@ -334,28 +299,8 @@ func (t *takensMode) autoMeasure() {
 // the quality gate and the deference to a chosen τ can all be tested without a
 // DOM to write a knob into.
 func (t *takensMode) autoDue() bool {
-	if t.autoDone {
-		return false
-	}
-	// Never over a τ somebody chose — see emb.autoSet. The knob is theirs
-	// from the moment they touch it, and a measurement that overrides it is not
-	// a convenience, it is a control fighting the person using it.
-	if t.tau != takens.TauDef && t.tau != t.autoSet {
-		return false
-	}
-	avail := min(t.w, len(t.ring))
-	return avail >= takensEstMax
+	return t.due(t.tau, min(t.w, len(t.ring)))
 }
-
-// armAutoMeasure re-arms the one-shot: the next time the mode has a full
-// window it measures again.
-//
-// A change of source is the case that matters. τ is a property of what is
-// playing, and swapping the microphone for a server feed or for the signal
-// generator swaps what is playing entirely — the measured τ from the old source
-// describes nothing about the new one. Mode entry re-arms for the same reason
-// one step removed: the source may well have changed while the mode was away.
-func (t *takensMode) armAutoMeasure() { t.autoDone = false }
 
 // estWindow copies the newest samples out of the ring, oldest first, as
 // the float64 series the estimators take. Returns nil when there is not enough
@@ -389,15 +334,10 @@ func (t *takensMode) measure() {
 		t.showTakensMeasurement("no audio")
 		return
 	}
-	// The knob's reach is the search range: an answer the knob cannot hold
-	// would be a number to look at and nothing more. The estimator works in
-	// SOURCE samples, because that is what the series it is handed is made of,
-	// while the knob counts reference samples — so the reach is converted into
-	// the estimator's units on the way in and the answer back out again.
+	// In SOURCE samples, the series' own units (TauMeter.estimate).
 	sr := takensSourceRate()
-	r := takens.EstimateEmbedding(x, takens.TauSamples(takens.TauMax, sr), 8)
-	t.meas = r
-	if r.Tau < 1 {
+	tau, ok := t.estimate(x, sr)
+	if !ok {
 		// White noise has no first minimum — its mutual information is at the
 		// estimator's floor for every delay — and neither does a signal too
 		// short to have one. Saying so beats moving the knob to a number that
@@ -405,31 +345,11 @@ func (t *takensMode) measure() {
 		t.showTakensMeasurement("no min")
 		return
 	}
-	setTakensTauSamples(r.Tau, sr)
+	setTakensTauSamples(tau, sr)
 	// Milliseconds, not the sample count: the knob is the same delay on every
 	// source now, and a readout in a unit that changes with the source would be
 	// the one place left saying otherwise.
-	t.showTakensMeasurement(t.measText())
-}
-
-// measText renders the measurement cell. One function rather than two
-// because the cell is written from two places — here, when a measurement lands,
-// and appendTakensEstimate, which rebuilds the cell on every panel rebuild and
-// has to put back what was there. Written twice, the rebuild kept the old
-// sample-count wording and the readout changed units whenever a module was
-// toggled.
-//
-// Seven characters is what its display holds, so one decimal and no space:
-// "τ1.5m3", or "τ1.5m>3" when the dimension never settled.
-func (t *takensMode) measText() string {
-	if t.meas.Tau < 1 {
-		return "τ-- m-"
-	}
-	s := "τ" + led.Format(float64(tauMS(t.tau)), 1, 1, false)
-	if t.meas.OK {
-		return s + "m" + strconv.Itoa(t.meas.Dim)
-	}
-	return s + "m>" + strconv.Itoa(t.meas.Dim) // FNN never settled inside the search
+	t.showTakensMeasurement(t.measText(t.tau))
 }
 
 // takensSourceRate is the live source's sample rate, or the fallback every
@@ -444,11 +364,7 @@ func takensSourceRate() int {
 // setTakensTauSamples writes a delay measured in SOURCE samples into the knob,
 // converting to the knob's reference-rate unit on the way.
 func setTakensTauSamples(tauSrc, sr int) {
-	ref := float32(tauSrc)
-	if sr > 0 && sr != takens.RefRate {
-		ref = float32(tauSrc) * float32(takens.RefRate) / float32(sr)
-	}
-	emb.setTakensTau(int(ref + 0.5))
+	emb.setTakensTau(int(tauKnob(tauSrc, sr)))
 }
 
 // setTakensTau moves the knob, rather than only the variable behind it: the
@@ -479,7 +395,7 @@ func (t *takensMode) showTakensMeasurement(s string) {
 // appendTakensEstimate adds the MEAS readout and its button to the model's
 // readout line (liveReadoutHost), in the order the Lyapunov readout has them.
 func (t *takensMode) appendTakensEstimate(host js.Value) {
-	t.measEl = liveReadout(host, "meas", dispFullChars, t.measText(), doc("ro.meas"))
+	t.measEl = liveReadout(host, "meas", dispFullChars, t.measText(t.tau), doc("ro.meas"))
 	btn := dom.Doc.Call("createElement", "button")
 	btn.Set("className", "rst")
 	btn.Set("textContent", "↻")
@@ -490,7 +406,3 @@ func (t *takensMode) appendTakensEstimate(host js.Value) {
 	})
 	t.measEl.Get("parentNode").Call("appendChild", btn)
 }
-
-// tauMS is a τ knob value as milliseconds, for readouts. It does not depend on
-// the source rate, which is the whole point of the reference unit.
-func tauMS(tauRef float32) float32 { return tauRef * 1000 / takens.RefRate }

@@ -7,8 +7,6 @@ import (
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"strconv"
 	"syscall/js"
-
-	"github.com/0magnet/chaosrack/pkg/led"
 )
 
 // The Waterfall mode — cumulative spectral decay, as a surface in the 3-D
@@ -283,10 +281,7 @@ func (w *waterfall) armFit() { w.fitted = false }
 // straight part between them and multiplies up. Blank in the live surface,
 // which is spectra of a signal and has no impulse to decay from.
 func (w *waterfall) showRT() {
-	s := "--- s"
-	if rt, ok := w.RT60(); ok {
-		s = led.Format(rt, 1, 2, false) + " s"
-	}
+	s := w.RT60Text()
 	if s == w.rtTx {
 		return
 	}
@@ -310,4 +305,19 @@ var wfallFFTLabels = []string{
 	doc("p.wfall-fft=1"),
 	doc("p.wfall-fft=2"),
 	doc("p.wfall-fft=3"),
+}
+
+// channel is the channel the live surface analyses. The decay surface does
+// not have one: it needs BOTH channels, and REF says which of the two is the
+// reference.
+func (w *Waterfall) channel() tapChan {
+	i := int(w.chanF + 0.5)
+	if i < 0 {
+		i = 0
+	} else if i >= len(tapChanNames) {
+		i = len(tapChanNames) - 1
+	}
+	// Clamped to the name table just above, so the value is 0..4 — gosec sees
+	// only int → uint8 and cannot see the clamp.
+	return tapChan(i) //nolint:gosec // clamped to len(tapChanNames)-1 above
 }
