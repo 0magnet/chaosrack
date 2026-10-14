@@ -2,8 +2,11 @@ package rackhost
 
 import (
 	"strconv"
+	"strings"
 
+	"github.com/0magnet/chaosrack/pkg/analysis"
 	"github.com/0magnet/chaosrack/pkg/attractor"
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"github.com/0magnet/chaosrack/pkg/recurrence"
 )
 
@@ -23,6 +26,7 @@ type readoutLine struct {
 	rqa      [3]string
 	rqaNext  float64
 	recDirty bool
+	lyap     lyapProbe
 }
 
 // findReadouts finds the bank's live displays: each is a part the page marks
@@ -34,7 +38,13 @@ func (r *Rack) findReadouts() {
 	label := ""
 	for i := r.outside; i < len(r.pic.Items); i++ {
 		it := r.pic.Items[i]
-		if it.Mark != "mro" {
+		switch it.Mark {
+		case "led lyap-led", "led lyap-verdict":
+			// The Analysis readout, on every bank: marked by its own id.
+			ro.item[strings.TrimPrefix(it.Mark, "led ")] = i
+			continue
+		case "mro":
+		default:
 			continue
 		}
 		if it.Fill == nil {
@@ -60,6 +70,7 @@ func (r *Rack) showReadouts(key string, nowMs float64) {
 			r.write(i, s)
 		}
 	}
+	r.showLyapunov(key, nowMs, put)
 	switch key {
 	case "stereo", "xy":
 		put("corr", ro.corr)
@@ -92,4 +103,58 @@ func (r *Rack) measureTau() {
 	if t, ok := r.analyzers.tau.AutoMeasure(tau, ch, attractor.FoldChan(ch, l, rt), sampleRate); ok {
 		_ = r.set("takens-tau", strconv.FormatFloat(float64(t), 'f', -1, 32)) //nolint:errcheck // within the knob's reach by construction
 	}
+}
+
+// lyapProbe is the Analysis readout: the largest Lyapunov exponent of the
+// model on show, measured on demand as the page measures it — a few hundred
+// thousand integration steps, nothing once and a frame killer every frame.
+type lyapProbe struct {
+	want, have string  // the model and constants to measure, and measured
+	mode       string  // the model want is of
+	due        float64 // when to measure want: after a knob has held still
+	val        string
+	verdict    string
+	cache      map[string][2]string // by model and constants
+}
+
+// showLyapunov measures model key's exponent once its constants have held
+// still, and writes it and its verdict through put. Called with r.mu held.
+func (r *Rack) showLyapunov(key string, nowMs float64, put func(label, s string)) {
+	lp := &r.analyzers.ro.lyap
+	var b strings.Builder
+	b.WriteString(key)
+	for _, p := range dynamics.Params(key) {
+		if p.Value != nil {
+			b.WriteString("|" + r.value(p.ID))
+		}
+	}
+	if k := b.String(); k != lp.want {
+		// The page's debounce: a model change waits for its panel, and a knob
+		// drag fires a change per pixel.
+		delay := 400.0
+		if key != lp.mode {
+			delay = 120
+		}
+		lp.want, lp.mode, lp.due = k, key, nowMs+delay
+		lp.val, lp.verdict = "measuring…", ""
+	}
+	if lp.have != lp.want && nowMs >= lp.due {
+		lp.have = lp.want
+		t, ok := lp.cache[lp.want]
+		if !ok {
+			t[0], t[1] = attractor.LyapunovTexts(analysis.LyapunovFor(key))
+			// Not the two whose system is more than their knobs: Custom's is
+			// the equations typed into it, and the morph reprograms itself as
+			// it runs.
+			if key != "custom" && key != "sprottmorph" {
+				if lp.cache == nil {
+					lp.cache = map[string][2]string{}
+				}
+				lp.cache[lp.want] = t
+			}
+		}
+		lp.val, lp.verdict = t[0], t[1]
+	}
+	put("lyap-led", lp.val)
+	put("lyap-verdict", lp.verdict)
 }
