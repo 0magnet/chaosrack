@@ -290,7 +290,7 @@ func isTexturePlane(mode string) bool { //nolint:unused // only the js build dra
 
 // isFlatScope: flat scope-screen modes (games, text banners, demos) that
 // must boot face-on and still instead of in a random pose.
-func isFlatScope(mode string) bool { //nolint:unused // only the js build draws, so the native one never calls it
+func isFlatScope(mode string) bool {
 	// The maps are 2-D — the third coordinate is only there because the
 	// pipeline is 3-D — so they boot face-on for the same reason the scope
 	// screens do: edge-on, a plane figure is a line.
@@ -337,3 +337,7 @@ func runsOnSpeed(mode string) bool { //nolint:unused // only the js build has a 
 	}
 	return false
 }
+
+// IsFlatScope reports whether a model is a plane figure that comes up
+// face-on (isFlatScope).
+func IsFlatScope(mode string) bool { return isFlatScope(mode) }

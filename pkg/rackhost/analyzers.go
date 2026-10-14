@@ -30,6 +30,7 @@ type analyzers struct {
 	spect  spectroView
 	wfall  waterfallView
 	morph  morphView
+	scope  scopeModels
 	tau    attractor.TauMeter
 	ro     readoutLine
 	// autoMap is whether the MAP ring holds the heat the spectrogram put there
@@ -49,6 +50,7 @@ func newAnalyzers() analyzers {
 		spect:    spectroView{ctl: attractor.NewSpectroControls()},
 		wfall:    waterfallView{w: attractor.NewWaterfall()},
 		morph:    morphView{run: attractor.NewSprottMorph(rand.Float64)},
+		scope:    newScopeModels(),
 		lastFlow: "lorenz",
 	}
 }
@@ -68,7 +70,7 @@ func listens(key string) bool {
 // frame and framed to its full scale: an audio model and the waterfall's
 // surface, from the rack's signal, and the Sprott Morph, from its run.
 func figureEachFrame(key string) bool {
-	return attractor.IsAudioModel(key) || key == "waterfall" || key == "sprottmorph"
+	return attractor.IsAudioModel(key) || key == "waterfall" || key == "sprottmorph" || isScopeModel(key)
 }
 
 // plotPass is lines drawn at one width.
@@ -203,6 +205,8 @@ func (r *Rack) hear(key string, on bool, w int) (h heard) {
 		if key == "xy" {
 			h.glow = r.number("xy-persist")
 		}
+	case isScopeModel(key):
+		h.fig, h.fit = r.scopeFigure(key, on && r.value("pause-sw") != "1")
 	case key == "sprottmorph":
 		h.fig, h.fit = r.morphFigure(on && r.value("pause-sw") != "1")
 	case key == "waterfall":
