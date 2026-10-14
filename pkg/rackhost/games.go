@@ -264,12 +264,12 @@ func (r *Rack) showLED(id, text string) {
 // isGameControl reports whether id is one of the games' knobs or the head's
 // first switch, which drops the ball or restarts Pong.
 func isGameControl(id string) bool {
-	return strings.HasPrefix(id, "bounce-") || strings.HasPrefix(id, "pong-") || id == "model-sw-0"
+	return strings.HasPrefix(id, "bounce-") || strings.HasPrefix(id, "pong-")
 }
 
 // gameSet reads a game's control into it. Called with r.mu and the sound's
 // lock held.
-func (r *Rack) gameSet(id string) (more [][2]string) {
+func (r *Rack) gameSet(id string) {
 	g := &r.sound.games
 	f := float32(r.number(id))
 	switch id {
@@ -291,20 +291,7 @@ func (r *Rack) gameSet(id string) (more [][2]string) {
 		// A hand on a pot seizes its paddle, and is a hand on the game.
 		g.pong.Seize(id == "pong-pad-l", float64(f))
 		g.pongArmed = true
-	case "model-sw-0":
-		if r.value(id) != "1" {
-			return nil
-		}
-		// Momentary: it does its part and springs back.
-		switch r.value(r.selector) {
-		case "bounceball":
-			g.ball.Drop()
-		case "pong":
-			g.pong.Restart()
-		}
-		more = append(more, [2]string{id, "0"})
 	}
-	return more
 }
 
 // figure is the game being played as a figure, framed to its court: the

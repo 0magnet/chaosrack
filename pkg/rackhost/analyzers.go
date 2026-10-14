@@ -53,7 +53,7 @@ func newAnalyzers() analyzers {
 // isAnalyzer reports whether the native rack draws model key as a flat
 // analyzer.
 func isAnalyzer(key string) bool {
-	return key == "rta" || key == "xfer" || key == "recurrence" || key == "spectrogram"
+	return key == "rta" || key == "xfer" || key == "recurrence" || key == "spectrogram" || key == "fvf"
 }
 
 // listens reports whether model key is drawn from the rack's signal.
@@ -202,8 +202,8 @@ func (r *Rack) hear(key string, on bool, w int) (h heard) {
 		}
 	case key == "waterfall":
 		h.fig, h.fit = r.waterfallFigure(float64(r.sound.now().UnixNano()) / 1e6)
-	case key == "spectrogram" && on:
-		h.quad = r.spectrogram(float64(r.sound.now().UnixNano()) / 1e6)
+	case (key == "spectrogram" || key == "fvf") && on:
+		h.quad = r.spectrogram(float64(r.sound.now().UnixNano())/1e6, key == "fvf")
 		h.fill = r.value("spect-fill") == "1"
 	case key == "recurrence" && on:
 		h.quad = r.recurrencePlot(float64(r.sound.now().UnixNano()) / 1e6)
@@ -327,15 +327,16 @@ const spectroTexW = 2048
 type spectroView struct {
 	ctl  *attractor.SpectroControls
 	feed attractor.SpectroFeed
-	pic  *image.RGBA // spectroTexW columns, one row per bin
-	col  int         // where the next column goes; the oldest is here too
-	read int         // the bus sample the feed has read up to
+	pic  *image.RGBA             // spectroTexW columns, one row per bin
+	col  int                     // where the next column goes; the oldest is here too
+	read int                     // the bus sample the feed has read up to
+	fvf  *attractor.FVFProcessor // FVF's stream through the wobbulator
 }
 
 // spectrogram is the spectrogram now: the rack's signal since the last look
 // turned into columns at the panel's knobs, on the page's 5 by 3 plane,
 // scrolled so the newest column is at its right edge. Called with r.mu held.
-func (r *Rack) spectrogram(nowMs float64) *rasterview.Quad {
+func (r *Rack) spectrogram(nowMs float64, wobble bool) *rasterview.Quad {
 	sp := &r.analyzers.spect
 	for _, id := range attractor.SpectroKnobs {
 		sp.ctl.Set(id, float32(r.number(id)))
@@ -357,6 +358,16 @@ func (r *Rack) spectrogram(nowMs float64) *rasterview.Quad {
 	x := sp.ctl.Fold(l, rt)
 	if over := len(x) - sp.feed.Room(); over > 0 {
 		x = x[over:] // the newest, as the page's bounded drain keeps
+	}
+	if wobble {
+		// FVF: the spectrogram of the input through the wobbulator, its own
+		// stream of it, as the page runs the spectrogram's drain through one.
+		if sp.fvf == nil {
+			sp.fvf = r.sound.wob.Processor(sampleRate)
+		}
+		for i, v := range x {
+			x[i] = sp.fvf.Process(v)
+		}
 	}
 	sp.feed.Add(x)
 	sp.feed.Step(rows, attractor.SpectroPixel(r.mapNow()))
@@ -391,16 +402,16 @@ func (r *Rack) mapNow() colormap.Map {
 	}
 }
 
-// followMode moves the MAP ring onto heat when the spectrogram comes up and
-// hands it back when it goes, as the page does: never over a choice. The
-// ring is moved only from its default, and moved back only if it still holds
-// what this put there. Called with r.mu held.
+// followMode moves the MAP ring onto heat when the spectrogram or FVF comes
+// up and hands it back when they go, as the page does: never over a choice.
+// The ring is moved only from its default, and moved back only if it still
+// holds what this put there. Called with r.mu held.
 func (r *Rack) followMode(model string) {
 	const ringDefault = "2"
 	heat := strconv.Itoa(colormap.First)
 	a := &r.analyzers
 	cur := r.value("gradient-colors")
-	if model == "spectrogram" {
+	if model == "spectrogram" || model == "fvf" {
 		if cur == ringDefault && r.set("gradient-colors", heat) == nil {
 			a.autoMap = true
 		}

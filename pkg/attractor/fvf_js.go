@@ -16,7 +16,6 @@ package attractor
 // (pulse / square / ÷2 sub) → ring or AM modulation by the original audio.
 
 import (
-	"math"
 	"strconv"
 	"syscall/js"
 	"unsafe"
@@ -24,25 +23,11 @@ import (
 	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
-const (
-	fvfPitchFloor = 40.0
-	fvfPitchCeil  = 3000.0
-)
-
 // wobbulator is the FVF harmonic wobbulator: its audio graph, its knobs and
 // the running state of its processor.
 type wobbulator struct {
-	gain   float32 // f_out = gain·f_in + offset
-	offset float32 // Hz floor / transposition
-	fMin   float32 // Hz; carrier never stops (V/F can't do 0 Hz)
-	fMax   float32 // Hz ceiling
-	duty   float32 // pulse duty (brightness)
-	mix    float32 // 0 = dry .. 1 = fully processed
-	glide  float32 // pitch smoothing (low = snappy/glitchy = faithful)
-	wave   int     // 0 square, 1 pulse, 2 sub (÷2)
-	mod    int     // 0 ring, 1 AM
-	bypass bool    // true = pass raw input through (FX switch off)
-	proc   *fvfProcessor
+	Wobbulator // the knobs and the switches (wobbulator.go)
+	proc       *FVFProcessor
 
 	// routed is where the machine's audio routing stands, as the server last
 	// said; routeNote is why the last attempt to change it failed, if it did.
@@ -54,7 +39,7 @@ type wobbulator struct {
 	audioCtx     js.Value
 	audioNode    js.Value
 	audioFn      js.Func
-	audioProc    *fvfProcessor
+	audioProc    *FVFProcessor
 	audioActive  bool
 	drainScratch []float32 // source-rate: drained input, then processed output
 	outScratch   []float32 // context-rate: upsampled playback samples
@@ -64,14 +49,8 @@ type wobbulator struct {
 }
 
 var fvf = wobbulator{
-	gain:  1,
-	fMin:  30,
-	fMax:  6000,
-	duty:  0.12,
-	mix:   1,
-	glide: 0.25,
-	wave:  1,
-	vis:   newFVFRing(48000),
+	Wobbulator: *NewWobbulator(),
+	vis:        newFVFRing(48000),
 }
 
 func init() {
@@ -86,106 +65,16 @@ func init() {
 	}
 }
 
-// fvfProcessor is a single-channel FVF engine; it reads the live fvf* control
-// vars each sample so the knobs adjust it in real time.
-type fvfProcessor struct {
-	sampleRate        float64
-	lastPos           bool
-	sinceCross        int
-	fIn, phase, subPh float64
-}
-
+// ensureFVFProc keeps the spectrogram's stream through the wobbulator at the
+// source's rate.
 func (w *wobbulator) ensureFVFProc() {
 	sr := 24000.0
 	if src := aud.activeAudioSource(); src.SampleRate() > 0 {
 		sr = float64(src.SampleRate())
 	}
-	if w.proc == nil || w.proc.sampleRate != sr {
-		w.proc = &fvfProcessor{sampleRate: sr}
+	if w.proc == nil || w.proc.Rate() != sr {
+		w.proc = w.Processor(sr)
 	}
-}
-
-func (p *fvfProcessor) Process(x float32) float32 {
-	// Bypass = pass the raw incoming audio straight through, so the "FX"
-	// switch is an instant A/B between the untouched signal and the
-	// wobbulated one (independent of the mix knob's position).
-	if fvf.bypass {
-		return x
-	}
-	xf := float64(x)
-
-	// Limiter + F/V as a zero-crossing pitch tracker (deliberately crude —
-	// the wobble and octave jumps are the character).
-	pos := xf >= 0
-	p.sinceCross++
-	if pos && !p.lastPos && p.sinceCross > 1 {
-		f := p.sampleRate / float64(p.sinceCross)
-		if f >= fvfPitchFloor && f <= fvfPitchCeil {
-			p.fIn += float64(fvf.glide) * (f - p.fIn)
-		}
-		p.sinceCross = 0
-	}
-	p.lastPos = pos
-
-	// gain·f + offset, clamped so the carrier never dies.
-	fOut := float64(fvf.gain)*p.fIn + float64(fvf.offset)
-	if fOut < float64(fvf.fMin) {
-		fOut = float64(fvf.fMin)
-	}
-	if fOut > float64(fvf.fMax) {
-		fOut = float64(fvf.fMax)
-	}
-
-	p.phase += fOut / p.sampleRate
-	if p.phase >= 1 {
-		p.phase -= math.Floor(p.phase)
-	}
-	p.subPh += (fOut * 0.5) / p.sampleRate
-	if p.subPh >= 1 {
-		p.subPh -= math.Floor(p.subPh)
-	}
-
-	var carrier float64
-	switch fvf.wave {
-	case 1: // variable-duty pulse (bright, harmonic-rich)
-		duty := float64(fvf.duty)
-		if duty < 0.001 {
-			duty = 0.001
-		} else if duty > 0.5 {
-			duty = 0.5
-		}
-		if p.phase < duty {
-			carrier = 1
-		} else {
-			carrier = -1
-		}
-	case 2: // ÷2 sub-octave square
-		if p.subPh < 0.5 {
-			carrier = 1
-		} else {
-			carrier = -1
-		}
-	default: // 50% square
-		if p.phase < 0.5 {
-			carrier = 1
-		} else {
-			carrier = -1
-		}
-	}
-
-	var wet float64
-	if fvf.mod == 1 { // AM / balanced
-		wet = xf * (1 + carrier) * 0.5
-	} else { // ring (four-quadrant)
-		wet = xf * carrier
-	}
-	out := float64(fvf.mix)*wet + (1-float64(fvf.mix))*xf
-	if out > 1 {
-		out = 1
-	} else if out < -1 {
-		out = -1
-	}
-	return float32(out)
 }
 
 // wireFVFCells wires WAVE and MOD, the two FVF positions in the Visual bank
@@ -404,7 +293,7 @@ func (w *wobbulator) startFVFAudio() {
 	if !w.audioCtx.Truthy() {
 		return
 	}
-	w.audioProc = &fvfProcessor{sampleRate: float64(sr)}
+	w.audioProc = w.Processor(float64(sr))
 	const bufSize = 2048
 	// The source-rate scratch must hold bufSize·(srcRate/ctxRate) samples;
 	// 2× covers any plausible rate pair (e.g. 96 kHz source on a 48 kHz ctx).
@@ -452,7 +341,7 @@ func (w *wobbulator) audioProcess(_ js.Value, args []js.Value) any {
 	if src := aud.activeAudioSource(); src.SampleRate() > 0 {
 		srcRate = float64(src.SampleRate())
 	}
-	w.audioProc.sampleRate = srcRate
+	w.audioProc.SetRate(srcRate)
 	ctxRate := out.Get("sampleRate").Float()
 	w.srcAcc += srcRate / ctxRate * float64(n)
 	m := min(int(w.srcAcc), len(w.drainScratch))
