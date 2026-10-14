@@ -6,6 +6,7 @@ import (
 
 	"github.com/0magnet/chaosrack/pkg/controlspec"
 	"github.com/0magnet/chaosrack/pkg/racksurface"
+	"github.com/gdamore/tcell/v3"
 )
 
 // fakeRack is a rack that remembers what it was told.
@@ -249,5 +250,43 @@ func TestASwitchReadsAsAWord(t *testing.T) {
 	}
 	if got := readingOf(sw2("0")); got != "off" {
 		t.Errorf("an open switch reads %q, want off", got)
+	}
+}
+
+// After /, a filter can begin with a letter that is also a command: "pause"
+// finds pause-sw rather than moving the window and filtering for "ause", and
+// "quit" does not quit.
+func TestSlashLetsAFilterBeginWithACommandLetter(t *testing.T) {
+	f := &fakeRack{ctls: []Control{
+		dial("zoom", 0, 1, 0.1, 0, "0"),
+		sw("pause-sw", []string{"0", "1"}, "0", "0"),
+	}}
+	p := newPanel(f)
+	p.paged = true
+	typed := func(s string) (quit bool) {
+		for _, r := range s {
+			if p.key(tcell.NewEventKey(tcell.KeyRune, string(r), tcell.ModNone)) {
+				return true
+			}
+		}
+		return false
+	}
+	typed("/pause")
+	if p.filt != "pause" || p.winMode != 0 {
+		t.Fatalf("/pause filtered %q with the window in mode %d, want \"pause\" in mode 0", p.filt, p.winMode)
+	}
+	if len(p.ctls) != 1 || p.ctls[0].ID != "pause-sw" {
+		t.Fatalf("/pause found %v", p.ctls)
+	}
+	if typed("/q") {
+		t.Fatal("/q quit the panel")
+	}
+	// Escape takes back a / with nothing typed after it, and does not quit.
+	typed("/")
+	if p.key(tcell.NewEventKey(tcell.KeyEscape, "", tcell.ModNone)) || p.typing {
+		t.Fatal("escape after / quit, or left the filter begun")
+	}
+	if !typed("q") {
+		t.Fatal("q with no filter no longer quits")
 	}
 }

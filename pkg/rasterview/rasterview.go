@@ -64,6 +64,12 @@ type View struct {
 	// half cell of a 9×19.7 font is 0.91 as wide as it is tall — and drawn
 	// square it comes out that much wider than the same model in WebGL.
 	PixelAspect float64
+	// PanX and PanY slide the picture right and up by that much of the
+	// model's own units, as the View module's X and Y move the page's camera
+	// and its target together: the model moves, its pose does not.
+	PanX, PanY float64
+	// LineWidth is how many pixels across a line is drawn; 0 is one.
+	LineWidth int
 }
 
 // Render draws an indexed line list (xyz triples + endpoint pairs, as
@@ -140,8 +146,8 @@ func (v View) Render(dst *image.RGBA, vertices []float32, indices []uint16, g Gr
 		if v.Dist > 0 {
 			persp = v.Dist / (v.Dist - z3)
 		}
-		px[i] = cx + x2*r*persp/aspect
-		py[i] = cy - y3*r*persp
+		px[i] = cx + (x2*persp+v.PanX)*r/aspect
+		py[i] = cy - (y3*persp+v.PanY)*r
 
 		age := float32(0)
 		if n > 1 {
@@ -157,16 +163,23 @@ func (v View) Render(dst *image.RGBA, vertices []float32, indices []uint16, g Gr
 		cr[i] = c
 	}
 
+	// A line LineWidth across is a square brush that wide, centered on it.
+	brush := max(v.LineWidth, 1)
+	off := (brush - 1) / 2
 	set := func(x, y int, c [3]float32) {
-		if x < b.Min.X || y < b.Min.Y || x >= b.Max.X || y >= b.Max.Y {
-			return
-		}
-		dst.SetRGBA(x, y, color.RGBA{
+		px := color.RGBA{
 			uint8(clamp01(c[0]) * 255),
 			uint8(clamp01(c[1]) * 255),
 			uint8(clamp01(c[2]) * 255),
 			255,
-		})
+		}
+		for by := y - off; by < y-off+brush; by++ {
+			for bx := x - off; bx < x-off+brush; bx++ {
+				if bx >= b.Min.X && by >= b.Min.Y && bx < b.Max.X && by < b.Max.Y {
+					dst.SetRGBA(bx, by, px)
+				}
+			}
+		}
 	}
 
 	// DDA over each segment, color interpolated between endpoints.
