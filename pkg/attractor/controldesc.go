@@ -68,6 +68,9 @@ type ControlDesc struct {
 	SelectDef   string
 	SelectApply func(v string)
 
+	// IsText marks a field a hand types into: an equation, a banner.
+	IsText bool
+
 	// SkipResetAll keeps this control out of the Reset All sweep while still
 	// giving it a reset button of its own. Exactly one control wants that: the
 	// interface Size ring is a display preference, like the dock edge, and
@@ -104,7 +107,7 @@ func (d ControlDesc) Info() ControlInfo {
 	return ControlInfo{
 		ID: d.ID, Label: d.Label,
 		Min: d.Min, Max: d.Max, Step: d.Step, Def: d.Def,
-		IsSelect: d.IsSelect, SelectDef: d.SelectDef,
+		IsSelect: d.IsSelect, SelectDef: d.SelectDef, IsText: d.IsText,
 		PermaKey: d.PermaKey, ModTarget: d.ModTarget,
 	}
 }

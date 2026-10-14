@@ -58,6 +58,7 @@ func buildDemoModules() {
 		return nil
 	}), true)
 	if in := dom.Doc.Call("getElementById", "stext-in"); in.Truthy() {
+		registerControl(ControlDesc{ID: "stext-in", Label: "text", IsText: true}, "visual") // the head's readout line, not the bank
 		in.Set("value", ftext.str)
 		dom.On(in, "input", func(this js.Value, a []js.Value) any {
 			ftext.str = strings.ToUpper(in.Get("value").String())

@@ -34,6 +34,8 @@ func (r *Rack) modelSwitches(model string) []modelSwitch {
 		return []modelSwitch{{legend: "rset", press: g.pong.Restart}}
 	case "bounceball":
 		return []modelSwitch{{legend: "drop", press: g.ball.Drop}}
+	case "stlfile":
+		return []modelSwitch{{legend: "load", press: func() { r.prompt = stlPath }}}
 	case "fvf":
 		return []modelSwitch{
 			{legend: "fx", on: func() bool { return !s.wob.Bypassed() }, set: func(v bool) { s.wob.SetBypass(!v) }},

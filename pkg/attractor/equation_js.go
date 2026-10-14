@@ -199,6 +199,12 @@ func (c *customEquation) buildCustomPanel(paramsDiv js.Value) {
 		lbl.Set("style", "color:#8cf;min-width:44px;")
 		inp := dom.Doc.Call("createElement", "input")
 		inp.Set("type", "text")
+		// A control of the rack, so a panel in a terminal and a rack without the
+		// page can type the system too. Its module is the Equation module's,
+		// not the bank's: the bank's region is where its controls are, and this
+		// one is under the monitor.
+		inp.Set("id", "custom-eq-"+strconv.Itoa(i))
+		registerControl(ControlDesc{ID: "custom-eq-" + strconv.Itoa(i), Label: c.eqLabel(i), IsText: true}, "equation")
 		inp.Set("value", c.eq[i])
 		inp.Set("spellcheck", false)
 		inp.Set("style", "width:180px;background:#0a1420;color:#cde;border:1px solid #345;font-family:monospace;font-size:12px;padding:2px 4px;")

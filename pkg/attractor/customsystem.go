@@ -302,3 +302,26 @@ func (c *CustomSystem) Param(name string) (float32, bool) {
 
 // Dt is the flow flavor's step.
 func (c *CustomSystem) Dt() float32 { return c.dt }
+
+// SetEquation is line i of the editor as typed: dx/dt, dy/dt, dz/dt, dw/dt,
+// or in the other flavors the next value or F. Compile reads it.
+func (c *CustomSystem) SetEquation(i int, s string) {
+	if i >= 0 && i < len(c.eq) {
+		c.eq[i] = s
+	}
+}
+
+// SetExtent sets the surface flavor's half-width.
+func (c *CustomSystem) SetExtent(v float32) {
+	if v > 0 {
+		c.extent = v
+	}
+}
+
+// Equation is line i of the editor as typed.
+func (c *CustomSystem) Equation(i int) string {
+	if i < 0 || i >= len(c.eq) {
+		return ""
+	}
+	return c.eq[i]
+}

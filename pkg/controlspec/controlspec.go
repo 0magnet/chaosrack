@@ -34,7 +34,10 @@ type ControlInfo struct {
 	// a dial where the panel has a toggle. It also has to be readable at all —
 	// a checkbox's .value is the string "on" whether it is checked or not, so
 	// whatever reads a control has to know which kind it is holding.
-	IsSwitch bool   `json:"switch,omitempty"`
+	IsSwitch bool `json:"switch,omitempty"`
+	// IsText marks a control whose value is text a hand types: an equation, a
+	// banner, a path. It has no range and no detents; a front end edits it.
+	IsText   bool   `json:"text,omitempty"`
 	PermaKey string `json:"perma,omitempty"`
 	// Module is the panel the control is mounted in — its header text, which
 	// is what the rack names a module by. A front end that draws the RACK

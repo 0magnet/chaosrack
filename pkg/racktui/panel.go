@@ -24,6 +24,8 @@ import (
 // whatever the wrap happened to put beside it.
 
 type panel struct {
+	// edit is a text control being typed into (textedit.go).
+	edit *textEdit
 	// gk is the keys a game holds down (gamekeys.go).
 	gk   gameKeys
 	src  Source
@@ -183,6 +185,7 @@ func RunOn(sc tcell.Screen, src Source) error {
 			refreshing = time.Time{}
 		}
 		p.letGoGameKeys(time.Now())
+		p.takePrompt()
 		changed := true
 		switch ev := (<-sc.EventQ()).(type) {
 		case *tcell.EventResize:
@@ -302,6 +305,10 @@ func (p *panel) refilter() {
 
 // key handles one keystroke and reports whether to quit.
 func (p *panel) key(ev *tcell.EventKey) bool {
+	if p.edit != nil {
+		p.editKey(ev)
+		return false
+	}
 	switch ev.Key() {
 	case tcell.KeyEscape, tcell.KeyCtrlC:
 		if p.typing && ev.Key() == tcell.KeyEscape {
@@ -353,6 +360,8 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 			return false
 		}
 		p.nudge(1)
+	case tcell.KeyEnter:
+		p.startEdit()
 	case tcell.KeyTab:
 		p.list = !p.list
 	case tcell.KeyBackspace, tcell.KeyBackspace2:
@@ -593,6 +602,8 @@ func (p *panel) draw(sc tcell.Screen) {
 	}
 	st := stDim
 	switch {
+	case p.edit != nil:
+		status, st = p.editLine(), stNormal
 	case p.err != "":
 		status, st = "error: "+p.err, stErr
 	case p.typing:

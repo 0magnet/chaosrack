@@ -83,6 +83,10 @@ func (r *Rack) showReadouts(key string, nowMs float64) {
 	switch key {
 	case "sprottmorph":
 		put("smorph-led", a.morph.run.Label())
+	case "stlfile":
+		if r.stl.label != "" {
+			put("stlfile-led", r.stl.label)
+		}
 	case "stereo", "xy":
 		put("corr", ro.corr)
 	case "takens":
