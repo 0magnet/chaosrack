@@ -137,7 +137,7 @@ func turtleHit(clientX, clientY float64, stride int) (step int, depth float32, o
 	var px, py, pz float32
 	have := false
 	for i := 0; i < n; i += stride {
-		x, y, z := t.body.place(t, t.pts[base+i])
+		x, y, z := turtle.body.place(t, t.pts[base+i])
 		c := mvp.Mul4x1(mgl32.Vec4{x, y, z, 1})
 		if c.W() <= 0 { // behind the eye
 			have = false
@@ -299,7 +299,7 @@ func (t *turtleGrab) tiltMove(dax, day float32) {
 	if !t.tiltDrag || turtle.state == nil {
 		return
 	}
-	turtle.state.body.turtleTiltBy(dax, day)
+	turtle.body.turtleTiltBy(dax, day)
 }
 
 func (t *turtleGrab) tiltEnd() {
@@ -334,7 +334,7 @@ func (t *turtleGrab) spinBy(d float32) {
 	if !t.spinDrag || turtle.state == nil {
 		return
 	}
-	b := &turtle.state.body
+	b := &turtle.body
 	b.ang += d
 	now := js.Global().Get("performance").Call("now").Float()
 	if t.spinMs > 0 {
