@@ -270,6 +270,7 @@ func (r *Rack) set(id, value string) error {
 		r.refigure.Store(true)
 	}
 	if id == r.selector {
+		r.followMode(v)
 		r.useBank(v)
 		return nil
 	}
@@ -714,7 +715,7 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	s.last = now
 	// A picture on a plane comes up face-on and holds still, as the page sets
 	// its textured planes up: a hand or the rate knobs still turn it.
-	plane := heard.posed != nil
+	plane := heard.quad != nil
 	if plane && key != s.key {
 		s.angle = [3]float64{}
 	}

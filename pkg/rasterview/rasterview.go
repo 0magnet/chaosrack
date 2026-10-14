@@ -41,12 +41,14 @@ type Gradient struct {
 }
 
 // DefaultGradient is the look the attractor starts with on the web: a
-// two-color red→blue gradient along model Z.
+// two-color red→blue gradient along model Z, with the page's green as the
+// middle swatch a three-color map mixes through.
 func DefaultGradient() Gradient {
 	return Gradient{
 		Source: 2,
 		Colors: 2,
 		Base:   [3]float32{1, 0, 0},
+		Mid:    [3]float32{0, 1, 0},
 		Top:    [3]float32{0, 0, 1},
 		Freq:   1,
 	}

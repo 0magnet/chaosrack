@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/draw"
 	"math"
+	"strconv"
 	"time"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
@@ -25,6 +26,10 @@ type analyzers struct {
 	// recPic is the recurrence plot's matrix as a picture, kept up while the
 	// matrix is not rebuilt.
 	recPic *image.RGBA
+	spect  spectroView
+	// autoMap is whether the MAP ring holds the heat the spectrogram put there
+	// (followMode).
+	autoMap bool
 	// lastFlow is the flow the panel drew last, whose trajectory the
 	// recurrence plot's traj source plots, as the page's lastFlowMode.
 	lastFlow string
@@ -36,6 +41,7 @@ func newAnalyzers() analyzers {
 		rta:      attractor.NewRTA(),
 		xfer:     attractor.NewTransfer(),
 		rec:      attractor.NewRecurrence(),
+		spect:    spectroView{ctl: attractor.NewSpectroControls()},
 		lastFlow: "lorenz",
 	}
 }
@@ -43,7 +49,7 @@ func newAnalyzers() analyzers {
 // isAnalyzer reports whether the native rack draws model key as a flat
 // analyzer.
 func isAnalyzer(key string) bool {
-	return key == "rta" || key == "xfer" || key == "recurrence"
+	return key == "rta" || key == "xfer" || key == "recurrence" || key == "spectrogram"
 }
 
 // listens reports whether model key is drawn from the rack's signal.
@@ -164,7 +170,10 @@ type heard struct {
 	fit       [][3]float64
 	glow      float64
 	plot      []plotPass
-	posed     *posed
+	quad      *rasterview.Quad
+	// fill lays the quad flat over the whole frame instead, as the page's Fill
+	// switch lays the spectrogram's plane over its canvas.
+	fill bool
 }
 
 // hear measures what model key draws from the rack's signal, in a frame w
@@ -179,19 +188,15 @@ func (r *Rack) hear(key string, on bool, w int) (h heard) {
 		if key == "xy" {
 			h.glow = r.number("xy-persist")
 		}
+	case key == "spectrogram" && on:
+		h.quad = r.spectrogram(float64(r.sound.now().UnixNano()) / 1e6)
+		h.fill = r.value("spect-fill") == "1"
 	case key == "recurrence" && on:
-		h.posed = r.recurrencePlot(float64(r.sound.now().UnixNano()) / 1e6)
+		h.quad = r.recurrencePlot(float64(r.sound.now().UnixNano()) / 1e6)
 	case isAnalyzer(key) && on:
 		h.plot = r.analyzerPlot(key, w)
 	}
 	return h
-}
-
-// posed is a picture on a flat quad in the model's space, turned and zoomed
-// with the scene as the page's textured models are.
-type posed struct {
-	pic        *image.RGBA
-	bl, br, tl [3]float64 // its bottom-left, bottom-right and top-left corners
 }
 
 // texHalf is the half height of the page's textured planes: the
@@ -200,7 +205,7 @@ const texHalf = 1.5
 
 // recurrencePlot is the recurrence plot now, at the panel's knobs: of the
 // rack's signal, or of the last flow's trajectory. Called with r.mu held.
-func (r *Rack) recurrencePlot(nowMs float64) *posed {
+func (r *Rack) recurrencePlot(nowMs float64) *rasterview.Quad {
 	a := &r.analyzers
 	m := a.rec
 	for _, id := range attractor.RecurrenceKnobs {
@@ -241,31 +246,153 @@ func (r *Rack) recurrencePlot(nowMs float64) *posed {
 			}
 		}
 	}
-	return &posed{
-		pic: a.recPic,
-		bl:  [3]float64{-texHalf, -texHalf, 0},
-		br:  [3]float64{texHalf, -texHalf, 0},
-		tl:  [3]float64{-texHalf, texHalf, 0},
+	return &rasterview.Quad{
+		Pic: a.recPic,
+		BL:  [3]float64{-texHalf, -texHalf, 0},
+		BR:  [3]float64{texHalf, -texHalf, 0},
+		TL:  [3]float64{-texHalf, texHalf, 0},
 	}
 }
 
-// drawPosed draws p over a frame of the scene's background, in view v.
-func drawPosed(p *posed, v rasterview.View, w, h int) *image.RGBA {
+// drawQuad draws q over a frame of the scene's background, in view v: posed
+// and turned with the scene, framed by its own corners, as the page's
+// textured models are.
+func drawQuad(q *rasterview.Quad, v rasterview.View, w, h int) *image.RGBA {
 	m := image.NewRGBA(image.Rect(0, 0, w, h))
 	draw.Draw(m, m.Bounds(), &image.Uniform{sceneBack}, image.Point{}, draw.Src)
 	reach := 0.0
-	for _, c := range [][3]float64{p.bl, p.br, p.tl} {
+	for _, c := range [][3]float64{q.BL, q.BR, q.TL, add(q.BR, q.TL, q.BL)} {
 		reach = math.Max(reach, math.Sqrt(c[0]*c[0]+c[1]*c[1]+c[2]*c[2]))
 	}
-	v.RenderQuad(m, p.bl, p.br, p.tl, reach, p.pic)
+	v.RenderQuad(m, *q, reach)
 	return m
 }
 
 // picture is an analyzer's frame, w by h: its picture posed in view v, or
 // its lines laid flat.
 func (h heard) picture(v rasterview.View, w, ht int) *image.RGBA {
-	if h.posed != nil {
-		return drawPosed(h.posed, v, w, ht)
+	if h.quad != nil && h.fill {
+		return drawFlat(h.quad, w, ht)
+	}
+	if h.quad != nil {
+		return drawQuad(h.quad, v, w, ht)
 	}
 	return drawPlot(h.plot, w, ht)
+}
+
+// add is a + b - c: the fourth corner of the parallelogram on c, a and b.
+func add(a, b, c [3]float64) [3]float64 {
+	return [3]float64{a[0] + b[0] - c[0], a[1] + b[1] - c[1], a[2] + b[2] - c[2]}
+}
+
+// drawFlat lays q's picture over the whole w by h frame, face-on.
+func drawFlat(q *rasterview.Quad, w, h int) *image.RGBA {
+	m := image.NewRGBA(image.Rect(0, 0, w, h))
+	pw, ph := q.Pic.Rect.Dx(), q.Pic.Rect.Dy()
+	for y := range h {
+		sy := q.Pic.Rect.Min.Y + y*ph/h
+		for x := range w {
+			u := (float64(x)+0.5)/float64(w) + q.Shift
+			u -= math.Floor(u)
+			m.SetRGBA(x, y, q.Pic.RGBAAt(q.Pic.Rect.Min.X+min(int(u*float64(pw)), pw-1), sy))
+		}
+	}
+	return m
+}
+
+// spectroTexW is the spectrogram's history, in columns: the page's texture
+// width, audioprism's own 2048.
+const spectroTexW = 2048
+
+// spectroView is the native spectrogram: its knobs, its column pipeline, and
+// the scrolling picture the columns are written into, as the page writes
+// them into its texture.
+type spectroView struct {
+	ctl  *attractor.SpectroControls
+	feed attractor.SpectroFeed
+	pic  *image.RGBA // spectroTexW columns, one row per bin
+	col  int         // where the next column goes; the oldest is here too
+	read int         // the bus sample the feed has read up to
+}
+
+// spectrogram is the spectrogram now: the rack's signal since the last look
+// turned into columns at the panel's knobs, on the page's 5 by 3 plane,
+// scrolled so the newest column is at its right edge. Called with r.mu held.
+func (r *Rack) spectrogram(nowMs float64) *rasterview.Quad {
+	sp := &r.analyzers.spect
+	for _, id := range attractor.SpectroKnobs {
+		sp.ctl.Set(id, float32(r.number(id)))
+	}
+	resized := sp.ctl.Apply()
+	rows := attractor.SpectroRows()
+	if resized || sp.pic == nil || sp.pic.Rect.Dy() != rows {
+		// The history goes with a new transform size: its columns are
+		// spectra at the old resolution, as the page rebuilds its texture.
+		sp.pic = image.NewRGBA(image.Rect(0, 0, spectroTexW, rows))
+		for i := 3; i < len(sp.pic.Pix); i += 4 {
+			sp.pic.Pix[i] = 255
+		}
+		sp.col = 0
+		sp.feed.Reset(attractor.SpectroSize())
+	}
+	l, rt, next := r.sound.since(sp.read)
+	sp.read = next
+	x := sp.ctl.Fold(l, rt)
+	if over := len(x) - sp.feed.Room(); over > 0 {
+		x = x[over:] // the newest, as the page's bounded drain keeps
+	}
+	sp.feed.Add(x)
+	sp.feed.Step(rows, attractor.SpectroPixel(r.mapNow()))
+	sp.feed.Flush(nowMs, sampleRate, func(col []byte) {
+		// The column's first row is 0 Hz, at the bottom.
+		for y := 0; y < rows && 4*y+3 < len(col); y++ {
+			o := sp.pic.PixOffset(sp.col, rows-1-y)
+			copy(sp.pic.Pix[o:o+3], col[4*y:4*y+3])
+		}
+		sp.col = (sp.col + 1) % spectroTexW
+	})
+	return &rasterview.Quad{
+		Pic:   sp.pic,
+		BL:    [3]float64{-texHalfW, -texHalf, 0},
+		BR:    [3]float64{texHalfW, -texHalf, 0},
+		TL:    [3]float64{-texHalfW, texHalf, 0},
+		Shift: float64(sp.col) / spectroTexW,
+	}
+}
+
+// texHalfW is the half width of the page's spectrogram plane.
+const texHalfW = 2.5
+
+// mapNow is the MAP ring as the panel has it set, with the page's swatches.
+// Called with r.mu held.
+func (r *Rack) mapNow() colormap.Map {
+	g := rasterview.DefaultGradient()
+	return colormap.Map{
+		Colors: int(r.number("gradient-colors")),
+		Base:   g.Base, Mid: g.Mid, Top: g.Top,
+		Freq: float32(r.number("rainbow-freq")),
+	}
+}
+
+// followMode moves the MAP ring onto heat when the spectrogram comes up and
+// hands it back when it goes, as the page does: never over a choice. The
+// ring is moved only from its default, and moved back only if it still holds
+// what this put there. Called with r.mu held.
+func (r *Rack) followMode(model string) {
+	const ringDefault = "2"
+	heat := strconv.Itoa(colormap.First)
+	a := &r.analyzers
+	cur := r.value("gradient-colors")
+	if model == "spectrogram" {
+		if cur == ringDefault && r.set("gradient-colors", heat) == nil {
+			a.autoMap = true
+		}
+		return
+	}
+	if a.autoMap {
+		a.autoMap = false
+		if cur == heat {
+			_ = r.set("gradient-colors", ringDefault) //nolint:errcheck // the ring takes its own default
+		}
+	}
 }
