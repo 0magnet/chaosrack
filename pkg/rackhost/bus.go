@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
+	"github.com/0magnet/chaosrack/pkg/takens"
 )
 
 // The rack's signal, RACK L and R: every source the rack makes, and the
@@ -194,36 +195,95 @@ func (s *sound) busLook() {
 	s.render(s.idle[0][:n], s.idle[1][:n])
 }
 
-// audioFigure is audio model key drawn from the newest of the rack's signal,
-// as the page draws its newest window, and the frame it is drawn in: the
-// full-scale cube for an embedding, and the scope's screen, at its gain, for
-// the XY. Called with r.mu held.
-func (r *Rack) audioFigure(key string) (attractor.Figure, [][3]float64) {
+// audioFigure is audio model key drawn from the newest of the rack's signal
+// at the panel's knobs, as the page draws its newest window, the frame it is
+// drawn in, and the lines it is read against: the full-scale cube for an
+// embedding, and the scope's screen, at its gain, for the XY. Called with r.mu
+// held.
+func (r *Rack) audioFigure(key string) (fig, grat attractor.Figure, fit [][3]float64) {
+	if key == "stereo" {
+		return r.stereoFigure()
+	}
 	o := attractor.AudioOptions{SampleRate: sampleRate}
+	o.WindowMS = float32(r.number(key + "-win"))
 	switch key {
 	case "takens", "polar":
 		o.Tau = float32(r.number("takens-tau"))
-	case "stereo":
-		o.Tau = float32(r.number("stereo-tau"))
+		o.Chan = float32(r.number(key + "-chan"))
+		o.Smooth = float32(r.number("takens-smooth"))
+		if key == "polar" {
+			o.PolarMap = float32(r.number("polar-map"))
+			o.PolarDrive = float32(r.number("polar-drive"))
+		}
+	case "xy":
+		o.Smooth = float32(r.number("xy-smooth"))
+		o.MidSide = r.number("xy-basis") > 0.5
 	}
-	o.WindowMS = float32(r.number(key + "-win"))
-	need := attractor.AudioWindow(key, o)
-	s := r.sound
-	s.mu.Lock()
-	l, rt := s.rack.window(need)
-	s.mu.Unlock()
+	l, rt := r.sound.window(attractor.AudioWindow(key, o))
 	fig, ok := attractor.AudioFigure(key, l, rt, len(l), o)
 	if !ok {
 		fig = attractor.Figure{Kind: attractor.FigurePath}
 	}
-	e := 1.0
 	if key == "xy" {
+		e := 1.0
 		if g := r.number("xy-gain"); g > 0 {
 			e = 1 / g
 		}
-		return fig, [][3]float64{{-e, -e, 0}, {e, e, 0}}
+		return fig, grat, [][3]float64{{-e, -e, 0}, {e, e, 0}}
 	}
-	return fig, [][3]float64{{-e, -e, -e}, {e, e, e}}
+	return fig, grat, cube(1)
+}
+
+// stereoView is the native Stereo Embedding: the page's scope, and the frame
+// it drew last, which a trigger holding keeps up.
+type stereoView struct {
+	scope *attractor.StereoScope
+	v     []float32
+	fig   attractor.Figure
+}
+
+// stereoFigure draws the Stereo Embedding as audioFigure draws the others,
+// through the rack's own scope so that its trigger remembers what it caught.
+// Framed to GAIN, as the page fits it, so VG and SPAN can push the trace off
+// the screen as they do there. Called with r.mu held.
+func (r *Rack) stereoFigure() (fig, grat attractor.Figure, fit [][3]float64) {
+	st := &r.stereo
+	for _, id := range attractor.StereoKnobs {
+		st.scope.Set(id, float32(r.number(id)))
+	}
+	smooth := takens.Smooth(float32(r.number("takens-smooth")))
+	snap, nv := st.scope.Window(sampleRate, stereoBudget, smooth)
+	fit = cube(r.number("stereo-gain"))
+	grat = st.scope.Graticule()
+	l, rt := r.sound.window(snap)
+	if len(l) < snap {
+		// Not yet a window of signal: dark, as the other models are.
+		st.fig = attractor.Figure{Kind: attractor.FigurePath}
+		return st.fig, grat, fit
+	}
+	if cap(st.v) < 4*nv {
+		st.v = make([]float32, 4*nv)
+	}
+	if st.scope.Frame(l, rt, sampleRate, stereoBudget, smooth, st.v[:4*nv]) {
+		st.fig = attractor.StereoFigure(st.v[:4*nv])
+	}
+	return st.fig, grat, fit
+}
+
+// stereoBudget is the Stereo Embedding's point budget, the page's default.
+const stereoBudget = 20000
+
+// cube is the cube of half-width e about the origin.
+func cube(e float64) [][3]float64 {
+	return [][3]float64{{-e, -e, -e}, {e, e, e}}
+}
+
+// window is the newest n samples of the rack's signal, or as many as there
+// are.
+func (s *sound) window(n int) (l, r []float32) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.rack.window(n)
 }
 
 // rackPinSet reads a pin of the Mixer's RACK rows into the rack's signal.

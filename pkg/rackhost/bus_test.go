@@ -107,7 +107,7 @@ func TestTheXYDrawsTheRacksSignal(t *testing.T) {
 	set(t, r, "mix-rl-cl", "0", "mix-rr-cr", "0", "mix-rl-g1", "1", "mix-rr-g2", "1",
 		"gen-x-lvl", "60", "gen-y-lvl", "60")
 	looks(t, r, c, 0.3)
-	fig, fit := r.audioFigure("xy")
+	fig, _, fit := r.audioFigure("xy")
 	if len(fig.Points) < 100 {
 		t.Fatalf("the XY drew %d points", len(fig.Points))
 	}
@@ -154,5 +154,35 @@ func TestTheSpeakersMakeTheSignalWhileTheyPlay(t *testing.T) {
 	look(t, r)
 	if got := r.sound.rack.n - n; got != maxIdleMake {
 		t.Errorf("a second after the speakers stopped, a look made %d samples, want at most %d", got, maxIdleMake)
+	}
+}
+
+// The machine's audio comes in chunks on its own clock, and the panel looks
+// on another: the rack's signal still carries the capture unbroken, with no
+// silence spliced in where a chunk had not arrived yet.
+func TestTheCaptureReachesTheBusUnbroken(t *testing.T) {
+	f := &fakeCapture{}
+	withCapture(t, f)
+	r, c := idleRack(t, "xy")
+	look(t, r)
+	start := c.t
+	for ms := 1; ms <= 3000; ms++ {
+		c.t = start.Add(time.Duration(ms) * time.Millisecond)
+		if ms%20 == 0 {
+			f.feed(sampleRate/50, 300)
+		}
+		if ms%33 == 0 {
+			look(t, r)
+		}
+	}
+	l, _ := r.sound.window(sampleRate / 2)
+	// A 300 Hz sine at 0.5 moves at most 0.02 a sample.
+	for i := 1; i < len(l); i++ {
+		if d := math.Abs(float64(l[i] - l[i-1])); d > 0.025 {
+			t.Fatalf("the signal jumps by %.3f at sample %d of the last half second", d, i)
+		}
+	}
+	if _, p := pitch(l); p < 0.45 {
+		t.Errorf("the capture reaches the bus at %.3f, want 0.5", p)
 	}
 }

@@ -5,8 +5,6 @@ package attractor
 import (
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"syscall/js"
-
-	"github.com/0magnet/chaosrack/pkg/audiosrc"
 )
 
 // The xy scope mode draws (L[i], R[i]) as a line strip on the shared
@@ -205,25 +203,6 @@ func (x *xyScope) smoothSel() int {
 
 // isMidSide reports the basis knob's position, by the same clamp.
 func (x *xyScope) isMidSide() bool { return x.basisF > 0.5 }
-
-// xyWindowSamples converts the WIN knob into a sample count, clamped to what
-// one snapshot may ask the source for. The clamp is on the DURATION, so the
-// only casualty is milliseconds that were asked for and cannot be had.
-func xyWindowSamples(winMS float32, sr int) int {
-	if sr <= 0 {
-		sr = 48000
-	}
-	if maxMS := float32(xySpanMax) / float32(sr) * 1000; winMS > maxMS {
-		winMS = maxMS
-	}
-	n := max(int(winMS/1000*float32(sr)), 64)
-	return n
-}
-
-// xySpanMax is the most samples one snapshot may ask for, named against the
-// source's own constant rather than repeating the number so the two cannot
-// drift apart.
-const xySpanMax = audiosrc.DefaultRingSize
 
 // xyLagSamples is the LAG knob in source samples, at least one — a zero lag is
 // the raw mono diagonal this exists to avoid.

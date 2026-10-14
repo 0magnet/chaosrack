@@ -382,7 +382,7 @@ func (a *audioColor) stereoColorWindow() ([]float32, int) {
 	}
 	tau := takens.TauSamples(stereo.tau, sr)
 	align := stereoAlignSamples(stereo.align, sr)
-	n, stride := stereoWindow(stereo.win, sr, sim.steps, tau, align)
+	n, stride := stereoWindow(stereo.win, sr, sim.steps, tau, align, takensSmooth())
 	if n <= 0 {
 		return nil, 0
 	}
@@ -391,7 +391,8 @@ func (a *audioColor) stereoColorWindow() ([]float32, int) {
 	// the ALIGN offset when right is the channel being pulled back. Reading from
 	// 0 instead would color the trail with audio from a different moment than the
 	// trail was drawn from, which is the shift this whole walk exists to avoid.
-	baseL := max(align, 0)
+	// The trigger moves the window start past that by stereo.start.
+	baseL := max(align, 0) + stereo.start
 	if len(stereo.l) < baseL+span+1 {
 		return nil, 0 // the snapshot for this window has not been taken yet
 	}
@@ -492,7 +493,7 @@ func (a *audioColor) stereoColorWindowPair(mode string) ([]float32, []float32, i
 	}
 	tau := takens.TauSamples(stereo.tau, sr)
 	align := stereoAlignSamples(stereo.align, sr)
-	n, stride := stereoWindow(stereo.win, sr, sim.steps, tau, align)
+	n, stride := stereoWindow(stereo.win, sr, sim.steps, tau, align, takensSmooth())
 	if n <= 0 {
 		return nil, nil, 0
 	}
@@ -503,6 +504,8 @@ func (a *audioColor) stereoColorWindowPair(mode string) ([]float32, []float32, i
 	} else {
 		baseR = -align
 	}
+	baseL += stereo.start // where the trigger moved the window
+	baseR += stereo.start
 	if len(stereo.l) < baseL+span+1 || len(stereo.r) < baseR+span+1 {
 		return nil, nil, 0
 	}
