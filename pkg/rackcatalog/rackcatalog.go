@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"strings"
 	"sync"
 
 	"github.com/0magnet/chaosrack/pkg/rackpic"
@@ -52,6 +53,17 @@ type Catalog struct {
 type Bank struct {
 	Items []*rackpic.Item       `json:"items"`
 	Ctls  map[string][4]float64 `json:"ctls"`
+}
+
+// InBank reports whether an item belongs to the model bank of region r: in
+// the region, or one of the model's own readouts (Mark "mro", or "led ID" for
+// its displays), which the page shows under the monitor for that model
+// alone.
+func InBank(it *rackpic.Item, r [4]float64) bool {
+	if it != nil && (it.Mark == "mro" || strings.HasPrefix(it.Mark, "led ")) {
+		return true
+	}
+	return InRegion(it, r)
 }
 
 // InRegion reports whether an item's middle is in the region r.
