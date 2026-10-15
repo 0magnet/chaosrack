@@ -39,6 +39,8 @@ type animView struct {
 	stop func()
 	// done is closed once the demo has ended and its screen is finished.
 	done chan struct{}
+	// ran is closed when a demo on a screen returns, asked to or not.
+	ran chan struct{}
 }
 
 // animRunning is the demo running, the picked one, started if it is not.
@@ -83,7 +85,7 @@ func termQuad(pic *image.RGBA) *rasterview.Quad {
 // isTerminalModel reports whether model key is a terminal's screen, drawn
 // flat as an analyzer is.
 func isTerminalModel(key string) bool {
-	return key == "termanim" || key == "hostterm" || key == "terminal"
+	return key == "termanim" || key == "hostterm" || key == "terminal" || key == "desk"
 }
 
 // start runs demo name in a terminal of its own.
@@ -94,7 +96,7 @@ func (a *animView) start(name string) {
 		return
 	}
 	ran, done := make(chan struct{}), make(chan struct{})
-	a.done = done
+	a.done, a.ran = done, ran
 	// A demo is asked to end as a person would end it, with Escape at its
 	// keyboard, and its screen finished only once it has: finishing a screen
 	// a demo is still drawing on races inside tcell. The panel does not wait
@@ -151,12 +153,38 @@ func (a *animView) start(name string) {
 	}
 }
 
+// ended reports whether a demo on a screen has returned of its own accord:
+// one that writes text and stops is still on show.
+func (a *animView) ended() bool {
+	if a.ran == nil || a.stop == nil {
+		return false
+	}
+	select {
+	case <-a.ran:
+		return true
+	default:
+		return false
+	}
+}
+
+// typeKey types ev into the demo, as its terminal's keyboard.
+func (a *animView) typeKey(ev *tcell.EventKey) {
+	switch {
+	case a.sim != nil:
+		a.sim.InjectKeyBytes(keyBytes(ev, false))
+	case a.term != nil:
+		if b := keyBytes(ev, a.term.appCursor()); len(b) > 0 {
+			a.term.send(string(b))
+		}
+	}
+}
+
 // close stops the demo running, if one is.
 func (a *animView) close() {
 	if a.stop != nil {
 		a.stop()
 	}
-	a.term, a.sim, a.stop, a.done = nil, nil, nil, nil
+	a.term, a.sim, a.stop, a.done, a.ran = nil, nil, nil, nil, nil
 }
 
 // simPicture is a tcell v2 simulated screen as a picture, as vterm draws one.

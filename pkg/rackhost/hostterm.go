@@ -141,7 +141,7 @@ func (r *Rack) shellOf(key string) *shellView {
 		return &r.shell
 	case "terminal":
 		if r.websh.run == nil {
-			r.websh.run = webshShell
+			r.websh.run = webshShell(nil)
 		}
 		return &r.websh
 	}
@@ -157,24 +157,41 @@ func (sh *shellView) figure() *rasterview.Quad {
 	return termQuad(sh.term.picture())
 }
 
-// TypeKey types ev into the shell on show (racktui's Typist). Enter after
-// the shell has exited starts another.
+// TypeKey types ev into the shell, or the desk, on show (racktui's Typist).
 func (r *Rack) TypeKey(ev *tcell.EventKey) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	sh := r.shellOf(r.model())
-	if sh == nil || r.value("power-sw") == "0" {
+	if r.value("power-sw") == "0" {
+		return false
+	}
+	key := r.model()
+	if key == "desk" {
+		r.desk.typeKey(ev)
+		return true
+	}
+	sh := r.shellOf(key)
+	if sh == nil {
 		return false
 	}
 	if !sh.running() {
+		// Enter after the shell has exited starts another.
 		if ev.Key() == tcell.KeyEnter {
 			sh.start()
 		}
 		return true
 	}
+	sh.typeKey(ev)
+	return true
+}
+
+// typeKey types ev into the shell, if it is running.
+func (sh *shellView) typeKey(ev *tcell.EventKey) {
+	if !sh.running() {
+		return
+	}
 	b := keyBytes(ev, sh.term.appCursor())
 	if len(b) == 0 {
-		return true
+		return
 	}
 	if sh.sig != nil {
 		signalFor(sh.pty, b, sh.sig)
@@ -183,5 +200,12 @@ func (r *Rack) TypeKey(ev *tcell.EventKey) bool {
 	case sh.keys <- b:
 	default: // a shell that has stopped reading loses keys, not the panel
 	}
-	return true
+}
+
+// kill ends the shell by closing its terminal, as closing a window hangs up
+// on what is in it.
+func (sh *shellView) kill() {
+	if sh.pty != nil && sh.running() {
+		_ = sh.pty.Close() //nolint:errcheck // the shell's reader sees the end either way
+	}
 }

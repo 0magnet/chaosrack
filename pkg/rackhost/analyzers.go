@@ -5,6 +5,7 @@ import (
 	"image/draw"
 	"math"
 	"math/rand/v2"
+	"sort"
 	"strconv"
 	"time"
 
@@ -192,6 +193,9 @@ type heard struct {
 	// overlay is LINE S's crossings, drawn in gold over a running flow.
 	overlay attractor.Figure
 	quad    *rasterview.Quad
+	// quads are several pictures in space, the desk's windows: drawn
+	// farthest first.
+	quads []*rasterview.Quad
 	// fill lays the quad flat over the whole frame instead, as the page's Fill
 	// switch lays the spectrogram's plane over its canvas.
 	fill bool
@@ -231,6 +235,9 @@ func (r *Rack) hear(key string, on bool, w int) (h heard) {
 		h.fill = r.value("spect-fill") == "1"
 	case key == "termanim" && on:
 		h.quad = r.animFigure()
+	case key == "desk" && on:
+		r.desk.sync()
+		h.quads = r.desk.quads(r.deskStyle())
 	case (key == "hostterm" || key == "terminal") && on:
 		h.quad = r.shellOf(key).figure()
 	case key == "recurrence" && on:
@@ -299,17 +306,30 @@ func (r *Rack) recurrencePlot(nowMs float64) *rasterview.Quad {
 	}
 }
 
-// drawQuad draws q over a frame of the scene's background, in view v: posed
-// and turned with the scene, framed by its own corners, as the page's
-// textured models are.
-func drawQuad(q *rasterview.Quad, v rasterview.View, w, h int) *image.RGBA {
+// drawQuads draws qs over a frame of the scene's background, in view v:
+// posed and turned with the scene, framed by their own corners, farthest
+// first, as the page's textured models are.
+func drawQuads(qs []*rasterview.Quad, v rasterview.View, w, h int) *image.RGBA {
 	m := image.NewRGBA(image.Rect(0, 0, w, h))
 	draw.Draw(m, m.Bounds(), &image.Uniform{sceneBack}, image.Point{}, draw.Src)
 	reach := 0.0
-	for _, c := range [][3]float64{q.BL, q.BR, q.TL, add(q.BR, q.TL, q.BL)} {
-		reach = math.Max(reach, math.Sqrt(c[0]*c[0]+c[1]*c[1]+c[2]*c[2]))
+	depth := make([]float64, len(qs))
+	for i, q := range qs {
+		far := add(q.BR, q.TL, q.BL)
+		for _, c := range [][3]float64{q.BL, q.BR, q.TL, far} {
+			reach = math.Max(reach, math.Sqrt(c[0]*c[0]+c[1]*c[1]+c[2]*c[2]))
+		}
+		mid := [3]float64{(q.BR[0] + q.TL[0]) / 2, (q.BR[1] + q.TL[1]) / 2, (q.BR[2] + q.TL[2]) / 2}
+		depth[i] = v.Depth(mid)
 	}
-	v.RenderQuad(m, *q, reach)
+	order := make([]int, len(qs))
+	for i := range order {
+		order[i] = i
+	}
+	sort.SliceStable(order, func(a, b int) bool { return depth[order[a]] < depth[order[b]] })
+	for _, i := range order {
+		v.RenderQuad(m, *qs[i], reach)
+	}
 	return m
 }
 
@@ -320,7 +340,10 @@ func (h heard) picture(v rasterview.View, w, ht int) *image.RGBA {
 		return drawFlat(h.quad, w, ht)
 	}
 	if h.quad != nil {
-		return drawQuad(h.quad, v, w, ht)
+		return drawQuads([]*rasterview.Quad{h.quad}, v, w, ht)
+	}
+	if len(h.quads) > 0 {
+		return drawQuads(h.quads, v, w, ht)
 	}
 	return drawPlot(h.plot, w, ht)
 }

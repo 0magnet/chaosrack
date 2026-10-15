@@ -195,19 +195,22 @@ func TestParseReadout(t *testing.T) {
 	}
 }
 
-// A model only a browser draws leaves the scene dark and says so.
-func TestABrowserOnlyModelSaysSo(t *testing.T) {
+// Every model the selector offers draws natively: none leaves the scene
+// dark as one only a browser draws.
+func TestNoModelIsBrowserOnly(t *testing.T) {
+	t.Setenv("SHELL", "/bin/sh")
 	r := newRack(t)
 	id := r.modelControl()
 	if id == "" {
 		t.Skip("no model selector in the catalog")
 	}
-	if err := r.Set(id, "desk"); err != nil {
-		t.Fatal(err)
-	}
-	m, err := r.Scene(20, 10, 2)
-	if m == nil || !errors.Is(err, ErrBrowserOnly) {
-		t.Fatalf("desk: image %v, error %v", m != nil, err)
+	for _, model := range r.ctls[r.byID[id]].Options {
+		if err := r.Set(id, model); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := r.Scene(20, 10, 2); errors.Is(err, ErrBrowserOnly) {
+			t.Errorf("%s draws only in a browser", model)
+		}
 	}
 }
 

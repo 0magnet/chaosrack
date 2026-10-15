@@ -32,6 +32,12 @@ func (r *Rack) TextScene(w, h int) (cells []racktui.TextCell, cols, rows int, ok
 	w = min(max(w, textMinCols), textMaxCols)
 	h = min(max(h, textMinRows), textMaxRows)
 	switch key {
+	case "desk":
+		if r.deskStyle() != "flat" {
+			return nil, 0, 0, false // a desktop in space is a picture
+		}
+		r.desk.sync()
+		return r.desk.text(w, h), w, h, true
 	case "hostterm", "terminal":
 		sh := r.shellOf(key)
 		if sh.term == nil {
@@ -97,4 +103,13 @@ func simColors(st tcell2.Style) (fg, bg color.RGBA) {
 	}
 	fgc, bgc, _ := st.Decompose()
 	return px(fgc, color.RGBA{217, 217, 217, 255}), px(bgc, color.RGBA{0, 0, 0, 255})
+}
+
+// deskStyle is the desk's style selector's, flat when there is none. Called
+// with r.mu held.
+func (r *Rack) deskStyle() string {
+	if s := r.value("desk-style"); s != "" {
+		return s
+	}
+	return "flat"
 }
