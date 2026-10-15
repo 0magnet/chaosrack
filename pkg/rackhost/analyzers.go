@@ -224,7 +224,7 @@ func (r *Rack) hear(key string, on bool, w int) (h heard) {
 	case isScopeModel(key):
 		h.fig, h.fit = r.scopeFigure(key, on && r.value("pause-sw") != "1")
 	case key == "lattice" && on:
-		h.fig, h.fit = r.latticeFigure()
+		h.fig, h.fit = r.latticeFigure(nil)
 	case key == "poincare":
 		h.fig, h.fit = r.sectionFigure(on && r.value("pause-sw") != "1")
 	case key == "bifurcation":

@@ -14,15 +14,16 @@ import (
 // color, since at a native scene's size a character is a pixel or two.
 
 // latticeFigure runs the Lattice's programs on to now and is every lit cell
-// of the sheets it shows, framed to the volume. Called with r.mu held.
-func (r *Rack) latticeFigure() (attractor.Figure, [][3]float64) {
+// of the sheets it shows, framed to the volume: of the Lattice's own solid,
+// or with fig, of the model chosen (latticefig.go). Called with r.mu held.
+func (r *Rack) latticeFigure(fig *lattice.Figure) (attractor.Figure, [][3]float64) {
 	st := r.lattice
 	for _, id := range attractor.LatticeKnobs {
 		st.Set(id, float32(r.number(id)))
 	}
 	now := r.sound.now()
 	nowMs := float64(now.UnixNano()) / 1e6
-	n, _ := st.Ensure(nil, nowMs)
+	n, _ := st.Ensure(fig, nowMs)
 	rot := rotation(r.viewAngle)
 	square := st.Pose(quatOf(r.viewAngle))
 	// Toward the viewer, in the stack's frame: the view's third row, or

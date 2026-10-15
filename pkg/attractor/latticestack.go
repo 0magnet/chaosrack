@@ -90,6 +90,10 @@ const latticeAutoMin = 0.04
 // so more than this draws the same screen again.
 const latticeFPS = 15
 
+// LatticeFPS is how often the programs draw: as often as a figure is worth
+// handing them.
+const LatticeFPS = latticeFPS
+
 // latticeExtent is how far the camera is fitted to: the volume's corners,
 // nearly, since it turns inside a cube of ±1.
 const latticeExtent = 1.4
