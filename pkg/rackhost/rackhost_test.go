@@ -88,7 +88,7 @@ func TestTurningADialTurnsItsPointer(t *testing.T) {
 	var id string
 	for k := range r.ptrs {
 		c := r.ctls[r.byID[k]]
-		if v, err := strconv.ParseFloat(c.Value, 64); err == nil && v < c.Max && !isRotationKnob(k) {
+		if v, err := strconv.ParseFloat(c.Value, 64); err == nil && v < c.Max && !isRotationKnob(k) && !isFullTurn(k) {
 			id = k
 			break
 		}
@@ -456,5 +456,21 @@ func TestTheSprottDialPlaysItsMember(t *testing.T) {
 	*p.Value = orig
 	if before == after {
 		t.Error("Sprott C's dt did not change it")
+	}
+}
+
+// A palette knob's hue ring points at its hue, all the way round, and its
+// level knob, on the same middle, keeps a pointer of its own.
+func TestAHueRingPointsAtItsHue(t *testing.T) {
+	r := newRack(t)
+	hue, lvl := r.ptrs["ck-color-top-hue"], r.ptrs["ck-color-top-lvl"]
+	if hue.item == lvl.item {
+		t.Fatal("the hue ring and the level knob share one pointer")
+	}
+	c := r.ctls[r.byID["ck-color-top-hue"]]
+	for v, want := range map[float64]float64{240: 240, 300: 300, 360: 0, 30: 30} {
+		if got := hue.angle(&c, v); math.Abs(got-want) > 0.01 {
+			t.Errorf("hue %.0f: pointer at %.1f°, want %.1f°", v, got, want)
+		}
 	}
 }

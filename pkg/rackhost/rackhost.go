@@ -102,6 +102,10 @@ type Rack struct {
 	// poseTo the pose it asks for, taken by the next Scene (turtleview.go).
 	turtleAim turtleAim
 	poseTo    *[3]float64
+	// canvasKinds is what each of the panel's screens is, and tubes the
+	// scopes' phosphors (canvases.go, scopes.go).
+	canvasKinds map[int]panelCanvas
+	tubes       [scopeCount]scopeTube
 	// prompt is the text control the panel is to ask for (text.go).
 	prompt string
 	// viewAngle is the scene's pose as last drawn, for what turns with the view
@@ -426,7 +430,9 @@ func (r *Rack) calibrate(lo, hi int, only func(id string) bool, captured func(c 
 
 // findPointer is a dial's pointer: of the items in the dial's box that carry
 // an angle, the one nearest the box's middle. A box is a whole P-unit, which
-// can hold a neighbor's knob or a second pointer as well.
+// can hold a neighbor's knob or a second pointer as well — and a palette
+// knob's hue ring and level knob share one middle, so of pointers within a
+// pixel of the nearest, the one the size of the dial's box is its own.
 func (r *Rack) findPointer(c *racktui.Control, value string, box [4]float64, lo, hi int) (pointer, bool) {
 	if c.IsSwitch || c.IsSelect || c.Max <= c.Min {
 		return pointer{}, false
@@ -436,14 +442,16 @@ func (r *Rack) findPointer(c *racktui.Control, value string, box [4]float64, lo,
 		return pointer{}, false
 	}
 	mx, my := box[0]+box[2]/2, box[1]+box[3]/2
-	best, dist := -1, math.Inf(1)
+	best, dist, fit := -1, math.Inf(1), math.Inf(1)
 	for i := lo; i < hi; i++ {
 		it := r.pic.Items[i]
 		if !it.Pointer() || !inside(it, box) {
 			continue
 		}
-		if d := math.Hypot(it.X+it.W/2-mx, it.Y+it.H/2-my); d < dist {
-			best, dist = i, d
+		d := math.Hypot(it.X+it.W/2-mx, it.Y+it.H/2-my)
+		f := math.Abs(it.W - box[2])
+		if d < dist-1 || math.Abs(d-dist) <= 1 && f < fit {
+			best, dist, fit = i, d, f
 		}
 	}
 	if best < 0 {
@@ -464,7 +472,16 @@ func inside(it *rackpic.Item, box [4]float64) bool {
 // keeps the default exact for the rest (level knobs in decibels, detented
 // inputs), whose curves the catalog does not record.
 func (p pointer) angle(c *racktui.Control, v float64) float64 {
+	if isFullTurn(c.ID) {
+		return math.Mod(math.Mod(p.at+360*(v-p.v0)/(c.Max-c.Min), 360)+360, 360)
+	}
 	return min(max(p.at+270*(v-p.v0)/(c.Max-c.Min), -135), 135)
+}
+
+// isFullTurn reports whether dial id turns all the way round over its
+// travel: a palette knob's hue ring, whose pointer is the hue itself.
+func isFullTurn(id string) bool {
+	return strings.HasPrefix(id, "ck-") && strings.HasSuffix(id, "-hue")
 }
 
 // rotationKnobs are the View module's X, Y and Z: a rate is what they set,
@@ -670,12 +687,6 @@ func (r *Rack) controlAt(x, y float64) string {
 		}
 	}
 	return best
-}
-
-// Canvases is the panel's canvases asked for; the native rack draws none of
-// them yet, and an empty answer leaves them as the catalog shows them.
-func (r *Rack) Canvases(int, []rackpic.CanvasWant) (map[int]*rackpic.Image, error) {
-	return nil, nil
 }
 
 // ── the scene ───────────────────────────────────────────────────────────

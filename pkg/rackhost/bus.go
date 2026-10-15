@@ -35,8 +35,11 @@ type rackBus struct {
 	gain [2][nSources]float64 // each column's gain on RACK L and R
 	cap  [2][2]float64        // the capture's, CAP L and R, on each
 	ring [2][]float32
-	at   int // where the next sample goes
-	n    int // how many samples the ring holds
+	// capRing is the capture as it came in, unmixed, beside the ring: what a
+	// scope probing CAP L or R shows wherever the Mixer sends it.
+	capRing [2][]float32
+	at      int // where the next sample goes
+	n       int // how many samples the ring holds
 	// made counts every sample the bus has made, so a reader can take only
 	// what is new since it last read (since).
 	made int
@@ -64,7 +67,9 @@ func (b *rackBus) capOn() bool { return b.cap != [2][2]float64{} }
 func (b *rackBus) push(v *[nSources]float64, cl, cr float32) {
 	if b.ring[0] == nil {
 		b.ring = [2][]float32{make([]float32, busRing), make([]float32, busRing)}
+		b.capRing = [2][]float32{make([]float32, busRing), make([]float32, busRing)}
 	}
+	b.capRing[0][b.at], b.capRing[1][b.at] = cl, cr
 	for side := range b.ring {
 		x := b.cap[side][0]*float64(cl) + b.cap[side][1]*float64(cr)
 		for i, g := range b.gain[side] {
@@ -89,11 +94,21 @@ func (b *rackBus) since(from int) (l, r []float32, next int) {
 // window is the newest n samples of each side, oldest first, or as many as
 // there are.
 func (b *rackBus) window(n int) (l, r []float32) {
-	n = min(n, b.n)
+	return newestOf(b.ring, b.at, min(n, b.n))
+}
+
+// capWindow is the newest n samples of the capture as it came in, or as
+// many as there are.
+func (b *rackBus) capWindow(n int) (l, r []float32) {
+	return newestOf(b.capRing, b.at, min(n, b.n))
+}
+
+// newestOf is the n samples before at in ring, oldest first.
+func newestOf(ring [2][]float32, at, n int) (l, r []float32) {
 	l, r = make([]float32, n), make([]float32, n)
 	for k := range n {
-		i := (b.at - n + k + busRing) % busRing
-		l[k], r[k] = b.ring[0][i], b.ring[1][i]
+		i := (at - n + k + busRing) % busRing
+		l[k], r[k] = ring[0][i], ring[1][i]
 	}
 	return l, r
 }
