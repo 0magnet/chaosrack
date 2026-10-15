@@ -249,6 +249,7 @@ func (r *Rack) audioFigure(key string) (fig, grat attractor.Figure, fit [][3]flo
 		o.MidSide = r.number("xy-basis") > 0.5
 	}
 	l, rt := r.sound.window(attractor.AudioWindow(key, o))
+	r.trailAudio(key, l, rt)
 	if key == "xy" {
 		// The channels' correlation, before the basis turns them: a property
 		// of the source, as the page measures it.
@@ -295,6 +296,7 @@ func (r *Rack) stereoFigureOf(st *stereoView) (fig, grat attractor.Figure, fit [
 	fit = cube(r.number("stereo-gain"))
 	grat = st.scope.Graticule()
 	l, rt := r.sound.window(snap)
+	r.trailAudio("stereo", l, rt)
 	// The raw pair, as the page reports the source as it is, so ALIGN and
 	// WIDE can ask what-if questions without the number moving.
 	r.analyzers.ro.corr = attractor.StereoReadout(l, rt)

@@ -163,30 +163,6 @@ func (a *audioFeatures) eqModValue(channel string, weights []float32) float32 {
 	return v
 }
 
-// bandEnergies sums magnitudes in bass/mid/treble bands and computes the
-// spectral centroid (0..1) for one channel's FFT.
-func bandEnergies(mags []float64, sr int) (bass, mid, treble, centroid float64) {
-	nyq := float64(sr) / 2
-	var total, cw float64
-	for i, m := range mags {
-		f := float64(i) / float64(len(mags)) * nyq
-		switch {
-		case f < 250:
-			bass += m
-		case f < 2000:
-			mid += m
-		default:
-			treble += m
-		}
-		total += m
-		cw += f * m
-	}
-	if total > 0 {
-		centroid = cw / total / nyq
-	}
-	return
-}
-
 func rmsOf(w []float32) float32 {
 	var s float32
 	for _, x := range w {

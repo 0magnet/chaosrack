@@ -181,6 +181,7 @@ func (r *Rack) keptValue(i int, id string) string {
 type cellPlan struct {
 	over     map[string]float64
 	gradient rasterview.Gradient
+	src      int // its gradient source
 	fig      *attractor.Figure
 }
 
@@ -193,6 +194,7 @@ func (r *Rack) planCells(key string, g gridSet) []cellPlan {
 		p.over = r.cellValues(key, i, g)
 		r.cellOver = p.over
 		p.gradient = r.look().gradient
+		p.src = int(r.number("gradient-source"))
 		p.fig = r.cellAudioFigure(key, i, p.over)
 		r.cellOver = nil
 		across, down := attractor.SweepAxisFracs(i, g.n, g.down != "")
@@ -203,7 +205,8 @@ func (r *Rack) planCells(key string, g gridSet) []cellPlan {
 			t := g.lo + (g.hi-g.lo)*ax.t
 			switch ax.id {
 			case attractor.SweepSrc:
-				setSource(&p.gradient, attractor.SweepPick(attractor.SweepColorSources, t))
+				p.src = attractor.SweepPick(attractor.SweepColorSources, t)
+				setSource(&p.gradient, p.src)
 			case attractor.SweepMap:
 				p.gradient.Colors = attractor.SweepPick(attractor.SweepColorMaps, t)
 			}
@@ -439,6 +442,9 @@ func (r *Rack) drawCells(key string, g gridSet, plans []cellPlan, fig attractor.
 				f = sf
 			}
 		}
+		r.mu.Lock()
+		f = r.audioColored(f, &co.Gradient, p.src, i)
+		r.mu.Unlock()
 		return draw1(f, co)
 	})
 }
@@ -456,4 +462,11 @@ func pictureCells(h heard, v rasterview.View, g gridSet, w, ht int) *image.RGBA 
 		}
 		return h.picture(v, cw, ch)
 	})
+}
+
+// soundColored reports whether a cell may be colored by the sound though the
+// panel's coloring is not: a source sweep, or cells with colorings of their
+// own.
+func (g gridSet) soundColored() bool {
+	return g.n > 1 && (g.across == attractor.SweepSrc || g.down == attractor.SweepSrc || !g.link)
 }

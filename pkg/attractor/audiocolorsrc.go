@@ -1,5 +1,3 @@
-//go:build js && wasm
-
 package attractor
 
 // The rest of the things a trace color can follow.
@@ -77,25 +75,12 @@ func gradientSourceNeedsStereo(s int) bool {
 	return false
 }
 
-// colorRangeLock freezes the auto-range at whatever it currently spans.
-//
-// The auto-range is what keeps a quiet passage visible, and it is also why
-// the same color means different things a minute apart: the ramp is
-// continuously refitted to the loudest and quietest thing in view. With this
-// set the ends stay where they are, so color becomes comparable between
-// moments — the difference between a picture that looks right and a reading
-// that can be trusted.
-//
-// It does nothing to the absolute sources, which are never stretched.
-var colorRangeLock bool
-
 // fillColorLUT fills the trail table for one of the sources here, and
 // reports whether it managed to. A false answer leaves the caller to fall
 // back to a flat tint, which is what a mode with no time axis, or a mono
 // source under a stereo-only coloring, honestly deserves.
-func fillColorLUT(src int, mode string, out []float32) bool {
+func (a *AudioColor) fillColorLUT(src int, w, l, r []float32, sr int, out []float32) bool {
 	if gradientSourceNeedsStereo(src) {
-		l, r, _ := acolor.stereoColorWindowPair(mode)
 		if l == nil || r == nil {
 			return false
 		}
@@ -111,17 +96,16 @@ func fillColorLUT(src int, mode string, out []float32) bool {
 		}
 		return true
 	}
-	w, sr := acolor.window(mode)
 	if w == nil {
 		return false
 	}
 	switch src {
 	case gradientSourceFlux:
-		shortTimeFlux(w, out)
+		a.shortTimeFlux(w, out)
 	case gradientSourceDB:
 		shortTimeDB(w, out)
 	case gradientSourcePitch:
-		shortTimePitch(w, sr, out)
+		a.shortTimePitch(w, sr, out)
 	default:
 		return false
 	}
@@ -274,18 +258,18 @@ func shortTimePosition(l, r, out []float32) {
 // paints onsets onto the trace.
 //
 // Relative, and auto-ranged: flux has no natural full scale.
-func shortTimeFlux(w []float32, out []float32) {
+func (a *AudioColor) shortTimeFlux(w []float32, out []float32) {
 	var prev []float64
 	forEachSlot(len(w), out, func(i, start, end int) {
 		if start < 0 {
 			out[i] = out[max(i-1, 0)]
 			return
 		}
-		n := copy(acolor.scratch[:], w[start:])
+		n := copy(a.scratch[:], w[start:])
 		for j := n; j < audioColorFFT; j++ {
-			acolor.scratch[j] = 0
+			a.scratch[j] = 0
 		}
-		mags := meters.ComputeFFTMags(acolor.scratch[:])
+		mags := meters.ComputeFFTMags(a.scratch[:])
 		if mags == nil {
 			out[i] = 0
 			return
@@ -357,7 +341,7 @@ func shortTimeDB(w []float32, out []float32) {
 // detector has an opinion about what the note IS and is wrong in an
 // interesting way on anything polyphonic, where the centroid just reports
 // where the energy sits and folds honestly.
-func shortTimePitch(w []float32, sampleRate int, out []float32) {
+func (a *AudioColor) shortTimePitch(w []float32, sampleRate int, out []float32) {
 	if sampleRate <= 0 {
 		fillFlat(out, 0.5)
 		return
@@ -365,7 +349,7 @@ func shortTimePitch(w []float32, sampleRate int, out []float32) {
 	// The centroid arrives normalized against Nyquist; turn it back into a
 	// frequency before taking its log, or the fold is of the wrong number.
 	nyq := float64(sampleRate) / 2
-	acolor.shortTimeCentroids(w, sampleRate, out)
+	a.shortTimeCentroids(w, sampleRate, out)
 	for i, v := range out {
 		f := float64(v) * nyq
 		if f < 20 { // below hearing: no pitch class to speak of
