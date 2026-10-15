@@ -183,3 +183,31 @@ func TestTBCTurnsByTimeOrByFrame(t *testing.T) {
 		t.Errorf("TBC on: 0.2 s turned %.4f, no more than five bare frames' %.4f", on, off)
 	}
 }
+
+// BEHIND puts a picture behind an ordinary model: Lorenz over the animation
+// lights far more of the frame than Lorenz alone. A model that fills the
+// scene itself has none.
+func TestABackdropIsBehindTheModel(t *testing.T) {
+	r, c := idleRack(t, "lorenz")
+	watch(t, r, c, 0.2)
+	alone, _ := lit(frame(t, r))
+	set(t, r, "bg-visual", "termanim")
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		watch(t, r, c, 0.05)
+		time.Sleep(20 * time.Millisecond)
+		if n, _ := lit(frame(t, r)); n > 3*alone {
+			break
+		}
+		if time.Now().After(deadline) {
+			n, _ := lit(frame(t, r))
+			t.Fatalf("with the animation behind, %d lit; alone, %d", n, alone)
+		}
+	}
+	r.mu.Lock()
+	bd := r.backdrop("spectrogram", true, 40, 20)
+	r.mu.Unlock()
+	if bd != nil {
+		t.Error("the spectrogram, a picture of its own, has a backdrop")
+	}
+}
