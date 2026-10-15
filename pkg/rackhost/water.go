@@ -3,10 +3,13 @@ package rackhost
 import (
 	"math"
 	"math/rand/v2"
+	"strconv"
 	"time"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
+	"github.com/0magnet/chaosrack/pkg/controlspec"
 	"github.com/0magnet/chaosrack/pkg/rackpic"
+	"github.com/0magnet/chaosrack/pkg/racktui"
 	"github.com/0magnet/chaosrack/pkg/ripple"
 )
 
@@ -29,12 +32,11 @@ func (r *Rack) waterOn() bool { return r.value("bg-visual") == "water" }
 
 // step runs the tank on by the page's frames since the last, with its
 // weather. Called with r.mu held.
-func (wa *waterLens) step(now time.Time, env float32) {
+func (wa *waterLens) step(now time.Time, env float32, d attractor.WaterSettings) {
 	g := attractor.WaterGrid
 	if wa.field == nil {
 		wa.field = ripple.New(g, g)
 	}
-	d := attractor.WaterDefaults
 	f := wa.field
 	f.Speed, f.Damping, f.Spread, f.Reflect = d.Speed, d.Damp/1000, d.Spread/100, d.Edge/100
 	frames := 1
@@ -71,7 +73,7 @@ func waterSource(i, n int) (float32, float32) {
 
 // refract is frame m seen through the surface: each pixel read from where
 // the slope there bends it, as the page's shader reads its frame.
-func (wa *waterLens) refract(m *rackpic.Image) {
+func (wa *waterLens) refract(m *rackpic.Image, d attractor.WaterSettings) {
 	if wa.field == nil {
 		return
 	}
@@ -81,7 +83,7 @@ func (wa *waterLens) refract(m *rackpic.Image) {
 		return min(max(wa.field.Height(x, y), -1), 1) // past ±1 is past meaning anything
 	}
 	src := append([]byte(nil), m.Px...)
-	amount := attractor.WaterDefaults.Amount / float32(g)
+	amount := d.Amount / float32(g)
 	for y := range m.H {
 		fy := (y*g + g/2) / m.H
 		for x := range m.W {
@@ -126,9 +128,29 @@ func (wa *waterLens) touch(kind string, x, y float64, w, h int) {
 // lens's DRIVE is up: the rack's signal, followed as the bifurcation's cursor
 // follows it. Called with r.mu held.
 func (r *Rack) waterDrive() float32 {
-	if attractor.WaterDefaults.Drive <= 0 {
+	if r.number("water-drive") <= 0 {
 		return 0
 	}
 	l, rt := r.sound.window(envWindow)
 	return r.waterEnv.follow((rms(l)+rms(rt))/2, r.sound.now())
+}
+
+// waterSettings is the lens's knobs now (the page's Water module, here
+// listed controls). Called with r.mu held.
+func (r *Rack) waterSettings() attractor.WaterSettings {
+	return attractor.WaterFrom(func(id string) float32 { return float32(r.number(id)) })
+}
+
+// addWaterControls gives the rack the lens's knobs, which the page shows only
+// while BEHIND is on water, so its catalog has none of them.
+func (r *Rack) addWaterControls() {
+	for _, k := range attractor.WaterKnobs {
+		r.addControl(racktui.Control{
+			ControlInfo: controlspec.ControlInfo{
+				ID: k.ID, Label: k.Label, Module: "water",
+				Min: float64(k.Min), Max: float64(k.Max), Step: float64(k.Step), Def: float64(k.Def),
+			},
+			Value: strconv.FormatFloat(float64(k.Def), 'g', -1, 32),
+		})
+	}
 }
