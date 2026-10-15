@@ -84,6 +84,8 @@ type Rack struct {
 	cellOver map[string]float64
 	// color is what the audio gradient sources color from (audiocolor.go).
 	color colorFeed
+	// knobParts are the picture's knobs, which KNOB restyles (knobstyle.go).
+	knobParts knobParts
 	// analyzers are the flat analyzers, which keep their meters and averages
 	// from frame to frame (analyzers.go).
 	analyzers analyzers
@@ -264,6 +266,8 @@ func (r *Rack) useBank(model string) {
 			delete(r.changed, i)
 		}
 	}
+	r.findKnobs(r.outside)
+	r.lookKnobs()
 	r.findReadouts()
 	r.findMeters()
 	r.colorLEDs()
@@ -336,6 +340,9 @@ func (r *Rack) set(id, value string) error {
 	}
 	if id == "led-color" {
 		r.colorLEDs()
+	}
+	if id == "knob-style" {
+		r.lookKnobs()
 	}
 	switch id {
 	case "view-n":
