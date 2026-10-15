@@ -94,6 +94,8 @@ type Rack struct {
 	anim animView
 	// shell is the Host Terminal's shell (hostterm.go).
 	shell shellView
+	// websh is the Terminal's shell (websh_linux.go).
+	websh shellView
 	// prompt is the text control the panel is to ask for (text.go).
 	prompt string
 	// viewAngle is the scene's pose as last drawn, for what turns with the view

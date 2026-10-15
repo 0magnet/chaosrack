@@ -32,8 +32,8 @@ func (r *Rack) TextScene(w, h int) (cells []racktui.TextCell, cols, rows int, ok
 	w = min(max(w, textMinCols), textMaxCols)
 	h = min(max(h, textMinRows), textMaxRows)
 	switch key {
-	case "hostterm":
-		sh := &r.shell
+	case "hostterm", "terminal":
+		sh := r.shellOf(key)
 		if sh.term == nil {
 			sh.start()
 		}

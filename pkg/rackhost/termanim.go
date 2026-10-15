@@ -82,7 +82,9 @@ func termQuad(pic *image.RGBA) *rasterview.Quad {
 
 // isTerminalModel reports whether model key is a terminal's screen, drawn
 // flat as an analyzer is.
-func isTerminalModel(key string) bool { return key == "termanim" || key == "hostterm" }
+func isTerminalModel(key string) bool {
+	return key == "termanim" || key == "hostterm" || key == "terminal"
+}
 
 // start runs demo name in a terminal of its own.
 func (a *animView) start(name string) {
