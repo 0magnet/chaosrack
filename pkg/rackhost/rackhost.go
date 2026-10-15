@@ -96,6 +96,8 @@ type Rack struct {
 	shell shellView
 	// websh is the Terminal's shell (websh_linux.go).
 	websh shellView
+	// desk is the Desk's windows (desk.go).
+	desk deskView
 	// prompt is the text control the panel is to ask for (text.go).
 	prompt string
 	// viewAngle is the scene's pose as last drawn, for what turns with the view
@@ -122,6 +124,7 @@ func New() (*Rack, error) {
 		analyzers:   newAnalyzers(),
 		custom:      attractor.NewCustomSystem(),
 		lattice:     attractor.NewLatticeStack(),
+		desk:        newDesk(),
 	}
 	for i, c := range r.ctls {
 		r.byID[c.ID] = i
@@ -762,7 +765,7 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	s.last = now
 	// A picture on a plane comes up face-on and holds still, as the page sets
 	// its textured planes up: a hand or the rate knobs still turn it.
-	s.pose(key, heard.quad != nil || attractor.IsFlatScope(key), on && !paused, auto, rate, dt)
+	s.pose(key, heard.quad != nil || len(heard.quads) > 0 || attractor.IsFlatScope(key), on && !paused, auto, rate, dt)
 	angle := s.angle
 	r.mu.Lock()
 	r.showAngles(angle)

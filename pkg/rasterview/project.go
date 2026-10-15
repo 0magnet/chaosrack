@@ -111,3 +111,10 @@ func (v View) RenderQuad(dst *image.RGBA, q Quad, maxLen float64) {
 		}
 	}
 }
+
+// Depth is how far model point p comes toward the viewer once posed: of
+// several flat things drawn without a depth test, the least deep goes first.
+func (v View) Depth(p [3]float64) float64 {
+	_, _, z := v.projector(1, 1, 1).at(p[0], p[1], p[2])
+	return z
+}

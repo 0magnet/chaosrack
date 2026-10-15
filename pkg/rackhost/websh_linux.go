@@ -1,6 +1,7 @@
 package rackhost
 
 import (
+	"context"
 	"os"
 	"syscall"
 
@@ -16,8 +17,15 @@ import (
 // the machine's own files and programs, where the page's works on a
 // filesystem kept in the browser.
 
-// webshShell starts websh on a new pty cols by rows.
-func webshShell(cols, rows int) (*os.File, chan<- os.Signal, func(), error) {
+// webshShell starts websh on a new pty cols by rows, with exec's commands
+// beside its own (console.Options.Exec; nil for none).
+func webshShell(exec func(ctx context.Context, args []string) (int, bool)) shellStart {
+	return func(cols, rows int) (*os.File, chan<- os.Signal, func(), error) {
+		return startWebsh(cols, rows, exec)
+	}
+}
+
+func startWebsh(cols, rows int, exec func(ctx context.Context, args []string) (int, bool)) (*os.File, chan<- os.Signal, func(), error) {
 	ptm, pts, err := pty.Open()
 	if err != nil {
 		return nil, nil, nil, err
@@ -32,7 +40,7 @@ func webshShell(cols, rows int) (*os.File, chan<- os.Signal, func(), error) {
 	go func() {
 		defer close(ended)
 		_, _ = console.Run(console.Options{ //nolint:errcheck // how it ended is on its screen
-			In: pts, Out: pts, Signals: sig,
+			In: pts, Out: pts, Signals: sig, Exec: exec,
 			Env: []string{"TERM=xterm-256color", "COLORTERM=truecolor"},
 		})
 		// With the shell's copy closed, and its programs', the pty's reads end.
