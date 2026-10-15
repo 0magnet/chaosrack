@@ -302,6 +302,13 @@ const fastSource = `(function () {
           var lamp = b.querySelector(".trio-lamp");
           if (lamp && j < e.keys.length && lamp.textContent !== e.keys[j]) lamp.textContent = e.keys[j];
           if (e.tips && e.tips[j] != null) b.title = e.tips[j];
+          // The hidden switch this button is the face of, for the catalog: set
+          // only when it differs, as the rack's picture watches every mutation.
+          var d = (e.drives && e.drives[j]) || null;
+          if (b.getAttribute("data-drives") !== d) {
+            if (d) b.setAttribute("data-drives", d);
+            else b.removeAttribute("data-drives");
+          }
         }
       }
     },

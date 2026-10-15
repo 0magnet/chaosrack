@@ -474,3 +474,15 @@ func TestAHueRingPointsAtItsHue(t *testing.T) {
 		}
 	}
 }
+
+// The switches hidden in the Display and Layers banks are where the buttons
+// that set them are, so the panel can press them: LINE's S and G, POINTS' +,
+// TRAIL's + and −, BEHIND's F and B, I and H.
+func TestHiddenSwitchesSitOnTheirButtons(t *testing.T) {
+	r := newRack(t)
+	for _, id := range []string{"sect-sw", "scope-grat", "use-points", "persist-trail", "ring-sw", "spect-fill", "edit-back", "gradient-reverse", "color-lock-sw"} {
+		if _, ok := r.pic.Ctls[id]; !ok {
+			t.Errorf("%s has no place on the panel", id)
+		}
+	}
+}
