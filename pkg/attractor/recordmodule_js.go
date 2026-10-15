@@ -83,6 +83,14 @@ func (r *recordModule) wireRecordModule() {
 // again stops — which is what a single-button recorder does and what anyone
 // will try — and Stop only ever stops.
 func wireRecTransport() {
+	// A rack without the page presses these and writes the counter and the
+	// log too: the catalog marks them for it.
+	for _, id := range []string{"rec-btn", "rec-stop-btn"} {
+		if b := dom.Doc.Call("getElementById", id); b.Truthy() {
+			b.Call("setAttribute", "data-press", "")
+		}
+	}
+	markMeterDisplays([]Readout{{ID: "rec-status"}, {ID: "rec-log"}})
 	if b := dom.Doc.Call("getElementById", "rec-btn"); b.Truthy() {
 		dom.On(b, "click", func(js.Value, []js.Value) any {
 			setSwitch("rec-sw", !checkedOn("rec-sw"))
@@ -174,7 +182,7 @@ func (r *recordModule) drawRecOSD(pw, ph, sw, sh float64) {
 		if r.startMs == 0 {
 			r.startMs = now
 		}
-		tc = timecode(int((now - r.startMs) / 1000))
+		tc = RecTimecode(int((now - r.startMs) / 1000))
 	} else {
 		r.startMs = 0
 	}
@@ -282,19 +290,6 @@ func updateRecMeter(live bool) {
 
 // timecode renders seconds as HH:MM:SS, which is what a recorder shows even
 // when the take is four seconds long.
-func timecode(secs int) string {
-	if secs < 0 {
-		secs = 0
-	}
-	return pad2(secs/3600) + ":" + pad2((secs/60)%60) + ":" + pad2(secs%60)
-}
-
-func pad2(n int) string {
-	if n < 10 {
-		return "0" + strconv.Itoa(n)
-	}
-	return strconv.Itoa(n)
-}
 
 // noteTakeStart marks the beginning of a take.
 func (r *recordModule) noteTakeStart() {
@@ -313,30 +308,8 @@ func (r *recordModule) logTake(ext string, bytes int) {
 	if r.takeStartMs > 0 {
 		secs = int((js.Global().Get("Date").Call("now").Float() - r.takeStartMs) / 1000)
 	}
-	el.Set("textContent", upper(ext)+"  "+timecode(secs)+"  "+humanBytes(bytes))
+	el.Set("textContent", RecLogLine(ext, secs, bytes))
 	el.Get("classList").Call("add", "fresh")
-}
-
-// humanBytes is a size a person reads, not a byte count.
-func humanBytes(n int) string {
-	switch {
-	case n >= 1<<20:
-		return strconv.Itoa(n/(1<<20)) + "." + strconv.Itoa((n%(1<<20))*10/(1<<20)) + " MB"
-	case n >= 1<<10:
-		return strconv.Itoa(n/(1<<10)) + " KB"
-	default:
-		return strconv.Itoa(n) + " B"
-	}
-}
-
-func upper(s string) string {
-	b := []byte(s)
-	for i, c := range b {
-		if c >= 'a' && c <= 'z' {
-			b[i] = c - ('a' - 'A')
-		}
-	}
-	return string(b)
 }
 
 // wireStillButton makes the still button save a PNG of what the monitor shows.

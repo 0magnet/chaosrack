@@ -103,6 +103,10 @@ type Rack struct {
 	desk deskView
 	// meters are the measurement modules (meters.go).
 	meters meterBank
+	// rec is the Record module's take, and recSaved where the last one was
+	// written (record.go).
+	rec      recorder
+	recSaved string
 	// turtleAim is what the Turtle's VIEW last turned the scene for, and
 	// poseTo the pose it asks for, taken by the next Scene (turtleview.go).
 	turtleAim turtleAim
@@ -755,7 +759,17 @@ var ErrBrowserOnly = errors.New("draws only in a browser")
 // Scene is the model as w x h pixels, each shape times as tall as wide: on
 // the chosen phosphor's tube, when one is (crt.go).
 func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
-	m, err := r.drawScene(w, h, shape)
+	r.mu.Lock()
+	rec := r.rec.on
+	r.mu.Unlock()
+	dw, dh, dshape := w, h, shape
+	if rec {
+		// A take is drawn at its own size, square pixels, and the panel's
+		// scene shrunk from it: the model is drawn once a frame either way.
+		dw, dh = recSize(w, h, shape)
+		dshape = 1
+	}
+	m, err := r.drawScene(dw, dh, dshape)
 	r.mu.Lock()
 	p, on := r.phosphor()
 	r.mu.Unlock()
@@ -767,6 +781,12 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 		r.scene.mu.Lock()
 		r.scene.crt = crtState{} // a tube switched off keeps no afterglow
 		r.scene.mu.Unlock()
+	}
+	if rec && m != nil {
+		r.mu.Lock()
+		r.recordFrame(m)
+		r.mu.Unlock()
+		m = shrink(m, w, h)
 	}
 	return m, err
 }
