@@ -109,6 +109,10 @@ type Rack struct {
 	recSaved string
 	// jamNext is when Jam next hops, 0 for at once (jam.go).
 	jamNext float64
+	// water is BEHIND's water lens, and waterEnv the loudness that drives
+	// it (water.go).
+	water    waterLens
+	waterEnv envFollower
 	// turtleAim is what the Turtle's VIEW last turned the scene for, and
 	// poseTo the pose it asks for, taken by the next Scene (turtleview.go).
 	turtleAim turtleAim
@@ -778,6 +782,11 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	m, err := r.drawScene(dw, dh, dshape)
 	r.mu.Lock()
 	p, on := r.phosphor()
+	if r.waterOn() && m != nil {
+		// The finished frame, seen through the water (water.go).
+		r.water.step(time.Now(), r.waterDrive())
+		r.water.refract(m)
+	}
 	r.mu.Unlock()
 	if m != nil && on {
 		r.scene.mu.Lock()
@@ -1062,6 +1071,14 @@ func (r *Rack) SceneAct(w, h int, _ float64, x, y float64, kind string, delta fl
 	if kind != "wheel" {
 		s.mu.Lock()
 		defer s.mu.Unlock()
+	}
+	if kind != "wheel" && w > 0 && h > 0 {
+		// On water, a hand on the scene disturbs it too (water.go).
+		r.mu.Lock()
+		if r.waterOn() {
+			r.water.touch(kind, x, y, w, h)
+		}
+		r.mu.Unlock()
 	}
 	switch kind {
 	case "down":
