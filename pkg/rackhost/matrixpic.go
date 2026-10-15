@@ -385,6 +385,15 @@ func (r *Rack) press(mark string) bool {
 		return true
 	case "btn":
 		return len(f) > 1 && r.remeasure(f[1])
+	case "set":
+		// A button that is the face of several controls: each to its value.
+		for _, kv := range f[1:] {
+			id, v, _ := strings.Cut(kv, "=")
+			if err := r.set(id, v); err != nil {
+				return false
+			}
+		}
+		return len(f) > 1
 	}
 	return false
 }

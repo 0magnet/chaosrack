@@ -305,6 +305,11 @@ const fastSource = `(function () {
           // The hidden switch this button is the face of, for the catalog: set
           // only when it differs, as the rack's picture watches every mutation.
           var d = (e.drives && e.drives[j]) || null;
+          var st = (e.sets && e.sets[j]) || null;
+          if (b.getAttribute("data-sets") !== st) {
+            if (st) b.setAttribute("data-sets", st);
+            else b.removeAttribute("data-sets");
+          }
           if (b.getAttribute("data-drives") !== d) {
             if (d) b.setAttribute("data-drives", d);
             else b.removeAttribute("data-drives");
