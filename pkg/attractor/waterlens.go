@@ -1,8 +1,8 @@
 package attractor
 
 // The water lens's settings, shared by the page (water_js.go, which says
-// what the lens is) and a native rack. No panel shows its knobs yet, so these
-// are what it runs at on either.
+// what the lens is) and a native rack. The page shows its knobs in a Water
+// module while BEHIND is on water; a native rack runs it at these.
 
 // WaterSettings are the lens's knobs: how hard it bends (texels at unit
 // slope), wave speed, per-mille kept a step, per-cent viscous smoothing,

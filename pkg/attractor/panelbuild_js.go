@@ -573,6 +573,7 @@ func buildParamPanelNow(mode string) {
 	lyap.syncAnalysisModule(mode)
 	clearTurtlePhysModule()
 	clearSectionModule()
+	clearWaterModule()
 	phos.updateCRTOverlay()
 
 	// The Equation module: Custom's editor in Custom, the running model's
@@ -599,6 +600,8 @@ func buildParamPanelNow(mode string) {
 	// parameter grid of their own — and the overlay works on every flow, not
 	// only the ones that happen to have knobs.
 	buildSectionModule(mode, paramsDiv)
+	// And the water lens's, while BEHIND is on it: it works over every model.
+	buildWaterModule(paramsDiv)
 
 	// The Mod module goes with the panel, so they are rebuilt on every
 	// path out of it, the early return included. Skipped there, the last

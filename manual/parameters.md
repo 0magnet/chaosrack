@@ -866,6 +866,51 @@ Equation — the running model's system, one derivative per state variable. Edit
 <!-- key: sect-module -->
 Where the Poincaré section's plane sits, and which way through it counts. AXIS and POS place it — POS as a fraction of the attractor's own reach along that axis, so 0 is through the middle whatever the system's size. DIR one way is the default: a bounded flow that goes up through a plane must come back down through it, so counting both superimposes two different sections. The crossings draw in gold where they physically are; Analysis → Poincaré Section is the same section as a picture of its own, with the return map.
 
+### Water (lens)
+
+<!-- key: water-module -->
+The water lens's tank, while BEHIND is on water: the finished picture seen through a rippling surface. Drag across the picture to make a wake; DRIVE lets the sound push the water from SPKRS points, and RAIN drops on it at random.
+
+### bend
+
+<!-- key: p.water-amount -->
+bend — how far the surface's slope moves the picture behind it. Zero is clear glass, whatever the water does.
+
+### speed
+
+<!-- key: p.water-speed -->
+speed — how fast a ripple crosses the tank.
+
+### damp
+
+<!-- key: p.water-damp -->
+damp — how much of a wave survives each step, in thousandths: 990 rings for seconds, 900 dies before it crosses.
+
+### visc
+
+<!-- key: p.water-spread -->
+viscosity — smooths the surface each step, so fine ripples fade before broad ones.
+
+### walls
+
+<!-- key: p.water-edge -->
+walls — how much of a wave the edges send back, in percent. 100 is a tank with its own echoes; 0 is open water.
+
+### drive
+
+<!-- key: p.water-drive -->
+drive — how hard the sound pushes the surface. Zero leaves it to the pointer and the rain.
+
+### spkrs
+
+<!-- key: p.water-srcs -->
+speakers — how many points in the tank the sound pushes from, spread round a circle.
+
+### rain
+
+<!-- key: p.water-rain -->
+rain — drops a second, falling at random.
+
 ### Every parameter's knob
 
 `{label}` is the parameter's name; `{min}` and `{max}` are its range.
