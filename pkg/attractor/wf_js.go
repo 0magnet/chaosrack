@@ -6,7 +6,6 @@ import (
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/led"
 	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
@@ -42,16 +41,14 @@ type wowFlutter struct {
 	// analysis cheaper, it makes the hesitation rarer, and it is the honest
 	// trade: a wow-and-flutter reading that settles over ten seconds does not
 	// need remaking twice a second.
-	windowSec              int
-	periodMs               float64
-	cursor                 int
-	win                    meters.SlidingWindow // the newest wow.windowSec seconds
-	buf                    []float32            // wow.win laid out in order, for the analyzer
-	nextMs                 float64
-	res                    meters.WowFlutterResult
-	nominal                float32
-	speedEl, wowEl, flutEl js.Value
-	weightedEl, carrierEl  js.Value
+	windowSec int
+	periodMs  float64
+	cursor    int
+	win       meters.SlidingWindow // the newest wow.windowSec seconds
+	buf       []float32            // wow.win laid out in order, for the analyzer
+	nextMs    float64
+	res       meters.WowFlutterResult
+	nominal   float32
 }
 
 var wow = wowFlutter{
@@ -104,31 +101,12 @@ func (w *wowFlutter) tick(nowMs float64) {
 
 // showWowFlutter writes the readouts.
 func (w *wowFlutter) showWowFlutter() {
-	set := func(key string, el js.Value, v float64, signed bool) {
-		if !w.res.OK {
-			owed.readouts.Set(key, el, "  --.---")
-			return
-		}
-		owed.readouts.Set(key, el, led.Format(v, 2, 3, signed))
-	}
-	set("wf-speed", w.speedEl, w.res.SpeedPct, true)
-	set("wf-wow", w.wowEl, w.res.WowPct, false)
-	set("wf-flut", w.flutEl, w.res.FlutterPct, false)
-	set("wf-wtd", w.weightedEl, w.res.WeightedPct, false)
-	if w.res.OK {
-		owed.readouts.Set("wf-carrier", w.carrierEl, led.Format(w.res.Carrier, 5, 1, false))
-	} else {
-		owed.readouts.Set("wf-carrier", w.carrierEl, "-----.-")
-	}
+	showMeterReadouts(WowFlutterReadouts(w.res))
 }
 
 // wireWowFlutterModule finds the readouts and wires the nominal knob.
 func (w *wowFlutter) wireWowFlutterModule() {
-	w.speedEl = dom.Doc.Call("getElementById", "wf-speed-led")
-	w.wowEl = dom.Doc.Call("getElementById", "wf-wow-led")
-	w.flutEl = dom.Doc.Call("getElementById", "wf-flutter-led")
-	w.weightedEl = dom.Doc.Call("getElementById", "wf-weighted-led")
-	w.carrierEl = dom.Doc.Call("getElementById", "wf-carrier-led")
+	markMeterDisplays(WowFlutterReadouts(meters.WowFlutterResult{}))
 	nom := dom.Doc.Call("getElementById", "wf-nom")
 	nstack := dom.Doc.Call("getElementById", "wf-nstack")
 	if !nom.Truthy() {

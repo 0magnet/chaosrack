@@ -3,10 +3,10 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/led"
 	"strconv"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
 )
 
 // The Counter module — a frequency counter for the rack, in the spirit of
@@ -26,7 +26,6 @@ type freqCounter struct {
 	cycles  int
 	samples int
 	state   int // +1 above trigger, −1 below, 0 unarmed
-	ledEl   js.Value
 	gateEl  js.Value
 	gateOn  bool
 }
@@ -81,7 +80,7 @@ func (f *freqCounter) tick() {
 	if f.samples >= int(gate*float64(src.SampleRate())) {
 		// Latch: cycles over the ACTUAL window (sample-exact, not wall time).
 		hz := float64(f.cycles) / (float64(f.samples) / float64(src.SampleRate()))
-		owed.readouts.Set("counter-hz", f.ledEl, led.Format(hz, 5, 1, false))
+		showMeterReadouts([]Readout{CounterReadout(hz)})
 		f.cycles, f.samples = 0, 0
 		// The gate lamp toggles at each latch — the classic heartbeat.
 		f.gateOn = !f.gateOn
@@ -94,7 +93,7 @@ func (f *freqCounter) tick() {
 // wireCounterModule builds the gate selector and trigger knobs and wires
 // the Window-group switch. Called once from Run.
 func (f *freqCounter) wireCounterModule() {
-	f.ledEl = dom.Doc.Call("getElementById", "counter-led")
+	markMeterDisplays([]Readout{CounterReadout(0)})
 	f.gateEl = dom.Doc.Call("getElementById", "counter-gate")
 	gatesel := dom.Doc.Call("getElementById", "counter-gatesel")
 	trig := dom.Doc.Call("getElementById", "counter-trig")

@@ -3,11 +3,9 @@
 package attractor
 
 import (
-	"math"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/led"
 	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
@@ -38,14 +36,12 @@ type loudness struct {
 	// integrated loudness with a block missing is a block missing from the
 	// answer. Nothing about the measurement changes when this moves — only how
 	// often you are shown it. On the panel as RATE; see meterswitch_js.go.
-	periodMs        float64
-	cursor          int
-	meter           *meters.LoudnessMeter
-	nextMs          float64
-	res             meters.LoudnessResult
-	target          float32
-	mEl, sEl, iEl   js.Value
-	lraEl, tpEl, dl js.Value
+	periodMs float64
+	cursor   int
+	meter    *meters.LoudnessMeter
+	nextMs   float64
+	res      meters.LoudnessResult
+	target   float32
 }
 
 var lufs = loudness{
@@ -102,42 +98,13 @@ func (l *loudness) tick(nowMs float64) {
 
 // showLoudness writes the readouts.
 func (l *loudness) showLoudness() {
-	set := func(key string, el js.Value, v float64, ok bool) {
-		if !ok || v <= meters.LoudnessFloor {
-			owed.readouts.Set(key, el, "  --.-")
-			return
-		}
-		owed.readouts.Set(key, el, led.Format(v, 3, 1, true))
-	}
-	set("lufs-m", l.mEl, l.res.Momentary, l.res.Momentary > meters.LoudnessFloor)
-	set("lufs-s", l.sEl, l.res.ShortTerm, l.res.ShortTerm > meters.LoudnessFloor)
-	set("lufs-i", l.iEl, l.res.Integrated, l.res.OK)
-	if l.res.OK {
-		owed.readouts.Set("lufs-lra", l.lraEl, led.Format(l.res.LRA, 3, 1, false))
-	} else {
-		owed.readouts.Set("lufs-lra", l.lraEl, "  --.-")
-	}
-	set("lufs-tp", l.tpEl, l.res.TruePeak, l.res.TruePeak > meters.LoudnessFloor)
-	// Through lufsDistanceToTarget rather than subtracting here: it is the
-	// same arithmetic plus the floor guard, and an integrated reading that
-	// has not risen off the floor is not a distance from anything.
-	d := lufsDistanceToTarget(l.res.Integrated, float64(l.target))
-	if l.res.OK && !math.IsNaN(d) {
-		owed.readouts.Set("lufs-d", l.dl, led.Format(d, 3, 1, true))
-	} else {
-		owed.readouts.Set("lufs-d", l.dl, "  --.-")
-	}
+	showMeterReadouts(LoudnessReadouts(l.res, l.target))
 }
 
 // wireLoudnessModule finds the readouts and wires the target knob and the
 // reset. Called once from Run.
 func (l *loudness) wireLoudnessModule() {
-	l.mEl = dom.Doc.Call("getElementById", "lufs-m-led")
-	l.sEl = dom.Doc.Call("getElementById", "lufs-s-led")
-	l.iEl = dom.Doc.Call("getElementById", "lufs-i-led")
-	l.lraEl = dom.Doc.Call("getElementById", "lufs-lra-led")
-	l.tpEl = dom.Doc.Call("getElementById", "lufs-tp-led")
-	l.dl = dom.Doc.Call("getElementById", "lufs-delta-led")
+	markMeterDisplays(LoudnessReadouts(meters.LoudnessResult{}, 0))
 	tgt := dom.Doc.Call("getElementById", "lufs-target")
 	rst := dom.Doc.Call("getElementById", "lufs-reset")
 	if !tgt.Truthy() {
@@ -155,6 +122,7 @@ func (l *loudness) wireLoudnessModule() {
 		},
 	})
 	if rst.Truthy() {
+		rst.Call("setAttribute", "data-press", "") // a rack without the page presses it too
 		dom.On(rst, "click", func(this js.Value, a []js.Value) any {
 			if l.meter != nil {
 				l.meter.Reset(l.meter.SampleRate())
@@ -168,13 +136,4 @@ func (l *loudness) wireLoudnessModule() {
 		})
 	}
 	l.showLoudness()
-}
-
-// lufsDistanceToTarget is how far a reading is from a target, in LU. Positive
-// is too loud, which is the direction that gets a delivery rejected.
-func lufsDistanceToTarget(integrated, target float64) float64 {
-	if integrated <= meters.LoudnessFloor {
-		return math.NaN()
-	}
-	return integrated - target
 }
