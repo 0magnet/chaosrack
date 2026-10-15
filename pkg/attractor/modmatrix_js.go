@@ -110,6 +110,10 @@ func buildModMatrix(params []paramDef) {
 			at.Get("parentNode").Call("insertBefore", modMxModule(), at.Get("nextSibling"))
 		})
 	}
+	// DEST and DPTH are controls of the rack, so ctl and a rack without the
+	// page reach them; the pins and the EQ are pressed parts (their ids).
+	registerControl(ControlDesc{ID: "modmx-dest", Label: "dest", IsSelect: true}, moduleOfControl("modmx-dest"))
+	registerControl(ControlDesc{ID: "modmx-depth", Label: "dpth", Min: -4, Max: 4, Step: 0.01}, moduleOfControl("modmx-depth"))
 	modMxRetarget(params)
 }
 
@@ -184,15 +188,22 @@ func modMxGrid() js.Value {
 		row := i
 		lg := dotDisplayN("", false, dispFullChars)
 		lg.Get("classList").Call("add", "mxleg")
+		// Named and marked as a display, so a rack without the page writes
+		// each row's name into it (rackpic's "led" mark).
+		lg.Set("id", "mxleg-"+strconv.Itoa(row))
+		lg.Call("setAttribute", "data-meter", "")
 		dom.On(lg, "click", func(js.Value, []js.Value) any {
 			modMxSelect(modMx.cols[row].id)
 			return nil
 		})
 		grid.Call("appendChild", lg)
 		modMx.rows[i].legend = lg
-		for _, src := range modChannels {
+		for si, src := range modChannels {
 			pin := dom.Doc.Call("createElement", "span")
 			pin.Set("className", "mxpin")
+			// A rack without the page presses it too, by row and column.
+			pin.Set("id", "mxpin-"+strconv.Itoa(row)+"-"+strconv.Itoa(si))
+			pin.Call("setAttribute", "data-press", "")
 			pin.Call("setAttribute", "data-src", src.name)
 			if i >= modMx.nParams {
 				pin.Call("setAttribute", "data-view", "")
@@ -269,8 +280,10 @@ func modMxEditRow() js.Value {
 	// name on a display rather than a printed ring. Built once: the knob
 	// counts its positions as it turns, and modMxDest refills the list.
 	dc, dtop := cell("dest", doc("mod-dest"))
+	dc.Call("setAttribute", "data-param", "modmx-dest") // where the catalog finds it
 	sel := dom.Doc.Call("createElement", "select")
 	sel.Set("style", "display:none")
+	sel.Set("id", "modmx-dest")
 	dc.Call("appendChild", sel)
 	hold := dom.Doc.Call("createElement", "span")
 	hold.Set("className", "grp vmbay")
@@ -297,6 +310,7 @@ func modMxEditRow() js.Value {
 	// depth × the source × the control's range, and real music averages well
 	// under full scale, so ±1 could only overdrive on rare peaks.
 	pc, ptop := cell("dpth", doc("mod-depth"))
+	pc.Call("setAttribute", "data-param", "modmx-depth")
 	rng := dom.Doc.Call("createElement", "input")
 	rng.Set("type", "range")
 	rng.Set("id", "modmx-depth")

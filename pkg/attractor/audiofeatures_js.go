@@ -40,9 +40,10 @@ type audioFeatures struct {
 	ladder    [len(featNames)]js.Value
 	ladderLit [len(featNames)]int
 
-	// band holds the current smoothed, adaptively-normalized band energies per
-	// channel ("mono","L","R"), each a []float32 of length numEQBands in 0..1.
-	band map[string][]float32
+	// bands holds the current smoothed, adaptively-normalized band energies
+	// per channel ("mono", "L", "R", the sends), each numEQBands long, 0..1
+	// (modroute.go).
+	bands ModBands
 
 	// monoScratch is reused by the per-frame mono band mix.
 	monoScratch []float32
@@ -51,7 +52,6 @@ type audioFeatures struct {
 var af = audioFeatures{
 	feat:        map[string]float32{},
 	peak:        map[string]float32{},
-	band:        map[string][]float32{},
 	monoScratch: make([]float32, numEQBands),
 }
 
@@ -71,49 +71,6 @@ func (a *audioFeatures) normMap(key string, x float32) float32 {
 // afSmooth: fast attack, slow release.
 func afSmooth(cur, target float32) float32 { return FeatureSmooth(cur, target) }
 
-// numEQBands is the resolution of the per-parameter graphic-EQ modulation
-// source: the spectrum is split into this many log-spaced bands (low→high).
-const numEQBands = 8
-
-// afEQKeys precomputes the adaptive-normalization map keys per channel/band so
-// the per-frame band update doesn't build 3×numEQBands strings every frame.
-var afEQKeys = func() map[string][]string {
-	m := map[string][]string{}
-	for _, ch := range []string{"mono", "L", "R", modSrcSendA, modSrcSendB} {
-		ks := make([]string, numEQBands)
-		for i := range ks {
-			ks[i] = "eq:" + ch + ":" + strconv.Itoa(i)
-		}
-		m[ch] = ks
-	}
-	return m
-}()
-
-// computeBands sums FFT magnitudes into numEQBands log-spaced frequency bands
-// (≈30 Hz → Nyquist).
-func computeBands(mags []float64, sr int) []float32 {
-	nyq := float64(sr) / 2
-	out := make([]float32, numEQBands)
-	if nyq <= 30 {
-		return out
-	}
-	logMin, logMax := math.Log(30), math.Log(nyq)
-	for i, m := range mags {
-		f := float64(i) / float64(len(mags)) * nyq
-		if f < 30 {
-			continue
-		}
-		b := int((math.Log(f) - logMin) / (logMax - logMin) * float64(numEQBands))
-		if b < 0 {
-			b = 0
-		} else if b >= numEQBands {
-			b = numEQBands - 1
-		}
-		out[b] += float32(m) //nolint:gosec // b is clamped to [0, numEQBands) immediately above
-	}
-	return out
-}
-
 // eqModValue returns the graphic-EQ modulation signal (0..1) for a channel
 // and band-weight curve: the weight-normalized average of the channel's band
 // energies. Empty channel or all-zero weights → 0 (unrouted).
@@ -128,39 +85,7 @@ func (a *audioFeatures) eqModValue(channel string, weights []float32) float32 {
 	if isModelModSource(channel) {
 		return modelModValue(channel)
 	}
-	bands := a.band[channel]
-	if len(bands) == 0 {
-		return 0
-	}
-	var sum, wsum, maxb float32
-	for i := range bands {
-		var w float32
-		if i < len(weights) {
-			w = weights[i]
-		}
-		sum += w * bands[i]
-		wsum += w
-		if bands[i] > maxb {
-			maxb = bands[i]
-		}
-	}
-	var v float32
-	if wsum <= 0 {
-		// No EQ bands painted (weights nil or all zero) → follow the loudest
-		// band, so a channel + level ALONE gives a strong, beat-following
-		// drive. Averaging all 8 bands diluted quiet music to near-nothing,
-		// which made modulation feel dead until cranked to the max. Painting
-		// bands then shapes/weights the response instead.
-		v = maxb
-	} else {
-		v = sum / wsum
-	}
-	if v < 0 {
-		v = 0
-	} else if v > 1 {
-		v = 1
-	}
-	return v
+	return a.bands.Value(channel, weights)
 }
 
 func rmsOf(w []float32) float32 {
@@ -207,23 +132,12 @@ func (a *audioFeatures) updateAudioFeatures() {
 	// Graphic-EQ band energies per channel (adaptively normalized + smoothed).
 	rawL := computeBands(magsL, sr)
 	rawR := computeBands(magsR, sr)
-	storeBands := func(ch string, raw []float32) {
-		cur := a.band[ch]
-		if cur == nil {
-			cur = make([]float32, numEQBands)
-			a.band[ch] = cur
-		}
-		keys := afEQKeys[ch]
-		for i := range numEQBands {
-			cur[i] = afSmooth(cur[i], a.normMap(keys[i], raw[i]))
-		}
-	}
-	storeBands("L", rawL)
-	storeBands("R", rawR)
+	a.bands.Store("L", rawL)
+	a.bands.Store("R", rawR)
 	for i := range a.monoScratch {
 		a.monoScratch[i] = (rawL[i] + rawR[i]) / 2
 	}
-	storeBands("mono", a.monoScratch)
+	a.bands.Store("mono", a.monoScratch)
 	// The sends to modulation, MOD A and B, when a route reads one: a
 	// window of each, mixed at the Mixer's gains, and its bands, as the
 	// rack's two sides have theirs.
@@ -233,8 +147,8 @@ func (a *audioFeatures) updateAudioFeatures() {
 			a.magsA = make([]float64, sg.FFTSize/2+1)
 		}
 		magsA := a.magsA[:copy(a.magsA, meters.ComputeFFTMags(wa))]
-		storeBands(modSrcSendA, computeBands(magsA, sr))
-		storeBands(modSrcSendB, computeBands(meters.ComputeFFTMags(wb), sr))
+		a.bands.Store(modSrcSendA, computeBands(magsA, sr))
+		a.bands.Store(modSrcSendB, computeBands(meters.ComputeFFTMags(wb), sr))
 	}
 	rL, rR := rmsOf(a.windowL), rmsOf(a.windowR)
 

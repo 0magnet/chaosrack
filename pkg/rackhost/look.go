@@ -36,7 +36,7 @@ func (r *Rack) look() sceneLook {
 		}
 	}
 	g.Reverse = r.value("gradient-reverse") == "1"
-	if f, err := strconv.ParseFloat(r.value("rainbow-freq"), 32); err == nil && f > 0 {
+	if f := r.number("rainbow-freq"); f > 0 {
 		g.Freq = float32(f)
 	}
 	g.Phase = float32(r.number("palette-shift"))
@@ -70,8 +70,8 @@ func lineWidth(line float64, w int) int {
 func (r *Rack) flowValues() map[*float32]float32 {
 	out := make(map[*float32]float32, len(r.flow))
 	for id, p := range r.flow {
-		if f, err := strconv.ParseFloat(r.value(id), 32); err == nil {
-			out[p.Value] = float32(f)
+		if _, err := strconv.ParseFloat(r.value(id), 32); err == nil {
+			out[p.Value] = float32(r.number(id)) // a route's value, when one moves it
 		}
 	}
 	return out

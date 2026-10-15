@@ -31,7 +31,7 @@ const (
 func routeMono(t *testing.T, id string) func() {
 	t.Helper()
 	prevMods, hadMod := pmod.params[id]
-	prevBand := af.band["mono"]
+	var prevBand []float32
 	prevOn := audioMod
 	prevHold, hadHold := pmod.hold[id]
 
@@ -39,7 +39,7 @@ func routeMono(t *testing.T, id string) func() {
 	for i := range band {
 		band[i] = testModEnergy
 	}
-	af.band["mono"] = band
+	prevBand = af.bands.setBand("mono", band)
 	pmod.params[id] = paramMod{channel: "mono", level: testModLevel}
 	audioMod = true
 	delete(pmod.hold, id)
@@ -47,7 +47,7 @@ func routeMono(t *testing.T, id string) func() {
 
 	return func() {
 		audioMod = prevOn
-		af.band["mono"] = prevBand
+		af.bands.setBand("mono", prevBand)
 		if hadMod {
 			pmod.params[id] = prevMods
 		} else {
@@ -292,4 +292,15 @@ func TestTheDeadbandKeepsModulationThatIsReallyThere(t *testing.T) {
 			"below 80%% it is damping the music rather than the boundary",
 			deadbandChanges, nearestChanges)
 	}
+}
+
+// setBand puts channel ch's band energies at band as they stand, and
+// returns what they were.
+func (m *ModBands) setBand(ch string, band []float32) []float32 {
+	if m.band == nil {
+		m.Store(ch, make([]float32, numEQBands))
+	}
+	prev := m.band[ch]
+	m.band[ch] = band
+	return prev
 }
