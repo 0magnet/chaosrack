@@ -74,10 +74,17 @@ func TestTheBallPlaysOnTheClock(t *testing.T) {
 	if math.Abs(dx-60*0.7*scopegames.BallFrameDT) > 0.05 {
 		t.Errorf("the ball went %.3f across in a second, want %.3f", dx, 60*0.7*scopegames.BallFrameDT)
 	}
+	// The display shows the game's count, whatever it has come to: the
+	// ball can kick itself again in the tenth of a second, its new velocity
+	// being random.
 	g.ball.Kicks = 3
 	play(t, r, c, 0.1)
-	if got := ledText(r, "bounce-kicks"); got != "3" {
-		t.Errorf("the kicks display says %q, want 3", got)
+	look(t, r) // the display catches up with a kick in the last fill
+	r.sound.mu.Lock()
+	want := strconv.Itoa(g.ball.Kicks)
+	r.sound.mu.Unlock()
+	if got := ledText(r, "bounce-kicks"); got != want || g.ball.Kicks < 3 {
+		t.Errorf("the kicks display says %q, want %s", got, want)
 	}
 }
 
