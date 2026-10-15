@@ -87,44 +87,6 @@ func sphereVerticesIndices(radius float32, stacks, slices int, baseIdx uint16) (
 	return vertices, indices
 }
 
-// torusVerticesIndices builds the wireframe. roll is a POLOIDAL phase: an
-// offset added to phi, which walks each point around the tube's cross-section
-// while leaving the torus itself exactly where it is.
-//
-// The two angles are the two ways round a torus and they have names. theta is
-// TOROIDAL — the long way, about the axis through the hole, which is what every
-// other spin control already turns. phi is POLOIDAL — the short way, about the
-// CORE CIRCLE, the circle drawn through the middle of the tube body. Turning
-// phi is the motion a smoke ring makes: the surface rolls through itself and
-// the ring stays put.
-func torusVerticesIndices(major, minor float32, stacks, slices int, baseIdx uint16, roll float32) ([]float32, []uint16) {
-	// Sized up front, as above.
-	vertices := make([]float32, 0, (stacks+1)*(slices+1)*3)
-	indices := make([]uint16, 0, stacks*slices*6)
-	for i := 0; i <= stacks; i++ {
-		theta := float32(i) * 2.0 * math.Pi / float32(stacks)
-		for j := 0; j <= slices; j++ {
-			phi := float32(j)*2.0*math.Pi/float32(slices) + roll
-			xv := (major + minor*float32(math.Cos(float64(phi)))) * float32(math.Cos(float64(theta)))
-			yv := (major + minor*float32(math.Cos(float64(phi)))) * float32(math.Sin(float64(theta)))
-			zv := minor * float32(math.Sin(float64(phi)))
-			vertices = append(vertices, xv, yv, zv)
-		}
-	}
-	for i := range stacks {
-		for j := range slices {
-			cur := baseIdx + uint16(i*(slices+1)+j) //nolint:gosec // a mesh index, bounded by the stack/slice counts a few lines up
-			next := cur + 1
-			below := baseIdx + uint16((i+1)*(slices+1)+j) //nolint:gosec // a mesh index, bounded by the stack/slice counts a few lines up
-			// Horizontal ring edge
-			indices = append(indices, cur, next)
-			// Vertical edge
-			indices = append(indices, cur, below)
-		}
-	}
-	return vertices, indices
-}
-
 func (t *torusShape) generate() {
 	stacks := int(t.stacksF)
 	slices := int(t.slicesF)
@@ -141,7 +103,7 @@ func (t *torusShape) generate() {
 	if gpu.staticGeomCached(glctx.Types.Line) {
 		return
 	}
-	vertices, indices := torusVerticesIndices(t.major, t.minor, stacks, slices, 0, t.rollPhi)
+	vertices, indices := TorusMesh(t.major, t.minor, stacks, slices, t.rollPhi)
 	gpu.uploadBuffersIndexed(vertices, indices, glctx.Types.Line)
 }
 
@@ -149,12 +111,6 @@ func (g *globeShape) generate() {
 	if gpu.staticGeomCached(glctx.Types.Line) {
 		return
 	}
-	lat := int(g.latF)
-	lon := int(g.lonF)
-	vertices := g.vertBuf[:0]
-	indices := g.idxBuf[:0]
-	pts := 60 // points per circle
-
 	// The parallels, as rings or as ONE SPIRAL.
 	//
 	// Rings are what a globe has: lat-1 separate closed circles, none of which
@@ -164,42 +120,7 @@ func (g *globeShape) generate() {
 	// hoops. A globe drawn that way is a ball of string rather than a cage, and
 	// the count knob reads as "how many times round" instead of "how many
 	// rings".
-	if g.spiral() && lat > 0 {
-		steps := pts * lat
-		base := uint16(len(vertices) / 3) //nolint:gosec // bounded: pts*lat is far under uint16 at lat's cap
-		wind := 1.0
-		if g.revF >= 0.5 {
-			wind = -1 // the same helix wound the other way round
-		}
-		for k := 0; k <= steps; k++ {
-			t := float64(k) / float64(steps)
-			phi := t * math.Pi                             // pole to pole, once
-			theta := wind * t * 2 * math.Pi * float64(lat) // winding lat times on the way
-			vertices = append(vertices,
-				float32(math.Sin(phi)*math.Cos(theta)),
-				float32(math.Sin(phi)*math.Sin(theta)),
-				float32(math.Cos(phi)))
-			if k > 0 {
-				indices = append(indices, base+uint16(k-1), base+uint16(k)) //nolint:gosec // as above
-			}
-		}
-	} else {
-		for i := 1; i < lat; i++ {
-			phi := float32(i) * float32(math.Pi) / float32(lat)
-			base := uint16(len(vertices) / 3) //nolint:gosec // a mesh index, bounded by the stack/slice counts a few lines up
-			for j := 0; j <= pts; j++ {
-				theta := float32(j) * 2.0 * float32(math.Pi) / float32(pts)
-				xv := float32(math.Sin(float64(phi))) * float32(math.Cos(float64(theta)))
-				yv := float32(math.Sin(float64(phi))) * float32(math.Sin(float64(theta)))
-				zv := float32(math.Cos(float64(phi)))
-				vertices = append(vertices, xv, yv, zv)
-				if j > 0 {
-					indices = append(indices, base+uint16(j-1), base+uint16(j))
-				}
-			}
-		}
-	}
-
+	//
 	// The meridians, straight or TWISTED.
 	//
 	// A meridian normally holds one theta all the way from pole to pole. Twist
@@ -209,25 +130,8 @@ func (g *globeShape) generate() {
 	// answer to wanting the spiral to go the other way. This is the meridians'
 	// version of what the parallels get from par+dir, and the two compose: a
 	// spiral of parallels through a twisted cage is a ball of string.
-	twist := float64(g.twistF)
-	for j := range lon {
-		theta0 := float64(j) * 2.0 * math.Pi / float64(lon)
-		base := uint16(len(vertices) / 3) //nolint:gosec // a mesh index, bounded by the stack/slice counts a few lines up
-		for i := 0; i <= pts; i++ {
-			phi := float32(i) * float32(math.Pi) / float32(pts)
-			theta := float32(theta0 + twist*float64(phi))
-			xv := float32(math.Sin(float64(phi))) * float32(math.Cos(float64(theta)))
-			yv := float32(math.Sin(float64(phi))) * float32(math.Sin(float64(theta)))
-			zv := float32(math.Cos(float64(phi)))
-			vertices = append(vertices, xv, yv, zv)
-			if i > 0 {
-				indices = append(indices, base+uint16(i-1), base+uint16(i))
-			}
-		}
-	}
-
-	g.vertBuf, g.idxBuf = vertices, indices
-	gpu.uploadBuffersIndexed(vertices, indices, glctx.Types.Line)
+	g.vertBuf, g.idxBuf = GlobeMesh(int(g.latF), int(g.lonF), g.spiral(), g.revF >= 0.5, float64(g.twistF), g.vertBuf[:0], g.idxBuf[:0])
+	gpu.uploadBuffersIndexed(g.vertBuf, g.idxBuf, glctx.Types.Line)
 }
 
 // generateMagnetosphere runs per frame and, like globe.generate, used to build

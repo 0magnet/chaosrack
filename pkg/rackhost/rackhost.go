@@ -29,7 +29,6 @@ import (
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
-	"github.com/0magnet/chaosrack/pkg/geom"
 	"github.com/0magnet/chaosrack/pkg/rackcatalog"
 	"github.com/0magnet/chaosrack/pkg/rackpic"
 	"github.com/0magnet/chaosrack/pkg/racksurface"
@@ -737,6 +736,8 @@ type scene struct {
 	shown *image.RGBA
 	// crt is the phosphor tube's afterglow (crt.go).
 	crt crtState
+	// roll is the torus tube's phase, which its ROLL knob turns.
+	roll float64
 }
 
 func (s *scene) start() {
@@ -824,6 +825,10 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 	inLat := r.value("lat-on") == "1" && key != "lattice"
 	run, speed := int(r.number("trail-slider")), r.number("speed-slider")
 	refigure := r.refigure.Swap(false)
+	rollRate := 0.0
+	if key == "torus" {
+		rollRate = r.number("torus-roll")
+	}
 	r.playGames()
 	r.needCapture()
 	r.sound.busLook()
@@ -850,6 +855,11 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 		r.sound.mu.Unlock()
 	}
 	dt := s.frameTime(time.Now(), tbc)
+	if rollRate != 0 {
+		// The page turns the tube rate/20 a frame, at sixty frames a second.
+		s.roll += 3 * rollRate * dt
+		refigure = true
+	}
 	// A picture on a plane comes up face-on and holds still, as the page sets
 	// its textured planes up: a hand or the rate knobs still turn it.
 	s.pose(key, heard.quad != nil || len(heard.quads) > 0 || attractor.IsFlatScope(key), on && !paused, auto, rate, dt)
@@ -904,7 +914,7 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 			s.fig, s.err = r.stlFigure()
 			r.mu.Unlock()
 		default:
-			s.fig, s.err = figureFor(key, r.knobs())
+			s.fig, s.err = figureFor(key, r.knobs(), s.roll)
 		}
 	}
 	if s.err != nil {
@@ -1018,32 +1028,22 @@ func zoomScale(zoom float64) float64 {
 
 // figureFor is a model's geometry, as `chaosrack render` builds it, with the
 // model's own knobs where the rack carries them out (knob is a control's
-// value, 0 when the rack has none).
-func figureFor(key string, knob func(id string) float64) (attractor.Figure, error) {
+// value, 0 when the rack has none), and roll the torus tube's phase.
+func figureFor(key string, knob func(id string) float64, roll float64) (attractor.Figure, error) {
 	if dynamics.HasFlow(key) {
 		return attractor.Figure{Kind: attractor.FigurePath, Points: dynamics.Trajectory(key, dynamics.DefaultTrajectory())}, nil
 	}
-	if key == "globe" {
-		// Its circles of latitude and its meridians, as the page's knobs
-		// count them: geom.Globe at the page's defaults is StaticFigure's.
-		lat, lon := int(knob("globe-lat")), int(knob("globe-lon"))
-		if lat > 0 && lon > 0 {
-			return linesOf(geom.Globe(lat, lon, 60)), nil
+	if knob != nil {
+		// A shape as its knobs make it: the globe's rings and twist, the
+		// torus's radii and roll, the solid {p,q} and what is done to it.
+		if f, ok := attractor.ShapeFigure(key, knob, roll); ok {
+			return f, nil
 		}
 	}
 	if f, ok := attractor.StaticFigure(key, 20000); ok {
 		return f, nil
 	}
 	return attractor.Figure{}, fmt.Errorf("%s %w", key, ErrBrowserOnly)
-}
-
-// linesOf is a wireframe as a figure.
-func linesOf(l geom.Lines) attractor.Figure {
-	f := attractor.Figure{Kind: attractor.FigureLines, Edges: l.Indices}
-	for i := 0; i+2 < len(l.Vertices); i += 3 {
-		f.Points = append(f.Points, [3]float64{float64(l.Vertices[i]), float64(l.Vertices[i+1]), float64(l.Vertices[i+2])})
-	}
-	return f
 }
 
 // knobs is the model bank's values now, for figureFor.
