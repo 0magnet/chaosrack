@@ -97,6 +97,8 @@ func (r *Rack) showReadouts(key string, nowMs float64) {
 		put("meas", a.tau.Text(float32(r.number("takens-tau"))))
 	case "xfer":
 		put("dly", a.xfer.DelayText())
+	case "bifurcation":
+		put("cur", a.bif.cur)
 	case "waterfall":
 		put("rt60", a.wfall.w.RT60Text())
 	case "recurrence":
