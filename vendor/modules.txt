@@ -62,7 +62,7 @@ github.com/0magnet/lolcat-go/lol
 # github.com/0magnet/pisano v0.0.0-20261014102759-451f447ed96a
 ## explicit; go 1.26.6
 github.com/0magnet/pisano/pkg/pisano
-# github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc
+# github.com/0magnet/proxima5 v0.0.0-20261014235132-1143d38a91d3
 ## explicit; go 1.26.0
 github.com/0magnet/proxima5
 github.com/0magnet/proxima5/internal/views
@@ -126,7 +126,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20261014103105-530a8d0a1b46
+# github.com/0magnet/tuiwasm v0.0.0-20261014235157-481f9a66a788
 ## explicit; go 1.26.7
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim

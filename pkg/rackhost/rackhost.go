@@ -90,6 +90,8 @@ type Rack struct {
 	stl stlView
 	// lattice is the Lattice's stack of terminals (lattice.go).
 	lattice *attractor.LatticeStack
+	// anim is the terminal animation running (termanim.go).
+	anim animView
 	// prompt is the text control the panel is to ask for (text.go).
 	prompt string
 	// viewAngle is the scene's pose as last drawn, for what turns with the view
@@ -766,8 +768,8 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 		s.shown = nil
 		return img, nil
 	}
-	if isAnalyzer(key) {
-		// A flat analyzer, drawn over the whole scene as the page draws it
+	if isAnalyzer(key) || key == "termanim" {
+		// A flat analyzer, or a terminal animation's screen, drawn over the whole scene as the page draws it
 		// over its canvas (analyzers.go).
 		s.key, s.err, s.shown = key, nil, nil
 		toPixels(img, look.bg, heard.picture(rasterview.View{

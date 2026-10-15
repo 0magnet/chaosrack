@@ -28,8 +28,8 @@ github.com/0magnet/lolcat-go v0.0.1-0.20261013220959-57aa27491489 h1:e9oQciGjDuT
 github.com/0magnet/lolcat-go v0.0.1-0.20261013220959-57aa27491489/go.mod h1:DbbClVrvQ558CvwGWU78xx0k03aEY/uS9qf5Wtw+n3o=
 github.com/0magnet/pisano v0.0.0-20261014102759-451f447ed96a h1:c366ak7XbFaOk5dz/cFvbzeqZ/mARvSV9B1i1hh4fbU=
 github.com/0magnet/pisano v0.0.0-20261014102759-451f447ed96a/go.mod h1:gY534oQgDCJiPVIWj5hO786UKUqlTqQAwI8xmj+F7KE=
-github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc h1:6y75eIwQ0EswyiujMlGQxGHdaecl+qzYm17iRLn/Gy8=
-github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc/go.mod h1:tZ3EqtPbE2DQAzgP2iBdVgvPANj/EJBfGs/hAZRdBNo=
+github.com/0magnet/proxima5 v0.0.0-20261014235132-1143d38a91d3 h1:uGsioDxMBM55YTUf8I/uIFtN5UKEhu/MMt0H/Z8OPMY=
+github.com/0magnet/proxima5 v0.0.0-20261014235132-1143d38a91d3/go.mod h1:tZ3EqtPbE2DQAzgP2iBdVgvPANj/EJBfGs/hAZRdBNo=
 github.com/0magnet/rack-go v0.0.0-20261013221719-290136881c9a h1:VcuF54YvJ4poxD728vAPAdEGS6emghmkJGwsC/XSqM8=
 github.com/0magnet/rack-go v0.0.0-20261013221719-290136881c9a/go.mod h1:+Ujv92EHuD24yOz6wOagRmnQZ3Aw5nphM7STt16gnhs=
 github.com/0magnet/seat v0.0.0-20261013221028-e66b97ebca1a h1:7ZCy/xMxoPf9mEkLutXnxKmQtq/5cMjos5fd7rLP/VI=
@@ -40,8 +40,8 @@ github.com/0magnet/termanim v0.0.1-0.20261013224625-c801aece6dff h1:R5EjBAYkLdJA
 github.com/0magnet/termanim v0.0.1-0.20261013224625-c801aece6dff/go.mod h1:sPb6ZYeBx+TFCOBfDTHIaKXn+7DjQasS5vARJaiWP0Y=
 github.com/0magnet/toilet-go v0.0.0-20261013224629-4749634a6d85 h1:XxPd4tca27E7eVcCWEkQGp169+EG4HBO4T6mLtXtnCU=
 github.com/0magnet/toilet-go v0.0.0-20261013224629-4749634a6d85/go.mod h1:HaTnZHYCUuHOfjwD9wXroZ4SaI37xeqyuz7gUyMRj3Y=
-github.com/0magnet/tuiwasm v0.0.0-20261014103105-530a8d0a1b46 h1:0G8hR3XiyR5+yOz+aB+LktiY4tiYOtthP70JHtAiwPE=
-github.com/0magnet/tuiwasm v0.0.0-20261014103105-530a8d0a1b46/go.mod h1:TPFOgpEaHfMCuKassWHBP/SBTYIC2gJhY5zdCndpc0U=
+github.com/0magnet/tuiwasm v0.0.0-20261014235157-481f9a66a788 h1:Ur6H7XMg7bv+zYU6Av3CbPMjzpls0crve4G6NImtEzc=
+github.com/0magnet/tuiwasm v0.0.0-20261014235157-481f9a66a788/go.mod h1:YG2OwqPjkR4STg3BzCNomvw8BcIseGevUC37pTRJSN8=
 github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754 h1:wK2MncQOnEea7yqiOHvv3oD89sc+YC1dAw4zw1o48mQ=
 github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754/go.mod h1:9N1kqBjNdAUT/pfrWKyty4zS5ZQgG1OvsTmhdcpAWB0=
 github.com/0magnet/websh v0.0.1-0.20261013225449-0d54b04ae8e4 h1:gziO457BDhhVD82AnNgX304GOwAmSCs4SNpOvvUMjZw=

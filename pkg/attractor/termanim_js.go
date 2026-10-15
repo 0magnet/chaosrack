@@ -191,10 +191,8 @@ func (t *termAnim) fillTermAnimPicker() {
 		}
 		sel.Call("appendChild", opt)
 	}
-	sel.Call("addEventListener", "change", js.FuncOf(func(this js.Value, _ []js.Value) any {
-		t.setTermAnim(this.Get("value").String())
-		return nil
-	}))
+	// A control of the rack, so a rack without the page can pick the demo.
+	adoptDescControl(ControlDesc{ID: "termanim-pick", Label: "prog", IsSelect: true, SelectDef: animDefault, SelectApply: t.setTermAnim})
 	t.pickerFilled = true
 }
 

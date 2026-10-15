@@ -14,10 +14,11 @@ require (
 	github.com/0magnet/rack-go v0.0.0-20261013221719-290136881c9a
 	github.com/0magnet/seat v0.0.0-20261013221028-e66b97ebca1a
 	github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
-	github.com/0magnet/tuiwasm v0.0.0-20261014103105-530a8d0a1b46
+	github.com/0magnet/tuiwasm v0.0.0-20261014235157-481f9a66a788
 	github.com/0magnet/websh v0.0.1-0.20261013225449-0d54b04ae8e4
 	github.com/0magnet/winbox-go v0.0.1-0.20261013224642-cc4224c41a9c
 	github.com/0magnet/xterm-go v0.0.1-0.20261013223808-aa0a32cd702b
+	github.com/gdamore/tcell/v2 v2.13.10
 	github.com/gdamore/tcell/v3 v3.6.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-gl/mathgl v1.2.0
@@ -41,7 +42,7 @@ require (
 	github.com/0magnet/go-dsp v0.0.1-0.20261013221717-1ec76fa9affb // indirect
 	github.com/0magnet/img2txt-go v0.0.1-0.20261013220954-ae0d760b7d2b // indirect
 	github.com/0magnet/lolcat-go v0.0.1-0.20261013220959-57aa27491489 // indirect
-	github.com/0magnet/proxima5 v0.0.0-20260914191450-f19cf6c054fc // indirect
+	github.com/0magnet/proxima5 v0.0.0-20261014235132-1143d38a91d3 // indirect
 	github.com/0magnet/termanim v0.0.1-0.20261013224625-c801aece6dff // indirect
 	github.com/0magnet/toilet-go v0.0.0-20261013224629-4749634a6d85 // indirect
 	github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754 // indirect
@@ -71,7 +72,6 @@ require (
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.15 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
-	github.com/gdamore/tcell/v2 v2.13.10 // indirect
 	github.com/gin-contrib/sse v1.1.2 // indirect
 	github.com/go-playground/locales v0.14.2 // indirect
 	github.com/go-playground/universal-translator v0.18.2 // indirect
