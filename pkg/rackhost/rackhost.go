@@ -92,6 +92,8 @@ type Rack struct {
 	lattice *attractor.LatticeStack
 	// anim is the terminal animation running (termanim.go).
 	anim animView
+	// shell is the Host Terminal's shell (hostterm.go).
+	shell shellView
 	// prompt is the text control the panel is to ask for (text.go).
 	prompt string
 	// viewAngle is the scene's pose as last drawn, for what turns with the view
@@ -235,6 +237,7 @@ var (
 	_ racktui.Pictured = (*Rack)(nil)
 	_ racktui.Paced    = (*Rack)(nil)
 	_ racktui.GameKeys = (*Rack)(nil)
+	_ racktui.Typist   = (*Rack)(nil)
 	_ racktui.Prompter = (*Rack)(nil)
 )
 
@@ -768,7 +771,7 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 		s.shown = nil
 		return img, nil
 	}
-	if isAnalyzer(key) || key == "termanim" {
+	if isAnalyzer(key) || isTerminalModel(key) {
 		// A flat analyzer, or a terminal animation's screen, drawn over the whole scene as the page draws it
 		// over its canvas (analyzers.go).
 		s.key, s.err, s.shown = key, nil, nil
