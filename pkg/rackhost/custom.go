@@ -119,6 +119,11 @@ func (r *Rack) seedCustomKnobs() {
 		}
 	}
 	put("custom-dt", r.custom.Dt())
+	// The Turtle's Physics knobs too, which the page builds only with its
+	// switch up.
+	for _, k := range attractor.TurtlePhysicsKnobs {
+		put(k.ID, k.Def)
+	}
 	// The equations too, and the fourth, which the page builds only while 4d
 	// w is on, so the catalog may not have it.
 	for i := range 4 {

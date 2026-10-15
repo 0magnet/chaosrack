@@ -297,3 +297,32 @@ func TestTheBifurcationsAudioCursor(t *testing.T) {
 		t.Errorf("on sweep: a cursor of %d points, reading %q", len(h.overlay.Points), cur)
 	}
 }
+
+// With the Console's Physics up the Turtle has weight: it sits lower than the
+// same walk without, and the room's walls — the picture's edges — hold it
+// whenever it fits in the room (a walk that has outgrown it is centered, as
+// the page centers it).
+func TestTheTurtleHasWeight(t *testing.T) {
+	height := func(phys string) float64 {
+		r, c := idleRack(t, "turtle")
+		set(t, r, "phys-sw", phys)
+		sum, n := 0.0, 0
+		for i := range 40 {
+			pts := shownFigure(t, r, c, 0.1)
+			lo, hi, mean := math.Inf(1), math.Inf(-1), 0.0
+			for _, p := range pts {
+				lo, hi, mean = min(lo, p[1]), max(hi, p[1]), mean+p[1]/float64(len(pts))
+			}
+			if phys == "1" && hi-lo <= 2*turtleRoom && (lo < -turtleRoom*1.05 || hi > turtleRoom*1.05) {
+				t.Fatalf("the figure, %.3f to %.3f, fits the room's ±%.3f but is outside it", lo, hi, turtleRoom)
+			}
+			if i >= 15 { // once the walk's scale has settled
+				sum, n = sum+mean, n+1
+			}
+		}
+		return sum / float64(n)
+	}
+	if with, without := height("1"), height("0"); with > without-0.08 {
+		t.Errorf("with weight the figure sits at %.3f on average, without at %.3f", with, without)
+	}
+}

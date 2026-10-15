@@ -71,16 +71,6 @@ func (a *audioFeatures) normMap(key string, x float32) float32 {
 // afSmooth: fast attack, slow release.
 func afSmooth(cur, target float32) float32 { return FeatureSmooth(cur, target) }
 
-func clamp01(x float32) float32 {
-	if x < 0 {
-		return 0
-	}
-	if x > 1 {
-		return 1
-	}
-	return x
-}
-
 // numEQBands is the resolution of the per-parameter graphic-EQ modulation
 // source: the spectrum is split into this many log-spaced bands (low→high).
 const numEQBands = 8

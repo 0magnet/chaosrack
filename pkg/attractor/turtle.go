@@ -172,7 +172,7 @@ func (tu *turtleMode) generateTurtle() {
 		// has got to is the answer, and a camera holding it in the middle would
 		// be hiding exactly what there is to watch.
 		if !run.paused {
-			tu.body.step(t, t.pts[base:])
+			tu.body.step(t, t.pts[base:], pageTurtleWorld())
 		}
 		for i := range n {
 			x, y, z := tu.body.place(t, t.pts[base+i])
