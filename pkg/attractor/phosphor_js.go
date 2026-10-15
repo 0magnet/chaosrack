@@ -3,12 +3,13 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/glctx"
-	"github.com/0magnet/chaosrack/pkg/skirt"
 	"math"
 	"strconv"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
+	"github.com/0magnet/chaosrack/pkg/skirt"
 )
 
 // phColorCSS converts a phosphor's 0..1 emission color to a CSS rgb() string.
@@ -98,18 +99,12 @@ type phosphorSpec struct {
 	desc string
 }
 
-var phosphors = []phosphorSpec{
-	{"— none —", 0, 0, 0, 1, 1, 1, doc("phosphor=0")},
-	{"P31 green", 0.35, 1.00, 0.45, 0.62, 0.62, 0.62, doc("phosphor=1")},
-	{"P1 green", 0.45, 1.00, 0.28, 0.80, 0.80, 0.80, doc("phosphor=2")},
-	{"P2 yel-green", 0.75, 1.00, 0.25, 0.90, 0.90, 0.90, doc("phosphor=3")},
-	{"P3 amber", 1.00, 0.75, 0.15, 0.85, 0.85, 0.85, doc("phosphor=4")},
-	{"P4 white", 0.95, 0.97, 1.00, 0.58, 0.58, 0.58, doc("phosphor=5")},
-	{"P11 blue", 0.30, 0.45, 1.00, 0.60, 0.60, 0.60, doc("phosphor=6")},
-	{"P7 blue→green", 0.45, 0.80, 1.00, 0.58, 0.95, 0.55, doc("phosphor=7")},
-	{"P39 green", 0.55, 1.00, 0.40, 0.94, 0.94, 0.94, doc("phosphor=8")},
-	{"P33 amber", 1.00, 0.50, 0.10, 0.985, 0.985, 0.985, doc("phosphor=9")},
-}
+var phosphors = func() (out []phosphorSpec) {
+	for i, p := range Phosphors { // phosphors.go, which a native rack draws from too
+		out = append(out, phosphorSpec{p.Name, p.TR, p.TG, p.TB, p.KR, p.KG, p.KB, doc("phosphor=" + strconv.Itoa(i))})
+	}
+	return out
+}()
 
 // phosphorState is the CRT phosphor emulation: the phosphor chosen, its fade
 // quad and the overlay.

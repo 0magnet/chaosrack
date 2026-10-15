@@ -344,14 +344,12 @@ const controlsBody = `
 // It drives the LED-color knob's detents (in sweep order — amber sits between
 // red and green), the hidden <select>, the CSS-var color map, and the dial
 // dots. Add a color here and it appears everywhere.
-var ledColorDefs = []struct{ name, col, glow, bg, bd, desc string }{
-	{"red", "#ff3b30", "#ff2a20", "#170000", "#3a0000", doc("led-color=red")},
-	{"amber", "#ffb000", "#d08000", "#171000", "#3a2a00", doc("led-color=amber")},
-	{"green", "#35e06a", "#1c9a44", "#001709", "#0a3a1a", doc("led-color=green")},
-	{"blue", "#3bb0ff", "#1c7ad0", "#001017", "#0a2a3a", doc("led-color=blue")},
-	{"cyan", "#2ce0e0", "#159a9a", "#001515", "#0a3838", doc("led-color=cyan")},     // the old audio-mod readout hue
-	{"violet", "#b06cff", "#8040d0", "#12001f", "#2a0a3a", doc("led-color=violet")}, // new
-}
+var ledColorDefs = func() (out []struct{ name, col, glow, bg, bd, desc string }) {
+	for _, c := range LEDColors { // ledcolors.go, which a native rack colors from too
+		out = append(out, struct{ name, col, glow, bg, bd, desc string }{c.Name, c.Col, c.Glow, c.BG, c.BD, doc("led-color=" + c.Name)})
+	}
+	return out
+}()
 
 // shellFurniture is what lives in the shell alongside the panel: the resize bar
 // that straddles the panel's inner edge, and the dock/float cluster that clips

@@ -69,6 +69,7 @@ type scopeUI struct {
 	grat                   bool
 	chanSel                int
 	in                     [2]int
+	beam                   color.RGBA // the phosphor, the rack's own when one is chosen
 }
 
 // scopeTube is a scope's phosphor: the face as it was last drawn, which the
@@ -107,6 +108,10 @@ func (r *Rack) scopeUIOf(n int) scopeUI {
 		intens: r.number(p + "intens"),
 		focus:  r.number(p + "focus"),
 		grat:   r.value("scope-grat") != "0",
+	}
+	ui.beam = scopeBeam
+	if ph, ok := r.phosphor(); ok {
+		ui.beam = color.RGBA{uint8(ph.TR * 255), uint8(ph.TG * 255), uint8(ph.TB * 255), 255} //nolint:gosec // 0..1 each
 	}
 	if c, err := strconv.Atoi(r.value(p + "chan")); err == nil {
 		ui.chanSel = c
@@ -175,7 +180,7 @@ func (r *Rack) scopeFrame(n, w, h int) *image.RGBA {
 	}
 	r.drawTrace(t, &ui, m)
 	drawText(m, int(float64(h)/13*0.6), int(float64(h)/13*0.5),
-		"1 "+scopeInNames[ui.in[0]]+"   2 "+scopeInNames[ui.in[1]], scopeBeam, 0.35+0.5*ui.intens)
+		"1 "+scopeInNames[ui.in[0]]+"   2 "+scopeInNames[ui.in[1]], ui.beam, 0.35+0.5*ui.intens)
 	return m
 }
 
@@ -250,8 +255,8 @@ func (r *Rack) drawTrace(t *scopeTube, ui *scopeUI, m *image.RGBA) {
 	}
 	// The halo a real spot has, then the spot: FOCUS tightens both.
 	halo := (4 + 10*blur) / 14 * (0.25 + 0.75*ui.intens)
-	strokePolyline(m, pts, width*3, scopeBeam, 0.18*halo)
-	strokePolyline(m, pts, width, scopeBeam, alpha)
+	strokePolyline(m, pts, width*3, ui.beam, 0.18*halo)
+	strokePolyline(m, pts, width, ui.beam, alpha)
 }
 
 // drawGraticule rules the face, lit lit of the way up.
