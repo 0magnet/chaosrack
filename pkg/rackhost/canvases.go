@@ -97,21 +97,22 @@ func (r *Rack) Canvases(_ int, want []rackpic.CanvasWant) (map[int]*rackpic.Imag
 func (r *Rack) monitorFrame(w, h int, power bool, tally string) *image.RGBA {
 	m := image.NewRGBA(image.Rect(0, 0, w, h))
 	fillRGBA(m, scopeDark, 1)
-	name := ""
-	if i, ok := r.byID[r.selector]; ok {
-		// The selector's option reads "Lorenz", padded with no-break spaces
-		// to a count beside it: the caption is the name, as the page's.
-		name, _, _ = strings.Cut(labelOf(&r.ctls[i], r.model()), "\u00a0")
-		name = strings.TrimSpace(name)
-	}
+	name := r.modelName(r.model())
 	if !power || r.value("power-sw") == "0" {
 		drawCentered(m, h/2-7, "STANDBY", color.RGBA{42, 74, 58, 255})
 		drawCentered(m, h/2+8, name, color.RGBA{58, 106, 82, 255})
 		return m
 	}
-	r.scene.mu.Lock()
-	shown := r.scene.shown
-	r.scene.mu.Unlock()
+	var shown *image.RGBA
+	if src, ok := r.monitorTrend(m); ok {
+		// Recurrence's model is on the scene already: with TREND up the
+		// monitor carries the history of RR, DET and LAM instead.
+		name = "RQA · " + src
+	} else {
+		r.scene.mu.Lock()
+		shown = r.scene.shown
+		r.scene.mu.Unlock()
+	}
 	if shown != nil {
 		// Fit, not fill: a monitor that stretched its picture would make
 		// every model the shape of the monitor.
@@ -139,8 +140,19 @@ func (r *Rack) monitorFrame(w, h int, power bool, tally string) *image.RGBA {
 	return m
 }
 
-// drawText writes s with its top left at x, y, in c at alpha a.
+// drawText writes s with its top left at x, y, in c at alpha a. A character
+// basicfont has no glyph for is written as the nearest it has: a dash for a
+// dot or a long dash, a space for the rest.
 func drawText(m *image.RGBA, x, y int, s string, c color.RGBA, a float64) {
+	s = strings.Map(func(ch rune) rune {
+		if _, ok := basicfont.Face7x13.GlyphAdvance(ch); ok {
+			return ch
+		}
+		if strings.ContainsRune("·•–—", ch) {
+			return '-'
+		}
+		return ' '
+	}, s)
 	k := max(0, min(a, 1))
 	src := color.RGBA{uint8(float64(c.R) * k), uint8(float64(c.G) * k), uint8(float64(c.B) * k), uint8(255 * k)} //nolint:gosec // scaled bytes are bytes
 	d := font.Drawer{Dst: m, Src: image.NewUniform(src), Face: basicfont.Face7x13,
@@ -165,4 +177,16 @@ func toRackImage(m *image.RGBA) *rackpic.Image {
 		copy(out.Px[3*i:3*i+3], m.Pix[4*i:4*i+3])
 	}
 	return out
+}
+
+// modelName is model key as the page names it: the selector's option reads
+// "Lorenz" padded with no-break spaces to a count beside it, and the name
+// is the part before them.
+func (r *Rack) modelName(key string) string {
+	i, ok := r.byID[r.selector]
+	if !ok {
+		return key
+	}
+	name, _, _ := strings.Cut(labelOf(&r.ctls[i], key), "\u00a0")
+	return strings.TrimSpace(name)
 }

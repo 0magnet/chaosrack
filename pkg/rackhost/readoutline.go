@@ -28,7 +28,11 @@ type readoutLine struct {
 	rqa      [3]string
 	rqaNext  float64
 	recDirty bool
-	lyap     lyapProbe
+	// trend is the RQA's record for the TREND chart on the monitor
+	// (trend.go), and rqaRes the last measurement it was fed.
+	trend  rqaTrend
+	rqaRes recurrence.RQAResult
+	lyap   lyapProbe
 }
 
 // findReadouts finds the bank's live displays: each is a part the page marks
@@ -96,12 +100,17 @@ func (r *Rack) showReadouts(key string, nowMs float64) {
 	case "waterfall":
 		put("rt60", a.wfall.w.RT60Text())
 	case "recurrence":
-		if ro.recDirty && nowMs >= ro.rqaNext {
+		if nowMs >= ro.rqaNext {
 			// A scan of the whole matrix for three numbers a person reads a
-			// few times a second: on the page's clock, as the page runs it.
+			// few times a second: on the page's clock, as the page runs it,
+			// and only when the matrix has moved. The trend takes a reading
+			// every tick regardless: its axis is the clock.
 			ro.rqaNext = nowMs + recurrence.RQASamplePeriodMs
-			ro.recDirty = false
-			ro.rqa = a.rec.RQAText()
+			if ro.recDirty {
+				ro.recDirty = false
+				ro.rqaRes, ro.rqa = a.rec.MeasureRQA()
+			}
+			ro.trend.sample(nowMs, a.rec.RQASeam(float32(r.number("takens-tau")), a.lastFlow), ro.rqaRes)
 		}
 		for i, l := range []string{"rr", "det", "lam"} {
 			put(l, ro.rqa[i])

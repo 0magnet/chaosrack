@@ -42,6 +42,9 @@ type analyzers struct {
 	// lastFlow is the flow the panel drew last, whose trajectory the
 	// recurrence plot's traj source plots, as the page's lastFlowMode.
 	lastFlow string
+	// trendOff is the recurrence head's TREND switch down: the monitor
+	// shows the model, not the RQA trend (trend.go).
+	trendOff bool
 	last     time.Time
 }
 

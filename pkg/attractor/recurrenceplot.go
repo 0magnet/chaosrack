@@ -361,7 +361,25 @@ func rpRQAFields(r recurrence.RQAResult) [3]string {
 	return [3]string{rr, strconv.Itoa(int(r.DET*100 + 0.5)), strconv.Itoa(int(r.LAM*100 + 0.5))}
 }
 
-// RQAText is the plot's RR, DET and LAM now, as the readouts show them.
-func (r *Recurrence) RQAText() [3]string {
-	return rpRQAFields(recurrence.RQA(r.Matrix(), rpN))
+// MeasureRQA is the plot's RR, DET and LAM now, and as the readouts show
+// them.
+func (r *Recurrence) MeasureRQA() (recurrence.RQAResult, [3]string) {
+	res := recurrence.RQA(r.Matrix(), rpN)
+	return res, rpRQAFields(res)
+}
+
+// RQASeam is what the RQA trend is a record of: what the plot is of and how
+// it is measured. When it changes the trend breaks, as the page's does
+// (rqaConfigNow), so two different measurements are never one line. m and τ
+// count only for the embedding, the one source they shape; traj is the
+// trajectory's identity, for the trajectory source.
+func (r *Recurrence) RQASeam(tau float32, traj string) string {
+	s := strconv.Itoa(int(r.src)) + "|" + strconv.FormatFloat(float64(r.win), 'g', -1, 32) + "|" + strconv.FormatFloat(float64(r.eps), 'g', -1, 32)
+	switch int(r.src) {
+	case rpSrcEmbed:
+		s += "|" + strconv.Itoa(r.embedDim()) + "|" + strconv.FormatFloat(float64(tau), 'g', -1, 32)
+	case rpSrcTraj:
+		s += "|" + traj
+	}
+	return s
 }
