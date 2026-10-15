@@ -518,6 +518,10 @@ func (r *Rack) placeSweptMarks() {
 			sig += ax[0] + ax[1]
 		}
 	}
+	for _, it := range r.modOverlays() {
+		marks = append(marks, it)
+		sig += strconv.FormatFloat(it.X, 'f', 1, 64) + "," + strconv.FormatFloat(it.Y, 'f', 1, 64) + "," + strconv.FormatFloat(it.H, 'f', 1, 64) + ";"
+	}
 	gv := &r.grid
 	if sig == gv.marked && (gv.markAt >= 0) == (len(marks) > 0) {
 		return

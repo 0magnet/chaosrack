@@ -384,7 +384,13 @@ func TestThePictureHoldsEachItemOnce(t *testing.T) {
 		if err := r.Set(r.selector, model); err != nil {
 			t.Fatal(err)
 		}
-		if got, want := len(r.pic.Items), r.outside+len(cat.Banks[model].Items); got != want {
+		// Up to the overlays (placeSweptMarks), which are drawn over the
+		// bank's items rather than being any of them.
+		got := len(r.pic.Items)
+		if r.grid.markAt >= 0 {
+			got = r.grid.markAt
+		}
+		if want := r.outside + len(cat.Banks[model].Items); got != want {
 			t.Errorf("with %s the picture has %d items, want %d", model, got, want)
 		}
 	}

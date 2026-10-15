@@ -80,26 +80,6 @@ func (p *paramModulation) paramIsModulated(id string) bool {
 	return ok && m.channel != "" && m.level != 0
 }
 
-// modChannels are the modulation sources, the Mod matrix's columns: the key
-// its column is marked with, the name a route stores (paramMod.channel), and
-// the group it is in. What each is, is the manual's (routing.md,
-// mod-src=key). A route with no source is off, and has no column.
-var modChannels = []struct{ key, name, group string }{
-	{"st", "mono", "rack"},
-	{"L", "L", "rack"},
-	{"R", "R", "rack"},
-	// The Mixer's two sends to modulation, which nothing else reads.
-	{"A", modSrcSendA, "send"},
-	{"B", modSrcSendB, "send"},
-	// The model itself, closing the loop: the attractor's own current
-	// output driving its own constants. A different system from the one
-	// named on the dial, and deliberately so — see modelmod.go.
-	{"x", modSrcModelX, "head"},
-	{"y", modSrcModelY, "head"},
-	{"z", modSrcModelZ, "head"},
-	{"r", modSrcModelR, "head"},
-}
-
 type savedParam struct {
 	p *float32
 	v float32
@@ -169,7 +149,8 @@ func (p *paramModulation) collectAudioModulation(mode string) []savedParam {
 		}
 		f := af.eqModValue(m.channel, m.bands)
 		base := *pd.Value
-		v := clampF(base+m.level*f*(pd.Max-pd.Min), pd.Min, pd.Max)
+		held, has := p.hold[pd.ID]
+		v := ModTarget(base, m.level, f, pd.Min, pd.Max, pd.Step, held, has) // modroute.go
 		// A step with no decimals is a COUNT — lines, subdivisions, samples of
 		// delay, a position on a labeled dial. It is modulated exactly like a
 		// continuous parameter and then read off the parameter's own grid, so
@@ -184,8 +165,6 @@ func (p *paramModulation) collectAudioModulation(mode string) []savedParam {
 		// than an exception here, because the same coarse step is already
 		// quantizing its knob, its wheel and its LED.
 		if led.StepDecimals(pd.Step) == 0 {
-			held, has := p.hold[pd.ID]
-			v = quantizeHeld(v, held, has, pd.Min, pd.Max, pd.Step)
 			p.hold[pd.ID] = v
 		}
 		saved = append(saved, savedParam{pd.Value, base})
@@ -338,6 +317,9 @@ func makeEQStrip(id string) js.Value {
 	for i := range numEQBands {
 		bar := dom.Doc.Call("createElement", "div")
 		bar.Set("className", "eqbar")
+		// A rack without the page sets the band by where on it a hand presses.
+		bar.Set("id", "mxeq-"+strconv.Itoa(i))
+		bar.Call("setAttribute", "data-press", "")
 		fill := dom.Doc.Call("createElement", "div")
 		fill.Set("className", "eqfill")
 		bar.Call("appendChild", fill)
@@ -415,12 +397,6 @@ func modParams(mode string) []paramDef {
 	}
 	return attractorParams[mode]
 }
-
-// The routes' names for the Mixer's sends to modulation, MOD A and MOD B.
-const (
-	modSrcSendA = "modA"
-	modSrcSendB = "modB"
-)
 
 // modReadsSends reports whether any route reads MOD A or B: the only reason
 // to analyze them.

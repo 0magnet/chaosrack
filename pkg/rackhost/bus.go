@@ -18,6 +18,9 @@ import (
 // rackRows are the Mixer's RACK rows, left and right.
 var rackRows = [2]string{"rl", "rr"}
 
+// modRows are the Mixer's sends to modulation, MOD A and MOD B.
+var modRows = [2]string{"ma", "mb"}
+
 // capKeys are the Mixer's capture columns, left and right: on RACK rows only,
 // never on the speakers.
 var capKeys = [2]string{"cl", "cr"}
@@ -181,7 +184,7 @@ func (r *Rack) needCapture() {
 	// takes it, since the capture's writer takes only its own lock.
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	want := s.rack.capOn() && listens(r.model()) || s.listening()
+	want := s.rack.capOn() && listens(r.model()) || s.mod.capOn() && r.modRouted() || s.listening()
 	c := &s.capt
 	switch {
 	case want && !c.running() && c.err == nil:
@@ -206,7 +209,7 @@ func (s *sound) busLook() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	now := s.now()
-	if !s.rack.on() || now.Sub(s.filled) < 100*time.Millisecond {
+	if !s.rack.on() && !s.mod.on() || now.Sub(s.filled) < 100*time.Millisecond {
 		s.made = now
 		return
 	}
@@ -337,19 +340,23 @@ func (s *sound) since(from int) (l, r []float32, next int) {
 	return s.rack.since(from)
 }
 
-// rackPinSet reads a pin of the Mixer's RACK rows into the rack's signal.
+// rackPinSet reads a pin of the Mixer's RACK or MOD rows into its bus.
 // Called with r.mu and the sound's lock held.
 func (r *Rack) rackPinSet(id string) {
-	b := &r.sound.rack
-	for side, row := range rackRows {
-		for src, k := range mixKeys {
-			if id == "mix-"+row+"-"+k {
-				b.gain[side][src] = r.number(id)
+	for _, bus := range [...]struct {
+		b    *rackBus
+		rows [2]string
+	}{{&r.sound.rack, rackRows}, {&r.sound.mod, modRows}} {
+		for side, row := range bus.rows {
+			for src, k := range mixKeys {
+				if id == "mix-"+row+"-"+k {
+					bus.b.gain[side][src] = r.number(id)
+				}
 			}
-		}
-		for c, k := range capKeys {
-			if id == "mix-"+row+"-"+k {
-				b.cap[side][c] = r.number(id)
+			for c, k := range capKeys {
+				if id == "mix-"+row+"-"+k {
+					bus.b.cap[side][c] = r.number(id)
+				}
 			}
 		}
 	}

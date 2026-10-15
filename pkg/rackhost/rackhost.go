@@ -84,6 +84,8 @@ type Rack struct {
 	cellOver map[string]float64
 	// color is what the audio gradient sources color from (audiocolor.go).
 	color colorFeed
+	// mod is the Mod module's matrix and what its routes make (modmatrix.go).
+	mod modView
 	// knobParts are the picture's knobs, which KNOB restyles (knobstyle.go).
 	knobParts knobParts
 	// analyzers are the flat analyzers, which keep their meters and averages
@@ -200,6 +202,7 @@ func New() (*Rack, error) {
 	r.seedCustomKnobs()
 	r.addTextControls()
 	r.addWaterControls()
+	r.addModControls()
 	r.findLegends()
 	r.useBank(r.model())
 	r.scene.start()
@@ -273,8 +276,12 @@ func (r *Rack) useBank(model string) {
 	r.colorLEDs()
 	r.pic.Gen++
 	r.full = r.pic.Gen
-	// The bank's items replaced the marks; they go back over its knobs.
+	// The bank's items replaced the overlays; they go back over it.
 	r.grid.markAt, r.grid.marked = -1, ""
+	// The Mod matrix is in the bank: its parts are found again, its rows
+	// pointed at this model.
+	r.findMod()
+	r.modRetarget(model)
 	r.placeSweptMarks()
 }
 
@@ -350,6 +357,8 @@ func (r *Rack) set(id, value string) error {
 		r.placeSweptMarks()
 	case "sweep-p", "sweep2-p":
 		r.placeSweptMarks()
+	case "modmx-dest", "modmx-depth", "modmx-src":
+		r.modSet(id)
 	case "focus-n", "link-sw":
 		r.refocus()
 	}
@@ -419,6 +428,9 @@ func settle(c *racktui.Control, value string) (string, error) {
 func (r *Rack) number(id string) float64 {
 	if v, ok := r.cellOver[id]; ok {
 		return v
+	}
+	if v, ok := r.mod.over[id]; ok {
+		return v // a route's, this frame (modmatrix.go)
 	}
 	i, ok := r.byID[id]
 	if !ok {
@@ -671,6 +683,10 @@ func (r *Rack) Act(_ int, x, y float64, kind string, delta float64) error {
 		return nil
 	}
 	if kind == "click" {
+		if r.modPressAt(x, y) {
+			r.mu.Unlock()
+			return nil
+		}
 		// The Matrix's pads, tabs and Clear, which are not controls.
 		if m := r.markAt(x, y); m != "" && r.press(m) {
 			r.mu.Unlock()
@@ -850,6 +866,8 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 	if r.selector != "" {
 		key = r.model()
 	}
+	// The routed knobs' values this frame, before anything reads them.
+	r.modulate(key)
 	on := r.value("power-sw") != "0"
 	auto := r.value("auto-rotate") != "0"
 	tbc := r.value("tbc-sw") != "0"
@@ -999,6 +1017,9 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 		fig, o.Fit = r.latticeOf(fig)
 		r.mu.Unlock()
 	}
+	r.mu.Lock()
+	r.modFollow(fig.Points, o.Fit)
+	r.mu.Unlock()
 	draw1 := func(fig attractor.Figure, o attractor.DrawOptions) *image.RGBA {
 		n := len(fig.Points)
 		if fig.Kind == attractor.FigureLines {
@@ -1103,15 +1124,15 @@ func figureFor(key string, knob func(id string) float64, roll float64) (attracto
 	return attractor.Figure{}, fmt.Errorf("%s %w", key, ErrBrowserOnly)
 }
 
-// knobs is the model bank's values now, for figureFor.
+// knobs is the model bank's values now, routes and all, for figureFor.
 func (r *Rack) knobs() func(id string) float64 {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	v := map[string]float64{}
 	for _, c := range r.ctls {
 		if c.Module == modelModule {
-			if f, err := strconv.ParseFloat(c.Value, 64); err == nil {
-				v[c.ID] = f
+			if _, err := strconv.ParseFloat(c.Value, 64); err == nil {
+				v[c.ID] = r.number(c.ID) // a route's value, when one moves it
 			}
 		}
 	}

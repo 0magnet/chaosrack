@@ -87,7 +87,10 @@ type sound struct {
 	touched bool
 	// rack is the rack's signal (bus.go), capt the capture it mixes, and
 	// capL, capR a buffer's worth of it.
-	rack       rackBus
+	rack rackBus
+	// mod is the Mixer's sends to modulation, MOD A and MOD B, mixed as the
+	// rack's signal is (modmatrix.go reads them).
+	mod        rackBus
 	capt       capture
 	capL, capR []float32
 	// now is the clock; filled is when the speaker last asked for samples,
@@ -237,7 +240,7 @@ func (r *Rack) soundStart() {
 			s.spk[side][src] = r.number(pinID(side, src))
 		}
 	}
-	for _, row := range rackRows {
+	for _, row := range append(rackRows[:], modRows[:]...) {
 		for _, k := range append(mixKeys[:], capKeys[:]...) {
 			r.rackPinSet("mix-" + row + "-" + k)
 		}
@@ -398,10 +401,10 @@ func (s *sound) render(left, right []float32) {
 		s.ky = grown(s.ky, n)
 		s.keys.render(s.ky, n)
 	}
-	busOn := s.rack.on()
+	busOn, modOn := s.rack.on(), s.mod.on()
 	listening := s.listening()
 	s.capL, s.capR = grown(s.capL, n), grown(s.capR, n)
-	if busOn && s.rack.capOn() || listening {
+	if busOn && s.rack.capOn() || modOn && s.mod.capOn() || listening {
 		s.capt.take(s.capL, s.capR, n)
 	} else {
 		clear(s.capL)
@@ -445,6 +448,9 @@ func (s *sound) render(left, right []float32) {
 		left[j], right[j] = float32(l), float32(rt)
 		if busOn {
 			s.rack.push(&v, s.capL[j], s.capR[j])
+		}
+		if modOn {
+			s.mod.push(&v, s.capL[j], s.capR[j])
 		}
 	}
 }
