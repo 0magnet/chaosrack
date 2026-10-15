@@ -90,6 +90,9 @@ type Rack struct {
 	stl stlView
 	// lattice is the Lattice's stack of terminals (lattice.go).
 	lattice *attractor.LatticeStack
+	// latFig is the model chosen as ROWS's L hands it to the Lattice
+	// (latticefig.go).
+	latFig latticeFig
 	// anim is the terminal animation running (termanim.go).
 	anim animView
 	// shell is the Host Terminal's shell (hostterm.go).
@@ -783,6 +786,7 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 	look := r.look()
 	paused := r.value("pause-sw") == "1"
 	persist := r.value("persist-trail") == "1"
+	inLat := r.value("lat-on") == "1" && key != "lattice"
 	run, speed := int(r.number("trail-slider")), r.number("speed-slider")
 	refigure := r.refigure.Swap(false)
 	r.playGames()
@@ -896,16 +900,13 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 		o.View.AngleX, o.View.AngleY, o.View.AngleZ = 0, 0, 0
 	}
 	if !game && !audio && fig.Kind == attractor.FigurePath {
-		// A flow runs on, a fresh stretch of its trail each frame, framed by
-		// its whole trajectory so the camera holds still while it moves.
-		if (paused && s.trail.key == key && len(s.trail.pts) > 0) || (!paused && s.trail.advance(key, run, speed)) {
-			o.Fit = fig.Points
-			fig.Points = s.trail.pts
-		}
-		if look.dots {
-			// Display's Dots: the trajectory's points, unjoined.
-			fig.Kind = attractor.FigurePoints
-		}
+		fig, o.Fit = s.liveTrail(fig, o.Fit, key, paused, run, speed, look.dots)
+	}
+	if inLat {
+		// ROWS's L: the model drawn by the Lattice instead (latticefig.go).
+		r.mu.Lock()
+		fig, o.Fit = r.latticeOf(fig)
+		r.mu.Unlock()
 	}
 	n := len(fig.Points)
 	if fig.Kind == attractor.FigureLines {
@@ -1128,6 +1129,20 @@ func (s *scene) pose(key string, flat, running, auto bool, rate [3]float64, dt f
 		}
 	}
 	s.turned = false
+}
+
+// liveTrail is a flow's figure as it runs on, a fresh stretch of its trail
+// each frame, framed by its whole trajectory so the camera holds still while
+// it moves; with Display's Dots, its points unjoined. Called with s.mu held.
+func (s *scene) liveTrail(fig attractor.Figure, fit [][3]float64, key string, paused bool, run int, speed float64, dots bool) (attractor.Figure, [][3]float64) {
+	if (paused && s.trail.key == key && len(s.trail.pts) > 0) || (!paused && s.trail.advance(key, run, speed)) {
+		fit = fig.Points
+		fig.Points = s.trail.pts
+	}
+	if dots {
+		fig.Kind = attractor.FigurePoints
+	}
+	return fig, fit
 }
 
 // frameTime is how long the frame at now stands for, in seconds: the time

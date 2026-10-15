@@ -3,6 +3,7 @@ package rackhost
 import (
 	"math"
 	"testing"
+	"time"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
 )
@@ -238,5 +239,29 @@ func TestTheLatticeDrawsItsTerminals(t *testing.T) {
 	set(t, r, "lattice-stacks", "0", "lattice-shape", "0")
 	if s := figure(); len(s.Points) == len(all.Points) && s.Points[0] == all.Points[0] {
 		t.Error("another shape drew the same lattice")
+	}
+}
+
+// ROWS's L puts the model chosen in the Lattice: Lorenz's trail is handed to
+// its programs as a figure, and what is drawn is the Lattice's cells.
+func TestLPutsTheModelInTheLattice(t *testing.T) {
+	r, c := idleRack(t, "lorenz")
+	watch(t, r, c, 0.2)
+	plain, _ := lit(frame(t, r))
+	set(t, r, "lat-on", "1")
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		watch(t, r, c, 0.1)
+		time.Sleep(20 * time.Millisecond)
+		r.mu.Lock()
+		ext := r.latFig.ext
+		r.mu.Unlock()
+		n, _ := lit(frame(t, r))
+		if ext > 0 && n > 0 && n != plain {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("the Lattice never drew Lorenz (scale %.2f, %d lit, %d plain)", ext, n, plain)
+		}
 	}
 }
