@@ -229,3 +229,19 @@ func (f *FuncGen) Next(out *[OscCount]float64) {
 		out[i] = v
 	}
 }
+
+// SweepPosition reports how far through one pass of the log sweep the first
+// oscillator playing it is, 0..1, of those feeds says reach the measurement
+// and the solo lets through — what an impulse-response measurement needs to
+// know which frequency it is looking at, and when a pass has come round. 0
+// when none is: a position that never wraps, which the measurement reads as
+// no sweep of ours running.
+func (f *FuncGen) SweepPosition(feeds func(i int) bool) float64 {
+	for i := range OscCount {
+		o := &f.osc[i]
+		if feeds(i) && o.wave == WaveSweep && o.amp > 0 && !o.off && f.Audible(i) {
+			return o.stim.SweepPosition()
+		}
+	}
+	return 0
+}

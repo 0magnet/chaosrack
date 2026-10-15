@@ -344,3 +344,21 @@ func TestTheSprottMorphRuns(t *testing.T) {
 		t.Errorf("after 6 s at 10 a minute the morph still reads %q", got)
 	}
 }
+
+// A generator playing the sweep into the rack's signal gives the decay
+// waterfall a pass to measure on; out of the mix, it gives none.
+func TestTheRacksSweepIsTheWaterfallsTrigger(t *testing.T) {
+	r, c := idleRack(t, "waterfall")
+	set(t, r, "gen-x-wave", "7", "gen-x-lvl", "80")
+	looks(t, r, c, 0.2)
+	if p := r.sound.sweepPos(); p != 0 {
+		t.Errorf("a sweep out of the rack's signal is at %.3f, want 0", p)
+	}
+	set(t, r, "mix-rl-g1", "1")
+	looks(t, r, c, 0.2)
+	a := r.sound.sweepPos()
+	looks(t, r, c, 0.2)
+	if b := r.sound.sweepPos(); a <= 0 || b == a {
+		t.Errorf("the sweep in the rack's signal stood at %.3f then %.3f", a, b)
+	}
+}

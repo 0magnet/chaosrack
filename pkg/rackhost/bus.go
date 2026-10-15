@@ -347,3 +347,13 @@ func (r *Rack) SetAudioSource(source string) {
 	r.sound.capt.err = nil
 	r.sound.mu.Unlock()
 }
+
+// sweepPos is how far through its pass the first generator playing the
+// sweep into the rack's signal is, 0..1, or 0 with none (FuncGen's).
+func (s *sound) sweepPos() float64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.fg.SweepPosition(func(i int) bool {
+		return s.level[i] > 0 && (s.rack.gain[0][i] != 0 || s.rack.gain[1][i] != 0)
+	})
+}
