@@ -548,6 +548,10 @@ func (p *panel) drawPage(sc tcell.Screen, w, h int) {
 // drawScene paints the model's canvas across w x h cells, half a cell a
 // pixel, as it was last sampled.
 func (p *panel) drawScene(sc tcell.Screen, w, h int) {
+	if p.text != nil {
+		p.drawText(sc, w, h)
+		return
+	}
 	m := p.scene
 	// The cells under the window are drawn over by it: setting them first
 	// was half the scene's cost at the default layout, and more zoomed out.
@@ -608,7 +612,10 @@ func (p *panel) refreshPixels() bool {
 		return false
 	}
 	got := false
-	if p.winMode != winFull {
+	if p.winMode != winFull && p.refreshText() {
+		// A terminal on show is drawn as its text (textscene.go).
+		got = true
+	} else if p.winMode != winFull {
 		// A pixel is half a cell: its height over its width is half the
 		// cell's.
 		w, h, shape := p.sceneSize()

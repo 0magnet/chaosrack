@@ -2,9 +2,6 @@ package rackhost
 
 import (
 	"image"
-	"image/color"
-	"sync"
-	"unicode/utf8"
 
 	tcell2 "github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v3"
@@ -44,9 +41,9 @@ type animView struct {
 	done chan struct{}
 }
 
-// animFigure is the picked demo's screen now, on a quad. Called with r.mu
-// held.
-func (r *Rack) animFigure() *rasterview.Quad {
+// animRunning is the demo running, the picked one, started if it is not.
+// Called with r.mu held.
+func (r *Rack) animRunning() *animView {
 	name := r.value("termanim-pick")
 	if name == "" {
 		name = animDefault
@@ -56,6 +53,13 @@ func (r *Rack) animFigure() *rasterview.Quad {
 		a.close()
 		a.start(name)
 	}
+	return a
+}
+
+// animFigure is the picked demo's screen now, on a quad. Called with r.mu
+// held.
+func (r *Rack) animFigure() *rasterview.Quad {
+	a := r.animRunning()
 	var pic *image.RGBA
 	switch {
 	case a.sim != nil:
@@ -65,10 +69,20 @@ func (r *Rack) animFigure() *rasterview.Quad {
 	default:
 		return nil
 	}
+	return termQuad(pic)
+}
+
+// termQuad is a terminal's picture on a quad of the picture's shape, which
+// is the terminal's.
+func termQuad(pic *image.RGBA) *rasterview.Quad {
 	h := texHalf
-	w := h * float64(pic.Rect.Dx()) / float64(pic.Rect.Dy()) // the picture's shape is the terminal's
+	w := h * float64(pic.Rect.Dx()) / float64(pic.Rect.Dy())
 	return &rasterview.Quad{Pic: pic, BL: [3]float64{-w, -h, 0}, BR: [3]float64{w, -h, 0}, TL: [3]float64{-w, h, 0}}
 }
+
+// isTerminalModel reports whether model key is a terminal's screen, drawn
+// flat as an analyzer is.
+func isTerminalModel(key string) bool { return key == "termanim" || key == "hostterm" }
 
 // start runs demo name in a terminal of its own.
 func (a *animView) start(name string) {
@@ -145,29 +159,10 @@ func (a *animView) close() {
 
 // simPicture is a tcell v2 simulated screen as a picture, as vterm draws one.
 func simPicture(s tcell2.SimulationScreen) *image.RGBA {
-	cells, w, h := s.GetContents()
-	// The cells handed back are the screen's own, which its Show goes on
-	// writing: they are read under the screen's lock, which tcell v2 does not
-	// put in its interface but its simulated screen has.
-	if l, ok := s.(sync.Locker); ok {
-		l.Lock()
-		defer l.Unlock()
-	}
+	cells, w, h := simCells(s)
 	m := cellPicture(w, h)
-	px := func(c tcell2.Color, def color.RGBA) color.RGBA {
-		if c == tcell2.ColorDefault || !c.Valid() {
-			return def
-		}
-		r, g, b := c.RGB()
-		return color.RGBA{uint8(r), uint8(g), uint8(b), 255} //nolint:gosec // RGB is 0..255 each
-	}
 	for i, c := range cells {
-		x, y := i%w, i/w
-		fgc, bgc, _ := c.Style.Decompose()
-		fg := px(fgc, color.RGBA{217, 217, 217, 255})
-		bg := px(bgc, color.RGBA{0, 0, 0, 255})
-		ch, _ := utf8.DecodeRune(c.Bytes)
-		paintCell(m, x, y, ch, fg, bg)
+		paintCell(m, i%w, i/w, c.Ch, c.Fg, c.Bg)
 	}
 	return m
 }

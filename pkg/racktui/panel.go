@@ -73,7 +73,9 @@ type panel struct {
 	paged bool
 	// The page look's pixels: the scene behind the window, and the panel's
 	// canvases by item index; and the window, which winMode places.
-	scene      *rackpic.Image
+	scene *rackpic.Image
+	// text is the terminal on show, drawn as text in the scene's place.
+	text       *textScene
 	canv       map[int]*rackpic.Image
 	winMode    int
 	winX, winY int
@@ -196,7 +198,7 @@ func RunOn(sc tcell.Screen, src Source) error {
 			// cell for the new size. Syncing here painted them all again, and
 			// zoomed out each of those took seconds.
 		case *tcell.EventKey:
-			if p.gameKey(ev) {
+			if p.typeKey(ev) || p.gameKey(ev) {
 				break
 			}
 			if !ev.Pressed() {
