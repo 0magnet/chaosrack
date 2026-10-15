@@ -44,6 +44,10 @@ type trioProgram struct {
 	// rack without the page presses the button by setting the switch, and
 	// the catalog finds the switch where its button is (data-drives).
 	switches []string
+	// sets is, per button, the controls it sets and to what ("id=value"),
+	// for a button that is the face of several at once: press is made from
+	// it, and a rack without the page presses it by setting them.
+	sets [][]string
 }
 
 // setParamSlider sets a parameter through its own control, the way the knob
@@ -77,17 +81,10 @@ var trioPrograms = map[string]trioProgram{
 			doc("p.globe-lat=1"),
 			doc("p.globe-lat=2"),
 		},
-		press: func(i int) {
-			switch i {
-			case 0:
-				setParamSlider("globe-par", 1)
-				setParamSlider("globe-rev", 0)
-			case 1:
-				setParamSlider("globe-par", 0)
-			case 2:
-				setParamSlider("globe-par", 1)
-				setParamSlider("globe-rev", 1)
-			}
+		sets: [][]string{
+			{"globe-par=1", "globe-rev=0"},
+			{"globe-par=0"},
+			{"globe-par=1", "globe-rev=1"},
 		},
 		lit: func() int {
 			switch {
@@ -245,6 +242,7 @@ func syncTriosIn(root js.Value, sel string) {
 		Keys   []string  `json:"keys"`
 		Tips   []*string `json:"tips"` // nil leaves a tooltip as it is
 		Drives []string  `json:"drives,omitempty"`
+		Sets   []string  `json:"sets,omitempty"`
 	}
 	payload := map[string]entry{}
 	for _, param := range strings.Split(h.Call("trioParams", root, sel).String(), "\n") {
@@ -256,6 +254,9 @@ func syncTriosIn(root js.Value, sel string) {
 		if ok {
 			e.On, e.Keys = p.lighting(), p.legends()
 			e.Drives = p.switches
+			for _, s := range p.sets {
+				e.Sets = append(e.Sets, strings.Join(s, " "))
+			}
 		}
 		for j, k := range e.Keys {
 			e.Dead = append(e.Dead, ok && !p.assigned(j))
@@ -306,7 +307,7 @@ func wireTrios() {
 			return nil
 		}
 		if i, err := strconv.Atoi(b.Call("getAttribute", "data-trio").String()); err == nil && p.assigned(i) {
-			p.press(i)
+			p.do(i)
 		}
 		lightTrios(param)
 		return nil
@@ -349,6 +350,23 @@ func trioDriven() map[string][]string {
 		}
 	}
 	return trioDrivenBy
+}
+
+// do is button i pressed: its press, or the controls its sets say.
+func (p trioProgram) do(i int) {
+	if p.press != nil {
+		p.press(i)
+		return
+	}
+	if i < 0 || i >= len(p.sets) {
+		return
+	}
+	for _, kv := range p.sets[i] {
+		id, v, _ := strings.Cut(kv, "=")
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			setParamSlider(id, f)
+		}
+	}
 }
 
 // legends are the program's printed keys: its own, or the bank's + 0 −.

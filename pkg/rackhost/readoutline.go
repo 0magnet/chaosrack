@@ -19,7 +19,8 @@ import (
 type readoutLine struct {
 	// item is each display's picture item, by the label beside it.
 	item map[string]int
-	// btns are the line's ↻ buttons, which measure again.
+	// btns are the bank's buttons a rack presses itself: the line's ↻, which
+	// measure again, and the buttons that set controls (a "set" mark).
 	btns []int
 	// corr is the scope's correlation readout this frame.
 	corr string
@@ -45,7 +46,7 @@ func (r *Rack) findReadouts() {
 	label := ""
 	for i := r.outside; i < len(r.pic.Items); i++ {
 		it := r.pic.Items[i]
-		if strings.HasPrefix(it.Mark, "btn ") {
+		if strings.HasPrefix(it.Mark, "btn ") || strings.HasPrefix(it.Mark, "set ") {
 			ro.btns = append(ro.btns, i)
 			continue
 		}

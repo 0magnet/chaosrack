@@ -193,6 +193,7 @@
     if (e.classList.contains("mrodmd") && e.id) return "led " + e.id;
     if (e.hasAttribute("data-meter") && e.id) return "led " + e.id;
     if (e.hasAttribute("data-press") && e.id) return "btn " + e.id;
+    if (e.hasAttribute("data-sets")) return "set " + e.getAttribute("data-sets");
     if (e.classList.contains("rst") && e.id && e.closest && e.closest(".mro")) return "btn " + e.id;
     if (e.closest && e.closest(".mro")) return "mro";
     var c = e.getAttribute("data-tmc");

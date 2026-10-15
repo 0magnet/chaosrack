@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
+	"github.com/0magnet/chaosrack/pkg/rackpic"
 )
 
 // shownFigure is the figure the scene drew last.
@@ -324,5 +325,39 @@ func TestTheTurtleHasWeight(t *testing.T) {
 	}
 	if with, without := height("1"), height("0"); with > without-0.08 {
 		t.Errorf("with weight the figure sits at %.3f on average, without at %.3f", with, without)
+	}
+}
+
+// The globe's LAT buttons set its parallels as the page's do: a click on −
+// winds one spiral the other way round, on 0 they are rings again.
+func TestTheGlobesLatButtonsSetItsParallels(t *testing.T) {
+	r, _ := idleRack(t, "globe")
+	click := func(mark string) {
+		t.Helper()
+		r.mu.Lock()
+		var it *rackpic.Item
+		for _, i := range r.analyzers.ro.btns {
+			if r.pic.Items[i].Mark == mark {
+				it = r.pic.Items[i]
+			}
+		}
+		r.mu.Unlock()
+		if it == nil {
+			t.Fatalf("no button marked %q in the globe's bank", mark)
+		}
+		act(t, r, it.X+it.W/2, it.Y+it.H/2, "click")
+	}
+	click("set globe-par=1 globe-rev=1")
+	r.mu.Lock()
+	par, rev := r.value("globe-par"), r.value("globe-rev")
+	r.mu.Unlock()
+	if par != "1" || rev != "1" {
+		t.Errorf("after −: par %q rev %q, want a spiral the other way", par, rev)
+	}
+	click("set globe-par=0")
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.value("globe-par") != "0" {
+		t.Errorf("after 0: par %q, want rings", r.value("globe-par"))
 	}
 }

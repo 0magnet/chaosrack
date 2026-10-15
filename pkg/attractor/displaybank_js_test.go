@@ -22,7 +22,7 @@ func TestTrioProgramsLabelWhatTheyDo(t *testing.T) {
 		if len(p.help) > len(l) {
 			t.Errorf("%s: %d tooltips for %d buttons", param, len(p.help), len(l))
 		}
-		if p.press == nil || (p.lit == nil && p.lits == nil) {
+		if (p.press == nil && p.sets == nil) || (p.lit == nil && p.lits == nil) {
 			t.Errorf("%s: a program presses and lights", param)
 		}
 	}
