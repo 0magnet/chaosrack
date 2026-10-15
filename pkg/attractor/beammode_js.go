@@ -291,7 +291,8 @@ func init() {
 				toggle("mo-cam")
 			}
 		},
-		lits:  func() []bool { return []bool{checkedOn("mo-beam"), checkedOn("mo-cam"), false} },
-		drive: []string{"mo-beam", "mo-cam"},
+		lits:     func() []bool { return []bool{checkedOn("mo-beam"), checkedOn("mo-cam"), false} },
+		drive:    []string{"mo-beam", "mo-cam"},
+		switches: []string{"mo-beam", "mo-cam"},
 	}
 }

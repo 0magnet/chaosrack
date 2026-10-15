@@ -92,6 +92,47 @@ const bankModule = "visual · model"
 // builds the model's knobs the first time, and lays the bank out again.
 const bankSettle = 800 * time.Millisecond
 
+// settledPicture is the picture once the page has finished building it: a
+// model's bank is built the first time it is chosen, and some take longer
+// than bankSettle, which caught them half built — a bank with no knobs in
+// it. It reads again until two reads in a row place the same controls, for
+// at most bankSettleMax.
+func settledPicture(c *racklink.Client) (*rackpic.Picture, error) {
+	time.Sleep(bankSettle)
+	p, err := c.Picture()
+	for waited := bankSettle; err == nil && waited < bankSettleMax; waited += bankRecheck {
+		time.Sleep(bankRecheck)
+		q, qerr := c.Picture()
+		if qerr != nil {
+			return p, qerr
+		}
+		if sameCtls(p, q) {
+			return q, nil
+		}
+		p = q
+	}
+	return p, err
+}
+
+// How long settledPicture reads again after, and how long at most it waits.
+const (
+	bankRecheck   = 300 * time.Millisecond
+	bankSettleMax = 6 * time.Second
+)
+
+// sameCtls reports whether two pictures place the same controls.
+func sameCtls(p, q *rackpic.Picture) bool {
+	if len(p.Ctls) != len(q.Ctls) {
+		return false
+	}
+	for id := range p.Ctls {
+		if _, ok := q.Ctls[id]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
 // captureBanks chooses every model on the page in turn and keeps the bank as
 // the page draws it for each, and the region they all share: the union of
 // every bank control's box. It leaves the page on the model it found.
@@ -110,8 +151,7 @@ func captureBanks(c *racklink.Client, ctls []racktui.Control) (map[string]*rackc
 		if err := c.Set(sel.ID, model); err != nil {
 			fail("catalog: choosing %q: %v", model, err)
 		}
-		time.Sleep(bankSettle)
-		p, err := c.Picture()
+		p, err := settledPicture(c)
 		if err != nil {
 			fail("catalog: the picture with %q: %v", model, err)
 		}
@@ -203,8 +243,7 @@ func captureFamilies(c *racklink.Client, ctls []racktui.Control, sel racktui.Con
 			if err := c.Set(fam.ID, m); err != nil {
 				fail("catalog: %s to %q: %v", fam.ID, m, err)
 			}
-			time.Sleep(bankSettle)
-			p, err := c.Picture()
+			p, err := settledPicture(c)
 			if err != nil {
 				fail("catalog: the picture with %q: %v", m, err)
 			}
