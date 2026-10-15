@@ -98,6 +98,8 @@ type Rack struct {
 	websh shellView
 	// desk is the Desk's windows (desk.go).
 	desk deskView
+	// meters are the measurement modules (meters.go).
+	meters meterBank
 	// turtleAim is what the Turtle's VIEW last turned the scene for, and
 	// poseTo the pose it asks for, taken by the next Scene (turtleview.go).
 	turtleAim turtleAim
@@ -133,6 +135,7 @@ func New() (*Rack, error) {
 		custom:      attractor.NewCustomSystem(),
 		lattice:     attractor.NewLatticeStack(),
 		desk:        newDesk(),
+		meters:      newMeterBank(),
 	}
 	for i, c := range r.ctls {
 		r.byID[c.ID] = i
@@ -241,6 +244,7 @@ func (r *Rack) useBank(model string) {
 		}
 	}
 	r.findReadouts()
+	r.findMeters()
 	r.pic.Gen++
 	r.full = r.pic.Gen
 }
@@ -558,6 +562,7 @@ func (r *Rack) Picture() (*rackpic.Picture, error) {
 	r.playGames()
 	r.showMatrix()
 	r.showKeys()
+	r.runMeters(float64(r.sound.now().UnixNano()) / 1e6)
 	p := *r.pic
 	p.Items = append([]*rackpic.Item(nil), r.pic.Items...)
 	return &p, nil
@@ -575,6 +580,7 @@ func (r *Rack) PictureChanges(gen int) (*rackpic.Patch, error) {
 	r.sound.busLook()
 	r.showMatrix()
 	r.showKeys()
+	r.runMeters(float64(r.sound.now().UnixNano()) / 1e6)
 	if gen < r.full {
 		// The picture was rebuilt since: a new model's bank. All of it.
 		p := *r.pic

@@ -3,12 +3,10 @@
 package attractor
 
 import (
-	"math"
 	"strconv"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/led"
 	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
@@ -55,16 +53,14 @@ type distortion struct {
 	// a distortion figure whose bandwidth moves under you is not comparable with
 	// itself a moment ago, and RATE does not have that problem — it changes how
 	// often you are told, not what you are told.
-	periodMs                        float64
-	cursor                          int
-	win                             meters.SlidingWindow // the newest thdWindow samples
-	buf                             []float32            // thd.win laid out in order, for the analyzer
-	nextMs                          float64
-	res                             meters.DistortionResult
-	led, thdnLED, sinadLED, enobLED js.Value
-	fundLED, levelLED               js.Value
-	chanSel                         js.Value
-	harmF                           float32
+	periodMs float64
+	cursor   int
+	win      meters.SlidingWindow // the newest thdWindow samples
+	buf      []float32            // thd.win laid out in order, for the analyzer
+	nextMs   float64
+	res      meters.DistortionResult
+	chanSel  js.Value
+	harmF    float32
 }
 
 var thd = distortion{
@@ -124,44 +120,13 @@ func (d *distortion) tick(nowMs float64) {
 // written as dashes rather than as a stale number: the last reading of a tone
 // that is no longer playing is the most misleading thing the module could show.
 func (d *distortion) showDistortion() {
-	set := func(key string, el js.Value, s string) {
-		owed.readouts.Set(key, el, s)
-	}
-	if !d.res.OK {
-		set("thd-thd", d.led, "  --.---")
-		set("thd-thdn", d.thdnLED, "  --.---")
-		set("thd-sinad", d.sinadLED, "  --.-")
-		set("thd-enob", d.enobLED, "--.--")
-		set("thd-fund", d.fundLED, "-----.-")
-		set("thd-level", d.levelLED, "  --.-")
-		return
-	}
-	set("thd-thd", d.led, led.Format(meters.AsPercent(d.res.THD), 2, 3, false))
-	set("thd-thdn", d.thdnLED, led.Format(meters.AsPercent(d.res.THDN), 2, 3, false))
-	// A SINAD of 999 is the sentinel for "nothing but the fundamental in the
-	// window", which a synthesized tone with no noise really does produce. It
-	// is not a number to print — an infinite SINAD is a claim no measurement
-	// can make — so it is shown as over-range.
-	if d.res.SINAD >= 900 {
-		set("thd-sinad", d.sinadLED, "  >99.9")
-		set("thd-enob", d.enobLED, ">16.0")
-	} else {
-		set("thd-sinad", d.sinadLED, led.Format(d.res.SINAD, 3, 1, false))
-		set("thd-enob", d.enobLED, led.Format(d.res.ENOB, 2, 2, false))
-	}
-	set("thd-fund", d.fundLED, led.Format(d.res.Fundamental, 5, 1, false))
-	set("thd-level", d.levelLED, led.Format(20*math.Log10(math.Max(d.res.Level, 1e-9)), 3, 1, true))
+	showMeterReadouts(THDReadouts(d.res))
 }
 
 // wireDistortionModule builds the two knobs and finds the readouts. Called once
 // from Run.
 func (d *distortion) wireDistortionModule() {
-	d.led = dom.Doc.Call("getElementById", "thd-led")
-	d.thdnLED = dom.Doc.Call("getElementById", "thdn-led")
-	d.sinadLED = dom.Doc.Call("getElementById", "thd-sinad-led")
-	d.enobLED = dom.Doc.Call("getElementById", "thd-enob-led")
-	d.fundLED = dom.Doc.Call("getElementById", "thd-fund-led")
-	d.levelLED = dom.Doc.Call("getElementById", "thd-level-led")
+	markMeterDisplays(THDReadouts(meters.DistortionResult{}))
 	d.chanSel = dom.Doc.Call("getElementById", "thd-chan")
 	harm := dom.Doc.Call("getElementById", "thd-harm")
 	cstack := dom.Doc.Call("getElementById", "thd-chanstack")

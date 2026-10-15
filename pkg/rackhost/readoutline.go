@@ -196,6 +196,11 @@ func (r *Rack) remeasure(id string) bool {
 			_ = r.set("takens-tau", strconv.FormatFloat(float64(t), 'f', -1, 32)) //nolint:errcheck // within the knob's reach by construction
 		}
 		return true
+	case "lufs-reset":
+		// Loudness's RESET: the integration starts again.
+		r.meters.lufs.Reset()
+		r.showMeter(r.meters.lufs.Readouts())
+		return true
 	case "lyap-remeasure":
 		lp := &a.ro.lyap
 		lp.have, lp.due = "", 0
