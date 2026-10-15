@@ -208,8 +208,8 @@ type heard struct {
 // wide, while the rack is on. Called with r.mu held.
 func (r *Rack) hear(key string, on bool, w int) (h heard) {
 	defer r.showReadouts(key, float64(r.sound.now().UnixNano())/1e6)
-	if key != "termanim" || !on {
-		r.anim.close() // a demo runs only while it is on show
+	if (key != "termanim" && r.value("bg-visual") != "termanim") || !on {
+		r.anim.close() // a demo runs only while it is on show, or behind
 	}
 	if dynamics.HasFlow(key) {
 		r.analyzers.lastFlow = key

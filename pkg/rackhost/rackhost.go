@@ -794,6 +794,7 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 	r.sound.busLook()
 	audio := figureEachFrame(key)
 	heard := r.hear(key, on, w)
+	bd := r.backdrop(key, on, w, h)
 	poseTo := r.poseTo
 	r.poseTo = nil
 	var consts map[*float32]float32
@@ -947,7 +948,7 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 		}
 	}
 	s.shown = m
-	toPixels(img, look.bg, m)
+	toPixels(img, look.bg, withBackdrop(m, bd))
 	return img, nil
 }
 
