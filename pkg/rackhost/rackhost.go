@@ -809,15 +809,7 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 		}
 		r.sound.mu.Unlock()
 	}
-	now := time.Now()
-	dt := now.Sub(s.last).Seconds()
-	s.last = now
-	if !tbc {
-		// Timing's TBC off: a frame is a frame, however long it took — a
-		// sixtieth of a second's turn, as the page turned before the
-		// correction.
-		dt = 1.0 / 60
-	}
+	dt := s.frameTime(time.Now(), tbc)
 	// A picture on a plane comes up face-on and holds still, as the page sets
 	// its textured planes up: a hand or the rate knobs still turn it.
 	s.pose(key, heard.quad != nil || len(heard.quads) > 0 || attractor.IsFlatScope(key), on && !paused, auto, rate, dt)
@@ -1136,6 +1128,19 @@ func (s *scene) pose(key string, flat, running, auto bool, rate [3]float64, dt f
 		}
 	}
 	s.turned = false
+}
+
+// frameTime is how long the frame at now stands for, in seconds: the time
+// since the last, with Timing's TBC on; off, a frame is a frame, however long
+// it took — a sixtieth of a second's turn, as the page turned before the
+// correction. Called with s.mu held.
+func (s *scene) frameTime(now time.Time, tbc bool) float64 {
+	dt := now.Sub(s.last).Seconds()
+	s.last = now
+	if !tbc {
+		return 1.0 / 60
+	}
+	return dt
 }
 
 // over puts src's drawn pixels over dst's.
