@@ -40,6 +40,10 @@ type trioProgram struct {
 	lit   func() int    // which button is on, or -1
 	lits  func() []bool // which buttons are on, for buttons that are switches of their own (lit then unused)
 	drive []string      // the hidden controls it sets, so a change to them relights it
+	// switches is, per button, the hidden switch it is the face of, or "": a
+	// rack without the page presses the button by setting the switch, and
+	// the catalog finds the switch where its button is (data-drives).
+	switches []string
 }
 
 // setParamSlider sets a parameter through its own control, the way the knob
@@ -235,11 +239,12 @@ func syncTriosIn(root js.Value, sel string) {
 	// was six calls across a button, over every column on the rack.
 	h := fastDOM()
 	type entry struct {
-		Live bool      `json:"live"`
-		On   []bool    `json:"on"`
-		Dead []bool    `json:"dead"`
-		Keys []string  `json:"keys"`
-		Tips []*string `json:"tips"` // nil leaves a tooltip as it is
+		Live   bool      `json:"live"`
+		On     []bool    `json:"on"`
+		Dead   []bool    `json:"dead"`
+		Keys   []string  `json:"keys"`
+		Tips   []*string `json:"tips"` // nil leaves a tooltip as it is
+		Drives []string  `json:"drives,omitempty"`
 	}
 	payload := map[string]entry{}
 	for _, param := range strings.Split(h.Call("trioParams", root, sel).String(), "\n") {
@@ -250,6 +255,7 @@ func syncTriosIn(root js.Value, sel string) {
 		e := entry{Live: ok, Keys: trioKeys[:], On: []bool{}}
 		if ok {
 			e.On, e.Keys = p.lighting(), p.legends()
+			e.Drives = p.switches
 		}
 		for j, k := range e.Keys {
 			e.Dead = append(e.Dead, ok && !p.assigned(j))

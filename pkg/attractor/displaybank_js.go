@@ -13,8 +13,9 @@ func init() {
 	// POINTS: + draws every vertex as a dot; 0 is the solid line, no dots
 	// and no breaks. The knob between breaks the line into that many points.
 	trioPrograms["dash-duty"] = trioProgram{
-		keys: []string{"+", "0", ""},
-		help: []string{doc("trio.dash-duty=0"), doc("trio.dash-duty=1")},
+		keys:     []string{"+", "0", ""},
+		switches: []string{"use-points"},
+		help:     []string{doc("trio.dash-duty=0"), doc("trio.dash-duty=1")},
 		press: func(i int) {
 			switch i {
 			case 0:
@@ -39,7 +40,8 @@ func init() {
 	// scan, the whole trail drawn again each frame; − is the ring, only the
 	// advancing head integrated and the trail its history. One at a time.
 	trioPrograms["trail-slider"] = trioProgram{
-		help: []string{doc("trio.trail-slider=0"), doc("trio.trail-slider=1"), doc("trio.trail-slider=2")},
+		switches: []string{"persist-trail", "", "ring-sw"},
+		help:     []string{doc("trio.trail-slider=0"), doc("trio.trail-slider=1"), doc("trio.trail-slider=2")},
 		press: func(i int) {
 			setSwitch("persist-trail", i == 0)
 			setSwitch("ring-sw", i == 2)
@@ -59,8 +61,9 @@ func init() {
 	// Poincaré section, G the graticule behind a scope trace.
 	over := []string{"sect-sw", "scope-grat"}
 	trioPrograms["line-width"] = trioProgram{
-		keys: []string{"S", "G", ""},
-		help: []string{doc("trio.line-width=0"), doc("trio.line-width=1")},
+		keys:     []string{"S", "G", ""},
+		switches: over,
+		help:     []string{doc("trio.line-width=0"), doc("trio.line-width=1")},
 		press: func(i int) {
 			if i < len(over) {
 				setSwitch(over[i], !checkedOn(over[i]))
@@ -81,8 +84,9 @@ func init() {
 	// on; B points the Colors module at the backdrop's colors instead of the
 	// model's. Both are about what is behind, so they are its buttons.
 	trioPrograms["bg-visual"] = trioProgram{
-		keys: []string{"F", "B", ""},
-		help: []string{doc("trio.bg-visual=0"), doc("trio.bg-visual=1")},
+		keys:     []string{"F", "B", ""},
+		switches: []string{"spect-fill", "edit-back"},
+		help:     []string{doc("trio.bg-visual=0"), doc("trio.bg-visual=1")},
 		press: func(i int) {
 			switch i {
 			case 0:
@@ -96,20 +100,22 @@ func init() {
 	}
 	// MAP: I reverses the palette.
 	trioPrograms["gradient-colors"] = trioProgram{
-		keys:  []string{"I", "", ""},
-		help:  []string{doc("trio.gradient-colors=0")},
-		press: func(int) { toggle("gradient-reverse") },
-		lits:  func() []bool { return []bool{checkedOn("gradient-reverse"), false, false} },
-		drive: []string{"gradient-reverse"},
+		keys:     []string{"I", "", ""},
+		switches: []string{"gradient-reverse"},
+		help:     []string{doc("trio.gradient-colors=0")},
+		press:    func(int) { toggle("gradient-reverse") },
+		lits:     func() []bool { return []bool{checkedOn("gradient-reverse"), false, false} },
+		drive:    []string{"gradient-reverse"},
 	}
 	// SRC: H holds the color range where it is instead of refitting it to
 	// the source as it changes.
 	trioPrograms["gradient-source"] = trioProgram{
-		keys:  []string{"H", "", ""},
-		help:  []string{doc("trio.gradient-source=0")},
-		press: func(int) { toggle("color-lock-sw") },
-		lits:  func() []bool { return []bool{checkedOn("color-lock-sw"), false, false} },
-		drive: []string{"color-lock-sw", "color-lock"},
+		keys:     []string{"H", "", ""},
+		switches: []string{"color-lock-sw"},
+		help:     []string{doc("trio.gradient-source=0")},
+		press:    func(int) { toggle("color-lock-sw") },
+		lits:     func() []bool { return []bool{checkedOn("color-lock-sw"), false, false} },
+		drive:    []string{"color-lock-sw", "color-lock"},
 	}
 }
 
