@@ -269,6 +269,9 @@ func (r *Rack) useBank(model string) {
 	r.colorLEDs()
 	r.pic.Gen++
 	r.full = r.pic.Gen
+	// The bank's items replaced the marks; they go back over its knobs.
+	r.grid.markAt, r.grid.marked = -1, ""
+	r.placeSweptMarks()
 }
 
 var (
@@ -337,6 +340,9 @@ func (r *Rack) set(id, value string) error {
 	switch id {
 	case "view-n":
 		r.gridCells()
+		r.placeSweptMarks()
+	case "sweep-p", "sweep2-p":
+		r.placeSweptMarks()
 	case "focus-n", "link-sw":
 		r.refocus()
 	}

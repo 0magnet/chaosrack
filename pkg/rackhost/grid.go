@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
+	"github.com/0magnet/chaosrack/pkg/rackpic"
 	"github.com/0magnet/chaosrack/pkg/rasterview"
 )
 
@@ -38,6 +39,10 @@ type gridView struct {
 	// shapes are the cells' shapes, built from their knobs: a mesh is the
 	// same until they move.
 	shapes map[string]attractor.Figure
+	// marked is what the swept marks show, and markAt the picture item they
+	// begin at, -1 with none placed (placeSweptMarks).
+	marked string
+	markAt int
 }
 
 // cellKnobs are the knobs a cell has of its own once the cells are unlinked:
@@ -469,4 +474,67 @@ func pictureCells(h heard, v rasterview.View, g gridSet, w, ht int) *image.RGBA 
 // own.
 func (g gridSet) soundColored() bool {
 	return g.n > 1 && (g.across == attractor.SweepSrc || g.down == attractor.SweepSrc || !g.link)
+}
+
+// The page's marking colors: the swept cell's rim and its arrow.
+const (
+	sweptRim   = 0xc8871f
+	sweptArrow = 0xf0b050
+)
+
+// sweptControl is the control a sweep of target overrides, whose cell is
+// marked: the parameter's own knob, or the coloring's source or map.
+func sweptControl(target string) string {
+	switch target {
+	case attractor.SweepNone, attractor.SweepStart:
+		return ""
+	case attractor.SweepSrc:
+		return "gradient-source"
+	case attractor.SweepMap:
+		return "gradient-colors"
+	}
+	return target
+}
+
+// placeSweptMarks marks the knobs a sweep is overriding, as the page does: a
+// rim round the cell and the sweep's arrow, across or down. A knob whose
+// value the sweep overrides no longer says what is on screen, and the panel
+// has to say so. Placed after the bank's items, so a new bank takes them
+// away and they are placed again. Called with r.mu held.
+func (r *Rack) placeSweptMarks() {
+	g := r.gridNow()
+	var marks []*rackpic.Item
+	sig := ""
+	if g.n > 1 {
+		for _, ax := range [...][2]string{{g.across, "⇢"}, {g.down, "⇣"}} {
+			box, ok := r.pic.Ctls[sweptControl(ax[0])]
+			if !ok {
+				continue
+			}
+			rim, ink := sweptRim, sweptArrow
+			marks = append(marks,
+				&rackpic.Item{X: box[0], Y: box[1], W: box[2], H: box[3], Border: &rim},
+				&rackpic.Item{X: box[0] + box[2] - 26, Y: box[1] + 2, W: 10, H: 10, Text: ax[1], Ink: &ink})
+			sig += ax[0] + ax[1]
+		}
+	}
+	gv := &r.grid
+	if sig == gv.marked && (gv.markAt >= 0) == (len(marks) > 0) {
+		return
+	}
+	if gv.markAt >= 0 && gv.markAt <= len(r.pic.Items) {
+		r.pic.Items = r.pic.Items[:gv.markAt]
+	}
+	for i := range r.changed {
+		if i >= len(r.pic.Items) {
+			delete(r.changed, i)
+		}
+	}
+	gv.markAt, gv.marked = -1, sig
+	if len(marks) > 0 {
+		gv.markAt = len(r.pic.Items)
+		r.pic.Items = append(r.pic.Items, marks...)
+	}
+	r.pic.Gen++
+	r.full = r.pic.Gen
 }
