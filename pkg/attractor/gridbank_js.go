@@ -27,6 +27,14 @@ func buildGridBank() {
 	if sel, h := dom.Doc.Call("getElementById", "view-n"), dom.Doc.Call("getElementById", "view-n-stack"); sel.Truthy() && h.Truthy() {
 		selectorReadout(h, sel, viewCountRing)
 	}
+	// Its four selectors are controls of the rack, as its knobs and switches
+	// are: so ctl, a terminal panel and a native rack reach them. Their
+	// options are the DOM's, read as the registry is (sweep and focus are
+	// refilled with the model and the grid); their wiring and their places
+	// in a link are their own, so they are only recorded here.
+	for _, c := range [...][2]string{{"view-n", "grid"}, {"sweep-p", "sweep"}, {"sweep2-p", "down"}, {"focus-n", "focus"}} {
+		registerControl(ControlDesc{ID: c[0], Label: c[1], IsSelect: true, SelectDef: "0"}, moduleOfControl(c[0]))
+	}
 }
 
 // buildPUnitModule makes every cell of the P-unit grid with id id, written

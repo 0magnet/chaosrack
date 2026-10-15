@@ -78,6 +78,10 @@ type Rack struct {
 	// stereo is the Stereo Embedding's scope, which keeps its trigger's
 	// memory from frame to frame (bus.go).
 	stereo stereoView
+	// grid is the Grid's cells (grid.go), and cellOver the values the cell
+	// being drawn has in place of the knobs'.
+	grid     gridView
+	cellOver map[string]float64
 	// analyzers are the flat analyzers, which keep their meters and averages
 	// from frame to frame (analyzers.go).
 	analyzers analyzers
@@ -197,6 +201,8 @@ func New() (*Rack, error) {
 	r.sound = newSound()
 	r.soundStart()
 	r.showModelSwitches(r.model())
+	r.gridTargets(r.model())
+	r.gridCells()
 	r.findMatrix()
 	r.findKeys()
 	return r, nil
@@ -325,6 +331,12 @@ func (r *Rack) set(id, value string) error {
 	if id == "led-color" {
 		r.colorLEDs()
 	}
+	switch id {
+	case "view-n":
+		r.gridCells()
+	case "focus-n", "link-sw":
+		r.refocus()
+	}
 	if c.IsText {
 		if err := r.textSet(id, v); err != nil {
 			return fmt.Errorf("%s: %w", id, err)
@@ -338,6 +350,7 @@ func (r *Rack) set(id, value string) error {
 	if id == r.selector || isFamily(id) {
 		m := r.model()
 		r.followMode(m)
+		r.gridTargets(m)
 		// Takens measures τ once on entry, as the page re-arms it on every
 		// mode change: the signal may have changed while it was away.
 		r.analyzers.tau.Arm()
@@ -385,8 +398,12 @@ func settle(c *racktui.Control, value string) (string, error) {
 	return strconv.FormatFloat(f, 'f', -1, 64), nil
 }
 
-// number is a control's value as a number, 0 when it is not one.
+// number is a control's value as a number, 0 when it is not one: or the
+// value a grid cell being drawn has in its place (grid.go).
 func (r *Rack) number(id string) float64 {
+	if v, ok := r.cellOver[id]; ok {
+		return v
+	}
 	i, ok := r.byID[id]
 	if !ok {
 		return 0
@@ -834,6 +851,13 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 	r.sound.busLook()
 	audio := figureEachFrame(key)
 	heard := r.hear(key, on, w)
+	// The Grid's cells, each worked out from what the models were just
+	// fed (grid.go).
+	g := r.gridNow()
+	var plans []cellPlan
+	if g.n > 1 {
+		plans = r.planCells(key, g)
+	}
 	bd := r.backdrop(key, on, w, h)
 	poseTo := r.poseTo
 	r.poseTo = nil
@@ -880,13 +904,14 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 		// A flat analyzer, or a terminal animation's screen, drawn over the whole scene as the page draws it
 		// over its canvas (analyzers.go).
 		s.key, s.err, s.shown = key, nil, nil
-		toPixels(img, look.bg, heard.picture(rasterview.View{
+		v := rasterview.View{
 			AngleX: s.angle[0], AngleY: s.angle[1], AngleZ: s.angle[2],
 			Scale:       zoomScale(zoom),
 			PixelAspect: 1 / shape,
 			PanX:        look.pan[0],
 			PanY:        look.pan[1],
-		}, w, h))
+		}
+		toPixels(img, look.bg, pictureCells(heard, v, g, w, h))
 		return img, nil
 	}
 	game := isGame(key)
@@ -954,28 +979,37 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 		fig, o.Fit = r.latticeOf(fig)
 		r.mu.Unlock()
 	}
-	n := len(fig.Points)
-	if fig.Kind == attractor.FigureLines {
-		n = len(fig.Edges)
-	}
-	m := attractor.DrawFigure(fig, 0, n, o)
-	if len(heard.overlay.Points) > 0 {
-		// LINE S: the section's crossings in gold where they are, over the
-		// trail, framed as the flow is.
-		ov := o
-		ov.Gradient = rasterview.Gradient{Colors: 1, Base: sectGold}
-		ov.View.BackDim = 0
-		if ov.Fit == nil {
-			ov.Fit = fig.Points
+	draw1 := func(fig attractor.Figure, o attractor.DrawOptions) *image.RGBA {
+		n := len(fig.Points)
+		if fig.Kind == attractor.FigureLines {
+			n = len(fig.Edges)
 		}
-		over(m, attractor.DrawFigure(heard.overlay, 0, len(heard.overlay.Points), ov))
+		m := attractor.DrawFigure(fig, 0, n, o)
+		if len(heard.overlay.Points) > 0 {
+			// LINE S: the section's crossings in gold where they are, over
+			// the trail, framed as the flow is.
+			ov := o
+			ov.Gradient = rasterview.Gradient{Colors: 1, Base: sectGold}
+			ov.View.BackDim = 0
+			if ov.Fit == nil {
+				ov.Fit = fig.Points
+			}
+			over(m, attractor.DrawFigure(heard.overlay, 0, len(heard.overlay.Points), ov))
+		}
+		if len(heard.grat.Edges) > 0 {
+			// The Stereo Embedding's graticule, flat gray behind the trace.
+			og := o
+			og.Gradient = rasterview.Gradient{Colors: 1, Base: attractor.GraticuleColor}
+			og.View.BackDim = 0 // flat, as the page draws it
+			under(m, attractor.DrawFigure(heard.grat, 0, len(heard.grat.Edges), og))
+		}
+		return m
 	}
-	if len(heard.grat.Edges) > 0 {
-		// The Stereo Embedding's graticule, flat gray behind the trace.
-		og := o
-		og.Gradient = rasterview.Gradient{Colors: 1, Base: attractor.GraticuleColor}
-		og.View.BackDim = 0 // flat, as the page draws it
-		under(m, attractor.DrawFigure(heard.grat, 0, len(heard.grat.Edges), og))
+	var m *image.RGBA
+	if g.n <= 1 {
+		m = draw1(fig, o)
+	} else {
+		m = r.drawCells(key, g, plans, fig, o, draw1, paused, run, speed, look.dots)
 	}
 	if k := glowKeep(heard.glow, dt); k > 0 && s.shown != nil && s.shown.Bounds() == m.Bounds() {
 		// The XY's GLOW: the last frame fades like a phosphor and the trace

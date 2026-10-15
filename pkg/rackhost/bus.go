@@ -281,7 +281,12 @@ type stereoView struct {
 // Framed to GAIN, as the page fits it, so VG and SPAN can push the trace off
 // the screen as they do there. Called with r.mu held.
 func (r *Rack) stereoFigure() (fig, grat attractor.Figure, fit [][3]float64) {
-	st := &r.stereo
+	return r.stereoFigureOf(&r.stereo)
+}
+
+// stereoFigureOf is stereoFigure through scope st: the rack's, or a grid
+// cell's own (grid.go). Called with r.mu held.
+func (r *Rack) stereoFigureOf(st *stereoView) (fig, grat attractor.Figure, fit [][3]float64) {
 	for _, id := range attractor.StereoKnobs {
 		st.scope.Set(id, float32(r.number(id)))
 	}

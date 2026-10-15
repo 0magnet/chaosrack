@@ -35,6 +35,11 @@ func speedSteps(logVal float64) (sub int, scale float64) {
 // knob's setting). It reports false for a flow the rack cannot step, which
 // is drawn from its fixed trajectory instead.
 func (t *trail) advance(key string, n int, speed float64) bool {
+	return t.advanceIn(key, n, speed, trailBudget)
+}
+
+// advanceIn is advance within budget integration steps.
+func (t *trail) advanceIn(key string, n int, speed float64, budget int) bool {
 	dt, f, ok := dynamics.FlowFor(key)
 	if !ok || dt <= 0 {
 		return false
@@ -49,8 +54,8 @@ func (t *trail) advance(key string, n int, speed float64) bool {
 	}
 	// The budget is spent on sub-steps first, as the page's effSubSteps does,
 	// and then on the run's length.
-	sub = max(min(sub, trailBudget/n), 1)
-	n = min(n, trailBudget/sub)
+	sub = max(min(sub, budget/n), 1)
+	n = min(n, budget/sub)
 	h := dt * scale
 	if cap(t.pts) < n {
 		t.pts = make([][3]float64, n)

@@ -26,10 +26,8 @@ package attractor
 // it comes from. They should end up sharing this path.
 
 import (
-	"github.com/0magnet/chaosrack/pkg/colorspace"
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
-	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -79,7 +77,7 @@ func viewRects() [][4]int {
 		}
 		return out
 	}
-	cols, rows := viewGridShape(n)
+	cols, rows := GridShape(n)
 	xs, okX := gridEdges(w, cols)
 	ys, okY := gridEdges(h, rows)
 	if !okX || !okY {
@@ -107,22 +105,7 @@ func viewRects() [][4]int {
 // the last cell always ends exactly on the edge. The bool is false when the
 // canvas is too small for the split to leave a drawable cell, which GL
 // rejects outright.
-func gridEdges(total, n int) ([][2]int, bool) {
-	if n < 1 {
-		return nil, false
-	}
-	span := total + viewGap // the gaps come out of the boundaries below
-	out := make([][2]int, n)
-	for i := range n {
-		start := i * span / n
-		end := (i+1)*span/n - viewGap
-		if end-start < 1 {
-			return nil, false
-		}
-		out[i] = [2]int{start, end - start}
-	}
-	return out, true
-}
+func gridEdges(total, n int) ([][2]int, bool) { return GridEdges(total, n, viewGap) }
 
 // setViewport points GL at one rect and gives the shader the projection for
 // its aspect.
@@ -231,12 +214,7 @@ var (
 
 // overlayTints are the colors overlaid cells after the first are drawn in:
 // golden-ratio steps of hue from green, the color Twin's copy was.
-var overlayTints = func() (t [viewMax][3]float32) {
-	for i := range t {
-		t[i] = colorspace.FromHSV(0.39+float32(i)*0.618034, 0.85, 1)
-	}
-	return t
-}()
+var overlayTints = GridOverlayTints
 
 // overlayTint is the color cell i is drawn in, overlaid: the first in its
 // own coloring and each after it in a hue of its own, so cells drawn over
@@ -554,11 +532,11 @@ func setSelectQuiet(id string, v int) {
 
 // viewMax is how many cells the grid may hold. Sixteen is four by four,
 // which is as many as a figure stays legible in on a normal screen.
-const viewMax = 16
+const viewMax = GridMax
 
 // viewCounts are the grid sizes the dial offers: squares, and two, which
 // is the side-by-side comparison that is not a square.
-var viewCounts = []int{1, 2, 4, 9, 16}
+var viewCounts = GridCounts
 
 var viewCountNames = []string{
 	"1 — a single view",
@@ -568,29 +546,10 @@ var viewCountNames = []string{
 	"16 — four by four",
 }
 
-var viewCountRing = []string{"1", "2", "4", "9", "16"}
+var viewCountRing = GridCountRing
 
 // n is how many cells are drawn.
-func (vi *viewGrid) n() int {
-	i := clampSel(vi.countF, len(viewCounts)-1)
-	return viewCounts[i]
-}
-
-// viewGridShape is the grid's columns and rows for a cell count.
-//
-// Two is a row rather than a column: the figures here are wider than they
-// are tall, so side by side keeps more of each than one above the other.
-func viewGridShape(n int) (cols, rows int) {
-	switch {
-	case n <= 1:
-		return 1, 1
-	case n == 2:
-		return 2, 1
-	}
-	cols = int(math.Ceil(math.Sqrt(float64(n))))
-	rows = (n + cols - 1) / cols
-	return cols, rows
-}
+func (vi *viewGrid) n() int { return GridCount(vi.countF) }
 
 // gridFitFactor is how much closer the camera has to come for a figure
 // fitted to the whole canvas to fill one cell of an n-cell grid.
@@ -602,16 +561,7 @@ func viewGridShape(n int) (cols, rows int) {
 // other axis runs off the cell. At 2x1 that is 1 — the cells are still
 // full height, so nothing moves and the A/B view looks as it always has.
 // Overlaid, every cell is the whole canvas, and the factor is 1.
-func gridFitFactor(n int) int {
-	if grid.overlay {
-		return 1
-	}
-	cols, rows := viewGridShape(n)
-	if rows < cols {
-		return rows
-	}
-	return cols
-}
+func gridFitFactor(n int) int { return GridFitFactor(n, grid.overlay) }
 
 // ── the sweep: what varies across the grid ──────────────────────────────
 
@@ -629,59 +579,47 @@ func gridFitFactor(n int) int {
 // sixteen trajectories. That is a picture of nothing, so the dial does
 // not offer it — the two color sweeps stay, because a coloring IS
 // recomputed per pass in every mode.
+//
+// Nor for the Lattice, though it is a shape: its sheets are programs
+// started with its SPIN and TILT, one stack of them, so a cell of another
+// value restarted every program in the stack — each cell, each frame.
 func sweepNumericOK(mode string) bool {
-	return isAudioEmbedding(mode) || modeInfo[mode].Class == ClassGeometry
+	return (isAudioEmbedding(mode) || modeInfo[mode].Class == ClassGeometry) && mode != "lattice"
 }
 
 // setSweepTargets rebuilds the three lists for a mode and reports whether
 // anything changed.
 //
 // The lists are separate and bound by index, which is the shape of three
-// bugs this panel has already had, so they are filled in ONE loop rather
-// than written out three times. The ring label is the parameter's own
-// short label — the same text the knob under it carries — and the option
-// name is that label plus the sentence the help table has for it, so the
-// dial explains what it is about to vary rather than naming it twice.
+// bugs this panel has already had, so the names are made from the ids in
+// ONE loop. The ring label is the parameter's own short label — the same
+// text the knob under it carries — and the option name is that label plus
+// the sentence the help table has for it, so the dial explains what it is
+// about to vary rather than naming it twice.
 func (vi *viewGrid) setSweepTargets(mode string) bool {
-	ids := []string{""}
-	names := []string{"none — every cell the same"}
-	ring := []string{"—"}
-	nums := attractorParams[mode]
-	if !sweepNumericOK(mode) {
-		nums = nil
-	}
-	for _, pd := range nums {
-		// A named setting is a rotary of words: sweeping it would be a
-		// contact sheet of unrelated pictures rather than of one range,
-		// and paramRange's min and max are indices into the names. The
-		// coloring sweeps below are how that case is served.
-		if len(paramLabels[pd.ID]) > 0 {
-			continue
+	// What is offered is the shared table's (grid.go), which a native rack
+	// reads too; a named setting is a rotary of words and is not in it — its
+	// cells would be unrelated pictures, not a range, and the coloring
+	// sweeps are how that case is served.
+	ids, ring := GridSweepTargets(mode, startSweepable(mode))
+	names := make([]string, len(ids))
+	for i, id := range ids {
+		switch id {
+		case SweepNone:
+			names[i] = "none — every cell the same"
+		case SweepSrc:
+			names[i] = doc("grid-sweep=src")
+		case SweepMap:
+			names[i] = doc("grid-sweep=map")
+		case SweepStart:
+			// A flow's sweep is of where it starts (startsweep_js.go).
+			names[i] = doc("grid-sweep=start")
+		default:
+			names[i] = ring[i] + " — across its range"
+			if h := helpFor(id); h != "" {
+				names[i] = ring[i] + " — " + h
+			}
 		}
-		if pd.Max <= pd.Min {
-			continue
-		}
-		ids = append(ids, pd.ID)
-		ring = append(ring, pd.Label)
-		n := pd.Label
-		if h := helpFor(pd.ID); h != "" {
-			n += " — " + h
-		} else {
-			n += " — across its range"
-		}
-		names = append(names, n)
-	}
-	ids = append(ids, "#src", "#map")
-	ring = append(ring, "csrc", "cmap")
-	names = append(names,
-		doc("grid-sweep=src"),
-		doc("grid-sweep=map"))
-	// A flow's sweep is of where it starts (startsweep_js.go). Last, so the
-	// positions a permalink holds for the two above do not move.
-	if startSweepable(mode) {
-		ids = append(ids, "#start")
-		ring = append(ring, "start")
-		names = append(names, doc("grid-sweep=start"))
 	}
 
 	if vi.sweepDialMode == mode && len(ids) == len(vi.sweepIDs) {
@@ -731,30 +669,12 @@ func (vi *viewGrid) sweepTargetOf(f float32) string {
 // sweepColorSrcs is the order the color-source sweep steps through: the
 // audio-fed sources, which are the ones worth comparing. Nine of them, and
 // nine is a three by three grid.
-var sweepColorSrcs = []int{
-	gradientSourceAudio, gradientSourceLevel, gradientSourceDB,
-	gradientSourceCorr, gradientSourceSide, gradientSourceBalance,
-	gradientSourcePosition, gradientSourceFlux, gradientSourcePitch,
-}
+var sweepColorSrcs = SweepColorSources
 
 // sweepColorMaps is the order the map sweep steps through: every genuine
 // mapping, two-color first. Nine again, which is not a coincidence — the
 // colormaps were chosen to match the spectrogram's own list.
-var sweepColorMaps = []int{2, 3, 4, 5, 6, 7, 8, 9, 10}
-
-// sweepFrac is where cell i sits in the sweep, 0..1. A single cell sits at
-// the start rather than dividing by zero.
-func sweepFrac(i, n int) float32 {
-	if n <= 1 {
-		return 0
-	}
-	if i < 0 {
-		i = 0
-	} else if i >= n {
-		i = n - 1
-	}
-	return float32(i) / float32(n-1)
-}
+var sweepColorMaps = SweepColorMaps
 
 // sweepAxisFracs is where cell i sits on each axis, 0..1.
 //
@@ -766,16 +686,7 @@ func sweepFrac(i, n int) float32 {
 // own: across for the first, down for the second. So the resolution of a
 // lone sweep is never traded away for an axis nothing is using.
 func sweepAxisFracs(i, n int) (across, down float32) {
-	if grid.sweepTarget2() == "" {
-		return sweepFrac(i, n), 0
-	}
-	cols, rows := viewGridShape(n)
-	if i < 0 {
-		i = 0
-	} else if i >= n {
-		i = n - 1
-	}
-	return sweepFrac(i%cols, cols), sweepFrac(i/cols, rows)
+	return SweepAxisFracs(i, n, grid.sweepTarget2() != "")
 }
 
 // paramRange finds a parameter's min and max in the mode's own table, so
@@ -824,11 +735,11 @@ func (vi *viewGrid) applySweepAxis(mode, id string, frac float32) func() {
 	switch id {
 	case "#src":
 		prev := style.gradientSource
-		style.gradientSource = sweepColorSrcs[int(t*float32(len(sweepColorSrcs)-1)+0.5)]
+		style.gradientSource = SweepPick(sweepColorSrcs, t)
 		return func() { style.gradientSource = prev }
 	case "#map":
 		prev := style.gradientColors
-		style.gradientColors = sweepColorMaps[int(t*float32(len(sweepColorMaps)-1)+0.5)]
+		style.gradientColors = SweepPick(sweepColorMaps, t)
 		return func() { style.gradientColors = prev }
 	case "#start":
 		// Not a value to set: each cell's trajectory reads where it starts
