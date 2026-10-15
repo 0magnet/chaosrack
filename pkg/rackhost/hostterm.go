@@ -3,6 +3,7 @@ package rackhost
 import (
 	"os"
 	"os/exec"
+	"sync"
 
 	"github.com/gdamore/tcell/v3"
 
@@ -34,7 +35,7 @@ type shellView struct {
 	run  shellStart
 	term *vterm
 	// pty is the shell's terminal device, sized with the terminal.
-	pty *os.File
+	pty *ptyFile
 	// sig is where a typed interrupt goes as a signal; see shellStart.
 	sig chan<- os.Signal
 	// keys is what is typed, written to the shell by a goroutine of its own
@@ -73,7 +74,8 @@ func (sh *shellView) start() {
 		close(done)
 		return
 	}
-	sh.pty, sh.sig = f, sig
+	pf := &ptyFile{f: f}
+	sh.pty, sh.sig = pf, sig
 	keys := make(chan []byte, 256)
 	sh.keys = keys
 	// The emulator's answers to the shell's questions go back to it, as a
@@ -110,7 +112,7 @@ func (sh *shellView) start() {
 		}
 		// How it ended is on its screen; the pty is done with.
 		wait()
-		_ = f.Close() //nolint:errcheck // see above
+		pf.close()
 		t.put([]byte(shellExitedMsg))
 	}()
 }
@@ -194,7 +196,7 @@ func (sh *shellView) typeKey(ev *tcell.EventKey) {
 		return
 	}
 	if sh.sig != nil {
-		signalFor(sh.pty, b, sh.sig)
+		sh.pty.use(func(f *os.File) { signalFor(f, b, sh.sig) })
 	}
 	select {
 	case sh.keys <- b:
@@ -205,7 +207,35 @@ func (sh *shellView) typeKey(ev *tcell.EventKey) {
 // kill ends the shell by closing its terminal, as closing a window hangs up
 // on what is in it.
 func (sh *shellView) kill() {
-	if sh.pty != nil && sh.running() {
-		_ = sh.pty.Close() //nolint:errcheck // the shell's reader sees the end either way
+	if sh.pty != nil {
+		sh.pty.close() // the shell's reader sees the end
+	}
+}
+
+// ptyFile is a shell's pty and whether it has been closed: closed by the
+// goroutine that sees the shell end, while the panel may be sizing it, and
+// sizing reads its descriptor, which a close takes away.
+type ptyFile struct {
+	mu     sync.Mutex
+	f      *os.File
+	closed bool
+}
+
+// use runs fn on the pty, if it is still open.
+func (p *ptyFile) use(fn func(*os.File)) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if !p.closed {
+		fn(p.f)
+	}
+}
+
+// close closes the pty, once.
+func (p *ptyFile) close() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if !p.closed {
+		p.closed = true
+		_ = p.f.Close() //nolint:errcheck // the shell is over either way
 	}
 }

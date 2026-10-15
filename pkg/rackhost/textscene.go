@@ -2,6 +2,7 @@ package rackhost
 
 import (
 	"image/color"
+	"os"
 	"sync"
 	"unicode/utf8"
 
@@ -64,11 +65,9 @@ func (r *Rack) TextScene(w, h int) (cells []racktui.TextCell, cols, rows int, ok
 // the shell.
 func (sh *shellView) resize(cols, rows int) {
 	sh.term.resize(cols, rows)
-	if sh.pty != nil && sh.running() {
+	if sh.pty != nil {
 		// A pty gone with its shell has no size to set.
-		if err := setPtySize(sh.pty, cols, rows); err != nil {
-			return
-		}
+		sh.pty.use(func(f *os.File) { _ = setPtySize(f, cols, rows) }) //nolint:errcheck // nor an error worth one
 	}
 }
 
