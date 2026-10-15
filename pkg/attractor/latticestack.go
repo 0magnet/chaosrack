@@ -341,3 +341,13 @@ func xterm256(i int) (r, g, b float32) {
 	}
 	return float32(c[0]) / 255, float32(c[1]) / 255, float32(c[2]) / 255
 }
+
+// VTColor is a terminal cell's color as three floats, or def where the cell
+// has the terminal's default.
+func VTColor(c uint32, def [3]float32) [3]float32 {
+	if c&vt.AttrCMMask == 0 {
+		return def
+	}
+	r, g, b := vtColor(c)
+	return [3]float32{r, g, b}
+}

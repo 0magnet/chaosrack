@@ -201,6 +201,9 @@ type heard struct {
 // wide, while the rack is on. Called with r.mu held.
 func (r *Rack) hear(key string, on bool, w int) (h heard) {
 	defer r.showReadouts(key, float64(r.sound.now().UnixNano())/1e6)
+	if key != "termanim" || !on {
+		r.anim.close() // a demo runs only while it is on show
+	}
 	if dynamics.HasFlow(key) {
 		r.analyzers.lastFlow = key
 		h.overlay = r.sectionOverlay(key, on && r.value("pause-sw") != "1")
@@ -226,6 +229,8 @@ func (r *Rack) hear(key string, on bool, w int) (h heard) {
 	case (key == "spectrogram" || key == "fvf") && on:
 		h.quad = r.spectrogram(float64(r.sound.now().UnixNano())/1e6, key == "fvf")
 		h.fill = r.value("spect-fill") == "1"
+	case key == "termanim" && on:
+		h.quad = r.animFigure()
 	case key == "recurrence" && on:
 		h.quad = r.recurrencePlot(float64(r.sound.now().UnixNano()) / 1e6)
 	case isAnalyzer(key) && on:

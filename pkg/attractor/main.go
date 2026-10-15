@@ -339,9 +339,10 @@ func Run() {
 				SelectApply: desks.setDeskStyle,
 			})
 		}
-		// Bifurcation's and the wobbulator's bank positions, from the same holder.
+		// Bifurcation's, the wobbulator's and the terminal animation's bank positions, from the same holder.
 		bif.wireBifCells()
 		fvf.wireFVFCells()
+		anim.fillTermAnimPicker()
 		syncFVFRoute()
 		wireColorAndViewControls()
 		// Event: physics switch — the weight is a switch on the Motion panel, not a
