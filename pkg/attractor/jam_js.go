@@ -29,49 +29,30 @@ func jamTick(nowMs float64) {
 	if !jamOn || nowMs < jamNext {
 		return
 	}
-	jamNext = nowMs + 12000 + jamRand()*8000
+	jamNext = nowMs + JamInterval(jamRand)
 	jamHop()
 }
 
 func jamHop() {
-	// Hop to a different flow mode (attractors incl. the Sprott catalog and
-	// hyperchaos; custom excluded — its panel is an editor, not a show).
-	keys := ModeKeys(ClassFlow3D, ClassFlow4D)
-	var pool []string
-	for _, k := range keys {
-		if k != "custom" && k != run.selectedMode {
-			pool = append(pool, k)
-		}
-	}
-	if len(pool) == 0 {
+	// The hop itself is jam.go's, which a native rack plays too; here it is
+	// played through the real controls.
+	next, persist, y, x, ok := JamHop(jamRand, run.selectedMode)
+	if !ok {
 		return
 	}
-	next := pool[int(jamRand()*float64(len(pool)))%len(pool)]
 	if sel := dom.Doc.Call("getElementById", "mode-select"); sel.Truthy() {
 		sel.Set("value", next)
 		dom.Fire(sel, "change")
 	}
-	// Persist paint look ~35% of hops.
 	if p := dom.Doc.Call("getElementById", "persist-trail"); p.Truthy() {
-		p.Set("checked", jamRand() < 0.35)
+		p.Set("checked", persist)
 		dom.Fire(p, "change")
 	}
-	// Fresh gentle spin: always some Y, sometimes a touch of X.
-	setSpin := func(axis string, v float64) {
+	for axis, v := range map[string]float64{"y": y, "x": x} {
 		if sl := dom.Doc.Call("getElementById", "rotation-controls-"+axis); sl.Truthy() {
-			sl.Set("value", strconv.FormatFloat(float64(int(v*10))/10, 'f', 1, 64))
+			sl.Set("value", strconv.FormatFloat(v, 'f', 1, 64))
 			dom.Fire(sl, "input")
 		}
-	}
-	ySpin := 0.1 + jamRand()*0.2
-	if jamRand() < 0.5 {
-		ySpin = -ySpin
-	}
-	setSpin("y", ySpin)
-	if jamRand() < 0.4 {
-		setSpin("x", (jamRand()-0.5)*0.2)
-	} else {
-		setSpin("x", 0)
 	}
 	syncKnobs()
 }

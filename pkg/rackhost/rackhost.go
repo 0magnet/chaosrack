@@ -107,6 +107,8 @@ type Rack struct {
 	// written (record.go).
 	rec      recorder
 	recSaved string
+	// jamNext is when Jam next hops, 0 for at once (jam.go).
+	jamNext float64
 	// turtleAim is what the Turtle's VIEW last turned the scene for, and
 	// poseTo the pose it asks for, taken by the next Scene (turtleview.go).
 	turtleAim turtleAim
@@ -591,7 +593,11 @@ func (r *Rack) PictureChanges(gen int) (*rackpic.Patch, error) {
 	r.sound.busLook()
 	r.showMatrix()
 	r.showKeys()
-	r.runMeters(float64(r.sound.now().UnixNano()) / 1e6)
+	nowMs := float64(r.sound.now().UnixNano()) / 1e6
+	r.runMeters(nowMs)
+	// Before the picture is handed over: a hop puts up a new bank, and the
+	// full picture goes with it.
+	r.jamTick(nowMs)
 	if gen < r.full {
 		// The picture was rebuilt since: a new model's bank. All of it.
 		p := *r.pic
