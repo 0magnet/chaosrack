@@ -757,6 +757,8 @@ type scene struct {
 	crt crtState
 	// roll is the torus tube's phase, which its ROLL knob turns.
 	roll float64
+	// liss is the Lissajous beam, which runs on frame by frame (lissajous.go).
+	liss attractor.LissajousBeam
 }
 
 func (s *scene) start() {
@@ -973,8 +975,8 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 		// Face-on, as the page sets a game or a scope's screen up.
 		o.View.AngleX, o.View.AngleY, o.View.AngleZ = 0, 0, 0
 	}
-	if !game && !audio && fig.Kind == attractor.FigurePath {
-		fig, o.Fit = s.liveTrail(fig, o.Fit, key, paused, run, speed, look.dots)
+	if !game && !audio {
+		fig, o.Fit = s.running(fig, o.Fit, key, r.knobs, paused, run, speed, look.dots)
 	}
 	if inLat {
 		// ROWS's L: the model drawn by the Lattice instead (latticefig.go).
