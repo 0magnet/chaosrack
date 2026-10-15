@@ -211,3 +211,46 @@ func TestEverySweepDraws(t *testing.T) {
 		}
 	}
 }
+
+// A swept knob is marked with its sweep's arrow, in its own cell, while there
+// are cells to sweep across; the marks go with the sweep.
+func TestSweptKnobsAreMarked(t *testing.T) {
+	r := newRack(t)
+	set(t, r, r.selector, "torus", "view-n", "2")
+	sweepTo(t, r, "torus-r")
+	set(t, r, "sweep2-p", "1") // down the grid: torus-R
+	marks := func() map[string][4]float64 {
+		p, err := r.Picture()
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := map[string][4]float64{}
+		for _, it := range p.Items {
+			if it != nil && (it.Text == "⇢" || it.Text == "⇣") {
+				out[it.Text] = [4]float64{it.X, it.Y, it.W, it.H}
+			}
+		}
+		return out
+	}
+	m := marks()
+	r.mu.Lock()
+	across, down := r.pic.Ctls["torus-r"], r.pic.Ctls["torus-R"]
+	r.mu.Unlock()
+	in := func(at, box [4]float64) bool {
+		return at[0] >= box[0] && at[0]+at[2] <= box[0]+box[2] && at[1] >= box[1] && at[1]+at[3] <= box[1]+box[3]
+	}
+	if a, ok := m["⇢"]; !ok || !in(a, across) {
+		t.Errorf("the across mark is at %v, want in torus-r's cell %v", a, across)
+	}
+	if d, ok := m["⇣"]; !ok || !in(d, down) {
+		t.Errorf("the down mark is at %v, want in torus-R's cell %v", d, down)
+	}
+	set(t, r, "view-n", "0")
+	if m := marks(); len(m) != 0 {
+		t.Errorf("one cell sweeps nothing, but the marks stay: %v", m)
+	}
+	set(t, r, "view-n", "2", r.selector, "globe")
+	if m := marks(); len(m) != 0 {
+		t.Errorf("a new model starts its sweeps at none, but the marks stay: %v", m)
+	}
+}
