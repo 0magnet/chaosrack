@@ -82,6 +82,8 @@ type Rack struct {
 	// being drawn has in place of the knobs'.
 	grid     gridView
 	cellOver map[string]float64
+	// color is what the audio gradient sources color from (audiocolor.go).
+	color colorFeed
 	// analyzers are the flat analyzers, which keep their meters and averages
 	// from frame to frame (analyzers.go).
 	analyzers analyzers
@@ -858,6 +860,7 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 	if g.n > 1 {
 		plans = r.planCells(key, g)
 	}
+	src := r.gradientSource(g)
 	bd := r.backdrop(key, on, w, h)
 	poseTo := r.poseTo
 	r.poseTo = nil
@@ -1007,6 +1010,9 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 	}
 	var m *image.RGBA
 	if g.n <= 1 {
+		r.mu.Lock()
+		fig = r.audioColored(fig, &o.Gradient, src, 0)
+		r.mu.Unlock()
 		m = draw1(fig, o)
 	} else {
 		m = r.drawCells(key, g, plans, fig, o, draw1, paused, run, speed, look.dots)

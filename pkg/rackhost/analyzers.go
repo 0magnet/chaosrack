@@ -208,6 +208,7 @@ type heard struct {
 // wide, while the rack is on. Called with r.mu held.
 func (r *Rack) hear(key string, on bool, w int) (h heard) {
 	defer r.showReadouts(key, float64(r.sound.now().UnixNano())/1e6)
+	r.color.w, r.color.l, r.color.r = nil, nil, nil // until a model draws a window of the signal
 	if (key != "termanim" && r.value("bg-visual") != "termanim") || !on {
 		r.anim.close() // a demo runs only while it is on show, or behind
 	}
