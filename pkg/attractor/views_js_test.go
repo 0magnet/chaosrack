@@ -209,7 +209,7 @@ func TestGridTilesAtEverySize(t *testing.T) {
 		if len(rects) != want {
 			t.Fatalf("size %d gave %d rects", want, len(rects))
 		}
-		cols, rows := viewGridShape(want)
+		cols, rows := GridShape(want)
 		if cols*rows < want {
 			t.Errorf("size %d: a %dx%d grid cannot hold it", want, cols, rows)
 		}
@@ -229,24 +229,24 @@ func TestGridTilesAtEverySize(t *testing.T) {
 // cell is the minimum and the last the maximum, or a contact sheet is not
 // showing the range it claims to.
 func TestSweepSpansTheRangeEndToEnd(t *testing.T) {
-	if got := sweepFrac(0, 9); got != 0 {
+	if got := SweepFrac(0, 9); got != 0 {
 		t.Errorf("first cell sits at %v, want 0", got)
 	}
-	if got := sweepFrac(8, 9); got != 1 {
+	if got := SweepFrac(8, 9); got != 1 {
 		t.Errorf("last cell sits at %v, want 1", got)
 	}
-	if got := sweepFrac(4, 9); got < 0.49 || got > 0.51 {
+	if got := SweepFrac(4, 9); got < 0.49 || got > 0.51 {
 		t.Errorf("middle cell sits at %v, want about 0.5", got)
 	}
 	// One cell has nowhere to be but the start, and must not divide by zero.
-	if got := sweepFrac(0, 1); got != 0 {
+	if got := SweepFrac(0, 1); got != 0 {
 		t.Errorf("single cell sits at %v", got)
 	}
 	// Out of range indices clamp rather than running off the ramp.
-	if got := sweepFrac(-3, 4); got != 0 {
+	if got := SweepFrac(-3, 4); got != 0 {
 		t.Errorf("negative index gave %v", got)
 	}
-	if got := sweepFrac(99, 4); got != 1 {
+	if got := SweepFrac(99, 4); got != 1 {
 		t.Errorf("index past the end gave %v", got)
 	}
 }
@@ -703,7 +703,7 @@ func TestFocusReachesEveryCell(t *testing.T) {
 // cell, which is worse than the black border it was meant to remove.
 func TestGridFitFactorFillsTheCellWithoutOverflowingIt(t *testing.T) {
 	for _, n := range viewCounts {
-		cols, rows := viewGridShape(n)
+		cols, rows := GridShape(n)
 		k := gridFitFactor(n)
 		if k < 1 {
 			t.Fatalf("%d cells: fit factor %d, a camera cannot magnify by less than 1", n, k)
@@ -786,11 +786,11 @@ func TestTwoSweepsBecomeTheColumnsAndTheRows(t *testing.T) {
 	sweep2To(t, "#map")
 
 	const n = 9
-	cols, rows := viewGridShape(n)
+	cols, rows := GridShape(n)
 	for i := range n {
 		across, down := sweepAxisFracs(i, n)
-		wantAcross := sweepFrac(i%cols, cols)
-		wantDown := sweepFrac(i/cols, rows)
+		wantAcross := SweepFrac(i%cols, cols)
+		wantDown := SweepFrac(i/cols, rows)
 		if across != wantAcross || down != wantDown {
 			t.Errorf("cell %d of %dx%d: got (%v,%v), want (%v,%v)",
 				i, cols, rows, across, down, wantAcross, wantDown)

@@ -28,14 +28,7 @@ type sceneLook struct {
 // then the named colormaps, in the page's order.
 func (r *Rack) look() sceneLook {
 	g := rasterview.DefaultGradient()
-	switch src := int(r.number("gradient-source")); src {
-	case 0, 1, 2, 3:
-		g.Source = src
-	case 5:
-		g.Colors = 1
-	default:
-		g.Source = 2
-	}
+	setSource(&g, int(r.number("gradient-source")))
 	if g.Colors != 1 {
 		if cols := int(r.number("gradient-colors")); cols >= 2 {
 			g.Colors = cols
@@ -104,4 +97,17 @@ func (r *Rack) swatches() (base, mid, top, bg [3]float32) {
 		*s.out = attractor.KnobColor(hue, lvl)
 	}
 	return base, mid, top, bg
+}
+
+// setSource points gradient g at the page's gradient source src: X, Y, Z
+// and the trail are the renderer's sources too, and "off" is one color.
+func setSource(g *rasterview.Gradient, src int) {
+	switch src {
+	case 0, 1, 2, 3:
+		g.Source = src
+	case 5:
+		g.Colors = 1
+	default:
+		g.Source = 2
+	}
 }

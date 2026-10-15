@@ -23,11 +23,7 @@ package attractor
 // the modes it does not reach (the spectrogram surfaces, the recurrence plot,
 // the audio scopes) are exactly the modes with no exponent to measure.
 
-import (
-	"math"
-
-	"github.com/0magnet/chaosrack/pkg/dynamics"
-)
+import "github.com/0magnet/chaosrack/pkg/dynamics"
 
 // startSweep is the start sweep's trajectories, one per cell.
 type startSweep struct {
@@ -39,25 +35,12 @@ type startSweep struct {
 
 var starts startSweep
 
-// The span of ε a start sweep covers, as powers of ten: FROM and TO at 0 and
-// 1 of it, except that 0 itself is ε = 0, the model's own trajectory.
-const (
-	startEpsLo = -9
-	startEpsHi = -1
-)
-
 func (s *startSweep) invalidate() { s.seeded = "" }
 
 // startSweepable reports whether mode can have a start sweep: whether it is
 // a flow the generic stepper integrates. The bifurcation explorer and the
 // Poincaré section are excluded by name, as generateForMode excludes them.
-func startSweepable(mode string) bool {
-	if mode == "bifurcation" || mode == "poincare" {
-		return false
-	}
-	_, ok := dynamics.FlowFor4(mode)
-	return ok
-}
+func startSweepable(mode string) bool { return StartSweepable(mode) }
 
 // startSweepOn reports whether this frame draws mode's cells as a start
 // sweep.
@@ -73,11 +56,7 @@ func startEps(i, n int) float64 {
 	if grid.sweepTarget() != "#start" {
 		frac = down
 	}
-	t := grid.sweepLo + (grid.sweepHi-grid.sweepLo)*frac
-	if t <= 0 {
-		return 0
-	}
-	return math.Pow(10, startEpsLo+(startEpsHi-startEpsLo)*float64(t))
+	return StartEps(grid.sweepLo + (grid.sweepHi-grid.sweepLo)*frac)
 }
 
 // seed starts every cell's trajectory together from the model's initial

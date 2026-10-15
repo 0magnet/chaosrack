@@ -265,7 +265,7 @@ func knownMode(key string) bool { _, ok := modeInfo[key]; return ok }
 
 // isAttractorMode: modes that integrate/trace into the trail buffer (and so
 // support trail-length, sonification SCAN, persist painting, …).
-func isAttractorMode(mode string) bool { //nolint:unused // only the js build draws, so the native one never calls it
+func isAttractorMode(mode string) bool {
 	switch modeInfo[mode].Class {
 	case ClassFlow3D, ClassFlow4D, ClassParametric, ClassMap:
 		return true
@@ -341,3 +341,7 @@ func runsOnSpeed(mode string) bool { //nolint:unused // only the js build has a 
 // IsFlatScope reports whether a model is a plane figure that comes up
 // face-on (isFlatScope).
 func IsFlatScope(mode string) bool { return isFlatScope(mode) }
+
+// IsAttractorMode reports whether mode integrates a trajectory: a flow, a
+// map or a traced curve.
+func IsAttractorMode(mode string) bool { return isAttractorMode(mode) }
