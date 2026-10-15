@@ -19,6 +19,9 @@ type bifView struct {
 	flow  string
 	last  time.Time
 	frac  float64
+	// env is the loudness DRIVE on audio follows, and cur the cursor's readout.
+	env envFollower
+	cur string
 }
 
 // bifFigure grows the diagram on to now, while running, and is its points
@@ -79,4 +82,66 @@ func (r *Rack) sweepOptions(ps []dynamics.Param) {
 		c.Value = strconv.Itoa(attractor.SweepParam(ps, -1))
 	}
 	r.turn(c)
+}
+
+// envFollower is the rack's signal's loudness as the page's Audio mod
+// envelope follows it (attractor's featurefollow.go): RMS, divided by its
+// recent peak, smoothed — once for each of the page's frames the time since
+// the last stood for.
+type envFollower struct {
+	peak, val float32
+	last      time.Time
+}
+
+func (e *envFollower) follow(raw float32, now time.Time) float32 {
+	frames := 1
+	if !e.last.IsZero() {
+		frames = max(1, min(int(now.Sub(e.last).Seconds()*60+0.5), 60))
+	}
+	e.last = now
+	for range frames {
+		e.val = attractor.FeatureSmooth(e.val, attractor.FeatureNorm(&e.peak, raw))
+	}
+	return e.val
+}
+
+// envWindow is how much of the rack's signal one loudness reading is taken
+// over: the page's analyzer window.
+const envWindow = 2048
+
+// bifCursor is DRIVE on audio: where the rack's loudness puts the swept
+// parameter, as a gold rule across the diagram with the diagram's own points
+// there lit, and the readout that names it; on sweep, none, and "sweep".
+// Called with r.mu held.
+func (r *Rack) bifCursor() (attractor.Figure, string) {
+	b := &r.analyzers.bif
+	ps := dynamics.Params(b.flow)
+	idx := attractor.SweepParam(ps, int(r.number("bif-sweep")))
+	if r.value("bif-drive") != "1" || idx < 0 {
+		return attractor.Figure{}, "sweep"
+	}
+	p := ps[idx]
+	l, rt := r.sound.window(envWindow)
+	env := b.env.follow((rms(l)+rms(rt))/2, r.sound.now())
+	r.sound.mu.Lock() // the sweep turns the constant under it while it fills
+	center := *p.Value
+	r.sound.mu.Unlock()
+	v := attractor.BifAudioValue(env, float32(r.number("bif-depth")), center, p.Min, p.Max)
+	f := attractor.Figure{Kind: attractor.FigurePoints}
+	b.sweep.Cursor(v, p.Min, p.Max, func(x, y, _ float32) {
+		f.Points = append(f.Points, [3]float64{float64(x), float64(y), 0})
+	})
+	return f, p.Label + " " + strconv.FormatFloat(float64(v), 'f', 2, 32)
+}
+
+// rms is the root mean square of x.
+func rms(x []float32) float32 {
+	if len(x) == 0 {
+		return 0
+	}
+	s := 0.0
+	for _, v := range x {
+		s += float64(v) * float64(v)
+	}
+	return float32(math.Sqrt(s / float64(len(x))))
 }

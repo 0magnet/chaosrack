@@ -63,30 +63,13 @@ var (
 // decay) → a level-independent 0..1 value.
 func (a *audioFeatures) normMap(key string, x float32) float32 {
 	p := a.peak[key]
-	if x > p {
-		p = x
-	} else {
-		p *= 0.9995
-	}
+	r := FeatureNorm(&p, x) // featurefollow.go, which a native rack follows with too
 	a.peak[key] = p
-	if p < 1e-9 {
-		return 0
-	}
-	r := x / p
-	if r > 1 {
-		r = 1
-	}
 	return r
 }
 
 // afSmooth: fast attack, slow release.
-func afSmooth(cur, target float32) float32 {
-	const attack, release = 0.6, 0.12
-	if target > cur {
-		return cur + (target-cur)*attack
-	}
-	return cur + (target-cur)*release
-}
+func afSmooth(cur, target float32) float32 { return FeatureSmooth(cur, target) }
 
 func clamp01(x float32) float32 {
 	if x < 0 {

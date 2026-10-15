@@ -121,7 +121,7 @@ func (b *bifurcation) generateBifurcation() {
 		return
 	}
 	gpu.uploadVerticesOnly(vertices[:n*4], glctx.Types.Points, n)
-	b.drawCursor(p, b.max-b.min)
+	b.drawCursor(p)
 	if !b.fitDone && b.Started() {
 		b.fitDone = true
 		view.autoFitCamera()
@@ -132,20 +132,6 @@ func (b *bifurcation) generateBifurcation() {
 //
 // The diagram above is untouched by any of this. What follows only points at
 // it — see bifdrive.go for why that is the whole design and not a compromise.
-
-// bifCursorRulePts is how many points the vertical rule is drawn with. Points
-// and not a line strip because the diagram is a single POINTS draw and this
-// rides the same pipeline; a strip would be a second draw call and a second
-// pass through uploadVerticesOnly's in-place center subtraction, which is
-// the reasoning the Poincaré return map's y=x diagonal already settled.
-const bifCursorRulePts = 96
-
-// bifCursorBand is how many columns either side of the cursor's own are lit
-// up with it. One: at 360 columns across the screen a single column is a
-// hairline, and the point of the highlight is to show the attractor's slice AT
-// this parameter — widening it further would start mixing in structure from
-// parameter values the music is not at.
-const bifCursorBand = 1
 
 // bifEnvelope is the audio envelope driving the cursor, and whether there is
 // one to read.
@@ -181,10 +167,7 @@ func (b *bifurcation) cursorValue(p paramDef) (float32, bool) {
 
 // drawCursor lights the diagram's own points at the cursor's parameter and
 // draws a rule through them, in gold via the monochrome override.
-//
-// span is the diagram's current y range, passed in rather than recomputed so
-// the rule spans exactly what the scatter spans.
-func (b *bifurcation) drawCursor(p paramDef, span float64) {
+func (b *bifurcation) drawCursor(p paramDef) {
 	v, ok := b.cursorValue(p)
 	b.showCursor(b.cursorReadout(p, v, ok))
 	if !ok {
@@ -195,27 +178,11 @@ func (b *bifurcation) drawCursor(p paramDef, span float64) {
 		b.curBuf = make([]float32, need)
 	}
 	buf := b.curBuf[:0]
-	fx := bifFrac(v, p.Min, p.Max)
-	x := (fx*2 - 1) * 20
-	for i := range bifCursorRulePts {
-		fy := float32(i) / float32(bifCursorRulePts-1)
-		buf = append(buf, x, (fy*2-1)*12, 0, fy)
-	}
-	// The diagram's own points in the cursor's column band. These are the
-	// reading: the set of values the attractor settles onto at the parameter
-	// the music is currently at.
-	col := int32(bifColumnFor(v, p.Min, p.Max, bifCols)) //nolint:gosec // a column index into the bifurcation image
-	for i := range b.colOf {
-		if b.colOf[i] < col-bifCursorBand || b.colOf[i] > col+bifCursorBand {
-			continue
+	b.Cursor(v, p.Min, p.Max, func(x, y, f float32) {
+		if len(buf)+4 <= cap(b.curBuf) {
+			buf = append(buf, x, y, 0, f)
 		}
-		if len(buf)+4 > cap(b.curBuf) {
-			break
-		}
-		cx := float32(b.colOf[i]) / float32(bifCols-1)
-		cy := float32((b.valOf[i] - b.min) / span)
-		buf = append(buf, (cx*2-1)*20, (cy*2-1)*12, 0, cy)
-	}
+	})
 	// Gold, and put BOTH uniforms back afterwards. renderFrame re-uploads the
 	// gradient's source every frame but not uBaseColor, so an override left
 	// set here would tint the next mode's trail until something touched a

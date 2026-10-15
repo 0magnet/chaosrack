@@ -229,6 +229,7 @@ func (r *Rack) hear(key string, on bool, w int) (h heard) {
 		h.fig, h.fit = r.sectionFigure(on && r.value("pause-sw") != "1")
 	case key == "bifurcation":
 		h.fig, h.fit = r.bifFigure(on && r.value("pause-sw") != "1")
+		h.overlay, r.analyzers.bif.cur = r.bifCursor()
 	case key == "sprottmorph":
 		h.fig, h.fit = r.morphFigure(on && r.value("pause-sw") != "1")
 	case key == "waterfall":

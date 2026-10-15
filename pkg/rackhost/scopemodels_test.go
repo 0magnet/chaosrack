@@ -2,6 +2,8 @@ package rackhost
 
 import (
 	"math"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -263,5 +265,35 @@ func TestLPutsTheModelInTheLattice(t *testing.T) {
 		if time.Now().After(deadline) {
 			t.Fatalf("the Lattice never drew Lorenz (scale %.2f, %d lit, %d plain)", ext, n, plain)
 		}
+	}
+}
+
+// DRIVE on audio points a gold cursor at the diagram where the rack's
+// loudness puts the swept parameter, and its readout names the value; on
+// sweep there is none.
+func TestTheBifurcationsAudioCursor(t *testing.T) {
+	r, c := idleRack(t, "bifurcation")
+	set(t, r, "gen-x-wave", "0", "gen-x-lvl", "80", "mix-rl-g1", "1", "mix-rr-g1", "1", "bif-drive", "1")
+	looks(t, r, c, 0.3)
+	watch(t, r, c, 1)
+	r.mu.Lock()
+	h := r.hear("bifurcation", true, 80)
+	cur := r.analyzers.bif.cur
+	r.mu.Unlock()
+	if len(h.overlay.Points) < 96 {
+		t.Errorf("the cursor is %d points, want its rule at least", len(h.overlay.Points))
+	}
+	if f := strings.Fields(cur); len(f) != 2 {
+		t.Errorf("the cursor's readout is %q, want a parameter and its value", cur)
+	} else if _, err := strconv.ParseFloat(f[1], 64); err != nil {
+		t.Errorf("the cursor's readout is %q", cur)
+	}
+	set(t, r, "bif-drive", "0")
+	r.mu.Lock()
+	h = r.hear("bifurcation", true, 80)
+	cur = r.analyzers.bif.cur
+	r.mu.Unlock()
+	if len(h.overlay.Points) != 0 || cur != "sweep" {
+		t.Errorf("on sweep: a cursor of %d points, reading %q", len(h.overlay.Points), cur)
 	}
 }

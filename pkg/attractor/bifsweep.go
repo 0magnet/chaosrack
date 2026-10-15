@@ -127,3 +127,50 @@ func SweepParam(ps []dynamics.Param, idx int) int {
 	}
 	return 0
 }
+
+// bifCursorRulePts is how many points the vertical rule is drawn with. Points
+// and not a line strip because the diagram is a single POINTS draw and this
+// rides the same pipeline; a strip would be a second draw call and a second
+// pass through uploadVerticesOnly's in-place center subtraction, which is
+// the reasoning the Poincaré return map's y=x diagonal already settled.
+const bifCursorRulePts = 96
+
+// bifCursorBand is how many columns either side of the cursor's own are lit
+// up with it. One: at 360 columns across the screen a single column is a
+// hairline, and the point of the highlight is to show the attractor's slice AT
+// this parameter — widening it further would start mixing in structure from
+// parameter values the music is not at.
+const bifCursorBand = 1
+
+// Cursor hands put the audio cursor at parameter value v of lo..hi, on the
+// plane as Points puts the diagram: a rule across it, and then the diagram's
+// own points in the cursor's column and bifCursorBand either side — the
+// values the attractor settles onto at the parameter the music is at — each
+// with its height up the plane.
+func (b *BifSweep) Cursor(v, lo, hi float32, put func(x, y, frac float32)) {
+	x := (bifFrac(v, lo, hi)*2 - 1) * 20
+	for i := range bifCursorRulePts {
+		fy := float32(i) / float32(bifCursorRulePts-1)
+		put(x, (fy*2-1)*12, fy)
+	}
+	span := b.max - b.min
+	if span <= 0 {
+		return
+	}
+	col := int32(bifColumnFor(v, lo, hi, bifCols)) //nolint:gosec // a column index into the bifurcation image
+	for i := range b.colOf {
+		if b.colOf[i] < col-bifCursorBand || b.colOf[i] > col+bifCursorBand {
+			continue
+		}
+		cx := float32(b.colOf[i]) / float32(bifCols-1)
+		cy := float32((b.valOf[i] - b.min) / span)
+		put((cx*2-1)*20, (cy*2-1)*12, cy)
+	}
+}
+
+// BifAudioValue is where envelope env, 0..1, puts the swept parameter: across
+// depth of its range lower..upper, centered on its knob's value center
+// (bifdrive.go).
+func BifAudioValue(env, depth, center, lower, upper float32) float32 {
+	return bifAudioValue(env, depth, center, lower, upper)
+}
