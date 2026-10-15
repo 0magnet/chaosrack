@@ -24,6 +24,8 @@ import (
 // whatever the wrap happened to put beside it.
 
 type panel struct {
+	// info is the Info pane (infopane.go).
+	info infoPane
 	// edit is a text control being typed into (textedit.go).
 	edit *textEdit
 	// gk is the keys a game holds down (gamekeys.go).
@@ -311,6 +313,9 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 		p.editKey(ev)
 		return false
 	}
+	if p.infoKey(ev) {
+		return false
+	}
 	switch ev.Key() {
 	case tcell.KeyEscape, tcell.KeyCtrlC:
 		if p.typing && ev.Key() == tcell.KeyEscape {
@@ -466,6 +471,7 @@ func (p *panel) move(n int) {
 	if len(p.ctls) == 0 {
 		return
 	}
+	p.info.moved, p.msg = true, "" // the status line hints at the control moved to
 	p.cur += n
 	if p.cur < 0 {
 		p.cur = 0
@@ -593,6 +599,9 @@ func (p *panel) draw(sc tcell.Screen) {
 	} else {
 		p.drawList(sc, 0, w, h)
 	}
+	if p.info.on {
+		p.drawInfo(sc, w, h)
+	}
 
 	// The status line: what just happened, or how to work it.
 	status := "↑↓ move   ←→ turn   / find   0 reset   ctrl+↑↓←→ pan   tab rack/list   r reload   q quit"
@@ -601,6 +610,9 @@ func (p *panel) draw(sc tcell.Screen) {
 	}
 	if _, ok := p.src.(Overlay); ok {
 		status += "   w web"
+	}
+	if _, ok := p.src.(Manualed); ok {
+		status += "   i info"
 	}
 	st := stDim
 	switch {
@@ -618,6 +630,8 @@ func (p *panel) draw(sc tcell.Screen) {
 		status = "the scene: " + p.sceneNote
 	case p.msg != "":
 		status = p.msg
+	case p.info.moved && p.cursorHint() != "":
+		status = p.cursorHint()
 	}
 	puts(sc, 0, h-1, clip(status, w), st)
 	sc.Show()

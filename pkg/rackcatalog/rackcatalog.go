@@ -20,6 +20,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/0magnet/chaosrack/manual"
 	"github.com/0magnet/chaosrack/pkg/rackpic"
 	"github.com/0magnet/chaosrack/pkg/racksurface"
 	"github.com/0magnet/chaosrack/pkg/racktui"
@@ -46,6 +47,9 @@ type Catalog struct {
 	// differs from model to model only inside BankRegion (x, y, w, h).
 	Banks      map[string]*Bank `json:"banks,omitempty"`
 	BankRegion [4]float64       `json:"bankRegion"`
+	// Manual is each bay's page of the manual, as the page's Info window
+	// reads it off the panel, bay 1 first; a bank's own pages are its.
+	Manual [][]manual.Module `json:"manual,omitempty"`
 }
 
 // Bank is the picture's items inside the bank region for one model, and the
@@ -53,6 +57,9 @@ type Catalog struct {
 type Bank struct {
 	Items []*rackpic.Item       `json:"items"`
 	Ctls  map[string][4]float64 `json:"ctls"`
+	// Manual is the pages of the bays that read otherwise with this model,
+	// by bay number.
+	Manual map[int][]manual.Module `json:"manual,omitempty"`
 }
 
 // InBank reports whether an item belongs to the model bank of region r: in

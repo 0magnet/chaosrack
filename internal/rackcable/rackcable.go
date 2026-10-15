@@ -309,3 +309,15 @@ func (r *Client) Canvases(gen int, want []rackpic.CanvasWant) (map[int]*rackpic.
 	}
 	return c.Imgs, nil
 }
+
+// Manual is bay n's page of the manual, with the model on show, as the
+// page's Info window has them (rackctl.manual).
+func (r *Client) Manual(bay int) (racktui.ManualPage, error) {
+	var pg racktui.ManualPage
+	s, ok := r.c.Eval(fmt.Sprintf(`rackctl.manual ? rackctl.manual(%d) : "{}"`, bay)).(string)
+	if !ok {
+		return pg, fmt.Errorf("the page gave no manual for bay %d", bay)
+	}
+	err := json.Unmarshal([]byte(s), &pg)
+	return pg, err
+}

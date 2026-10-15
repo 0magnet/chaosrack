@@ -78,6 +78,23 @@ func exposeRackControl() {
 		return true
 	}))
 
+	// manual(n) → bay n's page of the manual and the model on show, as JSON:
+	// what a terminal panel's Info pane shows (racktui.ManualPage).
+	o.Set("manual", dom.FuncOf(func(_ js.Value, a []js.Value) any {
+		if len(a) == 0 {
+			return "{}"
+		}
+		pg, err := inPageRack{}.Manual(a[0].Int())
+		if err != nil {
+			return "{}"
+		}
+		b, err := json.Marshal(pg)
+		if err != nil {
+			return "{}"
+		}
+		return string(b)
+	}))
+
 	js.Global().Set("rackctl", o)
 	startRackLink()
 }

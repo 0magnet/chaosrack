@@ -135,3 +135,19 @@ func isEquationBlock(p string) bool {
 	}
 	return true
 }
+
+// ModelDescription is model's description, as the Info window gives it.
+func ModelDescription(model string) string {
+	if text, ok := attractorDescriptions[model]; ok {
+		return text
+	}
+	return model
+}
+
+// ModelLabel is model's name as the selector gives it.
+func ModelLabel(model string) string {
+	if m, ok := modeInfo[model]; ok && m.Label != "" {
+		return m.Label
+	}
+	return model
+}

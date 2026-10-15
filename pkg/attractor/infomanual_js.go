@@ -91,22 +91,9 @@ func infoShown() bool {
 	return sw.Truthy() && sw.Get("checked").Bool()
 }
 
-// infoModule is one module of a bay as bayManual reads it.
-type infoModule struct {
-	Name  string     `json:"h"`
-	About string     `json:"t"`
-	Range string     `json:"r"` // the addresses it covers
-	Cells []infoCell `json:"c"`
-	Keys  []string   `json:"k"` // what the manual may have it under
-}
-
-// infoCell is one addressed control: its address, what its tooltip says,
-// and what the manual may have it under.
-type infoCell struct {
-	Loc  string   `json:"l"`
-	Tip  string   `json:"t"`
-	Keys []string `json:"k"`
-}
+// infoModule is one module of a bay as bayManual reads it (the manual's
+// baypage.go, which a terminal panel's Info pane reads too).
+type infoModule = manual.Module
 
 // writeInfo fills the Info window: the running model's description while
 // one is on screen, and the manual for the bay being worked at while the rack
@@ -210,19 +197,11 @@ func manualAnchor(loc string) string { return "c-" + strings.ReplaceAll(loc, "."
 // bayTitle is bay n as its heading names it: its number and its section, as
 // the rack groups them (racksection.go), from the first module in it.
 func bayTitle(n int) string {
-	t := "Bay " + strconv.Itoa(n)
-	var mods []struct {
-		Name string `json:"h"`
+	var mods []manual.Module
+	if err := json.Unmarshal([]byte(fastDOM().Call("bayManual", n).String()), &mods); err != nil {
+		mods = nil
 	}
-	if err := json.Unmarshal([]byte(fastDOM().Call("bayManual", n).String()), &mods); err == nil && len(mods) > 0 {
-		sec := moduleSection(strings.ToLower(strings.TrimSpace(mods[0].Name)))
-		if s := sectionTitle[sec]; s != "" {
-			t += " — " + s
-		} else if sec != "" {
-			t += " — " + strings.ToUpper(strings.TrimPrefix(sec, "cat:")) // a category's row names itself
-		}
-	}
-	return t
+	return BayTitle(n, mods)
 }
 
 // infoRackOff reports whether no model is on screen, which is when Info is
@@ -235,18 +214,13 @@ func infoRackOff() bool { return run.stopped || editMode() == "" }
 // under it a selector's positions, where the manual lists them.
 func infoEntryHTML(tip string, keys []string) string {
 	var b strings.Builder
-	found := false
-	for _, k := range keys {
-		if manual.Text(k) == tip {
-			b.WriteString(manual.HTML(k))
-			for _, l := range infoPartLists[k] {
-				b.WriteString(infoListHTML(manual.Positions(l)))
-			}
-			found = true
-			break
+	k, found := manual.EntryKey(tip, keys)
+	if found {
+		b.WriteString(manual.HTML(k))
+		for _, l := range manual.PartLists[k] {
+			b.WriteString(infoListHTML(manual.Positions(l)))
 		}
-	}
-	if !found {
+	} else {
 		b.WriteString(`<p>` + strings.ReplaceAll(html.EscapeString(tip), "\n", "<br>") + `</p>`)
 	}
 	for _, k := range keys {
@@ -258,14 +232,6 @@ func infoEntryHTML(tip string, keys []string) string {
 		break
 	}
 	return b.String()
-}
-
-// infoPartLists are the lists a part's page carries under it: a pin matrix's
-// columns and rows, each of which is an entry of its own (the tooltip over
-// it) and none of which is a control with an address.
-var infoPartLists = map[string][]string{
-	"mixer-matrix": {"mix-group", "mix-src", "mix-row"},
-	"mod-grid":     {"mod-group", "mod-src"},
 }
 
 // infoListHTML is entries keys as a list, each without its paragraph.
