@@ -523,9 +523,9 @@ func (r *Rack) waterfallFigure(nowMs float64) (attractor.Figure, [][3]float64) {
 		want := sampleRate * attractor.WaterfallCaptureSec
 		wv.ref = newest(append(wv.ref, l...), want)
 		wv.meas = newest(append(wv.meas, rt...), want)
-		// No sweep of the rack's own to trigger on: it measures on the
-		// page's free-running clock, as the page does with an external sweep.
-		if len(wv.ref) == want && w.MeasureDue(0, nowMs) {
+		// Measured when the rack's own sweep comes round, or on the page's
+		// free-running clock with none, as the page does with an external one.
+		if len(wv.ref) == want && w.MeasureDue(r.sound.sweepPos(), nowMs) {
 			w.Measure(wv.ref, wv.meas, sampleRate)
 		}
 	}

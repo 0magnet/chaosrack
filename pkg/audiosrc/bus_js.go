@@ -444,20 +444,9 @@ func (b *Bus) Close() {}
 // Feeds reports whether generator i is in the mix.
 func (b *Bus) Feeds(i int) bool { return b.on(InGen + In(i)) }
 
-// SweepPosition reports how far through one pass of the log sweep the first
-// generator in the mix playing it, and let through, is, 0..1 — what an
-// impulse-response measurement needs to know which frequency it is looking
-// at, and when a pass has come round. 0 when none is: a position that never
-// wraps, which the measurement reads as no sweep of ours running.
-func (b *Bus) SweepPosition() float64 {
-	for i := range OscCount {
-		o := &b.Gen.osc[i]
-		if b.Feeds(i) && o.wave == WaveSweep && o.amp > 0 && !o.off && b.Gen.Audible(i) {
-			return o.stim.SweepPosition()
-		}
-	}
-	return 0
-}
+// SweepPosition is the sweep position of the first generator in the mix
+// playing the sweep (FuncGen.SweepPosition).
+func (b *Bus) SweepPosition() float64 { return b.Gen.SweepPosition(b.Feeds) }
 
 // ModWindow is the latest n samples of MOD A and MOD B, the sends only
 // modulation reads, moving nothing on: the capture's and the return's
