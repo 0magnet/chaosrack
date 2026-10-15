@@ -253,18 +253,12 @@ func (r *renderer) uploadBuffersIndexed(vertices []float32, indices []uint16, dr
 		r.indices = indices
 		r.uploadSeq++
 		r.stride = 3
-		glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, r.vbuf)
-		// Switch to packed xyz stride for indexed geometry
-		glctx.GL.Call("vertexAttribPointer", r.aPosition, 3, glctx.Types.Float, false, 0, 0)
-		glctx.GL.Call("enableVertexAttribArray", r.aPosition)
-		glctx.GL.Call("disableVertexAttribArray", r.aTrailT)
-		glctx.GL.Call("disableVertexAttribArray", r.aDwell)
-		glctx.GL.Call("vertexAttrib1f", r.aDwell, 1.0)
-		glctx.GL.Call("vertexAttrib1f", r.aTrailT, 0.0)
+		r.bindStatic()
 		glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, SliceToTypedArray(r.verts), glctx.Types.StaticDraw)
-		glctx.GL.Call("bindBuffer", glctx.Types.ElementArrayBuffer, r.ibuf)
 		glctx.GL.Call("bufferData", glctx.Types.ElementArrayBuffer, SliceToTypedArray(r.indices), glctx.Types.StaticDraw)
 		r.staticDirty = false
+	} else {
+		r.bindStatic()
 	}
 	glctx.GL.Call("drawElements", drawMode, len(r.indices), glctx.Types.UnsignedShort, 0)
 }
@@ -292,8 +286,25 @@ func (r *renderer) staticGeomCached(drawMode js.Value) bool {
 	if r.staticDirty || beam.capturing {
 		return false
 	}
+	r.bindStatic()
 	glctx.GL.Call("drawElements", drawMode, len(r.indices), glctx.Types.UnsignedShort, 0)
 	return true
+}
+
+// bindStatic points the trace program at the static mesh: packed xyz, the
+// trail and dwell attributes constant. Again on every draw rather than once
+// an upload: a pass drawn between can point attribute 0 elsewhere — the
+// water lens points it at a quad — and the mesh's indices then ran off its
+// four vertices, failing every draw of the model from then on.
+func (r *renderer) bindStatic() {
+	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, r.vbuf)
+	glctx.GL.Call("vertexAttribPointer", r.aPosition, 3, glctx.Types.Float, false, 0, 0)
+	glctx.GL.Call("enableVertexAttribArray", r.aPosition)
+	glctx.GL.Call("disableVertexAttribArray", r.aTrailT)
+	glctx.GL.Call("disableVertexAttribArray", r.aDwell)
+	glctx.GL.Call("vertexAttrib1f", r.aDwell, 1.0)
+	glctx.GL.Call("vertexAttrib1f", r.aTrailT, 0.0)
+	glctx.GL.Call("bindBuffer", glctx.Types.ElementArrayBuffer, r.ibuf)
 }
 
 func sliceToByteSlice(s any) []byte {
