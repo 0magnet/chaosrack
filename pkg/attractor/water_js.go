@@ -78,13 +78,15 @@ type waterLens struct {
 	heightArr js.Value
 }
 
-var water = waterLens{
-	amount: 25,
-	speed:  0.5,
-	damp:   985,
-	spread: 12,
-	edge:   100,
-	srcs:   1,
+var water = waterLens{ // waterlens.go's defaults, which a native rack starts at too
+	amount: WaterDefaults.Amount,
+	speed:  WaterDefaults.Speed,
+	damp:   WaterDefaults.Damp,
+	spread: WaterDefaults.Spread,
+	edge:   WaterDefaults.Edge,
+	drive:  WaterDefaults.Drive,
+	srcs:   WaterDefaults.Srcs,
+	rain:   WaterDefaults.Rain,
 }
 
 var (
@@ -94,8 +96,8 @@ var (
 	// pattern whose features are tens of pixels across; at 192 the wavelengths
 	// that matter are still many cells wide and the step is a rounding error
 	// in the frame budget.
-	waterW = 192
-	waterH = 192
+	waterW = WaterGrid
+	waterH = WaterGrid
 )
 
 // damping converts the knob to the retained fraction. The useful range is
