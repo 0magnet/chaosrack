@@ -148,6 +148,7 @@ github.com/0magnet/tuiwasm/xwrite
 github.com/0magnet/u-root/pkg/ls
 # github.com/0magnet/websh v0.0.1-0.20261013225449-0d54b04ae8e4
 ## explicit; go 1.26.6
+github.com/0magnet/websh/console
 github.com/0magnet/websh/progressive
 github.com/0magnet/websh/shell
 github.com/0magnet/websh/shell/sed

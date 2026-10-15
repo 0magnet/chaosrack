@@ -18,6 +18,7 @@ require (
 	github.com/0magnet/websh v0.0.1-0.20261013225449-0d54b04ae8e4
 	github.com/0magnet/winbox-go v0.0.1-0.20261013224642-cc4224c41a9c
 	github.com/0magnet/xterm-go v0.0.1-0.20261013223808-aa0a32cd702b
+	github.com/creack/pty v1.1.24
 	github.com/gdamore/tcell/v2 v2.13.10
 	github.com/gdamore/tcell/v3 v3.6.0
 	github.com/gin-gonic/gin v1.12.0
@@ -65,7 +66,6 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/coder/websocket v1.8.15 // indirect
-	github.com/creack/pty v1.1.24 // indirect
 	github.com/dlclark/regexp2/v2 v2.8.4 // indirect
 	github.com/dunglas/httpsfv v1.1.2 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect

@@ -231,8 +231,8 @@ func (r *Rack) hear(key string, on bool, w int) (h heard) {
 		h.fill = r.value("spect-fill") == "1"
 	case key == "termanim" && on:
 		h.quad = r.animFigure()
-	case key == "hostterm" && on:
-		h.quad = r.shellFigure()
+	case (key == "hostterm" || key == "terminal") && on:
+		h.quad = r.shellOf(key).figure()
 	case key == "recurrence" && on:
 		h.quad = r.recurrencePlot(float64(r.sound.now().UnixNano()) / 1e6)
 	case isAnalyzer(key) && on:

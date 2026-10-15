@@ -46,7 +46,7 @@ func waitScreen(t *testing.T, r *Rack, c *clock, want string) {
 	for time.Now().Before(deadline) {
 		watch(t, r, c, 0.05)
 		r.mu.Lock()
-		text := screenText(r.shell.term)
+		text := screenText(r.shellOf(r.model()).term)
 		r.mu.Unlock()
 		if strings.Contains(text, want) {
 			return
@@ -55,7 +55,7 @@ func waitScreen(t *testing.T, r *Rack, c *clock, want string) {
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	t.Fatalf("the screen never showed %q:\n%s", want, screenText(r.shell.term))
+	t.Fatalf("the screen never showed %q:\n%s", want, screenText(r.shellOf(r.model()).term))
 }
 
 // The Host Terminal runs the user's shell, which takes what is typed and
