@@ -494,16 +494,29 @@ var TurtleKnobs = []string{"turtle-mod", "turtle-seq", "turtle-mul", "turtle-cap
 // again when the knobs ask for a different one.
 type TurtleRun struct {
 	walk *turtleWalk
+	body turtleBody
+}
+
+// TurtlePhysics is the Turtle's weight for a rack without the page: the room
+// it lives in, ±HalfW by ±HalfH about the middle; the Physics knobs; and the
+// step of one of the page's frames, Dt. The camera is far, as a native view
+// is flat.
+type TurtlePhysics struct {
+	HalfW, HalfH             float32
+	Grav, Fric, Bounce, Spin float32
+	Dt                       float32
 }
 
 // Step walks on by frames of the page's at speed (steps a frame, each
 // scale), while running, with the knobs at k (TurtleKnobs' order) and a
 // trail budget of budget, and hands put the trail on screen, oldest first,
-// placed as the walk's camera holds it, with each point's tint.
-func (r *TurtleRun) Step(k [8]float32, budget int, frames float64, steps int, scale float32, running bool, put func(x, y, z, tint float32)) int {
+// with each point's tint: placed as the walk's camera holds it, or with
+// phys, where its weight has carried it.
+func (r *TurtleRun) Step(k [8]float32, budget int, frames float64, steps int, scale float32, running bool, phys *TurtlePhysics, put func(x, y, z, tint float32)) int {
 	key := turtleKeyOf(k[0], k[1], k[2], k[3], k[4], k[5])
 	if r.walk == nil || r.walk.key != key {
 		r.walk = newTurtleWalk(key, k[6], k[7], budget)
+		r.body = turtleBody{} // a new figure is dropped afresh, as the page drops it
 	}
 	t := r.walk
 	t.trailF, t.camF, t.budget = k[6], k[7], budget
@@ -522,6 +535,24 @@ func (r *TurtleRun) Step(k [8]float32, budget int, frames float64, steps int, sc
 	base := len(t.pts) - n
 	t.aim(n)
 	t.rescaled = false
+	if phys != nil {
+		w := turtleWorld{halfW: phys.HalfW, halfH: phys.HalfH, camDist: 1e4,
+			grav: phys.Grav, fric: phys.Fric, bounce: phys.Bounce, spin: phys.Spin, dt: phys.Dt}
+		if running {
+			// A step each of the page's frames this one stands for, each the
+			// page's own: one long step would be held to the step limit and
+			// slow the figure down.
+			for range max(1, int(frames+0.5)) {
+				r.body.step(t, t.pts[base:], w)
+			}
+		}
+		for i := range n {
+			x, y, z := r.body.place(t, t.pts[base+i])
+			put(x, y, z, t.tint[base+i])
+		}
+		return n
+	}
+	r.body.placed = false // dropped again next time, from wherever it is standing
 	for i := range n {
 		p := t.pts[base+i]
 		// pisano's Y grows downward, matching a terminal; here up is up.
@@ -537,4 +568,22 @@ func (r *TurtleRun) Label() string {
 		return ""
 	}
 	return r.walk.label
+}
+
+// TurtlePhysicsKnob is one of the Turtle's Physics knobs: its id, its label,
+// and where it starts and runs.
+type TurtlePhysicsKnob struct {
+	ID, Label           string
+	Def, Min, Max, Step float32
+}
+
+// TurtlePhysicsKnobs are the Physics module's knobs, in its order: what the
+// page builds them from, and where a rack without the page starts them —
+// the page builds them only with the switch up, so its catalog has no values
+// for them.
+var TurtlePhysicsKnobs = []TurtlePhysicsKnob{
+	{"turtle-grav", "grav", 3, -8, 8, 0.1},       // pull, world units per second squared; below zero lifts
+	{"turtle-fric", "fric", 0.6, 0, 2, 0.05},     // how hard the floor and walls grip
+	{"turtle-bounce", "bounce", 0.2, 0, 1, 0.05}, // how much of a hit comes back
+	{"turtle-spin", "spin", 1, 0.1, 8, 0.1},      // how readily it turns
 }

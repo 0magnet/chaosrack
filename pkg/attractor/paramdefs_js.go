@@ -146,12 +146,16 @@ var paramRingLabels = map[string][]string{
 // turtlePhysParams are the weight controls. They are not in attractorParams
 // because they are not the Parameters module: they get their own, which appears
 // with the Physics switch and goes away with it.
-var turtlePhysParams = []paramDef{
-	{"turtle-grav", "grav", &turtle.gravF, 3, -8, 8, 0.1},
-	{"turtle-fric", "fric", &turtle.fricF, 0.6, 0, 2, 0.05},
-	{"turtle-bounce", "bounce", &turtle.bounceF, 0.2, 0, 1, 0.05},
-	{"turtle-spin", "spin", &turtle.spinF, 1, 0.1, 8, 0.1},
-}
+var turtlePhysParams = func() (out []paramDef) {
+	field := map[string]*float32{
+		"turtle-grav": &turtle.gravF, "turtle-fric": &turtle.fricF,
+		"turtle-bounce": &turtle.bounceF, "turtle-spin": &turtle.spinF,
+	}
+	for _, k := range TurtlePhysicsKnobs { // turtlewalk.go, which a native rack starts them from
+		out = append(out, paramDef{k.ID, k.Label, field[k.ID], k.Def, k.Min, k.Max, k.Step})
+	}
+	return out
+}()
 
 // quietParams are parameters the model turns itself — Pong's motorized
 // paddle pots, written back twenty times a second while the machine plays.

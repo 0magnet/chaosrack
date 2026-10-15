@@ -1,5 +1,3 @@
-//go:build js && wasm
-
 package attractor
 
 import (
@@ -86,66 +84,41 @@ func (b *turtleBody) tiltPoint(p pisano.Pt3, sc float32) (x, y, z float32) {
 	return v.X(), v.Y(), v.Z()
 }
 
-// turtleTiltBy turns the figure about the SCREEN axes, which is what a drag
-// near the middle of the picture means.
-func (b *turtleBody) turtleTiltBy(dax, day float32) {
-	b.ensureTilt()
-	inc := mgl32.HomogRotate3DX(dax).Mul4(mgl32.HomogRotate3DY(day))
-	b.tilt = inc.Mul4(b.tilt)
+// damped is a contact's damping on its point, moving at v into the wall's
+// normal: damp times v against it, but never more than would stop the point
+// within this step, given how much of the body moves with it there. Applied
+// as written, the damping that settles a landing turned the spin over each
+// step through the lever of a contact at the end of a long figure, and wound
+// it up until it was not a number — the same trouble grip's comment tells.
+func damped(damp, v, lever, mass, inertia, dt float32) float32 {
+	if dt <= 0 {
+		return 0
+	}
+	stop := absf(v) / dt / (1/mass + lever*lever/inertia)
+	return max(-stop, min(stop, -damp*v))
 }
 
-// turtleCamDist is where the camera ACTUALLY is: the fitted distance less the
-// zoom control, which is exactly what the render loop uses to build the view
-// matrix.
+// grip is the friction a contact puts up against slip, the speed its point
+// slides at: what would stop that point sliding within this step, given how
+// much of the body moves with it there (its mass, and its inertia at lever
+// from the middle), as far as the floor can push — limit, mu times the
+// contact's normal force.
 //
-// The room used the fitted distance alone and ignored the zoom, so zooming
-// changed the picture without changing the room. The floor stopped being the
-// bottom of the screen, and the figure appeared to move rather than simply get
-// bigger — which is not what a zoom does to a thing sitting on a floor.
-func turtleCamDist() float32 {
-	d := view.initDist - view.ctl.zoom
-	if d < 0.1 {
-		d = 0.1
+// Coulomb friction is mu*N opposing the slip whatever its speed, which as
+// written explicitly chatters at a fixed step, so it was smoothed: full
+// strength by a slip of 1/60 of a unit a second. At 4 it never gripped, and at
+// 60 it was a damper far stiffer than a step of a sixtieth of a second can
+// integrate. Through a contact at the end of a long figure it turned the spin
+// round and over again each step, a little harder each time, and the figure
+// spun up until its numbers were not numbers. Worked out at the velocity it
+// grips completely, as the stiff one meant to, and cannot overshoot.
+func grip(limit, slip, lever, mass, inertia, dt float32) float32 {
+	if dt <= 0 {
+		return 0
 	}
-	return d
+	meff := 1 / (1/mass + lever*lever/inertia)
+	return max(-limit, min(limit, -slip*meff/dt))
 }
-
-// turtleRoom is the room the body lives in: the viewport itself.
-//
-// The camera sits at distance d looking down −z with a 45° vertical field, so
-// what is on screen at the plane the figure is drawn in spans d·tan(22.5°)
-// above and below the middle, and that times the aspect to either side. Taking
-// the walls from those numbers is what makes the bottom edge of the picture the
-// floor and the sides the walls, at whatever zoom, instead of an invisible box
-// that happened to be a constant — and "at whatever zoom" is only true now that
-// the distance it asks for includes the zoom.
-func turtleRoom() (cx, cy, halfW, halfH float32) {
-	halfH = turtleCamDist() * 0.41421 // tan(22.5°), half the 45° vertical FOV
-	aspect := float32(1.6)
-	if gpu.height > 0 {
-		aspect = float32(gpu.width) / float32(gpu.height)
-	}
-	if halfH <= 0 {
-		halfH = box / 2
-	}
-	// Panning moves the camera, so it moves the room with it — the floor stays
-	// the bottom of the picture rather than sliding off it.
-	return -view.panX, -view.panY, halfH * aspect, halfH
-}
-
-// stickSlope is how quickly friction reaches full strength as a contact
-// starts to slip. Coulomb friction is |f| = mu*N opposing the slip whatever
-// the slip SPEED, which as written explicitly would chatter at a fixed step —
-// so it is smoothed, and this is how sharp that smoothing is.
-//
-// It was 4, meaning friction only reached full strength at a quarter of a
-// world unit per second, in a room about eight units tall. Anything slower
-// than that got a fraction of the friction it should have, so the figure never
-// gripped: it slid across the floor while the walk streamed through it, which
-// is what "really slipping on the floor" was. At 60 a contact is holding
-// properly by about a centimeter per second of slip, so the material plants
-// itself and the BODY is what moves — which is what walking is.
-const stickSlope float32 = 60
 
 // turtleRoomFit is how much of the room's height the figure is drawn at once it
 // has to live in it. Without it the figure is scaled to fill the frame, which
@@ -157,14 +130,18 @@ const turtleRoomFit float32 = 0.55
 // physScale is the lattice-to-world scale while the figure has weight.
 func (t *turtleWalk) physScale() float32 { return t.scale * turtleRoomFit }
 
-// physOn reports whether the walk is being simulated. Gravity was the switch
-// for a while, which stopped being tenable the moment it could pull upward:
-// zero then means "no pull", not "no physics", and floating in a box is
-// somewhere you might want to be.
-func physOn() bool { return turtlePhysOn && run.selectedMode == "turtle" }
-
-// turtlePhysOn is the Physics switch on the Motion panel.
-var turtlePhysOn bool
+// turtleWorld is what the body lives in and under: the room — the viewport
+// at the figure's depth, its middle and half its width and height — the
+// camera's distance, the Physics knobs, the frame's step, and a hand on the
+// figure if there is one. The page takes it from its view (turtleworld_js.go),
+// a native rack from its own.
+type turtleWorld struct {
+	cx, cy, halfW, halfH     float32
+	camDist                  float32
+	grav, fric, bounce, spin float32
+	dt                       float32
+	grab                     func(b *turtleBody, t *turtleWalk, pts []pisano.Pt3, mass float32) (fx, fy, torque float32)
+}
 
 // step advances the body one frame, given the trail it is made of.
 //
@@ -173,7 +150,8 @@ var turtlePhysOn bool
 // is pushing on it, then move it. Contact is a spring against the floor rather
 // than an impulse — which is both the analog-computer way to write it and the
 // stable one at a fixed frame step.
-func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
+// The step is w.dt, held to 0.05: a slow frame must not launch it.
+func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3, w turtleWorld) {
 	n := len(pts)
 	if n < 2 {
 		return
@@ -261,10 +239,7 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 
 	// The step, needed here rather than at the integration below because the
 	// material's speed is wanted while the contact forces are being worked out.
-	dt := 0.016 * float32(sim.speedSteps) * sim.speedScale
-	if dt > 0.05 {
-		dt = 0.05 // a slow frame must not launch it
-	}
+	dt := min(w.dt, 0.05)
 
 	// The velocity the MATERIAL has through the world, which is not the body's.
 	// A point sits at b.pos + R·(P·sc − local), so as the walk extrudes and the
@@ -287,7 +262,7 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 		inertia = 0 // only rounding can get here
 	}
 	mass := float32(n)
-	inertia *= max(0.05, turtle.spinF) // SPIN dials how readily it turns
+	inertia *= max(0.05, w.spin) // SPIN dials how readily it turns
 	if inertia <= 0 {
 		inertia = 1
 	}
@@ -295,8 +270,8 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 	// What is pushing on it. Gravity acts through the center of mass and so
 	// makes no torque; the floor acts wherever the figure touches it, and that
 	// is what tips it over.
-	cxR, cyR, halfW, halfH := turtleRoom()
-	fx, fy := float32(0), -turtle.gravF*mass
+	cxR, cyR, halfW, halfH := w.cx, w.cy, w.halfW, w.halfH
+	fx, fy := float32(0), -w.grav*mass
 	var torque float32
 	// How far the body reaches, in each direction, from its center of mass. It
 	// costs nothing to note while the points are being walked anyway, and it is
@@ -331,12 +306,12 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 	// Sharing one total force is also the physically right invariant: a body
 	// resting on a plane is held up by its own weight in total, no matter how
 	// much of it happens to be in contact.
-	accel := absf(turtle.gravF)
+	accel := absf(w.grav)
 	if accel < 2 {
 		accel = 2 // something to push back with even in free fall
 	}
 	kTot := accel * mass / (0.01 * halfH)
-	dampTot := 2 * sqrtf(kTot*mass) * (1 - clamp01(turtle.bounceF))
+	dampTot := 2 * sqrtf(kTot*mass) * (1 - clamp01(w.bounce))
 	kPer, damp := kTot, dampTot
 	// Contact forces accumulate apart from gravity so they can be shared out
 	// once the count is known — this frame's count, not the last one's.
@@ -351,7 +326,7 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 		wx, wy := b.x+rx, b.y+ry
 		// Where this point is DRAWN, at the focal plane, so the spring pushes
 		// against the wall the eye sees rather than one at the wrong depth.
-		g := b.depthGain(tz-b.localZ, turtleCamDist())
+		g := b.depthGain(tz-b.localZ, w.camDist)
 		px, py := wx*g, wy*g
 		loX, hiX = min(loX, rx), max(hiX, rx)
 		loY, hiY = min(loY, ry), max(hiY, ry)
@@ -366,9 +341,9 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 		// the figure can slide down a wall or skid along the ceiling exactly as
 		// it slides along the floor.
 		if d := ((cyR - halfH) - py) / g; d > 0 { // floor
-			n := kPer*d - damp*pvy
+			n := kPer*d + damped(damp, pvy, rx, mass, inertia, dt)
 			if n > 0 {
-				f := -turtle.fricF * n * clampUnit(pvx*stickSlope)
+				f := grip(w.fric*n, pvx, ry, mass, inertia, dt)
 				cfx += f
 				cfy += n
 				ctorque += rx*n - ry*f
@@ -376,9 +351,9 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 			}
 		}
 		if d := (py - (cyR + halfH)) / g; d > 0 { // ceiling
-			n := kPer*d + damp*pvy
+			n := kPer*d + damped(damp, -pvy, rx, mass, inertia, dt)
 			if n > 0 {
-				f := -turtle.fricF * n * clampUnit(pvx*stickSlope)
+				f := grip(w.fric*n, pvx, ry, mass, inertia, dt)
 				cfx += f
 				cfy -= n
 				ctorque += -rx*n - ry*f
@@ -386,9 +361,9 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 			}
 		}
 		if d := ((cxR - halfW) - px) / g; d > 0 { // left
-			n := kPer*d - damp*pvx
+			n := kPer*d + damped(damp, pvx, ry, mass, inertia, dt)
 			if n > 0 {
-				f := -turtle.fricF * n * clampUnit(pvy*stickSlope)
+				f := grip(w.fric*n, pvy, rx, mass, inertia, dt)
 				cfx += n
 				cfy += f
 				ctorque += rx*f - ry*n
@@ -396,9 +371,9 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 			}
 		}
 		if d := (px - (cxR + halfW)) / g; d > 0 { // right
-			n := kPer*d + damp*pvx
+			n := kPer*d + damped(damp, -pvx, ry, mass, inertia, dt)
 			if n > 0 {
-				f := -turtle.fricF * n * clampUnit(pvy*stickSlope)
+				f := grip(w.fric*n, pvy, rx, mass, inertia, dt)
 				cfx -= n
 				cfy += f
 				ctorque += rx*f + ry*n
@@ -418,7 +393,9 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 	}
 	b.contacts = touching
 
-	if gfx, gfy, gt := b.grabForce(t, pts, mass); gfx != 0 || gfy != 0 || gt != 0 {
+	if w.grab != nil {
+		// A hand on it: the page's pointer, pulling where it holds.
+		gfx, gfy, gt := w.grab(b, t, pts, mass)
 		fx += gfx
 		fy += gfy
 		torque += gt
@@ -463,8 +440,8 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3) {
 	// a point resting exactly on the floor plane but in front of it appears
 	// below the bottom of the screen. That is the part of the model that could
 	// go through the floor and the walls while the physics was satisfied.
-	bounce := clamp01(turtle.bounceF)
-	up, down, right, left := b.roomFix(pts, sc, lx, ly, cxR, cyR, halfW, halfH, turtleCamDist())
+	bounce := clamp01(w.bounce)
+	up, down, right, left := b.roomFix(pts, sc, lx, ly, cxR, cyR, halfW, halfH, w.camDist)
 	if up > 0 {
 		b.y += up
 		if b.vy < 0 {
@@ -535,18 +512,6 @@ func sqrtf(v float32) float32 {
 
 func cosf(a float32) float32 { return float32(math.Cos(float64(a))) }
 func sinf(a float32) float32 { return float32(math.Sin(float64(a))) }
-
-// clampUnit holds a value to either side of zero. (clamp01, for the one-sided
-// case, already exists in audiofeatures_js.go.)
-func clampUnit(v float32) float32 {
-	if v < -1 {
-		return -1
-	}
-	if v > 1 {
-		return 1
-	}
-	return v
-}
 
 // extent measures how far the body reaches from its center of mass, in each
 // direction, at its CURRENT angle. The force loop works this out as it goes,

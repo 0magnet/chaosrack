@@ -61,13 +61,18 @@ func (r *Rack) scopeFigure(key string, running bool) (attractor.Figure, [][3]flo
 			k[i] = float32(r.number(id))
 		}
 		f := attractor.Figure{Kind: attractor.FigurePath}
-		sm.turtle.Step(k, steps, frames, sub, float32(scale), running, func(x, y, z, tint float32) {
+		phys := r.turtlePhysics(sub, scale)
+		sm.turtle.Step(k, steps, frames, sub, float32(scale), running, phys, func(x, y, z, tint float32) {
 			f.Points = append(f.Points, [3]float64{float64(x), float64(y), float64(z)})
 			f.Ages = append(f.Ages, tint) // the tinter's color, as the page's trail attribute
 		})
 		r.aimTurtle()
 		if r.value("use-points") == "1" {
 			f.Kind = attractor.FigurePoints
+		}
+		if phys != nil {
+			// Framed to the room, so its floor is the picture's bottom edge.
+			return f, [][3]float64{{0, -1, 0}, {0, 1, 0}}
 		}
 		// The walk's own camera holds it still and sized to its box.
 		return f, [][3]float64{{-1.2, -1.2, -1.2}, {1.2, 1.2, 1.2}}
@@ -138,3 +143,24 @@ func (r *Rack) turtleCycle(now time.Time, running bool) {
 
 // turtleModMax is the Turtle's MOD knob's top, where CYCLE wraps.
 const turtleModMax = 300
+
+// turtleRoom is half the native Turtle's room, up and down, with weight: the
+// frame it is fitted to then (±1 at 0.85 of the half frame), which is what
+// makes the picture's bottom edge the floor. Across, it is the page's default
+// aspect wider.
+const turtleRoom = 1 / 0.85
+
+// turtlePhysics is the Turtle's weight with the Console's Physics switch up,
+// or nil: the room, the Physics knobs, and the page's step at the Speed
+// knob's sub-steps and scale. Called with r.mu held.
+func (r *Rack) turtlePhysics(steps int, scale float64) *attractor.TurtlePhysics {
+	if r.value("phys-sw") != "1" {
+		return nil
+	}
+	return &attractor.TurtlePhysics{
+		HalfW: turtleRoom * 1.6, HalfH: turtleRoom,
+		Grav: float32(r.number("turtle-grav")), Fric: float32(r.number("turtle-fric")),
+		Bounce: float32(r.number("turtle-bounce")), Spin: float32(r.number("turtle-spin")),
+		Dt: 0.016 * float32(steps) * float32(scale),
+	}
+}

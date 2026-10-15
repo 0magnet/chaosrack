@@ -28,3 +28,6 @@ func FeatureSmooth(cur, target float32) float32 {
 	}
 	return cur + (target-cur)*release
 }
+
+// clamp01 holds x to 0..1.
+func clamp01(x float32) float32 { return min(max(x, 0), 1) }
