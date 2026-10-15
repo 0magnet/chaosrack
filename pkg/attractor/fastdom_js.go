@@ -86,7 +86,7 @@ const fastSource = `(function () {
     // rackSig is the rack's shape: each shown module's name and width, in
     // order (rackUnmoved).
     rackSig: function () {
-      var ms = doc.querySelectorAll("#controls-panel .sect"), out = [];
+      var ms = doc.querySelectorAll(":is(#controls-panel,.cp-ctx) .sect"), out = [];
       for (var i = 0; i < ms.length; i++) {
         var w = ms[i].offsetWidth;
         if (!w) continue;
@@ -96,9 +96,11 @@ const fastSource = `(function () {
       return out.join(",");
     },
     // The rack's bays, as it shows them: its units in order, bay 1 first
-    // (the number on each one's left ear).
+    // (the number on each one's left ear). In either home of the panel: its
+    // own, or the terminal it is laid over (.cp-ctx), where a page first
+    // shows it — looked for in the first alone, the manual found no bays.
     bays: function () {
-      return [].filter.call(doc.querySelectorAll("#controls-panel .runit"), function (u) { return u.offsetParent; });
+      return [].filter.call(doc.querySelectorAll(":is(#controls-panel,.cp-ctx) .runit"), function (u) { return u.offsetParent; });
     },
     // bayOf is the bay el is in, counting from 1, or 0 for none.
     bayOf: function (el) {
