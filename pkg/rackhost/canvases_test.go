@@ -141,3 +141,45 @@ func TestTheMonitorCaptionIsTheModelsName(t *testing.T) {
 		t.Errorf("the caption runs to x=%d, wider than \"Lorenz\" (%d)", band, w)
 	}
 }
+
+// With recurrence running and TREND up, the monitor carries the RQA trend:
+// the DET trace in its blue. With TREND down it shows the model again.
+func TestTheMonitorCarriesTheRQATrend(t *testing.T) {
+	r, c := idleRack(t, "recurrence")
+	set(t, r, "rec-src", "2") // the last flow's trajectory: no audio needed
+	watch(t, r, c, 2)
+	i := canvasOf(t, r, panelCanvas{kind: canvasMonitor})
+	det := func() int {
+		m := screen(t, r, i, 256, 180)
+		n := 0
+		for y := range m.H {
+			for x := range m.W {
+				if m.At(x, y) == (trendTrace[1]) {
+					n++
+				}
+			}
+		}
+		return n
+	}
+	// Two seconds is a dozen readings of the chart's 256: a stub at its
+	// right edge, newest last.
+	if n := det(); n < 5 {
+		t.Errorf("TREND up: %d pixels of the DET trace", n)
+	}
+	set(t, r, "model-sw-0", "0")
+	if n := det(); n != 0 {
+		t.Errorf("TREND down: %d pixels of the DET trace", n)
+	}
+}
+
+// Text basicfont has no glyph for is written as one it has, not as the
+// font's missing-glyph box.
+func TestScreenTextHasNoMissingGlyphs(t *testing.T) {
+	a := image.NewRGBA(image.Rect(0, 0, 40, 14))
+	b := image.NewRGBA(image.Rect(0, 0, 40, 14))
+	drawText(a, 0, 0, "A·B", scopeBeam, 1)
+	drawText(b, 0, 0, "A-B", scopeBeam, 1)
+	if string(a.Pix) != string(b.Pix) {
+		t.Error("a middle dot is not written as a dash")
+	}
+}

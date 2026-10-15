@@ -34,6 +34,9 @@ func (r *Rack) modelSwitches(model string) []modelSwitch {
 		return []modelSwitch{{legend: "rset", press: g.pong.Restart}}
 	case "bounceball":
 		return []modelSwitch{{legend: "drop", press: g.ball.Drop}}
+	case "recurrence":
+		a := &r.analyzers
+		return []modelSwitch{{legend: "trnd", on: func() bool { return !a.trendOff }, set: func(v bool) { a.trendOff = !v }}}
 	case "stlfile":
 		return []modelSwitch{{legend: "load", press: func() { r.prompt = stlPath }}}
 	case "fvf":
