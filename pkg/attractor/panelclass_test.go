@@ -142,8 +142,8 @@ func classAllowed(c string) bool {
 		return true
 	// Found, not styled: a color knob's hue ring, which the tooltip pass
 	// looks up to tell it from the level knob inside it (control.go), and
-	// the Section module, which the panel build finds to take away.
-	case "hueknob", "sectmodule":
+	// the Section and Water modules, which the panel build finds to take away.
+	case "hueknob", "sectmodule", "watermodule":
 		return true
 	// Made, not written out: the dock edge, "dk-"+edge (layout_js.go).
 	case "dk-top", "dk-bottom", "dk-left", "dk-right":
