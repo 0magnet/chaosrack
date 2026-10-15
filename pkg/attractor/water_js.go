@@ -108,15 +108,14 @@ var (
 func (wa *waterLens) damping() float32 { return wa.damp / 1000 }
 
 func init() {
-	attractorParams["water"] = []paramDef{
-		{"water-amount", "bend", &water.amount, 25, 0, 200, 1},
-		{"water-speed", "speed", &water.speed, 0.5, 0.05, 0.7, 0.01},
-		{"water-damp", "damp", &water.damp, 985, 900, 1000, 1},
-		{"water-spread", "visc", &water.spread, 12, 0, 60, 1},
-		{"water-edge", "walls", &water.edge, 100, 0, 100, 1},
-		{"water-drive", "drive", &water.drive, 0, 0, 100, 1},
-		{"water-srcs", "spkrs", &water.srcs, 1, 1, 4, 1},
-		{"water-rain", "rain", &water.rain, 0, 0, 40, 1},
+	// The Water module's knobs, from the shared table (waterlens.go).
+	field := map[string]*float32{
+		"water-amount": &water.amount, "water-speed": &water.speed, "water-damp": &water.damp,
+		"water-spread": &water.spread, "water-edge": &water.edge, "water-drive": &water.drive,
+		"water-srcs": &water.srcs, "water-rain": &water.rain,
+	}
+	for _, k := range WaterKnobs {
+		attractorParams["water"] = append(attractorParams["water"], paramDef{k.ID, k.Label, field[k.ID], k.Def, k.Min, k.Max, k.Step})
 	}
 }
 

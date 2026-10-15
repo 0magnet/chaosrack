@@ -197,6 +197,7 @@ func New() (*Rack, error) {
 	r.custom.Compile()
 	r.seedCustomKnobs()
 	r.addTextControls()
+	r.addWaterControls()
 	r.findLegends()
 	r.useBank(r.model())
 	r.scene.start()
@@ -806,8 +807,9 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	p, on := r.phosphor()
 	if r.waterOn() && m != nil {
 		// The finished frame, seen through the water (water.go).
-		r.water.step(time.Now(), r.waterDrive())
-		r.water.refract(m)
+		d := r.waterSettings()
+		r.water.step(time.Now(), r.waterDrive(), d)
+		r.water.refract(m, d)
 	}
 	r.mu.Unlock()
 	if m != nil && on {
