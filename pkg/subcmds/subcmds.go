@@ -38,9 +38,9 @@ type Dialer struct {
 	Dial func() (*rackcable.Client, error)
 }
 
-// Commands are ctl, rack, render and models, built fresh.
+// Commands are ctl, rack, render, models and manual, built fresh.
 func Commands(d Dialer) []*cobra.Command {
-	cmds := []*cobra.Command{newCtlCmd(d), newRackCmd(d), newRenderCmd(), newModelsCmd()}
+	cmds := []*cobra.Command{newCtlCmd(d), newRackCmd(d), newRenderCmd(), newModelsCmd(), newManualCmd(d)}
 	for _, c := range cmds {
 		run := c.RunE
 		c.RunE = func(cmd *cobra.Command, args []string) error {

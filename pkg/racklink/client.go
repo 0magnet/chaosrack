@@ -192,6 +192,7 @@ func (cl *Client) Act(gen int, x, y float64, kind string, delta float64) error {
 // than decoded and encoded again in a page that would rather be drawing.
 type PageRack interface {
 	racktui.Source
+	racktui.Manualed
 	PictureJSON() string
 	ChangesJSON(gen int) string
 	ActJSON(gen int, x, y float64, kind string, delta float64) string
@@ -265,6 +266,16 @@ func answer(rack PageRack, r Request) (json.RawMessage, error) {
 			return nil, err
 		}
 		return raw(rack.CanvasesJSON(a.Gen, a.Want))
+	case OpManual:
+		var a manualArgs
+		if err := json.Unmarshal(r.Args, &a); err != nil {
+			return nil, err
+		}
+		pg, err := rack.Manual(a.Bay)
+		if err != nil {
+			return nil, err
+		}
+		return json.Marshal(pg)
 	}
 	return nil, fmt.Errorf("racklink: no operation %q", r.Op)
 }
@@ -335,4 +346,16 @@ func (cl *Client) SceneAct(w, h int, shape, x, y float64, kind string, delta flo
 		return errors.New(r.Err)
 	}
 	return nil
+}
+
+type manualArgs struct {
+	Bay int `json:"bay"`
+}
+
+// Manual is bay n's page of the manual, with the model on show, as the
+// page's Info window has them.
+func (cl *Client) Manual(bay int) (racktui.ManualPage, error) {
+	var pg racktui.ManualPage
+	err := cl.call(OpManual, manualArgs{Bay: bay}, &pg)
+	return pg, err
 }

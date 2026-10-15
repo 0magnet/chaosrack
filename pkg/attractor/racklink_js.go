@@ -3,10 +3,12 @@
 package attractor
 
 import (
+	"encoding/json"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/racklink"
 	"github.com/0magnet/chaosrack/pkg/rackpic"
+	"github.com/0magnet/chaosrack/pkg/racktui"
 )
 
 // The page offers its rack to the server it came from (pkg/racklink), so a
@@ -57,4 +59,19 @@ func (inPageRack) SceneActJSON(w, h int, shape, x, y float64, kind string, delta
 
 func (inPageRack) CanvasesJSON(gen int, want []rackpic.CanvasWant) string {
 	return picCall(rackpic.CanvasesCall(gen, want))
+}
+
+// Manual is bay n's page of the manual, as the Info window shows it, with
+// the model on show while one is (infomanual_js.go).
+func (inPageRack) Manual(bay int) (racktui.ManualPage, error) {
+	var pg racktui.ManualPage
+	if err := json.Unmarshal([]byte(fastDOM().Call("bayManual", bay).String()), &pg.Mods); err != nil {
+		return pg, err
+	}
+	pg.Title = BayTitle(bay, pg.Mods)
+	if !infoRackOff() {
+		pg.Model = ModelLabel(run.selectedMode)
+		pg.ModelText = ModelDescription(run.selectedMode)
+	}
+	return pg, nil
 }

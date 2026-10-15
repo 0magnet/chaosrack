@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 
+	"github.com/0magnet/chaosrack/manual"
 	"github.com/0magnet/chaosrack/pkg/rackcatalog"
 	"github.com/0magnet/chaosrack/pkg/racklink"
 	"github.com/0magnet/chaosrack/pkg/rackpic"
@@ -54,10 +56,13 @@ func runCatalog() {
 		SlotsPerRow: perRow,
 		Picture:     pic,
 	}
+	// The manual as the panel opens, each bay's page: a bank keeps only the
+	// pages its model changes (captureBanks).
+	cat.Manual = captureManual(c)
 	// Every model's bank, and then the controls: the page builds a model's
 	// knobs the first time it is chosen, so only after all of them have been
 	// is every knob in the registry.
-	cat.Banks, cat.BankRegion = captureBanks(c, ctls)
+	cat.Banks, cat.BankRegion = captureBanks(c, ctls, cat.Manual)
 	if ctls, err = c.Controls(); err != nil {
 		fail("catalog: controls: %v", err)
 	}
@@ -136,7 +141,7 @@ func sameCtls(p, q *rackpic.Picture) bool {
 // captureBanks chooses every model on the page in turn and keeps the bank as
 // the page draws it for each, and the region they all share: the union of
 // every bank control's box. It leaves the page on the model it found.
-func captureBanks(c *racklink.Client, ctls []racktui.Control) (map[string]*rackcatalog.Bank, [4]float64) {
+func captureBanks(c *racklink.Client, ctls []racktui.Control, man [][]manual.Module) (map[string]*rackcatalog.Bank, [4]float64) {
 	var sel racktui.Control
 	for _, ct := range ctls {
 		if ct.IsSelect && strings.HasPrefix(ct.ID, "bay-") && strings.HasSuffix(ct.ID, "-sel-all") {
@@ -147,6 +152,7 @@ func captureBanks(c *racklink.Client, ctls []racktui.Control) (map[string]*rackc
 		fail("catalog: the page has no model selector in its registry")
 	}
 	pics := map[string]*rackpic.Picture{}
+	mans := map[string]map[int][]manual.Module{}
 	for i, model := range sel.Options {
 		if err := c.Set(sel.ID, model); err != nil {
 			fail("catalog: choosing %q: %v", model, err)
@@ -156,6 +162,7 @@ func captureBanks(c *racklink.Client, ctls []racktui.Control) (map[string]*rackc
 			fail("catalog: the picture with %q: %v", model, err)
 		}
 		pics[model] = p
+		mans[model] = manualDiff(man, captureManual(c))
 		fmt.Printf("\rcatalog: bank %d of %d (%s)          ", i+1, len(sel.Options), model)
 	}
 	fmt.Println()
@@ -169,7 +176,7 @@ func captureBanks(c *racklink.Client, ctls []racktui.Control) (map[string]*rackc
 	}
 	// The families' dials are built with their banks, so they are in this
 	// registry, after every bank has been up, and may not be in the first.
-	captureFamilies(c, after, sel, pics)
+	captureFamilies(c, after, sel, pics, mans, man)
 	if err := c.Set(sel.ID, sel.Value); err != nil {
 		fail("catalog: back to %q: %v", sel.Value, err)
 	}
@@ -200,7 +207,7 @@ func captureBanks(c *racklink.Client, ctls []racktui.Control) (map[string]*rackc
 	}
 	banks := map[string]*rackcatalog.Bank{}
 	for model, p := range pics {
-		b := &rackcatalog.Bank{Ctls: map[string][4]float64{}}
+		b := &rackcatalog.Bank{Ctls: map[string][4]float64{}, Manual: mans[model]}
 		for _, it := range p.Items {
 			if rackcatalog.InBank(it, region) {
 				b.Items = append(b.Items, it)
@@ -227,7 +234,7 @@ func inBox(b, r [4]float64) bool {
 // captureFamilies keeps the bank of every member of a model family (a
 // fam-* dial: Sprott's A–S), which the MODEL knob offers as one position: on
 // that position, each member the dial lands on is played and its bank put up.
-func captureFamilies(c *racklink.Client, ctls []racktui.Control, sel racktui.Control, pics map[string]*rackpic.Picture) {
+func captureFamilies(c *racklink.Client, ctls []racktui.Control, sel racktui.Control, pics map[string]*rackpic.Picture, mans map[string]map[int][]manual.Module, man [][]manual.Module) {
 	for _, fam := range ctls {
 		if !fam.IsSelect || !strings.HasPrefix(fam.ID, "fam-") || len(fam.Options) == 0 {
 			continue
@@ -248,6 +255,7 @@ func captureFamilies(c *racklink.Client, ctls []racktui.Control, sel racktui.Con
 				fail("catalog: the picture with %q: %v", m, err)
 			}
 			pics[m] = p
+			mans[m] = manualDiff(man, captureManual(c))
 			fmt.Printf("\rcatalog: %s %d of %d (%s)          ", fam.ID, i+1, len(fam.Options), m)
 		}
 		if err := c.Set(fam.ID, fam.Options[0]); err != nil {
@@ -255,4 +263,37 @@ func captureFamilies(c *racklink.Client, ctls []racktui.Control, sel racktui.Con
 		}
 	}
 	fmt.Println()
+}
+
+// captureManual is every bay's page of the manual as the page reads it off
+// the panel now, bay 1 first, to the last bay with anything on it.
+func captureManual(c *racklink.Client) [][]manual.Module {
+	var pages [][]manual.Module
+	for n := 1; n <= 64; n++ {
+		pg, err := c.Manual(n)
+		if err != nil {
+			fail("catalog: bay %d's manual: %v", n, err)
+		}
+		if len(pg.Mods) == 0 {
+			break
+		}
+		pages = append(pages, pg.Mods)
+	}
+	return pages
+}
+
+// manualDiff is the bays of pages that read otherwise than in base, by bay
+// number: what a bank keeps of its manual.
+func manualDiff(base, pages [][]manual.Module) map[int][]manual.Module {
+	out := map[int][]manual.Module{}
+	for i, pg := range pages {
+		if i < len(base) && reflect.DeepEqual(base[i], pg) {
+			continue
+		}
+		out[i+1] = pg
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }

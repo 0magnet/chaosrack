@@ -2,7 +2,10 @@ package attractor
 
 import (
 	"slices"
+	"strconv"
 	"strings"
+
+	"github.com/0magnet/chaosrack/manual"
 
 	"github.com/0magnet/chaosrack/pkg/racksurface"
 )
@@ -329,4 +332,22 @@ func moduleRank(key string) int {
 		return i
 	}
 	return len(moduleOrder)
+}
+
+// BayTitle is bay n as its heading names it: its number and its section, as
+// the rack groups them, from the first module on it (mods, its page of the
+// manual).
+func BayTitle(n int, mods []manual.Module) string {
+	t := "Bay " + strconv.Itoa(n)
+	if len(mods) == 0 {
+		return t
+	}
+	sec := moduleSection(strings.ToLower(strings.TrimSpace(mods[0].Name)))
+	if s := sectionTitle[sec]; s != "" {
+		return t + " — " + s
+	}
+	if sec != "" {
+		return t + " — " + strings.ToUpper(strings.TrimPrefix(sec, "cat:")) // a category's row names itself
+	}
+	return t
 }

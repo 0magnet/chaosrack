@@ -2,11 +2,13 @@ package racklink
 
 import (
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/0magnet/chaosrack/manual"
 	"github.com/0magnet/chaosrack/pkg/controlspec"
 	"github.com/0magnet/chaosrack/pkg/rackpic"
 	"github.com/0magnet/chaosrack/pkg/racksurface"
@@ -19,6 +21,10 @@ type fakePage struct {
 	name string
 	val  string
 	acts []string
+}
+
+func (f *fakePage) Manual(bay int) (racktui.ManualPage, error) {
+	return racktui.ManualPage{Title: "Bay " + strconv.Itoa(bay), Mods: []manual.Module{{Name: f.name}}}, nil
 }
 
 func (f *fakePage) Modules() ([]racksurface.Item, int, error) {
@@ -115,6 +121,9 @@ func TestATerminalDrivesThePageThroughTheHub(t *testing.T) {
 	}
 	if err := cl.Act(7, 1, 1, "click", 0); err != nil || len(f.acts) != 1 {
 		t.Fatalf("act: %v, the page saw %v", err, f.acts)
+	}
+	if pg, err := cl.Manual(3); err != nil || pg.Title != "Bay 3" || len(pg.Mods) != 1 || pg.Mods[0].Name != "first" {
+		t.Fatalf("manual %+v, %v", pg, err)
 	}
 }
 
