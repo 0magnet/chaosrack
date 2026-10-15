@@ -777,6 +777,7 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 	}
 	on := r.value("power-sw") != "0"
 	auto := r.value("auto-rotate") != "0"
+	tbc := r.value("tbc-sw") != "0"
 	rate := [3]float64{r.number("rotation-controls-x"), r.number("rotation-controls-y"), r.number("rotation-controls-z")}
 	zoom := r.number("camera-zoom")
 	look := r.look()
@@ -811,6 +812,12 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 	now := time.Now()
 	dt := now.Sub(s.last).Seconds()
 	s.last = now
+	if !tbc {
+		// Timing's TBC off: a frame is a frame, however long it took — a
+		// sixtieth of a second's turn, as the page turned before the
+		// correction.
+		dt = 1.0 / 60
+	}
 	// A picture on a plane comes up face-on and holds still, as the page sets
 	// its textured planes up: a hand or the rate knobs still turn it.
 	s.pose(key, heard.quad != nil || len(heard.quads) > 0 || attractor.IsFlatScope(key), on && !paused, auto, rate, dt)

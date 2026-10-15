@@ -1,8 +1,10 @@
 package rackhost
 
 import (
+	"math"
 	"sync"
 	"testing"
+	"time"
 )
 
 // still is a rack drawing lorenz with nothing turning it, so that what
@@ -147,5 +149,37 @@ func BenchmarkScene(b *testing.B) {
 		if _, err := r.Scene(240, 120, 2); err != nil {
 			b.Fatal(err)
 		}
+	}
+}
+
+// With Timing's TBC on, the pose turns by the time a frame took; off, by a
+// sixtieth of a second a frame, however long it took.
+func TestTBCTurnsByTimeOrByFrame(t *testing.T) {
+	r := newRack(t)
+	set(t, r, "auto-rotate", "1")
+	turn := func(frames int, gap time.Duration) float64 {
+		r.scene.mu.Lock()
+		a := r.scene.angle[1]
+		r.scene.mu.Unlock()
+		for range frames {
+			time.Sleep(gap)
+			if _, err := r.Scene(40, 20, 2); err != nil {
+				t.Fatal(err)
+			}
+		}
+		r.scene.mu.Lock()
+		defer r.scene.mu.Unlock()
+		return r.scene.angle[1] - a
+	}
+	turn(1, 0)
+	on := turn(5, 40*time.Millisecond) // about 0.2 s
+	set(t, r, "tbc-sw", "0")
+	turn(1, 0)
+	off := turn(5, 40*time.Millisecond) // five frames: a twelfth of a second's turn
+	if math.Abs(off-5*autoSpin/60) > 1e-9 {
+		t.Errorf("TBC off: five frames turned %.4f, want %.4f", off, 5*autoSpin/60)
+	}
+	if on < 1.5*off {
+		t.Errorf("TBC on: 0.2 s turned %.4f, no more than five bare frames' %.4f", on, off)
 	}
 }
