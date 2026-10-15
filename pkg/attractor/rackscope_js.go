@@ -199,20 +199,51 @@ func (ra *rackScope) buildRackScope() {
 		// parameter's position (trioParams), so two share a cell. SOURCE is four
 		// buttons beside the tube, which is what it chooses the picture for,
 		// between the H and V trimmers.
-		cols := []struct{ id, in string }{
-			{ra.id("slope"), "#" + ra.id("trig-cell")},
-			{ra.id("tmode"), "#" + ra.id("trig-cell")},
-			{ra.id("chan"), "#" + ra.id("chan-slot")},
+		cols := []struct {
+			id, in string
+			apply  func(i int)
+		}{
+			{ra.id("slope"), "#" + ra.id("trig-cell"), func(i int) { ra.ui.rising = i == 0 }},
+			{ra.id("tmode"), "#" + ra.id("trig-cell"), func(i int) { ra.ui.trigAuto = i == 0 }},
+			{ra.id("chan"), "#" + ra.id("chan-slot"), func(i int) { ra.ui.chanSel = i }},
 		}
 		for _, c := range cols {
 			if in := dom.Doc.Call("querySelector", c.in); in.Truthy() {
 				col := trioColumn(trioPrograms[c.id].legends())
 				col.Call("setAttribute", "data-param", c.id)
 				in.Call("appendChild", col)
+				adoptTrioSelect(c.id, in, c.apply)
 			}
 		}
 		syncTrios()
 	})
+}
+
+// adoptTrioSelect puts a hidden selector behind a trio of the scope's, in
+// its cell, as the generators' env and solo have one: so its setting is a
+// control of the rack — a link keeps it, and a rack without the page can
+// press it. Its first position is the default, as the scope powers on.
+func adoptTrioSelect(id string, cell js.Value, apply func(i int)) {
+	if dom.Doc.Call("getElementById", id).Truthy() {
+		return
+	}
+	sel := dom.Doc.Call("createElement", "select")
+	sel.Set("id", id)
+	sel.Get("style").Set("display", "none")
+	for i, k := range trioPrograms[id].legends() {
+		opt := dom.Doc.Call("createElement", "option")
+		opt.Set("value", strconv.Itoa(i))
+		opt.Set("textContent", k)
+		sel.Call("appendChild", opt)
+	}
+	cell.Call("appendChild", sel)
+	adoptDescControl(ControlDesc{ID: id, Label: scopeLabel(id), IsSelect: true, SelectDef: "0",
+		SelectApply: func(v string) {
+			if i, err := strconv.Atoi(v); err == nil {
+				apply(i)
+			}
+			lightTrios(id)
+		}})
 }
 
 // wireScopeBeam is the first cell under the tube: INTENSITY, and under it on
@@ -297,7 +328,7 @@ func (ra *rackScope) registerTrios() {
 			"slope: the sweep starts on the signal rising through the trigger level",
 			"slope: the sweep starts on the signal falling through the trigger level",
 		},
-		press: func(i int) { ra.ui.rising = i == 0 },
+		press: func(i int) { setSelect(ra.id("slope"), strconv.Itoa(i)) },
 		lit: func() int {
 			if ra.ui.rising {
 				return 0
@@ -313,7 +344,7 @@ func (ra *rackScope) registerTrios() {
 			"the beam draws the two channels summed",
 			"the beam draws channel 1 against channel 2 instead of against time, which is a goniometer",
 		},
-		press: func(i int) { ra.ui.chanSel = i },
+		press: func(i int) { setSelect(ra.id("chan"), strconv.Itoa(i)) },
 		lit:   func() int { return ra.ui.chanSel },
 	}
 	trioPrograms[ra.id("tmode")] = trioProgram{
@@ -322,7 +353,7 @@ func (ra *rackScope) registerTrios() {
 			"sweep mode: sweeps anyway when nothing crosses the level, so silence shows a baseline",
 			"sweep mode: sweeps only on a trigger, and holds the last trace otherwise",
 		},
-		press: func(i int) { ra.ui.trigAuto = i == 0 },
+		press: func(i int) { setSelect(ra.id("tmode"), strconv.Itoa(i)) },
 		lit: func() int {
 			if ra.ui.trigAuto {
 				return 0
