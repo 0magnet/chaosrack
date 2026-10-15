@@ -245,6 +245,7 @@ func (r *Rack) useBank(model string) {
 	}
 	r.findReadouts()
 	r.findMeters()
+	r.colorLEDs()
 	r.pic.Gen++
 	r.full = r.pic.Gen
 }
@@ -308,6 +309,9 @@ func (r *Rack) set(id, value string) error {
 	}
 	if c.Module == modelModule {
 		r.refigure.Store(true)
+	}
+	if id == "led-color" {
+		r.colorLEDs()
 	}
 	if c.IsText {
 		if err := r.textSet(id, v); err != nil {
@@ -714,6 +718,8 @@ type scene struct {
 	// Display's Persist draws over and Pause draws again.
 	trail trail
 	shown *image.RGBA
+	// crt is the phosphor tube's afterglow (crt.go).
+	crt crtState
 }
 
 func (s *scene) start() {
@@ -743,8 +749,27 @@ func (r *Rack) modelControl() string {
 // or the DOM.
 var ErrBrowserOnly = errors.New("draws only in a browser")
 
-// Scene is the model as w x h pixels, each shape times as tall as wide.
+// Scene is the model as w x h pixels, each shape times as tall as wide: on
+// the chosen phosphor's tube, when one is (crt.go).
 func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
+	m, err := r.drawScene(w, h, shape)
+	r.mu.Lock()
+	p, on := r.phosphor()
+	r.mu.Unlock()
+	if m != nil && on {
+		r.scene.mu.Lock()
+		r.scene.crt.crt(m, p, time.Now())
+		r.scene.mu.Unlock()
+	} else {
+		r.scene.mu.Lock()
+		r.scene.crt = crtState{} // a tube switched off keeps no afterglow
+		r.scene.mu.Unlock()
+	}
+	return m, err
+}
+
+// drawScene is the model as w x h pixels, each shape times as tall as wide.
+func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 	r.mu.Lock()
 	key := "globe"
 	if r.selector != "" {
