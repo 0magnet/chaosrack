@@ -43,16 +43,7 @@ var polyBuilt [5]float32
 // polySolid is the solid (or tiling) the knobs describe, and whether it is a
 // solid: morph, op and kis act only on a solid.
 func polySolid() (conway.Solid, bool) {
-	p, q := int(poly.pF+0.5), int(poly.qF+0.5)
-	s := conway.Regular(p, q)
-	if conway.CurvatureOf(p, q) != conway.Spherical {
-		return s, false
-	}
-	s = conway.Morph(s, float64(poly.morphF)).Apply(int(polyOpF + 0.5))
-	if poly.kisF != 0 {
-		s = s.Kis(float64(poly.kisF))
-	}
-	return s, true
+	return PolySolid(int(poly.pF+0.5), int(poly.qF+0.5), float64(poly.morphF), int(polyOpF+0.5), float64(poly.kisF))
 }
 
 // generatePolyhedron draws the knobs' solid as a wireframe.

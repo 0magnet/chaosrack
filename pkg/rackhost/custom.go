@@ -56,7 +56,7 @@ func (r *Rack) customFigure() (attractor.Figure, error) {
 		f.Points = append(f.Points, [3]float64{-e, -e, -e}, [3]float64{e, e, e})
 		return f, nil
 	}
-	return figureFor("custom", nil)
+	return figureFor("custom", nil, 0)
 }
 
 // The surface flavor's detail, the page's settled drawing.

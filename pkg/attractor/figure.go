@@ -104,14 +104,18 @@ func linesFigure(l geom.Lines) Figure {
 
 // lissajous is the page's figure at its default 3:2:5 ratios and zero phase:
 // one full period, which is a closed curve.
-func lissajous(n int) [][3]float64 {
+func lissajous(n int) [][3]float64 { return lissajousOf(3, 2, 5, n) }
+
+// lissajousOf is the figure at ratios a:b:c and zero phase, over one period
+// of the base: closed, as the knobs' whole ratios make it.
+func lissajousOf(a, b, c float64, n int) [][3]float64 {
 	if n < 2 {
 		n = 2
 	}
 	out := make([][3]float64, n)
 	for i := range out {
 		t := 2 * math.Pi * float64(i) / float64(n-1)
-		out[i] = [3]float64{math.Sin(3 * t), math.Sin(2 * t), math.Sin(5 * t)}
+		out[i] = [3]float64{math.Sin(a * t), math.Sin(b * t), math.Sin(c * t)}
 	}
 	return out
 }
