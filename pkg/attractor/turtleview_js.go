@@ -22,21 +22,6 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
-// The views, and where each sends the axis in eye space. The camera looks down
-// -Z, so +Z is out of the screen toward the viewer.
-var turtleViews = []struct {
-	name string
-	to   mgl32.Vec3
-}{
-	{"free", mgl32.Vec3{}},          // whatever pose the model already has
-	{"end", mgl32.Vec3{0, 0, 1}},    // axis toward the viewer: the section
-	{"back", mgl32.Vec3{0, 0, -1}},  // axis away: the same section, far end
-	{"across", mgl32.Vec3{1, 0, 0}}, // axis left to right, advancing across
-	{"up", mgl32.Vec3{0, 1, 0}},     // axis up the screen
-}
-
-const viewFree = 0
-
 func turtleViewNames() []string {
 	return turtleNames(len(turtleViews), func(i int) string { return turtleViews[i].name })
 }
@@ -104,7 +89,7 @@ func applyTurtleView(t *turtleWalk) {
 	}
 	clearAutoRotateFlag()
 
-	view.ball.orient = mgl32.QuatBetweenVectors(from, turtleViews[idx].to).Mat4()
+	view.ball.orient = mgl32.QuatBetweenVectors(from, mgl32.Vec3(turtleViews[idx].to)).Mat4()
 	view.angleX, view.angleY, view.angleZ = 0, 0, 0
 	view.rebuildModelMatrix()
 	zeroRotationSliders()

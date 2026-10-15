@@ -65,6 +65,7 @@ func (r *Rack) scopeFigure(key string, running bool) (attractor.Figure, [][3]flo
 			f.Points = append(f.Points, [3]float64{float64(x), float64(y), float64(z)})
 			f.Ages = append(f.Ages, tint) // the tinter's color, as the page's trail attribute
 		})
+		r.aimTurtle()
 		if r.value("use-points") == "1" {
 			f.Kind = attractor.FigurePoints
 		}
