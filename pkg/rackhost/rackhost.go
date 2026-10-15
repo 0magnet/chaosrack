@@ -98,6 +98,10 @@ type Rack struct {
 	websh shellView
 	// desk is the Desk's windows (desk.go).
 	desk deskView
+	// turtleAim is what the Turtle's VIEW last turned the scene for, and
+	// poseTo the pose it asks for, taken by the next Scene (turtleview.go).
+	turtleAim turtleAim
+	poseTo    *[3]float64
 	// prompt is the text control the panel is to ask for (text.go).
 	prompt string
 	// viewAngle is the scene's pose as last drawn, for what turns with the view
@@ -743,6 +747,8 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	r.sound.busLook()
 	audio := figureEachFrame(key)
 	heard := r.hear(key, on, w)
+	poseTo := r.poseTo
+	r.poseTo = nil
 	var consts map[*float32]float32
 	if refigure {
 		consts = r.flowValues()
@@ -766,6 +772,9 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	// A picture on a plane comes up face-on and holds still, as the page sets
 	// its textured planes up: a hand or the rate knobs still turn it.
 	s.pose(key, heard.quad != nil || len(heard.quads) > 0 || attractor.IsFlatScope(key), on && !paused, auto, rate, dt)
+	if poseTo != nil {
+		s.angle = *poseTo
+	}
 	angle := s.angle
 	r.mu.Lock()
 	r.showAngles(angle)
