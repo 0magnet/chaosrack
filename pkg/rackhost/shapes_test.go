@@ -51,3 +51,25 @@ func TestTorusRollTurnsTheTube(t *testing.T) {
 		t.Error("a rolling torus drew the same frame twice")
 	}
 }
+
+// The Lissajous figure is a beam running round it, as the page's is: a
+// frame later the trail has moved on, and paused it holds.
+func TestLissajousBeamRuns(t *testing.T) {
+	r := newRack(t)
+	set(t, r, "auto-rotate", "0", r.selector, "lissajou")
+	shot := func() []byte {
+		m, err := r.Scene(120, 90, 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return m.Px
+	}
+	if bytes.Equal(shot(), shot()) {
+		t.Error("the beam did not move between frames")
+	}
+	set(t, r, "pause-sw", "1")
+	shot()
+	if !bytes.Equal(shot(), shot()) {
+		t.Error("the beam moved while paused")
+	}
+}
