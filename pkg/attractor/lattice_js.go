@@ -112,11 +112,12 @@ func init() {
 	paramLabels["lattice-shape"] = lattice.ShapeNames()
 	// ROWS: L puts the model chosen in the lattice.
 	trioPrograms["lattice-n"] = trioProgram{
-		keys:  []string{"L", "", ""},
-		help:  []string{doc("trio.lattice-n=0")},
-		press: func(int) { setSwitch("lat-on", !checkedOn("lat-on")) },
-		lits:  func() []bool { return []bool{checkedOn("lat-on"), false, false} },
-		drive: []string{"lat-on"},
+		keys:     []string{"L", "", ""},
+		help:     []string{doc("trio.lattice-n=0")},
+		press:    func(int) { setSwitch("lat-on", !checkedOn("lat-on")) },
+		lits:     func() []bool { return []bool{checkedOn("lat-on"), false, false} },
+		drive:    []string{"lat-on"},
+		switches: []string{"lat-on"},
 	}
 }
 

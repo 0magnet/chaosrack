@@ -505,6 +505,8 @@ func wireScopeRange(id string, set func(float64)) {
 			// display — where the trace is shows it.
 			k := miniKnob(el, mini.Call("getAttribute", "data-cap").String(), true, false)
 			k.Call("querySelector", ".knob").Set("title", mini.Get("title").String())
+			// The range is hidden: the catalog finds it where its trimmer is.
+			k.Call("setAttribute", "data-drives", id)
 			holder.Call("appendChild", k)
 		} else {
 			holder.Call("appendChild", makeKnob(el, js.Undefined(), true, true, true))
