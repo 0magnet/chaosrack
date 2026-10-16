@@ -82,7 +82,7 @@ func hostOwnsWheel(target js.Value) bool {
 		return false
 	}
 	return target.Call("closest",
-		"a, button, input, label, select, textarea, #controls-panel, [data-no-drag]").Truthy()
+		"a, button, input, label, select, textarea, #controls-panel, .cp-ctx, [data-no-drag]").Truthy()
 }
 
 // wireHostWheel installs the document-level wheel zoom for ZoomTargetSelector.

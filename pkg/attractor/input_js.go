@@ -53,7 +53,7 @@ func wireModelInput() {
 			if splitFrac > -1+splitEpsilon && !dom.Body.Get("classList").Call("contains", "panel-raised").Bool() {
 				return false
 			}
-			return target.Call("closest", "#controls-panel").Truthy()
+			return target.Call("closest", ":is(#controls-panel,.cp-ctx)").Truthy()
 		}
 		return false
 	}
