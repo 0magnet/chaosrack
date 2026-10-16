@@ -226,6 +226,9 @@ func inBox(b, rg [4]float64) bool {
 // place of the last model's, its controls' boxes, and their pointers and
 // readouts calibrated to it and turned to this rack's values.
 func (r *Rack) useBank(model string) {
+	if model != "turtle" {
+		r.releaseTurtleAim()
+	}
 	b := r.cat.Banks[model]
 	if b == nil {
 		return
@@ -769,7 +772,8 @@ func (r *Rack) controlAt(x, y float64) string {
 // scene is the model behind the panel, drawn here.
 type scene struct {
 	// mu guards the rest: the panel draws on its loop, and a drag turns the
-	// model from another goroutine.
+	// model from another goroutine. It is taken before r.mu, never under it:
+	// drawScene and SceneAct hold it and then take the rack's.
 	mu       sync.Mutex
 	key      string
 	fig      attractor.Figure
@@ -783,6 +787,9 @@ type scene struct {
 	// Display's Persist draws over and Pause draws again.
 	trail trail
 	shown *image.RGBA
+	// monitor is shown again, for the monitor screen, which Canvases reads
+	// holding r.mu and so may not take mu for (setShown).
+	monitor atomic.Pointer[image.RGBA]
 	// crt is the phosphor tube's afterglow (crt.go).
 	crt crtState
 	// roll is the torus tube's phase, which its ROLL knob turns.
@@ -798,10 +805,6 @@ func (s *scene) start() {
 
 // sceneBack is what the model is drawn on: the panel's own near-black.
 var sceneBack = color.RGBA{10, 13, 20, 255}
-
-// autoSpin is how fast the model turns about its upright axis with Auto-rot
-// on and every rate at zero, in radians a second: what the page does.
-const autoSpin = 0.3
 
 // modelControl is the id of the control that says what the model is: the
 // model bay's selector.
@@ -919,7 +922,7 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 	dt := s.frameTime(time.Now(), tbc)
 	if rollRate != 0 {
 		// The page turns the tube rate/20 a frame, at sixty frames a second.
-		s.roll += 3 * rollRate * dt
+		s.roll += rollRate * attractor.SpinPerUnit * dt
 		refigure = true
 	}
 	// A picture on a plane comes up face-on and holds still, as the page sets
@@ -935,13 +938,14 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 
 	img := &rackpic.Image{W: w, H: h, Px: make([]byte, 3*w*h)}
 	if key == "" || !on {
-		s.shown = nil
+		s.setShown(nil)
 		return img, nil
 	}
 	if isAnalyzer(key) || isTerminalModel(key) {
 		// A flat analyzer, or a terminal animation's screen, drawn over the whole scene as the page draws it
 		// over its canvas (analyzers.go).
-		s.key, s.err, s.shown = key, nil, nil
+		s.key, s.err = key, nil
+		s.setShown(nil)
 		v := rasterview.View{
 			AngleX: s.angle[0], AngleY: s.angle[1], AngleZ: s.angle[2],
 			Scale:       zoomScale(zoom),
@@ -982,7 +986,7 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 	}
 	if s.err != nil {
 		// Dark, and why: the panel shows the reason on its status line.
-		s.shown = nil
+		s.setShown(nil)
 		return img, s.err
 	}
 	o := attractor.DrawOptions{
@@ -1070,7 +1074,7 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 			}
 		}
 	}
-	s.shown = m
+	s.setShown(m)
 	toPixels(img, look.bg, withBackdrop(m, bd))
 	return img, nil
 }
@@ -1234,20 +1238,21 @@ func (r *Rack) model() string {
 // isFamily reports whether id is a family's lettered dial.
 func isFamily(id string) bool { return strings.HasPrefix(id, "fam-") }
 
-// pose turns the model on by dt: by the rate knobs while it runs, and by
-// auto-rotate when they are still, unless it is flat, which comes up
-// face-on when it is chosen and holds still. Paused, it holds still and a
-// hand still turns it, as the page's does. Called with s.mu held.
+// pose turns the model on by dt: by the rate knobs while it runs, at the
+// page's speed (attractor.SpinPerUnit), with auto-rotate's share added to
+// the Y rate whatever they say, unless it is flat, which comes up face-on
+// when it is chosen and holds still. Paused, it holds still and a hand still
+// turns it, as the page's does. Called with s.mu held.
 func (s *scene) pose(key string, flat, running, auto bool, rate [3]float64, dt float64) {
 	if flat && key != s.key {
 		s.angle = [3]float64{}
 	}
 	if running && !s.turned {
-		for i := range s.angle {
-			s.angle[i] += rate[i] * dt
+		if auto && !flat {
+			rate[1] += attractor.AutoRotY
 		}
-		if auto && rate == ([3]float64{}) && !flat {
-			s.angle[1] += autoSpin * dt
+		for i := range s.angle {
+			s.angle[i] += rate[i] * attractor.SpinPerUnit * dt
 		}
 	}
 	s.turned = false
@@ -1287,4 +1292,12 @@ func over(dst, src *image.RGBA) {
 			copy(dst.Pix[i:i+3], src.Pix[i:i+3])
 		}
 	}
+}
+
+// setShown records m as the frame last drawn: for Persist and Pause, under
+// mu, and for the monitor, which reads it without. A frame is never written
+// once it is shown. Called with s.mu held.
+func (s *scene) setShown(m *image.RGBA) {
+	s.shown = m
+	s.monitor.Store(m)
 }

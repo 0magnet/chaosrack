@@ -99,3 +99,18 @@ func applyTurtleView(t *turtleWalk) {
 	turtleViewApplied.key = t.key
 	turtleViewApplied.set = true
 }
+
+// syncTurtleView gives auto-rotate back when the Turtle is left with a view
+// held, as free does: the view put it away for the Turtle's sake, and no other
+// model asked for that. Run on every panel rebuild, beside the other
+// mode-scoped syncs.
+func syncTurtleView(mode string) {
+	if mode == "turtle" {
+		return
+	}
+	if turtleViewApplied.spinSaved {
+		setAutoRotate(turtleViewApplied.spinWas)
+		turtleViewApplied.spinSaved = false
+	}
+	turtleViewApplied.set = false
+}

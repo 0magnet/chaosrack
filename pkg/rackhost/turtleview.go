@@ -28,11 +28,7 @@ func (r *Rack) aimTurtle() {
 	idx := int(r.number("turtle-view") + 0.5)
 	to, aim := attractor.TurtleViewTarget(idx)
 	if !aim {
-		if a.saved {
-			_ = r.set("auto-rotate", a.spinWas) //nolint:errcheck // the value it had
-			a.saved = false
-		}
-		a.set = false
+		r.releaseTurtleAim()
 		return
 	}
 	sm := &r.analyzers.scope
@@ -51,6 +47,18 @@ func (r *Rack) aimTurtle() {
 	angles := aimAngles(axis, [3]float64{float64(to[0]), float64(to[1]), float64(to[2])})
 	r.poseTo = &angles
 	a.idx, a.label, a.set = idx, label, true
+}
+
+// releaseTurtleAim gives auto-rotate back when the Turtle is left with a view
+// held, as free does: the view put it away for the Turtle's sake, and no
+// other model asked for that. Called with r.mu held.
+func (r *Rack) releaseTurtleAim() {
+	a := &r.turtleAim
+	if a.saved {
+		_ = r.set("auto-rotate", a.spinWas) //nolint:errcheck // the value it had
+		a.saved = false
+	}
+	a.set = false
 }
 
 // aimAngles is the scene's pose — the angles rasterview turns a model by,

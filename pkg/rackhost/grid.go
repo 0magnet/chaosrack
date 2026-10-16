@@ -188,12 +188,18 @@ type cellPlan struct {
 	gradient rasterview.Gradient
 	src      int // its gradient source
 	fig      *attractor.Figure
+	// sound is what the cell is drawn from (trailAudio), kept for its
+	// coloring: the next cell's figure writes over r.color's.
+	sound [3][]float32
 }
 
 // planCells works out each cell of the frame. Called with r.mu held, after
 // hear, which has fed the models what they draw from.
 func (r *Rack) planCells(key string, g gridSet) []cellPlan {
 	plans := make([]cellPlan, g.n)
+	// The model's own sound, for the cells drawn at its own values.
+	base := [3][]float32{r.color.w, r.color.l, r.color.r}
+	defer func() { r.color.w, r.color.l, r.color.r = base[0], base[1], base[2] }()
 	for i := range plans {
 		p := &plans[i]
 		p.over = r.cellValues(key, i, g)
@@ -201,6 +207,10 @@ func (r *Rack) planCells(key string, g gridSet) []cellPlan {
 		p.gradient = r.look().gradient
 		p.src = int(r.number("gradient-source"))
 		p.fig = r.cellAudioFigure(key, i, p.over)
+		p.sound = base
+		if p.fig != nil {
+			p.sound = [3][]float32{r.color.w, r.color.l, r.color.r}
+		}
 		r.cellOver = nil
 		across, down := attractor.SweepAxisFracs(i, g.n, g.down != "")
 		for _, ax := range [...]struct {
@@ -448,6 +458,7 @@ func (r *Rack) drawCells(key string, g gridSet, plans []cellPlan, fig attractor.
 			}
 		}
 		r.mu.Lock()
+		r.color.w, r.color.l, r.color.r = p.sound[0], p.sound[1], p.sound[2]
 		f = r.audioColored(f, &co.Gradient, p.src, i)
 		r.mu.Unlock()
 		return draw1(f, co)

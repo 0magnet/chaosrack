@@ -569,6 +569,7 @@ func buildParamPanelNow(mode string) {
 	syncTermAnimExtras(mode)
 	syncLayersModule(mode)
 	syncHomedModules(mode)
+	syncTurtleView(mode)
 	syncDeskModel(mode)
 	lyap.syncAnalysisModule(mode)
 	phos.updateCRTOverlay()

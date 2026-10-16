@@ -1,6 +1,7 @@
 package rackhost
 
 import (
+	"github.com/0magnet/chaosrack/pkg/attractor"
 	"math"
 	"sync"
 	"testing"
@@ -13,7 +14,7 @@ func still(t *testing.T, kv ...[2]string) *Rack {
 	t.Helper()
 	r := newRack(t)
 	if r.selector == "" {
-		t.Skip("no model selector in the catalog")
+		t.Fatal("no model selector in the catalog")
 	}
 	set := append([][2]string{{r.selector, "lorenz"}, {"auto-rotate", "0"},
 		{"rotation-controls-x", "0"}, {"rotation-controls-y", "0"}, {"rotation-controls-z", "0"}}, kv...)
@@ -176,8 +177,8 @@ func TestTBCTurnsByTimeOrByFrame(t *testing.T) {
 	set(t, r, "tbc-sw", "0")
 	turn(1, 0)
 	off := turn(5, 40*time.Millisecond) // five frames: a twelfth of a second's turn
-	if math.Abs(off-5*autoSpin/60) > 1e-9 {
-		t.Errorf("TBC off: five frames turned %.4f, want %.4f", off, 5*autoSpin/60)
+	if math.Abs(off-5*attractor.AutoRotY*attractor.SpinPerUnit/60) > 1e-9 {
+		t.Errorf("TBC off: five frames turned %.4f, want %.4f", off, 5*attractor.AutoRotY*attractor.SpinPerUnit/60)
 	}
 	if on < 1.5*off {
 		t.Errorf("TBC on: 0.2 s turned %.4f, no more than five bare frames' %.4f", on, off)
@@ -209,5 +210,18 @@ func TestABackdropIsBehindTheModel(t *testing.T) {
 	r.mu.Unlock()
 	if bd != nil {
 		t.Error("the spectrogram, a picture of its own, has a backdrop")
+	}
+}
+
+// The rate knobs turn the model at the page's speed, and Auto-rot adds its
+// share to Y whatever they say: Y at 1 with Auto-rot on is 3.3 rad/s.
+func TestTheModelSpinsAtThePagesRate(t *testing.T) {
+	var s scene
+	s.pose("lorenz", false, true, true, [3]float64{0.5, 1, 0}, 1)
+	want := [3]float64{1.5, 3.3, 0}
+	for i := range want {
+		if math.Abs(s.angle[i]-want[i]) > 1e-9 {
+			t.Errorf("axis %d turned %.4f in a second, want %.4f", i, s.angle[i], want[i])
+		}
 	}
 }

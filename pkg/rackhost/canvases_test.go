@@ -2,7 +2,9 @@ package rackhost
 
 import (
 	"image"
+	"runtime"
 	"testing"
+	"time"
 
 	"github.com/0magnet/chaosrack/pkg/rackpic"
 )
@@ -181,5 +183,40 @@ func TestScreenTextHasNoMissingGlyphs(t *testing.T) {
 	drawText(b, 0, 0, "A-B", scopeBeam, 1)
 	if string(a.Pix) != string(b.Pix) {
 		t.Error("a middle dot is not written as a dash")
+	}
+}
+
+// A drag on the model while the monitor redraws goes on: the monitor reads
+// the frame without the scene's lock, which a drag holds while it takes the
+// rack's.
+func TestTheMonitorAndADragDoNotDeadlock(t *testing.T) {
+	r := newRack(t)
+	set(t, r, r.selector, "lorenz")
+	mon := canvasOf(t, r, panelCanvas{kind: canvasMonitor})
+	if _, err := r.Scene(120, 90, 1); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for i := range 300 {
+			kind := []string{"down", "move", "up"}[i%3]
+			if err := r.SceneAct(120, 90, 1, float64(i%120), 45, kind, 0); err != nil {
+				t.Error(err)
+				return
+			}
+		}
+	}()
+	deadline := time.After(20 * time.Second)
+	for {
+		screen(t, r, mon, 80, 60)
+		runtime.Gosched() // js/wasm runs one goroutine at a time
+		select {
+		case <-done:
+			return
+		case <-deadline:
+			t.Fatal("the monitor and a drag are stuck")
+		default:
+		}
 	}
 }
