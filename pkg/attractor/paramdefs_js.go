@@ -34,6 +34,7 @@ var paramLabels = map[string][]string{
 	"turtle-seq":    turtleSeqNames(),
 	"turtle-tint":   turtleTintNames(),
 	"turtle-trail":  turtleTrailNames(),
+	"turtle-turn":   {"square", "arc"},
 	"turtle-cam":    turtleCamNames(),
 	"turtle-view":   turtleViewNames(),
 	"spect-dft":     spectDFTNames(),
@@ -116,6 +117,7 @@ var paramRingLabels = map[string][]string{
 	"turtle-trail": {"whol", "long", "shrt", "comt"},
 	"turtle-cam":   {"auto", "fit", "lock", "head"},
 	"turtle-view":  {"free", "end", "back", "acrs", "up"},
+	"turtle-turn":  TurtleTurns,
 	// Transform sizes abbreviated past 512, where the digits stop fitting.
 	"spect-dft":   {"64", "128", "256", "512", "1k", "2k", "4k", "8k"},
 	"spect-win":   {"hann", "hamm", "bart", "rect"},
@@ -226,6 +228,7 @@ var attractorParams = map[string][]paramDef{
 		{"turtle-cam", "cam", &turtle.camF, 0, 0, 3, 1},
 		{"turtle-view", "view", &turtle.viewF, 0, 0, 4, 1},
 		{"turtle-cycle", "cycle", &turtle.cycleF, 0, 0, 30, 1},
+		{"turtle-turn", "turn", &turtle.turnF, 0, 0, 1, 1},
 	},
 	// The audio spectrogram's controls are the original audioprism's, defined
 	// next to the code that applies them.
