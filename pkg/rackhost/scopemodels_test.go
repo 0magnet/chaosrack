@@ -184,6 +184,26 @@ func TestTheTurtleWalks(t *testing.T) {
 	}
 }
 
+// TURN on arc draws the same walk with its corners rounded: each corner
+// becomes an arc of several points, natively as on the page.
+func TestTheTurtleTurnsOnArcs(t *testing.T) {
+	r, c := idleRack(t, "turtle")
+	watch(t, r, c, 0.5)
+	set(t, r, "pause-sw", "1")
+	points := func() int {
+		watch(t, r, c, 0.1)
+		r.scene.mu.Lock()
+		defer r.scene.mu.Unlock()
+		return len(r.scene.fig.Points)
+	}
+	square := points()
+	set(t, r, "turtle-turn", "1")
+	arcs := points()
+	if square < 20 || arcs <= 2*square {
+		t.Errorf("square drew %d points and arcs %d", square, arcs)
+	}
+}
+
 // Custom draws its typed system natively: the default template, its
 // constants as knobs, and the flavors its switches pick.
 func TestCustomDrawsItsSystem(t *testing.T) {

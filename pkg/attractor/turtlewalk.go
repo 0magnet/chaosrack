@@ -2,6 +2,7 @@ package attractor
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/0magnet/pisano/pkg/pisano"
 )
@@ -488,13 +489,14 @@ func turtleKeyOf(mod, seq, mul, capF, dim, tint float32) turtleKey {
 
 // TurtleKnobs are the Turtle's knobs that make and show its walk, by the
 // page's ids, in the order TurtleRun.Step takes them.
-var TurtleKnobs = []string{"turtle-mod", "turtle-seq", "turtle-mul", "turtle-cap", "turtle-dim", "turtle-tint", "turtle-trail", "turtle-cam"}
+var TurtleKnobs = []string{"turtle-mod", "turtle-seq", "turtle-mul", "turtle-cap", "turtle-dim", "turtle-tint", "turtle-trail", "turtle-cam", "turtle-turn"}
 
 // TurtleRun is a Turtle walked for a rack without the page: the walk, made
 // again when the knobs ask for a different one.
 type TurtleRun struct {
 	walk *turtleWalk
 	body turtleBody
+	buf  [][4]float32 // the trail placed, before TURN draws it
 }
 
 // TurtlePhysics is the Turtle's weight for a rack without the page: the room
@@ -512,7 +514,7 @@ type TurtlePhysics struct {
 // trail budget of budget, and hands put the trail on screen, oldest first,
 // with each point's tint: placed as the walk's camera holds it, or with
 // phys, where its weight has carried it.
-func (r *TurtleRun) Step(k [8]float32, budget int, frames float64, steps int, scale float32, running bool, phys *TurtlePhysics, put func(x, y, z, tint float32)) int {
+func (r *TurtleRun) Step(k [9]float32, budget int, frames float64, steps int, scale float32, running bool, phys *TurtlePhysics, put func(x, y, z, tint float32)) int {
 	key := turtleKeyOf(k[0], k[1], k[2], k[3], k[4], k[5])
 	if r.walk == nil || r.walk.key != key {
 		r.walk = newTurtleWalk(key, k[6], k[7], budget)
@@ -546,19 +548,41 @@ func (r *TurtleRun) Step(k [8]float32, budget int, frames float64, steps int, sc
 				r.body.step(t, t.pts[base:], w)
 			}
 		}
-		for i := range n {
-			x, y, z := r.body.place(t, t.pts[base+i])
-			put(x, y, z, t.tint[base+i])
-		}
-		return n
+	} else {
+		r.body.placed = false // dropped again next time, from wherever it is standing
 	}
-	r.body.placed = false // dropped again next time, from wherever it is standing
+	r.buf = t.placed(&r.body, base, n, phys != nil, r.buf)
+	return drawTurtle(r.buf, k[8], budget, func(v [4]float32) { put(v[0], v[1], v[2], v[3]) })
+}
+
+// placed is the trail's n points from base, x, y, z and tint each, in buf's
+// room: where the body has carried them when it has weight, else as the
+// walk's camera holds them.
+func (t *turtleWalk) placed(body *turtleBody, base, n int, weighed bool, buf [][4]float32) [][4]float32 {
+	buf = buf[:0]
 	for i := range n {
 		p := t.pts[base+i]
+		if weighed {
+			x, y, z := body.place(t, p)
+			buf = append(buf, [4]float32{x, y, z, t.tint[base+i]})
+			continue
+		}
 		// pisano's Y grows downward, matching a terminal; here up is up.
-		put((float32(p.X)-t.cx)*t.scale, -(float32(p.Y)-t.cy)*t.scale, (float32(p.Z)-t.cz)*t.scale, t.tint[base+i])
+		buf = append(buf, [4]float32{(float32(p.X) - t.cx) * t.scale, -(float32(p.Y) - t.cy) * t.scale, (float32(p.Z) - t.cz) * t.scale, t.tint[base+i]})
 	}
-	return n
+	return buf
+}
+
+// drawTurtle hands put the placed trail pts as TURN at turn draws it, in at
+// most room points, and says how many.
+func drawTurtle(pts [][4]float32, turn float32, room int, put func(v [4]float32)) int {
+	if turn >= 0.5 {
+		return roundCorners(pts, room, put)
+	}
+	for _, p := range pts {
+		put(p)
+	}
+	return len(pts)
 }
 
 // Label is what the walk is: its sequence, modulus and period, and what it
@@ -586,4 +610,88 @@ var TurtlePhysicsKnobs = []TurtlePhysicsKnob{
 	{"turtle-fric", "fric", 0.6, 0, 2, 0.05},     // how hard the floor and walls grip
 	{"turtle-bounce", "bounce", 0.2, 0, 1, 0.05}, // how much of a hit comes back
 	{"turtle-spin", "spin", 1, 0.1, 8, 0.1},      // how readily it turns
+}
+
+// Rounded turns (TURN on arc): every corner of the walk is drawn as an arc
+// from the middle of the step into it to the middle of the step out of it.
+// The turtle's steps are all one lattice unit and all its turns square, so
+// each arc is a quarter circle of half a step's radius and the path is a chain
+// of them, with no straight left in it. It is a way of drawing the walk, not a
+// different walk: the turtle still stands on the lattice, and the tints run
+// round the arcs as they ran along the steps.
+
+// TurtleTurns are TURN's positions.
+var TurtleTurns = []string{"sqr", "arc"}
+
+// turtleArcMost and turtleArcLeast are how many points an arc is drawn with:
+// the most when there is room, and the fewest it is still a curve at. Below
+// that the oldest of the trail is left off to make room, since the room is the
+// vertex buffer's and a turn drawn square would not be the turn asked for.
+const (
+	turtleArcMost  = 8
+	turtleArcLeast = 3
+)
+
+// roundCorners hands put the trail pts (x, y, z, tint each, oldest first) with
+// its corners turned on arcs, in at most room points, and says how many it
+// handed.
+func roundCorners(pts [][4]float32, room int, put func(v [4]float32)) int {
+	if len(pts) < 3 || room < 2+turtleArcLeast {
+		for _, p := range pts[:min(len(pts), room)] {
+			put(p)
+		}
+		return min(len(pts), room)
+	}
+	k := min(turtleArcMost, (room-2)/(len(pts)-2))
+	if k < turtleArcLeast {
+		k = turtleArcLeast
+		pts = pts[len(pts)-(2+(room-2)/k):]
+	}
+	put(pts[0])
+	n := 1
+	for i := 1; i+1 < len(pts); i++ {
+		p0, p1, p2 := pts[i-1], pts[i], pts[i+1]
+		var a, b [4]float32
+		for j := range 4 {
+			a[j], b[j] = (p0[j]+p1[j])/2, (p1[j]+p2[j])/2
+		}
+		for s := range k {
+			put(arcPoint(a, p1, b, float32(s)/float32(k)))
+			n++
+		}
+	}
+	put(pts[len(pts)-1])
+	return n + 1
+}
+
+// arcPoint is the point t of the way round the turn at corner c from a to b:
+// on the circle that touches both legs where they are when the legs are square
+// and alike, as the turtle's are, and on the parabola between them when
+// something has bent them out of true. The tint goes the parabola's way.
+func arcPoint(a, c, b [4]float32, t float32) [4]float32 {
+	var u, w [3]float32
+	var uu, ww, uw float32
+	for j := range 3 {
+		u[j], w[j] = a[j]-c[j], b[j]-c[j]
+		uu, ww, uw = uu+u[j]*u[j], ww+w[j]*w[j], uw+u[j]*w[j]
+	}
+	var out [4]float32
+	q0, q1, q2 := (1-t)*(1-t), 2*t*(1-t), t*t
+	out[3] = q0*a[3] + q1*c[3] + q2*b[3]
+	square := uu > 0 && float32(math.Abs(float64(uu-ww))) < 1e-3*uu && float32(math.Abs(float64(uw))) < 1e-3*uu
+	if !square {
+		for j := range 3 {
+			out[j] = q0*a[j] + q1*c[j] + q2*b[j]
+		}
+		return out
+	}
+	// The circle's middle is across the corner from it; from there a is
+	// back along w and b back along u.
+	th := float64(t) * math.Pi / 2
+	co, si := float32(math.Cos(th)), float32(math.Sin(th))
+	for j := range 3 {
+		mid := c[j] + u[j] + w[j]
+		out[j] = mid - w[j]*co - u[j]*si
+	}
+	return out
 }

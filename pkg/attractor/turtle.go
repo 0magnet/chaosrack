@@ -66,6 +66,7 @@ type turtleMode struct {
 	camF   float32 // index into turtleCams
 	viewF  float32 // index into turtleViews: which way to face the axis
 	cycleF float32 // seconds between moduli; 0 stays on one
+	turnF  float32 // index into TurtleTurns: square corners or arcs
 
 	// Weight. PHYS is the switch — gravity cannot be it now that pulling upward
 	// is a thing you can ask for, and zero gravity inside a box is a perfectly
@@ -75,6 +76,7 @@ type turtleMode struct {
 	bounceF float32
 	spinF   float32 // how hard the figure is to turn
 	state   *turtleWalk
+	placed  [][4]float32 // the trail placed, before TURN draws it
 
 	// body is where the figure has got to when it has weight (turtlebody.go),
 	// a fresh one with each new walk.
@@ -166,7 +168,8 @@ func (tu *turtleMode) generateTurtle() {
 	}
 	applyTurtleView(t)
 
-	if physOn() {
+	weighed := physOn()
+	if weighed {
 		// Weight takes over the placing. The camera decides where to look from
 		// when nothing is pushing the figure around; once something is, where it
 		// has got to is the answer, and a camera holding it in the middle would
@@ -174,26 +177,18 @@ func (tu *turtleMode) generateTurtle() {
 		if !run.paused {
 			tu.body.step(t, t.pts[base:], pageTurtleWorld())
 		}
-		for i := range n {
-			x, y, z := tu.body.place(t, t.pts[base+i])
-			d := i * 4
-			sim.vertBuf[d], sim.vertBuf[d+1], sim.vertBuf[d+2], sim.vertBuf[d+3] = x, y, z, t.tint[base+i]
-		}
-		gpu.uploadVerticesOnly(sim.vertBuf[:n*4], gpu.drawMode, n)
-		return
+	} else {
+		tu.body.placed = false // dropped again next time, from wherever it is standing
 	}
-	tu.body.placed = false // dropped again next time, from wherever it is standing
-
-	for i := range n {
-		p := t.pts[base+i]
-		d := i * 4
-		// pisano's Y grows downward, matching a terminal; here up is up.
-		sim.vertBuf[d] = (float32(p.X) - t.cx) * t.scale
-		sim.vertBuf[d+1] = -(float32(p.Y) - t.cy) * t.scale
-		sim.vertBuf[d+2] = (float32(p.Z) - t.cz) * t.scale
-		sim.vertBuf[d+3] = t.tint[base+i]
-	}
-	gpu.uploadVerticesOnly(sim.vertBuf[:n*4], gpu.drawMode, n)
+	tu.placed = t.placed(&tu.body, base, n, weighed, tu.placed)
+	// Drawn as TURN says, into the vertex buffer, which is the room an arc's
+	// points have.
+	d := 0
+	drawn := drawTurtle(tu.placed, tu.turnF, len(sim.vertBuf)/4, func(v [4]float32) {
+		copy(sim.vertBuf[d:d+4], v[:])
+		d += 4
+	})
+	gpu.uploadVerticesOnly(sim.vertBuf[:drawn*4], gpu.drawMode, drawn)
 }
 
 // cycle is pisano's --cycle: step to the next modulus every so often. It

@@ -270,6 +270,11 @@ view — which way to face the figure's axis.
 <!-- key: p.turtle-cycle -->
 cycle — seconds between steps to the next modulus; 0 stays on one.
 
+### turn
+
+<!-- key: p.turtle-turn -->
+turn — how the path takes its corners: square, as the turtle walks them, or each on an arc from the middle of one step to the middle of the next, so the path is a chain of quarter circles. Only the drawing changes; the walk is the same. With a trail long enough to fill the line, the oldest of it is left off to make room for the arcs.
+
 ### gravity
 
 <!-- key: p.turtle-grav -->

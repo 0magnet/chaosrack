@@ -56,7 +56,7 @@ func (r *Rack) scopeFigure(key string, running bool) (attractor.Figure, [][3]flo
 		return f, [][3]float64{{-1.5, 0, 0}, {1.5, 0, 0}}
 	case "turtle":
 		r.turtleCycle(now, running)
-		var k [8]float32
+		var k [9]float32
 		for i, id := range attractor.TurtleKnobs {
 			k[i] = float32(r.number(id))
 		}
