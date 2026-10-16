@@ -111,11 +111,9 @@ func newOpeningRack(container js.Value) *rack.Rack {
 // place, and a switch that could hide the switches would be a door that locks
 // from the outside.
 //
-// The rest answer to switches of their own. Mod, EQ and Physics are shown and
-// hidden by a class on the panel rather than by a style of their own, so they
-// look visible here even when they are not, and a module a mode has taken away
-// has that mode's reasons. A second switch contradicting the first is only a
-// way to get stuck.
+// A module put away by something other than its switch has that thing's
+// reasons, and a second switch contradicting the first is only a way to get
+// stuck.
 // The rule itself is modulePinnedFrom, in racklayout.go; this gathers the three
 // facts it needs. Measured before the middle one was there: thirteen switches
 // before a reload, twelve after, and the missing one was the module that had
@@ -132,17 +130,15 @@ func modulePinned(key string) bool {
 		m.Get("style").Get("display").String() == "none")
 }
 
-// moduleNeverSwitched names the modules that can have no switch whatever their
-// current display: the Console, because the switches live in it, and the one
-// that a MODE shows and hides by a class on the panel. A switch contradicting
-// the mode is only a way to get stuck.
+// moduleNeverSwitched names the module that can have no switch whatever its
+// current display: the Console, because the switches live in it.
 func moduleNeverSwitched(key string) bool {
 	r, m := rackFor(key)
 	if r == nil || !m.Truthy() {
 		return true
 	}
 	cl := m.Get("classList")
-	for _, c := range []string{"console", "physmodule"} {
+	for _, c := range []string{"console"} {
 		if cl.Call("contains", c).Bool() {
 			return true
 		}

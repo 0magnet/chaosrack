@@ -8,7 +8,6 @@ import (
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"github.com/0magnet/chaosrack/pkg/led"
 	"github.com/0magnet/chaosrack/pkg/racklayout"
 )
@@ -510,11 +509,12 @@ var lastRack struct{ sig, mode string }
 // module to 3000px and reading it back, twice, only to put each where it was.
 //
 // Not when something a model change rebuilds can change size with the model:
-// the Section and Physics modules, and Custom's editor. (The Mod module is
-// one size for every model.) And not when the shown modules or their widths
-// differ from the last pass's, which is the check that the rest holds.
+// Custom's editor. (The Mod module is one size for every model, and Section,
+// Water, Physics and Spectro are in the rack whatever runs.) And not when the
+// shown modules or their widths differ from the last pass's, which is the
+// check that the rest holds.
 func rackUnmoved(mode string) bool {
-	if sect.on || physOn() || mode == "custom" || lastRack.mode == "custom" || lastRack.sig == "" {
+	if mode == "custom" || lastRack.mode == "custom" || lastRack.sig == "" {
 		return false
 	}
 	return fastDOM().Call("rackSig").String() == lastRack.sig
@@ -568,12 +568,9 @@ func buildParamPanelNow(mode string) {
 	syncMapExtras(mode)
 	syncTermAnimExtras(mode)
 	syncLayersModule(mode)
-	syncSpectroModule(mode)
+	syncHomedModules(mode)
 	syncDeskModel(mode)
 	lyap.syncAnalysisModule(mode)
-	clearTurtlePhysModule()
-	clearSectionModule()
-	clearWaterModule()
 	phos.updateCRTOverlay()
 
 	// The Equation module: Custom's editor in Custom, the running model's
@@ -595,27 +592,16 @@ func buildParamPanelNow(mode string) {
 	// The patch memories in Presets.
 	buildPatchBank()
 
-	// The Section module, when the Poincaré overlay is switched on. Before the
-	// mode branches below, because those return early for the modes with no
-	// parameter grid of their own — and the overlay works on every flow, not
-	// only the ones that happen to have knobs.
-	buildSectionModule(mode, paramsDiv)
-	// And the water lens's, while BEHIND is on it: it works over every model.
-	buildWaterModule(paramsDiv)
-
 	// The Mod module goes with the panel, so they are rebuilt on every
 	// path out of it, the early return included. Skipped there, the last
 	// model's modules stayed on the page — its cards, beside a model they do
 	// not drive — with every listener on them already freed by the arena.
 	if mode == "custom" {
-		// Shown explicitly: these two build an editor into the module rather
-		// than knobs, and a mode before them may have left it hidden.
-		showParamsModule(true)
 		custom.buildCustomPanel(paramsDiv)
 		if rebindParamWheel != nil {
 			rebindParamWheel()
 		}
-		quantizeModuleWidths() // Equation + Parameters modules
+		quantizeModuleWidths() // the Equation module
 		return
 	}
 
@@ -637,18 +623,16 @@ func buildParamPanelNow(mode string) {
 	// What is left for this module is the Custom editor, and a readout of the
 	// running model's where its row has no readout line (liveReadoutHost). The
 	// readouts, the selectors and the switches a model used to add here are on
-	// the readout line, in the bank and on the head's switches. The grid below
-	// is the fallback container; if nothing goes into it the module is hidden,
-	// because a module with a header and a void under it reads as broken rather
-	// than as empty.
+	// the readout line, in the bank and on the head's switches. Nothing was
+	// left in it under any model, and an empty module that came and went was
+	// the one module hidden on every model, so it is no module now: #params is
+	// only where the modules built after the rack go, and the grid below the
+	// fallback for a row with no readout line, which no row is.
 	params := attractorParams[mode]
 	grid := dom.Doc.Call("createElement", "div")
 	grid.Set("className", "punit-grid")
 	paramsDiv.Call("appendChild", grid)
-	// Decided at the end, once the extras below have had their chance at it.
-	defer func() { showParamsModule(grid.Get("childElementCount").Int() > 0) }()
 
-	buildTurtlePhysModule(mode, paramsDiv)
 	applyModuleVisibility() // a rebuild puts back what the switches took away
 
 	if mode == "takens" {
@@ -739,98 +723,6 @@ func buildParamPanelNow(mode string) {
 	syncSweptMarks()          // a rebuilt row has lost its swept marking
 	syncLinkMarks()           // and its per-control link badges
 	layoutSkirts()            // skirts are measured, so they are sized once the rows exist
-}
-
-// buildTurtlePhysModule gives the weight controls a module of their own, which
-// the Physics switch shows and hides. They are not parameters of the figure —
-// the figure is the same figure whatever it weighs — and a module that appears
-// when the switch is thrown says that better than four more knobs that do
-// nothing until it is.
-func buildTurtlePhysModule(mode string, paramsDiv js.Value) {
-	clearTurtlePhysModule()
-	if mode != "turtle" {
-		return
-	}
-	mod := dom.Doc.Call("createElement", "div")
-	mod.Set("className", "sect physmodule")
-	h := dom.Doc.Call("createElement", "div")
-	h.Set("className", "sect-hdr")
-	h.Set("textContent", "Physics")
-	h.Set("title", doc("phys-module"))
-	mod.Call("appendChild", h)
-	g := dom.Doc.Call("createElement", "div")
-	g.Set("className", "punit-grid")
-	for _, p := range turtlePhysParams {
-		g.Call("appendChild", buildParamUnit(run.selectedMode, p))
-	}
-	mod.Call("appendChild", g)
-	if primary := paramsDiv.Call("closest", ".sect"); primary.Truthy() {
-		primary.Get("parentNode").Call("insertBefore", mod, primary.Get("nextSibling"))
-	}
-}
-
-// buildSectionModule gives the Poincaré overlay's plane controls a module of
-// their own, alongside the source system's Parameters module rather than
-// inside it. The plane is not a parameter of the Lorenz system — turning it
-// changes what is being LOOKED AT, not what is running — and mixing the two
-// grids would say otherwise.
-//
-// It is the turtle Physics module's shape, for the same reason: controls that
-// appear with a switch and go away with it. The Sect switch rebuilds the panel
-// so this runs, exactly as the Patchbay switch does.
-//
-// Not in the Poincaré MODEL's own mode, where the same paramDefs are already in
-// attractorParams and the generic grid has built them — two grids driving the
-// same variables would be two DOM elements with the same id, and the second
-// one's dial would silently drive the first one's slider.
-func buildSectionModule(mode string, paramsDiv js.Value) {
-	clearSectionModule()
-	if !sect.on || mode == "poincare" {
-		return
-	}
-	if _, isFlow := dynamics.FlowFor4(mode); !isFlow {
-		// Nothing to section. The switch stays on — it is a preference about
-		// flows, and hopping through a dodecahedron on the way to another
-		// attractor should not turn it off.
-		return
-	}
-	mod := dom.Doc.Call("createElement", "div")
-	mod.Set("className", "sect sectmodule")
-	h := dom.Doc.Call("createElement", "div")
-	h.Set("className", "sect-hdr")
-	h.Set("textContent", "Section")
-	h.Set("title", doc("sect-module"))
-	mod.Call("appendChild", h)
-	g := dom.Doc.Call("createElement", "div")
-	g.Set("className", "punit-grid")
-	for _, p := range sectPlaneParams {
-		g.Call("appendChild", buildParamUnit(run.selectedMode, p))
-	}
-	mod.Call("appendChild", g)
-	if primary := paramsDiv.Call("closest", ".sect"); primary.Truthy() {
-		primary.Get("parentNode").Call("insertBefore", mod, primary.Get("nextSibling"))
-	}
-}
-
-// clearSectionModule takes it away again, on every panel build, before the
-// early returns — so the module cannot outlive the switch or the mode.
-func clearSectionModule() {
-	old := dom.Doc.Call("querySelectorAll", ".sectmodule")
-	for i := old.Get("length").Int() - 1; i >= 0; i-- {
-		n := old.Index(i)
-		n.Get("parentNode").Call("removeChild", n)
-	}
-}
-
-// clearTurtlePhysModule takes the module away. It runs on every panel build,
-// before the early returns for the modes that have no parameter grid at all,
-// so the module cannot outlive the mode it belongs to.
-func clearTurtlePhysModule() {
-	old := dom.Doc.Call("querySelectorAll", ".physmodule")
-	for i := old.Get("length").Int() - 1; i >= 0; i-- {
-		n := old.Index(i)
-		n.Get("parentNode").Call("removeChild", n)
-	}
 }
 
 // buildTwoWaySwitch renders a two-option setting as a switch with the current
@@ -928,20 +820,6 @@ func buildTwoWaySwitch(sel js.Value, labels []string, label string) js.Value {
 	outer.Call("appendChild", wrap)
 	outer.Call("appendChild", sel)
 	return outer
-}
-
-// showParamsModule hides the Parameters module for a model that has no
-// parameters, instead of leaving a titled empty box on the rack.
-func showParamsModule(on bool) {
-	sect := dom.Doc.Call("getElementById", "params-module")
-	if !sect.Truthy() {
-		return
-	}
-	if on {
-		sect.Get("style").Set("display", "")
-		return
-	}
-	sect.Get("style").Set("display", "none")
 }
 
 // newPunitCard builds a parameter cell with the anatomy buildParamUnit gives

@@ -151,7 +151,7 @@ func (p *poincareSection) wireSectSwitch() {
 	wireSwitch("sect-sw", func(on bool) {
 		p.on = on
 		p.invalidate()
-		buildParamPanel(run.selectedMode)
+		syncHomedModules(run.selectedMode)
 	})
 }
 

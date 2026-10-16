@@ -45,12 +45,11 @@ const controlsBody = `
   <div class="swsec" id="motion-sec"><div class="swsec-hdr" data-doc="console.motion">Motion</div>
     <label class="grp" style="cursor:pointer;" data-doc="auto-rotate-cell"><input type="checkbox" class="sw" id="auto-rotate" checked> Auto-rot</label>
     <label class="grp" style="cursor:pointer;" data-doc="pause-sw-cell"><input type="checkbox" class="sw" id="pause-sw"> Pause</label>
-    <label class="grp" id="phys-sw-wrap" style="cursor:pointer;" data-doc="phys-sw-wrap"><input type="checkbox" class="sw" id="phys-sw"> Physics</label>
     <label class="grp" style="cursor:pointer;" data-doc="jam-sw-cell"><input type="checkbox" class="sw" id="jam-sw"> Jam</label>
   </div>
 </div>
 </div>
-<div class="sect" id="params-module"><div class="sect-hdr" data-doc="params">Parameters</div><div id="params" class="row"></div></div>
+<div id="params-module" hidden><div id="params" class="row"></div></div>
 <div class="sect" id="layers-module"><div class="sect-hdr" data-doc="layers">Layers · Colors</div>
 <!-- P-units (rackbank_js.go), made by buildPUnitModule, and the four color
      knobs, which are a part of their own (hue and level). The switches the
@@ -102,8 +101,14 @@ const controlsBody = `
 <button class="pushbtn" id="bounce-drop" data-doc="bounce-drop"></button>
 <button class="pushbtn" id="stlfile-load" data-doc="stlfile-load"></button>
 </div>
-<div class="sect" id="spectro-module" style="display:none"><div class="sect-hdr" data-doc="spectro">Spectro</div>
+<div class="sect" id="spectro-module"><div class="sect-hdr" data-doc="spectro">Spectro</div>
 <div id="spectro-params" class="row"></div></div>
+<div class="sect" id="section-module"><div class="sect-hdr" data-doc="sect-module">Section</div>
+<div id="section-params" class="row"></div></div>
+<div class="sect" id="water-module"><div class="sect-hdr" data-doc="water-module">Water</div>
+<div id="water-params" class="row"></div></div>
+<div class="sect" id="physics-module"><div class="sect-hdr" data-doc="phys-module">Physics</div>
+<div id="physics-params" class="row"></div></div>
 <div class="sect" id="record-module"><div class="sect-hdr" data-doc="record">Record</div>
 <div class="recgrid">
   <div class="rec-screen-unit" data-no-drag>
@@ -199,7 +204,7 @@ const controlsBody = `
   <div class="punit" id="points-cell" data-param="dash-duty" data-stops data-doc="points-cell" style="grid-row:2;grid-column:1"><span class="punit-top"><span class="u-lbl">points</span><input type="text" inputmode="decimal" id="slider-value-dash" class="numin u-val" data-doc="slider-value-dash" value="0"></span><input type="range" id="dash-duty" min="0" max="4000" value="0" step="10" data-doc="dash-duty"><button class="rst" id="rst-dash" data-doc="rst-dash">↺</button></div>
   <div class="punit" id="trail-controls" data-param="trail-slider" data-stops data-doc="trail-controls" style="grid-row:3;grid-column:1"><span class="punit-top"><span class="u-lbl">trail</span><input type="text" inputmode="decimal" id="slider-value-trail" class="numin u-val" data-doc="slider-value-trail" value="20000"></span><input type="range" id="trail-slider" min="1000" max="500000" value="20000" step="1000" data-doc="trail-slider"><button class="rst" id="rst-trail" data-doc="rst-trail">↺</button></div>
 </div>
-<span hidden><input type="checkbox" class="sw" id="use-points" data-doc="use-points"><input type="checkbox" class="sw" id="persist-trail" data-doc="persist-trail-cell"><input type="checkbox" class="sw" id="ring-sw" data-doc="ring-sw-cell"><input type="checkbox" class="sw" id="sect-sw" data-doc="sect-sw-cell"><input type="checkbox" class="sw" id="scope-grat" checked data-doc="scope-grat-cell"><input type="checkbox" class="sw" id="mo-beam" data-doc="mo-beam"><input type="checkbox" class="sw" id="mo-cam" data-doc="mo-cam"></span>
+<span hidden><input type="checkbox" class="sw" id="use-points" data-doc="use-points"><input type="checkbox" class="sw" id="persist-trail" data-doc="persist-trail-cell"><input type="checkbox" class="sw" id="ring-sw" data-doc="ring-sw-cell"><input type="checkbox" class="sw" id="sect-sw" data-doc="sect-sw-cell"><input type="checkbox" class="sw" id="scope-grat" checked data-doc="scope-grat-cell"><input type="checkbox" class="sw" id="mo-beam" data-doc="mo-beam"><input type="checkbox" class="sw" id="mo-cam" data-doc="mo-cam"><input type="checkbox" class="sw" id="phys-sw" data-doc="phys-sw-wrap"></span>
 </div>
 <div class="sect" id="lattice-module"><div class="sect-hdr" data-doc="lattice">Lattice</div>
 <!-- P-units, made by buildPUnitModule: how the terminal lattice draws a

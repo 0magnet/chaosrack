@@ -593,11 +593,14 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
    out. So is a model's cell while its model is not running (not .live): the
    rack powered down leaves the last model's controls in the bank, assigned to
    nothing, and they read as the unassigned positions beside them do. */
-:is(.cell-blank,.crt-dim,.pal-dim,.layer-dim,.modules .punit[data-mode]:not(.live)) :is(.led,.numin){color:transparent;text-shadow:none;}
+:is(.cell-blank,.cell-off,.crt-dim,.pal-dim,.layer-dim,.modules .punit[data-mode]:not(.live)) :is(.led,.numin){color:transparent;text-shadow:none;}
 :is(.cell-blank,.crt-dim,.pal-dim,.layer-dim,.modules .punit[data-mode]:not(.live)) .dmd .dmd-on{opacity:.07;filter:none;}
+/* A control that is off (cell-off: its module's switch, or the layer it is for, is
+   off) keeps its legend and loses its readout: the knob is still that knob. */
+.cell-off .dmdval .dmd .dmd-on{opacity:.07;filter:none;}
 /* The LEDs round a bank knob out: the dial sets its colors inline, so this
    names the dots, as specific as the rules that light them and one more. */
-.modules .dmdcell:is(.cell-blank,[data-mode]:not(.live)) .value-dial .vdial-tick{background:var(--led-bg,#170000);box-shadow:inset 0 0 0 1px var(--led-bd,#3a0000);}
+.modules .dmdcell:is(.cell-blank,.cell-off,[data-mode]:not(.live)) .value-dial .vdial-tick{background:var(--led-bg,#170000);box-shadow:inset 0 0 0 1px var(--led-bd,#3a0000);}
 
 /* ═══ 6. Labels ════════════════════════════════════════════════════════════ */
 /* ── Uniform module labels: every cell's primary label uses the same font size
@@ -1598,7 +1601,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
 /* ═══ 20. Parameters and modulation ═════════════════════════════════════════ */
 /* The Mod module (modmatrix_js.go), shown only while Audio mod is on: the
    pin matrix over the selected route's DEST, DPTH and EQ. */
-:is(#controls-panel,.cp-ctx).ph-off .physmodule{display:none;}
 .modmx{display:flex;flex-direction:column;align-items:flex-start;gap:calc(2*var(--mm));}
 .modmx-blocks{display:flex;flex-direction:row;align-items:flex-start;gap:calc(2*var(--mm));}
 .modmx-edit{display:flex;flex-direction:row;gap:var(--kgap,0);}

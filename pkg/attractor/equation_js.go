@@ -248,7 +248,7 @@ func (c *customEquation) buildCustomPanel(paramsDiv js.Value) {
 
 	// The equation editor lives in its own "Equation" module, before Parameters
 	// (which holds the detected parameter knobs).
-	if paramsSect := paramsDiv.Call("closest", ".sect"); paramsSect.Truthy() {
+	if paramsSect := dom.Doc.Call("getElementById", "params-module"); paramsSect.Truthy() {
 		if old := dom.Doc.Call("getElementById", "eqn-module"); old.Truthy() {
 			old.Get("parentNode").Call("removeChild", old)
 		}
@@ -296,12 +296,8 @@ func (c *customEquation) buildCustomPanel(paramsDiv js.Value) {
 	}
 	c.modDefs = defs
 	buildModMatrix(defs)
-	// In the row's bank, with every other model's constants (bankCustomCells),
-	// and the Parameters module put away if that leaves it with nothing.
+	// In the row's bank, with every other model's constants (bankCustomCells).
 	if bankCustomCells(defs) {
-		if paramsDiv.Get("childElementCount").Int() == 0 {
-			showParamsModule(false)
-		}
 		return
 	}
 	grid := dom.Doc.Call("createElement", "div")

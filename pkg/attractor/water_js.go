@@ -7,7 +7,6 @@ import (
 	"math/rand/v2"
 	"syscall/js"
 
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"github.com/0magnet/chaosrack/pkg/ripple"
 )
@@ -388,41 +387,4 @@ func (wa *waterLens) heightJS() js.Value {
 		wa.heightArr = js.Global().Get("Uint8Array").New(len(wa.heightBuf))
 	}
 	return wa.heightArr
-}
-
-// buildWaterModule gives the lens's knobs a module of their own while BEHIND
-// is on water, as the Physics and Section modules come with their switches:
-// they belong to no model, and with nowhere to show them the lens ran at its
-// defaults. BEHIND rebuilds the panel when it moves, so this follows it.
-func buildWaterModule(paramsDiv js.Value) {
-	clearWaterModule()
-	if !waterActive() {
-		return
-	}
-	mod := dom.Doc.Call("createElement", "div")
-	mod.Set("className", "sect watermodule")
-	h := dom.Doc.Call("createElement", "div")
-	h.Set("className", "sect-hdr")
-	h.Set("textContent", "Water")
-	h.Set("title", doc("water-module"))
-	mod.Call("appendChild", h)
-	g := dom.Doc.Call("createElement", "div")
-	g.Set("className", "punit-grid")
-	for _, p := range attractorParams["water"] {
-		g.Call("appendChild", buildParamUnit(run.selectedMode, p))
-	}
-	mod.Call("appendChild", g)
-	if primary := paramsDiv.Call("closest", ".sect"); primary.Truthy() {
-		primary.Get("parentNode").Call("insertBefore", mod, primary.Get("nextSibling"))
-	}
-}
-
-// clearWaterModule takes it away, on every panel build, before the early
-// returns — so it cannot outlive the lens.
-func clearWaterModule() {
-	old := dom.Doc.Call("querySelectorAll", ".watermodule")
-	for i := old.Get("length").Int() - 1; i >= 0; i-- {
-		n := old.Index(i)
-		n.Get("parentNode").Call("removeChild", n)
-	}
 }

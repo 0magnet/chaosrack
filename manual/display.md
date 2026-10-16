@@ -207,7 +207,7 @@ Color range — auto-ranging or held
 ## Spectro
 
 <!-- key: spectro -->
-Spectro — the spectrogram's own controls, for when it is a LAYER rather than the model: painted on a surface as the skin, or filling the canvas behind the model as the backdrop. As the model its controls are in Parameters, like every other model's; in either of the other two roles Parameters is showing something else, and these had nowhere to be at all.
+Spectro — the spectrogram's own controls, wherever it is: the model (Spectrogram, or FVF's surface), the skin painted on a surface, or the backdrop filling the canvas behind the model. They are in this module for all three, and live in any of them; with no spectrogram on screen their readouts are blank.
 
 ## Record
 
@@ -593,7 +593,7 @@ Ring — beam mode: only the advancing head is integrated each frame and the tra
 ### Poincaré section
 
 <!-- key: sect-sw-cell -->
-Poincaré section — samples the trajectory where it crosses a plane in one direction and draws the accumulated intersections in gold. Each crossing is interpolated between the two samples that straddle the plane. Enabling it reveals the Section module, which sets the plane and direction. Analysis → Poincaré Section shows the same section as a separate display, with the first-return map.
+Poincaré section — samples the trajectory where it crosses a plane in one direction and draws the accumulated intersections in gold. Each crossing is interpolated between the two samples that straddle the plane. The Section module sets the plane and direction, and its ON button is this switch too. Analysis → Poincaré Section shows the same section as a separate display, with the first-return map.
 
 ### Graticule
 

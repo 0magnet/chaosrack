@@ -345,7 +345,7 @@ func Run() {
 		anim.fillTermAnimPicker()
 		syncFVFRoute()
 		wireColorAndViewControls()
-		// Event: physics switch — the weight is a switch on the Motion panel, not a
+		// Event: the Physics switch.
 		wirePhysSwitch()
 		// canvas, which is what the GPU costs, but keeps the control panel — so
 		wireFullscreenSwitch()
@@ -1240,12 +1240,11 @@ func wirePanelSwitches() {
 }
 
 // wireExtraNav puts the host page's own navigation into the Console, and
-// settles the Physics switch once the URL hash has chosen the mode.
+// settles the Physics and Section modules once the URL hash has chosen the mode.
 func wireExtraNav() {
-	// straight into #turtle left the switch hidden, and it only appeared after
-	// changing modes to somewhere else and back. Every shared link to the
-	// turtle — the README's included — came up with its physics unreachable.
-	updatePhysVisibility()
+	// Their cells blank by the mode, and the earlier sync ran against the
+	// default one.
+	syncHomedModules(run.selectedMode)
 
 	// Wire input listeners for the fixed sliders so the cached vars
 	// + visible text output stay in sync with user interaction. The
@@ -1390,11 +1389,10 @@ func wirePowerSwitch() {
 	// unhandled promise rejection.
 }
 
-// wirePhysSwitch is the Physics switch and the module it reveals.
+// wirePhysSwitch is the Physics switch, the ON on the Physics module's GRAV.
 func wirePhysSwitch() {
-	// knob among the figure's parameters, because it is not one of them: the
-	// figure is the same figure whatever it weighs. Throwing it reveals the
-	// Physics module and hands the placing over to the body.
+	// The figure's weight is not one of its parameters: it is the same figure
+	// whatever it weighs. Throwing it hands the placing over to the body.
 	if ps := dom.Doc.Call("getElementById", "phys-sw"); ps.Truthy() {
 		dom.On(ps, "change", func(this js.Value, args []js.Value) any {
 			turtlePhysOn = dom.Doc.Call("getElementById", "phys-sw").Get("checked").Bool()
@@ -1411,10 +1409,10 @@ func wirePhysSwitch() {
 				// grab hit-tests world positions against a screen pointer.
 				normalizeOrientation()
 			}
-			updatePhysVisibility()
+			syncHomedModules(run.selectedMode)
 			return nil
 		})
-		updatePhysVisibility() // a definite state before any mode change
+		syncHomedModules(run.selectedMode) // a definite state before any mode change
 	}
 
 	// Power switch (default on): off stops the render loop and clears the
