@@ -11,7 +11,7 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
-const autoRotYDelta = 0.1
+const autoRotYDelta = AutoRotY
 
 // setAutoRotate turns the gentle auto-spin on or off. It sets a flag and the
 // switch, and nothing else: the contribution itself is added to the Y rate in

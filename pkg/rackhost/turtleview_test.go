@@ -45,7 +45,7 @@ func TestTheTurtlesViewAimsItsAxis(t *testing.T) {
 	axis, ok := r.analyzers.scope.turtle.Axis()
 	r.mu.Unlock()
 	if !ok {
-		t.Skip("the default walk has no axis")
+		t.Fatal("the default walk has no axis")
 	}
 	set(t, r, "turtle-view", "1")
 	watch(t, r, c, 0.1)
@@ -69,5 +69,28 @@ func TestTheTurtlesViewAimsItsAxis(t *testing.T) {
 	r.mu.Unlock()
 	if spin != "1" {
 		t.Errorf("auto-rotate is %q after free, want it back", spin)
+	}
+}
+
+// Leaving the Turtle with a view held gives auto-rotate back, as free does.
+func TestLeavingTheTurtleGivesAutoRotateBack(t *testing.T) {
+	r, c := idleRack(t, "turtle")
+	set(t, r, "auto-rotate", "1")
+	watch(t, r, c, 0.2)
+	set(t, r, "turtle-view", "1")
+	watch(t, r, c, 0.1)
+	r.mu.Lock()
+	held := r.turtleAim.saved
+	r.mu.Unlock()
+	if !held {
+		t.Fatal("the view did not park auto-rotate")
+	}
+	set(t, r, r.selector, "lorenz")
+	watch(t, r, c, 0.1)
+	r.mu.Lock()
+	spin := r.value("auto-rotate")
+	r.mu.Unlock()
+	if spin != "1" {
+		t.Errorf("auto-rotate is %q on Lorenz after the Turtle's view, want it back", spin)
 	}
 }

@@ -109,9 +109,9 @@ func (r *Rack) monitorFrame(w, h int, power bool, tally string) *image.RGBA {
 		// monitor carries the history of RR, DET and LAM instead.
 		name = "RQA · " + src
 	} else {
-		r.scene.mu.Lock()
-		shown = r.scene.shown
-		r.scene.mu.Unlock()
+		// Without the scene's lock, which is taken before r.mu and never
+		// under it (scene.mu).
+		shown = r.scene.monitor.Load()
 	}
 	if shown != nil {
 		// Fit, not fill: a monitor that stretched its picture would make
