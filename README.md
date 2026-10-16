@@ -2088,15 +2088,14 @@ reach localhost.
 chaosrack serve --shell                    # a real pty, in a desk window
 chaosrack serve --fs                       # real files, for the shell and the file manager
 chaosrack serve --fs --fs-root ~/projects  # ...confined to a subtree
-chaosrack serve -b 127.0.0.1 -p 8080       # --bind, if the default is not what you want
+chaosrack serve -b 0.0.0.0 -p 8080         # serve the LAN too (not with --shell or --fs)
 ```
 
 - Nothing is served unless `--shell` or `--fs` is passed.
-- Either flag **changes the default bind to loopback**. Every interface stays
-  the default otherwise, because serving the visualizer on a LAN is reasonable;
-  an explicit `--bind` is still obeyed, and then **refused** if it is not
-  loopback. A default that quietly overrode what you typed would be worse than
-  a refusal that says why.
+- The server binds **127.0.0.1 by default**, whatever is on: the audio
+  capture, the rack link and the routing switch answer whoever can reach them.
+  `--bind 0.0.0.0` serves the LAN; with `--shell` or `--fs` a bind that is
+  not loopback is **refused**, with the reason.
 - The `Origin` must match a page this listener served, and ordinary requests
   are checked with `Sec-Fetch-Site` as well — a browser does **not** send
   `Origin` on a same-origin GET, so requiring one would refuse exactly the

@@ -57,7 +57,7 @@ func init() {
 		defaultport = 8080
 	}
 	runCmd.Flags().IntVarP(&webPort, "port", "p", defaultport, "port to serve on - env WEBPORT="+os.Getenv("WEBPORT"))
-	runCmd.Flags().StringVarP(&bindAddr, "bind", "b", "", "address to bind (default: every interface; 127.0.0.1 when --shell or --fs is on)")
+	runCmd.Flags().StringVarP(&bindAddr, "bind", "b", "", "address to bind (default 127.0.0.1, this machine only; 0.0.0.0 to serve the LAN)")
 	runCmd.Flags().BoolVarP(&debugMode, "debug", "d", false, "enable /debug/stats profiling endpoint")
 	runCmd.Flags().BoolVar(&inlineWasm, "inline", false, "carry the wasm inside the HTML instead of fetching it (the single-file build; see `make onefile`)")
 }

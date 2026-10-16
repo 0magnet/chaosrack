@@ -30,3 +30,26 @@ func TestAudioSocketRefusesOtherSites(t *testing.T) {
 		}
 	}
 }
+
+// The server is this machine's unless --bind says otherwise, and its UDP
+// socket goes where its page does.
+func TestTheServerBindsLoopbackByDefault(t *testing.T) {
+	was, wasPort := bindAddr, webPort
+	t.Cleanup(func() { bindAddr, webPort = was, wasPort })
+	webPort = 8080
+	for bind, want := range map[string]string{
+		"":          "127.0.0.1:8080",
+		"0.0.0.0":   "0.0.0.0:8080",
+		":9000":     ":9000",
+		"127.0.0.2": "127.0.0.2:8080",
+	} {
+		bindAddr = bind
+		if got := listenAddress(); got != want {
+			t.Errorf("--bind %q listens on %s, want %s", bind, got, want)
+		}
+	}
+	bindAddr = ""
+	if h := listenHost(); h != "127.0.0.1" {
+		t.Errorf("the UDP socket binds %q, want 127.0.0.1", h)
+	}
+}

@@ -321,7 +321,7 @@ func mountWobbulateCtl(r *gin.Engine) {
 }
 
 // fromThisMachine reports whether a request arrived over the loopback interface.
-// The server binds every interface by default, so this is what keeps a routing
+// The server can be bound to every interface (--bind), so this is what keeps a routing
 // change local even when the page is being watched from across the LAN.
 func fromThisMachine(r *http.Request) bool {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)

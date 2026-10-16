@@ -81,14 +81,13 @@ func init() {
 // hostWanted reports whether either half of the agent was asked for.
 func hostWanted() bool { return hostShell || hostFS }
 
-// listenAddress is what the server binds.
+// listenAddress is what the server binds: --bind, or this machine only.
 //
-// Every interface by default, because serving the visualizer on a LAN is a
-// reasonable thing to want. Asking for a shell or the filesystem changes the
-// DEFAULT to loopback rather than forcing it — an explicit --bind is still
-// obeyed, and then refused by mountHostAgent if it is not loopback. The
-// difference matters: a default that quietly overrode what someone typed would
-// be worse than a refusal that says why.
+// Loopback by default, whatever is switched on. The capture, the rack link
+// and the routing switch answer whoever can reach them, and a default that
+// put them on every interface put them on the LAN without anyone asking.
+// Serving the rack to other machines is still one flag away, --bind 0.0.0.0
+// (or --bind :PORT); --shell and --fs then refuse it (mountHostAgent).
 func listenAddress() string {
 	if bindAddr != "" {
 		if _, _, err := net.SplitHostPort(bindAddr); err == nil {
@@ -96,10 +95,18 @@ func listenAddress() string {
 		}
 		return net.JoinHostPort(bindAddr, strconv.Itoa(webPort))
 	}
-	if hostWanted() {
-		return net.JoinHostPort("127.0.0.1", strconv.Itoa(webPort))
+	return net.JoinHostPort("127.0.0.1", strconv.Itoa(webPort))
+}
+
+// listenHost is listenAddress's host, "" for every interface: where the
+// server's other sockets (WebTransport's UDP) bind, so they are no more
+// reachable than the page that offers them.
+func listenHost() string {
+	h, _, err := net.SplitHostPort(listenAddress())
+	if err != nil {
+		return ""
 	}
-	return fmt.Sprintf(":%d", webPort)
+	return h
 }
 
 // mountHostAgent adds the agent's routes to the router, and returns without
