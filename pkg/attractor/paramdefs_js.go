@@ -146,8 +146,8 @@ var paramRingLabels = map[string][]string{
 }
 
 // turtlePhysParams are the weight controls. They are not in attractorParams
-// because they are not the Parameters module: they get their own, which appears
-// with the Physics switch and goes away with it.
+// because they are not the figure's: they are the Physics module's
+// (homedmods_js.go).
 var turtlePhysParams = func() (out []paramDef) {
 	field := map[string]*float32{
 		"turtle-grav": &turtle.gravF, "turtle-fric": &turtle.fricF,

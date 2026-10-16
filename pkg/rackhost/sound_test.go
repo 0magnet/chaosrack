@@ -167,7 +167,7 @@ func TestAutoPinningLightsThePin(t *testing.T) {
 func TestModelOutPlaysTheModel(t *testing.T) {
 	r := newRack(t)
 	if r.selector == "" {
-		t.Skip("no model selector in the catalog")
+		t.Fatal("no model selector in the catalog")
 	}
 	sp := &fakeSpeaker{r: r}
 	r.SetSpeaker(sp)

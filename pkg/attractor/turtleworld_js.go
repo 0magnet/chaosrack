@@ -55,7 +55,7 @@ func turtleRoom() (cx, cy, halfW, halfH float32) {
 // somewhere you might want to be.
 func physOn() bool { return turtlePhysOn && run.selectedMode == "turtle" }
 
-// turtlePhysOn is the Physics switch on the Motion panel.
+// turtlePhysOn is the Physics switch: the ON on the Physics module's GRAV.
 var turtlePhysOn bool
 
 // pageTurtleWorld is the body's world on the page: the view's room and

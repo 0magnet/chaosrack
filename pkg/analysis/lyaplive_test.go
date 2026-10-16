@@ -239,7 +239,7 @@ func driveFlow(mode string, modelTime float64) (*LiveLyapunov, bool) {
 func TestLiveLyapunovAgreesWithOfflineLorenz(t *testing.T) {
 	l, ok := driveFlow("lorenz", liveReadyTime)
 	if !ok {
-		t.Skip("lorenz flow not registered in this build")
+		t.Fatal("lorenz flow not registered")
 	}
 	live, ready := l.Lambda()
 	if !ready {
@@ -268,7 +268,7 @@ func TestLiveLyapunovAgreesWithOfflineLorenz(t *testing.T) {
 func TestLiveLyapunovLorenzConvergence(t *testing.T) {
 	sys, ok := dynamics.FlowFor4("lorenz")
 	if !ok {
-		t.Skip("lorenz flow not registered in this build")
+		t.Fatal("lorenz flow not registered")
 	}
 	_ = sys
 	base, _ := driveFlow("lorenz", liveReadyTime)

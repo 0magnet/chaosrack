@@ -177,7 +177,7 @@ func TestReadoutsWriteValuesAsThePageDid(t *testing.T) {
 	}
 	id := r.modelControl()
 	if id == "" {
-		t.Skip("no model selector in the catalog")
+		t.Fatal("no model selector in the catalog")
 	}
 	if err := r.Set(id, "lorenz"); err != nil {
 		t.Fatal(err)
@@ -219,7 +219,7 @@ func TestNoModelIsBrowserOnly(t *testing.T) {
 	r := newRack(t)
 	id := r.modelControl()
 	if id == "" {
-		t.Skip("no model selector in the catalog")
+		t.Fatal("no model selector in the catalog")
 	}
 	for _, model := range r.ctls[r.byID[id]].Options {
 		if err := r.Set(id, model); err != nil {
@@ -237,7 +237,7 @@ func TestAFlowConstantRedrawsTheModel(t *testing.T) {
 	r := newRack(t)
 	id := r.modelControl()
 	if id == "" {
-		t.Skip("no model selector in the catalog")
+		t.Fatal("no model selector in the catalog")
 	}
 	if err := r.Set(id, "lorenz"); err != nil {
 		t.Fatal(err)
@@ -270,7 +270,7 @@ func TestTheGlobeFollowsItsKnobs(t *testing.T) {
 	r := newRack(t)
 	id := r.modelControl()
 	if id == "" || r.value("globe-lat") == "" {
-		t.Skip("no globe knobs in the catalog")
+		t.Fatal("no globe knobs in the catalog")
 	}
 	if err := r.Set(id, "globe"); err != nil {
 		t.Fatal(err)
@@ -301,7 +301,7 @@ func TestChoosingAModelRedrawsTheBank(t *testing.T) {
 		t.Fatal(err)
 	}
 	if cat.Banks == nil || r.selector == "" {
-		t.Skip("a catalog without banks")
+		t.Fatal("a catalog without banks")
 	}
 	if err := r.Set("globe-lat", "4"); err != nil {
 		t.Fatal(err)
@@ -350,7 +350,7 @@ func TestChoosingAModelRedrawsTheBank(t *testing.T) {
 func TestColorsAndDotsChangeTheDrawing(t *testing.T) {
 	r := newRack(t)
 	if r.selector == "" {
-		t.Skip("no model selector in the catalog")
+		t.Fatal("no model selector in the catalog")
 	}
 	for _, kv := range [][2]string{{r.selector, "lorenz"}, {"auto-rotate", "0"}} {
 		if err := r.Set(kv[0], kv[1]); err != nil {
@@ -395,7 +395,7 @@ func TestThePictureHoldsEachItemOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 	if cat.Banks == nil || r.selector == "" {
-		t.Skip("a catalog without banks")
+		t.Fatal("a catalog without banks")
 	}
 	for _, model := range []string{r.value(r.selector), "lorenz", "globe"} {
 		if err := r.Set(r.selector, model); err != nil {
