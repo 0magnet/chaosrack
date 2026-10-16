@@ -283,7 +283,10 @@ func syncTriosIn(root js.Value, sel string) {
 
 // wireTrios hangs one listener on the document for every trio there is or
 // will be: the bank's unassigned positions are copies, and a copy does not
-// carry its original's listeners. Page-lifetime, so js.FuncOf.
+// carry its original's listeners. Page-lifetime, so js.FuncOf. On the way
+// down (capture): in the page's default layout the panel is in a terminal's
+// placement, which stops a click on its way up so the terminal under it does
+// not take it too, and a listener on the way up never heard a press.
 var trioWired bool
 
 func wireTrios() {
@@ -311,7 +314,7 @@ func wireTrios() {
 		}
 		lightTrios(param)
 		return nil
-	}))
+	}), true)
 	// A parameter with buttons changed some other way — its own knob, a reset,
 	// a permalink, MIDI — or one that a position's buttons drive did: relight
 	// those positions. Every other input is two map lookups and nothing more.
