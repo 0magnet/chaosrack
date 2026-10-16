@@ -96,14 +96,24 @@ func TestTheBallBlipsOnceTheRackIsTouched(t *testing.T) {
 		t.Fatalf("an untouched ball sounded (peak %.3f, speaker %v)", peakOf(s), sp.playing)
 	}
 	set(t, r, "bounce-grav", "12") // a hand on the rack, changing nothing
+	// Counted, since how many land together is the ball's to decide: its
+	// re-kicks are random.
+	r.sound.mu.Lock()
+	g := &r.sound.games
+	beep, beeps := g.ball.Beep, 0
+	g.ball.Beep = func(hz float64, ms int) { beeps++; beep(hz, ms) }
+	r.sound.mu.Unlock()
 	s := play(t, r, c, 3)
 	if !sp.playing {
 		t.Fatal("the speaker did not start once the rack was touched")
 	}
-	// A blip starts at its level, 0.1, and falls; a floor hit and the re-kick
-	// it sets off blip together, as the page's do.
-	if p := peakOf(s); p < 0.05 || p > 0.2 {
-		t.Errorf("the ball's blips peak at %.3f, want 0.1, or two of them at most", p)
+	// A blip starts at its level, 0.1, and falls; blips that overlap add up,
+	// so the most there can be is a level for each blip sounded.
+	r.sound.mu.Lock()
+	n := beeps
+	r.sound.mu.Unlock()
+	if p := peakOf(s); n == 0 || p < 0.05 || p > scopegames.BallBlipGain*float64(n)+1e-6 {
+		t.Errorf("the ball's %d blips peak at %.3f, want 0.1 each at most", n, p)
 	}
 }
 
