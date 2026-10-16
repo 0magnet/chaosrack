@@ -4,17 +4,17 @@ go 1.26.7
 
 require (
 	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992
-	github.com/0magnet/audioprism-go v0.0.1-0.20261015100617-5cc9dc2d5639
+	github.com/0magnet/audioprism-go v0.0.1-0.20261016095825-c04fc6875576
 	github.com/0magnet/calvin v0.0.1-0.20261013221715-da6581155df3
 	github.com/0magnet/cdp v0.0.0-20261013220930-98e232fae01d
-	github.com/0magnet/desk v0.0.3-0.20261015101029-ec3c275e4ba3
-	github.com/0magnet/desk/panes v0.0.1-0.20261015100712-c16be09f592b
+	github.com/0magnet/desk v0.0.3-0.20261016100210-5ec3b17d2f9c
+	github.com/0magnet/desk/panes v0.0.1-0.20261016095909-69e7bc7ac63c
 	github.com/0magnet/lattice v0.0.0-20261013224541-88e9ab8a3922
-	github.com/0magnet/pisano v0.0.0-20261015100910-427ddef040f1
+	github.com/0magnet/pisano v0.0.0-20261016100447-857ce1c4e7c3
 	github.com/0magnet/rack-go v0.0.0-20261013221719-290136881c9a
 	github.com/0magnet/seat v0.0.0-20261013221028-e66b97ebca1a
 	github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
-	github.com/0magnet/tuiwasm v0.0.0-20261015101117-a3ea438bf460
+	github.com/0magnet/tuiwasm v0.0.0-20261016100248-d50e7e24b908
 	github.com/0magnet/websh v0.0.1-0.20261013225449-0d54b04ae8e4
 	github.com/0magnet/winbox-go v0.0.1-0.20261013224642-cc4224c41a9c
 	github.com/0magnet/xterm-go v0.0.1-0.20261013223808-aa0a32cd702b
@@ -24,7 +24,7 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-gl/mathgl v1.2.0
 	github.com/jfreymuth/pulse v0.1.3
-	github.com/quic-go/quic-go v0.63.0
+	github.com/quic-go/quic-go v0.64.0
 	github.com/quic-go/webtransport-go v0.13.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
@@ -66,7 +66,7 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/coder/websocket v1.8.15 // indirect
-	github.com/dlclark/regexp2/v2 v2.8.4 // indirect
+	github.com/dlclark/regexp2/v2 v2.9.0 // indirect
 	github.com/dunglas/httpsfv v1.1.2 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/fatih/color v1.19.0 // indirect
@@ -84,7 +84,7 @@ require (
 	github.com/itchyny/timefmt-go v0.1.9 // indirect
 	github.com/jedib0t/go-pretty/v6 v6.8.3 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
+	github.com/klauspost/cpuid/v2 v2.4.1 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
 	github.com/mattn/go-colorable v0.1.16 // indirect
