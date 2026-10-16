@@ -141,8 +141,8 @@ func (r *Rack) waterSettings() attractor.WaterSettings {
 	return attractor.WaterFrom(func(id string) float32 { return float32(r.number(id)) })
 }
 
-// addWaterControls gives the rack the lens's knobs, which the page shows only
-// while BEHIND is on water, so its catalog has none of them.
+// addWaterControls gives the rack the lens's knobs should a catalog lack them:
+// one captured before the Water module was in the rack whatever runs.
 func (r *Rack) addWaterControls() {
 	for _, k := range attractor.WaterKnobs {
 		r.addControl(racktui.Control{

@@ -160,23 +160,6 @@ func setCellBlank(el js.Value, blank bool) {
 	el.Get("classList").Call("toggle", "cell-blank", blank)
 }
 
-// updatePhysVisibility makes the Physics switch live only where there is
-// something to weigh (turtle), and keeps the panel's ph-on/ph-off class in
-// step with it so the Physics module appears and disappears with the switch.
-func updatePhysVisibility() {
-	setCellBlank(dom.Doc.Call("getElementById", "phys-sw-wrap"), run.selectedMode != "turtle")
-	if panel := dom.Doc.Call("getElementById", "controls-panel"); panel.Truthy() {
-		cl := panel.Get("classList")
-		if physOn() {
-			cl.Call("add", "ph-on")
-			cl.Call("remove", "ph-off")
-		} else {
-			cl.Call("add", "ph-off")
-			cl.Call("remove", "ph-on")
-		}
-	}
-}
-
 // updateTrailVisibility blanks the Trail readout on the models that draw no
 // trail; the knob stays bright and turnable (setCellBlank).
 func updateTrailVisibility() {
@@ -251,7 +234,6 @@ func onModeChange(this js.Value, args []js.Value) any {
 		buildParamPanel(run.selectedMode)
 		updateInfoOverlay()
 		updateTrailVisibility()
-		updatePhysVisibility()
 		// Which rings apply depends on the model: a display built from one
 		// quantity has no source to choose, so the src knob dims in those
 		// modes.

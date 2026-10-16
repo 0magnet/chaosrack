@@ -447,17 +447,15 @@ func TestTheModelsPanelsFollowTheModel(t *testing.T) {
 		t.Fatal("lorenz is in no category, so the rows cannot hold anything")
 	}
 	want := categorySection(activeCategory)
-	for _, key := range []string{"parameters", "equation"} {
-		if got := moduleSection(key); got != want {
-			t.Errorf("%q is in %q, want the running model's row %q", key, got, want)
-		}
+	if got := moduleSection("equation"); got != want {
+		t.Errorf("the Equation module is in %q, want the running model's row %q", got, want)
 	}
 	// A model nobody filed leaves the panels where they were: a bay of their
 	// own is a worse place than the right row, and a far better one than
 	// UTILITY beside the presets.
 	setActiveCategory("a model that is in no category")
-	if got := moduleSection("parameters"); got != secModel {
-		t.Errorf("with no active category Parameters went to %q, want %q", got, secModel)
+	if got := moduleSection("equation"); got != secModel {
+		t.Errorf("with no active category Equation went to %q, want %q", got, secModel)
 	}
 	// And nothing else moves with them.
 	if got := moduleSection("presets"); got != secConsole {

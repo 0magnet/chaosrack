@@ -109,13 +109,15 @@ func buildCategoryModules() {
 	if dom.Doc.Call("getElementById", categoryHeadID(rackRows()[0])).Truthy() {
 		return // already built
 	}
-	claimed := map[string]bool{}
+	// The controls a module of their own holds, it holds alone (homedmods_js.go).
+	claimed := homedParamIDs()
 	for _, label := range rackRows() {
 		for _, mod := range buildCategoryRow(label, claimed) {
 			parent.Call("insertBefore", mod, host)
 		}
 	}
 	syncCategoryRotaries()
+	buildHomedModules()
 }
 
 // A CATEGORY IS A CAGE OF CARDS.

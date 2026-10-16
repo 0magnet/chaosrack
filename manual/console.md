@@ -60,7 +60,7 @@ Desk — run this app inside a desktop: the desk becomes the environment, its pa
 ### Motion
 
 <!-- key: console.motion -->
-Motion — whether the model is moving, and what is moving it: the Y spin, a freeze, the physics that gives the figure weight, and Jam, which plays the rack by itself.
+Motion — whether the model is moving, and what is moving it: the Y spin, a freeze, and Jam, which plays the rack by itself.
 
 <!-- key: auto-rotate-cell -->
 Continuously spin the model about the vertical (Y) axis — it folds into the Y spin rate (ω, View)
@@ -71,7 +71,7 @@ Pause / freeze the animation
 ### Physics
 
 <!-- key: phys-sw-wrap -->
-Physics — give the turtle path weight: it becomes a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture. Reveals the Physics module. Press on the figure to pick it up and throw it; press beside it to turn the view as usual.
+Physics — give the turtle path weight: it becomes a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture. The ON button on the Physics module's GRAV. Press on the figure to pick it up and throw it; press beside it to turn the view as usual.
 
 ### Jam / attract mode
 

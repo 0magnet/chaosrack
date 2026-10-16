@@ -32,11 +32,16 @@ func TestEveryDialHasItsPointerWhereThePageDrewIt(t *testing.T) {
 		if _, shown := r.pic.Ctls[c.ID]; !shown {
 			continue
 		}
-		dials++
 		p, ok := r.ptrs[c.ID]
+		if !ok && ringDial(r, c.ID) {
+			// A P-unit's knob shows its value on the ring of LEDs round it,
+			// and has no pointer to turn.
+			continue
+		}
+		dials++
 		if !ok {
-			// A dial the page draws with no pointer (a ring, a bar) has
-			// nothing to turn.
+			// A dial the page draws with no pointer (a bar) has nothing to
+			// turn.
 			continue
 		}
 		found++
@@ -48,6 +53,18 @@ func TestEveryDialHasItsPointerWhereThePageDrewIt(t *testing.T) {
 	if dials == 0 || found*4 < dials*3 {
 		t.Fatalf("pointers found for %d of %d dials in the catalog's picture", found, dials)
 	}
+}
+
+// ringDial reports whether control id's box in the picture holds a ring of
+// LEDs: a P-unit's value ring, a dozen dots or more.
+func ringDial(r *Rack, id string) bool {
+	box, dots := r.pic.Ctls[id], 0
+	for _, it := range r.pic.Items {
+		if it != nil && it.Round != 0 && it.W <= 6 && inside(it, box) {
+			dots++
+		}
+	}
+	return dots >= 12
 }
 
 // A value a control cannot take is refused and leaves it as it was.

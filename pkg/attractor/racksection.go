@@ -148,15 +148,19 @@ var moduleSections = map[string]string{
 	// The model's own controls (the demo models' panels are in its bank now).
 	// secModel means "part of the instrument rather than of the rack", and
 	// moduleSection turns that into the running model's category row.
-	"parameters": secModel,
-	"equation":   secModel,
+	"equation": secModel,
 
 	"grid":            secDisplay,
 	"view":            secDisplay,
 	"display":         secDisplay,
 	"layers · colors": secDisplay,
 	"spectro":         secDisplay,
-	"lattice":         secDisplay,
+	// What is switched on over the picture: the section through a flow, the
+	// water in front of it, the weight of a Turtle walk.
+	"section": secDisplay,
+	"water":   secDisplay,
+	"physics": secDisplay,
+	"lattice": secDisplay,
 
 	// Everything that MAKES a signal, under the scope that draws one.
 	"scope 1": secGen,
