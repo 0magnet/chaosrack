@@ -12,7 +12,7 @@ import (
 )
 
 // The routing switch changes the machine's default sink, and the server binds
-// every interface by default. Whoever is watching the visualizer from across the
+// every interface with --bind 0.0.0.0. Whoever is watching the visualizer from across the
 // LAN must not be able to silence the machine it is running on.
 func TestOnlyThisMachineCanSwitchTheRouting(t *testing.T) {
 	for _, c := range []struct {

@@ -3,10 +3,10 @@
 package server
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -80,7 +80,7 @@ func mountWebTransport(r *gin.Engine, withAudio bool) *wtaudio.Server {
 	// had time to fail — so a bind error discovered asynchronously would be a
 	// page told to prefer a transport that was never going to answer, and the
 	// only symptom would be a fallback notice on every load.
-	pc, err := net.ListenPacket("udp", fmt.Sprintf(":%d", port))
+	pc, err := net.ListenPacket("udp", net.JoinHostPort(listenHost(), strconv.Itoa(port)))
 	if err != nil {
 		log.Printf("chaosrack: WebTransport off: %v (the WebSockets are unaffected)", err)
 		return nil
