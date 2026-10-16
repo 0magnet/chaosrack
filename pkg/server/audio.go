@@ -3,6 +3,7 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -113,7 +114,10 @@ func mountAudio(r *gin.Engine) {
 	// with nothing in the logs. Closing the socket is the whole fix: the page's
 	// WebSocket source reconnects two seconds after any drop, and the new
 	// capture resolves the new default. No reload, no second server.
-	r.GET("/ws", gin.WrapH(websocket.Handler(func(ws *websocket.Conn) {
+	// Same-origin only: a bare websocket.Handler takes any Origin that parses,
+	// and the capture is what the machine is playing, or its microphone — any
+	// page the user visits could have listened in.
+	r.GET("/ws", gin.WrapH(websocket.Server{Handshake: audioHandshake, Handler: func(ws *websocket.Conn) {
 		addAudioConn(ws)
 		defer removeAudioConn(ws)
 		// ?ch=2 asks for the source as recorded, interleaved. Anything else is
@@ -124,7 +128,7 @@ func mountAudio(r *gin.Engine) {
 			opts.Channels = 2
 		}
 		opts.Serve(ws)
-	})))
+	}}))
 	log.Printf("chaosrack: --audio on; the page it serves connects to /ws by itself")
 
 	if audioWT {
@@ -331,6 +335,22 @@ func fromThisMachine(r *http.Request) bool {
 // sameOriginRequest reports whether the request did not come from another
 // site's page. No Origin at all is allowed: that is curl, which the loopback
 // check has already vouched for. A browser sends one for anything cross-site.
+// audioHandshake refuses a /ws upgrade from another site's page, as
+// sameOriginRequest refuses its POSTs.
+func audioHandshake(cfg *websocket.Config, r *http.Request) error {
+	if !sameOriginRequest(r) {
+		return fmt.Errorf("chaosrack: /ws refused for origin %q", r.Header.Get("Origin"))
+	}
+	if o := r.Header.Get("Origin"); o != "" {
+		u, err := url.Parse(o)
+		if err != nil {
+			return err
+		}
+		cfg.Origin = u
+	}
+	return nil
+}
+
 func sameOriginRequest(r *http.Request) bool {
 	o := r.Header.Get("Origin")
 	if o == "" {
