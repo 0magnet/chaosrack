@@ -13,6 +13,7 @@ import (
 	"github.com/0magnet/chaosrack/pkg/colorspace"
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
+	"github.com/0magnet/chaosrack/pkg/pairing"
 
 	"github.com/0magnet/rack-go"
 	"github.com/go-gl/mathgl/mgl32"
@@ -55,6 +56,9 @@ func Run() {
 		return
 	}
 	installErrorNet()
+	// A pair link in the address, or a pairing kept from one: before anything
+	// dials, so the audio and the rack link know where their server is.
+	pairing.Boot()
 
 	// Build controls panel. If the host page already has a <footer>
 	// (e.g. m2/magnetosphere.net puts cart + shipping nav there), append

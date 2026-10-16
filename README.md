@@ -68,6 +68,7 @@ analog computers at [glensstuff.com](https://glensstuff.com).
   - [Waterfall — cumulative spectral decay](#waterfall--cumulative-spectral-decay)
   - [Controls that pull in the same direction](#controls-that-pull-in-the-same-direction)
 - [Reaching the machine](#reaching-the-machine)
+  - [From another machine: pairing](#from-another-machine-pairing)
   - [On a machine with other people on it](#on-a-machine-with-other-people-on-it)
 - [The rack](#the-rack)
   - [Console](#console)
@@ -2088,7 +2089,7 @@ reach localhost.
 chaosrack serve --shell                    # a real pty, in a desk window
 chaosrack serve --fs                       # real files, for the shell and the file manager
 chaosrack serve --fs --fs-root ~/projects  # ...confined to a subtree
-chaosrack serve -b 0.0.0.0 -p 8080         # serve the LAN too (not with --shell or --fs)
+chaosrack serve -b 0.0.0.0 -p 8080         # serve the LAN too, by pairing (not with --shell or --fs)
 ```
 
 - Nothing is served unless `--shell` or `--fs` is passed.
@@ -2105,6 +2106,41 @@ chaosrack serve -b 0.0.0.0 -p 8080         # serve the LAN too (not with --shell
 - `--fs-root` confines paths for real: they are resolved through
   `EvalSymlinks` on the longest *existing* prefix, so a symlink planted inside
   the root cannot be followed out of it.
+- The audio capture, the rack link and the routing switch take a page by its
+  **name**: its `Origin` must be its `Host`, and that host `localhost`,
+  `127.0.0.0/8`, `::1`, or a name given with `--host` (a reverse proxy's).
+  Matching `Origin` to `Host` alone is not enough — a site whose DNS answer is
+  switched to 127.0.0.1 after its page has loaded (DNS rebinding) sends a
+  matching pair — but a browser cannot send `Host: localhost` for a page that
+  is not at localhost.
+
+### From another machine: pairing
+
+With `--bind` on a LAN address, a browser on another machine pairs once:
+
+```
+chaosrack serve --bind 0.0.0.0 --audio
+# prints: https://chaosrack.magnetosphere.net/#pair=…&wt=192.168.1.5:8080&cert=…
+```
+
+Open the printed link there. The page comes from the Pages build over https —
+a page fetched from this server over plain http could have been changed on the
+way, so it is for looking at only and is offered no channel. The link's
+fragment, which a browser never sends anywhere, carries the server's
+WebTransport address, its certificate hashes and this run's pair secret. The
+page makes an ed25519 key in its own origin's storage and opens each session
+with a signature in the CONNECT request, inside QUIC's TLS 1.3, pinned to the
+certificate by hash: encrypted end to end, to a key only the server holds.
+
+- The server keeps the paired **public** keys, in full, in
+  `~/.config/chaosrack/paired-tabs`; delete a line to unpair. It keeps its
+  certificate there too, so a paired browser comes back after a restart, and
+  hands out the next one a week before the current one ends.
+- The audio and the rack link reconnect by themselves when the server
+  restarts.
+- `--pair-page` names another https page of this build to send links to.
+- A browser behind a proxy (`--proxy-server`, SOCKS) cannot reach the server:
+  QUIC does not go through one. Add the server's address to the bypass list.
 
 ### On a machine with other people on it
 

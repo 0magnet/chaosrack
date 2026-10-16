@@ -40,11 +40,11 @@ import (
 // works with nothing installed anywhere — the generated certificate is pinned
 // by the SHA-256 the page reads from /wt-info. A page served over plain http to
 // any OTHER address is not a secure context, and there the WebTransport
-// constructor does not exist at all: the LAN case, which is the one the
-// transport is for, gets the WebSocket unless this server is fronted by https.
-// That is a property of the browser and there is nothing to wire up here that
-// would change it; the page names the reason in its status overlay rather than
-// falling back silently.
+// constructor does not exist at all. So the LAN case, which is the one the
+// transport is for, is served from an https page instead: the Pages build,
+// opened by a pair link (pair.go), dials this listener with the certificate
+// pinned. A page fetched from here over plain http by another machine is not
+// offered the feed at all.
 
 // wtSrv is the listener, nil when nothing asked for one or it could not bind.
 // Written once, before the HTTP server starts accepting, and read from request
@@ -85,7 +85,13 @@ func mountWebTransport(r *gin.Engine, withAudio bool) *wtaudio.Server {
 		log.Printf("chaosrack: WebTransport off: %v (the WebSockets are unaffected)", err)
 		return nil
 	}
-	cfg := wtaudio.Config{Addr: pc.LocalAddr().String(), Path: audioWTPath, SampleRate: audioRate}
+	// Every session is decided by allowWT (pair.go): a page of this machine's,
+	// or a paired browser by its key. Pairing keeps the certificate across runs,
+	// so the browsers that pinned it come back to it.
+	cfg := wtaudio.Config{Addr: pc.LocalAddr().String(), Path: audioWTPath, SampleRate: audioRate, Allow: allowWT}
+	if pairs != nil {
+		cfg.Cert = pairs.cur
+	}
 	if withAudio {
 		cfg.Capture = wtCapture
 	}
@@ -116,7 +122,7 @@ func mountWebTransport(r *gin.Engine, withAudio bool) *wtaudio.Server {
 	} else {
 		log.Printf("chaosrack: WebTransport on udp/%d", port)
 	}
-	log.Printf("chaosrack:   certificate SHA-256 %s (generated this run, valid until %s)",
+	log.Printf("chaosrack:   certificate SHA-256 %s (valid until %s)",
 		cert.Base64(), cert.NotAfter.Format(time.RFC3339))
 	log.Printf("chaosrack:   the page reads that from /wt-info; nothing has to be installed in a trust store")
 	return srv

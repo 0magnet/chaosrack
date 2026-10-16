@@ -5,7 +5,6 @@ package server
 import (
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -19,6 +18,7 @@ import (
 
 	"github.com/0magnet/chaosrack/pkg/audiocap"
 	"github.com/0magnet/chaosrack/pkg/audioroute"
+	"github.com/0magnet/chaosrack/pkg/pairing"
 )
 
 // The audio feed, served by the same process that serves the page.
@@ -270,8 +270,9 @@ func wobbulateCtlOffered() bool {
 //
 // GET is readable by anything that can reach the server; it says what the
 // routing is doing and nothing else. POST changes the machine's default sink,
-// so it is guarded three ways: the request must come from this machine, it must
-// not be a cross-site one, and it must be JSON.
+// so it is guarded three ways: the request must come from this machine, from a
+// page of this machine's by name (not another site's, nor one whose name was
+// pointed here — browserOK), and it must be JSON.
 //
 // The last two are the CSRF guard, and the JSON requirement is the load-bearing
 // half. A form post or a text/plain fetch from any page in the browser is a
@@ -287,11 +288,11 @@ func mountWobbulateCtl(r *gin.Engine) {
 		c.JSON(http.StatusOK, currentWobbulateStatus())
 	})
 	r.POST("/audio/wobbulate", func(c *gin.Context) {
-		if !fromThisMachine(c.Request) {
+		if !pairing.Loopback(c.Request.RemoteAddr) {
 			c.JSON(http.StatusForbidden, wobbulateStatus{Error: "the audio routing can only be switched from this machine"})
 			return
 		}
-		if !sameOriginRequest(c.Request) {
+		if !browserOK(c.Request) {
 			c.JSON(http.StatusForbidden, wobbulateStatus{Error: "cross-site request refused"})
 			return
 		}
@@ -320,25 +321,11 @@ func mountWobbulateCtl(r *gin.Engine) {
 	log.Printf("chaosrack: the FVF routing switch is on the page (POST /audio/wobbulate, from this machine only)")
 }
 
-// fromThisMachine reports whether a request arrived over the loopback interface.
-// The server can be bound to every interface (--bind), so this is what keeps a routing
-// change local even when the page is being watched from across the LAN.
-func fromThisMachine(r *http.Request) bool {
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		host = r.RemoteAddr
-	}
-	ip := net.ParseIP(host)
-	return ip != nil && ip.IsLoopback()
-}
-
-// sameOriginRequest reports whether the request did not come from another
-// site's page. No Origin at all is allowed: that is curl, which the loopback
-// check has already vouched for. A browser sends one for anything cross-site.
-// audioHandshake refuses a /ws upgrade from another site's page, as
-// sameOriginRequest refuses its POSTs.
+// audioHandshake refuses a /ws upgrade from anything but a page of this
+// machine's, or a program on it (browserOK), as the routing switch refuses
+// its POSTs.
 func audioHandshake(cfg *websocket.Config, r *http.Request) error {
-	if !sameOriginRequest(r) {
+	if !browserOK(r) {
 		return fmt.Errorf("chaosrack: /ws refused for origin %q", r.Header.Get("Origin"))
 	}
 	if o := r.Header.Get("Origin"); o != "" {
@@ -349,15 +336,6 @@ func audioHandshake(cfg *websocket.Config, r *http.Request) error {
 		cfg.Origin = u
 	}
 	return nil
-}
-
-func sameOriginRequest(r *http.Request) bool {
-	o := r.Header.Get("Origin")
-	if o == "" {
-		return true
-	}
-	u, err := url.Parse(o)
-	return err == nil && u.Host == r.Host
 }
 
 // audioFeed is what the page is told about audio: the transport to PREFER when

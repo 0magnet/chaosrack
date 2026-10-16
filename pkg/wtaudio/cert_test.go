@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"net"
+	"os"
 	"testing"
 	"time"
 )
@@ -135,4 +136,35 @@ func TestCertCarriesItsNames(t *testing.T) {
 	if !found {
 		t.Error("127.0.0.1 is not in the certificate")
 	}
+}
+
+// A saved certificate loads as the same certificate, with a key that signs.
+func TestASavedCertLoadsTheSame(t *testing.T) {
+	c, err := GenerateCert("localhost")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := t.TempDir() + "/cert.pem"
+	if err := c.Save(path); err != nil {
+		t.Fatal(err)
+	}
+	got, err := LoadCert(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.SHA256 != c.SHA256 || !got.NotAfter.Equal(c.NotAfter) {
+		t.Errorf("loaded %s until %v, saved %s until %v", got.Base64(), got.NotAfter, c.Base64(), c.NotAfter)
+	}
+	if _, err := tls.X509KeyPair(pemOf(t, path)); err != nil {
+		t.Errorf("the loaded pair does not hold: %v", err)
+	}
+}
+
+func pemOf(t *testing.T, path string) ([]byte, []byte) {
+	t.Helper()
+	b, err := os.ReadFile(path) //nolint:gosec // the test's own file
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b, b
 }

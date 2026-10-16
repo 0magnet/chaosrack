@@ -52,13 +52,28 @@
   };
 
   function connect() {
+    // Paired with a server on another machine (pkg/pairing): its link, by
+    // this browser's key, over WebTransport only — an https page cannot
+    // open a plain WebSocket to it.
+    var R = window.__crRemote;
+    if (R) {
+      if (!window.WebTransport) {
+        L.state = "none"; L.why = "the paired server is reached by WebTransport, which this browser lacks";
+        return;
+      }
+      overWebTransport(R.url("/rack/page"), R.hashes()).then(retry, function (e) {
+        L.why = "WebTransport: " + e;
+        retry();
+      });
+      return;
+    }
     fetch("/rack/info", { cache: "no-store" }).then(function (r) {
       if (!r.ok) { L.state = "none"; L.why = "no rack link on this server"; return null; }
       return r.json();
     }).then(function (info) {
       if (!info) return;
       if (info.wt && info.certHash && window.WebTransport && window.isSecureContext !== false) {
-        overWebTransport(info).then(retry, function (e) {
+        overWebTransport(info.wt + "/rack/page", [{ algorithm: "sha-256", value: hash(info.certHash) }]).then(retry, function (e) {
           // Never got going: the browser or the network will not have it.
           L.why = "WebTransport: " + e;
           overWebSocket();
@@ -77,10 +92,13 @@
 
   // overWebTransport resolves when an established session ends, and rejects
   // when one could not be established at all.
-  function overWebTransport(info) {
-    var t = new WebTransport(info.wt + "/rack/page", {
-      serverCertificateHashes: [{ algorithm: "sha-256", value: hash(info.certHash) }]
-    });
+  function overWebTransport(url, hashes) {
+    var t;
+    try {
+      t = new WebTransport(url, { serverCertificateHashes: hashes });
+    } catch (e) {
+      return Promise.reject(e);
+    }
     return t.ready.then(function () {
       return t.createBidirectionalStream();
     }).then(function (s) {

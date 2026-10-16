@@ -9,8 +9,11 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/base64"
+	"encoding/pem"
+	"errors"
 	"math/big"
 	"net"
+	"os"
 	"time"
 )
 
@@ -78,8 +81,10 @@ func GenerateCert(hosts ...string) (*Cert, error) {
 		return nil, err
 	}
 
-	notBefore := time.Now().Add(-time.Hour).UTC()
-	notAfter := time.Now().Add(CertValidity).UTC()
+	// Whole seconds: what the certificate can record, so NotAfter here is
+	// the expiry it states.
+	notBefore := time.Now().Add(-time.Hour).UTC().Truncate(time.Second)
+	notAfter := notBefore.Add(time.Hour + CertValidity)
 
 	tmpl := x509.Certificate{
 		SerialNumber:          serial,
@@ -119,5 +124,63 @@ func GenerateCert(hosts ...string) (*Cert, error) {
 		DER:       der,
 		NotBefore: notBefore,
 		NotAfter:  notAfter,
+	}, nil
+}
+
+// Save writes the certificate and its key to path as PEM, readable by this
+// user alone: the key is what a pinned page trusts.
+func (c *Cert) Save(path string) error {
+	key, ok := c.TLSConfig.Certificates[0].PrivateKey.(*ecdsa.PrivateKey)
+	if !ok {
+		return errors.New("wtaudio: a certificate without an ECDSA key")
+	}
+	der, err := x509.MarshalECPrivateKey(key)
+	if err != nil {
+		return err
+	}
+	out := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: c.DER})
+	out = append(out, pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: der})...)
+	return os.WriteFile(path, out, 0o600)
+}
+
+// LoadCert reads a certificate Save wrote.
+func LoadCert(path string) (*Cert, error) {
+	b, err := os.ReadFile(path) //nolint:gosec // the caller's own file
+	if err != nil {
+		return nil, err
+	}
+	var der, keyDER []byte
+	for {
+		var blk *pem.Block
+		if blk, b = pem.Decode(b); blk == nil {
+			break
+		}
+		switch blk.Type {
+		case "CERTIFICATE":
+			der = blk.Bytes
+		case "EC PRIVATE KEY":
+			keyDER = blk.Bytes
+		}
+	}
+	if der == nil || keyDER == nil {
+		return nil, errors.New("wtaudio: " + path + " holds no certificate and key")
+	}
+	crt, err := x509.ParseCertificate(der)
+	if err != nil {
+		return nil, err
+	}
+	key, err := x509.ParseECPrivateKey(keyDER)
+	if err != nil {
+		return nil, err
+	}
+	return &Cert{
+		TLSConfig: &tls.Config{
+			MinVersion:   tls.VersionTLS13,
+			Certificates: []tls.Certificate{{Certificate: [][]byte{der}, PrivateKey: key}},
+		},
+		SHA256:    sha256.Sum256(der),
+		DER:       der,
+		NotBefore: crt.NotBefore,
+		NotAfter:  crt.NotAfter,
 	}, nil
 }

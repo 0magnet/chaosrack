@@ -81,8 +81,13 @@ Optional flags give the page access to this machine:
   --shell      run a real shell in the page's terminal and desk
   --fs         read and write local files, limited to --fs-root if given
 
---shell and --fs listen on 127.0.0.1 unless you choose another address with
---bind. Add --auth on a shared machine, so the page has to ask for the token.
+The server listens on 127.0.0.1 unless --bind says otherwise, and takes a
+page by its name: localhost, 127.0.0.0/8, ::1, or one given with --host.
+Bound elsewhere, it prints a pair link for browsers on other machines: they
+load the page over https (--pair-page) and reach the rack over WebTransport,
+encrypted and pinned to this server's certificate, with a key of their own.
+--shell and --fs refuse a bind that is not loopback. Add --auth on a shared
+machine, so the page has to ask for the token.
 
 The page offers its rack back to this server, which is where chaosrack (the
 panel), ctl and rack reach it.`,
@@ -101,8 +106,8 @@ panel), ctl and rack reach it.`,
 		dualPage := func(c *gin.Context) {
 			d := htmlTemplateData{
 				HostConfig:    hostConfigJS(),
-				AudioFeed:     audioFeed(),
-				WobbulateCtl:  wobbulateCtlOffered(),
+				AudioFeed:     pageAudioFeed(c.Request),
+				WobbulateCtl:  wobbulateCtlOffered() && trustedPageHost(c.Request),
 				Title:         "Go",
 				CanonicalPath: "",
 				Debug:         debugMode,
@@ -177,8 +182,8 @@ panel), ctl and rack reach it.`,
 				OtherLabel:    "dual",
 				CanonicalPath: "",
 				Debug:         debugMode,
-				AudioFeed:     audioFeed(),
-				WobbulateCtl:  wobbulateCtlOffered(),
+				AudioFeed:     pageAudioFeed(c.Request),
+				WobbulateCtl:  wobbulateCtlOffered() && trustedPageHost(c.Request),
 			})
 		}
 		r1.GET("/go/", goPage)
@@ -195,8 +200,8 @@ panel), ctl and rack reach it.`,
 					OtherLabel:    "dual",
 					CanonicalPath: "",
 					Debug:         debugMode,
-					AudioFeed:     audioFeed(),
-					WobbulateCtl:  wobbulateCtlOffered(),
+					AudioFeed:     pageAudioFeed(c.Request),
+					WobbulateCtl:  wobbulateCtlOffered() && trustedPageHost(c.Request),
 				})
 			}
 			r1.GET("/tinygo/", tinyPage)
@@ -213,6 +218,10 @@ panel), ctl and rack reach it.`,
 			var latestStats json.RawMessage
 			var statsMu sync.RWMutex
 			r1.POST("/debug/stats", func(c *gin.Context) {
+				if !browserOK(c.Request) {
+					c.Status(http.StatusForbidden)
+					return
+				}
 				body, err := io.ReadAll(c.Request.Body)
 				if err != nil {
 					c.Status(http.StatusBadRequest)
@@ -242,15 +251,20 @@ panel), ctl and rack reach it.`,
 		if err != nil {
 			log.Fatalf("chaosrack: %v", err)
 		}
+		if err := preparePairing(); err != nil {
+			log.Fatalf("chaosrack: pairing: %v", err)
+		}
 		mountHostAgent(r1, ln)
 		mountAudio(r1)
 		mountRackLink(r1)
+		mountPairing()
 
 		wg.Go(func() {
-			fmt.Printf("listening on http://127.0.0.1:%d using gin router\n", webPort)
-			fmt.Printf("  Go WASM:     http://127.0.0.1:%d/index.html\n", webPort)
+			at := shownAddress()
+			fmt.Printf("listening on http://%s using gin router\n", at)
+			fmt.Printf("  Go WASM:     http://%s/index.html\n", at)
 			if hasTinygo {
-				fmt.Printf("  TinyGo WASM: http://127.0.0.1:%d/tinygo/index.html\n", webPort)
+				fmt.Printf("  TinyGo WASM: http://%s/tinygo/index.html\n", at)
 			}
 			if err := r1.RunListener(ln); err != nil {
 				panic(err)
