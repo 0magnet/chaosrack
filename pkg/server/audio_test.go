@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/0magnet/chaosrack/pkg/pairing"
 )
 
 // The routing switch changes the machine's default sink, and the server binds
@@ -28,33 +30,36 @@ func TestOnlyThisMachineCanSwitchTheRouting(t *testing.T) {
 	} {
 		r := httptest.NewRequest(http.MethodPost, "/audio/wobbulate", http.NoBody)
 		r.RemoteAddr = c.remote
-		if got := fromThisMachine(r); got != c.want {
-			t.Errorf("fromThisMachine(%q) = %v, want %v", c.remote, got, c.want)
+		if got := pairing.Loopback(r.RemoteAddr); got != c.want {
+			t.Errorf("Loopback(%q) = %v, want %v", c.remote, got, c.want)
 		}
 	}
 }
 
 // The other half of the guard. A page on another site cannot read this server's
 // answers, but a request it manages to SEND still swaps the sink, which is the
-// whole of the damage — so a cross-site Origin is refused outright.
+// whole of the damage — so a cross-site Origin is refused outright, and so is
+// a site whose name was pointed at 127.0.0.1 after its page loaded: its Origin
+// matches its Host, and neither is one of this machine's names.
 func TestCrossSiteRequestsAreRefused(t *testing.T) {
 	for _, c := range []struct {
 		origin, host string
 		want         bool
 	}{
-		{"", "127.0.0.1:8080", true}, // curl: no Origin at all
+		{"", "127.0.0.1:8080", true},                             // curl: no Origin at all
+		{"http://evil.example:8080", "evil.example:8080", false}, // DNS rebinding
 		{"http://127.0.0.1:8080", "127.0.0.1:8080", true},
 		{"http://localhost:8080", "127.0.0.1:8080", false}, // a different origin, even here
 		{"http://evil.example", "127.0.0.1:8080", false},
 		{"http://127.0.0.1:9999", "127.0.0.1:8080", false},
 	} {
 		r := httptest.NewRequest(http.MethodPost, "/audio/wobbulate", http.NoBody)
-		r.Host = c.host
+		r.Host, r.RemoteAddr = c.host, "127.0.0.1:5000"
 		if c.origin != "" {
 			r.Header.Set("Origin", c.origin)
 		}
-		if got := sameOriginRequest(r); got != c.want {
-			t.Errorf("sameOriginRequest(origin=%q host=%q) = %v, want %v", c.origin, c.host, got, c.want)
+		if got := browserOK(r); got != c.want {
+			t.Errorf("browserOK(origin=%q host=%q) = %v, want %v", c.origin, c.host, got, c.want)
 		}
 	}
 }

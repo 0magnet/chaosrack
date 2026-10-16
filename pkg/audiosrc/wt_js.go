@@ -56,6 +56,15 @@ type WTOptions struct {
 	// one-channel WebTransport looked like. Default 1.
 	Channels int
 
+	// Remote is a paired server on another machine (pkg/pairing). Set, the
+	// session is opened to it, signed, with its certificates pinned, and
+	// opened again when it fails or drops: there is no WebSocket to fall back
+	// to, since the page is https and the server is not (mixed content).
+	Remote interface {
+		URL(path string) string
+		CertHashes() []string
+	}
+
 	// WS configures the WebSocket source used when WebTransport cannot
 	// be had. The fallback is not optional: Safari has no WebTransport
 	// at all, and a corporate network that blocks UDP has no QUIC.
@@ -118,8 +127,12 @@ func NewWebTransport(opts WTOptions) Source {
 		w.fallBack(reason)
 		return w
 	}
+	if opts.Remote != nil {
+		w.dialRemote()
+		return w
+	}
 	if opts.URL != "" && opts.CertHash != "" {
-		w.dial(opts.URL, opts.CertHash)
+		w.dial(opts.URL, []string{opts.CertHash})
 		return w
 	}
 	w.fetchInfo()
@@ -147,6 +160,11 @@ type wtSource struct {
 
 	ready  bool
 	closed bool
+
+	// A paired server is dialed again rather than fallen back from: redialing
+	// is a retry waiting, redialFn the timer's callback, made once.
+	redialing bool
+	redialFn  js.Value
 }
 
 // fetchInfo asks the page's own origin where the WebTransport endpoint is
@@ -169,7 +187,7 @@ func (w *wtSource) fetchInfo() {
 			w.fallBackProbe(WTProbe{Supported: true, InfoErr: errors.New(w.opts.InfoURL + " has no url/certHash")})
 			return nil
 		}
-		w.dial(url.String(), hash.String())
+		w.dial(url.String(), []string{hash.String()})
 		return nil
 	})
 	onResp := js.FuncOf(func(_ js.Value, args []js.Value) any {
@@ -195,21 +213,22 @@ func (w *wtSource) fetchInfo() {
 // The channel count rides on the URL's query, exactly as it does on the
 // WebSocket's: the CONNECT that opens the session carries it, and a server that
 // does not know the parameter answers in mono, which consume still decodes.
-func (w *wtSource) dial(url, certHash string) {
+func (w *wtSource) dial(url string, certHashes []string) {
 	url = withChannels(url, w.opts.Channels)
-	raw, err := base64.RawStdEncoding.DecodeString(strings.TrimRight(certHash, "="))
-	if err != nil {
-		w.fallBackProbe(WTProbe{Supported: true, DialErr: errors.New("unreadable certificate hash")})
-		return
-	}
-	hashBytes := js.Global().Get("Uint8Array").New(len(raw))
-	js.CopyBytesToJS(hashBytes, raw)
-
-	entry := js.Global().Get("Object").New()
-	entry.Set("algorithm", "sha-256")
-	entry.Set("value", hashBytes)
 	hashes := js.Global().Get("Array").New()
-	hashes.Call("push", entry)
+	for _, certHash := range certHashes {
+		raw, err := base64.RawStdEncoding.DecodeString(strings.TrimRight(certHash, "="))
+		if err != nil {
+			w.fallBackProbe(WTProbe{Supported: true, DialErr: errors.New("unreadable certificate hash")})
+			return
+		}
+		hashBytes := js.Global().Get("Uint8Array").New(len(raw))
+		js.CopyBytesToJS(hashBytes, raw)
+		entry := js.Global().Get("Object").New()
+		entry.Set("algorithm", "sha-256")
+		entry.Set("value", hashBytes)
+		hashes.Call("push", entry)
+	}
 	init := js.Global().Get("Object").New()
 	init.Set("serverCertificateHashes", hashes)
 
@@ -232,12 +251,29 @@ func (w *wtSource) dial(url, certHash string) {
 	}
 	w.wt = wt
 
-	onDialErr := js.FuncOf(func(_ js.Value, args []js.Value) any {
-		w.fallBackProbe(WTProbe{Supported: true, DialErr: jsError(args, "handshake to "+url+" failed")})
+	// Each session's handlers act for that session only: a paired server is
+	// dialed again after a failure, and the old session's promises settling
+	// late must not end the new one. They are released when it has ended —
+	// closed settles last, after ready — or a page retrying through a long
+	// outage would keep every attempt's.
+	live := func() bool { return w.wt.Equal(wt) }
+	var onDialErr, onReady, onClosed, onClosedErr js.Func
+	release := func() {
+		onDialErr.Release()
+		onReady.Release()
+		onClosed.Release()
+		onClosedErr.Release()
+	}
+	onDialErr = js.FuncOf(func(_ js.Value, args []js.Value) any {
+		if live() {
+			w.fallBackProbe(WTProbe{Supported: true, DialErr: jsError(args, "handshake to "+url+" failed")})
+		}
 		return nil
 	})
-	onReady := js.FuncOf(func(js.Value, []js.Value) any {
-		w.startReading()
+	onReady = js.FuncOf(func(js.Value, []js.Value) any {
+		if live() {
+			w.startReading()
+		}
 		return nil
 	})
 	wt.Get("ready").Call("then", onReady).Call("catch", onDialErr)
@@ -246,10 +282,21 @@ func (w *wtSource) dial(url, certHash string) {
 	// re-dialing on a link that has just proved unreliable, while the
 	// WebSocket source already reconnects itself every 2 s — so the
 	// simpler path is also the one that recovers.
-	wt.Get("closed").Call("then", js.FuncOf(func(js.Value, []js.Value) any {
-		w.fallBackProbe(WTProbe{Supported: true, DialErr: errors.New("session closed")})
+	onClosed = js.FuncOf(func(js.Value, []js.Value) any {
+		if live() {
+			w.fallBackProbe(WTProbe{Supported: true, DialErr: errors.New("session closed")})
+		}
+		release()
 		return nil
-	})).Call("catch", onDialErr)
+	})
+	onClosedErr = js.FuncOf(func(_ js.Value, args []js.Value) any {
+		if live() {
+			w.fallBackProbe(WTProbe{Supported: true, DialErr: jsError(args, "session to "+url+" failed")})
+		}
+		release()
+		return nil
+	})
+	wt.Get("closed").Call("then", onClosed).Call("catch", onClosedErr)
 }
 
 // startReading starts the datagram reader. pump hands each datagram to the
@@ -257,6 +304,9 @@ func (w *wtSource) dial(url, certHash string) {
 func (w *wtSource) startReading() {
 	if w.closed || w.fallback != nil {
 		return
+	}
+	if w.opts.Remote != nil {
+		w.notice = "" // on the paired server again
 	}
 	dgrams := w.wt.Get("datagrams")
 	if !dgrams.Truthy() || !dgrams.Get("readable").Truthy() {
@@ -337,6 +387,10 @@ func (w *wtSource) fallBack(reason string) {
 	if w.closed || w.fallback != nil {
 		return
 	}
+	if w.opts.Remote != nil {
+		w.redial(reason)
+		return
+	}
 	w.notice = reason
 	w.ready = false
 	w.ra.Reset()
@@ -351,6 +405,41 @@ func (w *wtSource) fallBack(reason string) {
 		w.wt.Call("close")
 		w.wt = js.Undefined()
 	}
+}
+
+// dialRemote opens the session to the paired server, signed afresh: a
+// proof opens one session, once.
+func (w *wtSource) dialRemote() {
+	w.redialing = false
+	w.dial(w.opts.Remote.URL("/wt"), w.opts.Remote.CertHashes())
+}
+
+// redial is fallBack for a paired server: say why, and try again shortly.
+// Several promise handlers can report the same failure; one retry is made.
+func (w *wtSource) redial(reason string) {
+	if w.redialing {
+		return
+	}
+	w.redialing = true
+	if why, _, ok := strings.Cut(reason, " — "); ok {
+		reason = why
+	}
+	w.notice = "paired server: " + reason + " — trying again"
+	w.ready = false
+	w.ra.Reset()
+	if !w.wt.IsUndefined() && w.wt.Truthy() {
+		w.wt.Call("close")
+		w.wt = js.Undefined()
+	}
+	if w.redialFn.IsUndefined() {
+		w.redialFn = js.FuncOf(func(js.Value, []js.Value) any {
+			if !w.closed {
+				w.dialRemote()
+			}
+			return nil
+		}).Value
+	}
+	js.Global().Call("setTimeout", w.redialFn, 3000)
 }
 
 // Notice reports a fallback so the status overlay can say so. Empty while

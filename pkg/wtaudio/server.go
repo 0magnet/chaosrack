@@ -17,11 +17,13 @@
 package wtaudio
 
 import (
+	"crypto/tls"
 	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/quic-go/quic-go"
@@ -73,12 +75,22 @@ type Config struct {
 
 	// Logf receives operational messages. Defaults to log.Printf.
 	Logf func(format string, args ...any)
+
+	// Cert is the certificate to serve, instead of one generated here: a
+	// caller that keeps one across runs, so a page that pinned it can come
+	// back. SetCert replaces it while the server runs.
+	Cert *Cert
+
+	// Allow, when set, decides every session before it is upgraded — the
+	// audio and each Handle path alike — and the origin check below is not
+	// made: Allow is the caller's whole rule, and a refused session is a 403.
+	Allow func(r *http.Request) bool
 }
 
 // Server is a WebTransport endpoint streaming audio datagrams.
 type Server struct {
 	cfg  Config
-	cert *Cert
+	cert atomic.Pointer[Cert]
 	wt   *webtransport.Server
 	port string
 	mux  *http.ServeMux
@@ -129,15 +141,26 @@ func New(cfg Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	cert, err := GenerateCert(cfg.Hosts...)
-	if err != nil {
-		return nil, err
+	cert := cfg.Cert
+	if cert == nil {
+		if cert, err = GenerateCert(cfg.Hosts...); err != nil {
+			return nil, err
+		}
 	}
 
-	s := &Server{cfg: cfg, cert: cert, port: port, sessions: map[*webtransport.Session]struct{}{}}
+	s := &Server{cfg: cfg, port: port, sessions: map[*webtransport.Session]struct{}{}}
+	s.cert.Store(cert)
+	// The certificate is read per handshake, so SetCert takes effect for the
+	// next session without a restart.
+	tlsConf := &tls.Config{
+		MinVersion: tls.VersionTLS13,
+		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+			return &s.Cert().TLSConfig.Certificates[0], nil
+		},
+	}
 	h3 := &http3.Server{
 		Addr:      cfg.Addr,
-		TLSConfig: http3.ConfigureTLSConfig(cert.TLSConfig),
+		TLSConfig: http3.ConfigureTLSConfig(tlsConf),
 		// Without this the session negotiates no datagram support and
 		// every SendDatagram fails — the audio path IS the datagrams.
 		QUICConfig: &quic.Config{EnableDatagrams: true},
@@ -164,7 +187,11 @@ func New(cfg Config) (*Server, error) {
 }
 
 // Cert is the generated certificate, whose Base64 the page needs.
-func (s *Server) Cert() *Cert { return s.cert }
+func (s *Server) Cert() *Cert { return s.cert.Load() }
+
+// SetCert serves c from the next handshake on; sessions already open keep
+// theirs.
+func (s *Server) SetCert(c *Cert) { s.cert.Store(c) }
 
 // Info describes this endpoint to a page served from pageHost (the Host
 // header of the page request). The hostname is taken from the page's own
@@ -181,9 +208,9 @@ func (s *Server) Info(pageHost string) Info {
 	}
 	return Info{
 		URL:        "https://" + net.JoinHostPort(host, s.port) + s.cfg.Path,
-		CertHash:   s.cert.Base64(),
+		CertHash:   s.Cert().Base64(),
 		Algorithm:  "sha-256",
-		ExpiresAt:  s.cert.NotAfter,
+		ExpiresAt:  s.Cert().NotAfter,
 		SampleRate: s.cfg.SampleRate,
 	}
 }
@@ -241,6 +268,9 @@ func (s *Server) removeSession(sess *webtransport.Session) {
 // checkOrigin accepts a page from the same host on any port. See the
 // comment where it is installed.
 func (s *Server) checkOrigin(r *http.Request) bool {
+	if s.cfg.Allow != nil {
+		return true // decided before the upgrade; see allowed
+	}
 	origin := r.Header.Get("Origin")
 	if origin == "" {
 		return true // not a browser, or a same-origin navigation
@@ -250,6 +280,15 @@ func (s *Server) checkOrigin(r *http.Request) bool {
 		return false
 	}
 	return u.Hostname() == hostOnly(r.Host)
+}
+
+// allowed runs Config.Allow, answering 403 for a session it refuses.
+func (s *Server) allowed(w http.ResponseWriter, r *http.Request) bool {
+	if s.cfg.Allow == nil || s.cfg.Allow(r) {
+		return true
+	}
+	w.WriteHeader(http.StatusForbidden)
+	return false
 }
 
 // hostOnly strips any port from a host[:port] string, leaving IPv6
@@ -268,6 +307,9 @@ func hostOnly(hostport string) string {
 // WebSocket handler follows, and the reason a capture is started per
 // session rather than shared.
 func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
+	if !s.allowed(w, r) {
+		return
+	}
 	sess, err := s.wt.Upgrade(w, r)
 	if err != nil {
 		s.cfg.Logf("wtaudio: upgrade from %s failed: %v", r.RemoteAddr, err)
@@ -306,6 +348,9 @@ func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
 // The sessions are fn's to keep track of; CloseSessions ends only the audio's.
 func (s *Server) Handle(path string, fn func(sess *webtransport.Session, r *http.Request)) {
 	s.mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		if !s.allowed(w, r) {
+			return
+		}
 		sess, err := s.wt.Upgrade(w, r)
 		if err != nil {
 			s.cfg.Logf("wtaudio: upgrade at %s from %s failed: %v", path, r.RemoteAddr, err)

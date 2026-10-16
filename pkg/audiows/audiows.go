@@ -22,7 +22,7 @@
 //
 // Usage:
 //
-//	chaosrack audiows                                   # serve on :8080
+//	chaosrack audiows                                   # serve on 127.0.0.1:8080
 //	# open http://127.0.0.1:8080/  → redirects to /?audio=ws
 //	# ?audio=wt instead for the WebTransport path (falls back to ws)
 //
@@ -42,9 +42,11 @@ import (
 	"fmt"
 	htmpl "html/template"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -56,12 +58,14 @@ import (
 	"github.com/0magnet/chaosrack/assets/gowasm"
 	"github.com/0magnet/chaosrack/pkg/audiocap"
 	"github.com/0magnet/chaosrack/pkg/audioroute"
+	"github.com/0magnet/chaosrack/pkg/pairing"
 	"github.com/0magnet/chaosrack/pkg/server"
 	"github.com/0magnet/chaosrack/pkg/wtaudio"
 )
 
 var (
 	webPort       int
+	bindHost      string
 	sampleRate    int
 	latency       float64
 	captureSource string
@@ -87,6 +91,7 @@ func Command() *cobra.Command {
 	}
 	f := cmd.Flags()
 	f.IntVarP(&webPort, "port", "p", 8080, "port to serve on")
+	f.StringVarP(&bindHost, "bind", "b", "127.0.0.1", "address to listen on (0.0.0.0 for every interface; the capture is still this machine's pages' only)")
 	f.IntVar(&sampleRate, "rate", 24000, "PulseAudio record sample rate (Hz) — 24000 matches audioprism-go's spectrogram")
 	f.Float64Var(&latency, "latency", 0.1, "PulseAudio record latency (seconds)")
 	f.StringVar(&captureSource, "source", "monitor",
@@ -181,9 +186,19 @@ func run() error {
 	r.GET("/chaosrack.wasm", func(c *gin.Context) {
 		c.Render(http.StatusOK, render.Data{ContentType: "application/wasm", Data: gowasm.Wasm})
 	})
-	r.GET("/ws", func(c *gin.Context) {
-		websocket.Handler(capOpts().Serve).ServeHTTP(c.Writer, c.Request)
-	})
+	// This machine's pages and programs only (pkg/pairing): a bare
+	// websocket.Handler takes any Origin that parses, which let any site open
+	// in the browser listen to what the machine was playing.
+	ws := websocket.Server{
+		Handshake: func(_ *websocket.Config, r *http.Request) error {
+			if !pairing.Browser(r, nil) {
+				return fmt.Errorf("audiows: /ws refused for origin %q", r.Header.Get("Origin"))
+			}
+			return nil
+		},
+		Handler: capOpts().Serve,
+	}
+	r.GET("/ws", gin.WrapH(ws))
 
 	// The optional WebTransport listener. Everything about it is
 	// additive: it fails soft, it is on a different socket (UDP), and no
@@ -203,7 +218,7 @@ func run() error {
 		c.JSON(http.StatusOK, wt.Info(c.Request.Host))
 	})
 
-	addr := fmt.Sprintf(":%d", webPort)
+	addr := net.JoinHostPort(bindHost, strconv.Itoa(webPort))
 	log.Printf("audiows: serving http://127.0.0.1:%d/ (audio via PulseAudio @ %d Hz)", webPort, sampleRate)
 	log.Printf("audiows: streaming binary float32 over ws://127.0.0.1:%d/ws", webPort)
 	return r.Run(addr)
@@ -244,7 +259,15 @@ func startWebTransport() *wtaudio.Server {
 		port = webPort
 	}
 	srv, err := wtaudio.New(wtaudio.Config{
-		Addr:       fmt.Sprintf(":%d", port),
+		Addr: net.JoinHostPort(bindHost, strconv.Itoa(port)),
+		// The page is on the web port; the session is opened to this one.
+		Allow: func(r *http.Request) bool {
+			c := r.Clone(r.Context())
+			if h, _, err := net.SplitHostPort(r.Host); err == nil {
+				c.Host = net.JoinHostPort(h, strconv.Itoa(webPort))
+			}
+			return pairing.Browser(c, nil)
+		},
 		Path:       wtPath,
 		Capture:    wtCapture,
 		SampleRate: sampleRate,

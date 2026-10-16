@@ -4,6 +4,7 @@ package server
 
 import (
 	"log"
+
 	"net"
 	"net/http"
 	"net/url"
@@ -12,6 +13,7 @@ import (
 	"github.com/quic-go/webtransport-go"
 	"golang.org/x/net/websocket"
 
+	"github.com/0magnet/chaosrack/pkg/pairing"
 	"github.com/0magnet/chaosrack/pkg/racklink"
 )
 
@@ -20,10 +22,12 @@ import (
 // port anywhere.
 //
 // Who may use it:
-//   - a page, from this server's own origin only;
+//   - a page of this machine's, by name (browserOK), or a paired browser on
+//     another machine, by its key (allowWT, pair.go);
 //   - a terminal, from this machine only, unless --rack-link-remote;
 //   - nothing from another site's origin, ever: a page elsewhere in the same
-//     browser could otherwise open a socket to 127.0.0.1 and play the rack.
+//     browser could otherwise open a socket to 127.0.0.1 and play the rack,
+//     and one whose name was pointed at 127.0.0.1 has a matching Origin.
 
 var (
 	rackLinkOn     bool
@@ -59,8 +63,8 @@ func mountRackLink(r *gin.Engine) {
 	r.GET(racklink.PathPage+racklink.WSSuffix, wsLink(page, false))
 	r.GET(racklink.PathTerminal+racklink.WSSuffix, wsLink(term, true))
 	if wt != nil {
-		wt.Handle(racklink.PathPage, wtLink(page, false))
-		wt.Handle(racklink.PathTerminal, wtLink(term, true))
+		wt.Handle(racklink.PathPage, wtLink(page))
+		wt.Handle(racklink.PathTerminal, wtLink(term))
 	}
 	log.Printf("chaosrack: rack link on %s (WebTransport %v, WebSocket); the panel (chaosrack) uses it", racklink.PathInfo, wt != nil)
 }
@@ -84,12 +88,9 @@ func wsLink(serve func(racklink.Conn), terminal bool) gin.HandlerFunc {
 }
 
 // wtLink is one end of the link on WebTransport: the session's first stream,
-// opened by whoever dialed.
-func wtLink(serve func(racklink.Conn), terminal bool) func(*webtransport.Session, *http.Request) {
-	return func(sess *webtransport.Session, req *http.Request) {
-		if !linkAllowed(req, terminal) {
-			return
-		}
+// opened by whoever dialed. The listener has let the session in (allowWT).
+func wtLink(serve func(racklink.Conn)) func(*webtransport.Session, *http.Request) {
+	return func(sess *webtransport.Session, _ *http.Request) {
 		str, err := sess.AcceptStream(sess.Context())
 		if err != nil {
 			return
@@ -104,23 +105,14 @@ func (e linkError) Error() string { return string(e) }
 
 const errLinkRefused = linkError("the rack link refuses this origin or address")
 
-// linkAllowed is the rule at the top of this file.
+// linkAllowed is the rule at the top of this file. A page reaching the link
+// from another machine does so over WebTransport with a key (allowWT); here
+// it is a page of this machine's or nothing.
 func linkAllowed(req *http.Request, terminal bool) bool {
-	if o := req.Header.Get("Origin"); o != "" {
-		u, err := url.Parse(o)
-		if err != nil || u.Hostname() != hostOf(req.Host) {
-			return false
-		}
+	if !terminal || req.Header.Get("Origin") != "" {
+		return browserOK(req)
 	}
-	if terminal && !rackLinkRemote {
-		host, _, err := net.SplitHostPort(req.RemoteAddr)
-		if err != nil {
-			return false
-		}
-		ip := net.ParseIP(host)
-		return ip != nil && ip.IsLoopback()
-	}
-	return true
+	return rackLinkRemote || pairing.Loopback(req.RemoteAddr)
 }
 
 func hostOf(hostport string) string {

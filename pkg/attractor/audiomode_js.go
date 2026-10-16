@@ -9,6 +9,7 @@ import (
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/audiosrc"
+	"github.com/0magnet/chaosrack/pkg/pairing"
 )
 
 // Shared plumbing for audio-driven modes (spectrogram, xy scope, and
@@ -94,7 +95,7 @@ func (au *audioModes) ensureCapture() audiosrc.Source {
 	case "wt", "webtransport":
 		// The same WSOptions go along as the fallback, so ?wsurl= and
 		// ?wsrate= keep working when WebTransport is declined.
-		au.source = audiosrc.NewWebTransport(audiosrc.WTOptions{
+		opts := audiosrc.WTOptions{
 			URL:        queryParam("wturl"),
 			CertHash:   queryParam("wthash"),
 			SampleRate: wsSampleRate(),
@@ -104,7 +105,13 @@ func (au *audioModes) ensureCapture() audiosrc.Source {
 			// indistinguishable from the mode being broken.
 			Channels: 2,
 			WS:       ws,
-		})
+		}
+		// A paired server on another machine (pkg/pairing) is dialed by its key,
+		// and again when it drops, never fallen back from.
+		if t := pairing.Current(); t != nil {
+			opts.Remote = t
+		}
+		au.source = audiosrc.NewWebTransport(opts)
 	default:
 		// The capture graph rides the shared context. The mic lease is held
 		// for the session — the source is kept alive across mode switches, so
@@ -176,6 +183,11 @@ func audioBackendKind() string {
 	if q := queryParam("audio"); q != "" {
 		return q
 	}
+	// A paired server answers it as the serving one would: its feed, if it
+	// captures.
+	if t := pairing.Current(); t != nil && t.Audio() != "" {
+		return t.Audio()
+	}
 	if a := js.Global().Get("__crAudio"); a.Truthy() {
 		return a.String()
 	}
@@ -194,6 +206,9 @@ func wsSampleRate() int {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			return n
 		}
+	}
+	if t := pairing.Current(); t != nil && t.Rate() > 0 {
+		return t.Rate() // the paired server's, from its hello
 	}
 	return 24000
 }

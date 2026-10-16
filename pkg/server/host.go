@@ -301,3 +301,16 @@ func warnAboutHostAccess() {
 		fmt.Printf("chaosrack:   add --auth so it is printed here instead — they can read the page.\n")
 	}
 }
+
+// shownAddress is where to open the page: the address the server is bound
+// to, or 127.0.0.1 when that is every interface.
+func shownAddress() string {
+	h, p, err := net.SplitHostPort(listenAddress())
+	if err != nil {
+		return listenAddress()
+	}
+	if ip := net.ParseIP(h); h == "" || (ip != nil && ip.IsUnspecified()) {
+		h = "127.0.0.1"
+	}
+	return net.JoinHostPort(h, p)
+}
