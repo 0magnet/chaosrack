@@ -1854,12 +1854,16 @@ func wireModeAndResetInputs() {
 	dom.Doc.Call("getElementById", "color-top").Call("addEventListener", "input", colorCallback)
 	wireColorControls()
 	resetSync := dom.FuncOf(func(this js.Value, args []js.Value) any { syncKnobs(); return nil })
-	dom.On(dom.Doc, "click", func(this js.Value, a []js.Value) any {
+	// On the way down (capture), as the trio buttons' (wireTrios): in the
+	// default layout the panel is in a terminal's placement, which stops a
+	// click on its way up. The frame's wait still puts this after the
+	// button's own handler.
+	dom.Doc.Call("addEventListener", "click", js.FuncOf(func(this js.Value, a []js.Value) any {
 		if t := a[0].Get("target"); t.Truthy() && t.Call("closest", ".rst").Truthy() {
 			js.Global().Call("requestAnimationFrame", resetSync)
 		}
 		return nil
-	})
+	}), true)
 	wirePanelSwitches()
 }
 
