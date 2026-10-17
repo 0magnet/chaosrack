@@ -179,7 +179,7 @@ Swept parameter — the x axis of the diagram
 ### DRIVE
 
 <!-- key: bif-drive-cell -->
-DRIVE — what puts the system at a parameter value. sweep is the diagram alone, computed left to right. audio keeps the same diagram and points a cursor at it from the live audio envelope, so the branch structure under the music is lit up as it plays. The diagram itself does not move: its x axis means something only because the parameter runs monotonically along it. Needs Audio mod on, which is what computes the envelope.
+DRIVE — what puts the system at a parameter value. sweep is the diagram alone, computed left to right. audio keeps the same diagram and points a cursor at it from the live audio envelope, so the branch structure under the music is lit up as it plays. The diagram itself does not move: its x axis means something only because the parameter runs monotonically along it. The envelope is the rack's signal, as the Mixer's RACK rows make it, and choosing audio is enough to start measuring it.
 
 <!-- key: bif-drive -->
 sweep: the diagram alone. audio: the envelope moves a cursor along it.

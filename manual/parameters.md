@@ -959,7 +959,7 @@ Measure the embedding from the audio in the buffer and set τ from it. Once, on 
 ### Bifurcation readouts
 
 <!-- key: ro.cur -->
-Where the audio envelope currently puts the swept parameter — the cursor's position on the diagram's x axis. "sweep" means the audio drive is off; "mod off" means it is selected but Audio mod is not on, so there is no envelope to follow.
+Where the audio envelope currently puts the swept parameter — the cursor's position on the diagram's x axis. "sweep" means the audio drive is off; "mod off" means it is selected but no envelope has been measured yet.
 
 ### Transfer readouts
 

@@ -280,11 +280,10 @@ func modulesSection() string {
 		return "_Module manifest could not be read: " + err.Error() + "._"
 	}
 	var b strings.Builder
-	b.WriteString("The rack is built out of modules. Every one of them has a switch in the\n")
-	b.WriteString("Console's Modules column — the Console itself has none, because that is\n")
-	b.WriteString("where the switches live — and every one can be dragged by its header into\n")
-	b.WriteString("another slot. This reference is captured from the running rack by\n")
-	b.WriteString("`uitool modules`, and each description is the module header's own tooltip.\n")
+	b.WriteString("The rack is built out of modules. None is hidden behind a switch, and\n")
+	b.WriteString("every one can be dragged by its header into another slot. This reference\n")
+	b.WriteString("is captured from the running rack by `uitool modules`, and each\n")
+	b.WriteString("description is the module header's own tooltip.\n")
 	for _, m := range mods {
 		fmt.Fprintf(&b, "\n### %s\n\n", mdEscape(m.Label))
 		desc := tableText(m.Title)

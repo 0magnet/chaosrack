@@ -253,16 +253,14 @@ func runDemo() {
 
 // runPerformance: the recording-day mode. Differences from the plain demo:
 // nothing the monkeys do makes sound (no Model Out, no test tone — the
-// soundtrack is whatever the operator plays), audio-mod is ON from the start
-// so that soundtrack MODULATES the visuals, one monkey specializes in
+// soundtrack is whatever the operator plays), the soundtrack MODULATES the
+// visuals through the routes the monkeys pin, one monkey specializes in
 // re-routing that modulation (channels + levels per param), and a big
 // on-screen 10-second countdown cues the recording start.
 func runPerformance(c *cdp.Client) {
 	c.Eval(`Object.keys(localStorage).filter(function(k){return k.indexOf('wasmstuff-')===0;}).forEach(function(k){localStorage.removeItem(k);})`)
 	c.Eval(`location.hash='#lorenz&rot=20,0,0'`)
 	c.Reload(3 * time.Second)
-	// Audio-mod ON (visual: routes the incoming feed into the knobs).
-	c.Eval(`(function(){var e=document.getElementById('audio-mod');if(e&&!e.checked){e.checked=true;e.dispatchEvent(new Event('change',{bubbles:true}));}})()`)
 	c.Eval(`(function(){var p=document.getElementById('controls-panel');if(p)p.style.display='none';
 	  ['runtime'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
 	  [].forEach.call(document.querySelectorAll('button[title^="Show / hide controls"],a'),function(e){e.style.display='none';});})()`)
