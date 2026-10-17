@@ -73,7 +73,8 @@ func afSmooth(cur, target float32) float32 { return FeatureSmooth(cur, target) }
 
 // eqModValue returns the graphic-EQ modulation signal (0..1) for a channel
 // and band-weight curve: the weight-normalized average of the channel's band
-// energies. Empty channel or all-zero weights → 0 (unrouted).
+// energies, or with no band painted the loudest band (ModBands.Value). An
+// empty channel → 0 (unrouted).
 func (a *audioFeatures) eqModValue(channel string, weights []float32) float32 {
 	if channel == "" {
 		return 0
