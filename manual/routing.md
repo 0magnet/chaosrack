@@ -86,7 +86,7 @@ solo: lit, Gen {gen} is the only generator heard and on the rack's signal; the o
 ## Mod
 
 <!-- key: mod-matrix -->
-Mod — audio modulation: the rack's signal turning the rack's knobs. Each column is a source: RACK — the rack's signal, as the Mixer makes it, both sides summed (st) or one (L, R) — SEND, the Mixer's MOD A and B, which only modulation reads — or HEAD, where the model is drawn now (x, y, z, and r, its distance from the center). Each row is a control: the running model's parameters, then the view's. A pin routes the column to the row; another pin in the same row moves the route; a lit pin pressed again takes it away. DEST, DPTH and EQ under it are the selected row's route: which control, how deep, and which frequency bands drive it.
+Mod — audio modulation: the rack's signal turning the rack's knobs. Each column is a source: RACK — the rack's signal, as the Mixer makes it, both sides summed (st) or one (L, R) — SEND, the Mixer's MOD A and B, which only modulation reads — or HEAD, where the model is drawn now (x, y, z, and r, its distance from the center). Each row is a control: the running model's parameters, then the view's. A pin routes the column to the row; another pin in the same row moves the route; a lit pin pressed again takes it away. DEST, DPTH, SHAPE and EQ under it are the selected row's route: which control, how deep, which way it moves, and which frequency bands drive it.
 
 ### The matrix
 
@@ -114,7 +114,7 @@ The routes: a column for each source, a row for each control, in blocks of nine.
 `{control}` is the control the row is for, and `{src}` a column.
 
 <!-- key: mod-row -->
-{control} — select this control: DEST, DPTH and EQ show its route
+{control} — select this control: DEST, DPTH, SHAPE and EQ show its route
 
 <!-- key: mod-row.none -->
 No parameter here for this model
@@ -134,6 +134,11 @@ DPTH — how strongly the source drives the selected control; minus inverts it, 
 
 <!-- key: mod-depth.field -->
 Depth of the selected route — type or scroll
+
+### SHAPE
+
+<!-- key: mod-shape -->
+SHAPE — which way the source moves the selected control. push: one way, the further the louder, as a route always has. swing: both ways around the control's setting — louder than the music has lately been one way, quieter the other — so it sits at its setting on average. flip: out on a beat, the other way on the next, back between them. Head x, y and z are centered under every shape: the model at the middle moves nothing.
 
 ### EQ
 

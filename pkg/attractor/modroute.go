@@ -147,7 +147,8 @@ func (m *ModBands) Value(ch string, weights []float32) float32 {
 }
 
 // ModTarget is what a routed knob reads: base, moved by depth level times
-// the source's f across the knob's lo..hi, held to it; a knob of whole
+// the route's signal f (ModShaper.Signal) across the knob's lo..hi, held
+// to it; a knob of whole
 // steps holds a step until the value is well into the next (quantizeHeld,
 // whose last answer held is, when hasHeld).
 func ModTarget(base, level, f, lo, hi, step, held float32, hasHeld bool) float32 {
@@ -156,6 +157,90 @@ func ModTarget(base, level, f, lo, hi, step, held float32, hasHeld bool) float32
 		v = quantizeHeld(v, held, hasHeld, lo, hi, step)
 	}
 	return v
+}
+
+// A route's shape is how its source, 0..1, moves its knob. The source is an
+// envelope, which never goes below zero, so a route taken as it is can only
+// push one way from the knob's setting; the others swing it both ways.
+const (
+	// ModShapePush moves the knob one way, the further the louder. Stored
+	// empty, so every route made before there were shapes is one.
+	ModShapePush = ""
+	// ModShapeSwing moves it either way from where the music has lately
+	// been: above its own recent average one way, below it the other, so
+	// the knob sits at its setting on average.
+	ModShapeSwing = "swing"
+	// ModShapeFlip moves it out on a beat, the other way on the next, and
+	// back to its setting between them.
+	ModShapeFlip = "flip"
+)
+
+// ModShape is one of a route's shapes: the value a route stores, and the
+// name SHAPE shows.
+type ModShape struct{ Value, Label string }
+
+// ModShapes are the shapes, in SHAPE's order.
+var ModShapes = []ModShape{{ModShapePush, "push"}, {ModShapeSwing, "swing"}, {ModShapeFlip, "flip"}}
+
+// IsModShape reports whether s is a shape a route can store.
+func IsModShape(s string) bool {
+	for _, m := range ModShapes {
+		if m.Value == s {
+			return true
+		}
+	}
+	return false
+}
+
+// isSignedModSource reports whether source name is a coordinate, whose 0.5
+// is the middle (modelModNorm) rather than nothing.
+func isSignedModSource(name string) bool {
+	return name == modSrcModelX || name == modSrcModelY || name == modSrcModelZ
+}
+
+// The shapes' timing, a frame at a time: how fast a route's own average
+// follows its source, and how far above that average the source must rise
+// to be a beat, and fall back to arm the next.
+const (
+	modMeanCoef = 0.02 // about a second at 60 frames
+	modBeatRise = 0.12
+	modBeatFall = 0.04
+)
+
+// ModShaper is a route's memory for its shape: the source's recent average,
+// and for flip, which way the last beat went.
+type ModShaper struct {
+	mean   float32
+	sign   float32
+	armed  bool
+	primed bool
+}
+
+// Signal is what a route from source src, at shape, makes of the source's
+// f this frame: -1..1, which the route's depth scales across its knob's
+// range (ModTarget). Called once a frame for each route.
+func (s *ModShaper) Signal(shape, src string, f float32) float32 {
+	if !s.primed {
+		// Started at the source, so a route made mid-song does not kick.
+		s.mean, s.sign, s.armed, s.primed = f, 1, true, true
+	}
+	d := f - s.mean
+	s.mean += d * modMeanCoef
+	switch shape {
+	case ModShapeSwing:
+		return min(max(2*d, -1), 1)
+	case ModShapeFlip:
+		if s.armed && d > modBeatRise {
+			s.sign, s.armed = -s.sign, false
+		} else if d < modBeatFall {
+			s.armed = true
+		}
+		return s.sign * min(2*max(d, 0), 1)
+	}
+	if isSignedModSource(src) {
+		return 2*f - 1 // a coordinate: its middle moves nothing
+	}
+	return f
 }
 
 // ModViewRow is one of the Mod matrix's rows for the view rather than the

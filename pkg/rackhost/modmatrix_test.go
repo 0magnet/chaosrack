@@ -54,6 +54,22 @@ func TestModRowsFollowTheModel(t *testing.T) {
 	}
 }
 
+// SHAPE sets the selected route's shape, and reads each route's own as the
+// selection moves.
+func TestModShapeIsTheSelectedRoutes(t *testing.T) {
+	r := newRack(t)
+	set(t, r, r.selector, "torus")
+	clickMark(t, r, "btn mxpin-1-0", 0.5) // torus-r, selected
+	set(t, r, "modmx-shape", attractor.ModShapeSwing)
+	clickMark(t, r, "btn mxpin-0-0", 0.5) // torus-R, selected, still a push
+	r.mu.Lock()
+	sr, sR, shown := r.mod.routes["torus-r"].shape, r.mod.routes["torus-R"].shape, r.value("modmx-shape")
+	r.mu.Unlock()
+	if sr != attractor.ModShapeSwing || sR != attractor.ModShapePush || shown != attractor.ModShapePush {
+		t.Errorf("torus-r %q, torus-R %q, SHAPE shows %q", sr, sR, shown)
+	}
+}
+
 // A pin routes its column to its row, lit, selected, at the default depth;
 // pressed again it takes the route away.
 func TestModPinRoutes(t *testing.T) {

@@ -128,20 +128,32 @@ var perma = permalinkState{
 func isColorKey(k string) bool { return k == "cb" || k == "cm" || k == "ct" || k == "cg" }
 
 // formatModRoute renders a paramMod as the permalink wire form
-// channel~band0,band1,…~level — the ONE serializer for m./vm. routes.
+// channel~band0,band1,…~level[~shape] — the ONE serializer for m./vm.
+// routes. A push route has no shape field, so links made before shapes and
+// after read the same.
 func formatModRoute(m paramMod) string {
 	bs := make([]string, len(m.bands))
 	for i, bv := range m.bands {
 		bs[i] = permaFmt(bv)
 	}
-	return m.channel + "~" + strings.Join(bs, ",") + "~" + permaFmt(m.level)
+	s := m.channel + "~" + strings.Join(bs, ",") + "~" + permaFmt(m.level)
+	if m.shape != ModShapePush {
+		s += "~" + m.shape
+	}
+	return s
 }
 
 // parseModRoute is the inverse; ok is false on a malformed value.
 func parseModRoute(val string) (paramMod, bool) {
 	sv := strings.Split(val, "~")
-	if len(sv) != 3 {
+	if len(sv) != 3 && len(sv) != 4 {
 		return paramMod{}, false
+	}
+	var shape string
+	if len(sv) == 4 {
+		if shape = sv[3]; !IsModShape(shape) {
+			return paramMod{}, false
+		}
 	}
 	bandStrs := strings.Split(sv[1], ",")
 	bands := make([]float32, len(bandStrs))
@@ -153,7 +165,7 @@ func parseModRoute(val string) (paramMod, bool) {
 	if err != nil {
 		return paramMod{}, false
 	}
-	return paramMod{channel: sv[0], bands: bands, level: float32(lvl)}, true
+	return paramMod{channel: sv[0], bands: bands, level: float32(lvl), shape: shape}, true
 }
 
 func permaFmt(v float32) string { return strconv.FormatFloat(float64(v), 'g', 6, 32) }

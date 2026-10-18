@@ -304,3 +304,23 @@ func (m *ModBands) setBand(ch string, band []float32) []float32 {
 	m.band[ch] = band
 	return prev
 }
+
+// A route's shape rides in its link, and a push route's link reads as it
+// did before there were shapes.
+func TestARoutesShapeRoundTripsThroughTheLink(t *testing.T) {
+	push := paramMod{channel: "mono", bands: []float32{0, 1}, level: 0.4}
+	if s := formatModRoute(push); s != "mono~0,1~0.4" {
+		t.Errorf("a push route is linked as %q", s)
+	}
+	for _, shape := range []string{ModShapeSwing, ModShapeFlip} {
+		m := push
+		m.shape = shape
+		got, ok := parseModRoute(formatModRoute(m))
+		if !ok || got.shape != shape || got.channel != "mono" || got.level != 0.4 {
+			t.Errorf("%q came back %+v (%v)", shape, got, ok)
+		}
+	}
+	if _, ok := parseModRoute("mono~0,1~0.4~wobble"); ok {
+		t.Error("a link with an unknown shape was taken")
+	}
+}

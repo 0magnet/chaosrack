@@ -12,17 +12,17 @@ import (
 
 // Per-parameter audio modulation. Any attractor-specific parameter can be
 // individually routed from an audio feature (a channel: L / R / mono, and
-// a band) with a signed level. Nothing is modulated by default — the user
-// enables it per parameter via the controls that appear under each param
-// when "Audio mod" is on.
+// a band) with a signed level. Nothing is modulated by default: a route is
+// made by a pin in the Mod matrix (modmatrix_js.go).
 //
 // A routed parameter's value for the integration step is:
 //
-//	value = base + level * feature * (max - min)
+//	value = base + level * signal * (max - min)
 //
 // where base is the slider value (still authoritative — audio swings
-// around it), level is the signed per-parameter depth, and feature is the
-// smoothed 0..1 source. Keep level small for the "very low level" nudges
+// around it), level is the signed per-parameter depth, and signal is the
+// smoothed 0..1 source as the route's shape makes it, -1..1
+// (ModShaper.Signal). Keep level small for the "very low level" nudges
 // these delicate attractors want; negative inverts. Applied only for the
 // integration step, then restored, so the sliders never drift.
 
@@ -34,6 +34,7 @@ type paramMod struct {
 	channel string    // "" = off; "mono" | "L" | "R"
 	bands   []float32 // band weights 0..1 (len numEQBands); nil/zero = off
 	level   float32
+	shape   string // ModShapes; "" pushes
 }
 
 // paramModulation is per-parameter audio modulation: which parameters follow
@@ -46,14 +47,27 @@ type paramModulation struct {
 	// be sticky about, and the only place that survives between frames is here.
 	// Keys are parameter ids, so it is bounded by the number of parameters in the
 	// build and never grows with time.
-	hold        map[string]float32
+	hold map[string]float32
+	// shapers are each route's memory for its shape, by the same ids.
+	shapers     map[string]*ModShaper
 	appliedPrev []appliedMod
 	appliedCur  []appliedMod
 }
 
 var pmod = paramModulation{
-	params: map[string]paramMod{},
-	hold:   map[string]float32{},
+	params:  map[string]paramMod{},
+	hold:    map[string]float32{},
+	shapers: map[string]*ModShaper{},
+}
+
+// signal is route id's source now, as its shape makes it (ModShaper.Signal).
+func (p *paramModulation) signal(id string, m paramMod) float32 {
+	s := p.shapers[id]
+	if s == nil {
+		s = &ModShaper{}
+		p.shapers[id] = s
+	}
+	return s.Signal(m.shape, m.channel, af.eqModValue(m.channel, m.bands))
 }
 
 // paramIsModulated reports whether the sound is currently driving a parameter,
@@ -147,7 +161,7 @@ func (p *paramModulation) collectAudioModulation(mode string) []savedParam {
 		if !ok || m.channel == "" || m.level == 0 {
 			continue
 		}
-		f := af.eqModValue(m.channel, m.bands)
+		f := p.signal(pd.ID, m)
 		base := *pd.Value
 		held, has := p.hold[pd.ID]
 		v := ModTarget(base, m.level, f, pd.Min, pd.Max, pd.Step, held, has) // modroute.go
@@ -275,7 +289,7 @@ func (p *paramModulation) applyViewModulation() []savedParam {
 		if !ok || m.channel == "" || m.level == 0 {
 			continue
 		}
-		f := af.eqModValue(m.channel, m.bands)
+		f := p.signal(vt.id, m)
 		base := *vt.ptr
 		saved = append(saved, savedParam{vt.ptr, base})
 		if vt.id == "view-trail" {
