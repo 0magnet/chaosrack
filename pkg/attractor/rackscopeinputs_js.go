@@ -35,12 +35,13 @@ var scopeInNames = [scopeInCount]string{
 // scopeInHelp is what source in is, as a tooltip says it.
 func scopeInHelp(in int) string { return doc("scope-in=" + strconv.Itoa(in)) }
 
-// scopeInDefaults is what each scope's two channels start on: the first on
-// the rack's signal, as the one scope always was; each of the others on the
-// generator beside it and a coordinate of the model.
+// scopeInDefaults is what each scope's two channels start on: the first two
+// on the rack's signal, so CH 1 draws its left on Scope 1 and its right on
+// Scope 2, and X-Y on either is a goniometer; the others on the generator
+// beside them and a coordinate of the model.
 var scopeInDefaults = [rackScopeCount][2]int{
 	{scopeInRackL, scopeInRackR},
-	{scopeInGen1 + 1, scopeInModelX},
+	{scopeInRackR, scopeInRackL},
 	{scopeInGen1 + 2, scopeInModelZ},
 	{scopeInGen1 + 3, scopeInModelY},
 }
