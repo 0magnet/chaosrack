@@ -360,7 +360,7 @@ func (r *Rack) set(id, value string) error {
 		r.placeSweptMarks()
 	case "sweep-p", "sweep2-p":
 		r.placeSweptMarks()
-	case "modmx-dest", "modmx-depth", "modmx-src":
+	case "modmx-dest", "modmx-depth", "modmx-src", "modmx-shape":
 		r.modSet(id)
 	case "focus-n", "link-sw":
 		r.refocus()

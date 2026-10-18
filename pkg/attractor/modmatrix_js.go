@@ -92,6 +92,7 @@ var modMx struct {
 	dest    js.Value   // the hidden select the DEST knob turns
 	depth   js.Value   // the hidden range behind the DPTH knob
 	depthRO js.Value   // its readout
+	shape   js.Value   // the hidden select the SHAPE knob turns
 	eqHold  js.Value   // where the selected route's EQ strip goes
 	eqFuncs []js.Func  // the strip's listeners, rebuilt with the selection
 	funcs   []js.Func  // the module's own listeners, kept for its life
@@ -110,10 +111,12 @@ func buildModMatrix(params []paramDef) {
 			at.Get("parentNode").Call("insertBefore", modMxModule(), at.Get("nextSibling"))
 		})
 	}
-	// DEST and DPTH are controls of the rack, so ctl and a rack without the
-	// page reach them; the pins and the EQ are pressed parts (their ids).
+	// DEST, DPTH and SHAPE are controls of the rack, so ctl and a rack
+	// without the page reach them; the pins and the EQ are pressed parts
+	// (their ids).
 	registerControl(ControlDesc{ID: "modmx-dest", Label: "dest", IsSelect: true}, moduleOfControl("modmx-dest"))
 	registerControl(ControlDesc{ID: "modmx-depth", Label: "dpth", Min: -4, Max: 4, Step: 0.01}, moduleOfControl("modmx-depth"))
+	registerControl(ControlDesc{ID: "modmx-shape", Label: "shape", IsSelect: true, SelectDef: ModShapePush}, moduleOfControl("modmx-shape"))
 	modMxRetarget(params)
 }
 
@@ -256,7 +259,7 @@ func modMxGrid() js.Value {
 
 // modMxEditRow is the selected route under the matrix: DEST, a knob that
 // steps through the rows with the selected one's name on a display; DPTH,
-// its depth; and EQ, the bands that drive it.
+// its depth; SHAPE, which way it moves; and EQ, the bands that drive it.
 func modMxEditRow() js.Value {
 	row := dom.Doc.Call("createElement", "div")
 	row.Set("className", "modmx-edit")
@@ -354,6 +357,44 @@ func modMxEditRow() js.Value {
 		return nil
 	})
 	modMx.depth, modMx.depthRO = rng, ro
+
+	// SHAPE: how the source moves the control (ModShapes), a lit-dot
+	// selector with the shape's name on a display, as DEST is.
+	sc, stop := cell("shape", doc("mod-shape"))
+	sc.Call("setAttribute", "data-param", "modmx-shape")
+	shp := dom.Doc.Call("createElement", "select")
+	shp.Set("style", "display:none")
+	shp.Set("id", "modmx-shape")
+	var opts strings.Builder
+	for _, m := range ModShapes {
+		opts.WriteString(`<option value="` + m.Value + `">` + displayText(m.Label) + `</option>`)
+	}
+	shp.Set("innerHTML", opts.String())
+	sc.Call("appendChild", shp)
+	shold := dom.Doc.Call("createElement", "span")
+	shold.Set("className", "grp vmbay")
+	shold.Call("appendChild", ledSelector(shp))
+	sc.Call("appendChild", shold)
+	sc.Get("classList").Call("add", "ledsel")
+	sname := dotDisplayN("", false, dispFullChars)
+	sname.Get("classList").Call("add", "dmdval")
+	stop.Call("appendChild", sname)
+	ledPick(sname, shp)
+	dom.On(shp, "change", func(js.Value, []js.Value) any {
+		if i := shp.Get("selectedIndex").Int(); i >= 0 {
+			setDotText(sname, shp.Get("options").Index(i).Get("textContent").String())
+		}
+		v := shp.Get("value").String()
+		if modMx.sel == "" || !IsModShape(v) || pmod.params[modMx.sel].shape == v {
+			return nil
+		}
+		m := pmod.params[modMx.sel]
+		m.shape = v
+		pmod.params[modMx.sel] = m
+		perma.syncPermalinkNow()
+		return nil
+	})
+	modMx.shape = shp
 
 	// EQ: the selected route's band curve.
 	ec, _ := cell("eq", doc("mod-eq"))
@@ -458,7 +499,7 @@ func modMxRowOf(id string) int {
 }
 
 // modMxSelect makes id the route under the matrix: its row marked, the DEST
-// knob on it, its depth on DPTH, and its EQ strip.
+// knob on it, its depth on DPTH, its shape on SHAPE, and its EQ strip.
 func modMxSelect(id string) {
 	at := modMxRowOf(id)
 	if at < 0 {
@@ -479,6 +520,10 @@ func modMxSelect(id string) {
 		if f := knobRefresh["modmx-depth"]; f != nil {
 			f()
 		}
+	}
+	if modMx.shape.Truthy() && modMx.shape.Get("value").String() != pmod.params[id].shape {
+		modMx.shape.Set("value", pmod.params[id].shape)
+		dom.Fire(modMx.shape, "change")
 	}
 	if modMx.eqHold.Truthy() {
 		dom.RebuildInto(&modMx.eqFuncs, func() {

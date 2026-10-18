@@ -22,11 +22,12 @@ import (
 // sources (attractor/modroute.go), in place of the values they are set to.
 
 // modRoute is one destination's route: the source it follows, the bands its
-// EQ weighs, and its depth.
+// EQ weighs, its depth, and its shape (attractor.ModShapes).
 type modRoute struct {
 	channel string
 	bands   [attractor.ModBandCount]float32
 	level   float32
+	shape   string
 }
 
 // on reports whether the route moves anything.
@@ -51,6 +52,8 @@ type modView struct {
 	bands attractor.ModBands
 	model map[string]float32
 	hold  map[string]float32
+	// shapers are each route's memory for its shape, by destination.
+	shapers map[string]*attractor.ModShaper
 	// over is what the routed knobs read this frame, by control.
 	over map[string]float64
 	// head and extent are where the model's trail is now and how far it
@@ -76,6 +79,7 @@ func (r *Rack) findMod() {
 	if mv.routes == nil {
 		mv.routes = map[string]modRoute{}
 		mv.model, mv.hold = map[string]float32{}, map[string]float32{}
+		mv.shapers = map[string]*attractor.ModShaper{}
 	}
 	mv.lit = map[int]string{}
 	mv.legend, mv.pins, mv.eq = nil, nil, [attractor.ModBandCount]int{}
@@ -192,7 +196,7 @@ func (r *Rack) modRow(id string) int {
 }
 
 // modSelect selects destination id's row: DEST names it, DPTH reads its
-// depth, the EQ its bands. Called with r.mu held.
+// depth, SHAPE its shape, the EQ its bands. Called with r.mu held.
 func (r *Rack) modSelect(id string) {
 	mv := &r.mod
 	if r.modRow(id) < 0 {
@@ -209,6 +213,9 @@ func (r *Rack) modSelect(id string) {
 			c.Value = v
 			r.turn(c)
 		}
+	}
+	if i, ok := r.byID["modmx-shape"]; ok {
+		r.ctls[i].Value = mv.routes[id].shape
 	}
 	if i, ok := r.byID["modmx-src"]; ok {
 		m := mv.routes[id]
@@ -348,8 +355,9 @@ func (r *Rack) modPressAt(x, y float64) bool {
 // modDefDepth is the depth a route is made with when it had none.
 const modDefDepth = 0.4
 
-// modSet acts on DEST or DPTH turned: DEST selects a row, DPTH sets the
-// selected route's depth. Called with r.mu held.
+// modSet acts on DEST, SRC, DPTH or SHAPE turned: DEST selects a row, the
+// others set the selected route's source, depth or shape. Called with r.mu
+// held.
 func (r *Rack) modSet(id string) {
 	mv := &r.mod
 	switch id {
@@ -367,6 +375,12 @@ func (r *Rack) modSet(id string) {
 		mv.routes[mv.sel] = m
 		r.modSelect(mv.sel)
 		r.modLight(r.modRow(mv.sel))
+	case "modmx-shape":
+		if v := r.value(id); mv.sel != "" && mv.routes != nil && attractor.IsModShape(v) {
+			m := mv.routes[mv.sel]
+			m.shape = v
+			mv.routes[mv.sel] = m
+		}
 	case "modmx-depth":
 		if mv.sel == "" || mv.routes == nil {
 			return
@@ -426,11 +440,19 @@ func (r *Rack) modulate(model string) {
 	}
 	r.modListen()
 	over := map[string]float64{}
-	value := func(m modRoute) float32 {
+	value := func(id string, m modRoute) float32 {
+		var f float32
 		if attractor.IsModelModSource(m.channel) {
-			return r.modModel(m.channel)
+			f = r.modModel(m.channel)
+		} else {
+			f = mv.bands.Value(m.channel, m.bands[:])
 		}
-		return mv.bands.Value(m.channel, m.bands[:])
+		s := mv.shapers[id]
+		if s == nil {
+			s = &attractor.ModShaper{}
+			mv.shapers[id] = s
+		}
+		return s.Signal(m.shape, m.channel, f)
 	}
 	ctl := func(id string) (base, lo, hi, step float64, ok bool) {
 		i, has := r.byID[id]
@@ -446,7 +468,7 @@ func (r *Rack) modulate(model string) {
 		if id == "" || !m.on() {
 			continue
 		}
-		f := value(m)
+		f := value(id, m)
 		if i >= mv.nParams {
 			r.modView(over, attractor.ModViewRows[i-mv.nParams], m, f, model)
 			continue
@@ -574,8 +596,17 @@ func (r *Rack) modFollow(pts, fit [][3]float64) {
 
 // addModControls gives the rack the selected route's source as a selector,
 // SRC: the pins, which a mouse presses, as a control a keyboard turns too.
-// The page has no such control; its pins are the source.
+// The page has no such control; its pins are the source. And SHAPE, which
+// the page has, for a catalog captured before it did.
 func (r *Rack) addModControls() {
+	var shapes, shapeLabels []string
+	for _, m := range attractor.ModShapes {
+		shapes, shapeLabels = append(shapes, m.Value), append(shapeLabels, m.Label)
+	}
+	r.addControl(racktui.Control{
+		ControlInfo: controlspec.ControlInfo{ID: "modmx-shape", Label: "shape", IsSelect: true, Module: "mod"},
+		Options:     shapes, Labels: shapeLabels,
+	})
 	opts, labels := []string{""}, []string{"off"}
 	for _, ch := range attractor.ModChannels() {
 		opts, labels = append(opts, ch.Name), append(labels, ch.Key)

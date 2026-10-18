@@ -852,6 +852,13 @@ func ledSelector(sel js.Value) js.Value {
 	wrap.Call("appendChild", knob)
 	addValueDial(wrap, 0, 1)
 	if dial := wrap.Call("querySelector", ".value-dial"); dial.Truthy() {
+		// The ring only: the dial's printed ends, 0 and 1, say a selector
+		// turns between two numbers, which the module reference read off
+		// them, hidden or not.
+		labs := dial.Call("querySelectorAll", ".knob-dial-lab")
+		for i := labs.Length() - 1; i >= 0; i-- {
+			labs.Index(i).Call("remove")
+		}
 		light := func() {
 			d := ringDot(sel.Get("selectedIndex").Int(), sel.Get("options").Length(), dialTicks)
 			lightRing(dial, d, d)

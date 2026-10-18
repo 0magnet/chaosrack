@@ -2367,35 +2367,19 @@ description is the module header's own tooltip.
 - **a** — Rossler — a — a constant of the Rossler system. It enters dy/dt = x + a·y
 - **σ** — 1.3.2 · Lorenz — σ — a constant of the Lorenz system. It enters dx/dt = σ·(y - x)
 - **sys** — Sprott A–S — the system the MODEL knob's Sprott A–S position plays
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **sweep** — SWEEP — which parameter of the system being swept is the x axis of the diagram; each column integrates the system fresh at that value and plots the maxima of z. The system is the most recent flow mode.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **solid** — Built-in solids — the rack modules and the 19-inch frame at their real dimensions, the geometry as closed solids, and every attractor swept as a tube along its own trajectory. Generated in the browser; the same models are written as .stl files by chaosrack stlgen.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **prog** — Program — which terminal program runs on the quad. Twenty-one animations plus the text demos, from tuiwasm; the list is built from what is registered, so it cannot drift from what is actually there.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **style** — Desktop style — four 3-D desktops reproduced over the scene. Flat: ordinary windows. Looking Glass (Sun, 2003): windows lean back in a legible stack; double-click a title bar to turn one over and read its back. Cube (Compiz, 2006): four workspaces on the faces of a cube; the arrow keys spin it. Metisse (2004): shift-drag a title bar to turn a window freely, and it stays live while turned. BumpTop (2009): windows have weight and fall into a pile on top of the rack.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **τ** — Takens Embedding — tau — the delay between the coordinates, in samples at 48 kHz, so one position is the same duration on any source. Too short and the axes are nearly the same sample and the figure collapses onto the diagonal; too long and it folds back on itself. One knob: Takens, Polar and the recurrence plot all read it.
 - **b** — Rossler — b — a constant of the Rossler system. It enters dz/dt = b + z·(x - c)
 - **ρ** — 1.4.1 · Lorenz — ρ — a constant of the Lorenz system. It enters dy/dt = x·(ρ - z) - y
 - **drive** — DRIVE — what puts the system at a parameter value. sweep is the diagram alone, computed left to right. audio keeps the same diagram and points a cursor at it from the live audio envelope, so the branch structure under the music is lit up as it plays. The diagram itself does not move: its x axis means something only because the parameter runs monotonically along it. The envelope is the rack's signal, as the Mixer's RACK rows make it, and choosing audio is enough to start measuring it.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **smth** — Takens Embedding — smooth — Catmull-Rom upsampling, in drawn points per source sample. A straight line between samples draws chords that are an artifact of the drawing; this curves the beam through them instead. Higher is smoother and costs vertices.
 - **c** — Rossler — c — a constant of the Rossler system. It enters dz/dt = b + z·(x - c)
 - **β** — 1.4.2 · Lorenz — β — a constant of the Lorenz system. It enters dz/dt = x·y - β·z
 - **wave** — Wave — the carrier waveform: square, pulse, or a sub-octave square (divided by two)
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **mod** — Mod — the modulator topology: ring (four-quadrant) or AM (balanced)
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **spd** — 1.12.1 · Model Out SPD — how fast the model runs as a signal, in semitones: every 12 up is twice as fast, an octave higher. For a system of equations, integrator steps per sample, 0 being one step a sample; the pitch is the system's own. For a beam, its speed round the figure, so the pitch is that speed over the figure's length, which the HZ readout over the equation shows.
 - **lvl** — 1.12.2 · Model Out LVL — the level of the model's x, y and z, as the Mixer takes them (0–100).
 - **speed** — 1.12.3 · SPEED — the model's time base, at 1.12.3 below Model Out. For a flow it sets integration sub-steps per drawn vertex above ×1, and scales dt below ×1; for an animated model (Lissajous, turtle, pong, morph) it sets the playback rate. Dark for models with no time base of their own (geometry, maps, analysis displays).
@@ -2549,14 +2533,8 @@ description is the module header's own tooltip.
 <details><summary>Controls</summary>
 
 - **grid** — 2.5.1 · Grid — how many views of the model are drawn, as a square (2 is side by side). A grid is not that many instruments configured by hand: pick what varies with the Sweep dial and the cells draw that parameter's range, which is a contact sheet of one setting rather than sixteen panels to fill in.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **sweep** — 2.5.2 · Sweep — which parameter varies across the grid, and the from and to knobs beside this one say over how much of its range. This is what makes a grid of sixteen usable: rather than sixteen panels to fill in, one dial says what differs and the cells draw that parameter's space, like a contact sheet. The list is the CURRENT model's own parameters, so it changes with the mode; a model that integrates its trajectory offers no parameter sweep, because the cells share one integrator and a swept grid would smear one trajectory across them. A flow offers start instead: each cell integrates its own trajectory, started ε from the model's own. csrc and cmap sweep the COLORING instead of a number — the same figure read nine different ways, or in nine palettes — which is the case a grid is most worth having for.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **down** — 2.5.3 · Sweep down — a SECOND parameter, varying down the grid while the first varies across it. This is what the second direction of a grid is for: with one sweep a three by three of nine delays wasted its rows, and asking for nine palettes meant giving up the nine delays. Set both and each column is one value of across, each row one value of down, and the cell where they meet is the pair — nine delays read in three palettes, say. Set only this one and it behaves exactly like the sweep beside it. The two cannot name the same parameter: rows and columns varying the same thing is not a comparison.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **from** — 2.6.1 · Sweep from — where in the swept parameter's own range the first cell sits, as a fraction: 0 is the parameter's minimum. Turn both this and to inward and the contact sheet covers a slice of the range in detail rather than all of it coarsely, which is how a sweep is used once you know roughly where the interesting part is. For a start sweep the fraction sets ε: 0 is ε = 0, the model's own trajectory, and above 0 the scale is logarithmic, 10⁻⁹ to 10⁻¹.
   - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
   - `1` — 1 — the highest this knob goes; turned fully clockwise
@@ -2564,8 +2542,6 @@ description is the module header's own tooltip.
   - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
   - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **focus** — 2.6.3 · Focus — which cell of the grid the knobs drive while Link is off. Its positions follow the grid, so a sixteen-cell sheet has sixteen of them. Moving it rebuilds the parameter rows against that cell's own instance, which is what makes a knob write to the view you are looking at rather than to the one behind it.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 
 </details>
 
@@ -2598,21 +2574,13 @@ description is the module header's own tooltip.
 <details><summary>Controls</summary>
 
 - **behind** — 2.8.1 · Backdrop — what is drawn behind the model, filling the canvas: the scrolling spectrogram, the XY oscilloscope, a live terminal, or the whole desk. Water is the exception: it is a LENS, drawn through the finished frame rather than behind it — drag on the canvas to make waves. One at a time, or off.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **skin** — 2.8.2 · Skin — what is painted ON the model's own surface, wrapped round it, for the models that have a surface to take it: the live spectrogram, a terminal, or the whole desk. Off leaves the wireframe. The same three pictures the Behind knob draws in the background; this puts one on the object instead.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **bg** — 2.8.3 · Background color behind the model — swatch or Hue / Level knob
 - **start** — 2.9.1 · Gradient START color (low end of the source axis) — pick with the swatch or dial it with the Hue (outer) / Level (inner) knob
 - **mid** — 2.9.2 · Gradient MIDDLE color (3-color palette only) — swatch or Hue / Level knob
 - **end** — 2.9.3 · Gradient END color (high end of the source axis) — swatch or Hue / Level knob
 - **src** — 2.10.1 · Source — what the color follows. OFF is a flat trace in the start swatch: the color follows nothing, which is what used to be called the mono palette and is a statement about the SOURCE rather than about the map. X / Y / Z follow a coordinate of the figure; on the three delay embeddings those axes are one signal at three lags, so they color along different directions of the same figure rather than showing three different quantities. TRAIL follows age along the window. AUDIO paints the short-time spectral CENTROID along the trail — which frequency each moment sits at. LEVEL paints the short-time LEVEL instead, which is the quantity the spectrogram backdrop is painting, so with one of the colormap palettes behind it the figure and the backdrop say the same thing in the same language; AUDIO deliberately does not, and a figure colored by centroid over a spectrogram is not supposed to match it. Only the Takens, stereo and polar embeddings have a trail that is a time axis, so elsewhere both are one flat tint. Displays with a value of their own — the spectrogram, the RTA, the transfer function — do not consult this knob at all, and it dims in those modes.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **map** — 2.10.2 · Map — how a value becomes a color, for every display in the rack including the spectrogram. 2 and 3 mix the Palette module's own swatches; HUE is a raw hue sweep; heat, blue, gray, turbo, viridis and magma are the published colormaps. Turbo and viridis are the even ones — equal steps in the value look like equal steps in color, which a hue sweep does not give you. This is the only colormap control there is: the spectrogram had a second one naming the same six maps, and two knobs that had to be kept in step by hand were one knob too many.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **period** — 2.10.3 · Palette period — how many times the palette is crossed across the trail (low = a narrow slice of it, which the shift knob then sweeps). Drives the rainbow AND the six colormaps: the question is the same one either way.
   - `0.05` — 0.05 — the lowest this knob goes; turned fully counter-clockwise
   - `20` — 20 — the highest this knob goes; turned fully clockwise
@@ -2634,20 +2602,12 @@ description is the module header's own tooltip.
   - `6` — 6 — the lowest this knob goes; turned fully counter-clockwise
   - `24` — 24 — the highest this knob goes; turned fully clockwise
 - **style** — 3.1.2 · STYLE — how each terminal writes what crosses its sheet.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **look** — 3.1.3 · LOOK — how the sheets are put together on screen.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **opac** — 3.2.1 · OPAC — every terminal's background opacity, in percent: the setting a translucent terminal emulator has (kitty's background_opacity, alacritty's window.opacity), never something a program asks for. It applies to the default background, which is black; text stays opaque. At 0 only the text is there; higher, each sheet darkens what is behind it, so the far side is dimmer than the near.
   - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
   - `100` — 100 — the highest this knob goes; turned fully clockwise
 - **stacks** — 3.2.2 · STACKS — which families of sheets there are. Fewer families are fewer terminals and less to draw: a family that is not shown does not run its programs either.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **turn** — 3.2.3 · TURN — what turning the view turns. The programs are told the way any program is told anything, on their input: each is sent a pose, the view's turn or its inverse, which lattice applies to what it draws.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 
 </details>
 
@@ -2660,18 +2620,10 @@ description is the module header's own tooltip.
 <details><summary>Controls</summary>
 
 - **dft** — 3.3.1 · DFT size — points per transform: larger resolves frequency finer and time coarser.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **ovlp** — 3.3.2 · overlap — how much each transform overlaps the one before, in percent: more is a smoother scroll for more work.
 - **wfn** — 3.3.3 · window function — the taper each block is shaped by before its transform: Hann is the usual; rectangular is sharpest and leaks the most.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **chan** — 3.4.1 · channel — which signal is analyzed: the mix of both, or the left or right alone.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **scale** — 3.4.2 · scale — the magnitude scale: logarithmic, in dB, or linear. FLOOR and CEILING are read in the same scale.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **min** — 3.4.3 · floor — the level, in dB, that maps to the bottom of the color scale; anything quieter is drawn black.
 - **max** — 3.5.1 · ceiling — the level, in dB, that maps to the top of the color scale; anything louder is drawn at full.
 
@@ -2686,12 +2638,8 @@ description is the module header's own tooltip.
 <details><summary>Controls</summary>
 
 - **axis** — 3.6.1 · axis — the axis the section plane is perpendicular to.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **pos** — 3.6.2 · pos — where the plane sits along AXIS, as a fraction of the attractor's own reach: 0 is through the middle whatever the system's size.
 - **dir** — 3.6.3 · dir — which way through the plane counts as a crossing. One way is the default because a bounded flow that goes up through a plane must come back down, and keeping both superimposes two different sections.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 
 </details>
 
@@ -2913,11 +2861,11 @@ description is the module header's own tooltip.
 
 <details><summary>Controls</summary>
 
-- **000.61800.1** — 4.10.1.a · Timing / fps / LED readout / Frames a second sustained over the last window — the reciprocal of the MEAN frame, so a hitch counts against it
-- **1800.11800.1** — 4.10.1.c · Timing / min / LED readout / Shortest frame in the window, in ms — which is the display's own interval, since nothing renders faster than vsync
-- **000.01793.70** — 4.10.2.b · Timing / late / LED readout / Percentage of frames that missed the display's interval by half again or more. This is the number that corresponds to visible hesitation; the frame rate alone does not.
-- **05.9000.10** — 4.10.3.a · Timing / model / LED readout / Milliseconds a frame spent ISSUING the model's draw calls. A WebGL call queues a command and returns without waiting for pixels, so this reads far below what the model really costs — the GPU and compositor share of it is in REST. Useful for what it does catch: geometry rebuilt every frame instead of cached.
-- **00.40 TBC** — 4.10.3.c
+- **000.33600.0** — 4.10.1.a · Timing / fps / LED readout / Frames a second sustained over the last window — the reciprocal of the MEAN frame, so a hitch counts against it
+- **3600.03600.0** — 4.10.1.c · Timing / min / LED readout / Shortest frame in the window, in ms — which is the display's own interval, since nothing renders faster than vsync
+- **000.03596.10** — 4.10.2.b · Timing / late / LED readout / Percentage of frames that missed the display's interval by half again or more. This is the number that corresponds to visible hesitation; the frame rate alone does not.
+- **03.6000.10** — 4.10.3.a · Timing / model / LED readout / Milliseconds a frame spent ISSUING the model's draw calls. A WebGL call queues a command and returns without waiting for pixels, so this reads far below what the model really costs — the GPU and compositor share of it is in REST. Useful for what it does catch: geometry rebuilt every frame instead of cached.
+- **00.20 TBC** — 4.10.3.c
 - **TBC** — 4.10.3.c · TBC — timebase correction. On, the model turns at its rate per SECOND: each frame advances it by however long that frame took, so a late frame is a longer step and a faster display the same speed. Off, every frame advances it the same step, as the rack did before: a late frame is a pause, and a 144 Hz display spins it more than twice as fast as a 60 Hz one. On is the steady angular velocity; off is every frame advanced alike, which is what to compare frames by.
 
 </details>
@@ -3467,16 +3415,15 @@ description is the module header's own tooltip.
 
 | | |
 |---|---|
-| <img src="docs/img/module/mod-matrix.jpg" alt="The Mod module" width="320"> | 9.4 · Mod — audio modulation: the rack's signal turning the rack's knobs. Each column is a source: RACK — the rack's signal, as the Mixer makes it, both sides summed (st) or one (L, R) — SEND, the Mixer's MOD A and B, which only modulation reads — or HEAD, where the model is drawn now (x, y, z, and r, its distance from the center). Each row is a control: the running model's parameters, then the view's. A pin routes the column to the row; another pin in the same row moves the route; a lit pin pressed again takes it away. DEST, DPTH and EQ under it are the selected row's route: which control, how deep, and which frequency bands drive it. |
+| <img src="docs/img/module/mod-matrix.jpg" alt="The Mod module" width="320"> | 9.4 · Mod — audio modulation: the rack's signal turning the rack's knobs. Each column is a source: RACK — the rack's signal, as the Mixer makes it, both sides summed (st) or one (L, R) — SEND, the Mixer's MOD A and B, which only modulation reads — or HEAD, where the model is drawn now (x, y, z, and r, its distance from the center). Each row is a control: the running model's parameters, then the view's. A pin routes the column to the row; another pin in the same row moves the route; a lit pin pressed again takes it away. DEST, DPTH, SHAPE and EQ under it are the selected row's route: which control, how deep, which way it moves, and which frequency bands drive it. |
 
 <details><summary>Controls</summary>
 
 - **dest** — 9.4.3 · DEST — which control the route below is for. The matrix's row names say the same; this knob steps through them.
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `1` — 1 — the highest this knob goes; turned fully clockwise
 - **dpth** — 9.5.3 · DPTH — how strongly the source drives the selected control; minus inverts it, 0 is no route at all. About 1.5 overdrives.
   - `-4` — 9.5.3 · -4 — the lowest this knob goes; turned fully counter-clockwise
   - `4` — 9.5.3 · 4 — the highest this knob goes; turned fully clockwise
+- **shape** — 9.6.3 · SHAPE — which way the source moves the selected control. push: one way, the further the louder, as a route always has. swing: both ways around the control's setting — louder than the music has lately been one way, quieter the other — so it sits at its setting on average. flip: out on a beat, the other way on the next, back between them. Head x, y and z are centered under every shape: the model at the middle moves nothing.
 - **eq** — EQ — which frequency bands, low to high, drive the selected control. Drag across the bars to paint them.
 
 </details>
