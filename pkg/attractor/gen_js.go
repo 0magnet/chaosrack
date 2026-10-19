@@ -206,10 +206,11 @@ type genOscSpec struct {
 // genOscs are the oscillators, by their index in the function generator
 // (genOscs[i].idx == i: the audio graph looks them up by index).
 var genOscs = []genOscSpec{
-	// Playing from the start and patched nowhere, so each scope beside one
-	// shows it, and nothing reaches the channels until somebody patches it.
-	{id: "gen-x", idx: 0, freq: 34, lvl: 80, wave: "0"},
-	{id: "gen-y", idx: 1, freq: 41, lvl: 80, wave: "0"},
+	// Gen 1 and 2 start off: Scopes 1 and 2 beside them start on the rack's
+	// signal. Gen 3 plays from the start, patched nowhere, so Scope 3 beside
+	// it shows it, and nothing reaches the channels until its OUT is turned.
+	{id: "gen-x", idx: 0, freq: 34, lvl: 80, wave: "off"},
+	{id: "gen-y", idx: 1, freq: 41, lvl: 80, wave: "off"},
 	{id: "gen-z", idx: 2, freq: 29, lvl: 80, wave: "0"},
 	// V starts silent (audiosrc.NewFuncGen says why), on B3: with X, Y and
 	// Z, a G-major chord.
@@ -394,8 +395,9 @@ func buildGeneratorModule() {
 		}
 
 		// Out cell: the waveform on one knob, OFF at the bottom and the
-		// waves round the ring as glyphs, and beside it solo. Where the
-		// generator goes is the Mixer's.
+		// waves round the ring as glyphs, and beside it solo. Under it OUT,
+		// where it goes (mixSetGenOut), which the cell's display, the
+		// wave's, reads while it turns.
 		wv, wt := []string{"off"}, []string{"off"}
 		wh := []string{"OFF — Gen " + osc.letter() + " plays nothing"}
 		for i, w := range genWaves {
@@ -409,20 +411,7 @@ func buildGeneratorModule() {
 		col := trioColumn(trioPrograms[id+"-solo"].legends())
 		col.Call("setAttribute", "data-param", id+"-solo")
 		cell.Call("appendChild", col)
-		// Turning a generator's knob while the Mixer has it nowhere pins it
-		// (mixAutoPin). In the capture phase, because a knob stops its own
-		// pointer and wheel events from going any further up than itself.
-		if m := dom.Doc.Call("getElementById", id+"-module"); m.Truthy() {
-			for _, ev := range []string{"pointerdown", "wheel"} {
-				m.Call("addEventListener", ev, dom.FuncOf(func(_ js.Value, a []js.Value) any {
-					if a[0].Get("target").Call("closest", genTouchParts).Truthy() &&
-						!genWaveOff[idx] && aud.fg().Amp(idx) > 0 && mixAutoPin(idx) {
-						aud.showAudioStatus(docf("gen-autopin", "gen", osc.letter()))
-					}
-					return nil
-				}), map[string]any{"passive": true, "capture": true})
-			}
-		}
+		genOutCell(osc, cell, wave, col)
 
 		// The two value knobs go through the descriptor path, which is what
 		// gives them their LED formatting, typed entry, wheel nudge, reset and
@@ -470,6 +459,7 @@ func buildGeneratorModule() {
 					aud.fg().SetWave(idx, w)
 				}
 				gen.audioSync()
+				genShowWave(osc)
 			},
 		})
 		// Push the markup's defaults into the generator.
@@ -536,9 +526,6 @@ func init() {
 		}
 	}
 }
-
-// genTouchParts are the parts of a generator that a hand turns or presses.
-const genTouchParts = ".knob, .knobstack, .gen-piano, .numin, .knob-dial-wave, .knob-dial-lab"
 
 // generator is the signal generator's audio graph: the speakers' copy of the
 // generators. The rack's own signal is audiosrc.Bus's; this plays the same

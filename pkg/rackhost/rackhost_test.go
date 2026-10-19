@@ -105,7 +105,10 @@ func TestTurningADialTurnsItsPointer(t *testing.T) {
 	var id string
 	for k := range r.ptrs {
 		c := r.ctls[r.byID[k]]
-		if v, err := strconv.ParseFloat(c.Value, 64); err == nil && v < c.Max && !isRotationKnob(k) && !isFullTurn(k) {
+		// A generator's OUT is left out: its top is MIX, which only reads
+		// the pins, so the knob does not stay there.
+		_, part := genOf(k)
+		if v, err := strconv.ParseFloat(c.Value, 64); err == nil && v < c.Max && !isRotationKnob(k) && !isFullTurn(k) && part != "out" {
 			id = k
 			break
 		}
@@ -508,5 +511,18 @@ func TestHiddenSwitchesSitOnTheirButtons(t *testing.T) {
 		if _, ok := r.pic.Ctls[id]; !ok {
 			t.Errorf("%s has no place on the panel", id)
 		}
+	}
+}
+
+// No two dials turn the same pointer. A mini knob whose range sat in its
+// cell took the cell's box, and with it the main knob's pointer.
+func TestEveryDialTurnsItsOwnPointer(t *testing.T) {
+	r := newRack(t)
+	by := map[int]string{}
+	for id, p := range r.ptrs {
+		if other, ok := by[p.item]; ok {
+			t.Errorf("%s and %s turn the same pointer", min(id, other), max(id, other))
+		}
+		by[p.item] = id
 	}
 }

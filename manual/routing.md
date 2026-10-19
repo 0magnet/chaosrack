@@ -77,9 +77,6 @@ LVL — the selected pin's gain, −1 to 1: 1 is the source as it is, 0 takes th
 
 `{gen}` is the generator's number.
 
-<!-- key: gen-autopin -->
-Gen {gen} is pinned to the Mixer: one side of the speakers and of the rack's signal. The Mixer moves it, or takes it away.
-
 <!-- key: gen-solo-btn -->
 solo: lit, Gen {gen} is the only generator heard and on the rack's signal; the others keep their pins and their settings
 

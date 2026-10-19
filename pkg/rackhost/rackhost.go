@@ -339,8 +339,9 @@ func (r *Rack) set(id, value string) error {
 	}
 	c.Value = v
 	for _, s := range r.soundSet(id) {
-		// A generator turned while pinned nowhere is pinned, as a hand on the
-		// Mixer would, so its lamp lights too; a preset moves the steps.
+		// A generator's OUT moves its pins, as a hand on the Mixer would, so
+		// their lamps light too, and the pins turn OUT; a preset moves the
+		// steps.
 		if err := r.set(s[0], s[1]); err != nil {
 			return err
 		}

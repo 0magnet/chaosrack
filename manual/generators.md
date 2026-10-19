@@ -3,9 +3,9 @@
 ## Gen 4
 
 <!-- key: gen-v -->
-Gen 4 — a generator, for sound or for modulation. The FREQ knob (log, one turn per octave) over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one.
+Gen 4 — a generator, for sound or for modulation. The FREQ knob (log, one turn per octave) over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.
 
-Where it goes is the Mixer's: its GEN 4 column. Switched on while it is pinned nowhere, it is pinned to the right of the speakers and of the rack's signal, so Gens 1 and 2 (and 3 and 4) are a stereo pair and the XY scope draws them against each other.
+Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 4 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.
 
 ### Gen 4 frequency in Hz
 
@@ -41,12 +41,17 @@ Reset the level
 <!-- key: gen-v-wave -->
 Gen 4 waveform — what it plays, OFF at the bottom and then sine, triangle, square, saw, shift-register noise and the four test stimuli round the ring
 
+### Gen 4 out
+
+<!-- key: gen-v-out -->
+Gen 4 out — where it goes: OFF, L, C (both sides) or R, on the speakers and the rack's signal together; MIX when the Mixer has it pinned some other way. The display over the waveform reads it while it is turned.
+
 ## Gen 1
 
 <!-- key: gen-x -->
-Gen 1 — a generator, for sound or for modulation. The FREQ knob (log, one turn per octave) over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one.
+Gen 1 — a generator, for sound or for modulation. The FREQ knob (log, one turn per octave) over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.
 
-Where it goes is the Mixer's: its GEN 1 column. Switched on while it is pinned nowhere, it is pinned to the left of the speakers and of the rack's signal, so Gens 1 and 2 (and 3 and 4) are a stereo pair and the XY scope draws them against each other.
+Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 1 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.
 
 ### Gen 1 frequency in Hz
 
@@ -82,12 +87,17 @@ Reset the level
 <!-- key: gen-x-wave -->
 Gen 1 waveform — what it plays, OFF at the bottom and then sine, triangle, square, saw, shift-register noise and the four test stimuli round the ring
 
+### Gen 1 out
+
+<!-- key: gen-x-out -->
+Gen 1 out — where it goes: OFF, L, C (both sides) or R, on the speakers and the rack's signal together; MIX when the Mixer has it pinned some other way. The display over the waveform reads it while it is turned.
+
 ## Gen 2
 
 <!-- key: gen-y -->
-Gen 2 — a generator, for sound or for modulation. The FREQ knob (log, one turn per octave) over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one.
+Gen 2 — a generator, for sound or for modulation. The FREQ knob (log, one turn per octave) over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.
 
-Where it goes is the Mixer's: its GEN 2 column. Switched on while it is pinned nowhere, it is pinned to the right of the speakers and of the rack's signal, so Gens 1 and 2 (and 3 and 4) are a stereo pair and the XY scope draws them against each other.
+Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 2 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.
 
 ### Gen 2 frequency in Hz
 
@@ -123,12 +133,17 @@ Reset the level
 <!-- key: gen-y-wave -->
 Gen 2 waveform — what it plays, OFF at the bottom and then sine, triangle, square, saw, shift-register noise and the four test stimuli round the ring
 
+### Gen 2 out
+
+<!-- key: gen-y-out -->
+Gen 2 out — where it goes: OFF, L, C (both sides) or R, on the speakers and the rack's signal together; MIX when the Mixer has it pinned some other way. The display over the waveform reads it while it is turned.
+
 ## Gen 3
 
 <!-- key: gen-z -->
-Gen 3 — a generator, for sound or for modulation. The FREQ knob (log, one turn per octave) over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one.
+Gen 3 — a generator, for sound or for modulation. The FREQ knob (log, one turn per octave) over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.
 
-Where it goes is the Mixer's: its GEN 3 column. Switched on while it is pinned nowhere, it is pinned to the left of the speakers and of the rack's signal, so Gens 1 and 2 (and 3 and 4) are a stereo pair and the XY scope draws them against each other.
+Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 3 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.
 
 ### Gen 3 frequency in Hz
 
@@ -163,6 +178,11 @@ Reset the level
 
 <!-- key: gen-z-wave -->
 Gen 3 waveform — what it plays, OFF at the bottom and then sine, triangle, square, saw, shift-register noise and the four test stimuli round the ring
+
+### Gen 3 out
+
+<!-- key: gen-z-out -->
+Gen 3 out — where it goes: OFF, L, C (both sides) or R, on the speakers and the rack's signal together; MIX when the Mixer has it pinned some other way. The display over the waveform reads it while it is turned.
 
 ### WAVE positions
 
