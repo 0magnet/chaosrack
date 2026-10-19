@@ -129,16 +129,6 @@ var mixer = struct {
 	funcs  []js.Func
 }{pin: mixDefaults(), selSrc: -1}
 
-// mixHasSource reports whether source s is pinned anywhere.
-func mixHasSource(s int) bool {
-	for r := range mixer.pin {
-		if mixer.pin[r][s] != 0 {
-			return true
-		}
-	}
-	return false
-}
-
 // mixOnSpeakers reports whether source s is pinned to a speaker.
 func mixOnSpeakers(s int) bool { return mixer.pin[mixSpkL][s] != 0 || mixer.pin[mixSpkR][s] != 0 }
 
@@ -165,6 +155,9 @@ func mixApply() {
 	son.sync()
 	for r := range mixer.pins {
 		mixLightRow(r)
+	}
+	for g := range genOscs {
+		mixShowGenOut(g)
 	}
 	scheduleDesignate() // the pins' tooltips were rewritten without their address
 }
@@ -200,24 +193,46 @@ func mixSetPin(row, s int, g float32) {
 	perma.syncPermalinkNow()
 }
 
-// mixAutoPin pins generator g, switched on by hand while it is pinned
-// nowhere, to one side of the speakers and the rack: Gen 1 and 3 on the
-// left, 2 and 4 on the right, so the first two switched on are a stereo
-// pair and the xy scope draws them against each other. Switching one on is
-// asking to hear it and see it.
-func mixAutoPin(g int) bool {
+// mixGenOut is generator g's OUT as its pins make it.
+func mixGenOut(g int) int {
+	s, p := mixSrcIndex("g"+strconv.Itoa(g+1)), &mixer.pin
+	return GenOutOf(p[mixSpkL][s], p[mixSpkR][s], p[mixRackL][s], p[mixRackR][s])
+}
+
+// mixSetGenOut pins generator g where its OUT position pos says, the
+// speakers and the rack alike. MIX, or where it is already, changes nothing.
+func mixSetGenOut(g, pos int) {
+	l, r, ok := GenOutPins(pos)
+	if !ok || pos == mixGenOut(g) {
+		mixShowGenOut(g)
+		return
+	}
 	s := mixSrcIndex("g" + strconv.Itoa(g+1))
-	if mixHasSource(s) {
-		return false
-	}
-	spk, rack := mixSpkL, mixRackL
-	if g%2 == 1 {
-		spk, rack = mixSpkR, mixRackR
-	}
-	mixer.pin[spk][s], mixer.pin[rack][s] = 1, 1
+	mixer.pin[mixSpkL][s], mixer.pin[mixRackL][s] = l, l
+	mixer.pin[mixSpkR][s], mixer.pin[mixRackR][s] = r, r
 	mixApply()
+	mixShowSelected()
 	perma.syncPermalinkNow()
-	return true
+}
+
+// mixShowGenOut turns generator g's OUT knob to where its pins are, however
+// they were set: by OUT, on the Mixer, by a link or a reset.
+func mixShowGenOut(g int) {
+	if !dom.Doc.Truthy() {
+		return // no page: the tests' Mixer
+	}
+	id := genOscs[g].id + "-out"
+	el := dom.Doc.Call("getElementById", id)
+	if !el.Truthy() {
+		return
+	}
+	v := strconv.Itoa(mixGenOut(g))
+	if el.Get("value").String() != v {
+		el.Set("value", v)
+		if f := knobRefresh[id]; f != nil {
+			f()
+		}
+	}
 }
 
 // ── the link ─────────────────────────────────────────────────────────────

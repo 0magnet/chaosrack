@@ -1685,7 +1685,12 @@ func buildPanelKnobs() {
 		if nested {
 			isl := dom.Doc.Call("getElementById", innerID)
 			isl.Get("style").Set("display", "none")
-			stack = stackKnobs(kn, makeKnob(isl, dom.Doc.Call("getElementById", innerNumID), true, true, false))
+			in := makeKnob(isl, dom.Doc.Call("getElementById", innerNumID), true, true, false)
+			// The inner knob is its range's part (miniKnob says why): in the
+			// cell, Fore took the cell's box, and Zoom's pointer with it.
+			in.Call("appendChild", isl)
+			in.Call("setAttribute", "data-ctl-part", "")
+			stack = stackKnobs(kn, in)
 		} else {
 			stack = dom.Doc.Call("createElement", "span")
 			stack.Set("className", "knobstack")

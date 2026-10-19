@@ -10,7 +10,7 @@ import (
 func toneRack(t *testing.T, model string) (*Rack, *clock) {
 	t.Helper()
 	r, c := idleRack(t, model)
-	set(t, r, "mix-rl-cl", "0", "mix-rr-cr", "0", "mix-rl-g1", "1", "mix-rr-g1", "1", "gen-x-lvl", "60")
+	set(t, r, "gen-x-wave", "0", "mix-rl-cl", "0", "mix-rr-cr", "0", "mix-rl-g1", "1", "mix-rr-g1", "1", "gen-x-lvl", "60")
 	looks(t, r, c, 0.3)
 	return r, c
 }

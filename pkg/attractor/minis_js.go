@@ -39,6 +39,15 @@ func miniKnob(slider js.Value, legend string, register, dial bool) js.Value {
 		c.Set("textContent", legend)
 		ptr.Call("appendChild", c)
 	}
+	// The range goes inside the mini, which is the control's part: a front
+	// end without the page (the native rack) finds its box, and the pointer
+	// in it, there. Left in the cell, it took the cell's box, and with it
+	// the pointer nearest the middle, which is the main knob's: turning
+	// ATTACK turned LEVEL's pointer.
+	if slider.Truthy() {
+		k.Call("appendChild", slider)
+		k.Call("setAttribute", "data-ctl-part", "")
+	}
 	return k
 }
 
@@ -69,7 +78,7 @@ type readoutLoan struct {
 }
 
 // lendReadout lends cell's display (led, whose legend is the .plabel beside
-// it) to the minis in col.
+// it) to the minis in col: a number field or a character display.
 func lendReadout(col, led js.Value, giveBack func()) *readoutLoan {
 	l := &readoutLoan{col: col, led: led, giveBack: giveBack}
 	if led.Truthy() {
@@ -109,7 +118,13 @@ func (l *readoutLoan) show(legend, value string) {
 		return
 	}
 	setDotText(l.legend, legend)
-	l.led.Set("value", value)
+	if l.led.Get("classList").Call("contains", "dmdwin").Bool() {
+		// A worded readout (a scope's range, a generator's wave): the
+		// display is characters, not a number field.
+		setDotText(l.led, value)
+	} else {
+		l.led.Set("value", value)
+	}
 	if l.timer != nil {
 		l.timer.Stop()
 	}

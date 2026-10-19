@@ -73,12 +73,13 @@ func TestAnUntouchedRackIsSilent(t *testing.T) {
 	}
 }
 
-// Turning a generator pins it, Gen 1 on the left and Gen 2 on the right, and
-// each plays its knob's note at its level.
+// A generator switched on and sent OUT to one side plays there, Gen 1 on the
+// left and Gen 2 on the right, each its knob's note at its level.
 func TestTurningAGeneratorPlaysIt(t *testing.T) {
 	r := newRack(t)
 	sp := &fakeSpeaker{r: r}
 	r.SetSpeaker(sp)
+	set(t, r, "gen-x-wave", "0", "gen-x-out", "1")
 	set(t, r, "gen-x-lvl", "50")
 	if !sp.playing {
 		t.Fatal("turning Gen 1 did not start the speaker")
@@ -90,7 +91,7 @@ func TestTurningAGeneratorPlaysIt(t *testing.T) {
 	if _, p := pitch(rt); p != 0 {
 		t.Errorf("Gen 1 is on the right too, at %v", p)
 	}
-	set(t, r, "gen-y-freq", "48") // A4
+	set(t, r, "gen-y-wave", "0", "gen-y-out", "3", "gen-y-freq", "48") // A4
 	_, rt = listen(r)
 	if hz, _ := pitch(rt); math.Abs(hz-440) > 2 {
 		t.Errorf("right plays %.1f Hz, want A4 (440 Hz)", hz)
@@ -118,7 +119,7 @@ func TestTurningAGeneratorPlaysIt(t *testing.T) {
 // quietest differ.
 func TestTheEnvelopeShapesTheLevel(t *testing.T) {
 	r := newRack(t)
-	set(t, r, "gen-x-lvl", "100", "gen-x-atk", "100", "gen-x-dcy", "100", "gen-x-env", "rpt")
+	set(t, r, "gen-x-wave", "0", "gen-x-out", "1", "gen-x-lvl", "100", "gen-x-atk", "100", "gen-x-dcy", "100", "gen-x-env", "rpt")
 	l, _ := listen(r)
 	lo, hi := 1.0, 0.0
 	for k := 0; k+480 <= len(l); k += 480 {
@@ -130,13 +131,21 @@ func TestTheEnvelopeShapesTheLevel(t *testing.T) {
 	}
 }
 
-// A generator pinned by turning it is pinned on the Mixer, as a control,
-// and its pin's lamp lights.
-func TestAutoPinningLightsThePin(t *testing.T) {
+// A generator's OUT pins it on the Mixer, the speakers and the rack alike,
+// as controls, and its pin's lamp lights; a pin moved on the Mixer turns OUT
+// to MIX.
+func TestOutPinsTheGenerator(t *testing.T) {
 	r := newRack(t)
-	set(t, r, "gen-y-lvl", "70")
-	if got := r.value("mix-sr-g2"); got != "1" {
-		t.Fatalf("turning Gen 2 left its right-speaker pin at %q", got)
+	set(t, r, "gen-y-wave", "0", "gen-y-out", "3")
+	for _, id := range []string{"mix-sr-g2", "mix-rr-g2"} {
+		if got := r.value(id); got != "1" {
+			t.Fatalf("OUT R left %s at %q", id, got)
+		}
+	}
+	for _, id := range []string{"mix-sl-g2", "mix-rl-g2"} {
+		if got := r.value(id); got != "0" {
+			t.Fatalf("OUT R left %s at %q", id, got)
+		}
 	}
 	l, ok := r.lamps["mix-sr-g2"]
 	if !ok {
@@ -152,6 +161,9 @@ func TestAutoPinningLightsThePin(t *testing.T) {
 	}
 	if got := r.value("mix-sr-g2"); got != "0" {
 		t.Errorf("clicking the pin left it at %q", got)
+	}
+	if got := r.value("gen-y-out"); got != "4" {
+		t.Errorf("with only the rack pinned, OUT reads %q, want MIX (4)", got)
 	}
 	if f := r.pic.Items[l].Fill; f == nil || *f != pinDark {
 		t.Errorf("the unpinned lamp is %v, want dark %06x", f, pinDark)

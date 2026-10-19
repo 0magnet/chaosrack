@@ -104,7 +104,7 @@ func TestAnAudioModelListensOnlyWhileChosen(t *testing.T) {
 // apart make a Lissajous figure inside the scope's screen.
 func TestTheXYDrawsTheRacksSignal(t *testing.T) {
 	r, c := idleRack(t, "xy")
-	set(t, r, "mix-rl-cl", "0", "mix-rr-cr", "0", "mix-rl-g1", "1", "mix-rr-g2", "1",
+	set(t, r, "gen-x-wave", "0", "gen-y-wave", "0", "mix-rl-cl", "0", "mix-rr-cr", "0", "mix-rl-g1", "1", "mix-rr-g2", "1",
 		"gen-x-lvl", "60", "gen-y-lvl", "60")
 	looks(t, r, c, 0.3)
 	fig, _, fit := r.audioFigure("xy")
@@ -141,7 +141,7 @@ func TestTheXYDrawsTheRacksSignal(t *testing.T) {
 // none of it again.
 func TestTheSpeakersMakeTheSignalWhileTheyPlay(t *testing.T) {
 	r, c := idleRack(t, "takens")
-	set(t, r, "mix-rl-g1", "1")
+	set(t, r, "gen-x-wave", "0", "mix-rl-g1", "1")
 	l, rt := make([]float32, 4800), make([]float32, 4800)
 	r.Fill(l, rt)
 	n := r.sound.rack.n

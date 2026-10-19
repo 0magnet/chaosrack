@@ -143,10 +143,10 @@ func pinOf(id string) (side, src int, ok bool) {
 func pinID(side, src int) string { return "mix-" + spkRows[side] + "-" + mixKeys[src] }
 
 // soundSet puts a control's new value into the sound, if the sound uses it,
-// and says which other controls to set as well, to what: a generator switched
-// on and turned while it is pinned nowhere is pinned, as the page's Mixer
-// does it (mixAutoPin), Gen 1 and 3 on the left and 2 and 4 on the right; a
-// rhythm preset moves the Matrix's steps. Called with r.mu held.
+// and says which other controls to set as well, to what: a generator's OUT
+// sets its pins, and its pins turn its OUT, as the page's do (mixSetGenOut,
+// mixShowGenOut); a rhythm preset moves the Matrix's steps. Called with r.mu
+// held.
 func (r *Rack) soundSet(id string) (more [][2]string) {
 	s := r.sound
 	s.mu.Lock()
@@ -174,11 +174,10 @@ func (r *Rack) soundSet(id string) (more [][2]string) {
 			}
 		}
 		s.fg.SetSolo(solo)
+	case i >= 0 && part == "out":
+		more = r.genOutSet(i)
 	case i >= 0:
 		r.genSet(i, part)
-		if s.on[i] && s.level[i] > 0 && s.spk[0][i] == 0 && s.spk[1][i] == 0 {
-			more = append(more, [2]string{pinID(i%2, i), "1"})
-		}
 	case id == r.selector || isFamily(id) || id == "mo-spd" || id == "mo-lvl":
 		r.modelSet()
 		// Listen plays only while FVF, whose switch it is, is on show.
@@ -188,6 +187,9 @@ func (r *Rack) soundSet(id string) (more [][2]string) {
 			s.spk[side][src] = r.number(id)
 		} else {
 			r.rackPinSet(id)
+		}
+		if g := genOfPin(id); g >= 0 {
+			more = append(more, [2]string{genIDs[g] + "-out", strconv.Itoa(r.genOut(g))})
 		}
 	}
 	return more
@@ -461,4 +463,44 @@ func (s *sound) render(left, right []float32) {
 func freqFromKnob(v float64) float64 {
 	const lo, hi, semitones = 27.5, 28160.0, 120
 	return lo * math.Pow(hi/lo, v/semitones)
+}
+
+// genOutRows are the Mixer's rows a generator's OUT sets, left then right:
+// the speakers' and the rack's.
+var genOutRows = [2][2]string{{"sl", "rl"}, {"sr", "rr"}}
+
+// genOfPin is the generator whose OUT a Mixer pin control is one of, or -1.
+func genOfPin(id string) int {
+	for g := range genIDs {
+		for _, side := range genOutRows {
+			for _, row := range side {
+				if id == "mix-"+row+"-"+mixKeys[g] {
+					return g
+				}
+			}
+		}
+	}
+	return -1
+}
+
+// genOut is generator g's OUT as its pins make it (attractor.GenOutOf).
+func (r *Rack) genOut(g int) int {
+	pin := func(row string) float32 { return float32(r.number("mix-" + row + "-" + mixKeys[g])) }
+	return attractor.GenOutOf(pin("sl"), pin("sr"), pin("rl"), pin("rr"))
+}
+
+// genOutSet is the pins generator g's OUT sets, or, at MIX, the OUT its pins
+// make, which turns the knob back. Called with r.mu held.
+func (r *Rack) genOutSet(g int) (more [][2]string) {
+	pos := int(r.number(genIDs[g]+"-out") + 0.5)
+	l, rt, ok := attractor.GenOutPins(pos)
+	if !ok {
+		return [][2]string{{genIDs[g] + "-out", strconv.Itoa(r.genOut(g))}}
+	}
+	for side, gain := range [2]float32{l, rt} {
+		for _, row := range genOutRows[side] {
+			more = append(more, [2]string{"mix-" + row + "-" + mixKeys[g], strconv.FormatFloat(float64(gain), 'g', -1, 32)})
+		}
+	}
+	return more
 }

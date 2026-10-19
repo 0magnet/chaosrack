@@ -2861,11 +2861,11 @@ description is the module header's own tooltip.
 
 <details><summary>Controls</summary>
 
-- **000.33600.0** — 4.10.1.a · Timing / fps / LED readout / Frames a second sustained over the last window — the reciprocal of the MEAN frame, so a hitch counts against it
-- **3600.03600.0** — 4.10.1.c · Timing / min / LED readout / Shortest frame in the window, in ms — which is the display's own interval, since nothing renders faster than vsync
-- **000.03596.10** — 4.10.2.b · Timing / late / LED readout / Percentage of frames that missed the display's interval by half again or more. This is the number that corresponds to visible hesitation; the frame rate alone does not.
-- **03.6000.10** — 4.10.3.a · Timing / model / LED readout / Milliseconds a frame spent ISSUING the model's draw calls. A WebGL call queues a command and returns without waiting for pixels, so this reads far below what the model really costs — the GPU and compositor share of it is in REST. Useful for what it does catch: geometry rebuilt every frame instead of cached.
-- **00.20 TBC** — 4.10.3.c
+- **000.61750.0** — 4.10.1.a · Timing / fps / LED readout / Frames a second sustained over the last window — the reciprocal of the MEAN frame, so a hitch counts against it
+- **1750.01750.0** — 4.10.1.c · Timing / min / LED readout / Shortest frame in the window, in ms — which is the display's own interval, since nothing renders faster than vsync
+- **000.01745.10** — 4.10.2.b · Timing / late / LED readout / Percentage of frames that missed the display's interval by half again or more. This is the number that corresponds to visible hesitation; the frame rate alone does not.
+- **04.5000.10** — 4.10.3.a · Timing / model / LED readout / Milliseconds a frame spent ISSUING the model's draw calls. A WebGL call queues a command and returns without waiting for pixels, so this reads far below what the model really costs — the GPU and compositor share of it is in REST. Useful for what it does catch: geometry rebuilt every frame instead of cached.
+- **00.30 TBC** — 4.10.3.c
 - **TBC** — 4.10.3.c · TBC — timebase correction. On, the model turns at its rate per SECOND: each frame advances it by however long that frame took, so a late frame is a longer step and a faster display the same speed. Off, every frame advances it the same step, as the rack did before: a late frame is a pause, and a 144 Hz display spins it more than twice as fast as a 60 Hz one. On is the steady angular velocity; off is every frame advanced alike, which is what to compare frames by.
 
 </details>
@@ -2874,7 +2874,7 @@ description is the module header's own tooltip.
 
 | | |
 |---|---|
-| <img src="docs/img/module/scope.jpg" alt="The Scope 1 module" width="320"> | 5.1 · Scope 1 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS, the two INPUT knobs, 1 and 2, pick what each channel is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across. |
+| <img src="docs/img/module/scope.jpg" alt="The Scope 1 module" width="320"> | 5.1 · Scope 1 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS, the two INPUT knobs, 1 and 2, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across. |
 
 <details><summary>Controls</summary>
 
@@ -2888,7 +2888,7 @@ description is the module header's own tooltip.
 - **trig** — 5.2.2 · Trigger — LEVEL is the value the signal must cross, in the SLOPE direction, for a sweep to start; set it inside the waveform or nothing triggers. SLOPE, the buttons at the right: + triggers on the signal rising through the level, − on it falling. MODE, the buttons at the left: AUTO sweeps anyway when nothing crosses, so silence shows a baseline; NORM sweeps only on a trigger and holds the last trace otherwise.
   - `-1` — 5.2.2 · -1 — the lowest this knob goes; turned fully counter-clockwise
   - `1` — 5.2.2 · 1 — the highest this knob goes; turned fully clockwise
-- **volts** — 5.1.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it the two INPUT mini knobs: 1 and 2, what channel 1 and channel 2 are fed from — the rack's L or R, Gen 1 to 4 alone, or the model's x, y, z or distance from the center — named on the face, top left. The reset puts all three back.
+- **volts** — 5.1.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it the two INPUT mini knobs: 1 and 2, what input 1 and input 2 are fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on the face, top left, and on this display while one is turned. The reset puts all three back.
   - `2 mFS` — 5.1.3 · 2 mFS
   - `5` — 5.1.3 · 5 mFS
   - `10` — 5.1.3 · 10 mFS
@@ -2898,10 +2898,6 @@ description is the module header's own tooltip.
   - `200` — 5.1.3 · 200 mFS
   - `500` — 5.1.3 · 500 mFS
   - `1 FS` — 5.1.3 · 1 FS
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `10` — 10 — the highest this knob goes; turned fully clockwise
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `10` — 10 — the highest this knob goes; turned fully clockwise
 - **time** — 5.2.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen.
   - `10 µs` — 5.2.3 · 10 µs
   - `20` — 5.2.3 · 20 µs
@@ -2925,7 +2921,7 @@ description is the module header's own tooltip.
 
 | | |
 |---|---|
-| <img src="docs/img/module/gen-x.jpg" alt="The Gen 1 module" width="320"> | 5.3 · Gen 1 — a generator, for sound or for modulation. The FREQ knob (log, one turn per octave) over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one.  Where it goes is the Mixer's: its GEN 1 column. Switched on while it is pinned nowhere, it is pinned to the left of the speakers and of the rack's signal, so Gens 1 and 2 (and 3 and 4) are a stereo pair and the XY scope draws them against each other. |
+| <img src="docs/img/module/gen-x.jpg" alt="The Gen 1 module" width="320"> | 5.3 · Gen 1 — a generator, for sound or for modulation. The FREQ knob (log, one turn per octave) over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.  Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 1 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does. |
 
 <details><summary>Controls</summary>
 
@@ -2939,7 +2935,7 @@ description is the module header's own tooltip.
   - `2k` — 2k — the highest this knob goes; turned fully clockwise
   - `1` — 1 — the lowest this knob goes; turned fully counter-clockwise
   - `5k` — 5k — the highest this knob goes; turned fully clockwise
-- **out** — 5.3.3
+- **wave** — 5.3.3
   - `off` — 5.3.3 · OFF — Gen 1 plays nothing
   - 5.3.3 · sine — one pure frequency and no harmonics at all
   - 5.3.3 · triangle — odd harmonics falling away steeply: soft and hollow
@@ -2957,7 +2953,7 @@ description is the module header's own tooltip.
 
 | | |
 |---|---|
-| <img src="docs/img/module/scope2.jpg" alt="The Scope 2 module" width="320"> | 5.4 · Scope 2 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS, the two INPUT knobs, 1 and 2, pick what each channel is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across. |
+| <img src="docs/img/module/scope2.jpg" alt="The Scope 2 module" width="320"> | 5.4 · Scope 2 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS, the two INPUT knobs, 1 and 2, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across. |
 
 <details><summary>Controls</summary>
 
@@ -2971,7 +2967,7 @@ description is the module header's own tooltip.
 - **trig** — 5.5.2 · Trigger — LEVEL is the value the signal must cross, in the SLOPE direction, for a sweep to start; set it inside the waveform or nothing triggers. SLOPE, the buttons at the right: + triggers on the signal rising through the level, − on it falling. MODE, the buttons at the left: AUTO sweeps anyway when nothing crosses, so silence shows a baseline; NORM sweeps only on a trigger and holds the last trace otherwise.
   - `-1` — 5.5.2 · -1 — the lowest this knob goes; turned fully counter-clockwise
   - `1` — 5.5.2 · 1 — the highest this knob goes; turned fully clockwise
-- **volts** — 5.4.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it the two INPUT mini knobs: 1 and 2, what channel 1 and channel 2 are fed from — the rack's L or R, Gen 1 to 4 alone, or the model's x, y, z or distance from the center — named on the face, top left. The reset puts all three back.
+- **volts** — 5.4.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it the two INPUT mini knobs: 1 and 2, what input 1 and input 2 are fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on the face, top left, and on this display while one is turned. The reset puts all three back.
   - `2 mFS` — 5.4.3 · 2 mFS
   - `5` — 5.4.3 · 5 mFS
   - `10` — 5.4.3 · 10 mFS
@@ -2981,10 +2977,6 @@ description is the module header's own tooltip.
   - `200` — 5.4.3 · 200 mFS
   - `500` — 5.4.3 · 500 mFS
   - `1 FS` — 5.4.3 · 1 FS
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `10` — 10 — the highest this knob goes; turned fully clockwise
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `10` — 10 — the highest this knob goes; turned fully clockwise
 - **time** — 5.5.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen.
   - `10 µs` — 5.5.3 · 10 µs
   - `20` — 5.5.3 · 20 µs
@@ -3008,7 +3000,7 @@ description is the module header's own tooltip.
 
 | | |
 |---|---|
-| <img src="docs/img/module/gen-y.jpg" alt="The Gen 2 module" width="320"> | 5.6 · Gen 2 — a generator, for sound or for modulation. The FREQ knob (log, one turn per octave) over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one.  Where it goes is the Mixer's: its GEN 2 column. Switched on while it is pinned nowhere, it is pinned to the right of the speakers and of the rack's signal, so Gens 1 and 2 (and 3 and 4) are a stereo pair and the XY scope draws them against each other. |
+| <img src="docs/img/module/gen-y.jpg" alt="The Gen 2 module" width="320"> | 5.6 · Gen 2 — a generator, for sound or for modulation. The FREQ knob (log, one turn per octave) over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.  Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 2 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does. |
 
 <details><summary>Controls</summary>
 
@@ -3022,7 +3014,7 @@ description is the module header's own tooltip.
   - `2k` — 2k — the highest this knob goes; turned fully clockwise
   - `1` — 1 — the lowest this knob goes; turned fully counter-clockwise
   - `5k` — 5k — the highest this knob goes; turned fully clockwise
-- **out** — 5.6.3
+- **wave** — 5.6.3
   - `off` — 5.6.3 · OFF — Gen 2 plays nothing
   - 5.6.3 · sine — one pure frequency and no harmonics at all
   - 5.6.3 · triangle — odd harmonics falling away steeply: soft and hollow
@@ -3040,7 +3032,7 @@ description is the module header's own tooltip.
 
 | | |
 |---|---|
-| <img src="docs/img/module/scope3.jpg" alt="The Scope 3 module" width="320"> | 5.7 · Scope 3 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS, the two INPUT knobs, 1 and 2, pick what each channel is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across. |
+| <img src="docs/img/module/scope3.jpg" alt="The Scope 3 module" width="320"> | 5.7 · Scope 3 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS, the two INPUT knobs, 1 and 2, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across. |
 
 <details><summary>Controls</summary>
 
@@ -3054,7 +3046,7 @@ description is the module header's own tooltip.
 - **trig** — 5.8.2 · Trigger — LEVEL is the value the signal must cross, in the SLOPE direction, for a sweep to start; set it inside the waveform or nothing triggers. SLOPE, the buttons at the right: + triggers on the signal rising through the level, − on it falling. MODE, the buttons at the left: AUTO sweeps anyway when nothing crosses, so silence shows a baseline; NORM sweeps only on a trigger and holds the last trace otherwise.
   - `-1` — 5.8.2 · -1 — the lowest this knob goes; turned fully counter-clockwise
   - `1` — 5.8.2 · 1 — the highest this knob goes; turned fully clockwise
-- **volts** — 5.7.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it the two INPUT mini knobs: 1 and 2, what channel 1 and channel 2 are fed from — the rack's L or R, Gen 1 to 4 alone, or the model's x, y, z or distance from the center — named on the face, top left. The reset puts all three back.
+- **volts** — 5.7.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it the two INPUT mini knobs: 1 and 2, what input 1 and input 2 are fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on the face, top left, and on this display while one is turned. The reset puts all three back.
   - `2 mFS` — 5.7.3 · 2 mFS
   - `5` — 5.7.3 · 5 mFS
   - `10` — 5.7.3 · 10 mFS
@@ -3064,10 +3056,6 @@ description is the module header's own tooltip.
   - `200` — 5.7.3 · 200 mFS
   - `500` — 5.7.3 · 500 mFS
   - `1 FS` — 5.7.3 · 1 FS
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `10` — 10 — the highest this knob goes; turned fully clockwise
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `10` — 10 — the highest this knob goes; turned fully clockwise
 - **time** — 5.8.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen.
   - `10 µs` — 5.8.3 · 10 µs
   - `20` — 5.8.3 · 20 µs
@@ -3091,7 +3079,7 @@ description is the module header's own tooltip.
 
 | | |
 |---|---|
-| <img src="docs/img/module/gen-z.jpg" alt="The Gen 3 module" width="320"> | 5.9 · Gen 3 — a generator, for sound or for modulation. The FREQ knob (log, one turn per octave) over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one.  Where it goes is the Mixer's: its GEN 3 column. Switched on while it is pinned nowhere, it is pinned to the left of the speakers and of the rack's signal, so Gens 1 and 2 (and 3 and 4) are a stereo pair and the XY scope draws them against each other. |
+| <img src="docs/img/module/gen-z.jpg" alt="The Gen 3 module" width="320"> | 5.9 · Gen 3 — a generator, for sound or for modulation. The FREQ knob (log, one turn per octave) over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.  Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 3 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does. |
 
 <details><summary>Controls</summary>
 
@@ -3105,7 +3093,7 @@ description is the module header's own tooltip.
   - `2k` — 2k — the highest this knob goes; turned fully clockwise
   - `1` — 1 — the lowest this knob goes; turned fully counter-clockwise
   - `5k` — 5k — the highest this knob goes; turned fully clockwise
-- **out** — 5.9.3
+- **wave** — 5.9.3
   - `off` — 5.9.3 · OFF — Gen 3 plays nothing
   - 5.9.3 · sine — one pure frequency and no harmonics at all
   - 5.9.3 · triangle — odd harmonics falling away steeply: soft and hollow
@@ -3123,7 +3111,7 @@ description is the module header's own tooltip.
 
 | | |
 |---|---|
-| <img src="docs/img/module/scope4.jpg" alt="The Scope 4 module" width="320"> | 5.10 · Scope 4 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS, the two INPUT knobs, 1 and 2, pick what each channel is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across. |
+| <img src="docs/img/module/scope4.jpg" alt="The Scope 4 module" width="320"> | 5.10 · Scope 4 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS, the two INPUT knobs, 1 and 2, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across. |
 
 <details><summary>Controls</summary>
 
@@ -3137,7 +3125,7 @@ description is the module header's own tooltip.
 - **trig** — 5.11.2 · Trigger — LEVEL is the value the signal must cross, in the SLOPE direction, for a sweep to start; set it inside the waveform or nothing triggers. SLOPE, the buttons at the right: + triggers on the signal rising through the level, − on it falling. MODE, the buttons at the left: AUTO sweeps anyway when nothing crosses, so silence shows a baseline; NORM sweeps only on a trigger and holds the last trace otherwise.
   - `-1` — 5.11.2 · -1 — the lowest this knob goes; turned fully counter-clockwise
   - `1` — 5.11.2 · 1 — the highest this knob goes; turned fully clockwise
-- **volts** — 5.10.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it the two INPUT mini knobs: 1 and 2, what channel 1 and channel 2 are fed from — the rack's L or R, Gen 1 to 4 alone, or the model's x, y, z or distance from the center — named on the face, top left. The reset puts all three back.
+- **volts** — 5.10.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it the two INPUT mini knobs: 1 and 2, what input 1 and input 2 are fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on the face, top left, and on this display while one is turned. The reset puts all three back.
   - `2 mFS` — 5.10.3 · 2 mFS
   - `5` — 5.10.3 · 5 mFS
   - `10` — 5.10.3 · 10 mFS
@@ -3147,10 +3135,6 @@ description is the module header's own tooltip.
   - `200` — 5.10.3 · 200 mFS
   - `500` — 5.10.3 · 500 mFS
   - `1 FS` — 5.10.3 · 1 FS
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `10` — 10 — the highest this knob goes; turned fully clockwise
-  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
-  - `10` — 10 — the highest this knob goes; turned fully clockwise
 - **time** — 5.11.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen.
   - `10 µs` — 5.11.3 · 10 µs
   - `20` — 5.11.3 · 20 µs
@@ -3174,7 +3158,7 @@ description is the module header's own tooltip.
 
 | | |
 |---|---|
-| <img src="docs/img/module/gen-v.jpg" alt="The Gen 4 module" width="320"> | 5.12 · Gen 4 — a generator, for sound or for modulation. The FREQ knob (log, one turn per octave) over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one.  Where it goes is the Mixer's: its GEN 4 column. Switched on while it is pinned nowhere, it is pinned to the right of the speakers and of the rack's signal, so Gens 1 and 2 (and 3 and 4) are a stereo pair and the XY scope draws them against each other. |
+| <img src="docs/img/module/gen-v.jpg" alt="The Gen 4 module" width="320"> | 5.12 · Gen 4 — a generator, for sound or for modulation. The FREQ knob (log, one turn per octave) over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.  Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 4 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does. |
 
 <details><summary>Controls</summary>
 
@@ -3188,7 +3172,7 @@ description is the module header's own tooltip.
   - `2k` — 2k — the highest this knob goes; turned fully clockwise
   - `1` — 1 — the lowest this knob goes; turned fully counter-clockwise
   - `5k` — 5k — the highest this knob goes; turned fully clockwise
-- **out** — 5.12.3
+- **wave** — 5.12.3
   - `off` — 5.12.3 · OFF — Gen 4 plays nothing
   - 5.12.3 · sine — one pure frequency and no harmonics at all
   - 5.12.3 · triangle — odd harmonics falling away steeply: soft and hollow

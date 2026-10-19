@@ -140,7 +140,10 @@ const (
 	scopeChanXY
 )
 
-var scopeChanNames = []string{"CH 1", "CH 2", "MID", "X-Y"}
+// scopeChanNames are the buttons. IN 1 and IN 2 name the inputs the beam
+// draws, not the left and right of a stereo signal: what each input is fed
+// from is its knob's.
+var scopeChanNames = []string{"IN 1", "IN 2", "SUM", "X-Y"}
 
 func (ra *rackScope) secPerDiv() float64 {
 	if len(scope.Timebases) == 0 {
@@ -339,10 +342,10 @@ func (ra *rackScope) registerTrios() {
 	trioPrograms[ra.id("chan")] = trioProgram{
 		keys: scopeChanNames,
 		help: []string{
-			"the beam draws channel 1, what input 1 feeds it",
-			"the beam draws channel 2, what input 2 feeds it",
-			"the beam draws the two channels summed",
-			"the beam draws channel 1 against channel 2 instead of against time, which is a goniometer",
+			"the beam draws input 1, whatever its INPUT knob is on",
+			"the beam draws input 2, whatever its INPUT knob is on",
+			"the beam draws the two inputs summed",
+			"the beam draws input 1 against input 2 instead of against time, which is a goniometer",
 		},
 		press: func(i int) { setSelect(ra.id("chan"), strconv.Itoa(i)) },
 		lit:   func() int { return ra.ui.chanSel },
@@ -364,11 +367,11 @@ func (ra *rackScope) registerTrios() {
 }
 
 // wireScopeInputs is the two INPUT mini knobs under VOLTS: a detent per
-// source, ticks round them to count by, and the source each is on named on
-// the face, where the eye already is (drawInputNames). Not on the cell's
-// display as the beam's minis are: its tall lent legend runs into the VOLTS
-// ring's labels, which the beam's knob does not have. The cell's reset puts them back with VOLTS, as the
-// beam's puts its minis back with INTENSITY.
+// source and no scale, since a selector has no range to read off one. The
+// VOLTS display reads the source while either is turned (lendReadout), and
+// the face names both, where the eye already is (drawInputNames). The
+// cell's reset puts them back with VOLTS, as the beam's puts its minis
+// back with INTENSITY.
 func (ra *rackScope) wireScopeInputs() {
 	volts := dom.Doc.Call("getElementById", ra.id("volts"))
 	cell := volts.Call("closest", ".pcell")
@@ -389,9 +392,14 @@ func (ra *rackScope) wireScopeInputs() {
 		el.Set("value", scopeInDefaults[ra.n][ch])
 		el.Set("title", el.Get("title").String()+"\n\n"+strings.Join(tips, "\n"))
 		els = append(els, el)
-		knobs = append(knobs, miniKnob(el, strconv.Itoa(ch+1), true, true))
+		knobs = append(knobs, miniKnob(el, strconv.Itoa(ch+1), true, false))
 	}
-	cell.Call("appendChild", miniRow(knobs...))
+	col := miniRow(knobs...)
+	cell.Call("appendChild", col)
+	loan := lendReadout(col, dom.Doc.Call("getElementById", ra.id("volts")+"-read"), func() {
+		// VOLTS's own change rewrites its window.
+		dom.Fire(volts, "change")
+	})
 	for ch, el := range els {
 		def := float64(scopeInDefaults[ra.n][ch])
 		adoptDescControl(ControlDesc{
@@ -400,6 +408,7 @@ func (ra *rackScope) wireScopeInputs() {
 			ResetID: "rst-" + ra.id("volts"), PermaKey: scopeInKey(ra.n, ch),
 			Apply: func(v float64) {
 				ra.ui.in[ch] = clampIdx(int(v+0.5), scopeInCount)
+				loan.show("in"+strconv.Itoa(ch+1), scopeInNames[ra.ui.in[ch]])
 			},
 		})
 	}
@@ -748,7 +757,7 @@ func (ra *rackScope) drawScopeTrace(w, h float64) {
 
 // vertical is the signal on the vertical axis, per the SOURCE switch.
 // X-Y has no single vertical — it uses both channels directly — so it reads
-// as CH 1 here and the caller takes the other branch.
+// as IN 1 here and the caller takes the other branch.
 func (ra *rackScope) vertical(l, r []float32) []float32 {
 	switch ra.ui.chanSel {
 	case scopeChanR:

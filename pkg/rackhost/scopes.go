@@ -13,7 +13,7 @@ import (
 // The rack's four scopes, natively: each tube drawn from the same controls
 // and the same pkg/scope arithmetic as the page's (rackscope_js.go, which
 // says why each part is as it is) — the afterglow INTENSITY sets, the lit
-// graticule, the trigger, CH 1, CH 2, MID or X-Y, and the two inputs, any of
+// graticule, the trigger, IN 1, IN 2, SUM or X-Y, and the two inputs, any of
 // the rack's signal, the capture, a generator or a coordinate of the model.
 
 // The inputs, in the order the INPUT knobs turn through them, as the page's
