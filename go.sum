@@ -12,10 +12,10 @@ github.com/0magnet/cdp v0.0.0-20261013220930-98e232fae01d h1:S9x9K2gD3Cm7nN+c/2O
 github.com/0magnet/cdp v0.0.0-20261013220930-98e232fae01d/go.mod h1:QYQ8SQI9F7yFHdJ679+r38LtA3AjZMagHxvakE+EcgE=
 github.com/0magnet/coloredcobra v1.0.4-0.20261012213101-faa6bd8f94c5 h1:EitsijGOC/B/n+ziuxUBkIy9xhgVnmcDZVOW4eE1xGc=
 github.com/0magnet/coloredcobra v1.0.4-0.20261012213101-faa6bd8f94c5/go.mod h1:XOyBWsYWPuG3gboQHaOve/ubY8HaTqCGjJ+791sF5cM=
-github.com/0magnet/desk v0.0.3-0.20261018095030-520e2223e457 h1:u3A8ywYvn9fdzPTYy8j5L69GWSjOcJFLwmjOvMe1nWw=
-github.com/0magnet/desk v0.0.3-0.20261018095030-520e2223e457/go.mod h1:NPx6LtX41IqA+T3iGPCbRo6V6GZUXdciVKZqMhIuaAo=
-github.com/0magnet/desk/panes v0.0.1-0.20261018094746-c45b8543ed76 h1:CRqN9N5D8/r9Mop9UHRF/wy58ga1dq7AdFzIkDlboMY=
-github.com/0magnet/desk/panes v0.0.1-0.20261018094746-c45b8543ed76/go.mod h1:u/sng51VE//5IXGOk0x8NXPwDI8vRjCrYmzPsUMyFgc=
+github.com/0magnet/desk v0.0.3-0.20261019110232-abe55b2f7e4a h1:db9A6Te3bjeTBH1txL64UdktXyKXwL5kW4rmCOxrfJs=
+github.com/0magnet/desk v0.0.3-0.20261019110232-abe55b2f7e4a/go.mod h1:NPx6LtX41IqA+T3iGPCbRo6V6GZUXdciVKZqMhIuaAo=
+github.com/0magnet/desk/panes v0.0.1-0.20261019105912-780876a0f3ee h1:3AsOhp+WGesDvcknfWFfQX7V5jpLb6kmcnQXYk1fTyw=
+github.com/0magnet/desk/panes v0.0.1-0.20261019105912-780876a0f3ee/go.mod h1:sr/9Ww4BtxMvT7dOmqA1eAPsCXmHyXG6iEcenl93PMc=
 github.com/0magnet/glamour v1.0.1-0.20261004193946-db176df590f5 h1:THiA0zoa+4TaVmUEzDdUX2hkRiNSR6OYwwXE5k1LwcA=
 github.com/0magnet/glamour v1.0.1-0.20261004193946-db176df590f5/go.mod h1:sQptvwbxHyRamiowc3QuNleMRWr3HlKepEKUOCcha6M=
 github.com/0magnet/go-dsp v0.0.1-0.20261013221717-1ec76fa9affb h1:JAp38Yr7DXoyTVko9hDhBIJDpNZWRiVkp66vGLbYHCI=
@@ -26,8 +26,8 @@ github.com/0magnet/lattice v0.0.0-20261013224541-88e9ab8a3922 h1:FRhXNWLzN0IMK8v
 github.com/0magnet/lattice v0.0.0-20261013224541-88e9ab8a3922/go.mod h1:F2ruiFEcmT3CVwp13ldMu3GU1bk+va6U2q0j188wgX0=
 github.com/0magnet/lolcat-go v0.0.1-0.20261013220959-57aa27491489 h1:e9oQciGjDuTPFtS0t9cX+C6pOcVVIJIsa5AjcTPsjtA=
 github.com/0magnet/lolcat-go v0.0.1-0.20261013220959-57aa27491489/go.mod h1:DbbClVrvQ558CvwGWU78xx0k03aEY/uS9qf5Wtw+n3o=
-github.com/0magnet/pisano v0.0.0-20261018094926-434df01bae2e h1:L3qUmtKsUgoLrUmxwuVD3eBADeP0aEUkhw/PUWCvTpk=
-github.com/0magnet/pisano v0.0.0-20261018094926-434df01bae2e/go.mod h1:gY534oQgDCJiPVIWj5hO786UKUqlTqQAwI8xmj+F7KE=
+github.com/0magnet/pisano v0.0.0-20261019110103-c15e9718f3cf h1:NTIhrzazb2JA0/wdwwngResHYEMwm7MFIcjYjr5sALU=
+github.com/0magnet/pisano v0.0.0-20261019110103-c15e9718f3cf/go.mod h1:gY534oQgDCJiPVIWj5hO786UKUqlTqQAwI8xmj+F7KE=
 github.com/0magnet/proxima5 v0.0.0-20261014235132-1143d38a91d3 h1:uGsioDxMBM55YTUf8I/uIFtN5UKEhu/MMt0H/Z8OPMY=
 github.com/0magnet/proxima5 v0.0.0-20261014235132-1143d38a91d3/go.mod h1:tZ3EqtPbE2DQAzgP2iBdVgvPANj/EJBfGs/hAZRdBNo=
 github.com/0magnet/rack-go v0.0.0-20261013221719-290136881c9a h1:VcuF54YvJ4poxD728vAPAdEGS6emghmkJGwsC/XSqM8=
@@ -40,8 +40,8 @@ github.com/0magnet/termanim v0.0.1-0.20261013224625-c801aece6dff h1:R5EjBAYkLdJA
 github.com/0magnet/termanim v0.0.1-0.20261013224625-c801aece6dff/go.mod h1:sPb6ZYeBx+TFCOBfDTHIaKXn+7DjQasS5vARJaiWP0Y=
 github.com/0magnet/toilet-go v0.0.0-20261013224629-4749634a6d85 h1:XxPd4tca27E7eVcCWEkQGp169+EG4HBO4T6mLtXtnCU=
 github.com/0magnet/toilet-go v0.0.0-20261013224629-4749634a6d85/go.mod h1:HaTnZHYCUuHOfjwD9wXroZ4SaI37xeqyuz7gUyMRj3Y=
-github.com/0magnet/tuiwasm v0.0.0-20261018095237-e8dd4011a008 h1:D/fuzeDMkPbHVCRC3VdfQN2YWu5BLwfaR1ZiL7hZ30c=
-github.com/0magnet/tuiwasm v0.0.0-20261018095237-e8dd4011a008/go.mod h1:wLIzjebePIqTTP9hIKSI6I+LYGc7QFJO4WRlLhtjyeY=
+github.com/0magnet/tuiwasm v0.0.0-20261019110307-51006f2f3cf5 h1:p06lh3kbTVPqIlsojsHjIQfjOaOMyI2ZWTBRY4J2J1M=
+github.com/0magnet/tuiwasm v0.0.0-20261019110307-51006f2f3cf5/go.mod h1:06VS1/yxNgbcaGdT9DG+yo5BKNfBCkn1OYLyK0+2x38=
 github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754 h1:wK2MncQOnEea7yqiOHvv3oD89sc+YC1dAw4zw1o48mQ=
 github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754/go.mod h1:9N1kqBjNdAUT/pfrWKyty4zS5ZQgG1OvsTmhdcpAWB0=
 github.com/0magnet/websh v0.0.1-0.20261017094725-521a340b022b h1:tW7nnSOvavWi7REHhh7+Via4z4xRNUodL/GmO+qyNq8=
@@ -190,8 +190,8 @@ github.com/quic-go/go-ossfuzz-seeds v0.1.0 h1:APacT+iIaNF6fd8AGEiN3bT/Jtkd2jz4v4
 github.com/quic-go/go-ossfuzz-seeds v0.1.0/go.mod h1:3IOHRbJIc+L6YKMwfDtJAM9Vj9k0YY4muhuyUYk5tbk=
 github.com/quic-go/qpack v0.6.0 h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8=
 github.com/quic-go/qpack v0.6.0/go.mod h1:lUpLKChi8njB4ty2bFLX2x4gzDqXwUpaO1DP9qMDZII=
-github.com/quic-go/quic-go v0.64.0 h1:dlUpiyp9+7UrbbuhLvV7CJ9F8uoZxXf/vi2h8tkuuoA=
-github.com/quic-go/quic-go v0.64.0/go.mod h1:RAro2j2yN9a9EiPACLHT9IB2NXCvGQmmo/alT0yYI0w=
+github.com/quic-go/quic-go v0.64.1 h1:BCNTP+6x6++OPKrGST2FR3f1tycx8O3QOA3QQv09g70=
+github.com/quic-go/quic-go v0.64.1/go.mod h1:RAro2j2yN9a9EiPACLHT9IB2NXCvGQmmo/alT0yYI0w=
 github.com/quic-go/webtransport-go v0.13.0 h1:RJLrTUHlTj8jJaQlQJUy0z0Mf7u1fVM0I6L1b9pe2M0=
 github.com/quic-go/webtransport-go v0.13.0/go.mod h1:K83X9YHbAqgSLO6ikS6BXCMdWOvqh9JTHALulvb2JVk=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
