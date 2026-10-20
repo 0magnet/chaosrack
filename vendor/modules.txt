@@ -7,7 +7,7 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.1-0.20261018094613-2fea76760ce3
+# github.com/0magnet/audioprism-go v0.0.1-0.20261020101339-768acd6e5293
 ## explicit; go 1.26.2
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
@@ -24,11 +24,11 @@ github.com/0magnet/cdp
 # github.com/0magnet/coloredcobra v1.0.4-0.20261012213101-faa6bd8f94c5
 ## explicit; go 1.26.0
 github.com/0magnet/coloredcobra
-# github.com/0magnet/desk v0.0.3-0.20261019110232-abe55b2f7e4a
+# github.com/0magnet/desk v0.0.3-0.20261020101438-0b6b4270b7f2
 ## explicit; go 1.26.6
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.1-0.20261019105912-780876a0f3ee
+# github.com/0magnet/desk/panes v0.0.1-0.20261020101438-0b6b4270b7f2
 ## explicit; go 1.26.6
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -59,7 +59,7 @@ github.com/0magnet/lattice
 # github.com/0magnet/lolcat-go v0.0.1-0.20261013220959-57aa27491489
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20261019110103-c15e9718f3cf
+# github.com/0magnet/pisano v0.0.0-20261020101632-615685b25010
 ## explicit; go 1.26.6
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20261014235132-1143d38a91d3
@@ -126,7 +126,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20261019110307-51006f2f3cf5
+# github.com/0magnet/tuiwasm v0.0.0-20261020101755-c62421f6c966
 ## explicit; go 1.26.7
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
