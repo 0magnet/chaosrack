@@ -459,11 +459,20 @@ func hideChrome(c *cdp.Client) {
 	  // of what to put back is kept from the first pass.
 	  if (!window.__uitoolHidden) { window.__uitoolHidden = []; }
 	  var known = window.__uitoolHidden.map(function(p){ return p[0]; });
-	  [].forEach.call(document.body.children, function(e){
-	    if (e.id === 'gocanvas-container' || e.tagName === 'SCRIPT') return;
-	    if (known.indexOf(e) < 0) { window.__uitoolHidden.push([e, e.style.display]); }
+	  // Everything but the model's canvas, however deep it is: from the
+	  // canvas up, every sibling at every level. The canvas used to be the
+	  // body's own child, and the panel another; now both are placements in
+	  // the instrument's terminal (seat), and hiding the body's children
+	  // but one left the panel over the portrait.
+	  var hide = function(e){
+	    if (e.tagName === 'SCRIPT' || e.tagName === 'STYLE') return;
+	    if (known.indexOf(e) < 0) { window.__uitoolHidden.push([e, e.style.display]); known.push(e); }
 	    e.style.display = 'none';
-	  });
+	  };
+	  var keep = document.getElementById('gocanvas');
+	  for (var a = keep; a && a.parentElement && a !== document.body; a = a.parentElement) {
+	    [].forEach.call(a.parentElement.children, function(e){ if (e !== a) hide(e); });
+	  }
 	  window.dispatchEvent(new Event('resize'));
 	})()`)
 	time.Sleep(700 * time.Millisecond)

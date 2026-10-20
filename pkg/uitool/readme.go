@@ -22,6 +22,7 @@ package uitool
 import (
 	"encoding/json"
 	"fmt"
+	"image/jpeg"
 	"os"
 	"path/filepath"
 	"strings"
@@ -102,16 +103,10 @@ func replaceRegion(src, name, body string) (string, error) {
 // subsection per model, in knob order.
 func modelsSection() string {
 	var b strings.Builder
-	b.WriteString("Every position of the model selector, in the order the knob turns through\n")
-	b.WriteString("them. A model that appears under two categories — the XY scope and the\n")
-	b.WriteString("Takens embedding are each both a Scope and an Audio model — is listed under\n")
-	b.WriteString("both, because that is what the selector does.\n\n")
-	b.WriteString("Each entry is captured from the running app by `uitool portraits`: a still,\n")
-	b.WriteString("a loop turning through all four positions of the palette knob, and the\n")
-	b.WriteString("**Parameters module as it stands for that model** — the knobs are the\n")
-	b.WriteString("system's own, so Lorenz's σ/ρ/β and the turtle's mod/seq/dim are different\n")
-	b.WriteString("panels under the same header. A model with no parameters of its own has no\n")
-	b.WriteString("such column. The prose is the same text the Info overlay shows.\n")
+	b.WriteString("Every position of the MODEL selector, in knob order; a model in two\n")
+	b.WriteString("categories is listed in both. Per model: its bank as programmed for it,\n")
+	b.WriteString("a still, a turning loop, its description (the Info overlay's text) and\n")
+	b.WriteString("its equations. Images are captured by `uitool portraits`.\n")
 
 	seen := map[string]bool{}
 	for _, g := range attractor.Catalog() {
@@ -156,11 +151,12 @@ func modelEntry(m attractor.CatalogModel) string {
 		shots = append(shots, shot{v.head, mdEscape(m.Label) + " — " + v.head,
 			filepath.Join(*modelImgDir, m.Key+"-"+v.suffix+".jpg")})
 	}
-	// The model's bank as it stands for THIS model: the knobs differ per
-	// system, and a reference that shows the figure without the controls that
-	// shape it is only half the entry.
-	shots = append(shots, shot{"parameters", mdEscape(m.Label) + " parameters",
-		filepath.Join(*modelImgDir, m.Key+"-params.jpg")})
+	// The model's bank as it stands for THIS model, over the figures and the
+	// full width of the page: a twelve-column bank in a third of a table row
+	// was too small to read.
+	if p := filepath.Join(*modelImgDir, m.Key+"-params.jpg"); fileExists(p) {
+		fmt.Fprintf(&b, "![%s parameters](%s)\n\n", mdEscape(m.Label), p)
+	}
 
 	var have []shot
 	for _, s := range shots {
@@ -280,28 +276,62 @@ func modulesSection() string {
 		return "_Module manifest could not be read: " + err.Error() + "._"
 	}
 	var b strings.Builder
-	b.WriteString("The rack is built out of modules. None is hidden behind a switch, and\n")
-	b.WriteString("every one can be dragged by its header into another slot. This reference\n")
-	b.WriteString("is captured from the running rack by `uitool modules`, and each\n")
-	b.WriteString("description is the module header's own tooltip.\n")
+	b.WriteString("Every module, captured from the running rack by `uitool modules`. Each\n")
+	b.WriteString("description is the module header's tooltip; addresses are\n")
+	b.WriteString("bay.column.row. Expand **Controls** for every cell's tooltip.\n")
+	left := true
 	for _, m := range mods {
 		fmt.Fprintf(&b, "\n### %s\n\n", mdEscape(m.Label))
 		desc := tableText(m.Title)
+		w, h := imageSize(m.Image)
 		switch {
-		case m.Image != "" && fileExists(m.Image):
-			// The shot and what it is, side by side. Reading a panel and then
-			// scrolling past it to find out what it does is the layout this
-			// replaces. The width is capped so a 21 HP module does not take
-			// the whole row and leave the text in a column two words wide.
-			b.WriteString("| | |\n|---|---|\n")
-			fmt.Fprintf(&b, "| <img src=\"%s\" alt=\"The %s module\" width=\"320\"> | %s |\n",
-				m.Image, mdEscape(m.Label), desc)
-		case desc != "":
+		case w > 0 && w <= moduleFloatMax:
+			// Beside its text at its own size: every shot is the same height,
+			// so the modules read at one scale, and the text wraps round the
+			// shot instead of being squeezed into a table cell. Sides
+			// alternate down the page.
+			side := "left"
+			if !left {
+				side = "right"
+			}
+			left = !left
+			fmt.Fprintf(&b, "<img src=\"%s\" alt=\"The %s module\" width=\"%d\" height=\"%d\" align=\"%s\">\n\n",
+				m.Image, mdEscape(m.Label), w, h, side)
 			b.WriteString(desc + "\n")
+			b.WriteString(controlsList(m.Controls))
+			b.WriteString("\n<br clear=\"all\">\n")
+		case w > 0:
+			// Too wide to share the row: across the page, over its text.
+			fmt.Fprintf(&b, "![The %s module](%s)\n\n", mdEscape(m.Label), m.Image)
+			b.WriteString(desc + "\n")
+			b.WriteString(controlsList(m.Controls))
+		default:
+			b.WriteString(desc + "\n")
+			b.WriteString(controlsList(m.Controls))
 		}
-		b.WriteString(controlsList(m.Controls))
 	}
 	return b.String()
+}
+
+// moduleFloatMax is the widest module shot set beside its text, in pixels:
+// half of GitHub's 880-pixel content column, so the text keeps the other half.
+const moduleFloatMax = 440
+
+// imageSize is a JPEG's pixel size, or zeros when there is none.
+func imageSize(path string) (w, h int) {
+	if path == "" {
+		return 0, 0
+	}
+	f, err := os.Open(path) //nolint:gosec // a module shot this tool wrote
+	if err != nil {
+		return 0, 0
+	}
+	defer f.Close() //nolint:errcheck // opened for reading only
+	c, err := jpeg.DecodeConfig(f)
+	if err != nil {
+		return 0, 0
+	}
+	return c.Width, c.Height
 }
 
 // controlsList renders a module's cells: each one's label and its own tooltip,
@@ -325,17 +355,46 @@ func controlsList(cs []panelControl) string {
 			name = "—"
 		}
 		fmt.Fprintf(&b, "- **%s** — %s\n", mdEscape(name), tableText(c.Title))
+		// A position that only names itself goes on one line with the others
+		// like it; one with something to say gets a line of its own. A
+		// continuous knob's printed ends ("the lowest this knob goes") are
+		// not positions at all, and are left out.
+		var plain []string
 		for _, p := range c.Positions {
 			pl := strings.TrimSpace(p.Label)
-			if pl == "" {
-				fmt.Fprintf(&b, "  - %s\n", tableText(p.Title))
-				continue
+			say := positionText(p.Title)
+			switch {
+			case strings.Contains(say, "this knob goes"):
+			case say == "" || !strings.Contains(say, " — ") && len([]rune(say)) <= 24:
+				if say == "" {
+					say = pl
+				}
+				if say != "" {
+					plain = append(plain, "`"+say+"`")
+				}
+			case pl == "":
+				fmt.Fprintf(&b, "  - %s\n", tableText(say))
+			default:
+				fmt.Fprintf(&b, "  - `%s` — %s\n", pl, tableText(say))
 			}
-			fmt.Fprintf(&b, "  - `%s` — %s\n", pl, tableText(p.Title))
+		}
+		if len(plain) > 0 {
+			fmt.Fprintf(&b, "  - %s\n", strings.Join(plain, " · "))
 		}
 	}
 	b.WriteString("\n</details>\n")
 	return b.String()
+}
+
+// positionText is a position's tooltip without the cell address it starts
+// with ("5.1.3 · 500 mFS" is "500 mFS"): what is left is what the position
+// says beyond its own name, if anything.
+func positionText(t string) string {
+	t = strings.TrimSpace(t)
+	if i := strings.Index(t, " · "); i > 0 && strings.Trim(t[:i], "0123456789.abcdefghijklmnopqrstuvwxyz") == "" && strings.ContainsAny(t[:i], "0123456789") {
+		t = strings.TrimSpace(t[i+len(" · "):])
+	}
+	return t
 }
 
 // tableOfContents lists every heading in the document at depth 2 and 3.
