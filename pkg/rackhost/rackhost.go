@@ -541,6 +541,11 @@ func inside(it *rackpic.Item, box [4]float64) bool {
 // keeps the default exact for the rest (level knobs in decibels, detented
 // inputs), whose curves the catalog does not record.
 func (p pointer) angle(c *racktui.Control, v float64) float64 {
+	if _, part := genOf(c.ID); part == "freq" {
+		// An encoder a turn an octave (the page's genFreqKnob): its pointer
+		// goes round and round.
+		return math.Mod(math.Mod(p.at+360*(v-p.v0)/12, 360)+360, 360)
+	}
 	if isFullTurn(c.ID) {
 		return math.Mod(math.Mod(p.at+360*(v-p.v0)/(c.Max-c.Min), 360)+360, 360)
 	}

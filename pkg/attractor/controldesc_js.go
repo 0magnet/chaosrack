@@ -110,7 +110,7 @@ func adoptDescControl(d ControlDesc) *Control { //nolint:unparam // callers will
 
 	ctl := &Control{
 		module: "", kind: kindGeneric, slider: slider, def: float32(d.Def),
-		ledInt: intDig, ledDec: dec, ledSign: d.Signed, permaKey: d.PermaKey,
+		ledInt: intDig, ledDec: dec, ledSign: d.Signed, ledFloat: d.LEDFloat, permaKey: d.PermaKey,
 		resetHook: d.ResetExtra,
 	}
 

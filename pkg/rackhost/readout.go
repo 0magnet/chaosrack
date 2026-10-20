@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/0magnet/chaosrack/pkg/led"
 	"github.com/0magnet/chaosrack/pkg/racktui"
 )
 
@@ -34,6 +35,11 @@ func (ro readout) show(c *racktui.Control) string {
 	v, err := strconv.ParseFloat(shown(c.ID, c.Value), 64)
 	if err != nil {
 		return c.Value
+	}
+	// A generator's FREQ spans tenths of a hertz to tens of thousands: the page
+	// moves its point to keep four figures (led.Floating), and so does this.
+	if _, part := genOf(c.ID); part == "freq" && ro.width > 0 {
+		return strings.Repeat(" ", ro.lead) + led.Floating(v, ro.width, ro.dec, false) + ro.suffix
 	}
 	s := strconv.FormatFloat(math.Abs(v), 'f', ro.dec, 64)
 	intLen := len(s)

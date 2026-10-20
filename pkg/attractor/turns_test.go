@@ -28,7 +28,7 @@ func TestParamTurnsKinds(t *testing.T) {
 }
 
 func TestLinearLapsContinueTheRange(t *testing.T) {
-	s := turnSpec{turnLinear, 0, 50}
+	s := turnSpec{kind: turnLinear, lo: 0, hi: 50}
 	for _, c := range []struct {
 		v    float64
 		lap  int
@@ -45,7 +45,7 @@ func TestLinearLapsContinueTheRange(t *testing.T) {
 }
 
 func TestLogLapsAreTimesTen(t *testing.T) {
-	s := turnSpec{turnLog, 0.0001, 0.02}
+	s := turnSpec{kind: turnLog, lo: 0.0001, hi: 0.02}
 	for _, c := range []struct {
 		v    float64
 		lap  int
@@ -62,7 +62,7 @@ func TestLogLapsAreTimesTen(t *testing.T) {
 }
 
 func TestWrapComesRound(t *testing.T) {
-	s := turnSpec{turnWrap, 0, 360}
+	s := turnSpec{kind: turnWrap, lo: 0, hi: 360}
 	if got := s.clamp(370); math.Abs(got-10) > 1e-9 {
 		t.Errorf("370 wrapped to %v", got)
 	}
@@ -75,7 +75,7 @@ func TestWrapComesRound(t *testing.T) {
 }
 
 func TestRingFillsALap(t *testing.T) {
-	s := turnSpec{turnLinear, 0, 50}
+	s := turnSpec{kind: turnLinear, lo: 0, hi: 50}
 	if p := s.paint(50); p.to != ringLEDs-1 || p.lap != 0 || p.uTo >= p.uFrom {
 		t.Errorf("the top of the range painted %+v, want the whole ring in lap 0 over nothing", p)
 	}
@@ -87,7 +87,7 @@ func TestRingFillsALap(t *testing.T) {
 // Past the top, the next lap's color sweeps over the last lap's, so the ring
 // is never dark on its way round again.
 func TestALapPaintsOverTheOneBefore(t *testing.T) {
-	s := turnSpec{turnLinear, 0, 50}
+	s := turnSpec{kind: turnLinear, lo: 0, hi: 50}
 	p := s.paint(75)
 	if p.from != 0 || p.to != ringLEDs/2-1 || p.lap != 1 {
 		t.Errorf("half of lap 1 lit %d..%d in lap %d", p.from, p.to, p.lap)
@@ -104,7 +104,7 @@ func TestALapPaintsOverTheOneBefore(t *testing.T) {
 // Below the range the colors come back the other way: lap -1 sweeps
 // counter-clockwise from the top over a dark ring, and lap -2 over lap -1.
 func TestBelowTheRangeSweepsBack(t *testing.T) {
-	s := turnSpec{turnLinear, 0, 50}
+	s := turnSpec{kind: turnLinear, lo: 0, hi: 50}
 	p := s.paint(-12.5) // a quarter of the way down lap -1
 	if p.lap != -1 || p.from != ringLEDs*3/4 || p.to != ringLEDs-1 || p.uTo >= p.uFrom {
 		t.Errorf("a quarter below painted %+v, want the last quarter in lap -1 over nothing", p)

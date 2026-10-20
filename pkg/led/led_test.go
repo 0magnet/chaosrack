@@ -85,3 +85,22 @@ func TestAReadoutParsesBackToItsValue(t *testing.T) {
 		}
 	}
 }
+
+// A readout spanning decades keeps its width and four figures.
+func TestFloatingKeepsItsWidth(t *testing.T) {
+	for _, c := range []struct {
+		v    float64
+		want string
+	}{
+		{28160, "28160.0"},
+		{196, "00196.0"},
+		{19.6, "0019.60"},
+		{1.65, "001.650"},
+		{0.107, "00.1070"},
+		{0, "00000.0"},
+	} {
+		if got := Floating(c.v, 5, 1, false); got != c.want {
+			t.Errorf("Floating(%v) = %q, want %q", c.v, got, c.want)
+		}
+	}
+}

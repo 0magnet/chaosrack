@@ -146,6 +146,29 @@ func (m *ModBands) Value(ch string, weights []float32) float32 {
 	return min(max(v, 0), 1)
 }
 
+// ModWave is each channel's signal as the wave shape reads it: its newest
+// sample, taken once a frame from the window the bands are measured in.
+type ModWave struct{ v map[string]float32 }
+
+// Set makes v channel ch's sample now.
+func (m *ModWave) Set(ch string, v float32) {
+	if m.v == nil {
+		m.v = map[string]float32{}
+	}
+	m.v[ch] = v
+}
+
+// Value is channel ch's sample now, 0 before there is one.
+func (m *ModWave) Value(ch string) float32 { return m.v[ch] }
+
+// Newest is the last sample of window w, the one nearest now; 0 for none.
+func Newest(w []float32) float32 {
+	if len(w) == 0 {
+		return 0
+	}
+	return w[len(w)-1]
+}
+
 // ModTarget is what a routed knob reads: base, moved by depth level times
 // the route's signal f (ModShaper.Signal) across the knob's lo..hi, held
 // to it; a knob of whole
@@ -173,6 +196,13 @@ const (
 	// ModShapeFlip moves it out on a beat, the other way on the next, and
 	// back to its setting between them.
 	ModShapeFlip = "flip"
+	// ModShapeWave is not the envelope but the signal itself: the source's
+	// newest sample, -1..1, so the knob follows the waveform either side of
+	// its setting, as an X-Y scope's beam follows its two inputs. A frame
+	// takes one sample, so a signal slower than a few hertz (a generator
+	// turned below A0) is traced, and a faster one lands anywhere in its
+	// swing, frame to frame. A coordinate of the model is its own signal.
+	ModShapeWave = "wave"
 )
 
 // ModShape is one of a route's shapes: the value a route stores, and the
@@ -180,7 +210,7 @@ const (
 type ModShape struct{ Value, Label string }
 
 // ModShapes are the shapes, in SHAPE's order.
-var ModShapes = []ModShape{{ModShapePush, "push"}, {ModShapeSwing, "swing"}, {ModShapeFlip, "flip"}}
+var ModShapes = []ModShape{{ModShapePush, "push"}, {ModShapeSwing, "swing"}, {ModShapeFlip, "flip"}, {ModShapeWave, "wave"}}
 
 // IsModShape reports whether s is a shape a route can store.
 func IsModShape(s string) bool {
@@ -227,6 +257,11 @@ func (s *ModShaper) Signal(shape, src string, f float32) float32 {
 	d := f - s.mean
 	s.mean += d * modMeanCoef
 	switch shape {
+	case ModShapeWave:
+		if isSignedModSource(src) {
+			return 2*f - 1
+		}
+		return min(max(f, -1), 1)
 	case ModShapeSwing:
 		return min(max(2*d, -1), 1)
 	case ModShapeFlip:

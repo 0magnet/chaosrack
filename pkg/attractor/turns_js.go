@@ -56,7 +56,7 @@ func makeTurning(c js.Value) {
 	if kind == turnBounded {
 		return
 	}
-	spec := turnSpec{kind, lo, hi}
+	spec := turnSpec{kind: kind, lo: lo, hi: hi}
 	turnSpecs[id] = spec
 	dlo, dhi := spec.domain()
 	slider.Set("min", strconv.FormatFloat(dlo, 'g', -1, 64))

@@ -2,6 +2,7 @@ package rackhost
 
 import (
 	"bytes"
+	"math"
 	"testing"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
@@ -192,5 +193,56 @@ func TestModRoutesFromTheKeyboard(t *testing.T) {
 	r.mu.Unlock()
 	if m.on() {
 		t.Errorf("SRC off left %+v", m)
+	}
+}
+
+// A generator turned below A0, on the rack's left, routed to pan X with the
+// wave shape, swings the model either side of the knob as the X-Y scope's
+// beam swings; the same route as a push only ever moves it one way.
+func TestAWaveRouteFollowsASlowGeneratorBothWays(t *testing.T) {
+	r := newRack(t)
+	r.SetSpeaker(&fakeSpeaker{r: r})
+	set(t, r, r.selector, "globe")
+	set(t, r, "gen-x-wave", "0", "gen-x-out", "1", "gen-x-freq", "-60") // 0.86 Hz, left
+	r.mu.Lock()
+	f := r.value("gen-x-freq")
+	r.mu.Unlock()
+	if f != "-60" {
+		t.Fatalf("Gen 1's FREQ is %s, want -60, eight octaves under A0 being -96", f)
+	}
+	var path []float64
+	sweep := func(shape string) (lo, hi float64) {
+		r.mu.Lock()
+		r.mod.routes["view-panx"] = modRoute{channel: "L", level: 0.25, shape: shape}
+		r.mu.Unlock()
+		lo, hi = math.Inf(1), math.Inf(-1)
+		frame := make([]float32, sampleRate/60)
+		for range 120 { // two seconds, a frame at a time
+			r.Fill(frame, make([]float32, len(frame)))
+			r.mu.Lock()
+			r.modulate("globe")
+			v := r.mod.over["pan-x"]
+			r.mu.Unlock()
+			lo, hi = min(lo, v), max(hi, v)
+			if shape == attractor.ModShapeWave {
+				path = append(path, v)
+			}
+		}
+		return lo, hi
+	}
+	if lo, hi := sweep(attractor.ModShapeWave); lo > -1 || hi < 1 {
+		t.Errorf("the wave route moved pan X only over %.2f..%.2f, want both ways past ±1", lo, hi)
+	}
+	// Traced, not jumping: at 0.86 Hz a frame moves it a little, where a
+	// tone would land anywhere in its swing frame to frame.
+	// From the frame the rack's window is full: before it there is no
+	// newest sample, and the route reads silence.
+	for i := 4; i < len(path); i++ {
+		if d := math.Abs(path[i] - path[i-1]); d > 0.5 {
+			t.Fatalf("pan X jumped %.2f between frames %d and %d", d, i-1, i)
+		}
+	}
+	if lo, _ := sweep(attractor.ModShapePush); lo < 0 {
+		t.Errorf("the push route moved pan X below its setting, to %.2f", lo)
 	}
 }

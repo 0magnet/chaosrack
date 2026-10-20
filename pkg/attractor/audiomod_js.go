@@ -67,7 +67,11 @@ func (p *paramModulation) signal(id string, m paramMod) float32 {
 		s = &ModShaper{}
 		p.shapers[id] = s
 	}
-	return s.Signal(m.shape, m.channel, af.eqModValue(m.channel, m.bands))
+	f := af.eqModValue(m.channel, m.bands)
+	if m.shape == ModShapeWave && !isModelModSource(m.channel) {
+		f = af.wave.Value(m.channel)
+	}
+	return s.Signal(m.shape, m.channel, f)
 }
 
 // paramIsModulated reports whether the sound is currently driving a parameter,

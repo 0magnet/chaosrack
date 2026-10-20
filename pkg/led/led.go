@@ -116,3 +116,17 @@ const Blank = "!"
 func Parse(s string) (float64, error) {
 	return strconv.ParseFloat(strings.TrimSpace(strings.Replace(s, Blank, "", 1)), 64)
 }
+
+// Floating is Format for a readout whose values span decades, a frequency
+// from a tenth of a hertz to tens of thousands: the same width, intDig+dec
+// digits, with the point moved left as the value gets small, so it keeps at
+// least four figures — 00196.0, 0019.60, 001.650, 00.1070 — where Format
+// would show the last three as 00019.6, 00001.6 and 00000.1. Never fewer
+// decimals than dec, and always one integer digit.
+func Floating(val float64, intDig, dec int, signed bool) string {
+	extra := 0
+	if a := math.Abs(val); a > 0 {
+		extra = min(max(2-int(math.Floor(math.Log10(a))), 0), intDig-1)
+	}
+	return Format(val, intDig-extra, dec+extra, signed)
+}
