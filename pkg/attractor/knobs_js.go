@@ -535,6 +535,9 @@ func ringTicks(n int, deg func(int) float64, major func(int) bool) string {
 func addValueDial(wrap js.Value, lo, hi float64) {
 	dial := dom.Doc.Call("createElement", "span")
 	dial.Set("className", "knob-dial value-dial")
+	// How its ring lights, for a front end without the page (ring.go): a run
+	// over the range, unless it is made an endless ring or a selector's.
+	dial.Call("setAttribute", "data-ring", RingSpec{turn: turnSpec{kind: turnBounded, lo: lo, hi: hi}}.String())
 	// Discrete tick marks spanning ONLY the knob's 270° travel (−135°→+135°),
 	// not the full circle — so the scale matches how far the knob actually
 	// turns. A major (longer) tick every quarter aligns with where the min/max

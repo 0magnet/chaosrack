@@ -107,7 +107,7 @@ func TestTurningADialTurnsItsPointer(t *testing.T) {
 		c := r.ctls[r.byID[k]]
 		// A generator's OUT is left out: its top is MIX, which only reads
 		// the pins, so the knob does not stay there. So is its FREQ, which
-		// has no stops (TestTheFreqPointerTurnsAnOctaveATurn).
+		// has no stops and no pointer: its ring says it (TestTheFreqRingLightsInItsOctavesColor).
 		_, part := genOf(k)
 		if v, err := strconv.ParseFloat(c.Value, 64); err == nil && v < c.Max && !isRotationKnob(k) && !isFullTurn(k) && part != "out" && part != "freq" {
 			id = k
@@ -525,29 +525,5 @@ func TestEveryDialTurnsItsOwnPointer(t *testing.T) {
 			t.Errorf("%s and %s turn the same pointer", min(id, other), max(id, other))
 		}
 		by[p.item] = id
-	}
-}
-
-// A generator's FREQ is an encoder that turns once an octave: an octave up,
-// its pointer is where it was, and a semitone turns it a twelfth of a turn.
-func TestTheFreqPointerTurnsAnOctaveATurn(t *testing.T) {
-	r := newRack(t)
-	angle := func(v string) float64 {
-		t.Helper()
-		if err := r.Set("gen-y-freq", v); err != nil {
-			t.Fatal(err)
-		}
-		p, _ := r.Picture() //nolint:errcheck // never fails
-		return *p.Items[r.ptrs["gen-y-freq"].item].Angle
-	}
-	a := angle("27") // C3
-	if b := angle("39"); math.Abs(math.Mod(b-a+360, 360)) > 0.1 && math.Abs(math.Mod(b-a+360, 360)-360) > 0.1 {
-		t.Errorf("C3 points at %.1f° and C4 at %.1f°", a, b)
-	}
-	if b := angle("-69"); math.Abs(math.Mod(b-a+360, 360)) > 0.1 && math.Abs(math.Mod(b-a+360, 360)-360) > 0.1 {
-		t.Errorf("C3 points at %.1f° and C-5 at %.1f°", a, b)
-	}
-	if b := angle("30"); math.Abs(math.Mod(b-a+360, 360)-90) > 0.1 {
-		t.Errorf("three semitones turned the pointer %.1f°, want 90", math.Mod(b-a+360, 360))
 	}
 }

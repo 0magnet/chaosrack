@@ -188,6 +188,13 @@
   // lamps, Clear, the keys, the games' and the meters' displays, and the
   // readouts' ↻ and the meters' buttons (rackpic.Item.Mark).
   function mark(e) {
+    // An LED of a ring a front end lights itself (rackhost, ring.go): its
+    // place round the ring, and how the ring lights, from the dial.
+    if (e.classList.contains("vdial-tick") && e.parentElement && e.parentElement.hasAttribute("data-ring") &&
+        e.closest(".dmdcell,.ledsel,.ledring")) {
+      var ticks = e.parentElement.querySelectorAll(":scope>.vdial-tick");
+      return "ring " + Array.prototype.indexOf.call(ticks, e) + " " + e.parentElement.getAttribute("data-ring");
+    }
     var m = e.getAttribute("data-midi");
     if (m !== null) return "key " + m;
     if (e.classList.contains("mrodmd") && e.id) return "led " + e.id;

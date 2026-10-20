@@ -48,6 +48,7 @@ type Rack struct {
 	ptrs    map[string]pointer // each dial's pointer, by control id
 	reads   map[string]readout // each control's display, by control id
 	lamps   map[string]int     // each Mixer pin's lamp, by control id
+	rings   map[string]ledRing // each knob's LED ring, by control id
 	changed map[int]int        // item index → the generation it last changed in
 	full    int                // the generation the picture was last rebuilt in
 
@@ -150,6 +151,7 @@ func New() (*Rack, error) {
 		ptrs:        map[string]pointer{},
 		reads:       map[string]readout{},
 		lamps:       map[string]int{},
+		rings:       map[string]ledRing{},
 		changed:     map[int]int{},
 		audioSource: "monitor",
 		stereo:      stereoView{scope: attractor.NewStereoScope()},
@@ -236,6 +238,7 @@ func (r *Rack) useBank(model string) {
 	for id := range r.inBank {
 		delete(r.ptrs, id)
 		delete(r.reads, id)
+		delete(r.rings, id)
 	}
 	r.pic.Items = append(r.pic.Items[:r.outside:r.outside], b.Items...)
 	ctls := make(map[string][4]float64, len(r.outsideBox)+len(b.Ctls))
@@ -277,6 +280,7 @@ func (r *Rack) useBank(model string) {
 	r.findReadouts()
 	r.findMeters()
 	r.colorLEDs()
+	r.paintRings()
 	r.pic.Gen++
 	r.full = r.pic.Gen
 	// The bank's items replaced the overlays; they go back over it.
@@ -351,6 +355,7 @@ func (r *Rack) set(id, value string) error {
 	}
 	if id == "led-color" {
 		r.colorLEDs()
+		r.paintRings()
 	}
 	if id == "knob-style" {
 		r.lookKnobs()
@@ -488,6 +493,9 @@ func (r *Rack) calibrate(lo, hi int, only func(id string) bool, captured func(c 
 		if ro, ok := r.findReadout(c, v, box, lo, hi); ok {
 			r.reads[c.ID] = ro
 		}
+		if rg, ok := r.findRing(box, lo, hi); ok {
+			r.rings[c.ID] = rg
+		}
 		if !isPin(c.ID) {
 			continue
 		}
@@ -541,11 +549,6 @@ func inside(it *rackpic.Item, box [4]float64) bool {
 // keeps the default exact for the rest (level knobs in decibels, detented
 // inputs), whose curves the catalog does not record.
 func (p pointer) angle(c *racktui.Control, v float64) float64 {
-	if _, part := genOf(c.ID); part == "freq" {
-		// An encoder a turn an octave (the page's genFreqKnob): its pointer
-		// goes round and round.
-		return math.Mod(math.Mod(p.at+360*(v-p.v0)/12, 360)+360, 360)
-	}
 	if isFullTurn(c.ID) {
 		return math.Mod(math.Mod(p.at+360*(v-p.v0)/(c.Max-c.Min), 360)+360, 360)
 	}
@@ -579,6 +582,9 @@ func (r *Rack) turn(c *racktui.Control) {
 	}
 	if ro, ok := r.reads[c.ID]; ok {
 		r.write(ro.item, ro.show(c))
+	}
+	if rg, ok := r.rings[c.ID]; ok {
+		r.paintRing(rg, c)
 	}
 	p, ok := r.ptrs[c.ID]
 	if !ok || isRotationKnob(c.ID) {

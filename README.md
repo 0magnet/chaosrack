@@ -98,6 +98,18 @@ analog computers at [glensstuff.com](https://glensstuff.com).
   - [Gen 2](#gen-2)
   - [Scope 3](#scope-3)
   - [Gen 3](#gen-3)
+  - [Scope 4](#scope-4)
+  - [Gen 4](#gen-4)
+  - [Synth](#synth)
+  - [String](#string)
+  - [FM](#fm)
+  - [Wave · Noise](#wave--noise)
+  - [Filter](#filter)
+  - [Amp](#amp)
+  - [Keys](#keys)
+  - [Matrix](#matrix)
+  - [Mixer](#mixer)
+  - [Mod](#mod)
 - [Physical dimensions](#physical-dimensions)
 - [Solid models (STL)](#solid-models-stl)
 - [Recording](#recording)
@@ -820,9 +832,9 @@ Sprott Morph — The faithful version of the glensstuff.com Self-Programming Ana
 
 #### Sprott A
 
-| Sprott A | turning | parameters |
-| --- | --- | --- |
-| ![Sprott A](docs/img/model/sprotta.jpg) | ![Sprott A turning](docs/img/model/sprotta.gif) | ![Sprott A parameters](docs/img/model/sprotta-params.jpg) |
+| Sprott A | turning |
+| --- | --- |
+| ![Sprott A](docs/img/model/sprotta.jpg) | ![Sprott A turning](docs/img/model/sprotta.gif) |
 
 Sprott A (Nosé–Hoover oscillator) — the first of J. C. Sprott's 1994 systems and the only conservative one: rather than settling onto a strange attractor it fills a chaotic sea.
 
@@ -836,9 +848,9 @@ dz/dt = 1 − y²
 
 #### Sprott B
 
-| Sprott B | turning | parameters |
-| --- | --- | --- |
-| ![Sprott B](docs/img/model/sprottb.jpg) | ![Sprott B turning](docs/img/model/sprottb.gif) | ![Sprott B parameters](docs/img/model/sprottb-params.jpg) |
+| Sprott B | turning |
+| --- | --- |
+| ![Sprott B](docs/img/model/sprottb.jpg) | ![Sprott B turning](docs/img/model/sprottb.gif) |
 
 Sprott B — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -854,9 +866,9 @@ dz/dt = 1 − xy
 
 #### Sprott C
 
-| Sprott C | turning | parameters |
-| --- | --- | --- |
-| ![Sprott C](docs/img/model/sprottc.jpg) | ![Sprott C turning](docs/img/model/sprottc.gif) | ![Sprott C parameters](docs/img/model/sprottc-params.jpg) |
+| Sprott C | turning |
+| --- | --- |
+| ![Sprott C](docs/img/model/sprottc.jpg) | ![Sprott C turning](docs/img/model/sprottc.gif) |
 
 Sprott C — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -872,9 +884,9 @@ dz/dt = 1 − x²
 
 #### Sprott D
 
-| Sprott D | turning | parameters |
-| --- | --- | --- |
-| ![Sprott D](docs/img/model/sprottd.jpg) | ![Sprott D turning](docs/img/model/sprottd.gif) | ![Sprott D parameters](docs/img/model/sprottd-params.jpg) |
+| Sprott D | turning |
+| --- | --- |
+| ![Sprott D](docs/img/model/sprottd.jpg) | ![Sprott D turning](docs/img/model/sprottd.gif) |
 
 Sprott D — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -890,9 +902,9 @@ dz/dt = xz + 3y²
 
 #### Sprott E
 
-| Sprott E | turning | parameters |
-| --- | --- | --- |
-| ![Sprott E](docs/img/model/sprotte.jpg) | ![Sprott E turning](docs/img/model/sprotte.gif) | ![Sprott E parameters](docs/img/model/sprotte-params.jpg) |
+| Sprott E | turning |
+| --- | --- |
+| ![Sprott E](docs/img/model/sprotte.jpg) | ![Sprott E turning](docs/img/model/sprotte.gif) |
 
 Sprott E — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -908,9 +920,9 @@ dz/dt = 1 − 4x
 
 #### Sprott F
 
-| Sprott F | turning | parameters |
-| --- | --- | --- |
-| ![Sprott F](docs/img/model/sprottf.jpg) | ![Sprott F turning](docs/img/model/sprottf.gif) | ![Sprott F parameters](docs/img/model/sprottf-params.jpg) |
+| Sprott F | turning |
+| --- | --- |
+| ![Sprott F](docs/img/model/sprottf.jpg) | ![Sprott F turning](docs/img/model/sprottf.gif) |
 
 Sprott F — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -926,9 +938,9 @@ dz/dt = x² − z
 
 #### Sprott G
 
-| Sprott G | turning | parameters |
-| --- | --- | --- |
-| ![Sprott G](docs/img/model/sprottg.jpg) | ![Sprott G turning](docs/img/model/sprottg.gif) | ![Sprott G parameters](docs/img/model/sprottg-params.jpg) |
+| Sprott G | turning |
+| --- | --- |
+| ![Sprott G](docs/img/model/sprottg.jpg) | ![Sprott G turning](docs/img/model/sprottg.gif) |
 
 Sprott G — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -944,9 +956,9 @@ dz/dt = −x + y
 
 #### Sprott H
 
-| Sprott H | turning | parameters |
-| --- | --- | --- |
-| ![Sprott H](docs/img/model/sprotth.jpg) | ![Sprott H turning](docs/img/model/sprotth.gif) | ![Sprott H parameters](docs/img/model/sprotth-params.jpg) |
+| Sprott H | turning |
+| --- | --- |
+| ![Sprott H](docs/img/model/sprotth.jpg) | ![Sprott H turning](docs/img/model/sprotth.gif) |
 
 Sprott H — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -962,9 +974,9 @@ dz/dt = x − z
 
 #### Sprott I
 
-| Sprott I | turning | parameters |
-| --- | --- | --- |
-| ![Sprott I](docs/img/model/sprotti.jpg) | ![Sprott I turning](docs/img/model/sprotti.gif) | ![Sprott I parameters](docs/img/model/sprotti-params.jpg) |
+| Sprott I | turning |
+| --- | --- |
+| ![Sprott I](docs/img/model/sprotti.jpg) | ![Sprott I turning](docs/img/model/sprotti.gif) |
 
 Sprott I — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -980,9 +992,9 @@ dz/dt = x + y² − z
 
 #### Sprott J
 
-| Sprott J | turning | parameters |
-| --- | --- | --- |
-| ![Sprott J](docs/img/model/sprottj.jpg) | ![Sprott J turning](docs/img/model/sprottj.gif) | ![Sprott J parameters](docs/img/model/sprottj-params.jpg) |
+| Sprott J | turning |
+| --- | --- |
+| ![Sprott J](docs/img/model/sprottj.jpg) | ![Sprott J turning](docs/img/model/sprottj.gif) |
 
 Sprott J — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -998,9 +1010,9 @@ dz/dt = −x + y + y²
 
 #### Sprott K
 
-| Sprott K | turning | parameters |
-| --- | --- | --- |
-| ![Sprott K](docs/img/model/sprottk.jpg) | ![Sprott K turning](docs/img/model/sprottk.gif) | ![Sprott K parameters](docs/img/model/sprottk-params.jpg) |
+| Sprott K | turning |
+| --- | --- |
+| ![Sprott K](docs/img/model/sprottk.jpg) | ![Sprott K turning](docs/img/model/sprottk.gif) |
 
 Sprott K — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -1016,9 +1028,9 @@ dz/dt = x + 0.3z
 
 #### Sprott L
 
-| Sprott L | turning | parameters |
-| --- | --- | --- |
-| ![Sprott L](docs/img/model/sprottl.jpg) | ![Sprott L turning](docs/img/model/sprottl.gif) | ![Sprott L parameters](docs/img/model/sprottl-params.jpg) |
+| Sprott L | turning |
+| --- | --- |
+| ![Sprott L](docs/img/model/sprottl.jpg) | ![Sprott L turning](docs/img/model/sprottl.gif) |
 
 Sprott L — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -1034,9 +1046,9 @@ dz/dt = 1 − x
 
 #### Sprott M
 
-| Sprott M | turning | parameters |
-| --- | --- | --- |
-| ![Sprott M](docs/img/model/sprottm.jpg) | ![Sprott M turning](docs/img/model/sprottm.gif) | ![Sprott M parameters](docs/img/model/sprottm-params.jpg) |
+| Sprott M | turning |
+| --- | --- |
+| ![Sprott M](docs/img/model/sprottm.jpg) | ![Sprott M turning](docs/img/model/sprottm.gif) |
 
 Sprott M — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -1052,9 +1064,9 @@ dz/dt = 1.7 + 1.7x + y
 
 #### Sprott N
 
-| Sprott N | turning | parameters |
-| --- | --- | --- |
-| ![Sprott N](docs/img/model/sprottn.jpg) | ![Sprott N turning](docs/img/model/sprottn.gif) | ![Sprott N parameters](docs/img/model/sprottn-params.jpg) |
+| Sprott N | turning |
+| --- | --- |
+| ![Sprott N](docs/img/model/sprottn.jpg) | ![Sprott N turning](docs/img/model/sprottn.gif) |
 
 Sprott N — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -1070,9 +1082,9 @@ dz/dt = 1 + y − 2z
 
 #### Sprott O
 
-| Sprott O | turning | parameters |
-| --- | --- | --- |
-| ![Sprott O](docs/img/model/sprotto.jpg) | ![Sprott O turning](docs/img/model/sprotto.gif) | ![Sprott O parameters](docs/img/model/sprotto-params.jpg) |
+| Sprott O | turning |
+| --- | --- |
+| ![Sprott O](docs/img/model/sprotto.jpg) | ![Sprott O turning](docs/img/model/sprotto.gif) |
 
 Sprott O — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -1088,9 +1100,9 @@ dz/dt = x + xz + 2.7y
 
 #### Sprott P
 
-| Sprott P | turning | parameters |
-| --- | --- | --- |
-| ![Sprott P](docs/img/model/sprottp.jpg) | ![Sprott P turning](docs/img/model/sprottp.gif) | ![Sprott P parameters](docs/img/model/sprottp-params.jpg) |
+| Sprott P | turning |
+| --- | --- |
+| ![Sprott P](docs/img/model/sprottp.jpg) | ![Sprott P turning](docs/img/model/sprottp.gif) |
 
 Sprott P — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -1106,9 +1118,9 @@ dz/dt = x + y
 
 #### Sprott Q
 
-| Sprott Q | turning | parameters |
-| --- | --- | --- |
-| ![Sprott Q](docs/img/model/sprottq.jpg) | ![Sprott Q turning](docs/img/model/sprottq.gif) | ![Sprott Q parameters](docs/img/model/sprottq-params.jpg) |
+| Sprott Q | turning |
+| --- | --- |
+| ![Sprott Q](docs/img/model/sprottq.jpg) | ![Sprott Q turning](docs/img/model/sprottq.gif) |
 
 Sprott Q — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -1124,9 +1136,9 @@ dz/dt = 3.1x + y² + 0.5z
 
 #### Sprott R
 
-| Sprott R | turning | parameters |
-| --- | --- | --- |
-| ![Sprott R](docs/img/model/sprottr.jpg) | ![Sprott R turning](docs/img/model/sprottr.gif) | ![Sprott R parameters](docs/img/model/sprottr-params.jpg) |
+| Sprott R | turning |
+| --- | --- |
+| ![Sprott R](docs/img/model/sprottr.jpg) | ![Sprott R turning](docs/img/model/sprottr.gif) |
 
 Sprott R — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -1142,9 +1154,9 @@ dz/dt = xy − z
 
 #### Sprott S
 
-| Sprott S | turning | parameters |
-| --- | --- | --- |
-| ![Sprott S](docs/img/model/sprotts.jpg) | ![Sprott S turning](docs/img/model/sprotts.gif) | ![Sprott S parameters](docs/img/model/sprotts-params.jpg) |
+| Sprott S | turning |
+| --- | --- |
+| ![Sprott S](docs/img/model/sprotts.jpg) | ![Sprott S turning](docs/img/model/sprotts.gif) |
 
 Sprott S — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -1283,15 +1295,19 @@ p' = p + K·sin θ
 
 #### Bifurcation
 
-| Bifurcation | turning |
-| --- | --- |
-| ![Bifurcation](docs/img/model/bifurcation.jpg) | ![Bifurcation turning](docs/img/model/bifurcation.gif) |
+| Bifurcation | turning | parameters |
+| --- | --- | --- |
+| ![Bifurcation](docs/img/model/bifurcation.jpg) | ![Bifurcation turning](docs/img/model/bifurcation.gif) | ![Bifurcation parameters](docs/img/model/bifurcation-params.jpg) |
 
 Bifurcation Explorer — the fig-tree diagram, computed live. One parameter of the most recent flow mode sweeps its whole knob range across the x axis; each column integrates the system fresh at that value and plots the local maxima of z. Thin branches are periodic orbits, fan-outs are period-doubling cascades, filled bands are chaos — the route between them is the route to chaos. Pick the swept parameter in the Parameters module; visit an attractor and tune it to change the source system.
 
 `#bifurcation` · parametric
 
 #### Poincaré Section
+
+| parameters |
+| --- |
+| ![Poincaré Section parameters](docs/img/model/poincare-params.jpg) |
 
 Poincaré Section — the continuous flow read as a discrete point set. The most recent flow mode is integrated privately and sampled only where it pierces a plane, going one way through it; what is left is the cross-section of the attractor, and the sheets that are invisible in the tangle are the whole picture here.
 
@@ -1311,9 +1327,9 @@ The same section is available as an overlay on the live attractor: Trace > Sect.
 
 #### STL File
 
-| STL File | turning |
-| --- | --- |
-| ![STL File](docs/img/model/stlfile.jpg) | ![STL File turning](docs/img/model/stlfile.gif) |
+| STL File | turning | parameters |
+| --- | --- | --- |
+| ![STL File](docs/img/model/stlfile.jpg) | ![STL File turning](docs/img/model/stlfile.gif) | ![STL File parameters](docs/img/model/stlfile-params.jpg) |
 
 STL File — Load a stereolithograph (.stl, binary or ASCII) from disk with the Loader module's Load button and it renders as a rotating wireframe. Very large files are decimated to fit the 16-bit index pipeline.
 
@@ -1327,6 +1343,10 @@ Terminal — a live terminal, drawn as a model. It is the same texture-on-a-plan
 
 #### Terminal Animation
 
+| parameters |
+| --- |
+| ![Terminal Animation parameters](docs/img/model/termanim-params.jpg) |
+
 Terminal Animation — the same terminal-on-a-plane, with a drawing program on it instead of a shell. The catalog is [tuiwasm](https://github.com/0magnet/tuiwasm): twenty-one animations — fire, plasma, a matrix rain, an aquarium, a bonsai growing branch by branch, Langton's ant, falling sand — plus charts, tables and styled text. Pick one from the **animation** selector on this model's panel. The animations draw at half-block resolution: every cell is an upper or lower block glyph carrying its own foreground and background, which is two independently colored pixels per cell and roughly square ones, since a terminal cell is about twice as tall as it is wide. They run at the frame rate — the cells are written straight into xterm-go's buffer rather than encoded as escape sequences and parsed back, which is the difference between sixty frames a second and a wedged tab. Nothing is wired to the keyboard here, unlike the Terminal model: these draw, they do not read, and the animations quit on a keystroke. Like the terminal it can also be the BACKDROP behind another model.
 
 `#termanim` · geometry
@@ -1339,6 +1359,10 @@ Host Shell — a real shell on the machine serving this page, drawn as a model. 
 
 #### Desk
 
+| parameters |
+| --- |
+| ![Desk parameters](docs/img/model/desk-params.jpg) |
+
 Desk — a window manager, drawn as a model. The same texture-on-a-plane path the spectrogram, the recurrence plot and the Terminal use, with a whole [desk](https://github.com/0magnet/desk) on it: winbox windows, a [websh](https://github.com/0magnet/websh) shell in each, a file manager, all of them running while you rotate them.
 
 It needed something from desk to be possible at all. A window is more than its pane — its title, buttons and border are DOM, and DOM cannot be sampled into a texture — so texturing the panes alone would give a desk of frameless rectangles. desk's WebGL compositor can now REDRAW the frames instead: each title bar is rasterized with Canvas2D, text and buttons and all, into the same canvas it draws the panes into, and that canvas is a complete picture of the desk.
@@ -1350,6 +1374,10 @@ Aiming is the honest limitation — you are pointing at a projection, so a title
 `#desk` · geometry
 
 #### Lattice
+
+| parameters |
+| --- |
+| ![Lattice parameters](docs/img/model/lattice-params.jpg) |
 
 Lattice — a solid drawn in depth by terminals. [lattice](https://github.com/0magnet/lattice) is an ordinary terminal program that draws one cross-section of a turning solid in characters. Here 3N copies of it run, each in a terminal of its own, and the terminals are stacked as transparent sheets: N across each axis, three families each perpendicular to the other two. Whichever way the stack is turned, one family faces you and the other two are edge on, so the solid has depth from every side, and each family is brightened as it comes face on and dimmed as it goes edge on, so the solid stays as bright as it turns.
 
@@ -1524,9 +1552,9 @@ y'' = −g, bounce: v ← −e·v at the floor
 
 #### XY Scope
 
-| XY Scope | turning |
-| --- | --- |
-| ![XY Scope](docs/img/model/xy.jpg) | ![XY Scope turning](docs/img/model/xy.gif) |
+| XY Scope | turning | parameters |
+| --- | --- | --- |
+| ![XY Scope](docs/img/model/xy.jpg) | ![XY Scope turning](docs/img/model/xy.gif) | ![XY Scope parameters](docs/img/model/xy-params.jpg) |
 
 X/Y Scope — the classic two-channel oscilloscope figure, drawing the live audio's (left, right) sample pairs as a line strip. This is the goniometer, or stereo vectorscope, that sits on a mastering desk: correlated channels lie on a diagonal, anti-correlated on the other, and a phase difference opens the diagonal into an ellipse — which is how the display doubles as a stereo phase meter and a mono compatibility check, since what lies along the anti-correlated diagonal is exactly what disappears when the mix is summed to mono. The deflection is squared against the shorter side of the window, so the mono diagonal reads at 45° and a quarter-cycle phase difference draws a circle — not an ellipse the window's shape put there. An angle that cannot be trusted is the one thing a phase display may not have. A mono source is plotted against a lagged copy of itself, since a raw mono signal would otherwise be a featureless diagonal; the Stereo Embedding next door is the same figure with a third axis, and it does not fake a channel that is not there.
 
@@ -1566,6 +1594,10 @@ Audio comes from the active source — websocket stream, microphone, or the sign
 
 #### Stereo Embedding
 
+| parameters |
+| --- |
+| ![Stereo Embedding parameters](docs/img/model/stereo-params.jpg) |
+
 Stereo Embedding — the Takens trail built from the two channels instead of one channel's past. Takens' theorem manufactures the missing axes out of a signal's own history because there is only one signal; a stereo source has already measured two, so this mode plots them against each other and what you see is the real relationship between the channels — phase, polarity, correlation, width — rather than a reconstruction. Looked at head-on it is the goniometer (vectorscope) of a mastering desk, which is the XY Scope's figure; the third axis is what a scope with two deflection plates cannot give you.
 
 AXES picks the assignment. L,R,L(t−τ) is the goniometer with a delay coordinate for depth: a tone that draws one ellipse edge-on unrolls into a helix, and τ still means what it means in the Takens mode. L,R,time sweeps the figure along a ribbon so successive cycles stack instead of overwriting — the only way to see a slow phase drift, which on a flat display just wobbles. The mid/side positions rotate the basis 45°: M=(L+R)/2 and S=(L−R)/2, so center content lies along one axis and difference content along the other and width is an extent rather than a tilt. τ is inert on the two time positions.
@@ -1581,6 +1613,10 @@ Audio comes from the active source — the microphone, the signal generators, or
 `#stereo` · parametric
 
 #### Polar Embedding
+
+| parameters |
+| --- |
+| ![Polar Embedding parameters](docs/img/model/polar-params.jpg) |
 
 Polar Embedding — the Takens delay vector drawn in a sphere instead of a cube. The Takens mode plots (s(t), s(t−τ), s(t−2τ)) coordinate by coordinate, and each coordinate is one sample bounded to ±1 and multiplied by GAIN, so the reachable set is a cube: loud passages pile up against its faces and hardest of all against its corners, where all three coordinates peak together. That box is an artifact of writing the vector down in coordinates; nothing in the sound knows about the axes.
 
@@ -1600,9 +1636,9 @@ Audio comes from the active source — the microphone, a server feed, or the sig
 
 #### Spectrogram
 
-| Spectrogram | turning | parameters |
-| --- | --- | --- |
-| ![Spectrogram](docs/img/model/spectrogram.jpg) | ![Spectrogram turning](docs/img/model/spectrogram.gif) | ![Spectrogram parameters](docs/img/model/spectrogram-params.jpg) |
+| Spectrogram | turning |
+| --- | --- |
+| ![Spectrogram](docs/img/model/spectrogram.jpg) | ![Spectrogram turning](docs/img/model/spectrogram.gif) |
 
 Spectrogram — a scrolling short-time Fourier transform of the live audio: frequency up the plane, time scrolling right to left, magnitude as color. It is a display inspired by Vanya Sergeev's audioprism, written in Go (github.com/0magnet/audioprism-go) and drawn here as a texture on a plane in the same 3-D pipeline as every other model, so it rotates and zooms like one — and the same texture can be painted onto other geometry with the skin switch. The Spectrogram module exposes the whole chain: transform size, overlap, window function, magnitude scale and limits, and color scheme.
 
@@ -1636,6 +1672,10 @@ RQA reads the picture back as three numbers — RR, the percentage lit and the n
 
 #### RTA — Octave Bands
 
+| parameters |
+| --- |
+| ![RTA — Octave Bands parameters](docs/img/model/rta-params.jpg) |
+
 RTA — Octave Bands. The real-time analyzer a room is measured with: the spectrum split into fractional-octave bands and shown as a bar per band. A spectrogram shows every bin, which is right for watching sound move and wrong for asking what a room is doing to it — linearly spaced bins put nine-tenths of the picture above 2 kHz and squeeze the bass into a few pixels. Bands of equal RATIO drawn at equal widths is a logarithmic frequency axis, which is how hearing is organized and how every acoustics standard reports.
 
 BAND picks the width: 1/1 is a hi-fi graphic equalizer's ten, 1/3 is what room measurement and ISO use, and the two finer settings find a single narrow resonance — a 1/12-octave band is about 6% wide, roughly the ear's own resolution in the midrange. The centers are the standard ones (ISO 266 / ANSI S1.11, the base-ten series), so a reading here is comparable with anybody else's.
@@ -1648,6 +1688,10 @@ TOP and RNGE place the scale in dBFS; AVG is the meter's averaging, quick to ris
 
 #### Transfer Function
 
+| parameters |
+| --- |
+| ![Transfer Function parameters](docs/img/model/xfer-params.jpg) |
+
 Transfer Function — what the thing between two channels did to the sound. Every other measurement here asks about ONE signal; this one asks about the RELATIONSHIP between two, which is the question a system is actually tuned by. Send a signal into a loudspeaker, a room, a filter or a cable, capture what comes back, and read what happened in between. That is what a system-tuning rig does, and chaosrack already carries two channels end to end.
 
 MAGNITUDE is the frequency response in dB — flat is a system that changed nothing. PHASE is how far the output lags the input; a pure DELAY is a phase that falls linearly with frequency, and the slope IS the delay, which is what the DLY readout fits and what gets dialed into a delay line to line a speaker up. COHERENCE is the number that says whether to believe the other two: 1 means the output is fully explained by the input, and noise, a second source, a nonlinearity or a system that moved during the measurement all drive it down. A dip in the magnitude with the coherence still high is the system; the same dip with the coherence collapsed is the measurement giving up, and the curves are drawn together so the two can be told apart.
@@ -1659,6 +1703,10 @@ REF says which channel is the reference, BAND how finely the bands are smoothed,
 `#xfer` · audio
 
 #### Waterfall — Spectral Decay
+
+| parameters |
+| --- |
+| ![Waterfall — Spectral Decay parameters](docs/img/model/waterfall-params.jpg) |
 
 Waterfall — Cumulative Spectral Decay. The measurement a loudspeaker is characterized by, and the one display here that could only exist in this app: every other analyzer draws its own flat panel and this is a genuine 3-D surface, so it rides the same pipeline the attractors do and drags, rotates, zooms and takes the gradient like any other model. Frequency runs left to right, logarithmically, because hearing is organized in ratios; level runs up; and TIME runs into the screen. Each line is the spectrum of what is left of the impulse response from a moment onwards, so a flat loudspeaker's surface falls away evenly and a RESONANCE is a ridge running back into the screen at one frequency. That is what this is for: a frequency response cannot tell a resonance from a broad lift, because they are identical in magnitude and nothing alike in time.
 
@@ -2849,11 +2897,11 @@ description is the module header's own tooltip.
 
 <details><summary>Controls</summary>
 
-- **000.19866.6** — 4.10.1.a · Timing / fps / LED readout / Frames a second sustained over the last window — the reciprocal of the MEAN frame, so a hitch counts against it
-- **9866.69866.6** — 4.10.1.c · Timing / min / LED readout / Shortest frame in the window, in ms — which is the display's own interval, since nothing renders faster than vsync
-- **000.09859.90** — 4.10.2.b · Timing / late / LED readout / Percentage of frames that missed the display's interval by half again or more. This is the number that corresponds to visible hesitation; the frame rate alone does not.
-- **03.4002.30** — 4.10.3.a · Timing / model / LED readout / Milliseconds a frame spent ISSUING the model's draw calls. A WebGL call queues a command and returns without waiting for pixels, so this reads far below what the model really costs — the GPU and compositor share of it is in REST. Useful for what it does catch: geometry rebuilt every frame instead of cached.
-- **01.00 TBC** — 4.10.3.c
+- **001.01050.0** — 4.10.1.a · Timing / fps / LED readout / Frames a second sustained over the last window — the reciprocal of the MEAN frame, so a hitch counts against it
+- **1050.01050.0** — 4.10.1.c · Timing / min / LED readout / Shortest frame in the window, in ms — which is the display's own interval, since nothing renders faster than vsync
+- **000.01047.20** — 4.10.2.b · Timing / late / LED readout / Percentage of frames that missed the display's interval by half again or more. This is the number that corresponds to visible hesitation; the frame rate alone does not.
+- **02.7000.00** — 4.10.3.a · Timing / model / LED readout / Milliseconds a frame spent ISSUING the model's draw calls. A WebGL call queues a command and returns without waiting for pixels, so this reads far below what the model really costs — the GPU and compositor share of it is in REST. Useful for what it does catch: geometry rebuilt every frame instead of cached.
+- **00.10 TBC** — 4.10.3.c
 - **TBC** — 4.10.3.c · TBC — timebase correction. On, the model turns at its rate per SECOND: each frame advances it by however long that frame took, so a late frame is a longer step and a faster display the same speed. Off, every frame advances it the same step, as the rack did before: a late frame is a pause, and a 144 Hz display spins it more than twice as fast as a 60 Hz one. On is the steady angular velocity; off is every frame advanced alike, which is what to compare frames by.
 
 </details>
@@ -3089,6 +3137,309 @@ description is the module header's own tooltip.
 
 </details>
 
+### Scope 4
+
+| | |
+|---|---|
+| <img src="docs/img/module/scope4.jpg" alt="The Scope 4 module" width="320"> | 5.10 · Scope 4 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across. |
+
+<details><summary>Controls</summary>
+
+- **inten** — 5.10.2 · The beam. The knob is INTENSITY: beam brightness, and how long the phosphor holds the trace. Under it, two mini knobs. I is SCALE ILLUM, which lights the graticule; turned down past the bottom of its travel it clicks into OFF and switches the scope off — the tube goes dark and costs the rack nothing. F is FOCUS: how tight the spot is; off focus the trace blurs, the way a real tube does. The display reads the intensity, or whichever mini knob is being turned.
+  - `0` — 5.10.2 · 0 — the lowest this knob goes; turned fully counter-clockwise
+  - `1` — 5.10.2 · 1 — the highest this knob goes; turned fully clockwise
+  - `-0.2` — -0.2 — the lowest this knob goes; turned fully counter-clockwise
+  - `1` — 1 — the highest this knob goes; turned fully clockwise
+  - `0` — 0 — the lowest this knob goes; turned fully counter-clockwise
+  - `1` — 1 — the highest this knob goes; turned fully clockwise
+- **trig** — 5.11.2 · Trigger — LEVEL is the value the signal must cross, in the SLOPE direction, for a sweep to start; set it inside the waveform or nothing triggers. SLOPE, the buttons at the right: + triggers on the signal rising through the level, − on it falling. MODE, the buttons at the left: AUTO sweeps anyway when nothing crosses, so silence shows a baseline; NORM sweeps only on a trigger and holds the last trace otherwise.
+  - `-1` — 5.11.2 · -1 — the lowest this knob goes; turned fully counter-clockwise
+  - `1` — 5.11.2 · 1 — the highest this knob goes; turned fully clockwise
+- **volts** — 5.10.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it INPUT 1, a mini knob with a display of its own: what input 1 is fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on that display, which lists them all when clicked, and on the face, top left. INPUT 2 is under TIME. The reset puts both back.
+  - `2 mFS` — 5.10.3 · 2 mFS
+  - `5` — 5.10.3 · 5 mFS
+  - `10` — 5.10.3 · 10 mFS
+  - `20` — 5.10.3 · 20 mFS
+  - `50` — 5.10.3 · 50 mFS
+  - `100` — 5.10.3 · 100 mFS
+  - `200` — 5.10.3 · 200 mFS
+  - `500` — 5.10.3 · 500 mFS
+  - `1 FS` — 5.10.3 · 1 FS
+- **time** — 5.11.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen. Under it INPUT 2, what input 2 is fed from, as INPUT 1 is under VOLTS. The reset puts both back.
+  - `10 µs` — 5.11.3 · 10 µs
+  - `20` — 5.11.3 · 20 µs
+  - `50` — 5.11.3 · 50 µs
+  - `100` — 5.11.3 · 100 µs
+  - `200` — 5.11.3 · 200 µs
+  - `500` — 5.11.3 · 500 µs
+  - `1 ms` — 5.11.3 · 1 ms
+  - `2` — 5.11.3 · 2 ms
+  - `5` — 5.11.3 · 5 ms
+  - `10` — 5.11.3 · 10 ms
+  - `20` — 5.11.3 · 20 ms
+  - `50` — 5.11.3 · 50 ms
+  - `100` — 5.11.3 · 100 ms
+  - `200` — 5.11.3 · 200 ms
+  - `500` — 5.11.3 · 500 ms
+
+</details>
+
+### Gen 4
+
+| | |
+|---|---|
+| <img src="docs/img/module/gen-v.jpg" alt="The Gen 4 module" width="320"> | 5.12 · Gen 4 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz up to 28160 Hz, over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.  Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 4 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does. |
+
+<details><summary>Controls</summary>
+
+- **freq** — 5.12.1
+- **lvl** — 5.12.2
+  - `0` — 5.12.2 · 0 — the lowest this knob goes; turned fully counter-clockwise
+  - `100` — 5.12.2 · 100 — the highest this knob goes; turned fully clockwise
+  - `1` — 1 — the lowest this knob goes; turned fully counter-clockwise
+  - `2k` — 2k — the highest this knob goes; turned fully clockwise
+  - `1` — 1 — the lowest this knob goes; turned fully counter-clockwise
+  - `5k` — 5k — the highest this knob goes; turned fully clockwise
+- **wave** — 5.12.3
+  - `off` — 5.12.3 · OFF — Gen 4 plays nothing
+  - 5.12.3 · sine — one pure frequency and no harmonics at all
+  - 5.12.3 · triangle — odd harmonics falling away steeply: soft and hollow
+  - 5.12.3 · square — odd harmonics falling away slowly: hollow and reedy
+  - 5.12.3 · sawtooth — every harmonic, the brightest of the four
+  - 5.12.3 · noise — a 15-bit shift register; the freq knob sets its playback rate
+  - 5.12.3 · white noise — equal power per hertz; reads as a rising tilt on an RTA. The freq knob does not change it
+  - 5.12.3 · pink noise — equal power per octave; the stimulus an RTA reads FLAT, and what a room is measured with. The freq knob does not change it
+  - 5.12.3 · log sweep, 20 Hz to 20 kHz in four seconds — the stimulus an impulse response is derived from. The freq knob does not change it
+  - 5.12.3 · polarity pulse — a one-sided click; shows which way round a speaker is wired. The freq knob does not change it
+
+</details>
+
+### Synth
+
+| | |
+|---|---|
+| <img src="docs/img/module/synth-synth.jpg" alt="The Synth module" width="320"> | 6.1 · Synth — the sound the keyboard plays. PRESET sets every knob on the bay to an instrument, as a place to start from; LVL is how loud. Where it is heard is the Mixer's: its KEYS column. |
+
+<details><summary>Controls</summary>
+
+- **prst** — 6.1.1 · Preset — sets every knob on the bay to an instrument; turn any of them after to change it from there.
+- **lvl** — 6.1.2 · Level — how loud the keyboard plays (0–100).
+  - `0` — 6.1.2 · 0 — the lowest this knob goes; turned fully counter-clockwise
+  - `100` — 6.1.2 · 100 — the highest this knob goes; turned fully clockwise
+
+</details>
+
+### String
+
+| | |
+|---|---|
+| <img src="docs/img/module/synth-string.jpg" alt="The String module" width="320"> | 6.2 · String — the additive voice that is the piano: partials not quite harmonic, each fading at its own rate. STR its level; PART how many partials; TILT how fast they fall away up the series; INHM the string's stiffness, which sharpens the upper partials (×10⁻⁴); STRK where along the string it is struck, which silences the partials with a node there; UNI the detune between the two strings of each low partial, in cents; DAMP how much faster each higher partial dies. |
+
+<details><summary>Controls</summary>
+
+- **str** — 6.2.1 · String level — the additive layer's share of the sound.
+  - `0` — 6.2.1 · 0 — the lowest this knob goes; turned fully counter-clockwise
+  - `1` — 6.2.1 · 1 — the highest this knob goes; turned fully clockwise
+- **part** — 6.2.2 · Partials — how many of the string's overtones sound.
+  - `1` — 6.2.2 · 1 — the lowest this knob goes; turned fully counter-clockwise
+  - `16` — 6.2.2 · 16 — the highest this knob goes; turned fully clockwise
+- **tilt** — 6.2.3 · Tilt — how fast the partials fall away up the series: low is bright, high is mellow.
+  - `0.3` — 6.2.3 · 0.3 — the lowest this knob goes; turned fully counter-clockwise
+  - `3` — 6.2.3 · 3 — the highest this knob goes; turned fully clockwise
+- **inhm** — 6.3.1 · Inharmonicity — the string's stiffness, ×10⁻⁴, which sharpens each partial by B·n²: none is an organ pipe's series, a piano's is about 2.5.
+  - `0` — 6.3.1 · 0 — the lowest this knob goes; turned fully counter-clockwise
+  - `20` — 6.3.1 · 20 — the highest this knob goes; turned fully clockwise
+- **strk** — 6.3.2 · Strike point — where along the string it is struck, as a fraction: the partials with a node there are thinned. A piano's hammer is at about an eighth; 0 is off.
+  - `0` — 6.3.2 · 0 — the lowest this knob goes; turned fully counter-clockwise
+  - `0.5` — 6.3.2 · 0.5 — the highest this knob goes; turned fully clockwise
+- **uni** — 6.3.3 · Unison — the detune between the two strings of each of the three lowest partials, in cents: their slow beating is a piano's shimmer.
+  - `0` — 6.3.3 · 0 — the lowest this knob goes; turned fully counter-clockwise
+  - `5` — 6.3.3 · 5 — the highest this knob goes; turned fully clockwise
+- **damp** — 6.4.1 · Damping — how much faster each higher partial dies than the one below it, so the tone darkens as it rings.
+  - `0` — 6.4.1 · 0 — the lowest this knob goes; turned fully counter-clockwise
+  - `2` — 6.4.1 · 2 — the highest this knob goes; turned fully clockwise
+
+</details>
+
+### FM
+
+| | |
+|---|---|
+| <img src="docs/img/module/synth-fm.jpg" alt="The FM module" width="320"> | 6.5 · FM — a sine modulated by another: the electric piano. FM its level; RATO the modulator's frequency over the note's; INDX how deep the modulation starts; IDEC how fast it fades, which is how fast the bark becomes a pure tone. |
+
+<details><summary>Controls</summary>
+
+- **fm** — 6.5.1 · FM level — the FM layer's share of the sound.
+  - `0` — 6.5.1 · 0 — the lowest this knob goes; turned fully counter-clockwise
+  - `1` — 6.5.1 · 1 — the highest this knob goes; turned fully clockwise
+- **rato** — 6.5.2 · Ratio — the modulator's frequency over the note's: whole numbers are harmonic, others bell-like.
+  - `0.5` — 6.5.2 · 0.5 — the lowest this knob goes; turned fully counter-clockwise
+  - `16` — 6.5.2 · 16 — the highest this knob goes; turned fully clockwise
+- **indx** — 6.5.3 · Index — how deep the modulation starts: higher is brighter and harsher.
+  - `0` — 6.5.3 · 0 — the lowest this knob goes; turned fully counter-clockwise
+  - `10` — 6.5.3 · 10 — the highest this knob goes; turned fully clockwise
+- **idec** — 6.6.1 · Index decay — how fast the modulation fades, in seconds.
+  - `0.01` — 6.6.1 · 0.01 — the lowest this knob goes; turned fully counter-clockwise
+  - `3` — 6.6.1 · 3 — the highest this knob goes; turned fully clockwise
+
+</details>
+
+### Wave · Noise
+
+| | |
+|---|---|
+| <img src="docs/img/module/synth-wave.jpg" alt="The Wave · Noise module" width="320"> | 6.7 · Wave · Noise — WAVE is one oscillator, a generator waveform, the organ's drawbars or tuned noise, at a level; NOISE is a burst of filtered noise at the start of each note — a hammer, a quill, a tine's click — at TONE times the note, dying over NDEC. |
+
+<details><summary>Controls</summary>
+
+- **shp** — 6.7.1 · Wave shape — the oscillator: sine, triangle, square, saw, the organ's drawbars (16′ 8′ 5⅓′ 4′ 2⅔′) or tuned shift-register noise.
+  - `sine` — 6.7.1 · sine — one pure frequency
+  - `tri` — 6.7.1 · triangle — soft and hollow
+  - `sqr` — 6.7.1 · square — hollow and reedy
+  - `saw` — 6.7.1 · saw — every harmonic, the brightest
+  - `org` — 6.7.1 · organ — drawbars 16′ 8′ 5⅓′ 4′ and a little 2⅔′
+  - `nse` — 6.7.1 · noise — a 15-bit shift register, tuned to the key
+- **wave** — 6.7.2 · Wave level — the oscillator layer's share of the sound.
+  - `0` — 6.7.2 · 0 — the lowest this knob goes; turned fully counter-clockwise
+  - `1` — 6.7.2 · 1 — the highest this knob goes; turned fully clockwise
+- **nse** — 6.7.3 · Noise level — the burst at the start of each note.
+  - `0` — 6.7.3 · 0 — the lowest this knob goes; turned fully counter-clockwise
+  - `1` — 6.7.3 · 1 — the highest this knob goes; turned fully clockwise
+- **tone** — 6.8.1 · Noise tone — where the burst is centered, in multiples of the note: low is a felt thump, high a click.
+  - `1` — 6.8.1 · 1 — the lowest this knob goes; turned fully counter-clockwise
+  - `16` — 6.8.1 · 16 — the highest this knob goes; turned fully clockwise
+- **ndec** — 6.8.2 · Noise decay — how fast the burst dies, in seconds.
+  - `0.002` — 6.8.2 · 0.002 — the lowest this knob goes; turned fully counter-clockwise
+  - `0.2` — 6.8.2 · 0.2 — the highest this knob goes; turned fully clockwise
+
+</details>
+
+### Filter
+
+| | |
+|---|---|
+| <img src="docs/img/module/synth-filter.jpg" alt="The Filter module" width="320"> | 6.9 · Filter — a lowpass on each note that opens at BRGT times the note and closes towards DARK times it over FDEC: a plucked string brightest at the pluck. RESO is its resonance. |
+
+<details><summary>Controls</summary>
+
+- **brgt** — 6.9.1 · Bright — where the filter opens, in multiples of the note.
+  - `1` — 6.9.1 · 1 — the lowest this knob goes; turned fully counter-clockwise
+  - `48` — 6.9.1 · 48 — the highest this knob goes; turned fully clockwise
+- **dark** — 6.9.2 · Dark — where the filter settles, in multiples of the note: the same as bright is no sweep at all.
+  - `1` — 6.9.2 · 1 — the lowest this knob goes; turned fully counter-clockwise
+  - `48` — 6.9.2 · 48 — the highest this knob goes; turned fully clockwise
+- **fdec** — 6.9.3 · Filter decay — how long the filter takes to close, in seconds.
+  - `0.01` — 6.9.3 · 0.01 — the lowest this knob goes; turned fully counter-clockwise
+  - `5` — 6.9.3 · 5 — the highest this knob goes; turned fully clockwise
+- **reso** — 6.10.1 · Resonance — the filter's peak at its cutoff.
+  - `0.1` — 6.10.1 · 0.1 — the lowest this knob goes; turned fully counter-clockwise
+  - `12` — 6.10.1 · 12 — the highest this knob goes; turned fully clockwise
+
+</details>
+
+### Amp
+
+| | |
+|---|---|
+| <img src="docs/img/module/synth-amp.jpg" alt="The Amp module" width="320"> | 6.11 · Amp — the envelope every layer follows: ATK up, then towards SUS with time constant DEC (at C3), which KTRK shortens up the keyboard and lengthens down it, as a piano's strings ring longer in the bass; REL is how long letting go takes. |
+
+<details><summary>Controls</summary>
+
+- **atk** — 6.11.1 · Attack — how long the note takes to rise, in seconds.
+  - `0.001` — 6.11.1 · 0.001 — the lowest this knob goes; turned fully counter-clockwise
+  - `1` — 6.11.1 · 1 — the highest this knob goes; turned fully clockwise
+- **dec** — 6.11.2 · Decay — the time constant of the fall towards sustain, in seconds, at C3.
+  - `0.05` — 6.11.2 · 0.05 — the lowest this knob goes; turned fully counter-clockwise
+  - `10` — 6.11.2 · 10 — the highest this knob goes; turned fully clockwise
+- **ktrk** — 6.11.3 · Key tracking — how much shorter the decay is up the keyboard: 1 is an octave shorter every eighteen semitones, a piano's; 0 is the same everywhere.
+  - `0` — 6.11.3 · 0 — the lowest this knob goes; turned fully counter-clockwise
+  - `2` — 6.11.3 · 2 — the highest this knob goes; turned fully clockwise
+- **sus** — 6.12.1 · Sustain — the level held while the key is down: 0 dies away like a string, 1 holds like an organ.
+  - `0` — 6.12.1 · 0 — the lowest this knob goes; turned fully counter-clockwise
+  - `1` — 6.12.1 · 1 — the highest this knob goes; turned fully clockwise
+- **rel** — 6.12.2 · Release — how long the note takes to stop once let go, in seconds.
+  - `0.01` — 6.12.2 · 0.01 — the lowest this knob goes; turned fully counter-clockwise
+  - `3` — 6.12.2 · 3 — the highest this knob goes; turned fully clockwise
+
+</details>
+
+### Keys
+
+| | |
+|---|---|
+| <img src="docs/img/module/keys.jpg" alt="The Keys module" width="320"> | 7.1 · Keys — a playable polyphonic keyboard: click or drag the keybed (glissando works), or play the computer keyboard on the labeled keys (Z row = lower octave, Q row = upper). The bed is the whole piano, A0 to C8, across the whole bay; what it sounds like, how loud and on which speakers is the Synth bay above it. |
+
+### Matrix
+
+| | |
+|---|---|
+| <img src="docs/img/module/tm.jpg" alt="The Matrix module" width="320"> | 8.1 · Matrix — a pentatonic tonematrix step sequencer with a rhythm section under it: paint pads on the grid (click or drag; rows are pitches, columns are sixteenths) and the playhead loops them as pings at the tempo, over as many columns as the steps knob says. The four lanes at the foot are the drums (bass drum, snare, hi-hat, cymbal), on the same beat; they count in sixteenths or, for a shuffle or swing, in triplets, and each beat of them sits under the same beat of the tune. A preset tab loads a pattern into them to play or to edit. The pentatonic rows mean any pattern is consonant. |
+
+<details><summary>Controls</summary>
+
+- **tempo** — 8.1.1
+  - `40` — 8.1.1 · 40 — the lowest this knob goes; turned fully counter-clockwise
+  - `300` — 8.1.1 · 300 — the highest this knob goes; turned fully clockwise
+- **steps** — 8.1.2
+  - `C1` — 8.1.2 · C1 — the bottom row starts two octaves below middle C
+  - `C2` — 8.1.2 · C2 — the bottom row starts one octave below middle C
+  - `C3` — 8.1.2 · C3 — the bottom row starts at middle C
+  - `C4` — 8.1.2 · C4 — the bottom row starts one octave above middle C
+  - `12` — 8.1.2 · 12 steps — three beats: one bar of a waltz
+  - `16` — 8.1.2 · 16 steps — four beats: one bar of four
+  - `24` — 8.1.2 · 24 steps — six beats: two bars of a waltz
+  - `32` — 8.1.2 · 32 steps — eight beats: two bars of four
+  - `48` — 8.1.2 · 48 steps — twelve beats: three bars of four, or four of a waltz
+  - `64` — 8.1.2 · 64 steps — sixteen beats: the whole grid
+- **lvl** — 8.1.3
+  - `0` — 8.1.3 · 0 — the lowest this knob goes; turned fully counter-clockwise
+  - `100` — 8.1.3 · 100 — the highest this knob goes; turned fully clockwise
+- **wave** — 8.2.1
+  - 8.2.1 · sine — one pure frequency and no harmonics at all
+  - 8.2.1 · triangle — odd harmonics falling away steeply: soft and hollow
+  - 8.2.1 · square — odd harmonics falling away slowly: hollow and reedy
+  - 8.2.1 · sawtooth — every harmonic, the brightest of the four
+  - 8.2.1 · noise — a 15-bit shift register; the pad's pitch sets its playback rate
+- **RunClear** — 8.2.2
+- **Run** — 8.2.2 · Run — start/stop the playhead loop, tune and drums together (painting works either way). Pressing a preset tab starts it too.
+- **drums** — 8.2.3
+  - `0` — 8.2.3 · 0 — the lowest this knob goes; turned fully counter-clockwise
+  - `100` — 8.2.3 · 100 — the highest this knob goes; turned fully clockwise
+
+</details>
+
+### Mixer
+
+| | |
+|---|---|
+| <img src="docs/img/module/mixer.jpg" alt="The Mixer module" width="320"> | 9.1 · Mixer — every sound on the rack, and where it goes. Each column is a source (the capture, the generators, the model's x, y and z, the instruments); each row is a destination: SPK L and R are the speakers, RACK L and R the rack's own signal, which the meters, the audio models, the scopes and the Mod matrix read, and MOD A and B two sends only the Mod matrix reads, for a source that should turn a knob without being heard or measured. A pin where they cross puts the source there: press it to pin at full level, press again to take it away, and turn the wheel over it, or LVL below, to set its gain; a negative gain inverts it. Several pins on a row are mixed. The capture has no speaker pins: it is the system's own audio, already playing. |
+
+<details><summary>Controls</summary>
+
+- **pin** — PIN — the pin LVL is setting: the last one pressed or turned, as source>row
+- **lvl** — 9.2.2 · LVL — the selected pin's gain, −1 to 1: 1 is the source as it is, 0 takes the pin away, and below 0 inverts it — GEN 1 at 1 on RACK L and −1 on RACK R is L−R, and nothing in a mono sum
+  - `-1` — 9.2.2 · -1 — the lowest this knob goes; turned fully counter-clockwise
+  - `1` — 9.2.2 · 1 — the highest this knob goes; turned fully clockwise
+
+</details>
+
+### Mod
+
+| | |
+|---|---|
+| <img src="docs/img/module/mod-matrix.jpg" alt="The Mod module" width="320"> | 9.4 · Mod — audio modulation: the rack's signal turning the rack's knobs. Each column is a source: RACK — the rack's signal, as the Mixer makes it, both sides summed (st) or one (L, R) — SEND, the Mixer's MOD A and B, which only modulation reads — or HEAD, where the model is drawn now (x, y, z, and r, its distance from the center). Each row is a control: the running model's parameters, then the view's. A pin routes the column to the row; another pin in the same row moves the route; a lit pin pressed again takes it away. DEST, DPTH, SHAPE and EQ under it are the selected row's route: which control, how deep, which way it moves, and which frequency bands drive it. |
+
+<details><summary>Controls</summary>
+
+- **dest** — 9.4.3 · DEST — which control the route below is for. The matrix's row names say the same; this knob steps through them.
+- **dpth** — 9.5.3 · DPTH — how strongly the source drives the selected control; minus inverts it, 0 is no route at all. About 1.5 overdrives.
+  - `-4` — 9.5.3 · -4 — the lowest this knob goes; turned fully counter-clockwise
+  - `4` — 9.5.3 · 4 — the highest this knob goes; turned fully clockwise
+- **shape** — 9.6.3 · SHAPE — which way the source moves the selected control. push: one way, the further the louder, as a route always has. swing: both ways around the control's setting — louder than the music has lately been one way, quieter the other — so it sits at its setting on average. flip: out on a beat, the other way on the next, back between them. wave: the signal itself, not how loud it is — the source's newest sample, either side of the setting, as an X-Y scope's beam moves; a frame takes one sample, so a slow signal (a generator turned below A0) is traced, and a fast one lands anywhere in its swing. Head x, y and z are centered under every shape: the model at the middle moves nothing.
+- **eq** — EQ — which frequency bands, low to high, drive the selected control. Drag across the bars to paint them.
+
+</details>
+
 <!-- END MODULES -->
 
 ## Physical dimensions
@@ -3281,13 +3632,13 @@ with **Persist** on, so the accumulation paints the full figure.
 
 ### The control surface
 
-| Ring trail (scope-style beam) | Signal generators + Model Out |
-|---|---|
-| ![Ring trail mode with the panel docked](docs/img/ui/ring-trail.jpg) | ![The three generator modules and the Model Out sonification module](docs/img/ui/generators-model-out.jpg) |
+The scopes and the signal generators, each scope beside its generator:
 
-| FVF Wobbulator panel | XY oscilloscope (Catmull-Rom beam) |
+![The four scopes and four generators, each scope's inputs named under VOLTS and TIME](docs/img/ui/generators-scopes.jpg)
+
+| FVF Wobbulator bank | XY oscilloscope (Catmull-Rom beam) |
 |---|---|
-| ![The FVF Wobbulator's parameter panel](docs/img/ui/fvf-panel.jpg) | ![The XY scope's smoothed Lissajous trace](docs/img/ui/xy-scope.jpg) |
+| ![The FVF Wobbulator's knobs on the model bank](docs/img/ui/fvf-panel.jpg) | ![The XY scope's Lissajous trace of Gen 1 against Gen 2, a fifth apart](docs/img/ui/xy-scope.jpg) |
 
 ### Chaos monkey jam sessions
 
