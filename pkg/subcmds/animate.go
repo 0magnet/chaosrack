@@ -48,6 +48,11 @@ func frameViews(n int) [][3]float64 {
 	out := make([][3]float64, n)
 	for i := range out {
 		f := float64(i) / float64(n)
+		if renderRock {
+			// Out and back on a sine, half the turn either side of the pose:
+			// the last frame leads smoothly into the first.
+			f = math.Sin(2*math.Pi*f) / 2
+		}
 		out[i] = [3]float64{base[0] + turn[0]*f, base[1] + turn[1]*f, base[2] + turn[2]*f}
 	}
 	return out
@@ -67,6 +72,9 @@ func frameViews(n int) [][3]float64 {
 // is a full trail rather than an empty frame and the last frame ends on the
 // last point integrated.
 func frameSpan(total, i, n int) (lo, hi int) {
+	if !renderSweep {
+		return 0, total // the whole figure, every frame: only the camera moves
+	}
 	win := renderTrail
 	if win <= 0 {
 		win = total / 4
@@ -104,6 +112,7 @@ func writeGIF(name string, pts [][3]float64, views [][3]float64) error {
 	for i, a := range views {
 		o := drawOptions()
 		o.View.AngleX, o.View.AngleY, o.View.AngleZ = a[0], a[1], a[2]
+		o.Gradient = gradientAt(i, len(views))
 		lo, hi := frameSpan(len(pts), i, len(views))
 		frames = append(frames, attractor.DrawSpan(pts, lo, hi, o))
 	}
@@ -116,7 +125,7 @@ func writeGIF(name string, pts [][3]float64, views [][3]float64) error {
 	// rate that is not one: 20 fps is 5, 30 fps is 3.33 and becomes 3, which
 	// is 33 fps. Rounding is the honest thing the format allows.
 	delay := max(int(math.Round(100/float64(renderFPS))), 1)
-	return gifenc.EncodeRGBA(f, frames, delay)
+	return gifenc.EncodeRGBA(f, cropLit(frames), delay)
 }
 
 // animatedSVG writes every frame as its own polyline and shows one at a time.
@@ -140,12 +149,12 @@ func animatedSVG(pts [][3]float64, views [][3]float64) string {
 	dur := float64(len(views)) / float64(renderFPS)
 	pts = attractor.Centered(pts)
 	r, mx, my := svgFit(pts, views)
-	g := gradientFor()
 	minV, maxV := rasterview.ModelBounds(attractor.Vertices(pts))
 	// One gradient serves every frame when the camera does not move, which is
 	// the default: the palette is fixed to the model's axes, so it only has to
 	// be re-derived when the view does.
-	still := true
+	// ...and when the colors do not walk.
+	still := renderWalk == ""
 	for _, v := range views[1:] {
 		if v != views[0] {
 			still = false
@@ -179,7 +188,7 @@ func animatedSVG(pts [][3]float64, views [][3]float64) string {
 				into = &strings.Builder{}
 			}
 		}
-		writeColoredTrail(into, &body, id, pts[lo:hi], a, r, mx, my, g, minV, maxV, lo, len(pts))
+		writeColoredTrail(into, &body, id, pts[lo:hi], a, r, mx, my, gradientAt(i, len(views)), minV, maxV, lo, len(pts))
 		body.WriteString(`</g>`)
 	}
 
@@ -189,7 +198,7 @@ func animatedSVG(pts [][3]float64, views [][3]float64) string {
 	if defs.Len() > 0 {
 		b.WriteString(`<defs>` + defs.String() + `</defs>`)
 	}
-	fmt.Fprintf(&b, `<rect width="%d" height="%d" fill="#0a0d14"/>`, renderW, renderH)
+	fmt.Fprintf(&b, `<rect width="%d" height="%d" fill="%s"/>`, renderW, renderH, backgroundHex())
 	b.WriteString(body.String())
 	b.WriteString(`</svg>`)
 	return b.String()

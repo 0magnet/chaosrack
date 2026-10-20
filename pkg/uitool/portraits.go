@@ -20,7 +20,9 @@ import (
 	"fmt"
 	"image"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -34,7 +36,8 @@ var (
 	portModels = fs.String("pm", "", "comma-separated model filter (default: every model in the catalog)")
 	portStillP = fs.Int("pstill", 520, "still size in px")
 	portGifP   = fs.Int("pgif-px", 260, "GIF frame size in px")
-	portFrames = fs.Int("pframes", 18, "frames per portrait GIF")
+	portFrames = fs.Int("pframes", 48, "frames per portrait GIF")
+	portNative = fs.Bool("pnative", true, "draw every model the native renderer can (chaosrack render) instead of photographing the page; the browser takes the rest")
 	portWantGi = fs.Bool("pgif", true, "also write the loop GIF")
 	portSettle = fs.Duration("psettle", 3200*time.Millisecond, "time to let a model draw before capturing")
 	portWSURL  = fs.String("pws", "", "websocket audio feed for the audio models, e.g. ws://127.0.0.1:8093/ws (default: the built-in signal generator)")
@@ -66,23 +69,17 @@ func portraitVariations(idx int) []colorVariation {
 }
 
 func runPortraits() {
-	c, err := dial()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "portraits:", err)
-		os.Exit(1)
-	}
 	if err := os.MkdirAll(*portDir, 0o750); err != nil {
 		fmt.Fprintln(os.Stderr, "portraits:", err)
 		os.Exit(1)
 	}
-	// Normalize persisted layout so framing does not depend on how the tab was
-	// left — a hidden module or a docked panel changes the viewport.
-	c.Eval(`Object.keys(localStorage).filter(function(k){return k.indexOf('wasmstuff-')===0;}).forEach(function(k){localStorage.removeItem(k);})`)
-
 	models := attractor.CatalogKeys()
 	if *portModels != "" {
 		models = strings.Split(*portModels, ",")
 	}
+	// The models the native renderer draws go first and need no browser; the
+	// tab is dialed only if something is left for it.
+	var c *cdp.Client
 	var blank []string
 	for i, m := range models {
 		if *portResume && fileExists(filepath.Join(*portDir, m+".jpg")) {
@@ -90,6 +87,25 @@ func runPortraits() {
 			continue
 		}
 		fmt.Printf("[%2d/%2d] %s", i+1, len(models), m)
+		if *portNative && !*portExtras && nativePortrait(m) {
+			if err := renderPortrait(m, i); err != nil {
+				fmt.Fprintln(os.Stderr, "\nportraits:", m+":", err)
+				os.Exit(1)
+			}
+			fmt.Println("  rendered")
+			continue
+		}
+		if c == nil {
+			var err error
+			if c, err = dial(); err != nil {
+				fmt.Fprintln(os.Stderr, "\nportraits:", err)
+				os.Exit(1)
+			}
+			// Normalize persisted layout so framing does not depend on how
+			// the tab was left — a hidden module or a docked panel changes
+			// the viewport.
+			c.Eval(`Object.keys(localStorage).filter(function(k){return k.indexOf('wasmstuff-')===0;}).forEach(function(k){localStorage.removeItem(k);})`)
+		}
 		if !capturePortrait(c, m, i) {
 			blank = append(blank, m)
 		}
@@ -99,9 +115,78 @@ func runPortraits() {
 		// draws nothing for a reader either, and that is worth knowing.
 		fmt.Println("portraits: nothing bright to frame, captured whole viewport:", strings.Join(blank, " "))
 	}
-	c.Eval(`location.hash='#lorenz'`)
-	c.Reload(2 * time.Second)
+	if c != nil {
+		c.Eval(`location.hash='#lorenz'`)
+		c.Reload(2 * time.Second)
+	}
 	fmt.Println("portraits: done →", *portDir)
+}
+
+// nativePortrait reports whether model key is drawn by the native renderer
+// (chaosrack render) rather than photographed: everything it can draw that
+// needs no signal. The audio models, the terminals, the games and the other
+// page-only models are still the browser's.
+func nativePortrait(key string) bool {
+	return attractor.Drawable(key) && !needsAudio[key]
+}
+
+// renderPortrait writes key's still and loop with chaosrack render, this
+// binary's own: the same flags anyone can run.
+//
+// The pose is the page portraits': 20° about x. The loop swings it 45° either
+// way about y on a sine (--rock), over the whole figure — --sweep=false, so
+// the figure holds still and only the camera moves — cropped to what is drawn
+// across every frame (--crop), and the colors walk the palette knob's positions in equal parts
+// (portraitVariations), each change a step between two frames of one smooth
+// turn. The still is the walk's first position.
+func renderPortrait(key string, idx int) error {
+	self, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	var steps []string
+	if *portColors {
+		for _, v := range portraitVariations(idx) {
+			steps = append(steps, fmt.Sprintf("%d/%s", v.gc, [...]string{"x", "y", "z", "trail"}[v.gs]))
+		}
+	}
+	base := []string{"render", "--model", key, "--crop"}
+	// A 3-D figure swings 45° either way about y: smooth and seamless, and
+	// unlike a whole turn it keeps the crop tight on a figure with a long
+	// axis. A map is flat and drawn face-on; it holds still and its colors
+	// walk.
+	turn := []string{"--turn", "0,1.570796,0", "--rock"}
+	if f, ok := attractor.StaticFigure(key, 2); ok && f.Kind == attractor.FigurePoints {
+		turn = nil
+	} else {
+		base = append(base, "--angle", "0.349066,0,0")
+	}
+	run := func(args ...string) error {
+		out, err := exec.Command(self, append(base, args...)...).CombinedOutput() //nolint:gosec // this binary, with arguments built here
+		if err != nil {
+			return fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out)))
+		}
+		return nil
+	}
+	still := []string{"-o", filepath.Join(*portDir, key+".jpg"),
+		"--width", strconv.Itoa(*portStillP), "--height", strconv.Itoa(*portStillP)}
+	if len(steps) > 0 {
+		still = append(still, "--walk", steps[0])
+	}
+	if err := run(still...); err != nil {
+		return err
+	}
+	if !*portWantGi {
+		return nil
+	}
+	loop := []string{"-o", filepath.Join(*portDir, key+".gif"),
+		"--width", strconv.Itoa(*portGifP), "--height", strconv.Itoa(*portGifP),
+		"--frames", strconv.Itoa(*portFrames), "--fps", "16", "--sweep=false"}
+	loop = append(loop, turn...)
+	if len(steps) > 0 {
+		loop = append(loop, "--walk", strings.Join(steps, ","))
+	}
+	return run(loop...)
 }
 
 // capturePortrait writes <key>.jpg and <key>.gif. It reports whether the model
@@ -164,8 +249,13 @@ func capturePortrait(c *cdp.Client, mode string, idx int) bool {
 	per := max(*portFrames/len(vars), 1)
 	for vi, v := range vars {
 		if sweep {
+			// The model holds its pose while the colors change: turning on
+			// through the wait, it jumped by that much between the last
+			// frame of one coloring and the first of the next.
+			setAutoRotate(c, false)
 			setColors(c, v.gc, v.gs)
 			time.Sleep(450 * time.Millisecond)
+			setAutoRotate(c, true)
 		}
 		for range per {
 			img, err := c.Screenshot()
@@ -659,4 +749,12 @@ func setTurtleMod(m int) string {
 	return fmt.Sprintf(`;(function(){var e=document.getElementById('turtle-mod');
 	  if(e){e.value='%d'; e.dispatchEvent(new Event('input',{bubbles:true}));
 	  e.dispatchEvent(new Event('change',{bubbles:true}));}})()`, m)
+}
+
+// setAutoRotate turns the Console's Auto-rotate switch on or off.
+func setAutoRotate(c *cdp.Client, on bool) {
+	c.Eval(fmt.Sprintf(`(function(){
+	  var s=document.getElementById('auto-rotate');
+	  if(s && s.checked!==%t){ s.checked=%t; s.dispatchEvent(new Event('change',{bubbles:true})); }
+	})()`, on, on))
 }

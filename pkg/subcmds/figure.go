@@ -3,6 +3,7 @@ package subcmds
 import (
 	"fmt"
 	"image"
+	"image/jpeg"
 	"image/png"
 	"math"
 	"path/filepath"
@@ -59,15 +60,22 @@ func writeFigure(name string, f attractor.Figure) error {
 	switch strings.ToLower(filepath.Ext(name)) {
 	case ".svg":
 		return cmdfs.WriteFile(runCtx, name, []byte(svgFrames(f, frameViews(1))), 0o600)
+	case ".jpg", ".jpeg":
+		file, err := cmdfs.Create(runCtx, name)
+		if err != nil {
+			return err
+		}
+		defer file.Close() //nolint:errcheck // the encode error below is the one that matters
+		return jpeg.Encode(file, cropOne(attractor.DrawFigure(f, 0, len(f.Points), drawOptions())), &jpeg.Options{Quality: 90})
 	case ".png", "":
 		file, err := cmdfs.Create(runCtx, name)
 		if err != nil {
 			return err
 		}
 		defer file.Close() //nolint:errcheck // the encode error below is the one that matters
-		return png.Encode(file, attractor.DrawFigure(f, 0, len(f.Points), drawOptions()))
+		return png.Encode(file, cropOne(attractor.DrawFigure(f, 0, len(f.Points), drawOptions())))
 	default:
-		return fmt.Errorf("%s: unknown format — use .png or .svg", filepath.Ext(name))
+		return fmt.Errorf("%s: unknown format — use .png, .jpg or .svg", filepath.Ext(name))
 	}
 }
 
@@ -85,6 +93,7 @@ func writeFigureAnimation(name string, f attractor.Figure) error {
 		for i, a := range views {
 			o := drawOptions()
 			o.View.AngleX, o.View.AngleY, o.View.AngleZ = a[0], a[1], a[2]
+			o.Gradient = gradientAt(i, len(views))
 			frames = append(frames, attractor.DrawFigure(f, 0, figureReveal(f, i, len(views)), o))
 		}
 		file, err := cmdfs.Create(runCtx, name)
@@ -93,7 +102,7 @@ func writeFigureAnimation(name string, f attractor.Figure) error {
 		}
 		defer file.Close() //nolint:errcheck // the encode error below is the one that matters
 		delay := max(int(math.Round(100/float64(renderFPS))), 1)
-		return gifenc.EncodeRGBA(file, frames, delay)
+		return gifenc.EncodeRGBA(file, cropLit(frames), delay)
 	case ".svg":
 		return cmdfs.WriteFile(runCtx, name, []byte(svgFrames(f, views)), 0o600)
 	default:
@@ -103,6 +112,9 @@ func writeFigureAnimation(name string, f attractor.Figure) error {
 
 // figureReveal is how many of a figure's points frame i of n shows.
 func figureReveal(f attractor.Figure, i, n int) int {
+	if !renderSweep {
+		return len(f.Points)
+	}
 	if f.Kind != attractor.FigurePoints || n < 2 {
 		return len(f.Points)
 	}
@@ -117,7 +129,6 @@ func svgFrames(f attractor.Figure, views [][3]float64) string {
 	}
 	pts := attractor.Centered(f.Points)
 	r, mx, my := svgFit(pts, views)
-	g := gradientFor()
 	lo, hi := rasterview.ModelBounds(attractor.Vertices(pts))
 
 	var body strings.Builder
@@ -132,7 +143,7 @@ func svgFrames(f attractor.Figure, views [][3]float64) string {
 			fmt.Fprintf(&body, `<g opacity="0"><animate attributeName="opacity" calcMode="discrete" dur="%gs" repeatCount="indefinite" values="%s"/>`,
 				dur, strings.Join(vals, ";"))
 		}
-		writeSegments(&body, f, pts, figureReveal(f, i, len(views)), a, r, mx, my, g, lo, hi)
+		writeSegments(&body, f, pts, figureReveal(f, i, len(views)), a, r, mx, my, gradientAt(i, len(views)), lo, hi)
 		if len(views) > 1 {
 			body.WriteString(`</g>`)
 		}
@@ -141,7 +152,7 @@ func svgFrames(f attractor.Figure, views [][3]float64) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, `<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">`,
 		renderW, renderH, renderW, renderH)
-	fmt.Fprintf(&b, `<rect width="%d" height="%d" fill="#0a0d14"/>`, renderW, renderH)
+	fmt.Fprintf(&b, `<rect width="%d" height="%d" fill="%s"/>`, renderW, renderH, backgroundHex())
 	b.WriteString(body.String())
 	b.WriteString(`</svg>`)
 	return b.String()

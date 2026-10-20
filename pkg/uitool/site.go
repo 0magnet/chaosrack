@@ -343,7 +343,7 @@ var modelTmpl = htmpl.Must(htmpl.New("model").Parse(`<!DOCTYPE html>
 <div class="class">{{.Class}} · <code>#{{.Key}}</code></div>
 {{if or .Still .Loop .Prms}}<div class="shots">
 {{if .Still}}<figure><img src="{{.Still}}" alt="{{.Label}} drawn by chaosrack" loading="lazy"><figcaption>{{.Label}}</figcaption></figure>{{end}}
-{{if .Loop}}<figure><img src="{{.Loop}}" alt="{{.Label}} turning through the palette" loading="lazy"><figcaption>turning</figcaption></figure>{{end}}
+{{if .Loop}}<figure><img src="{{.Loop}}" alt="{{.Label}}, animated" loading="lazy"><figcaption>animated</figcaption></figure>{{end}}
 {{if .Prms}}<figure><img src="{{.Prms}}" alt="The parameter knobs for {{.Label}}" loading="lazy"><figcaption>parameters</figcaption></figure>{{end}}
 </div>{{end}}
 {{range .Paras}}<p>{{.}}</p>
