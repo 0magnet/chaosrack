@@ -74,9 +74,8 @@ func morphRun(sys []SprottMorphSys, m float64, steps int) (sx, sy, sz float64, o
 			reseed()
 			continue
 		}
-		x += dx * dt
-		y += dy * dt
-		z += dz * dt
+		// RK4, as the machine steps (sprottmorphrun.go).
+		x, y, z = RK4(func(a, b, c3 float64) (float64, float64, float64) { return EvalQuad(&c, a, b, c3) }, dt, x, y, z)
 		if x != x || y != y || z != z || math.Abs(x) > 60 || math.Abs(y) > 60 || math.Abs(z) > 60 {
 			reseed()
 			continue

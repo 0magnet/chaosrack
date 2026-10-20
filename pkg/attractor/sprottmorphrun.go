@@ -1,6 +1,7 @@
 package attractor
 
 import (
+	"math"
 	"strconv"
 
 	"github.com/0magnet/chaosrack/pkg/dynamics"
@@ -55,7 +56,7 @@ func (sp *SprottMorph) Set(id string, v float32) bool {
 	return true
 }
 
-// step advances the trajectory one Euler tick under the blended flow,
+// step advances the trajectory one RK4 tick under the blended flow,
 // with a guard that reseeds onto the blend's home IC when the trajectory has
 // stopped being one — because it ran away, or because it is standing still.
 func (sp *SprottMorph) step(c *[30]float64, dt float64) {
@@ -78,9 +79,12 @@ func (sp *SprottMorph) step(c *[30]float64, dt float64) {
 		sp.reseed()
 		return
 	}
-	sp.sx += dx * dt
-	sp.sy += dy * dt
-	sp.sz += dz * dt
+	// RK4, as the catalog's own Sprott models step: forward Euler at their
+	// timesteps is a different system, and three of them (L, M, Q) are not
+	// chaotic under it — the machine showed a periodic L that the Sprott L
+	// model beside it does not.
+	f := func(x, y, z float64) (float64, float64, float64) { return dynamics.EvalQuad(c, x, y, z) }
+	sp.sx, sp.sy, sp.sz = dynamics.RK4(f, dt, sp.sx, sp.sy, sp.sz)
 	bad := sp.sx != sp.sx || sp.sy != sp.sy || sp.sz != sp.sz ||
 		sp.sx < -60 || sp.sx > 60 || sp.sy < -60 || sp.sy > 60 || sp.sz < -60 || sp.sz > 60
 	if bad {
@@ -118,7 +122,7 @@ func (sp *SprottMorph) Enter(steps int) float64 {
 	}
 	sp.m = float64(sp.sysKnob)
 	sp.knobPrv = sp.sysKnob
-	c, dt, _, _, _ := dynamics.SprottMorphBlend(sp.systems, sp.m)
+	c, dt, _, _, _ := dynamics.SprottMorphBlend(sp.systems, sp.patch())
 	i := int(sp.m) % len(sp.systems)
 	ic := sp.systems[i].IC
 	sp.sx, sp.sy, sp.sz = float64(ic[0]), float64(ic[1]), float64(ic[2])
@@ -155,7 +159,13 @@ func (sp *SprottMorph) Advance(n int, scale float32, steps int) bool {
 	for sp.m >= float64(len(sp.systems)) {
 		sp.m -= float64(len(sp.systems))
 	}
-	c, dt, i, j, frac := dynamics.SprottMorphBlend(sp.systems, sp.m)
+	// Stepping itself, the machine RE-PATCHES: it plays each system whole and
+	// moves to the next, as the glensstuff.com computer did, rather than
+	// sliding through the blends between them. Measured, almost every blend
+	// is no attractor at all — most fly off, the rest settle onto a cycle or
+	// a point — so a machine that slid spent most of its time reseeding. A
+	// blend is still there to be dialed, by hand, with the rate at zero.
+	c, dt, i, j, frac := dynamics.SprottMorphBlend(sp.systems, sp.patch())
 	if len(sp.ring) != steps*3 {
 		sp.ring = make([]float64, steps*3)
 		sp.head, sp.fill = 0, 0
@@ -196,4 +206,14 @@ func (sp *SprottMorph) Trail(steps int, put func(k int, x, y, z float64)) {
 		}
 		put(k, sp.ring[idx*3], sp.ring[idx*3+1], sp.ring[idx*3+2])
 	}
+}
+
+// patch is the catalog position the machine is wired as: the whole system it
+// has reached while it steps itself, or exactly where the sys knob puts it,
+// blend and all, while the rate is zero.
+func (sp *SprottMorph) patch() float64 {
+	if sp.rate > 0 {
+		return math.Floor(sp.m)
+	}
+	return sp.m
 }

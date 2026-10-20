@@ -43,6 +43,9 @@ import (
 func frameViews(n int) [][3]float64 {
 	base := [3]float64{}
 	copy(base[:], renderSpin)
+	if renderTumble > 0 {
+		return tumbleViews(base, renderTumble, n)
+	}
 	turn := [3]float64{}
 	copy(turn[:], renderTurn)
 	out := make([][3]float64, n)

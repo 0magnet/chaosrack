@@ -143,12 +143,12 @@ harmonics — how many Fourier harmonics of each glyph's beam path are kept. Few
 ### system
 
 <!-- key: p.smorph-sys -->
-system — where in the Sprott A…S catalog the machine sits. A fraction is part way between two systems.
+system — where in the Sprott A…S catalog the machine sits. With the rate at zero a fraction is part way between two systems, a blend of their coefficients, which is seldom an attractor; while the rate steps the machine it plays whole systems only.
 
 ### rate
 
 <!-- key: p.smorph-rate -->
-rate — how fast the machine steps itself through the catalog, in systems per minute; zero holds it where sys puts it.
+rate — how fast the machine re-patches itself from one system to the next, in systems per minute; zero holds it where sys puts it.
 
 ### gravity
 

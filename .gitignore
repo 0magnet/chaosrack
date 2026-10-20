@@ -28,3 +28,5 @@
 # GIFs rode along in every clone, and every regeneration added another copy
 # to the history. Removed from history 2026-09-27.
 /docs/img/gif/
+# The models' loops likewise (uitool portraits writes them; make publish-gifs).
+/docs/img/model/*.gif

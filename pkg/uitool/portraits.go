@@ -36,7 +36,7 @@ var (
 	portModels = fs.String("pm", "", "comma-separated model filter (default: every model in the catalog)")
 	portStillP = fs.Int("pstill", 520, "still size in px")
 	portGifP   = fs.Int("pgif-px", 260, "GIF frame size in px")
-	portFrames = fs.Int("pframes", 48, "frames per portrait GIF")
+	portFrames = fs.Int("pframes", 96, "frames per portrait GIF")
 	portNative = fs.Bool("pnative", true, "draw every model the native renderer can (chaosrack render) instead of photographing the page; the browser takes the rest")
 	portWantGi = fs.Bool("pgif", true, "also write the loop GIF")
 	portSettle = fs.Duration("psettle", 3200*time.Millisecond, "time to let a model draw before capturing")
@@ -133,10 +133,11 @@ func nativePortrait(key string) bool {
 // renderPortrait writes key's still and loop with chaosrack render, this
 // binary's own: the same flags anyone can run.
 //
-// The pose is the page portraits': 20° about x. The loop swings it 45° either
-// way about y on a sine (--rock), over the whole figure — --sweep=false, so
-// the figure holds still and only the camera moves — cropped to what is drawn
-// across every frame (--crop), and the colors walk the palette knob's positions in equal parts
+// The pose is the page portraits': 20° about x. The loop tumbles it through
+// six eased quarter turns, right and down by turns (--tumble), over the whole
+// figure — --sweep=false, so the figure holds still and only the camera
+// moves — cropped to what is drawn across every frame (--crop), and the
+// colors walk the palette knob's positions in equal parts
 // (portraitVariations), each change a step between two frames of one smooth
 // turn. The still is the walk's first position.
 func renderPortrait(key string, idx int) error {
@@ -146,16 +147,22 @@ func renderPortrait(key string, idx int) error {
 	}
 	var steps []string
 	if *portColors {
-		for _, v := range portraitVariations(idx) {
+		// One coloring a turn, so each change falls while the figure is
+		// settled between turns.
+		vars := portraitVariations(idx)
+		for k := range portraitTurns {
+			v := vars[k%len(vars)]
 			steps = append(steps, fmt.Sprintf("%d/%s", v.gc, [...]string{"x", "y", "z", "trail"}[v.gs]))
 		}
 	}
 	base := []string{"render", "--model", key, "--crop"}
-	// A 3-D figure swings 45° either way about y: smooth and seamless, and
-	// unlike a whole turn it keeps the crop tight on a figure with a long
-	// axis. A map is flat and drawn face-on; it holds still and its colors
-	// walk.
-	turn := []string{"--turn", "0,1.570796,0", "--rock"}
+	for _, s := range portraitSets[key] {
+		base = append(base, "--set", s)
+	}
+	// A 3-D figure tumbles: six eased quarter turns, right and down by turns,
+	// which come back to the start and show it from several sides. A map is
+	// flat and drawn face-on; it holds still and its colors walk.
+	turn := []string{"--tumble", strconv.Itoa(portraitTurns)}
 	if f, ok := attractor.StaticFigure(key, 2); ok && f.Kind == attractor.FigurePoints {
 		turn = nil
 	} else {
@@ -181,7 +188,7 @@ func renderPortrait(key string, idx int) error {
 	}
 	loop := []string{"-o", filepath.Join(*portDir, key+".gif"),
 		"--width", strconv.Itoa(*portGifP), "--height", strconv.Itoa(*portGifP),
-		"--frames", strconv.Itoa(*portFrames), "--fps", "16", "--sweep=false"}
+		"--frames", strconv.Itoa(*portFrames), "--fps", "20", "--sweep=false"}
 	loop = append(loop, turn...)
 	if len(steps) > 0 {
 		loop = append(loop, "--walk", strings.Join(steps, ","))
@@ -757,4 +764,15 @@ func setAutoRotate(c *cdp.Client, on bool) {
 	  var s=document.getElementById('auto-rotate');
 	  if(s && s.checked!==%t){ s.checked=%t; s.dispatchEvent(new Event('change',{bubbles:true})); }
 	})()`, on, on))
+}
+
+// portraitTurns is how many quarter turns a rendered portrait makes: six is
+// the fewest, right and down by turns, that come back to the start.
+const portraitTurns = 6
+
+// portraitSets are knobs a model's portrait is drawn at other than its
+// defaults: the turtle's whole trail is too long to make a picture of, so it
+// is drawn with the short one.
+var portraitSets = map[string][]string{
+	"turtle": {"turtle-trail=2"},
 }

@@ -223,15 +223,20 @@ sweep: wasm ## Walk every model and switch in a headless browser (nothing on scr
 		go build -o $$d/chaosrack . && \
 		$$d/chaosrack uitool sweep --headless --serve $$d/chaosrack $(SWEEP)
 
-publish-gifs: ## Put docs/img/gif on the media branch and redeploy Pages (after `chaosrack uitool gifs`)
-	@# The gallery is not on main (see .gitignore). media is ONE commit,
-	@# replaced each time rather than added to, so remaking the GIFs never
-	@# grows the repository; Pages adds them to the site (pages.yml).
-	@ls docs/img/gif/*.gif >/dev/null 2>&1 || { echo "no GIFs in docs/img/gif: run chaosrack uitool gifs first"; exit 1; }
+publish-gifs: ## Put the GIFs (gallery and model loops) on the media branch and redeploy Pages
+	@# Neither set is on main (see .gitignore). media is ONE commit, replaced
+	@# each time rather than added to, so remaking the GIFs never grows the
+	@# repository; Pages adds them to the site (pages.yml). The commit starts
+	@# from what media holds, so publishing one set keeps the other.
+	@ls docs/img/gif/*.gif docs/img/model/*.gif 2>/dev/null | grep -q . || { echo "no GIFs: run chaosrack uitool gifs or uitool portraits first"; exit 1; }
+	@git fetch -q origin media
 	@idx=$$(mktemp -u); trap 'rm -f $$idx' EXIT; \
-		GIT_INDEX_FILE=$$idx git add -f docs/img/gif/*.gif && \
+		GIT_INDEX_FILE=$$idx git read-tree FETCH_HEAD && \
+		for d in docs/img/gif docs/img/model; do \
+			if ls $$d/*.gif >/dev/null 2>&1; then GIT_INDEX_FILE=$$idx git add -f $$d/*.gif || exit 1; fi; \
+		done && \
 		tree=$$(GIT_INDEX_FILE=$$idx git write-tree) && \
-		commit=$$(git commit-tree $$tree -m "media: the animated gallery") && \
+		commit=$$(git commit-tree $$tree -m "media: the animated gallery and the models' loops") && \
 		git push -f origin $$commit:refs/heads/media && \
 		gh workflow run pages.yml --ref main
 
