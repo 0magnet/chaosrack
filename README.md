@@ -4044,6 +4044,30 @@ and audio-reactive modulation):
 - [Reconfigurable Analog Computers](https://arxiv.org/abs/2510.25942) — an overview of digitally reconfigured analog computers as co-processors
 - [GitHub `strange-attractors` topic](https://github.com/topics/strange-attractors)
 
+Instrument panels and controls in the browser, for comparison with the rack's
+knobs, displays, scopes and patching:
+
+- [webaudio-controls](https://github.com/webmusicdevelopersjp/webaudio-controls)
+  ([demo](https://www.g200kg.com/webaudio-controls/test.html)) — knob,
+  slider, switch and keyboard web components; shift-drag fine control,
+  ctrl-click reset, sprite-strip knob looks
+- [input-knobs](https://github.com/g200kg/input-knobs) — plain `<input>`
+  elements styled as knobs and switches, as chaosrack's knobs stand on hidden
+  ranges and selects
+- [precision-inputs](https://www.npmjs.com/package/precision-inputs) and
+  [NexusUI](https://github.com/nexus-js/ui) — knob, dial and matrix widgets
+- [iO-808](https://io808.com/) — a TR-808 panel recreated with every sound in Web Audio
+- [Ableton Learning Synths](https://learningsynths.ableton.com/) — a guided
+  tour of a synth, one control at a time
+- [Audiotool](https://www.audiotool.com/devices/heisenberg) — hardware-style
+  devices patched with cables in a browser studio
+- [Cardinal](https://minicardinal.kx.studio/) (VCV Rack in WebAssembly),
+  [Patchcab](https://github.com/spectrome/patchcab) and
+  [DreamRack](https://github.com/chrisgr99/DreamRack) — Eurorack-style racks
+  patched with cables, where chaosrack uses pin matrices
+- [woscope](https://github.com/m1el/woscope) — a WebGL XY oscilloscope with
+  phosphor glow
+
 
 ## Dependency Graph
 
