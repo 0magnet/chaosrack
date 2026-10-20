@@ -54,6 +54,7 @@ type Control struct {
 	ledInt    int      // LED integer digits
 	ledDec    int      // LED decimal places
 	ledSign   bool     // LED shows a sign
+	ledFloat  bool     // LED moves its point for small values (led.Floating)
 	permaKey  string   // permalink key (e.g. "p.sigma")
 	resetHook func()   // extra work a reset needs beyond restoring the value
 
@@ -76,6 +77,9 @@ type Control struct {
 // formatValue renders a value for this control's LED readout using its owned
 // integer/decimal/sign format.
 func (c *Control) formatValue(v float64) string {
+	if c.ledFloat {
+		return led.Floating(v, c.ledInt, c.ledDec, c.ledSign)
+	}
 	return led.Format(v, c.ledInt, c.ledDec, c.ledSign)
 }
 

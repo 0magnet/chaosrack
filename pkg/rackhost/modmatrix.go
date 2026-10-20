@@ -50,6 +50,7 @@ type modView struct {
 	// bands follow the sources' spectra; model the model's own output, as a
 	// source, smoothed; hold the whole-step knobs' last values.
 	bands attractor.ModBands
+	wave  attractor.ModWave // each channel's newest sample, for the wave shape
 	model map[string]float32
 	hold  map[string]float32
 	// shapers are each route's memory for its shape, by destination.
@@ -444,6 +445,8 @@ func (r *Rack) modulate(model string) {
 		var f float32
 		if attractor.IsModelModSource(m.channel) {
 			f = r.modModel(m.channel)
+		} else if m.shape == attractor.ModShapeWave {
+			f = mv.wave.Value(m.channel)
 		} else {
 			f = mv.bands.Value(m.channel, m.bands[:])
 		}
@@ -530,12 +533,17 @@ func (r *Rack) modListen() {
 		mv.bands.Store("L", bl)
 		mv.bands.Store("R", br)
 		mv.bands.Store("mono", mono)
+		mv.wave.Set("L", attractor.Newest(l))
+		mv.wave.Set("R", attractor.Newest(rt))
+		mv.wave.Set("mono", (attractor.Newest(l)+attractor.Newest(rt))/2)
 	}
 	a, b := r.sound.modWindow(colorFFT)
 	if len(a) == colorFFT {
 		chs := attractor.ModChannels()
 		mv.bands.Store(chs[3].Name, attractor.ComputeBands(meters.ComputeFFTMags(a), sampleRate))
 		mv.bands.Store(chs[4].Name, attractor.ComputeBands(meters.ComputeFFTMags(b), sampleRate))
+		mv.wave.Set(chs[3].Name, attractor.Newest(a))
+		mv.wave.Set(chs[4].Name, attractor.Newest(b))
 	}
 }
 

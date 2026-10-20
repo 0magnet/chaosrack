@@ -58,6 +58,11 @@ var kb struct {
 // step); a bank position has a step of its own, which that fought with.
 const fineRatio = 0.1
 
+// knobDetents are the knobs outside a bank that are encoders, by slider id,
+// and how many detents a turn each has: a click is one step of its value. A
+// bank position's encoder has the bank's (pkg/encoder's 24).
+var knobDetents = map[string]int{}
+
 // switchPots are the knobs that are switch-pots (switchpot.go), by slider id.
 var switchPots = map[string]switchPot{}
 
@@ -731,7 +736,9 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 			kb.knobEl = el
 			// In a bank it is an encoder (see kb). Asked at the grab, because
 			// the cell is made before the bank it is mounted in.
-			kb.encoder = knob.Call("closest", ".dmdcell").Truthy()
+			// So is a knob given detents of its own (knobDetents).
+			kb.enc.PerRev = knobDetents[id]
+			kb.encoder = kb.enc.PerRev > 0 || knob.Call("closest", ".dmdcell").Truthy()
 			kb.step = cs.step // the step trim's, now
 			kb.enc.Reset()
 			el.Get("classList").Call("add", "knob-grab")

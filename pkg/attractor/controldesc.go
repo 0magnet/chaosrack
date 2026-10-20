@@ -93,6 +93,7 @@ type ControlDesc struct {
 	LEDMin      float64                 // display range for LED sizing (used when LEDMax != 0)
 	LEDMax      float64
 	LEDStep     float64 // display step driving LED decimals (0 ⇒ Step)
+	LEDFloat    bool    // LED keeps its width and moves its point for small values (led.Floating)
 }
 
 // ── The surface, enumerable ──────────────────────────────────────────────

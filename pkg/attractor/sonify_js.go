@@ -335,11 +335,11 @@ func sonifyFreqFromSlider(v float64) float64 { return freqFromKnob(v) }
 // sonifySliderFromFreq is the inverse, for typed LED entry.
 func sonifySliderFromFreq(hz float64) float64 {
 	if hz <= 0 {
-		return 0
+		return genKnobLo
 	}
 	v := knobFromFreq(hz)
-	if v < 0 {
-		v = 0
+	if v < genKnobLo {
+		v = genKnobLo
 	} else if v > float64(genSemitones) {
 		v = float64(genSemitones)
 	}

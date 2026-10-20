@@ -5,73 +5,40 @@ package attractor
 import (
 	"github.com/0magnet/chaosrack/pkg/audiosrc"
 	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/skirt"
 	"math"
 	"strconv"
 	"strings"
 	"syscall/js"
 )
 
-// Frequency range for the generators: exactly 10 octaves anchored to notes,
-// A0 (27.5 Hz, the lowest key on a piano) → A10 (28160 Hz). The knob's hidden
-// slider is linear 0..genSemitones with ONE UNIT PER SEMITONE, and frequency
-// maps exponentially, so equal turn = equal octaves (a logarithmic knob) and one
-// coarse step / scroll click = one semitone. Because the low end is a real note
-// in A440 tuning, every detent lands on a concert-pitch note — turning the knob
-// steps through every note of the chromatic scale (12 per octave). 120 divides
-// the range cleanly, so the slider reaches its max exactly (→ 28160, no short).
+// Frequency for the generators: the knob's hidden slider is in semitones
+// above A0 (27.5 Hz, the lowest key on a piano), ONE UNIT PER SEMITONE, and
+// frequency maps exponentially from it, so every detent lands on a
+// concert-pitch note. A0 to A10 (28160 Hz) is the piano's range and more;
+// below A0 the knob goes on down to genKnobLo, where a generator is too slow
+// to hear and is a modulator, a figure the model can trace (pitch.go).
 
-// addOctaveDial draws a tick ring around the (log) frequency knob with one tick
-// per octave — so equal turn = equal octaves reads at a glance — plus the min /
-// max Hz labeled at the sweep ends. Styled like the value dial (behind the
-// knob, decorative). The octave ticks land at genFreqLo·2ⁿ, which are evenly
-// spaced around the sweep because the knob is logarithmic.
-func addOctaveDial(wrap js.Value) {
-	dial := dom.Doc.Call("createElement", "span")
-	dial.Set("className", "knob-dial value-dial")
-	nOct := int(math.Log2(genFreqHi / genFreqLo)) // whole octaves in range
-	for n := 0; n <= nOct; n++ {
-		f := genFreqLo * math.Pow(2, float64(n))
-		deg := -skirt.SweepDeg/2 + skirt.SweepDeg*knobFromFreq(f)/genSemitones
-		l, tp := dialLabelPos(deg, 41)
-		tk := dom.Doc.Call("createElement", "span")
-		cls := "vdial-tick"
-		if n%4 == 0 { // a longer tick every 4 octaves for a readable rhythm
-			cls += " major"
-		}
-		tk.Set("className", cls)
-		st := tk.Get("style")
-		st.Set("left", l)
-		st.Set("top", tp)
-		st.Set("transform", "translate(-50%,-50%) rotate("+strconv.FormatFloat(deg, 'f', 1, 64)+"deg)")
-		dial.Call("appendChild", tk)
+// genFreqKnob is a generator's FREQ: an encoder, as a bank position's knob
+// is, that turns once an octave (genFreqTurns) with a click a semitone. The
+// ring is the octave's twelve notes, C at the top as on the piano strip
+// under it, and lights in the octave's own color, the rack's LED color for
+// C3 to C4: where on the ring is the note, and the color is which octave.
+// Without stops the low octaves cost the piano's nothing; with them, all of
+// it shared one 270° sweep, 27° an octave.
+func genFreqKnob(freq js.Value) js.Value {
+	id := freq.Get("id").String()
+	turnSpecs[id] = genFreqTurns
+	knobDetents[id] = genFreqDetent
+	freq.Set("min", strconv.Itoa(genKnobLo))
+	freq.Set("max", strconv.Itoa(genKnobHi))
+	k := makeKnob(freq, js.Undefined(), true, false, true)
+	if dial := k.Call("querySelector", ".value-dial"); dial.Truthy() {
+		fullRing(dial, genFreqTurns)
 	}
-	// Note names at the sweep ends (both in the lower half, clear of the LED).
-	// Every octave tick is an A, so the ends are A0 and A10; the LED shows exact
-	// Hz.
-	for _, e := range []struct {
-		f float64
-		s string
-	}{{genFreqLo, "A0"}, {genFreqHi, "A10"}} {
-		deg := -skirt.SweepDeg/2 + skirt.SweepDeg*knobFromFreq(e.f)/genSemitones
-		l, tp := dialLabelPos(deg, 48)
-		lab := dom.Doc.Call("createElement", "span")
-		lab.Set("className", "knob-dial-lab")
-		lab.Set("textContent", e.s)
-		// Which end, and what it is in hertz — the ring says A0 and A10 because
-		// every tick between them is an A, and the number is the thing a
-		// measurement actually needs.
-		end := "the lowest"
-		if e.f > genFreqLo {
-			end = "the highest"
-		}
-		lab.Set("title", e.s+" — "+strconv.FormatFloat(e.f, 'f', -1, 64)+" Hz, "+end+" this knob goes")
-		lab.Get("style").Set("left", l)
-		lab.Get("style").Set("top", tp)
-		dial.Call("appendChild", lab)
+	if f := knobRefresh[id]; f != nil {
+		f()
 	}
-	wrap.Call("insertBefore", dial, wrap.Get("firstChild"))
-	wrap.Get("classList").Call("add", "has-dial")
+	return k
 }
 
 // addPianoKeys builds a one-octave piano strip under the frequency knob and
@@ -120,10 +87,10 @@ func addPianoKeys(freq js.Value) js.Value {
 			off := ((pc-3)%12 + 12) % 12               // this key's offset above the register's C
 			regC := 3 + 12*int(math.Floor((cur-3)/12)) // C of the current note's octave
 			s := float64(regC + off)
-			for s < 0 {
+			for s < genKnobLo {
 				s += 12
 			}
-			for s > genSemitones {
+			for s > genKnobHi {
 				s -= 12
 			}
 			freq.Set("value", strconv.FormatFloat(s, 'f', 0, 64))
@@ -369,16 +336,13 @@ func buildGeneratorModule() {
 			continue
 		}
 
-		// Freq cell: single log-frequency knob with an octave tick ring. The hidden
-		// slider is in semitones (step 1 = one semitone), so scrolling the knob or
-		// the LED steps note-by-note (12 per octave); dragging still sweeps
-		// continuously and the fine disc trims sub-semitone. The LED is zero-padded
-		// to the widest value (so 20480 never clips to "2048") with a fixed decimal,
-		// like every other readout — all of which the descriptor below sets up,
-		// along with the typed entry and the wheel nudge that used to be written
-		// out here beside every other cell that wanted them.
-		fknob := makeKnob(freq, js.Undefined(), true, false, false)
-		addOctaveDial(fknob)
+		// Freq cell: the FREQ encoder (genFreqKnob), a click a semitone and a
+		// turn an octave, so scrolling the knob or the LED steps note by note
+		// and the fine disc trims under a semitone. The LED reads hertz to
+		// three figures, at the width of the widest value (so 20480 never
+		// clips to "2048") — all of which the descriptor below sets up, along
+		// with the typed entry and the wheel nudge.
+		fknob := genFreqKnob(freq)
 		fstack.Call("appendChild", fknob)
 		// One-octave piano strip under the knob, lighting the current note.
 		fstack.Get("parentNode").Get("parentNode").Call("appendChild", addPianoKeys(freq))
@@ -425,7 +389,7 @@ func buildGeneratorModule() {
 		// is in hertz, which is precisely what SliderToVal / ValToSlider are
 		// for.
 		adoptDescControl(ControlDesc{
-			ID: id + "-freq", Label: "freq", Min: 0, Max: float64(genSemitones), Step: 1, Def: osc.freq,
+			ID: id + "-freq", Label: "freq", Min: genKnobLo, Max: genKnobHi, Step: 1, Def: osc.freq,
 			LEDID: id + "-led", ResetID: "rst-" + id + "-freq",
 			PermaKey: osc.key("f"),
 			Apply: func(v float64) {
@@ -434,7 +398,7 @@ func buildGeneratorModule() {
 			},
 			SliderToVal: sonifyFreqFromSlider,
 			ValToSlider: sonifySliderFromFreq,
-			LEDMin:      genFreqLo, LEDMax: genFreqHi, LEDStep: 1,
+			LEDMin:      genFreqLo, LEDMax: genFreqHi, LEDStep: 1, LEDFloat: true,
 		})
 		adoptDescControl(ControlDesc{
 			ID: id + "-lvl", Label: "lvl", Min: 0, Max: 100, Step: 1, Def: osc.lvl,

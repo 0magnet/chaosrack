@@ -37,6 +37,11 @@ const (
 type turnSpec struct {
 	kind   turnKind
 	lo, hi float64
+	// bounded holds a linear knob between floor and ceil instead of
+	// maxLaps either side of its range: for a knob whose laps are a scale
+	// with real ends, as a generator's octaves are (genFreqTurns).
+	bounded     bool
+	floor, ceil float64
 }
 
 // ringLEDs is the full ring's LED count: one per detent of a turn
@@ -89,7 +94,8 @@ func (s turnSpec) clamp(v float64) float64 {
 	w := s.hi - s.lo
 	switch s.kind {
 	case turnLinear:
-		return math.Max(s.lo-maxLaps*w, math.Min(s.hi+maxLaps*w, v))
+		lo, hi := s.domain()
+		return math.Max(lo, math.Min(hi, v))
 	case turnLog:
 		top := s.hi
 		if top <= 0 {
@@ -107,10 +113,13 @@ func (s turnSpec) clamp(v float64) float64 {
 
 // domain is the widest a knob's value can be, for the hidden slider under
 // it, which clamps to its own min and max.
-func (s turnSpec) domain() (lo, hi float64) { //nolint:unused // called from turns_js.go, which the native lint pass cannot see
+func (s turnSpec) domain() (lo, hi float64) {
 	w := s.hi - s.lo
 	switch s.kind {
 	case turnLinear:
+		if s.bounded {
+			return s.floor, s.ceil
+		}
 		return s.lo - maxLaps*w, s.hi + maxLaps*w
 	case turnLog:
 		return s.lo, s.clamp(math.Inf(1))

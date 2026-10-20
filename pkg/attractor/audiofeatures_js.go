@@ -44,6 +44,8 @@ type audioFeatures struct {
 	// per channel ("mono", "L", "R", the sends), each numEQBands long, 0..1
 	// (modroute.go).
 	bands ModBands
+	// wave is each channel's newest sample, for the wave shape (ModWave).
+	wave ModWave
 
 	// monoScratch is reused by the per-frame mono band mix.
 	monoScratch []float32
@@ -112,6 +114,9 @@ func (a *audioFeatures) updateAudioFeatures() {
 		a.windowR = make([]float32, sg.FFTSize)
 	}
 	src.TimeDomainStereo(a.windowL, a.windowR)
+	a.wave.Set("L", Newest(a.windowL))
+	a.wave.Set("R", Newest(a.windowR))
+	a.wave.Set("mono", (Newest(a.windowL)+Newest(a.windowR))/2)
 	sr := 24000
 	if src.SampleRate() > 0 {
 		sr = src.SampleRate()
@@ -144,6 +149,8 @@ func (a *audioFeatures) updateAudioFeatures() {
 	// rack's two sides have theirs.
 	if bus, ok := src.(*audiosrc.Bus); ok && bus.ModOn() && modReadsSends() {
 		wa, wb := bus.ModWindow(sg.FFTSize)
+		a.wave.Set(modSrcSendA, Newest(wa))
+		a.wave.Set(modSrcSendB, Newest(wb))
 		if a.magsA == nil {
 			a.magsA = make([]float64, sg.FFTSize/2+1)
 		}
