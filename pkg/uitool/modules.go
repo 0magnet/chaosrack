@@ -35,6 +35,7 @@ var (
 	modPad    = fs.Int("mpad", 6, "padding around a module's box, in px")
 	modScale  = fs.Int("mwidth", 0, "scale shots to this width (0 = native)")
 	modLayout = fs.String("layout", "docs/stl/layout.json", "also write each module's measured control layout here (empty to skip)")
+	modFewer  = fs.Bool("fewer", false, "write the module manifest even when it lists fewer modules than the one it replaces")
 )
 
 func runModules() {
@@ -74,6 +75,15 @@ func runModules() {
 		os.Exit(1)
 	}
 	manifest := filepath.Join(*modDir, "modules.json")
+	// A capture that comes back short — a module the page had not put up in
+	// time, a pass that could not measure — would take whole sections out of
+	// the README, which is written from this, and readme-check cannot tell.
+	// On 2026-10-20 one dropped twelve and was committed. So fewer modules
+	// than the manifest already lists is refused unless asked for.
+	if prev := manifestLen(manifest); len(out) < prev && !*modFewer {
+		fmt.Fprintf(os.Stderr, "modules: found %d modules where %s lists %d; not writing it (--fewer if modules were removed)\n", len(out), manifest, prev)
+		os.Exit(1)
+	}
 	if err := os.WriteFile(manifest, append(data, '\n'), 0o600); err != nil {
 		fmt.Fprintln(os.Stderr, "modules:", err)
 		os.Exit(1)
@@ -392,4 +402,17 @@ func measureLayouts(c *cdp.Client) []meshstl.PanelLayout {
 		return nil
 	}
 	return out
+}
+
+// manifestLen is how many modules the manifest at path lists, 0 for none.
+func manifestLen(path string) int {
+	data, err := os.ReadFile(path) //nolint:gosec // the manifest this tool writes
+	if err != nil {
+		return 0
+	}
+	var mods []json.RawMessage
+	if json.Unmarshal(data, &mods) != nil {
+		return 0
+	}
+	return len(mods)
 }

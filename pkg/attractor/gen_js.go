@@ -32,6 +32,9 @@ func genFreqKnob(freq js.Value) js.Value {
 	freq.Set("min", strconv.Itoa(genKnobLo))
 	freq.Set("max", strconv.Itoa(genKnobHi))
 	k := makeKnob(freq, js.Undefined(), true, false, true)
+	// An LED ring, as a bank position's (panel.css, "THE LED RING"): lit to
+	// the note in the octave's color, and no pointer on the cap.
+	k.Get("classList").Call("add", "ledring")
 	if dial := k.Call("querySelector", ".value-dial"); dial.Truthy() {
 		fullRing(dial, genFreqTurns)
 	}

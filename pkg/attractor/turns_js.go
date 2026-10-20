@@ -83,6 +83,7 @@ var fullRingTicks = sync.OnceValue(func() string {
 func fullRing(dial js.Value, spec turnSpec) {
 	dial.Set("innerHTML", fullRingTicks())
 	dial.Get("classList").Call("add", "full-ring")
+	dial.Call("setAttribute", "data-ring", RingSpec{turn: spec}.String())
 	what := map[turnKind]string{
 		turnLinear: "one turn is " + fmtDialNum(spec.lo) + " to " + fmtDialNum(spec.hi) + ", and each turn past it another range's worth",
 		turnLog:    "one turn is " + fmtDialNum(spec.lo) + " to " + fmtDialNum(spec.hi) + ", and each turn past it ten times the one before",

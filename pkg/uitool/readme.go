@@ -156,7 +156,7 @@ func modelEntry(m attractor.CatalogModel) string {
 		shots = append(shots, shot{v.head, mdEscape(m.Label) + " — " + v.head,
 			filepath.Join(*modelImgDir, m.Key+"-"+v.suffix+".jpg")})
 	}
-	// The Parameters module as it stands for THIS model: the knobs differ per
+	// The model's bank as it stands for THIS model: the knobs differ per
 	// system, and a reference that shows the figure without the controls that
 	// shape it is only half the entry.
 	shots = append(shots, shot{"parameters", mdEscape(m.Label) + " parameters",

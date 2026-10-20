@@ -329,6 +329,9 @@ var needsAudio = func() map[string]bool {
 // display without playing anything.
 func feedSilentAudio(c *cdp.Client) {
 	c.Eval(`window.rackmix&&rackmix("rl.cl:0,rl.g1,rr.cr:0,rr.g2")`)
+	// Gen 1 and 2 start off (gen_js.go), so pinned they would feed silence:
+	// a sine on each, a fifth apart at their own frequencies.
+	c.Eval(`["gen-x-wave","gen-y-wave"].forEach(function(id){var s=document.getElementById(id);if(s){s.value="0";s.dispatchEvent(new Event("change"))}})`)
 	// The browser's autoplay policy keeps the AudioContext suspended until a
 	// real user gesture, and a suspended context delivers no samples — which
 	// is why enabling the generator alone still photographed a black plane.
@@ -534,9 +537,11 @@ func captureParams(c *cdp.Client, mode string) bool {
 	if box.VW > 0 {
 		scale = float64(b.Dx()) / box.VW
 	}
+	// Its sides and foot padded, its head not: over the bank is the model's
+	// own canvas, and a margin there was a strip of whatever it was drawing.
 	const pad = 6
 	r := image.Rect(
-		int((box.X-pad)*scale), int((box.Y-pad)*scale),
+		int((box.X-pad)*scale), int(box.Y*scale),
 		int((box.X+box.W+pad)*scale), int((box.Y+box.H+pad)*scale),
 	).Intersect(b)
 	if r.Dx() < 8 || r.Dy() < 8 {

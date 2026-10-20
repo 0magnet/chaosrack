@@ -1385,23 +1385,23 @@
     "mode": "lorenz",
     "controls": [
       {
-        "label": "000.19866.6",
+        "label": "001.01050.0",
         "title": "4.10.1.a · Timing / fps / LED readout / Frames a second sustained over the last window — the reciprocal of the MEAN frame, so a hitch counts against it"
       },
       {
-        "label": "9866.69866.6",
+        "label": "1050.01050.0",
         "title": "4.10.1.c · Timing / min / LED readout / Shortest frame in the window, in ms — which is the display's own interval, since nothing renders faster than vsync"
       },
       {
-        "label": "000.09859.90",
+        "label": "000.01047.20",
         "title": "4.10.2.b · Timing / late / LED readout / Percentage of frames that missed the display's interval by half again or more. This is the number that corresponds to visible hesitation; the frame rate alone does not."
       },
       {
-        "label": "03.4002.30",
+        "label": "02.7000.00",
         "title": "4.10.3.a · Timing / model / LED readout / Milliseconds a frame spent ISSUING the model's draw calls. A WebGL call queues a command and returns without waiting for pixels, so this reads far below what the model really costs — the GPU and compositor share of it is in REST. Useful for what it does catch: geometry rebuilt every frame instead of cached."
       },
       {
-        "label": "01.00 TBC",
+        "label": "00.10 TBC",
         "title": "4.10.3.c"
       },
       {
@@ -2157,6 +2157,894 @@
             "title": "5.9.3 · polarity pulse — a one-sided click; shows which way round a speaker is wired. The freq knob does not change it"
           }
         ]
+      }
+    ]
+  },
+  {
+    "id": "scope4",
+    "label": "Scope 4",
+    "title": "5.10 · Scope 4 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.",
+    "image": "docs/img/module/scope4.jpg",
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "inten",
+        "title": "5.10.2 · The beam. The knob is INTENSITY: beam brightness, and how long the phosphor holds the trace. Under it, two mini knobs. I is SCALE ILLUM, which lights the graticule; turned down past the bottom of its travel it clicks into OFF and switches the scope off — the tube goes dark and costs the rack nothing. F is FOCUS: how tight the spot is; off focus the trace blurs, the way a real tube does. The display reads the intensity, or whichever mini knob is being turned.",
+        "positions": [
+          {
+            "label": "0",
+            "title": "5.10.2 · 0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "1",
+            "title": "5.10.2 · 1 — the highest this knob goes; turned fully clockwise"
+          },
+          {
+            "label": "-0.2",
+            "title": "-0.2 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "1",
+            "title": "1 — the highest this knob goes; turned fully clockwise"
+          },
+          {
+            "label": "0",
+            "title": "0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "1",
+            "title": "1 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "trig",
+        "title": "5.11.2 · Trigger — LEVEL is the value the signal must cross, in the SLOPE direction, for a sweep to start; set it inside the waveform or nothing triggers. SLOPE, the buttons at the right: + triggers on the signal rising through the level, − on it falling. MODE, the buttons at the left: AUTO sweeps anyway when nothing crosses, so silence shows a baseline; NORM sweeps only on a trigger and holds the last trace otherwise.",
+        "positions": [
+          {
+            "label": "-1",
+            "title": "5.11.2 · -1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "1",
+            "title": "5.11.2 · 1 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "volts",
+        "title": "5.10.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it INPUT 1, a mini knob with a display of its own: what input 1 is fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on that display, which lists them all when clicked, and on the face, top left. INPUT 2 is under TIME. The reset puts both back.",
+        "positions": [
+          {
+            "label": "2 mFS",
+            "title": "5.10.3 · 2 mFS"
+          },
+          {
+            "label": "5",
+            "title": "5.10.3 · 5 mFS"
+          },
+          {
+            "label": "10",
+            "title": "5.10.3 · 10 mFS"
+          },
+          {
+            "label": "20",
+            "title": "5.10.3 · 20 mFS"
+          },
+          {
+            "label": "50",
+            "title": "5.10.3 · 50 mFS"
+          },
+          {
+            "label": "100",
+            "title": "5.10.3 · 100 mFS"
+          },
+          {
+            "label": "200",
+            "title": "5.10.3 · 200 mFS"
+          },
+          {
+            "label": "500",
+            "title": "5.10.3 · 500 mFS"
+          },
+          {
+            "label": "1 FS",
+            "title": "5.10.3 · 1 FS"
+          }
+        ]
+      },
+      {
+        "label": "time",
+        "title": "5.11.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen. Under it INPUT 2, what input 2 is fed from, as INPUT 1 is under VOLTS. The reset puts both back.",
+        "positions": [
+          {
+            "label": "10 µs",
+            "title": "5.11.3 · 10 µs"
+          },
+          {
+            "label": "20",
+            "title": "5.11.3 · 20 µs"
+          },
+          {
+            "label": "50",
+            "title": "5.11.3 · 50 µs"
+          },
+          {
+            "label": "100",
+            "title": "5.11.3 · 100 µs"
+          },
+          {
+            "label": "200",
+            "title": "5.11.3 · 200 µs"
+          },
+          {
+            "label": "500",
+            "title": "5.11.3 · 500 µs"
+          },
+          {
+            "label": "1 ms",
+            "title": "5.11.3 · 1 ms"
+          },
+          {
+            "label": "2",
+            "title": "5.11.3 · 2 ms"
+          },
+          {
+            "label": "5",
+            "title": "5.11.3 · 5 ms"
+          },
+          {
+            "label": "10",
+            "title": "5.11.3 · 10 ms"
+          },
+          {
+            "label": "20",
+            "title": "5.11.3 · 20 ms"
+          },
+          {
+            "label": "50",
+            "title": "5.11.3 · 50 ms"
+          },
+          {
+            "label": "100",
+            "title": "5.11.3 · 100 ms"
+          },
+          {
+            "label": "200",
+            "title": "5.11.3 · 200 ms"
+          },
+          {
+            "label": "500",
+            "title": "5.11.3 · 500 ms"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "gen-v",
+    "label": "Gen 4",
+    "title": "5.12 · Gen 4 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz up to 28160 Hz, over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.\n\nWhere it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 4 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.",
+    "image": "docs/img/module/gen-v.jpg",
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "freq",
+        "title": "5.12.1"
+      },
+      {
+        "label": "lvl",
+        "title": "5.12.2",
+        "positions": [
+          {
+            "label": "0",
+            "title": "5.12.2 · 0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "100",
+            "title": "5.12.2 · 100 — the highest this knob goes; turned fully clockwise"
+          },
+          {
+            "label": "1",
+            "title": "1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "2k",
+            "title": "2k — the highest this knob goes; turned fully clockwise"
+          },
+          {
+            "label": "1",
+            "title": "1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "5k",
+            "title": "5k — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "wave",
+        "title": "5.12.3",
+        "positions": [
+          {
+            "label": "off",
+            "title": "5.12.3 · OFF — Gen 4 plays nothing"
+          },
+          {
+            "label": "",
+            "title": "5.12.3 · sine — one pure frequency and no harmonics at all"
+          },
+          {
+            "label": "",
+            "title": "5.12.3 · triangle — odd harmonics falling away steeply: soft and hollow"
+          },
+          {
+            "label": "",
+            "title": "5.12.3 · square — odd harmonics falling away slowly: hollow and reedy"
+          },
+          {
+            "label": "",
+            "title": "5.12.3 · sawtooth — every harmonic, the brightest of the four"
+          },
+          {
+            "label": "",
+            "title": "5.12.3 · noise — a 15-bit shift register; the freq knob sets its playback rate"
+          },
+          {
+            "label": "",
+            "title": "5.12.3 · white noise — equal power per hertz; reads as a rising tilt on an RTA. The freq knob does not change it"
+          },
+          {
+            "label": "",
+            "title": "5.12.3 · pink noise — equal power per octave; the stimulus an RTA reads FLAT, and what a room is measured with. The freq knob does not change it"
+          },
+          {
+            "label": "",
+            "title": "5.12.3 · log sweep, 20 Hz to 20 kHz in four seconds — the stimulus an impulse response is derived from. The freq knob does not change it"
+          },
+          {
+            "label": "",
+            "title": "5.12.3 · polarity pulse — a one-sided click; shows which way round a speaker is wired. The freq knob does not change it"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "synth-synth",
+    "label": "Synth",
+    "title": "6.1 · Synth — the sound the keyboard plays. PRESET sets every knob on the bay to an instrument, as a place to start from; LVL is how loud. Where it is heard is the Mixer's: its KEYS column.",
+    "image": "docs/img/module/synth-synth.jpg",
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "prst",
+        "title": "6.1.1 · Preset — sets every knob on the bay to an instrument; turn any of them after to change it from there."
+      },
+      {
+        "label": "lvl",
+        "title": "6.1.2 · Level — how loud the keyboard plays (0–100).",
+        "positions": [
+          {
+            "label": "0",
+            "title": "6.1.2 · 0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "100",
+            "title": "6.1.2 · 100 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "synth-string",
+    "label": "String",
+    "title": "6.2 · String — the additive voice that is the piano: partials not quite harmonic, each fading at its own rate. STR its level; PART how many partials; TILT how fast they fall away up the series; INHM the string's stiffness, which sharpens the upper partials (×10⁻⁴); STRK where along the string it is struck, which silences the partials with a node there; UNI the detune between the two strings of each low partial, in cents; DAMP how much faster each higher partial dies.",
+    "image": "docs/img/module/synth-string.jpg",
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "str",
+        "title": "6.2.1 · String level — the additive layer's share of the sound.",
+        "positions": [
+          {
+            "label": "0",
+            "title": "6.2.1 · 0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "1",
+            "title": "6.2.1 · 1 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "part",
+        "title": "6.2.2 · Partials — how many of the string's overtones sound.",
+        "positions": [
+          {
+            "label": "1",
+            "title": "6.2.2 · 1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "16",
+            "title": "6.2.2 · 16 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "tilt",
+        "title": "6.2.3 · Tilt — how fast the partials fall away up the series: low is bright, high is mellow.",
+        "positions": [
+          {
+            "label": "0.3",
+            "title": "6.2.3 · 0.3 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "3",
+            "title": "6.2.3 · 3 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "inhm",
+        "title": "6.3.1 · Inharmonicity — the string's stiffness, ×10⁻⁴, which sharpens each partial by B·n²: none is an organ pipe's series, a piano's is about 2.5.",
+        "positions": [
+          {
+            "label": "0",
+            "title": "6.3.1 · 0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "20",
+            "title": "6.3.1 · 20 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "strk",
+        "title": "6.3.2 · Strike point — where along the string it is struck, as a fraction: the partials with a node there are thinned. A piano's hammer is at about an eighth; 0 is off.",
+        "positions": [
+          {
+            "label": "0",
+            "title": "6.3.2 · 0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "0.5",
+            "title": "6.3.2 · 0.5 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "uni",
+        "title": "6.3.3 · Unison — the detune between the two strings of each of the three lowest partials, in cents: their slow beating is a piano's shimmer.",
+        "positions": [
+          {
+            "label": "0",
+            "title": "6.3.3 · 0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "5",
+            "title": "6.3.3 · 5 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "damp",
+        "title": "6.4.1 · Damping — how much faster each higher partial dies than the one below it, so the tone darkens as it rings.",
+        "positions": [
+          {
+            "label": "0",
+            "title": "6.4.1 · 0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "2",
+            "title": "6.4.1 · 2 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "synth-fm",
+    "label": "FM",
+    "title": "6.5 · FM — a sine modulated by another: the electric piano. FM its level; RATO the modulator's frequency over the note's; INDX how deep the modulation starts; IDEC how fast it fades, which is how fast the bark becomes a pure tone.",
+    "image": "docs/img/module/synth-fm.jpg",
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "fm",
+        "title": "6.5.1 · FM level — the FM layer's share of the sound.",
+        "positions": [
+          {
+            "label": "0",
+            "title": "6.5.1 · 0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "1",
+            "title": "6.5.1 · 1 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "rato",
+        "title": "6.5.2 · Ratio — the modulator's frequency over the note's: whole numbers are harmonic, others bell-like.",
+        "positions": [
+          {
+            "label": "0.5",
+            "title": "6.5.2 · 0.5 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "16",
+            "title": "6.5.2 · 16 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "indx",
+        "title": "6.5.3 · Index — how deep the modulation starts: higher is brighter and harsher.",
+        "positions": [
+          {
+            "label": "0",
+            "title": "6.5.3 · 0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "10",
+            "title": "6.5.3 · 10 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "idec",
+        "title": "6.6.1 · Index decay — how fast the modulation fades, in seconds.",
+        "positions": [
+          {
+            "label": "0.01",
+            "title": "6.6.1 · 0.01 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "3",
+            "title": "6.6.1 · 3 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "synth-wave",
+    "label": "Wave · Noise",
+    "title": "6.7 · Wave · Noise — WAVE is one oscillator, a generator waveform, the organ's drawbars or tuned noise, at a level; NOISE is a burst of filtered noise at the start of each note — a hammer, a quill, a tine's click — at TONE times the note, dying over NDEC.",
+    "image": "docs/img/module/synth-wave.jpg",
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "shp",
+        "title": "6.7.1 · Wave shape — the oscillator: sine, triangle, square, saw, the organ's drawbars (16′ 8′ 5⅓′ 4′ 2⅔′) or tuned shift-register noise.",
+        "positions": [
+          {
+            "label": "sine",
+            "title": "6.7.1 · sine — one pure frequency"
+          },
+          {
+            "label": "tri",
+            "title": "6.7.1 · triangle — soft and hollow"
+          },
+          {
+            "label": "sqr",
+            "title": "6.7.1 · square — hollow and reedy"
+          },
+          {
+            "label": "saw",
+            "title": "6.7.1 · saw — every harmonic, the brightest"
+          },
+          {
+            "label": "org",
+            "title": "6.7.1 · organ — drawbars 16′ 8′ 5⅓′ 4′ and a little 2⅔′"
+          },
+          {
+            "label": "nse",
+            "title": "6.7.1 · noise — a 15-bit shift register, tuned to the key"
+          }
+        ]
+      },
+      {
+        "label": "wave",
+        "title": "6.7.2 · Wave level — the oscillator layer's share of the sound.",
+        "positions": [
+          {
+            "label": "0",
+            "title": "6.7.2 · 0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "1",
+            "title": "6.7.2 · 1 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "nse",
+        "title": "6.7.3 · Noise level — the burst at the start of each note.",
+        "positions": [
+          {
+            "label": "0",
+            "title": "6.7.3 · 0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "1",
+            "title": "6.7.3 · 1 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "tone",
+        "title": "6.8.1 · Noise tone — where the burst is centered, in multiples of the note: low is a felt thump, high a click.",
+        "positions": [
+          {
+            "label": "1",
+            "title": "6.8.1 · 1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "16",
+            "title": "6.8.1 · 16 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "ndec",
+        "title": "6.8.2 · Noise decay — how fast the burst dies, in seconds.",
+        "positions": [
+          {
+            "label": "0.002",
+            "title": "6.8.2 · 0.002 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "0.2",
+            "title": "6.8.2 · 0.2 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "synth-filter",
+    "label": "Filter",
+    "title": "6.9 · Filter — a lowpass on each note that opens at BRGT times the note and closes towards DARK times it over FDEC: a plucked string brightest at the pluck. RESO is its resonance.",
+    "image": "docs/img/module/synth-filter.jpg",
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "brgt",
+        "title": "6.9.1 · Bright — where the filter opens, in multiples of the note.",
+        "positions": [
+          {
+            "label": "1",
+            "title": "6.9.1 · 1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "48",
+            "title": "6.9.1 · 48 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "dark",
+        "title": "6.9.2 · Dark — where the filter settles, in multiples of the note: the same as bright is no sweep at all.",
+        "positions": [
+          {
+            "label": "1",
+            "title": "6.9.2 · 1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "48",
+            "title": "6.9.2 · 48 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "fdec",
+        "title": "6.9.3 · Filter decay — how long the filter takes to close, in seconds.",
+        "positions": [
+          {
+            "label": "0.01",
+            "title": "6.9.3 · 0.01 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "5",
+            "title": "6.9.3 · 5 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "reso",
+        "title": "6.10.1 · Resonance — the filter's peak at its cutoff.",
+        "positions": [
+          {
+            "label": "0.1",
+            "title": "6.10.1 · 0.1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "12",
+            "title": "6.10.1 · 12 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "synth-amp",
+    "label": "Amp",
+    "title": "6.11 · Amp — the envelope every layer follows: ATK up, then towards SUS with time constant DEC (at C3), which KTRK shortens up the keyboard and lengthens down it, as a piano's strings ring longer in the bass; REL is how long letting go takes.",
+    "image": "docs/img/module/synth-amp.jpg",
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "atk",
+        "title": "6.11.1 · Attack — how long the note takes to rise, in seconds.",
+        "positions": [
+          {
+            "label": "0.001",
+            "title": "6.11.1 · 0.001 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "1",
+            "title": "6.11.1 · 1 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "dec",
+        "title": "6.11.2 · Decay — the time constant of the fall towards sustain, in seconds, at C3.",
+        "positions": [
+          {
+            "label": "0.05",
+            "title": "6.11.2 · 0.05 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "10",
+            "title": "6.11.2 · 10 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "ktrk",
+        "title": "6.11.3 · Key tracking — how much shorter the decay is up the keyboard: 1 is an octave shorter every eighteen semitones, a piano's; 0 is the same everywhere.",
+        "positions": [
+          {
+            "label": "0",
+            "title": "6.11.3 · 0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "2",
+            "title": "6.11.3 · 2 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "sus",
+        "title": "6.12.1 · Sustain — the level held while the key is down: 0 dies away like a string, 1 holds like an organ.",
+        "positions": [
+          {
+            "label": "0",
+            "title": "6.12.1 · 0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "1",
+            "title": "6.12.1 · 1 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "rel",
+        "title": "6.12.2 · Release — how long the note takes to stop once let go, in seconds.",
+        "positions": [
+          {
+            "label": "0.01",
+            "title": "6.12.2 · 0.01 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "3",
+            "title": "6.12.2 · 3 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "keys",
+    "label": "Keys",
+    "title": "7.1 · Keys — a playable polyphonic keyboard: click or drag the keybed (glissando works), or play the computer keyboard on the labeled keys (Z row = lower octave, Q row = upper). The bed is the whole piano, A0 to C8, across the whole bay; what it sounds like, how loud and on which speakers is the Synth bay above it.",
+    "image": "docs/img/module/keys.jpg",
+    "mode": "lorenz"
+  },
+  {
+    "id": "tm",
+    "label": "Matrix",
+    "title": "8.1 · Matrix — a pentatonic tonematrix step sequencer with a rhythm section under it: paint pads on the grid (click or drag; rows are pitches, columns are sixteenths) and the playhead loops them as pings at the tempo, over as many columns as the steps knob says. The four lanes at the foot are the drums (bass drum, snare, hi-hat, cymbal), on the same beat; they count in sixteenths or, for a shuffle or swing, in triplets, and each beat of them sits under the same beat of the tune. A preset tab loads a pattern into them to play or to edit. The pentatonic rows mean any pattern is consonant.",
+    "image": "docs/img/module/tm.jpg",
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "tempo",
+        "title": "8.1.1",
+        "positions": [
+          {
+            "label": "40",
+            "title": "8.1.1 · 40 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "300",
+            "title": "8.1.1 · 300 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "steps",
+        "title": "8.1.2",
+        "positions": [
+          {
+            "label": "C1",
+            "title": "8.1.2 · C1 — the bottom row starts two octaves below middle C"
+          },
+          {
+            "label": "C2",
+            "title": "8.1.2 · C2 — the bottom row starts one octave below middle C"
+          },
+          {
+            "label": "C3",
+            "title": "8.1.2 · C3 — the bottom row starts at middle C"
+          },
+          {
+            "label": "C4",
+            "title": "8.1.2 · C4 — the bottom row starts one octave above middle C"
+          },
+          {
+            "label": "12",
+            "title": "8.1.2 · 12 steps — three beats: one bar of a waltz"
+          },
+          {
+            "label": "16",
+            "title": "8.1.2 · 16 steps — four beats: one bar of four"
+          },
+          {
+            "label": "24",
+            "title": "8.1.2 · 24 steps — six beats: two bars of a waltz"
+          },
+          {
+            "label": "32",
+            "title": "8.1.2 · 32 steps — eight beats: two bars of four"
+          },
+          {
+            "label": "48",
+            "title": "8.1.2 · 48 steps — twelve beats: three bars of four, or four of a waltz"
+          },
+          {
+            "label": "64",
+            "title": "8.1.2 · 64 steps — sixteen beats: the whole grid"
+          }
+        ]
+      },
+      {
+        "label": "lvl",
+        "title": "8.1.3",
+        "positions": [
+          {
+            "label": "0",
+            "title": "8.1.3 · 0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "100",
+            "title": "8.1.3 · 100 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "wave",
+        "title": "8.2.1",
+        "positions": [
+          {
+            "label": "",
+            "title": "8.2.1 · sine — one pure frequency and no harmonics at all"
+          },
+          {
+            "label": "",
+            "title": "8.2.1 · triangle — odd harmonics falling away steeply: soft and hollow"
+          },
+          {
+            "label": "",
+            "title": "8.2.1 · square — odd harmonics falling away slowly: hollow and reedy"
+          },
+          {
+            "label": "",
+            "title": "8.2.1 · sawtooth — every harmonic, the brightest of the four"
+          },
+          {
+            "label": "",
+            "title": "8.2.1 · noise — a 15-bit shift register; the pad's pitch sets its playback rate"
+          }
+        ]
+      },
+      {
+        "label": "RunClear",
+        "title": "8.2.2"
+      },
+      {
+        "label": "Run",
+        "title": "8.2.2 · Run — start/stop the playhead loop, tune and drums together (painting works either way). Pressing a preset tab starts it too."
+      },
+      {
+        "label": "drums",
+        "title": "8.2.3",
+        "positions": [
+          {
+            "label": "0",
+            "title": "8.2.3 · 0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "100",
+            "title": "8.2.3 · 100 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "mixer",
+    "label": "Mixer",
+    "title": "9.1 · Mixer — every sound on the rack, and where it goes. Each column is a source (the capture, the generators, the model's x, y and z, the instruments); each row is a destination: SPK L and R are the speakers, RACK L and R the rack's own signal, which the meters, the audio models, the scopes and the Mod matrix read, and MOD A and B two sends only the Mod matrix reads, for a source that should turn a knob without being heard or measured. A pin where they cross puts the source there: press it to pin at full level, press again to take it away, and turn the wheel over it, or LVL below, to set its gain; a negative gain inverts it. Several pins on a row are mixed. The capture has no speaker pins: it is the system's own audio, already playing.",
+    "image": "docs/img/module/mixer.jpg",
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "pin",
+        "title": "PIN — the pin LVL is setting: the last one pressed or turned, as source\u003erow"
+      },
+      {
+        "label": "lvl",
+        "title": "9.2.2 · LVL — the selected pin's gain, −1 to 1: 1 is the source as it is, 0 takes the pin away, and below 0 inverts it — GEN 1 at 1 on RACK L and −1 on RACK R is L−R, and nothing in a mono sum",
+        "positions": [
+          {
+            "label": "-1",
+            "title": "9.2.2 · -1 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "1",
+            "title": "9.2.2 · 1 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "mod-matrix",
+    "label": "Mod",
+    "title": "9.4 · Mod — audio modulation: the rack's signal turning the rack's knobs. Each column is a source: RACK — the rack's signal, as the Mixer makes it, both sides summed (st) or one (L, R) — SEND, the Mixer's MOD A and B, which only modulation reads — or HEAD, where the model is drawn now (x, y, z, and r, its distance from the center). Each row is a control: the running model's parameters, then the view's. A pin routes the column to the row; another pin in the same row moves the route; a lit pin pressed again takes it away. DEST, DPTH, SHAPE and EQ under it are the selected row's route: which control, how deep, which way it moves, and which frequency bands drive it.",
+    "image": "docs/img/module/mod-matrix.jpg",
+    "mode": "lorenz",
+    "controls": [
+      {
+        "label": "dest",
+        "title": "9.4.3 · DEST — which control the route below is for. The matrix's row names say the same; this knob steps through them."
+      },
+      {
+        "label": "dpth",
+        "title": "9.5.3 · DPTH — how strongly the source drives the selected control; minus inverts it, 0 is no route at all. About 1.5 overdrives.",
+        "positions": [
+          {
+            "label": "-4",
+            "title": "9.5.3 · -4 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "4",
+            "title": "9.5.3 · 4 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "shape",
+        "title": "9.6.3 · SHAPE — which way the source moves the selected control. push: one way, the further the louder, as a route always has. swing: both ways around the control's setting — louder than the music has lately been one way, quieter the other — so it sits at its setting on average. flip: out on a beat, the other way on the next, back between them. wave: the signal itself, not how loud it is — the source's newest sample, either side of the setting, as an X-Y scope's beam moves; a frame takes one sample, so a slow signal (a generator turned below A0) is traced, and a fast one lands anywhere in its swing. Head x, y and z are centered under every shape: the model at the middle moves nothing."
+      },
+      {
+        "label": "eq",
+        "title": "EQ — which frequency bands, low to high, drive the selected control. Drag across the bars to paint them."
       }
     ]
   }
