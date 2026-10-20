@@ -89,7 +89,10 @@ func SprottMorphSystems() []SprottMorphSys {
 		Letter: "A",
 		Coefs:  quadExtract(SprottADeriv),
 		DT:     0.01,
-		IC:     [3]float32{0.1, 0.2, 0.3},
+		// Sprott A's own IC (sprotta.go): it is conservative, and from
+		// (0.1, 0.2, 0.3) it rides a torus — periodic — where from here it
+		// fills the chaotic sea the Sprott A model shows.
+		IC: [3]float32{0, 5, 0},
 	})
 	for _, sc := range SprottCases {
 		out = append(out, SprottMorphSys{

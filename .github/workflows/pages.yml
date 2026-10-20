@@ -44,6 +44,8 @@ jobs:
         run: |
           mkdir -p docs/img/gif
           cp _media/docs/img/gif/*.gif docs/img/gif/
+          # The models' loops, beside their stills in docs/img/model.
+          if ls _media/docs/img/model/*.gif >/dev/null 2>&1; then cp _media/docs/img/model/*.gif docs/img/model/; fi
           rm -rf _media
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

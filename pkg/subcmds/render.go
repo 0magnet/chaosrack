@@ -58,6 +58,7 @@ var (
 	renderWalk   string
 	renderCrop   bool
 	renderRock   bool
+	renderTumble int
 )
 
 func renderFlags(renderCmd *cobra.Command) {
@@ -81,6 +82,7 @@ func renderFlags(renderCmd *cobra.Command) {
 	renderCmd.Flags().BoolVar(&renderSweep, "sweep", true, "in an animation, sweep a trail along the path; false draws the whole figure every frame, so only --turn moves it")
 	renderCmd.Flags().BoolVar(&renderCrop, "crop", false, "frame the picture to what is drawn (across all frames of an animation) rather than to the figure's extent")
 	renderCmd.Flags().BoolVar(&renderRock, "rock", false, "in an animation, swing the --turn out and back on a sine, centered on --angle, instead of turning steadily; a loop without a seam that need not be a whole turn")
+	renderCmd.Flags().IntVar(&renderTumble, "tumble", 0, "in an animation, make this many eased quarter turns, alternately right and down, instead of --turn; 6 comes back to the start")
 	renderCmd.Flags().StringVar(&renderWalk, "walk", "", "in an animation, step the colors through COLORS/GRADIENT settings in equal parts, e.g. 4/z,2/x,3/y,1/trail; a still takes the first")
 }
 
@@ -412,6 +414,11 @@ func applySets() error {
 		if err != nil {
 			return fmt.Errorf("--set %s: %q is not a number", id, val)
 		}
+		// The scope models' knobs (turtle, Graphic Artist, Sprott Morph)
+		// are the page's own state, not the parameter registry's.
+		if attractor.SetFigureKnob(strings.TrimSpace(id), float32(v)) {
+			continue
+		}
 		if err := dynamics.SetParam(strings.TrimSpace(id), float32(v)); err != nil {
 			return fmt.Errorf("--set: %w", err)
 		}
@@ -434,6 +441,11 @@ func listParams() error {
 				p.ID, p.Label, p.Def, p.Min, p.Max, p.Step); err != nil {
 				return err
 			}
+		}
+	}
+	for _, k := range attractor.FigureKnobs() {
+		if _, err := fmt.Fprintf(w, "%s\t\t%g\t\t\n", k.ID, k.Def); err != nil {
+			return err
 		}
 	}
 	if err := w.Flush(); err != nil {

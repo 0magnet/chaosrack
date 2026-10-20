@@ -139,17 +139,23 @@ func modelEntry(m attractor.CatalogModel) string {
 	// The images a model can have. Every one is optional and included only if
 	// it was captured, so a model with no parameters of its own simply has no
 	// Parameters column rather than a broken image.
-	type shot struct{ head, alt, path string }
+	//
+	// The loops are not in the repository: they are on the media branch and
+	// served by Pages, as the gallery is (make publish-gifs), so they are
+	// linked there, and a model has one when it has a still — the file a
+	// checkout does have, so this section reads the same in every clone.
+	type shot struct{ head, alt, path, link string }
+	still := filepath.Join(*modelImgDir, m.Key+".jpg")
 	shots := []shot{
-		{mdEscape(m.Label), mdEscape(m.Label), filepath.Join(*modelImgDir, m.Key+".jpg")},
-		{"animated", mdEscape(m.Label) + ", animated", filepath.Join(*modelImgDir, m.Key+".gif")},
+		{mdEscape(m.Label), mdEscape(m.Label), still, still},
+		{"animated", mdEscape(m.Label) + ", animated", still, *siteBase + "/" + filepath.ToSlash(filepath.Join(*modelImgDir, m.Key+".gif"))},
 	}
 	// Named variants: a second face of the same model that a still cannot
 	// show at the same time as the first. The turtle's is the big one — the
 	// same walk in two dimensions and in three are different figures.
 	for _, v := range modelVariants[m.Key] {
-		shots = append(shots, shot{v.head, mdEscape(m.Label) + " — " + v.head,
-			filepath.Join(*modelImgDir, m.Key+"-"+v.suffix+".jpg")})
+		p := filepath.Join(*modelImgDir, m.Key+"-"+v.suffix+".jpg")
+		shots = append(shots, shot{v.head, mdEscape(m.Label) + " — " + v.head, p, p})
 	}
 	// The model's bank as it stands for THIS model, over the figures and the
 	// full width of the page: a twelve-column bank in a third of a table row
@@ -169,7 +175,7 @@ func modelEntry(m attractor.CatalogModel) string {
 		for _, s := range have {
 			heads = append(heads, s.head)
 			seps = append(seps, "---")
-			cells = append(cells, fmt.Sprintf("![%s](%s)", s.alt, s.path))
+			cells = append(cells, fmt.Sprintf("![%s](%s)", s.alt, s.link))
 		}
 		fmt.Fprintf(&b, "| %s |\n| %s |\n| %s |\n\n",
 			strings.Join(heads, " | "), strings.Join(seps, " | "), strings.Join(cells, " | "))

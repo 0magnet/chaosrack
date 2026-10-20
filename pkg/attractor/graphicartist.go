@@ -60,6 +60,33 @@ func (g *GraphicArtist) Set(id string, v float32) bool {
 	return true
 }
 
+// value is knob id's setting.
+func (g *GraphicArtist) value(id string) float32 {
+	switch id {
+	case "ga-la":
+		return g.levelA
+	case "ga-lb":
+		return g.levelB
+	case "ga-ld":
+		return g.levelD
+	case "ga-hb":
+		return g.harmB
+	case "ga-hc":
+		return g.harmC
+	case "ga-hd":
+		return g.harmD
+	case "ga-wa":
+		return g.waveA
+	case "ga-wb":
+		return g.waveB
+	case "ga-wc":
+		return g.waveC
+	case "ga-wd":
+		return g.waveD
+	}
+	return 0
+}
+
 // gaWave returns a −1..1 waveform sample at phase ph (radians). kind rounds to
 // triangle (0) or square (1) — matching the WAVEFORM A/B/C/D toggle switches.
 func gaWave(kind float32, ph float64) float64 {

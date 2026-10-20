@@ -68,6 +68,30 @@ func StaticFigure(key string, points int) (Figure, bool) {
 		return linesFigure(geom.Magnetosphere()), true
 	case "lissajou":
 		return Figure{Kind: FigurePath, Points: lissajous(points)}, true
+	case "graphicartist":
+		g := NewGraphicArtist()
+		for _, id := range GraphicArtistKnobs {
+			if v, ok := figureSets[id]; ok {
+				g.Set(id, v)
+			}
+		}
+		f := Figure{Kind: FigurePath, Points: make([][3]float64, max(points, 2))}
+		g.Trace(len(f.Points), func(i int, x, y, z float64) { f.Points[i] = [3]float64{x, y, z} })
+		return f, true
+	case "sprottmorph":
+		// Parked on one system, D by default: a still is one wiring.
+		sp := NewSprottMorph(func() float64 { return 0.5 })
+		sp.Set("smorph-rate", 0)
+		if v, ok := figureSets["smorph-sys"]; ok {
+			sp.Set("smorph-sys", v)
+		}
+		n := max(points, 2)
+		sp.Enter(n)
+		f := Figure{Kind: FigurePath, Points: make([][3]float64, n)}
+		sp.Trail(n, func(k int, x, y, z float64) { f.Points[k] = [3]float64{x, y, z} })
+		return f, true
+	case "turtle":
+		return turtleFigure(points), true
 	}
 	return Figure{}, false
 }
@@ -156,4 +180,78 @@ func PointIndices(n, hi int) []uint16 {
 		out = append(out, uint16(i), uint16(i)) //nolint:gosec // clamped to 65536 above
 	}
 	return out
+}
+
+// turtleFigure is the Turtle Path at its defaults, walked far enough to be the
+// figure the page shows: the page extends the walk at the Speed knob's rate
+// forever; this walks it five seconds of the page's frames, about as long as
+// a visitor has watched it, then takes the trail.
+func turtleFigure(points int) Figure {
+	var r TurtleRun
+	budget := max(points, 2)
+	knobs := figureTurtleKnobs()
+	f := Figure{Kind: FigurePath}
+	for range 5 {
+		r.Step(knobs, budget, 60, 1, 1, true, nil, func(_, _, _, _ float32) {})
+	}
+	r.Step(knobs, budget, 0, 1, 1, false, nil, func(x, y, z, tint float32) {
+		f.Points = append(f.Points, [3]float64{float64(x), float64(y), float64(z)})
+		f.Ages = append(f.Ages, tint)
+	})
+	return f
+}
+
+// figureSets are the knobs the scope models are drawn at, beyond their
+// defaults: a renderer's --set, by the page's ids.
+var figureSets = map[string]float32{}
+
+// FigureKnobs are the knobs of the models StaticFigure draws from the page's
+// own state rather than a parameter registry — the Turtle Path, the Graphic
+// Artist and the Sprott Morph — each with its default.
+func FigureKnobs() []struct {
+	ID  string
+	Def float32
+} {
+	var out []struct {
+		ID  string
+		Def float32
+	}
+	add := func(id string, def float32) {
+		out = append(out, struct {
+			ID  string
+			Def float32
+		}{id, def})
+	}
+	for i, id := range TurtleKnobs {
+		add(id, TurtleDefaults[i])
+	}
+	g := NewGraphicArtist()
+	for _, id := range GraphicArtistKnobs {
+		add(id, g.value(id))
+	}
+	add("smorph-sys", 3)
+	return out
+}
+
+// SetFigureKnob turns one of FigureKnobs for the figures StaticFigure draws
+// from then on, reporting whether id is one.
+func SetFigureKnob(id string, v float32) bool {
+	for _, k := range FigureKnobs() {
+		if k.ID == id {
+			figureSets[id] = v
+			return true
+		}
+	}
+	return false
+}
+
+// figureTurtleKnobs is TurtleDefaults with figureSets over it.
+func figureTurtleKnobs() [9]float32 {
+	k := TurtleDefaults
+	for i, id := range TurtleKnobs {
+		if v, ok := figureSets[id]; ok {
+			k[i] = v
+		}
+	}
+	return k
 }

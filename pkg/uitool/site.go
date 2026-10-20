@@ -152,7 +152,7 @@ func buildSite() ([]modelPage, indexPage) {
 				Paras:     paragraphs(prose),
 				Equations: equations,
 				Still:     imgURL(m.Key, ".jpg"),
-				Loop:      imgURL(m.Key, ".gif"),
+				Loop:      loopURL(m.Key),
 				Prms:      imgURL(m.Key, "-params.jpg"),
 				Group:     g.Label,
 				// sharedCSS is this tool's own stylesheet, not input. htmpl.CSS is
@@ -408,3 +408,13 @@ categories is shown under both, because that is what the selector does.</p>
 </body>
 </html>
 `))
+
+// loopURL is a model's loop, which is not in the repository but on the media
+// branch Pages merges in (make publish-gifs): there when the model has a
+// still, so a page reads the same from every checkout.
+func loopURL(key string) string {
+	if imgURL(key, ".jpg") == "" {
+		return ""
+	}
+	return "../" + filepath.ToSlash(filepath.Join(*modelImgDir, key+".gif"))
+}

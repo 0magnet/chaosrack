@@ -491,6 +491,10 @@ func turtleKeyOf(mod, seq, mul, capF, dim, tint float32) turtleKey {
 // page's ids, in the order TurtleRun.Step takes them.
 var TurtleKnobs = []string{"turtle-mod", "turtle-seq", "turtle-mul", "turtle-cap", "turtle-dim", "turtle-tint", "turtle-trail", "turtle-cam", "turtle-turn"}
 
+// TurtleDefaults are the knobs at the page's defaults (paramdefs_js.go), in
+// TurtleKnobs' order: modulus 25 of the Fibonacci numbers, in 3-D.
+var TurtleDefaults = [9]float32{25, 0, 1, 0, 3, 0, 0, 0, 0}
+
 // TurtleRun is a Turtle walked for a rack without the page: the walk, made
 // again when the knobs ask for a different one.
 type TurtleRun struct {
