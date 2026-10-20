@@ -89,13 +89,21 @@ func writeFigureAnimation(name string, f attractor.Figure) error {
 	views := frameViews(renderFrames)
 	switch strings.ToLower(filepath.Ext(name)) {
 	case ".gif":
-		frames := make([]*image.RGBA, 0, len(views))
-		for i, a := range views {
+		fit := thinned(f.Points, 50000)
+		n := len(views)
+		frames := loopFrames(n, func(i, at int) *image.RGBA {
 			o := drawOptions()
+			a := views[at]
 			o.View.AngleX, o.View.AngleY, o.View.AngleZ = a[0], a[1], a[2]
-			o.Gradient = gradientAt(i, len(views))
-			frames = append(frames, attractor.DrawFigure(f, 0, figureReveal(f, i, len(views)), o))
-		}
+			o.Gradient = gradientAt(at, n)
+			lo, hi := figureSpan(f, i, n+seamFrames(n))
+			if renderLive && f.Kind == attractor.FigurePoints {
+				o.Fit = fit
+				part := attractor.Figure{Kind: f.Kind, Points: f.Points[lo:hi]}
+				return attractor.DrawFigure(part, 0, hi-lo, o)
+			}
+			return attractor.DrawFigure(f, lo, hi, o)
+		})
 		file, err := cmdfs.Create(runCtx, name)
 		if err != nil {
 			return err
@@ -217,4 +225,16 @@ func writeSegments(b *strings.Builder, f attractor.Figure, pts [][3]float64, hi 
 		fmt.Fprintf(b, `<path fill="none" stroke="%s" stroke-width="%s" stroke-opacity="0.85" stroke-linecap="round" d="%s"/>`,
 			h, width, paths[h].String())
 	}
+}
+
+// figureSpan is what frame i of n draws of f: for a map or a curve, a moving
+// window of recent points (frameSpan), the way a flow's trail moves; a
+// wireframe whole.
+func figureSpan(f attractor.Figure, i, n int) (lo, hi int) {
+	if f.Kind == attractor.FigureLines || renderLive && f.Kind == attractor.FigurePath {
+		// A wireframe is whole; so, live, is a curve, which the page draws
+		// whole every frame.
+		return 0, len(f.Points)
+	}
+	return frameSpan(len(f.Points), i, n)
 }

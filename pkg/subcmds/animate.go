@@ -75,6 +75,16 @@ func frameViews(n int) [][3]float64 {
 // is a full trail rather than an empty frame and the last frame ends on the
 // last point integrated.
 func frameSpan(total, i, n int) (lo, hi int) {
+	if renderLive && renderTrail <= 0 {
+		return 0, total // live with no trail: a figure the page draws whole
+	}
+	if renderLive && n > 1 {
+		// The page's trail: each frame the next stretch of the run, so
+		// the figure is redrawn by new trajectory every frame.
+		win := min(renderTrail, total)
+		lo = (total - win) * i / (n - 1)
+		return lo, lo + win
+	}
 	if !renderSweep {
 		return 0, total // the whole figure, every frame: only the camera moves
 	}
@@ -111,14 +121,22 @@ func writeAnimation(name string, pts [][3]float64) error {
 }
 
 func writeGIF(name string, pts [][3]float64, views [][3]float64) error {
-	frames := make([]*image.RGBA, 0, len(views))
-	for i, a := range views {
+	fit := thinned(pts, 50000)
+	n := len(views)
+	frames := loopFrames(n, func(i, at int) *image.RGBA {
 		o := drawOptions()
+		a := views[at]
 		o.View.AngleX, o.View.AngleY, o.View.AngleZ = a[0], a[1], a[2]
-		o.Gradient = gradientAt(i, len(views))
-		lo, hi := frameSpan(len(pts), i, len(views))
-		frames = append(frames, attractor.DrawSpan(pts, lo, hi, o))
-	}
+		o.Gradient = gradientAt(at, n)
+		lo, hi := frameSpan(len(pts), i, n+seamFrames(n))
+		if renderLive {
+			// Its own stretch alone, framed by the whole run: a run of
+			// stretches is far past what one draw can index.
+			o.Fit = fit
+			return attractor.DrawSpan(pts[lo:hi], 0, hi-lo, o)
+		}
+		return attractor.DrawSpan(pts, lo, hi, o)
+	})
 	f, err := cmdfs.Create(runCtx, name)
 	if err != nil {
 		return err
@@ -205,4 +223,15 @@ func animatedSVG(pts [][3]float64, views [][3]float64) string {
 	b.WriteString(body.String())
 	b.WriteString(`</svg>`)
 	return b.String()
+}
+
+// thinned is every so-many of pts, at most about n of them: enough to give a
+// run's bounds, which is all a frame's Fit is read for.
+func thinned(pts [][3]float64, n int) [][3]float64 {
+	step := max(len(pts)/n, 1)
+	out := make([][3]float64, 0, len(pts)/step+1)
+	for i := 0; i < len(pts); i += step {
+		out = append(out, pts[i])
+	}
+	return out
 }

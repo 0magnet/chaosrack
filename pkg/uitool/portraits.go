@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -88,7 +89,9 @@ func runPortraits() {
 		}
 		fmt.Printf("[%2d/%2d] %s", i+1, len(models), m)
 		if *portNative && !*portExtras && nativePortrait(m) {
-			if err := renderPortrait(m, i); err != nil {
+			// Its colors by its place in the catalog, not in this run's list,
+			// so a model looks the same however it is asked for.
+			if err := renderPortrait(m, max(slices.Index(attractor.CatalogKeys(), m), 0)); err != nil {
 				fmt.Fprintln(os.Stderr, "\nportraits:", m+":", err)
 				os.Exit(1)
 			}
@@ -134,12 +137,14 @@ func nativePortrait(key string) bool {
 // binary's own: the same flags anyone can run.
 //
 // The pose is the page portraits': 20° about x. The loop tumbles it through
-// six eased quarter turns, right and down by turns (--tumble), over the whole
-// figure — --sweep=false, so the figure holds still and only the camera
-// moves — cropped to what is drawn across every frame (--crop), and the
-// colors walk the palette knob's positions in equal parts
-// (portraitVariations), each change a step between two frames of one smooth
-// turn. The still is the walk's first position.
+// six eased quarter turns, right and down by turns (--tumble), while the model
+// runs as the page draws it at its defaults — each frame the next stretch of
+// the 20 000-point trail (--live), so new trajectory redraws the figure
+// every frame and the loop has no seam to hide — cropped to what is drawn
+// across every frame (--crop) — and the colors walk the palette knob's
+// positions (portraitVariations), one to a turn, each change falling where
+// the camera is settled. The still is the whole figure, in the walk's first
+// position.
 func renderPortrait(key string, idx int) error {
 	self, err := os.Executable()
 	if err != nil {
@@ -188,7 +193,14 @@ func renderPortrait(key string, idx int) error {
 	}
 	loop := []string{"-o", filepath.Join(*portDir, key+".gif"),
 		"--width", strconv.Itoa(*portGifP), "--height", strconv.Itoa(*portGifP),
-		"--frames", strconv.Itoa(*portFrames), "--fps", "20", "--sweep=false"}
+		"--frames", strconv.Itoa(*portFrames), "--fps", "20", "--live"}
+	if f, static := attractor.StaticFigure(key, 2); !static || f.Kind == attractor.FigurePoints || key == "sprottmorph" {
+		// A flow or a map runs on — the Sprott Morph is a flow, built as a
+		// figure because its coefficients are blended rather than registered: each frame the next stretch of the
+		// page's default trail, 20 000 points, so the run is that many a
+		// frame. A curve or a wireframe is drawn whole, as the page does.
+		loop = append(loop, "--trail", "20000", "--points", strconv.Itoa(20000**portFrames))
+	}
 	loop = append(loop, turn...)
 	if len(steps) > 0 {
 		loop = append(loop, "--walk", strings.Join(steps, ","))

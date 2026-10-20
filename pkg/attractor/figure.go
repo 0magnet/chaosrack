@@ -144,8 +144,8 @@ func lissajousOf(a, b, c float64, n int) [][3]float64 {
 	return out
 }
 
-// DrawFigure renders a figure into a new image. For FigurePoints only the
-// first hi points are drawn, and for FigurePath points lo..hi, so an animation
+// DrawFigure renders a figure into a new image. For FigurePoints and
+// FigurePath only points lo..hi are drawn, so an animation
 // can reveal a figure while the frame stays fitted to all of it.
 func DrawFigure(f Figure, lo, hi int, o DrawOptions) *image.RGBA {
 	if f.Kind == FigurePath && len(f.Ages) != len(f.Points) && len(f.Colors) != len(f.Points) {
@@ -157,7 +157,7 @@ func DrawFigure(f Figure, lo, hi int, o DrawOptions) *image.RGBA {
 	v, view := o.place(f.Points)
 	idx := f.Edges
 	if f.Kind == FigurePoints {
-		idx = PointIndices(len(f.Points), hi)
+		idx = PointIndices(len(f.Points), lo, hi)
 	}
 	if f.Kind == FigurePath {
 		idx = SpanIndices(len(f.Points), lo, hi)
@@ -166,17 +166,18 @@ func DrawFigure(f Figure, lo, hi int, o DrawOptions) *image.RGBA {
 	return img
 }
 
-// PointIndices draws each of the first hi of n points as a zero-length
-// segment, which the renderer plots as a single pixel.
-func PointIndices(n, hi int) []uint16 {
+// PointIndices draws points lo..hi of n each as a zero-length segment, which
+// the renderer plots as a single pixel.
+func PointIndices(n, lo, hi int) []uint16 {
 	if hi > n {
 		hi = n
 	}
 	if hi > 65536 {
 		hi = 65536
 	}
-	out := make([]uint16, 0, hi*2)
-	for i := range hi {
+	lo = max(lo, 0)
+	out := make([]uint16, 0, max(hi-lo, 0)*2)
+	for i := lo; i < hi; i++ {
 		out = append(out, uint16(i), uint16(i)) //nolint:gosec // clamped to 65536 above
 	}
 	return out

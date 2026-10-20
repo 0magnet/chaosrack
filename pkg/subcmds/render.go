@@ -59,6 +59,7 @@ var (
 	renderCrop   bool
 	renderRock   bool
 	renderTumble int
+	renderLive   bool
 )
 
 func renderFlags(renderCmd *cobra.Command) {
@@ -83,6 +84,7 @@ func renderFlags(renderCmd *cobra.Command) {
 	renderCmd.Flags().BoolVar(&renderCrop, "crop", false, "frame the picture to what is drawn (across all frames of an animation) rather than to the figure's extent")
 	renderCmd.Flags().BoolVar(&renderRock, "rock", false, "in an animation, swing the --turn out and back on a sine, centered on --angle, instead of turning steadily; a loop without a seam that need not be a whole turn")
 	renderCmd.Flags().IntVar(&renderTumble, "tumble", 0, "in an animation, make this many eased quarter turns, alternately right and down, instead of --turn; 6 comes back to the start")
+	renderCmd.Flags().BoolVar(&renderLive, "live", false, "in an animation, draw each frame as the page does: a fresh stretch of --trail points, continuing the run from where the last frame ended (needs --points of --trail times --frames)")
 	renderCmd.Flags().StringVar(&renderWalk, "walk", "", "in an animation, step the colors through COLORS/GRADIENT settings in equal parts, e.g. 4/z,2/x,3/y,1/trail; a still takes the first")
 }
 
@@ -173,8 +175,9 @@ carries on smoothly.
 
 Flows and curves are drawn as a line, maps as points, and polyhedra and other
 geometry as wireframes. Maps are drawn face-on and colored by y unless
---angle or --gradient is given. In an animation a map's points accumulate
-frame by frame.
+--angle or --gradient is given. In an animation a window of a map's recent
+iterates moves through it, as a flow's trail does, and a loop's seam is
+crossfaded: a chaotic trajectory never returns to where it started.
 
 Use chaosrack models to list the available models. Use --params to list the
 controls that --set can change, with their ranges. Values outside a control's
