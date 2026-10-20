@@ -100,3 +100,57 @@ func TestACropFillsThePictureWithWhatIsDrawn(t *testing.T) {
 		t.Errorf("only %d of %d pixels are the mark", lit, 50*50)
 	}
 }
+
+// A moving trail's loop has no seam: the continuation drawn past the end is
+// blended into the first frames, so the first frame is mostly what follows
+// the last, and the frame the blend ends on is mostly its own.
+func TestALoopsSeamIsCrossfaded(t *testing.T) {
+	old := renderSweep
+	t.Cleanup(func() { renderSweep = old })
+	renderSweep = true
+	// Each frame a flat gray of its position along the run, so a blend is
+	// readable as a number.
+	frame := func(i, _ int) *image.RGBA {
+		m := image.NewRGBA(image.Rect(0, 0, 1, 1))
+		m.SetRGBA(0, 0, color.RGBA{uint8(i), 0, 0, 255}) //nolint:gosec // small
+		return m
+	}
+	f := loopFrames(48, frame)
+	k := seamFrames(48)
+	if got := int(f[0].Pix[0]); math.Abs(float64(got-48)) > 48.0/float64(k+1)+1 {
+		t.Errorf("the first frame reads %d, want close to 48, the frame after the last", got)
+	}
+	if got := int(f[k].Pix[0]); got != k {
+		t.Errorf("frame %d, past the blend, reads %d", k, got)
+	}
+	renderSweep = false
+	if seamFrames(48) != 0 {
+		t.Error("a still trail has a seam to blend")
+	}
+}
+
+// --live draws each frame as the page does: the next full stretch of the run,
+// the first from its start and the last to its end.
+func TestLiveFramesAreSuccessiveStretches(t *testing.T) {
+	ol, ot := renderLive, renderTrail
+	t.Cleanup(func() { renderLive, renderTrail = ol, ot })
+	renderLive, renderTrail = true, 100
+	const n = 10
+	prev := -1
+	for i := range n {
+		lo, hi := frameSpan(100*n, i, n)
+		if hi-lo != 100 {
+			t.Fatalf("frame %d draws %d points, want the trail's 100", i, hi-lo)
+		}
+		if lo <= prev {
+			t.Fatalf("frame %d starts at %d, not after frame %d's %d", i, lo, i-1, prev)
+		}
+		prev = lo
+	}
+	if lo, _ := frameSpan(100*n, 0, n); lo != 0 {
+		t.Errorf("the first stretch starts at %d", lo)
+	}
+	if _, hi := frameSpan(100*n, n-1, n); hi != 100*n {
+		t.Errorf("the last stretch ends at %d", hi)
+	}
+}
