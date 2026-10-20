@@ -203,7 +203,7 @@ selector's own registry (`make site`, `make site-check`).
 
 Every position of the MODEL selector, in knob order; a model in two
 categories is listed in both. Per model: its bank as programmed for it,
-a still, a turning loop, its description (the Info overlay's text) and
+a still, an animated loop, its description (the Info overlay's text) and
 its equations. Images are captured by `uitool portraits`.
 
 ### Attractors
@@ -214,9 +214,9 @@ its equations. Images are captured by `uitool portraits`.
 
 ![Rossler parameters](docs/img/model/rossler-params.jpg)
 
-| Rossler | turning |
+| Rossler | animated |
 | --- | --- |
-| ![Rossler](docs/img/model/rossler.jpg) | ![Rossler turning](docs/img/model/rossler.gif) |
+| ![Rossler](docs/img/model/rossler.jpg) | ![Rossler, animated](docs/img/model/rossler.gif) |
 
 Rössler Attractor — Proposed by Otto Rössler in 1976 as a simpler system that produces chaotic behavior. Unlike the Lorenz system's two-lobed shape, the Rössler attractor has a single folded-band structure with an outward spiral that occasionally makes a large excursion in the z-direction.
 
@@ -232,9 +232,9 @@ dz/dt = b + z(x − c)
 
 ![Lorenz parameters](docs/img/model/lorenz-params.jpg)
 
-| Lorenz | turning |
+| Lorenz | animated |
 | --- | --- |
-| ![Lorenz](docs/img/model/lorenz.jpg) | ![Lorenz turning](docs/img/model/lorenz.gif) |
+| ![Lorenz](docs/img/model/lorenz.jpg) | ![Lorenz, animated](docs/img/model/lorenz.gif) |
 
 Lorenz Attractor — Discovered by Edward Lorenz in 1963 while modeling atmospheric convection. The butterfly-shaped trajectory arises from a simplified system of three coupled differential equations. It was one of the first systems shown to exhibit deterministic chaos, where tiny differences in initial conditions lead to vastly different outcomes.
 
@@ -250,9 +250,9 @@ dz/dt = xy − βz
 
 ![Chua parameters](docs/img/model/chua-params.jpg)
 
-| Chua | turning |
+| Chua | animated |
 | --- | --- |
-| ![Chua](docs/img/model/chua.jpg) | ![Chua turning](docs/img/model/chua.gif) |
+| ![Chua](docs/img/model/chua.jpg) | ![Chua, animated](docs/img/model/chua.gif) |
 
 Chua's Circuit (Double Scroll Attractor) — Invented by Leon Chua in 1983, this is the first electronic circuit proven to exhibit chaos. The system features a piecewise-linear nonlinearity (the Chua diode) that creates the characteristic double-scroll pattern. It is also the basis for multi-scroll attractor generalizations.
 
@@ -269,9 +269,9 @@ h(x) = m₁x + ½(m₀ − m₁)(|x+1| − |x−1|)
 
 ![Aizawa parameters](docs/img/model/aizawa-params.jpg)
 
-| Aizawa | turning |
+| Aizawa | animated |
 | --- | --- |
-| ![Aizawa](docs/img/model/aizawa.jpg) | ![Aizawa turning](docs/img/model/aizawa.gif) |
+| ![Aizawa](docs/img/model/aizawa.jpg) | ![Aizawa, animated](docs/img/model/aizawa.gif) |
 
 Aizawa Attractor — A chaotic system that produces a toroidal structure with a tendril extending from the center. The attractor has a visually striking shape that resembles a sphere with a tail, exhibiting both rotational symmetry and chaotic wandering.
 
@@ -287,9 +287,9 @@ dz/dt = c + az − z³/3 − (x² + y²)(1 + ez) + fzx³
 
 ![Sprott parameters](docs/img/model/sprott-params.jpg)
 
-| Sprott | turning |
+| Sprott | animated |
 | --- | --- |
-| ![Sprott](docs/img/model/sprott.jpg) | ![Sprott turning](docs/img/model/sprott.gif) |
+| ![Sprott](docs/img/model/sprott.jpg) | ![Sprott, animated](docs/img/model/sprott.gif) |
 
 Sprott Attractor — One of many simple chaotic systems cataloged by Julien Clinton Sprott. These systems were discovered through systematic computer searches for chaotic flows with minimal terms, demonstrating that chaos can arise from remarkably simple equations.
 
@@ -305,9 +305,9 @@ dz/dt = x − x² − y²
 
 ![Thomas parameters](docs/img/model/thomas-params.jpg)
 
-| Thomas | turning |
+| Thomas | animated |
 | --- | --- |
-| ![Thomas](docs/img/model/thomas.jpg) | ![Thomas turning](docs/img/model/thomas.gif) |
+| ![Thomas](docs/img/model/thomas.jpg) | ![Thomas, animated](docs/img/model/thomas.gif) |
 
 Thomas' Cyclically Symmetric Attractor — Introduced by René Thomas, this system has the elegant property of cyclic symmetry: each variable is damped and driven by the sine of the next variable in the cycle. The parameter b controls dissipation; as b decreases the system transitions from stable points through limit cycles to chaos.
 
@@ -323,9 +323,9 @@ dz/dt = −bz + sin(x)
 
 ![Halvorsen parameters](docs/img/model/halvorsen-params.jpg)
 
-| Halvorsen | turning |
+| Halvorsen | animated |
 | --- | --- |
-| ![Halvorsen](docs/img/model/halvorsen.jpg) | ![Halvorsen turning](docs/img/model/halvorsen.gif) |
+| ![Halvorsen](docs/img/model/halvorsen.jpg) | ![Halvorsen, animated](docs/img/model/halvorsen.gif) |
 
 Halvorsen Attractor — A chaotic system with three-fold rotational symmetry, producing a distinctive pinwheel-like shape. The attractor consists of three intertwined lobes that spiral around each other, creating a visually complex but structurally symmetric trajectory.
 
@@ -341,9 +341,9 @@ dz/dt = −az − 4x − 4y − x²
 
 ![Chen parameters](docs/img/model/chen-params.jpg)
 
-| Chen | turning |
+| Chen | animated |
 | --- | --- |
-| ![Chen](docs/img/model/chen.jpg) | ![Chen turning](docs/img/model/chen.gif) |
+| ![Chen](docs/img/model/chen.jpg) | ![Chen, animated](docs/img/model/chen.gif) |
 
 Chen Attractor — Discovered by Guanrong Chen in 1999, this system was found as a dual of the Lorenz system in a specific mathematical sense. It exhibits chaotic behavior with a distinctive two-scroll structure that differs from both the Lorenz and Rössler attractors.
 
@@ -359,9 +359,9 @@ dz/dt = xy − bz
 
 ![Dadras parameters](docs/img/model/dadras-params.jpg)
 
-| Dadras | turning |
+| Dadras | animated |
 | --- | --- |
-| ![Dadras](docs/img/model/dadras.jpg) | ![Dadras turning](docs/img/model/dadras.gif) |
+| ![Dadras](docs/img/model/dadras.jpg) | ![Dadras, animated](docs/img/model/dadras.gif) |
 
 Dadras Attractor — A three-dimensional autonomous chaotic system with five parameters, introduced by Sara Dadras and Hamid Reza Momeni. The system exhibits rich dynamical behavior including period-doubling routes to chaos.
 
@@ -377,9 +377,9 @@ dz/dt = sxy − ez
 
 ![Rabinovich-Fabrikant parameters](docs/img/model/rabinovich-params.jpg)
 
-| Rabinovich-Fabrikant | turning |
+| Rabinovich-Fabrikant | animated |
 | --- | --- |
-| ![Rabinovich-Fabrikant](docs/img/model/rabinovich.jpg) | ![Rabinovich-Fabrikant turning](docs/img/model/rabinovich.gif) |
+| ![Rabinovich-Fabrikant](docs/img/model/rabinovich.jpg) | ![Rabinovich-Fabrikant, animated](docs/img/model/rabinovich.gif) |
 
 Rabinovich-Fabrikant Attractor — Derived by Mikhail Rabinovich and Anatoly Fabrikant from physical equations modeling the stochasticity of three interacting waves. The system is known for its complex topology and extreme sensitivity to parameters, producing intricate folded structures.
 
@@ -395,9 +395,9 @@ dz/dt = −2z(α + xy)
 
 ![Burke-Shaw parameters](docs/img/model/burkeshaw-params.jpg)
 
-| Burke-Shaw | turning |
+| Burke-Shaw | animated |
 | --- | --- |
-| ![Burke-Shaw](docs/img/model/burkeshaw.jpg) | ![Burke-Shaw turning](docs/img/model/burkeshaw.gif) |
+| ![Burke-Shaw](docs/img/model/burkeshaw.jpg) | ![Burke-Shaw, animated](docs/img/model/burkeshaw.gif) |
 
 Burke-Shaw Attractor — Introduced by Bill Burke and Robert Shaw, this system exhibits chaotic behavior with a distinctive two-winged structure. It arises from the study of nonlinear dynamics and produces complex trajectories confined to a compact region of phase space.
 
@@ -413,9 +413,9 @@ dz/dt = Sxy + V
 
 ![Lü parameters](docs/img/model/lu-params.jpg)
 
-| Lü | turning |
+| Lü | animated |
 | --- | --- |
-| ![Lü](docs/img/model/lu.jpg) | ![Lü turning](docs/img/model/lu.gif) |
+| ![Lü](docs/img/model/lu.jpg) | ![Lü, animated](docs/img/model/lu.gif) |
 
 Lü Attractor — Discovered by Jinhu Lü and Guanrong Chen (2002), the third member of the Lorenz–Chen–Lü family; it forms a bridge between the Lorenz and Chen systems and produces a two-scroll butterfly.
 
@@ -431,9 +431,9 @@ dz/dt = xy − bz
 
 ![Newton-Leipnik parameters](docs/img/model/newtonleipnik-params.jpg)
 
-| Newton-Leipnik | turning |
+| Newton-Leipnik | animated |
 | --- | --- |
-| ![Newton-Leipnik](docs/img/model/newtonleipnik.jpg) | ![Newton-Leipnik turning](docs/img/model/newtonleipnik.gif) |
+| ![Newton-Leipnik](docs/img/model/newtonleipnik.jpg) | ![Newton-Leipnik, animated](docs/img/model/newtonleipnik.gif) |
 
 Newton–Leipnik Attractor — Arises from a rigid-body rotation model with a linear feedback torque; it has two coexisting scroll-shaped attractors.
 
@@ -449,9 +449,9 @@ dz/dt = bz − 5xy
 
 ![Arneodo parameters](docs/img/model/arneodo-params.jpg)
 
-| Arneodo | turning |
+| Arneodo | animated |
 | --- | --- |
-| ![Arneodo](docs/img/model/arneodo.jpg) | ![Arneodo turning](docs/img/model/arneodo.gif) |
+| ![Arneodo](docs/img/model/arneodo.jpg) | ![Arneodo, animated](docs/img/model/arneodo.gif) |
 
 Arneodo Attractor — Arneodo, Coullet and Tresser (1981): a third-order jerk equation, x‴ = −ax − bx′ − x″ + dx³, written as three first-order equations. A spiral attractor whose loops fold back on themselves through the cubic term.
 
@@ -467,9 +467,9 @@ dz/dt = −ax − by − z + dx³
 
 ![Chen-Lee parameters](docs/img/model/chenlee-params.jpg)
 
-| Chen-Lee | turning |
+| Chen-Lee | animated |
 | --- | --- |
-| ![Chen-Lee](docs/img/model/chenlee.jpg) | ![Chen-Lee turning](docs/img/model/chenlee.gif) |
+| ![Chen-Lee](docs/img/model/chenlee.jpg) | ![Chen-Lee, animated](docs/img/model/chenlee.gif) |
 
 Chen–Lee Attractor — Chen and Lee (2004): the Euler equations of a rigid body in rotation, with linear feedback added to each axis. A two-wing attractor whose wings stand on the z axis.
 
@@ -485,9 +485,9 @@ dz/dt = cz + xy/d
 
 ![Dequan Li parameters](docs/img/model/dequanli-params.jpg)
 
-| Dequan Li | turning |
+| Dequan Li | animated |
 | --- | --- |
-| ![Dequan Li](docs/img/model/dequanli.jpg) | ![Dequan Li turning](docs/img/model/dequanli.gif) |
+| ![Dequan Li](docs/img/model/dequanli.jpg) | ![Dequan Li, animated](docs/img/model/dequanli.gif) |
 
 Dequan Li Attractor — Li (2008): a three-scroll attractor, the scrolls joined through the z axis. Stiff: its default step is small, and larger steps of dt make the trajectory leave the attractor.
 
@@ -503,9 +503,9 @@ dz/dt = bz + xy − dx²
 
 ![Three-Scroll parameters](docs/img/model/threescroll-params.jpg)
 
-| Three-Scroll | turning |
+| Three-Scroll | animated |
 | --- | --- |
-| ![Three-Scroll](docs/img/model/threescroll.jpg) | ![Three-Scroll turning](docs/img/model/threescroll.gif) |
+| ![Three-Scroll](docs/img/model/threescroll.jpg) | ![Three-Scroll, animated](docs/img/model/threescroll.gif) |
 
 Three-Scroll Attractor — the three-scroll unified chaotic system (TSUCS): the Dequan Li system without the x term in dy/dt, which opens its three scrolls wider.
 
@@ -521,9 +521,9 @@ dz/dt = bz + xy − dx²
 
 ![Wang-Sun parameters](docs/img/model/wangsun-params.jpg)
 
-| Wang-Sun | turning |
+| Wang-Sun | animated |
 | --- | --- |
-| ![Wang-Sun](docs/img/model/wangsun.jpg) | ![Wang-Sun turning](docs/img/model/wangsun.gif) |
+| ![Wang-Sun](docs/img/model/wangsun.jpg) | ![Wang-Sun, animated](docs/img/model/wangsun.gif) |
 
 Wang–Sun Attractor — Wang and Sun (2010): a four-wing attractor, the trajectory passing between four lobes arranged around the z axis rather than the usual two.
 
@@ -539,9 +539,9 @@ dz/dt = ez + fxy
 
 ![Lorenz Mod 2 parameters](docs/img/model/lorenzmod2-params.jpg)
 
-| Lorenz Mod 2 | turning |
+| Lorenz Mod 2 | animated |
 | --- | --- |
-| ![Lorenz Mod 2](docs/img/model/lorenzmod2.jpg) | ![Lorenz Mod 2 turning](docs/img/model/lorenzmod2.gif) |
+| ![Lorenz Mod 2](docs/img/model/lorenzmod2.jpg) | ![Lorenz Mod 2, animated](docs/img/model/lorenzmod2.gif) |
 
 Lorenz Mod 2 Attractor — the second modified Lorenz system: the quadratic terms of the Lorenz equations rearranged so that the two wings fold into a single rotating body.
 
@@ -557,9 +557,9 @@ dz/dt = −z + x(by + z)
 
 ![Simone parameters](docs/img/model/simone-params.jpg)
 
-| Simone | turning |
+| Simone | animated |
 | --- | --- |
-| ![Simone](docs/img/model/simone.jpg) | ![Simone turning](docs/img/model/simone.gif) |
+| ![Simone](docs/img/model/simone.jpg) | ![Simone, animated](docs/img/model/simone.gif) |
 
 Simone Attractor — a point drawn toward s·(sin(ay) + cos(bz), sin(az) + cos(bx), sin(ax) + cos(by)): the trigonometric map of the Simone attractor written as a flow, each coordinate driven by the other two. From Shashank Tomar's strange attractors. Chaotic for some (a, b) and periodic for others; b = 2.49 is chaotic.
 
@@ -575,9 +575,9 @@ dz/dt = s(sin(ax) + cos(by)) − z
 
 ![Hyper-Rössler (4D) parameters](docs/img/model/hyperrossler-params.jpg)
 
-| Hyper-Rössler (4D) | turning |
+| Hyper-Rössler (4D) | animated |
 | --- | --- |
-| ![Hyper-Rössler (4D)](docs/img/model/hyperrossler.jpg) | ![Hyper-Rössler (4D) turning](docs/img/model/hyperrossler.gif) |
+| ![Hyper-Rössler (4D)](docs/img/model/hyperrossler.jpg) | ![Hyper-Rössler (4D), animated](docs/img/model/hyperrossler.gif) |
 
 Rössler Hyperchaos (1979) — Otto Rössler's 4-dimensional extension of his attractor, with two positive Lyapunov exponents (hyperchaos). A hidden fourth coordinate w feeds back into y; the plot is the (x,y,z) projection.
 
@@ -594,9 +594,9 @@ dw/dt = −cz + dw
 
 ![Sprott Morph parameters](docs/img/model/sprottmorph-params.jpg)
 
-| Sprott Morph | turning |
+| Sprott Morph | animated |
 | --- | --- |
-| ![Sprott Morph](docs/img/model/sprottmorph.jpg) | ![Sprott Morph turning](docs/img/model/sprottmorph.gif) |
+| ![Sprott Morph](docs/img/model/sprottmorph.jpg) | ![Sprott Morph, animated](docs/img/model/sprottmorph.gif) |
 
 Sprott Morph — The faithful version of the glensstuff.com Self-Programming Analog Computer, which stepped itself through the Sprott catalog by re-patching. Every Sprott A–S system is a quadratic 3-D flow — a point in the same 30-dimensional coefficient space Sprott's 1994 computer search ran in — so the machine morphs by sliding linearly between coefficient vectors while ONE trajectory keeps integrating: watch D melt into E. The sys knob parks the patch anywhere in the cycle (fractional = between systems, often chaotic in its own right); the rate knob makes it step itself, in systems per minute; the Console's PATCH readout shows the current wiring. Coefficients are extracted numerically from the catalog's own equations, and a divergence guard reseeds the trajectory when a blend flings it away.
 
@@ -604,9 +604,9 @@ Sprott Morph — The faithful version of the glensstuff.com Self-Programming Ana
 
 #### Sprott A
 
-| Sprott A | turning |
+| Sprott A | animated |
 | --- | --- |
-| ![Sprott A](docs/img/model/sprotta.jpg) | ![Sprott A turning](docs/img/model/sprotta.gif) |
+| ![Sprott A](docs/img/model/sprotta.jpg) | ![Sprott A, animated](docs/img/model/sprotta.gif) |
 
 Sprott A (Nosé–Hoover oscillator) — the first of J. C. Sprott's 1994 systems and the only conservative one: rather than settling onto a strange attractor it fills a chaotic sea.
 
@@ -620,9 +620,9 @@ dz/dt = 1 − y²
 
 #### Sprott B
 
-| Sprott B | turning |
+| Sprott B | animated |
 | --- | --- |
-| ![Sprott B](docs/img/model/sprottb.jpg) | ![Sprott B turning](docs/img/model/sprottb.gif) |
+| ![Sprott B](docs/img/model/sprottb.jpg) | ![Sprott B, animated](docs/img/model/sprottb.gif) |
 
 Sprott B — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -638,9 +638,9 @@ dz/dt = 1 − xy
 
 #### Sprott C
 
-| Sprott C | turning |
+| Sprott C | animated |
 | --- | --- |
-| ![Sprott C](docs/img/model/sprottc.jpg) | ![Sprott C turning](docs/img/model/sprottc.gif) |
+| ![Sprott C](docs/img/model/sprottc.jpg) | ![Sprott C, animated](docs/img/model/sprottc.gif) |
 
 Sprott C — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -656,9 +656,9 @@ dz/dt = 1 − x²
 
 #### Sprott D
 
-| Sprott D | turning |
+| Sprott D | animated |
 | --- | --- |
-| ![Sprott D](docs/img/model/sprottd.jpg) | ![Sprott D turning](docs/img/model/sprottd.gif) |
+| ![Sprott D](docs/img/model/sprottd.jpg) | ![Sprott D, animated](docs/img/model/sprottd.gif) |
 
 Sprott D — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -674,9 +674,9 @@ dz/dt = xz + 3y²
 
 #### Sprott E
 
-| Sprott E | turning |
+| Sprott E | animated |
 | --- | --- |
-| ![Sprott E](docs/img/model/sprotte.jpg) | ![Sprott E turning](docs/img/model/sprotte.gif) |
+| ![Sprott E](docs/img/model/sprotte.jpg) | ![Sprott E, animated](docs/img/model/sprotte.gif) |
 
 Sprott E — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -692,9 +692,9 @@ dz/dt = 1 − 4x
 
 #### Sprott F
 
-| Sprott F | turning |
+| Sprott F | animated |
 | --- | --- |
-| ![Sprott F](docs/img/model/sprottf.jpg) | ![Sprott F turning](docs/img/model/sprottf.gif) |
+| ![Sprott F](docs/img/model/sprottf.jpg) | ![Sprott F, animated](docs/img/model/sprottf.gif) |
 
 Sprott F — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -710,9 +710,9 @@ dz/dt = x² − z
 
 #### Sprott G
 
-| Sprott G | turning |
+| Sprott G | animated |
 | --- | --- |
-| ![Sprott G](docs/img/model/sprottg.jpg) | ![Sprott G turning](docs/img/model/sprottg.gif) |
+| ![Sprott G](docs/img/model/sprottg.jpg) | ![Sprott G, animated](docs/img/model/sprottg.gif) |
 
 Sprott G — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -728,9 +728,9 @@ dz/dt = −x + y
 
 #### Sprott H
 
-| Sprott H | turning |
+| Sprott H | animated |
 | --- | --- |
-| ![Sprott H](docs/img/model/sprotth.jpg) | ![Sprott H turning](docs/img/model/sprotth.gif) |
+| ![Sprott H](docs/img/model/sprotth.jpg) | ![Sprott H, animated](docs/img/model/sprotth.gif) |
 
 Sprott H — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -746,9 +746,9 @@ dz/dt = x − z
 
 #### Sprott I
 
-| Sprott I | turning |
+| Sprott I | animated |
 | --- | --- |
-| ![Sprott I](docs/img/model/sprotti.jpg) | ![Sprott I turning](docs/img/model/sprotti.gif) |
+| ![Sprott I](docs/img/model/sprotti.jpg) | ![Sprott I, animated](docs/img/model/sprotti.gif) |
 
 Sprott I — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -764,9 +764,9 @@ dz/dt = x + y² − z
 
 #### Sprott J
 
-| Sprott J | turning |
+| Sprott J | animated |
 | --- | --- |
-| ![Sprott J](docs/img/model/sprottj.jpg) | ![Sprott J turning](docs/img/model/sprottj.gif) |
+| ![Sprott J](docs/img/model/sprottj.jpg) | ![Sprott J, animated](docs/img/model/sprottj.gif) |
 
 Sprott J — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -782,9 +782,9 @@ dz/dt = −x + y + y²
 
 #### Sprott K
 
-| Sprott K | turning |
+| Sprott K | animated |
 | --- | --- |
-| ![Sprott K](docs/img/model/sprottk.jpg) | ![Sprott K turning](docs/img/model/sprottk.gif) |
+| ![Sprott K](docs/img/model/sprottk.jpg) | ![Sprott K, animated](docs/img/model/sprottk.gif) |
 
 Sprott K — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -800,9 +800,9 @@ dz/dt = x + 0.3z
 
 #### Sprott L
 
-| Sprott L | turning |
+| Sprott L | animated |
 | --- | --- |
-| ![Sprott L](docs/img/model/sprottl.jpg) | ![Sprott L turning](docs/img/model/sprottl.gif) |
+| ![Sprott L](docs/img/model/sprottl.jpg) | ![Sprott L, animated](docs/img/model/sprottl.gif) |
 
 Sprott L — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -818,9 +818,9 @@ dz/dt = 1 − x
 
 #### Sprott M
 
-| Sprott M | turning |
+| Sprott M | animated |
 | --- | --- |
-| ![Sprott M](docs/img/model/sprottm.jpg) | ![Sprott M turning](docs/img/model/sprottm.gif) |
+| ![Sprott M](docs/img/model/sprottm.jpg) | ![Sprott M, animated](docs/img/model/sprottm.gif) |
 
 Sprott M — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -836,9 +836,9 @@ dz/dt = 1.7 + 1.7x + y
 
 #### Sprott N
 
-| Sprott N | turning |
+| Sprott N | animated |
 | --- | --- |
-| ![Sprott N](docs/img/model/sprottn.jpg) | ![Sprott N turning](docs/img/model/sprottn.gif) |
+| ![Sprott N](docs/img/model/sprottn.jpg) | ![Sprott N, animated](docs/img/model/sprottn.gif) |
 
 Sprott N — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -854,9 +854,9 @@ dz/dt = 1 + y − 2z
 
 #### Sprott O
 
-| Sprott O | turning |
+| Sprott O | animated |
 | --- | --- |
-| ![Sprott O](docs/img/model/sprotto.jpg) | ![Sprott O turning](docs/img/model/sprotto.gif) |
+| ![Sprott O](docs/img/model/sprotto.jpg) | ![Sprott O, animated](docs/img/model/sprotto.gif) |
 
 Sprott O — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -872,9 +872,9 @@ dz/dt = x + xz + 2.7y
 
 #### Sprott P
 
-| Sprott P | turning |
+| Sprott P | animated |
 | --- | --- |
-| ![Sprott P](docs/img/model/sprottp.jpg) | ![Sprott P turning](docs/img/model/sprottp.gif) |
+| ![Sprott P](docs/img/model/sprottp.jpg) | ![Sprott P, animated](docs/img/model/sprottp.gif) |
 
 Sprott P — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -890,9 +890,9 @@ dz/dt = x + y
 
 #### Sprott Q
 
-| Sprott Q | turning |
+| Sprott Q | animated |
 | --- | --- |
-| ![Sprott Q](docs/img/model/sprottq.jpg) | ![Sprott Q turning](docs/img/model/sprottq.gif) |
+| ![Sprott Q](docs/img/model/sprottq.jpg) | ![Sprott Q, animated](docs/img/model/sprottq.gif) |
 
 Sprott Q — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -908,9 +908,9 @@ dz/dt = 3.1x + y² + 0.5z
 
 #### Sprott R
 
-| Sprott R | turning |
+| Sprott R | animated |
 | --- | --- |
-| ![Sprott R](docs/img/model/sprottr.jpg) | ![Sprott R turning](docs/img/model/sprottr.gif) |
+| ![Sprott R](docs/img/model/sprottr.jpg) | ![Sprott R, animated](docs/img/model/sprottr.gif) |
 
 Sprott R — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -926,9 +926,9 @@ dz/dt = xy − z
 
 #### Sprott S
 
-| Sprott S | turning |
+| Sprott S | animated |
 | --- | --- |
-| ![Sprott S](docs/img/model/sprotts.jpg) | ![Sprott S turning](docs/img/model/sprotts.gif) |
+| ![Sprott S](docs/img/model/sprotts.jpg) | ![Sprott S, animated](docs/img/model/sprotts.gif) |
 
 Sprott S — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -946,9 +946,9 @@ dz/dt = 1 + x
 
 ![Custom equation parameters](docs/img/model/custom-params.jpg)
 
-| Custom equation | turning |
+| Custom equation | animated |
 | --- | --- |
-| ![Custom equation](docs/img/model/custom.jpg) | ![Custom equation turning](docs/img/model/custom.gif) |
+| ![Custom equation](docs/img/model/custom.jpg) | ![Custom equation, animated](docs/img/model/custom.gif) |
 
 Custom Equations — type your own system. The Equations module takes dx/dt, dy/dt and dz/dt (plus dw/dt for a 4-D system) as text and integrates them with forward Euler, the same way the classic attractors are stepped. The iterate switch reads the same expressions as a discrete MAP instead — x = f(x,y,z) rather than x += dt·f(x,y,z) — which has no dt and no path between iterates, so it draws as a cloud of points the way Henon and Ikeda do.
 
@@ -964,9 +964,9 @@ There is no eval: expressions are tokenized, converted to RPN and interpreted ov
 
 ![Henon parameters](docs/img/model/henon-params.jpg)
 
-| Henon | turning |
+| Henon | animated |
 | --- | --- |
-| ![Henon](docs/img/model/henon.jpg) | ![Henon turning](docs/img/model/henon.gif) |
+| ![Henon](docs/img/model/henon.jpg) | ![Henon, animated](docs/img/model/henon.gif) |
 
 Hénon map (M. Hénon, "A two-dimensional mapping with a strange attractor", 1976) — the example that showed a strange attractor needs neither a flow nor three dimensions, only a stretch and a fold. Zoom in anywhere on a filament and it resolves into more filaments: locally a line crossed with a Cantor set. Its Jacobian determinant is −b, so area contracts by exactly b every iterate no matter where you are.
 
@@ -981,9 +981,9 @@ y' = b·x
 
 ![Ikeda parameters](docs/img/model/ikeda-params.jpg)
 
-| Ikeda | turning |
+| Ikeda | animated |
 | --- | --- |
-| ![Ikeda](docs/img/model/ikeda.jpg) | ![Ikeda turning](docs/img/model/ikeda.gif) |
+| ![Ikeda](docs/img/model/ikeda.jpg) | ![Ikeda, animated](docs/img/model/ikeda.gif) |
 
 Ikeda map (K. Ikeda, 1979) — light circulating in a nonlinear optical cavity, where each pass rotates the complex field by an amount that depends on its own intensity. That intensity-dependent rotation is the whole mechanism: the more energetic part of the beam turns further, and the attractor's hook is the result.
 
@@ -999,9 +999,9 @@ y' = u·(x·sin t + y·cos t)
 
 ![Clifford parameters](docs/img/model/clifford-params.jpg)
 
-| Clifford | turning |
+| Clifford | animated |
 | --- | --- |
-| ![Clifford](docs/img/model/clifford.jpg) | ![Clifford turning](docs/img/model/clifford.gif) |
+| ![Clifford](docs/img/model/clifford.jpg) | ![Clifford, animated](docs/img/model/clifford.gif) |
 
 Clifford attractor (Clifford Pickover) — a trigonometric map with no physical derivation, kept because of what it draws. Every parameter change reshapes it entirely, which makes the four knobs worth turning slowly.
 
@@ -1016,9 +1016,9 @@ y' = sin(b·x) + d·cos(b·y)
 
 ![Peter de Jong parameters](docs/img/model/dejong-params.jpg)
 
-| Peter de Jong | turning |
+| Peter de Jong | animated |
 | --- | --- |
-| ![Peter de Jong](docs/img/model/dejong.jpg) | ![Peter de Jong turning](docs/img/model/dejong.gif) |
+| ![Peter de Jong](docs/img/model/dejong.jpg) | ![Peter de Jong, animated](docs/img/model/dejong.gif) |
 
 Peter de Jong attractor — the same idea as Clifford's with the terms paired differently, and a different family of figures for it. Four knobs, an enormous space of shapes, and no way to predict which you will get.
 
@@ -1033,9 +1033,9 @@ y' = sin(c·x) − cos(d·y)
 
 ![Gumowski-Mira parameters](docs/img/model/mira-params.jpg)
 
-| Gumowski-Mira | turning |
+| Gumowski-Mira | animated |
 | --- | --- |
-| ![Gumowski-Mira](docs/img/model/mira.jpg) | ![Gumowski-Mira turning](docs/img/model/mira.gif) |
+| ![Gumowski-Mira](docs/img/model/mira.jpg) | ![Gumowski-Mira, animated](docs/img/model/mira.gif) |
 
 Gumowski-Mira map (I. Gumowski and C. Mira, CERN, 1980) — written to study how a particle beam drifts turn after turn around an accelerator ring, and it produces organic, almost biological figures that look nothing like their origin. The shared nonlinearity g is applied twice per iterate, to x and then to the NEW x. Unlike the others here it is QUASI-PERIODIC at these settings rather than chaotic: the curves it draws are invariant curves the orbit winds around forever, not a fractal dust. Two orbits started a hair apart drift apart slowly instead of separating exponentially, which is why the figure looks woven rather than sprayed.
 
@@ -1051,9 +1051,9 @@ y' = −x + g(x')
 
 ![Tinkerbell parameters](docs/img/model/tinkerbell-params.jpg)
 
-| Tinkerbell | turning |
+| Tinkerbell | animated |
 | --- | --- |
-| ![Tinkerbell](docs/img/model/tinkerbell.jpg) | ![Tinkerbell turning](docs/img/model/tinkerbell.gif) |
+| ![Tinkerbell](docs/img/model/tinkerbell.jpg) | ![Tinkerbell, animated](docs/img/model/tinkerbell.gif) |
 
 Tinkerbell map — a quadratic map of the plane whose orbit sweeps a curved, wing-like region. Bounded only for a narrow band of parameters; push the knobs and it escapes to infinity, which the renderer catches and reseeds rather than drawing NaNs.
 
@@ -1068,9 +1068,9 @@ y' = 2·x·y + c·x + d·y
 
 ![Chirikov Standard Map parameters](docs/img/model/standardmap-params.jpg)
 
-| Chirikov Standard Map | turning |
+| Chirikov Standard Map | animated |
 | --- | --- |
-| ![Chirikov Standard Map](docs/img/model/standardmap.jpg) | ![Chirikov Standard Map turning](docs/img/model/standardmap.gif) |
+| ![Chirikov Standard Map](docs/img/model/standardmap.jpg) | ![Chirikov Standard Map, animated](docs/img/model/standardmap.gif) |
 
 Chirikov standard map (B. Chirikov, 1979) — the canonical AREA-PRESERVING map, and the one system here with no attractor at all. A kicked rotor: each iterate kicks the momentum by K·sin θ and lets the angle advance. Because area is preserved nothing contracts onto anything, so it is drawn as an ensemble of orbits rather than one — a single orbit would trace its own invariant curve and tell you nothing about the rest. Turn K up and watch the intact curves break into a chaotic sea with islands of stability stranded in it; near K ≈ 0.9716 the last curve spanning the phase space goes, and orbits can wander in momentum without bound.
 
@@ -1085,9 +1085,9 @@ p' = p + K·sin θ
 
 ![Bifurcation parameters](docs/img/model/bifurcation-params.jpg)
 
-| Bifurcation | turning |
+| Bifurcation | animated |
 | --- | --- |
-| ![Bifurcation](docs/img/model/bifurcation.jpg) | ![Bifurcation turning](docs/img/model/bifurcation.gif) |
+| ![Bifurcation](docs/img/model/bifurcation.jpg) | ![Bifurcation, animated](docs/img/model/bifurcation.gif) |
 
 Bifurcation Explorer — the fig-tree diagram, computed live. One parameter of the most recent flow mode sweeps its whole knob range across the x axis; each column integrates the system fresh at that value and plots the local maxima of z. Thin branches are periodic orbits, fan-outs are period-doubling cascades, filled bands are chaos — the route between them is the route to chaos. Pick the swept parameter in the Parameters module; visit an attractor and tune it to change the source system.
 
@@ -1117,9 +1117,9 @@ The same section is available as an overlay on the live attractor: Trace > Sect.
 
 ![STL File parameters](docs/img/model/stlfile-params.jpg)
 
-| STL File | turning |
+| STL File | animated |
 | --- | --- |
-| ![STL File](docs/img/model/stlfile.jpg) | ![STL File turning](docs/img/model/stlfile.gif) |
+| ![STL File](docs/img/model/stlfile.jpg) | ![STL File, animated](docs/img/model/stlfile.gif) |
 
 STL File — Load a stereolithograph (.stl, binary or ASCII) from disk with the Loader module's Load button and it renders as a rotating wireframe. Very large files are decimated to fit the 16-bit index pipeline.
 
@@ -1179,9 +1179,9 @@ The Lattice module (in the View bay) is how the sheets are drawn: their rows, st
 
 #### Polyhedron
 
-| Polyhedron | turning |
+| Polyhedron | animated |
 | --- | --- |
-| ![Polyhedron](docs/img/model/polyhedron.jpg) | ![Polyhedron turning](docs/img/model/polyhedron.gif) |
+| ![Polyhedron](docs/img/model/polyhedron.jpg) | ![Polyhedron, animated](docs/img/model/polyhedron.gif) |
 
 Polyhedron — The regular solids and tilings, by Schläfli symbol {p,q}: faces of p sides, q of them at every corner. {3,3} is the tetrahedron, {4,3} the cube, {3,4} the octahedron, {5,3} the dodecahedron, {3,5} the icosahedron; where the corners make a full turn the faces tile the plane, and past it they tile the hyperbolic plane, drawn in Poincaré's disk. On a solid, morph cuts the corners through the rectified solid to the dual, op applies a Conway operator and kis raises a pyramid on every face.
 
@@ -1189,9 +1189,9 @@ Polyhedron — The regular solids and tilings, by Schläfli symbol {p,q}: faces 
 
 #### Nested Cube
 
-| Nested Cube | turning |
+| Nested Cube | animated |
 | --- | --- |
-| ![Nested Cube](docs/img/model/nestedcube.jpg) | ![Nested Cube turning](docs/img/model/nestedcube.gif) |
+| ![Nested Cube](docs/img/model/nestedcube.jpg) | ![Nested Cube, animated](docs/img/model/nestedcube.gif) |
 
 Nested Cube — A cube within a cube, connected at the vertices, illustrating the relationship between inner and outer geometric structures.
 
@@ -1201,9 +1201,9 @@ Nested Cube — A cube within a cube, connected at the vertices, illustrating th
 
 ![Globe parameters](docs/img/model/globe-params.jpg)
 
-| Globe | turning |
+| Globe | animated |
 | --- | --- |
-| ![Globe](docs/img/model/globe.jpg) | ![Globe turning](docs/img/model/globe.gif) |
+| ![Globe](docs/img/model/globe.jpg) | ![Globe, animated](docs/img/model/globe.gif) |
 
 Globe — A wireframe sphere showing lines of latitude and longitude, similar to the graticule on a geographic globe. Latitude lines are horizontal circles parallel to the equator, longitude lines are great circles passing through the poles.
 
@@ -1213,9 +1213,9 @@ Globe — A wireframe sphere showing lines of latitude and longitude, similar to
 
 ![Torus parameters](docs/img/model/torus-params.jpg)
 
-| Torus | turning |
+| Torus | animated |
 | --- | --- |
-| ![Torus](docs/img/model/torus.jpg) | ![Torus turning](docs/img/model/torus.gif) |
+| ![Torus](docs/img/model/torus.jpg) | ![Torus, animated](docs/img/model/torus.gif) |
 
 Torus — A doughnut-shaped surface of revolution generated by revolving a circle (radius r) around an axis at distance R from the center of the circle.
 
@@ -1223,9 +1223,9 @@ Torus — A doughnut-shaped surface of revolution generated by revolving a circl
 
 #### Magnetosphere
 
-| Magnetosphere | turning |
+| Magnetosphere | animated |
 | --- | --- |
-| ![Magnetosphere](docs/img/model/magnetosphere.jpg) | ![Magnetosphere turning](docs/img/model/magnetosphere.gif) |
+| ![Magnetosphere](docs/img/model/magnetosphere.jpg) | ![Magnetosphere, animated](docs/img/model/magnetosphere.gif) |
 
 Magnetosphere — A visualization of magnetic field lines surrounding a dipole, similar to Earth's magnetosphere that shields the planet from solar wind.
 
@@ -1239,9 +1239,9 @@ Magnetosphere — A visualization of magnetic field lines surrounding a dipole, 
 
 ![Turtle Path parameters](docs/img/model/turtle-params.jpg)
 
-| Turtle Path | turning | in 2-D (mod 30, closed) |
+| Turtle Path | animated | in 2-D (mod 30, closed) |
 | --- | --- | --- |
-| ![Turtle Path](docs/img/model/turtle.jpg) | ![Turtle Path turning](docs/img/model/turtle.gif) | ![Turtle Path — in 2-D (mod 30, closed)](docs/img/model/turtle-2d.jpg) |
+| ![Turtle Path](docs/img/model/turtle.jpg) | ![Turtle Path, animated](docs/img/model/turtle.gif) | ![Turtle Path — in 2-D (mod 30, closed)](docs/img/model/turtle-2d.jpg) |
 
 Turtle Path — Reduce an integer sequence modulo m and the remainders repeat; the length of the repeat is the Pisano period. Read each term as an instruction — odd turns left and steps forward, even turns right and steps forward, zero does neither — and the walk draws a figure.
 
@@ -1267,9 +1267,9 @@ PHYS gives the figure weight: it becomes a rigid body in the plane of the screen
 
 ![Lissajous parameters](docs/img/model/lissajou-params.jpg)
 
-| Lissajous | turning |
+| Lissajous | animated |
 | --- | --- |
-| ![Lissajous](docs/img/model/lissajou.jpg) | ![Lissajous turning](docs/img/model/lissajou.gif) |
+| ![Lissajous](docs/img/model/lissajou.jpg) | ![Lissajous, animated](docs/img/model/lissajou.gif) |
 
 Lissajous Curve — Named after Jules Antoine Lissajous (1822–1880), these are parametric curves formed by combining sinusoidal motions along each axis. Not a chaotic system — the curves are periodic and their shape depends on the frequency ratios and phase relationships between the three oscillations.
 
@@ -1285,9 +1285,9 @@ z(t) = sin(ct)
 
 ![Graphic Artist parameters](docs/img/model/graphicartist-params.jpg)
 
-| Graphic Artist | turning |
+| Graphic Artist | animated |
 | --- | --- |
-| ![Graphic Artist](docs/img/model/graphicartist.jpg) | ![Graphic Artist turning](docs/img/model/graphicartist.gif) |
+| ![Graphic Artist](docs/img/model/graphicartist.jpg) | ![Graphic Artist, animated](docs/img/model/graphicartist.gif) |
 
 Graphic Artist — a digital re-creation of Mitchell Waite's "Oscilloscope Graphic Artist" (Popular Electronics, November 1975), which drove a scope's X/Y inputs with harmonically related signals to draw 3-D-looking wireframes. Four relaxation oscillators A/B/C/D, each square or triangle: A is the fixed master and B/C/D lock to it at integer harmonics — the sync the original circuit was meant to enforce, and which a wiring error on real builds defeated, leaving them drawing an unstable blur. Carrier C is split ±45° and the B envelope modulates each phase; the two perpendicular components are what create the volume illusion on a flat scope, and here that component is lifted onto a real Z so the figure genuinely has depth.
 
@@ -1302,9 +1302,9 @@ HORIZ = levelD·D + levelB·(B · C₋₄₅)
 
 ![Scope Pong parameters](docs/img/model/pong-params.jpg)
 
-| Scope Pong | turning |
+| Scope Pong | animated |
 | --- | --- |
-| ![Scope Pong](docs/img/model/pong.jpg) | ![Scope Pong turning](docs/img/model/pong.gif) |
+| ![Scope Pong](docs/img/model/pong.jpg) | ![Scope Pong, animated](docs/img/model/pong.gif) |
 
 Scope Pong — An homage to the glensstuff.com analog Oscilloscope Pong: the whole game is one multiplexed beam tour driving the X/Y inputs, so the court, net, score ticks, paddles and ball share a single stroke — the faint diagonal beams are the retrace an unblanked scope really shows.
 
@@ -1316,9 +1316,9 @@ W / S move the left paddle, ↑ / ↓ the right; a side left alone for ~10 s ret
 
 ![Fourier Text parameters](docs/img/model/scopetext-params.jpg)
 
-| Fourier Text | turning |
+| Fourier Text | animated |
 | --- | --- |
-| ![Fourier Text](docs/img/model/scopetext.jpg) | ![Fourier Text turning](docs/img/model/scopetext.gif) |
+| ![Fourier Text](docs/img/model/scopetext.jpg) | ![Fourier Text, animated](docs/img/model/scopetext.gif) |
 
 Fourier Text — An homage to the glensstuff.com Fourier Synthesis Character Generator, which built alphanumerics on a scope from summed harmonics. The banner's whole beam tour (strokes and retrace jumps alike) is one complex periodic signal x(t)+i·y(t); what's drawn is its reconstruction from only the first N harmonics — real harmonic synthesis, not a blur. One harmonic is an ellipse, so at low N the letters melt into loops; raise the harm knob and overtones sharpen them into legibility. Type the banner in the Console's TEXT field; Model Out plays the actual harmonic stack.
 
@@ -1338,9 +1338,9 @@ The hands are fractional throughout — the hour hand creeps with the minutes, t
 
 ![Bouncing Ball parameters](docs/img/model/bounceball-params.jpg)
 
-| Bouncing Ball | turning |
+| Bouncing Ball | animated |
 | --- | --- |
-| ![Bouncing Ball](docs/img/model/bounceball.jpg) | ![Bouncing Ball turning](docs/img/model/bounceball.gif) |
+| ![Bouncing Ball](docs/img/model/bounceball.jpg) | ![Bouncing Ball, animated](docs/img/model/bounceball.gif) |
 
 Bouncing Ball — The classic analog-computer demo (Telefunken shipped it to sell integrators): two integrator chains under constant gravity, a comparator that flips the vertical velocity at the floor with a restitution loss, and wall reflections for the drift. The scope draws the familiar train of shrinking parabolic arcs; when the bounces decay away the machine re-kicks the ball, as the unattended trade-show loop did. Floor hits blip at a pitch set by impact speed (once audio is unlocked by any interaction). Knobs: gravity, restitution, drift. Try Persist to paint the full arc family.
 
@@ -1354,9 +1354,9 @@ y'' = −g, bounce: v ← −e·v at the floor
 
 ![XY Scope parameters](docs/img/model/xy-params.jpg)
 
-| XY Scope | turning |
+| XY Scope | animated |
 | --- | --- |
-| ![XY Scope](docs/img/model/xy.jpg) | ![XY Scope turning](docs/img/model/xy.gif) |
+| ![XY Scope](docs/img/model/xy.jpg) | ![XY Scope, animated](docs/img/model/xy.gif) |
 
 X/Y Scope — the classic two-channel oscilloscope figure, drawing the live audio's (left, right) sample pairs as a line strip. This is the goniometer, or stereo vectorscope, that sits on a mastering desk: correlated channels lie on a diagonal, anti-correlated on the other, and a phase difference opens the diagonal into an ellipse — which is how the display doubles as a stereo phase meter and a mono compatibility check, since what lies along the anti-correlated diagonal is exactly what disappears when the mix is summed to mono. The deflection is squared against the shorter side of the window, so the mono diagonal reads at 45° and a quarter-cycle phase difference draws a circle — not an ellipse the window's shape put there. An angle that cannot be trusted is the one thing a phase display may not have. A mono source is plotted against a lagged copy of itself, since a raw mono signal would otherwise be a featureless diagonal; the Stereo Embedding next door is the same figure with a third axis, and it does not fake a channel that is not there.
 
@@ -1376,9 +1376,9 @@ CORR is the correlation meter: +1.00 means the channels are identical and the fi
 
 ![Takens Embedding parameters](docs/img/model/takens-params.jpg)
 
-| Takens Embedding | turning |
+| Takens Embedding | animated |
 | --- | --- |
-| ![Takens Embedding](docs/img/model/takens.jpg) | ![Takens Embedding turning](docs/img/model/takens.gif) |
+| ![Takens Embedding](docs/img/model/takens.jpg) | ![Takens Embedding, animated](docs/img/model/takens.gif) |
 
 Takens Delay Embedding — attractor reconstruction from a single signal (F. Takens, "Detecting strange attractors in turbulence", 1981). Each trail point is the delay vector (s(t), s(t−τ), s(t−2τ)) of the live audio: a pure tone draws a closed loop, music and speech trace the geometry of whatever produced them.
 
@@ -1436,9 +1436,9 @@ Audio comes from the active source — the microphone, a server feed, or the sig
 
 #### Spectrogram
 
-| Spectrogram | turning |
+| Spectrogram | animated |
 | --- | --- |
-| ![Spectrogram](docs/img/model/spectrogram.jpg) | ![Spectrogram turning](docs/img/model/spectrogram.gif) |
+| ![Spectrogram](docs/img/model/spectrogram.jpg) | ![Spectrogram, animated](docs/img/model/spectrogram.gif) |
 
 Spectrogram — a scrolling short-time Fourier transform of the live audio: frequency up the plane, time scrolling right to left, magnitude as color. It is a display inspired by Vanya Sergeev's audioprism, written in Go (github.com/0magnet/audioprism-go) and drawn here as a texture on a plane in the same 3-D pipeline as every other model, so it rotates and zooms like one — and the same texture can be painted onto other geometry with the skin switch. The Spectrogram module exposes the whole chain: transform size, overlap, window function, magnitude scale and limits, and color scheme.
 
@@ -1448,9 +1448,9 @@ Spectrogram — a scrolling short-time Fourier transform of the live audio: freq
 
 ![FVF Wobbulator parameters](docs/img/model/fvf-params.jpg)
 
-| FVF Wobbulator | turning |
+| FVF Wobbulator | animated |
 | --- | --- |
-| ![FVF Wobbulator](docs/img/model/fvf.jpg) | ![FVF Wobbulator turning](docs/img/model/fvf.gif) |
+| ![FVF Wobbulator](docs/img/model/fvf.jpg) | ![FVF Wobbulator, animated](docs/img/model/fvf.gif) |
 
 FVF — Harmonic Wobbulator. A software analog of the Frequency→Voltage→Frequency converter with balanced modulator designed at bunkerofdoom.com (hardware built 1984). The live audio's pitch is tracked, scaled/offset into a new carrier frequency, and ring- or AM-modulated back by the original signal — the metallic, glitchy 'very strange' timbre. Shown here as the processed spectrogram.
 
@@ -1460,9 +1460,9 @@ FVF — Harmonic Wobbulator. A software analog of the Frequency→Voltage→Freq
 
 ![Recurrence Plot parameters](docs/img/model/recurrence-params.jpg)
 
-| Recurrence Plot | turning |
+| Recurrence Plot | animated |
 | --- | --- |
-| ![Recurrence Plot](docs/img/model/recurrence.jpg) | ![Recurrence Plot turning](docs/img/model/recurrence.gif) |
+| ![Recurrence Plot](docs/img/model/recurrence.jpg) | ![Recurrence Plot, animated](docs/img/model/recurrence.gif) |
 
 Recurrence Plot — the picture of when a signal returns to where it has already been (J.-P. Eckmann, S. O. Kamphorst and D. Ruelle, "Recurrence Plots of Dynamical Systems", 1987). Time runs along both axes, and the cell (i, j) is lit when the two samples are within ε of each other, so the main diagonal is always lit and everything else says how the signal repeats. A steady tone draws unbroken diagonals spaced by its period; a chaotic or noisy source breaks them into short segments; a held sound is a solid block, and the instant the source changes is an edge running across the square.
 

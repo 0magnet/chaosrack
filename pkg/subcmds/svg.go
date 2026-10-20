@@ -42,7 +42,7 @@ func svgOf(pts [][3]float64) string {
 	if defs.Len() > 0 {
 		b.WriteString(`<defs>` + defs.String() + `</defs>`)
 	}
-	fmt.Fprintf(&b, `<rect width="%d" height="%d" fill="#0a0d14"/>`, renderW, renderH)
+	fmt.Fprintf(&b, `<rect width="%d" height="%d" fill="%s"/>`, renderW, renderH, backgroundHex())
 	b.WriteString(body.String())
 	b.WriteString(`</svg>`)
 	return b.String()
@@ -212,12 +212,16 @@ const svgStroke = `<polyline fill="none" stroke-width="0.6" ` +
 
 // gradientFor is the palette the flags ask for, shared by the raster and the
 // vector writers so --colors means the same thing in a PNG and an SVG.
-func gradientFor() rasterview.Gradient {
+// gradientFor is the picture's gradient: --walk's first step, or the flags.
+func gradientFor() rasterview.Gradient { return gradientAt(0, 1) }
+
+// gradientOf is the gradient for a palette and a source.
+func gradientOf(colors int, grad string) rasterview.Gradient {
 	g := rasterview.DefaultGradient()
-	if renderColors > 0 {
-		g.Colors = renderColors
+	if colors > 0 {
+		g.Colors = colors
 	}
-	switch renderGrad {
+	switch grad {
 	case "x":
 		g.Source = 0
 	case "y":

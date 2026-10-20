@@ -2,6 +2,7 @@ package subcmds
 
 import (
 	"fmt"
+	"image/jpeg"
 	"image/png"
 	"io"
 	"math"
@@ -52,6 +53,11 @@ var (
 	renderTurn   []float64
 	renderTrail  int
 	renderGrad   string
+	renderBG     string
+	renderSweep  = true // the flag's default, for callers that never parse flags (the tests)
+	renderWalk   string
+	renderCrop   bool
+	renderRock   bool
 )
 
 func renderFlags(renderCmd *cobra.Command) {
@@ -62,7 +68,7 @@ func renderFlags(renderCmd *cobra.Command) {
 	renderCmd.Flags().IntVar(&renderPts, "points", 20000, "how many points of trajectory to keep")
 	renderCmd.Flags().Float64Var(&renderSecs, "seconds", 0, "how much model time to integrate (0 = the model's default)")
 	renderCmd.Flags().Float64SliceVar(&renderSpin, "angle", []float64{0.6, 0.9, 0}, "view angles x,y,z in radians")
-	renderCmd.Flags().IntVar(&renderColors, "colors", 4, "palette: 1 mono, 2 two-color, 3 three-color, 4 rainbow")
+	renderCmd.Flags().IntVar(&renderColors, "colors", 2, "palette: 1 mono, 2 two-color (the page's default), 3 three-color, 4 rainbow")
 	renderCmd.Flags().BoolVar(&renderCheck, "check", false, "integrate every model and report the ones that draw nothing")
 	renderCmd.Flags().StringArrayVar(&renderSet, "set", nil, "turn a control before drawing, as id=value (repeatable)")
 	renderCmd.Flags().BoolVar(&renderParams, "params", false, "list the controls that --set can turn, with their ranges")
@@ -71,6 +77,11 @@ func renderFlags(renderCmd *cobra.Command) {
 	renderCmd.Flags().Float64SliceVar(&renderTurn, "turn", []float64{0, 0, 0}, "radians the camera also turns over the animation, x,y,z (default: still camera)")
 	renderCmd.Flags().IntVar(&renderTrail, "trail", 0, "points of trajectory visible at once (0 = a quarter of the run)")
 	renderCmd.Flags().StringVar(&renderGrad, "gradient", "z", "what the palette follows: x, y, z, or trail (position along the path)")
+	renderCmd.Flags().StringVar(&renderBG, "background", "#000000", "background color, #rrggbb (the page's canvas is black)")
+	renderCmd.Flags().BoolVar(&renderSweep, "sweep", true, "in an animation, sweep a trail along the path; false draws the whole figure every frame, so only --turn moves it")
+	renderCmd.Flags().BoolVar(&renderCrop, "crop", false, "frame the picture to what is drawn (across all frames of an animation) rather than to the figure's extent")
+	renderCmd.Flags().BoolVar(&renderRock, "rock", false, "in an animation, swing the --turn out and back on a sine, centered on --angle, instead of turning steadily; a loop without a seam that need not be a whole turn")
+	renderCmd.Flags().StringVar(&renderWalk, "walk", "", "in an animation, step the colors through COLORS/GRADIENT settings in equal parts, e.g. 4/z,2/x,3/y,1/trail; a still takes the first")
 }
 
 // newModelsCmd is `chaosrack models`.
@@ -137,6 +148,7 @@ func newRenderCmd() *cobra.Command {
 The output format comes from the -o file extension:
 
   .png   a still image with the same depth shading and colors as the page
+  .jpg   the same, as a JPEG
   .svg   a still image as a vector polyline, or an animation with --frames
   .gif   an animation (requires --frames, except for audio models)
 
@@ -149,6 +161,13 @@ instead of writing a file.
   chaosrack render --model lorenz --set lorenz-r=40 -o rho40.png
   chaosrack render --model clifford -o clifford.png
   chaosrack render --model icosahedron -o ico.gif --frames 60 --turn 0,6.283,0
+  chaosrack render --model lorenz -o loop.gif --frames 48 --turn 0,6.283,0 --sweep=false --walk 4/z,2/x,3/y,1/trail
+
+The colors and background default to the page's: a red-to-blue gradient
+along z on black. In an animation a trail sweeps along the path; --sweep=false
+draws the whole figure every frame, so a full --turn loops without a seam, and
+--walk steps the palette and its source through the animation while the turn
+carries on smoothly.
 
 Flows and curves are drawn as a line, maps as points, and polyhedra and other
 geometry as wireframes. Maps are drawn face-on and colored by y unless
@@ -198,6 +217,9 @@ exits with an error if any fail.`,
 			}
 			if renderCheck {
 				return checkEveryModel()
+			}
+			if _, err := parseWalk(renderWalk); err != nil {
+				return err
 			}
 			if renderModel == "" {
 				return fmt.Errorf("--model is required (chaosrack models lists them, --check tests them all)")
@@ -305,19 +327,27 @@ func writeModel(name string, pts [][3]float64) error {
 		// 0600: gosec is right that a tool should not widen permissions on the
 		// user's behalf, and the umask gives them whatever they wanted anyway.
 		return cmdfs.WriteFile(runCtx, name, []byte(svgOf(pts)), 0o600)
+	case ".jpg", ".jpeg":
+		f, err := cmdfs.Create(runCtx, name)
+		if err != nil {
+			return err
+		}
+		defer f.Close() //nolint:errcheck // the encode error below is the one that matters
+		return jpeg.Encode(f, cropOne(attractor.Draw(pts, drawOptions())), &jpeg.Options{Quality: 90})
 	case ".png", "":
 		f, err := cmdfs.Create(runCtx, name)
 		if err != nil {
 			return err
 		}
 		defer f.Close() //nolint:errcheck // the encode error below is the one that matters
-		return png.Encode(f, attractor.Draw(pts, drawOptions()))
+		return png.Encode(f, cropOne(attractor.Draw(pts, drawOptions())))
 	default:
-		return fmt.Errorf("%s: unknown format — use .png or .svg", filepath.Ext(name))
+		return fmt.Errorf("%s: unknown format — use .png, .jpg or .svg", filepath.Ext(name))
 	}
 }
 
 func drawOptions() attractor.DrawOptions {
+	w, h := drawSize()
 	a := [3]float64{}
 	copy(a[:], renderSpin)
 	// gradientFor, not a second copy of it. This built its own and so ignored
@@ -325,12 +355,13 @@ func drawOptions() attractor.DrawOptions {
 	// on z in a PNG, from one flag that only half the writers read — the same
 	// mistake the hardcoded SVG stroke was.
 	return attractor.DrawOptions{
-		Width:  renderW,
-		Height: renderH,
+		Width:  w,
+		Height: h,
 		View: rasterview.View{
 			AngleX: a[0], AngleY: a[1], AngleZ: a[2],
 		},
-		Gradient: gradientFor(),
+		Gradient:   gradientFor(),
+		Background: background(),
 	}
 }
 

@@ -105,7 +105,7 @@ func modelsSection() string {
 	var b strings.Builder
 	b.WriteString("Every position of the MODEL selector, in knob order; a model in two\n")
 	b.WriteString("categories is listed in both. Per model: its bank as programmed for it,\n")
-	b.WriteString("a still, a turning loop, its description (the Info overlay's text) and\n")
+	b.WriteString("a still, an animated loop, its description (the Info overlay's text) and\n")
 	b.WriteString("its equations. Images are captured by `uitool portraits`.\n")
 
 	seen := map[string]bool{}
@@ -142,7 +142,7 @@ func modelEntry(m attractor.CatalogModel) string {
 	type shot struct{ head, alt, path string }
 	shots := []shot{
 		{mdEscape(m.Label), mdEscape(m.Label), filepath.Join(*modelImgDir, m.Key+".jpg")},
-		{"turning", mdEscape(m.Label) + " turning", filepath.Join(*modelImgDir, m.Key+".gif")},
+		{"animated", mdEscape(m.Label) + ", animated", filepath.Join(*modelImgDir, m.Key+".gif")},
 	}
 	// Named variants: a second face of the same model that a still cannot
 	// show at the same time as the first. The turtle's is the big one — the
