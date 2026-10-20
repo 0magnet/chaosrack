@@ -226,12 +226,8 @@ func mixShowGenOut(g int) {
 	if !el.Truthy() {
 		return
 	}
-	v := strconv.Itoa(mixGenOut(g))
-	if el.Get("value").String() != v {
-		el.Set("value", v)
-		if f := knobRefresh[id]; f != nil {
-			f()
-		}
+	if v := mixGenOut(g); el.Get("value").String() != strconv.Itoa(v) {
+		setSelectQuiet(id, v)
 	}
 }
 

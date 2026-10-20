@@ -1014,7 +1014,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
    readout floats BELOW the knob (absolute, out of flow) so the knob itself
    centers in the cell and lines up with the knobs in every other module. */
 .selk-ro{position:relative;display:inline-flex;flex-direction:column;align-items:center;}
-.selk-ro>.selk-readout{position:absolute;top:calc(100% + 3px);left:50%;transform:translateX(-50%);}
+.selk-ro>.ledpickwrap{position:absolute;top:calc(100% + 3px);left:50%;transform:translateX(-50%);}
 /* ── Knob appearance styles (selected by the Knob-style knob). std = default. ── */
 :is(#controls-panel,.cp-ctx).ks-flat .knob,:is(#controls-panel,.cp-ctx).ks-flat .knobb{background:radial-gradient(circle at 50% 46%,#343434,#1d1d1d 74%,#141414);border:1px solid #4c4c4c;box-shadow:inset 0 1px 1px #565656,0 1px 2px #000;}
 :is(#controls-panel,.cp-ctx).ks-flat .knob-ptr{--pcol:#7fe0a0;--pglow:#2a9a5a;--pg:4px;}
@@ -1503,6 +1503,9 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
 .minirow .miniknob .knob-dial-lab{display:none;}
 .minirow .miniknob .vdial-tick{width:1px;height:calc(2.5px*var(--kscale,1));}
 .minirow .miniknob .vdial-tick.major{width:1.5px;height:calc(3.5px*var(--kscale,1));}
+/* A mini selector (miniSelector): the knob, and beside it the display that
+   names its setting, which a click on lists. */
+.minisel{display:flex;align-items:center;gap:calc(4px*var(--kscale,1));}
 /* A cell whose legend changes while a mini knob lends it the display
    (lendReadout) carries the bank's vertical legend part where its label was;
    the label stays, hidden, as the cell's name for its tooltips. */

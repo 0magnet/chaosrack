@@ -3,6 +3,7 @@
 package attractor
 
 import (
+	"strconv"
 	"syscall/js"
 	"time"
 
@@ -49,6 +50,60 @@ func miniKnob(slider js.Value, legend string, register, dial bool) js.Value {
 		k.Call("setAttribute", "data-ctl-part", "")
 	}
 	return k
+}
+
+// miniSelector is a mini knob that turns selector sel through its options,
+// legend on its cap, with a character display beside it naming the option it
+// is on. Lent the cell's display instead, a selector said what it was set to
+// only while a hand was on it; its own says so always, and a click on it lists
+// every option (ledPick). Knob and display go in a mini row as one piece.
+func miniSelector(sel js.Value, legend string) js.Value {
+	wrap := dom.Doc.Call("createElement", "span")
+	wrap.Set("className", "knobwrap miniknob")
+	wrap.Call("setAttribute", "data-no-drag", "")
+	knob := selk.makeSelectorKnob(sel)
+	knob.Get("classList").Call("add", "knobb")
+	wrap.Call("appendChild", knob)
+	if ptr := knob.Call("querySelector", ".knob-ptr"); ptr.Truthy() {
+		c := dom.Doc.Call("createElement", "b")
+		c.Set("className", "knob-cap")
+		c.Set("textContent", legend)
+		ptr.Call("appendChild", c)
+	}
+	// The select is the control's part, as a mini's range is (miniKnob).
+	wrap.Call("appendChild", sel)
+	wrap.Call("setAttribute", "data-ctl-part", "")
+
+	piece := dom.Doc.Call("createElement", "span")
+	piece.Set("className", "minisel")
+	piece.Call("appendChild", wrap)
+	win := dotDisplayN("", false, dispFullChars)
+	if id := sel.Get("id").String(); id != "" {
+		win.Set("id", id+"-read")
+	}
+	piece.Call("appendChild", win)
+	ledPick(win, sel)
+	show := func() {
+		if i := sel.Get("selectedIndex").Int(); i >= 0 {
+			setDotText(win, sel.Get("options").Index(i).Get("textContent").String())
+		}
+	}
+	show()
+	onShown(sel, "minisel", show)
+	return piece
+}
+
+// fillIndexSelect gives sel an option per name, valued by its index, as a
+// detented range's positions were: a link that stored a position still does.
+func fillIndexSelect(sel js.Value, names []string, at int) {
+	sel.Set("innerHTML", "")
+	for i, n := range names {
+		opt := dom.Doc.Call("createElement", "option")
+		opt.Set("value", strconv.Itoa(i))
+		opt.Set("textContent", n)
+		sel.Call("appendChild", opt)
+	}
+	sel.Set("value", strconv.Itoa(clampIdx(at, len(names))))
 }
 
 // miniRow stands mini knobs side by side under the cell's main knob.
