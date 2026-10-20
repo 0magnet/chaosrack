@@ -366,49 +366,34 @@ func (ra *rackScope) registerTrios() {
 	}
 }
 
-// wireScopeInputs is the two INPUT mini knobs under VOLTS: a detent per
-// source and no scale, since a selector has no range to read off one. The
-// VOLTS display reads the source while either is turned (lendReadout), and
-// the face names both, where the eye already is (drawInputNames). The
-// cell's reset puts them back with VOLTS, as the beam's puts its minis
-// back with INTENSITY.
+// wireScopeInputs is the two INPUT selectors, a mini knob each with a display
+// of its own beside it naming the source (miniSelector): IN 1 under VOLTS and
+// IN 2 under TIME, one to a cell, since a knob and its display take a cell's
+// foot. The face names both as well, where the eye already is
+// (drawInputNames). Each cell's reset puts its input back with its knob.
 func (ra *rackScope) wireScopeInputs() {
-	volts := dom.Doc.Call("getElementById", ra.id("volts"))
-	cell := volts.Call("closest", ".pcell")
-	if !volts.Truthy() || !cell.Truthy() {
-		return
-	}
+	names := scopeInNames[:]
 	tips := make([]string, scopeInCount)
 	for i, name := range scopeInNames {
-		tips[i] = strconv.Itoa(i) + " " + name + ": " + scopeInHelp(i)
+		tips[i] = name + ": " + scopeInHelp(i)
 	}
-	var knobs, els []js.Value
-	for ch := range 2 {
+	for ch, home := range [2]string{"volts", "time"} {
 		el := dom.Doc.Call("getElementById", ra.id("in"+strconv.Itoa(ch+1)))
-		if !el.Truthy() {
+		cell := dom.Doc.Call("getElementById", ra.id(home)).Call("closest", ".pcell")
+		if !el.Truthy() || !cell.Truthy() {
 			return
 		}
-		el.Set("max", scopeInCount-1)
-		el.Set("value", scopeInDefaults[ra.n][ch])
+		def := scopeInDefaults[ra.n][ch]
+		fillIndexSelect(el, names, def)
 		el.Set("title", el.Get("title").String()+"\n\n"+strings.Join(tips, "\n"))
-		els = append(els, el)
-		knobs = append(knobs, miniKnob(el, strconv.Itoa(ch+1), true, false))
-	}
-	col := miniRow(knobs...)
-	cell.Call("appendChild", col)
-	loan := lendReadout(col, dom.Doc.Call("getElementById", ra.id("volts")+"-read"), func() {
-		// VOLTS's own change rewrites its window.
-		dom.Fire(volts, "change")
-	})
-	for ch, el := range els {
-		def := float64(scopeInDefaults[ra.n][ch])
+		cell.Call("appendChild", miniRow(miniSelector(el, strconv.Itoa(ch+1))))
 		adoptDescControl(ControlDesc{
-			ID: el.Get("id").String(), Label: "in " + strconv.Itoa(ch+1),
-			Min: 0, Max: scopeInCount - 1, Step: 1, Def: def,
-			ResetID: "rst-" + ra.id("volts"), PermaKey: scopeInKey(ra.n, ch),
-			Apply: func(v float64) {
-				ra.ui.in[ch] = clampIdx(int(v+0.5), scopeInCount)
-				loan.show("in"+strconv.Itoa(ch+1), scopeInNames[ra.ui.in[ch]])
+			ID: el.Get("id").String(), Label: "in " + strconv.Itoa(ch+1), IsSelect: true,
+			SelectDef: strconv.Itoa(def), ResetID: "rst-" + ra.id(home), PermaKey: scopeInKey(ra.n, ch),
+			SelectApply: func(v string) {
+				if i, err := strconv.Atoi(v); err == nil {
+					ra.ui.in[ch] = clampIdx(i, scopeInCount)
+				}
 			},
 		})
 	}
@@ -487,6 +472,7 @@ func setScopeReadout(id string, names []string, i int) {
 		d.Set("id", id+"-read")
 		el.Call("replaceWith", d)
 		el = d
+		ledPick(el, dom.Doc.Call("getElementById", id))
 	}
 	setDotText(el, names[clampIdx(i, len(names))])
 }

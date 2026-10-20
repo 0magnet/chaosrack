@@ -429,6 +429,9 @@ func selectorKnobReadout(sel js.Value) js.Value {
 	set()
 	wrap.Call("appendChild", stack)
 	wrap.Call("appendChild", readout)
+	// A click on the readout lists every option, as on every display that
+	// names a selector's setting.
+	ledPick(readout, sel)
 	return wrap
 }
 

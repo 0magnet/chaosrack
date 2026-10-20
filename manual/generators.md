@@ -44,7 +44,7 @@ Gen 4 waveform — what it plays, OFF at the bottom and then sine, triangle, squ
 ### Gen 4 out
 
 <!-- key: gen-v-out -->
-Gen 4 out — where it goes: OFF, L, C (both sides) or R, on the speakers and the rack's signal together; MIX when the Mixer has it pinned some other way. The display over the waveform reads it while it is turned.
+Gen 4 out — where it goes: OFF, L, C (both sides) or R, on the speakers and the rack's signal together; MIX when the Mixer has it pinned some other way. The display beside it names it; a click on the display lists the positions.
 
 ## Gen 1
 
@@ -90,7 +90,7 @@ Gen 1 waveform — what it plays, OFF at the bottom and then sine, triangle, squ
 ### Gen 1 out
 
 <!-- key: gen-x-out -->
-Gen 1 out — where it goes: OFF, L, C (both sides) or R, on the speakers and the rack's signal together; MIX when the Mixer has it pinned some other way. The display over the waveform reads it while it is turned.
+Gen 1 out — where it goes: OFF, L, C (both sides) or R, on the speakers and the rack's signal together; MIX when the Mixer has it pinned some other way. The display beside it names it; a click on the display lists the positions.
 
 ## Gen 2
 
@@ -136,7 +136,7 @@ Gen 2 waveform — what it plays, OFF at the bottom and then sine, triangle, squ
 ### Gen 2 out
 
 <!-- key: gen-y-out -->
-Gen 2 out — where it goes: OFF, L, C (both sides) or R, on the speakers and the rack's signal together; MIX when the Mixer has it pinned some other way. The display over the waveform reads it while it is turned.
+Gen 2 out — where it goes: OFF, L, C (both sides) or R, on the speakers and the rack's signal together; MIX when the Mixer has it pinned some other way. The display beside it names it; a click on the display lists the positions.
 
 ## Gen 3
 
@@ -182,7 +182,7 @@ Gen 3 waveform — what it plays, OFF at the bottom and then sine, triangle, squ
 ### Gen 3 out
 
 <!-- key: gen-z-out -->
-Gen 3 out — where it goes: OFF, L, C (both sides) or R, on the speakers and the rack's signal together; MIX when the Mixer has it pinned some other way. The display over the waveform reads it while it is turned.
+Gen 3 out — where it goes: OFF, L, C (both sides) or R, on the speakers and the rack's signal together; MIX when the Mixer has it pinned some other way. The display beside it names it; a click on the display lists the positions.
 
 ### WAVE positions
 

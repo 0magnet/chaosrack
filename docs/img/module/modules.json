@@ -1385,23 +1385,23 @@
     "mode": "lorenz",
     "controls": [
       {
-        "label": "000.61750.0",
+        "label": "000.24666.5",
         "title": "4.10.1.a · Timing / fps / LED readout / Frames a second sustained over the last window — the reciprocal of the MEAN frame, so a hitch counts against it"
       },
       {
-        "label": "1750.01750.0",
+        "label": "4666.54666.5",
         "title": "4.10.1.c · Timing / min / LED readout / Shortest frame in the window, in ms — which is the display's own interval, since nothing renders faster than vsync"
       },
       {
-        "label": "000.01745.10",
+        "label": "000.04659.80",
         "title": "4.10.2.b · Timing / late / LED readout / Percentage of frames that missed the display's interval by half again or more. This is the number that corresponds to visible hesitation; the frame rate alone does not."
       },
       {
-        "label": "04.5000.10",
+        "label": "03.8002.30",
         "title": "4.10.3.a · Timing / model / LED readout / Milliseconds a frame spent ISSUING the model's draw calls. A WebGL call queues a command and returns without waiting for pixels, so this reads far below what the model really costs — the GPU and compositor share of it is in REST. Useful for what it does catch: geometry rebuilt every frame instead of cached."
       },
       {
-        "label": "00.30 TBC",
+        "label": "00.60 TBC",
         "title": "4.10.3.c"
       },
       {
@@ -1413,7 +1413,7 @@
   {
     "id": "scope",
     "label": "Scope 1",
-    "title": "5.1 · Scope 1 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS, the two INPUT knobs, 1 and 2, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.",
+    "title": "5.1 · Scope 1 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.",
     "image": "docs/img/module/scope.jpg",
     "mode": "lorenz",
     "controls": [
@@ -1463,7 +1463,7 @@
       },
       {
         "label": "volts",
-        "title": "5.1.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it the two INPUT mini knobs: 1 and 2, what input 1 and input 2 are fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on the face, top left, and on this display while one is turned. The reset puts all three back.",
+        "title": "5.1.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it INPUT 1, a mini knob with a display of its own: what input 1 is fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on that display, which lists them all when clicked, and on the face, top left. INPUT 2 is under TIME. The reset puts both back.",
         "positions": [
           {
             "label": "2 mFS",
@@ -1505,7 +1505,7 @@
       },
       {
         "label": "time",
-        "title": "5.2.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen.",
+        "title": "5.2.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen. Under it INPUT 2, what input 2 is fed from, as INPUT 1 is under VOLTS. The reset puts both back.",
         "positions": [
           {
             "label": "10 µs",
@@ -1673,7 +1673,7 @@
   {
     "id": "scope2",
     "label": "Scope 2",
-    "title": "5.4 · Scope 2 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS, the two INPUT knobs, 1 and 2, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.",
+    "title": "5.4 · Scope 2 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.",
     "image": "docs/img/module/scope2.jpg",
     "mode": "lorenz",
     "controls": [
@@ -1723,7 +1723,7 @@
       },
       {
         "label": "volts",
-        "title": "5.4.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it the two INPUT mini knobs: 1 and 2, what input 1 and input 2 are fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on the face, top left, and on this display while one is turned. The reset puts all three back.",
+        "title": "5.4.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it INPUT 1, a mini knob with a display of its own: what input 1 is fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on that display, which lists them all when clicked, and on the face, top left. INPUT 2 is under TIME. The reset puts both back.",
         "positions": [
           {
             "label": "2 mFS",
@@ -1765,7 +1765,7 @@
       },
       {
         "label": "time",
-        "title": "5.5.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen.",
+        "title": "5.5.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen. Under it INPUT 2, what input 2 is fed from, as INPUT 1 is under VOLTS. The reset puts both back.",
         "positions": [
           {
             "label": "10 µs",
@@ -1933,7 +1933,7 @@
   {
     "id": "scope3",
     "label": "Scope 3",
-    "title": "5.7 · Scope 3 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS, the two INPUT knobs, 1 and 2, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.",
+    "title": "5.7 · Scope 3 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.",
     "image": "docs/img/module/scope3.jpg",
     "mode": "lorenz",
     "controls": [
@@ -1983,7 +1983,7 @@
       },
       {
         "label": "volts",
-        "title": "5.7.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it the two INPUT mini knobs: 1 and 2, what input 1 and input 2 are fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on the face, top left, and on this display while one is turned. The reset puts all three back.",
+        "title": "5.7.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it INPUT 1, a mini knob with a display of its own: what input 1 is fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on that display, which lists them all when clicked, and on the face, top left. INPUT 2 is under TIME. The reset puts both back.",
         "positions": [
           {
             "label": "2 mFS",
@@ -2025,7 +2025,7 @@
       },
       {
         "label": "time",
-        "title": "5.8.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen.",
+        "title": "5.8.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen. Under it INPUT 2, what input 2 is fed from, as INPUT 1 is under VOLTS. The reset puts both back.",
         "positions": [
           {
             "label": "10 µs",
@@ -2193,7 +2193,7 @@
   {
     "id": "scope4",
     "label": "Scope 4",
-    "title": "5.10 · Scope 4 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS, the two INPUT knobs, 1 and 2, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.",
+    "title": "5.10 · Scope 4 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.",
     "image": "docs/img/module/scope4.jpg",
     "mode": "lorenz",
     "controls": [
@@ -2243,7 +2243,7 @@
       },
       {
         "label": "volts",
-        "title": "5.10.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it the two INPUT mini knobs: 1 and 2, what input 1 and input 2 are fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on the face, top left, and on this display while one is turned. The reset puts all three back.",
+        "title": "5.10.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it INPUT 1, a mini knob with a display of its own: what input 1 is fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on that display, which lists them all when clicked, and on the face, top left. INPUT 2 is under TIME. The reset puts both back.",
         "positions": [
           {
             "label": "2 mFS",
@@ -2285,7 +2285,7 @@
       },
       {
         "label": "time",
-        "title": "5.11.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen.",
+        "title": "5.11.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen. Under it INPUT 2, what input 2 is fed from, as INPUT 1 is under VOLTS. The reset puts both back.",
         "positions": [
           {
             "label": "10 µs",
