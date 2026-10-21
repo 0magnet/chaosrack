@@ -4,19 +4,19 @@ go 1.26.7
 
 require (
 	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992
-	github.com/0magnet/audioprism-go v0.0.1-0.20261020101339-768acd6e5293
+	github.com/0magnet/audioprism-go v0.0.1-0.20261021101944-f90540e7753d
 	github.com/0magnet/calvin v0.0.1-0.20261013221715-da6581155df3
 	github.com/0magnet/cdp v0.0.0-20261013220930-98e232fae01d
-	github.com/0magnet/desk v0.0.3-0.20261020101438-0b6b4270b7f2
-	github.com/0magnet/desk/panes v0.0.1-0.20261020101438-0b6b4270b7f2
+	github.com/0magnet/desk v0.0.3-0.20261021102545-0270a128beef
+	github.com/0magnet/desk/panes v0.0.1-0.20261021102211-de4fc472d19c
 	github.com/0magnet/lattice v0.0.0-20261013224541-88e9ab8a3922
-	github.com/0magnet/pisano v0.0.0-20261020101632-615685b25010
+	github.com/0magnet/pisano v0.0.0-20261021102410-d760cc73207c
 	github.com/0magnet/rack-go v0.0.0-20261013221719-290136881c9a
 	github.com/0magnet/seat v0.0.0-20261013221028-e66b97ebca1a
 	github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
-	github.com/0magnet/tuiwasm v0.0.0-20261020101755-c62421f6c966
-	github.com/0magnet/websh v0.0.1-0.20261020221255-e851bfeabe30
-	github.com/0magnet/winbox-go v0.0.1-0.20261013224642-cc4224c41a9c
+	github.com/0magnet/tuiwasm v0.0.0-20261021102617-42fb99fe758e
+	github.com/0magnet/websh v0.0.1-0.20261021102026-4397eb6f191c
+	github.com/0magnet/winbox-go v0.0.1-0.20261020181245-bacce940cc20
 	github.com/0magnet/xterm-go v0.0.1-0.20261013223808-aa0a32cd702b
 	github.com/creack/pty v1.1.24
 	github.com/gdamore/tcell/v2 v2.13.10
@@ -52,7 +52,7 @@ require (
 	github.com/benhoyt/goawk v1.32.0 // indirect
 	github.com/bytedance/gopkg v0.1.4 // indirect
 	github.com/bytedance/sonic v1.15.4 // indirect
-	github.com/bytedance/sonic/loader v0.5.2 // indirect
+	github.com/bytedance/sonic/loader v0.5.3 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834 // indirect
 	github.com/charmbracelet/ultraviolet v0.0.0-20261008173134-6b8d4baf91b4 // indirect
