@@ -52,7 +52,7 @@ func enableManualMode() {
 		// rack: both read the bays. Then the modules move into the page
 		// (manuallive_js.go), and out into windows from there (manualwin_js.go).
 		live := manualLive()
-		live.Call("measure")
+		live.Call("measure", fastDOM().Call("bays"))
 		page.Set("innerHTML", manualPageHTML())
 		live.Call("strips", page)
 		live.Call("place", page)

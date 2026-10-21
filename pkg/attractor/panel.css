@@ -1395,7 +1395,7 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
   mask:repeating-linear-gradient(to top,#000 0 calc(5% - 2px),transparent calc(5% - 2px) 5%);}
 .lad-bar::before{opacity:.12;}
 .lad-bar::after{clip-path:inset(calc((20 - var(--lit)) * 5%) 0 0 0);}
-.lad-lbl{writing-mode:vertical-rl;text-orientation:upright;letter-spacing:-1px;font:calc(8px*var(--kscale,1))/1 monospace;color:#9fb3c8;text-transform:uppercase;}
+.lad-lbl{flex:none;height:4em;text-align:center;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:-1px;font:calc(8px*var(--kscale,1))/1 monospace;color:#9fb3c8;text-transform:uppercase;}
 
 /* The meters' readout names are character displays (readoutlabels_js.go),
    each the same window as the LED it names: the LED's height, bezel and side

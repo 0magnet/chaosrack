@@ -60,9 +60,11 @@ return {
   // measure records the live rack's bays and modules, before any is moved:
   // each module's name, address and natural width, and where it stands in
   // its bay, in the bay's own unscaled pixels.
-  measure: function () {
+  measure: function (units) {
     bays = []; mods = {};
-    [].filter.call(doc.querySelectorAll('#controls-panel .runit'), function (u) { return u.offsetParent; }).forEach(function (u, i) {
+    // units are the bays as fastDOM finds them, in either home of the rack:
+    // the panel, or the terminal it is laid over, where a page first shows it.
+    [].forEach.call(units, function (u, i) {
       var ur = u.getBoundingClientRect(), s = ur.width / (u.offsetWidth || 1);
       var b = { w: u.offsetWidth, h: u.offsetHeight, mods: [] };
       [].forEach.call(u.querySelectorAll('.sect[data-mloc]'), function (m) {
@@ -95,7 +97,8 @@ return {
     var at = ctx;
     // The frame, the unit and the opening, as shallow copies.
     var chain = [];
-    for (var p = m.el.parentElement; p && p !== panel; p = p.parentElement) chain.unshift(p);
+    var home = m.el.closest('#controls-panel,.cp-ctx');
+    for (var p = m.el.parentElement; p && p !== home; p = p.parentElement) chain.unshift(p);
     chain.forEach(function (p) {
       var c = p.cloneNode(false);
       c.removeAttribute('id');
