@@ -9,9 +9,9 @@ import (
 	"github.com/0magnet/chaosrack/pkg/glctx"
 )
 
-// setPowerState stops or resumes the render loop. Off blanks the canvas but
-// keeps the panel; on restarts the loop only if it was actually stopped (so
-// flipping the switch twice does not spawn a second RAF loop).
+// setPowerState stops or resumes the model. Off blanks the canvas but keeps
+// the panel, and the frame loop goes on for the rack's own work — the scopes,
+// the audio tap, the meters (renderLoop) — so on has no loop to restart.
 //
 // Driven by the Console's Power switch. It used to be the first detent of
 // the model category knob — powering the rack down looked like choosing a
@@ -27,10 +27,7 @@ func setPowerState(on bool) {
 		}
 	}()
 	if on {
-		if run.stopped {
-			run.stopped = false
-			js.Global().Call("requestAnimationFrame", renderFrame)
-		}
+		run.stopped = false
 		updateInfoOverlay() // Info is the model again, not the manual
 		return
 	}

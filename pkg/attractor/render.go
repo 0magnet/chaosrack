@@ -674,13 +674,6 @@ func renderLoop(this js.Value, args []js.Value) any {
 	scopeMark := timingStart()
 	drawRackScopes()
 	tpanel.budget.Scope += scopeMark.ms()
-	// Stop button: clear once, do not reschedule. Loop dies here.
-	if run.stopped {
-		glctx.GL.Call("clearColor", 0, 0, 0, 0)
-		glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
-		glctx.GL.Call("clear", glctx.Types.DepthBufferBit)
-		return nil
-	}
 
 	// Audio modes (spectrogram, xy) render with their own shader
 	// program on the shared #gocanvas. Route them here so we skip the
@@ -726,6 +719,16 @@ func renderLoop(this js.Value, args []js.Value) any {
 	genEnvTick() // Envelope module shaper (no-op unless the gen audio runs)
 	tm.tick()    // Tonematrix sequencer clock (no-op unless the module runs)
 	tpanel.budget.Meters += metersMark.ms()
+
+	// Powered down (the Power switch, or the manual, which draws no model):
+	// no model, but the loop goes on, because everything above is the rack's
+	// own and a scope that stops with the model is no instrument. The loop
+	// used to end here, and the manual's scopes and meters stood still.
+	// setPowerState cleared the canvas.
+	if run.stopped {
+		js.Global().Call("requestAnimationFrame", renderFrame)
+		return nil
+	}
 
 	if isAudioMode(run.selectedMode) {
 		if !aud.modeActive {
