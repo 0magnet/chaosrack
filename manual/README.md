@@ -19,9 +19,10 @@ Each bay is shown as installed, and its controls are live: operating a
 control here operates the instrument. **⧉ window** beside a bay's heading
 detaches the bay into a resizable window, which stays in place while the
 text scrolls beneath it; closing the window returns the bay to the page.
-**⧉ the model**, at the top of the side bar, opens the display in a window
-and powers the rack on, as the Console's Power switch does; closing it powers
-the rack off.
+The page opens with the rack on and the display in a window of its own.
+Closing that window powers the rack off; **⧉ the model**, at the top of the
+side bar, opens it again and powers the rack on, as the Console's Power
+switch does.
 
 Each control carries an address tag. Pointing at an entry in the text
 highlights the tag of the control it describes.

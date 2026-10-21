@@ -46,7 +46,6 @@ func enableManualMode() {
 			refreshDocTitles()
 		}
 		waitForAddresses()
-		setPowerState(false) // nothing to draw: the manual is the page
 		dom.Doc.Set("title", "chaosrack manual")
 		// Measured, and the page written, while every module is still in the
 		// rack: both read the bays. Then the modules move into the page
@@ -60,6 +59,11 @@ func enableManualMode() {
 		manualShown = true
 		manualRefresh() // signs each module as written
 		wireManualWindows(page)
+		// The rack is on as the page opens it, so the manual opens with the
+		// model in its window; closing the window powers the rack down.
+		if !run.stopped {
+			toggleModelWindow()
+		}
 		if h := loc.Get("hash").String(); len(h) > 1 {
 			if el := dom.Doc.Call("getElementById", h[1:]); el.Truthy() {
 				el.Call("scrollIntoView")
