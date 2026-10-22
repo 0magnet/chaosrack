@@ -22,22 +22,39 @@ import (
 // the sample and genEnvTick drives the speakers' gain by the audio clock,
 // both from audiosrc.EnvAt.
 
+// genEnvSet is a generator's envelope as its controls last set it
+// (genEnvApply), so the frame does not read them back off the page: and
+// whether its gain has been left steady since it stopped repeating.
+type genEnvSet struct {
+	on       bool
+	atk, dcy float64
+	steady   bool
+}
+
+var genEnvs = map[string]*genEnvSet{}
+
 // genEnvTick runs every frame from the render loop and steers each heard
 // generator's envelope gain along its ramps (smoothed by setTargetAtTime so
-// the 60 Hz stepping never zippers).
+// the 60 Hz stepping never zippers). A steady one is set once, not every
+// frame.
 func genEnvTick() {
 	if !gen.running {
 		return
 	}
-	now := gen.ctx.Get("currentTime").Float()
+	now := -1.0
 	for i, o := range genOscs {
-		if !gen.env[i].Truthy() {
+		s := genEnvs[o.id]
+		if s == nil || !gen.env[i].Truthy() || (!s.on && s.steady) {
 			continue
 		}
-		v := 1.0
-		if on, atk, dcy := genEnvOf(o); on {
-			v = audiosrc.EnvAt(now, atk, dcy)
+		if now < 0 {
+			now = gen.ctx.Get("currentTime").Float()
 		}
+		v := 1.0
+		if s.on {
+			v = audiosrc.EnvAt(now, s.atk, s.dcy)
+		}
+		s.steady = !s.on
 		gen.env[i].Get("gain").Call("setTargetAtTime", v, now, 0.005)
 	}
 }
@@ -56,6 +73,7 @@ func genEnvOf(o genOscSpec) (on bool, atk, dcy float64) {
 // genEnvApply pushes a generator's envelope to the rack's signal.
 func genEnvApply(o genOscSpec) {
 	on, atk, dcy := genEnvOf(o)
+	genEnvs[o.id] = &genEnvSet{on: on, atk: atk, dcy: dcy}
 	aud.fg().SetEnv(o.idx, on, atk, dcy)
 }
 

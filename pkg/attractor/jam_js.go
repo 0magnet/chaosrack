@@ -24,9 +24,11 @@ var (
 
 func jamRand() float64 { return js.Global().Get("Math").Call("random").Float() }
 
-// jamTick runs from the render loop; cheap no-op unless armed and due.
+// jamTick runs from the render loop; cheap no-op unless armed and due, and
+// while the power is off: the loop goes on then, for the scopes, and hops
+// nobody could see were rewriting the model, the spin and the link.
 func jamTick(nowMs float64) {
-	if !jamOn || nowMs < jamNext {
+	if !jamOn || run.stopped || nowMs < jamNext {
 		return
 	}
 	jamNext = nowMs + JamInterval(jamRand)

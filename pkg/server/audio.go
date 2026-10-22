@@ -7,11 +7,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
-	"os/signal"
 	"strings"
 	"sync"
-	"syscall"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/net/websocket"
@@ -222,10 +219,7 @@ func setWobbulate(on bool) error {
 // silent, with nothing on screen to say why.
 func restoreRoutingOnSignal() {
 	sigOnce.Do(func() {
-		sigc := make(chan os.Signal, 1)
-		signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
-		go func() {
-			<-sigc
+		onShutdown(func() {
 			audioMu.Lock()
 			if wobbSess != nil {
 				log.Printf("chaosrack: reverting the FVF audio routing…")
@@ -233,8 +227,7 @@ func restoreRoutingOnSignal() {
 				wobbSess = nil
 			}
 			audioMu.Unlock()
-			os.Exit(0)
-		}()
+		})
 	})
 }
 

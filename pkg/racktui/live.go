@@ -219,8 +219,11 @@ func (p *panel) refreshValues() bool {
 	for i := range p.mods {
 		update(p.mods[i].Ctls)
 	}
-	if changed && p.err != "" {
+	// An answer clears a failure, changed or not: the link came back with
+	// nothing moved, and its error stayed on screen.
+	if p.err != "" {
 		p.err = ""
+		changed = true
 	}
 	return changed
 }

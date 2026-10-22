@@ -44,15 +44,42 @@ func switchControls() []controlspec.ControlInfo {
 		if id == "" {
 			continue // unaddressable: nothing outside could name it anyway
 		}
+		mod := moduleOfControl(id)
+		if face := switchFace(el, id); !face.Equal(el) {
+			if s := face.Call("closest", ".sect"); s.Truthy() {
+				mod = moduleKeyOf(s)
+			}
+		}
 		out = append(out, controlspec.ControlInfo{
 			ID:       id,
 			Label:    switchLabel(el, id),
 			IsSwitch: true,
 			Def:      switchDefault(el),
-			Module:   moduleOfControl(id),
+			Module:   mod,
 		})
 	}
 	return out
+}
+
+// switchFace is where switch el is pressed: el, or, for a switch kept in a
+// hidden span of the markup with a P-unit button for its face (POINTS +,
+// TRAIL +, AXIS ON, GRAV ON), the button that drives it (data-drives), the
+// first one showing if any is. Filed by the hidden span, those were all the
+// Display module's, with no address, the Turtle's weight among them.
+func switchFace(el js.Value, id string) js.Value {
+	if !el.Call("closest", "[hidden]").Truthy() {
+		return el
+	}
+	bs := dom.Doc.Call("querySelectorAll", `[data-drives~="`+id+`"]`)
+	for i := range bs.Length() {
+		if b := bs.Index(i); b.Get("offsetParent").Truthy() {
+			return b
+		}
+	}
+	if bs.Length() > 0 {
+		return bs.Index(0)
+	}
+	return el
 }
 
 // switchLabel is what is written beside the switch.

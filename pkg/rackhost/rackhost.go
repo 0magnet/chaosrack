@@ -203,7 +203,6 @@ func New() (*Rack, error) {
 	r.custom.Compile()
 	r.seedCustomKnobs()
 	r.addTextControls()
-	r.addWaterControls()
 	r.addModControls()
 	r.findLegends()
 	r.useBank(r.model())
@@ -350,7 +349,7 @@ func (r *Rack) set(id, value string) error {
 			return err
 		}
 	}
-	if c.Module == modelModule {
+	if c.Module == modelModule && !figureFree(id) {
 		r.refigure.Store(true)
 	}
 	if id == "led-color" {
@@ -1157,6 +1156,19 @@ func (r *Rack) knobs() func(id string) float64 {
 
 // modelModule is the model bank's module: a change there redraws the model.
 const modelModule = "visual · model"
+
+// figureFree is whether a bank control is read as it is used, each frame,
+// rather than being one a figure is made from: the water lens, Model Out and
+// the spectrogram's analysis, which share the bank with the models. Moving
+// one remade the figure every frame of the drag, for nothing.
+func figureFree(id string) bool {
+	for _, p := range []string{"water-", "mo-", "spect-"} {
+		if strings.HasPrefix(id, p) {
+			return true
+		}
+	}
+	return false
+}
 
 // SceneAct turns the model with a drag and zooms it with the wheel, as the
 // page's own canvas does.

@@ -28,14 +28,19 @@ const metersWorkerURL = "/assets/metersworker/worker.js"
 
 // metersClient is the panel's half of the analyzers-in-a-worker arrangement.
 type metersClient struct {
-	w       js.Value // the Worker
-	wReady  bool     // its Go instance has reported in
-	wTried  bool
-	wCfg    string // the last config sent, to avoid resending it
-	wl      js.Value
-	wr      js.Value
-	wCap    int
-	wantNow uint8
+	w      js.Value // the Worker
+	wReady bool     // its Go instance has reported in
+	wTried bool
+	wCfg   string // the last config sent, to avoid resending it
+	wl     js.Value
+	wr     js.Value
+	wlb    js.Value // byte views of wl and wr, which the blocks are copied in by
+	wrb    js.Value
+	wCap   int
+	// The tap's blocks are read into these: a pair of 16 KB arrays on the
+	// stack was zeroed every call, every frame.
+	tapL, tapR [4096]float32
+	wantNow    uint8
 
 	// cursor is the worker's own read position in the tap, separate from
 	// every in-thread analyzer's: the tap hands each sample over once per reader.
@@ -164,6 +169,9 @@ func (me *metersClient) workerArrays(n int) bool {
 	}
 	me.wl = f32.New(n)
 	me.wr = f32.New(n)
+	u8 := js.Global().Get("Uint8Array")
+	me.wlb = u8.New(me.wl.Get("buffer"))
+	me.wrb = u8.New(me.wr.Get("buffer"))
 	me.wCap = n
 	return true
 }
@@ -190,15 +198,15 @@ func (me *metersClient) workerTick() bool {
 		me.drainMetersTap()
 		return true
 	}
-	var sl, sr2 [4096]float32
+	sl, sr2 := &me.tapL, &me.tapR
 	for {
 		n := tap.readStereo(&me.cursor, sl[:], sr2[:])
 		if n <= 0 {
 			break
 		}
 		if me.workerArrays(n) {
-			js.CopyBytesToJS(js.Global().Get("Uint8Array").New(me.wl.Get("buffer"), 0, n*4), sliceToByteSlice(sl[:n]))
-			js.CopyBytesToJS(js.Global().Get("Uint8Array").New(me.wr.Get("buffer"), 0, n*4), sliceToByteSlice(sr2[:n]))
+			js.CopyBytesToJS(me.wlb, sliceToByteSlice(sl[:n]))
+			js.CopyBytesToJS(me.wrb, sliceToByteSlice(sr2[:n]))
 			m := js.Global().Get("Object").New()
 			m.Set("t", metersproto.TypeAudio)
 			m.Set("l", me.wl.Call("subarray", 0, n))
@@ -214,7 +222,7 @@ func (me *metersClient) workerTick() bool {
 
 // drainMetersTap throws away what has arrived, so the cursor keeps up.
 func (me *metersClient) drainMetersTap() {
-	var sl, sr2 [4096]float32
+	sl, sr2 := &me.tapL, &me.tapR
 	for {
 		n := tap.readStereo(&me.cursor, sl[:], sr2[:])
 		if n <= 0 || n < len(sl) {

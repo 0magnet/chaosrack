@@ -8,11 +8,10 @@ import (
 	htmpl "html/template"
 	"log"
 	"net"
+	"net/http"
 	"os"
-	"os/signal"
 	"strconv"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/0magnet/desk/panes/hostagent"
@@ -197,8 +196,12 @@ func servedOrigins(ln net.Listener) []string {
 // Injected into the page rather than fetched, because a page that has to fetch
 // its token can open a window before the answer arrives, and then the first
 // shell of every session fails once.
-func hostConfigJS() htmpl.JS {
-	if hostToken == "" {
+//
+// Only to a page asked for by one of this machine's names, as the audio feed
+// is: the host agent also checks the Origin, but a page reached by a
+// rebinding name should not hold the token at all.
+func hostConfigJS(r *http.Request) htmpl.JS {
+	if hostToken == "" || !trustedPageHost(r) {
 		return ""
 	}
 	cfg := struct {
@@ -223,9 +226,6 @@ func hostConfigJS() htmpl.JS {
 	return htmpl.JS(b) //nolint:gosec // hex from crypto/rand and constants, marshaled by encoding/json
 }
 
-// warnAboutHostAccess says what was just turned on, loudly and every time,
-// because the whole risk of this is someone leaving it running after they
-// stopped thinking about it.
 // hostPrint serializes the two things that write session lines to stdout. Only
 // needed because PrintSessions emits a table as many writes, so an event line
 // arriving mid-table would land inside a row.
@@ -259,15 +259,12 @@ func reapSessionsOnSignal(reg *hostagent.Registry) {
 	if reg == nil {
 		return
 	}
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-ch
-		reg.Close()
-		os.Exit(0)
-	}()
+	onShutdown(reg.Close)
 }
 
+// warnAboutHostAccess says what was just turned on, loudly and every time,
+// because the whole risk of this is someone leaving it running after they
+// stopped thinking about it.
 func warnAboutHostAccess() {
 	if hostShell {
 		fmt.Printf("chaosrack: --shell is ON: this page can run commands on this machine as you.\n")

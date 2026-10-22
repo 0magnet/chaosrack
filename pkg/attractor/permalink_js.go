@@ -65,11 +65,7 @@ var permaCtls = []permaCtl{
 	{"mc", "mo-cam", true},
 	{"la", "lat-on", true},
 	{"rp", "rhythm-preset", false},
-	// The Template legend is the one module a link still has to carry, because
-	// it is the one module that still has a switch: it is a labeled legend of
-	// what a module can hold rather than an instrument, and a rack does not
-	// permanently carry its own documentation. Every other module is simply
-	// always there.
+	{"ph", "phys-sw", true},
 	{"gr", "gradient-reverse", true},
 	{"sk", "skin-visual", false},
 	{"fl", "spect-fill", true},
@@ -290,6 +286,21 @@ func (pe *permalinkState) serializeState() string {
 			b.WriteString(paramKey(p.ID))
 			b.WriteString("=")
 			b.WriteString(permaFmt(*p.Value))
+		}
+	}
+	// And the bank's homed controls, which are no model's parameters, or are
+	// another model's: the section's plane under a flow, the Turtle's weight,
+	// the water lens and the spectrogram's analysis behind any model. Under
+	// their own ids, which applyParam finds as they are.
+	own := map[string]bool{}
+	for _, p := range attractorParams[run.selectedMode] {
+		own[p.ID] = true
+	}
+	for _, m := range homedModules {
+		for _, p := range m.params() {
+			if !own[p.ID] && *p.Value != p.Def && !quietParams[p.ID] {
+				b.WriteString("&p." + paramKey(p.ID) + "=" + permaFmt(*p.Value))
+			}
 		}
 	}
 
@@ -540,8 +551,15 @@ func applyControl(key, val string) {
 	}
 }
 
+// applyParam sets a parameter from its link key: the model's own by the key
+// with the model's name before it, and one whose id has no model's name (the
+// Poincaré model's plane, the spectrogram's analysis, the bank's homed
+// controls) by the key as it is.
 func applyParam(suffix, val string) {
 	el := dom.Doc.Call("getElementById", run.selectedMode+"-"+suffix)
+	if !el.Truthy() {
+		el = dom.Doc.Call("getElementById", suffix)
+	}
 	if !el.Truthy() {
 		return
 	}

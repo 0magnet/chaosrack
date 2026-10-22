@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"sync"
+	"time"
 )
 
 // Hub is the server's half: it holds the pages that offer the rack and
@@ -21,12 +22,19 @@ type Hub struct {
 
 type page struct{ c Conn }
 
-// asker is who a renumbered call came from, and what they called it.
+// asker is who a renumbered call came from, what they called it, which page
+// it went to, and when.
 type asker struct {
 	term *term
 	id   int64
 	page *page
+	at   time.Time
 }
+
+// askerTTL is how long a call is held for its answer. The terminal gives up
+// long before (Client.call); a tab that stays connected but never answers,
+// frozen, left one held for good with every call until the terminal went.
+const askerTTL = time.Minute
 
 type term struct {
 	c Conn
@@ -62,9 +70,13 @@ func (h *Hub) ServePage(c Conn) {
 		if json.Unmarshal(b, &r) != nil {
 			continue
 		}
+		// Only the page a call went to answers it.
 		h.mu.Lock()
 		a, ok := h.waiting[r.ID]
-		delete(h.waiting, r.ID)
+		ok = ok && a.page == p
+		if ok {
+			delete(h.waiting, r.ID)
+		}
 		h.mu.Unlock()
 		if !ok {
 			continue
@@ -124,7 +136,13 @@ func (h *Hub) ServeTerminal(c Conn) {
 		p := h.pages[len(h.pages)-1]
 		h.next++
 		n := h.next
-		h.waiting[n] = asker{term: t, id: r.ID, page: p}
+		now := time.Now()
+		for id, a := range h.waiting {
+			if now.Sub(a.at) > askerTTL {
+				delete(h.waiting, id)
+			}
+		}
+		h.waiting[n] = asker{term: t, id: r.ID, page: p, at: now}
 		h.mu.Unlock()
 		asked := r.ID
 		r.ID = n

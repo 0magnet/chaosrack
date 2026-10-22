@@ -106,8 +106,7 @@ func (r *rtaMode) drawRTA() {
 	}
 
 	glctx.GL.Call("disable", glctx.Types.DepthTest)
-	glctx.GL.Call("clearColor", 0, 0, 0, 0)
-	glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
+	clearScreen()
 	glctx.GL.Call("enable", glctx.GL.Get("BLEND"))
 	glctx.GL.Call("blendFunc", glctx.GL.Get("SRC_ALPHA"), glctx.GL.Get("ONE"))
 

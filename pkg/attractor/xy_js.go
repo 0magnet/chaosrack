@@ -391,8 +391,7 @@ func (x *xyScope) drawXYScope(clearFirst bool) {
 			// (canvas layered over the panel) the scope shows its trace over the
 			// controls instead of an opaque black block that hides the panel and can't
 			// be undone.
-			glctx.GL.Call("clearColor", 0, 0, 0, 0)
-			glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
+			clearScreen()
 		}
 	}
 

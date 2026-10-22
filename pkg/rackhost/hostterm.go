@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"sync"
+	"time"
 
 	"github.com/gdamore/tcell/v3"
 
@@ -129,7 +130,23 @@ func hostShell(cols, rows int) (*os.File, chan<- os.Signal, func(), error) {
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	return f, nil, func() { _ = cmd.Wait() }, nil //nolint:errcheck // how it ended is on its screen
+	// Waited for once its pty has closed, which hangs it up; a shell that
+	// ignores the hangup is given a moment and then killed, or it ran on as
+	// the user with nothing left to reach it, and this goroutine with it.
+	wait := func() {
+		exited := make(chan struct{})
+		go func() {
+			_ = cmd.Wait() //nolint:errcheck // how it ended is on its screen
+			close(exited)
+		}()
+		select {
+		case <-exited:
+		case <-time.After(2 * time.Second):
+			_ = cmd.Process.Kill() //nolint:errcheck // it may have just gone
+			<-exited
+		}
+	}
+	return f, nil, wait, nil
 }
 
 // shellOf is model key's shell, or nil for a model that is not one. Called

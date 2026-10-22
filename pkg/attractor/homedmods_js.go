@@ -164,7 +164,10 @@ func switchTrio(sw, help string) trioProgram {
 
 // homedCell is p's cell as a bank's position is made (newPUnit), but no
 // model's: a model's position blanks while another model runs, and these
-// answer to their switches instead (syncHomedModules).
+// answer to their switches instead (syncHomedModules). Like newPUnit's, it is
+// finished when the bank is laid out, once its legend has been measured with
+// the rest (buildBankRow): finished here, its displays were the bank's
+// smallest, and "axis" read "axi".
 func homedCell(p paramDef) js.Value {
 	before := len(paramControls)
 	unit := buildParamUnitAs("", p, true)
@@ -177,7 +180,6 @@ func homedCell(p paramDef) js.Value {
 	if h := helpFor(p.ID); h != "" {
 		unit.Set("title", h)
 	}
-	bankPosition(unit)
 	return unit
 }
 

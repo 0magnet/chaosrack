@@ -605,7 +605,7 @@ type TurtlePhysicsKnob struct {
 	Def, Min, Max, Step float32
 }
 
-// TurtlePhysicsKnobs are the Physics module's knobs, in its order: what the
+// TurtlePhysicsKnobs are the Physics group's knobs, in its order: what the
 // page builds them from, and where a rack without the page starts them —
 // the page builds them only with the switch up, so its catalog has no values
 // for them.

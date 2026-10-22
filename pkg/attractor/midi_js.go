@@ -2,7 +2,7 @@
 
 package attractor
 
-// WebMIDI (Audio > MIDI): hardware knobs drive the panel. Fixed map, no
+// WebMIDI (the Console's MIDI switch): hardware knobs drive the panel. Fixed map, no
 // learn step:
 //   - CC 1..N → the current mode's float parameters, in panel order (a CC's
 //     0–127 spans the parameter's full knob range);
@@ -23,6 +23,7 @@ var (
 	midiOn     bool
 	midiAccess js.Value
 	midiMsgFn  js.Func
+	midiBindFn js.Func // hands one input midiMsgFn; made once, as it is
 )
 
 func midiSetSlider(id string, lo, hi float32, v127 float64) {
@@ -90,12 +91,13 @@ func midiBindInputs() {
 	if !midiAccess.Truthy() {
 		return
 	}
-	inputs := midiAccess.Get("inputs")
-	fn := dom.FuncOf(func(this js.Value, a []js.Value) any {
-		a[0].Set("onmidimessage", midiMsgFn)
-		return nil
-	})
-	inputs.Call("forEach", fn)
+	if midiBindFn.IsUndefined() {
+		midiBindFn = dom.FuncOf(func(this js.Value, a []js.Value) any {
+			a[0].Set("onmidimessage", midiMsgFn)
+			return nil
+		})
+	}
+	midiAccess.Get("inputs").Call("forEach", midiBindFn)
 }
 
 func startMIDI() {
