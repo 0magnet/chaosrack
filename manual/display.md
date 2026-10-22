@@ -207,22 +207,7 @@ Color range — auto-ranging or held
 ## Spectro
 
 <!-- key: spectro -->
-Spectro — the spectrogram's own controls, wherever it is: the model (Spectrogram, or FVF's surface), the skin painted on a surface, or the backdrop filling the canvas behind the model. They are in this module for all three, and live in any of them; with no spectrogram on screen their readouts are blank, and the lamp at the right of the header is dark.
-
-<!-- key: play.spectro-module -->
-In play with a spectrogram on screen: the Spectrogram or FVF model, SKIN on spectrogram over a surface, or BEHIND on spectrogram
-
-<!-- key: play.lattice-module -->
-In play with the Lattice model, or with L lit on ROWS, which puts whatever model is chosen in the lattice
-
-<!-- key: play.section-module -->
-In play with ON lit on AXIS over a running flow (LINE's S is the same switch), and always under Analysis → Poincaré Section
-
-<!-- key: play.water-module -->
-In play while BEHIND (Layers · Colors) is on water; the knobs can be set before it is
-
-<!-- key: play.physics-module -->
-In play with ON lit on GRAV while the Turtle Path is running
+Spectro — the spectrogram's own controls, wherever it is: the model (Spectrogram, or FVF's surface), the skin painted on a surface (SKIN on spectrogram), or the backdrop filling the canvas behind the model (BEHIND on spectrogram). They are positions in the model bank, the same for every model, and dark there until one of those three puts a spectrogram on screen.
 
 ## Record
 
@@ -608,7 +593,7 @@ Ring — beam mode: only the advancing head is integrated each frame and the tra
 ### Poincaré section
 
 <!-- key: sect-sw-cell -->
-Poincaré section — samples the trajectory where it crosses a plane in one direction and draws the accumulated intersections in gold. Each crossing is interpolated between the two samples that straddle the plane. The Section module sets the plane and direction, and its ON button is this switch too. Analysis → Poincaré Section shows the same section as a separate display, with the first-return map.
+Poincaré section — samples the trajectory where it crosses a plane in one direction and draws the accumulated intersections in gold. Each crossing is interpolated between the two samples that straddle the plane. The section's positions in the model bank (AXIS, POS, DIR, after a flow's constants) set the plane and direction, and the ON on AXIS is this switch too. The Poincaré Section model (Maps) shows the same section as a separate display, with the first-return map.
 
 ### Graticule
 

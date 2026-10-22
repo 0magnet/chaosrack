@@ -1,6 +1,7 @@
 package attractor
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/0magnet/chaosrack/pkg/dotmatrix"
@@ -133,4 +134,61 @@ func displayText(s string) string {
 		}
 	}
 	return strings.Join(strings.Fields(b.String()), " ")
+}
+
+// bankGroup is a run of cells that belongs to no model but comes into play
+// with some (homedmods_js.go): Size positions, for Models. Tail runs stand
+// against the end of the bank, before Model Out's column, the same place
+// whatever the model; the others stand right after the own cells of the
+// models they serve.
+type bankGroup struct {
+	Size   int
+	Models []string
+	Tail   bool
+}
+
+// bankGroupSlots places each group: where its run starts, and the models it
+// can be shown for. used is how many positions each model's own cells take,
+// end the position the tail runs stop short of. A run after own cells starts
+// after the furthest of its models'; a tail run is placed against end, or
+// against the tail run placed before it, and is shown only for the models
+// whose cells stop short of it — a model with too many of its own goes
+// without, rather than the bank growing past its bay. align, if any, moves a
+// run after own cells on to where it starts (the top of a column).
+func bankGroupSlots(used map[string]int, groups []bankGroup, end int, align func(int) int) (starts []int, served [][]string) {
+	starts = make([]int, len(groups))
+	served = make([][]string, len(groups))
+	reach := map[string]int{}
+	for m, n := range used {
+		reach[m] = n
+	}
+	for i, g := range groups {
+		if g.Tail {
+			continue
+		}
+		for _, m := range g.Models {
+			starts[i] = max(starts[i], reach[m])
+		}
+		if align != nil {
+			starts[i] = align(starts[i])
+		}
+		for _, m := range g.Models {
+			reach[m] = starts[i] + g.Size
+		}
+		served[i] = slices.Clone(g.Models)
+	}
+	limit := end
+	for i, g := range groups {
+		if !g.Tail {
+			continue
+		}
+		starts[i] = limit - g.Size
+		for _, m := range g.Models {
+			if reach[m] <= starts[i] {
+				served[i] = append(served[i], m)
+			}
+		}
+		limit = starts[i]
+	}
+	return starts, served
 }

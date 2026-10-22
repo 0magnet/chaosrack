@@ -71,7 +71,7 @@ Pause / freeze the animation
 ### Physics
 
 <!-- key: phys-sw-wrap -->
-Physics — give the turtle path weight: it becomes a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture. The ON button on the Physics module's GRAV. Press on the figure to pick it up and throw it; press beside it to turn the view as usual.
+Physics — give the turtle path weight: it becomes a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture. The ON button on GRAV, in the model bank after the Turtle Path's constants. Press on the figure to pick it up and throw it; press beside it to turn the view as usual.
 
 ### Jam / attract mode
 
