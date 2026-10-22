@@ -48,8 +48,3 @@ func RackItemsFrom(keys, cats []string, slots, rows []int) []racksurface.Item {
 	items, _ = groupDrawBySection(items)
 	return items
 }
-
-// RackSurfaceFrom lays a rack out at the given scale.
-func RackSurfaceFrom(keys, cats []string, slots, rows []int, capacity int, monitors map[string]int, m racksurface.Metrics) racksurface.Surface {
-	return racksurface.Build(RackItemsFrom(keys, cats, slots, rows), capacity, monitors, m)
-}

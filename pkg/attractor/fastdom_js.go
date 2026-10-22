@@ -260,6 +260,8 @@ const fastSource = `(function () {
     // row per module ("S" and its header) and per cell ("C", its flags --
     // b blank, r rotation, p palette -- its id and its data-bank), as JSON.
     controlCells: function () {
+      // ".modules .sect" is a descendant selector, not a child one: bays wrap
+      // modules (.modules > .runit > .runit-open > .sect).
       var sects = doc.querySelectorAll(".modules .sect"), cells = [], lines = [];
       for (var i = 0; i < sects.length; i++) {
         var h = sects[i].querySelector(".sect-hdr");

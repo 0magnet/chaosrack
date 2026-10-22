@@ -582,7 +582,7 @@ func buildParamPanelNow(mode string) {
 	switch {
 	case mode == "custom":
 		// buildCustomPanel makes it, below.
-	case bankCategories[rowOf(mode)]:
+	case rowOf(mode) != "":
 		custom.buildEquationView(mode, paramsDiv)
 	default:
 		if em := dom.Doc.Call("getElementById", "eqn-module"); em.Truthy() {

@@ -27,30 +27,20 @@ Category — which kind of model the inner ring chooses among
 <!-- key: bay-model-all -->
 Model — every model, by category. The number beside each is how many of the bank's controls it has.
 
+<!-- key: bay-rings -->
+Outer ring: which category, or OFF at the bottom, which powers the rack down. Inner ring: which model in it; turned past the last it goes on into the next category.
+
 ## Families
 
 A family is a set of systems that share one position on the MODEL knob, with
-a dial of their own to choose among them. `{family}` below is the family's
+a selector of their own in the bank, sys, to choose among them. `{family}` below is the family's
 name.
-
-<!-- key: fam-module -->
-{family} — J. C. Sprott's nineteen simple chaotic flows (1994). The MODEL knob has one position for all of them; this dial picks which one it plays.
 
 <!-- key: fam-cell -->
 {family} — the system the MODEL knob's {family} position plays
 
 <!-- key: fam-select -->
 {family} — which system the MODEL knob's {family} position plays
-
-## Generator modules
-
-<!-- key: gen-unit -->
-One unit, {count} generator(s): {names}.
-
-A module is a hardware unit — the same inputs and outputs as any other, dedicated to what is printed on it. A unit per generator is honest about the models and wrong about the hardware, because most of them are a knob wide. A panel is three control rows deep, so generators share one when between them they fill it; one that fills its own columns keeps them.
-
-<!-- key: bay-rings -->
-Outer ring: which category, or OFF at the bottom, which powers the rack down. Inner ring: which model in it; turned past the last it goes on into the next category.
 
 ## Categories
 

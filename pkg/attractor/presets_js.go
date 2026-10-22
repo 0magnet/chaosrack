@@ -30,18 +30,6 @@ func presetStore() preset.List {
 
 func presetStoreWrite(ps preset.List) { lsSet(preset.StoreKey, ps.Encode()) }
 
-// presetModuleVisible shows or hides the module.
-func presetModuleVisible(on bool) {
-	if sect := dom.Doc.Call("getElementById", "preset-module"); sect.Truthy() {
-		if on {
-			sect.Get("style").Set("display", "")
-		} else {
-			sect.Get("style").Set("display", "none")
-		}
-	}
-	quantizeModuleWidths()
-}
-
 // refreshPresetList rebuilds the <select>, leaving `selected` chosen when it
 // still exists.
 func refreshPresetList(selected string) {
@@ -95,8 +83,10 @@ func wirePresetModule() {
 	// being called: the setter is the switch's behavior — it opens an audio
 	// graph and takes a context lease — and booting must not do that. What
 	// the module DOES is its own transport control.
-	presetModuleVisible(true)
-	refreshPresetList("")
+	if sect := dom.Doc.Call("getElementById", "preset-module"); sect.Truthy() {
+		sect.Get("style").Set("display", "")
+	}
+	quantizeModuleWidths()
 
 	if b := dom.Doc.Call("getElementById", "preset-save"); b.Truthy() {
 		dom.On(b, "click", func(js.Value, []js.Value) any {

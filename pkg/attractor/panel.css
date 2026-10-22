@@ -29,12 +29,11 @@
 
 /* ═══ 2. Panel shell and dock ══════════════════════════════════════════════ */
 /* Recovery-raise: ▤ (or the Front handler) toggles ONE bit — body.panel-raised —
-   and the whole recovery unit (panel + its resize strip, float grip, and dock
+   and the whole recovery unit (panel + its resize strip and dock
    buttons) rises above the Front canvas together. so the rules beat
    the chrome's inline positioning styles. */
 body.panel-raised #controls-panel,
 body.panel-raised #dock-resize,
-body.panel-raised #float-grip,
 body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
 .rst{background:none;border:none;color:#666;cursor:pointer;font-size:13px;padding:0 2px;font-family:'B612 Mono',monospace;}
 .rst:hover{color:#fff;}
@@ -1701,52 +1700,6 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
   align-content:start;
 }
 .catgrid .punit{height:var(--krow);}
-/* WHICH GENERATOR A KNOB BELONGS TO, three ways, because one is not enough
-   on a panel that holds three of them: the ground tint, an outline drawn
-   round the run whatever shape it came out, and the model's name in the
-   corner of the first position. Woodson & Conover, §2-133: "marked outlines
-   around each group... area color patterning". */
-.catgen .punit[data-mgroup="0"],.catgen .swpair[data-mgroup="0"]{background:rgba(120,200,170,0.05);}
-.catgen .punit[data-mgroup="1"],.catgen .swpair[data-mgroup="1"]{background:rgba(150,180,210,0.06);}
-.catgen .punit[data-mgroup="2"],.catgen .swpair[data-mgroup="2"]{background:rgba(210,180,150,0.06);}
-.catgen .punit.ge-t,.catgen .swpair.ge-t{border-top:1px solid #475766;}
-.catgen .punit.ge-b,.catgen .swpair.ge-b{border-bottom:1px solid #475766;}
-.catgen .punit.ge-l,.catgen .swpair.ge-l{border-left:1px solid #475766;}
-.catgen .punit.ge-r,.catgen .swpair.ge-r{border-right:1px solid #475766;}
-.catgen .punit.ge-t.ge-l,.catgen .swpair.ge-t.ge-l{border-top-left-radius:4px;}
-.catgen .punit.ge-t.ge-r,.catgen .swpair.ge-t.ge-r{border-top-right-radius:4px;}
-.catgen .punit.ge-b.ge-l,.catgen .swpair.ge-b.ge-l{border-bottom-left-radius:4px;}
-.catgen .punit.ge-b.ge-r,.catgen .swpair.ge-b.ge-r{border-bottom-right-radius:4px;}
-/* The name, silkscreened DOWN THE RIGHT EDGE of the group's first position.
-   Vertical and absolute, so it costs the panel no height and takes none of
-   the width a knob uses: a knob is 76px in a 116px cell, and the name goes
-   in the margin beside it. Across the top of the cell was the first try and
-   it sat on the parameter's own label — there is one line there and it is
-   already spoken for. Down the left edge was the second, and it ran
-   through every label longer than three letters, which are set down that
-   same edge (SPEED, CHAN); the right has only the reset, at the top. */
-.gtag{
-  position:absolute;right:1px;top:50%;transform:translateY(-50%);z-index:2;
-  writing-mode:vertical-rl;text-orientation:mixed;
-  max-height:calc(100% - 30px);
-  font-family:'Chakra Petch',sans-serif;font-weight:600;
-  font-size:calc(8px*var(--kscale,1));letter-spacing:.06em;text-transform:uppercase;
-  color:#9fb4c8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  pointer-events:none;
-}
-/* The module is a unit and the generators on it are sections of one panel,
-   so the tint marks the section rather than the module: alternating ground
-   under consecutive generators, which is the other half of §2-133. */
-.modules .catmodule{--catmod:1;}
-
-/* Two switches in one position (pairSwitchCells). The pair is the grid
-   item, the size of a cell, and carries the group tint and outline; each
-   half is an ordinary cell a half-position tall, so its label, reset and
-   live marking work as they do anywhere else. */
-.catgrid .swpair{position:relative;display:flex;flex-direction:column;height:var(--krow);width:calc(116px*var(--kscale,1));box-sizing:border-box;}
-.catgrid .swpair>.punit{height:50%;width:100%;flex:1 1 0;}
-.catgrid .swpair>.punit+.punit{border-top:1px dashed #2a333c;}
-.catgrid .swpair .twoway{padding:calc(12px*var(--kscale,1)) 0 0;}
 
 /* A programmable knob has no printed scale: its range changes with what it
    is programmed to, and the readout says the number. The ticks stay. */

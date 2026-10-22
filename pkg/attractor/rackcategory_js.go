@@ -6,7 +6,6 @@ import (
 	"slices"
 
 	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/gentile"
 	"strconv"
 	"strings"
 	"syscall/js"
@@ -120,63 +119,27 @@ func buildCategoryModules() {
 	buildHomedModules()
 }
 
-// A CATEGORY IS A CAGE OF CARDS.
+// buildCategoryRow builds one row: its bay head and the bank of programmable
+// knobs beside it, one bay for every model in the row (see buildBankRow).
 //
-// Each model that has constants of its own is a card with its NAME on it —
-// Lorenz, Chua, Aizawa — holding that model's constants and nothing else.
-// The category's own module sits at the head of the run with the monitor,
-// the rotary that chooses which card is playing, the step size, and any
-// control that belongs to the category rather than to one of its models.
-// The bay silkscreen marks the whole run.
-//
-// This replaces one wide grid per category with a silkscreened band over
-// each model's columns. The band was the right idea and the wrong object: a
-// group of controls with a name over it, sharing a panel with eleven other
-// groups, IS a card — so it should be one, and then it has an honest width,
-// it flows across bays the way any section too wide for one always has, and
-// it can be dragged and put away like everything else in the rack.
-//
-// It also ends the continuation modules. "Attractors 2" existed because a
-// module cannot overflow a bay and a category's grid could; no equipment has
-// a panel called that. Fourteen cards called after fourteen systems is what
-// the thing actually is.
-//
-// Two kinds of parameter do NOT go on a card:
+// Some parameters are not on a model's positions:
 //
 //   - The step size. dt is not a constant of any system, it is how finely
-//     the integrator walks it, so it belongs with the category's controls.
-//     Every model's step cell is built and stacked in one place and the head
-//     shows the one the row is set to. The Sprott systems are the case that
-//     proves it: all nineteen have a step and nothing else, so on cards they
-//     would be nineteen one-knob panels.
+//     the integrator walks it, so the head shows the one belonging to the
+//     model the bay is set to.
 //
 //   - A parameter several models declare. poly-op is the Conway operator
 //     applied to whichever Platonic seed is chosen and takens-smooth is
 //     shared by three of the Scope displays; neither is a property of any one
-//     model, and putting it on the first card that happened to claim it would
-//     say it was.
-
-// buildCategoryRow builds one category's modules: its head, then a card for
-// every model in it that has constants of its own.
+//     model, so it is one shared cell, shown for the models that declare it.
 //
-// claimed is shared across rows so a parameter that two categories' models
-// both declare is built once, by the first row that reaches it.
-// buildCategoryRow builds one category's bays.
-//
-// A bay is the unit that means something here: one monitor, one selector
-// choosing among the generators in THAT bay, and the generator modules
-// themselves. A category takes as many bays as its generators need, and the
-// silkscreen names the category over every one of them.
-//
-// claimed is shared across categories so a parameter that two of their
-// models both declare is built once, by the first that reaches it.
+// claimed is shared across rows so a parameter that two rows' models both
+// declare is built once, by the first row that reaches it.
 func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 	own := categoryOwnModes(label)
 
-	// Which parameters are the category's rather than a model's: the ones
-	// more than one of its models declares. poly-op is the Conway operator
-	// applied to whichever seed is chosen; it is not a property of the
-	// tetrahedron just because that is the first card that could claim it.
+	// Which parameters are the row's rather than a model's: the ones more
+	// than one of its models declares.
 	shared := map[string]int{}
 	declarers := map[string][]string{} // which models declare each parameter
 	for _, mode := range own {
@@ -186,181 +149,78 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 		}
 	}
 
-	// Build every cell first, and count what each generator owns, so the
-	// packer works on the real shapes rather than on the declarations.
 	cells := map[string][]js.Value{}
 	steps := map[string]js.Value{}
 	var sharedCells []js.Value
 	var hidden []js.Value // set from another position's buttons (bankHidden)
-	var gens []gentile.Spec
-	var bare []string // models with no constants of their own
-	// A bank's positions are P-units from the start; a card row's are cards.
-	cell := buildCategoryParamCell
-	if bankCategories[label] {
-		cell = newPUnit
-	}
 	for _, mode := range own {
-		lone := -1 // the position of a switch still waiting for a partner
 		for _, p := range attractorParams[mode] {
 			if claimed[p.ID] {
 				continue
 			}
 			claimed[p.ID] = true
 			switch {
-			case bankCategories[label] && bankHidden(p.ID):
+			case bankHidden(p.ID):
 				hidden = append(hidden, buildCategoryParamCell(mode, p))
 			case strings.HasSuffix(p.ID, "-dt"):
 				steps[mode] = buildCategoryStepCell(mode, p)
 			case shared[p.ID] > 1:
-				sc := cell(mode, p)
-				// In a bank it is a shared cell, shown for the models that
-				// declare it and no others (see buildBankRow).
-				if bankCategories[label] {
-					sc.Call("setAttribute", "data-bank-for", strings.Join(declarers[p.ID], " "))
-				}
+				// A shared cell, shown for the models that declare it and no
+				// others (see buildBankRow).
+				sc := newPUnit(mode, p)
+				sc.Call("setAttribute", "data-bank-for", strings.Join(declarers[p.ID], " "))
 				sharedCells = append(sharedCells, sc)
-			// A bank position is one control, so switches are not paired there.
-			case len(paramLabels[p.ID]) == 2 && lone >= 0 && !bankCategories[label]:
-				cells[mode][lone] = pairSwitchCells(cells[mode][lone], buildCategoryParamCell(mode, p))
-				lone = -1
-			case bankCategories[label] && mode != own[0]:
+			case mode != own[0]:
 				// Built when the model is first shown (banklazy_js.go); the
 				// first model's are built now, for the bank's blanks to copy.
 				cells[mode] = append(cells[mode], bankPlaceholder(mode, p))
 			default:
-				if len(paramLabels[p.ID]) == 2 {
-					lone = len(cells[mode])
-				}
-				cells[mode] = append(cells[mode], cell(mode, p))
+				cells[mode] = append(cells[mode], newPUnit(mode, p))
 			}
 		}
-		if len(cells[mode]) == 0 {
-			bare = append(bare, mode)
-		}
-		gens = append(gens, gentile.Spec{Mode: mode, Constants: len(cells[mode])})
 	}
 
-	// A bank category is one bay: the head and a bank of programmable
-	// knobs, rather than a card per model. See buildBankModule.
-	if bankCategories[label] {
-		// With each model's constants, the selectors its own panel used to
-		// carry (modelparts_js.go).
-		for _, mode := range own {
-			cells[mode] = append(cells[mode], modelSelectorCells(mode)...)
-		}
-		// And Model Out's knobs (sonify_js.go), at the top of the last column
-		// for every model with equations or a trail to play (bankTail).
-		var heard []string
-		for _, m := range own {
-			if hasModelOut(m) {
-				heard = append(heard, m)
-			}
-		}
-		var mo []js.Value
-		if len(heard) > 0 {
-			for _, p := range modelOutParams {
-				c := newPUnit(heard[0], p)
-				c.Call("setAttribute", "data-bank-for", strings.Join(heard, " "))
-				c.Set("title", helpFor(p.ID))
-				mo = append(mo, c)
-			}
-		}
-		// And Speed, the clock of the models that have one, under them (1.12.3):
-		// dark for the rest, which it does nothing to.
-		if sc := dom.Doc.Call("getElementById", "speed-cell"); sc.Truthy() && len(mo) > 0 {
-			var timed []string
-			for _, m := range own {
-				if runsOnSpeed(m) {
-					timed = append(timed, m)
-				}
-			}
-			if len(timed) > 0 {
-				sc.Call("setAttribute", "data-bank-for", strings.Join(timed, " "))
-				withStepField(sc)
-				sc.Call("remove") // out of the holder: the bank places a shared cell that has no place yet
-				mo = append(mo, sc)
-			}
-		}
-		groups, gcells := homedBankGroups(own)
-		return buildBankRow(label, own, cells, steps, sharedCells, hidden, mo, groups, gcells)
-	}
-
-	// How wide this category's heads are. Every bay spends catHeadCols on
-	// the monitor, the rotary and the step; the FIRST one also carries the
-	// parameters that belong to the category rather than to any of its
-	// models, so it is wider. The packer is given the tighter figure, which
-	// leaves the later bays a column of slack rather than letting the first
-	// one overhang its rack.
-	// With no step anywhere in the category, the first shared parameter
-	// takes the step's position (see buildBayHead) and needs no column.
-	inHead := len(sharedCells)
-	if len(steps) == 0 && inHead > 0 {
-		inHead--
-	}
-	headCols := catHeadCols + (inHead+catCellsPerCol-1)/catCellsPerCol
-	mods := gentile.Pack(gens, catColsPerBay-headCols)
-
-	// Modules into bays: as many as fit beside a head.
-	type bayPlan struct {
-		mods  []gentile.Module
-		modes []string
-	}
-	plan := []bayPlan{{}}
-	used := 0
-	for _, m := range mods {
-		cur := &plan[len(plan)-1]
-		if used+m.Cols > catColsPerBay-headCols && len(cur.mods) > 0 {
-			plan = append(plan, bayPlan{})
-			cur, used, headCols = &plan[len(plan)-1], 0, catHeadCols
-		}
-		cur.mods = append(cur.mods, m)
-		for _, t := range m.Tiles {
-			cur.modes = append(cur.modes, t.Mode)
-		}
-		used += m.Cols
-	}
-
-	// A model with no constants has no module to be packed on, but it is
-	// still one of the category's generators and has to be on a selector:
-	// the Sprott systems have a step and nothing else, and a polyhedron has
-	// nothing at all. Each goes in the bay of the model the catalog lists
-	// before it, so Sprott A sits with the morph that moves between them,
-	// and a category with no constants anywhere gets them all on its one bay.
-	bayOfMode := map[string]int{}
-	for i, b := range plan {
-		for _, m := range b.modes {
-			bayOfMode[m] = i
-		}
-	}
-	prev, after := 0, ""
+	// With each model's constants, the selectors its own panel used to
+	// carry (modelparts_js.go).
 	for _, mode := range own {
-		if i, ok := bayOfMode[mode]; ok {
-			prev, after = i, mode
-			continue
-		}
-		if !slices.Contains(bare, mode) {
-			continue
-		}
-		b := &plan[prev]
-		at := slices.Index(b.modes, after) + 1 // 0 when nothing precedes it
-		b.modes = slices.Insert(b.modes, at, mode)
-		bayOfMode[mode], after = prev, mode
+		cells[mode] = append(cells[mode], modelSelectorCells(mode)...)
 	}
 
-	var out []js.Value
-	for bay, b := range plan {
-		out = append(out, buildBayHead(label, bay, b.modes, steps, sharedCells, js.Value{}))
-		sharedCells = nil // the first bay of a category carries them
-		for _, m := range b.mods {
-			out = append(out, buildGenPanel(label, m, cells))
-		}
-		for _, f := range modelFamilies {
-			if slices.ContainsFunc(b.modes, func(m string) bool { return familyOf(m) == f }) {
-				out = append(out, buildFamilyModule(label, f))
-			}
+	// And Model Out's knobs (sonify_js.go), at the top of the last column
+	// for every model with equations or a trail to play (bankTail).
+	var heard []string
+	for _, m := range own {
+		if hasModelOut(m) {
+			heard = append(heard, m)
 		}
 	}
-	return out
+	var mo []js.Value
+	if len(heard) > 0 {
+		for _, p := range modelOutParams {
+			c := newPUnit(heard[0], p)
+			c.Call("setAttribute", "data-bank-for", strings.Join(heard, " "))
+			c.Set("title", helpFor(p.ID))
+			mo = append(mo, c)
+		}
+	}
+	// And Speed, the clock of the models that have one, under them (1.12.3):
+	// dark for the rest, which it does nothing to.
+	if sc := dom.Doc.Call("getElementById", "speed-cell"); sc.Truthy() && len(mo) > 0 {
+		var timed []string
+		for _, m := range own {
+			if runsOnSpeed(m) {
+				timed = append(timed, m)
+			}
+		}
+		if len(timed) > 0 {
+			sc.Call("setAttribute", "data-bank-for", strings.Join(timed, " "))
+			withStepField(sc)
+			sc.Call("remove") // out of the holder: the bank places a shared cell that has no place yet
+			mo = append(mo, sc)
+		}
+	}
+	groups, gcells := homedBankGroups(own)
+	return buildBankRow(label, own, cells, steps, sharedCells, hidden, mo, groups, gcells)
 }
 
 // ── Families ────────────────────────────────────────────────────────────
@@ -437,23 +297,9 @@ func (f *modelFamily) choose(mode string) {
 	}
 }
 
-// buildFamilyModule is the family's lettered dial, one slot beside the
-// generators of the bay it is in. Turning it while a member is running
-// switches to the member it lands on; otherwise it only sets which member
-// the MODEL position will play.
-func buildFamilyModule(label string, f *modelFamily) js.Value {
-	grid := dom.Doc.Call("createElement", "div")
-	grid.Set("className", "punit-grid catgrid")
-	at(buildFamilyCell(f, false), grid, 1, 1, 1, 1)
-	return wrapCategoryModule(label, "fam-"+f.Key+"-module", categoryTag(f.Label), grid,
-		docf("fam-module", "family", f.Label))
-}
-
-// buildFamilyCell is the family's dial as one control position: a card row
-// mounts it as a module of its own, a bank as one of its selectors. For a
-// bank (pu) it is built without the printed knob, which the P-unit's own
-// replaces.
-func buildFamilyCell(f *modelFamily, pu bool) js.Value {
+// buildFamilyCell is the family's dial as one bank position, built without
+// the printed knob, which the P-unit's own replaces.
+func buildFamilyCell(f *modelFamily) js.Value {
 	sel := buildFamilySelect(f)
 	cell := dom.Doc.Call("createElement", "div")
 	cell.Set("className", "punit")
@@ -466,101 +312,7 @@ func buildFamilyCell(f *modelFamily, pu bool) js.Value {
 	top.Call("appendChild", lbl)
 	cell.Call("appendChild", top)
 	cell.Call("appendChild", sel)
-	if !pu {
-		// Single letters, so the ring holds all nineteen: the fit rule's limit
-		// is for words, which is what collides round a dial.
-		cell.Call("appendChild", singleSelectorKnob(sel, f.Letters))
-	}
 	return cell
-}
-
-// buildGenPanel is one hardware unit: up to three generators sharing one
-// panel, each holding a run of control positions filled in reading order.
-//
-// A generator is identified three ways, because it has to be: its positions
-// carry its ground tint, an outline is drawn round the run whatever shape it
-// came out, and the first position is tagged with the model's name. That is
-// Woodson & Conover's answer for a group inside a panel rather than a panel
-// per group (§2-133, "marked outlines around each group... area color
-// patterning"), and unlike a header strip along the top it still works for a
-// generator that sits along the bottom row.
-func buildGenPanel(label string, m gentile.Module, cells map[string][]js.Value) js.Value {
-	grid := dom.Doc.Call("createElement", "div")
-	grid.Set("className", "punit-grid catgrid catgen")
-
-	var names []string
-	for i, t := range m.Tiles {
-		name := modeLabel(t.Mode)
-		names = append(names, categoryTag(name))
-		own := cells[t.Mode]
-		// The name goes on the first position that is a single control. A
-		// switch pair has a label at the left of each half, and the name set
-		// down that same edge ran through both of them.
-		tagAt := 0
-		for j := 0; j < t.N && j < len(own); j++ {
-			if !own[j].Get("classList").Call("contains", "swpair").Bool() {
-				tagAt = j
-				break
-			}
-		}
-		for j := 0; j < t.N && j < len(own); j++ {
-			pos := t.Start + j
-			col, row := m.ColRow(pos)
-			c := own[j]
-			c.Call("setAttribute", "data-mgroup", strconv.Itoa(i%3))
-			markGroupEdges(c, m, t, pos)
-			if j == tagAt {
-				c.Call("appendChild", genGroupTag(name))
-			}
-			at(c, grid, 1+row, 1, 1+col, 1)
-		}
-	}
-	return wrapCategoryModule(label, genModuleID(m), strings.Join(names, " · "), grid,
-		docf("gen-unit", "count", strconv.Itoa(len(m.Tiles)), "names", strings.Join(names, ", ")))
-}
-
-// markGroupEdges draws the outline: a border on every side of a position
-// where the neighbor is not part of the same generator.
-//
-// Computed per position rather than drawn as a box, because a run is not
-// always a rectangle — five constants in a two-column panel are the top two
-// rows and one below — and an outline that only knew how to be a rectangle
-// would have to round up to one, which is the blank panel this is avoiding.
-func markGroupEdges(c js.Value, m gentile.Module, t gentile.Tile, pos int) {
-	in := func(p int) bool { return p >= t.Start && p < t.Start+t.N }
-	col, _ := m.ColRow(pos)
-	cl := c.Get("classList")
-	if col == 0 || !in(pos-1) {
-		cl.Call("add", "ge-l")
-	}
-	if col == m.Cols-1 || !in(pos+1) {
-		cl.Call("add", "ge-r")
-	}
-	if !in(pos - m.Cols) {
-		cl.Call("add", "ge-t")
-	}
-	if !in(pos + m.Cols) {
-		cl.Call("add", "ge-b")
-	}
-}
-
-// genModuleID names a generator module by the models on it.
-func genModuleID(m gentile.Module) string {
-	parts := make([]string, 0, len(m.Tiles))
-	for _, t := range m.Tiles {
-		parts = append(parts, categorySlug(t.Mode))
-	}
-	return "gen-" + strings.Join(parts, "-") + "-module"
-}
-
-// genGroupTag is the model's name, silkscreened in the corner of the first
-// control position of its run.
-func genGroupTag(name string) js.Value {
-	t := dom.Doc.Call("createElement", "span")
-	t.Set("className", "gtag")
-	t.Set("textContent", name)
-	t.Set("title", name)
-	return t
 }
 
 // buildBayHead is the bay's own panel: its monitor, the selector that picks
@@ -576,7 +328,7 @@ func genGroupTag(name string) js.Value {
 // Given a bank's grid, the rotary and the step go to the head of the bank
 // instead, at the top of its first column and at its foot, and the row
 // under the monitor is the running model's equation (eqSlotID).
-func buildBayHead(label string, bay int, modes []string, steps map[string]js.Value, extra []js.Value, bank js.Value) js.Value {
+func buildBayHead(label string, bay int, modes []string, steps map[string]js.Value, bank js.Value) js.Value {
 	grid := dom.Doc.Call("createElement", "div")
 	grid.Set("className", "punit-grid catgrid cathead")
 	at(buildCategoryMonitor(label, bay), grid, 1, catMonitorRows, 1, catHeadCols)
@@ -597,25 +349,10 @@ func buildBayHead(label string, bay int, modes []string, steps map[string]js.Val
 	// shown — the one belonging to the model the bay is set to — so one
 	// position is what the panel needs, and a knob that re-ranges with the
 	// selector is what it has always been from the front.
-	stepped := false
 	for _, m := range modes {
 		if s, ok := steps[m]; ok {
 			at(s, rotary, stepRow, 1, stepCol, 1)
-			stepped = true
 		}
-	}
-
-	// The category's own parameters — the ones more than one of its models
-	// declare — go in columns of their own, on the first bay only. A bay
-	// whose models have no step (a polyhedron is built, not integrated)
-	// has that position free, and the first of them takes it rather than
-	// opening a column beside an empty one.
-	if !stepped && len(extra) > 0 {
-		at(extra[0], grid, 1+catMonitorRows, 1, 2, 1)
-		extra = extra[1:]
-	}
-	for i, c := range extra {
-		at(c, grid, 1+i%catCellsPerCol, 1, 1+catHeadCols+i/catCellsPerCol, 1)
 	}
 
 	title := label
@@ -651,7 +388,7 @@ func categoryHeadID(label string) string { return "cat-" + categorySlug(label) +
 // wrapCategoryModule puts a grid in a module of its own.
 func wrapCategoryModule(label, id, title string, grid js.Value, tip string) js.Value {
 	mod := dom.Doc.Call("createElement", "div")
-	mod.Set("className", "sect catmodule")
+	mod.Set("className", "sect")
 	mod.Set("id", id)
 	// The bay this module is in, declared rather than looked up from the
 	// header: a card is named after its model, and the Analysis category
@@ -711,21 +448,6 @@ func buildCategoryParamCellAs(mode string, p paramDef, pu bool) js.Value {
 	}
 	unit.Set("title", tip)
 	return unit
-}
-
-// pairSwitchCells mounts two of a model's switches in one control position.
-//
-// A switch is a toggle and a word, and a whole position built for a knob
-// leaves most of it blank: the globe's par and dir took two positions and
-// with them a fourth column on the Globe · Torus panel. Stacked, they take
-// one. Each half is still a cell of its own, so its label, reset, tooltip
-// and live marking are what they were; the pair is only where it sits.
-func pairSwitchCells(a, b js.Value) js.Value {
-	pair := dom.Doc.Call("createElement", "div")
-	pair.Set("className", "swpair")
-	pair.Call("appendChild", a)
-	pair.Call("appendChild", b)
-	return pair
 }
 
 // buildCategoryStepCell is a model's integration step, for the position in
@@ -822,23 +544,19 @@ func buildCategoryMonitor(label string, bay int) js.Value {
 	cv.Set("width", catMonitorWidth)
 	cv.Set("height", catMonitorHigh)
 	bez.Call("appendChild", cv)
-	// A bank bay's screen also carries the running model's Lyapunov
-	// exponent, as a scope carries its measurements: a readout of the picture
-	// on the picture, rather than a module of its own holding one number.
-	if bankCategories[label] {
-		ro := dom.Doc.Call("createElement", "span")
-		ro.Set("className", "monread")
-		ro.Set("id", bayMonitorID(label, bay)+"-lyap")
-		bez.Call("appendChild", ro)
-	}
+	// The screen also carries the running model's Lyapunov exponent, as a
+	// scope carries its measurements: a readout of the picture on the
+	// picture, rather than a module of its own holding one number.
+	ro := dom.Doc.Call("createElement", "span")
+	ro.Set("className", "monread")
+	ro.Set("id", bayMonitorID(label, bay)+"-lyap")
+	bez.Call("appendChild", ro)
 	unit.Call("appendChild", bez)
 
 	row := dom.Doc.Call("createElement", "span")
 	row.Set("className", "monsw")
 	row.Call("appendChild", screenSwitch(bayMonSwitchID(label, bay)))
-	if bankCategories[label] {
-		buildModelSwitches(row) // what each does is the model's: modelparts_js.go
-	}
+	buildModelSwitches(row) // what each does is the model's: modelparts_js.go
 	unit.Call("appendChild", row)
 	return unit
 }

@@ -236,11 +236,10 @@ func (l *liveLyapunov) attachMonitorReadout(ro js.Value) {
 	ro.Call("appendChild", l.el)
 }
 
-// lyapMonitorFor is the monitor readout λ goes to for this model, if its
-// category is a bank; otherwise undefined, and it goes in the Parameters
-// module as before.
+// lyapMonitorFor is the monitor readout λ goes to for this model, or
+// undefined for a model no row draws, and it goes in the Parameters module.
 func lyapMonitorFor(mode string) js.Value {
-	if cat := rowOf(mode); bankCategories[cat] {
+	if cat := rowOf(mode); cat != "" {
 		return dom.Doc.Call("getElementById", bayMonitorID(cat, 0)+"-lyap")
 	}
 	return js.Undefined()
