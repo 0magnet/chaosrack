@@ -262,7 +262,7 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3, w turtleWorld) {
 		inertia = 0 // only rounding can get here
 	}
 	mass := float32(n)
-	inertia *= max(0.05, w.spin) // SPIN dials how readily it turns
+	inertia *= max(0.05, w.spin) // SPIN dials how hard it is to turn
 	if inertia <= 0 {
 		inertia = 1
 	}

@@ -613,7 +613,7 @@ var TurtlePhysicsKnobs = []TurtlePhysicsKnob{
 	{"turtle-grav", "grav", 3, -8, 8, 0.1},       // pull, world units per second squared; below zero lifts
 	{"turtle-fric", "fric", 0.6, 0, 2, 0.05},     // how hard the floor and walls grip
 	{"turtle-bounce", "bounce", 0.2, 0, 1, 0.05}, // how much of a hit comes back
-	{"turtle-spin", "spin", 1, 0.1, 8, 0.1},      // how readily it turns
+	{"turtle-spin", "spin", 1, 0.1, 8, 0.1},      // how hard it is to turn
 }
 
 // Rounded turns (TURN on arc): every corner of the walk is drawn as an arc

@@ -3,7 +3,7 @@
 ## Layers · Colors
 
 <!-- key: layers -->
-Layers · Colors — how the picture is made up and colored. BEHIND draws a second picture filling the canvas behind the model and SKIN paints one onto its surface; BG is the color behind it all. SRC is what the color follows, MAP how a value becomes a color, PERIOD and SHIFT the window on the map, TRAIL how much of the trail stays lit, and START, MID and END the gradient's own colors. The switches: FILL makes the spectrogram or FVF plane the whole screen face-on, INVERT reverses the gradient, HELD stops the color range refitting itself.
+Layers · Colors — how the picture is made up and colored. BEHIND draws a second picture filling the canvas behind the model and SKIN paints one onto its surface; BG is the color behind it all. SRC is what the color follows, MAP how a value becomes a color, PERIOD and SHIFT the window on the map, and START, MID and END the gradient's own colors. The buttons: F (fill) and B (back) on BEHIND, I (invert) on MAP, H (held) on SRC.
 
 ### Backdrop
 
@@ -85,7 +85,7 @@ Reset end color
 ### Source
 
 <!-- key: src-cell -->
-Source — what the color follows. OFF is a flat trace in the start swatch: the color follows nothing, which is what used to be called the mono palette and is a statement about the SOURCE rather than about the map. X / Y / Z follow a coordinate of the figure; on the three delay embeddings those axes are one signal at three lags, so they color along different directions of the same figure rather than showing three different quantities. TRAIL follows age along the window. AUDIO paints the short-time spectral CENTROID along the trail — which frequency each moment sits at. LEVEL paints the short-time LEVEL instead, which is the quantity the spectrogram backdrop is painting, so with one of the colormap palettes behind it the figure and the backdrop say the same thing in the same language; AUDIO deliberately does not, and a figure colored by centroid over a spectrogram is not supposed to match it. Only the Takens, stereo and polar embeddings have a trail that is a time axis, so elsewhere both are one flat tint. Displays with a value of their own — the spectrogram, the RTA, the transfer function — do not consult this knob at all, and it dims in those modes.
+Source — what the color follows. OFF is a flat trace in the start swatch: the color follows nothing. X / Y / Z follow a coordinate of the figure; on the three delay embeddings those axes are one signal at three lags, so they color along different directions of the same figure rather than showing three different quantities. TRAIL follows age along the window. AUDIO paints the short-time spectral CENTROID along the trail — which frequency each moment sits at. LEVEL paints the short-time LEVEL instead, which is the quantity the spectrogram backdrop is painting, so with one of the colormap palettes behind it the figure and the backdrop say the same thing in the same language; AUDIO deliberately does not, and a figure colored by centroid over a spectrogram is not supposed to match it. Only the Takens, stereo and polar embeddings have a trail that is a time axis, so elsewhere both are one flat tint. Displays with a value of their own — the spectrogram, the RTA, the transfer function — do not consult this knob at all, and it dims in those modes.
 
 <!-- key: rst-gradient-source -->
 Reset the color source
@@ -113,7 +113,7 @@ Source — what the color follows.
 ### Map
 
 <!-- key: map-cell -->
-Map — how a value becomes a color, for every display in the rack including the spectrogram. 2 and 3 mix the Palette module's own swatches; HUE is a raw hue sweep; heat, blue, gray, turbo, viridis and magma are the published colormaps. Turbo and viridis are the even ones — equal steps in the value look like equal steps in color, which a hue sweep does not give you. This is the only colormap control there is: the spectrogram had a second one naming the same six maps, and two knobs that had to be kept in step by hand were one knob too many.
+Map — how a value becomes a color, for every display in the rack including the spectrogram. 2 and 3 mix the START, MID and END swatches; HUE is a raw hue sweep; heat, blue, gray, turbo, viridis and magma are the published colormaps. Turbo and viridis are the even ones — equal steps in the value look like equal steps in color, which a hue sweep does not give you. This is the only colormap control there is: the spectrogram had a second one naming the same six maps, and two knobs that had to be kept in step by hand were one knob too many.
 
 <!-- key: rst-gradient-colors -->
 Reset the color map
@@ -123,7 +123,7 @@ Reset the color map
 <!-- key: gradient-colors -->
 Map — how a value becomes a color.
 
-- <!-- key: gradient-colors=2 --> 2-color — a straight mix between the Palette module's start and end swatches
+- <!-- key: gradient-colors=2 --> 2-color — a straight mix between the start and end swatches
 - <!-- key: gradient-colors=3 --> 3-color — the start, middle and end swatches mixed in turn
 - <!-- key: gradient-colors=4 --> hue sweep — a raw sweep round the hue circle: vivid, and not perceptually even
 - <!-- key: gradient-colors=5 --> heat — black through red and orange to white
@@ -136,7 +136,7 @@ Map — how a value becomes a color.
 ### Palette period
 
 <!-- key: grp-rainbow -->
-Palette period — how many times the palette is crossed across the trail (low = a narrow slice of it, which the shift knob then sweeps). Drives the rainbow AND the six colormaps: the question is the same one either way.
+Palette period — how many times the palette is crossed across the trail (low = a narrow slice of it, which the shift knob then sweeps). Drives the hue sweep AND the six colormaps: the question is the same one either way.
 
 ### Palette period value
 
@@ -173,8 +173,8 @@ Reset palette shift
 
 The module's switches are buttons on the P-units they concern.
 
-- <!-- key: trio.bg-visual=0 --> F (BEHIND): fill — spectrogram or FVF backdrop full screen, face-on. Applies only to those two backdrops.
-- <!-- key: trio.bg-visual=1 --> B (BEHIND): back — the Colors module edits the backdrop's colors instead of the model's. Applies only to a flat backdrop.
+- <!-- key: trio.bg-visual=0 --> F (BEHIND): fill — the Spectrogram or FVF model drawn as the whole screen, face-on, instead of on a plane that turns. Only those two models; a spectrogram behind another model always fills.
+- <!-- key: trio.bg-visual=1 --> B (BEHIND): back — Layers · Colors edits the backdrop's colors instead of the model's. Applies only to a flat backdrop.
 - <!-- key: trio.gradient-colors=0 --> I (MAP): invert — reverse the palette direction (start and end swapped)
 - <!-- key: trio.gradient-source=0 --> H (SRC): held — the color range stops refitting to the source
 
@@ -194,7 +194,7 @@ Held — stop the color range refitting itself. Auto stretches the ramp to what 
 ### Back
 
 <!-- key: edit-back-cell -->
-Back — point the Colors module at the BACKDROP instead of the model: its map, its start, mid and end, its period, each kept apart from the model's. The MODEL knob and the bank show the backdrop's own controls while it is on, and choose among the backdrops. With src OFF a terminal, animation, desk or scope keeps its own colors; any other src redraws it through the map by brightness. Off, the panel is on the model again. Dimmed while nothing is BEHIND.
+Back — point Layers · Colors at the BACKDROP instead of the model: its map, its start, mid and end, its period, each kept apart from the model's. The MODEL knob and the bank show the backdrop's own controls while it is on, and choose among the backdrops. With src OFF a terminal, animation, desk or scope keeps its own colors; any other src redraws it through the map by brightness. Off, the panel is on the model again. Dimmed while nothing is BEHIND.
 
 ### Color range
 
@@ -260,7 +260,7 @@ Still — saves a PNG of what is on the monitor, at full resolution. Honors the 
 ### Media
 
 <!-- key: rec-meter-fill-cell -->
-Media — how much of a GIF's frame budget the take has used. A GIF is held in memory until it is encoded, so it has a hard ceiling and stops there on its own; WebM streams to disk as it goes and has none.
+Media — how much of a GIF's frame budget the take has used. A GIF is held in memory until it is encoded, so it has a hard ceiling and stops there on its own; WebM has no such budget, and the bar stays empty for it.
 
 ### Last take
 
@@ -275,7 +275,7 @@ View — orientation: per-axis angle knobs and continuous spin rates
 ### X axis
 
 <!-- key: knob-x-cell -->
-X axis — angle knob, spin rate, horizontal position
+X axis — the angle knob and its spin rate (ω)
 
 ### X rotation angle
 
@@ -303,7 +303,7 @@ Reset X angle + spin rate
 ### Y axis
 
 <!-- key: knob-y-cell -->
-Y axis — angle knob, spin rate, vertical position
+Y axis — the angle knob and its spin rate (ω)
 
 ### Y rotation angle
 
@@ -331,7 +331,7 @@ Reset Y angle + spin rate
 ### Z axis
 
 <!-- key: knob-z-cell -->
-Z axis — angle knob, spin rate, zoom (depth)
+Z axis — the angle knob and its spin rate (ω)
 
 ### Z rotation angle
 
@@ -417,7 +417,7 @@ Reset zoom and Fore
 ## Grid
 
 <!-- key: grid -->
-Grid — how many views of the model are drawn, what differs between them, and which of them the knobs are pointed at. It sits in the DISPLAY bay beside View and Position because it is a question about the picture, not about the signal: Trace is how one trajectory is drawn, View is where the camera is, and this is how many cameras there are.
+Grid — how many views of the model are drawn, what differs between them, and which of them the knobs are pointed at. It sits beside View, Display and Layers · Colors because it is a question about the picture, not about the signal: Display is how one trajectory is drawn, View is where the camera is, and this is how many cameras there are.
 
 ### Grid
 
@@ -515,7 +515,7 @@ Link — every cell of the grid on one set of knobs: turn one and every view fol
 ## Display
 
 <!-- key: display -->
-Display — trace rendering: line width, point decimation, trail length and mode, and the overlays drawn on the trace (Poincaré section, graticule). Three P-units; the switches are on their buttons. The twin trajectory is now the Grid's start sweep with Overlay on.
+Display — trace rendering: line width, point decimation, trail length and mode, and the overlays drawn on the trace (Poincaré section, graticule). Three P-units; the switches are on their buttons.
 
 ### LINE
 
@@ -593,12 +593,12 @@ Ring — beam mode: only the advancing head is integrated each frame and the tra
 ### Poincaré section
 
 <!-- key: sect-sw-cell -->
-Poincaré section — samples the trajectory where it crosses a plane in one direction and draws the accumulated intersections in gold. Each crossing is interpolated between the two samples that straddle the plane. The section's positions in the model bank (AXIS, POS, DIR, after a flow's constants) set the plane and direction, and the ON on AXIS is this switch too. The Poincaré Section model (Maps) shows the same section as a separate display, with the first-return map.
+Poincaré section — samples the trajectory where it crosses a plane in one direction and draws the accumulated intersections in gold. Each crossing is interpolated between the two samples that straddle the plane. The section's positions in the model bank (AXIS, POS, DIR, after a flow's constants) set the plane and direction, and the ON on AXIS is this switch too, as is the S button on LINE. The Poincaré Section model (Maps) shows the same section as a separate display, with the first-return map.
 
 ### Graticule
 
 <!-- key: scope-grat-cell -->
-Graticule — the scale behind a scope trace: 8 × 10 divisions, heavier center axes, minor ticks at fifths of a division, and the 0/10/90/100 % rise-time markers. On by default. Drawn only for the scope models and for any model using the CRT color source.
+Graticule — the scale behind a scope trace: 8 × 10 divisions, heavier center axes, minor ticks at fifths of a division, and the 0/10/90/100 % rise-time markers. On by default. Drawn only for the scope models, and for any model while a phosphor is chosen on Style.
 
 ### Grid SWEEP positions
 
@@ -666,7 +666,7 @@ An endless knob: {what}. Each turn lights the ring in the next LED color, sweepi
 ## Lattice
 
 <!-- key: lattice -->
-Lattice — any model drawn in depth by terminals. Each sheet of the stack is a real terminal running \[lattice\](https://github.com/0magnet/lattice), and each draws its own slice of the volume: with the Lattice model, its solid; with L lit on ROWS, the model chosen, whatever it is. The model's trail, mesh or dots are the figure every program is handed, and a voxel is lit where the figure passes through it, written as the way the figure runs across the sheet. The model keeps its own knobs in the bank, so it is played as ever; these six are how the lattice draws it. Pictures and terminals, which are flat already, are not drawn in it.
+Lattice — any model drawn in depth by terminals. Each sheet of the stack is a real terminal running [lattice](https://github.com/0magnet/lattice), and each draws its own slice of the volume: with the Lattice model, its solid; with L lit on ROWS, the model chosen, whatever it is. The model's trail, mesh or dots are the figure every program is handed, and a voxel is lit where the figure passes through it, written as the way the figure runs across the sheet. The model keeps its own knobs in the bank, so it is played as ever; these six are how the lattice draws it. Pictures and terminals, which are flat already, are not drawn in it.
 
 ### ROWS
 

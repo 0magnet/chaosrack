@@ -1,4 +1,4 @@
-## Keys
+# Keys
 
 <!-- key: keys -->
 Keys — a playable polyphonic keyboard: click or drag the keybed (glissando works), or play the computer keyboard on the labeled keys (Z row = lower octave, Q row = upper). The bed is the whole piano, A0 to C8, across the whole bay; what it sounds like, how loud and on which speakers is the Synth bay above it.
@@ -7,3 +7,8 @@ Keys — a playable polyphonic keyboard: click or drag the keybed (glissando wor
 
 <!-- key: keys-bed -->
 Piano keybed — click or hold-and-slide to play; the letter-labeled keys map to your computer keyboard
+
+### A key
+
+<!-- key: keys-key -->
+Keys — play {name} (hold and slide for glissando)

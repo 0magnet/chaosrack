@@ -3,7 +3,7 @@
 ## Counter
 
 <!-- key: counter -->
-Counter — a frequency counter for the rack, in the spirit of the glensstuff.com NAND-gate counter: it counts trigger crossings of the live audio source over the gate window and shows cycles per second, the way the discrete-logic original did. Feed it the mic, the ws stream, or the signal generator.
+Counter — a frequency counter for the rack, in the spirit of the glensstuff.com NAND-gate counter: it counts trigger crossings of the live audio source over the gate window and shows cycles per second, the way the discrete-logic original did. It counts the rack's own signal: whatever the Mixer pins to RACK L and R.
 
 ### Measured frequency in Hz
 
@@ -201,7 +201,7 @@ How often the loudness readouts latch. This is a DISPLAY rate only — the meter
 <!-- key: thd-rate -->
 How often the distortion measurement is made and shown. The analysis window is 341 ms, so measuring faster than about three times a second measures the same audio twice; slower is the same reading for less work.
 
-- <!-- key: thd-rate=200 --> Five a second — the window is 341 ms, so this is as often as there is new audio to measure
+- <!-- key: thd-rate=200 --> Five a second — faster than the 341 ms window refills, so each reading shares audio with the one before: the most responsive, and the most work
 - <!-- key: thd-rate=400 --> The default: a fresh window every time, and no audio measured twice
 - <!-- key: thd-rate=1000 --> Once a second — the same reading, a fifth of the work
 - <!-- key: thd-rate=2000 --> Every two seconds, for a distortion figure being logged rather than tuned
@@ -229,7 +229,7 @@ How much audio each wow-and-flutter reading is made over. This is the measuremen
 ## Features
 
 <!-- key: feat -->
-Features — what the Mod matrix's audio routes read, as a meter bridge: six LED bar graphs, one for each feature of the incoming audio's mono mix, the same numbers a route modulates a knob by. Each ladder is twenty segments, green to 70%, amber to 90% and red above. The levels are relative, not absolute: each feature is scaled by its own recent peak (instant rise, slow fall), so a quiet passage still fills the ladders and a loud one does not pin them. Dark while modulation is off — nothing routed and no feed from the server — since then nothing is measured. They were a strip over the top-left of the picture with a switch to hide it; as a module they are on the rack beside the other meters, and off the picture.
+Features — what the Mod matrix's audio routes read, as a meter bridge: six LED bar graphs, one for each feature of the incoming audio's mono mix, the same numbers a route modulates a knob by. Each ladder is twenty segments, green to 70%, amber to 90% and red above. The levels are relative, not absolute: each feature is scaled by its own recent peak (instant rise, slow fall), so a quiet passage still fills the ladders and a loud one does not pin them. Dark while modulation is off — nothing routed and no feed from the server — since then nothing is measured.
 
 <!-- key: feat-amp -->
 AMP — the level: the RMS of the window, scaled by its recent peak.

@@ -13,7 +13,7 @@ depth — how much of the swept parameter's range the audio moves the cursor acr
 ### latitude lines
 
 <!-- key: p.globe-lat -->
-latitude lines — how many parallels circle the globe, or, with par on spiral, how many times the one spiral winds round on its way from pole to pole.
+latitude lines — how many parallels circle the globe, or, wound as a spiral, how many times the one spiral winds round on its way from pole to pole. The buttons beside it choose which: + a spiral one way round, 0 separate rings, − a spiral the other way.
 
 ### longitude lines
 
@@ -23,27 +23,17 @@ longitude lines — how many meridians run from pole to pole.
 ### parallels
 
 <!-- key: p.globe-par -->
-parallels — how the lines of latitude are drawn: as separate rings, or as one continuous spiral from pole to pole.
+parallels — how the lines of latitude are drawn: as separate rings, or as one continuous spiral from pole to pole. Set by the buttons on LAT.
 
 ### direction
 
 <!-- key: p.globe-rev -->
-direction — which way the spiral of parallels winds. Only acts with par on spiral; the rings have no direction.
+direction — which way the spiral of parallels winds, + or − on LAT. The rings have no direction.
 
 ### twist
 
 <!-- key: p.globe-twist -->
 twist — turns each meridian as it descends, so the lines of longitude become helices. Zero is the ordinary globe; the sign is which way they lean.
-
-### latitude bands
-
-<!-- key: p.sphere-stacks -->
-latitude bands — how many slices the sphere is cut into from pole to pole.
-
-### longitude segments
-
-<!-- key: p.sphere-slices -->
-longitude segments — how many wedges the sphere is cut into around its axis.
 
 ### major radius
 
@@ -340,15 +330,15 @@ window function — the taper each block is shaped by before its transform: Hann
 <!-- key: p.spect-chan -->
 channel — which signal is analyzed: the mix of both, or the left or right alone.
 
-### floor
+### min
 
 <!-- key: p.spect-min -->
-floor — the level, in dB, that maps to the bottom of the color scale; anything quieter is drawn black.
+min (the floor) — the level, in dB, that maps to the bottom of the color scale; anything quieter is drawn black.
 
-### ceiling
+### max
 
 <!-- key: p.spect-max -->
-ceiling — the level, in dB, that maps to the top of the color scale; anything louder is drawn at full.
+max (the ceiling) — the level, in dB, that maps to the top of the color scale; anything louder is drawn at full.
 
 ### gain
 
@@ -518,7 +508,7 @@ axes — LR plots left against right; MS turns the display 45° into mid and sid
 ### scale
 
 <!-- key: p.spect-scale -->
-scale — the magnitude scale: logarithmic, in dB, or linear. FLOOR and CEILING are read in the same scale.
+scale — the magnitude scale: logarithmic, in dB, or linear. MIN and MAX are read in the same scale.
 
 ### axis
 
@@ -981,7 +971,7 @@ dt — the integration time step: how far the system advances on each step. Smal
 #### λ (Lyapunov readout)
 
 <!-- key: ro.lyap -->
-Largest Lyapunov exponent, measured live from a pair of trajectories started a hair apart: how fast two nearby states of THIS system, at these coefficients, separate. Positive is chaos — prediction has a horizon of roughly 1/λ — and the bigger it is the shorter that horizon. About zero is a limit cycle or a torus. Negative is settling to a fixed point. Per unit of MODEL time, not per second: it does not change when the browser is busy, and it does change with dt and with Speed, because the thing being integrated changes with them. "λ --" means not enough model time has been averaged yet for the number to mean anything; it clears itself after a second or so. Analysis → lyap is the same quantity measured at length on demand, to three decimals.
+Largest Lyapunov exponent, measured live from a pair of trajectories started a hair apart: how fast two nearby states of THIS system, at these coefficients, separate. Positive is chaos — prediction has a horizon of roughly 1/λ — and the bigger it is the shorter that horizon. About zero is a limit cycle or a torus. Negative is settling to a fixed point. Per unit of MODEL time, not per second: it does not change when the browser is busy, and it does change with dt and with Speed, because the thing being integrated changes with them. "λ --" means not enough model time has been averaged yet for the number to mean anything; it clears itself after a second or so. The lyap readout under the monitor (↻ measures it again) is the same quantity measured at length on demand, to three decimals.
 
 #### hz (beam circuit)
 
@@ -1018,7 +1008,7 @@ d{v}/dt for {mode}. Edit it to make your own: the rack switches to Custom, seede
 ### Physics (Turtle Path)
 
 <!-- key: phys-module -->
-Physics — the figure as a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture. Its positions stand in the model bank after the Turtle Path's constants (Sequences). ON (on GRAV) switches it on; the knobs are live while it is on. GRAV pulls either way up; FRIC is how much the surfaces bite; BOUNCE is how much of the speed a wall gives back; SPIN is how readily it turns.
+Physics — the figure as a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture. Its positions stand in the model bank after the Turtle Path's constants (Sequences). ON (on GRAV) switches it on; the knobs are live while it is on. GRAV pulls either way up; FRIC is how much the surfaces bite; BOUNCE is how much of the speed a wall gives back; SPIN is how hard it is to turn.
 
 - <!-- key: trio.turtle-grav=0 --> ON: physics — the Turtle Path as a rigid body that falls, slides and bounces
 

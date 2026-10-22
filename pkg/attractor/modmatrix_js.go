@@ -528,7 +528,13 @@ func modMxSelect(id string) {
 	if modMx.eqHold.Truthy() {
 		dom.RebuildInto(&modMx.eqFuncs, func() {
 			modMx.eqHold.Set("innerHTML", "")
-			modMx.eqHold.Call("appendChild", makeEQStrip(id))
+			label := id // the panel's name for it, as its row says it
+			for _, c := range modMx.cols {
+				if c.id == id {
+					label = c.label
+				}
+			}
+			modMx.eqHold.Call("appendChild", makeEQStrip(id, label))
 		})
 	}
 }

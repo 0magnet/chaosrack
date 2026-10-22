@@ -112,7 +112,6 @@ func updateGradientUI() {
 			lbl.Set("textContent", "start")
 		}
 	}
-	updateViewModRows()
 	quantizeModuleWidths()
 }
 

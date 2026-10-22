@@ -3,7 +3,7 @@
 ## Synth
 
 <!-- key: synth-synth -->
-Synth — the sound the keyboard plays. PRESET sets every knob on the bay to an instrument, as a place to start from; LVL is how loud. Where it is heard is the Mixer's: its KEYS column.
+Synth — the sound the keyboard plays. PRST sets every knob on the bay to an instrument, as a place to start from; LVL is how loud. Where it is heard is the Mixer's: its KY column.
 
 ### Preset
 
@@ -170,7 +170,7 @@ Decay — the time constant of the fall towards sustain, in seconds, at C3.
 ### Key tracking
 
 <!-- key: syn-ktrk -->
-Key tracking — how much shorter the decay is up the keyboard: 1 is an octave shorter every eighteen semitones, a piano's; 0 is the same everywhere.
+Key tracking — how much shorter the decay is up the keyboard: 1 halves the decay every eighteen semitones up from C3, a piano's; 0 is the same everywhere.
 
 ### Sustain
 
@@ -181,9 +181,3 @@ Sustain — the level held while the key is down: 0 dies away like a string, 1 h
 
 <!-- key: syn-rel -->
 Release — how long the note takes to stop once let go, in seconds.
-
-
-### The keyboard's keys
-
-<!-- key: keys-key -->
-Keys — play {name} (hold and slide for glissando)

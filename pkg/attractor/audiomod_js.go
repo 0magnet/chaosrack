@@ -260,22 +260,6 @@ var viewModTargets = []viewModTarget{
 	{"view-pshift", "shift", &gradientShift, -1, 1, "palette-shift"},
 }
 
-// updateViewModRows injects an audio-mod routing row directly beneath each
-// view knob (spin/pos/zoom) in the View & Motion section when Audio mod is on,
-// so the modulation controls sit next to the control they drive. Removes them
-// otherwise. Called from buildParamPanel (which runs on every relevant state
-// change: audio-mod toggle, mode change, reset, permalink restore).
-// updateViewModRows is retained as a no-op cleanup: view/camera/motion mod
-// controls now live as cards in the dedicated Modulation module (buildParamPanel)
-// rather than injected under each view knob, so nothing is mixed into other
-// modules. Any stray legacy rows are removed defensively.
-func updateViewModRows() {
-	ex := dom.Doc.Call("querySelectorAll", ".viewmod-row")
-	for i := ex.Get("length").Int() - 1; i >= 0; i-- {
-		ex.Index(i).Call("remove")
-	}
-}
-
 // applyViewModulation modulates the camera/motion cached vars (zoom, pan, spin
 // rates, line width) in place before the render loop consumes them; the caller
 // restores them afterward (restoreAudioModulation). No-op in the audio display
@@ -317,10 +301,11 @@ func (p *paramModulation) applyViewModulation() []savedParam {
 	return saved
 }
 
-// makeEQStrip builds the graphic-EQ band-picker for parameter id: numEQBands
+// makeEQStrip builds the graphic-EQ band-picker for parameter id, named label
+// on the panel: numEQBands
 // draggable columns (low→high) whose heights are the band weights in
 // pmod.params[id].bands. Drag across to paint the curve.
-func makeEQStrip(id string) js.Value {
+func makeEQStrip(id, label string) js.Value {
 	m := pmod.params[id]
 	if m.bands == nil {
 		m.bands = make([]float32, numEQBands)
@@ -329,7 +314,7 @@ func makeEQStrip(id string) js.Value {
 	wrap := dom.Doc.Call("createElement", "div")
 	wrap.Set("className", "eqstrip")
 	wrap.Call("setAttribute", "data-no-drag", "")
-	wrap.Set("title", docf("mod-eq.strip", "control", id))
+	wrap.Set("title", docf("mod-eq.strip", "control", label))
 
 	fills := make([]js.Value, numEQBands)
 	for i := range numEQBands {
