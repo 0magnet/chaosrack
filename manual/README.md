@@ -65,8 +65,8 @@ unit). Each P-unit has:
 A P-unit is programmable. In a model bank, the MODEL selector assigns each
 P-unit to a parameter of the selected model, and the displays show the
 current assignment. A selector or a switch is the same unit operating in
-detented steps. Every position of a model bank, the Grid and the Display
-module is a P-unit.
+detented steps. Every position of the model bank, and every cell of the Grid, Lattice,
+Display and Layers · Colors modules, is a P-unit.
 
 ## Signal flow
 
@@ -90,8 +90,9 @@ module is a P-unit.
  Scope inputs: RACK L/R, or any single source: CAP L/R, GEN 1–4, MODEL X–Z.
 ```
 
-Every audio source is a column of the **Mixer** and is routed nowhere until
-pinned. The rows are buses:
+Every audio source is a column of the **Mixer**, and goes only where it is
+pinned. At power-up the capture is pinned to the rack bus and the four
+instrument columns to the speakers. The rows are buses:
 
 - **SPK L, SPK R**: monitor output to the speakers.
 - **RACK L, RACK R**: the rack bus, read by the meters, the audio-driven
@@ -105,8 +106,8 @@ audio or microphone) have no speaker pins: the speakers already carry that
 signal, and routing it back to them would form a feedback loop.
 
 The **Mod** matrix converts signals into control movement. Its columns are
-sources (the rack bus, MOD A or B, or the position of the model's trail
-head); its rows are destination parameters.
+sources (the rack bus, MOD A or B, or the model's own x, y, z and r at the
+head of its trail); its rows are destination parameters.
 
 ## Maintaining this manual
 
@@ -127,7 +128,7 @@ Solo: routes only this generator to the rack bus and the speakers.
 A key containing `=` names one position of a selector. `{name}` in an entry
 is substituted by the panel (a generator number, a model name). The comments
 are not rendered, so the files remain readable as plain markdown, and the
-tests verify that every key the panel requests is present.
+tests verify that every key the panel's code names literally is present.
 
 Run the server with `--manual-dir manual` to generate this page from the
 files on disk rather than the built-in copy; edits then appear on reload.

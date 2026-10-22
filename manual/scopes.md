@@ -3,7 +3,7 @@
 ## Scope 1
 
 <!-- key: scope -->
-Scope 1 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.
+Scope 1 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob, INTENSITY, with two mini knobs beneath: I, SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; and F, FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.
 
 ### The tube
 
@@ -13,7 +13,7 @@ The tube — ten divisions by eight. SCALE ILLUM lights the graticule and switch
 ### Horizontal position
 
 <!-- key: rst-scope-hpos-cell -->
-Horizontal position — slides the swept window earlier or later within the audio that was captured, in divisions.
+Horizontal position — moves the trace sideways, in divisions: where it is drawn, not what is sampled.
 
 <!-- key: rst-scope-hpos -->
 Reset the horizontal position
@@ -32,7 +32,7 @@ The beam. The knob is INTENSITY: beam brightness, and how long the phosphor hold
 ### Intensity, 0–1
 
 <!-- key: scope-intens-led -->
-Intensity, 0–1 — type a value or turn the middle ring
+Intensity, 0–1 — type a value or turn the knob
 
 ### Scale illumination
 

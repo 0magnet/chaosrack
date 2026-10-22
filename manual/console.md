@@ -3,13 +3,13 @@
 ## Console
 
 <!-- key: console -->
-Console — model selection, global actions, and every mode/effect switch in one module
+Console — Reset All and Normalize, MIDI, and the switches for the rack itself and for motion. The model is chosen with the MODEL knob in bay 1.
 
 <!-- key: console.equation -->
-Equation editing and global panel actions. The model itself is chosen on its own category's row — see the rotary at the head of each model bay — rather than from a knob up here that changed what the whole instrument was.
+Model — Reset All, which puts the whole rack back as it starts, and Normalize, which squares the model up to the screen.
 
 <!-- key: reset-all-btn -->
-Reset parameters, colors, view pose, trail, gradient, effect switches (Front/Fill/audio/backdrops), display style, and the signal generator to their defaults (keeps your dock layout + interface size)
+Reset parameters, colors, view pose, trail, gradient, effect switches (Fill, backdrops, the section and the Turtle's weight), display style, and the signal generator to their defaults (keeps your dock layout + interface size)
 
 <!-- key: normalize-btn -->
 Re-center the model to the default (identity) orientation and stop any spin
@@ -19,10 +19,10 @@ Re-center the model to the default (identity) orientation and stop any spin
 <!-- key: console.audio -->
 Audio — the subsystems that are switched on rather than patched in: hardware control over the rack (MIDI). Where every sound goes is the Mixer's, in the routing bay.
 
-### WebMIDI
+### MIDI
 
 <!-- key: midi-sw-cell -->
-WebMIDI — hardware control: CC 1..N drive the current mode's parameter knobs in order, CC 21..28 the view targets (zoom, pans, spins, rainbow, trail), and any note hops to that note's attractor.
+MIDI — hardware control over WebMIDI: CC 1 and up drive the model's continuous knobs in order, CC 21 to 29 the view (zoom, pan X, pan Y, spin X, Y and Z, period, trail and shift), and a note hops to a flow picked by the note.
 
 ### Solo
 
@@ -32,25 +32,27 @@ Solo — the one generator on the rack's signal and the speakers, the others kep
 ### Rack
 
 <!-- key: console.rack -->
-Rack — the frame itself and the window it is drawn in, rather than anything in the signal path. Nothing here has a knob elsewhere to be beside, which is why it is the one group of switches that stays central.
+Rack — Power, Rack bay, Info, Fullscreen and Desk: the frame itself and the window it is drawn in, rather than anything in the signal path.
 
 ### Power
 
 <!-- key: power-sw-cell -->
-Power — the render loop. Off stops it and clears the canvas, which is what the GPU costs; the panel stays, so every setting is still there to read and to change. A switch again, and back in the Rack group where the rest of the frame's own controls are: it had been folded into the model knob's first detent, which made powering down look like choosing a model called OFF and put the rack's power switch inside the one control that had nothing to do with the rack.
+Power — the model. Off stops it and clears the canvas, which is what the GPU costs; the scopes and meters still read what plays, and every setting is still there to read and to change. OFF on the MODEL knob is the same switch.
 
 ### Rack bay
 
 <!-- key: handles-on-cell -->
-Rack bay — draw the 19-inch frame each ROW of modules sits in: rails above and below, an ear each side, and blank panels filling the leftover at the end of the row on the same slot pitch. The modules wrap, and a row is a bay, so a rack that has spilled onto a second row gets a second frame. Handles and panel screws are chosen on the Style module: the inner ring of Size.
+Rack bay — draw the 19-inch frame each ROW of modules sits in: rails above and below, an ear each side, and blank panels filling the leftover at the end of the row on the same slot pitch. The modules wrap, and a row is a bay, so a rack that has spilled onto a second row gets a second frame. While it is on, a click on one of a bay's top screws moves the bay up a place, on a bottom screw down one; the order is kept in this browser, and the addresses on a moved bay follow it.
+
+### Info
 
 <!-- key: show-info-cell -->
-Overlay a short description of the current attractor / model on the view
+Info — opens the Info window: the model playing, described, or, while the rack is off, the manual's page for the bay last worked at.
 
-### Toggle browser fullscreen
+### Fullscreen
 
 <!-- key: fullscreen-sw-cell -->
-Toggle browser fullscreen — the canvas fills the display; the panel stays available
+Fullscreen — the browser's full screen: the canvas fills the display, and the panel stays available
 
 ### Desk
 
@@ -92,15 +94,15 @@ Plain reading of the exponent: chaotic, periodic, settling (converging) or diver
 <!-- key: lyap-remeasure -->
 Re-measure now. A run is a few hundred thousand integration steps, so it is done on demand rather than every frame.
 
-### Banner
+### Text
 
 <!-- key: mro-scopetext -->
-Banner — what Fourier Text's beam writes (A–Z, 0–9, dash, space). The harm knob in the bank sets how many harmonics each glyph keeps.
+Text — what Fourier Text's beam writes (A–Z, 0–9, dash, space). The harm knob in the bank sets how many harmonics each glyph keeps.
 
-### Banner text
+### The text field
 
 <!-- key: stext-in -->
-Banner text — what the beam writes; melt it with the harm knob
+Text — what the beam writes; melt it with the harm knob
 
 ### Score
 
@@ -159,7 +161,7 @@ Reset the desktop style
 ### Program
 
 <!-- key: termanim-cell -->
-Program — which terminal program runs on the quad. Twenty-one animations plus the text demos, from tuiwasm; the list is built from what is registered, so it cannot drift from what is actually there.
+Program — which terminal program runs on the quad: tuiwasm's animations and text demos; the list is built from what is registered, so it cannot drift from what is actually there.
 
 ### Program
 
@@ -317,7 +319,7 @@ Phosphor — CRT trace color + afterglow for scope modes (P31 crisp green … P7
 ## Presets
 
 <!-- key: preset -->
-Presets — the current view, saved under a name. A preset holds everything the permalink holds: the model, every knob and color, the effect switches, the parameters and the pose. Recalling one resets to defaults and re-applies it, exactly as the Patchbay's numbered patch memories do; the difference is that these have names, and the address bar does not have to carry them.
+Presets — the current view, saved under a name. A preset holds everything the permalink holds: the model, every knob and color, the effect switches, the parameters and the pose. Recalling one resets to defaults and re-applies it, exactly as the numbered patch memories on this module do; the difference is that these have names, and the address bar does not have to carry them.
 
 ### Preset name
 

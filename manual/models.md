@@ -79,17 +79,17 @@ The hands are fractional throughout — the hour hand creeps with the minutes, t
 ### Fourier Text
 
 <!-- key: model.scopetext -->
-Fourier Text — An homage to the glensstuff.com Fourier Synthesis Character Generator, which built alphanumerics on a scope from summed harmonics. The banner's whole beam tour (strokes and retrace jumps alike) is one complex periodic signal x(t)+i·y(t); what's drawn is its reconstruction from only the first N harmonics — real harmonic synthesis, not a blur. One harmonic is an ellipse, so at low N the letters melt into loops; raise the harm knob and overtones sharpen them into legibility. Type the banner in the Console's TEXT field; Model Out plays the actual harmonic stack.
+Fourier Text — An homage to the glensstuff.com Fourier Synthesis Character Generator, which built alphanumerics on a scope from summed harmonics. The banner's whole beam tour (strokes and retrace jumps alike) is one complex periodic signal x(t)+i·y(t); what's drawn is its reconstruction from only the first N harmonics — real harmonic synthesis, not a blur. One harmonic is an ellipse, so at low N the letters melt into loops; raise the harm knob and overtones sharpen them into legibility. Type the banner in the text field on the line under the monitor (Visual bay); Model Out plays the actual harmonic stack.
 
 ### Sprott Morph
 
 <!-- key: model.sprottmorph -->
-Sprott Morph — the glensstuff.com Self-Programming Analog Computer, which stepped itself through the Sprott catalog by re-patching. Every Sprott A–S system is a quadratic 3-D flow, a point in the 30-dimensional coefficient space of Sprott's 1994 search. With the rate knob up, the machine re-patches itself from one system to the next, in systems per minute, while ONE trajectory keeps integrating; the Console's PATCH readout shows the current wiring. B–S are chaotic attractors, stepped with RK4 as their own models are; A is conservative, a chaotic sea rather than an attractor. With the rate at zero the sys knob parks the patch anywhere in the cycle, including between two systems, where the coefficients are blended linearly. Most blends are not attractors: measured at quarter steps, the large majority diverge or settle onto a cycle or a fixed point, and a guard reseeds the trajectory when a blend flings it away. Coefficients are extracted numerically from the catalog's own equations.
+Sprott Morph — the glensstuff.com Self-Programming Analog Computer, which stepped itself through the Sprott catalog by re-patching. Every Sprott A–S system is a quadratic 3-D flow, a point in the 30-dimensional coefficient space of Sprott's 1994 search. With the rate knob up, the machine re-patches itself from one system to the next, in systems per minute, while ONE trajectory keeps integrating; the wired readout under the monitor shows the current wiring. B–S are chaotic attractors, stepped with RK4 as their own models are; A is conservative, a chaotic sea rather than an attractor. With the rate at zero the sys knob parks the patch anywhere in the cycle, including between two systems, where the coefficients are blended linearly. Most blends are not attractors: measured at quarter steps, the large majority diverge or settle onto a cycle or a fixed point, and a guard reseeds the trajectory when a blend flings it away. Coefficients are extracted numerically from the catalog's own equations.
 
 ### Bouncing Ball
 
 <!-- key: model.bounceball -->
-Bouncing Ball — The classic analog-computer demo (Telefunken shipped it to sell integrators): two integrator chains under constant gravity, a comparator that flips the vertical velocity at the floor with a restitution loss, and wall reflections for the drift. The scope draws the familiar train of shrinking parabolic arcs; when the bounces decay away the machine re-kicks the ball, as the unattended trade-show loop did. Floor hits blip at a pitch set by impact speed (once audio is unlocked by any interaction). Knobs: gravity, restitution, drift. Try Persist to paint the full arc family.
+Bouncing Ball — The classic analog-computer demo (Telefunken shipped it to sell integrators): two integrator chains under constant gravity, a comparator that flips the vertical velocity at the floor with a restitution loss, and wall reflections for the drift. The scope draws the familiar train of shrinking parabolic arcs; when the bounces decay away the machine re-kicks the ball, as the unattended trade-show loop did. Floor hits blip at a pitch set by impact speed (once audio is unlocked by any interaction). Knobs: grav, bounce (the restitution), drift and height; the drop switch under the monitor lets the ball go again from that height. Try Persist to paint the full arc family.
 
 y'' = −g, bounce: v ← −e·v at the floor
 
@@ -98,7 +98,7 @@ y'' = −g, bounce: v ← −e·v at the floor
 <!-- key: model.pong -->
 Scope Pong — An homage to the glensstuff.com analog Oscilloscope Pong: the whole game is one multiplexed beam tour driving the X/Y inputs, so the court, net, score ticks, paddles and ball share a single stroke — the faint diagonal beams are the retrace an unblanked scope really shows.
 
-W / S move the left paddle, ↑ / ↓ the right; a side left alone for ~10 s returns to the machine player (it boots as a self-playing demo). First to 9 resets the match. Knobs: ball speed, paddle size, machine skill.
+W / S move the left paddle, ↑ / ↓ the right; a side left alone for ~10 s returns to the machine player (it boots as a self-playing demo). The match starts over when a side passes 9, or at once with the rset switch under the monitor. Knobs: speed (the ball's), paddle (its size), skill (the machine player's), and left and right, the two paddle pots.
 
 ### Thomas' Cyclically Symmetric Attractor
 
@@ -174,7 +174,7 @@ Polyhedron — The regular solids and tilings, by Schläfli symbol {p,q}: faces 
 ### Nested Cube
 
 <!-- key: model.nestedcube -->
-Nested Cube — A cube within a cube, connected at the vertices, illustrating the relationship between inner and outer geometric structures.
+Nested Cube — A cube within a cube, two separate wireframes, illustrating the relationship between inner and outer geometric structures.
 
 ### Turtle Path
 
@@ -187,11 +187,11 @@ The walk never finishes and is never restarted — the turtle is held mid-stride
 
 CAM is where it is watched from. Only follow cares where the head is; every other setting places the figure by its DRIFT, the one direction it is going overall, known exactly from one pass of the period rather than guessed at from the last few frames — and for a screw it centers on the axis the classification locates, so the figure turns on the spot instead of swinging around it. fit then only decides how big it is drawn, lock holds that size too, and auto fits a closed figure and locks one that drifts.
 
-TINT is what a color means — step, pass, visits, heading, turn, term, age — and set COLORS SRC to trl to see it, or leave it on X/Y/Z to read position instead (a flat DIM 2 figure has no Z to follow).
+TINT is what a color means — step, pass, visits, heading, turn, term, age — and set SRC on Layers · Colors to trail to see it, or leave it on X/Y/Z to read position instead (a flat DIM 2 figure has no Z to follow).
 
 MUL multiplies the Fibonacci sequence, CAP limits the terms read for sequences that may not repeat, CYCLE steps to the next modulus every so many seconds, and MOD 0 draws the sequence unreduced.
 
-PHYS gives the figure weight: it becomes a rigid body in the plane of the screen — three degrees of freedom, the figure's own shape as its mass — inside a solid box the size of the frame, where GRAV (either way up), FRIC, BOUNCE and SPIN say how it behaves. Press on the figure and you can pick it up and throw it; press beside it and you are turning the view as usual. The walk keeps extruding while it lies there, new points arriving at the head and old ones dropping off the tail, so the figure slides through its own body and marches. PHYS off hands the placing back to CAM.
+Physics gives the figure weight, with ON on GRAV, the first of its four positions in the model bank after the Turtle's own: it becomes a rigid body in the plane of the screen — three degrees of freedom, the figure's own shape as its mass — inside a solid box the size of the frame, where GRAV (either way up), FRIC, BOUNCE and SPIN say how it behaves. Press on the figure and you can pick it up and throw it; press beside it and you are turning the view as usual. The walk keeps extruding while it lies there, new points arriving at the head and old ones dropping off the tail, so the figure slides through its own body and marches. Switched off, CAM places the figure again.
 
 ### Globe
 
@@ -211,7 +211,7 @@ Magnetosphere — A visualization of magnetic field lines surrounding a dipole, 
 ### STL File
 
 <!-- key: model.stlfile -->
-STL File — Load a stereolithograph (.stl, binary or ASCII) from disk with the Loader module's Load button and it renders as a rotating wireframe. Very large files are decimated to fit the 16-bit index pipeline.
+STL File — Load a stereolithograph (.stl, binary or ASCII) from disk with the load switch under the monitor and it renders as a rotating wireframe. Very large files are decimated to fit the 16-bit index pipeline.
 
 ### Lü Attractor
 
@@ -350,7 +350,7 @@ WIN is how much time the figure spans, in milliseconds — short is live and leg
 
 SMTH is the beam smoothing between samples, and it is the trade between how much WINDOW is on screen and how smooth the line is, since both come out of one vertex budget: at 1 the figure is raw chords through four times as many samples, which is what to use to see a long window; at 16 it is a glass-smooth beam through a short one. A straight line from one delay vector to the next is a chord, and chords are the hard corners you can see — an artifact of the drawing, not something in the signal. The same knob serves the stereo and polar embeddings.
 
-Audio comes from the active source — websocket stream, microphone, or the signal generators.
+Audio is the rack's own signal: whatever the Mixer pins to RACK L and R, which at power-up is the capture (the microphone or a server feed), and can be the generators and the instruments.
 
 ### Stereo Embedding
 
@@ -365,7 +365,7 @@ ALGN is an inter-channel DELAY, ±2 ms, and it is the fault a goniometer gets re
 
 WIN is how much time the figure spans, in milliseconds — a phase display is read over a few tens of them, past a couple of hundred it is a filled blob; GAIN sets how large a full-scale sample draws, and as in the Takens mode the scale is fixed and nothing auto-ranges.
 
-Audio comes from the active source — the microphone, the signal generators, or a server feed. The feed asks the capture for the source as it was recorded, over the WebSocket and over WebTransport alike, so a stereo sink gives real stereo either way; a server or a device with only one channel to give reads "mono".
+Audio is the rack's own signal: whatever the Mixer pins to RACK L and R, which at power-up is the capture (the microphone or a server feed), and can be the generators and the instruments. The feed asks the capture for the source as it was recorded, over the WebSocket and over WebTransport alike, so a stereo sink gives real stereo either way; a server or a device with only one channel to give reads "mono".
 
 ### Polar Embedding
 
@@ -374,11 +374,11 @@ Polar Embedding — the Takens delay vector drawn in a sphere instead of a cube.
 
 Here the vector is split into a direction and a length, the direction is kept exactly as it is, and only the length is passed through a curve that cannot exceed 1 — so the figure is bounded by a sphere, which looks the same from every angle, and no rotation finds an edge that is really the arithmetic showing through. The angles between successive delay vectors are untouched, which matters: those angles are the reconstructed geometry Takens' theorem is about, and a map that bent them would be drawing a different manifold.
 
-MAP picks the curve. tanh is the soft clipper: near-linear when it is quiet, asymptotic to the surface when it is loud. Algebraic reaches the same surface more slowly, so the mid-range keeps more of its dynamics. Direction only throws the loudness away completely and puts every point on the surface — what is left is the angular motion the amplitude was hiding, so a figure that merely swelled and shrank before now moves. DRIVE is how hard the signal is pushed into the curve, and it does nothing on the direction-only position, where there is no length left to compress.
+MAP picks the curve. tanh is the soft clipper: near-linear when it is quiet, asymptotic to the surface when it is loud. Algebraic (soft on the ring) reaches the same surface more slowly, so the mid-range keeps more of its dynamics. dB makes the radius a level in decibels, full scale at the surface and DRV setting how many decibels down the center is (2 is 40 dB, about a level meter's useful range), so quiet program material is drawn at a size it can be read at. Direction only (unit) throws the loudness away completely and puts every point on the surface — what is left is the angular motion the amplitude was hiding, so a figure that merely swelled and shrank before now moves. DRIVE is how hard the signal is pushed into the curve, and it does nothing on the direction-only position, where there is no length left to compress.
 
 SRC picks which signal of the live pair is embedded, as in the Takens mode. τ and WIN mean exactly what they mean in the Takens mode, and the scale is fixed there too — nothing auto-ranges, so quiet draws small and loud draws large. The camera is fitted once to the sphere, which is the whole of what a bounded radius can reach, so peaks stay on screen without the room the cube's corner needed.
 
-Audio comes from the active source — the microphone, a server feed, or the signal generators.
+Audio is the rack's own signal: whatever the Mixer pins to RACK L and R, which at power-up is the capture (the microphone or a server feed), and can be the generators and the instruments.
 
 ### FVF
 
@@ -415,7 +415,7 @@ Feed it a generator's log sweep (its swp wave), with the sweep in one channel as
 
 LINE is how many slices the surface has and STEP how far apart they are in milliseconds, so the two are how deep it reaches in TIME: sixteen at 5 ms is the 80 ms a loudspeaker's resonances live in, thirty-two at 40 ms the 1.3 seconds a bar of music takes. FFT is the transform each slice is taken through, and it is a genuine trade — 1k resolves time best and the bass worst, 8k the other way, and a window longer than STEP means consecutive slices see the same audio. TOP and RNGE place the level scale in dBFS as they do on the RTA. DPTH is how far back the surface reaches on screen, which is geometry rather than time. CHAN is the channel the live surface analyses; REF is which channel the decay surface calls the reference, because that one needs both. LINE, STEP and FFT follow the SRC switch to what each surface wants, and stop following once you turn one.
 
-Turn the Colors SOURCE ring to Y: it colors by LEVEL across exactly the decibels TOP and RNGE show, which is how every published CSD plot is colored. Z and trail color by age, X repeats the frequency axis, and AUDIO is one flat tint here.
+Turn SRC on Layers · Colors to Y: it colors by LEVEL across exactly the decibels TOP and RNGE show, which is how every published CSD plot is colored. Z and trail color by age, X repeats the frequency axis, and AUDIO is one flat tint here.
 
 A sweep takes four seconds to cross the band, so the measurement needs a whole pass: a third of one is 20 Hz to 200 Hz and recovers an impulse five milliseconds wide.
 
@@ -453,7 +453,7 @@ Spectrogram — a scrolling short-time Fourier transform of the live audio: freq
 ### Custom Equations
 
 <!-- key: model.custom -->
-Custom Equations — type your own system. The Equations module takes dx/dt, dy/dt and dz/dt (plus dw/dt for a 4-D system) as text and integrates them with forward Euler, the same way the classic attractors are stepped. The iterate switch reads the same expressions as a discrete MAP instead — x = f(x,y,z) rather than x += dt·f(x,y,z) — which has no dt and no path between iterates, so it draws as a cloud of points the way Henon and Ikeda do.
+Custom Equations — type your own system. The Equation module takes dx/dt, dy/dt and dz/dt (plus dw/dt for a 4-D system) as text and integrates them with forward Euler, the same way the classic attractors are stepped. The iter switch under the monitor reads the same expressions as a discrete MAP instead — x = f(x,y,z) rather than x += dt·f(x,y,z) — which has no dt and no path between iterates, so it draws as a cloud of points the way Henon and Ikeda do.
 
 There is no eval: expressions are tokenized, converted to RPN and interpreted over a small value stack, so nothing but arithmetic can run. Grammar is + − × ÷ ^ with grouping and implicit multiplication (2x, 3(x+1)), the functions sin cos tan asin acos atan exp log ln sqrt abs sign sinh cosh tanh floor, the constants pi e tau, and the variables x y z w t. Any other name becomes a free parameter and is auto-exposed as its own knob.
 
@@ -471,7 +471,7 @@ RQA reads the picture back as three numbers — RR, the percentage lit and the n
 ### Bifurcation Explorer
 
 <!-- key: model.bifurcation -->
-Bifurcation Explorer — the fig-tree diagram, computed live. One parameter of the most recent flow mode sweeps its whole knob range across the x axis; each column integrates the system fresh at that value and plots the local maxima of z. Thin branches are periodic orbits, fan-outs are period-doubling cascades, filled bands are chaos — the route between them is the route to chaos. Pick the swept parameter in the Parameters module; visit an attractor and tune it to change the source system.
+Bifurcation Explorer — the fig-tree diagram, computed live. One parameter of the most recent flow mode sweeps its whole knob range across the x axis; each column integrates the system fresh at that value and plots the local maxima of z. Thin branches are periodic orbits, fan-outs are period-doubling cascades, filled bands are chaos — the route between them is the route to chaos. Pick the swept parameter on the sweep selector in the model bank, with drive beside it; visit an attractor and tune it to change the source system.
 
 ### Poincaré Section
 
@@ -484,7 +484,9 @@ VIEW picks the picture — PLANE draws the crossings where they physically are, 
 
 The crossing point is INTERPOLATED between the two samples that straddle the plane rather than snapped to the nearer of them — snapping smears the section by up to half a step of arc, which on these attractors is the same size as the gap between the sheets it is supposed to show.
 
-The same section is available as an overlay on the live attractor: Trace \> Sect.
+The same section is available as an overlay on any flow: the S button on LINE (Display), or ON on AXIS in the model bank.
+
+### Hénon Map
 
 <!-- key: model.henon -->
 Hénon map (M. Hénon, "A two-dimensional mapping with a strange attractor", 1976) — the example that showed a strange attractor needs neither a flow nor three dimensions, only a stretch and a fold. Zoom in anywhere on a filament and it resolves into more filaments: locally a line crossed with a Cantor set. Its Jacobian determinant is −b, so area contracts by exactly b every iterate no matter where you are.
@@ -494,7 +496,7 @@ x' = 1 − a·x² + y
 y' = b·x
 ```
 
-## Ikeda map (K. Ikeda, 1979)
+### Ikeda map (K. Ikeda, 1979)
 
 <!-- key: model.ikeda -->
 Ikeda map (K. Ikeda, 1979) — light circulating in a nonlinear optical cavity, where each pass rotates the complex field by an amount that depends on its own intensity. That intensity-dependent rotation is the whole mechanism: the more energetic part of the beam turns further, and the attractor's hook is the result.
@@ -505,7 +507,7 @@ x' = 1 + u·(x·cos t − y·sin t)
 y' = u·(x·sin t + y·cos t)
 ```
 
-## Clifford attractor (Clifford Pickover)
+### Clifford attractor (Clifford Pickover)
 
 <!-- key: model.clifford -->
 Clifford attractor (Clifford Pickover) — a trigonometric map with no physical derivation, kept because of what it draws. Every parameter change reshapes it entirely, which makes the four knobs worth turning slowly.
@@ -515,7 +517,7 @@ x' = sin(a·y) + c·cos(a·x)
 y' = sin(b·x) + d·cos(b·y)
 ```
 
-## Peter de Jong attractor
+### Peter de Jong attractor
 
 <!-- key: model.dejong -->
 Peter de Jong attractor — the same idea as Clifford's with the terms paired differently, and a different family of figures for it. Four knobs, an enormous space of shapes, and no way to predict which you will get.
@@ -524,6 +526,8 @@ Peter de Jong attractor — the same idea as Clifford's with the terms paired di
 x' = sin(a·y) − cos(b·x)
 y' = sin(c·x) − cos(d·y)
 ```
+
+### Gumowski-Mira Map
 
 <!-- key: model.mira -->
 Gumowski-Mira map (I. Gumowski and C. Mira, CERN, 1980) — written to study how a particle beam drifts turn after turn around an accelerator ring, and it produces organic, almost biological figures that look nothing like their origin. The shared nonlinearity g is applied twice per iterate, to x and then to the NEW x. Unlike the others here it is QUASI-PERIODIC at these settings rather than chaotic: the curves it draws are invariant curves the orbit winds around forever, not a fractal dust. Two orbits started a hair apart drift apart slowly instead of separating exponentially, which is why the figure looks woven rather than sprayed.
@@ -534,7 +538,7 @@ x' = y + a(1 − b·y²)·y + g(x)
 y' = −x + g(x')
 ```
 
-## Tinkerbell map
+### Tinkerbell map
 
 <!-- key: model.tinkerbell -->
 Tinkerbell map — a quadratic map of the plane whose orbit sweeps a curved, wing-like region. Bounded only for a narrow band of parameters; push the knobs and it escapes to infinity, which the renderer catches and reseeds rather than drawing NaNs.
@@ -544,6 +548,8 @@ x' = x² − y² + a·x + b·y
 y' = 2·x·y + c·x + d·y
 ```
 
+### Chirikov Standard Map
+
 <!-- key: model.standardmap -->
 Chirikov standard map (B. Chirikov, 1979) — the canonical AREA-PRESERVING map, and the one system here with no attractor at all. A kicked rotor: each iterate kicks the momentum by K·sin θ and lets the angle advance. Because area is preserved nothing contracts onto anything, so it is drawn as an ensemble of orbits rather than one — a single orbit would trace its own invariant curve and tell you nothing about the rest. Turn K up and watch the intact curves break into a chaotic sea with islands of stability stranded in it; near K ≈ 0.9716 the last curve spanning the phase space goes, and orbits can wander in momentum without bound.
 
@@ -552,39 +558,39 @@ p' = p + K·sin θ
 θ' = θ + p'   (both mod 2π)
 ```
 
-## Terminal
+### Terminal
 
 <!-- key: model.terminal -->
-Terminal — a live terminal, drawn as a model. It is the same texture-on-a-plane path the spectrogram and the recurrence plot use, so it rotates, zooms and takes a gradient like any other model; what is on the texture is \[xterm-go\](https://github.com/0magnet/xterm-go), a Go port of xterm.js, rendering a real terminal grid with WebGL2. That last part is what makes this possible rather than merely desirable: a terminal drawn as DOM could not be sampled into a texture at all, and rasterizing DOM every frame is not a thing worth doing. xterm-go renders into a canvas, and a canvas is a texture source. Behind it runs \[websh\](https://github.com/0magnet/websh), a Bash interpreter compiled to wasm over an in-memory filesystem, so this is a session you can work in and not a picture of one: pipes, globs, redirection, \`for\` loops, all of it rotating with the model. \*\*Double-click\*\* the canvas to type into it and \*\*Esc\*\* to give the keyboard back — a double click because a single one is how you rotate the model, and the two must not be the same gesture. Focusing it silences the app's own key bindings automatically, since Pong, the Keys module and the hovered-knob arrows all already stand aside for a focused textarea, which is what a terminal captures keys on. It can also be the BACKDROP behind another model, the way the spectrogram can.
+Terminal — a live terminal, drawn as a model. It is the same texture-on-a-plane path the spectrogram and the recurrence plot use, so it rotates, zooms and takes a gradient like any other model; what is on the texture is [xterm-go](https://github.com/0magnet/xterm-go), a Go port of xterm.js, rendering a real terminal grid with WebGL2. That last part is what makes this possible rather than merely desirable: a terminal drawn as DOM could not be sampled into a texture at all, and rasterizing DOM every frame is not a thing worth doing. xterm-go renders into a canvas, and a canvas is a texture source. Behind it runs [websh](https://github.com/0magnet/websh), a Bash interpreter compiled to wasm over an in-memory filesystem, so this is a session you can work in and not a picture of one: pipes, globs, redirection, \`for\` loops, all of it rotating with the model. **Double-click** the canvas to type into it and **Esc** to give the keyboard back — a double click because a single one is how you rotate the model, and the two must not be the same gesture. Focusing it silences the app's own key bindings automatically, since Pong, the Keys module and the hovered-knob arrows all already stand aside for a focused textarea, which is what a terminal captures keys on. It can also be the BACKDROP behind another model, the way the spectrogram can.
 
-## Terminal Animation
+### Terminal Animation
 
 <!-- key: model.termanim -->
-Terminal Animation — the same terminal-on-a-plane, with a drawing program on it instead of a shell. The catalog is \[tuiwasm\](https://github.com/0magnet/tuiwasm): twenty-one animations — fire, plasma, a matrix rain, an aquarium, a bonsai growing branch by branch, Langton's ant, falling sand — plus charts, tables and styled text. Pick one from the \*\*animation\*\* selector on this model's panel. The animations draw at half-block resolution: every cell is an upper or lower block glyph carrying its own foreground and background, which is two independently colored pixels per cell and roughly square ones, since a terminal cell is about twice as tall as it is wide. They run at the frame rate — the cells are written straight into xterm-go's buffer rather than encoded as escape sequences and parsed back, which is the difference between sixty frames a second and a wedged tab. Nothing is wired to the keyboard here, unlike the Terminal model: these draw, they do not read, and the animations quit on a keystroke. Like the terminal it can also be the BACKDROP behind another model.
+Terminal Animation — the same terminal-on-a-plane, with a drawing program on it instead of a shell. The catalog is [tuiwasm](https://github.com/0magnet/tuiwasm): animations — fire, plasma, a matrix rain, an aquarium, a bonsai growing branch by branch, Langton's ant, falling sand — plus charts, tables and styled text. Pick one from the prog selector on this model's panel. The animations draw at half-block resolution: every cell is an upper or lower block glyph carrying its own foreground and background, which is two independently colored pixels per cell and roughly square ones, since a terminal cell is about twice as tall as it is wide. They run at the frame rate — the cells are written straight into xterm-go's buffer rather than encoded as escape sequences and parsed back, which is the difference between sixty frames a second and a wedged tab. Nothing is wired to the keyboard here, unlike the Terminal model: these draw, they do not read, and the animations quit on a keystroke. Like the terminal it can also be the BACKDROP behind another model.
 
-## Host Shell
+### Host Shell
 
 <!-- key: model.hostterm -->
-Host Shell — a real shell on the machine serving this page, drawn as a model. The Terminal model beside it is \[websh\](https://github.com/0magnet/websh), a Bash interpreter compiled into the wasm over a filesystem that exists only in the browser; this one is a pty on the host, reached through the same agent the desk's host pane uses. It needs the server to have been started with \*\*--shell\*\*, which also forces a loopback bind — the server refuses that flag on a listener the network can reach rather than warning about it. Without the flag the terminal still opens and says so, because an empty rectangle with no explanation is the worse answer. \*\*Double-click\*\* the canvas to type into it and \*\*Esc\*\* to give the keyboard back, exactly as for the Terminal model. It reached the screen before this as a window inside the Desk; as a model it is the shell without the window manager around it.
+Host Shell — a real shell on the machine serving this page, drawn as a model. The Terminal model beside it is [websh](https://github.com/0magnet/websh), a Bash interpreter compiled into the wasm over a filesystem that exists only in the browser; this one is a pty on the host, reached through the same agent the desk's host pane uses. It needs the server to have been started with **--shell**, which also forces a loopback bind — the server refuses that flag on a listener the network can reach rather than warning about it. Without the flag the terminal still opens and says so, because an empty rectangle with no explanation is the worse answer. **Double-click** the canvas to type into it and **Esc** to give the keyboard back, exactly as for the Terminal model. It reached the screen before this as a window inside the Desk; as a model it is the shell without the window manager around it.
 
-## Desk
+### Desk
 
 <!-- key: model.desk -->
-Desk — a window manager, drawn as a model. The same texture-on-a-plane path the spectrogram, the recurrence plot and the Terminal use, with a whole \[desk\](https://github.com/0magnet/desk) on it: winbox windows, a \[websh\](https://github.com/0magnet/websh) shell in each, a file manager, all of them running while you rotate them.
+Desk — a window manager, drawn as a model. The same texture-on-a-plane path the spectrogram, the recurrence plot and the Terminal use, with a whole [desk](https://github.com/0magnet/desk) on it: winbox windows, a [websh](https://github.com/0magnet/websh) shell in each, a file manager, all of them running while you rotate them.
 
 It needed something from desk to be possible at all. A window is more than its pane — its title, buttons and border are DOM, and DOM cannot be sampled into a texture — so texturing the panes alone would give a desk of frameless rectangles. desk's WebGL compositor can now REDRAW the frames instead: each title bar is rasterized with Canvas2D, text and buttons and all, into the same canvas it draws the panes into, and that canvas is a complete picture of the desk.
 
-Nothing types into it while it is a model, and that is the arrangement rather than an omission for the MOUSE: a click on a rotated quad would have to be cast through it to a texture coordinate and synthesized back into a DOM event at a place nothing is. What you get instead are two gestures. \*\*Ctrl-drag\*\* reaches the desk, so ctrl-dragging a title bar moves a window while an ordinary drag still turns the model; the \*\*Pass-thru\*\* switch in the Desk module swaps the two if you would rather drag windows directly and hold ctrl to turn. And the KEYBOARD does reach it: \*\*double-click\*\* the canvas to type into the focused window and \*\*Esc\*\* to give the keyboard back, the same pair the Terminal and Host Shell models use.
+Nothing types into it while it is a model, and that is the arrangement rather than an omission for the MOUSE: a click on a rotated quad would have to be cast through it to a texture coordinate and synthesized back into a DOM event at a place nothing is. What you get instead are two gestures. **Ctrl-drag** reaches the desk, so ctrl-dragging a title bar moves a window while an ordinary drag still turns the model; the **pass** switch under the monitor (Pass-through) swaps the two if you would rather drag windows directly and hold ctrl to turn. And the KEYBOARD does reach it: **double-click** the canvas to type into the focused window and **Esc** to give the keyboard back, the same pair the Terminal and Host Shell models use.
 
-Aiming is the honest limitation — you are pointing at a projection, so a title bar is not where the pointer says it is. The \*\*Desk\*\* switch (Console → Window) puts the same windows on the page as ordinary DOM, which is the one to use for arranging them; rearrange there, then come back here to look at it. Flatten to work, rotate to admire. It can also be the BACKDROP behind another model, the way the spectrogram and the terminal can.
+Aiming is the honest limitation — you are pointing at a projection, so a title bar is not where the pointer says it is. The Desk switch (Console → Rack) puts the same windows on the page as ordinary DOM, which is the one to use for arranging them; rearrange there, then come back here to look at it. Flatten to work, rotate to admire. It can also be the BACKDROP behind another model, the way the spectrogram and the terminal can.
 
-## Lattice
+### Lattice
 
 <!-- key: model.lattice -->
-Lattice — a solid drawn in depth by terminals. \[lattice\](https://github.com/0magnet/lattice) is an ordinary terminal program that draws one cross-section of a turning solid in characters. Here 3N copies of it run, each in a terminal of its own, and the terminals are stacked as transparent sheets: N across each axis, three families each perpendicular to the other two. Whichever way the stack is turned, one family faces you and the other two are edge on, so the solid has depth from every side, and each family is brightened as it comes face on and dimmed as it goes edge on, so the solid stays as bright as it turns.
+Lattice — a solid drawn in depth by terminals. [lattice](https://github.com/0magnet/lattice) is an ordinary terminal program that draws one cross-section of a turning solid in characters. Here 3N copies of it run, each in a terminal of its own, and the terminals are stacked as transparent sheets: N across each axis, three families each perpendicular to the other two. Whichever way the stack is turned, one family faces you and the other two are edge on, so the solid has depth from every side, and each family is brightened as it comes face on and dimmed as it goes edge on, so the solid stays as bright as it turns.
 
 The terminals are real: each is xterm-go's emulator, and each program writes into it the same escape sequences it writes into any terminal. Only the drawing is the rack's, every character on a clear sheet, because a cell at the default background is clear, as it is in a translucent terminal. Seen from behind, a sheet reads mirrored, as glass does.
 
 The solid is turned by the time of day, not by the rack: `lattice -axis z -slice 6` in a real terminal of 24 columns by 12 rows beside the page draws the same slice at the same moment, because a terminal's size is the resolution — zoom it out and it draws a finer one.
 
-The Lattice module (in the View bay) is how the sheets are drawn: their rows, style, look, opacity, which families there are and what the view turns. Its L draws any other model the same way, from that model's trail, mesh or dots.
+The Lattice module (bay 2, beside Grid) is how the sheets are drawn: their rows, style, look, opacity, which families there are and what the view turns. The L button on its ROWS draws any other model the same way, from that model's trail, mesh or dots.

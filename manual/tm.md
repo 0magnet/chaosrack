@@ -31,10 +31,10 @@ Loop length — how many columns of the grid the playhead sweeps (outer ring: 12
 <!-- key: tm-root -->
 Root octave — the C the bottom row starts on; rows climb the major pentatonic from there (inner knob)
 
-- <!-- key: tm-root=1 --> C1 — the bottom row starts two octaves below middle C
-- <!-- key: tm-root=2 --> C2 — the bottom row starts one octave below middle C
-- <!-- key: tm-root=3 --> C3 — the bottom row starts at middle C
-- <!-- key: tm-root=4 --> C4 — the bottom row starts one octave above middle C
+- <!-- key: tm-root=1 --> C1 — the bottom row starts three octaves below middle C
+- <!-- key: tm-root=2 --> C2 — the bottom row starts two octaves below middle C
+- <!-- key: tm-root=3 --> C3 — the bottom row starts one octave below middle C
+- <!-- key: tm-root=4 --> C4 — the bottom row starts at middle C
 
 <!-- key: tm-lvl-led -->
 Matrix output level (0–100)
@@ -48,7 +48,7 @@ Reset the waveform
 ### Matrix voice
 
 <!-- key: tm-wave -->
-Matrix voice — the pings' shape: sine, tri, sqr, saw or noise. Where the Matrix and its drums are heard is the Mixer's: its MATRIX and DRUMS columns.
+Matrix voice — the pings' shape: sine, tri, sqr, saw or noise. Where the Matrix and its drums are heard is the Mixer's: its TM and DR columns.
 
 - <!-- key: tm-wave=0 --> sine — one pure frequency and no harmonics at all
 - <!-- key: tm-wave=1 --> triangle — odd harmonics falling away steeply: soft and hollow
@@ -72,7 +72,7 @@ Beat lamps — one per beat of the bar, lit on the beat you are hearing; the dow
 Clear — wipe every pad off the grid, drum lanes included
 
 <!-- key: rhythm-lvl-led -->
-Drum level (0–100), beside the pads' own; the drums follow the out ring
+Drum level (0–100), beside the pads' own; where the drums are heard is the Mixer's DR column
 
 <!-- key: rst-rhythm-lvl -->
 Reset the drum level

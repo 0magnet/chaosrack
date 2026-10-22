@@ -28,7 +28,7 @@ The pins: a column for each source, a row for each place it can go. Press a pin 
 - <!-- key: mix-group=cap --> CAP — the capture: what the system is playing (with chaosrack --audio), or the microphone. Measured, never played: it has no speaker pins.
 - <!-- key: mix-group=gen --> GEN — the four generators, as their knobs set them.
 - <!-- key: mix-group=model --> MODEL — Model Out: the running model's x, y and z, its own equations run at audio rate. The model's SPD and LVL are at the top of its bank's last column.
-- <!-- key: mix-group=inst --> INST — the instruments: the keys, the drums, the tone matrix, and the sounds a model makes itself (Pong's and Bounce's blips, the FVF wobbulator's Listen).
+- <!-- key: mix-group=inst --> INST — the instruments, in columns labeled KY (the keys), DR (the drums), TM (the tone matrix) and FX (the sounds a model makes itself: Pong's and Bounce's blips, the FVF wobbulator's Listen).
 
 - <!-- key: mix-src=cl --> CAP L — the capture's left channel
 - <!-- key: mix-src=cr --> CAP R — the capture's right channel
@@ -135,7 +135,7 @@ Depth of the selected route — type or scroll
 ### SHAPE
 
 <!-- key: mod-shape -->
-SHAPE — which way the source moves the selected control. push: one way, the further the louder, as a route always has. swing: both ways around the control's setting — louder than the music has lately been one way, quieter the other — so it sits at its setting on average. flip: out on a beat, the other way on the next, back between them. wave: the signal itself, not how loud it is — the source's newest sample, either side of the setting, as an X-Y scope's beam moves; a frame takes one sample, so a slow signal (a generator turned below A0) is traced, and a fast one lands anywhere in its swing. Head x, y and z are centered under every shape: the model at the middle moves nothing.
+SHAPE — which way the source moves the selected control. push: one way, the further the louder, as a route always has. swing: both ways around the control's setting — louder than the music has lately been one way, quieter the other — so it sits at its setting on average. flip: out on a beat, the other way on the next, back between them. wave: the signal itself, not how loud it is — the source's newest sample, either side of the setting, as an X-Y scope's beam moves; a frame takes one sample, so a slow signal (a generator turned down to a few hertz) is traced, and a fast one lands anywhere in its swing. Head x, y and z are centered under every shape: the model at the middle moves nothing.
 
 ### EQ
 
