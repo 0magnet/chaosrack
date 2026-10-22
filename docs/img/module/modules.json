@@ -2,20 +2,20 @@
   {
     "id": "cat-visual-module-0",
     "label": "Visual",
-    "title": "1.1 · Visual — every model, in one bay: attractors, maps, solids, geometry and sequences drawn in three dimensions, and the scope pictures, embeddings and audio displays drawn from a signal. The outer ring of the MODEL knob picks which kind, the inner ring which model, and the bank beside it is reprogrammed to that model's constants\n\nThe head of the row: the monitor, the knob that chooses which of this category's models is playing, its integration step, and anything that belongs to the category rather than to one model. Each model with constants of its own has a card of its own further along the row.",
+    "title": "1.1 · Visual — every model, in one bay: attractors, maps, solids, geometry and sequences drawn in three dimensions, and the scope pictures, embeddings and audio displays drawn from a signal. The outer ring of the MODEL knob picks which kind, the inner ring which model, and the bank beside it is reprogrammed to that model's constants\n\nThe head of the bay: the monitor, the switches under it, and the readouts of the model playing. The MODEL knob and the model's step head the bank beside it, which the MODEL knob reprograms.",
     "image": "docs/img/module/cat-visual-module-0.jpg",
     "mode": "lorenz",
     "controls": [
       {
         "label": "λ  --",
-        "title": "1.1.1 · Monitor — this bay's screen. It shows the model while this bay is the one driving the rack, and stands by when another is: only one model is drawn, so only one screen can carry a picture. The Screen switch under it cuts the copy out of the drawing buffer that the picture costs."
+        "title": "1.1.1 · Monitor — the model on a screen of its own, a copy of the picture. It stands by while the rack is off. The scrn switch under it turns the copy off, and with it what the copy costs."
       }
     ]
   },
   {
     "id": "bank-visual",
     "label": "Visual · Model",
-    "title": "1.3 · Visual · Model — a bank of 28 programmable controls: the MODEL knob, then every constant, pot and selector of the model it is set to. Each display names what the control under it does for that model; turning the MODEL knob reprograms them, and each model keeps its own settings while another is showing. With Back on (Layers · Colors) they are the backdrop's.",
+    "title": "1.3 · Visual · Model — a bank of 30 programmable controls: the MODEL knob, its step, then every constant, pot and selector of the model it is set to, and the groups the model brings into play: the section's plane, the Turtle's weight, the water lens and the spectrogram's analysis, dark until switched on. Each display names what the control under it does for that model; turning the MODEL knob reprograms them, and each model keeps its own settings while another is showing. With Back on (Layers · Colors) they are the backdrop's.",
     "image": "docs/img/module/bank-visual.jpg",
     "mode": "lorenz",
     "controls": [
@@ -41,7 +41,7 @@
       },
       {
         "label": "prog",
-        "title": "Program — which terminal program runs on the quad. Twenty-one animations plus the text demos, from tuiwasm; the list is built from what is registered, so it cannot drift from what is actually there."
+        "title": "Program — which terminal program runs on the quad: tuiwasm's animations and text demos; the list is built from what is registered, so it cannot drift from what is actually there."
       },
       {
         "label": "style",
@@ -101,7 +101,7 @@
       },
       {
         "label": "grav",
-        "title": "Physics — the figure as a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture. Its positions stand in the model bank after the Turtle Path's constants (Sequences). ON (on GRAV) switches it on; the knobs are live while it is on. GRAV pulls either way up; FRIC is how much the surfaces bite; BOUNCE is how much of the speed a wall gives back; SPIN is how readily it turns.\n\ngravity — pull in world units per second squared; below zero lifts."
+        "title": "Physics — the figure as a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture. Its positions stand in the model bank after the Turtle Path's constants (Sequences). ON (on GRAV) switches it on; the knobs are live while it is on. GRAV pulls either way up; FRIC is how much the surfaces bite; BOUNCE is how much of the speed a wall gives back; SPIN is how hard it is to turn.\n\ngravity — pull in world units per second squared; below zero lifts."
       },
       {
         "label": "ovlp",
@@ -129,15 +129,15 @@
       },
       {
         "label": "scale",
-        "title": "1.8.2 · scale — the magnitude scale: logarithmic, in dB, or linear. FLOOR and CEILING are read in the same scale."
+        "title": "1.8.2 · scale — the magnitude scale: logarithmic, in dB, or linear. MIN and MAX are read in the same scale."
       },
       {
         "label": "min",
-        "title": "1.8.3 · floor — the level, in dB, that maps to the bottom of the color scale; anything quieter is drawn black."
+        "title": "1.8.3 · min (the floor) — the level, in dB, that maps to the bottom of the color scale; anything quieter is drawn black."
       },
       {
         "label": "max",
-        "title": "1.9.1 · ceiling — the level, in dB, that maps to the top of the color scale; anything louder is drawn at full."
+        "title": "1.9.1 · max (the ceiling) — the level, in dB, that maps to the top of the color scale; anything louder is drawn at full."
       },
       {
         "label": "bend",
@@ -259,7 +259,7 @@
       },
       {
         "label": "model",
-        "title": "1.3.1 · Model — which of the generators in THIS bay is playing. Off means another bay is driving the rack; every bay keeps what it was set to either way.",
+        "title": "1.3.1 · Model — the model playing. The outer ring picks the category and the inner ring the model in it; OFF at the bottom of the outer ring powers the rack down, the same as the Console's Power switch, and every setting stays as it was.",
         "positions": [
           {
             "label": "off",
@@ -465,7 +465,7 @@
       },
       {
         "label": "par",
-        "title": "Globe — parallels — how the lines of latitude are drawn: as separate rings, or as one continuous spiral from pole to pole."
+        "title": "Globe — parallels — how the lines of latitude are drawn: as separate rings, or as one continuous spiral from pole to pole. Set by the buttons on LAT."
       },
       {
         "label": "rings",
@@ -473,7 +473,7 @@
       },
       {
         "label": "dir",
-        "title": "Globe — direction — which way the spiral of parallels winds. Only acts with par on spiral; the rings have no direction."
+        "title": "Globe — direction — which way the spiral of parallels winds, + or − on LAT. The rings have no direction."
       },
       {
         "label": "cw",
@@ -490,7 +490,7 @@
     "controls": [
       {
         "label": "X",
-        "title": "2.1.1 · X axis — angle knob, spin rate, horizontal position",
+        "title": "2.1.1 · X axis — the angle knob and its spin rate (ω)",
         "positions": [
           {
             "label": "0",
@@ -512,7 +512,7 @@
       },
       {
         "label": "Y",
-        "title": "2.1.2 · Y axis — angle knob, spin rate, vertical position",
+        "title": "2.1.2 · Y axis — the angle knob and its spin rate (ω)",
         "positions": [
           {
             "label": "0",
@@ -534,7 +534,7 @@
       },
       {
         "label": "Z",
-        "title": "2.1.3 · Z axis — angle knob, spin rate, zoom (depth)",
+        "title": "2.1.3 · Z axis — the angle knob and its spin rate (ω)",
         "positions": [
           {
             "label": "0",
@@ -625,7 +625,7 @@
   {
     "id": "grid",
     "label": "Grid",
-    "title": "2.3 · Grid — how many views of the model are drawn, what differs between them, and which of them the knobs are pointed at. It sits in the DISPLAY bay beside View and Position because it is a question about the picture, not about the signal: Trace is how one trajectory is drawn, View is where the camera is, and this is how many cameras there are.",
+    "title": "2.3 · Grid — how many views of the model are drawn, what differs between them, and which of them the knobs are pointed at. It sits beside View, Display and Layers · Colors because it is a question about the picture, not about the signal: Display is how one trajectory is drawn, View is where the camera is, and this is how many cameras there are.",
     "image": "docs/img/module/grid.jpg",
     "mode": "lorenz",
     "controls": [
@@ -678,7 +678,7 @@
   {
     "id": "lattice",
     "label": "Lattice",
-    "title": "2.5 · Lattice — any model drawn in depth by terminals. Each sheet of the stack is a real terminal running [lattice](https://github.com/0magnet/lattice), and each draws its own slice of the volume: with the Lattice model, its solid; with L lit on ROWS, the model chosen, whatever it is. The model's trail, mesh or dots are the figure every program is handed, and a voxel is lit where the figure passes through it, written as the way the figure runs across the sheet. The model keeps its own knobs in the bank, so it is played as ever; these six are how the lattice draws it. Pictures and terminals, which are flat already, are not drawn in it.",
+    "title": "2.5 · Lattice — any model drawn in depth by terminals. Each sheet of the stack is a real terminal running lattice, and each draws its own slice of the volume: with the Lattice model, its solid; with L lit on ROWS, the model chosen, whatever it is. The model's trail, mesh or dots are the figure every program is handed, and a voxel is lit where the figure passes through it, written as the way the figure runs across the sheet. The model keeps its own knobs in the bank, so it is played as ever; these six are how the lattice draws it. Pictures and terminals, which are flat already, are not drawn in it.",
     "image": "docs/img/module/lattice.jpg",
     "mode": "lorenz",
     "controls": [
@@ -731,7 +731,7 @@
   {
     "id": "display",
     "label": "Display",
-    "title": "2.7 · Display — trace rendering: line width, point decimation, trail length and mode, and the overlays drawn on the trace (Poincaré section, graticule). Three P-units; the switches are on their buttons. The twin trajectory is now the Grid's start sweep with Overlay on.",
+    "title": "2.7 · Display — trace rendering: line width, point decimation, trail length and mode, and the overlays drawn on the trace (Poincaré section, graticule). Three P-units; the switches are on their buttons.",
     "image": "docs/img/module/display.jpg",
     "mode": "lorenz",
     "controls": [
@@ -782,7 +782,7 @@
   {
     "id": "layers",
     "label": "Layers · Colors",
-    "title": "2.8 · Layers · Colors — how the picture is made up and colored. BEHIND draws a second picture filling the canvas behind the model and SKIN paints one onto its surface; BG is the color behind it all. SRC is what the color follows, MAP how a value becomes a color, PERIOD and SHIFT the window on the map, TRAIL how much of the trail stays lit, and START, MID and END the gradient's own colors. The switches: FILL makes the spectrogram or FVF plane the whole screen face-on, INVERT reverses the gradient, HELD stops the color range refitting itself.",
+    "title": "2.8 · Layers · Colors — how the picture is made up and colored. BEHIND draws a second picture filling the canvas behind the model and SKIN paints one onto its surface; BG is the color behind it all. SRC is what the color follows, MAP how a value becomes a color, PERIOD and SHIFT the window on the map, and START, MID and END the gradient's own colors. The buttons: F (fill) and B (back) on BEHIND, I (invert) on MAP, H (held) on SRC.",
     "image": "docs/img/module/layers.jpg",
     "mode": "lorenz",
     "controls": [
@@ -812,15 +812,15 @@
       },
       {
         "label": "src",
-        "title": "2.10.1 · Source — what the color follows. OFF is a flat trace in the start swatch: the color follows nothing, which is what used to be called the mono palette and is a statement about the SOURCE rather than about the map. X / Y / Z follow a coordinate of the figure; on the three delay embeddings those axes are one signal at three lags, so they color along different directions of the same figure rather than showing three different quantities. TRAIL follows age along the window. AUDIO paints the short-time spectral CENTROID along the trail — which frequency each moment sits at. LEVEL paints the short-time LEVEL instead, which is the quantity the spectrogram backdrop is painting, so with one of the colormap palettes behind it the figure and the backdrop say the same thing in the same language; AUDIO deliberately does not, and a figure colored by centroid over a spectrogram is not supposed to match it. Only the Takens, stereo and polar embeddings have a trail that is a time axis, so elsewhere both are one flat tint. Displays with a value of their own — the spectrogram, the RTA, the transfer function — do not consult this knob at all, and it dims in those modes."
+        "title": "2.10.1 · Source — what the color follows. OFF is a flat trace in the start swatch: the color follows nothing. X / Y / Z follow a coordinate of the figure; on the three delay embeddings those axes are one signal at three lags, so they color along different directions of the same figure rather than showing three different quantities. TRAIL follows age along the window. AUDIO paints the short-time spectral CENTROID along the trail — which frequency each moment sits at. LEVEL paints the short-time LEVEL instead, which is the quantity the spectrogram backdrop is painting, so with one of the colormap palettes behind it the figure and the backdrop say the same thing in the same language; AUDIO deliberately does not, and a figure colored by centroid over a spectrogram is not supposed to match it. Only the Takens, stereo and polar embeddings have a trail that is a time axis, so elsewhere both are one flat tint. Displays with a value of their own — the spectrogram, the RTA, the transfer function — do not consult this knob at all, and it dims in those modes."
       },
       {
         "label": "map",
-        "title": "2.10.2 · Map — how a value becomes a color, for every display in the rack including the spectrogram. 2 and 3 mix the Palette module's own swatches; HUE is a raw hue sweep; heat, blue, gray, turbo, viridis and magma are the published colormaps. Turbo and viridis are the even ones — equal steps in the value look like equal steps in color, which a hue sweep does not give you. This is the only colormap control there is: the spectrogram had a second one naming the same six maps, and two knobs that had to be kept in step by hand were one knob too many."
+        "title": "2.10.2 · Map — how a value becomes a color, for every display in the rack including the spectrogram. 2 and 3 mix the START, MID and END swatches; HUE is a raw hue sweep; heat, blue, gray, turbo, viridis and magma are the published colormaps. Turbo and viridis are the even ones — equal steps in the value look like equal steps in color, which a hue sweep does not give you. This is the only colormap control there is: the spectrogram had a second one naming the same six maps, and two knobs that had to be kept in step by hand were one knob too many."
       },
       {
         "label": "period",
-        "title": "2.10.3 · Palette period — how many times the palette is crossed across the trail (low = a narrow slice of it, which the shift knob then sweeps). Drives the rainbow AND the six colormaps: the question is the same one either way.",
+        "title": "2.10.3 · Palette period — how many times the palette is crossed across the trail (low = a narrow slice of it, which the shift knob then sweeps). Drives the hue sweep AND the six colormaps: the question is the same one either way.",
         "positions": [
           {
             "label": "0.05",
@@ -851,29 +851,29 @@
   {
     "id": "console",
     "label": "Console",
-    "title": "2.12 · Console — model selection, global actions, and every mode/effect switch in one module",
+    "title": "2.12 · Console — Reset All and Normalize, MIDI, and the switches for the rack itself and for motion. The model is chosen with the MODEL knob in bay 1.",
     "image": "docs/img/module/console.jpg",
     "mode": "lorenz",
     "controls": [
       {
         "label": "MIDI",
-        "title": "2.12.1.c · WebMIDI — hardware control: CC 1..N drive the current mode's parameter knobs in order, CC 21..28 the view targets (zoom, pans, spins, rainbow, trail), and any note hops to that note's attractor."
+        "title": "2.12.1.c · MIDI — hardware control over WebMIDI: CC 1 and up drive the model's continuous knobs in order, CC 21 to 29 the view (zoom, pan X, pan Y, spin X, Y and Z, period, trail and shift), and a note hops to a flow picked by the note."
       },
       {
         "label": "Power",
-        "title": "2.12.1.d · Power — the render loop. Off stops it and clears the canvas, which is what the GPU costs; the panel stays, so every setting is still there to read and to change. A switch again, and back in the Rack group where the rest of the frame's own controls are: it had been folded into the model knob's first detent, which made powering down look like choosing a model called OFF and put the rack's power switch inside the one control that had nothing to do with the rack."
+        "title": "2.12.1.d · Power — the model. Off stops it and clears the canvas, which is what the GPU costs; the scopes and meters still read what plays, and every setting is still there to read and to change. OFF on the MODEL knob is the same switch."
       },
       {
         "label": "Rack bay",
-        "title": "2.12.2.a · Rack bay — draw the 19-inch frame each ROW of modules sits in: rails above and below, an ear each side, and blank panels filling the leftover at the end of the row on the same slot pitch. The modules wrap, and a row is a bay, so a rack that has spilled onto a second row gets a second frame. Handles and panel screws are chosen on the Style module: the inner ring of Size."
+        "title": "2.12.2.a · Rack bay — draw the 19-inch frame each ROW of modules sits in: rails above and below, an ear each side, and blank panels filling the leftover at the end of the row on the same slot pitch. The modules wrap, and a row is a bay, so a rack that has spilled onto a second row gets a second frame. While it is on, a click on one of a bay's top screws moves the bay up a place, on a bottom screw down one; the order is kept in this browser, and the addresses on a moved bay follow it."
       },
       {
         "label": "Info",
-        "title": "2.12.2.b · Overlay a short description of the current attractor / model on the view"
+        "title": "2.12.2.b · Info — opens the Info window: the model playing, described, or, while the rack is off, the manual's page for the bay last worked at."
       },
       {
         "label": "Fullscreen",
-        "title": "2.12.2.c · Toggle browser fullscreen — the canvas fills the display; the panel stays available"
+        "title": "2.12.2.c · Fullscreen — the browser's full screen: the canvas fills the display, and the panel stays available"
       },
       {
         "label": "Desk",
@@ -1020,7 +1020,7 @@
   {
     "id": "preset",
     "label": "Presets",
-    "title": "3.4 · Presets — the current view, saved under a name. A preset holds everything the permalink holds: the model, every knob and color, the effect switches, the parameters and the pose. Recalling one resets to defaults and re-applies it, exactly as the Patchbay's numbered patch memories do; the difference is that these have names, and the address bar does not have to carry them.",
+    "title": "3.4 · Presets — the current view, saved under a name. A preset holds everything the permalink holds: the model, every knob and color, the effect switches, the parameters and the pose. Recalling one resets to defaults and re-applies it, exactly as the numbered patch memories on this module do; the difference is that these have names, and the address bar does not have to carry them.",
     "image": "docs/img/module/preset.jpg",
     "mode": "lorenz",
     "controls": [
@@ -1041,7 +1041,7 @@
   {
     "id": "counter",
     "label": "Counter",
-    "title": "3.5 · Counter — a frequency counter for the rack, in the spirit of the glensstuff.com NAND-gate counter: it counts trigger crossings of the live audio source over the gate window and shows cycles per second, the way the discrete-logic original did. Feed it the mic, the ws stream, or the signal generator.",
+    "title": "3.5 · Counter — a frequency counter for the rack, in the spirit of the glensstuff.com NAND-gate counter: it counts trigger crossings of the live audio source over the gate window and shows cycles per second, the way the discrete-logic original did. It counts the rack's own signal: whatever the Mixer pins to RACK L and R.",
     "image": "docs/img/module/counter.jpg",
     "mode": "lorenz",
     "controls": [
@@ -1144,7 +1144,7 @@
         "positions": [
           {
             "label": "5/s",
-            "title": "3.7.3 · Five a second — the window is 341 ms, so this is as often as there is new audio to measure"
+            "title": "3.7.3 · Five a second — faster than the 341 ms window refills, so each reading shares audio with the one before: the most responsive, and the most work"
           },
           {
             "label": "2.5/s",
@@ -1283,7 +1283,7 @@
   {
     "id": "feat",
     "label": "Features",
-    "title": "3.11 · Features — what the Mod matrix's audio routes read, as a meter bridge: six LED bar graphs, one for each feature of the incoming audio's mono mix, the same numbers a route modulates a knob by. Each ladder is twenty segments, green to 70%, amber to 90% and red above. The levels are relative, not absolute: each feature is scaled by its own recent peak (instant rise, slow fall), so a quiet passage still fills the ladders and a loud one does not pin them. Dark while modulation is off — nothing routed and no feed from the server — since then nothing is measured. They were a strip over the top-left of the picture with a switch to hide it; as a module they are on the rack beside the other meters, and off the picture.",
+    "title": "3.11 · Features — what the Mod matrix's audio routes read, as a meter bridge: six LED bar graphs, one for each feature of the incoming audio's mono mix, the same numbers a route modulates a knob by. Each ladder is twenty segments, green to 70%, amber to 90% and red above. The levels are relative, not absolute: each feature is scaled by its own recent peak (instant rise, slow fall), so a quiet passage still fills the ladders and a loud one does not pin them. Dark while modulation is off — nothing routed and no feed from the server — since then nothing is measured.",
     "image": "docs/img/module/feat.jpg",
     "mode": "lorenz",
     "controls": [
@@ -1301,23 +1301,23 @@
     "mode": "lorenz",
     "controls": [
       {
-        "label": "000.24133.4",
+        "label": "000.33733.3",
         "title": "3.12.1.a · Timing / fps / LED readout / Frames a second sustained over the last window — the reciprocal of the MEAN frame, so a hitch counts against it"
       },
       {
-        "label": "4133.44133.4",
+        "label": "3733.33733.3",
         "title": "3.12.1.c · Timing / min / LED readout / Shortest frame in the window, in ms — which is the display's own interval, since nothing renders faster than vsync"
       },
       {
-        "label": "000.04127.90",
+        "label": "000.03727.30",
         "title": "3.12.2.b · Timing / late / LED readout / Percentage of frames that missed the display's interval by half again or more. This is the number that corresponds to visible hesitation; the frame rate alone does not."
       },
       {
-        "label": "03.3002.10",
+        "label": "03.0002.80",
         "title": "3.12.3.a · Timing / model / LED readout / Milliseconds a frame spent ISSUING the model's draw calls. A WebGL call queues a command and returns without waiting for pixels, so this reads far below what the model really costs — the GPU and compositor share of it is in REST. Useful for what it does catch: geometry rebuilt every frame instead of cached."
       },
       {
-        "label": "00.10 TBC",
+        "label": "00.20 TBC",
         "title": "3.12.3.c"
       },
       {
@@ -1329,7 +1329,7 @@
   {
     "id": "scope",
     "label": "Scope 1",
-    "title": "4.1 · Scope 1 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.",
+    "title": "4.1 · Scope 1 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob, INTENSITY, with two mini knobs beneath: I, SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; and F, FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.",
     "image": "docs/img/module/scope.jpg",
     "mode": "lorenz",
     "controls": [
@@ -1490,7 +1490,7 @@
   {
     "id": "gen-x",
     "label": "Gen 1",
-    "title": "4.3 · Gen 1 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz up to 28160 Hz, over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.\n\nWhere it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 1 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.",
+    "title": "4.3 · Gen 1 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz to 28160 Hz, a one-octave piano strip under it lighting the note it is on; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.\n\nWhere it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 1 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.",
     "image": "docs/img/module/gen-x.jpg",
     "mode": "lorenz",
     "controls": [
@@ -1579,7 +1579,7 @@
   {
     "id": "scope2",
     "label": "Scope 2",
-    "title": "4.4 · Scope 2 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.",
+    "title": "4.4 · Scope 2 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob, INTENSITY, with two mini knobs beneath: I, SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; and F, FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.",
     "image": "docs/img/module/scope2.jpg",
     "mode": "lorenz",
     "controls": [
@@ -1740,7 +1740,7 @@
   {
     "id": "gen-y",
     "label": "Gen 2",
-    "title": "4.6 · Gen 2 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz up to 28160 Hz, over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.\n\nWhere it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 2 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.",
+    "title": "4.6 · Gen 2 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz to 28160 Hz, a one-octave piano strip under it lighting the note it is on; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.\n\nWhere it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 2 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.",
     "image": "docs/img/module/gen-y.jpg",
     "mode": "lorenz",
     "controls": [
@@ -1829,7 +1829,7 @@
   {
     "id": "scope3",
     "label": "Scope 3",
-    "title": "4.7 · Scope 3 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.",
+    "title": "4.7 · Scope 3 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob, INTENSITY, with two mini knobs beneath: I, SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; and F, FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.",
     "image": "docs/img/module/scope3.jpg",
     "mode": "lorenz",
     "controls": [
@@ -1990,7 +1990,7 @@
   {
     "id": "gen-z",
     "label": "Gen 3",
-    "title": "4.9 · Gen 3 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz up to 28160 Hz, over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.\n\nWhere it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 3 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.",
+    "title": "4.9 · Gen 3 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz to 28160 Hz, a one-octave piano strip under it lighting the note it is on; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.\n\nWhere it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 3 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.",
     "image": "docs/img/module/gen-z.jpg",
     "mode": "lorenz",
     "controls": [
@@ -2079,7 +2079,7 @@
   {
     "id": "scope4",
     "label": "Scope 4",
-    "title": "4.10 · Scope 4 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.",
+    "title": "4.10 · Scope 4 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob, INTENSITY, with two mini knobs beneath: I, SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; and F, FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.",
     "image": "docs/img/module/scope4.jpg",
     "mode": "lorenz",
     "controls": [
@@ -2240,7 +2240,7 @@
   {
     "id": "gen-v",
     "label": "Gen 4",
-    "title": "4.12 · Gen 4 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz up to 28160 Hz, over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.\n\nWhere it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 4 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.",
+    "title": "4.12 · Gen 4 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz to 28160 Hz, a one-octave piano strip under it lighting the note it is on; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.\n\nWhere it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 4 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.",
     "image": "docs/img/module/gen-v.jpg",
     "mode": "lorenz",
     "controls": [
@@ -2329,7 +2329,7 @@
   {
     "id": "synth-synth",
     "label": "Synth",
-    "title": "5.1 · Synth — the sound the keyboard plays. PRESET sets every knob on the bay to an instrument, as a place to start from; LVL is how loud. Where it is heard is the Mixer's: its KEYS column.",
+    "title": "5.1 · Synth — the sound the keyboard plays. PRST sets every knob on the bay to an instrument, as a place to start from; LVL is how loud. Where it is heard is the Mixer's: its KY column.",
     "image": "docs/img/module/synth-synth.jpg",
     "mode": "lorenz",
     "controls": [
@@ -2722,7 +2722,7 @@
       },
       {
         "label": "ktrk",
-        "title": "5.11.3 · Key tracking — how much shorter the decay is up the keyboard: 1 is an octave shorter every eighteen semitones, a piano's; 0 is the same everywhere.",
+        "title": "5.11.3 · Key tracking — how much shorter the decay is up the keyboard: 1 halves the decay every eighteen semitones up from C3, a piano's; 0 is the same everywhere.",
         "positions": [
           {
             "label": "0",
@@ -2798,19 +2798,19 @@
         "positions": [
           {
             "label": "C1",
-            "title": "7.1.2 · C1 — the bottom row starts two octaves below middle C"
+            "title": "7.1.2 · C1 — the bottom row starts three octaves below middle C"
           },
           {
             "label": "C2",
-            "title": "7.1.2 · C2 — the bottom row starts one octave below middle C"
+            "title": "7.1.2 · C2 — the bottom row starts two octaves below middle C"
           },
           {
             "label": "C3",
-            "title": "7.1.2 · C3 — the bottom row starts at middle C"
+            "title": "7.1.2 · C3 — the bottom row starts one octave below middle C"
           },
           {
             "label": "C4",
-            "title": "7.1.2 · C4 — the bottom row starts one octave above middle C"
+            "title": "7.1.2 · C4 — the bottom row starts at middle C"
           },
           {
             "label": "12",
@@ -2956,7 +2956,7 @@
       },
       {
         "label": "shape",
-        "title": "8.6.3 · SHAPE — which way the source moves the selected control. push: one way, the further the louder, as a route always has. swing: both ways around the control's setting — louder than the music has lately been one way, quieter the other — so it sits at its setting on average. flip: out on a beat, the other way on the next, back between them. wave: the signal itself, not how loud it is — the source's newest sample, either side of the setting, as an X-Y scope's beam moves; a frame takes one sample, so a slow signal (a generator turned below A0) is traced, and a fast one lands anywhere in its swing. Head x, y and z are centered under every shape: the model at the middle moves nothing."
+        "title": "8.6.3 · SHAPE — which way the source moves the selected control. push: one way, the further the louder, as a route always has. swing: both ways around the control's setting — louder than the music has lately been one way, quieter the other — so it sits at its setting on average. flip: out on a beat, the other way on the next, back between them. wave: the signal itself, not how loud it is — the source's newest sample, either side of the setting, as an X-Y scope's beam moves; a frame takes one sample, so a slow signal (a generator turned down to a few hertz) is traced, and a fast one lands anywhere in its swing. Head x, y and z are centered under every shape: the model at the middle moves nothing."
       },
       {
         "label": "eq",

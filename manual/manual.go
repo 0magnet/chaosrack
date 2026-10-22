@@ -258,7 +258,10 @@ var (
 		"</h5>", "\n\n", "</h6>", "\n\n", "</ul>", "\n", "</ol>", "\n",
 		"</blockquote>", "\n\n",
 	)
-	tags    = regexp.MustCompile(`<[^>]*>`)
+	tags = regexp.MustCompile(`<[^>]*>`)
+	// A link keeps where it goes, after its text: a tooltip has nothing to
+	// click, and the README, written from this text, links a bare URL.
+	links   = regexp.MustCompile(`<a href="([^"]*)">(.*?)</a>`)
 	blanks  = regexp.MustCompile(`\n{3,}`)
 	listGap = regexp.MustCompile(`\n\n• `)
 )
@@ -273,7 +276,7 @@ func PlainText(md string) string {
 
 // plainOf is rendered HTML as the text PlainText gives.
 func plainOf(h string) string {
-	s := tagBreak.Replace(h)
+	s := links.ReplaceAllString(tagBreak.Replace(h), "$2 ($1)")
 	s = html.UnescapeString(tags.ReplaceAllString(s, ""))
 	s = blanks.ReplaceAllString(s, "\n\n")
 	s = listGap.ReplaceAllString(s, "\n• ")
