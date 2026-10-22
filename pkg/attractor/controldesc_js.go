@@ -15,68 +15,6 @@ import (
 // than re-deriving from the DOM.
 var builtControls []*Control
 
-// buildDescControl builds one control from its descriptor: a hidden range
-// slider (the value source of truth), an LED numeric readout with a
-// single-sourced format, wheel-to-step, and a reset button — all owned by a
-// Control registered in builtControls. The knob and the cell's placement are
-// the caller's job (compose with makeKnob(ctl.slider) etc.), so this stays
-// layout-agnostic. Returns the Control and the numeric-readout element.
-//
-// This is the one place that decides a control's LED format, reset behavior,
-// and value-change plumbing, so those can never again drift between call sites.
-//
-//nolint:unused // the CREATE path of the registry — dormant until modules are built from descriptors
-func buildDescControl(d ControlDesc) (*Control, js.Value) {
-	dec := led.Decimals(d.Step, fineRatio)
-	intDig := led.IntDigits(d.Min, d.Max)
-
-	slider := dom.Doc.Call("createElement", "input")
-	slider.Set("type", "range")
-	slider.Set("id", d.ID)
-	slider.Set("min", strconv.FormatFloat(d.Min, 'g', -1, 64))
-	slider.Set("max", strconv.FormatFloat(d.Max, 'g', -1, 64))
-	slider.Set("step", strconv.FormatFloat(d.Step, 'g', -1, 64)) // before value so the thumb isn't snapped
-	setSpec(d.ID, d.Min, d.Max, d.Step)
-	slider.Set("value", strconv.FormatFloat(d.Def, 'g', -1, 64))
-	slider.Set("style", "display:none;")
-
-	ctl := &Control{
-		module: "", kind: kindGeneric, slider: slider, def: float32(d.Def),
-		ledInt: intDig, ledDec: dec, ledSign: d.Signed, permaKey: d.PermaKey,
-	}
-
-	led := dom.Doc.Call("createElement", "input")
-	led.Set("type", "text")
-	led.Set("inputmode", "decimal")
-	led.Set("className", "numin u-val")
-	led.Set("value", ctl.formatValue(d.Def))
-	sizeLEDField(led, d.Min, d.Max, dec, d.Signed)
-
-	apply := func(v float64) {
-		led.Set("value", ctl.formatValue(v))
-		if d.Apply != nil {
-			d.Apply(v)
-		}
-	}
-	dom.On(slider, "input", func(this js.Value, a []js.Value) any {
-		if v, err := strconv.ParseFloat(slider.Get("value").String(), 64); err == nil {
-			apply(v)
-		}
-		return nil
-	})
-	dom.On(led, "input", func(this js.Value, a []js.Value) any {
-		if v, err := parseReadout(led.Get("value").String()); err == nil {
-			slider.Set("value", strconv.FormatFloat(v, 'g', -1, 64))
-			apply(v)
-		}
-		return nil
-	})
-	wheelNudge(led, slider, d.Step, d.Min, d.Max)
-
-	builtControls = append(builtControls, ctl)
-	return ctl, led
-}
-
 // adoptDescControl wires an EXISTING template-declared control (slider + LED
 // readout + reset button already in the DOM) onto a descriptor, making the
 // descriptor the single owner of its behavior: LED format, slider→state

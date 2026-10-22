@@ -34,11 +34,6 @@ import (
 // position cannot be reprogrammed from a knob into a switch, so a category
 // whose models mix them has a section of each, each as big as its biggest.
 
-// bankCategories are the rows drawn as a bank rather than as cards: a row
-// label, which for a merged row is its group's (see rackRows).
-// One row, one bank for every model (see rackRowGroups).
-var bankCategories = map[string]bool{"Visual": true}
-
 // bankChars is how many characters a bank's displays hold: its longest
 // legend, but never fewer than bankMinChars nor more than bankMaxChars. Every
 // display in a bank is the same size, whatever it is showing, because it is
@@ -116,7 +111,7 @@ func buildBankRow(label string, own []string, cells map[string][]js.Value, steps
 		if len(members) == 0 {
 			continue
 		}
-		fc := buildFamilyCell(f, true)
+		fc := buildFamilyCell(f)
 		fc.Call("setAttribute", "data-bank-for", strings.Join(members, " "))
 		common = append(common, fc)
 	}
@@ -192,7 +187,7 @@ func buildBankRow(label string, own []string, cells map[string][]js.Value, steps
 	if bank.Truthy() {
 		bankGrid = bank.Call("querySelector", ".catbank")
 	}
-	head := buildBayHead(label, 0, own, steps, nil, bankGrid)
+	head := buildBayHead(label, 0, own, steps, bankGrid)
 	var blankFor []string
 	for _, m := range free {
 		c, ok := stepFill[m]
@@ -558,7 +553,6 @@ func unassignedControl(model js.Value) js.Value {
 	}
 	strip("[id]", func(e js.Value) { e.Call("removeAttribute", "id") })
 	strip("[title]", func(e js.Value) { e.Call("removeAttribute", "title") })
-	strip(".gtag", func(e js.Value) { e.Call("remove") })
 	strip(".dmdwin", func(e js.Value) {
 		n, err := strconv.Atoi(e.Call("getAttribute", "data-chars").String())
 		if err != nil || n < 1 {
