@@ -105,7 +105,7 @@ panel), ctl and rack reach it.`,
 		// Pages). Falls back to Go-only if this build has no TinyGo asset.
 		dualPage := func(c *gin.Context) {
 			d := htmlTemplateData{
-				HostConfig:    hostConfigJS(),
+				HostConfig:    hostConfigJS(c.Request),
 				AudioFeed:     pageAudioFeed(c.Request),
 				WobbulateCtl:  wobbulateCtlOffered() && trustedPageHost(c.Request),
 				Title:         "Go",
@@ -267,7 +267,7 @@ panel), ctl and rack reach it.`,
 				fmt.Printf("  TinyGo WASM: http://%s/tinygo/index.html\n", at)
 			}
 			if err := r1.RunListener(ln); err != nil {
-				panic(err)
+				log.Fatalf("chaosrack: serving: %v", err)
 			}
 		})
 		wg.Wait()
@@ -306,7 +306,7 @@ func serveError(c *gin.Context, msg string) {
 	fmt.Println(msg)
 	c.Data(http.StatusInternalServerError, "text/html;charset=utf-8",
 		[]byte(fmt.Sprintf(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Error</title></head><body style='background-color: black; color: white;'><div>%s</div></body></html>`,
-			strings.ReplaceAll(msg, "\n", "<br>"))))
+			strings.ReplaceAll(htmpl.HTMLEscapeString(msg), "\n", "<br>"))))
 }
 
 func loggingMiddleware() gin.HandlerFunc {

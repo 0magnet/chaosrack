@@ -3,13 +3,10 @@ package rackhost
 import (
 	"math"
 	"math/rand/v2"
-	"strconv"
 	"time"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
-	"github.com/0magnet/chaosrack/pkg/controlspec"
 	"github.com/0magnet/chaosrack/pkg/rackpic"
-	"github.com/0magnet/chaosrack/pkg/racktui"
 	"github.com/0magnet/chaosrack/pkg/ripple"
 )
 
@@ -135,22 +132,8 @@ func (r *Rack) waterDrive() float32 {
 	return r.waterEnv.follow((rms(l)+rms(rt))/2, r.sound.now())
 }
 
-// waterSettings is the lens's knobs now (the page's Water module, here
-// listed controls). Called with r.mu held.
+// waterSettings is the lens's knobs now (the Water group in the model
+// bank). Called with r.mu held.
 func (r *Rack) waterSettings() attractor.WaterSettings {
 	return attractor.WaterFrom(func(id string) float32 { return float32(r.number(id)) })
-}
-
-// addWaterControls gives the rack the lens's knobs should a catalog lack them:
-// one captured before the Water module was in the rack whatever runs.
-func (r *Rack) addWaterControls() {
-	for _, k := range attractor.WaterKnobs {
-		r.addControl(racktui.Control{
-			ControlInfo: controlspec.ControlInfo{
-				ID: k.ID, Label: k.Label, Module: "water",
-				Min: float64(k.Min), Max: float64(k.Max), Step: float64(k.Step), Def: float64(k.Def),
-			},
-			Value: strconv.FormatFloat(float64(k.Def), 'g', -1, 32),
-		})
-	}
 }

@@ -83,6 +83,11 @@ func buildBankRow(label string, own []string, cells map[string][]js.Value, steps
 			measure(s)
 		}
 	}
+	for _, cs := range gcells {
+		for _, c := range cs {
+			measure(c)
+		}
+	}
 
 	var some js.Value
 	var free []string
@@ -351,8 +356,10 @@ func buildBankModule(label string, modes []string, cells map[string][]js.Value) 
 	// its constants, and the pots and selectors that used to be a module of
 	// its own (modelparts_js.go).
 	return wrapCategoryModule(label, "bank-"+categorySlug(label)+"-module", label+" · Model", grid,
-		label+" · Model — a bank of "+strconv.Itoa(size)+" programmable controls: the MODEL knob, "+
-			"then every constant, pot and selector of the model it is set to. Each display names "+
+		label+" · Model — a bank of "+strconv.Itoa(size+bankHeadCells)+" programmable controls: the MODEL knob, "+
+			"its step, then every constant, pot and selector of the model it is set to, and the groups "+
+			"the model brings into play: the section's plane, the Turtle's weight, the water lens and the "+
+			"spectrogram's analysis, dark until switched on. Each display names "+
 			"what the control under it does for that model; turning the MODEL knob reprograms them, "+
 			"and each model keeps its own settings while another is showing. With Back on (Layers · "+
 			"Colors) they are the backdrop's.")

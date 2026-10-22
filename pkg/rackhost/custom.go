@@ -119,8 +119,8 @@ func (r *Rack) seedCustomKnobs() {
 		}
 	}
 	put("custom-dt", r.custom.Dt())
-	// The Turtle's Physics knobs too, for a catalog captured before the
-	// Physics module was in the rack whatever runs.
+	// The Turtle's Physics knobs too, should a catalog carry them with no
+	// value.
 	for _, k := range attractor.TurtlePhysicsKnobs {
 		put(k.ID, k.Def)
 	}

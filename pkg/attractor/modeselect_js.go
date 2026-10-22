@@ -32,8 +32,7 @@ func setPowerState(on bool) {
 		return
 	}
 	run.stopped = true
-	glctx.GL.Call("clearColor", 0, 0, 0, 0)
-	glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
+	clearScreen()
 	glctx.GL.Call("clear", glctx.Types.DepthBufferBit)
 	updateInfoOverlay() // and the manual, now there is no model to describe
 }

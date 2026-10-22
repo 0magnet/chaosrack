@@ -2,7 +2,7 @@
 
 package attractor
 
-// The Mod module (bay 7): every audio-modulation route on one pin matrix,
+// The Mod module (the last bay, Routing): every audio-modulation route on one pin matrix,
 // and the selected route's depth and EQ under it.
 //
 // Each row is a destination: the running model's parameters, then the view's

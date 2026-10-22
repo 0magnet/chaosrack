@@ -108,8 +108,7 @@ func (t *transferMode) drawTransfer() {
 	}
 	lines := t.Lines(analyzerColors())
 	glctx.GL.Call("disable", glctx.Types.DepthTest)
-	glctx.GL.Call("clearColor", 0, 0, 0, 0)
-	glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
+	clearScreen()
 	if len(lines) == 0 {
 		return
 	}

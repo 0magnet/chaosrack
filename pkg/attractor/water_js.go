@@ -107,7 +107,7 @@ var (
 func (wa *waterLens) damping() float32 { return wa.damp / 1000 }
 
 func init() {
-	// The Water module's knobs, from the shared table (waterlens.go).
+	// The Water group's knobs, from the shared table (waterlens.go).
 	field := map[string]*float32{
 		"water-amount": &water.amount, "water-speed": &water.speed, "water-damp": &water.damp,
 		"water-spread": &water.spread, "water-edge": &water.edge, "water-drive": &water.drive,

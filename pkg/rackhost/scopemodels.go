@@ -150,7 +150,7 @@ const turtleModMax = 300
 // aspect wider.
 const turtleRoom = 1 / 0.85
 
-// turtlePhysics is the Turtle's weight with the Physics module's ON up,
+// turtlePhysics is the Turtle's weight with the Physics group's ON up,
 // or nil: the room, the Physics knobs, and the page's step at the Speed
 // knob's sub-steps and scale. Called with r.mu held.
 func (r *Rack) turtlePhysics(steps int, scale float64) *attractor.TurtlePhysics {

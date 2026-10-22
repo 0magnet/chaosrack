@@ -29,7 +29,7 @@ import (
 // The sections. A unit holds as many as fit; a section too wide for a unit
 // continues into the next.
 const (
-	secConsole = "console" // the master section: model choice, global acts, capture
+	secConsole = "console" // capture, presets, style and the meters (the Console module is in secDisplay)
 	secMod     = "mod"     // routing: the Mixer, and the modulation matrix and its EQ
 	secModel   = "model"   // the instrument proper and its per-mode panels
 	secDisplay = "display" // how the picture is drawn: pose, color, grid, style

@@ -675,11 +675,6 @@ func renderLoop(this js.Value, args []js.Value) any {
 	drawRackScopes()
 	tpanel.budget.Scope += scopeMark.ms()
 
-	// Audio modes (spectrogram, xy) render with their own shader
-	// program on the shared #gocanvas. Route them here so we skip the
-	// entire 3D attractor pipeline for the frame. Transition helpers
-	// swap the useProgram binding when moving between attractor and
-	// audio modes so neither pipeline sees the other's state.
 	if len(args) > 0 {
 		frameNowMs = args[0].Float() // rAF timestamp (ms), used by spectrogram scroll
 		tpanel.frame(frameNowMs)     // the rack's own frame meter; see timing.go
@@ -730,6 +725,11 @@ func renderLoop(this js.Value, args []js.Value) any {
 		return nil
 	}
 
+	// Audio modes (spectrogram, xy) render with their own shader
+	// program on the shared #gocanvas. Route them here so we skip the
+	// entire 3D attractor pipeline for the frame. Transition helpers
+	// swap the useProgram binding when moving between attractor and
+	// audio modes so neither pipeline sees the other's state.
 	if isAudioMode(run.selectedMode) {
 		if !aud.modeActive {
 			aud.activateAudioMode()

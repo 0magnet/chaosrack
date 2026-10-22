@@ -231,9 +231,11 @@ func (p *pairState) admit(pr pairing.Proof, path string, now time.Time) error {
 	if _, ok := p.seen[sig]; ok {
 		return errors.New("pairing: a proof used before")
 	}
-	p.seen[sig] = now
+	// Remembered once admitted, not before: a browser nobody paired could
+	// fill the set with proofs its key signs, each one new.
 	key := pr.KeyHex()
 	if p.keys[key] {
+		p.seen[sig] = now
 		return nil
 	}
 	if pr.Pair == "" || subtle.ConstantTimeCompare([]byte(pr.Pair), []byte(p.secret)) != 1 {
@@ -251,6 +253,7 @@ func (p *pairState) admit(pr pairing.Proof, path string, now time.Time) error {
 		return err
 	}
 	p.keys[key] = true
+	p.seen[sig] = now
 	log.Printf("chaosrack: paired a browser: %s", key) //nolint:gosec // hex, made here from the verified key
 	return nil
 }

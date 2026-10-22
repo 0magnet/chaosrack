@@ -43,7 +43,11 @@ func (inPageRack) Controls() ([]racktui.Control, error) {
 		c := racktui.Control{ControlInfo: in}
 		if el := dom.Doc.Call("getElementById", in.ID); el.Truthy() {
 			c.Value = controlValueOf(el)
-			if at := el.Call("closest", "[data-loc]"); at.Truthy() {
+			at := el
+			if in.IsSwitch {
+				at = switchFace(el, in.ID)
+			}
+			if at := at.Call("closest", "[data-loc]"); at.Truthy() {
 				c.Loc = at.Call("getAttribute", "data-loc").String()
 			}
 			c.PUnit = el.Call("closest", ".pu").Truthy()

@@ -4,8 +4,10 @@ package attractor
 
 import (
 	"fmt"
+	"maps"
 	"math"
 	"runtime"
+	"slices"
 	"strconv"
 	"syscall/js"
 	"time"
@@ -528,8 +530,9 @@ func onResetAll(this js.Value, args []js.Value) any {
 		c.resetToDefault()
 	}
 
-	// Reset all parameters to defaults
-	for _, params := range attractorParams {
+	// Reset all parameters to defaults, and the Turtle's weight, which is no
+	// model's parameter (turtlePhysParams).
+	for _, params := range append(slices.Collect(maps.Values(attractorParams)), turtlePhysParams) {
 		for _, p := range params {
 			*p.Value = p.Def
 			// And on its control, which a bank keeps from model to model
@@ -594,10 +597,9 @@ func onResetAll(this js.Value, args []js.Value) any {
 		def bool
 	}{
 		{"spect-fill", false},
-		{"spectro-skin", false},
 		{"handles-on", false}, {"desk-pass", false}, {"desk-contain", false},
 		{"jam-sw", false},
-		{"ring-sw", false}, {"grid-ovl", false}, {"sect-sw", false},
+		{"ring-sw", false}, {"grid-ovl", false}, {"sect-sw", false}, {"phys-sw", false},
 		// Through their change, as a press would: their P-unit buttons light
 		// from it (POINTS +, TRAIL +, MAP I).
 		{"use-points", false}, {"persist-trail", false}, {"gradient-reverse", false},
@@ -1074,7 +1076,7 @@ func wirePanelSwitches() {
 			skin.source = sk.Get("value").String()
 			skin.dirty = true
 			generateForMode(run.selectedMode)
-			buildParamPanel(run.selectedMode) // the Spectro module arrives and leaves with it
+			buildParamPanel(run.selectedMode) // the desk's and the terminal's extras follow the skin
 			return nil
 		})
 		// No PermaKey: "sk" already carries it in permaCtls.
@@ -1244,7 +1246,7 @@ func wirePanelSwitches() {
 }
 
 // wireExtraNav puts the host page's own navigation into the Console, and
-// settles the Physics and Section modules once the URL hash has chosen the mode.
+// settles the Physics and Section groups once the URL hash has chosen the mode.
 func wireExtraNav() {
 	// Their cells blank by the mode, and the earlier sync ran against the
 	// default one.
@@ -1368,12 +1370,22 @@ func buildRackAndRestore() {
 	// how a value becomes a color).
 }
 
-// wirePowerSwitch is the rack's own power: off stops the render loop and
-// clears the canvas, keeping the panel.
+// clearScreen clears the canvas to nothing, for power off and the screens
+// that draw on no background, and leaves the clear color the BG picker's
+// again: the model's frames clear to it, and a screen that left it black
+// took the picker's tint away until the picker was next moved.
+func clearScreen() {
+	glctx.GL.Call("clearColor", 0, 0, 0, 0)
+	glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
+	glctx.GL.Call("clearColor", style.bgColor[0], style.bgColor[1], style.bgColor[2], 0)
+}
+
+// wirePowerSwitch is the rack's own power: off stops the model and clears
+// the canvas, and the loop goes on, so the scopes and meters still read what
+// plays; every setting is still there to read and to change. A switch again:
+// it had been folded into the model category knob's first detent, and when
+// that knob moved to the rows it would have gone with it.
 func wirePowerSwitch() {
-	// every setting is still there to read and to change. A switch again: it
-	// had been folded into the model category knob's first detent, and when
-	// that knob moved to the rows it would have gone with it.
 	if sw := dom.Doc.Call("getElementById", "power-sw"); sw.Truthy() {
 		dom.On(sw, "change", func(this js.Value, args []js.Value) any {
 			setPowerState(sw.Get("checked").Bool())
@@ -1383,17 +1395,9 @@ func wirePowerSwitch() {
 			return nil
 		})
 	}
-
-	// Fullscreen switch — on requests fullscreen, off exits. Kept in sync with
-	// the actual fullscreen state (fullscreenchange fires on Esc etc.).
-	// requestFullscreen/exitFullscreen return a promise that REJECTS when the
-	// browser refuses (no user gesture, a permissions-policy block, or some
-	// mobile/embedded contexts → "Permissions check failed"). Swallow that with
-	// a .catch and re-sync the switch to reality, so it never surfaces as an
-	// unhandled promise rejection.
 }
 
-// wirePhysSwitch is the Physics switch, the ON on the Physics module's GRAV.
+// wirePhysSwitch is the Physics switch, the ON on the Physics group's GRAV, in the model bank.
 func wirePhysSwitch() {
 	// The figure's weight is not one of its parameters: it is the same figure
 	// whatever it weighs. Throwing it hands the placing over to the body.
@@ -1418,8 +1422,6 @@ func wirePhysSwitch() {
 		})
 		syncHomedModules(run.selectedMode) // a definite state before any mode change
 	}
-
-	// Power switch (default on): off stops the render loop and clears the
 }
 
 // wireColorControls wires the color swatches, their Hue/Sat/Val knobs and

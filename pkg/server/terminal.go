@@ -10,10 +10,11 @@ package server
 // screen, or when you want to sweep a knob and watch a reading rather than
 // drag something with a mouse.
 //
-// They drive a RUNNING rack: the instrument is wasm in a page and these are
-// the cable to it (internal/rackcable). That is also why -attach defaults to
-// this binary's own port — the usual case is the server you just started and
-// the tab you opened on it.
+// The panel runs the instrument itself, natively (pkg/rackhost), unless
+// --via, --server or --attach points it at a rack in a page; ctl and rack
+// drive a running page through the cable to it (internal/rackcable). That is
+// why --attach defaults to this binary's own port: the usual case is the
+// server you just started and the tab you opened on it.
 
 import (
 	"context"

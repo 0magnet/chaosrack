@@ -2,7 +2,7 @@
 
 package attractor
 
-// The Presets module (Window > Presets): the front panel of the store in
+// The Presets module: the front panel of the store in
 // pkg/preset.
 //
 // Save writes serializeState() — the same string the address bar carries and

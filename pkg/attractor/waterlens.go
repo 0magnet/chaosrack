@@ -27,7 +27,7 @@ type WaterKnob struct {
 	Def, Min, Max, Step float32
 }
 
-// WaterKnobs are the Water module's knobs, in its order: what the page
+// WaterKnobs are the Water group's knobs, in its order: what the page
 // builds them from, and what a native rack offers.
 var WaterKnobs = []WaterKnob{
 	{"water-amount", "bend", WaterDefaults.Amount, 0, 200, 1},

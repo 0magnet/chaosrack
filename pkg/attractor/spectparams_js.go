@@ -52,7 +52,7 @@ func spectDFTNames() []string {
 //
 // WFN, not "win". The three delay embeddings label a window LENGTH in
 // milliseconds "win", and this is a window FUNCTION — and the two can be on
-// screen at once, because the Spectro module keeps these controls while the
+// screen at once, because the Spectro group keeps these controls while the
 // spectrogram is being used as a backdrop behind another model. One label
 // meaning two things three inches apart is a label doing harm.
 //
