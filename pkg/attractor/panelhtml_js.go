@@ -101,14 +101,6 @@ const controlsBody = `
 <button class="pushbtn" id="bounce-drop" data-doc="bounce-drop"></button>
 <button class="pushbtn" id="stlfile-load" data-doc="stlfile-load"></button>
 </div>
-<div class="sect" id="spectro-module"><div class="sect-hdr" data-doc="spectro">Spectro</div>
-<div id="spectro-params" class="row"></div></div>
-<div class="sect" id="section-module"><div class="sect-hdr" data-doc="sect-module">Section</div>
-<div id="section-params" class="row"></div></div>
-<div class="sect" id="water-module"><div class="sect-hdr" data-doc="water-module">Water</div>
-<div id="water-params" class="row"></div></div>
-<div class="sect" id="physics-module"><div class="sect-hdr" data-doc="phys-module">Physics</div>
-<div id="physics-params" class="row"></div></div>
 <div class="sect" id="record-module"><div class="sect-hdr" data-doc="record">Record</div>
 <div class="recgrid">
   <div class="rec-screen-unit" data-no-drag>

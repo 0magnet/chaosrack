@@ -448,7 +448,7 @@ TOP and RNGE place the scale in dBFS; AVG is the meter's averaging, quick to ris
 ### Spectrogram
 
 <!-- key: model.spectrogram -->
-Spectrogram — a scrolling short-time Fourier transform of the live audio: frequency up the plane, time scrolling right to left, magnitude as color. It is a display inspired by Vanya Sergeev's audioprism, written in Go (github.com/0magnet/audioprism-go) and drawn here as a texture on a plane in the same 3-D pipeline as every other model, so it rotates and zooms like one — and the same texture can be painted onto other geometry with the skin switch. The Spectrogram module exposes the whole chain: transform size, overlap, window function, magnitude scale and limits, and color scheme.
+Spectrogram — a scrolling short-time Fourier transform of the live audio: frequency up the plane, time scrolling right to left, magnitude as color. It is a display inspired by Vanya Sergeev's audioprism, written in Go (github.com/0magnet/audioprism-go) and drawn here as a texture on a plane in the same 3-D pipeline as every other model, so it rotates and zooms like one — and the same texture can be painted onto other geometry with the skin switch. Its controls in the model bank expose the whole chain: transform size, overlap, window function, channel, magnitude scale and limits.
 
 ### Custom Equations
 

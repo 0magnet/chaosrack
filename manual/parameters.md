@@ -869,14 +869,14 @@ Equation — the running model's system, one derivative per state variable. Edit
 ### Section (Poincaré)
 
 <!-- key: sect-module -->
-Where the Poincaré section's plane sits, and which way through it counts. ON (on AXIS) switches the section on over a running flow, as LINE's S does; the knobs are live over a flow while it is on, and always under Analysis → Poincaré Section, whose plane they are. AXIS and POS place it — POS as a fraction of the attractor's own reach along that axis, so 0 is through the middle whatever the system's size. DIR one way is the default: a bounded flow that goes up through a plane must come back down through it, so counting both superimposes two different sections. The crossings draw in gold where they physically are; Analysis → Poincaré Section is the same section as a picture of its own, with the return map.
+Section — where the Poincaré section's plane sits, and which way through it counts. Its three positions stand in the model bank after a flow's constants, and after the Poincaré Section model's (Maps). ON (on AXIS) switches the section on over a running flow, as LINE's S does; the knobs are live over a flow while it is on, and always under the Poincaré Section model, whose plane they are. AXIS and POS place it — POS as a fraction of the attractor's own reach along that axis, so 0 is through the middle whatever the system's size. DIR one way is the default: a bounded flow that goes up through a plane must come back down through it, so counting both superimposes two different sections. The crossings draw in gold where they physically are; the Poincaré Section model is the same section as a picture of its own, with the return map.
 
 - <!-- key: trio.sect-axis=0 --> ON: the Poincaré section over a running flow (LINE's S is the same switch)
 
 ### Water (lens)
 
 <!-- key: water-module -->
-The water lens's tank: the finished picture seen through a rippling surface. Drag across the picture to make a wake; DRIVE lets the sound push the water from SPKRS points, and RAIN drops on it at random. Its knobs are live while BEHIND is on water, and can be set before it is.
+Water — the water lens's tank: the finished picture seen through a rippling surface. Its positions are in the model bank, the same for every model, and dark there until BEHIND (Layers · Colors) is on water. Drag across the picture to make a wake; DRIVE lets the sound push the water from SPKRS points, and RAIN drops on it at random.
 
 ### bend
 
@@ -1018,7 +1018,7 @@ d{v}/dt for {mode}. Edit it to make your own: the rack switches to Custom, seede
 ### Physics (Turtle Path)
 
 <!-- key: phys-module -->
-The figure as a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture. ON (on GRAV) switches it on; the knobs are live while it is on and the Turtle Path is running. GRAV pulls either way up; FRIC is how much the surfaces bite; BOUNCE is how much of the speed a wall gives back; SPIN is how readily it turns.
+Physics — the figure as a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture. Its positions stand in the model bank after the Turtle Path's constants (Sequences). ON (on GRAV) switches it on; the knobs are live while it is on. GRAV pulls either way up; FRIC is how much the surfaces bite; BOUNCE is how much of the speed a wall gives back; SPIN is how readily it turns.
 
 - <!-- key: trio.turtle-grav=0 --> ON: physics — the Turtle Path as a rigid body that falls, slides and bounces
 

@@ -60,7 +60,7 @@ const (
 // position the head keeps for it, with a display rather than a printed "dt":
 // a bay that someday holds a model with no step, or a step by another name,
 // shows that on the same part.
-func buildBankRow(label string, own []string, cells map[string][]js.Value, steps map[string]js.Value, shared, hidden, tail []js.Value) []js.Value {
+func buildBankRow(label string, own []string, cells map[string][]js.Value, steps map[string]js.Value, shared, hidden, tail []js.Value, groups []bankGroup, gcells [][]js.Value) []js.Value {
 	// One display size for the whole bay, head and bank alike.
 	bankChars = bankMinChars
 	measure := func(c js.Value) {
@@ -155,6 +155,12 @@ func buildBankRow(label string, own []string, cells map[string][]js.Value, steps
 		}
 		cells[m] = laid
 	}
+	// How far each model's own cells reach, for the homed modules' runs
+	// (placeHomedGroups), before Model Out takes the last column.
+	used := map[string]int{}
+	for _, m := range own {
+		used[m] = len(cells[m])
+	}
 	bankTail(own, cells, tail)
 	// How many of the bay's controls each model has, for the MODEL list
 	// (bayPicker): its step, or the cell standing in for one, and every
@@ -173,6 +179,8 @@ func buildBankRow(label string, own []string, cells map[string][]js.Value, steps
 		}
 		bankControls[m] = n
 	}
+	// Then the homed modules' cells, which are no model's and so not counted.
+	hidden = append(hidden, placeHomedGroups(used, cells, groups, gcells)...)
 	// The bank first: the head's MODEL knob and step go into it.
 	bank := buildBankModule(label, own, cells)
 	var bankGrid js.Value

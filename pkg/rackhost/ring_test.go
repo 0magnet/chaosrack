@@ -47,16 +47,12 @@ func TestTheFreqRingLightsInItsOctavesColor(t *testing.T) {
 func TestABankRingFollowsItsKnob(t *testing.T) {
 	r := newRack(t)
 	set(t, r, r.selector, "lorenz")
-	var id string
-	for k, rg := range r.rings {
-		c := r.ctls[r.byID[k]]
-		if r.inBank[k] && !c.IsSelect && c.Min >= 0 && rg.spec.String()[0] == 'b' {
-			id = k
-			break
-		}
-	}
-	if id == "" {
-		t.Fatal("no bounded ring in Lorenz's bank")
+	// One of Lorenz's own constants. (A bounded knob found anywhere in the
+	// bank's region was this once, and the region reached the Display
+	// module's TRAIL while the bay-3 modules were bank controls outside it.)
+	id := "lorenz-s"
+	if _, ok := r.rings[id]; !ok || !r.inBank[id] {
+		t.Fatalf("%s has no ring in Lorenz's bank", id)
 	}
 	rg, c := r.rings[id], r.ctls[r.byID[id]]
 	lit := func() (n int) {

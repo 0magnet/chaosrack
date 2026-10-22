@@ -47,9 +47,9 @@ func TestPresetModuleMarkupHasItsControls(t *testing.T) {
 // exists and cannot be removed, so they are listed here by name rather than
 // by rule.
 func TestOnlyModelOwnedModulesShipHidden(t *testing.T) {
-	modelOwned := map[string]bool{
-		"spectro-module": true, // the spectrogram as a layer rather than the model
-	}
+	// None now: the spectrogram's controls, the last of them, are in the
+	// model bank (homedmods_js.go).
+	modelOwned := map[string]bool{}
 	rest := controlsBody
 	for {
 		i := strings.Index(rest, ` style="display:none"`)

@@ -125,10 +125,10 @@ var moduleSections = map[string]string{
 	// CONSOLE it packed into the spare slot at the end of the bay after,
 	// among the modules that only some models bring into play.
 	"console": secDisplay,
-	// The capture monitor leads the display bay: it carries a
-	// screen, so it leads a bay wherever it goes, and at the left of that bay
-	// it is the first thing read there. See moduleOrder.
-	"record": secDisplay,
+	// The capture monitor leads the Console bay: it carries a screen, so it
+	// leads a bay wherever it goes, and capture is the Console's, as saving
+	// and recalling the rack is. See moduleOrder.
+	"record": secConsole,
 	// Saving and recalling the whole rack is the Console's job.
 	"presets": secConsole,
 	// Timing measures the INSTRUMENT, not the signal: how fast the rack
@@ -162,12 +162,10 @@ var moduleSections = map[string]string{
 	"view":            secDisplay,
 	"display":         secDisplay,
 	"layers · colors": secDisplay,
-	"spectro":         secDisplay,
-	// What is switched on over the picture: the section through a flow, the
-	// water in front of it, the weight of a Turtle walk.
-	"section": secDisplay,
-	"water":   secDisplay,
-	"physics": secDisplay,
+	// The lattice draws the model, as the grid draws round it. (What is
+	// switched on over the picture — the section through a flow, the water in
+	// front of it, the weight of a Turtle walk, the spectrogram — is in the
+	// model bank, in the room the model's constants leave: homedmods_js.go.)
 	"lattice": secDisplay,
 
 	// Everything that MAKES a signal, under the scope that draws one.
@@ -317,12 +315,13 @@ func sectionOrderOf(items []packItem) []int {
 }
 
 // moduleOrder is the order within a section where it matters more than the
-// order the modules were declared in. The display bay opens the rack: the
-// capture monitor, then what places the model on screen (its pose, its
-// position, how many views, how it is drawn), then how it is colored.
+// order the modules were declared in. The display bay: what places the model
+// on screen (its pose, its position, the lattice it may be drawn in, how many
+// views, how it is drawn), then how it is colored, then the Console module,
+// where the model is chosen.
 //
-// The display bay ends with the Console module. The Console bay reads left
-// to right from the rack itself (Style, Presets) to the meters, with Timing,
+// The Console bay reads left to right from the capture monitor, which leads
+// it, and the rack itself (Style, Presets) to the meters, with Timing,
 // the rack's own meter, last. (Model Out, the model as sound, is in the
 // model's own bank now: modelOutParams.)
 //
@@ -332,8 +331,8 @@ func sectionOrderOf(items []packItem) []int {
 //
 // Anything not listed keeps its declared order, after these.
 var moduleOrder = []string{
-	"record", "view", "grid", "display", "layers · colors", "console", "lattice",
-	"style", "presets", "counter", "distortion", "loudness", "wow & flutter", "features", "timing",
+	"view", "grid", "lattice", "display", "layers · colors", "console",
+	"record", "style", "presets", "counter", "distortion", "loudness", "wow & flutter", "features", "timing",
 	"scope 1", "gen 1", "scope 2", "gen 2", "scope 3", "gen 3", "scope 4", "gen 4",
 	"synth", "string", "fm", "wave · noise", "filter", "amp",
 	"mixer", "mod",

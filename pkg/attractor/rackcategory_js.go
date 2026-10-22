@@ -281,7 +281,8 @@ func buildCategoryRow(label string, claimed map[string]bool) []js.Value {
 				mo = append(mo, sc)
 			}
 		}
-		return buildBankRow(label, own, cells, steps, sharedCells, hidden, mo)
+		groups, gcells := homedBankGroups(own)
+		return buildBankRow(label, own, cells, steps, sharedCells, hidden, mo, groups, gcells)
 	}
 
 	// How wide this category's heads are. Every bay spends catHeadCols on

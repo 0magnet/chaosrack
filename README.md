@@ -50,17 +50,13 @@ to the analog computers at [glensstuff.com](https://glensstuff.com).
 - [The rack](#the-rack)
   - [Visual](#visual)
   - [Visual · Model](#visual--model)
-  - [Record](#record)
   - [View](#view)
   - [Grid](#grid)
+  - [Lattice](#lattice-1)
   - [Display](#display)
   - [Layers · Colors](#layers--colors)
-  - [Lattice](#lattice-1)
-  - [Spectro](#spectro)
-  - [Section](#section)
-  - [Water](#water)
-  - [Physics](#physics)
   - [Console](#console)
+  - [Record](#record)
   - [Style](#style)
   - [Presets](#presets)
   - [Counter](#counter)
@@ -1440,7 +1436,7 @@ Audio comes from the active source — the microphone, a server feed, or the sig
 | --- | --- |
 | ![Spectrogram](docs/img/model/spectrogram.jpg) | ![Spectrogram, animated](https://chaosrack.magnetosphere.net/docs/img/model/spectrogram.gif) |
 
-Spectrogram — a scrolling short-time Fourier transform of the live audio: frequency up the plane, time scrolling right to left, magnitude as color. It is a display inspired by Vanya Sergeev's audioprism, written in Go (github.com/0magnet/audioprism-go) and drawn here as a texture on a plane in the same 3-D pipeline as every other model, so it rotates and zooms like one — and the same texture can be painted onto other geometry with the skin switch. The Spectrogram module exposes the whole chain: transform size, overlap, window function, magnitude scale and limits, and color scheme.
+Spectrogram — a scrolling short-time Fourier transform of the live audio: frequency up the plane, time scrolling right to left, magnitude as color. It is a display inspired by Vanya Sergeev's audioprism, written in Go (github.com/0magnet/audioprism-go) and drawn here as a texture on a plane in the same 3-D pipeline as every other model, so it rotates and zooms like one — and the same texture can be painted onto other geometry with the skin switch. Its controls in the model bank expose the whole chain: transform size, overlap, window function, channel, magnitude scale and limits.
 
 `#spectrogram` · audio
 
@@ -1588,7 +1584,7 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Visual
 
-<img src="docs/img/module/cat-visual-module-0.jpg" alt="The Visual module" width="287" height="514" align="left">
+<img src="docs/img/module/cat-visual-module-0.jpg" alt="The Visual module" width="288" height="514" align="left">
 
 1.1 · Visual — every model, in one bay: attractors, maps, solids, geometry and sequences drawn in three dimensions, and the scope pictures, embeddings and audio displays drawn from a signal. The outer ring of the MODEL knob picks which kind, the inner ring which model, and the bank beside it is reprogrammed to that model's constants  The head of the row: the monitor, the knob that chooses which of this category's models is playing, its integration step, and anything that belongs to the category rather than to one model. Each model with constants of its own has a card of its own further along the row.
 
@@ -1623,7 +1619,29 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 - **c** — Rossler — c — a constant of the Rossler system. It enters dz/dt = b + z·(x - c)
 - **β** — 1.4.2 · Lorenz — β — a constant of the Lorenz system. It enters dz/dt = x·y - β·z
 - **wave** — Wave — the carrier waveform: square, pulse, or a sub-octave square (divided by two)
+- **axis** — 1.6.1 · Section — where the Poincaré section's plane sits, and which way through it counts. Its three positions stand in the model bank after a flow's constants, and after the Poincaré Section model's (Maps). ON (on AXIS) switches the section on over a running flow, as LINE's S does; the knobs are live over a flow while it is on, and always under the Poincaré Section model, whose plane they are. AXIS and POS place it — POS as a fraction of the attractor's own reach along that axis, so 0 is through the middle whatever the system's size. DIR one way is the default: a bounded flow that goes up through a plane must come back down through it, so counting both superimposes two different sections. The crossings draw in gold where they physically are; the Poincaré Section model is the same section as a picture of its own, with the return map.  axis — the axis the section plane is perpendicular to.
 - **mod** — Mod — the modulator topology: ring (four-quadrant) or AM (balanced)
+- **pos** — 1.6.2 · pos — where the plane sits along AXIS, as a fraction of the attractor's own reach: 0 is through the middle whatever the system's size.
+- **dir** — 1.6.3 · dir — which way through the plane counts as a crossing. One way is the default because a bounded flow that goes up through a plane must come back down, and keeping both superimposes two different sections.
+- **dft** — 1.7.1 · Spectro — the spectrogram's own controls, wherever it is: the model (Spectrogram, or FVF's surface), the skin painted on a surface (SKIN on spectrogram), or the backdrop filling the canvas behind the model (BEHIND on spectrogram). They are positions in the model bank, the same for every model, and dark there until one of those three puts a spectrogram on screen.  DFT size — points per transform: larger resolves frequency finer and time coarser.
+- **grav** — Physics — the figure as a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture. Its positions stand in the model bank after the Turtle Path's constants (Sequences). ON (on GRAV) switches it on; the knobs are live while it is on. GRAV pulls either way up; FRIC is how much the surfaces bite; BOUNCE is how much of the speed a wall gives back; SPIN is how readily it turns.  gravity — pull in world units per second squared; below zero lifts.
+- **ovlp** — 1.7.2 · overlap — how much each transform overlaps the one before, in percent: more is a smoother scroll for more work.
+- **fric** — friction — how much the figure is slowed where it touches.
+- **wfn** — 1.7.3 · window function — the taper each block is shaped by before its transform: Hann is the usual; rectangular is sharpest and leaks the most.
+- **bounce** — bounce — how much of its speed the figure keeps off a wall.
+- **chan** — 1.8.1 · channel — which signal is analyzed: the mix of both, or the left or right alone.
+- **spin** — spin — how hard the figure is to turn.
+- **scale** — 1.8.2 · scale — the magnitude scale: logarithmic, in dB, or linear. FLOOR and CEILING are read in the same scale.
+- **min** — 1.8.3 · floor — the level, in dB, that maps to the bottom of the color scale; anything quieter is drawn black.
+- **max** — 1.9.1 · ceiling — the level, in dB, that maps to the top of the color scale; anything louder is drawn at full.
+- **bend** — 1.9.2 · Water — the water lens's tank: the finished picture seen through a rippling surface. Its positions are in the model bank, the same for every model, and dark there until BEHIND (Layers · Colors) is on water. Drag across the picture to make a wake; DRIVE lets the sound push the water from SPKRS points, and RAIN drops on it at random.  bend — how far the surface's slope moves the picture behind it. Zero is clear glass, whatever the water does.
+- **speed** — 1.9.3 · speed — how fast a ripple crosses the tank.
+- **damp** — 1.10.1 · damp — how much of a wave survives each step, in thousandths: 990 rings for seconds, 900 dies before it crosses.
+- **visc** — 1.10.2 · viscosity — smooths the surface each step, so fine ripples fade before broad ones.
+- **walls** — 1.10.3 · walls — how much of a wave the edges send back, in percent. 100 is a tank with its own echoes; 0 is open water.
+- **drive** — 1.11.1 · drive — how hard the sound pushes the surface. Zero leaves it to the pointer and the rain.
+- **spkrs** — 1.11.2 · speakers — how many points in the tank the sound pushes from, spread round a circle.
+- **rain** — 1.11.3 · rain — drops a second, falling at random.
 - **spd** — 1.12.1 · Model Out SPD — how fast the model runs as a signal, in semitones: every 12 up is twice as fast, an octave higher. For a system of equations, integrator steps per sample, 0 being one step a sample; the pitch is the system's own. For a beam, its speed round the figure, so the pitch is that speed over the figure's length, which the HZ readout over the equation shows.
 - **lvl** — 1.12.2 · Model Out LVL — the level of the model's x, y and z, as the Mixer takes them (0–100).
 - **speed** — 1.12.3 · SPEED — the model's time base, at 1.12.3 below Model Out. For a flow it sets integration sub-steps per drawn vertex above ×1, and scales dt below ×1; for an animated model (Lissajous, turtle, pong, morph) it sets the playback rate. Dark for models with no time base of their own (geometry, maps, analysis displays).
@@ -1634,24 +1652,12 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 - **a** — 1.5.1 · Unassigned — Lorenz has no control in this position.
 - **a** — 1.5.2 · Unassigned — Lorenz has no control in this position.
 - **a** — 1.5.3 · Unassigned — Lorenz has no control in this position.
-- **a** — 1.6.1 · Unassigned — Lorenz has no control in this position.
-- **a** — 1.6.2 · Unassigned — Lorenz has no control in this position.
-- **a** — 1.6.3 · Unassigned — Lorenz has no control in this position.
-- **a** — 1.7.1 · Unassigned — Lorenz has no control in this position.
-- **a** — 1.7.2 · Unassigned — Lorenz has no control in this position.
-- **a** — 1.7.3 · Unassigned — Lorenz has no control in this position.
-- **a** — 1.8.1 · Unassigned — Lorenz has no control in this position.
-- **a** — 1.8.2 · Unassigned — Lorenz has no control in this position.
-- **a** — 1.8.3 · Unassigned — Lorenz has no control in this position.
-- **a** — 1.9.1 · Unassigned — Lorenz has no control in this position.
-- **a** — 1.9.2 · Unassigned — Lorenz has no control in this position.
-- **a** — 1.9.3 · Unassigned — Lorenz has no control in this position.
-- **a** — 1.10.1 · Unassigned — Lorenz has no control in this position.
-- **a** — 1.10.2 · Unassigned — Lorenz has no control in this position.
-- **a** — 1.10.3 · Unassigned — Lorenz has no control in this position.
-- **a** — 1.11.1 · Unassigned — Lorenz has no control in this position.
-- **a** — 1.11.2 · Unassigned — Lorenz has no control in this position.
-- **a** — 1.11.3 · Unassigned — Lorenz has no control in this position.
+- **a** — Nothing to reset: this model has no parameter at this position
+- **a** — Nothing to reset: this model has no parameter at this position
+- **a** — Nothing to reset: this model has no parameter at this position
+- **a** — Nothing to reset: this model has no parameter at this position
+- **a** — Nothing to reset: this model has no parameter at this position
+- **a** — Nothing to reset: this model has no parameter at this position
 - **a** — Nothing to reset: this model has no parameter at this position
 - **a** — Nothing to reset: this model has no parameter at this position
 - **a** — Nothing to reset: this model has no parameter at this position
@@ -1705,54 +1711,40 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 </details>
 
-### Record
-
-<img src="docs/img/module/record.jpg" alt="The Record module" width="287" height="514" align="right">
-
-2.1 · Record — a monitor showing exactly what will be captured, and the transport that captures it. The picture is the recorded area, not the whole canvas, so what you see here is what lands in the file.
-
-<details><summary>Controls</summary>
-
-- **Monitor** — 2.1.2.a · Monitor — power to this module's screen. The picture is a copy out of the model's own drawing buffer every frame, which is not free; the rack shows every module in a bay now, so a screen you are not watching needs a switch of its own rather than relying on the module being put away. Off, the glass goes dark and the module costs nothing.
-
-</details>
-
-<br clear="all">
-
 ### View
 
-<img src="docs/img/module/view.jpg" alt="The View module" width="287" height="514" align="left">
+<img src="docs/img/module/view.jpg" alt="The View module" width="288" height="514" align="right">
 
-2.3 · View — orientation: per-axis angle knobs and continuous spin rates
+2.1 · View — orientation: per-axis angle knobs and continuous spin rates
 
 <details><summary>Controls</summary>
 
-- **X** — 2.3.1 · X axis — angle knob, spin rate, horizontal position
+- **X** — 2.1.1 · X axis — angle knob, spin rate, horizontal position
   - `0` — 0° — a quarter-turn mark on the angle scale
   - `90` — 90° — a quarter-turn mark on the angle scale
   - `180` — 180° — a quarter-turn mark on the angle scale
   - `270` — 270° — a quarter-turn mark on the angle scale
-- **Y** — 2.3.2 · Y axis — angle knob, spin rate, vertical position
+- **Y** — 2.1.2 · Y axis — angle knob, spin rate, vertical position
   - `0` — 0° — a quarter-turn mark on the angle scale
   - `90` — 90° — a quarter-turn mark on the angle scale
   - `180` — 180° — a quarter-turn mark on the angle scale
   - `270` — 270° — a quarter-turn mark on the angle scale
-- **Z** — 2.3.3 · Z axis — angle knob, spin rate, zoom (depth)
+- **Z** — 2.1.3 · Z axis — angle knob, spin rate, zoom (depth)
   - `0` — 0° — a quarter-turn mark on the angle scale
   - `90` — 90° — a quarter-turn mark on the angle scale
   - `180` — 180° — a quarter-turn mark on the angle scale
   - `270` — 270° — a quarter-turn mark on the angle scale
-- **X** — 2.4.1 · X position — slides the model sideways. The knob turns once round, its middle the center: half a turn either way is the edge of its travel, and the readout is how far it has turned, in degrees, like the angle knob beside it.
+- **X** — 2.2.1 · X position — slides the model sideways. The knob turns once round, its middle the center: half a turn either way is the edge of its travel, and the readout is how far it has turned, in degrees, like the angle knob beside it.
   - `0` — 0° — a quarter-turn mark on the angle scale
   - `90` — 90° — a quarter-turn mark on the angle scale
   - `180` — 180° — a quarter-turn mark on the angle scale
   - `270` — 270° — a quarter-turn mark on the angle scale
-- **Y** — 2.4.2 · Y position — slides the model up and down. The knob turns once round, its middle the center: half a turn either way is the edge of its travel, and the readout is how far it has turned, in degrees, like the angle knob beside it.
+- **Y** — 2.2.2 · Y position — slides the model up and down. The knob turns once round, its middle the center: half a turn either way is the edge of its travel, and the readout is how far it has turned, in degrees, like the angle knob beside it.
   - `0` — 0° — a quarter-turn mark on the angle scale
   - `90` — 90° — a quarter-turn mark on the angle scale
   - `180` — 180° — a quarter-turn mark on the angle scale
   - `270` — 270° — a quarter-turn mark on the angle scale
-- **Zoom** — 2.4.3 · Zoom, and Fore nested on top of it. ZOOM is the camera's distance, on a knob that turns once round like the position knobs, its readout in degrees of that turn. FORE is where the model sits relative to the rack, as a moving partition rather than a switch. Fully back and all of it is behind the controls; fully forward and all of it is in front; anywhere between and the panel cuts through it, near half in front and far half behind. The cut is a plane parallel to the screen, so it stays put as you turn the model. A flat picture — the spectrogram, the terminal — has no depth to cut, so it moves whole. The reset puts both back.
+- **Zoom** — 2.2.3 · Zoom, and Fore nested on top of it. ZOOM is the camera's distance, on a knob that turns once round like the position knobs, its readout in degrees of that turn. FORE is where the model sits relative to the rack, as a moving partition rather than a switch. Fully back and all of it is behind the controls; fully forward and all of it is in front; anywhere between and the panel cuts through it, near half in front and far half behind. The cut is a plane parallel to the screen, so it stays put as you turn the model. A flat picture — the spectrogram, the terminal — has no depth to cut, so it moves whole. The reset puts both back.
   - `0` — 0° — a quarter-turn mark on the angle scale
   - `90` — 90° — a quarter-turn mark on the angle scale
   - `180` — 180° — a quarter-turn mark on the angle scale
@@ -1764,18 +1756,37 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Grid
 
-<img src="docs/img/module/grid.jpg" alt="The Grid module" width="288" height="514" align="right">
+<img src="docs/img/module/grid.jpg" alt="The Grid module" width="287" height="514" align="left">
 
-2.5 · Grid — how many views of the model are drawn, what differs between them, and which of them the knobs are pointed at. It sits in the DISPLAY bay beside View and Position because it is a question about the picture, not about the signal: Trace is how one trajectory is drawn, View is where the camera is, and this is how many cameras there are.
+2.3 · Grid — how many views of the model are drawn, what differs between them, and which of them the knobs are pointed at. It sits in the DISPLAY bay beside View and Position because it is a question about the picture, not about the signal: Trace is how one trajectory is drawn, View is where the camera is, and this is how many cameras there are.
 
 <details><summary>Controls</summary>
 
-- **grid** — 2.5.1 · Grid — how many views of the model are drawn, as a square (2 is side by side). A grid is not that many instruments configured by hand: pick what varies with the Sweep dial and the cells draw that parameter's range, which is a contact sheet of one setting rather than sixteen panels to fill in.
-- **sweep** — 2.5.2 · Sweep — which parameter varies across the grid, and the from and to knobs beside this one say over how much of its range. This is what makes a grid of sixteen usable: rather than sixteen panels to fill in, one dial says what differs and the cells draw that parameter's space, like a contact sheet. The list is the CURRENT model's own parameters, so it changes with the mode; a model that integrates its trajectory offers no parameter sweep, because the cells share one integrator and a swept grid would smear one trajectory across them. A flow offers start instead: each cell integrates its own trajectory, started ε from the model's own. csrc and cmap sweep the COLORING instead of a number — the same figure read nine different ways, or in nine palettes — which is the case a grid is most worth having for.
-- **down** — 2.5.3 · Sweep down — a SECOND parameter, varying down the grid while the first varies across it. This is what the second direction of a grid is for: with one sweep a three by three of nine delays wasted its rows, and asking for nine palettes meant giving up the nine delays. Set both and each column is one value of across, each row one value of down, and the cell where they meet is the pair — nine delays read in three palettes, say. Set only this one and it behaves exactly like the sweep beside it. The two cannot name the same parameter: rows and columns varying the same thing is not a comparison.
-- **from** — 2.6.1 · Sweep from — where in the swept parameter's own range the first cell sits, as a fraction: 0 is the parameter's minimum. Turn both this and to inward and the contact sheet covers a slice of the range in detail rather than all of it coarsely, which is how a sweep is used once you know roughly where the interesting part is. For a start sweep the fraction sets ε: 0 is ε = 0, the model's own trajectory, and above 0 the scale is logarithmic, 10⁻⁹ to 10⁻¹.
-- **to** — 2.6.2 · Sweep to — where in the swept parameter's own range the last cell sits, as a fraction: 1 is the parameter's maximum. Below the from knob and the sweep runs backwards, which is worth having when the interesting end should be read first.
-- **focus** — 2.6.3 · Focus — which cell of the grid the knobs drive while Link is off. Its positions follow the grid, so a sixteen-cell sheet has sixteen of them. Moving it rebuilds the parameter rows against that cell's own instance, which is what makes a knob write to the view you are looking at rather than to the one behind it.
+- **grid** — 2.3.1 · Grid — how many views of the model are drawn, as a square (2 is side by side). A grid is not that many instruments configured by hand: pick what varies with the Sweep dial and the cells draw that parameter's range, which is a contact sheet of one setting rather than sixteen panels to fill in.
+- **sweep** — 2.3.2 · Sweep — which parameter varies across the grid, and the from and to knobs beside this one say over how much of its range. This is what makes a grid of sixteen usable: rather than sixteen panels to fill in, one dial says what differs and the cells draw that parameter's space, like a contact sheet. The list is the CURRENT model's own parameters, so it changes with the mode; a model that integrates its trajectory offers no parameter sweep, because the cells share one integrator and a swept grid would smear one trajectory across them. A flow offers start instead: each cell integrates its own trajectory, started ε from the model's own. csrc and cmap sweep the COLORING instead of a number — the same figure read nine different ways, or in nine palettes — which is the case a grid is most worth having for.
+- **down** — 2.3.3 · Sweep down — a SECOND parameter, varying down the grid while the first varies across it. This is what the second direction of a grid is for: with one sweep a three by three of nine delays wasted its rows, and asking for nine palettes meant giving up the nine delays. Set both and each column is one value of across, each row one value of down, and the cell where they meet is the pair — nine delays read in three palettes, say. Set only this one and it behaves exactly like the sweep beside it. The two cannot name the same parameter: rows and columns varying the same thing is not a comparison.
+- **from** — 2.4.1 · Sweep from — where in the swept parameter's own range the first cell sits, as a fraction: 0 is the parameter's minimum. Turn both this and to inward and the contact sheet covers a slice of the range in detail rather than all of it coarsely, which is how a sweep is used once you know roughly where the interesting part is. For a start sweep the fraction sets ε: 0 is ε = 0, the model's own trajectory, and above 0 the scale is logarithmic, 10⁻⁹ to 10⁻¹.
+- **to** — 2.4.2 · Sweep to — where in the swept parameter's own range the last cell sits, as a fraction: 1 is the parameter's maximum. Below the from knob and the sweep runs backwards, which is worth having when the interesting end should be read first.
+- **focus** — 2.4.3 · Focus — which cell of the grid the knobs drive while Link is off. Its positions follow the grid, so a sixteen-cell sheet has sixteen of them. Moving it rebuilds the parameter rows against that cell's own instance, which is what makes a knob write to the view you are looking at rather than to the one behind it.
+
+</details>
+
+<br clear="all">
+
+### Lattice
+
+<img src="docs/img/module/lattice.jpg" alt="The Lattice module" width="287" height="514" align="right">
+
+2.5 · Lattice — any model drawn in depth by terminals. Each sheet of the stack is a real terminal running \[lattice\](https://github.com/0magnet/lattice), and each draws its own slice of the volume: with the Lattice model, its solid; with L lit on ROWS, the model chosen, whatever it is. The model's trail, mesh or dots are the figure every program is handed, and a voxel is lit where the figure passes through it, written as the way the figure runs across the sheet. The model keeps its own knobs in the bank, so it is played as ever; these six are how the lattice draws it. Pictures and terminals, which are flat already, are not drawn in it.
+
+<details><summary>Controls</summary>
+
+- **rows** — 2.5.1 · ROWS — each terminal's height in rows, which is its resolution: the programs read their terminal's size, as programs do, and draw that many voxels across. A family has as many sheets as a terminal has rows, so this is the volume's resolution in all three dimensions: more rows is a terminal zoomed out to smaller characters, and a finer volume. 3 × rows terminals of 2 × rows columns; finer costs more. Button: L draws the model chosen in the lattice.
+- **style** — 2.5.2 · STYLE — how each terminal writes what crosses its sheet.
+- **look** — 2.5.3 · LOOK — how the sheets are put together on screen.
+- **opac** — 2.6.1 · OPAC — every terminal's background opacity, in percent: the setting a translucent terminal emulator has (kitty's background_opacity, alacritty's window.opacity), never something a program asks for. It applies to the default background, which is black; text stays opaque. At 0 only the text is there; higher, each sheet darkens what is behind it, so the far side is dimmer than the near.
+- **stacks** — 2.6.2 · STACKS — which families of sheets there are. Fewer families are fewer terminals and less to draw: a family that is not shown does not run its programs either.
+- **turn** — 2.6.3 · TURN — what turning the view turns. The programs are told the way any program is told anything, on their input: each is sent a pose, the view's turn or its inverse, which lattice applies to what it draws.
 
 </details>
 
@@ -1818,116 +1829,37 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 </details>
 
-### Lattice
-
-<img src="docs/img/module/lattice.jpg" alt="The Lattice module" width="287" height="515" align="right">
-
-3.1 · Lattice — any model drawn in depth by terminals. Each sheet of the stack is a real terminal running \[lattice\](https://github.com/0magnet/lattice), and each draws its own slice of the volume: with the Lattice model, its solid; with L lit on ROWS, the model chosen, whatever it is. The model's trail, mesh or dots are the figure every program is handed, and a voxel is lit where the figure passes through it, written as the way the figure runs across the sheet. The model keeps its own knobs in the bank, so it is played as ever; these six are how the lattice draws it. Pictures and terminals, which are flat already, are not drawn in it.
-
-<details><summary>Controls</summary>
-
-- **rows** — 3.1.1 · ROWS — each terminal's height in rows, which is its resolution: the programs read their terminal's size, as programs do, and draw that many voxels across. A family has as many sheets as a terminal has rows, so this is the volume's resolution in all three dimensions: more rows is a terminal zoomed out to smaller characters, and a finer volume. 3 × rows terminals of 2 × rows columns; finer costs more. Button: L draws the model chosen in the lattice.
-- **style** — 3.1.2 · STYLE — how each terminal writes what crosses its sheet.
-- **look** — 3.1.3 · LOOK — how the sheets are put together on screen.
-- **opac** — 3.2.1 · OPAC — every terminal's background opacity, in percent: the setting a translucent terminal emulator has (kitty's background_opacity, alacritty's window.opacity), never something a program asks for. It applies to the default background, which is black; text stays opaque. At 0 only the text is there; higher, each sheet darkens what is behind it, so the far side is dimmer than the near.
-- **stacks** — 3.2.2 · STACKS — which families of sheets there are. Fewer families are fewer terminals and less to draw: a family that is not shown does not run its programs either.
-- **turn** — 3.2.3 · TURN — what turning the view turns. The programs are told the way any program is told anything, on their input: each is sent a pose, the view's turn or its inverse, which lattice applies to what it draws.
-
-</details>
-
-<br clear="all">
-
-### Spectro
-
-<img src="docs/img/module/spectro.jpg" alt="The Spectro module" width="427" height="515" align="left">
-
-3.3 · Spectro — the spectrogram's own controls, wherever it is: the model (Spectrogram, or FVF's surface), the skin painted on a surface, or the backdrop filling the canvas behind the model. They are in this module for all three, and live in any of them; with no spectrogram on screen their readouts are blank.
-
-<details><summary>Controls</summary>
-
-- **dft** — 3.3.1 · DFT size — points per transform: larger resolves frequency finer and time coarser.
-- **ovlp** — 3.3.2 · overlap — how much each transform overlaps the one before, in percent: more is a smoother scroll for more work.
-- **wfn** — 3.3.3 · window function — the taper each block is shaped by before its transform: Hann is the usual; rectangular is sharpest and leaks the most.
-- **chan** — 3.4.1 · channel — which signal is analyzed: the mix of both, or the left or right alone.
-- **scale** — 3.4.2 · scale — the magnitude scale: logarithmic, in dB, or linear. FLOOR and CEILING are read in the same scale.
-- **min** — 3.4.3 · floor — the level, in dB, that maps to the bottom of the color scale; anything quieter is drawn black.
-- **max** — 3.5.1 · ceiling — the level, in dB, that maps to the top of the color scale; anything louder is drawn at full.
-
-</details>
-
-<br clear="all">
-
-### Section
-
-<img src="docs/img/module/section.jpg" alt="The Section module" width="149" height="515" align="right">
-
-3.6 · Where the Poincaré section's plane sits, and which way through it counts. ON (on AXIS) switches the section on over a running flow, as LINE's S does; the knobs are live over a flow while it is on, and always under Analysis → Poincaré Section, whose plane they are. AXIS and POS place it — POS as a fraction of the attractor's own reach along that axis, so 0 is through the middle whatever the system's size. DIR one way is the default: a bounded flow that goes up through a plane must come back down through it, so counting both superimposes two different sections. The crossings draw in gold where they physically are; Analysis → Poincaré Section is the same section as a picture of its own, with the return map.
-
-<details><summary>Controls</summary>
-
-- **axis** — 3.6.1 · axis — the axis the section plane is perpendicular to.
-- **pos** — 3.6.2 · pos — where the plane sits along AXIS, as a fraction of the attractor's own reach: 0 is through the middle whatever the system's size.
-- **dir** — 3.6.3 · dir — which way through the plane counts as a crossing. One way is the default because a bounded flow that goes up through a plane must come back down, and keeping both superimposes two different sections.
-
-</details>
-
-<br clear="all">
-
-### Water
-
-<img src="docs/img/module/water.jpg" alt="The Water module" width="427" height="515" align="left">
-
-3.7 · The water lens's tank: the finished picture seen through a rippling surface. Drag across the picture to make a wake; DRIVE lets the sound push the water from SPKRS points, and RAIN drops on it at random. Its knobs are live while BEHIND is on water, and can be set before it is.
-
-<details><summary>Controls</summary>
-
-- **bend** — 3.7.1 · bend — how far the surface's slope moves the picture behind it. Zero is clear glass, whatever the water does.
-- **speed** — 3.7.2 · speed — how fast a ripple crosses the tank.
-- **damp** — 3.7.3 · damp — how much of a wave survives each step, in thousandths: 990 rings for seconds, 900 dies before it crosses.
-- **visc** — 3.8.1 · viscosity — smooths the surface each step, so fine ripples fade before broad ones.
-- **walls** — 3.8.2 · walls — how much of a wave the edges send back, in percent. 100 is a tank with its own echoes; 0 is open water.
-- **drive** — 3.8.3 · drive — how hard the sound pushes the surface. Zero leaves it to the pointer and the rain.
-- **spkrs** — 3.9.1 · speakers — how many points in the tank the sound pushes from, spread round a circle.
-- **rain** — 3.9.2 · rain — drops a second, falling at random.
-
-</details>
-
-<br clear="all">
-
-### Physics
-
-<img src="docs/img/module/physics.jpg" alt="The Physics module" width="288" height="515" align="right">
-
-3.10 · The figure as a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture. ON (on GRAV) switches it on; the knobs are live while it is on and the Turtle Path is running. GRAV pulls either way up; FRIC is how much the surfaces bite; BOUNCE is how much of the speed a wall gives back; SPIN is how readily it turns.
-
-<details><summary>Controls</summary>
-
-- **grav** — 3.10.1 · gravity — pull in world units per second squared; below zero lifts.
-- **fric** — 3.10.2 · friction — how much the figure is slowed where it touches.
-- **bounce** — 3.10.3 · bounce — how much of its speed the figure keeps off a wall.
-- **spin** — 3.11.1 · spin — how hard the figure is to turn.
-
-</details>
-
-<br clear="all">
-
 ### Console
 
-<img src="docs/img/module/console.jpg" alt="The Console module" width="149" height="515" align="left">
+<img src="docs/img/module/console.jpg" alt="The Console module" width="149" height="514" align="right">
 
-3.12 · Console — model selection, global actions, and every mode/effect switch in one module
+2.12 · Console — model selection, global actions, and every mode/effect switch in one module
 
 <details><summary>Controls</summary>
 
-- **MIDI** — 3.12.1.c · WebMIDI — hardware control: CC 1..N drive the current mode's parameter knobs in order, CC 21..28 the view targets (zoom, pans, spins, rainbow, trail), and any note hops to that note's attractor.
-- **Power** — 3.12.1.d · Power — the render loop. Off stops it and clears the canvas, which is what the GPU costs; the panel stays, so every setting is still there to read and to change. A switch again, and back in the Rack group where the rest of the frame's own controls are: it had been folded into the model knob's first detent, which made powering down look like choosing a model called OFF and put the rack's power switch inside the one control that had nothing to do with the rack.
-- **Rack bay** — 3.12.2.a · Rack bay — draw the 19-inch frame each ROW of modules sits in: rails above and below, an ear each side, and blank panels filling the leftover at the end of the row on the same slot pitch. The modules wrap, and a row is a bay, so a rack that has spilled onto a second row gets a second frame. Handles and panel screws are chosen on the Style module: the inner ring of Size.
-- **Info** — 3.12.2.b · Overlay a short description of the current attractor / model on the view
-- **Fullscreen** — 3.12.2.c · Toggle browser fullscreen — the canvas fills the display; the panel stays available
-- **Desk** — 3.12.2.d · Desk — run this app inside a desktop: the desk becomes the environment, its panel takes the bottom of the screen, and the rack floats as a window on it with a task button beside the desk's own. The scene keeps running behind. Open a terminal, the host shell or the file manager from the desk's Applications menu. The OTHER way to have the desk is as a MODEL (Solids → desk), where the whole desktop is drawn into the scene and turns with it.
-- **Auto-rot** — 3.12.2.e · Continuously spin the model about the vertical (Y) axis — it folds into the Y spin rate (ω, View)
-- **Pause** — 3.12.2.f · Pause / freeze the animation
-- **Jam** — 3.12.2.g · Jam / attract mode — the app performs itself: hops to a random attractor every 12–20 s with fresh gentle spin and occasional persist paint. Never touches speaker outputs.
+- **MIDI** — 2.12.1.c · WebMIDI — hardware control: CC 1..N drive the current mode's parameter knobs in order, CC 21..28 the view targets (zoom, pans, spins, rainbow, trail), and any note hops to that note's attractor.
+- **Power** — 2.12.1.d · Power — the render loop. Off stops it and clears the canvas, which is what the GPU costs; the panel stays, so every setting is still there to read and to change. A switch again, and back in the Rack group where the rest of the frame's own controls are: it had been folded into the model knob's first detent, which made powering down look like choosing a model called OFF and put the rack's power switch inside the one control that had nothing to do with the rack.
+- **Rack bay** — 2.12.2.a · Rack bay — draw the 19-inch frame each ROW of modules sits in: rails above and below, an ear each side, and blank panels filling the leftover at the end of the row on the same slot pitch. The modules wrap, and a row is a bay, so a rack that has spilled onto a second row gets a second frame. Handles and panel screws are chosen on the Style module: the inner ring of Size.
+- **Info** — 2.12.2.b · Overlay a short description of the current attractor / model on the view
+- **Fullscreen** — 2.12.2.c · Toggle browser fullscreen — the canvas fills the display; the panel stays available
+- **Desk** — 2.12.2.d · Desk — run this app inside a desktop: the desk becomes the environment, its panel takes the bottom of the screen, and the rack floats as a window on it with a task button beside the desk's own. The scene keeps running behind. Open a terminal, the host shell or the file manager from the desk's Applications menu. The OTHER way to have the desk is as a MODEL (Solids → desk), where the whole desktop is drawn into the scene and turns with it.
+- **Auto-rot** — 2.12.2.e · Continuously spin the model about the vertical (Y) axis — it folds into the Y spin rate (ω, View)
+- **Pause** — 2.12.2.f · Pause / freeze the animation
+- **Jam** — 2.12.2.g · Jam / attract mode — the app performs itself: hops to a random attractor every 12–20 s with fresh gentle spin and occasional persist paint. Never touches speaker outputs.
+
+</details>
+
+<br clear="all">
+
+### Record
+
+<img src="docs/img/module/record.jpg" alt="The Record module" width="288" height="514" align="left">
+
+3.1 · Record — a monitor showing exactly what will be captured, and the transport that captures it. The picture is the recorded area, not the whole canvas, so what you see here is what lands in the file.
+
+<details><summary>Controls</summary>
+
+- **Monitor** — 3.1.2.a · Monitor — power to this module's screen. The picture is a copy out of the model's own drawing buffer every frame, which is not free; the rack shows every module in a bay now, so a screen you are not watching needs a switch of its own rather than relying on the module being put away. Off, the glass goes dark and the module costs nothing.
 
 </details>
 
@@ -1937,25 +1869,25 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 <img src="docs/img/module/style.jpg" alt="The Style module" width="149" height="514" align="right">
 
-4.1 · Style — knob face + LED color, and CRT phosphor
+3.3 · Style — knob face + LED color, and CRT phosphor
 
 <details><summary>Controls</summary>
 
-- **Knob** — 4.1.1 · Knob — the face every knob in the rack wears (std / flat / vint / chrome / gold / carbon).
+- **Knob** — 3.3.1 · Knob — the face every knob in the rack wears (std / flat / vint / chrome / gold / carbon).
   - `std` — std — the standard knob face
   - `flat` — flat — a matte face with no highlight
   - `vint` — vint — a vintage cream face
   - `chrm` — chrome — a polished metal face
   - `gold` — gold — a brushed gold face
   - `carb` — carbon — a carbon-fiber face
-- **LED** — 4.1.2 · LED — the color of every readout in the rack. Each dot round the knob is one color, in itself; the display under it names the one chosen.
+- **LED** — 3.3.2 · LED — the color of every readout in the rack. Each dot round the knob is one color, in itself; the display under it names the one chosen.
   - red — the nixie-adjacent readout: highest contrast on black
   - amber — the classic seven-segment LED, and the easiest on the eye
   - green — the VFD and early-terminal readout
   - blue — bright and cold; the newest of the six as a real display
   - cyan — the hue the audio-mod readouts used before the LED color was a knob
   - violet — no display was ever made in it; it is here because it reads well
-- **Phosphor** — 4.1.3 · CRT phosphor for scope traces (Lissajous / Graphic Artist) — sets trace color + afterglow. P31 crisp green … P7 blue→green … P33 long amber.
+- **Phosphor** — 3.3.3 · CRT phosphor for scope traces (Lissajous / Graphic Artist) — sets trace color + afterglow. P31 crisp green … P7 blue→green … P33 long amber.
   - P31 — the Tektronix standard: bright green, short to medium persistence
   - P1 — willemite yellow-green, medium persistence (about 24 ms)
   - P2 — yellow-green, long persistence
@@ -1972,15 +1904,15 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Presets
 
-<img src="docs/img/module/preset.jpg" alt="The Presets module" width="150" height="514" align="left">
+<img src="docs/img/module/preset.jpg" alt="The Presets module" width="149" height="514" align="left">
 
-4.2 · Presets — the current view, saved under a name. A preset holds everything the permalink holds: the model, every knob and color, the effect switches, the parameters and the pose. Recalling one resets to defaults and re-applies it, exactly as the Patchbay's numbered patch memories do; the difference is that these have names, and the address bar does not have to carry them.
+3.4 · Presets — the current view, saved under a name. A preset holds everything the permalink holds: the model, every knob and color, the effect switches, the parameters and the pose. Recalling one resets to defaults and re-applies it, exactly as the Patchbay's numbered patch memories do; the difference is that these have names, and the address bar does not have to carry them.
 
 <details><summary>Controls</summary>
 
-- **name** — 4.2.1
-- **saved** — 4.2.2
-- **STO12345678** — 4.2.3 · Patch memories — eight numbered snapshots of the whole rack. STO, then a number, stores; a number alone recalls.
+- **name** — 3.4.1
+- **saved** — 3.4.2
+- **STO12345678** — 3.4.3 · Patch memories — eight numbered snapshots of the whole rack. STO, then a number, stores; a number alone recalls.
 
 </details>
 
@@ -1990,17 +1922,17 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 <img src="docs/img/module/counter.jpg" alt="The Counter module" width="149" height="514" align="right">
 
-4.3 · Counter — a frequency counter for the rack, in the spirit of the glensstuff.com NAND-gate counter: it counts trigger crossings of the live audio source over the gate window and shows cycles per second, the way the discrete-logic original did. Feed it the mic, the ws stream, or the signal generator.
+3.5 · Counter — a frequency counter for the rack, in the spirit of the glensstuff.com NAND-gate counter: it counts trigger crossings of the live audio source over the gate window and shows cycles per second, the way the discrete-logic original did. Feed it the mic, the ws stream, or the signal generator.
 
 <details><summary>Controls</summary>
 
-- **freq** — 4.3.1
-- **gate** — 4.3.2
+- **freq** — 3.5.1
+- **gate** — 3.5.2
   - `0.1` — 0.1 s gate — the fastest update and the coarsest resolution
   - `0.5` — 0.5 s gate — twice a second
   - `1` — 1 s gate — the standard frequency-counter gate: the reading is hertz directly
   - `2` — 2 s gate — the slowest update and the finest resolution
-- **trig** — 4.3.3
+- **trig** — 3.5.3
 
 </details>
 
@@ -2008,22 +1940,22 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Distortion
 
-<img src="docs/img/module/thd.jpg" alt="The Distortion module" width="288" height="514" align="left">
+<img src="docs/img/module/thd.jpg" alt="The Distortion module" width="287" height="514" align="left">
 
-4.4 · Distortion — THD, THD+N, SINAD and ENOB of the live audio, measured against whichever tone is in it. Feed it a generator's sine at 1 kHz (type 1000 into its Hz readout) through whatever you want measured and read how much of what comes back is not that tone. THD is the harmonics alone, which is the number a specification quotes; THD+N is everything that is not the fundamental, which is the honest one and always the larger; SINAD is the same ratio in decibels, the way a converter is specified; ENOB runs the ideal-converter relation backwards and says how many bits would sound this clean. The gap between THD and THD+N is how much of the rubbish is hiss rather than distortion. The instrument's own floor is about 0.0015% THD+N (96.5 dB SINAD, 17.3 effective bits), measured on a synthesized pure tone — that is the Blackman-Harris window's leakage past the notch, and nothing quieter than it can be read.
+3.6 · Distortion — THD, THD+N, SINAD and ENOB of the live audio, measured against whichever tone is in it. Feed it a generator's sine at 1 kHz (type 1000 into its Hz readout) through whatever you want measured and read how much of what comes back is not that tone. THD is the harmonics alone, which is the number a specification quotes; THD+N is everything that is not the fundamental, which is the honest one and always the larger; SINAD is the same ratio in decibels, the way a converter is specified; ENOB runs the ideal-converter relation backwards and says how many bits would sound this clean. The gap between THD and THD+N is how much of the rubbish is hiss rather than distortion. The instrument's own floor is about 0.0015% THD+N (96.5 dB SINAD, 17.3 effective bits), measured on a synthesized pure tone — that is the Blackman-Harris window's leakage past the notch, and nothing quieter than it can be read.
 
 <details><summary>Controls</summary>
 
 - **--.--------.-
-      --.-** — 4.4.1.a · Distortion / thd / LED readout / Total harmonic distortion — the harmonics alone, as a percentage of the fundamental. Noise is not counted, which is what makes this the flattering number.
-- **src** — 4.5.1
+      --.-** — 3.6.1.a · Distortion / thd / LED readout / Total harmonic distortion — the harmonics alone, as a percentage of the fundamental. Noise is not counted, which is what makes this the flattering number.
+- **src** — 3.7.1
   - `mix` — mix — the two channels summed: what a mono meter would read
   - `L` — left — the left channel alone
   - `R` — right — the right channel alone
   - `M` — mid — the sum, halved: what both channels agree on, and what a mono listener hears
   - `S` — side — the difference, halved: what the two channels disagree about, which is the stereo width itself
-- **harm** — 4.5.2
-- **rate** — 4.5.3
+- **harm** — 3.7.2
+- **rate** — 3.7.3
   - `5/s` — Five a second — the window is 341 ms, so this is as often as there is new audio to measure
   - `2.5/s` — The default: a fresh window every time, and no audio measured twice
   - `1/s` — Once a second — the same reading, a fifth of the work
@@ -2035,17 +1967,17 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Loudness
 
-<img src="docs/img/module/lufs.jpg" alt="The Loudness module" width="150" height="514" align="right">
+<img src="docs/img/module/lufs.jpg" alt="The Loudness module" width="149" height="514" align="right">
 
-4.6 · Loudness — LUFS to ITU-R BS.1770 and EBU R 128, the scale everything is delivered against. M is the momentary loudness over 400 ms, S the short-term over 3 s, I the INTEGRATED reading over everything since the last reset — gated, so silence and quiet passages do not drag a programme's number down, which is what makes it the number a delivery spec means. LRA is the loudness range, how far the loud parts sit above the quiet ones: one number for how dynamic the material is, and the thing a loudness target alone says nothing about. TP is the TRUE peak in dBTP, the peak of the reconstructed signal rather than of the samples — a full-scale tone at a quarter of the sample rate can have every sample at −3 dBFS and still clip the converter, which is why a delivery ceiling is a true-peak ceiling. K-weighting is derived from the analog prototype at whatever rate the audio is arriving at, not the 48 kHz coefficients the standard prints, so the weighting is the same filter at every rate.
+3.8 · Loudness — LUFS to ITU-R BS.1770 and EBU R 128, the scale everything is delivered against. M is the momentary loudness over 400 ms, S the short-term over 3 s, I the INTEGRATED reading over everything since the last reset — gated, so silence and quiet passages do not drag a programme's number down, which is what makes it the number a delivery spec means. LRA is the loudness range, how far the loud parts sit above the quiet ones: one number for how dynamic the material is, and the thing a loudness target alone says nothing about. TP is the TRUE peak in dBTP, the peak of the reconstructed signal rather than of the samples — a full-scale tone at a quarter of the sample rate can have every sample at −3 dBFS and still clip the converter, which is why a delivery ceiling is a true-peak ceiling. K-weighting is derived from the analog prototype at whatever rate the audio is arriving at, not the 48 kHz coefficients the standard prints, so the weighting is the same filter at every rate.
 
 <details><summary>Controls</summary>
 
-- **!000.0!000.0** — 4.6.1.a · Loudness / M / LED readout / Momentary loudness, LUFS over 400 ms — ungated. What it sounds like right now.
-- **--.-  --.-** — 4.6.1.c · Loudness / I / LED readout / Integrated loudness, LUFS over everything since the last reset, gated. The number a delivery spec means.
-- **!000.0↺** — 4.6.2.b
-- **--.-↺** — 4.6.2.c
-- **rate** — 4.6.3
+- **!000.0!000.0** — 3.8.1.a · Loudness / M / LED readout / Momentary loudness, LUFS over 400 ms — ungated. What it sounds like right now.
+- **--.-  --.-** — 3.8.1.c · Loudness / I / LED readout / Integrated loudness, LUFS over everything since the last reset, gated. The number a delivery spec means.
+- **!000.0↺** — 3.8.2.b
+- **--.-↺** — 3.8.2.c
+- **rate** — 3.8.3
   - `10/s` — Ten readings a second — as fast as a readout can be followed
   - `5/s` — Five a second: the default, and about the rate a needle settles at
   - `2/s` — Twice a second — steadier to read, and a fifth of the writes
@@ -2057,21 +1989,21 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Wow & Flutter
 
-<img src="docs/img/module/wf.jpg" alt="The Wow & Flutter module" width="288" height="514" align="left">
+<img src="docs/img/module/wf.jpg" alt="The Wow & Flutter module" width="287" height="514" align="left">
 
-4.7 · Wow & Flutter — speed stability, measured off a 3150 Hz test tone. Every other analyzer here asks about amplitude; this asks whether the TIME AXIS is steady, which is what a turntable, a tape deck or a cassette is judged by. Play a generator's sine at 3150 Hz through the deck, capture the result, and read it here: SPEED is the mean frequency error as a percentage (a constant error is a pitch shift, a different fault from a wobble), WOW the slow 0.5–6 Hz modulation that once-per-revolution faults produce, FLUTTER the fast 6–100 Hz kind from capstans and idlers, and W&F the DIN-weighted quasi-peak that a specification quotes — the deviation through a filter peaked at 4 Hz, where the ear is most sensitive to pitch movement. 3150 Hz is the figure every test record carries (DIN 45507, IEC 60386). With no deck in the loop at all it reads 0.000% on the generator itself, which is the check that the instrument is not inventing the number.
+3.9 · Wow & Flutter — speed stability, measured off a 3150 Hz test tone. Every other analyzer here asks about amplitude; this asks whether the TIME AXIS is steady, which is what a turntable, a tape deck or a cassette is judged by. Play a generator's sine at 3150 Hz through the deck, capture the result, and read it here: SPEED is the mean frequency error as a percentage (a constant error is a pitch shift, a different fault from a wobble), WOW the slow 0.5–6 Hz modulation that once-per-revolution faults produce, FLUTTER the fast 6–100 Hz kind from capstans and idlers, and W&F the DIN-weighted quasi-peak that a specification quotes — the deviation through a filter peaked at 4 Hz, where the ear is most sensitive to pitch movement. 3150 Hz is the figure every test record carries (DIN 45507, IEC 60386). With no deck in the loop at all it reads 0.000% on the generator itself, which is the check that the instrument is not inventing the number.
 
 <details><summary>Controls</summary>
 
 - **--.--------.-
-      --.-** — 4.7.1.a · Wow & flutter / speed / LED readout / Mean frequency error as a percentage of nominal. Positive is running fast. A constant error is a pitch shift, which is a different fault from a wobble.
-- **nom** — 4.8.1
-- **rate** — 4.8.2
+      --.-** — 3.9.1.a · Wow & flutter / speed / LED readout / Mean frequency error as a percentage of nominal. Positive is running fast. A constant error is a pitch shift, which is a different fault from a wobble.
+- **nom** — 3.10.1
+- **rate** — 3.10.2
   - `4/s` — Four a second — the most responsive, and the most expensive: this analysis walks the whole window each time
   - `1/s` — Once a second — halves the largest single lump of work in the rack
   - `0.5/s` — Every two seconds. A reading that settles over ten seconds does not need remaking faster than this.
   - `The default`
-- **window** — 4.8.3
+- **window** — 3.10.3
   - `2s` — Two seconds — flutter only. Too short to see wow at all, and the cheapest by five times.
   - `5s` — Five seconds — two cycles of the slowest wow, and half the work of ten
   - `10s` — Ten seconds: the default, five cycles of the slowest wow
@@ -2085,13 +2017,13 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 <img src="docs/img/module/feat.jpg" alt="The Features module" width="149" height="514" align="right">
 
-4.9 · Features — what the Mod matrix's audio routes read, as a meter bridge: six LED bar graphs, one for each feature of the incoming audio's mono mix, the same numbers a route modulates a knob by. Each ladder is twenty segments, green to 70%, amber to 90% and red above. The levels are relative, not absolute: each feature is scaled by its own recent peak (instant rise, slow fall), so a quiet passage still fills the ladders and a loud one does not pin them. Dark while modulation is off — nothing routed and no feed from the server — since then nothing is measured. They were a strip over the top-left of the picture with a switch to hide it; as a module they are on the rack beside the other meters, and off the picture.
+3.11 · Features — what the Mod matrix's audio routes read, as a meter bridge: six LED bar graphs, one for each feature of the incoming audio's mono mix, the same numbers a route modulates a knob by. Each ladder is twenty segments, green to 70%, amber to 90% and red above. The levels are relative, not absolute: each feature is scaled by its own recent peak (instant rise, slow fall), so a quiet passage still fills the ladders and a loud one does not pin them. Dark while modulation is off — nothing routed and no feed from the server — since then nothing is measured. They were a strip over the top-left of the picture with a switch to hide it; as a module they are on the rack beside the other meters, and off the picture.
 
 <details><summary>Controls</summary>
 
 - **amp
     bass
-    mid** — 4.9.1.a · AMP — the level: the RMS of the window, scaled by its recent peak.
+    mid** — 3.11.1.a · AMP — the level: the RMS of the window, scaled by its recent peak.
 
 </details>
 
@@ -2099,18 +2031,18 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Timing
 
-<img src="docs/img/module/timing.jpg" alt="The Timing module" width="150" height="514" align="left">
+<img src="docs/img/module/timing.jpg" alt="The Timing module" width="149" height="514" align="left">
 
-4.10 · Timing — the rack metering itself. FRAME is the average interval in milliseconds and FPS its reciprocal, taken over the mean rather than the median so one hesitation a second cannot hide behind fifty-nine good frames. MIN and MAX are the best and worst frame in the window. LATE is the share of frames that missed the display's own interval, which is measured rather than assumed: nothing renders faster than vsync, so the shortest frame in a window IS the interval, and the reading means the same on a 60 Hz panel and a 144 Hz one. The four figures below it are where the frame went — MODEL the passes that draw the instrument, METERS everything the rack does to its own audio, SCOPE the tube, and REST the browser's own style, layout, raster and compositing, which is usually the largest share of the four. A rack that draws in 4 ms and spends 9 ms measuring its own audio is not slow, it is mis-apportioned, and no single frame rate says so.
+3.12 · Timing — the rack metering itself. FRAME is the average interval in milliseconds and FPS its reciprocal, taken over the mean rather than the median so one hesitation a second cannot hide behind fifty-nine good frames. MIN and MAX are the best and worst frame in the window. LATE is the share of frames that missed the display's own interval, which is measured rather than assumed: nothing renders faster than vsync, so the shortest frame in a window IS the interval, and the reading means the same on a 60 Hz panel and a 144 Hz one. The four figures below it are where the frame went — MODEL the passes that draw the instrument, METERS everything the rack does to its own audio, SCOPE the tube, and REST the browser's own style, layout, raster and compositing, which is usually the largest share of the four. A rack that draws in 4 ms and spends 9 ms measuring its own audio is not slow, it is mis-apportioned, and no single frame rate says so.
 
 <details><summary>Controls</summary>
 
-- **001.01050.0** — 4.10.1.a · Timing / fps / LED readout / Frames a second sustained over the last window — the reciprocal of the MEAN frame, so a hitch counts against it
-- **1050.01050.0** — 4.10.1.c · Timing / min / LED readout / Shortest frame in the window, in ms — which is the display's own interval, since nothing renders faster than vsync
-- **000.01047.20** — 4.10.2.b · Timing / late / LED readout / Percentage of frames that missed the display's interval by half again or more. This is the number that corresponds to visible hesitation; the frame rate alone does not.
-- **02.7000.00** — 4.10.3.a · Timing / model / LED readout / Milliseconds a frame spent ISSUING the model's draw calls. A WebGL call queues a command and returns without waiting for pixels, so this reads far below what the model really costs — the GPU and compositor share of it is in REST. Useful for what it does catch: geometry rebuilt every frame instead of cached.
-- **00.10 TBC** — 4.10.3.c
-- **TBC** — 4.10.3.c · TBC — timebase correction. On, the model turns at its rate per SECOND: each frame advances it by however long that frame took, so a late frame is a longer step and a faster display the same speed. Off, every frame advances it the same step, as the rack did before: a late frame is a pause, and a 144 Hz display spins it more than twice as fast as a 60 Hz one. On is the steady angular velocity; off is every frame advanced alike, which is what to compare frames by.
+- **000.24133.4** — 3.12.1.a · Timing / fps / LED readout / Frames a second sustained over the last window — the reciprocal of the MEAN frame, so a hitch counts against it
+- **4133.44133.4** — 3.12.1.c · Timing / min / LED readout / Shortest frame in the window, in ms — which is the display's own interval, since nothing renders faster than vsync
+- **000.04127.90** — 3.12.2.b · Timing / late / LED readout / Percentage of frames that missed the display's interval by half again or more. This is the number that corresponds to visible hesitation; the frame rate alone does not.
+- **03.3002.10** — 3.12.3.a · Timing / model / LED readout / Milliseconds a frame spent ISSUING the model's draw calls. A WebGL call queues a command and returns without waiting for pixels, so this reads far below what the model really costs — the GPU and compositor share of it is in REST. Useful for what it does catch: geometry rebuilt every frame instead of cached.
+- **00.10 TBC** — 3.12.3.c
+- **TBC** — 3.12.3.c · TBC — timebase correction. On, the model turns at its rate per SECOND: each frame advances it by however long that frame took, so a late frame is a longer step and a faster display the same speed. Off, every frame advances it the same step, as the rack did before: a late frame is a pause, and a 144 Hz display spins it more than twice as fast as a 60 Hz one. On is the steady angular velocity; off is every frame advanced alike, which is what to compare frames by.
 
 </details>
 
@@ -2118,17 +2050,17 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Scope 1
 
-<img src="docs/img/module/scope.jpg" alt="The Scope 1 module" width="287" height="515" align="right">
+<img src="docs/img/module/scope.jpg" alt="The Scope 1 module" width="288" height="514" align="right">
 
-5.1 · Scope 1 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.
+4.1 · Scope 1 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.
 
 <details><summary>Controls</summary>
 
-- **inten** — 5.1.2 · The beam. The knob is INTENSITY: beam brightness, and how long the phosphor holds the trace. Under it, two mini knobs. I is SCALE ILLUM, which lights the graticule; turned down past the bottom of its travel it clicks into OFF and switches the scope off — the tube goes dark and costs the rack nothing. F is FOCUS: how tight the spot is; off focus the trace blurs, the way a real tube does. The display reads the intensity, or whichever mini knob is being turned.
-- **trig** — 5.2.2 · Trigger — LEVEL is the value the signal must cross, in the SLOPE direction, for a sweep to start; set it inside the waveform or nothing triggers. SLOPE, the buttons at the right: + triggers on the signal rising through the level, − on it falling. MODE, the buttons at the left: AUTO sweeps anyway when nothing crosses, so silence shows a baseline; NORM sweeps only on a trigger and holds the last trace otherwise.
-- **volts** — 5.1.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it INPUT 1, a mini knob with a display of its own: what input 1 is fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on that display, which lists them all when clicked, and on the face, top left. INPUT 2 is under TIME. The reset puts both back.
+- **inten** — 4.1.2 · The beam. The knob is INTENSITY: beam brightness, and how long the phosphor holds the trace. Under it, two mini knobs. I is SCALE ILLUM, which lights the graticule; turned down past the bottom of its travel it clicks into OFF and switches the scope off — the tube goes dark and costs the rack nothing. F is FOCUS: how tight the spot is; off focus the trace blurs, the way a real tube does. The display reads the intensity, or whichever mini knob is being turned.
+- **trig** — 4.2.2 · Trigger — LEVEL is the value the signal must cross, in the SLOPE direction, for a sweep to start; set it inside the waveform or nothing triggers. SLOPE, the buttons at the right: + triggers on the signal rising through the level, − on it falling. MODE, the buttons at the left: AUTO sweeps anyway when nothing crosses, so silence shows a baseline; NORM sweeps only on a trigger and holds the last trace otherwise.
+- **volts** — 4.1.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it INPUT 1, a mini knob with a display of its own: what input 1 is fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on that display, which lists them all when clicked, and on the face, top left. INPUT 2 is under TIME. The reset puts both back.
   - `2 mFS` · `5 mFS` · `10 mFS` · `20 mFS` · `50 mFS` · `100 mFS` · `200 mFS` · `500 mFS` · `1 FS`
-- **time** — 5.2.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen. Under it INPUT 2, what input 2 is fed from, as INPUT 1 is under VOLTS. The reset puts both back.
+- **time** — 4.2.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen. Under it INPUT 2, what input 2 is fed from, as INPUT 1 is under VOLTS. The reset puts both back.
   - `10 µs` · `20 µs` · `50 µs` · `100 µs` · `200 µs` · `500 µs` · `1 ms` · `2 ms` · `5 ms` · `10 ms` · `20 ms` · `50 ms` · `100 ms` · `200 ms` · `500 ms`
 
 </details>
@@ -2137,15 +2069,15 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Gen 1
 
-<img src="docs/img/module/gen-x.jpg" alt="The Gen 1 module" width="148" height="512" align="left">
+<img src="docs/img/module/gen-x.jpg" alt="The Gen 1 module" width="149" height="514" align="left">
 
-5.3 · Gen 1 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz up to 28160 Hz, over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.  Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 1 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.
+4.3 · Gen 1 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz up to 28160 Hz, over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.  Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 1 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.
 
 <details><summary>Controls</summary>
 
-- **freq** — 5.3.1
-- **lvl** — 5.3.2
-- **wave** — 5.3.3
+- **freq** — 4.3.1
+- **lvl** — 4.3.2
+- **wave** — 4.3.3
   - `off` — OFF — Gen 1 plays nothing
   - sine — one pure frequency and no harmonics at all
   - triangle — odd harmonics falling away steeply: soft and hollow
@@ -2163,17 +2095,17 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Scope 2
 
-<img src="docs/img/module/scope2.jpg" alt="The Scope 2 module" width="287" height="515" align="right">
+<img src="docs/img/module/scope2.jpg" alt="The Scope 2 module" width="288" height="514" align="right">
 
-5.4 · Scope 2 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.
+4.4 · Scope 2 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.
 
 <details><summary>Controls</summary>
 
-- **inten** — 5.4.2 · The beam. The knob is INTENSITY: beam brightness, and how long the phosphor holds the trace. Under it, two mini knobs. I is SCALE ILLUM, which lights the graticule; turned down past the bottom of its travel it clicks into OFF and switches the scope off — the tube goes dark and costs the rack nothing. F is FOCUS: how tight the spot is; off focus the trace blurs, the way a real tube does. The display reads the intensity, or whichever mini knob is being turned.
-- **trig** — 5.5.2 · Trigger — LEVEL is the value the signal must cross, in the SLOPE direction, for a sweep to start; set it inside the waveform or nothing triggers. SLOPE, the buttons at the right: + triggers on the signal rising through the level, − on it falling. MODE, the buttons at the left: AUTO sweeps anyway when nothing crosses, so silence shows a baseline; NORM sweeps only on a trigger and holds the last trace otherwise.
-- **volts** — 5.4.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it INPUT 1, a mini knob with a display of its own: what input 1 is fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on that display, which lists them all when clicked, and on the face, top left. INPUT 2 is under TIME. The reset puts both back.
+- **inten** — 4.4.2 · The beam. The knob is INTENSITY: beam brightness, and how long the phosphor holds the trace. Under it, two mini knobs. I is SCALE ILLUM, which lights the graticule; turned down past the bottom of its travel it clicks into OFF and switches the scope off — the tube goes dark and costs the rack nothing. F is FOCUS: how tight the spot is; off focus the trace blurs, the way a real tube does. The display reads the intensity, or whichever mini knob is being turned.
+- **trig** — 4.5.2 · Trigger — LEVEL is the value the signal must cross, in the SLOPE direction, for a sweep to start; set it inside the waveform or nothing triggers. SLOPE, the buttons at the right: + triggers on the signal rising through the level, − on it falling. MODE, the buttons at the left: AUTO sweeps anyway when nothing crosses, so silence shows a baseline; NORM sweeps only on a trigger and holds the last trace otherwise.
+- **volts** — 4.4.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it INPUT 1, a mini knob with a display of its own: what input 1 is fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on that display, which lists them all when clicked, and on the face, top left. INPUT 2 is under TIME. The reset puts both back.
   - `2 mFS` · `5 mFS` · `10 mFS` · `20 mFS` · `50 mFS` · `100 mFS` · `200 mFS` · `500 mFS` · `1 FS`
-- **time** — 5.5.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen. Under it INPUT 2, what input 2 is fed from, as INPUT 1 is under VOLTS. The reset puts both back.
+- **time** — 4.5.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen. Under it INPUT 2, what input 2 is fed from, as INPUT 1 is under VOLTS. The reset puts both back.
   - `10 µs` · `20 µs` · `50 µs` · `100 µs` · `200 µs` · `500 µs` · `1 ms` · `2 ms` · `5 ms` · `10 ms` · `20 ms` · `50 ms` · `100 ms` · `200 ms` · `500 ms`
 
 </details>
@@ -2182,15 +2114,15 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Gen 2
 
-<img src="docs/img/module/gen-y.jpg" alt="The Gen 2 module" width="148" height="512" align="left">
+<img src="docs/img/module/gen-y.jpg" alt="The Gen 2 module" width="149" height="514" align="left">
 
-5.6 · Gen 2 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz up to 28160 Hz, over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.  Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 2 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.
+4.6 · Gen 2 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz up to 28160 Hz, over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.  Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 2 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.
 
 <details><summary>Controls</summary>
 
-- **freq** — 5.6.1
-- **lvl** — 5.6.2
-- **wave** — 5.6.3
+- **freq** — 4.6.1
+- **lvl** — 4.6.2
+- **wave** — 4.6.3
   - `off` — OFF — Gen 2 plays nothing
   - sine — one pure frequency and no harmonics at all
   - triangle — odd harmonics falling away steeply: soft and hollow
@@ -2208,17 +2140,17 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Scope 3
 
-<img src="docs/img/module/scope3.jpg" alt="The Scope 3 module" width="287" height="515" align="right">
+<img src="docs/img/module/scope3.jpg" alt="The Scope 3 module" width="288" height="514" align="right">
 
-5.7 · Scope 3 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.
+4.7 · Scope 3 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.
 
 <details><summary>Controls</summary>
 
-- **inten** — 5.7.2 · The beam. The knob is INTENSITY: beam brightness, and how long the phosphor holds the trace. Under it, two mini knobs. I is SCALE ILLUM, which lights the graticule; turned down past the bottom of its travel it clicks into OFF and switches the scope off — the tube goes dark and costs the rack nothing. F is FOCUS: how tight the spot is; off focus the trace blurs, the way a real tube does. The display reads the intensity, or whichever mini knob is being turned.
-- **trig** — 5.8.2 · Trigger — LEVEL is the value the signal must cross, in the SLOPE direction, for a sweep to start; set it inside the waveform or nothing triggers. SLOPE, the buttons at the right: + triggers on the signal rising through the level, − on it falling. MODE, the buttons at the left: AUTO sweeps anyway when nothing crosses, so silence shows a baseline; NORM sweeps only on a trigger and holds the last trace otherwise.
-- **volts** — 5.7.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it INPUT 1, a mini knob with a display of its own: what input 1 is fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on that display, which lists them all when clicked, and on the face, top left. INPUT 2 is under TIME. The reset puts both back.
+- **inten** — 4.7.2 · The beam. The knob is INTENSITY: beam brightness, and how long the phosphor holds the trace. Under it, two mini knobs. I is SCALE ILLUM, which lights the graticule; turned down past the bottom of its travel it clicks into OFF and switches the scope off — the tube goes dark and costs the rack nothing. F is FOCUS: how tight the spot is; off focus the trace blurs, the way a real tube does. The display reads the intensity, or whichever mini knob is being turned.
+- **trig** — 4.8.2 · Trigger — LEVEL is the value the signal must cross, in the SLOPE direction, for a sweep to start; set it inside the waveform or nothing triggers. SLOPE, the buttons at the right: + triggers on the signal rising through the level, − on it falling. MODE, the buttons at the left: AUTO sweeps anyway when nothing crosses, so silence shows a baseline; NORM sweeps only on a trigger and holds the last trace otherwise.
+- **volts** — 4.7.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it INPUT 1, a mini knob with a display of its own: what input 1 is fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on that display, which lists them all when clicked, and on the face, top left. INPUT 2 is under TIME. The reset puts both back.
   - `2 mFS` · `5 mFS` · `10 mFS` · `20 mFS` · `50 mFS` · `100 mFS` · `200 mFS` · `500 mFS` · `1 FS`
-- **time** — 5.8.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen. Under it INPUT 2, what input 2 is fed from, as INPUT 1 is under VOLTS. The reset puts both back.
+- **time** — 4.8.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen. Under it INPUT 2, what input 2 is fed from, as INPUT 1 is under VOLTS. The reset puts both back.
   - `10 µs` · `20 µs` · `50 µs` · `100 µs` · `200 µs` · `500 µs` · `1 ms` · `2 ms` · `5 ms` · `10 ms` · `20 ms` · `50 ms` · `100 ms` · `200 ms` · `500 ms`
 
 </details>
@@ -2227,15 +2159,15 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Gen 3
 
-<img src="docs/img/module/gen-z.jpg" alt="The Gen 3 module" width="148" height="512" align="left">
+<img src="docs/img/module/gen-z.jpg" alt="The Gen 3 module" width="149" height="514" align="left">
 
-5.9 · Gen 3 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz up to 28160 Hz, over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.  Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 3 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.
+4.9 · Gen 3 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz up to 28160 Hz, over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.  Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 3 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.
 
 <details><summary>Controls</summary>
 
-- **freq** — 5.9.1
-- **lvl** — 5.9.2
-- **wave** — 5.9.3
+- **freq** — 4.9.1
+- **lvl** — 4.9.2
+- **wave** — 4.9.3
   - `off` — OFF — Gen 3 plays nothing
   - sine — one pure frequency and no harmonics at all
   - triangle — odd harmonics falling away steeply: soft and hollow
@@ -2253,17 +2185,17 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Scope 4
 
-<img src="docs/img/module/scope4.jpg" alt="The Scope 4 module" width="288" height="515" align="right">
+<img src="docs/img/module/scope4.jpg" alt="The Scope 4 module" width="288" height="514" align="right">
 
-5.10 · Scope 4 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.
+4.10 · Scope 4 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob: its outer ring is SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; inside it INTENSITY, and innermost FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.
 
 <details><summary>Controls</summary>
 
-- **inten** — 5.10.2 · The beam. The knob is INTENSITY: beam brightness, and how long the phosphor holds the trace. Under it, two mini knobs. I is SCALE ILLUM, which lights the graticule; turned down past the bottom of its travel it clicks into OFF and switches the scope off — the tube goes dark and costs the rack nothing. F is FOCUS: how tight the spot is; off focus the trace blurs, the way a real tube does. The display reads the intensity, or whichever mini knob is being turned.
-- **trig** — 5.11.2 · Trigger — LEVEL is the value the signal must cross, in the SLOPE direction, for a sweep to start; set it inside the waveform or nothing triggers. SLOPE, the buttons at the right: + triggers on the signal rising through the level, − on it falling. MODE, the buttons at the left: AUTO sweeps anyway when nothing crosses, so silence shows a baseline; NORM sweeps only on a trigger and holds the last trace otherwise.
-- **volts** — 5.10.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it INPUT 1, a mini knob with a display of its own: what input 1 is fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on that display, which lists them all when clicked, and on the face, top left. INPUT 2 is under TIME. The reset puts both back.
+- **inten** — 4.10.2 · The beam. The knob is INTENSITY: beam brightness, and how long the phosphor holds the trace. Under it, two mini knobs. I is SCALE ILLUM, which lights the graticule; turned down past the bottom of its travel it clicks into OFF and switches the scope off — the tube goes dark and costs the rack nothing. F is FOCUS: how tight the spot is; off focus the trace blurs, the way a real tube does. The display reads the intensity, or whichever mini knob is being turned.
+- **trig** — 4.11.2 · Trigger — LEVEL is the value the signal must cross, in the SLOPE direction, for a sweep to start; set it inside the waveform or nothing triggers. SLOPE, the buttons at the right: + triggers on the signal rising through the level, − on it falling. MODE, the buttons at the left: AUTO sweeps anyway when nothing crosses, so silence shows a baseline; NORM sweeps only on a trigger and holds the last trace otherwise.
+- **volts** — 4.10.3 · Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it INPUT 1, a mini knob with a display of its own: what input 1 is fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on that display, which lists them all when clicked, and on the face, top left. INPUT 2 is under TIME. The reset puts both back.
   - `2 mFS` · `5 mFS` · `10 mFS` · `20 mFS` · `50 mFS` · `100 mFS` · `200 mFS` · `500 mFS` · `1 FS`
-- **time** — 5.11.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen. Under it INPUT 2, what input 2 is fed from, as INPUT 1 is under VOLTS. The reset puts both back.
+- **time** — 4.11.3 · Time/div — how long the beam takes to cross one division; ten divisions is the whole screen. Under it INPUT 2, what input 2 is fed from, as INPUT 1 is under VOLTS. The reset puts both back.
   - `10 µs` · `20 µs` · `50 µs` · `100 µs` · `200 µs` · `500 µs` · `1 ms` · `2 ms` · `5 ms` · `10 ms` · `20 ms` · `50 ms` · `100 ms` · `200 ms` · `500 ms`
 
 </details>
@@ -2272,15 +2204,15 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Gen 4
 
-<img src="docs/img/module/gen-v.jpg" alt="The Gen 4 module" width="149" height="512" align="left">
+<img src="docs/img/module/gen-v.jpg" alt="The Gen 4 module" width="150" height="514" align="left">
 
-5.12 · Gen 4 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz up to 28160 Hz, over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.  Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 4 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.
+4.12 · Gen 4 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz up to 28160 Hz, over a piano octave; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.  Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 4 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.
 
 <details><summary>Controls</summary>
 
-- **freq** — 5.12.1
-- **lvl** — 5.12.2
-- **wave** — 5.12.3
+- **freq** — 4.12.1
+- **lvl** — 4.12.2
+- **wave** — 4.12.3
   - `off` — OFF — Gen 4 plays nothing
   - sine — one pure frequency and no harmonics at all
   - triangle — odd harmonics falling away steeply: soft and hollow
@@ -2298,14 +2230,14 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Synth
 
-<img src="docs/img/module/synth-synth.jpg" alt="The Synth module" width="149" height="514" align="right">
+<img src="docs/img/module/synth-synth.jpg" alt="The Synth module" width="150" height="514" align="right">
 
-6.1 · Synth — the sound the keyboard plays. PRESET sets every knob on the bay to an instrument, as a place to start from; LVL is how loud. Where it is heard is the Mixer's: its KEYS column.
+5.1 · Synth — the sound the keyboard plays. PRESET sets every knob on the bay to an instrument, as a place to start from; LVL is how loud. Where it is heard is the Mixer's: its KEYS column.
 
 <details><summary>Controls</summary>
 
-- **prst** — 6.1.1 · Preset — sets every knob on the bay to an instrument; turn any of them after to change it from there.
-- **lvl** — 6.1.2 · Level — how loud the keyboard plays (0–100).
+- **prst** — 5.1.1 · Preset — sets every knob on the bay to an instrument; turn any of them after to change it from there.
+- **lvl** — 5.1.2 · Level — how loud the keyboard plays (0–100).
 
 </details>
 
@@ -2313,19 +2245,19 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### String
 
-<img src="docs/img/module/synth-string.jpg" alt="The String module" width="428" height="514" align="left">
+<img src="docs/img/module/synth-string.jpg" alt="The String module" width="427" height="514" align="left">
 
-6.2 · String — the additive voice that is the piano: partials not quite harmonic, each fading at its own rate. STR its level; PART how many partials; TILT how fast they fall away up the series; INHM the string's stiffness, which sharpens the upper partials (×10⁻⁴); STRK where along the string it is struck, which silences the partials with a node there; UNI the detune between the two strings of each low partial, in cents; DAMP how much faster each higher partial dies.
+5.2 · String — the additive voice that is the piano: partials not quite harmonic, each fading at its own rate. STR its level; PART how many partials; TILT how fast they fall away up the series; INHM the string's stiffness, which sharpens the upper partials (×10⁻⁴); STRK where along the string it is struck, which silences the partials with a node there; UNI the detune between the two strings of each low partial, in cents; DAMP how much faster each higher partial dies.
 
 <details><summary>Controls</summary>
 
-- **str** — 6.2.1 · String level — the additive layer's share of the sound.
-- **part** — 6.2.2 · Partials — how many of the string's overtones sound.
-- **tilt** — 6.2.3 · Tilt — how fast the partials fall away up the series: low is bright, high is mellow.
-- **inhm** — 6.3.1 · Inharmonicity — the string's stiffness, ×10⁻⁴, which sharpens each partial by B·n²: none is an organ pipe's series, a piano's is about 2.5.
-- **strk** — 6.3.2 · Strike point — where along the string it is struck, as a fraction: the partials with a node there are thinned. A piano's hammer is at about an eighth; 0 is off.
-- **uni** — 6.3.3 · Unison — the detune between the two strings of each of the three lowest partials, in cents: their slow beating is a piano's shimmer.
-- **damp** — 6.4.1 · Damping — how much faster each higher partial dies than the one below it, so the tone darkens as it rings.
+- **str** — 5.2.1 · String level — the additive layer's share of the sound.
+- **part** — 5.2.2 · Partials — how many of the string's overtones sound.
+- **tilt** — 5.2.3 · Tilt — how fast the partials fall away up the series: low is bright, high is mellow.
+- **inhm** — 5.3.1 · Inharmonicity — the string's stiffness, ×10⁻⁴, which sharpens each partial by B·n²: none is an organ pipe's series, a piano's is about 2.5.
+- **strk** — 5.3.2 · Strike point — where along the string it is struck, as a fraction: the partials with a node there are thinned. A piano's hammer is at about an eighth; 0 is off.
+- **uni** — 5.3.3 · Unison — the detune between the two strings of each of the three lowest partials, in cents: their slow beating is a piano's shimmer.
+- **damp** — 5.4.1 · Damping — how much faster each higher partial dies than the one below it, so the tone darkens as it rings.
 
 </details>
 
@@ -2333,16 +2265,16 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### FM
 
-<img src="docs/img/module/synth-fm.jpg" alt="The FM module" width="288" height="514" align="right">
+<img src="docs/img/module/synth-fm.jpg" alt="The FM module" width="287" height="514" align="right">
 
-6.5 · FM — a sine modulated by another: the electric piano. FM its level; RATO the modulator's frequency over the note's; INDX how deep the modulation starts; IDEC how fast it fades, which is how fast the bark becomes a pure tone.
+5.5 · FM — a sine modulated by another: the electric piano. FM its level; RATO the modulator's frequency over the note's; INDX how deep the modulation starts; IDEC how fast it fades, which is how fast the bark becomes a pure tone.
 
 <details><summary>Controls</summary>
 
-- **fm** — 6.5.1 · FM level — the FM layer's share of the sound.
-- **rato** — 6.5.2 · Ratio — the modulator's frequency over the note's: whole numbers are harmonic, others bell-like.
-- **indx** — 6.5.3 · Index — how deep the modulation starts: higher is brighter and harsher.
-- **idec** — 6.6.1 · Index decay — how fast the modulation fades, in seconds.
+- **fm** — 5.5.1 · FM level — the FM layer's share of the sound.
+- **rato** — 5.5.2 · Ratio — the modulator's frequency over the note's: whole numbers are harmonic, others bell-like.
+- **indx** — 5.5.3 · Index — how deep the modulation starts: higher is brighter and harsher.
+- **idec** — 5.6.1 · Index decay — how fast the modulation fades, in seconds.
 
 </details>
 
@@ -2350,23 +2282,23 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Wave · Noise
 
-<img src="docs/img/module/synth-wave.jpg" alt="The Wave · Noise module" width="287" height="514" align="left">
+<img src="docs/img/module/synth-wave.jpg" alt="The Wave · Noise module" width="288" height="514" align="left">
 
-6.7 · Wave · Noise — WAVE is one oscillator, a generator waveform, the organ's drawbars or tuned noise, at a level; NOISE is a burst of filtered noise at the start of each note — a hammer, a quill, a tine's click — at TONE times the note, dying over NDEC.
+5.7 · Wave · Noise — WAVE is one oscillator, a generator waveform, the organ's drawbars or tuned noise, at a level; NOISE is a burst of filtered noise at the start of each note — a hammer, a quill, a tine's click — at TONE times the note, dying over NDEC.
 
 <details><summary>Controls</summary>
 
-- **shp** — 6.7.1 · Wave shape — the oscillator: sine, triangle, square, saw, the organ's drawbars (16′ 8′ 5⅓′ 4′ 2⅔′) or tuned shift-register noise.
+- **shp** — 5.7.1 · Wave shape — the oscillator: sine, triangle, square, saw, the organ's drawbars (16′ 8′ 5⅓′ 4′ 2⅔′) or tuned shift-register noise.
   - `sine` — sine — one pure frequency
   - `tri` — triangle — soft and hollow
   - `sqr` — square — hollow and reedy
   - `saw` — saw — every harmonic, the brightest
   - `org` — organ — drawbars 16′ 8′ 5⅓′ 4′ and a little 2⅔′
   - `nse` — noise — a 15-bit shift register, tuned to the key
-- **wave** — 6.7.2 · Wave level — the oscillator layer's share of the sound.
-- **nse** — 6.7.3 · Noise level — the burst at the start of each note.
-- **tone** — 6.8.1 · Noise tone — where the burst is centered, in multiples of the note: low is a felt thump, high a click.
-- **ndec** — 6.8.2 · Noise decay — how fast the burst dies, in seconds.
+- **wave** — 5.7.2 · Wave level — the oscillator layer's share of the sound.
+- **nse** — 5.7.3 · Noise level — the burst at the start of each note.
+- **tone** — 5.8.1 · Noise tone — where the burst is centered, in multiples of the note: low is a felt thump, high a click.
+- **ndec** — 5.8.2 · Noise decay — how fast the burst dies, in seconds.
 
 </details>
 
@@ -2374,16 +2306,16 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Filter
 
-<img src="docs/img/module/synth-filter.jpg" alt="The Filter module" width="287" height="514" align="right">
+<img src="docs/img/module/synth-filter.jpg" alt="The Filter module" width="288" height="514" align="right">
 
-6.9 · Filter — a lowpass on each note that opens at BRGT times the note and closes towards DARK times it over FDEC: a plucked string brightest at the pluck. RESO is its resonance.
+5.9 · Filter — a lowpass on each note that opens at BRGT times the note and closes towards DARK times it over FDEC: a plucked string brightest at the pluck. RESO is its resonance.
 
 <details><summary>Controls</summary>
 
-- **brgt** — 6.9.1 · Bright — where the filter opens, in multiples of the note.
-- **dark** — 6.9.2 · Dark — where the filter settles, in multiples of the note: the same as bright is no sweep at all.
-- **fdec** — 6.9.3 · Filter decay — how long the filter takes to close, in seconds.
-- **reso** — 6.10.1 · Resonance — the filter's peak at its cutoff.
+- **brgt** — 5.9.1 · Bright — where the filter opens, in multiples of the note.
+- **dark** — 5.9.2 · Dark — where the filter settles, in multiples of the note: the same as bright is no sweep at all.
+- **fdec** — 5.9.3 · Filter decay — how long the filter takes to close, in seconds.
+- **reso** — 5.10.1 · Resonance — the filter's peak at its cutoff.
 
 </details>
 
@@ -2393,15 +2325,15 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 <img src="docs/img/module/synth-amp.jpg" alt="The Amp module" width="288" height="514" align="left">
 
-6.11 · Amp — the envelope every layer follows: ATK up, then towards SUS with time constant DEC (at C3), which KTRK shortens up the keyboard and lengthens down it, as a piano's strings ring longer in the bass; REL is how long letting go takes.
+5.11 · Amp — the envelope every layer follows: ATK up, then towards SUS with time constant DEC (at C3), which KTRK shortens up the keyboard and lengthens down it, as a piano's strings ring longer in the bass; REL is how long letting go takes.
 
 <details><summary>Controls</summary>
 
-- **atk** — 6.11.1 · Attack — how long the note takes to rise, in seconds.
-- **dec** — 6.11.2 · Decay — the time constant of the fall towards sustain, in seconds, at C3.
-- **ktrk** — 6.11.3 · Key tracking — how much shorter the decay is up the keyboard: 1 is an octave shorter every eighteen semitones, a piano's; 0 is the same everywhere.
-- **sus** — 6.12.1 · Sustain — the level held while the key is down: 0 dies away like a string, 1 holds like an organ.
-- **rel** — 6.12.2 · Release — how long the note takes to stop once let go, in seconds.
+- **atk** — 5.11.1 · Attack — how long the note takes to rise, in seconds.
+- **dec** — 5.11.2 · Decay — the time constant of the fall towards sustain, in seconds, at C3.
+- **ktrk** — 5.11.3 · Key tracking — how much shorter the decay is up the keyboard: 1 is an octave shorter every eighteen semitones, a piano's; 0 is the same everywhere.
+- **sus** — 5.12.1 · Sustain — the level held while the key is down: 0 dies away like a string, 1 holds like an organ.
+- **rel** — 5.12.2 · Release — how long the note takes to stop once let go, in seconds.
 
 </details>
 
@@ -2411,18 +2343,18 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ![The Keys module](docs/img/module/keys.jpg)
 
-7.1 · Keys — a playable polyphonic keyboard: click or drag the keybed (glissando works), or play the computer keyboard on the labeled keys (Z row = lower octave, Q row = upper). The bed is the whole piano, A0 to C8, across the whole bay; what it sounds like, how loud and on which speakers is the Synth bay above it.
+6.1 · Keys — a playable polyphonic keyboard: click or drag the keybed (glissando works), or play the computer keyboard on the labeled keys (Z row = lower octave, Q row = upper). The bed is the whole piano, A0 to C8, across the whole bay; what it sounds like, how loud and on which speakers is the Synth bay above it.
 
 ### Matrix
 
 ![The Matrix module](docs/img/module/tm.jpg)
 
-8.1 · Matrix — a pentatonic tonematrix step sequencer with a rhythm section under it: paint pads on the grid (click or drag; rows are pitches, columns are sixteenths) and the playhead loops them as pings at the tempo, over as many columns as the steps knob says. The four lanes at the foot are the drums (bass drum, snare, hi-hat, cymbal), on the same beat; they count in sixteenths or, for a shuffle or swing, in triplets, and each beat of them sits under the same beat of the tune. A preset tab loads a pattern into them to play or to edit. The pentatonic rows mean any pattern is consonant.
+7.1 · Matrix — a pentatonic tonematrix step sequencer with a rhythm section under it: paint pads on the grid (click or drag; rows are pitches, columns are sixteenths) and the playhead loops them as pings at the tempo, over as many columns as the steps knob says. The four lanes at the foot are the drums (bass drum, snare, hi-hat, cymbal), on the same beat; they count in sixteenths or, for a shuffle or swing, in triplets, and each beat of them sits under the same beat of the tune. A preset tab loads a pattern into them to play or to edit. The pentatonic rows mean any pattern is consonant.
 
 <details><summary>Controls</summary>
 
-- **tempo** — 8.1.1
-- **steps** — 8.1.2
+- **tempo** — 7.1.1
+- **steps** — 7.1.2
   - `C1` — C1 — the bottom row starts two octaves below middle C
   - `C2` — C2 — the bottom row starts one octave below middle C
   - `C3` — C3 — the bottom row starts at middle C
@@ -2433,29 +2365,29 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
   - `32` — 32 steps — eight beats: two bars of four
   - `48` — 48 steps — twelve beats: three bars of four, or four of a waltz
   - `64` — 64 steps — sixteen beats: the whole grid
-- **lvl** — 8.1.3
-- **wave** — 8.2.1
+- **lvl** — 7.1.3
+- **wave** — 7.2.1
   - sine — one pure frequency and no harmonics at all
   - triangle — odd harmonics falling away steeply: soft and hollow
   - square — odd harmonics falling away slowly: hollow and reedy
   - sawtooth — every harmonic, the brightest of the four
   - noise — a 15-bit shift register; the pad's pitch sets its playback rate
-- **RunClear** — 8.2.2
-- **Run** — 8.2.2 · Run — start/stop the playhead loop, tune and drums together (painting works either way). Pressing a preset tab starts it too.
-- **drums** — 8.2.3
+- **RunClear** — 7.2.2
+- **Run** — 7.2.2 · Run — start/stop the playhead loop, tune and drums together (painting works either way). Pressing a preset tab starts it too.
+- **drums** — 7.2.3
 
 </details>
 
 ### Mixer
 
-<img src="docs/img/module/mixer.jpg" alt="The Mixer module" width="427" height="515" align="right">
+<img src="docs/img/module/mixer.jpg" alt="The Mixer module" width="427" height="514" align="right">
 
-9.1 · Mixer — every sound on the rack, and where it goes. Each column is a source (the capture, the generators, the model's x, y and z, the instruments); each row is a destination: SPK L and R are the speakers, RACK L and R the rack's own signal, which the meters, the audio models, the scopes and the Mod matrix read, and MOD A and B two sends only the Mod matrix reads, for a source that should turn a knob without being heard or measured. A pin where they cross puts the source there: press it to pin at full level, press again to take it away, and turn the wheel over it, or LVL below, to set its gain; a negative gain inverts it. Several pins on a row are mixed. The capture has no speaker pins: it is the system's own audio, already playing.
+8.1 · Mixer — every sound on the rack, and where it goes. Each column is a source (the capture, the generators, the model's x, y and z, the instruments); each row is a destination: SPK L and R are the speakers, RACK L and R the rack's own signal, which the meters, the audio models, the scopes and the Mod matrix read, and MOD A and B two sends only the Mod matrix reads, for a source that should turn a knob without being heard or measured. A pin where they cross puts the source there: press it to pin at full level, press again to take it away, and turn the wheel over it, or LVL below, to set its gain; a negative gain inverts it. Several pins on a row are mixed. The capture has no speaker pins: it is the system's own audio, already playing.
 
 <details><summary>Controls</summary>
 
 - **pin** — PIN — the pin LVL is setting: the last one pressed or turned, as source>row
-- **lvl** — 9.2.2 · LVL — the selected pin's gain, −1 to 1: 1 is the source as it is, 0 takes the pin away, and below 0 inverts it — GEN 1 at 1 on RACK L and −1 on RACK R is L−R, and nothing in a mono sum
+- **lvl** — 8.2.2 · LVL — the selected pin's gain, −1 to 1: 1 is the source as it is, 0 takes the pin away, and below 0 inverts it — GEN 1 at 1 on RACK L and −1 on RACK R is L−R, and nothing in a mono sum
 
 </details>
 
@@ -2465,13 +2397,13 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ![The Mod module](docs/img/module/mod-matrix.jpg)
 
-9.4 · Mod — audio modulation: the rack's signal turning the rack's knobs. Each column is a source: RACK — the rack's signal, as the Mixer makes it, both sides summed (st) or one (L, R) — SEND, the Mixer's MOD A and B, which only modulation reads — or HEAD, where the model is drawn now (x, y, z, and r, its distance from the center). Each row is a control: the running model's parameters, then the view's. A pin routes the column to the row; another pin in the same row moves the route; a lit pin pressed again takes it away. DEST, DPTH, SHAPE and EQ under it are the selected row's route: which control, how deep, which way it moves, and which frequency bands drive it.
+8.4 · Mod — audio modulation: the rack's signal turning the rack's knobs. Each column is a source: RACK — the rack's signal, as the Mixer makes it, both sides summed (st) or one (L, R) — SEND, the Mixer's MOD A and B, which only modulation reads — or HEAD, where the model is drawn now (x, y, z, and r, its distance from the center). Each row is a control: the running model's parameters, then the view's. A pin routes the column to the row; another pin in the same row moves the route; a lit pin pressed again takes it away. DEST, DPTH, SHAPE and EQ under it are the selected row's route: which control, how deep, which way it moves, and which frequency bands drive it.
 
 <details><summary>Controls</summary>
 
-- **dest** — 9.4.3 · DEST — which control the route below is for. The matrix's row names say the same; this knob steps through them.
-- **dpth** — 9.5.3 · DPTH — how strongly the source drives the selected control; minus inverts it, 0 is no route at all. About 1.5 overdrives.
-- **shape** — 9.6.3 · SHAPE — which way the source moves the selected control. push: one way, the further the louder, as a route always has. swing: both ways around the control's setting — louder than the music has lately been one way, quieter the other — so it sits at its setting on average. flip: out on a beat, the other way on the next, back between them. wave: the signal itself, not how loud it is — the source's newest sample, either side of the setting, as an X-Y scope's beam moves; a frame takes one sample, so a slow signal (a generator turned below A0) is traced, and a fast one lands anywhere in its swing. Head x, y and z are centered under every shape: the model at the middle moves nothing.
+- **dest** — 8.4.3 · DEST — which control the route below is for. The matrix's row names say the same; this knob steps through them.
+- **dpth** — 8.5.3 · DPTH — how strongly the source drives the selected control; minus inverts it, 0 is no route at all. About 1.5 overdrives.
+- **shape** — 8.6.3 · SHAPE — which way the source moves the selected control. push: one way, the further the louder, as a route always has. swing: both ways around the control's setting — louder than the music has lately been one way, quieter the other — so it sits at its setting on average. flip: out on a beat, the other way on the next, back between them. wave: the signal itself, not how loud it is — the source's newest sample, either side of the setting, as an X-Y scope's beam moves; a frame takes one sample, so a slow signal (a generator turned below A0) is traced, and a fast one lands anywhere in its swing. Head x, y and z are centered under every shape: the model at the middle moves nothing.
 - **eq** — EQ — which frequency bands, low to high, drive the selected control. Drag across the bars to paint them.
 
 </details>

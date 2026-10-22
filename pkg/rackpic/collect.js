@@ -285,10 +285,14 @@
       var b = hit(part, fr, k);
       // A switch hidden in its module is where the button that sets it is,
       // and a selector behind a column of buttons is where the column is.
+      // The first one on show: a switch two buttons set (LINE's S and the
+      // section's ON in the bank) is where the one the panel shows is.
       if (!b) {
-        var face = document.querySelector('[data-drives="' + id + '"]') ||
-          document.querySelector('[data-param="' + id + '"]');
-        if (face) b = hit(face, fr, k);
+        var sels = ['[data-drives="' + id + '"]', '[data-param="' + id + '"]'];
+        for (var s = 0; s < sels.length && !b; s++) {
+          var faces = document.querySelectorAll(sels[s]);
+          for (var j = 0; j < faces.length && !b; j++) b = hit(faces[j], fr, k);
+        }
       }
       if (b) out[id] = b.map(round1);
     }
