@@ -22,6 +22,15 @@ func TestAnEscapedStringComesBackAsItWas(t *testing.T) {
 	}
 }
 
+// A link in a tooltip keeps where it goes: there is nothing to click, and
+// the README, written from this text, links the bare URL.
+func TestALinkKeepsItsTargetInPlainText(t *testing.T) {
+	const md = "the catalog is [tuiwasm](https://github.com/0magnet/tuiwasm): **twenty** of them"
+	if got, want := PlainText(md), "the catalog is tuiwasm (https://github.com/0magnet/tuiwasm): twenty of them"; got != want {
+		t.Errorf("PlainText = %q, want %q", got, want)
+	}
+}
+
 func TestEntriesAreFoundByTheirMarkers(t *testing.T) {
 	src := strings.Join([]string{
 		"# Mixer",
