@@ -207,7 +207,22 @@ Color range — auto-ranging or held
 ## Spectro
 
 <!-- key: spectro -->
-Spectro — the spectrogram's own controls, wherever it is: the model (Spectrogram, or FVF's surface), the skin painted on a surface, or the backdrop filling the canvas behind the model. They are in this module for all three, and live in any of them; with no spectrogram on screen their readouts are blank.
+Spectro — the spectrogram's own controls, wherever it is: the model (Spectrogram, or FVF's surface), the skin painted on a surface, or the backdrop filling the canvas behind the model. They are in this module for all three, and live in any of them; with no spectrogram on screen their readouts are blank, and the lamp at the right of the header is dark.
+
+<!-- key: play.spectro-module -->
+In play with a spectrogram on screen: the Spectrogram or FVF model, SKIN on spectrogram over a surface, or BEHIND on spectrogram
+
+<!-- key: play.lattice-module -->
+In play with the Lattice model, or with L lit on ROWS, which puts whatever model is chosen in the lattice
+
+<!-- key: play.section-module -->
+In play with ON lit on AXIS over a running flow (LINE's S is the same switch), and always under Analysis → Poincaré Section
+
+<!-- key: play.water-module -->
+In play while BEHIND (Layers · Colors) is on water; the knobs can be set before it is
+
+<!-- key: play.physics-module -->
+In play with ON lit on GRAV while the Turtle Path is running
 
 ## Record
 

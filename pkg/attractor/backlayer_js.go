@@ -242,6 +242,8 @@ func onBackdropChoice(kind string) {
 		syncCategoryRotaries()
 		syncBankCells()
 	}
+	// Water and Spectro come into play, or go out, with what is behind.
+	syncHomedModules(run.selectedMode)
 	// Back is BEHIND's B button: the button dims.
 	dimTrioButton("bg-visual", 1, !flatBackdrop(kind))
 }
