@@ -153,6 +153,7 @@ func wireLatticeModule() {
 		lat.figOn = on
 		lat.armFit()
 		view.autoFitCamera()
+		syncHomedModules(run.selectedMode) // the module comes into play with it
 	})
 }
 

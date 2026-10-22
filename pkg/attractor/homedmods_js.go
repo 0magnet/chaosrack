@@ -112,19 +112,9 @@ func homedCell(p paramDef) js.Value {
 }
 
 // syncHomedModules blanks the readouts of each module that does not apply under
-// mode, and relights the switches on them.
+// mode and lights its lamp (syncPlayModules), and relights the switches on them.
 func syncHomedModules(mode string) {
-	for _, m := range homedModules {
-		host := dom.Doc.Call("getElementById", m.host)
-		if !host.Truthy() {
-			continue
-		}
-		blank := !m.applies(mode)
-		cs := host.Call("querySelectorAll", ".punit")
-		for i := range cs.Length() {
-			cs.Index(i).Get("classList").Call("toggle", "cell-off", blank)
-		}
-	}
+	syncPlayModules(mode)
 	lightTrios("turtle-grav")
 	lightTrios("sect-axis")
 }

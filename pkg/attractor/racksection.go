@@ -53,7 +53,11 @@ const (
 // METERING was one too, and is empty now: its four meters filled seven slots
 // of a twelve-slot bay, while the Console and Generators bays each had five
 // spare, so the meters went to those two and the rack lost a bay.
-var bayOpeningSections = map[string]bool{secGen: true}
+//
+// CONSOLE too: the rack's own controls and its meters open their bay rather
+// than spilling one module into the spare slot at the end of the display
+// modules.
+var bayOpeningSections = map[string]bool{secGen: true, secConsole: true}
 
 // bayLeadModules each start a bay: an instrument wide enough to be one, the
 // keyboard's synthesizer, the keyboard and the tone matrix, rather than two
@@ -116,7 +120,11 @@ var sectionTitle = map[string]string{
 // A module missing from here is caught by a test rather than quietly
 // landing in whatever bay it was declared next to.
 var moduleSections = map[string]string{
-	"console": secConsole,
+	// The Console module ends the display bay, in the slot its five modules
+	// leave: where the model is chosen, beside how it is drawn. Filed under
+	// CONSOLE it packed into the spare slot at the end of the bay after,
+	// among the modules that only some models bring into play.
+	"console": secDisplay,
 	// The capture monitor leads the display bay: it carries a
 	// screen, so it leads a bay wherever it goes, and at the left of that bay
 	// it is the first thing read there. See moduleOrder.
@@ -313,9 +321,10 @@ func sectionOrderOf(items []packItem) []int {
 // capture monitor, then what places the model on screen (its pose, its
 // position, how many views, how it is drawn), then how it is colored.
 //
-// The Console bay reads left to right from the rack itself (Console, Style,
-// Presets) to the meters, with Timing, the rack's own meter, last. (Model
-// Out, the model as sound, is in the model's own bank now: modelOutParams.)
+// The display bay ends with the Console module. The Console bay reads left
+// to right from the rack itself (Style, Presets) to the meters, with Timing,
+// the rack's own meter, last. (Model Out, the model as sound, is in the
+// model's own bank now: modelOutParams.)
 //
 // The scope bays are each scope beside the generator it starts on, and
 // they are listed so they come before Keys and the Matrix, which open bays
@@ -323,8 +332,8 @@ func sectionOrderOf(items []packItem) []int {
 //
 // Anything not listed keeps its declared order, after these.
 var moduleOrder = []string{
-	"record", "view", "grid", "display", "layers · colors", "lattice",
-	"console", "style", "presets", "counter", "distortion", "loudness", "wow & flutter", "features", "timing",
+	"record", "view", "grid", "display", "layers · colors", "console", "lattice",
+	"style", "presets", "counter", "distortion", "loudness", "wow & flutter", "features", "timing",
 	"scope 1", "gen 1", "scope 2", "gen 2", "scope 3", "gen 3", "scope 4", "gen 4",
 	"synth", "string", "fm", "wave · noise", "filter", "amp",
 	"mixer", "mod",
