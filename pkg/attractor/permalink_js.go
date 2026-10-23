@@ -702,6 +702,7 @@ func (pe *permalinkState) applyStateFrom(h string) {
 	}
 	if haveCustom && run.selectedMode == "custom" {
 		buildParamPanel("custom") // reflect restored equations + params
+		refitRestoredCustom()
 	}
 	if poseVal != "" {
 		applyRot(poseVal)
@@ -778,4 +779,23 @@ func (c *customEquation) applyLinkKey(key, val string) (isCustom, isFlavor bool)
 	}
 	c.applyCustomParam(strings.TrimPrefix(key, "cp."), val)
 	return true, false
+}
+
+// refitRestoredCustom centers and frames the camera on the equations a link
+// or a patch just put in Custom, keeping the zoom the link set. The page is
+// framed on its first frame, before the link is read, so Custom was framed on
+// its template — the Lorenz equations — and a link to a small system opened
+// on a speck off to one side of a camera fitted for something thirty times
+// its size.
+func refitRestoredCustom() {
+	if !gpu.ready || isTexturePlane(run.selectedMode) {
+		return
+	}
+	zoom := camPanel.cameraControl.Get("value").String()
+	resetAttractorState()
+	armGradientRange()
+	generateForMode(run.selectedMode)
+	view.autoFitCamera()
+	camPanel.cameraControl.Set("value", zoom)
+	dom.Fire(camPanel.cameraControl, "input")
 }
