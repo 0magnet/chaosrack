@@ -353,9 +353,11 @@ func (t *takensMode) measure() {
 }
 
 // takensSourceRate is the live source's sample rate, or the fallback every
-// other function here uses when it has not reported one yet.
+// other function here uses when it has not reported one yet. The bus as it
+// is (activeAudioSource): the meters ask for this every frame, and making
+// the capture here asked a plain visit for the microphone at load.
 func takensSourceRate() int {
-	if src := aud.ensureAudioSource(); src.SampleRate() > 0 {
+	if src := aud.activeAudioSource(); src.SampleRate() > 0 {
 		return src.SampleRate()
 	}
 	return 24000

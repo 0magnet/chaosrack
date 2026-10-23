@@ -190,6 +190,11 @@ func mixSetPin(row, s int, g float32) {
 	}
 	mixer.pin[row][s] = g
 	mixApply()
+	// Pinning the capture is asking for it: the microphone opens here, on a
+	// press, never from the render loop (ensureAudioSource).
+	if k := mixSources[s].key; g != 0 && (k == "cl" || k == "cr") {
+		aud.ensureAudioSource()
+	}
 	perma.syncPermalinkNow()
 }
 
