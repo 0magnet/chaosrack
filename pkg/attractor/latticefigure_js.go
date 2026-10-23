@@ -74,11 +74,12 @@ func (l *latticeModel) takeFigure() {
 	}
 	s := 0.92 / float64(max(l.figExt, 1e-6))
 	pt := func(i int) lattice.Vec3 {
+		l.figFrom = append(l.figFrom, i)
 		return lattice.Vec3{float64(v[i]) * s, float64(v[i+1]) * s, float64(v[i+2]) * s}
 	}
 	// The programs read the figure only while drawing from it, inside the
 	// frame it was set in, so the same storage serves every frame.
-	l.figPts, l.figLens = l.figPts[:0], l.figLens[:0]
+	l.figPts, l.figLens, l.figFrom = l.figPts[:0], l.figLens[:0], l.figFrom[:0]
 	add := func(from int) { l.figLens = append(l.figLens, len(l.figPts)-from) }
 	t := gpu.lastTrace
 	switch {
@@ -110,14 +111,55 @@ func (l *latticeModel) takeFigure() {
 			add(from)
 		}
 	}
+	// Each in the color the page draws it in: the Colors module's SRC and MAP,
+	// over the figure's own reach, as the trace shader colors it.
+	l.figCols = l.figCols[:0]
+	if len(l.figFrom) > 0 {
+		co := pageTraceColoring()
+		lo := [3]float32{v[l.figFrom[0]], v[l.figFrom[0]+1], v[l.figFrom[0]+2]}
+		hi := lo
+		for _, i := range l.figFrom {
+			for a := range 3 {
+				lo[a], hi[a] = min(lo[a], v[i+a]), max(hi[a], v[i+a])
+			}
+		}
+		for _, i := range l.figFrom {
+			var age float32
+			if stride == 4 {
+				age = v[i+3]
+			}
+			c := co.at([3]float32{v[i], v[i+1], v[i+2]}, age, lo, hi)
+			l.figCols = append(l.figCols, lattice.RGB{byte255(c[0]), byte255(c[1]), byte255(c[2])})
+		}
+	}
 	// Each line is a run of figPts, cut once append has stopped moving it.
-	l.figLines = l.figLines[:0]
+	l.figLines, l.figColors = l.figLines[:0], l.figColors[:0]
 	at := 0
 	for _, k := range l.figLens {
 		l.figLines = append(l.figLines, l.figPts[at:at+k:at+k])
+		l.figColors = append(l.figColors, l.figCols[at:at+k:at+k])
 		at += k
 	}
-	l.fig.Set(l.figLines)
+	l.fig.SetColored(l.figLines, l.figColors)
 }
 
 func abs32(x float32) float32 { return float32(math.Abs(float64(x))) }
+
+// byte255 is a 0..1 channel as a byte.
+func byte255(x float32) byte { return byte(clamp01(x)*255 + 0.5) }
+
+// pageTraceColoring is how the trace is colored now: the Colors module's
+// settings, the phosphor's one color while it is on (applyPhosphorColor).
+func pageTraceColoring() traceColoring {
+	c := traceColoring{
+		src: style.gradientSource, cols: gradientColorsUniform(),
+		base: style.baseColor, mid: style.midColor, top: style.topColor,
+		freq: style.gradientFreq, phase: style.gradientPhase, sft: gradientShift,
+		reverse: style.gradientReverse, lut: acolor.lut[:],
+	}
+	if phos.active() {
+		p := phosphors[phos.index]
+		c.cols, c.base = 1, [3]float32{float32(p.tr), float32(p.tg), float32(p.tb)}
+	}
+	return c
+}
