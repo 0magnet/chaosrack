@@ -40,9 +40,8 @@ func selfSteer(depth, filter float32, secs int) []float64 {
 	return at
 }
 
-// quietSpells are the gaps of a second or more between switches, and their
-// median.
-func quietSpells(at []float64) (n int, median float64) {
+// quietSpell is the median of the gaps of a second or more between switches.
+func quietSpell(at []float64) float64 {
 	var gaps []float64
 	for i := 1; i < len(at); i++ {
 		if g := at[i] - at[i-1]; g >= 1 {
@@ -50,15 +49,15 @@ func quietSpells(at []float64) (n int, median float64) {
 		}
 	}
 	if len(gaps) == 0 {
-		return 0, 0
+		return 0
 	}
 	sort.Float64s(gaps)
-	return len(gaps), gaps[len(gaps)/2]
+	return gaps[len(gaps)/2]
 }
 
 func TestASelfSteeringLorenzPulses(t *testing.T) {
-	_, plain := quietSpells(selfSteer(0, 1, 300))
-	_, pulse := quietSpells(selfSteer(0.38, 1, 300))
+	plain := quietSpell(selfSteer(0, 1, 300))
+	pulse := quietSpell(selfSteer(0.38, 1, 300))
 	if !(plain < 2) {
 		t.Errorf("the plain Lorenz's quiet spells have a median of %.1fs, want under 2", plain)
 	}
