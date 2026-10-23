@@ -126,8 +126,8 @@ func drawRowMonitor(cv js.Value) {
 	if !canvas.Truthy() {
 		return
 	}
-	sw := canvas.Get("width").Float()
-	sh := canvas.Get("height").Float()
+	// The stage, where the model is drawn, not the canvas behind the panel.
+	sx, sy, sw, sh := stageOn(canvas.Get("width").Float(), canvas.Get("height").Float())
 	if sw < 1 || sh < 1 {
 		return
 	}
@@ -141,7 +141,7 @@ func drawRowMonitor(cv js.Value) {
 	}
 	dw, dh := sw*k, sh*k
 	ctx.Call("drawImage", near.captureCanvas(canvas),
-		0, 0, sw, sh, (pw-dw)/2, (ph-dh)/2, dw, dh)
+		sx, sy, sw, sh, (pw-dw)/2, (ph-dh)/2, dw, dh)
 	rowMonID(ctx, ph, modeLabel(run.selectedMode))
 }
 

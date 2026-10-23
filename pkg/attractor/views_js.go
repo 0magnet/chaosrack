@@ -63,6 +63,8 @@ func viewRects() [][4]int {
 		h = 1
 	}
 	full := [][4]int{{0, 0, w, h}}
+	// The cells share the stage, the part the panel leaves (stage_js.go).
+	st := stageRect(w, h)
 
 	n := grid.n()
 	if n <= 1 {
@@ -78,8 +80,8 @@ func viewRects() [][4]int {
 		return out
 	}
 	cols, rows := GridShape(n)
-	xs, okX := gridEdges(w, cols)
-	ys, okY := gridEdges(h, rows)
+	xs, okX := gridEdges(st[2], cols)
+	ys, okY := gridEdges(st[3], rows)
 	if !okX || !okY {
 		return full
 	}
@@ -89,7 +91,7 @@ func viewRects() [][4]int {
 		cy := i / cols
 		// GL counts y from the bottom; the cells are numbered from the top.
 		gy := rows - 1 - cy
-		out = append(out, [4]int{xs[cx][0], ys[gy][0], xs[cx][1], ys[gy][1]})
+		out = append(out, [4]int{st[0] + xs[cx][0], st[1] + ys[gy][0], xs[cx][1], ys[gy][1]})
 	}
 	return out
 }
@@ -118,7 +120,11 @@ func gridEdges(total, n int) ([][2]int, bool) { return GridEdges(total, n, viewG
 func setViewport(r [4]int) {
 	glctx.GL.Call("viewport", r[0], r[1], r[2], r[3])
 	h := max(r[3], 1)
-	gpu.proj = mgl32.Perspective(mgl32.DegToRad(45.0), float32(r[2])/float32(h), 1, 1500.0)
+	if r == [4]int{0, 0, gpu.width, gpu.height} {
+		gpu.proj = stageProjection(gpu.width, gpu.height)
+	} else {
+		gpu.proj = mgl32.Perspective(mgl32.DegToRad(45.0), float32(r[2])/float32(h), 1, 1500.0)
+	}
 	glctx.GL.Call("useProgram", gpu.program)
 	glctx.GL.Call("uniformMatrix4fv",
 		glctx.GL.Call("getUniformLocation", gpu.program, "Pmatrix"), false, texp.mat4ToTyped(&gpu.proj))

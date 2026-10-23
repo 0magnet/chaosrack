@@ -93,7 +93,7 @@ func recRegionRect(canvas js.Value) (x, y, w, h float64) {
 	cw := canvas.Get("width").Float()
 	ch := canvas.Get("height").Float()
 	if recRegion.w <= 1 || recRegion.h <= 1 {
-		return 0, 0, cw, ch
+		return stageOn(cw, ch)
 	}
 	x, y, w, h = recRegion.x, recRegion.y, recRegion.w, recRegion.h
 	if x < 0 {
@@ -109,7 +109,7 @@ func recRegionRect(canvas js.Value) (x, y, w, h float64) {
 		h = ch - y
 	}
 	if w <= 1 || h <= 1 {
-		return 0, 0, cw, ch
+		return stageOn(cw, ch)
 	}
 	return x, y, w, h
 }
