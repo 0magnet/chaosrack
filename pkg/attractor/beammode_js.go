@@ -221,11 +221,10 @@ func beamModelFrame() beamFrame {
 // the same units.
 func beamCameraFrame() beamFrame {
 	mv := view.viewMat.Mul4(view.modelMat)
-	mvp := gpu.proj.Mul4(mv)
-	aspect := 1.0
-	if gpu.height > 0 {
-		aspect = float64(gpu.width) / float64(gpu.height)
-	}
+	// The camera's own projection, not the canvas's: the stage moves and
+	// shrinks the picture (stage_js.go), which the sound must not follow.
+	mvp := cameraProjection(gpu.width, gpu.height).Mul4(mv)
+	aspect := float64(stageAspect(gpu.width, gpu.height))
 	half := float64(view.defaultDist) * math.Tan(22.5*math.Pi/180) // the half-height at the center's depth
 	if !(half > 0) {
 		half = 1

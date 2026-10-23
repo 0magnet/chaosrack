@@ -152,3 +152,31 @@ func scrollBox(el js.Value) js.Value {
 	}
 	return el
 }
+
+// stageAspect is the stage's width over its height on a canvas w by h, the
+// shape of the picture the camera's 45° field fills: what the room the
+// Turtle's body falls in is as wide as, and what the pan knobs move across.
+func stageAspect(w, h int) float32 {
+	if w <= 0 || h <= 0 {
+		return 1.6
+	}
+	return float32(w) * float32(stage.x1-stage.x0) / (float32(h) * float32(stage.y1-stage.y0))
+}
+
+// cameraProjection is the camera alone: the 45° field on the stage's shape,
+// without the carry and the scale that put it on the stage. For what the
+// camera sees rather than where on the canvas it is drawn — the beam's
+// camera frame is sound, and moved and shrunk with the picture it was quieter
+// and off center.
+func cameraProjection(w, h int) mgl32.Mat4 {
+	return mgl32.Perspective(mgl32.DegToRad(45.0), stageAspect(w, h), 1, 1500.0)
+}
+
+// stageClip is the stage in clip space: its width and height as fractions of
+// the canvas's, and its center. A flat display drawn in clip coordinates (the
+// analyzers, the XY scope) scales by the first two and moves by the others to
+// stand where the models do.
+func stageClip() (sx, sy, cx, cy float32) {
+	return float32(stage.x1 - stage.x0), float32(stage.y1 - stage.y0),
+		float32(stage.x0+stage.x1) - 1, 1 - float32(stage.y0+stage.y1)
+}

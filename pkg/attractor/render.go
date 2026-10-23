@@ -909,11 +909,8 @@ func renderLoop(this js.Value, args []js.Value) any {
 	// dist·tan(fov/2); scale X by the aspect so ±8 spans a full screen width and
 	// ±8 spans a full screen height — and it tracks zoom so a given setting keeps
 	// the model at the same screen fraction.
-	halfH := newDist * 0.41421 // tan(22.5°), half the 45° vertical FOV
-	aspect := float32(1.6)
-	if gpu.height > 0 {
-		aspect = float32(gpu.width) / float32(gpu.height)
-	}
+	halfH := newDist * 0.41421                   // tan(22.5°), half the 45° vertical FOV
+	aspect := stageAspect(gpu.width, gpu.height) // the picture's shape (stage_js.go)
 	psY := halfH * 2 / 8
 	psX := psY * aspect
 	npx, npy := view.ctl.panX*psX, view.ctl.panY*psY

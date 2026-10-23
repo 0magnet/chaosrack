@@ -37,10 +37,10 @@ func turtleCamDist() float32 {
 // the distance it asks for includes the zoom.
 func turtleRoom() (cx, cy, halfW, halfH float32) {
 	halfH = turtleCamDist() * 0.41421 // tan(22.5°), half the 45° vertical FOV
-	aspect := float32(1.6)
-	if gpu.height > 0 {
-		aspect = float32(gpu.width) / float32(gpu.height)
-	}
+	// The stage's shape, not the canvas's: the camera's field fills the part
+	// the panel leaves (stage_js.go), and walls at the canvas's aspect stood
+	// inside the picture.
+	aspect := stageAspect(gpu.width, gpu.height)
 	if halfH <= 0 {
 		halfH = box / 2
 	}

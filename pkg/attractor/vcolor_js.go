@@ -38,10 +38,11 @@ const vcVertShaderSrc = `
 	attribute vec2 aPos;
 	attribute vec3 aCol;
 	uniform vec2 uOffset;
+	uniform vec4 uStage; // the stage's size and center in clip space (stage_js.go)
 	varying vec3 vCol;
 	void main() {
 		vCol = aCol;
-		gl_Position = vec4(aPos + uOffset, 0.0, 1.0);
+		gl_Position = vec4((aPos + uOffset) * uStage.xy + uStage.zw, 0.0, 1.0);
 	}
 `
 
@@ -63,6 +64,7 @@ type vcolorPipe struct {
 	aCol    js.Value
 	uAlpha  js.Value
 	uOffset js.Value
+	uStage  js.Value
 	ready   bool
 	data    []float32 // interleaved x,y,r,g,b
 	u8      js.Value
@@ -92,6 +94,7 @@ func (v *vcolorPipe) initVColor() {
 	v.aCol = glctx.GL.Call("getAttribLocation", v.program, "aCol")
 	v.uAlpha = glctx.GL.Call("getUniformLocation", v.program, "uAlpha")
 	v.uOffset = glctx.GL.Call("getUniformLocation", v.program, "uOffset")
+	v.uStage = glctx.GL.Call("getUniformLocation", v.program, "uStage")
 	v.buf = glctx.GL.Call("createBuffer")
 	v.ready = true
 }
@@ -129,6 +132,9 @@ func (v *vcolorPipe) upload(n int) {
 	glctx.GL.Call("vertexAttribPointer", v.aPos, 2, glctx.Types.Float, false, vcStride*4, 0)
 	glctx.GL.Call("enableVertexAttribArray", v.aCol)
 	glctx.GL.Call("vertexAttribPointer", v.aCol, 3, glctx.Types.Float, false, vcStride*4, 2*4)
+	// Drawn in the part the panel leaves, as the models are.
+	sx, sy, cx, cy := stageClip()
+	glctx.GL.Call("uniform4f", v.uStage, sx, sy, cx, cy)
 }
 
 // span draws count vertices starting at first, offset by (dx, dy) in clip
