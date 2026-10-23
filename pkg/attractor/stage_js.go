@@ -71,7 +71,7 @@ func panelCover() (left, top, right, bottom float64, ok bool) {
 			continue
 		}
 		l, t, rt, b := w, h, 0.0, 0.0
-		for e := el; e.Truthy() && !e.Equal(dom.Body); e = e.Get("parentElement") {
+		for e := scrollBox(el); e.Truthy() && !e.Equal(dom.Body); e = e.Get("parentElement") {
 			// Clipped to the window first: the panel's own box is as tall as
 			// everything it scrolls.
 			r := e.Call("getBoundingClientRect")
@@ -135,4 +135,20 @@ func stageRect(w, h int) [4]int {
 // region was chosen. Taken whole, it was mostly the panel's shadow.
 func stageOn(cw, ch float64) (x, y, w, h float64) {
 	return stage.x0 * cw, stage.y0 * ch, (stage.x1 - stage.x0) * cw, (stage.y1 - stage.y0) * ch
+}
+
+// scrollBox is el or the nearest frame around it that scrolls: the box the
+// panel is seen through. The panel's contents are as tall as all its bays, so
+// scrolled down their box starts above the window, and measured from there it
+// read as filling the window: the stage went to the whole window and the model
+// jumped in size with every scroll of the panel.
+func scrollBox(el js.Value) js.Value {
+	cs := js.Global().Get("getComputedStyle")
+	for e := el; e.Truthy() && !e.Equal(dom.Body); e = e.Get("parentElement") {
+		switch cs.Invoke(e).Get("overflowY").String() {
+		case "auto", "scroll":
+			return e
+		}
+	}
+	return el
 }
