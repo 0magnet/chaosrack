@@ -149,3 +149,10 @@ mono moved onto the source knob, where the absence of a value belongs.</summary>
 Regenerate everything against a running tab:
 `go run . uitool shots` (stills + hero) · `go run . uitool gifs` (animations).
 
+
+## Explorations
+
+Things found by playing with the rack, written up with how to get there.
+
+- [A Lorenz that steers itself](self-steering-lorenz.md): ρ routed from the
+  trajectory's own height pulses, chaos in bursts a few seconds apart.
