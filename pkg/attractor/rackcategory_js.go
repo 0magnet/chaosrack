@@ -835,10 +835,10 @@ func onBayModelOverflow(label string, bay int, dir int) {
 
 // setBayCategory turns a merged bay's category ring to cat without driving
 // anything, and gives the inner ring that category's models.
-func setBayCategory(b bayRecord, cat string) {
+func setBayCategory(b bayRecord, cat string) (refilled bool) {
 	catSel := dom.Doc.Call("getElementById", bayCatSelectID(b.Label, b.N))
 	if !catSel.Truthy() || catSel.Get("value").String() == cat {
-		return
+		return false
 	}
 	catSel.Set("value", cat)
 	dom.Fire(catSel, "change")
@@ -846,6 +846,7 @@ func setBayCategory(b bayRecord, cat string) {
 	if sel := dom.Doc.Call("getElementById", baySelectID(b.Label, b.N)); sel.Truthy() {
 		fillBayOptions(sel, modesOfCategory(b.Modes, cat), false)
 	}
+	return true
 }
 
 // onBayRotary drives the model from a bay's own selector.
@@ -922,12 +923,13 @@ func syncCategoryRotaries() {
 		}
 		// Powered down, every selector reads off: no bay is driving,
 		// because nothing is being drawn.
+		refilled := false
 		want := ""
 		if live != nil && b.Label == live.Label && b.N == live.N && !run.stopped {
 			want = m
 			// A merged bay turns its category ring to the running model's
 			// category first, so the inner ring holds the model to show.
-			setBayCategory(b, categoryOf(m))
+			refilled = setBayCategory(b, categoryOf(m))
 		}
 		if want == "" {
 			// A merged bay says OFF on its category ring, where OFF is; its
@@ -945,7 +947,10 @@ func syncCategoryRotaries() {
 				continue
 			}
 		}
-		if sel.Get("value").String() == want {
+		// A refilled ring is on its first model already, which the browser
+		// selects: when that is the model, it still has to say so, or the
+		// display and the pointer stay on the category before.
+		if !refilled && sel.Get("value").String() == want {
 			continue
 		}
 		sel.Set("value", want)
