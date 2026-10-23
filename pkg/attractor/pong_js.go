@@ -103,6 +103,20 @@ func (p *pongGame) syncScoreboard() {
 
 // ── Input + sound ────────────────────────────────────────────────────────
 
+// pongTakesKey reports whether key (lower case, as KeyboardEvent.key) is a
+// paddle's while Pong is running: the Keys module leaves those alone, or W
+// and S played D5 and C#4 through the speakers with every move of the paddle.
+func pongTakesKey(key string) bool {
+	if run.selectedMode != "pong" {
+		return false
+	}
+	switch key {
+	case "w", "s", "arrowup", "arrowdown":
+		return true
+	}
+	return false
+}
+
 // wireInput installs the paddle key listeners once (lazily on the first
 // generated frame). Handlers no-op outside pong mode. A real keydown is a
 // user gesture, so it also lifts the audio context for the beeps.

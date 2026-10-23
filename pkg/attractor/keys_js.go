@@ -423,7 +423,8 @@ func (k *keyboard) wireKeysModule() {
 	k.on = true
 
 	// Computer keyboard: two tracker rows anchored near the range's middle
-	// C. Only while the module is shown, never while typing in a field.
+	// C. Anywhere on the page but a text field, and not the keys a running
+	// game plays with (pongTakesKey).
 	dom.On(dom.Doc, "keydown", func(this js.Value, a []js.Value) any {
 		e := a[0]
 		if !k.on || e.Get("repeat").Bool() ||
@@ -439,8 +440,9 @@ func (k *keyboard) wireKeysModule() {
 				return nil
 			}
 		}
-		off, ok := kbOffset[strings.ToLower(e.Get("key").String())]
-		if !ok {
+		key := strings.ToLower(e.Get("key").String())
+		off, ok := kbOffset[key]
+		if !ok || pongTakesKey(key) {
 			return nil
 		}
 		midi := k.anchor + off
