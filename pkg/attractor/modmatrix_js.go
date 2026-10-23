@@ -444,7 +444,7 @@ func modMxRetarget(params []paramDef) {
 		if c.id != "" {
 			w.Title = docf("mod-row", "control", c.label)
 			for j := range modMx.rows[i].pins {
-				w.Pins = append(w.Pins, docf("mod-pin", "src", modChannels[j].key, "control", c.label))
+				w.Pins = append(w.Pins, docf("mod-pin", "src", modSrcLabel(modChannels[j].name), "control", c.label))
 			}
 		}
 		writes = append(writes, w)
@@ -580,6 +580,17 @@ func modMxLight(i int) {
 	modMxMark(id, m)
 }
 
+// modSrcLabel is a route's source as the matrix's heads name it: its group
+// and its column, "HEAD z" rather than a z that could be the rack's.
+func modSrcLabel(name string) string {
+	for _, c := range modChannels {
+		if c.name == name {
+			return strings.ToUpper(c.group) + " " + c.key
+		}
+	}
+	return name
+}
+
 // modMxMark says on the control route id moves that it is routed: its cell
 // outlined (.routed) and its tooltip naming the route (mod-routed). Its knob
 // reads its setting, since a route only lends the model a value for a frame,
@@ -615,12 +626,7 @@ func modMxMark(id string, m paramMod) {
 	on := m.channel != "" && m.level != 0
 	note := ""
 	if on {
-		src, shape := m.channel, "push"
-		for _, c := range modChannels {
-			if c.name == m.channel {
-				src = strings.ToUpper(c.group) + " " + c.key
-			}
-		}
+		src, shape := modSrcLabel(m.channel), "push"
 		for _, s := range ModShapes {
 			if s.Value == m.shape {
 				shape = s.Label
