@@ -170,6 +170,14 @@ func (tu *turtleMode) generateTurtle() {
 
 	weighed := physOn()
 	if weighed {
+		// Square on, every frame and not only when the switch is thrown: a link's
+		// pose is applied after its switches, a load with none is given a random
+		// one, and the View's knobs still turn the camera. Turned, the floor was
+		// not the bottom of the picture, and the figure fell, and was pulled by
+		// the hand, at the angle the view was turned by.
+		if !viewSquare() {
+			normalizeOrientation()
+		}
 		// Weight takes over the placing. The camera decides where to look from
 		// when nothing is pushing the figure around; once something is, where it
 		// has got to is the answer, and a camera holding it in the middle would

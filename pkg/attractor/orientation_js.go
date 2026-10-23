@@ -78,3 +78,12 @@ func randomizeOrientation() {
 // is wanted depends on what is being watched — a steady angular velocity,
 // or every frame advanced alike.
 var timebaseCorrect = true
+
+// viewSquare reports whether the model is held square to the screen: no
+// pose, no spin, no auto-rotate. The Turtle's body is simulated in the plane
+// of the screen, so with Physics on it has to be (turtle.go).
+func viewSquare() bool {
+	return view.angleX == 0 && view.angleY == 0 && view.angleZ == 0 &&
+		view.ball.orient == mgl32.Ident4() &&
+		view.ctl.spinX == 0 && view.ctl.spinY == 0 && view.ctl.spinZ == 0 && !view.ctl.autoRotate
+}

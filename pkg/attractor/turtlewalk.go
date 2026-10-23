@@ -139,7 +139,10 @@ type turtleWalk struct {
 	axisDir [3]float32
 	axisSet bool
 
-	scale      float32 // lattice units to world units, held once chosen
+	scale float32 // lattice units to world units, held once chosen
+	// physMax is the largest scale the figure fits its room at with weight on
+	// (turtleBody.step), 0 before it has been measured.
+	physMax    float32
 	scaleSet   bool
 	cx, cy, cz float32 // where the camera is centered, in lattice units
 	aimed      bool    // the camera has somewhere to ease from
