@@ -127,8 +127,19 @@ func grip(limit, slip, lever, mass, inertia, dt float32) float32 {
 // wind each other up until the whole thing takes off.
 const turtleRoomFit float32 = 0.55
 
-// physScale is the lattice-to-world scale while the figure has weight.
-func (t *turtleWalk) physScale() float32 { return t.scale * turtleRoomFit }
+// physScale is the lattice-to-world scale while the figure has weight: the
+// camera's, at turtleRoomFit, and no more than fits the room as the trail
+// now stands. The camera's scale is held once the trail has filled, and a
+// walk that goes on growing (TRAIL whole) outgrew the room at it: longer than
+// the room was tall, wedged corner to corner, it could be neither dropped nor
+// dragged anywhere.
+func (t *turtleWalk) physScale() float32 {
+	sc := t.scale * turtleRoomFit
+	if t.physMax > 0 {
+		sc = min(sc, t.physMax)
+	}
+	return sc
+}
 
 // turtleWorld is what the body lives in and under: the room — the viewport
 // at the figure's depth, its middle and half its width and height — the
@@ -172,6 +183,14 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3, w turtleWorld) {
 	// noise. The moment of inertia came out near zero, every torque divided by
 	// it was enormous, and the figure left at once. Offsets from a point of the
 	// figure are the size of the figure, however far it has walked.
+	// The room first: the figure's diagonal at most turtleRoomFit of the
+	// room's shorter side, so it can turn over in it (physScale).
+	if lo, hi := pisano.Bounds3(pts); w.halfH > 0 && w.halfW > 0 {
+		dx, dy, dz := float64(hi.X-lo.X), float64(hi.Y-lo.Y), float64(hi.Z-lo.Z)
+		if d := float32(math.Sqrt(dx*dx + dy*dy + dz*dz)); d > 0 {
+			t.physMax = turtleRoomFit * 2 * min(w.halfW, w.halfH) / d
+		}
+	}
 	sc := t.physScale()
 	// Read through the figure's own 3-D orientation, so the mass and the shape
 	// are the SILHOUETTE of however it is currently turned.

@@ -537,8 +537,10 @@ func (vs *viewState) autoFitCamera() {
 // through this.
 func fitDistFor(ext float32) float32 {
 	dist := ext * 3.0
-	if w, h := glctx.Canvas.Get("clientWidth").Float(), glctx.Canvas.Get("clientHeight").Float(); w > 0 && h > 0 && w < h {
-		dist *= float32(h / w)
+	// Narrower than tall, by the stage: the part the panel leaves, which is
+	// portrait with the panel down a side (stage_js.go).
+	if a := stageAspect(gpu.width, gpu.height); a > 0 && a < 1 {
+		dist /= a
 	}
 	// A grid cell is a fraction of the canvas, and the viewport maps the
 	// same NDC cube into it, so a fit made for the whole canvas draws the
