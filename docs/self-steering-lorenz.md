@@ -80,12 +80,21 @@ which is past the point where the pulse disappears.)
 To see the cycle, shorten TRAIL so each quiet spell and each break stand
 out.
 
-## Things to try
+## What does not pulse
 
-- DPTH 0.30, then 0.33: the change from random switching to a pulse.
-- Route **head r** (distance from the center) instead of z: the same idea
-  with a source that does not care which wing it is in.
-- Route head z to **σ** or **β** instead of ρ.
+The same scan (200 s each, depths −0.4 to +0.4) on the other routes:
+
+- **z → ρ at a negative depth** (high in the figure lowers the drive): it
+  switches wings *more* often, a median gap of 0.45 s against the plain
+  Lorenz's 0.5. The pulse needs the feedback to be positive.
+- **z → σ, z → β**: ordinary chaos at every depth; the switching rate
+  hardly moves.
+- **head r → ρ, σ or β**: r hardly varies once smoothed, so the route mostly
+  shifts the constant, and at the ends shifts it into a stable point (β 4.9
+  at +0.4, ρ 19 or σ 3.7 at −0.4) where the switching stops for good.
+
+So it is the height fed back into the drive, and fed back positively, that
+makes the pulse. DPTH 0.30, then 0.33, is the place to watch it appear.
 
 The simulation stands in for the page's head normalization (it centers z at
 24 across a reach of 26); timings on the page differ a little with the
