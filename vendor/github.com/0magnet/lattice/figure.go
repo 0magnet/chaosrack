@@ -23,7 +23,10 @@ import (
 type Figure struct {
 	mu    sync.Mutex
 	lines [][]Vec3
-	gen   uint64
+	// colors are each point's color, beside lines, when the figure brings its
+	// own (SetColored); nil, its voxels are colored by the Coloring.
+	colors [][]RGB
+	gen    uint64
 
 	// The last voxelization, and what it was made for.
 	grid    *figGrid
@@ -37,8 +40,22 @@ type Figure struct {
 // dot. Set keeps the slices it is given: they must not change until the
 // figure has been drawn from, or Set again.
 func (f *Figure) Set(lines [][]Vec3) {
+	f.SetColored(lines, nil)
+}
+
+// RGB is a color, 0..255 a channel.
+type RGB [3]uint8
+
+// SetColored is Set with a color for every point: colors[i][k] is the color of
+// lines[i][k], and a voxel is drawn in the mean of the colors of the figure
+// where it passes through it, a segment's color running from one end's to the
+// other's. A host draws a figure in its own colors so: a trajectory colored
+// by height, say, is that color in the lattice too, not the volume's. A line
+// with no colors, or too few, is colored by the Coloring. Set keeps the slices
+// it is given, as Set does.
+func (f *Figure) SetColored(lines [][]Vec3, colors [][]RGB) {
 	f.mu.Lock()
-	f.lines = lines
+	f.lines, f.colors = lines, colors
 	f.gen++
 	f.mu.Unlock()
 }
@@ -57,6 +74,10 @@ type figGrid struct {
 	n   int
 	lit []bool
 	dir []Vec3
+	// rgb sums the colors that passed through a voxel and hits counts them,
+	// for a colored figure; hits is 0 where it brought none.
+	rgb  [][3]float32
+	hits []float32
 }
 
 func (g *figGrid) at(i [3]int) int { return (i[0]*g.n+i[1])*g.n + i[2] }
@@ -76,17 +97,20 @@ func (f *Figure) voxelize(n int, tu turn) *figGrid {
 	}
 	g := f.grid
 	if g == nil || g.n != n {
-		g = &figGrid{n: n, lit: make([]bool, n*n*n), dir: make([]Vec3, n*n*n)}
+		g = &figGrid{n: n, lit: make([]bool, n*n*n), dir: make([]Vec3, n*n*n),
+			rgb: make([][3]float32, n*n*n), hits: make([]float32, n*n*n)}
 	} else {
 		clear(g.lit)
 		clear(g.dir)
+		clear(g.rgb)
+		clear(g.hits)
 	}
 	place := tu.forward()
 	if tu == (turn{pose: Identity}) {
 		place = func(p Vec3) Vec3 { return p } // the usual case: a host that turns the stack itself
 	}
 	half := float64(n) / 2
-	mark := func(p, d Vec3) {
+	mark := func(p, d Vec3, c [3]float32, colored bool) {
 		var j int
 		for a := range 3 {
 			x := (p[a] + 1) * half // voxels from the low edge
@@ -96,6 +120,12 @@ func (f *Figure) voxelize(n int, tu turn) *figGrid {
 			j = j*n + int(x)
 		}
 		g.lit[j] = true
+		if colored {
+			g.rgb[j][0] += c[0]
+			g.rgb[j][1] += c[1]
+			g.rgb[j][2] += c[2]
+			g.hits[j]++
+		}
 		// A line has a direction but no sense: one running back over the
 		// same voxel adds to it rather than canceling it.
 		if g.dir[j].Dot(d) < 0 {
@@ -103,17 +133,33 @@ func (f *Figure) voxelize(n int, tu turn) *figGrid {
 		}
 		g.dir[j] = g.dir[j].Add(d)
 	}
-	for _, l := range f.lines {
+	for i, l := range f.lines {
 		if len(l) == 0 {
 			continue
 		}
+		// This line's colors, if it brought one for every point.
+		var cs []RGB
+		if i < len(f.colors) && len(f.colors[i]) >= len(l) {
+			cs = f.colors[i]
+		}
+		colored := cs != nil
+		at := func(k int) (c [3]float32) {
+			if colored {
+				c = [3]float32{float32(cs[k][0]), float32(cs[k][1]), float32(cs[k][2])}
+			}
+			return c
+		}
+		lerp := func(x, y [3]float32, t float32) [3]float32 {
+			return [3]float32{x[0] + (y[0]-x[0])*t, x[1] + (y[1]-x[1])*t, x[2] + (y[2]-x[2])*t}
+		}
 		a := place(l[0])
 		if len(l) == 1 {
-			mark(a, Vec3{})
+			mark(a, Vec3{}, at(0), colored)
 			continue
 		}
 		for k := 1; k < len(l); k++ {
 			b := place(l[k])
+			ca, cb := at(k-1), at(k)
 			d := b.Add(a.Scale(-1))
 			// Sampled at no more than half a voxel apart, so no voxel the
 			// segment crosses is stepped over: a short segment, as most of a
@@ -121,10 +167,11 @@ func (f *Figure) voxelize(n int, tu turn) *figGrid {
 			steps := max(1, int(math.Ceil(d.Len()*half*2)))
 			steps = min(steps, 4*n) // a jump across the volume, not a line through it
 			if k == 1 {
-				mark(a, d)
+				mark(a, d, ca, colored)
 			}
 			for s := 1; s <= steps; s++ {
-				mark(a.Add(d.Scale(float64(s)/float64(steps))), d)
+				t := float64(s) / float64(steps)
+				mark(a.Add(d.Scale(t)), d, lerp(ca, cb, float32(t)), colored)
 			}
 			a = b
 		}
@@ -146,6 +193,10 @@ func renderFigure(sh Sheet, f *Figure, tu turn, st Style, co Coloring, cells []C
 			}
 			p := sh.Voxel(u, v)
 			r, gr, bl := color(p, co)
+			if h := g.hits[j]; h > 0 && co != Mono {
+				// The figure's own colors, met here (SetColored).
+				r, gr, bl = uint8(g.rgb[j][0]/h+0.5), uint8(g.rgb[j][1]/h+0.5), uint8(g.rgb[j][2]/h+0.5)
+			}
 			c := Cell{Ch: lineGlyph(g.dir[j], b, st), R: r, G: gr, B: bl}
 			fr.Cells[v*fr.Cols+2*u] = c
 			fr.Cells[v*fr.Cols+2*u+1] = c

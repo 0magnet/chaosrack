@@ -77,6 +77,11 @@ type latticeModel struct {
 	figPts   []lattice.Vec3
 	figLens  []int
 	figLines [][]lattice.Vec3
+	// figFrom is the vertex each of figPts was taken from, and figCols and
+	// figColors their colors, as figPts and figLines are their points.
+	figFrom   []int
+	figCols   []lattice.RGB
+	figColors [][]lattice.RGB
 }
 
 // sheetDraw is what the page has made of one sheet's screen: its pieces,
