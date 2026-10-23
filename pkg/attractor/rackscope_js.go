@@ -240,7 +240,7 @@ func adoptTrioSelect(id string, cell js.Value, apply func(i int)) {
 		sel.Call("appendChild", opt)
 	}
 	cell.Call("appendChild", sel)
-	adoptDescControl(ControlDesc{ID: id, Label: scopeLabel(id), IsSelect: true, SelectDef: "0",
+	adoptDescControl(ControlDesc{ID: id, Label: scopeLabel(id), IsSelect: true, SelectDef: "0", PermaKey: scopePermaKey(id),
 		SelectApply: func(v string) {
 			if i, err := strconv.Atoi(v); err == nil {
 				apply(i)
@@ -297,7 +297,7 @@ func (ra *rackScope) wireScopeBeam() {
 	// does its envelope.
 	adoptDescControl(ControlDesc{
 		ID: ra.id("focus"), Label: "focus", Min: 0, Max: 1, Step: 0.01, Def: scope.FocusBest,
-		ResetID: "rst-" + ra.id("intens"),
+		ResetID: "rst-" + ra.id("intens"), PermaKey: scopePermaKey(ra.id("focus")),
 		Apply: func(v float64) {
 			ra.ui.focus = v
 			loan.show("focus", two(v))
@@ -305,13 +305,13 @@ func (ra *rackScope) wireScopeBeam() {
 	})
 	adoptDescControl(ControlDesc{
 		ID: ra.id("illum"), Label: "illum", Min: lo, Max: 1, Step: 0.01, Def: 0.5,
-		ResetID: "rst-" + ra.id("intens"),
+		ResetID: "rst-" + ra.id("intens"), PermaKey: scopePermaKey(ra.id("illum")),
 	})
 	ra.ui.focus, _ = strconv.ParseFloat(focus.Get("value").String(), 64) //nolint:errcheck // the markup's own number
 	apply()
 	adoptDescControl(ControlDesc{
 		ID: ra.id("intens"), Label: "intens", Min: 0, Max: 1, Step: 0.01, Def: 0.6,
-		LEDStep: 0.1, LEDID: ra.id("intens-led"), ResetID: "rst-" + ra.id("intens"),
+		LEDStep: 0.1, LEDID: ra.id("intens-led"), ResetID: "rst-" + ra.id("intens"), PermaKey: scopePermaKey(ra.id("intens")),
 		Apply: func(v float64) { ra.ui.intens = v },
 	})
 	ra.ui.intens, _ = strconv.ParseFloat(intens.Get("value").String(), 64) //nolint:errcheck // the markup's own number
@@ -453,7 +453,7 @@ func buildScopeRing(id string, names, ring []string, at, def int, set func(int))
 	setScopeReadout(id, names, clampIdx(at, len(names)))
 	adoptDescControl(ControlDesc{
 		ID: id, Label: scopeLabel(id), IsSelect: true,
-		SelectDef: strconv.Itoa(clampIdx(def, len(names))), ResetID: "rst-" + id,
+		SelectDef: strconv.Itoa(clampIdx(def, len(names))), ResetID: "rst-" + id, PermaKey: scopePermaKey(id),
 	})
 }
 
@@ -520,7 +520,7 @@ func wireScopeRange(id string, set func(float64)) {
 		Signed: attr("min") < 0,
 		// Two places: the finest of these knobs moves in hundredths.
 		LEDStep: 0.1,
-		LEDID:   id + "-led", ResetID: "rst-" + id,
+		LEDID:   id + "-led", ResetID: "rst-" + id, PermaKey: scopePermaKey(id),
 		Apply: set,
 	})
 	set(attr("value"))

@@ -541,7 +541,7 @@ func (to *tonematrix) wireTonematrixModule() {
 	// LEDStep 10 keeps it at whole BPM.
 	tstack.Call("appendChild", makeKnob(tempo, js.Undefined(), true, false, true))
 	adoptDescControl(ControlDesc{
-		ID: "tm-tempo", Label: "tempo", Min: 40, Max: 300, Step: 1, Def: 120,
+		ID: "tm-tempo", Label: "tempo", Min: 40, Max: 300, Step: 1, Def: 120, PermaKey: "mt",
 		LEDID: "tm-tempo-led", ResetID: "rst-tm-tempo", LEDStep: 10,
 	})
 

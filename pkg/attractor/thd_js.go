@@ -149,7 +149,7 @@ func (d *distortion) wireDistortionModule() {
 	hstack.Call("appendChild", makeKnob(harm, js.Undefined(), true, false, true))
 	// LEDStep 10 to keep whole harmonics, as above.
 	adoptDescControl(ControlDesc{
-		ID: "thd-harm", Label: "harm", Min: 2, Max: 20, Step: 1, Def: 10,
+		ID: "thd-harm", Label: "harm", Min: 2, Max: 20, Step: 1, Def: 10, PermaKey: "dh",
 		LEDID: "thd-harm-led", ResetID: "rst-thd-harm", LEDStep: 10,
 		Apply: func(v float64) { d.harmF = float32(v) },
 	})

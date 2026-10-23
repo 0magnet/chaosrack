@@ -51,10 +51,10 @@ type synthModule struct {
 // synthModules is the bay, left to right: three cells to a column.
 var synthModules = []synthModule{
 	{"Synth", doc("synth-synth"), []any{
-		synthSelect{id: "syn-preset", label: "prst", def: "piano", readout: true,
+		synthSelect{id: "syn-preset", label: "prst", def: "piano", readout: true, key: "yz",
 			help: doc("syn-preset"),
 			opts: synthPresetOpts()}, // applied by applySynthPreset, which reads this table
-		synthKnob{id: "keys-lvl", label: "lvl", min: 0, max: 100, step: 1, def: 80,
+		synthKnob{id: "keys-lvl", label: "lvl", min: 0, max: 100, step: 1, def: 80, key: "kl",
 			help: doc("keys-lvl")},
 	}},
 	{"String", doc("synth-string"), []any{
