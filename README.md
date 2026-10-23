@@ -204,7 +204,7 @@ its equations. Images are captured by `uitool portraits`.
 
 ### Attractors
 
-[Rossler](#rossler) · [Lorenz](#lorenz) · [Chua](#chua) · [Aizawa](#aizawa) · [Sprott](#sprott) · [Thomas](#thomas) · [Halvorsen](#halvorsen) · [Chen](#chen) · [Dadras](#dadras) · [Rabinovich-Fabrikant](#rabinovich-fabrikant) · [Burke-Shaw](#burke-shaw) · [Lü](#lü) · [Newton-Leipnik](#newton-leipnik) · [Arneodo](#arneodo) · [Chen-Lee](#chen-lee) · [Dequan Li](#dequan-li) · [Three-Scroll](#three-scroll) · [Wang-Sun](#wang-sun) · [Lorenz Mod 2](#lorenz-mod-2) · [Simone](#simone) · [Hyper-Rössler (4D)](#hyper-rössler-4d) · [Sprott Morph](#sprott-morph) · [Sprott A](#sprott-a) · [Sprott B](#sprott-b) · [Sprott C](#sprott-c) · [Sprott D](#sprott-d) · [Sprott E](#sprott-e) · [Sprott F](#sprott-f) · [Sprott G](#sprott-g) · [Sprott H](#sprott-h) · [Sprott I](#sprott-i) · [Sprott J](#sprott-j) · [Sprott K](#sprott-k) · [Sprott L](#sprott-l) · [Sprott M](#sprott-m) · [Sprott N](#sprott-n) · [Sprott O](#sprott-o) · [Sprott P](#sprott-p) · [Sprott Q](#sprott-q) · [Sprott R](#sprott-r) · [Sprott S](#sprott-s) · [Custom equation](#custom-equation)
+[Rossler](#rossler) · [Lorenz](#lorenz) · [Chua](#chua) · [Aizawa](#aizawa) · [Sprott](#sprott) · [Thomas](#thomas) · [Halvorsen](#halvorsen) · [Chen](#chen) · [Dadras](#dadras) · [Rabinovich-Fabrikant](#rabinovich-fabrikant) · [Burke-Shaw](#burke-shaw) · [Lü](#lü) · [Newton-Leipnik](#newton-leipnik) · [Arneodo](#arneodo) · [Chen-Lee](#chen-lee) · [Dequan Li](#dequan-li) · [Three-Scroll](#three-scroll) · [Wang-Sun](#wang-sun) · [Lorenz Mod 2](#lorenz-mod-2) · [Simone](#simone) · [Rucklidge](#rucklidge) · [Genesio-Tesi](#genesio-tesi) · [Shimizu-Morioka](#shimizu-morioka) · [Rikitake Dynamo](#rikitake-dynamo) · [Moore-Spiegel](#moore-spiegel) · [Bouali](#bouali) · [Lorenz-84](#lorenz-84) · [Finance](#finance) · [Hindmarsh-Rose](#hindmarsh-rose) · [Wei (no equilibrium)](#wei-no-equilibrium) · [Sprott Jerk](#sprott-jerk) · [Hyper-Rössler (4D)](#hyper-rössler-4d) · [Sprott Morph](#sprott-morph) · [Sprott A](#sprott-a) · [Sprott B](#sprott-b) · [Sprott C](#sprott-c) · [Sprott D](#sprott-d) · [Sprott E](#sprott-e) · [Sprott F](#sprott-f) · [Sprott G](#sprott-g) · [Sprott H](#sprott-h) · [Sprott I](#sprott-i) · [Sprott J](#sprott-j) · [Sprott K](#sprott-k) · [Sprott L](#sprott-l) · [Sprott M](#sprott-m) · [Sprott N](#sprott-n) · [Sprott O](#sprott-o) · [Sprott P](#sprott-p) · [Sprott Q](#sprott-q) · [Sprott R](#sprott-r) · [Sprott S](#sprott-s) · [Custom equation](#custom-equation)
 
 #### Rossler
 
@@ -587,6 +587,147 @@ dz/dt = s(sin(ax) + cos(by)) − z
 ```
 
 `#simone` · 3-D flow
+
+#### Rucklidge
+
+Rucklidge Attractor — A. M. Rucklidge's 1992 model of double convection: a layer of fluid heated from below while a magnetic field or the frame's rotation pushes back.
+Two scrolls like Lorenz's, wound more tightly.
+
+```
+dx/dt = −κx + λy − yz
+dy/dt = x
+dz/dt = −z + y²
+```
+
+`#rucklidge` · 3-D flow
+
+#### Genesio-Tesi
+
+Genesio–Tesi Attractor — from Genesio and Tesi's 1992 study in control theory of when a feedback system stops oscillating regularly and turns chaotic.
+A jerk system: the third derivative of x set by x and its first two derivatives, with one square.
+
+```
+dx/dt = y
+dy/dt = z
+dz/dt = −cx − by − az + x²
+```
+
+`#genesiotesi` · 3-D flow
+
+#### Shimizu-Morioka
+
+Shimizu–Morioka Attractor — Shimizu and Morioka's 1980 system, a relative of Lorenz's in which the butterfly's wings meet in a lip, a fold where the orbit hesitates before choosing a side.
+
+```
+dx/dt = y
+dy/dt = x − λy − xz
+dz/dt = −αz + x²
+```
+
+`#shimizumorioka` · 3-D flow
+
+#### Rikitake Dynamo
+
+Rikitake Dynamo — T. Rikitake's 1958 model of the Earth's magnetic field: two disk dynamos, each feeding the other's coil.
+x and y are their currents, and they reverse sign at irregular times, as the geomagnetic field has reversed through geological time.
+
+```
+dx/dt = −μx + zy
+dy/dt = −μy + (z − a)x
+dz/dt = 1 − xy
+```
+
+`#rikitake` · 3-D flow
+
+#### Moore-Spiegel
+
+Moore–Spiegel Attractor — Moore and Spiegel's 1966 model of a parcel of gas in a star's atmosphere, rising and sinking through convection while it radiates heat away; T and R set the thermal and the buoyant forces.
+
+```
+dx/dt = y
+dy/dt = z
+dz/dt = −z − (T − R + Rx²)y − Tx
+```
+
+`#moorespiegel` · 3-D flow
+
+#### Bouali
+
+Bouali Attractor — Safieddine Bouali's 2012 strange attractor with a stretched loop: a scroll with one long excursion out and back.
+
+```
+dx/dt = x(a − y) + αz
+dy/dt = −y(b − x²)
+dz/dt = −x(c − sz) − βz
+```
+
+`#bouali` · 3-D flow
+
+#### Lorenz-84
+
+Lorenz-84 — Edward Lorenz's 1984 model of the atmosphere's general circulation: x is the westerly jet, y and z the eddies that carry heat poleward, F the pole-to-equator heating and G its seasonal part.
+The same Lorenz, twenty years on, with weather as a whole rather than one convecting cell.
+
+```
+dx/dt = −y² − z² − ax + aF
+dy/dt = xy − bxz − y + G
+dz/dt = bxy + xz − z
+```
+
+`#lorenz84` · 3-D flow
+
+#### Finance
+
+Finance System — Ma and Chen's 2001 model of an economy: x the interest rate, y the demand for investment, z the price index, a the saving, b the cost of investment and c the elasticity of demand.
+An economy can be chaotic without any shock from outside.
+
+```
+dx/dt = z + (y − a)x
+dy/dt = 1 − by − x²
+dz/dt = −x − cz
+```
+
+`#finance` · 3-D flow
+
+#### Hindmarsh-Rose
+
+Hindmarsh–Rose Neuron — Hindmarsh and Rose's 1984 model of a nerve cell: x the membrane voltage, y a fast recovery current, z a slow adaptation current, I the current injected.
+It fires in bursts of spikes, and at I = 3.25 how many spikes a burst has is chaotic.
+The slow current is slow: give it a long trail.
+
+```
+dx/dt = y − x³ + 3x² − z + I
+dy/dt = 1 − 5x² − y
+dz/dt = r(s(x + 1.6) − z)
+```
+
+`#hindmarshrose` · 3-D flow
+
+#### Wei (no equilibrium)
+
+Wei (no equilibrium) — Zhouchao Wei's 2011 system, chaotic though it has no equilibrium at all: no fixed point for the orbit to circle or be thrown from, which was long assumed to be what chaos needs.
+An attractor like this is hidden: it cannot be found by starting near a fixed point, because there is none.
+
+```
+dx/dt = −y
+dy/dt = x + z
+dz/dt = 2y² + xz − a
+```
+
+`#wei` · 3-D flow
+
+#### Sprott Jerk
+
+Sprott Jerk — J. C. Sprott's 1997 simplest dissipative chaotic flow: x‴ = −A x″ + x′² − x, one parameter and one quadratic term.
+Chaotic in a narrow window of A around 2.017, from a small basin: a start outside it escapes, and the rack starts it again.
+
+```
+dx/dt = y
+dy/dt = z
+dz/dt = −Az + y² − x
+```
+
+`#sprottjerk` · 3-D flow
 
 #### Hyper-Rössler (4D)
 
