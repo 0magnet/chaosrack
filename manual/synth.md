@@ -3,7 +3,9 @@
 ## Synth
 
 <!-- key: synth-synth -->
-Synth — the sound the keyboard plays. PRST sets every knob on the bay to an instrument, as a place to start from; LVL is how loud. Where it is heard is the Mixer's: its KY column.
+Synth — the sound the keyboard plays.
+PRST sets every knob on the bay to an instrument, as a place to start from; LVL is how loud.
+Where it is heard is the Mixer's: its KY column.
 
 ### Preset
 
@@ -28,7 +30,14 @@ Level — how loud the keyboard plays (0–100).
 ## String
 
 <!-- key: synth-string -->
-String — the additive voice that is the piano: partials not quite harmonic, each fading at its own rate. STR its level; PART how many partials; TILT how fast they fall away up the series; INHM the string's stiffness, which sharpens the upper partials (×10⁻⁴); STRK where along the string it is struck, which silences the partials with a node there; UNI the detune between the two strings of each low partial, in cents; DAMP how much faster each higher partial dies.
+String — the additive voice that is the piano: partials not quite harmonic, each fading at its own rate.
+STR its level;
+PART how many partials;
+TILT how fast they fall away up the series;
+INHM the string's stiffness, which sharpens the upper partials (×10⁻⁴);
+STRK where along the string it is struck, which silences the partials with a node there;
+UNI the detune between the two strings of each low partial, in cents;
+DAMP how much faster each higher partial dies.
 
 ### String level
 
@@ -53,7 +62,8 @@ Inharmonicity — the string's stiffness, ×10⁻⁴, which sharpens each partia
 ### Strike point
 
 <!-- key: syn-strk -->
-Strike point — where along the string it is struck, as a fraction: the partials with a node there are thinned. A piano's hammer is at about an eighth; 0 is off.
+Strike point — where along the string it is struck, as a fraction: the partials with a node there are thinned.
+A piano's hammer is at about an eighth; 0 is off.
 
 ### Unison
 
@@ -68,7 +78,11 @@ Damping — how much faster each higher partial dies than the one below it, so t
 ## FM
 
 <!-- key: synth-fm -->
-FM — a sine modulated by another: the electric piano. FM its level; RATO the modulator's frequency over the note's; INDX how deep the modulation starts; IDEC how fast it fades, which is how fast the bark becomes a pure tone.
+FM — a sine modulated by another: the electric piano.
+FM its level;
+RATO the modulator's frequency over the note's;
+INDX how deep the modulation starts;
+IDEC how fast it fades, which is how fast the bark becomes a pure tone.
 
 ### FM level
 
@@ -93,7 +107,8 @@ Index decay — how fast the modulation fades, in seconds.
 ## Wave · Noise
 
 <!-- key: synth-wave -->
-Wave · Noise — WAVE is one oscillator, a generator waveform, the organ's drawbars or tuned noise, at a level; NOISE is a burst of filtered noise at the start of each note — a hammer, a quill, a tine's click — at TONE times the note, dying over NDEC.
+Wave · Noise — WAVE is one oscillator, a generator waveform, the organ's drawbars or tuned noise, at a level;
+NOISE is a burst of filtered noise at the start of each note — a hammer, a quill, a tine's click — at TONE times the note, dying over NDEC.
 
 ### Wave shape
 
@@ -130,7 +145,8 @@ Noise decay — how fast the burst dies, in seconds.
 ## Filter
 
 <!-- key: synth-filter -->
-Filter — a lowpass on each note that opens at BRGT times the note and closes towards DARK times it over FDEC: a plucked string brightest at the pluck. RESO is its resonance.
+Filter — a lowpass on each note that opens at BRGT times the note and closes towards DARK times it over FDEC: a plucked string brightest at the pluck.
+RESO is its resonance.
 
 ### Bright
 
@@ -155,7 +171,8 @@ Resonance — the filter's peak at its cutoff.
 ## Amp
 
 <!-- key: synth-amp -->
-Amp — the envelope every layer follows: ATK up, then towards SUS with time constant DEC (at C3), which KTRK shortens up the keyboard and lengthens down it, as a piano's strings ring longer in the bass; REL is how long letting go takes.
+Amp — the envelope every layer follows: ATK up, then towards SUS with time constant DEC (at C3), which KTRK shortens up the keyboard and lengthens down it, as a piano's strings ring longer in the bass;
+REL is how long letting go takes.
 
 ### Attack
 

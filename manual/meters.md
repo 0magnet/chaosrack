@@ -3,7 +3,8 @@
 ## Counter
 
 <!-- key: counter -->
-Counter — a frequency counter for the rack, in the spirit of the glensstuff.com NAND-gate counter: it counts trigger crossings of the live audio source over the gate window and shows cycles per second, the way the discrete-logic original did. It counts the rack's own signal: whatever the Mixer pins to RACK L and R.
+Counter — a frequency counter for the rack, in the spirit of the glensstuff.com NAND-gate counter: it counts trigger crossings of the live audio source over the gate window and shows cycles per second, the way the discrete-logic original did.
+It counts the rack's own signal: whatever the Mixer pins to RACK L and R.
 
 ### Measured frequency in Hz
 
@@ -39,12 +40,20 @@ Reset the trigger level
 ## Distortion
 
 <!-- key: thd -->
-Distortion — THD, THD+N, SINAD and ENOB of the live audio, measured against whichever tone is in it. Feed it a generator's sine at 1 kHz (type 1000 into its Hz readout) through whatever you want measured and read how much of what comes back is not that tone. THD is the harmonics alone, which is the number a specification quotes; THD+N is everything that is not the fundamental, which is the honest one and always the larger; SINAD is the same ratio in decibels, the way a converter is specified; ENOB runs the ideal-converter relation backwards and says how many bits would sound this clean. The gap between THD and THD+N is how much of the rubbish is hiss rather than distortion. The instrument's own floor is about 0.0015% THD+N (96.5 dB SINAD, 17.3 effective bits), measured on a synthesized pure tone — that is the Blackman-Harris window's leakage past the notch, and nothing quieter than it can be read.
+Distortion — THD, THD+N, SINAD and ENOB of the live audio, measured against whichever tone is in it.
+Feed it a generator's sine at 1 kHz (type 1000 into its Hz readout) through whatever you want measured and read how much of what comes back is not that tone.
+THD is the harmonics alone, which is the number a specification quotes;
+THD+N is everything that is not the fundamental, which is the honest one and always the larger;
+SINAD is the same ratio in decibels, the way a converter is specified;
+ENOB runs the ideal-converter relation backwards and says how many bits would sound this clean.
+The gap between THD and THD+N is how much of the rubbish is hiss rather than distortion.
+The instrument's own floor is about 0.0015% THD+N (96.5 dB SINAD, 17.3 effective bits), measured on a synthesized pure tone — that is the Blackman-Harris window's leakage past the notch, and nothing quieter than it can be read.
 
 ### Total harmonic distortion
 
 <!-- key: thd-led -->
-Total harmonic distortion — the harmonics alone, as a percentage of the fundamental. Noise is not counted, which is what makes this the flattering number.
+Total harmonic distortion — the harmonics alone, as a percentage of the fundamental.
+Noise is not counted, which is what makes this the flattering number.
 
 <!-- key: thd-fund-led -->
 The fundamental the measurement is against, in Hz — the largest peak above DC, found between bins
@@ -52,10 +61,12 @@ The fundamental the measurement is against, in Hz — the largest peak above DC,
 ### THD+N
 
 <!-- key: thdn-led -->
-THD+N — everything that is not the fundamental, as a percentage of it: harmonics, noise, hum, the lot. Always at least THD.
+THD+N — everything that is not the fundamental, as a percentage of it: harmonics, noise, hum, the lot.
+Always at least THD.
 
 <!-- key: thd-level-led -->
-Level of the fundamental in dBFS. A distortion figure is quoted at a stated level, and near full scale is where it is usually worst.
+Level of the fundamental in dBFS.
+A distortion figure is quoted at a stated level, and near full scale is where it is usually worst.
 
 ### SINAD in dB
 
@@ -82,7 +93,11 @@ Reset the harmonic count
 ## Loudness
 
 <!-- key: lufs -->
-Loudness — LUFS to ITU-R BS.1770 and EBU R 128, the scale everything is delivered against. M is the momentary loudness over 400 ms, S the short-term over 3 s, I the INTEGRATED reading over everything since the last reset — gated, so silence and quiet passages do not drag a programme's number down, which is what makes it the number a delivery spec means. LRA is the loudness range, how far the loud parts sit above the quiet ones: one number for how dynamic the material is, and the thing a loudness target alone says nothing about. TP is the TRUE peak in dBTP, the peak of the reconstructed signal rather than of the samples — a full-scale tone at a quarter of the sample rate can have every sample at −3 dBFS and still clip the converter, which is why a delivery ceiling is a true-peak ceiling. K-weighting is derived from the analog prototype at whatever rate the audio is arriving at, not the 48 kHz coefficients the standard prints, so the weighting is the same filter at every rate.
+Loudness — LUFS to ITU-R BS.1770 and EBU R 128, the scale everything is delivered against.
+M is the momentary loudness over 400 ms, S the short-term over 3 s, I the INTEGRATED reading over everything since the last reset — gated, so silence and quiet passages do not drag a programme's number down, which is what makes it the number a delivery spec means.
+LRA is the loudness range, how far the loud parts sit above the quiet ones: one number for how dynamic the material is, and the thing a loudness target alone says nothing about.
+TP is the TRUE peak in dBTP, the peak of the reconstructed signal rather than of the samples — a full-scale tone at a quarter of the sample rate can have every sample at −3 dBFS and still clip the converter, which is why a delivery ceiling is a true-peak ceiling.
+K-weighting is derived from the analog prototype at whatever rate the audio is arriving at, not the 48 kHz coefficients the standard prints, so the weighting is the same filter at every rate.
 
 ### Momentary loudness, LUFS over 400 ms
 
@@ -98,15 +113,18 @@ Short-term loudness, LUFS over 3 s — the window a person actually judges level
 Integrated loudness, LUFS over everything since the last reset, gated. The number a delivery spec means.
 
 <!-- key: lufs-lra-led -->
-Loudness range in LU: the 95th percentile of the short-term distribution less the 10th. Percentiles rather than extremes, so one cymbal does not set the range of a whole program.
+Loudness range in LU: the 95th percentile of the short-term distribution less the 10th.
+Percentiles rather than extremes, so one cymbal does not set the range of a whole program.
 
 ### True peak in dBTP
 
 <!-- key: lufs-tp-led -->
-True peak in dBTP — the peak of the reconstructed signal, found by oversampling four times. Higher than the sample peak whenever the waveform crests between samples.
+True peak in dBTP — the peak of the reconstructed signal, found by oversampling four times.
+Higher than the sample peak whenever the waveform crests between samples.
 
 <!-- key: lufs-reset -->
-Start a new integrated measurement. The integrated reading and the loudness range are over everything since this was last pressed; M and S are windows and are not affected.
+Start a new integrated measurement.
+The integrated reading and the loudness range are over everything since this was last pressed; M and S are windows and are not affected.
 
 ### Delivery target in LUFS
 
@@ -122,13 +140,25 @@ Reset the loudness target
 ## Wow & Flutter
 
 <!-- key: wf -->
-Wow \& Flutter — speed stability, measured off a 3150 Hz test tone. Every other analyzer here asks about amplitude; this asks whether the TIME AXIS is steady, which is what a turntable, a tape deck or a cassette is judged by. Play a generator's sine at 3150 Hz through the deck, capture the result, and read it here: SPEED is the mean frequency error as a percentage (a constant error is a pitch shift, a different fault from a wobble), WOW the slow 0.5–6 Hz modulation that once-per-revolution faults produce, FLUTTER the fast 6–100 Hz kind from capstans and idlers, and W\&F the DIN-weighted quasi-peak that a specification quotes — the deviation through a filter peaked at 4 Hz, where the ear is most sensitive to pitch movement. 3150 Hz is the figure every test record carries (DIN 45507, IEC 60386). With no deck in the loop at all it reads 0.000% on the generator itself, which is the check that the instrument is not inventing the number.
+Wow \& Flutter — speed stability, measured off a 3150 Hz test tone.
+Every other analyzer here asks about amplitude;
+this asks whether the TIME AXIS is steady, which is what a turntable, a tape deck or a cassette is judged by.
+Play a generator's sine at 3150 Hz through the deck, capture the result, and read it here:
+SPEED is the mean frequency error as a percentage (a constant error is a pitch shift, a different fault from a wobble),
+WOW the slow 0.5–6 Hz modulation that once-per-revolution faults produce,
+FLUTTER the fast 6–100 Hz kind from capstans and idlers,
+and W\&F the DIN-weighted quasi-peak that a specification quotes — the deviation through a filter peaked at 4 Hz, where the ear is most sensitive to pitch movement.
+3150 Hz is the figure every test record carries (DIN 45507, IEC 60386).
+With no deck in the loop at all it reads 0.000% on the generator itself, which is the check that the instrument is not inventing the number.
 
 <!-- key: wf-speed-led -->
-Mean frequency error as a percentage of nominal. Positive is running fast. A constant error is a pitch shift, which is a different fault from a wobble.
+Mean frequency error as a percentage of nominal.
+Positive is running fast.
+A constant error is a pitch shift, which is a different fault from a wobble.
 
 <!-- key: wf-carrier-led -->
-The carrier as measured, in Hz. Found from the signal rather than assumed, because a deck running fast puts the tone somewhere else.
+The carrier as measured, in Hz.
+Found from the signal rather than assumed, because a deck running fast puts the tone somewhere else.
 
 <!-- key: wf-wow-led -->
 Slow modulation, 0.5–6 Hz, RMS as a percentage. An off-center spindle hole is wow at exactly the platter's rate.
@@ -137,12 +167,15 @@ Slow modulation, 0.5–6 Hz, RMS as a percentage. An off-center spindle hole is 
 Fast modulation, 6–100 Hz, RMS as a percentage — capstan and idler faults, which the ear hears as roughness rather than as pitch movement.
 
 <!-- key: wf-weighted-led -->
-The DIN-weighted quasi-peak figure, which is the one a specification quotes: the deviation through a filter peaked at 4 Hz, read on meter ballistics that rise quickly and fall slowly. A two-pole approximation of the published curve rather than the tabulated response.
+The DIN-weighted quasi-peak figure, which is the one a specification quotes: the deviation through a filter peaked at 4 Hz, read on meter ballistics that rise quickly and fall slowly.
+A two-pole approximation of the published curve rather than the tabulated response.
 
 ### Nominal carrier frequency in Hz
 
 <!-- key: wf-nom-led -->
-Nominal carrier frequency in Hz — what the tone is supposed to be. 3150 is what the test records carry. Set it to 0 to measure wow and flutter without a speed figure, which is the honest reading when the tone's true frequency is not known.
+Nominal carrier frequency in Hz — what the tone is supposed to be.
+3150 is what the test records carry.
+Set it to 0 to measure wow and flutter without a speed figure, which is the honest reading when the tone's true frequency is not known.
 
 <!-- key: rst-wf-nom -->
 Reset the nominal frequency
@@ -150,7 +183,12 @@ Reset the nominal frequency
 ## Timing
 
 <!-- key: timing -->
-Timing — the rack metering itself. FRAME is the average interval in milliseconds and FPS its reciprocal, taken over the mean rather than the median so one hesitation a second cannot hide behind fifty-nine good frames. MIN and MAX are the best and worst frame in the window. LATE is the share of frames that missed the display's own interval, which is measured rather than assumed: nothing renders faster than vsync, so the shortest frame in a window IS the interval, and the reading means the same on a 60 Hz panel and a 144 Hz one. The four figures below it are where the frame went — MODEL the passes that draw the instrument, METERS everything the rack does to its own audio, SCOPE the tube, and REST the browser's own style, layout, raster and compositing, which is usually the largest share of the four. A rack that draws in 4 ms and spends 9 ms measuring its own audio is not slow, it is mis-apportioned, and no single frame rate says so.
+Timing — the rack metering itself.
+FRAME is the average interval in milliseconds and FPS its reciprocal, taken over the mean rather than the median so one hesitation a second cannot hide behind fifty-nine good frames.
+MIN and MAX are the best and worst frame in the window.
+LATE is the share of frames that missed the display's own interval, which is measured rather than assumed: nothing renders faster than vsync, so the shortest frame in a window IS the interval, and the reading means the same on a 60 Hz panel and a 144 Hz one.
+The four figures below it are where the frame went — MODEL the passes that draw the instrument, METERS everything the rack does to its own audio, SCOPE the tube, and REST the browser's own style, layout, raster and compositing, which is usually the largest share of the four.
+A rack that draws in 4 ms and spends 9 ms measuring its own audio is not slow, it is mis-apportioned, and no single frame rate says so.
 
 <!-- key: tm-fps-led -->
 Frames a second sustained over the last window — the reciprocal of the MEAN frame, so a hitch counts against it
@@ -169,27 +207,39 @@ Shortest frame in the window, in ms — which is the display's own interval, sin
 Longest frame in the window, in ms — the worst single hesitation
 
 <!-- key: tm-late-led -->
-Percentage of frames that missed the display's interval by half again or more. This is the number that corresponds to visible hesitation; the frame rate alone does not.
+Percentage of frames that missed the display's interval by half again or more.
+This is the number that corresponds to visible hesitation; the frame rate alone does not.
 
 <!-- key: tm-rest-led -->
-Milliseconds a frame spent outside the rack's own code: style, layout, raster, compositing and the wasm boundary. Usually the largest of the four, and the one no knob on this panel moves.
+Milliseconds a frame spent outside the rack's own code: style, layout, raster, compositing and the wasm boundary.
+Usually the largest of the four, and the one no knob on this panel moves.
 
 <!-- key: tm-model-led -->
-Milliseconds a frame spent ISSUING the model's draw calls. A WebGL call queues a command and returns without waiting for pixels, so this reads far below what the model really costs — the GPU and compositor share of it is in REST. Useful for what it does catch: geometry rebuilt every frame instead of cached.
+Milliseconds a frame spent ISSUING the model's draw calls.
+A WebGL call queues a command and returns without waiting for pixels, so this reads far below what the model really costs — the GPU and compositor share of it is in REST.
+Useful for what it does catch: geometry rebuilt every frame instead of cached.
 
 <!-- key: tm-meters-led -->
-Milliseconds a frame the rack spent on its own audio: the tap, the loudness, distortion, wow-and-flutter and counter analyzers, and the sequencer clocks. Unlike MODEL and SCOPE this is arithmetic on this thread and the number IS the cost — it is the one of the four to trust absolutely, and the one the analyzers' own controls move.
+Milliseconds a frame the rack spent on its own audio: the tap, the loudness, distortion, wow-and-flutter and counter analyzers, and the sequencer clocks.
+Unlike MODEL and SCOPE this is arithmetic on this thread and the number IS the cost — it is the one of the four to trust absolutely, and the one the analyzers' own controls move.
 
 <!-- key: tm-scope-led -->
-Milliseconds a frame spent building the scope's sweep and handing it to the canvas. Like MODEL this is the issuing cost, not the rasterizing one — a canvas stroke records a path and returns — so the tube's raster lands in REST.
+Milliseconds a frame spent building the scope's sweep and handing it to the canvas.
+Like MODEL this is the issuing cost, not the rasterizing one — a canvas stroke records a path and returns — so the tube's raster lands in REST.
 
 <!-- key: tbc-sw-cell -->
-TBC — timebase correction. On, the model turns at its rate per SECOND: each frame advances it by however long that frame took, so a late frame is a longer step and a faster display the same speed. Off, every frame advances it the same step, as the rack did before: a late frame is a pause, and a 144 Hz display spins it more than twice as fast as a 60 Hz one. On is the steady angular velocity; off is every frame advanced alike, which is what to compare frames by.
+TBC — timebase correction.
+On, the model turns at its rate per SECOND: each frame advances it by however long that frame took, so a late frame is a longer step and a faster display the same speed.
+Off, every frame advances it the same step, as the rack did before: a late frame is a pause, and a 144 Hz display spins it more than twice as fast as a 60 Hz one.
+On is the steady angular velocity;
+off is every frame advanced alike, which is what to compare frames by.
 
 ### Loudness RATE
 
 <!-- key: lufs-rate -->
-How often the loudness readouts latch. This is a DISPLAY rate only — the meter integrates every sample that arrives whatever this says, because an integrated loudness with a block missing is a block missing from the answer. Slower is steadier to read and costs the panel less.
+How often the loudness readouts latch.
+This is a DISPLAY rate only — the meter integrates every sample that arrives whatever this says, because an integrated loudness with a block missing is a block missing from the answer.
+Slower is steadier to read and costs the panel less.
 
 - <!-- key: lufs-rate=100 --> Ten readings a second — as fast as a readout can be followed
 - <!-- key: lufs-rate=200 --> Five a second: the default, and about the rate a needle settles at
@@ -199,7 +249,9 @@ How often the loudness readouts latch. This is a DISPLAY rate only — the meter
 ### Distortion RATE
 
 <!-- key: thd-rate -->
-How often the distortion measurement is made and shown. The analysis window is 341 ms, so measuring faster than about three times a second measures the same audio twice; slower is the same reading for less work.
+How often the distortion measurement is made and shown.
+The analysis window is 341 ms, so measuring faster than about three times a second measures the same audio twice;
+slower is the same reading for less work.
 
 - <!-- key: thd-rate=200 --> Five a second — faster than the 341 ms window refills, so each reading shares audio with the one before: the most responsive, and the most work
 - <!-- key: thd-rate=400 --> The default: a fresh window every time, and no audio measured twice
@@ -209,17 +261,22 @@ How often the distortion measurement is made and shown. The analysis window is 3
 ### Wow & Flutter RATE
 
 <!-- key: wf-rate -->
-How often the wow-and-flutter measurement is remade. This does not make the analysis cheaper — it makes it rarer. The same lump of work lands on one frame in sixty instead of one in thirty, so this is the control for how OFTEN the rack hesitates, not for how much.
+How often the wow-and-flutter measurement is remade.
+This does not make the analysis cheaper — it makes it rarer.
+The same lump of work lands on one frame in sixty instead of one in thirty, so this is the control for how OFTEN the rack hesitates, not for how much.
 
 - <!-- key: wf-rate=250 --> Four a second — the most responsive, and the most expensive: this analysis walks the whole window each time
 - <!-- key: wf-rate=500 --> The default
 - <!-- key: wf-rate=1000 --> Once a second — halves the largest single lump of work in the rack
-- <!-- key: wf-rate=2000 --> Every two seconds. A reading that settles over ten seconds does not need remaking faster than this.
+- <!-- key: wf-rate=2000 --> Every two seconds.
+  A reading that settles over ten seconds does not need remaking faster than this.
 
 ### Wow & Flutter WINDOW
 
 <!-- key: wf-win -->
-How much audio each wow-and-flutter reading is made over. This is the measurement: ten seconds holds five cycles of the slowest wow, and two seconds cannot see wow at all, only flutter. It is also the cost — the analysis walks the whole window — so unlike RATE, this is the control that makes the work itself smaller.
+How much audio each wow-and-flutter reading is made over.
+This is the measurement: ten seconds holds five cycles of the slowest wow, and two seconds cannot see wow at all, only flutter.
+It is also the cost — the analysis walks the whole window — so unlike RATE, this is the control that makes the work itself smaller.
 
 - <!-- key: wf-win=2 --> Two seconds — flutter only. Too short to see wow at all, and the cheapest by five times.
 - <!-- key: wf-win=5 --> Five seconds — two cycles of the slowest wow, and half the work of ten
@@ -229,7 +286,10 @@ How much audio each wow-and-flutter reading is made over. This is the measuremen
 ## Features
 
 <!-- key: feat -->
-Features — what the Mod matrix's audio routes read, as a meter bridge: six LED bar graphs, one for each feature of the incoming audio's mono mix, the same numbers a route modulates a knob by. Each ladder is twenty segments, green to 70%, amber to 90% and red above. The levels are relative, not absolute: each feature is scaled by its own recent peak (instant rise, slow fall), so a quiet passage still fills the ladders and a loud one does not pin them. Dark while modulation is off — nothing routed and no feed from the server — since then nothing is measured.
+Features — what the Mod matrix's audio routes read, as a meter bridge: six LED bar graphs, one for each feature of the incoming audio's mono mix, the same numbers a route modulates a knob by.
+Each ladder is twenty segments, green to 70%, amber to 90% and red above.
+The levels are relative, not absolute: each feature is scaled by its own recent peak (instant rise, slow fall), so a quiet passage still fills the ladders and a loud one does not pin them.
+Dark while modulation is off — nothing routed and no feed from the server — since then nothing is measured.
 
 <!-- key: feat-amp -->
 AMP — the level: the RMS of the window, scaled by its recent peak.
@@ -244,7 +304,8 @@ MID — the energy from 250 Hz to 2 kHz, scaled by its recent peak.
 TREB — treble: the energy above 2 kHz, scaled by its recent peak.
 
 <!-- key: feat-centroid -->
-CNTR — the spectral centroid, the spectrum's center of mass, as a fraction of the Nyquist frequency: the brightness of the sound. Not scaled by a peak: a dull sound reads low however loud it is.
+CNTR — the spectral centroid, the spectrum's center of mass, as a fraction of the Nyquist frequency: the brightness of the sound.
+Not scaled by a peak: a dull sound reads low however loud it is.
 
 <!-- key: feat-beat -->
 BEAT — onsets: the ladder fills when the spectrum jumps (spectral flux past 55% of its recent peak) and falls away between them, so on a steady rhythm it flashes on the beat.

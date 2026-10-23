@@ -3,12 +3,18 @@
 ## Layers · Colors
 
 <!-- key: layers -->
-Layers · Colors — how the picture is made up and colored. BEHIND draws a second picture filling the canvas behind the model and SKIN paints one onto its surface; BG is the color behind it all. SRC is what the color follows, MAP how a value becomes a color, PERIOD and SHIFT the window on the map, and START, MID and END the gradient's own colors. The buttons: F (fill) and B (back) on BEHIND, I (invert) on MAP, H (held) on SRC.
+Layers · Colors — how the picture is made up and colored.
+BEHIND draws a second picture filling the canvas behind the model and SKIN paints one onto its surface;
+BG is the color behind it all.
+SRC is what the color follows, MAP how a value becomes a color, PERIOD and SHIFT the window on the map, and START, MID and END the gradient's own colors.
+The buttons: F (fill) and B (back) on BEHIND, I (invert) on MAP, H (held) on SRC.
 
 ### Backdrop
 
 <!-- key: bg-cell -->
-Backdrop — what is drawn behind the model, filling the canvas: the scrolling spectrogram, the XY oscilloscope, a live terminal, or the whole desk. Water is the exception: it is a LENS, drawn through the finished frame rather than behind it — drag on the canvas to make waves. One at a time, or off.
+Backdrop — what is drawn behind the model, filling the canvas: the scrolling spectrogram, the XY oscilloscope, a live terminal, or the whole desk.
+Water is the exception: it is a LENS, drawn through the finished frame rather than behind it — drag on the canvas to make waves.
+One at a time, or off.
 
 <!-- key: rst-bg-visual -->
 Reset the backdrop to off
@@ -29,7 +35,10 @@ Backdrop — what is drawn behind the model
 ### Skin
 
 <!-- key: skin-cell -->
-Skin — what is painted ON the model's own surface, wrapped round it, for the models that have a surface to take it: the live spectrogram, a terminal, or the whole desk. Off leaves the wireframe. The same three pictures the Behind knob draws in the background; this puts one on the object instead.
+Skin — what is painted ON the model's own surface, wrapped round it, for the models that have a surface to take it: the live spectrogram, a terminal, or the whole desk.
+Off leaves the wireframe.
+The same three pictures the Behind knob draws in the background;
+this puts one on the object instead.
 
 <!-- key: rst-skin-visual -->
 Reset the skin to off
@@ -85,7 +94,16 @@ Reset end color
 ### Source
 
 <!-- key: src-cell -->
-Source — what the color follows. OFF is a flat trace in the start swatch: the color follows nothing. X / Y / Z follow a coordinate of the figure; on the three delay embeddings those axes are one signal at three lags, so they color along different directions of the same figure rather than showing three different quantities. TRAIL follows age along the window. AUDIO paints the short-time spectral CENTROID along the trail — which frequency each moment sits at. LEVEL paints the short-time LEVEL instead, which is the quantity the spectrogram backdrop is painting, so with one of the colormap palettes behind it the figure and the backdrop say the same thing in the same language; AUDIO deliberately does not, and a figure colored by centroid over a spectrogram is not supposed to match it. Only the Takens, stereo and polar embeddings have a trail that is a time axis, so elsewhere both are one flat tint. Displays with a value of their own — the spectrogram, the RTA, the transfer function — do not consult this knob at all, and it dims in those modes.
+Source — what the color follows.
+OFF is a flat trace in the start swatch: the color follows nothing.
+X / Y / Z follow a coordinate of the figure;
+on the three delay embeddings those axes are one signal at three lags, so they color along different directions of the same figure rather than showing three different quantities.
+TRAIL follows age along the window.
+AUDIO paints the short-time spectral CENTROID along the trail — which frequency each moment sits at.
+LEVEL paints the short-time LEVEL instead, which is the quantity the spectrogram backdrop is painting, so with one of the colormap palettes behind it the figure and the backdrop say the same thing in the same language;
+AUDIO deliberately does not, and a figure colored by centroid over a spectrogram is not supposed to match it.
+Only the Takens, stereo and polar embeddings have a trail that is a time axis, so elsewhere both are one flat tint.
+Displays with a value of their own — the spectrogram, the RTA, the transfer function — do not consult this knob at all, and it dims in those modes.
 
 <!-- key: rst-gradient-source -->
 Reset the color source
@@ -101,19 +119,35 @@ Source — what the color follows.
 - <!-- key: gradient-source=2 --> Z — the color follows the figure's Z coordinate
 - <!-- key: gradient-source=3 --> TRAIL — the color follows age along the trail, newest to oldest
 - <!-- key: gradient-source=4 --> AUDIO — the color follows the short-time spectral centroid of the sound: which frequency the moment sits at, not how loud it is
-- <!-- key: gradient-source=6 --> LEVEL — the color follows the short-time level, which is the quantity the spectrogram backdrop paints. Put a colormap palette behind it (heat, turbo, viridis, magma) and the figure and the backdrop agree: loud is the hot end in both
-- <!-- key: gradient-source=11 --> dB — LEVEL on a decibel scale, −60 dB to full scale, FIXED: half way up the ramp is always −30 dB, so two moments can be compared. Linear level spends most of its range on the loudest few percent
-- <!-- key: gradient-source=7 --> CORRELATION — how much L and R agree, at each point of the sweep. Fixed scale: the bottom of the ramp is out of phase (what vanishes when summed to mono), the middle uncorrelated, the top identical. A correlation meter says something in here is out of phase; this says WHICH PART
-- <!-- key: gradient-source=8 --> SIDE — the level of (L−R)/2, the width of the image moment by moment. Auto-ranged: it answers which parts are wider than which. Turn WIDE and watch it respond
-- <!-- key: gradient-source=9 --> BALANCE — which side the energy is on, hard left to hard right, FIXED with centered at the middle of the ramp. Meant for a diverging palette, where an image drifting off center shows as a color drift
-- <!-- key: gradient-source=13 --> POSITION — the ANGLE of the (L,R) vector: hue IS the stereo position of the sample rather than a quantity computed about it. On a hue palette the figure's arms take a color per direction
-- <!-- key: gradient-source=10 --> FLUX — how much the spectrum CHANGED from the previous slice, rectified so only increases count. Steady tones go flat and transients flash: onsets painted onto the trace
-- <!-- key: gradient-source=12 --> PITCH — the centroid folded into one octave, so the same note is the same color in any register. Fixed, and least like the others on a hue palette: a melody becomes a sequence of hues that repeats when it does
+- <!-- key: gradient-source=6 --> LEVEL — the color follows the short-time level, which is the quantity the spectrogram backdrop paints.
+  Put a colormap palette behind it (heat, turbo, viridis, magma) and the figure and the backdrop agree: loud is the hot end in both
+- <!-- key: gradient-source=11 --> dB — LEVEL on a decibel scale, −60 dB to full scale, FIXED: half way up the ramp is always −30 dB, so two moments can be compared.
+  Linear level spends most of its range on the loudest few percent
+- <!-- key: gradient-source=7 --> CORRELATION — how much L and R agree, at each point of the sweep.
+  Fixed scale: the bottom of the ramp is out of phase (what vanishes when summed to mono), the middle uncorrelated, the top identical.
+  A correlation meter says something in here is out of phase;
+  this says WHICH PART
+- <!-- key: gradient-source=8 --> SIDE — the level of (L−R)/2, the width of the image moment by moment.
+  Auto-ranged: it answers which parts are wider than which.
+  Turn WIDE and watch it respond
+- <!-- key: gradient-source=9 --> BALANCE — which side the energy is on, hard left to hard right, FIXED with centered at the middle of the ramp.
+  Meant for a diverging palette, where an image drifting off center shows as a color drift
+- <!-- key: gradient-source=13 --> POSITION — the ANGLE of the (L,R) vector: hue IS the stereo position of the sample rather than a quantity computed about it.
+  On a hue palette the figure's arms take a color per direction
+- <!-- key: gradient-source=10 --> FLUX — how much the spectrum CHANGED from the previous slice, rectified so only increases count.
+  Steady tones go flat and transients flash: onsets painted onto the trace
+- <!-- key: gradient-source=12 --> PITCH — the centroid folded into one octave, so the same note is the same color in any register.
+  Fixed, and least like the others on a hue palette: a melody becomes a sequence of hues that repeats when it does
 
 ### Map
 
 <!-- key: map-cell -->
-Map — how a value becomes a color, for every display in the rack including the spectrogram. 2 and 3 mix the START, MID and END swatches; HUE is a raw hue sweep; heat, blue, gray, turbo, viridis and magma are the published colormaps. Turbo and viridis are the even ones — equal steps in the value look like equal steps in color, which a hue sweep does not give you. This is the only colormap control there is: the spectrogram had a second one naming the same six maps, and two knobs that had to be kept in step by hand were one knob too many.
+Map — how a value becomes a color, for every display in the rack including the spectrogram.
+2 and 3 mix the START, MID and END swatches;
+HUE is a raw hue sweep;
+heat, blue, gray, turbo, viridis and magma are the published colormaps.
+Turbo and viridis are the even ones — equal steps in the value look like equal steps in color, which a hue sweep does not give you.
+This is the only colormap control there is: the spectrogram had a second one naming the same six maps, and two knobs that had to be kept in step by hand were one knob too many.
 
 <!-- key: rst-gradient-colors -->
 Reset the color map
@@ -136,7 +170,8 @@ Map — how a value becomes a color.
 ### Palette period
 
 <!-- key: grp-rainbow -->
-Palette period — how many times the palette is crossed across the trail (low = a narrow slice of it, which the shift knob then sweeps). Drives the hue sweep AND the six colormaps: the question is the same one either way.
+Palette period — how many times the palette is crossed across the trail (low = a narrow slice of it, which the shift knob then sweeps).
+Drives the hue sweep AND the six colormaps: the question is the same one either way.
 
 ### Palette period value
 
@@ -154,7 +189,10 @@ Reset palette period
 ### Palette shift
 
 <!-- key: grp-pshift -->
-Palette shift — where the window sits on the colormap. Turn the period down to a slice and this sweeps that slice along heat / blue / gray / turbo / viridis / magma; route it from audio in the Mod module and the sound moves the figure THROUGH the map instead of only tinting it. Past either end the map turns back rather than wrapping — turbo's two ends are different colors, and joining them puts a hard seam across the figure — so ±1 is the reversed map, not a dead stop.
+Palette shift — where the window sits on the colormap.
+Turn the period down to a slice and this sweeps that slice along heat / blue / gray / turbo / viridis / magma;
+route it from audio in the Mod module and the sound moves the figure THROUGH the map instead of only tinting it.
+Past either end the map turns back rather than wrapping — turbo's two ends are different colors, and joining them puts a hard seam across the figure — so ±1 is the reversed map, not a dead stop.
 
 ### Palette shift value
 
@@ -173,8 +211,11 @@ Reset palette shift
 
 The module's switches are buttons on the P-units they concern.
 
-- <!-- key: trio.bg-visual=0 --> F (BEHIND): fill — the Spectrogram or FVF model drawn as the whole screen, face-on, instead of on a plane that turns. Only those two models; a spectrogram behind another model always fills.
-- <!-- key: trio.bg-visual=1 --> B (BEHIND): back — Layers · Colors edits the backdrop's colors instead of the model's. Applies only to a flat backdrop.
+- <!-- key: trio.bg-visual=0 --> F (BEHIND): fill — the Spectrogram or FVF model drawn as the whole screen, face-on, instead of on a plane that turns.
+  Only those two models;
+  a spectrogram behind another model always fills.
+- <!-- key: trio.bg-visual=1 --> B (BEHIND): back — Layers · Colors edits the backdrop's colors instead of the model's.
+  Applies only to a flat backdrop.
 - <!-- key: trio.gradient-colors=0 --> I (MAP): invert — reverse the palette direction (start and end swapped)
 - <!-- key: trio.gradient-source=0 --> H (SRC): held — the color range stops refitting to the source
 
@@ -189,12 +230,20 @@ Reverse the color-gradient direction (swap start and end)
 ### Held
 
 <!-- key: color-lock-sw-cell -->
-Held — stop the color range refitting itself. Auto stretches the ramp to what is in view, which keeps a quiet passage visible and means the same color says different things a minute apart; held freezes it, so color is comparable between moments. No effect on sources already on a fixed scale (dB, corr, bal, pos, pitch).
+Held — stop the color range refitting itself.
+Auto stretches the ramp to what is in view, which keeps a quiet passage visible and means the same color says different things a minute apart;
+held freezes it, so color is comparable between moments.
+No effect on sources already on a fixed scale (dB, corr, bal, pos, pitch).
 
 ### Back
 
 <!-- key: edit-back-cell -->
-Back — point Layers · Colors at the BACKDROP instead of the model: its map, its start, mid and end, its period, each kept apart from the model's. The MODEL knob and the bank show the backdrop's own controls while it is on, and choose among the backdrops. With src OFF a terminal, animation, desk or scope keeps its own colors; any other src redraws it through the map by brightness. Off, the panel is on the model again. Dimmed while nothing is BEHIND.
+Back — point Layers · Colors at the BACKDROP instead of the model: its map, its start, mid and end, its period, each kept apart from the model's.
+The MODEL knob and the bank show the backdrop's own controls while it is on, and choose among the backdrops.
+With src OFF a terminal, animation, desk or scope keeps its own colors;
+any other src redraws it through the map by brightness.
+Off, the panel is on the model again.
+Dimmed while nothing is BEHIND.
 
 ### Color range
 
@@ -207,27 +256,35 @@ Color range — auto-ranging or held
 ## Spectro
 
 <!-- key: spectro -->
-Spectro — the spectrogram's own controls, wherever it is: the model (Spectrogram, or FVF's surface), the skin painted on a surface (SKIN on spectrogram), or the backdrop filling the canvas behind the model (BEHIND on spectrogram). They are positions in the model bank, the same for every model, and dark there until one of those three puts a spectrogram on screen.
+Spectro — the spectrogram's own controls, wherever it is: the model (Spectrogram, or FVF's surface), the skin painted on a surface (SKIN on spectrogram), or the backdrop filling the canvas behind the model (BEHIND on spectrogram).
+They are positions in the model bank, the same for every model, and dark there until one of those three puts a spectrogram on screen.
 
 ## Record
 
 <!-- key: record -->
-Record — a monitor showing exactly what will be captured, and the transport that captures it. The picture is the recorded area, not the whole canvas, so what you see here is what lands in the file.
+Record — a monitor showing exactly what will be captured, and the transport that captures it.
+The picture is the recorded area, not the whole canvas, so what you see here is what lands in the file.
 
 ### Monitor
 
 <!-- key: rec-preview-cell -->
-Monitor — the recorded area, live. Letterboxed, so the shape of the picture is the shape of the region. Timecode and status are burned into the picture the way a field monitor overlays them.
+Monitor — the recorded area, live.
+Letterboxed, so the shape of the picture is the shape of the region.
+Timecode and status are burned into the picture the way a field monitor overlays them.
 
 ### Monitor
 
 <!-- key: rec-mon-on-cell -->
-Monitor — power to this module's screen. The picture is a copy out of the model's own drawing buffer every frame, which is not free; the rack shows every module in a bay now, so a screen you are not watching needs a switch of its own rather than relying on the module being put away. Off, the glass goes dark and the module costs nothing.
+Monitor — power to this module's screen.
+The picture is a copy out of the model's own drawing buffer every frame, which is not free;
+the rack shows every module in a bay now, so a screen you are not watching needs a switch of its own rather than relying on the module being put away.
+Off, the glass goes dark and the module costs nothing.
 
 ### Format
 
 <!-- key: rec-format -->
-Format — WebM video (MediaRecorder; small, and plays anywhere a browser does) or animated GIF (256 colors, larger per second, plays anywhere at all). The GIF's palette is built from the clip itself, so gradients do not band.
+Format — WebM video (MediaRecorder; small, and plays anywhere a browser does) or animated GIF (256 colors, larger per second, plays anywhere at all).
+The GIF's palette is built from the clip itself, so gradients do not band.
 
 ### Format
 
@@ -237,10 +294,14 @@ Format — webm records video; gif records an animated GIF, bigger and with fewe
 ### Area
 
 <!-- key: rec-area -->
-Area — the whole canvas, or a region you drag on it. Switching to region takes the canvas's drag until you have chosen an area, then gives it back; the monitor shows what you picked.
+Area — the whole canvas, or a region you drag on it.
+Switching to region takes the canvas's drag until you have chosen an area, then gives it back; the monitor shows what you picked.
 
 <!-- key: rec-region-sw -->
-What gets recorded: the full canvas, or a region of it. On region, drag on the canvas to choose the area — that drag picks the region instead of turning the model, and the camera comes back as soon as you let go. The dashed outline stays to show the choice; switch back to full to clear it.
+What gets recorded: the full canvas, or a region of it.
+On region, drag on the canvas to choose the area — that drag picks the region instead of turning the model, and the camera comes back as soon as you let go.
+The dashed outline stays to show the choice;
+switch back to full to clear it.
 
 ### Record
 
@@ -255,17 +316,21 @@ Stop — ends the take and saves. A GIF is encoded when it stops, which takes a 
 ### Still
 
 <!-- key: screenshot-btn -->
-Still — saves a PNG of what is on the monitor, at full resolution. Honors the area switch, so with a region set it captures the region and not the whole canvas.
+Still — saves a PNG of what is on the monitor, at full resolution.
+Honors the area switch, so with a region set it captures the region and not the whole canvas.
 
 ### Media
 
 <!-- key: rec-meter-fill-cell -->
-Media — how much of a GIF's frame budget the take has used. A GIF is held in memory until it is encoded, so it has a hard ceiling and stops there on its own; WebM has no such budget, and the bar stays empty for it.
+Media — how much of a GIF's frame budget the take has used.
+A GIF is held in memory until it is encoded, so it has a hard ceiling and stops there on its own;
+WebM has no such budget, and the bar stays empty for it.
 
 ### Last take
 
 <!-- key: rec-log-cell -->
-Last take — what the previous recording came out as. A GIF is encoded when the take ends, so its size is not known until then; this is where it appears.
+Last take — what the previous recording came out as.
+A GIF is encoded when the take ends, so its size is not known until then; this is where it appears.
 
 ## View
 
@@ -359,7 +424,8 @@ Reset Z angle + spin rate
 ### X position
 
 <!-- key: slider-value-panx-cell -->
-X position — slides the model sideways. The knob turns once round, its middle the center: half a turn either way is the edge of its travel, and the readout is how far it has turned, in degrees, like the angle knob beside it.
+X position — slides the model sideways.
+The knob turns once round, its middle the center: half a turn either way is the edge of its travel, and the readout is how far it has turned, in degrees, like the angle knob beside it.
 
 <!-- key: slider-value-panx -->
 X position, in degrees of the knob's turn — type or scroll
@@ -375,7 +441,8 @@ Reset X position
 ### Y position
 
 <!-- key: slider-value-pany-cell -->
-Y position — slides the model up and down. The knob turns once round, its middle the center: half a turn either way is the edge of its travel, and the readout is how far it has turned, in degrees, like the angle knob beside it.
+Y position — slides the model up and down.
+The knob turns once round, its middle the center: half a turn either way is the edge of its travel, and the readout is how far it has turned, in degrees, like the angle knob beside it.
 
 <!-- key: slider-value-pany -->
 Y position, in degrees of the knob's turn — type or scroll
@@ -389,7 +456,15 @@ Y position — slide the model vertically
 Reset Y position
 
 <!-- key: slider-value-zoom-cell -->
-Zoom, and Fore nested on top of it. ZOOM is the camera's distance, on a knob that turns once round like the position knobs, its readout in degrees of that turn. FORE is where the model sits relative to the rack, as a moving partition rather than a switch. Fully back and all of it is behind the controls; fully forward and all of it is in front; anywhere between and the panel cuts through it, near half in front and far half behind. The cut is a plane parallel to the screen, so it stays put as you turn the model. A flat picture — the spectrogram, the terminal — has no depth to cut, so it moves whole. The reset puts both back.
+Zoom, and Fore nested on top of it.
+ZOOM is the camera's distance, on a knob that turns once round like the position knobs, its readout in degrees of that turn.
+FORE is where the model sits relative to the rack, as a moving partition rather than a switch.
+Fully back and all of it is behind the controls;
+fully forward and all of it is in front;
+anywhere between and the panel cuts through it, near half in front and far half behind.
+The cut is a plane parallel to the screen, so it stays put as you turn the model.
+A flat picture — the spectrogram, the terminal — has no depth to cut, so it moves whole.
+The reset puts both back.
 
 ### Zoom, in degrees of the knob's turn
 
@@ -417,12 +492,14 @@ Reset zoom and Fore
 ## Grid
 
 <!-- key: grid -->
-Grid — how many views of the model are drawn, what differs between them, and which of them the knobs are pointed at. It sits beside View, Display and Layers · Colors because it is a question about the picture, not about the signal: Display is how one trajectory is drawn, View is where the camera is, and this is how many cameras there are.
+Grid — how many views of the model are drawn, what differs between them, and which of them the knobs are pointed at.
+It sits beside View, Display and Layers · Colors because it is a question about the picture, not about the signal: Display is how one trajectory is drawn, View is where the camera is, and this is how many cameras there are.
 
 ### Grid
 
 <!-- key: view-n-stack-cell -->
-Grid — how many views of the model are drawn, as a square (2 is side by side). A grid is not that many instruments configured by hand: pick what varies with the Sweep dial and the cells draw that parameter's range, which is a contact sheet of one setting rather than sixteen panels to fill in.
+Grid — how many views of the model are drawn, as a square (2 is side by side).
+A grid is not that many instruments configured by hand: pick what varies with the Sweep dial and the cells draw that parameter's range, which is a contact sheet of one setting rather than sixteen panels to fill in.
 
 - <!-- key: view-n=0 --> 1 — a single view
 - <!-- key: view-n=1 --> 2 — side by side
@@ -438,12 +515,20 @@ Grid — how many views of the model are drawn, as a square (2 is side by side).
 ### Overlay
 
 <!-- key: grid-ovl -->
-Overlay — the grid's cells drawn one over another on the whole screen instead of side by side. Cells after the first are drawn each in a single color of its own (the second green, then further hues) so they can be told apart, except under a csrc or cmap sweep, where the coloring is what differs. With a start sweep of two cells this is the twin-trajectory display: the model and a copy started ε away, separating at the attractor's own rate. The O button on GRID.
+Overlay — the grid's cells drawn one over another on the whole screen instead of side by side.
+Cells after the first are drawn each in a single color of its own (the second green, then further hues) so they can be told apart, except under a csrc or cmap sweep, where the coloring is what differs.
+With a start sweep of two cells this is the twin-trajectory display: the model and a copy started ε away, separating at the attractor's own rate.
+The O button on GRID.
 
 ### Sweep
 
 <!-- key: sweep-p-stack-cell -->
-Sweep — which parameter varies across the grid, and the from and to knobs beside this one say over how much of its range. This is what makes a grid of sixteen usable: rather than sixteen panels to fill in, one dial says what differs and the cells draw that parameter's space, like a contact sheet. The list is the CURRENT model's own parameters, so it changes with the mode; a model that integrates its trajectory offers no parameter sweep, because the cells share one integrator and a swept grid would smear one trajectory across them. A flow offers start instead: each cell integrates its own trajectory, started ε from the model's own. csrc and cmap sweep the COLORING instead of a number — the same figure read nine different ways, or in nine palettes — which is the case a grid is most worth having for.
+Sweep — which parameter varies across the grid, and the from and to knobs beside this one say over how much of its range.
+This is what makes a grid of sixteen usable: rather than sixteen panels to fill in, one dial says what differs and the cells draw that parameter's space, like a contact sheet.
+The list is the CURRENT model's own parameters, so it changes with the mode;
+a model that integrates its trajectory offers no parameter sweep, because the cells share one integrator and a swept grid would smear one trajectory across them.
+A flow offers start instead: each cell integrates its own trajectory, started ε from the model's own.
+csrc and cmap sweep the COLORING instead of a number — the same figure read nine different ways, or in nine palettes — which is the case a grid is most worth having for.
 
 - <!-- key: sweep-p=0 --> none — every cell the same
 
@@ -458,14 +543,20 @@ The same three on Sweep down.
 ### Sweep down
 
 <!-- key: sweep2-p-stack-cell -->
-Sweep down — a SECOND parameter, varying down the grid while the first varies across it. This is what the second direction of a grid is for: with one sweep a three by three of nine delays wasted its rows, and asking for nine palettes meant giving up the nine delays. Set both and each column is one value of across, each row one value of down, and the cell where they meet is the pair — nine delays read in three palettes, say. Set only this one and it behaves exactly like the sweep beside it. The two cannot name the same parameter: rows and columns varying the same thing is not a comparison.
+Sweep down — a SECOND parameter, varying down the grid while the first varies across it.
+This is what the second direction of a grid is for: with one sweep a three by three of nine delays wasted its rows, and asking for nine palettes meant giving up the nine delays.
+Set both and each column is one value of across, each row one value of down, and the cell where they meet is the pair — nine delays read in three palettes, say.
+Set only this one and it behaves exactly like the sweep beside it.
+The two cannot name the same parameter: rows and columns varying the same thing is not a comparison.
 
 - <!-- key: sweep2-p=0 --> none — the grid varies in one direction only
 
 ### Sweep from
 
 <!-- key: sweep-lo-cell -->
-Sweep from — where in the swept parameter's own range the first cell sits, as a fraction: 0 is the parameter's minimum. Turn both this and to inward and the contact sheet covers a slice of the range in detail rather than all of it coarsely, which is how a sweep is used once you know roughly where the interesting part is. For a start sweep the fraction sets ε: 0 is ε = 0, the model's own trajectory, and above 0 the scale is logarithmic, 10⁻⁹ to 10⁻¹.
+Sweep from — where in the swept parameter's own range the first cell sits, as a fraction: 0 is the parameter's minimum.
+Turn both this and to inward and the contact sheet covers a slice of the range in detail rather than all of it coarsely, which is how a sweep is used once you know roughly where the interesting part is.
+For a start sweep the fraction sets ε: 0 is ε = 0, the model's own trajectory, and above 0 the scale is logarithmic, 10⁻⁹ to 10⁻¹.
 
 ### Sweep start value
 
@@ -481,7 +572,8 @@ Reset sweep start
 ### Sweep to
 
 <!-- key: sweep-hi-cell -->
-Sweep to — where in the swept parameter's own range the last cell sits, as a fraction: 1 is the parameter's maximum. Below the from knob and the sweep runs backwards, which is worth having when the interesting end should be read first.
+Sweep to — where in the swept parameter's own range the last cell sits, as a fraction: 1 is the parameter's maximum.
+Below the from knob and the sweep runs backwards, which is worth having when the interesting end should be read first.
 
 ### Sweep end value
 
@@ -497,14 +589,18 @@ Reset sweep end
 ### Focus
 
 <!-- key: focus-n-cell -->
-Focus — which cell of the grid the knobs drive while Link is off. Its positions follow the grid, so a sixteen-cell sheet has sixteen of them. Moving it rebuilds the parameter rows against that cell's own instance, which is what makes a knob write to the view you are looking at rather than to the one behind it.
+Focus — which cell of the grid the knobs drive while Link is off.
+Its positions follow the grid, so a sixteen-cell sheet has sixteen of them.
+Moving it rebuilds the parameter rows against that cell's own instance, which is what makes a knob write to the view you are looking at rather than to the one behind it.
 
 - <!-- key: focus-n=0 --> A — the first cell
 
 ### Link
 
 <!-- key: link-sw-cell -->
-Link — every cell of the grid on one set of knobs: turn one and every view follows, which is what to use for comparing colorings or camera angles of one setting. It is the 0 button beside Focus. Off, each cell keeps its own parameters and the knobs drive the one Focus is on — which is what to use for comparing settings of the instrument.
+Link — every cell of the grid on one set of knobs: turn one and every view follows, which is what to use for comparing colorings or camera angles of one setting.
+It is the 0 button beside Focus.
+Off, each cell keeps its own parameters and the knobs drive the one Focus is on — which is what to use for comparing settings of the instrument.
 
 ### Focus buttons
 
@@ -515,7 +611,8 @@ Link — every cell of the grid on one set of knobs: turn one and every view fol
 ## Display
 
 <!-- key: display -->
-Display — trace rendering: line width, point decimation, trail length and mode, and the overlays drawn on the trace (Poincaré section, graticule). Three P-units; the switches are on their buttons.
+Display — trace rendering: line width, point decimation, trail length and mode, and the overlays drawn on the trace (Poincaré section, graticule).
+Three P-units; the switches are on their buttons.
 
 ### LINE
 
@@ -539,7 +636,11 @@ Reset line width
 ### POINTS
 
 <!-- key: points-cell -->
-POINTS — point decimation. At 0 the trace is a solid line. Any other setting draws the trace as that many points, evenly spaced along it; a setting at or above the trail's vertex count is equivalent to a solid line. Useful where the figure folds over itself and a solid line obscures its structure.
+POINTS — point decimation.
+At 0 the trace is a solid line.
+Any other setting draws the trace as that many points, evenly spaced along it;
+a setting at or above the trail's vertex count is equivalent to a solid line.
+Useful where the figure folds over itself and a solid line obscures its structure.
 
 <!-- key: slider-value-dash -->
 Point count — type or scroll; 0 is the solid line
@@ -588,17 +689,24 @@ Persist — the frame is not cleared; the trace accumulates. TRAIL's + button.
 ### Ring
 
 <!-- key: ring-sw-cell -->
-Ring — beam mode: only the advancing head is integrated each frame and the trail is its history. Parameter and audio changes bend the path from the head forward instead of reshaping the whole curve, and long trails cost little. TRAIL's − button.
+Ring — beam mode: only the advancing head is integrated each frame and the trail is its history.
+Parameter and audio changes bend the path from the head forward instead of reshaping the whole curve, and long trails cost little.
+TRAIL's − button.
 
 ### Poincaré section
 
 <!-- key: sect-sw-cell -->
-Poincaré section — samples the trajectory where it crosses a plane in one direction and draws the accumulated intersections in gold. Each crossing is interpolated between the two samples that straddle the plane. The section's positions in the model bank (AXIS, POS, DIR, after a flow's constants) set the plane and direction, and the ON on AXIS is this switch too, as is the S button on LINE. The Poincaré Section model (Maps) shows the same section as a separate display, with the first-return map.
+Poincaré section — samples the trajectory where it crosses a plane in one direction and draws the accumulated intersections in gold.
+Each crossing is interpolated between the two samples that straddle the plane.
+The section's positions in the model bank (AXIS, POS, DIR, after a flow's constants) set the plane and direction, and the ON on AXIS is this switch too, as is the S button on LINE.
+The Poincaré Section model (Maps) shows the same section as a separate display, with the first-return map.
 
 ### Graticule
 
 <!-- key: scope-grat-cell -->
-Graticule — the scale behind a scope trace: 8 × 10 divisions, heavier center axes, minor ticks at fifths of a division, and the 0/10/90/100 % rise-time markers. On by default. Drawn only for the scope models, and for any model while a phosphor is chosen on Style.
+Graticule — the scale behind a scope trace: 8 × 10 divisions, heavier center axes, minor ticks at fifths of a division, and the 0/10/90/100 % rise-time markers.
+On by default.
+Drawn only for the scope models, and for any model while a phosphor is chosen on Style.
 
 ### Grid SWEEP positions
 
@@ -610,15 +718,18 @@ Graticule — the scale behind a scope trace: 8 × 10 divisions, heavier center 
 ### Swept mark
 
 <!-- key: grid-swept -->
-Swept {dir} — this parameter's value comes from where each cell sits in the grid, not from this knob. The from and to knobs beside the Sweep dials say which part of its range the cells cover.
+Swept {dir} — this parameter's value comes from where each cell sits in the grid, not from this knob.
+The from and to knobs beside the Sweep dials say which part of its range the cells cover.
 
 ### Link mark
 
 <!-- key: grid-linked -->
-Linked — every cell uses view A's setting of this control, even though the views are unlinked. Click to give each cell its own again.
+Linked — every cell uses view A's setting of this control, even though the views are unlinked.
+Click to give each cell its own again.
 
 <!-- key: grid-unlinked -->
-Unlinked — each cell has its own setting of this control. Click to pin every cell to view A's, so this one knob drives them all while the rest stay independent.
+Unlinked — each cell has its own setting of this control.
+Click to pin every cell to view A's, so this one knob drives them all while the rest stay independent.
 
 ### Hue
 
@@ -666,12 +777,22 @@ An endless knob: {what}. Each turn lights the ring in the next LED color, sweepi
 ## Lattice
 
 <!-- key: lattice -->
-Lattice — any model drawn in depth by terminals. Each sheet of the stack is a real terminal running [lattice](https://github.com/0magnet/lattice), and each draws its own slice of the volume: with the Lattice model, its solid; with L lit on ROWS, the model chosen, whatever it is. The model's trail, mesh or dots are the figure every program is handed, and a voxel is lit where the figure passes through it, written as the way the figure runs across the sheet. The model keeps its own knobs in the bank, so it is played as ever; these six are how the lattice draws it. Pictures and terminals, which are flat already, are not drawn in it.
+Lattice — any model drawn in depth by terminals.
+Each sheet of the stack is a real terminal running [lattice](https://github.com/0magnet/lattice), and each draws its own slice of the volume: with the Lattice model, its solid;
+with L lit on ROWS, the model chosen, whatever it is.
+The model's trail, mesh or dots are the figure every program is handed, and a voxel is lit where the figure passes through it, written as the way the figure runs across the sheet.
+The model keeps its own knobs in the bank, so it is played as ever;
+these six are how the lattice draws it.
+Pictures and terminals, which are flat already, are not drawn in it.
 
 ### ROWS
 
 <!-- key: lattice-n-cell -->
-ROWS — each terminal's height in rows, which is its resolution: the programs read their terminal's size, as programs do, and draw that many voxels across. A family has as many sheets as a terminal has rows, so this is the volume's resolution in all three dimensions: more rows is a terminal zoomed out to smaller characters, and a finer volume. 3 × rows terminals of 2 × rows columns; finer costs more. Button: L draws the model chosen in the lattice.
+ROWS — each terminal's height in rows, which is its resolution: the programs read their terminal's size, as programs do, and draw that many voxels across.
+A family has as many sheets as a terminal has rows, so this is the volume's resolution in all three dimensions: more rows is a terminal zoomed out to smaller characters, and a finer volume.
+3 × rows terminals of 2 × rows columns;
+finer costs more.
+Button: L draws the model chosen in the lattice.
 
 <!-- key: slider-value-latrows -->
 Rows — type or scroll
@@ -722,7 +843,11 @@ Reset look (glass)
 ### OPAC
 
 <!-- key: lattice-opac-cell -->
-OPAC — every terminal's background opacity, in percent: the setting a translucent terminal emulator has (kitty's background_opacity, alacritty's window.opacity), never something a program asks for. It applies to the default background, which is black; text stays opaque. At 0 only the text is there; higher, each sheet darkens what is behind it, so the far side is dimmer than the near.
+OPAC — every terminal's background opacity, in percent: the setting a translucent terminal emulator has (kitty's background_opacity, alacritty's window.opacity), never something a program asks for.
+It applies to the default background, which is black;
+text stays opaque.
+At 0 only the text is there;
+higher, each sheet darkens what is behind it, so the far side is dimmer than the near.
 
 <!-- key: slider-value-latopac -->
 Opacity — type or scroll, in percent
@@ -736,13 +861,15 @@ Reset opacity (10%)
 ### STACKS
 
 <!-- key: lattice-stacks-cell -->
-STACKS — which families of sheets there are. Fewer families are fewer terminals and less to draw: a family that is not shown does not run its programs either.
+STACKS — which families of sheets there are.
+Fewer families are fewer terminals and less to draw: a family that is not shown does not run its programs either.
 
 <!-- key: lattice-stacks -->
 Stacks — which families of sheets there are
 
 - <!-- key: lattice-stacks=0 --> xyz — all three, so the volume has depth from every side
-- <!-- key: lattice-stacks=1 --> auto — all three while they face you, a family dropped as it turns within about 12° of edge on, where it shows next to nothing; the family facing you most is always kept
+- <!-- key: lattice-stacks=1 --> auto — all three while they face you, a family dropped as it turns within about 12° of edge on, where it shows next to nothing;
+  the family facing you most is always kept
 - <!-- key: lattice-stacks=2 --> xz — the two upright families: seen from above or below, you look along their edges
 - <!-- key: lattice-stacks=3 --> z — the front sheets alone: a stack of terminals, seen best from the front or behind
 
@@ -752,7 +879,8 @@ Reset stacks (xyz)
 ### TURN
 
 <!-- key: lattice-turn-cell -->
-TURN — what turning the view turns. The programs are told the way any program is told anything, on their input: each is sent a pose, the view's turn or its inverse, which lattice applies to what it draws.
+TURN — what turning the view turns.
+The programs are told the way any program is told anything, on their input: each is sent a pose, the view's turn or its inverse, which lattice applies to what it draws.
 
 <!-- key: lattice-turn -->
 Turn — what turning the view turns
