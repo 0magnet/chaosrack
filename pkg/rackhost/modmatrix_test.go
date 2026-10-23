@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"math"
 	"testing"
+	"time"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
 )
@@ -118,7 +119,7 @@ func TestModRouteMovesTheModel(t *testing.T) {
 	for i := range loud {
 		loud[i] = 1
 	}
-	r.mod.bands.Store("mono", loud)
+	r.mod.bands.Store("mono", loud, 1)
 	r.mu.Unlock()
 	if bytes.Equal(shot(), still) {
 		t.Error("the routed torus drew as it was")
@@ -244,5 +245,24 @@ func TestAWaveRouteFollowsASlowGeneratorBothWays(t *testing.T) {
 	}
 	if lo, _ := sweep(attractor.ModShapePush); lo < 0 {
 		t.Errorf("the push route moved pan X below its setting, to %.2f", lo)
+	}
+}
+
+// TestAModelSourceAdvancesOnceAFrame: each route reading a model source
+// advanced its smoothing, so two routes on head x followed x twice as fast as
+// one.
+func TestAModelSourceAdvancesOnceAFrame(t *testing.T) {
+	r := newRack(t)
+	set(t, r, r.selector, "globe")
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.sound.now = func() time.Time { return time.Unix(1000, 0) }
+	r.mod.head, r.mod.extent = [3]float64{1, 0, 0}, 1
+	r.mod.routes["view-panx"] = modRoute{channel: "mx", level: 0.25}
+	r.mod.routes["view-pany"] = modRoute{channel: "mx", level: 0.25}
+	r.modulate("globe")
+	want := attractor.ModelModSmooth(0, attractor.ModelModNorm(1, 1), 1)
+	if got := r.mod.model["mx"]; got != want {
+		t.Errorf("head x after a frame read by two routes is %v, want one frame's %v", got, want)
 	}
 }

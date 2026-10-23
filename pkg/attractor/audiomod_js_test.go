@@ -298,7 +298,7 @@ func TestTheDeadbandKeepsModulationThatIsReallyThere(t *testing.T) {
 // returns what they were.
 func (m *ModBands) setBand(ch string, band []float32) []float32 {
 	if m.band == nil {
-		m.Store(ch, make([]float32, numEQBands))
+		m.Store(ch, make([]float32, numEQBands), 1)
 	}
 	prev := m.band[ch]
 	m.band[ch] = band
@@ -322,5 +322,44 @@ func TestARoutesShapeRoundTripsThroughTheLink(t *testing.T) {
 	}
 	if _, ok := parseModRoute("mono~0,1~0.4~wobble"); ok {
 		t.Error("a link with an unknown shape was taken")
+	}
+}
+
+// TestARouteAdvancesOnceAFrame: a grid draws the model once a cell and a
+// split once a side, and each pass advanced every route's shape, so a swing's
+// average and a flip's beats ran as many times as fast as there were passes.
+func TestARouteAdvancesOnceAFrame(t *testing.T) {
+	const id = "test-route"
+	prevNow, prevK := frameNowMs, followK
+	defer func() {
+		frameNowMs, followK = prevNow, prevK
+		delete(pmod.shapers, id)
+		delete(pmod.sigs, id)
+	}()
+	followK = 1
+	flat := func(v float32) []float32 {
+		b := make([]float32, numEQBands)
+		for i := range b {
+			b[i] = v
+		}
+		return b
+	}
+	prevBand := af.bands.setBand("L", flat(0.2))
+	defer af.bands.setBand("L", prevBand)
+	m := paramMod{channel: "L", level: 1, shape: ModShapeSwing}
+
+	frameNowMs = 1000
+	pmod.signal(id, m) // primed at 0.2
+	af.bands.setBand("L", flat(1))
+	frameNowMs = 1016
+	first := pmod.signal(id, m)
+	mean := pmod.shapers[id].mean
+	if again := pmod.signal(id, m); again != first || pmod.shapers[id].mean != mean {
+		t.Fatalf("a second pass in the frame read %v (first %v) and moved the average %v → %v", again, first, mean, pmod.shapers[id].mean)
+	}
+	frameNowMs = 1033
+	pmod.signal(id, m)
+	if pmod.shapers[id].mean <= mean {
+		t.Errorf("the next frame left the average at %v", pmod.shapers[id].mean)
 	}
 }

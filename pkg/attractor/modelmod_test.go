@@ -56,18 +56,18 @@ func TestTheSameRelativePositionReadsTheSameOnAnyModel(t *testing.T) {
 func TestTheLoopSmoothingConvergesButNotWithinAFrame(t *testing.T) {
 	v := float32(0)
 	const target = 1
-	if after := modelModSmooth(v, target); after >= 0.5 {
+	if after := modelModSmooth(v, target, 1); after >= 0.5 {
 		t.Errorf("one frame moved the source to %v — that is a frame-rate oscillator, not a loop", after)
 	}
 	for range 500 {
-		v = modelModSmooth(v, target)
+		v = modelModSmooth(v, target, 1)
 	}
 	if v < 0.99 {
 		t.Errorf("after 500 frames the source is at %v, want it converged on %v", v, target)
 	}
 	// It must converge DOWNWARD too, or a source that has been high stays high.
 	for range 500 {
-		v = modelModSmooth(v, 0)
+		v = modelModSmooth(v, 0, 1)
 	}
 	if v > 0.01 {
 		t.Errorf("after 500 frames falling, the source is at %v, want ~0", v)

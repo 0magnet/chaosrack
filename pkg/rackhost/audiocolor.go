@@ -20,8 +20,9 @@ type colorFeed struct {
 	// pair; nil while the model's trail is not a time axis.
 	w, l, r []float32
 	// amp and centroid are the sound now, each 0..1, and ampPeak what the
-	// level is measured against.
+	// level is measured against, and clock when they last followed it.
 	amp, centroid, ampPeak float32
+	clock                  followClock
 }
 
 // colorFFT is how much of the signal the sound-now features are taken
@@ -54,8 +55,9 @@ func (r *Rack) soundNow() {
 	ml, mr := meters.ComputeFFTMags(l), meters.ComputeFFTMags(rt)
 	_, _, _, cl := attractor.BandEnergies(ml, sampleRate)
 	_, _, _, cr := attractor.BandEnergies(mr, sampleRate)
-	c.amp = attractor.FeatureSmooth(c.amp, attractor.FeatureNorm(&c.ampPeak, (rms(l)+rms(rt))/2))
-	c.centroid = attractor.FeatureSmooth(c.centroid, min(max(float32((cl+cr)/2), 0), 1))
+	k := c.clock.frames(r.sound.now())
+	c.amp = attractor.FeatureSmooth(c.amp, attractor.FeatureNorm(&c.ampPeak, (rms(l)+rms(rt))/2, k), k)
+	c.centroid = attractor.FeatureSmooth(c.centroid, min(max(float32((cl+cr)/2), 0), 1), k)
 }
 
 // audioColored is fig colored by audio source src through table i: each
