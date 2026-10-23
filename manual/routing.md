@@ -142,6 +142,12 @@ No parameter here for this model
 <!-- key: mod-pin -->
 {src} → {control} — press to route, again to take it away; the wheel sets its depth
 
+`{src}`, `{depth}` and `{shape}` are a routed control's route, added to its own tooltip.
+
+<!-- key: mod-routed -->
+Routed: {src} moves it, at depth {depth}, {shape} (the Mod matrix).
+Its knob reads its setting; the route moves what the model is given, frame by frame.
+
 ### DEST
 
 <!-- key: mod-dest -->
@@ -151,7 +157,8 @@ DEST — which control the route below is for. The matrix's row names say the sa
 
 <!-- key: mod-depth -->
 DPTH — how strongly the source drives the selected control; minus inverts it, 0 is no route at all.
-About 1.5 overdrives.
+At 1 the source at its loudest moves the control the whole width of its range, so past 1 it spends time held at an end.
+How loud the source is does not matter: each band is measured against its own recent peak, so a quiet song moves the control as far as a loud one, and a generator's LVL does not change how far, only DPTH does.
 
 <!-- key: mod-depth.field -->
 Depth of the selected route — type or scroll
@@ -161,6 +168,7 @@ Depth of the selected route — type or scroll
 <!-- key: mod-shape -->
 SHAPE — which way the source moves the selected control.
 push: one way, the further the louder, as a route always has.
+A steady tone holds it at one place however slow it is, so to have a control follow a slow generator, use wave.
 swing: both ways around the control's setting — louder than the music has lately been one way, quieter the other — so it sits at its setting on average.
 flip: out on a beat, the other way on the next, back between them.
 wave: the signal itself, not how loud it is — the source's newest sample, either side of the setting, as an X-Y scope's beam moves;
@@ -170,7 +178,9 @@ Head x, y and z are centered under every shape: the model at the middle moves no
 ### EQ
 
 <!-- key: mod-eq -->
-EQ — which frequency bands, low to high, drive the selected control. Drag across the bars to paint them.
+EQ — which frequency bands, low to high, drive the selected control.
+Drag across the bars to paint them;
+with none painted, the loudest band drives it.
 
 <!-- key: mod-eq.strip -->
 EQ for {control} — drag to pick which frequency bands (low→high) drive the {control} parameter

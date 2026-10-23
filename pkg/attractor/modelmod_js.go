@@ -12,8 +12,12 @@ import "math"
 // shared vertex buffer and nothing else is common to all of them. The head of
 // that trail is where the system is NOW, which is what a source has to mean.
 
-// modelModState is each source's smoothed value, 0..1.
-var modelModState = map[string]float32{}
+// modelModState is each source's smoothed value, 0..1, and modelModAt the
+// frame it was last advanced in.
+var (
+	modelModState = map[string]float32{}
+	modelModAt    = map[string]float64{}
+)
 
 // modelModHead is the newest point of the trail: the model's current output.
 //
@@ -32,11 +36,16 @@ func modelModHead() (x, y, z float32, ok bool) {
 
 // modelModValue is one model source's current value, 0..1, smoothed.
 //
-// Called once per routed parameter per frame, so several parameters routed
-// from the same axis share one smoothed value — which is what they should:
-// they are all listening to the same signal, and giving each its own filter
-// would let two knobs following "model x" disagree about where x is.
+// Advanced once a frame, however many routed parameters read it: several
+// parameters routed from the same axis share one smoothed value, and each
+// read advancing it smoothed faster the more routes there were. Sharing is
+// what they should do: they are all listening to the same signal, and giving
+// each its own filter would let two knobs following "model x" disagree about
+// where x is.
 func modelModValue(src string) float32 {
+	if at, ok := modelModAt[src]; ok && at == frameNowMs {
+		return modelModState[src]
+	}
 	x, y, z, ok := modelModHead()
 	if !ok {
 		return modelModState[src] // hold the last value through a gap
@@ -65,8 +74,8 @@ func modelModValue(src string) float32 {
 	default:
 		return 0
 	}
-	v := modelModSmooth(modelModState[src], target)
-	modelModState[src] = v
+	v := modelModSmooth(modelModState[src], target, followK)
+	modelModState[src], modelModAt[src] = v, frameNowMs
 	return v
 }
 
@@ -77,4 +86,5 @@ func resetModelMod() {
 	for k := range modelModState {
 		delete(modelModState, k)
 	}
+	clear(modelModAt)
 }

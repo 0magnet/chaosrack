@@ -7,12 +7,12 @@ import "testing"
 func TestTheWaveShapeFollowsTheSignalBothWays(t *testing.T) {
 	var s ModShaper
 	for _, c := range []struct{ in, want float32 }{{0.5, 0.5}, {-0.25, -0.25}, {3, 1}, {-3, -1}} {
-		if got := s.Signal(ModShapeWave, "L", c.in); got != c.want {
+		if got := s.Signal(ModShapeWave, "L", c.in, 1); got != c.want {
 			t.Errorf("wave of %v = %v, want %v", c.in, got, c.want)
 		}
 	}
 	// A coordinate is centered, as under every shape.
-	if got := s.Signal(ModShapeWave, modSrcModelX, 0.75); got != 0.5 {
+	if got := s.Signal(ModShapeWave, modSrcModelX, 0.75, 1); got != 0.5 {
 		t.Errorf("wave of head x 0.75 = %v, want 0.5", got)
 	}
 	if !IsModShape(ModShapeWave) {

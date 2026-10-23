@@ -64,7 +64,7 @@ func modelModNorm(v, extent float32) float32 {
 	return t
 }
 
-// modelModCoef is how fast a model source follows the model, per frame.
+// modelModCoef is how fast a model source follows the model, per 60 Hz frame.
 //
 // Slow on purpose. The audio features are smoothed because the spectrum is
 // noisy; this is smoothed because it is a FEEDBACK PATH, and a loop that
@@ -75,7 +75,7 @@ func modelModNorm(v, extent float32) float32 {
 // drifting under its own influence rather than buzzing.
 const modelModCoef = 0.06
 
-// modelModSmooth advances a one-pole filter one frame toward target.
-func modelModSmooth(prev, target float32) float32 {
-	return prev + (target-prev)*modelModCoef
+// modelModSmooth advances a one-pole filter k 60 Hz frames toward target.
+func modelModSmooth(prev, target, k float32) float32 {
+	return prev + (target-prev)*perFrames(modelModCoef, k)
 }

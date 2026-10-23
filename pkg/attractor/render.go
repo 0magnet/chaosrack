@@ -677,6 +677,7 @@ func renderLoop(this js.Value, args []js.Value) any {
 
 	if len(args) > 0 {
 		frameNowMs = args[0].Float() // rAF timestamp (ms), used by spectrogram scroll
+		followFrame(frameNowMs)      // what the audio followers advance by
 		tpanel.frame(frameNowMs)     // the rack's own frame meter; see timing.go
 		// Latched here rather than at the end of the frame because renderLoop
 		// has four exits and a meter that misses the paused one would go blank

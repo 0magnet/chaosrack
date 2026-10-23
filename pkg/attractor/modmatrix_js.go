@@ -380,10 +380,16 @@ func modMxEditRow() js.Value {
 	sname.Get("classList").Call("add", "dmdval")
 	stop.Call("appendChild", sname)
 	ledPick(sname, shp)
-	dom.On(shp, "change", func(js.Value, []js.Value) any {
+	// Named from the start: push is the select's first option, which nothing
+	// changes to, so a display written only on change stayed blank.
+	showShape := func() {
 		if i := shp.Get("selectedIndex").Int(); i >= 0 {
 			setDotText(sname, shp.Get("options").Index(i).Get("textContent").String())
 		}
+	}
+	showShape()
+	dom.On(shp, "change", func(js.Value, []js.Value) any {
+		showShape()
 		v := shp.Get("value").String()
 		if modMx.sel == "" || !IsModShape(v) || pmod.params[modMx.sel].shape == v {
 			return nil
@@ -570,5 +576,75 @@ func modMxLight(i int) {
 		r.lit[j] = op
 		pin.Get("classList").Call("toggle", "on", on)
 		pin.Get("style").Set("opacity", op)
+	}
+	modMxMark(id, m)
+}
+
+// modMxMark says on the control route id moves that it is routed: its cell
+// outlined (.routed) and its tooltip naming the route (mod-routed). Its knob
+// reads its setting, since a route only lends the model a value for a frame,
+// so without it nothing on the control told it from one nobody had routed.
+func modMxMark(id string, m paramMod) {
+	if id == "" {
+		return
+	}
+	cid := id
+	for _, vt := range viewModTargets {
+		if vt.id == id {
+			cid = vt.anchor
+		}
+	}
+	var cells []js.Value
+	add := func(c js.Value) {
+		for _, have := range cells {
+			if have.Equal(c) {
+				return
+			}
+		}
+		cells = append(cells, c)
+	}
+	if el := dom.Doc.Call("getElementById", cid); el.Truthy() {
+		if c := el.Call("closest", "[data-param], .pcell"); c.Truthy() {
+			add(c)
+		}
+	}
+	all := dom.Doc.Call("querySelectorAll", `[data-param="`+cid+`"]`)
+	for i := range all.Length() {
+		add(all.Index(i))
+	}
+	on := m.channel != "" && m.level != 0
+	note := ""
+	if on {
+		src, shape := m.channel, "push"
+		for _, c := range modChannels {
+			if c.name == m.channel {
+				src = strings.ToUpper(c.group) + " " + c.key
+			}
+		}
+		for _, s := range ModShapes {
+			if s.Value == m.shape {
+				shape = s.Label
+			}
+		}
+		note = docf("mod-routed", "src", src, "depth", strconv.FormatFloat(float64(m.level), 'f', 2, 32), "shape", shape)
+	}
+	for _, c := range cells {
+		c.Get("classList").Call("toggle", "routed", on)
+		// The tooltip as it was before the route, kept to put back.
+		ds := c.Get("dataset")
+		base := ds.Get("tipBase")
+		if !base.Truthy() {
+			if !on {
+				continue
+			}
+			base = c.Get("title")
+			ds.Set("tipBase", base)
+		}
+		if on {
+			c.Set("title", base.String()+"\n\n"+note)
+		} else {
+			c.Set("title", base)
+			c.Call("removeAttribute", "data-tip-base")
+		}
 	}
 }

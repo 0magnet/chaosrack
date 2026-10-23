@@ -12,7 +12,7 @@ func beats(frames int) []float32 {
 		if i%30 < 3 {
 			target = 1
 		}
-		cur = FeatureSmooth(cur, target)
+		cur = FeatureSmooth(cur, target, 1)
 		out[i] = cur
 	}
 	return out
@@ -23,7 +23,7 @@ func signals(shape string, env []float32) []float32 {
 	var s ModShaper
 	out := make([]float32, len(env))
 	for i, f := range env {
-		out[i] = s.Signal(shape, "mono", f)
+		out[i] = s.Signal(shape, "mono", f, 1)
 	}
 	return out
 }
@@ -90,13 +90,13 @@ func TestASteadySoundSwingsAndFlipsNothing(t *testing.T) {
 // A coordinate's middle is the model at its center, which moves nothing.
 func TestAPushedCoordinateIsCentered(t *testing.T) {
 	var s ModShaper
-	if v := s.Signal(ModShapePush, modSrcModelX, 0.5); v != 0 {
+	if v := s.Signal(ModShapePush, modSrcModelX, 0.5, 1); v != 0 {
 		t.Errorf("head x at the center pushes %v", v)
 	}
-	if v := s.Signal(ModShapePush, modSrcModelX, 0); v != -1 {
+	if v := s.Signal(ModShapePush, modSrcModelX, 0, 1); v != -1 {
 		t.Errorf("head x at the far left pushes %v", v)
 	}
-	if v := s.Signal(ModShapePush, modSrcModelR, 0.5); v != 0.5 {
+	if v := s.Signal(ModShapePush, modSrcModelR, 0.5, 1); v != 0.5 {
 		t.Errorf("head r is a distance, but pushes %v", v)
 	}
 }

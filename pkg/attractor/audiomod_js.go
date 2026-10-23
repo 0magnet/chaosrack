@@ -49,19 +49,35 @@ type paramModulation struct {
 	// build and never grows with time.
 	hold map[string]float32
 	// shapers are each route's memory for its shape, by the same ids.
-	shapers     map[string]*ModShaper
+	shapers map[string]*ModShaper
+	// sigs are each route's signal and the frame it was made in: a frame
+	// draws the model once a pass (a grid's cells, a split's sides), and a
+	// route advanced once a pass ran its average and its beats that many
+	// times as fast.
+	sigs        map[string]routeSignal
 	appliedPrev []appliedMod
 	appliedCur  []appliedMod
+}
+
+// routeSignal is a route's signal v, made in the frame at stamp at.
+type routeSignal struct {
+	at float64
+	v  float32
 }
 
 var pmod = paramModulation{
 	params:  map[string]paramMod{},
 	hold:    map[string]float32{},
 	shapers: map[string]*ModShaper{},
+	sigs:    map[string]routeSignal{},
 }
 
-// signal is route id's source now, as its shape makes it (ModShaper.Signal).
+// signal is route id's source now, as its shape makes it (ModShaper.Signal),
+// made once a frame.
 func (p *paramModulation) signal(id string, m paramMod) float32 {
+	if s, ok := p.sigs[id]; ok && s.at == frameNowMs {
+		return s.v
+	}
 	s := p.shapers[id]
 	if s == nil {
 		s = &ModShaper{}
@@ -71,7 +87,9 @@ func (p *paramModulation) signal(id string, m paramMod) float32 {
 	if m.shape == ModShapeWave && !isModelModSource(m.channel) {
 		f = af.wave.Value(m.channel)
 	}
-	return s.Signal(m.shape, m.channel, f)
+	v := s.Signal(m.shape, m.channel, f, followK)
+	p.sigs[id] = routeSignal{frameNowMs, v}
+	return v
 }
 
 // paramIsModulated reports whether the sound is currently driving a parameter,

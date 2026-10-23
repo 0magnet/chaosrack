@@ -59,19 +59,32 @@ var af = audioFeatures{
 
 var (
 	audioMod bool
+
+	// followK is how many 60 Hz frames this frame stands for (FollowFrames),
+	// from the frame's timestamp: what every follower advances by this frame.
+	followK  float32 = 1
+	followAt float64 // the timestamp it was made from
 )
+
+// followFrame makes followK for the frame at nowMs.
+func followFrame(nowMs float64) {
+	if followAt > 0 {
+		followK = FollowFrames((nowMs - followAt) / 1000)
+	}
+	followAt = nowMs
+}
 
 // normMap scales x by an adaptive per-key peak (instant rise, slow
 // decay) → a level-independent 0..1 value.
 func (a *audioFeatures) normMap(key string, x float32) float32 {
 	p := a.peak[key]
-	r := FeatureNorm(&p, x) // featurefollow.go, which a native rack follows with too
+	r := FeatureNorm(&p, x, followK) // featurefollow.go, which a native rack follows with too
 	a.peak[key] = p
 	return r
 }
 
 // afSmooth: fast attack, slow release.
-func afSmooth(cur, target float32) float32 { return FeatureSmooth(cur, target) }
+func afSmooth(cur, target float32) float32 { return FeatureSmooth(cur, target, followK) }
 
 // eqModValue returns the graphic-EQ modulation signal (0..1) for a channel
 // and band-weight curve: the weight-normalized average of the channel's band
@@ -138,12 +151,12 @@ func (a *audioFeatures) updateAudioFeatures() {
 	// Graphic-EQ band energies per channel (adaptively normalized + smoothed).
 	rawL := computeBands(magsL, sr)
 	rawR := computeBands(magsR, sr)
-	a.bands.Store("L", rawL)
-	a.bands.Store("R", rawR)
+	a.bands.Store("L", rawL, followK)
+	a.bands.Store("R", rawR, followK)
 	for i := range a.monoScratch {
 		a.monoScratch[i] = (rawL[i] + rawR[i]) / 2
 	}
-	a.bands.Store("mono", a.monoScratch)
+	a.bands.Store("mono", a.monoScratch, followK)
 	// The sends to modulation, MOD A and B, when a route reads one: a
 	// window of each, mixed at the Mixer's gains, and its bands, as the
 	// rack's two sides have theirs.
@@ -155,8 +168,8 @@ func (a *audioFeatures) updateAudioFeatures() {
 			a.magsA = make([]float64, sg.FFTSize/2+1)
 		}
 		magsA := a.magsA[:copy(a.magsA, meters.ComputeFFTMags(wa))]
-		a.bands.Store(modSrcSendA, computeBands(magsA, sr))
-		a.bands.Store(modSrcSendB, computeBands(meters.ComputeFFTMags(wb), sr))
+		a.bands.Store(modSrcSendA, computeBands(magsA, sr), followK)
+		a.bands.Store(modSrcSendB, computeBands(meters.ComputeFFTMags(wb), sr), followK)
 	}
 	rL, rR := rmsOf(a.windowL), rmsOf(a.windowR)
 
@@ -194,7 +207,7 @@ func (a *audioFeatures) updateAudioFeatures() {
 	if a.normMap("_flux", float32(flux)) > 0.55 && a.feat["beat"] < 0.35 {
 		a.feat["beat"] = 1
 	} else {
-		a.feat["beat"] *= 0.86
+		a.feat["beat"] *= decayFrames(0.86, followK)
 	}
 
 	a.updateAudioMeters()

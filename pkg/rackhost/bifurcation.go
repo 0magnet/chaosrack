@@ -84,24 +84,33 @@ func (r *Rack) sweepOptions(ps []dynamics.Param) {
 	r.turn(c)
 }
 
+// followClock is when a follower last advanced: what the followers shared
+// with the page (attractor's featurefollow.go) advance by is the time since,
+// in 60 Hz frames.
+type followClock struct{ last time.Time }
+
+// frames is how many 60 Hz frames have gone by since the last call, one for
+// the first.
+func (c *followClock) frames(now time.Time) float32 {
+	k := float32(1)
+	if !c.last.IsZero() {
+		k = attractor.FollowFrames(now.Sub(c.last).Seconds())
+	}
+	c.last = now
+	return k
+}
+
 // envFollower is the rack's signal's loudness as the page's Audio mod
 // envelope follows it (attractor's featurefollow.go): RMS, divided by its
-// recent peak, smoothed — once for each of the page's frames the time since
-// the last stood for.
+// recent peak, smoothed over the time since the last.
 type envFollower struct {
 	peak, val float32
-	last      time.Time
+	clock     followClock
 }
 
 func (e *envFollower) follow(raw float32, now time.Time) float32 {
-	frames := 1
-	if !e.last.IsZero() {
-		frames = max(1, min(int(now.Sub(e.last).Seconds()*60+0.5), 60))
-	}
-	e.last = now
-	for range frames {
-		e.val = attractor.FeatureSmooth(e.val, attractor.FeatureNorm(&e.peak, raw))
-	}
+	k := e.clock.frames(now)
+	e.val = attractor.FeatureSmooth(e.val, attractor.FeatureNorm(&e.peak, raw, k), k)
 	return e.val
 }
 

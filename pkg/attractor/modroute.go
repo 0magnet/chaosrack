@@ -99,8 +99,9 @@ type ModBands struct {
 	keys map[string][]string
 }
 
-// Store takes in channel ch's raw band energies, once a frame.
-func (m *ModBands) Store(ch string, raw []float32) {
+// Store takes in channel ch's raw band energies, once a frame, k 60 Hz
+// frames after the last (FollowFrames).
+func (m *ModBands) Store(ch string, raw []float32, k float32) {
 	if m.band == nil {
 		m.peak, m.band, m.keys = map[string]float32{}, map[string][]float32{}, map[string][]string{}
 	}
@@ -115,7 +116,7 @@ func (m *ModBands) Store(ch string, raw []float32) {
 	}
 	for i := range numEQBands {
 		p := m.peak[keys[i]]
-		cur[i] = FeatureSmooth(cur[i], FeatureNorm(&p, raw[i]))
+		cur[i] = FeatureSmooth(cur[i], FeatureNorm(&p, raw[i], k), k)
 		m.peak[keys[i]] = p
 	}
 }
@@ -232,7 +233,7 @@ func isSignedModSource(name string) bool {
 // follows its source, and how far above that average the source must rise
 // to be a beat, and fall back to arm the next.
 const (
-	modMeanCoef = 0.02 // about a second at 60 frames
+	modMeanCoef = 0.02 // a 60 Hz frame's: about a second
 	modBeatRise = 0.12
 	modBeatFall = 0.04
 )
@@ -248,14 +249,15 @@ type ModShaper struct {
 
 // Signal is what a route from source src, at shape, makes of the source's
 // f this frame: -1..1, which the route's depth scales across its knob's
-// range (ModTarget). Called once a frame for each route.
-func (s *ModShaper) Signal(shape, src string, f float32) float32 {
+// range (ModTarget). Called once a frame for each route, k 60 Hz frames
+// after the last (FollowFrames).
+func (s *ModShaper) Signal(shape, src string, f, k float32) float32 {
 	if !s.primed {
 		// Started at the source, so a route made mid-song does not kick.
 		s.mean, s.sign, s.armed, s.primed = f, 1, true, true
 	}
 	d := f - s.mean
-	s.mean += d * modMeanCoef
+	s.mean += d * perFrames(modMeanCoef, k)
 	switch shape {
 	case ModShapeWave:
 		if isSignedModSource(src) {
@@ -310,6 +312,6 @@ func DisplayText(s string) string { return displayText(s) }
 // reach extent (modelmod.go).
 func ModelModNorm(v, extent float32) float32 { return modelModNorm(v, extent) }
 
-// ModelModSmooth moves a model source from prev toward target, as the page
-// smooths it a frame.
-func ModelModSmooth(prev, target float32) float32 { return modelModSmooth(prev, target) }
+// ModelModSmooth moves a model source from prev toward target over k 60 Hz
+// frames, as the page smooths it.
+func ModelModSmooth(prev, target, k float32) float32 { return modelModSmooth(prev, target, k) }

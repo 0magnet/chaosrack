@@ -1298,6 +1298,8 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
 .mxaxis{justify-self:end;text-transform:uppercase;color:#8fa6bb;font-size:8px;white-space:nowrap;}
 .mxpin.on.neg{background:#3cd2ff;border-color:#9ce8ff;box-shadow:0 0 6px #3cd2ff88;}
 .mxpin.sel{outline:1px solid #e6e9ec;outline-offset:1px;}
+/* A control a Mod route moves: outlined in a lit pin's gold, since its knob reads its setting. */
+.routed{outline:1px solid #ffd23c99;outline-offset:-2px;border-radius:4px;}
 
 /* Presets module — a name field over a Save key, and the saved list over
    Recall / Delete. Both are capped at the same 29 mm the Loader's built-in

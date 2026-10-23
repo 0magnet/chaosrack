@@ -61,6 +61,8 @@ type modView struct {
 	// reaches, which the model sources follow.
 	head   [3]float64
 	extent float64
+	// clock is when the sources were last followed.
+	clock followClock
 }
 
 // The pins' looks past dark (lamp.go's pinDark): lit by a route, lit by a
@@ -439,12 +441,20 @@ func (r *Rack) modulate(model string) {
 	if !r.modRouted() {
 		return
 	}
-	r.modListen()
+	k := mv.clock.frames(r.sound.now())
+	r.modListen(k)
 	over := map[string]float64{}
+	// Each model source is advanced once a frame, however many routes read it.
+	heads := map[string]float32{}
 	value := func(id string, m modRoute) float32 {
 		var f float32
 		if attractor.IsModelModSource(m.channel) {
-			f = r.modModel(m.channel)
+			h, ok := heads[m.channel]
+			if !ok {
+				h = r.modModel(m.channel, k)
+				heads[m.channel] = h
+			}
+			f = h
 		} else if m.shape == attractor.ModShapeWave {
 			f = mv.wave.Value(m.channel)
 		} else {
@@ -455,7 +465,7 @@ func (r *Rack) modulate(model string) {
 			s = &attractor.ModShaper{}
 			mv.shapers[id] = s
 		}
-		return s.Signal(m.shape, m.channel, f)
+		return s.Signal(m.shape, m.channel, f, k)
 	}
 	ctl := func(id string) (base, lo, hi, step float64, ok bool) {
 		i, has := r.byID[id]
@@ -518,9 +528,10 @@ func (r *Rack) modView(over map[string]float64, row attractor.ModViewRow, m modR
 	}
 }
 
-// modListen follows the sources' spectra a frame: the rack's signal, left,
-// right and their mix, and the Mixer's two sends. Called with r.mu held.
-func (r *Rack) modListen() {
+// modListen follows the sources' spectra a frame, k 60 Hz frames since the
+// last: the rack's signal, left, right and their mix, and the Mixer's two
+// sends. Called with r.mu held.
+func (r *Rack) modListen(k float32) {
 	mv := &r.mod
 	l, rt := r.sound.window(colorFFT)
 	if len(l) == colorFFT {
@@ -530,9 +541,9 @@ func (r *Rack) modListen() {
 		for i := range mono {
 			mono[i] = (bl[i] + br[i]) / 2
 		}
-		mv.bands.Store("L", bl)
-		mv.bands.Store("R", br)
-		mv.bands.Store("mono", mono)
+		mv.bands.Store("L", bl, k)
+		mv.bands.Store("R", br, k)
+		mv.bands.Store("mono", mono, k)
 		mv.wave.Set("L", attractor.Newest(l))
 		mv.wave.Set("R", attractor.Newest(rt))
 		mv.wave.Set("mono", (attractor.Newest(l)+attractor.Newest(rt))/2)
@@ -540,16 +551,17 @@ func (r *Rack) modListen() {
 	a, b := r.sound.modWindow(colorFFT)
 	if len(a) == colorFFT {
 		chs := attractor.ModChannels()
-		mv.bands.Store(chs[3].Name, attractor.ComputeBands(meters.ComputeFFTMags(a), sampleRate))
-		mv.bands.Store(chs[4].Name, attractor.ComputeBands(meters.ComputeFFTMags(b), sampleRate))
+		mv.bands.Store(chs[3].Name, attractor.ComputeBands(meters.ComputeFFTMags(a), sampleRate), k)
+		mv.bands.Store(chs[4].Name, attractor.ComputeBands(meters.ComputeFFTMags(b), sampleRate), k)
 		mv.wave.Set(chs[3].Name, attractor.Newest(a))
 		mv.wave.Set(chs[4].Name, attractor.Newest(b))
 	}
 }
 
 // modModel is model source src now, 0..1, smoothed as the page smooths it
-// (modelmod.go): the model's head across its reach, or its distance out.
-func (r *Rack) modModel(src string) float32 {
+// (modelmod.go) over k 60 Hz frames: the model's head across its reach, or its
+// distance out.
+func (r *Rack) modModel(src string, k float32) float32 {
 	mv := &r.mod
 	h, ext := mv.head, float32(mv.extent)
 	var target float32
@@ -561,7 +573,7 @@ func (r *Rack) modModel(src string) float32 {
 			target = min(float32(math.Sqrt(h[0]*h[0]+h[1]*h[1]+h[2]*h[2]))/ext, 1)
 		}
 	}
-	v := attractor.ModelModSmooth(mv.model[src], target)
+	v := attractor.ModelModSmooth(mv.model[src], target, k)
 	mv.model[src] = v
 	return v
 }
