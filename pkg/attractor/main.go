@@ -1011,7 +1011,7 @@ func wireColorAndViewControls() {
 	// of any one mode, which is why it sits beside src and map and not in a
 	// mode row: every audio-fed source shares the one auto-range.
 	adoptDescControl(ControlDesc{
-		ID: "color-lock", Label: "rng", IsSelect: true, SelectDef: "0",
+		ID: "color-lock", Label: "rng", IsSelect: true, SelectDef: "0", PermaKey: "ck",
 		ResetID:     "rst-color-lock",
 		SelectApply: func(v string) { colorRangeLock = v == "1" },
 	})
@@ -1138,7 +1138,7 @@ func wirePanelSwitches() {
 		// of CRT mode. The options are built from the phosphors table just above,
 		// so the default is that table's first entry by construction.
 		adoptDescControl(ControlDesc{
-			ID: "phosphor", Label: "Phosphor", IsSelect: true, SelectDef: "0",
+			ID: "phosphor", Label: "Phosphor", IsSelect: true, SelectDef: "0", PermaKey: "pf",
 			ResetID: "rst-phosphor",
 		})
 		if holder := dom.Doc.Call("getElementById", "phosphor-stack"); holder.Truthy() {

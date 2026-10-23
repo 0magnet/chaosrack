@@ -143,11 +143,11 @@ var (
 func wireMeterClocks() {
 	addMeterSwitch("lufs-module", "lufs-rate", "rate",
 		doc("lufs-rate"),
-		"lr", lufsRateDetents, 200, func(v int) { lufs.periodMs = float64(v) })
+		"ld", lufsRateDetents, 200, func(v int) { lufs.periodMs = float64(v) })
 
 	addMeterSwitch("thd-module", "thd-rate", "rate",
 		doc("thd-rate"),
-		"tr", thdRateDetents, 400, func(v int) { thd.periodMs = float64(v) })
+		"dp", thdRateDetents, 400, func(v int) { thd.periodMs = float64(v) })
 
 	addMeterSwitch("wf-module", "wf-rate", "rate",
 		doc("wf-rate"),

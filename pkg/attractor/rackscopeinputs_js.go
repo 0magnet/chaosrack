@@ -2,7 +2,10 @@
 
 package attractor
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
 
 // What each scope's two channels can be fed from (rackscopes.go has the
 // scopes themselves). What each is, is the manual's (scopes.md,
@@ -50,4 +53,26 @@ var scopeInDefaults = [rackScopeCount][2]int{
 // si2a, and so on.
 func scopeInKey(n, ch int) string {
 	return "si" + strconv.Itoa(n+1) + "ab"[ch:ch+1]
+}
+
+// scopeLetters are the scope controls' letters in their link keys.
+var scopeLetters = map[string]string{
+	"volts": "v", "time": "t", "vpos": "y", "hpos": "x", "trig": "r",
+	"illum": "i", "intens": "n", "focus": "f", "slope": "s", "tmode": "m", "chan": "c",
+}
+
+// scopePermaKey is scope control id's link key, s<scope><letter>: s2v is
+// Scope 2's VOLTS. The first scope's ids are scope-…, the others' scopeN-….
+// Only the inputs had keys, so a link kept what a scope was looking at and
+// lost how: its ranges, its trigger, its channel, whether it was on.
+func scopePermaKey(id string) string {
+	i := strings.IndexByte(id, '-')
+	if i < len("scope") || scopeLetters[id[i+1:]] == "" {
+		return ""
+	}
+	n := id[len("scope"):i]
+	if n == "" {
+		n = "1"
+	}
+	return "s" + n + scopeLetters[id[i+1:]]
 }
