@@ -66,9 +66,12 @@ func pageTurtleWorld() turtleWorld {
 		cx: cx, cy: cy, halfW: halfW, halfH: halfH,
 		camDist: turtleCamDist(),
 		grav:    turtle.gravF, fric: turtle.fricF, bounce: turtle.bounceF, spin: turtle.spinF,
-		dt: 0.016 * float32(sim.speedSteps) * sim.speedScale,
-		grab: func(b *turtleBody, t *turtleWalk, pts []pisano.Pt3, mass float32) (fx, fy, torque float32) {
-			return b.grabForce(t, pts, mass)
+		// The frame's real time, not a nominal 60th: a step a frame ran the body
+		// 2.4 times as fast on a 144 Hz display, and slowly in a throttled tab.
+		// step holds it to 0.05 either way.
+		dt: followK / followHz * float32(sim.speedSteps) * sim.speedScale,
+		grab: func(b *turtleBody, t *turtleWalk, pts []pisano.Pt3, mass, inertia float32) (fx, fy, torque float32) {
+			return b.grabForce(t, pts, mass, inertia)
 		},
 	}
 }

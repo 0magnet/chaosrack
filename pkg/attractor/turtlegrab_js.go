@@ -253,7 +253,7 @@ func setCanvasCursor(name string) {
 // one — an arm that got weaker as the walk got longer would be a worse
 // interface, and there is no claim here that a lattice point weighs anything in
 // particular.
-func (b *turtleBody) grabForce(t *turtleWalk, pts []pisano.Pt3, mass float32) (fx, fy, torque float32) {
+func (b *turtleBody) grabForce(t *turtleWalk, pts []pisano.Pt3, mass, inertia float32) (fx, fy, torque float32) {
 	if !grab.grabState.held {
 		return 0, 0, 0
 	}
@@ -273,15 +273,7 @@ func (b *turtleBody) grabForce(t *turtleWalk, pts []pisano.Pt3, mass float32) (f
 		return 0, 0, 0
 	}
 	x, y, _ := b.place(t, t.pts[i])
-	rx, ry := x-b.x, y-b.y // the arm, from the center of mass to the hand
-	pvx := b.vx - b.spin*ry
-	pvy := b.vy + b.spin*rx
-
-	const pull = 90 // how hard the hand pulls, per unit out of place
-	const ease = 14 // and how much of the swinging it takes back out
-	fx = mass * (pull*(grab.grabState.tx-x) - ease*pvx)
-	fy = mass * (pull*(grab.grabState.ty-y) - ease*pvy)
-	return fx, fy, rx*fy - ry*fx
+	return b.handForce(x, y, grab.grabState.tx, grab.grabState.ty, mass, inertia)
 }
 
 // tiltBegin claims a middle drag for the figure.
