@@ -1565,7 +1565,9 @@ func buildPanelKnobs() {
 		sl.Get("style").Set("display", "none")
 		// The knob is inserted bare; the cell's reset button stays a cell child and
 		// is pinned to the header's top-right by CSS (standard cell template).
-		k := makeKnob(sl, num, true, true, dial)
+		// A count has no fine disc, as the bank's counts have none: ROWS dialed
+		// to 11.9 read as a row count no terminal can have.
+		k := makeKnob(sl, num, sliderID != "lattice-n", true, dial)
 		parent := sl.Get("parentNode")
 		// Insert the knob right after the (hidden) slider. Only insertBefore the
 		// numeric when it's actually a sibling — with the label-column layout the

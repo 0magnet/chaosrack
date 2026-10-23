@@ -137,7 +137,10 @@ func (w vtWriter) Write(p []byte) (int, error) {
 // a file — and reports the rows a sheet has and whether it started them.
 func (l *LatticeStack) Ensure(fig *lattice.Figure, nowMs float64) (n int, started bool) {
 	n, args := l.args(fig != nil)
-	sig := joinArgs(args)
+	// The rows too, which are not an argument but the terminals' size: left
+	// out, a change of ROWS alone kept the terminals of the rows before, and
+	// drawing them at the new count read past the end of their lines.
+	sig := strconv.Itoa(n) + " " + joinArgs(args)
 	if fig != nil {
 		sig += "(figure)"
 	}
