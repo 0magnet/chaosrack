@@ -461,7 +461,7 @@ func setupMatrices() {
 	// otherwise the back of a large attractor pokes past the far plane and gets
 	// clipped ("cutting through the black background"). 1500 covers the worst
 	// case with margin.
-	gpu.proj = mgl32.Perspective(mgl32.DegToRad(45.0), float32(gpu.width)/float32(gpu.height), 1, 1500.0)
+	gpu.proj = stageProjection(gpu.width, gpu.height) // the part the panel leaves (stage_js.go)
 	glctx.GL.Call("useProgram", gpu.program)
 	glctx.GL.Call("uniformMatrix4fv", glctx.GL.Call("getUniformLocation", gpu.program, "Pmatrix"), false, texp.mat4ToTyped(&gpu.proj))
 

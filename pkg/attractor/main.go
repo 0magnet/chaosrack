@@ -672,6 +672,7 @@ func startBackgroundTasks() {
 	// it must run after every piece of that surface exists and has been placed.
 	initPanelRevealChord()
 	initHostPage() // centers the backdrop on a host element, if one was named
+	wireStage()    // the model drawn where the panel leaves room (stage_js.go)
 
 	// Window resize: keep canvas pixel dimensions in sync with the
 	// viewport so the model doesn't get stretched when devtools opens

@@ -321,6 +321,7 @@ func (pa *panelLayout) applyDock(edge string) {
 	} else {
 		quantizeModuleWidths()
 	}
+	measureStage() // the model goes where the panel now leaves room
 }
 
 // moduleSlot is the base card-slot width. Like rack cards plugged into a
