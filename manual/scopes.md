@@ -3,7 +3,12 @@
 ## Scope 1
 
 <!-- key: scope -->
-Scope 1 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob, INTENSITY, with two mini knobs beneath: I, SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; and F, FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.
+Scope 1 — one of the rack's four oscilloscopes, each beside its generator.
+Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face.
+The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down.
+Under it the beam's knob, INTENSITY, with two mini knobs beneath: I, SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off;
+and F, FOCUS.
+Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.
 
 ### The tube
 
@@ -21,13 +26,21 @@ Reset the horizontal position
 ### Vertical position
 
 <!-- key: rst-scope-vpos-cell -->
-Vertical position — moves the trace up or down the screen, in divisions. It shifts where the trace is drawn, not the signal.
+Vertical position — moves the trace up or down the screen, in divisions.
+It shifts where the trace is drawn, not the signal.
 
 <!-- key: rst-scope-vpos -->
 Reset the vertical position
 
 <!-- key: scope-intens-led-cell -->
-The beam. The knob is INTENSITY: beam brightness, and how long the phosphor holds the trace. Under it, two mini knobs. I is SCALE ILLUM, which lights the graticule; turned down past the bottom of its travel it clicks into OFF and switches the scope off — the tube goes dark and costs the rack nothing. F is FOCUS: how tight the spot is; off focus the trace blurs, the way a real tube does. The display reads the intensity, or whichever mini knob is being turned.
+The beam.
+The knob is INTENSITY: beam brightness, and how long the phosphor holds the trace.
+Under it, two mini knobs.
+I is SCALE ILLUM, which lights the graticule;
+turned down past the bottom of its travel it clicks into OFF and switches the scope off — the tube goes dark and costs the rack nothing.
+F is FOCUS: how tight the spot is;
+off focus the trace blurs, the way a real tube does.
+The display reads the intensity, or whichever mini knob is being turned.
 
 ### Intensity, 0–1
 
@@ -37,7 +50,8 @@ Intensity, 0–1 — type a value or turn the knob
 ### Scale illumination
 
 <!-- key: scope-illum -->
-Scale illumination — lights the graticule. Turned down past the bottom of its travel it clicks into OFF, and the scope is off.
+Scale illumination — lights the graticule.
+Turned down past the bottom of its travel it clicks into OFF, and the scope is off.
 
 ### Intensity
 
@@ -55,7 +69,11 @@ Reset: Intensity, 0–1
 ### Trigger
 
 <!-- key: scope-trig-cell -->
-Trigger — LEVEL is the value the signal must cross, in the SLOPE direction, for a sweep to start; set it inside the waveform or nothing triggers. SLOPE, the buttons at the right: + triggers on the signal rising through the level, − on it falling. MODE, the buttons at the left: AUTO sweeps anyway when nothing crosses, so silence shows a baseline; NORM sweeps only on a trigger and holds the last trace otherwise.
+Trigger — LEVEL is the value the signal must cross, in the SLOPE direction, for a sweep to start;
+set it inside the waveform or nothing triggers.
+SLOPE, the buttons at the right: + triggers on the signal rising through the level, − on it falling.
+MODE, the buttons at the left: AUTO sweeps anyway when nothing crosses, so silence shows a baseline;
+NORM sweeps only on a trigger and holds the last trace otherwise.
 
 ### Trigger level
 
@@ -68,7 +86,11 @@ Reset: Trigger level
 ### Volts/div
 
 <!-- key: scope-volts-read-cell -->
-Volts/div — how much signal one division of height is worth, detented 1-2-5. A trace off the top of the screen means this is set too fine. Under it INPUT 1, a mini knob with a display of its own: what input 1 is fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on that display, which lists them all when clicked, and on the face, top left. INPUT 2 is under TIME. The reset puts both back.
+Volts/div — how much signal one division of height is worth, detented 1-2-5.
+A trace off the top of the screen means this is set too fine.
+Under it INPUT 1, a mini knob with a display of its own: what input 1 is fed from — the rack's L or R, the capture's L or R, Gen 1 to 4 alone, or the model's x, y or z — named on that display, which lists them all when clicked, and on the face, top left.
+INPUT 2 is under TIME.
+The reset puts both back.
 
 ### Input 1
 
@@ -100,7 +122,9 @@ Reset volts/div
 ### Time/div
 
 <!-- key: scope-time-read-cell -->
-Time/div — how long the beam takes to cross one division; ten divisions is the whole screen. Under it INPUT 2, what input 2 is fed from, as INPUT 1 is under VOLTS. The reset puts both back.
+Time/div — how long the beam takes to cross one division; ten divisions is the whole screen.
+Under it INPUT 2, what input 2 is fed from, as INPUT 1 is under VOLTS.
+The reset puts both back.
 
 <!-- key: rst-scope-time -->
 Reset time/div

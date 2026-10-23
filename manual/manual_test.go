@@ -109,3 +109,19 @@ func TestThePlainFastPathAgreesWithTheParser(t *testing.T) {
 		t.Errorf("the fast path took %d of %d entries", took, all)
 	}
 }
+
+// TestATooltipLineIsShort: an entry written as one long line was a tooltip of
+// one long line, which the browser wraps into a block with nothing to find
+// your place by. A source line break is a line break in the tooltip and a
+// space on the manual page, so the entries put a sentence (or a long
+// sentence's clauses) to a line.
+func TestATooltipLineIsShort(t *testing.T) {
+	const most = 350
+	for _, k := range Keys() {
+		for _, l := range strings.Split(Text(k), "\n") {
+			if n := len([]rune(l)); n > most {
+				t.Errorf("%s: a line of %d characters (at most %d): break it at a sentence or a clause in the source: %.60s…", k, n, most, l)
+			}
+		}
+	}
+}

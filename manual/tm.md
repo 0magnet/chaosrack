@@ -1,7 +1,11 @@
 ## Matrix
 
 <!-- key: tm -->
-Matrix — a pentatonic tonematrix step sequencer with a rhythm section under it: paint pads on the grid (click or drag; rows are pitches, columns are sixteenths) and the playhead loops them as pings at the tempo, over as many columns as the steps knob says. The four lanes at the foot are the drums (bass drum, snare, hi-hat, cymbal), on the same beat; they count in sixteenths or, for a shuffle or swing, in triplets, and each beat of them sits under the same beat of the tune. A preset tab loads a pattern into them to play or to edit. The pentatonic rows mean any pattern is consonant.
+Matrix — a pentatonic tonematrix step sequencer with a rhythm section under it: paint pads on the grid (click or drag; rows are pitches, columns are sixteenths) and the playhead loops them as pings at the tempo, over as many columns as the steps knob says.
+The four lanes at the foot are the drums (bass drum, snare, hi-hat, cymbal), on the same beat;
+they count in sixteenths or, for a shuffle or swing, in triplets, and each beat of them sits under the same beat of the tune.
+A preset tab loads a pattern into them to play or to edit.
+The pentatonic rows mean any pattern is consonant.
 
 ### Tempo (beats per minute)
 
@@ -17,7 +21,10 @@ Reset the step count and root
 ### Loop length
 
 <!-- key: tm-steps -->
-Loop length — how many columns of the grid the playhead sweeps (outer ring: 12 / 16 / 24 / 32 / 48 / 64, three to sixteen beats). The grid stays; the columns past the loop dim and keep their pads. A rhythm preset moves it to a whole number of its bars
+Loop length — how many columns of the grid the playhead sweeps (outer ring: 12 / 16 / 24 / 32 / 48 / 64, three to sixteen beats).
+The grid stays;
+the columns past the loop dim and keep their pads.
+A rhythm preset moves it to a whole number of its bars
 
 - <!-- key: tm-steps=12 --> 12 steps — three beats: one bar of a waltz
 - <!-- key: tm-steps=16 --> 16 steps — four beats: one bar of four
@@ -48,7 +55,8 @@ Reset the waveform
 ### Matrix voice
 
 <!-- key: tm-wave -->
-Matrix voice — the pings' shape: sine, tri, sqr, saw or noise. Where the Matrix and its drums are heard is the Mixer's: its TM and DR columns.
+Matrix voice — the pings' shape: sine, tri, sqr, saw or noise.
+Where the Matrix and its drums are heard is the Mixer's: its TM and DR columns.
 
 - <!-- key: tm-wave=0 --> sine — one pure frequency and no harmonics at all
 - <!-- key: tm-wave=1 --> triangle — odd harmonics falling away steeply: soft and hollow
@@ -59,7 +67,8 @@ Matrix voice — the pings' shape: sine, tri, sqr, saw or noise. Where the Matri
 ### Run
 
 <!-- key: tm-run-cell -->
-Run — start/stop the playhead loop, tune and drums together (painting works either way). Pressing a preset tab starts it too.
+Run — start/stop the playhead loop, tune and drums together (painting works either way).
+Pressing a preset tab starts it too.
 
 ### Beat lamps
 
@@ -85,12 +94,15 @@ Tonematrix grid — click or drag to paint pads; rows are pentatonic pitches (to
 ### Drum lanes
 
 <!-- key: tm-drums -->
-Drum lanes — bass drum, snare, hi-hat, cymbal; click or drag to paint. Four to the beat, or three when a preset is in triplets; each beat lines up under the same beat of the grid
+Drum lanes — bass drum, snare, hi-hat, cymbal; click or drag to paint.
+Four to the beat, or three when a preset is in triplets; each beat lines up under the same beat of the grid
 
 ### Rhythm presets
 
 <!-- key: rhythm-tabs -->
-Rhythm presets — a pattern for the drum lanes, one at a time. Pressing one pops the last one out, loads its bar into the lanes (repeated across the grid), counts the lanes in triplets or sixteenths as it needs, and moves the loop to a whole number of its bars; the lanes are yours to edit from there.
+Rhythm presets — a pattern for the drum lanes, one at a time.
+Pressing one pops the last one out, loads its bar into the lanes (repeated across the grid), counts the lanes in triplets or sixteenths as it needs, and moves the loop to a whole number of its bars;
+the lanes are yours to edit from there.
 
 ### The pads
 

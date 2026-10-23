@@ -8,12 +8,17 @@ Parameters — the current model's tunable constants (each with knob, LED value,
 ### depth
 
 <!-- key: p.bif-depth -->
-depth — how much of the swept parameter's range the audio moves the cursor across, centered on wherever that parameter's own knob is set. At 1 the envelope covers the whole axis, which mostly reads as a level meter lying on its side; a third is enough to cross a bifurcation without every drum hit crossing all of them. At 0 the cursor stays on the knob. Live only while DRIVE is on audio.
+depth — how much of the swept parameter's range the audio moves the cursor across, centered on wherever that parameter's own knob is set.
+At 1 the envelope covers the whole axis, which mostly reads as a level meter lying on its side;
+a third is enough to cross a bifurcation without every drum hit crossing all of them.
+At 0 the cursor stays on the knob.
+Live only while DRIVE is on audio.
 
 ### latitude lines
 
 <!-- key: p.globe-lat -->
-latitude lines — how many parallels circle the globe, or, wound as a spiral, how many times the one spiral winds round on its way from pole to pole. The buttons beside it choose which: + a spiral one way round, 0 separate rings, − a spiral the other way.
+latitude lines — how many parallels circle the globe, or, wound as a spiral, how many times the one spiral winds round on its way from pole to pole.
+The buttons beside it choose which: + a spiral one way round, 0 separate rings, − a spiral the other way.
 
 ### longitude lines
 
@@ -23,7 +28,8 @@ longitude lines — how many meridians run from pole to pole.
 ### parallels
 
 <!-- key: p.globe-par -->
-parallels — how the lines of latitude are drawn: as separate rings, or as one continuous spiral from pole to pole. Set by the buttons on LAT.
+parallels — how the lines of latitude are drawn: as separate rings, or as one continuous spiral from pole to pole.
+Set by the buttons on LAT.
 
 ### direction
 
@@ -33,7 +39,8 @@ direction — which way the spiral of parallels winds, + or − on LAT. The ring
 ### twist
 
 <!-- key: p.globe-twist -->
-twist — turns each meridian as it descends, so the lines of longitude become helices. Zero is the ordinary globe; the sign is which way they lean.
+twist — turns each meridian as it descends, so the lines of longitude become helices.
+Zero is the ordinary globe; the sign is which way they lean.
 
 ### major radius
 
@@ -108,7 +115,8 @@ harmonic D — D's multiple of A. At 1 it sets the base rectangle against A.
 ### waveform A
 
 <!-- key: p.ga-wa -->
-waveform A — triangle, or square, which breaks the figure into its hard-edged families. With B, C and D, the article's four switches: sixteen families.
+waveform A — triangle, or square, which breaks the figure into its hard-edged families.
+With B, C and D, the article's four switches: sixteen families.
 
 ### waveform B
 
@@ -128,12 +136,15 @@ waveform D — triangle, or square, which breaks the figure up.
 ### harmonics
 
 <!-- key: p.stext-harm -->
-harmonics — how many Fourier harmonics of each glyph's beam path are kept. Few and the letters melt into loops; many and they sharpen.
+harmonics — how many Fourier harmonics of each glyph's beam path are kept.
+Few and the letters melt into loops; many and they sharpen.
 
 ### system
 
 <!-- key: p.smorph-sys -->
-system — where in the Sprott A…S catalog the machine sits. With the rate at zero a fraction is part way between two systems, a blend of their coefficients, which is seldom an attractor; while the rate steps the machine it plays whole systems only.
+system — where in the Sprott A…S catalog the machine sits.
+With the rate at zero a fraction is part way between two systems, a blend of their coefficients, which is seldom an attractor;
+while the rate steps the machine it plays whole systems only.
 
 ### rate
 
@@ -178,37 +189,46 @@ skill — how well the machine player tracks the ball.
 ### left
 
 <!-- key: p.pong-pad-l -->
-left — the left paddle pot. Turn it to take the paddle from the machine; while the machine or the keys drive it, it turns by itself to follow.
+left — the left paddle pot.
+Turn it to take the paddle from the machine; while the machine or the keys drive it, it turns by itself to follow.
 
 ### right
 
 <!-- key: p.pong-pad-r -->
-right — the right paddle pot. Turn it to take the paddle from the machine; while the machine or the keys drive it, it turns by itself to follow.
+right — the right paddle pot.
+Turn it to take the paddle from the machine; while the machine or the keys drive it, it turns by itself to follow.
 
 ### sides
 
 <!-- key: p.polyhedron-p -->
-sides — how many sides each face has: 3 triangles, 4 squares, 5 pentagons, 6 hexagons. With meet it names the shape {sides, meet}: from the tetrahedron {3,3}, one more side is the cube {4,3}.
+sides — how many sides each face has: 3 triangles, 4 squares, 5 pentagons, 6 hexagons.
+With meet it names the shape {sides, meet}: from the tetrahedron {3,3}, one more side is the cube {4,3}.
 
 ### meet
 
 <!-- key: p.polyhedron-q -->
-meet — how many faces meet at each corner. From the tetrahedron {3,3}, one more is the octahedron {3,4} and two more the icosahedron {3,5}. Where the corners' angles make a full turn the faces lie flat (a tiling of the plane); past that they tile the hyperbolic plane, drawn in Poincaré's disk.
+meet — how many faces meet at each corner.
+From the tetrahedron {3,3}, one more is the octahedron {3,4} and two more the icosahedron {3,5}.
+Where the corners' angles make a full turn the faces lie flat (a tiling of the plane);
+past that they tile the hyperbolic plane, drawn in Poincaré's disk.
 
 ### morph
 
 <!-- key: p.polyhedron-morph -->
-morph — cuts the solid's corners off, deeper and deeper: at 1 the cuts meet (the rectified solid, the cuboctahedron between the cube and the octahedron) and at 2 it is the dual. + and − step to the next named solid, 0 back to the solid. Acts on a solid, not a tiling.
+morph — cuts the solid's corners off, deeper and deeper: at 1 the cuts meet (the rectified solid, the cuboctahedron between the cube and the octahedron) and at 2 it is the dual. + and − step to the next named solid, 0 back to the solid.
+Acts on a solid, not a tiling.
 
 ### operator
 
 <!-- key: p.polyhedron-op -->
-operator — the Conway operator applied to the solid (dual, ambo, truncate, kis, expand, bevel). Acts on a solid, not a tiling.
+operator — the Conway operator applied to the solid (dual, ambo, truncate, kis, expand, bevel).
+Acts on a solid, not a tiling.
 
 ### kis
 
 <!-- key: p.polyhedron-kis -->
-kis — a pyramid on every face: out above 0, pressed in below. + raises them, 0 flattens them, − presses them in. Acts on a solid, not a tiling.
+kis — a pyramid on every face: out above 0, pressed in below. + raises them, 0 flattens them, − presses them in.
+Acts on a solid, not a tiling.
 
 ### modulus
 
@@ -263,7 +283,10 @@ cycle — seconds between steps to the next modulus; 0 stays on one.
 ### turn
 
 <!-- key: p.turtle-turn -->
-turn — how the path takes its corners: square, as the turtle walks them, or each on an arc from the middle of one step to the middle of the next, so the path is a chain of quarter circles. Only the drawing changes; the walk is the same. With a trail long enough to fill the line, the oldest of it is left off to make room for the arcs.
+turn — how the path takes its corners: square, as the turtle walks them, or each on an arc from the middle of one step to the middle of the next, so the path is a chain of quarter circles.
+Only the drawing changes;
+the walk is the same.
+With a trail long enough to fill the line, the oldest of it is left off to make room for the arcs.
 
 ### gravity
 
@@ -308,7 +331,8 @@ lag — on a mono source, the second axis is the same signal this many milliseco
 ### smooth
 
 <!-- key: p.xy-smooth -->
-smooth — drawn points per sample: the beam is curved through the samples instead of joined by straight chords. Higher is smoother and costs vertices.
+smooth — drawn points per sample: the beam is curved through the samples instead of joined by straight chords.
+Higher is smoother and costs vertices.
 
 ### DFT size
 
@@ -453,17 +477,20 @@ avg — the meter's averaging: 0 shows each analysis as it lands, for watching a
 ### hold
 
 <!-- key: p.rta-hold -->
-hold — how fast the held peaks fall, in dB per second; 0 holds nothing. Held peaks are what make the display readable on music, which excites part of the band at a time.
+hold — how fast the held peaks fall, in dB per second; 0 holds nothing.
+Held peaks are what make the display readable on music, which excites part of the band at a time.
 
 ### source
 
 <!-- key: p.wfall-src -->
-src — which surface is drawn: DCAY is the cumulative spectral decay of an impulse response, measured from a generator's log sweep; LIVE is successive spectra of whatever is playing, stacked into the screen as they age.
+src — which surface is drawn: DCAY is the cumulative spectral decay of an impulse response, measured from a generator's log sweep;
+LIVE is successive spectra of whatever is playing, stacked into the screen as they age.
 
 ### channel
 
 <!-- key: p.wfall-chan -->
-chan — which channel the live surface analyzes. The decay surface uses both channels, and REF says which is the reference.
+chan — which channel the live surface analyzes.
+The decay surface uses both channels, and REF says which is the reference.
 
 ### lines
 
@@ -478,7 +505,8 @@ step — milliseconds between slices: sixteen lines at 5 ms is the 80 ms a louds
 ### FFT
 
 <!-- key: p.wfall-fft -->
-fft — the transform each slice is taken with: shorter resolves time better and the bass worse. A window longer than STEP means neighboring slices see the same audio.
+fft — the transform each slice is taken with: shorter resolves time better and the bass worse.
+A window longer than STEP means neighboring slices see the same audio.
 
 ### top
 
@@ -523,7 +551,8 @@ pos — where the plane sits along AXIS, as a fraction of the attractor's own re
 ### direction
 
 <!-- key: p.sect-dir -->
-dir — which way through the plane counts as a crossing. One way is the default because a bounded flow that goes up through a plane must come back down, and keeping both superimposes two different sections.
+dir — which way through the plane counts as a crossing.
+One way is the default because a bounded flow that goes up through a plane must come back down, and keeping both superimposes two different sections.
 
 ### view
 
@@ -533,7 +562,10 @@ view — PLANE draws the crossings where they are in space, FLAT lays the sectio
 ### tau
 
 <!-- key: p.takens-tau -->
-tau — the delay between the coordinates, in samples at 48 kHz, so one position is the same duration on any source. Too short and the axes are nearly the same sample and the figure collapses onto the diagonal; too long and it folds back on itself. One knob: Takens, Polar and the recurrence plot all read it.
+tau — the delay between the coordinates, in samples at 48 kHz, so one position is the same duration on any source.
+Too short and the axes are nearly the same sample and the figure collapses onto the diagonal;
+too long and it folds back on itself.
+One knob: Takens, Polar and the recurrence plot all read it.
 
 ### window
 
@@ -543,12 +575,16 @@ window — how much recent audio is on screen, in milliseconds. The length of th
 ### gain
 
 <!-- key: p.takens-gain -->
-gain — world units a full-scale sample maps to. The camera fit tracks this, so the figure stays the same size on screen; it sets the scale the geometry is built at, not how big it looks.
+gain — world units a full-scale sample maps to.
+The camera fit tracks this, so the figure stays the same size on screen; it sets the scale the geometry is built at, not how big it looks.
 
 ### smooth
 
 <!-- key: p.takens-smooth -->
-smooth — Catmull-Rom upsampling, in drawn points per source sample. A straight line between samples draws chords that are an artifact of the drawing; this curves the beam through them instead. Higher is smoother and costs vertices.
+smooth — Catmull-Rom upsampling, in drawn points per source sample.
+A straight line between samples draws chords that are an artifact of the drawing;
+this curves the beam through them instead.
+Higher is smoother and costs vertices.
 
 ### source
 
@@ -558,7 +594,9 @@ source — which channel of the live pair is reconstructed.
 ### axes
 
 <!-- key: p.stereo-axes -->
-axes — what the three coordinates are. The two 't' positions put TIME on the third axis and draw a goniometer sweeping like a scope trace; the two 'd' positions put a delayed copy there and draw a delay embedding of the pair.
+axes — what the three coordinates are.
+The two 't' positions put TIME on the third axis and draw a goniometer sweeping like a scope trace;
+the two 'd' positions put a delayed copy there and draw a delay embedding of the pair.
 
 ### tau
 
@@ -573,72 +611,102 @@ window — how much recent audio is on screen, in milliseconds.
 ### gain
 
 <!-- key: p.stereo-gain -->
-gain — the scale the geometry is built at. The camera fit tracks it, so this does NOT change how big the figure looks; vg is the one that does.
+gain — the scale the geometry is built at.
+The camera fit tracks it, so this does NOT change how big the figure looks; vg is the one that does.
 
 ### align
 
 <!-- key: p.stereo-align -->
-align — an inter-channel delay, signed, in samples at 48 kHz: right is read this many later than left. A spaced pair of microphones or a mis-clocked converter opens the figure into a rotating ellipse; dial the offset out until it collapses back onto the diagonal and the knob reads how far apart they were.
+align — an inter-channel delay, signed, in samples at 48 kHz: right is read this many later than left.
+A spaced pair of microphones or a mis-clocked converter opens the figure into a rotating ellipse;
+dial the offset out until it collapses back onto the diagonal and the knob reads how far apart they were.
 
 ### width
 
 <!-- key: p.stereo-width -->
-width — mid/side width on the DRAWN figure only: below 1 the difference content shrinks toward mono, above 1 it spreads. Nothing is written back to the audio, so the correlation meter goes on reading the source as it is and this asks 'what would widening do'.
+width — mid/side width on the DRAWN figure only: below 1 the difference content shrinks toward mono, above 1 it spreads.
+Nothing is written back to the audio, so the correlation meter goes on reading the source as it is and this asks 'what would widening do'.
 
 ### vertical gain
 
 <!-- key: p.stereo-vg -->
-vertical gain — scales the two signal axes against the frame, the way a scope's vertical knob does. The camera fit ignores it, so a loud passage can be turned down to fit or a quiet one driven off the top.
+vertical gain — scales the two signal axes against the frame, the way a scope's vertical knob does.
+The camera fit ignores it, so a loud passage can be turned down to fit or a quiet one driven off the top.
 
 ### trigger
 
 <!-- key: p.stereo-trig -->
-trigger — what fixes the START of the window. OFF ends it at the newest sample, so a steady tone is redrawn at a different phase each frame and the figure slides. RISE and FALL start it where the signal crosses the level, so successive frames begin at the same phase and a periodic signal stands still. LOCK is the one for music: it matches the SHAPE of the last frame instead of looking for an edge, so nothing has to cross a level and what holds still is the whole waveform rather than one point on it — which is what works on chords and speech, where an edge trigger cannot. Nothing to lock to and it free-runs rather than blanking, which is the AUTO behavior of a bench scope.
+trigger — what fixes the START of the window.
+OFF ends it at the newest sample, so a steady tone is redrawn at a different phase each frame and the figure slides.
+RISE and FALL start it where the signal crosses the level, so successive frames begin at the same phase and a periodic signal stands still.
+LOCK is the one for music: it matches the SHAPE of the last frame instead of looking for an edge, so nothing has to cross a level and what holds still is the whole waveform rather than one point on it — which is what works on chords and speech, where an edge trigger cannot.
+Nothing to lock to and it free-runs rather than blanking, which is the AUTO behavior of a bench scope.
 
 ### trigger source
 
 <!-- key: p.stereo-tsrc -->
-trigger source — which signal the trigger watches. It need not be what is drawn: locking to MID holds the whole figure, and locking to one channel is how to hold a figure whose other channel is the busy one.
+trigger source — which signal the trigger watches.
+It need not be what is drawn: locking to MID holds the whole figure, and locking to one channel is how to hold a figure whose other channel is the busy one.
 
 ### trigger coupling
 
 <!-- key: p.stereo-tcpl -->
-trigger coupling — what reaches the trigger. DC passes everything, LF reject high-passes so bass and offset stop dragging the crossing around, HF reject low-passes so hiss and cymbals stop producing crossings of their own. This is the "which frequency do I trigger on" control, spelled the way a scope spells it.
+trigger coupling — what reaches the trigger.
+DC passes everything, LF reject high-passes so bass and offset stop dragging the crossing around, HF reject low-passes so hiss and cymbals stop producing crossings of their own.
+This is the "which frequency do I trigger on" control, spelled the way a scope spells it.
 
 ### run mode
 
 <!-- key: p.stereo-trun -->
-run mode — what happens when NOTHING triggers, which is the whole question on music, where a lock comes and goes. AUTO draws anyway so the display is never blank. NORMAL holds the last triggered frame, so a figure that did hold stays up to be read instead of dissolving the moment the signal changes. SINGLE catches the next trigger and freezes; move this knob to re-arm.
+run mode — what happens when NOTHING triggers, which is the whole question on music, where a lock comes and goes.
+AUTO draws anyway so the display is never blank.
+NORMAL holds the last triggered frame, so a figure that did hold stays up to be read instead of dissolving the moment the signal changes.
+SINGLE catches the next trigger and freezes;
+move this knob to re-arm.
 
 ### holdoff, milliseconds
 
 <!-- key: p.stereo-hold -->
-holdoff, milliseconds — the minimum quiet before an edge counts. Zero takes whichever edge is newest, so a waveform with several crossings per pattern locks to a different one each frame. Set near the length of a bar and a loop stands still; near a period and single cycles do. This is the control that locks onto a PATTERN rather than a cycle inside one.
+holdoff, milliseconds — the minimum quiet before an edge counts.
+Zero takes whichever edge is newest, so a waveform with several crossings per pattern locks to a different one each frame.
+Set near the length of a bar and a loop stands still;
+near a period and single cycles do.
+This is the control that locks onto a PATTERN rather than a cycle inside one.
 
 ### graticule
 
 <!-- key: p.stereo-grat -->
-graticule — the reference lines a goniometer is read against. Which lines carry the meaning follows the AXES dial: on the L/R positions the DIAGONALS do (x=y is in phase, x=-y is the content that vanishes when summed to mono) and on mid/side the AXES do (side=0 is mono, mid=0 is entirely out of phase). Scaled with gain and vg, so the lines stay with the trace.
+graticule — the reference lines a goniometer is read against.
+Which lines carry the meaning follows the AXES dial: on the L/R positions the DIAGONALS do (x=y is in phase, x=-y is the content that vanishes when summed to mono) and on mid/side the AXES do (side=0 is mono, mid=0 is entirely out of phase).
+Scaled with gain and vg, so the lines stay with the trace.
 
 ### trigger position
 
 <!-- key: p.stereo-tpos -->
-trigger position — where the trigger point sits in the window, 0 at the left edge and 1 at the right. Past zero the window holds audio from BEFORE the edge, which is how to see what led up to a transient rather than only what followed it. A scope calls this the horizontal position; it costs that much more older audio to keep.
+trigger position — where the trigger point sits in the window, 0 at the left edge and 1 at the right.
+Past zero the window holds audio from BEFORE the edge, which is how to see what led up to a transient rather than only what followed it.
+A scope calls this the horizontal position;
+it costs that much more older audio to keep.
 
 ### noise reject
 
 <!-- key: p.stereo-hyst -->
-noise reject — how far past the level the signal must go before a crossing counts. Zero triggers on every dither across the level, which on program material means the figure flickers between two phases a sample apart. A few hundredths is usually enough.
+noise reject — how far past the level the signal must go before a crossing counts.
+Zero triggers on every dither across the level, which on program material means the figure flickers between two phases a sample apart.
+A few hundredths is usually enough.
 
 ### level
 
 <!-- key: p.stereo-lvl -->
-level — where the trigger looks for its crossing, in units of full scale. 0 is the zero crossing and is what to use unless the signal has an offset or the interesting edge is part way up it.
+level — where the trigger looks for its crossing, in units of full scale.
+0 is the zero crossing and is what to use unless the signal has an offset or the interesting edge is part way up it.
 
 ### span
 
 <!-- key: p.stereo-span -->
-span — timebase. Stretches the TIME axis only, so the trace can sweep across a wide window instead of sitting in a small square. Inert on the two 'd' positions, where all three axes are signal and stretching one would be a distortion.
+span — timebase.
+Stretches the TIME axis only, so the trace can sweep across a wide window instead of sitting in a small square.
+Inert on the two 'd' positions, where all three axes are signal and stretching one would be a distortion.
 
 ### map
 
@@ -648,7 +716,8 @@ map — how sample magnitude becomes radius: tanh and soft squash gently, dB is 
 ### drive
 
 <!-- key: p.polar-drive -->
-drive — how hard the signal is pushed into the map before it squashes. Low leaves quiet material near the center; high pushes everything out toward the surface.
+drive — how hard the signal is pushed into the map before it squashes.
+Low leaves quiet material near the center; high pushes everything out toward the surface.
 
 ### window
 
@@ -697,10 +766,17 @@ solid always sounds this way; a figure does while B is on.
 ### SPD
 
 <!-- key: p.mo-spd -->
-Model Out SPD — how fast the model runs as a signal, in semitones: every 12 up is twice as fast, an octave higher. For a system of equations, integrator steps per sample, 0 being one step a sample; the pitch is the system's own. For a beam, its speed round the figure, so the pitch is that speed over the figure's length, which the HZ readout over the equation shows.
+Model Out SPD — how fast the model runs as a signal, in semitones: every 12 up is twice as fast, an octave higher.
+For a system of equations, integrator steps per sample, 0 being one step a sample;
+the pitch is the system's own.
+For a beam, its speed round the figure, so the pitch is that speed over the figure's length, which the HZ readout over the equation shows.
 
-- <!-- key: trio.mo-spd=0 --> B: beam — the display is a vector display: one beam runs round the figure at SPD's speed, measured on the clock and not in frames, and each frame draws only what it covered; the phosphor holds the rest. Fast enough to go round within a frame it draws the whole figure, as with B off. Model Out plays the same beam.
-- <!-- key: trio.mo-spd=1 --> C: camera — the beam is measured and heard as the camera sees the figure (x and y on the screen, z its depth) rather than in the model's own coordinates. Turning the view then changes the sound, and a scope fed X and Y draws the picture on the screen.
+- <!-- key: trio.mo-spd=0 --> B: beam — the display is a vector display: one beam runs round the figure at SPD's speed, measured on the clock and not in frames, and each frame draws only what it covered;
+  the phosphor holds the rest.
+  Fast enough to go round within a frame it draws the whole figure, as with B off.
+  Model Out plays the same beam.
+- <!-- key: trio.mo-spd=1 --> C: camera — the beam is measured and heard as the camera sees the figure (x and y on the screen, z its depth) rather than in the model's own coordinates.
+  Turning the view then changes the sound, and a scope fed X and Y draws the picture on the screen.
 
 <!-- key: mo-beam -->
 Beam — the display as a vector display, Model Out's B button.
@@ -716,7 +792,10 @@ Model Out LVL — the level of the model's x, y and z, as the Mixer takes them (
 ### SPEED
 
 <!-- key: speed-cell -->
-SPEED — the model's time base, at 1.12.3 below Model Out. For a flow it sets integration sub-steps per drawn vertex above ×1, and scales dt below ×1; for an animated model (Lissajous, turtle, pong, morph) it sets the playback rate. Dark for models with no time base of their own (geometry, maps, analysis displays).
+SPEED — the model's time base, at 1.12.3 below Model Out.
+For a flow it sets integration sub-steps per drawn vertex above ×1, and scales dt below ×1;
+for an animated model (Lissajous, turtle, pong, morph) it sets the playback rate.
+Dark for models with no time base of their own (geometry, maps, analysis displays).
 
 <!-- key: slider-value-speed -->
 Speed value, ×0.01 to ×100 — type or scroll
@@ -770,22 +849,31 @@ Reset speed (×1)
 #### ITER (Custom)
 
 <!-- key: sw.custom.iter -->
-iterate — read the expressions as a discrete MAP (x = f(x,y,z)) instead of as derivatives to integrate (x += dt·f). No dt, no path between iterates, so it draws as points. Type 1 - 1.4x^2 + y and 0.3x for Henon.
+iterate — read the expressions as a discrete MAP (x = f(x,y,z)) instead of as derivatives to integrate (x += dt·f).
+No dt, no path between iterates, so it draws as points.
+Type 1 - 1.4x^2 + y and 0.3x for Henon.
 
 #### SURF (Custom)
 
 <!-- key: sw.custom.surf -->
-surface — read the first expression as F(x, y, z) and draw the surface where it is zero, by its contours: slices across each axis, traced where each meets it. Try x^2 + y^2 + z^2 - 1 (a sphere), max(abs(x), abs(y), abs(z)) - 0.6 (a cube), or sin(3x)cos(3y) + sin(3y)cos(3z) + sin(3z)cos(3x) (a gyroid). Edit a Polyhedron's equation to start from a solid.
+surface — read the first expression as F(x, y, z) and draw the surface where it is zero, by its contours: slices across each axis, traced where each meets it.
+Try x^2 + y^2 + z^2 - 1 (a sphere), max(abs(x), abs(y), abs(z)) - 0.6 (a cube), or sin(3x)cos(3y) + sin(3y)cos(3z) + sin(3z)cos(3x) (a gyroid).
+Edit a Polyhedron's equation to start from a solid.
 
 #### 4D W (Custom)
 
 <!-- key: sw.custom.4d -->
-4D — add a fourth state variable w with its own dw/dt equation (hidden from the 3D plot, fed back through the others). Flows only: a map or a surface has no fourth state.
+4D — add a fourth state variable w with its own dw/dt equation (hidden from the 3D plot, fed back through the others).
+Flows only: a map or a surface has no fourth state.
 
 #### PASS (Desk)
 
 <!-- key: sw.desk.pass -->
-Pass-through — where the mouse goes while the Desk MODEL is on screen. Off: dragging turns the model, and Ctrl-drag reaches the desk. On: dragging reaches the desk — moving windows, resizing them, pressing their buttons — and Ctrl-drag turns the model. Control always inverts the switch, so both gestures are available either way. The keyboard needs neither: double-click to type into the focused window, Esc to give it back.
+Pass-through — where the mouse goes while the Desk MODEL is on screen.
+Off: dragging turns the model, and Ctrl-drag reaches the desk.
+On: dragging reaches the desk — moving windows, resizing them, pressing their buttons — and Ctrl-drag turns the model.
+Control always inverts the switch, so both gestures are available either way.
+The keyboard needs neither: double-click to type into the focused window, Esc to give it back.
 
 #### RSET (Pong)
 
@@ -815,17 +903,30 @@ Listen — play the wobbulated audio out the speakers (mic: use headphones; musi
 #### ROUT (FVF)
 
 <!-- key: sw.fvf.rout -->
-Route — send ALL system audio through a temporary null sink on the server's machine, so the wobbulated result can be played out the speakers without being captured and wobbulated again. Turn it on, play something in any app, then turn on Listen. Off restores the previous default sink; so does stopping the server. Only a page on the same machine can switch it.
+Route — send ALL system audio through a temporary null sink on the server's machine, so the wobbulated result can be played out the speakers without being captured and wobbulated again.
+Turn it on, play something in any app, then turn on Listen.
+Off restores the previous default sink;
+so does stopping the server.
+Only a page on the same machine can switch it.
 
 #### TRND (Recurrence)
 
 <!-- key: sw.recurrence.trnd -->
-Trend — show RR, DET and LAM over the last {seconds} seconds on this screen, newest at the right, one column per measurement (about six a second), with vertical rules every 10 s. Off, the screen shows the model as it does for every other one. THE THREE PANES DO NOT SHARE A SCALE; what they share is the time axis. RR is drawn as its square root, because RR is a lit fraction of a SQUARE and the root of an area is the fraction of the side — the shaded band is the 1–5% the plot is readable in, so turn ε until the trace sits in it. DET and LAM are drawn as themselves, 0 at the bottom and 1 at the top: DET climbing is structure appearing, DET falling off is noise or a change of regime. A break in a trace is never a value — it is a stretch with no measurement behind it.
+Trend — show RR, DET and LAM over the last {seconds} seconds on this screen, newest at the right, one column per measurement (about six a second), with vertical rules every 10 s.
+Off, the screen shows the model as it does for every other one.
+THE THREE PANES DO NOT SHARE A SCALE;
+what they share is the time axis.
+RR is drawn as its square root, because RR is a lit fraction of a SQUARE and the root of an area is the fraction of the side — the shaded band is the 1–5% the plot is readable in, so turn ε until the trace sits in it.
+DET and LAM are drawn as themselves, 0 at the bottom and 1 at the top: DET climbing is structure appearing, DET falling off is noise or a change of regime.
+A break in a trace is never a value — it is a stretch with no measurement behind it.
 
 #### RT60 readout (Waterfall)
 
 <!-- key: ro.rt60 -->
-Reverberation time of the room, in seconds — how long a sound takes to fall 60 dB after it stops. Taken from the same impulse response the surface is, by Schroeder backward integration: the decay curve is the energy REMAINING after each moment, which turns a noisy decay into a smooth one without averaging repeated measurements. Measured as T20 and extrapolated — the straight part between -5 dB and -25 dB, because the first few decibels are direct sound and the last of a real decay is in the noise floor. Blank on the live surface, which has no impulse to decay from, and blank until a sweep has been measured.
+Reverberation time of the room, in seconds — how long a sound takes to fall 60 dB after it stops.
+Taken from the same impulse response the surface is, by Schroeder backward integration: the decay curve is the energy REMAINING after each moment, which turns a noisy decay into a smooth one without averaging repeated measurements.
+Measured as T20 and extrapolated — the straight part between -5 dB and -25 dB, because the first few decibels are direct sound and the last of a real decay is in the noise floor.
+Blank on the live surface, which has no impulse to decay from, and blank until a sweep has been measured.
 
 ### Waterfall FFT positions
 
@@ -859,14 +960,24 @@ Equation — the running model's system, one derivative per state variable. Edit
 ### Section (Poincaré)
 
 <!-- key: sect-module -->
-Section — where the Poincaré section's plane sits, and which way through it counts. Its three positions stand in the model bank after a flow's constants, and after the Poincaré Section model's (Maps). ON (on AXIS) switches the section on over a running flow, as LINE's S does; the knobs are live over a flow while it is on, and always under the Poincaré Section model, whose plane they are. AXIS and POS place it — POS as a fraction of the attractor's own reach along that axis, so 0 is through the middle whatever the system's size. DIR one way is the default: a bounded flow that goes up through a plane must come back down through it, so counting both superimposes two different sections. The crossings draw in gold where they physically are; the Poincaré Section model is the same section as a picture of its own, with the return map.
+Section — where the Poincaré section's plane sits, and which way through it counts.
+Its three positions stand in the model bank after a flow's constants, and after the Poincaré Section model's (Maps).
+ON (on AXIS) switches the section on over a running flow, as LINE's S does;
+the knobs are live over a flow while it is on, and always under the Poincaré Section model, whose plane they are.
+AXIS and POS place it — POS as a fraction of the attractor's own reach along that axis, so 0 is through the middle whatever the system's size.
+DIR one way is the default: a bounded flow that goes up through a plane must come back down through it, so counting both superimposes two different sections.
+The crossings draw in gold where they physically are;
+the Poincaré Section model is the same section as a picture of its own, with the return map.
 
 - <!-- key: trio.sect-axis=0 --> ON: the Poincaré section over a running flow (LINE's S is the same switch)
 
 ### Water (lens)
 
 <!-- key: water-module -->
-Water — the water lens's tank: the finished picture seen through a rippling surface. Its positions are in the model bank, the same for every model, and dark there until BEHIND (Layers · Colors) is on water. Drag across the picture to make a wake; DRIVE lets the sound push the water from SPKRS points, and RAIN drops on it at random.
+Water — the water lens's tank: the finished picture seen through a rippling surface.
+Its positions are in the model bank, the same for every model, and dark there until BEHIND (Layers · Colors) is on water.
+Drag across the picture to make a wake;
+DRIVE lets the sound push the water from SPKRS points, and RAIN drops on it at random.
 
 ### bend
 
@@ -933,7 +1044,8 @@ Step size for {label} — turn for ten times finer or coarser
 RR — recurrence rate, the percentage of the square that is lit: the number to turn ε by, and 1–5% is the readable range.
 
 <!-- key: ro.det -->
-DET — determinism, the percentage of lit points lying on diagonal lines, which is what separates a system from noise: an orbit reads near 100, white noise near 0. The line of identity is left out: every point recurs with itself, and counting that would give noise a confident score for nothing.
+DET — determinism, the percentage of lit points lying on diagonal lines, which is what separates a system from noise: an orbit reads near 100, white noise near 0.
+The line of identity is left out: every point recurs with itself, and counting that would give noise a confident score for nothing.
 
 <!-- key: ro.lam -->
 LAM — laminarity, the percentage on vertical lines: states the system sat in rather than passed through, so high LAM against lower DET is intermittency.
@@ -941,20 +1053,29 @@ LAM — laminarity, the percentage on vertical lines: states the system sat in r
 ### Takens readouts
 
 <!-- key: ro.meas -->
-Measured embedding, in milliseconds: τ is the first minimum of the signal's average mutual information, written into the τ knob; m is the false-nearest-neighbor dimension. m greater than 3 means the trail on screen is a projection of a higher-dimensional reconstruction. This runs by itself once the mode has enough audio, and again when the source changes — but never over a τ you have set yourself. The button measures again on demand.
+Measured embedding, in milliseconds: τ is the first minimum of the signal's average mutual information, written into the τ knob;
+m is the false-nearest-neighbor dimension.
+m greater than 3 means the trail on screen is a projection of a higher-dimensional reconstruction.
+This runs by itself once the mode has enough audio, and again when the source changes — but never over a τ you have set yourself.
+The button measures again on demand.
 
 <!-- key: takens-measure -->
-Measure the embedding from the audio in the buffer and set τ from it. Once, on demand — this mode deliberately does not re-tune itself per frame, because a knob that moves with the music makes the figure move with it too.
+Measure the embedding from the audio in the buffer and set τ from it.
+Once, on demand — this mode deliberately does not re-tune itself per frame, because a knob that moves with the music makes the figure move with it too.
 
 ### Bifurcation readouts
 
 <!-- key: ro.cur -->
-Where the audio envelope currently puts the swept parameter — the cursor's position on the diagram's x axis. "sweep" means the audio drive is off; "mod off" means it is selected but no envelope has been measured yet.
+Where the audio envelope currently puts the swept parameter — the cursor's position on the diagram's x axis.
+"sweep" means the audio drive is off;
+"mod off" means it is selected but no envelope has been measured yet.
 
 ### Transfer readouts
 
 <!-- key: ro.dly -->
-Bulk delay between the two channels, fitted from the slope of the phase — a pure delay is a phase that falls linearly with frequency, and the slope is the delay. This is the number a system-tuning rig is reached for: it is what gets dialed into a delay line to line a loudspeaker up with the rest of the system. Fitted only across bands the stimulus actually reached and whose coherence clears the COH knob, and on the UNWRAPPED phase — a real delay turns through 360° many times across the band, and a slope fitted to the wrapped curve is a slope fitted to a sawtooth.
+Bulk delay between the two channels, fitted from the slope of the phase — a pure delay is a phase that falls linearly with frequency, and the slope is the delay.
+This is the number a system-tuning rig is reached for: it is what gets dialed into a delay line to line a loudspeaker up with the rest of the system.
+Fitted only across bands the stimulus actually reached and whose coherence clears the COH knob, and on the UNWRAPPED phase — a real delay turns through 360° many times across the band, and a slope fitted to the wrapped curve is a slope fitted to a sawtooth.
 
 ### Lyapunov readout
 
@@ -966,25 +1087,44 @@ Spare readout — nothing is assigned to this position.
 ### dt
 
 <!-- key: dt-help -->
-dt — the integration time step: how far the system advances on each step. Smaller follows the flow more faithfully and moves along it more slowly; too large and the solver leaves the attractor or blows up.
+dt — the integration time step: how far the system advances on each step.
+Smaller follows the flow more faithfully and moves along it more slowly;
+too large and the solver leaves the attractor or blows up.
 
 #### λ (Lyapunov readout)
 
 <!-- key: ro.lyap -->
-Largest Lyapunov exponent, measured live from a pair of trajectories started a hair apart: how fast two nearby states of THIS system, at these coefficients, separate. Positive is chaos — prediction has a horizon of roughly 1/λ — and the bigger it is the shorter that horizon. About zero is a limit cycle or a torus. Negative is settling to a fixed point. Per unit of MODEL time, not per second: it does not change when the browser is busy, and it does change with dt and with Speed, because the thing being integrated changes with them. "λ --" means not enough model time has been averaged yet for the number to mean anything; it clears itself after a second or so. The lyap readout under the monitor (↻ measures it again) is the same quantity measured at length on demand, to three decimals.
+Largest Lyapunov exponent, measured live from a pair of trajectories started a hair apart: how fast two nearby states of THIS system, at these coefficients, separate.
+Positive is chaos — prediction has a horizon of roughly 1/λ — and the bigger it is the shorter that horizon.
+About zero is a limit cycle or a torus.
+Negative is settling to a fixed point.
+Per unit of MODEL time, not per second: it does not change when the browser is busy, and it does change with dt and with Speed, because the thing being integrated changes with them.
+"λ --" means not enough model time has been averaged yet for the number to mean anything;
+it clears itself after a second or so.
+The lyap readout under the monitor (↻ measures it again) is the same quantity measured at length on demand, to three decimals.
 
 #### hz (beam circuit)
 
 <!-- key: ro.hz -->
-The beam's circuit frequency, in Hz: how many times a second it goes round the figure, which is SPD's speed over the figure's length and the pitch Model Out plays it at. Measured in whichever coordinates C picks, so with C on, turning the view changes it. A longer figure goes round fewer times at the same speed: this is how much the figure itself has to say about the pitch. It reads while the beam draws (B) or is heard — a solid is always heard by its beam — and "--" otherwise.
+The beam's circuit frequency, in Hz: how many times a second it goes round the figure, which is SPD's speed over the figure's length and the pitch Model Out plays it at.
+Measured in whichever coordinates C picks, so with C on, turning the view changes it.
+A longer figure goes round fewer times at the same speed: this is how much the figure itself has to say about the pitch.
+It reads while the beam draws (B) or is heard — a solid is always heard by its beam — and "--" otherwise.
 
 #### r (XY correlation)
 
 <!-- key: ro.corr -->
-Correlation between the two channels over the displayed window, as a goniometer's correlation meter reads it: +1.00 means the channels are identical and the figure is the diagonal line, 0 means they are unrelated and the figure is a round cloud, −1.00 means one is the other's polarity inverted — and that is the content that disappears if the mix is summed to mono. Measured on L and R whatever the axes knob is set to, because it is a property of the channels rather than of the way they are drawn. "mono" means the source has only one channel, so there is no stereo relationship to read. "r --" means silence, or one dead channel: nothing to correlate.
+Correlation between the two channels over the displayed window, as a goniometer's correlation meter reads it:
++1.00 means the channels are identical and the figure is the diagonal line,
+0 means they are unrelated and the figure is a round cloud,
+−1.00 means one is the other's polarity inverted — and that is the content that disappears if the mix is summed to mono.
+Measured on L and R whatever the axes knob is set to, because it is a property of the channels rather than of the way they are drawn.
+"mono" means the source has only one channel, so there is no stereo relationship to read.
+"r --" means silence, or one dead channel: nothing to correlate.
 
 <!-- key: bif-sweep-cell.live -->
-SWEEP {mode} — which of its parameters is the x axis. The system is the most recent flow mode: switch to an attractor, tune it, then come back.
+SWEEP {mode} — which of its parameters is the x axis.
+The system is the most recent flow mode: switch to an attractor, tune it, then come back.
 
 ### The equation's lines
 
@@ -994,7 +1134,8 @@ SWEEP {mode} — which of its parameters is the x axis. The system is the most r
 Read-only: this line follows the solid's knobs in the bank.
 
 <!-- key: equation.solid -->
-The solid as an equation: F = 0 on its surface, negative inside. Edit it to make your own: the rack switches to Custom, drawing your surface.
+The solid as an equation: F = 0 on its surface, negative inside.
+Edit it to make your own: the rack switches to Custom, drawing your surface.
 
 <!-- key: equation.no-w -->
 d{v}/dt — {mode} has three states, so there is no fourth equation.
@@ -1008,7 +1149,14 @@ d{v}/dt for {mode}. Edit it to make your own: the rack switches to Custom, seede
 ### Physics (Turtle Path)
 
 <!-- key: phys-module -->
-Physics — the figure as a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture. Its positions stand in the model bank after the Turtle Path's constants (Sequences). ON (on GRAV) switches it on; the knobs are live while it is on. GRAV pulls either way up; FRIC is how much the surfaces bite; BOUNCE is how much of the speed a wall gives back; SPIN is how hard it is to turn.
+Physics — the figure as a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture.
+Its positions stand in the model bank after the Turtle Path's constants (Sequences).
+ON (on GRAV) switches it on;
+the knobs are live while it is on.
+GRAV pulls either way up;
+FRIC is how much the surfaces bite;
+BOUNCE is how much of the speed a wall gives back;
+SPIN is how hard it is to turn.
 
 - <!-- key: trio.turtle-grav=0 --> ON: physics — the Turtle Path as a rigid body that falls, slides and bounces
 

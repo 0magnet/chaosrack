@@ -3,7 +3,8 @@
 ## Console
 
 <!-- key: console -->
-Console — Reset All and Normalize, MIDI, and the switches for the rack itself and for motion. The model is chosen with the MODEL knob in bay 1.
+Console — Reset All and Normalize, MIDI, and the switches for the rack itself and for motion.
+The model is chosen with the MODEL knob in bay 1.
 
 <!-- key: console.equation -->
 Model — Reset All, which puts the whole rack back as it starts, and Normalize, which squares the model up to the screen.
@@ -17,7 +18,8 @@ Re-center the model to the default (identity) orientation and stop any spin
 ### Audio
 
 <!-- key: console.audio -->
-Audio — the subsystems that are switched on rather than patched in: hardware control over the rack (MIDI). Where every sound goes is the Mixer's, in the routing bay.
+Audio — the subsystems that are switched on rather than patched in: hardware control over the rack (MIDI).
+Where every sound goes is the Mixer's, in the routing bay.
 
 ### MIDI
 
@@ -37,12 +39,18 @@ Rack — Power, Rack bay, Info, Fullscreen and Desk: the frame itself and the wi
 ### Power
 
 <!-- key: power-sw-cell -->
-Power — the model. Off stops it and clears the canvas, which is what the GPU costs; the scopes and meters still read what plays, and every setting is still there to read and to change. OFF on the MODEL knob is the same switch.
+Power — the model.
+Off stops it and clears the canvas, which is what the GPU costs;
+the scopes and meters still read what plays, and every setting is still there to read and to change.
+OFF on the MODEL knob is the same switch.
 
 ### Rack bay
 
 <!-- key: handles-on-cell -->
-Rack bay — draw the 19-inch frame each ROW of modules sits in: rails above and below, an ear each side, and blank panels filling the leftover at the end of the row on the same slot pitch. The modules wrap, and a row is a bay, so a rack that has spilled onto a second row gets a second frame. While it is on, a click on one of a bay's top screws moves the bay up a place, on a bottom screw down one; the order is kept in this browser, and the addresses on a moved bay follow it.
+Rack bay — draw the 19-inch frame each ROW of modules sits in: rails above and below, an ear each side, and blank panels filling the leftover at the end of the row on the same slot pitch.
+The modules wrap, and a row is a bay, so a rack that has spilled onto a second row gets a second frame.
+While it is on, a click on one of a bay's top screws moves the bay up a place, on a bottom screw down one;
+the order is kept in this browser, and the addresses on a moved bay follow it.
 
 ### Info
 
@@ -57,7 +65,10 @@ Fullscreen — the browser's full screen: the canvas fills the display, and the 
 ### Desk
 
 <!-- key: desk-contain-cell -->
-Desk — run this app inside a desktop: the desk becomes the environment, its panel takes the bottom of the screen, and the rack floats as a window on it with a task button beside the desk's own. The scene keeps running behind. Open a terminal, the host shell or the file manager from the desk's Applications menu. The OTHER way to have the desk is as a MODEL (Solids → desk), where the whole desktop is drawn into the scene and turns with it.
+Desk — run this app inside a desktop: the desk becomes the environment, its panel takes the bottom of the screen, and the rack floats as a window on it with a task button beside the desk's own.
+The scene keeps running behind.
+Open a terminal, the host shell or the file manager from the desk's Applications menu.
+The OTHER way to have the desk is as a MODEL (Solids → desk), where the whole desktop is drawn into the scene and turns with it.
 
 ### Motion
 
@@ -73,17 +84,26 @@ Pause / freeze the animation
 ### Physics
 
 <!-- key: phys-sw-wrap -->
-Physics — give the turtle path weight: it becomes a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture. The ON button on GRAV, in the model bank after the Turtle Path's constants. Press on the figure to pick it up and throw it; press beside it to turn the view as usual.
+Physics — give the turtle path weight: it becomes a rigid body in the plane of the screen, inside a room whose walls are the edges of the picture.
+The ON button on GRAV, in the model bank after the Turtle Path's constants.
+Press on the figure to pick it up and throw it;
+press beside it to turn the view as usual.
 
 ### Jam / attract mode
 
 <!-- key: jam-sw-cell -->
-Jam / attract mode — the app performs itself: hops to a random attractor every 12–20 s with fresh gentle spin and occasional persist paint. Never touches speaker outputs.
+Jam / attract mode — the app performs itself: hops to a random attractor every 12–20 s with fresh gentle spin and occasional persist paint.
+Never touches speaker outputs.
 
 ### Lyapunov
 
 <!-- key: mro-* -->
-Lyapunov — the largest exponent of the model on screen: how fast two nearby trajectories separate. Positive means chaotic (prediction has a horizon); about zero means periodic or quasi-periodic; negative means the orbit is settling. Flows are per unit time, maps per iterate. Measured on demand, not per frame.
+Lyapunov — the largest exponent of the model on screen: how fast two nearby trajectories separate.
+Positive means chaotic (prediction has a horizon);
+about zero means periodic or quasi-periodic;
+negative means the orbit is settling.
+Flows are per unit time, maps per iterate.
+Measured on demand, not per frame.
 
 <!-- key: lyap-led -->
 Largest Lyapunov exponent. /t = per unit time (flows), /n = per iterate (maps).
@@ -97,7 +117,8 @@ Re-measure now. A run is a few hundred thousand integration steps, so it is done
 ### Text
 
 <!-- key: mro-scopetext -->
-Text — what Fourier Text's beam writes (A–Z, 0–9, dash, space). The harm knob in the bank sets how many harmonics each glyph keeps.
+Text — what Fourier Text's beam writes (A–Z, 0–9, dash, space).
+The harm knob in the bank sets how many harmonics each glyph keeps.
 
 ### The text field
 
@@ -107,7 +128,8 @@ Text — what the beam writes; melt it with the harm knob
 ### Score
 
 <!-- key: mro-pong -->
-Score — each player's points; first past 9 resets the match. The left and right knobs in the bank are the paddle pots.
+Score — each player's points; first past 9 resets the match.
+The left and right knobs in the bank are the paddle pots.
 
 <!-- key: pong-score-l -->
 Left player's score (W/S, left-half touch, or the left pot)
@@ -148,7 +170,14 @@ Loaded STL — file name and triangle count (a stand-in cube shows until a file 
 ### Desktop style
 
 <!-- key: desk-style-cell -->
-Desktop style — four 3-D desktops reproduced over the scene. Flat: ordinary windows. Looking Glass (Sun, 2003): windows lean back in a legible stack; double-click a title bar to turn one over and read its back. Cube (Compiz, 2006): four workspaces on the faces of a cube; the arrow keys spin it. Metisse (2004): shift-drag a title bar to turn a window freely, and it stays live while turned. BumpTop (2009): windows have weight and fall into a pile on top of the rack.
+Desktop style — four 3-D desktops reproduced over the scene.
+Flat: ordinary windows.
+Looking Glass (Sun, 2003): windows lean back in a legible stack;
+double-click a title bar to turn one over and read its back.
+Cube (Compiz, 2006): four workspaces on the faces of a cube;
+the arrow keys spin it.
+Metisse (2004): shift-drag a title bar to turn a window freely, and it stays live while turned.
+BumpTop (2009): windows have weight and fall into a pile on top of the rack.
 
 ### Desktop style
 
@@ -171,7 +200,9 @@ Program — which terminal program runs on the quad
 ### SWEEP
 
 <!-- key: bif-sweep-cell -->
-SWEEP — which parameter of the system being swept is the x axis of the diagram; each column integrates the system fresh at that value and plots the maxima of z. The system is the most recent flow mode.
+SWEEP — which parameter of the system being swept is the x axis of the diagram;
+each column integrates the system fresh at that value and plots the maxima of z.
+The system is the most recent flow mode.
 
 ### Swept parameter
 
@@ -181,7 +212,11 @@ Swept parameter — the x axis of the diagram
 ### DRIVE
 
 <!-- key: bif-drive-cell -->
-DRIVE — what puts the system at a parameter value. sweep is the diagram alone, computed left to right. audio keeps the same diagram and points a cursor at it from the live audio envelope, so the branch structure under the music is lit up as it plays. The diagram itself does not move: its x axis means something only because the parameter runs monotonically along it. The envelope is the rack's signal, as the Mixer's RACK rows make it, and choosing audio is enough to start measuring it.
+DRIVE — what puts the system at a parameter value.
+sweep is the diagram alone, computed left to right.
+audio keeps the same diagram and points a cursor at it from the live audio envelope, so the branch structure under the music is lit up as it plays.
+The diagram itself does not move: its x axis means something only because the parameter runs monotonically along it.
+The envelope is the rack's signal, as the Mixer's RACK rows make it, and choosing audio is enough to start measuring it.
 
 <!-- key: bif-drive -->
 sweep: the diagram alone. audio: the envelope moves a cursor along it.
@@ -218,7 +253,9 @@ Reset mod (ring)
 ### Built-in solids
 
 <!-- key: stlfile-builtin-cell -->
-Built-in solids — the rack modules and the 19-inch frame at their real dimensions, the geometry as closed solids, and every attractor swept as a tube along its own trajectory. Generated in the browser; the same models are written as .stl files by `chaosrack stlgen`.
+Built-in solids — the rack modules and the 19-inch frame at their real dimensions, the geometry as closed solids, and every attractor swept as a tube along its own trajectory.
+Generated in the browser;
+the same models are written as .stl files by `chaosrack stlgen`.
 
 ### Built-in solid
 
@@ -230,7 +267,11 @@ Built-in solid — or a file loaded from disk
 ### Pass-through
 
 <!-- key: desk-pass -->
-Pass-through — where the mouse goes while the Desk MODEL is on screen. Off: dragging turns the model, and Ctrl-drag reaches the desk. On: dragging reaches the desk — moving windows, resizing them, pressing their buttons — and Ctrl-drag turns the model. Control always inverts the switch, so both gestures are available either way. The keyboard needs neither: double-click to type into the focused window, Esc to give it back.
+Pass-through — where the mouse goes while the Desk MODEL is on screen.
+Off: dragging turns the model, and Ctrl-drag reaches the desk.
+On: dragging reaches the desk — moving windows, resizing them, pressing their buttons — and Ctrl-drag turns the model.
+Control always inverts the switch, so both gestures are available either way.
+The keyboard needs neither: double-click to type into the focused window, Esc to give it back.
 
 ### Restart the match
 
@@ -295,7 +336,8 @@ Knob style — knob face appearance (std / flat / vint / chrome / gold / carbon)
 ### LED
 
 <!-- key: ledcolor-cell -->
-LED — the color of every readout in the rack. Each dot round the knob is one color, in itself; the display under it names the one chosen.
+LED — the color of every readout in the rack.
+Each dot round the knob is one color, in itself; the display under it names the one chosen.
 
 <!-- key: rst-led-color -->
 Reset the LED color
@@ -306,7 +348,8 @@ Reset the LED color
 LED color — readout color for every numeric LED readout
 
 <!-- key: phosphor-cell -->
-CRT phosphor for scope traces (Lissajous / Graphic Artist) — sets trace color + afterglow. P31 crisp green … P7 blue→green … P33 long amber.
+CRT phosphor for scope traces (Lissajous / Graphic Artist) — sets trace color + afterglow.
+P31 crisp green … P7 blue→green … P33 long amber.
 
 <!-- key: rst-phosphor -->
 Reset the phosphor to off
@@ -319,12 +362,16 @@ Phosphor — CRT trace color + afterglow for scope modes (P31 crisp green … P7
 ## Presets
 
 <!-- key: preset -->
-Presets — the current view, saved under a name. A preset holds everything the permalink holds: the model, every knob and color, the effect switches, the parameters and the pose. Recalling one resets to defaults and re-applies it, exactly as the numbered patch memories on this module do; the difference is that these have names, and the address bar does not have to carry them.
+Presets — the current view, saved under a name.
+A preset holds everything the permalink holds: the model, every knob and color, the effect switches, the parameters and the pose.
+Recalling one resets to defaults and re-applies it, exactly as the numbered patch memories on this module do;
+the difference is that these have names, and the address bar does not have to carry them.
 
 ### Preset name
 
 <!-- key: preset-name -->
-Preset name — what to file the current view under. Saving over a name that already exists replaces it; leaving this empty files the view under the current model's name.
+Preset name — what to file the current view under.
+Saving over a name that already exists replaces it; leaving this empty files the view under the current model's name.
 
 <!-- key: preset-save -->
 Save the current view under the name beside it — the same complete state a permalink carries
