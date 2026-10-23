@@ -67,8 +67,9 @@ import (
 const xyVertShaderSrc = `
 	attribute vec2 aPos;
 	uniform vec2 uOffset;
+	uniform vec4 uStage; // the stage's size and center in clip space (stage_js.go)
 	void main() {
-		gl_Position = vec4(aPos + uOffset, 0.0, 1.0);
+		gl_Position = vec4((aPos + uOffset) * uStage.xy + uStage.zw, 0.0, 1.0);
 	}
 `
 
@@ -103,10 +104,14 @@ func xyDeflection() (sx, sy float32) {
 	if gpu.width <= 0 || gpu.height <= 0 {
 		return xyScale, xyScale
 	}
-	if gpu.width > gpu.height {
-		return xyScale * float32(gpu.height) / float32(gpu.width), xyScale
+	// Squared against the stage, the part the panel leaves, which is what the
+	// trace is drawn in (stage_js.go).
+	r := stageRect(gpu.width, gpu.height)
+	w, h := r[2], r[3]
+	if w > h {
+		return xyScale * float32(h) / float32(w), xyScale
 	}
-	return xyScale, xyScale * float32(gpu.width) / float32(gpu.height)
+	return xyScale, xyScale * float32(w) / float32(h)
 }
 
 // xyScope is the XY scope mode: its program, the stereo window it draws, and
@@ -118,6 +123,7 @@ type xyScope struct {
 	uColor  js.Value
 	uAlpha  js.Value
 	uOffset js.Value
+	uStage  js.Value
 	ready   bool
 	window  int // current window, in samples; derived from the WIN knob
 	bufL    []float32
@@ -237,6 +243,7 @@ func (x *xyScope) initXY() {
 	x.uColor = glctx.GL.Call("getUniformLocation", x.program, "uColor")
 	x.uAlpha = glctx.GL.Call("getUniformLocation", x.program, "uAlpha")
 	x.uOffset = glctx.GL.Call("getUniformLocation", x.program, "uOffset")
+	x.uStage = glctx.GL.Call("getUniformLocation", x.program, "uStage")
 
 	x.buf = glctx.GL.Call("createBuffer")
 	x.ready = true
@@ -418,6 +425,9 @@ func (x *xyScope) drawXYScope(clearFirst bool) {
 	// lineWidth reliably, so we fake width + AA with offset passes.
 	glctx.GL.Call("enable", glctx.GL.Get("BLEND"))
 	glctx.GL.Call("blendFunc", glctx.GL.Get("SRC_ALPHA"), glctx.GL.Get("ONE")) // additive glow
+	// Drawn in the part the panel leaves, as the models are.
+	kx, ky, ox, oy := stageClip()
+	glctx.GL.Call("uniform4f", x.uStage, kx, ky, ox, oy)
 	dx := float32(1.4) / float32(gpu.width)
 	dy := float32(1.4) / float32(gpu.height)
 	halo := [][3]float32{ // x-offset, y-offset, alpha
