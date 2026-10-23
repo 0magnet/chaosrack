@@ -126,7 +126,8 @@ the wheel over a lit pin sets its depth.
   Smoothed, because a loop that answers within a frame of its own output is an oscillator at the frame rate.
 - <!-- key: mod-src=y --> head y — as head x, on the y coordinate
 - <!-- key: mod-src=z --> head z — as head x, on the z coordinate.
-  The classic one to try: a Lorenz whose rho follows its own z.
+  The classic one to try: a Lorenz whose rho follows its own z, at a DPTH of about 0.05.
+  At the 0.4 a new route starts at, rho swings far enough below 24.7 that the chaos stops and the figure settles into one wing.
 - <!-- key: mod-src=r --> head r — the attractor's distance from the origin drives the control: a source that does not care which way the orbit went, only how far out it is
 
 ### A row

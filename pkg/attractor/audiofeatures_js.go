@@ -118,7 +118,9 @@ func (a *audioFeatures) updateAudioFeatures() {
 	if !audioMod {
 		return
 	}
-	src := aud.ensureAudioSource()
+	// The bus as it is: a frame makes no capture (syncAudioMod does, for a
+	// route that hears the sound).
+	src := aud.activeAudioSource()
 	if !src.Ready() {
 		return
 	}
@@ -222,7 +224,25 @@ func syncAudioMod() {
 	on := anyModRoute() || bif.driveAudio || audioStreamed()
 	if on != audioMod {
 		setAudioMod(on)
+	} else if on && modHearsSound() {
+		aud.ensureAudioSource() // a route from the sound beside ones from the model
 	}
+}
+
+// modHearsSound reports whether modulation needs the sound: a route from the
+// rack's signal or a send, or the bifurcation's audio drive. Routes from
+// the model alone (HEAD) need none, and asked a visit with no feed for the
+// microphone all the same.
+func modHearsSound() bool {
+	if bif.driveAudio {
+		return true
+	}
+	for _, m := range pmod.params {
+		if m.channel != "" && m.level != 0 && !isModelModSource(m.channel) {
+			return true
+		}
+	}
+	return false
 }
 
 // anyModRoute reports whether any control is routed.
@@ -252,7 +272,9 @@ func audioStreamed() bool {
 func setAudioMod(on bool) {
 	audioMod = on
 	if on {
-		aud.ensureAudioSource()
+		if modHearsSound() || audioStreamed() {
+			aud.ensureAudioSource()
+		}
 	} else {
 		resetAttractorState()
 	}
