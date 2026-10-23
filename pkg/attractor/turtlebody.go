@@ -151,7 +151,7 @@ type turtleWorld struct {
 	camDist                  float32
 	grav, fric, bounce, spin float32
 	dt                       float32
-	grab                     func(b *turtleBody, t *turtleWalk, pts []pisano.Pt3, mass float32) (fx, fy, torque float32)
+	grab                     func(b *turtleBody, t *turtleWalk, pts []pisano.Pt3, mass, inertia float32) (fx, fy, torque float32)
 }
 
 // step advances the body one frame, given the trail it is made of.
@@ -161,8 +161,20 @@ type turtleWorld struct {
 // is pushing on it, then move it. Contact is a spring against the floor rather
 // than an impulse — which is both the analog-computer way to write it and the
 // stable one at a fixed frame step.
-// The step is w.dt, held to 0.05: a slow frame must not launch it.
+// The step is w.dt, held to 0.05: a slow frame must not launch it. It is
+// taken in steps of no more than a 60th (stepOnce): the hand's spring and
+// the floor's are stiff, and one long step of a slow frame overshot them.
 func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3, w turtleWorld) {
+	dt := min(w.dt, 0.05)
+	n := max(1, int(math.Ceil(float64(dt*followHz))))
+	w.dt = dt / float32(n)
+	for range n {
+		b.stepOnce(t, pts, w)
+	}
+}
+
+// stepOnce advances the body one step of w.dt.
+func (b *turtleBody) stepOnce(t *turtleWalk, pts []pisano.Pt3, w turtleWorld) {
 	n := len(pts)
 	if n < 2 {
 		return
@@ -414,7 +426,7 @@ func (b *turtleBody) step(t *turtleWalk, pts []pisano.Pt3, w turtleWorld) {
 
 	if w.grab != nil {
 		// A hand on it: the page's pointer, pulling where it holds.
-		gfx, gfy, gt := w.grab(b, t, pts, mass)
+		gfx, gfy, gt := w.grab(b, t, pts, mass, inertia)
 		fx += gfx
 		fy += gfy
 		torque += gt
@@ -610,4 +622,30 @@ func (b *turtleBody) roomFix(pts []pisano.Pt3, sc, lx, ly, cxR, cyR, halfW, half
 		}
 	}
 	return up, down, right, left
+}
+
+// handForce is a hand holding the body's point at x, y and pulling it toward
+// tx, ty: a spring to the hand, damped, applied at the point.
+//
+// A firm hand, critically damped: the point held goes where the hand is and
+// stops there. At 90 and 14 it lagged a moving cursor and then overshot it,
+// the figure flung past where it was put and swung back.
+//
+// Scaled by the mass the hand moves at that point, along each axis: the body
+// turns about its center as well as sliding, so a point out on a lever is
+// lighter to move than the whole (grip's meff, for the floor). Pulled with the
+// whole body's mass, the turning took that pull times the lever squared over
+// the inertia: a long figure held near its end spun up a step at a time, past
+// where a frame's step could follow, and flew off.
+func (b *turtleBody) handForce(x, y, tx, ty, mass, inertia float32) (fx, fy, torque float32) {
+	const pull = 300       // how hard the hand pulls, per unit out of place
+	const ease = 35        // 2·√pull: the swinging taken out, and no more
+	rx, ry := x-b.x, y-b.y // the arm, from the center of mass to the hand
+	pvx := b.vx - b.spin*ry
+	pvy := b.vy + b.spin*rx
+	mx := 1 / (1/mass + ry*ry/inertia)
+	my := 1 / (1/mass + rx*rx/inertia)
+	fx = mx * (pull*(tx-x) - ease*pvx)
+	fy = my * (pull*(ty-y) - ease*pvy)
+	return fx, fy, rx*fy - ry*fx
 }
