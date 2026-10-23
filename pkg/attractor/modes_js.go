@@ -6,6 +6,7 @@ import (
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/dynamics"
 )
 
 // The js-side half of the mode registry: the generate dispatch map and the
@@ -31,6 +32,10 @@ func init() {
 	registerGenerate("graphicartist", generateGraphicArtist)
 	registerGenerate("hyperrossler", generateHyperRossler)
 	registerGenerate("lu", generateLu)
+	// The table of more flows (dynamics/moreflows.go), through the shared RK4.
+	for _, f := range dynamics.MoreFlows {
+		registerGenerate(f.Key, func() { integrate3D(float64(*f.DT), f.Deriv) })
+	}
 	registerGenerate("sprotta", generateSprottA)
 	registerGenerate("newtonleipnik", generateNewtonLeipnik)
 	registerGenerate("rabinovich", generateRabinovich)
