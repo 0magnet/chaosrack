@@ -2023,7 +2023,7 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 <img src="docs/img/module/lattice.jpg" alt="The Lattice module" width="287" height="514" align="right">
 
-2.5 · Lattice — any model drawn in depth by terminals. Each sheet of the stack is a real terminal running lattice, and each draws its own slice of the volume: with the Lattice model, its solid; with L lit on ROWS, the model chosen, whatever it is. The model's trail, mesh or dots are the figure every program is handed, and a voxel is lit where the figure passes through it, written as the way the figure runs across the sheet. The model keeps its own knobs in the bank, so it is played as ever; these six are how the lattice draws it. Pictures and terminals, which are flat already, are not drawn in it.
+2.5 · Lattice — any model drawn in depth by terminals. Each sheet of the stack is a real terminal running lattice (https://github.com/0magnet/lattice), and each draws its own slice of the volume: with the Lattice model, its solid; with L lit on ROWS, the model chosen, whatever it is. The model's trail, mesh or dots are the figure every program is handed, and a voxel is lit where the figure passes through it, written as the way the figure runs across the sheet. The model keeps its own knobs in the bank, so it is played as ever; these six are how the lattice draws it. Pictures and terminals, which are flat already, are not drawn in it.
 
 <details><summary>Controls</summary>
 
@@ -2283,11 +2283,11 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 <details><summary>Controls</summary>
 
-- **000.33733.3** — 3.12.1.a · Timing / fps / LED readout / Frames a second sustained over the last window — the reciprocal of the MEAN frame, so a hitch counts against it
-- **3733.33733.3** — 3.12.1.c · Timing / min / LED readout / Shortest frame in the window, in ms — which is the display's own interval, since nothing renders faster than vsync
-- **000.03727.30** — 3.12.2.b · Timing / late / LED readout / Percentage of frames that missed the display's interval by half again or more. This is the number that corresponds to visible hesitation; the frame rate alone does not.
-- **03.0002.80** — 3.12.3.a · Timing / model / LED readout / Milliseconds a frame spent ISSUING the model's draw calls. A WebGL call queues a command and returns without waiting for pixels, so this reads far below what the model really costs — the GPU and compositor share of it is in REST. Useful for what it does catch: geometry rebuilt every frame instead of cached.
-- **00.20 TBC** — 3.12.3.c
+- **001.0966.7** — 3.12.1.a · Timing / fps / LED readout / Frames a second sustained over the last window — the reciprocal of the MEAN frame, so a hitch counts against it
+- **966.7966.7** — 3.12.1.c · Timing / min / LED readout / Shortest frame in the window, in ms — which is the display's own interval, since nothing renders faster than vsync
+- **000.0963.50** — 3.12.2.b · Timing / late / LED readout / Percentage of frames that missed the display's interval by half again or more. This is the number that corresponds to visible hesitation; the frame rate alone does not.
+- **02.9000.00** — 3.12.3.a · Timing / model / LED readout / Milliseconds a frame spent ISSUING the model's draw calls. A WebGL call queues a command and returns without waiting for pixels, so this reads far below what the model really costs — the GPU and compositor share of it is in REST. Useful for what it does catch: geometry rebuilt every frame instead of cached.
+- **00.30 TBC** — 3.12.3.c
 - **TBC** — 3.12.3.c · TBC — timebase correction. On, the model turns at its rate per SECOND: each frame advances it by however long that frame took, so a late frame is a longer step and a faster display the same speed. Off, every frame advances it the same step, as the rack did before: a late frame is a pause, and a 144 Hz display spins it more than twice as fast as a 60 Hz one. On is the steady angular velocity; off is every frame advanced alike, which is what to compare frames by.
 
 </details>
@@ -2341,7 +2341,7 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Scope 2
 
-<img src="docs/img/module/scope2.jpg" alt="The Scope 2 module" width="288" height="514" align="right">
+<img src="docs/img/module/scope2.jpg" alt="The Scope 2 module" width="286" height="511" align="right">
 
 4.4 · Scope 2 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob, INTENSITY, with two mini knobs beneath: I, SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; and F, FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.
 
@@ -2360,7 +2360,7 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Gen 2
 
-<img src="docs/img/module/gen-y.jpg" alt="The Gen 2 module" width="149" height="514" align="left">
+<img src="docs/img/module/gen-y.jpg" alt="The Gen 2 module" width="148" height="512" align="left">
 
 4.6 · Gen 2 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz to 28160 Hz, a one-octave piano strip under it lighting the note it is on; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.  Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 2 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.
 
@@ -2386,7 +2386,7 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Scope 3
 
-<img src="docs/img/module/scope3.jpg" alt="The Scope 3 module" width="288" height="514" align="right">
+<img src="docs/img/module/scope3.jpg" alt="The Scope 3 module" width="286" height="512" align="right">
 
 4.7 · Scope 3 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob, INTENSITY, with two mini knobs beneath: I, SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; and F, FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.
 
@@ -2405,7 +2405,7 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Gen 3
 
-<img src="docs/img/module/gen-z.jpg" alt="The Gen 3 module" width="149" height="514" align="left">
+<img src="docs/img/module/gen-z.jpg" alt="The Gen 3 module" width="148" height="512" align="left">
 
 4.9 · Gen 3 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz to 28160 Hz, a one-octave piano strip under it lighting the note it is on; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.  Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 3 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.
 
@@ -2431,7 +2431,7 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Scope 4
 
-<img src="docs/img/module/scope4.jpg" alt="The Scope 4 module" width="288" height="514" align="right">
+<img src="docs/img/module/scope4.jpg" alt="The Scope 4 module" width="286" height="512" align="right">
 
 4.10 · Scope 4 — one of the rack's four oscilloscopes, each beside its generator. Under VOLTS and TIME, the INPUT knobs 1 and 2, each beside a display naming its source, pick what each input is fed from — the rack's signal (RACK L or R, as the Mixer makes it), the capture (CAP L or R, wherever the Mixer sends it), one generator by itself, or a coordinate of the model (Model Out) — named on the face. The tube, and at its right the SOURCE buttons — what the beam draws: IN 1, IN 2, the two summed (SUM), or one against the other (X-Y) — between the small H and V knobs that move the trace sideways and up and down. Under it the beam's knob, INTENSITY, with two mini knobs beneath: I, SCALE ILLUM, which lights the graticule and, turned down past the bottom of its travel, clicks into OFF and switches the scope off; and F, FOCUS. Beside that the TRIGGER, with its SLOPE and MODE buttons, and below them VOLTS and TIME, how much a division is worth up and across.
 
@@ -2450,7 +2450,7 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Gen 4
 
-<img src="docs/img/module/gen-v.jpg" alt="The Gen 4 module" width="150" height="514" align="left">
+<img src="docs/img/module/gen-v.jpg" alt="The Gen 4 module" width="148" height="512" align="left">
 
 4.12 · Gen 4 — a generator, for sound or for modulation. The FREQ knob, an encoder with no stops — a click a semitone, a turn an octave, the ring's color which octave — from 0.107 Hz to 28160 Hz, a one-octave piano strip under it lighting the note it is on; the level knob inside its envelope's ATTACK and DECAY rings, with ENV between them to repeat it; and the waveform knob, OFF at the bottom, with SOLO beside it to hear only this one and OUT under it.  Where it goes is OUT: OFF, L, C (both sides) or R, on the speakers and the rack's signal together. The Mixer's GEN 4 column has every other pinning — the speakers or the rack alone, a gain, an inverted side, the sends to modulation — and OUT reads MIX while it does.
 
@@ -2476,7 +2476,7 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Synth
 
-<img src="docs/img/module/synth-synth.jpg" alt="The Synth module" width="150" height="514" align="right">
+<img src="docs/img/module/synth-synth.jpg" alt="The Synth module" width="148" height="512" align="right">
 
 5.1 · Synth — the sound the keyboard plays. PRST sets every knob on the bay to an instrument, as a place to start from; LVL is how loud. Where it is heard is the Mixer's: its KY column.
 
@@ -2491,7 +2491,7 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### String
 
-<img src="docs/img/module/synth-string.jpg" alt="The String module" width="427" height="514" align="left">
+<img src="docs/img/module/synth-string.jpg" alt="The String module" width="425" height="512" align="left">
 
 5.2 · String — the additive voice that is the piano: partials not quite harmonic, each fading at its own rate. STR its level; PART how many partials; TILT how fast they fall away up the series; INHM the string's stiffness, which sharpens the upper partials (×10⁻⁴); STRK where along the string it is struck, which silences the partials with a node there; UNI the detune between the two strings of each low partial, in cents; DAMP how much faster each higher partial dies.
 
@@ -2511,7 +2511,7 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### FM
 
-<img src="docs/img/module/synth-fm.jpg" alt="The FM module" width="287" height="514" align="right">
+<img src="docs/img/module/synth-fm.jpg" alt="The FM module" width="286" height="512" align="right">
 
 5.5 · FM — a sine modulated by another: the electric piano. FM its level; RATO the modulator's frequency over the note's; INDX how deep the modulation starts; IDEC how fast it fades, which is how fast the bark becomes a pure tone.
 
@@ -2528,7 +2528,7 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Wave · Noise
 
-<img src="docs/img/module/synth-wave.jpg" alt="The Wave · Noise module" width="288" height="514" align="left">
+<img src="docs/img/module/synth-wave.jpg" alt="The Wave · Noise module" width="286" height="512" align="left">
 
 5.7 · Wave · Noise — WAVE is one oscillator, a generator waveform, the organ's drawbars or tuned noise, at a level; NOISE is a burst of filtered noise at the start of each note — a hammer, a quill, a tine's click — at TONE times the note, dying over NDEC.
 
@@ -2552,7 +2552,7 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Filter
 
-<img src="docs/img/module/synth-filter.jpg" alt="The Filter module" width="288" height="514" align="right">
+<img src="docs/img/module/synth-filter.jpg" alt="The Filter module" width="286" height="512" align="right">
 
 5.9 · Filter — a lowpass on each note that opens at BRGT times the note and closes towards DARK times it over FDEC: a plucked string brightest at the pluck. RESO is its resonance.
 
@@ -2569,7 +2569,7 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Amp
 
-<img src="docs/img/module/synth-amp.jpg" alt="The Amp module" width="288" height="514" align="left">
+<img src="docs/img/module/synth-amp.jpg" alt="The Amp module" width="286" height="512" align="left">
 
 5.11 · Amp — the envelope every layer follows: ATK up, then towards SUS with time constant DEC (at C3), which KTRK shortens up the keyboard and lengthens down it, as a piano's strings ring longer in the bass; REL is how long letting go takes.
 
@@ -2626,7 +2626,7 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 ### Mixer
 
-<img src="docs/img/module/mixer.jpg" alt="The Mixer module" width="427" height="514" align="right">
+<img src="docs/img/module/mixer.jpg" alt="The Mixer module" width="425" height="512" align="right">
 
 8.1 · Mixer — every sound on the rack, and where it goes. Each column is a source (the capture, the generators, the model's x, y and z, the instruments); each row is a destination: SPK L and R are the speakers, RACK L and R the rack's own signal, which the meters, the audio models, the scopes and the Mod matrix read, and MOD A and B two sends only the Mod matrix reads, for a source that should turn a knob without being heard or measured. A pin where they cross puts the source there: press it to pin at full level, press again to take it away, and turn the wheel over it, or LVL below, to set its gain; a negative gain inverts it. Several pins on a row are mixed. The capture has no speaker pins: it is the system's own audio, already playing.
 
@@ -2648,9 +2648,9 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 <details><summary>Controls</summary>
 
 - **dest** — 8.4.3 · DEST — which control the route below is for. The matrix's row names say the same; this knob steps through them.
-- **dpth** — 8.5.3 · DPTH — how strongly the source drives the selected control; minus inverts it, 0 is no route at all. About 1.5 overdrives.
-- **shape** — 8.6.3 · SHAPE — which way the source moves the selected control. push: one way, the further the louder, as a route always has. swing: both ways around the control's setting — louder than the music has lately been one way, quieter the other — so it sits at its setting on average. flip: out on a beat, the other way on the next, back between them. wave: the signal itself, not how loud it is — the source's newest sample, either side of the setting, as an X-Y scope's beam moves; a frame takes one sample, so a slow signal (a generator turned down to a few hertz) is traced, and a fast one lands anywhere in its swing. Head x, y and z are centered under every shape: the model at the middle moves nothing.
-- **eq** — EQ — which frequency bands, low to high, drive the selected control. Drag across the bars to paint them.
+- **dpth** — 8.5.3 · DPTH — how strongly the source drives the selected control; minus inverts it, 0 is no route at all. At 1 the source at its loudest moves the control the whole width of its range, so past 1 it spends time held at an end. How loud the source is does not matter: each band is measured against its own recent peak, so a quiet song moves the control as far as a loud one, and a generator's LVL does not change how far, only DPTH does.
+- **shape** — 8.6.3 · SHAPE — which way the source moves the selected control. push: one way, the further the louder, as a route always has. A steady tone holds it at one place however slow it is, so to have a control follow a slow generator, use wave. swing: both ways around the control's setting — louder than the music has lately been one way, quieter the other — so it sits at its setting on average. flip: out on a beat, the other way on the next, back between them. wave: the signal itself, not how loud it is — the source's newest sample, either side of the setting, as an X-Y scope's beam moves; a frame takes one sample, so a slow signal (a generator turned down to a few hertz) is traced, and a fast one lands anywhere in its swing. Head x, y and z are centered under every shape: the model at the middle moves nothing.
+- **eq** — EQ — which frequency bands, low to high, drive the selected control. Drag across the bars to paint them; with none painted, the loudest band drives it.
 
 </details>
 
