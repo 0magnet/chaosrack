@@ -393,6 +393,9 @@ func (ra *rackScope) wireScopeInputs() {
 			SelectApply: func(v string) {
 				if i, err := strconv.Atoi(v); err == nil {
 					ra.ui.in[ch] = clampIdx(i, scopeInCount)
+					if in := ra.ui.in[ch]; in == scopeInCapL || in == scopeInCapR {
+						aud.ensureAudioSource()
+					}
 				}
 			},
 		})
@@ -537,7 +540,10 @@ var scopeBus struct {
 
 // drawRackScopes paints a frame of every scope. Called from the render loop.
 func drawRackScopes() {
-	b := aud.ensureAudioSource().(*audiosrc.Bus)
+	// The bus, not ensureAudioSource: the render loop makes no capture, or a
+	// plain visit asked for the microphone on its first frame. A scope reads
+	// the capture once something asked for it, its own CAP input among them.
+	b := aud.activeAudioSource().(*audiosrc.Bus)
 	scopeBus.sr = b.SampleRate()
 	need := 0
 	for _, ra := range rscopes {

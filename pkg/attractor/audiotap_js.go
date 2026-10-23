@@ -111,7 +111,9 @@ func tapPumpUpstream() tapUpstreamKind {
 // pump fills the tap once per frame. Call it before anything that reads
 // audio — the backdrop, the model, the counter — and exactly once.
 func (a *audioTap) pump() {
-	src := aud.ensureAudioSource()
+	// The bus as it is (activeAudioSource): a per-frame call that made the
+	// capture asked a plain visit for the microphone at load.
+	src := aud.activeAudioSource()
 	up := tapPumpUpstream()
 	if src != a.src || up != a.upstream {
 		// Switching source (mic -> generator, say) or upstream (source -> FVF)
