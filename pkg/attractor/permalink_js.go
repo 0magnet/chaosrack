@@ -606,7 +606,7 @@ func (pe *permalinkState) applyStateFrom(h string) {
 	}
 
 	var poseVal, eqVal, dragVal string
-	haveCustom, haveFlavor := false, false
+	haveCustom, haveFlavor, haveRK4 := false, false, false
 	for _, part := range parts[1:] {
 		kv := strings.SplitN(part, "=", 2)
 		if len(kv) != 2 {
@@ -664,6 +664,7 @@ func (pe *permalinkState) applyStateFrom(h string) {
 			isCustom, isFlavor := custom.applyLinkKey(key, val)
 			haveCustom = haveCustom || isCustom
 			haveFlavor = haveFlavor || isFlavor
+			haveRK4 = haveRK4 || key == "crk"
 		case strings.HasPrefix(key, "p."):
 			applyParam(strings.TrimPrefix(key, "p."), val)
 		case strings.HasPrefix(key, "vm."):
@@ -693,8 +694,13 @@ func (pe *permalinkState) applyStateFrom(h string) {
 		if !haveFlavor {
 			custom.iterate, custom.surface = false, false
 		}
+		// crk, the integrator, is omitted at its default too: a link without
+		// it is an Euler link.
+		if !haveRK4 {
+			custom.rk4 = false
+		}
 		custom.applyCustomEq(eqVal)
-	} else if haveFlavor {
+	} else if haveFlavor || haveRK4 {
 		// A link can pin the flavor without pinning the equations (the editor's
 		// default template is the Lorenz one). Recompiling is what moves the
 		// system between the flow and map registries, so it still has to happen.
@@ -735,12 +741,12 @@ func migrateLocationHash() {
 }
 
 // isCustomLinkKey is whether a link key is the Custom model's own: its
-// flavor, its surface's extent, its dt and its parameters (the equations
-// themselves are eq, applied last, after the flavor that says what they
-// mean).
+// flavor, its surface's extent, its dt, its integrator and its parameters
+// (the equations themselves are eq, applied last, after the flavor that says
+// what they mean).
 func isCustomLinkKey(key string) bool {
 	switch key {
-	case "cit", "csf", "cex", "cdt":
+	case "cit", "csf", "cex", "cdt", "crk":
 		return true
 	}
 	return strings.HasPrefix(key, "cp.")
@@ -771,6 +777,11 @@ func (c *customEquation) applyLinkKey(key, val string) (isCustom, isFlavor bool)
 			c.extent = float32(v)
 		}
 		return false, false
+	case "crk":
+		// The flow steps with RK4 rather than Euler. Compiled with the
+		// equations, after the loop, as the flavor is.
+		c.rk4 = val == "1"
+		return true, false
 	case "cdt":
 		if v, err := strconv.ParseFloat(val, 32); err == nil {
 			c.dt = float32(v)

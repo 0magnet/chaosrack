@@ -88,6 +88,10 @@ func (c *customEquation) generateCustom() {
 	stack := c.stack
 	vertices := sim.vertBuf[:sim.steps*4]
 	invN := float32(1) / float32(sim.steps-1)
+	if c.rk4 {
+		c.generateCustomRK4(pv, dt, vertices, invN)
+		return
+	}
 	sub := effSubSteps(sim.speedSteps, sim.steps, frameBudgetInterpreted)
 	for i := range sim.steps {
 		for range sub {
@@ -109,6 +113,57 @@ func (c *customEquation) generateCustom() {
 			}
 			c.t += dt
 			sim.checkDiverged()
+		}
+		j := i * 4
+		vertices[j], vertices[j+1], vertices[j+2], vertices[j+3] = sim.x, sim.y, sim.z, float32(i)*invN
+	}
+	gpu.uploadVerticesOnly(vertices, gpu.drawMode, sim.steps)
+}
+
+// generateCustomRK4 is generateCustom's flow stepped with RK4, in float64:
+// the state lives in sim.x64..z64 as integrate3D's does, picked up from the
+// float32 state whenever something else (a drag, the Euler loop) has moved
+// it. A step evaluates the equations four times, so it gets a quarter of the
+// budget.
+func (c *customEquation) generateCustomRK4(pv [4][]float64, dt float64, vertices []float32, invN float32) {
+	stack := c.stack
+	useW := c.useW && c.expr[3] != nil
+	eval := func(s [4]float64, t float64) [4]float64 {
+		vars := [5]float64{s[0], s[1], s[2], s[3], t}
+		var d [4]float64
+		for k := range 3 {
+			if c.expr[k] != nil {
+				d[k] = c.expr[k].Eval(vars, pv[k], stack)
+			}
+		}
+		if useW {
+			d[3] = c.expr[3].Eval(vars, pv[3], stack)
+		}
+		return d
+	}
+	add := func(s, k [4]float64, h float64) [4]float64 {
+		return [4]float64{s[0] + h*k[0], s[1] + h*k[1], s[2] + h*k[2], s[3] + h*k[3]}
+	}
+	s := [4]float64{sim.x64, sim.y64, sim.z64, float64(c.w)}
+	if float32(s[0]) != sim.x || float32(s[1]) != sim.y || float32(s[2]) != sim.z {
+		s[0], s[1], s[2] = float64(sim.x), float64(sim.y), float64(sim.z)
+	}
+	sub := effSubSteps(sim.speedSteps, sim.steps, frameBudgetInterpreted/4)
+	for i := range sim.steps {
+		for range sub {
+			k1 := eval(s, c.t)
+			k2 := eval(add(s, k1, dt/2), c.t+dt/2)
+			k3 := eval(add(s, k2, dt/2), c.t+dt/2)
+			k4 := eval(add(s, k3, dt), c.t+dt)
+			for k := range 4 {
+				s[k] += dt / 6 * (k1[k] + 2*k2[k] + 2*k3[k] + k4[k])
+			}
+			c.t += dt
+			sim.x64, sim.y64, sim.z64 = s[0], s[1], s[2]
+			sim.x, sim.y, sim.z = float32(s[0]), float32(s[1]), float32(s[2])
+			c.w = float32(s[3])
+			sim.checkDiverged() // a reseed puts both forms back at the start
+			s = [4]float64{sim.x64, sim.y64, sim.z64, float64(c.w)}
 		}
 		j := i * 4
 		vertices[j], vertices[j+1], vertices[j+2], vertices[j+3] = sim.x, sim.y, sim.z, float32(i)*invN
@@ -363,6 +418,9 @@ func (c *customEquation) serializeCustom(b *strings.Builder) {
 	}
 	if !c.iterate && !c.surface {
 		b.WriteString("&cdt=" + permaFmt(c.dt))
+		if c.rk4 {
+			b.WriteString("&crk=1")
+		}
 	}
 }
 
@@ -519,4 +577,42 @@ func mountEquation(eqMod, paramsSect js.Value) {
 		hdr.Call("remove")
 	}
 	slot.Call("appendChild", eqMod)
+}
+
+// customIntCell is the bank position that chooses the flow's integrator:
+// built once in the #model-parts holder and placed by bankCustomCells while
+// Custom is a flow.
+const customIntCell = "custom-int-cell"
+
+// wireIntegratorCell adopts the integrator selector: euler or rk4.
+func (c *customEquation) wireIntegratorCell() {
+	adoptDescControl(ControlDesc{
+		ID: "custom-int-select", Label: "intg", IsSelect: true, SelectDef: "0", ResetID: "rst-custom-int-select",
+		SelectApply: func(v string) { c.setIntegrator(v == "1") },
+	})
+}
+
+// setIntegrator steps the flow with RK4 or forward Euler, from the start: a
+// different integrator is, for a chaotic flow, a different trajectory.
+func (c *customEquation) setIntegrator(rk4 bool) {
+	if c.rk4 == rk4 {
+		return
+	}
+	c.SetRK4(rk4)
+	resetAttractorState()
+	perma.syncPermalinkNow()
+}
+
+// showIntegrator turns the selector to the integrator in force, which a link
+// may have set without it.
+func (c *customEquation) showIntegrator() {
+	sel := dom.Doc.Call("getElementById", "custom-int-select")
+	if !sel.Truthy() {
+		return
+	}
+	want := map[bool]string{true: "1", false: "0"}[c.rk4]
+	if sel.Get("value").String() != want {
+		sel.Set("value", want)
+		dom.Fire(sel, "change") // the knob follows; setIntegrator has nothing to do
+	}
 }

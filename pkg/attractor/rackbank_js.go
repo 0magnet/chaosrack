@@ -767,6 +767,13 @@ func clearCustomBankCells() {
 	if !dom.Doc.Truthy() {
 		return
 	}
+	// The integrator cell is built once, in the holder, and goes back there.
+	if ic := dom.Doc.Call("getElementById", customIntCell); ic.Truthy() {
+		if holder := dom.Doc.Call("getElementById", "model-parts"); holder.Truthy() {
+			ic.Call("removeAttribute", "data-bank")
+			holder.Call("appendChild", ic)
+		}
+	}
 	olds := dom.Doc.Call("querySelectorAll", `.catbank [data-bank="custom"]`)
 	for i := range olds.Length() {
 		olds.Index(i).Call("remove")
@@ -801,6 +808,21 @@ func bankCustomCells(defs []paramDef) bool {
 			blanks[st.Get("gridRow").String()+"|"+st.Get("gridColumn").String()] = b
 		}
 	}
+	// A cell takes the position from the blank that stood there.
+	place := func(c js.Value, row, col int) {
+		at(c, grid, row, 1, col, 1)
+		st := c.Get("style")
+		if b, ok := blanks[st.Get("gridRow").String()+"|"+st.Get("gridColumn").String()]; ok {
+			var rest []string
+			for _, m := range strings.Fields(b.Call("getAttribute", "data-bank-for").String()) {
+				if m != "custom" {
+					rest = append(rest, m)
+				}
+			}
+			b.Call("setAttribute", "data-bank-for", strings.Join(rest, " "))
+			b.Call("setAttribute", customBankMark, "")
+		}
+	}
 	// Its dt is a step, in the position every flow's step is in; the rest
 	// are its constants, in order from the first.
 	i := 0
@@ -826,18 +848,17 @@ func bankCustomCells(defs []paramDef) bool {
 			row, col = bankCell(i)
 			i++
 		}
-		at(c, grid, row, 1, col, 1)
-		st := c.Get("style")
-		if b, ok := blanks[st.Get("gridRow").String()+"|"+st.Get("gridColumn").String()]; ok {
-			var rest []string
-			for _, m := range strings.Fields(b.Call("getAttribute", "data-bank-for").String()) {
-				if m != "custom" {
-					rest = append(rest, m)
-				}
-			}
-			b.Call("setAttribute", "data-bank-for", strings.Join(rest, " "))
-			b.Call("setAttribute", customBankMark, "")
-		}
+		place(c, row, col)
+	}
+	// And, for a flow, its integrator, after the constants.
+	if ic := dom.Doc.Call("getElementById", customIntCell); ic.Truthy() && !custom.iterate && !custom.surface {
+		ic.Get("classList").Call("add", "bankcell")
+		ic.Call("setAttribute", "data-bank", "custom")
+		ic.Call("setAttribute", "data-mode", "custom")
+		bankPosition(ic)
+		row, col := bankCell(i)
+		place(ic, row, col)
+		custom.showIntegrator()
 	}
 	syncBankCells()
 	// Built after the pass that lights the running model's cells, so they

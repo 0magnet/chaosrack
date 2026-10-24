@@ -844,6 +844,20 @@ Reset speed (×1)
 - <!-- key: p.stereo-grat=1 --> axes — the two coordinate axes only
 - <!-- key: p.stereo-grat=2 --> full — axes, diagonals and the unit box
 
+### Integrator (Custom)
+
+<!-- key: custom-int-cell -->
+INTG — how a Custom flow is stepped: euler (forward Euler, as every Custom flow always was) or rk4 (fourth-order Runge–Kutta).
+Some systems are stiff, or chaotic enough that Euler throws them off their attractor at any dt: they blow up and start over, again and again.
+RK4 keeps them on it, at four evaluations a step: at a high Speed its trail tops out at a quarter of the pace Euler's can reach.
+Flows only: a map has no step, a surface no path.
+
+<!-- key: custom-int-select -->
+INTG — the Custom flow's integrator: euler or rk4
+
+<!-- key: rst-custom-int-select -->
+Reset INTG (euler)
+
 ### Model switches
 
 #### ITER (Custom)
