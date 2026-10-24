@@ -22,7 +22,7 @@ import (
 // skinSurface is the surface the spectrogram skin is painted on.
 type skinSurface struct {
 	// skin.source is WHICH picture is painted on the surface: "" for none, or
-	// "spectrogram", "terminal" or "desk".
+	// "spectrogram", "terminal", "termanim" or "desk".
 	//
 	// It was a switch, and a switch could only mean the spectrogram. But the skin
 	// is one of three places a second picture can go — behind the model, ON it, or
@@ -63,13 +63,16 @@ func (s *skinSurface) renderSkinnedMode(mode string, nowMs float64) {
 // THE OFFSET IS THE SPECTROGRAM'S ALONE. Its texture is a ring buffer written
 // one column at a time, so the seam has to be walked round as it fills;
 // everything else is an ordinary picture that starts at its own left edge. That
-// is the only thing the three sources do differently here — the mesh, the
+// is the only thing the sources do differently here — the mesh, the
 // program and the draw are identical, which is why this was worth generalising
 // rather than writing twice more.
 func (s *skinSurface) texture(nowMs float64) (js.Value, float32, bool) {
 	switch s.source {
 	case "terminal":
 		t, ok := termPane.terminalTexture()
+		return t, 0, ok
+	case "termanim":
+		t, ok := anim.termAnimTexture()
 		return t, 0, ok
 	case "desk":
 		t, ok := deskModelCanvas()
@@ -175,17 +178,55 @@ func torusSkinMesh(major, minor float32, stacks, slices int) ([]float32, []uint1
 	return verts, gridTriangles(stacks, slices)
 }
 
-// cubeSkinMesh maps the full spectrogram onto each face of a cube whose
-// vertices already come in per-face quads of 4 (BL,BR,TR,TL) with matching
-// triangle indices — so we just tag each vertex with its quad-corner UV and
-// reuse the existing indices.
+// cubeSkinMesh maps the whole picture onto each face of a cube whose vertices
+// come in per-face quads of 4.
+//
+// THE UV COMES FROM WHICH WAY THE FACE LOOKS, not from the order of its
+// corners. The corners were tagged BL,BR,TR,TL in the order they are listed,
+// but the x faces list theirs going up first, so on those two the picture lay
+// on its side: a terminal's rain fell sideways and the spectrogram's time ran
+// up the wall. Now every side face has the picture's top at +y and its right
+// where an eye outside the face would put it (up × normal), unmirrored; the top
+// and bottom read as seen from the front, tipped over the edge.
 func cubeSkinMesh(cubeVerts []float32, _ []uint16) ([]float32, []uint16) {
-	quadUV := [4][2]float32{{0, 0}, {1, 0}, {1, 1}, {0, 1}}
 	n := len(cubeVerts) / 3
 	out := make([]float32, 0, n*5)
-	for i := range n {
-		uv := quadUV[i%4]
-		out = append(out, cubeVerts[i*3], cubeVerts[i*3+1], cubeVerts[i*3+2], uv[0], uv[1])
+	for f := range n / 4 {
+		q := cubeVerts[f*12 : f*12+12]
+		var c [3]float32 // the face's center: on an axis, so it is the normal times the half-size
+		for k := range 4 {
+			for a := range 3 {
+				c[a] += q[k*3+a] / 4
+			}
+		}
+		ax := 0
+		for a := 1; a < 3; a++ {
+			if abs32(c[a]) > abs32(c[ax]) {
+				ax = a
+			}
+		}
+		half, sign := abs32(c[ax]), float32(1)
+		if c[ax] < 0 {
+			sign = -1
+		}
+		var normal, up [3]float32
+		normal[ax] = sign
+		if ax == 1 {
+			up[2] = -sign // the top reads from the front, the bottom from below it
+		} else {
+			up[1] = 1
+		}
+		right := [3]float32{
+			up[1]*normal[2] - up[2]*normal[1],
+			up[2]*normal[0] - up[0]*normal[2],
+			up[0]*normal[1] - up[1]*normal[0],
+		}
+		for k := range 4 {
+			p := q[k*3 : k*3+3]
+			u := (p[0]*right[0]+p[1]*right[1]+p[2]*right[2])/half/2 + 0.5
+			v := (p[0]*up[0]+p[1]*up[1]+p[2]*up[2])/half/2 + 0.5
+			out = append(out, p[0], p[1], p[2], u, v)
+		}
 	}
 	// Generate FILL triangulation from the 4-verts-per-face layout: (0,1,2)
 	// + (0,2,3) tiles each quad. The cube's own index table is the WIREFRAME

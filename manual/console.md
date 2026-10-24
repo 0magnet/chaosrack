@@ -190,12 +190,12 @@ Reset the desktop style
 ### Program
 
 <!-- key: termanim-cell -->
-Program — which terminal program runs on the quad: tuiwasm's animations and text demos; the list is built from what is registered, so it cannot drift from what is actually there.
+Program — which terminal program runs on the quad, and behind or on the model when the Behind or Skin knob is set to animation: tuiwasm's animations and text demos; the list is built from what is registered, so it cannot drift from what is actually there.
 
 ### Program
 
 <!-- key: termanim-pick -->
-Program — which terminal program runs on the quad
+Program — which terminal program runs on the quad, behind the model, or on it
 
 ### SWEEP
 

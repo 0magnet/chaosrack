@@ -74,14 +74,7 @@ func (t *termAnim) ensureTermAnim() bool {
 	// Switching demos: the old one goes first. Closing the session finalizes
 	// its screen, which is what ends the animation's own goroutine — see
 	// canvas.Run in termanim, which returns when the event queue closes.
-	if t.session != nil {
-		t.session.Close()
-		t.session = nil
-	}
-	if t.host.Truthy() {
-		t.host.Call("remove")
-		t.host = js.Undefined()
-	}
+	t.stopTermAnim()
 	t.failed = ""
 
 	d, ok := demos.Lookup(t.pick)
@@ -169,8 +162,30 @@ func (t *termAnim) termAnimTexture() (js.Value, bool) {
 // The list is built from tuiwasm's registry rather than written into the panel
 // HTML, so it cannot drift from what is actually registered — the same reason
 // the STL module builds its catalog at runtime.
-func syncTermAnimExtras(string) {
+//
+// It also stops the animation when the panel is rebuilt with nothing showing
+// it, as syncDeskModel gives the compositor back.
+func syncTermAnimExtras(mode string) {
 	anim.fillTermAnimPicker()
+	if mode != "termanim" && bgVisual != "termanim" && skin.source != "termanim" {
+		anim.stopTermAnim()
+	}
+}
+
+// stopTermAnim ends the animation once nothing shows it: as the model, behind
+// one or painted on one. Its terminal is offscreen, so one left running keeps
+// drawing where nobody can see it for the rest of the session. The next one
+// to ask for it mounts it again (ensureTermAnim).
+func (t *termAnim) stopTermAnim() {
+	if t.session != nil {
+		t.session.Close()
+		t.session = nil
+	}
+	t.running = ""
+	if t.host.Truthy() {
+		t.host.Call("remove")
+		t.host = js.Undefined()
+	}
 }
 
 func (t *termAnim) fillTermAnimPicker() {
@@ -192,7 +207,10 @@ func (t *termAnim) fillTermAnimPicker() {
 		sel.Call("appendChild", opt)
 	}
 	// A control of the rack, so a rack without the page can pick the demo.
-	adoptDescControl(ControlDesc{ID: "termanim-pick", Label: "prog", IsSelect: true, SelectDef: animDefault, SelectApply: t.setTermAnim})
+	adoptDescControl(ControlDesc{ID: "termanim-pick", Label: "prog", IsSelect: true, SelectDef: animDefault, SelectApply: t.setTermAnim,
+		// In the link, because the program is not only this model's: the
+		// backdrop and the skin show the same one.
+		PermaKey: "tn"})
 	t.pickerFilled = true
 }
 

@@ -35,9 +35,9 @@ Backdrop — what is drawn behind the model
 ### Skin
 
 <!-- key: skin-cell -->
-Skin — what is painted ON the model's own surface, wrapped round it, for the models that have a surface to take it: the live spectrogram, a terminal, or the whole desk.
+Skin — what is painted ON the model's own surface, wrapped round it, for the models that have a surface to take it: the live spectrogram, a terminal, a terminal animation, or the whole desk.
 Off leaves the wireframe.
-The same three pictures the Behind knob draws in the background;
+The same pictures the Behind knob draws in the background;
 this puts one on the object instead.
 
 <!-- key: rst-skin-visual -->
@@ -51,6 +51,7 @@ Skin — what is painted on the model's surface
 - <!-- key: skin-visual=off --> off — the model keeps its wireframe; nothing is painted on it
 - <!-- key: skin-visual=spectrogram --> spectrogram — the live spectrogram is wrapped round the model's surface
 - <!-- key: skin-visual=terminal --> terminal — a live terminal is wrapped round the model's surface
+- <!-- key: skin-visual=termanim --> animation — a terminal animation (the Program picker's, matrix rain by default) is wrapped round the model's surface
 - <!-- key: skin-visual=desk --> desk — the whole 3-D desktop is wrapped round the model's surface
 
 ### Background color behind the model

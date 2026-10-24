@@ -125,6 +125,6 @@ func init() {
 // paramRingLabels: those are printed round a dial, and held to its limits.
 var settingNames = map[string][]string{
 	"bg-visual":       {"off", "spectro", "xy scope", "terminal", "anim", "desk", "water"},
-	"skin-visual":     {"off", "spectro", "terminal", "desk"},
+	"skin-visual":     {"off", "spectro", "terminal", "anim", "desk"},
 	"gradient-colors": {"2-color", "3-color", "hue", "heat", "blue", "gray", "turbo", "viridis", "magma"},
 }
