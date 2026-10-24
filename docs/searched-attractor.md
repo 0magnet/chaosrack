@@ -1,4 +1,4 @@
-# An attractor found by search
+# Attractors found by search
 
 [← Gallery](gallery.md)
 
@@ -69,3 +69,30 @@ system may be one of theirs, under other names.
 3. Set **a** to −0.45 and **dt** to 0.01.
 4. Auto-rotate off. Turn **a** slowly from −0.2 toward −0.7 and watch the
    curl tighten and then close into a loop.
+
+## A second one, from six terms
+
+The same search with six terms passed 73 systems. None is a known system
+by structure, but that proves less than the five-term run did: Sprott's
+six-term flows (K–S) need coefficients such as 2.7 or 3.9 that the search
+never tried, so it could not have found them again.
+
+The search integrates with RK4. The Custom model steps forward Euler, as
+the page always has, so each survivor was also run the page's way, from
+the page's start. Most look the same either way. Some do not: the
+strongest of them all (λ₁ ≈ 1.0) blows up under Euler at every step size,
+down to dt 0.001.
+
+The best of those that survive Euler:
+
+    x′ = a·y·z + z
+    y′ = x·z − 1
+    z′ = x − z            a = −3
+
+[Open it](https://chaosrack.magnetosphere.net/#custom&ar=0&eq=a*y*z%20%2B%20z;x*z%20-%201;x%20-%20z&cp.a=-3&cdt=0.01)
+— or append `#custom&ar=0&eq=a*y*z%20%2B%20z;x*z%20-%201;x%20-%20z&cp.a=-3&cdt=0.01`.
+
+λ₁ ≈ 0.29 (the page reads +0.27/t under Euler), Kaplan–Yorke dimension
+≈ 2.23, reach about 7. It has two equilibria, (±1, 1/3, ±1). The orbit
+spirals out from around one, then swings over to the other. One lobe is
+wound tight and the other loose.
