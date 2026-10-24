@@ -10,12 +10,12 @@ require (
 	github.com/0magnet/desk v0.0.3-0.20261024094538-c31ee8eb7c03
 	github.com/0magnet/desk/panes v0.0.1-0.20261024094317-7e3566131d94
 	github.com/0magnet/lattice v0.0.0-20261023211141-bbcbaac64524
-	github.com/0magnet/pisano v0.0.0-20261024094508-a59c96074448
+	github.com/0magnet/pisano v0.0.0-20261024094904-a633d7604113
 	github.com/0magnet/rack-go v0.0.0-20261013221719-290136881c9a
 	github.com/0magnet/seat v0.0.0-20261013221028-e66b97ebca1a
-	github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
+	github.com/0magnet/sh/v3 v3.13.2-0.20261024150911-145e01c63128
 	github.com/0magnet/tuiwasm v0.0.0-20261024094810-70efb3c75c21
-	github.com/0magnet/websh v0.0.1-0.20261023103035-298f720cd375
+	github.com/0magnet/websh v0.0.1-0.20261024151553-9917e7f9f7c8
 	github.com/0magnet/winbox-go v0.0.1-0.20261020181245-bacce940cc20
 	github.com/0magnet/xterm-go v0.0.1-0.20261013223808-aa0a32cd702b
 	github.com/creack/pty v1.1.24

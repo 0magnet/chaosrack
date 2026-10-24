@@ -59,7 +59,7 @@ github.com/0magnet/lattice
 # github.com/0magnet/lolcat-go v0.0.1-0.20261013220959-57aa27491489
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20261024094508-a59c96074448
+# github.com/0magnet/pisano v0.0.0-20261024094904-a633d7604113
 ## explicit; go 1.26.6
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20261014235132-1143d38a91d3
@@ -72,7 +72,7 @@ github.com/0magnet/rack-go
 # github.com/0magnet/seat v0.0.0-20261013221028-e66b97ebca1a
 ## explicit; go 1.26
 github.com/0magnet/seat
-# github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
+# github.com/0magnet/sh/v3 v3.13.2-0.20261024150911-145e01c63128
 ## explicit; go 1.26.0
 github.com/0magnet/sh/v3/expand
 github.com/0magnet/sh/v3/fileutil
@@ -146,7 +146,7 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754
 ## explicit; go 1.26.6
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.1-0.20261023103035-298f720cd375
+# github.com/0magnet/websh v0.0.1-0.20261024151553-9917e7f9f7c8
 ## explicit; go 1.26.6
 github.com/0magnet/websh/console
 github.com/0magnet/websh/progressive
