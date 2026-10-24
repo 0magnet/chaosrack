@@ -24,6 +24,9 @@ func (r *Rack) jamTick(nowMs float64) {
 	r.jamNext = nowMs + attractor.JamInterval(rand.Float64)              //nolint:gosec // a show, not a secret
 	next, persist, y, x, ok := attractor.JamHop(rand.Float64, r.model()) //nolint:gosec // a show, not a secret
 	if !ok || r.playModel(next) != nil {
+		// A hop that did not happen is not one: try again at the next look,
+		// rather than a whole interval on the model it was leaving.
+		r.jamNext = 0
 		return
 	}
 	_ = r.set("persist-trail", map[bool]string{true: "1", false: "0"}[persist]) //nolint:errcheck // a switch's own values
