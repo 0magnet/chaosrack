@@ -156,6 +156,6 @@ Things found by playing with the rack, written up with how to get there.
 
 - [A Lorenz that steers itself](self-steering-lorenz.md): ρ routed from the
   trajectory's own height pulses, chaos in bursts a few seconds apart.
-- [An attractor found by search](searched-attractor.md): a five-term
+- [Attractors found by search](searched-attractor.md): a five-term
   chaotic flow with a line of equilibria, from a random search of small
-  systems, typed into Custom.
+  systems, and a six-term one with two lobes; both run in Custom.
