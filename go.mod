@@ -7,15 +7,15 @@ require (
 	github.com/0magnet/audioprism-go v0.0.1-0.20261021101944-f90540e7753d
 	github.com/0magnet/calvin v0.0.1-0.20261013221715-da6581155df3
 	github.com/0magnet/cdp v0.0.0-20261013220930-98e232fae01d
-	github.com/0magnet/desk v0.0.3-0.20261023102215-28963842385a
-	github.com/0magnet/desk/panes v0.0.1-0.20261023101853-c9a612c0e021
+	github.com/0magnet/desk v0.0.3-0.20261024094538-c31ee8eb7c03
+	github.com/0magnet/desk/panes v0.0.1-0.20261024094317-7e3566131d94
 	github.com/0magnet/lattice v0.0.0-20261023211141-bbcbaac64524
-	github.com/0magnet/pisano v0.0.0-20261023101833-85d6c02d99ad
+	github.com/0magnet/pisano v0.0.0-20261024094508-a59c96074448
 	github.com/0magnet/rack-go v0.0.0-20261013221719-290136881c9a
 	github.com/0magnet/seat v0.0.0-20261013221028-e66b97ebca1a
 	github.com/0magnet/sh/v3 v3.13.2-0.20261004194540-aa2d6e4a31a5
-	github.com/0magnet/tuiwasm v0.0.0-20261023102434-6324a3567289
-	github.com/0magnet/websh v0.0.1-0.20261023101735-d1b156e77e3e
+	github.com/0magnet/tuiwasm v0.0.0-20261024094810-70efb3c75c21
+	github.com/0magnet/websh v0.0.1-0.20261023103035-298f720cd375
 	github.com/0magnet/winbox-go v0.0.1-0.20261020181245-bacce940cc20
 	github.com/0magnet/xterm-go v0.0.1-0.20261013223808-aa0a32cd702b
 	github.com/creack/pty v1.1.24
