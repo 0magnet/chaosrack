@@ -41,7 +41,7 @@
       },
       {
         "label": "prog",
-        "title": "Program — which terminal program runs on the quad: tuiwasm's animations and text demos; the list is built from what is registered, so it cannot drift from what is actually there."
+        "title": "Program — which terminal program runs on the quad, and behind or on the model when the Behind or Skin knob is set to animation: tuiwasm's animations and text demos; the list is built from what is registered, so it cannot drift from what is actually there."
       },
       {
         "label": "style",
@@ -836,7 +836,7 @@
       },
       {
         "label": "skin",
-        "title": "2.8.2 · Skin — what is painted ON the model's own surface, wrapped round it, for the models that have a surface to take it: the live spectrogram, a terminal, or the whole desk.\nOff leaves the wireframe.\nThe same three pictures the Behind knob draws in the background;\nthis puts one on the object instead."
+        "title": "2.8.2 · Skin — what is painted ON the model's own surface, wrapped round it, for the models that have a surface to take it: the live spectrogram, a terminal, a terminal animation, or the whole desk.\nOff leaves the wireframe.\nThe same pictures the Behind knob draws in the background;\nthis puts one on the object instead."
       },
       {
         "label": "bg",
@@ -1345,23 +1345,23 @@
     "mode": "lorenz",
     "controls": [
       {
-        "label": "000.71366.6",
+        "label": "001.2816.6",
         "title": "3.12.1.a · Timing / fps / LED readout / Frames a second sustained over the last window — the reciprocal of the MEAN frame, so a hitch counts against it"
       },
       {
-        "label": "1366.61366.6",
+        "label": "816.6816.6",
         "title": "3.12.1.c · Timing / min / LED readout / Shortest frame in the window, in ms — which is the display's own interval, since nothing renders faster than vsync"
       },
       {
-        "label": "000.01361.60",
+        "label": "000.0813.70",
         "title": "3.12.2.b · Timing / late / LED readout / Percentage of frames that missed the display's interval by half again or more.\nThis is the number that corresponds to visible hesitation; the frame rate alone does not."
       },
       {
-        "label": "04.7000.00",
+        "label": "02.8000.00",
         "title": "3.12.3.a · Timing / model / LED readout / Milliseconds a frame spent ISSUING the model's draw calls.\nA WebGL call queues a command and returns without waiting for pixels, so this reads far below what the model really costs — the GPU and compositor share of it is in REST.\nUseful for what it does catch: geometry rebuilt every frame instead of cached."
       },
       {
-        "label": "00.30 TBC",
+        "label": "00.10 TBC",
         "title": "3.12.3.c"
       },
       {
