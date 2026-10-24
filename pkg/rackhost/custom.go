@@ -30,6 +30,11 @@ func (r *Rack) customKnobs() {
 	if v, ok := r.knobValue("custom-dt"); ok {
 		c.SetDt(float32(v))
 	}
+	// The integrator: the figure is drawn with RK4 whatever it says
+	// (dynamics.Trajectory), but the Lyapunov readout measures what it says.
+	if v, ok := r.knobValue("custom-int-select"); ok {
+		c.SetRK4(v == 1)
+	}
 	if v, ok := r.knobValue("custom-extent"); ok {
 		c.SetExtent(float32(v))
 	}

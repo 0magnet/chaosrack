@@ -381,6 +381,50 @@
       },
       {
         "label": "dt",
+        "title": "Rucklidge — dt — the integration time step: how far the system advances on each step.\nSmaller follows the flow more faithfully and moves along it more slowly;\ntoo large and the solver leaves the attractor or blows up."
+      },
+      {
+        "label": "dt",
+        "title": "Genesio-Tesi — dt — the integration time step: how far the system advances on each step.\nSmaller follows the flow more faithfully and moves along it more slowly;\ntoo large and the solver leaves the attractor or blows up."
+      },
+      {
+        "label": "dt",
+        "title": "Shimizu-Morioka — dt — the integration time step: how far the system advances on each step.\nSmaller follows the flow more faithfully and moves along it more slowly;\ntoo large and the solver leaves the attractor or blows up."
+      },
+      {
+        "label": "dt",
+        "title": "Rikitake Dynamo — dt — the integration time step: how far the system advances on each step.\nSmaller follows the flow more faithfully and moves along it more slowly;\ntoo large and the solver leaves the attractor or blows up."
+      },
+      {
+        "label": "dt",
+        "title": "Moore-Spiegel — dt — the integration time step: how far the system advances on each step.\nSmaller follows the flow more faithfully and moves along it more slowly;\ntoo large and the solver leaves the attractor or blows up."
+      },
+      {
+        "label": "dt",
+        "title": "Bouali — dt — the integration time step: how far the system advances on each step.\nSmaller follows the flow more faithfully and moves along it more slowly;\ntoo large and the solver leaves the attractor or blows up."
+      },
+      {
+        "label": "dt",
+        "title": "Lorenz-84 — dt — the integration time step: how far the system advances on each step.\nSmaller follows the flow more faithfully and moves along it more slowly;\ntoo large and the solver leaves the attractor or blows up."
+      },
+      {
+        "label": "dt",
+        "title": "Finance — dt — the integration time step: how far the system advances on each step.\nSmaller follows the flow more faithfully and moves along it more slowly;\ntoo large and the solver leaves the attractor or blows up."
+      },
+      {
+        "label": "dt",
+        "title": "Hindmarsh-Rose — dt — the integration time step: how far the system advances on each step.\nSmaller follows the flow more faithfully and moves along it more slowly;\ntoo large and the solver leaves the attractor or blows up."
+      },
+      {
+        "label": "dt",
+        "title": "Wei (no equilibrium) — dt — the integration time step: how far the system advances on each step.\nSmaller follows the flow more faithfully and moves along it more slowly;\ntoo large and the solver leaves the attractor or blows up."
+      },
+      {
+        "label": "dt",
+        "title": "Sprott Jerk — dt — the integration time step: how far the system advances on each step.\nSmaller follows the flow more faithfully and moves along it more slowly;\ntoo large and the solver leaves the attractor or blows up."
+      },
+      {
+        "label": "dt",
         "title": "Hyper-Rössler (4D) — dt — the integration time step: how far the system advances on each step.\nSmaller follows the flow more faithfully and moves along it more slowly;\ntoo large and the solver leaves the attractor or blows up."
       },
       {
@@ -1301,23 +1345,23 @@
     "mode": "lorenz",
     "controls": [
       {
-        "label": "000.52033.3",
+        "label": "000.71366.6",
         "title": "3.12.1.a · Timing / fps / LED readout / Frames a second sustained over the last window — the reciprocal of the MEAN frame, so a hitch counts against it"
       },
       {
-        "label": "2033.32033.3",
+        "label": "1366.61366.6",
         "title": "3.12.1.c · Timing / min / LED readout / Shortest frame in the window, in ms — which is the display's own interval, since nothing renders faster than vsync"
       },
       {
-        "label": "000.02027.00",
+        "label": "000.01361.60",
         "title": "3.12.2.b · Timing / late / LED readout / Percentage of frames that missed the display's interval by half again or more.\nThis is the number that corresponds to visible hesitation; the frame rate alone does not."
       },
       {
-        "label": "06.1000.10",
+        "label": "04.7000.00",
         "title": "3.12.3.a · Timing / model / LED readout / Milliseconds a frame spent ISSUING the model's draw calls.\nA WebGL call queues a command and returns without waiting for pixels, so this reads far below what the model really costs — the GPU and compositor share of it is in REST.\nUseful for what it does catch: geometry rebuilt every frame instead of cached."
       },
       {
-        "label": "00.10 TBC",
+        "label": "00.30 TBC",
         "title": "3.12.3.c"
       },
       {

@@ -86,30 +86,32 @@ func (r *ringTrail) tick(mode string) bool {
 	// dt·speedScale and speedSteps sub-steps as scan mode, so the trajectory
 	// (and the Speed knob's meaning) is unchanged — only the redraw model is.
 	// The sub-steps get the same anti-freeze budget as the scan generators
-	// (interpreted equation systems are ~10× the per-step cost).
+	// (interpreted equation systems are ~10× the per-step cost). It steps
+	// with the scan's own integrator (sectAdvancer): stepping an RK4 mode
+	// with Euler is a different system, and some leave their attractor.
 	n := min(ringPointsPerFrame, sim.steps)
 	budget := frameBudgetCompiled
 	if sys.Interpreted {
 		budget = frameBudgetInterpreted
+		if !sys.Euler {
+			budget /= 4 // as generateCustomRK4: four evaluations a step
+		}
 	}
 	sub := effSubSteps(sim.speedSteps, n, budget)
 	dt := sys.Dt() * float64(sim.speedScale)
-	const lim = 1e4
+	step := sectAdvancer(mode, sys, dt)
 	start := r.head
 	invN := float32(1) / float32(sim.steps-1)
 	scale := sys.Scale
 	for range n {
 		for range sub {
-			dx, dy, dz, dw := sys.F(r.x, r.y, r.z, r.w)
-			r.x += dt * dx
-			r.y += dt * dy
-			r.z += dt * dz
-			r.w += dt * dw
-			if !(r.x > -lim && r.x < lim && r.y > -lim && r.y < lim && r.z > -lim && r.z < lim && r.w > -lim && r.w < lim) {
-				ic := dynamics.InitCond[mode]
-				r.x, r.y, r.z = float64(ic[0]), float64(ic[1]), float64(ic[2])
-				r.w = 0
+			s := [4]float64{r.x, r.y, r.z, r.w}
+			step(&s)
+			if flowDiverged(s) {
+				ic := dynamics.InitCondFor(mode)
+				s = [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), 0}
 			}
+			r.x, r.y, r.z, r.w = s[0], s[1], s[2], s[3]
 		}
 		j := r.head * 4
 		sim.vertBuf[j] = float32(r.x)*scale - r.center[0]

@@ -77,11 +77,12 @@ by structure, but that proves less than the five-term run did: Sprott's
 six-term flows (K–S) need coefficients such as 2.7 or 3.9 that the search
 never tried, so it could not have found them again.
 
-The search integrates with RK4. The Custom model steps forward Euler, as
-the page always has, so each survivor was also run the page's way, from
-the page's start. Most look the same either way. Some do not: the
-strongest of them all (λ₁ ≈ 1.0) blows up under Euler at every step size,
-down to dt 0.001.
+The search integrates with RK4. The Custom model steps forward Euler unless
+its **INTG** selector, in the bank after the constants, is turned to rk4,
+so each survivor was also run the page's default way, from the page's
+start. Most look the same either way. Some do not: the strongest of them
+all (λ₁ ≈ 1.0) blows up under Euler at every step size, down to dt 0.001,
+and needs INTG at rk4.
 
 The best of those that survive Euler:
 

@@ -348,6 +348,7 @@ func Run() {
 		// Bifurcation's, the wobbulator's and the terminal animation's bank positions, from the same holder.
 		bif.wireBifCells()
 		fvf.wireFVFCells()
+		custom.wireIntegratorCell()
 		anim.fillTermAnimPicker()
 		syncFVFRoute()
 		wireColorAndViewControls()
