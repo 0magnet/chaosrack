@@ -19,16 +19,21 @@ type latticeFig struct {
 	at  float64
 }
 
-// latticeOf is the Lattice drawing fig, the model's figure, and its frame.
-// Called with r.mu held.
-func (r *Rack) latticeOf(fig attractor.Figure) (attractor.Figure, [][3]float64) {
+// latticeOf is the Lattice drawing fig, model key's figure, and its frame:
+// for the Turtle without weight, its walk on the lattice's own voxels instead,
+// as the page's does (turtlelattice.go). Called with r.mu held.
+func (r *Rack) latticeOf(fig attractor.Figure, key string) (attractor.Figure, [][3]float64) {
 	lf := &r.latFig
 	nowMs := float64(r.sound.now().UnixNano()) / 1e6
 	// As often as the programs draw: a figure handed on more often is
 	// voxelized and never shown.
 	if nowMs-lf.at >= 1000.0/attractor.LatticeFPS {
 		lf.at = nowMs
-		lf.fig.Set(lf.lines(fig))
+		if key == "turtle" && r.value("phys-sw") != "1" {
+			lf.fig.Set(r.analyzers.scope.turtle.LatticeSteps(max(int(r.number("trail-slider")), 2), r.lattice.Rows()))
+		} else {
+			lf.fig.Set(lf.lines(fig))
+		}
 	}
 	return r.latticeFigure(&lf.fig)
 }

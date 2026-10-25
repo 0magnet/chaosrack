@@ -150,6 +150,11 @@ type turtleWalk struct {
 	vel     [3]float32 // lattice units the walk drifts per step, exactly
 	lock    [3]float32 // where that drift started from
 	lockSet bool
+
+	// latQ is the scale the walk stands on the Lattice's voxels at
+	// (turtlelattice.go): q voxels a step, or one voxel every -q steps; 0
+	// before it has been in one.
+	latQ int
 }
 
 // newTurtleWalk works out the arithmetic and starts the turtle walking, its

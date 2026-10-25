@@ -308,14 +308,14 @@ func latticeDraws(t *testing.T, r *Rack, c *clock, plain int) {
 		watch(t, r, c, 0.1)
 		time.Sleep(20 * time.Millisecond)
 		r.mu.Lock()
-		ext := r.latFig.ext
+		handed := r.latFig.at > 0
 		r.mu.Unlock()
 		n, _ := lit(frame(t, r))
-		if ext > 0 && n > 0 && n != plain {
+		if handed && n > 0 && n != plain {
 			break
 		}
 		if time.Now().After(deadline) {
-			t.Fatalf("the Lattice never drew Lorenz (scale %.2f, %d lit, %d plain)", ext, n, plain)
+			t.Fatalf("the Lattice never drew the model (handed on %v, %d lit, %d plain)", handed, n, plain)
 		}
 	}
 }
@@ -411,4 +411,20 @@ func TestTheGlobesLatButtonsSetItsParallels(t *testing.T) {
 	if r.value("globe-par") != "0" {
 		t.Errorf("after 0: par %q, want rings", r.value("globe-par"))
 	}
+}
+
+// The Turtle in the Lattice is drawn from its walk on the lattice's voxels
+// (turtlelattice.go), not from its trail as the screen scales it.
+func TestTheTurtleDrawsInTheLattice(t *testing.T) {
+	r, c := idleRack(t, "turtle")
+	watch(t, r, c, 0.2)
+	plain, _ := lit(frame(t, r))
+	set(t, r, "lattice-src", "turtle", r.selector, "lattice")
+	r.mu.Lock()
+	line := r.analyzers.scope.turtle.LatticeSteps(max(int(r.number("trail-slider")), 2), r.lattice.Rows())
+	r.mu.Unlock()
+	if len(line) < 2 {
+		t.Fatalf("the Turtle's walk is %d points on the lattice", len(line))
+	}
+	latticeDraws(t, r, c, plain)
 }

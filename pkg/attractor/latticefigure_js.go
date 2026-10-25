@@ -56,6 +56,10 @@ func (l *latticeModel) takeFigure() {
 		return
 	}
 	l.figSeq, l.figAt = gpu.uploadSeq, frameNowMs
+	if run.selectedMode == "turtle" && turtle.state != nil && !physOn() {
+		l.takeTurtleFigure(turtle.state)
+		return
+	}
 	v, stride := gpu.verts, gpu.stride
 	if stride < 3 || len(v) < stride {
 		l.fig.Set(nil)
@@ -162,4 +166,39 @@ func pageTraceColoring() traceColoring {
 		c.cols, c.base = 1, [3]float32{float32(p.tr), float32(p.tg), float32(p.tb)}
 	}
 	return c
+}
+
+// takeTurtleFigure is the Turtle's walk on the lattice's own voxels
+// (turtlelattice.go) rather than its trail as the screen draws it: the same
+// stretch of the walk, each point in the color the trace gives it.
+func (l *latticeModel) takeTurtleFigure(t *turtleWalk) {
+	if len(t.pts) < 2 {
+		l.fig.Set(nil)
+		return
+	}
+	n := min(len(t.pts), min(sim.steps, t.trailLen()))
+	var tints []float32
+	l.figPts, tints = t.onLattice(len(t.pts)-n, n, l.Rows(), l.figPts, l.figTints)
+	l.figTints = tints
+	co := pageTraceColoring()
+	lo := [3]float32{1, 1, 1}
+	hi := [3]float32{-1, -1, -1}
+	for _, p := range l.figPts {
+		for a := range 3 {
+			lo[a], hi[a] = min(lo[a], float32(p[a])), max(hi[a], float32(p[a]))
+		}
+	}
+	l.figCols = l.figCols[:0]
+	for i, p := range l.figPts {
+		c := co.at([3]float32{float32(p[0]), float32(p[1]), float32(p[2])}, tints[i], lo, hi)
+		l.figCols = append(l.figCols, lattice.RGB{byte255(c[0]), byte255(c[1]), byte255(c[2])})
+	}
+	// A step at a time, so the corners are not diagonals; each step in the
+	// colors of the two points it joins.
+	l.figSteps, l.figLines = latticeSteps(l.figPts, l.Rows(), l.figSteps, l.figLines)
+	l.figColors = l.figColors[:0]
+	for i := range l.figLines {
+		l.figColors = append(l.figColors, l.figCols[i:i+2:i+2])
+	}
+	l.fig.SetColored(l.figLines, l.figColors)
 }
