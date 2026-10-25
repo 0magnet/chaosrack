@@ -81,6 +81,8 @@ type latticeModel struct {
 	// figColors their colors, as figPts and figLines are their points.
 	figFrom   []int
 	figCols   []lattice.RGB
+	figTints  []float32      // the Turtle's, on the lattice (takeTurtleFigure)
+	figSteps  []lattice.Vec3 // its steps, two points each (latticeSteps)
 	figColors [][]lattice.RGB
 }
 

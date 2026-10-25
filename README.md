@@ -1405,6 +1405,7 @@ The solid is turned by the time of day, not by the rack: lattice -axis z -slice 
 
 Its cells in bay 1 are how the sheets are drawn: their rows, style, look, opacity, which families there are and what the view turns.
 SRC, the first of them, chooses what is drawn: one of the lattice's own solids, or any other model, drawn the same way from its trail, mesh or dots while it runs as itself, its constants in the bank beside the lattice's.
+The Turtle is the exception that fits: it walks the same integer grid, so without weight it is drawn from its walk rather than its trail, every step a whole number of voxels (or every voxel a whole number of steps) along an axis, and every corner the end of a straight run.
 
 `#lattice` · geometry
 

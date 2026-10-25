@@ -1046,7 +1046,7 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 	if inLat {
 		// SRC: the model drawn by the Lattice instead (latticefig.go).
 		r.mu.Lock()
-		fig, o.Fit = r.latticeOf(fig)
+		fig, o.Fit = r.latticeOf(fig, key)
 		r.mu.Unlock()
 	}
 	r.mu.Lock()
