@@ -789,6 +789,7 @@ func clearCustomBankCells() {
 // bankCustomCells builds Custom's constants into its row's bank, and says
 // whether there was a bank to build them into.
 func bankCustomCells(defs []paramDef) bool {
+	clearLatticeBankCells() // the positions it took go back to their blanks first
 	clearCustomBankCells()
 	bank := dom.Doc.Call("getElementById", "bank-"+categorySlug(rowOf("custom"))+"-module")
 	if !bank.Truthy() {
@@ -860,6 +861,8 @@ func bankCustomCells(defs []paramDef) bool {
 		place(ic, row, col)
 		custom.showIntegrator()
 	}
+	// And the lattice's after them, when Custom is in it.
+	syncLatticeBank(run.selectedMode)
 	syncBankCells()
 	// Built after the pass that lights the running model's cells, so they
 	// are lit here: unlit, Custom's own knobs were dimmed as patched out

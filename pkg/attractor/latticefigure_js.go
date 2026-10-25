@@ -9,7 +9,7 @@ import (
 	"github.com/0magnet/lattice"
 )
 
-// Any model in the Lattice: ROWS's L.
+// Any model in the Lattice: SRC (latticebank_js.go).
 //
 // The model runs as it always does, and what it uploads — a trail, a mesh of
 // lines, a cloud of dots — is recorded rather than drawn (the beam's capture,

@@ -6,7 +6,6 @@ import (
 	"strings"
 	"syscall/js"
 
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 )
 
@@ -184,8 +183,7 @@ func homedCell(p paramDef) js.Value {
 }
 
 // syncHomedModules sets each module's cells for model mode: blank readouts
-// (cell-off), or dormant, while it is out of play; and the Lattice module's,
-// which draws only for its model or with L lit. Then it relights the
+// (cell-off), or dormant, while it is out of play. Then it relights the
 // switches on them.
 func syncHomedModules(mode string) {
 	for _, m := range homedModules {
@@ -196,13 +194,6 @@ func syncHomedModules(mode string) {
 		}
 		for _, c := range homedCells[m.key] {
 			c.Get("classList").Call("toggle", cls, out)
-		}
-	}
-	if host := dom.Doc.Call("getElementById", "lattice-bank"); host.Truthy() {
-		off := mode != "lattice" && !lat.figOn
-		cs := host.Call("querySelectorAll", ".punit")
-		for i := range cs.Length() {
-			cs.Index(i).Get("classList").Call("toggle", "cell-off", off)
 		}
 	}
 	lightTrios("turtle-grav")

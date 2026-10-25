@@ -871,6 +871,21 @@ func onBayRotary(label string, bay int) {
 	bayCatModel[bayID(label, bay)+"/"+categoryOf(mode)] = mode
 	setPowerState(true)
 	setPowerSwitch(true)
+	// The Lattice: back to what its SRC was on (latticebank_js.go). Any other
+	// position takes the running model out of it. Not while the knob is on the
+	// backdrop, which the lattice has nothing to do with.
+	switch {
+	case back.editing:
+	case mode == "lattice":
+		if latticeShown(editMode()) {
+			syncCategoryRotaries()
+			return
+		}
+		enterLattice()
+		return
+	default:
+		setSwitch("lat-on", false)
+	}
 	if mode == editMode() {
 		syncCategoryRotaries()
 		return
@@ -906,7 +921,9 @@ func syncCategoryRotaries() {
 	// The model the panel is on: the running one, or the back layer's while
 	// that is being edited (backlayer_js.go).
 	m := editMode()
-	setActiveCategory(m)
+	// The position it is shown at: the Lattice, for a model the lattice draws.
+	shown := rotaryMode(m)
+	setActiveCategory(shown)
 	// A running family member points its family at itself first, so the
 	// MODEL position that stands for it has the value about to be set.
 	if f := familyOf(m); f != nil {
@@ -926,10 +943,10 @@ func syncCategoryRotaries() {
 		refilled := false
 		want := ""
 		if live != nil && b.Label == live.Label && b.N == live.N && !run.stopped {
-			want = m
+			want = shown
 			// A merged bay turns its category ring to the running model's
 			// category first, so the inner ring holds the model to show.
-			refilled = setBayCategory(b, categoryOf(m))
+			refilled = setBayCategory(b, categoryOf(shown))
 		}
 		if want == "" {
 			// A merged bay says OFF on its category ring, where OFF is; its

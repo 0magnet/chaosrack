@@ -778,13 +778,21 @@ An endless knob: {what}. Each turn lights the ring in the next LED color, sweepi
 ## Lattice
 
 <!-- key: lattice -->
-Lattice — any model drawn in depth by terminals.
-Each sheet of the stack is a real terminal running [lattice](https://github.com/0magnet/lattice), and each draws its own slice of the volume: with the Lattice model, its solid;
-with L lit on ROWS, the model chosen, whatever it is.
+Lattice — any model drawn in depth by terminals, at the Lattice position of the MODEL knob.
+Each sheet of the stack is a real terminal running [lattice](https://github.com/0magnet/lattice), and each draws its own slice of the volume: one of its own solids, or the model SRC chooses, whatever it is.
 The model's trail, mesh or dots are the figure every program is handed, and a voxel is lit where the figure passes through it, written as the way the figure runs across the sheet.
-The model keeps its own knobs in the bank, so it is played as ever;
-these six are how the lattice draws it.
+The model in it is still the model running, with its own knobs where they always are in bay 1;
+the lattice's seven stand after them: SRC, and six for how the lattice draws.
 Pictures and terminals, which are flat already, are not drawn in it.
+
+### SRC
+
+<!-- key: lattice-src-cell -->
+SRC — what is in the lattice: one of its own solids (cube, gyroid, octahedron, sphere, torus), or any model the rack draws in three dimensions, which then runs as itself with its constants in the bank.
+Turning the MODEL knob away from the Lattice takes the model out of it; turning it back returns to what SRC was on.
+
+<!-- key: lattice-src -->
+SRC — the lattice's own solid, or the model it draws
 
 ### ROWS
 
@@ -793,7 +801,6 @@ ROWS — each terminal's height in rows, which is its resolution: the programs r
 A family has as many sheets as a terminal has rows, so this is the volume's resolution in all three dimensions: more rows is a terminal zoomed out to smaller characters, and a finer volume.
 3 × rows terminals of 2 × rows columns;
 finer costs more.
-Button: L draws the model chosen in the lattice.
 
 <!-- key: slider-value-latrows -->
 Rows — type or scroll
@@ -804,12 +811,8 @@ Rows — each terminal's height, and the volume's resolution
 <!-- key: rst-lattice-n -->
 Reset rows (12)
 
-### ROWS button
-
-- <!-- key: trio.lattice-n=0 --> L: the model chosen, drawn by the lattice instead of on its own
-
 <!-- key: lat-on -->
-L — the model chosen, drawn by the lattice
+The running model, drawn by the lattice: set by SRC and the MODEL knob, and by la=1 in a link
 
 ### STYLE
 

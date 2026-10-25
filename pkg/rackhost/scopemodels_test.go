@@ -265,13 +265,44 @@ func TestTheLatticeDrawsItsTerminals(t *testing.T) {
 	}
 }
 
-// ROWS's L puts the model chosen in the Lattice: Lorenz's trail is handed to
-// its programs as a figure, and what is drawn is the Lattice's cells.
-func TestLPutsTheModelInTheLattice(t *testing.T) {
+// lat-on (a link's la=1) puts the running model in the Lattice: Lorenz's
+// trail is handed to its programs as a figure, and what is drawn is the
+// Lattice's cells.
+func TestLatOnPutsTheModelInTheLattice(t *testing.T) {
 	r, c := idleRack(t, "lorenz")
 	watch(t, r, c, 0.2)
 	plain, _ := lit(frame(t, r))
 	set(t, r, "lat-on", "1")
+	latticeDraws(t, r, c, plain)
+}
+
+// The Lattice's position with Lorenz on its SRC plays Lorenz, in the
+// Lattice, and a solid on SRC is the Lattice's own again.
+func TestSrcPutsTheModelInTheLattice(t *testing.T) {
+	r, c := idleRack(t, "lorenz")
+	watch(t, r, c, 0.2)
+	plain, _ := lit(frame(t, r))
+	set(t, r, "lattice-src", "lorenz", r.selector, "lattice")
+	r.mu.Lock()
+	m := r.model()
+	r.mu.Unlock()
+	if m != "lorenz" {
+		t.Fatalf("the Lattice with Lorenz on SRC plays %q", m)
+	}
+	latticeDraws(t, r, c, plain)
+	set(t, r, "lattice-src", "solid:cube")
+	r.mu.Lock()
+	m, shape := r.model(), r.value("lattice-shape")
+	r.mu.Unlock()
+	if m != "lattice" || shape != "0" {
+		t.Errorf("a cube on SRC plays %q with shape %s, want the Lattice's own cube", m, shape)
+	}
+}
+
+// latticeDraws waits for the Lattice to draw a figure, which changes what
+// is lit from plain.
+func latticeDraws(t *testing.T, r *Rack, c *clock, plain int) {
+	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
 	for {
 		watch(t, r, c, 0.1)

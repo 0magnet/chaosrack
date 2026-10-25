@@ -162,13 +162,15 @@ func init() {
 }
 
 // bankHidden reports whether id is a parameter another position's buttons
-// set. It keeps its control, hidden, so it is still one control to
-// everything that reads controls, but it is not a position of its own.
+// set, or another position altogether: the Lattice's shape, which its SRC
+// sets (latticebank_js.go). It keeps its control, hidden, so it is still one
+// control to everything that reads controls, but it is not a position of its
+// own.
 // Built on first use, as trioDriven is: the programs added in init
 // functions are not in the table when package variables are initialized.
 func bankHidden(id string) bool {
 	if bankHiddenIDs == nil {
-		bankHiddenIDs = map[string]bool{}
+		bankHiddenIDs = map[string]bool{"lattice-shape": true}
 		for param, p := range trioPrograms {
 			for _, d := range p.drive {
 				if d != param {
