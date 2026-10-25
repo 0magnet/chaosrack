@@ -569,6 +569,7 @@ func buildParamPanelNow(mode string) {
 	syncTermAnimExtras(mode)
 	syncLayersModule(mode)
 	syncHomedModules(mode)
+	syncLatticeBank(mode) // Custom's placement does it again, after its own cells
 	syncTurtleView(mode)
 	syncDeskModel(mode)
 	lyap.syncAnalysisModule(mode)

@@ -21,6 +21,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -34,6 +35,7 @@ import (
 	"github.com/0magnet/chaosrack/pkg/racksurface"
 	"github.com/0magnet/chaosrack/pkg/racktui"
 	"github.com/0magnet/chaosrack/pkg/rasterview"
+	"github.com/0magnet/lattice"
 )
 
 // Rack is a rack held in this process.
@@ -100,7 +102,7 @@ type Rack struct {
 	stl stlView
 	// lattice is the Lattice's stack of terminals (lattice.go).
 	lattice *attractor.LatticeStack
-	// latFig is the model chosen as ROWS's L hands it to the Lattice
+	// latFig is the model chosen on SRC as it is handed to the Lattice
 	// (latticefig.go).
 	latFig latticeFig
 	// anim is the terminal animation running (termanim.go).
@@ -380,7 +382,17 @@ func (r *Rack) set(id, value string) error {
 		// scene writes it there, before its next step (flowValues).
 		r.refigure.Store(true)
 	}
-	if id == r.selector || isFamily(id) {
+	if id == "lattice-src" {
+		// One of the lattice's own solids is its shape; a model is played.
+		if name, ok := strings.CutPrefix(v, latticeSolid); ok {
+			if i := slices.Index(lattice.ShapeNames(), name); i >= 0 {
+				if err := r.set("lattice-shape", strconv.Itoa(i)); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	if id == r.selector || isFamily(id) || id == "lattice-src" {
 		m := r.model()
 		r.followMode(m)
 		r.gridTargets(m)
@@ -390,7 +402,12 @@ func (r *Rack) set(id, value string) error {
 		if m != "sprottmorph" {
 			r.analyzers.morph.run.Leave() // coming back enters it afresh, as the page does
 		}
-		r.useBank(m)
+		// In the Lattice, its bank: SRC and how it draws.
+		bank := m
+		if r.value(r.selector) == "lattice" {
+			bank = "lattice"
+		}
+		r.useBank(bank)
 		r.showModelSwitches(m)
 		return nil
 	}
@@ -890,7 +907,7 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 	look := r.look()
 	paused := r.value("pause-sw") == "1"
 	persist := r.value("persist-trail") == "1"
-	inLat := r.value("lat-on") == "1" && key != "lattice"
+	inLat := (r.value("lat-on") == "1" || r.value(r.selector) == "lattice") && key != "lattice"
 	run, speed := int(r.number("trail-slider")), r.number("speed-slider")
 	refigure := r.refigure.Swap(false)
 	rollRate := 0.0
@@ -1027,7 +1044,7 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 		fig, o.Fit = s.running(fig, o.Fit, key, r.knobs, paused, run, speed, look.dots)
 	}
 	if inLat {
-		// ROWS's L: the model drawn by the Lattice instead (latticefig.go).
+		// SRC: the model drawn by the Lattice instead (latticefig.go).
 		r.mu.Lock()
 		fig, o.Fit = r.latticeOf(fig)
 		r.mu.Unlock()
@@ -1248,9 +1265,16 @@ func isBack(p []uint8) bool {
 
 // model is the model the rack plays: the MODEL knob's, or, on a family's
 // position (Sprott A–S), the member its lettered dial is on, as the page's
-// family position plays the member it stands for. Called with r.mu held.
+// family position plays the member it stands for; on the Lattice's, the model
+// its SRC is on. Called with r.mu held.
 func (r *Rack) model() string {
 	m := r.value(r.selector)
+	// The Lattice's position plays what its SRC is on, when that is a model.
+	if m == "lattice" {
+		if src := r.value("lattice-src"); src != "" && !strings.HasPrefix(src, latticeSolid) {
+			return src
+		}
+	}
 	for _, c := range r.ctls {
 		if isFamily(c.ID) && len(c.Options) > 0 && c.Options[0] == m {
 			return c.Value
@@ -1258,6 +1282,9 @@ func (r *Rack) model() string {
 	}
 	return m
 }
+
+// latticeSolid marks the Lattice's own solids on its SRC, as the page does.
+const latticeSolid = "solid:"
 
 // isFamily reports whether id is a family's lettered dial.
 func isFamily(id string) bool { return strings.HasPrefix(id, "fam-") }

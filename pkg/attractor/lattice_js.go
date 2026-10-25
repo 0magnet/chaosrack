@@ -106,28 +106,19 @@ var lat = latticeModel{LatticeStack: *NewLatticeStack()}
 
 func init() {
 	registerGenerate("lattice", lat.generate)
-	// The model's own knobs are its solid's. How the lattice draws — and
-	// whether it draws the model chosen, whatever that is — is the Lattice
-	// module's (wireLatticeModule).
+	// The model's own knobs are its solid's, and SHP is set from SRC rather
+	// than a position of its own (bankHidden). How the lattice draws, and what
+	// it draws, are the cells it brings into the bank (latticebank_js.go).
 	attractorParams["lattice"] = []paramDef{
 		{"lattice-shape", "shp", &lat.shapeF, latticeSphere, 0, float32(len(lattice.ShapeNames()) - 1), 1},
 		{"lattice-spin", "spin", &lat.spinF, 20, -90, 90, 1},
 		{"lattice-tilt", "tilt", &lat.tiltF, 20, -90, 90, 1},
 	}
 	paramLabels["lattice-shape"] = lattice.ShapeNames()
-	// ROWS: L puts the model chosen in the lattice.
-	trioPrograms["lattice-n"] = trioProgram{
-		keys:     []string{"L", "", ""},
-		help:     []string{doc("trio.lattice-n=0")},
-		press:    func(int) { setSwitch("lat-on", !checkedOn("lat-on")) },
-		lits:     func() []bool { return []bool{checkedOn("lat-on"), false, false} },
-		drive:    []string{"lat-on"},
-		switches: []string{"lat-on"},
-	}
 }
 
-// wireLatticeModule wires the Lattice module's controls (built as P-units
-// with the Display's). How the sheets are shown is not the programs'
+// wireLatticeModule wires the lattice's display controls, which stand in
+// bay 1 while it draws (latticebank_js.go). How the sheets are shown is not the programs'
 // business: only ROWS and STYLE restart the terminals, through the
 // arguments they are started with.
 func wireLatticeModule() {
@@ -154,11 +145,15 @@ func wireLatticeModule() {
 				}
 			}})
 	}
+	// lat-on is set by SRC and the MODEL knob (latticebank_js.go): lit, the
+	// running model is drawn by the lattice and the knob reads Lattice.
 	wireSwitch("lat-on", func(on bool) {
 		lat.figOn = on
 		lat.armFit()
 		view.autoFitCamera()
-		syncHomedModules(run.selectedMode) // the module comes into play with it
+		// However it was set (a link, ctl, SRC): the knob and the bank follow.
+		syncCategoryRotaries()
+		syncLatticeBank(run.selectedMode)
 	})
 }
 

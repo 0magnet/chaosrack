@@ -6,7 +6,7 @@ import (
 	"github.com/0magnet/chaosrack/pkg/attractor"
 )
 
-// Any model in the Lattice, natively: ROWS's L. The model runs as it always
+// Any model in the Lattice, natively: SRC. The model runs as it always
 // does, and what it would draw — a trail, a mesh of lines, a cloud of dots —
 // is handed to the Lattice's programs as a figure, which they draw as they
 // draw a solid, each its own slice, as the page hands on what its model

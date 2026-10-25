@@ -64,6 +64,10 @@
         "title": "DRIVE — what puts the system at a parameter value.\nsweep is the diagram alone, computed left to right.\naudio keeps the same diagram and points a cursor at it from the live audio envelope, so the branch structure under the music is lit up as it plays.\nThe diagram itself does not move: its x axis means something only because the parameter runs monotonically along it.\nThe envelope is the rack's signal, as the Mixer's RACK rows make it, and choosing audio is enough to start measuring it."
       },
       {
+        "label": "src",
+        "title": "SRC — what is in the lattice: one of its own solids (cube, gyroid, octahedron, sphere, torus), or any model the rack draws in three dimensions, which then runs as itself with its constants in the bank.\nTurning the MODEL knob away from the Lattice takes the model out of it; turning it back returns to what SRC was on."
+      },
+      {
         "label": "smth",
         "title": "Takens Embedding — smooth — Catmull-Rom upsampling, in drawn points per source sample.\nA straight line between samples draws chords that are an artifact of the drawing;\nthis curves the beam through them instead.\nHigher is smoother and costs vertices."
       },
@@ -76,12 +80,56 @@
         "title": "1.4.2 · Lorenz — β — a constant of the Lorenz system. It enters\ndz/dt = x·y - β·z"
       },
       {
+        "label": "rows",
+        "title": "ROWS — each terminal's height in rows, which is its resolution: the programs read their terminal's size, as programs do, and draw that many voxels across.\nA family has as many sheets as a terminal has rows, so this is the volume's resolution in all three dimensions: more rows is a terminal zoomed out to smaller characters, and a finer volume.\n3 × rows terminals of 2 × rows columns;\nfiner costs more.",
+        "positions": [
+          {
+            "label": "6",
+            "title": "6 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "24",
+            "title": "24 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "style",
+        "title": "STYLE — how each terminal writes what crosses its sheet."
+      },
+      {
+        "label": "look",
+        "title": "LOOK — how the sheets are put together on screen."
+      },
+      {
+        "label": "opac",
+        "title": "OPAC — every terminal's background opacity, in percent: the setting a translucent terminal emulator has (kitty's background_opacity, alacritty's window.opacity), never something a program asks for.\nIt applies to the default background, which is black;\ntext stays opaque.\nAt 0 only the text is there;\nhigher, each sheet darkens what is behind it, so the far side is dimmer than the near.",
+        "positions": [
+          {
+            "label": "0",
+            "title": "0 — the lowest this knob goes; turned fully counter-clockwise"
+          },
+          {
+            "label": "100",
+            "title": "100 — the highest this knob goes; turned fully clockwise"
+          }
+        ]
+      },
+      {
+        "label": "stacks",
+        "title": "STACKS — which families of sheets there are.\nFewer families are fewer terminals and less to draw: a family that is not shown does not run its programs either."
+      },
+      {
         "label": "wave",
         "title": "Wave — the carrier waveform: square, pulse, or a sub-octave square (divided by two)"
       },
       {
         "label": "axis",
         "title": "1.6.1 · Section — where the Poincaré section's plane sits, and which way through it counts.\nIts three positions stand in the model bank after a flow's constants, and after the Poincaré Section model's (Maps).\nON (on AXIS) switches the section on over a running flow, as LINE's S does;\nthe knobs are live over a flow while it is on, and always under the Poincaré Section model, whose plane they are.\nAXIS and POS place it — POS as a fraction of the attractor's own reach along that axis, so 0 is through the middle whatever the system's size.\nDIR one way is the default: a bounded flow that goes up through a plane must come back down through it, so counting both superimposes two different sections.\nThe crossings draw in gold where they physically are;\nthe Poincaré Section model is the same section as a picture of its own, with the return map.\n\naxis — the axis the section plane is perpendicular to."
+      },
+      {
+        "label": "turn",
+        "title": "TURN — what turning the view turns.\nThe programs are told the way any program is told anything, on their input: each is sent a pose, the view's turn or its inverse, which lattice applies to what it draws."
       },
       {
         "label": "mod",
@@ -508,6 +556,10 @@
         "title": "Nothing to reset: this model has no parameter at this position"
       },
       {
+        "label": "shp",
+        "title": "Lattice — shape — the solid the terminals draw."
+      },
+      {
         "label": "par",
         "title": "Globe — parallels — how the lines of latitude are drawn: as separate rings, or as one continuous spiral from pole to pole.\nSet by the buttons on LAT."
       },
@@ -720,68 +772,15 @@
     ]
   },
   {
-    "id": "lattice",
-    "label": "Lattice",
-    "title": "2.5 · Lattice — any model drawn in depth by terminals.\nEach sheet of the stack is a real terminal running lattice (https://github.com/0magnet/lattice), and each draws its own slice of the volume: with the Lattice model, its solid;\nwith L lit on ROWS, the model chosen, whatever it is.\nThe model's trail, mesh or dots are the figure every program is handed, and a voxel is lit where the figure passes through it, written as the way the figure runs across the sheet.\nThe model keeps its own knobs in the bank, so it is played as ever;\nthese six are how the lattice draws it.\nPictures and terminals, which are flat already, are not drawn in it.",
-    "image": "docs/img/module/lattice.jpg",
-    "mode": "lorenz",
-    "controls": [
-      {
-        "label": "rows",
-        "title": "2.5.1 · ROWS — each terminal's height in rows, which is its resolution: the programs read their terminal's size, as programs do, and draw that many voxels across.\nA family has as many sheets as a terminal has rows, so this is the volume's resolution in all three dimensions: more rows is a terminal zoomed out to smaller characters, and a finer volume.\n3 × rows terminals of 2 × rows columns;\nfiner costs more.\nButton: L draws the model chosen in the lattice.",
-        "positions": [
-          {
-            "label": "6",
-            "title": "6 — the lowest this knob goes; turned fully counter-clockwise"
-          },
-          {
-            "label": "24",
-            "title": "24 — the highest this knob goes; turned fully clockwise"
-          }
-        ]
-      },
-      {
-        "label": "style",
-        "title": "2.5.2 · STYLE — how each terminal writes what crosses its sheet."
-      },
-      {
-        "label": "look",
-        "title": "2.5.3 · LOOK — how the sheets are put together on screen."
-      },
-      {
-        "label": "opac",
-        "title": "2.6.1 · OPAC — every terminal's background opacity, in percent: the setting a translucent terminal emulator has (kitty's background_opacity, alacritty's window.opacity), never something a program asks for.\nIt applies to the default background, which is black;\ntext stays opaque.\nAt 0 only the text is there;\nhigher, each sheet darkens what is behind it, so the far side is dimmer than the near.",
-        "positions": [
-          {
-            "label": "0",
-            "title": "0 — the lowest this knob goes; turned fully counter-clockwise"
-          },
-          {
-            "label": "100",
-            "title": "100 — the highest this knob goes; turned fully clockwise"
-          }
-        ]
-      },
-      {
-        "label": "stacks",
-        "title": "2.6.2 · STACKS — which families of sheets there are.\nFewer families are fewer terminals and less to draw: a family that is not shown does not run its programs either."
-      },
-      {
-        "label": "turn",
-        "title": "2.6.3 · TURN — what turning the view turns.\nThe programs are told the way any program is told anything, on their input: each is sent a pose, the view's turn or its inverse, which lattice applies to what it draws."
-      }
-    ]
-  },
-  {
     "id": "display",
     "label": "Display",
-    "title": "2.7 · Display — trace rendering: line width, point decimation, trail length and mode, and the overlays drawn on the trace (Poincaré section, graticule).\nThree P-units; the switches are on their buttons.",
+    "title": "2.5 · Display — trace rendering: line width, point decimation, trail length and mode, and the overlays drawn on the trace (Poincaré section, graticule).\nThree P-units; the switches are on their buttons.",
     "image": "docs/img/module/display.jpg",
     "mode": "lorenz",
     "controls": [
       {
         "label": "line",
-        "title": "2.7.1 · LINE — trace line width, 1 to 10 pixels. Buttons: S Poincaré section, G graticule; each is an independent switch.",
+        "title": "2.5.1 · LINE — trace line width, 1 to 10 pixels. Buttons: S Poincaré section, G graticule; each is an independent switch.",
         "positions": [
           {
             "label": "1",
@@ -795,7 +794,7 @@
       },
       {
         "label": "points",
-        "title": "2.7.2 · POINTS — point decimation.\nAt 0 the trace is a solid line.\nAny other setting draws the trace as that many points, evenly spaced along it;\na setting at or above the trail's vertex count is equivalent to a solid line.\nUseful where the figure folds over itself and a solid line obscures its structure.",
+        "title": "2.5.2 · POINTS — point decimation.\nAt 0 the trace is a solid line.\nAny other setting draws the trace as that many points, evenly spaced along it;\na setting at or above the trail's vertex count is equivalent to a solid line.\nUseful where the figure folds over itself and a solid line obscures its structure.",
         "positions": [
           {
             "label": "0",
@@ -809,7 +808,7 @@
       },
       {
         "label": "trail",
-        "title": "2.7.3 · TRAIL — trail length, in vertices, and trail mode. The buttons select the mode: persist, scan or ring.",
+        "title": "2.5.3 · TRAIL — trail length, in vertices, and trail mode. The buttons select the mode: persist, scan or ring.",
         "positions": [
           {
             "label": "1k",
@@ -826,45 +825,45 @@
   {
     "id": "layers",
     "label": "Layers · Colors",
-    "title": "2.8 · Layers · Colors — how the picture is made up and colored.\nBEHIND draws a second picture filling the canvas behind the model and SKIN paints one onto its surface;\nBG is the color behind it all.\nSRC is what the color follows, MAP how a value becomes a color, PERIOD and SHIFT the window on the map, and START, MID and END the gradient's own colors.\nThe buttons: F (fill) and B (back) on BEHIND, I (invert) on MAP, H (held) on SRC.",
+    "title": "2.6 · Layers · Colors — how the picture is made up and colored.\nBEHIND draws a second picture filling the canvas behind the model and SKIN paints one onto its surface;\nBG is the color behind it all.\nSRC is what the color follows, MAP how a value becomes a color, PERIOD and SHIFT the window on the map, and START, MID and END the gradient's own colors.\nThe buttons: F (fill) and B (back) on BEHIND, I (invert) on MAP, H (held) on SRC.",
     "image": "docs/img/module/layers.jpg",
     "mode": "lorenz",
     "controls": [
       {
         "label": "behind",
-        "title": "2.8.1 · Backdrop — what is drawn behind the model, filling the canvas: the scrolling spectrogram, the XY oscilloscope, a live terminal, or the whole desk.\nWater is the exception: it is a LENS, drawn through the finished frame rather than behind it — drag on the canvas to make waves.\nOne at a time, or off."
+        "title": "2.6.1 · Backdrop — what is drawn behind the model, filling the canvas: the scrolling spectrogram, the XY oscilloscope, a live terminal, or the whole desk.\nWater is the exception: it is a LENS, drawn through the finished frame rather than behind it — drag on the canvas to make waves.\nOne at a time, or off."
       },
       {
         "label": "skin",
-        "title": "2.8.2 · Skin — what is painted ON the model's own surface, wrapped round it, for the models that have a surface to take it: the live spectrogram, a terminal, a terminal animation, or the whole desk.\nOff leaves the wireframe.\nThe same pictures the Behind knob draws in the background;\nthis puts one on the object instead."
+        "title": "2.6.2 · Skin — what is painted ON the model's own surface, wrapped round it, for the models that have a surface to take it: the live spectrogram, a terminal, a terminal animation, or the whole desk.\nOff leaves the wireframe.\nThe same pictures the Behind knob draws in the background;\nthis puts one on the object instead."
       },
       {
         "label": "bg",
-        "title": "2.8.3 · Background color behind the model — swatch or Hue / Level knob"
+        "title": "2.6.3 · Background color behind the model — swatch or Hue / Level knob"
       },
       {
         "label": "start",
-        "title": "2.9.1 · Gradient START color (low end of the source axis) — pick with the swatch or dial it with the Hue (outer) / Level (inner) knob"
+        "title": "2.7.1 · Gradient START color (low end of the source axis) — pick with the swatch or dial it with the Hue (outer) / Level (inner) knob"
       },
       {
         "label": "mid",
-        "title": "2.9.2 · Gradient MIDDLE color (3-color palette only) — swatch or Hue / Level knob"
+        "title": "2.7.2 · Gradient MIDDLE color (3-color palette only) — swatch or Hue / Level knob"
       },
       {
         "label": "end",
-        "title": "2.9.3 · Gradient END color (high end of the source axis) — swatch or Hue / Level knob"
+        "title": "2.7.3 · Gradient END color (high end of the source axis) — swatch or Hue / Level knob"
       },
       {
         "label": "src",
-        "title": "2.10.1 · Source — what the color follows.\nOFF is a flat trace in the start swatch: the color follows nothing.\nX / Y / Z follow a coordinate of the figure;\non the three delay embeddings those axes are one signal at three lags, so they color along different directions of the same figure rather than showing three different quantities.\nTRAIL follows age along the window.\nAUDIO paints the short-time spectral CENTROID along the trail — which frequency each moment sits at.\nLEVEL paints the short-time LEVEL instead, which is the quantity the spectrogram backdrop is painting, so with one of the colormap palettes behind it the figure and the backdrop say the same thing in the same language;\nAUDIO deliberately does not, and a figure colored by centroid over a spectrogram is not supposed to match it.\nOnly the Takens, stereo and polar embeddings have a trail that is a time axis, so elsewhere both are one flat tint.\nDisplays with a value of their own — the spectrogram, the RTA, the transfer function — do not consult this knob at all, and it dims in those modes."
+        "title": "2.8.1 · Source — what the color follows.\nOFF is a flat trace in the start swatch: the color follows nothing.\nX / Y / Z follow a coordinate of the figure;\non the three delay embeddings those axes are one signal at three lags, so they color along different directions of the same figure rather than showing three different quantities.\nTRAIL follows age along the window.\nAUDIO paints the short-time spectral CENTROID along the trail — which frequency each moment sits at.\nLEVEL paints the short-time LEVEL instead, which is the quantity the spectrogram backdrop is painting, so with one of the colormap palettes behind it the figure and the backdrop say the same thing in the same language;\nAUDIO deliberately does not, and a figure colored by centroid over a spectrogram is not supposed to match it.\nOnly the Takens, stereo and polar embeddings have a trail that is a time axis, so elsewhere both are one flat tint.\nDisplays with a value of their own — the spectrogram, the RTA, the transfer function — do not consult this knob at all, and it dims in those modes."
       },
       {
         "label": "map",
-        "title": "2.10.2 · Map — how a value becomes a color, for every display in the rack including the spectrogram.\n2 and 3 mix the START, MID and END swatches;\nHUE is a raw hue sweep;\nheat, blue, gray, turbo, viridis and magma are the published colormaps.\nTurbo and viridis are the even ones — equal steps in the value look like equal steps in color, which a hue sweep does not give you.\nThis is the only colormap control there is: the spectrogram had a second one naming the same six maps, and two knobs that had to be kept in step by hand were one knob too many."
+        "title": "2.8.2 · Map — how a value becomes a color, for every display in the rack including the spectrogram.\n2 and 3 mix the START, MID and END swatches;\nHUE is a raw hue sweep;\nheat, blue, gray, turbo, viridis and magma are the published colormaps.\nTurbo and viridis are the even ones — equal steps in the value look like equal steps in color, which a hue sweep does not give you.\nThis is the only colormap control there is: the spectrogram had a second one naming the same six maps, and two knobs that had to be kept in step by hand were one knob too many."
       },
       {
         "label": "period",
-        "title": "2.10.3 · Palette period — how many times the palette is crossed across the trail (low = a narrow slice of it, which the shift knob then sweeps).\nDrives the hue sweep AND the six colormaps: the question is the same one either way.",
+        "title": "2.8.3 · Palette period — how many times the palette is crossed across the trail (low = a narrow slice of it, which the shift knob then sweeps).\nDrives the hue sweep AND the six colormaps: the question is the same one either way.",
         "positions": [
           {
             "label": "0.05",
@@ -878,7 +877,7 @@
       },
       {
         "label": "shift",
-        "title": "2.11.1 · Palette shift — where the window sits on the colormap.\nTurn the period down to a slice and this sweeps that slice along heat / blue / gray / turbo / viridis / magma;\nroute it from audio in the Mod module and the sound moves the figure THROUGH the map instead of only tinting it.\nPast either end the map turns back rather than wrapping — turbo's two ends are different colors, and joining them puts a hard seam across the figure — so ±1 is the reversed map, not a dead stop.",
+        "title": "2.9.1 · Palette shift — where the window sits on the colormap.\nTurn the period down to a slice and this sweeps that slice along heat / blue / gray / turbo / viridis / magma;\nroute it from audio in the Mod module and the sound moves the figure THROUGH the map instead of only tinting it.\nPast either end the map turns back rather than wrapping — turbo's two ends are different colors, and joining them puts a hard seam across the figure — so ±1 is the reversed map, not a dead stop.",
         "positions": [
           {
             "label": "-1",
@@ -895,45 +894,45 @@
   {
     "id": "console",
     "label": "Console",
-    "title": "2.12 · Console — Reset All and Normalize, MIDI, and the switches for the rack itself and for motion.\nThe model is chosen with the MODEL knob in bay 1.",
+    "title": "2.10 · Console — Reset All and Normalize, MIDI, and the switches for the rack itself and for motion.\nThe model is chosen with the MODEL knob in bay 1.",
     "image": "docs/img/module/console.jpg",
     "mode": "lorenz",
     "controls": [
       {
         "label": "MIDI",
-        "title": "2.12.1.c · MIDI — hardware control over WebMIDI: CC 1 and up drive the model's continuous knobs in order, CC 21 to 29 the view (zoom, pan X, pan Y, spin X, Y and Z, period, trail and shift), and a note hops to a flow picked by the note."
+        "title": "2.10.1.c · MIDI — hardware control over WebMIDI: CC 1 and up drive the model's continuous knobs in order, CC 21 to 29 the view (zoom, pan X, pan Y, spin X, Y and Z, period, trail and shift), and a note hops to a flow picked by the note."
       },
       {
         "label": "Power",
-        "title": "2.12.1.d · Power — the model.\nOff stops it and clears the canvas, which is what the GPU costs;\nthe scopes and meters still read what plays, and every setting is still there to read and to change.\nOFF on the MODEL knob is the same switch."
+        "title": "2.10.1.d · Power — the model.\nOff stops it and clears the canvas, which is what the GPU costs;\nthe scopes and meters still read what plays, and every setting is still there to read and to change.\nOFF on the MODEL knob is the same switch."
       },
       {
         "label": "Rack bay",
-        "title": "2.12.2.a · Rack bay — draw the 19-inch frame each ROW of modules sits in: rails above and below, an ear each side, and blank panels filling the leftover at the end of the row on the same slot pitch.\nThe modules wrap, and a row is a bay, so a rack that has spilled onto a second row gets a second frame.\nWhile it is on, a click on one of a bay's top screws moves the bay up a place, on a bottom screw down one;\nthe order is kept in this browser, and the addresses on a moved bay follow it."
+        "title": "2.10.2.a · Rack bay — draw the 19-inch frame each ROW of modules sits in: rails above and below, an ear each side, and blank panels filling the leftover at the end of the row on the same slot pitch.\nThe modules wrap, and a row is a bay, so a rack that has spilled onto a second row gets a second frame.\nWhile it is on, a click on one of a bay's top screws moves the bay up a place, on a bottom screw down one;\nthe order is kept in this browser, and the addresses on a moved bay follow it."
       },
       {
         "label": "Info",
-        "title": "2.12.2.b · Info — opens the Info window: the model playing, described, or, while the rack is off, the manual's page for the bay last worked at."
+        "title": "2.10.2.b · Info — opens the Info window: the model playing, described, or, while the rack is off, the manual's page for the bay last worked at."
       },
       {
         "label": "Fullscreen",
-        "title": "2.12.2.c · Fullscreen — the browser's full screen: the canvas fills the display, and the panel stays available"
+        "title": "2.10.2.c · Fullscreen — the browser's full screen: the canvas fills the display, and the panel stays available"
       },
       {
         "label": "Desk",
-        "title": "2.12.2.d · Desk — run this app inside a desktop: the desk becomes the environment, its panel takes the bottom of the screen, and the rack floats as a window on it with a task button beside the desk's own.\nThe scene keeps running behind.\nOpen a terminal, the host shell or the file manager from the desk's Applications menu.\nThe OTHER way to have the desk is as a MODEL (Solids → desk), where the whole desktop is drawn into the scene and turns with it."
+        "title": "2.10.2.d · Desk — run this app inside a desktop: the desk becomes the environment, its panel takes the bottom of the screen, and the rack floats as a window on it with a task button beside the desk's own.\nThe scene keeps running behind.\nOpen a terminal, the host shell or the file manager from the desk's Applications menu.\nThe OTHER way to have the desk is as a MODEL (Solids → desk), where the whole desktop is drawn into the scene and turns with it."
       },
       {
         "label": "Auto-rot",
-        "title": "2.12.2.e · Continuously spin the model about the vertical (Y) axis — it folds into the Y spin rate (ω, View)"
+        "title": "2.10.2.e · Continuously spin the model about the vertical (Y) axis — it folds into the Y spin rate (ω, View)"
       },
       {
         "label": "Pause",
-        "title": "2.12.2.f · Pause / freeze the animation"
+        "title": "2.10.2.f · Pause / freeze the animation"
       },
       {
         "label": "Jam",
-        "title": "2.12.2.g · Jam / attract mode — the app performs itself: hops to a random attractor every 12–20 s with fresh gentle spin and occasional persist paint.\nNever touches speaker outputs."
+        "title": "2.10.2.g · Jam / attract mode — the app performs itself: hops to a random attractor every 12–20 s with fresh gentle spin and occasional persist paint.\nNever touches speaker outputs."
       }
     ]
   },
@@ -1345,19 +1344,19 @@
     "mode": "lorenz",
     "controls": [
       {
-        "label": "001.2816.6",
+        "label": "001.01033.3",
         "title": "3.12.1.a · Timing / fps / LED readout / Frames a second sustained over the last window — the reciprocal of the MEAN frame, so a hitch counts against it"
       },
       {
-        "label": "816.6816.6",
+        "label": "1033.31033.3",
         "title": "3.12.1.c · Timing / min / LED readout / Shortest frame in the window, in ms — which is the display's own interval, since nothing renders faster than vsync"
       },
       {
-        "label": "000.0813.70",
+        "label": "000.01029.90",
         "title": "3.12.2.b · Timing / late / LED readout / Percentage of frames that missed the display's interval by half again or more.\nThis is the number that corresponds to visible hesitation; the frame rate alone does not."
       },
       {
-        "label": "02.8000.00",
+        "label": "03.3000.00",
         "title": "3.12.3.a · Timing / model / LED readout / Milliseconds a frame spent ISSUING the model's draw calls.\nA WebGL call queues a command and returns without waiting for pixels, so this reads far below what the model really costs — the GPU and compositor share of it is in REST.\nUseful for what it does catch: geometry rebuilt every frame instead of cached."
       },
       {

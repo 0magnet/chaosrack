@@ -11,7 +11,7 @@ func TestTheCatalogIsAWholeRack(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	const modules, bays = 35, 8
+	const modules, bays = 34, 8
 	if len(c.Modules) != modules {
 		t.Errorf("%d modules, want %d", len(c.Modules), modules)
 	}

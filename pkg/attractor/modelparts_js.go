@@ -178,13 +178,15 @@ func buildModelSwitches(row js.Value) {
 }
 
 // modelSelectorCells are mode's bank positions from the holder: selectors
-// filled at run time, which have no parameter behind them.
+// filled at run time, which have no parameter behind them, and the Lattice's
+// display controls, whose numbers get the step readout every number has.
 func modelSelectorCells(mode string) []js.Value {
 	var out []js.Value
 	cs := dom.Doc.Call("querySelectorAll", `#model-parts [data-bank-of="`+mode+`"]`)
 	for i := range cs.Length() {
 		c := cs.Index(i)
 		c.Call("setAttribute", "data-mode", mode)
+		withStepField(c)
 		out = append(out, c)
 	}
 	return out
