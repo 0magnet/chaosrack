@@ -2856,6 +2856,30 @@ dragged region; record, pause, stop and single-frame still. Video bitrate is
 Per-model animations, contact sheets and the chaos-monkey jam sessions:
 [docs/gallery.md](docs/gallery.md).
 
+**Aizawa mandalas.** Seen end-on, the Aizawa attractor closes into a petaled
+mandala, and its trail rainbow can be made to stand still, or to repeat as
+harmonics: several rings outward, a wheel around, or a spiral. How these were
+found, and the full table:
+[docs/aizawa-harmonics.md](docs/aizawa-harmonics.md). On a local
+`chaosrack serve`, the same links work with `http://127.0.0.1:8080/` in place
+of the site.
+
+- [7 petals, 1 ring](https://chaosrack.magnetosphere.net/#aizawa&tr=9652&rf=9.00205&gs=3&gc=4&ar=0&p.dt=0.0059994&p.a=0.83976&p.b=0.654&p.c=0.623&p.d=3.06999&p.e=0.236&p.f=0&rot=0,0,0)
+- [7 petals, 2 rings outward](https://chaosrack.magnetosphere.net/#aizawa&tr=7609&rf=14.00115&gs=3&gc=4&ar=0&p.dt=0.0059101&p.a=0.83976&p.b=0.654&p.c=0.623&p.d=3.07429&p.e=0.236&p.f=0&rot=0,0,0)
+- [7 petals, 1 rainbow around (a color wheel)](https://chaosrack.magnetosphere.net/#aizawa&tr=7630&rf=1.00285&gs=3&gc=4&ar=0&p.dt=0.0059101&p.a=0.83976&p.b=0.654&p.c=0.623&p.d=3.07429&p.e=0.236&p.f=0&rot=0,0,0)
+- [7 petals, spiral](https://chaosrack.magnetosphere.net/#aizawa&tr=15066&rf=16.00195&gs=3&gc=4&ar=0&p.dt=0.0059757&p.a=0.83976&p.b=0.654&p.c=0.623&p.d=3.07113&p.e=0.236&p.f=0&rot=0,0,0)
+- [5 petals, 3 rings](https://chaosrack.magnetosphere.net/#aizawa&tr=6255&rf=17.0003&gs=3&gc=4&ar=0&p.dt=0.0059267&p.a=0.84906&p.b=0.654&p.c=0.623&p.d=3.07373&p.e=0.236&p.f=0&rot=0,0,0)
+- [3 petals, 3 rings](https://chaosrack.magnetosphere.net/#aizawa&tr=5669&rf=15.00035&gs=3&gc=4&ar=0&p.dt=0.0060201&p.a=0.86847&p.b=0.654&p.c=0.623&p.d=3.06885&p.e=0.236&p.f=0&rot=0,0,0)
+- [8 petals, 2 rings](https://chaosrack.magnetosphere.net/#aizawa&tr=10075&rf=19.0011&gs=3&gc=4&ar=0&p.dt=0.0060343&p.a=0.83668&p.b=0.654&p.c=0.623&p.d=3.06846&p.e=0.236&p.f=0&rot=0,0,0)
+- [Lines still, colors flowing](https://chaosrack.magnetosphere.net/#aizawa&tr=12942&rf=11.99875&gs=3&gc=4&ar=0&p.dt=0.0059599&p.a=0.83976&p.b=0.654&p.c=0.623&p.d=3.07189&p.e=0.236&p.f=0&rot=0,0,0) (one color cycle every 5 s)
+- [Lines moving, colors standing](https://chaosrack.magnetosphere.net/#aizawa&tr=22252&rf=19.00215&gs=3&gc=4&ar=0&p.dt=0.005898&p.a=0.87481&p.b=0.654&p.c=0.623&p.d=3.07001&p.e=0.236&p.f=0&rot=0,0,0): the turns per loop are set to a golden-ratio value, so the orbit never closes, and the petals keep turning while the color rings hold
+
+The first three found, with f above 0, where the orbit locks without fine
+tuning:
+[one](https://chaosrack.magnetosphere.net/#aizawa&tr=15277&rf=14.0022&gs=3&gc=4&ar=0&p.dt=0.006&p.a=0.85&p.b=0.654&p.c=0.623&p.d=3.07&p.e=0.236&p.f=0.02&rot=0,0,0),
+[two](https://chaosrack.magnetosphere.net/#aizawa&tr=19185&rf=17.99815&gs=3&gc=4&ar=0&p.dt=0.006&p.a=0.84&p.b=0.654&p.c=0.623&p.d=3.07&p.e=0.236&p.f=0.025&rot=0,0,0),
+[three](https://chaosrack.magnetosphere.net/#aizawa&tr=20255&rf=19.002&gs=3&gc=4&ar=0&p.dt=0.006&p.a=0.84&p.b=0.654&p.c=0.623&p.d=3.07&p.e=0.236&p.f=0.025&rot=0,0,0).
+
 ## Audio
 
 | source | |
