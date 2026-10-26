@@ -117,7 +117,7 @@ var params = map[string][]Param{
 		{"aizawa-c", "c", &AizawaC, 0.6, 0.1, 2, 0.01},
 		{"aizawa-d", "d", &AizawaD, 3.5, 0.1, 8, 0.01},
 		{"aizawa-e", "e", &AizawaE, 0.25, 0.01, 1, 0.01},
-		{"aizawa-f", "f", &AizawaF, 0.1, 0.01, 1, 0.01},
+		{"aizawa-f", "f", &AizawaF, 0.1, 0, 1, 0.01},
 	},
 	"sprott": {
 		{"sprott-dt", "dt", &SprottDT, 0.005, 0.001, 0.05, 0.001},
