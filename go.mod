@@ -7,14 +7,14 @@ require (
 	github.com/0magnet/audioprism-go v0.0.1-0.20261021101944-f90540e7753d
 	github.com/0magnet/calvin v0.0.1-0.20261013221715-da6581155df3
 	github.com/0magnet/cdp v0.0.0-20261013220930-98e232fae01d
-	github.com/0magnet/desk v0.0.3-0.20261025100206-beb7d64afbc6
-	github.com/0magnet/desk/panes v0.0.1-0.20261025095924-584d33b88d02
+	github.com/0magnet/desk v0.0.3-0.20261026112122-ce92e0122bef
+	github.com/0magnet/desk/panes v0.0.1-0.20261026111802-a56114b97dbc
 	github.com/0magnet/lattice v0.0.0-20261023211141-bbcbaac64524
-	github.com/0magnet/pisano v0.0.0-20261025100437-d31fc94f3829
+	github.com/0magnet/pisano v0.0.0-20261026111957-99c196b38cb6
 	github.com/0magnet/rack-go v0.0.0-20261013221719-290136881c9a
 	github.com/0magnet/seat v0.0.0-20261013221028-e66b97ebca1a
 	github.com/0magnet/sh/v3 v3.13.2-0.20261024150911-145e01c63128
-	github.com/0magnet/tuiwasm v0.0.0-20261025100439-a6a8d5d90ac9
+	github.com/0magnet/tuiwasm v0.0.0-20261026112145-6cdc3a3aacff
 	github.com/0magnet/websh v0.0.1-0.20261024152844-289b63dd4b14
 	github.com/0magnet/winbox-go v0.0.1-0.20261020181245-bacce940cc20
 	github.com/0magnet/xterm-go v0.0.1-0.20261013223808-aa0a32cd702b
@@ -66,7 +66,7 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/coder/websocket v1.8.15 // indirect
-	github.com/dlclark/regexp2/v2 v2.10.0 // indirect
+	github.com/dlclark/regexp2/v2 v2.10.1 // indirect
 	github.com/dunglas/httpsfv v1.1.2 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/fatih/color v1.19.0 // indirect
