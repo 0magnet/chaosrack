@@ -159,3 +159,6 @@ Things found by playing with the rack, written up with how to get there.
 - [Attractors found by search](searched-attractor.md): a five-term
   chaotic flow with a line of equilibria, from a random search of small
   systems, and a six-term one with two lobes; both run in Custom.
+- [Aizawa: standing colors and their harmonics](aizawa-harmonics.md):
+  symmetric mandalas of 3 to 8 petals whose lines, colors or both stand
+  still, with one to three rainbows outward or around.
