@@ -209,22 +209,34 @@
   if (big.transferControlToOffscreen && window.Worker && window.Blob) {
     try {
       var src = models.toString() + '\n' + preview.toString() + '\n' +
-        'var draw = null, on = true;\n' +
+        'var draw = null, c = null, on = true, live = true, ticking = false;\n' +
+        'function tick() {\n' +
+        '  ticking = false;\n' +
+        '  if (!live) return;\n' +
+        '  if (on) draw(performance.now(), c.width, c.height);\n' +
+        '  ticking = true;\n' +
+        '  requestAnimationFrame(tick);\n' +
+        '}\n' +
         'onmessage = function (e) {\n' +
         '  var d = e.data;\n' +
         '  if (d.canvas) {\n' +
-        '    var c = d.canvas, x = c.getContext("2d");\n' +
-        '    draw = preview(x, d.seed, d.t0 - performance.timeOrigin + d.origin, 3000, true);\n' +
-        '    var tick = function () { if (on) draw(performance.now(), c.width, c.height); requestAnimationFrame(tick); };\n' +
-        '    requestAnimationFrame(tick);\n' +
+        '    c = d.canvas;\n' +
+        '    draw = preview(c.getContext("2d"), d.seed, d.t0 - performance.timeOrigin + d.origin, 3000, true);\n' +
         '  }\n' +
         '  if (d.on !== undefined) on = d.on;\n' +
+        '  if (d.live !== undefined) live = d.live;\n' +
+        '  if (live && draw && !ticking) { ticking = true; requestAnimationFrame(tick); }\n' +
         '};\n';
       var off = big.transferControlToOffscreen();
       worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
       // The worker's clock starts at its own timeOrigin: t0 and the page's
       // origin go with the canvas so both clocks name the same moment.
-      worker.postMessage({ canvas: off, seed: seed, t0: t0, origin: performance.timeOrigin }, [off]);
+      worker.postMessage({ canvas: off, seed: seed, t0: t0, origin: performance.timeOrigin, live: !document.hidden }, [off]);
+      // A worker's frames are not throttled with a hidden page, so the
+      // preview stops itself while nobody can see it.
+      document.addEventListener('visibilitychange', function () {
+        if (worker) worker.postMessage({ live: !document.hidden });
+      });
     } catch (e) {
       worker = null;
     }
@@ -278,17 +290,25 @@
 
   // __crBootDone is the rack saying it is up: the preview fades once the
   // first frames are on the screen, and is gone.
+  function gone() {
+    running = false;
+    if (worker) worker.terminate();
+    worker = null;
+    layer.remove();
+  }
   window.__crBootDone = function () {
     window.__crBootDone = function () {};
+    // A hidden page draws no frames, so it would wait for them forever and
+    // keep the worker running; with nothing on the screen there is nothing to fade.
+    if (document.hidden) {
+      gone();
+      return;
+    }
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
         layer.style.opacity = '0';
         layer.style.pointerEvents = 'none';
-        setTimeout(function () {
-          running = false;
-          if (worker) worker.terminate();
-          layer.remove();
-        }, 400);
+        setTimeout(gone, 400);
       });
     });
   };
