@@ -81,9 +81,11 @@ jobs:
       # not a release: it has the fixes this build depends on — finished
       # goroutine stacks handed back (tinygo-org/tinygo fb9b49d6; before it
       # every JS callback, ~290 a second here, took a fresh 64 KB stack and
-      # each collection stopped the page for 120–150 ms), and since fc63e634
-      # those stacks are kept and reused, and the heap grows a quarter at a
-      # time instead of doubling (254 → 22 MB allocated a minute, 79 → 29 MB of
+      # each collection stopped the page for 120–150 ms); since fc63e634 those
+      # stacks are kept and reused and the heap grows a quarter at a time
+      # instead of doubling, and since e124cd4f syscall/js keeps a call's
+      # arguments on the stack and gives short-lived references no finalizer
+      # (254 → 3.7 MB allocated a minute, 8 → 3 collections, 79 → 23 MB of
       # wasm memory) — and builds this in a few minutes where the dev image
       # took twenty: interp no longer prints IR for errors it discards, wasm
       # links without optimizing twice, and Binaryen is 133.
