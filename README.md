@@ -131,6 +131,7 @@ Other commands, which also run in the page's own terminal:
 |---|---|
 | `chaosrack` | the rack's panel in this terminal |
 | `chaosrack ctl [id[=value] …]` | list, read or set any control of a running page |
+| `chaosrack mem` | what a running page's memory goes on: the wasm heap and module, the JavaScript heap, elements per module, canvases |
 | `chaosrack render --model lorenz -o lorenz.png` | draw a model to PNG, SVG or GIF without a browser |
 | `chaosrack models` · `chaosrack manual` · `chaosrack rack` | list models · read the manual · draw the bays as text |
 | `chaosrack stlgen` | write the rack and the models as STL |
