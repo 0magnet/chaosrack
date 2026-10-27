@@ -86,6 +86,9 @@ page by its name: localhost, 127.0.0.0/8, ::1, or one given with --host.
 Bound elsewhere, it prints a pair link for browsers on other machines: they
 load the page over https (--pair-page) and reach the rack over WebTransport,
 encrypted and pinned to this server's certificate, with a key of their own.
+--pair does the same on loopback, for the --pair-page site open in a browser
+on this machine: it gets this server's audio and controls without loading the
+page from here.
 --shell and --fs refuse a bind that is not loopback. Add --auth on a shared
 machine, so the page has to ask for the token.
 

@@ -189,7 +189,7 @@ func (t *Tab) hello() {
 		if len(a) > 0 {
 			why = js.Global().Get("String").Invoke(a[0]).String()
 		}
-		t.say(remote, "error", t.k.WT+" did not answer ("+why+"); if it was restarted with a new certificate, or this browser was never paired, open the pair link chaosrack serve prints")
+		t.say(remote, "error", t.k.WT+" did not answer ("+why+"); if this browser was refused leave to reach this device (site settings: local network access), allow it; if the server was restarted with a new certificate, or this browser was never paired, open the pair link chaosrack serve prints")
 		// Tried again a few times: a page busy booting, or a server just
 		// restarting, answers the next one.
 		t.tries++

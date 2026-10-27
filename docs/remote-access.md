@@ -63,6 +63,25 @@ certificate by hash: encrypted end to end, to a key only the server holds.
 - A browser behind a proxy (`--proxy-server`, SOCKS) cannot reach the server:
   QUIC does not go through one. Add the server's address to the bypass list.
 
+## On this machine: the public page, this server's audio
+
+The same pairing, with the server on loopback: `--pair` makes it print a link
+to the Pages build that reaches it at 127.0.0.1. The page at
+chaosrack.magnetosphere.net then gets this machine's audio and the rack link
+without being loaded from here.
+
+```
+chaosrack serve --audio --pair
+# prints: https://chaosrack.magnetosphere.net/#pair=…&wt=127.0.0.1:8080&cert=…
+```
+
+The first time, the browser asks to let the site reach "other apps and
+services on this device" (Chrome's Local Network Access): allow it. A page
+denied it, or never asked, waits; its console says so after a while. Another
+site's page gets nothing: it holds no key the server knows and no secret to
+pair one with. A loopback address is not proxied, so this works behind
+`--proxy-server` too.
+
 ## On a machine with other people on it
 
 Add `--auth`. The default injects the token into the served page, which is

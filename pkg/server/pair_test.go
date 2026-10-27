@@ -60,10 +60,10 @@ func proofOf(t *testing.T, q url.Values) pairing.Proof {
 	return p
 }
 
-// On loopback nothing pairs.
+// On loopback nothing pairs, unless asked to with --pair.
 func TestALoopbackServerPairsNothing(t *testing.T) {
-	was := bindAddr
-	t.Cleanup(func() { bindAddr, pairs = was, nil })
+	was, wasHere := bindAddr, pairHere
+	t.Cleanup(func() { bindAddr, pairHere, pairs = was, wasHere, nil })
 	for _, b := range []string{"", "127.0.0.1", "localhost", "[::1]:8080"} {
 		bindAddr = b
 		if pairingWanted() {
@@ -74,6 +74,19 @@ func TestALoopbackServerPairsNothing(t *testing.T) {
 		bindAddr = b
 		if !pairingWanted() {
 			t.Errorf("--bind %q does not pair", b)
+		}
+	}
+	pairHere = true
+	for _, b := range []string{"", "127.0.0.1", "localhost"} {
+		bindAddr = b
+		if !pairingWanted() {
+			t.Errorf("--bind %q --pair does not pair", b)
+		}
+		if !boundToLoopback() {
+			t.Errorf("--bind %q is not taken for loopback", b)
+		}
+		if a := reachableAddrs(); len(a) != 1 || (a[0] != "127.0.0.1" && a[0] != "localhost") {
+			t.Errorf("--bind %q --pair links to %v", b, a)
 		}
 	}
 }
