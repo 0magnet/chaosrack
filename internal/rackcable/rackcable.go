@@ -19,6 +19,7 @@ import (
 	"strconv"
 
 	"github.com/0magnet/chaosrack/pkg/attractor"
+	"github.com/0magnet/chaosrack/pkg/memreport"
 	"github.com/0magnet/chaosrack/pkg/rackpic"
 	"github.com/0magnet/chaosrack/pkg/racksurface"
 	"github.com/0magnet/chaosrack/pkg/racktui"
@@ -320,4 +321,19 @@ func (r *Client) Manual(bay int) (racktui.ManualPage, error) {
 	}
 	err := json.Unmarshal([]byte(s), &pg)
 	return pg, err
+}
+
+// ── memory ───────────────────────────────────────────────────────────────
+
+// Mem is the page's account of its memory (memreport.Report).
+func (r *Client) Mem() (memreport.Report, error) {
+	var rep memreport.Report
+	s, _ := r.c.Eval(`typeof rackctl.mem === 'function' ? rackctl.mem() : ''`).(string)
+	if s == "" {
+		return rep, errors.New("the page has no rackctl.mem — is it an older build?")
+	}
+	if err := json.Unmarshal([]byte(s), &rep); err != nil {
+		return rep, fmt.Errorf("reading the page's memory: %w", err)
+	}
+	return rep, nil
 }

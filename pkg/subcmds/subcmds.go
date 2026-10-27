@@ -1,6 +1,6 @@
 // Package subcmds holds the chaosrack subcommands that run the same on a host
-// and in the page: ctl and rack drive the running rack, and render and models
-// draw models with no browser at all.
+// and in the page: ctl and rack drive the running rack, mem reads its memory,
+// and render and models draw models with no browser at all.
 //
 // They print through their command's output and write files through cmdfs,
 // because in the page the os package's stdout is the browser console and it
@@ -38,9 +38,9 @@ type Dialer struct {
 	Dial func() (*rackcable.Client, error)
 }
 
-// Commands are ctl, rack, render, models and manual, built fresh.
+// Commands are ctl, rack, render, models, manual and mem, built fresh.
 func Commands(d Dialer) []*cobra.Command {
-	cmds := []*cobra.Command{newCtlCmd(d), newRackCmd(d), newRenderCmd(), newModelsCmd(), newManualCmd(d)}
+	cmds := []*cobra.Command{newCtlCmd(d), newRackCmd(d), newRenderCmd(), newModelsCmd(), newManualCmd(d), newMemCmd(d)}
 	for _, c := range cmds {
 		run := c.RunE
 		c.RunE = func(cmd *cobra.Command, args []string) error {

@@ -5,6 +5,7 @@ package attractor
 import (
 	"encoding/json"
 	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/memreport"
 	"syscall/js"
 )
 
@@ -94,6 +95,10 @@ func exposeRackControl() {
 		}
 		return string(b)
 	}))
+
+	// mem() → the page's memory, as JSON: what `chaosrack mem` prints
+	// (memreport.Report).
+	o.Set("mem", dom.FuncOf(func(js.Value, []js.Value) any { return memreport.JSON() }))
 
 	js.Global().Set("rackctl", o)
 	startRackLink()
