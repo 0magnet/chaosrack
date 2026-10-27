@@ -122,6 +122,7 @@ uses the microphone or the built-in generators.
 | `--audio` | stream system audio to the page (`--audio-source default` for the input instead of the monitor) |
 | `-p`, `--port` | port, default 8080 |
 | `-b`, `--bind` | address, default 127.0.0.1; `0.0.0.0` serves the LAN by [pairing](docs/remote-access.md#from-another-machine-pairing) |
+| `--pair` | on loopback: pair the public page in a browser on this machine, so it gets this server's audio ([how](docs/remote-access.md#on-this-machine-the-public-page-this-servers-audio)) |
 | `--shell`, `--fs` | a real shell and filesystem in the page's desk — see [Remote access](#remote-access) |
 | `--wobbulate` | route system audio through the [FVF wobbulator](#fvf--harmonic-wobbulator) |
 
@@ -1939,6 +1940,7 @@ chaosrack serve --shell                    # a real pty in a desk window
 chaosrack serve --fs --fs-root ~/projects  # host files for the shell and file manager, confined
 chaosrack serve --shell --auth             # on a shared machine: token printed, not embedded
 chaosrack serve -b 0.0.0.0 --audio         # serve the LAN; other browsers pair once
+chaosrack serve --audio --pair             # chaosrack.magnetosphere.net gets this machine's audio
 ```
 
 - `--shell` and `--fs` refuse a non-loopback bind.
@@ -1953,6 +1955,9 @@ chaosrack serve -b 0.0.0.0 --audio         # serve the LAN; other browsers pair 
   certificate hash and a pair secret in its fragment; the page signs each
   session with an ed25519 key. Paired keys are in
   `~/.config/chaosrack/paired-tabs`.
+- `--pair` does the same on loopback, so the public page in a browser on this
+  machine gets the server's audio and rack link (after the browser's one-time
+  "access this device" prompt).
 
 Threat model and details: [docs/remote-access.md](docs/remote-access.md).
 

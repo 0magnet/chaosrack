@@ -29,24 +29,29 @@ import (
 	"github.com/0magnet/chaosrack/pkg/wtaudio"
 )
 
-// Who may use the privileged channels, and how a browser on another machine
-// comes to be one of them (pkg/pairing has the why).
+// Who may use the privileged channels, and how a page this server did not
+// serve comes to be one of them (pkg/pairing has the why).
 //
 // On loopback — the default — nothing here is switched on but the names:
 // a page is this machine's when its Origin is its Host and that Host is a
 // loopback name or one given with --host.
 //
-// Bound elsewhere (--bind), the server also pairs browsers. It prints a
-// link to the Pages build carrying its WebTransport address, its
-// certificate hashes and a secret; a browser that opens it keeps a key, and
-// each session it opens is signed with that key inside TLS pinned to the
-// certificate. A page fetched from this server over plain http to another
-// machine is only for looking at: what it is made of could have been
-// changed on the way, and it gets no channel.
+// Bound elsewhere (--bind), the server also pairs browsers; so does a
+// loopback server asked to with --pair, for the Pages build open in a
+// browser on this machine. It prints a link to the Pages build carrying its
+// WebTransport address, its certificate hashes and a secret; a browser that
+// opens it keeps a key, and each session it opens is signed with that key
+// inside TLS pinned to the certificate. Any other site's page is refused as
+// before: it has no key the server knows, and no secret to pair one with. A
+// page fetched from this server over plain http to another machine is only
+// for looking at: what it is made of could have been changed on the way, and
+// it gets no channel.
 
 var (
 	trustedHosts []string
 	pairPage     string
+	// pairHere pairs browsers on a loopback server too (--pair).
+	pairHere bool
 
 	// pairDir is where pairing keeps its files; empty is the user's config
 	// directory. A variable for the tests.
@@ -57,7 +62,8 @@ var (
 
 func init() {
 	runCmd.Flags().StringSliceVar(&trustedHosts, "host", nil, "another name this server's page is reached by on this machine (a reverse proxy's), trusted as localhost is; repeatable")
-	runCmd.Flags().StringVar(&pairPage, "pair-page", "https://chaosrack.magnetosphere.net/", "the https page a pair link opens, for browsers on other machines (--bind)")
+	runCmd.Flags().StringVar(&pairPage, "pair-page", "https://chaosrack.magnetosphere.net/", "the https page a pair link opens (--bind, --pair)")
+	runCmd.Flags().BoolVar(&pairHere, "pair", false, "pair browsers on this machine too: print a link that gives the --pair-page site's page this server's audio and controls at 127.0.0.1 (a loopback server otherwise serves only its own pages)")
 }
 
 // browserOK is the rule for a page's request: see pairing.Browser.
@@ -69,14 +75,18 @@ func trustedPageHost(r *http.Request) bool {
 	return pairing.TrustedName(hostOf(r.Host), trustedHosts)
 }
 
-// pairingWanted reports whether the server is reachable from elsewhere.
-func pairingWanted() bool {
+// pairingWanted reports whether the server pairs browsers: when it is
+// reachable from elsewhere, or asked to with --pair.
+func pairingWanted() bool { return pairHere || !boundToLoopback() }
+
+// boundToLoopback reports whether only this machine can reach the server.
+func boundToLoopback() bool {
 	h := listenHost()
 	if strings.EqualFold(h, "localhost") {
-		return false
+		return true
 	}
 	ip := net.ParseIP(h)
-	return ip == nil || !ip.IsLoopback()
+	return ip != nil && ip.IsLoopback()
 }
 
 // The files pairing keeps.
@@ -271,7 +281,7 @@ func allowWT(r *http.Request) bool {
 	}
 	if err == nil {
 		if pairs == nil {
-			err = errors.New("pairing: this server pairs no browsers (it is bound to loopback)")
+			err = errors.New("pairing: this server pairs no browsers (it is bound to loopback, without --pair)")
 		} else {
 			err = pairs.admit(pr, r.URL.Path, time.Now())
 		}
@@ -299,7 +309,7 @@ func mountPairing() {
 		return
 	}
 	if wtSrv == nil {
-		log.Printf("chaosrack: browsers on other machines cannot pair: WebTransport is off, and pairing is made over it")
+		log.Printf("chaosrack: browsers cannot pair: WebTransport is off, and pairing is made over it")
 		return
 	}
 	wtSrv.Handle(pairing.PathHello, serveHello)
@@ -359,7 +369,11 @@ func printPairLinks() {
 		l.Audio = "wt"
 	}
 	port := strconv.Itoa(wtPort())
-	fmt.Printf("\nchaosrack: reachable from other machines. A browser there pairs once, by opening a link below;\n")
+	if boundToLoopback() {
+		fmt.Printf("\nchaosrack: pairing (--pair). A browser on this machine pairs once, by opening the link below;\n")
+	} else {
+		fmt.Printf("\nchaosrack: reachable from other machines. A browser there pairs once, by opening a link below;\n")
+	}
 	fmt.Printf("chaosrack:   its page comes from %s over https, and the rack's channels\n", pairPage)
 	fmt.Printf("chaosrack:   reach it over WebTransport, encrypted, pinned to this server's certificate.\n")
 	fmt.Printf("chaosrack:   The links carry this run's pair secret: open them only in browsers you mean to pair.\n")
@@ -372,7 +386,11 @@ func printPairLinks() {
 	pairs.mu.Unlock()
 	fmt.Printf("chaosrack:   %d browser(s) paired; %s lists them (delete a line to unpair).\n",
 		n, filepath.Join(pairs.dir, pairedFile))
-	fmt.Printf("chaosrack:   A page loaded from this server over plain http elsewhere is for looking only.\n\n")
+	if boundToLoopback() {
+		fmt.Printf("chaosrack:   Its browser asks once to let %s reach this device: allow it.\n\n", pairPage)
+	} else {
+		fmt.Printf("chaosrack:   A page loaded from this server over plain http elsewhere is for looking only.\n\n")
+	}
 }
 
 // wtPort is the WebTransport listener's port number.
