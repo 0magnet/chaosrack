@@ -81,10 +81,12 @@ jobs:
       # not a release: it has the fixes this build depends on — finished
       # goroutine stacks handed back (tinygo-org/tinygo fb9b49d6; before it
       # every JS callback, ~290 a second here, took a fresh 64 KB stack and
-      # each collection stopped the page for 120–150 ms) — and builds this in
-      # a few minutes where the dev image took twenty: interp no longer prints
-      # IR for errors it discards, wasm links without optimizing twice, and
-      # Binaryen is 133.
+      # each collection stopped the page for 120–150 ms), and since fc63e634
+      # those stacks are kept and reused, and the heap grows a quarter at a
+      # time instead of doubling (254 → 22 MB allocated a minute, 79 → 29 MB of
+      # wasm memory) — and builds this in a few minutes where the dev image
+      # took twenty: interp no longer prints IR for errors it discards, wasm
+      # links without optimizing twice, and Binaryen is 133.
       - name: install TinyGo
         run: |
           curl -sSfL https://github.com/0magnet/tinygo/releases/download/toolchain/tinygo.linux-amd64.tar.gz | tar -xz -C "$RUNNER_TEMP"
