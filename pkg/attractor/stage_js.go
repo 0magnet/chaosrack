@@ -24,6 +24,9 @@ import (
 // docked in a host's footer.
 var stage = struct{ x0, y0, x1, y1 float64 }{0, 0, 1, 1}
 
+// panelCtx is the live collection of the panels terminal windows hold.
+var panelCtx js.Value
+
 // measureStage reads where the panel is and makes the stage the rest of the
 // window, then gives the trace program the projection for it.
 func measureStage() {
@@ -61,11 +64,27 @@ func measureStage() {
 // the whole window, and clipped to the window. The panel kept off screen
 // while the terminal's window has the rack is not it. ok is false when no
 // panel is on screen.
+//
+// The panels are found by id and by a live collection of the class, which
+// the page keeps current. querySelectorAll("#controls-panel, .cp-ctx") walked
+// all twenty-five thousand nodes for them: 6.5 ms, twice a second. Only one
+// of them is on screen at a time, so the order they are looked at in does
+// not change the answer.
 func panelCover() (left, top, right, bottom float64, ok bool) {
 	w, h := winW(), winH()
-	els := dom.Doc.Call("querySelectorAll", "#controls-panel, .cp-ctx")
-	for i := range els.Length() {
-		el := els.Index(i)
+	if panelCtx.IsUndefined() {
+		panelCtx = dom.Doc.Call("getElementsByClassName", "cp-ctx")
+	}
+	n := panelCtx.Length()
+	for i := -1; i < n; i++ {
+		var el js.Value
+		if i < 0 {
+			if el = dom.Doc.Call("getElementById", "controls-panel"); el.IsNull() {
+				continue
+			}
+		} else {
+			el = panelCtx.Index(i)
+		}
 		r := el.Call("getBoundingClientRect")
 		if r.Get("right").Float() <= 0 || r.Get("left").Float() >= w || r.Get("width").Float() == 0 || r.Get("height").Float() == 0 {
 			continue
