@@ -41,6 +41,10 @@ type Client struct {
 	Monitor int
 	// Capacity overrides the slots-per-row the page reports.
 	Capacity int
+
+	// browser asks the browser for the tab's memory; nil where the cable
+	// cannot (in the page itself, or dialed to raise the tab).
+	browser func() (*memreport.Browser, error)
 }
 
 // Over is the rack in the page ev evaluates in.
@@ -325,7 +329,8 @@ func (r *Client) Manual(bay int) (racktui.ManualPage, error) {
 
 // ── memory ───────────────────────────────────────────────────────────────
 
-// Mem is the page's account of its memory (memreport.Report).
+// Mem is the page's account of its memory (memreport.Report), with the
+// browser's account of the tab's process where the cable can ask for it.
 func (r *Client) Mem() (memreport.Report, error) {
 	var rep memreport.Report
 	s, _ := r.c.Eval(`typeof rackctl.mem === 'function' ? rackctl.mem() : ''`).(string)
@@ -334,6 +339,13 @@ func (r *Client) Mem() (memreport.Report, error) {
 	}
 	if err := json.Unmarshal([]byte(s), &rep); err != nil {
 		return rep, fmt.Errorf("reading the page's memory: %w", err)
+	}
+	if r.browser != nil {
+		if b, err := r.browser(); err != nil {
+			rep.BrowserErr = err.Error()
+		} else {
+			rep.Browser = b
+		}
 	}
 	return rep, nil
 }

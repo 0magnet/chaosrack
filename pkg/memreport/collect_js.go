@@ -14,7 +14,8 @@ import (
 // inst is the page's top-level binding for the running instance (index.html,
 // tinygo/index.html); the Go build exports its memory as mem, TinyGo as
 // memory. A worker's fetches are not in the page's resource timing, so the
-// meters worker's module is not listed.
+// meters worker's module is not listed. window.__crDiag is the page's counters
+// (assets/diag.js), present when the page was served from this template.
 const pageSide = `return (function(){
   var out = {modules: [], canvases: [], resources: []};
   try {
@@ -27,6 +28,7 @@ const pageSide = `return (function(){
     out.js_heap_total = performance.memory.totalJSHeapSize;
   }
   out.uptime_s = performance.now() / 1000;
+  if (window.__crDiag) out.bridge = window.__crDiag.snapshot();
   out.elements = document.getElementsByTagName('*').length;
   document.querySelectorAll('.sect').forEach(function(s){
     var hdr = s.querySelector('.sect-hdr');
@@ -70,6 +72,7 @@ func Collect() Report {
 		Sys:          ms.Sys,
 		TotalAlloc:   ms.TotalAlloc,
 		NumGC:        ms.NumGC,
+		PauseTotalNs: ms.PauseTotalNs,
 	}
 	return r
 }
