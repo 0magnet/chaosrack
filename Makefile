@@ -305,20 +305,24 @@ pages: ## Regenerate the deployed index.html / go/index.html / tinygo/index.html
 	@# go/index.html is deployed and routed like the other two, and was the one
 	@# this target forgot: a template fix reached / and /tinygo/ and left /go/
 	@# on whatever it was built from, which is the same drift by a quieter road.
-	@# And refuse to run against a server that is already there. go run compiles
-	@# a 23 MB embedded asset before it execs, so the window between starting
-	@# this and the port being listened on is minutes long — long enough to
-	@# start a second one, have it fail to bind, and have the curls below fetch
-	@# three pages from the FIRST server's older binary and report success.
-	@# That is how a template fix and a payload fix both got saved as pages
-	@# built without them.
-	@port=$${PAGES_PORT:-8399}; \
+	@# And refuse to run against a server that is already there. The build
+	@# compiles a 23 MB embedded asset and takes minutes, long enough to start
+	@# a second one, have it fail to bind, and have the curls below fetch three
+	@# pages from the FIRST server's older binary and report success. That is
+	@# how a template fix and a payload fix both got saved as pages built
+	@# without them. Hence the check after the build, just before the serve.
+	@# Built and then run, not go run: killing go run leaves the server it
+	@# started serving, which held the port against the next run and held
+	@# open the output of anything this was piped into.
+	@port=$${PAGES_PORT:-8399}; bin=$$(mktemp -d)/chaosrack; \
+	trap "rm -rf $${bin%/*}" EXIT; \
+	go build -o $$bin . || exit 1; \
 	if curl -sf -o /dev/null -m 2 "http://127.0.0.1:$$port/" 2>/dev/null; then \
 		echo "pages: something is already serving 127.0.0.1:$$port — stop it, or set PAGES_PORT" >&2; \
 		exit 1; \
 	fi; \
-	go run . serve -p $$port & srv=$$!; \
-	trap "kill $$srv 2>/dev/null" EXIT INT TERM; \
+	$$bin serve -p $$port & srv=$$!; \
+	trap "kill $$srv 2>/dev/null; rm -rf $${bin%/*}" EXIT INT TERM; \
 	for i in $$(seq 1 300); do \
 		curl -sf -o /dev/null "http://127.0.0.1:$$port/" && break || sleep 1; \
 	done; \
