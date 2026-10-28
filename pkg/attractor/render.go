@@ -141,6 +141,7 @@ type rotationKnobs struct {
 	led     [3]js.Value // degree readout per axis
 	ready   bool
 	lastDeg [3]int
+	lastMs  float64 // when follow last wrote, in rAF time
 }
 
 var rotKnobs = rotationKnobs{
@@ -174,10 +175,27 @@ func addAngleAxis(axis int, d float32) {
 	rotKnobs.update()
 }
 
+// followMs is how often the readouts follow a view that turns on its own.
+const followMs = 250
+
+// follow is update for the render loop, where the view turns on its own: at
+// most every followMs. Every write repaints the panel, and on this page any
+// repaint there makes Chrome re-layerize the whole panel (a changed paint
+// chunk's bounds or effect is enough), 5–10 ms each. A spin wrote a new degree
+// on most frames, so it re-layerized on most frames. A knob being turned still
+// answers at once: its handlers call update.
+func (r *rotationKnobs) follow() {
+	if frameNowMs > 0 && frameNowMs >= r.lastMs && frameNowMs-r.lastMs < followMs {
+		return
+	}
+	r.lastMs = frameNowMs
+	r.update()
+}
+
 // update rotates each knob's pointer and refreshes its LED readout
 // to match the live angle. Cheap: it only touches the DOM for an axis
-// whose integer degree changed since the last frame, so a held pose costs
-// nothing and a spin is ~2 writes/frame per moving axis.
+// whose integer degree changed since the last write, so a held pose costs
+// nothing. The render loop calls follow instead.
 func (r *rotationKnobs) update() {
 	if !r.ready {
 		return
@@ -945,7 +963,7 @@ func renderLoop(this js.Value, args []js.Value) any {
 	view.angleY = wrapTwoPi(view.angleY)
 	view.angleZ = wrapTwoPi(view.angleZ)
 	view.rebuildModelMatrix()
-	rotKnobs.update()
+	rotKnobs.follow()
 
 	view.updateModelMatrix()
 	restoreAudioModulation(viewSaved) // put zoom/pan/spin base values back
