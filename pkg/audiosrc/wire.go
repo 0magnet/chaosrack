@@ -33,6 +33,9 @@ var Float32ToBytes = wsaudio.Float32ToBytes
 // BytesToFloat32 decodes what Float32ToBytes produced.
 var BytesToFloat32 = wsaudio.BytesToFloat32
 
+// BytesToFloat32Into decodes into a buffer that is reused.
+var BytesToFloat32Into = wsaudio.BytesToFloat32Into
+
 // SplitDatagrams fragments one audio chunk into datagrams.
 var SplitDatagrams = wsaudio.SplitDatagrams
 

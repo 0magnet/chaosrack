@@ -73,13 +73,21 @@ func (m MonoMode) String() string {
 // means the stream is not what it claims to be, and inventing the missing
 // sample would put a click in every reader rather than in none.
 func deinterleave(src []float32, mode MonoMode) (l, r, mono []float32) {
+	return deinterleaveInto(nil, nil, nil, src, mode)
+}
+
+// deinterleaveInto is deinterleave into the arrays of l, r and mono, grown
+// only when they are too small: the rings take a chunk every few tens of
+// milliseconds, and copy what they are given.
+func deinterleaveInto(l, r, mono, src []float32, mode MonoMode) ([]float32, []float32, []float32) {
 	n := len(src) / 2
 	if n == 0 {
 		return nil, nil, nil
 	}
-	l = make([]float32, n)
-	r = make([]float32, n)
-	mono = make([]float32, n)
+	if cap(l) < n || cap(r) < n || cap(mono) < n {
+		l, r, mono = make([]float32, n), make([]float32, n), make([]float32, n)
+	}
+	l, r, mono = l[:n], r[:n], mono[:n]
 	for i := range n {
 		l[i] = src[2*i]
 		r[i] = src[2*i+1]
@@ -118,6 +126,9 @@ type stereoRings struct {
 	fold *ring
 	l, r *ring
 	mono MonoMode
+
+	// sl, sr and sm are the scratch write de-interleaves each chunk into.
+	sl, sr, sm []float32
 }
 
 // newStereoRings sizes the rings for a stream of the given channel count.
@@ -143,10 +154,11 @@ func (s *stereoRings) write(samples []float32) bool {
 		s.fold.write(samples)
 		return true
 	}
-	l, r, mono := deinterleave(samples, s.mono)
+	l, r, mono := deinterleaveInto(s.sl, s.sr, s.sm, samples, s.mono)
 	if len(mono) == 0 {
 		return false
 	}
+	s.sl, s.sr, s.sm = l, r, mono
 	s.l.write(l)
 	s.r.write(r)
 	s.fold.write(mono)

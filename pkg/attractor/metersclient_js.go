@@ -31,7 +31,8 @@ type metersClient struct {
 	w      js.Value // the Worker
 	wReady bool     // its Go instance has reported in
 	wTried bool
-	wCfg   string // the last config sent, to avoid resending it
+	wCfg   metersproto.Config // the last config sent, to avoid resending it
+	wSent  bool               // whether wCfg has been sent since the worker last started
 	wl     js.Value
 	wr     js.Value
 	wlb    js.Value // byte views of wl and wr, which the blocks are copied in by
@@ -94,7 +95,7 @@ func (me *metersClient) onMetersMessage(data js.Value) {
 	switch msg.T {
 	case metersproto.TypeReady:
 		me.wReady = true
-		me.wCfg = "" // the far side knows nothing yet; tell it on the next block
+		me.wSent = false // the far side knows nothing yet; tell it on the next block
 	case metersproto.TypeResult:
 		if msg.V == nil {
 			return
@@ -131,9 +132,11 @@ func metersWorkerWant() uint8 {
 }
 
 // sendMetersConfig tells the worker what the panel's switches say, and only
-// when one of them has moved.
+// when one of them has moved. The settings are compared as they are and
+// marshaled only to be sent: marshaling them to compare the text ran
+// encoding/json every tick for an answer that was nearly always "the same".
 func (me *metersClient) sendMetersConfig(sr int) {
-	b, err := json.Marshal(metersproto.Config{
+	cfg := metersproto.Config{
 		SampleRate: sr,
 		ThdPeriod:  thd.periodMs,
 		ThdHarm:    int(thd.harmF),
@@ -142,15 +145,16 @@ func (me *metersClient) sendMetersConfig(sr int) {
 		WfNominal:  float64(wow.nominal),
 		LufsPeriod: lufs.periodMs,
 		Want:       me.wantNow,
-	})
+	}
+	if me.wSent && cfg == me.wCfg {
+		return
+	}
+	b, err := json.Marshal(cfg)
 	if err != nil {
 		return
 	}
 	s := string(b)
-	if s == me.wCfg {
-		return
-	}
-	me.wCfg = s
+	me.wCfg, me.wSent = cfg, true
 	m := js.Global().Get("Object").New()
 	m.Set("t", metersproto.TypeConfig)
 	m.Set("v", s)
@@ -185,7 +189,7 @@ func (me *metersClient) workerTick() bool {
 	want := metersWorkerWant()
 	if want != me.wantNow {
 		me.wantNow = want
-		me.wCfg = "" // the far side is told on the next block
+		me.wSent = false // the far side is told on the next block
 	}
 	sr := takensSourceRate()
 	if sr <= 0 {

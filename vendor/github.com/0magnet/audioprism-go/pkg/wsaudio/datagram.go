@@ -137,16 +137,33 @@ type Reassembler struct {
 
 	seen    bool
 	id      uint16
-	frags   [][]byte
+	frags   [][]byte // one per fragment of the message; kept, with their arrays, for the next
+	got     []bool   // which of frags hold this message's fragment
 	missing int
+	out     []byte // the payload Next returns, kept for the next
 }
 
 // Push feeds one received datagram in and returns the completed payload
 // when this datagram was the last piece missing, otherwise nil.
 //
 // The datagram's bytes are copied, so the caller may reuse its buffer —
-// the browser side reads every datagram into one scratch slice.
+// the browser side reads every datagram into one scratch slice. The payload
+// is the caller's to keep; Next is Push for a caller that is done with it
+// before the next datagram, and allocates nothing.
 func (r *Reassembler) Push(dg []byte) []byte {
+	if out := r.Next(dg); out != nil {
+		return append([]byte(nil), out...)
+	}
+	return nil
+}
+
+// Next is Push, except that the payload it returns is only good until the
+// next call: it is the Reassembler's own buffer. The fragments are kept in
+// buffers of its own too, so once it has seen a message as large as the
+// ones that follow it allocates nothing. A page receives a message every
+// few tens of milliseconds for as long as it runs; Push made three
+// allocations for each.
+func (r *Reassembler) Next(dg []byte) []byte {
 	if len(dg) <= DatagramHeaderSize {
 		return nil // header-only or truncated: nothing to reassemble
 	}
@@ -164,8 +181,7 @@ func (r *Reassembler) Push(dg []byte) []byte {
 		}
 		r.seen = true
 		r.id = id
-		r.frags = make([][]byte, count)
-		r.missing = count
+		r.start(count)
 	case id != r.id:
 		// A straggler from a message we already completed or gave up
 		// on. Restarting it would deliver audio out of order behind
@@ -173,35 +189,48 @@ func (r *Reassembler) Push(dg []byte) []byte {
 		return nil
 	case r.missing == 0:
 		return nil // duplicate arriving after this message completed
-	case count != len(r.frags):
+	case count != len(r.got):
 		return nil // same ID, different fragment count: not the same message
 	}
 
-	if r.frags[idx] != nil {
+	if r.got[idx] {
 		return nil // duplicate fragment; QUIC does not promise not to
 	}
-	r.frags[idx] = append([]byte(nil), payload...)
+	r.frags[idx] = append(r.frags[idx][:0], payload...)
+	r.got[idx] = true
 	r.missing--
 	if r.missing > 0 {
 		return nil
 	}
 
-	n := 0
+	r.out = r.out[:0]
 	for _, f := range r.frags {
-		n += len(f)
+		r.out = append(r.out, f...)
 	}
-	out := make([]byte, 0, n)
-	for _, f := range r.frags {
-		out = append(out, f...)
+	return r.out
+}
+
+// start makes ready for a message of count fragments, keeping the buffers
+// of the last one.
+func (r *Reassembler) start(count int) {
+	if cap(r.frags) < count {
+		frags := make([][]byte, count)
+		copy(frags, r.frags[:cap(r.frags)])
+		r.frags = frags
+		r.got = make([]bool, count)
 	}
-	return out
+	r.frags = r.frags[:count]
+	r.got = r.got[:count]
+	clear(r.got)
+	r.missing = count
 }
 
 // Reset forgets any partially received message, for a caller that has
 // just reconnected and knows the fragments in flight are worthless.
 func (r *Reassembler) Reset() {
 	r.seen = false
-	r.frags = nil
+	clear(r.got)
+	r.got = r.got[:0]
 	r.missing = 0
 }
 

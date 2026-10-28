@@ -4,7 +4,7 @@ go 1.26.7
 
 require (
 	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992
-	github.com/0magnet/audioprism-go v0.0.1-0.20261027104406-ba52e8670354
+	github.com/0magnet/audioprism-go v0.0.1-0.20261028001638-4f4dd56c690e
 	github.com/0magnet/calvin v0.0.1-0.20261013221715-da6581155df3
 	github.com/0magnet/cdp v0.0.0-20261013220930-98e232fae01d
 	github.com/0magnet/desk v0.0.3-0.20261027104809-0f433998fc14
