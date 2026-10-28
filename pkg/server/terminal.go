@@ -40,12 +40,18 @@ var (
 )
 
 // dialRack opens the cable, defaulting to a tab on this binary's own port.
-func dialRack() (*rackcable.Client, error) {
+// The panel brings the tab to the front, so the page draws at full rate;
+// anything that only reads or sets a value leaves the browser as it is.
+func dialRack(front bool) (*rackcable.Client, error) {
 	t := attachTo
 	if t == "" {
 		t = fmt.Sprintf("127.0.0.1:%d", webPort)
 	}
-	c, err := rackcable.Dial(cdpPort, t)
+	dial := rackcable.DialBackground
+	if front {
+		dial = rackcable.Dial
+	}
+	c, err := dial(cdpPort, t)
 	if err != nil {
 		return nil, fmt.Errorf("%w (looking for a tab whose URL contains %q on CDP port %d)", err, t, cdpPort)
 	}
@@ -61,7 +67,7 @@ func RackDialer() subcmds.Dialer {
 			fs.IntVar(&cdpPort, "cdp", 9222, "the browser's remote-debugging port")
 			fs.StringVar(&attachTo, "attach", "", "substring of the tab's URL (default: 127.0.0.1:8080)")
 		},
-		Dial: dialRack,
+		Dial: func() (*rackcable.Client, error) { return dialRack(false) },
 	}
 }
 
@@ -119,7 +125,7 @@ func Panel(ctx context.Context) error {
 		}
 	}
 	if tuiVia == "cdp" {
-		c, err := dialRack()
+		c, err := dialRack(true)
 		if err != nil {
 			return err
 		}

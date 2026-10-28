@@ -83,6 +83,7 @@ window.__crWT = {
 </head>
 <body style="margin: 0; padding: 0; width: 100%; height: 100%; background-color: black; color: white;">
 <script>{{.Boot}}</script>
+<script>{{.Diag}}</script>
 <!-- Crawlable description (the live UI is drawn on a WebGL canvas by WebAssembly). -->
 <div style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">
 <h1>chaosrack — an analog computer in the browser</h1>
@@ -221,6 +222,7 @@ function __whenDOMReady(fn) {
 // program building the panel — which look identical from the outside and
 // want completely different fixes.
 performance.mark("wasm-compile-start");
+__crDiag.wrap(go); // counts the bridge's calls before the program makes any (assets/diag.js)
 const __ready = __instantiate(go.importObject);
 __whenDOMReady(() => __ready.then((result) => {
   mod = result.module; inst = result.instance;
@@ -287,6 +289,7 @@ function __instantiate(imports) {
   return __wasmBytes().then((bin) => WebAssembly.instantiate(bin, imports));
 }
 {{end}}
+__crDiag.wrap(go); // counts the bridge's calls before the program makes any (assets/diag.js)
 const __ready = __instantiate(go.importObject);
 __whenDOMReady(() => __ready.then((result) => {
   mod = result.module;

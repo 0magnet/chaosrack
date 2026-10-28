@@ -672,8 +672,9 @@ func startBackgroundTasks() {
 	// Last of the wiring: the reveal chord hides the whole control surface, so
 	// it must run after every piece of that surface exists and has been placed.
 	initPanelRevealChord()
-	initHostPage() // centers the backdrop on a host element, if one was named
-	wireStage()    // the model drawn where the panel leaves room (stage_js.go)
+	initHostPage()  // centers the backdrop on a host element, if one was named
+	startHandleGC() // the Go build releases the JS values it holds (handlegc_js.go)
+	wireStage()     // the model drawn where the panel leaves room (stage_js.go)
 
 	// Window resize: keep canvas pixel dimensions in sync with the
 	// viewport so the model doesn't get stretched when devtools opens

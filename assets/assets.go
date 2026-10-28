@@ -22,3 +22,10 @@ var IndexTemplate string
 //
 //go:embed bootpreview.js
 var BootPreviewJS string
+
+// DiagJS counts what the page's Go program does to the browser, for
+// `chaosrack mem` (see the file); the template runs it before the program
+// starts, so it can count the bridge's imports.
+//
+//go:embed diag.js
+var DiagJS string
