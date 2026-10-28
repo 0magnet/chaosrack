@@ -149,8 +149,9 @@ type wtSource struct {
 
 	wt     js.Value
 	reader js.Value
-	queue  jsQueue // the datagrams read and not yet taken; see pump
-	buf    []byte  // scratch for one datagram; Reassembler.Push copies
+	queue  jsQueue   // the datagrams read and not yet taken; see pump
+	buf    []byte    // scratch for one datagram; the Reassembler copies it
+	pcm    []float32 // scratch for one message's samples; the rings copy them
 
 	// fallback is the WebSocket Source that takes over once we give up.
 	// Non-nil means every method below delegates and this source is
@@ -348,7 +349,7 @@ func (w *wtSource) consume(val js.Value) {
 	}
 	b := w.buf[:n]
 	js.CopyBytesToGo(b, val)
-	payload := w.ra.Push(b)
+	payload := w.ra.Next(b) // the Reassembler's own buffer, decoded below before the next
 	if payload == nil {
 		return
 	}
@@ -362,7 +363,12 @@ func (w *wtSource) consume(val js.Value) {
 	// it would have its channels swapped, for the rest of the session. The
 	// reassembler never delivers a partial message; it abandons it whole. The
 	// cost of a loss is therefore one chunk of audio and never the alignment.
-	if samples := BytesToFloat32(payload); w.rings.write(samples) {
+	//
+	// Decoded into the same buffer every time: a message arrives every few tens
+	// of milliseconds for as long as the page is open, and a slice made for
+	// each was most of what the page allocated while audio played.
+	w.pcm = BytesToFloat32Into(w.pcm, payload)
+	if w.rings.write(w.pcm) {
 		w.ready = true
 	}
 }

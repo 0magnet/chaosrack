@@ -43,13 +43,24 @@ func Float32ToBytes(samples []float32) []byte {
 // short tail can only come from a peer writing a different format, and
 // dropping three bytes of it beats discarding the audio that did arrive.
 func BytesToFloat32(b []byte) []float32 {
-	n := len(b) / 4
-	if n == 0 {
+	if len(b) < 4 {
 		return nil
 	}
-	samples := make([]float32, n)
-	for i := range samples {
-		samples[i] = math.Float32frombits(binary.LittleEndian.Uint32(b[i*4:]))
+	return BytesToFloat32Into(make([]float32, 0, len(b)/4), b)
+}
+
+// BytesToFloat32Into is BytesToFloat32 decoding into dst's array, grown only
+// when it is too small, for a reader that decodes a message every few tens
+// of milliseconds into the same buffer. It returns the samples, dst's array
+// when it was large enough.
+func BytesToFloat32Into(dst []float32, b []byte) []float32 {
+	n := len(b) / 4
+	if cap(dst) < n {
+		dst = make([]float32, n)
 	}
-	return samples
+	dst = dst[:n]
+	for i := range dst {
+		dst[i] = math.Float32frombits(binary.LittleEndian.Uint32(b[i*4:]))
+	}
+	return dst
 }
