@@ -36,7 +36,9 @@ func TestEveryTerminalAnimationDraws(t *testing.T) {
 			continue // not one the page offers
 		}
 		set(t, r, "termanim-pick", d.Name)
-		deadline := time.Now().Add(5 * time.Second)
+		// Generous: fireworks starts on an empty sky, and under Node on a loaded
+		// machine its first lit cell took longer than 5 s. Only a failure waits.
+		deadline := time.Now().Add(15 * time.Second)
 		for animLit(r) == 0 && time.Now().Before(deadline) {
 			watch(t, r, c, 0.05)
 			time.Sleep(20 * time.Millisecond) // the demo draws on its own goroutine
