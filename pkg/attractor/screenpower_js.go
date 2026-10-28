@@ -39,6 +39,7 @@ type screenPower struct {
 	// switchID is the module's own on/off switch. Empty means the screen
 	// has no switch and is governed only by whether it is on screen.
 	switchID string
+	sw       js.Value // the switch, once found
 
 	// powered, if set, is the power control when it is not a switch: the
 	// scope's is the bottom of its INTENSITY knob.
@@ -76,8 +77,7 @@ func (p *screenPower) measure(el js.Value) bool {
 		return false
 	}
 	if p.switchID != "" {
-		sw := dom.Doc.Call("getElementById", p.switchID)
-		if sw.Truthy() && !sw.Get("checked").Bool() {
+		if sw := dom.ByID(&p.sw, p.switchID); sw.Truthy() && !sw.Get("checked").Bool() {
 			return false
 		}
 	}

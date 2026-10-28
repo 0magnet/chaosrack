@@ -1478,6 +1478,11 @@ func buildPanelKnobs() {
 	rotKnobs.led[0] = dom.Doc.Call("getElementById", "led-x")
 	rotKnobs.led[1] = dom.Doc.Call("getElementById", "led-y")
 	rotKnobs.led[2] = dom.Doc.Call("getElementById", "led-z")
+	for i, p := range rotKnobs.ptr {
+		if p.Truthy() {
+			rotKnobs.style[i] = p.Get("style")
+		}
+	}
 	rotKnobs.ready = true
 	// Shared drag state (only one knob turns at a time). Document-level
 	// move/up listeners (below) let the drag continue when the cursor

@@ -48,6 +48,17 @@ type recordModule struct {
 	// preview's clock: that one is reset the moment recording stops, and the size
 	// of a GIF is not known until after it has been encoded, which is later still.
 	takeStartMs float64
+
+	// What the chrome around the picture shows, so a frame that changes none
+	// of it touches none of it (updateRecChrome); reset by wireRecordModule,
+	// so a rebuilt module is painted afresh.
+	shown struct {
+		set, live, meterSet bool
+		tc, meterWarn       string
+		meter               int
+	}
+	// The elements a frame reads, kept (dom.ByID).
+	btn, gifSw, meterFill js.Value
 }
 
 var recmod recordModule
@@ -62,6 +73,7 @@ func (r *recordModule) wireRecordModule() {
 	r.tally = dom.Doc.Call("getElementById", "rec-tally")
 	r.counter = dom.Doc.Call("getElementById", "rec-status")
 	r.previewCtx = r.preview.Call("getContext", "2d")
+	r.shown.set, r.shown.meterSet, r.shown.tc = false, false, ""
 
 	wireRecTransport()
 	wireStillButton()
@@ -212,7 +224,7 @@ func (r *recordModule) drawRecOSD(pw, ph, sw, sh float64) {
 		area += "  REGION"
 	}
 	format := "WEBM"
-	if checkedOn("rec-gif-sw") {
+	if sw := dom.ByID(&r.gifSw, "rec-gif-sw"); sw.Truthy() && sw.Get("checked").Bool() {
 		format = "GIF"
 		if live {
 			area += "  " + strconv.Itoa(len(gif.frames)) + "f"
@@ -226,30 +238,30 @@ func (r *recordModule) drawRecOSD(pw, ph, sw, sh float64) {
 
 // updateRecChrome drives the parts outside the picture: the tally lamp, the
 // counter, and the record button's own lit state.
+//
+// It runs every frame and the chrome changes when a take starts or stops and
+// once a second while it runs, so it touches the page only for a change:
+// every class set again, with the element looked up and its classList got
+// again, was a dozen calls into JS a frame and as many objects for Go to
+// finalize.
 func (r *recordModule) updateRecChrome(live bool, tc string) {
-	if r.tally.Truthy() {
-		if live {
-			r.tally.Get("classList").Call("add", "live")
-		} else {
-			r.tally.Get("classList").Call("remove", "live")
+	if !r.shown.set || live != r.shown.live {
+		if r.tally.Truthy() {
+			r.tally.Get("classList").Call("toggle", "live", live)
 		}
-	}
-	if b := dom.Doc.Call("getElementById", "rec-btn"); b.Truthy() {
-		if live {
-			b.Get("classList").Call("add", "armed")
-		} else {
-			b.Get("classList").Call("remove", "armed")
+		if b := dom.ByID(&r.btn, "rec-btn"); b.Truthy() {
+			b.Get("classList").Call("toggle", "armed", live)
 		}
+		if r.counter.Truthy() {
+			r.counter.Get("classList").Call("toggle", "live", live)
+		}
+		r.shown.set, r.shown.live = true, live
 	}
-	if r.counter.Truthy() {
+	if r.counter.Truthy() && tc != r.shown.tc {
 		r.counter.Set("textContent", tc)
-		if live {
-			r.counter.Get("classList").Call("add", "live")
-		} else {
-			r.counter.Get("classList").Call("remove", "live")
-		}
+		r.shown.tc = tc
 	}
-	updateRecMeter(live)
+	r.updateRecMeter(live)
 }
 
 // updateRecMeter fills the media bar with how much of the GIF frame budget the
@@ -262,30 +274,30 @@ func (r *recordModule) updateRecChrome(live bool, tc string) {
 //
 // Amber at three quarters and red at nine tenths, because the interesting thing
 // about the ceiling is not where it is but that you are approaching it.
-func updateRecMeter(live bool) {
-	fill := dom.Doc.Call("getElementById", "rec-meter-fill")
+func (r *recordModule) updateRecMeter(live bool) {
+	pct, warn := 0, ""
+	if live && gif.recording {
+		frac := min(float64(len(gif.frames))/float64(gifMaxFrames), 1)
+		switch {
+		case frac >= 0.9:
+			warn = "full"
+		case frac >= 0.75:
+			warn = "warn"
+		}
+		pct = int(frac * 100)
+	}
+	if r.shown.meterSet && pct == r.shown.meter && warn == r.shown.meterWarn {
+		return
+	}
+	fill := dom.ByID(&r.meterFill, "rec-meter-fill")
 	if !fill.Truthy() {
 		return
 	}
 	cl := fill.Get("classList")
-	cl.Call("remove", "warn")
-	cl.Call("remove", "full")
-
-	if !live || !gif.recording {
-		fill.Get("style").Set("width", "0%")
-		return
-	}
-	frac := float64(len(gif.frames)) / float64(gifMaxFrames)
-	if frac > 1 {
-		frac = 1
-	}
-	switch {
-	case frac >= 0.9:
-		cl.Call("add", "full")
-	case frac >= 0.75:
-		cl.Call("add", "warn")
-	}
-	fill.Get("style").Set("width", strconv.Itoa(int(frac*100))+"%")
+	cl.Call("toggle", "warn", warn == "warn")
+	cl.Call("toggle", "full", warn == "full")
+	fill.Get("style").Set("width", strconv.Itoa(pct)+"%")
+	r.shown.meterSet, r.shown.meter, r.shown.meterWarn = true, pct, warn
 }
 
 // timecode renders seconds as HH:MM:SS, which is what a recorder shows even

@@ -84,8 +84,13 @@ func knobSweep(id string) float64 {
 // It sets --a and nothing else: the pointer is painted at that angle
 // (.knob-ptr in panel.css), so a turn costs a repaint and not, as a transform
 // did, a re-layerization of the whole page.
-func turnPtr(ptr js.Value, deg float64) {
-	ptr.Get("style").Call("setProperty", "--a", strconv.FormatFloat(deg, 'f', 1, 64)+"deg")
+func turnPtr(ptr js.Value, deg float64) { turnStyle(ptr.Get("style"), deg) }
+
+// turnStyle is turnPtr given the pointer's style, for a knob turned every
+// frame: an element's style is the same object every time, and getting it
+// again each turn was a new JS object for Go to finalize.
+func turnStyle(style js.Value, deg float64) {
+	style.Call("setProperty", "--a", strconv.FormatFloat(deg, 'f', 1, 64)+"deg")
 }
 
 func knobAngleForValue(v, lo, hi, sweep float64) float64 {
