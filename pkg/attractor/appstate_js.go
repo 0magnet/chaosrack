@@ -99,10 +99,18 @@ func (s *simulation) reseed() {
 // attractor recovers on its own once the offending depth is dialed back,
 // rather than drifting invisibly at huge coordinates.
 func (s *simulation) checkDiverged() {
-	const lim = 1e4
-	if s.x != s.x || s.y != s.y || s.z != s.z || s.x > lim || s.x < -lim || s.y > lim || s.y < -lim || s.z > lim || s.z < -lim {
+	if diverged(s.x, s.y, s.z) {
 		s.reseed()
 	}
+}
+
+// diverged reports whether a state is NaN or past the bound. It is written
+// to be inlined: the integrators ask once per step, and as a call it was
+// most of a percent of the page's time. A NaN fails every comparison, so
+// the negated range test catches it as the explicit x != x did.
+func diverged(x, y, z float32) bool {
+	const lim = 1e4
+	return !(x <= lim && x >= -lim && y <= lim && y >= -lim && z <= lim && z >= -lim)
 }
 
 // applySpeedLog converts a log10 slider value into speedSteps and speedScale.

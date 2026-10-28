@@ -23,7 +23,9 @@ func generateClassic(mode string) {
 		for range sub {
 			dx, dy, dz := deriv(sim.x, sim.y, sim.z)
 			sim.x, sim.y, sim.z = sim.x+dt*dx, sim.y+dt*dy, sim.z+dt*dz
-			sim.checkDiverged()
+			if diverged(sim.x, sim.y, sim.z) {
+				sim.reseed()
+			}
 		}
 		j := i * 4
 		vertices[j], vertices[j+1], vertices[j+2], vertices[j+3] = sim.x, sim.y, sim.z, float32(i)*invN
