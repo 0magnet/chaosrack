@@ -39,6 +39,31 @@ var rowMonPower = map[string]*screenPower{}
 // frame, so a row that is not driving costs one paint and then nothing.
 var rowMonBlanked = map[string]bool{}
 
+// rowMonScreens are the monitors' canvases and their 2D contexts, by switch
+// id, kept between frames: looking each up again ten times a second was a new
+// JS object for Go to finalize every time, and enough of those set off
+// TinyGo's collections.
+var rowMonScreens = map[string]*rowMonScreen{}
+
+type rowMonScreen struct{ cv, ctx js.Value }
+
+// canvas is the monitor with id and its context, found again if the one kept
+// has left the page.
+func (s *rowMonScreen) canvas(id string) (cv, ctx js.Value) {
+	prev := s.cv
+	cv = dom.ByID(&s.cv, id)
+	if !cv.Truthy() {
+		return cv, js.Undefined()
+	}
+	if !s.ctx.Truthy() || !cv.Equal(prev) {
+		s.ctx = cv.Call("getContext", "2d")
+	}
+	return cv, s.ctx
+}
+
+// rowMonWidth is each caption's width in the monitors' one font, measured once.
+var rowMonWidth = map[string]float64{}
+
 // wireRowMonitors starts the bay monitors. Safe to call before the bays
 // exist, and safe to call again.
 func wireRowMonitors() {
@@ -74,11 +99,16 @@ func drawRowMonitors() {
 	}
 	live := bayOf(run.selectedMode)
 	for _, b := range rackBays {
-		cv := dom.Doc.Call("getElementById", bayMonitorID(b.Label, b.N))
-		if !cv.Truthy() {
+		key := bayMonSwitchID(b.Label, b.N)
+		s := rowMonScreens[key]
+		if s == nil {
+			s = &rowMonScreen{}
+			rowMonScreens[key] = s
+		}
+		cv, ctx := s.canvas(bayMonitorID(b.Label, b.N))
+		if !cv.Truthy() || !ctx.Truthy() {
 			continue
 		}
-		key := bayMonSwitchID(b.Label, b.N)
 		p := rowMonPower[key]
 		if p == nil {
 			continue
@@ -89,13 +119,13 @@ func drawRowMonitors() {
 		// whole rack powered down puts every screen here.
 		if !driving || !p.on(cv) {
 			if !rowMonBlanked[key] {
-				rowMonStandby(cv, b)
+				rowMonStandby(cv, ctx, b)
 				rowMonBlanked[key] = true
 			}
 			continue
 		}
 		rowMonBlanked[key] = false
-		drawRowMonitor(cv)
+		drawRowMonitor(cv, ctx)
 	}
 }
 
@@ -103,11 +133,7 @@ func drawRowMonitors() {
 const rowMonDark = "#05070a"
 
 // drawRowMonitor paints the model onto one screen.
-func drawRowMonitor(cv js.Value) {
-	ctx := cv.Call("getContext", "2d")
-	if !ctx.Truthy() {
-		return
-	}
+func drawRowMonitor(cv, ctx js.Value) {
 	pw := cv.Get("width").Float()
 	ph := cv.Get("height").Float()
 	ctx.Set("fillStyle", rowMonDark)
@@ -148,11 +174,7 @@ func drawRowMonitor(cv js.Value) {
 // rowMonStandby paints the dark face of a screen that is not driving, with
 // the model its row would play burned in — which is the whole reason a
 // standby screen is worth having rather than blank glass.
-func rowMonStandby(cv js.Value, b bayRecord) {
-	ctx := cv.Call("getContext", "2d")
-	if !ctx.Truthy() {
-		return
-	}
+func rowMonStandby(cv, ctx js.Value, b bayRecord) {
 	pw := cv.Get("width").Float()
 	ph := cv.Get("height").Float()
 	ctx.Set("fillStyle", rowMonDark)
@@ -188,7 +210,11 @@ func rowMonID(ctx js.Value, ph float64, name string) {
 	}
 	ctx.Set("font", "9px ui-monospace, monospace")
 	ctx.Set("textBaseline", "alphabetic")
-	w := ctx.Call("measureText", name).Get("width").Float()
+	w, ok := rowMonWidth[name]
+	if !ok {
+		w = ctx.Call("measureText", name).Get("width").Float()
+		rowMonWidth[name] = w
+	}
 	ctx.Set("fillStyle", "rgba(0,0,0,0.55)")
 	ctx.Call("fillRect", 0, ph-13, w+10, 13)
 	ctx.Set("fillStyle", "#8fe3b0")

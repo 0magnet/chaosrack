@@ -130,7 +130,7 @@ type micSource struct {
 	processor js.Value // ScriptProcessorNode
 	onProcess js.Func
 	worklet   js.Value // AudioWorkletNode, when the browser took one
-	batches   jsQueue  // its port's batches, until a reader takes them (jsqueue_js.go)
+	batches   *jsQueue // its port's batches, until a reader takes them (jsqueue_js.go)
 
 	ringL *ring
 	ringR *ring // nil when mono

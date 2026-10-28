@@ -107,6 +107,7 @@ type wsSource struct {
 	// WebTransport source (wsstereo_js.go) because both carry the same bytes
 	// and must therefore make the same sense of two channels.
 	rings *stereoRings
+	pcm   []float32 // scratch for one message's samples; the rings copy them
 
 	// The socket's callbacks and the reconnect timer's, made ONCE and reused
 	// for every socket this source opens. connect() used to build three of
@@ -122,7 +123,7 @@ type wsSource struct {
 
 	// msgs holds the messages until a reader takes them (jsqueue_js.go): a Go
 	// handler per message was a goroutine per message.
-	msgs jsQueue
+	msgs *jsQueue
 
 	reconnecting bool
 	ready        bool
@@ -168,8 +169,11 @@ func (w *wsSource) pump() {
 	if w.closed {
 		return
 	}
-	w.msgs.each(func(data js.Value) {
-		if w.rings.write(decodeWSMessage(data)) {
+	// The queue hands over bytes, base64 text frames already decoded, so a
+	// message costs no JS object and no slice of its own.
+	w.msgs.eachBytes(func(b []byte) {
+		w.pcm = BytesToFloat32Into(w.pcm, b)
+		if w.rings.write(w.pcm) {
 			w.ready = true
 		}
 	})

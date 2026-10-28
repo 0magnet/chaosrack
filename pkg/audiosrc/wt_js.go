@@ -149,8 +149,7 @@ type wtSource struct {
 
 	wt     js.Value
 	reader js.Value
-	queue  jsQueue   // the datagrams read and not yet taken; see pump
-	buf    []byte    // scratch for one datagram; the Reassembler copies it
+	queue  *jsQueue  // the datagrams read and not yet taken; see pump
 	pcm    []float32 // scratch for one message's samples; the rings copy them
 
 	// fallback is the WebSocket Source that takes over once we give up.
@@ -331,24 +330,15 @@ func (w *wtSource) startReading() {
 // pump takes the datagrams that have arrived. Every reader calls it first.
 func (w *wtSource) pump() {
 	if !w.closed {
-		w.queue.each(w.consume)
+		w.queue.eachBytes(w.consume)
 	}
 }
 
-// consume copies one datagram into Go and feeds it to the reassembler.
-func (w *wtSource) consume(val js.Value) {
-	if !val.Truthy() {
+// consume feeds one datagram, the queue's bytes, to the reassembler.
+func (w *wtSource) consume(b []byte) {
+	if len(b) == 0 {
 		return
 	}
-	n := val.Get("length").Int()
-	if n <= 0 {
-		return
-	}
-	if cap(w.buf) < n {
-		w.buf = make([]byte, n)
-	}
-	b := w.buf[:n]
-	js.CopyBytesToGo(b, val)
 	payload := w.ra.Next(b) // the Reassembler's own buffer, decoded below before the next
 	if payload == nil {
 		return

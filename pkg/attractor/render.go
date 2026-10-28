@@ -137,6 +137,7 @@ func dragMove(cx, cy float64) {
 // degree readouts.
 type rotationKnobs struct {
 	ptr     [3]js.Value // pointer element per axis (X,Y,Z)
+	style   [3]js.Value // each pointer's style, which update sets every turn
 	led     [3]js.Value // degree readout per axis
 	ready   bool
 	lastDeg [3]int
@@ -188,8 +189,8 @@ func (r *rotationKnobs) update() {
 			continue
 		}
 		r.lastDeg[i] = deg
-		if r.ptr[i].Truthy() {
-			turnPtr(r.ptr[i], float64(deg))
+		if r.style[i].Truthy() {
+			turnStyle(r.style[i], float64(deg))
 		}
 		if r.led[i].Truthy() {
 			s := strconv.Itoa(deg)

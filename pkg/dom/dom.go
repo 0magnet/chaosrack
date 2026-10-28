@@ -55,3 +55,15 @@ func Swap(v js.Value) js.Value {
 	Doc = v
 	return prev
 }
+
+// ByID is the element with id, kept in *el between calls: a draw that runs
+// every frame looks its elements up once instead of every time. Each lookup
+// hands Go a new JS object, every one of them finalized, and enough of those
+// a second set off TinyGo's collections. The kept element is looked up again
+// when it has left the page, so one a module rebuilt is not drawn into.
+func ByID(el *js.Value, id string) js.Value {
+	if !el.Truthy() || !el.Get("isConnected").Bool() {
+		*el = Doc.Call("getElementById", id)
+	}
+	return *el
+}
