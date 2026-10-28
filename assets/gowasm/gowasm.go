@@ -15,3 +15,9 @@ var Wasm []byte
 //
 //go:embed wasm_exec.js
 var WasmExec []byte
+
+// BuiltFrom is the stamp of the sources Wasm was built from. The page reads
+// it to ask for the wasm by build and to notice a newer one (assets/update.js).
+//
+//go:embed built-from.txt
+var BuiltFrom []byte
