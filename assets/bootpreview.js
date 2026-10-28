@@ -125,7 +125,10 @@
 
     // frame draws the picture at time now (ms) on a w by h canvas.
     return function frame(now, w, h) {
-      var k = Math.floor((now - t0) / HOLD);
+      // Never before the first model: a frame's timestamp is when the frame
+      // began, which can be a little before t0 was read, and k = -1 is cur's
+      // starting value, so nothing was started and box was still null.
+      var k = Math.max(0, Math.floor((now - t0) / HOLD));
       if (k !== cur) start(k, now);
       var age = now - born, life = HOLD - (now - t0 - k * HOLD);
       var alpha = Math.min(1, age / FADE, life / FADE);
