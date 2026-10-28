@@ -109,7 +109,8 @@ func renderTemplate(d htmlTemplateData) ([]byte, error) {
 	// PageOptions' fields for a caller to forget.
 	boot := htmpl.JS(assets.BootPreviewJS) //nolint:gosec // assets/bootpreview.js, compiled into this binary by go:embed — not request data
 	diag := htmpl.JS(assets.DiagJS)        //nolint:gosec // assets/diag.js, compiled into this binary by go:embed — not request data
-	if err := tmpl.Execute(&out, map[string]any{"Page": d, "Boot": boot, "Diag": diag}); err != nil {
+	update := htmpl.JS(assets.UpdateJS)    //nolint:gosec // assets/update.js, compiled into this binary by go:embed — not request data
+	if err := tmpl.Execute(&out, map[string]any{"Page": d, "Boot": boot, "Diag": diag, "Update": update}); err != nil {
 		return nil, fmt.Errorf("executing the page template: %w", err)
 	}
 	return out.Bytes(), nil

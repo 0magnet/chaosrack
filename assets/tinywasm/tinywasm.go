@@ -19,3 +19,9 @@ var WasmExec []byte
 
 // Has reports whether a TinyGo build is embedded.
 func Has() bool { return len(Wasm) > 0 && len(WasmExec) > 0 }
+
+// BuiltFrom is the stamp of the sources Wasm was built from (see
+// gowasm.BuiltFrom).
+//
+//go:embed built-from.txt
+var BuiltFrom []byte

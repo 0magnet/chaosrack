@@ -29,3 +29,9 @@ var BootPreviewJS string
 //
 //go:embed diag.js
 var DiagJS string
+
+// UpdateJS keeps an open tab on the newest build (see the file): the page
+// asks for its wasm by the build's stamp and reloads when the stamp changes.
+//
+//go:embed update.js
+var UpdateJS string

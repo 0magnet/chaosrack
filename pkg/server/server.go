@@ -15,6 +15,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -43,11 +44,12 @@ var (
 const (
 	goWasmURL = "/assets/gowasm/chaosrack.wasm"
 
-	// The analyzers' worker and what it loads. One directory, because a
-	// worker resolves importScripts and fetch against its own URL.
+	// The analyzers' worker and what it loads. A worker resolves importScripts
+	// and fetch against its own URL; its runtime is the Go build's, one
+	// directory over (assets/metersworker/worker.js).
 	metersWorkerJS   = "/assets/metersworker/worker.js"
 	metersWorkerWasm = "/assets/metersworker/meters.wasm"
-	metersWorkerExec = "/assets/metersworker/wasm_exec.js"
+	goWasmExec       = "/assets/gowasm/wasm_exec.js"
 	tinyWasmURL      = "/assets/tinywasm/chaosrack-tiny.wasm"
 )
 
@@ -155,22 +157,29 @@ panel), ctl and rack reach it.`,
 		r1.GET(goWasmURL, func(c *gin.Context) {
 			serveAsset(c, "application/wasm", gowasm.Wasm)
 		})
+		// And the stamp beside each, which the page reads to ask for the wasm by
+		// build and to notice a newer one (assets/update.js).
+		r1.GET(path.Dir(goWasmURL)+"/built-from.txt", func(c *gin.Context) {
+			serveAsset(c, "text/plain; charset=utf-8", gowasm.BuiltFrom)
+		})
 		if hasTinygo {
 			r1.GET(tinyWasmURL, func(c *gin.Context) {
 				serveAsset(c, "application/wasm", tinywasm.Wasm)
 			})
+			r1.GET(path.Dir(tinyWasmURL)+"/built-from.txt", func(c *gin.Context) {
+				serveAsset(c, "text/plain; charset=utf-8", tinywasm.BuiltFrom)
+			})
 		}
 		// The analyzers' worker: its own small wasm build, the script that
-		// loads it, and a copy of wasm_exec.js beside them. Same directory as
-		// the worker script, because importScripts and fetch inside a worker
-		// resolve against the worker's own URL and not the page's.
+		// loads it, and the Go build's wasm_exec.js, which it loads from
+		// assets/gowasm: the file there in the repository, so on GitHub Pages too.
 		r1.GET(metersWorkerJS, func(c *gin.Context) {
 			serveAsset(c, "application/javascript", metersworker.WorkerJS)
 		})
 		r1.GET(metersWorkerWasm, func(c *gin.Context) {
 			serveAsset(c, "application/wasm", metersworker.Wasm)
 		})
-		r1.GET(metersWorkerExec, func(c *gin.Context) {
+		r1.GET(goWasmExec, func(c *gin.Context) {
 			serveAsset(c, "application/javascript", gowasm.WasmExec)
 		})
 

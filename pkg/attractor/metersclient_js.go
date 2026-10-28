@@ -70,7 +70,7 @@ func (me *metersClient) startMetersWorker() {
 			me.w, me.wReady = js.Value{}, false
 		}
 	}()
-	me.w = ctor.New(metersWorkerURL)
+	me.w = ctor.New(metersWorkerURL + buildQuery())
 	me.w.Set("onmessage", dom.FuncOf(func(_ js.Value, args []js.Value) any {
 		if len(args) == 0 {
 			return nil
@@ -233,4 +233,18 @@ func (me *metersClient) drainMetersTap() {
 			break
 		}
 	}
+}
+
+// buildQuery is "?v=" and the build the page is running, or "" when it read
+// none: the meters worker asks for its own files by it, so a new page never
+// starts an old worker from the browser's cache (assets/update.js).
+func buildQuery() string {
+	u := js.Global().Get("__crUpdate")
+	if !u.Truthy() {
+		return ""
+	}
+	if s := u.Call("stamp").String(); s != "" {
+		return "?v=" + s
+	}
+	return ""
 }

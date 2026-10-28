@@ -84,6 +84,7 @@ window.__crWT = {
 <body style="margin: 0; padding: 0; width: 100%; height: 100%; background-color: black; color: white;">
 <script>{{.Boot}}</script>
 <script>{{.Diag}}</script>
+<script>{{.Update}}</script>
 <!-- Crawlable description (the live UI is drawn on a WebGL canvas by WebAssembly). -->
 <div style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">
 <h1>chaosrack — an analog computer in the browser</h1>
@@ -167,7 +168,8 @@ let mod, inst;
 const __wasmURL = __which === 'tinygo' ? {{.Page.TinyWasmURL}} : {{.Page.GoWasmURL}};
 console.log("[WASM-STUFF] Loading " + __which + " WASM from " + __wasmURL + "...");
 function __instantiate(imports) {
-  return WebAssembly.instantiateStreaming(fetch(__wasmURL), imports);
+  // By its build stamp, and watching for the next (assets/update.js).
+  return __crUpdate.url(__wasmURL).then((u) => WebAssembly.instantiateStreaming(fetch(u), imports));
 }
 {{else}}
 // Read back out of the document. trim() because the payload sits on its own
@@ -269,7 +271,7 @@ function __whenDOMReady(fn) {
 {{if .Page.WasmURL}}
 console.log("[WASM-STUFF] Loading {{.Page.Title}} WASM from {{.Page.WasmURL}}...");
 function __instantiate(imports) {
-  return WebAssembly.instantiateStreaming(fetch({{.Page.WasmURL}}), imports);
+  return __crUpdate.url({{.Page.WasmURL}}).then((u) => WebAssembly.instantiateStreaming(fetch(u), imports)); // assets/update.js
 }
 {{else}}
 const wasmGzB64 = document.getElementById('wasmgz').textContent.trim();
