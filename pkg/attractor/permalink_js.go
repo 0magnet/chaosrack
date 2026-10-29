@@ -67,6 +67,7 @@ var permaCtls = []permaCtl{
 	{"rp", "rhythm-preset", false},
 	{"ph", "phys-sw", true},
 	{"gr", "gradient-reverse", true},
+	{"ky", "color-key-sw", true},
 	{"sk", "skin-visual", false},
 	{"fl", "spect-fill", true},
 	{"in", "show-info", true},

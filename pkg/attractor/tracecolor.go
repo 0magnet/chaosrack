@@ -37,6 +37,12 @@ func (c traceColoring) at(p [3]float32, age float32, lo, hi [3]float32) [3]float
 	default:
 		t = age
 	}
+	return c.colorOf(t)
+}
+
+// colorOf is the color of the value t, 0..1 on the source's scale, through
+// the map: the second half of at, and what the color key draws its bar with.
+func (c traceColoring) colorOf(t float32) [3]float32 {
 	if c.reverse {
 		t = 1 - t
 	}

@@ -140,7 +140,7 @@ Source — what the color follows.
 - <!-- key: gradient-source=12 --> PITCH — the centroid folded into one octave, so the same note is the same color in any register.
   Fixed, and least like the others on a hue palette: a melody becomes a sequence of hues that repeats when it does
 
-Each model comes up on its own colors: Z through 2-color for a figure in space, AUDIO through turbo for Takens and polar, which draw one channel, and CORRELATION through turbo for stereo, which draws two and is a goniometer: there Z is a delayed channel or the time sweep, an axis already drawn, while the correlation is the reading the drawing can lose (WIDE squeezes it out of the figure, and side-on the L/R plane is edge on). Correlation is on a fixed scale — top agreeing, middle unrelated, bottom out of phase — so a color always means the same thing; audio is auto-ranged, so it says which parts of the trail were brighter than which. Turbo because it never reaches black, where heat would lose quiet passages and draw out-of-phase material invisibly, and heat for the spectrogram and FVF. The rings follow the model only until you turn a knob in this module — from then on a change of model leaves them where you put them, until Reset All. A ring's reset button returns it to the running model's position.
+Each model comes up on its own colors: Z through 2-color for a figure in space, AUDIO through turbo for Takens and polar, which draw one channel, and CORRELATION through diverge for stereo, which draws two and is a goniometer: there Z is a delayed channel or the time sweep, an axis already drawn, while the correlation is the reading the drawing can lose (WIDE squeezes it out of the figure, and side-on the L/R plane is edge on). Correlation is on a fixed scale — red agreeing, gray unrelated, blue out of phase — so a color always means the same thing; audio is auto-ranged, so it says which parts of the trail were brighter than which. Neither map reaches black, where heat would lose quiet passages and draw out-of-phase material invisibly, and heat for the spectrogram and FVF. The rings follow the model only until you turn a knob in this module — from then on a change of model leaves them where you put them, until Reset All. A ring's reset button returns it to the running model's position.
 
 ### Map
 
@@ -148,7 +148,7 @@ Each model comes up on its own colors: Z through 2-color for a figure in space, 
 Map — how a value becomes a color, for every display in the rack including the spectrogram.
 2 and 3 mix the START, MID and END swatches;
 HUE is a raw hue sweep;
-heat, blue, gray, turbo, viridis and magma are the published colormaps.
+heat, blue, gray, turbo, viridis and magma are the published colormaps, and DIVERGE is one for signed values.
 Turbo and viridis are the even ones — equal steps in the value look like equal steps in color, which a hue sweep does not give you.
 This is the only colormap control there is: the spectrogram had a second one naming the same six maps, and two knobs that had to be kept in step by hand were one knob too many.
 
@@ -169,6 +169,7 @@ Map — how a value becomes a color.
 - <!-- key: gradient-colors=8 --> turbo — an even rainbow; equal steps in the value look like equal steps in color
 - <!-- key: gradient-colors=9 --> viridis — even, and readable with color-blindness
 - <!-- key: gradient-colors=10 --> magma — even, black through purple and red to cream
+- <!-- key: gradient-colors=11 --> diverge — blue through gray to red, for a SIGNED value: correlation, balance, position. The two directions take opposite hues and the neutral middle is a lit gray, so out of phase is never drawn in black
 
 ### Palette period
 
@@ -220,6 +221,7 @@ The module's switches are buttons on the P-units they concern.
 - <!-- key: trio.bg-visual=1 --> B (BEHIND): back — Layers · Colors edits the backdrop's colors instead of the model's.
   Applies only to a flat backdrop.
 - <!-- key: trio.gradient-colors=0 --> I (MAP): invert — reverse the palette direction (start and end swapped)
+- <!-- key: trio.gradient-colors=1 --> K (MAP): key — the color key at the top left of the model: what the color follows, and what the bottom, middle and top of the ramp mean now
 - <!-- key: trio.gradient-source=0 --> H (SRC): held — the color range stops refitting to the source
 
 ### Fill
@@ -229,6 +231,12 @@ Fill the screen with the spectrogram / FVF display (face-on) instead of the rota
 
 <!-- key: gradient-reverse-cell -->
 Reverse the color-gradient direction (swap start and end)
+
+<!-- key: color-key-sw-cell -->
+Show the color key: the source, and what the ramp's ends mean.
+A fixed scale is labeled with its marks (correlation −1 / 0 / +1, balance R / center / L, dB −60 / −30 / 0, pitch A / D♯ / A);
+an auto-ranged one with the span it is being mapped across right now (the centroid in Hz, level and side in dB), which moves with the music;
+a coordinate with what that axis is in the model (s(t−2τ) in Takens, time on the Stereo goniometer positions).
 
 ### Held
 

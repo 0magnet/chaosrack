@@ -23,6 +23,9 @@ type colorFeed struct {
 	// level is measured against, and clock when they last followed it.
 	amp, centroid, ampPeak float32
 	clock                  followClock
+	// k is how many 60 Hz frames the last follow stood for, which the
+	// tables' auto-range relaxes by.
+	k float32
 }
 
 // colorFFT is how much of the signal the sound-now features are taken
@@ -56,6 +59,7 @@ func (r *Rack) soundNow() {
 	_, _, _, cl := attractor.BandEnergies(ml, sampleRate)
 	_, _, _, cr := attractor.BandEnergies(mr, sampleRate)
 	k := c.clock.frames(r.sound.now())
+	c.k = k
 	c.amp = attractor.FeatureSmooth(c.amp, attractor.FeatureNorm(&c.ampPeak, (rms(l)+rms(rt))/2, k), k)
 	c.centroid = attractor.FeatureSmooth(c.centroid, min(max(float32((cl+cr)/2), 0), 1), k)
 }
@@ -70,7 +74,7 @@ func (r *Rack) audioColored(fig attractor.Figure, g *rasterview.Gradient, src, i
 	}
 	c := &r.color
 	t := &c.tables[i]
-	t.Fill(src, c.w, c.l, c.r, sampleRate, c.centroid, c.amp, r.value("color-lock") == "1")
+	t.Fill(src, c.w, c.l, c.r, sampleRate, c.centroid, c.amp, r.value("color-lock") == "1", c.k)
 	lut := t.LUT()
 	n := len(fig.Points)
 	ages := make([]float32, n)

@@ -27,19 +27,22 @@ import (
 //     it says which parts were brighter than which, not how bright.
 //   - Stereo draws two, and what a goniometer is for is how they relate: it
 //     colors by CORRELATION, on its fixed scale, so the same color always
-//     means the same thing — the top of the ramp the channels agreeing, the
-//     middle unrelated, the bottom out of phase (what vanishes summed to
-//     mono) — at the point of the sweep where it happens. It is the one
-//     reading the figure can lose: WIDE squeezes the side out of the drawing
-//     but not out of the correlation, and seen side-on the L/R plane is edge
-//     on. A mono source reads +1 throughout, which is the truth about it.
+//     means the same thing — red the channels agreeing, gray unrelated, blue
+//     out of phase (what vanishes summed to mono) — at the point of the sweep
+//     where it happens. It is the one reading the figure can lose: WIDE
+//     squeezes the side out of the drawing but not out of the correlation,
+//     and seen side-on the L/R plane is edge on. A mono source reads +1
+//     throughout, which is the truth about it.
 //
-// TURBO for all three because it never reaches black. Heat and magma start
-// there: audio through heat lost the trace whenever the level or the
-// frequencies fell, and correlation through heat would draw out-of-phase
-// material — the thing worth seeing — in black. The hue sweep is cyclic, which
-// makes the two ends of ±1 look like neighbors. Chosen from contact sheets of
-// every source and map on all three, and all four stereo AXES, with music.
+// Through maps that never reach black. Heat and magma start there: audio
+// through heat lost the trace whenever the level or the frequencies fell, and
+// correlation through heat would draw out-of-phase material — the thing worth
+// seeing — in black. TURBO for the centroid, an amount; DIVERGE for the
+// correlation, which is signed: the two directions take opposite hues and the
+// neutral middle none, where turbo made "unrelated" a green on the way to red
+// and the hue sweep, being cyclic, made the two ends of ±1 neighbors. Chosen
+// from contact sheets of every source and map on all three, and all four
+// stereo AXES, with music.
 //
 // The spectrogram and FVF are a magnitude painted on a plane, and open on
 // heat, the colormap the spectrogram had before its knob became the MAP ring.
@@ -54,12 +57,11 @@ const ColorsModule = "layers · colors"
 
 // ModelColorDefault is the src and map model comes up on.
 func ModelColorDefault(model string) ModelColors {
-	turbo := strconv.Itoa(colormap.First + 3)
 	switch {
 	case model == "stereo":
-		return ModelColors{Src: strconv.Itoa(gradientSourceCorr), Map: turbo}
+		return ModelColors{Src: strconv.Itoa(gradientSourceCorr), Map: strconv.Itoa(colormap.Diverging)}
 	case inModeGroup("Embeddings", model):
-		return ModelColors{Src: strconv.Itoa(gradientSourceAudio), Map: turbo}
+		return ModelColors{Src: strconv.Itoa(gradientSourceAudio), Map: strconv.Itoa(colormap.First + 3)} // turbo
 	case isSpectroSurface(model):
 		return ModelColors{Src: rackColors.Src, Map: strconv.Itoa(colormap.First)} // heat
 	}

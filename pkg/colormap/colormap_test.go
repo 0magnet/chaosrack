@@ -82,3 +82,35 @@ func TestTheHueMapSweepsTheSpectrumOnTheSpectrogram(t *testing.T) {
 		}
 	}
 }
+
+// Diverge is for a signed value: its two ends are opposite hues of about the
+// same lightness, its middle a lit gray, and nowhere on it is black — on this
+// display black is nothing drawn, and the bottom end is the reading worth
+// seeing.
+func TestDivergeIsSignedAndNeverBlack(t *testing.T) {
+	rgb := func(v float64) (r, g, b float64) {
+		cr, cg, cb, _ := Diverge(v).RGBA()
+		return float64(cr >> 8), float64(cg >> 8), float64(cb >> 8)
+	}
+	luma := func(v float64) float64 { r, g, b := rgb(v); return 0.2126*r + 0.7152*g + 0.0722*b }
+	if r, g, b := rgb(0.5); r != g || g != b || r < 100 {
+		t.Errorf("the middle is %v,%v,%v; want a lit neutral gray", r, g, b)
+	}
+	if r, _, b := rgb(0); b <= r {
+		t.Errorf("the bottom is not the blue end")
+	}
+	if r, _, b := rgb(1); r <= b {
+		t.Errorf("the top is not the red end")
+	}
+	if d := luma(0) - luma(1); d > 25 || d < -25 {
+		t.Errorf("the ends' lightness differs by %v of 255; one direction looks louder", d)
+	}
+	for i := range 101 {
+		if l := luma(float64(i) / 100); l < 60 {
+			t.Errorf("at %v the map is nearly black (luma %v)", float64(i)/100, l)
+		}
+	}
+	if Diverging != First+LibraryMaps {
+		t.Errorf("Diverging is %d; it is the first map after the library's", Diverging)
+	}
+}

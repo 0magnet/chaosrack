@@ -179,7 +179,9 @@ func SweepRange(model, id string) (lo, hi float32, ok bool) {
 var SweepColorSources = []int{4, 6, 11, 7, 8, 9, 13, 10, 12}
 
 // SweepColorMaps is the order a map sweep steps through: every genuine
-// mapping, two-color first.
+// mapping for an amount, two-color first. Not diverge (11): its gray middle
+// means "zero" only for a signed value. Nine, so a 3x3 grid shows each once
+// beside the nine sources.
 var SweepColorMaps = []int{2, 3, 4, 5, 6, 7, 8, 9, 10}
 
 // SweepPick is the entry of list at t, 0..1 along it.

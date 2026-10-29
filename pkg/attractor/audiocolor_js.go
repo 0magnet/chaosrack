@@ -108,7 +108,7 @@ func (a *audioColor) updateAudioColorLUT(mode string) {
 	} else {
 		w, sr = a.window(mode)
 	}
-	a.Fill(src, w, l, r, sr, af.feat[audioColorFeature], af.feat["amp"], colorRangeLock)
+	a.Fill(src, w, l, r, sr, af.feat[audioColorFeature], af.feat["amp"], colorRangeLock, followK)
 }
 
 // window returns the audio the current mode's trail was drawn
