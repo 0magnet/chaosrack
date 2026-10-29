@@ -134,6 +134,7 @@ func parseDump(raw []byte, target string) (*memreport.Browser, error) {
 		return nil, fmt.Errorf("reading the trace: %w", err)
 	}
 	pid, pages := 0, map[int]int{}
+	var listed []int // every process the browser names for the page's frame
 	for _, e := range tr.TraceEvents {
 		if e.Name != "TracingStartedInBrowser" {
 			continue
@@ -156,10 +157,11 @@ func parseDump(raw []byte, target string) (*memreport.Browser, error) {
 			}
 			pages[f.ProcessID]++
 			if strings.EqualFold(f.Frame, target) {
-				pid = f.ProcessID
+				listed = append(listed, f.ProcessID)
 			}
 		}
 	}
+	pid = drawing(tr.TraceEvents, target, listed)
 	if pid == 0 {
 		return nil, errors.New("the trace does not say which process renders the page")
 	}
@@ -210,6 +212,11 @@ func readDump(args json.RawMessage, b *memreport.Browser) bool {
 		b.PeakRSS = hex(t["peak_resident_set_size"])
 	}
 	for name, al := range a.Dumps.Allocators {
+		if name == "blink_gc/main/heap" {
+			if v, ok := al.Attrs["allocated_objects_size"]; ok {
+				b.BlinkObjects = hex(v.Value)
+			}
+		}
 		if strings.Contains(name, "/") {
 			continue
 		}
@@ -222,4 +229,46 @@ func readDump(args json.RawMessage, b *memreport.Browser) bool {
 		}
 	}
 	return true
+}
+
+// drawing picks, of the processes the browser names for a page's frame, the
+// one that draws it. After the tab goes to another site the frame has a new
+// process, and the old one can stay named while the back-forward cache keeps
+// the page it had: reading that one reported a page that was not the tab's,
+// with numbers that never moved. Only the live page emits timeline events
+// tagged with the frame (a paint, a layout, an animation frame), so the
+// process with the most of them is the one. With none in the trace, the last
+// one named.
+func drawing(events []traceEvent, target string, listed []int) int {
+	if len(listed) == 0 {
+		return 0
+	}
+	if len(listed) == 1 {
+		return listed[0]
+	}
+	named := map[int]bool{}
+	for _, p := range listed {
+		named[p] = true
+	}
+	tagged := map[int]int{}
+	for _, e := range events {
+		if !named[e.Pid] || len(e.Args) == 0 {
+			continue
+		}
+		var a struct {
+			Data struct {
+				Frame string `json:"frame"`
+			} `json:"data"`
+		}
+		if json.Unmarshal(e.Args, &a) == nil && strings.EqualFold(a.Data.Frame, target) {
+			tagged[e.Pid]++
+		}
+	}
+	best := listed[len(listed)-1]
+	for _, p := range listed {
+		if tagged[p] > tagged[best] {
+			best = p
+		}
+	}
+	return best
 }
