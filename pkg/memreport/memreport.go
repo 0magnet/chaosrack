@@ -193,6 +193,9 @@ func (r Report) Write(w io.Writer, top int) error {
 		}
 		for _, c := range parts {
 			p("  %s\t%s\t%s\n", c.Name, mb(c.N), partNotes[c.Name])
+			if c.Name == "blink_gc" && br.BlinkObjects > 0 {
+				p("    objects\t%s\tin it now, garbage included; climbs until Blink collects\n", mb(br.BlinkObjects))
+			}
 		}
 	}
 	if b := r.Bridge; b != nil && b.Detail {
@@ -288,6 +291,11 @@ type Browser struct {
 	Pages int `json:"pages"`
 	// Parts are the dump's top-level allocators, largest first.
 	Parts []Count `json:"parts"`
+	// BlinkObjects is the size of the objects in Blink's main heap, live and
+	// garbage alike: it climbs with each frame's garbage and drops when Blink
+	// collects. blink_gc's own size is near the heap's committed size, which
+	// barely moves between collections.
+	BlinkObjects int64 `json:"blink_objects,omitempty"`
 }
 
 // partNotes say what a browser allocator holds, where it is worth saying.

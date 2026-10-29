@@ -41,3 +41,28 @@ func TestParseDumpReadsTheTabsProcess(t *testing.T) {
 		t.Error("a page the trace does not list was read")
 	}
 }
+
+// After the tab goes to another site, its frame can be named for two
+// processes: the new one, and the old one the back-forward cache keeps. The
+// one that draws the frame is the tab's, wherever it comes in the list.
+func TestParseDumpReadsTheProcessThatDraws(t *testing.T) {
+	const tr = `{"traceEvents":[
+ {"ph":"I","pid":1,"name":"TracingStartedInBrowser","args":{"data":{"frames":[
+   {"frame":"AAA","processId":30},
+   {"frame":"AAA","processId":20}]}}},
+ {"ph":"X","pid":30,"name":"Paint","args":{"data":{"frame":"AAA"}}},
+ {"ph":"X","pid":30,"name":"Layerize","args":{"data":{"frame":"AAA"}}},
+ {"ph":"v","pid":20,"name":"periodic_interval","args":{"dumps":{"process_totals":{"private_footprint_bytes":"1000000"}}}},
+ {"ph":"v","pid":30,"name":"periodic_interval","args":{"dumps":{"process_totals":{"private_footprint_bytes":"2000000"},
+   "allocators":{"blink_gc/main/heap":{"attrs":{"allocated_objects_size":{"type":"scalar","units":"bytes","value":"3c00000"}}}}}}}]}`
+	b, err := parseDump([]byte(tr), "AAA")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b.Pid != 30 {
+		t.Errorf("read process %d, want 30: the one that draws the frame, not the last named", b.Pid)
+	}
+	if b.BlinkObjects != 0x3c00000 {
+		t.Errorf("Blink's objects %x, want 3c00000 from blink_gc/main/heap", b.BlinkObjects)
+	}
+}
