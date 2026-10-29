@@ -14,15 +14,32 @@ import (
 // ramp, which suits a figure in space: it says which side of the figure is
 // which. Two kinds of model are not that.
 //
-// The embeddings (Takens, stereo, polar) are built from the sound, and Z in a
-// delay embedding is the signal two delays back — an axis already drawn. By Z,
-// the figure came up split into a red half and a blue half, which says
-// nothing. AUDIO colors each point by the spectral centroid of the moment it
-// was played, which the geometry does not already show: a change of timbre
-// is a change of color along the trace. TURBO because it never reaches black.
-// Heat and magma start there, and a quiet or dark passage of the music, low on
-// the ramp, vanished into the background — tried on all three, with music
-// playing, that is what heat did whenever the level or the frequencies fell.
+// The embeddings are built from the sound, and in them Z is an axis already
+// drawn: the signal two delays back in Takens and polar, a delayed channel or
+// the TIME sweep in stereo. By Z the figure came up split into a red half and
+// a blue half, or on a goniometer seen side-on, a rainbow that only repeats
+// how far along the sweep each point is. Each gets a color the geometry does
+// not already show:
+//
+//   - Takens and polar draw one channel, and color by AUDIO: the spectral
+//     centroid of each stretch of the trail, so a change of timbre is a change
+//     of color along it. Relative — auto-ranged against the recent sound — so
+//     it says which parts were brighter than which, not how bright.
+//   - Stereo draws two, and what a goniometer is for is how they relate: it
+//     colors by CORRELATION, on its fixed scale, so the same color always
+//     means the same thing — the top of the ramp the channels agreeing, the
+//     middle unrelated, the bottom out of phase (what vanishes summed to
+//     mono) — at the point of the sweep where it happens. It is the one
+//     reading the figure can lose: WIDE squeezes the side out of the drawing
+//     but not out of the correlation, and seen side-on the L/R plane is edge
+//     on. A mono source reads +1 throughout, which is the truth about it.
+//
+// TURBO for all three because it never reaches black. Heat and magma start
+// there: audio through heat lost the trace whenever the level or the
+// frequencies fell, and correlation through heat would draw out-of-phase
+// material — the thing worth seeing — in black. The hue sweep is cyclic, which
+// makes the two ends of ±1 look like neighbors. Chosen from contact sheets of
+// every source and map on all three, and all four stereo AXES, with music.
 //
 // The spectrogram and FVF are a magnitude painted on a plane, and open on
 // heat, the colormap the spectrogram had before its knob became the MAP ring.
@@ -37,9 +54,12 @@ const ColorsModule = "layers · colors"
 
 // ModelColorDefault is the src and map model comes up on.
 func ModelColorDefault(model string) ModelColors {
+	turbo := strconv.Itoa(colormap.First + 3)
 	switch {
+	case model == "stereo":
+		return ModelColors{Src: strconv.Itoa(gradientSourceCorr), Map: turbo}
 	case inModeGroup("Embeddings", model):
-		return ModelColors{Src: "4", Map: strconv.Itoa(colormap.First + 3)} // audio, turbo
+		return ModelColors{Src: strconv.Itoa(gradientSourceAudio), Map: turbo}
 	case isSpectroSurface(model):
 		return ModelColors{Src: rackColors.Src, Map: strconv.Itoa(colormap.First)} // heat
 	}
