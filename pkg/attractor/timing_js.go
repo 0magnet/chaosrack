@@ -12,21 +12,21 @@ import (
 // The Timing module's panel. See timing.go for what it measures and why
 // those numbers and not others.
 
-// timingPeriodMs is how often the readouts latch.
+// timingTicks is how often the readouts latch, in ticks of the panel clock.
 //
 // Not sixty times a second, which is how often the numbers change: a frame
 // meter that updates every frame is unreadable, and it would also be the one
 // module whose readout cost showed up in its own measurement. Half a second
 // is a window long enough to hold a stutter that happens twice a second —
 // which is the rate the analyzers latch at, and therefore the rate the thing
-// this exists to find happens at.
-const timingPeriodMs = 500
+// this exists to find happens at. Every other tick of the panel's clock, so
+// the LEDs are written on frames the panel repaints anyway.
+const timingTicks = 2 // 500 ms
 
-// timingPanel is the Timing module's panel: its LEDs and its refresh clock.
+// timingPanel is the Timing module's panel and its LEDs.
 type timingPanel struct {
 	stats                        frameStats
 	budget                       sectionBudget
-	nextMs                       float64
 	lastMs                       float64 // rAF timestamp of the previous frame
 	fpsEl, frameEl, minEl, maxEl js.Value
 	lateEl, modelEl, metersEl    js.Value
@@ -62,7 +62,7 @@ func (t *timingPanel) frame(nowMs float64) {
 	t.lastMs = nowMs
 }
 
-// tick latches the readouts on their own clock.
+// tick latches the readouts on the panel's clock.
 //
 // ALONE AMONG THE METERS, THIS ONE DOES NOT STOP WHEN IT IS OFF SCREEN.
 // Every other module here checks moduleOnScreen first, and should: their work
@@ -78,11 +78,10 @@ func (t *timingPanel) frame(nowMs float64) {
 // honest but useless, since the question is always "what is it doing NOW".
 // So it keeps measuring and keeps latching, and is correct the instant it
 // comes into view.
-func (t *timingPanel) tick(nowMs float64) {
-	if nowMs < t.nextMs {
+func (t *timingPanel) tick() {
+	if !pclock.due || pclock.n%timingTicks != 0 {
 		return
 	}
-	t.nextMs = nowMs + timingPeriodMs
 	t.showTiming()
 	t.stats.reset()
 	t.budget.reset()

@@ -91,30 +91,27 @@ func attachSelMarquee(sel, picker js.Value) {
 		show()
 	}
 	dom.On(sel, "change", func(this js.Value, a []js.Value) any { upd(); return nil })
-	js.Global().Call("setInterval", js.FuncOf(func(js.Value, []js.Value) any {
+	pclock.onTick(func() {
 		if len(loop) == 0 {
-			return nil
+			return
 		}
 		if hold > 0 {
 			hold--
-			return nil
+			return
 		}
 		pos = (pos + 1) % len(loop)
 		if pos == 0 {
 			hold = marqueeHold
 		}
 		show()
-		return nil
-	}), marqueeStepMs)
+	})
 	upd()
 }
 
-// A scrolling name moves a character every marqueeStepMs, and rests
-// marqueeHold steps at its start.
-const (
-	marqueeStepMs = 300
-	marqueeHold   = 6
-)
+// A scrolling name moves a character on every tick of the panel's clock
+// (panelclock.go), so it repaints on frames the panel repaints anyway, and
+// rests marqueeHold ticks at its start.
+const marqueeHold = 7
 
 func updateInfoOverlay() {
 	overlay := dom.Doc.Call("getElementById", "info-overlay")
