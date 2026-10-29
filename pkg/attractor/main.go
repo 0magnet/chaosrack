@@ -608,6 +608,7 @@ func onResetAll(this js.Value, args []js.Value) any {
 		// Through their change, as a press would: their P-unit buttons light
 		// from it (POINTS +, TRAIL +, MAP I).
 		{"use-points", false}, {"persist-trail", false}, {"gradient-reverse", false},
+		{"color-key-sw", true}, // MAP K: the color key (colorkey_js.go)
 		{"link-sw", true},
 		{"scope-grat", true}, // the graticule is what makes the trace measurable
 		// Back to recording the full canvas. This one is here because of what

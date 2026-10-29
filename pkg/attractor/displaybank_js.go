@@ -98,14 +98,21 @@ func init() {
 		lits:  func() []bool { return []bool{checkedOn("spect-fill"), checkedOn("edit-back"), false} },
 		drive: []string{"spect-fill", "edit-back"},
 	}
-	// MAP: I reverses the palette.
+	// MAP: I reverses the palette; K shows the color key, which says what the
+	// colors mean (colorkey.go).
 	trioPrograms["gradient-colors"] = trioProgram{
-		keys:     []string{"I", "", ""},
-		switches: []string{"gradient-reverse"},
-		help:     []string{doc("trio.gradient-colors=0")},
-		press:    func(int) { toggle("gradient-reverse") },
-		lits:     func() []bool { return []bool{checkedOn("gradient-reverse"), false, false} },
-		drive:    []string{"gradient-reverse"},
+		keys:     []string{"I", "K", ""},
+		switches: []string{"gradient-reverse", "color-key-sw"},
+		help:     []string{doc("trio.gradient-colors=0"), doc("trio.gradient-colors=1")},
+		press: func(i int) {
+			if i == 1 {
+				toggle("color-key-sw")
+				return
+			}
+			toggle("gradient-reverse")
+		},
+		lits:  func() []bool { return []bool{checkedOn("gradient-reverse"), checkedOn("color-key-sw"), false} },
+		drive: []string{"gradient-reverse", "color-key-sw"},
 	}
 	// SRC: H holds the color range where it is instead of refitting it to
 	// the source as it changes.
@@ -126,5 +133,5 @@ func init() {
 var settingNames = map[string][]string{
 	"bg-visual":       {"off", "spectro", "xy scope", "terminal", "anim", "desk", "water"},
 	"skin-visual":     {"off", "spectro", "terminal", "anim", "desk"},
-	"gradient-colors": {"2-color", "3-color", "hue", "heat", "blue", "gray", "turbo", "viridis", "magma"},
+	"gradient-colors": {"2-color", "3-color", "hue", "heat", "blue", "gray", "turbo", "viridis", "magma", "diverge"},
 }

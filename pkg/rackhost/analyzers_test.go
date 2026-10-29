@@ -231,7 +231,8 @@ func TestTheSpectrogramOfATone(t *testing.T) {
 }
 
 // The SRC and MAP rings follow the model — heat for the spectrogram, audio
-// through turbo for the embeddings, the rack's Z and two-color for the rest —
+// through turbo for Takens and polar, correlation through diverge for stereo,
+// the rack's Z and two-color for the rest —
 // until a knob in the Colors module is turned, and then stay where it was put.
 func TestTheRingsFollowTheModelUntilTurned(t *testing.T) {
 	r, _ := idleRack(t, "globe")
@@ -245,6 +246,8 @@ func TestTheRingsFollowTheModelUntilTurned(t *testing.T) {
 	rings("spectrogram", "2", "5")
 	set(t, r, r.selector, "takens")
 	rings("takens", "4", "8")
+	set(t, r, r.selector, "stereo")
+	rings("stereo", "7", "11")
 	set(t, r, r.selector, "globe")
 	rings("globe", "2", "2")
 	// A ring turned to the very position the next model would put it on is

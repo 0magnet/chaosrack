@@ -42,10 +42,9 @@ import (
 // comparison.
 const First = 5
 
-// maps are the colormaps, in spectColNames order, so a palette's
-// position on the trace knob matches its position on the spectrogram's.
-// Keeping them in one order is the whole point of reusing them: "the third
-// one" has to mean the same thing on both knobs.
+// maps are the colormaps: first the library's six, in spectColNames order,
+// so "the third one" means what the spectrogram library means by it, then
+// the ones the library has no table for, which only append.
 var maps = []func(float64) color.Color{
 	sg.ValueToPixelHeat,
 	sg.ValueToPixelBlue,
@@ -53,7 +52,14 @@ var maps = []func(float64) color.Color{
 	sg.ValueToPixelTurbo,
 	sg.ValueToPixelViridis,
 	sg.ValueToPixelMagma,
+	Diverge,
 }
+
+// LibraryMaps is how many of maps are the spectrogram library's own tables.
+const LibraryMaps = 6
+
+// Diverging is the MAP ring's value for Diverge.
+const Diverging = First + LibraryMaps
 
 // Len is how many colormaps there are.
 func Len() int { return len(maps) }

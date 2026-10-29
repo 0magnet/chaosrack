@@ -7,13 +7,12 @@ import (
 	"testing"
 )
 
-// The trace palettes and the spectrogram's must stay the same six, in the same
-// order. The whole value of reusing them is that "the third one" means the same
-// thing on both knobs; if one list grows and the other does not, the knobs
-// silently disagree and the colors stop being comparable between the displays.
+// The library's tables must stay the same six, in the same order, at the
+// head of the trace's maps: "the third one" has to mean what the library means
+// by it. Maps of our own only append after them.
 func TestPaletteListMatchesTheSpectrogramsList(t *testing.T) {
-	if colormap.Len() != len(spectColNames) {
-		t.Fatalf("%d trace colormaps against %d spectrogram ones: %v", colormap.Len(), len(spectColNames), spectColNames)
+	if colormap.LibraryMaps != len(spectColNames) || colormap.Len() < colormap.LibraryMaps {
+		t.Fatalf("%d library colormaps of %d against %d spectrogram ones: %v", colormap.LibraryMaps, colormap.Len(), len(spectColNames), spectColNames)
 	}
 }
 

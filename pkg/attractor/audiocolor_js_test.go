@@ -131,6 +131,7 @@ func TestLUTSizeMatchesTheShaderIndex(t *testing.T) {
 // spanning it, or the trail is one shade of red no matter what is playing.
 func TestStretchUsesTheWholeRamp(t *testing.T) {
 	acolor.lo, acolor.hi = 0.5, 0.5
+	acolor.k = 1 // a 60 Hz frame per stretch
 	// Held audio, frame after frame. The bounds CONVERGE rather than snapping:
 	// a mapping that re-scaled itself on every frame would flicker, so the
 	// contract is that a steady signal reaches the full ramp within about a
@@ -183,6 +184,7 @@ func TestStretchDoesNotAmplifyAFlatTable(t *testing.T) {
 // does not move — and the range must not snap shut when it passes.
 func TestStretchOpensFastAndClosesSlowly(t *testing.T) {
 	acolor.lo, acolor.hi = 0.4, 0.5
+	acolor.k = 1                                     // a 60 Hz frame per stretch
 	acolor.stretchAudioColorLUT([]float32{0.4, 0.9}) // a transient
 	if acolor.hi < 0.9 {
 		t.Errorf("the upper bound is %v after a 0.9 peak; it should have opened to admit it at once", acolor.hi)

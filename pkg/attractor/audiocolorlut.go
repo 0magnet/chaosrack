@@ -44,6 +44,14 @@ type AudioColor struct {
 	// holds them where they are (the page's range lock).
 	lo, hi float32
 	locked bool
+	// k is how many 60 Hz frames the current fill stands for.
+	k float32
+	// ranged is whether the last fill was stretched, and rlo..rhi the raw
+	// span it was mapped across, at sample rate sr: what the ends of the ramp
+	// mean now, for the color key (colorkey.go).
+	ranged   bool
+	rlo, rhi float32
+	sr       int
 }
 
 // NewAudioColor is a table whose range opens from the middle.
@@ -126,7 +134,9 @@ func (a *AudioColor) shortTimeCentroids(w []float32, sampleRate int, out []float
 // but arithmetic noise.
 const audioColorMinSpan = 0.05
 
-// audioColorRelax is how fast the bounds close back in, per frame. Slow
+// audioColorRelax is how fast the bounds close back in, per 60 Hz frame
+// (featurefollow.go): a fill stands for k of them, so a throttled tab or a
+// 144 Hz display closes the range in the same time as a 60 Hz one. Slow
 // enough that a range opened by one loud transient survives a few seconds of
 // quiet, which is what stops the color mapping from flickering between
 // phrases.
@@ -154,21 +164,23 @@ func (a *AudioColor) stretchAudioColorLUT(lut []float32) {
 		if span < audioColorMinSpan {
 			span = audioColorMinSpan
 		}
+		a.ranged, a.rlo, a.rhi = true, a.lo, a.lo+span
 		for i, v := range lut {
 			lut[i] = clampF((v-a.lo)/span, 0, 1)
 		}
 		return
 	}
 	// Open at once to admit a new extreme; close slowly toward this frame's.
+	relax := perFrames(audioColorRelax, a.k)
 	if lo < a.lo {
 		a.lo = lo
 	} else {
-		a.lo += (lo - a.lo) * audioColorRelax
+		a.lo += (lo - a.lo) * relax
 	}
 	if hi > a.hi {
 		a.hi = hi
 	} else {
-		a.hi += (hi - a.hi) * audioColorRelax
+		a.hi += (hi - a.hi) * relax
 	}
 	span := a.hi - a.lo
 	if span < audioColorMinSpan {
@@ -180,6 +192,7 @@ func (a *AudioColor) stretchAudioColorLUT(lut []float32) {
 		a.hi = mid + audioColorMinSpan/2
 		span = audioColorMinSpan
 	}
+	a.ranged, a.rlo, a.rhi = true, a.lo, a.lo+span
 	for i, v := range lut {
 		lut[i] = clampF((v-a.lo)/span, 0, 1)
 	}
@@ -271,9 +284,10 @@ func shortTimeLevels(w []float32, out []float32) {
 // is not a time axis, or has no pair. Without them the table is filled flat
 // from the sound now: its centroid, or for LEVEL its amp, each 0..1. The
 // absolute sources are not stretched (audiocolorsrc.go); locked holds the
-// others' range where it is.
-func (a *AudioColor) Fill(src int, w, l, r []float32, sr int, centroid, amp float32, locked bool) {
-	a.locked = locked
+// others' range where it is, and k is how many 60 Hz frames since the last fill
+// (FollowFrames) the range relaxes by.
+func (a *AudioColor) Fill(src int, w, l, r []float32, sr int, centroid, amp float32, locked bool, k float32) {
+	a.locked, a.k, a.sr, a.ranged = locked, k, sr, false
 	switch src {
 	case gradientSourceAudio, gradientSourceLevel:
 		if w != nil {
