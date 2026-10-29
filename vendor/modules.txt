@@ -7,28 +7,28 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.1-0.20261028112847-065e4ffe7e0a
+# github.com/0magnet/audioprism-go v0.0.1-0.20261029113906-1f8844596976
 ## explicit; go 1.26.2
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
-# github.com/0magnet/bottle v0.0.1-0.20261013221653-12057b62ab20
+# github.com/0magnet/bottle v0.0.1-0.20261028202309-2b922f28f74e
 ## explicit; go 1.24
 github.com/0magnet/bottle/proc
 # github.com/0magnet/calvin v0.0.1-0.20261013221715-da6581155df3
 ## explicit; go 1.26.0
 github.com/0magnet/calvin
 github.com/0magnet/calvin/clihelp
-# github.com/0magnet/cdp v0.0.0-20261013220930-98e232fae01d
+# github.com/0magnet/cdp v0.0.0-20261028200759-2a9c9f587569
 ## explicit; go 1.26.0
 github.com/0magnet/cdp
 # github.com/0magnet/coloredcobra v1.0.4-0.20261012213101-faa6bd8f94c5
 ## explicit; go 1.26.0
 github.com/0magnet/coloredcobra
-# github.com/0magnet/desk v0.0.3-0.20261028113416-fb38e9089b97
+# github.com/0magnet/desk v0.0.3-0.20261029114504-bda878e95ee4
 ## explicit; go 1.26.6
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.1-0.20261028113043-275fa48ec9ee
+# github.com/0magnet/desk/panes v0.0.1-0.20261029114140-1ec03fecd61e
 ## explicit; go 1.26.6
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -59,14 +59,14 @@ github.com/0magnet/lattice
 # github.com/0magnet/lolcat-go v0.0.1-0.20261013220959-57aa27491489
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20261028113233-fa1efb56f353
+# github.com/0magnet/pisano v0.0.0-20261029114333-09755353cb1b
 ## explicit; go 1.26.6
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20261014235132-1143d38a91d3
 ## explicit; go 1.26.0
 github.com/0magnet/proxima5
 github.com/0magnet/proxima5/internal/views
-# github.com/0magnet/rack-go v0.0.0-20261013221719-290136881c9a
+# github.com/0magnet/rack-go v0.0.0-20261028211156-58f7d14d2611
 ## explicit; go 1.21
 github.com/0magnet/rack-go
 # github.com/0magnet/seat v0.0.0-20261013221028-e66b97ebca1a
@@ -126,7 +126,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20261028113517-14b9336c3642
+# github.com/0magnet/tuiwasm v0.0.0-20261029114557-654fb7a0d08a
 ## explicit; go 1.26.7
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -146,7 +146,7 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754
 ## explicit; go 1.26.6
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.1-0.20261028112929-8dd7f87d850a
+# github.com/0magnet/websh v0.0.1-0.20261029114000-80435ff67f81
 ## explicit; go 1.26.6
 github.com/0magnet/websh/console
 github.com/0magnet/websh/progressive
@@ -154,10 +154,10 @@ github.com/0magnet/websh/shell
 github.com/0magnet/websh/shell/sed
 github.com/0magnet/websh/web
 github.com/0magnet/websh/widget
-# github.com/0magnet/winbox-go v0.0.1-0.20261020181245-bacce940cc20
+# github.com/0magnet/winbox-go v0.0.1-0.20261028211148-34d6e7c4492d
 ## explicit; go 1.26.0
 github.com/0magnet/winbox-go
-# github.com/0magnet/xterm-go v0.0.1-0.20261027203517-9d9bf96eff34
+# github.com/0magnet/xterm-go v0.0.1-0.20261028211146-6bd2303b2f23
 ## explicit; go 1.24
 github.com/0magnet/xterm-go
 github.com/0magnet/xterm-go/vt
@@ -278,7 +278,7 @@ github.com/coder/websocket/internal/wsjs
 # github.com/creack/pty v1.1.24
 ## explicit; go 1.18
 github.com/creack/pty
-# github.com/dlclark/regexp2/v2 v2.11.0
+# github.com/dlclark/regexp2/v2 v2.12.0
 ## explicit; go 1.25
 github.com/dlclark/regexp2/v2
 github.com/dlclark/regexp2/v2/helpers
@@ -372,17 +372,27 @@ github.com/go-playground/universal-translator
 # github.com/go-playground/validator/v10 v10.30.5
 ## explicit; go 1.26.0
 github.com/go-playground/validator/v10
-# github.com/goccy/go-json v0.11.2
+# github.com/goccy/go-json v0.12.0
 ## explicit; go 1.23
 github.com/goccy/go-json
 github.com/goccy/go-json/internal/decoder
 github.com/goccy/go-json/internal/encoder
+github.com/goccy/go-json/internal/encoder/run
 github.com/goccy/go-json/internal/encoder/vm
 github.com/goccy/go-json/internal/encoder/vm_color
 github.com/goccy/go-json/internal/encoder/vm_color_indent
 github.com/goccy/go-json/internal/encoder/vm_indent
 github.com/goccy/go-json/internal/errors
+github.com/goccy/go-json/internal/floatfmt
+github.com/goccy/go-json/internal/intfmt
+github.com/goccy/go-json/internal/jsonfields
+github.com/goccy/go-json/internal/jsonnum
+github.com/goccy/go-json/internal/jsonstring
+github.com/goccy/go-json/internal/jsonsyntax
+github.com/goccy/go-json/internal/options
 github.com/goccy/go-json/internal/runtime
+github.com/goccy/go-json/internal/textcoder
+github.com/goccy/go-json/jsontext
 # github.com/goccy/go-yaml v1.19.2
 ## explicit; go 1.21.0
 github.com/goccy/go-yaml

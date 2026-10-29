@@ -32,11 +32,25 @@ build_go() {
 	cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" docs/go/wasm_exec.js
 }
 
+# The page's notice of a newer build (bottle's update.js), and the stamp it
+# watches: a hash of what was built, so it changes when a binary does and a
+# commit that rebuilds nothing announces nothing.
+update_js() {
+	dir=$(cd panes && GOFLAGS=-mod=mod go list -m -f '{{.Dir}}' github.com/0magnet/bottle)
+	[ -n "$dir" ] || { echo 'bottle: module not found' >&2; exit 1; }
+	cp "$dir/update.js" docs/update.js
+	chmod 644 docs/update.js
+}
+stamp() {
+	cat docs/*.wasm docs/go/*.wasm docs/*.js docs/go/*.js 2>/dev/null | sha256sum | cut -c1-16 > docs/version.txt
+}
 case "${1:-both}" in
 both)   build_tinygo; build_go ;;
 tinygo) build_tinygo ;;
 go)     build_go ;;
 *)      echo "usage: $0 [both|tinygo|go]" >&2; exit 2 ;;
 esac
+update_js
+stamp
 
 ls -lh docs/desk.wasm docs/go/desk.wasm 2>/dev/null || true
