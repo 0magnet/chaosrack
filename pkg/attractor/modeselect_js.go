@@ -176,7 +176,7 @@ func onModeChange(this js.Value, args []js.Value) any {
 	}
 	// The whole change as one layout (withDeferredLayout, below): the rack is
 	// not read between any two of these, and several of them ask for it to be
-	// re-measured. Following the mode's colormap alone (spect.followMode) asked
+	// re-measured. Following the mode's colormap alone (now followModelColors) asked
 	// before the batch began, and paid a full pass on every change to the
 	// spectrogram.
 	owed.modelChange = true
@@ -186,9 +186,9 @@ func onModeChange(this js.Value, args []js.Value) any {
 		// and buildParamPanel below re-measures and re-packs the rack. Set after
 		// that, they are packed into the row the PREVIOUS model was in.
 		setActiveCategory(run.selectedMode)
-		// Before the panel rebuild, so the MAP ring is drawn at the map the mode
-		// comes up on.
-		spect.followMode(run.selectedMode)
+		// Before the panel rebuild, so the SRC and MAP rings are drawn at the
+		// colors the mode comes up on (colordefault.go).
+		followModelColors(run.selectedMode)
 		// Whether the model is drawn in two halves depends on the mode as well as
 		// the knob, so the canvases have to be reconsidered here — not only when
 		// the knob moves.

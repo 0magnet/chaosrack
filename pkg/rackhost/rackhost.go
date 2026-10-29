@@ -211,6 +211,7 @@ func New() (*Rack, error) {
 	r.scene.start()
 	r.sound = newSound()
 	r.soundStart()
+	r.followMode(r.model())
 	r.showModelSwitches(r.model())
 	r.gridTargets(r.model())
 	r.gridCells()
@@ -321,6 +322,11 @@ func (r *Rack) Set(id, value string) error {
 	r.sound.hand()
 	r.mu.Lock()
 	err := r.set(id, value)
+	// A knob in the Colors module turned: the rings are the
+	// operator's from now on (followMode).
+	if i, ok := r.byID[id]; ok && err == nil && r.ctls[i].Module == attractor.ColorsModule {
+		r.analyzers.colors.Choose()
+	}
 	r.mu.Unlock()
 	// The speaker is told what to play with no lock held: a speaker that
 	// starts asks for samples (Fill) before it returns.

@@ -140,6 +140,8 @@ Source — what the color follows.
 - <!-- key: gradient-source=12 --> PITCH — the centroid folded into one octave, so the same note is the same color in any register.
   Fixed, and least like the others on a hue palette: a melody becomes a sequence of hues that repeats when it does
 
+Each model comes up on its own colors: Z through 2-color for a figure in space, AUDIO through turbo for the three embeddings (Z there is only the signal two delays back, an axis already drawn), and heat for the spectrogram and FVF. The rings follow the model only until you turn a knob in this module — from then on a change of model leaves them where you put them, until Reset All. A ring's reset button returns it to the running model's position.
+
 ### Map
 
 <!-- key: map-cell -->

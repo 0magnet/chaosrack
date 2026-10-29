@@ -502,6 +502,10 @@ func installErrorNet() {
 }
 
 func onResetAll(this js.Value, args []js.Value) any {
+	// The rings go back to following the models: the reset below returns them
+	// to the running model's colors, and the next model brings its own.
+	colorFollow.Forget()
+
 	// Reset camera
 	view.defaultDist = view.initDist
 
@@ -993,7 +997,7 @@ func wireColorAndViewControls() {
 	// does — rather than by setting the two elements and calling updateGradientUI
 	// itself, which is what it used to do and which could drift from these
 	// handlers. No PermaKey: "gs" and "gc" already carry them in permaCtls.
-	adoptDescControl(ControlDesc{
+	srcRing = adoptDescControl(ControlDesc{
 		ID: "gradient-source", Label: "src", IsSelect: true, SelectDef: "2",
 		ResetID: "rst-gradient-source",
 		SelectApply: func(v string) {
@@ -1017,7 +1021,7 @@ func wireColorAndViewControls() {
 		ResetID:     "rst-color-lock",
 		SelectApply: func(v string) { colorRangeLock = v == "1" },
 	})
-	adoptDescControl(ControlDesc{
+	mapRing = adoptDescControl(ControlDesc{
 		ID: "gradient-colors", Label: "map", IsSelect: true, SelectDef: "2",
 		ResetID: "rst-gradient-colors",
 		SelectApply: func(v string) {
@@ -1760,9 +1764,9 @@ func capturePermalinkAndRestore() {
 	// state so the current view is always shareable.
 	perma.capturePermaDefaults()
 	applyStateFromHash()
-	// A link that opens on the spectrogram without naming a map gets the
-	// spectrogram's own; one that names a map keeps it.
-	spect.followMode(run.selectedMode)
+	// The model's colors, unless the link named them (colordefault_js.go).
+	watchColorChoice()
+	followModelColors(run.selectedMode)
 	perma.startPermalinkSync()
 
 	// Final tooltip pass now that every selector (gradient / model / style) is

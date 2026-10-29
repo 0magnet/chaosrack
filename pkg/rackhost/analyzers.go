@@ -36,9 +36,9 @@ type analyzers struct {
 	sect   sectView
 	tau    attractor.TauMeter
 	ro     readoutLine
-	// autoMap is whether the MAP ring holds the heat the spectrogram put there
-	// (followMode).
-	autoMap bool
+	// colors is whether the SRC and MAP rings still follow the model
+	// (followMode), or a knob in the Colors module has been turned.
+	colors attractor.ColorFollow
 	// lastFlow is the flow the panel drew last, whose trajectory the
 	// recurrence plot's traj source plots, as the page's lastFlowMode.
 	lastFlow string
@@ -458,27 +458,16 @@ func (r *Rack) mapNow() colormap.Map {
 	}
 }
 
-// followMode moves the MAP ring onto heat when the spectrogram or FVF comes
-// up and hands it back when they go, as the page does: never over a choice.
-// The ring is moved only from its default, and moved back only if it still
-// holds what this put there. Called with r.mu held.
+// followMode puts the model's colors on the SRC and MAP rings, as the page
+// does: on every change of model, until a knob in the Colors module is turned
+// (attractor.ColorFollow). Called with r.mu held.
 func (r *Rack) followMode(model string) {
-	const ringDefault = "2"
-	heat := strconv.Itoa(colormap.First)
-	a := &r.analyzers
-	cur := r.value("gradient-colors")
-	if model == "spectrogram" || model == "fvf" {
-		if cur == ringDefault && r.set("gradient-colors", heat) == nil {
-			a.autoMap = true
-		}
+	c, ok := r.analyzers.colors.For(model)
+	if !ok {
 		return
 	}
-	if a.autoMap {
-		a.autoMap = false
-		if cur == heat {
-			_ = r.set("gradient-colors", ringDefault) //nolint:errcheck // the ring takes its own default
-		}
-	}
+	_ = r.set("gradient-source", c.Src) //nolint:errcheck // a ring the catalog lacks has nothing to show
+	_ = r.set("gradient-colors", c.Map) //nolint:errcheck // as above
 }
 
 // waterfallView is the native waterfall: its surface, and the signal it is
