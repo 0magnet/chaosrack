@@ -18,3 +18,18 @@ func TestFeatLitIsTheNearestSegment(t *testing.T) {
 		}
 	}
 }
+
+// The canvas colors the segments where the stylesheet's gradient does: green
+// to 70%, amber to 90%, red above.
+func TestLadderTintsSplitAsTheStylesheetDoes(t *testing.T) {
+	var n [3]int
+	for k := range featSegs {
+		n[ladderTint(k)]++
+	}
+	if n != [3]int{14, 4, 2} {
+		t.Fatalf("green, amber, red = %v, want [14 4 2]", n)
+	}
+	if ladderTint(13) != 0 || ladderTint(14) != 1 || ladderTint(18) != 2 {
+		t.Fatal("a boundary segment has the wrong color")
+	}
+}
