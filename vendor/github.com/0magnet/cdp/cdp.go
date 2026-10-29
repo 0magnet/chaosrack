@@ -209,7 +209,14 @@ func (c *Client) Events(buf int) (events <-chan Event, cancel func()) {
 // out when out is non-nil. params may be nil. A protocol error comes back as
 // an *Error.
 func (c *Client) Do(ctx context.Context, method string, params, out any) error {
-	r, err := c.send(ctx, method, params)
+	return c.DoSession(ctx, "", method, params, out)
+}
+
+// DoSession is Do for the target attached as session: a page's worker or
+// frame that Target.setAutoAttach (with flatten) or Target.attachToTarget
+// reported. Its events arrive with that SessionID. An empty session is Do.
+func (c *Client) DoSession(ctx context.Context, session, method string, params, out any) error {
+	r, err := c.send(ctx, session, method, params)
 	if err != nil {
 		return err
 	}
@@ -231,7 +238,7 @@ func (c *Client) Do(ctx context.Context, method string, params, out any) error {
 func (c *Client) Call(method string, params map[string]any) (map[string]any, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout())
 	defer cancel()
-	r, err := c.send(ctx, method, params)
+	r, err := c.send(ctx, "", method, params)
 	if err != nil {
 		return nil, err
 	}
@@ -252,16 +259,17 @@ func (c *Client) timeout() time.Duration {
 	return DefaultTimeout
 }
 
-func (c *Client) send(ctx context.Context, method string, params any) (reply, error) {
+func (c *Client) send(ctx context.Context, session, method string, params any) (reply, error) {
 	if params == nil {
 		params = struct{}{}
 	}
 	id := c.nextID.Add(1)
 	b, err := json.Marshal(struct {
-		ID     int64  `json:"id"`
-		Method string `json:"method"`
-		Params any    `json:"params"`
-	}{id, method, params})
+		ID        int64  `json:"id"`
+		Method    string `json:"method"`
+		Params    any    `json:"params"`
+		SessionID string `json:"sessionId,omitempty"`
+	}{id, method, params, session})
 	if err != nil {
 		return reply{}, fmt.Errorf("cdp: %s: %w", method, err)
 	}

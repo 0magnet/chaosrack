@@ -4,20 +4,20 @@ go 1.26.7
 
 require (
 	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992
-	github.com/0magnet/audioprism-go v0.0.1-0.20261028112847-065e4ffe7e0a
+	github.com/0magnet/audioprism-go v0.0.1-0.20261029113906-1f8844596976
 	github.com/0magnet/calvin v0.0.1-0.20261013221715-da6581155df3
-	github.com/0magnet/cdp v0.0.0-20261013220930-98e232fae01d
-	github.com/0magnet/desk v0.0.3-0.20261028113416-fb38e9089b97
-	github.com/0magnet/desk/panes v0.0.1-0.20261028113043-275fa48ec9ee
+	github.com/0magnet/cdp v0.0.0-20261028200759-2a9c9f587569
+	github.com/0magnet/desk v0.0.3-0.20261029114504-bda878e95ee4
+	github.com/0magnet/desk/panes v0.0.1-0.20261029114140-1ec03fecd61e
 	github.com/0magnet/lattice v0.0.0-20261023211141-bbcbaac64524
-	github.com/0magnet/pisano v0.0.0-20261028113233-fa1efb56f353
-	github.com/0magnet/rack-go v0.0.0-20261013221719-290136881c9a
+	github.com/0magnet/pisano v0.0.0-20261029114333-09755353cb1b
+	github.com/0magnet/rack-go v0.0.0-20261028211156-58f7d14d2611
 	github.com/0magnet/seat v0.0.0-20261013221028-e66b97ebca1a
 	github.com/0magnet/sh/v3 v3.13.2-0.20261024150911-145e01c63128
-	github.com/0magnet/tuiwasm v0.0.0-20261028113517-14b9336c3642
-	github.com/0magnet/websh v0.0.1-0.20261028112929-8dd7f87d850a
-	github.com/0magnet/winbox-go v0.0.1-0.20261020181245-bacce940cc20
-	github.com/0magnet/xterm-go v0.0.1-0.20261027203517-9d9bf96eff34
+	github.com/0magnet/tuiwasm v0.0.0-20261029114557-654fb7a0d08a
+	github.com/0magnet/websh v0.0.1-0.20261029114000-80435ff67f81
+	github.com/0magnet/winbox-go v0.0.1-0.20261028211148-34d6e7c4492d
+	github.com/0magnet/xterm-go v0.0.1-0.20261028211146-6bd2303b2f23
 	github.com/creack/pty v1.1.24
 	github.com/gdamore/tcell/v2 v2.13.10
 	github.com/gdamore/tcell/v3 v3.6.0
@@ -37,7 +37,7 @@ require (
 
 require (
 	charm.land/lipgloss/v2 v2.0.6 // indirect
-	github.com/0magnet/bottle v0.0.1-0.20261013221653-12057b62ab20 // indirect
+	github.com/0magnet/bottle v0.0.1-0.20261028202309-2b922f28f74e // indirect
 	github.com/0magnet/coloredcobra v1.0.4-0.20261012213101-faa6bd8f94c5 // indirect
 	github.com/0magnet/glamour v1.0.1-0.20261004193946-db176df590f5 // indirect
 	github.com/0magnet/go-dsp v0.0.1-0.20261013221717-1ec76fa9affb // indirect
@@ -66,7 +66,7 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/coder/websocket v1.8.15 // indirect
-	github.com/dlclark/regexp2/v2 v2.11.0 // indirect
+	github.com/dlclark/regexp2/v2 v2.12.0 // indirect
 	github.com/dunglas/httpsfv v1.1.2 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/fatih/color v1.19.0 // indirect
@@ -76,7 +76,7 @@ require (
 	github.com/go-playground/locales v0.14.2 // indirect
 	github.com/go-playground/universal-translator v0.18.2 // indirect
 	github.com/go-playground/validator/v10 v10.30.5 // indirect
-	github.com/goccy/go-json v0.11.2 // indirect
+	github.com/goccy/go-json v0.12.0 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/guptarohit/asciigraph v0.10.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
