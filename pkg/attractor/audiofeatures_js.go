@@ -4,13 +4,10 @@ package attractor
 
 import (
 	"math"
-	"strconv"
-	"syscall/js"
 
 	sg "github.com/0magnet/audioprism-go/pkg/spectrogram"
 
 	"github.com/0magnet/chaosrack/pkg/audiosrc"
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/meters"
 )
 
@@ -36,9 +33,8 @@ type audioFeatures struct {
 	feat    map[string]float32 // smoothed feature values
 	peak    map[string]float32 // adaptive normalization peaks
 
-	// The Features module's ladders, and how many segments each has lit.
-	ladder    [len(featNames)]js.Value
-	ladderLit [len(featNames)]int
+	// The Features module's ladders (featladder_js.go).
+	ladders featLadders
 
 	// bands holds the current smoothed, adaptively-normalized band energies
 	// per channel ("mono", "L", "R", the sends), each numEQBands long, 0..1
@@ -284,11 +280,9 @@ func setAudioMod(on bool) {
 }
 
 // The Features module (feat-module): the six features as LED bar graphs, a
-// ladder each, as a console's meter bridge shows its channels. A ladder's
-// lit height is one style property, --lit, the number of segments lit
-// (featladder.go); the stylesheet draws the segments and their colors from
-// it, so a reading costs one write, and none when it lights the segments it
-// already lit.
+// ladder each, as a console's meter bridge shows its channels. A reading
+// draws the segments that changed on the ladder's canvas (featladder_js.go),
+// and nothing when it lights the segments already lit.
 
 // featNames are the features the Features module shows, in the order of its
 // ladders: the mono mix of each.
@@ -312,20 +306,7 @@ func (a *audioFeatures) darkLadders() {
 	}
 }
 
-// setLadder lights n segments of ladder i. The element is looked up again
-// only when a write is due and the one held has left the page.
+// setLadder lights n segments of ladder i.
 func (a *audioFeatures) setLadder(i, n int) {
-	el := a.ladder[i]
-	if n == a.ladderLit[i] && el.Truthy() {
-		return
-	}
-	if !el.Truthy() || !el.Get("isConnected").Bool() {
-		el = dom.Doc.Call("getElementById", "feat-bar-"+strconv.Itoa(i))
-		if !el.Truthy() {
-			return
-		}
-		a.ladder[i] = el
-	}
-	a.ladderLit[i] = n
-	el.Get("style").Call("setProperty", "--lit", strconv.Itoa(n))
+	a.ladders.set(i, n)
 }
