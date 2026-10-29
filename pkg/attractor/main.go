@@ -687,16 +687,15 @@ func startBackgroundTasks() {
 		return nil
 	})
 
-	// Clock goroutine
-	go func() {
-		ticker := time.NewTicker(time.Second)
-		defer ticker.Stop()
-		for range ticker.C {
-			if !rtc.IsUndefined() {
-				rtc.Set("innerHTML", time.Now().Format("2006-01-02 15:04:05"))
-			}
+	// The clock, on the panel's clock: written on the tick a second changes,
+	// with the other readouts, rather than on a frame of its own.
+	var clockShown int64
+	pclock.onTick(func() {
+		if s := time.Now().Unix(); s != clockShown && !rtc.IsUndefined() {
+			clockShown = s
+			rtc.Set("textContent", time.Now().Format("2006-01-02 15:04:05"))
 		}
-	}()
+	})
 
 	// Debug stats reporter goroutine
 	if debugEnabled {

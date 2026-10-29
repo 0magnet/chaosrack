@@ -141,7 +141,6 @@ type rotationKnobs struct {
 	led     [3]js.Value // degree readout per axis
 	ready   bool
 	lastDeg [3]int
-	lastMs  float64 // when follow last wrote, in rAF time
 }
 
 var rotKnobs = rotationKnobs{
@@ -175,20 +174,16 @@ func addAngleAxis(axis int, d float32) {
 	rotKnobs.update()
 }
 
-// followMs is how often the readouts follow a view that turns on its own.
-const followMs = 250
-
-// follow is update for the render loop, where the view turns on its own: at
-// most every followMs. Every write repaints the panel, and on this page any
-// repaint there makes Chrome re-layerize the whole panel (a changed paint
-// chunk's bounds or effect is enough), 5–10 ms each. A spin wrote a new degree
-// on most frames, so it re-layerized on most frames. A knob being turned still
-// answers at once: its handlers call update.
+// follow is update for the render loop, where the view turns on its own: on
+// the panel's clock (panelclock.go). Every write repaints the panel, and on
+// this page any repaint there makes Chrome re-layerize the whole panel (a
+// changed paint chunk's bounds or effect is enough), 5–10 ms each. A spin
+// wrote a new degree on most frames, so it re-layerized on most frames. A knob
+// being turned still answers at once: its handlers call update.
 func (r *rotationKnobs) follow() {
-	if frameNowMs > 0 && frameNowMs >= r.lastMs && frameNowMs-r.lastMs < followMs {
+	if frameNowMs > 0 && !pclock.due {
 		return
 	}
-	r.lastMs = frameNowMs
 	r.update()
 }
 
@@ -700,11 +695,12 @@ func renderLoop(this js.Value, args []js.Value) any {
 		frameNowMs = args[0].Float() // rAF timestamp (ms), used by spectrogram scroll
 		followFrame(frameNowMs)      // what the audio followers advance by
 		tpanel.frame(frameNowMs)     // the rack's own frame meter; see timing.go
+		pclock.advance(frameNowMs)   // whether the panel's readouts are written this frame
 		// Latched here rather than at the end of the frame because renderLoop
 		// has four exits and a meter that misses the paused one would go blank
 		// exactly when someone stopped to read it. The window is thirty frames
 		// long, so latching before this frame's spans land costs nothing.
-		tpanel.tick(frameNowMs)
+		tpanel.tick()
 		jamTick(frameNowMs)
 	}
 
