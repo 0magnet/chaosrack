@@ -209,6 +209,20 @@ func (pe *permalinkState) capturePermaDefaults() {
 	}
 }
 
+// defaultOf is the value a tracked control is left out of the link at: its
+// pristine value, except the two rings, which rest where the running model
+// puts them. A link of a Takens view that nobody recolored then says nothing
+// about color, and opens following the model the way the view did.
+func (pe *permalinkState) defaultOf(key string) string {
+	switch key {
+	case "gs":
+		return ModelColorDefault(run.selectedMode).Src
+	case "gc":
+		return ModelColorDefault(run.selectedMode).Map
+	}
+	return pe.defaults[key]
+}
+
 // serializeState builds the hash content (without the leading '#') from the
 // current live state.
 func (pe *permalinkState) serializeState() string {
@@ -271,7 +285,7 @@ func (pe *permalinkState) serializeState() string {
 		if fv, ok := back.frontValue(c.id); ok {
 			v = fv
 		}
-		if v != pe.defaults[c.key] {
+		if v != pe.defaultOf(c.key) {
 			b.WriteString("&")
 			b.WriteString(c.key)
 			b.WriteString("=")
@@ -487,6 +501,12 @@ func eventFor(c permaCtl, el js.Value) string {
 }
 
 func applyControl(key, val string) {
+	// A link that names a ring names a choice: the rings stay where it puts
+	// them through every change of model after (colordefault.go). One that
+	// does not leaves them following the model.
+	if key == "gs" || key == "gc" {
+		colorFollow.Choose()
+	}
 	if key == mixLinkKey {
 		applyMixLink(val)
 		return

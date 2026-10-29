@@ -76,6 +76,7 @@ func (inPageRack) Set(id, value string) error {
 	}
 	setControlValue(el, value)
 	dispatchControlEvents(el)
+	noteColorChoice(id)
 	return nil
 }
 

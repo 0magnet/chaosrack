@@ -230,23 +230,28 @@ func TestTheSpectrogramOfATone(t *testing.T) {
 	}
 }
 
-// The MAP ring comes up on heat with the spectrogram and goes back when it
-// goes, but never over a map somebody chose.
-func TestTheSpectrogramTakesHeatOnlyFromTheDefault(t *testing.T) {
+// The SRC and MAP rings follow the model — heat for the spectrogram, audio
+// through turbo for the embeddings, the rack's Z and two-color for the rest —
+// until a knob in the Colors module is turned, and then stay where it was put.
+func TestTheRingsFollowTheModelUntilTurned(t *testing.T) {
 	r, _ := idleRack(t, "globe")
+	rings := func(model, src, cmap string) {
+		t.Helper()
+		if s, m := r.value("gradient-source"), r.value("gradient-colors"); s != src || m != cmap {
+			t.Errorf("%s: rings at src %s map %s, want %s %s", model, s, m, src, cmap)
+		}
+	}
 	set(t, r, r.selector, "spectrogram")
-	if got := r.value("gradient-colors"); got != "5" {
-		t.Errorf("the spectrogram came up on map %s, want heat (5)", got)
-	}
+	rings("spectrogram", "2", "5")
+	set(t, r, r.selector, "takens")
+	rings("takens", "4", "8")
 	set(t, r, r.selector, "globe")
-	if got := r.value("gradient-colors"); got != "2" {
-		t.Errorf("leaving the spectrogram left map %s, want the default 2", got)
-	}
-	set(t, r, "gradient-colors", "4", r.selector, "spectrogram")
+	rings("globe", "2", "2")
+	// A ring turned to the very position the next model would put it on is
+	// still a choice.
+	set(t, r, r.selector, "takens", "gradient-colors", "8")
 	set(t, r, r.selector, "globe")
-	if got := r.value("gradient-colors"); got != "4" {
-		t.Errorf("the spectrogram moved a chosen map to %s", got)
-	}
+	rings("globe after a turn", "4", "8")
 }
 
 // Fill lays the spectrogram over the whole frame.

@@ -76,6 +76,7 @@ func exposeRackControl() {
 		}
 		setControlValue(el, a[1].String())
 		dispatchControlEvents(el)
+		noteColorChoice(a[0].String())
 		return true
 	}))
 
