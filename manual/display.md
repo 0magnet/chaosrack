@@ -140,7 +140,7 @@ Source — what the color follows.
 - <!-- key: gradient-source=12 --> PITCH — the centroid folded into one octave, so the same note is the same color in any register.
   Fixed, and least like the others on a hue palette: a melody becomes a sequence of hues that repeats when it does
 
-Each model comes up on its own colors: Z through 2-color for a figure in space, AUDIO through turbo for the three embeddings (Z there is only the signal two delays back, an axis already drawn), and heat for the spectrogram and FVF. The rings follow the model only until you turn a knob in this module — from then on a change of model leaves them where you put them, until Reset All. A ring's reset button returns it to the running model's position.
+Each model comes up on its own colors: Z through 2-color for a figure in space, AUDIO through turbo for Takens and polar, which draw one channel, and CORRELATION through turbo for stereo, which draws two and is a goniometer: there Z is a delayed channel or the time sweep, an axis already drawn, while the correlation is the reading the drawing can lose (WIDE squeezes it out of the figure, and side-on the L/R plane is edge on). Correlation is on a fixed scale — top agreeing, middle unrelated, bottom out of phase — so a color always means the same thing; audio is auto-ranged, so it says which parts of the trail were brighter than which. Turbo because it never reaches black, where heat would lose quiet passages and draw out-of-phase material invisibly, and heat for the spectrogram and FVF. The rings follow the model only until you turn a knob in this module — from then on a change of model leaves them where you put them, until Reset All. A ring's reset button returns it to the running model's position.
 
 ### Map
 

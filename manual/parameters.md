@@ -595,13 +595,13 @@ source — which channel of the live pair is reconstructed.
 
 <!-- key: p.stereo-axes -->
 axes — what the three coordinates are.
-The two 't' positions put TIME on the third axis and draw a goniometer sweeping like a scope trace;
+The two 'g' positions put TIME on the third axis and draw a goniometer sweeping like a scope trace;
 the two 'd' positions put a delayed copy there and draw a delay embedding of the pair.
 
 ### tau
 
 <!-- key: p.stereo-tau -->
-tau — the delay used by the two 'd' axis positions. Inert on the time positions, which have no delayed coordinate.
+tau — the delay used by the two 'd' axis positions. Inert on the two 'g' positions, which have time on the third axis and no delayed coordinate.
 
 ### window
 

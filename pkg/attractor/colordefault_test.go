@@ -2,15 +2,16 @@ package attractor
 
 import "testing"
 
-// The three embeddings come up on audio through turbo, the spectrogram family
-// on heat, and everything else where the rack rests.
+// Takens and polar come up on audio through turbo, stereo on correlation
+// through turbo, the spectrogram family on heat, and everything else where
+// the rack rests.
 func TestModelsComeUpOnTheirOwnColors(t *testing.T) {
 	for _, c := range []struct {
 		model string
 		want  ModelColors
 	}{
 		{"takens", ModelColors{"4", "8"}},
-		{"stereo", ModelColors{"4", "8"}},
+		{"stereo", ModelColors{"7", "8"}},
 		{"polar", ModelColors{"4", "8"}},
 		{"spectrogram", ModelColors{"2", "5"}},
 		{"fvf", ModelColors{"2", "5"}},
