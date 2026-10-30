@@ -4,18 +4,18 @@ go 1.26.7
 
 require (
 	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992
-	github.com/0magnet/audioprism-go v0.0.1-0.20261029113906-1f8844596976
+	github.com/0magnet/audioprism-go v0.0.1-0.20261030113011-6dd17651ff5d
 	github.com/0magnet/calvin v0.0.1-0.20261013221715-da6581155df3
 	github.com/0magnet/cdp v0.0.0-20261028200759-2a9c9f587569
-	github.com/0magnet/desk v0.0.3-0.20261029114504-bda878e95ee4
-	github.com/0magnet/desk/panes v0.0.1-0.20261029114140-1ec03fecd61e
+	github.com/0magnet/desk v0.0.3-0.20261030113530-884a8238183c
+	github.com/0magnet/desk/panes v0.0.1-0.20261030113214-f46d5812b5c9
 	github.com/0magnet/lattice v0.0.0-20261023211141-bbcbaac64524
-	github.com/0magnet/pisano v0.0.0-20261029114333-09755353cb1b
+	github.com/0magnet/pisano v0.0.0-20261030113302-972a65d57a67
 	github.com/0magnet/rack-go v0.0.0-20261028211156-58f7d14d2611
 	github.com/0magnet/seat v0.0.0-20261013221028-e66b97ebca1a
 	github.com/0magnet/sh/v3 v3.13.2-0.20261024150911-145e01c63128
-	github.com/0magnet/tuiwasm v0.0.0-20261029114557-654fb7a0d08a
-	github.com/0magnet/websh v0.0.1-0.20261029114000-80435ff67f81
+	github.com/0magnet/tuiwasm v0.0.0-20261030113729-83a49da62245
+	github.com/0magnet/websh v0.0.1-0.20261030113045-0ade64854f3a
 	github.com/0magnet/winbox-go v0.0.1-0.20261028211148-34d6e7c4492d
 	github.com/0magnet/xterm-go v0.0.1-0.20261028211146-6bd2303b2f23
 	github.com/creack/pty v1.1.24
@@ -28,7 +28,7 @@ require (
 	github.com/quic-go/webtransport-go v0.13.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
-	github.com/yuin/goldmark v1.8.6
+	github.com/yuin/goldmark v1.8.7
 	gitlab.com/russoj88/stl v1.0.2
 	golang.org/x/image v0.47.0
 	golang.org/x/net v0.62.0
@@ -99,7 +99,7 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.2 // indirect
-	github.com/xo/terminfo v1.2.0 // indirect
+	github.com/xo/terminfo v1.3.0 // indirect
 	github.com/yuin/goldmark-emoji v1.0.6 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.9.2 // indirect
 	golang.org/x/arch v0.32.0 // indirect
