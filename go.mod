@@ -1,21 +1,21 @@
 module github.com/0magnet/chaosrack
 
-go 1.26.7
+go 1.26.10
 
 require (
 	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992
-	github.com/0magnet/audioprism-go v0.0.1-0.20261030113011-6dd17651ff5d
+	github.com/0magnet/audioprism-go v0.0.1-0.20261031110315-4a17eb8dcf31
 	github.com/0magnet/calvin v0.0.1-0.20261013221715-da6581155df3
 	github.com/0magnet/cdp v0.0.0-20261028200759-2a9c9f587569
-	github.com/0magnet/desk v0.0.3-0.20261030113530-884a8238183c
-	github.com/0magnet/desk/panes v0.0.1-0.20261030113214-f46d5812b5c9
+	github.com/0magnet/desk v0.0.3-0.20261031110845-bf4170ac642f
+	github.com/0magnet/desk/panes v0.0.1-0.20261031110505-95ae1a6c1b74
 	github.com/0magnet/lattice v0.0.0-20261023211141-bbcbaac64524
-	github.com/0magnet/pisano v0.0.0-20261030113302-972a65d57a67
+	github.com/0magnet/pisano v0.0.0-20261031110700-e6f7d1441432
 	github.com/0magnet/rack-go v0.0.0-20261028211156-58f7d14d2611
 	github.com/0magnet/seat v0.0.0-20261013221028-e66b97ebca1a
 	github.com/0magnet/sh/v3 v3.13.2-0.20261024150911-145e01c63128
-	github.com/0magnet/tuiwasm v0.0.0-20261030113729-83a49da62245
-	github.com/0magnet/websh v0.0.1-0.20261030113045-0ade64854f3a
+	github.com/0magnet/tuiwasm v0.0.0-20261031110852-8cd1bb878036
+	github.com/0magnet/websh v0.0.1-0.20261030114348-e83472c01e1a
 	github.com/0magnet/winbox-go v0.0.1-0.20261028211148-34d6e7c4492d
 	github.com/0magnet/xterm-go v0.0.1-0.20261028211146-6bd2303b2f23
 	github.com/creack/pty v1.1.24
@@ -72,7 +72,7 @@ require (
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.16 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
-	github.com/gin-contrib/sse v1.1.2 // indirect
+	github.com/gin-contrib/sse v1.2.0 // indirect
 	github.com/go-playground/locales v0.14.2 // indirect
 	github.com/go-playground/universal-translator v0.18.2 // indirect
 	github.com/go-playground/validator/v10 v10.30.5 // indirect
