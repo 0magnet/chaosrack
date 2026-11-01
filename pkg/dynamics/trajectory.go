@@ -62,6 +62,21 @@ type TrajectoryOptions struct {
 	// the app's own STL loader indexes with 16-bit indices, so a model wants
 	// to stay under 65535 vertices: 4000 rings of 8 is 32000 of them.
 	MaxPoints int
+
+	// AsThePage steps each system as the page's render loop does: a classic
+	// with the float32 forward Euler of its own loop (generateClassic), a 4-D
+	// system marked Euler with Euler. Off, every system is stepped by RK4,
+	// which is the better answer to "what is this system's attractor" and
+	// what the analyses here are built on.
+	//
+	// A picture of the page wants it on. The integrator is part of the system
+	// at these step sizes, and near a periodic window the two schemes disagree
+	// about whether there is chaos at all: under RK4 the Simone attractor
+	// settles onto a cycle after a few thousand time units and Wang–Sun and
+	// the three-scroll barely leave one, while under the page's Euler all
+	// three stay chaotic. The gallery's model GIFs drew those three as loops
+	// the page never shows.
+	AsThePage bool
 }
 
 // DefaultTrajectory is a reasonable trace of any registered flow: past the
@@ -95,15 +110,20 @@ func Trajectory(mode string, o TrajectoryOptions) [][3]float64 {
 	ic := InitCondFor(mode)
 	x, y, z := float64(ic[0]), float64(ic[1]), float64(ic[2])
 
-	// RK4, not the forward Euler the classic render loops use.
-	//
-	// It is not a stylistic preference: Rabinovich–Fabrikant is stiff with a
-	// small basin, and under Euler at its own timestep the trajectory escapes
-	// during the transient and this returns nothing at all. The app renders
-	// it through the shared RK4 loop for exactly that reason. For the systems
-	// that do run Euler in their render loop the attractor is the same set
-	// either way — a better integrator does not move it, it just stays on it.
+	// RK4 unless asked for the page's own stepping (AsThePage):
+	// Rabinovich–Fabrikant is stiff with a small basin, and under Euler at its
+	// own timestep the trajectory escapes during the transient and this
+	// returns nothing at all. The page steps it by RK4 for exactly that reason.
 	step := func() { x, y, z = RK4(sys.f, dt, x, y, z) }
+	if dtp, f32, ok := Classic(mode); ok && o.AsThePage {
+		x32, y32, z32 := ic[0], ic[1], ic[2]
+		step = func() {
+			h := *dtp
+			dx, dy, dz := f32(x32, y32, z32)
+			x32, y32, z32 = x32+h*dx, y32+h*dy, z32+h*dz
+			x, y, z = float64(x32), float64(y32), float64(z32)
+		}
+	}
 	for t := 0.0; t < o.Transient; t += dt {
 		step()
 		if diverged(x, y, z) {
@@ -167,6 +187,12 @@ func trajectory4(s FlowSys4, mode string, o TrajectoryOptions) [][3]float64 {
 	ic := InitCondFor(mode)
 	st := [4]float64{float64(ic[0]), float64(ic[1]), float64(ic[2]), s.W0}
 	step := func() { st = RK4x4(s.F, dt, st) }
+	if s.Euler && o.AsThePage {
+		step = func() {
+			dx, dy, dz, dw := s.F(st[0], st[1], st[2], st[3])
+			st = [4]float64{st[0] + dt*dx, st[1] + dt*dy, st[2] + dt*dz, st[3] + dt*dw}
+		}
+	}
 	for t := 0.0; t < o.Transient; t += dt {
 		step()
 		if diverged(st[0], st[1], st[2]) {

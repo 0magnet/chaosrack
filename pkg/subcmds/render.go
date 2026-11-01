@@ -60,6 +60,7 @@ var (
 	renderRock   bool
 	renderTumble int
 	renderLive   bool
+	renderSettle float64
 )
 
 func renderFlags(renderCmd *cobra.Command) {
@@ -69,6 +70,7 @@ func renderFlags(renderCmd *cobra.Command) {
 	renderCmd.Flags().IntVar(&renderH, "height", 1000, "image height in pixels")
 	renderCmd.Flags().IntVar(&renderPts, "points", 20000, "how many points of trajectory to keep")
 	renderCmd.Flags().Float64Var(&renderSecs, "seconds", 0, "how much model time to integrate (0 = the model's default)")
+	renderCmd.Flags().Float64Var(&renderSettle, "transient", 500, "model time to integrate and discard before drawing, so the run-in from the initial condition is not drawn")
 	renderCmd.Flags().Float64SliceVar(&renderSpin, "angle", []float64{0.6, 0.9, 0}, "view angles x,y,z in radians")
 	renderCmd.Flags().IntVar(&renderColors, "colors", 2, "palette: 1 mono, 2 two-color (the page's default), 3 three-color, 4 rainbow")
 	renderCmd.Flags().BoolVar(&renderCheck, "check", false, "integrate every model and report the ones that draw nothing")
@@ -290,6 +292,13 @@ exits with an error if any fail.`,
 // coarser picture is the kind of difference that gets blamed on the renderer.
 func trajectoryFor(model string) [][3]float64 {
 	o := dynamics.DefaultTrajectory()
+	o.AsThePage = true // a picture of the model as the page draws it
+	// The library's 20 units of run-in is too short for a slow settler:
+	// Sprott E spirals in for longer than that, and as the whole run frames
+	// an animation, its approach was the picture and the attractor a speck.
+	if renderSettle > 0 {
+		o.Transient = renderSettle
+	}
 	if renderPts > 1 {
 		o.MaxPoints = renderPts
 	}
