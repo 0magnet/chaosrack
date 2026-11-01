@@ -31,6 +31,9 @@ var derivNames = [4]string{"dx/dt", "dy/dt", "dz/dt", "dw/dt"}
 // dtHelp is every integrated system's step, which means the same everywhere.
 var dtHelp = doc("dt-help")
 
+// intgHelp is every flow's INTG position, which turns the one integrator.
+var intgHelp = doc("p.intg")
+
 // constantHelp is the tooltip sentence for one of a system's constants, or ""
 // when mode is not an integrated system or label is not one of its constants.
 func constantHelp(mode, label string) string {
@@ -58,6 +61,9 @@ func constantHelp(mode, label string) string {
 func quotedConstantHelp(mode, label string) string {
 	if label == "dt" {
 		return dtHelp
+	}
+	if label == "intg" {
+		return intgHelp
 	}
 	be, ok := builtinEquations[mode]
 	if !ok {

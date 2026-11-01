@@ -128,6 +128,5 @@ func init() {
 		SetW:  func(v float64) { HyperW = float32(v) },
 		Scale: HyperScale,
 		W0:    float64(HyperW0),
-		Euler: true, // the hyper-Rössler render loop steps forward Euler
 	})
 }

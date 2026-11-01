@@ -236,6 +236,9 @@ func buildParamUnitAs(mode string, p paramDef, pu bool) js.Value {
 			gpu.staticDirty = true
 			resetAttractorState()
 			refreshGradient()
+			if isIntegratorParam(p.ID) {
+				syncIntegratorCells() // every flow's INTG turns the one integrator
+			}
 		}
 		return nil
 	})

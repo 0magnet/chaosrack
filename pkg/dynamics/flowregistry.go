@@ -115,11 +115,12 @@ type FlowSys4 struct {
 	// Interpreted marks equation-engine systems (AST evaluation, ~10× the
 	// per-step cost of a compiled deriv) so consumers pick the right budget.
 	Interpreted bool
-	// Euler records that the mode's render loop steps forward Euler rather
-	// than RK4. The integrator is part of the system the app actually runs —
-	// measuring an Euler-stepped mode with RK4 (or the reverse) reports a
-	// different system, which is how a chaotic Sprott read as periodic — so
-	// anything reproducing a mode's dynamics has to know which it is.
+	// Euler says the flow is being stepped by forward Euler rather than RK4.
+	// The integrator is part of the system the app actually runs — measuring
+	// an Euler-stepped mode with RK4 (or the reverse) reports a different
+	// system — so anything reproducing a mode's dynamics has to know which it
+	// is. FlowFor4 fills it in from the integrator in force (integrator.go);
+	// what a registration says is not read.
 	Euler bool
 }
 
@@ -144,11 +145,13 @@ func RegisterFlow4(mode string, s FlowSys4) {
 // then any 3D flow (registered or integrate3D-captured) lifted with dw≡0.
 func FlowFor4(mode string) (FlowSys4, bool) {
 	if s, ok := flowSystems4[mode]; ok {
+		s.Euler = UsingEuler()
 		return s, true
 	}
 	if s3, ok := flowFor(mode); ok {
 		return FlowSys4{
-			Dt: s3.dt,
+			Euler: UsingEuler(),
+			Dt:    s3.dt,
 			F: func(x, y, z, _ float64) (float64, float64, float64, float64) {
 				dx, dy, dz := s3.f(x, y, z)
 				return dx, dy, dz, 0

@@ -32,10 +32,6 @@ type CustomSystem struct {
 	stack     []float64 // reused eval scratch
 	t         float64   // running t for time-dependent systems
 	w         float32   // 4th state when useW
-	// rk4 steps the flow flavor with RK4 rather than forward Euler: for a
-	// system that is stiff, or chaotic enough that Euler throws it off its
-	// attractor at any step the page can afford.
-	rk4 bool
 }
 
 // NewCustomSystem is the default template, Lorenz, with its parameters
@@ -191,8 +187,7 @@ func (c *CustomSystem) registerCustomFlow() {
 		}
 	}
 	dynamics.RegisterFlow4(dynamics.CustomKey, dynamics.FlowSys4{
-		Dt:    func() float64 { return float64(c.dt) },
-		Euler: !c.rk4, // generateCustom steps forward Euler unless RK4 is chosen
+		Dt: func() float64 { return float64(c.dt) },
 		F: func(x, y, z, w float64) (float64, float64, float64, float64) {
 			vars := [5]float64{x, y, z, w, c.t}
 			eval := func(i int) float64 {
@@ -330,15 +325,16 @@ func (c *CustomSystem) Equation(i int) string {
 	return c.eq[i]
 }
 
-// RK4 is whether the flow flavor steps with RK4 rather than forward Euler.
-func (c *CustomSystem) RK4() bool { return c.rk4 }
+// RK4 is whether the flow flavor steps with RK4 rather than forward Euler:
+// the integrator every flow is stepped by (dynamics.SetIntegrator), which
+// Custom's INTG position turns as every other flow's does.
+func (*CustomSystem) RK4() bool { return !dynamics.UsingEuler() }
 
-// SetRK4 chooses the flow flavor's integrator, and re-registers the system,
-// whose Euler mark tells the Lyapunov readout and the section which it is.
-func (c *CustomSystem) SetRK4(v bool) {
-	if c.rk4 == v {
+// SetRK4 chooses the integrator, for Custom and every other flow.
+func (*CustomSystem) SetRK4(v bool) {
+	if v {
+		dynamics.SetIntegrator(dynamics.RK4Integrator)
 		return
 	}
-	c.rk4 = v
-	c.parseCustom()
+	dynamics.SetIntegrator(dynamics.EulerIntegrator)
 }

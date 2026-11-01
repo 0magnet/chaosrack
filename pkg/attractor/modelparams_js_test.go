@@ -15,7 +15,7 @@ func TestModelParamsAreThePagesTables(t *testing.T) {
 			continue // Custom's are its equations'; the lens is no model
 		}
 		var want []ModelParam
-		for _, p := range ps {
+		for _, p := range withoutIntegrator(ps) { // what modulation routes to, as ModelParams is for
 			want = append(want, ModelParam{p.ID, p.Label})
 		}
 		if got := ModelParams(mode); !slices.Equal(got, want) {

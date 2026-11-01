@@ -177,15 +177,12 @@ func LyapunovForFlow(key string) LyapunovResult {
 	if dt <= 0 {
 		return LyapunovResult{Verdict: "unknown"}
 	}
-	// Integrate the way THE APP integrates this particular system, which is
-	// not one scheme for all of them: the classics run a bespoke forward-Euler
-	// render loop, everything else goes through the shared RK4 loop. Measuring
-	// an RK4 system with Euler at its own timestep measures a different system
-	// — Sprott M reads λ≈0.0005 that way and would be labeled "periodic" on
-	// screen while visibly filling an attractor. The guard test learned this
-	// and split its two cases; the readout has to make the same distinction or
-	// it will confidently mislabel a third of the Sprott catalog.
-	euler := dynamics.IsClassic(key)
+	// Integrate the way THE APP is integrating it: by the integrator in force
+	// (dynamics.SetIntegrator). Measuring an RK4 system with Euler at its own
+	// timestep measures a different system — Sprott M reads λ≈0.0005 that way
+	// and would be labeled "periodic" on screen while visibly filling an
+	// attractor.
+	euler := dynamics.UsingEuler()
 	adv := func(dst, s []float64) {
 		if euler {
 			dx, dy, dz := f(s[0], s[1], s[2])

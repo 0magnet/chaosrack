@@ -43,7 +43,7 @@ func stepper(key string) (dynamics.Deriv, func(dst, s []float64), bool) {
 	if !ok {
 		return nil, nil, false
 	}
-	euler := dynamics.IsClassic(key)
+	euler := dynamics.UsingEuler()
 	return f, func(dst, s []float64) {
 		if euler {
 			dx, dy, dz := f(s[0], s[1], s[2])

@@ -73,7 +73,7 @@ func init() {
 func (b *bifurcation) invalidate() { b.sig = "" }
 
 // params returns the sweepable parameter list of the source mode.
-func (b *bifurcation) params() []paramDef { return attractorParams[b.lastFlowMode] }
+func (b *bifurcation) params() []paramDef { return withoutIntegrator(attractorParams[b.lastFlowMode]) }
 
 // param picks the swept parameter: the selector's choice, or the first
 // non-dt parameter (dt sweeps are integrator artifacts, not bifurcations).

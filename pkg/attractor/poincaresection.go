@@ -127,20 +127,16 @@ func (p *PoincareSection) normal() [3]float64 {
 	return n
 }
 
-// sectAdvancer returns the one-step integrator for a system, and it is not one
-// scheme for all of them.
+// sectAdvancer returns the one-step integrator for a system: the integrator
+// in force (dynamics.SetIntegrator), which FlowFor4 marks on sys.
 //
-// The classics run a bespoke forward-Euler render loop; everything else goes
-// through the shared RK4 loop. A section is a statement about where THE
-// TRAJECTORY THE APP DRAWS crosses a plane, so integrating it with a different
-// scheme sections a different system — lyapunov.go learned the same lesson the
-// hard way and mislabeled a third of the Sprott catalog until it stopped
-// pretending one integrator fits all. The dynamics.ClassicSystems lookup is how that
-// file decides too; dynamics.FlowSys4.euler carries the same fact for the systems that
-// never had a float32 form.
-func sectAdvancer(mode string, sys dynamics.FlowSys4, dt float64) func(s *[4]float64) {
-	classic := dynamics.IsClassic(mode)
-	if classic || sys.Euler {
+// A section is a statement about where THE TRAJECTORY THE APP DRAWS crosses a
+// plane, so integrating it with a different scheme sections a different system
+// — lyapunov.go learned the same lesson the hard way and mislabeled a third of
+// the Sprott catalog while it stepped one integrator and the page drew with
+// another.
+func sectAdvancer(_ string, sys dynamics.FlowSys4, dt float64) func(s *[4]float64) {
+	if sys.Euler {
 		return func(s *[4]float64) { flowStep(sys, s, dt) }
 	}
 	return func(s *[4]float64) { *s = dynamics.RK4x4(sys.F, dt, *s) }

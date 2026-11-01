@@ -11,14 +11,15 @@ import (
 // figure is redrawn by the motion along it rather than shown once.
 type trail struct {
 	key     string
+	intg    dynamics.Integrator // the one the run was started under
 	x, y, z float64
 	pts     [][3]float64
 }
 
 // trailBudget is the most integration steps one frame does. The page's is
-// 4,000,000 Euler steps on a GPU's schedule; this one runs RK4 on the CPU
-// between terminal frames, and a long Trail is cut short here rather than
-// the frame held up: the run is as long as the budget allows.
+// 4,000,000 steps on a GPU's schedule; this one runs on the CPU between
+// terminal frames, and a long Trail is cut short here rather than the frame
+// held up: the run is as long as the budget allows.
 const trailBudget = 200_000
 
 // speedSteps is the Speed knob as the page applies it: a log10 setting, 0 for
@@ -44,8 +45,11 @@ func (t *trail) advanceIn(key string, n int, speed float64, budget int) bool {
 	if !ok || dt <= 0 {
 		return false
 	}
-	if key != t.key {
-		t.key = key
+	// A different integrator is, for a chaotic flow, a different trajectory:
+	// start it again, as the page does when the INTG cell is turned.
+	euler := dynamics.UsingEuler()
+	if key != t.key || t.intg != dynamics.CurrentIntegrator() {
+		t.key, t.intg = key, dynamics.CurrentIntegrator()
 		t.seed()
 	}
 	sub, scale := speedSteps(speed)
@@ -63,6 +67,11 @@ func (t *trail) advanceIn(key string, n int, speed float64, budget int) bool {
 	t.pts = t.pts[:n]
 	for i := range n {
 		for range sub {
+			if euler {
+				dx, dy, dz := f(t.x, t.y, t.z)
+				t.x, t.y, t.z = t.x+h*dx, t.y+h*dy, t.z+h*dz
+				continue
+			}
 			t.x, t.y, t.z = dynamics.RK4(f, h, t.x, t.y, t.z)
 		}
 		if gone(t.x, t.y, t.z) {

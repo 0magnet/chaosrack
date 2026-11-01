@@ -271,7 +271,7 @@ var attractorParams = map[string][]paramDef{
 // So a label that is an abbreviation spells the word out, and every entry says
 // what turning it does rather than restating the name.
 func helpFor(id string) string {
-	if h := doc("p." + id); h != "" {
+	if h := doc("p." + paramDocID(id)); h != "" {
 		return h
 	}
 	if h := systemConstantHelp[id]; h != "" {

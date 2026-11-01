@@ -36,13 +36,21 @@ func cropLit(imgs []*image.RGBA) []*image.RGBA {
 	bg := background()
 	b := imgs[0].Bounds()
 	lit := image.Rectangle{}
+	cols, rows := make([]int, b.Dx()), make([]int, b.Dy())
 	for _, m := range imgs {
 		for y := b.Min.Y; y < b.Max.Y; y++ {
 			for x := b.Min.X; x < b.Max.X; x++ {
 				if !nearColor(m.RGBAAt(x, y), bg) {
 					lit = lit.Union(image.Rect(x, y, x+1, y+1))
+					cols[x-b.Min.X]++
+					rows[y-b.Min.Y]++
 				}
 			}
+		}
+	}
+	if renderFitTrim > 0 && len(imgs) > 1 {
+		if t := trimmedLit(cols, rows, b); !t.Empty() {
+			lit = t // where most of what is lit is (fittrim.go)
 		}
 	}
 	if lit.Empty() {

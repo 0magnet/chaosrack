@@ -121,7 +121,7 @@ func writeAnimation(name string, pts [][3]float64) error {
 }
 
 func writeGIF(name string, pts [][3]float64, views [][3]float64) error {
-	fit := thinned(pts, 50000)
+	fit := fitPoints(pts, 50000)
 	n := len(views)
 	frames := loopFrames(n, func(i, at int) *image.RGBA {
 		o := drawOptions()

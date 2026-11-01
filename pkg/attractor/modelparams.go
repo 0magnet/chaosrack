@@ -47,7 +47,7 @@ func ModelParams(model string) []ModelParam {
 		return ps
 	}
 	var out []ModelParam
-	for _, p := range dynamics.Params(model) {
+	for _, p := range dynamics.Constants(model) {
 		out = append(out, ModelParam{p.ID, p.Label})
 	}
 	return out

@@ -29,7 +29,7 @@ type bifView struct {
 func (r *Rack) bifFigure(running bool) (attractor.Figure, [][3]float64) {
 	b := &r.analyzers.bif
 	flow := r.analyzers.lastFlow
-	ps := dynamics.Params(flow)
+	ps := dynamics.Constants(flow)
 	if flow != b.flow {
 		b.flow = flow
 		r.sweepOptions(ps)
@@ -124,7 +124,7 @@ const envWindow = 2048
 // Called with r.mu held.
 func (r *Rack) bifCursor() (attractor.Figure, string) {
 	b := &r.analyzers.bif
-	ps := dynamics.Params(b.flow)
+	ps := dynamics.Constants(b.flow)
 	idx := attractor.SweepParam(ps, int(r.number("bif-sweep")))
 	if r.value("bif-drive") != "1" || idx < 0 {
 		return attractor.Figure{}, "sweep"

@@ -349,6 +349,7 @@ func (r *Rack) set(id, value string) error {
 		return nil
 	}
 	c.Value = v
+	r.mirrorIntegrator(id, v)
 	for _, s := range r.soundSet(id) {
 		// A generator's OUT moves its pins, as a hand on the Mixer would, so
 		// their lamps light too, and the pins turn OUT; a preset moves the

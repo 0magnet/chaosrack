@@ -844,19 +844,28 @@ Reset speed (×1)
 - <!-- key: p.stereo-grat=1 --> axes — the two coordinate axes only
 - <!-- key: p.stereo-grat=2 --> full — axes, diagonals and the unit box
 
-### Integrator (Custom)
+### Integrator
 
-<!-- key: custom-int-cell -->
-INTG — how a Custom flow is stepped: euler (forward Euler, as every Custom flow always was) or rk4 (fourth-order Runge–Kutta).
-Some systems are stiff, or chaotic enough that Euler throws them off their attractor at any dt: they blow up and start over, again and again.
-RK4 keeps them on it, at four evaluations a step: at a high Speed its trail tops out at a quarter of the pace Euler's can reach.
+<!-- key: p.intg -->
+INTG — how every flow is stepped: rk4 (fourth-order Runge–Kutta, the default) or euler (forward Euler).
+One setting for all of them: turning it on one model turns it on every model, and the trajectory starts again from the beginning.
+At the step sizes the models run at, Euler is not a rougher RK4 but a different system: its error acts like a change to the equations.
+Near a periodic window that is the difference between chaos and a cycle. Wang–Sun and the three-scroll, at the constants they had before RK4 was the default, were chaotic under Euler at their own dt and periodic under RK4.
+RK4 agrees with itself at every step there, so the equations were periodic, and Euler's chaos was its own.
+Under Euler, Speed below ×1 also changes the system, since it shrinks the step.
 Flows only: a map has no step, a surface no path.
 
+- <!-- key: p.intg=0 --> rk4 — fourth-order Runge–Kutta: what the equations do
+- <!-- key: p.intg=1 --> euler — forward Euler: a different system, often more chaotic than the equations
+
+<!-- key: custom-int-cell -->
+INTG — how every flow is stepped, Custom's included: rk4 or euler. The one setting every flow's INTG position turns; see Integrator.
+
 <!-- key: custom-int-select -->
-INTG — the Custom flow's integrator: euler or rk4
+INTG — the integrator every flow is stepped by: euler or rk4
 
 <!-- key: rst-custom-int-select -->
-Reset INTG (euler)
+Reset INTG (rk4)
 
 ### Model switches
 
