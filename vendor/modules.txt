@@ -7,7 +7,7 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.1-0.20261031110315-4a17eb8dcf31
+# github.com/0magnet/audioprism-go v0.0.1-0.20261101120053-d58df5189ceb
 ## explicit; go 1.26.10
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
@@ -24,11 +24,11 @@ github.com/0magnet/cdp
 # github.com/0magnet/coloredcobra v1.0.4-0.20261012213101-faa6bd8f94c5
 ## explicit; go 1.26.0
 github.com/0magnet/coloredcobra
-# github.com/0magnet/desk v0.0.3-0.20261031110845-bf4170ac642f
+# github.com/0magnet/desk v0.0.3-0.20261101120515-710b516c9541
 ## explicit; go 1.26.6
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.1-0.20261031110505-95ae1a6c1b74
+# github.com/0magnet/desk/panes v0.0.1-0.20261101120219-2ac1578c28cd
 ## explicit; go 1.26.6
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -59,7 +59,7 @@ github.com/0magnet/lattice
 # github.com/0magnet/lolcat-go v0.0.1-0.20261013220959-57aa27491489
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20261031110700-e6f7d1441432
+# github.com/0magnet/pisano v0.0.0-20261101120441-13e61844348e
 ## explicit; go 1.26.6
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20261014235132-1143d38a91d3
@@ -126,7 +126,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20261031110852-8cd1bb878036
+# github.com/0magnet/tuiwasm v0.0.0-20261101120823-bb08cc9d85bb
 ## explicit; go 1.26.7
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -410,7 +410,7 @@ github.com/guptarohit/asciigraph
 # github.com/inconshreveable/mousetrap v1.1.0
 ## explicit; go 1.18
 github.com/inconshreveable/mousetrap
-# github.com/itchyny/gojq v0.12.19
+# github.com/itchyny/gojq v0.12.20
 ## explicit; go 1.24.0
 github.com/itchyny/gojq
 # github.com/itchyny/timefmt-go v0.1.9
