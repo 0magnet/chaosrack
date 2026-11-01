@@ -718,7 +718,7 @@ func (pe *permalinkState) applyStateFrom(h string) {
 		// crk, the integrator, is omitted at its default too: a link without
 		// it is an Euler link.
 		if !haveRK4 {
-			custom.rk4 = false
+			custom.SetRK4(false)
 		}
 		custom.applyCustomEq(eqVal)
 	} else if haveFlavor || haveRK4 {
@@ -801,7 +801,7 @@ func (c *customEquation) applyLinkKey(key, val string) (isCustom, isFlavor bool)
 	case "crk":
 		// The flow steps with RK4 rather than Euler. Compiled with the
 		// equations, after the loop, as the flavor is.
-		c.rk4 = val == "1"
+		c.SetRK4(val == "1")
 		return true, false
 	case "cdt":
 		if v, err := strconv.ParseFloat(val, 32); err == nil {

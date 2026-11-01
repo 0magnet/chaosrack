@@ -34,6 +34,9 @@ func init() {
 // trajectory escapes to the divergence guard — rendering blank — once state is
 // rounded to float32 every frame; in float64 it stays on the attractor. The
 // float32 x,y,z globals are kept in sync for the rest of the pipeline.
+//
+// Under Euler (dynamics.SetIntegrator) it steps forward Euler instead, still
+// in double precision.
 func integrate3D(dt float64, deriv func(x, y, z float64) (float64, float64, float64)) {
 	// Publish this mode's vector field to the flow registry (Model Out FLOW
 	// sonification) — free coverage for every integrate3D system.
@@ -41,7 +44,7 @@ func integrate3D(dt float64, deriv func(x, y, z float64) (float64, float64, floa
 	vertices := sim.vertBuf[:sim.steps*4]
 	invN := float32(1) / float32(sim.steps-1)
 	d := dt * float64(sim.speedScale)
-	ic := dynamics.InitCond[run.selectedMode]
+	ic := dynamics.InitCondFor(run.selectedMode) // with the fallback the Euler loop reseeds to
 	// Seed the double-precision state from the initial condition when this
 	// mode first runs (resetAttractorState may not have run before the first
 	// frame on initial page load, which would otherwise leave x64 at 0 and
@@ -52,8 +55,17 @@ func integrate3D(dt float64, deriv func(x, y, z float64) (float64, float64, floa
 	}
 	const lim = 1e4
 	sub := effSubSteps(sim.speedSteps, sim.steps, frameBudgetCompiled)
+	euler := dynamics.UsingEuler()
 	for i := range sim.steps {
 		for range sub {
+			if euler {
+				dx, dy, dz := deriv(sim.x64, sim.y64, sim.z64)
+				sim.x64, sim.y64, sim.z64 = sim.x64+d*dx, sim.y64+d*dy, sim.z64+d*dz
+				if sim.x64 != sim.x64 || sim.x64 > lim || sim.x64 < -lim || sim.y64 > lim || sim.y64 < -lim || sim.z64 > lim || sim.z64 < -lim {
+					sim.x64, sim.y64, sim.z64 = float64(ic[0]), float64(ic[1]), float64(ic[2])
+				}
+				continue
+			}
 			k1x, k1y, k1z := deriv(sim.x64, sim.y64, sim.z64)
 			k2x, k2y, k2z := deriv(sim.x64+d/2*k1x, sim.y64+d/2*k1y, sim.z64+d/2*k1z)
 			k3x, k3y, k3z := deriv(sim.x64+d/2*k2x, sim.y64+d/2*k2y, sim.z64+d/2*k2z)
@@ -94,9 +106,15 @@ func hyperRosslerWarmup() {
 	minX, maxX := 1e30, -1e30
 	minY, maxY := 1e30, -1e30
 	minZ, maxZ := 1e30, -1e30
+	euler := dynamics.UsingEuler()
 	for i := range nWarm {
-		dx, dy, dz, dw := dynamics.HyperDeriv(xf, yf, zf, wf)
-		xf, yf, zf, wf = xf+dt*dx, yf+dt*dy, zf+dt*dz, wf+dt*dw
+		if euler {
+			dx, dy, dz, dw := dynamics.HyperDeriv(xf, yf, zf, wf)
+			xf, yf, zf, wf = xf+dt*dx, yf+dt*dy, zf+dt*dz, wf+dt*dw
+		} else {
+			s := dynamics.RK4x4(dynamics.HyperDeriv, dt, [4]float64{xf, yf, zf, wf})
+			xf, yf, zf, wf = s[0], s[1], s[2], s[3]
+		}
 		// With divergent parameters the warmup itself blows up — bail
 		// instead of marching through NaNs.
 		if i%512 == 511 && !(xf > -1e6 && xf < 1e6 && yf > -1e6 && yf < 1e6 && zf > -1e6 && zf < 1e6) {
@@ -163,11 +181,17 @@ func generateHyperRossler() {
 	vertices := sim.vertBuf[:sim.steps*4]
 	invN := float32(1) / float32(sim.steps-1)
 	sub := effSubSteps(sim.speedSteps, sim.steps, frameBudgetCompiled)
+	euler := dynamics.UsingEuler()
 	for i := range sim.steps {
 		dt := float64(dynamics.HyperDT * sim.speedScale)
 		for range sub {
-			dx, dy, dz, dw := dynamics.HyperDeriv(float64(sim.x), float64(sim.y), float64(sim.z), float64(dynamics.HyperW))
-			sim.x, sim.y, sim.z, dynamics.HyperW = sim.x+float32(dt*dx), sim.y+float32(dt*dy), sim.z+float32(dt*dz), dynamics.HyperW+float32(dt*dw)
+			if euler {
+				dx, dy, dz, dw := dynamics.HyperDeriv(float64(sim.x), float64(sim.y), float64(sim.z), float64(dynamics.HyperW))
+				sim.x, sim.y, sim.z, dynamics.HyperW = sim.x+float32(dt*dx), sim.y+float32(dt*dy), sim.z+float32(dt*dz), dynamics.HyperW+float32(dt*dw)
+			} else {
+				s := dynamics.RK4x4(dynamics.HyperDeriv, dt, [4]float64{float64(sim.x), float64(sim.y), float64(sim.z), float64(dynamics.HyperW)})
+				sim.x, sim.y, sim.z, dynamics.HyperW = float32(s[0]), float32(s[1]), float32(s[2]), float32(s[3])
+			}
 			sim.checkDiverged()
 		}
 		j := i * 4

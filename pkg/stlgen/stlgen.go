@@ -51,6 +51,7 @@ func Command() *cobra.Command {
 	f.StringVar(&o.only, "only", "", "comma-separated name filter")
 	f.BoolVar(&o.list, "list", false, "list what would be written and stop")
 	f.IntVar(&o.seg, "seg", 0, "segments per revolution (0 = each model's default)")
+	f.StringVar(&o.intg, "integrator", "rk4", "how flows are stepped: rk4 or euler (see chaosrack render --help)")
 	return cmd
 }
 
@@ -59,6 +60,7 @@ type options struct {
 	only   string
 	list   bool
 	seg    int
+	intg   string
 }
 
 // writeSTL writes one mesh to path.
@@ -75,6 +77,11 @@ func writeSTL(ctx context.Context, path string, mesh meshstl.Mesh, header string
 }
 
 func run(ctx context.Context, out, errOut io.Writer, o options) error {
+	intg, err := dynamics.ParseIntegrator(o.intg)
+	if err != nil {
+		return err
+	}
+	dynamics.SetIntegrator(intg)
 	outf := func(format string, a ...any) { fmt.Fprintf(out, format, a...) }    //nolint:errcheck // as fmt.Printf was: the files are what a run is for
 	errf := func(format string, a ...any) { fmt.Fprintf(errOut, format, a...) } //nolint:errcheck // as above
 	models := attractor.STLModels()

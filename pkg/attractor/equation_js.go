@@ -88,7 +88,7 @@ func (c *customEquation) generateCustom() {
 	stack := c.stack
 	vertices := sim.vertBuf[:sim.steps*4]
 	invN := float32(1) / float32(sim.steps-1)
-	if c.rk4 {
+	if c.RK4() {
 		c.generateCustomRK4(pv, dt, vertices, invN)
 		return
 	}
@@ -418,7 +418,7 @@ func (c *customEquation) serializeCustom(b *strings.Builder) {
 	}
 	if !c.iterate && !c.surface {
 		b.WriteString("&cdt=" + permaFmt(c.dt))
-		if c.rk4 {
+		if c.RK4() {
 			b.WriteString("&crk=1")
 		}
 	}
@@ -587,7 +587,7 @@ const customIntCell = "custom-int-cell"
 // wireIntegratorCell adopts the integrator selector: euler or rk4.
 func (c *customEquation) wireIntegratorCell() {
 	adoptDescControl(ControlDesc{
-		ID: "custom-int-select", Label: "intg", IsSelect: true, SelectDef: "0", ResetID: "rst-custom-int-select",
+		ID: "custom-int-select", Label: "intg", IsSelect: true, SelectDef: "1", ResetID: "rst-custom-int-select",
 		SelectApply: func(v string) { c.setIntegrator(v == "1") },
 	})
 }
@@ -595,11 +595,12 @@ func (c *customEquation) wireIntegratorCell() {
 // setIntegrator steps the flow with RK4 or forward Euler, from the start: a
 // different integrator is, for a chaotic flow, a different trajectory.
 func (c *customEquation) setIntegrator(rk4 bool) {
-	if c.rk4 == rk4 {
+	if c.RK4() == rk4 {
 		return
 	}
 	c.SetRK4(rk4)
 	resetAttractorState()
+	syncIntegratorCells() // the one integrator, which every flow's INTG turns
 	perma.syncPermalinkNow()
 }
 
@@ -610,7 +611,7 @@ func (c *customEquation) showIntegrator() {
 	if !sel.Truthy() {
 		return
 	}
-	want := map[bool]string{true: "1", false: "0"}[c.rk4]
+	want := map[bool]string{true: "1", false: "0"}[c.RK4()]
 	if sel.Get("value").String() != want {
 		sel.Set("value", want)
 		dom.Fire(sel, "change") // the knob follows; setIntegrator has nothing to do

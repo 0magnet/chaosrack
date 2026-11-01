@@ -61,6 +61,7 @@ var (
 	renderTumble int
 	renderLive   bool
 	renderSettle float64
+	renderIntg   string
 )
 
 func renderFlags(renderCmd *cobra.Command) {
@@ -71,6 +72,8 @@ func renderFlags(renderCmd *cobra.Command) {
 	renderCmd.Flags().IntVar(&renderPts, "points", 20000, "how many points of trajectory to keep")
 	renderCmd.Flags().Float64Var(&renderSecs, "seconds", 0, "how much model time to integrate (0 = the model's default)")
 	renderCmd.Flags().Float64Var(&renderSettle, "transient", 500, "model time to integrate and discard before drawing, so the run-in from the initial condition is not drawn")
+	renderCmd.Flags().StringVar(&renderIntg, "integrator", "rk4", "how flows are stepped: rk4 (what the equations do) or euler (forward Euler, a different system at these steps)")
+	renderCmd.Flags().Float64Var(&renderFitTrim, "fit-trim", 0.002, "in an animation, frame to all but this share of the points and of the lit pixels at each side, so a rare excursion runs out of frame rather than shrinking every frame (0 = frame everything)")
 	renderCmd.Flags().Float64SliceVar(&renderSpin, "angle", []float64{0.6, 0.9, 0}, "view angles x,y,z in radians")
 	renderCmd.Flags().IntVar(&renderColors, "colors", 2, "palette: 1 mono, 2 two-color (the page's default), 3 three-color, 4 rainbow")
 	renderCmd.Flags().BoolVar(&renderCheck, "check", false, "integrate every model and report the ones that draw nothing")
@@ -185,6 +188,13 @@ Use chaosrack models to list the available models. Use --params to list the
 controls that --set can change, with their ranges. Values outside a control's
 range are rejected rather than clamped.
 
+Flows are stepped by RK4, as the page steps them by default. --integrator
+euler steps them by forward Euler instead, as the page's INTG knob can: at
+these step sizes a different system, often more chaotic than the equations.
+A flow is integrated for --transient model time before anything is drawn.
+
+  chaosrack render --model wangsun --integrator euler -o euler.png
+
 AUDIO MODELS
 
 The models that are drawn from sound need a signal. --audio SECONDS records
@@ -219,6 +229,11 @@ exits with an error if any fail.`,
 			if renderParams {
 				return listParams()
 			}
+			intg, err := dynamics.ParseIntegrator(renderIntg)
+			if err != nil {
+				return err
+			}
+			dynamics.SetIntegrator(intg)
 			if err := applySets(); err != nil {
 				return err
 			}
@@ -292,7 +307,6 @@ exits with an error if any fail.`,
 // coarser picture is the kind of difference that gets blamed on the renderer.
 func trajectoryFor(model string) [][3]float64 {
 	o := dynamics.DefaultTrajectory()
-	o.AsThePage = true // a picture of the model as the page draws it
 	// The library's 20 units of run-in is too short for a slow settler:
 	// Sprott E spirals in for longer than that, and as the whole run frames
 	// an animation, its approach was the picture and the attractor a speck.

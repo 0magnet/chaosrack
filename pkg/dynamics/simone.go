@@ -5,12 +5,17 @@ import "math"
 // The integration step and parameters of the Simone system: a point relaxing
 // toward s·(sin(a·y) + cos(b·z), …), each coordinate driven by the next two —
 // the trigonometric map of the Simone attractor written as a flow, as in
-// Shashank Tomar's strange attractors (blog.shashanktomar.com). b is 2.49
-// rather than the 4.84 shown there, which settles to a cycle.
+// Shashank Tomar's strange attractors (blog.shashanktomar.com).
+//
+// a=5.40, b=2.40, measured under RK4 (analysis.MeasureLongRun): λ≈1.0 in
+// every window to t=9300, at this step and a quarter of it, and at every
+// neighbor a step of 0.1 away. The 5.51/2.49 it had before is chaotic only for
+// a while: λ≈1.1 to t≈2000, then 0.14, a single loop on screen — which forward
+// Euler at this step hid, being chaotic there itself.
 var (
 	SimoneDT float32 = 0.005
-	SimoneA  float32 = 5.51
-	SimoneB  float32 = 2.49
+	SimoneA  float32 = 5.40
+	SimoneB  float32 = 2.40
 	SimoneS  float32 = 2.0
 )
 

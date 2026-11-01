@@ -30,8 +30,8 @@ func (r *Rack) customKnobs() {
 	if v, ok := r.knobValue("custom-dt"); ok {
 		c.SetDt(float32(v))
 	}
-	// The integrator: the figure is drawn with RK4 whatever it says
-	// (dynamics.Trajectory), but the Lyapunov readout measures what it says.
+	// The integrator, every flow's: the trail, the figure and the readouts
+	// all step by it.
 	if v, ok := r.knobValue("custom-int-select"); ok {
 		c.SetRK4(v == 1)
 	}

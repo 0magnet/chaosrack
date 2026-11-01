@@ -3,6 +3,7 @@ package dynamics
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // The tunable constants of the systems, as data.
@@ -120,7 +121,7 @@ var params = map[string][]Param{
 		{"aizawa-f", "f", &AizawaF, 0.1, 0, 1, 0.01},
 	},
 	"sprott": {
-		{"sprott-dt", "dt", &SprottDT, 0.005, 0.001, 0.05, 0.001},
+		{"sprott-dt", "dt", &SprottDT, 0.04, 0.001, 0.05, 0.001},
 		{"sprott-a", "a", &SprottA, 1.6, 0.1, 5, 0.01},
 		{"sprott-b", "b", &SprottB, 1.85, 0.1, 5, 0.01},
 	},
@@ -182,18 +183,18 @@ var params = map[string][]Param{
 		{"tscroll-dt", "dt", &ThreeScrollDT, 0.0008, 0.0001, 0.001, 0.0001},
 		{"tscroll-a", "a", &ThreeScrollA, 40.0, 10, 60, 0.1},
 		{"tscroll-b", "b", &ThreeScrollB, 0.833, 0.1, 3, 0.001},
-		{"tscroll-c", "c", &ThreeScrollC, 0.5, 0.01, 2, 0.01},
+		{"tscroll-c", "c", &ThreeScrollC, 0.6, 0.01, 2, 0.01},
 		{"tscroll-d", "d", &ThreeScrollD, 0.65, 0.1, 2, 0.01},
 		{"tscroll-e", "e", &ThreeScrollE, 20.0, 5, 30, 0.1},
 	},
 	"wangsun": {
 		{"wangsun-dt", "dt", &WangSunDT, 0.01, 0.002, 0.03, 0.001},
 		{"wangsun-a", "a", &WangSunA, 0.2, -1, 1, 0.01},
-		{"wangsun-b", "b", &WangSunB, -0.03, -1, 1, 0.01},
-		{"wangsun-c", "c", &WangSunC, 0.3, -1, 1, 0.01},
+		{"wangsun-b", "b", &WangSunB, -0.01, -1, 1, 0.01},
+		{"wangsun-c", "c", &WangSunC, 1, -1, 1, 0.01},
 		{"wangsun-d", "d", &WangSunD, -0.4, -2, 1, 0.01},
-		{"wangsun-e", "e", &WangSunE, -1.5, -3, 0, 0.01},
-		{"wangsun-f", "f", &WangSunF, -1.5, -3, 0, 0.01},
+		{"wangsun-e", "e", &WangSunE, -1, -3, 0, 0.01},
+		{"wangsun-f", "f", &WangSunF, -1, -3, 0, 0.01},
 	},
 	"lorenzmod2": {
 		{"lmod2-dt", "dt", &LorenzMod2DT, 0.002, 0.0005, 0.005, 0.0005},
@@ -204,14 +205,26 @@ var params = map[string][]Param{
 	},
 	"simone": {
 		{"simone-dt", "dt", &SimoneDT, 0.005, 0.001, 0.02, 0.001},
-		{"simone-a", "a", &SimoneA, 5.51, 0.1, 6, 0.01},
-		{"simone-b", "b", &SimoneB, 2.49, 0.1, 6, 0.01},
+		{"simone-a", "a", &SimoneA, 5.4, 0.1, 6, 0.01},
+		{"simone-b", "b", &SimoneB, 2.4, 0.1, 6, 0.01},
 		{"simone-s", "s", &SimoneS, 2.0, 0.5, 5, 0.1},
 	},
 }
 
-// Params are the tunable constants of one mode, in panel order.
-func Params(mode string) []Param { return params[mode] }
+// Params are the tunable constants of one mode, in panel order, and for a
+// flow its INTG position after them (integrator.go).
+func Params(mode string) []Param {
+	ps := params[mode]
+	if HasFlow(mode) {
+		ps = append(ps[:len(ps):len(ps)], integratorParam(mode))
+	}
+	return ps
+}
+
+// Constants are a mode's constants and its step, without the INTG position
+// Params adds after them: what a bifurcation sweeps and a modulation routes
+// to, which a switch between two integrators is not.
+func Constants(mode string) []Param { return params[mode] }
 
 // ParamModes lists the modes that have tunable constants, in stable order.
 func ParamModes() []string {
@@ -225,6 +238,9 @@ func ParamModes() []string {
 
 // ParamByID finds a parameter by the id a control addresses it with.
 func ParamByID(id string) (Param, bool) {
+	if mode, ok := strings.CutSuffix(id, IntegratorSuffix); ok && HasFlow(mode) {
+		return integratorParam(mode), true
+	}
 	for _, ps := range params {
 		for _, p := range ps {
 			if p.ID == id {
@@ -261,4 +277,5 @@ func ResetParams() {
 			*p.Value = p.Def
 		}
 	}
+	SetIntegrator(RK4Integrator) // every flow's INTG position, which no row of the table holds
 }

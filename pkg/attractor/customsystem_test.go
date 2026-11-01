@@ -8,17 +8,22 @@ import (
 )
 
 // TestACustomFlowCanStepWithRK4: the Custom template, Lorenz, at a step
-// forward Euler cannot take. Registered as Euler it diverges, no
-// attractor at all; chosen RK4, it measures chaotic — which is the system
-// the page then draws, and the registry's Euler mark is what tells the
-// readouts so.
+// forward Euler cannot take. Stepped by Euler it diverges, no attractor at
+// all; by RK4, the default, it measures chaotic — which is the system the
+// page then draws, and the registry's Euler mark is what tells the readouts
+// so.
 func TestACustomFlowCanStepWithRK4(t *testing.T) {
 	c := NewCustomSystem()
 	c.SetDt(0.03)
 	c.Compile()
 	defer dynamics.Unregister4(dynamics.CustomKey)
+	if !c.RK4() {
+		t.Fatal("the integrator is not RK4 by default")
+	}
+	c.SetRK4(false)
+	defer dynamics.SetIntegrator(dynamics.RK4Integrator)
 	if s, _ := dynamics.FlowFor4(dynamics.CustomKey); !s.Euler {
-		t.Fatal("a Custom flow registered as RK4 before RK4 was chosen")
+		t.Fatal("choosing Euler left the Custom flow registered as RK4")
 	}
 	euler := analysis.LyapunovFor(dynamics.CustomKey)
 	c.SetRK4(true)

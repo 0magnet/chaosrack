@@ -185,7 +185,7 @@ func TestLiveLyapunovIgnoresNonPositiveDT(t *testing.T) {
 
 // driveFlow runs the accumulator against a real registered flow, integrating
 // the way the app integrates that mode — the distinction lyapunov.go had to
-// learn, and the reason the live probe consults dynamics.IsClassic too.
+// learn, and the reason the live probe steps by the integrator in force too.
 func driveFlow(mode string, modelTime float64) (*LiveLyapunov, bool) {
 	sys, ok := dynamics.FlowFor4(mode)
 	if !ok {
@@ -195,9 +195,8 @@ func driveFlow(mode string, modelTime float64) (*LiveLyapunov, bool) {
 	if dt <= 0 {
 		return nil, false
 	}
-	euler := dynamics.IsClassic(mode)
 	step := func(s *[4]float64) {
-		if euler || sys.Euler {
+		if sys.Euler {
 			dx, dy, dz, dw := sys.F(s[0], s[1], s[2], s[3])
 			s[0] += dt * dx
 			s[1] += dt * dy

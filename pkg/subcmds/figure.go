@@ -89,7 +89,7 @@ func writeFigureAnimation(name string, f attractor.Figure) error {
 	views := frameViews(renderFrames)
 	switch strings.ToLower(filepath.Ext(name)) {
 	case ".gif":
-		fit := thinned(f.Points, 50000)
+		fit := fitPoints(f.Points, 50000)
 		n := len(views)
 		frames := loopFrames(n, func(i, at int) *image.RGBA {
 			o := drawOptions()

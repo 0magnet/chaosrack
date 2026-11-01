@@ -416,7 +416,7 @@ func modParams(mode string) []paramDef {
 	if mode == "custom" {
 		return custom.modDefs
 	}
-	return attractorParams[mode]
+	return withoutIntegrator(attractorParams[mode])
 }
 
 // modReadsSends reports whether any route reads MOD A or B: the only reason

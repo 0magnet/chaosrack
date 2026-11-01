@@ -187,15 +187,15 @@ func manualModelHTML(m CatalogModel) string {
 	for _, p := range ps {
 		b.WriteString(`<dt>` + html.EscapeString(p.Label) + `</dt><dd>`)
 		switch {
-		case manual.Has("p." + p.ID):
-			b.WriteString(manual.HTML("p." + p.ID))
+		case manual.Has("p." + paramDocID(p.ID)):
+			b.WriteString(manual.HTML("p." + paramDocID(p.ID)))
 		case helpFor(p.ID) != "":
 			// A constant's help quotes its equations a line each.
 			b.WriteString(`<p>` + strings.ReplaceAll(html.EscapeString(helpFor(p.ID)), "\n", "<br>") + `</p>`)
 		default:
 			b.WriteString(`<p>` + html.EscapeString(p.Label) + `, ` + fmtDialNum(float64(p.Min)) + ` to ` + fmtDialNum(float64(p.Max)) + `</p>`)
 		}
-		if pos := manual.Positions("p." + p.ID); len(pos) > 0 {
+		if pos := manual.Positions("p." + paramDocID(p.ID)); len(pos) > 0 {
 			b.WriteString(infoListHTML(pos))
 		} else if names := paramLabels[p.ID]; len(names) > 0 {
 			b.WriteString(`<ul>`)
