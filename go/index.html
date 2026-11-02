@@ -618,6 +618,7 @@ window.__crUpdate = (function () {
 			if (s !== build) {
 				console.log('[update] a new build: ' + build + ' → ' + s);
 				pending = true;
+				label();
 				decide();
 			}
 		}, function () {});
@@ -676,6 +677,27 @@ window.__crUpdate = (function () {
 	}
 	function hide() { if (note) note.style.display = 'none'; }
 
+	// label shows which build the page is running, top right under the runtime
+	// switch: the runtime, the first eight figures of its stamp and when it was
+	// loaded, so a reload onto a new build can be seen to have happened, and
+	// "update ready" once a newer one is waiting. The stamp is the one
+	// built-from.txt holds and the bot changes with the binary.
+	var tag = null, runtime = '', loadedAt = '';
+	function label() {
+		if (!build || !document.body) return;
+		if (!tag) {
+			tag = document.createElement('div');
+			tag.id = 'build-stamp';
+			tag.style.cssText = 'position:fixed;top:28px;right:10px;z-index:20;font:10px monospace;' +
+				'letter-spacing:1px;color:#556;user-select:text;pointer-events:auto;';
+			document.body.appendChild(tag);
+		}
+		tag.textContent = runtime + ' ' + build.slice(0, 8) + (pending ? ' · update ready' : '');
+		tag.style.color = pending ? '#8cf' : '#556';
+		tag.title = 'Running the ' + runtime + ' build of sources ' + build + ', loaded ' + loadedAt +
+			'. The page checks for a newer build every five minutes and moves onto it.';
+	}
+
 	return {
 		// url is the address to fetch the wasm at wasmURL by: its stamp
 		// added, or wasmURL as it is when there is no stamp to read. Reading
@@ -684,6 +706,9 @@ window.__crUpdate = (function () {
 			stampURL = wasmURL.replace(/[^/]*$/, '') + 'built-from.txt';
 			return read(BOOT_WAIT).then(function (s) {
 				build = s;
+				runtime = /tiny/.test(wasmURL) ? 'tinygo' : 'go';
+				loadedAt = new Date().toLocaleTimeString();
+				if (document.body) label(); else addEventListener('DOMContentLoaded', label);
 				setInterval(check, EVERY);
 				document.addEventListener('visibilitychange', function () {
 					if (document.hidden) decide(); else check();

@@ -1,6 +1,7 @@
 package analysis
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/0magnet/chaosrack/pkg/dynamics"
@@ -22,6 +23,11 @@ var conservative = map[string]bool{"sprotta": true}
 func TestEveryFlowStaysChaotic(t *testing.T) {
 	if testing.Short() {
 		t.Skip("long runs")
+	}
+	if runtime.GOOS == "js" {
+		// The same arithmetic as the host's, which runs it; under Node it
+		// took eight of the ten minutes the whole package is allowed.
+		t.Skip("measured by the native suite")
 	}
 	for _, k := range dynamics.Keys() {
 		for _, scale := range []float64{1, 0.25} {

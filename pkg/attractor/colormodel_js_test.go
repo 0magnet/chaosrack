@@ -142,3 +142,18 @@ func TestResetHandlesBothControlVariants(t *testing.T) {
 	// exactly why it must not be the thing that takes the runtime down.
 	(&Control{}).resetToDefault()
 }
+
+// TestTheKeyIsOnlyOverATrace: the color key explains the SRC ring, so it is
+// not shown where nothing is colored by it.
+func TestTheKeyIsOnlyOverATrace(t *testing.T) {
+	for _, m := range []string{"spectrogram", "fvf", "rta", "xfer", "recurrence", "terminal", "desk"} {
+		if keyApplies(m) {
+			t.Errorf("%s: the key is shown, but nothing there is colored by SRC", m)
+		}
+	}
+	for _, m := range []string{"takens", "stereo", "polar", "lorenz", "waterfall", "xy"} {
+		if !keyApplies(m) {
+			t.Errorf("%s: a trace colored by SRC, but no key", m)
+		}
+	}
+}
