@@ -17,7 +17,7 @@ require (
 	github.com/0magnet/tuiwasm v0.0.0-20261102143217-a0e3d639f941
 	github.com/0magnet/websh v0.0.1-0.20261102141625-b1307c252476
 	github.com/0magnet/winbox-go v0.0.1-0.20261028211148-34d6e7c4492d
-	github.com/0magnet/xterm-go v0.0.1-0.20261028211146-6bd2303b2f23
+	github.com/0magnet/xterm-go v0.0.1-0.20261102175604-ae8246f12f96
 	github.com/creack/pty v1.1.24
 	github.com/gdamore/tcell/v2 v2.13.10
 	github.com/gdamore/tcell/v3 v3.6.0
