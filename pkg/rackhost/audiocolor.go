@@ -55,7 +55,9 @@ func (r *Rack) soundNow() {
 	if len(l) < colorFFT {
 		return
 	}
-	ml, mr := meters.ComputeFFTMags(l), meters.ComputeFFTMags(rt)
+	// One transform for the pair: ComputeFFTMags twice handed back its one
+	// scratch twice, so the left channel read as the right.
+	ml, mr := meters.ComputeFFTMagsPair(l, rt)
 	_, _, _, cl := attractor.BandEnergies(ml, sampleRate)
 	_, _, _, cr := attractor.BandEnergies(mr, sampleRate)
 	k := c.clock.frames(r.sound.now())

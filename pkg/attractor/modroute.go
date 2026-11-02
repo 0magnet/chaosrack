@@ -3,6 +3,7 @@ package attractor
 import (
 	"math"
 	"strconv"
+	"sync/atomic"
 
 	"github.com/0magnet/chaosrack/pkg/led"
 )
@@ -65,26 +66,43 @@ const ModBandCount = numEQBands
 // computeBands sums FFT magnitudes into numEQBands log-spaced frequency bands
 // (≈30 Hz → Nyquist).
 func computeBands(mags []float64, sr int) []float32 {
-	nyq := float64(sr) / 2
 	out := make([]float32, numEQBands)
-	if nyq <= 30 {
-		return out
+	for i, b := range bandTable(len(mags), sr) {
+		if b >= 0 {
+			out[b] += float32(mags[i])
+		}
 	}
+	return out
+}
+
+// bandOf is a spectrum's band for each of its bins, −1 below 30 Hz: what
+// computeBands adds each bin into, worked out once for a spectrum's size and
+// rate rather than with a logarithm per bin, twice a channel, every frame.
+type bandOf struct {
+	n, sr int
+	band  []int8
+}
+
+var lastBands atomic.Pointer[bandOf]
+
+func bandTable(n, sr int) []int8 {
+	if t := lastBands.Load(); t != nil && t.n == n && t.sr == sr {
+		return t.band
+	}
+	t := &bandOf{n: n, sr: sr, band: make([]int8, n)}
+	nyq := float64(sr) / 2
 	logMin, logMax := math.Log(30), math.Log(nyq)
-	for i, m := range mags {
-		f := float64(i) / float64(len(mags)) * nyq
-		if f < 30 {
+	for i := range t.band {
+		f := float64(i) / float64(n) * nyq
+		if f < 30 || nyq <= 30 {
+			t.band[i] = -1
 			continue
 		}
 		b := int((math.Log(f) - logMin) / (logMax - logMin) * float64(numEQBands))
-		if b < 0 {
-			b = 0
-		} else if b >= numEQBands {
-			b = numEQBands - 1
-		}
-		out[b] += float32(m) //nolint:gosec // b is clamped to [0, numEQBands) immediately above
+		t.band[i] = int8(min(max(b, 0), numEQBands-1)) //nolint:gosec // clamped to [0, numEQBands) here
 	}
-	return out
+	lastBands.Store(t)
+	return t.band
 }
 
 // ComputeBands is computeBands, for a native rack.

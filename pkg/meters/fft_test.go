@@ -60,3 +60,51 @@ func BenchmarkUpstreamComputeFFT(b *testing.B) {
 		sg.ComputeFFT(input)
 	}
 }
+
+// TestAPairIsTwoTransforms: both windows' spectra out of one complex
+// transform are each one's own, to rounding, at every bin from DC to Nyquist,
+// for a pair as unlike as a tone and noise.
+func TestAPairIsTwoTransforms(t *testing.T) {
+	for _, n := range []int{64, 1024} {
+		a, b := make([]float32, n), make([]float32, n)
+		seed := uint32(777)
+		for i := range a {
+			seed = seed*1664525 + 1013904223
+			a[i] = float32(math.Sin(2 * math.Pi * 37.3 * float64(i) / float64(n)))
+			b[i] = float32(seed%20000)/10000 - 1
+		}
+		wantA := append([]float64(nil), ComputeFFTMags(a)...)
+		wantB := append([]float64(nil), ComputeFFTMags(b)...)
+		gotA, gotB := ComputeFFTMagsPair(a, b)
+		peak := 0.0
+		for i := range wantA {
+			peak = max(peak, wantA[i], wantB[i])
+		}
+		for i := range wantA {
+			if d := math.Abs(gotA[i] - wantA[i]); d > 1e-12*peak {
+				t.Fatalf("n=%d bin %d: a %.12g, want %.12g", n, i, gotA[i], wantA[i])
+			}
+			if d := math.Abs(gotB[i] - wantB[i]); d > 1e-12*peak {
+				t.Fatalf("n=%d bin %d: b %.12g, want %.12g", n, i, gotB[i], wantB[i])
+			}
+		}
+	}
+	if a, b := ComputeFFTMagsPair(make([]float32, 64), make([]float32, 32)); a != nil || b != nil {
+		t.Error("windows of two lengths must return nil")
+	}
+}
+
+func BenchmarkComputeFFTMagsTwice(b *testing.B) {
+	l, r := make([]float32, sg.FFTSize), make([]float32, sg.FFTSize)
+	for b.Loop() {
+		ComputeFFTMags(l)
+		ComputeFFTMags(r)
+	}
+}
+
+func BenchmarkComputeFFTMagsPair(b *testing.B) {
+	l, r := make([]float32, sg.FFTSize), make([]float32, sg.FFTSize)
+	for b.Loop() {
+		ComputeFFTMagsPair(l, r)
+	}
+}

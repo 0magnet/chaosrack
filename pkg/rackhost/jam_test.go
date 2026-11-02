@@ -1,9 +1,10 @@
 package rackhost
 
 import (
+	"slices"
 	"testing"
 
-	"github.com/0magnet/chaosrack/pkg/dynamics"
+	"github.com/0magnet/chaosrack/pkg/attractor"
 )
 
 // With Jam up the rack hops at once to another flow, with a fresh spin about
@@ -15,7 +16,9 @@ func TestJamHopsBetweenFlows(t *testing.T) {
 	r.mu.Lock()
 	first, spin := r.model(), r.number("rotation-controls-y")
 	r.mu.Unlock()
-	if !dynamics.HasFlow(first) || first == "custom" {
+	// A flow by its class, as Jam picks: Sprott Morph is one, with no single
+	// system for dynamics.HasFlow to name, and was picked one run in forty.
+	if !slices.Contains(attractor.ModeKeys(attractor.ClassFlow3D, attractor.ClassFlow4D), first) || first == "custom" {
 		t.Fatalf("Jam hopped to %q, not a flow", first)
 	}
 	if spin == 0 {

@@ -535,8 +535,8 @@ func (r *Rack) modListen(k float32) {
 	mv := &r.mod
 	l, rt := r.sound.window(colorFFT)
 	if len(l) == colorFFT {
-		bl := attractor.ComputeBands(meters.ComputeFFTMags(l), sampleRate)
-		br := attractor.ComputeBands(meters.ComputeFFTMags(rt), sampleRate)
+		ml, mr := meters.ComputeFFTMagsPair(l, rt)
+		bl, br := attractor.ComputeBands(ml, sampleRate), attractor.ComputeBands(mr, sampleRate)
 		mono := make([]float32, len(bl))
 		for i := range mono {
 			mono[i] = (bl[i] + br[i]) / 2
@@ -551,8 +551,9 @@ func (r *Rack) modListen(k float32) {
 	a, b := r.sound.modWindow(colorFFT)
 	if len(a) == colorFFT {
 		chs := attractor.ModChannels()
-		mv.bands.Store(chs[3].Name, attractor.ComputeBands(meters.ComputeFFTMags(a), sampleRate), k)
-		mv.bands.Store(chs[4].Name, attractor.ComputeBands(meters.ComputeFFTMags(b), sampleRate), k)
+		ma, mb := meters.ComputeFFTMagsPair(a, b)
+		mv.bands.Store(chs[3].Name, attractor.ComputeBands(ma, sampleRate), k)
+		mv.bands.Store(chs[4].Name, attractor.ComputeBands(mb, sampleRate), k)
 		mv.wave.Set(chs[3].Name, attractor.Newest(a))
 		mv.wave.Set(chs[4].Name, attractor.Newest(b))
 	}

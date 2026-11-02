@@ -37,3 +37,45 @@ func TestTheTraceColoringIsTheShaders(t *testing.T) {
 		}
 	}
 }
+
+// TestAColoringsKeyIsWhatItColorsBy: two colorings with one key color every
+// point of the trail alike, whatever the fields the setting does not read
+// hold, and a field it does read moves the key.
+func TestAColoringsKeyIsWhatItColorsBy(t *testing.T) {
+	seed := uint32(12345)
+	next := func() float32 { seed = seed*1664525 + 1013904223; return float32(seed>>8) / (1 << 24) }
+	swatch := func() [3]float32 { return [3]float32{next(), next(), next()} }
+	random := func(cols int) traceColoring {
+		return traceColoring{src: int(next() * 3), cols: cols, base: swatch(), mid: swatch(), top: swatch(),
+			freq: 0.5 + next(), phase: next(), sft: next(), reverse: next() < 0.5}
+	}
+	for cols := 1; cols <= 12; cols++ {
+		for range 50 {
+			a, b := random(cols), random(cols)
+			// b takes over what a's setting reads, keeping its own phase and
+			// shift unless the setting reads one of them.
+			b.src, b.reverse, b.base, b.mid, b.top, b.freq = a.src, a.reverse, a.base, a.mid, a.top, a.freq
+			if cols == 4 {
+				b.phase = a.phase
+			}
+			if cols >= 5 {
+				b.sft = a.sft
+			}
+			if a.keyFor() != b.keyFor() {
+				t.Fatalf("cols %d: keys differ for one coloring\n%+v\n%+v", cols, a.keyFor(), b.keyFor())
+			}
+			for i := range 33 {
+				x := float32(i) / 32
+				if a.colorOf(x) != b.colorOf(x) {
+					t.Fatalf("cols %d: one key, two colors at %v: %v and %v", cols, x, a.colorOf(x), b.colorOf(x))
+				}
+			}
+			// Unread fields moved: same key. Read fields moved: a new one.
+			c := a
+			c.phase, c.sft = a.phase+0.25, a.sft+0.25
+			if moved := a.colorOf(0.3) != c.colorOf(0.3) || a.colorOf(0.7) != c.colorOf(0.7); moved == (a.keyFor() == c.keyFor()) {
+				t.Fatalf("cols %d: colors moved %v, key moved %v", cols, moved, a.keyFor() != c.keyFor())
+			}
+		}
+	}
+}

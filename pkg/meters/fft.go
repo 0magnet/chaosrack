@@ -29,6 +29,7 @@ type fftScratch struct {
 	cosT []float64 // twiddle tables, quarter-resolution per stage reuse
 	sinT []float64
 	mags []float64 // n/2+1 output magnitudes (reused — copy if you keep it)
+	mag2 []float64 // the second window's, for ComputeFFTMagsPair
 }
 
 // The scratch is keyed on the window as well as the size. audioprism offers
@@ -262,6 +263,56 @@ func ComputeFFTMagsKind(input []float32, wf WinKind) []float64 {
 		s.re[s.rev[i]] = float64(input[i]) * s.win[i]
 		s.im[s.rev[i]] = 0
 	}
+	s.transform()
+	// n/2+1 magnitudes: every bin of a real transform from DC up to and
+	// including Nyquist, which is what audioprism-go returns and what the
+	// column mapping counts on to know the transform size it came from.
+	// Not math.Hypot: it guards against overflow no audio sample comes near,
+	// and costs several times the square root for it.
+	for i := 0; i <= n/2; i++ {
+		s.mags[i] = math.Sqrt(s.re[i]*s.re[i] + s.im[i]*s.im[i])
+	}
+	return s.mags
+}
+
+// ComputeFFTMagsPair is ComputeFFTMags of two windows of one length, a and b,
+// in one complex transform rather than two: a goes in as the real part and b
+// as the imaginary, and each one's spectrum comes back out of the result's
+// symmetry, A[k] = (Z[k] + conj Z[n−k])/2 and B[k] = (Z[k] − conj Z[n−k])/2i.
+// Both returned slices are the scratch's, valid until the next call with the
+// same size. A stereo source wants both channels' spectra every frame, and
+// asked for them one at a time they cost two transforms; ComputeFFTMags twice
+// also hands back the SAME slice twice, so the first is overwritten by the
+// second unless copied out in between.
+func ComputeFFTMagsPair(a, b []float32) (ma, mb []float64) {
+	n := len(a)
+	if n == 0 || n&(n-1) != 0 || len(b) != n {
+		return nil, nil
+	}
+	s := fftScratchFor(n, WinHann)
+	if s.mag2 == nil {
+		s.mag2 = make([]float64, n/2+1)
+	}
+	for i := range n {
+		s.re[s.rev[i]] = float64(a[i]) * s.win[i]
+		s.im[s.rev[i]] = float64(b[i]) * s.win[i]
+	}
+	s.transform()
+	for k := 0; k <= n/2; k++ {
+		j := (n - k) & (n - 1)
+		zr, zi, wr, wi := s.re[k], s.im[k], s.re[j], s.im[j]
+		ar, ai := zr+wr, zi-wi
+		br, bi := zi+wi, wr-zr
+		s.mags[k] = math.Sqrt(ar*ar+ai*ai) / 2
+		s.mag2[k] = math.Sqrt(br*br+bi*bi) / 2
+	}
+	return s.mags, s.mag2
+}
+
+// transform is the in-place radix-2 butterfly over re and im, which hold the
+// input in bit-reversed order.
+func (s *fftScratch) transform() {
+	n := s.n
 	for size := 2; size <= n; size <<= 1 {
 		half := size >> 1
 		tstep := n / size
@@ -278,13 +329,6 @@ func ComputeFFTMagsKind(input []float32, wf WinKind) []float64 {
 			}
 		}
 	}
-	// n/2+1 magnitudes: every bin of a real transform from DC up to and
-	// including Nyquist, which is what audioprism-go returns and what the
-	// column mapping counts on to know the transform size it came from.
-	for i := 0; i <= n/2; i++ {
-		s.mags[i] = math.Hypot(s.re[i], s.im[i])
-	}
-	return s.mags
 }
 
 // ComputeFFTComplex is ComputeFFTMagsKind keeping the PHASE, into caller-owned
