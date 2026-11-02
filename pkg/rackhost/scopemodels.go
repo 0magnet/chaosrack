@@ -78,7 +78,7 @@ func (r *Rack) scopeFigure(key string, running bool) (attractor.Figure, [][3]flo
 		return f, [][3]float64{{-1.2, -1.2, -1.2}, {1.2, 1.2, 1.2}}
 	case "scopeclock":
 		f := attractor.Figure{Kind: attractor.FigurePath, Points: make([][3]float64, steps)}
-		if !attractor.ClockTrace(time.Now(), steps, func(i int, x, y float64) { f.Points[i] = [3]float64{x, y, 0} }) {
+		if !attractor.ClockTrace(r.sound.now(), steps, func(i int, x, y float64) { f.Points[i] = [3]float64{x, y, 0} }) {
 			f.Points = nil
 		}
 		return f, square(f.Points)

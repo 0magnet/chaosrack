@@ -187,6 +187,8 @@ func (r *Rack) needCapture() {
 	want := s.rack.capOn() && listens(r.model()) || s.mod.capOn() && r.modRouted() || s.listening()
 	c := &s.capt
 	switch {
+	case want && r.fed:
+		// Handed its samples (offline.go): nothing to open.
 	case want && !c.running() && c.err == nil:
 		stop, err := startCapture(r.audioSource, c.write)
 		if err != nil {

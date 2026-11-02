@@ -16,7 +16,7 @@ var renderAudioSrc string
 // What --audio does here, and how an audio model is given a signal.
 const (
 	audioUsage = "for an audio model, record this many seconds of what is playing (or, with --signal, generate that much; default 2)"
-	audioHint  = "--audio SECONDS records what is playing, --signal NAME uses a test signal"
+	audioHint  = "--audio-file FILE draws a recording, --audio SECONDS records what is playing, --signal NAME uses a test signal"
 )
 
 // recordFlags adds what recording takes: which of this machine's sources.

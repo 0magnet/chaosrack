@@ -66,7 +66,7 @@ var (
 
 func renderFlags(renderCmd *cobra.Command) {
 	renderCmd.Flags().StringVar(&renderModel, "model", "", "which model to draw (chaosrack models lists them)")
-	renderCmd.Flags().StringVarP(&renderOut, "out", "o", "", "file to write; .png or .svg by extension")
+	renderCmd.Flags().StringVarP(&renderOut, "out", "o", "", "file to write: .png, .jpg, .svg, .gif or a video (.mp4, .webm, .mkv, .mov), by extension")
 	renderCmd.Flags().IntVar(&renderW, "width", 1000, "image width in pixels")
 	renderCmd.Flags().IntVar(&renderH, "height", 1000, "image height in pixels")
 	renderCmd.Flags().IntVar(&renderPts, "points", 20000, "how many points of trajectory to keep")
@@ -160,6 +160,8 @@ The output format comes from the -o file extension:
   .jpg   the same, as a JPEG
   .svg   a still image as a vector polyline, or an animation with --frames
   .gif   an animation (requires --frames, except for audio models)
+  .mp4 .webm .mkv .mov
+         a video, with sound, through ffmpeg (see VIDEO below)
 
 Without -o, render prints the number of points and the size of the result
 instead of writing a file.
@@ -222,18 +224,56 @@ built-in test signal instead, 2 seconds of it unless --audio says otherwise.
   waterfall is the exception: it is one surface, animated with --frames and
   --turn like the other 3-D models.
 
+VIDEO
+
+A video is drawn by the rack itself, the panel the page shows, rather than by
+the renderer that draws the stills and GIFs, so every control on the panel
+can be set with --set by the id the panel gives it: Display's Persist, the
+Style module's phosphor, the palette, the zoom, the generators, the Mixer.
+--params lists them all, after the model constants. A selector takes the name
+it shows (phosphor="P31 green") as well as its value.
+
+  chaosrack render --model takens --audio-file song.flac -o song.mp4
+  chaosrack render --model stereo --audio-file song.flac --audio-start 60 --audio 30 --fps 60 -o 30s.webm
+  chaosrack render --model lorenz --duration 20 --set persist-trail=on --set phosphor="P3 amber" -o amber.mp4
+  chaosrack render --model xy --duration 5 --set gen-x-wave=sine --set gen-x-out=L --set gen-y-wave=sine --set gen-y-freq=48 --set gen-y-out=R -o liss.mp4
+
+The frames are drawn off the clock: each stands for exactly 1/--fps of a
+second however long it takes to draw, so a trail, a turn, the phosphor's
+afterglow and Persist run at the video's pace, at any rate, and the picture
+keeps time with the sound however long the video runs. An audio model draws
+the stretch of the recording each frame stands for, and the recording is the
+video's sound, with whatever the rack's own speakers play mixed in (the
+generators, Model Out). With no recording, an audio model draws what the
+rack's generators make, as the page does.
+
+--audio-file reads any recording ffmpeg can; --audio-start and --audio pick a
+stretch of it. A video runs the length of its signal, or for --duration
+seconds, or --frames frames. --crf sets its quality. --engine figure draws a
+video with the stills' renderer instead, with --turn, --colors and the rest;
+--engine rack draws a .gif or .png with the rack.
+
 --check draws every model that needs no signal and reports any that produce
 nothing: a trajectory that diverges, or one that stays at a single point. It
 exits with an error if any fail.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if renderParams {
-				return listParams()
+				if err := listParams(); err != nil {
+					return err
+				}
+				return listRackParams()
 			}
 			intg, err := dynamics.ParseIntegrator(renderIntg)
 			if err != nil {
 				return err
 			}
 			dynamics.SetIntegrator(intg)
+			if rack, err := useRack(); err != nil || rack {
+				if err != nil {
+					return err
+				}
+				return renderRack(cmd)
+			}
 			if err := applySets(); err != nil {
 				return err
 			}
@@ -288,6 +328,7 @@ exits with an error if any fail.`,
 	renderFlags(renderCmd)
 	audioFlags(renderCmd)
 	recordFlags(renderCmd)
+	videoFlags(renderCmd)
 	return renderCmd
 }
 
