@@ -157,7 +157,7 @@ Other commands, which also run in the page's own terminal:
 | `chaosrack` | the rack's panel in this terminal |
 | `chaosrack ctl [id[=value] …]` | list, read or set any control of a running page |
 | `chaosrack mem [--watch 10s]` | what a running page's memory goes on: the wasm heap and module, the JavaScript heap, elements, canvases, and the JS values Go holds; from a host (`--attach`), also the tab's footprint as Brave counts it and what it is made of. `--watch` prints rates over time; a page opened with `?diag` also counts calls by name |
-| `chaosrack render --model lorenz -o lorenz.png` | draw a model to PNG, SVG or GIF without a browser |
+| `chaosrack render --model lorenz -o lorenz.png` | draw a model to PNG, SVG or GIF without a browser, or a video with sound (`--audio-file song.flac -o song.mp4`) |
 | `chaosrack models` · `chaosrack manual` · `chaosrack rack` | list models · read the manual · draw the bays as text |
 | `chaosrack stlgen` | write the rack and the models as STL |
 

@@ -138,6 +138,9 @@ type Rack struct {
 	// viewAngle is the scene's pose as last drawn, for what turns with the view
 	// (the Lattice's programs).
 	viewAngle [3]float64
+	// fed is a rack whose capture is handed to it (offline.go) rather than
+	// recorded from this machine.
+	fed bool
 }
 
 // New is a rack at the catalog's defaults.
@@ -875,13 +878,13 @@ func (r *Rack) Scene(w, h int, shape float64) (*rackpic.Image, error) {
 	if r.waterOn() && m != nil {
 		// The finished frame, seen through the water (water.go).
 		d := r.waterSettings()
-		r.water.step(time.Now(), r.waterDrive(), d)
+		r.water.step(r.sound.now(), r.waterDrive(), d)
 		r.water.refract(m, d)
 	}
 	r.mu.Unlock()
 	if m != nil && on {
 		r.scene.mu.Lock()
-		r.scene.crt.crt(m, p, time.Now())
+		r.scene.crt.crt(m, p, r.sound.now())
 		r.scene.mu.Unlock()
 	} else {
 		r.scene.mu.Lock()
@@ -954,7 +957,7 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 		}
 		r.sound.mu.Unlock()
 	}
-	dt := s.frameTime(time.Now(), tbc)
+	dt := s.frameTime(r.sound.now(), tbc)
 	if rollRate != 0 {
 		// The page turns the tube rate/20 a frame, at sixty frames a second.
 		s.roll += rollRate * attractor.SpinPerUnit * dt

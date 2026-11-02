@@ -5,7 +5,6 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
-	"math"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -13,7 +12,6 @@ import (
 	"github.com/0magnet/chaosrack/pkg/attractor"
 	"github.com/0magnet/chaosrack/pkg/cmdfs"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
-	"github.com/0magnet/chaosrack/pkg/gifenc"
 	"github.com/0magnet/chaosrack/pkg/rasterview"
 )
 
@@ -87,8 +85,8 @@ func writeFigureAnimation(name string, f attractor.Figure) error {
 		return writeAnimation(name, f.Points)
 	}
 	views := frameViews(renderFrames)
-	switch strings.ToLower(filepath.Ext(name)) {
-	case ".gif":
+	switch ext := strings.ToLower(filepath.Ext(name)); {
+	case ext == ".gif" || isVideo(name):
 		fit := fitPoints(f.Points, 50000)
 		n := len(views)
 		frames := loopFrames(n, func(i, at int) *image.RGBA {
@@ -104,17 +102,11 @@ func writeFigureAnimation(name string, f attractor.Figure) error {
 			}
 			return attractor.DrawFigure(f, lo, hi, o)
 		})
-		file, err := cmdfs.Create(runCtx, name)
-		if err != nil {
-			return err
-		}
-		defer file.Close() //nolint:errcheck // the encode error below is the one that matters
-		delay := max(int(math.Round(100/float64(renderFPS))), 1)
-		return gifenc.EncodeRGBA(file, cropLit(frames), delay)
-	case ".svg":
+		return encodeFrames(name, cropLit(frames))
+	case ext == ".svg":
 		return cmdfs.WriteFile(runCtx, name, []byte(svgFrames(f, views)), 0o600)
 	default:
-		return fmt.Errorf("%s: --frames writes .gif or .svg", filepath.Ext(name))
+		return fmt.Errorf("%s: --frames writes .gif, .svg or a video (.mp4, .webm, .mkv, .mov)", filepath.Ext(name))
 	}
 }
 

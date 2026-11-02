@@ -33,7 +33,7 @@ func (r *Rack) latticeFigure(fig *lattice.Figure) (attractor.Figure, [][3]float6
 		look = lattice.Vec3{0, 0, 1}
 	}
 	on := st.Families(look)
-	st.Run(nowMs, time.Now(), on, 6*time.Millisecond)
+	st.Run(nowMs, now, on, 6*time.Millisecond)
 
 	f := attractor.Figure{Kind: attractor.FigurePoints}
 	var glyphs []([2][3]float64)

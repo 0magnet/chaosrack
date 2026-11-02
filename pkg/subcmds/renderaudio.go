@@ -73,6 +73,12 @@ func audioOptions() attractor.AudioOptions {
 
 // audioSignal records or generates the stereo signal an audio model draws.
 func audioSignal() (l, r []float32, err error) {
+	if renderAudioFile != "" {
+		if renderSignal != "" {
+			return nil, nil, fmt.Errorf("--audio-file or --signal, not both")
+		}
+		return decodeAudio(renderAudioFile)
+	}
 	secs := renderAudioSecs
 	if renderSignal != "" {
 		sig, err := testSignal(renderSignal)
@@ -147,6 +153,9 @@ func renderAudio(cmd *cobra.Command) error {
 	if len(l) < need {
 		return fmt.Errorf("%s needs at least %d ms of signal", renderModel, need*1000/renderSampleRate)
 	}
+	if isVideo(renderOut) {
+		return audioVideo(l, r, need, o)
+	}
 
 	frames := renderFrames
 	if frames == 0 && renderOut != "" && strings.EqualFold(filepath.Ext(renderOut), ".gif") && !cmd.Flags().Changed("frames") {
@@ -194,7 +203,7 @@ func renderAudio(cmd *cobra.Command) error {
 	case ".svg":
 		return cmdfs.WriteFile(runCtx, renderOut, []byte(audioSVG(figs, all, views)), 0o600)
 	default:
-		return fmt.Errorf("%s: --frames writes .gif or .svg", filepath.Ext(renderOut))
+		return fmt.Errorf("%s: --frames writes .gif, .svg or a video (.mp4, .webm, .mkv, .mov)", filepath.Ext(renderOut))
 	}
 }
 
@@ -257,6 +266,9 @@ func renderPlot(cmd *cobra.Command, l, r []float32) error {
 	}
 	ext := strings.ToLower(filepath.Ext(renderOut))
 	switch ext {
+	case ".gif":
+	case ".mp4", ".webm", ".mkv", ".mov":
+		return plotVideo(l, r)
 	case ".png", "":
 		img, err := plotFrame(renderModel, l, r, len(l))
 		if err != nil {
@@ -268,9 +280,8 @@ func renderPlot(cmd *cobra.Command, l, r []float32) error {
 		}
 		defer f.Close() //nolint:errcheck // the encode error below is the one that matters
 		return png.Encode(f, img)
-	case ".gif":
 	default:
-		return fmt.Errorf("%s: %s is drawn as .png, or .gif for an animation", ext, renderModel)
+		return fmt.Errorf("%s: %s is drawn as .png, or .gif or a video for an animation", ext, renderModel)
 	}
 	frames := renderFrames
 	if !cmd.Flags().Changed("frames") {
@@ -300,4 +311,68 @@ func renderPlot(cmd *cobra.Command, l, r []float32) error {
 	}
 	defer f.Close() //nolint:errcheck // the encode error below is the one that matters
 	return gifenc.EncodeRGBA(f, imgs, max(int(math.Round(100/float64(renderFPS))), 1))
+}
+
+// videoFrames is how many frames a video of n samples has at --fps, or
+// --frames of them when that is fewer, and the samples those frames stand
+// for: the soundtrack is cut where the picture ends.
+func videoFrames(n int) (frames, samples int) {
+	frames = int(math.Ceil(float64(n) * float64(renderFPS) / renderSampleRate))
+	if renderFrames > 0 && renderFrames < frames {
+		frames = renderFrames
+	}
+	return frames, min(n, frames*renderSampleRate/renderFPS)
+}
+
+// frameEnd is the sample frame i of a video ends at: the picture shows the
+// window of the signal up to the moment it is on screen, so it is the sound
+// heard with it.
+func frameEnd(i, need, n int) int {
+	return min(max(need, (i+1)*renderSampleRate/renderFPS), n)
+}
+
+// audioVideo writes an embedding of a signal as a video with the signal as
+// its soundtrack, frames drawn on every core.
+func audioVideo(l, r []float32, need int, o attractor.AudioOptions) error {
+	if renderCrop {
+		return fmt.Errorf("--crop frames a GIF from all its frames at once; a video is written as it is drawn (camera-zoom on the rack frames it)")
+	}
+	n, keep := videoFrames(len(l))
+	l, r = l[:keep], r[:keep]
+	// Framed alike throughout, by frames sampled through the signal: every
+	// frame's points held at once would be the whole recording's worth.
+	var fit [][3]float64
+	k := min(n, 64)
+	for j := range k {
+		f, _ := attractor.AudioFigure(renderModel, l, r, frameEnd(j*(n-1)/max(k-1, 1), need, len(l)), o)
+		fit = append(fit, f.Points...)
+	}
+	views := frameViews(n)
+	return rgbaVideo(renderOut, n, func(i int) *image.RGBA {
+		fig, _ := attractor.AudioFigure(renderModel, l, r, frameEnd(i, need, len(l)), o)
+		d := drawOptions()
+		a := views[i]
+		d.View.AngleX, d.View.AngleY, d.View.AngleZ = a[0], a[1], a[2]
+		d.Fit = fit
+		return attractor.DrawFigure(fig, 0, len(fig.Points), d)
+	}, l, r)
+}
+
+// plotVideo writes an analyzer plot as a video of the recording being
+// analyzed, with the recording as its soundtrack.
+func plotVideo(l, r []float32) error {
+	start := plotMinSamples(renderModel)
+	if len(l) < start {
+		_, err := plotFrame(renderModel, l, r, len(l))
+		return err
+	}
+	n, keep := videoFrames(len(l))
+	l, r = l[:keep], r[:keep]
+	return rgbaVideo(renderOut, n, func(i int) *image.RGBA {
+		img, err := plotFrame(renderModel, l, r, frameEnd(i, start, len(l)))
+		if err != nil {
+			return image.NewRGBA(image.Rect(0, 0, renderW, renderH))
+		}
+		return img
+	}, l, r)
 }

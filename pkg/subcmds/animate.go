@@ -108,15 +108,15 @@ func frameSpan(total, i, n int) (lo, hi int) {
 // writeAnimation writes an animated GIF or SVG of the model running.
 func writeAnimation(name string, pts [][3]float64) error {
 	views := frameViews(renderFrames)
-	switch strings.ToLower(filepath.Ext(name)) {
-	case ".gif":
+	switch ext := strings.ToLower(filepath.Ext(name)); {
+	case ext == ".gif" || isVideo(name):
 		return writeGIF(name, pts, views)
-	case ".svg":
+	case ext == ".svg":
 		// 0600 for the same reason the still path uses it: a tool should not
 		// widen permissions on the user's behalf.
 		return cmdfs.WriteFile(runCtx, name, []byte(animatedSVG(pts, views)), 0o600)
 	default:
-		return fmt.Errorf("%s: --frames writes .gif or .svg", filepath.Ext(name))
+		return fmt.Errorf("%s: --frames writes .gif, .svg or a video (.mp4, .webm, .mkv, .mov)", filepath.Ext(name))
 	}
 }
 
@@ -137,16 +137,7 @@ func writeGIF(name string, pts [][3]float64, views [][3]float64) error {
 		}
 		return attractor.DrawSpan(pts, lo, hi, o)
 	})
-	f, err := cmdfs.Create(runCtx, name)
-	if err != nil {
-		return err
-	}
-	defer f.Close() //nolint:errcheck // the encode error below is the one that matters
-	// GIF delays are hundredths of a second, and the format cannot express a
-	// rate that is not one: 20 fps is 5, 30 fps is 3.33 and becomes 3, which
-	// is 33 fps. Rounding is the honest thing the format allows.
-	delay := max(int(math.Round(100/float64(renderFPS))), 1)
-	return gifenc.EncodeRGBA(f, cropLit(frames), delay)
+	return encodeFrames(name, cropLit(frames))
 }
 
 // animatedSVG writes every frame as its own polyline and shows one at a time.
@@ -234,4 +225,26 @@ func thinned(pts [][3]float64, n int) [][3]float64 {
 		out = append(out, pts[i])
 	}
 	return out
+}
+
+// encodeFrames writes an animation's frames: a GIF, or a video by name.
+func encodeFrames(name string, frames []*image.RGBA) error {
+	if isVideo(name) {
+		return rgbaVideo(name, len(frames), func(i int) *image.RGBA { return frames[i] }, nil, nil)
+	}
+	return writeGIFFrames(name, frames)
+}
+
+// writeGIFFrames writes frames as a GIF at --fps, as near as its hundredths
+// of a second come.
+func writeGIFFrames(name string, frames []*image.RGBA) error {
+	f, err := cmdfs.Create(runCtx, name)
+	if err != nil {
+		return err
+	}
+	defer f.Close() //nolint:errcheck // the encode error below is the one that matters
+	// GIF delays are hundredths of a second, and the format cannot express a
+	// rate that is not one: 20 fps is 5, 30 fps is 3.33 and becomes 3, which
+	// is 33 fps. Rounding is the honest thing the format allows.
+	return gifenc.EncodeRGBA(f, frames, max(int(math.Round(100/float64(renderFPS))), 1))
 }
