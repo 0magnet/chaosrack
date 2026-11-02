@@ -247,6 +247,15 @@ video's sound, with whatever the rack's own speakers play mixed in (the
 generators, Model Out). With no recording, an audio model draws what the
 rack's generators make, as the page does.
 
+A video of what is playing is drawn as it plays: --audio SECONDS records that
+long, and --audio 0 records until Ctrl+C, which ends the video rather than
+the program (a second Ctrl+C stops at once). A frame that takes longer to
+draw than it stands for falls behind and catches up, so none of the sound is
+lost. Drawn by the rack, Takens measures its delay once, from the first
+stretch of sound, as the page does, unless --set takens-tau= chooses it.
+
+  chaosrack render --model takens --audio 0 -o now.mp4
+
 --audio-file reads any recording ffmpeg can; --audio-start and --audio pick a
 stretch of it. A video runs the length of its signal, or for --duration
 seconds, or --frames frames. --crf sets its quality. --engine figure draws a

@@ -169,6 +169,7 @@ func startVideo(name string, w, h, fps int, pixfmt string) (*videoOut, error) {
 	args = append(append(args, vc...), v.part)
 	v.cmd = exec.CommandContext(runCtx, ffmpegPath(), args...) //nolint:gosec // fixed arguments and the user's own output name
 	v.cmd.Stderr = &v.msg
+	ownGroup(v.cmd)
 	in, err := v.cmd.StdinPipe()
 	if err != nil {
 		return nil, err
@@ -277,6 +278,7 @@ func (v *videoOut) finish(fps int) error {
 	mux := exec.CommandContext(runCtx, ffmpegPath(), args...) //nolint:gosec // fixed arguments and the user's own output name
 	var msg bytes.Buffer
 	mux.Stderr = &msg
+	ownGroup(mux)
 	err := mux.Run()
 	os.Remove(v.part) //nolint:errcheck,gosec // muxed, or failed either way
 	if err != nil {
@@ -372,6 +374,57 @@ var figureOnly = map[string]string{
 // renderRack draws the render with the rack: a video, a GIF, or the last
 // frame of a run as a PNG.
 func renderRack(cmd *cobra.Command) error {
+	if err := rackFlagsOK(cmd); err != nil {
+		return err
+	}
+	o, err := setUpRack()
+	if err != nil {
+		return err
+	}
+	// The capture, if one is given: an audio model on the rack draws the rack's
+	// signal, which its own generators and Model Out can make with no capture
+	// at all, as on the page.
+	//
+	// A video of what is playing is drawn as it is recorded (live), rather
+	// than recorded first and drawn after.
+	live := isVideo(renderOut) && renderAudioFile == "" && renderSignal == "" && cmd.Flags().Changed("audio")
+	var l, r []float32
+	if !live && (renderAudioFile != "" || renderSignal != "" || renderAudioSecs > 0) {
+		if l, r, err = audioSignal(); err != nil {
+			return err
+		}
+	}
+	frames := rackLength(cmd, live, len(l))
+	if frames <= 0 && !live {
+		if isAudioInput(renderModel) {
+			return fmt.Errorf("%s is drawn from the rack's signal: %s, or --duration SECONDS draws what the rack's generators make", renderModel, audioHint)
+		}
+		return errors.New("how long? --duration SECONDS or --frames N (or a signal to run the length of)")
+	}
+	// Each frame's stretch of the capture: of the recording given, or of the
+	// one being made, waiting for it.
+	at := 0
+	next := func(n int) (fl, fr []float32, ok bool) {
+		fl, fr = clip(l, at, n), clip(r, at, n)
+		at += n
+		return fl, fr, true
+	}
+	var lc *liveCapture
+	if live {
+		if lc, err = startRecording(frames); err != nil {
+			return err
+		}
+		defer lc.end()
+		next = func(n int) (fl, fr []float32, ok bool) {
+			fl, fr = lc.take(n)
+			return fl, fr, len(fl) > 0 // empty once the recording has ended and every frame of it is drawn
+		}
+	}
+	return drawRack(o, frames, next, lc)
+}
+
+// rackFlagsOK refuses what the rack cannot draw.
+func rackFlagsOK(cmd *cobra.Command) error {
 	ext := strings.ToLower(filepath.Ext(renderOut))
 	if renderOut == "" || !(isVideo(renderOut) || ext == ".gif" || ext == ".png") {
 		return errors.New("the rack draws to -o a .mp4, .webm, .mkv, .mov, .gif or .png")
@@ -388,89 +441,104 @@ func renderRack(cmd *cobra.Command) error {
 	if renderModel == "" {
 		return errors.New("--model is required (chaosrack models lists them)")
 	}
+	return nil
+}
+
+// setUpRack is the rack on --model, with --integrator and the --set
+// controls turned.
+func setUpRack() (*rackhost.Offline, error) {
 	o, err := rackhost.NewOffline(renderFPS)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := o.SelectModel(renderModel); err != nil {
-		return err
+		return nil, err
 	}
 	if renderIntg != "" && renderIntg != "rk4" {
 		// The rack writes its INTG positions into the integrator as it
 		// builds a figure, so the switch is turned on the rack.
 		if err := setRackIntegrator(o); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	for _, s := range renderSet {
 		id, val, ok := strings.Cut(s, "=")
 		if !ok {
-			return fmt.Errorf("--set %q is not id=value", s)
+			return nil, fmt.Errorf("--set %q is not id=value", s)
 		}
 		if err := o.Set(strings.TrimSpace(id), val); err != nil {
-			return fmt.Errorf("--set: %w", err)
+			return nil, fmt.Errorf("--set: %w", err)
 		}
 	}
-	// The capture, if one is given: an audio model on the rack draws the rack's
-	// signal, which its own generators and Model Out can make with no capture
-	// at all, as on the page.
-	var l, r []float32
-	if renderAudioFile != "" || renderSignal != "" || renderAudioSecs > 0 {
-		if l, r, err = audioSignal(); err != nil {
-			return err
-		}
-	}
-	frames := renderFrames
+	return o, nil
+}
+
+// rackLength is how many frames the rack draws: --frames, --duration, a live
+// recording's --audio, or a signal's length; 0 for a live recording until
+// Ctrl+C, or when nothing says.
+func rackLength(cmd *cobra.Command, live bool, samples int) int {
 	switch {
 	case cmd.Flags().Changed("frames"):
+		return renderFrames
 	case renderDuration > 0:
-		frames = int(math.Ceil(renderDuration * float64(renderFPS)))
-	case len(l) > 0:
-		frames = int(math.Ceil(float64(len(l)) * float64(renderFPS) / renderSampleRate))
+		return int(math.Ceil(renderDuration * float64(renderFPS)))
+	case live && renderAudioSecs > 0:
+		return int(math.Ceil(renderAudioSecs * float64(renderFPS)))
+	case samples > 0:
+		return int(math.Ceil(float64(samples) * float64(renderFPS) / renderSampleRate))
 	}
-	if frames <= 0 {
-		if isAudioInput(renderModel) {
-			return fmt.Errorf("%s is drawn from the rack's signal: %s, or --duration SECONDS draws what the rack's generators make", renderModel, audioHint)
-		}
-		return errors.New("how long? --duration SECONDS or --frames N (or a signal to run the length of)")
-	}
+	return 0
+}
 
+// drawRack draws frames frames, or, for 0, until next has no more, each fed
+// next's stretch of the capture, into --out.
+func drawRack(o *rackhost.Offline, frames int, next func(n int) (l, r []float32, ok bool), lc *liveCapture) error {
+	ext := strings.ToLower(filepath.Ext(renderOut))
 	w, h := renderW, renderH
 	var v *videoOut
 	var gifFrames []*image.RGBA
 	if isVideo(renderOut) {
+		var err error
 		if v, err = startVideo(renderOut, w, h, renderFPS, "rgb24"); err != nil {
 			return err
 		}
 	}
-	at := 0
+	fail := func(err error) error {
+		if v != nil {
+			v.abort()
+		}
+		return err
+	}
 	var last []byte
-	for i := range frames {
-		n := o.Samples(i)
-		fl, fr := clip(l, at, n), clip(r, at, n)
-		at += n
+	for i := 0; frames <= 0 || i < frames; i++ {
+		fl, fr, ok := next(o.Samples(i))
+		if !ok {
+			break
+		}
 		img, sl, sr, err := o.Frame(w, h, fl, fr)
 		if err != nil && img == nil {
-			if v != nil {
-				v.abort()
-			}
-			return err
+			return fail(err)
 		}
 		switch {
 		case v != nil:
 			if err := v.frame(img.Px); err != nil {
-				v.abort()
-				return err
+				return fail(err)
 			}
 			if err := v.sound(mixed(fl, sl), mixed(fr, sr)); err != nil {
-				v.abort()
-				return err
+				return fail(err)
 			}
 		case ext == ".gif":
 			gifFrames = append(gifFrames, rgbaOf(img.Px, w, h))
 		}
 		last = img.Px
-		progress(i+1, frames)
+		if lc != nil {
+			lc.progress(i + 1)
+		} else {
+			progress(i+1, frames)
+		}
+	}
+	if lc != nil {
+		errf("\n")
 	}
 	switch {
 	case v != nil:
