@@ -65,6 +65,37 @@ func (c traceColoring) colorOf(t float32) [3]float32 {
 	return mix3(c.base, c.top, t)
 }
 
+// coloringKey is what colorOf reads at a coloring's setting, and nothing
+// else: two colorings with the same key color every t alike. The color key
+// redraws when it changes rather than when any field does: the rainbow's
+// phase turns every frame whatever MAP is set to, and redrew a two-color
+// key on every panel tick that looked the same each time.
+type coloringKey struct {
+	cols           int
+	reverse        bool
+	base, mid, top [3]float32
+	freq, offset   float32
+}
+
+func (c traceColoring) keyFor() coloringKey {
+	k := coloringKey{cols: c.cols, reverse: c.reverse}
+	switch {
+	case c.cols == 1 || c.src == GradientSourceOff:
+		return coloringKey{cols: 1, base: c.base}
+	case c.cols == 3:
+		k.base, k.mid, k.top = c.base, c.mid, c.top
+	case c.cols == 4:
+		k.freq, k.offset = c.freq, c.phase
+	default:
+		if _, ok := colormap.Index(c.cols); ok && c.cols >= colormap.First {
+			k.freq, k.offset = c.freq, c.sft
+			return k
+		}
+		k.base, k.top = c.base, c.top
+	}
+	return k
+}
+
 func mix3(a, b [3]float32, t float32) [3]float32 {
 	return [3]float32{a[0] + (b[0]-a[0])*t, a[1] + (b[1]-a[1])*t, a[2] + (b[2]-a[2])*t}
 }

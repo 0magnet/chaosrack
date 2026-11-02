@@ -30,12 +30,19 @@ const (
 // colorKeyView is the key's canvas and what it last drew.
 type colorKeyView struct {
 	cv, g, sw js.Value
-	shown     string   // what the canvas holds, so an unchanged key draws nothing
+	shown     keyShown // what the canvas holds, so an unchanged key draws nothing
 	at        [2]int   // where it was put, so an unmoved key writes no style
 	px        []byte   // the bar's pixels, reused
 	img       js.Value // their ImageData
 	dpr       float64
 	visible   bool
+}
+
+// keyShown is a key as drawn: its labels and its colors.
+type keyShown struct {
+	key   colorKey
+	co    coloringKey
+	drawn bool
 }
 
 var ckey colorKeyView
@@ -57,8 +64,9 @@ func (k *colorKeyView) tick() {
 		return
 	}
 	k.place()
-	// The hue sweep turns with its phase every frame, so its key does too.
-	sig := fmt.Sprintf("%+v|%d|%v|%v|%v|%v|%v|%v|%v", key, co.cols, co.reverse, co.freq, co.sft, co.phase, co.base, co.mid, co.top)
+	// The hue sweep turns with its phase every frame, so its key does too;
+	// what the setting does not read changes nothing (keyFor).
+	sig := keyShown{key: key, co: co.keyFor(), drawn: true}
 	if sig == k.shown {
 		return
 	}
@@ -109,7 +117,7 @@ func (k *colorKeyView) place() {
 func (k *colorKeyView) hide() {
 	if k.cv.Truthy() && k.visible {
 		k.cv.Get("style").Set("display", "none")
-		k.visible, k.shown = false, ""
+		k.visible, k.shown = false, keyShown{}
 	}
 }
 

@@ -27,8 +27,8 @@ import (
 type audioFeatures struct {
 	windowL []float32
 	windowR []float32
-	magsL   []float64          // persistent copy of the left-channel magnitudes
-	magsA   []float64          // the same for MOD A, while MOD B's are computed
+	magsL   []float64 // kept copies of the channels' magnitudes
+	magsR   []float64
 	prevMix []float64          // previous mixed magnitudes, for onset flux
 	feat    map[string]float32 // smoothed feature values
 	peak    map[string]float32 // adaptive normalization peaks
@@ -136,13 +136,16 @@ func (a *audioFeatures) updateAudioFeatures() {
 	setNorm := func(name string, raw float32) { a.feat[name] = afSmooth(a.feat[name], a.normMap(name, raw)) }
 	setRaw := func(name string, val float32) { a.feat[name] = afSmooth(a.feat[name], clamp01(val)) }
 
-	// The local FFT returns a shared scratch, and both channels stay live
-	// through the stereo-mix loop below — persist L into its own buffer.
+	// Both channels in one transform (ComputeFFTMagsPair). Its spectra are a
+	// shared scratch, which the sends' transform below would overwrite while
+	// the stereo-mix loop still reads them — kept in buffers of their own.
 	if a.magsL == nil {
 		a.magsL = make([]float64, sg.FFTSize/2+1)
+		a.magsR = make([]float64, sg.FFTSize/2+1)
 	}
-	magsL := a.magsL[:copy(a.magsL, meters.ComputeFFTMags(a.windowL))]
-	magsR := meters.ComputeFFTMags(a.windowR)
+	pl, pr := meters.ComputeFFTMagsPair(a.windowL, a.windowR)
+	magsL := a.magsL[:copy(a.magsL, pl)]
+	magsR := a.magsR[:copy(a.magsR, pr)]
 	bL, mL, tL, cL := bandEnergies(magsL, sr)
 	bR, mR, tR, cR := bandEnergies(magsR, sr)
 
@@ -162,12 +165,9 @@ func (a *audioFeatures) updateAudioFeatures() {
 		wa, wb := bus.ModWindow(sg.FFTSize)
 		a.wave.Set(modSrcSendA, Newest(wa))
 		a.wave.Set(modSrcSendB, Newest(wb))
-		if a.magsA == nil {
-			a.magsA = make([]float64, sg.FFTSize/2+1)
-		}
-		magsA := a.magsA[:copy(a.magsA, meters.ComputeFFTMags(wa))]
-		a.bands.Store(modSrcSendA, computeBands(magsA, sr), followK)
-		a.bands.Store(modSrcSendB, computeBands(meters.ComputeFFTMags(wb), sr), followK)
+		ma, mb := meters.ComputeFFTMagsPair(wa, wb)
+		a.bands.Store(modSrcSendA, computeBands(ma, sr), followK)
+		a.bands.Store(modSrcSendB, computeBands(mb, sr), followK)
 	}
 	rL, rR := rmsOf(a.windowL), rmsOf(a.windowR)
 

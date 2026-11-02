@@ -1,6 +1,9 @@
 package attractor
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 // The wave shape is the signal itself, either side of the setting, where the
 // other shapes read an envelope.
@@ -32,5 +35,44 @@ func TestModWaveIsTheNewestSample(t *testing.T) {
 	}
 	if Newest(nil) != 0 {
 		t.Error("an empty window is not silent")
+	}
+}
+
+// TestTheBandTableIsTheFormula: bands summed through the table are what the
+// logarithm per bin made, bin for bin, at every rate and size in use, and
+// switching between them picks the right table.
+func TestTheBandTableIsTheFormula(t *testing.T) {
+	formula := func(mags []float64, sr int) []float32 {
+		nyq := float64(sr) / 2
+		out := make([]float32, numEQBands)
+		if nyq <= 30 {
+			return out
+		}
+		logMin, logMax := math.Log(30), math.Log(nyq)
+		for i, m := range mags {
+			f := float64(i) / float64(len(mags)) * nyq
+			if f < 30 {
+				continue
+			}
+			b := min(max(int((math.Log(f)-logMin)/(logMax-logMin)*float64(numEQBands)), 0), numEQBands-1)
+			out[b] += float32(m)
+		}
+		return out
+	}
+	for round := range 2 {
+		for _, sr := range []int{48000, 44100, 24000, 60} {
+			for _, n := range []int{513, 1025, 2049} {
+				mags := make([]float64, n)
+				for i := range mags {
+					mags[i] = 1 + float64(i%7)
+				}
+				got, want := computeBands(mags, sr), formula(mags, sr)
+				for b := range want {
+					if got[b] != want[b] {
+						t.Fatalf("round %d, %d Hz, %d bins: band %d = %v, want %v", round, sr, n, b, got[b], want[b])
+					}
+				}
+			}
+		}
 	}
 }
