@@ -49,7 +49,7 @@ func (k *colorKeyView) tick() {
 	}
 	co := pageTraceColoring()
 	key, ok := colorKeyFor(style.gradientSource, run.selectedMode, int(stereo.axesF+0.5), &acolor.AudioColor)
-	if !ok || !k.sw.Truthy() || !k.sw.Get("checked").Bool() || co.cols == 1 {
+	if !ok || !keyApplies(run.selectedMode) || !k.sw.Truthy() || !k.sw.Get("checked").Bool() || co.cols == 1 {
 		k.hide()
 		return
 	}
@@ -157,4 +157,13 @@ func (k *colorKeyView) draw(key colorKey, co traceColoring) {
 	label(key.Lo, "left", 8)
 	label(key.Mid, "center", colorKeyW/2)
 	label(key.Hi, "right", colorKeyW-8)
+}
+
+// keyApplies reports whether mode draws a trace colored by the SRC ring, the
+// thing the key explains. The spectrogram, the RTA and the transfer function
+// map a quantity of their own (modeUsesGradientSource), and the pictures on a
+// plane — the FVF, the recurrence plot, the terminals and the desk — have no
+// trace: over them a key titled "Z" named a source nothing was colored by.
+func keyApplies(mode string) bool {
+	return modeUsesGradientSource(mode) && !isTexturePlane(mode)
 }
