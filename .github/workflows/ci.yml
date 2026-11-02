@@ -86,13 +86,27 @@ jobs:
       # instead of doubling, and since e124cd4f syscall/js keeps a call's
       # arguments on the stack and gives short-lived references no finalizer
       # (254 → 3.7 MB allocated a minute, 8 → 3 collections, 79 → 23 MB of
-      # wasm memory) — and builds this in a few minutes where the dev image
-      # took twenty: interp no longer prints IR for errors it discards, wasm
-      # links without optimizing twice, and Binaryen is 133.
+      # wasm memory). interp no longer prints IR for errors it discards, and
+      # Binaryen is 133.
       - name: install TinyGo
+        id: tinygo
         run: |
-          curl -sSfL https://github.com/0magnet/tinygo/releases/download/toolchain/tinygo.linux-amd64.tar.gz | tar -xz -C "$RUNNER_TEMP"
+          curl -sSfL -o "$RUNNER_TEMP/tinygo.tar.gz" https://github.com/0magnet/tinygo/releases/download/toolchain/tinygo.linux-amd64.tar.gz
+          tar -xzf "$RUNNER_TEMP/tinygo.tar.gz" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/tinygo/bin" >> "$GITHUB_PATH"
+          echo "sha=$(sha256sum "$RUNNER_TEMP/tinygo.tar.gz" | cut -c1-16)" >> "$GITHUB_OUTPUT"
+      # TinyGo's package cache, from the last run with this same toolchain:
+      # every package an unchanged dependency, the standard library and most
+      # of this module, compiled already. Measured on mainframe, a warm cache
+      # takes this build from 688 s to 462 s, byte-identical. Keyed on the
+      # tarball's hash and not its version, which stays put while develop is
+      # rebuilt under it: a cache from an older compiler would hand this one
+      # code it did not make. A new key each run, so the newest is kept.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/tinygo
+          key: tinygo-${{ steps.tinygo.outputs.sha }}-${{ github.run_id }}
+          restore-keys: tinygo-${{ steps.tinygo.outputs.sha }}-
       - run: tinygo version
       # The TinyGo build has different stdlib coverage than big Go, so this is
       # the only automated check that the dual-toolchain support still holds —
