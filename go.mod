@@ -4,27 +4,27 @@ go 1.26.10
 
 require (
 	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992
-	github.com/0magnet/audioprism-go v0.0.1-0.20261102141538-51c0dcf3b5fa
+	github.com/0magnet/audioprism-go v0.0.1-0.20261103125743-70036d19786c
 	github.com/0magnet/calvin v0.0.1-0.20261013221715-da6581155df3
 	github.com/0magnet/cdp v0.0.0-20261028200759-2a9c9f587569
-	github.com/0magnet/desk v0.0.3-0.20261102142132-c9c7b9c12138
-	github.com/0magnet/desk/panes v0.0.1-0.20261102141819-c5a6facbe4e0
+	github.com/0magnet/desk v0.0.3-0.20261103130328-f539f16cc1a7
+	github.com/0magnet/desk/panes v0.0.1-0.20261103125926-bf46879ed37c
 	github.com/0magnet/lattice v0.0.0-20261023211141-bbcbaac64524
-	github.com/0magnet/pisano v0.0.0-20261102142524-eec4b8196560
+	github.com/0magnet/pisano v0.0.0-20261103130141-32c45c543538
 	github.com/0magnet/rack-go v0.0.0-20261028211156-58f7d14d2611
 	github.com/0magnet/seat v0.0.0-20261013221028-e66b97ebca1a
 	github.com/0magnet/sh/v3 v3.13.2-0.20261024150911-145e01c63128
-	github.com/0magnet/tuiwasm v0.0.0-20261102143217-a0e3d639f941
-	github.com/0magnet/websh v0.0.1-0.20261102141625-b1307c252476
+	github.com/0magnet/tuiwasm v0.0.0-20261103130420-94cfcef2dad0
+	github.com/0magnet/websh v0.0.1-0.20261103125818-413e7491e7e6
 	github.com/0magnet/winbox-go v0.0.1-0.20261028211148-34d6e7c4492d
-	github.com/0magnet/xterm-go v0.0.1-0.20261102175604-ae8246f12f96
+	github.com/0magnet/xterm-go v0.0.1-0.20261102175652-6023ed24df89
 	github.com/creack/pty v1.1.24
 	github.com/gdamore/tcell/v2 v2.13.10
 	github.com/gdamore/tcell/v3 v3.6.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-gl/mathgl v1.2.0
 	github.com/jfreymuth/pulse v0.1.3
-	github.com/quic-go/quic-go v0.64.1
+	github.com/quic-go/quic-go v0.65.0
 	github.com/quic-go/webtransport-go v0.13.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
@@ -75,7 +75,7 @@ require (
 	github.com/gin-contrib/sse v1.2.0 // indirect
 	github.com/go-playground/locales v0.14.2 // indirect
 	github.com/go-playground/universal-translator v0.18.2 // indirect
-	github.com/go-playground/validator/v10 v10.30.5 // indirect
+	github.com/go-playground/validator/v10 v10.30.6 // indirect
 	github.com/goccy/go-json v0.12.0 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/guptarohit/asciigraph v0.10.0 // indirect
@@ -84,7 +84,7 @@ require (
 	github.com/itchyny/timefmt-go v0.1.9 // indirect
 	github.com/jedib0t/go-pretty/v6 v6.8.3 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/cpuid/v2 v2.4.1 // indirect
+	github.com/klauspost/cpuid/v2 v2.4.2 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
 	github.com/mattn/go-colorable v0.1.16 // indirect
