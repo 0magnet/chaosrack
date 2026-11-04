@@ -7,7 +7,7 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.1-0.20261104024450-bede33ea742d
+# github.com/0magnet/audioprism-go v0.0.1-0.20261104130926-cdaba02bb962
 ## explicit; go 1.26.10
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
@@ -24,11 +24,11 @@ github.com/0magnet/cdp
 # github.com/0magnet/coloredcobra v1.0.4-0.20261012213101-faa6bd8f94c5
 ## explicit; go 1.26.0
 github.com/0magnet/coloredcobra
-# github.com/0magnet/desk v0.0.3-0.20261103130328-f539f16cc1a7
+# github.com/0magnet/desk v0.0.3-0.20261104131501-ff3eb8229603
 ## explicit; go 1.26.6
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.1-0.20261103125926-bf46879ed37c
+# github.com/0magnet/desk/panes v0.0.1-0.20261104131123-0146173cce90
 ## explicit; go 1.26.6
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -59,7 +59,7 @@ github.com/0magnet/lattice
 # github.com/0magnet/lolcat-go v0.0.1-0.20261013220959-57aa27491489
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20261103130141-32c45c543538
+# github.com/0magnet/pisano v0.0.0-20261104131700-0e89414b85a9
 ## explicit; go 1.26.6
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20261014235132-1143d38a91d3
@@ -81,7 +81,7 @@ github.com/0magnet/sh/v3/internal/arithm
 github.com/0magnet/sh/v3/interp
 github.com/0magnet/sh/v3/pattern
 github.com/0magnet/sh/v3/syntax
-# github.com/0magnet/termanim v0.0.1-0.20261013224625-c801aece6dff
+# github.com/0magnet/termanim v0.0.1-0.20261103154306-86931e121556
 ## explicit; go 1.26.0
 github.com/0magnet/termanim/aquarium
 github.com/0magnet/termanim/atom
@@ -126,7 +126,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20261103130420-94cfcef2dad0
+# github.com/0magnet/tuiwasm v0.0.0-20261104131632-06a4c2f0f5e9
 ## explicit; go 1.26.7
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -146,7 +146,7 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754
 ## explicit; go 1.26.6
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.1-0.20261103125818-413e7491e7e6
+# github.com/0magnet/websh v0.0.1-0.20261104023937-24105bd23c12
 ## explicit; go 1.26.6
 github.com/0magnet/websh/console
 github.com/0magnet/websh/progressive
@@ -468,7 +468,7 @@ github.com/pelletier/go-toml/v2/unstable
 # github.com/quic-go/qpack v0.6.0
 ## explicit; go 1.24
 github.com/quic-go/qpack
-# github.com/quic-go/quic-go v0.64.1
+# github.com/quic-go/quic-go v0.65.0
 ## explicit; go 1.26.0
 github.com/quic-go/quic-go
 github.com/quic-go/quic-go/http3
@@ -544,7 +544,7 @@ github.com/yuin/goldmark-emoji/definition
 # gitlab.com/russoj88/stl v1.0.2
 ## explicit; go 1.12
 gitlab.com/russoj88/stl/stl
-# go.mongodb.org/mongo-driver/v2 v2.9.2
+# go.mongodb.org/mongo-driver/v2 v2.9.3
 ## explicit; go 1.25.0
 go.mongodb.org/mongo-driver/v2/bson
 go.mongodb.org/mongo-driver/v2/internal/binaryutil
