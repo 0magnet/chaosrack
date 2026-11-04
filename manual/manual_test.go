@@ -125,3 +125,23 @@ func TestATooltipLineIsShort(t *testing.T) {
 		}
 	}
 }
+
+// The few references plainOf turns back are all the manual's HTML holds:
+// html.UnescapeString, which knows every one, reads each entry and page the
+// same.
+func TestTheShortUnescapeReadsTheManualAsHTMLDoes(t *testing.T) {
+	var all []string
+	for _, k := range Keys() {
+		e, _ := Lookup(k)
+		all = append(all, Render(e.Markdown))
+	}
+	for _, f := range Files() {
+		all = append(all, renderPage(markers.ReplaceAllString(Sources()[f], "")))
+	}
+	for i, h := range all {
+		s := tags.ReplaceAllString(h, "")
+		if got, want := unescape.Replace(s), html.UnescapeString(s); got != want {
+			t.Errorf("rendering %d: unescaped %q, html reads %q", i, got, want)
+		}
+	}
+}
