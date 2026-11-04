@@ -25,7 +25,6 @@ package manual
 
 import (
 	"embed"
-	"html"
 	"io/fs"
 	"regexp"
 	"sort"
@@ -264,6 +263,13 @@ var (
 	links   = regexp.MustCompile(`<a href="([^"]*)">(.*?)</a>`)
 	blanks  = regexp.MustCompile(`\n{3,}`)
 	listGap = regexp.MustCompile(`\n\n• `)
+	// What html.EscapeString writes, and goldmark's &quot;, turned back: the
+	// only references rendered HTML here holds. html.UnescapeString knows all
+	// 2,231 of HTML's, and its table, built in one function, was the largest
+	// in the TinyGo build and held wasm-opt to one core for most of its run.
+	unescape = strings.NewReplacer(
+		"&lt;", "<", "&gt;", ">", "&quot;", `"`, "&#34;", `"`, "&#39;", "'", "&amp;", "&",
+	)
 )
 
 // PlainText is markdown as the text a tooltip shows.
@@ -277,7 +283,7 @@ func PlainText(md string) string {
 // plainOf is rendered HTML as the text PlainText gives.
 func plainOf(h string) string {
 	s := links.ReplaceAllString(tagBreak.Replace(h), "$2 ($1)")
-	s = html.UnescapeString(tags.ReplaceAllString(s, ""))
+	s = unescape.Replace(tags.ReplaceAllString(s, ""))
 	s = blanks.ReplaceAllString(s, "\n\n")
 	s = listGap.ReplaceAllString(s, "\n• ")
 	return strings.TrimSpace(s)
