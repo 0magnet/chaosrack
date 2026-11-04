@@ -65,18 +65,13 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v5
-      # The Go builds — the page's wasm and the meters worker — with the
-      # newest Go, as every other job here; go.mod's line is the floor this
-      # module needs, not the toolchain to ship with.
+      # Both builds with the newest Go, as every other job here; go.mod's line
+      # is the floor this module needs, not the toolchain to ship with. The
+      # TinyGo build too: the fork's develop takes Go up to 1.27.
       - uses: actions/setup-go@v6
         with:
           go-version: stable
       - run: make wasm metersworker
-      # TinyGo builds against the Go it supports, which the newest Go need not
-      # be on the day it is released: go.mod's.
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
       # The 0magnet/tinygo toolchain (develop, rebuilt on every push there),
       # not a release: it has the fixes this build depends on — finished
       # goroutine stacks handed back (tinygo-org/tinygo fb9b49d6; before it
@@ -94,14 +89,15 @@ jobs:
           curl -sSfL -o "$RUNNER_TEMP/tinygo.tar.gz" https://github.com/0magnet/tinygo/releases/download/toolchain/tinygo.linux-amd64.tar.gz
           tar -xzf "$RUNNER_TEMP/tinygo.tar.gz" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/tinygo/bin" >> "$GITHUB_PATH"
-          echo "sha=$(sha256sum "$RUNNER_TEMP/tinygo.tar.gz" | cut -c1-16)" >> "$GITHUB_OUTPUT"
+          echo "sha=$(sha256sum "$RUNNER_TEMP/tinygo.tar.gz" | cut -c1-16)-$(go env GOVERSION)" >> "$GITHUB_OUTPUT"
       # TinyGo's package cache, from the last run with this same toolchain:
       # every package an unchanged dependency, the standard library and most
       # of this module, compiled already. Measured on mainframe, a warm cache
       # takes this build from 688 s to 462 s, byte-identical. Keyed on the
       # tarball's hash and not its version, which stays put while develop is
       # rebuilt under it: a cache from an older compiler would hand this one
-      # code it did not make. A new key each run, so the newest is kept.
+      # code it did not make. And on the Go: a new Go is a new standard
+      # library, none of it cached. A new key each run, so the newest is kept.
       - uses: actions/cache@v4
         with:
           path: ~/.cache/tinygo
