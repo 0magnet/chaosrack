@@ -11,25 +11,30 @@ import (
 	"github.com/quic-go/quic-go/internal/wire"
 )
 
+type connRunnerCallbacks struct {
+	AddConnectionID    func(protocol.ConnectionID)
+	RemoveConnectionID func(protocol.ConnectionID)
+	ReplaceWithClosed  func([]protocol.ConnectionID, []byte, time.Duration)
+}
+
 // The memory address of the Transport is used as the key.
-// The value is the pathReceiver that the connection's connection IDs are registered with on that Transport.
-type connRunners map[connRunner]*pathReceiver
+type connRunners map[connRunner]connRunnerCallbacks
 
 func (cr connRunners) AddConnectionID(id protocol.ConnectionID) {
-	for r, h := range cr {
-		r.Add(id, h)
+	for _, c := range cr {
+		c.AddConnectionID(id)
 	}
 }
 
 func (cr connRunners) RemoveConnectionID(id protocol.ConnectionID) {
-	for r := range cr {
-		r.Remove(id)
+	for _, c := range cr {
+		c.RemoveConnectionID(id)
 	}
 }
 
 func (cr connRunners) ReplaceWithClosed(ids []protocol.ConnectionID, b []byte, expiry time.Duration) {
-	for r := range cr {
-		r.ReplaceWithClosed(ids, b, expiry)
+	for _, c := range cr {
+		c.ReplaceWithClosed(ids, b, expiry)
 	}
 }
 
@@ -44,8 +49,8 @@ type connIDGenerator struct {
 	connRunners connRunners
 
 	activeSrcConnIDs        map[uint64]protocol.ConnectionID
-	connIDsToRetire         []connIDToRetire      // sorted by t
-	initialClientDestConnID protocol.ConnectionID // invalid for the client
+	connIDsToRetire         []connIDToRetire       // sorted by t
+	initialClientDestConnID *protocol.ConnectionID // nil for the client
 
 	statelessResetter *statelessResetter
 
@@ -55,9 +60,9 @@ type connIDGenerator struct {
 func newConnIDGenerator(
 	runner connRunner,
 	initialConnectionID protocol.ConnectionID,
-	initialClientDestConnID protocol.ConnectionID, // invalid for the client
+	initialClientDestConnID *protocol.ConnectionID, // nil for the client
 	statelessResetter *statelessResetter,
-	handler *pathReceiver,
+	callbacks connRunnerCallbacks,
 	queueControlFrame func(wire.Frame),
 	generator ConnectionIDGenerator,
 ) *connIDGenerator {
@@ -65,7 +70,7 @@ func newConnIDGenerator(
 		generator:         generator,
 		activeSrcConnIDs:  make(map[uint64]protocol.ConnectionID),
 		statelessResetter: statelessResetter,
-		connRunners:       connRunners{runner: handler},
+		connRunners:       map[connRunner]connRunnerCallbacks{runner: callbacks},
 		queueControlFrame: queueControlFrame,
 	}
 	m.activeSrcConnIDs[0] = initialConnectionID
@@ -146,16 +151,10 @@ func (m *connIDGenerator) issueNewConnID() error {
 }
 
 func (m *connIDGenerator) SetHandshakeComplete(connIDExpiry monotime.Time) {
-	if m.initialClientDestConnID.Valid() {
-		m.queueConnIDForRetiring(m.initialClientDestConnID, connIDExpiry)
-		m.initialClientDestConnID = protocol.ConnectionID{}
+	if m.initialClientDestConnID != nil {
+		m.queueConnIDForRetiring(*m.initialClientDestConnID, connIDExpiry)
+		m.initialClientDestConnID = nil
 	}
-}
-
-// IsInitialClientDestConnID reports whether the connection ID is the one the client used on its Initial packets.
-// It returns false on the client, and once the handshake is complete.
-func (m *connIDGenerator) IsInitialClientDestConnID(id protocol.ConnectionID) bool {
-	return m.initialClientDestConnID.Valid() && m.initialClientDestConnID == id
 }
 
 func (m *connIDGenerator) RemoveRetiredConnIDs(now monotime.Time) {
@@ -172,8 +171,8 @@ func (m *connIDGenerator) RemoveRetiredConnIDs(now monotime.Time) {
 }
 
 func (m *connIDGenerator) RemoveAll() {
-	if m.initialClientDestConnID.Valid() {
-		m.connRunners.RemoveConnectionID(m.initialClientDestConnID)
+	if m.initialClientDestConnID != nil {
+		m.connRunners.RemoveConnectionID(*m.initialClientDestConnID)
 	}
 	for _, connID := range m.activeSrcConnIDs {
 		m.connRunners.RemoveConnectionID(connID)
@@ -185,8 +184,8 @@ func (m *connIDGenerator) RemoveAll() {
 
 func (m *connIDGenerator) ReplaceWithClosed(connClose []byte, expiry time.Duration) {
 	connIDs := make([]protocol.ConnectionID, 0, len(m.activeSrcConnIDs)+len(m.connIDsToRetire)+1)
-	if m.initialClientDestConnID.Valid() {
-		connIDs = append(connIDs, m.initialClientDestConnID)
+	if m.initialClientDestConnID != nil {
+		connIDs = append(connIDs, *m.initialClientDestConnID)
 	}
 	for _, connID := range m.activeSrcConnIDs {
 		connIDs = append(connIDs, connID)
@@ -197,27 +196,17 @@ func (m *connIDGenerator) ReplaceWithClosed(connClose []byte, expiry time.Durati
 	m.connRunners.ReplaceWithClosed(connIDs, connClose, expiry)
 }
 
-// Handler returns the pathReceiver that the connection IDs are registered with on the transport.
-func (m *connIDGenerator) Handler(runner connRunner) (*pathReceiver, bool) {
-	h, ok := m.connRunners[runner]
-	return h, ok
-}
-
-// AddConnRunner registers all connection IDs with the pathReceiver on the transport.
-// It returns false if the transport was already added.
-func (m *connIDGenerator) AddConnRunner(runner connRunner, h *pathReceiver) bool {
+func (m *connIDGenerator) AddConnRunner(runner connRunner, r connRunnerCallbacks) {
 	// The transport might have already been added earlier.
-	// This happens for every PATH_CHALLENGE sent on the transport after the first one (including retransmissions),
-	// and if the application migrates back to an old path.
+	// This happens if the application migrates back to and old path.
 	if _, ok := m.connRunners[runner]; ok {
-		return false
+		return
 	}
-	m.connRunners[runner] = h
-	if m.initialClientDestConnID.Valid() {
-		runner.Add(m.initialClientDestConnID, h)
+	m.connRunners[runner] = r
+	if m.initialClientDestConnID != nil {
+		r.AddConnectionID(*m.initialClientDestConnID)
 	}
 	for _, connID := range m.activeSrcConnIDs {
-		runner.Add(connID, h)
+		r.AddConnectionID(connID)
 	}
-	return true
 }

@@ -14,13 +14,11 @@ type incomingStream interface {
 	closeForShutdown(error)
 }
 
-// When a stream is completed before it was accepted, we can't delete it from the map immediately.
+// When a stream is deleted before it was accepted, we can't delete it from the map immediately.
 // We need to wait until the application accepts it, and delete it then.
-// If stream credit release is required, we also need to wait until the application releases the stream credit.
 type incomingStreamEntry[T incomingStream] struct {
-	stream         T
-	completed      bool
-	creditReleased bool
+	stream       T
+	shouldDelete bool
 }
 
 type incomingStreamsMap[T incomingStream] struct {
@@ -35,8 +33,6 @@ type incomingStreamsMap[T incomingStream] struct {
 	maxStream          protocol.StreamID // the highest stream that the peer is allowed to open
 	maxNumStreams      uint64            // maximum number of streams
 
-	requireCreditRelease bool
-
 	newStream        func(protocol.StreamID) T
 	queueMaxStreamID func(*wire.MaxStreamsFrame)
 
@@ -47,7 +43,6 @@ func newIncomingStreamsMap[T incomingStream](
 	streamType protocol.StreamType,
 	newStream func(protocol.StreamID) T,
 	maxStreams uint64,
-	requireCreditRelease bool,
 	queueControlFrame func(wire.Frame),
 	pers protocol.Perspective,
 ) *incomingStreamsMap[T] {
@@ -63,16 +58,15 @@ func newIncomingStreamsMap[T incomingStream](
 		nextStreamToAccept = protocol.FirstIncomingUniStreamClient
 	}
 	return &incomingStreamsMap[T]{
-		newStreamChan:        make(chan struct{}, 1),
-		streamType:           streamType,
-		streams:              make(map[protocol.StreamID]incomingStreamEntry[T]),
-		maxStream:            protocol.StreamNum(maxStreams).StreamID(streamType, pers.Opposite()),
-		maxNumStreams:        maxStreams,
-		requireCreditRelease: requireCreditRelease,
-		newStream:            newStream,
-		nextStreamToOpen:     nextStreamToAccept,
-		nextStreamToAccept:   nextStreamToAccept,
-		queueMaxStreamID:     func(f *wire.MaxStreamsFrame) { queueControlFrame(f) },
+		newStreamChan:      make(chan struct{}, 1),
+		streamType:         streamType,
+		streams:            make(map[protocol.StreamID]incomingStreamEntry[T]),
+		maxStream:          protocol.StreamNum(maxStreams).StreamID(streamType, pers.Opposite()),
+		maxNumStreams:      maxStreams,
+		newStream:          newStream,
+		nextStreamToOpen:   nextStreamToAccept,
+		nextStreamToAccept: nextStreamToAccept,
+		queueMaxStreamID:   func(f *wire.MaxStreamsFrame) { queueControlFrame(f) },
 	}
 }
 
@@ -107,8 +101,13 @@ func (m *incomingStreamsMap[T]) AcceptStream(ctx context.Context) (T, error) {
 		m.mutex.Lock()
 	}
 	m.nextStreamToAccept += 4
-	// If this stream was completed before being accepted, we might be able to delete it now.
-	m.maybeDeleteStream(id, entry)
+	// If this stream was completed before being accepted, we can delete it now.
+	if entry.shouldDelete {
+		if err := m.deleteStream(id); err != nil {
+			m.mutex.Unlock()
+			return *new(T), err
+		}
+	}
 	m.mutex.Unlock()
 	return entry.stream, nil
 }
@@ -127,8 +126,8 @@ func (m *incomingStreamsMap[T]) GetOrOpenStream(id protocol.StreamID) (T, error)
 	// * this stream was already closed, then we can return the nil
 	if id < m.nextStreamToOpen {
 		var s T
-		// If the stream was already completed, and is just waiting to be deleted, don't return it.
-		if entry, ok := m.streams[id]; ok && !entry.completed {
+		// If the stream was already queued for deletion, and is just waiting to be accepted, don't return it.
+		if entry, ok := m.streams[id]; ok && !entry.shouldDelete {
 			s = entry.stream
 		}
 		m.mutex.RUnlock()
@@ -167,47 +166,20 @@ func (m *incomingStreamsMap[T]) DeleteStream(id protocol.StreamID) error {
 }
 
 func (m *incomingStreamsMap[T]) deleteStream(id protocol.StreamID) error {
-	entry, ok := m.streams[id]
-	if !ok {
+	if _, ok := m.streams[id]; !ok {
 		return fmt.Errorf("tried to delete unknown incoming stream %d", id)
 	}
-	if entry.completed {
-		return fmt.Errorf("tried to delete incoming stream %d multiple times", id)
-	}
-	entry.completed = true
-	m.streams[id] = entry // can't assign to struct in map, so we need to reassign
-	m.maybeDeleteStream(id, entry)
-	return nil
-}
 
-func (m *incomingStreamsMap[T]) ReleaseStreamCredit(id protocol.StreamID) {
-	if !m.requireCreditRelease {
-		return
-	}
-
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	entry, ok := m.streams[id]
-	// the stream credit might already have been released
-	if !ok || entry.creditReleased {
-		return
-	}
-	entry.creditReleased = true
-	m.streams[id] = entry // can't assign to struct in map, so we need to reassign
-	m.maybeDeleteStream(id, entry)
-}
-
-// maybeDeleteStream deletes a completed stream, unless
-// 1. the stream was not yet accepted, or
-// 2. the application is required to release the stream credit, and hasn't done so yet.
-// It then issues new stream credit to the peer.
-func (m *incomingStreamsMap[T]) maybeDeleteStream(id protocol.StreamID, entry incomingStreamEntry[T]) {
-	if !entry.completed || id >= m.nextStreamToAccept {
-		return
-	}
-	if m.requireCreditRelease && !entry.creditReleased {
-		return
+	// Don't delete this stream yet, if it was not yet accepted.
+	// Just save it to streamsToDelete map, to make sure it is deleted as soon as it gets accepted.
+	if id >= m.nextStreamToAccept {
+		entry, ok := m.streams[id]
+		if ok && entry.shouldDelete {
+			return fmt.Errorf("tried to delete incoming stream %d multiple times", id)
+		}
+		entry.shouldDelete = true
+		m.streams[id] = entry // can't assign to struct in map, so we need to reassign
+		return nil
 	}
 
 	delete(m.streams, id)
@@ -223,6 +195,7 @@ func (m *incomingStreamsMap[T]) maybeDeleteStream(id protocol.StreamID, entry in
 			})
 		}
 	}
+	return nil
 }
 
 func (m *incomingStreamsMap[T]) CloseWithError(err error) {
