@@ -34,7 +34,7 @@ func (s *tokenProtector) NewToken(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return aead.Seal(salt[:], nil, data, nil), nil
+	return append(salt[:], aead.Seal(nil, nil, data, nil)...), nil
 }
 
 // DecodeToken decodes a token.

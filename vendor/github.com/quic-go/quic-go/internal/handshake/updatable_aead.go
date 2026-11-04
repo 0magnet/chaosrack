@@ -73,7 +73,8 @@ type updatableAEAD struct {
 	logger  utils.Logger
 	version protocol.Version
 
-	nonceBuf [8]byte
+	// use a single slice to avoid allocations
+	nonceBuf []byte
 }
 
 var (
@@ -132,11 +133,7 @@ func (a *updatableAEAD) startKeyDropTimer(now monotime.Time) {
 }
 
 func (a *updatableAEAD) getNextTrafficSecret(hash crypto.Hash, ts []byte) []byte {
-	label := "quic ku"
-	if a.version == protocol.Version2 {
-		label = "quicv2 ku"
-	}
-	return hkdfExpandLabel(hash, ts, []byte{}, label, hash.Size())
+	return hkdfExpandLabel(hash, ts, []byte{}, "quic ku", hash.Size())
 }
 
 // SetReadKey sets the read key.
@@ -168,9 +165,7 @@ func (a *updatableAEAD) SetWriteKey(suite cipherSuite, trafficSecret []byte) {
 }
 
 func (a *updatableAEAD) setAEADParameters(aead cipher.AEAD, suite cipherSuite) {
-	if aead.NonceSize() != len(a.nonceBuf) {
-		panic("unexpected nonce size")
-	}
+	a.nonceBuf = make([]byte, aead.NonceSize())
 	a.aeadOverhead = aead.Overhead()
 	a.suite = suite
 	switch suite.ID {
@@ -217,21 +212,21 @@ func (a *updatableAEAD) open(dst, src []byte, rcvTime monotime.Time, pn protocol
 			})
 		}
 	}
-	binary.BigEndian.PutUint64(a.nonceBuf[:], uint64(pn))
+	binary.BigEndian.PutUint64(a.nonceBuf[len(a.nonceBuf)-8:], uint64(pn))
 	if kp != a.keyPhase.Bit() {
 		if a.keyPhase > 0 && a.firstRcvdWithCurrentKey == protocol.InvalidPacketNumber || pn < a.firstRcvdWithCurrentKey {
 			if a.prevRcvAEAD == nil {
 				return nil, ErrKeysDropped
 			}
 			// we updated the key, but the peer hasn't updated yet
-			dec, err := a.prevRcvAEAD.Open(dst, a.nonceBuf[:], src, ad)
+			dec, err := a.prevRcvAEAD.Open(dst, a.nonceBuf, src, ad)
 			if err != nil {
 				err = ErrDecryptionFailed
 			}
 			return dec, err
 		}
 		// try opening the packet with the next key phase
-		dec, err := a.nextRcvAEAD.Open(dst, a.nonceBuf[:], src, ad)
+		dec, err := a.nextRcvAEAD.Open(dst, a.nonceBuf, src, ad)
 		if err != nil {
 			return nil, ErrDecryptionFailed
 		}
@@ -264,7 +259,7 @@ func (a *updatableAEAD) open(dst, src []byte, rcvTime monotime.Time, pn protocol
 	}
 	// The AEAD we're using here will be the qtls.aeadAESGCM13.
 	// It uses the nonce provided here and XOR it with the IV.
-	dec, err := a.rcvAEAD.Open(dst, a.nonceBuf[:], src, ad)
+	dec, err := a.rcvAEAD.Open(dst, a.nonceBuf, src, ad)
 	if err != nil {
 		return dec, ErrDecryptionFailed
 	}
@@ -289,10 +284,10 @@ func (a *updatableAEAD) Seal(dst, src []byte, pn protocol.PacketNumber, ad []byt
 		a.firstPacketNumber = pn
 	}
 	a.numSentWithCurrentKey++
-	binary.BigEndian.PutUint64(a.nonceBuf[:], uint64(pn))
+	binary.BigEndian.PutUint64(a.nonceBuf[len(a.nonceBuf)-8:], uint64(pn))
 	// The AEAD we're using here will be the qtls.aeadAESGCM13.
 	// It uses the nonce provided here and XOR it with the IV.
-	return a.sendAEAD.Seal(dst, a.nonceBuf[:], src, ad)
+	return a.sendAEAD.Seal(dst, a.nonceBuf, src, ad)
 }
 
 func (a *updatableAEAD) SetLargestAcked(pn protocol.PacketNumber) error {
