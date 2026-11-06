@@ -95,7 +95,11 @@ func (t *termAnim) ensureTermAnim() bool {
 	style.Set("height", "560px")
 	dom.Doc.Get("body").Call("appendChild", t.host)
 
-	s, err := play.Mount(d, t.host)
+	var (
+		s   *play.Session
+		err error
+	)
+	keepingFocus(func() { s, err = play.Mount(d, t.host) }) // a picture, not a terminal to type in
 	if err != nil {
 		t.failed = "the demo would not start: " + err.Error()
 		return false

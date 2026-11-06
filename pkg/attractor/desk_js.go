@@ -210,19 +210,34 @@ func ensureDesk() {
 	makeDeskPanel()
 
 	// The terminal takes the keyboard as it opens, which is right when the
-	// desk is opened to work in. Built for a picture — Behind, or the Desk
-	// model — it is not: the keys went to a terminal drawn into the backdrop,
-	// and the instrument stopped hearing them, Ctrl+C with them.
-	prev := dom.Doc.Get("activeElement")
-	if _, err := desk.Launch("term"); err != nil {
-		js.Global().Get("console").Call("warn", "chaosrack: desk: "+err.Error())
-	}
-	if !deskContain {
-		if prev.Truthy() && !prev.Equal(dom.Body) {
-			prev.Call("focus", map[string]any{"preventScroll": true})
-		} else if now := dom.Doc.Get("activeElement"); now.Truthy() {
-			now.Call("blur")
+	// desk is opened to work in, and not when it is built for a picture —
+	// Behind, or the Desk model (keepingFocus).
+	launch := func() {
+		if _, err := desk.Launch("term"); err != nil {
+			js.Global().Get("console").Call("warn", "chaosrack: desk: "+err.Error())
 		}
+	}
+	if deskContain {
+		launch()
+	} else {
+		keepingFocus(launch)
+	}
+}
+
+// keepingFocus runs f and then puts the keyboard back where it was.
+//
+// A terminal takes focus as it mounts. The desk, the terminal backdrop and the
+// terminal animation all mount one to draw into a picture, and each took the
+// keys from the instrument as it did: what was typed went to a terminal drawn
+// into the backdrop, or parked off screen, and Ctrl+C no longer reached the
+// program running the rack. With nothing focused before, nothing is after.
+func keepingFocus(f func()) {
+	prev := dom.Doc.Get("activeElement")
+	f()
+	if prev.Truthy() && !prev.Equal(dom.Body) {
+		prev.Call("focus", map[string]any{"preventScroll": true})
+	} else if now := dom.Doc.Get("activeElement"); now.Truthy() {
+		now.Call("blur")
 	}
 }
 
