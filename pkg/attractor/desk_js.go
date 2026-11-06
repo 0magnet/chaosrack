@@ -209,8 +209,20 @@ func ensureDesk() {
 	wireDeskPassthrough()
 	makeDeskPanel()
 
+	// The terminal takes the keyboard as it opens, which is right when the
+	// desk is opened to work in. Built for a picture — Behind, or the Desk
+	// model — it is not: the keys went to a terminal drawn into the backdrop,
+	// and the instrument stopped hearing them, Ctrl+C with them.
+	prev := dom.Doc.Get("activeElement")
 	if _, err := desk.Launch("term"); err != nil {
 		js.Global().Get("console").Call("warn", "chaosrack: desk: "+err.Error())
+	}
+	if !deskContain {
+		if prev.Truthy() && !prev.Equal(dom.Body) {
+			prev.Call("focus", map[string]any{"preventScroll": true})
+		} else if now := dom.Doc.Get("activeElement"); now.Truthy() {
+			now.Call("blur")
+		}
 	}
 }
 
