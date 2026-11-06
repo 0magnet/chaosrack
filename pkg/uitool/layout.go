@@ -41,8 +41,8 @@ import (
 // layoutProbe is evaluated in the page: it measures the panel, its modules and
 // its switch columns, and hands back the numbers to judge.
 const layoutProbe = `JSON.stringify((() => {
-  const panel = document.getElementById('controls-panel');
-  if (!panel) return {error: 'no #controls-panel'};
+  const panel = (document.querySelector('.modules.rack-frame')||document.getElementById('controls-panel'));
+  if (!panel) return {error: 'no rack'};
   const R = (el) => { const b = el.getBoundingClientRect();
     return {w: Math.round(b.width), h: Math.round(b.height)}; };
   const named = (el, sel) => { const h = el.querySelector(sel);

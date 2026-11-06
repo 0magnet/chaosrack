@@ -151,7 +151,7 @@ func waitForModule(c *cdp.Client, id string) {
 		}
 		time.Sleep(400 * time.Millisecond)
 	}
-	mode, _ := c.Eval(`(function(){var m=document.getElementById("mode-select");return (m?m.value:"?")+" hash="+location.hash+" sects="+document.querySelectorAll("#controls-panel .sect").length;})()`).(string)
+	mode, _ := c.Eval(`(function(){var m=document.getElementById("mode-select");return (m?m.value:"?")+" hash="+location.hash+" sects="+document.querySelectorAll(".rack-frame .sect").length;})()`).(string)
 	fmt.Fprintf(os.Stderr, "modules: %s never appeared (app is on %s)\n", id, mode)
 }
 
