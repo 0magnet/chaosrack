@@ -322,13 +322,13 @@ func (t *Transport) doDial(
 
 	// The error channel needs to be buffered, as the run loop will continue running
 	// after doDial returns (if the handshake is successful).
-	// Similarly, the switchVersionChan needs to be buffered; in case a different case is selected.
+	// Similarly, the recreateChan needs to be buffered; in case a different case is selected.
 	errChan := make(chan error, 1)
-	switchVersionChan := make(chan errSwitchVersion, 1)
+	recreateChan := make(chan errCloseForRecreating, 1)
 	go func() {
 		err := conn.run()
-		if switchErr, ok := errors.AsType[*errSwitchVersion](err); ok {
-			switchVersionChan <- *switchErr
+		if recreateErr, ok := errors.AsType[*errCloseForRecreating](err); ok {
+			recreateChan <- *recreateErr
 			return
 		}
 		if t.isSingleUse {
@@ -350,10 +350,10 @@ func (t *Transport) doDial(
 		// wait until the Go routine that called Conn.run() returns
 		select {
 		case <-errChan:
-		case <-switchVersionChan:
+		case <-recreateChan:
 		}
 		return nil, context.Cause(ctx)
-	case params := <-switchVersionChan:
+	case params := <-recreateChan:
 		return t.doDial(ctx,
 			sendConn,
 			tlsConf,
@@ -406,7 +406,7 @@ func (t *Transport) init(allowZeroLengthConnIDs bool) error {
 		}
 
 		if t.ConnectionIDGenerator != nil {
-			t.connIDGenerator = &appConnIDGenerator{ConnectionIDGenerator: t.ConnectionIDGenerator}
+			t.connIDGenerator = t.ConnectionIDGenerator
 			t.connIDLen = t.ConnectionIDGenerator.ConnectionIDLen()
 		} else {
 			connIDLen := t.ConnectionIDLength
@@ -574,7 +574,7 @@ func (t *Transport) handlePacket(p receivedPacket) {
 		t.logger.Debugf("error parsing connection ID on packet from %s: %s", p.remoteAddr, err)
 		if t.Tracer != nil {
 			t.Tracer.RecordEvent(qlog.PacketDropped{
-				Raw:     qlog.RawInfo{Length: int(p.Size()), PayloadLength: qlog.OmitLength},
+				Raw:     qlog.RawInfo{Length: int(p.Size())},
 				Trigger: qlog.PacketDropHeaderParseError,
 			})
 		}
@@ -601,8 +601,8 @@ func (t *Transport) handlePacket(p receivedPacket) {
 		if statelessResetQueued := t.maybeSendStatelessReset(p); !statelessResetQueued {
 			if t.Tracer != nil {
 				t.Tracer.RecordEvent(qlog.PacketDropped{
-					Header:  qlog.PacketHeader{PacketNumber: protocol.InvalidPacketNumber, PacketType: qlog.PacketType1RTT},
-					Raw:     qlog.RawInfo{Length: int(p.Size()), PayloadLength: qlog.OmitLength},
+					Header:  qlog.PacketHeader{PacketType: qlog.PacketType1RTT},
+					Raw:     qlog.RawInfo{Length: int(p.Size())},
 					Trigger: qlog.PacketDropUnknownConnectionID,
 				})
 			}
@@ -617,7 +617,7 @@ func (t *Transport) handlePacket(p receivedPacket) {
 		t.logger.Debugf("received a packet with an unexpected connection ID %s", connID)
 		if t.Tracer != nil {
 			t.Tracer.RecordEvent(qlog.PacketDropped{
-				Raw:     qlog.RawInfo{Length: int(p.Size()), PayloadLength: qlog.OmitLength},
+				Raw:     qlog.RawInfo{Length: int(p.Size())},
 				Trigger: qlog.PacketDropUnknownConnectionID,
 			})
 		}
@@ -699,7 +699,7 @@ func (t *Transport) handleNonQUICPacket(p receivedPacket) {
 	default:
 		if t.Tracer != nil {
 			t.Tracer.RecordEvent(qlog.PacketDropped{
-				Raw:     qlog.RawInfo{Length: int(p.Size()), PayloadLength: qlog.OmitLength},
+				Raw:     qlog.RawInfo{Length: int(p.Size())},
 				Trigger: qlog.PacketDropDOSPrevention,
 			})
 		}
@@ -749,22 +749,6 @@ func setTLSConfigServerName(tlsConf *tls.Config, addr net.Addr, host string) {
 	tlsConf.ServerName = h
 }
 
-// appConnIDGenerator wraps a ConnectionIDGenerator provided by the application.
-// It interprets the zero ConnectionID as a zero-length connection ID.
-type appConnIDGenerator struct {
-	ConnectionIDGenerator
-}
-
-var _ ConnectionIDGenerator = &appConnIDGenerator{}
-
-func (g *appConnIDGenerator) GenerateConnectionID() (ConnectionID, error) {
-	c, err := g.ConnectionIDGenerator.GenerateConnectionID()
-	if err == nil && !c.Valid() {
-		return protocol.ZeroLengthConnectionID, nil
-	}
-	return c, err
-}
-
 type packetHandlerMap Transport
 
 var _ connRunner = &packetHandlerMap{}
@@ -778,9 +762,7 @@ func (h *packetHandlerMap) Add(id protocol.ConnectionID, handler packetHandler) 
 		return false
 	}
 	h.handlers[id] = handler
-	if h.logger.Debug() {
-		h.logger.Debugf("Adding connection ID %s.", id)
-	}
+	h.logger.Debugf("Adding connection ID %s.", id)
 	return true
 }
 
@@ -813,9 +795,7 @@ func (h *packetHandlerMap) AddWithConnID(clientDestConnID, newConnID protocol.Co
 	}
 	h.handlers[clientDestConnID] = handler
 	h.handlers[newConnID] = handler
-	if h.logger.Debug() {
-		h.logger.Debugf("Adding connection IDs %s and %s for a new connection.", clientDestConnID, newConnID)
-	}
+	h.logger.Debugf("Adding connection IDs %s and %s for a new connection.", clientDestConnID, newConnID)
 	return true
 }
 

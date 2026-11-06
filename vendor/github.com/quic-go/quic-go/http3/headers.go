@@ -25,12 +25,6 @@ type qpackError struct{ err error }
 func (e *qpackError) Error() string { return fmt.Sprintf("qpack: %v", e.err) }
 func (e *qpackError) Unwrap() error { return e.err }
 
-type headerFieldError struct {
-	error
-	InvalidName  bool
-	InvalidValue bool
-}
-
 var errHeaderTooLarge = errors.New("http3: headers too large")
 
 // readHeaderBlock preallocates up to 8 KiB, growing larger buffers as data arrives.
@@ -182,34 +176,19 @@ func parseHeaders(decodeFn qpack.DecodeFunc, isRequest bool, sizeLimit int, head
 
 func validateHeaderFieldNameAndValue(h qpack.HeaderField) error {
 	// field names need to be lowercase, see section 4.2 of RFC 9114
-	lowercase := strings.ToLower(h.Name) == h.Name
-	invalidName := !httpguts.ValidHeaderFieldName(strings.TrimPrefix(h.Name, ":")) || !lowercase
-	invalidValue := !httpguts.ValidHeaderFieldValue(h.Value)
-	if !lowercase {
-		return &headerFieldError{
-			error:        fmt.Errorf("header field is not lower-case: %s", h.Name),
-			InvalidName:  invalidName,
-			InvalidValue: invalidValue,
-		}
+	if strings.ToLower(h.Name) != h.Name {
+		return fmt.Errorf("header field is not lower-case: %s", h.Name)
 	}
-	if invalidValue {
-		return &headerFieldError{
-			error:        fmt.Errorf("invalid header field value for %s: %q", h.Name, h.Value),
-			InvalidName:  invalidName,
-			InvalidValue: invalidValue,
-		}
-	}
-	if invalidName {
-		return &headerFieldError{
-			error:        fmt.Errorf("invalid header field name: %q", h.Name),
-			InvalidName:  invalidName,
-			InvalidValue: invalidValue,
-		}
+	if !httpguts.ValidHeaderFieldValue(h.Value) {
+		return fmt.Errorf("invalid header field value for %s: %q", h.Name, h.Value)
 	}
 	return nil
 }
 
 func validateRegularHeaderField(h qpack.HeaderField) error {
+	if !httpguts.ValidHeaderFieldName(h.Name) {
+		return fmt.Errorf("invalid header field name: %q", h.Name)
+	}
 	if slices.Contains(invalidHeaderFields[:], h.Name) {
 		return fmt.Errorf("invalid header field name: %q", h.Name)
 	}
@@ -506,7 +485,7 @@ func decodeTrailers(r io.Reader, hf *headersFrame, maxHeaderBytes int, decoder *
 		return nil, err
 	}
 	if qlogger != nil {
-		qlogParsedHeadersFrame(qlogger, streamID, hf, fields, nil)
+		qlogParsedHeadersFrame(qlogger, streamID, hf, fields)
 	}
 	return trailers, nil
 }

@@ -4,7 +4,7 @@ go 1.26.10
 
 require (
 	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992
-	github.com/0magnet/audioprism-go v0.0.1-0.20261104130926-cdaba02bb962
+	github.com/0magnet/audioprism-go v0.0.1-0.20261106054245-0a92a913aeff
 	github.com/0magnet/calvin v0.0.1-0.20261013221715-da6581155df3
 	github.com/0magnet/cdp v0.0.0-20261028200759-2a9c9f587569
 	github.com/0magnet/desk v0.0.3-0.20261105132841-27c3b9594ed8
@@ -24,7 +24,7 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-gl/mathgl v1.2.0
 	github.com/jfreymuth/pulse v0.1.3
-	github.com/quic-go/quic-go v0.65.0
+	github.com/quic-go/quic-go v0.64.1
 	github.com/quic-go/webtransport-go v0.13.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
@@ -109,3 +109,9 @@ require (
 	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )
+
+// webtransport-go v0.13.0 does not build against quic-go v0.65.0 (http3's
+// HTTPStream returns an error now); quic-go/webtransport-go#377 fixes it.
+// Excluded rather than pinned so a go get -u leaves it alone. Remove this once
+// a webtransport-go release requires quic-go v0.65 or newer.
+exclude github.com/quic-go/quic-go v0.65.0
