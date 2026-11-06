@@ -88,6 +88,7 @@ func updateGradientUI() {
 	// already exists and already animates.
 	dim("grp-rainbow", style.gradientColors != 4 && style.gradientColors < colormap.First)
 	dim("grp-pshift", style.gradientColors < colormap.First)
+	dim("grp-foam", !waterActive()) // foam floats on the water, and only there
 	// The two rings, dimmed when the model on screen cannot use them.
 	//
 	// Both rules now fall out of what the knobs MEAN rather than being special

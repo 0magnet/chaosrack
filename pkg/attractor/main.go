@@ -900,6 +900,12 @@ func registerViewControls() {
 	adoptDescControl(ControlDesc{ID: "palette-shift", Label: "shift", Min: -1, Max: 1, Step: 0.01, Def: 0,
 		Signed: true, PermaKey: "gh", LEDID: "slider-value-pshift", ResetID: "rst-pshift",
 		Apply: func(v float64) { gradientShift = float32(v) }})
+	// Foam: the water layer's, so it stands with BEHIND rather than in the
+	// Water group of the model bank, whose positions are spoken for — a ninth
+	// there pushed the spectrogram's out of every flow's bank.
+	adoptDescControl(ControlDesc{ID: "water-foam", Label: "foam", Min: 0, Max: 100, Step: 1, Def: 0,
+		PermaKey: "fm", LEDID: "slider-value-foam", ResetID: "rst-foam",
+		Apply: func(v float64) { water.foam = float32(v) }})
 	// Speed: the slider runs log10 (-2..2) while the LED shows the effective
 	// multiplier (0.01..100), whole sub-step counts at ≥1 — the one mapping
 	// pair below is the SSOT both directions.
@@ -1108,7 +1114,8 @@ func wirePanelSwitches() {
 	if bv := dom.Doc.Call("getElementById", "bg-visual"); bv.Truthy() {
 		dom.On(bv, "change", func(this js.Value, args []js.Value) any {
 			setBackgroundVisual(bv.Get("value").String())
-			syncSplitCanvas() // water splits the model at Fore's near end too
+			syncSplitCanvas()  // water splits the model at Fore's near end too
+			updateGradientUI() // FOAM lights with the water
 			onBackdropChoice(bgVisual)
 			buildParamPanel(run.selectedMode) // the spectrogram's module follows it here
 			return nil
@@ -1603,6 +1610,7 @@ func buildPanelKnobs() {
 	knobifyFixed("sweep-lo", "slider-value-swlo", true)
 	knobifyFixed("sweep-hi", "slider-value-swhi", true)
 	knobifyFixed("palette-shift", "slider-value-pshift", true)
+	knobifyFixed("water-foam", "slider-value-foam", true)
 	knobifyFixed("lattice-n", "slider-value-latrows", true)
 	knobifyFixed("lattice-opac", "slider-value-latopac", true)
 	rkx := knobifyFixed("rotation-controls-x", "slider-value-x", false)
