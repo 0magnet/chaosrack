@@ -195,6 +195,10 @@ func mountInstrument() js.Value {
 	}
 	instrumentPane = p
 	instrumentOn = true
+	// The model's canvas is the terminal's now, which changes how the Fore
+	// knob's near end is drawn (frontByRaising): a link that opened at that
+	// end had chosen before the instrument was here.
+	syncSplitCanvas()
 	presentRack()
 	// The page's ▤ button shows and hides the panel's window, which is the
 	// program's now: it works that window while the program runs, and with
