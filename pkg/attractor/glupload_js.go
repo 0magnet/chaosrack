@@ -260,6 +260,7 @@ func (r *renderer) uploadBuffersIndexed(vertices []float32, indices []uint16, dr
 	} else {
 		r.bindStatic()
 	}
+	r.indexMode = drawMode
 	glctx.GL.Call("drawElements", drawMode, len(r.indices), glctx.Types.UnsignedShort, 0)
 }
 
@@ -287,6 +288,7 @@ func (r *renderer) staticGeomCached(drawMode js.Value) bool {
 		return false
 	}
 	r.bindStatic()
+	r.indexMode = drawMode
 	glctx.GL.Call("drawElements", drawMode, len(r.indices), glctx.Types.UnsignedShort, 0)
 	return true
 }

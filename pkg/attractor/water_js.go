@@ -9,6 +9,7 @@ import (
 
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"github.com/0magnet/chaosrack/pkg/ripple"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 // The water lens: the finished frame, seen through a disturbed fluid surface.
@@ -33,6 +34,15 @@ import (
 // having to target it — the copy costs one blit and changes nothing else, and
 // this layer stays something that can be switched on over anything.
 //
+// WHERE THE SURFACE IS
+//
+// The water is looked down into, so nearer the eye is higher: the surface is
+// the Fore knob's plane, the rack's own depth. What Fore puts behind the rack
+// is under water and seen through it; what it brings in front stands out of
+// the water, drawn sharp on the canvas above the panel and mirrored, faintly,
+// in the surface below it; and where the model crosses the plane is the
+// waterline, whose movement makes waves (traceWaterline).
+//
 // WHY THE GRADIENT AND NOT THE HEIGHT
 //
 // Refraction bends light by the surface SLOPE, so the sample offset comes from
@@ -56,6 +66,27 @@ type waterLens struct {
 	sceneTex  js.Value
 	heightTex js.Value
 	heightBuf []byte // the field, quantized for upload
+
+	// What stands out of the water: the near pass, copied off before the far
+	// one overwrites it, for the surface to reflect. above says this frame
+	// has one — with Fore at its far end the whole model is under water and
+	// there is nothing over the surface to see in it.
+	aboveTex    js.Value
+	above       bool
+	uAbove      js.Value
+	uRefl       js.Value
+	uReflScale  js.Value
+	uReflCenter js.Value
+
+	// The waterline: the tank's cells the model crosses the surface in
+	// (traceWaterline), this frame and the last.
+	lit    []bool
+	wasLit []bool
+	// lined says this frame traced one. A frame that did not (the model all
+	// on one side of the surface) empties wasLit, so the model next crossing
+	// comes into the water with a splash rather than being compared with
+	// where it crossed some time ago.
+	lined bool
 
 	// Drag state. The previous point is kept so a fast pointer leaves a wake
 	// rather than a dotted line — see ripple.Line.
@@ -136,11 +167,19 @@ void main(){ vUV = aPos*0.5 + 0.5; gl_Position = vec4(aPos,0.0,1.0); }`
 	// across two bytes, which is more precision than the eye needs but keeps
 	// the gradient smooth — quantizing to one byte puts visible stair-steps in
 	// the refraction wherever the surface is nearly flat, which is most of it.
+	// There is no light but the model's. A glint used to brighten the faces
+	// tilted toward one corner, from a lamp nothing in the scene stood for;
+	// the model is what shines here, so what the surface shows besides the
+	// refraction is the model's own light, reflected.
 	fs := `precision highp float;
 uniform sampler2D uScene;
 uniform sampler2D uHeight;
+uniform sampler2D uAbove;
 uniform float uAmount;
 uniform vec2 uTexel;
+uniform float uRefl;
+uniform float uReflScale;
+uniform vec2 uReflCenter;
 varying vec2 vUV;
 
 float h(vec2 uv){
@@ -157,11 +196,17 @@ void main(){
 
   vec3 c = texture2D(uScene, uv).rgb;
 
-  // A specular glint along the slope. Without it the surface is only a
-  // distortion and reads as a bad lens; water is legible because the light it
-  // reflects tells you where it is tilted.
-  float g = clamp((hx+hy)*8.0, -1.0, 1.0);
-  c += vec3(0.10,0.14,0.20) * max(g, 0.0);
+  // What stands over the water, mirrored in it. The mirror image is as far
+  // below the surface as the thing is above, so it is farther from the eye
+  // and drawn smaller, toward the point the view looks at (uReflScale < 1).
+  // A mirror turns a ray by twice the tilt, and the other way from the
+  // refraction, so it wobbles with the same ripples, harder.
+  if (uRefl > 0.0) {
+    vec2 ruv = uReflCenter + (vUV - uReflCenter) / uReflScale - 2.0 * off;
+    if (ruv.x >= 0.0 && ruv.x <= 1.0 && ruv.y >= 0.0 && ruv.y <= 1.0) {
+      c += texture2D(uAbove, ruv).rgb * uRefl;
+    }
+  }
   gl_FragColor = vec4(c, 1.0);
 }`
 
@@ -180,6 +225,10 @@ void main(){
 	wa.uHeight = glctx.GL.Call("getUniformLocation", wa.program, "uHeight")
 	wa.uAmount = glctx.GL.Call("getUniformLocation", wa.program, "uAmount")
 	wa.uTexel = glctx.GL.Call("getUniformLocation", wa.program, "uTexel")
+	wa.uAbove = glctx.GL.Call("getUniformLocation", wa.program, "uAbove")
+	wa.uRefl = glctx.GL.Call("getUniformLocation", wa.program, "uRefl")
+	wa.uReflScale = glctx.GL.Call("getUniformLocation", wa.program, "uReflScale")
+	wa.uReflCenter = glctx.GL.Call("getUniformLocation", wa.program, "uReflCenter")
 
 	verts := []float32{-1, -1, 1, -1, -1, 1, 1, 1}
 	wa.quadBuf = glctx.GL.Call("createBuffer")
@@ -188,6 +237,9 @@ void main(){
 
 	wa.sceneTex = newClampedTexture()
 	wa.heightTex = newClampedTexture()
+	wa.aboveTex = newClampedTexture()
+	wa.lit = make([]bool, waterW*waterH)
+	wa.wasLit = make([]bool, waterW*waterH)
 
 	wa.wireWaterPointer()
 	wa.ready = true
@@ -351,7 +403,247 @@ func (wa *waterLens) drawWaterLens() {
 
 	glctx.GL.Call("uniform1f", wa.uAmount, wa.amount)
 	glctx.GL.Call("uniform2f", wa.uTexel, 1/float32(waterW), 1/float32(waterH))
+
+	refl, scale := float32(0), float32(1)
+	if wa.above {
+		refl, scale = waterReflectance, waterMirrorScale()
+		glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0").Int()+waterAboveUnit)
+		glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), wa.aboveTex)
+		glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0"))
+	}
+	glctx.GL.Call("uniform1i", wa.uAbove, waterAboveUnit)
+	glctx.GL.Call("uniform1f", wa.uRefl, refl)
+	glctx.GL.Call("uniform1f", wa.uReflScale, scale)
+	glctx.GL.Call("uniform2f", wa.uReflCenter, 0.5, 0.5)
 	glctx.GL.Call("drawArrays", glctx.GL.Get("TRIANGLE_STRIP"), 0, 4)
+	wa.above = false // the next frame's near pass says again
+	if !wa.lined {
+		clear(wa.wasLit)
+	}
+	wa.lined = false
+}
+
+// waterAboveUnit is the texture unit the water's reflection reads from: past
+// the trace's three (the picture, the colormap, the backdrop's palette), so
+// copying the near pass onto it between the split passes disturbs none of
+// what the far pass still has bound.
+const waterAboveUnit = 3
+
+// waterReflectance is how much of the model's light the surface sends back.
+//
+// Water looked at straight down reflects about 2% (Fresnel, n = 1.33), and 2%
+// of a trace is a few levels of gray that nobody would see. This is that
+// reflection made visible, not that reflection's strength: about seven times
+// it, so the glow over the water reads while the model above it still
+// plainly outshines its image.
+const waterReflectance = 0.15
+
+// waterMirrorScale is how much smaller the mirror image is drawn than what it
+// mirrors. The surface is the Fore plane, D from the eye; what stands out of
+// it reaches toward the eye by up to the model's extent, and its image lies as
+// far behind the surface as it stands in front. Taking the half of the model
+// above the water at its middle height h, the image is at D+h where the thing
+// is at D-h, and perspective draws it smaller by (D-h)/(D+h).
+func waterMirrorScale() float32 {
+	d := -splitPlaneZ()
+	h := splitExtent() * (1 + splitFrac) / 2
+	if d <= 0 || h <= 0 || h >= d {
+		return 1
+	}
+	return (d - h) / (d + h)
+}
+
+// captureAboveWater keeps what the near pass drew, which is all of the model
+// that stands out of the water, for the surface to reflect.
+func (wa *waterLens) captureAboveWater() {
+	if !wa.ready {
+		wa.initWater()
+	}
+	glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0").Int()+waterAboveUnit)
+	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), wa.aboveTex)
+	glctx.GL.Call("copyTexImage2D", glctx.GL.Get("TEXTURE_2D"), 0, glctx.GL.Get("RGBA"), 0, 0, gpu.width, gpu.height, 0)
+	glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0"))
+	wa.above = true
+}
+
+// waterlineDepth is how far either side of the surface a POINT counts as at
+// it, as a fraction of the model's extent. A line or a face crosses the
+// surface somewhere exact; a map's dots never land on it, and are in the
+// water's skin when they are this close.
+const waterlineDepth = 0.03
+
+// waterlinePush is how hard the model moves the water where it crosses into
+// or out of a cell: far under a dragged finger's wake (wireWaterPointer),
+// since a waterline is many cells long where a finger is one, and a moving
+// attractor's changes every frame. At 0.15 a Lorenz figure half in the water
+// churned all of it into marbling.
+const waterlinePush = 0.04
+
+// traceWaterline makes the model's waves: it finds where the model crosses
+// the surface, from the vertices the frame was drawn from, and moves the
+// water there.
+//
+// It is the waterline's MOVEMENT that makes waves, not the waterline. Water a
+// still post stands in is still; a post moving through it pushes water aside
+// in front and leaves a hollow behind. So a cell the model has come into this
+// frame is pushed down and one it has left rises, and a model that stands
+// still leaves the surface alone. Plunging it in (turning Fore) is a lot of
+// cells at once: a splash, as it should be.
+//
+// On the CPU, not the card. Drawing the model once more around the surface
+// and reading the picture back was the first way, and the read made the page
+// wait for the card to finish everything queued: 2.1 s of every 3 in
+// readPixels, 60 → 34 frames a second. The vertices are here anyway — they
+// were uploaded from here — and an edge crosses the surface exactly where its
+// two ends lie either side of it, which a picture could only approximate.
+//
+// z is the surface, in view space.
+func (wa *waterLens) traceWaterline(z float32) {
+	if !wa.ready {
+		wa.initWater()
+	}
+	if splitAllInFront() {
+		// The surface is behind all of the model: nothing crosses it, and
+		// drawWaterLens forgets the last waterline.
+		return
+	}
+	wa.lined = true
+	clear(wa.lit)
+	wa.markWaterline(z)
+
+	var in, out []int
+	for i, lit := range wa.lit {
+		if lit != wa.wasLit[i] {
+			if lit {
+				in = append(in, i)
+			} else {
+				out = append(out, i)
+			}
+		}
+	}
+	wa.lit, wa.wasLit = wa.wasLit, wa.lit
+	wa.pushWaterline(in, -waterlinePush)
+	wa.pushWaterline(out, waterlinePush)
+}
+
+// markWaterline sets wa.lit at each cell where the model last drawn crosses
+// the plane z, read from what was uploaded for it: the trace's window of an
+// attractor's buffer, or the mesh and the way its indices join.
+//
+// A model drawn by a path of its own (several draws a frame, its own
+// program) leaves no waterline here, and so no waves but the pointer's and
+// the rain's; its refraction and reflection are unaffected.
+func (wa *waterLens) markWaterline(z float32) {
+	v, s := gpu.verts, gpu.stride
+	if s < 3 || len(v) < 2*s {
+		return
+	}
+	mv := view.viewMat.Mul4(view.modelMat)
+	pmv := gpu.proj.Mul4(mv)
+	// Depth from the surface: the view-space z, the matrices' third row.
+	depth := func(i int) float32 {
+		o := i * s
+		return mv[2]*v[o] + mv[6]*v[o+1] + mv[10]*v[o+2] + mv[14] - z
+	}
+	mark := func(x, y, zz float32) {
+		c := pmv.Mul4x1(mgl32.Vec4{x, y, zz, 1})
+		if c[3] <= 0 {
+			return
+		}
+		// The bottom row first, as the tank's is: the pointer and the shader
+		// both find its first row at the bottom of the frame.
+		cx := int((c[0]/c[3]*0.5 + 0.5) * float32(waterW))
+		cy := int((c[1]/c[3]*0.5 + 0.5) * float32(waterH))
+		if cx >= 0 && cy >= 0 && cx < waterW && cy < waterH {
+			wa.lit[cy*waterW+cx] = true
+		}
+	}
+	n := len(v) / s
+	edge := func(a, b int) {
+		if a >= n || b >= n {
+			return
+		}
+		da, db := depth(a), depth(b)
+		if (da < 0) == (db < 0) {
+			return
+		}
+		t := da / (da - db)
+		oa, ob := a*s, b*s
+		mark(v[oa]+t*(v[ob]-v[oa]), v[oa+1]+t*(v[ob+1]-v[oa+1]), v[oa+2]+t*(v[ob+2]-v[oa+2]))
+	}
+	point := func(i int) {
+		if i >= n {
+			return
+		}
+		if d := depth(i); d > -splitExtent()*waterlineDepth && d < splitExtent()*waterlineDepth {
+			o := i * s
+			mark(v[o], v[o+1], v[o+2])
+		}
+	}
+	gl := glctx.Types
+
+	if s == 4 { // an attractor's trace: drawArrays over a window of the buffer
+		t := gpu.lastTrace
+		if !t.ok {
+			return
+		}
+		last := min(t.first+t.n, n)
+		if t.mode.Equal(gl.Points) {
+			for i := t.first; i < last; i++ {
+				point(i)
+			}
+			return
+		}
+		for i := t.first; i+1 < last; i++ {
+			edge(i, i+1)
+		}
+		return
+	}
+
+	ix := gpu.indices
+	switch m := gpu.indexMode; {
+	case m.Equal(gl.Triangles):
+		for k := 0; k+2 < len(ix); k += 3 {
+			a, b, c := int(ix[k]), int(ix[k+1]), int(ix[k+2])
+			edge(a, b)
+			edge(b, c)
+			edge(c, a)
+		}
+	case m.Equal(gl.Lines):
+		for k := 0; k+1 < len(ix); k += 2 {
+			edge(int(ix[k]), int(ix[k+1]))
+		}
+	case m.Equal(gl.LineStrip), m.Equal(gl.LineLoop):
+		for k := 0; k+1 < len(ix); k++ {
+			edge(int(ix[k]), int(ix[k+1]))
+		}
+		if m.Equal(gl.LineLoop) && len(ix) > 2 {
+			edge(int(ix[len(ix)-1]), int(ix[0]))
+		}
+	case m.Equal(gl.Points):
+		for _, i := range ix {
+			point(int(i))
+		}
+	}
+}
+
+// waterlineMaxDrops bounds the cells pushed a frame. A splash of thousands
+// of cells is no more legible than one of a few hundred spread across it,
+// and each push touches a dozen cells of the field.
+const waterlineMaxDrops = 400
+
+// pushWaterline moves the water at the cells given. Each is a small smooth
+// bump rather than one cell, for the reason ripple.Drop gives: a single cell
+// holds the wavelengths the grid cannot carry, and they shimmer in place.
+func (wa *waterLens) pushWaterline(cells []int, amp float32) {
+	if len(cells) == 0 {
+		return
+	}
+	stride := (len(cells) + waterlineMaxDrops - 1) / waterlineMaxDrops
+	for k := 0; k < len(cells); k += stride {
+		i := cells[k]
+		wa.field.Drop(float32(i%waterW), float32(i/waterW), 2, amp)
+	}
 }
 
 // uploadWaterHeight quantizes the field into the two-byte encoding the shader

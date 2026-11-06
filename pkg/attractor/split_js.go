@@ -58,6 +58,12 @@ const splitEpsilon = 0.02
 
 // splitActive reports whether the model has to be drawn on both sides.
 func splitActive() bool {
+	if waterActive() && splitAllInFront() {
+		// All of the model out of the water still has the water behind it,
+		// on the far canvas below the panel, reflecting what stands over it;
+		// raising the one canvas would lift the water out with the model.
+		return true
+	}
 	return splitFrac > -1+splitEpsilon && splitFrac < 1-splitEpsilon
 }
 
@@ -126,13 +132,18 @@ func splitAllInFront() bool { return splitFrac >= 1-splitEpsilon }
 // near. The sign is what makes the knob read the way a hand expects: turning it
 // up brings the model forward through the panel.
 func splitPlaneZ() float32 {
-	ext := view.fitExtent
-	if ext <= 0 {
-		// Nothing has fitted the camera yet, so guess from the distance. Half
-		// of it is generous for anything the fitter would have chosen.
-		ext = view.defaultDist * 0.5
+	return -view.defaultDist - splitFrac*splitExtent()
+}
+
+// splitExtent is how far the model reaches either side of its center, in view
+// space: the yardstick the Fore knob's fraction is measured against.
+func splitExtent() float32 {
+	if ext := view.fitExtent; ext > 0 {
+		return ext
 	}
-	return -view.defaultDist - splitFrac*ext
+	// Nothing has fitted the camera yet, so guess from the distance. Half of
+	// it is generous for anything the fitter would have chosen.
+	return view.defaultDist * 0.5
 }
 
 // drawSplitPasses draws the model twice, once for each side of the plane.
@@ -165,6 +176,14 @@ func drawSplitPasses(mode string) {
 	drawn := gpu.lastDrawn
 	near.copyNearPassToFront()
 
+	// With the water lens on, the plane is the water's surface: the near half
+	// is what stands out of it, which the lens reflects, and where the model
+	// crosses it is the waterline, which makes its waves.
+	if waterActive() {
+		water.captureAboveWater()
+		water.traceWaterline(z)
+	}
+
 	setSplitPlane(splitFar, z)
 	glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
 	glctx.GL.Call("clear", glctx.Types.DepthBufferBit)
@@ -187,7 +206,9 @@ func drawSplitPasses(mode string) {
 // which is the common case and saves compositing a transparent full-screen
 // layer every frame. At the near end the whole model is in front, and the old
 // Front behavior — raise the main canvas above the panel — is both cheaper and
-// exactly right, so the near canvas stays out of it.
+// exactly right, so the near canvas stays out of it. Except over water, where
+// the main canvas holds the surface as well, which stays behind the panel
+// (splitActive).
 func syncSplitCanvas() {
 	markPersistSuspended(splitDrawing())
 	if splitDrawing() {

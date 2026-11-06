@@ -1001,6 +1001,7 @@ Water — the water lens's tank: the finished picture seen through a rippling su
 Its positions are in the model bank, the same for every model, and dark there until BEHIND (Layers · Colors) is on water.
 Drag across the picture to make a wake;
 DRIVE lets the sound push the water from SPKRS points, and RAIN drops on it at random.
+The surface is at the rack: FORE (on Zoom) raises the model out of the water, sharp in front of the panel and mirrored faintly in the water, and where the model crosses the surface its movement makes waves.
 
 ### bend
 

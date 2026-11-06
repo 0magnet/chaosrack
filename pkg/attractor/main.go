@@ -1108,6 +1108,7 @@ func wirePanelSwitches() {
 	if bv := dom.Doc.Call("getElementById", "bg-visual"); bv.Truthy() {
 		dom.On(bv, "change", func(this js.Value, args []js.Value) any {
 			setBackgroundVisual(bv.Get("value").String())
+			syncSplitCanvas() // water splits the model at Fore's near end too
 			onBackdropChoice(bgVisual)
 			buildParamPanel(run.selectedMode) // the spectrogram's module follows it here
 			return nil
