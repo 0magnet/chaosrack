@@ -120,3 +120,17 @@ func syncLayersModule(mode string) {
 	// Fill is BEHIND's F button now: the button dims.
 	dimTrioButton("bg-visual", 0, !isSpectroSurface(mode))
 }
+
+// paintBackdrop paints the backdrop behind the model, then hands the
+// depth-tested model a clean depth buffer to draw over it. Once a frame:
+// before the model, or under the far half when the Fore knob splits it.
+func paintBackdrop() {
+	renderBackgroundVisual(frameNowMs)
+	glctx.GL.Call("enable", glctx.Types.DepthTest)
+	glctx.GL.Call("clear", glctx.Types.DepthBufferBit)
+	// The backdrop bound its own program / buffers; force geometry models
+	// to re-upload their static vertex+index buffers next draw.
+	if !isAttractorMode(run.selectedMode) {
+		gpu.staticDirty = true
+	}
+}

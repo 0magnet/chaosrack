@@ -38,6 +38,10 @@ func setSplitPlane(side int, z float32) {
 	if !glctx.GL.Truthy() || gpu.u.splitSide.IsUndefined() || gpu.u.splitSide.IsNull() {
 		return
 	}
+	// A uniform goes to whichever program is in use, and a backdrop drawn
+	// just before leaves its own: the plane would be set on that, and the
+	// trace drawn with none.
+	glctx.GL.Call("useProgram", gpu.program)
 	glctx.GL.Call("uniform1i", gpu.u.splitSide, side)
 	glctx.GL.Call("uniform1f", gpu.u.splitZ, float64(z))
 }
@@ -168,9 +172,18 @@ func splitExtent() float32 {
 // a trade rather than an oversight, but it used to be recorded only in this
 // comment, where nobody turning the knob could read it — markPersistSuspended
 // now says it on the panel too.
-func drawSplitPasses(mode string) {
+//
+// THE NEAR PASS STARTS EMPTY, and the backdrop goes in the far one. The copy
+// takes everything on the canvas, so whatever was there before the near half
+// was drawn went over the panel with it. Two things were: a backdrop, painted
+// before the passes, which put the desk — opaque, the whole screen — over the
+// controls, and with Persist on, the last frame's far half, which nothing
+// cleared. bgOn says a backdrop is due this frame.
+func drawSplitPasses(mode string, bgOn bool) {
 	z := splitPlaneZ()
 
+	glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
+	glctx.GL.Call("clear", glctx.Types.DepthBufferBit)
 	setSplitPlane(splitNear, z)
 	generateForMode(mode)
 	drawn := gpu.lastDrawn
@@ -184,9 +197,12 @@ func drawSplitPasses(mode string) {
 		water.traceWaterline(z)
 	}
 
-	setSplitPlane(splitFar, z)
 	glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
 	glctx.GL.Call("clear", glctx.Types.DepthBufferBit)
+	if bgOn {
+		paintBackdrop()
+	}
+	setSplitPlane(splitFar, z)
 	switch {
 	case splitRegenerates(mode):
 		// Nothing to advance, so the far half is the generator run again with
