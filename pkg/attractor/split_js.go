@@ -68,7 +68,24 @@ func splitActive() bool {
 		// raising the one canvas would lift the water out with the model.
 		return true
 	}
+	if splitAllInFront() && !frontByRaising() {
+		return true
+	}
 	return splitFrac > -1+splitEpsilon && splitFrac < 1-splitEpsilon
+}
+
+// frontByRaising reports whether the near end of the Fore knob can be had the
+// cheap way, by raising the main canvas above the panel, rather than by
+// drawing the whole model as the near pass.
+//
+// Two things make raising wrong. The instrument: the model's canvas is then a
+// placement in its terminal, not in #gocanvas-container, so raising the
+// container raised nothing and the knob's near end drew the whole model
+// BEHIND the panel. And a backdrop: the main canvas holds it, opaque, and
+// raising it put the desk or the spectrogram over the controls, which is
+// how a turn of a knob could leave no way back to the panel.
+func frontByRaising() bool {
+	return !instrumentOn && !bgVisualActive()
 }
 
 // splitDrawing reports whether THIS frame is drawn in two halves.
@@ -224,7 +241,7 @@ func drawSplitPasses(mode string, bgOn bool) {
 // Front behavior — raise the main canvas above the panel — is both cheaper and
 // exactly right, so the near canvas stays out of it. Except over water, where
 // the main canvas holds the surface as well, which stays behind the panel
-// (splitActive).
+// (splitActive), and where raising is wrong or does nothing (frontByRaising).
 func syncSplitCanvas() {
 	markPersistSuspended(splitDrawing())
 	if splitDrawing() {
