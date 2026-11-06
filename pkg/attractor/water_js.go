@@ -106,7 +106,10 @@ type waterLens struct {
 	drive     float32 // audio drive: how hard the sound pushes the surface
 	srcs      float32 // how many speakers are in the tank
 	rain      float32 // random drips per second, for a surface with weather
+	foam      float32 // FOAM in Layers · Colors: per-cent of the bubbles the waterline makes (water_foam_js.go)
 	heightArr js.Value
+
+	froth waterFoam // the bubbles on the surface (water_foam_js.go)
 }
 
 var water = waterLens{ // waterlens.go's defaults, which a native rack starts at too
@@ -146,6 +149,13 @@ func init() {
 	}
 	for _, k := range WaterKnobs {
 		attractorParams["water"] = append(attractorParams["water"], paramDef{k.ID, k.Label, field[k.ID], k.Def, k.Min, k.Max, k.Step})
+		// The lens reads its knobs every frame and the model was made from
+		// none of them, so turning one must not reset the model. It did:
+		// every move reseeded the attractor to its initial condition and
+		// restarted what is gathered from it — the live Lyapunov estimate,
+		// a section's scatter, a map's orbit — and marked a mesh for
+		// rebuilding.
+		quietParams[k.ID] = true
 	}
 }
 
@@ -210,16 +220,7 @@ void main(){
   gl_FragColor = vec4(c, 1.0);
 }`
 
-	vsh := glctx.GL.Call("createShader", glctx.Types.VertexShader)
-	glctx.GL.Call("shaderSource", vsh, vs)
-	glctx.GL.Call("compileShader", vsh)
-	fsh := glctx.GL.Call("createShader", glctx.Types.FragmentShader)
-	glctx.GL.Call("shaderSource", fsh, fs)
-	glctx.GL.Call("compileShader", fsh)
-	wa.program = glctx.GL.Call("createProgram")
-	glctx.GL.Call("attachShader", wa.program, vsh)
-	glctx.GL.Call("attachShader", wa.program, fsh)
-	glctx.GL.Call("linkProgram", wa.program)
+	wa.program = compileProgram(vs, fs)
 	wa.aPos = glctx.GL.Call("getAttribLocation", wa.program, "aPos")
 	wa.uScene = glctx.GL.Call("getUniformLocation", wa.program, "uScene")
 	wa.uHeight = glctx.GL.Call("getUniformLocation", wa.program, "uHeight")
@@ -240,9 +241,35 @@ void main(){
 	wa.aboveTex = newClampedTexture()
 	wa.lit = make([]bool, waterW*waterH)
 	wa.wasLit = make([]bool, waterW*waterH)
+	wa.initFoam()
 
 	wa.wireWaterPointer()
 	wa.ready = true
+}
+
+// compileProgram compiles and links a vertex and fragment shader, and says so
+// on the console when either does not compile or the two do not link: a
+// program that failed draws nothing, silently, which looks the same as a
+// layer with nothing to show.
+func compileProgram(vs, fs string) js.Value {
+	gl := glctx.GL
+	shader := func(kind js.Value, src string) js.Value {
+		s := gl.Call("createShader", kind)
+		gl.Call("shaderSource", s, src)
+		gl.Call("compileShader", s)
+		if !gl.Call("getShaderParameter", s, gl.Get("COMPILE_STATUS")).Bool() {
+			js.Global().Get("console").Call("error", "shader:", gl.Call("getShaderInfoLog", s))
+		}
+		return s
+	}
+	p := gl.Call("createProgram")
+	gl.Call("attachShader", p, shader(glctx.Types.VertexShader, vs))
+	gl.Call("attachShader", p, shader(glctx.Types.FragmentShader, fs))
+	gl.Call("linkProgram", p)
+	if !gl.Call("getProgramParameter", p, gl.Get("LINK_STATUS")).Bool() {
+		js.Global().Get("console").Call("error", "program:", gl.Call("getProgramInfoLog", p))
+	}
+	return p
 }
 
 // newClampedTexture makes a texture that samples cleanly at the edges. The
@@ -380,6 +407,7 @@ func (wa *waterLens) drawWaterLens() {
 	wa.driveWaterFromAudio()
 	wa.rainOnWater()
 	wa.field.Step()
+	wa.froth.Step(wa.field)
 
 	// The scene as it stands, into a texture.
 	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), wa.sceneTex)
@@ -416,6 +444,7 @@ func (wa *waterLens) drawWaterLens() {
 	glctx.GL.Call("uniform1f", wa.uReflScale, scale)
 	glctx.GL.Call("uniform2f", wa.uReflCenter, 0.5, 0.5)
 	glctx.GL.Call("drawArrays", glctx.GL.Get("TRIANGLE_STRIP"), 0, 4)
+	wa.drawFoam()    // on the surface, so over what is seen through it
 	wa.above = false // the next frame's near pass says again
 	if !wa.lined {
 		clear(wa.wasLit)
@@ -522,6 +551,7 @@ func (wa *waterLens) traceWaterline(z float32) {
 		}
 	}
 	wa.lit, wa.wasLit = wa.wasLit, wa.lit
+	wa.makeFoam(in, out)
 	wa.pushWaterline(in, -waterlinePush)
 	wa.pushWaterline(out, waterlinePush)
 }
