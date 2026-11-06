@@ -63,7 +63,7 @@ const setupJS = `(function(){
 const controlsJS = `(function(){
   function vis(e){var r=e.getBoundingClientRect();return r.width>3&&r.height>3&&r.top>=0&&r.left>=0&&r.bottom<=innerHeight&&r.right<=innerWidth;}
   function onTop(e,cx,cy){var h=document.elementFromPoint(cx,cy);return h&&(e===h||e.contains(h)||h.contains(e));}
-  var p=document.getElementById('controls-panel'),ctrls=[],knobs=[];
+  var p=(document.querySelector('.modules.rack-frame')||document.getElementById('controls-panel')),ctrls=[],knobs=[];
   if(p){[].forEach.call(p.querySelectorAll('.sw:not(#fullscreen-sw),.knob:not(.knob-fine),.rst,.numin,.sect-hdr,[id^=dock-]'),function(e){
     if(!vis(e))return;var r=e.getBoundingClientRect(),cx=Math.round(r.left+r.width/2),cy=Math.round(r.top+r.height/2);
     if(onTop(e,cx,cy))ctrls.push({cx:cx,cy:cy,t:(e.id||e.className||'').slice(0,20)});});
@@ -76,7 +76,7 @@ const controlsJS = `(function(){
 // snapJS captures the invariant state after an action, including a scan of
 // every LED/readout for NaN/undefined/Infinity.
 const snapJS = `(function(){
-  var p=document.getElementById('controls-panel'),lb=[];
+  var p=(document.querySelector('.modules.rack-frame')||document.getElementById('controls-panel')),lb=[];
   if(p)[].forEach.call(p.querySelectorAll('.led,.numin'),function(e){var t=(e.value||e.textContent||'').trim();
     if(/NaN|undefined|Infinity/i.test(t))lb.push((e.id||e.className||'').slice(0,16)+'='+t.slice(0,10));});
   return JSON.stringify({
@@ -192,7 +192,7 @@ func runMonkey() {
 			// Fullscreen is excluded: toggling it just fights the window manager
 			// (and a synthetic toggle can't grant the user-gesture fullscreen
 			// needs), so it adds noise without exercising anything useful.
-			c.Eval(fmt.Sprintf(`(function(){var s=document.querySelectorAll('#controls-panel .sw:not(#fullscreen-sw)');if(s.length){var e=s[%d%%s.length];e.click&&e.click();}})()`, rng.Intn(9999)))
+			c.Eval(fmt.Sprintf(`(function(){var s=document.querySelectorAll('.rack-frame .sw:not(#fullscreen-sw)');if(s.length){var e=s[%d%%s.length];e.click&&e.click();}})()`, rng.Intn(9999)))
 		case roll < 0.97:
 			act = "panel-toggle"
 			c.Eval(`(function(){var b=[].slice.call(document.querySelectorAll('button')).filter(function(x){return x.textContent==='▤';})[0];if(b)b.click();})()`)

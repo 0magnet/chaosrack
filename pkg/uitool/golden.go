@@ -98,7 +98,7 @@ func runGolden() {
 		}
 	}
 	// leave the panel visible again
-	c.Eval(`(function(){var p=document.getElementById('controls-panel');if(p){p.style.display='';p.style.zIndex='';}})()`)
+	showChrome(c)
 	if *capture {
 		fmt.Println("uigolden: goldens written to", *goldDir)
 		return
@@ -121,10 +121,10 @@ func run(c *cdp.Client, s state) []string {
 	hash1, _ := c.Eval(`location.hash`).(string)
 
 	// Screenshot with the panel hidden → the model only.
-	c.Eval(`(function(){var p=document.getElementById('controls-panel');if(p)p.style.display='none';})()`)
+	hideChrome(c)
 	time.Sleep(250 * time.Millisecond)
 	img, err := c.Screenshot()
-	c.Eval(`(function(){var p=document.getElementById('controls-panel');if(p)p.style.display='';})()`)
+	showChrome(c)
 	if err != nil || img == nil {
 		return []string{"screenshot failed: " + fmt.Sprint(err)}
 	}

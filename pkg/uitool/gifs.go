@@ -85,9 +85,7 @@ func captureModelGif(c *cdp.Client, mode string) []*image.Paletted {
 	// then spins it for depth.
 	c.Eval(fmt.Sprintf(`location.hash='#%s&rot=20,0,0'`, mode))
 	c.Reload(2800 * time.Millisecond)
-	c.Eval(`(function(){var p=document.getElementById('controls-panel');if(p)p.style.display='none';
-	  ['runtime'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
-	  [].forEach.call(document.querySelectorAll('button[title^="Show / hide controls"],a'),function(e){e.style.display='none';});})()`)
+	hideChrome(c)
 	time.Sleep(200 * time.Millisecond)
 
 	setKnobs := func(gc, gs int) {
@@ -180,7 +178,7 @@ func captureModelGif(c *cdp.Client, mode string) []*image.Paletted {
 		setPersist(false)
 	}
 	setKnobs(2, 2)
-	c.Eval(`(function(){var p=document.getElementById('controls-panel');if(p)p.style.display='';})()`)
+	showChrome(c)
 
 	if len(frames) == 0 {
 		return nil

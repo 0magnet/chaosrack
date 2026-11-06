@@ -88,9 +88,7 @@ func runDemo() {
 		c.Click(x, y)
 		time.Sleep(300 * time.Millisecond)
 	}
-	c.Eval(`(function(){var p=document.getElementById('controls-panel');if(p)p.style.display='none';
-	  ['runtime'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
-	  [].forEach.call(document.querySelectorAll('button[title^="Show / hide controls"],a'),function(e){e.style.display='none';});})()`)
+	hideChrome(c)
 	time.Sleep(300 * time.Millisecond)
 
 	setSlider := func(id string, v float64) {
@@ -261,9 +259,7 @@ func runPerformance(c *cdp.Client) {
 	c.Eval(`Object.keys(localStorage).filter(function(k){return k.indexOf('wasmstuff-')===0;}).forEach(function(k){localStorage.removeItem(k);})`)
 	c.Eval(`location.hash='#lorenz&rot=20,0,0'`)
 	c.Reload(3 * time.Second)
-	c.Eval(`(function(){var p=document.getElementById('controls-panel');if(p)p.style.display='none';
-	  ['runtime'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
-	  [].forEach.call(document.querySelectorAll('button[title^="Show / hide controls"],a'),function(e){e.style.display='none';});})()`)
+	hideChrome(c)
 
 	setSlider := func(id string, v float64) {
 		c.Eval(fmt.Sprintf(`(function(){var e=document.getElementById(%q);if(e){e.value='%g';e.dispatchEvent(new Event('input',{bubbles:true}));}})()`, id, v))

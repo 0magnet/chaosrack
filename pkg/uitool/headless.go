@@ -184,7 +184,7 @@ func startBrowser() error {
 	}
 	defer c.Close() //nolint:errcheck // only used to wait
 	for deadline := time.Now().Add(60 * time.Second); ; time.Sleep(250 * time.Millisecond) {
-		if ok, _ := c.Eval(`!!document.querySelector('#controls-panel .sect')`).(bool); ok {
+		if ok, _ := c.Eval(`!!document.querySelector('.rack-frame .sect')`).(bool); ok {
 			return nil
 		}
 		if time.Now().After(deadline) {

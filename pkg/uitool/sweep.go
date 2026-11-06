@@ -58,7 +58,7 @@ const settleJS = `new Promise(function(r){requestAnimationFrame(function(){reque
 
 // sweepSnapJS is snapJS plus the arena leaks and the bays that overflow.
 const sweepSnapJS = `(function(){
-  var p=document.getElementById('controls-panel'),lb=[],over=[];
+  var p=(document.querySelector('.modules.rack-frame')||document.getElementById('controls-panel')),lb=[],over=[];
   if(p){
     [].forEach.call(p.querySelectorAll('.led,.numin'),function(e){var t=(e.value||e.textContent||'').trim();
       if(/NaN|undefined|Infinity/i.test(t))lb.push((e.id||e.className||'').slice(0,16)+'='+t.slice(0,10));});
@@ -89,7 +89,7 @@ const modelsJS = `(function(){
 // switchesJS lists the visible switches by a selector that finds each again
 // after the rebuild its own click may cause.
 const switchesJS = `(function(){
-  var p=document.getElementById('controls-panel'),out=[];
+  var p=(document.querySelector('.modules.rack-frame')||document.getElementById('controls-panel')),out=[];
   if(p)[].forEach.call(p.querySelectorAll('.sw:not(#fullscreen-sw)'),function(e){
     if(!e.offsetParent)return;
     var input=e.querySelector('input[id]'), id=e.id||(input&&input.id);
@@ -204,6 +204,12 @@ func runSweep() {
 		}
 	done:
 		fmt.Printf("  %d switch flips, %d knob turns in %s\n", flips, turns, time.Since(start).Round(time.Millisecond))
+		// A sweep that found nothing to flip has checked nothing, and used
+		// to say so as a pass: when the instrument took the rack out of
+		// #controls-panel, every selector here came back empty.
+		if flips+turns == 0 {
+			s.fails = append(s.fails, "found no switches or knobs to work: the rack is not where the sweep looks")
+		}
 	}
 
 	if len(s.shifts) > 0 {
@@ -280,10 +286,10 @@ func toAnyList(v any) []any { l, _ := v.([]any); return l }
 // order — a knob has no id of its own — scrolling each into view to turn it.
 // Not the MODEL knobs: turning one is a model change, which the first phase
 // already makes for every model, and which is allowed to change the panel.
-const knobCountJS = `(function(){var p=document.getElementById('controls-panel');if(!p)return 0;
+const knobCountJS = `(function(){var p=(document.querySelector('.modules.rack-frame')||document.getElementById('controls-panel'));if(!p)return 0;
   return [].filter.call(p.querySelectorAll('.knob:not(.knob-fine)'),function(k){return k.offsetParent&&!k.closest('.bankblank,.catcell');}).length;})()`
 
-const knobAtJS = `(function(i){var p=document.getElementById('controls-panel');
+const knobAtJS = `(function(i){var p=(document.querySelector('.modules.rack-frame')||document.getElementById('controls-panel'));
   var ks=[].filter.call(p.querySelectorAll('.knob:not(.knob-fine)'),function(k){return k.offsetParent&&!k.closest('.bankblank,.catcell');});
   var k=ks[i];if(!k)return '{}';k.scrollIntoView({block:'center'});var r=k.getBoundingClientRect();
   var s=k.closest('.sect'),h=s&&s.querySelector('.sect-hdr');
@@ -292,7 +298,7 @@ const knobAtJS = `(function(i){var p=document.getElementById('controls-panel');
 // layoutJS is every visible module's box, relative to the rack rather than
 // the viewport so scrolling does not read as movement, and how many knobs and
 // switches it shows.
-const layoutJS = `(function(){var p=document.getElementById('controls-panel'),out={};if(!p)return '{}';
+const layoutJS = `(function(){var p=(document.querySelector('.modules.rack-frame')||document.getElementById('controls-panel')),out={};if(!p)return '{}';
   var m=p.querySelector('.modules')||p,o=m.getBoundingClientRect();
   [].forEach.call(p.querySelectorAll('.sect'),function(s){if(!s.offsetParent)return;
     var r=s.getBoundingClientRect(),h=s.querySelector('.sect-hdr'),key=s.id||(h?h.textContent:'?');

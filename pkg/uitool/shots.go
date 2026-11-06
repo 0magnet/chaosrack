@@ -102,9 +102,7 @@ func captureHero(c *cdp.Client) {
 func captureSheet(c *cdp.Client, mode string) {
 	c.Eval(fmt.Sprintf(`location.hash='#%s&ar=0&rot=25,40,0'`, mode))
 	c.Reload(2800 * time.Millisecond)
-	c.Eval(`(function(){var p=document.getElementById('controls-panel');if(p)p.style.display='none';
-	  ['runtime'].forEach(function(id){var e=document.getElementById(id);if(e)e.style.display='none';});
-	  [].forEach.call(document.querySelectorAll('button[title^="Show / hide controls"],a'),function(e){e.style.display='none';});})()`)
+	hideChrome(c)
 	time.Sleep(200 * time.Millisecond)
 
 	setKnobs := func(gc, gs int) {
@@ -151,7 +149,7 @@ func captureSheet(c *cdp.Client, mode string) {
 
 	// Restore defaults + panel for the next model.
 	setKnobs(2, 2)
-	c.Eval(`(function(){var p=document.getElementById('controls-panel');if(p)p.style.display='';})()`)
+	showChrome(c)
 
 	saveJPEG(filepath.Join(*shotDirOut, mode+".jpg"), grid, 87)
 	fmt.Println(" ", mode+".jpg")

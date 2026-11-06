@@ -43,7 +43,7 @@ import (
 
 // lintJS measures the panel as it stands and returns its findings.
 const lintJS = `(function(){
-  var out=[], p=document.getElementById('controls-panel'); if(!p) return '[]';
+  var out=[], p=(document.querySelector('.modules.rack-frame')||document.getElementById('controls-panel')); if(!p) return '[]';
   var PREFIX=/^(?:[0-9S]+\.\d+(?:\.\d+(?:\.[a-z])?)? · )+/, LOC=/^[0-9S]+\.\d+\.\d+(?:\.[a-z])?$/;
   function vis(e){
     if(!e.getClientRects().length) return false;
