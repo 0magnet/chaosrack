@@ -799,17 +799,12 @@ func renderLoop(this js.Value, args []js.Value) any {
 	}
 
 	// Background audio visualizer: paint the reactive backdrop (spectrogram or
-	// xy scope) behind the model, then hand the depth-tested attractor pipeline
-	// a clean depth buffer to draw over it.
-	if bgOn {
-		renderBackgroundVisual(frameNowMs)
-		glctx.GL.Call("enable", glctx.Types.DepthTest)
-		glctx.GL.Call("clear", glctx.Types.DepthBufferBit)
-		// The backdrop bound its own program / buffers; force geometry models
-		// to re-upload their static vertex+index buffers next draw.
-		if !isAttractorMode(run.selectedMode) {
-			gpu.staticDirty = true
-		}
+	// xy scope) behind the model. Not here when the Fore knob splits the
+	// model: the backdrop belongs behind the panel, so drawSplitPasses paints
+	// it into the far pass, and painted here it was lifted onto the canvas
+	// above the panel with the near half.
+	if bgOn && (run.paused || !splitDrawing()) {
+		paintBackdrop()
 	}
 	// The model draws in its own colors while the Colors module is showing
 	// the backdrop's (backlayer_js.go).
@@ -876,7 +871,7 @@ func renderLoop(this js.Value, args []js.Value) any {
 		// The Fore knob owns the passes when it is in play: near and far
 		// of one scene are what it exists to draw, and stacking a
 		// side-by-side split inside that is two splits arguing.
-		drawSplitPasses(run.selectedMode)
+		drawSplitPasses(run.selectedMode, bgOn)
 	default:
 		// One view or two, side by side. See views_js.go.
 		drawViewPasses(run.selectedMode)
