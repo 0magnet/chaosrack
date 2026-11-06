@@ -11,7 +11,6 @@ import (
 	"net"
 	"reflect"
 	"slices"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -22,6 +21,7 @@ import (
 	"github.com/quic-go/quic-go/internal/protocol"
 	"github.com/quic-go/quic-go/internal/qerr"
 	"github.com/quic-go/quic-go/internal/utils"
+	"github.com/quic-go/quic-go/internal/utils/ringbuffer"
 	"github.com/quic-go/quic-go/internal/wire"
 	"github.com/quic-go/quic-go/qlog"
 	"github.com/quic-go/quic-go/qlogwriter"
@@ -75,18 +75,6 @@ func (p *receivedPacket) Clone() *receivedPacket {
 	}
 }
 
-// A pathReceiver is the packetHandler that a connection registers on every Transport it uses:
-// the one it was dialed or accepted on, and the ones added via AddPath.
-// It allows the connection to tell which Transport a packet was received on.
-type pathReceiver struct {
-	*Conn
-	id pathID // the ID of the first path that used the Transport, also used as its qlog TupleID
-}
-
-var _ packetHandler = &pathReceiver{}
-
-func (r *pathReceiver) handlePacket(p receivedPacket) { r.queuePacket(p, r) }
-
 type connRunner interface {
 	Add(protocol.ConnectionID, packetHandler) bool
 	Remove(protocol.ConnectionID)
@@ -100,13 +88,13 @@ type closeError struct {
 	immediate bool
 }
 
-type errSwitchVersion struct {
+type errCloseForRecreating struct {
 	nextPacketNumber protocol.PacketNumber
 	nextVersion      protocol.Version
 }
 
-func (e *errSwitchVersion) Error() string {
-	return "closing connection to switch to a different QUIC version"
+func (e *errCloseForRecreating) Error() string {
+	return "closing connection in order to recreate it"
 }
 
 var deadlineSendImmediately = monotime.Time(42 * time.Millisecond) // any value > time.Time{} and before time.Now() is fine
@@ -140,7 +128,7 @@ type Conn struct {
 	handshakeDestConnID protocol.ConnectionID
 	// Set for the client. Destination connection ID used on the first Initial sent.
 	origDestConnID protocol.ConnectionID
-	retrySrcConnID protocol.ConnectionID // only set for the client (and if a Retry was performed)
+	retrySrcConnID *protocol.ConnectionID // only set for the client (and if a Retry was performed)
 
 	srcConnIDLen int
 
@@ -186,7 +174,8 @@ type Conn struct {
 
 	notifyReceivedPacket chan struct{}
 	sendingScheduled     chan struct{}
-	receivedPackets      receivedPacketQueue
+	receivedPacketMx     sync.Mutex
+	receivedPackets      ringbuffer.RingBuffer[receivedPacket]
 
 	// closeChan is used to notify the run loop that it should terminate
 	closeChan chan struct{}
@@ -253,8 +242,8 @@ type connTestHooks struct {
 }
 
 type wrappedConn struct {
-	testHooks    *connTestHooks
-	pathReceiver // for the Transport that the connection was dialed or accepted on
+	testHooks *connTestHooks
+	*Conn
 }
 
 var newConnection = func(
@@ -263,7 +252,7 @@ var newConnection = func(
 	conn sendConn,
 	runner connRunner,
 	origDestConnID protocol.ConnectionID,
-	retrySrcConnID protocol.ConnectionID,
+	retrySrcConnID *protocol.ConnectionID,
 	clientDestConnID protocol.ConnectionID,
 	destConnID protocol.ConnectionID,
 	srcConnID protocol.ConnectionID,
@@ -292,7 +281,6 @@ var newConnection = func(
 		logger:              logger,
 		version:             v,
 	}
-	w := &wrappedConn{pathReceiver: pathReceiver{Conn: s}}
 	if qlogTrace != nil {
 		s.qlogger = qlogTrace.AddProducer()
 	}
@@ -303,20 +291,24 @@ var newConnection = func(
 	}
 	s.connIDManager = newConnIDManager(
 		destConnID,
-		func(token protocol.StatelessResetToken) { runner.AddResetToken(token, &w.pathReceiver) },
+		func(token protocol.StatelessResetToken) { runner.AddResetToken(token, s) },
 		runner.RemoveResetToken,
 		s.queueControlFrame,
 	)
 	s.connIDGenerator = newConnIDGenerator(
 		runner,
 		srcConnID,
-		clientDestConnID,
+		&clientDestConnID,
 		statelessResetter,
-		&w.pathReceiver,
+		connRunnerCallbacks{
+			AddConnectionID:    func(connID protocol.ConnectionID) { runner.Add(connID, s) },
+			RemoveConnectionID: runner.Remove,
+			ReplaceWithClosed:  runner.ReplaceWithClosed,
+		},
 		s.queueControlFrame,
 		connIDGenerator,
 	)
-	s.preSetup(&w.pathReceiver)
+	s.preSetup()
 	s.rttStats.SetInitialRTT(rtt)
 	s.sentPacketHandler = ackhandler.NewSentPacketHandler(
 		0,
@@ -361,7 +353,7 @@ var newConnection = func(
 		params.MaxDatagramFrameSize = protocol.InvalidByteCount
 	}
 	if s.qlogger != nil {
-		s.qlogTransportParameters(params, protocol.PerspectiveServer)
+		s.qlogTransportParameters(params, protocol.PerspectiveServer, false)
 	}
 	cs := handshake.NewCryptoSetupServer(
 		clientDestConnID,
@@ -379,7 +371,7 @@ var newConnection = func(
 	s.packer = newPacketPacker(srcConnID, s.connIDManager.Get, s.initialStream, s.handshakeStream, s.sentPacketHandler, s.retransmissionQueue, cs, s.framer, &s.receivedPacketHandler, s.datagramQueue, s.perspective, s.qlogger)
 	s.unpacker = newPacketUnpacker(cs, s.srcConnIDLen)
 	s.cryptoStreamManager = newCryptoStreamManager(s.initialStream, s.handshakeStream, s.oneRTTStream)
-	return w
+	return &wrappedConn{Conn: s}
 }
 
 // declare this as a variable, such that we can it mock it in the tests
@@ -413,7 +405,6 @@ var newClientConnection = func(
 		versionNegotiated:   hasNegotiatedVersion,
 		version:             v,
 	}
-	w := &wrappedConn{pathReceiver: pathReceiver{Conn: s}}
 	if qlogTrace != nil {
 		s.qlogger = qlogTrace.AddProducer()
 	}
@@ -429,21 +420,25 @@ var newClientConnection = func(
 	}
 	s.connIDManager = newConnIDManager(
 		destConnID,
-		func(token protocol.StatelessResetToken) { runner.AddResetToken(token, &w.pathReceiver) },
+		func(token protocol.StatelessResetToken) { runner.AddResetToken(token, s) },
 		runner.RemoveResetToken,
 		s.queueControlFrame,
 	)
 	s.connIDGenerator = newConnIDGenerator(
 		runner,
 		srcConnID,
-		protocol.ConnectionID{},
+		nil,
 		statelessResetter,
-		&w.pathReceiver,
+		connRunnerCallbacks{
+			AddConnectionID:    func(connID protocol.ConnectionID) { runner.Add(connID, s) },
+			RemoveConnectionID: runner.Remove,
+			ReplaceWithClosed:  runner.ReplaceWithClosed,
+		},
 		s.queueControlFrame,
 		connIDGenerator,
 	)
 	s.ctx, s.ctxCancel = context.WithCancelCause(ctx)
-	s.preSetup(&w.pathReceiver)
+	s.preSetup()
 	if len(tlsConf.ServerName) > 0 {
 		s.tokenStoreKey = tlsConf.ServerName
 	} else {
@@ -496,7 +491,7 @@ var newClientConnection = func(
 		params.MaxDatagramFrameSize = protocol.InvalidByteCount
 	}
 	if s.qlogger != nil {
-		s.qlogTransportParameters(params, protocol.PerspectiveClient)
+		s.qlogTransportParameters(params, protocol.PerspectiveClient, false)
 	}
 	cs := handshake.NewCryptoSetupClient(
 		destConnID,
@@ -515,11 +510,10 @@ var newClientConnection = func(
 	if token != nil {
 		s.packer.SetToken(token.data)
 	}
-	return w
+	return &wrappedConn{Conn: s}
 }
 
-// r is the pathReceiver for the Transport that the connection was dialed or accepted on.
-func (c *Conn) preSetup(r *pathReceiver) {
+func (c *Conn) preSetup() {
 	c.largestRcvdAppData = protocol.InvalidPacketNumber
 	c.initialStream = newInitialCryptoStream(c.perspective == protocol.PerspectiveClient)
 	c.handshakeStream = newCryptoStream()
@@ -551,11 +545,10 @@ func (c *Conn) preSetup(r *pathReceiver) {
 		c.newFlowController,
 		uint64(c.config.MaxIncomingStreams),
 		uint64(c.config.MaxIncomingUniStreams),
-		c.config.RequireStreamCreditRelease,
 		c.perspective,
 	)
 	c.framer = newFramer(c.connFlowController)
-	c.receivedPackets.Init(r)
+	c.receivedPackets.Init(8)
 	c.notifyReceivedPacket = make(chan struct{}, 1)
 	c.closeChan = make(chan struct{}, 1)
 	c.sendingScheduled = make(chan struct{}, 1)
@@ -575,8 +568,17 @@ func (c *Conn) preSetup(r *pathReceiver) {
 func (c *Conn) run() (err error) {
 	defer func() { c.ctxCancel(err) }()
 
-	// drain queued packets that will never be processed
-	defer c.receivedPackets.Clear()
+	defer func() {
+		// drain queued packets that will never be processed
+		c.receivedPacketMx.Lock()
+		defer c.receivedPacketMx.Unlock()
+
+		for !c.receivedPackets.Empty() {
+			p := c.receivedPackets.PopFront()
+			p.buffer.Decrement()
+			p.buffer.MaybeRelease()
+		}
+	}()
 
 	c.timer = time.NewTimer(monotime.Until(c.idleTimeoutStartTime().Add(c.config.HandshakeIdleTimeout)))
 
@@ -623,8 +625,7 @@ runLoop:
 			queue := c.undecryptablePacketsToProcess
 			c.undecryptablePacketsToProcess = nil
 			for _, p := range queue {
-				// undecryptable packets are only queued during the handshake, i.e. on the active path
-				processed, err := c.handleOnePacket(p.receivedPacket, p.checksum, activePathID)
+				processed, err := c.handleOnePacket(p.receivedPacket, p.checksum)
 				if err != nil {
 					c.setCloseError(&closeError{err: err})
 					break runLoop
@@ -708,9 +709,8 @@ runLoop:
 		if c.perspective == protocol.PerspectiveClient {
 			pm := c.pathManagerOutgoing.Load()
 			if pm != nil {
-				id, tr, ok := pm.ShouldSwitchPath()
+				tr, ok := pm.ShouldSwitchPath()
 				if ok {
-					c.connIDManager.SwitchToPath(id)
 					c.switchToNewPath(tr, now)
 				}
 			}
@@ -750,7 +750,9 @@ runLoop:
 	c.sendQueue.Close() // close the send queue before sending the CONNECTION_CLOSE
 	c.handleCloseError(closeErr)
 	if c.qlogger != nil {
-		c.qlogger.Close()
+		if _, ok := errors.AsType[*errCloseForRecreating](closeErr.err); !ok {
+			c.qlogger.Close()
+		}
 	}
 	c.logger.Infof("Connection %s closed.", c.logID)
 	c.timer.Stop()
@@ -786,7 +788,6 @@ func (c *Conn) ConnectionState() ConnectionState {
 	}
 	c.connState.SupportsDatagrams.Local = c.config.EnableDatagrams
 	c.connState.SupportsStreamResetPartialDelivery.Local = c.config.EnableStreamResetPartialDelivery
-	c.connState.RequireStreamCreditRelease = c.config.RequireStreamCreditRelease
 	c.connState.GSO = c.conn.capabilities().GSO
 	return c.connState
 }
@@ -924,15 +925,6 @@ func (c *Conn) idleTimeoutStartTime() monotime.Time {
 }
 
 func (c *Conn) switchToNewPath(tr *Transport, now monotime.Time) {
-	// The connection is registered with the Transport, since it was probed before switching to it.
-	if h, ok := c.connIDGenerator.Handler((*packetHandlerMap)(tr)); ok {
-		if prev := c.receivedPackets.SwapActive(h); prev != h && c.qlogger != nil {
-			// from now on, the old path needs to be logged with its own TupleID
-			c.qlogger.RecordEvent(tupleAssignedEvent(strconv.FormatInt(int64(prev.id), 10), c.conn.LocalAddr(), c.conn.RemoteAddr()))
-			c.qlogger.RecordEvent(tupleAssignedEvent("", tr.Conn.LocalAddr(), c.conn.RemoteAddr()))
-		}
-	}
-
 	initialPacketSize := protocol.ByteCount(cmp.Or(c.config.InitialPacketSize, protocol.MinInitialPacketSize))
 	c.sentPacketHandler.MigratedPath(now, initialPacketSize)
 	c.maxPayloadSizeEstimate.Store(uint32(estimateMaxPayloadSize(initialPacketSize)))
@@ -963,7 +955,6 @@ func (c *Conn) handleHandshakeComplete(now monotime.Time) error {
 		c.qlogger.RecordEvent(qlog.ALPNInformation{
 			ChosenALPN: c.cryptoStreamHandler.ConnectionState().NegotiatedProtocol,
 		})
-		c.qlogger.RecordEvent(qlog.ConnectionStateUpdated{State: qlog.ConnectionStateHandshakeComplete})
 	}
 
 	// The server applies transport parameters right away, but the client side has to wait for handshake completion.
@@ -1007,9 +998,6 @@ func (c *Conn) handleHandshakeConfirmed(now monotime.Time) error {
 
 	c.handshakeConfirmed = true
 	c.cryptoStreamHandler.SetHandshakeConfirmed()
-	if c.qlogger != nil {
-		c.qlogger.RecordEvent(qlog.ConnectionStateUpdated{State: qlog.ConnectionStateHandshakeConfirmed})
-	}
 
 	if !c.config.DisablePathMTUDiscovery && c.conn.capabilities().DF {
 		c.mtuDiscoverer.Start(now)
@@ -1023,22 +1011,33 @@ func (c *Conn) handlePackets() (wasProcessed bool, _ error) {
 	// Process packets from the receivedPackets queue.
 	// Limit the number of packets to process to maxPacketsToProcess,
 	// so we eventually get a chance to send out an ACK when receiving a lot of packets.
+	c.receivedPacketMx.Lock()
+
+	if c.receivedPackets.Empty() {
+		c.receivedPacketMx.Unlock()
+		return false, nil
+	}
+
+	var hasMorePackets bool
 	for range maxPacketsToProcess {
-		p, path, ok := c.receivedPackets.Pop()
-		if !ok {
-			return wasProcessed, nil
-		}
+		p := c.receivedPackets.PopFront()
+		c.receivedPacketMx.Unlock()
 
 		var datagramPayloadChecksum qlog.DatagramPayloadChecksum
 		if c.qlogger != nil && wire.IsLongHeaderPacket(p.data[0]) {
 			datagramPayloadChecksum = qlog.CalculateDatagramPayloadChecksum(p.data)
 		}
-		processed, err := c.handleOnePacket(p, datagramPayloadChecksum, path)
+		processed, err := c.handleOnePacket(p, datagramPayloadChecksum)
 		if err != nil {
 			return false, err
 		}
 		if processed {
 			wasProcessed = true
+		}
+		c.receivedPacketMx.Lock()
+		hasMorePackets = !c.receivedPackets.Empty()
+		if !hasMorePackets {
+			break
 		}
 		// Prioritize sending of new CRYPTO data.
 		// This is especially relevant when processing 0-RTT packets.
@@ -1046,8 +1045,9 @@ func (c *Conn) handlePackets() (wasProcessed bool, _ error) {
 			break
 		}
 	}
+	c.receivedPacketMx.Unlock()
 
-	if !c.receivedPackets.Empty() {
+	if hasMorePackets {
 		select {
 		case c.notifyReceivedPacket <- struct{}{}:
 		default:
@@ -1056,11 +1056,7 @@ func (c *Conn) handlePackets() (wasProcessed bool, _ error) {
 	return wasProcessed, nil
 }
 
-func (c *Conn) handleOnePacket(
-	rp receivedPacket,
-	datagramPayloadChecksum qlog.DatagramPayloadChecksum, // only for logging
-	path pathID, // only for logging
-) (wasProcessed bool, _ error) {
+func (c *Conn) handleOnePacket(rp receivedPacket, datagramPayloadChecksum qlog.DatagramPayloadChecksum) (wasProcessed bool, _ error) {
 	c.sentPacketHandler.ReceivedBytes(rp.Size(), rp.rcvTime)
 
 	if wire.IsVersionNegotiationPacket(rp.data) {
@@ -1080,7 +1076,7 @@ func (c *Conn) handleOnePacket(
 			if err != nil {
 				if c.qlogger != nil {
 					c.qlogger.RecordEvent(qlog.PacketDropped{
-						Raw:                     qlog.RawInfo{Length: len(data), PayloadLength: qlog.OmitLength},
+						Raw:                     qlog.RawInfo{Length: len(data)},
 						DatagramPayloadChecksum: datagramPayloadChecksum,
 						Trigger:                 qlog.PacketDropHeaderParseError,
 					})
@@ -1091,8 +1087,8 @@ func (c *Conn) handleOnePacket(
 			if destConnID != lastConnID {
 				if c.qlogger != nil {
 					c.qlogger.RecordEvent(qlog.PacketDropped{
-						Header:                  qlog.PacketHeader{PacketNumber: protocol.InvalidPacketNumber, DestConnectionID: destConnID},
-						Raw:                     qlog.RawInfo{Length: len(data), PayloadLength: qlog.OmitLength},
+						Header:                  qlog.PacketHeader{DestConnectionID: destConnID},
+						Raw:                     qlog.RawInfo{Length: len(data)},
 						DatagramPayloadChecksum: datagramPayloadChecksum,
 						Trigger:                 qlog.PacketDropUnknownConnectionID,
 					})
@@ -1108,14 +1104,14 @@ func (c *Conn) handleOnePacket(
 				if c.qlogger != nil {
 					if err == wire.ErrUnsupportedVersion {
 						c.qlogger.RecordEvent(qlog.PacketDropped{
-							Header:                  qlog.PacketHeader{PacketNumber: protocol.InvalidPacketNumber, Version: hdr.Version},
-							Raw:                     qlog.RawInfo{Length: len(data), PayloadLength: qlog.OmitLength},
+							Header:                  qlog.PacketHeader{Version: hdr.Version},
+							Raw:                     qlog.RawInfo{Length: len(data)},
 							DatagramPayloadChecksum: datagramPayloadChecksum,
 							Trigger:                 qlog.PacketDropUnsupportedVersion,
 						})
 					} else {
 						c.qlogger.RecordEvent(qlog.PacketDropped{
-							Raw:                     qlog.RawInfo{Length: len(data), PayloadLength: qlog.OmitLength},
+							Raw:                     qlog.RawInfo{Length: len(data)},
 							DatagramPayloadChecksum: datagramPayloadChecksum,
 							Trigger:                 qlog.PacketDropHeaderParseError,
 						})
@@ -1129,7 +1125,7 @@ func (c *Conn) handleOnePacket(
 			if hdr.Version != c.version {
 				if c.qlogger != nil {
 					c.qlogger.RecordEvent(qlog.PacketDropped{
-						Raw:                     qlog.RawInfo{Length: len(data), PayloadLength: qlog.OmitLength},
+						Raw:                     qlog.RawInfo{Length: len(data)},
 						DatagramPayloadChecksum: datagramPayloadChecksum,
 						Trigger:                 qlog.PacketDropUnexpectedVersion,
 					})
@@ -1162,7 +1158,7 @@ func (c *Conn) handleOnePacket(
 			if counter > 0 {
 				p.buffer.Split()
 			}
-			processed, err := c.handleShortHeaderPacket(p, counter > 0, datagramPayloadChecksum, path)
+			processed, err := c.handleShortHeaderPacket(p, counter > 0, datagramPayloadChecksum)
 			if err != nil {
 				return false, err
 			}
@@ -1182,7 +1178,6 @@ func (c *Conn) handleShortHeaderPacket(
 	p receivedPacket,
 	isCoalesced bool,
 	datagramPayloadChecksum qlog.DatagramPayloadChecksum, // only for logging
-	path pathID, // only for logging
 ) (wasProcessed bool, _ error) {
 	var wasQueued bool
 
@@ -1201,7 +1196,7 @@ func (c *Conn) handleShortHeaderPacket(
 					PacketType:   qlog.PacketType1RTT,
 					PacketNumber: protocol.InvalidPacketNumber,
 				},
-				Raw:                     qlog.RawInfo{Length: len(p.data), PayloadLength: qlog.OmitLength},
+				Raw:                     qlog.RawInfo{Length: len(p.data)},
 				DatagramPayloadChecksum: datagramPayloadChecksum,
 				Trigger:                 qlog.PacketDropHeaderParseError,
 			})
@@ -1239,7 +1234,7 @@ func (c *Conn) handleShortHeaderPacket(
 					PacketType:   qlog.PacketType1RTT,
 					PacketNumber: pn,
 				},
-				Raw:                     qlog.RawInfo{Length: int(p.Size()), PayloadLength: qlog.OmitLength},
+				Raw:                     qlog.RawInfo{Length: int(p.Size())},
 				DatagramPayloadChecksum: datagramPayloadChecksum,
 				Trigger:                 qlog.PacketDropDuplicate,
 			})
@@ -1247,31 +1242,8 @@ func (c *Conn) handleShortHeaderPacket(
 		return false, nil
 	}
 
-	// Only the client can migrate between paths, so only the server receives packets from different addresses.
-	// The path is created before handling the frames, so that the packet can be logged with the path's tuple.
-	checkPath := c.perspective == protocol.PerspectiveServer && !addrsEqual(p.remoteAddr, c.RemoteAddr())
-	if checkPath {
-		if c.pathManager == nil {
-			c.pathManager = newPathManager(
-				c.connIDManager.GetConnIDForPath,
-				c.connIDManager.RetireConnIDForPath,
-				c.logger,
-			)
-		}
-		if id, isNew, ok := c.pathManager.GetOrCreatePath(p.remoteAddr, p.rcvTime); ok {
-			path = id
-			if isNew && c.qlogger != nil {
-				c.qlogger.RecordEvent(tupleAssignedEvent(strconv.FormatInt(int64(id), 10), c.conn.LocalAddr(), p.remoteAddr))
-			}
-		}
-	}
-
 	var log func([]qlog.Frame)
 	if c.qlogger != nil {
-		var tuple string
-		if path != activePathID {
-			tuple = strconv.FormatInt(int64(path), 10)
-		}
 		log = func(frames []qlog.Frame) {
 			c.qlogger.RecordEvent(qlog.PacketReceived{
 				Header: qlog.PacketHeader{
@@ -1287,7 +1259,6 @@ func (c *Conn) handleShortHeaderPacket(
 				DatagramPayloadChecksum: datagramPayloadChecksum,
 				Frames:                  frames,
 				ECN:                     toQlogECN(p.ecn),
-				Tuple:                   tuple,
 			})
 		}
 	}
@@ -1295,14 +1266,22 @@ func (c *Conn) handleShortHeaderPacket(
 	if err != nil {
 		return false, err
 	}
-	if pathChallenge != nil && c.perspective == protocol.PerspectiveClient {
-		if err := c.handlePathChallengeFrame(pathChallenge, path, p.rcvTime); err != nil {
-			return true, err
-		}
+
+	// In RFC 9000, only the client can migrate between paths.
+	if c.perspective == protocol.PerspectiveClient {
+		return true, nil
+	}
+	if addrsEqual(p.remoteAddr, c.RemoteAddr()) {
+		return true, nil
 	}
 
-	if !checkPath {
-		return true, nil
+	var shouldSwitchPath bool
+	if c.pathManager == nil {
+		c.pathManager = newPathManager(
+			c.connIDManager.GetConnIDForPath,
+			c.connIDManager.RetireConnIDForPath,
+			c.logger,
+		)
 	}
 	destConnID, frames, shouldSwitchPath := c.pathManager.HandlePacket(p.remoteAddr, p.rcvTime, pathChallenge, isNonProbing)
 	if len(frames) > 0 {
@@ -1311,7 +1290,7 @@ func (c *Conn) handleShortHeaderPacket(
 			return true, err
 		}
 		c.logger.Debugf("sending path probe packet to %s", p.remoteAddr)
-		c.logShortHeaderPacketWithDatagramPayloadChecksum(probe, protocol.ECNNon, buf.Len(), false, datagramPayloadChecksum, strconv.FormatInt(int64(path), 10))
+		c.logShortHeaderPacketWithDatagramPayloadChecksum(probe, protocol.ECNNon, buf.Len(), false, datagramPayloadChecksum)
 		c.registerPackedShortHeaderPacket(probe, protocol.ECNNon, p.rcvTime)
 		c.sendQueue.SendProbe(buf, p.remoteAddr, p.info)
 	}
@@ -1321,7 +1300,6 @@ func (c *Conn) handleShortHeaderPacket(
 		return true, nil
 	}
 	c.pathManager.SwitchToPath(p.remoteAddr)
-	c.connIDManager.SwitchToPath(path)
 	initialPacketSize := protocol.ByteCount(cmp.Or(c.config.InitialPacketSize, protocol.MinInitialPacketSize))
 	c.sentPacketHandler.MigratedPath(p.rcvTime, initialPacketSize)
 	c.maxPayloadSizeEstimate.Store(uint32(estimateMaxPayloadSize(initialPacketSize)))
@@ -1330,10 +1308,6 @@ func (c *Conn) handleShortHeaderPacket(
 		c.mtuDiscoverer.Start(p.rcvTime)
 	}
 	c.conn.ChangeRemoteAddr(p.remoteAddr, p.info)
-	if c.qlogger != nil {
-		// the TupleID "" refers to the active path
-		c.qlogger.RecordEvent(tupleAssignedEvent("", c.conn.LocalAddr(), p.remoteAddr))
-	}
 	return true, nil
 }
 
@@ -1360,7 +1334,7 @@ func (c *Conn) handleLongHeaderPacket(p receivedPacket, hdr *wire.Header, datagr
 					PacketType:   qlog.PacketTypeInitial,
 					PacketNumber: protocol.InvalidPacketNumber,
 				},
-				Raw:                     qlog.RawInfo{Length: int(p.Size()), PayloadLength: qlog.OmitLength},
+				Raw:                     qlog.RawInfo{Length: int(p.Size())},
 				DatagramPayloadChecksum: datagramPayloadChecksum,
 				Trigger:                 qlog.PacketDropUnknownConnectionID,
 			})
@@ -1376,30 +1350,11 @@ func (c *Conn) handleLongHeaderPacket(p receivedPacket, hdr *wire.Header, datagr
 					PacketType:   qlog.PacketType0RTT,
 					PacketNumber: protocol.InvalidPacketNumber,
 				},
-				Raw:                     qlog.RawInfo{Length: int(p.Size()), PayloadLength: qlog.OmitLength},
+				Raw:                     qlog.RawInfo{Length: int(p.Size())},
 				DatagramPayloadChecksum: datagramPayloadChecksum,
 				Trigger:                 qlog.PacketDropUnexpectedPacket,
 			})
 		}
-		return false, nil
-	}
-	// The client switches to the server's connection ID before it can send Handshake packets.
-	if hdr.Type == protocol.PacketTypeHandshake && c.connIDGenerator.IsInitialClientDestConnID(hdr.DestConnectionID) {
-		if c.qlogger != nil {
-			c.qlogger.RecordEvent(qlog.PacketDropped{
-				Header: qlog.PacketHeader{
-					PacketType:       qlog.PacketTypeHandshake,
-					DestConnectionID: hdr.DestConnectionID,
-					SrcConnectionID:  hdr.SrcConnectionID,
-					PacketNumber:     protocol.InvalidPacketNumber,
-					Version:          hdr.Version,
-				},
-				Raw:                     qlog.RawInfo{Length: int(p.Size()), PayloadLength: qlog.OmitLength},
-				DatagramPayloadChecksum: datagramPayloadChecksum,
-				Trigger:                 qlog.PacketDropUnknownConnectionID,
-			})
-		}
-		c.logger.Debugf("Dropping Handshake packet (%d bytes) sent to the client's Initial destination connection ID: %s", p.Size(), hdr.DestConnectionID)
 		return false, nil
 	}
 
@@ -1450,9 +1405,9 @@ func (c *Conn) handleUnpackError(err error, p receivedPacket, pt qlog.PacketType
 					DestConnectionID: connID,
 					PacketNumber:     protocol.InvalidPacketNumber,
 				},
-				Raw:                     qlog.RawInfo{Length: int(p.Size()), PayloadLength: qlog.OmitLength},
+				Raw:                     qlog.RawInfo{Length: int(p.Size())},
 				DatagramPayloadChecksum: datagramPayloadChecksum,
-				Trigger:                 qlog.PacketDropKeysUnavailable,
+				Trigger:                 qlog.PacketDropKeyUnavailable,
 			})
 		}
 		c.logger.Debugf("Dropping %s packet (%d bytes) because we already dropped the keys.", pt, p.Size())
@@ -1477,7 +1432,7 @@ func (c *Conn) handleUnpackError(err error, p receivedPacket, pt qlog.PacketType
 					DestConnectionID: connID,
 					PacketNumber:     protocol.InvalidPacketNumber,
 				},
-				Raw:                     qlog.RawInfo{Length: int(p.Size()), PayloadLength: qlog.OmitLength},
+				Raw:                     qlog.RawInfo{Length: int(p.Size())},
 				DatagramPayloadChecksum: datagramPayloadChecksum,
 				Trigger:                 qlog.PacketDropPayloadDecryptError,
 			})
@@ -1495,7 +1450,7 @@ func (c *Conn) handleUnpackError(err error, p receivedPacket, pt qlog.PacketType
 						DestConnectionID: connID,
 						PacketNumber:     protocol.InvalidPacketNumber,
 					},
-					Raw:                     qlog.RawInfo{Length: int(p.Size()), PayloadLength: qlog.OmitLength},
+					Raw:                     qlog.RawInfo{Length: int(p.Size())},
 					DatagramPayloadChecksum: datagramPayloadChecksum,
 					Trigger:                 qlog.PacketDropHeaderParseError,
 				})
@@ -1514,13 +1469,12 @@ func (c *Conn) handleRetryPacket(hdr *wire.Header, data []byte, rcvTime monotime
 		if c.qlogger != nil {
 			c.qlogger.RecordEvent(qlog.PacketDropped{
 				Header: qlog.PacketHeader{
-					PacketNumber:     protocol.InvalidPacketNumber,
 					PacketType:       qlog.PacketTypeRetry,
 					SrcConnectionID:  hdr.SrcConnectionID,
 					DestConnectionID: hdr.DestConnectionID,
 					Version:          hdr.Version,
 				},
-				Raw:     qlog.RawInfo{Length: len(data), PayloadLength: qlog.OmitLength},
+				Raw:     qlog.RawInfo{Length: len(data)},
 				Trigger: qlog.PacketDropUnexpectedPacket,
 			})
 		}
@@ -1531,13 +1485,12 @@ func (c *Conn) handleRetryPacket(hdr *wire.Header, data []byte, rcvTime monotime
 		if c.qlogger != nil {
 			c.qlogger.RecordEvent(qlog.PacketDropped{
 				Header: qlog.PacketHeader{
-					PacketNumber:     protocol.InvalidPacketNumber,
 					PacketType:       qlog.PacketTypeRetry,
 					SrcConnectionID:  hdr.SrcConnectionID,
 					DestConnectionID: hdr.DestConnectionID,
 					Version:          hdr.Version,
 				},
-				Raw:     qlog.RawInfo{Length: len(data), PayloadLength: qlog.OmitLength},
+				Raw:     qlog.RawInfo{Length: len(data)},
 				Trigger: qlog.PacketDropUnexpectedPacket,
 			})
 		}
@@ -1549,13 +1502,12 @@ func (c *Conn) handleRetryPacket(hdr *wire.Header, data []byte, rcvTime monotime
 		if c.qlogger != nil {
 			c.qlogger.RecordEvent(qlog.PacketDropped{
 				Header: qlog.PacketHeader{
-					PacketNumber:     protocol.InvalidPacketNumber,
 					PacketType:       qlog.PacketTypeRetry,
 					SrcConnectionID:  hdr.SrcConnectionID,
 					DestConnectionID: hdr.DestConnectionID,
 					Version:          hdr.Version,
 				},
-				Raw:     qlog.RawInfo{Length: len(data), PayloadLength: qlog.OmitLength},
+				Raw:     qlog.RawInfo{Length: len(data)},
 				Trigger: qlog.PacketDropUnexpectedPacket,
 			})
 		}
@@ -1574,13 +1526,12 @@ func (c *Conn) handleRetryPacket(hdr *wire.Header, data []byte, rcvTime monotime
 		if c.qlogger != nil {
 			c.qlogger.RecordEvent(qlog.PacketDropped{
 				Header: qlog.PacketHeader{
-					PacketNumber:     protocol.InvalidPacketNumber,
 					PacketType:       qlog.PacketTypeRetry,
 					SrcConnectionID:  hdr.SrcConnectionID,
 					DestConnectionID: hdr.DestConnectionID,
 					Version:          hdr.Version,
 				},
-				Raw:     qlog.RawInfo{Length: len(data), PayloadLength: qlog.OmitLength},
+				Raw:     qlog.RawInfo{Length: len(data)},
 				Trigger: qlog.PacketDropPayloadDecryptError,
 			})
 		}
@@ -1592,7 +1543,7 @@ func (c *Conn) handleRetryPacket(hdr *wire.Header, data []byte, rcvTime monotime
 	c.receivedRetry = true
 	c.sentPacketHandler.ResetForRetry(rcvTime)
 	c.handshakeDestConnID = newDestConnID
-	c.retrySrcConnID = newDestConnID
+	c.retrySrcConnID = &newDestConnID
 	c.cryptoStreamHandler.ChangeConnectionID(newDestConnID)
 	c.packer.SetToken(hdr.Token)
 	c.connIDManager.ChangeInitialConnID(newDestConnID)
@@ -1611,7 +1562,7 @@ func (c *Conn) handleRetryPacket(hdr *wire.Header, data []byte, rcvTime monotime
 				Version:          hdr.Version,
 				Token:            &qlog.Token{Raw: hdr.Token},
 			},
-			Raw: qlog.RawInfo{Length: len(data), PayloadLength: qlog.OmitLength},
+			Raw: qlog.RawInfo{Length: len(data)},
 		})
 	}
 
@@ -1621,23 +1572,23 @@ func (c *Conn) handleRetryPacket(hdr *wire.Header, data []byte, rcvTime monotime
 
 func (c *Conn) handleVersionNegotiationPacket(p receivedPacket) error {
 	if c.perspective == protocol.PerspectiveServer || // servers never receive version negotiation packets
-		c.receivedFirstPacket || c.receivedRetry || c.versionNegotiated { // ignore version negotiation packets received after any other packet
+		c.receivedFirstPacket || c.versionNegotiated { // ignore delayed / duplicated version negotiation packets
 		if c.qlogger != nil {
 			c.qlogger.RecordEvent(qlog.PacketDropped{
-				Header:  qlog.PacketHeader{PacketNumber: protocol.InvalidPacketNumber, PacketType: qlog.PacketTypeVersionNegotiation},
-				Raw:     qlog.RawInfo{Length: int(p.Size()), PayloadLength: qlog.OmitLength},
+				Header:  qlog.PacketHeader{PacketType: qlog.PacketTypeVersionNegotiation},
+				Raw:     qlog.RawInfo{Length: int(p.Size())},
 				Trigger: qlog.PacketDropUnexpectedPacket,
 			})
 		}
 		return nil
 	}
 
-	dest, src, supportedVersions, err := wire.ParseVersionNegotiationPacket(p.data)
+	src, dest, supportedVersions, err := wire.ParseVersionNegotiationPacket(p.data)
 	if err != nil {
 		if c.qlogger != nil {
 			c.qlogger.RecordEvent(qlog.PacketDropped{
-				Header:  qlog.PacketHeader{PacketNumber: protocol.InvalidPacketNumber, PacketType: qlog.PacketTypeVersionNegotiation},
-				Raw:     qlog.RawInfo{Length: int(p.Size()), PayloadLength: qlog.OmitLength},
+				Header:  qlog.PacketHeader{PacketType: qlog.PacketTypeVersionNegotiation},
+				Raw:     qlog.RawInfo{Length: int(p.Size())},
 				Trigger: qlog.PacketDropHeaderParseError,
 			})
 		}
@@ -1645,24 +1596,11 @@ func (c *Conn) handleVersionNegotiationPacket(p receivedPacket) error {
 		return nil
 	}
 
-	// The Source Connection ID must echo the Destination Connection ID of our Initial.
-	if !bytes.Equal(src, c.origDestConnID.Bytes()) {
-		if c.qlogger != nil {
-			c.qlogger.RecordEvent(qlog.PacketDropped{
-				Header:  qlog.PacketHeader{PacketNumber: protocol.InvalidPacketNumber, PacketType: qlog.PacketTypeVersionNegotiation},
-				Raw:     qlog.RawInfo{Length: int(p.Size()), PayloadLength: qlog.OmitLength},
-				Trigger: qlog.PacketDropUnexpectedSourceConnectionID,
-			})
-		}
-		c.logger.Debugf("Ignoring Version Negotiation packet with unexpected source connection ID: %s (expected %s)", src, c.origDestConnID)
-		return nil
-	}
-
 	if slices.Contains(supportedVersions, c.version) {
 		if c.qlogger != nil {
 			c.qlogger.RecordEvent(qlog.PacketDropped{
-				Header:  qlog.PacketHeader{PacketNumber: protocol.InvalidPacketNumber, PacketType: qlog.PacketTypeVersionNegotiation},
-				Raw:     qlog.RawInfo{Length: int(p.Size()), PayloadLength: qlog.OmitLength},
+				Header:  qlog.PacketHeader{PacketType: qlog.PacketTypeVersionNegotiation},
+				Raw:     qlog.RawInfo{Length: int(p.Size())},
 				Trigger: qlog.PacketDropUnexpectedVersion,
 			})
 		}
@@ -1700,7 +1638,7 @@ func (c *Conn) handleVersionNegotiationPacket(p receivedPacket) error {
 
 	c.logger.Infof("Switching to QUIC version %s.", newVersion)
 	nextPN, _ := c.sentPacketHandler.PeekPacketNumber(protocol.PacketNumberSpaceInitial)
-	return &errSwitchVersion{
+	return &errCloseForRecreating{
 		nextPacketNumber: nextPN,
 		nextVersion:      newVersion,
 	}
@@ -1755,7 +1693,6 @@ func (c *Conn) handleUnpackedLongHeaderPacket(
 					destAddr = addr
 				}
 				c.qlogger.RecordEvent(startedConnectionEvent(srcAddr, destAddr))
-				c.qlogger.RecordEvent(qlog.ConnectionStateUpdated{State: qlog.ConnectionStateAttempted})
 			}
 		}
 	}
@@ -1997,6 +1934,7 @@ func (c *Conn) handleFrame(
 		err = c.streamsMap.HandleStopSendingFrame(frame)
 	case *wire.PingFrame:
 	case *wire.PathChallengeFrame:
+		c.handlePathChallengeFrame(frame)
 		pathChallenge = frame
 	case *wire.PathResponseFrame:
 		err = c.handlePathResponseFrame(frame)
@@ -2014,25 +1952,28 @@ func (c *Conn) handleFrame(
 	return pathChallenge, err
 }
 
-// queuePacket queues a packet received by the pathReceiver source,
-// i.e. on the Transport that source is registered with.
-func (c *Conn) queuePacket(p receivedPacket, source *pathReceiver) {
+// handlePacket is called by the server with a new packet
+func (c *Conn) handlePacket(p receivedPacket) {
+	c.receivedPacketMx.Lock()
 	// Discard packets once the amount of queued packets is larger than
 	// the channel size, protocol.MaxConnUnprocessedPackets
-	if !c.receivedPackets.Push(p, source) {
+	if c.receivedPackets.Len() >= protocol.MaxConnUnprocessedPackets {
 		if c.qlogger != nil {
 			var datagramPayloadChecksum qlog.DatagramPayloadChecksum
 			if wire.IsLongHeaderPacket(p.data[0]) {
 				datagramPayloadChecksum = qlog.CalculateDatagramPayloadChecksum(p.data)
 			}
 			c.qlogger.RecordEvent(qlog.PacketDropped{
-				Raw:                     qlog.RawInfo{Length: int(p.Size()), PayloadLength: qlog.OmitLength},
+				Raw:                     qlog.RawInfo{Length: int(p.Size())},
 				DatagramPayloadChecksum: datagramPayloadChecksum,
 				Trigger:                 qlog.PacketDropDOSPrevention,
 			})
 		}
+		c.receivedPacketMx.Unlock()
 		return
 	}
+	c.receivedPackets.PushBack(p)
+	c.receivedPacketMx.Unlock()
 
 	select {
 	case c.notifyReceivedPacket <- struct{}{}:
@@ -2095,9 +2036,6 @@ func (c *Conn) handleHandshakeEvents(now monotime.Time) error {
 			switch ev.Kind {
 			case handshake.EventReceivedHandshakeReadKeys:
 				err = c.cryptoStreamManager.Finish(protocol.EncryptionInitial)
-				if c.qlogger != nil {
-					c.qlogger.RecordEvent(qlog.ConnectionStateUpdated{State: qlog.ConnectionStateHandshakeStarted})
-				}
 			case handshake.EventReceived1RTTReadKeys:
 				err = c.cryptoStreamManager.Finish(protocol.EncryptionHandshake)
 			}
@@ -2117,37 +2055,10 @@ func (c *Conn) handleHandshakeEvents(now monotime.Time) error {
 	}
 }
 
-// handlePathChallengeFrame sends the PATH_RESPONSE on the path that the PATH_CHALLENGE was received on.
-func (c *Conn) handlePathChallengeFrame(f *wire.PathChallengeFrame, path pathID, now monotime.Time) error {
-	resp := &wire.PathResponseFrame{Data: f.Data}
-	if path == activePathID {
-		c.queueControlFrame(resp)
-		return nil
+func (c *Conn) handlePathChallengeFrame(f *wire.PathChallengeFrame) {
+	if c.perspective == protocol.PerspectiveClient {
+		c.queueControlFrame(&wire.PathResponseFrame{Data: f.Data})
 	}
-	// The Transport is unknown for the path that the connection was dialed on, and for closed paths.
-	// The PATH_RESPONSE is then sent on the active path, which violates RFC 9000, Section 8.2.2.
-	// TODO: drop the PATH_CHALLENGE once closing a path unregisters its pathReceiver.
-	tr, ok := c.getPathManager().Transport(path)
-	if !ok {
-		c.queueControlFrame(resp)
-		return nil
-	}
-	// the response is sent directly, so enforce the send loop's limit on tracked packets
-	if c.sentPacketHandler.SendMode(now) == ackhandler.SendNone {
-		return nil
-	}
-	connID, ok := c.connIDManager.GetConnIDForPath(path)
-	if !ok {
-		return nil
-	}
-	probe, buf, err := c.packer.PackPathProbePacket(connID, []ackhandler.Frame{{Frame: resp, Handler: emptyHandler{}}}, c.version)
-	if err != nil {
-		return err
-	}
-	c.logShortHeaderPacketWithDatagramPayloadChecksum(probe, protocol.ECNNon, buf.Len(), false, 0, strconv.FormatInt(int64(path), 10))
-	c.registerPackedShortHeaderPacket(probe, protocol.ECNNon, now)
-	tr.WriteTo(buf.Data, c.conn.RemoteAddr())
-	return nil
 }
 
 func (c *Conn) handlePathResponseFrame(f *wire.PathResponseFrame) error {
@@ -2311,12 +2222,13 @@ func (c *Conn) handleCloseError(closeErr *closeError) {
 		defer func() { closeErr.err = e }()
 	}
 
-	_, isStatelessReset := errors.AsType[*StatelessResetError](e)
-	_, isVersionNegotiation := errors.AsType[*VersionNegotiationError](e)
-	_, isSwitchVersion := errors.AsType[*errSwitchVersion](e)
-	applicationErr, isApplicationError := errors.AsType[*ApplicationError](e)
-	transportErr, isTransportError := errors.AsType[*TransportError](e)
-
+	var (
+		statelessResetErr     *StatelessResetError
+		versionNegotiationErr *VersionNegotiationError
+		recreateErr           *errCloseForRecreating
+		applicationErr        *ApplicationError
+		transportErr          *TransportError
+	)
 	var isRemoteClose bool
 	var trigger qlog.ConnectionCloseTrigger
 	var reason string
@@ -2326,15 +2238,16 @@ func (c *Conn) handleCloseError(closeErr *closeError) {
 	case errors.Is(e, qerr.ErrIdleTimeout),
 		errors.Is(e, qerr.ErrHandshakeTimeout):
 		trigger = qlog.ConnectionCloseTriggerIdleTimeout
-	case isStatelessReset:
+	case errors.As(e, &statelessResetErr):
 		trigger = qlog.ConnectionCloseTriggerStatelessReset
-	case isVersionNegotiation, isSwitchVersion:
+	case errors.As(e, &versionNegotiationErr):
 		trigger = qlog.ConnectionCloseTriggerVersionMismatch
-	case isApplicationError:
+	case errors.As(e, &recreateErr):
+	case errors.As(e, &applicationErr):
 		isRemoteClose = applicationErr.Remote
 		reason = applicationErr.ErrorMessage
 		applicationErrorCode = &applicationErr.ErrorCode
-	case isTransportError:
+	case errors.As(e, &transportErr):
 		isRemoteClose = transportErr.Remote
 		reason = transportErr.ErrorMessage
 		transportErrorCode = &transportErr.ErrorCode
@@ -2362,9 +2275,9 @@ func (c *Conn) handleCloseError(closeErr *closeError) {
 	// handler map when it is closed, so we need to make sure that this happens last.
 	defer c.connIDManager.Close()
 
-	if c.qlogger != nil {
+	if c.qlogger != nil && !errors.As(e, &recreateErr) {
 		initiator := qlog.InitiatorLocal
-		if isRemoteClose || trigger == qlog.ConnectionCloseTriggerStatelessReset {
+		if isRemoteClose {
 			initiator = qlog.InitiatorRemote
 		}
 		c.qlogger.RecordEvent(qlog.ConnectionClosed{
@@ -2374,7 +2287,6 @@ func (c *Conn) handleCloseError(closeErr *closeError) {
 			Trigger:          trigger,
 			Reason:           reason,
 		})
-		c.qlogger.RecordEvent(qlog.ConnectionStateUpdated{State: qlog.ConnectionStateClosed})
 	}
 
 	// If this is a remote close we're done here
@@ -2387,8 +2299,8 @@ func (c *Conn) handleCloseError(closeErr *closeError) {
 		return
 	}
 	// Don't send out any CONNECTION_CLOSE if this is an error that occurred
-	// before we even sent out the first packet, or if we're switching to a different QUIC version.
-	if isSwitchVersion || (c.perspective == protocol.PerspectiveClient && !c.sentFirstPacket) {
+	// before we even sent out the first packet.
+	if c.perspective == protocol.PerspectiveClient && !c.sentFirstPacket {
 		c.connIDGenerator.RemoveAll()
 		return
 	}
@@ -2420,16 +2332,28 @@ func (c *Conn) restoreTransportParameters(params *wire.TransportParameters) {
 		c.logger.Debugf("Restoring Transport Parameters: %s", params)
 	}
 	if c.qlogger != nil {
-		c.qlogger.RecordEvent(qlog.ParametersRestored{
-			ActiveConnectionIDLimit:        params.ActiveConnectionIDLimit,
-			InitialMaxData:                 params.InitialMaxData,
-			InitialMaxStreamDataBidiLocal:  params.InitialMaxStreamDataBidiLocal,
-			InitialMaxStreamDataBidiRemote: params.InitialMaxStreamDataBidiRemote,
-			InitialMaxStreamDataUni:        params.InitialMaxStreamDataUni,
-			InitialMaxStreamsBidi:          int64(params.MaxBidiStreamNum),
-			InitialMaxStreamsUni:           int64(params.MaxUniStreamNum),
-			MaxDatagramFrameSize:           params.MaxDatagramFrameSize,
-			EnableResetStreamAt:            params.EnableResetStreamAt,
+		c.qlogger.RecordEvent(qlog.ParametersSet{
+			Restore:                         true,
+			Initiator:                       qlog.InitiatorRemote,
+			SentBy:                          c.perspective,
+			OriginalDestinationConnectionID: params.OriginalDestinationConnectionID,
+			InitialSourceConnectionID:       params.InitialSourceConnectionID,
+			RetrySourceConnectionID:         params.RetrySourceConnectionID,
+			StatelessResetToken:             params.StatelessResetToken,
+			DisableActiveMigration:          params.DisableActiveMigration,
+			MaxIdleTimeout:                  params.MaxIdleTimeout,
+			MaxUDPPayloadSize:               params.MaxUDPPayloadSize,
+			AckDelayExponent:                params.AckDelayExponent,
+			MaxAckDelay:                     params.MaxAckDelay,
+			ActiveConnectionIDLimit:         params.ActiveConnectionIDLimit,
+			InitialMaxData:                  params.InitialMaxData,
+			InitialMaxStreamDataBidiLocal:   params.InitialMaxStreamDataBidiLocal,
+			InitialMaxStreamDataBidiRemote:  params.InitialMaxStreamDataBidiRemote,
+			InitialMaxStreamDataUni:         params.InitialMaxStreamDataUni,
+			InitialMaxStreamsBidi:           int64(params.MaxBidiStreamNum),
+			InitialMaxStreamsUni:            int64(params.MaxUniStreamNum),
+			MaxDatagramFrameSize:            params.MaxDatagramFrameSize,
+			EnableResetStreamAt:             params.EnableResetStreamAt,
 		})
 	}
 
@@ -2441,7 +2365,7 @@ func (c *Conn) restoreTransportParameters(params *wire.TransportParameters) {
 
 func (c *Conn) handleTransportParameters(params *wire.TransportParameters) error {
 	if c.qlogger != nil {
-		c.qlogTransportParameters(params, c.perspective.Opposite())
+		c.qlogTransportParameters(params, c.perspective.Opposite(), false)
 	}
 	if err := c.checkTransportParameters(params); err != nil {
 		return &qerr.TransportError{
@@ -2486,14 +2410,14 @@ func (c *Conn) checkTransportParameters(params *wire.TransportParameters) error 
 	if params.OriginalDestinationConnectionID != c.origDestConnID {
 		return fmt.Errorf("expected original_destination_connection_id to equal %s, is %s", c.origDestConnID, params.OriginalDestinationConnectionID)
 	}
-	if c.retrySrcConnID.Valid() { // a Retry was performed
-		if !params.RetrySourceConnectionID.Valid() {
+	if c.retrySrcConnID != nil { // a Retry was performed
+		if params.RetrySourceConnectionID == nil {
 			return errors.New("missing retry_source_connection_id")
 		}
-		if params.RetrySourceConnectionID != c.retrySrcConnID {
-			return fmt.Errorf("expected retry_source_connection_id to equal %s, is %s", c.retrySrcConnID, params.RetrySourceConnectionID)
+		if *params.RetrySourceConnectionID != *c.retrySrcConnID {
+			return fmt.Errorf("expected retry_source_connection_id to equal %s, is %s", c.retrySrcConnID, *params.RetrySourceConnectionID)
 		}
-	} else if params.RetrySourceConnectionID.Valid() {
+	} else if params.RetrySourceConnectionID != nil {
 		return errors.New("received retry_source_connection_id, although no Retry was performed")
 	}
 	return nil
@@ -2583,8 +2507,7 @@ func (c *Conn) sendPackets(now monotime.Time) error {
 					return err
 				}
 				c.logger.Debugf("sending path probe packet from %s", c.LocalAddr())
-				h, _ := c.connIDGenerator.Handler((*packetHandlerMap)(tr))
-				c.logShortHeaderPacketWithDatagramPayloadChecksum(probe, protocol.ECNNon, buf.Len(), false, 0, strconv.FormatInt(int64(h.id), 10))
+				c.logShortHeaderPacket(probe, protocol.ECNNon, buf.Len())
 				c.registerPackedShortHeaderPacket(probe, protocol.ECNNon, now)
 				tr.WriteTo(buf.Data, c.conn.RemoteAddr())
 				// There's (likely) more data to send. Loop around again.
@@ -2620,9 +2543,6 @@ func (c *Conn) sendPackets(now monotime.Time) error {
 		packet, err := c.packer.PackCoalescedPacket(false, c.maxPacketSize(), now, c.version)
 		if err != nil || packet == nil {
 			return err
-		}
-		if !c.sentFirstPacket && c.perspective == protocol.PerspectiveClient && c.qlogger != nil {
-			c.qlogger.RecordEvent(qlog.ConnectionStateUpdated{State: qlog.ConnectionStateAttempted})
 		}
 		c.sentFirstPacket = true
 		if err := c.sendPackedCoalescedPacket(packet, c.sentPacketHandler.ECNMode(packet.IsOnlyShortHeaderPacket()), now); err != nil {
@@ -2670,7 +2590,10 @@ func (c *Conn) sendPacketsWithoutGSO(now monotime.Time) error {
 			return nil
 		}
 		// Prioritize receiving of packets over sending out more packets.
-		if !c.receivedPackets.Empty() {
+		c.receivedPacketMx.Lock()
+		hasPackets := !c.receivedPackets.Empty()
+		c.receivedPacketMx.Unlock()
+		if hasPackets {
 			c.pacingDeadline = deadlineSendImmediately
 			return nil
 		}
@@ -2728,7 +2651,10 @@ func (c *Conn) sendPacketsWithGSO(now monotime.Time) error {
 		}
 
 		// Prioritize receiving of packets over sending out more packets.
-		if !c.receivedPackets.Empty() {
+		c.receivedPacketMx.Lock()
+		hasPackets := !c.receivedPackets.Empty()
+		c.receivedPacketMx.Unlock()
+		if hasPackets {
 			c.pacingDeadline = deadlineSendImmediately
 			return nil
 		}
@@ -3065,7 +2991,7 @@ func (c *Conn) tryQueueingUndecryptablePacket(p receivedPacket, pt qlog.PacketTy
 					PacketType:   pt,
 					PacketNumber: protocol.InvalidPacketNumber,
 				},
-				Raw:                     qlog.RawInfo{Length: int(p.Size()), PayloadLength: qlog.OmitLength},
+				Raw:                     qlog.RawInfo{Length: int(p.Size())},
 				DatagramPayloadChecksum: datagramPayloadChecksum,
 				Trigger:                 qlog.PacketDropDOSPrevention,
 			})
@@ -3080,7 +3006,7 @@ func (c *Conn) tryQueueingUndecryptablePacket(p receivedPacket, pt qlog.PacketTy
 				PacketType:   pt,
 				PacketNumber: protocol.InvalidPacketNumber,
 			},
-			Raw:                     qlog.RawInfo{Length: int(p.Size()), PayloadLength: qlog.OmitLength},
+			Raw:                     qlog.RawInfo{Length: int(p.Size())},
 			DatagramPayloadChecksum: datagramPayloadChecksum,
 		})
 	}
@@ -3114,10 +3040,6 @@ func (c *Conn) onStreamCompleted(id protocol.StreamID) {
 		c.closeLocal(err)
 	}
 	c.framer.RemoveActiveStream(id)
-}
-
-func (c *Conn) onStreamCreditReleased(id protocol.StreamID) {
-	c.streamsMap.ReleaseStreamCredit(id)
 }
 
 func (c *Conn) updateStreamPriority(id protocol.StreamID) {
@@ -3211,13 +3133,16 @@ func (c *Conn) AddPath(t *Transport) (*Path, error) {
 	return c.getPathManager().NewPath(
 		t,
 		200*time.Millisecond, // initial RTT estimate
-		// Called on the run loop every time a PATH_CHALLENGE is sent on the Transport.
-		// The pathReceiver is ignored if the connection is already registered with the Transport.
-		func(id pathID) {
-			r := &pathReceiver{Conn: c, id: id}
-			if c.connIDGenerator.AddConnRunner((*packetHandlerMap)(t), r) && c.qlogger != nil {
-				c.qlogger.RecordEvent(tupleAssignedEvent(strconv.FormatInt(int64(id), 10), t.Conn.LocalAddr(), c.conn.RemoteAddr()))
-			}
+		func() {
+			runner := (*packetHandlerMap)(t)
+			c.connIDGenerator.AddConnRunner(
+				runner,
+				connRunnerCallbacks{
+					AddConnectionID:    func(connID protocol.ConnectionID) { runner.Add(connID, c) },
+					RemoveConnectionID: runner.Remove,
+					ReplaceWithClosed:  runner.ReplaceWithClosed,
+				},
+			)
 		},
 	), nil
 }

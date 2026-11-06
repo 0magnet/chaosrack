@@ -125,7 +125,7 @@ func (h *datagramQueue) HandleDatagramFrame(f *wire.DatagramFrame) {
 		if h.qlogger != nil {
 			h.qlogger.RecordEvent(qlog.DatagramDropped{
 				Direction: qlog.DirectionReceiving,
-				Raw:       qlog.RawInfo{Length: len(f.Data), PayloadLength: qlog.OmitLength},
+				Raw:       qlog.RawInfo{Length: len(f.Data)},
 				Trigger:   "buffer_full",
 			})
 		}

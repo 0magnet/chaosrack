@@ -285,7 +285,7 @@ func validPseudoPath(v string) bool {
 // req.ContentLength, where 0 actually means zero (not unknown) and -1
 // means unknown.
 func actualContentLength(req *http.Request) int64 {
-	if req.Body == nil || req.Body == http.NoBody {
+	if req.Body == nil {
 		return 0
 	}
 	if req.ContentLength != 0 {

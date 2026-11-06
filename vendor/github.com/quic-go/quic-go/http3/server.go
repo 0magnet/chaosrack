@@ -455,16 +455,16 @@ func (s *Server) removeListener(l *QUICListener) {
 }
 
 func (s *Server) NewRawServerConn(conn *quic.Conn) (*RawServerConn, error) {
-	hconn, _, err := s.newRawServerConn(conn)
+	hconn, _, _, err := s.newRawServerConn(conn)
 	if err != nil {
 		return nil, err
 	}
 	return hconn, nil
 }
 
-func (s *Server) newRawServerConn(conn *quic.Conn) (*RawServerConn, *quic.SendStream, error) {
+func (s *Server) newRawServerConn(conn *quic.Conn) (*RawServerConn, *quic.SendStream, qlogwriter.Recorder, error) {
 	var qlogger qlogwriter.Recorder
-	if qlogTrace := conn.QlogTrace(); qlogTrace != nil {
+	if qlogTrace := conn.QlogTrace(); qlogTrace != nil && qlogTrace.SupportsSchemas(qlog.EventSchema) {
 		qlogger = qlogTrace.AddProducer()
 	}
 	connCtx := conn.Context()
@@ -492,9 +492,9 @@ func (s *Server) newRawServerConn(conn *quic.Conn) (*RawServerConn, *quic.SendSt
 	// when the server is gracefully closed
 	ctrlStr, err := hconn.openControlStream(s.settings())
 	if err != nil {
-		return nil, nil, fmt.Errorf("opening the control stream failed: %w", err)
+		return nil, nil, nil, fmt.Errorf("opening the control stream failed: %w", err)
 	}
-	return hconn, ctrlStr, nil
+	return hconn, ctrlStr, qlogger, nil
 }
 
 func (s *Server) settings() *settings {
@@ -509,14 +509,7 @@ func (s *Server) settings() *settings {
 // handleConn handles the HTTP/3 exchange on a QUIC connection.
 // It blocks until all HTTP handlers for all streams have returned.
 func (s *Server) handleConn(conn *quic.Conn) error {
-	// The GOAWAY frame is recorded here, not by rawConn, so handleConn holds its own producer.
-	var qlogger qlogwriter.Recorder
-	if qlogTrace := conn.QlogTrace(); qlogTrace != nil {
-		if qlogger = qlogTrace.AddProducer(); qlogger != nil {
-			defer qlogger.Close()
-		}
-	}
-	hconn, ctrlStr, err := s.newRawServerConn(conn)
+	hconn, ctrlStr, qlogger, err := s.newRawServerConn(conn)
 	if err != nil {
 		return err
 	}
@@ -573,7 +566,6 @@ func (s *Server) handleConn(conn *quic.Conn) error {
 			if qlogger != nil {
 				qlogger.RecordEvent(qlog.FrameCreated{
 					StreamID: ctrlStr.StreamID(),
-					Raw:      qlog.RawInfo{Length: qlog.OmitLength, PayloadLength: qlog.OmitLength},
 					Frame:    qlog.Frame{Frame: qlog.GoAwayFrame{StreamID: nextStreamID}},
 				})
 			}
@@ -587,7 +579,6 @@ func (s *Server) handleConn(conn *quic.Conn) error {
 			continue
 		}
 		if inGracefulShutdown {
-			str.ReleaseStreamCredit()
 			str.CancelRead(quic.StreamErrorCode(ErrCodeRequestRejected))
 			str.CancelWrite(quic.StreamErrorCode(ErrCodeRequestRejected))
 			continue
