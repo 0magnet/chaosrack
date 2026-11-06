@@ -102,25 +102,33 @@ func (te *terminal) ensureTerminal() bool {
 	// Nil FS: websh makes and seeds its own in-memory filesystem, which is the
 	// right one here. This terminal is a model in a visualizer, not a file
 	// manager, and it has nowhere to persist to.
-	s, err := web.NewSession(te.host, web.Options{
-		// `rack` is a command here; see rackcmd_js.go.
-		Exec: rackShellCommand,
-		// This session binds its own zoom (wireTerminalZoom): the terminal is
-		// parked off screen, so websh's element-level listeners would never see
-		// the gesture, which lands on the canvas the quad is drawn in.
-		NoZoom: true,
-		// SMALLER TYPE IS MORE GRID AT THE SAME COST, which is the whole
-		// trick for a terminal that draws rather than prints. This one is a
-		// texture uploaded whole every frame, so making the BOX bigger costs
-		// upload bandwidth in proportion — but making the CELL smaller costs
-		// nothing at all and is what a panel drawn in here wants. Ten against
-		// the default fifteen is about a hundred and sixty columns instead of
-		// ninety: three of the rack panel's module boxes across, or six.
-		//
-		// Ctrl+wheel and ctrl+plus/minus change it live, the way a terminal
-		// emulator does. See wireTerminalZoom.
-		FontSize: 10,
-		Greeting: termGreeting,
+	var (
+		s   *web.Session
+		err error
+	)
+	// It takes the keyboard on a double click (wireTerminalFocus), not by
+	// being mounted.
+	keepingFocus(func() {
+		s, err = web.NewSession(te.host, web.Options{
+			// `rack` is a command here; see rackcmd_js.go.
+			Exec: rackShellCommand,
+			// This session binds its own zoom (wireTerminalZoom): the terminal is
+			// parked off screen, so websh's element-level listeners would never see
+			// the gesture, which lands on the canvas the quad is drawn in.
+			NoZoom: true,
+			// SMALLER TYPE IS MORE GRID AT THE SAME COST, which is the whole
+			// trick for a terminal that draws rather than prints. This one is a
+			// texture uploaded whole every frame, so making the BOX bigger costs
+			// upload bandwidth in proportion — but making the CELL smaller costs
+			// nothing at all and is what a panel drawn in here wants. Ten against
+			// the default fifteen is about a hundred and sixty columns instead of
+			// ninety: three of the rack panel's module boxes across, or six.
+			//
+			// Ctrl+wheel and ctrl+plus/minus change it live, the way a terminal
+			// emulator does. See wireTerminalZoom.
+			FontSize: 10,
+			Greeting: termGreeting,
+		})
 	})
 	if err != nil {
 		te.failed = "the shell would not start: " + err.Error()
