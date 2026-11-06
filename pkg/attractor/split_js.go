@@ -68,15 +68,12 @@ func splitActive() bool {
 		// raising the one canvas would lift the water out with the model.
 		return true
 	}
-	if splitAllInFront() && !frontByRaising() {
-		return true
-	}
 	return splitFrac > -1+splitEpsilon && splitFrac < 1-splitEpsilon
 }
 
 // frontByRaising reports whether the near end of the Fore knob can be had the
 // cheap way, by raising the main canvas above the panel, rather than by
-// drawing the whole model as the near pass.
+// copying the frame onto the near canvas (frontByCopy).
 //
 // Two things make raising wrong. The instrument: the model's canvas is then a
 // placement in its terminal, not in #gocanvas-container, so raising the
@@ -86,6 +83,34 @@ func splitActive() bool {
 // how a turn of a knob could leave no way back to the panel.
 func frontByRaising() bool {
 	return !instrumentOn && !bgVisualActive()
+}
+
+// frontByCopy reports whether this frame's near end is drawn by copying: the
+// whole frame drawn as usual, lifted onto the near canvas, and the main one
+// cleared to the backdrop. Any model can be drawn this way, which is what
+// raising gave the knob's near end, and a split cannot — it leaves out the
+// texture planes, the scopes and the games.
+func frontByCopy() bool {
+	return splitAllInFront() && !frontByRaising() && !splitDrawing()
+}
+
+// nearShown reports whether the near canvas holds part of this frame, which
+// is what showing it, recording the screen and placing the backdrop go by.
+func nearShown() bool { return splitDrawing() || frontByCopy() }
+
+// drawAllInFront draws the frame for the knob's near end by copying
+// (frontByCopy): drawn as it always is, lifted whole above the panel, and the
+// backdrop alone left below it.
+func drawAllInFront(mode string, bgOn bool) {
+	glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
+	glctx.GL.Call("clear", glctx.Types.DepthBufferBit)
+	drawViewPasses(mode)
+	near.copyNearPassToFront()
+	glctx.GL.Call("clear", glctx.Types.ColorBufferBit)
+	glctx.GL.Call("clear", glctx.Types.DepthBufferBit)
+	if bgOn {
+		paintBackdrop()
+	}
 }
 
 // splitDrawing reports whether THIS frame is drawn in two halves.
@@ -241,10 +266,10 @@ func drawSplitPasses(mode string, bgOn bool) {
 // Front behavior — raise the main canvas above the panel — is both cheaper and
 // exactly right, so the near canvas stays out of it. Except over water, where
 // the main canvas holds the surface as well, which stays behind the panel
-// (splitActive), and where raising is wrong or does nothing (frontByRaising).
+// (splitActive), and where raising is wrong or does nothing (frontByCopy).
 func syncSplitCanvas() {
-	markPersistSuspended(splitDrawing())
-	if splitDrawing() {
+	markPersistSuspended(nearShown())
+	if nearShown() {
 		if near.ensure() {
 			near.show(true)
 		}

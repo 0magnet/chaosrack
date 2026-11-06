@@ -847,7 +847,8 @@ const panStep = 8.0 / 36
 // zoom, the pans, the spins, and the trail.
 func registerViewControls() {
 	// other input.
-	// Step a quarter, not a whole. Distance is 100 − zoom, so a step of one is
+	// Step a quarter, not a whole. Distance is the fit less the zoom (zoomedDist:
+	// a share of it for a near fit), so at a fit of 100 a step of one is
 	// a hundredth of the way in at the far end and a TENTH of it at the near
 	// end: the knob gets about twenty times twitchier exactly where a close look
 	// is being taken. The mapping is left alone — it is what every saved

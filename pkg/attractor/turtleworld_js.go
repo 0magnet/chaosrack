@@ -19,7 +19,7 @@ import (
 // bottom of the screen, and the figure appeared to move rather than simply get
 // bigger — which is not what a zoom does to a thing sitting on a floor.
 func turtleCamDist() float32 {
-	d := view.initDist - view.ctl.zoom
+	d := zoomedDist(view.initDist, view.ctl.zoom)
 	if d < 0.1 {
 		d = 0.1
 	}

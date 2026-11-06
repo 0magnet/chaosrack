@@ -803,7 +803,7 @@ func renderLoop(this js.Value, args []js.Value) any {
 	// model: the backdrop belongs behind the panel, so drawSplitPasses paints
 	// it into the far pass, and painted here it was lifted onto the canvas
 	// above the panel with the near half.
-	if bgOn && (run.paused || !splitDrawing()) {
+	if bgOn && (run.paused || !nearShown()) {
 		paintBackdrop()
 	}
 	// The model draws in its own colors while the Colors module is showing
@@ -827,7 +827,7 @@ func renderLoop(this js.Value, args []js.Value) any {
 		// Still allow camera interaction while paused (zoom read
 		// from the Go-side cache instead of parseFloat per frame).
 		zoomVal := view.ctl.zoom
-		newDist := view.initDist - zoomVal
+		newDist := zoomedDist(view.initDist, zoomVal)
 		if newDist != view.defaultDist {
 			view.defaultDist = newDist
 			view.updateViewMatrix()
@@ -872,6 +872,9 @@ func renderLoop(this js.Value, args []js.Value) any {
 		// of one scene are what it exists to draw, and stacking a
 		// side-by-side split inside that is two splits arguing.
 		drawSplitPasses(run.selectedMode, bgOn)
+	case frontByCopy():
+		// All of it in front, where raising the canvas would not do.
+		drawAllInFront(run.selectedMode, bgOn)
 	default:
 		// One view or two, side by side. See views_js.go.
 		drawViewPasses(run.selectedMode)
@@ -914,7 +917,7 @@ func renderLoop(this js.Value, args []js.Value) any {
 
 	// Zoom slider directly controls camera distance (absolute position);
 	// the X/Y position knobs pan the scene. Both go through the view matrix.
-	newDist := view.initDist - zoomVal
+	newDist := zoomedDist(view.initDist, zoomVal)
 	// Map the ±8 X/Y position sliders to ≈±1 screen of travel, so the model can
 	// be pushed just off-screen (like an oscilloscope's position controls) yet
 	// not miles away. The screen half-extent at the object plane is
