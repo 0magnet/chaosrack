@@ -5,6 +5,7 @@ package attractor
 import (
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/glctx"
+	"math"
 	"strconv"
 	"syscall/js"
 )
@@ -277,19 +278,38 @@ func wireModelInput() {
 // applyZoomDelta nudges the camera-zoom control by -delta (wheel notches
 // and pinch spread both funnel here), clamped to the slider range, firing
 // 'input' so the zoom knob pointer + numeric box track the gesture.
+//
+// The control holds whole steps of zoomStep and snaps whatever it is given to
+// one, and this rounded to a whole unit besides. A notch moves about 2 and got
+// through; a trackpad or a pinch sends a stream of deltas near 0.1, each of
+// which was rounded back to where it started, so scrolling on one moved
+// nothing however long it went on. What a step leaves over is carried to the
+// next.
 func applyZoomDelta(delta float32) {
+	zoomCarry += delta
+	steps := float32(math.Trunc(float64(zoomCarry / zoomStep)))
+	if steps == 0 {
+		return
+	}
+	zoomCarry -= steps * zoomStep
 	zoomVal := float32(js.Global().Get("parseFloat").Invoke(camPanel.cameraControl.Get("value")).Float())
-	zoomVal -= delta
+	zoomVal -= steps * zoomStep
 	if zoomVal < -95 {
 		zoomVal = -95
 	}
 	if zoomVal > 95 {
 		zoomVal = 95
 	}
-	camPanel.cameraControl.Set("value", strconv.FormatFloat(float64(zoomVal), 'f', 0, 64))
+	camPanel.cameraControl.Set("value", strconv.FormatFloat(float64(zoomVal), 'f', -1, 32))
 	view.ctl.zoom = zoomVal // render loop reads the cache, not the DOM
 	dom.Fire(camPanel.cameraControl, "input")
 }
+
+// zoomStep is the zoom control's step; zoomCarry is what the wheel has moved
+// that has not yet come to one.
+const zoomStep = 0.25
+
+var zoomCarry float32
 
 // wireWheelBindings makes the wheel adjust controls (ranges, numerics,
 // selects) instead of scrolling, and installs the param-panel rebinder
