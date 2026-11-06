@@ -166,7 +166,7 @@ func (c *canvasRecorder) streamSource(canvas js.Value) js.Value {
 	// Split across two, it would record the far half and drop everything in
 	// front of the panel, so the per-frame feed below (already built for
 	// regions) does the compositing instead.
-	if sw >= canvas.Get("width").Float() && sh >= canvas.Get("height").Float() && !splitDrawing() {
+	if sw >= canvas.Get("width").Float() && sh >= canvas.Get("height").Float() && !nearShown() {
 		c.stopRecFeed()
 		return canvas
 	}

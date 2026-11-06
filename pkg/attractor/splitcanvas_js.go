@@ -136,7 +136,7 @@ func (n *nearCanvas) frontCanvasPx() string {
 }
 
 func (n *nearCanvas) captureCanvas(main js.Value) js.Value {
-	if !splitDrawing() || !n.front.Truthy() || !main.Truthy() {
+	if !nearShown() || !n.front.Truthy() || !main.Truthy() {
 		return main
 	}
 	if !n.capture.Truthy() {
