@@ -13,8 +13,10 @@ import (
 // The water lens, natively: BEHIND on water looks at the finished scene
 // through a disturbed fluid surface, as the page's does (water_js.go): a
 // ripple tank (pkg/ripple) stepped each of the page's frames, read by
-// refraction — the image bent by the surface's slope, with a glint where it
-// tilts toward the light. A drag across the scene draws a wake in it.
+// refraction — the image bent by the surface's slope; the model is the only
+// light, so there is no glint. A drag across the scene draws a wake in it.
+// The page's reflection and waterline come with its Fore knob, which a native
+// rack does not have: here all of the model is under the water.
 
 // waterLens is the tank and the drag disturbing it.
 type waterLens struct {
@@ -91,10 +93,7 @@ func (wa *waterLens) refract(m *rackpic.Image, d attractor.WaterSettings) {
 			sx := min(max(x+int(hx*amount*float32(m.W)), 0), m.W-1)
 			sy := min(max(y+int(hy*amount*float32(m.H)), 0), m.H-1)
 			i, j := 3*(y*m.W+x), 3*(sy*m.W+sx)
-			glint := float64(max(min((hx+hy)*8, 1), 0))
-			for c, add := range [3]float64{0.10, 0.14, 0.20} {
-				m.Px[i+c] = uint8(min(float64(src[j+c])+add*glint*255, 255)) //nolint:gosec // clamped to 255
-			}
+			copy(m.Px[i:i+3], src[j:j+3])
 		}
 	}
 }

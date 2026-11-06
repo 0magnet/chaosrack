@@ -36,6 +36,9 @@ type renderer struct {
 	// gradient-range scan and for anything that re-reads the frame.
 	verts   []float32
 	indices []uint16
+	// indexMode is how the last indexed draw joined indices — lines,
+	// triangles — which is what says which of its vertices make an edge.
+	indexMode js.Value
 
 	// stride is the number of floats per vertex in verts, set by whichever
 	// upload path last ran: 4 for interleaved attractor data (x,y,z,t) via

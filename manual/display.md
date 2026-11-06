@@ -495,7 +495,7 @@ Fore — -1 is entirely behind the rack, +1 entirely in front, 0 cuts through th
 ### Fore
 
 <!-- key: model-fore -->
-Fore — slide the model through the rack
+Fore — slide the model through the rack. With BEHIND on water the rack is the water's surface: in front is out of the water, behind is under it
 
 <!-- key: rst-zoom -->
 Reset zoom and Fore
