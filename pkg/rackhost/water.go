@@ -12,7 +12,7 @@ import (
 
 // The water lens, natively: BEHIND on water looks at the finished scene
 // through a disturbed fluid surface, as the page's does (water_js.go): a
-// ripple tank (pkg/ripple) stepped each of the page's frames, read by
+// water tank (pkg/ripple's Tank) stepped each of the page's frames, read by
 // refraction — the image bent by the surface's slope; the model is the only
 // light, so there is no glint. A drag across the scene draws a wake in it.
 // The page's reflection and waterline come with its Fore knob, which a native
@@ -20,7 +20,7 @@ import (
 
 // waterLens is the tank and the drag disturbing it.
 type waterLens struct {
-	field        *ripple.Field
+	field        ripple.Surface
 	last         time.Time
 	dragging     bool
 	lastX, lastY float32
@@ -34,10 +34,10 @@ func (r *Rack) waterOn() bool { return r.value("bg-visual") == "water" }
 func (wa *waterLens) step(now time.Time, env float32, d attractor.WaterSettings) {
 	g := attractor.WaterGrid
 	if wa.field == nil {
-		wa.field = ripple.New(g, g)
+		wa.field = ripple.NewTank(g, g)
 	}
 	f := wa.field
-	f.Speed, f.Damping, f.Spread, f.Reflect = d.Speed, d.Damp/1000, d.Spread/100, d.Edge/100
+	f.Tune(d.Speed, d.Damp/1000, d.Spread/100, d.Edge/100)
 	frames := 1
 	if !wa.last.IsZero() {
 		frames = max(1, min(int(now.Sub(wa.last).Seconds()*60+0.5), 6))
@@ -49,11 +49,11 @@ func (wa *waterLens) step(now time.Time, env float32, d attractor.WaterSettings)
 			n := max(int(d.Srcs), 1)
 			for i := range n {
 				x, y := waterSource(i, n)
-				f.Drop(x, y, 5, env*d.Drive/100)
+				f.Drop(x, y, wcells(5), env*d.Drive/100)
 			}
 		}
 		if d.Rain > 0 && rand.Float64() < float64(d.Rain)/60 { //nolint:gosec // decorative
-			f.Drop(rand.Float32()*float32(g), rand.Float32()*float32(g), 3, 0.5) //nolint:gosec // decorative
+			f.Drop(rand.Float32()*float32(g), rand.Float32()*float32(g), wcells(3), 0.5) //nolint:gosec // decorative
 		}
 		f.Step()
 	}
@@ -82,13 +82,21 @@ func (wa *waterLens) refract(m *rackpic.Image, d attractor.WaterSettings) {
 		return min(max(wa.field.Height(x, y), -1), 1) // past ±1 is past meaning anything
 	}
 	src := append([]byte(nil), m.Px...)
-	amount := d.Amount / float32(g)
+	amount := d.Amount / attractor.WaterGridFD // the knob counts texels of the grid it was set on
+	// The tank is square and the scene is not, so its cells are as wide as
+	// the scene is, against its height; the tank steps for that from the
+	// next step on, and a slope across is read as the page reads it.
+	asp := float32(m.W) / float32(m.H)
+	if tk, ok := wa.field.(*ripple.Tank); ok {
+		tk.Aspect = asp
+	}
+	asp2 := wa.field.CellAspect() * wa.field.CellAspect()
 	for y := range m.H {
 		fy := (y*g + g/2) / m.H
 		for x := range m.W {
 			fx := (x*g + g/2) / m.W
 			// Central differences: the slope, which is what bends light.
-			hx := h(fx+1, fy) - h(fx-1, fy)
+			hx := (h(fx+1, fy) - h(fx-1, fy)) / asp2
 			hy := h(fx, fy+1) - h(fx, fy-1)
 			sx := min(max(x+int(hx*amount*float32(m.W)), 0), m.W-1)
 			sy := min(max(y+int(hy*amount*float32(m.H)), 0), m.H-1)
@@ -109,10 +117,10 @@ func (wa *waterLens) touch(kind string, x, y float64, w, h int) {
 	switch kind {
 	case "down":
 		wa.dragging = true
-		wa.field.Drop(fx, fy, 4, 0.6)
+		wa.field.Drop(fx, fy, wcells(4), 0.6)
 	case "move":
 		if wa.dragging {
-			wa.field.Line(wa.lastX, wa.lastY, fx, fy, 3, 0.5)
+			wa.field.Line(wa.lastX, wa.lastY, fx, fy, wcells(3), 0.5)
 		}
 	case "up":
 		wa.dragging = false
@@ -136,3 +144,7 @@ func (r *Rack) waterDrive() float32 {
 func (r *Rack) waterSettings() attractor.WaterSettings {
 	return attractor.WaterFrom(func(id string) float32 { return float32(r.number(id)) })
 }
+
+// wcells is r cells of the grid the lens's disturbances were sized for, in
+// the tank's: a splash is the same size on the screen as the page's.
+func wcells(r float32) float32 { return r * attractor.WaterGrid / attractor.WaterGridFD }

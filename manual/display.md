@@ -216,7 +216,8 @@ Reset palette shift
 <!-- key: grp-foam -->
 Foam — bubbles on the water, where the model moves through its surface.
 Lit only while BEHIND is on water, and seen only where FORE puts the model part-way through the rack, since that is where it meets the water.
-Each bubble is thrown off where the model cuts the water and inflates as it goes, rides the waves and clings to its neighbors in rafts, and after a few seconds tears open and bursts, leaving a small ring on the water. It has no light of its own, so it shows the model's light falling on it, brightest on the side toward the model.
+Each bubble comes up where the model churns the water and rides the water's own flow, round with each passing wave and a little onward; neighbors drift together into rafts; and after a second to a quarter of a minute of the tank's clock each bursts at once, leaving a ring of ripples. Most are tiny and a few are large.
+A floating bubble is seen by how it bends what is under it: the collar of water it lifts gathers the scene into a rim, and the hollow beneath it shrinks the scene, as a fisheye does. Only its film's edge shines, faintly, with the model's light.
 Zero is clear water. A native rack has no FORE, so no waterline to make them.
 
 ### Foam value

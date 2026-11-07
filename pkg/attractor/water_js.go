@@ -54,7 +54,9 @@ import (
 // waterLens is the water lens: its program and textures, the height field it
 // simulates, and the pointer and rain that disturb it.
 type waterLens struct {
-	field     *ripple.Field
+	field     ripple.Surface
+	half      bool // the tank's step is begun and is finished this frame
+	fresh     bool // the surface has moved since it was last uploaded
 	ready     bool
 	program   js.Value
 	quadBuf   js.Value
@@ -77,6 +79,9 @@ type waterLens struct {
 	uRefl       js.Value
 	uReflScale  js.Value
 	uReflCenter js.Value
+	uFoam       js.Value // the bubbles' bend (water_foam_js.go)
+	uFoamScale  js.Value
+	uAspect2    js.Value // a cell's width over its height, squared
 
 	// The waterline: the tank's cells the model crosses the surface in
 	// (traceWaterline), this frame and the last.
@@ -127,18 +132,36 @@ var (
 
 	// waterW and waterH are the SIMULATION grid, not the canvas. A tank the
 	// size of the viewport would be a million cells stepped every frame for a
-	// pattern whose features are tens of pixels across; at 192 the wavelengths
-	// that matter are still many cells wide and the step is a rounding error
-	// in the frame budget.
+	// pattern whose features are tens of pixels across. WaterGrid for the
+	// tank; WaterGridFD when the page asks for the old wave equation
+	// (oldWaves), which ran at that.
 	waterW = WaterGrid
 	waterH = WaterGrid
 )
+
+// oldWaves reports whether the page was opened with waves=fd, which steps
+// the old wave equation (ripple.Field) in place of the tank, to compare the
+// two.
+func oldWaves() bool {
+	loc := js.Global().Get("location")
+	return loc.Truthy() && js.Global().Get("URLSearchParams").New(loc.Get("search")).Call("get", "waves").String() == "fd"
+}
+
+// wcells is r cells of the grid the lens's disturbances were sized for
+// (WaterGridFD), in this grid's cell heights: a splash is the same size on
+// the screen whatever the tank is stepped at.
+func wcells(r float32) float32 { return r * float32(waterH) / WaterGridFD }
 
 // damping converts the knob to the retained fraction. The useful range is
 // narrow and near the top — 0.99 rings for seconds, 0.9 dies before a wave
 // crosses the tank — so the knob is per-mille rather than a 0..1 dial nobody
 // could place.
 func (wa *waterLens) damping() float32 { return wa.damp / 1000 }
+
+// lensAmount is the bend knob in texels of this grid at unit slope. The knob
+// counts texels of WaterGridFD's, the grid it was set on, so that a bend of
+// 25 bends the frame as far whatever the tank is stepped at.
+func (wa *waterLens) lensAmount() float32 { return wa.amount * wcells(1) }
 
 func init() {
 	// The Water group's knobs, from the shared table (waterlens.go).
@@ -166,7 +189,13 @@ func (wa *waterLens) initWater() {
 	if wa.ready {
 		return
 	}
-	wa.field = ripple.New(waterW, waterH)
+	if oldWaves() {
+		waterW, waterH = WaterGridFD, WaterGridFD
+		wa.field = ripple.New(waterW, waterH)
+	} else {
+		waterW, waterH = tankAcross(float64(gpu.width)/float64(gpu.height)), WaterGrid
+		wa.field = ripple.NewTank(waterW, waterH)
+	}
 	wa.heightBuf = make([]byte, waterW*waterH*4)
 
 	vs := `attribute vec2 aPos; varying vec2 vUV;
@@ -190,6 +219,9 @@ uniform vec2 uTexel;
 uniform float uRefl;
 uniform float uReflScale;
 uniform vec2 uReflCenter;
+uniform sampler2D uFoam;
+uniform float uFoamScale;
+uniform float uAspect2;
 varying vec2 vUV;
 
 float h(vec2 uv){
@@ -201,7 +233,14 @@ void main(){
   // Central differences: the slope, which is what bends light.
   float hx = h(vUV + vec2(uTexel.x,0.0)) - h(vUV - vec2(uTexel.x,0.0));
   float hy = h(vUV + vec2(0.0,uTexel.y)) - h(vUV - vec2(0.0,uTexel.y));
-  vec2 off = vec2(hx,hy) * uAmount * uTexel;
+  // A cell is uAspect wide for 1 tall, so a difference across is that
+  // much less steep, and a texel across that much more of the frame: the
+  // same tilt bends as far either way only with the across scaled by both.
+  vec2 off = vec2(hx / uAspect2, hy) * uAmount * uTexel;
+  // The bubbles' menisci, each a small lens on the surface: their bend,
+  // drawn already (water_foam_js.go), plus and minus each way.
+  vec4 fo = texture2D(uFoam, vUV);
+  off += vec2(fo.r - fo.g, fo.b - fo.a) * uFoamScale;
   vec2 uv = clamp(vUV + off, vec2(0.0), vec2(1.0));
 
   vec3 c = texture2D(uScene, uv).rgb;
@@ -230,6 +269,9 @@ void main(){
 	wa.uRefl = glctx.GL.Call("getUniformLocation", wa.program, "uRefl")
 	wa.uReflScale = glctx.GL.Call("getUniformLocation", wa.program, "uReflScale")
 	wa.uReflCenter = glctx.GL.Call("getUniformLocation", wa.program, "uReflCenter")
+	wa.uFoam = glctx.GL.Call("getUniformLocation", wa.program, "uFoam")
+	wa.uFoamScale = glctx.GL.Call("getUniformLocation", wa.program, "uFoamScale")
+	wa.uAspect2 = glctx.GL.Call("getUniformLocation", wa.program, "uAspect2")
 
 	verts := []float32{-1, -1, 1, -1, -1, 1, 1, 1}
 	wa.quadBuf = glctx.GL.Call("createBuffer")
@@ -314,7 +356,7 @@ func (wa *waterLens) wireWaterPointer() {
 		}
 		wa.dragging = true
 		wa.lastX, wa.lastY = pos(a[0])
-		wa.field.Drop(wa.lastX, wa.lastY, 4, 0.6)
+		wa.field.Drop(wa.lastX, wa.lastY, wcells(4), 0.6)
 		return nil
 	})
 	wa.moveFn = js.FuncOf(func(_ js.Value, a []js.Value) any {
@@ -323,7 +365,7 @@ func (wa *waterLens) wireWaterPointer() {
 		}
 		x, y := pos(a[0])
 		// A wake along the whole movement, not a dot at the end of it.
-		wa.field.Line(wa.lastX, wa.lastY, x, y, 3, 0.5)
+		wa.field.Line(wa.lastX, wa.lastY, x, y, wcells(3), 0.5)
 		wa.lastX, wa.lastY = x, y
 		return nil
 	})
@@ -368,7 +410,7 @@ func (wa *waterLens) driveWaterFromAudio() {
 	n := int(wa.srcs)
 	for i := range n {
 		x, y := waterSourcePos(i, n)
-		wa.field.Drop(x, y, 5, amp)
+		wa.field.Drop(x, y, wcells(5), amp)
 	}
 }
 
@@ -388,7 +430,7 @@ func (wa *waterLens) rainOnWater() {
 	wa.field.Drop(
 		rand.Float32()*float32(waterW), //nolint:gosec // decorative, not security
 		rand.Float32()*float32(waterH), //nolint:gosec // decorative, not security
-		3, 0.5)
+		wcells(3), 0.5)
 }
 
 // drawWaterLens re-reads the finished frame through the surface.
@@ -396,24 +438,46 @@ func (wa *waterLens) drawWaterLens() {
 	if !wa.ready {
 		wa.initWater()
 	}
-	wa.field.Speed = wa.speed
-	wa.field.Damping = wa.damping()
-	wa.field.Spread = wa.spread / 100
-	// 100 is a tank with walls and its own echoes; 0 is open water, where a wave
-	// leaves and does not come back. Which one is right depends on whether the
-	// disturbance or the interference is the thing being looked at.
-	wa.field.Reflect = wa.edge / 100
+	// 100 on the walls is a tank with walls and its own echoes; 0 is open
+	// water, where a wave leaves and does not come back. Which one is right
+	// depends on whether the disturbance or the interference is the thing
+	// being looked at.
+	wa.field.Tune(wa.speed, wa.damping(), wa.spread/100, wa.edge/100)
+	if tk, ok := wa.field.(*ripple.Tank); ok {
+		// The grid is square and the picture is not: its cells are as
+		// wide as the picture is, against its height.
+		tk.Aspect = float32(gpu.width) / float32(gpu.height) * float32(waterH) / float32(waterW)
+	}
 
 	wa.driveWaterFromAudio()
 	wa.rainOnWater()
-	wa.field.Step()
+	if tk, ok := wa.field.(*ripple.Tank); ok {
+		// Half a step a frame, each step two frames long: the tank's
+		// step is too much for one frame (ripple.Tank.Begin).
+		if wa.half {
+			tk.Finish()
+			wa.fresh = true
+		} else {
+			tk.Begin(2)
+		}
+		wa.half = !wa.half
+	} else {
+		wa.field.Step()
+		wa.fresh = true
+	}
 	wa.froth.Step(wa.field)
 
 	// The scene as it stands, into a texture.
 	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), wa.sceneTex)
 	glctx.GL.Call("copyTexImage2D", glctx.GL.Get("TEXTURE_2D"), 0, glctx.GL.Get("RGBA"), 0, 0, gpu.width, gpu.height, 0)
 
-	wa.uploadWaterHeight()
+	if wa.fresh {
+		// Only a surface that has moved: on the frame a tank's step is
+		// begun it has not, and the upload was 1.5 ms of a frame.
+		wa.uploadWaterHeight()
+		wa.fresh = false
+	}
+	foamScale := wa.bendFoam() // the bubbles' lenses, before the lens reads them
 
 	glctx.GL.Call("disable", glctx.Types.DepthTest)
 	glctx.GL.Call("useProgram", wa.program)
@@ -429,7 +493,7 @@ func (wa *waterLens) drawWaterLens() {
 	glctx.GL.Call("uniform1i", wa.uHeight, 1)
 	glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0"))
 
-	glctx.GL.Call("uniform1f", wa.uAmount, wa.amount)
+	glctx.GL.Call("uniform1f", wa.uAmount, wa.lensAmount())
 	glctx.GL.Call("uniform2f", wa.uTexel, 1/float32(waterW), 1/float32(waterH))
 
 	refl, scale := float32(0), float32(1)
@@ -443,8 +507,15 @@ func (wa *waterLens) drawWaterLens() {
 	glctx.GL.Call("uniform1f", wa.uRefl, refl)
 	glctx.GL.Call("uniform1f", wa.uReflScale, scale)
 	glctx.GL.Call("uniform2f", wa.uReflCenter, 0.5, 0.5)
+	glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0").Int()+waterFoamUnit)
+	glctx.GL.Call("bindTexture", glctx.GL.Get("TEXTURE_2D"), wa.froth.bendTex)
+	glctx.GL.Call("activeTexture", glctx.GL.Get("TEXTURE0"))
+	glctx.GL.Call("uniform1i", wa.uFoam, waterFoamUnit)
+	glctx.GL.Call("uniform1f", wa.uFoamScale, foamScale)
+	asp := wa.field.CellAspect()
+	glctx.GL.Call("uniform1f", wa.uAspect2, asp*asp)
 	glctx.GL.Call("drawArrays", glctx.GL.Get("TRIANGLE_STRIP"), 0, 4)
-	wa.drawFoam()    // on the surface, so over what is seen through it
+	wa.drawFoam()    // the films' faint shine, on the surface
 	wa.above = false // the next frame's near pass says again
 	if !wa.lined {
 		clear(wa.wasLit)
@@ -672,7 +743,7 @@ func (wa *waterLens) pushWaterline(cells []int, amp float32) {
 	stride := (len(cells) + waterlineMaxDrops - 1) / waterlineMaxDrops
 	for k := 0; k < len(cells); k += stride {
 		i := cells[k]
-		wa.field.Drop(float32(i%waterW), float32(i/waterW), 2, amp)
+		wa.field.Drop(float32(i%waterW), float32(i/waterW), wcells(2), amp)
 	}
 }
 
@@ -709,4 +780,19 @@ func (wa *waterLens) heightJS() js.Value {
 		wa.heightArr = js.Global().Get("Uint8Array").New(len(wa.heightBuf))
 	}
 	return wa.heightArr
+}
+
+// tankAcross is how many cells across the tank is on a picture aspect times
+// as wide as it is tall, WaterGrid down: the power of two that comes nearest
+// to square cells. The tank's waves are worked out in meters, so cells of
+// any shape carry them true; but a cell twice as wide as it is tall is a
+// grid half as fine across, and a splash small enough to be one cell wide
+// was a spike that way, its fine fast ripples spreading it twice as far
+// across as up.
+func tankAcross(aspect float64) int {
+	if !(aspect > 0) {
+		return WaterGrid
+	}
+	n := WaterGrid * math.Exp2(math.Round(math.Log2(aspect)))
+	return min(max(int(n), 32), 512)
 }

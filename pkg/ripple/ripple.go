@@ -20,8 +20,6 @@
 // separates a tank with walls from open water.
 package ripple
 
-import "math"
-
 // Field is a square height field and its previous state. Two buffers, because
 // the wave equation is second order in time: the next height at a cell needs
 // both the current one and the one before it.
@@ -104,49 +102,36 @@ func (f *Field) Height(x, y int) float32 {
 func (f *Field) Heights() []float32 { return f.cur }
 
 // Drop adds a raised (or lowered) region centered on x,y with the given radius
-// — a finger in the water, a drip, one cycle of a speaker cone.
-//
-// The profile is a raised cosine rather than a spike. A single-cell impulse
-// contains every wavelength the grid can represent, including the ones at the
-// stencil's resolution limit, and those do not propagate — they sit and
-// shimmer. A smooth bump of a few cells radiates a ring, which is what a
-// disturbance in water actually does.
-func (f *Field) Drop(x, y, radius, amp float32) {
-	if radius < 1 {
-		radius = 1
-	}
-	r := int(radius) + 1
-	cx, cy := int(x), int(y)
-	for dy := -r; dy <= r; dy++ {
-		for dx := -r; dx <= r; dx++ {
-			px, py := cx+dx, cy+dy
-			if px < 0 || py < 0 || px >= f.W || py >= f.H {
-				continue
-			}
-			d := float32(math.Hypot(float64(dx), float64(dy)))
-			if d > radius {
-				continue
-			}
-			// cos ramp: full amplitude at the center, zero and flat at the rim.
-			w := 0.5 * (1 + float32(math.Cos(float64(d/radius)*math.Pi)))
-			f.cur[py*f.W+px] += amp * w
-		}
-	}
+// — a finger in the water, a drip, one cycle of a speaker cone. See drop for
+// its shape.
+func (f *Field) Drop(x, y, radius, amp float32) { drop(f.cur, f.W, f.H, 1, x, y, radius, amp) }
+
+// Line adds a disturbance along the segment from one point to another: a
+// wake. See line.
+func (f *Field) Line(x0, y0, x1, y1, radius, amp float32) {
+	line(f.cur, f.W, f.H, 1, x0, y0, x1, y1, radius, amp)
 }
 
-// Line adds a disturbance along the segment from one point to another, which
-// is what a finger DRAGGED through water leaves — a wake, not a series of
-// dots. Called with the pointer's previous and current position, it stays
-// continuous however fast the pointer moves; dropping at the current position
-// alone leaves gaps at speed, and the gaps read as a dotted line.
-func (f *Field) Line(x0, y0, x1, y1, radius, amp float32) {
-	dx, dy := float64(x1-x0), float64(y1-y0)
-	steps := int(math.Hypot(dx, dy)/float64(radius)*2) + 1
-	for i := 0; i <= steps; i++ {
-		t := float32(i) / float32(steps)
-		f.Drop(x0+(x1-x0)*t, y0+(y1-y0)*t, radius, amp/float32(steps+1)*2)
-	}
+// Size is the field's width and height in cells.
+func (f *Field) Size() (int, int) { return f.W, f.H }
+
+// Tune sets the knobs: wave speed, amplitude kept a step, viscous spread
+// and what the walls send back.
+func (f *Field) Tune(speed, damping, spread, reflect float32) {
+	f.Speed, f.Damping, f.Spread, f.Reflect = speed, damping, spread, reflect
 }
+
+// Drift is how far the field carries what floats on it at x, y in a step.
+// A height field has no flow under it, so this is a stand-in: pushed down
+// the slope, as foam gathers in the troughs.
+func (f *Field) Drift(x, y float32) (dx, dy float32) {
+	gx, gy := f.Gradient(int(x), int(y))
+	return -gx * fieldDrift, -gy * fieldDrift
+}
+
+// fieldDrift is how far a slope of one cell a cell pushes what floats on a
+// Field in a step, in cells.
+const fieldDrift = 2
 
 // Step advances the field by one tick.
 func (f *Field) Step() {
@@ -288,3 +273,10 @@ func (f *Field) Still() {
 		f.cur[i], f.prev[i], f.next[i] = 0, 0, 0
 	}
 }
+
+// StepSeconds is a step of the field's time: one of the page's frames.
+func (f *Field) StepSeconds() float32 { return stepSeconds }
+
+// CellAspect is 1: the field is stepped as if its cells were square, which
+// on a wide picture they are not.
+func (f *Field) CellAspect() float32 { return 1 }

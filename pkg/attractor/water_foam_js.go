@@ -3,47 +3,73 @@
 package attractor
 
 import (
-	"math"
+	"strconv"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/glctx"
 	"github.com/0magnet/chaosrack/pkg/ripple"
 )
 
-// The foam on the water: bubbles the waterline whips up, floating on the
-// surface and lit by the model.
+// The foam on the water: bubbles the waterline brings up, floating on the
+// surface, seen the way floating bubbles are seen.
 //
 // The waves the waterline makes spread off into the dark and are gone in a
 // second. Foam is what stays: pkg/ripple's Foam floats each bubble where it
-// was made and lets the waves carry it until it bursts. This file throws
-// them off the waterline and draws them: inflating, rocking on the waves,
-// and tearing open when they burst.
+// came up and lets the water carry it until it bursts. This file brings
+// them up along the waterline and draws them.
 //
-// LIT BY THE MODEL
+// HOW A FLOATING BUBBLE IS SEEN
 //
-// There is no lamp. A bubble is a thin film, and what a film shows is the
-// light falling on it, so each one takes its color and brightness from the
-// model around it: the scene seen through the water, and what stands over
-// the surface. The rim facing the brightest of that is the brightest, the
-// way a bubble's highlight sits on the side toward the light, and a bubble
-// far from the model is dark however much foam there is.
+// Not as a ring. A bubble's cap is a film a micron thick, and light goes
+// through a film almost unbent, so the cap itself is all but invisible. What
+// shows is the water round it (Selmke, "Bubble optics", 2020):
 //
-// A bubble is a point sprite, a ring with a faint film across it, added onto
-// the frame: a film adds light, and the thinner it is the more of what is
-// behind it shows through.
+//   - the meniscus, the collar of water the bubble lifts round itself out
+//     to about the capillary length, which bends what is under it inward
+//     like a lens, so the scene beneath gathers into a bright rim; and
+//   - the hollow the bubble makes under the surface, which bends the other
+//     way, so through the bubble the scene is seen shrunk, as in a fisheye.
+//
+// That is exactly the refraction the water lens already does, with a sharper
+// surface. So a bubble is drawn as its bend: each one adds the tilt of its
+// meniscus and hollow to a texture (bendFoam), and the lens adds that to the
+// waves' own tilt when it reads the scene. It is the same bending that made
+// the first foam anyone saw here — the waterline's small domes, lenses on
+// the trail, read as bubbles before any bubble was modeled — kept on the
+// water and carried by it.
+//
+// The only light a bubble adds is the film's faint reflection at its rim,
+// where it is seen edge-on (drawFoam): of the model's light, since there is
+// no lamp.
+//
+// The texture holds the bend as four bytes — plus and minus along each axis
+// — because WebGL1 cannot blend into a float target, and the bends of
+// touching bubbles must add.
 
 // waterFoam is the foam's surface and what draws it.
 type waterFoam struct {
-	surf    *ripple.Foam
-	program js.Value
-	buf     js.Value
-	aB      js.Value // x, y (0..1 of the frame), diameter (pixels), presence
-	aP      js.Value // how far through its burst, where on the rim it tears
+	surf *ripple.Foam
+
+	// The bend: bubbles drawn as their meniscus's tilt into bendTex.
+	bend      js.Value
+	bendTex   js.Value
+	bendFB    js.Value
+	bendW     int
+	bendH     int
+	bB, bP    js.Value // x, y, sprite diameter, risen; radius and reach in pixels
+	uBendGain js.Value
+	uBendMax  js.Value
+	uBendAsp  js.Value
+
+	// The shine: the films' rims.
+	shine   js.Value
+	sB      js.Value // x, y, diameter, risen
 	uScene  js.Value
 	uAbove  js.Value
 	uHasAb  js.Value
 	uView   js.Value
 	uGain   js.Value
+	buf     js.Value
 	verts   []float32
 	vertsJS js.Value
 }
@@ -52,46 +78,111 @@ type waterFoam struct {
 // this many is a sheet; more would not read as more foam.
 const waterFoamMax = 1500
 
-// waterFoamRate is the chance a cell the waterline moves through makes a
+// waterFoamRate is the chance a cell the waterline moves through brings up a
 // bubble, with the knob at 100.
 const waterFoamRate = 0.1
-
-// waterFoamThrow is how fast a bubble is thrown off the waterline, away from
-// the model, in cells a step. It is what makes foam come FROM the model: a
-// bubble left where it was made reads as a dot painted on the water.
-const waterFoamThrow = 0.25
 
 // waterFoamStride is the floats a bubble takes in the vertex buffer.
 const waterFoamStride = 6
 
-// waterFoamGain is how much of the light falling on a film it sends to the
-// eye, at its rim.
-const waterFoamGain = 0.9
+// waterFoamUnit is the texture unit the lens reads the bubbles' bend from:
+// past the water's reflection (waterAboveUnit).
+const waterFoamUnit = 4
+
+// The bubbles' bend, in the lens's units: a meniscus as high at its rim as
+// waterMeniscus of the bubble's radius, for a bubble as wide as the
+// capillary length (smaller ones lift less water, as their caps barely clear
+// the surface); a hollow waterHollow of its radius deep; and the bend
+// stored up to waterBendMax of the frame, which is also as far as it is
+// taken.
+const (
+	waterMeniscus = 0.1
+	waterHollow   = 0.1
+	waterBendMax  = 0.03
+)
+
+// waterCapillary is the capillary length in the tank's cells (2.7 mm), how
+// far a meniscus reaches.
+const waterCapillary = 1.2
+
+// waterShine is how much of the light falling on a film its rim sends to
+// the eye: a film reflects a few per cent, more edge-on.
+const waterShine = 0.25
 
 func (wa *waterLens) initFoam() {
 	fm := &wa.froth
 	fm.surf = ripple.NewFoam(waterFoamMax, 1)
 	fm.verts = make([]float32, 0, waterFoamMax*waterFoamStride)
 	fm.vertsJS = js.Global().Get("Uint8Array").New(waterFoamMax * waterFoamStride * 4)
+	gl := glctx.GL
 
-	vs := `attribute vec4 aB; attribute vec2 aP;
-varying float vAlpha; varying vec2 vP;
+	// The bend. A point sprite out to the meniscus's reach; inside the
+	// bubble the hollow, outside it the meniscus, falling off over the
+	// capillary length as a K0 Bessel function does, roughly. Height rising
+	// outward bends the reading outward, which shrinks what is seen; falling
+	// outward gathers it in.
+	bvs := `attribute vec4 aB; attribute vec2 aP;
+varying vec2 vP; varying float vRisen; varying float vD;
 void main(){
   gl_Position = vec4(aB.xy*2.0-1.0, 0.0, 1.0);
   gl_PointSize = aB.z;
-  vAlpha = aB.w;
+  vD = aB.z;
+  vRisen = aB.w;
   vP = aP;
 }`
-	// The light at a bubble: the model around it, through the water and over
-	// it, sampled in two rings; and which way the brightest of it lies.
-	fs := `precision mediump float;
+	bfs := `precision highp float;
+uniform float uGain; // tilt (height per cell) to bend (frame), over the most stored
+uniform float uMax;
+uniform float uAspect; // a cell's width over its height: a frame across is that many more cells
+varying vec2 vP;     // radius, capillary length: in pixels
+varying float vRisen;
+varying float vD;
+void main(){
+  vec2 pc = vec2(gl_PointCoord.x, 1.0 - gl_PointCoord.y) * 2.0 - 1.0;
+  float r = length(pc) * vD * 0.5;
+  float rb = vP.x, a = vP.y;
+  if (r > vD * 0.5 || r < 0.001) { discard; }
+  vec2 dir = normalize(pc);
+  // Heights and tilts in the bubble's radius; uGain carries the rest.
+  float tilt;
+  if (r < rb) {
+    float q = r / rb;
+    tilt = ` + glFloat(waterHollow) + ` * q / sqrt(max(1.0 - q*q, 0.05));
+  } else {
+    float lift = ` + glFloat(waterMeniscus) + ` * min(rb / a, 1.0);
+    float h = lift * exp(-(r - rb) / a) * sqrt(rb / r);
+    tilt = -h * rb * (1.0 / a + 0.5 / r);
+    // Faded out at the sprite's edge rather than cut off there.
+    tilt *= 1.0 - smoothstep(0.8, 1.0, r / (vD * 0.5));
+  }
+  vec2 b = clamp(dir / vec2(uAspect, 1.0) * tilt * uGain * vRisen / uMax, -1.0, 1.0);
+  gl_FragColor = vec4(max(b.x, 0.0), max(-b.x, 0.0), max(b.y, 0.0), max(-b.y, 0.0));
+}`
+	fm.bend = compileProgram(bvs, bfs)
+	fm.bB = gl.Call("getAttribLocation", fm.bend, "aB")
+	fm.bP = gl.Call("getAttribLocation", fm.bend, "aP")
+	fm.uBendGain = gl.Call("getUniformLocation", fm.bend, "uGain")
+	fm.uBendMax = gl.Call("getUniformLocation", fm.bend, "uMax")
+	fm.uBendAsp = gl.Call("getUniformLocation", fm.bend, "uAspect")
+	fm.bendTex = newClampedTexture()
+	gl.Call("texImage2D", gl.Get("TEXTURE_2D"), 0, gl.Get("RGBA"), 1, 1, 0, gl.Get("RGBA"), gl.Get("UNSIGNED_BYTE"), js.Global().Get("Uint8Array").New(4))
+	fm.bendFB = gl.Call("createFramebuffer")
+
+	// The shine: the rim of the film, lit by the model round it.
+	svs := `attribute vec4 aB;
+varying float vRisen;
+void main(){
+  gl_Position = vec4(aB.xy*2.0-1.0, 0.0, 1.0);
+  gl_PointSize = aB.z;
+  vRisen = aB.w;
+}`
+	sfs := `precision mediump float;
 uniform sampler2D uScene;
 uniform sampler2D uAbove;
 uniform float uHasAbove;
 uniform vec2 uView;
 uniform float uGain;
-varying float vAlpha;
-varying vec2 vP; // burst 0..1, tear angle
+varying float vRisen;
 
 vec3 at(vec2 uv){
   return texture2D(uScene, uv).rgb + texture2D(uAbove, uv).rgb * uHasAbove;
@@ -101,130 +192,152 @@ void main(){
   vec2 pc = vec2(gl_PointCoord.x, 1.0 - gl_PointCoord.y) * 2.0 - 1.0;
   float d = length(pc);
   if (d > 1.0) { discard; }
-  // A burst: the film tears at one point of the rim and the tear runs round
-  // both ways, so what is left is an arc closing up into nothing.
-  float burst = vP.x;
-  if (burst > 0.0) {
-    float a = atan(pc.y, pc.x) - vP.y;
-    a = abs(mod(a + 3.14159265, 6.2831853) - 3.14159265);
-    if (a < burst * 3.2) { discard; }
-  }
-
+  // The light falling on the film: the model round it, summed over a ring.
   vec2 uv = gl_FragCoord.xy / uView;
   vec3 light = vec3(0.0);
-  vec2 toward = vec2(0.0);
   for (int i = 0; i < 8; i++) {
     float a = float(i) * 0.785398;
-    vec2 dir = vec2(cos(a), sin(a));
-    vec3 l = at(uv + dir * 18.0 / uView) + 0.5 * at(uv + dir * 54.0 / uView);
-    light += l;
-    toward += dir * dot(l, vec3(0.299, 0.587, 0.114));
+    light += at(uv + vec2(cos(a), sin(a)) * 18.0 / uView);
   }
-  // The light FALLING on the film: all of it, summed, not averaged — a
-  // trace is thin lines on black, and an average of what is around a
-  // bubble is mostly the black between them.
   light /= 3.0;
-  float facing = 1.0;
-  if (length(toward) > 0.0001 && d > 0.0001) {
-    facing = 0.35 + 0.65 * max(dot(pc / d, normalize(toward)), 0.0);
-  }
-
-  // The wall of the film, seen edge-on at the rim, is where it is thickest
-  // to the eye; across the middle it is nearly clear.
-  // Bursting, the film is gone from the middle and the rim gathers into a
-  // thin bright thread as it pulls back.
-  float inner = mix(0.55, 0.8, burst);
-  float rim = smoothstep(inner, 0.9, d) * (1.0 - smoothstep(0.9, 1.0, d)) * (1.0 + burst);
-  float film = 0.06 * (1.0 - step(0.001, burst));
-  gl_FragColor = vec4(light * (rim * facing + film) * vAlpha * uGain, 1.0);
+  // Only edge-on, at the rim, does a film reflect enough to see.
+  float rim = smoothstep(0.75, 0.95, d) * (1.0 - smoothstep(0.95, 1.0, d));
+  gl_FragColor = vec4(light * rim * vRisen * uGain, 1.0);
 }`
-	fm.program = compileProgram(vs, fs)
-	fm.aB = glctx.GL.Call("getAttribLocation", fm.program, "aB")
-	fm.aP = glctx.GL.Call("getAttribLocation", fm.program, "aP")
-	fm.uScene = glctx.GL.Call("getUniformLocation", fm.program, "uScene")
-	fm.uAbove = glctx.GL.Call("getUniformLocation", fm.program, "uAbove")
-	fm.uHasAb = glctx.GL.Call("getUniformLocation", fm.program, "uHasAbove")
-	fm.uView = glctx.GL.Call("getUniformLocation", fm.program, "uView")
-	fm.uGain = glctx.GL.Call("getUniformLocation", fm.program, "uGain")
-	fm.buf = glctx.GL.Call("createBuffer")
-	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, fm.buf)
-	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, len(fm.verts[:cap(fm.verts)])*4, glctx.GL.Get("DYNAMIC_DRAW"))
+	fm.shine = compileProgram(svs, sfs)
+	fm.sB = gl.Call("getAttribLocation", fm.shine, "aB")
+	fm.uScene = gl.Call("getUniformLocation", fm.shine, "uScene")
+	fm.uAbove = gl.Call("getUniformLocation", fm.shine, "uAbove")
+	fm.uHasAb = gl.Call("getUniformLocation", fm.shine, "uHasAbove")
+	fm.uView = gl.Call("getUniformLocation", fm.shine, "uView")
+	fm.uGain = gl.Call("getUniformLocation", fm.shine, "uGain")
+
+	fm.buf = gl.Call("createBuffer")
+	gl.Call("bindBuffer", glctx.Types.ArrayBuffer, fm.buf)
+	gl.Call("bufferData", glctx.Types.ArrayBuffer, len(fm.verts[:cap(fm.verts)])*4, gl.Get("DYNAMIC_DRAW"))
 }
 
-// makeFoam whips bubbles up where the waterline moved this frame: the cells
-// the model came into and left. A model standing still makes none, as it
-// makes no waves. Each is thrown outward, away from the middle of where the
-// model cuts the water this frame, which is the way the water it churned
-// goes.
+// glFloat writes v as a GLSL float literal.
+func glFloat(v float64) string { return strconv.FormatFloat(v, 'f', 4, 64) }
+
+// makeFoam brings bubbles up where the waterline moved this frame: the cells
+// the model came into and left, where it churns air into the water. A model
+// standing still brings up none, as it makes no waves. They come up where
+// they were made, and the water takes them from there.
 func (wa *waterLens) makeFoam(in, out []int) {
 	p := wa.foam / 100 * waterFoamRate
 	if p <= 0 || len(in)+len(out) == 0 {
 		return
 	}
-	var cx, cy float32
-	for _, cells := range [2][]int{in, out} {
-		for _, i := range cells {
-			cx += float32(i % waterW)
-			cy += float32(i / waterW)
-		}
-	}
-	n := float32(len(in) + len(out))
-	cx, cy = cx/n, cy/n
 	fm := wa.froth.surf
 	for _, cells := range [2][]int{in, out} {
 		for _, i := range cells {
-			if !fm.Chance(p) {
-				continue
+			if fm.Chance(p) {
+				fm.Spawn(float32(i%waterW)+0.5, float32(i/waterW)+0.5)
 			}
-			x, y := float32(i%waterW)+0.5, float32(i/waterW)+0.5
-			dx, dy := x-cx, y-cy
-			if l := float32(math.Hypot(float64(dx), float64(dy))); l > 0.5 {
-				dx, dy = dx/l*waterFoamThrow, dy/l*waterFoamThrow
-			} else {
-				dx, dy = 0, 0
-			}
-			fm.Spawn(x, y, dx, dy)
 		}
 	}
 }
 
 // Step moves the foam one frame on the surface.
-func (fm *waterFoam) Step(f *ripple.Field) {
+func (fm *waterFoam) Step(s ripple.Surface) {
 	if fm.surf != nil {
-		fm.surf.Step(f)
+		fm.surf.Step(s)
 	}
 }
 
-// drawFoam adds the bubbles onto the frame the lens just drew. The scene
-// texture still holds the frame as it was before the lens, which is the
-// light the bubbles are lit by.
+// cellPx is a cell's height in pixels, which is what a bubble's radius is
+// measured in: a bubble is round, and a cell on a wide canvas is not.
+func cellPx() float32 {
+	return float32(gpu.height) / float32(waterH)
+}
+
+// fillFoam puts each bubble in the vertex buffer: where it is, its sprite's
+// diameter in pixels and how far it has risen, then its radius and the
+// capillary length in pixels. reach says whether the sprite covers the
+// meniscus too, as the bend's does, or just the bubble, as the shine's.
+func (fm *waterFoam) fillFoam(reach bool) int {
+	px := cellPx()
+	a := waterCapillary * float32(waterH) / WaterGrid * px // the same 2.7 mm on either grid
+	fm.verts = fm.verts[:0]
+	for _, b := range fm.surf.Bubbles {
+		rb := b.R * px
+		d := 2 * rb
+		if reach {
+			d = 2 * (rb + 3*a)
+		}
+		fm.verts = append(fm.verts, b.X/float32(waterW), b.Y/float32(waterH), max(d, 2), b.Risen(), rb, a)
+	}
+	n := len(fm.verts) / waterFoamStride
+	js.CopyBytesToJS(fm.vertsJS, sliceToByteSlice(fm.verts))
+	gl := glctx.GL
+	gl.Call("bindBuffer", glctx.Types.ArrayBuffer, fm.buf)
+	gl.Call("bufferSubData", glctx.Types.ArrayBuffer, 0, fm.vertsJS.Call("subarray", 0, n*waterFoamStride*4))
+	return n
+}
+
+// bendFoam draws the bubbles' bend into the texture the lens reads, and
+// returns what the lens scales it by: 0 with no bubbles, when the texture
+// is not drawn and not read.
+func (wa *waterLens) bendFoam() float32 {
+	fm := &wa.froth
+	if fm.surf == nil || len(fm.surf.Bubbles) == 0 {
+		return 0
+	}
+	gl := glctx.GL
+	w, h := gpu.width, gpu.height
+	if w != fm.bendW || h != fm.bendH {
+		fm.bendW, fm.bendH = w, h
+		gl.Call("bindTexture", gl.Get("TEXTURE_2D"), fm.bendTex)
+		gl.Call("texImage2D", gl.Get("TEXTURE_2D"), 0, gl.Get("RGBA"), w, h, 0, gl.Get("RGBA"), gl.Get("UNSIGNED_BYTE"), js.Null())
+		gl.Call("bindFramebuffer", gl.Get("FRAMEBUFFER"), fm.bendFB)
+		gl.Call("framebufferTexture2D", gl.Get("FRAMEBUFFER"), gl.Get("COLOR_ATTACHMENT0"), gl.Get("TEXTURE_2D"), fm.bendTex, 0)
+	}
+	n := fm.fillFoam(true)
+
+	// Everything else draws to the canvas itself, so that is what is put
+	// back after, and the clear color the page keeps (clearScreen). Asking
+	// the context what was bound instead made the page wait on the card
+	// each frame: getParameter was a third of the frame.
+	gl.Call("bindFramebuffer", gl.Get("FRAMEBUFFER"), fm.bendFB)
+	gl.Call("clearColor", 0, 0, 0, 0)
+	gl.Call("clear", gl.Get("COLOR_BUFFER_BIT"))
+	gl.Call("disable", glctx.Types.DepthTest)
+	gl.Call("useProgram", fm.bend)
+	gl.Call("enableVertexAttribArray", fm.bB)
+	gl.Call("enableVertexAttribArray", fm.bP)
+	gl.Call("vertexAttribPointer", fm.bB, 4, glctx.Types.Float, false, waterFoamStride*4, 0)
+	gl.Call("vertexAttribPointer", fm.bP, 2, glctx.Types.Float, false, waterFoamStride*4, 16)
+	// A tilt of one cell a cell bends the lens's reading by twice the lens's
+	// amount in texels, as its two-cell difference does (water_js.go).
+	gl.Call("uniform1f", fm.uBendGain, 2*wa.lensAmount()/float32(waterH))
+	gl.Call("uniform1f", fm.uBendMax, waterBendMax)
+	gl.Call("uniform1f", fm.uBendAsp, wa.field.CellAspect())
+	gl.Call("enable", gl.Get("BLEND"))
+	gl.Call("blendFunc", gl.Get("ONE"), gl.Get("ONE")) // touching bubbles' bends add
+	gl.Call("drawArrays", glctx.Types.Points, 0, n)
+	gl.Call("blendFunc", gl.Get("SRC_ALPHA"), gl.Get("ONE_MINUS_SRC_ALPHA"))
+	gl.Call("disable", gl.Get("BLEND"))
+	gl.Call("disableVertexAttribArray", fm.bB)
+	gl.Call("disableVertexAttribArray", fm.bP)
+	gl.Call("bindFramebuffer", gl.Get("FRAMEBUFFER"), js.Null())
+	gl.Call("clearColor", style.bgColor[0], style.bgColor[1], style.bgColor[2], 0)
+	return waterBendMax
+}
+
+// drawFoam adds the films' rims onto the frame the lens just drew. The
+// scene texture still holds the frame as it was before the lens, which is
+// the light they are lit by.
 func (wa *waterLens) drawFoam() {
 	fm := &wa.froth
 	if fm.surf == nil || len(fm.surf.Bubbles) == 0 {
 		return
 	}
-	// A cell is not square on a wide canvas; a bubble is round, so it is
-	// sized by the cells' mean side.
-	cellPx := float32(math.Sqrt(float64(gpu.width) / float64(waterW) * float64(gpu.height) / float64(waterH)))
-	fm.verts = fm.verts[:0]
-	for _, b := range fm.surf.Bubbles {
-		// A burst throws the rim out a little as it pulls back.
-		burst := b.Burst()
-		d := 2 * b.R * b.Size() * (1 + 0.4*burst) * cellPx
-		in := min(float32(b.Age)/6, 1)
-		fm.verts = append(fm.verts, b.X/float32(waterW), b.Y/float32(waterH), max(d, 2), in, burst, b.Tear)
-	}
-	n := len(fm.verts) / waterFoamStride
-	js.CopyBytesToJS(fm.vertsJS, sliceToByteSlice(fm.verts))
-
+	n := fm.fillFoam(false)
 	gl := glctx.GL
-	gl.Call("useProgram", fm.program)
-	gl.Call("bindBuffer", glctx.Types.ArrayBuffer, fm.buf)
-	gl.Call("bufferSubData", glctx.Types.ArrayBuffer, 0, fm.vertsJS.Call("subarray", 0, n*waterFoamStride*4))
-	gl.Call("enableVertexAttribArray", fm.aB)
-	gl.Call("enableVertexAttribArray", fm.aP)
-	gl.Call("vertexAttribPointer", fm.aB, 4, glctx.Types.Float, false, waterFoamStride*4, 0)
-	gl.Call("vertexAttribPointer", fm.aP, 2, glctx.Types.Float, false, waterFoamStride*4, 16)
+	gl.Call("useProgram", fm.shine)
+	gl.Call("enableVertexAttribArray", fm.sB)
+	gl.Call("vertexAttribPointer", fm.sB, 4, glctx.Types.Float, false, waterFoamStride*4, 0)
 
 	gl.Call("activeTexture", gl.Get("TEXTURE0"))
 	gl.Call("bindTexture", gl.Get("TEXTURE_2D"), wa.sceneTex)
@@ -239,13 +352,12 @@ func (wa *waterLens) drawFoam() {
 	gl.Call("uniform1i", fm.uAbove, waterAboveUnit)
 	gl.Call("uniform1f", fm.uHasAb, has)
 	gl.Call("uniform2f", fm.uView, gpu.width, gpu.height)
-	gl.Call("uniform1f", fm.uGain, waterFoamGain)
+	gl.Call("uniform1f", fm.uGain, waterShine)
 
 	gl.Call("enable", gl.Get("BLEND"))
 	gl.Call("blendFunc", gl.Get("ONE"), gl.Get("ONE")) // a film adds light
 	gl.Call("drawArrays", glctx.Types.Points, 0, n)
 	gl.Call("blendFunc", gl.Get("SRC_ALPHA"), gl.Get("ONE_MINUS_SRC_ALPHA"))
 	gl.Call("disable", gl.Get("BLEND"))
-	gl.Call("disableVertexAttribArray", fm.aB)
-	gl.Call("disableVertexAttribArray", fm.aP)
+	gl.Call("disableVertexAttribArray", fm.sB)
 }

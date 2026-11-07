@@ -1002,6 +1002,8 @@ Its positions are in the model bank, the same for every model, and dark there un
 Drag across the picture to make a wake;
 DRIVE lets the sound push the water from SPKRS points, and RAIN drops on it at random.
 The surface is at the rack: FORE (on Zoom) raises the model out of the water, sharp in front of the panel and mirrored faintly in the water, and where the model crosses the surface its movement makes waves.
+The tank is a tray of water 30 cm tall and 2 cm deep, and each wave travels at water's own speed for its length: long swells and the finest ripples outrun the 1.7 cm waves between them, so a splash spreads into a train of rings rather than one.
+Open the page with ?waves=fd to step the old wave equation instead, every wave at one speed, to compare.
 
 ### bend
 
@@ -1011,17 +1013,17 @@ bend — how far the surface's slope moves the picture behind it. Zero is clear 
 ### speed
 
 <!-- key: p.water-speed -->
-speed — how fast a ripple crosses the tank.
+speed — the tank's clock: 0.5 runs it at a fifth of real time, so its quick waves can be watched. Every wave keeps its speed beside the others.
 
 ### damp
 
 <!-- key: p.water-damp -->
-damp — how much of a wave survives each step, in thousandths: 990 rings for seconds, 900 dies before it crosses.
+damp — how much of a wave survives each sixtieth of a second of the tank's clock, in thousandths: 990 rings for seconds, 900 dies before it crosses.
 
 ### visc
 
 <!-- key: p.water-spread -->
-viscosity — smooths the surface each step, so fine ripples fade before broad ones.
+viscosity — 12 is water's. It takes the finest ripples first, four times as fast for half the length, which is why water is smooth between its waves.
 
 ### walls
 
