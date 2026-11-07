@@ -243,7 +243,7 @@ The module's switches are buttons on the P-units they concern.
 - <!-- key: trio.bg-visual=1 --> B (BEHIND): back — Layers · Colors edits the backdrop's colors instead of the model's.
   Applies only to a flat backdrop.
 - <!-- key: trio.gradient-colors=0 --> I (MAP): invert — reverse the palette direction (start and end swapped)
-- <!-- key: trio.gradient-colors=1 --> K (MAP): key — the color key at the top left of the model: what the color follows, and what the bottom, middle and top of the ramp mean now
+- <!-- key: trio.gradient-colors=1 --> K (MAP): key — the color key at the top left of the model: what the color follows, and what the bottom, middle and top of the ramp mean now; dark until pressed
 - <!-- key: trio.gradient-source=0 --> H (SRC): held — the color range stops refitting to the source
 
 ### Fill

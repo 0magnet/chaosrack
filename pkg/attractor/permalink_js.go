@@ -68,6 +68,7 @@ var permaCtls = []permaCtl{
 	{"ph", "phys-sw", true},
 	{"gr", "gradient-reverse", true},
 	{"ky", "color-key-sw", true},
+	{"wt", "water-touch", true},
 	{"sk", "skin-visual", false},
 	{"fl", "spect-fill", true},
 	{"in", "show-info", true},

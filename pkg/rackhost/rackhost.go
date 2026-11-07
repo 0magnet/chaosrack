@@ -1206,9 +1206,10 @@ func (r *Rack) SceneAct(w, h int, _ float64, x, y float64, kind string, delta fl
 		defer s.mu.Unlock()
 	}
 	if kind != "wheel" && w > 0 && h > 0 {
-		// On water, a hand on the scene disturbs it too (water.go).
+		// On water, a hand on the scene disturbs it too (water.go), unless
+		// DRIVE's P is off.
 		r.mu.Lock()
-		if r.waterOn() {
+		if r.waterOn() && r.value("water-touch") != "0" {
 			r.water.touch(kind, x, y, w, h)
 		}
 		r.mu.Unlock()
