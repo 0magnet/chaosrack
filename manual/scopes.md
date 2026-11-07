@@ -92,6 +92,11 @@ Under it INPUT 1, a mini knob with a display of its own: what input 1 is fed fro
 INPUT 2 is under TIME.
 The reset puts both back.
 
+### Volts/div knob
+
+<!-- key: scope-volts -->
+Volts/div — how much signal one division of height is worth, detented 1-2-5
+
 ### Input 1
 
 <!-- key: scope-in1 -->
@@ -125,6 +130,9 @@ Reset volts/div
 Time/div — how long the beam takes to cross one division; ten divisions is the whole screen.
 Under it INPUT 2, what input 2 is fed from, as INPUT 1 is under VOLTS.
 The reset puts both back.
+
+<!-- key: scope-time -->
+Time/div — how long the beam takes to cross one division; ten divisions is the whole screen
 
 <!-- key: rst-scope-time -->
 Reset time/div
