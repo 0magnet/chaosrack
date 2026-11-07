@@ -9,103 +9,107 @@ import (
 // that cross it.
 //
 // A wave leaves; foam stays. What a moving thing churns into water spreads
-// away as ripples and is gone in a second, but the bubbles it whips up float
-// on, carried by the waves, and burst one by one over several seconds. That
+// away as ripples and is gone in a second, but the bubbles it brings up
+// float on, carried by the water, and burst one by one over seconds. That
 // difference is the whole reason this is a list of bubbles and not more of
 // the height field: a bump in the field is a wave, and a wave cannot sit
 // still.
 //
-// A bubble has a beginning and an end that can be seen. It is thrown off
-// the thing that made it and inflates as it goes; it rides the waves, rocking
-// as each passes under it; and it bursts — the film tears and the tear runs
-// round the rim in a few frames — leaving a small ring on the water where it
-// was. A bubble that only faded would just be a dot that dimmed.
+// What is here is what floating bubbles are measured to do:
 //
-// Bubbles cling. Floating ones pull together until they touch, by the same
-// surface tension that gathers cereal in a bowl, and touching ones move as
-// one, so foam lies in rafts and strings that drift and turn whole rather
-// than as a sprinkle of separate dots.
+//   - They ride the water's own flow (Surface.Drift): round with each wave
+//     that passes and a little forward each time. They have next to no mass
+//     of their own, so they go where the surface goes and coast nowhere.
+//   - They pull together (the "Cheerios effect"): each lifts the water round
+//     it into a meniscus, and two menisci lean toward each other. The pull
+//     dies away over the capillary length, about 2.7 mm, so bubbles gather
+//     into rafts and strings only once they have drifted close.
+//   - Most are tiny and a few are large. Measured sizes fall off steeply
+//     with radius, so a size is drawn from a power law.
+//   - They last anywhere from a second to a quarter of a minute, measured
+//     on clean water: a film drains until it is thin enough to fail, and
+//     when that is is close to chance. Lives are drawn evenly in their
+//     logarithm, and counted on the surface's clock.
+//   - They burst at once. The film's hole runs round at meters a second, so
+//     a bubble a few millimeters across is gone well inside a frame; what is
+//     left to see is the ring of ripples where it was.
 //
-// Positions and radii are in the field's cells, so a bubble rides the same
-// surface the refraction reads.
+// Positions are in the surface's cells and radii in cell heights, and the
+// distance between two bubbles is measured as on the screen, a cell across
+// being CellAspect of one up; so a bubble rides the
+// same surface the refraction reads.
 type Foam struct {
 	Bubbles []Bubble
 	// Max is the most bubbles the surface carries. Past it a new bubble is
 	// not made: a sheet of foam that thick is opaque however many more are
-	// added, and every one is a point drawn per frame.
+	// added, and every one is drawn each frame.
 	Max int
 	rng *rand.Rand
 	// The neighbor search's buckets, kept between steps: head is the first
-	// bubble in each bucket, next the one after each bubble; r each one's
-	// radius as it stands, dv the pull the others put on it.
+	// bubble in each bucket, next the one after each bubble.
 	head, next []int32
-	r          []float32
-	dv         [][2]float32
+	// steps counts Step's calls. The others' pull on a bubble is worked out
+	// every other step and kept on it for the step between: it changes as
+	// slowly as bubbles drift, and the search for it was most of a step
+	// (2 ms of a frame in wasm, for the page's 1500 bubbles).
+	steps int
 }
 
 // Bubble is one bubble on the surface.
 type Bubble struct {
-	X, Y   float32 // where it floats, in cells
-	VX, VY float32 // its drift, cells a step
-	R      float32 // its radius when full, in cells
-	Age    int     // steps since it was made
-	Life   int     // steps it lasts before it bursts
-	Tear   float32 // where on the rim its film tears, radians
+	X, Y float32    // where it floats, in cells
+	R    float32    // its radius, in cells
+	Age  float32    // seconds of the surface's clock since it came up
+	Life float32    // seconds it lasts before it bursts
+	pull [2]float32 // how fast the others draw it, cell heights a second
 }
 
-// Foam's constants, in the field's units and steps (a step is a frame).
+// Foam's constants, in the surface's cells and seconds of its clock. A cell
+// is a tank's (tankSide/128, 2.3 mm).
 const (
-	// A floating bubble is pushed down the surface's slope, so a passing wave
-	// rocks it to and fro and it gathers in the troughs, as foam lines up
-	// between waves on real water. Per unit slope, in cells a step.
-	foamDrift = 0.6
-	// How much of its drift a bubble keeps a step. Enough that it is carried
-	// a way by the throw it was born with and by the waves; not so much that
-	// it coasts across the water like a puck.
-	foamDrag = 0.95
-	// The jostle of the water too fine for the field to carry, in cells a
-	// step: without it a bubble on flat water is a fixed dot.
-	foamJostle = 0.02
-	// Most bubbles are small and a few are large: a radius is foamMinR plus
-	// foamSpanR times the cube of a uniform draw.
-	foamMinR  = 0.15
-	foamSpanR = 0.9
-	// How long a bubble lasts, in steps: two to ten seconds at sixty frames,
-	// the large ones toward the short end, as a big film drains to its
-	// bursting point sooner than a small one.
-	foamMinLife  = 120
-	foamSpanLife = 480
-	// A bubble inflates to its full size over its first foamGrow steps.
-	foamGrow = 18
-	// Its burst takes foamBurst steps: the tear opening round the rim.
-	foamBurst = 7
+	// The smallest bubble's radius, and the largest's; between them the
+	// share larger than r falls as r^-foamSizes.
+	foamMinR  = 0.2
+	foamMaxR  = 2.5
+	foamSizes = 2.0
+	// A life is foamMinLife to foamMaxLife seconds, even in its logarithm.
+	foamMinLife = 1.0
+	foamMaxLife = 15.0
+	// foamRise is how long a bubble takes to come up through the surface,
+	// in seconds: it is drawn growing into place rather than appearing.
+	foamRise = 0.08
 	// The ring a burst leaves on the water, per cell of the bubble's radius.
-	foamPop = 0.012
-	// Two bubbles feel each other from touching out to foamReach cells
-	// further, pulled together at foamCling cells a step per step; the pull
-	// tapers off only over the last quarter of that, as a pull that faded
-	// linearly would lose to the jostle well inside its reach.
-	foamReach = 1.5
-	foamCling = 0.006
-	// Closer than touching they are pushed apart, foamPack per cell of
-	// overlap, so a raft packs rather than piling into one blot.
-	foamPack = 0.08
-	// Touching bubbles share this much of their difference in drift a step:
-	// a raft moves as one.
-	foamStick = 0.15
-	// The most the others change one bubble's drift in a step, in cells a
-	// step. Pulls add, and a bubble in the middle of a fresh crowd feels
-	// dozens at once: summed freely they flung the whole crowd off the
-	// surface in a second. The water a raft sits in holds it back.
-	foamClingMax = 0.01
+	foamPop = 0.02
+	// foamCapillary is the capillary length in cells: how far a bubble's
+	// meniscus reaches, and so how far its pull on another does.
+	foamCapillary = 1.2
+	// foamReach is how far apart, gap between rims, two bubbles still feel
+	// each other: the pull is down to a fiftieth there.
+	foamReach = 4 * foamCapillary
+	// foamCling is how fast two bubbles whose rims touch close on each
+	// other, in cells a second (about 7 mm/s, as millimeter bubbles on
+	// clean water are seen to).
+	foamCling = 3
+	// foamPack is how fast two that overlap are pushed apart, in cells a
+	// second per cell of overlap, so a raft packs rather than piling into
+	// one blot.
+	foamPack = 6
+	// foamClingMax is the fastest the others move one bubble, in cells a
+	// second. Pulls add, and in the middle of a fresh crowd one bubble feels
+	// dozens at once: summed freely they flung the crowd off the surface.
+	foamClingMax = 4
 	// The neighbor search's bucket side, in cells: wider than the largest
 	// pair of radii plus the reach, so a bubble's neighbors are all in the
 	// buckets next to its own.
-	foamBucket = 4
-	// A bubble feels no more than foamNeighbors of the others a step. In a
-	// raft the ones touching it are all that matter, and without a bound a
-	// thick raft costs the square of its size.
+	foamBucket = 11 // 2·foamMaxR + foamReach, 9.8, rounded up
+	// A bubble feels no more than foamNeighbors of the others a step, and
+	// looks at no more than foamLooks to find them. In a raft the ones
+	// touching it are all that matter, and without the first bound a thick
+	// raft costs the square of its size; without the second, so does a long
+	// string of foam, whose bubbles mostly share buckets without being in
+	// reach (the waterline's, 4 ms a frame).
 	foamNeighbors = 12
+	foamLooks     = 64
 )
 
 // NewFoam returns an empty surface that carries no more than most bubbles.
@@ -113,23 +117,22 @@ func NewFoam(most int, seed uint64) *Foam {
 	return &Foam{Max: most, rng: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15))} //nolint:gosec // where bubbles land on a decorative surface
 }
 
-// Spawn makes a bubble at x, y, a little scattered and thrown off at vx, vy,
-// if the surface has room.
-func (fm *Foam) Spawn(x, y, vx, vy float32) {
+// Spawn brings a bubble up at x, y, a little scattered, if the surface has
+// room.
+func (fm *Foam) Spawn(x, y float32) {
 	if len(fm.Bubbles) >= fm.Max {
 		return
 	}
-	u := fm.rng.Float32()
-	big := u * u * u
-	// A throw is never quite the same twice: each bubble leaves at 50–150%
-	// of it.
-	k := 0.5 + fm.rng.Float32()
+	// The power law's tail inverted: r = min·u^(-1/α), drawn again past
+	// the largest rather than piled up at it.
+	r := float32(math.MaxFloat32)
+	for r > foamMaxR {
+		r = foamMinR * float32(math.Pow(1-fm.rng.Float64(), -1/foamSizes))
+	}
+	life := foamMinLife * math.Pow(foamMaxLife/foamMinLife, fm.rng.Float64())
 	fm.Bubbles = append(fm.Bubbles, Bubble{
 		X: x + fm.rng.Float32() - 0.5, Y: y + fm.rng.Float32() - 0.5,
-		VX: vx * k, VY: vy * k,
-		R:    foamMinR + foamSpanR*big,
-		Life: foamMinLife + int(float32(fm.rng.IntN(foamSpanLife))*(1-0.6*big)),
-		Tear: fm.rng.Float32() * 6.2831855,
+		R: r, Life: float32(life),
 	})
 }
 
@@ -137,35 +140,32 @@ func (fm *Foam) Spawn(x, y, vx, vy float32) {
 // a caller deciding whether to make a bubble draws from the same sequence.
 func (fm *Foam) Chance(p float32) bool { return fm.rng.Float32() < p }
 
-// Step moves every bubble one step on surface f, starts the bursts whose time
-// is up, and clears the ones done bursting. A bursting bubble stops riding the
-// water, and the moment it tears it leaves a small ring on f. A bubble carried
-// off the surface is gone with it.
-func (fm *Foam) Step(f *Field) {
-	fm.cling(f)
+// Step moves every bubble one step on surface s: carried by its flow and
+// drawn toward the others. A bubble whose time is up bursts, leaving a
+// small ring on s, and one carried off the surface is gone with it.
+func (fm *Foam) Step(s Surface) {
+	dt := s.StepSeconds()
+	w, h := s.Size()
+	asp := s.CellAspect()
+	if fm.steps%2 == 0 {
+		fm.cling(w, h, asp)
+	}
+	fm.steps++
 	kept := fm.Bubbles[:0]
-	for i, b := range fm.Bubbles {
-		dx, dy := fm.dv[i][0], fm.dv[i][1]
-		if l := float32(math.Sqrt(float64(dx*dx + dy*dy))); l > foamClingMax {
-			dx, dy = dx/l*foamClingMax, dy/l*foamClingMax
-		}
-		b.VX += dx
-		b.VY += dy
-		b.Age++
-		if b.Age >= b.Life+foamBurst {
+	for _, b := range fm.Bubbles {
+		b.Age += dt
+		if b.Age >= b.Life {
+			s.Drop(b.X, b.Y, 1+b.R, -foamPop*b.R)
 			continue
 		}
-		if b.Age == b.Life {
-			f.Drop(b.X, b.Y, 1+b.R, -foamPop*(0.3+b.R))
+		vx, vy := b.pull[0], b.pull[1]
+		if l := float32(math.Hypot(float64(vx), float64(vy))); l > foamClingMax {
+			vx, vy = vx/l*foamClingMax, vy/l*foamClingMax
 		}
-		if b.Age < b.Life {
-			gx, gy := f.Gradient(int(b.X), int(b.Y))
-			b.VX = b.VX*foamDrag - gx*foamDrift + (fm.rng.Float32()-0.5)*foamJostle
-			b.VY = b.VY*foamDrag - gy*foamDrift + (fm.rng.Float32()-0.5)*foamJostle
-			b.X += b.VX
-			b.Y += b.VY
-		}
-		if b.X < 0 || b.Y < 0 || b.X >= float32(f.W) || b.Y >= float32(f.H) {
+		dx, dy := s.Drift(b.X, b.Y)
+		b.X += dx + vx/asp*dt
+		b.Y += dy + vy*dt
+		if b.X < 0 || b.Y < 0 || b.X >= float32(w) || b.Y >= float32(h) {
 			continue
 		}
 		kept = append(kept, b)
@@ -173,11 +173,14 @@ func (fm *Foam) Step(f *Field) {
 	fm.Bubbles = kept
 }
 
-// cling works out the pull each whole bubble feels from the whole ones near
-// it, into fm.dv. A bursting bubble neither pulls nor is pulled: its film is
-// already gone.
-func (fm *Foam) cling(f *Field) {
-	bw, bh := (f.W+foamBucket-1)/foamBucket, (f.H+foamBucket-1)/foamBucket
+// cling works out how fast the others draw each bubble, into its pull, on a
+// surface w by h cells each asp times as wide as tall. Speeds are in cell
+// heights a second.
+func (fm *Foam) cling(w, h int, asp float32) {
+	// A bucket is foamBucket cell heights each way, so fewer cells across
+	// where they are wide.
+	across := max(int(math.Ceil(float64(foamBucket/asp))), 1)
+	bw, bh := (w+across-1)/across, (h+foamBucket-1)/foamBucket
 	if len(fm.head) != bw*bh {
 		fm.head = make([]int32, bw*bh)
 	}
@@ -186,42 +189,37 @@ func (fm *Foam) cling(f *Field) {
 	}
 	n := len(fm.Bubbles)
 	if cap(fm.next) < n {
-		fm.next = make([]int32, n, fm.Max)
-		fm.r = make([]float32, n, fm.Max)
-		fm.dv = make([][2]float32, n, fm.Max)
+		fm.next = make([]int32, n, max(fm.Max, n))
 	}
-	fm.next, fm.r, fm.dv = fm.next[:n], fm.r[:n], fm.dv[:n]
-	clear(fm.dv)
+	fm.next = fm.next[:n]
+	for i := range fm.Bubbles {
+		fm.Bubbles[i].pull = [2]float32{}
+	}
 	bucket := func(b *Bubble) (int, int) {
-		return min(max(int(b.X)/foamBucket, 0), bw-1), min(max(int(b.Y)/foamBucket, 0), bh-1)
+		return min(max(int(b.X)/across, 0), bw-1), min(max(int(b.Y)/foamBucket, 0), bh-1)
 	}
 	for i := range fm.Bubbles {
-		b := &fm.Bubbles[i]
-		if b.Age >= b.Life {
-			continue
-		}
-		fm.r[i] = b.R * b.Size()
-		bx, by := bucket(b)
+		bx, by := bucket(&fm.Bubbles[i])
 		fm.next[i] = fm.head[by*bw+bx]
-		fm.head[by*bw+bx] = int32(i)
+		fm.head[by*bw+bx] = int32(i) //nolint:gosec // fewer bubbles than Max
 	}
 	for i := range fm.Bubbles {
 		a := &fm.Bubbles[i]
-		if a.Age >= a.Life {
-			continue
-		}
-		ra := fm.r[i]
 		bx, by := bucket(a)
-		felt := 0
+		felt, looked := 0, 0
 	near:
 		for y := max(by-1, 0); y <= min(by+1, bh-1); y++ {
 			for x := max(bx-1, 0); x <= min(bx+1, bw-1); x++ {
 				// A bucket lists its bubbles newest first, so past the
 				// first one at or before i are only pairs already taken.
-				for j := fm.head[y*bw+x]; j > int32(i); j = fm.next[j] {
+				for j := fm.head[y*bw+x]; j > int32(i); j = fm.next[j] { //nolint:gosec // fewer bubbles than Max
+					looked++
+					if looked > foamLooks {
+						break near
+					}
 					b := &fm.Bubbles[j]
-					dx, dy := b.X-a.X, b.Y-a.Y
-					touch := ra + fm.r[j]
+					dx, dy := (b.X-a.X)*asp, b.Y-a.Y
+					touch := a.R + b.R
 					d2 := dx*dx + dy*dy
 					if d2 >= (touch+foamReach)*(touch+foamReach) || d2 < 1e-8 {
 						continue
@@ -231,23 +229,17 @@ func (fm *Foam) cling(f *Field) {
 						break near
 					}
 					d := float32(math.Sqrt(float64(d2)))
-					var push float32
+					var pull float32
 					if d < touch {
-						push = -foamPack * (touch - d)
-						// Touching: share the drift.
-						sx, sy := (b.VX-a.VX)*foamStick*0.5, (b.VY-a.VY)*foamStick*0.5
-						fm.dv[i][0] += sx
-						fm.dv[i][1] += sy
-						fm.dv[j][0] -= sx
-						fm.dv[j][1] -= sy
+						pull = -foamPack * (touch - d)
 					} else {
-						push = foamCling * min(1, 4*(1-(d-touch)/foamReach))
+						pull = foamCling * float32(math.Exp(float64(-(d-touch)/foamCapillary)))
 					}
-					ux, uy := dx/d*push, dy/d*push
-					fm.dv[i][0] += ux
-					fm.dv[i][1] += uy
-					fm.dv[j][0] -= ux
-					fm.dv[j][1] -= uy
+					ux, uy := dx/d*pull, dy/d*pull
+					a.pull[0] += ux
+					a.pull[1] += uy
+					b.pull[0] -= ux
+					b.pull[1] -= uy
 				}
 			}
 		}
@@ -257,18 +249,5 @@ func (fm *Foam) cling(f *Field) {
 // Clear bursts every bubble at once.
 func (fm *Foam) Clear() { fm.Bubbles = fm.Bubbles[:0] }
 
-// Size is how far a bubble has inflated, 0..1 of R. It swells fast and then
-// settles, as a film blown out of water does.
-func (b Bubble) Size() float32 {
-	t := min(float32(b.Age)/foamGrow, 1)
-	return 1 - (1-t)*(1-t)
-}
-
-// Burst is how far through its burst a bubble is: 0 while it is whole, then
-// rising to 1 as the tear runs round the rim.
-func (b Bubble) Burst() float32 {
-	if b.Age < b.Life {
-		return 0
-	}
-	return min(float32(b.Age-b.Life+1)/foamBurst, 1)
-}
+// Risen is how far a bubble has come up through the surface, 0..1.
+func (b Bubble) Risen() float32 { return min(b.Age/foamRise, 1) }

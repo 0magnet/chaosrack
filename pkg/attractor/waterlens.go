@@ -15,10 +15,16 @@ type WaterSettings struct {
 // WaterDefaults are the lens's knobs where they start.
 var WaterDefaults = WaterSettings{Amount: 25, Speed: 0.5, Damp: 985, Spread: 12, Edge: 100, Drive: 0, Srcs: 1, Rain: 0}
 
-// WaterGrid is the tank's size, in cells, each way: not the picture's — the
-// wavelengths that matter are many cells wide at this, and a step costs
-// nothing beside a frame.
-const WaterGrid = 192
+// WaterGrid is the tank's height, in cells: not the picture's. The tank
+// (ripple.Tank) steps by FFT, so it is a power of two; at 128 a cell is 2.3
+// mm of water and the finest ripples it carries are about 5 mm long. Across,
+// the page makes it as many as keep its cells square (tankAcross); a native
+// rack keeps it square and its cells as wide as the scene is.
+const WaterGrid = 128
+
+// WaterGridFD is the grid the old wave equation (ripple.Field) ran at, and
+// what the lens's disturbances and its bend knob were sized on.
+const WaterGridFD = 192
 
 // WaterKnob is one of the lens's knobs: its control, label, default and
 // travel.
