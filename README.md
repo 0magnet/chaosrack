@@ -190,6 +190,24 @@ The page also runs with no server at all: see [SERVERLESS.md](SERVERLESS.md).
   spectrum, through the two-color, three-color, hue or six colormaps shared
   with the spectrogram (heat, blue, gray, turbo, viridis, magma). CRT phosphor
   presets with afterglow.
+- **Water**: BEHIND on water looks at the scene through a tray of water,
+  with the model's waterline making waves where Fore puts the surface. Each
+  wave travels at water's own speed for its length (capillary–gravity
+  dispersion), stepped exactly wave by wave through an FFT, after
+  Tessendorf's [iWave](https://jtessen.people.clemson.edu/reports/papers_files/Interactive_Water_Surfaces.pdf)
+  and [eWave](https://jtessen.people.clemson.edu/reports/papers_files/ewavealgorithm.pdf);
+  see also Jeschke and Wojtan's
+  [dispersive shallow-water waves](https://research.nvidia.com/labs/prl/shallow-water-simulation)
+  and [water surface wavelets](https://pub.ista.ac.at/group_wojtan/projects/2018_Jeschke_WaterSurfaceWavelets/WaterSurfaceWavelets.pdf).
+  So a splash spreads into the train of rings measured for
+  [drops on water](https://resolve.cambridge.org/core/journals/journal-of-fluid-mechanics/article/abs/gravitycapillary-rings-generated-by-water-drops/329DFD5008A3D8E83EB4D01FAC19ED51)
+  and worked out for a [pebble in a pond](https://arxiv.org/pdf/1407.5781).
+  **Foam** rides the surface's own flow, clings into rafts and bursts on
+  [measured lifetimes](https://arxiv.org/pdf/2102.06962); each bubble is seen
+  as a real one is, through the lens of its meniscus
+  ([Selmke, Bubble optics](https://arxiv.org/pdf/1909.04401)). Foam on open
+  sea is drawn differently again, as a
+  [texture where waves break](https://liris.cnrs.fr/Documents/Liris-5812.pdf).
 - **Generators**: four, sine to noise plus test signals (pink noise, log
   sweep, polarity pulse, …), 0.107 Hz – 28 160 Hz on an octave-a-turn encoder.
   Below ~20 Hz they are modulators.

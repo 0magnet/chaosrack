@@ -180,6 +180,18 @@ func init() {
 		// rebuilding.
 		quietParams[k.ID] = true
 	}
+	// DRIVE's P: whether a drag across the picture makes waves. Off, the
+	// pointer only turns the model, and the water moves as the model, the
+	// sound and the rain move it, for watching the model and the water
+	// alone.
+	trioPrograms["water-drive"] = trioProgram{
+		keys:     []string{"P", "", ""},
+		switches: []string{"water-touch"},
+		help:     []string{doc("trio.water-drive=0")},
+		press:    func(int) { setSwitch("water-touch", !checkedOn("water-touch")) },
+		lits:     func() []bool { return []bool{checkedOn("water-touch"), false, false} },
+		drive:    []string{"water-touch"},
+	}
 }
 
 // waterActive reports whether the lens is switched on.
@@ -351,7 +363,8 @@ func (wa *waterLens) wireWaterPointer() {
 		return float32(x) * float32(waterW), float32(y) * float32(waterH)
 	}
 	wa.downFn = js.FuncOf(func(_ js.Value, a []js.Value) any {
-		if !waterActive() || len(a) == 0 {
+		// DRIVE's P off: the pointer leaves the water alone.
+		if !waterActive() || !checkedOn("water-touch") || len(a) == 0 {
 			return nil
 		}
 		wa.dragging = true

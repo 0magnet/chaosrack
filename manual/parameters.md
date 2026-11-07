@@ -1035,6 +1035,12 @@ walls — how much of a wave the edges send back, in percent. 100 is a tank with
 <!-- key: p.water-drive -->
 drive — how hard the sound pushes the surface. Zero leaves it to the pointer and the rain.
 
+- <!-- key: trio.water-drive=0 --> P (DRIVE): pointer — lit, a drag across the picture makes a wake; dark, the pointer only turns the model, and the water moves as the model, the sound and the rain move it
+
+<!-- key: water-touch-cell -->
+Let a drag across the picture make waves in the water.
+Off, only the model, the sound and the rain move it.
+
 ### spkrs
 
 <!-- key: p.water-srcs -->
