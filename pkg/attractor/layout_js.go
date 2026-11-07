@@ -167,6 +167,14 @@ func winW() float64 {
 // the panel INLINE into the host page's footer, below its existing content.
 // The edge + sizes persist in localStorage.
 func (pa *panelLayout) applyDock(edge string) {
+	// Under the instrument the panel is its program's to present (seat_js.go):
+	// in its terminal's window, which has its own dock buttons, or on the
+	// desktop. Anything else docking the page's shell built a second panel —
+	// an empty drawer with its dock buttons, or an empty window, over the
+	// program's window that still held every control.
+	if instrumentOn && !(instrumentRunning && desktopFront) {
+		return
+	}
 	shell := dom.Doc.Call("getElementById", "panel-shell")
 	p := dom.Doc.Call("getElementById", "controls-panel")
 	if !shell.Truthy() || !p.Truthy() {

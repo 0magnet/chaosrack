@@ -47,9 +47,12 @@ var (
 	steps   = fs.Int("steps", 80, "number of random actions")
 	delayMs = fs.Int("delay", 110, "ms to pause after each action (raise to watch, 0 = fast)")
 	shotDir = fs.String("out", ".", "directory for failure screenshots")
-	stopOn  = fs.Bool("stop", false, "stop at the first violation")
-	verbose = fs.Bool("v", true, "log every action")
-	noReset = fs.Bool("noreset", false, "never press Reset All — lets state (persist trail, colors, pose) accumulate over the whole walk, which is more interesting to watch and stresses long-run accumulation instead of the reset path")
+	// What a step shows is not all checked: a panel can be on screen in the
+	// wrong place with nothing failing. These are for a person to look at.
+	stepShots = fs.String("step-shots", "", "monkey: also screenshot every step into this directory, as step-NNN.png")
+	stopOn    = fs.Bool("stop", false, "stop at the first violation")
+	verbose   = fs.Bool("v", true, "log every action")
+	noReset   = fs.Bool("noreset", false, "never press Reset All — lets state (persist trail, colors, pose) accumulate over the whole walk, which is more interesting to watch and stresses long-run accumulation instead of the reset path")
 )
 
 const setupJS = `(function(){
@@ -84,8 +87,32 @@ const snapJS = `(function(){
     hashBad:/NaN|undefined|Infinity/.test(location.hash),
     panelDisp:p?getComputedStyle(p).display:'gone',
     mode:(document.getElementById('mode-select')||{}).value||'',
-    ledBad:lb.slice(0,6)
+    ledBad:lb.slice(0,6),
+    orphans:orphans()
   });
+  // Containers made to hold the rack that are on screen without it: the dock
+  // shell showing its dock buttons and a shadow where the panel should be, or
+  // a controls window left empty while the rack is elsewhere. Nothing else
+  // here would notice — the controls still exist and still work, only not
+  // where the eye is sent to find them.
+  function orphans(){
+    var f=document.querySelector('.modules.rack-frame'),out=[];
+    function shown(e){
+      if(!e||!e.getClientRects().length)return false;
+      if(e.checkVisibility&&!e.checkVisibility({visibilityProperty:true,opacityProperty:true}))return false;
+      var r=e.getBoundingClientRect();
+      return r.width>8&&r.height>8&&r.right>0&&r.bottom>0&&r.left<innerWidth&&r.top<innerHeight;
+    }
+    var holders=[document.getElementById('panel-shell')];
+    [].forEach.call(document.querySelectorAll('.winbox'),function(w){if(!w.closest('#chaosrack-desk'))holders.push(w);});
+    holders.forEach(function(h){
+      if(!shown(h))return;
+      if(f&&h.contains(f)&&shown(f))return;
+      var r=h.getBoundingClientRect();
+      out.push((h.id||'winbox')+' '+Math.round(r.width)+'x'+Math.round(r.height)+'@'+Math.round(r.left)+','+Math.round(r.top));
+    });
+    return out;
+  }
 })()`
 
 // recoverJS presses the ▤ button when the panel is hidden OR the "Front" canvas
@@ -186,7 +213,15 @@ func runMonkey() {
 		case roll < 0.88:
 			d := docks[rng.Intn(len(docks))]
 			act = "dock " + d
-			c.Eval(fmt.Sprintf(`(function(){var b=document.getElementById('dock-%s');if(b)b.click();})()`, d))
+			// The dock button a person could press: the page's own, or the
+			// one on the instrument's window, whichever is on screen. Pressing
+			// the page's while it sat off screen in the store was a thing no
+			// hand could do, and it built a second, empty panel.
+			c.Eval(fmt.Sprintf(`(function(d){
+			  var t=d==='float'?'float: a window over the model':'dock to the '+d;
+			  var bs=[].filter.call(document.querySelectorAll('#dock-'+d+',[title="'+t+'"]'),function(b){
+			    var r=b.getBoundingClientRect();return r.width>0&&r.right>0&&r.bottom>0&&r.left<innerWidth&&r.top<innerHeight;});
+			  if(bs.length)bs[0].click();})(%q)`, d))
 		case roll < 0.94:
 			act = "toggle-sw"
 			// Fullscreen is excluded: toggling it just fights the window manager
@@ -232,6 +267,14 @@ func runMonkey() {
 		}
 		if snap["panelDisp"] == "gone" {
 			bad = append(bad, "PANEL-GONE (controls-panel removed)")
+		}
+		if o := joinAny(snap["orphans"]); o != "" {
+			bad = append(bad, "EMPTY-HOLDER (on screen without the rack): "+o)
+		}
+		if *stepShots != "" {
+			if img, err := c.Screenshot(); err == nil {
+				savePNG(filepath.Join(*stepShots, fmt.Sprintf("step-%03d.png", step)), img)
+			}
 		}
 		// (Blank-render / visual oracles live in cmd/uigolden, which drives KNOWN
 		// states — during a chaotic walk the model may be legitimately panned or
