@@ -115,22 +115,45 @@ const snapJS = `(function(){
   }
 })()`
 
-// recoverJS presses the ▤ button when the panel is hidden OR the "Front" canvas
-// is stacked over it, then reports whether the panel is BOTH shown AND stacked
-// at/above the canvas. Stacking (not elementFromPoint) is the right signal for
-// visual burial: the Front canvas is pointer-events:none, so a hit-test passes
-// through it and can't tell the panel is buried under an opaque backdrop —
-// comparing z-index against the canvas does.
+// recoverJS presses the ▤ button when the rack is not on screen, then reports
+// whether it is shown and whether it is buried: covered by the canvas that
+// draws in front of it.
+//
+// Both used to be read off #controls-panel and a Front switch, and both went
+// blind. The instrument keeps #controls-panel displayed in an off-screen store,
+// so a hidden rack read as shown and was never brought back — a walk could
+// spend most of its steps with no controls on screen. And the Front switch
+// became the Fore knob, so burial was never checked at all, which is how a
+// backdrop drawn over the whole panel went unreported. Burial is now read off
+// the near canvas's own pixels over the rack: thin model lines across it are
+// the knob working, an opaque sheet is the panel gone.
 const recoverJS = `(function(){
-  var p=document.getElementById('controls-panel'); if(!p) return JSON.stringify({shown:false,above:false});
-  var cc=document.getElementById('gocanvas-container');
-  function z(e){return e?(parseInt(getComputedStyle(e).zIndex)||0):0;}
-  var mf=document.getElementById('model-front'), front=mf&&mf.checked;
-  if(getComputedStyle(p).display==='none' || (front && z(p)<z(cc))){
-    var b=[].slice.call(document.querySelectorAll('button')).filter(function(x){return x.textContent==='▤';})[0];
+  var f=document.querySelector('.modules.rack-frame')||document.getElementById('controls-panel');
+  if(!f) return JSON.stringify({shown:false,above:false});
+  function shown(e){
+    if(!e.getClientRects().length)return false;
+    if(e.checkVisibility&&!e.checkVisibility({visibilityProperty:true,opacityProperty:true}))return false;
+    var r=e.getBoundingClientRect();
+    return r.width>8&&r.height>8&&r.right>0&&r.bottom>0&&r.left<innerWidth&&r.top<innerHeight;
+  }
+  function covered(){
+    var c=document.getElementById('gocanvas-front');
+    if(!c||getComputedStyle(c).display==='none')return 0;
+    var x=c.getContext('2d'); if(!x)return 0;
+    var r=f.getBoundingClientRect(),cr=c.getBoundingClientRect(),sx=c.width/cr.width,sy=c.height/cr.height,n=0,k=0;
+    for(var i=1;i<6;i++)for(var j=1;j<6;j++){
+      var px=(r.left+r.width*i/6-cr.left)*sx,py=(r.top+r.height*j/6-cr.top)*sy;
+      if(px<0||py<0||px>=c.width||py>=c.height)continue;
+      k++; if(x.getImageData(px|0,py|0,1,1).data[3]>250)n++;
+    }
+    return k?n/k:0;
+  }
+  if(!shown(f)){
+    var b=document.getElementById('panel-toggle')||[].slice.call(document.querySelectorAll('button')).filter(function(x){return x.textContent==='▤';})[0];
     if(b)b.click();
   }
-  return JSON.stringify({shown:getComputedStyle(p).display!=='none', above:z(p)>=z(cc), pz:z(p), cz:z(cc), front:!!front});
+  var cov=covered();
+  return JSON.stringify({shown:shown(f), above:cov<0.8, cov:Math.round(cov*100)});
 })()`
 
 var modes = []string{"rossler", "lorenz", "aizawa", "thomas", "chua", "polyhedron", "torus", "magnetosphere", "lissajou", "graphicartist", "spectrogram", "xy", "fvf", "custom", "sprotta"}
@@ -286,7 +309,7 @@ func runMonkey() {
 			if shown, _ := rec["shown"].(bool); !shown {
 				bad = append(bad, "UNRECOVERABLE (panel not shown after ▤)")
 			} else if above, _ := rec["above"].(bool); !above {
-				bad = append(bad, fmt.Sprintf("BURIED (panel z=%v < Front canvas z=%v after ▤)", rec["pz"], rec["cz"]))
+				bad = append(bad, fmt.Sprintf("BURIED (%v%% of the rack under an opaque canvas after ▤)", rec["cov"]))
 			}
 		}
 
