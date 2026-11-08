@@ -4,17 +4,17 @@ go 1.26.10
 
 require (
 	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992
-	github.com/0magnet/audioprism-go v0.0.1-0.20261107115155-ace2cfe19e7b
+	github.com/0magnet/audioprism-go v0.0.1-0.20261108120350-69cdf35977d9
 	github.com/0magnet/calvin v0.0.1-0.20261106130306-95511d0b3e30
 	github.com/0magnet/cdp v0.0.0-20261028200759-2a9c9f587569
-	github.com/0magnet/desk v0.0.3-0.20261107115715-e5ac49895780
-	github.com/0magnet/desk/panes v0.0.1-0.20261107115330-c83823566fa2
+	github.com/0magnet/desk v0.0.3-0.20261108120756-ff2b91fdb3f8
+	github.com/0magnet/desk/panes v0.0.1-0.20261108120443-c2df42133522
 	github.com/0magnet/lattice v0.0.0-20261106130341-c98a3e9088c7
-	github.com/0magnet/pisano v0.0.0-20261107115529-c2bf501ba814
+	github.com/0magnet/pisano v0.0.0-20261108121024-8fae49aef9e7
 	github.com/0magnet/rack-go v0.0.0-20261028211156-58f7d14d2611
 	github.com/0magnet/seat v0.0.0-20261013221028-e66b97ebca1a
 	github.com/0magnet/sh/v3 v3.13.2-0.20261024150911-145e01c63128
-	github.com/0magnet/tuiwasm v0.0.0-20261107115725-aea5fc2f2ce6
+	github.com/0magnet/tuiwasm v0.0.0-20261108120948-ae059c045fd0
 	github.com/0magnet/websh v0.0.1-0.20261106131606-1973f8bee280
 	github.com/0magnet/winbox-go v0.0.1-0.20261106130421-357df562ff6c
 	github.com/0magnet/xterm-go v0.0.1-0.20261102175652-6023ed24df89
@@ -66,13 +66,13 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/coder/websocket v1.8.15 // indirect
-	github.com/dlclark/regexp2/v2 v2.12.0 // indirect
+	github.com/dlclark/regexp2/v2 v2.13.0 // indirect
 	github.com/dunglas/httpsfv v1.1.2 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.16 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
-	github.com/gin-contrib/sse v1.2.0 // indirect
+	github.com/gin-contrib/sse v1.2.1 // indirect
 	github.com/go-playground/locales v0.14.2 // indirect
 	github.com/go-playground/universal-translator v0.18.2 // indirect
 	github.com/go-playground/validator/v10 v10.30.6 // indirect
