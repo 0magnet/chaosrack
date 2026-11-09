@@ -3054,6 +3054,12 @@ Instrument panels and controls in the browser:
   [DreamRack](https://github.com/chrisgr99/DreamRack) — Eurorack-style racks
 - [woscope](https://github.com/m1el/woscope) — WebGL XY oscilloscope
 
+Wave simulations:
+
+- [WaveDude Next](https://github.com/graealex/WaveDudeNext) — a 2D wave optics
+  simulator; the same leapfrog wave equation as chaosrack's `?waves=fd`
+  fallback, with the wave speed set per cell so lenses and fibers bend waves
+
 ## Dependency Graph
 
 Made with [goda](https://github.com/loov/goda):
