@@ -1,5 +1,5 @@
-# charm.land/lipgloss/v2 v2.0.6
-## explicit; go 1.25.0
+# charm.land/lipgloss/v2 v2.1.0
+## explicit; go 1.26.7
 charm.land/lipgloss/v2
 charm.land/lipgloss/v2/table
 # github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992
@@ -7,14 +7,14 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.1-0.20261108120350-69cdf35977d9
+# github.com/0magnet/audioprism-go v0.0.1-0.20261109140445-d796d29bfa16
 ## explicit; go 1.26.10
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
 # github.com/0magnet/bottle v0.0.1-0.20261028202309-2b922f28f74e
 ## explicit; go 1.24
 github.com/0magnet/bottle/proc
-# github.com/0magnet/calvin v0.0.1-0.20261106130306-95511d0b3e30
+# github.com/0magnet/calvin v0.0.1-0.20261109140133-887794fc87eb
 ## explicit; go 1.26.0
 github.com/0magnet/calvin
 github.com/0magnet/calvin/clihelp
@@ -24,11 +24,11 @@ github.com/0magnet/cdp
 # github.com/0magnet/coloredcobra v1.0.4-0.20261012213101-faa6bd8f94c5
 ## explicit; go 1.26.0
 github.com/0magnet/coloredcobra
-# github.com/0magnet/desk v0.0.3-0.20261108120756-ff2b91fdb3f8
+# github.com/0magnet/desk v0.0.3-0.20261109140939-f687736131a0
 ## explicit; go 1.26.6
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.1-0.20261108120443-c2df42133522
+# github.com/0magnet/desk/panes v0.0.1-0.20261109140655-fe77a2fc5388
 ## explicit; go 1.26.6
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -53,13 +53,13 @@ github.com/0magnet/go-dsp/window
 ## explicit; go 1.26.0
 github.com/0magnet/img2txt-go/caca
 github.com/0magnet/img2txt-go/shape
-# github.com/0magnet/lattice v0.0.0-20261106130341-c98a3e9088c7
+# github.com/0magnet/lattice v0.0.0-20261109140212-91cad4705bea
 ## explicit; go 1.26.4
 github.com/0magnet/lattice
 # github.com/0magnet/lolcat-go v0.0.1-0.20261013220959-57aa27491489
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20261108121024-8fae49aef9e7
+# github.com/0magnet/pisano v0.0.0-20261109140655-8e9d60e9f06e
 ## explicit; go 1.26.6
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20261014235132-1143d38a91d3
@@ -81,7 +81,7 @@ github.com/0magnet/sh/v3/internal/arithm
 github.com/0magnet/sh/v3/interp
 github.com/0magnet/sh/v3/pattern
 github.com/0magnet/sh/v3/syntax
-# github.com/0magnet/termanim v0.0.1-0.20261106130413-51611885f60b
+# github.com/0magnet/termanim v0.0.1-0.20261109140245-5b025e5e1efc
 ## explicit; go 1.26.0
 github.com/0magnet/termanim/aquarium
 github.com/0magnet/termanim/atom
@@ -126,7 +126,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20261108120948-ae059c045fd0
+# github.com/0magnet/tuiwasm v0.0.0-20261109141424-3b7afb07e2ae
 ## explicit; go 1.26.7
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -146,7 +146,7 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754
 ## explicit; go 1.26.6
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.1-0.20261106131606-1973f8bee280
+# github.com/0magnet/websh v0.0.1-0.20261109140532-a1665393304f
 ## explicit; go 1.26.6
 github.com/0magnet/websh/console
 github.com/0magnet/websh/progressive
@@ -154,7 +154,7 @@ github.com/0magnet/websh/shell
 github.com/0magnet/websh/shell/sed
 github.com/0magnet/websh/web
 github.com/0magnet/websh/widget
-# github.com/0magnet/winbox-go v0.0.1-0.20261106130421-357df562ff6c
+# github.com/0magnet/winbox-go v0.0.1-0.20261109140257-4c5c0e948cd6
 ## explicit; go 1.26.0
 github.com/0magnet/winbox-go
 # github.com/0magnet/xterm-go v0.0.1-0.20261102175652-6023ed24df89
@@ -551,7 +551,7 @@ go.mongodb.org/mongo-driver/v2/internal/binaryutil
 go.mongodb.org/mongo-driver/v2/internal/bsoncoreutil
 go.mongodb.org/mongo-driver/v2/internal/decimal128
 go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore
-# golang.org/x/arch v0.32.0
+# golang.org/x/arch v0.33.0
 ## explicit; go 1.26.0
 golang.org/x/arch/x86/x86asm
 # golang.org/x/crypto v0.58.0
@@ -592,10 +592,10 @@ golang.org/x/net/internal/socket
 golang.org/x/net/ipv4
 golang.org/x/net/ipv6
 golang.org/x/net/websocket
-# golang.org/x/sync v0.24.0
+# golang.org/x/sync v0.25.0
 ## explicit; go 1.26.0
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.49.0
+# golang.org/x/sys v0.50.0
 ## explicit; go 1.26.0
 golang.org/x/sys/cpu
 golang.org/x/sys/plan9

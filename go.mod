@@ -4,19 +4,19 @@ go 1.26.10
 
 require (
 	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992
-	github.com/0magnet/audioprism-go v0.0.1-0.20261108120350-69cdf35977d9
-	github.com/0magnet/calvin v0.0.1-0.20261106130306-95511d0b3e30
+	github.com/0magnet/audioprism-go v0.0.1-0.20261109140445-d796d29bfa16
+	github.com/0magnet/calvin v0.0.1-0.20261109140133-887794fc87eb
 	github.com/0magnet/cdp v0.0.0-20261028200759-2a9c9f587569
-	github.com/0magnet/desk v0.0.3-0.20261108120756-ff2b91fdb3f8
-	github.com/0magnet/desk/panes v0.0.1-0.20261108120443-c2df42133522
-	github.com/0magnet/lattice v0.0.0-20261106130341-c98a3e9088c7
-	github.com/0magnet/pisano v0.0.0-20261108121024-8fae49aef9e7
+	github.com/0magnet/desk v0.0.3-0.20261109140939-f687736131a0
+	github.com/0magnet/desk/panes v0.0.1-0.20261109140655-fe77a2fc5388
+	github.com/0magnet/lattice v0.0.0-20261109140212-91cad4705bea
+	github.com/0magnet/pisano v0.0.0-20261109140655-8e9d60e9f06e
 	github.com/0magnet/rack-go v0.0.0-20261028211156-58f7d14d2611
 	github.com/0magnet/seat v0.0.0-20261013221028-e66b97ebca1a
 	github.com/0magnet/sh/v3 v3.13.2-0.20261024150911-145e01c63128
-	github.com/0magnet/tuiwasm v0.0.0-20261108120948-ae059c045fd0
-	github.com/0magnet/websh v0.0.1-0.20261106131606-1973f8bee280
-	github.com/0magnet/winbox-go v0.0.1-0.20261106130421-357df562ff6c
+	github.com/0magnet/tuiwasm v0.0.0-20261109141424-3b7afb07e2ae
+	github.com/0magnet/websh v0.0.1-0.20261109140532-a1665393304f
+	github.com/0magnet/winbox-go v0.0.1-0.20261109140257-4c5c0e948cd6
 	github.com/0magnet/xterm-go v0.0.1-0.20261102175652-6023ed24df89
 	github.com/creack/pty v1.1.24
 	github.com/gdamore/tcell/v2 v2.13.10
@@ -32,11 +32,11 @@ require (
 	gitlab.com/russoj88/stl v1.0.2
 	golang.org/x/image v0.47.0
 	golang.org/x/net v0.62.0
-	golang.org/x/sys v0.49.0
+	golang.org/x/sys v0.50.0
 )
 
 require (
-	charm.land/lipgloss/v2 v2.0.6 // indirect
+	charm.land/lipgloss/v2 v2.1.0 // indirect
 	github.com/0magnet/bottle v0.0.1-0.20261028202309-2b922f28f74e // indirect
 	github.com/0magnet/coloredcobra v1.0.4-0.20261012213101-faa6bd8f94c5 // indirect
 	github.com/0magnet/glamour v1.0.1-0.20261004193946-db176df590f5 // indirect
@@ -44,7 +44,7 @@ require (
 	github.com/0magnet/img2txt-go v0.0.1-0.20261013220954-ae0d760b7d2b // indirect
 	github.com/0magnet/lolcat-go v0.0.1-0.20261013220959-57aa27491489 // indirect
 	github.com/0magnet/proxima5 v0.0.0-20261014235132-1143d38a91d3 // indirect
-	github.com/0magnet/termanim v0.0.1-0.20261106130413-51611885f60b // indirect
+	github.com/0magnet/termanim v0.0.1-0.20261109140245-5b025e5e1efc // indirect
 	github.com/0magnet/toilet-go v0.0.0-20261013224629-4749634a6d85 // indirect
 	github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754 // indirect
 	github.com/alecthomas/chroma/v2 v2.27.0 // indirect
@@ -102,9 +102,9 @@ require (
 	github.com/xo/terminfo v1.3.1 // indirect
 	github.com/yuin/goldmark-emoji v1.0.6 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.10.0 // indirect
-	golang.org/x/arch v0.32.0 // indirect
+	golang.org/x/arch v0.33.0 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
-	golang.org/x/sync v0.24.0 // indirect
+	golang.org/x/sync v0.25.0 // indirect
 	golang.org/x/term v0.47.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
