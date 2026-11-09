@@ -3059,6 +3059,42 @@ Wave simulations:
 - [WaveDude Next](https://github.com/graealex/WaveDudeNext) — a 2D wave optics
   simulator; the same leapfrog wave equation as chaosrack's `?waves=fd`
   fallback, with the wave speed set per cell so lenses and fibers bend waves
+- [Falstad Ripple Tank](https://www.falstad.com/ripple/)
+  ([WebGL source](https://github.com/pfalstad/ripplegl)) — interference,
+  diffraction, refraction and Doppler in the browser
+
+Water surfaces:
+
+- [Evan Wallace — WebGL Water](https://madebyevan.com/webgl-water/)
+  ([caustics write-up](https://medium.com/@evanwallace/rendering-realtime-caustics-in-webgl-2a99a29a0b2c))
+  — a height-field pool rendered with refraction, reflection and caustics;
+  WebGPU port: [jeantimex/webgpu-water](https://github.com/jeantimex/webgpu-water)
+- [David Li — Waves](https://david.li/waves/) ([source](https://github.com/dli/waves))
+  and [jbouny/fft-ocean](https://github.com/jbouny/fft-ocean) — FFT oceans
+- [Ten Minute Physics — height-field water](https://matthias-research.github.io/pages/tenMinutePhysics/20-heightFieldWater.html)
+  ([notes](https://matthias-research.github.io/pages/tenMinutePhysics/20-heightFieldWater.pdf))
+  — water and floating bodies that push each other
+- [Celeris](https://plynett.github.io/) ([source](https://github.com/plynett/plynett.github.io))
+  — shallow-water and Boussinesq coastal waves over real depth, in WebGPU
+
+Fluid flow (dye and smoke):
+
+- [Pavel Dobryakov — WebGL Fluid Simulation](https://paveldogreat.github.io/WebGL-Fluid-Simulation/)
+- [Jamie Wong — Fluid Simulation (with WebGL demo)](https://jamie-wong.com/2016/08/05/webgl-fluid-simulation/)
+  — how that kind of solver works
+- [Ten Minute Physics — Eulerian fluid](https://matthias-research.github.io/pages/tenMinutePhysics/17-fluidSim.html)
+- [kishimisu/WebGPU-Fluid-Simulation](https://github.com/kishimisu/WebGPU-Fluid-Simulation),
+  [Amanda Ghassaei — FluidSimulation](https://apps.amandaghassaei.com/FluidSimulation/),
+  [haxiomic/GPU-Fluid-Experiments](https://github.com/haxiomic/GPU-Fluid-Experiments)
+- [Dan Schroeder — Fluid Dynamics](https://physics.weber.edu/schroeder/fluids/)
+  — a lattice Boltzmann wind tunnel
+
+Particle liquids:
+
+- [Ten Minute Physics — FLIP](https://matthias-research.github.io/pages/tenMinutePhysics/18-flip.html)
+- [David Li — Fluid Particles](https://david.li/fluid/) and [Flow](https://david.li/flow/)
+- [matsuoka-601/WebGPU-Ocean](https://github.com/matsuoka-601/WebGPU-Ocean)
+  ([write-up](https://tympanus.net/codrops/2025/01/29/particles-progress-and-perseverance-a-journey-into-webgpu-fluids/))
 
 ## Dependency Graph
 
