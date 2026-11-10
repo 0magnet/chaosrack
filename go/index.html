@@ -56,6 +56,26 @@ window.__crWS = {
 window.__crWT = {
   open: function (u, init) { try { return new WebTransport(u, init); } catch (e) { return null; } }
 };
+
+
+window.__crCrash = function (what) {
+  if (document.getElementById('cr-crash')) return;
+  var n = document.createElement('div');
+  n.id = 'cr-crash';
+  n.setAttribute('role', 'alert');
+  n.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:40;font:12px monospace;' +
+    'letter-spacing:1px;color:#fc8;background:rgba(0,0,0,.85);border:1px solid #9a5a2a;padding:6px 10px;user-select:none;';
+  n.appendChild(document.createTextNode('chaosrack ' + what + ' · '));
+  var r = document.createElement('span');
+  r.textContent = 'reload';
+  r.style.cssText = 'cursor:pointer;text-decoration:underline';
+  r.addEventListener('click', function () { location.reload(); });
+  n.appendChild(r);
+  (document.body || document.documentElement).appendChild(n);
+};
+window.addEventListener('error', function (e) {
+  if (typeof WebAssembly === 'object' && e.error instanceof WebAssembly.RuntimeError) window.__crCrash('has stopped');
+});
 </script>
 
 
@@ -1357,9 +1377,11 @@ __whenDOMReady(() => __ready.then((result) => {
   return run();
 }).then((result) => {
   console.log("[WASM-STUFF] Go WASM finished: ", result)
+  window.__crCrash('has stopped');
 }, (failure) => {
   console.error("[WASM-STUFF] Go WASM failed: ", failure)
   if (window.__crBootDone) window.__crBootDone();
+  window.__crCrash('failed to start');
 }));
 async function run() {
   await go.run(inst);

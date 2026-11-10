@@ -189,3 +189,45 @@ func TestTheFetchedPageCarriesNoPayload(t *testing.T) {
 		t.Errorf("the fetched page is %d bytes — it should be tens of kilobytes", len(html))
 	}
 }
+
+// A program that ends, or never starts, has to say so on the page.
+//
+// The boot script exists twice in the template, once per page form, and each
+// copy reported both outcomes to the console only: a panic left a frozen
+// instrument and a failed load left a black page, with nothing to read. Both
+// copies must reach the notice on both paths, which is what a fix made to one
+// branch and not the other would miss.
+func TestBothPageFormsSayWhenTheProgramIsGone(t *testing.T) {
+	forms := map[string]htmlTemplateData{
+		"single": {Title: "Go", WasmExecJs: "/* wasm_exec */", WasmURL: "/chaosrack.wasm"},
+		"dual": {
+			Title: "Go", Dual: true,
+			GoWasmExecJs: "/* wasm_exec */", TinyWasmExecJs: "/* wasm_exec */",
+			GoWasmURL: "/go.wasm", TinyWasmURL: "/tiny.wasm",
+		},
+	}
+	for name, d := range forms {
+		html, err := renderTemplate(d)
+		if err != nil {
+			t.Fatalf("%s: rendering: %v", name, err)
+		}
+		s := string(html)
+		if n := strings.Count(s, "window.__crCrash = function"); n != 1 {
+			t.Errorf("%s: the notice is defined %d times, want once", name, n)
+		}
+		// The boot script is what follows __ready. The trap listener beside
+		// the definition, earlier in the page, makes its own "has stopped".
+		_, boot, found := strings.Cut(s, "const __ready")
+		if !found {
+			t.Fatalf("%s: no boot script in the rendered page", name)
+		}
+		for _, call := range []string{"__crCrash('has stopped')", "__crCrash('failed to start')"} {
+			if !strings.Contains(boot, call) {
+				t.Errorf("%s: the boot script never calls %s", name, call)
+			}
+		}
+		if !strings.Contains(s, "WebAssembly.RuntimeError") {
+			t.Errorf("%s: nothing listens for a WebAssembly trap, which is how a TinyGo panic arrives", name)
+		}
+	}
+}

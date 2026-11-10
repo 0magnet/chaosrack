@@ -343,13 +343,19 @@ onefile: ## Build the single self-contained HTML file (wasm carried inside it)
 	@#
 	@# Both runtimes, because a file you were given should not also need to be
 	@# the right one: ?wasm=tinygo still switches inside it.
-	@port=$${PAGES_PORT:-8399}; \
+	@#
+	@# Built and then run, as pages does and for its reason: killing go run
+	@# leaves the server it started. This target wrote the file and then never
+	@# returned, with that server still on the port.
+	@port=$${PAGES_PORT:-8399}; bin=$$(mktemp -d)/chaosrack; \
+	trap "rm -rf $${bin%/*}" EXIT; \
+	go build -o $$bin . || exit 1; \
 	if curl -sf -o /dev/null -m 2 "http://127.0.0.1:$$port/" 2>/dev/null; then \
 		echo "onefile: something is already serving 127.0.0.1:$$port — stop it, or set PAGES_PORT" >&2; \
 		exit 1; \
 	fi; \
-	go run . serve -p $$port --inline & srv=$$!; \
-	trap "kill $$srv 2>/dev/null" EXIT INT TERM; \
+	$$bin serve -p $$port --inline & srv=$$!; \
+	trap "kill $$srv 2>/dev/null; rm -rf $${bin%/*}" EXIT INT TERM; \
 	for i in $$(seq 1 300); do \
 		curl -sf -o /dev/null "http://127.0.0.1:$$port/" && break || sleep 1; \
 	done; \

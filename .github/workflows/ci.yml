@@ -30,6 +30,31 @@ jobs:
       # wasm-only compile error is otherwise invisible until `make wasms`.
       - run: GOOS=js GOARCH=wasm go build -o /dev/null .
 
+  # The js/wasm tests, under Node. The test job above cannot compile a _js.go
+  # file, so the 285 tests beside the browser half of the app ran only when
+  # somebody typed `make test-wasm`. A job of its own because pkg/attractor
+  # alone takes minutes here, and the host tests should not wait on it.
+  #
+  # go test directly rather than the make target: that one skips, and exits 0,
+  # where Node or the exec wrapper is missing, which is right on a laptop and
+  # would be a green run that tested nothing here.
+  test-wasm:
+    runs-on: ubuntu-latest
+    env:
+      WASM_REFRESHED_BY_CI: ${{ github.event_name == 'push' && '1' || '' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+      - uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+      - run: |
+          exec="$(go env GOROOT)/lib/wasm/go_js_wasm_exec"
+          test -x "$exec"
+          CGO_ENABLED=0 GOOS=js GOARCH=wasm go test -timeout 30m -exec="$exec" ./...
+
   lint:
     runs-on: ubuntu-latest
     steps:

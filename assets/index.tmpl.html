@@ -76,6 +76,34 @@ window.__crWS = {
 window.__crWT = {
   open: function (u, init) { try { return new WebTransport(u, init); } catch (e) { return null; } }
 };
+/* The one way this page says the program is gone.
+   A panic in wasm ends the program: the canvas keeps its last frame and
+   nothing responds again, and a build that fails to load leaves a black page.
+   Both said so only in the console, where nobody using the instrument looks.
+   The rack keeps its controls in the address, so a reload restores them, and
+   that is what the notice offers.
+   Three callers: the boot script below, when the binary fails to load and
+   when the program ends (it is not meant to), and the listener here for a
+   WebAssembly trap, which is how a TinyGo panic arrives: "unreachable",
+   thrown into whichever callback was running, with go.run never returning. */
+window.__crCrash = function (what) {
+  if (document.getElementById('cr-crash')) return;
+  var n = document.createElement('div');
+  n.id = 'cr-crash';
+  n.setAttribute('role', 'alert');
+  n.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:40;font:12px monospace;' +
+    'letter-spacing:1px;color:#fc8;background:rgba(0,0,0,.85);border:1px solid #9a5a2a;padding:6px 10px;user-select:none;';
+  n.appendChild(document.createTextNode('chaosrack ' + what + ' · '));
+  var r = document.createElement('span');
+  r.textContent = 'reload';
+  r.style.cssText = 'cursor:pointer;text-decoration:underline';
+  r.addEventListener('click', function () { location.reload(); });
+  n.appendChild(r);
+  (document.body || document.documentElement).appendChild(n);
+};
+window.addEventListener('error', function (e) {
+  if (typeof WebAssembly === 'object' && e.error instanceof WebAssembly.RuntimeError) window.__crCrash('has stopped');
+});
 </script>
 {{if .Page.HostConfig}}<script>window.__deskHost={{.Page.HostConfig}};</script>{{end}}
 {{if .Page.AudioFeed}}<script>window.__crAudio={{.Page.AudioFeed}};</script>{{end}}
@@ -235,8 +263,8 @@ __whenDOMReady(() => __ready.then((result) => {
   performance.mark("wasm-instantiated");
   console.log("[WASM-STUFF] " + __which + " WASM instantiated, starting...");
   return run();
-}).then((r) => console.log("[WASM-STUFF] " + __which + " WASM finished:", r),
-        (f) => { console.error("[WASM-STUFF] " + __which + " WASM failed:", f); if (window.__crBootDone) window.__crBootDone(); }));
+}).then((r) => { console.log("[WASM-STUFF] " + __which + " WASM finished:", r); window.__crCrash('has stopped'); },
+        (f) => { console.error("[WASM-STUFF] " + __which + " WASM failed:", f); if (window.__crBootDone) window.__crBootDone(); window.__crCrash('failed to start'); }));
 async function run() {
   await go.run(inst);
   inst = await WebAssembly.instantiate(mod, go.importObject);
@@ -300,9 +328,11 @@ __whenDOMReady(() => __ready.then((result) => {
   return run();
 }).then((result) => {
   console.log("[WASM-STUFF] {{.Page.Title}} WASM finished: ", result)
+  window.__crCrash('has stopped');
 }, (failure) => {
   console.error("[WASM-STUFF] {{.Page.Title}} WASM failed: ", failure)
   if (window.__crBootDone) window.__crBootDone();
+  window.__crCrash('failed to start');
 }));
 async function run() {
   await go.run(inst);

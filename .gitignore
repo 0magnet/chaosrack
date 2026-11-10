@@ -30,3 +30,9 @@
 /docs/img/gif/
 # The models' loops likewise (uitool portraits writes them; make publish-gifs).
 /docs/img/model/*.gif
+
+# `make onefile` writes this: the whole app in one HTML file, both runtimes
+# inside it. It was tracked, 12.3 MB, and went 629 commits without being
+# rebuilt while the site offered it as a download — it still said 66 models
+# when the page said 73. Built on demand now, and not kept.
+/chaosrack-standalone.html
