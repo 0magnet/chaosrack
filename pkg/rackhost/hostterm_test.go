@@ -93,6 +93,10 @@ func TestATerminalModelIsTextTheSizeOfTheScene(t *testing.T) {
 	if _, cols, rows, ok := r.TextScene(60, 10); !ok || cols != 60 || rows != 10 {
 		t.Fatalf("the shell is %dx%d (text %v), want 60x10", cols, rows, ok)
 	}
+	// The prompt first. The terminal echoes a key the moment it arrives, so
+	// text typed before the shell has drawn its prompt lands ahead of it: on
+	// a slow machine the first row read "s$ tty size".
+	waitScreen(t, r, c, "$ ")
 	typeText(t, r, "stty size\n")
 	waitScreen(t, r, c, "10 60")
 	cells, cols, _, _ := r.TextScene(60, 10)
