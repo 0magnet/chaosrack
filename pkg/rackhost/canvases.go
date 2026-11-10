@@ -11,6 +11,7 @@ import (
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"
 
+	"github.com/0magnet/chaosrack/pkg/attractor"
 	"github.com/0magnet/chaosrack/pkg/rackpic"
 )
 
@@ -40,7 +41,7 @@ func (r *Rack) canvasesOf() map[int]panelCanvas {
 	}
 	under := map[string]panelCanvas{"bay-visual-0-mon-on": {kind: canvasMonitor}}
 	for n := range scopeCount {
-		under[scopePrefix(n)+"-volts"] = panelCanvas{kind: canvasScope, n: n}
+		under[attractor.ScopePrefix(n)+"-volts"] = panelCanvas{kind: canvasScope, n: n}
 	}
 	r.canvasKinds = map[int]panelCanvas{}
 	for i, it := range r.pic.Items {

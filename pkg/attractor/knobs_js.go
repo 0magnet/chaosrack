@@ -127,7 +127,7 @@ func initKnobDrag() {
 			d += 2 * math.Pi
 		}
 		kb.prevAng = cur
-		v, _ := strconv.ParseFloat(kb.slider.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+		v := dom.Num(kb.slider)
 		scale := 1.0
 		if kb.fine {
 			scale = fineRatio
@@ -156,7 +156,7 @@ func initKnobDrag() {
 		// already shows it: in the detent or at the bottom of the range.
 		if kb.active && kb.slider.Truthy() {
 			if sp, ok := switchPots[kb.slider.Get("id").String()]; ok {
-				v, _ := strconv.ParseFloat(kb.slider.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+				v := dom.Num(kb.slider)
 				kb.slider.Set("value", strconv.FormatFloat(sp.snap(v), 'g', -1, 64))
 			}
 		}
@@ -691,7 +691,7 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 	id := slider.Get("id").String()
 	sweep := knobSweep(id)
 	update := func() {
-		v, _ := strconv.ParseFloat(slider.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+		v := dom.Num(slider)
 		// An endless knob (turns_js.go) points round its lap and lights a
 		// full ring; one with stops sweeps 270° across its range.
 		spec, endless := turnSpecs[id]
@@ -769,7 +769,7 @@ func makeKnob(slider, mirror js.Value, withFine, register, valueDial bool) js.Va
 			if fineMode {
 				stepv = cs.step * fineRatio
 			}
-			v, _ := strconv.ParseFloat(slider.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+			v := dom.Num(slider)
 			old := v
 			if up {
 				v += stepv

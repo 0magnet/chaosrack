@@ -269,7 +269,7 @@ func (fm *waterFoam) fillFoam(reach bool) int {
 		fm.verts = append(fm.verts, b.X/float32(waterW), b.Y/float32(waterH), max(d, 2), b.Risen(), rb, a)
 	}
 	n := len(fm.verts) / waterFoamStride
-	js.CopyBytesToJS(fm.vertsJS, sliceToByteSlice(fm.verts))
+	js.CopyBytesToJS(fm.vertsJS, glctx.Bytes(fm.verts))
 	gl := glctx.GL
 	gl.Call("bindBuffer", glctx.Types.ArrayBuffer, fm.buf)
 	gl.Call("bufferSubData", glctx.Types.ArrayBuffer, 0, fm.vertsJS.Call("subarray", 0, n*waterFoamStride*4))

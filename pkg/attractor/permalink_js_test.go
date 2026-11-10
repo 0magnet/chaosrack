@@ -52,3 +52,23 @@ func TestEveryPermalinkControlExistsAndMatchesItsKind(t *testing.T) {
 		seen[p.key] = p.id
 	}
 }
+
+// A pose or a route level of NaN is refused where the link is read, so it
+// never reaches the camera or the modulation.
+func TestALinkCannotCarryNaNIntoThePoseOrARoute(t *testing.T) {
+	was := [3]float32{view.angleX, view.angleY, view.angleZ}
+	defer func() { view.angleX, view.angleY, view.angleZ = was[0], was[1], was[2] }()
+	view.angleX, view.angleY, view.angleZ = 0.25, 0.5, 0.75
+	for _, rot := range []string{"NaN,0,0", "0,Inf,0", "0,0,-Infinity"} {
+		applyRot(rot)
+		if view.angleX != 0.25 || view.angleY != 0.5 || view.angleZ != 0.75 {
+			t.Fatalf("rot=%s moved the pose to %v, %v, %v", rot, view.angleX, view.angleY, view.angleZ)
+		}
+	}
+	if _, ok := parseModRoute("mono~0,1~NaN"); ok {
+		t.Error("a route whose level is NaN was taken")
+	}
+	if m, ok := parseModRoute("mono~NaN,1~0.4"); !ok || m.bands[0] != 0 {
+		t.Errorf("a band of NaN came back %+v (%v), want it read as 0", m, ok)
+	}
+}

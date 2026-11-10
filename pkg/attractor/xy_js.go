@@ -3,8 +3,9 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/glctx"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/glctx"
 )
 
 // The xy scope mode draws (L[i], R[i]) as a line strip on the shared
@@ -404,7 +405,7 @@ func (x *xyScope) drawXYScope(clearFirst bool) {
 
 	glctx.GL.Call("useProgram", x.program)
 	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, x.buf)
-	js.CopyBytesToJS(x.jsUint8, sliceToByteSlice(x.line))
+	js.CopyBytesToJS(x.jsUint8, glctx.Bytes(x.line))
 	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, x.jsFloat, glctx.Types.DynamicDraw)
 	glctx.GL.Call("enableVertexAttribArray", x.aPos)
 	glctx.GL.Call("vertexAttribPointer", x.aPos, 2, glctx.Types.Float, false, 0, 0)

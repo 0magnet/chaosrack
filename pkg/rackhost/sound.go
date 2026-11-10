@@ -201,7 +201,7 @@ func (r *Rack) genSet(i int, part string) {
 	s, id := r.sound, genIDs[i]
 	switch part {
 	case "freq":
-		s.fg.SetFreq(i, freqFromKnob(r.number(id+"-freq")))
+		s.fg.SetFreq(i, attractor.FreqFromKnob(r.number(id+"-freq")))
 	case "lvl":
 		s.level[i] = r.number(id+"-lvl") / 100
 	case "wave":
@@ -455,14 +455,6 @@ func (s *sound) render(left, right []float32) {
 			s.mod.push(&v, s.capL[j], s.capR[j])
 		}
 	}
-}
-
-// freqFromKnob is a generator's frequency knob in hertz: the knob counts
-// semitones up from A0 over ten octaves, as the page's does
-// (attractor.freqFromKnob).
-func freqFromKnob(v float64) float64 {
-	const lo, hi, semitones = 27.5, 28160.0, 120
-	return lo * math.Pow(hi/lo, v/semitones)
 }
 
 // genOutRows are the Mixer's rows a generator's OUT sets, left then right:

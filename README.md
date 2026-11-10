@@ -104,12 +104,12 @@ to the analog computers at [glensstuff.com](https://glensstuff.com).
 The WebAssembly is embedded in the binary; there is no build step.
 
 ```
-go install github.com/0magnet/chaosrack@master
+go install github.com/0magnet/chaosrack@main
 chaosrack serve            # serve the rack at http://127.0.0.1:8080/
 chaosrack serve --audio    # also stream this machine's audio to the page
 ```
 
-Or without installing: `go run github.com/0magnet/chaosrack@master serve --audio`.
+Or without installing: `go run github.com/0magnet/chaosrack@main serve --audio`.
 
 Open [127.0.0.1:8080/](http://127.0.0.1:8080/) (Go build) or
 [127.0.0.1:8080/tinygo/](http://127.0.0.1:8080/tinygo/) (TinyGo build).

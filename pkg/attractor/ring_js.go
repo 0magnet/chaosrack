@@ -3,12 +3,13 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dynamics"
-	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
 	"runtime"
 	"strconv"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dynamics"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 )
 
 // Ring-trail mode (the TRAIL − (Display) switch): instead of re-integrating the
@@ -172,7 +173,7 @@ func (r *ringTrail) uploadAndDraw(start, n int) {
 			return
 		}
 		seg := sim.vertBuf[from*4 : (from+count)*4]
-		js.CopyBytesToJS(r.jsSegUint8(len(seg)*4), sliceToByteSlice(seg))
+		js.CopyBytesToJS(r.jsSegUint8(len(seg)*4), glctx.Bytes(seg))
 		glctx.GL.Call("bufferSubData", glctx.Types.ArrayBuffer, from*16, r.jsSegView(len(seg)))
 	}
 	if start+n <= sim.steps {
@@ -247,7 +248,7 @@ func (r *ringTrail) updateDwell(start, n int) {
 		}
 	}
 	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, gpu.dwell.gl)
-	js.CopyBytesToJS(gpu.dwell.u8, sliceToByteSlice(gpu.dwell.buf))
+	js.CopyBytesToJS(gpu.dwell.u8, glctx.Bytes(gpu.dwell.buf))
 	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, gpu.dwell.f32, glctx.Types.DynamicDraw)
 	glctx.GL.Call("vertexAttribPointer", gpu.aDwell, 1, glctx.Types.Float, false, 0, 0)
 	glctx.GL.Call("enableVertexAttribArray", gpu.aDwell)

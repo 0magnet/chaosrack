@@ -3,12 +3,13 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/audiosrc"
-	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/scope"
 	"strconv"
 	"strings"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/audiosrc"
+	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/scope"
 )
 
 // The rack scope's front panel and its tube.
@@ -90,7 +91,7 @@ var (
 var rscopes = func() (s [rackScopeCount]*rackScope) {
 	for n := range s {
 		ra := &rackScope{
-			p: scopePrefix(n), n: n,
+			p: ScopePrefix(n), n: n,
 			ui: scopeState{
 				voltsIdx: scopeVoltsDef,
 				timeIdx:  scopeTimeDef,
@@ -260,7 +261,7 @@ func (ra *rackScope) wireScopeBeam() {
 	if !illum.Truthy() || !intens.Truthy() || !focus.Truthy() || !holder.Truthy() {
 		return
 	}
-	lo, _ := strconv.ParseFloat(illum.Get("min").String(), 64) //nolint:errcheck // the markup's own number
+	lo := parseOr0(illum.Get("min").String())
 	sp := switchPot{off: lo}
 	switchPots[ra.id("illum")] = sp
 	holder.Set("innerHTML", "")
@@ -275,7 +276,7 @@ func (ra *rackScope) wireScopeBeam() {
 	})
 	two := func(v float64) string { return strconv.FormatFloat(v, 'f', 2, 64) }
 	apply := func() {
-		v, _ := strconv.ParseFloat(illum.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute
+		v := dom.Num(illum)
 		v = sp.snap(v)
 		power := !sp.isOff(v)
 		ra.ui.illum = max(v, 0)
@@ -307,14 +308,14 @@ func (ra *rackScope) wireScopeBeam() {
 		ID: ra.id("illum"), Label: "illum", Min: lo, Max: 1, Step: 0.01, Def: 0.5,
 		ResetID: "rst-" + ra.id("intens"), PermaKey: scopePermaKey(ra.id("illum")),
 	})
-	ra.ui.focus, _ = strconv.ParseFloat(focus.Get("value").String(), 64) //nolint:errcheck // the markup's own number
+	ra.ui.focus = dom.Num(focus)
 	apply()
 	adoptDescControl(ControlDesc{
 		ID: ra.id("intens"), Label: "intens", Min: 0, Max: 1, Step: 0.01, Def: 0.6,
 		LEDStep: 0.1, LEDID: ra.id("intens-led"), ResetID: "rst-" + ra.id("intens"), PermaKey: scopePermaKey(ra.id("intens")),
 		Apply: func(v float64) { ra.ui.intens = v },
 	})
-	ra.ui.intens, _ = strconv.ParseFloat(intens.Get("value").String(), 64) //nolint:errcheck // the markup's own number
+	ra.ui.intens = dom.Num(intens)
 }
 
 // The SLOPE, MODE and SOURCE buttons, every scope's.
@@ -511,7 +512,7 @@ func wireScopeRange(id string, set func(float64)) {
 		}
 	}
 	attr := func(a string) float64 {
-		v, _ := strconv.ParseFloat(el.Call("getAttribute", a).String(), 64) //nolint:errcheck // the markup's own numbers; zero if one is ever missing
+		v := parseOr0(el.Call("getAttribute", a).String())
 		return v
 	}
 	adoptDescControl(ControlDesc{

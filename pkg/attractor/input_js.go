@@ -3,11 +3,12 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
 	"strconv"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 )
 
 // Model-input wiring: the document-level drag-rotate gesture (mouse + touch,
@@ -332,7 +333,7 @@ func wireWheelBindings() {
 			if !(step > 0) {
 				step = 1
 			}
-			cur, _ := strconv.ParseFloat(el.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+			cur := dom.Num(el)
 			if deltaY < 0 {
 				cur += step
 			} else {

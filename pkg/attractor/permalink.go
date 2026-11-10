@@ -1,6 +1,23 @@
 package attractor
 
-import "strings"
+import (
+	"math"
+	"strconv"
+	"strings"
+)
+
+// linkFloat reads a number out of a link. ok is false for text that is not a
+// number, and also for NaN and the infinities: ParseFloat reads "NaN" and
+// "Inf" as numbers and returns no error, and a link is text anybody can
+// write. One of them in a pose or a step size reaches the model matrix or
+// the integrator, and the scene is blank with nothing to say why.
+func linkFloat(s string) (float64, bool) {
+	v, err := strconv.ParseFloat(s, 32)
+	if err != nil || math.IsNaN(v) || math.IsInf(v, 0) {
+		return 0, false
+	}
+	return v, true
+}
 
 // isAppHash reports whether a URL fragment is one of ours.
 //

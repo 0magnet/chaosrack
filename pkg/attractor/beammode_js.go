@@ -258,7 +258,7 @@ func (r *renderer) drawBeam(v []float32) {
 	glctx.GL.Call("enableVertexAttribArray", r.aTrailT)
 	glctx.GL.Call("disableVertexAttribArray", r.aDwell)
 	glctx.GL.Call("vertexAttrib1f", r.aDwell, 1.0)
-	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, SliceToTypedArray(v), glctx.Types.DynamicDraw)
+	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, glctx.SliceToTypedArray(v), glctx.Types.DynamicDraw)
 	glctx.GL.Call("uniform1f", r.u.trailHead, 0)
 	r.lastDrawn = n
 	glctx.GL.Call("drawArrays", glctx.Types.Lines, 0, n)

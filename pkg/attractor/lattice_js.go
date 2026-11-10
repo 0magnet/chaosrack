@@ -653,7 +653,7 @@ func (p *glyphPipe) draw(v []float32, tex js.Value, light bool) {
 			p.u8 = js.Global().Get("Uint8Array").New(p.cap * 4)
 			p.f32 = js.Global().Get("Float32Array").New(p.u8.Get("buffer"), 0, p.cap)
 		}
-		js.CopyBytesToJS(p.u8, sliceToByteSlice(v))
+		js.CopyBytesToJS(p.u8, glctx.Bytes(v))
 		glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, p.f32.Call("subarray", 0, len(v)), glctx.Types.DynamicDraw)
 	}
 	p.redraw(tex, light)

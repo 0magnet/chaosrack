@@ -156,11 +156,11 @@ func parseModRoute(val string) (paramMod, bool) {
 	bandStrs := strings.Split(sv[1], ",")
 	bands := make([]float32, len(bandStrs))
 	for i, bs := range bandStrs {
-		f, _ := strconv.ParseFloat(bs, 32) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+		f, _ := linkFloat(bs) // zero for a band that is not a number
 		bands[i] = float32(f)
 	}
-	lvl, err := strconv.ParseFloat(sv[2], 32)
-	if err != nil {
+	lvl, ok := linkFloat(sv[2])
+	if !ok {
 		return paramMod{}, false
 	}
 	return paramMod{channel: sv[0], bands: bands, level: float32(lvl), shape: shape}, true
@@ -596,8 +596,8 @@ func applyRot(val string) {
 	}
 	var a [3]float32
 	for i := range 3 {
-		v, err := strconv.ParseFloat(f[i], 32)
-		if err != nil {
+		v, ok := linkFloat(f[i])
+		if !ok {
 			return
 		}
 		a[i] = float32(v) * 0.0174532925 // deg → rad
@@ -737,12 +737,16 @@ func (pe *permalinkState) applyStateFrom(h string) {
 	}
 	if dragVal != "" {
 		if q := strings.Split(dragVal, ","); len(q) == 4 {
-			f := [4]float32{}
+			// All four or none: a quaternion with one component missing is a
+			// different rotation, not an approximate one.
+			f, whole := [4]float32{}, true
 			for i := range 4 {
-				v, _ := strconv.ParseFloat(q[i], 32) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-				f[i] = float32(v)
+				v, ok := linkFloat(q[i])
+				f[i], whole = float32(v), whole && ok
 			}
-			view.setDragQuat(f[0], f[1], f[2], f[3])
+			if whole {
+				view.setDragQuat(f[0], f[1], f[2], f[3])
+			}
 		}
 	}
 	// Record whether the link pinned an explicit pose, so Run() only applies the
@@ -795,7 +799,7 @@ func (c *customEquation) applyLinkKey(key, val string) (isCustom, isFlavor bool)
 		}
 		return true, true
 	case "cex":
-		if v, err := strconv.ParseFloat(val, 32); err == nil && v > 0 {
+		if v, ok := linkFloat(val); ok && v > 0 {
 			c.extent = float32(v)
 		}
 		return false, false
@@ -805,7 +809,7 @@ func (c *customEquation) applyLinkKey(key, val string) (isCustom, isFlavor bool)
 		c.SetRK4(val == "1")
 		return true, false
 	case "cdt":
-		if v, err := strconv.ParseFloat(val, 32); err == nil {
+		if v, ok := linkFloat(val); ok {
 			c.dt = float32(v)
 		}
 		return false, false

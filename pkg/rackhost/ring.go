@@ -115,11 +115,4 @@ func (r *Rack) paintRings() {
 }
 
 // ledColorIndex is where the Style knob's LED color is in the table.
-func (r *Rack) ledColorIndex() int {
-	for i, c := range attractor.LEDColors {
-		if c.Name == r.value("led-color") {
-			return i
-		}
-	}
-	return 0
-}
+func (r *Rack) ledColorIndex() int { return attractor.LEDColorIndex(r.value("led-color")) }

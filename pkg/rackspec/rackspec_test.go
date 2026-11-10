@@ -102,7 +102,7 @@ func TestPinsAreNotJacks(t *testing.T) {
 func TestStylesheetDeclaresTheSameScale(t *testing.T) {
 	css, err := os.ReadFile("../attractor/panel.css")
 	if err != nil {
-		t.Skip("panel.css not readable from here:", err)
+		t.Fatal("panel.css not readable from here:", err)
 	}
 	// --mm:calc(4px*var(--kscale,1))
 	re := regexp.MustCompile(`--mm:\s*calc\(([0-9.]+)px`)
@@ -227,7 +227,7 @@ func TestTheTekPlugInIsNotOnTheHPGrid(t *testing.T) {
 func TestStylesheetDrawsTheSpecifiedCell(t *testing.T) {
 	css, err := os.ReadFile("../attractor/panel.css")
 	if err != nil {
-		t.Skip("panel.css not readable from here:", err)
+		t.Fatal("panel.css not readable from here:", err)
 	}
 	// The cell is declared in millimeters, as --krow (height) and --kcol
 	// (width), which is what every knob cell is sized by.
@@ -302,7 +302,7 @@ func TestAPanelHoldsThreeRowsOfControls(t *testing.T) {
 func TestStylesheetColumnsAreOneSlotApart(t *testing.T) {
 	css, err := os.ReadFile("../attractor/panel.css")
 	if err != nil {
-		t.Skip("panel.css not readable from here:", err)
+		t.Fatal("panel.css not readable from here:", err)
 	}
 	m := regexp.MustCompile(`--kpitch:\s*calc\(([0-9.]+)\*var\(--mm\)\)`).FindSubmatch(css)
 	if m == nil {

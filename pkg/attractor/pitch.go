@@ -29,14 +29,14 @@ const (
 // genFreqTurns is FREQ's laps: an octave a turn, from genKnobLo to genKnobHi.
 var genFreqTurns = turnSpec{kind: turnLinear, lo: genTurnLo, hi: genTurnHi, floor: genKnobLo, ceil: genKnobHi, bounded: true}
 
-// freqFromKnob maps a slider position (semitones above A0) to Hz.
-func freqFromKnob(v float64) float64 {
+// FreqFromKnob maps a slider position (semitones above A0) to Hz.
+func FreqFromKnob(v float64) float64 {
 	return genFreqLo * math.Pow(genFreqHi/genFreqLo, v/genSemitones)
 }
 
 // knobFromFreq is the inverse (for typing a frequency into the LED).
 func knobFromFreq(hz float64) float64 {
-	if lo := freqFromKnob(genKnobLo); hz < lo {
+	if lo := FreqFromKnob(genKnobLo); hz < lo {
 		hz = lo
 	}
 	return genSemitones * math.Log(hz/genFreqLo) / math.Log(genFreqHi/genFreqLo)

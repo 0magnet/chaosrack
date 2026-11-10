@@ -2,7 +2,11 @@
 
 package attractor
 
-import "syscall/js"
+import (
+	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/glctx"
+)
 
 // Handing the beam over as numbers instead of as text.
 //
@@ -57,6 +61,6 @@ func strokeScopePoints(ctx js.Value, pts []float32) {
 		return
 	}
 	f32, u8 := sfast.ptsArrays(len(pts))
-	js.CopyBytesToJS(u8, sliceToByteSlice(pts))
+	js.CopyBytesToJS(u8, glctx.Bytes(pts))
 	fastDOM().Call("scopeStroke", ctx, f32, len(pts))
 }

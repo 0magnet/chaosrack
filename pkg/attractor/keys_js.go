@@ -3,13 +3,14 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/dom"
-	"github.com/0magnet/chaosrack/pkg/rackspec"
-	"github.com/0magnet/chaosrack/pkg/racksurface"
-	"math"
 	"strconv"
 	"strings"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/keysynth"
+	"github.com/0magnet/chaosrack/pkg/rackspec"
+	"github.com/0magnet/chaosrack/pkg/racksurface"
 )
 
 // The Keys module: a playable polyphonic keyboard — the first slice of the
@@ -323,16 +324,7 @@ func (k *keyboard) glide(x, y float64, note *int) {
 	now := js.Global().Get("performance").Call("now").Float() / 1000
 	x0, y0, dt := k.lastX, k.lastY, now-k.lastT
 	k.lastX, k.lastY, k.lastT = x, y, now
-	var path []int
-	steps := int(math.Hypot(x-x0, y-y0)/3) + 1
-	for i := 1; i <= steps; i++ {
-		f := float64(i) / float64(steps)
-		m, ok := k.midiAt(x0+(x-x0)*f, y0+(y-y0)*f)
-		if !ok || m == *note || (len(path) > 0 && path[len(path)-1] == m) {
-			continue
-		}
-		path = append(path, m)
-	}
+	path := keysynth.GlidePath(x0, y0, x, y, *note, k.midiAt)
 	if len(path) == 0 {
 		return
 	}
@@ -347,8 +339,7 @@ func (k *keyboard) glide(x, y float64, note *int) {
 	if len(passing) == 0 || !k.ctx.Truthy() || !held {
 		return
 	}
-	dt = min(max(dt, 0.02), 0.15)
-	per := dt / float64(len(path))
+	per := keysynth.GlideSpan(dt) / float64(len(path))
 	t := k.ctx.Get("currentTime").Float()
 	for i, m := range passing {
 		k.passNote(m, t+float64(i)*per, per)

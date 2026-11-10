@@ -1,11 +1,11 @@
 package rackhost
 
 import (
-	"math"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/0magnet/chaosrack/pkg/keysynth"
 	"github.com/0magnet/chaosrack/pkg/rackpic"
 )
 
@@ -153,20 +153,11 @@ func (r *Rack) glide(x, y float64) {
 	now := time.Now()
 	x0, y0, dt := kp.lastX, kp.lastY, now.Sub(kp.lastT).Seconds()
 	kp.lastX, kp.lastY, kp.lastT = x, y, now
-	var path []int
-	steps := int(math.Hypot(x-x0, y-y0)/3) + 1
-	for i := 1; i <= steps; i++ {
-		f := float64(i) / float64(steps)
-		m, ok := keyMark(r.markAt(x0+(x-x0)*f, y0+(y-y0)*f))
-		if !ok || m == kp.mouse || len(path) > 0 && path[len(path)-1] == m {
-			continue
-		}
-		path = append(path, m)
-	}
+	path := keysynth.GlidePath(x0, y0, x, y, kp.mouse, func(x, y float64) (int, bool) { return keyMark(r.markAt(x, y)) })
 	if len(path) == 0 {
 		return
 	}
-	per := int(min(max(dt, 0.02), 0.15) / float64(len(path)) * sampleRate)
+	per := int(keysynth.GlideSpan(dt) / float64(len(path)) * sampleRate)
 	k := &r.sound.keys
 	r.sound.mu.Lock()
 	defer r.sound.mu.Unlock()

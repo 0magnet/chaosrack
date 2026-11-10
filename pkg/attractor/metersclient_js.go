@@ -4,8 +4,10 @@ package attractor
 
 import (
 	"encoding/json"
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 
 	"github.com/0magnet/chaosrack/pkg/metersproto"
 )
@@ -209,8 +211,8 @@ func (me *metersClient) workerTick() bool {
 			break
 		}
 		if me.workerArrays(n) {
-			js.CopyBytesToJS(me.wlb, sliceToByteSlice(sl[:n]))
-			js.CopyBytesToJS(me.wrb, sliceToByteSlice(sr2[:n]))
+			js.CopyBytesToJS(me.wlb, glctx.Bytes(sl[:n]))
+			js.CopyBytesToJS(me.wrb, glctx.Bytes(sr2[:n]))
 			m := js.Global().Get("Object").New()
 			m.Set("t", metersproto.TypeAudio)
 			m.Set("l", me.wl.Call("subarray", 0, n))

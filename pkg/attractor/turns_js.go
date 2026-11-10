@@ -121,12 +121,7 @@ func paintRing(dial js.Value, spec turnSpec, v float64) {
 // ledColorIndex is where the Style knob's LED color is in ledColorDefs.
 func ledColorIndex() int {
 	if sel := dom.Doc.Call("getElementById", "led-color"); sel.Truthy() {
-		name := sel.Get("value").String()
-		for i, d := range ledColorDefs {
-			if d.name == name {
-				return i
-			}
-		}
+		return LEDColorIndex(sel.Get("value").String())
 	}
 	return 0
 }

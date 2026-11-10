@@ -86,7 +86,7 @@ const (
 )
 
 func tmStepCount() int {
-	n, _ := strconv.Atoi(dom.Doc.Call("getElementById", "tm-steps").Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+	n := dom.Int(dom.Doc.Call("getElementById", "tm-steps"))
 	if n < 1 || n > tmMaxSteps {
 		n = 16
 	}
@@ -95,8 +95,8 @@ func tmStepCount() int {
 
 // tmRootMidi reads the root knob: midi C of the chosen octave.
 func tmRootMidi() int {
-	oct, _ := strconv.Atoi(dom.Doc.Call("getElementById", "tm-root").Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-	return rhythm.RootMidi(oct)                                                             // C1=24 … C4=60
+	oct := dom.Int(dom.Doc.Call("getElementById", "tm-root"))
+	return rhythm.RootMidi(oct) // C1=24 … C4=60
 }
 
 // tmMidiFor maps a grid row (0 = top) to its midi note: pentatonic degrees
@@ -436,7 +436,7 @@ func (to *tonematrix) stepDur() float64 {
 // scheduleCol sounds every lit pad in the column at ctx time t: a short
 // ping (fast attack, exponential decay) per pad, fire-and-forget nodes.
 func (to *tonematrix) scheduleCol(c int, t float64) {
-	w, _ := strconv.Atoi(dom.Doc.Call("getElementById", "tm-wave").Get("value").String()) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+	w := dom.Int(dom.Doc.Call("getElementById", "tm-wave"))
 	dur := rhythm.PingSeconds(to.stepDur())
 	for r := range tmRows {
 		if !to.pat[c][r] {

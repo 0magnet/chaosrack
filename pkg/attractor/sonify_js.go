@@ -4,11 +4,11 @@ package attractor
 
 import (
 	"math"
-	"strconv"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 )
 
 // Model Out — the model as a signal generator, which is what it is: an
@@ -293,7 +293,7 @@ func (so *sonifier) process(_ js.Value, args []js.Value) any {
 // without allocating intermediate typed arrays.
 func sonifyWrite(dst js.Value, src []float32) {
 	u8 := js.Global().Get("Uint8Array").New(dst.Get("buffer"), dst.Get("byteOffset"), len(src)*4)
-	js.CopyBytesToJS(u8, sliceToByteSlice(src))
+	js.CopyBytesToJS(u8, glctx.Bytes(src))
 }
 
 func (so *sonifier) start() {
@@ -330,7 +330,7 @@ func (so *sonifier) stop() {
 
 // sonifyFreqFromSlider maps a semitone slider (A0-anchored, the generators')
 // to hertz.
-func sonifyFreqFromSlider(v float64) float64 { return freqFromKnob(v) }
+func sonifyFreqFromSlider(v float64) float64 { return FreqFromKnob(v) }
 
 // sonifySliderFromFreq is the inverse, for typed LED entry.
 func sonifySliderFromFreq(hz float64) float64 {
@@ -344,8 +344,7 @@ func sonifySliderFromFreq(hz float64) float64 {
 		v = float64(genSemitones)
 	}
 	// keep sub-semitone precision from typed Hz
-	s, _ := strconv.ParseFloat(strconv.FormatFloat(v, 'f', 2, 64), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-	return s
+	return math.Round(v*100) / 100
 }
 
 // modelOutKeys are the link keys of modelOutParams, in order.

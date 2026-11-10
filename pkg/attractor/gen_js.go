@@ -3,12 +3,14 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/audiosrc"
-	"github.com/0magnet/chaosrack/pkg/dom"
 	"math"
 	"strconv"
 	"strings"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/audiosrc"
+	"github.com/0magnet/chaosrack/pkg/dom"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 )
 
 // Frequency for the generators: the knob's hidden slider is in semitones
@@ -396,7 +398,7 @@ func buildGeneratorModule() {
 			LEDID: id + "-led", ResetID: "rst-" + id + "-freq",
 			PermaKey: osc.key("f"),
 			Apply: func(v float64) {
-				aud.fg().SetFreq(idx, freqFromKnob(v))
+				aud.fg().SetFreq(idx, FreqFromKnob(v))
 				gen.audioUpdate(idx)
 			},
 			SliderToVal: sonifyFreqFromSlider,
@@ -430,7 +432,7 @@ func buildGeneratorModule() {
 			},
 		})
 		// Push the markup's defaults into the generator.
-		aud.fg().SetFreq(idx, freqFromKnob(fgFloat(freq)))
+		aud.fg().SetFreq(idx, FreqFromKnob(fgFloat(freq)))
 		aud.fg().SetAmp(idx, fgFloat(lvl)/100)
 	}
 	adoptDescControl(ControlDesc{
@@ -572,7 +574,7 @@ func (g *generator) stimBuffer(ctx js.Value, w int) js.Value {
 	pts := audiosrc.StimLoop(w, sr)
 	buf := ctx.Call("createBuffer", 1, len(pts), sr)
 	f32 := js.Global().Get("Float32Array").New(len(pts))
-	js.CopyBytesToJS(js.Global().Get("Uint8Array").New(f32.Get("buffer")), sliceToByteSlice(pts))
+	js.CopyBytesToJS(js.Global().Get("Uint8Array").New(f32.Get("buffer")), glctx.Bytes(pts))
 	buf.Call("copyToChannel", f32, 0)
 	if g.stimBufs == nil {
 		g.stimBufs = map[int]js.Value{}

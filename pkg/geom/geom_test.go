@@ -63,14 +63,10 @@ func TestMagnetosphereIndicesInRange(t *testing.T) {
 	}
 }
 
-// The largest models the callers can ask for. The attractor's own globe
-// is knob-driven — parallels 2..60 and meridians 1..90, in
-// pkg/splitwasm/control.go — and that package is js-tagged, so its
-// generator cannot be reached from a native test. Its geometry is the
-// same shape as Globe's, so checking Globe at those maxima is what says
-// the knob ranges are still inside the budget. Widen a knob past this and
-// this test is where it shows up.
-func TestKnobMaximaFitTheIndexSpace(t *testing.T) {
+// Globe well past what its caller asks for, which is Globe(18, 36, 60).
+// The rack's knob-driven globe is not this function: it is
+// attractor.GlobeMesh, checked at its own knobs' caps in that package.
+func TestALargeGlobeFitsTheIndexSpace(t *testing.T) {
 	const (
 		maxParallels = 60
 		maxMeridians = 90

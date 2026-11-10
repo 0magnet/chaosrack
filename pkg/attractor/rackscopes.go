@@ -19,10 +19,10 @@ import (
 // rackScopeCount is how many scopes the rack has.
 const rackScopeCount = 4
 
-// scopePrefix is the id prefix of scope n, from 0: "scope" for the first, so
+// ScopePrefix is the id prefix of scope n, from 0: "scope" for the first, so
 // its ids are the ones the markup was written with, and "scope2" and on for
 // the copies.
-func scopePrefix(n int) string {
+func ScopePrefix(n int) string {
 	if n == 0 {
 		return "scope"
 	}
@@ -55,7 +55,7 @@ func withRackScopes(body string) string {
 	var b strings.Builder
 	b.WriteString(body[:j])
 	for k := 1; k < rackScopeCount; k++ {
-		p := scopePrefix(k)
+		p := ScopePrefix(k)
 		c := scopeIDs.ReplaceAllString(block, `id="${1}`+p+`-`)
 		c = strings.Replace(c, ">Scope 1</div>", ">Scope "+strconv.Itoa(k+1)+"</div>", 1)
 		c = strings.Replace(c, `title="Scope 1 — `, `title="Scope `+strconv.Itoa(k+1)+` — `, 1)

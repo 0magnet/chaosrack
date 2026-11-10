@@ -9,6 +9,7 @@ import (
 	"syscall/js"
 	u "unsafe"
 
+	"github.com/0magnet/chaosrack/pkg/glctx"
 	"github.com/go-gl/mathgl/mgl32"
 )
 
@@ -186,12 +187,12 @@ func (r *Renderer) createMatrixes() {
 	//	fmt.Println("Renderer.createMatrixes")
 	projMatrix := mgl32.Perspective(mgl32.DegToRad(45.0), ratio, 1, 100000.0)
 	projMatrixBuffer := (*[16]float32)(u.Pointer(&projMatrix)) // nolint
-	typedProjMatrixBuffer := S2TA((*projMatrixBuffer)[:])
+	typedProjMatrixBuffer := glctx.SliceToTypedArray((*projMatrixBuffer)[:])
 	r.glContext.Call("uniformMatrix4fv", r.PositionMatrix, false, typedProjMatrixBuffer)
 
 	viewMatrix := mgl32.LookAtV(mgl32.Vec3{3.0, 3.0, 3.0}, mgl32.Vec3{0.0, 0.0, 0.0}, mgl32.Vec3{0.0, 1.0, 0.0})
 	viewMatrixBuffer := (*[16]float32)(u.Pointer(&viewMatrix)) // nolint
-	typedViewMatrixBuffer := S2TA((*viewMatrixBuffer)[:])
+	typedViewMatrixBuffer := glctx.SliceToTypedArray((*viewMatrixBuffer)[:])
 	r.glContext.Call("uniformMatrix4fv", r.ViewMatrix, false, typedViewMatrixBuffer)
 }
 
@@ -254,7 +255,7 @@ func (r *Renderer) attachShaderProgram() {
 
 // UpdateColorBuffer Updates the ColorBuffer
 func (r *Renderer) UpdateColorBuffer(buffer []float32) {
-	r.colors = S2TA(buffer)
+	r.colors = glctx.SliceToTypedArray(buffer)
 	if r.colorBuffer.IsUndefined() {
 		r.colorBuffer = r.glContext.Call("createBuffer")
 	}
@@ -264,7 +265,7 @@ func (r *Renderer) UpdateColorBuffer(buffer []float32) {
 
 // UpdateVerticesBuffer Updates the VerticesBuffer
 func (r *Renderer) UpdateVerticesBuffer(buffer []float32) {
-	r.v = S2TA(buffer)
+	r.v = glctx.SliceToTypedArray(buffer)
 	if r.vertexBuffer.IsUndefined() {
 		r.vertexBuffer = r.glContext.Call("createBuffer")
 	}
@@ -274,7 +275,7 @@ func (r *Renderer) UpdateVerticesBuffer(buffer []float32) {
 
 // UpdateIndicesBuffer Updates the IndicesBuffer
 func (r *Renderer) UpdateIndicesBuffer(buffer []uint32) {
-	r.i = S2TA(buffer)
+	r.i = glctx.SliceToTypedArray(buffer)
 	if r.indexBuffer.IsUndefined() {
 		r.indexBuffer = r.glContext.Call("createBuffer")
 	}
@@ -308,7 +309,7 @@ func (r *Renderer) advance(now float32) {
 // draw draws the model as it is turned now.
 func (r *Renderer) draw() {
 	modelMatrixBuffer := (*[16]float32)(u.Pointer(&r.movMatrix)) // nolint
-	typedModelMatrixBuffer := S2TA((*modelMatrixBuffer)[:])
+	typedModelMatrixBuffer := glctx.SliceToTypedArray((*modelMatrixBuffer)[:])
 
 	r.glContext.Call("uniformMatrix4fv", r.ModelMatrix, false, typedModelMatrixBuffer)
 
@@ -327,6 +328,6 @@ func (r *Renderer) draw() {
 func (r *Renderer) SetZoom(currentZoom float32) {
 	viewMatrix := mgl32.LookAtV(mgl32.Vec3{currentZoom, currentZoom, currentZoom}, mgl32.Vec3{0.0, 0.0, 0.0}, mgl32.Vec3{0.0, 1.0, 0.0})
 	viewMatrixBuffer := (*[16]float32)(u.Pointer(&viewMatrix)) // nolint
-	typedViewMatrixBuffer := S2TA((*viewMatrixBuffer)[:])
+	typedViewMatrixBuffer := glctx.SliceToTypedArray((*viewMatrixBuffer)[:])
 	r.glContext.Call("uniformMatrix4fv", r.ViewMatrix, false, typedViewMatrixBuffer)
 }

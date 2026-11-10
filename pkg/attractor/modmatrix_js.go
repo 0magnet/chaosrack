@@ -247,7 +247,7 @@ func modMxGrid() js.Value {
 				if e.Get("deltaY").Float() > 0 {
 					step = -step
 				}
-				v, _ := strconv.ParseFloat(modMx.depth.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+				v := dom.Num(modMx.depth)
 				modMx.depth.Set("value", strconv.FormatFloat(v+step, 'g', -1, 64))
 				dom.Fire(modMx.depth, "input")
 				return nil

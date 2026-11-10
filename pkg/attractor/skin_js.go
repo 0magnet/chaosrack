@@ -3,10 +3,11 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/conway"
-	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
 	"syscall/js"
+
+	"github.com/0magnet/chaosrack/pkg/conway"
+	"github.com/0magnet/chaosrack/pkg/glctx"
 )
 
 // Spectrogram "skin": paint the live spectrogram texture onto a surface
@@ -112,9 +113,9 @@ func (s *skinSurface) buildSkinMesh(mode string) {
 		s.iBuf = glctx.GL.Call("createBuffer")
 	}
 	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, s.vBuf)
-	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, SliceToTypedArray(verts), glctx.Types.StaticDraw)
+	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, glctx.SliceToTypedArray(verts), glctx.Types.StaticDraw)
 	glctx.GL.Call("bindBuffer", glctx.Types.ElementArrayBuffer, s.iBuf)
-	glctx.GL.Call("bufferData", glctx.Types.ElementArrayBuffer, SliceToTypedArray(idx), glctx.Types.StaticDraw)
+	glctx.GL.Call("bufferData", glctx.Types.ElementArrayBuffer, glctx.SliceToTypedArray(idx), glctx.Types.StaticDraw)
 	s.idxCount = len(idx)
 }
 

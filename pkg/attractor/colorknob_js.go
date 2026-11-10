@@ -37,7 +37,7 @@ func makeHueKnob(slider js.Value) js.Value {
 	knob.Call("appendChild", ptr)
 
 	update := func() {
-		h, _ := strconv.ParseFloat(slider.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+		h := dom.Num(slider)
 		turnPtr(ptr, h)
 	}
 	update()
@@ -78,7 +78,7 @@ func makeHueKnob(slider js.Value) js.Value {
 		e := a[0]
 		e.Call("preventDefault")
 		e.Call("stopPropagation")
-		h, _ := strconv.ParseFloat(slider.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+		h := dom.Num(slider)
 		if e.Get("deltaY").Float() < 0 {
 			h += 6
 		} else {
@@ -149,8 +149,8 @@ func buildColorKnob(colorInput js.Value) js.Value {
 		if colorSyncing {
 			return
 		}
-		h, _ := strconv.ParseFloat(hueR.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
-		l, _ := strconv.ParseFloat(levR.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+		h := dom.Num(hueR)
+		l := dom.Num(levR)
 		s, v := levelToSV(l)
 		colorSyncing = true
 		colorInput.Set("value", knobHex(h, s, v))

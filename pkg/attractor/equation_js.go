@@ -437,7 +437,7 @@ func (c *customEquation) applyCustomEq(val string) {
 }
 
 func (c *customEquation) applyCustomParam(name, val string) {
-	if v, err := strconv.ParseFloat(val, 32); err == nil {
+	if v, ok := linkFloat(val); ok {
 		f := float32(v)
 		c.paramVal[name] = &f
 	}

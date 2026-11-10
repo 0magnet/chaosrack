@@ -288,7 +288,7 @@ void main(){
 	verts := []float32{-1, -1, 1, -1, -1, 1, 1, 1}
 	wa.quadBuf = glctx.GL.Call("createBuffer")
 	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, wa.quadBuf)
-	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, SliceToTypedArray(verts), glctx.Types.StaticDraw)
+	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, glctx.SliceToTypedArray(verts), glctx.Types.StaticDraw)
 
 	wa.sceneTex = newClampedTexture()
 	wa.heightTex = newClampedTexture()

@@ -3,10 +3,11 @@
 package attractor
 
 import (
-	"github.com/0magnet/chaosrack/pkg/glctx"
 	"math"
 	"syscall/js"
 	"unsafe"
+
+	"github.com/0magnet/chaosrack/pkg/glctx"
 
 	"github.com/go-gl/mathgl/mgl32"
 )
@@ -171,7 +172,7 @@ func newTexQuad(hw, hh float32) js.Value {
 	}
 	buf := glctx.GL.Call("createBuffer")
 	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, buf)
-	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, SliceToTypedArray(verts), glctx.Types.StaticDraw)
+	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, glctx.SliceToTypedArray(verts), glctx.Types.StaticDraw)
 	return buf
 }
 
@@ -183,7 +184,7 @@ func (t *texturedPipe) mat4ToTyped(m *mgl32.Mat4) js.Value {
 		t.matF32 = js.Global().Get("Float32Array").New(t.matU8.Get("buffer"), 0, 16)
 	}
 	buf := (*[16]float32)(unsafe.Pointer(m)) //nolint:gosec // reinterpreting a typed slice as its backing bytes to cross into JS without a second copy
-	js.CopyBytesToJS(t.matU8, sliceToByteSlice((*buf)[:]))
+	js.CopyBytesToJS(t.matU8, glctx.Bytes((*buf)[:]))
 	return t.matF32
 }
 

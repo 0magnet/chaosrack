@@ -15,3 +15,14 @@ var LEDColors = []LEDColor{
 	{"cyan", "#2ce0e0", "#159a9a", "#001515", "#0a3838"}, // the old audio-mod readout hue
 	{"violet", "#b06cff", "#8040d0", "#12001f", "#2a0a3a"},
 }
+
+// LEDColorIndex is where the color called name is in LEDColors, and 0, the
+// default, for a name that is not one of them.
+func LEDColorIndex(name string) int {
+	for i, c := range LEDColors {
+		if c.Name == name {
+			return i
+		}
+	}
+	return 0
+}

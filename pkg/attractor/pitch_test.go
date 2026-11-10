@@ -20,7 +20,7 @@ func TestPitchAnchors(t *testing.T) {
 		{57, 739.989}, // F#5 ≈ 739.99 (equal temperament)
 	}
 	for _, c := range cases {
-		got := freqFromKnob(c.semis)
+		got := FreqFromKnob(c.semis)
 		if math.Abs(got-c.hz) > 0.01 {
 			t.Errorf("freqFromKnob(%v) = %v Hz, want %v", c.semis, got, c.hz)
 		}
@@ -31,7 +31,7 @@ func TestPitchAnchors(t *testing.T) {
 // across the full range (the LED typed-entry path depends on this inverse).
 func TestPitchRoundTrip(t *testing.T) {
 	for s := float64(genKnobLo); s <= genKnobHi; s += 0.25 {
-		hz := freqFromKnob(s)
+		hz := FreqFromKnob(s)
 		back := knobFromFreq(hz)
 		if math.Abs(back-s) > 0.001 {
 			t.Errorf("round-trip %v semis → %v Hz → %v semis", s, hz, back)
@@ -42,7 +42,7 @@ func TestPitchRoundTrip(t *testing.T) {
 // FREQ goes eight octaves under A0, an octave a turn, and no further either
 // way; its laps start at C, as the piano strip does.
 func TestTheFreqEncoderReachesBelowThePiano(t *testing.T) {
-	if hz := freqFromKnob(genKnobLo); math.Abs(hz-27.5/256) > 1e-9 {
+	if hz := FreqFromKnob(genKnobLo); math.Abs(hz-27.5/256) > 1e-9 {
 		t.Errorf("the bottom is %v Hz, want %v", hz, 27.5/256)
 	}
 	if got := knobFromFreq(0.001); got != genKnobLo {

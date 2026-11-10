@@ -228,7 +228,7 @@ func (ph *phosphorState) drawPhosphorFade() {
 		verts := []float32{-1, -1, 1, -1, -1, 1, 1, 1}
 		ph.quadBuf = glctx.GL.Call("createBuffer")
 		glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, ph.quadBuf)
-		glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, SliceToTypedArray(verts), glctx.Types.StaticDraw)
+		glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, glctx.SliceToTypedArray(verts), glctx.Types.StaticDraw)
 		ph.quadReady = true
 	}
 	p := phosphors[ph.index]
@@ -251,7 +251,7 @@ func (ph *phosphorState) drawFadeQuad(kr, kg, kb float32) {
 		verts := []float32{-1, -1, 1, -1, -1, 1, 1, 1}
 		ph.quadBuf = glctx.GL.Call("createBuffer")
 		glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, ph.quadBuf)
-		glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, SliceToTypedArray(verts), glctx.Types.StaticDraw)
+		glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, glctx.SliceToTypedArray(verts), glctx.Types.StaticDraw)
 		ph.quadReady = true
 	}
 	glctx.GL.Call("disable", glctx.Types.DepthTest)

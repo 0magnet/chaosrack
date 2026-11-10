@@ -86,7 +86,7 @@ func wheelNudge(readout, slider js.Value, step, mn, mx float64) {
 		e := args[0]
 		e.Call("preventDefault")
 		e.Call("stopPropagation")
-		v, _ := strconv.ParseFloat(slider.Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+		v := dom.Num(slider)
 		if e.Get("deltaY").Float() < 0 {
 			v += step
 		} else {

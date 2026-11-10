@@ -3,9 +3,10 @@
 package attractor
 
 import (
+	"syscall/js"
+
 	"github.com/0magnet/chaosrack/pkg/colormap"
 	"github.com/0magnet/chaosrack/pkg/glctx"
-	"syscall/js"
 )
 
 // A per-vertex-color program for the flat analyzers.
@@ -126,7 +127,7 @@ func (v *vcolorPipe) upload(n int) {
 	}
 	glctx.GL.Call("useProgram", v.program)
 	glctx.GL.Call("bindBuffer", glctx.Types.ArrayBuffer, v.buf)
-	js.CopyBytesToJS(v.u8, sliceToByteSlice(v.data))
+	js.CopyBytesToJS(v.u8, glctx.Bytes(v.data))
 	glctx.GL.Call("bufferData", glctx.Types.ArrayBuffer, v.f32, glctx.Types.DynamicDraw)
 	glctx.GL.Call("enableVertexAttribArray", v.aPos)
 	glctx.GL.Call("vertexAttribPointer", v.aPos, 2, glctx.Types.Float, false, vcStride*4, 0)

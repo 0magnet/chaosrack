@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/0magnet/chaosrack/pkg/attractor"
 	"github.com/0magnet/chaosrack/pkg/led"
 	"github.com/0magnet/chaosrack/pkg/racktui"
 )
@@ -153,7 +154,7 @@ func (r *Rack) findReadout(c *racktui.Control, value string, box [4]float64, lo,
 func shown(id, value string) string {
 	if _, part := genOf(id); part == "freq" {
 		if v, err := strconv.ParseFloat(value, 64); err == nil {
-			return strconv.FormatFloat(freqFromKnob(v), 'f', -1, 64)
+			return strconv.FormatFloat(attractor.FreqFromKnob(v), 'f', -1, 64)
 		}
 	}
 	return value

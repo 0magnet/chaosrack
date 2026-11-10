@@ -3,7 +3,6 @@
 package attractor
 
 import (
-	"strconv"
 	"syscall/js"
 
 	"github.com/0magnet/chaosrack/pkg/dom"
@@ -73,7 +72,7 @@ func (f *freqCounter) tick() {
 		}
 	}
 	f.samples += n
-	gate, _ := strconv.ParseFloat(dom.Doc.Call("getElementById", "counter-gatesel").Get("value").String(), 64) //nolint:errcheck // a numeric DOM attribute; zero is the right fallback if it is ever not
+	gate := dom.Num(dom.Doc.Call("getElementById", "counter-gatesel"))
 	if gate <= 0 {
 		gate = 1
 	}

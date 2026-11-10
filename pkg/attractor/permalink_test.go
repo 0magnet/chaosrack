@@ -72,3 +72,19 @@ func TestALinkToAFoldedModelOpensWhatItIsNow(t *testing.T) {
 		}
 	}
 }
+
+// A link is text anybody can write, and ParseFloat reads "NaN" and "Inf" as
+// numbers with no error. Either one in a pose reached the model matrix and
+// left a blank scene.
+func TestLinkFloatRefusesWhatIsNotAFiniteNumber(t *testing.T) {
+	for _, s := range []string{"NaN", "nan", "Inf", "+Inf", "-inf", "Infinity", "1e999", "", "abc", "1,5"} {
+		if v, ok := linkFloat(s); ok {
+			t.Errorf("linkFloat(%q) = %v, taken as a number", s, v)
+		}
+	}
+	for s, want := range map[string]float64{"1.5": 1.5, "-0.25": -0.25, "1e3": 1000, "0": 0} {
+		if v, ok := linkFloat(s); !ok || v != want {
+			t.Errorf("linkFloat(%q) = %v, %v; want %v", s, v, ok, want)
+		}
+	}
+}

@@ -6,6 +6,7 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/0magnet/chaosrack/pkg/attractor"
 	"github.com/0magnet/chaosrack/pkg/audiosrc"
 	"github.com/0magnet/chaosrack/pkg/scope"
 )
@@ -51,14 +52,6 @@ const (
 // scopeCount is how many scopes the rack has.
 const scopeCount = 4
 
-// scopePrefix is scope n's id prefix, from 0: "scope", then "scope2" on.
-func scopePrefix(n int) string {
-	if n == 0 {
-		return "scope"
-	}
-	return "scope" + strconv.Itoa(n+1)
-}
-
 // scopeUI is a scope's front panel, read off its controls.
 type scopeUI struct {
 	voltsPerDiv, secPerDiv float64
@@ -84,7 +77,7 @@ type scopeTube struct {
 
 // scopeUIOf reads scope n's front panel. Called with r.mu held.
 func (r *Rack) scopeUIOf(n int) scopeUI {
-	p := scopePrefix(n) + "-"
+	p := attractor.ScopePrefix(n) + "-"
 	idx := func(id string, steps []float64, def int) float64 {
 		i, err := strconv.Atoi(r.value(p + id))
 		if err != nil || i < 0 || i >= len(steps) {

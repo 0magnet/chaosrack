@@ -36,3 +36,7 @@
 # rebuilt while the site offered it as a download — it still said 66 models
 # when the page said 73. Built on demand now, and not kept.
 /chaosrack-standalone.html
+
+# uitool monkey writes these where it is run when a walk fails. One was
+# committed at the root with the first commit and stayed.
+/monkey-fail-seed*.png
