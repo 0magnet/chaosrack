@@ -26,6 +26,24 @@ func TestTheLeftoverIsBlankPanelsAndNeverNegative(t *testing.T) {
 }
 
 // A capacity of zero is not a rack, and must not become an infinite loop or
+// lose a module: Pack treats it as one slot, and every item is still placed
+// exactly once.
+func TestACapacityOfZeroStillPlacesEveryModule(t *testing.T) {
+	items := []Item{{Key: "a", Slots: 2}, {Key: "b", Slots: 1}, {Key: "c", Slots: 3}}
+	for _, capacity := range []int{0, -4} {
+		seen := map[int]int{}
+		for _, row := range Pack(items, capacity, nil) {
+			for _, i := range row {
+				seen[i]++
+			}
+		}
+		for i := range items {
+			if seen[i] != 1 {
+				t.Errorf("capacity %d: item %d placed %d times, want once", capacity, i, seen[i])
+			}
+		}
+	}
+}
 
 // Checked in slot arithmetic rather than pixels so it holds at any
 // interface scale: N slots span N pitches less the trailing seam, which

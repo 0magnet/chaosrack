@@ -21,29 +21,14 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
-// Run boots the panel: build it, wire every control, start the loop.
+// Run boots the panel and then blocks for the life of the page: mount it,
+// build and wire every control, restore the link, start the loop.
 //
-// It was sixteen hundred lines at a cyclomatic complexity of 146 — the
-// largest piece of debt in the Go here, grown honestly by wiring each
-// control inline next to the last. Twenty blocks have come out and it is
-// 487 lines at 56.
-//
-// They were found rather than chosen. Track brace depth through the body,
-// then take the runs where every mention of one of Run's locals is also a
-// declaration of it inside that run, bounded by statement boundaries and
-// containing no return that would exit Run rather than the new function.
-// Thirteen used no locals at all; the rest own theirs. buildPanelKnobs is
-// the one that mattered — six closures declared once and used by every axis
-// and every slider, private to that block all along, with Run for a scope.
-//
-// That is as far as cutting goes: the analysis now finds exactly one run
-// left, and it is the guard at the top that returns out of Run. The 56 that
-// remains is spread thin across statements sharing locals that are read
-// hundreds of lines apart — panel, shell, hash, footers — and those come
-// down by giving the boot a struct to hang its state on, which is a design
-// and not a cut.
-//
-//nolint:gocyclo // 56, down from 146; see above for what the rest needs
+// The order is the content. The panel must be in the document before its
+// elements are cached; the controls must be registered before the link is
+// restored, so a restored value drives its control like any other; and
+// everything between the knobs and the link runs with layout deferred,
+// because each re-quantize of the rack is a full layout of the page.
 func Run() {
 	// Lazy WebGL init — see initWebGL doc. Must run after the host
 	// DOM is ready (caller's responsibility); otherwise gocanvas
@@ -61,7 +46,46 @@ func Run() {
 	// A pair link in the address, or a pairing kept from one: before anything
 	// dials, so the audio and the rack link know where their server is.
 	pairing.Boot()
+	mountPanel()
 
+	dom.Init() // refresh the handles; the host's document may have changed
+	bootMark("fonts")
+	injectFonts() // embedded @font-face rules for the panel / LED / header fonts
+	cacheElementRefs()
+	bootMark("knobs-start")
+	buildPanelKnobs()
+	mountPanelToggle()
+	wireStyleKnobs()
+	bootMark("knobs-done")
+	// From here to the permalink, every handler that would re-quantize the
+	// rack or rebuild the panel asks once and is answered once, at the end:
+	// each quantize writes the rack and reads it back, which is a full layout
+	// of the page, and the boot asked for sixteen of them in a row. With no
+	// mode, because the hash has not been read yet: the flush uses the one
+	// the boot ends on.
+	owed.withDeferredLayout("", wireControlsAndRestoreLink)
+	done := make(chan struct{})
+	renderFrame = dom.FuncOf(renderLoop)
+	js.Global().Call("requestAnimationFrame", renderFrame)
+
+	// Set initial trail-controls visibility for the starting mode.
+	updateTrailVisibility()
+	wireExtraNav()
+	// Kill the vertical scroll the controls panel adds by growing the body.
+	applyHostPageTweaks()
+	bootMark("bg-start")
+	startBackgroundTasks()
+	bootMark("run-end")
+	// The rack is up: the boot preview (assets/bootpreview.js) can go.
+	if f := js.Global().Get("__crBootDone"); f.Type() == js.TypeFunction {
+		f.Invoke()
+	}
+	<-done
+}
+
+// mountPanel builds the controls panel inside its shell and puts both in
+// the document, docked where the host page or the saved preference says.
+func mountPanel() {
 	// Build controls panel. If the host page already has a <footer>
 	// (e.g. m2/magnetosphere.net puts cart + shipping nav there), append
 	// the controls inline into it so the existing footer nav stays
@@ -156,303 +180,289 @@ func Run() {
 			panel.Get("style").Set("display", "none")
 		}
 	}
+}
 
-	dom.Init() // refresh the handles; the host's document may have changed
-	bootMark("fonts")
-	injectFonts() // embedded @font-face rules for the panel / LED / header fonts
-	cacheElementRefs()
-	// obeys the speed". Faithful to Glen's 3D projective unit, whose panel
-	bootMark("knobs-start")
-	buildPanelKnobs()
-	// Floating show/hide button for the whole control panel (it can block the
-	// view). Lives outside the panel so it can bring it back.
+// mountPanelToggle adds the floating show/hide button for the whole control
+// panel, which can block the view. It lives outside the panel so it can
+// bring it back.
+func mountPanelToggle() {
 	panelToggle := dom.Doc.Call("createElement", "button")
 	panelToggle.Set("id", "panel-toggle")
 	panelToggle.Set("textContent", "▤")
 	panelToggle.Set("title", doc("panel-toggle"))
 	panelToggle.Set("style", "position:fixed;bottom:6px;left:6px;z-index:var(--z-toggle);background:#222;color:#ccc;border:1px solid #555;border-radius:3px;font-family:'B612 Mono',monospace;font-size:14px;cursor:pointer;padding:2px 8px;opacity:0.55;")
-	dom.On(panelToggle, "click", func(this js.Value, args []js.Value) any {
-		p := dom.Doc.Call("getElementById", "controls-panel")
-		if !p.Truthy() {
-			return nil
-		}
-		st := p.Get("style")
-		hidden := st.Get("display").String() == "none"
-		// The SHELL counts as hidden too, and it is a different element. Closing
-		// the rack under Contain leaves the panel's own display alone and hides
-		// the shell around it, so a button that asked only the panel thought the
-		// controls were on screen, hid them again, and had to be pressed twice
-		// to give back something that was never visible in between.
-		if sh := dom.Doc.Call("getElementById", "panel-shell"); sh.Truthy() &&
-			sh.Get("style").Get("display").String() == "none" {
-			hidden = true
-		}
-		// The recovery-raise is ONE bit: body.panel-raised. CSS lifts the panel
-		// AND its chrome (resize strip, float grip, dock buttons) together, so
-		// the whole recovery unit surfaces above the Front canvas as a piece.
-		cl := dom.Body.Get("classList")
-		raised := cl.Call("contains", "panel-raised").Bool()
-		// Is any of the model drawn over the panel? It used to be a switch, so
-		// this was a checkbox read; with the Fore knob it is anything but the
-		// far end, since even a sliver in front can bury the controls.
-		frontOn := splitFrac > -1+splitEpsilon
-		// Recover whenever the panel is hidden OR the "Front" canvas is drawn over
-		// it — otherwise an opaque backdrop with Front on buries the panel and
-		// toggling display alone can never bring it back. Raise it above the Front
-		// canvas so one press always restores it; otherwise hide it so the model
-		// can be viewed unobstructed.
-		if hidden || (frontOn && !raised) {
-			st.Set("display", "")
-			cl.Call("add", "panel-raised")
-			// With Contain on, the desk IS the environment, so the button
-			// brings the environment back with the controls — see
-			// deskShell_js.go. Without it the desk is unaffected.
-			if deskContainHidesEverything() {
-				deskLayerVisible(true)
-			}
-			// A rack that was CLOSED has no window to show, and showing the
-			// shell alone shows nothing: the close handler leaves the shell
-			// hidden in the body. Rebuild the window instead, so this button
-			// means "give me the controls back" in every state rather than in
-			// most of them — found by a monkey run that closed the rack under
-			// Contain and then could not get it back, which is the next thing
-			// a person would try.
-			if deskContain && panelWindow == nil {
-				relaunchRack()
-			} else if sh := dom.Doc.Call("getElementById", "panel-shell"); sh.Truthy() {
-				sh.Get("style").Set("display", "")
-			}
-			// First show after a hidden boot: module widths were never
-			// measurable, so quantize now and refit the panel chrome.
-			quantizeModuleWidths()
-			// positionDockControls is gone: the cluster is placed by CSS off the
-			// shell edge and needs no refitting.
-			layout.positionResizeHandle()
-		} else {
-			st.Set("display", "none")
-			cl.Call("remove", "panel-raised")
-			// Hiding "the controls" while the desk is the environment means
-			// hiding the environment: the panel and the windows, leaving the
-			// model. A desktop with a panel and no application is not what
-			// anybody means by that button.
-			if deskContainHidesEverything() {
-				deskLayerVisible(false)
-			}
-		}
-		return nil
-	})
+	dom.On(panelToggle, "click", togglePanel)
 	dom.Body.Call("appendChild", panelToggle)
+}
 
-	// The Style module's knobs: the knob face, the LED color and the
-	// phosphor. The interface size has no knob of its own: dragging the
-	// panel's edge scales it continuously (layout.setKScale), which a
-	// four-step ring only repeated, and the rack's metalwork is the one style.
-	{
-		// The knob face, on a lone labeled ring.
-		if st := dom.Doc.Call("getElementById", "knob-style"); st.Truthy() {
-			if kh := dom.Doc.Call("getElementById", "knobstyle-stack"); kh.Truthy() {
-				kh.Call("appendChild", singleSelectorKnob(st, []string{"std", "flat", "vint", "chrm", "gold", "carb"}))
-			}
-			applyStyle := func() {
-				cl := dom.Doc.Call("getElementById", "controls-panel").Get("classList")
-				for _, s := range []string{"ks-std", "ks-flat", "ks-vint", "ks-chrome", "ks-gold", "ks-carbon"} {
-					cl.Call("remove", s)
-				}
-				cl.Call("add", "ks-"+st.Get("value").String())
-			}
-			dom.On(st, "change", func(this js.Value, args []js.Value) any {
-				applyStyle()
-				return nil
-			})
-			applyStyle()
-			st.Get("style").Set("display", "none")
-			// No PermaKey: neither the face nor the LED color is carried by a
-			// link today, and adding hash keys is a separate decision.
-			adoptDescControl(ControlDesc{
-				ID: "knob-style", Label: "Knob", IsSelect: true, SelectDef: "std", ResetID: "rst-knob-style",
-			})
-		}
-		// The LED color, in a cell of its own: a ring of colored dots, one per
-		// option in its own color, and the color's name on a character display
-		// under the knob, the way Phosphor names its setting.
-		if lc := dom.Doc.Call("getElementById", "led-color"); lc.Truthy() {
-			// Populate the LED-color options from the single ordered source.
-			var dotCols []string
-			ledCols := map[string][4]string{}
-			for _, d := range ledColorDefs {
-				o := dom.Doc.Call("createElement", "option")
-				o.Set("value", d.name)
-				o.Set("textContent", d.name)
-				o.Set("title", d.desc)
-				lc.Call("appendChild", o)
-				dotCols = append(dotCols, d.col)
-				ledCols[d.name] = [4]string{d.col, d.glow, d.bg, d.bd}
-			}
-			if lh := dom.Doc.Call("getElementById", "ledcolor-stack"); lh.Truthy() {
-				ro := selectorKnobReadout(lc)
-				addSelectorDotLabels(ro.Call("querySelector", ".knobstack"), dotCols, lc, 44)
-				lh.Call("appendChild", ro)
-			}
-			// On the page, not the panel: the windows outside it (the Info
-			// window's addresses) read in the LED color too.
-			applyLED := func() {
-				c := ledCols[lc.Get("value").String()]
-				s := dom.Doc.Get("documentElement").Get("style")
-				s.Call("setProperty", "--led-col", c[0])
-				s.Call("setProperty", "--led-glow", c[1])
-				s.Call("setProperty", "--led-bg", c[2])
-				s.Call("setProperty", "--led-bd", c[3])
-			}
-			dom.On(lc, "change", func(this js.Value, args []js.Value) any { applyLED(); repaintTurning(); return nil })
-			applyLED()
-			lc.Get("style").Set("display", "none")
-			// The default is the first entry of the one ordered table the
-			// options were built from, rather than a color name written out
-			// again here — the list is allowed to be reordered.
-			adoptDescControl(ControlDesc{
-				ID: "led-color", Label: "LED", IsSelect: true, SelectDef: ledColorDefs[0].name,
-				ResetID: "rst-led-color",
-			})
-		}
-		// Restore a saved (continuous) interface scale from a prior
-		// resize-drag; otherwise the standard size.
-		kscale := 1.0
-		if s, ok := lsGet("wasmstuff-kscale"); ok {
-			if v, err := strconv.ParseFloat(s, 64); err == nil && v > 0 {
-				kscale = v
-			}
-		}
-		layout.setKScale(kscale)
+// togglePanel is the show/hide button's press: bring the controls back if
+// they are hidden or buried under the model, and hide them otherwise.
+func togglePanel(js.Value, []js.Value) any {
+	p := dom.Doc.Call("getElementById", "controls-panel")
+	if !p.Truthy() {
+		return nil
 	}
-	bootMark("knobs-done")
-	// From here to the permalink, every handler that would re-quantize the
-	// rack or rebuild the panel asks once and is answered once, at the end:
-	// each quantize writes the rack and reads it back, which is a full layout
-	// of the page, and the boot asked for sixteen of them in a row. With no
-	// mode, because the hash has not been read yet: the flush uses the one
-	// the boot ends on.
-	owed.withDeferredLayout("", func() {
-		wireModeAndResetInputs()
-		if dst := dom.Doc.Call("getElementById", "desk-style"); dst.Truthy() {
-			// A position in the Visual bank (modelparts_js.go), where the display
-			// over its knob names the style. Through the registry, which is what
-			// gives the cell its reset button.
-			// deskFlat is the default the package variable already holds, so the
-			// reset target is that one constant rather than a second copy of it.
-			adoptDescControl(ControlDesc{
-				ID: "desk-style", Label: "style", IsSelect: true, SelectDef: deskFlat,
-				ResetID:     "rst-desk-style",
-				SelectApply: desks.setDeskStyle,
-			})
+	st := p.Get("style")
+	hidden := st.Get("display").String() == "none"
+	// The SHELL counts as hidden too, and it is a different element. Closing
+	// the rack under Contain leaves the panel's own display alone and hides
+	// the shell around it, so a button that asked only the panel thought the
+	// controls were on screen, hid them again, and had to be pressed twice
+	// to give back something that was never visible in between.
+	if sh := dom.Doc.Call("getElementById", "panel-shell"); sh.Truthy() &&
+		sh.Get("style").Get("display").String() == "none" {
+		hidden = true
+	}
+	// The recovery-raise is ONE bit: body.panel-raised. CSS lifts the panel
+	// AND its chrome (resize strip, float grip, dock buttons) together, so
+	// the whole recovery unit surfaces above the Front canvas as a piece.
+	cl := dom.Body.Get("classList")
+	raised := cl.Call("contains", "panel-raised").Bool()
+	// Is any of the model drawn over the panel? It used to be a switch, so
+	// this was a checkbox read; with the Fore knob it is anything but the
+	// far end, since even a sliver in front can bury the controls.
+	frontOn := splitFrac > -1+splitEpsilon
+	// Recover whenever the panel is hidden OR the "Front" canvas is drawn over
+	// it — otherwise an opaque backdrop with Front on buries the panel and
+	// toggling display alone can never bring it back. Raise it above the Front
+	// canvas so one press always restores it; otherwise hide it so the model
+	// can be viewed unobstructed.
+	if hidden || (frontOn && !raised) {
+		st.Set("display", "")
+		cl.Call("add", "panel-raised")
+		// With Contain on, the desk IS the environment, so the button
+		// brings the environment back with the controls — see
+		// deskShell_js.go. Without it the desk is unaffected.
+		if deskContainHidesEverything() {
+			deskLayerVisible(true)
 		}
-		// Bifurcation's, the wobbulator's and the terminal animation's bank positions, from the same holder.
-		bif.wireBifCells()
-		fvf.wireFVFCells()
-		custom.wireIntegratorCell()
-		anim.fillTermAnimPicker()
-		syncFVFRoute()
-		wireColorAndViewControls()
-		// Event: the Physics switch.
-		wirePhysSwitch()
-		// canvas, which is what the GPU costs, but keeps the control panel — so
-		wireFullscreenSwitch()
-		// Initial mode — read from URL hash if present. The hash may carry
-		// permalink state after the mode ("#aizawa&p.a=1.19&..."); take only
-		// the leading mode token here (the rest is applied post-setup).
-		run.selectedMode = "globe"
-		// A link to a model folded into another (#cube, #sphere) is rewritten as
-		// what it is now, before the hash is read by anything.
-		migrateLocationHash()
-		hash := js.Global().Get("location").Get("hash").String()
-		if len(hash) > 1 {
-			hashMode := hashModeToken()
-			// Validate against the mode registry. (The old params-map + hardcoded
-			// list pair silently rejected several real modes, e.g. sphere and fvf.)
-			if knownMode(hashMode) {
-				run.selectedMode = hashMode
+		// A rack that was CLOSED has no window to show, and showing the
+		// shell alone shows nothing: the close handler leaves the shell
+		// hidden in the body. Rebuild the window instead, so this button
+		// means "give me the controls back" in every state rather than in
+		// most of them — found by a monkey run that closed the rack under
+		// Contain and then could not get it back, which is the next thing
+		// a person would try.
+		if deskContain && panelWindow == nil {
+			relaunchRack()
+		} else if sh := dom.Doc.Call("getElementById", "panel-shell"); sh.Truthy() {
+			sh.Get("style").Set("display", "")
+		}
+		// First show after a hidden boot: module widths were never
+		// measurable, so quantize now and refit the panel chrome.
+		quantizeModuleWidths()
+		// positionDockControls is gone: the cluster is placed by CSS off the
+		// shell edge and needs no refitting.
+		layout.positionResizeHandle()
+	} else {
+		st.Set("display", "none")
+		cl.Call("remove", "panel-raised")
+		// Hiding "the controls" while the desk is the environment means
+		// hiding the environment: the panel and the windows, leaving the
+		// model. A desktop with a panel and no application is not what
+		// anybody means by that button.
+		if deskContainHidesEverything() {
+			deskLayerVisible(false)
+		}
+	}
+	return nil
+}
+
+// wireStyleKnobs wires the Style module: the knob face, the LED color and
+// the saved interface scale. The size has no knob of its own: dragging the
+// panel's edge scales it continuously (layout.setKScale), which a four-step
+// ring only repeated, and the rack's metalwork is the one style.
+func wireStyleKnobs() {
+	wireKnobFace()
+	wireLEDColor()
+	// Restore a saved (continuous) interface scale from a prior
+	// resize-drag; otherwise the standard size.
+	kscale := 1.0
+	if s, ok := lsGet("wasmstuff-kscale"); ok {
+		if v, err := strconv.ParseFloat(s, 64); err == nil && v > 0 {
+			kscale = v
+		}
+	}
+	layout.setKScale(kscale)
+}
+
+// wireKnobFace is the knob face, on a lone labeled ring.
+func wireKnobFace() {
+	if st := dom.Doc.Call("getElementById", "knob-style"); st.Truthy() {
+		if kh := dom.Doc.Call("getElementById", "knobstyle-stack"); kh.Truthy() {
+			kh.Call("appendChild", singleSelectorKnob(st, []string{"std", "flat", "vint", "chrm", "gold", "carb"}))
+		}
+		applyStyle := func() {
+			cl := dom.Doc.Call("getElementById", "controls-panel").Get("classList")
+			for _, s := range []string{"ks-std", "ks-flat", "ks-vint", "ks-chrome", "ks-gold", "ks-carbon"} {
+				cl.Call("remove", s)
 			}
+			cl.Call("add", "ks-"+st.Get("value").String())
 		}
-		// Select the matching dropdown option
-		sel := dom.Doc.Call("getElementById", "mode-select")
-		if !sel.IsNull() && !sel.IsUndefined() {
-			sel.Set("value", run.selectedMode)
-		}
-		bootMark("params")
-		// Built now, though the boot is deferring layout: the rest of the boot is
-		// wired against it.
-		buildParamPanelNow(run.selectedMode)
-		updateTrailVisibility()
-
-		// One-time drag listeners for every selector knob in the panel, the
-		wireGradientKnobs()
-		// first pass can run before the panel's own font has been applied.
-		bootMark("quantize")
-		requantizeAfterFonts()
-
-		// Initialize persistent JS typed arrays for zero-alloc frame uploads
-		gpu.vertU8 = js.Global().Get("Uint8Array").New(sim.steps * 4 * 4)
-		buf := gpu.vertU8.Get("buffer")
-		gpu.vertF32 = js.Global().Get("Float32Array").New(buf, 0, sim.steps*4)
-		initDrawState()
-		debugVal := js.Global().Get("__WASM_DEBUG__")
-		if !debugVal.IsUndefined() && debugVal.Bool() {
-			debugEnabled = true
-		}
-
-		// Registry-owned fixed controls (registry refactor). One ControlDesc per
-		// control owns the LED format, slider→state plumbing, typed entry,
-		// wheel-step, reset button, AND Reset All (via the builtControls loop in
-		// onResetAll) — previously each of those was a separate wiring site and
-		// Reset All silently missed pan-x/pan-y/period. Registered BEFORE the
-		// permalink restore below so a restored hash value drives Apply like any
-		registerViewControls()
-		adoptDescControl(ControlDesc{ID: "trail-slider", Label: "Trail", Min: 1000, Max: 500000, Step: 1000, Def: 20000,
-			PermaKey: "tr", LEDID: "slider-value-trail", ResetID: "rst-trail",
-			Apply: func(v float64) {
-				newSteps := int(v)
-				if newSteps != sim.steps {
-					sim.steps = newSteps
-					sim.vertBuf = make([]float32, sim.steps*4)
-					gpu.vertU8 = js.Global().Get("Uint8Array").New(sim.steps * 4 * 4)
-					buf := gpu.vertU8.Get("buffer")
-					gpu.vertF32 = js.Global().Get("Float32Array").New(buf, 0, sim.steps*4)
-					resetAttractorState()
-					refreshGradient()
-				}
-			},
-			// Persist is a switch of its own: resetting the trail's length
-			// leaves it as it is.
+		dom.On(st, "change", func(this js.Value, args []js.Value) any {
+			applyStyle()
+			return nil
 		})
-		registerOutputControls()
-		// value so engine state matches the panel by construction (the old code
-		bootMark("commit")
-		commitBuiltControls()
-		// encoded in the URL hash, then keep the hash in sync with the live
-		bootMark("permalink")
-		capturePermalinkAndRestore()
-	})
-	done := make(chan struct{})
-	renderFrame = dom.FuncOf(renderLoop)
-	js.Global().Call("requestAnimationFrame", renderFrame)
+		applyStyle()
+		st.Get("style").Set("display", "none")
+		// No PermaKey: neither the face nor the LED color is carried by a
+		// link today, and adding hash keys is a separate decision.
+		adoptDescControl(ControlDesc{
+			ID: "knob-style", Label: "Knob", IsSelect: true, SelectDef: "std", ResetID: "rst-knob-style",
+		})
+	}
+}
 
-	// Set initial trail-controls visibility for the starting mode.
+// wireLEDColor is the LED color, in a cell of its own: a ring of colored
+// dots, one per option in its own color, and the color's name on a
+// character display under the knob, the way Phosphor names its setting.
+func wireLEDColor() {
+	if lc := dom.Doc.Call("getElementById", "led-color"); lc.Truthy() {
+		// Populate the LED-color options from the single ordered source.
+		var dotCols []string
+		ledCols := map[string][4]string{}
+		for _, d := range ledColorDefs {
+			o := dom.Doc.Call("createElement", "option")
+			o.Set("value", d.name)
+			o.Set("textContent", d.name)
+			o.Set("title", d.desc)
+			lc.Call("appendChild", o)
+			dotCols = append(dotCols, d.col)
+			ledCols[d.name] = [4]string{d.col, d.glow, d.bg, d.bd}
+		}
+		if lh := dom.Doc.Call("getElementById", "ledcolor-stack"); lh.Truthy() {
+			ro := selectorKnobReadout(lc)
+			addSelectorDotLabels(ro.Call("querySelector", ".knobstack"), dotCols, lc, 44)
+			lh.Call("appendChild", ro)
+		}
+		// On the page, not the panel: the windows outside it (the Info
+		// window's addresses) read in the LED color too.
+		applyLED := func() {
+			c := ledCols[lc.Get("value").String()]
+			s := dom.Doc.Get("documentElement").Get("style")
+			s.Call("setProperty", "--led-col", c[0])
+			s.Call("setProperty", "--led-glow", c[1])
+			s.Call("setProperty", "--led-bg", c[2])
+			s.Call("setProperty", "--led-bd", c[3])
+		}
+		dom.On(lc, "change", func(this js.Value, args []js.Value) any { applyLED(); repaintTurning(); return nil })
+		applyLED()
+		lc.Get("style").Set("display", "none")
+		// The default is the first entry of the one ordered table the
+		// options were built from, rather than a color name written out
+		// again here — the list is allowed to be reordered.
+		adoptDescControl(ControlDesc{
+			ID: "led-color", Label: "LED", IsSelect: true, SelectDef: ledColorDefs[0].name,
+			ResetID: "rst-led-color",
+		})
+	}
+}
+
+// wireControlsAndRestoreLink wires everything that answers a control, picks
+// the model the boot starts on, registers the fixed controls and then
+// restores the link. Run calls it with layout deferred.
+func wireControlsAndRestoreLink() {
+	wireModeAndResetInputs()
+	if dst := dom.Doc.Call("getElementById", "desk-style"); dst.Truthy() {
+		// A position in the Visual bank (modelparts_js.go), where the display
+		// over its knob names the style. Through the registry, which is what
+		// gives the cell its reset button.
+		// deskFlat is the default the package variable already holds, so the
+		// reset target is that one constant rather than a second copy of it.
+		adoptDescControl(ControlDesc{
+			ID: "desk-style", Label: "style", IsSelect: true, SelectDef: deskFlat,
+			ResetID:     "rst-desk-style",
+			SelectApply: desks.setDeskStyle,
+		})
+	}
+	// Bifurcation's, the wobbulator's and the terminal animation's bank positions, from the same holder.
+	bif.wireBifCells()
+	fvf.wireFVFCells()
+	custom.wireIntegratorCell()
+	anim.fillTermAnimPicker()
+	syncFVFRoute()
+	wireColorAndViewControls()
+	// Event: the Physics switch.
+	wirePhysSwitch()
+	wireFullscreenSwitch()
+	chooseStartMode()
+	bootMark("params")
+	// Built now, though the boot is deferring layout: the rest of the boot is
+	// wired against it.
+	buildParamPanelNow(run.selectedMode)
 	updateTrailVisibility()
 
-	// And the Physics switch, for the same reason and with the same timing.
-	// The earlier call (beside the switch's own listener) runs before the URL
-	// hash has chosen the mode, so it decided against the DEFAULT mode: booting
-	wireExtraNav()
-	// Kill the vertical scroll the controls panel adds by growing the body.
-	applyHostPageTweaks()
-	// had to skip doing so when the hash pinned a Y rate — because the
-	bootMark("bg-start")
-	startBackgroundTasks()
-	bootMark("run-end")
-	// The rack is up: the boot preview (assets/bootpreview.js) can go.
-	if f := js.Global().Get("__crBootDone"); f.Type() == js.TypeFunction {
-		f.Invoke()
+	wireGradientKnobs()
+	bootMark("quantize")
+	requantizeAfterFonts()
+
+	// Initialize persistent JS typed arrays for zero-alloc frame uploads
+	gpu.vertU8 = js.Global().Get("Uint8Array").New(sim.steps * 4 * 4)
+	buf := gpu.vertU8.Get("buffer")
+	gpu.vertF32 = js.Global().Get("Float32Array").New(buf, 0, sim.steps*4)
+	initDrawState()
+	debugVal := js.Global().Get("__WASM_DEBUG__")
+	if !debugVal.IsUndefined() && debugVal.Bool() {
+		debugEnabled = true
 	}
-	<-done
+
+	// The registry owns the fixed controls: one ControlDesc per control
+	// carries its LED format, slider-to-state plumbing, typed entry, wheel
+	// step, reset button and Reset All. Registered before the link is
+	// restored, so a restored value drives Apply like any other.
+	registerViewControls()
+	registerTrailControl()
+	registerOutputControls()
+	bootMark("commit")
+	commitBuiltControls()
+	bootMark("permalink")
+	capturePermalinkAndRestore()
+}
+
+// chooseStartMode sets the model the boot starts on: the one the link
+// names, if the rack has it, and the globe otherwise. The link may carry
+// state after the model ("#aizawa&p.a=1.19&..."); only the leading token
+// is read here, and the rest is applied once the controls exist.
+func chooseStartMode() {
+	run.selectedMode = "globe"
+	// A link to a model folded into another (#cube, #sphere) is rewritten as
+	// what it is now, before the hash is read by anything.
+	migrateLocationHash()
+	if hash := js.Global().Get("location").Get("hash").String(); len(hash) > 1 {
+		hashMode := hashModeToken()
+		// Validate against the mode registry. (The old params-map + hardcoded
+		// list pair silently rejected several real modes, e.g. sphere and fvf.)
+		if knownMode(hashMode) {
+			run.selectedMode = hashMode
+		}
+	}
+	// Select the matching dropdown option
+	sel := dom.Doc.Call("getElementById", "mode-select")
+	if !sel.IsNull() && !sel.IsUndefined() {
+		sel.Set("value", run.selectedMode)
+	}
+}
+
+// registerTrailControl is the trail's length, which resizes the buffers the
+// frame is uploaded from.
+func registerTrailControl() {
+	adoptDescControl(ControlDesc{ID: "trail-slider", Label: "Trail", Min: 1000, Max: 500000, Step: 1000, Def: 20000,
+		PermaKey: "tr", LEDID: "slider-value-trail", ResetID: "rst-trail",
+		Apply: func(v float64) {
+			newSteps := int(v)
+			if newSteps != sim.steps {
+				sim.steps = newSteps
+				sim.vertBuf = make([]float32, sim.steps*4)
+				gpu.vertU8 = js.Global().Get("Uint8Array").New(sim.steps * 4 * 4)
+				buf := gpu.vertU8.Get("buffer")
+				gpu.vertF32 = js.Global().Get("Float32Array").New(buf, 0, sim.steps*4)
+				resetAttractorState()
+				refreshGradient()
+			}
+		},
+		// Persist is a switch of its own: resetting the trail's length
+		// leaves it as it is.
+	})
 }
 
 func postDebugStats() {
@@ -490,7 +500,8 @@ func postDebugStats() {
 	js.Global().Call("fetch", "/debug/stats", opts)
 }
 
-// Per-attractor initial conditions — defaults to (0.1, 0.5, -0.6) for most.
+// installErrorNet contains a rejected promise nobody handled: logged, and
+// kept from the console as an error.
 func installErrorNet() {
 	dom.On(js.Global(), "unhandledrejection", func(this js.Value, a []js.Value) any {
 		if len(a) > 0 {
@@ -1344,7 +1355,6 @@ func wireViewGridStack() {
 	buildRackScopes() // the rack scopes' own dials, independent of the model
 	wireColorLockSwitch()
 	updateGradientUI()
-	// And again when the fonts land: the widths are measured from text, and the
 }
 
 // buildRackAndRestore assembles the rack — the category rows, their
