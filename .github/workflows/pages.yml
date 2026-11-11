@@ -5,9 +5,8 @@ name: pages
 # history. media holds one commit, replaced when the gallery is remade (make
 # publish-gifs), so it never grows.
 on:
-  # After ci, not on the push itself: ci's tinygo job commits the refreshed
-  # wasm, and the site serves the wasm, so the deploy has to see that commit.
-  # The refresh is [skip ci] and so starts no second run of either.
+  # After ci, not on the push itself: ci's tinygo job publishes the wasm
+  # builds, and the site serves the wasm, so the deploy waits for them.
   workflow_run:
     workflows: [ci]
     types: [completed]
@@ -47,6 +46,24 @@ jobs:
           # The models' loops, beside their stills in docs/img/model.
           if ls _media/docs/img/model/*.gif >/dev/null 2>&1; then cp _media/docs/img/model/*.gif docs/img/model/; fi
           rm -rf _media
+      - name: add the wasm builds
+        # They are not in the repository: the ci workflow publishes them as
+        # assets of the "wasm" release, a bundle a commit. This commit's, or
+        # the newest where it has none (a ci run that failed before it built
+        # them): the pages ask for the wasm by the stamp beside it, so an
+        # older build is still a page that runs.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mine="chaosrack-wasm-$(git rev-parse --short=12 HEAD).tar.gz"
+          if ! gh release download wasm --repo "$GITHUB_REPOSITORY" -p "$mine" -O wasm.tar.gz; then
+            echo "::warning::no wasm bundle for this commit ($mine); deploying the newest"
+            gh release download wasm --repo "$GITHUB_REPOSITORY" -p chaosrack-wasm.tar.gz -O wasm.tar.gz
+          fi
+          tar -xzf wasm.tar.gz -C assets
+          rm wasm.tar.gz
+          ls -l assets/gowasm/chaosrack.wasm assets/tinywasm/chaosrack-tiny.wasm assets/metersworker/meters.wasm
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -27,6 +27,7 @@ import (
 	"github.com/0magnet/chaosrack/assets/gowasm"
 	"github.com/0magnet/chaosrack/assets/metersworker"
 	"github.com/0magnet/chaosrack/assets/tinywasm"
+	"github.com/0magnet/chaosrack/pkg/wasmfetch"
 )
 
 var (
@@ -102,6 +103,11 @@ panel), ctl and rack reach it.`,
 		r1.Use(gin.Recovery())
 		r1.Use(loggingMiddleware())
 
+		// A binary built without the wasm takes the published builds, once
+		// (pkg/wasmfetch).
+		if err := wasmfetch.Ensure(log.Printf); err != nil {
+			log.Fatal(err)
+		}
 		hasTinygo := tinywasm.Has()
 
 		// Default page at / and /index.html: DUAL — embeds both runtimes, boots
@@ -153,7 +159,7 @@ panel), ctl and rack reach it.`,
 		// The same binaries at the paths they occupy in the repository, which is
 		// what the fetched pages ask for. Served here so a page saved by
 		// `make pages` behaves identically here and on GitHub Pages, where these
-		// are ordinary committed files — one page, two places, no rewriting.
+		// are files the deploy puts there — one page, two places, no rewriting.
 		r1.GET(goWasmURL, func(c *gin.Context) {
 			serveAsset(c, "application/wasm", gowasm.Wasm)
 		})

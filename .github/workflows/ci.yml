@@ -9,15 +9,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      # Both wasm artifacts are rebuilt and committed by the tinygo job below,
-      # so their staleness tests have nothing to tell anyone here: it would go red
-      # on every push that touches a source file and green a few minutes later
-      # on the refresh commit, which is how a red build stops meaning anything.
-      # On a pull request the variable is empty and the test runs, because
-      # there no refresh can happen — and it always runs locally, which is
-      # where the forgetting it catches actually happens.
-      WASM_REFRESHED_BY_CI: ${{ github.event_name == 'push' && '1' || '' }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
@@ -40,8 +31,6 @@ jobs:
   # would be a green run that tested nothing here.
   test-wasm:
     runs-on: ubuntu-latest
-    env:
-      WASM_REFRESHED_BY_CI: ${{ github.event_name == 'push' && '1' || '' }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
@@ -131,7 +120,7 @@ jobs:
       - run: tinygo version
       # The TinyGo build has different stdlib coverage than big Go, so this is
       # the only automated check that the dual-toolchain support still holds —
-      # and now it is also where the committed artifact comes from.
+      # and it is also where the published builds come from.
       #
       # The make targets rather than bare builds: they take the source
       # fingerprint before compiling and write it after, and fix up the
@@ -139,39 +128,37 @@ jobs:
       # -opt=2 and about twenty at -opt=z, which is the whole reason nobody ran
       # it by hand and the artifact went stale twice.
       #
-      # Both artifacts, not just the TinyGo one. They are staled by the same
-      # thing — the fingerprint covers go.mod, so any dependency bump moves it
-      # — and refreshing only one left the other's staleness test failing the
-      # test job on exactly the runs this is meant to handle. The Go build
-      # takes seconds next to TinyGo's minutes, so it is nearly free here.
       - run: make tinywasm
-      - name: commit the refreshed artifacts
-        # Only on a push to main: a pull request build has nothing it may push
-        # to, and one from a fork does not have the token either. A stale
-        # artifact on a PR stays a failing test, which is the right answer
-        # there — the contributor is being told what their branch is missing.
+      - name: publish the builds
+        # As assets of the rolling "wasm" release, where they were commits on
+        # main: 57 MB a push, 1.2 GB of history in seven weeks, and a push
+        # from this job that raced whoever pushed next. Two names for one
+        # bundle: by this commit, which is what a binary built from it asks
+        # for (pkg/wasmfetch) and what the pages workflow deploys, and the
+        # newest, for a binary whose commit has none.
+        #
+        # Only on a push to main: a pull request build has nothing it may
+        # publish, and one from a fork does not have the token either.
         if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if git diff --quiet -- assets/tinywasm assets/gowasm assets/metersworker; then
-            echo "artifacts already current"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/tinywasm assets/gowasm assets/metersworker
-          # [skip ci] because this commit cannot change any outcome: the
-          # fingerprint is taken from the sources, and this changes only the
-          # artifact built from them.
-          git commit -m "assets: refresh the embedded wasm builds [skip ci]"
-          # Refused when main has moved on while this ran (a TinyGo build
-          # takes minutes, and a second push lands in them): that commit's
-          # own run builds its artifacts, so these are not needed, and a
-          # red run here said a build had failed when none had.
-          if ! git push; then
-            git fetch -q origin main
-            if [ "$(git rev-parse origin/main)" != "$GITHUB_SHA" ]; then
-              echo "main has moved past $GITHUB_SHA; its own run refreshes the artifacts"
-              exit 0
-            fi
-            exit 1
-          fi
+          set -euo pipefail
+          tar -czf chaosrack-wasm.tar.gz -C assets \
+            gowasm/chaosrack.wasm gowasm/wasm_exec.js gowasm/built-from.txt \
+            tinywasm/chaosrack-tiny.wasm tinywasm/tinygo_wasm_exec.js tinywasm/built-from.txt \
+            metersworker/meters.wasm metersworker/worker.js
+          mine="chaosrack-wasm-${GITHUB_SHA::12}.tar.gz"
+          cp chaosrack-wasm.tar.gz "$mine"
+          gh release view wasm >/dev/null 2>&1 || gh release create wasm --prerelease \
+            --title "wasm builds" \
+            --notes "The page's wasm builds, published by CI on every push to main: one bundle a commit, and chaosrack-wasm.tar.gz, the newest. A chaosrack binary built without them fetches its own from here."
+          # This commit's first: a run that dies between the two leaves the
+          # newest as it was, not pointing at a commit with no bundle.
+          gh release upload wasm "$mine" --clobber
+          gh release upload wasm chaosrack-wasm.tar.gz --clobber
+          # Keep the twenty newest commits' bundles. A binary older than that
+          # is served the newest, and told so.
+          gh release view wasm --json assets \
+            --jq '[.assets[] | select(.name | test("^chaosrack-wasm-[0-9a-f]{12}\\.tar\\.gz$"))] | sort_by(.createdAt) | reverse | .[20:] | .[].name' |
+            while read -r old; do gh release delete-asset wasm "$old" --yes; done

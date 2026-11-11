@@ -91,7 +91,7 @@ to the analog computers at [glensstuff.com](https://glensstuff.com).
 - [FVF — Harmonic Wobbulator](#fvf--harmonic-wobbulator)
 - [Testing & tooling](#testing--tooling)
 - [Build](#build)
-  - [Building the wasm into the host binary](#building-the-wasm-into-the-host-binary)
+  - [The wasm and the host binary](#the-wasm-and-the-host-binary)
   - [Layout](#layout)
 - [Related / prior art](#related--prior-art)
 - [Dependency Graph](#dependency-graph)
@@ -2977,18 +2977,25 @@ wasm compile gate and a TinyGo build.
 ## Build
 
 ```
-go build .                           # the host binary, with the wasm committed in assets/
+go build .                           # the host binary; it carries the wasm in assets/, or fetches it
 GOOS=js GOARCH=wasm go build .       # the page alone
 make check                           # lint, vet, test, readme-check
 make help                            # every target
 ```
 
-### Building the wasm into the host binary
+### The wasm and the host binary
 
-The host binary serves the wasm in `assets/` with `//go:embed`. The committed
-copies are rebuilt by CI after each push, so a binary built from a changed
-checkout serves the *old* page until that lands. To serve your own changes,
-build the wasm first, then the binary:
+The page's wasm builds are not in the repository. CI builds them on every push
+and publishes them as assets of the
+[`wasm` release](https://github.com/0magnet/chaosrack/releases/tag/wasm), a
+bundle a commit. A host binary built without them (from a bare checkout, or
+with `go install github.com/0magnet/chaosrack@main`) fetches the bundle for its
+own commit the first time it serves, keeps it in the user cache directory, and
+says so. Where CI has published none for that commit it takes the newest and
+says that too.
+
+To serve your own changes, build the wasm first, then the binary, which
+carries whatever build is in `assets/`:
 
 ```
 make wasm          # assets/gowasm/chaosrack.wasm (standard Go)
@@ -2997,12 +3004,10 @@ chaosrack serve --audio
 ```
 
 `make tinywasm` (needs TinyGo; slow), `make metersworker` (the analyzers' Web
-Worker) and `make wasms` (all three) build the others. Leave the rebuilt
-assets uncommitted — CI owns them:
-
-```
-git checkout assets/gowasm/chaosrack.wasm assets/gowasm/built-from.txt
-```
+Worker) and `make wasms` (all three) build the others. The builds are ignored
+by git. One left in `assets/` is what a binary built there serves, so a test
+fails when it is older than the source; delete it to go back to the published
+one.
 
 `make pages` writes the deployed `index.html` pages, and `make onefile` the
 single-file build ([SERVERLESS.md](SERVERLESS.md)).

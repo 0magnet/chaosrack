@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// The Go build is committed and served: the page offers a "tinygo" runtime
+// The Go build here is served: the page offers a "tinygo" runtime
 // and hands over the bytes embedded here. Nothing rebuilds it as a side effect
 // of ordinary work, so it goes stale silently — the TinyGo one
 // beside it did exactly that, twice, and this one was found half a day stale in
@@ -19,25 +19,16 @@ import (
 // compares that against what they hash to now. A stale artifact is now a failing
 // test rather than a runtime somebody is quietly served old code from.
 func TestEmbeddedBuildIsNotStale(t *testing.T) {
-	// CI rebuilds both wasm artifacts and commits them, so on a push there is
-	// nothing here worth reporting: this is stale for the few minutes between
-	// the source commit and the refresh commit that follows, and failing for
-	// that window would paint every push red. The variable is set only for a
-	// push — on a pull request no refresh can happen, so the test runs and
-	// says so. Locally it always runs, which is where the forgetting this
-	// exists to catch actually happens.
-	//
-	// This one was left ungated when the TinyGo test was gated, and the whole
-	// test job then failed on the first dependency bump: the fingerprint
-	// covers go.mod, so a bump stales BOTH artifacts, and CI was refreshing
-	// only one of them.
-	if os.Getenv("WASM_REFRESHED_BY_CI") != "" {
-		t.Skip("CI rebuilds and commits this artifact; staleness here is about to be fixed")
+	// The build is not in the repository: CI publishes it (pkg/wasmfetch), and
+	// a checkout holds one only where make has put one. With none here there
+	// is nothing to be stale, and the binary serves the published build. With
+	// one here it is what the binary serves, so it has to be current.
+	if _, err := os.Stat("chaosrack.wasm"); err != nil {
+		t.Skipf("no build here; the published one is served: %v", err)
 	}
-
 	recorded, err := os.ReadFile("built-from.txt")
 	if err != nil {
-		t.Skipf("no build record yet: %v", err)
+		t.Fatalf("a build with no record of what it was built from: %v", err)
 	}
 
 	// The package path is relative to cmd.Dir, not to this test's directory.
@@ -57,7 +48,7 @@ func TestEmbeddedBuildIsNotStale(t *testing.T) {
 	now, was := strings.TrimSpace(string(out)), strings.TrimSpace(string(recorded))
 	if now != was {
 		t.Errorf("the embedded Go build is stale: sources now hash to %s, "+
-			"the artifact was built from %s.\nRun `make wasm` (or `make wasms` for both) and commit the result.",
+			"the artifact was built from %s.\nRun `make wasm` (or `make wasms` for both), or delete the build here to serve the published one.",
 			now, was)
 	}
 }

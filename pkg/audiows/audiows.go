@@ -60,6 +60,7 @@ import (
 	"github.com/0magnet/chaosrack/pkg/audioroute"
 	"github.com/0magnet/chaosrack/pkg/pairing"
 	"github.com/0magnet/chaosrack/pkg/server"
+	"github.com/0magnet/chaosrack/pkg/wasmfetch"
 	"github.com/0magnet/chaosrack/pkg/wtaudio"
 )
 
@@ -123,6 +124,11 @@ func Command() *cobra.Command {
 // the deferred routing revert rather than exiting past it, which would leave
 // the system's default sink pointed at a null sink.
 func run() error {
+	// Before the audio is rerouted: a binary built without the wasm takes the
+	// published builds (pkg/wasmfetch), and there is no page without them.
+	if err := wasmfetch.Ensure(log.Printf); err != nil {
+		return err
+	}
 	if wobbulate {
 		sess, err := audioroute.Start(audioroute.Options{SinkName: nullSinkName, OutApps: outApps})
 		if err != nil {

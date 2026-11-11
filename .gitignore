@@ -40,3 +40,14 @@
 # uitool monkey writes these where it is run when a walk fails. One was
 # committed at the root with the first commit and stayed.
 /monkey-fail-seed*.png
+
+# The wasm builds, and the stamp of the sources each was built from. They
+# were committed, by CI, on every push: 57 MB a time and 1.2 GB of history in
+# seven weeks. CI publishes them as release assets now (pkg/wasmfetch); `make
+# wasm`, tinywasm and metersworker write them here for a binary built here to
+# carry. Removed from history 2026-11-12.
+/assets/gowasm/chaosrack.wasm
+/assets/gowasm/built-from.txt
+/assets/tinywasm/chaosrack-tiny.wasm
+/assets/tinywasm/built-from.txt
+/assets/metersworker/meters.wasm
