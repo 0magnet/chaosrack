@@ -72,3 +72,28 @@ func TestALinkCannotCarryNaNIntoThePoseOrARoute(t *testing.T) {
 		t.Errorf("a band of NaN came back %+v (%v), want it read as 0", m, ok)
 	}
 }
+
+// A link written before a control was renamed still says what it said: the
+// Front switch is the Fore knob at +1 unless the link names the knob itself,
+// and the Spectro-skin switch is the skin selector on "spectrogram".
+func TestAnOldLinksKeysAreReadAsTheyAreSpelledNow(t *testing.T) {
+	for _, c := range []struct {
+		h, key, val      string
+		wantKey, wantVal string
+		wantOK           bool
+	}{
+		{"#lorenz&fr=1", "fr", "1", "fo", "1", true},
+		{"#lorenz&fr=0", "fr", "0", "", "", false},
+		{"#lorenz&fr=1&fo=0.5", "fr", "1", "", "", false},
+		{"#lorenz&sk=1", "sk", "1", "sk", "spectrogram", true},
+		{"#lorenz&sk=0", "sk", "0", "sk", "", true},
+		{"#lorenz&sk=desk", "sk", "desk", "sk", "desk", true},
+		{"#lorenz&rx=2", "rx", "2", "rx", "2", true},
+	} {
+		key, val, ok := currentLinkKey(c.h, c.key, c.val)
+		if key != c.wantKey || val != c.wantVal || ok != c.wantOK {
+			t.Errorf("%s: %s=%s read as %q=%q (%v), want %q=%q (%v)",
+				c.h, c.key, c.val, key, val, ok, c.wantKey, c.wantVal, c.wantOK)
+		}
+	}
+}

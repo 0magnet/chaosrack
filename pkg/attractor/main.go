@@ -76,6 +76,7 @@ func Run() {
 	bootMark("bg-start")
 	startBackgroundTasks()
 	bootMark("run-end")
+	crashOnRequest()
 	// The rack is up: the boot preview (assets/bootpreview.js) can go.
 	if f := js.Global().Get("__crBootDone"); f.Type() == js.TypeFunction {
 		f.Invoke()

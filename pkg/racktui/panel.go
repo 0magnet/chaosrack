@@ -377,67 +377,74 @@ func (p *panel) key(ev *tcell.EventKey) bool {
 			p.refilter()
 		}
 	case tcell.KeyRune:
-		// A letter with Ctrl, Alt or Meta held is somebody else's key — the
-		// browser's Ctrl+Shift+R, a window manager's — and not the letter.
-		// Taken as the letter, Ctrl+Shift+R re-read the whole rack (r), and
-		// held down it queued seconds of that.
-		if ev.Modifiers()&(tcell.ModCtrl|tcell.ModAlt|tcell.ModMeta) != 0 {
+		return p.runeKey(ev)
+	}
+	return false
+}
+
+// runeKey handles a typed character, a command or a letter of the filter,
+// and reports whether to quit.
+func (p *panel) runeKey(ev *tcell.EventKey) bool {
+	// A letter with Ctrl, Alt or Meta held is somebody else's key — the
+	// browser's Ctrl+Shift+R, a window manager's — and not the letter.
+	// Taken as the letter, Ctrl+Shift+R re-read the whole rack (r), and
+	// held down it queued seconds of that.
+	if ev.Modifiers()&(tcell.ModCtrl|tcell.ModAlt|tcell.ModMeta) != 0 {
+		return false
+	}
+	r := firstRune(ev.Str())
+	switch r {
+	case 'q':
+		if p.commands() {
+			return true
+		}
+		p.typeFilter(r)
+	case '\t':
+		p.list = !p.list
+	case '/':
+		p.filt = ""
+		p.typing = true
+		p.refilter()
+	case 'p':
+		if p.commands() && p.paged {
+			// The window: half, the whole terminal, or out of the way.
+			p.winMode = (p.winMode + 1) % 3
+			p.scene, p.canv = nil, nil
 			return false
 		}
-		r := firstRune(ev.Str())
-		switch r {
-		case 'q':
-			if p.commands() {
-				return true
-			}
-			p.typeFilter(r)
-		case '\t':
-			p.list = !p.list
-		case '/':
-			p.filt = ""
-			p.typing = true
-			p.refilter()
-		case 'p':
-			if p.commands() && p.paged {
-				// The window: half, the whole terminal, or out of the way.
-				p.winMode = (p.winMode + 1) % 3
-				p.scene, p.canv = nil, nil
-				return false
-			}
-			p.typeFilter(r)
-		case 'w':
-			if p.shared && p.commands() {
-				p.msg = partsTakenMsg
-				return false
-			}
-			if _, ok := p.src.(Overlay); ok && p.commands() {
-				// The page's parts over the cells, or the cells alone: the
-				// two drawings of one panel, compared in place.
-				p.overlay = !p.overlay
-				p.msg = "web parts off: cells only"
-				if p.overlay {
-					p.msg = "web parts on"
-				}
-				return false
-			}
-			p.typeFilter(r)
-		case 'r':
-			if p.commands() {
-				p.reload()
-				p.loadPicture()
-				p.msg = "reloaded"
-				return false
-			}
-			p.typeFilter(r)
-		case '0':
-			if p.commands() {
-				p.reset()
-				return false
-			}
-			p.typeFilter(r)
-		default:
-			p.typeFilter(r)
+		p.typeFilter(r)
+	case 'w':
+		if p.shared && p.commands() {
+			p.msg = partsTakenMsg
+			return false
 		}
+		if _, ok := p.src.(Overlay); ok && p.commands() {
+			// The page's parts over the cells, or the cells alone: the
+			// two drawings of one panel, compared in place.
+			p.overlay = !p.overlay
+			p.msg = "web parts off: cells only"
+			if p.overlay {
+				p.msg = "web parts on"
+			}
+			return false
+		}
+		p.typeFilter(r)
+	case 'r':
+		if p.commands() {
+			p.reload()
+			p.loadPicture()
+			p.msg = "reloaded"
+			return false
+		}
+		p.typeFilter(r)
+	case '0':
+		if p.commands() {
+			p.reset()
+			return false
+		}
+		p.typeFilter(r)
+	default:
+		p.typeFilter(r)
 	}
 	return false
 }

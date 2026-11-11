@@ -1062,32 +1062,7 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 	r.mu.Lock()
 	r.modFollow(fig.Points, o.Fit)
 	r.mu.Unlock()
-	draw1 := func(fig attractor.Figure, o attractor.DrawOptions) *image.RGBA {
-		n := len(fig.Points)
-		if fig.Kind == attractor.FigureLines {
-			n = len(fig.Edges)
-		}
-		m := attractor.DrawFigure(fig, 0, n, o)
-		if len(heard.overlay.Points) > 0 {
-			// LINE S: the section's crossings in gold where they are, over
-			// the trail, framed as the flow is.
-			ov := o
-			ov.Gradient = rasterview.Gradient{Colors: 1, Base: sectGold}
-			ov.View.BackDim = 0
-			if ov.Fit == nil {
-				ov.Fit = fig.Points
-			}
-			over(m, attractor.DrawFigure(heard.overlay, 0, len(heard.overlay.Points), ov))
-		}
-		if len(heard.grat.Edges) > 0 {
-			// The Stereo Embedding's graticule, flat gray behind the trace.
-			og := o
-			og.Gradient = rasterview.Gradient{Colors: 1, Base: attractor.GraticuleColor}
-			og.View.BackDim = 0 // flat, as the page draws it
-			under(m, attractor.DrawFigure(heard.grat, 0, len(heard.grat.Edges), og))
-		}
-		return m
-	}
+	draw1 := heard.draw
 	var m *image.RGBA
 	if g.n <= 1 {
 		r.mu.Lock()
@@ -1097,13 +1072,55 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 	} else {
 		m = r.drawCells(key, g, plans, fig, o, draw1, paused, run, speed, look.dots)
 	}
-	if k := glowKeep(heard.glow, dt); k > 0 && s.shown != nil && s.shown.Bounds() == m.Bounds() {
+	s.afterglow(m, glowKeep(heard.glow, dt), persist)
+	s.setShown(m)
+	toPixels(img, look.bg, withBackdrop(m, bd))
+	return img, nil
+}
+
+// draw is fig drawn as o describes, with what was heard laid on it: LINE S's
+// crossings over the trail, the Stereo Embedding's graticule behind it.
+func (heard heard) draw(fig attractor.Figure, o attractor.DrawOptions) *image.RGBA {
+	n := len(fig.Points)
+	if fig.Kind == attractor.FigureLines {
+		n = len(fig.Edges)
+	}
+	m := attractor.DrawFigure(fig, 0, n, o)
+	if len(heard.overlay.Points) > 0 {
+		// LINE S: the section's crossings in gold where they are, over
+		// the trail, framed as the flow is.
+		ov := o
+		ov.Gradient = rasterview.Gradient{Colors: 1, Base: sectGold}
+		ov.View.BackDim = 0
+		if ov.Fit == nil {
+			ov.Fit = fig.Points
+		}
+		over(m, attractor.DrawFigure(heard.overlay, 0, len(heard.overlay.Points), ov))
+	}
+	if len(heard.grat.Edges) > 0 {
+		// The Stereo Embedding's graticule, flat gray behind the trace.
+		og := o
+		og.Gradient = rasterview.Gradient{Colors: 1, Base: attractor.GraticuleColor}
+		og.View.BackDim = 0 // flat, as the page draws it
+		under(m, attractor.DrawFigure(heard.grat, 0, len(heard.grat.Edges), og))
+	}
+	return m
+}
+
+// afterglow keeps what the last frame showed under m, the frame just drawn,
+// where the two are the same size. keep is the XY's GLOW, the share of the
+// last frame that survives; persist is Display's Persist.
+func (s *scene) afterglow(m *image.RGBA, keep float64, persist bool) {
+	if s.shown == nil || s.shown.Bounds() != m.Bounds() {
+		return
+	}
+	if keep > 0 {
 		// The XY's GLOW: the last frame fades like a phosphor and the trace
 		// is drawn over it, as the page multiplies its frame down rather
 		// than clearing it.
-		fade(m, s.shown, k)
+		fade(m, s.shown, keep)
 	}
-	if persist && s.shown != nil && s.shown.Bounds() == m.Bounds() {
+	if persist {
 		// Display's Persist: the old trails stay, and the new one is drawn
 		// over them, as the page leaves its color buffer uncleared.
 		for i := 0; i < len(m.Pix); i += 4 {
@@ -1112,9 +1129,6 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 			}
 		}
 	}
-	s.setShown(m)
-	toPixels(img, look.bg, withBackdrop(m, bd))
-	return img, nil
 }
 
 // toPixels copies m into img, which is as big, with the Palette's bg tint

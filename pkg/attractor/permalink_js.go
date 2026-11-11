@@ -231,6 +231,58 @@ func (pe *permalinkState) serializeState() string {
 	var b strings.Builder
 	b.WriteString(run.selectedMode)
 
+	writeBuiltControls(&b)
+
+	// The Mixer's pins, those that differ from the rack as it starts.
+	if v := mixLinkValue(); v != "" {
+		b.WriteString("&" + mixLinkKey + "=" + v)
+	}
+
+	// Model Out's two knobs: bank positions built at run time, so not in
+	// the markup table.
+	for i, p := range modelOutParams {
+		if *p.Value != p.Def {
+			b.WriteString("&" + modelOutKeys[i] + "=" + permaFmt(*p.Value))
+		}
+	}
+
+	// Residual table-driven controls that differ from their captured defaults.
+	for _, c := range permaCtls {
+		el := dom.Doc.Call("getElementById", c.id)
+		if !el.Truthy() {
+			continue
+		}
+		v := ctlValue(c, el)
+		if fv, ok := back.frontValue(c.id); ok {
+			v = fv
+		}
+		if v != pe.defaultOf(c.key) {
+			b.WriteString("&")
+			b.WriteString(c.key)
+			b.WriteString("=")
+			b.WriteString(v)
+		}
+	}
+
+	writeParams(&b)
+
+	// Custom mode: the equations + their parameters.
+	if run.selectedMode == "custom" {
+		custom.serializeCustom(&b)
+	}
+
+	writePose(&b)
+	writeRoutes(&b)
+	// The backdrop's own palette (backlayer_js.go), when it has been set.
+	if s := back.permaString(); s != "" {
+		b.WriteString("&bk=" + s)
+	}
+	return b.String()
+}
+
+// writeBuiltControls appends the registry's controls that differ from their
+// defaults.
+func writeBuiltControls(b *strings.Builder) {
 	// Registry-owned numeric controls that differ from their defaults.
 	for _, ctl := range builtControls {
 		if ctl.permaKey == "" {
@@ -264,37 +316,11 @@ func (pe *permalinkState) serializeState() string {
 		b.WriteString("&" + ctl.permaKey + "=" + v)
 	}
 
-	// The Mixer's pins, those that differ from the rack as it starts.
-	if v := mixLinkValue(); v != "" {
-		b.WriteString("&" + mixLinkKey + "=" + v)
-	}
+}
 
-	// Model Out's two knobs: bank positions built at run time, so not in
-	// the markup table.
-	for i, p := range modelOutParams {
-		if *p.Value != p.Def {
-			b.WriteString("&" + modelOutKeys[i] + "=" + permaFmt(*p.Value))
-		}
-	}
-
-	// Residual table-driven controls that differ from their captured defaults.
-	for _, c := range permaCtls {
-		el := dom.Doc.Call("getElementById", c.id)
-		if !el.Truthy() {
-			continue
-		}
-		v := ctlValue(c, el)
-		if fv, ok := back.frontValue(c.id); ok {
-			v = fv
-		}
-		if v != pe.defaultOf(c.key) {
-			b.WriteString("&")
-			b.WriteString(c.key)
-			b.WriteString("=")
-			b.WriteString(v)
-		}
-	}
-
+// writeParams appends the parameters that differ from their defaults: the
+// running model's, then the homed modules'.
+func writeParams(b *strings.Builder) {
 	// Attractor parameters that differ from their default.
 	for _, p := range attractorParams[run.selectedMode] {
 		if *p.Value != p.Def && !quietParams[p.ID] {
@@ -320,11 +346,11 @@ func (pe *permalinkState) serializeState() string {
 		}
 	}
 
-	// Custom mode: the equations + their parameters.
-	if run.selectedMode == "custom" {
-		custom.serializeCustom(&b)
-	}
+}
 
+// writePose appends the orientation: the angles the model is held at, and
+// what a drag has turned it by.
+func writePose(b *strings.Builder) {
 	// Orientation — the absolute X/Y/Z angles in degrees, only when the
 	// model is held still (no spin, no auto-rotate) so the hash isn't
 	// churning every frame. Restored into the same angles on load.
@@ -342,6 +368,11 @@ func (pe *permalinkState) serializeState() string {
 		b.WriteString(d)
 	}
 
+}
+
+// writeRoutes appends the modulation routes: each parameter's, the set of
+// controls pinned to view A, and the view knobs'.
+func writeRoutes(b *strings.Builder) {
 	// Per-parameter audio-mod routing: channel~band0,band1,…~level.
 	for _, p := range modParams(run.selectedMode) {
 		if m := pmod.params[p.ID]; m.channel != "" && m.level != 0 {
@@ -363,11 +394,6 @@ func (pe *permalinkState) serializeState() string {
 			b.WriteString("&vm." + strings.TrimPrefix(vt.id, "view-") + "=" + formatModRoute(m))
 		}
 	}
-	// The backdrop's own palette (backlayer_js.go), when it has been set.
-	if s := back.permaString(); s != "" {
-		b.WriteString("&bk=" + s)
-	}
-	return b.String()
 }
 
 // startPermalinkSync refreshes the URL hash from the live state, writing only
@@ -634,33 +660,9 @@ func (pe *permalinkState) applyStateFrom(h string) {
 		if len(kv) != 2 {
 			continue
 		}
-		key, val := kv[0], kv[1]
-		// fr was the Front SWITCH, which the Fore knob replaced. A link written
-		// before that carries fr=1 and no fo, and it meant "all of the model in
-		// front of the rack" — which is the knob at +1. Translated rather than
-		// ignored, because a permalink is a promise that what you shared is what
-		// they see, and silently dropping it would put the model behind the rack
-		// for everyone holding an old link.
-		if key == "fr" {
-			if val == "1" && !strings.Contains(h, "&fo=") {
-				key, val = "fo", "1"
-			} else {
-				continue
-			}
-		}
-		// sk was the Spectro-skin SWITCH, which the skin SELECTOR replaced when
-		// the terminal and the desk became skins too. A link written before that
-		// carries sk=1, meaning the one skin there was; the selector spells that
-		// "spectrogram". Same key, because the meaning is the same — what is
-		// painted on the model — and a link should not stop working over a
-		// widening.
-		if key == "sk" {
-			switch val {
-			case "1":
-				val = "spectrogram"
-			case "0":
-				val = ""
-			}
+		key, val, ok := currentLinkKey(h, kv[0], kv[1])
+		if !ok {
+			continue
 		}
 		switch {
 		case key == "rot":
@@ -708,6 +710,56 @@ func (pe *permalinkState) applyStateFrom(h string) {
 	}
 	// The routes are in; modulation runs if any of them needs it.
 	syncAudioMod()
+	applyLinkedCustom(eqVal, haveCustom, haveFlavor, haveRK4)
+	if poseVal != "" {
+		applyRot(poseVal)
+	}
+	applyDrag(dragVal)
+	// Record whether the link pinned an explicit pose, so Run() only applies the
+	// "fresh random view each load" when the link DIDN'T — otherwise a shared
+	// still-view link is faithfully restored (save→restore fidelity).
+	pe.hashPinnedPose = poseVal != "" || dragVal != ""
+	syncKnobs() // move fixed-knob pointers to the restored values
+}
+
+// currentLinkKey is a link's key and value as they are spelled now, for a
+// link h written when they were spelled otherwise; not ok for a key that no
+// longer says anything.
+func currentLinkKey(h, key, val string) (string, string, bool) {
+	// fr was the Front SWITCH, which the Fore knob replaced. A link written
+	// before that carries fr=1 and no fo, and it meant "all of the model in
+	// front of the rack" — which is the knob at +1. Translated rather than
+	// ignored, because a permalink is a promise that what you shared is what
+	// they see, and silently dropping it would put the model behind the rack
+	// for everyone holding an old link.
+	if key == "fr" {
+		if val == "1" && !strings.Contains(h, "&fo=") {
+			key, val = "fo", "1"
+		} else {
+			return "", "", false
+		}
+	}
+	// sk was the Spectro-skin SWITCH, which the skin SELECTOR replaced when
+	// the terminal and the desk became skins too. A link written before that
+	// carries sk=1, meaning the one skin there was; the selector spells that
+	// "spectrogram". Same key, because the meaning is the same — what is
+	// painted on the model — and a link should not stop working over a
+	// widening.
+	if key == "sk" {
+		switch val {
+		case "1":
+			val = "spectrogram"
+		case "0":
+			val = ""
+		}
+	}
+	return key, val, true
+}
+
+// applyLinkedCustom compiles what a link said of the Custom model, once all
+// of it is in: the equations, or only a flavor or an integrator for the ones
+// already there.
+func applyLinkedCustom(eqVal string, haveCustom, haveFlavor, haveRK4 bool) {
 	if eqVal != "" {
 		// A link that carries equations but no flavor is a FLOW link: cit is
 		// omitted at its default like every other control, so its absence has
@@ -732,9 +784,10 @@ func (pe *permalinkState) applyStateFrom(h string) {
 		buildParamPanel("custom") // reflect restored equations + params
 		refitRestoredCustom()
 	}
-	if poseVal != "" {
-		applyRot(poseVal)
-	}
+}
+
+// applyDrag turns the model by a link's drag quaternion, x,y,z,w.
+func applyDrag(dragVal string) {
 	if dragVal != "" {
 		if q := strings.Split(dragVal, ","); len(q) == 4 {
 			// All four or none: a quaternion with one component missing is a
@@ -749,11 +802,6 @@ func (pe *permalinkState) applyStateFrom(h string) {
 			}
 		}
 	}
-	// Record whether the link pinned an explicit pose, so Run() only applies the
-	// "fresh random view each load" when the link DIDN'T — otherwise a shared
-	// still-view link is faithfully restored (save→restore fidelity).
-	pe.hashPinnedPose = poseVal != "" || dragVal != ""
-	syncKnobs() // move fixed-knob pointers to the restored values
 }
 
 // migrateLocationHash rewrites a link to a folded model (see migrateHash) in

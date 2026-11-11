@@ -49,8 +49,9 @@ linters:
       # A ratchet, not a target. Ten is the number this config has always
       # named and nothing has ever enforced; at ten the existing code fails
       # in dozens of places and the linter gets turned off again. Lower this
-      # as the outliers come down — it went 50 to 45 when Run was split.
-      min-complexity: 45
+      # as the outliers come down — it went 50 to 45 when Run was split, and
+      # 45 to 40 when the scene, the link and the panel keys were.
+      min-complexity: 40
     lll:
       line-length: 120
       tab-width: 1

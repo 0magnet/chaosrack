@@ -349,40 +349,7 @@ func runPerformance(c *cdp.Client) {
 				c.Eval(fmt.Sprintf(modMxJS+`var p=MX.pins(".on[data-view]");if(p.length)MX.depth(p[%d%%p.length].dataset.col,%g);})()`, rng.Intn(1<<30), 0.56+rng.Float64()*0.12))
 			}
 		default: // motion & texture monkey (no speaker-output switches)
-			switch rng.Intn(10) {
-			case 0:
-				setSlider("trail-slider", float64(2000+rng.Intn(80000)))
-			case 1:
-				setSlider("rainbow-freq", 0.2+rng.Float64()*6)
-			case 2:
-				setSlider("speed-slider", rng.Float64()*1.4-0.2)
-			case 3:
-				setSlider([]string{"rotation-controls-x", "rotation-controls-y", "rotation-controls-z"}[rng.Intn(3)], float64(rng.Intn(21)-10)/10)
-			case 4: // mild zoom only — extremes shrink the model to a dot or clip it
-				setSlider("camera-zoom", float64(rng.Intn(36)-20))
-			case 5: // recenter fully: pans AND zoom
-				setSlider("pan-x", 0)
-				setSlider("pan-y", 0)
-				setSlider("camera-zoom", 0)
-			case 6:
-				// phosphor flip (visual: trace color + CRT afterglow)
-				c.Eval(fmt.Sprintf(`(function(){var e=document.getElementById('phosphor');if(e&&e.options.length){e.selectedIndex=%d%%e.options.length;e.dispatchEvent(new Event('change',{bubbles:true}));}})()`, rng.Intn(1<<30)))
-			case 7: // persist is the star: mostly ON (accumulation), with an
-				// occasional flush so a fresh painting starts
-				if rng.Float64() < 0.8 {
-					c.Eval(`(function(){var e=document.getElementById('persist-trail');if(e&&!e.checked){e.checked=true;e.dispatchEvent(new Event('change',{bubbles:true}));}})()`)
-				} else {
-					c.Eval(`(function(){var e=document.getElementById('persist-trail');if(e&&e.checked){e.checked=false;e.dispatchEvent(new Event('change',{bubbles:true}));}})()`)
-				}
-			case 8: // backdrops hide the persist painting — mostly keep them OFF
-				if rng.Float64() < 0.8 {
-					c.Eval(`(function(){['bg-spectro','bg-xy'].forEach(function(id){var e=document.getElementById(id);if(e&&e.checked){e.checked=false;e.dispatchEvent(new Event('change',{bubbles:true}));}});})()`)
-				} else {
-					toggle([]string{"bg-spectro", "bg-xy"}[rng.Intn(2)])
-				}
-			default:
-				toggle([]string{"ring-sw", "use-points", "gradient-reverse", "spectro-skin", "spect-fill"}[rng.Intn(5)])
-			}
+			textureMonkey(c, rng, setSlider, toggle)
 		}
 		step++
 		// Twice per performance: hard-route the position columns (pan X, pan Y,
@@ -434,6 +401,46 @@ func runPerformance(c *cdp.Client) {
 	c.Eval(`location.hash='#lorenz'`)
 	_, _ = c.Call("Page.reload", map[string]any{"ignoreCache": true}) //nolint:errcheck
 	fmt.Printf("performance done: %d actions\n", step)
+}
+
+// textureMonkey is the performance's motion and texture monkey: one random
+// turn of a trail, speed, spin, zoom, phosphor, persist or backdrop control.
+// It touches no switch that makes sound.
+func textureMonkey(c *cdp.Client, rng *rand.Rand, setSlider func(id string, v float64), toggle func(id string)) {
+	switch rng.Intn(10) {
+	case 0:
+		setSlider("trail-slider", float64(2000+rng.Intn(80000)))
+	case 1:
+		setSlider("rainbow-freq", 0.2+rng.Float64()*6)
+	case 2:
+		setSlider("speed-slider", rng.Float64()*1.4-0.2)
+	case 3:
+		setSlider([]string{"rotation-controls-x", "rotation-controls-y", "rotation-controls-z"}[rng.Intn(3)], float64(rng.Intn(21)-10)/10)
+	case 4: // mild zoom only — extremes shrink the model to a dot or clip it
+		setSlider("camera-zoom", float64(rng.Intn(36)-20))
+	case 5: // recenter fully: pans AND zoom
+		setSlider("pan-x", 0)
+		setSlider("pan-y", 0)
+		setSlider("camera-zoom", 0)
+	case 6:
+		// phosphor flip (visual: trace color + CRT afterglow)
+		c.Eval(fmt.Sprintf(`(function(){var e=document.getElementById('phosphor');if(e&&e.options.length){e.selectedIndex=%d%%e.options.length;e.dispatchEvent(new Event('change',{bubbles:true}));}})()`, rng.Intn(1<<30)))
+	case 7: // persist is the star: mostly ON (accumulation), with an
+		// occasional flush so a fresh painting starts
+		if rng.Float64() < 0.8 {
+			c.Eval(`(function(){var e=document.getElementById('persist-trail');if(e&&!e.checked){e.checked=true;e.dispatchEvent(new Event('change',{bubbles:true}));}})()`)
+		} else {
+			c.Eval(`(function(){var e=document.getElementById('persist-trail');if(e&&e.checked){e.checked=false;e.dispatchEvent(new Event('change',{bubbles:true}));}})()`)
+		}
+	case 8: // backdrops hide the persist painting — mostly keep them OFF
+		if rng.Float64() < 0.8 {
+			c.Eval(`(function(){['bg-spectro','bg-xy'].forEach(function(id){var e=document.getElementById(id);if(e&&e.checked){e.checked=false;e.dispatchEvent(new Event('change',{bubbles:true}));}});})()`)
+		} else {
+			toggle([]string{"bg-spectro", "bg-xy"}[rng.Intn(2)])
+		}
+	default:
+		toggle([]string{"ring-sw", "use-points", "gradient-reverse", "spectro-skin", "spect-fill"}[rng.Intn(5)])
+	}
 }
 
 // randGradSource and randGradMap pick a position on each of the Colors

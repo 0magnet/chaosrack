@@ -36,13 +36,6 @@ func TestEveryLinkKeyIsOneControls(t *testing.T) {
 		}
 		seen[key] = where
 	}
-	str := func(e ast.Expr) (string, bool) {
-		if b, ok := e.(*ast.BasicLit); ok && b.Kind == token.STRING {
-			s, err := strconv.Unquote(b.Value)
-			return s, err == nil
-		}
-		return "", false
-	}
 	fset := token.NewFileSet()
 	for _, f := range files {
 		if strings.HasSuffix(f, "_test.go") {
@@ -52,62 +45,7 @@ func TestEveryLinkKeyIsOneControls(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		ast.Inspect(file, func(n ast.Node) bool {
-			switch n := n.(type) {
-			case *ast.CompositeLit:
-				// The synth's tables name their keys "key".
-				if id, ok := n.Type.(*ast.Ident); ok && (id.Name == "synthKnob" || id.Name == "synthSelect") {
-					for _, e := range n.Elts {
-						if kv, ok := e.(*ast.KeyValueExpr); ok {
-							if k, ok := kv.Key.(*ast.Ident); ok && k.Name == "key" {
-								if s, ok := str(kv.Value); ok {
-									add(s, "the synth's at "+fset.Position(kv.Pos()).String())
-								}
-							}
-						}
-					}
-				}
-			case *ast.KeyValueExpr:
-				if id, ok := n.Key.(*ast.Ident); ok && id.Name == "PermaKey" {
-					if s, ok := str(n.Value); ok {
-						add(s, "a PermaKey at "+fset.Position(n.Pos()).String())
-					}
-				}
-			case *ast.CallExpr:
-				if id, ok := n.Fun.(*ast.Ident); ok && id.Name == "addMeterSwitch" && len(n.Args) > 4 {
-					if s, ok := str(n.Args[4]); ok {
-						add(s, "a meter switch at "+fset.Position(n.Pos()).String())
-					}
-				}
-			case *ast.ValueSpec:
-				for i, name := range n.Names {
-					if i >= len(n.Values) {
-						continue
-					}
-					lit, ok := n.Values[i].(*ast.CompositeLit)
-					if !ok {
-						continue
-					}
-					switch name.Name {
-					case "permaCtls":
-						for _, e := range lit.Elts {
-							if row, ok := e.(*ast.CompositeLit); ok && len(row.Elts) > 0 {
-								if s, ok := str(row.Elts[0]); ok {
-									add(s, "permaCtls at "+fset.Position(row.Pos()).String())
-								}
-							}
-						}
-					case "modelOutKeys":
-						for _, e := range lit.Elts {
-							if s, ok := str(e); ok {
-								add(s, "Model Out's")
-							}
-						}
-					}
-				}
-			}
-			return true
-		})
+		scanLinkKeys(fset, file, add)
 	}
 	if len(seen) < 90 {
 		t.Fatalf("found only %d link keys: the scan has stopped seeing where they are declared", len(seen))
@@ -121,4 +59,74 @@ func TestEveryLinkKeyIsOneControls(t *testing.T) {
 			t.Errorf("link key %q (%s) is one a family of keys made at run time can take", k, where)
 		}
 	}
+}
+
+// stringLit is the string a literal spells, if e is one.
+func stringLit(e ast.Expr) (string, bool) {
+	if b, ok := e.(*ast.BasicLit); ok && b.Kind == token.STRING {
+		s, err := strconv.Unquote(b.Value)
+		return s, err == nil
+	}
+	return "", false
+}
+
+// scanLinkKeys calls add for every link key file declares, with where.
+func scanLinkKeys(fset *token.FileSet, file *ast.File, add func(key, where string)) {
+	str := stringLit
+	ast.Inspect(file, func(n ast.Node) bool {
+		switch n := n.(type) {
+		case *ast.CompositeLit:
+			// The synth's tables name their keys "key".
+			if id, ok := n.Type.(*ast.Ident); ok && (id.Name == "synthKnob" || id.Name == "synthSelect") {
+				for _, e := range n.Elts {
+					if kv, ok := e.(*ast.KeyValueExpr); ok {
+						if k, ok := kv.Key.(*ast.Ident); ok && k.Name == "key" {
+							if s, ok := str(kv.Value); ok {
+								add(s, "the synth's at "+fset.Position(kv.Pos()).String())
+							}
+						}
+					}
+				}
+			}
+		case *ast.KeyValueExpr:
+			if id, ok := n.Key.(*ast.Ident); ok && id.Name == "PermaKey" {
+				if s, ok := str(n.Value); ok {
+					add(s, "a PermaKey at "+fset.Position(n.Pos()).String())
+				}
+			}
+		case *ast.CallExpr:
+			if id, ok := n.Fun.(*ast.Ident); ok && id.Name == "addMeterSwitch" && len(n.Args) > 4 {
+				if s, ok := str(n.Args[4]); ok {
+					add(s, "a meter switch at "+fset.Position(n.Pos()).String())
+				}
+			}
+		case *ast.ValueSpec:
+			for i, name := range n.Names {
+				if i >= len(n.Values) {
+					continue
+				}
+				lit, ok := n.Values[i].(*ast.CompositeLit)
+				if !ok {
+					continue
+				}
+				switch name.Name {
+				case "permaCtls":
+					for _, e := range lit.Elts {
+						if row, ok := e.(*ast.CompositeLit); ok && len(row.Elts) > 0 {
+							if s, ok := str(row.Elts[0]); ok {
+								add(s, "permaCtls at "+fset.Position(row.Pos()).String())
+							}
+						}
+					}
+				case "modelOutKeys":
+					for _, e := range lit.Elts {
+						if s, ok := str(e); ok {
+							add(s, "Model Out's")
+						}
+					}
+				}
+			}
+		}
+		return true
+	})
 }
