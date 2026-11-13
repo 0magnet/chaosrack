@@ -4,18 +4,18 @@ go 1.26.10
 
 require (
 	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992
-	github.com/0magnet/audioprism-go v0.0.1-0.20261112135443-de8614ad4fa5
+	github.com/0magnet/audioprism-go v0.0.1-0.20261113131609-22e9663cdbdd
 	github.com/0magnet/calvin v0.0.1-0.20261109140133-887794fc87eb
 	github.com/0magnet/cdp v0.0.0-20261028200759-2a9c9f587569
-	github.com/0magnet/desk v0.0.3-0.20261112140033-f1a4bfc242e4
-	github.com/0magnet/desk/panes v0.0.1-0.20261112135641-e15ee4246a58
+	github.com/0magnet/desk v0.0.3-0.20261113132144-8d1540de7e8d
+	github.com/0magnet/desk/panes v0.0.1-0.20261113131806-c172f83adc9b
 	github.com/0magnet/lattice v0.0.0-20261110133708-28999eddbe1f
 	github.com/0magnet/pisano v0.0.0-20261112140204-2c9442f90d3c
 	github.com/0magnet/rack-go v0.0.0-20261028211156-58f7d14d2611
 	github.com/0magnet/seat v0.0.0-20261013221028-e66b97ebca1a
 	github.com/0magnet/sh/v3 v3.13.2-0.20261024150911-145e01c63128
-	github.com/0magnet/tuiwasm v0.0.0-20261112140105-3bafd9ee7f35
-	github.com/0magnet/websh v0.0.1-0.20261112135518-a99c708a4523
+	github.com/0magnet/tuiwasm v0.0.0-20261113132250-15067dd92848
+	github.com/0magnet/websh v0.0.1-0.20261112140315-f8c2ded42deb
 	github.com/0magnet/winbox-go v0.0.1-0.20261109140257-4c5c0e948cd6
 	github.com/0magnet/xterm-go v0.0.1-0.20261102175652-6023ed24df89
 	github.com/creack/pty v1.1.24
@@ -82,7 +82,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/itchyny/gojq v0.12.20 // indirect
 	github.com/itchyny/timefmt-go v0.1.9 // indirect
-	github.com/jedib0t/go-pretty/v6 v6.8.3 // indirect
+	github.com/jedib0t/go-pretty/v6 v6.9.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.2 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect

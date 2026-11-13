@@ -7,7 +7,7 @@ charm.land/lipgloss/v2/table
 github.com/0magnet/afero
 github.com/0magnet/afero/internal/common
 github.com/0magnet/afero/mem
-# github.com/0magnet/audioprism-go v0.0.1-0.20261112135443-de8614ad4fa5
+# github.com/0magnet/audioprism-go v0.0.1-0.20261113131609-22e9663cdbdd
 ## explicit; go 1.26.10
 github.com/0magnet/audioprism-go/pkg/spectrogram
 github.com/0magnet/audioprism-go/pkg/wsaudio
@@ -24,11 +24,11 @@ github.com/0magnet/cdp
 # github.com/0magnet/coloredcobra v1.0.4-0.20261012213101-faa6bd8f94c5
 ## explicit; go 1.26.0
 github.com/0magnet/coloredcobra
-# github.com/0magnet/desk v0.0.3-0.20261112140033-f1a4bfc242e4
+# github.com/0magnet/desk v0.0.3-0.20261113132144-8d1540de7e8d
 ## explicit; go 1.26.6
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.1-0.20261112135641-e15ee4246a58
+# github.com/0magnet/desk/panes v0.0.1-0.20261113131806-c172f83adc9b
 ## explicit; go 1.26.6
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -126,7 +126,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20261112140105-3bafd9ee7f35
+# github.com/0magnet/tuiwasm v0.0.0-20261113132250-15067dd92848
 ## explicit; go 1.26.7
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -146,7 +146,7 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754
 ## explicit; go 1.26.6
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.1-0.20261112135518-a99c708a4523
+# github.com/0magnet/websh v0.0.1-0.20261112140315-f8c2ded42deb
 ## explicit; go 1.26.6
 github.com/0magnet/websh/console
 github.com/0magnet/websh/progressive
@@ -416,7 +416,7 @@ github.com/itchyny/gojq
 # github.com/itchyny/timefmt-go v0.1.9
 ## explicit; go 1.24
 github.com/itchyny/timefmt-go
-# github.com/jedib0t/go-pretty/v6 v6.8.3
+# github.com/jedib0t/go-pretty/v6 v6.9.1
 ## explicit; go 1.18
 github.com/jedib0t/go-pretty/v6/table
 github.com/jedib0t/go-pretty/v6/text
