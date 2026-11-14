@@ -24,11 +24,11 @@ github.com/0magnet/cdp
 # github.com/0magnet/coloredcobra v1.0.4-0.20261012213101-faa6bd8f94c5
 ## explicit; go 1.26.0
 github.com/0magnet/coloredcobra
-# github.com/0magnet/desk v0.0.3-0.20261113132144-8d1540de7e8d
+# github.com/0magnet/desk v0.0.3-0.20261114122838-aa283776a000
 ## explicit; go 1.26.6
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.1-0.20261113131806-c172f83adc9b
+# github.com/0magnet/desk/panes v0.0.1-0.20261114122432-829a5b73bf47
 ## explicit; go 1.26.6
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -59,7 +59,7 @@ github.com/0magnet/lattice
 # github.com/0magnet/lolcat-go v0.0.1-0.20261013220959-57aa27491489
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20261112140204-2c9442f90d3c
+# github.com/0magnet/pisano v0.0.0-20261114122657-01bfb456b9a1
 ## explicit; go 1.26.6
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20261014235132-1143d38a91d3
@@ -126,7 +126,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20261113132250-15067dd92848
+# github.com/0magnet/tuiwasm v0.0.0-20261114123058-f133097c1ca7
 ## explicit; go 1.26.7
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -146,7 +146,7 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754
 ## explicit; go 1.26.6
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.1-0.20261112140315-f8c2ded42deb
+# github.com/0magnet/websh v0.0.1-0.20261114122222-cfdf371f06c7
 ## explicit; go 1.26.6
 github.com/0magnet/websh/console
 github.com/0magnet/websh/progressive
@@ -157,7 +157,7 @@ github.com/0magnet/websh/widget
 # github.com/0magnet/winbox-go v0.0.1-0.20261109140257-4c5c0e948cd6
 ## explicit; go 1.26.0
 github.com/0magnet/winbox-go
-# github.com/0magnet/xterm-go v0.0.1-0.20261102175652-6023ed24df89
+# github.com/0magnet/xterm-go v0.0.1-0.20261113221359-36e33e634de1
 ## explicit; go 1.24
 github.com/0magnet/xterm-go
 github.com/0magnet/xterm-go/vt
