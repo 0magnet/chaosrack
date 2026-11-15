@@ -1,5 +1,5 @@
-# charm.land/lipgloss/v2 v2.1.0
-## explicit; go 1.26.7
+# charm.land/lipgloss/v2 v2.1.1
+## explicit; go 1.26.0
 charm.land/lipgloss/v2
 charm.land/lipgloss/v2/table
 # github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992
@@ -24,11 +24,11 @@ github.com/0magnet/cdp
 # github.com/0magnet/coloredcobra v1.0.4-0.20261012213101-faa6bd8f94c5
 ## explicit; go 1.26.0
 github.com/0magnet/coloredcobra
-# github.com/0magnet/desk v0.0.3-0.20261114122838-aa283776a000
+# github.com/0magnet/desk v0.0.3-0.20261115125935-f2ac048fee49
 ## explicit; go 1.26.6
 github.com/0magnet/desk
 github.com/0magnet/desk/dom
-# github.com/0magnet/desk/panes v0.0.1-0.20261114122432-829a5b73bf47
+# github.com/0magnet/desk/panes v0.0.1-0.20261115125615-0d7fe88d9832
 ## explicit; go 1.26.6
 github.com/0magnet/desk/panes/files
 github.com/0magnet/desk/panes/hostagent
@@ -59,7 +59,7 @@ github.com/0magnet/lattice
 # github.com/0magnet/lolcat-go v0.0.1-0.20261013220959-57aa27491489
 ## explicit; go 1.25.0
 github.com/0magnet/lolcat-go/lol
-# github.com/0magnet/pisano v0.0.0-20261114122657-01bfb456b9a1
+# github.com/0magnet/pisano v0.0.0-20261115130242-dc03ecc6c107
 ## explicit; go 1.26.6
 github.com/0magnet/pisano/pkg/pisano
 # github.com/0magnet/proxima5 v0.0.0-20261014235132-1143d38a91d3
@@ -126,7 +126,7 @@ github.com/0magnet/toilet-go/canvas
 github.com/0magnet/toilet-go/figlet
 github.com/0magnet/toilet-go/fonts
 github.com/0magnet/toilet-go/toilet
-# github.com/0magnet/tuiwasm v0.0.0-20261114123058-f133097c1ca7
+# github.com/0magnet/tuiwasm v0.0.0-20261115130229-eb61de281be2
 ## explicit; go 1.26.7
 github.com/0magnet/tuiwasm/demos
 github.com/0magnet/tuiwasm/demos/anim
@@ -146,7 +146,7 @@ github.com/0magnet/tuiwasm/xwrite
 # github.com/0magnet/u-root v0.16.1-0.20261003214924-44e47b732754
 ## explicit; go 1.26.6
 github.com/0magnet/u-root/pkg/ls
-# github.com/0magnet/websh v0.0.1-0.20261114122222-cfdf371f06c7
+# github.com/0magnet/websh v0.0.1-0.20261114122934-ffd57803ff74
 ## explicit; go 1.26.6
 github.com/0magnet/websh/console
 github.com/0magnet/websh/progressive
@@ -416,7 +416,7 @@ github.com/itchyny/gojq
 # github.com/itchyny/timefmt-go v0.1.9
 ## explicit; go 1.24
 github.com/itchyny/timefmt-go
-# github.com/jedib0t/go-pretty/v6 v6.9.1
+# github.com/jedib0t/go-pretty/v6 v6.9.2
 ## explicit; go 1.18
 github.com/jedib0t/go-pretty/v6/table
 github.com/jedib0t/go-pretty/v6/text
