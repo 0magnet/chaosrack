@@ -4,18 +4,18 @@ go 1.26.10
 
 require (
 	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992
-	github.com/0magnet/audioprism-go v0.0.1-0.20261113131609-22e9663cdbdd
+	github.com/0magnet/audioprism-go v0.0.1-0.20261118144128-4e7f7c642258
 	github.com/0magnet/calvin v0.0.1-0.20261109140133-887794fc87eb
 	github.com/0magnet/cdp v0.0.0-20261028200759-2a9c9f587569
-	github.com/0magnet/desk v0.0.3-0.20261117144703-a6271426ed4c
-	github.com/0magnet/desk/panes v0.0.1-0.20261117144341-cfddf77192f8
+	github.com/0magnet/desk v0.0.3-0.20261118144752-512ef97c8f48
+	github.com/0magnet/desk/panes v0.0.1-0.20261118144505-d7da5485accf
 	github.com/0magnet/lattice v0.0.0-20261110133708-28999eddbe1f
-	github.com/0magnet/pisano v0.0.0-20261117145019-5af663e05391
+	github.com/0magnet/pisano v0.0.0-20261118142918-546a08d4a138
 	github.com/0magnet/rack-go v0.0.0-20261028211156-58f7d14d2611
 	github.com/0magnet/seat v0.0.0-20261013221028-e66b97ebca1a
 	github.com/0magnet/sh/v3 v3.13.2-0.20261024150911-145e01c63128
-	github.com/0magnet/tuiwasm v0.0.0-20261117145110-057989b3fd0d
-	github.com/0magnet/websh v0.0.1-0.20261114122934-ffd57803ff74
+	github.com/0magnet/tuiwasm v0.0.0-20261118145118-be641fcbc387
+	github.com/0magnet/websh v0.0.1-0.20261118144207-c27375f65f2c
 	github.com/0magnet/winbox-go v0.0.1-0.20261109140257-4c5c0e948cd6
 	github.com/0magnet/xterm-go v0.0.1-0.20261113221359-36e33e634de1
 	github.com/creack/pty v1.1.24
@@ -31,7 +31,7 @@ require (
 	github.com/yuin/goldmark v1.8.7
 	gitlab.com/russoj88/stl v1.0.2
 	golang.org/x/image v0.48.0
-	golang.org/x/net v0.62.0
+	golang.org/x/net v0.63.0
 	golang.org/x/sys v0.50.0
 )
 
@@ -56,7 +56,7 @@ require (
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834 // indirect
 	github.com/charmbracelet/ultraviolet v0.0.0-20261023060817-a45b7c86333f // indirect
-	github.com/charmbracelet/x/ansi v0.11.9 // indirect
+	github.com/charmbracelet/x/ansi v0.11.10 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.15 // indirect
 	github.com/charmbracelet/x/exp/slice v0.1.0 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
@@ -66,7 +66,7 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/coder/websocket v1.8.15 // indirect
-	github.com/dlclark/regexp2/v2 v2.13.0 // indirect
+	github.com/dlclark/regexp2/v2 v2.13.1 // indirect
 	github.com/dunglas/httpsfv v1.1.2 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/fatih/color v1.19.0 // indirect
