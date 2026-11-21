@@ -188,6 +188,9 @@ func modelEntry(m attractor.CatalogModel) string {
 	if equations != "" {
 		fmt.Fprintf(&b, "\n```\n%s\n```\n", equations)
 	}
+	if g := formsGallery(m.Key); g != "" {
+		b.WriteString("\n" + g)
+	}
 	fmt.Fprintf(&b, "\n`#%s` · %s\n", m.Key, m.Class)
 	return b.String()
 }

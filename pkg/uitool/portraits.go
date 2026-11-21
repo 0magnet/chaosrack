@@ -88,6 +88,14 @@ func runPortraits() {
 			continue
 		}
 		fmt.Printf("[%2d/%2d] %s", i+1, len(models), m)
+		if *portNative && nativePortrait(m) {
+			// A model that is many figures behind one knob: a still of each,
+			// drawn natively in the normal run and the extras run alike.
+			if err := renderForms(m, max(slices.Index(attractor.CatalogKeys(), m), 0)); err != nil {
+				fmt.Fprintln(os.Stderr, "\nportraits:", err)
+				os.Exit(1)
+			}
+		}
 		if *portNative && !*portExtras && nativePortrait(m) {
 			// Its colors by its place in the catalog, not in this run's list,
 			// so a model looks the same however it is asked for.
