@@ -62,11 +62,11 @@ func formStill(dir, key, name string) string {
 // formLink is the page with the figure up: the model, then each control as
 // the page writes it into a link (p.<id less the model's prefix>=<value>).
 func formLink(key string, f formPreset) string {
-	parts := []string{key}
+	parts := make([]string, 0, len(f.set))
 	for _, s := range f.set {
 		parts = append(parts, "p."+strings.TrimPrefix(s[0], key+"-")+"="+s[1])
 	}
-	return *siteBase + "/#" + strings.Join(parts, "&")
+	return appLink(key, strings.Join(parts, "&"))
 }
 
 // renderForms draws each of key's figures with chaosrack render, posed and

@@ -10,9 +10,9 @@ to the analog computers at [glensstuff.com](https://glensstuff.com).
 [Model pages](https://chaosrack.magnetosphere.net/models/) ·
 [Manual](manual/)
 
-![The control panel docked at the bottom with the Lorenz attractor above it](docs/img/hero.jpg)
+[![The control panel docked at the bottom with the Lorenz attractor above it](docs/img/hero.jpg)](https://chaosrack.magnetosphere.net/#lorenz)
 
-- **79 models.** Flows (Lorenz, Rössler, Chua, Sprott A–S, 4-D hyper-Rössler, …),
+- **91 models.** Flows (Lorenz, Rössler, Chua, Sprott A–S, 4-D hyper-Rössler, …),
   maps (Hénon, Ikeda, Clifford, de Jong, Gumowski–Mira, Tinkerbell, Chirikov),
   parametric figures, an integer-sequence turtle with rigid-body physics,
   geometry and STL solids, terminals and a desktop drawn into the scene, delay
@@ -251,11 +251,11 @@ its equations. Images are captured by `uitool portraits`.
 
 #### Rossler
 
-![Rossler parameters](docs/img/model/rossler-params.jpg)
+[![Rossler parameters](docs/img/model/rossler-params.jpg)](https://chaosrack.magnetosphere.net/#rossler)
 
 | Rossler | animated |
 | --- | --- |
-| ![Rossler](docs/img/model/rossler.jpg) | ![Rossler, animated](https://chaosrack.magnetosphere.net/docs/img/model/rossler.gif) |
+| [![Rossler](docs/img/model/rossler.jpg)](https://chaosrack.magnetosphere.net/#rossler) | [![Rossler, animated](https://chaosrack.magnetosphere.net/docs/img/model/rossler.gif)](https://chaosrack.magnetosphere.net/#rossler) |
 
 Rössler Attractor — Proposed by Otto Rössler in 1976 as a simpler system that produces chaotic behavior.
 Unlike the Lorenz system's two-lobed shape, the Rössler attractor has a single folded-band structure with an outward spiral that occasionally makes a large excursion in the z-direction.
@@ -270,11 +270,11 @@ dz/dt = b + z(x − c)
 
 #### Lorenz
 
-![Lorenz parameters](docs/img/model/lorenz-params.jpg)
+[![Lorenz parameters](docs/img/model/lorenz-params.jpg)](https://chaosrack.magnetosphere.net/#lorenz)
 
 | Lorenz | animated |
 | --- | --- |
-| ![Lorenz](docs/img/model/lorenz.jpg) | ![Lorenz, animated](https://chaosrack.magnetosphere.net/docs/img/model/lorenz.gif) |
+| [![Lorenz](docs/img/model/lorenz.jpg)](https://chaosrack.magnetosphere.net/#lorenz) | [![Lorenz, animated](https://chaosrack.magnetosphere.net/docs/img/model/lorenz.gif)](https://chaosrack.magnetosphere.net/#lorenz) |
 
 Lorenz Attractor — Discovered by Edward Lorenz in 1963 while modeling atmospheric convection.
 The butterfly-shaped trajectory arises from a simplified system of three coupled differential equations.
@@ -290,11 +290,11 @@ dz/dt = xy − βz
 
 #### Chua
 
-![Chua parameters](docs/img/model/chua-params.jpg)
+[![Chua parameters](docs/img/model/chua-params.jpg)](https://chaosrack.magnetosphere.net/#chua)
 
 | Chua | animated |
 | --- | --- |
-| ![Chua](docs/img/model/chua.jpg) | ![Chua, animated](https://chaosrack.magnetosphere.net/docs/img/model/chua.gif) |
+| [![Chua](docs/img/model/chua.jpg)](https://chaosrack.magnetosphere.net/#chua) | [![Chua, animated](https://chaosrack.magnetosphere.net/docs/img/model/chua.gif)](https://chaosrack.magnetosphere.net/#chua) |
 
 Chua's Circuit (Double Scroll Attractor) — Invented by Leon Chua in 1983, this is the first electronic circuit proven to exhibit chaos.
 The system features a piecewise-linear nonlinearity (the Chua diode) that creates the characteristic double-scroll pattern.
@@ -311,11 +311,11 @@ h(x) = m₁x + ½(m₀ − m₁)(|x+1| − |x−1|)
 
 #### Aizawa
 
-![Aizawa parameters](docs/img/model/aizawa-params.jpg)
+[![Aizawa parameters](docs/img/model/aizawa-params.jpg)](https://chaosrack.magnetosphere.net/#aizawa)
 
 | Aizawa | animated |
 | --- | --- |
-| ![Aizawa](docs/img/model/aizawa.jpg) | ![Aizawa, animated](https://chaosrack.magnetosphere.net/docs/img/model/aizawa.gif) |
+| [![Aizawa](docs/img/model/aizawa.jpg)](https://chaosrack.magnetosphere.net/#aizawa) | [![Aizawa, animated](https://chaosrack.magnetosphere.net/docs/img/model/aizawa.gif)](https://chaosrack.magnetosphere.net/#aizawa) |
 
 Aizawa Attractor — A chaotic system that produces a toroidal structure with a tendril extending from the center.
 The attractor has a visually striking shape that resembles a sphere with a tail, exhibiting both rotational symmetry and chaotic wandering.
@@ -330,11 +330,11 @@ dz/dt = c + az − z³/3 − (x² + y²)(1 + ez) + fzx³
 
 #### Sprott
 
-![Sprott parameters](docs/img/model/sprott-params.jpg)
+[![Sprott parameters](docs/img/model/sprott-params.jpg)](https://chaosrack.magnetosphere.net/#sprott)
 
 | Sprott | animated |
 | --- | --- |
-| ![Sprott](docs/img/model/sprott.jpg) | ![Sprott, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprott.gif) |
+| [![Sprott](docs/img/model/sprott.jpg)](https://chaosrack.magnetosphere.net/#sprott) | [![Sprott, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprott.gif)](https://chaosrack.magnetosphere.net/#sprott) |
 
 Sprott Attractor — One of many simple chaotic systems cataloged by Julien Clinton Sprott.
 These systems were discovered through systematic computer searches for chaotic flows with minimal terms, demonstrating that chaos can arise from remarkably simple equations.
@@ -349,11 +349,11 @@ dz/dt = x − x² − y²
 
 #### Thomas
 
-![Thomas parameters](docs/img/model/thomas-params.jpg)
+[![Thomas parameters](docs/img/model/thomas-params.jpg)](https://chaosrack.magnetosphere.net/#thomas)
 
 | Thomas | animated |
 | --- | --- |
-| ![Thomas](docs/img/model/thomas.jpg) | ![Thomas, animated](https://chaosrack.magnetosphere.net/docs/img/model/thomas.gif) |
+| [![Thomas](docs/img/model/thomas.jpg)](https://chaosrack.magnetosphere.net/#thomas) | [![Thomas, animated](https://chaosrack.magnetosphere.net/docs/img/model/thomas.gif)](https://chaosrack.magnetosphere.net/#thomas) |
 
 Thomas' Cyclically Symmetric Attractor — Introduced by René Thomas, this system has the elegant property of cyclic symmetry: each variable is damped and driven by the sine of the next variable in the cycle.
 The parameter b controls dissipation;
@@ -369,11 +369,11 @@ dz/dt = −bz + sin(x)
 
 #### Halvorsen
 
-![Halvorsen parameters](docs/img/model/halvorsen-params.jpg)
+[![Halvorsen parameters](docs/img/model/halvorsen-params.jpg)](https://chaosrack.magnetosphere.net/#halvorsen)
 
 | Halvorsen | animated |
 | --- | --- |
-| ![Halvorsen](docs/img/model/halvorsen.jpg) | ![Halvorsen, animated](https://chaosrack.magnetosphere.net/docs/img/model/halvorsen.gif) |
+| [![Halvorsen](docs/img/model/halvorsen.jpg)](https://chaosrack.magnetosphere.net/#halvorsen) | [![Halvorsen, animated](https://chaosrack.magnetosphere.net/docs/img/model/halvorsen.gif)](https://chaosrack.magnetosphere.net/#halvorsen) |
 
 Halvorsen Attractor — A chaotic system with three-fold rotational symmetry, producing a distinctive pinwheel-like shape.
 The attractor consists of three intertwined lobes that spiral around each other, creating a visually complex but structurally symmetric trajectory.
@@ -388,11 +388,11 @@ dz/dt = −az − 4x − 4y − x²
 
 #### Chen
 
-![Chen parameters](docs/img/model/chen-params.jpg)
+[![Chen parameters](docs/img/model/chen-params.jpg)](https://chaosrack.magnetosphere.net/#chen)
 
 | Chen | animated |
 | --- | --- |
-| ![Chen](docs/img/model/chen.jpg) | ![Chen, animated](https://chaosrack.magnetosphere.net/docs/img/model/chen.gif) |
+| [![Chen](docs/img/model/chen.jpg)](https://chaosrack.magnetosphere.net/#chen) | [![Chen, animated](https://chaosrack.magnetosphere.net/docs/img/model/chen.gif)](https://chaosrack.magnetosphere.net/#chen) |
 
 Chen Attractor — Discovered by Guanrong Chen in 1999, this system was found as a dual of the Lorenz system in a specific mathematical sense.
 It exhibits chaotic behavior with a distinctive two-scroll structure that differs from both the Lorenz and Rössler attractors.
@@ -407,11 +407,11 @@ dz/dt = xy − bz
 
 #### Dadras
 
-![Dadras parameters](docs/img/model/dadras-params.jpg)
+[![Dadras parameters](docs/img/model/dadras-params.jpg)](https://chaosrack.magnetosphere.net/#dadras)
 
 | Dadras | animated |
 | --- | --- |
-| ![Dadras](docs/img/model/dadras.jpg) | ![Dadras, animated](https://chaosrack.magnetosphere.net/docs/img/model/dadras.gif) |
+| [![Dadras](docs/img/model/dadras.jpg)](https://chaosrack.magnetosphere.net/#dadras) | [![Dadras, animated](https://chaosrack.magnetosphere.net/docs/img/model/dadras.gif)](https://chaosrack.magnetosphere.net/#dadras) |
 
 Dadras Attractor — A three-dimensional autonomous chaotic system with five parameters, introduced by Sara Dadras and Hamid Reza Momeni.
 The system exhibits rich dynamical behavior including period-doubling routes to chaos.
@@ -426,11 +426,11 @@ dz/dt = sxy − ez
 
 #### Rabinovich-Fabrikant
 
-![Rabinovich-Fabrikant parameters](docs/img/model/rabinovich-params.jpg)
+[![Rabinovich-Fabrikant parameters](docs/img/model/rabinovich-params.jpg)](https://chaosrack.magnetosphere.net/#rabinovich)
 
 | Rabinovich-Fabrikant | animated |
 | --- | --- |
-| ![Rabinovich-Fabrikant](docs/img/model/rabinovich.jpg) | ![Rabinovich-Fabrikant, animated](https://chaosrack.magnetosphere.net/docs/img/model/rabinovich.gif) |
+| [![Rabinovich-Fabrikant](docs/img/model/rabinovich.jpg)](https://chaosrack.magnetosphere.net/#rabinovich) | [![Rabinovich-Fabrikant, animated](https://chaosrack.magnetosphere.net/docs/img/model/rabinovich.gif)](https://chaosrack.magnetosphere.net/#rabinovich) |
 
 Rabinovich-Fabrikant Attractor — Derived by Mikhail Rabinovich and Anatoly Fabrikant from physical equations modeling the stochasticity of three interacting waves.
 The system is known for its complex topology and extreme sensitivity to parameters, producing intricate folded structures.
@@ -445,11 +445,11 @@ dz/dt = −2z(α + xy)
 
 #### Burke-Shaw
 
-![Burke-Shaw parameters](docs/img/model/burkeshaw-params.jpg)
+[![Burke-Shaw parameters](docs/img/model/burkeshaw-params.jpg)](https://chaosrack.magnetosphere.net/#burkeshaw)
 
 | Burke-Shaw | animated |
 | --- | --- |
-| ![Burke-Shaw](docs/img/model/burkeshaw.jpg) | ![Burke-Shaw, animated](https://chaosrack.magnetosphere.net/docs/img/model/burkeshaw.gif) |
+| [![Burke-Shaw](docs/img/model/burkeshaw.jpg)](https://chaosrack.magnetosphere.net/#burkeshaw) | [![Burke-Shaw, animated](https://chaosrack.magnetosphere.net/docs/img/model/burkeshaw.gif)](https://chaosrack.magnetosphere.net/#burkeshaw) |
 
 Burke-Shaw Attractor — Introduced by Bill Burke and Robert Shaw, this system exhibits chaotic behavior with a distinctive two-winged structure.
 It arises from the study of nonlinear dynamics and produces complex trajectories confined to a compact region of phase space.
@@ -464,11 +464,11 @@ dz/dt = Sxy + V
 
 #### Lü
 
-![Lü parameters](docs/img/model/lu-params.jpg)
+[![Lü parameters](docs/img/model/lu-params.jpg)](https://chaosrack.magnetosphere.net/#lu)
 
 | Lü | animated |
 | --- | --- |
-| ![Lü](docs/img/model/lu.jpg) | ![Lü, animated](https://chaosrack.magnetosphere.net/docs/img/model/lu.gif) |
+| [![Lü](docs/img/model/lu.jpg)](https://chaosrack.magnetosphere.net/#lu) | [![Lü, animated](https://chaosrack.magnetosphere.net/docs/img/model/lu.gif)](https://chaosrack.magnetosphere.net/#lu) |
 
 Lü Attractor — Discovered by Jinhu Lü and Guanrong Chen (2002), the third member of the Lorenz–Chen–Lü family;
 it forms a bridge between the Lorenz and Chen systems and produces a two-scroll butterfly.
@@ -483,11 +483,11 @@ dz/dt = xy − bz
 
 #### Newton-Leipnik
 
-![Newton-Leipnik parameters](docs/img/model/newtonleipnik-params.jpg)
+[![Newton-Leipnik parameters](docs/img/model/newtonleipnik-params.jpg)](https://chaosrack.magnetosphere.net/#newtonleipnik)
 
 | Newton-Leipnik | animated |
 | --- | --- |
-| ![Newton-Leipnik](docs/img/model/newtonleipnik.jpg) | ![Newton-Leipnik, animated](https://chaosrack.magnetosphere.net/docs/img/model/newtonleipnik.gif) |
+| [![Newton-Leipnik](docs/img/model/newtonleipnik.jpg)](https://chaosrack.magnetosphere.net/#newtonleipnik) | [![Newton-Leipnik, animated](https://chaosrack.magnetosphere.net/docs/img/model/newtonleipnik.gif)](https://chaosrack.magnetosphere.net/#newtonleipnik) |
 
 Newton–Leipnik Attractor — Arises from a rigid-body rotation model with a linear feedback torque; it has two coexisting scroll-shaped attractors.
 
@@ -501,11 +501,11 @@ dz/dt = bz − 5xy
 
 #### Arneodo
 
-![Arneodo parameters](docs/img/model/arneodo-params.jpg)
+[![Arneodo parameters](docs/img/model/arneodo-params.jpg)](https://chaosrack.magnetosphere.net/#arneodo)
 
 | Arneodo | animated |
 | --- | --- |
-| ![Arneodo](docs/img/model/arneodo.jpg) | ![Arneodo, animated](https://chaosrack.magnetosphere.net/docs/img/model/arneodo.gif) |
+| [![Arneodo](docs/img/model/arneodo.jpg)](https://chaosrack.magnetosphere.net/#arneodo) | [![Arneodo, animated](https://chaosrack.magnetosphere.net/docs/img/model/arneodo.gif)](https://chaosrack.magnetosphere.net/#arneodo) |
 
 Arneodo Attractor — Arneodo, Coullet and Tresser (1981): a third-order jerk equation, x‴ = −ax − bx′ − x″ + dx³, written as three first-order equations.
 A spiral attractor whose loops fold back on themselves through the cubic term.
@@ -520,11 +520,11 @@ dz/dt = −ax − by − z + dx³
 
 #### Chen-Lee
 
-![Chen-Lee parameters](docs/img/model/chenlee-params.jpg)
+[![Chen-Lee parameters](docs/img/model/chenlee-params.jpg)](https://chaosrack.magnetosphere.net/#chenlee)
 
 | Chen-Lee | animated |
 | --- | --- |
-| ![Chen-Lee](docs/img/model/chenlee.jpg) | ![Chen-Lee, animated](https://chaosrack.magnetosphere.net/docs/img/model/chenlee.gif) |
+| [![Chen-Lee](docs/img/model/chenlee.jpg)](https://chaosrack.magnetosphere.net/#chenlee) | [![Chen-Lee, animated](https://chaosrack.magnetosphere.net/docs/img/model/chenlee.gif)](https://chaosrack.magnetosphere.net/#chenlee) |
 
 Chen–Lee Attractor — Chen and Lee (2004): the Euler equations of a rigid body in rotation, with linear feedback added to each axis.
 A two-wing attractor whose wings stand on the z axis.
@@ -539,11 +539,11 @@ dz/dt = cz + xy/d
 
 #### Dequan Li
 
-![Dequan Li parameters](docs/img/model/dequanli-params.jpg)
+[![Dequan Li parameters](docs/img/model/dequanli-params.jpg)](https://chaosrack.magnetosphere.net/#dequanli)
 
 | Dequan Li | animated |
 | --- | --- |
-| ![Dequan Li](docs/img/model/dequanli.jpg) | ![Dequan Li, animated](https://chaosrack.magnetosphere.net/docs/img/model/dequanli.gif) |
+| [![Dequan Li](docs/img/model/dequanli.jpg)](https://chaosrack.magnetosphere.net/#dequanli) | [![Dequan Li, animated](https://chaosrack.magnetosphere.net/docs/img/model/dequanli.gif)](https://chaosrack.magnetosphere.net/#dequanli) |
 
 Dequan Li Attractor — Li (2008): a three-scroll attractor, the scrolls joined through the z axis.
 Stiff: its default step is small, and larger steps of dt make the trajectory leave the attractor.
@@ -558,11 +558,11 @@ dz/dt = bz + xy − dx²
 
 #### Three-Scroll
 
-![Three-Scroll parameters](docs/img/model/threescroll-params.jpg)
+[![Three-Scroll parameters](docs/img/model/threescroll-params.jpg)](https://chaosrack.magnetosphere.net/#threescroll)
 
 | Three-Scroll | animated |
 | --- | --- |
-| ![Three-Scroll](docs/img/model/threescroll.jpg) | ![Three-Scroll, animated](https://chaosrack.magnetosphere.net/docs/img/model/threescroll.gif) |
+| [![Three-Scroll](docs/img/model/threescroll.jpg)](https://chaosrack.magnetosphere.net/#threescroll) | [![Three-Scroll, animated](https://chaosrack.magnetosphere.net/docs/img/model/threescroll.gif)](https://chaosrack.magnetosphere.net/#threescroll) |
 
 Three-Scroll Attractor — the three-scroll unified chaotic system (TSUCS): the Dequan Li system without the x term in dy/dt, which opens its three scrolls wider.
 
@@ -576,11 +576,11 @@ dz/dt = bz + xy − dx²
 
 #### Wang-Sun
 
-![Wang-Sun parameters](docs/img/model/wangsun-params.jpg)
+[![Wang-Sun parameters](docs/img/model/wangsun-params.jpg)](https://chaosrack.magnetosphere.net/#wangsun)
 
 | Wang-Sun | animated |
 | --- | --- |
-| ![Wang-Sun](docs/img/model/wangsun.jpg) | ![Wang-Sun, animated](https://chaosrack.magnetosphere.net/docs/img/model/wangsun.gif) |
+| [![Wang-Sun](docs/img/model/wangsun.jpg)](https://chaosrack.magnetosphere.net/#wangsun) | [![Wang-Sun, animated](https://chaosrack.magnetosphere.net/docs/img/model/wangsun.gif)](https://chaosrack.magnetosphere.net/#wangsun) |
 
 Wang–Sun Attractor — Wang and Sun (2010): a four-wing attractor, the trajectory passing between four lobes arranged around the z axis rather than the usual two.
 
@@ -594,11 +594,11 @@ dz/dt = ez + fxy
 
 #### Lorenz Mod 2
 
-![Lorenz Mod 2 parameters](docs/img/model/lorenzmod2-params.jpg)
+[![Lorenz Mod 2 parameters](docs/img/model/lorenzmod2-params.jpg)](https://chaosrack.magnetosphere.net/#lorenzmod2)
 
 | Lorenz Mod 2 | animated |
 | --- | --- |
-| ![Lorenz Mod 2](docs/img/model/lorenzmod2.jpg) | ![Lorenz Mod 2, animated](https://chaosrack.magnetosphere.net/docs/img/model/lorenzmod2.gif) |
+| [![Lorenz Mod 2](docs/img/model/lorenzmod2.jpg)](https://chaosrack.magnetosphere.net/#lorenzmod2) | [![Lorenz Mod 2, animated](https://chaosrack.magnetosphere.net/docs/img/model/lorenzmod2.gif)](https://chaosrack.magnetosphere.net/#lorenzmod2) |
 
 Lorenz Mod 2 Attractor — the second modified Lorenz system: the quadratic terms of the Lorenz equations rearranged so that the two wings fold into a single rotating body.
 
@@ -612,11 +612,11 @@ dz/dt = −z + x(by + z)
 
 #### Simone
 
-![Simone parameters](docs/img/model/simone-params.jpg)
+[![Simone parameters](docs/img/model/simone-params.jpg)](https://chaosrack.magnetosphere.net/#simone)
 
 | Simone | animated |
 | --- | --- |
-| ![Simone](docs/img/model/simone.jpg) | ![Simone, animated](https://chaosrack.magnetosphere.net/docs/img/model/simone.gif) |
+| [![Simone](docs/img/model/simone.jpg)](https://chaosrack.magnetosphere.net/#simone) | [![Simone, animated](https://chaosrack.magnetosphere.net/docs/img/model/simone.gif)](https://chaosrack.magnetosphere.net/#simone) |
 
 Simone Attractor — a point drawn toward s·(sin(ay) + cos(bz), sin(az) + cos(bx), sin(ax) + cos(by)): the trigonometric map of the Simone attractor written as a flow, each coordinate driven by the other two.
 From Shashank Tomar's strange attractors.
@@ -633,6 +633,10 @@ dz/dt = s(sin(ax) + cos(by)) − z
 
 #### Rucklidge
 
+| Rucklidge | animated |
+| --- | --- |
+| [![Rucklidge](docs/img/model/rucklidge.jpg)](https://chaosrack.magnetosphere.net/#rucklidge) | [![Rucklidge, animated](https://chaosrack.magnetosphere.net/docs/img/model/rucklidge.gif)](https://chaosrack.magnetosphere.net/#rucklidge) |
+
 Rucklidge Attractor — A. M. Rucklidge's 1992 model of double convection: a layer of fluid heated from below while a magnetic field or the frame's rotation pushes back.
 Two scrolls like Lorenz's, wound more tightly.
 
@@ -645,6 +649,10 @@ dz/dt = −z + y²
 `#rucklidge` · 3-D flow
 
 #### Genesio-Tesi
+
+| Genesio-Tesi | animated |
+| --- | --- |
+| [![Genesio-Tesi](docs/img/model/genesiotesi.jpg)](https://chaosrack.magnetosphere.net/#genesiotesi) | [![Genesio-Tesi, animated](https://chaosrack.magnetosphere.net/docs/img/model/genesiotesi.gif)](https://chaosrack.magnetosphere.net/#genesiotesi) |
 
 Genesio–Tesi Attractor — from Genesio and Tesi's 1992 study in control theory of when a feedback system stops oscillating regularly and turns chaotic.
 A jerk system: the third derivative of x set by x and its first two derivatives, with one square.
@@ -659,6 +667,10 @@ dz/dt = −cx − by − az + x²
 
 #### Shimizu-Morioka
 
+| Shimizu-Morioka | animated |
+| --- | --- |
+| [![Shimizu-Morioka](docs/img/model/shimizumorioka.jpg)](https://chaosrack.magnetosphere.net/#shimizumorioka) | [![Shimizu-Morioka, animated](https://chaosrack.magnetosphere.net/docs/img/model/shimizumorioka.gif)](https://chaosrack.magnetosphere.net/#shimizumorioka) |
+
 Shimizu–Morioka Attractor — Shimizu and Morioka's 1980 system, a relative of Lorenz's in which the butterfly's wings meet in a lip, a fold where the orbit hesitates before choosing a side.
 
 ```
@@ -670,6 +682,10 @@ dz/dt = −αz + x²
 `#shimizumorioka` · 3-D flow
 
 #### Rikitake Dynamo
+
+| Rikitake Dynamo | animated |
+| --- | --- |
+| [![Rikitake Dynamo](docs/img/model/rikitake.jpg)](https://chaosrack.magnetosphere.net/#rikitake) | [![Rikitake Dynamo, animated](https://chaosrack.magnetosphere.net/docs/img/model/rikitake.gif)](https://chaosrack.magnetosphere.net/#rikitake) |
 
 Rikitake Dynamo — T. Rikitake's 1958 model of the Earth's magnetic field: two disk dynamos, each feeding the other's coil.
 x and y are their currents, and they reverse sign at irregular times, as the geomagnetic field has reversed through geological time.
@@ -684,6 +700,10 @@ dz/dt = 1 − xy
 
 #### Moore-Spiegel
 
+| Moore-Spiegel | animated |
+| --- | --- |
+| [![Moore-Spiegel](docs/img/model/moorespiegel.jpg)](https://chaosrack.magnetosphere.net/#moorespiegel) | [![Moore-Spiegel, animated](https://chaosrack.magnetosphere.net/docs/img/model/moorespiegel.gif)](https://chaosrack.magnetosphere.net/#moorespiegel) |
+
 Moore–Spiegel Attractor — Moore and Spiegel's 1966 model of a parcel of gas in a star's atmosphere, rising and sinking through convection while it radiates heat away; T and R set the thermal and the buoyant forces.
 
 ```
@@ -696,6 +716,10 @@ dz/dt = −z − (T − R + Rx²)y − Tx
 
 #### Bouali
 
+| Bouali | animated |
+| --- | --- |
+| [![Bouali](docs/img/model/bouali.jpg)](https://chaosrack.magnetosphere.net/#bouali) | [![Bouali, animated](https://chaosrack.magnetosphere.net/docs/img/model/bouali.gif)](https://chaosrack.magnetosphere.net/#bouali) |
+
 Bouali Attractor — Safieddine Bouali's 2012 strange attractor with a stretched loop: a scroll with one long excursion out and back.
 
 ```
@@ -707,6 +731,10 @@ dz/dt = −x(c − sz) − βz
 `#bouali` · 3-D flow
 
 #### Lorenz-84
+
+| Lorenz-84 | animated |
+| --- | --- |
+| [![Lorenz-84](docs/img/model/lorenz84.jpg)](https://chaosrack.magnetosphere.net/#lorenz84) | [![Lorenz-84, animated](https://chaosrack.magnetosphere.net/docs/img/model/lorenz84.gif)](https://chaosrack.magnetosphere.net/#lorenz84) |
 
 Lorenz-84 — Edward Lorenz's 1984 model of the atmosphere's general circulation: x is the westerly jet, y and z the eddies that carry heat poleward, F the pole-to-equator heating and G its seasonal part.
 The same Lorenz, twenty years on, with weather as a whole rather than one convecting cell.
@@ -721,6 +749,10 @@ dz/dt = bxy + xz − z
 
 #### Finance
 
+| Finance | animated |
+| --- | --- |
+| [![Finance](docs/img/model/finance.jpg)](https://chaosrack.magnetosphere.net/#finance) | [![Finance, animated](https://chaosrack.magnetosphere.net/docs/img/model/finance.gif)](https://chaosrack.magnetosphere.net/#finance) |
+
 Finance System — Ma and Chen's 2001 model of an economy: x the interest rate, y the demand for investment, z the price index, a the saving, b the cost of investment and c the elasticity of demand.
 An economy can be chaotic without any shock from outside.
 
@@ -733,6 +765,10 @@ dz/dt = −x − cz
 `#finance` · 3-D flow
 
 #### Hindmarsh-Rose
+
+| Hindmarsh-Rose | animated |
+| --- | --- |
+| [![Hindmarsh-Rose](docs/img/model/hindmarshrose.jpg)](https://chaosrack.magnetosphere.net/#hindmarshrose) | [![Hindmarsh-Rose, animated](https://chaosrack.magnetosphere.net/docs/img/model/hindmarshrose.gif)](https://chaosrack.magnetosphere.net/#hindmarshrose) |
 
 Hindmarsh–Rose Neuron — Hindmarsh and Rose's 1984 model of a nerve cell: x the membrane voltage, y a fast recovery current, z a slow adaptation current, I the current injected.
 It fires in bursts of spikes, and at I = 3.25 how many spikes a burst has is chaotic.
@@ -748,6 +784,10 @@ dz/dt = r(s(x + 1.6) − z)
 
 #### Wei (no equilibrium)
 
+| Wei (no equilibrium) | animated |
+| --- | --- |
+| [![Wei (no equilibrium)](docs/img/model/wei.jpg)](https://chaosrack.magnetosphere.net/#wei) | [![Wei (no equilibrium), animated](https://chaosrack.magnetosphere.net/docs/img/model/wei.gif)](https://chaosrack.magnetosphere.net/#wei) |
+
 Wei (no equilibrium) — Zhouchao Wei's 2011 system, chaotic though it has no equilibrium at all: no fixed point for the orbit to circle or be thrown from, which was long assumed to be what chaos needs.
 An attractor like this is hidden: it cannot be found by starting near a fixed point, because there is none.
 
@@ -760,6 +800,10 @@ dz/dt = 2y² + xz − a
 `#wei` · 3-D flow
 
 #### Sprott Jerk
+
+| Sprott Jerk | animated |
+| --- | --- |
+| [![Sprott Jerk](docs/img/model/sprottjerk.jpg)](https://chaosrack.magnetosphere.net/#sprottjerk) | [![Sprott Jerk, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottjerk.gif)](https://chaosrack.magnetosphere.net/#sprottjerk) |
 
 Sprott Jerk — J. C. Sprott's 1997 simplest dissipative chaotic flow: x‴ = −A x″ + x′² − x, one parameter and one quadratic term.
 Chaotic in a narrow window of A around 2.017, from a small basin: a start outside it escapes, and the rack starts it again.
@@ -774,11 +818,11 @@ dz/dt = −Az + y² − x
 
 #### Hyper-Rössler (4D)
 
-![Hyper-Rössler (4D) parameters](docs/img/model/hyperrossler-params.jpg)
+[![Hyper-Rössler (4D) parameters](docs/img/model/hyperrossler-params.jpg)](https://chaosrack.magnetosphere.net/#hyperrossler)
 
 | Hyper-Rössler (4D) | animated |
 | --- | --- |
-| ![Hyper-Rössler (4D)](docs/img/model/hyperrossler.jpg) | ![Hyper-Rössler (4D), animated](https://chaosrack.magnetosphere.net/docs/img/model/hyperrossler.gif) |
+| [![Hyper-Rössler (4D)](docs/img/model/hyperrossler.jpg)](https://chaosrack.magnetosphere.net/#hyperrossler) | [![Hyper-Rössler (4D), animated](https://chaosrack.magnetosphere.net/docs/img/model/hyperrossler.gif)](https://chaosrack.magnetosphere.net/#hyperrossler) |
 
 Rössler Hyperchaos (1979) — Otto Rössler's 4-dimensional extension of his attractor, with two positive Lyapunov exponents (hyperchaos).
 A hidden fourth coordinate w feeds back into y;
@@ -795,11 +839,11 @@ dw/dt = −cz + dw
 
 #### Sprott Morph
 
-![Sprott Morph parameters](docs/img/model/sprottmorph-params.jpg)
+[![Sprott Morph parameters](docs/img/model/sprottmorph-params.jpg)](https://chaosrack.magnetosphere.net/#sprottmorph)
 
 | Sprott Morph | animated |
 | --- | --- |
-| ![Sprott Morph](docs/img/model/sprottmorph.jpg) | ![Sprott Morph, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottmorph.gif) |
+| [![Sprott Morph](docs/img/model/sprottmorph.jpg)](https://chaosrack.magnetosphere.net/#sprottmorph) | [![Sprott Morph, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottmorph.gif)](https://chaosrack.magnetosphere.net/#sprottmorph) |
 
 Sprott Morph — the glensstuff.com Self-Programming Analog Computer, which stepped itself through the Sprott catalog by re-patching.
 Every Sprott A–S system is a quadratic 3-D flow, a point in the 30-dimensional coefficient space of Sprott's 1994 search.
@@ -817,7 +861,7 @@ Coefficients are extracted numerically from the catalog's own equations.
 
 | Sprott A | animated |
 | --- | --- |
-| ![Sprott A](docs/img/model/sprotta.jpg) | ![Sprott A, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprotta.gif) |
+| [![Sprott A](docs/img/model/sprotta.jpg)](https://chaosrack.magnetosphere.net/#sprotta) | [![Sprott A, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprotta.gif)](https://chaosrack.magnetosphere.net/#sprotta) |
 
 Sprott A (Nosé–Hoover oscillator) — the first of J. C. Sprott's 1994 systems and the only conservative one: rather than settling onto a strange attractor it fills a chaotic sea.
 
@@ -833,7 +877,7 @@ dz/dt = 1 − y²
 
 | Sprott B | animated |
 | --- | --- |
-| ![Sprott B](docs/img/model/sprottb.jpg) | ![Sprott B, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottb.gif) |
+| [![Sprott B](docs/img/model/sprottb.jpg)](https://chaosrack.magnetosphere.net/#sprottb) | [![Sprott B, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottb.gif)](https://chaosrack.magnetosphere.net/#sprottb) |
 
 Sprott B — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -851,7 +895,7 @@ dz/dt = 1 − xy
 
 | Sprott C | animated |
 | --- | --- |
-| ![Sprott C](docs/img/model/sprottc.jpg) | ![Sprott C, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottc.gif) |
+| [![Sprott C](docs/img/model/sprottc.jpg)](https://chaosrack.magnetosphere.net/#sprottc) | [![Sprott C, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottc.gif)](https://chaosrack.magnetosphere.net/#sprottc) |
 
 Sprott C — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -869,7 +913,7 @@ dz/dt = 1 − x²
 
 | Sprott D | animated |
 | --- | --- |
-| ![Sprott D](docs/img/model/sprottd.jpg) | ![Sprott D, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottd.gif) |
+| [![Sprott D](docs/img/model/sprottd.jpg)](https://chaosrack.magnetosphere.net/#sprottd) | [![Sprott D, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottd.gif)](https://chaosrack.magnetosphere.net/#sprottd) |
 
 Sprott D — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -887,7 +931,7 @@ dz/dt = xz + 3y²
 
 | Sprott E | animated |
 | --- | --- |
-| ![Sprott E](docs/img/model/sprotte.jpg) | ![Sprott E, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprotte.gif) |
+| [![Sprott E](docs/img/model/sprotte.jpg)](https://chaosrack.magnetosphere.net/#sprotte) | [![Sprott E, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprotte.gif)](https://chaosrack.magnetosphere.net/#sprotte) |
 
 Sprott E — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -905,7 +949,7 @@ dz/dt = 1 − 4x
 
 | Sprott F | animated |
 | --- | --- |
-| ![Sprott F](docs/img/model/sprottf.jpg) | ![Sprott F, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottf.gif) |
+| [![Sprott F](docs/img/model/sprottf.jpg)](https://chaosrack.magnetosphere.net/#sprottf) | [![Sprott F, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottf.gif)](https://chaosrack.magnetosphere.net/#sprottf) |
 
 Sprott F — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -923,7 +967,7 @@ dz/dt = x² − z
 
 | Sprott G | animated |
 | --- | --- |
-| ![Sprott G](docs/img/model/sprottg.jpg) | ![Sprott G, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottg.gif) |
+| [![Sprott G](docs/img/model/sprottg.jpg)](https://chaosrack.magnetosphere.net/#sprottg) | [![Sprott G, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottg.gif)](https://chaosrack.magnetosphere.net/#sprottg) |
 
 Sprott G — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -941,7 +985,7 @@ dz/dt = −x + y
 
 | Sprott H | animated |
 | --- | --- |
-| ![Sprott H](docs/img/model/sprotth.jpg) | ![Sprott H, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprotth.gif) |
+| [![Sprott H](docs/img/model/sprotth.jpg)](https://chaosrack.magnetosphere.net/#sprotth) | [![Sprott H, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprotth.gif)](https://chaosrack.magnetosphere.net/#sprotth) |
 
 Sprott H — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -959,7 +1003,7 @@ dz/dt = x − z
 
 | Sprott I | animated |
 | --- | --- |
-| ![Sprott I](docs/img/model/sprotti.jpg) | ![Sprott I, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprotti.gif) |
+| [![Sprott I](docs/img/model/sprotti.jpg)](https://chaosrack.magnetosphere.net/#sprotti) | [![Sprott I, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprotti.gif)](https://chaosrack.magnetosphere.net/#sprotti) |
 
 Sprott I — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -977,7 +1021,7 @@ dz/dt = x + y² − z
 
 | Sprott J | animated |
 | --- | --- |
-| ![Sprott J](docs/img/model/sprottj.jpg) | ![Sprott J, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottj.gif) |
+| [![Sprott J](docs/img/model/sprottj.jpg)](https://chaosrack.magnetosphere.net/#sprottj) | [![Sprott J, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottj.gif)](https://chaosrack.magnetosphere.net/#sprottj) |
 
 Sprott J — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -995,7 +1039,7 @@ dz/dt = −x + y + y²
 
 | Sprott K | animated |
 | --- | --- |
-| ![Sprott K](docs/img/model/sprottk.jpg) | ![Sprott K, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottk.gif) |
+| [![Sprott K](docs/img/model/sprottk.jpg)](https://chaosrack.magnetosphere.net/#sprottk) | [![Sprott K, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottk.gif)](https://chaosrack.magnetosphere.net/#sprottk) |
 
 Sprott K — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -1013,7 +1057,7 @@ dz/dt = x + 0.3z
 
 | Sprott L | animated |
 | --- | --- |
-| ![Sprott L](docs/img/model/sprottl.jpg) | ![Sprott L, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottl.gif) |
+| [![Sprott L](docs/img/model/sprottl.jpg)](https://chaosrack.magnetosphere.net/#sprottl) | [![Sprott L, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottl.gif)](https://chaosrack.magnetosphere.net/#sprottl) |
 
 Sprott L — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -1031,7 +1075,7 @@ dz/dt = 1 − x
 
 | Sprott M | animated |
 | --- | --- |
-| ![Sprott M](docs/img/model/sprottm.jpg) | ![Sprott M, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottm.gif) |
+| [![Sprott M](docs/img/model/sprottm.jpg)](https://chaosrack.magnetosphere.net/#sprottm) | [![Sprott M, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottm.gif)](https://chaosrack.magnetosphere.net/#sprottm) |
 
 Sprott M — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -1049,7 +1093,7 @@ dz/dt = 1.7 + 1.7x + y
 
 | Sprott N | animated |
 | --- | --- |
-| ![Sprott N](docs/img/model/sprottn.jpg) | ![Sprott N, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottn.gif) |
+| [![Sprott N](docs/img/model/sprottn.jpg)](https://chaosrack.magnetosphere.net/#sprottn) | [![Sprott N, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottn.gif)](https://chaosrack.magnetosphere.net/#sprottn) |
 
 Sprott N — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -1067,7 +1111,7 @@ dz/dt = 1 + y − 2z
 
 | Sprott O | animated |
 | --- | --- |
-| ![Sprott O](docs/img/model/sprotto.jpg) | ![Sprott O, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprotto.gif) |
+| [![Sprott O](docs/img/model/sprotto.jpg)](https://chaosrack.magnetosphere.net/#sprotto) | [![Sprott O, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprotto.gif)](https://chaosrack.magnetosphere.net/#sprotto) |
 
 Sprott O — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -1085,7 +1129,7 @@ dz/dt = x + xz + 2.7y
 
 | Sprott P | animated |
 | --- | --- |
-| ![Sprott P](docs/img/model/sprottp.jpg) | ![Sprott P, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottp.gif) |
+| [![Sprott P](docs/img/model/sprottp.jpg)](https://chaosrack.magnetosphere.net/#sprottp) | [![Sprott P, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottp.gif)](https://chaosrack.magnetosphere.net/#sprottp) |
 
 Sprott P — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -1103,7 +1147,7 @@ dz/dt = x + y
 
 | Sprott Q | animated |
 | --- | --- |
-| ![Sprott Q](docs/img/model/sprottq.jpg) | ![Sprott Q, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottq.gif) |
+| [![Sprott Q](docs/img/model/sprottq.jpg)](https://chaosrack.magnetosphere.net/#sprottq) | [![Sprott Q, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottq.gif)](https://chaosrack.magnetosphere.net/#sprottq) |
 
 Sprott Q — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -1121,7 +1165,7 @@ dz/dt = 3.1x + y² + 0.5z
 
 | Sprott R | animated |
 | --- | --- |
-| ![Sprott R](docs/img/model/sprottr.jpg) | ![Sprott R, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottr.gif) |
+| [![Sprott R](docs/img/model/sprottr.jpg)](https://chaosrack.magnetosphere.net/#sprottr) | [![Sprott R, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprottr.gif)](https://chaosrack.magnetosphere.net/#sprottr) |
 
 Sprott R — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -1139,7 +1183,7 @@ dz/dt = xy − z
 
 | Sprott S | animated |
 | --- | --- |
-| ![Sprott S](docs/img/model/sprotts.jpg) | ![Sprott S, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprotts.gif) |
+| [![Sprott S](docs/img/model/sprotts.jpg)](https://chaosrack.magnetosphere.net/#sprotts) | [![Sprott S, animated](https://chaosrack.magnetosphere.net/docs/img/model/sprotts.gif)](https://chaosrack.magnetosphere.net/#sprotts) |
 
 Sprott S — one of J. C. Sprott's simple chaotic flows (1994), realized as an analog circuit at glensstuff.com. Found by systematic search for the algebraically simplest systems that still produce chaos.
 
@@ -1155,11 +1199,11 @@ dz/dt = 1 + x
 
 #### Custom equation
 
-![Custom equation parameters](docs/img/model/custom-params.jpg)
+[![Custom equation parameters](docs/img/model/custom-params.jpg)](https://chaosrack.magnetosphere.net/#custom)
 
 | Custom equation | animated |
 | --- | --- |
-| ![Custom equation](docs/img/model/custom.jpg) | ![Custom equation, animated](https://chaosrack.magnetosphere.net/docs/img/model/custom.gif) |
+| [![Custom equation](docs/img/model/custom.jpg)](https://chaosrack.magnetosphere.net/#custom) | [![Custom equation, animated](https://chaosrack.magnetosphere.net/docs/img/model/custom.gif)](https://chaosrack.magnetosphere.net/#custom) |
 
 Custom Equations — type your own system.
 The Equation module takes dx/dt, dy/dt and dz/dt (plus dw/dt for a 4-D system) as text and integrates them with forward Euler, the same way the classic attractors are stepped.
@@ -1177,11 +1221,11 @@ Any other name becomes a free parameter and is auto-exposed as its own knob.
 
 #### Henon
 
-![Henon parameters](docs/img/model/henon-params.jpg)
+[![Henon parameters](docs/img/model/henon-params.jpg)](https://chaosrack.magnetosphere.net/#henon)
 
 | Henon | animated |
 | --- | --- |
-| ![Henon](docs/img/model/henon.jpg) | ![Henon, animated](https://chaosrack.magnetosphere.net/docs/img/model/henon.gif) |
+| [![Henon](docs/img/model/henon.jpg)](https://chaosrack.magnetosphere.net/#henon) | [![Henon, animated](https://chaosrack.magnetosphere.net/docs/img/model/henon.gif)](https://chaosrack.magnetosphere.net/#henon) |
 
 Hénon map (M. Hénon, "A two-dimensional mapping with a strange attractor", 1976) — the example that showed a strange attractor needs neither a flow nor three dimensions, only a stretch and a fold.
 Zoom in anywhere on a filament and it resolves into more filaments: locally a line crossed with a Cantor set.
@@ -1196,11 +1240,11 @@ y' = b·x
 
 #### Ikeda
 
-![Ikeda parameters](docs/img/model/ikeda-params.jpg)
+[![Ikeda parameters](docs/img/model/ikeda-params.jpg)](https://chaosrack.magnetosphere.net/#ikeda)
 
 | Ikeda | animated |
 | --- | --- |
-| ![Ikeda](docs/img/model/ikeda.jpg) | ![Ikeda, animated](https://chaosrack.magnetosphere.net/docs/img/model/ikeda.gif) |
+| [![Ikeda](docs/img/model/ikeda.jpg)](https://chaosrack.magnetosphere.net/#ikeda) | [![Ikeda, animated](https://chaosrack.magnetosphere.net/docs/img/model/ikeda.gif)](https://chaosrack.magnetosphere.net/#ikeda) |
 
 Ikeda map (K. Ikeda, 1979) — light circulating in a nonlinear optical cavity, where each pass rotates the complex field by an amount that depends on its own intensity.
 That intensity-dependent rotation is the whole mechanism: the more energetic part of the beam turns further, and the attractor's hook is the result.
@@ -1215,11 +1259,11 @@ y' = u·(x·sin t + y·cos t)
 
 #### Clifford
 
-![Clifford parameters](docs/img/model/clifford-params.jpg)
+[![Clifford parameters](docs/img/model/clifford-params.jpg)](https://chaosrack.magnetosphere.net/#clifford)
 
 | Clifford | animated |
 | --- | --- |
-| ![Clifford](docs/img/model/clifford.jpg) | ![Clifford, animated](https://chaosrack.magnetosphere.net/docs/img/model/clifford.gif) |
+| [![Clifford](docs/img/model/clifford.jpg)](https://chaosrack.magnetosphere.net/#clifford) | [![Clifford, animated](https://chaosrack.magnetosphere.net/docs/img/model/clifford.gif)](https://chaosrack.magnetosphere.net/#clifford) |
 
 Clifford attractor (Clifford Pickover) — a trigonometric map with no physical derivation, kept because of what it draws.
 Every parameter change reshapes it entirely, which makes the four knobs worth turning slowly.
@@ -1233,11 +1277,11 @@ y' = sin(b·x) + d·cos(b·y)
 
 #### Peter de Jong
 
-![Peter de Jong parameters](docs/img/model/dejong-params.jpg)
+[![Peter de Jong parameters](docs/img/model/dejong-params.jpg)](https://chaosrack.magnetosphere.net/#dejong)
 
 | Peter de Jong | animated |
 | --- | --- |
-| ![Peter de Jong](docs/img/model/dejong.jpg) | ![Peter de Jong, animated](https://chaosrack.magnetosphere.net/docs/img/model/dejong.gif) |
+| [![Peter de Jong](docs/img/model/dejong.jpg)](https://chaosrack.magnetosphere.net/#dejong) | [![Peter de Jong, animated](https://chaosrack.magnetosphere.net/docs/img/model/dejong.gif)](https://chaosrack.magnetosphere.net/#dejong) |
 
 Peter de Jong attractor — the same idea as Clifford's with the terms paired differently, and a different family of figures for it.
 Four knobs, an enormous space of shapes, and no way to predict which you will get.
@@ -1251,11 +1295,11 @@ y' = sin(c·x) − cos(d·y)
 
 #### Gumowski-Mira
 
-![Gumowski-Mira parameters](docs/img/model/mira-params.jpg)
+[![Gumowski-Mira parameters](docs/img/model/mira-params.jpg)](https://chaosrack.magnetosphere.net/#mira)
 
 | Gumowski-Mira | animated |
 | --- | --- |
-| ![Gumowski-Mira](docs/img/model/mira.jpg) | ![Gumowski-Mira, animated](https://chaosrack.magnetosphere.net/docs/img/model/mira.gif) |
+| [![Gumowski-Mira](docs/img/model/mira.jpg)](https://chaosrack.magnetosphere.net/#mira) | [![Gumowski-Mira, animated](https://chaosrack.magnetosphere.net/docs/img/model/mira.gif)](https://chaosrack.magnetosphere.net/#mira) |
 
 Gumowski-Mira map (I. Gumowski and C. Mira, CERN, 1980) — written to study how a particle beam drifts turn after turn around an accelerator ring, and it produces organic, almost biological figures that look nothing like their origin.
 The shared nonlinearity g is applied twice per iterate, to x and then to the NEW x.
@@ -1272,11 +1316,11 @@ y' = −x + g(x')
 
 #### Tinkerbell
 
-![Tinkerbell parameters](docs/img/model/tinkerbell-params.jpg)
+[![Tinkerbell parameters](docs/img/model/tinkerbell-params.jpg)](https://chaosrack.magnetosphere.net/#tinkerbell)
 
 | Tinkerbell | animated |
 | --- | --- |
-| ![Tinkerbell](docs/img/model/tinkerbell.jpg) | ![Tinkerbell, animated](https://chaosrack.magnetosphere.net/docs/img/model/tinkerbell.gif) |
+| [![Tinkerbell](docs/img/model/tinkerbell.jpg)](https://chaosrack.magnetosphere.net/#tinkerbell) | [![Tinkerbell, animated](https://chaosrack.magnetosphere.net/docs/img/model/tinkerbell.gif)](https://chaosrack.magnetosphere.net/#tinkerbell) |
 
 Tinkerbell map — a quadratic map of the plane whose orbit sweeps a curved, wing-like region.
 Bounded only for a narrow band of parameters;
@@ -1291,11 +1335,11 @@ y' = 2·x·y + c·x + d·y
 
 #### Chirikov Standard Map
 
-![Chirikov Standard Map parameters](docs/img/model/standardmap-params.jpg)
+[![Chirikov Standard Map parameters](docs/img/model/standardmap-params.jpg)](https://chaosrack.magnetosphere.net/#standardmap)
 
 | Chirikov Standard Map | animated |
 | --- | --- |
-| ![Chirikov Standard Map](docs/img/model/standardmap.jpg) | ![Chirikov Standard Map, animated](https://chaosrack.magnetosphere.net/docs/img/model/standardmap.gif) |
+| [![Chirikov Standard Map](docs/img/model/standardmap.jpg)](https://chaosrack.magnetosphere.net/#standardmap) | [![Chirikov Standard Map, animated](https://chaosrack.magnetosphere.net/docs/img/model/standardmap.gif)](https://chaosrack.magnetosphere.net/#standardmap) |
 
 Chirikov standard map (B. Chirikov, 1979) — the canonical AREA-PRESERVING map, and the one system here with no attractor at all.
 A kicked rotor: each iterate kicks the momentum by K·sin θ and lets the angle advance.
@@ -1312,11 +1356,11 @@ p' = p + K·sin θ
 
 #### Bifurcation
 
-![Bifurcation parameters](docs/img/model/bifurcation-params.jpg)
+[![Bifurcation parameters](docs/img/model/bifurcation-params.jpg)](https://chaosrack.magnetosphere.net/#bifurcation)
 
 | Bifurcation | animated |
 | --- | --- |
-| ![Bifurcation](docs/img/model/bifurcation.jpg) | ![Bifurcation, animated](https://chaosrack.magnetosphere.net/docs/img/model/bifurcation.gif) |
+| [![Bifurcation](docs/img/model/bifurcation.jpg)](https://chaosrack.magnetosphere.net/#bifurcation) | [![Bifurcation, animated](https://chaosrack.magnetosphere.net/docs/img/model/bifurcation.gif)](https://chaosrack.magnetosphere.net/#bifurcation) |
 
 Bifurcation Explorer — the fig-tree diagram, computed live.
 One parameter of the most recent flow mode sweeps its whole knob range across the x axis;
@@ -1329,7 +1373,11 @@ visit an attractor and tune it to change the source system.
 
 #### Poincaré Section
 
-![Poincaré Section parameters](docs/img/model/poincare-params.jpg)
+[![Poincaré Section parameters](docs/img/model/poincare-params.jpg)](https://chaosrack.magnetosphere.net/#poincare)
+
+| Poincaré Section | animated |
+| --- | --- |
+| [![Poincaré Section](docs/img/model/poincare.jpg)](https://chaosrack.magnetosphere.net/#poincare) | [![Poincaré Section, animated](https://chaosrack.magnetosphere.net/docs/img/model/poincare.gif)](https://chaosrack.magnetosphere.net/#poincare) |
 
 Poincaré Section — the continuous flow read as a discrete point set.
 The most recent flow mode is integrated privately and sampled only where it pierces a plane, going one way through it;
@@ -1355,11 +1403,11 @@ The same section is available as an overlay on any flow: the S button on LINE (D
 
 #### STL File
 
-![STL File parameters](docs/img/model/stlfile-params.jpg)
+[![STL File parameters](docs/img/model/stlfile-params.jpg)](https://chaosrack.magnetosphere.net/#stlfile)
 
 | STL File | animated |
 | --- | --- |
-| ![STL File](docs/img/model/stlfile.jpg) | ![STL File, animated](https://chaosrack.magnetosphere.net/docs/img/model/stlfile.gif) |
+| [![STL File](docs/img/model/stlfile.jpg)](https://chaosrack.magnetosphere.net/#stlfile) | [![STL File, animated](https://chaosrack.magnetosphere.net/docs/img/model/stlfile.gif)](https://chaosrack.magnetosphere.net/#stlfile) |
 
 STL File — Load a stereolithograph (.stl, binary or ASCII) from disk with the load switch under the monitor and it renders as a rotating wireframe.
 Very large files are decimated to fit the 16-bit index pipeline.
@@ -1367,6 +1415,10 @@ Very large files are decimated to fit the 16-bit index pipeline.
 `#stlfile` · geometry
 
 #### Terminal
+
+| Terminal | animated |
+| --- | --- |
+| [![Terminal](docs/img/model/terminal.jpg)](https://chaosrack.magnetosphere.net/#terminal) | [![Terminal, animated](https://chaosrack.magnetosphere.net/docs/img/model/terminal.gif)](https://chaosrack.magnetosphere.net/#terminal) |
 
 Terminal — a live terminal, drawn as a model.
 It is the same texture-on-a-plane path the spectrogram and the recurrence plot use, so it rotates, zooms and takes a gradient like any other model;
@@ -1382,7 +1434,11 @@ It can also be the BACKDROP behind another model, the way the spectrogram can.
 
 #### Terminal Animation
 
-![Terminal Animation parameters](docs/img/model/termanim-params.jpg)
+[![Terminal Animation parameters](docs/img/model/termanim-params.jpg)](https://chaosrack.magnetosphere.net/#termanim)
+
+| Terminal Animation | animated |
+| --- | --- |
+| [![Terminal Animation](docs/img/model/termanim.jpg)](https://chaosrack.magnetosphere.net/#termanim) | [![Terminal Animation, animated](https://chaosrack.magnetosphere.net/docs/img/model/termanim.gif)](https://chaosrack.magnetosphere.net/#termanim) |
 
 Terminal Animation — the same terminal-on-a-plane, with a drawing program on it instead of a shell.
 The catalog is tuiwasm (https://github.com/0magnet/tuiwasm): animations — fire, plasma, a matrix rain, an aquarium, a bonsai growing branch by branch, Langton's ant, falling sand — plus charts, tables and styled text.
@@ -1409,7 +1465,7 @@ as a model it is the shell without the window manager around it.
 
 #### Desk
 
-![Desk parameters](docs/img/model/desk-params.jpg)
+[![Desk parameters](docs/img/model/desk-params.jpg)](https://chaosrack.magnetosphere.net/#desk)
 
 Desk — a window manager, drawn as a model.
 The same texture-on-a-plane path the spectrogram, the recurrence plot and the Terminal use, with a whole desk (https://github.com/0magnet/desk) on it: winbox windows, a websh (https://github.com/0magnet/websh) shell in each, a file manager, all of them running while you rotate them.
@@ -1434,7 +1490,11 @@ It can also be the BACKDROP behind another model, the way the spectrogram and th
 
 #### Lattice
 
-![Lattice parameters](docs/img/model/lattice-params.jpg)
+[![Lattice parameters](docs/img/model/lattice-params.jpg)](https://chaosrack.magnetosphere.net/#lattice)
+
+| Lattice | animated |
+| --- | --- |
+| [![Lattice](docs/img/model/lattice.jpg)](https://chaosrack.magnetosphere.net/#lattice) | [![Lattice, animated](https://chaosrack.magnetosphere.net/docs/img/model/lattice.gif)](https://chaosrack.magnetosphere.net/#lattice) |
 
 Lattice — a solid drawn in depth by terminals.
 lattice (https://github.com/0magnet/lattice) is an ordinary terminal program that draws one cross-section of a turning solid in characters.
@@ -1461,7 +1521,7 @@ The Turtle is the exception that fits: it walks the same integer grid, so withou
 
 | Polyhedron | animated |
 | --- | --- |
-| ![Polyhedron](docs/img/model/polyhedron.jpg) | ![Polyhedron, animated](https://chaosrack.magnetosphere.net/docs/img/model/polyhedron.gif) |
+| [![Polyhedron](docs/img/model/polyhedron.jpg)](https://chaosrack.magnetosphere.net/#polyhedron) | [![Polyhedron, animated](https://chaosrack.magnetosphere.net/docs/img/model/polyhedron.gif)](https://chaosrack.magnetosphere.net/#polyhedron) |
 
 Polyhedron — The regular solids and tilings, by Schläfli symbol {p,q}: faces of p sides, q of them at every corner. {3,3} is the tetrahedron, {4,3} the cube, {3,4} the octahedron, {5,3} the dodecahedron, {3,5} the icosahedron;
 where the corners make a full turn the faces tile the plane, and past it they tile the hyperbolic plane, drawn in Poincaré's disk.
@@ -1471,11 +1531,11 @@ On a solid, morph cuts the corners through the rectified solid to the dual, op a
 
 #### Chestahedron
 
-![Chestahedron parameters](docs/img/model/chestahedron-params.jpg)
+[![Chestahedron parameters](docs/img/model/chestahedron-params.jpg)](https://chaosrack.magnetosphere.net/#chestahedron)
 
 | Chestahedron | animated |
 | --- | --- |
-| ![Chestahedron](docs/img/model/chestahedron.jpg) | ![Chestahedron, animated](https://chaosrack.magnetosphere.net/docs/img/model/chestahedron.gif) |
+| [![Chestahedron](docs/img/model/chestahedron.jpg)](https://chaosrack.magnetosphere.net/#chestahedron) | [![Chestahedron, animated](https://chaosrack.magnetosphere.net/docs/img/model/chestahedron.gif)](https://chaosrack.magnetosphere.net/#chestahedron) |
 
 Chestahedron — Frank Chester's seven-faced solid: four equilateral triangles and three kites, every face of one area. It is a tetrahedron whose upper faces are opened outward like petals, with kites closing the gaps; equally, a cube with one corner sliced off and stretched until its faces agree.
 form picks one of his demonstrations: the solid, a pentagram folded beside it, the forms inside it, its sphere, its bell, the solid turned inside out, the thirteen-faced decatria, the heart's cones, the tetrahedron turned in the cube, his first seven-sided form and the rolled paper cone;
@@ -1499,7 +1559,7 @@ Its forms, each opening the page with that form up:
 
 | Nested Cube | animated |
 | --- | --- |
-| ![Nested Cube](docs/img/model/nestedcube.jpg) | ![Nested Cube, animated](https://chaosrack.magnetosphere.net/docs/img/model/nestedcube.gif) |
+| [![Nested Cube](docs/img/model/nestedcube.jpg)](https://chaosrack.magnetosphere.net/#nestedcube) | [![Nested Cube, animated](https://chaosrack.magnetosphere.net/docs/img/model/nestedcube.gif)](https://chaosrack.magnetosphere.net/#nestedcube) |
 
 Nested Cube — A cube within a cube, two separate wireframes, illustrating the relationship between inner and outer geometric structures.
 
@@ -1507,11 +1567,11 @@ Nested Cube — A cube within a cube, two separate wireframes, illustrating the 
 
 #### Globe
 
-![Globe parameters](docs/img/model/globe-params.jpg)
+[![Globe parameters](docs/img/model/globe-params.jpg)](https://chaosrack.magnetosphere.net/#globe)
 
 | Globe | animated |
 | --- | --- |
-| ![Globe](docs/img/model/globe.jpg) | ![Globe, animated](https://chaosrack.magnetosphere.net/docs/img/model/globe.gif) |
+| [![Globe](docs/img/model/globe.jpg)](https://chaosrack.magnetosphere.net/#globe) | [![Globe, animated](https://chaosrack.magnetosphere.net/docs/img/model/globe.gif)](https://chaosrack.magnetosphere.net/#globe) |
 
 Globe — A wireframe sphere showing lines of latitude and longitude, similar to the graticule on a geographic globe.
 Latitude lines are horizontal circles parallel to the equator, longitude lines are great circles passing through the poles.
@@ -1520,11 +1580,11 @@ Latitude lines are horizontal circles parallel to the equator, longitude lines a
 
 #### Torus
 
-![Torus parameters](docs/img/model/torus-params.jpg)
+[![Torus parameters](docs/img/model/torus-params.jpg)](https://chaosrack.magnetosphere.net/#torus)
 
 | Torus | animated |
 | --- | --- |
-| ![Torus](docs/img/model/torus.jpg) | ![Torus, animated](https://chaosrack.magnetosphere.net/docs/img/model/torus.gif) |
+| [![Torus](docs/img/model/torus.jpg)](https://chaosrack.magnetosphere.net/#torus) | [![Torus, animated](https://chaosrack.magnetosphere.net/docs/img/model/torus.gif)](https://chaosrack.magnetosphere.net/#torus) |
 
 Torus — A doughnut-shaped surface of revolution generated by revolving a circle (radius r) around an axis at distance R from the center of the circle.
 
@@ -1534,7 +1594,7 @@ Torus — A doughnut-shaped surface of revolution generated by revolving a circl
 
 | Magnetosphere | animated |
 | --- | --- |
-| ![Magnetosphere](docs/img/model/magnetosphere.jpg) | ![Magnetosphere, animated](https://chaosrack.magnetosphere.net/docs/img/model/magnetosphere.gif) |
+| [![Magnetosphere](docs/img/model/magnetosphere.jpg)](https://chaosrack.magnetosphere.net/#magnetosphere) | [![Magnetosphere, animated](https://chaosrack.magnetosphere.net/docs/img/model/magnetosphere.gif)](https://chaosrack.magnetosphere.net/#magnetosphere) |
 
 Magnetosphere — A visualization of magnetic field lines surrounding a dipole, similar to Earth's magnetosphere that shields the planet from solar wind.
 
@@ -1546,11 +1606,11 @@ Magnetosphere — A visualization of magnetic field lines surrounding a dipole, 
 
 #### Turtle Path
 
-![Turtle Path parameters](docs/img/model/turtle-params.jpg)
+[![Turtle Path parameters](docs/img/model/turtle-params.jpg)](https://chaosrack.magnetosphere.net/#turtle)
 
 | Turtle Path | animated | in 2-D (mod 30, closed) |
 | --- | --- | --- |
-| ![Turtle Path](docs/img/model/turtle.jpg) | ![Turtle Path, animated](https://chaosrack.magnetosphere.net/docs/img/model/turtle.gif) | ![Turtle Path — in 2-D (mod 30, closed)](docs/img/model/turtle-2d.jpg) |
+| [![Turtle Path](docs/img/model/turtle.jpg)](https://chaosrack.magnetosphere.net/#turtle) | [![Turtle Path, animated](https://chaosrack.magnetosphere.net/docs/img/model/turtle.gif)](https://chaosrack.magnetosphere.net/#turtle) | [![Turtle Path — in 2-D (mod 30, closed)](docs/img/model/turtle-2d.jpg)](https://chaosrack.magnetosphere.net/#turtle&p.dim=2&p.mod=30) |
 
 Turtle Path — Reduce an integer sequence modulo m and the remainders repeat;
 the length of the repeat is the Pisano period.
@@ -1585,11 +1645,11 @@ Switched off, CAM places the figure again.
 
 #### Lissajous
 
-![Lissajous parameters](docs/img/model/lissajou-params.jpg)
+[![Lissajous parameters](docs/img/model/lissajou-params.jpg)](https://chaosrack.magnetosphere.net/#lissajou)
 
 | Lissajous | animated |
 | --- | --- |
-| ![Lissajous](docs/img/model/lissajou.jpg) | ![Lissajous, animated](https://chaosrack.magnetosphere.net/docs/img/model/lissajou.gif) |
+| [![Lissajous](docs/img/model/lissajou.jpg)](https://chaosrack.magnetosphere.net/#lissajou) | [![Lissajous, animated](https://chaosrack.magnetosphere.net/docs/img/model/lissajou.gif)](https://chaosrack.magnetosphere.net/#lissajou) |
 
 Lissajous Curve — Named after Jules Antoine Lissajous (1822–1880), these are parametric curves formed by combining sinusoidal motions along each axis.
 Not a chaotic system — the curves are periodic and their shape depends on the frequency ratios and phase relationships between the three oscillations.
@@ -1604,11 +1664,11 @@ z(t) = sin(ct)
 
 #### Graphic Artist
 
-![Graphic Artist parameters](docs/img/model/graphicartist-params.jpg)
+[![Graphic Artist parameters](docs/img/model/graphicartist-params.jpg)](https://chaosrack.magnetosphere.net/#graphicartist)
 
 | Graphic Artist | animated |
 | --- | --- |
-| ![Graphic Artist](docs/img/model/graphicartist.jpg) | ![Graphic Artist, animated](https://chaosrack.magnetosphere.net/docs/img/model/graphicartist.gif) |
+| [![Graphic Artist](docs/img/model/graphicartist.jpg)](https://chaosrack.magnetosphere.net/#graphicartist) | [![Graphic Artist, animated](https://chaosrack.magnetosphere.net/docs/img/model/graphicartist.gif)](https://chaosrack.magnetosphere.net/#graphicartist) |
 
 Graphic Artist — a digital re-creation of Mitchell Waite's "Oscilloscope Graphic Artist" (Popular Electronics, November 1975), which drove a scope's X/Y inputs with harmonically related signals to draw 3-D-looking wireframes.
 Four relaxation oscillators A/B/C/D, each square or triangle: A is the fixed master and B/C/D lock to it at integer harmonics — the sync the original circuit was meant to enforce, and which a wiring error on real builds defeated, leaving them drawing an unstable blur.
@@ -1624,11 +1684,11 @@ HORIZ = levelD·D + levelB·(B · C₋₄₅)
 
 #### Scope Pong
 
-![Scope Pong parameters](docs/img/model/pong-params.jpg)
+[![Scope Pong parameters](docs/img/model/pong-params.jpg)](https://chaosrack.magnetosphere.net/#pong)
 
 | Scope Pong | animated |
 | --- | --- |
-| ![Scope Pong](docs/img/model/pong.jpg) | ![Scope Pong, animated](https://chaosrack.magnetosphere.net/docs/img/model/pong.gif) |
+| [![Scope Pong](docs/img/model/pong.jpg)](https://chaosrack.magnetosphere.net/#pong) | [![Scope Pong, animated](https://chaosrack.magnetosphere.net/docs/img/model/pong.gif)](https://chaosrack.magnetosphere.net/#pong) |
 
 Scope Pong — An homage to the glensstuff.com analog Oscilloscope Pong: the whole game is one multiplexed beam tour driving the X/Y inputs, so the court, net, score ticks, paddles and ball share a single stroke — the faint diagonal beams are the retrace an unblanked scope really shows.
 
@@ -1641,11 +1701,11 @@ Knobs: speed (the ball's), paddle (its size), skill (the machine player's), and 
 
 #### Fourier Text
 
-![Fourier Text parameters](docs/img/model/scopetext-params.jpg)
+[![Fourier Text parameters](docs/img/model/scopetext-params.jpg)](https://chaosrack.magnetosphere.net/#scopetext)
 
 | Fourier Text | animated |
 | --- | --- |
-| ![Fourier Text](docs/img/model/scopetext.jpg) | ![Fourier Text, animated](https://chaosrack.magnetosphere.net/docs/img/model/scopetext.gif) |
+| [![Fourier Text](docs/img/model/scopetext.jpg)](https://chaosrack.magnetosphere.net/#scopetext) | [![Fourier Text, animated](https://chaosrack.magnetosphere.net/docs/img/model/scopetext.gif)](https://chaosrack.magnetosphere.net/#scopetext) |
 
 Fourier Text — An homage to the glensstuff.com Fourier Synthesis Character Generator, which built alphanumerics on a scope from summed harmonics.
 The banner's whole beam tour (strokes and retrace jumps alike) is one complex periodic signal x(t)+i·y(t);
@@ -1658,6 +1718,10 @@ Model Out plays the actual harmonic stack.
 `#scopetext` · parametric
 
 #### Scope Clock
+
+| Scope Clock | animated |
+| --- | --- |
+| [![Scope Clock](docs/img/model/scopeclock.jpg)](https://chaosrack.magnetosphere.net/#scopeclock) | [![Scope Clock, animated](https://chaosrack.magnetosphere.net/docs/img/model/scopeclock.gif)](https://chaosrack.magnetosphere.net/#scopeclock) |
 
 Scope Clock — the time, drawn the way a scope draws anything: as ONE beam tour.
 The face, the twelve ticks and the three hands are a single path walked in order, because an X/Y display has one beam and no way to lift it — so the jumps between the end of one stroke and the start of the next are drawn too, and show as the faint diagonals an unblanked scope really shows.
@@ -1674,11 +1738,11 @@ TRAIL and Persist apply as they do to any trace, so a long trail smears the seco
 
 #### Bouncing Ball
 
-![Bouncing Ball parameters](docs/img/model/bounceball-params.jpg)
+[![Bouncing Ball parameters](docs/img/model/bounceball-params.jpg)](https://chaosrack.magnetosphere.net/#bounceball)
 
 | Bouncing Ball | animated |
 | --- | --- |
-| ![Bouncing Ball](docs/img/model/bounceball.jpg) | ![Bouncing Ball, animated](https://chaosrack.magnetosphere.net/docs/img/model/bounceball.gif) |
+| [![Bouncing Ball](docs/img/model/bounceball.jpg)](https://chaosrack.magnetosphere.net/#bounceball) | [![Bouncing Ball, animated](https://chaosrack.magnetosphere.net/docs/img/model/bounceball.gif)](https://chaosrack.magnetosphere.net/#bounceball) |
 
 Bouncing Ball — The classic analog-computer demo (Telefunken shipped it to sell integrators): two integrator chains under constant gravity, a comparator that flips the vertical velocity at the floor with a restitution loss, and wall reflections for the drift.
 The scope draws the familiar train of shrinking parabolic arcs;
@@ -1696,11 +1760,11 @@ y'' = −g, bounce: v ← −e·v at the floor
 
 #### XY Scope
 
-![XY Scope parameters](docs/img/model/xy-params.jpg)
+[![XY Scope parameters](docs/img/model/xy-params.jpg)](https://chaosrack.magnetosphere.net/#xy)
 
 | XY Scope | animated |
 | --- | --- |
-| ![XY Scope](docs/img/model/xy.jpg) | ![XY Scope, animated](https://chaosrack.magnetosphere.net/docs/img/model/xy.gif) |
+| [![XY Scope](docs/img/model/xy.jpg)](https://chaosrack.magnetosphere.net/#xy) | [![XY Scope, animated](https://chaosrack.magnetosphere.net/docs/img/model/xy.gif)](https://chaosrack.magnetosphere.net/#xy) |
 
 X/Y Scope — the classic two-channel oscilloscope figure, drawing the live audio's (left, right) sample pairs as a line strip.
 This is the goniometer, or stereo vectorscope, that sits on a mastering desk:
@@ -1729,11 +1793,11 @@ It reads L against R whatever AXES is set to, because it is a property of the ch
 
 #### Takens Embedding
 
-![Takens Embedding parameters](docs/img/model/takens-params.jpg)
+[![Takens Embedding parameters](docs/img/model/takens-params.jpg)](https://chaosrack.magnetosphere.net/#takens)
 
 | Takens Embedding | animated |
 | --- | --- |
-| ![Takens Embedding](docs/img/model/takens.jpg) | ![Takens Embedding, animated](https://chaosrack.magnetosphere.net/docs/img/model/takens.gif) |
+| [![Takens Embedding](docs/img/model/takens.jpg)](https://chaosrack.magnetosphere.net/#takens) | [![Takens Embedding, animated](https://chaosrack.magnetosphere.net/docs/img/model/takens.gif)](https://chaosrack.magnetosphere.net/#takens) |
 
 Takens Delay Embedding — attractor reconstruction from a single signal (F. Takens, "Detecting strange attractors in turbulence", 1981).
 Each trail point is the delay vector (s(t), s(t−τ), s(t−2τ)) of the live audio: a pure tone draws a closed loop, music and speech trace the geometry of whatever produced them.
@@ -1767,7 +1831,7 @@ Audio is the rack's own signal: whatever the Mixer pins to RACK L and R, which a
 
 #### Stereo Embedding
 
-![Stereo Embedding parameters](docs/img/model/stereo-params.jpg)
+[![Stereo Embedding parameters](docs/img/model/stereo-params.jpg)](https://chaosrack.magnetosphere.net/#stereo)
 
 Stereo Embedding — the Takens trail built from the two channels instead of one channel's past.
 Takens' theorem manufactures the missing axes out of a signal's own history because there is only one signal;
@@ -1802,7 +1866,7 @@ a server or a device with only one channel to give reads "mono".
 
 #### Polar Embedding
 
-![Polar Embedding parameters](docs/img/model/polar-params.jpg)
+[![Polar Embedding parameters](docs/img/model/polar-params.jpg)](https://chaosrack.magnetosphere.net/#polar)
 
 Polar Embedding — the Takens delay vector drawn in a sphere instead of a cube.
 The Takens mode plots (s(t), s(t−τ), s(t−2τ)) coordinate by coordinate, and each coordinate is one sample bounded to ±1 and multiplied by GAIN, so the reachable set is a cube: loud passages pile up against its faces and hardest of all against its corners, where all three coordinates peak together.
@@ -1835,7 +1899,7 @@ Audio is the rack's own signal: whatever the Mixer pins to RACK L and R, which a
 
 | Spectrogram | animated |
 | --- | --- |
-| ![Spectrogram](docs/img/model/spectrogram.jpg) | ![Spectrogram, animated](https://chaosrack.magnetosphere.net/docs/img/model/spectrogram.gif) |
+| [![Spectrogram](docs/img/model/spectrogram.jpg)](https://chaosrack.magnetosphere.net/#spectrogram) | [![Spectrogram, animated](https://chaosrack.magnetosphere.net/docs/img/model/spectrogram.gif)](https://chaosrack.magnetosphere.net/#spectrogram) |
 
 Spectrogram — a scrolling short-time Fourier transform of the live audio: frequency up the plane, time scrolling right to left, magnitude as color.
 It is a display inspired by Vanya Sergeev's audioprism, written in Go (github.com/0magnet/audioprism-go) and drawn here as a texture on a plane in the same 3-D pipeline as every other model, so it rotates and zooms like one — and the same texture can be painted onto other geometry with the skin switch.
@@ -1845,11 +1909,11 @@ Its controls in the model bank expose the whole chain: transform size, overlap, 
 
 #### FVF Wobbulator
 
-![FVF Wobbulator parameters](docs/img/model/fvf-params.jpg)
+[![FVF Wobbulator parameters](docs/img/model/fvf-params.jpg)](https://chaosrack.magnetosphere.net/#fvf)
 
 | FVF Wobbulator | animated |
 | --- | --- |
-| ![FVF Wobbulator](docs/img/model/fvf.jpg) | ![FVF Wobbulator, animated](https://chaosrack.magnetosphere.net/docs/img/model/fvf.gif) |
+| [![FVF Wobbulator](docs/img/model/fvf.jpg)](https://chaosrack.magnetosphere.net/#fvf) | [![FVF Wobbulator, animated](https://chaosrack.magnetosphere.net/docs/img/model/fvf.gif)](https://chaosrack.magnetosphere.net/#fvf) |
 
 FVF — Harmonic Wobbulator.
 A software analog of the Frequency→Voltage→Frequency converter with balanced modulator designed at bunkerofdoom.com (hardware built 1984).
@@ -1860,11 +1924,11 @@ Shown here as the processed spectrogram.
 
 #### Recurrence Plot
 
-![Recurrence Plot parameters](docs/img/model/recurrence-params.jpg)
+[![Recurrence Plot parameters](docs/img/model/recurrence-params.jpg)](https://chaosrack.magnetosphere.net/#recurrence)
 
 | Recurrence Plot | animated |
 | --- | --- |
-| ![Recurrence Plot](docs/img/model/recurrence.jpg) | ![Recurrence Plot, animated](https://chaosrack.magnetosphere.net/docs/img/model/recurrence.gif) |
+| [![Recurrence Plot](docs/img/model/recurrence.jpg)](https://chaosrack.magnetosphere.net/#recurrence) | [![Recurrence Plot, animated](https://chaosrack.magnetosphere.net/docs/img/model/recurrence.gif)](https://chaosrack.magnetosphere.net/#recurrence) |
 
 Recurrence Plot — the picture of when a signal returns to where it has already been (J.-P. Eckmann, S. O. Kamphorst and D. Ruelle, "Recurrence Plots of Dynamical Systems", 1987).
 Time runs along both axes, and the cell (i, j) is lit when the two samples are within ε of each other, so the main diagonal is always lit and everything else says how the signal repeats.
@@ -1891,7 +1955,11 @@ Drawn as a texture on a square plane in the same 3-D pipeline as every other mod
 
 #### RTA — Octave Bands
 
-![RTA — Octave Bands parameters](docs/img/model/rta-params.jpg)
+[![RTA — Octave Bands parameters](docs/img/model/rta-params.jpg)](https://chaosrack.magnetosphere.net/#rta)
+
+| RTA — Octave Bands | animated |
+| --- | --- |
+| [![RTA — Octave Bands](docs/img/model/rta.jpg)](https://chaosrack.magnetosphere.net/#rta) | [![RTA — Octave Bands, animated](https://chaosrack.magnetosphere.net/docs/img/model/rta.gif)](https://chaosrack.magnetosphere.net/#rta) |
 
 RTA — Octave Bands.
 The real-time analyzer a room is measured with: the spectrum split into fractional-octave bands and shown as a bar per band.
@@ -1913,7 +1981,7 @@ SRC picks the channel.
 
 #### Transfer Function
 
-![Transfer Function parameters](docs/img/model/xfer-params.jpg)
+[![Transfer Function parameters](docs/img/model/xfer-params.jpg)](https://chaosrack.magnetosphere.net/#xfer)
 
 Transfer Function — what the thing between two channels did to the sound.
 Every other measurement here asks about ONE signal;
@@ -1939,7 +2007,11 @@ Feed it pink noise or the log sweep from a generator (its pink and swp waves).
 
 #### Waterfall — Spectral Decay
 
-![Waterfall — Spectral Decay parameters](docs/img/model/waterfall-params.jpg)
+[![Waterfall — Spectral Decay parameters](docs/img/model/waterfall-params.jpg)](https://chaosrack.magnetosphere.net/#waterfall)
+
+| Waterfall — Spectral Decay | animated |
+| --- | --- |
+| [![Waterfall — Spectral Decay](docs/img/model/waterfall.jpg)](https://chaosrack.magnetosphere.net/#waterfall) | [![Waterfall — Spectral Decay, animated](https://chaosrack.magnetosphere.net/docs/img/model/waterfall.gif)](https://chaosrack.magnetosphere.net/#waterfall) |
 
 Waterfall — Cumulative Spectral Decay.
 The measurement a loudspeaker is characterized by, and the one display here that could only exist in this app: every other analyzer draws its own flat panel and this is a genuine 3-D surface, so it rides the same pipeline the attractors do and drags, rotates, zooms and takes the gradient like any other model.

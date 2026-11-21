@@ -144,24 +144,30 @@ func modelEntry(m attractor.CatalogModel) string {
 	// served by Pages, as the gallery is (make publish-gifs), so they are
 	// linked there, and a model has one when it has a still — the file a
 	// checkout does have, so this section reads the same in every clone.
-	type shot struct{ head, alt, path, link string }
+	// Every picture is a link to the page showing what it pictures: the
+	// model, or a variant with the controls that make it.
+	//
+	// path is the file that must exist for the picture to be shown, src
+	// where it is served from, and href the page it opens.
+	type shot struct{ head, alt, path, src, href string }
 	still := filepath.Join(*modelImgDir, m.Key+".jpg")
+	page := appLink(m.Key, "")
 	shots := []shot{
-		{mdEscape(m.Label), mdEscape(m.Label), still, still},
-		{"animated", mdEscape(m.Label) + ", animated", still, *siteBase + "/" + filepath.ToSlash(filepath.Join(*modelImgDir, m.Key+".gif"))},
+		{mdEscape(m.Label), mdEscape(m.Label), still, still, page},
+		{"animated", mdEscape(m.Label) + ", animated", still, *siteBase + "/" + filepath.ToSlash(filepath.Join(*modelImgDir, m.Key+".gif")), page},
 	}
 	// Named variants: a second face of the same model that a still cannot
 	// show at the same time as the first. The turtle's is the big one — the
 	// same walk in two dimensions and in three are different figures.
 	for _, v := range modelVariants[m.Key] {
 		p := filepath.Join(*modelImgDir, m.Key+"-"+v.suffix+".jpg")
-		shots = append(shots, shot{v.head, mdEscape(m.Label) + " — " + v.head, p, p})
+		shots = append(shots, shot{v.head, mdEscape(m.Label) + " — " + v.head, p, p, appLink(m.Key, v.set)})
 	}
 	// The model's bank as it stands for THIS model, over the figures and the
 	// full width of the page: a twelve-column bank in a third of a table row
 	// was too small to read.
 	if p := filepath.Join(*modelImgDir, m.Key+"-params.jpg"); fileExists(p) {
-		fmt.Fprintf(&b, "![%s parameters](%s)\n\n", mdEscape(m.Label), p)
+		fmt.Fprintf(&b, "[![%s parameters](%s)](%s)\n\n", mdEscape(m.Label), p, page)
 	}
 
 	var have []shot
@@ -175,7 +181,7 @@ func modelEntry(m attractor.CatalogModel) string {
 		for _, s := range have {
 			heads = append(heads, s.head)
 			seps = append(seps, "---")
-			cells = append(cells, fmt.Sprintf("![%s](%s)", s.alt, s.link))
+			cells = append(cells, fmt.Sprintf("[![%s](%s)](%s)", s.alt, s.src, s.href))
 		}
 		fmt.Fprintf(&b, "| %s |\n| %s |\n| %s |\n\n",
 			strings.Join(heads, " | "), strings.Join(seps, " | "), strings.Join(cells, " | "))
@@ -528,8 +534,20 @@ func fileExists(p string) bool {
 // The turtle is why this exists: the same integer sequence walked in two
 // dimensions and in three are not the same figure, and showing only the 3-D
 // one hides half of what the mode does.
-var modelVariants = map[string][]struct{ suffix, head string }{
-	"turtle": {{"2d", "in 2-D (mod 30, closed)"}},
+//
+// set is what the variant's link adds to the model's, as the page writes it
+// (the controls portraits.go sets for the shot).
+var modelVariants = map[string][]struct{ suffix, head, set string }{
+	"turtle": {{"2d", "in 2-D (mod 30, closed)", "p.dim=2&p.mod=30"}},
+}
+
+// appLink is the page showing model key, with set (link fields joined by
+// '&') added when the link is for a particular setting of it.
+func appLink(key, set string) string {
+	if set != "" {
+		key += "&" + set
+	}
+	return *siteBase + "/#" + key
 }
 
 // tableText flattens a description into something that survives a markdown
