@@ -28,7 +28,9 @@ const controlsBody = `
   <span id="extra-nav"></span>
   <div class="console-btns">
   <span class="grp btn-row"><button class="pushbtn" id="reset-all-btn" data-doc="reset-all-btn"></button><span class="btn-lbl">Reset All</span></span>
-  <span class="grp btn-row"><button class="pushbtn" id="normalize-btn" data-doc="normalize-btn"></button><span class="btn-lbl">Normalize</span></span>
+  <span class="grp btn-row"><button class="pushbtn" id="normalize-x-btn" data-doc="normalize-x-btn"></button><span class="btn-lbl">Normalize X</span></span>
+  <span class="grp btn-row"><button class="pushbtn" id="normalize-y-btn" data-doc="normalize-y-btn"></button><span class="btn-lbl">Normalize Y</span></span>
+  <span class="grp btn-row"><button class="pushbtn" id="normalize-btn" data-doc="normalize-btn"></button><span class="btn-lbl">Normalize Z</span></span>
   </div>
   </div>
   <div class="swsec"><div class="swsec-hdr" data-doc="console.audio">Audio</div>

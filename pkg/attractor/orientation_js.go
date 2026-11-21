@@ -35,10 +35,26 @@ func setAutoRotate(on bool) {
 // differently from flipping the switch even though it now does the same thing.
 func clearAutoRotateFlag() { setAutoRotate(false) }
 
-// selWindow is the little label window on the attractor selector knob.
+// normalizeOrientation resets the current model to the default identity
+// pose and zeroes the per-axis spin rates, so it faces the camera head-on.
+func normalizeOrientation() { setPose([3]float32{}) }
 
-func normalizeOrientation() {
-	view.angleX, view.angleY, view.angleZ = 0, 0, 0
+// normalizeAxis squares the model up with one of its axes toward the viewer
+// (normalPose), and with no spin. Pressed again while the model still sits
+// in that pose, it turns it round to show the axis's other end: the exact
+// bottom of a figure, say, which is hard to reach by dragging.
+func normalizeAxis(axis int) {
+	want := normalPose(axis, false)
+	if view.ball.orient == mgl32.Ident4() && [3]float32{view.angleX, view.angleY, view.angleZ} == want {
+		want = normalPose(axis, true)
+	}
+	setPose(want)
+}
+
+// setPose puts the model at the X→Y→Z euler pose p, with no drag and no
+// spin: the rate knobs zeroed and auto-rotate off.
+func setPose(p [3]float32) {
+	view.angleX, view.angleY, view.angleZ = p[0], p[1], p[2]
 	view.ball.orient = mgl32.Ident4()
 	zeroRotationSliders()
 	clearAutoRotateFlag()

@@ -2294,19 +2294,19 @@ bay.column.row. Expand **Controls** for every cell's tooltip.
 
 <img src="docs/img/module/console.jpg" alt="The Console module" width="149" height="512" align="left">
 
-2.10 · Console — Reset All and Normalize, MIDI, and the switches for the rack itself and for motion. The model is chosen with the MODEL knob in bay 1.
+2.10 · Console — Reset All and Normalize X, Y and Z, MIDI, and the switches for the rack itself and for motion. The model is chosen with the MODEL knob in bay 1.
 
 <details><summary>Controls</summary>
 
-- **MIDI** — 2.10.1.c · MIDI — hardware control over WebMIDI: CC 1 and up drive the model's continuous knobs in order, CC 21 to 29 the view (zoom, pan X, pan Y, spin X, Y and Z, period, trail and shift), and a note hops to a flow picked by the note.
-- **Power** — 2.10.1.d · Power — the model. Off stops it and clears the canvas, which is what the GPU costs; the scopes and meters still read what plays, and every setting is still there to read and to change. OFF on the MODEL knob is the same switch.
-- **Rack bay** — 2.10.2.a · Rack bay — draw the 19-inch frame each ROW of modules sits in: rails above and below, an ear each side, and blank panels filling the leftover at the end of the row on the same slot pitch. The modules wrap, and a row is a bay, so a rack that has spilled onto a second row gets a second frame. While it is on, a click on one of a bay's top screws moves the bay up a place, on a bottom screw down one; the order is kept in this browser, and the addresses on a moved bay follow it.
-- **Info** — 2.10.2.b · Info — opens the Info window: the model playing, described, or, while the rack is off, the manual's page for the bay last worked at.
-- **Fullscreen** — 2.10.2.c · Fullscreen — the browser's full screen: the canvas fills the display, and the panel stays available
-- **Desk** — 2.10.2.d · Desk — run this app inside a desktop: the desk becomes the environment, its panel takes the bottom of the screen, and the rack floats as a window on it with a task button beside the desk's own. The scene keeps running behind. Open a terminal, the host shell or the file manager from the desk's Applications menu. The OTHER way to have the desk is as a MODEL (Solids → desk), where the whole desktop is drawn into the scene and turns with it.
-- **Auto-rot** — 2.10.2.e · Continuously spin the model about the vertical (Y) axis — it folds into the Y spin rate (ω, View)
-- **Pause** — 2.10.2.f · Pause / freeze the animation
-- **Jam** — 2.10.2.g · Jam / attract mode — the app performs itself: hops to a random attractor every 12–20 s with fresh gentle spin and occasional persist paint. Never touches speaker outputs.
+- **MIDI** — 2.10.1.e · MIDI — hardware control over WebMIDI: CC 1 and up drive the model's continuous knobs in order, CC 21 to 29 the view (zoom, pan X, pan Y, spin X, Y and Z, period, trail and shift), and a note hops to a flow picked by the note.
+- **Power** — 2.10.2.a · Power — the model. Off stops it and clears the canvas, which is what the GPU costs; the scopes and meters still read what plays, and every setting is still there to read and to change. OFF on the MODEL knob is the same switch.
+- **Rack bay** — 2.10.2.b · Rack bay — draw the 19-inch frame each ROW of modules sits in: rails above and below, an ear each side, and blank panels filling the leftover at the end of the row on the same slot pitch. The modules wrap, and a row is a bay, so a rack that has spilled onto a second row gets a second frame. While it is on, a click on one of a bay's top screws moves the bay up a place, on a bottom screw down one; the order is kept in this browser, and the addresses on a moved bay follow it.
+- **Info** — 2.10.2.c · Info — opens the Info window: the model playing, described, or, while the rack is off, the manual's page for the bay last worked at.
+- **Fullscreen** — 2.10.2.d · Fullscreen — the browser's full screen: the canvas fills the display, and the panel stays available
+- **Desk** — 2.10.2.e · Desk — run this app inside a desktop: the desk becomes the environment, its panel takes the bottom of the screen, and the rack floats as a window on it with a task button beside the desk's own. The scene keeps running behind. Open a terminal, the host shell or the file manager from the desk's Applications menu. The OTHER way to have the desk is as a MODEL (Solids → desk), where the whole desktop is drawn into the scene and turns with it.
+- **Auto-rot** — 2.10.2.f · Continuously spin the model about the vertical (Y) axis — it folds into the Y spin rate (ω, View)
+- **Pause** — 2.10.3.a · Pause / freeze the animation
+- **Jam** — 2.10.3.b · Jam / attract mode — the app performs itself: hops to a random attractor every 12–20 s with fresh gentle spin and occasional persist paint. Never touches speaker outputs.
 
 </details>
 

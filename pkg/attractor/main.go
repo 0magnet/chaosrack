@@ -1072,12 +1072,16 @@ func wireColorAndViewControls() {
 // on and through the model.
 func wirePanelSwitches() {
 
-	// Event: normalize — reorient the current model to the default
-	// (identity) pose and stop any slider-driven spin.
-	dom.On(dom.Doc.Call("getElementById", "normalize-btn"), "click", func(this js.Value, args []js.Value) any {
-		normalizeOrientation()
-		return nil
-	})
+	// Event: Normalize X, Y and Z — square the model up with that axis
+	// toward the viewer and stop any spin; a second press shows the axis's
+	// other end. Z is the default (identity) pose, and keeps the id the one
+	// Normalize button had.
+	for axis, id := range []string{"normalize-x-btn", "normalize-y-btn", "normalize-btn"} {
+		dom.On(dom.Doc.Call("getElementById", id), "click", func(this js.Value, args []js.Value) any {
+			normalizeAxis(axis)
+			return nil
+		})
+	}
 
 	// Event: speed slider
 	// (Speed's input/reset wiring is owned by its ControlDesc registration.)

@@ -69,3 +69,30 @@ func TestWrapTwoPi(t *testing.T) {
 		}
 	}
 }
+
+// Each Normalize turns its axis to the viewer (+Z, the camera looking down
+// −Z), and its second press turns the axis's other end there, with the
+// matrix rebuildModelMatrix composes.
+func TestNormalPoseFacesTheAxis(t *testing.T) {
+	for axis := range 3 {
+		for _, back := range []bool{false, true} {
+			p := normalPose(axis, back)
+			m := mgl32.HomogRotate3DX(p[0]).Mul4(mgl32.HomogRotate3DY(p[1])).Mul4(mgl32.HomogRotate3DZ(p[2]))
+			var v mgl32.Vec4
+			v[axis], v[3] = 1, 1
+			got := m.Mul4x1(v)
+			want := float32(1)
+			if back {
+				want = -1
+			}
+			if math.Abs(float64(got[0])) > 1e-6 || math.Abs(float64(got[1])) > 1e-6 || math.Abs(float64(got[2]-want)) > 1e-6 {
+				t.Errorf("axis %d back %v: pose %v takes it to %v, want (0,0,%v)", axis, back, p, got, want)
+			}
+			for _, a := range p {
+				if a < 0 || a >= twoPi {
+					t.Errorf("axis %d back %v: angle %v outside [0, 2π)", axis, back, a)
+				}
+			}
+		}
+	}
+}

@@ -159,10 +159,6 @@ func updateTrailVisibility() {
 	setCellBlank(dom.Doc.Call("getElementById", "trail-controls"), !isAttractorMode(run.selectedMode))
 }
 
-// normalizeOrientation resets the current model to the default identity
-// pose and zeroes the per-axis spin rates, so it faces the camera head-on.
-// Auto-rotate (if on) still applies afterward.
-
 func onModeChange(this js.Value, args []js.Value) any {
 	sel := dom.Doc.Call("getElementById", "mode-select")
 	// While the panel is on the backdrop, choosing a model chooses what is

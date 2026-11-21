@@ -24,6 +24,36 @@ func wrapTwoPi(a float32) float32 {
 	return a
 }
 
+// normalPose is the X→Y→Z euler pose that turns the model's axis (0 X, 1 Y,
+// 2 Z) square to the screen, its positive end toward the viewer, or its
+// negative end when back is set: the Console's Normalize X, Y and Z, which
+// a second press turns round to the other side. The camera looks down −Z,
+// so the pose takes the axis to +Z.
+func normalPose(axis int, back bool) [3]float32 {
+	half := float32(math.Pi / 2)
+	var p [3]float32
+	switch axis {
+	case 0: // +X to +Z is −90° about Y
+		p[1] = -half
+		if back {
+			p[1] = half
+		}
+	case 1: // +Y to +Z is +90° about X
+		p[0] = half
+		if back {
+			p[0] = -half
+		}
+	default: // Z is the default pose; its back is half a turn about Y
+		if back {
+			p[1] = 2 * half
+		}
+	}
+	for i := range p {
+		p[i] = wrapTwoPi(p[i])
+	}
+	return p
+}
+
 // decomposeXYZ extracts the X→Y→Z euler angles from a rotation matrix built as
 // RotX·RotY·RotZ (the order rebuildModelMatrix composes), so a camera-relative
 // drag can be folded back into the knob angles. Handles the ±90° Y gimbal by

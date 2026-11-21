@@ -894,45 +894,45 @@
   {
     "id": "console",
     "label": "Console",
-    "title": "2.10 · Console — Reset All and Normalize, MIDI, and the switches for the rack itself and for motion.\nThe model is chosen with the MODEL knob in bay 1.",
+    "title": "2.10 · Console — Reset All and Normalize X, Y and Z, MIDI, and the switches for the rack itself and for motion.\nThe model is chosen with the MODEL knob in bay 1.",
     "image": "docs/img/module/console.jpg",
     "mode": "lorenz",
     "controls": [
       {
         "label": "MIDI",
-        "title": "2.10.1.c · MIDI — hardware control over WebMIDI: CC 1 and up drive the model's continuous knobs in order, CC 21 to 29 the view (zoom, pan X, pan Y, spin X, Y and Z, period, trail and shift), and a note hops to a flow picked by the note."
+        "title": "2.10.1.e · MIDI — hardware control over WebMIDI: CC 1 and up drive the model's continuous knobs in order, CC 21 to 29 the view (zoom, pan X, pan Y, spin X, Y and Z, period, trail and shift), and a note hops to a flow picked by the note."
       },
       {
         "label": "Power",
-        "title": "2.10.1.d · Power — the model.\nOff stops it and clears the canvas, which is what the GPU costs;\nthe scopes and meters still read what plays, and every setting is still there to read and to change.\nOFF on the MODEL knob is the same switch."
+        "title": "2.10.2.a · Power — the model.\nOff stops it and clears the canvas, which is what the GPU costs;\nthe scopes and meters still read what plays, and every setting is still there to read and to change.\nOFF on the MODEL knob is the same switch."
       },
       {
         "label": "Rack bay",
-        "title": "2.10.2.a · Rack bay — draw the 19-inch frame each ROW of modules sits in: rails above and below, an ear each side, and blank panels filling the leftover at the end of the row on the same slot pitch.\nThe modules wrap, and a row is a bay, so a rack that has spilled onto a second row gets a second frame.\nWhile it is on, a click on one of a bay's top screws moves the bay up a place, on a bottom screw down one;\nthe order is kept in this browser, and the addresses on a moved bay follow it."
+        "title": "2.10.2.b · Rack bay — draw the 19-inch frame each ROW of modules sits in: rails above and below, an ear each side, and blank panels filling the leftover at the end of the row on the same slot pitch.\nThe modules wrap, and a row is a bay, so a rack that has spilled onto a second row gets a second frame.\nWhile it is on, a click on one of a bay's top screws moves the bay up a place, on a bottom screw down one;\nthe order is kept in this browser, and the addresses on a moved bay follow it."
       },
       {
         "label": "Info",
-        "title": "2.10.2.b · Info — opens the Info window: the model playing, described, or, while the rack is off, the manual's page for the bay last worked at."
+        "title": "2.10.2.c · Info — opens the Info window: the model playing, described, or, while the rack is off, the manual's page for the bay last worked at."
       },
       {
         "label": "Fullscreen",
-        "title": "2.10.2.c · Fullscreen — the browser's full screen: the canvas fills the display, and the panel stays available"
+        "title": "2.10.2.d · Fullscreen — the browser's full screen: the canvas fills the display, and the panel stays available"
       },
       {
         "label": "Desk",
-        "title": "2.10.2.d · Desk — run this app inside a desktop: the desk becomes the environment, its panel takes the bottom of the screen, and the rack floats as a window on it with a task button beside the desk's own.\nThe scene keeps running behind.\nOpen a terminal, the host shell or the file manager from the desk's Applications menu.\nThe OTHER way to have the desk is as a MODEL (Solids → desk), where the whole desktop is drawn into the scene and turns with it."
+        "title": "2.10.2.e · Desk — run this app inside a desktop: the desk becomes the environment, its panel takes the bottom of the screen, and the rack floats as a window on it with a task button beside the desk's own.\nThe scene keeps running behind.\nOpen a terminal, the host shell or the file manager from the desk's Applications menu.\nThe OTHER way to have the desk is as a MODEL (Solids → desk), where the whole desktop is drawn into the scene and turns with it."
       },
       {
         "label": "Auto-rot",
-        "title": "2.10.2.e · Continuously spin the model about the vertical (Y) axis — it folds into the Y spin rate (ω, View)"
+        "title": "2.10.2.f · Continuously spin the model about the vertical (Y) axis — it folds into the Y spin rate (ω, View)"
       },
       {
         "label": "Pause",
-        "title": "2.10.2.f · Pause / freeze the animation"
+        "title": "2.10.3.a · Pause / freeze the animation"
       },
       {
         "label": "Jam",
-        "title": "2.10.2.g · Jam / attract mode — the app performs itself: hops to a random attractor every 12–20 s with fresh gentle spin and occasional persist paint.\nNever touches speaker outputs."
+        "title": "2.10.3.b · Jam / attract mode — the app performs itself: hops to a random attractor every 12–20 s with fresh gentle spin and occasional persist paint.\nNever touches speaker outputs."
       }
     ]
   },
@@ -1254,14 +1254,14 @@
   },
   {
     "id": "wf",
-    "label": "Wow \u0026 Flutter",
-    "title": "3.9 · Wow \u0026 Flutter — speed stability, measured off a 3150 Hz test tone.\nEvery other analyzer here asks about amplitude;\nthis asks whether the TIME AXIS is steady, which is what a turntable, a tape deck or a cassette is judged by.\nPlay a generator's sine at 3150 Hz through the deck, capture the result, and read it here:\nSPEED is the mean frequency error as a percentage (a constant error is a pitch shift, a different fault from a wobble),\nWOW the slow 0.5–6 Hz modulation that once-per-revolution faults produce,\nFLUTTER the fast 6–100 Hz kind from capstans and idlers,\nand W\u0026F the DIN-weighted quasi-peak that a specification quotes — the deviation through a filter peaked at 4 Hz, where the ear is most sensitive to pitch movement.\n3150 Hz is the figure every test record carries (DIN 45507, IEC 60386).\nWith no deck in the loop at all it reads 0.000% on the generator itself, which is the check that the instrument is not inventing the number.",
+    "label": "Wow & Flutter",
+    "title": "3.9 · Wow & Flutter — speed stability, measured off a 3150 Hz test tone.\nEvery other analyzer here asks about amplitude;\nthis asks whether the TIME AXIS is steady, which is what a turntable, a tape deck or a cassette is judged by.\nPlay a generator's sine at 3150 Hz through the deck, capture the result, and read it here:\nSPEED is the mean frequency error as a percentage (a constant error is a pitch shift, a different fault from a wobble),\nWOW the slow 0.5–6 Hz modulation that once-per-revolution faults produce,\nFLUTTER the fast 6–100 Hz kind from capstans and idlers,\nand W&F the DIN-weighted quasi-peak that a specification quotes — the deviation through a filter peaked at 4 Hz, where the ear is most sensitive to pitch movement.\n3150 Hz is the figure every test record carries (DIN 45507, IEC 60386).\nWith no deck in the loop at all it reads 0.000% on the generator itself, which is the check that the instrument is not inventing the number.",
     "image": "docs/img/module/wf.jpg",
     "mode": "lorenz",
     "controls": [
       {
         "label": "--.--------.-\n      --.-",
-        "title": "3.9.1.a · Wow \u0026 flutter / speed / LED readout / Mean frequency error as a percentage of nominal.\nPositive is running fast.\nA constant error is a pitch shift, which is a different fault from a wobble."
+        "title": "3.9.1.a · Wow & flutter / speed / LED readout / Mean frequency error as a percentage of nominal.\nPositive is running fast.\nA constant error is a pitch shift, which is a different fault from a wobble."
       },
       {
         "label": "nom",
@@ -2954,7 +2954,7 @@
     "controls": [
       {
         "label": "pin",
-        "title": "PIN — the pin LVL is setting: the last one pressed or turned, as source\u003erow"
+        "title": "PIN — the pin LVL is setting: the last one pressed or turned, as source>row"
       },
       {
         "label": "lvl",
