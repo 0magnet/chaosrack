@@ -14,11 +14,13 @@
 // The tetrahedron is a=b=c=1 (the tips closed onto the peak), the cube is
 // a=1, b=0 with its missing corner at the origin. The chestahedron is a cube
 // with one corner sliced off through its three neighbors, then stretched
-// until its faces agree: "a seven from a six". A dodecahedron sliced the same
-// way is his thirteen-faced decatriahedron, "a thirteen from a twelve".
+// until its faces agree: "a seven from a six". His thirteen-faced decatria is
+// the solid with its corners cut toward the center by half (more.go).
 //
 // Several of his relations are golden only nearly. The kite's angles are
-// 36.50°, 71.75° and 125.88°, not a pentagram's 36, 72 and 126, and the
+// 36.50°, 71.75° and 125.88° (the book "A New Sacred Geometry" prints
+// 36.49975504° and 125.8750612°, which these match), not a pentagram's 36,
+// 72 and 126, and the
 // regular hexagon a rubber band finds on the sides sits 0.6149 of the way up
 // them, not 1/φ = 0.6180. The pentagram constructions of the solid (MathZone's
 // "Phi model", the paper templates) are therefore near misses, and the
@@ -329,47 +331,6 @@ func StarFold(s float64) (peak V, corners [4]V, points [3]V) {
 	return peak, corners, points
 }
 
-// Decatriahedron: the dodecahedron with a corner sliced off.
-
-// Dodecahedron is the regular dodecahedron of edge 2/φ round the cube
-// (±1,±1,±1), faces wound outward. Its corner (-1,-1,-1) is on the
-// chestahedron's axis.
-func Dodecahedron() Poly {
-	ip := 1 / phi
-	var p Poly
-	for _, s := range [8]V{{-1, -1, -1}, {1, -1, -1}, {-1, 1, -1}, {1, 1, -1}, {-1, -1, 1}, {1, -1, 1}, {-1, 1, 1}, {1, 1, 1}} {
-		p.V = append(p.V, s)
-	}
-	for _, s1 := range []float64{-1, 1} {
-		for _, s2 := range []float64{-1, 1} {
-			p.V = append(p.V, V{0, s1 * ip, s2 * phi}, V{s1 * ip, s2 * phi, 0}, V{s2 * phi, 0, s1 * ip})
-		}
-	}
-	// A face's normal is an icosahedron corner, (0, ±φ, ±1) and its cyclic
-	// turns for these corners; its five corners are the ones furthest along
-	// it, at φ + 1.
-	var normals []V
-	for _, s1 := range []float64{-1, 1} {
-		for _, s2 := range []float64{-1, 1} {
-			normals = append(normals, V{0, s1 * phi, s2}, V{s2, 0, s1 * phi}, V{s1 * phi, s2, 0})
-		}
-	}
-	for _, n := range normals {
-		best := -math.MaxFloat64
-		for _, v := range p.V {
-			best = math.Max(best, v.dot(n))
-		}
-		var face []int
-		for i, v := range p.V {
-			if v.dot(n) > best-1e-9 {
-				face = append(face, i)
-			}
-		}
-		p.F = append(p.F, windAround(p.V, face, n))
-	}
-	return p
-}
-
 // windAround orders a face's corners counterclockwise about its normal.
 func windAround(vs []V, face []int, n V) []int {
 	var c V
@@ -384,54 +345,6 @@ func windAround(vs []V, face []int, n V) []int {
 		return math.Atan2(di.dot(w), di.dot(u)) < math.Atan2(dj.dot(w), dj.dot(u))
 	})
 	return face
-}
-
-// Decatriahedron is the dodecahedron with its corner (-1,-1,-1) cut off by
-// s: whole at 0, at 1 sliced through the corner's three neighbors, where
-// three pentagons have become four-sided and a triangle is the thirteenth
-// face. Returned with the slice triangle's three corners.
-func Decatriahedron(s float64) (Poly, [3]int) {
-	d := Dodecahedron()
-	s = math.Max(0, math.Min(1, s))
-	const corner = 0 // (-1,-1,-1)
-	var nb []int
-	for _, e := range d.Edges() {
-		switch corner {
-		case e[0]:
-			nb = append(nb, e[1])
-		case e[1]:
-			nb = append(nb, e[0])
-		}
-	}
-	cut := map[int]int{} // neighbor → the cut corner on the edge to it
-	var tri [3]int
-	whole := s >= 1 // sliced through the neighbors themselves
-	for i, n := range nb {
-		if whole {
-			cut[n], tri[i] = n, n
-			continue
-		}
-		cut[n] = len(d.V)
-		tri[i] = len(d.V)
-		d.V = append(d.V, lerp(d.V[corner], d.V[n], s))
-	}
-	for fi, face := range d.F {
-		for k, v := range face {
-			if v != corner {
-				continue
-			}
-			prev, next := face[(k+len(face)-1)%len(face)], face[(k+1)%len(face)]
-			nf := append([]int{}, face[:k]...)
-			if !whole { // the pentagon loses a corner to two: a hexagon
-				nf = append(nf, cut[prev], cut[next])
-			}
-			nf = append(nf, face[k+1:]...)
-			d.F[fi] = nf
-			break
-		}
-	}
-	d.F = append(d.F, windAround(d.V, []int{tri[0], tri[1], tri[2]}, V{-1, -1, -1}))
-	return d, tri
 }
 
 // Lines: a figure built up as points and the segments between them.

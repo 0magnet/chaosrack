@@ -176,45 +176,6 @@ func TestEversionReflectsEachPyramid(t *testing.T) {
 	}
 }
 
-func TestTheDecatriahedron(t *testing.T) {
-	d := Dodecahedron()
-	if len(d.F) != 12 || len(d.Edges()) != 30 {
-		t.Fatalf("dodecahedron F E = %d %d", len(d.F), len(d.Edges()))
-	}
-	p, tri := Decatriahedron(1)
-	sides := map[int]int{}
-	used := map[V]bool{}
-	for _, f := range p.F {
-		sides[len(f)]++
-		for _, v := range f {
-			used[p.V[v]] = true
-		}
-	}
-	if len(p.F) != 13 || sides[5] != 9 || sides[4] != 3 || sides[3] != 1 {
-		t.Errorf("faces %d, by sides %v; want 13: 9 pentagons, 3 quads, 1 triangle", len(p.F), sides)
-	}
-	if len(used) != 19 || len(used)-30+len(p.F) != 2 {
-		t.Errorf("%d corners in use; want 19 (Euler)", len(used))
-	}
-	flat(t, p, "decatriahedron")
-	// The chestahedron stands inside it on the slice.
-	ch := ChestOnTriangle(p.V[tri[0]], p.V[tri[1]], p.V[tri[2]])
-	for _, f := range d.F {
-		a, b, c := d.V[f[0]], d.V[f[1]], d.V[f[2]]
-		n := cross(b.sub(a), c.sub(a)).unit()
-		for i, v := range ch.V {
-			if v.sub(a).dot(n) > 1e-9 {
-				t.Errorf("chestahedron corner %d is outside the dodecahedron", i)
-			}
-		}
-	}
-	for i := range 3 {
-		if ch.V[i].sub(p.V[tri[i]]).len() > 1e-9 && ch.V[i].sub(p.V[tri[(i+1)%3]]).len() > 1e-9 && ch.V[i].sub(p.V[tri[(i+2)%3]]).len() > 1e-9 {
-			t.Errorf("the chestahedron's base corner %d is not on the slice triangle", i)
-		}
-	}
-}
-
 func TestFormsFitTheIndexBuffer(t *testing.T) {
 	for f := range NumForms {
 		for _, m := range []float64{0, 0.5, 1, 1.5, 2} {

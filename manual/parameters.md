@@ -234,20 +234,24 @@ Acts on a solid, not a tiling.
 
 <!-- key: p.chestahedron-form -->
 form — which of Frank Chester's forms.
-solid: the tetrahedron, the chestahedron and the cube. star: a pentagram folded into its top. inner: the rubber band, the hexagram, the cube and the merkaba inside it. sphere: its sphere, the seed and flower of life, the cube around.
-bell: its edges spun. air: turned inside out. deca: the dodecahedron sliced to thirteen faces. heart: nested cones with the fibers' angle turning through them.
+solid: the tetrahedron, the chestahedron and the cube. star: a pentagram folded into its top. inner: the rubber band, the hexagrams, the cube and the merkaba inside it. sphere: its sphere, the seed and flower of life, the cube around.
+bell: its edges spun. air: turned inside out. deca: its corners cut by half, the thirteen-faced decatria. heart: nested cones with the fibers' angle turning through them.
+spin: a tetrahedron turned in the cube through the chestahedron and the octahedron. first: his first seven-sided form, four of them round a tetrahedron. roll: the paper disk rolled into the heart's cone.
 
 ### morph
 
 <!-- key: p.chestahedron-morph -->
 morph — runs the form's transformation; 1 is the form as Chester shows it.
 solid: 0 the tetrahedron, 1 the chestahedron, 2 the cube. star: the pentagram folds up to 1, then closes the gap to the exact solid by 2. inner: the band rides up the sides, a regular hexagon at 1.
-bell: the edges turn through 120° per unit. air: inside out at 1 and back at 2. deca: the corner is sliced off by 1. heart: the fibers' angle, 60° at 1.
+bell: the edges turn through 120° per unit. air: inside out at 1 and back at 2. deca: the corners cut, the decatria at 1 and the dual at 2. heart: the fibers' angle, 60° at 1.
+spin: tetrahedron, chestahedron at ½, octahedron at 1, back to the other tetrahedron at 2. first: the four pieces drawn apart. roll: flat at 0, rolled four times at 1, eight at 2.
 
 ### detail
 
 <!-- key: p.chestahedron-detail -->
-detail — how much is added: solid, the cube it is cut from (2); star, the exact solid beside it (1); inner, the hexagram (1), cube (2) and merkaba (3); sphere, the seed of life (1), the cube around (2) and the flower of life (3); bell, more turned copies; deca, the chestahedron inside (1) and the cube (2); heart, one cone (0) or eight (1).
+detail — how much is added. solid: the cube it is cut from (2), the cube it fits (3). star: the exact solid beside it (1). inner: the hexagrams (1), cube (2), merkaba (3), core sphere (4).
+sphere: the seed of life (1), the cube around (2), the flower of life (3), the 26° cone and its core sphere (4). bell: more turned copies. deca: the chestahedron round it (1). heart: one cone (0) or eight (1).
+spin: the cube (1), the solid traced through time (2 up). first: the tetrahedron in the middle (1). roll: the √3 chord (0), six of them (1), parallel lines (2 up).
 
 ### modulus
 
