@@ -9,30 +9,30 @@ import "testing"
 // enough to cover that 1/256 is the test — a handful of calls never saw it,
 // which is exactly why it shipped.
 func TestCryptoRandIntnStaysInRange(t *testing.T) {
-	for _, max := range []int{1, 2, 5, 6, 57, 256, 1000} {
+	for _, bound := range []int{1, 2, 5, 6, 57, 256, 1000} {
 		seen := make(map[int]bool)
 		for i := range 20000 {
-			got, err := cryptoRandIntn(max)
+			got, err := cryptoRandIntn(bound)
 			if err != nil {
-				t.Fatalf("max=%d: %v", max, err)
+				t.Fatalf("bound=%d: %v", bound, err)
 			}
-			if got < 0 || got >= max {
-				t.Fatalf("max=%d: returned %d on call %d, want [0,%d)", max, got, i, max)
+			if got < 0 || got >= bound {
+				t.Fatalf("bound=%d: returned %d on call %d, want [0,%d)", bound, got, i, bound)
 			}
 			seen[got] = true
 		}
 		// A generator stuck on one value is in range and still broken.
-		if max > 1 && len(seen) < 2 {
-			t.Errorf("max=%d: 20000 draws produced only %d distinct value(s)", max, len(seen))
+		if bound > 1 && len(seen) < 2 {
+			t.Errorf("bound=%d: 20000 draws produced only %d distinct value(s)", bound, len(seen))
 		}
 	}
 }
 
 // A non-positive bound is an error, not a panic and not a negative result.
 func TestCryptoRandIntnRejectsANonPositiveBound(t *testing.T) {
-	for _, max := range []int{0, -1} {
-		if got, err := cryptoRandIntn(max); err == nil {
-			t.Errorf("cryptoRandIntn(%d) = %d, want an error", max, got)
+	for _, bound := range []int{0, -1} {
+		if got, err := cryptoRandIntn(bound); err == nil {
+			t.Errorf("cryptoRandIntn(%d) = %d, want an error", bound, got)
 		}
 	}
 }

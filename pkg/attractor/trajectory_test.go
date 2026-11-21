@@ -52,11 +52,11 @@ func TestTrajectoryOfANonFlowIsNil(t *testing.T) {
 // MaxPoints has to be a maximum. Flooring the stride returned up to twice it.
 func TestTrajectoryRespectsMaxPoints(t *testing.T) {
 	for _, k := range dynamics.Keys() {
-		for _, max := range []int{100, 999, 4000} {
+		for _, limit := range []int{100, 999, 4000} {
 			o := dynamics.DefaultTrajectory()
-			o.MaxPoints = max
-			if got := len(dynamics.Trajectory(k, o)); got > max {
-				t.Errorf("%s: %d points for a cap of %d", k, got, max)
+			o.MaxPoints = limit
+			if got := len(dynamics.Trajectory(k, o)); got > limit {
+				t.Errorf("%s: %d points for a cap of %d", k, got, limit)
 			}
 		}
 	}
