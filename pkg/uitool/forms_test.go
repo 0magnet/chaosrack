@@ -21,7 +21,7 @@ func TestChestFormsCoverTheKnob(t *testing.T) {
 			t.Errorf("gallery form %d is %q, the knob's is %q", i, f.name, chester.FormNames[i])
 		}
 		link := formLink("chestahedron", f)
-		if !strings.Contains(link, "#chestahedron&p.chestahedron-form="+strconv.Itoa(i)+"&") {
+		if !strings.Contains(link, "#chestahedron&p.form="+strconv.Itoa(i)+"&") {
 			t.Errorf("%s links to %s", f.name, link)
 		}
 		if !strings.Contains(g, link) {

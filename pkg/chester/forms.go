@@ -312,9 +312,16 @@ func sphere(l *Lines, d int) {
 	l.poly(ch)
 	x, y, z := V{1, 0, 0}, V{0, 1, 0}, V{0, 0, 1}
 	o := V{}
-	l.circle(o, x, z, 1, 96)
-	l.circle(o, x, y, 1, 96)
-	l.circle(o, z, y, 1, 96)
+	// The sphere as a globe, so it reads as a sphere from any side: three
+	// great circles seen square on are a circle and two lines.
+	for i := range 6 { // meridians through the peak
+		a := math.Pi * float64(i) / 6
+		l.circle(o, V{math.Cos(a), 0, math.Sin(a)}, y, 1, 96)
+	}
+	for _, lat := range []float64{-60, -30, 0, 30, 60} {
+		p := lat * math.Pi / 180
+		l.circle(V{0, math.Sin(p), 0}, x, z, math.Cos(p), 96)
+	}
 	if d >= 1 {
 		r, rings := 0.5, 1 // the seed: seven circles, the outer one the equator
 		if d >= 3 {

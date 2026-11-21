@@ -60,11 +60,11 @@ func formStill(dir, key, name string) string {
 }
 
 // formLink is the page with the figure up: the model, then each control as
-// a link sets it (p.<id>=<value>).
+// the page writes it into a link (p.<id less the model's prefix>=<value>).
 func formLink(key string, f formPreset) string {
 	parts := []string{key}
 	for _, s := range f.set {
-		parts = append(parts, "p."+s[0]+"="+s[1])
+		parts = append(parts, "p."+strings.TrimPrefix(s[0], key+"-")+"="+s[1])
 	}
 	return *siteBase + "/#" + strings.Join(parts, "&")
 }
