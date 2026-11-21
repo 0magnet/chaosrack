@@ -23,11 +23,14 @@ const (
 	FormSpin          // the tetrahedron turned in the cube: fire in earth
 	FormFirst         // his first seven-sided form: a tetrahedron in four pieces
 	FormRoll          // the paper disk rolled into the heart's cone
+	FormFire          // the double heart: fire, the solid's movement in time
+	FormBeat          // the wire solid split, its halves turned both ways
+	FormBubble        // the soap bubble in the wire solid, and the ventricles
 	NumForms
 )
 
 // FormNames label the FORM knob.
-var FormNames = []string{"solid", "star", "inner", "sphere", "bell", "air", "deca", "heart", "spin", "first", "roll"}
+var FormNames = []string{"solid", "star", "inner", "sphere", "bell", "air", "deca", "heart", "spin", "first", "roll", "fire", "beat", "bubble"}
 
 // MaxDetail is the DETAIL knob's top.
 const MaxDetail = 8
@@ -93,6 +96,12 @@ func Form(form int, morph, detail float64) Lines {
 		first(&l, morph, d)
 	case FormRoll:
 		roll(&l, morph, d)
+	case FormFire:
+		fire(&l, morph, d)
+	case FormBeat:
+		beat(&l, morph, d)
+	case FormBubble:
+		bubble(&l, morph, d)
 	default:
 		l.poly(solidModel(Family(morph)))
 		if d >= 2 { // the cube it is sliced from
@@ -180,8 +189,8 @@ func bandAt(m float64) float64 {
 func Hexagrams(r float64) (small, cubeOutline float64) { return r / 2, r / (2 * math.Sqrt(3)) }
 
 // inner is the rubber band up the sides; then the book's hexagrams; the
-// cube at the center; the merkaba in the cube; the sphere round the cube,
-// Chester's inner core of the Earth.
+// cube at the center, standing on the book's lower hexagon; the merkaba in
+// the cube; the sphere round the cube, Chester's inner core of the Earth.
 func inner(l *Lines, m float64, d int) {
 	p := solidModel(Chestahedron())
 	l.poly(p)
@@ -236,6 +245,20 @@ func inner(l *Lines, m float64, d int) {
 		l.seg(bot, lo[i])
 		l.seg(hi[i], lo[i])
 		l.seg(hi[i], lo[(i+2)%3])
+	}
+	// The book's lower hexagon, in the plane the cube stands on, and the
+	// drop from each corner of the band to it, as the book's photograph
+	// draws them.
+	low := LowerHexagon(p, bot[1])
+	l.loop(low[:]...)
+	for _, v := range b {
+		near := low[0]
+		for _, w := range low {
+			if math.Hypot(w[0]-v[0], w[2]-v[2]) < math.Hypot(near[0]-v[0], near[2]-v[2]) {
+				near = w
+			}
+		}
+		l.seg(v, near)
 	}
 	if d >= 3 { // the merkaba: the cube's two tetrahedra
 		l.loop(top, lo[0], lo[1])
@@ -358,19 +381,17 @@ func BellCopies(d int) int { return 12 * (d + 2) }
 // bell is the solid's edges turned about its axis: each edge that does not
 // cross the axis sweeps a hyperboloid, and together they outline a cone
 // above a flare. MORPH turns them through m × 120°, which by the solid's
-// threefold symmetry is the whole bell at 1.
+// threefold symmetry is the whole bell at 1; on from 1 to 2 the bell's three
+// cones come in (BellCones), reaching out toward their apexes.
 func bell(l *Lines, m float64, d int) {
 	p := solidModel(Chestahedron())
 	n := BellCopies(d)
-	sweep := m * 2 * math.Pi / 3
+	sweep := math.Min(m, 1) * 2 * math.Pi / 3
 	for k := range n {
-		a := sweep * float64(k) / float64(n)
-		s, c := math.Sin(a), math.Cos(a)
-		q := Poly{F: p.F}
-		for _, v := range p.V {
-			q.V = append(q.V, V{c*v[0] - s*v[2], v[1], s*v[0] + c*v[2]})
-		}
-		l.poly(q)
+		l.poly(turnPoly(p, sweep*float64(k)/float64(n)))
+	}
+	if m > 1 {
+		bellCones(l, m-1)
 	}
 }
 
@@ -584,12 +605,17 @@ func Info(form int, morph, detail float64) [4][2]string {
 		lines[3] = [2]string{"near miss", "a pentagram kite is " + f(StarKiteRatio()*100, 1) + "% of a triangle's area"}
 	case FormInner:
 		lines[0][1] = "band " + f(bandAt(morph), 4) + " up the sides; regular at " + f(HexagonAt(), 4) + " (1/φ = " + f(1/phi, 4) + ")"
-		lines[3] = [2]string{"layers", []string{"band", "+ hexagrams", "+ cube", "+ merkaba", "+ core: " + f(InnerCore(), 3) + " (Earth " + f(EarthInnerCore, 3) + ")"}[min(d, 4)]}
+		lines[3] = [2]string{"layers", []string{"band", "+ hexagrams", "+ cube on the lower hexagon (" + f(LowerHexagonRatio()*100, 1) + "% of the upper)", "+ merkaba", "+ core: " + f(InnerCore(), 3) + " (Earth " + f(EarthInnerCore, 3) + ")"}[min(d, 4)]}
 	case FormSphere:
 		lines[0][1] = "sphere through the peak and base; center " + f(SphereCenterOverBand(), 3) + " of the band's height"
 		lines[3] = [2]string{"layers", []string{"sphere", "+ seed of life", "+ cube around", "+ flower of life", "+ 26° cone, core " + f(ConeCore(), 3) + " (Earth " + f(EarthInnerCore, 3) + ")"}[min(d, 4)]}
 	case FormBell:
-		lines[0][1] = "edges turned " + f(morph*120, 0) + "° about the axis, " + strconv.Itoa(BellCopies(d)) + " copies"
+		lines[0][1] = "edges turned " + f(math.Min(morph, 1)*120, 0) + "° about the axis, " + strconv.Itoa(BellCopies(d)) + " copies"
+		if morph > 1 {
+			c := BellCones()
+			deg := func(r float64) string { return f(2*r*180/math.Pi, 2) + "°" }
+			lines[3] = [2]string{"cones", "outer = inner " + deg(c.Half) + " (book 26°), wall " + f(c.Wall, 3) + "; tip cone " + deg(c.TipHalf)}
+		}
 	case FormAir:
 		t := morph
 		if morph > 1 {
@@ -615,6 +641,17 @@ func Info(form int, morph, detail float64) [4][2]string {
 		lines[3] = [2]string{"lines", []string{"the √3 chord", "six √3 chords"}[min(d, 1)]}
 		if d >= 2 {
 			lines[3][1] = strconv.Itoa(2*d-1) + " parallel lines"
+		}
+	case FormFire:
+		lines[0][1] = "one body, a heart at each end pointing in to the waist, the small 1/φ of the big, its lobes turned " + f(upTo(morph, 2)*90, 0) + "°"
+		lines[3] = [2]string{"note", "the shape as described: the motion that makes it is not published"}
+	case FormBeat:
+		lines[0][1] = "the wire solid split in two, the halves turned ±" + f(upTo(morph, 2)*30, 0) + "° (a six-pointed star at ±30°)"
+	case FormBubble:
+		lines[0][1] = "soap film in the wire solid, rounded: p = " + f(bubblePower(morph), 1) + " (the solid as p grows)"
+		if d >= 2 {
+			lv, rv, _ := Ventricles(morph)
+			lines[3] = [2]string{"sand", "left " + f(lv, 4) + ", right " + f(rv, 4) + ": the same"}
 		}
 	default:
 		switch {

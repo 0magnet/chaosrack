@@ -220,7 +220,8 @@ On a solid, morph cuts the corners through the rectified solid to the dual, op a
 
 <!-- key: model.chestahedron -->
 Chestahedron — Frank Chester's seven-faced solid: four equilateral triangles and three kites, every face of one area. It is a tetrahedron whose upper faces are opened outward like petals, with kites closing the gaps; equally, a cube with one corner sliced off and stretched until its faces agree.
-form picks one of his demonstrations: the solid, a pentagram folded beside it, the forms inside it, its sphere, its bell, the solid turned inside out, the thirteen-faced decatria, the heart's cones, the tetrahedron turned in the cube, his first seven-sided form and the rolled paper cone.
+form picks one of his demonstrations: the solid, a pentagram folded beside it, the forms inside it, its sphere, its bell, the solid turned inside out, the thirteen-faced decatria, the heart's cones, the tetrahedron turned in the cube, his first seven-sided form and the rolled paper cone;
+then the fire form (his double heart), the beat (the wire solid split and turned both ways) and the soap bubble with the ventricles.
 morph runs each one, 1 being the form as he shows it, and detail adds what lies inside or around.
 The pentagram and golden-ratio constructions of it are near misses — the kite's angles are 36.50°, 71.75° and 125.88°, not 36, 72 and 126 — and the Equation module gives the numbers for each form.
 

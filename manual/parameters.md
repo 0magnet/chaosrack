@@ -237,21 +237,24 @@ form — which of Frank Chester's forms.
 solid: the tetrahedron, the chestahedron and the cube. star: a pentagram folded into its top. inner: the rubber band, the hexagrams, the cube and the merkaba inside it. sphere: its sphere, the seed and flower of life, the cube around.
 bell: its edges spun. air: turned inside out. deca: its corners cut by half, the thirteen-faced decatria. heart: nested cones with the fibers' angle turning through them.
 spin: a tetrahedron turned in the cube through the chestahedron and the octahedron. first: his first seven-sided form, four of them round a tetrahedron. roll: the paper disk rolled into the heart's cone.
+fire: his double heart, one body with a heart at each end pointing in to a waist, the small one turned square to the big. beat: the wire solid split in two and turned both ways. bubble: the soap bubble in the wire solid, and the ventricles.
 
 ### morph
 
 <!-- key: p.chestahedron-morph -->
 morph — runs the form's transformation; 1 is the form as Chester shows it.
 solid: 0 the tetrahedron, 1 the chestahedron, 2 the cube. star: the pentagram folds up to 1, then closes the gap to the exact solid by 2. inner: the band rides up the sides, a regular hexagon at 1.
-bell: the edges turn through 120° per unit. air: inside out at 1 and back at 2. deca: the corners cut, the decatria at 1 and the dual at 2. heart: the fibers' angle, 60° at 1.
+bell: the edges turn through 120° by 1, and on to 2 the three cones come in. air: inside out at 1 and back at 2. deca: the corners cut, the decatria at 1 and the dual at 2. heart: the fibers' angle, 60° at 1.
 spin: tetrahedron, chestahedron at ½, octahedron at 1, back to the other tetrahedron at 2. first: the four pieces drawn apart. roll: flat at 0, rolled four times at 1, eight at 2.
+fire: the small heart turns, square to the big at 1. beat: the halves turn ±30° per unit, a six-pointed star at 1, one solid again at 2. bubble: the solid at 0, the bubble at 1, rounder at 2.
 
 ### detail
 
 <!-- key: p.chestahedron-detail -->
-detail — how much is added. solid: the cube it is cut from (2), the cube it fits (3). star: the exact solid beside it (1). inner: the hexagrams (1), cube (2), merkaba (3), core sphere (4).
+detail — how much is added. solid: the cube it is cut from (2), the cube it fits (3). star: the exact solid beside it (1). inner: the hexagrams (1), the cube on the lower hexagon (2), merkaba (3), core sphere (4).
 sphere: the seed of life (1), the cube around (2), the flower of life (3), the 26° cone and its core sphere (4). bell: more turned copies. deca: the chestahedron round it (1). heart: one cone (0) or eight (1).
 spin: the cube (1), the solid traced through time (2 up). first: the tetrahedron in the middle (1). roll: the √3 chord (0), six of them (1), parallel lines (2 up).
+fire: more rings and lines on the lobes. beat: the band's star (1), the paths the halves turn through (2 up). bubble: the wire solid (1), the right ventricle (2), tilted 36° as the heart sits (3).
 
 ### modulus
 

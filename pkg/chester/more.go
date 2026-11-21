@@ -35,7 +35,7 @@ func Intersect(ps []plane) Poly {
 				if math.Abs(det) < 1e-12 {
 					continue
 				}
-				x := cross(b.n, c.n).mul(a.d).add(cross(c.n, a.n).mul(b.d)).add(cross(a.n, b.n).mul(c.d)).mul(1 / det)
+				x := meet(a, b, c)
 				if !inside(x) {
 					continue
 				}
