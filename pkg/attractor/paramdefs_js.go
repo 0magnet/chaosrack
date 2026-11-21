@@ -7,6 +7,7 @@ import (
 
 	"github.com/0magnet/chaosrack/pkg/acoustics"
 	"github.com/0magnet/chaosrack/pkg/analysis"
+	"github.com/0magnet/chaosrack/pkg/chester"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 )
 
@@ -31,23 +32,24 @@ type paramDef struct {
 // permalinks and audio modulation are untouched. Positions are the values
 // themselves, so a labeled parameter runs 0..n-1 in steps of one.
 var paramLabels = map[string][]string{
-	"turtle-seq":    turtleSeqNames(),
-	"turtle-tint":   turtleTintNames(),
-	"turtle-trail":  turtleTrailNames(),
-	"turtle-turn":   {"square", "arc"},
-	"turtle-cam":    turtleCamNames(),
-	"turtle-view":   turtleViewNames(),
-	"spect-dft":     spectDFTNames(),
-	"spect-win":     spectWinNames,
-	"spect-chan":    spectChanNames,
-	"spect-scale":   spectScaleNames,
-	"polyhedron-op": polyOpNames(),
-	"globe-par":     {"rings", "spiral"},
-	"globe-rev":     {"cw", "ccw"},
-	"ga-wa":         {"tri", "sqr"},
-	"ga-wb":         {"tri", "sqr"},
-	"ga-wc":         {"tri", "sqr"},
-	"ga-wd":         {"tri", "sqr"},
+	"turtle-seq":        turtleSeqNames(),
+	"turtle-tint":       turtleTintNames(),
+	"turtle-trail":      turtleTrailNames(),
+	"turtle-turn":       {"square", "arc"},
+	"turtle-cam":        turtleCamNames(),
+	"turtle-view":       turtleViewNames(),
+	"spect-dft":         spectDFTNames(),
+	"spect-win":         spectWinNames,
+	"spect-chan":        spectChanNames,
+	"spect-scale":       spectScaleNames,
+	"polyhedron-op":     polyOpNames(),
+	"chestahedron-form": chester.FormNames,
+	"globe-par":         {"rings", "spiral"},
+	"globe-rev":         {"cw", "ccw"},
+	"ga-wa":             {"tri", "sqr"},
+	"ga-wb":             {"tri", "sqr"},
+	"ga-wc":             {"tri", "sqr"},
+	"ga-wd":             {"tri", "sqr"},
 	// The Poincaré section's settings. dir takes its names from beside the
 	// direction constants themselves rather than repeating them here, so a
 	// direction cannot be added without a name or renamed in only one place.
@@ -241,6 +243,14 @@ var attractorParams = map[string][]paramDef{
 		{"polyhedron-morph", "morph", &poly.morphF, 0, 0, 2, 0.01},
 		{"polyhedron-op", "op", &polyOpF, 0, 0, 6, 1},
 		{"polyhedron-kis", "kis", &poly.kisF, 0, -0.9, 1, 0.01},
+	},
+	// The Chestahedron: which of Frank Chester's forms, how far through its
+	// transformation (1 is the form as he shows it), and how much of what is
+	// inside or around it. See chester_js.go.
+	"chestahedron": {
+		{"chestahedron-form", "form", &chest.formF, 0, 0, chester.NumForms - 1, 1},
+		{"chestahedron-morph", "morph", &chest.morphF, 1, 0, 2, 0.01},
+		{"chestahedron-detail", "detail", &chest.detailF, 1, 0, chester.MaxDetail, 1},
 	},
 
 	"globe": {

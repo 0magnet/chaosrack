@@ -3,6 +3,7 @@ package attractor
 import (
 	"math"
 
+	"github.com/0magnet/chaosrack/pkg/chester"
 	"github.com/0magnet/chaosrack/pkg/conway"
 	"github.com/0magnet/chaosrack/pkg/geom"
 )
@@ -95,6 +96,14 @@ func TorusMesh(major, minor float32, stacks, slices int, roll float32) ([]float3
 	return vertices, indices
 }
 
+// ChestKnobs are the Chestahedron's knobs, and chestDefaults their
+// defaults: the solid, as Chester shows it, with the first of what is
+// inside or around it (chester_js.go).
+var (
+	ChestKnobs    = [3]string{"chestahedron-form", "chestahedron-morph", "chestahedron-detail"}
+	chestDefaults = [3]float32{0, 1, 1}
+)
+
 // PolySolid is the Polyhedron's solid, or the tiling {p,q} is, and whether
 // it is a solid: morph, op and kis act only on a solid (conway_js.go).
 func PolySolid(p, q int, morph float64, op int, kis float64) (conway.Solid, bool) {
@@ -130,6 +139,9 @@ func ShapeFigure(key string, knob func(id string) float64, roll float64) (Figure
 		s, _ := PolySolid(round("polyhedron-p"), round("polyhedron-q"),
 			knob("polyhedron-morph"), round("polyhedron-op"), knob("polyhedron-kis"))
 		return polyFigure(s), true
+	case "chestahedron":
+		return linesFigure(chester.Form(round("chestahedron-form"),
+			knob("chestahedron-morph"), knob("chestahedron-detail")).Geom()), true
 	case "lissajou":
 		a, b, c := knob("lissajou-a"), knob("lissajou-b"), knob("lissajou-c")
 		if a <= 0 || b <= 0 || c <= 0 {

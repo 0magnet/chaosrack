@@ -67,7 +67,15 @@ h2 { font-size:1.15rem; margin:2.4rem 0 .2rem; padding-bottom:.45rem; border-bot
 <h1>Terminal</h1>
 <div class="class">geometry · <code>#terminal</code></div>
 
-<p>Terminal — a live terminal, drawn as a model. It is the same texture-on-a-plane path the spectrogram and the recurrence plot use, so it rotates, zooms and takes a gradient like any other model; what is on the texture is [xterm-go](https://github.com/0magnet/xterm-go), a Go port of xterm.js, rendering a real terminal grid with WebGL2. That last part is what makes this possible rather than merely desirable: a terminal drawn as DOM could not be sampled into a texture at all, and rasterizing DOM every frame is not a thing worth doing. xterm-go renders into a canvas, and a canvas is a texture source. Behind it runs [websh](https://github.com/0magnet/websh), a Bash interpreter compiled to wasm over an in-memory filesystem, so this is a session you can work in and not a picture of one: pipes, globs, redirection, `for` loops, all of it rotating with the model. **Double-click** the canvas to type into it and **Esc** to give the keyboard back — a double click because a single one is how you rotate the model, and the two must not be the same gesture. Focusing it silences the app&#39;s own key bindings automatically, since Pong, the Keys module and the hovered-knob arrows all already stand aside for a focused textarea, which is what a terminal captures keys on. It can also be the BACKDROP behind another model, the way the spectrogram can.</p>
+<p>Terminal — a live terminal, drawn as a model.
+It is the same texture-on-a-plane path the spectrogram and the recurrence plot use, so it rotates, zooms and takes a gradient like any other model;
+what is on the texture is xterm-go (https://github.com/0magnet/xterm-go), a Go port of xterm.js, rendering a real terminal grid with WebGL2.
+That last part is what makes this possible rather than merely desirable: a terminal drawn as DOM could not be sampled into a texture at all, and rasterizing DOM every frame is not a thing worth doing.
+xterm-go renders into a canvas, and a canvas is a texture source.
+Behind it runs websh (https://github.com/0magnet/websh), a Bash interpreter compiled to wasm over an in-memory filesystem, so this is a session you can work in and not a picture of one: pipes, globs, redirection, `for` loops, all of it rotating with the model.
+Double-click the canvas to type into it and Esc to give the keyboard back — a double click because a single one is how you rotate the model, and the two must not be the same gesture.
+Focusing it silences the app&#39;s own key bindings automatically, since Pong, the Keys module and the hovered-knob arrows all already stand aside for a focused textarea, which is what a terminal captures keys on.
+It can also be the BACKDROP behind another model, the way the spectrogram can.</p>
 
 
 <a class="open" href="https://chaosrack.magnetosphere.net/#terminal">Open Terminal in chaosrack →</a>

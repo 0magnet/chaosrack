@@ -50,7 +50,7 @@ func beamSpeed() float64 { return beamBase * math.Pow(2, float64(modelOut.speed)
 // beamGeometry are the solids: a mesh of lines, and no other sound.
 func beamGeometry(mode string) bool {
 	switch mode {
-	case "polyhedron", "nestedcube", "globe", "torus", "magnetosphere", "stlfile":
+	case "polyhedron", "chestahedron", "nestedcube", "globe", "torus", "magnetosphere", "stlfile":
 		return true
 	}
 	return false

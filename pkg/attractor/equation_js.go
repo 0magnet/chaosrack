@@ -7,6 +7,7 @@ import (
 	"strings"
 	"syscall/js"
 
+	"github.com/0magnet/chaosrack/pkg/chester"
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"github.com/0magnet/chaosrack/pkg/glctx"
@@ -472,10 +473,16 @@ func (c *customEquation) buildEquationView(mode string, paramsDiv js.Value) {
 	// The Polyhedron's lines are its symbol, its surface as F(x,y,z) = 0,
 	// its counts and what has been done to it (polyEquationLines), and they
 	// follow its knobs (refreshPolyEquation, by the ids below).
+	// The Chestahedron's are four read-only lines the same way: its form,
+	// its exact numbers and the near misses (chester.Info).
 	var polyLines [4][2]string
 	polyRun := false
-	if mode == "polyhedron" {
+	lined := mode == "polyhedron" || mode == "chestahedron"
+	switch mode {
+	case "polyhedron":
 		polyLines, polyRun = polyEquationLines()
+	case "chestahedron":
+		polyLines = chester.Info(chestKnobs())
 	}
 	col := dom.Doc.Call("createElement", "span")
 	col.Set("className", "pcell")
@@ -492,7 +499,7 @@ func (c *customEquation) buildEquationView(mode string, paramsDiv js.Value) {
 		inp.Set("className", "eqview")
 		inp.Set("id", "eqv-"+strconv.Itoa(i))
 		inp.Call("setAttribute", "data-model", mode)
-		if mode == "polyhedron" {
+		if lined {
 			lbl.Set("textContent", polyLines[i][0])
 			inp.Set("value", polyLines[i][1])
 			if i != 1 || !polyRun {

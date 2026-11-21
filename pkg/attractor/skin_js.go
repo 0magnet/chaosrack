@@ -103,6 +103,8 @@ func (s *skinSurface) buildSkinMesh(mode string) {
 		verts, idx = cubeSkinMesh(verticesCube, indicesCube)
 	case "polyhedron":
 		verts, idx = polyhedronSkinMesh()
+	case "chestahedron":
+		verts, idx = chestahedronSkinMesh()
 	default: // a round surface, for a mode with no skin of its own
 		verts, idx = sphereSkinMesh(1.0, 30, 30)
 	}

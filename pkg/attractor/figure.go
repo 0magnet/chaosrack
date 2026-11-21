@@ -5,6 +5,7 @@ import (
 	"image/draw"
 	"math"
 
+	"github.com/0magnet/chaosrack/pkg/chester"
 	"github.com/0magnet/chaosrack/pkg/conway"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"github.com/0magnet/chaosrack/pkg/geom"
@@ -57,6 +58,15 @@ func StaticFigure(key string, points int) (Figure, bool) {
 	case "polyhedron":
 		// At its defaults, {3,3}: the tetrahedron. See conway_js.go.
 		return polyFigure(conway.Regular(3, 3)), true
+	case "chestahedron":
+		// At its defaults the solid itself (chester_js.go); --set turns it.
+		k := chestDefaults
+		for i, id := range ChestKnobs {
+			if v, ok := figureSets[id]; ok {
+				k[i] = v
+			}
+		}
+		return linesFigure(chester.Form(int(k[0]+0.5), float64(k[1]), float64(k[2])).Geom()), true
 	case "nestedcube":
 		return linesFigure(geom.Lines{Vertices: verticesCube, Indices: indicesCube}), true
 	case "torus":
@@ -231,6 +241,9 @@ func FigureKnobs() []struct {
 		add(id, g.value(id))
 	}
 	add("smorph-sys", 3)
+	for i, id := range ChestKnobs {
+		add(id, chestDefaults[i])
+	}
 	return out
 }
 

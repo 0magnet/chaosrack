@@ -4,22 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Custom equation — 4-D flow, drawn live in the browser · chaosrack</title>
-<meta name="description" content="Custom Equations — type your own system. The Equations module takes dx/dt, dy/dt and dz/dt (plus dw/dt for a 4-D system) as text and integrates them with forward Euler, the same…">
+<meta name="description" content="Custom Equations — type your own system. The Equation module takes dx/dt, dy/dt and dz/dt (plus dw/dt for a 4-D system) as text and integrates them with forward Euler, the same…">
 <meta name="author" content="0magnet">
 <link rel="canonical" href="https://chaosrack.magnetosphere.net/models/custom.html">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="magnetosphere">
 <meta property="og:title" content="Custom equation — 4-D flow, drawn live in the browser · chaosrack">
-<meta property="og:description" content="Custom Equations — type your own system. The Equations module takes dx/dt, dy/dt and dz/dt (plus dw/dt for a 4-D system) as text and integrates them with forward Euler, the same…">
+<meta property="og:description" content="Custom Equations — type your own system. The Equation module takes dx/dt, dy/dt and dz/dt (plus dw/dt for a 4-D system) as text and integrates them with forward Euler, the same…">
 <meta property="og:url" content="https://chaosrack.magnetosphere.net/models/custom.html">
 <meta property="og:image" content="https://chaosrack.magnetosphere.net/docs/img/model/custom.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Custom equation — 4-D flow, drawn live in the browser · chaosrack">
-<meta name="twitter:description" content="Custom Equations — type your own system. The Equations module takes dx/dt, dy/dt and dz/dt (plus dw/dt for a 4-D system) as text and integrates them with forward Euler, the same…">
+<meta name="twitter:description" content="Custom Equations — type your own system. The Equation module takes dx/dt, dy/dt and dz/dt (plus dw/dt for a 4-D system) as text and integrates them with forward Euler, the same…">
 <meta name="twitter:image" content="https://chaosrack.magnetosphere.net/docs/img/model/custom.jpg">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebPage","name":"Custom equation — 4-D flow, drawn live in the browser · chaosrack","url":"https://chaosrack.magnetosphere.net/models/custom.html",
-"description":"Custom Equations — type your own system. The Equations module takes dx/dt, dy/dt and dz/dt (plus dw/dt for a 4-D system) as text and integrates them with forward Euler, the same…","primaryImageOfPage":"https://chaosrack.magnetosphere.net/docs/img/model/custom.jpg",
+"description":"Custom Equations — type your own system. The Equation module takes dx/dt, dy/dt and dz/dt (plus dw/dt for a 4-D system) as text and integrates them with forward Euler, the same…","primaryImageOfPage":"https://chaosrack.magnetosphere.net/docs/img/model/custom.jpg",
 "isPartOf":{"@type":"WebSite","name":"chaosrack","url":"https://chaosrack.magnetosphere.net/"}}
 </script>
 <style>
@@ -71,8 +71,12 @@ h2 { font-size:1.15rem; margin:2.4rem 0 .2rem; padding-bottom:.45rem; border-bot
 <figure><img src="../docs/img/model/custom.gif" alt="Custom equation, animated" loading="lazy"><figcaption>animated</figcaption></figure>
 <figure><img src="../docs/img/model/custom-params.jpg" alt="The parameter knobs for Custom equation" loading="lazy"><figcaption>parameters</figcaption></figure>
 </div>
-<p>Custom Equations — type your own system. The Equations module takes dx/dt, dy/dt and dz/dt (plus dw/dt for a 4-D system) as text and integrates them with forward Euler, the same way the classic attractors are stepped. The iterate switch reads the same expressions as a discrete MAP instead — x = f(x,y,z) rather than x &#43;= dt·f(x,y,z) — which has no dt and no path between iterates, so it draws as a cloud of points the way Henon and Ikeda do.</p>
-<p>There is no eval: expressions are tokenized, converted to RPN and interpreted over a small value stack, so nothing but arithmetic can run. Grammar is &#43; − × ÷ ^ with grouping and implicit multiplication (2x, 3(x&#43;1)), the functions sin cos tan asin acos atan exp log ln sqrt abs sign sinh cosh tanh floor, the constants pi e tau, and the variables x y z w t. Any other name becomes a free parameter and is auto-exposed as its own knob.</p>
+<p>Custom Equations — type your own system.
+The Equation module takes dx/dt, dy/dt and dz/dt (plus dw/dt for a 4-D system) as text and integrates them with forward Euler, the same way the classic attractors are stepped.
+The iter switch under the monitor reads the same expressions as a discrete MAP instead — x = f(x,y,z) rather than x &#43;= dt·f(x,y,z) — which has no dt and no path between iterates, so it draws as a cloud of points the way Henon and Ikeda do.</p>
+<p>There is no eval: expressions are tokenized, converted to RPN and interpreted over a small value stack, so nothing but arithmetic can run.
+Grammar is &#43; − × ÷ ^ with grouping and implicit multiplication (2x, 3(x&#43;1)), the functions sin cos tan asin acos atan exp log ln sqrt abs sign sinh cosh tanh floor, the constants pi e tau, and the variables x y z w t.
+Any other name becomes a free parameter and is auto-exposed as its own knob.</p>
 
 
 <a class="open" href="https://chaosrack.magnetosphere.net/#custom">Open Custom equation in chaosrack →</a>

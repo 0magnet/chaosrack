@@ -230,6 +230,25 @@ Acts on a solid, not a tiling.
 kis — a pyramid on every face: out above 0, pressed in below. + raises them, 0 flattens them, − presses them in.
 Acts on a solid, not a tiling.
 
+### form
+
+<!-- key: p.chestahedron-form -->
+form — which of Frank Chester's forms.
+solid: the tetrahedron, the chestahedron and the cube. star: a pentagram folded into its top. inner: the rubber band, the hexagram, the cube and the merkaba inside it. sphere: its sphere, the seed and flower of life, the cube around.
+bell: its edges spun. air: turned inside out. deca: the dodecahedron sliced to thirteen faces. heart: nested cones with the fibers' angle turning through them.
+
+### morph
+
+<!-- key: p.chestahedron-morph -->
+morph — runs the form's transformation; 1 is the form as Chester shows it.
+solid: 0 the tetrahedron, 1 the chestahedron, 2 the cube. star: the pentagram folds up to 1, then closes the gap to the exact solid by 2. inner: the band rides up the sides, a regular hexagon at 1.
+bell: the edges turn through 120° per unit. air: inside out at 1 and back at 2. deca: the corner is sliced off by 1. heart: the fibers' angle, 60° at 1.
+
+### detail
+
+<!-- key: p.chestahedron-detail -->
+detail — how much is added: solid, the cube it is cut from (2); star, the exact solid beside it (1); inner, the hexagram (1), cube (2) and merkaba (3); sphere, the seed of life (1), the cube around (2) and the flower of life (3); bell, more turned copies; deca, the chestahedron inside (1) and the cube (2); heart, one cone (0) or eight (1).
+
 ### modulus
 
 <!-- key: p.turtle-mod -->
