@@ -28,9 +28,6 @@ const controlsBody = `
   <span id="extra-nav"></span>
   <div class="console-btns">
   <span class="grp btn-row"><button class="pushbtn" id="reset-all-btn" data-doc="reset-all-btn"></button><span class="btn-lbl">Reset All</span></span>
-  <span class="grp btn-row"><button class="pushbtn" id="normalize-x-btn" data-doc="normalize-x-btn"></button><span class="btn-lbl">Normalize X</span></span>
-  <span class="grp btn-row"><button class="pushbtn" id="normalize-y-btn" data-doc="normalize-y-btn"></button><span class="btn-lbl">Normalize Y</span></span>
-  <span class="grp btn-row"><button class="pushbtn" id="normalize-btn" data-doc="normalize-btn"></button><span class="btn-lbl">Normalize Z</span></span>
   </div>
   </div>
   <div class="swsec"><div class="swsec-hdr" data-doc="console.audio">Audio</div>
@@ -155,16 +152,19 @@ const controlsBody = `
     <span class="plabel">X</span>
     <span class="grp"><span class="knob" id="knob-x" data-doc="knob-x"><i class="knob-ptr" id="knobptr-x"></i></span><span class="led" id="led-x" data-doc="led-x">000°</span></span>
     <span class="grp axsub"><span class="axlbl">rate</span><input type="range" id="rotation-controls-x" min="-1" max="1" value="0" step="0.1" data-doc="rotation-controls-x"><input type="number" id="slider-value-x" class="numin" data-doc="slider-value-x" min="-1" max="1" step="0.1" value="0"><button class="rst" id="rst-rx" data-doc="rst-rx">↺</button></span>
+    <span class="axnorm"><button class="trio-btn" id="normalize-x-btn" data-doc="normalize-x-btn"><i class="trio-lamp">+</i></button><button class="trio-btn" id="normalize-x-back-btn" data-doc="normalize-x-back-btn"><i class="trio-lamp">−</i></button></span>
   </span>
   <span class="pcell axcol axrot" data-no-drag data-doc="knob-y-cell">
     <span class="plabel">Y</span>
     <span class="grp"><span class="knob" id="knob-y" data-doc="knob-y"><i class="knob-ptr" id="knobptr-y"></i></span><span class="led" id="led-y" data-doc="led-y">000°</span></span>
     <span class="grp axsub"><span class="axlbl">rate</span><input type="range" id="rotation-controls-y" min="-1" max="1" value="0" step="0.1" data-doc="rotation-controls-y"><input type="number" id="slider-value-y" class="numin" data-doc="slider-value-y" min="-1" max="1" step="0.1" value="0"><button class="rst" id="rst-ry" data-doc="rst-ry">↺</button></span>
+    <span class="axnorm"><button class="trio-btn" id="normalize-y-btn" data-doc="normalize-y-btn"><i class="trio-lamp">+</i></button><button class="trio-btn" id="normalize-y-back-btn" data-doc="normalize-y-back-btn"><i class="trio-lamp">−</i></button></span>
   </span>
   <span class="pcell axcol axrot" data-no-drag data-doc="knob-z-cell">
     <span class="plabel">Z</span>
     <span class="grp"><span class="knob" id="knob-z" data-doc="knob-z"><i class="knob-ptr" id="knobptr-z"></i></span><span class="led" id="led-z" data-doc="led-z">000°</span></span>
     <span class="grp axsub"><span class="axlbl">rate</span><input type="range" id="rotation-controls-z" min="-1" max="1" value="0" step="0.1" data-doc="rotation-controls-z"><input type="number" id="slider-value-z" class="numin" data-doc="slider-value-z" min="-1" max="1" step="0.1" value="0"><button class="rst" id="rst-rz" data-doc="rst-rz">↺</button></span>
+    <span class="axnorm"><button class="trio-btn" id="normalize-btn" data-doc="normalize-btn"><i class="trio-lamp">+</i></button><button class="trio-btn" id="normalize-z-back-btn" data-doc="normalize-z-back-btn"><i class="trio-lamp">−</i></button></span>
   </span>
   <span class="pcell axcol vmcell" data-no-drag data-doc="slider-value-panx-cell"><span class="punit-top"><span class="plabel">X</span><input type="number" id="slider-value-panx" class="numin" data-doc="slider-value-panx" min="-180" max="180" step="5" value="0"></span><input type="range" id="pan-x" min="-8" max="8" value="0" step="0.2222222222222222" data-doc="pan-x"><button class="rst" id="rst-panx" data-doc="rst-panx">↺</button></span>
   <span class="pcell axcol vmcell" data-no-drag data-doc="slider-value-pany-cell"><span class="punit-top"><span class="plabel">Y</span><input type="number" id="slider-value-pany" class="numin" data-doc="slider-value-pany" min="-180" max="180" step="5" value="0"></span><input type="range" id="pan-y" min="-8" max="8" value="0" step="0.2222222222222222" data-doc="pan-y"><button class="rst" id="rst-pany" data-doc="rst-pany">↺</button></span>

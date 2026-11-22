@@ -398,6 +398,12 @@ X spin rate value — type or scroll
 <!-- key: rst-rx -->
 Reset X angle + spin rate
 
+<!-- key: normalize-x-btn -->
+Normalize X+ — turn the model's X axis straight toward you and stop any spin
+
+<!-- key: normalize-x-back-btn -->
+Normalize X− — look from the other end of X, and stop any spin
+
 ### Y axis
 
 <!-- key: knob-y-cell -->
@@ -426,6 +432,12 @@ Y spin rate value — type or scroll
 <!-- key: rst-ry -->
 Reset Y angle + spin rate
 
+<!-- key: normalize-y-btn -->
+Normalize Y+ — turn the model's Y axis (up) straight toward you, looking down on its top, and stop any spin
+
+<!-- key: normalize-y-back-btn -->
+Normalize Y− — look from straight below, and stop any spin
+
 ### Z axis
 
 <!-- key: knob-z-cell -->
@@ -453,6 +465,12 @@ Z spin rate value — type or scroll
 
 <!-- key: rst-rz -->
 Reset Z angle + spin rate
+
+<!-- key: normalize-btn -->
+Normalize Z+ — the default (identity) orientation, square to the screen, with no spin
+
+<!-- key: normalize-z-back-btn -->
+Normalize Z− — look from behind, and stop any spin
 
 ### X position
 

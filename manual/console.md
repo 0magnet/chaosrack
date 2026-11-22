@@ -3,23 +3,14 @@
 ## Console
 
 <!-- key: console -->
-Console — Reset All and Normalize X, Y and Z, MIDI, and the switches for the rack itself and for motion.
+Console — Reset All, MIDI, and the switches for the rack itself and for motion.
 The model is chosen with the MODEL knob in bay 1.
 
 <!-- key: console.equation -->
-Model — Reset All, which puts the whole rack back as it starts, and Normalize X, Y and Z, which square the model up to the screen with that axis toward you; press one again for the axis's other end.
+Model — Reset All, which puts the whole rack back as it starts. Normalizing the view is on the View module's X, Y and Z knobs.
 
 <!-- key: reset-all-btn -->
 Reset parameters, colors, view pose, trail, gradient, effect switches (Fill, backdrops, the section and the Turtle's weight), display style, and the signal generator to their defaults (keeps your dock layout + interface size)
-
-<!-- key: normalize-x-btn -->
-Normalize X — turn the model's X axis straight toward you and stop any spin; press again to look from the other end of X
-
-<!-- key: normalize-y-btn -->
-Normalize Y — turn the model's Y axis (up) straight toward you, looking down on its top, and stop any spin; press again to look from straight below
-
-<!-- key: normalize-btn -->
-Normalize Z — the default (identity) orientation, square to the screen, with no spin; press again to look from behind
 
 ### Audio
 

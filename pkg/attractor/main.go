@@ -1072,15 +1072,21 @@ func wireColorAndViewControls() {
 // on and through the model.
 func wirePanelSwitches() {
 
-	// Event: Normalize X, Y and Z — square the model up with that axis
-	// toward the viewer and stop any spin; a second press shows the axis's
-	// other end. Z is the default (identity) pose, and keeps the id the one
-	// Normalize button had.
-	for axis, id := range []string{"normalize-x-btn", "normalize-y-btn", "normalize-btn"} {
-		dom.On(dom.Doc.Call("getElementById", id), "click", func(this js.Value, args []js.Value) any {
-			normalizeAxis(axis)
-			return nil
-		})
+	// Event: Normalize + and − beside each View angle knob — square the
+	// model up with that axis toward the viewer, from its front end (+) or
+	// its back end (−), and stop any spin. Z+ is the default (identity) pose,
+	// and keeps the id the one Normalize button had.
+	for axis, ids := range [][2]string{
+		{"normalize-x-btn", "normalize-x-back-btn"},
+		{"normalize-y-btn", "normalize-y-back-btn"},
+		{"normalize-btn", "normalize-z-back-btn"},
+	} {
+		for end, id := range ids {
+			dom.On(dom.Doc.Call("getElementById", id), "click", func(this js.Value, args []js.Value) any {
+				setPose(normalPose(axis, end == 1))
+				return nil
+			})
+		}
 	}
 
 	// Event: speed slider
@@ -1660,6 +1666,13 @@ func buildPanelKnobs() {
 		knobBox := dom.Doc.Call("createElement", "span")
 		knobBox.Set("className", "axknob-box")
 		knobBox.Call("appendChild", stack)
+		// Normalize + and − stand either side of the dial's 90 mark: the
+		// axis toward the viewer from its front end, and from its back end.
+		if cell.Truthy() {
+			if norm := cell.Call("querySelector", ".axnorm"); norm.Truthy() {
+				knobBox.Call("appendChild", norm)
+			}
+		}
 
 		col := dom.Doc.Call("createElement", "span")
 		col.Set("className", "grp axstack")

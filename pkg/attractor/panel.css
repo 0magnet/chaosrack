@@ -1080,6 +1080,9 @@ body.panel-raised #dock-controls{z-index:var(--z-panel-raised);}
 .axknob-box .knobstack.has-dial{margin:0;}
 .axknob-box .knob-dial{width:calc(var(--ko) + 30px*var(--kscale,1));height:calc(var(--ko) + 30px*var(--kscale,1));}
 .axknob-box .knob-dial-lab{font-size:calc(6px*var(--kscale,1));color:#7fb0d0;background:none;padding:0;}
+/* Normalize + over the dial's 90 mark and − under it, centered on the mark
+   (45% of the dial out from the knob's center, as dialLabelPos puts it). */
+.axknob-box>.axnorm{position:absolute;left:calc(50% + (var(--ko) + 30px*var(--kscale,1))*0.45);top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;gap:calc(11px*var(--kscale,1));z-index:6;}
 /* The reset ends the readout's line, pinned to the right like every other
    cell's, so the readout stays centered on the knob. */
 .axstack .axrow.toprow>.rst{position:absolute;top:50%;right:3px;transform:translateY(-50%);}
