@@ -104,8 +104,8 @@ window.addEventListener('error', function (e) {
    Both draw the same model at the same moment without talking: the order is
    shuffled from one seed and the model is chosen by the clock.
 
-   The Go program calls __crBootDone when the rack is up; the preview fades
-   out after the first frames have been drawn, and is gone. */
+   The Go program calls __crBootDone when the rack is up, and the preview is
+   gone with the rack's first frame. */
 (function () {
   'use strict';
   if (window.__crBootDone) return;
@@ -147,7 +147,7 @@ window.addEventListener('error', function (e) {
   // source text too. seed and t0 make every copy pick the same model at the
   // same time; trail is how many points a flow's trail keeps.
   function preview(ctx, seed, t0, trail, caption) {
-    var ms = models(), HOLD = 3600, FADE = 450;
+    var ms = models(), HOLD = 3600, FADE = 450, TILT = 0.35;
     // The order: ms shuffled by a small seeded generator.
     var order = ms.map(function (_, i) { return i; }), s = seed >>> 0;
     function rnd() { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }
@@ -162,17 +162,20 @@ window.addEventListener('error', function (e) {
       if (m.kind === 'map') {
         state = m.p0.slice();
         for (var i = 0; i < 100; i++) state = m.g(state[0], state[1]);
-        box = measure(function () { state = m.g(state[0], state[1]); return [state[0], state[1], 0]; }, 4000);
+        box = measure(function () { state = m.g(state[0], state[1]); return [state[0], state[1], 0]; }, 4000, false);
       } else if (m.f) {
         state = m.p0.slice();
         for (var n = 0; n < 3000; n++) step();
-        box = measure(function () { step(); return state; }, 6000);
+        box = measure(function () { step(); return state; }, 6000, true);
         // The trail whole from the start, not grown a few points a frame.
         for (var q = 0; q < trail; q++) { step(); pts.push(state[0], state[1], state[2]); }
       } else {
-        state = [0]; box = { c: [0, 0, 0], r: 1.05 };
+        var u = 0;
+        box = measure(function () { u += 0.002; return lissajous(u * Math.PI * 2, u * 3); }, 2000, true);
+        state = [0];
       }
     }
+    function lissajous(t, ph) { return [Math.sin(3 * t + ph), Math.sin(2 * t), Math.sin(5 * t + ph / 2)]; }
     function step() {
       // Midpoint (RK2): stable enough at these steps, and cheap.
       var x = state[0], y = state[1], z = state[2], h = m.dt;
@@ -181,15 +184,29 @@ window.addEventListener('error', function (e) {
       state = [x + k2[0] * h, y + k2[1] * h, z + k2[2] * h];
       if (!isFinite(state[0]) || Math.abs(state[0]) > 1e4) state = m.p0.slice();
     }
-    function measure(next, n) {
-      var lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
+    // measure fits the model's points to the canvas. A turning picture is
+    // fitted to how far a point can reach at ANY turn: out to its distance
+    // from the axis across, and up and down to its height tipped by TILT
+    // plus that distance tipped the other way. The box's half-width alone let
+    // a corner swing a third again past it, off the edge of the canvas.
+    function measure(next, n, turn) {
+      var lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9], ps = [];
       for (var i = 0; i < n; i++) {
         var p = next();
+        ps.push(p[0], p[1], p[2]);
         for (var a = 0; a < 3; a++) { if (p[a] < lo[a]) lo[a] = p[a]; if (p[a] > hi[a]) hi[a] = p[a]; }
       }
       var c = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2];
-      var r = Math.max(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]) / 2 || 1;
-      return { c: c, r: r * 1.15 };
+      var r = Math.max(hi[0] - lo[0], hi[1] - lo[1]) / 2;
+      if (turn) {
+        var ct = Math.cos(TILT), st = Math.sin(TILT);
+        r = 0;
+        for (var j = 0; j < ps.length; j += 3) {
+          var d = Math.hypot(ps[j] - c[0], ps[j + 1] - c[1]);
+          r = Math.max(r, d, Math.abs(ps[j + 2] - c[2]) * ct + d * st);
+        }
+      }
+      return { c: c, r: (r || 1) * 1.1 };
     }
 
     // done names the model under it, where there is room for a caption:
@@ -245,12 +262,12 @@ window.addEventListener('error', function (e) {
         pts = [];
         var ph = (now - born) / 2000;
         for (var q = 0; q <= trail; q++) {
-          var t = q / trail * Math.PI * 2;
-          pts.push(Math.sin(3 * t + ph), Math.sin(2 * t), Math.sin(5 * t + ph / 2));
+          var L = lissajous(q / trail * Math.PI * 2, ph);
+          pts.push(L[0], L[1], L[2]);
         }
       }
       var th = (now - t0) / 5000, co = Math.cos(th), si = Math.sin(th);
-      var tilt = 0.35, ct = Math.cos(tilt), st = Math.sin(tilt);
+      var ct = Math.cos(TILT), st = Math.sin(TILT);
       var nPts = pts.length / 3, seg = Math.max(1, Math.ceil(nPts / 48));
       for (var a = 0; a + 1 < nPts; a += seg) {
         ctx.beginPath();
@@ -375,29 +392,21 @@ window.addEventListener('error', function (e) {
   var encoding = false, curURL = null;
   requestAnimationFrame(tick);
 
-  // __crBootDone is the rack saying it is up: the preview fades once the
-  // first frames are on the screen, and is gone.
+  // __crBootDone is the rack saying it is up: the preview is gone at once,
+  // in the same commit that first shows the rack. It used to wait two frames
+  // and then fade, but the rack's first frames are its slowest — over a
+  // second for the two — and the worker drew the preview on over a rack that
+  // was already there for all of it.
   function gone() {
     running = false;
     if (worker) worker.terminate();
     worker = null;
+    if (curURL) URL.revokeObjectURL(curURL);
     layer.remove();
   }
   window.__crBootDone = function () {
     window.__crBootDone = function () {};
-    // A hidden page draws no frames, so it would wait for them forever and
-    // keep the worker running; with nothing on the screen there is nothing to fade.
-    if (document.hidden) {
-      gone();
-      return;
-    }
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        layer.style.opacity = '0';
-        layer.style.pointerEvents = 'none';
-        setTimeout(gone, 400);
-      });
-    });
+    gone();
   };
 })();
 </script>
