@@ -100,6 +100,7 @@ var modeInfo = map[string]ModeInfo{
 	"dejong":        {"Peter de Jong", ClassMap, false},
 	"mira":          {"Gumowski-Mira", ClassMap, false},
 	"tinkerbell":    {"Tinkerbell", ClassMap, false},
+	"hopalong":      {"Hopalong", ClassMap, false},
 	"standardmap":   {"Chirikov Standard Map", ClassMap, false},
 	"polyhedron":    {"Polyhedron", ClassGeometry, true},
 	"chestahedron":  {"Chestahedron", ClassGeometry, true},
@@ -225,7 +226,7 @@ var modeGroups = []struct {
 	// own, and Maps and Analysis were thirteen slots between them, one more
 	// than a bay; under one head they share one.
 	{"Maps", []string{"henon", "ikeda", "clifford", "dejong", "mira",
-		"tinkerbell", "standardmap", "bifurcation", "poincare"}},
+		"tinkerbell", "hopalong", "standardmap", "bifurcation", "poincare"}},
 	// Nor is the STL mode a shape. It is a model browser: a loader for a file
 	// off disk plus a catalog of built-in solids — the rack, the geometry and
 	// every attractor swept as a tube — generated in the browser.

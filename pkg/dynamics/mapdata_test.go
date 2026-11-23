@@ -118,7 +118,12 @@ func TestDissipativeMapsAreSensitive(t *testing.T) {
 	// few hundred. Its famous figures ARE invariant curves — nested organic
 	// rings, not a fractal dust — so requiring chaos of it would be requiring
 	// the wrong thing.
-	notChaotic := map[string]bool{"standardmap": true, "mira": true}
+	//
+	// hopalong preserves area too (its Jacobian determinant is 1). Its orbit
+	// lingers in regular pockets between chaotic stretches, so 500 iterates
+	// from one point can stay close; the Lyapunov catalog test measures its
+	// chaos over the long run instead.
+	notChaotic := map[string]bool{"standardmap": true, "mira": true, "hopalong": true}
 	for _, k := range MapKeys() {
 		if notChaotic[k] {
 			continue

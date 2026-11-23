@@ -89,6 +89,11 @@ var params = map[string][]Param{
 		{"tinkerbell-c", "c", &TinkC, 2.0, -3, 3, 0.01},
 		{"tinkerbell-d", "d", &TinkD, 0.5, -1, 1, 0.001},
 	},
+	"hopalong": {
+		{"hopalong-a", "a", &HopA, -30, -200, 200, 0.1},
+		{"hopalong-b", "b", &HopB, 2, -20, 20, 0.01},
+		{"hopalong-c", "c", &HopC, -40, -200, 200, 0.1},
+	},
 	"standardmap": {
 		{"standardmap-k", "K", &StdK, 0.971635, 0, 6, 0.001},
 	},

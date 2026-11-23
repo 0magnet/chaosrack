@@ -150,6 +150,13 @@ var (
 	TinkC float32 = 2.0
 	TinkD float32 = 0.5
 
+	// HopA, HopB and HopC are Barry Martin's Hopalong map's. A. K. Dewdney
+	// printed −55, −1, −42 (Scientific American, September 1986), where the
+	// orbit from the origin is regular; these keep his look and are chaotic.
+	HopA float32 = -30
+	HopB float32 = 2
+	HopC float32 = -40
+
 	// StdK is the kick strength of Chirikov's standard map, the canonical
 	// area-preserving map; near 0.971635 the last invariant curve breaks and the
 	// chaotic sea connects.
@@ -197,6 +204,13 @@ func init() {
 	RegisterMap("tinkerbell", [3]float64{-0.72, -0.64, 0}, func(x, y, _ float64) (float64, float64, float64) {
 		a, b, c, d := float64(TinkA), float64(TinkB), float64(TinkC), float64(TinkD)
 		return x*x - y*y + a*x + b*y, 2*x*y + c*x + d*y, 0
+	})
+
+	// Hopalong: x' = y − sgn(x)·√|b x − c|, y' = a − x. It preserves area, so
+	// it attracts nothing: the figure is one orbit's footprint from the origin.
+	RegisterMap("hopalong", [3]float64{0, 0, 0}, func(x, y, _ float64) (float64, float64, float64) {
+		a, b, c := float64(HopA), float64(HopB), float64(HopC)
+		return y - math.Copysign(math.Sqrt(math.Abs(b*x-c)), x), a - x, 0
 	})
 
 	// Chirikov standard map on the torus, as an ensemble: p' = p + K sin θ,

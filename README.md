@@ -12,8 +12,8 @@ to the analog computers at [glensstuff.com](https://glensstuff.com).
 
 [![The control panel docked at the bottom with the Lorenz attractor above it](docs/img/hero.jpg)](https://chaosrack.magnetosphere.net/#lorenz)
 
-- **91 models.** Flows (Lorenz, Rössler, Chua, Sprott A–S, 4-D hyper-Rössler, …),
-  maps (Hénon, Ikeda, Clifford, de Jong, Gumowski–Mira, Tinkerbell, Chirikov),
+- **92 models.** Flows (Lorenz, Rössler, Chua, Sprott A–S, 4-D hyper-Rössler, …),
+  maps (Hénon, Ikeda, Clifford, de Jong, Gumowski–Mira, Tinkerbell, Hopalong, Chirikov),
   parametric figures, an integer-sequence turtle with rigid-body physics,
   geometry and STL solids, terminals and a desktop drawn into the scene, delay
   embeddings of live audio, audio analyzers, and a ripple tank.
@@ -1217,7 +1217,7 @@ Any other name becomes a free parameter and is auto-exposed as its own knob.
 
 ### Maps
 
-[Henon](#henon) · [Ikeda](#ikeda) · [Clifford](#clifford) · [Peter de Jong](#peter-de-jong) · [Gumowski-Mira](#gumowski-mira) · [Tinkerbell](#tinkerbell) · [Chirikov Standard Map](#chirikov-standard-map) · [Bifurcation](#bifurcation) · [Poincaré Section](#poincaré-section)
+[Henon](#henon) · [Ikeda](#ikeda) · [Clifford](#clifford) · [Peter de Jong](#peter-de-jong) · [Gumowski-Mira](#gumowski-mira) · [Tinkerbell](#tinkerbell) · [Hopalong](#hopalong) · [Chirikov Standard Map](#chirikov-standard-map) · [Bifurcation](#bifurcation) · [Poincaré Section](#poincaré-section)
 
 #### Henon
 
@@ -1332,6 +1332,26 @@ y' = 2·x·y + c·x + d·y
 ```
 
 `#tinkerbell` · discrete map
+
+#### Hopalong
+
+[![Hopalong parameters](docs/img/model/hopalong-params.jpg)](https://chaosrack.magnetosphere.net/#hopalong)
+
+| Hopalong | animated |
+| --- | --- |
+| [![Hopalong](docs/img/model/hopalong.jpg)](https://chaosrack.magnetosphere.net/#hopalong) | [![Hopalong, animated](https://chaosrack.magnetosphere.net/docs/img/model/hopalong.gif)](https://chaosrack.magnetosphere.net/#hopalong) |
+
+Hopalong — Barry Martin's map of the plane, made famous by A. K. Dewdney's Computer Recreations column (Scientific American, September 1986).
+It preserves area, so despite the usual name it attracts nothing: the figure is the footprint of one orbit from the origin, and other starting points draw other figures.
+The defaults (a −30, b 2, c −40) keep Dewdney's rings and are chaotic; his own −55, −1, −42 draw an orbit that is regular.
+It fills in slowly, a few thousand points a frame; a long trail brings out the whole figure.
+
+```
+x' = y − sgn(x)·√|b·x − c|
+y' = a − x
+```
+
+`#hopalong` · discrete map
 
 #### Chirikov Standard Map
 

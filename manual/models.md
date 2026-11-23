@@ -892,6 +892,19 @@ x' = x² − y² + a·x + b·y
 y' = 2·x·y + c·x + d·y
 ```
 
+### Hopalong
+
+<!-- key: model.hopalong -->
+Hopalong — Barry Martin's map of the plane, made famous by A. K. Dewdney's Computer Recreations column (Scientific American, September 1986).
+It preserves area, so despite the usual name it attracts nothing: the figure is the footprint of one orbit from the origin, and other starting points draw other figures.
+The defaults (a −30, b 2, c −40) keep Dewdney's rings and are chaotic; his own −55, −1, −42 draw an orbit that is regular.
+It fills in slowly, a few thousand points a frame; a long trail brings out the whole figure.
+
+```text
+x' = y − sgn(x)·√|b·x − c|
+y' = a − x
+```
+
 ### Chirikov Standard Map
 
 <!-- key: model.standardmap -->
