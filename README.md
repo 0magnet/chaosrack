@@ -272,9 +272,9 @@ dz/dt = b + z(x − c)
 
 [![Lorenz parameters](docs/img/model/lorenz-params.jpg)](https://chaosrack.magnetosphere.net/#lorenz)
 
-| Lorenz | animated |
-| --- | --- |
-| [![Lorenz](docs/img/model/lorenz.jpg)](https://chaosrack.magnetosphere.net/#lorenz) | [![Lorenz, animated](https://chaosrack.magnetosphere.net/docs/img/model/lorenz.gif)](https://chaosrack.magnetosphere.net/#lorenz) |
+| Lorenz | animated | as a swarm (POINTS S) |
+| --- | --- | --- |
+| [![Lorenz](docs/img/model/lorenz.jpg)](https://chaosrack.magnetosphere.net/#lorenz) | [![Lorenz, animated](https://chaosrack.magnetosphere.net/docs/img/model/lorenz.gif)](https://chaosrack.magnetosphere.net/#lorenz) | [![Lorenz — as a swarm (POINTS S)](docs/img/model/lorenz-swarm.jpg)](https://chaosrack.magnetosphere.net/#lorenz&sw=1) |
 
 Lorenz Attractor — Discovered by Edward Lorenz in 1963 while modeling atmospheric convection.
 The butterfly-shaped trajectory arises from a simplified system of three coupled differential equations.
@@ -1261,9 +1261,9 @@ y' = u·(x·sin t + y·cos t)
 
 [![Clifford parameters](docs/img/model/clifford-params.jpg)](https://chaosrack.magnetosphere.net/#clifford)
 
-| Clifford | animated |
-| --- | --- |
-| [![Clifford](docs/img/model/clifford.jpg)](https://chaosrack.magnetosphere.net/#clifford) | [![Clifford, animated](https://chaosrack.magnetosphere.net/docs/img/model/clifford.gif)](https://chaosrack.magnetosphere.net/#clifford) |
+| Clifford | animated | density (POINTS D) |
+| --- | --- | --- |
+| [![Clifford](docs/img/model/clifford.jpg)](https://chaosrack.magnetosphere.net/#clifford) | [![Clifford, animated](https://chaosrack.magnetosphere.net/docs/img/model/clifford.gif)](https://chaosrack.magnetosphere.net/#clifford) | [![Clifford — density (POINTS D)](docs/img/model/clifford-density.jpg)](https://chaosrack.magnetosphere.net/#clifford&dn=1) |
 
 Clifford attractor (Clifford Pickover) — a trigonometric map with no physical derivation, kept because of what it draws.
 Every parameter change reshapes it entirely, which makes the four knobs worth turning slowly.
@@ -1279,9 +1279,9 @@ y' = sin(b·x) + d·cos(b·y)
 
 [![Peter de Jong parameters](docs/img/model/dejong-params.jpg)](https://chaosrack.magnetosphere.net/#dejong)
 
-| Peter de Jong | animated |
-| --- | --- |
-| [![Peter de Jong](docs/img/model/dejong.jpg)](https://chaosrack.magnetosphere.net/#dejong) | [![Peter de Jong, animated](https://chaosrack.magnetosphere.net/docs/img/model/dejong.gif)](https://chaosrack.magnetosphere.net/#dejong) |
+| Peter de Jong | animated | density (POINTS D) |
+| --- | --- | --- |
+| [![Peter de Jong](docs/img/model/dejong.jpg)](https://chaosrack.magnetosphere.net/#dejong) | [![Peter de Jong, animated](https://chaosrack.magnetosphere.net/docs/img/model/dejong.gif)](https://chaosrack.magnetosphere.net/#dejong) | [![Peter de Jong — density (POINTS D)](docs/img/model/dejong-density.jpg)](https://chaosrack.magnetosphere.net/#dejong&dn=1) |
 
 Peter de Jong attractor — the same idea as Clifford's with the terms paired differently, and a different family of figures for it.
 Four knobs, an enormous space of shapes, and no way to predict which you will get.
@@ -1337,9 +1337,9 @@ y' = 2·x·y + c·x + d·y
 
 [![Hopalong parameters](docs/img/model/hopalong-params.jpg)](https://chaosrack.magnetosphere.net/#hopalong)
 
-| Hopalong | animated |
-| --- | --- |
-| [![Hopalong](docs/img/model/hopalong.jpg)](https://chaosrack.magnetosphere.net/#hopalong) | [![Hopalong, animated](https://chaosrack.magnetosphere.net/docs/img/model/hopalong.gif)](https://chaosrack.magnetosphere.net/#hopalong) |
+| Hopalong | animated | density (POINTS D) |
+| --- | --- | --- |
+| [![Hopalong](docs/img/model/hopalong.jpg)](https://chaosrack.magnetosphere.net/#hopalong) | [![Hopalong, animated](https://chaosrack.magnetosphere.net/docs/img/model/hopalong.gif)](https://chaosrack.magnetosphere.net/#hopalong) | [![Hopalong — density (POINTS D)](docs/img/model/hopalong-density.jpg)](https://chaosrack.magnetosphere.net/#hopalong&dn=1) |
 
 Hopalong — Barry Martin's map of the plane, made famous by A. K. Dewdney's Computer Recreations column (Scientific American, September 1986).
 It preserves area, so despite the usual name it attracts nothing: the figure is the footprint of one orbit from the origin, and other starting points draw other figures.

@@ -72,6 +72,10 @@ type View struct {
 	PanX, PanY float64
 	// LineWidth is how many pixels across a line is drawn; 0 is one.
 	LineWidth int
+	// Points, with no indices, draws vertices Points[0] up to Points[1] each
+	// as a single point. Indices are uint16, so a point figure drawn as
+	// zero-length segments stopped at 65536 points; this has no such limit.
+	Points [2]int
 }
 
 // Render draws an indexed line list (xyz triples + endpoint pairs, as
@@ -195,6 +199,11 @@ func (v View) RenderColors(dst *image.RGBA, vertices []float32, indices []uint16
 				c[k] = cr[a][k] + float32(t)*(cr[bIdx][k]-cr[a][k])
 			}
 			set(int(px[a]+dx*t), int(py[a]+dy*t), c)
+		}
+	}
+	if indices == nil {
+		for i := max(v.Points[0], 0); i < min(v.Points[1], n); i++ {
+			set(int(px[i]), int(py[i]), cr[i])
 		}
 	}
 }

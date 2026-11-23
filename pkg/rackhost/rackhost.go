@@ -834,6 +834,9 @@ type scene struct {
 	roll float64
 	// liss is the Lissajous beam, which runs on frame by frame (lissajous.go).
 	liss attractor.LissajousBeam
+	// cloud is the swarm and the density view, Display's POINTS S and D
+	// (cloud.go).
+	cloud cloudState
 }
 
 func (s *scene) start() {
@@ -917,6 +920,7 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 	look := r.look()
 	paused := r.value("pause-sw") == "1"
 	persist := r.value("persist-trail") == "1"
+	swarmOn, densOn := r.value("swarm-sw") == "1", r.value("density-sw") == "1"
 	inLat := (r.value("lat-on") == "1" || r.value(r.selector) == "lattice") && key != "lattice"
 	run, speed := int(r.number("trail-slider")), r.number("speed-slider")
 	refigure := r.refigure.Swap(false)
@@ -1051,7 +1055,19 @@ func (r *Rack) drawScene(w, h int, shape float64) (*rackpic.Image, error) {
 		o.View.AngleX, o.View.AngleY, o.View.AngleZ = 0, 0, 0
 	}
 	if !game && !audio {
-		fig, o.Fit = s.running(fig, o.Fit, key, r.knobs, paused, run, speed, look.dots)
+		// POINTS S and D (cloud.go): the swarm on a flow, the density view
+		// on a map, each in the running trail's place where it applies.
+		pts, swarmed := s.cloud.swarmFigure(key, swarmOn, paused, run, speed, dt)
+		dfig, dfit, dense := s.cloud.densityFigure(key, densOn, paused, run, look.gradient)
+		switch {
+		case swarmed:
+			o.Fit = fig.Points // framed to the attractor, not to where the ball is
+			fig = attractor.Figure{Kind: attractor.FigurePoints, Points: pts}
+		case dense:
+			fig, o.Fit = dfig, dfit
+		default:
+			fig, o.Fit = s.running(fig, o.Fit, key, r.knobs, paused, run, speed, look.dots)
+		}
 	}
 	if inLat {
 		// SRC: the model drawn by the Lattice instead (latticefig.go).

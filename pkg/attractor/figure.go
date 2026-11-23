@@ -167,7 +167,9 @@ func DrawFigure(f Figure, lo, hi int, o DrawOptions) *image.RGBA {
 	v, view := o.place(f.Points)
 	idx := f.Edges
 	if f.Kind == FigurePoints {
-		idx = PointIndices(len(f.Points), lo, hi)
+		// Every point, by range rather than by index: uint16 indices stopped a
+		// point figure at 65536, and a density view has more cells than that.
+		idx, view.Points = nil, [2]int{lo, hi}
 	}
 	if f.Kind == FigurePath {
 		idx = SpanIndices(len(f.Points), lo, hi)

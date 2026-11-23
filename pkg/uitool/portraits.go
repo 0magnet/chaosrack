@@ -712,6 +712,24 @@ var modelVariantShots = map[string][]variantShot{
 		// the trail instead. Left on Z the 2-D walk came out nearly black.
 		colors: &colorVariation{gc: 4, gs: 3},
 	}},
+	// POINTS S: the swarm, a ball of particles carried through the flow. Eight
+	// seconds is long enough for it to have folded into the attractor's sheets
+	// and short enough that it has not yet become a uniform cloud.
+	"lorenz": {{suffix: "swarm", set: setCheckbox("swarm-sw", true), reset: setCheckbox("swarm-sw", false), settle: 8 * time.Second}},
+	// POINTS D: the density view, the counts filled in over a few seconds.
+	"hopalong": {densityShot},
+	"clifford": {densityShot},
+	"dejong":   {densityShot},
+}
+
+// densityShot is a map's density view, given time to fill in.
+var densityShot = variantShot{suffix: "density", set: setCheckbox("density-sw", true), reset: setCheckbox("density-sw", false), settle: 6 * time.Second}
+
+// setCheckbox is the script that turns switch id on or off through its change
+// event, as a press of its button does.
+func setCheckbox(id string, on bool) string {
+	return fmt.Sprintf(`(function(){var s=document.getElementById(%q);
+	  if(s && s.checked!==%t){ s.checked=%t; s.dispatchEvent(new Event('change',{bubbles:true})); }})()`, id, on, on)
 }
 
 func setTurtleDim(d int) string {

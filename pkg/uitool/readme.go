@@ -538,7 +538,11 @@ func fileExists(p string) bool {
 // set is what the variant's link adds to the model's, as the page writes it
 // (the controls portraits.go sets for the shot).
 var modelVariants = map[string][]struct{ suffix, head, set string }{
-	"turtle": {{"2d", "in 2-D (mod 30, closed)", "p.dim=2&p.mod=30"}},
+	"turtle":   {{"2d", "in 2-D (mod 30, closed)", "p.dim=2&p.mod=30"}},
+	"lorenz":   {{"swarm", "as a swarm (POINTS S)", "sw=1"}},
+	"hopalong": {{"density", "density (POINTS D)", "dn=1"}},
+	"clifford": {{"density", "density (POINTS D)", "dn=1"}},
+	"dejong":   {{"density", "density (POINTS D)", "dn=1"}},
 }
 
 // appLink is the page showing model key, with set (link fields joined by
