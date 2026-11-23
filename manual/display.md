@@ -706,11 +706,20 @@ Reset point count (0, solid line)
 
 - <!-- key: trio.dash-duty=0 --> dots: draw every vertex as a point
 - <!-- key: trio.dash-duty=1 --> line: solid line (dots off, point count 0)
+- <!-- key: trio.dash-duty=2 --> swarm: carry TRAIL's count of particles through the flow at once (3-D flows)
 
 ### Dots
 
 <!-- key: use-points -->
 Dots — draw every vertex of the trace as a point instead of a connected line
+
+### Swarm
+
+<!-- key: swarm-sw -->
+Swarm — instead of one trail, carry TRAIL's count of particles through the flow at once, the way spectrometry.mp4's attractor engine draws.
+Each switch-on starts them as a tight ball on the attractor, so you first see the ball smear out along the flow, then the attractor as the place they crowd.
+Nearer particles are drawn larger and brighter, which separates the front of the figure from the back. SPEED sets how far they move each frame.
+Works on the 3-D flows; the button is dim elsewhere.
 
 ### TRAIL
 

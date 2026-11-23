@@ -619,7 +619,7 @@ func onResetAll(this js.Value, args []js.Value) any {
 		{"ring-sw", false}, {"grid-ovl", false}, {"sect-sw", false}, {"phys-sw", false},
 		// Through their change, as a press would: their P-unit buttons light
 		// from it (POINTS +, TRAIL +, MAP I).
-		{"use-points", false}, {"persist-trail", false}, {"gradient-reverse", false},
+		{"use-points", false}, {"swarm-sw", false}, {"persist-trail", false}, {"gradient-reverse", false},
 		{"color-key-sw", false}, // MAP K: the color key (colorkey_js.go), off until asked for
 		{"water-touch", true},   // DRIVE P: a drag makes waves (water_js.go)
 		{"link-sw", true},
@@ -1231,6 +1231,8 @@ func wirePanelSwitches() {
 			return nil
 		})
 	}
+
+	wireSwarm() // POINTS S: the swarm (swarm_js.go)
 
 	// Event: points/line toggle
 	dom.On(dom.Doc.Call("getElementById", "use-points"), "change", func(this js.Value, args []js.Value) any {

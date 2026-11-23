@@ -41,6 +41,10 @@ func integrate3D(dt float64, deriv func(x, y, z float64) (float64, float64, floa
 	// Publish this mode's vector field to the flow registry (Model Out FLOW
 	// sonification) — free coverage for every integrate3D system.
 	dynamics.Capture(run.selectedMode, dt, deriv)
+	if swarm.on {
+		generateSwarm(dt, deriv)
+		return
+	}
 	vertices := sim.vertBuf[:sim.steps*4]
 	invN := float32(1) / float32(sim.steps-1)
 	d := dt * float64(sim.speedScale)

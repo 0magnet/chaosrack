@@ -12,10 +12,12 @@ package attractor
 func init() {
 	// POINTS: + draws every vertex as a dot; 0 is the solid line, no dots
 	// and no breaks. The knob between breaks the line into that many points.
+	// S is the swarm (swarm_js.go): TRAIL's count of particles carried
+	// through the flow at once, a switch of its own beside the other two.
 	trioPrograms["dash-duty"] = trioProgram{
-		keys:     []string{"+", "0", ""},
-		switches: []string{"use-points"},
-		help:     []string{doc("trio.dash-duty=0"), doc("trio.dash-duty=1")},
+		keys:     []string{"+", "0", "S"},
+		switches: []string{"use-points", "", "swarm-sw"},
+		help:     []string{doc("trio.dash-duty=0"), doc("trio.dash-duty=1"), doc("trio.dash-duty=2")},
 		press: func(i int) {
 			switch i {
 			case 0:
@@ -23,18 +25,15 @@ func init() {
 			case 1:
 				setSwitch("use-points", false)
 				setParamSlider("dash-duty", 0)
+			case 2:
+				setSwitch("swarm-sw", !checkedOn("swarm-sw"))
 			}
 		},
-		lit: func() int {
-			switch {
-			case checkedOn("use-points"):
-				return 0
-			case paramSliderValue("dash-duty") == 0:
-				return 1
-			}
-			return -1
+		lits: func() []bool {
+			points := checkedOn("use-points")
+			return []bool{points, !points && paramSliderValue("dash-duty") == 0, checkedOn("swarm-sw")}
 		},
-		drive: []string{"use-points", "dash-duty"},
+		drive: []string{"use-points", "dash-duty", "swarm-sw"},
 	}
 	// TRAIL: how the trail is kept. + persists it, never clearing; 0 is the
 	// scan, the whole trail drawn again each frame; − is the ring, only the

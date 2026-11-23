@@ -17,7 +17,8 @@ func generateClassic(mode string) {
 	if !ok {
 		return
 	}
-	if !dynamics.UsingEuler() {
+	// The swarm is drawn by integrate3D under either integrator.
+	if swarm.on || !dynamics.UsingEuler() {
 		if dt, f, ok := dynamics.FlowFor(mode); ok {
 			integrate3D(dt, f)
 			return

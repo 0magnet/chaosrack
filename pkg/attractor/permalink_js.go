@@ -50,6 +50,7 @@ var permaCtls = []permaCtl{
 	{"ar", "auto-rotate", true},
 	{"tb", "tbc-sw", true},
 	{"pt", "use-points", true},
+	{"sw", "swarm-sw", true},
 	{"ps", "persist-trail", true},
 	{"rb", "ring-sw", true},
 	{"vo", "grid-ovl", true},

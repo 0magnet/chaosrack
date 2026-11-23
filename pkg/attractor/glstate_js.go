@@ -123,6 +123,7 @@ type uniforms struct {
 	audioLUT                      js.Value
 	dashDuty, dashCount           js.Value
 	pointSize                     js.Value
+	depthCue, depthExtent         js.Value
 	model, view                   js.Value
 	trailHead                     js.Value
 	splitZ, splitSide             js.Value

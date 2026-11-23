@@ -569,6 +569,7 @@ func buildParamPanelNow(mode string) {
 	ball.syncBounceExtras(mode)
 	morph.syncSprottMorphExtras(mode)
 	syncMapExtras(mode)
+	syncCloudButton(mode)
 	syncTermAnimExtras(mode)
 	syncLayersModule(mode)
 	syncHomedModules(mode)

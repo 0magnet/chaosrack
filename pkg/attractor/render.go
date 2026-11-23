@@ -363,6 +363,13 @@ var vertShaderCode = `
 	uniform mat4 Vmatrix;
 	uniform mat4 Mmatrix;
 	uniform float uPointSize;
+	// Depth cueing, for a swarm of points: with tens of thousands of dots, a
+	// flat projection smears a 3-D figure into one cloud, and making the
+	// nearer points larger and brighter is enough to separate front from
+	// back. uDepthCue is how much (0, the default, changes nothing), and
+	// uDepthExtent the figure's half-size, which depth is measured against.
+	uniform float uDepthCue;
+	uniform float uDepthExtent;
 	// The audio gradient table, read HERE rather than in the fragment shader.
 	// GLSL ES 1.0 only requires dynamic indexing of a uniform array in the
 	// vertex stage — a fragment shader may reject an index that is not a
@@ -383,10 +390,14 @@ var vertShaderCode = `
 		vec4 viewPos = Vmatrix * Mmatrix * vec4(position, 1.0);
 		vViewZ = viewPos.z;
 		gl_Position = Pmatrix * viewPos;
-		gl_PointSize = uPointSize;
+		// 1 at the figure's nearest, 0 at its farthest. The vertices are
+		// centered, so the figure's center is the model origin.
+		vec4 center = Vmatrix * Mmatrix * vec4(0.0, 0.0, 0.0, 1.0);
+		float nearness = clamp((viewPos.z - center.z) / max(uDepthExtent, 1e-6), -1.0, 1.0) * 0.5 + 0.5;
+		gl_PointSize = uPointSize * mix(1.0, 0.5 + nearness, uDepthCue);
 		vPosition = position;
 		vTrailT = aTrailT;
-		vDwell = aDwell;
+		vDwell = aDwell * mix(1.0, 0.25 + 0.75 * nearness, uDepthCue);
 		vAudioT = uAudioLUT[int(clamp(aTrailT, 0.0, 1.0) * 31.0 + 0.5)];
 	}
 `
@@ -448,6 +459,10 @@ func (r *renderer) setupShaders() {
 	r.u.splitSide = glctx.GL.Call("getUniformLocation", r.program, "uSplitSide")
 	setSplitPlane(splitNone, 0)
 	glctx.GL.Call("uniform1f", r.u.pointSize, 2.0)
+	r.u.depthCue = glctx.GL.Call("getUniformLocation", r.program, "uDepthCue")
+	r.u.depthExtent = glctx.GL.Call("getUniformLocation", r.program, "uDepthExtent")
+	glctx.GL.Call("uniform1f", r.u.depthCue, 0)
+	glctx.GL.Call("uniform1f", r.u.depthExtent, 1)
 	glctx.GL.Call("uniform3f", r.u.baseColor, style.baseColor[0], style.baseColor[1], style.baseColor[2])
 	glctx.GL.Call("uniform3f", r.u.topColor, style.topColor[0], style.topColor[1], style.topColor[2])
 	glctx.GL.Call("uniform3f", r.u.midColor, style.midColor[0], style.midColor[1], style.midColor[2])
@@ -628,6 +643,8 @@ func generateForMode(mode string) {
 	}
 	if gpu.ready {
 		setTraceUniforms(true)
+		// No depth cue unless the swarm sets it again this frame.
+		gpu.setDepthCue(0, 1)
 	}
 	// Audio-reactive: modulate ODE params (dt, primary chaos param) for
 	// this integration step, and the colors / point size for this frame.
@@ -661,7 +678,8 @@ func generateForMode(mode string) {
 	}
 	// Ring-trail beam step (TRAIL − (Display)): draws the frame itself when active
 	// and primed; otherwise the scan generator below runs (and primes it).
-	if ring.tick(mode) {
+	// The swarm draws its particles itself, so it takes the ring's place.
+	if !swarm.on && ring.tick(mode) {
 		restoreAudioModulation(saved)
 		sect.tick(mode)
 		return
