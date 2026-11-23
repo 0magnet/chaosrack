@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs
+.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs check-names check-inits
 
 # The targets that matter are `format` and `check`, and they mean the same
 # thing here as in 0pcom/skywire, which is the reference for these repos.
@@ -168,7 +168,7 @@ cover: ## Report test coverage per package
 	fi
 	$(recurse)
 
-check: lint vet test ## Run linters, vet and tests
+check: lint vet test check-names check-inits ## Run linters, vet, tests and the guards
 
 install-linters: ## Install the linters
 	${OPTS} go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
@@ -176,3 +176,12 @@ install-linters: ## Install the linters
 
 docs: ## Regenerate the dependency graph and code counts in the README
 	./gendocs.sh
+
+# The naming and init rules of AGENTS.md (github.com/0magnet/guard).
+GUARD ?= go run github.com/0magnet/guard@main
+
+check-names: ## Fail on a new generic name, generic package or is/has bool (AGENTS.md Naming; scripts/guard/names-allowlist.txt only shrinks)
+	$(GUARD) names
+
+check-inits: ## Fail on a new func init() outside package main (scripts/guard/init-allowlist.txt only shrinks)
+	$(GUARD) inits

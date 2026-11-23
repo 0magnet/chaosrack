@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs dist
+.PHONY: help format tidy lint vet test test-wasm test-browser cover check install-linters docs dist check-inits
 
 # The targets that matter are `format` and `check`, and they mean the same
 # thing here as in 0pcom/skywire, which is the reference for these repos.
@@ -174,7 +174,7 @@ cover: ## Report test coverage per package
 	fi
 	$(recurse)
 
-check: lint vet test ## Run linters, vet and tests
+check: lint vet test check-inits ## Run linters, vet, tests and the guards
 
 install-linters: ## Install the linters
 	${OPTS} go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
@@ -190,3 +190,9 @@ dist: ## Rebuild the COMMITTED dist/ assets (winbox.wasm.gz + winbox-exec.js) fr
 	rm -f /tmp/winbox-dist.wasm
 	@sh ./scripts/wrap-wasm-exec.sh "$$(tinygo env TINYGOROOT)/targets/wasm_exec.js" ./dist/winbox-exec.js
 	@echo "updated dist/ (winbox.wasm.gz + winbox-exec.js) — review with 'git status', commit intentionally."
+
+# The naming and init rules of AGENTS.md (github.com/0magnet/guard).
+GUARD ?= go run github.com/0magnet/guard@main
+
+check-inits: ## Fail on a new func init() outside package main (scripts/guard/init-allowlist.txt only shrinks)
+	$(GUARD) inits
