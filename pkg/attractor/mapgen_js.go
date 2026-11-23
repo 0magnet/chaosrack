@@ -43,6 +43,10 @@ func generateMap(mode string) {
 	if !ok {
 		return
 	}
+	if density.on {
+		generateDensity(mode, m)
+		return
+	}
 	orbits := m.Count()
 	mapOrbits.Ensure(mode, m)
 
@@ -77,6 +81,11 @@ func generateMap(mode string) {
 		mapOrbits.Set(o, p)
 	}
 	gpu.uploadVerticesOnly(vertices, glctx.Types.Points, total)
+	// Density just switched off: back to the points' own fit.
+	if density.refit && !centerWarm.on {
+		density.refit = false
+		view.autoFitCamera()
+	}
 }
 
 // mapDrawMode is the draw mode for a model that may be a map: points for one
@@ -96,7 +105,7 @@ func mapDrawMode(mode string) js.Value {
 
 // mapInvalidate forces a reseed — called when the parameters change, since a
 // map's orbit is only meaningful for the parameters that produced it.
-func mapInvalidate() { mapOrbits.Invalidate() }
+func mapInvalidate() { mapOrbits.Invalidate(); densityInvalidate() }
 
 // mapLeave forgets the entry pose so re-entering a map re-poses it. Without
 // this, leaving a map and coming back would keep whatever angle the previous

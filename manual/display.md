@@ -707,6 +707,7 @@ Reset point count (0, solid line)
 - <!-- key: trio.dash-duty=0 --> dots: draw every vertex as a point
 - <!-- key: trio.dash-duty=1 --> line: solid line (dots off, point count 0)
 - <!-- key: trio.dash-duty=2 --> swarm: carry TRAIL's count of particles through the flow at once (3-D flows)
+- <!-- key: trio.dash-duty=density --> density: show how often the map's orbit lands where, instead of a frame's points (maps)
 
 ### Dots
 
@@ -719,7 +720,14 @@ Dots — draw every vertex of the trace as a point instead of a connected line
 Swarm — instead of one trail, carry TRAIL's count of particles through the flow at once, the way spectrometry.mp4's attractor engine draws.
 Each switch-on starts them as a tight ball on the attractor, so you first see the ball smear out along the flow, then the attractor as the place they crowd.
 Nearer particles are drawn larger and brighter, which separates the front of the figure from the back. SPEED sets how far they move each frame.
-Works on the 3-D flows; the button is dim elsewhere.
+Works on the 3-D flows; on a map the same button is D, the density view, and elsewhere it is dim.
+
+### Density
+
+<!-- key: density-sw -->
+Density — on a map, instead of a frame's points, how often the orbit has landed in each part of the plane since the view was switched on, on a log scale and in the trace's colors, the way ratwolfzero/hopalong_python draws.
+It fills in over a few seconds, ten iterates for every TRAIL point each frame, and brings out the folds a point plot shows only as a flat cloud.
+A parameter change, or switching it on again, starts the count over.
 
 ### TRAIL
 

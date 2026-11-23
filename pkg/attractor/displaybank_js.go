@@ -12,8 +12,10 @@ package attractor
 func init() {
 	// POINTS: + draws every vertex as a dot; 0 is the solid line, no dots
 	// and no breaks. The knob between breaks the line into that many points.
-	// S is the swarm (swarm_js.go): TRAIL's count of particles carried
-	// through the flow at once, a switch of its own beside the other two.
+	// The third button is the model's: S on a flow is the swarm
+	// (swarm_js.go), TRAIL's count of particles carried through it at once;
+	// D on a map is the density view (density_js.go), how often the orbit
+	// lands where. syncCloudButton relabels it on a model change.
 	trioPrograms["dash-duty"] = trioProgram{
 		keys:     []string{"+", "0", "S"},
 		switches: []string{"use-points", "", "swarm-sw"},
@@ -26,14 +28,15 @@ func init() {
 				setSwitch("use-points", false)
 				setParamSlider("dash-duty", 0)
 			case 2:
-				setSwitch("swarm-sw", !checkedOn("swarm-sw"))
+				sw := cloudSwitch(run.selectedMode)
+				setSwitch(sw, !checkedOn(sw))
 			}
 		},
 		lits: func() []bool {
 			points := checkedOn("use-points")
-			return []bool{points, !points && paramSliderValue("dash-duty") == 0, checkedOn("swarm-sw")}
+			return []bool{points, !points && paramSliderValue("dash-duty") == 0, checkedOn(cloudSwitch(run.selectedMode))}
 		},
-		drive: []string{"use-points", "dash-duty", "swarm-sw"},
+		drive: []string{"use-points", "dash-duty", "swarm-sw", "density-sw"},
 	}
 	// TRAIL: how the trail is kept. + persists it, never clearing; 0 is the
 	// scan, the whole trail drawn again each frame; − is the ring, only the

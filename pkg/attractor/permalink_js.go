@@ -51,6 +51,7 @@ var permaCtls = []permaCtl{
 	{"tb", "tbc-sw", true},
 	{"pt", "use-points", true},
 	{"sw", "swarm-sw", true},
+	{"dn", "density-sw", true},
 	{"ps", "persist-trail", true},
 	{"rb", "ring-sw", true},
 	{"vo", "grid-ovl", true},

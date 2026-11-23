@@ -90,10 +90,26 @@ func (r *renderer) setDepthCue(cue, ext float32) {
 	}
 }
 
-// syncCloudButton dims POINTS' third button where it does nothing: on a model
-// that is neither a flow the swarm can carry nor a map.
+// cloudSwitch is the switch POINTS' third button sets on mode: the density
+// view on a map, the swarm anywhere else.
+func cloudSwitch(mode string) string {
+	if dynamics.IsMap(mode) {
+		return "density-sw"
+	}
+	return "swarm-sw"
+}
+
+// syncCloudButton labels POINTS' third button for the model, D on a map and
+// S otherwise, and dims it where it does nothing. The legend and tooltip are
+// set in place in the program, before the panel build relights the trios.
 func syncCloudButton(mode string) {
-	dimTrioButton("dash-duty", 2, !swarmCapable(mode))
+	p := trioPrograms["dash-duty"]
+	if dynamics.IsMap(mode) {
+		p.keys[2], p.help[2] = "D", doc("trio.dash-duty=density")
+	} else {
+		p.keys[2], p.help[2] = "S", doc("trio.dash-duty=2")
+	}
+	dimTrioButton("dash-duty", 2, !swarmCapable(mode) && !dynamics.IsMap(mode))
 }
 
 // wireSwarm follows the swarm's switch. Every switch-on starts a fresh ball.

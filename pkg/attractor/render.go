@@ -486,7 +486,7 @@ func (r *renderer) setupShaders() {
 func setupMatrices() {
 	// gpu.proj is a pkg var (textured_js.go) so texp.program can reuse it.
 	// Far plane must clear the auto-fit camera distance (maxExtent·3, capped at
-	// 300) PLUS the model's own extent (~maxExtent) PLUS the zoom-out range —
+	// 1000 by fitDistFor) PLUS the model's own extent (~maxExtent) PLUS the zoom-out range —
 	// otherwise the back of a large attractor pokes past the far plane and gets
 	// clipped ("cutting through the black background"). 1500 covers the worst
 	// case with margin.
@@ -507,11 +507,20 @@ func (c *camera) updateViewMatrix() {
 	cameraPosition := mgl32.Vec3{-c.panX, -c.panY, c.defaultDist}
 	center := mgl32.Vec3{-c.panX, -c.panY, 0.0}
 	c.viewMat = mgl32.LookAtV(cameraPosition, center, mgl32.Vec3{0.0, 1.0, 0.0})
+	// Not before the program is linked: useProgram on it then is an
+	// INVALID_OPERATION, which a page opened on a map raised every time (its
+	// entry pose is set before setup). Setup uploads both matrices itself.
+	if !gpu.ready {
+		return
+	}
 	glctx.GL.Call("useProgram", gpu.program)
 	glctx.GL.Call("uniformMatrix4fv", gpu.u.view, false, texp.mat4ToTyped(&c.viewMat))
 }
 
 func (c *camera) updateModelMatrix() {
+	if !gpu.ready { // see updateViewMatrix
+		return
+	}
 	glctx.GL.Call("useProgram", gpu.program)
 	glctx.GL.Call("uniformMatrix4fv", gpu.u.model, false, texp.mat4ToTyped(&c.modelMat))
 }
@@ -582,8 +591,11 @@ func fitDistFor(ext float32) float32 {
 	if dist < 5 {
 		dist = 5
 	}
-	if dist > 300 {
-		dist = 300
+	// Room for the largest figures: Dequan Li reaches ±173 and Hopalong
+	// ±170, which want about 520, and a cap of 300 left both overflowing the
+	// view. The projection's far plane is at 1500, past 1000 plus either.
+	if dist > 1000 {
+		dist = 1000
 	}
 	return dist
 }
@@ -837,9 +849,14 @@ func renderLoop(this js.Value, args []js.Value) any {
 		// alone would not consult the index buffer and the canvas
 		// goes blank. Both paths skip the integrator step so the
 		// visual snapshot is preserved.
-		if isAttractorMode(run.selectedMode) {
+		switch {
+		case densityShowing(run.selectedMode):
+			// The buffer holds only the box's corners: the picture is the
+			// density image, drawn again as it stands.
+			drawDensityQuad()
+		case isAttractorMode(run.selectedMode):
 			glctx.GL.Call("drawArrays", mapDrawMode(run.selectedMode), 0, run.pausedCount)
-		} else {
+		default:
 			generateForMode(run.selectedMode)
 		}
 		// Still allow camera interaction while paused (zoom read
