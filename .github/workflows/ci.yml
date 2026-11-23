@@ -72,6 +72,8 @@ jobs:
       # rewritten underneath the file, and the module reference listed 23 of
       # the rack's 35 modules. This is the check that would have caught it.
       - run: make readme-check
+      # The naming and init rules of AGENTS.md; their allowlists only shrink.
+      - run: make check-names check-inits
 
   tinygo:
     runs-on: ubuntu-latest
