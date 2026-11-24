@@ -4,19 +4,19 @@ go 1.26.10
 
 require (
 	github.com/0magnet/afero v1.15.1-0.20261003211811-482680d00992
-	github.com/0magnet/audioprism-go v0.0.1-0.20261123161451-7dc464f76b09
+	github.com/0magnet/audioprism-go v0.0.1-0.20261124162047-9e41b743b01c
 	github.com/0magnet/calvin v0.0.1-0.20261123113739-17ec6c31723c
 	github.com/0magnet/cdp v0.0.0-20261123111429-0df1c167f99e
-	github.com/0magnet/desk v0.0.3-0.20261123162206-9485e15c9acf
-	github.com/0magnet/desk/panes v0.0.1-0.20261123161853-28778df914b5
+	github.com/0magnet/desk v0.0.3-0.20261124162943-5a94801eada7
+	github.com/0magnet/desk/panes v0.0.1-0.20261124162518-6775686f1d7a
 	github.com/0magnet/lattice v0.0.0-20261123161050-bf176305f949
-	github.com/0magnet/pisano v0.0.0-20261123162152-b9c4145496d4
+	github.com/0magnet/pisano v0.0.0-20261124163856-041abc9b6ce3
 	github.com/0magnet/rack-go v0.0.0-20261123111229-1f25c9a8c8de
 	github.com/0magnet/seat v0.0.0-20261123110925-c4459967b4de
 	github.com/0magnet/sh/v3 v3.13.2-0.20261024150911-145e01c63128
-	github.com/0magnet/tuiwasm v0.0.0-20261123162618-905c373f62f4
-	github.com/0magnet/websh v0.0.1-0.20261123161609-45d906fd391f
-	github.com/0magnet/winbox-go v0.0.1-0.20261123161147-35767eea845c
+	github.com/0magnet/tuiwasm v0.0.0-20261124164244-e1cb3fea1561
+	github.com/0magnet/websh v0.0.1-0.20261124162130-3e2dd700684d
+	github.com/0magnet/winbox-go v0.0.1-0.20261123161251-43842cba2e0c
 	github.com/0magnet/xterm-go v0.0.1-0.20261123110635-ef9c274ca8f7
 	github.com/creack/pty v1.1.24
 	github.com/gdamore/tcell/v2 v2.13.10
@@ -24,7 +24,7 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-gl/mathgl v1.2.0
 	github.com/jfreymuth/pulse v0.1.3
-	github.com/quic-go/quic-go v0.64.1
+	github.com/quic-go/quic-go v0.66.0
 	github.com/quic-go/webtransport-go v0.13.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.1.0
@@ -82,7 +82,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/itchyny/gojq v0.12.20 // indirect
 	github.com/itchyny/timefmt-go v0.1.9 // indirect
-	github.com/jedib0t/go-pretty/v6 v6.9.2 // indirect
+	github.com/jedib0t/go-pretty/v6 v6.9.3 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.2 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect
