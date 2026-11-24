@@ -11,6 +11,7 @@ import (
 	"github.com/0magnet/chaosrack/pkg/dom"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"github.com/0magnet/chaosrack/pkg/glctx"
+	"github.com/0magnet/chaosrack/pkg/sacred"
 )
 
 // Custom mode: user-editable attractor equations. The three (optionally four)
@@ -477,12 +478,14 @@ func (c *customEquation) buildEquationView(mode string, paramsDiv js.Value) {
 	// its exact numbers and the near misses (chester.Info).
 	var polyLines [4][2]string
 	polyRun := false
-	lined := mode == "polyhedron" || mode == "chestahedron"
+	lined := mode == "polyhedron" || mode == "chestahedron" || mode == "sacred"
 	switch mode {
 	case "polyhedron":
 		polyLines, polyRun = polyEquationLines()
 	case "chestahedron":
 		polyLines = chester.Info(chestKnobs())
+	case "sacred":
+		polyLines = sacred.EquationLines(sacredKnobs())
 	}
 	col := dom.Doc.Call("createElement", "span")
 	col.Set("className", "pcell")

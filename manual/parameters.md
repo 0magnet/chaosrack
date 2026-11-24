@@ -279,6 +279,27 @@ sphere: the seed of life (1), the cube around (2), the flower of life (3), the 2
 spin: the cube (1), the solid traced through time (2 up). first: the tetrahedron in the middle (1). roll: the √3 chord (0), six of them (1), parallel lines (2 up).
 fire: more rings and lines on the lobes. beat: the band's star (1), the paths the halves turn through (2 up). bubble: the wire solid (1), the right ventricle (2), tilted 36° as the heart sits (3).
 
+### form
+
+<!-- key: p.sacred-form -->
+form — which figure.
+vesica: two circles of one radius, each through the other's center. seed: the Seed of Life, six circles round one. flower: the Flower of Life, the lattice of circles each through six others' centers.
+fruit: the Fruit of Life, thirteen circles that touch and never cross. metatron: Metatron's Cube, the Fruit's thirteen centers each joined to every other.
+golden: the golden rectangle, its whirling squares and the spiral of quarter circles through them. sunflower: Vogel's model of a sunflower's seeds, each turned the golden angle from the last.
+
+### morph
+
+<!-- key: p.sacred-morph -->
+morph — how far the construction is drawn, stroke by stroke in the order compass and straightedge make it: 0 nothing, 1 the whole figure as it is usually shown.
+Past 1 the figure twists into a vortex, each point turned about the center by its distance from it, half a turn at the rim by 2. sunflower: past 1 the angle between seeds moves off the golden angle, 2% by 2, and the spirals break into spokes.
+
+### detail
+
+<!-- key: p.sacred-detail -->
+detail — how much there is. vesica: the line of centers and the lens's axis (1), the two equilateral triangles (2), the √3 rectangle round the lens (3).
+seed: the circle round it (1), the hexagram through its centers (2). flower: rings, one more than detail, to six. fruit: the hexagons through its centers (1). metatron: the circles under the lines (1).
+golden: four squares and two more for each step. sunflower: 150 seeds and 150 more for each step.
+
 ### modulus
 
 <!-- key: p.turtle-mod -->

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/0magnet/chaosrack/pkg/chester"
+	"github.com/0magnet/chaosrack/pkg/sacred"
 )
 
 // Some models are many figures behind one knob — the Chestahedron's FORM
@@ -27,6 +28,7 @@ type formPreset struct {
 // modelForms are the models shown figure by figure.
 var modelForms = map[string][]formPreset{
 	"chestahedron": chestForms(),
+	"sacred":       sacredForms(),
 }
 
 // chestForms is every FORM at the MORPH and DETAIL that show it best: the
@@ -83,7 +85,7 @@ func renderForms(key string, idx int) error {
 	vars := portraitVariations(idx)
 	walk := fmt.Sprintf("%d/%s", vars[0].gc, [...]string{"x", "y", "z", "trail"}[vars[0].gs])
 	for _, f := range forms {
-		args := []string{"render", "--model", key, "--crop", "--angle", "0.349066,0,0",
+		args := []string{"render", "--model", key, "--crop", "--angle", formAngle(key),
 			"-o", formStill(*portDir, key, f.name), "--width", "300", "--height", "300"}
 		if *portColors {
 			args = append(args, "--walk", walk)
@@ -130,4 +132,30 @@ func formsGallery(key string) string {
 		b.WriteString("| " + strings.Join(row, " | ") + " |\n")
 	}
 	return b.String() + "\n"
+}
+
+// formAngle is the pose a model's forms are rendered in: a solid tilted 20°
+// so its depth shows, a flat construction face-on, as it is drawn on paper.
+func formAngle(key string) string {
+	if key == "sacred" {
+		return "0,0,0"
+	}
+	return "0.349066,0,0"
+}
+
+// sacredForms is every Sacred Geometry figure drawn whole (MORPH 1), at the
+// DETAIL that shows it as it is usually drawn.
+func sacredForms() []formPreset {
+	show := map[string]float64{
+		"vesica": 2, "seed": 1, "flower": 1, "fruit": 0, "metatron": 1, "golden": 3, "sunflower": 3,
+	}
+	out := make([]formPreset, 0, len(sacred.FormNames))
+	for i, n := range sacred.FormNames {
+		out = append(out, formPreset{n, [][2]string{
+			{"sacred-form", strconv.Itoa(i)},
+			{"sacred-morph", "1"},
+			{"sacred-detail", strconv.FormatFloat(show[n], 'g', -1, 64)},
+		}})
+	}
+	return out
 }

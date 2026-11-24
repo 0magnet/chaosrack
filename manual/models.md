@@ -226,6 +226,17 @@ then the fire form (his double heart), the beat (the wire solid split and turned
 morph runs each one, 1 being the form as he shows it, and detail adds what lies inside or around.
 The pentagram and golden-ratio constructions of it are near misses — the kite's angles are 36.50°, 71.75° and 125.88°, not 36, 72 and 126 — and the Equation module gives the numbers for each form.
 
+### Sacred Geometry
+
+<!-- key: model.sacred -->
+Sacred Geometry — The constructions the name usually means, drawn with compass and straightedge as they are made: the vesica piscis, the Seed, Flower and Fruit of Life, Metatron's Cube, the golden rectangle's spiral, and the sunflower, where the golden ratio grows.
+form picks the figure, morph draws its construction stroke by stroke (1 is the figure as usually shown, and past it a vortex), and detail is how much there is: the flower's rings, the spiral's squares, the sunflower's seeds.
+The vesica is Euclid's first proposition, the equilateral triangle, and its lens stands √3 to 1.
+The Flower of Life is the hexagonal lattice of circles, every circle through six others' centers; the Fruit of Life is thirteen of them that touch and never cross, and joining their centers every way is Metatron's Cube, 78 lines with the outlines of the cube and the star tetrahedron in them.
+The golden rectangle is the one a square cut from leaves another like it, and its quarter circles shrink by φ every turn.
+The sunflower turns each seed 360°/φ² = 137.5° from the last, which packs them with no spokes, and the spirals you count in it are Fibonacci numbers.
+The Equation module gives each figure's numbers.
+
 ### Nested Cube
 
 <!-- key: model.nestedcube -->

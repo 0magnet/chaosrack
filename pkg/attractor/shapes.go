@@ -6,6 +6,7 @@ import (
 	"github.com/0magnet/chaosrack/pkg/chester"
 	"github.com/0magnet/chaosrack/pkg/conway"
 	"github.com/0magnet/chaosrack/pkg/geom"
+	"github.com/0magnet/chaosrack/pkg/sacred"
 )
 
 // The geometry models' shapes as their knobs make them, shared by the page
@@ -188,6 +189,13 @@ func PolyShape(p, q int, morph float64, op int, kis float64, dim int) (conway.So
 	return PolySolid(p, q, morph, op, kis)
 }
 
+// SacredKnobs are the Sacred Geometry's knobs, and SacredDefaults their
+// defaults: the Flower of Life, drawn whole, at its usual two rings.
+var (
+	SacredKnobs    = [3]string{"sacred-form", "sacred-morph", "sacred-detail"}
+	SacredDefaults = [3]float64{sacred.Flower, 1, 1}
+)
+
 // ChestKnobs are the Chestahedron's knobs, and chestDefaults their
 // defaults: the solid, as Chester shows it, with the first of what is
 // inside or around it (chester_js.go).
@@ -251,6 +259,8 @@ func ShapeFigure(key string, knob func(id string) float64, roll float64) (Figure
 	case "chestahedron":
 		return linesFigure(chester.Form(round("chestahedron-form"),
 			knob("chestahedron-morph"), knob("chestahedron-detail")).Geom()), true
+	case "sacred":
+		return linesFigure(sacred.Form(round("sacred-form"), knob("sacred-morph"), knob("sacred-detail")).Geom()), true
 	case "lissajou":
 		a, b, c := knob("lissajou-a"), knob("lissajou-b"), knob("lissajou-c")
 		if a <= 0 || b <= 0 || c <= 0 {

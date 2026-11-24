@@ -1535,7 +1535,7 @@ The Turtle is the exception that fits: it walks the same integer grid, so withou
 
 ### Geometry
 
-[Polyhedron](#polyhedron) · [Chestahedron](#chestahedron) · [Nested Cube](#nested-cube) · [Globe](#globe) · [Torus](#torus) · [Magnetosphere](#magnetosphere)
+[Polyhedron](#polyhedron) · [Chestahedron](#chestahedron) · [Sacred Geometry](#sacred-geometry) · [Nested Cube](#nested-cube) · [Globe](#globe) · [Torus](#torus) · [Magnetosphere](#magnetosphere)
 
 #### Polyhedron
 
@@ -1577,6 +1577,32 @@ Its forms, each opening the page with that form up:
 
 
 `#chestahedron` · geometry
+
+#### Sacred Geometry
+
+[![Sacred Geometry parameters](docs/img/model/sacred-params.jpg)](https://chaosrack.magnetosphere.net/#sacred)
+
+| Sacred Geometry | animated |
+| --- | --- |
+| [![Sacred Geometry](docs/img/model/sacred.jpg)](https://chaosrack.magnetosphere.net/#sacred) | [![Sacred Geometry, animated](https://chaosrack.magnetosphere.net/docs/img/model/sacred.gif)](https://chaosrack.magnetosphere.net/#sacred) |
+
+Sacred Geometry — The constructions the name usually means, drawn with compass and straightedge as they are made: the vesica piscis, the Seed, Flower and Fruit of Life, Metatron's Cube, the golden rectangle's spiral, and the sunflower, where the golden ratio grows.
+form picks the figure, morph draws its construction stroke by stroke (1 is the figure as usually shown, and past it a vortex), and detail is how much there is: the flower's rings, the spiral's squares, the sunflower's seeds.
+The vesica is Euclid's first proposition, the equilateral triangle, and its lens stands √3 to 1.
+The Flower of Life is the hexagonal lattice of circles, every circle through six others' centers; the Fruit of Life is thirteen of them that touch and never cross, and joining their centers every way is Metatron's Cube, 78 lines with the outlines of the cube and the star tetrahedron in them.
+The golden rectangle is the one a square cut from leaves another like it, and its quarter circles shrink by φ every turn.
+The sunflower turns each seed 360°/φ² = 137.5° from the last, which packs them with no spokes, and the spirals you count in it are Fibonacci numbers.
+The Equation module gives each figure's numbers.
+
+Its forms, each opening the page with that form up:
+
+|   |   |   |   |
+| --- | --- | --- | --- |
+| [![vesica](docs/img/model/sacred-form-vesica.jpg)](https://chaosrack.magnetosphere.net/#sacred&p.form=0&p.morph=1&p.detail=2)<br>[vesica](https://chaosrack.magnetosphere.net/#sacred&p.form=0&p.morph=1&p.detail=2) | [![seed](docs/img/model/sacred-form-seed.jpg)](https://chaosrack.magnetosphere.net/#sacred&p.form=1&p.morph=1&p.detail=1)<br>[seed](https://chaosrack.magnetosphere.net/#sacred&p.form=1&p.morph=1&p.detail=1) | [![flower](docs/img/model/sacred-form-flower.jpg)](https://chaosrack.magnetosphere.net/#sacred&p.form=2&p.morph=1&p.detail=1)<br>[flower](https://chaosrack.magnetosphere.net/#sacred&p.form=2&p.morph=1&p.detail=1) | [![fruit](docs/img/model/sacred-form-fruit.jpg)](https://chaosrack.magnetosphere.net/#sacred&p.form=3&p.morph=1&p.detail=0)<br>[fruit](https://chaosrack.magnetosphere.net/#sacred&p.form=3&p.morph=1&p.detail=0) |
+| [![metatron](docs/img/model/sacred-form-metatron.jpg)](https://chaosrack.magnetosphere.net/#sacred&p.form=4&p.morph=1&p.detail=1)<br>[metatron](https://chaosrack.magnetosphere.net/#sacred&p.form=4&p.morph=1&p.detail=1) | [![golden](docs/img/model/sacred-form-golden.jpg)](https://chaosrack.magnetosphere.net/#sacred&p.form=5&p.morph=1&p.detail=3)<br>[golden](https://chaosrack.magnetosphere.net/#sacred&p.form=5&p.morph=1&p.detail=3) | [![sunflower](docs/img/model/sacred-form-sunflower.jpg)](https://chaosrack.magnetosphere.net/#sacred&p.form=6&p.morph=1&p.detail=3)<br>[sunflower](https://chaosrack.magnetosphere.net/#sacred&p.form=6&p.morph=1&p.detail=3) |  |
+
+
+`#sacred` · geometry
 
 #### Nested Cube
 

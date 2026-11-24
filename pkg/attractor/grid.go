@@ -110,6 +110,10 @@ var GridSweepParams = map[string][]GridParam{
 		{"chestahedron-morph", "morph", 0, 2},
 		{"chestahedron-detail", "detail", 0, 8},
 	},
+	"sacred": {
+		{"sacred-morph", "morph", 0, 2},
+		{"sacred-detail", "detail", 0, 10},
+	},
 	"takens": {
 		{"takens-tau", "τ", 1, 512},
 		{"takens-win", "win", 5, 500},

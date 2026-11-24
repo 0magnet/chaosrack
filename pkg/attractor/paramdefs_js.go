@@ -9,6 +9,7 @@ import (
 	"github.com/0magnet/chaosrack/pkg/analysis"
 	"github.com/0magnet/chaosrack/pkg/chester"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
+	"github.com/0magnet/chaosrack/pkg/sacred"
 )
 
 // ── Parameter definitions with slider ranges ─────────────────────────────────
@@ -44,6 +45,7 @@ var paramLabels = map[string][]string{
 	"spect-scale":       spectScaleNames,
 	"polyhedron-op":     polyOpNames(),
 	"chestahedron-form": chester.FormNames,
+	"sacred-form":       sacred.FormNames,
 	"globe-par":         {"rings", "spiral"},
 	"globe-rev":         {"cw", "ccw"},
 	"ga-wa":             {"tri", "sqr"},
@@ -124,6 +126,7 @@ var paramRingLabels = map[string][]string{
 	"spect-dft":   {"64", "128", "256", "512", "1k", "2k", "4k", "8k"},
 	"spect-win":   {"hann", "hamm", "bart", "rect"},
 	"spect-scale": {"log", "lin"},
+	"sacred-form": sacred.RingLabels,
 	"globe-par":   {"ring", "spir"},
 	"globe-rev":   {"cw", "ccw"},
 	"stereo-axes": stereoAxisRing,
@@ -252,6 +255,14 @@ var attractorParams = map[string][]paramDef{
 		{"chestahedron-form", "form", &chest.formF, 0, 0, chester.NumForms - 1, 1},
 		{"chestahedron-morph", "morph", &chest.morphF, 1, 0, 2, 0.01},
 		{"chestahedron-detail", "detail", &chest.detailF, 1, 0, chester.MaxDetail, 1},
+	},
+	// Sacred Geometry: which figure, how far its construction is drawn (1
+	// the figure as usually shown, past it a vortex), and how much of it.
+	// See sacred_js.go.
+	"sacred": {
+		{"sacred-form", "form", &sacredK.formF, float32(SacredDefaults[0]), 0, sacred.NumForms - 1, 1},
+		{"sacred-morph", "morph", &sacredK.morphF, float32(SacredDefaults[1]), 0, 2, 0.01},
+		{"sacred-detail", "detail", &sacredK.detailF, float32(SacredDefaults[2]), 0, sacred.MaxDetail, 1},
 	},
 
 	"globe": {

@@ -104,6 +104,7 @@ var modeInfo = map[string]ModeInfo{
 	"standardmap":   {"Chirikov Standard Map", ClassMap, false},
 	"polyhedron":    {"Polyhedron", ClassGeometry, true},
 	"chestahedron":  {"Chestahedron", ClassGeometry, true},
+	"sacred":        {"Sacred Geometry", ClassGeometry, false},
 	"nestedcube":    {"Nested Cube", ClassGeometry, true},
 	"globe":         {"Globe", ClassGeometry, true},
 	"torus":         {"Torus", ClassGeometry, true},
@@ -237,7 +238,7 @@ var modeGroups = []struct {
 	// with knobs between them now (conway_js.go), and the Sphere was the
 	// Globe without its parallels. The Chestahedron sits beside it: Frank
 	// Chester's seven-faced solid and its forms (chester_js.go).
-	{"Geometry", []string{"polyhedron", "chestahedron", "nestedcube", "globe", "torus", "magnetosphere"}},
+	{"Geometry", []string{"polyhedron", "chestahedron", "sacred", "nestedcube", "globe", "torus", "magnetosphere"}},
 	// The turtle is not geometry. It is an integer sequence read as
 	// turn-and-step — arithmetic that happens to draw — with its own camera,
 	// tinting, physics and closure classification. Filed next to "globe" and

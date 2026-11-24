@@ -42,6 +42,7 @@ func init() {
 	registerGenerate("custom", custom.generateCustom)
 	registerGenerate("polyhedron", generatePolyhedron)
 	registerGenerate("chestahedron", generateChestahedron)
+	registerGenerate("sacred", generateSacred)
 	registerGenerate("nestedcube", generateNestedCube)
 	registerGenerate("turtle", turtle.generateTurtle)
 	registerGenerate("globe", globe.generate)

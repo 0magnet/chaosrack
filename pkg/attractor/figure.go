@@ -9,6 +9,7 @@ import (
 	"github.com/0magnet/chaosrack/pkg/conway"
 	"github.com/0magnet/chaosrack/pkg/dynamics"
 	"github.com/0magnet/chaosrack/pkg/geom"
+	"github.com/0magnet/chaosrack/pkg/sacred"
 )
 
 // The models that can be drawn with no browser, beyond the flows.
@@ -67,6 +68,15 @@ func StaticFigure(key string, points int) (Figure, bool) {
 			}
 		}
 		return linesFigure(chester.Form(int(k[0]+0.5), float64(k[1]), float64(k[2])).Geom()), true
+	case "sacred":
+		// At its defaults the Flower of Life; --set turns it.
+		k := SacredDefaults
+		for i, id := range SacredKnobs {
+			if v, ok := figureSets[id]; ok {
+				k[i] = float64(v)
+			}
+		}
+		return linesFigure(sacred.Form(int(k[0]+0.5), k[1], k[2]).Geom()), true
 	case "nestedcube":
 		return linesFigure(geom.Lines{Vertices: verticesCube, Indices: indicesCube}), true
 	case "torus":
@@ -245,6 +255,9 @@ func FigureKnobs() []struct {
 	add("smorph-sys", 3)
 	for i, id := range ChestKnobs {
 		add(id, chestDefaults[i])
+	}
+	for i, id := range SacredKnobs {
+		add(id, float32(SacredDefaults[i]))
 	}
 	return out
 }
